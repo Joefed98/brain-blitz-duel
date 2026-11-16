@@ -53,7 +53,12 @@ export type ChallengeCond =
   /** An arcade standard part at its maximum `max` (the stored line's "of m" must be `max`). */
   | { c: "full"; label: string; max: number }
   /** An arcade reveal tile's leading whole number (extra.reveal.tiles). */
-  | { c: "tile"; label: string; op: CmpOp; v: number };
+  | { c: "tile"; label: string; op: CmpOp; v: number }
+  /**
+   * From a stamp on: `then` when the stored extra's `path` (a version stamp) is at least `from`, else `before` (the
+   * older stamps' rule). Apex's "Two hundred club" (15 Nov 2026): racingRev 4's stored pace10, older stamps' Pace line.
+   */
+  | { c: "since"; path: string; from: number; then: ChallengeCond; before: ChallengeCond };
 
 export type ChallengeGoal =
   | { kind: "part"; label: string; max: number }
@@ -452,7 +457,9 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("freekick", "Top bins", "Score through all four hoops.", "C", "fullset", true, part("Targets", 40)),
   // Apex (racing): pace 160 + clean sectors 40.
   ch("racing", "Clean half", "Drive four sectors clean.", "C", "clean", false, all(line("Clean sectors", "gte", 20))),
-  ch("racing", "Two hundred club", "Average 200 km/h.", "C", "speed", false, all(line("Pace", "gte", 110))),
+  // racingRev 4 (the Sports overhaul, 15 Nov 2026): the stored average speed itself on the three circuits, each with its
+  // own pace range; older stamps keep the Pace line (110 there is 200 km/h).
+  ch("racing", "Two hundred club", "Average 200 km/h.", "C", "speed", false, all({ c: "since", path: "racingRev", from: 4, then: f("pace10", "gte", 2000), before: line("Pace", "gte", 110) })),
   ch("racing", "Grand slam", "Drive all eight sectors clean on Expert.", "E", "clean", false, part("Clean sectors", 40)),
 
   /* ================================================================ Cards and Board */

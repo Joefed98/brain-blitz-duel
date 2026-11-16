@@ -7,6 +7,7 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
   racingCheckpoint,
   racingGameFor,
+  racingLevelOf,
   RACING_BG,
   RACING_CHECKPOINT_INTERVAL,
   RACING_INPUT_STICK,
@@ -21,7 +22,7 @@ import {
 } from "@/lib/arcade/racing";
 import {
   drawRacingPlay, setRacingLargeScreen,
-  paintRacingTile,
+  paintRacingIntro,
   racingAmbient,
   racingSceneFor,
   racingSteerThrow,
@@ -35,14 +36,19 @@ import { publishRaceGhost, useRaceGhosts } from "@/lib/duel/raceGhosts";
 import { RACING_TIME_MS, type RacingPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { racingSounds } from "@/lib/fx/racingSounds";
+import { preloadSportsSprites, sportsSprite, sportsSpritesVersion } from "@/lib/arcade/sportsSprites";
+import { RACING_CAR_SPRITE_NAMES } from "@/lib/arcade/racingCar.renderer";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { canvasRatio } from "@/lib/battery";
+import { racingFinishHoldMs } from "@/lib/arcade/racingFx.renderer";
 import { useDesktopPresentation } from "@/lib/desktopPresentation";
+import { puzzleLevel } from "@/lib/levels/levels";
+import { levelNote } from "@/lib/levels/levelNotes";
 
 const STILL = 200;
 
-/** Fixed intro still: the chase view at sunset, the car on the start straight (Apex). */
+/** Fixed intro still: the chase view at sunset on Sunset Park, the rendered car with Captain Joulz at the wheel (Apex). */
 function IntroExample() {
   const ref = useRef<HTMLCanvasElement | null>(null);
   useEffect(() => {
@@ -53,13 +59,31 @@ function IntroExample() {
     node.width = STILL * ratio;
     node.height = STILL * ratio;
     ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    paintRacingTile(ctx, STILL);
+    const paint = () => {
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      paintRacingIntro(ctx, STILL);
+    };
+    paint();
+    // The rendered car arrives a moment later: repaint the still once with it.
+    preloadSportsSprites("racing", RACING_CAR_SPRITE_NAMES);
+    const seen = sportsSpritesVersion();
+    const id = window.setInterval(() => {
+      if (sportsSpritesVersion() !== seen && sportsSprite("racing", "car-3")) {
+        paint();
+        window.clearInterval(id);
+      }
+    }, 120);
+    const stop = window.setTimeout(() => window.clearInterval(id), 6000);
+    return () => {
+      window.clearInterval(id);
+      window.clearTimeout(stop);
+    };
   }, []);
   return (
     <div className="flex w-full flex-col items-center gap-2">
       <canvas ref={ref} width={STILL} height={STILL} aria-hidden="true" style={{ width: STILL, height: STILL, background: RACING_BG, borderRadius: 10 }} />
       <p className="text-center text-xs text-muted-foreground">
-        Five red lights, then go. Thumb stick: up to accelerate, down to brake, left and right to steer. Two laps; the red signs show each corner’s speed.
+        Five red lights, then go. Thumb stick: up to accelerate, down to brake, left and right to steer. Two laps of Sunset Park, Harbour Run or Ridge Loop; the red signs show each corner’s speed.
       </p>
     </div>
   );
@@ -88,9 +112,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const [look, lookRef] = useGameLookRef("racing");
   const scene = useMemo(() => racingSceneFor(look), [look]);
   const game = useMemo(
-    () => ({ ...racingGameFor(data?.racingRev), draw: (ctx: CanvasRenderingContext2D, s: RacingState, size: CanvasSize) => drawRacingPlay(ctx, s, size, lookRef.current) }),
+    () => ({ ...racingGameFor(data?.racingRev, racingLevelOf(data?.racingLevel)), draw: (ctx: CanvasRenderingContext2D, s: RacingState, size: CanvasSize) => drawRacingPlay(ctx, s, size, lookRef.current) }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data?.racingRev],
+    [data?.racingRev, data?.racingLevel],
   );
   // The computer layout (1 Nov 2026, display only): the renderer's large-screen path while this screen is on it.
   const largeScreen = useDesktopPresentation().mode !== null;
@@ -104,6 +128,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const origin = useRef<{ x: number; y: number } | null>(null);
   const keys = useRef(new Set<string>());
   const ghosts = useRaceGhosts();
+  // The rendered car's images (every yaw, braking and the paint masks), asked for before the lights go out.
+  useEffect(() => preloadSportsSprites("racing", RACING_CAR_SPRITE_NAMES), []);
   useEffect(() => {
     setRacingGhosts(ghosts);
   }, [ghosts]);
@@ -193,13 +219,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }}
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
+      // Stage 2: a finished race holds its chequered flag and count-up before the reveal (display only; the finished
+      // run is the draft meanwhile, as Orbit's sputter).
+      endHoldMs={(state) => racingFinishHoldMs(state as unknown as RacingState)}
     />
   );
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "racing") return null;
-  const result = replayRacingRun(puzzle.seed, myAnswer ?? "", puzzle.racingRev);
+  const result = replayRacingRun(puzzle.seed, myAnswer ?? "", puzzle.racingRev, puzzle.racingLevel);
   // What the run did, part by part (the points are the stored score's, shown by the arcade reveal above).
   const lines = result.parts.map((part) => `${part.label}: ${part.detail}`);
   const headline = result.finished
@@ -230,6 +259,8 @@ export const racingPuzzle: PuzzleDefinition = {
   timeLimitMs: RACING_TIME_MS,
   revealMs: 6_000,
   generate: () => ({ type: "racing", seed: 1, racingRev: RACING_REV_DEALT }) satisfies RacingPuzzleData,
+  // A level other than Normal says what it changes on the intro (levelNotes.ts; the "?" help shows the same line).
+  introLine: (puzzle) => levelNote("racing", puzzleLevel(puzzle)),
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

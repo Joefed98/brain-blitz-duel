@@ -2077,6 +2077,12 @@ export interface FreekickPuzzleData {
 
 export interface RacingPuzzleData {
   type: "racing";
+  /**
+   * A difficulty level's play settings (racingRev 4 at Easy, Hard or Expert; absent at Normal): the gravel's keep, the
+   * kerb and wall, tighter hairpins, the display aids and the level's par pace (src/lib/arcade/racing.ts
+   * RacingLevelSettings). The sim and the server replay read this stored copy, never the registry.
+   */
+  racingLevel?: { keep: number; road: number; kerb: number; wall: number; tight: number; aids: number; pace?: number[]; spread?: number };
   /** A proved seed (racingDealV3.server.ts; racingDealV2.server.ts on rev 2, racingDeal.server.ts on rev 1): the track, identical for everyone. */
   seed: number;
   /**
@@ -2845,6 +2851,12 @@ export interface CurlingPuzzleData {
    * in the house score their closeness), the same parts.
    */
   curlRev?: number;
+  /**
+   * The level it was dealt at (the Sports overhaul's levels, 15 Nov 2026; stamped by the deal, only when it isn't
+   * Normal): Easy 2 reds 60–130 cm, Hard 4 reds 30–90 cm, Expert 5 reds 20–70 cm, each from its own proved bank
+   * (curlingLevelBanks.server.ts). Absent: Normal, curlRev 4's three reds exactly.
+   */
+  level?: "easy" | "hard" | "expert";
 }
 
 /* ============================ New grid puzzles (1 Nov 2026) ============================ */

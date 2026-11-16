@@ -69,6 +69,25 @@ function BackgroundBox({ type }: { type: string }) {
 }
 
 /** Mounts the scenes for `types` (all when empty); resolves with the types mounted once art and fonts have loaded. */
+/**
+ * Loads the rendered sprites every wanted scene names (the Sports overhaul, 15 Nov 2026) and waits until the game's
+ * loader hands each one back, so the tile is painted with the real art. Fails loudly if one never arrives.
+ */
+async function loadSceneSprites(wanted: string[]): Promise<void> {
+  const need: [string, string][] = [];
+  for (const t of wanted) {
+    const scene = ALL_SCENES[t as keyof SceneSet];
+    if (scene?.kind === "canvas") for (const [game, names] of scene.sprites ?? []) for (const n of names) need.push([game, n]);
+  }
+  if (need.length === 0) return;
+  const { sportsSprite } = await import("@/lib/arcade/sportsSprites");
+  for (let i = 0; i < 200; i++) {
+    if (need.every(([g, n]) => sportsSprite(g, n) !== null)) return;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  throw new Error(`tile sprites never loaded: ${need.filter(([g, n]) => sportsSprite(g, n) === null).map(([g, n]) => `${g}/${n}`).join(", ")}`);
+}
+
 export async function mountScenes(types: string[]): Promise<string[]> {
   const wanted = (types.length ? types : Object.keys(ALL_SCENES)).filter((t) => ALL_SCENES[t as keyof SceneSet]);
   await Promise.all(wanted.map((t) => preloadGameArt(t).catch(() => undefined)));
@@ -84,6 +103,7 @@ export async function mountScenes(types: string[]): Promise<string[]> {
         }),
     ),
   );
+  await loadSceneSprites(wanted);
   await document.fonts.ready;
   document.getElementById("tile-scenes-host")?.remove();
   const host = document.createElement("div");

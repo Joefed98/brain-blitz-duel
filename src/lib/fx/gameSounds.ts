@@ -38,7 +38,7 @@ import { homerunFence, homerunPlan, OUT_CAUGHT, OUT_FAIR, OUT_FOUL, OUT_HOMER, O
 import { HR5_BALL, HR5_CHOICE, HR5_FOUL, HR5_HOMER, HR5_OUT_CAUGHT, HR5_SINGLE, HR5_STRIKE_CALLED, HR5_WHIFF } from "@/lib/arcade/homerunInnings";
 import { FK_AIM, FK_FLIGHT, FK_NET_Z, FK_OUT_GOAL, FK_OUT_SAVED, FK_OUT_WALL, FK_OUT_WIDE, FK_LEVEL_SETTINGS, FK_V5_JUMP_FROM, fkKickOf, fkLevelOf, fkV3Meter, FREEKICK_REV_5, type FreekickState } from "@/lib/arcade/freekick";
 import { freekickV4Ui } from "@/lib/arcade/freekick.renderer";
-import { RACING_CAR_HALF, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceSpeed, racingGoTick, racingLightsOn, racingSegAt, racingTrack, type RacingState } from "@/lib/arcade/racing";
+import { RACING_CAR_HALF, RACING_KMH_AT_VMAX, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceSpeed, racingGoTick, racingLightsOn, racingSegAt, racingTrackOf, type RacingState } from "@/lib/arcade/racing";
 import { btEventCountdown, btMovesOf, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, type JuncState } from "@/lib/arcade/junction";
 import { skylineFlagAt, skylineGustAt, skylineShownMult, SKYLINE_REV_STD, SKYLINE_V9_STREAK_MAX, type SkylineState } from "@/lib/arcade/skyline";
@@ -52,8 +52,10 @@ import { SNIP_EATEN, type SnipState } from "@/lib/arcade/snip";
 import { arenaLight } from "@/lib/arcade/arenaFills.renderer";
 import { POOL_DROP_MOUTH_TICKS } from "@/lib/arcade/pool.renderer";
 import { MG_AIM, MG_BALL_R, MG_ROLL, MG_STOP_V, type MinigolfState } from "@/lib/arcade/minigolf";
-import { POOL_AIM, POOL_CUE, POOL_MAX_V, POOL_MIN_V, POOL_ROLL, type PoolState } from "@/lib/arcade/pool";
+import { poolBlackOpen, POOL_AIM, POOL_CUE, POOL_MAX_V, POOL_MIN_V, POOL_ROLL, POOL_SPOTS, type PoolState } from "@/lib/arcade/pool";
+import { poolJawContact, POOL_FX_DROP_TICKS, POOL_FX_FLIGHT_TICKS } from "@/lib/arcade/poolFx";
 import { curlShotTeam, curlTakeouts, TEAM_MINE, type CurlingState } from "@/lib/arcade/curling";
+import { curlShortBy, NEAR_MISS_CM } from "@/lib/arcade/curlingFx";
 import type { MinesState } from "@/lib/arcade/minesweeper";
 import { type MahjongState } from "@/lib/arcade/mahjong";
 import { fcHomeCount, fcNoMoves, type FcState } from "@/lib/arcade/cards/freecell";
@@ -1427,10 +1429,24 @@ export function poolSounds(): GameSounds<PoolState> {
         if (prev.phase === POOL_AIM && state.phase === POOL_ROLL) {
           const cue = state.balls[POOL_CUE];
           const speed = cue ? Math.hypot(cue.vx, cue.vy) : 0;
-          effectCue(speed >= POOL_HARD_V ? "pool.cueHard" : "pool.cueSoft");
+          // The Sports overhaul (stage 2): the cue's crack, once Joe's file is in; until then the soft or hard strike.
+          if (cueHasFile("pool.cueCrack")) effectCue("pool.cueCrack");
+          else effectCue(speed >= POOL_HARD_V ? "pool.cueHard" : "pool.cueSoft");
         }
         if (state.hits > prev.hits) sfx("pool.click", "tick", 0.5, 1, true);
         if (state.cushionTick !== prev.cushionTick) effectCue("pool.cushion", 60);
+        // A ball off a pocket's jaw (the art's shiver): the rattle, a library knock until its file.
+        if (state.cushionTick > prev.cushionTick && poolJawContact(state) !== null) sfx("pool.jawRattle", "arc_bounce", 0.55, 1, true);
+        // The seven down: the black unlocks; a run of pots grows; a potted ball lands in the rack (silent until their files).
+        if (poolBlackOpen(state) && !poolBlackOpen(prev)) effectCue("pool.blackUnlock");
+        if (state.streak >= 2 && state.streak > prev.streak) effectCue("pool.streakUp");
+        if (state.rev >= 2) {
+          for (const b of state.balls) {
+            if (b.downAt === undefined || b.id < 1 || b.id > POOL_SPOTS) continue;
+            const lands = b.downAt + POOL_FX_DROP_TICKS + POOL_FX_FLIGHT_TICKS;
+            if (prev.tick < lands && state.tick >= lands) effectCue("pool.rackRoll", 80);
+          }
+        }
         // poolRev 2 rolls a potted ball into the mouth before it drops away (the art, from its drop tick): the pocket
         // sounds as it reaches the mouth. poolRev 1 sounds on the drop itself.
         if (state.rev >= 2) {
@@ -1448,7 +1464,9 @@ export function poolSounds(): GameSounds<PoolState> {
           if (state.pots > prev.pots) feel("success");
         }
         if (state.fouls > prev.fouls) { ownCue("pool.foul", "shared.celebrate.zap", 0.7); feel("error"); }
-        if (state.black === 1 && prev.black !== 1) ownCue("pool.blackWin", "shared.celebrate.chime");
+        // The Sports overhaul's haptics: the black down legally (the clear) and the black down too soon.
+        if (state.black === 1 && prev.black !== 1) { ownCue("pool.blackWin", "shared.celebrate.chime"); feel("celebrate"); }
+        if (state.black === 2 && prev.black !== 2) feel("error");
       }
       prev = state;
     },
@@ -1478,8 +1496,20 @@ export function curlingSounds(): GameSounds<CurlingState> {
       else if (prev && state.tick < prev.tick) lastStroke = -1;
       loopCue("curling.sweep", travelling && lastStroke >= 0 && state.tick - lastStroke < SWEEP_HOLD_TICKS, SURFACE_VOLUME);
       if (prev && state.tick > prev.tick) {
-        if (state.thrown > prev.thrown) effectCue("curling.release");
-        if (state.hits > prev.hits) effectCue("curling.hit", 80);
+        // Haptics (the Sports overhaul, 15 Nov 2026): the release, stone on stone, and a stone coming to rest counting
+        // or after a takeout (the end has the shared arcade buzzer's).
+        if (state.thrown > prev.thrown) {
+          effectCue("curling.release");
+          feel("tick");
+        }
+        if (state.hits > prev.hits) {
+          // The clack (the Sports overhaul's effects): its own recording once it has one, today's hit until then.
+          effectCue(cueHasFile("curling.clack") ? "curling.clack" : "curling.hit", 80);
+          feel("impact");
+        }
+        // A red knocked out of the house: the crowd's "ooh" as it goes (silent until its recording; the applause still
+        // plays when the stone comes to rest).
+        if (curlTakeouts(state) > curlTakeouts(prev)) effectCue("curling.ooh");
         for (let i = 0; i < prev.live.length; i++) {
           // Out over a side or back board while moving (a hog-line stone at the settle is not a board).
           if (prev.live[i] === 1 && state.live[i] === 0 && state.restTick === prev.restTick) {
@@ -1489,8 +1519,11 @@ export function curlingSounds(): GameSounds<CurlingState> {
         }
         if (state.restTick !== prev.restTick && state.pts.length > prev.pts.length) {
           const takeout = curlTakeouts(state) > curlTakeouts(prev);
+          if (takeout || (state.pts[state.pts.length - 1] ?? 0) > 0) feel("success");
           if (curlShotTeam(state) === TEAM_MINE && curlShotTeam(prev) !== TEAM_MINE) effectCue("curling.shot");
           else if (state.four[state.four.length - 1] === 1 || takeout) effectCue("curling.applause");
+          // A near miss (curlingFx.ts: scored nothing, but would have NEAR_MISS_CM nearer the button): a soft "aw".
+          else if ((state.pts[state.pts.length - 1] ?? 0) === 0 && curlShortBy(state, state.theirs + state.pts.length - 1) <= NEAR_MISS_CM) effectCue("curling.aw");
         }
       }
       prev = state;
@@ -1828,9 +1861,12 @@ export function racingSounds(): GameSounds<RacingState> {
       loopCue("racing.idle", gridded, ENGINE_VOLUME);
       loopCue("racing.drive", driving, ENGINE_VOLUME);
       if (driving) setCueLoopRate("racing.drive", ENGINE_RATE_LO + ((ENGINE_RATE_HI - ENGINE_RATE_LO) * state.v) / RACING_VMAX);
-      const onKerb = !state.off && !state.wall && Math.abs(state.x) + RACING_CAR_HALF > RACING_ROAD_X;
+      const onKerb = !state.off && !state.wall && Math.abs(state.x) + RACING_CAR_HALF > (state.lv ? state.lv.road : RACING_ROAD_X);
       loopCue("racing.kerb", driving && onKerb && state.v > 0, 0.25);
       loopCue("racing.grassLoop", driving && state.off === 1 && state.v > 0, 0.25);
+      // Stage 2 (the Sports overhaul): the wind past the cockpit with the speed lines, above 200 km/h (silent until
+      // racing.speedRush has a file).
+      loopCue("racing.speedRush", driving && state.v * RACING_KMH_AT_VMAX > RACING_VMAX * 200, 0.2);
       if (prev && state.tick > prev.tick) {
         // racingRev 2 (T2): a light as each of the five red lights comes on, the horn's slot at lights out;
         // racingRev 1: the horn on the first throttle, as it always was.
@@ -1840,24 +1876,38 @@ export function racingSounds(): GameSounds<RacingState> {
         if (!started && (go > 0 ? state.tick >= go && prev.tick < go : state.pedal > 0)) {
           started = true;
           sfx("racing.go", "arc_horn", 0.5);
+          feel("go");
         }
         if (state.wallHits > prev.wallHits) { sfx("racing.wall", "arc_crash", 0.8); feel("impact"); }
-        else if (state.off && !prev.off && !cueHasFile("racing.grassLoop")) sfx("racing.grass", "arc_bounce", 0.6, 0.8);
-        const c = racingTrack(state.seed).curve[racingSegAt(state.s)] ?? 0;
+        // A scrape along the tyre wall, still moving (stage 2's sparks): its own slot, silent until it has a file.
+        else if (state.wall && prev.wall && state.v >= RACING_VMAX / 8) effectCue("racing.scrape", 800);
+        else if (state.off && !prev.off) {
+          if (!cueHasFile("racing.grassLoop")) sfx("racing.grass", "arc_bounce", 0.6, 0.8);
+          feel("error");
+        }
+        // The kerb's rumble under the thumb (the Sports overhaul, 15 Nov 2026): a tick every 10 ticks while on it.
+        if (onKerb && driving && state.v > 0 && state.tick % 10 === 0) feel("tick");
+        const c = racingTrackOf(state).curve[racingSegAt(state.s)] ?? 0;
         const limit = racingBalanceSpeed(c);
         const hard = c !== 0 && !state.off && state.v * 1000 >= limit * SQUEAL_AT;
         if (hard && !squealing) effectCue("racing.squeal", 1500);
         squealing = hard;
-        if (state.clean > prev.clean) sfx("racing.sector", "arc_retro_coin", 0.6);
+        if (state.clean > prev.clean) {
+          sfx("racing.sector", "arc_retro_coin", 0.6);
+          feel("success");
+        }
         if (state.finishTick > 0 && prev.finishTick === 0) {
           sfx("racing.finish", "arc_fair_sting", 0.9);
+          feel("celebrate");
           effectCue("racing.roar");
+          // The chequered flag (stage 2): the crowd and an air horn, silent until racing.chequer has a file.
+          effectCue("racing.chequer");
         } else if (Math.floor(state.s / RACING_LAP) > Math.floor(prev.s / RACING_LAP)) sfx("racing.lap", "arc_fair_bell", 0.8);
       } else if (prev && state.tick < prev.tick) started = false;
       prev = state;
     },
     stop() {
-      for (const loop of ["racing.idle", "racing.drive", "racing.kerb", "racing.grassLoop"]) loopCue(loop, false);
+      for (const loop of ["racing.idle", "racing.drive", "racing.kerb", "racing.grassLoop", "racing.speedRush"]) loopCue(loop, false);
       prev = null;
       started = false;
       squealing = false;

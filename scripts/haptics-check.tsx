@@ -544,9 +544,15 @@ const CALL_SITES: Record<string, Record<string, number>> = {
  * holes and water, the brief's list): tick 0 → 1 (the strike), success 7 → 8 (holed), impact 20 → 21 (water).
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Home Run and Top Bins overhaul: haptics on the
  * key moments): homerunRev 5's home run (success 7 → 8), strikeout (impact 20 → 21) and a run scoring (tick, new).
- * Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): success 14, impact 23 and tick 3 together.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Sports overhaul): Apex's lights out (go), grass
+ * (error), kerb rumble (tick, every 10 ticks on the kerb), clean sector (success) and finish (celebrate); Cue Ball's black
+ * potted legally (celebrate) and the black too soon (error); Curl Champ's release (tick), stone on stone (impact) and a
+ * stone coming to rest counting or after a takeout (success): success 7 → 9, error 1 → 3, impact 20 → 21, tick 2, go 1,
+ * celebrate 2.
+ * Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): success 16, error 3, impact 24, tick 5, go 1
+ * and celebrate 2 together.
  */
-const FEEL = { success: 14, error: 1, impact: 23, tick: 3 };
+const FEEL = { success: 16, error: 3, impact: 24, tick: 5, go: 1, celebrate: 2 };
 const found: Record<string, Record<string, number>> = {};
 for (const file of files) {
   const rel = file.slice(SRC.length + 1);

@@ -60,6 +60,7 @@ import { minesSafeFor } from "@/lib/arcade/minesweeper";
 import { decodeHomerunRun, replayHomerunRun } from "./homerun";
 import { decodeFreekickRun, replayFreekickRun } from "./freekick";
 import { decodeRacingRun, replayRacingRun } from "./racing";
+import { racingPace10, RACING_REV_4, type RacingState } from "@/lib/arcade/racing";
 import type { StdPart } from "@/lib/arcade/arcadeStandard";
 import { replayMinigolfPuzzle } from "./minigolf";
 import { replayPoolRun } from "./pool";
@@ -1522,7 +1523,7 @@ function gradeUnderRev(
           ...common(run),
         };
       } else if (puzzle.type === "pool") {
-        const run = replayPoolRun(puzzle.seed, answer, puzzle.poolRev);
+        const run = replayPoolRun(puzzle.seed, answer, puzzle.poolRev, (puzzle as { level?: unknown }).level);
         revealRun = run;
         arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
         const parts = poolStdParts(run.state);
@@ -1542,7 +1543,7 @@ function gradeUnderRev(
           ...common(run),
         };
       } else if (puzzle.type === "curling") {
-        const run = replayCurlingRun(puzzle.seed, answer, puzzle.curlRev);
+        const run = replayCurlingRun(puzzle.seed, answer, puzzle.curlRev, puzzle.level);
         revealRun = run;
         arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
         const parts = curlingStdParts(run.state);
@@ -1581,7 +1582,7 @@ function gradeUnderRev(
           ? replayHomerunRun(puzzle.seed, answer, rev, puzzle.level)
           : puzzle.type === "freekick"
             ? replayFreekickRun(puzzle.seed, answer, rev, puzzle.level)
-            : replayRacingRun(puzzle.seed, answer, rev);
+            : replayRacingRun(puzzle.seed, answer, rev, (puzzle as { racingLevel?: unknown }).racingLevel);
       const decoded = puzzle.type === "homerun" ? decodeHomerunRun(answer) : puzzle.type === "freekick" ? decodeFreekickRun(answer) : decodeRacingRun(answer);
       revealRun = run as unknown as typeof revealRun;
       arcadeDiag = buildArcadeDiag(puzzle.type, run as unknown as Parameters<typeof buildArcadeDiag>[1], answer, performance.now() - replayStart);
@@ -1602,6 +1603,9 @@ function gradeUnderRev(
         inputs: decoded.events.length,
         claimedScore: decoded.claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
+        // Apex racingRev 4 (the Sports overhaul, 15 Nov 2026; display data only, nothing scores or ranks from it): the
+        // run's average speed in tenths of a km/h, so "Average 200 km/h" means 200 km/h on all three circuits.
+        ...(puzzle.type === "racing" && rev >= RACING_REV_4 ? { pace10: racingPace10((run as unknown as { state: RacingState }).state) } : {}),
       };
       break;
     }

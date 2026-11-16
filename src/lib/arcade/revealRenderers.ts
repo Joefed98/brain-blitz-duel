@@ -224,7 +224,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   // The Sports group (30 Oct 2026): each game's final frame at world size.
   homerun: simple(GOLD, HOMERUN_WORLD_W, HOMERUN_WORLD_H, homerunArtGame, (p, a) => replayHomerunRun(seedOf(p), a, p.type === "homerun" ? p.homerunRev : undefined, p.type === "homerun" ? p.level : undefined)),
   freekick: simple(GOLD, FREEKICK_WORLD_W, FREEKICK_WORLD_H, freekickArtGame, (p, a) => replayFreekickRun(seedOf(p), a, p.type === "freekick" ? p.freekickRev : undefined, p.type === "freekick" ? p.level : undefined)),
-  racing: simple(GOLD, RACING_WORLD_W, RACING_WORLD_H, racingArtGame, (p, a) => replayRacingRun(seedOf(p), a, p.type === "racing" ? p.racingRev : undefined)),
+  racing: simple(GOLD, RACING_WORLD_W, RACING_WORLD_H, racingArtGame, (p, a) => replayRacingRun(seedOf(p), a, p.type === "racing" ? p.racingRev : undefined, p.type === "racing" ? p.racingLevel : undefined)),
   // Cards & Board: the final table, drawn by the game's own art.
   freecell: simple(GOLD, FC_WORLD_W, FC_WORLD_H, freecellArt, (p, a) => replayFreecellRun(seedOf(p), a, p.type === "freecell" ? p.freecellRev : undefined, levelOfPuzzle(p))),
   tripeaks: simple(GOLD, TP_WORLD_W, TP_WORLD_H, tripeaksArt, (p, a) => replayTripeaksRun(seedOf(p), a, undefined, levelOfPuzzle(p))),
@@ -283,8 +283,8 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   // The Sports group (30 Oct 2026): each final state drawn by its own art, without the aim.
   minigolf: simple("#7FD58A", MINIGOLF_W, MINIGOLF_H, { draw: (ctx, s: MinigolfState) => drawMinigolf(ctx, s, null) }, (p, a) => replayMinigolfRun(seedOf(p), a, p.type === "minigolf" ? p.pars : undefined, p.type === "minigolf" ? p.golfRev : undefined, p.type === "minigolf" ? minigolfCourseOf(p) : {})),
   // curlRev 2 draws a shorter world (390 × 540; display only).
-  curling: simple("#E8C35A", CURLING_W, CURLING_H, { draw: (ctx, s: CurlingState) => drawCurling(ctx, s, null) }, (p, a) => replayCurlingRun(seedOf(p), a, p.type === "curling" ? p.curlRev : undefined), undefined, undefined, (p) => curlingWorldHFor(p.type === "curling" ? p.curlRev : undefined)),
-  pool: simple("#3FA672", POOL_W, POOL_H, { draw: (ctx, s: PoolState) => drawPool(ctx, s, null) }, (p, a) => replayPoolRun(seedOf(p), a, p.type === "pool" ? p.poolRev : undefined)),
+  curling: simple("#E8C35A", CURLING_W, CURLING_H, { draw: (ctx, s: CurlingState) => drawCurling(ctx, s, null) }, (p, a) => replayCurlingRun(seedOf(p), a, p.type === "curling" ? p.curlRev : undefined, p.type === "curling" ? p.level : undefined), undefined, undefined, (p) => curlingWorldHFor(p.type === "curling" ? p.curlRev : undefined)),
+  pool: simple("#3FA672", POOL_W, POOL_H, { draw: (ctx, s: PoolState) => drawPool(ctx, s, null) }, (p, a) => replayPoolRun(seedOf(p), a, p.type === "pool" ? p.poolRev : undefined, (p as { level?: unknown }).level)),
   pinball: simple("#FF4DFF", PIN_WORLD_W, PIN_WORLD_H, { draw: drawPinballAny }, (p, a) => replayPinballRun(seedOf(p), a, p.type === "pinball" ? p.pinRev : undefined), undefined, undefined, (p) => pinballWorldHFor(p.type === "pinball" ? p.pinRev : undefined)),
   // Cards & Board (30 Oct 2026): the final board as the run left it.
   minesweeper: simple("#F2C75C", MINES_WORLD_W, MINES_WORLD_H, { draw: drawMinesweeper }, (p, a) => replayMinesweeperRun(seedOf(p), a, p.type === "minesweeper" ? p.minesRev : undefined)),

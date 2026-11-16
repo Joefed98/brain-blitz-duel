@@ -5,12 +5,13 @@
  */
 import { paintHomerunTile } from "@/lib/arcade/homerun.renderer";
 import { paintFreekickTile } from "@/lib/arcade/freekick.renderer";
-import { paintRacingTile } from "@/lib/arcade/racing.renderer";
+import { paintRacingIntro } from "@/lib/arcade/racing.renderer";
+import { RACING_CAR_SPRITE_NAMES } from "@/lib/arcade/racingCar.renderer";
 import { paintMinigolfTileV3 } from "@/lib/arcade/minigolf.renderer";
-import { poolGameFor, POOL_H } from "@/lib/arcade/pool";
+import { poolGameFor, POOL_H, POOL_REV } from "@/lib/arcade/pool";
 import { drawPool } from "@/lib/arcade/pool.renderer";
-import { curlingGameFor, CU, TEAM_MINE, TEAM_THEIRS } from "@/lib/arcade/curling";
-import { curlProject, drawCurling } from "@/lib/arcade/curling.renderer";
+import { curlingGameFor, CU, CURLING_REV, TEAM_MINE, TEAM_THEIRS } from "@/lib/arcade/curling";
+import { curlProject, curlViewFor, drawCurling } from "@/lib/arcade/curling.renderer";
 
 import { AR_FLY } from "@/lib/arcade/alleyroll";
 import { AR_WORLD_H, AR_WORLD_W, drawAlleyRoll, ringerStill } from "@/lib/arcade/alleyroll.renderer";
@@ -34,16 +35,20 @@ export const SPORTS_SCENES: SceneSet = {
     noText(c, () => paintFreekickTile(c, TILE));
     fade(c, 0.4);
   }),
-  racing: canvasScene((c) => {
-    noText(c, () => paintRacingTile(c, TILE));
-    fade(c, 0.35);
-  }),
+  // Apex (the Sports overhaul): the chase view on Sunset Park with the rendered car and the Captain at the wheel.
+  racing: canvasScene(
+    (c) => {
+      noText(c, () => paintRacingIntro(c, TILE));
+      fade(c, 0.35);
+    },
+    [["racing", RACING_CAR_SPRITE_NAMES]],
+  ),
   // Crazy Golf (the overhaul's look, 15 Nov 2026): a pond under a plank bridge, a loop-the-loop, the cup in its bowl,
   // the ball with Captain Joulz addressing it.
   minigolf: canvasScene((c) => paintMinigolfTileV3(c, TILE)),
   // Speed Pool: the bottom-left corner pocket, a spot ball on the lip, a stripe and the cue ball lined up behind.
   pool: canvasScene((c) => {
-    const s = poolGameFor(1).init(1);
+    const s = poolGameFor(POOL_REV).init(1);
     const ball = (id: number, x: number, y: number) => ({ id, x: x * 256, y: y * 256, vx: 0, vy: 0, down: 0 });
     const tile = { ...s, balls: [ball(0, 112, 610), ball(3, 62, 662), ball(11, 104, 680), ball(8, 50, 600)] };
     c.save();
@@ -51,10 +56,10 @@ export const SPORTS_SCENES: SceneSet = {
     c.translate(0, -(POOL_H - 150));
     drawPool(c, tile, null);
     c.restore();
-  }),
+  }, [["pool", ["table"]]]),
   // Curling: the far house down the sheet, a gold-handled stone on the button and a red one being knocked away.
   curling: canvasScene((c) => {
-    const base = curlingGameFor(1).init(1);
+    const base = curlingGameFor(CURLING_REV).init(1);
     const stones: [number, number, number][] = [[0, 4, TEAM_MINE], [58, -40, TEAM_THEIRS], [-70, 60, TEAM_MINE]];
     const s = {
       ...base,
@@ -68,15 +73,15 @@ export const SPORTS_SCENES: SceneSet = {
       theirs: 1,
       thrown: 2,
     };
-    const house = curlProject(0, 0);
-    const zoom = TILE / (house.k * 230);
+    const house = curlProject(0, 0, curlViewFor(CURLING_REV));
+    const zoom = TILE / (house.k * 150);
     c.save();
-    c.translate(TILE / 2, TILE * 0.62);
+    c.translate(TILE / 2, TILE * 0.56);
     c.scale(zoom, zoom);
     c.translate(-house.sx, -house.sy);
     drawCurling(c, s, null);
     c.restore();
-  }),
+  }, [["curling", ["arena", "stone-gold", "stone-red"]]]),
   // Ringer: the funfair board close up, the raised cup tower with a blue ball dropping toward the 50, the gold cup
   // gliding on its track behind and a 100 pocket in the corner.
   alleyroll: canvasScene((c) => {

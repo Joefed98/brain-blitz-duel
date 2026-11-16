@@ -167,8 +167,9 @@ const onButton = (c: Candidate) => c.d <= ON_BUTTON - 0.5 && c.counts;
  * held: a depth-first search taking up to `branch` distinct button throws at each step (fewest opponents left first).
  * Null when none is found within `budget` throw searches.
  */
-export function perfectPlan(seed: number, branch = 3, budget = 40, rev = 1): Throw[] | null {
-  const start = sheetOf(curlingGameFor(rev).init(seed));
+export function perfectPlan(seed: number, branch = 3, budget = 40, rev = 1, level?: unknown): Throw[] | null {
+  // The level's reds (the Sports overhaul's levels; none: Normal).
+  const start = sheetOf(curlingGameFor(rev, level).init(seed));
   let searches = 0;
   const go = (sheet: Sheet, k: number): Throw[] | null => {
     if (k === CURLING_STONES) return theirsIn(sheet) === 0 ? [] : null;
@@ -204,8 +205,8 @@ export function throwEvent(t: Throw): Omit<ArcadeInputEvent, "t"> {
 }
 
 /** A plan as the phone's log: each throw on the first tick the sheet is ready for it. */
-export function planEvents(seed: number, plan: readonly Throw[], waitTicks = 0, rev = 1): { events: ArcadeInputEvent[]; state: CurlingState } {
-  const game = curlingGameFor(rev);
+export function planEvents(seed: number, plan: readonly Throw[], waitTicks = 0, rev = 1, level?: unknown): { events: ArcadeInputEvent[]; state: CurlingState } {
+  const game = curlingGameFor(rev, level);
   let s = game.init(seed);
   const events: ArcadeInputEvent[] = [];
   let next = 0;

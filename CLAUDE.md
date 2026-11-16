@@ -2886,6 +2886,18 @@ outside the repo.
   phone-gap-check), the room's finished strip below the timer bar, the reveal heading from `revealHeading.ts` ("Your
   answer" / "The solution" / "Answer and solution") and compact shared reveal rows on short phones (`SHORT_REVEAL_QUERY`).
   app-moments-check (~1 s).
+- **Apex's levels** (stage 3, 16 Nov 2026, `docs/arcade-standard/racing.md` "Levels"; no stamp: Normal is racingRev 4
+  byte for byte): Easy, Hard and Expert in `GAME_LEVELS.racing`, stamped on the deal as `racingLevel` (gravel keep, kerb,
+  wall, Expert's tighter hairpins, a per-level par pace and spread, display aids) and carried in the sim's state (`lv`,
+  in the checksum); the replay reads the stored copy (`replayRacingRun(seed, raw, rev, racingLevel)`). Each level deals
+  from its own proved deal (`racingDealV4Easy/Hard/Expert.server.ts`, `bun scripts/racing-deal.ts --rev=4 --level=…`).
+  Level lines for the intro and help: `src/lib/levels/levelNotes.ts`. racing-levels-check (~3 s);
+  `bun scripts/racing-levels-bands.ts` measures the bots per level.
+- **Curl Champ's levels** (stage 3, 16 Nov 2026, `docs/arcade-standard/curling.md` "Levels"; no stamp: Normal is curlRev 4
+  byte for byte, a Normal deal carries no `level`): Easy 2 reds 60–130 cm with the whole aim path, Hard 4 reds 30–90 cm,
+  Expert 5 reds 20–70 cm with no HOUSE zone or aim line, all 120 s; Easy's Stones part full at 60. Each level deals from
+  its own proved bank (`curlingLevelBanks.server.ts`, witnesses `scripts/fixtures/curling-witness-levels.json`, 30 a
+  level at 200 through the server replay). curling-levels-check (~10 s).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

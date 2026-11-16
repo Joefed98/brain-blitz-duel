@@ -384,3 +384,96 @@ racing-render-check draws racingRev 3 frames too; self-replay entry `racing/v3`;
   outside line can go a little faster, one who arrives off-line slower. 300 km/h corners (flat out) get no sign.
 - The gravel keeps 65 % (the brief's 60–70 %) and the recovery pulls twice as hard; both one constant.
 - The score has no finish or speed part (the pace is the speed); the help says "Pace up to 160, Clean sectors up to 40".
+
+## racingRev 4 (15 Nov 2026): three named circuits (the Sports overhaul)
+
+A fresh layout per seed made every race a stranger; racingRev 4 races on three fixed, named circuits players can learn,
+the seed picking which (`racingCircuitOf`: seed mod 3). Everything else is racingRev 3's: the car, the start, the
+gravel, the signs, the score's two parts. A later level changes settings (gravel, run-off, signs), never which circuit a
+seed deals.
+
+| | Circuit | Character | Corners in lap order | Par pace (full) | Zero |
+|---|---|---|---|---|---|
+| 1 | Sunset Park | racingRev 3's own layout for `RACING_SUNSET_SEED` (the rev-3 deal's first seed) | 2 hairpins, a chicane, 3 corners, 2 sweepers | 221.5 km/h | 152.0 |
+| 2 | Harbour Run | fast and flowing, long straights | sweeper, corner, sweeper, chicane, sweeper, hairpin, corner | 238.5 km/h | 169.0 |
+| 3 | Ridge Loop | technical and hilly | hairpin, chicane, hairpin, corner, chicane, hairpin, corner, sweeper | 203.0 km/h | 133.5 |
+
+- **Pace per circuit** (`RACING_V4_PACE`): each circuit's full pace sits just under its oracle's average (223.1, 238.9,
+  203.4 km/h), with racingRev 3's 69.5 km/h spread down to the zero, so 200 is reachable on all three and a lap of each
+  is worth the same. Clean sectors unchanged (5 each of 8).
+- **The deal** (`racingDealV4.server.ts`, `bun scripts/racing-deal.ts --rev=4 [--check]`): 300 seeds, 100 on each
+  circuit, each proved: the oracle replays through `replayRacingRun` to exactly 200 at or above its circuit's par.
+- **racingRev 1–3** build their circuit from the seed exactly as before (`racingTrackFor(seed, rev)`); racing-check's
+  legacy runs and deals are untouched.
+- **Hills** (display only) are part of each circuit; on screen they are drawn at `HILL_K` 0.36 (was 0.5) to suit the
+  lower chase camera.
+
+Bands (`bun scripts/racing-bands.ts --seeds=30`, dealt seeds, through the server replay):
+
+| Level | racingRev 3 | racingRev 4 |
+|---|---|---|
+| Weak | 36.5 | 37.5 |
+| Average | 97 | 93.5 |
+| Good | 141.5 | 131.5 |
+| Great | 165 | 161 |
+| Near-perfect | 182 | 179 |
+| Elite | 188 | 184.5 |
+| Flawless | 200 | 200 |
+
+Ridge Loop pulls the middle levels down a little (its hairpins); the difficulty framework's tuning will set Normal's
+elite average.
+
+**The look** (display only, every revision): the chase camera moved closer and lower (`ZC` 1714 → 1270, `CH` 2200 →
+1600), so the car is 1.35× larger, its contact line at row 563; the car is the rendered open prototype with Captain
+Joulz at the wheel (`racingCar.renderer.ts`, sprites from `docs/design/game-art/sports/render_sports.py`: seven yaws,
+lit, braking and a paint mask in one 466 × 329 box, 285 KB), each yaw drawn exactly the collision width (rule 3,
+apex-overhaul-check); paints and ghosts tint the mask; the painted car is kept until the images arrive. The road has
+an asphalt grain that flows with the car and the low sun's warm light across the ground; the lens flare is gone (no
+glare). The HUD's chips are 30 px at 16 px, the speed 34 px; the circuit's name shows on the grid.
+
+**The reveal's run summary** (`components/duel/summaries/RacingSummary.tsx`, `racingMap.ts`): the circuit from above,
+its sectors green where driven clean (solid on both laps, lighter on one), red dots where the car went onto the grass
+or gravel and red rings for the tyre wall; under it each lap's time, the average speed and "Clean sectors n of 8".
+
+**The world at dusk** (second look pass, 15 Nov 2026; display only, every revision; the Neon Night unchanged, proved
+pixel for pixel): the sky a deep violet through rose to a gold horizon; the low sun ahead as a soft disc with a halo
+(no rays), between the far hills and the near tree line, its bearing taken against the heading smoothed over 140
+segments either way, so it settles just off centre on the straights and swings through the corners; the far hills in
+hazy rose, the near ridge and roadside trees as dark silhouettes with a warm rim; darker dusk grass, gravel and
+asphalt; a warm sheen up the road towards the sun; the car's long soft shadow towards the camera. All painted: no
+image budget used beyond the car's 285 KB.
+
+## Levels (stage 3, 16 Nov 2026)
+
+racingRev 4 at Easy, Hard and Expert (the difficulty framework, docs/design/difficulty/README.md). Normal is racingRev 4
+byte for byte: no `level` or `racingLevel` field, the same deal draw, the same state, checksum and pixels. Each other
+level's settings are in `GAME_LEVELS.racing` (src/lib/levels/gameLevels.ts) and are stamped on the dealt puzzle as
+`racingLevel`; the sim carries them in its state (`lv`, in the checksum) and the server replay reads the stored copy
+(`replayRacingRun(seed, raw, rev, puzzle.racingLevel)`), never the registry. Older stamps ignore the field.
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Gravel keeps | 80 % | 65 % | 60 % | 50 % |
+| Tarmac / kerb / wall (lateral units) | 75366 / 83558 / 140902 | 65536 / 73728 / 131072 | 65536 / 73728 / 108134 | 65536 / 73728 / 108134 |
+| Hairpins | the circuit's | the circuit's | the circuit's | every peak +2 on Sunset Park and Harbour Run; Ridge Loop's own (`tightBy` [2, 2, 0]) |
+| Full pace (Sunset / Harbour / Ridge, tenths of km/h) | 1920 / 2055 / 1750 | 2215 / 2385 / 2030 | 2215 / 2385 / 2030 | 2175 / 2352 / 1964 (the oracle's on the tighter hairpins) |
+| Pace spread (full − zero) | 695 | 695 | 320 | 250 |
+| Aids (display) | signs, boards, painted braking points | signs, boards, racing line | as Normal | signs only (no boards, racing line or skid marks) |
+
+The pace line is the step for strong drivers: on Easy, Normal and Hard the oracle drives the same line, so the gravel and
+walls only touch drivers who leave the tarmac (the elite bots hardly do). A narrower spread makes each km/h short of par
+cost more, 200 still at the par pace. Easy's lower par gives an average driver a real shot at a star.
+
+Deals: `bun scripts/racing-deal.ts --rev=4 --level=easy|hard|expert [--check]` writes `racingDealV4Easy/Hard/Expert.server.ts`,
+100 seeds a circuit, each proved by the oracle on the level's sim to exactly 200 through the server replay (0 dropped on each;
+a racingRev 4 seed only picks the circuit, so the lists equal Normal's). Text: the intro line and the "?" help note come from
+`src/lib/levels/levelNotes.ts`. Challenges stay Normal (the framework completes them on a Normal run only). Measured with
+`bun scripts/racing-levels-bands.ts` (the skill-band bots on dealt puzzles, graded through gradeAnswer; `--expert-seeds=N`
+lists Expert seeds with the elite bot's score) and `bun scripts/level-tune.ts racing --level=all`. Proved by
+racing-levels-check.
+
+**Ridge Loop on Expert (Joe, 16 Nov 2026):** no bot finished Ridge Loop's tightened hairpins on Expert, so Expert keeps
+Ridge Loop's own hairpins (`tightBy`, one entry per circuit, in place of `tight`; the sim reads it through
+`racingTightFor`, and it is in the checksum when present). Its gravel, walls, missing aids, par pace (1964, the oracle's
+on the tighter hairpins, so a little easier to reach) and spread are unchanged. The Expert deal re-proved: all 300 seeds
+reach 200 through the server replay with the new settings (0 dropped).

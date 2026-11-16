@@ -45,6 +45,7 @@ export async function runSpecs(): Promise<RunSpec[]> {
   const RaD = await import("../../src/lib/duel/racing");
   const { RACING_DEAL } = await import("../../src/lib/duel/racingDeal.server");
   const { RACING_DEAL_V3 } = await import("../../src/lib/duel/racingDealV3.server");
+  const { RACING_DEAL_V4 } = await import("../../src/lib/duel/racingDealV4.server");
   const Fk = await import("../../src/lib/arcade/freekick");
   const FkR = await import("../../src/lib/arcade/freekick.renderer");
   const FkD = await import("../../src/lib/duel/freekick");
@@ -87,8 +88,10 @@ export async function runSpecs(): Promise<RunSpec[]> {
       draw: (ctx, s, look) => CuR.drawCurling(ctx, s, s.phase === 0 ? { broomX: 20, broomY: 0, turn: 1, startX: 0 } as never : null, look),
     });
   }
-  for (const rev of [1, Ra.RACING_REV_DEALT]) {
-    const deal = rev >= 3 ? RACING_DEAL_V3 : RACING_DEAL;
+  // racingRev 3 stays listed by name (its recorded runs replay) now that the Sports overhaul deals racingRev 4
+  // (changed 15 Nov 2026, routine consequence of the Sports overhaul); the dealt stamp plays on its own deal.
+  for (const rev of [...new Set([1, 3, Ra.RACING_REV_DEALT])]) {
+    const deal = rev >= 4 ? RACING_DEAL_V4 : rev >= 3 ? RACING_DEAL_V3 : RACING_DEAL;
     specs.push({
       game: "racing", rev, sim: () => Ra.racingGameFor(rev), seedFor: (n) => deal[n % deal.length]!, checkpoint: Ra.racingCheckpoint, interval: Ra.RACING_CHECKPOINT_INTERVAL, rate: 120,
       encode: RaD.encodeRacingRun, replay: (seed, raw) => RaD.replayRacingRun(seed, raw, rev),

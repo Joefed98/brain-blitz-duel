@@ -131,9 +131,11 @@ tasks.push({
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Crazy Golf overhaul's minigolfPreCourse): 27.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Home Run and Top Bins overhaul's era switch
     // sportsPreOverhaul, stage 1 approved at 72b7b38f): 27.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Sports overhaul): racingPreCircuits, 27.
     // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): preRetro, the Action overhaul's seven,
-    // the Strategy overhaul's three, Crazy Golf's minigolfPreCourse and Home Run / Top Bins' sportsPreOverhaul, 39.
-    ok(names.size === 39, `39 era switches (${names.size})`);
+    // the Strategy overhaul's three, Crazy Golf's minigolfPreCourse, Home Run / Top Bins' sportsPreOverhaul and the
+    // Sports overhaul's racingPreCircuits, 40.
+    ok(names.size === 40, `40 era switches (${names.size})`);
   },
 });
 

@@ -199,6 +199,7 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `minigolf.stone` | Crazy Golf | The ball bounces off a boulder or a planter | `arc_bounce` (0.6) | 0–20 | 300 ms |
 | `freekick.wall` | Top Bins | The wall blocks the kick | `arc_wood_knock` (0.65, rate 0.85) | 0–10 | 300 ms |
 | `pool.click` | Cue Ball | Ball meets ball | `tick` (0.5, overlapping) | 10–60 | 200 ms |
+| `pool.jawRattle` | Cue Ball | A ball bounces off a pocket's jaw (the ball shivers) | `arc_bounce` (0.55) | 0–8 | 600 ms |
 | `minesweeper.reveal` | Minefield | A tap opens a square (or a few) | `tick` (0.6) | 20–80 | 80 ms |
 | `minesweeper.cascade` | Minefield | A tap opens six or more squares (an area opens) | `tick` (0.6) | 2–10 | 604 ms |
 | `minesweeper.flag` | Minefield | A flag is placed | `tick` (0.35) | 5–25 | 300 ms |

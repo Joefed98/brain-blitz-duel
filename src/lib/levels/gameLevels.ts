@@ -222,6 +222,40 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       expert: { settings: { zoneLo: 745, zoneHi: 780, react: 5, speed: 1400, wall: [5, 5], wind: 7, hoopLast: 500, jumps: 6 } },
     },
   },
+  // Cue Ball (the Sports overhaul's stage 3, 15 Nov 2026; docs/arcade-standard/pool.md "Levels"): the same layouts and
+  // physics at every level (poolRev 4's proved bank proves 200 at each); a level changes what the aim preview shows and a
+  // foul's cost; Easy also opens the black with 2 of the player's 7 still up (blackAt, POOL_LEVEL_BLACK_AT; Joe, 16 Nov
+  // 2026). The sim reads POOL_LEVEL_FOUL and POOL_LEVEL_BLACK_AT (src/lib/arcade/pool.ts), mirrored here;
+  // pool-levels-check proves they agree.
+  pool: {
+    levels: {
+      easy: { settings: { preview: "long", foul: 5, blackAt: 2 } },
+      hard: { settings: { preview: "short", foul: 10 } },
+      expert: { settings: { preview: "ghost", foul: 15 } },
+    },
+  },
+  // Apex (stage 3, 16 Nov 2026; docs/arcade-standard/racing.md "Levels"): racingRev 4's settings per level, stamped on
+  // the deal as `racingLevel` (sports.server.ts) so the sim plays the stored copy (src/lib/arcade/racing.ts
+  // RacingLevelSettings). keep: the gravel's % of speed kept; road / kerb / wall: lateral units (Normal 65536 / 73728 /
+  // 131072); tight: added to every hairpin's peak (tightBy per circuit: Expert keeps Ridge Loop's own, Joe 16 Nov 2026); aids: 2 signs, boards and braking points, 1 signs and boards, 0 signs
+  // only; pace: the full pace per circuit (tenths of a km/h), the oracle's on Expert's tighter hairpins.
+  racing: {
+    levels: {
+      easy: { settings: { keep: 80, road: 75366, kerb: 83558, wall: 140902, tight: 0, aids: 2, pace: [1920, 2055, 1750] } },
+      hard: { settings: { keep: 60, road: 65536, kerb: 73728, wall: 108134, tight: 0, aids: 1, spread: 320 } },
+      expert: { settings: { keep: 50, road: 65536, kerb: 73728, wall: 108134, tight: 2, tightBy: [2, 2, 0], aids: 0, pace: [2175, 2352, 1964], spread: 250 } },
+    },
+  },
+  // Curl Champ (stage 3, 16 Nov 2026; docs/arcade-standard/curling.md "Levels"): the reds each end starts with and the aids. Plain data mirroring the
+  // sim's CURL_LEVEL_REDS and CURL_LEVEL_AIDS (curling-levels-check proves they agree); each level deals from its own
+  // proved bank (curlingLevelBanks.server.ts), every seed at 200.
+  curling: {
+    levels: {
+      easy: { settings: { reds: 2, minCm: 60, maxCm: 130, houseZone: true, aimLine: "full", coreFull: 60 } },
+      hard: { settings: { reds: 4, minCm: 30, maxCm: 90, houseZone: true, aimLine: "third" } },
+      expert: { settings: { reds: 5, minCm: 20, maxCm: 70, houseZone: false, aimLine: "none" } },
+    },
+  },
 };
 
 /** A Retro game's entry: its table's three levels as settings (arcade games give no one-solution proof). */

@@ -1,4 +1,6 @@
 import { withArcadeFx } from "@/lib/arcade/arcadeFx.renderer";
+import { puzzleLevel } from "@/lib/levels/levels";
+import { levelNote } from "@/lib/levels/levelNotes";
 import { useGameLookRef } from "@/lib/skins/equipped";
 import { lookKey } from "@/lib/arcade/skins/look";
 import { curlingFxFor } from "@/lib/arcade/sportsFx.renderer";
@@ -20,6 +22,7 @@ import {
   CURLING_RUN_TICKS,
   CURLING_W,
   curlingWorldHFor,
+  curlAidsFor,
   curlAimPath,
   curlDrawZone,
   curlWeightFromSwipeV3,
@@ -37,6 +40,7 @@ import {
   curlProject,
   curlViewFor,
   drawCurling,
+  drawCurlingFx,
   CURLING_BG,
   CURL_PX_PER_CM_FAR,
   CURL_VIEW_V4,
@@ -46,6 +50,8 @@ import { devWarp } from "@/lib/arcade/devWarp";
 import { TICKS_PER_SECOND, type ArcadeGame, type ArcadeInputEvent } from "@/lib/arcade/engine";
 import { SPORTS_CHECKPOINT_INTERVAL } from "@/lib/arcade/sportsKit";
 import { curlingSounds } from "@/lib/fx/gameSounds";
+import { CurlFxTracker, curlEndHoldMs } from "@/lib/arcade/curlingFx";
+import { demoHushed, playSlotOr } from "@/lib/sound";
 import { encodeCurlingRun, replayCurlingRun } from "@/lib/duel/curling";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import type { CurlingPuzzleData } from "@/lib/duel/types";
@@ -66,45 +72,65 @@ function rubStrength(pxPerMs: number): number {
 }
 
 /**
- * Fixed intro still: the sheet running away to the far house, a gold stone on the button, a red one, the broom, the
- * faint aim line, a swipe and (curlRev 3) the weight meter with its gold draw zone.
+ * Fixed intro still (the Sports overhaul, 15 Nov 2026: concept A's look): the stands packed with fans over the far
+ * boards, the bright sheet running to the far house, the house view top right on its solid panel, Captain Joulz beside
+ * the waiting stone, the faint aim line, the power bar with its gold HOUSE zone and the In / Out / Throw row with Throw
+ * grey while a stone is still moving.
  */
+const INTRO_FANS = Array.from({ length: 4 * 26 }, (_, i) => ({
+  x: 4 + (i % 26) * 7.4 + ((Math.floor(i / 26) % 2) * 3.7),
+  y: 26 - Math.floor(i / 26) * 6,
+  c: ["#D8352F", "#F2C230", "#2F6FD6", "#F3F1EC", "#E8752A", "#1FA38A", "#7A55C9"][(i * 7 + Math.floor(i / 26) * 3) % 7]!,
+  gap: (i * 13) % 11 === 0,
+}));
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-2">
-      <svg viewBox="0 0 195 120" width={195} height={120} aria-hidden="true" style={{ background: CURLING_BG, borderRadius: 10 }}>
-        <rect x="0" y="0" width="195" height="34" fill="#0C1320" />
-        {[30, 60, 97, 134, 165].map((x) => (
-          <circle key={x} cx={x} cy={10} r={4} fill="#FFF3C4" opacity={0.8} />
+      <svg viewBox="0 0 195 132" width={195} height={132} aria-hidden="true" style={{ background: CURLING_BG, borderRadius: 10 }}>
+        <rect x="0" y="0" width="195" height="34" fill="#0A0D16" />
+        {INTRO_FANS.filter((f) => !f.gap).map((f, i) => (
+          <g key={i} opacity={0.55 + (f.y / 26) * 0.45}>
+            <rect x={f.x - 2.2} y={f.y - 3.6} width="4.4" height="4" rx="1.2" fill={f.c} />
+            <circle cx={f.x} cy={f.y - 5} r="1.5" fill="#E3BFA0" />
+          </g>
         ))}
-        <rect x="0" y="26" width="195" height="8" fill="#4A3A26" />
-        <rect x="0" y="33" width="195" height="1.2" fill="#3FD6FF" />
-        <path d="M78 34 L117 34 L170 120 L25 120 Z" fill="#DCE7EF" />
-        <ellipse cx="97.5" cy="44" rx="22" ry="6" fill="#1F5FB8" />
-        <ellipse cx="97.5" cy="44" rx="14.5" ry="4" fill="#E9F1F6" />
-        <ellipse cx="97.5" cy="44" rx="7.3" ry="2" fill="#C8202E" />
-        <ellipse cx="97.5" cy="44" rx="1.8" ry="0.6" fill="#E9F1F6" />
-        <ellipse cx="97.5" cy="42.5" rx="3" ry="1.2" fill="#6C717C" />
-        <rect x="96" y="41" width="3" height="1.2" fill="#E8B53A" />
-        <ellipse cx="108" cy="46.5" rx="3" ry="1.2" fill="#6C717C" />
-        <rect x="106.5" y="45" width="3" height="1.2" fill="#C42A2E" />
-        <ellipse cx="88" cy="44" rx="4" ry="1.4" fill="#E8B53A" />
-        <line x1="88" y1="43" x2="90" y2="34.5" stroke="#FFE29A" strokeWidth="1" />
-        <path d="M112 98 Q106 84 102 76" stroke="#FFF3C4" strokeWidth="1.4" fill="none" opacity="0.6" strokeLinecap="round" />
-        <ellipse cx="112" cy="102" rx="7" ry="2.6" fill="#6C717C" />
-        <rect x="109" y="98" width="6" height="2" fill="#E8B53A" />
-        <path d="M101 101 L96 101 L101 98 Z M123 101 L128 101 L123 98 Z" fill="#FFE29A" />
-        <rect x="178" y="48" width="9" height="64" rx="2" fill="#05080F" opacity="0.85" />
-        <rect x="179.5" y="76" width="6" height="15" fill="#E8B53A" opacity="0.45" stroke="#E8B53A" strokeWidth="0.8" />
-        <rect x="176" y="83" width="13" height="1.4" fill="#FFE29A" />
-        <rect x="180.5" y="86" width="4" height="25" fill="#FFE29A" opacity="0.8" />
-        <g stroke="#E8B53A" strokeWidth="2" fill="none" opacity="0.85">
-          <line x1="112" y1="117" x2="112" y2="108" />
-          <line x1="112" y1="108" x2="108.5" y2="111.5" />
-          <line x1="112" y1="108" x2="115.5" y2="111.5" />
-        </g>
+        <rect x="0" y="30" width="195" height="4" fill="#0C111C" />
+        <rect x="0" y="32.5" width="195" height="0.7" fill="#7FE3FF" />
+        <path d="M70 34 L125 34 L195 132 L0 132 Z" fill="#F1F6FA" />
+        <path d="M92 40 L103 40 L128 132 L67 132 Z" fill="#FFFFFF" opacity="0.35" />
+        <ellipse cx="97.5" cy="42" rx="26" ry="5.6" fill="#1D5BB5" />
+        <ellipse cx="97.5" cy="42" rx="17" ry="3.7" fill="#F1F6FA" />
+        <ellipse cx="97.5" cy="42" rx="8.6" ry="1.9" fill="#C8202E" />
+        <ellipse cx="97.5" cy="42" rx="2.1" ry="0.5" fill="#F1F6FA" />
+        <rect x="0" y="60" width="195" height="1" fill="#C8202E" opacity="0.8" />
+        <ellipse cx="95" cy="41" rx="3" ry="1.1" fill="#6C717C" />
+        <rect x="93.6" y="39.6" width="2.8" height="1.1" fill="#E8B53A" />
+        <ellipse cx="107" cy="43.5" rx="3" ry="1.1" fill="#6C717C" />
+        <rect x="105.6" y="42" width="2.8" height="1.1" fill="#C42A2E" />
+        <path d="M100 96 Q97 76 96 58" stroke="#FFF3C4" strokeWidth="1.3" fill="none" opacity="0.65" strokeLinecap="round" />
+        <rect x="0" y="99" width="195" height="1.2" fill="#C8202E" />
+        <ellipse cx="100" cy="99" rx="7.5" ry="2.4" fill="#5D626C" />
+        <rect x="96.5" y="94.8" width="7" height="2" rx="1" fill="#E8B53A" />
+        <image href="/sports/curling/slide.webp" x="62" y="70" width="34" height="36" />
+        <rect x="124" y="2" width="44" height="44" rx="5" fill="#05080F" stroke="#FFFFFF66" strokeWidth="0.8" />
+        <rect x="126" y="4" width="40" height="40" rx="4" fill="#F1F6FA" />
+        <circle cx="146" cy="24" r="17.8" fill="#1D5BB5" />
+        <circle cx="146" cy="24" r="11.9" fill="#F1F6FA" />
+        <circle cx="146" cy="24" r="6" fill="#C8202E" />
+        <circle cx="146" cy="24" r="1.5" fill="#F1F6FA" />
+        <circle cx="144" cy="22.5" r="1.6" fill="#E8B53A" stroke="#1B1E24" strokeWidth="0.4" />
+        <circle cx="154" cy="27" r="1.6" fill="#C42A2E" stroke="#1B1E24" strokeWidth="0.4" />
+        <rect x="181" y="50" width="8" height="56" rx="2" fill="#05080F" opacity="0.9" />
+        <rect x="182" y="72" width="6" height="14" fill="#E8B53A" opacity="0.45" stroke="#E8B53A" strokeWidth="0.7" />
+        <rect x="178.5" y="79" width="13" height="1.5" fill="#FFE29A" />
+        <rect x="6" y="110" width="56" height="16" rx="4" fill="#0B1222" stroke="#E8B53A" strokeWidth="0.8" />
+        <text x="34" y="121" textAnchor="middle" fontSize="8" fontWeight="700" fill="#FFE29A">In</text>
+        <rect x="69" y="110" width="56" height="16" rx="4" fill="#0B1222" stroke="#FFFFFF33" strokeWidth="0.8" />
+        <text x="97" y="121" textAnchor="middle" fontSize="8" fontWeight="700" fill="#FFFFFFCC">Out</text>
+        <rect x="132" y="110" width="56" height="16" rx="4" fill="#2A3140" />
+        <text x="160" y="121" textAnchor="middle" fontSize="8" fontWeight="700" fill="#FFFFFF66">Throw</text>
       </svg>
-      <p className="text-center text-xs text-muted-foreground">Slide the stone, drag the target, pick In or Out, set the power bar in its gold zone, then Throw. Brush left or right of it to bend it.</p>
+      <p className="text-center text-xs text-muted-foreground">Slide the stone, drag the target or tap the house view, pick In or Out, set the power bar in its gold zone, then Throw. Brush left or right of it to bend it.</p>
     </div>
   );
 }
@@ -113,6 +139,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: CurlingPuzzleData | null = puzzle.type === "curling" ? puzzle : null;
   // The stored stamp picks the rules, the world's height and the controls (curlRev 2: slide the start, side brushing).
   const rev = data?.curlRev ?? 1;
+  /** The level it was dealt at (none: Normal) and that level's aids: the HOUSE zone and how much aim line shows. */
+  const level = data?.level;
+  const aids = curlAidsFor(rev >= 4 ? level : null);
   const v2 = rev >= 2;
   /** curlRev 3: the weight meter with the draw zone and the faint aim line. */
   const v3 = rev >= 3;
@@ -139,9 +168,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   // The sim as rooms deal it; its draw shows the arena, the stones and what the stage holds (broom, turn, swipe, start).
   // The player's own equipped skin and world theme (wave 2; display only, src/lib/skins/equipped.ts).
   const [, lookRef] = useGameLookRef("curling");
+  /** The effects observer (stage 2, display only): contacts, strokes, verdicts and the end's count (curlingFx.ts). */
+  const fxTracker = useRef(new CurlFxTracker());
   const game = useMemo<ArcadeGame<CurlingState, ArcadeInputEvent | null>>(() => {
     // devWarp: development only (review shots, scripts/shots/curling-prepare-shots.ts); production plays the game as is.
-    const base = devWarp("curling", curlingGameFor(rev));
+    const base = devWarp("curling", curlingGameFor(rev, level));
     const fx = curlingFxFor(rev);
     return {
       ...base,
@@ -160,14 +191,28 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const key = `${state.thrown}:${state.restTick}:${sx}:${bx}:${by}:${a.turn}`;
           if (key !== aidKey.current) {
             aidKey.current = key;
-            a.zone = curlDrawZone(sx, bx, by, a.turn, rev);
-            a.path = curlAimPath(state, sx, bx, by, a.zone?.tee ?? 316, a.turn);
+            // A level without the HOUSE zone (Expert) shows none, and its aim line only as far as the level allows
+            // (Easy the whole path, Expert none); the line follows the zone's tee weight as today.
+            const zone = curlDrawZone(sx, bx, by, a.turn, rev);
+            a.zone = aids.houseZone ? zone : null;
+            a.path = aids.aimPart ? curlAimPath(state, sx, bx, by, zone?.tee ?? 316, a.turn, aids.aimPart) : null;
           }
         }
-        withArcadeFx(fx, (c, st: CurlingState) => drawCurling(c, st, aim.current, lookRef.current))(ctx, state, { width: CURLING_W, height: worldH });
+        const now = performance.now();
+        const tracker = fxTracker.current;
+        tracker.observe(state, now);
+        withArcadeFx(fx, (c, st: CurlingState) => {
+          drawCurling(c, st, aim.current, lookRef.current);
+          // The effects over the world (stage 2), under the success layer's labels.
+          drawCurlingFx(c, st, tracker, now);
+        })(ctx, state, { width: CURLING_W, height: worldH });
+        // The end's count: a tick as each counting stone lights, a step higher each time.
+        tracker.cues.forEach(() => {
+          if (!demoHushed()) playSlotOr("curling.countTick", "tick", 0.7, 1 + 0.06 * (tracker.lit - 1));
+        });
       },
     };
-  }, [rev, worldH]);
+  }, [rev, worldH, level, aids]);
 
   const setStart = (x: number) => {
     aim.current.startX = Math.max(-CURL_START_MAX, Math.min(CURL_START_MAX, x));
@@ -177,6 +222,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     // curlRev 4: the power bar's marker stays where it was set.
     if (!v4) aim.current.keyWeight = null;
     return throwPayloadOf(weight);
+  };
+  /**
+   * curlRev 4: the power marker clicks into place (stage 2): the marker's snap and the notch tone, the brighter one with
+   * the marker in the gold HOUSE zone. On a tap or the end of a drag on the bar, and each − / + press.
+   */
+  const notch = () => {
+    const a = aim.current;
+    if (a.keyWeight == null) return;
+    a.snapAt = performance.now();
+    const inHouse = !!a.zone && a.keyWeight >= a.zone.lo && a.keyWeight <= a.zone.hi;
+    if (inHouse) playSlotOr("curling.powerNotchHouse", "tick", 1, 1.25);
+    else playSlotOr("curling.powerNotch", "tick", 0.55);
   };
   /** curlRev 4: set the bar's weight (the marker, the meter's fill and the Throw button follow it). */
   const setBar = (w: number) => {
@@ -207,7 +264,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         return null;
       }
       if (s.phase !== CURL_AIM) return null;
-      const inInset = curlInsetToSheet(x, y);
+      const inInset = curlInsetToSheet(x, y, rev);
       if (v4 && curlOnMeterV4(x, y)) {
         // curlRev 4: a tap or drag on the power bar sets the weight.
         setBar(curlMeterWeightAt(y));
@@ -238,7 +295,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     } else if (g.mode === "slide") {
       setStart(g.bx + (x - g.x) / hogK);
     } else if (g.mode === "inset") {
-      const p = curlInsetToSheet(x, y);
+      const p = curlInsetToSheet(x, y, rev);
       if (p) setBroom(p.x, p.y);
     } else if (g.mode === "broom") {
       setBroom(g.bx + (x - g.x) / CURL_PX_PER_CM_FAR, g.by + (y - g.y) * 6);
@@ -263,6 +320,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     }
     if (kind === "up") {
       gesture.current = null;
+      if (g.mode === "power" && s.phase === CURL_AIM) notch();
       if (g.mode === "swipe") {
         const w = aim.current.swipe;
         aim.current.swipe = null;
@@ -293,6 +351,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         worldH={worldH}
         game={game}
         sounds={curlingSounds}
+        endHoldMs={curlEndHoldMs}
         checkpoint={curlingCheckpoint}
         interval={SPORTS_CHECKPOINT_INTERVAL}
         encodeRun={encodeCurlingRun}
@@ -312,8 +371,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           else if (v3 && (key === "-" || key === "=" || key === "+") && state.phase === CURL_AIM) {
             const from = aim.current.keyWeight ?? aim.current.zone?.tee ?? 316;
             const next = Math.max(1, Math.min(CURL_WEIGHT_MAX, from + (key === "-" ? -1 : 1) * KEY_WEIGHT_STEP * (event.shiftKey ? 5 : 1)));
-            if (v4) setBar(next);
-            else aim.current.keyWeight = next;
+            if (v4) {
+              setBar(next);
+              notch();
+            } else aim.current.keyWeight = next;
           } else if (key === "Enter" && state.phase === CURL_AIM) send(throwPayload(v3 ? (aim.current.keyWeight ?? aim.current.zone?.tee ?? 316) : 306));
           else if (key === "s" && state.phase === CURL_TRAVEL) send({ k: CURL_INPUT_SWEEP, a: 60, b: 0, c: 0 });
           else return false;
@@ -376,6 +437,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               <button
                 type="button"
                 aria-label="Throw"
+                data-throw-state={curlThrowState(setWeight, aiming)}
                 disabled={locked || !curlThrowLive(setWeight, aiming)}
                 onPointerDown={(event) => {
                   event.preventDefault();
@@ -384,7 +446,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                   if (s && s.phase === CURL_AIM && w != null) send(throwPayload(w));
                 }}
                 className={`pointer-events-auto h-12 rounded-xl border text-base font-bold tracking-wide transition-colors ${
-                  !curlThrowLive(setWeight, aiming) ? "border-white/20 bg-[#0B1222]/80 text-white/45" : "border-[#E8B53A] bg-[#E8B53A] text-[#1A1205]"
+                  // Greyed out (the Sports overhaul): a flat grey face while a stone travels or before a weight is set.
+                  !curlThrowLive(setWeight, aiming) ? "border-white/10 bg-[#2A3140]/90 text-white/40" : "border-[#E8B53A] bg-[#E8B53A] text-[#1A1205]"
                 }`}
               >
                 Throw
@@ -400,6 +463,12 @@ export function curlThrowLive(setWeight: number | null, aiming: boolean): boolea
   return setWeight !== null && aiming;
 }
 
+/** What the Throw button reads as (data-throw-state): "travel" while a stone runs, "unset" before a weight is set, else "live". */
+export function curlThrowState(setWeight: number | null, aiming: boolean): "live" | "travel" | "unset" {
+  if (!aiming) return "travel";
+  return setWeight === null ? "unset" : "live";
+}
+
 /** curlRev 4's turn row (display only): its centre between the near hog line and the near house, as a share of the world's height. */
 export const CURL_TURN_ROW_MID = (curlProject(0, HOG_NEAR, CURL_VIEW_V4).sy + curlProject(0, TEE_NEAR - HOUSE_R, CURL_VIEW_V4).sy) / 2 / CURL_VIEW_V4.h;
 /** The row's top: the world's height (min(100cqh, 100cqw × h ÷ w)) at CURL_TURN_ROW_MID less half the 48 px row, clamped above the slot's bottom. */
@@ -407,7 +476,7 @@ export const CURL_TURN_ROW_TOP = `min(calc(min(100cqh, 100cqw * ${CURL_VIEW_V4.h
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "curling") return null;
-  const result = replayCurlingRun(puzzle.seed, myAnswer ?? "", puzzle.curlRev);
+  const result = replayCurlingRun(puzzle.seed, myAnswer ?? "", puzzle.curlRev, puzzle.level);
   const parts = curlingStdParts(result.state) ?? [];
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto">
@@ -434,6 +503,8 @@ export const curlingPuzzle: PuzzleDefinition = {
   generate: () => ({ type: "curling", seed: 1, curlRev: CURLING_REV }) satisfies CurlingPuzzleData,
   check: () => false,
   revealHeading: "Your stones",
+  // A level other than Normal says what it changes on the intro (levelNotes.ts; the "?" help shows the same line).
+  introLine: (puzzle) => levelNote("curling", puzzleLevel(puzzle)),
   IntroExample,
   Stage,
   Reveal,

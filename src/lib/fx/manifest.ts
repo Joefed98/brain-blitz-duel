@@ -730,6 +730,10 @@ const ENTRIES = {
   "racing.sector": { channel: "effects", frequency: 0, ms: 200, url: null },
   "racing.wall": { channel: "effects", frequency: 0, ms: 604, url: "/sounds/racing_bump.mp3" },
   "racing.grass": { channel: "effects", frequency: 0, ms: 150, url: null },
+  // The Sports overhaul, stage 2 (docs/sound-cues/sports-elevenlabs.md): the wall scrape and the chequered flag, until
+  // their recordings arrive.
+  "racing.scrape": { channel: "effects", frequency: 0, ms: 800, url: null },
+  "racing.chequer": { channel: "effects", frequency: 0, ms: 2500, url: null },
   "racing.finish": { channel: "effects", frequency: 0, ms: 1357, url: "/sounds/racing_flag.mp3" },
   "skyline.miss": { channel: "effects", frequency: 0, ms: 200, url: null },
   // The Action overhaul (15 Nov 2026, docs/sound-cues/action-elevenlabs.md): High Rise's new moments, wired with a library
@@ -1192,6 +1196,12 @@ const ENTRIES = {
   "pool.cueSoft": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/pool_cue_soft.mp3" },
   "pool.cueHard": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/pool_cue_hard.mp3" },
   "pool.cushion": { channel: "effects", frequency: 0, ms: 300, url: "/sounds/pool_cushion.mp3" },
+  // The Sports overhaul's Cue Ball moments (stage 2; docs/sound-cues/pool-overhaul.md): no file yet (Joe's ElevenLabs list).
+  "pool.cueCrack": { channel: "effects", frequency: 0, ms: 300, url: null },
+  "pool.jawRattle": { channel: "effects", frequency: 0, ms: 600, url: null },
+  "pool.rackRoll": { channel: "effects", frequency: 0, ms: 800, url: null },
+  "pool.blackUnlock": { channel: "effects", frequency: 0, ms: 700, url: null },
+  "pool.streakUp": { channel: "effects", frequency: 0, ms: 400, url: null },
   "curling.release": { channel: "effects", frequency: 0, ms: 484, url: "/sounds/curling_release.mp3" },
   "curling.slide": { channel: "effects", frequency: 0, ms: 2177, url: "/sounds/curling_slide_loop.mp3", loop: true },
   "curling.sweep": { channel: "effects", frequency: 0, ms: 1013, url: "/sounds/curling_sweep_loop.mp3", loop: true },
@@ -1199,6 +1209,14 @@ const ENTRIES = {
   "curling.board": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/curling_board.mp3" },
   "curling.applause": { channel: "effects", frequency: 0, ms: 1995, url: "/sounds/curling_applause.mp3" },
   "curling.shot": { channel: "effects", frequency: 0, ms: 998, url: "/sounds/curling_shot.mp3" },
+  // The Sports overhaul's effects (stage 2, 15 Nov 2026; docs/sound-cues/sports-overhaul.md): silent or a stand-in
+  // until Joe's recordings (docs/sound-cues/sports-elevenlabs.md); the "aw" borrows the crowd's groan, softly.
+  "curling.powerNotch": { channel: "effects", frequency: 0, ms: 80, url: null },
+  "curling.powerNotchHouse": { channel: "effects", frequency: 0, ms: 150, url: null },
+  "curling.clack": { channel: "effects", frequency: 0, ms: 300, url: null },
+  "curling.ooh": { channel: "effects", frequency: 0, ms: 1200, url: null },
+  "curling.aw": { channel: "effects", frequency: 0, ms: 1995, url: "/sounds/sports_crowd_groan.mp3", volume: 0.45 },
+  "curling.countTick": { channel: "effects", frequency: 0, ms: 100, url: null },
   "homerun.crowd": { channel: "effects", frequency: 0, ms: 9271, url: "/sounds/sports_crowd_loop.mp3", loop: true },
   "homerun.pitch": { channel: "effects", frequency: 0, ms: 259, url: "/sounds/homerun_pitch.mp3" },
   "homerun.whiff": { channel: "effects", frequency: 0, ms: 400, url: "/sounds/homerun_whiff.mp3" },
@@ -1236,6 +1254,7 @@ const ENTRIES = {
   "racing.squeal": { channel: "effects", frequency: 0, ms: 1197, url: "/sounds/racing_squeal.mp3" },
   "racing.kerb": { channel: "effects", frequency: 0, ms: 672, url: "/sounds/racing_kerb_loop.mp3", loop: true },
   "racing.grassLoop": { channel: "effects", frequency: 0, ms: 726, url: "/sounds/racing_grass_loop.mp3", loop: true },
+  "racing.speedRush": { channel: "effects", frequency: 0, ms: 1500, url: null, loop: true },
   "racing.roar": { channel: "effects", frequency: 0, ms: 3477, url: "/sounds/sports_crowd_roar.mp3" },
   "minesweeper.unflag": { channel: "effects", frequency: 0, ms: 350, url: "/sounds/mines_unflag.mp3" },
   "mahjong.select": { channel: "effects", frequency: 0, ms: 200, url: "/sounds/mahjong_select.mp3" },

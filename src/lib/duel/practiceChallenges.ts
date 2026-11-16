@@ -169,6 +169,10 @@ export function condOn(cond: ChallengeCond, run: GradedRun): { ok: boolean; valu
       const v = tileNumber(extra, cond.label);
       return { ok: v !== null && cmp(v, cond.op, cond.v), value: v };
     }
+    case "since": {
+      const stamp = extraNumber(extra, cond.path);
+      return condOn(stamp !== null && stamp >= cond.from ? cond.then : cond.before, run);
+    }
   }
 }
 
@@ -177,6 +181,8 @@ function barCond(goal: Extract<ChallengeGoal, { kind: "check" }>): ChallengeCond
   if (goal.bar !== undefined) return goal.all[goal.bar] ?? null;
   for (let i = goal.all.length - 1; i >= 0; i--) {
     const c = goal.all[i]!;
+    // A rule that changed with a stamp: the bar follows the dealt stamp's (`then`).
+    if (c.c === "since") return c;
     if (c.c === "full" || ((c.c === "score" || c.c === "line" || c.c === "tile" || c.c === "len") && (c.op === "gte" || c.op === "gt")))
       return c;
     if (c.c === "field" && typeof c.v === "number" && (c.op === "gte" || c.op === "gt") && c.v > 1) return c;
@@ -188,8 +194,9 @@ function barCond(goal: Extract<ChallengeGoal, { kind: "check" }>): ChallengeCond
 export function challengeTarget(goal: ChallengeGoal): number {
   if (goal.kind === "score") return goal.score;
   if (goal.kind !== "check") return goal.max;
-  const c = barCond(goal);
-  if (!c) return 1;
+  const found = barCond(goal);
+  if (!found) return 1;
+  const c = found.c === "since" ? found.then : found;
   if (c.c === "full") return c.max;
   if (c.c === "field") return typeof c.v === "number" ? c.v : 1;
   return "v" in c && typeof c.v === "number" ? c.v : 1;

@@ -37,12 +37,13 @@ import { encodeFreekickRun, replayFreekickRun } from "../src/lib/duel/freekick";
 import { FREEKICK_DEAL } from "../src/lib/duel/freekickDeal.server";
 import { FREEKICK_DEAL_V2 } from "../src/lib/duel/freekickDealV2.server";
 import { FREEKICK_DEAL_V3 } from "../src/lib/duel/freekickDealV3.server";
-import { racingCheckpoint, racingGameFor, RACING_CHECKPOINT_INTERVAL, RACING_REV_2, RACING_REV_3, RACING_REV_STD } from "../src/lib/arcade/racing";
+import { racingCheckpoint, racingGameFor, RACING_CHECKPOINT_INTERVAL, RACING_REV_2, RACING_REV_3, RACING_REV_4, RACING_REV_STD } from "../src/lib/arcade/racing";
 import { FREEKICK_DEAL_V4 } from "../src/lib/duel/freekickDealV4.server";
 import { encodeRacingRun, replayRacingRun } from "../src/lib/duel/racing";
 import { RACING_DEAL } from "../src/lib/duel/racingDeal.server";
 import { RACING_DEAL_V2 } from "../src/lib/duel/racingDealV2.server";
 import { RACING_DEAL_V3 } from "../src/lib/duel/racingDealV3.server";
+import { RACING_DEAL_V4 } from "../src/lib/duel/racingDealV4.server";
 import {
   inputAt,
   recordInput,
@@ -1240,6 +1241,9 @@ const GAMES: Game[] = [
   { key: "freekick/v6", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(6), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, 6), seedFor: (n: number) => freekickDealSeedV6(n) },
   { key: "freekick/v6-expert", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(6, "expert"), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, 6, "expert"), seedFor: (n: number) => freekickDealSeedV6(n, "expert") },
   { key: "homerun/v5-expert", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(5, "expert"), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, 5, "expert"), seedFor: (n: number) => homerunDealSeedV5(n, "expert") },
+  // Apex racingRev 4 (15 Nov 2026, the Sports overhaul: three named circuits), appended at the end so every earlier
+  // entry keeps its index and stream.
+  { key: "racing/v4", interval: RACING_CHECKPOINT_INTERVAL, game: racingGameFor(RACING_REV_4), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, RACING_REV_4), seedFor: (n: number) => RACING_DEAL_V4[n % RACING_DEAL_V4.length]! },
 ];
 
 /** golfRev 3's course for a self-replay seed: each slot's hole by a spread of the seed, the level seed mod 4. */

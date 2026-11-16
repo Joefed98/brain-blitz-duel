@@ -12,6 +12,7 @@ import { racingSubmission } from "./racing-deal";
 import { racingDealSeed } from "../src/lib/duel/racingDeal.server";
 import { racingDealSeedV2 } from "../src/lib/duel/racingDealV2.server";
 import { racingDealSeedV3 } from "../src/lib/duel/racingDealV3.server";
+import { racingDealSeedV4 } from "../src/lib/duel/racingDealV4.server";
 import { roomSeed } from "./arcade-skill-bands/games";
 import { ALL_LEVELS, Human, LEVEL_LABEL } from "./arcade-skill-bands/human";
 import { bot, randomBot } from "./arcade-skill-bands/bots/racing";
@@ -25,7 +26,7 @@ const from = arg("from", 0);
 const raw = process.argv.includes("--raw");
 const rev = arg("rev", RACING_REV_DEALT);
 const game = racingGameFor(rev);
-const dealt = rev >= 3 ? racingDealSeedV3 : rev >= 2 ? racingDealSeedV2 : racingDealSeed;
+const dealt = rev >= 4 ? racingDealSeedV4 : rev >= 3 ? racingDealSeedV3 : rev >= 2 ? racingDealSeedV2 : racingDealSeed;
 
 const median = (xs: number[]) => {
   const s = [...xs].sort((a, b) => a - b);

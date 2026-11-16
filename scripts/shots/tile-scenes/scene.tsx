@@ -19,13 +19,24 @@ export const TILE = 104;
 
 export type TileScene =
   /** Painted on a canvas already scaled to CSS px (`k` = device px per CSS px, 2, for renderers that cache sprites). */
-  | { kind: "canvas"; paint: (c: CanvasRenderingContext2D, k: number) => void }
+  | {
+      kind: "canvas";
+      paint: (c: CanvasRenderingContext2D, k: number) => void;
+      /**
+       * Rendered sprites the scene's renderer draws once loaded (src/lib/arcade/sportsSprites.ts: [game, names]); the
+       * harness waits for them before painting, so the tile shows the game's real art, not its painted fallback.
+       */
+      sprites?: readonly (readonly [string, readonly string[]])[];
+    }
   /** Rendered as DOM (the game's own components and CSS) into the TILE × TILE box. */
   | { kind: "dom"; render: () => ReactNode };
 
 export type SceneSet = Partial<Record<PuzzleType, TileScene>>;
 
-export const canvasScene = (paint: (c: CanvasRenderingContext2D, k: number) => void): TileScene => ({ kind: "canvas", paint });
+export const canvasScene = (
+  paint: (c: CanvasRenderingContext2D, k: number) => void,
+  sprites?: readonly (readonly [string, readonly string[]])[],
+): TileScene => (sprites ? { kind: "canvas", paint, sprites } : { kind: "canvas", paint });
 export const domScene = (render: () => ReactNode): TileScene => ({ kind: "dom", render });
 
 /** Runs `paint` translated to (x, y) and scaled by s. */

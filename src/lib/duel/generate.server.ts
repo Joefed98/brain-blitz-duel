@@ -274,7 +274,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "mahjong") return generateMahjong(context.level);
   if (type === "homerun") return generateHomerun(context.level);
   if (type === "freekick") return generateFreekick(context.level);
-  if (type === "racing") return generateRacing();
+  if (type === "racing") return generateRacing(context.level);
   if (type === "freecell") return generateFreecell(context.level);
   if (type === "tripeaks") return generateTripeaks(context.level);
   if (type === "pokersquares") return generatePokerSquares();
@@ -285,7 +285,8 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   // golfRev 3 reads the level the deal asks for (the difficulty framework's context.level; absent on main: Normal).
   if (type === "minigolf") return generateMinigolf((context as { level?: unknown }).level);
   if (type === "pool") return generatePool();
-  if (type === "curling") return generateCurling();
+  // Curl Champ's levels (the Sports overhaul): Easy, Hard and Expert deal from their own proved banks; Normal as before.
+  if (type === "curling") return generateCurling(context.level);
   if (type === "blockfall") return generateBlockfall();
   if (type === "alleyroll") return generateAlleyRoll();
   if (type === "rally") return generateRally();

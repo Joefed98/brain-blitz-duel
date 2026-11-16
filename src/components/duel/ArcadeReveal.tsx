@@ -21,6 +21,7 @@ import { RetroRunSummary } from "./RetroRunSummary";
 import { GameRunPicture, useHasRunPicture } from "./GameParts";
 import { moonHitsLine } from "@/lib/duel/moonRevealHits";
 import { CardsRevealPicture, CARDS_REVEAL_TYPES } from "./CardsRevealPicture";
+import { hasRunSummary, RunSummary } from "./runSummary";
 import { COST_LINE, PENALTY_LINE, realFullClear, statRepeatsPart, summaryText } from "@/lib/duel/revealBreakdown";
 import { bandStdLines, standardPartLabels } from "@/lib/duel/arcadeBandStd";
 
@@ -310,7 +311,10 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
   const ownPicture = useHasRunPicture(puzzle.type);
   // Ball Tracker's stored reveals before 15 Nov 2026 say "Wrong tray"; shown as "Wrong cup", the one wording (display only).
   const tileLabel = (label: string) => (puzzle.type === "balltrack" && label === "Wrong tray" ? "Wrong cup" : label);
-  const tiles = ownPicture ? [] : shown ? [...shown.tiles.filter((t) => !statRepeatsPart(t.label, shown.lines, partLabels, t.value) && !retiredStat(puzzle, t.label) && !(hitsLine && t.label === "Hits")).slice(0, 4), ...costRows] : [];
+  // A game with its own run summary shows its stats there, in pictures and big numbers (the Sports overhaul): the stored
+  // stat rows would only repeat them, so they're left out (stored costs still show).
+  const statTiles = shown && !hasRunSummary(puzzle.type) ? shown.tiles.filter((t) => !statRepeatsPart(t.label, shown.lines, partLabels, t.value) && !retiredStat(puzzle, t.label) && !(hitsLine && t.label === "Hits")).slice(0, 4) : [];
+  const tiles = ownPicture ? [] : shown ? [...statTiles, ...costRows] : [];
   const folds = !practice && !!summary && summary.rest.length + tiles.length > 0;
   const [open, setOpen] = useState(false);
   const breakdownLines = shown ? (hitsLine ? [...shown.lines, hitsLine] : shown.lines) : [];
@@ -403,6 +407,9 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
             {summaryVisual}
           </div>
         ) : null}
+        {/* The game's own run summary (the Sports overhaul): drawn large under the score, in practice and rooms. */}
+        <RunSummary puzzle={puzzle} myAnswer={myAnswer} myScore={myScore} practice={practice} />
+
         {/* The full breakdown: open in practice, one tap away in a room (always in the markup). */}
         {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}
         {/* The run's lines exactly as stored, when the rows above were rewritten as part rows (arcadeBandStd.ts). */}

@@ -268,6 +268,21 @@ const EXEMPT: Record<string, string> = {
   ...Object.fromEntries(
     ["tilt.rimTick", "tilt.pitWobble", "tilt.discSwap", "matchup.goalSpark", "matchup.iceCrack", "bubble.reefRumble", "bubble.warning", "inkbridge.coinWobble", "inkbridge.birdFlap", "inkbridge.missWhistle", "balltrack.booster", "balltrack.combo", "balltrack.cupPulse"].map((id) => [id, "awaiting Joe's ElevenLabs recording (strategy-elevenlabs.md); silent until then"]),
   ),
+  // The Sports overhaul's new moments (16 Nov 2026; routine consequence of the Sports overhaul, under Joe's rule that a
+  // new sound gets one ElevenLabs line and existing files are kept): each plays the library sound until Joe's file.
+  "pool.cueCrack": "awaits its ElevenLabs recording (docs/sound-cues/sports-elevenlabs.md; Joe's rule keeps existing files); its library stand-in plays meanwhile",
+  "pool.jawRattle": "awaits its ElevenLabs recording (docs/sound-cues/sports-elevenlabs.md; Joe's rule keeps existing files); its library stand-in plays meanwhile",
+  "pool.rackRoll": "awaits its ElevenLabs recording (docs/sound-cues/sports-elevenlabs.md; Joe's rule keeps existing files); its library stand-in plays meanwhile",
+  "pool.blackUnlock": "awaits its ElevenLabs recording (docs/sound-cues/sports-elevenlabs.md; Joe's rule keeps existing files); its library stand-in plays meanwhile",
+  "pool.streakUp": "awaits its ElevenLabs recording (docs/sound-cues/sports-elevenlabs.md; Joe's rule keeps existing files); its library stand-in plays meanwhile",
+  "curling.powerNotch": "awaits its ElevenLabs recording (docs/sound-cues/sports-elevenlabs.md; Joe's rule keeps existing files); its library stand-in plays meanwhile",
+  "curling.powerNotchHouse": "awaits its ElevenLabs recording (docs/sound-cues/sports-elevenlabs.md; Joe's rule keeps existing files); its library stand-in plays meanwhile",
+  "curling.clack": "awaits its ElevenLabs recording (docs/sound-cues/sports-elevenlabs.md; Joe's rule keeps existing files); its library stand-in plays meanwhile",
+  "curling.ooh": "awaits its ElevenLabs recording (docs/sound-cues/sports-elevenlabs.md; Joe's rule keeps existing files); its library stand-in plays meanwhile",
+  "curling.countTick": "awaits its ElevenLabs recording (docs/sound-cues/sports-elevenlabs.md; Joe's rule keeps existing files); its library stand-in plays meanwhile",
+  "racing.speedRush": "awaits its ElevenLabs recording (docs/sound-cues/sports-elevenlabs.md; Joe's rule keeps existing files); its library stand-in plays meanwhile",
+  "racing.scrape": "awaits its ElevenLabs recording (docs/sound-cues/sports-elevenlabs.md; Joe's rule keeps existing files); its library stand-in plays meanwhile",
+  "racing.chequer": "awaits its ElevenLabs recording (docs/sound-cues/sports-elevenlabs.md; Joe's rule keeps existing files); its library stand-in plays meanwhile",
 };
 const needed: string[] = [];
 for (const [id, e] of Object.entries(manifest)) {

@@ -22,7 +22,18 @@ import type { CanvasSize } from "./engine";
 import { NO_LOOK, type GameLook } from "./skins/look";
 import { curlStoneSkin, DEFAULT_RINK, neonRinkArena, neonRinkCacheTag, neonRinkIce, neonRinkPalette, neonStroke, paintSkinStone } from "./skins/curling.skins";
 import type { ArenaSceneView } from "./arenaScene.renderer";
-import { artHash } from "./art.renderer";
+import { artHash, reducedMotion } from "./art.renderer";
+import { arcadeReducedEffects } from "../fx/lowEnd";
+import {
+  CURL_FX_RING_TICKS,
+  CURL_FX_STROKE_TICKS,
+  CURL_FX_VERDICT_TICKS,
+  CURL_FX_ZOOM_MS as CURL_FX_ZOOM_MS_R,
+  curlEndLit,
+  curlEndZoom,
+  type CurlFxTracker,
+} from "./curlingFx";
+import { sportsSprite, sportsSpritesVersion } from "./sportsSprites";
 import {
   BACK_FAR,
   BACK_NEAR,
@@ -114,10 +125,19 @@ export const CURL_FAR_HOUSE = curlFarHouse(CURL_VIEW_V1);
 
 /** The inset (top right): its box (world px) and its scale (px a cm), centred on the far tee. */
 export const CURL_INSET = { x: 262, y: 10, w: 120, h: 120, scale: 120 / 2 / 205 };
+/**
+ * curlRev 4's inset (the Sports overhaul, 15 Nov 2026, display and tap mapping only): larger (138 px square) on a solid
+ * panel. Older views keep CURL_INSET: in curlRev 2 and 3's view the larger box would cover the far house's right edge.
+ */
+export const CURL_INSET_V4 = { x: 246, y: 6, w: 138, h: 138, scale: 138 / 2 / 205 };
+/** The inset a revision draws (and its taps map through). */
+export function curlInsetFor(rev: number | null | undefined): typeof CURL_INSET {
+  return (rev ?? 1) >= 4 ? CURL_INSET_V4 : CURL_INSET;
+}
 
-/** An inset point (world px) as sheet cm, or null outside the inset. */
-export function curlInsetToSheet(px: number, py: number): { x: number; y: number } | null {
-  const i = CURL_INSET;
+/** An inset point (world px) as sheet cm, or null outside the inset (curlRev 4's larger one with its rev). */
+export function curlInsetToSheet(px: number, py: number, rev?: number | null): { x: number; y: number } | null {
+  const i = curlInsetFor(rev);
   if (px < i.x || px > i.x + i.w || py < i.y || py > i.y + i.h) return null;
   // Top down with the far end up: up the screen is further down the sheet (smaller y).
   return { x: (px - (i.x + i.w / 2)) / i.scale, y: (py - (i.y + i.h / 2)) / i.scale };
@@ -136,7 +156,6 @@ const GOLD = "#E8B53A";
 const GOLD_HI = "#FFE29A";
 const RED = "#C42A2E";
 const RED_HI = "#FF8A80";
-const LED = "#3FD6FF";
 
 /* ============================ The static layer ============================ */
 
@@ -186,8 +205,19 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: Cu
         ctx.fillStyle = fill;
         ctx.fill();
         if (edge) neonStroke(ctx, edge, Math.max(1, 5 * P(offset, cy).k));
+        else if (!L.world) {
+          // A crisp painted rim (the default rink), seen through the ice.
+          ctx.strokeStyle = "rgba(16,28,52,0.32)";
+          ctx.lineWidth = Math.max(0.5, 1.4 * P(offset, cy).k);
+          ctx.stroke();
+        }
       }
     }
+  }
+  // The rings are paint under the ice (the default rink): a thin clear veil of ice over them, the pebble on top.
+  if (!L.world) {
+    ctx.fillStyle = "rgba(244,249,252,0.1)";
+    ctx.fillRect(-400, q[0]!.sy, v.w + 800, v.h + 400);
   }
   const across = (y: number, colour: string, w: number) => {
     const a = P(offset - SHEET_HALF_W, y);
@@ -229,12 +259,14 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: Cu
     ctx.fillStyle = i % 3 ? pal.pebble[0] : pal.pebble[1];
     ctx.fillRect(p.sx, p.sy, Math.max(0.5, p.k * 1.4), Math.max(0.5, p.k * 1.1));
   }
-  // The roof lights' reflections: long soft streaks down the ice.
-  for (const lx of pal.reflections ? [-120, 120] : []) {
+  // The main sheet's depth (the default rink): the sheen and the roof lights' long reflections (iceDepth).
+  if (!L.world && offset === 0) iceDepth(ctx, offset, v, far, near);
+  // The neighbouring sheets' roof-light reflections: soft streaks down the ice.
+  for (const lx of pal.reflections && (L.world || offset !== 0) ? [-120, 120] : []) {
     for (const ly of [300, 1300, 2300]) {
       const p = P(offset + lx, ly);
       const r = ctx.createRadialGradient(p.sx, p.sy, 0, p.sx, p.sy, 70 * p.k + 6);
-      r.addColorStop(0, "#FFFFFFAA");
+      r.addColorStop(0, "#FFFFFF55");
       r.addColorStop(1, "#FFFFFF00");
       ctx.fillStyle = r;
       ctx.save();
@@ -247,22 +279,42 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: Cu
   }
   if (dim > 0) {
     ctx.fillStyle = `rgba(10,16,28,${dim})`;
-    ctx.fillRect(0, 0, v.w, v.h);
+    // Clipped to this sheet: the whole of it, out past the world's edges (the scene beyond) as well.
+    ctx.fillRect(-400, -400, v.w + 800, v.h + 800);
   }
   ctx.restore();
-  // The side boards and their LED strips.
+  // The side boards and their LED strips (the default rink: a solid dark board, its lit top edge, so the sheet glows
+  // by contrast).
+  for (const side of L.world ? [] : [-1, 1]) {
+    const e0 = offset + side * (SHEET_HALF_W + 1);
+    const e1 = offset + side * (SHEET_HALF_W + 18);
+    const qa = [P(e0, far), P(e1, far), P(e1, near), P(e0, near)];
+    ctx.fillStyle = "#070A11";
+    ctx.beginPath();
+    qa.forEach((pt, i) => (i ? ctx.lineTo(pt.sx, pt.sy) : ctx.moveTo(pt.sx, pt.sy)));
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = "rgba(190,212,236,0.42)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(qa[0]!.sx, qa[0]!.sy);
+    ctx.lineTo(qa[3]!.sx, qa[3]!.sy);
+    ctx.stroke();
+  }
   for (const side of [-1, 1]) {
     const a = P(offset + side * (SHEET_HALF_W + 4), far);
     const b = P(offset + side * (SHEET_HALF_W + 4), near);
-    ctx.strokeStyle = pal.board;
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(a.sx, a.sy);
-    ctx.lineTo(b.sx, b.sy);
-    ctx.stroke();
+    if (L.world) {
+      ctx.strokeStyle = pal.board;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(a.sx, a.sy);
+      ctx.lineTo(b.sx, b.sy);
+      ctx.stroke();
+    }
     ctx.save();
     ctx.shadowColor = pal.led;
-    ctx.shadowBlur = 6;
+    ctx.shadowBlur = L.world ? 6 : 2;
     ctx.strokeStyle = dim > 0 ? `${pal.led}88` : pal.led;
     ctx.lineWidth = 1.1;
     ctx.beginPath();
@@ -273,76 +325,150 @@ function sheet(ctx: CanvasRenderingContext2D, offset: number, dim: number, v: Cu
   }
 }
 
-/** The arena above the far boards: the roof, its lights and the lit spectator gallery. */
+/**
+ * The main sheet's depth (the Sports overhaul, 15 Nov 2026; the default rink): polished ice, a sheen darkening towards
+ * the boards and the roof lights reflected as long soft highlights running down the sheet (several nested bands, each
+ * faint, brightest a third of the way down and gone before the near end: no glare over the stones or the HUD).
+ * Drawn inside the sheet's clip, under the stones; geometry and projection unchanged.
+ */
+function iceDepth(ctx: CanvasRenderingContext2D, offset: number, v: CurlView, far: number, near: number): void {
+  const P = (x: number, y: number) => curlProject(x, y, v);
+  const quad = (x0: number, x1: number, y0: number, y1: number) => {
+    const a = P(offset + x0, y0);
+    const b = P(offset + x1, y0);
+    const c = P(offset + x1, y1);
+    const d = P(offset + x0, y1);
+    ctx.beginPath();
+    ctx.moveTo(a.sx, a.sy);
+    ctx.lineTo(b.sx, b.sy);
+    ctx.lineTo(c.sx, c.sy);
+    ctx.lineTo(d.sx, d.sy);
+    ctx.closePath();
+  };
+  // The sheen across: the middle of the sheet brightest, darker towards the boards.
+  const strips = 28;
+  for (let i = 0; i < strips; i++) {
+    const u0 = -1 + (2 * i) / strips;
+    const u1 = u0 + 2 / strips;
+    const m = Math.abs((u0 + u1) / 2);
+    quad(u0 * SHEET_HALF_W, u1 * SHEET_HALF_W, far, near);
+    ctx.fillStyle = `rgba(30,50,82,${(0.3 * m ** 2).toFixed(3)})`;
+    ctx.fill();
+  }
+  // A cool sheen falling off with distance (the far end catches less of the lights).
+  const top = P(offset, far).sy;
+  const bottom = Math.min(v.h + 40, P(offset, near).sy);
+  const fall = ctx.createLinearGradient(0, top, 0, bottom);
+  fall.addColorStop(0, "rgba(120,146,176,0.22)");
+  fall.addColorStop(0.35, "rgba(120,146,176,0.06)");
+  fall.addColorStop(0.7, "rgba(60,82,108,0.04)");
+  fall.addColorStop(1, "rgba(60,82,108,0.1)");
+  quad(-SHEET_HALF_W, SHEET_HALF_W, far, near);
+  ctx.fillStyle = fall;
+  ctx.fill();
+  // The roof lights' reflections: long, gentle highlights down the sheet.
+  for (const lx of [-150, -58, 58, 150]) {
+    for (const [half, a] of [
+      [30, 0.08],
+      [15, 0.1],
+      [6, 0.12],
+    ] as const) {
+      const g = ctx.createLinearGradient(0, top, 0, bottom);
+      g.addColorStop(0, "rgba(255,255,255,0)");
+      g.addColorStop(0.12, `rgba(255,255,255,${a * 0.6})`);
+      g.addColorStop(0.38, `rgba(255,255,255,${a})`);
+      g.addColorStop(0.72, `rgba(255,255,255,${a * 0.45})`);
+      g.addColorStop(1, "rgba(255,255,255,0)");
+      quad(lx - half, lx + half, far + 60, near);
+      ctx.fillStyle = g;
+      ctx.fill();
+    }
+  }
+  // The glossy veil: a faint brighter band where the lights' glow pools mid-sheet.
+  const pool = ctx.createLinearGradient(0, top, 0, bottom);
+  pool.addColorStop(0, "rgba(255,255,255,0)");
+  pool.addColorStop(0.45, "rgba(255,255,255,0.05)");
+  pool.addColorStop(1, "rgba(255,255,255,0)");
+  quad(-SHEET_HALF_W * 0.7, SHEET_HALF_W * 0.7, far, near);
+  ctx.fillStyle = pool;
+  ctx.fill();
+}
+
+/**
+ * The arena above the far boards (the Sports overhaul, 15 Nov 2026, concept A): a packed stand of seated spectators in
+ * bright team colours, row over row up into the dark roof, a quiet warm wash from the roof lights (no glare), the
+ * balcony rail and the far boards with a thin cool LED strip.
+ */
 function arena(ctx: CanvasRenderingContext2D, top: number, bottom: number): void {
   const g = ctx.createLinearGradient(0, top, 0, bottom);
-  g.addColorStop(0, "#05070C");
-  g.addColorStop(0.55, "#0C1320");
-  g.addColorStop(1, "#18243A");
+  g.addColorStop(0, "#030408");
+  g.addColorStop(0.6, "#0A0D16");
+  g.addColorStop(1, "#141826");
   ctx.fillStyle = g;
   ctx.fillRect(-400, top, CURLING_W + 800, bottom - top);
-  // Roof trusses and their lights.
-  ctx.strokeStyle = "#1C2638";
-  ctx.lineWidth = 1;
-  for (let i = -6; i <= 12; i++) {
-    ctx.beginPath();
-    ctx.moveTo(i * 40, top);
-    ctx.lineTo(CX + (i * 40 - CX) * 0.35, bottom - 70);
-    ctx.stroke();
-  }
-  for (let row = 0; row < 3; row++) {
-    const y = top + 18 + row * 26 + (bottom - top - 200) * 0.2;
-    for (let i = 0; i < 9 - row; i++) {
-      const x = CX + (i - (8 - row) / 2) * (44 - row * 9);
-      const r = ctx.createRadialGradient(x, y, 0, x, y, 16 - row * 3);
-      r.addColorStop(0, "#FFFBEA");
-      r.addColorStop(0.25, "#FFF3C4AA");
-      r.addColorStop(1, "#FFF3C400");
-      ctx.fillStyle = r;
-      ctx.fillRect(x - 18, y - 18, 36, 36);
-    }
-  }
-  // The gallery: tiers of seated spectators under warm balcony light.
-  const gTop = bottom - 64;
-  const gal = ctx.createLinearGradient(0, gTop, 0, bottom);
-  gal.addColorStop(0, "#2A2016");
-  gal.addColorStop(1, "#4A3A26");
-  ctx.fillStyle = gal;
-  ctx.fillRect(-400, gTop, CURLING_W + 800, bottom - gTop);
-  const tones = ["#C9B79A", "#7E91B5", "#B85C4F", "#E3D6BC", "#4F6B8F", "#D9A441", "#8A8A8A"];
-  for (let tier = 0; tier < 5; tier++) {
-    const y = gTop + 8 + tier * 11;
-    for (let i = 0; i < 70; i++) {
-      const h = artHash(i, tier + 3);
-      if (h % 7 === 0) continue;
-      const x = -40 + i * 7 + (tier % 2) * 3.5;
-      ctx.fillStyle = tones[h % tones.length]!;
-      ctx.globalAlpha = 0.55 + tier * 0.08;
+  // The stand: tiers from the boards up, each a dark seat row with its spectators, smaller and dimmer further up.
+  const shirts = ["#D8352F", "#F2C230", "#2F6FD6", "#F3F1EC", "#E8752A", "#1FA38A", "#C8202E", "#3B4A6B", "#E9A6C8", "#7A55C9"];
+  const skins = ["#F2D2B6", "#D9A982", "#B47B55", "#8A5A3C", "#F7E1CC"];
+  const rows = 11;
+  let y = bottom - 12;
+  for (let tier = 0; tier < rows; tier++) {
+    const sc = 1 - tier * 0.045;
+    const pitch = 11.2 * sc;
+    const rowH = 15.5 * sc;
+    const shade = Math.min(0.78, tier * 0.07);
+    // The seat backs.
+    ctx.fillStyle = "#1A2034";
+    ctx.fillRect(-400, y - 2.5 * sc, CURLING_W + 800, 4.2 * sc);
+    for (let i = -2; i < Math.ceil((CURLING_W + 40) / pitch) + 2; i++) {
+      const h = artHash(i + 97, tier * 13 + 5);
+      if (h % 11 === 0) continue; // an empty seat
+      const x = -20 + i * pitch + (tier % 2) * pitch * 0.5 + ((h >>> 8) % 3) - 1;
+      const bob = ((h >>> 12) % 3) * 0.6 * sc;
+      // Torso: a rounded block in a team colour.
+      ctx.fillStyle = shirts[(h >>> 4) % shirts.length]!;
       ctx.beginPath();
-      ctx.arc(x, y, 1.8, 0, Math.PI * 2);
+      ctx.roundRect(x - 4 * sc, y - 9.5 * sc - bob, 8 * sc, 8.5 * sc, 2.2 * sc);
       ctx.fill();
-      ctx.fillRect(x - 2.2, y + 1.6, 4.4, 4.5);
+      // Head.
+      ctx.fillStyle = skins[(h >>> 16) % skins.length]!;
+      ctx.beginPath();
+      ctx.arc(x, y - 12.6 * sc - bob, 2.9 * sc, 0, Math.PI * 2);
+      ctx.fill();
+      // A few hats and scarves for texture.
+      if ((h >>> 20) % 6 === 0) {
+        ctx.fillStyle = shirts[(h >>> 24) % shirts.length]!;
+        ctx.fillRect(x - 3 * sc, y - 15.6 * sc - bob, 6 * sc, 2 * sc);
+      }
     }
+    if (shade > 0) {
+      ctx.fillStyle = `rgba(3,4,8,${shade.toFixed(3)})`;
+      ctx.fillRect(-400, y - rowH, CURLING_W + 800, rowH + 2);
+    }
+    y -= rowH;
+    if (y < top) break;
   }
-  ctx.globalAlpha = 1;
-  // The balcony rail's light line.
-  ctx.fillStyle = "#FFD9945A";
-  ctx.fillRect(-400, gTop - 2, CURLING_W + 800, 2);
-  // The far boards and their LED strip.
-  ctx.fillStyle = "#121A28";
-  ctx.fillRect(-400, bottom - 6, CURLING_W + 800, 6);
-  ctx.save();
-  ctx.shadowColor = LED;
-  ctx.shadowBlur = 8;
-  ctx.fillStyle = LED;
-  ctx.fillRect(-400, bottom - 4, CURLING_W + 800, 1.4);
-  ctx.restore();
+  // The roof lights' quiet wash over the lower tiers (no hot spots).
+  const wash = ctx.createLinearGradient(0, bottom - 120, 0, bottom);
+  wash.addColorStop(0, "rgba(255,236,200,0)");
+  wash.addColorStop(1, "rgba(255,236,200,0.07)");
+  ctx.fillStyle = wash;
+  ctx.fillRect(-400, bottom - 120, CURLING_W + 800, 120);
+  // The balcony rail and the far boards with their LED strip.
+  ctx.fillStyle = "#0C111C";
+  ctx.fillRect(-400, bottom - 8, CURLING_W + 800, 8);
+  ctx.fillStyle = "#2A3246";
+  ctx.fillRect(-400, bottom - 8, CURLING_W + 800, 1);
+  ctx.fillStyle = "#7FE3FF";
+  ctx.fillRect(-400, bottom - 3.5, CURLING_W + 800, 1.2);
 }
 
 function paintStatic(ctx: CanvasRenderingContext2D, v: CurlView): void {
   const farEdge = curlProject(0, BACK_FAR - 120, v).sy;
   if (L.world) neonRinkArena(ctx, -200, farEdge, CURLING_W);
-  else arena(ctx, -200, farEdge);
+  else {
+    arena(ctx, -200, farEdge);
+    renderedArena(ctx, farEdge);
+  }
   // The floor between sheets.
   ctx.fillStyle = sheetPal().floor;
   ctx.beginPath();
@@ -352,7 +478,9 @@ function paintStatic(ctx: CanvasRenderingContext2D, v: CurlView): void {
   ctx.lineTo(-400, CURLING_H + 200);
   ctx.closePath();
   ctx.fill();
-  for (const off of [-2 * SHEET_PITCH, 2 * SHEET_PITCH, -SHEET_PITCH, SHEET_PITCH]) sheet(ctx, off, v.dim, v);
+  // The neighbouring sheets recede into the dark (concept A); the Neon Rink keeps its own dimming.
+  const nd = L.world ? v.dim : Math.max(v.dim, 0.8);
+  for (const off of [-2 * SHEET_PITCH, 2 * SHEET_PITCH, -SHEET_PITCH, SHEET_PITCH]) sheet(ctx, off, nd, v);
   sheet(ctx, 0, 0, v);
 }
 
@@ -361,7 +489,8 @@ function staticLayer(ctx: CanvasRenderingContext2D, v: CurlView): HTMLCanvasElem
   const t = ctx.getTransform();
   const w = Math.max(1, Math.round(v.w * t.a));
   const h = Math.max(1, Math.round(v.h * t.d));
-  const key = (L.world ?? "") + (L.world ? neonRinkCacheTag() : "");
+  // Repainted once when a rendered image arrives (the arena behind the boards).
+  const key = (L.world ?? "") + (L.world ? neonRinkCacheTag() : `:${sportsSpritesVersion()}`);
   if (cache && cache.w === w && cache.h === h && cache.rev === v.rev && cache.key === key) return cache.canvas;
   const canvas = document.createElement("canvas");
   canvas.width = w;
@@ -372,6 +501,39 @@ function staticLayer(ctx: CanvasRenderingContext2D, v: CurlView): HTMLCanvasElem
   paintStatic(c, v);
   cache = { canvas, w, h, rev: v.rev, key };
   return canvas;
+}
+
+/* ============================ Rendered materials ============================ */
+
+/**
+ * The rendered stones' frame (docs/design/game-art/sports/render_curling.py, public/sports/curling/stone-*.webp): a
+ * 256 px square, the granite body's radius in px, and the row of the body's centre-bottom (the stone's contact point
+ * on the ice). Seen 12.7° above the ice, as every stone in the game is drawn (top face ry = 0.22 rx).
+ */
+export const STONE_FRAME = { size: 256, radius: 98.46, base: 168.34 };
+/** The rendered arena (public/sports/curling/arena.webp): 1560 × 610 px for 780 world px across, the boards' face at row 600. */
+export const ARENA_FRAME = { w: 1560, h: 610, worldW: 780, boardsRow: 600 };
+
+/**
+ * The rendered stands (concept A: tiers of fans in team colours under the roof's lights) over the painted fallback,
+ * aligned on the far boards and centred on the sheet; dark fades at its two sides hide where it meets the painted
+ * crowd beyond (only a box wider than 780 px shows them).
+ */
+function renderedArena(ctx: CanvasRenderingContext2D, farEdge: number): void {
+  const img = sportsSprite("curling", "arena");
+  if (!img) return;
+  const s = ARENA_FRAME.worldW / ARENA_FRAME.w;
+  const x0 = CX - ARENA_FRAME.worldW / 2;
+  const y0 = farEdge - ARENA_FRAME.boardsRow * s;
+  ctx.drawImage(img, x0, y0, ARENA_FRAME.worldW, ARENA_FRAME.h * s);
+  for (const side of [0, 1]) {
+    const xa = side ? x0 + ARENA_FRAME.worldW - 40 : x0;
+    const g = ctx.createLinearGradient(xa, 0, xa + 40, 0);
+    g.addColorStop(side ? 0 : 1, "rgba(5,7,12,0)");
+    g.addColorStop(side ? 1 : 0, "rgba(5,7,12,0.9)");
+    ctx.fillStyle = g;
+    ctx.fillRect(xa, y0, 40, farEdge - y0);
+  }
 }
 
 /* ================================ Stones ================================ */
@@ -385,6 +547,44 @@ function stone(ctx: CanvasRenderingContext2D, x: number, y: number, mine: boolea
   const skinned = curlStoneSkin(L, mine);
   if (skinned) {
     paintSkinStone(ctx, skinned, p.sx, p.sy, rx, ry, lift, seed, moving);
+    return;
+  }
+  // The rendered stone (polished granite, a gold or red handle; display only), its body exactly the sim's radius.
+  const img = L.world ? null : sportsSprite("curling", mine ? "stone-gold" : "stone-red");
+  if (img) {
+    const sc = rx / STONE_FRAME.radius;
+    const ix = p.sx - (STONE_FRAME.size / 2) * sc;
+    const iy = p.sy - STONE_FRAME.base * sc;
+    const is = STONE_FRAME.size * sc;
+    // A faint reflection in the polished ice: the stone mirrored about its contact line, squashed and faded.
+    ctx.save();
+    ctx.globalAlpha = 0.14;
+    ctx.translate(0, p.sy);
+    ctx.scale(1, -0.55);
+    ctx.translate(0, -p.sy);
+    ctx.drawImage(img, ix, iy, is, is);
+    ctx.restore();
+    // A soft contact shadow.
+    const sh = ctx.createRadialGradient(p.sx, p.sy + ry * 0.2, 0, p.sx, p.sy + ry * 0.2, rx * 1.15);
+    sh.addColorStop(0, "rgba(10,22,40,0.32)");
+    sh.addColorStop(1, "rgba(10,22,40,0)");
+    ctx.save();
+    ctx.translate(p.sx, p.sy + ry * 0.2);
+    ctx.scale(1, Math.max(0.2, (ry * 1.3) / (rx * 1.15)));
+    ctx.translate(-p.sx, -(p.sy + ry * 0.2));
+    ctx.fillStyle = sh;
+    ctx.beginPath();
+    ctx.arc(p.sx, p.sy + ry * 0.2, rx * 1.15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.drawImage(img, ix, iy, is, is);
+    if (moving) {
+      ctx.strokeStyle = "#FFFFFF66";
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.ellipse(p.sx, p.sy - lift, rx * 1.15, ry * 1.3, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     return;
   }
   // Shadow on the ice.
@@ -444,55 +644,60 @@ function stone(ctx: CanvasRenderingContext2D, x: number, y: number, mine: boolea
 
 /** The stone count's chip (all revisions, display only): larger type, near-black with a gold edge, white figures. */
 function stoneChip(ctx: CanvasRenderingContext2D, x: number, y: number, text: string): number {
-  ctx.font = "800 16px Archivo, system-ui, sans-serif";
-  const w = Math.ceil(ctx.measureText(text).width) + 24;
-  ctx.fillStyle = "#05080FF2";
-  ctx.strokeStyle = "#E8B53ACC";
+  // The Sports overhaul (15 Nov 2026): big and legible, 20 px figures on a solid chip.
+  ctx.font = "800 20px Archivo, system-ui, sans-serif";
+  const w = Math.ceil(ctx.measureText(text).width) + 28;
+  ctx.fillStyle = "#05080F";
+  ctx.strokeStyle = "#E8B53A";
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.roundRect(x, y, w, 30, 15);
+  ctx.roundRect(x, y, w, 36, 18);
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle = "#FFFFFF";
   ctx.textBaseline = "middle";
-  ctx.fillText(text, x + 12, y + 15.5);
+  ctx.fillText(text, x + 14, y + 18.5);
   return w;
 }
 
 function chip(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, w: number): void {
-  ctx.fillStyle = "#0A0F18CC";
-  ctx.strokeStyle = "#FFFFFF22";
+  ctx.fillStyle = "#05080FEE";
+  ctx.strokeStyle = "#FFFFFF2E";
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.roundRect(x, y, w, 22, 11);
+  ctx.roundRect(x, y, w, 28, 14);
   ctx.fill();
   ctx.stroke();
   ctx.fillStyle = "#F3F1EC";
-  ctx.font = "700 11px Archivo, system-ui, sans-serif";
+  ctx.font = "800 14px Archivo, system-ui, sans-serif";
   ctx.textBaseline = "middle";
-  ctx.fillText(text, x + 10, y + 11.5);
+  ctx.fillText(text, x + 12, y + 14.5);
 }
 
 function inset(ctx: CanvasRenderingContext2D, s: CurlingState, aim: CurlAim | null): void {
-  const i = CURL_INSET;
+  const i = curlInsetFor(s.rev);
   const cx = i.x + i.w / 2;
   const cy = i.y + i.h / 2;
   ctx.save();
-  ctx.fillStyle = "#0A0F18E6";
-  ctx.strokeStyle = "#FFFFFF2A";
+  // A solid panel (the Sports overhaul): an opaque dark frame with a light rim, so the house never sits on the crowd.
+  ctx.fillStyle = "#05080F";
+  ctx.beginPath();
+  ctx.roundRect(i.x - 3, i.y - 3, i.w + 6, i.h + 6, 12);
+  ctx.fill();
+  ctx.strokeStyle = "#FFFFFF66";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
   ctx.beginPath();
   ctx.roundRect(i.x, i.y, i.w, i.h, 10);
-  ctx.fill();
-  ctx.stroke();
   ctx.clip();
   const neon = L.world ? neonRinkPalette() : null;
-  ctx.fillStyle = neon ? neon.ice : "#DCE7EF";
+  ctx.fillStyle = neon ? neon.ice : "#F1F6FA";
   ctx.fillRect(i.x, i.y, i.w, i.h);
   for (const [r, fill, edge] of [
     [HOUSE_R, neon ? neon.house[0] : RING_BLUE, neon?.ring[0]],
-    [EIGHT_FOOT_R, neon ? neon.house[1] : "#F2F6F9", neon?.ring[1]],
+    [EIGHT_FOOT_R, neon ? neon.house[1] : "#F1F6FA", neon?.ring[1]],
     [FOUR_FOOT_R, neon ? neon.house[2] : RING_RED, neon?.ring[2]],
-    [BUTTON_R, neon ? neon.house[3] : "#F2F6F9", neon?.ring[3]],
+    [BUTTON_R, neon ? neon.house[3] : "#F1F6FA", neon?.ring[3]],
   ] as const) {
     ctx.fillStyle = fill;
     ctx.beginPath();
@@ -519,6 +724,11 @@ function inset(ctx: CanvasRenderingContext2D, s: CurlingState, aim: CurlAim | nu
     ctx.beginPath();
     ctx.arc(x, y, STONE_R * i.scale, 0, Math.PI * 2);
     ctx.fill();
+    if (!skin) {
+      ctx.strokeStyle = "#1B1E24";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
     if (skin?.topEdge) {
       ctx.strokeStyle = skin.topEdge;
       ctx.lineWidth = 1;
@@ -564,6 +774,11 @@ export interface CurlAim {
    */
   lastRelease?: number | null;
   keyWeight?: number | null;
+  /**
+   * curlRev 4 (the Sports overhaul's effects, display only): when the power bar's marker last clicked into place
+   * (performance.now() ms), so the marker snaps for a moment; absent or null, no snap.
+   */
+  snapAt?: number | null;
 }
 
 /** curlRev 3's weight meter (world px, curlRev 2's 390 × 540 view): a bar on the right, weight 0 at the bottom. */
@@ -573,7 +788,9 @@ export const CURL_METER = { x: 360, y: 214, w: 14, h: 252 };
  * area (CURL_METER_HIT_V4) runs from 30 px left of the bar to the world's right edge and 16 px past either end.
  */
 export const CURL_METER_V4 = { x: 356, y: 172, w: 22, h: 300 };
-export const CURL_METER_HIT_V4 = { x: CURL_METER_V4.x - 30, y: CURL_METER_V4.y - 16, w: 390 - (CURL_METER_V4.x - 30), h: CURL_METER_V4.h + 32 };
+/** How far left of the bar a touch still takes it (px; 30 until the Sports overhaul widened the grab area to 46). */
+export const CURL_METER_GRAB = 46;
+export const CURL_METER_HIT_V4 = { x: CURL_METER_V4.x - CURL_METER_GRAB, y: CURL_METER_V4.y - 16, w: 390 - (CURL_METER_V4.x - CURL_METER_GRAB), h: CURL_METER_V4.h + 32 };
 /** The meter a revision draws. */
 export function curlMeterFor(rev: number | null | undefined): { x: number; y: number; w: number; h: number } {
   return (rev ?? 1) >= 4 ? CURL_METER_V4 : CURL_METER;
@@ -640,6 +857,96 @@ function turnMark(ctx: CanvasRenderingContext2D, turn: number, v: CurlView, x = 
   ctx.lineTo(ex - dir * 2, ey + 5);
   ctx.closePath();
   ctx.fill();
+}
+
+/* ============================== Captain Joulz ============================== */
+
+/**
+ * Captain Joulz's delivery (the Sports overhaul, 15 Nov 2026; display only): the 3D Captain (#423) rendered from behind
+ * and above (docs/design/game-art/sports/render_sports.py, public/sports/curling/), crouched beside the waiting stone
+ * with his hand on it while aiming, then at the throw sliding a little way on and letting go, fading out as the stone
+ * runs. He is drawn beside the stone's line, never over it: the path ahead, the far house, the inset, the power bar
+ * and (curlRev 4) the In / Out / Throw row all stay clear (curling-overhaul-check proves it on every delivery frame).
+ * Until his sprites load (and wherever there is no browser Image) nothing is drawn.
+ */
+export const CURL_CAPTAIN = {
+  slide: { w: 258, h: 276, hand: [252, 166] as const },
+  release: { w: 262, h: 276, hand: [256, 158] as const },
+};
+/** His height on the ice (cm, crouched), scaled by the perspective at his hand. */
+const CAPTAIN_CM = 86;
+/** At the throw: how far he slides on (cm), over how many ticks, then how long he takes to fade. */
+const CAPTAIN_SLIDE_CM = 34;
+const CAPTAIN_SLIDE_TICKS = 18;
+const CAPTAIN_FADE_TICKS = 30;
+
+export interface CurlCaptainPlace {
+  pose: "slide" | "release";
+  /** The sprite's box (world px) and whether it is mirrored (he crouches right of the line for a start far left). */
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  flip: boolean;
+  alpha: number;
+  /** How far he has slid on past the hog line (cm along the sheet): his hand is on the line at HOG_NEAR − fwd. */
+  fwd: number;
+}
+
+/** Where the Captain is drawn this frame for a start `startX` (cm), or null when he isn't. */
+export function curlCaptainPlace(s: Pick<CurlingState, "phase" | "thrown" | "travelTicks" | "active">, startX: number, v: CurlView, broomX = 0): CurlCaptainPlace | null {
+  let pose: "slide" | "release";
+  let fwd = 0;
+  let alpha = 1;
+  if (s.phase === CURL_AIM && s.thrown < CURLING_STONES) pose = "slide";
+  else if (s.phase === CURL_TRAVEL && s.active >= 0 && s.travelTicks < CAPTAIN_SLIDE_TICKS + CAPTAIN_FADE_TICKS) {
+    pose = "release";
+    const t = Math.min(1, s.travelTicks / CAPTAIN_SLIDE_TICKS);
+    fwd = CAPTAIN_SLIDE_CM * (1 - (1 - t) * (1 - t));
+    alpha = s.travelTicks <= CAPTAIN_SLIDE_TICKS ? 1 : 1 - (s.travelTicks - CAPTAIN_SLIDE_TICKS) / CAPTAIN_FADE_TICKS;
+  } else return null;
+  const spec = CURL_CAPTAIN[pose];
+  const flip = curlCaptainRight(startX, broomX);
+  const p = curlProject(startX, HOG_NEAR - fwd, v);
+  const lift = Math.max(1.2, 11 * p.k);
+  // His hand on the stone's near side (its striking band), never over its top: the line ahead stays clear.
+  const handX = p.sx + (flip ? 1 : -1) * STONE_R * p.k * 1.02;
+  const handY = p.sy - lift * 0.5;
+  // Smaller where a wide start leaves less ice than his width before the world's edge (never cut off; at most 25 %).
+  const room = flip ? v.w - 4 - handX : handX - 4;
+  const reach = spec.hand[0]; // mirrored or not, his body runs this far (sprite px) from his hand
+  const scale = Math.min((CAPTAIN_CM * p.k) / spec.h, Math.max((0.75 * CAPTAIN_CM * p.k) / spec.h, room / reach));
+  const w = spec.w * scale;
+  const h = spec.h * scale;
+  const ax = spec.hand[0] * scale;
+  const x = flip ? handX - (w - ax) : handX - ax;
+  return { pose, x, y: handY - spec.hand[1] * scale, w, h, flip, alpha: Math.max(0, alpha), fwd };
+}
+
+/**
+ * Which side of the line he crouches on: away from where the throw is aimed (the stone runs from its start towards the
+ * broom), so it never runs back across him; with the broom on the line, the side with more ice. Fixed by the aim, so
+ * he never switches sides during a delivery.
+ */
+export function curlCaptainRight(startX: number, broomX: number): boolean {
+  const d = broomX - startX;
+  if (Math.abs(d) > 4) return d < 0;
+  return startX < -40;
+}
+
+function captain(ctx: CanvasRenderingContext2D, s: CurlingState, startX: number, v: CurlView, broomX: number): void {
+  const place = curlCaptainPlace(s, startX, v, broomX);
+  if (!place || place.alpha <= 0) return;
+  const img = sportsSprite("curling", place.pose, true);
+  if (!img) return;
+  ctx.save();
+  ctx.globalAlpha = place.alpha;
+  if (place.flip) {
+    ctx.translate(place.x + place.w, place.y);
+    ctx.scale(-1, 1);
+    ctx.drawImage(img, 0, 0, place.w, place.h);
+  } else ctx.drawImage(img, place.x, place.y, place.w, place.h);
+  ctx.restore();
 }
 
 /* ================================= Frame ================================= */
@@ -744,13 +1051,29 @@ function weightMeter(ctx: CanvasRenderingContext2D, aim: CurlAim, aiming: boolea
   if (v4 && aiming && aim.keyWeight != null) {
     // curlRev 4: the set weight's marker, a bright handle across the bar that stays where it was set.
     const y = my(aim.keyWeight);
+    // The marker clicks into place (stage 2): a short snap wider then back, and a notch flash, 160 ms (none under
+    // reduced motion; the tone plays either way).
+    const since = aim.snapAt != null && typeof performance !== "undefined" ? performance.now() - aim.snapAt : Infinity;
+    const snap = since < CURL_SNAP_MS && !reducedMotion() ? 1 - since / CURL_SNAP_MS : 0;
+    const grow = 5 * snap;
     ctx.fillStyle = "#FFFFFF";
     ctx.strokeStyle = "#05080F";
     ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.roundRect(m.x - 6, y - 3.5, m.w + 12, 7, 3.5);
+    ctx.roundRect(m.x - 6 - grow, y - 3.5 - grow * 0.3, m.w + 12 + grow * 2, 7 + grow * 0.6, 3.5);
     ctx.fill();
     ctx.stroke();
+    if (snap > 0) {
+      const inZone = !!zone && aim.keyWeight >= zone.lo && aim.keyWeight <= zone.hi;
+      ctx.strokeStyle = inZone ? `rgba(255,226,154,${(0.9 * snap).toFixed(3)})` : `rgba(255,255,255,${(0.7 * snap).toFixed(3)})`;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(m.x - 12 - grow, y);
+      ctx.lineTo(m.x - 7 - grow, y);
+      ctx.moveTo(m.x + m.w + 7 + grow, y);
+      ctx.lineTo(m.x + m.w + 12 + grow, y);
+      ctx.stroke();
+    }
   } else if (v4 && aiming) {
     // Nothing set yet: a quiet prompt down the bar.
     ctx.save();
@@ -816,6 +1139,8 @@ function drawCurlingLooked(ctx: CanvasRenderingContext2D, s: CurlingState, aim: 
   // Stones, far ones first.
   const order = s.x.map((_, k) => k).filter((k) => s.live[k]).sort((a, b) => s.y[a]! - s.y[b]!);
   for (const k of order) stone(ctx, s.x[k]! / CU, s.y[k]! / CU, s.team[k] === TEAM_MINE, k * 7919 + s.seed, s.vx[k] !== 0 || s.vy[k] !== 0, v);
+  // Captain Joulz beside the stone's line (behind the waiting stone, or letting go of the thrown one).
+  if (aim) captain(ctx, s, startX, v, aim.broomX);
   // The stone waiting on the near hog line, and the turn and broom while aiming.
   if (s.phase === CURL_AIM && aim) {
     broom(ctx, aim.broomX, aim.broomY, v);
@@ -838,15 +1163,19 @@ function drawCurlingLooked(ctx: CanvasRenderingContext2D, s: CurlingState, aim: 
     }
   }
   // HUD chips (top left): the stone and the brush (sweep) meter.
-  stoneChip(ctx, 10, 10, `STONE ${Math.min(CURLING_STONES, s.thrown + (s.phase === CURL_AIM ? 1 : 0))}/${CURLING_STONES}`);
+  stoneChip(ctx, 10, 8, `STONE ${Math.min(CURLING_STONES, s.thrown + (s.phase === CURL_AIM ? 1 : 0))}/${CURLING_STONES}`);
   if (s.phase === CURL_TRAVEL) {
     const bend = s.bend ?? 0;
     const label = v.rev >= 2 ? (bend < 0 ? "BRUSH ◀" : bend > 0 ? "BRUSH ▶" : "BRUSH") : "SWEEP";
-    chip(ctx, 10, 46, label, 136);
-    ctx.fillStyle = "#FFFFFF22";
-    ctx.fillRect(82, 54, 52, 6);
+    chip(ctx, 10, 50, label, 170);
+    ctx.fillStyle = "#FFFFFF26";
+    ctx.beginPath();
+    ctx.roundRect(100, 60, 70, 8, 4);
+    ctx.fill();
     ctx.fillStyle = GOLD;
-    ctx.fillRect(82, 54, (52 * Math.min(s.sweep, SWEEP_MAX)) / SWEEP_MAX, 6);
+    ctx.beginPath();
+    ctx.roundRect(100, 60, Math.max(0.01, (70 * Math.min(s.sweep, SWEEP_MAX)) / SWEEP_MAX), 8, 4);
+    ctx.fill();
   }
   inset(ctx, s, aim);
   // curlRev 3: the weight meter (while aiming and as the stone travels, with the last release's tick).
@@ -897,5 +1226,232 @@ export function paintCurlingStoneIn(look: GameLook, ctx: CanvasRenderingContext2
     stone(ctx, x, y, mine, 1, false, curlViewFor(rev));
   } finally {
     L = NO_LOOK;
+  }
+}
+
+/* ============================ Effects (the Sports overhaul, stage 2) ============================ */
+
+/** The power bar's marker snap (ms). */
+export const CURL_SNAP_MS = 160;
+/** Where the end's house view lands (world px, curlRev 4's 390 × 640): centred, clear above the In / Out / Throw row. */
+export const CURL_END_HOUSE = { x: 45, y: 96, w: 300, h: 300 };
+
+const easeOut = (t: number) => 1 - (1 - t) * (1 - t) * (1 - t);
+
+/**
+ * The effects over the world (display only), from the observer (curlingFx.ts): broom strokes laid on the ice on the side
+ * brushed, a ring where stones met, a red's trail as a takeout knocks it away, a gold line drawn from the button to a
+ * stone that came to rest counting (with a gold ring) or a grey ring on a near miss, and at the end the house view zoomed
+ * to the middle with the counting stones lit one by one. Reduced motion: each drawn still at its final size; reduced
+ * effects (a slow phone, the battery saver): the strokes thinned to the latest few.
+ */
+export function drawCurlingFx(ctx: CanvasRenderingContext2D, s: CurlingState, fx: CurlFxTracker, nowMs: number): void {
+  const v = curlViewFor(s.rev);
+  const still = reducedMotion();
+  const lite = arcadeReducedEffects();
+  ctx.save();
+  // Broom strokes: two short arcs laid across the line ahead of the stone, fading.
+  const strokes = lite ? fx.strokes.slice(-3) : fx.strokes;
+  for (const st of strokes) {
+    const age = s.tick - st.tick;
+    if (age < 0 || age >= CURL_FX_STROKE_TICKS) continue;
+    const p = curlProject(st.x, st.y, v);
+    const a = 0.8 * (1 - age / CURL_FX_STROKE_TICKS);
+    const w = Math.max(7, 18 * p.k);
+    ctx.strokeStyle = `rgba(86,118,152,${a.toFixed(3)})`;
+    ctx.lineWidth = Math.max(1.6, 2.6 * p.k);
+    ctx.lineCap = "round";
+    for (const dy of [-3, 3]) {
+      ctx.beginPath();
+      ctx.moveTo(p.sx - w, p.sy + dy * p.k);
+      ctx.quadraticCurveTo(p.sx, p.sy + dy * p.k - 4 * p.k * (st.side || 1), p.sx + w, p.sy + dy * p.k);
+      ctx.stroke();
+    }
+  }
+  // Stone on stone: a ring opening at the contact point.
+  for (const c of fx.contacts) {
+    const age = s.tick - c.tick;
+    if (age < 0 || age >= CURL_FX_RING_TICKS) continue;
+    const t = still ? 1 : easeOut(age / CURL_FX_RING_TICKS);
+    const p = curlProject(c.x, c.y, v);
+    ctx.strokeStyle = `rgba(255,255,255,${(0.85 * (1 - age / CURL_FX_RING_TICKS)).toFixed(3)})`;
+    ctx.lineWidth = Math.max(1, 2.5 * p.k);
+    ctx.beginPath();
+    ctx.ellipse(p.sx, p.sy, Math.max(2, (6 + 22 * t) * p.k), Math.max(1, (6 + 22 * t) * p.k * 0.42), 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  // A takeout: a fading red ring where the red left the house.
+  for (const o of fx.takeouts) {
+    const age = s.tick - o.tick;
+    if (age < 0 || age >= CURL_FX_VERDICT_TICKS) continue;
+    const p = curlProject(o.x, o.y, v);
+    ctx.strokeStyle = `rgba(255,138,128,${(0.8 * (1 - age / CURL_FX_VERDICT_TICKS)).toFixed(3)})`;
+    ctx.lineWidth = Math.max(1, 2 * p.k);
+    ctx.setLineDash([4 * Math.max(0.5, p.k), 3 * Math.max(0.5, p.k)]);
+    ctx.beginPath();
+    ctx.ellipse(p.sx, p.sy, STONE_R * 1.6 * p.k, STONE_R * 1.6 * p.k * 0.42, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  // A stone at rest: counting (a gold line from the button to it, then its gold ring) or a near miss (a grey ring).
+  for (const d of fx.verdicts) {
+    const age = s.tick - d.tick;
+    if (age < 0 || age >= CURL_FX_VERDICT_TICKS) continue;
+    const fade = age < CURL_FX_VERDICT_TICKS - 20 ? 1 : (CURL_FX_VERDICT_TICKS - age) / 20;
+    const p = curlProject(d.x, d.y, v);
+    const rx = STONE_R * 1.45 * p.k;
+    if (d.kind === "count") {
+      const grow = still ? 1 : Math.min(1, age / 18);
+      const b = curlProject(0, 0, v);
+      ctx.strokeStyle = `rgba(232,181,58,${(0.9 * fade).toFixed(3)})`;
+      ctx.lineWidth = Math.max(1, 2.2 * p.k);
+      ctx.beginPath();
+      ctx.moveTo(b.sx, b.sy);
+      ctx.lineTo(b.sx + (p.sx - b.sx) * grow, b.sy + (p.sy - b.sy) * grow);
+      ctx.stroke();
+      if (grow >= 1) {
+        ctx.lineWidth = Math.max(1.5, 3 * p.k);
+        ctx.beginPath();
+        ctx.ellipse(p.sx, p.sy, rx, rx * 0.42, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } else {
+      ctx.strokeStyle = `rgba(200,206,216,${(0.85 * fade).toFixed(3)})`;
+      ctx.lineWidth = Math.max(1.5, 2.6 * p.k);
+      ctx.beginPath();
+      ctx.ellipse(p.sx, p.sy, rx, rx * 0.42, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+  // The far house is small on the sheet, so the house view (top right) carries the same moments where they read.
+  if (!fx.end) insetFx(ctx, s, fx, still);
+  if (fx.end && s.rev >= 4) drawCurlingEnd(ctx, s, fx, nowMs, still);
+}
+
+/** The house view's copy of the in-play moments: the contact ring, the takeout's trail, the gold and grey rings. */
+function insetFx(ctx: CanvasRenderingContext2D, s: CurlingState, fx: CurlFxTracker, still: boolean): void {
+  const i = curlInsetFor(s.rev);
+  const cx = i.x + i.w / 2;
+  const cy = i.y + i.h / 2;
+  const P = (x: number, y: number) => ({ x: cx + x * i.scale, y: cy + y * i.scale });
+  const sr = STONE_R * i.scale;
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(i.x, i.y, i.w, i.h, 10);
+  ctx.clip();
+  for (const c of fx.contacts) {
+    const age = s.tick - c.tick;
+    if (age < 0 || age >= CURL_FX_RING_TICKS) continue;
+    const t = still ? 1 : easeOut(age / CURL_FX_RING_TICKS);
+    const p = P(c.x, c.y);
+    ctx.strokeStyle = `rgba(27,30,36,${(0.85 * (1 - age / CURL_FX_RING_TICKS)).toFixed(3)})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, sr * (0.5 + 1.6 * t), 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  for (const o of fx.takeouts) {
+    const age = s.tick - o.tick;
+    if (age < 0 || age >= CURL_FX_VERDICT_TICKS) continue;
+    const p = P(o.x, o.y);
+    ctx.strokeStyle = `rgba(196,42,46,${(0.9 * (1 - age / CURL_FX_VERDICT_TICKS)).toFixed(3)})`;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([3, 2.5]);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, sr * 1.5, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  for (const d of fx.verdicts) {
+    const age = s.tick - d.tick;
+    if (age < 0 || age >= CURL_FX_VERDICT_TICKS) continue;
+    const fade = age < CURL_FX_VERDICT_TICKS - 20 ? 1 : (CURL_FX_VERDICT_TICKS - age) / 20;
+    const p = P(d.x, d.y);
+    if (d.kind === "count") {
+      const grow = still ? 1 : Math.min(1, age / 18);
+      ctx.strokeStyle = `rgba(232,181,58,${fade.toFixed(3)})`;
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + (p.x - cx) * grow, cy + (p.y - cy) * grow);
+      ctx.stroke();
+      if (grow >= 1) {
+        ctx.lineWidth = 2.6;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, sr * 1.55, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    } else {
+      ctx.strokeStyle = `rgba(110,118,132,${fade.toFixed(3)})`;
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, sr * 1.55, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  }
+  ctx.restore();
+}
+
+/** The end: the house view grows from its corner to the middle and the counting stones light one by one. */
+function drawCurlingEnd(ctx: CanvasRenderingContext2D, s: CurlingState, fx: CurlFxTracker, nowMs: number, still: boolean): void {
+  const end = fx.end!;
+  const i = curlInsetFor(s.rev);
+  const z = still ? 1 : easeOut(curlEndZoom(end, nowMs));
+  const T = CURL_END_HOUSE;
+  const w = i.w + (T.w - i.w) * z;
+  const x = i.x + (T.x - i.x) * z;
+  const y = i.y + (T.y - i.y) * z;
+  const k = w / i.w;
+  ctx.save();
+  // A dim over the sheet behind it as it grows (the run is over: nothing below is live).
+  ctx.fillStyle = `rgba(3,6,12,${(0.45 * z).toFixed(3)})`;
+  ctx.fillRect(0, 0, CURLING_W, curlViewFor(s.rev).h);
+  ctx.translate(x, y);
+  ctx.scale(k, k);
+  ctx.translate(-i.x, -i.y);
+  inset(ctx, s, null);
+  const lit = curlEndLit(end, nowMs);
+  const cx = i.x + i.w / 2;
+  const cy = i.y + i.h / 2;
+  end.stones.forEach((st, n) => {
+    if (n >= lit) return;
+    const since = nowMs - end.at - CURL_FX_ZOOM_MS_R - n * end.gap;
+    const pop = still ? 1 : Math.min(1, Math.max(0, since / 140));
+    const px = cx + st.x * i.scale;
+    const py = cy + st.y * i.scale;
+    const r = STONE_R * i.scale * (1.35 + 0.35 * (1 - pop));
+    ctx.strokeStyle = GOLD;
+    ctx.lineWidth = 1.6 / k + 0.8;
+    ctx.beginPath();
+    ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.stroke();
+    // Its count beside it.
+    ctx.fillStyle = GOLD;
+    ctx.beginPath();
+    ctx.arc(px + r * 0.9, py - r * 0.9, 4.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#05080F";
+    ctx.font = "800 5.5px Archivo, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(String(n + 1), px + r * 0.9, py - r * 0.9 + 0.3);
+  });
+  ctx.restore();
+  // The count under the house, in plain words.
+  if (z >= 1) {
+    const text = end.stones.length === 0 ? "None counting" : `Counting ${Math.min(lit, end.stones.length)} of ${CURLING_STONES}`;
+    ctx.save();
+    ctx.font = "800 18px Archivo, system-ui, sans-serif";
+    const tw = ctx.measureText(text).width + 28;
+    ctx.fillStyle = "#05080FE6";
+    ctx.beginPath();
+    ctx.roundRect(CURLING_W / 2 - tw / 2, T.y + T.h + 12, tw, 34, 17);
+    ctx.fill();
+    ctx.fillStyle = "#F3F1EC";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(text, CURLING_W / 2, T.y + T.h + 29);
+    ctx.restore();
   }
 }

@@ -96,6 +96,8 @@ export const DEAL_PINS = {
   minigolfPreCourse: { texts: false },
   /** sports.server.ts: Home Run homerunRev 4 and Top Bins freekickRev 4, before their overhaul (15 Nov 2026). */
   sportsPreOverhaul: { texts: false },
+  /** sports.server.ts: Apex racingRev 3 (one circuit), before the Sports overhaul's three circuits (15 Nov 2026). */
+  racingPreCircuits: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;
@@ -117,6 +119,8 @@ export function setDealPin(pin: DealPin, on: boolean): boolean {
   // Minefield's rev-1 deal is check-only (Joe, 13 Nov 2026): the deal reads it through checkOverride, which a
   // production build turns off, so the live app can never deal minesRev 1 whatever this set holds.
   if (pin === "minesPreLogic") setCheckOverride("__DUELZ_MINES_PRE_LOGIC__", on ? true : undefined);
+  // Apex's rev-3 deal is check-only the same way (the Sports overhaul, 15 Nov 2026).
+  if (pin === "racingPreCircuits") setCheckOverride("__DUELZ_RACING_PRE_CIRCUITS__", on ? true : undefined);
   if (prev !== on && DEAL_PINS[pin].texts) rebuildLiveRecords();
   return prev;
 }

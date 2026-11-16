@@ -34,6 +34,7 @@ export type CheckOverrideName =
   | "__DUELZ_GAME_LEVELS__"
   | "__DUELZ_IDENTITY_EVENTS__"
   | "__DUELZ_MINES_PRE_LOGIC__"
+  | "__DUELZ_RACING_PRE_CIRCUITS__"
   | "__DUELZ_PUBLIC_GAMES__"
   | "__DUELZ_RATED_BACKEND__"
   | "__DUELZ_RATED_EVENTS__"

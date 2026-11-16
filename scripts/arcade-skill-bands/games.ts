@@ -87,7 +87,7 @@ import { encodeFreekickRun, replayFreekickRun } from "../../src/lib/duel/freekic
 import { freekickDealSeedV2 } from "../../src/lib/duel/freekickDealV2.server";
 import { freekickDealSeedV5 } from "../../src/lib/duel/freekickDealV5.server";
 import { freekickDealSeedV6 } from "../../src/lib/duel/freekickDealV6.server";
-import { racingCheckpoint, racingGameFor, RACING_REV_DEALT } from "../../src/lib/arcade/racing";
+import { racingCheckpoint, racingGameFor, racingLevelOf, RACING_REV_DEALT } from "../../src/lib/arcade/racing";
 import { encodeRacingRun, replayRacingRun } from "../../src/lib/duel/racing";
 import { racingDealSeedV3 } from "../../src/lib/duel/racingDealV3.server";
 import { fcCheckpoint, freecellGameAt, freecellGameFor, FC_REV } from "../../src/lib/arcade/cards/freecell";
@@ -114,7 +114,7 @@ import { minigolfCheckpoint, minigolfGameFor, MINIGOLF_REV, MINIGOLF_REV_CLASSIC
 import { encodeMinigolfRun, replayMinigolfRun } from "../../src/lib/duel/minigolf";
 import { MINIGOLF_BANK, minigolfBankEntryFor } from "../../src/lib/duel/minigolfBank.server";
 import { MINIGOLF_BANK_V2, minigolfBankV2EntryFor } from "../../src/lib/duel/minigolfBankV2.server";
-import { poolCheckpoint, poolGameFor, POOL_REV } from "../../src/lib/arcade/pool";
+import { poolCheckpoint, poolGameFor, poolGameForPuzzle, POOL_REV } from "../../src/lib/arcade/pool";
 import { encodePoolRun, replayPoolRun } from "../../src/lib/duel/pool";
 import { poolBankV2SeedFor } from "../../src/lib/duel/poolBankV2.server";
 import { poolBankV3SeedFor } from "../../src/lib/duel/poolBankV3.server";
@@ -354,7 +354,7 @@ export const GAMES: GameSpec[] = [
   { ...simple("homerun", HOMERUN_REV_DEALT, HOMERUN_REV_DEALT, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), checkpointEvery: 60, gameForPuzzle: (p) => homerunGameFor(p.homerunRev ?? null, p.level), seedFor: (n) => homerunDealSeedV5(roomSeed(n)), seedForRev: (n, rev) => (rev === 4 ? homerunDealSeedV4(roomSeed(n)) : rev === 3 ? homerunDealSeedV3(roomSeed(n)) : undefined) },
   { ...simple("freekick", FREEKICK_REV_DEALT, FREEKICK_REV_DEALT, freekickGameFor, freekickCheckpoint, encodeFreekickRun, replayFreekickRun), checkpointEvery: 60, gameForPuzzle: (p) => freekickGameFor(p.freekickRev ?? null, p.level), seedFor: (n) => freekickDealSeedV6(roomSeed(n)), seedForRev: (n, rev) => (rev !== null && rev < 5 ? freekickDealSeedV2(roomSeed(n)) : rev === 5 ? freekickDealSeedV5(roomSeed(n)) : undefined) },
   // Apex (racing) deals racingRev 3 from its own proved deal since 3 Nov 2026 (racingRev 2 from 31 Oct 2026).
-  { ...simple("racing", RACING_REV_DEALT, RACING_REV_DEALT, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), checkpointEvery: 120, seedFor: (n) => racingDealSeedV3(roomSeed(n)) },
+  { ...simple("racing", RACING_REV_DEALT, RACING_REV_DEALT, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), checkpointEvery: 120, seedFor: (n) => racingDealSeedV3(roomSeed(n)), gameForPuzzle: (p) => racingGameFor(p.racingRev, racingLevelOf(p.racingLevel)) },
   // Cards & Board (30 Oct 2026): born on the arcade standard, one revision each. FreeCell and TriPeaks deal a bank
   // index (the room seed modulo the bank); Poker Squares any seed.
   // The difficulty levels (15 Nov 2026): a level deal plays its level's game (level-tune.ts reads gameForPuzzle).
@@ -418,6 +418,8 @@ export const GAMES: GameSpec[] = [
     // poolRev 2 and 3 measure on their own banks' layouts.
     seedForRev: (n, rev) => (rev === 2 ? poolBankV2SeedFor(n) : rev === 3 ? poolBankV3SeedFor(n) : undefined),
     gameFor: (rev) => poolGameFor(rev),
+    // The level (stage 3): the dealt puzzle's level rides on the state, so the bot sees its preview and fouls cost its level's.
+    gameForPuzzle: (puzzle) => poolGameForPuzzle(puzzle),
     checkpoint: poolCheckpoint,
     encode: (run) => encodePoolRun(run),
     replay: (seed, raw, rev) => replayPoolRun(seed, raw, rev),
@@ -431,6 +433,8 @@ export const GAMES: GameSpec[] = [
     // curlRev 1, 2 and 3 measure on their own banks' sheets.
     seedForRev: (n, rev) => (rev === 1 ? curlingBankSeedFor(n) : rev === 2 ? curlingBankV2SeedFor(n) : rev === 3 ? curlingBankV3SeedFor(n) : undefined),
     gameFor: (rev) => curlingGameFor(rev ?? 1),
+    // The levels (16 Nov 2026): a dealt puzzle's level plays its own reds (Normal: the stamp's game as above).
+    gameForPuzzle: (p) => curlingGameFor(p.curlRev ?? 1, p.level),
     checkpoint: curlingCheckpoint,
     encode: (run) => encodeCurlingRun(run),
     replay: (seed, raw, rev) => replayCurlingRun(seed, raw, rev),

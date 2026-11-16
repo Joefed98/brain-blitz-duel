@@ -24,6 +24,9 @@ import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import { BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
 import { BLOCKFALL_REV_ZONE } from "@/lib/arcade/blockfall";
 import { SNAKE_REV_GRACE } from "@/lib/arcade/snake";
+import { POOL_REV } from "@/lib/arcade/pool";
+import { CURLING_REV } from "@/lib/arcade/curling";
+import { RACING_REV_DEALT } from "@/lib/arcade/racing";
 import { SLICE_REV_BIG, SLICE_REV_FOOD, SLICE_REV_STANDARD, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BUB_REV_FAST } from "@/lib/arcade/bubble";
@@ -144,6 +147,12 @@ export function introDemoFor(data: { type: string }, demo: IntroDemoRow | null):
   // The Home Run and Top Bins overhaul (15 Nov 2026): homerunRev 5 and freekickRev 5 are new games, so only a demo
   // recorded on them, on Normal, plays (sportsDemoRules.ts); an older demo stays stopped and the still shows.
   if (demo && !sportsDemoPlays(data.type, demo.puzzle)) return null;
+  // The Sports overhaul (15 Nov 2026): Cue Ball, Curl Champ and Apex demos play only when recorded on the stamp rooms
+  // deal (poolRev 4, curlRev 4 with its bigger house view and buttons, racingRev 4's three circuits), so an older
+  // recording never shows the old table, sheet or road under today's look.
+  if (data.type === "pool" && demo?.puzzle.type === "pool" && demo.puzzle.poolRev !== POOL_REV) return null;
+  if (data.type === "curling" && demo?.puzzle.type === "curling" && demo.puzzle.curlRev !== CURLING_REV) return null;
+  if (data.type === "racing" && demo?.puzzle.type === "racing" && demo.puzzle.racingRev !== RACING_REV_DEALT) return null;
   if (data.type === "orbit" && (demo?.input_log.orbitBeltPeriodTicks !== ORBIT_BELT_PERIOD_TICKS || demo?.input_log.orbitBeltRevision !== ORBIT_BELT_REVISION)) return null;
   // Rev3 (scrolling-camera, wider zig-zag world) demos cannot replay as the legacy fixed-camera course, and vice versa.
   if (data.type === "orbit" && demo?.puzzle.type === "orbit" && (demo.puzzle.orbitRev ?? 0) !== ORBIT_REV3 && demo.puzzle.orbitRev !== ORBIT_REV4 && demo.puzzle.orbitRev !== ORBIT_REV_BAND && demo.puzzle.orbitRev !== ORBIT_REV_TUNED && demo.puzzle.orbitRev !== ORBIT_REV_XP && demo.puzzle.orbitRev !== ORBIT_REV_STD && demo.puzzle.orbitRev !== ORBIT_REV_FUEL && demo.puzzle.orbitRev !== ORBIT_REV_BIG) return null;

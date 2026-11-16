@@ -11,13 +11,18 @@ import { scoreSentences } from "@/lib/duel/scoreList";
 import { soundCue } from "@/lib/fx/soundCues";
 import type { PuzzleType } from "@/lib/duel/types";
 import { CARD_LEVEL_TEXT } from "@/lib/levels/cardLevelText.data";
+import { NORMAL, type Level } from "@/lib/levels/levels";
+import { levelNote } from "@/lib/levels/levelNotes";
 
 const LEVEL_NAME = { easy: "Easy", hard: "Hard", expert: "Expert" } as const;
 
 interface PuzzleInstructionsProps {
   type: PuzzleType;
-  /** The round's level (the Cards & Board levels): its own goal, lines and score in place of Normal's. */
-  level?: "easy" | "hard" | "expert" | null;
+  /**
+   * The round's dealt level. The Cards & Board levels: its own goal, lines and score in place of Normal's. Any other
+   * game: a level other than Normal adds its line (levelNotes.ts) to HOW. Absent, null or Normal: Normal's text.
+   */
+  level?: Level | null;
   overlay?: boolean;
   /** Shown between HOW and SCORE (the intro's demo box, IntroStage, which takes the spare height). */
   beforeScore?: ReactNode;
@@ -25,12 +30,14 @@ interface PuzzleInstructionsProps {
 
 export function PuzzleInstructions({ type, overlay = false, beforeScore, level = null }: PuzzleInstructionsProps) {
   const instructions = PUZZLE_INSTRUCTIONS[type] ?? removedDefinition(type).instructions;
-  const levelText = level ? (CARD_LEVEL_TEXT[type]?.[level] ?? null) : null;
+  const cardLevel: Exclude<Level, "normal"> | null = level && level !== "normal" ? level : null;
+  const levelText = cardLevel ? (CARD_LEVEL_TEXT[type]?.[cardLevel] ?? null) : null;
   // A level's own lines first (marked), then Normal's lines that hold at every level; the intro keeps at most four.
   const how = [
-    ...(levelText ? levelText.how.map((detail, i) => ({ action: i === 0 ? `${LEVEL_NAME[level!]}:` : "", detail, level: true })) : []),
+    ...(levelText ? levelText.how.map((detail, i) => ({ action: i === 0 ? `${LEVEL_NAME[cardLevel!]}:` : "", detail, level: true })) : []),
     ...instructions.how.filter((line) => (overlay || !line.helpOnly) && !(levelText && line.normalOnly)),
   ].slice(0, overlay ? undefined : 4);
+  const note = levelNote(type, level ?? NORMAL);
 
   return (
     <section
@@ -62,6 +69,7 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore, level =
               {line.action ? <><strong className="intro-how-action">{line.action}</strong> {line.detail}</> : line.detail}
             </p>
           ))}
+          {note && overlay ? <p data-help-level-note="">{note}</p> : null}
         </div>
       </div>
       <div className="intro-score shrink-0">
@@ -105,10 +113,10 @@ function HelpExample({ type }: { type: PuzzleType }) {
 
 interface PuzzleHelpProps {
   type: PuzzleType;
+  /** The round's dealt level (the Cards & Board levels' own text; any other game's line in HOW when it isn't Normal). */
+  level?: Level | null;
   open: boolean;
   onClose: () => void;
-  /** The round's level (the Cards & Board levels). */
-  level?: "easy" | "hard" | "expert" | null;
 }
 
 export function PuzzleHelp({ type, open, onClose, level = null }: PuzzleHelpProps) {

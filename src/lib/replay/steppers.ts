@@ -34,7 +34,7 @@ import { homerunGameFor } from "@/lib/arcade/homerun";
 import { bastionGame } from "@/lib/arcade/bastion";
 import { bastionTankGameFor } from "@/lib/arcade/bastionTank";
 import { freekickGameFor } from "@/lib/arcade/freekick";
-import { racingGameFor } from "@/lib/arcade/racing";
+import { racingGameFor, racingLevelOf } from "@/lib/arcade/racing";
 import { freecellGameAt } from "@/lib/arcade/cards/freecell";
 import { levelOfPuzzle } from "@/lib/levels/levels";
 import { tripeaksGameAt } from "@/lib/arcade/cards/tripeaks";
@@ -213,7 +213,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   // Bastion: bastionRev 2's tank game; the original turret for unstamped rounds.
   bastion: (p) => ({ game: ((rev(p, "bastionRev") ?? 1) >= 2 ? bastionTankGameFor(rev(p, "bastionRev"), (p as { level?: unknown }).level) : bastionGame) as AnyGame }),
   freekick: (p) => ({ game: freekickGameFor(rev(p, "freekickRev"), (p as { level?: string }).level) as AnyGame }),
-  racing: (p) => ({ game: racingGameFor(rev(p, "racingRev")) as AnyGame }),
+  racing: (p) => ({ game: racingGameFor(rev(p, "racingRev"), racingLevelOf((p as { racingLevel?: unknown }).racingLevel)) as AnyGame }),
   freecell: (p) => ({ game: freecellGameAt(rev(p, "freecellRev"), levelOfPuzzle(p)) as AnyGame }),
   tripeaks: (p) => ({ game: tripeaksGameAt(rev(p, "tripeaksRev"), levelOfPuzzle(p)) as AnyGame }),
   pokersquares: (p) => ({ game: pokerSquaresGameFor(rev(p, "pokerSquaresRev")) as AnyGame }),
@@ -223,10 +223,10 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   pyramid: (p) => ({ game: pyramidGameAt(rev(p, "pyramidRev"), levelOfPuzzle(p)) as AnyGame }),
   golfsol: (p) => ({ game: golfSolGameFor(rev(p, "golfSolRev")) as AnyGame }),
   muggins: (p) => ({ game: mugginsGameFor(rev(p, "mugginsRev")) as AnyGame }),
-  curling: (p) => ({ game: curlingGameFor(rev(p, "curlRev") ?? 1) as AnyGame }),
+  curling: (p) => ({ game: curlingGameFor(rev(p, "curlRev") ?? 1, (p as { level?: unknown }).level) as AnyGame }),
   blockfall: (p) => ({ game: blockfallGameFor(rev(p, "blockfallRev"), puzzleLevel(p)) as AnyGame }),
   alleyroll: (p) => ({ game: alleyRollGameFor(rev(p, "alleyRollRev")) as AnyGame }),
-  pool: (p) => ({ game: poolGameFor(rev(p, "poolRev")) as AnyGame }),
+  pool: (p) => ({ game: poolGameFor(rev(p, "poolRev"), undefined, (p as { level?: unknown }).level) as AnyGame }),
   minigolf: (p) => ({ game: minigolfGameFor(p.type === "minigolf" ? p.pars : undefined, p.type === "minigolf" ? p.golfRev : undefined, p.type === "minigolf" ? minigolfCourseOf(p) : {}) as AnyGame }),
   rally: (p) => ({ game: rallyGameFor(rev(p, "rallyRev"), puzzleLevel(p)) as AnyGame }),
   slice: (p) => ({ game: sliceGameFor(rev(p, "sliceRev")) as AnyGame }),
