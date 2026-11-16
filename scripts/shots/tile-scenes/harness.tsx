@@ -5,6 +5,8 @@
  * imported by the app.
  */
 import { useLayoutEffect, useRef } from "react";
+import { strategyImage, type StrategyArtName } from "@/lib/arcade/strategyArt";
+import { STRATEGY_ART } from "@/lib/arcade/strategyArt.data";
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 
@@ -70,6 +72,18 @@ function BackgroundBox({ type }: { type: string }) {
 export async function mountScenes(types: string[]): Promise<string[]> {
   const wanted = (types.length ? types : Object.keys(ALL_SCENES)).filter((t) => ALL_SCENES[t as keyof SceneSet]);
   await Promise.all(wanted.map((t) => preloadGameArt(t).catch(() => undefined)));
+  // The Strategy overhaul's rendered materials (stage 2): every image loaded before a scene paints, so the tiles show
+  // the rendered gems, marbles, bubbles, disc and Captain (src/lib/arcade/strategyArt.ts).
+  await Promise.all(
+    (Object.keys(STRATEGY_ART) as StrategyArtName[]).map(
+      (name) =>
+        new Promise<void>((done) => {
+          const started = Date.now();
+          const wait = () => (strategyImage(name) || Date.now() - started > 10_000 ? done() : setTimeout(wait, 25));
+          wait();
+        }),
+    ),
+  );
   await document.fonts.ready;
   document.getElementById("tile-scenes-host")?.remove();
   const host = document.createElement("div");

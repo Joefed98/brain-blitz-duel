@@ -6,7 +6,7 @@
  */
 
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
-import { BT_BALLS, BT_V7_BALLS } from "./ballTrack";
+import { btStateBalls } from "./ballTrack";
 import { whackDepthScore, type WhackState } from "./whack";
 import { CLAY_DOUBLES, clayDepthScore, clayDoublesHit, type ClayState } from "./clayShoot";
 import { MATCHUP_PAR_RAW, matchupCoreGemsOf, matchupGoalsMet, matchupGoalsOf, matchupTreasuresOf, type MatchupState } from "./matchup";
@@ -888,7 +888,8 @@ const BUILDERS: Record<string, Builder> = {
   },
   tilt: (r, s) => {
     // tiltRev 8 (the expansion, docs/expansions/x200-tilt.md): three mazes and quick stars; tiltRev 10 four mazes again.
-    const all = n(r, "tiltRev") === 8 || n(r, "tiltRev") === 9 ? 3 : 4;
+    // Levels (stage 3): a level's run stores its own maze count (Easy three).
+    const all = n(r, "totalMazes") > 0 ? n(r, "totalMazes") : n(r, "tiltRev") === 8 || n(r, "tiltRev") === 9 ? 3 : 4;
     const done = n(r, "mazes") >= all;
     const quick = n(r, "totalQuick") > 0;
     // tiltRev 11: no gold stars; mazes within par and a clean run instead.
@@ -918,14 +919,16 @@ const BUILDERS: Record<string, Builder> = {
   },
   balltrack: (r, s) => {
     // btRev 7 drops 36 marbles (every earlier course 30): the replay's own state says which.
-    const all = (r["state"] as { r7?: number } | undefined)?.r7 ? BT_V7_BALLS : BT_BALLS;
+    // A level course (Easy 28, Hard and Expert 42) carries its own count on the state (`nb`).
+    const all = btStateBalls((r["state"] as { r7?: number; nb?: number } | undefined) ?? {});
     const done = n(r, "home") >= all;
     return {
       axis: { value: n(r, "home"), max: all, label: "Marbles home" },
       lines: [head(`${n(r, "home")} / ${all} home`, s, done)],
       tiles: [
         { label: "Marbles home", value: `${n(r, "home")} / ${all}` },
-        { label: "Wrong tray", value: String(n(r, "wrong")) },
+        // One wording for Ball Tracker (Joe, 15 Nov 2026): the cups are "cups" everywhere.
+        { label: "Wrong cup", value: String(n(r, "wrong")) },
         { label: "Lost", value: String(n(r, "lost")) },
       ],
       outcome: done ? "finish" : "time",

@@ -1,6 +1,8 @@
 /**
- * arcade-standard-check's case for `bubble` (Coral Pop, bubbleRev 11; see ./case.ts). The reef starts with 95 bubbles
- * on every seed (10 rows of 10 and 9, chests included), so the core is full at 95 bubbles cleared.
+ * arcade-standard-check's case for `bubble` (Coral Pop, bubbleRev 12 since the Strategy overhaul; see ./case.ts). The
+ * reef starts with 86 bubbles on every seed (9 rows of 10 and 9, chests included), so the core is full at 86 bubbles
+ * cleared. bubbleRev 11's 95-bubble reef is still proved below (older stamps replay exactly).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): the case follows the dealt stamp.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
@@ -13,7 +15,9 @@ import {
   BUB_CHEST,
   BUB_COLS,
   BUB_REV_BLAST,
+  BUB_REV_FAST,
   BUB_REV_STD,
+  BUB_V12_REEF,
   BUB_RUN_TICKS,
   BUB_V11_BANK_PER,
   BUB_V11_BANK_MAX,
@@ -29,7 +33,9 @@ import { TICKS_PER_SECOND } from "../../src/lib/arcade/engine";
 import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
 import { caseEntry, type StdCase } from "./entry";
 
-const game = bubbleGameFor(BUB_REV_STD);
+const game = bubbleGameFor(BUB_REV_FAST);
+const game11 = bubbleGameFor(BUB_REV_STD);
+const REEF = BUB_V12_REEF;
 const SEED = 4242;
 const played = (patch: Partial<BubState> = {}): BubState => ({ ...(game.init(SEED) as BubState), acted: 1, tick: 600, ...patch });
 const part = (s: BubState, key: string) => bubbleStdParts(s)!.find((p) => p.key === key)!.points;
@@ -51,18 +57,18 @@ const clearedAt = (endedTick: number, patch: Partial<BubState> = {}): BubState =
 
 export const stdCase: StdCase = {
   game,
-  fullAt: BUB_V11_REEF,
+  fullAt: REEF,
   perfect: () => clearedAt(BUB_RUN_TICKS - BUB_V11_SPEED_FULL_LEFT, { chests: 6, banks: BUB_V11_BANK_PER * BUB_V11_BANK_MAX, combos: 15 }),
   idle: () => played(),
   // Below the whole reef: its net shrink. From the whole reef on (a check-only state, no clear bonus): a quarter of the
   // bubbles burst, 4v popped with the reef as it started.
-  core: (v) => (v < BUB_V11_REEF ? shrunk(v) : played({ popped: 4 * v })),
+  core: (v) => (v < REEF ? shrunk(v) : played({ popped: 4 * v })),
   older: () => bubbleGameFor(BUB_REV_BLAST).init(SEED),
   extra(ok) {
-    ok(game.init(SEED).startCount === BUB_V11_REEF, `the reef starts with ${BUB_V11_REEF} bubbles`);
+    ok(game.init(SEED).startCount === REEF, `the reef starts with ${REEF} bubbles`);
     for (let seed = 1; seed <= 200; seed++) {
       const s = game.init(seed) as BubState;
-      ok(s.startCount === BUB_V11_REEF, `seed ${seed}: the reef starts with ${BUB_V11_REEF}`);
+      ok(s.startCount === REEF, `seed ${seed}: the reef starts with ${REEF}`);
       ok(s.grid.filter((v) => v === BUB_CHEST).length === 6, `seed ${seed}: 6 seeded chests`);
     }
     // Chests: 5 each, 30 for all 6.
@@ -75,7 +81,7 @@ export const stdCase: StdCase = {
     ok(part(clearedAt(BUB_RUN_TICKS / 4), "speed") === 10 && part(clearedAt(BUB_RUN_TICKS / 2), "speed") === 10, "speed is full with half the clock or more left");
     ok(part(clearedAt((3 * BUB_RUN_TICKS) / 4), "speed") === 5, "speed is 5 with a quarter of the clock left");
     ok(part(clearedAt(BUB_RUN_TICKS), "speed") === 0, "speed is 0 at the buzzer");
-    ok(part(shrunk(94), "clear") === 0 && part(shrunk(94), "speed") === 0, "no clear and no speed without a clear");
+    ok(part(shrunk(REEF - 1), "clear") === 0 && part(shrunk(REEF - 1), "speed") === 0, "no clear and no speed without a clear");
     ok(game.score(clearedAt(BUB_RUN_TICKS - 30 * TICKS_PER_SECOND)) === 120 + 10 + 6, "a clear with 30 s left scores 120 + 10 + 6");
     // Features never cost core: the same reef with features scores its core plus the features.
     const base = shrunk(60);
@@ -111,6 +117,11 @@ export const stdCase: StdCase = {
       };
       const far = Math.max(...want.map(d2));
       ok(s.grid.every((v, i) => !v || want.includes(i) || i === landed || d2(i) >= far), `seed ${seed}: no bubble nearer than the mine's farthest pop survives`);
+    }
+    // bubbleRev 11 (older stamp) keeps its 95-bubble reef and never reads the fast-shot level.
+    for (let seed = 1; seed <= 50; seed++) {
+      const s = game11.init(seed) as BubState;
+      ok(s.startCount === BUB_V11_REEF && !s.fast, `seed ${seed}: bubbleRev 11 keeps its ${BUB_V11_REEF}-bubble reef`);
     }
     ok(minesSeen >= 20, `mines tried on ${minesSeen} seeds`);
     // Rev 10 (older) keeps its two-ring blast.

@@ -13,6 +13,7 @@ import type { PuzzleData } from "@/lib/duel/types";
 import type { PlayerLook } from "@/lib/duel/playerLook";
 
 import { ArcadeScoreChart } from "./ArcadeScoreChart";
+import { StrategyRunSummary } from "./StrategyRunSummary";
 import { RevealBreakdown } from "./RevealBreakdown";
 import { RetroRunSummary } from "./RetroRunSummary";
 import { GameRunPicture, useHasRunPicture } from "./GameParts";
@@ -303,6 +304,8 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
   const hitsLine = myReveal ? moonHitsLine(puzzle as unknown as { type: string; ricoRev?: unknown }, myReveal.tiles) : null;
   // A game that draws its own run picture (RunPicture, stage 2) shows its key numbers there, in place of the tiles.
   const ownPicture = useHasRunPicture(puzzle.type);
+  // Ball Tracker's stored reveals before 15 Nov 2026 say "Wrong tray"; shown as "Wrong cup", the one wording (display only).
+  const tileLabel = (label: string) => (puzzle.type === "balltrack" && label === "Wrong tray" ? "Wrong cup" : label);
   const tiles = ownPicture ? [] : shown ? [...shown.tiles.filter((t) => !statRepeatsPart(t.label, shown.lines, partLabels, t.value) && !retiredStat(puzzle, t.label) && !(hitsLine && t.label === "Hits")).slice(0, 4), ...costRows] : [];
   const folds = !practice && !!summary && summary.rest.length + tiles.length > 0;
   const [open, setOpen] = useState(false);
@@ -381,6 +384,8 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
         {myScore !== null ? <RetroRunSummary puzzle={puzzle} answer={myAnswer} /> : null}
         {/* Cards & Board (the overhaul, 15 Nov 2026): the final table large, the key numbers and a run summary. */}
         {CARDS_REVEAL_TYPES.has(puzzle.type) && myScore !== null ? <CardsRevealPicture puzzle={puzzle} answer={myAnswer ?? null} /> : null}
+        {/* The Strategy games' picture of the run (the Strategy overhaul, stage 2): large pieces under the score. */}
+        {myScore !== null ? <StrategyRunSummary puzzle={puzzle} myAnswer={myAnswer} reveal={myReveal} /> : null}
 
         {/* The full breakdown: open in practice, one tap away in a room (always in the markup). */}
         {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}
@@ -407,7 +412,7 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
           >
             {tiles.map((tile) => (
               <div key={tile.label} className="reveal-breakdown-row">
-                <span className="reveal-breakdown-name">{tile.label}</span>
+                <span className="reveal-breakdown-name">{tileLabel(tile.label)}</span>
                 <span className="reveal-breakdown-points">{tile.value}</span>
               </div>
             ))}

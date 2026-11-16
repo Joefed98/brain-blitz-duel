@@ -12,17 +12,42 @@
  *   bun scripts/ink-big-deal.ts            (writes the deal and the witnesses; 4 worker processes, ~2–4 min)
  *   bun scripts/ink-big-deal.ts --check    (replays every stored witness through the server path: each exactly 200,
  *                                            and the deal is exactly the witnessed seeds in order; ~4 min on one core)
+ *
+ * `--rev=15` (the Strategy overhaul, 15 Nov 2026) does the same for inkRev 15 (the pot and hill placed level by level):
+ * src/lib/duel/inkHillsDeal.server.ts (INK_HILLS_DEAL) and scripts/fixtures/ink-hills-deal-witness.json.gz. Without it
+ * the script builds and checks inkRev 14's deal exactly as before.
+ *
+ * `--rev=15 --level=easy|hard|expert` (the Strategy overhaul's stage 3, 15 Nov 2026) builds or checks that level's own
+ * deal (INK_LEVEL_SETS): src/lib/duel/inkHillsDeal<Level>.server.ts and scripts/fixtures/ink-hills-<level>-deal-witness.json.gz,
+ * every level of each seed proved under the level's rules (its live levels counted from its own first live level) and
+ * the oracle's run exactly 200 through the server replay of that level.
  */
 import { readFileSync, writeFileSync, existsSync, unlinkSync, appendFileSync } from "node:fs";
 import { gzipSync, gunzipSync } from "node:zlib";
 import { spawn } from "node:child_process";
-import { inkBridgeGameFor, inkCheckpoint, inkV13Proof, INK_CHECKPOINT_INTERVAL, INK_REV_BIG, INK_V13_CLOVERS, type InkState } from "../src/lib/arcade/inkBridge";
+import { inkBridgeGameFor, inkCheckpoint, inkV13Proof, isInkDiff, INK_CHECKPOINT_INTERVAL, INK_LEVEL_SETS, INK_LEVELS, INK_REV_BIG, INK_REV_HILLS, INK_V13_CLOVERS, type InkDiff, type InkState } from "../src/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "../src/lib/duel/inkBridge";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 
 export const INK_BIG_DEAL_SIZE = 100;
-const OUT = new URL("../src/lib/duel/inkBigDeal.server.ts", import.meta.url);
+/** Stage 3: each level's own deal holds this many seeds. */
+export const INK_LEVEL_DEAL_SIZE = 60;
+/** The revision this run builds or checks: inkRev 14 (default) or, with --rev=15, inkRev 15. */
+const HILLS = process.argv.includes("--rev=15");
+const REV = HILLS ? INK_REV_HILLS : INK_REV_BIG;
+const levelArg = process.argv.find((a) => a.startsWith("--level="))?.slice(8);
+/** Stage 3: the level this run builds or checks (inkRev 15 only; null = Normal). */
+const LEVEL: InkDiff | null = HILLS && isInkDiff(levelArg) ? levelArg : null;
+if (levelArg && !LEVEL && import.meta.main) throw new Error(`--level=${levelArg}: one of easy, hard, expert (with --rev=15)`);
+const Cap = (d: InkDiff) => d[0]!.toUpperCase() + d.slice(1);
+/** A level's deal file and witnesses. */
+export const inkLevelDealFile = (d: InkDiff) => new URL(`../src/lib/duel/inkHillsDeal${Cap(d)}.server.ts`, import.meta.url);
+export const inkLevelWitnessFile = (d: InkDiff) => new URL(`./fixtures/ink-hills-${d}-deal-witness.json.gz`, import.meta.url);
+const OUT = LEVEL ? inkLevelDealFile(LEVEL) : HILLS ? new URL("../src/lib/duel/inkHillsDeal.server.ts", import.meta.url) : new URL("../src/lib/duel/inkBigDeal.server.ts", import.meta.url);
 export const INK_BIG_WITNESS = new URL("./fixtures/ink-big-deal-witness.json.gz", import.meta.url);
+export const INK_HILLS_WITNESS = new URL("./fixtures/ink-hills-deal-witness.json.gz", import.meta.url);
+const DEAL_SIZE = LEVEL ? INK_LEVEL_DEAL_SIZE : INK_BIG_DEAL_SIZE;
+const WITNESS = LEVEL ? inkLevelWitnessFile(LEVEL) : HILLS ? INK_HILLS_WITNESS : INK_BIG_WITNESS;
 const WORKERS = 4;
 const BATCH = 8;
 
@@ -39,8 +64,8 @@ type Ev = ArcadeInputEvent;
 export type InkWitness = { seed: number; events: Ev[] };
 
 /** The phone's submission for a log on inkRev 14: steps the sim, takes checkpoints, encodes. */
-export function inkBigSubmission(seed: number, events: readonly Ev[]): string {
-  const game = inkBridgeGameFor(INK_REV_BIG);
+export function inkBigSubmission(seed: number, events: readonly Ev[], rev: number = INK_REV_BIG, level: InkDiff | null = null): string {
+  const game = inkBridgeGameFor(rev, level);
   const byT = new Map(events.map((e) => [e.t, e]));
   let s = game.init(seed) as InkState;
   const checkpoints: unknown[] = [];
@@ -52,34 +77,36 @@ export function inkBigSubmission(seed: number, events: readonly Ev[]): string {
 }
 
 /** The server's verdict on a log: its stored score and whether it was flagged. */
-export function inkBigVerdict(seed: number, events: readonly Ev[]): { score: number; flagged: boolean; levels: number } {
-  const r = replayInkBridgeRun(seed, inkBigSubmission(seed, events), INK_REV_BIG);
+export function inkBigVerdict(seed: number, events: readonly Ev[], rev: number = INK_REV_BIG, level: InkDiff | null = null): { score: number; flagged: boolean; levels: number } {
+  const r = replayInkBridgeRun(seed, inkBigSubmission(seed, events, rev, level), rev, level);
   return { score: r.score, flagged: Boolean(r.flagged), levels: r.levels };
 }
 
 /** Every level of the seed's inkRev 14 build proved (generation's own proofs, re-run), with exactly two clovers. */
-export function inkBigProved(seed: number): boolean {
-  const proof = inkV13Proof(seed, INK_REV_BIG);
+export function inkBigProved(seed: number, rev: number = INK_REV_BIG, level: InkDiff | null = null): boolean {
+  const proof = inkV13Proof(seed, rev, level);
   const bad = proof.filter((l) => !l.ref || l.unaided || l.bonus === false || !(l.par >= l.witness) || l.par <= 0);
-  return bad.length === 0 && proof.filter((l) => l.kind.includes("clover")).length === INK_V13_CLOVERS && proof.filter((l) => l.kind === "live").length === 2;
+  // Stage 3: a level's live levels run from its own first live level (Easy has none).
+  const live = level ? INK_LEVELS - Math.min(INK_LEVELS, INK_LEVEL_SETS[level].liveFrom) : 2;
+  return bad.length === 0 && proof.filter((l) => l.kind.includes("clover")).length === INK_V13_CLOVERS && proof.filter((l) => l.kind === "live").length === live;
 }
 
 /** The oracle on one candidate: its witness when every proof holds and its log scores exactly 200, else null. */
 async function oracle(seed: number): Promise<InkWitness | null> {
-  if (!inkBigProved(seed)) return null;
+  if (!inkBigProved(seed, REV, LEVEL)) return null;
   const { inkOracleRun } = await import("./ink-x200-oracle");
-  const events = inkOracleRun(seed, INK_REV_BIG).events;
-  const v = inkBigVerdict(seed, events);
+  const events = inkOracleRun(seed, REV, LEVEL).events;
+  const v = inkBigVerdict(seed, events, REV, LEVEL);
   return v.score === 200 && !v.flagged ? { seed, events } : null;
 }
 
-export function readInkBigWitnesses(): InkWitness[] {
-  return (JSON.parse(gunzipSync(readFileSync(INK_BIG_WITNESS)).toString()) as { witnesses: InkWitness[] }).witnesses;
+export function readInkBigWitnesses(file: URL = INK_BIG_WITNESS): InkWitness[] {
+  return (JSON.parse(gunzipSync(readFileSync(file)).toString()) as { witnesses: InkWitness[] }).witnesses;
 }
 
 /** The written deal's seeds. */
-export function readInkBigDeal(): number[] {
-  const text = readFileSync(OUT, "utf8");
+export function readInkBigDeal(file: URL = new URL("../src/lib/duel/inkBigDeal.server.ts", import.meta.url)): number[] {
+  const text = readFileSync(file, "utf8");
   const body = text.slice(text.indexOf("= [") + 2);
   return JSON.parse(body.slice(0, body.indexOf("]") + 1)) as number[];
 }
@@ -100,16 +127,16 @@ if (import.meta.main) {
     process.exit(0);
   }
   if (process.argv.includes("--check")) {
-    const deal = readInkBigDeal();
-    const witnesses = readInkBigWitnesses();
+    const deal = readInkBigDeal(OUT);
+    const witnesses = readInkBigWitnesses(WITNESS);
     let bad = 0;
     if (witnesses.length !== deal.length || witnesses.some((w, i) => w.seed !== deal[i])) {
       console.log("FAIL: the deal is not exactly the witnessed seeds in order");
       bad++;
     }
     for (const w of witnesses) {
-      const v = inkBigVerdict(w.seed, w.events);
-      if (v.score !== 200 || v.flagged || !inkBigProved(w.seed)) {
+      const v = inkBigVerdict(w.seed, w.events, REV, LEVEL);
+      if (v.score !== 200 || v.flagged || !inkBigProved(w.seed, REV, LEVEL)) {
         console.log(`FAIL: seed ${w.seed}: its witness scores ${v.score}${v.flagged ? " (flagged)" : ""} or a level's proof fails`);
         bad++;
       }
@@ -117,27 +144,27 @@ if (import.meta.main) {
     console.log(bad ? `FAIL ink-big-deal: ${bad} problem(s)` : `ok: ${witnesses.length} dealt seeds, every level proved and each witness exactly 200 through the server replay`);
     process.exit(bad ? 1 : 0);
   }
-  // Batches of candidates over WORKERS processes until INK_BIG_DEAL_SIZE are kept, in candidate order.
+  // Batches of candidates over WORKERS processes until DEAL_SIZE are kept, in candidate order.
   const results = new Map<number, { seed: number; witness: InkWitness | null }>();
   let next = 0;
   const kept = () => {
     const out: InkWitness[] = [];
     let dropped = 0;
-    for (let n = 0; results.has(n) && out.length < INK_BIG_DEAL_SIZE; n++) {
+    for (let n = 0; results.has(n) && out.length < DEAL_SIZE; n++) {
       const r = results.get(n)!;
       if (r.witness) out.push(r.witness);
       else dropped++;
     }
     return { out, dropped };
   };
-  while (kept().out.length < INK_BIG_DEAL_SIZE) {
-    const want = INK_BIG_DEAL_SIZE - kept().out.length;
+  while (kept().out.length < DEAL_SIZE) {
+    const want = DEAL_SIZE - kept().out.length;
     const to = next + Math.max(BATCH, Math.ceil(want * 1.1));
     const tmp = `/tmp/ink-big-deal-${process.pid}.jsonl`;
     if (existsSync(tmp)) unlinkSync(tmp);
     await Promise.all(
       Array.from({ length: WORKERS }, (_, k) => new Promise<void>((resolve, reject) => {
-        const child = spawn("bun", [new URL(import.meta.url).pathname, `--worker=${k}`, `--from=${next}`, `--to=${to}`, `--out=${tmp}`], { stdio: "inherit" });
+        const child = spawn("bun", [new URL(import.meta.url).pathname, `--worker=${k}`, `--from=${next}`, `--to=${to}`, `--out=${tmp}`, ...(HILLS ? ["--rev=15"] : []), ...(LEVEL ? [`--level=${LEVEL}`] : [])], { stdio: "inherit" });
         child.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`worker ${k} exited ${code}`))));
       })),
     );
@@ -151,10 +178,60 @@ if (import.meta.main) {
   }
   const { out, dropped } = kept();
   const tried = out.length + dropped;
+  if (LEVEL) {
+    const C = Cap(LEVEL);
+    const U = LEVEL.toUpperCase();
+    writeFileSync(
+      OUT,
+      `/**
+ * Rainbow Bridge's ${LEVEL} deal (inkRev 15 at level "${LEVEL}", the Strategy overhaul's stage 3; built by
+ * \`bun scripts/ink-big-deal.ts --rev=15 --level=${LEVEL}\`, do not edit): ${out.length} level seeds, each proved under the
+ * level's rules (INK_LEVEL_SETS.${LEVEL}): every level drawable within its ink, its bonus line proved, two clovers, every ink
+ * par at least its proved line's ink, and the perfect run (scripts/ink-x200-oracle.ts) exactly 200 through the server
+ * replay of the level (witnesses in scripts/fixtures/ink-hills-${LEVEL}-deal-witness.json.gz). ${dropped} candidate${dropped === 1 ? "" : "s"} of the
+ * first ${tried} dropped (${out.length} kept).
+ */
+export const INK_HILLS_DEAL_${U}: readonly number[] = ${JSON.stringify(out.map((w) => w.seed))};
+
+/** The level seed a room seed deals on inkRev 15 at level "${LEVEL}". */
+export function inkHills${C}DealSeed(roomSeed: number): number {
+  const n = INK_HILLS_DEAL_${U}.length;
+  return INK_HILLS_DEAL_${U}[((Math.trunc(roomSeed) % n) + n) % n]!;
+}
+`,
+    );
+    writeFileSync(WITNESS, gzipSync(JSON.stringify({ note: `Rainbow Bridge inkRev 15 ${LEVEL} deal witnesses (scripts/ink-big-deal.ts --rev=15 --level=${LEVEL}): each seed's oracle log, exactly 200 through the server replay`, witnesses: out })));
+    console.log(`wrote ${out.length} seeds; ${dropped} of the first ${tried} candidates dropped`);
+    process.exit(0);
+  }
+  if (HILLS) {
+    writeFileSync(
+      OUT,
+      `/**
+ * Rainbow Bridge's deal (inkRev 15, the Strategy overhaul; built by \`bun scripts/ink-big-deal.ts --rev=15\`, do not edit):
+ * ${DEAL_SIZE} level seeds, each proved on inkRev 15: every level's proof passes with its seeded pot placement
+ * (drawable as a phone draws it, its bonus line proved, two clovers, every ink par at least its proved line's ink) and the
+ * perfect run (the oracle, scripts/ink-x200-oracle.ts) replays through replayInkBridgeRun to exactly 200 (witnesses in
+ * scripts/fixtures/ink-hills-deal-witness.json.gz). ${dropped} candidate${dropped === 1 ? "" : "s"} of the first ${tried} dropped
+ * (${out.length} kept).
+ */
+export const INK_HILLS_DEAL: readonly number[] = ${JSON.stringify(out.map((w) => w.seed))};
+
+/** The level seed a room seed deals on inkRev 15. */
+export function inkHillsDealSeed(roomSeed: number): number {
+  const n = INK_HILLS_DEAL.length;
+  return INK_HILLS_DEAL[((Math.trunc(roomSeed) % n) + n) % n]!;
+}
+`,
+    );
+    writeFileSync(INK_HILLS_WITNESS, gzipSync(JSON.stringify({ note: "Rainbow Bridge inkRev 15 deal witnesses (scripts/ink-big-deal.ts --rev=15): each seed's oracle log, exactly 200 through the server replay", witnesses: out })));
+    console.log(`wrote ${out.length} seeds; ${dropped} of the first ${tried} candidates dropped`);
+    process.exit(0);
+  }
   writeFileSync(
     OUT,
     `/**
- * Rainbow Bridge's deal (inkRev 14; built by \`bun scripts/ink-big-deal.ts\`, do not edit): ${INK_BIG_DEAL_SIZE} level
+ * Rainbow Bridge's deal (inkRev 14; built by \`bun scripts/ink-big-deal.ts\`, do not edit): ${DEAL_SIZE} level
  * seeds, each proved on inkRev 14: every level's proof passes with the bigger coin, clovers and birds (drawable as a phone
  * draws it, its bonus line proved, two clovers, every ink par at least its proved line's ink) and the perfect run (the
  * oracle, scripts/ink-x200-oracle.ts) replays through replayInkBridgeRun to exactly 200 (witnesses in

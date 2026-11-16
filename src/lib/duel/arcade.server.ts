@@ -12,17 +12,20 @@ import { flipDealSeed } from "./flipDeal.server";
 import { wavDealSeed } from "./wavefrontDeal.server";
 import { flipDealSeedV13 } from "./flipDealV13.server";
 import { CROSS_REV_KEEP, CROSS_REV_LIGHT } from "@/lib/arcade/cross";
-import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_STD } from "@/lib/arcade/inkBridge";
+import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_HILLS, INK_REV_STD, isInkDiff } from "@/lib/arcade/inkBridge";
 import { inkBigDealSeed } from "./inkBigDeal.server";
+import { inkHillsDealSeed } from "./inkHillsDeal.server";
+import { inkLevelDealSeed } from "./inkLevelDeals.server";
 import { SNAKE_REV_TARGET, SNAKE_REV_12, SNAKE_REV_GRACE } from "@/lib/arcade/snake";
-import { BUB_REV_STD } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
+import { BUB_REV_FAST, BUB_REV_STD } from "@/lib/arcade/bubble";
+import { MATCHUP_REV_ICE2, MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
 import { minesBoard, minesCountFor, minesSolve, MINES_REV_LOGIC, MINES_REV_STD } from "@/lib/arcade/minesweeper";
 import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_LIVES, SKYLINE_REV_COUNT } from "@/lib/arcade/skyline";
-import { TILT_REV_BIG } from "@/lib/arcade/tilt";
+import { TILT_REV_BIG, isTiltLevel } from "@/lib/arcade/tilt";
 import { TILT_DEAL_V12 } from "./tiltDealV12.server";
+import { TILT_DEAL_LEVELS } from "./tiltDealLevels.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG } from "@/lib/arcade/swing";
@@ -212,7 +215,15 @@ export function generateMatchup(): MatchupPuzzleData {
   // docs/arcade-standard/matchup.md): four treasures that may swap with a gem that then makes a line, four goal
   // levels, and the score as fixed parts to 200. matchupRev 12 (Nov 2026): six goals shown at once and six treasures,
   // the parts re-weighted (core 108, treasure 36, goals 36, ice 10, big lines 10).
-  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_SIX };
+  // matchupRev 13 (the Strategy overhaul stage 3, 15 Nov 2026): two-hit ice at every level, and the levels (the deal
+  // stamps `level`; the sim reads it at init). Checks written for matchupRev 12 pin it (pinMatchupPreIce2).
+  if (dealPinned("matchupPreIce2")) return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_SIX };
+  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_ICE2 };
+}
+
+/** Checks written for Gemstone matchupRev 12: deal it as rooms did before two-hit ice (returns the previous setting). */
+export function pinMatchupPreIce2(on: boolean): boolean {
+  return setDealPin("matchupPreIce2", on);
 }
 
 export function generateSnake(): SnakePuzzleData {
@@ -325,7 +336,9 @@ export function generateBubble(): BubblePuzzleData {
   // bubbleRev 9: bubbleRev 8's deeper reef (expansion E6) with credit for bubbles burst (no zero for a played run).
   // bubbleRev 10 (phone notes, 27 Oct 2026): bubbleRev 9 with the mine's bigger blast (two rings).
   // bubbleRev 11 (the arcade scoring standard, 29 Oct 2026): the mine pops the 4 nearest bubbles; scored on the standard.
-  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_STD };
+  // bubbleRev 12 (the Strategy overhaul, 15 Nov 2026): an 86-bubble reef and the fast shot (drag further, same path).
+  if (dealPinned("bubblePreFast")) return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_STD };
+  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_FAST };
 }
 
 export function generateBeat(): BeatPuzzleData {
@@ -437,7 +450,22 @@ export function pinInkPreBig(on: boolean): boolean {
   return setDealPin("inkPreBig", on);
 }
 
-export function generateInkBridge(): InkBridgePuzzleData {
+/** Checks written for inkRev 14: deal it from its own deal as rooms did before inkRev 15 (returns the previous setting). */
+export function pinInkPreHills(on: boolean): boolean {
+  return setDealPin("inkPreHills", on);
+}
+
+/** Checks written for Coral Pop bubbleRev 11: deal it as rooms did before bubbleRev 12 (returns the previous setting). */
+export function pinBubblePreFast(on: boolean): boolean {
+  return setDealPin("bubblePreFast", on);
+}
+
+/**
+ * Rainbow Bridge's deal. `level` (the Strategy overhaul's stage 3; the deal's GenerateContext level, already resolved
+ * against gameLevels.ts) deals inkRev 15 at that level from the level's own proved deal (inkLevelDeals.server.ts); the
+ * deal then stamps `level` on the puzzle. Normal (no level) deals exactly as before.
+ */
+export function generateInkBridge(level?: string): InkBridgePuzzleData {
   // inkRev 11 (phone notes, 27 Oct 2026): no wind zones, fewer silver coins, the pickups spread out.
   // inkRev 12 (the arcade scoring standard, 29 Oct 2026): inkRev 11's play scored on straight lines and fixed shares.
   // inkRev 13 (Nov 2026, docs/arcade-standard/inkbridge.md): clovers, ink par and more birds; no stars or silver coins.
@@ -445,7 +473,11 @@ export function generateInkBridge(): InkBridgePuzzleData {
   // proved deal (every level proved and the perfect run 200 through the server replay on each seed; inkBigDeal.server.ts).
   if (dealPinned("inkPreClover")) return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_STD };
   if (dealPinned("inkPreBig")) return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_CLOVER };
-  return { type: "inkbridge", seed: inkBigDealSeed(arcadeSeed()), inkRev: INK_REV_BIG };
+  // inkRev 15 (the Strategy overhaul, 15 Nov 2026): inkRev 14 with the pot and hill placed level by level, from its own
+  // proved deal (inkHillsDeal.server.ts: every level proved and the perfect run 200 through the server replay).
+  if (dealPinned("inkPreHills")) return { type: "inkbridge", seed: inkBigDealSeed(arcadeSeed()), inkRev: INK_REV_BIG };
+  if (isInkDiff(level)) return { type: "inkbridge", seed: inkLevelDealSeed(level, arcadeSeed()), inkRev: INK_REV_HILLS };
+  return { type: "inkbridge", seed: inkHillsDealSeed(arcadeSeed()), inkRev: INK_REV_HILLS };
 }
 
 export function generateBurst(): BurstPuzzleData {
@@ -604,7 +636,15 @@ export function generateSwing(level?: Level): SwingPuzzleData {
   throw new Error("Couldn’t build the course. Try again.");
 }
 
-export function generateTilt(): TiltPuzzleData {
+export function generateTilt(level?: Level): TiltPuzzleData {
+  // Levels (stage 3, 15 Nov 2026): easy, hard and expert deal tiltRev 12 from their own proved deals
+  // (tiltDealLevels.server.ts, scripts/tilt-deal.ts --level: seeds the oracle played to exactly 200 through the server's
+  // replay at that level); the deal stamps the level itself. Normal (no level) deals below exactly as before.
+  if (level && isTiltLevel(level)) {
+    const list = TILT_DEAL_LEVELS[level];
+    const at = arcadeSeed();
+    return { type: "tilt", seed: list[((at % list.length) + list.length) % list.length]!, tiltRev: TILT_REV_BIG };
+  }
   // tiltRev 9: tiltRev 8's play (the expansion) on the lifted curves (Joe's phone notes, 27 Oct 2026). A seed from the
   // bank (TILT_BANK, scripts/tilt-bank.ts): every maze fully dealt (tiltDealableX) and played to 200 by the oracle
   // through the server's replay (tilt-expand-check replays each).

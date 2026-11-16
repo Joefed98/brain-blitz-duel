@@ -45,7 +45,7 @@ import { juncCheckpoint, junctionGameFor, JUNC_REV, JUNC_REV_BAND } from "../../
 import { encodeJunctionRun, replayJunctionRun } from "../../src/lib/duel/junction";
 import { brkCheckpoint, breakerGameFor, BRK_REV, BRK_REV_BAND, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "../../src/lib/arcade/breaker";
 import { encodeBreakerRun, replayBreakerRun } from "../../src/lib/duel/breaker";
-import { tiltCheckpoint, tiltGameFor, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC } from "../../src/lib/arcade/tilt";
+import { tiltCheckpoint, tiltGameFor, tiltGameForLevel, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC } from "../../src/lib/arcade/tilt";
 import { encodeTiltRun, replayTiltRun } from "../../src/lib/duel/tilt";
 import { tiltBankSeedFor } from "../../src/lib/duel/tiltBank.server";
 import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, orbitXpRev } from "../../src/lib/arcade/orbit";
@@ -227,6 +227,8 @@ export const GAMES: GameSpec[] = [
     // Rooms deal a bank course; the stored seed picks it.
     seedFor: (n) => roomSeed(n) % BALL_TRACK_BANK.length,
     gameFor: (rev, seed) => makeBallTrackGame(btCourseFor(rev, seed), rev),
+    // Levels (Strategy overhaul stage 3): the dealt puzzle's own course (a level's proved list, or the bank's on Normal).
+    gameForPuzzle: (puzzle) => makeBallTrackGame(puzzle.course, puzzle.btRev),
     checkpoint: btCheckpoint,
     encode: (run, rev, seed) => encodeBallTrackRun(btCourseFor(rev, seed), run, rev),
     replay: (seed, raw, rev) => replayBallTrackRun(btCourseFor(rev, seed), seed, raw, rev),
@@ -234,9 +236,16 @@ export const GAMES: GameSpec[] = [
   { ...simple("wavefront", WAV_REV, WAV_REV_BAND, wavefrontGameFor, wavCheckpoint, encodeWavefrontRun, replayWavefrontRun), tuned: WAV_REV_SHAPES, tunec: WAV_REV_TUNEC, tuneg: WAV_REV_TALL },
   // Levels (15 Nov 2026): the dealt puzzle's level picks the level's course and crash cost.
   { ...simple("flip", FLIP_REV, FLIP_REV_BAND, flipGameFor, flipCheckpoint, encodeFlipRun, replayFlipRun), tunec: FLIP_REV_TUNEC, gameForPuzzle: (p) => flipGameFor(p.flipRev, puzzleLevel(p)) },
-  { ...simple("inkbridge", INK_REV4, INK_REV_BAND, inkBridgeGameFor, inkCheckpoint, encodeInkBridgeRun, replayInkBridgeRun), tunec: INK_REV_TUNEC },
-  { ...simple("matchup", MATCHUP_REV, MATCHUP_REV_BAND, matchupGameFor, matchupCheckpoint, encodeMatchupRun, replayMatchupRun), tunec: MATCHUP_REV_WAIT, tunef: MATCHUP_REV_PAR },
-  { ...simple("bubble", BUB_REV, BUB_REV_BAND, bubbleGameFor, bubCheckpoint, encodeBubbleRun, replayBubbleRun), tunef: BUB_REV_TORPEDO, tuneg2: BUB_REV_TALL },
+  {
+    ...simple("inkbridge", INK_REV4, INK_REV_BAND, inkBridgeGameFor, inkCheckpoint, encodeInkBridgeRun, replayInkBridgeRun),
+    tunec: INK_REV_TUNEC,
+    // Stage 3: the dealt puzzle's level (inkRev 15's INK_LEVEL_SETS), so the tuning tool's bots play the level's world.
+    gameForPuzzle: (p: { inkRev?: number; level?: unknown }) => inkBridgeGameFor(p.inkRev, p.level),
+  },
+  // matchupRev 13's levels change the sim (colours, goals, ice, the hint): the level tool plays the dealt level's world.
+  { ...simple("matchup", MATCHUP_REV, MATCHUP_REV_BAND, matchupGameFor, matchupCheckpoint, encodeMatchupRun, replayMatchupRun), tunec: MATCHUP_REV_WAIT, tunef: MATCHUP_REV_PAR, gameForPuzzle: (p) => matchupGameFor(p.matchupRev, p.level) },
+  // Levels (stage 3): the dealt puzzle's level picks bubbleRev 12's reef (Normal and older stamps as before).
+  { ...simple("bubble", BUB_REV, BUB_REV_BAND, bubbleGameFor, bubCheckpoint, encodeBubbleRun, replayBubbleRun), tunef: BUB_REV_TORPEDO, tuneg2: BUB_REV_TALL, gameForPuzzle: (p) => bubbleGameFor(p?.bubbleRev, p?.level) },
   { ...simple("cross", CROSS_REV, CROSS_REV_BAND, crossGameFor, crossCheckpoint, encodeCrossRun, replayCrossRun), tunef: CROSS_REV_SMALL },
   { ...simple("rally", RALLY_REV, RALLY_REV_BAND, rallyGameFor, rallyCheckpoint, encodeRallyRun, replayRallyRun), current: RALLY_REV_TUNED, tunef: RALLY_REV_TUNEF, tuneg: RALLY_REV_TALL },
   { ...simple("snake", SNAKE_REV, SNAKE_REV_BAND, snakeGameFor, snakeCheckpoint, encodeSnakeRun, replaySnakeRun), tunee: SNAKE_REV_TALL, tunef: SNAKE_REV_ROCKS },
@@ -249,7 +258,8 @@ export const GAMES: GameSpec[] = [
   { ...simple("breaker", BRK_REV, BRK_REV_BAND, breakerGameFor, brkCheckpoint, encodeBreakerRun, replayBreakerRun), current: BRK_REV_TUNED, tunef: BRK_REV_TUNEF, tuneg: BRK_REV_TALL },
   // Rooms deal tiltRev 8's bank (seeds the oracle played to 200), so every revision is measured on those (paired). The
   // tuning seeds 0–59 are the bank's first 60; the fresh seeds 10000– start at its 61st, so the two sets never share one.
-  { ...simple("tilt", TILT_REV, TILT_REV_BAND, tiltGameFor, tiltCheckpoint, encodeTiltRun, replayTiltRun), tunec: TILT_REV_TUNEC, seedFor: tiltBankSeedFor, fixtureSeedFor: plain },
+  // Levels (stage 3): level-tune plays the dealt puzzle's level (tiltRev 12 with easy, hard or expert); Normal its stamp's.
+  { ...simple("tilt", TILT_REV, TILT_REV_BAND, tiltGameFor, tiltCheckpoint, encodeTiltRun, replayTiltRun), tunec: TILT_REV_TUNEC, seedFor: tiltBankSeedFor, fixtureSeedFor: plain, gameForPuzzle: (p) => tiltGameForLevel(p?.tiltRev, p?.level) },
   {
     type: "orbit",
     live: ORBIT_REV4,

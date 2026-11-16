@@ -262,6 +262,12 @@ const EXEMPT: Record<string, string> = {
   "pyramid.wrongPair": CARDS_BOARD_AWAITING,
   "pyramid.uncover": CARDS_BOARD_AWAITING,
   "pyramid.outline": CARDS_BOARD_AWAITING,
+  // The Strategy overhaul, stage 2 (15 Nov 2026): new effect moments wired silent until Joe's ElevenLabs recordings
+  // (docs/sound-cues/strategy-elevenlabs.md, "Wired in stage 2"); no generated stand-in, by the kit's rule for a game's
+  // own moments.
+  ...Object.fromEntries(
+    ["tilt.rimTick", "tilt.pitWobble", "tilt.discSwap", "matchup.goalSpark", "matchup.iceCrack", "bubble.reefRumble", "bubble.warning", "inkbridge.coinWobble", "inkbridge.birdFlap", "inkbridge.missWhistle", "balltrack.booster", "balltrack.combo", "balltrack.cupPulse"].map((id) => [id, "awaiting Joe's ElevenLabs recording (strategy-elevenlabs.md); silent until then"]),
+  ),
 };
 const needed: string[] = [];
 for (const [id, e] of Object.entries(manifest)) {

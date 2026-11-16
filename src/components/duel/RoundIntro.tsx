@@ -1,5 +1,15 @@
 import { puzzleDef, puzzleName, typeTimeLimitMs, usesArcadeClock } from "@/lib/duel/catalogue";
 import { levelOfPuzzle } from "@/lib/levels/levels";
+import { preloadStrategyArt } from "@/lib/arcade/strategyArt";
+
+/** Which rendered Strategy images each game draws (public/strategy/; strategy_art.py). */
+const STRATEGY_ART_PREFIXES: Partial<Record<string, readonly string[]>> = {
+  tilt: ["tilt-", "marble-gloss"],
+  matchup: ["gem-"],
+  bubble: ["bubble-"],
+  inkbridge: ["inkbridge-"],
+  balltrack: ["bt-", "marble-gloss"],
+};
 import { useGameDef } from "@/lib/duel/gameLoader";
 import { GameIntroExample } from "@/components/duel/GameParts";
 import { levelStarsOf } from "@/lib/practice/progress";
@@ -36,7 +46,7 @@ import { useReducedMotion } from "@/lib/motion";
 const prepareSwingCourse = (seed: number, rev?: number, level?: unknown) => void import("@/lib/arcade/swing").then((m) => m.prepareSwingCourse(seed, rev, level)).catch(() => undefined);
 const prepareFlipCourse = (seed: number, rev: number | undefined, level: unknown) => void import("@/lib/arcade/flip").then((m) => m.prepareFlipCourse(seed, rev, level)).catch(() => undefined);
 const prepareMoonTower = (seed: number, rev: number | undefined, level: unknown) => void import("@/lib/arcade/ricochetNinja").then((m) => m.moonGameFor(rev, level).init(seed)).catch(() => undefined);
-const prepareInkLevels = (seed: number, rev?: number | null) => void import("@/lib/arcade/inkBridge").then((m) => m.prepareInkLevels(seed, rev)).catch(() => undefined);
+const prepareInkLevels = (seed: number, rev?: number | null, level?: unknown) => void import("@/lib/arcade/inkBridge").then((m) => m.prepareInkLevels(seed, rev, level)).catch(() => undefined);
 const mgDeal = (seed: number) => void import("@/lib/arcade/cards/muggins").then((m) => m.mgDeal(seed)).catch(() => undefined);
 const pyDeal = (seed: number) => void import("@/lib/arcade/cards/pyramid").then((m) => m.pyDeal(seed)).catch(() => undefined);
 const preloadGameArt = (type: string) => import("@/lib/arcade/gameArt.renderer").then((m) => m.preloadGameArt(type)).catch(() => undefined);
@@ -241,7 +251,7 @@ export function RoundIntro({
   useEffect(() => {
     if (puzzle?.type !== "inkbridge") return;
     const { seed, inkRev } = puzzle;
-    const timer = window.setTimeout(() => prepareInkLevels(seed, inkRev), 120);
+    const timer = window.setTimeout(() => prepareInkLevels(seed, inkRev, (puzzle as { level?: unknown }).level), 120);
     return () => window.clearTimeout(timer);
   }, [puzzle]);
 
@@ -249,6 +259,9 @@ export function RoundIntro({
   // demo (which waits for them) and the round itself draw the art from frame one.
   useEffect(() => {
     void preloadGameArt(type);
+    // The Strategy overhaul's rendered materials (src/lib/arcade/strategyArt.ts): loaded during the intro.
+    const strategyArt = STRATEGY_ART_PREFIXES[type];
+    if (strategyArt) preloadStrategyArt(strategyArt);
     // The game's own sounds (speed fix 5): decoded during the intro, so they play from the round's first moment.
     loadGameSounds(type);
     // Letterfall's dictionary: fetched as its intro begins, never with the main bundle.

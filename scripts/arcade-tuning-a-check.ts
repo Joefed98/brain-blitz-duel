@@ -479,7 +479,9 @@ if (want("tilt")) {
   const art = readFileSync("src/lib/arcade/tiltArt.renderer.ts", "utf8");
   ok(/c === m\.exit2 && d === m\.exitDir2\) continue/.test(art), "the orange cup's exit is drawn open");
   ok(/TILT_MARBLE_AMBER, -rot, 3\);\s*ctx\.restore\(\);/.test(art) && /Math\.hypot\(bx - mx, by - my\) < mr/.test(art), "an orange marble under the blue one is drawn over it (half and half)");
-  ok(/!prev2\.bHome\) toyMarble/.test(art), "an orange marble finishing last sinks into its own cup");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): the marble is drawn by
+  // tiltMarbleArt (the rendered marble, toyMarble when it hasn't loaded), so the name it pins follows the rename.
+  ok(/!prev2\.bHome\) tiltMarbleArt\(ctx, prev2\.amber\.x, prev2\.amber\.y, prev2\.r \* \(1 - 0\.6 \* u\), TILT_MARBLE_AMBER/.test(art), "an orange marble finishing last sinks into its own cup");
   const stage = readFileSync("src/puzzles/tilt.tsx", "utf8");
   // Superseded 15 Oct 2026 (arcade play screen): Tilt's arena starts under the compact header like every other.
   ok(!/arenaDrop|TILT_ARENA_DROP/.test(stage) && /fitWorld/.test(stage), "Tilt's arena sits at the shared fixed top, no drop");

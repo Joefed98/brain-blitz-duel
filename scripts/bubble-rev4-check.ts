@@ -40,6 +40,7 @@ import {
   BUB_REV_BAND,
   BUB_REV_TORPEDO,
   BUB_REV_REEF,
+  BUB_REV_FAST,
   BUB_REV_STD,
   BUB_R,
   BUB_TORPEDO_HITS,
@@ -298,7 +299,9 @@ section("Wiring");
   // Expansion E6 (25 Oct 2026) moved them on to bubbleRev 8 (the deeper reef); e6-check covers it.
   // The arcade scoring standard (29 Oct 2026) moved them on to bubbleRev 11; bubble-standard-check covers it.
   const puzzle = { ...generateBubble(), bubbleRev: BUB_REV_TORPEDO };
-  ok(generateBubble().bubbleRev === BUB_REV_STD, `new rooms stamp bubbleRev ${generateBubble().bubbleRev}`);
+  // The Strategy overhaul (15 Nov 2026) moved them on to bubbleRev 12; strategy-overhaul-check covers it.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): rooms deal bubbleRev 12.
+  ok(generateBubble().bubbleRev === BUB_REV_FAST, `new rooms stamp bubbleRev ${generateBubble().bubbleRev}`);
   ok(puzzleUsesBands(puzzle as never), "bubbleRev 4 scores on the bands");
   const s = v4.init(5);
   const t = v3.init(5);

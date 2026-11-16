@@ -126,8 +126,11 @@ tasks.push({
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): swingPreBig (swingRev 18), 31.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreBig (orbitRev 16), 32.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): bastionPreLevels (bastionRev 4), 33.
-    // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): preRetro with the Action overhaul's seven, 34.
-    ok(names.size === 34, `34 era switches (${names.size})`);
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul: bubblePreFast, inkPreHills and
+    // Gemstone's matchupPreIce2): 29.
+    // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): preRetro, the Action overhaul's seven and
+    // the Strategy overhaul's three, 37.
+    ok(names.size === 37, `37 era switches (${names.size})`);
   },
 });
 

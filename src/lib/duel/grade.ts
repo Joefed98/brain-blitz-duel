@@ -1,5 +1,5 @@
-import { equationVerdict } from "./operatorGaps";
 import { puzzleLevel } from "@/lib/levels/levels";
+import { equationVerdict } from "./operatorGaps";
 import { buildArcadeReveal } from "@/lib/arcade/reveal";
 import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
 import { puzzleUsesTieRev } from "./tieBreak";
@@ -2071,7 +2071,7 @@ function gradeUnderRev(
     }
     case "bubble": {
       const replayStart = performance.now();
-      const run = replayBubbleRun(puzzle.seed, answer, puzzle.bubbleRev);
+      const run = replayBubbleRun(puzzle.seed, answer, puzzle.bubbleRev, (puzzle as { level?: unknown }).level);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2459,7 +2459,7 @@ function gradeUnderRev(
     }
     case "inkbridge": {
       const replayStart = performance.now();
-      const run = replayInkBridgeRun(puzzle.seed, answer, puzzle.inkRev);
+      const run = replayInkBridgeRun(puzzle.seed, answer, puzzle.inkRev, (puzzle as { level?: unknown }).level);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2636,7 +2636,7 @@ function gradeUnderRev(
     }
     case "tilt": {
       const replayStart = performance.now();
-      const run = replayTiltRun(puzzle.seed, answer, puzzle.tiltRev);
+      const run = replayTiltRun(puzzle.seed, answer, puzzle.tiltRev, puzzle.level);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2651,6 +2651,8 @@ function gradeUnderRev(
         ...(tiltIsExpand(puzzle.tiltRev) ? { quickStars: run.quickStars, totalQuick: run.totalQuick, falls: run.falls, skillPoints: run.skillPoints } : {}),
         // tiltRev 11: mazes within par and mazes finished before the first fall.
         ...(run.parsMet !== undefined ? { parsMet: run.parsMet, cleanMazes: run.cleanMazes } : {}),
+        // Levels (stage 3): a level's run stores its level and maze count (absent on every Normal round).
+        ...(run.state.lvl ? { level: run.state.lvl, totalMazes: run.state.list.length } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,
@@ -3024,7 +3026,7 @@ function gradeUnderRev(
     case "matchup": {
       // As with every arcade game, only the server's own replay scores.
       const replayStart = performance.now();
-      const run = replayMatchupRun(puzzle.seed, answer, puzzle.matchupRev);
+      const run = replayMatchupRun(puzzle.seed, answer, puzzle.matchupRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)

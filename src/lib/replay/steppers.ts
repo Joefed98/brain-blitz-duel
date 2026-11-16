@@ -89,7 +89,7 @@ import {
 } from "@/lib/arcade/orbitRev3";
 import { swingGameFor } from "@/lib/arcade/swing";
 import { snipGameFor } from "@/lib/arcade/snip";
-import { tiltGameFor } from "@/lib/arcade/tilt";
+import { tiltGameForLevel } from "@/lib/arcade/tilt";
 import { makeBallTrackGame } from "@/lib/arcade/ballTrack";
 import { whackGameFor } from "@/lib/arcade/whack";
 import { clayGameFor } from "@/lib/arcade/clayShoot";
@@ -203,7 +203,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
         rev(p, "bullRev"),
       ),
   }),
-  matchup: (p) => ({ game: matchupGameFor(rev(p, "matchupRev")) as AnyGame }),
+  matchup: (p) => ({ game: matchupGameFor(rev(p, "matchupRev"), puzzleLevel(p)) as AnyGame }),
   breaker: (p) => ({ game: breakerGameFor(rev(p, "brkRev"), puzzleLevel(p)) as AnyGame }),
   pinball: (p) => ({ game: pinballGameForAny(rev(p, "pinRev"), puzzleLevel(p)) as AnyGame }),
   minesweeper: (p) => ({ game: minesweeperGameFor(rev(p, "minesRev")) as AnyGame }),
@@ -229,19 +229,19 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   minigolf: (p) => ({ game: minigolfGameFor(p.type === "minigolf" ? p.pars : undefined, p.type === "minigolf" ? p.golfRev : undefined) as AnyGame }),
   rally: (p) => ({ game: rallyGameFor(rev(p, "rallyRev"), puzzleLevel(p)) as AnyGame }),
   slice: (p) => ({ game: sliceGameFor(rev(p, "sliceRev")) as AnyGame }),
-  bubble: (p) => ({ game: bubbleGameFor(rev(p, "bubbleRev")) as AnyGame }),
+  bubble: (p) => ({ game: bubbleGameFor(rev(p, "bubbleRev"), (p as { level?: unknown }).level) as AnyGame }),
   beat: (p) => ({ game: beatGameFor(rev(p, "beatRev"), puzzleLevel(p)) as AnyGame }),
   snake: (p) => ({ game: snakeGameFor(rev(p, "snakeRev"), puzzleLevel(p)) as AnyGame }),
   cross: (p) => ({ game: crossGameFor(rev(p, "crossRev"), puzzleLevel(p)) as AnyGame }),
   wavefront: (p) => ({ game: wavefrontGameFor(rev(p, "wavRev"), puzzleLevel(p)) as AnyGame }),
   flip: (p) => ({ game: flipGameFor(rev(p, "flipRev"), puzzleLevel(p)) as AnyGame }),
   junction: (p) => ({ game: junctionGameFor(rev(p, "junctionRev")) as AnyGame }),
-  inkbridge: (p) => ({ game: inkBridgeGameFor(rev(p, "inkRev")) as AnyGame }),
+  inkbridge: (p) => ({ game: inkBridgeGameFor(rev(p, "inkRev"), (p as { level?: unknown }).level) as AnyGame }),
   burst: (p) => ({ game: burstGameFor(rev(p, "burstRev"), puzzleLevel(p)) as AnyGame }),
   orbit: orbitSource,
   swing: (p) => ({ game: swingGameFor(rev(p, "swingRev"), puzzleLevel(p)) as AnyGame }),
   snip: (p) => ({ game: snipGameFor(rev(p, "snipRev")) as AnyGame }),
-  tilt: (p) => ({ game: tiltGameFor(rev(p, "tiltRev")) as AnyGame }),
+  tilt: (p) => ({ game: tiltGameForLevel(rev(p, "tiltRev"), (p as { level?: unknown }).level) as AnyGame }),
   balltrack: (p) => ({
     game: makeBallTrackGame(
       (p as unknown as { course: Parameters<typeof makeBallTrackGame>[0] }).course,

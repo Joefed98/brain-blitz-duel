@@ -52,7 +52,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // then burstRev 13, bigger atoms.
   { type: "burst", field: "burstRev", rev: 13, batch: "A" },
   // Gemstone deals matchupRev 12 since Nov 2026 (six goals shown at once, six treasures; the same five parts re-weighted).
-  { type: "matchup", field: "matchupRev", rev: 12, batch: "A" },
+  // matchupRev 13 (15 Nov 2026, the Strategy overhaul stage 3): two-hit ice and levels, the same five parts.
+  { type: "matchup", field: "matchupRev", rev: 13, batch: "A" },
   // snakeRev 12 (1 Nov 2026): snakeRev 11's parts, the core counting a gold star as 2 and full at 28 (snake-rev12-check).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): snakeRev 13, wrap-around edges;
   // then snakeRev 14, rocks in three sizes.
@@ -72,7 +73,7 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rallyRev 13, two lives and spin
   // shots.
   { type: "rally", field: "rallyRev", rev: 13, batch: "B" },
-  { type: "bubble", field: "bubbleRev", rev: 11, batch: "B" },
+  { type: "bubble", field: "bubbleRev", rev: 12, batch: "B" }, // bubbleRev 12 since the Strategy overhaul (15 Nov 2026), Joe's approval (routine consequence)
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): beatRev 12, beatRev 11 with a
   // missed note scoring 0.
   { type: "beat", field: "beatRev", rev: 12, batch: "B" },
@@ -91,7 +92,7 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "flip", field: "flipRev", rev: 13, batch: "C" },
   // Rainbow Bridge deals inkRev 14 since 3 Nov 2026 (inkRev 13's clovers, ink par and parts with a bigger coin, clovers and
   // birds, from a proved deal; ink-v14-check).
-  { type: "inkbridge", field: "inkRev", rev: 14, batch: "C" },
+  { type: "inkbridge", field: "inkRev", rev: 15, batch: "C" }, // inkRev 15 since the Strategy overhaul (15 Nov 2026), Joe's approval (routine consequence)
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): Orbit deals orbitRev 15 (grace:
   // a slip respawns at the last planet caught after a 3 s hold; orbitRev 14's courses and parts; orbit-overhaul-check).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): Orbit deals orbitRev 16 (bigger

@@ -180,7 +180,7 @@ function bubSpecialPoint(s: BubState): { x: number; y: number } {
 }
 import { SNIP_CONFIG, SNIP_COURSES, SNIP_EATEN, SNIP_H, SNIP_TALL_H, SNIP_X_LEVELS, SNIP_X_VIEW_H, snipCamera, snipWorldH, type SnipState } from "./snip";
 import { TILT_MAX_MAZES, TILT_X_H, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
-import { btWorldH, BT_BALLS, BT_H, BT_TALL_H, BT_V7_BALLS, BT_V7_H, BT_W, type BtState } from "./ballTrack";
+import { btStateBalls, btWorldH, BT_BALLS, BT_H, BT_HOPPER_H, BT_TALL_H, BT_V7_BALLS, BT_V7_H, BT_W, type BtState } from "./ballTrack";
 import { wfWord, wfWorldH, WF_H, WF_H_V2, WF_PAR, WF_W, WF_WELL_Y, type WordfallState } from "./wordfall";
 import {
   matchupIsJackpot,
@@ -193,6 +193,7 @@ import {
   MATCHUP_V9_WORLD_H,
   MATCHUP_WORLD_W,
   type MatchupState,
+  MATCHUP_V9_PANEL_Y,
 } from "./matchup";
 
 /**
@@ -1444,13 +1445,14 @@ export const TILT_FX: ArcadeFxSpec<TiltState> = {
     {
       kind: "clear",
       count: (s) => s.mazes,
-      when: (s) => s.mazes < TILT_MAX_MAZES,
+      // Levels (stage 3): a level's run ends at its own maze count (Easy three).
+      when: (s) => s.mazes < (s.lvl ? s.list.length : TILT_MAX_MAZES),
       label: (_s, n) => `MAZE ${n} DONE!`,
     },
     {
       kind: "final",
-      count: (s) => (s.mazes >= TILT_MAX_MAZES ? 1 : 0),
-      label: () => "ALL 4 MAZES!",
+      count: (s) => (s.mazes >= (s.lvl ? s.list.length : TILT_MAX_MAZES) ? 1 : 0),
+      label: (s) => (s.lvl ? `ALL ${s.list.length} MAZES!` : "ALL 4 MAZES!"),
     },
     // tiltRev 2 (original rounds keep these at 0 / undefined): a bonus star, the first marble in its cup.
     { kind: "pop", count: (s) => s.stars ?? 0, at: (s) => tiltMarbleAt(s), label: () => "BONUS STAR!" },
@@ -1485,7 +1487,8 @@ export const BALLTRACK_FX: ArcadeFxSpec<BtState> = {
   events: [
     { kind: "streak", count: (s) => s.home, every: 5, label: (_s, n) => `${n} HOME` },
     // btRev 7 drops 36 marbles (every earlier course 30).
-    { kind: "final", count: (s) => (s.home >= (s.r7 ? BT_V7_BALLS : BT_BALLS) ? 1 : 0), label: (s) => `ALL ${s.r7 ? BT_V7_BALLS : BT_BALLS} HOME!` },
+    // A level's course (stage 3) carries its own count (`nb`); every Normal and older state the revision's own.
+    { kind: "final", count: (s) => ((s.nb !== undefined ? s.home >= s.nb : s.home >= (s.r7 ? BT_V7_BALLS : BT_BALLS)) ? 1 : 0), label: (s) => `ALL ${btStateBalls(s)} HOME!` },
     // btRev 2 only: a marble home after riding a turned tube, or after passing a switch point.
     { kind: "pop", count: (s) => s.rideHomes ?? 0, label: () => "TURNED HOME!" },
     { kind: "pop", count: (s) => s.switchHomes ?? 0, label: () => "SWITCHED HOME!" },
@@ -1737,7 +1740,29 @@ export const sliceFxFor = (s: SliceState): ArcadeFxSpec<SliceState> => fxSpecAt(
 export const SLICE_FX_TALL = fxSpecAt(SLICE_FX, SLICE_TALL_H);
 /** World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Slice sliceRev 9's world (as the renderer's own v9 spec). */
 export const SLICE_FX_V9: ArcadeFxSpec<SliceState> = { ...SLICE_FX, width: SLICE_V9_W, height: SLICE_V9_H };
-export const bubbleFxFor = (s: BubState): ArcadeFxSpec<BubState> => fxSpecAt(BUBBLE_FX, bubWorldH(s));
+/**
+ * The Strategy overhaul (15 Nov 2026, display only): the text strip each Strategy game's words sit in while it runs,
+ * off the board (Coral Pop under the gun, Rainbow Bridge under the counters, Ball Tracker over its waiting row,
+ * Gemstone between the board and its goals). Tilt's is TILT_X_TEXT_Y (tiltArt.renderer.ts).
+ */
+export const STRATEGY_TEXT_BAND = {
+  bubble: (worldH: number) => worldH - 16,
+  inkbridge: 92,
+  balltrack: BT_HOPPER_H / 2,
+  matchup: MATCHUP_V9_PANEL_Y - 9,
+} as const;
+/** Ball Tracker's words sit in the free right half of its waiting row (the queue fills the left half). */
+export const BALLTRACK_TEXT_X = (BT_W * 3) / 4;
+const withBand = <S,>(spec: ArcadeFxSpec<S>, y: number, x?: number): ArcadeFxSpec<S> => {
+  const key = `${spec.game}:${spec.height}:band${y}:${x ?? ""}`;
+  let hit = specAtCache.get(key) as ArcadeFxSpec<S> | undefined;
+  if (!hit) {
+    hit = { ...spec, textBand: y, ...(x !== undefined ? { textX: x } : {}) };
+    specAtCache.set(key, hit as unknown as ArcadeFxSpec<never>);
+  }
+  return hit;
+};
+export const bubbleFxFor = (s: BubState): ArcadeFxSpec<BubState> => (s.fast ? withBand(fxSpecAt(BUBBLE_FX, bubWorldH(s)), STRATEGY_TEXT_BAND.bubble(bubWorldH(s))) : fxSpecAt(BUBBLE_FX, bubWorldH(s)));
 export const BUBBLE_FX_TALL = fxSpecAt(BUBBLE_FX, BUB_TALL_H);
 /** Taller worlds batch 3 (Oct 2026): Grappler swingRev 9, Orbit orbitRev 8 (its view), Ball Tracker btRev 4. */
 export const SWING_FX_TALL = fxSpecAt(SWING_FX, SWING_TALL_H);
@@ -1828,9 +1853,9 @@ function drawOrbitMomentRing(ctx: CanvasRenderingContext2D, m: ArcadeFxMoment): 
 }
 export const orbit3FxFor = (s: OrbitRev3State): ArcadeFxSpec<OrbitRev3State> => (s.viewW ? ORBIT3_FX_XP : fxSpecAt(ORBIT3_FX, orbitViewH(s)));
 export const ORBIT3_FX_TALL = fxSpecAt(ORBIT3_FX, ORBIT_TALL_VIEW_H);
-export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => fxSpecAt(BALLTRACK_FX, btWorldH(s));
+export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => (s.r7 ? withBand(fxSpecAt(BALLTRACK_FX, btWorldH(s)), STRATEGY_TEXT_BAND.balltrack, BALLTRACK_TEXT_X) : fxSpecAt(BALLTRACK_FX, btWorldH(s)));
 /** x200 (Oct 2026): Rainbow Bridge inkRev 10's taller world draws through the spec at its own height. */
-export const inkBridgeFxFor = (s: InkState): ArcadeFxSpec<InkState> => fxSpecAt(INKBRIDGE_FX, inkWorldH(s));
+export const inkBridgeFxFor = (s: InkState): ArcadeFxSpec<InkState> => (inkWorldH(s) === INK_TALL_H ? withBand(fxSpecAt(INKBRIDGE_FX, inkWorldH(s)), STRATEGY_TEXT_BAND.inkbridge) : fxSpecAt(INKBRIDGE_FX, inkWorldH(s)));
 export const INKBRIDGE_FX_TALL = fxSpecAt(INKBRIDGE_FX, INK_TALL_H);
 export const BALLTRACK_FX_TALL = fxSpecAt(BALLTRACK_FX, BT_TALL_H);
 

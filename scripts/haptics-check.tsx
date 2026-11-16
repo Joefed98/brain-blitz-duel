@@ -538,9 +538,11 @@ const CALL_SITES: Record<string, Record<string, number>> = {
  * impact 20 → 21.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Cards and Board overhaul): tick 0 → 1, the
  * light pick up / place / match touch in the five card and tile games (cardFeel).
- * Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): impact 21 and tick 1 together.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): success 7 → 12 (a marble in
+ * Tilt's cup, a Gemstone cascade, Coral Pop's reef cleared, Rainbow Bridge's coin in the pot, a Ball Tracker marble home).
+ * Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): success 12, impact 21 and tick 1 together.
  */
-const FEEL = { success: 7, error: 1, impact: 21, tick: 1 };
+const FEEL = { success: 12, error: 1, impact: 21, tick: 1 };
 const found: Record<string, Record<string, number>> = {};
 for (const file of files) {
   const rel = file.slice(SRC.length + 1);

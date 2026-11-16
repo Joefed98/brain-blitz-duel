@@ -33,13 +33,15 @@ import { burstRadius, burstCeiling, burstFloorY, type BurstState } from "@/lib/a
 import { BEAT_COMBO_TIERS, beatFallOf, BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
 import { BINTOSS_AIM, BINTOSS_FLY, BINTOSS_NARROW_FROM, BINTOSS_THROWS, BINTOSS_WAIT, type BinTossState } from "@/lib/arcade/binToss";
 import type { TiltState } from "@/lib/arcade/tilt";
+import { tiltPitLip } from "@/lib/arcade/tiltLip";
 import { homerunFence, homerunPlan, OUT_CAUGHT, OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
 import { FK_AIM, FK_FLIGHT, FK_NET_Z, FK_OUT_GOAL, FK_OUT_SAVED, FK_OUT_WALL, FK_OUT_WIDE, type FreekickState } from "@/lib/arcade/freekick";
 import { RACING_CAR_HALF, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceSpeed, racingGoTick, racingLightsOn, racingSegAt, racingTrack, type RacingState } from "@/lib/arcade/racing";
-import { btEventCountdown, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
+import { btEventCountdown, btMovesOf, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, type JuncState } from "@/lib/arcade/junction";
 import { skylineFlagAt, skylineGustAt, skylineShownMult, SKYLINE_REV_STD, SKYLINE_V9_STREAK_MAX, type SkylineState } from "@/lib/arcade/skyline";
-import { INK_LIVE_PRE_CAP, inkIsLive, type InkState } from "@/lib/arcade/inkBridge";
+import { INK_BUCKET_H, INK_LIVE_PRE_CAP, inkBirdDx, inkBlockH, inkLiveNow, type InkState } from "@/lib/arcade/inkBridge";
+import { bubbleNearLine } from "@/lib/arcade/strategyFx";
 import { inkFailedOnBlock } from "@/lib/arcade/inkBridge.renderer";
 import { BULLSEYE_ARROWS, type BullseyeState } from "@/lib/arcade/bullseye";
 import type { BubState } from "@/lib/arcade/bubble";
@@ -995,7 +997,8 @@ export function tiltSounds(): GameSounds<TiltState> {
         if (state.caught && !prev.caught) { sfx("tilt.caught", "arc_crash"); feel("impact"); }
         else if (state.ended === 2 && prev.ended !== 2) effectCue("tilt.pitFall");
         if (prev.chaser && !state.chaser && !state.caught && state.level === prev.level) effectCue("tilt.chaserFall");
-        if (state.mazes > prev.mazes) sfx("tilt.mazeDone", "arc_marble_clink");
+        // The Strategy overhaul (15 Nov 2026): a light success haptic as a marble reaches its cup.
+        if (state.mazes > prev.mazes) { sfx("tilt.mazeDone", "arc_marble_clink"); feel("success"); effectCue("tilt.discSwap", 300); }
         else if ((state.cupped ?? 0) > (prev.cupped ?? 0)) sfx("tilt.cup", "arc_marble_clink", 0.7);
         if ((state.stars ?? 0) > (prev.stars ?? 0)) sfx("tilt.starTaken", "arc_leaf_collect", 0.8);
         // tiltRev 8: a quick star is the star's chime a little higher; a key opens its gate with the latch; a fall
@@ -1010,6 +1013,16 @@ export function tiltSounds(): GameSounds<TiltState> {
           const hitX = Math.abs(prev.vx) > TILT_KNOCK_SPEED && state.vx === 0;
           const hitY = Math.abs(prev.vy) > TILT_KNOCK_SPEED && state.vy === 0;
           if (hitX || hitY) knock();
+          // The Strategy overhaul, stage 2: the rim ticks past each of its 48 notches; a marble arriving on a black hole's
+          // lip wobbles there.
+          const notch = (a: number) => Math.floor(((a % 65536) + 65536) % 65536 / (65536 / 48));
+          if (notch(state.angle) !== notch(prev.angle)) effectCue("tilt.rimTick", 45);
+          const m = state.list[Math.min(state.level, state.list.length - 1)];
+          if (m && !state.aHome) {
+            const o = (m.n * m.cs) / 512, r = m.br / 256;
+            const lip = (s: TiltState) => tiltPitLip(m, s.x / 256 - o, s.y / 256 - o, r) >= 0;
+            if (lip(state) && !lip(prev)) effectCue("tilt.pitWobble", 400);
+          }
         }
       }
       prev = state;
@@ -1025,13 +1038,19 @@ export function ballTrackSounds(course?: BtCourse): GameSounds<BtState> {
       beginFrame("balltrack", state);
       toyRoll("balltrack.roll", running && state.balls.some((b) => b.cell >= 0));
       if (prev && state.tick > prev.tick) {
-        if (state.home > prev.home) sfx("balltrack.marbleHome", "arc_marble_clink");
+        // The Strategy overhaul (15 Nov 2026): a light success haptic for a marble home.
+        if (state.home > prev.home) { sfx("balltrack.marbleHome", "arc_marble_clink"); feel("success"); }
         if (state.wrong > prev.wrong) sfx("balltrack.wrong", "arc_wood_knock");
         if (state.actions > prev.actions) sfx("balltrack.switch", "arc_latch", 0.8, 1, true);
         if (state.next > prev.next) effectCue("balltrack.release");
         if (state.lost > prev.lost) effectCue("balltrack.lost");
+        // The Strategy overhaul, stage 2: a marble onto a booster, the combo stepping up (a step higher each time), and
+        // the cups' pulse in the second before they move.
+        if (course?.boost?.length && state.balls.some((b) => course.boost!.includes(b.cell) && !prev!.balls.some((p) => p.id === b.id && p.cell === b.cell))) effectCue("balltrack.booster", 120);
+        if ((state.streak ?? 0) > (prev.streak ?? 0) && (state.streak ?? 0) >= 2) effectCue("balltrack.combo", 0, Math.min(2, 1 + 0.06 * ((state.streak ?? 0) - 2)));
+        if (course && btMovesOf(course).map((m) => m.tick).some((t) => prev!.tick < t - 60 && state.tick >= t - 60)) effectCue("balltrack.cupPulse");
         // The cups slide to new places (relay, then shuffle) and flash.
-        if (course && [course.relay.tick, course.shuffle.tick].some((t) => prev!.tick < t && state.tick >= t)) effectCue("balltrack.shuffle");
+        if (course && btMovesOf(course).map((m) => m.tick).some((t) => prev!.tick < t && state.tick >= t)) effectCue("balltrack.shuffle");
         // Each step of the hopper's 5-4-3-2-1 before the relay and the shuffle.
         const count = course ? btEventCountdown(course, state.tick) : null;
         if (course && count !== null && count !== btEventCountdown(course, prev.tick)) effectCue("balltrack.countdown");
@@ -1143,18 +1162,29 @@ export function inkBridgeSounds(): GameSounds<InkState> {
         if (state.flashTick === state.tick || state.flashTick > prev.flashTick) {
           if (state.flashKind === 1) {
             sfx("inkbridge.pot", "arc_rainbow_pot");
+            // The Strategy overhaul (15 Nov 2026): a light success haptic for a coin in the pot.
+            feel("success");
           } else if (inkFailedOnBlock(state)) {
             sfx("inkbridge.bump", "arc_rainbow_bump");
           } else if (state.flashKind === 2) effectCue("inkbridge.fail");
         }
-        if (state.dropping && !prev.dropping) effectCue("inkbridge.release");
+        if (state.dropping && !prev.dropping) { effectCue("inkbridge.release"); effectCue("inkbridge.coinWobble"); }
+        // The Strategy overhaul, stage 2: a miss whistles as the coin falls past the pot's rim; a bird the coin passes
+        // close to flaps away (as the renderer draws them).
+        const lvl = state.list[Math.min(state.level, state.list.length - 1)];
+        if (lvl && state.dropping && prev.dropping) {
+          const rim = lvl.bucketY + INK_BUCKET_H + 8;
+          if (state.ball.y / 256 > rim && prev.ball.y / 256 <= rim) effectCue("inkbridge.missWhistle", 600);
+          const near = (s: InkState) => lvl.blocks.some((b) => b.h && s.ball.x / 256 > b.x0 + inkBirdDx(lvl, b, s.tick) - 26 && s.ball.x / 256 < b.x1 + inkBirdDx(lvl, b, s.tick) + 26 && Math.abs(s.ball.y / 256 - (b.y + inkBlockH(b) / 2)) < inkBlockH(b) / 2 + 26);
+          if (near(state) && !near(prev)) effectCue("inkbridge.birdFlap", 300);
+        }
         // The coin lands on a rainbow; the live levels (9–10) begin.
         if (state.dropping && prev.dropping && prev.ball.on < 0 && state.ball.on >= 0) effectCue("inkbridge.coinLand", 150);
         // inkRev 10: the coin springs off a bounce cloud, and picks up a silver coin or the shamrock.
         if (state.cloudTick !== undefined && state.cloudTick !== prev.cloudTick && state.cloudTick === state.tick) effectCue("inkbridge.cloudBounce", 120);
         if ((state.silverGot ?? 0) !== (prev.silverGot ?? 0) && (state.silverGot ?? 0) !== 0) effectCue("inkbridge.silverCoin", 60);
         if (state.shamrockGot && !prev.shamrockGot) effectCue("inkbridge.shamrock");
-        if (inkIsLive(state.level, state.rev) && !inkIsLive(prev.level, prev.rev)) effectCue("inkbridge.liveLevel");
+        if (inkLiveNow(state) && !inkLiveNow(prev)) effectCue("inkbridge.liveLevel");
         // The ink meter and pen tip pulse red at the pre-release cap (as the renderer draws it).
         const cap = (INK_LIVE_PRE_CAP - 2) * 256;
         if (!state.dropping && state.preInkUsed >= cap && prev.preInkUsed < cap) effectCue("inkbridge.inkOut");
@@ -1190,10 +1220,14 @@ export function bubbleSounds(): GameSounds<BubState> {
         if ((state.bombs ?? 0) > (prev.bombs ?? 0)) sfx("bubble.bomb", "arc_big_explode", 0.6, 1, true);
         if ((state.lines ?? 0) > (prev.lines ?? 0)) sfx("bubble.line", "arc_laser_beam", 0.55, 1.2, true);
         if ((state.jokers ?? 0) > (prev.jokers ?? 0)) sfx("bubble.jokerLand", "arc_rainbow", 0.6, 1, true);
-        if (state.descents > prev.descents) effectCue("bubble.descend");
+        if (state.descents > prev.descents) { effectCue("bubble.descend"); effectCue("bubble.reefRumble"); }
         // 8 or more cleared by one shot sends a rush of bubbles up; the reef reaching the gun ends the run.
         if (state.popped + state.dropped - (prev.popped + prev.dropped) >= 8) effectCue("bubble.rush");
         if (state.dead && !prev.dead) effectCue("bubble.reefLost");
+        // The Strategy overhaul, stage 2: the warning as the reef's lowest row comes within two rows of the line.
+        if (bubbleNearLine(state) && !bubbleNearLine(prev)) effectCue("bubble.warning", 1500);
+        // The Strategy overhaul (15 Nov 2026): a light success haptic when the reef is cleared.
+        if (state.cleared && !prev.cleared) feel("success");
         // A shot that sticks without popping, dropping or setting off a special.
         const special = (s: BubState) => (s.bombs ?? 0) + (s.lines ?? 0) + (s.jokers ?? 0);
         if (state.shots > prev.shots && state.popped === prev.popped && state.dropped === prev.dropped && special(state) === special(prev)) effectCue("bubble.stick");
@@ -2188,4 +2222,12 @@ export function mugginsSounds(): GameSounds<MgState> {
       prev = null;
     },
   };
+}
+
+/**
+ * Gemstone (the Strategy overhaul, 15 Nov 2026): a light success haptic on a cascade (a swap whose clear set off a
+ * second match by itself). The stage calls it each sim step with the state before and after.
+ */
+export function matchupCascadeFeel(prev: { cascades?: number }, state: { cascades?: number }): void {
+  if ((state.cascades ?? 0) > (prev.cascades ?? 0)) feel("success");
 }

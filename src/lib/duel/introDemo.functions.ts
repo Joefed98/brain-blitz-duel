@@ -5,7 +5,7 @@ import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { cardsDemoPlays } from "./cardsDemoRules";
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { SWING_REV_BIG } from "@/lib/arcade/swing";
-import { INK_REV_BIG } from "@/lib/arcade/inkBridge";
+import { INK_REV_HILLS } from "@/lib/arcade/inkBridge";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
@@ -25,8 +25,8 @@ import { BLOCKFALL_REV_ZONE } from "@/lib/arcade/blockfall";
 import { SNAKE_REV_GRACE } from "@/lib/arcade/snake";
 import { SLICE_REV_BIG, SLICE_REV_FOOD, SLICE_REV_STANDARD, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
-import { BUB_REV_STD } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
+import { BUB_REV_FAST } from "@/lib/arcade/bubble";
+import { MATCHUP_REV_ICE2 } from "@/lib/arcade/matchup";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SKYLINE_REV_COUNT, SKYLINE_REV_LIVES } from "@/lib/arcade/skyline";
 import { pinIsExpanded } from "@/lib/arcade/pinball";
@@ -35,6 +35,10 @@ import { chainDemoCompatible } from "./chain";
 import { pairUsesDepth } from "./depth/matchmaker";
 import { STRIKEOUT_REV4 } from "./strikeout";
 import { createServerFn } from "@tanstack/react-start";
+import { NORMAL, puzzleLevel } from "@/lib/levels/levels";
+
+/** The Strategy games whose intro demos are recorded on the intro example deal at Normal (strategy-demos-check). */
+const STRATEGY_DEMO_GAMES: ReadonlySet<string> = new Set(["tilt", "matchup", "bubble", "inkbridge", "balltrack"]);
 import { isD4Type, isDepth4 } from "./depth4/stamps";
 
 import type { PuzzleData } from "./types";
@@ -130,6 +134,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
  * because it was recorded on a stamp whose rules the intro no longer shows (the intro shows the game's still).
  */
 export function introDemoFor(data: { type: string }, demo: IntroDemoRow | null): IntroDemoRow | null {
+  // The Strategy overhaul, stage 3 (16 Nov 2026): the intro shows Normal, today's game; a Strategy demo dealt at another
+  // level (Easy, Hard, Expert) never plays as the intro.
+  if (STRATEGY_DEMO_GAMES.has(data.type) && demo && puzzleLevel(demo.puzzle) !== NORMAL) return null;
   if (data.type === "orbit" && (demo?.input_log.orbitBeltPeriodTicks !== ORBIT_BELT_PERIOD_TICKS || demo?.input_log.orbitBeltRevision !== ORBIT_BELT_REVISION)) return null;
   // Rev3 (scrolling-camera, wider zig-zag world) demos cannot replay as the legacy fixed-camera course, and vice versa.
   if (data.type === "orbit" && demo?.puzzle.type === "orbit" && (demo.puzzle.orbitRev ?? 0) !== ORBIT_REV3 && demo.puzzle.orbitRev !== ORBIT_REV4 && demo.puzzle.orbitRev !== ORBIT_REV_BAND && demo.puzzle.orbitRev !== ORBIT_REV_TUNED && demo.puzzle.orbitRev !== ORBIT_REV_XP && demo.puzzle.orbitRev !== ORBIT_REV_STD && demo.puzzle.orbitRev !== ORBIT_REV_FUEL && demo.puzzle.orbitRev !== ORBIT_REV_BIG) return null;
@@ -164,7 +171,7 @@ export function introDemoFor(data: { type: string }, demo: IntroDemoRow | null):
   // inkRev 13 (Nov 2026: clovers, ink par, more birds, no stars or silver coins) deals other levels: only a demo recorded
   // on inkRev 13 plays (the still shows until then). inkRev 14 (3 Nov 2026) draws a bigger coin, clovers and birds on other
   // levels: only a demo recorded on inkRev 14 plays.
-  if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV_BIG) return null;
+  if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV_HILLS) return null;
   // clayRev 5 (14 Oct 2026) flies 14–16 birds and clayRev 6 (16 Oct 2026, taller worlds batch 2) flies them under a
   // taller sky: an older demo would show the old sky, so only a demo recorded on today's clayRev plays.
   // Depth to 200 (25 Oct 2026): clayRev 9 adds doubles and the hit streak, Bonk's whackRev 3 the gold combo and
@@ -266,7 +273,7 @@ export function introDemoFor(data: { type: string }, demo: IntroDemoRow | null):
   // Expansion E6 (25 Oct 2026): Coral Pop's deeper reef (bubbleRev 8) replaces the tall tank's field; a demo stays stopped until one is recorded on it.
   // Phone notes (27 Oct 2026): bubbleRev 10's mine blasts two rings, so the demo stays stopped until one is recorded on it.
   // Arcade scoring standard (29 Oct 2026): bubbleRev 11's mine pops only the 4 nearest bubbles; stopped until recorded on it.
-  if (data.type === "bubble" && demo?.puzzle.type === "bubble" && demo.puzzle.bubbleRev !== BUB_REV_STD) return null;
+  if (data.type === "bubble" && demo?.puzzle.type === "bubble" && demo.puzzle.bubbleRev !== BUB_REV_FAST) return null;
   // Depth to 200 (25 Oct 2026): Mixed Signals' clashRev 8 deals "don't sort" and gold words and a streak; a demo
   // recorded on an older revision shows none of them, so it stays stopped until one is recorded on clashRev 8.
   if (data.type === "stroop" && demo?.puzzle.type === "stroop" && demo.puzzle.clashRev !== CLASH_REV_DEPTH) return null;
@@ -296,8 +303,8 @@ export function introDemoFor(data: { type: string }, demo: IntroDemoRow | null):
   // Gemstone's matchupRev 10 (27 Oct 2026: 90 s, swaps into and out of ice, ice laid once) plays differently again, so
   // only a demo recorded on matchupRev 10 plays; until one is, the intro shows its still. matchupRev 11 (the arcade scoring
   // standard: four treasures that swap, four goal levels) moves it on again, and matchupRev 12 (six goals shown at once,
-  // six treasures) again: only a demo recorded on matchupRev 12 plays.
-  if (data.type === "matchup" && demo?.puzzle.type === "matchup" && demo.puzzle.matchupRev !== MATCHUP_REV_SIX) return null;
+  // six treasures) again, and matchupRev 13 (two-hit ice, levels) again: only a demo recorded on matchupRev 13 plays.
+  if (data.type === "matchup" && demo?.puzzle.type === "matchup" && demo.puzzle.matchupRev !== MATCHUP_REV_ICE2) return null;
   // The 200-point expansion (26 Oct 2026, docs/expansions/x200-snip.md): Scrumper's snipRev 11 tall courses with several
   // fruits and a vertical camera. An older demo shows the old one-apple levels, so the intro shows its still until a demo
   // is recorded on snipRev 11.
