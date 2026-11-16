@@ -1,3 +1,4 @@
+import { flowCellCount, flowGrid } from "./flow";
 import { equationVerdict, gapStageText, usesOperatorGaps } from "./operatorGaps";
 import { usesParMoves } from "./parMoves";
 import { bastionStdSpecFor } from "@/lib/arcade/bastionTank";
@@ -48,7 +49,6 @@ import {
   wordsmithPoints,
   LIGHTS_TIME_MS,
   PIPES_CELLS,
-  FLOW_CELLS,
   PIPES_TIME_MS,
   SUDOKU_TIME_MS,
   FLOW_TIME_MS,
@@ -659,7 +659,7 @@ const flowSummary: SummaryBuilder = (result, puzzle) => {
   if (progress) return progress;
   return {
     summary: `${joined} / ${puzzle.pairs.length || FLOW_PAIRS} pairs`,
-    detail: [`${filled} / ${FLOW_CELLS - (puzzle.walls?.length ?? 0)} squares filled`],
+    detail: [`${filled} / ${flowCellCount(flowGrid(puzzle)) - (puzzle.walls?.length ?? 0)} squares filled`],
   };
 };
 

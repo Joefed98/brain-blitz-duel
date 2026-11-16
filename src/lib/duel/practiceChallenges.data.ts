@@ -202,9 +202,10 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("laser", "One shot", "Light all six gems with your first FIRE.", "C", "clean", false, all(FIN, f("fires", "eq", 1))),
   ch("laser", "Hall of mirrors", "Light all six on the first shot with par mirrors.", "C", "par", false, all(FIN, eff(10))),
   ch("laser", "Speed of light", "Light all six within 15 s.", "C", "speed", true, speed(40, 15)),
-  // Chroma Lines (flow): 150 + speed 40 (20 s) + clean lines 10.
+  // Chroma Lines (flow): 150 + speed 40 (30 s on flowRev 3, 20 s before) + clean lines 10.
   ch("flow", "No redraws", "Join every pair without redrawing a line.", "C", "clean", false, all(FIN, f("redraws", "eq", 0))),
-  ch("flow", "Paint stripper", "Join every pair within 20 s.", "C", "speed", false, speed(40, 20)),
+  // 20 s → 30 s (16 Nov 2026): flowRev 3 gives full speed by 30 s on Normal (patternRules.ts FLOW_REV3_FULL_BY_S).
+  ch("flow", "Paint stripper", "Join every pair within 30 s.", "C", "speed", false, speed(40, 30)),
   ch("flow", "Spaghetti junction", "Fill a Hard board.", "H", "finish", false, all(FIN)),
   // Pipeline (pipes): 150 + speed 40 (60 s) + taps 10 (par).
   ch("pipes", "No leaks", "Connect every pipe.", "C", "finish", false, all(FIN)),

@@ -69,7 +69,7 @@ import { PRACTICE_BEST_PREFIX } from "../src/lib/duel/practiceBest";
 import { ACTIVE_PUZZLE_TYPES, PUZZLE_TYPES } from "../src/lib/duel/registry";
 // Changed with Joe's approval, 13 Nov 2026: ROUND_MAX no longer imported (only the removed gold-star reach line read it).
 import { standardFinish, standardUnfinished } from "../src/lib/duel/standard/shape";
-import { PATTERN_STD } from "../src/lib/duel/standard/patternRules";
+import { FLOW_REV3_FULL_BY_S, PATTERN_STD } from "../src/lib/duel/standard/patternRules";
 import { LOGIC_STANDARD } from "../src/lib/duel/standard/logicRules";
 import { STD_CRYPTOGRID, STD_SLIDER, STD_SWAPWORD } from "../src/lib/duel/standard/word";
 import { STANDARD_GAMES } from "../src/lib/duel/standard/games.server";
@@ -162,7 +162,8 @@ const SPEED_RULES: Partial<Record<PuzzleType, { speed: number; fullByS: number; 
   gravity: { speed: PAR_MOVES_STD.speed, fullByS: PAR_STRICT_FULL_BY_S.gravity, bonus: PAR_MOVES_STD.par },
   rings: { speed: PATTERN_STD.rings.speed, fullByS: PATTERN_STD.rings.fullByS, bonus: PATTERN_STD.rings.par ?? -1 },
   laser: { speed: PATTERN_STD.laser.speed, fullByS: PATTERN_STD.laser.fullByS, bonus: 0 },
-  flow: { speed: PATTERN_STD.flow.speed, fullByS: PATTERN_STD.flow.fullByS, bonus: 0 },
+  // Changed with Joe's approval, 16 Nov 2026 (routine consequence of the Pattern overhaul): the dealt flowRev 3's full-speed time (30 s).
+  flow: { speed: PATTERN_STD.flow.speed, fullByS: FLOW_REV3_FULL_BY_S, bonus: 0 },
   pipes: { speed: PATTERN_STD.pipes.speed, fullByS: PATTERN_STD.pipes.fullByS, bonus: PATTERN_STD.pipes.par ?? -1 },
   push: { speed: PATTERN_STD.push.speed, fullByS: PATTERN_STD.push.fullByS, bonus: PATTERN_STD.push.par ?? -1 },
   numhunt: { speed: ASCEND_STD.speed, fullByS: ASCEND_STD.fullByS, bonus: ASCEND_STD.flow },

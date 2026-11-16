@@ -190,7 +190,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | No redraws | Join every pair without redrawing a line. | Classic | Clean | finish, `redraws` = 0 |  | `flow.no-redraws` |
-| Paint stripper | Join every pair within 20 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 20 s) |  | `flow.paint-stripper` |
+| Paint stripper | Join every pair within 30 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 30 s) |  | `flow.paint-stripper` |
 | Spaghetti junction | Fill a Hard board. | Hard | Finish | finish |  | `flow.spaghetti-junction` |
 
 #### Pipeline (`pipes`)

@@ -75,6 +75,17 @@
   margin-block: auto;
   height: min(100cqw, calc(100cqh - 48px));
 }
+/* Levels (16 Nov 2026): a board taller than wide (Expert's 9 × 12) takes its own aspect: as tall as the width allows,
+   never past the space, its width following its height (squares stay square). */
+.game-column [data-polish="flow"][data-stage-column][data-flow-grid] > [data-game-arena="board"] {
+  --arena-max: calc(100cqw * var(--flow-tall, 1));
+  height: min(calc(100cqw * var(--flow-tall, 1)), calc(100cqh - 48px));
+}
+.flow-board[data-flow-grid] {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+}
 
 /* --- Reveal (the Pattern overhaul, 15 Nov 2026): one board at a time (SolutionSwitch), drawn large --- */
 .answer-reveal-content .reveal-card > .flow-reveal {

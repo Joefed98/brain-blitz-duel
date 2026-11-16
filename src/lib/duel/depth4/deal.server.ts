@@ -30,6 +30,8 @@ import { D4_REV, dealtD4Rev, isD4Type } from "./stamps";
 import { addIceGems } from "./gems.server";
 import { drawPushD4 } from "./pushD4.server";
 import { drawBlockD4 } from "./blockD4.server";
+import { drawFlowLevel } from "../flowLevels.server";
+import type { Level } from "@/lib/levels/levels";
 
 /** Lightbender's spare mirrors on laserRev 1. */
 export const LASER_SPARE_MIRRORS = 2;
@@ -38,6 +40,8 @@ const ICE_GEM_SEED = 0x1ce9e35;
 
 export interface D4DealContext {
   unblockRow?: UnblockBankRow | null;
+  /** The level the deal resolved (generate.server.ts; absent at Normal). Chroma Lines reads it (flowLevels.server.ts). */
+  level?: Level | undefined;
   bankSeed?: number;
   recentBankKeys?: ReadonlySet<string> | undefined;
 }
@@ -68,6 +72,8 @@ export function dealDepth4(type: PuzzleType, context: D4DealContext): PuzzleData
       return { ...p, laserRev: dealtD4Rev("laser"), par, mirrors: p.mirrors + LASER_SPARE_MIRRORS };
     }
     case "flow": {
+      // Levels (16 Nov 2026): Easy, Hard and Expert deal from their own banks (live without a seed); Normal as before.
+      if (context.level && context.level !== "normal") return { ...drawFlowLevel(context.level, context.bankSeed, context.recentBankKeys), flowRev: D4_REV };
       if (context.bankSeed === undefined) return null;
       const p = drawBankedPuzzle("flow", context.bankSeed, context.recentBankKeys);
       return { ...(p as Extract<PuzzleData, { type: "flow" }>), flowRev: D4_REV };

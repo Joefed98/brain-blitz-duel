@@ -14,6 +14,8 @@ COLOURS = {
     "red": "#FF4D4D", "blue": "#4D8CFF", "green": "#3DDC84", "purple": "#B26BFF", "pink": "#FF6BD6",
     "orange": "#FF8A3D", "brown": "#A86B32", "yellow": "#FFE600", "teal": "#19C9C0", "white": "#F2F2F2",
     "lime": "#A8F03A", "silver": "#8E98AE",
+    # Levels (16 Nov 2026): Expert's two extra colours.
+    "cyan": "#5ED3FF", "tan": "#D8B784",
 }
 
 
