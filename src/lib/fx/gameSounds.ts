@@ -33,7 +33,7 @@ import { RACING_CAR_HALF, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceS
 import { btEventCountdown, btMovesOf, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, type JuncState } from "@/lib/arcade/junction";
 import { skylineFlagAt, skylineGustAt, skylineShownMult, SKYLINE_REV_STD, SKYLINE_V9_STREAK_MAX, type SkylineState } from "@/lib/arcade/skyline";
-import { INK_BUCKET_H, INK_LIVE_PRE_CAP, inkBlockH, inkIsLive, type InkState } from "@/lib/arcade/inkBridge";
+import { INK_BUCKET_H, INK_LIVE_PRE_CAP, inkBirdDx, inkBlockH, inkLiveNow, type InkState } from "@/lib/arcade/inkBridge";
 import { bubbleNearLine } from "@/lib/arcade/strategyFx";
 import { inkFailedOnBlock } from "@/lib/arcade/inkBridge.renderer";
 import { BULLSEYE_ARROWS, type BullseyeState } from "@/lib/arcade/bullseye";
@@ -932,7 +932,7 @@ export function inkBridgeSounds(): GameSounds<InkState> {
         if (lvl && state.dropping && prev.dropping) {
           const rim = lvl.bucketY + INK_BUCKET_H + 8;
           if (state.ball.y / 256 > rim && prev.ball.y / 256 <= rim) effectCue("inkbridge.missWhistle", 600);
-          const near = (s: InkState) => lvl.blocks.some((b) => b.h && s.ball.x / 256 > b.x0 - 26 && s.ball.x / 256 < b.x1 + 26 && Math.abs(s.ball.y / 256 - (b.y + inkBlockH(b) / 2)) < inkBlockH(b) / 2 + 26);
+          const near = (s: InkState) => lvl.blocks.some((b) => b.h && s.ball.x / 256 > b.x0 + inkBirdDx(lvl, b, s.tick) - 26 && s.ball.x / 256 < b.x1 + inkBirdDx(lvl, b, s.tick) + 26 && Math.abs(s.ball.y / 256 - (b.y + inkBlockH(b) / 2)) < inkBlockH(b) / 2 + 26);
           if (near(state) && !near(prev)) effectCue("inkbridge.birdFlap", 300);
         }
         // The coin lands on a rainbow; the live levels (9–10) begin.
@@ -941,7 +941,7 @@ export function inkBridgeSounds(): GameSounds<InkState> {
         if (state.cloudTick !== undefined && state.cloudTick !== prev.cloudTick && state.cloudTick === state.tick) effectCue("inkbridge.cloudBounce", 120);
         if ((state.silverGot ?? 0) !== (prev.silverGot ?? 0) && (state.silverGot ?? 0) !== 0) effectCue("inkbridge.silverCoin", 60);
         if (state.shamrockGot && !prev.shamrockGot) effectCue("inkbridge.shamrock");
-        if (inkIsLive(state.level, state.rev) && !inkIsLive(prev.level, prev.rev)) effectCue("inkbridge.liveLevel");
+        if (inkLiveNow(state) && !inkLiveNow(prev)) effectCue("inkbridge.liveLevel");
         // The ink meter and pen tip pulse red at the pre-release cap (as the renderer draws it).
         const cap = (INK_LIVE_PRE_CAP - 2) * 256;
         if (!state.dropping && state.preInkUsed >= cap && prev.preInkUsed < cap) effectCue("inkbridge.inkOut");

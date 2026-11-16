@@ -2437,7 +2437,7 @@ function gradeUnderRev(
     }
     case "inkbridge": {
       const replayStart = performance.now();
-      const run = replayInkBridgeRun(puzzle.seed, answer, puzzle.inkRev);
+      const run = replayInkBridgeRun(puzzle.seed, answer, puzzle.inkRev, (puzzle as { level?: unknown }).level);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)

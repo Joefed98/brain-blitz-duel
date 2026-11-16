@@ -25,6 +25,7 @@ import {
   INK_LEVELS,
   inkClover,
   INK_REV_EXPAND,
+  type InkDiff,
   type InkState,
 } from "../src/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "../src/lib/duel/inkBridge";
@@ -85,8 +86,9 @@ export interface OracleRun {
 }
 
 /** The perfect run for a seed (see the file's head), on inkRev 10 or inkRev 11 (`rev`). */
-export function inkOracleRun(seed: number, rev: number = INK_REV_EXPAND): OracleRun {
-  const game = inkBridgeGameFor(rev);
+export function inkOracleRun(seed: number, rev: number = INK_REV_EXPAND, level: InkDiff | null = null): OracleRun {
+  // Stage 3: inkRev 15 at a level other than Normal plays that level's game and replays it through that level's run.
+  const game = inkBridgeGameFor(rev, level);
   let s = game.init(seed) as InkState;
   const events: ArcadeInputEvent[] = [];
   while (!game.isOver(s) && s.tick < game.runTicks) {
@@ -125,7 +127,7 @@ export function inkOracleRun(seed: number, rev: number = INK_REV_EXPAND): Oracle
     if (r.tick % 300 === 0) checkpoints.push(inkCheckpoint(r));
   }
   const raw = encodeInkBridgeRun({ seed, claimedScore: score, events, inputs: [], taps: [], endTick: r.tick, checkpoints } as never);
-  const replayed = replayInkBridgeRun(seed, raw, rev).score;
+  const replayed = replayInkBridgeRun(seed, raw, rev, level).score;
   return { events, state: s, score, replayed, raw: inkFeatureRaw(s), levels: s.levels, endedSeconds: (s.endedTick || s.tick) / 60 };
 }
 

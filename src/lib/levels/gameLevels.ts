@@ -86,6 +86,17 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       expert: { settings: { mazes: 4, sizes: [15, 17, 19, 19], routes: [56, 62, 58, 60], pits: [4, 4, 4, 4], ice: [5, 5, 5, 5], icePassages: 2, twoOf: [2, 3, 4], twoCount: [2, 3], parScale: 115, speedFullS: 70 } },
     },
   },
+  // Rainbow Bridge (the Strategy overhaul's stage 3, 15 Nov 2026; docs/arcade-standard/inkbridge.md "Levels (stage 3)"):
+  // inkRev 15 at each level, the sim's INK_LEVEL_SETS (ink percent of inkRev 10's, birds kept percent and added per
+  // level, the first live level 0-based, the ink par margin, the levels whose birds sway); Normal is 125 %, today's
+  // birds, live from 8 (level 9), 10 %. Each level deals from its own proved deal (ink-levels-check).
+  inkbridge: {
+    levels: {
+      easy: { settings: { inkPct: 150, birdsPct: 50, extraBirds: [], liveFrom: 10, parMarginPct: 25, swayLevels: [], swayBirds: 0, stillPot: true, potW: 80 } },
+      hard: { settings: { inkPct: 110, birdsPct: 100, extraBirds: [0, 2, 2, 2, 2, 2, 2, 2, 2, 2], liveFrom: 7, parMarginPct: 10, swayLevels: [], swayBirds: 0, potW: 48, speedFullLeftS: 70 } },
+      expert: { settings: { inkPct: 100, birdsPct: 100, extraBirds: [0, 2, 3, 3, 3, 3, 3, 3, 3, 3], liveFrom: 6, parMarginPct: 0, swayLevels: [4, 5], swayBirds: 3, potW: 42, speedFullLeftS: 85 } },
+    },
+  },
 };
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */
