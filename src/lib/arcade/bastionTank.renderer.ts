@@ -1109,34 +1109,8 @@ export function paintTank(ctx: CanvasRenderingContext2D, kind: number, lane: num
   // places for this tank (its plan index `mark`), all inside the hull's upper plates.
   const lost = Math.max(0, BT2_HP[kind]! - hp);
   if (lost > 0 && hw > 6) paintDents(ctx, hx0, hy0, hx1, ty, s, lost, kind * 7 + mark * 13);
-  // The weak spot: a round vent filling its square.
-  const [wx0, wy0, wx1, wy1] = r.weak;
-  const cx = (wx0 + wx1) / 2;
-  const cy = (wy0 + wy1) / 2;
-  const rad = Math.max(1, Math.min(wx1 - wx0, wy1 - wy0) / 2);
-  if (open) {
-    const pulse = still ? 0.85 : 0.7 + 0.3 * Math.sin(tick * 0.2 + lane);
-    ctx.save();
-    ctx.shadowColor = VENT;
-    ctx.shadowBlur = 10 * s * pulse + 2;
-    ctx.fillStyle = VENT;
-    ctx.beginPath();
-    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-    ctx.fillStyle = VENT_CORE;
-    ctx.beginPath();
-    ctx.arc(cx, cy, rad * 0.55, 0, Math.PI * 2);
-    ctx.fill();
-  } else {
-    ctx.fillStyle = "#2B2E33";
-    ctx.beginPath();
-    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(255,181,71,0.35)";
-    ctx.lineWidth = Math.max(0.5, rad * 0.18);
-    ctx.stroke();
-  }
+  // The weak spot: a round vent filling its square (inside the tank's outline at every level, paintWeakSpot).
+  paintWeakSpot(ctx, kind, lane, z, tick, still, open, weakPct);
   if (flash > 0) {
     // A brief pale wash (stage 2: at most a third, so the sparks, the dents and the gold read through it; no glare).
     ctx.fillStyle = `rgba(255,248,232,${0.04 * flash})`;
@@ -1163,6 +1137,209 @@ export function paintTank(ctx: CanvasRenderingContext2D, kind: number, lane: num
     ctx.fillStyle = i < hp ? BT2_PIP_FILL : BT2_PIP_EMPTY;
     ctx.fillRect(px0 + i * (pw + gap), py, pw, ph);
   }
+}
+
+/**
+ * The tank's silhouette as one path in tank px (the hull's trapezoid down to its tracks and the tracks' full width, and
+ * the turret's trapezoid), exactly the shapes paintTank fills. Iron Wall's weak spots (16 Nov 2026) are clipped to it.
+ */
+export function bastionTankSilhouette(ctx: CanvasRenderingContext2D, r: { hull: readonly number[]; turret: readonly number[] }): void {
+  const [hx0, hy0, hx1, hy1] = r.hull as [number, number, number, number];
+  const hw = hx1 - hx0;
+  const hh = hy1 - hy0;
+  const ty = hy1 - Math.max(1, Math.round(hh * 0.36));
+  const inset = Math.max(1, Math.round(hw * 0.06));
+  ctx.beginPath();
+  ctx.moveTo(hx0 + inset, hy0);
+  ctx.lineTo(hx1 - inset, hy0);
+  ctx.lineTo(hx1, ty);
+  ctx.lineTo(hx1, hy1);
+  ctx.lineTo(hx0, hy1);
+  ctx.lineTo(hx0, ty);
+  ctx.closePath();
+  const [tx0, ty0, tx1, ty1] = r.turret as [number, number, number, number];
+  const ti = Math.max(1, Math.round((tx1 - tx0) * 0.12));
+  ctx.moveTo(tx0 + ti, ty0);
+  ctx.lineTo(tx1 - ti, ty0);
+  ctx.lineTo(tx1, ty1);
+  ctx.lineTo(tx0, ty1);
+  ctx.closePath();
+}
+
+/** Whether (x, y) is inside the tank's silhouette (bastionTankSilhouette's two shapes), tank px. */
+function inSilhouette(r: { hull: readonly number[]; turret: readonly number[] }, x: number, y: number): boolean {
+  const [hx0, hy0, hx1, hy1] = r.hull as [number, number, number, number];
+  const ty = hy1 - Math.max(1, Math.round((hy1 - hy0) * 0.36));
+  const inset = Math.max(1, Math.round((hx1 - hx0) * 0.06));
+  const inTrap = (x0: number, y0: number, x1: number, y1: number, i: number) => {
+    if (y < y0 || y > y1 || y1 <= y0) return false;
+    const k = (y - y0) / (y1 - y0);
+    return x >= x0 + i * (1 - k) && x <= x1 - i * (1 - k);
+  };
+  if (inTrap(hx0, hy0, hx1, ty, inset)) return true;
+  if (y >= ty && y <= hy1 && x >= hx0 && x <= hx1) return true;
+  const [tx0, ty0, tx1, ty1] = r.turret as [number, number, number, number];
+  return inTrap(tx0, ty0, tx1, ty1, Math.max(1, Math.round((tx1 - tx0) * 0.12)));
+}
+
+/** The vent drawn for a weak spot: its centre and radius in tank px. */
+export interface BastionVent {
+  x: number;
+  y: number;
+  r: number;
+}
+
+export interface BastionVentFit {
+  /** The vent's centre from the hit square's centre, and its radius, tank px at the wall. */
+  dx: number;
+  dy: number;
+  r: number;
+  /** True when the hit square's own circle fits (drawn exactly on it). */
+  whole: boolean;
+}
+
+/**
+ * bastionRev 4's fitted vents by tank type (scout, medium, heavy) for each level's weak-spot size, worked out by
+ * bastionVentFitFor (it takes a few hundred ms, too slow for a frame, so the answers are kept here; bastion-levels-check
+ * recomputes them and fails if they differ).
+ */
+export const BT_VENT_FITS: Readonly<Record<number, readonly BastionVentFit[]>> = {
+  120: [{ dx: 0, dy: 0, r: 8, whole: true }, { dx: 0, dy: 0, r: 8, whole: true }, { dx: 0, dy: 0, r: 8, whole: true }],
+  240: [{ dx: 0, dy: 0, r: 16.5, whole: true }, { dx: 0, dy: 5, r: 11.5, whole: false }, { dx: -5, dy: 5, r: 11.371639299169459, whole: false }],
+  260: [{ dx: 0, dy: 1.25, r: 16.52050983124842, whole: false }, { dx: 0, dy: 6.5, r: 11.5, whole: false }, { dx: -5.75, dy: 5.25, r: 12.25, whole: false }],
+};
+
+const ventFits = new Map<string, BastionVentFit>();
+
+/**
+ * The largest round vent inside both the weak spot's hit square and the tank's silhouette (worked out once per tank type
+ * and size at the wall on a quarter-px grid, then scaled with the tank): at the hit square's centre with its full radius
+ * when that fits (every weak spot at 100 %, and Hard's 120 %), else the biggest circle the hull holds within the square,
+ * nearest its centre (BT_VENT_FITS keeps the answers). So the glowing vent is always whole, inside the tank and inside the hit area: aim at it and you hit.
+ */
+export function bastionVentFitFor(kind: number, weakPct: number): BastionVentFit {
+  const r = bastionTankRects(kind, 1, 0, weakPct);
+  const [wx0, wy0, wx1, wy1] = r.weak;
+  const cx = (wx0 + wx1) / 2;
+  const cy = (wy0 + wy1) / 2;
+  const full = Math.min(wx1 - wx0, wy1 - wy0) / 2;
+  const step = 0.25;
+  const x0 = wx0 - 1;
+  const y0 = wy0 - 1;
+  const nx = Math.round((wx1 - wx0 + 2) / step) + 1;
+  const ny = Math.round((wy1 - wy0 + 2) / step) + 1;
+  const ok: boolean[] = [];
+  for (let j = 0; j < ny; j++) {
+    for (let i = 0; i < nx; i++) {
+      const x = x0 + i * step;
+      const y = y0 + j * step;
+      ok.push(x >= wx0 && x <= wx1 && y >= wy0 && y <= wy1 && inSilhouette(r, x, y));
+    }
+  }
+  // The region's edge: the outside samples next to an inside one (nothing farther can be the nearest outside point).
+  const inside: [number, number][] = [];
+  const edge: [number, number][] = [];
+  for (let j = 0; j < ny; j++) {
+    for (let i = 0; i < nx; i++) {
+      const at: [number, number] = [x0 + i * step, y0 + j * step];
+      if (ok[j * nx + i]) inside.push(at);
+      else if ((i > 0 && ok[j * nx + i - 1]) || (i < nx - 1 && ok[j * nx + i + 1]) || (j > 0 && ok[(j - 1) * nx + i]) || (j < ny - 1 && ok[(j + 1) * nx + i])) edge.push(at);
+    }
+  }
+  const clearance = (x: number, y: number) => {
+    let d = Infinity;
+    for (const [ex, ey] of edge) {
+      const dd = (ex - x) * (ex - x) + (ey - y) * (ey - y);
+      if (dd < d) d = dd;
+    }
+    return Math.sqrt(d) - step;
+  };
+  // Whole when the square's own circle fits (within two samples; the silhouette clip trims any sliver).
+  let best = { dx: 0, dy: 0, r: full, whole: true };
+  if (clearance(cx, cy) < full - 2 * step) {
+    best = { dx: 0, dy: 0, r: Math.max(0, clearance(cx, cy)), whole: false };
+    for (const [x, y] of inside) {
+      const c = Math.min(full, clearance(x, y));
+      const near = Math.hypot(x - cx, y - cy) < Math.hypot(best.dx, best.dy);
+      if (c > best.r + 1e-9 || (Math.abs(c - best.r) <= 1e-9 && near)) best = { dx: x - cx, dy: y - cy, r: c, whole: false };
+    }
+  }
+  return best;
+}
+
+function ventFit(kind: number, weakPct: number): BastionVentFit {
+  const kept = BT_VENT_FITS[weakPct]?.[kind];
+  if (kept) return kept;
+  const key = `${kind}:${weakPct}`;
+  let got = ventFits.get(key);
+  if (!got) {
+    got = bastionVentFitFor(kind, weakPct);
+    ventFits.set(key, got);
+  }
+  return got;
+}
+
+/**
+ * Where the weak spot's vent is drawn for a tank (tank px): at 100 % (bastionRev 2 and 3, Expert) exactly its square's
+ * circle as always; on bastionRev 4's bigger weak spots the fitted vent (ventFit) scaled with the tank.
+ */
+export function bastionVent(kind: number, lane: number, z: number, weakPct = 100): BastionVent {
+  const r = bastionTankRects(kind, lane, z, weakPct);
+  const [wx0, wy0, wx1, wy1] = r.weak;
+  const cx = (wx0 + wx1) / 2;
+  const cy = (wy0 + wy1) / 2;
+  const rad = Math.max(1, Math.min(wx1 - wx0, wy1 - wy0) / 2);
+  if (weakPct === 100) return { x: cx, y: cy, r: rad };
+  const f = ventFit(kind, weakPct);
+  if (f.whole) return { x: cx, y: cy, r: rad };
+  const k = r.s256 / 256;
+  return { x: cx + f.dx * k, y: cy + f.dy * k, r: Math.max(1, Math.min(rad, f.r * k)) };
+}
+
+/**
+ * The weak spot: a round vent glowing orange while exposed, a dark plate while closed.
+ *
+ * At 100 % (bastionRev 2 and 3, Expert) it is drawn exactly as before, a vent filling its square, inside the hull or
+ * turret. The bigger weak spots of bastionRev 4's levels (BT4_LEVELS: Hard 120, Normal 240, Easy 260 %) keep their
+ * bigger hit area but are drawn inside the tank's outline (Joe, 16 Nov 2026): the biggest whole vent the hull holds
+ * within the hit square (bastionVent), its glow clipped to the tank's silhouette, so nothing paints on the road or sky
+ * beside the tank. An exception to the arcade bounds rule asked for by Joe: on Easy and Normal the drawn vent is smaller
+ * than its hit area (which still reaches past it, round the vent).
+ */
+export function paintWeakSpot(ctx: CanvasRenderingContext2D, kind: number, lane: number, z: number, tick: number, still: boolean, open: boolean, weakPct = 100): void {
+  const r = bastionTankRects(kind, lane, z, weakPct);
+  const s = r.s256 / 256;
+  const { x: cx, y: cy, r: rad } = bastionVent(kind, lane, z, weakPct);
+  const clip = weakPct !== 100;
+  if (clip) {
+    ctx.save();
+    bastionTankSilhouette(ctx, r);
+    ctx.clip();
+  }
+  if (open) {
+    const pulse = still ? 0.85 : 0.7 + 0.3 * Math.sin(tick * 0.2 + lane);
+    ctx.save();
+    ctx.shadowColor = VENT;
+    ctx.shadowBlur = 10 * s * pulse + 2;
+    ctx.fillStyle = VENT;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = VENT_CORE;
+    ctx.beginPath();
+    ctx.arc(cx, cy, rad * 0.55, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    ctx.fillStyle = "#2B2E33";
+    ctx.beginPath();
+    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255,181,71,0.35)";
+    ctx.lineWidth = Math.max(0.5, rad * 0.18);
+    ctx.stroke();
+  }
+  if (clip) ctx.restore();
 }
 
 /** The dents on a hull's upper plates (x0…x1, y0…y1 the plate band): inside it whatever the scale. */

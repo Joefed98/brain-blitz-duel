@@ -19,11 +19,20 @@
  *  6. the oracle (scripts/bastion-oracle.ts) takes every tuning seed (0–59) and fresh seed (10000–10199) to exactly 200
  *     at every level, graded by gradeAnswer on the dealt puzzle (the server replay);
  *  7. identical worlds: the plan and drones come from the seed and the level alone (two deals, two inits, any input);
- *     a run's grade follows the stored level (the same log graded at another level replays that level's world).
+ *     a run's grade follows the stored level (the same log graded at another level replays that level's world);
+ *  8. the weak spot drawn inside the tank (Joe, 16 Nov 2026: "draw the bigger weak spots inside the tank's outline on
+ *     every level, keeping the bigger hit area"; display only): rendered with @napi-rs/canvas for every level and tank
+ *     type at six depths and three lanes, open and closed, every pixel of a rev-4 weak spot lies inside the tank's
+ *     silhouette (Expert's vent body too; its faint glow halo is rev 3's art, left pixel-identical against a digest
+ *     recorded before the change), the vent is a whole disc inside the hit square, at least as big as Expert's vent, the
+ *     kept vent fits match their computation, and the hit rectangles are each level's percentage, as before.
  *
  *   bun scripts/bastion-levels-check.ts
  */
 import { readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { createCanvas } from "@napi-rs/canvas";
+import { bastionTankSilhouette, bastionVent, bastionVentFitFor, BT_VENT_FITS, paintTank, paintWeakSpot } from "../src/lib/arcade/bastionTank.renderer";
 import { recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
   bastionBaseMax,
@@ -34,6 +43,7 @@ import {
   bastionStdParts,
   bastionTankCheckpoint,
   bastionTankGameFor,
+  bastionScale256,
   bastionTankRects,
   bastionTotalHp,
   bastionWeakPctOf,
@@ -259,9 +269,99 @@ for (const level of BASTION_LEVELS) {
   ok(asNormal.score === replayBastionTankRun(seed, raw, 4).score && asNormal.extra?.["flagged"] === true, `the same log on a Normal puzzle replays Normal's world (flagged: its checkpoints are Hard's), never Hard's score`);
 }
 
+/* 8. The weak spot drawn inside the tank's outline on every level (display only; Joe, 16 Nov 2026). */
+{
+  const W = 400;
+  const H = 720;
+  const depths = [0, 150, 300, 600, 900, 1400];
+  const levels: [string, number][] = [["Expert", 100], ...BASTION_LEVELS.map((l) => [l, BT4_LEVELS[l].weakPct] as [string, number])];
+  const alpha = (paint: (c: CanvasRenderingContext2D) => void) => {
+    const c = createCanvas(W, H).getContext("2d") as unknown as CanvasRenderingContext2D;
+    paint(c);
+    const d = c.getImageData(0, 0, W, H).data;
+    const a = new Uint8Array(W * H);
+    for (let i = 0; i < a.length; i++) a[i] = d[i * 4 + 3]!;
+    return a;
+  };
+  for (const level of BASTION_LEVELS) {
+    for (let kind = 0; kind < 3; kind++) {
+      const kept = BT_VENT_FITS[BT4_LEVELS[level].weakPct]?.[kind];
+      const fresh = bastionVentFitFor(kind, BT4_LEVELS[level].weakPct);
+      ok(JSON.stringify(kept) === JSON.stringify(fresh), `${level} kind ${kind}: the kept vent fit is the computed one (${JSON.stringify(kept)} vs ${JSON.stringify(fresh)})`);
+    }
+  }
+  for (const [name, pct] of levels) {
+    let worst = "";
+    let outside = 0;
+    let smaller = 0;
+    let offSquare = 0;
+    let hitOff = 0;
+    for (let kind = 0; kind < 3; kind++) {
+      for (const lane of [0, 1, 2]) {
+        for (const z of depths) {
+          const r = bastionTankRects(kind, lane, z * 256, pct);
+          // The hit area is unchanged: each level's percentage of 14 × 14, scaled with the tank as before.
+          const s = bastionScale256(z * 256);
+          const side = Math.max(2, Math.floor((Math.floor((14 * pct) / 100) * s) / 256));
+          if (r.weak[2] - r.weak[0] !== side || r.weak[3] - r.weak[1] !== side) hitOff++;
+          const sil = alpha((c) => {
+            bastionTankSilhouette(c, r);
+            c.fillStyle = "#fff";
+            c.fill();
+          });
+          for (const open of [true, false]) {
+            const weak = alpha((c) => paintWeakSpot(c, kind, lane, z * 256, 37, false, open, pct));
+            // Every pixel of a rev-4 weak spot inside the outline; Expert's vent body (its faint glow is rev 3's art).
+            const floor = pct === 100 ? 128 : 0;
+            let out = 0;
+            let body = 0;
+            for (let i = 0; i < weak.length; i++) {
+              if (weak[i]! > floor && sil[i] === 0) out++;
+              if (weak[i]! > 128) body++;
+            }
+            if (out > 0) {
+              outside++;
+              worst ||= `kind ${kind} lane ${lane} z ${z} ${open ? "open" : "closed"}: ${out} px outside`;
+            }
+            if (open && pct !== 100) {
+              const expert = alpha((c) => paintWeakSpot(c, kind, lane, z * 256, 37, false, true, 100));
+              let eb = 0;
+              for (let i = 0; i < expert.length; i++) if (expert[i]! > 128) eb++;
+              if (body < eb) smaller++;
+            }
+          }
+          // The vent: a whole disc inside the hit square (within the 1 px of the scaled square's rounding).
+          const v = bastionVent(kind, lane, z * 256, pct);
+          if (v.x - v.r < r.weak[0] - 1 || v.x + v.r > r.weak[2] + 1 || v.y - v.r < r.weak[1] - 1 || v.y + v.r > r.weak[3] + 1) offSquare++;
+        }
+      }
+    }
+    ok(outside === 0, `${name} (${pct} %): every drawn weak-spot pixel is inside the tank's outline, every tank type, lane and depth, open and closed${worst ? ` (${outside}; ${worst})` : ""}`);
+    ok(offSquare === 0, `${name}: the drawn vent is a whole disc inside its hit square (${offSquare} off)`);
+    // The approved exception to the arcade bounds rule is one-sided: the hit area is unchanged, never shrunk to the art.
+    ok(hitOff === 0, `${name}: the hit area is ${pct} % of 14 × 14, scaled with the tank, as before (${hitOff} off)`);
+    if (pct !== 100) ok(smaller === 0, `${name}: the drawn vent is never smaller than Expert's (${smaller} smaller)`);
+  }
+  // Expert (and rev 2) art is pixel-identical to before the change: paintTank's digest at 100 %, recorded on the
+  // renderer before 16 Nov 2026.
+  const h = createHash("sha256");
+  for (let kind = 0; kind < 3; kind++) {
+    for (const lane of [0, 1, 2]) {
+      for (const z of depths) {
+        for (const open of [true, false]) {
+          const c = createCanvas(W, H).getContext("2d") as unknown as CanvasRenderingContext2D;
+          paintTank(c, kind, lane, z * 256, 2, 3, 37, false, open, true, 4, 100);
+          h.update(Buffer.from(c.getImageData(0, 0, W, H).data));
+        }
+      }
+    }
+  }
+  ok(h.digest("hex") === "7e7e3bf835e4b1639de751d0561a45d0de820c00ceb2bb1a21c637a3e385b7c5", "Expert's tanks (100 % weak spots) draw pixel for pixel as before");
+}
+
 if (failed.length) {
   console.log(`FAIL bastion-levels-check: ${failed.length} of ${checks} checks failed`);
   for (const f of failed.slice(0, 20)) console.log(`  - ${f}`);
   process.exit(1);
 }
-console.log(`PASS bastion-levels-check: ${checks} checks — bastionRev 2 and 3 replay and grade as before (Expert is rev 3), Easy, Normal and Hard deal bastionRev 4 stamped with their level, each level's rules step down from Expert, grace 5 / 4 / 3 / 3, parts to 200, the oracle at 200 on 260 seeds at every level, identical worlds`);
+console.log(`PASS bastion-levels-check: ${checks} checks — bastionRev 2 and 3 replay and grade as before (Expert is rev 3), Easy, Normal and Hard deal bastionRev 4 stamped with their level, each level's rules step down from Expert, grace 5 / 4 / 3 / 3, parts to 200, the oracle at 200 on 260 seeds at every level, identical worlds, every level's weak spot drawn inside the tank (Expert's art unchanged)`);

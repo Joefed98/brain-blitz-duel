@@ -363,6 +363,19 @@ match the reveal's CSS (their markup is proved by bastion-overhaul-check section
 
 Frames: `bun scripts/shots/bastion-fx-shots.ts --out=<dir>`.
 
+### Stage 3: levels (16 Nov 2026)
+
+Expert (bastionRev 3, Iron Wall as rooms dealt it before the levels) played by the Elite bot under human limits on seed
+30710843, server score **172**; 5 s from 40.6 s, every 1/8 s, the game's own art (`bun scripts/shots/action-expert-clip.ts
+bastion 30710843`):
+
+<img src="bastion/expert-clip.webp" width="195">
+
+The bigger weak spots of Easy, Normal and Hard drawn inside the tank (Joe, 16 Nov 2026; the hit area, blue, unchanged;
+each pair before | after, Expert's unchanged):
+
+<img src="bastion/weak-spots-before-after.png" width="640">
+
 
 ## High Rise
 
