@@ -819,3 +819,134 @@
     align-items: flex-end;
   }
 }
+
+/* ------------------------------------------------------------------ the room's "finished" strip (15 Nov 2026, Joe)
+ * Never over the timer bar. A puzzle's strip sits just below the bar, over the goal line (outside the play area); an
+ * arcade world starts right under the header, so its strip stays in the header and ends above the bar. */
+[data-frame="puzzle"] > .game-frame-header {
+  position: relative;
+}
+[data-frame="puzzle"] > .game-frame-header > [data-header-left]:has(> [data-finished-ping]) {
+  position: static;
+}
+[data-frame="puzzle"] > .game-frame-header [data-header-left] > [data-finished-ping] {
+  inset: auto 12px auto 12px;
+  top: calc(100% + 2px);
+  height: 24px;
+}
+[data-frame="arcade"] > .game-frame-header [data-header-left] > [data-finished-ping] {
+  bottom: 10px;
+}
+/* The lines the arcade strip covers are hidden while it shows (the round line no longer peeks out below it). */
+[data-frame="arcade"] > .game-frame-header [data-header-left]:has(> [data-finished-ping]) > :not([data-finished-ping]) {
+  visibility: hidden;
+}
+
+/* ------------------------------------------------------------------ the phone's status panel (15 Nov 2026, Joe)
+ * In the space above a puzzle's board (ArenaGamePanel's PhoneStatus): the goal and the live figures in larger type; the
+ * board's own goal text, progress and status pills are kept in place but hidden while it shows (one number, once). */
+.phone-status {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  overflow: hidden;
+  pointer-events: none;
+}
+.phone-status-goal {
+  margin: 0;
+  font-family: var(--jz-font);
+  font-size: 20px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 24px;
+  color: var(--jz-text);
+  text-wrap: balance;
+}
+.phone-status-figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+}
+.phone-status-figures .arena-status-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 76px;
+  padding: 8px 12px;
+  border-radius: var(--jz-radius-lg);
+  background: color-mix(in srgb, var(--jz-surface) 80%, transparent);
+}
+.phone-status-figures .arena-status-row + .arena-status-row {
+  border-top: 0;
+}
+.phone-status-figures dt {
+  font-size: 13px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 16px;
+  color: var(--jz-text-2);
+}
+.phone-status-figures dd {
+  margin: 0;
+  font-size: 22px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 26px;
+  color: var(--jz-text);
+  font-variant-numeric: tabular-nums;
+}
+.phone-status-figures .arena-status-row[data-tone="warn"] dd {
+  color: var(--jz-red);
+}
+[data-round-layout][data-phone-status] .game-goal-text,
+[data-round-layout][data-phone-status] [data-goal-progress],
+[data-round-layout][data-phone-status] [data-game-stage] [data-hud-pills][data-phone-mirrored] {
+  visibility: hidden;
+}
+
+/* ------------------------------------------------------------------ 4b. short phones (15 Nov 2026, Joe)
+ * On a short screen (the 375 × 667 class) the shared rows above a puzzle's board went compact: the stars' own row pushed
+ * the game's reveal down until it was drawn smaller (Ballpark at about 85 %). Practice's stars join the score line and
+ * the best in one wrapped block (AnswerReveal `revealLines`), the stars smaller; the gaps, the verdict card's padding
+ * and its mark tighten. The game's own drawing is untouched. */
+.reveal-lines {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px var(--jz-space-12);
+}
+.reveal-lines .reveal-payoff {
+  min-height: 0;
+  gap: var(--jz-space-4) var(--jz-space-8);
+}
+.reveal-lines .fx-stars {
+  gap: var(--jz-space-4);
+}
+.reveal-lines .fx-star {
+  width: 18px;
+  height: 18px;
+}
+.reveal-lines .fx-newbest {
+  height: 22px;
+  padding: 0 var(--jz-space-8);
+  line-height: 22px;
+}
+@media (max-height: 720px) {
+  [data-answer-reveal][data-answer-reveal],
+  [data-answer-reveal] > .flex-col {
+    gap: 6px;
+  }
+  [data-answer-reveal] .reveal-result {
+    padding: var(--jz-space-8) var(--jz-space-12);
+  }
+  [data-answer-reveal] .reveal-result [data-verdict] > div,
+  [data-answer-reveal] .reveal-result > [data-verdict]:not([data-verdict="partial"]) {
+    width: 36px;
+    height: 36px;
+  }
+}

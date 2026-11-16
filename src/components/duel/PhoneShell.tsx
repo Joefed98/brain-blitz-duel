@@ -1,3 +1,4 @@
+import { useMomentEnter } from "@/components/fx/useMomentEnter";
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type Ref } from "react";
 
 import { GameMenu } from "./GameMenu";
@@ -21,7 +22,7 @@ import { SeasonNotice } from "@/components/seasons/SeasonNotice";
 import type { ThemeSkin } from "@/lib/theme";
 import { OfflineBanner } from "@/components/offline/OfflineBanner";
 import { AppRail } from "@/components/app/AppRail";
-import { ArenaGamePanel, FrameMe } from "./ArenaGamePanel";
+import { ArenaGamePanel, FrameMe, PhoneStatus } from "./ArenaGamePanel";
 import { createPortal } from "react-dom";
 import { ArenaMount, useArenaLayout, useArenaMount, ARENA_PANEL_W } from "@/lib/gameFrame/arena";
 import { TimerLookContext, useGameTimer } from "@/lib/gameFrame/headerStyle";
@@ -176,6 +177,8 @@ export function GameLayout({ label, title, onHelp, progress, score, ping, timer,
   const stage = (
     <div ref={setRegion} data-game-region className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
       {frame && !arcade && type ? <div ref={trayRef} data-game-tray aria-hidden="true" className="game-tray" /> : null}
+      {/* The phone's status panel above the board (Joe, 15 Nov 2026); the arena has the side panel instead. */}
+      {frame && !arcade && type && layoutMode !== "desktop" ? <PhoneStatus type={type} tray={trayRef} /> : null}
       <div data-game-stage className={`game-column game-column-centred game-column-lifted flex min-h-0 flex-1 flex-col ${locked ? `pointer-events-none transition-opacity duration-200${held ? "" : " opacity-30"}` : ""}`} data-board-held={locked && held ? "" : undefined}>
         <ControlSchemeContext.Provider value={scheme}>
           <GameKeysOff.Provider value={scheme === "mouse" || scheme === "drag"}>
@@ -500,6 +503,9 @@ function useGeometryHold(ref: { current: HTMLElement | null }, active: boolean) 
 /** Mobile-first column, centred on larger screens, with a little depth behind. */
 export function PhoneShell({ children, reveal = false, bare = false, constrained = false, gameScreen = false, gameType, gameHeader, topAction, title, headerAction, play = false, tabs, skin, aside, railTab }: PhoneShellProps) {
   useRootSelectionLock(gameScreen);
+  // Page transitions (15 Nov 2026, the effects pass): a tab page, or a page pushed from one, fades in (opacity only, so
+  // nothing moves); with the celebrations on and full effects only (useMomentEnter).
+  const pageEnter = Boolean(useMomentEnter("fade")["data-moment-enter"]) && !gameScreen && Boolean(tabs || railTab);
   // The computer layout (31 Oct 2026, presentation only): every slot below is null on a phone, so a
   // phone's markup is exactly as before; children keep their place in the tree on every layout, so
   // crossing a breakpoint never remounts a page or a running game.
@@ -591,6 +597,7 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
         data-game-column={constrained ? "" : undefined}
         data-shell-column={gameScreen ? "game" : "page"}
         data-app-page={tabs && !gameScreen ? tabs : undefined}
+        data-page-enter={pageEnter ? "" : undefined}
         className={`relative flex min-h-0 w-full flex-col justify-start ${gameScreen ? "pad-game-safe" : "mx-auto max-w-[430px] pad-safe"} ${
           constrained ? "no-overscroll h-full overflow-hidden" : "min-h-[100dvh]"
         }`}
