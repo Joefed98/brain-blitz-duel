@@ -22,6 +22,8 @@ import { BALANCE_NORMAL, BALANCE_REV_LEVELS, balanceHidden, type BalanceLevelSet
 import { personSolveScale } from "../src/lib/duel/balanceLevels.server";
 import { balancedArrangements } from "../src/lib/duel/numberRounds.server";
 import { personSolveTarget, type TargetLevelSettings } from "../src/lib/duel/targetLevels.server";
+import { TARGET_EXPERT_BANK } from "../src/lib/duel/targetExpertBank.server";
+import { buildTargetExpertBank } from "./target-expert-bank";
 import { encodeSteps, LARGE_TILES, replayTargetSteps, solveTarget, solveWithAllSixTiles } from "../src/lib/duel/target";
 import { exactMinTiles } from "../src/lib/duel/standard/number.server";
 import { joinCountSuffix } from "../src/lib/duel/moveLimits";
@@ -159,6 +161,49 @@ for (const level of ["easy", "normal", "expert"] as const) {
   console.log(`  person-like solver on Expert: Counterweight ${balancePass}/${N}, Exact ${targetPass}/${N}`);
   ok(balancePass === N, `Counterweight Expert: the person-like solver balances every scale on ${N} boards (${balancePass})`);
   ok(targetPass === N, `Exact Expert: the person-like solver reaches every target on ${N} boards (${targetPass})`);
+}
+
+/* 4b. Exact's Expert bank (Changed with Joe's approval, 16 Nov 2026 (Exact Expert bank)): Expert deals from a proved
+ * bank, never a live search. Every board in it obeys the Expert rule by exhaustive search and is reached by the
+ * person-like solver; the bank rebuilds (a sample of its first boards; CHECKS_FULL=1 the whole bank); each deal is a
+ * bank board and takes milliseconds. */
+{
+  const set = gameLevelSettings<TargetLevelSettings>("target", "expert")!;
+  let bad = 0;
+  for (const [i, b] of TARGET_EXPERT_BANK.entries()) {
+    const why: string[] = [];
+    if (b.tiles.length !== 6 || b.tiles.some((t) => LARGE_TILES.includes(t) || t < 1 || t > 10)) why.push("not six small numbers");
+    if (b.target < set.target[0] || b.target > set.target[1]) why.push(`target ${b.target}`);
+    const replay = replayTargetSteps(b.tiles, b.target, b.solution);
+    if (replay.distance !== 0 || replay.steps.length !== b.solution.length) why.push("stored solution misses");
+    for (let skip = 0; skip < 6; skip++) if (solveTarget(b.tiles.filter((_, k) => k !== skip), b.target)) why.push(`five numbers reach it without tile ${skip}`);
+    if (!solveWithAllSixTiles(b.tiles, b.target)) why.push("no route from all six");
+    if (!personSolveTarget(b.tiles, b.target)) why.push("the person-like solver misses it");
+    if (why.length) {
+      bad++;
+      console.log(`  Exact Expert bank ${i}: ${why.join(", ")}`);
+    }
+  }
+  ok(TARGET_EXPERT_BANK.length >= 300, `Exact Expert bank: ${TARGET_EXPERT_BANK.length} boards (300 or more)`);
+  ok(bad === 0, `Exact Expert bank: every board needs all six numbers, hits its target and is reached by the person-like solver (${TARGET_EXPERT_BANK.length - bad}/${TARGET_EXPERT_BANK.length})`);
+  const keys = new Set(TARGET_EXPERT_BANK.map((b) => `${[...b.tiles].sort((x, y) => x - y).join(",")}>${b.target}`));
+  ok(keys.size === TARGET_EXPERT_BANK.length, "Exact Expert bank: no board twice");
+  const full = process.env["CHECKS_FULL"] === "1";
+  const rebuilt = buildTargetExpertBank(full ? TARGET_EXPERT_BANK.length : 6);
+  ok(JSON.stringify(rebuilt) === JSON.stringify(TARGET_EXPERT_BANK.slice(0, rebuilt.length)), `Exact Expert bank: ${full ? "the whole bank" : "its first 6 boards"} rebuild exactly`);
+  const inBank = new Set(TARGET_EXPERT_BANK.map((b) => JSON.stringify(b)));
+  let fromBank = 0;
+  let slowest = 0;
+  for (let seed = 0; seed < 60; seed++) {
+    const t0 = performance.now();
+    const p = deal("target", 7000 + seed, "expert") as TargetNumberPuzzleData;
+    slowest = Math.max(slowest, performance.now() - t0);
+    if (inBank.has(JSON.stringify({ tiles: p.tiles, target: p.target, solution: p.solution }))) fromBank++;
+  }
+  ok(fromBank === 60, `Exact Expert: every deal is a bank board (${fromBank}/60)`);
+  ok(slowest < 50, `Exact Expert: a deal takes milliseconds (slowest ${slowest.toFixed(1)} ms)`);
+  const a = JSON.stringify(deal("target", 4242, "expert"));
+  ok(a === JSON.stringify(deal("target", 4242, "expert")), "Exact Expert: the same seed deals the same board");
 }
 
 /* 5. Grading. */
