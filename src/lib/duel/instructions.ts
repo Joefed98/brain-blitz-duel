@@ -856,7 +856,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap to drop", detail: "the sliding block on the tower." },
         { action: "Perfect drops", detail: "in a row build a streak." },
-        { action: "Next block:", detail: "gold, narrow or wide." },
+        { action: "Next block:", detail: "gold, narrow or wide.", helpOnly: true },
         { action: "3 lives:", detail: "a miss costs one; the run goes on." },
         { action: "Lives:", detail: "you have 3 at every level. A block that misses the tower falls away and costs a life; the same block comes again and your streak starts over. Losing the last life ends the run. A tap just after a lost life is ignored, so a double tap can’t cost two.", helpOnly: true },
         { action: "A wide block helps:", detail: "after five drops in a row that aren’t perfect, the next block is a wide one. Centre it and the tower widens again.", helpOnly: true },

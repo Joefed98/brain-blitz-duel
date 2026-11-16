@@ -197,11 +197,10 @@ export function RoundIntro({
 
   // Grappler (swingRev 14, 15, 16 and 17) builds and proves its course from the seed: built while the intro is up (after its
   // first paint), so the round itself starts at once (rooms and practice; an async round's seed arrives at its start).
+  // (swingRev 18's levels: the stored level's course.)
   useEffect(() => {
     if (puzzle?.type !== "swing") return;
-    const { seed, swingRev } = puzzle;
-    // (swingRev 18's levels: the stored level's course.)
-    const level = (puzzle as { level?: unknown }).level;
+    const { seed, swingRev, level } = puzzle as typeof puzzle & { level?: unknown };
     const timer = window.setTimeout(() => prepareSwingCourse(seed, swingRev, level), 120);
     return () => window.clearTimeout(timer);
   }, [puzzle]);
