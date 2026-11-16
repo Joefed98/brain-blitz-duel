@@ -1035,6 +1035,180 @@ def _(r):
     return room(mix(a, b), r, 0.05, 0.08)
 
 
+# --- Home Run (homerunRev 5) and Top Bins (freekickRev 5-6): the overhaul's new moments, stand-ins until Joe's
+# recordings (docs/sound-cues/home-run-top-bins-elevenlabs.md) ---------------------------------------------------------
+
+def call(f0, f1, n, r, formants=(800, 1300, 2600), bright=0.5):
+    """An umpire's shout as a sound, not a word: a buzzy glide through three vowel bands, a breathy edge."""
+    src = pulse(glide(f0, f1, n, 1.3), n, 0.3, top=40)
+    v = sum(svf(src, f, 6.0) * a for f, a in zip(formants, (1.0, 0.7, bright)))
+    breath = svf(noise(n, r), formants[1], 2.0) * 0.12
+    return (v + breath) * env(n, 0.02, n / SR * 0.9, hold=n / SR * 0.25)
+
+
+@sound("homerun.umpStrike", ["homerun.umpStrike"], "the umpire's strike call: a sharp, rising-then-falling shout")
+def _(r):
+    n = n_of(0.62)
+    return room(call(210, 165, n, r, (750, 1250, 2700), 0.6), r, 0.16, 0.16)
+
+
+@sound("homerun.umpBall", ["homerun.umpBall"], "the umpire's ball call: a lower, flatter shout")
+def _(r):
+    n = n_of(0.5)
+    return room(call(175, 150, n, r, (650, 1050, 2400), 0.35) * 0.85, r, 0.16, 0.16)
+
+
+@sound("homerun.umpOut", ["homerun.umpOut"], "the umpire's out call: an emphatic falling shout and a glove slap")
+def _(r):
+    n = n_of(0.62)
+    slap = svf(noise(n, r), 1600, 1.2) * env(n, 0.001, 0.05) * 0.6 + thump(180, 110, 0.05, n) * 0.4
+    return room(call(240, 140, n, r, (700, 1150, 2500), 0.55) + slap, r, 0.16, 0.16)
+
+
+@sound("homerun.strikeout", ["homerun.strikeout"], "a strikeout: the crowd's long, sinking groan")
+def _(r):
+    n = n_of(1.05)
+    crowd = sum(svf(noise(n, r), glide(f, f * 0.7, n), 3.0) * a for f, a in ((480, 1.0), (900, 0.6), (1700, 0.25)))
+    return room(crowd * env(n, 0.12, 0.8, hold=0.15), r, 0.2, 0.18)
+
+
+@sound("homerun.walk", ["homerun.walk"], "a walk: two easy ascending chimes")
+def _(r):
+    n = n_of(0.66)
+    a = struck(METAL, 660, 0, 0.35, n_of(0.4), r) * 0.7
+    b = at(struck(METAL, 880, 0, 0.4, n_of(0.45), r) * 0.7, 0.2, n)
+    return room(mix(a, b), r, 0.12, 0.14)
+
+
+@sound("homerun.footsteps", ["homerun.footsteps"], "a runner's spikes on the dirt: four quick crunching steps")
+def _(r):
+    n = n_of(0.8)
+    out = np.zeros(n)
+    for i, t0 in enumerate((0.0, 0.18, 0.36, 0.54)):
+        m = n_of(0.2)
+        crunch = svf(noise(m, r), 1400 + 200 * (i % 2), 0.8) * env(m, 0.006, 0.17, hold=0.04)
+        step = crunch + thump(130, 90, 0.05, m) * 0.25
+        out += at(step, t0, n)
+    return room(out, r, 0.1, 0.1)
+
+
+@sound("homerun.slide", ["homerun.slide"], "a slide into the base: a long scrape of dirt")
+def _(r):
+    n = n_of(0.56)
+    scrape = svf(noise(n, r), glide(1600, 500, n), 0.8) * env(n, 0.03, 0.45, hold=0.1)
+    grit = svf(noise(n, r), 3200, 1.5) * env(n, 0.01, 0.3) * 0.25
+    return room(scrape + grit + thump(110, 70, 0.08, n) * 0.4, r, 0.1, 0.1)
+
+
+@sound("homerun.runScores", ["homerun.runScores"], "a run scores: three rising bells over a crowd's lift")
+def _(r):
+    n = n_of(0.78)
+    bells = mix(*(at(struck(METAL, f, 0, 0.3, n_of(0.35), r) * 0.55, t0, n) for f, t0 in ((523, 0), (659, 0.1), (784, 0.2))))
+    lift = svf(noise(n, r), glide(600, 1100, n), 2.5) * env(n, 0.15, 0.55) * 0.35
+    return room(mix(bells, lift), r, 0.14, 0.16)
+
+
+@sound("homerun.perfect", ["homerun.perfect"], "perfect timing: a crisp crack and a bright sparkle")
+def _(r):
+    n = n_of(0.38)
+    crack = struck(WOOD, 1300, 0, 0.06, n, r) * 0.8 + click(n, r, 7000) * 0.5
+    sparkle = at(struck(GLASS, 2640, 0, 0.25, n_of(0.3), r) * 0.35, 0.04, n)
+    return room(mix(crack, sparkle), r, 0.1, 0.12)
+
+
+@sound("homerun.aimThunk", ["homerun.aimThunk"], "the aim set: a soft, low thunk")
+def _(r):
+    n = n_of(0.22)
+    return room(thump(170, 110, 0.07, n) + struck(WOOD, 520, 0, 0.06, n, r) * 0.3, r, 0.06, 0.08)
+
+
+@sound("homerun.inningsEnd", ["homerun.inningsEnd"], "the innings over: a short ballpark organ phrase")
+def _(r):
+    n = n_of(1.0)
+    out = np.zeros(n)
+    for f, t0, d in ((392, 0.0, 0.14), (523, 0.16, 0.14), (659, 0.32, 0.14), (784, 0.48, 0.38)):
+        m = n_of(d + 0.15)
+        organ = sum(sine(f * k, m) * a for k, a in ((1, 1.0), (2, 0.5), (3, 0.3), (4, 0.15)))
+        organ *= (1 + 0.04 * np.sin(TAU * 6 * tt(m))) * env(m, 0.02, d + 0.1, hold=d * 0.6)
+        out += at(organ * 0.25, t0, n)
+    return room(out, r, 0.2, 0.18)
+
+
+@sound("freekick.bendWhistle", ["freekick.bendWhistle"], "the ball bending in flight: an airy, steady whistle (loop)", loop=True)
+def _(r):
+    body = n_of(1.2 + 0.15)
+    t = tt(body)
+    air = svf(noise(body, r), 2300 + 120 * np.sin(TAU * 5 * t), 7.0) * 0.8
+    tone = sine(2300 * (1 + 0.004 * np.sin(TAU * 5 * t)), body) * 0.12
+    return make_loop(air + tone, 0.15)
+
+
+@sound("freekick.powerTone", ["freekick.powerTone"], "the power bar held: a smooth, humming tone (loop)", loop=True)
+def _(r):
+    body = n_of(1.6 + 0.2)
+    t = tt(body)
+    hum = sine(330, body) + sine(660, body) * 0.35 + sine(990, body) * 0.12
+    return make_loop(hum * (0.85 + 0.15 * np.sin(TAU * 2.5 * t)) * 0.5, 0.2)
+
+
+@sound("freekick.goldTick", ["freekick.goldTick"], "the meter in the gold: a tiny bright tick")
+def _(r):
+    n = n_of(0.11)
+    return struck(GLASS, 3300, 0, 0.06, n, r) * 0.7 + click(n, r, 8000) * 0.3
+
+
+@sound("freekick.dive", ["freekick.dive"], "the keeper diving: a body's rush through the air and a thud on the grass")
+def _(r):
+    n = n_of(0.56)
+    rush = svf(noise(n, r), glide(500, 1500, n, 0.8), 1.5) * env(n, 0.08, 0.3) * 0.6
+    land = at(thump(110, 65, 0.1, n_of(0.25)) + svf(noise(n_of(0.25), r), 700, 0.8, "lp") * env(n_of(0.25), 0.002, 0.12) * 0.5, 0.3, n)
+    return room(mix(rush, land), r, 0.1, 0.1)
+
+
+@sound("freekick.spill", ["freekick.spill"], "the ball spilled off the gloves: a leather slap and a bounce")
+def _(r):
+    n = n_of(0.46)
+    n = n_of(0.5)
+    slap = svf(noise(n, r), 1400, 1.0) * env(n, 0.002, 0.14, hold=0.02) * 0.8 + thump(220, 150, 0.06, n) * 0.35
+    bounce = mix(*(at(svf(noise(n_of(0.14), r), 1100, 1.0) * env(n_of(0.14), 0.003, 0.1) * a, t0, n)
+                   for t0, a in ((0.2, 0.55), (0.33, 0.4), (0.43, 0.28))))
+    return room(mix(slap, bounce), r, 0.1, 0.1)
+
+
+@sound("freekick.wallJump", ["freekick.wallJump"], "the wall jumping: boots scuffing off the grass and a whoosh")
+def _(r):
+    n = n_of(0.46)
+    scuff = svf(noise(n, r), 900, 0.9, "lp") * env(n, 0.003, 0.08) * 0.6
+    whoosh = svf(noise(n, r), glide(600, 1800, n, 0.8), 2.0) * env(n, 0.1, 0.25) * 0.5
+    return room(mix(scuff, whoosh), r, 0.1, 0.1)
+
+
+@sound("freekick.chant", ["freekick.chant"], "the crowd's chant: a swelling, rhythmic roar of voices")
+def _(r):
+    n = n_of(1.0)
+    t = tt(n)
+    beat = 0.55 + 0.45 * (0.5 + 0.5 * np.sin(TAU * 2.6 * t - np.pi / 2)) ** 2
+    voices = sum(svf(noise(n, r), f * (1 + 0.05 * np.sin(TAU * 2.6 * t)), 3.0) * a for f, a in ((450, 1.0), (850, 0.7), (1600, 0.3)))
+    return room(voices * beat * env(n, 0.12, 0.85, hold=0.45), r, 0.16, 0.2)
+
+
+@sound("freekick.hoopShrink", ["freekick.hoopShrink"], "the gold hoop shrinking: a short, falling shimmer")
+def _(r):
+    n = n_of(0.56)
+    shimmer = sum(sine(glide(f, f * 0.75, n), n) * a for f, a in ((1760, 0.5), (2640, 0.3), (3520, 0.15)))
+    return room(shimmer * env(n, 0.01, 0.45) * (0.8 + 0.2 * np.sin(TAU * 22 * tt(n))), r, 0.12, 0.14)
+
+
+@sound("freekick.windFlag", ["freekick.windFlag"], "the corner flag in the wind: a soft, uneven flutter (loop)", loop=True)
+def _(r):
+    body = n_of(2.4 + 0.3)
+    t = tt(body)
+    gust = 0.6 + 0.25 * np.sin(TAU * t / 1.2) + 0.15 * np.sin(TAU * t * 7 / 2.4)
+    flap = 0.7 + 0.3 * np.sign(np.sin(TAU * (9 + 2 * np.sin(TAU * t / 2.4)) * t))
+    cloth = svf(noise(body, r), 1100, 1.0) * gust * flap * 0.6 + svf(noise(body, r), 350, 0.7, "lp") * gust * 0.4
+    return make_loop(cloth, 0.3)
+
+
 # --------------------------------------------------------------------------------------------------- build
 
 

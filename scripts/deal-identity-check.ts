@@ -118,7 +118,9 @@ tasks.push({
     // Changed with Joe's approval, 13 Nov 2026: Minefield's minesPreLogic is the 24th era switch.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the 15 Nov 2026 era switches preNotesFree and
     // preGameReviewNov15): 26.
-    ok(names.size === 26, `26 era switches (${names.size})`);
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Home Run and Top Bins overhaul's era switch
+    // sportsPreOverhaul, stage 1 approved at 72b7b38f): 27.
+    ok(names.size === 27, `27 era switches (${names.size})`);
   },
 });
 

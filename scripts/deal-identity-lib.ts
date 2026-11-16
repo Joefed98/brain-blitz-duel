@@ -169,7 +169,10 @@ export function variantDigests(name: string, pin: ((on: boolean) => unknown) | n
 export function roomDigests(seeds: readonly number[]): Record<string, string> {
   // Whole rooms pin only the switches newer than the recording that reach a room's puzzle deals (Minefield's is an
   // arcade deal, unpinned here as before).
-  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree"]);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Home Run and Top Bins overhaul, stage 1
+  // approved at 72b7b38f): sportsPreOverhaul reaches a room's Home Run and Top Bins deals, so rooms pin it too and
+  // compare on rev 4 exactly as recorded; homerun-innings-check and freekick-layered-check prove the new deals.
+  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "sportsPreOverhaul"]);
 }
 
 function roomDigestsNow(seeds: readonly number[]): Record<string, string> {
