@@ -12,7 +12,7 @@
 import { appendFileSync, writeFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { tiltCellCentre, tiltCheckpoint, tiltBigGame, tiltExpandGame, tiltFieldX, tiltParGame, tiltParWalksX, tiltStdGame, tiltWalkTurnsX, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_PAR, TILT_REV_STD, type Maze, type TiltState } from "../src/lib/arcade/tilt";
+import { tiltCellCentre, tiltCheckpoint, tiltBigGame, tiltExpandGame, tiltLevelGame, type TiltLevel, tiltFieldX, tiltParGame, tiltParWalksX, tiltStdGame, tiltWalkTurnsX, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_PAR, TILT_REV_STD, type Maze, type TiltState } from "../src/lib/arcade/tilt";
 import { decodeTiltRun, encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 
@@ -184,8 +184,9 @@ function playGoals(node: Node, m: Maze, level: number, goals: Goal[]): Node | nu
 }
 
 /** Plays a seed; returns the log and the server's score for it. */
-export function oracleRun(seed: number, rev: number = TILT_REV_EXPAND): { raw: string; score: number; state: TiltState } {
-  game = rev === TILT_REV_BIG ? tiltBigGame : rev === TILT_REV_PAR ? tiltParGame : rev === TILT_REV_STD ? tiltStdGame : tiltExpandGame;
+export function oracleRun(seed: number, rev: number = TILT_REV_EXPAND, level?: TiltLevel): { raw: string; score: number; state: TiltState } {
+  // Levels (stage 3, tiltRev 12 only): the level's game (its own mazes, pars and speed line).
+  game = rev === TILT_REV_BIG && level ? tiltLevelGame(level) : rev === TILT_REV_BIG ? tiltBigGame : rev === TILT_REV_PAR ? tiltParGame : rev === TILT_REV_STD ? tiltStdGame : tiltExpandGame;
   let node: Node = { s: game.init(seed), log: [] };
   for (let level = 0; level < node.s.list.length && !game.isOver(node.s); level++) {
     const m = node.s.list[level]!;
@@ -211,7 +212,7 @@ export function oracleRun(seed: number, rev: number = TILT_REV_EXPAND): { raw: s
     if (s.tick % TILT_CHECKPOINT_INTERVAL === 0) checkpoints.push(tiltCheckpoint(s));
   }
   const raw = encodeTiltRun({ seed, claimedScore: game.score(s), events: node.log, endTick: s.tick, checkpoints: checkpoints as never });
-  const r = replayTiltRun(seed, raw, rev);
+  const r = replayTiltRun(seed, raw, rev, level);
   game = tiltExpandGame;
   return { raw, score: r.flagged ? -1 : r.score, state: r.state };
 }

@@ -174,15 +174,17 @@ const TILT_V11_SPEC: StdSpec = {
 function tiltParts(s: TiltState): StdPart[] | null {
   if (!s.parClean) return null;
   const p = tiltParParts(s);
-  const finished = p.mazes >= TILT_S_MAZES;
+  // Levels (stage 3): a level's run counts its own mazes; every Normal tiltRev 11 and 12 run has TILT_S_MAZES.
+  const all = s.lvl ? s.list.length : TILT_S_MAZES;
+  const finished = p.mazes >= all;
   const prog = !finished && s.progMaze === p.mazes ? Math.max(0, Math.min(TILT_S_PROGRESS_SCALE, s.prog ?? 0)) : 0;
   const pct = Math.trunc((100 * prog) / TILT_S_PROGRESS_SCALE);
   const end = Math.max(0, Math.min(TILT_RUN_TICKS, s.endedTick));
   return [
-    stdPart(TILT_V11_SPEC, "core", p.core, `${of(p.mazes, TILT_S_MAZES, "mazes")}${pct > 0 ? ` · ${pct} % of the next` : ""}`),
+    stdPart(TILT_V11_SPEC, "core", p.core, `${of(p.mazes, all, "mazes")}${pct > 0 ? ` · ${pct} % of the next` : ""}`),
     stdPart(TILT_V11_SPEC, "par", p.par, `${n(p.parsMet, "maze")} within par`),
     stdPart(TILT_V11_SPEC, "clean", p.clean, (s.falls ?? 0) === 0 ? (p.mazes ? `no fall in ${n(p.mazes, "maze")}` : "no maze yet") : `${n(p.cleanMazes, "maze")} before the first fall`),
-    stdPart(TILT_V11_SPEC, "speed", p.speed, finished ? `all ${TILT_S_MAZES} in ${secs(end)}` : "not every maze"),
+    stdPart(TILT_V11_SPEC, "speed", p.speed, finished ? `all ${all} in ${secs(end)}` : "not every maze"),
   ];
 }
 

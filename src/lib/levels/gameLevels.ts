@@ -46,7 +46,17 @@ export interface GameLevels<S = Record<string, unknown>> {
  * Every game's levels beyond Normal. Empty until the family sessions add theirs (15 Nov 2026): every game offers
  * Normal only.
  */
-export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {};
+export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
+  // Tilt (the Strategy overhaul, stage 3; docs/arcade-standard/tilt.md "Levels (stage 3)"): a mirror of TILT_LEVELS in
+  // src/lib/arcade/tilt.ts, which the sim reads (tilt-levels-check proves the two the same).
+  tilt: {
+    levels: {
+      easy: { settings: { mazes: 3, sizes: [11, 13, 13], routes: [28, 34, 30], pits: [0, 1, 1], ice: [0, 0, 0], icePassages: 0, twoOf: [3], twoCount: [1, 1], parScale: 240, speedFullS: 60 } },
+      hard: { settings: { mazes: 4, sizes: [15, 15, 17, 19], routes: [54, 56, 52, 58], pits: [3, 4, 4, 4], ice: [3, 3, 4, 4], icePassages: 2, twoOf: [2, 3, 4], twoCount: [2, 2], parScale: 135, speedFullS: 58 } },
+      expert: { settings: { mazes: 4, sizes: [15, 17, 19, 19], routes: [56, 62, 58, 60], pits: [4, 4, 4, 4], ice: [5, 5, 5, 5], icePassages: 2, twoOf: [2, 3, 4], twoCount: [2, 3], parScale: 115, speedFullS: 70 } },
+    },
+  },
+};
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */
 let registry: Partial<Record<string, GameLevels>> = GAME_LEVELS;

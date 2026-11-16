@@ -80,7 +80,7 @@ function TiltSummary({ puzzle, answer, reveal }: { puzzle: PuzzleData; answer: s
   const times = useReplayed(puzzle, answer, async () => {
     if (puzzle.type !== "tilt" || !answer) return null;
     const { replayTiltRun } = await import("@/lib/duel/tilt");
-    const st = replayTiltRun(puzzle.seed, answer, puzzle.tiltRev).state as unknown as { mazeTicks?: number[]; list?: { par?: number }[] };
+    const st = replayTiltRun(puzzle.seed, answer, puzzle.tiltRev, puzzle.level).state as unknown as { mazeTicks?: number[]; list?: { par?: number }[] };
     if (!st.mazeTicks) return null;
     return st.mazeTicks.map((ticks, i) => ({ s: ticks / 60, under: typeof st.list?.[i]?.par === "number" ? ticks <= st.list[i]!.par! : false }));
   });

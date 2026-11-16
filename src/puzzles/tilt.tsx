@@ -54,7 +54,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       // tiltRev 8: the taller world (the bigger mazes drawn whole through a fixed camera since 27 Oct 2026).
       worldH={tiltWorldHFor(data?.tiltRev)}
       renderAtCanvasSize
-      game={tiltArtGameFor(data?.tiltRev)}
+      game={tiltArtGameFor(data?.tiltRev, data?.level)}
       sounds={tiltSounds}
       checkpoint={tiltCheckpoint}
       interval={TILT_CHECKPOINT_INTERVAL}
@@ -91,7 +91,7 @@ export function tiltLine(r: { mazes: number; survived: boolean; survivedSeconds:
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "tilt") return null;
-  const result = replayTiltRun(puzzle.seed, myAnswer ?? "", puzzle.tiltRev);
+  const result = replayTiltRun(puzzle.seed, myAnswer ?? "", puzzle.tiltRev, puzzle.level);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">

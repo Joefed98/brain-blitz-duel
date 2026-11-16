@@ -103,7 +103,7 @@ import { encodeBurstRun, replayBurstRun } from "@/lib/duel/burst";
 import { orbitCheckpoint, orbitGame } from "@/lib/arcade/orbit";
 import { encodeOrbitRun, replayOrbitRun } from "@/lib/duel/orbit";
 import { swingCheckpoint, swingGame } from "@/lib/arcade/swing";
-import { tiltCheckpoint, tiltGame, tiltGameFor, TILT_REV } from "@/lib/arcade/tilt";
+import { tiltCheckpoint, tiltGame, tiltGameFor, tiltLevelGame, TILT_REV } from "@/lib/arcade/tilt";
 import { encodeTiltRun, replayTiltRun } from "@/lib/duel/tilt";
 import { hotfloorCheckpoint, hotFloorGame } from "@/lib/arcade/hotFloor";
 import { encodeHotFloorRun, replayHotFloorRun } from "@/lib/duel/hotFloor";
@@ -1027,6 +1027,8 @@ const GAMES: Game[] = [
   { key: "pyramid/v3", game: pyramidGameFor(3), checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 3) },
   // Coral Pop bubbleRev 12 (the Strategy overhaul, 15 Nov 2026: the fast shot), appended so every earlier entry keeps its stream.
   { key: "bubble/fast", game: bubbleGameFor(BUB_REV_FAST), checkpoint: bubCheckpoint, mode: "events", rate: 15, encode: encodeBubbleRun, replay: (seed: number, raw: string) => replayBubbleRun(seed, raw, BUB_REV_FAST) },
+  // Tilt's Expert level (stage 3, 15 Nov 2026: tiltRev 12 at expert), appended so every earlier entry keeps its stream.
+  { key: "tilt/expert", game: tiltLevelGame("expert"), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_BIG, "expert") },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
