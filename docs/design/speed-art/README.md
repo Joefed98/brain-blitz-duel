@@ -125,5 +125,11 @@ The shared tool (`bun scripts/level-tune.ts <game> --level=all`, the puzzle kits
 Chain 195 / 194 / 174 / 161; Bonk 169 / 166 / 162 / 161; Tenfall 183 / 178 / 180 / 161; Pull! 200 / 195 / 195 / 193.
 
 Flash is reaction-bound: at a 250 ms reaction each flash scores about 115 on its curve, so its whole ladder sits lower.
+
+**For Joe's scoring review (Flash, 16 Nov 2026):** under the human limits Flash averages 124 / 114 / 106 / 100 (Easy to
+Expert), with Expert's best tenth at 123: no level reaches the 160–200 band the other Speed games give a strong player.
+The cause is the per-flash curve (tapRev 7, `FLASH_REV6_CURVE` in `src/lib/duel/depth/flash.ts`): 250 ms scores about 115,
+and 200 points needs about 120 ms, faster than people react. Normal is left byte for byte as it is (Joe, 16 Nov 2026); any
+change to the curve would be a new stamp.
 speed-levels-check pins the ladder on 100 deals: each level at least 3 below the one before (Easy within 3 of Normal),
 and Expert's best tenth at 140 or Normal's own average where that is lower.
