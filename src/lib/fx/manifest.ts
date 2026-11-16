@@ -549,9 +549,9 @@ const ENTRIES = {
   "blockparty.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.pops.mp3" },
   // ---- tessellate:start (the Pattern overhaul, 15 Nov 2026): library placeholders until Joe's files
   // (docs/sound-cues/pattern-elevenlabs.md); each url becomes /sounds/<slot>.mp3 when its file lands.
-  "blockparty.pickup": { channel: "effects", frequency: 0, ms: 182, url: "/sounds/balance.lift.mp3", volume: 0.7 },
+  "blockparty.pickup": { channel: "effects", frequency: 0, ms: 120, url: "/sounds/gem.pick.mp3", volume: 0.7 },
   "blockparty.illegal": { channel: "effects", frequency: 0, ms: 606, url: "/sounds/checkout.thud.mp3", volume: 0.8 },
-  "blockparty.undo": { channel: "effects", frequency: 0, ms: 182, url: "/sounds/balance.lift.mp3", volume: 0.6 },
+  "blockparty.undo": { channel: "effects", frequency: 0, ms: 120, url: "/sounds/gem.pick.mp3", volume: 0.6 },
   "blockparty.reset": { channel: "effects", frequency: 0, ms: 528, url: "/sounds/move.slide.mp3", volume: 0.8 },
   // ---- tessellate:end
   // ---- topsy:start (the Pattern overhaul, 15 Nov 2026): library stand-ins until Joe's files
