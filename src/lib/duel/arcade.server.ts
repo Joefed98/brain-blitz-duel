@@ -12,7 +12,7 @@ import { inkBigDealSeed } from "./inkBigDeal.server";
 import { inkHillsDealSeed } from "./inkHillsDeal.server";
 import { SNAKE_REV_TARGET, SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { BUB_REV_FAST, BUB_REV_STD } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_ICE2, MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
 import { minesBoard, minesCountFor, minesSolve, MINES_REV_LOGIC, MINES_REV_STD } from "@/lib/arcade/minesweeper";
 import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
@@ -190,7 +190,15 @@ export function generateMatchup(): MatchupPuzzleData {
   // docs/arcade-standard/matchup.md): four treasures that may swap with a gem that then makes a line, four goal
   // levels, and the score as fixed parts to 200. matchupRev 12 (Nov 2026): six goals shown at once and six treasures,
   // the parts re-weighted (core 108, treasure 36, goals 36, ice 10, big lines 10).
-  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_SIX };
+  // matchupRev 13 (the Strategy overhaul stage 3, 15 Nov 2026): two-hit ice at every level, and the levels (the deal
+  // stamps `level`; the sim reads it at init). Checks written for matchupRev 12 pin it (pinMatchupPreIce2).
+  if (dealPinned("matchupPreIce2")) return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_SIX };
+  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_ICE2 };
+}
+
+/** Checks written for Gemstone matchupRev 12: deal it as rooms did before two-hit ice (returns the previous setting). */
+export function pinMatchupPreIce2(on: boolean): boolean {
+  return setDealPin("matchupPreIce2", on);
 }
 
 export function generateSnake(): SnakePuzzleData {

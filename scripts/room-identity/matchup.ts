@@ -1,5 +1,5 @@
 /**
- * Room identity for Gemstone matchupRev 12 (six goals and six treasures, docs/arcade-standard/matchup.md; matchupRev 11, the
+ * Room identity for Gemstone matchupRev 13 (two-hit ice and levels, Normal here; matchupRev 12 before it: six goals and six treasures, docs/arcade-standard/matchup.md; matchupRev 11, the
  * arcade scoring standard, before it; matchupRev 10 before that, docs/phone-notes-oct-2026/gemstone.md): `scheduleOf`
  * replays an input log and lists what the seed alone decides: the ice (laid once at the start), each level's goal
  * (colours and count) and each treasure gem's column, numbered by order (entry t = k for the k-th level and the k-th
@@ -11,7 +11,7 @@
  *   import { roomIdentity } from "./room-identity/matchup";
  */
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
-import { matchupGameFor, MATCHUP_INPUT_SWAP, MATCHUP_REV_SIX, MATCHUP_SIZE, MATCHUP_TREASURE, MATCHUP_V9_ROWS, type MatchupState } from "../../src/lib/arcade/matchup";
+import { matchupGameFor, MATCHUP_INPUT_SWAP, MATCHUP_REV_ICE2, MATCHUP_SIZE, MATCHUP_TREASURE, MATCHUP_V9_ROWS, type MatchupState } from "../../src/lib/arcade/matchup";
 import { Human, type SkillLevel } from "../arcade-skill-bands/human";
 import { bot } from "../arcade-skill-bands/bots/matchup";
 
@@ -58,13 +58,13 @@ export function randomLog(seed: number, ticks = 5400): ArcadeInputEvent[] {
 }
 
 export function botLog(seed: number, level: SkillLevel): ArcadeInputEvent[] {
-  const game = matchupGameFor(MATCHUP_REV_SIX);
-  return bot({ game, seed, rev: MATCHUP_REV_SIX, human: new Human("matchup", seed, level), fixes: true }).events ?? [];
+  const game = matchupGameFor(MATCHUP_REV_ICE2);
+  return bot({ game, seed, rev: MATCHUP_REV_ICE2, human: new Human("matchup", seed, level), fixes: true }).events ?? [];
 }
 
 export const roomIdentity = {
   type: "matchup",
-  rev: MATCHUP_REV_SIX,
+  rev: MATCHUP_REV_ICE2,
   logs: (seed: number) => [
     // Bots at three levels (a random log rarely brings a treasure down, so it would cap the comparison at the first).
     { name: "weak", log: botLog(seed, "weak") },

@@ -110,15 +110,19 @@ function TiltSummary({ puzzle, answer, reveal }: { puzzle: PuzzleData; answer: s
 
 // ------------------------------------------------------------------ Gemstone
 
+/** matchupRev 13 Expert's seventh gem colour (matchup.ts MATCHUP_COLOUR7, kept here so the reveal stays light; gemstone-levels-check). */
+export const SUMMARY_COLOUR7 = "#2FE3E6"; // design-lint-ignore
+const HEART_PATH = "M12 21 C5 15 2 12 2 8 C2 5 4.5 3 7 3 C9 3 11 4.5 12 6 C13 4.5 15 3 17 3 C19.5 3 22 5 22 8 C22 12 19 15 12 21 Z";
 const GEM_SHAPES: StrategyArtName[] = ["gem-circle", "gem-square", "gem-triangle", "gem-diamond", "gem-star", "gem-hexagon"];
 
 function GemstoneSummary({ puzzle, answer, reveal }: { puzzle: PuzzleData; answer: string | null; reveal: ArcadeRevealData }) {
   const goals = useReplayed(puzzle, answer, async () => {
     if (puzzle.type !== "matchup" || !answer) return null;
-    const [{ replayMatchupRun }, { matchupV12GoalNeed }] = await Promise.all([import("@/lib/duel/matchup"), import("@/lib/arcade/matchup")]);
-    const st = replayMatchupRun(puzzle.seed, answer, puzzle.matchupRev).state as unknown as { six?: number; goalLeft?: number[] };
+    const [{ replayMatchupRun }, { matchupV12GoalNeed }, { puzzleLevel }] = await Promise.all([import("@/lib/duel/matchup"), import("@/lib/arcade/matchup"), import("@/lib/levels/levels")]);
+    const st = replayMatchupRun(puzzle.seed, answer, puzzle.matchupRev, puzzleLevel(puzzle)).state as unknown as { six?: number; goalLeft?: number[]; goalNeed?: number[] };
     if (!st.six || !st.goalLeft) return null;
-    return matchupV12GoalNeed(puzzle.seed).map((n, colour) => ({ colour, need: n, left: st.goalLeft![colour] ?? n }));
+    // matchupRev 13: the level's goals ride in the state (5 on Easy, 7 on Expert).
+    return (st.goalNeed ?? matchupV12GoalNeed(puzzle.seed)).map((n, colour) => ({ colour, need: n, left: st.goalLeft![colour] ?? n }));
   });
   const goalFrac = frac(tile(reveal, "Goals"));
   const treasure = frac(tile(reveal, "Treasure"));
@@ -128,7 +132,14 @@ function GemstoneSummary({ puzzle, answer, reveal }: { puzzle: PuzzleData; answe
         {(goals ?? Array.from({ length: goalFrac?.[1] ?? 6 }, (_, i) => ({ colour: i, need: 0, left: i < (goalFrac?.[0] ?? 0) ? 0 : 1 }))).map((g) => (
           <span key={g.colour} className="srs-cell" data-done={g.left === 0 ? "" : undefined}>
             <span className="srs-disc">
-              <Piece name={GEM_SHAPES[g.colour % GEM_SHAPES.length]!} size={38} dim={g.left > 0} />
+              {g.colour < GEM_SHAPES.length ? (
+                <Piece name={GEM_SHAPES[g.colour]!} size={38} dim={g.left > 0} />
+              ) : (
+                // matchupRev 13 Expert's seventh colour: the heart, drawn in code (no rendered stone yet).
+                <svg viewBox="0 0 24 24" width={38} height={38} aria-hidden="true" className="srs-piece" data-dim={g.left > 0 ? "" : undefined}>
+                  <path d={HEART_PATH} fill={SUMMARY_COLOUR7} stroke="white" strokeOpacity={0.6} strokeWidth="1" />
+                </svg>
+              )}
               {g.left === 0 ? (
                 <span className="srs-tick">
                   <Icon name="check" size={18} />

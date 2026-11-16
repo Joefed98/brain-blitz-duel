@@ -18,6 +18,7 @@ import {
 } from "@/lib/arcade/engine";
 import {
   MATCHUP_REV_SIX,
+  MATCHUP_REV_ICE2,
   matchupAnimationDuration,
   matchupBusy,
   matchupConstantPlay,
@@ -58,6 +59,7 @@ import { arcadeFeedback } from "@/lib/fx/arcade";
 import { liveCue } from "@/lib/fx/momentCues";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
@@ -70,11 +72,12 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: MatchupPuzzleData | null = puzzle.type === "matchup" ? puzzle : null;
   const seed = data?.seed ?? 1;
-  const matchupGame = matchupGameFor(data?.matchupRev);
+  // matchupRev 13: the stored puzzle's level picks the world (colours, goals, ice, the hint).
+  const matchupGame = matchupGameFor(data?.matchupRev, puzzleLevel(puzzle));
   // matchupRev 9: the taller board (ten rows in a 390 × 720 world); every phone draws the stored revision's.
   const MATCHUP_ROWS = matchupRowsFor(data?.matchupRev);
   /** matchupRev 12: its board is drawn zoomed (matchup.renderer SIX_ZOOM, display only). */
-  const six = data?.matchupRev === MATCHUP_REV_SIX;
+  const six = data?.matchupRev === MATCHUP_REV_SIX || data?.matchupRev === MATCHUP_REV_ICE2;
   const MATCHUP_WORLD_H = matchupWorldHFor(data?.matchupRev);
   /** matchupRev 2–4: keep swapping while gems clear and fall; each resolution step animates on its own. */
   const constantPlay = matchupConstantPlay(matchupGame.init(seed));
@@ -151,7 +154,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     let hintShown = false;
     // matchupRev 9: the features sound from the shared set (a goal's chime, ice cracking, a treasure's ding, a deep cascade's zap).
     let goalLeftSeen = (state.current.goalLeft ?? []).reduce((a: number, b: number) => a + b, 0);
-    let goalsSeen = { levels: state.current.levels ?? 0, ice: state.current.iceBroken ?? 0, treasures: state.current.treasures ?? 0, swaps: state.current.swaps };
+    let goalsSeen = { levels: state.current.levels ?? 0, ice: state.current.iceBroken ?? 0, treasures: state.current.treasures ?? 0, swaps: state.current.swaps, cracked: state.current.iceCracked ?? 0 };
 
     const finish = () => {
       if (submitted.current) return;
@@ -233,10 +236,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if ((now.treasures ?? 0) > goalsSeen.treasures) playSound("shared.celebrate.countDing", 0.8);
         // The Strategy overhaul, stage 2: the ice's own crack (today's crackle until Joe's recording), and a goal's spark.
         if ((now.iceBroken ?? 0) > goalsSeen.ice) playSlotOr("matchup.iceCrack", "shared.celebrate.crackle2", 0.55);
+        // matchupRev 13: a first hit only cracks the ice (the same crack, quieter).
+        else if ((now.iceCracked ?? 0) > goalsSeen.cracked) playSlotOr("matchup.iceCrack", "shared.celebrate.crackle2", 0.35);
         if (now.six && (now.goalLeft ?? []).reduce((a, b) => a + b, 0) < goalLeftSeen) liveCue("matchup.goalSpark", 150);
         goalLeftSeen = (now.goalLeft ?? []).reduce((a, b) => a + b, 0);
         if (now.swaps > goalsSeen.swaps && (now.lastMult ?? 0) >= 3) playSound("shared.celebrate.zap", 0.45);
-        goalsSeen = { levels: now.levels ?? 0, ice: now.iceBroken ?? 0, treasures: now.treasures ?? 0, swaps: now.swaps };
+        goalsSeen = { levels: now.levels ?? 0, ice: now.iceBroken ?? 0, treasures: now.treasures ?? 0, swaps: now.swaps, cracked: now.iceCracked ?? 0 };
       }
       reportArcadeTick(state.current.tick, matchupGame.isOver(state.current));
       feedback(state.current, matchupGame.isOver(state.current));
@@ -447,7 +452,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "matchup") return null;
-  const result = replayMatchupRun(puzzle.seed, myAnswer ?? "", puzzle.matchupRev);
+  const result = replayMatchupRun(puzzle.seed, myAnswer ?? "", puzzle.matchupRev, puzzleLevel(puzzle));
   const sent = decodeMatchupRun(myAnswer ?? "").events.length;
 
   return (

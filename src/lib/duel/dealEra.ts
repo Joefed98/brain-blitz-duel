@@ -74,6 +74,8 @@ export const DEAL_PINS = {
   bubblePreFast: { texts: false },
   /** arcade.server.ts: Rainbow Bridge inkRev 14 from its deal, before the Strategy overhaul's pot placements (15 Nov 2026). */
   inkPreHills: { texts: false },
+  /** arcade.server.ts: Gemstone matchupRev 12, before two-hit ice and the levels (15 Nov 2026). */
+  matchupPreIce2: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

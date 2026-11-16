@@ -1,3 +1,4 @@
+import { puzzleLevel } from "@/lib/levels/levels";
 import { equationVerdict } from "./operatorGaps";
 import { buildArcadeReveal } from "@/lib/arcade/reveal";
 import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
@@ -3000,7 +3001,7 @@ function gradeUnderRev(
     case "matchup": {
       // As with every arcade game, only the server's own replay scores.
       const replayStart = performance.now();
-      const run = replayMatchupRun(puzzle.seed, answer, puzzle.matchupRev);
+      const run = replayMatchupRun(puzzle.seed, answer, puzzle.matchupRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)

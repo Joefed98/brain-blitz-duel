@@ -49,7 +49,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // burstRev 11 (Nov 2026, the scoring audit): burstRev 10's play and parts; the last life free, wasted beams cost.
   { type: "burst", field: "burstRev", rev: 11, batch: "A" },
   // Gemstone deals matchupRev 12 since Nov 2026 (six goals shown at once, six treasures; the same five parts re-weighted).
-  { type: "matchup", field: "matchupRev", rev: 12, batch: "A" },
+  // matchupRev 13 (15 Nov 2026, the Strategy overhaul stage 3): two-hit ice and levels, the same five parts.
+  { type: "matchup", field: "matchupRev", rev: 13, batch: "A" },
   // snakeRev 12 (1 Nov 2026): snakeRev 11's parts, the core counting a gold star as 2 and full at 28 (snake-rev12-check).
   { type: "snake", field: "snakeRev", rev: 12, batch: "A" },
   { type: "hover", field: "hoverRev", rev: 10, batch: "A" },
