@@ -127,6 +127,7 @@ import { generateNumline } from "./numline.server";
 import { generateFences } from "./fences.server";
 import { generateFillomino } from "./fillomino.server";
 import { generateBridges } from "./bridges.server";
+import { dealLogicLevel } from "./logicLevelDeal.server";
 import { generateKakuro } from "./kakuro.server";
 import { randomBelow } from "./random";
 import { saltSeed } from "./seededRng";
@@ -227,6 +228,9 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   // Depth batch 4 (docs/depth/d4-pattern.md): eight Pattern / Logic games deal their 200-point stamp.
   const depth = dealDepth4(type, context);
   if (depth) return depth;
+  // The Logic overhaul's levels (logicLevels.ts): built live, kept only when a person could solve them (logicLevelDeal).
+  const logicBoard = dealLogicLevel(type, context.level, () => gameSeed(type, context));
+  if (logicBoard) return logicBoard;
   if (context.bankSeed !== undefined && isBankedType(type))
     return drawBankedPuzzle(type, context.bankSeed, context.recentBankKeys);
   if (type === "stroop") return generateColourClash();

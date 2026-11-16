@@ -160,6 +160,8 @@ export function trCountSolutions(
   limit = 2,
   size = TR_SIZE,
   onSolution?: (path: number[]) => void,
+  /** Filled with the search's steps (the difficulty grade of a level's board, logicLevels.ts). */
+  stats?: { nodes: number },
 ): number {
   const cells = size * size;
   const at = new Array<number>(cells + 2).fill(-1);
@@ -212,6 +214,7 @@ export function trCountSolutions(
 
   const go = (step: number, cell: number) => {
     if (count >= limit) return;
+    if (stats) stats.nodes++;
     if (step === cells) {
       count++;
       onSolution?.([...path]);

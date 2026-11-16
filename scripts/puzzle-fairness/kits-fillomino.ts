@@ -8,7 +8,7 @@
  */
 import { encodeFillomino, fillominoGroups } from "../../src/lib/duel/fillomino";
 import type { FillominoPuzzleData } from "../../src/lib/duel/types";
-import { thinkMs, type Play, type PuzzleKit, type Rng, type Skill, type Step } from "./kit";
+import { atLevel, thinkMs, type Play, type PuzzleKit, type Rng, type Skill, type Step } from "./kit";
 
 const FILLOMINO_BASE = 1.8;
 
@@ -18,6 +18,7 @@ function grid(givens: readonly number[], state: ReadonlyMap<number, number>): nu
 
 /** Numbers the blanks toward the solution with mistakes (the placement player of kits-logic.ts, per square). */
 function fillPlay(p: FillominoPuzzleData, rng: Rng, skill: Skill): Play {
+  skill = atLevel(skill, p);
   const solution = p.solution ?? [];
   // Regions in a shuffled order, squares in each region in order: how people fill one region at a time.
   const regions = rng.shuffle(fillominoGroups(p.size, solution).cells);

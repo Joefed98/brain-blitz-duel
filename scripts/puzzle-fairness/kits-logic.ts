@@ -42,7 +42,7 @@ import { encodeFloodMoves, floodApply, floodSolved } from "../../src/lib/duel/fl
 import { encodeTents, orthNeighbours } from "../../src/lib/duel/tents";
 import { encodeShikaku, rectHas, rectValid, rectsOverlap, type ShikakuRect } from "../../src/lib/duel/shikaku";
 import { encodeBulbs, sightLine } from "../../src/lib/duel/lightUp";
-import { thinkMs, type Play, type PuzzleKit, type Rng, type Skill, type SpamPlay, type Step } from "./kit";
+import { atLevel, thinkMs, type Play, type PuzzleKit, type Rng, type Skill, type SpamPlay, type Step } from "./kit";
 
 /* ------------------------------------------------------------------------ */
 /*  Shared helpers                                                          */
@@ -838,6 +838,7 @@ const tentsKit: PuzzleKit = {
     ];
   },
   play(p, rng, skill) {
+    skill = atLevel(skill, p);
     const pz = p as TentsPuzzleData;
     const trees = new Set(pz.trees);
     const sol = new Set(pz.solution ?? []);
@@ -914,6 +915,7 @@ const shikakuKit: PuzzleKit = {
     ];
   },
   play(p, rng, skill) {
+    skill = atLevel(skill, p);
     const pz = p as ShikakuPuzzleData;
     const sol = pz.solution ?? [];
     const targets = pz.clues.map((clue) => [clue.cell, sol.find((r) => rectHas(r, clue.cell, pz.size))!] as [number, ShikakuRect]);
@@ -975,6 +977,7 @@ const lightupKit: PuzzleKit = {
     ];
   },
   play(p, rng, skill) {
+    skill = atLevel(skill, p);
     const pz = p as LightUpPuzzleData;
     const walls = new Set(pz.walls);
     const sol = new Set(pz.solution ?? []);

@@ -24,6 +24,7 @@
  */
 import { checkOverride } from "@/lib/checkOverride";
 import type { PuzzleType } from "@/lib/duel/types";
+import { LOGIC_GAME_LEVELS } from "@/lib/duel/logicLevels";
 
 import { LEVELS, NORMAL, type Level } from "./levels";
 
@@ -46,7 +47,10 @@ export interface GameLevels<S = Record<string, unknown>> {
  * Every game's levels beyond Normal. Empty until the family sessions add theirs (15 Nov 2026): every game offers
  * Normal only.
  */
-export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {};
+export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
+  // Logic overhaul 2 (15–16 Nov 2026): Tents and Trees, Shikaku, Lamplighter, Trail, Loopline, Regions, Island Link.
+  ...(LOGIC_GAME_LEVELS as unknown as Partial<Record<PuzzleType, GameLevels>>),
+};
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */
 let registry: Partial<Record<string, GameLevels>> = GAME_LEVELS;

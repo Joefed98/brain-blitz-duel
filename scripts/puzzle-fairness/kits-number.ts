@@ -40,7 +40,7 @@ import {
   type CheckoutDart,
 } from "../../src/lib/duel/checkout";
 import { encodeNumline, numlineShare, numlineValue, NUMLINE_SCALE, NUMLINE_TOTAL, NUMLINE_ITEMS } from "../../src/lib/duel/numline";
-import { thinkMs, type PuzzleKit, type Rng, type SpamPlay, type Step } from "./kit";
+import { atLevel, thinkMs, type PuzzleKit, type Rng, type SpamPlay, type Step } from "./kit";
 
 /** The phone's "CORRECT" hold between stages (StageCorrect.tsx STAGE_CORRECT_HOLD_MS). */
 const HOLD_MS = 1000;
@@ -604,6 +604,7 @@ const trailKit: PuzzleKit = {
     return out;
   },
   play(p, rng, skill) {
+    skill = atLevel(skill, p);
     // BASE 3 s per cell: a 6×6 king-move path with 10 givens, ~26 cells to draw.
     const BASE = 3;
     const puzzle = p as TrailPuzzleData;
