@@ -448,7 +448,7 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     slopes: [[0, 240, 150, 450, 0, 1, 2]],
     gates: [
       ["mill", 0, 460, 390, 460, 318, V3_MILL_HALF],
-      ["castle", 0, 230, 390, 230, 75, 20, 300],
+      ["castle", 0, 230, 390, 230, 75, 26, 196],
     ],
     sands: [[[178, 598, 22], [204, 610, 16]]],
     swells: [[200, 560, 90, 9], [210, 340, 70, 9]],

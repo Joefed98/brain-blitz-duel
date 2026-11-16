@@ -2513,14 +2513,21 @@ function paintCastleV3(ctx: CanvasRenderingContext2D, g: NonNullable<MgHole["gat
     ctx.fillStyle = "rgba(0,0,0,0.45)";
     ctx.fillRect(-r + 2, -r + 4, len + r * 2, r * 2);
     stoneFill(ctx, -r, -r, len + r * 2, r * 2, salt + Math.round(ax));
-    // The wall walk sunk between two rows of merlons (lit on the near side, shaded on the far).
-    ctx.fillStyle = "rgba(60,52,44,0.55)";
-    ctx.fillRect(-r + 3, -r * 0.35, len + r * 2 - 6, r * 0.7);
-    for (let t = -r + 1; t < len + r - 4; t += 8) {
-      ctx.fillStyle = "#E8E0D2";
-      ctx.fillRect(t, -r, 5, r * 0.6);
-      ctx.fillStyle = "#8C8275";
-      ctx.fillRect(t, r * 0.4, 5, r * 0.6);
+    // The wall walk: a darker sunk band along the middle, then big merlons along both edges (the far row lit, the
+    // near row in its own shade), each a raised stone block with a crisp lit top and a dark joint.
+    ctx.fillStyle = "rgba(70,56,38,0.55)";
+    ctx.fillRect(-r + 2, -r * 0.3, len + r * 2 - 4, r * 0.6);
+    const mw = 7;
+    for (let t = -r + 2; t + mw <= len + r - 2; t += mw * 2) {
+      for (const [y0, hgt, face] of [[-r, r * 0.7, "#F1E2C3"], [r * 0.3, r * 0.7, "#B39469"]] as const) {
+        ctx.fillStyle = face;
+        ctx.fillRect(t, y0, mw, hgt);
+        ctx.fillStyle = "rgba(255,248,230,0.75)";
+        ctx.fillRect(t, y0, mw, 1.4);
+        ctx.strokeStyle = "rgba(40,30,18,0.7)";
+        ctx.lineWidth = 0.9;
+        ctx.strokeRect(t + 0.45, y0 + 0.45, mw - 0.9, hgt - 0.9);
+      }
     }
     ctx.strokeStyle = "rgba(20,16,12,0.6)";
     ctx.lineWidth = 1;

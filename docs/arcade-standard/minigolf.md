@@ -108,22 +108,23 @@ witness scores 200 at every level; crazy-golf-v3-check). The levels are ready fo
 **Parts** (200, as golfRev 2): Holes 120, Par 40 (falling to 0 at the level's stroke limit), Under par 20, Speed 20
 (full by the level's time, 0 at 90 s).
 
-**Measured** (round 2, 15 Nov 2026, `bun scripts/crazy-golf-levels.ts --courses=32 --skills=great,near,elite`: the
-golfRev 3 bot, `scripts/arcade-skill-bands/bots/minigolfV3.ts`, under the skill-band tool's human limits, on 32 courses
-dealt from the bank as the server deals them, every run scored through the server's replay; the aim preview modelled as
-a scale on the power error, Easy 0.6, Normal 1, Hard 1.75, Expert 2.3). Median score / mean (all five holed of 32;
-median finish):
+**Measured** (round 3, 16 Nov 2026, the difficulty framework's shared tool, `bun scripts/level-tune.ts minigolf
+--level=<level> --seeds=24`: each sample a real deal at the level, the golfRev 3 skill-band bot,
+`scripts/arcade-skill-bands/bots/minigolfV3.ts`, under the skill-band tool's human limits plus Joe's: at least 0.25 s to
+react to the ball coming to rest and 0.15 s to move the finger into the pull; no modelled effect of the aim preview;
+every run graded through the server's replay on the dealt puzzle):
 
-| | Great | Near-perfect | Elite | Target (near-perfect) |
-|---|---|---|---|---|
-| Easy | 195 / 191.5 (30; 49.5 s) | 196 / 195.5 (32; 40.7 s) | 200 / 196.8 (32; 36.8 s) | |
-| Normal | 194 / 186.0 (28; 47.1 s) | 196 / 195.8 (32; 40.1 s) | 200 / 196.6 (32; 37.6 s) | about 198 |
-| Hard | 161 / 157.2 (26; 44.5 s) | 168 / 164.0 (25; 38.7 s) | 175.5 / 172.8 (29; 33.9 s) | about 160 |
-| Expert | 145.5 / 144.1 (17; 43.8 s) | 156 / 152.9 (19; 36.3 s) | 172 / 167.4 (25; 32.7 s) | about 140 |
+| Level | Near-perfect avg / median (holed all five) | Elite avg / median (holed all five) |
+|---|---|---|
+| Easy | 188.8 / 190 (100 %) | 191.6 / 196 (96 %) |
+| Normal | 185.1 / 189 (92 %) | 191.7 / 196 (96 %) |
+| Hard | 151.0 / 154 (67 %) | 163.0 / 162 (83 %) |
+| Expert | 142.9 / 147 (46 %) | 145.5 / 150 (58 %) |
 
-Tried and not kept: Expert's slopes at 2.2× (the bank re-proved, 356 holes): near-perfect median 158.5, mean 154.2, 20 of
-32 holed, no lower than 1.8×. Expert's stroke limit at par + 1: near-perfect median 139, mean 135.2, but only 9 of 32
-hole all five (great 119.5, 7 of 32; elite 160, 20 of 32), so it misses "mostly finishing"; a decision for Joe.
+Joe (16 Nov 2026): the ~198 / 160 / 140 targets are a guide; what matters is a clear step up, a comfortable Normal and an
+Expert proven humanly scorable. Easy and Normal sit together for strong players (both near the top: Easy's slower sails,
+longer stroke limit and bounce preview help weaker players most); Hard and Expert step down clearly. Expert's elite runs
+on the 24 sample courses range 105–197 (`docs/design/pages-review/crazy-golf/GALLERY.md` lists them with their holes).
 
 **Proofs.** crazy-golf-v3-check (the catalogue, the bank, 600 composed courses at 200, the deal, the chip, the swells, the
 levels, the reveal's trace; `CHECKS_FULL=1` also rebuilds the bank byte for byte, about 20 min), minigolf-sync-check

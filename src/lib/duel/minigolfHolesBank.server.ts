@@ -1,5 +1,5 @@
 /**
- * Crazy Golf golfRev 3's hole bank (the Crazy Golf overhaul, 15 Nov 2026): 344 holes (of 360 in the catalogue,
+ * Crazy Golf golfRev 3's hole bank (the Crazy Golf overhaul, 15 Nov 2026): 357 holes (of 360 in the catalogue,
  * src/lib/arcade/minigolfHolesV3.ts) whose route the shot oracle (scripts/minigolf-oracle.ts bestRouteV3: putts and
  * chips on the sim's clock) found at every windmill speed, by course slot. Each hole's pars are per level (Easy, Normal,
  * Hard, Expert): the best route's strokes + 2 on Easy and Normal (a birdie always possible), the best route itself on
@@ -321,10 +321,23 @@ export const MINIGOLF_HOLES_BANK: readonly (readonly MinigolfHoleEntry[])[] = [
     { id: 1516, pars: [5, 5, 3, 3], t: [391, 327, 404, 323] },
     { id: 1517, pars: [5, 5, 3, 3], t: [385, 345, 373, 339] },
   ],
-  // Slot 5: 56 holes.
+  // Slot 5: 69 holes.
   [
-    { id: 1605, pars: [6, 6, 4, 4], t: [588, 444, 478, 430] },
-    { id: 1611, pars: [6, 6, 4, 4], t: [469, 413, 426, 474] },
+    { id: 1600, pars: [6, 6, 4, 4], t: [711, 564, 534, 416] },
+    { id: 1602, pars: [6, 6, 4, 4], t: [573, 525, 452, 412] },
+    { id: 1603, pars: [6, 6, 4, 4], t: [570, 514, 483, 452] },
+    { id: 1604, pars: [6, 6, 4, 4], t: [621, 492, 522, 479] },
+    { id: 1605, pars: [6, 6, 4, 4], t: [638, 447, 511, 426] },
+    { id: 1606, pars: [6, 6, 4, 4], t: [630, 548, 578, 407] },
+    { id: 1608, pars: [6, 6, 4, 4], t: [495, 431, 429, 408] },
+    { id: 1609, pars: [6, 6, 4, 4], t: [505, 465, 434, 414] },
+    { id: 1610, pars: [6, 6, 4, 4], t: [527, 479, 447, 392] },
+    { id: 1611, pars: [6, 6, 4, 4], t: [489, 433, 428, 402] },
+    { id: 1612, pars: [6, 6, 4, 4], t: [618, 558, 500, 423] },
+    { id: 1613, pars: [6, 6, 4, 4], t: [602, 563, 505, 384] },
+    { id: 1614, pars: [6, 6, 4, 4], t: [507, 443, 442, 424] },
+    { id: 1615, pars: [6, 6, 4, 4], t: [541, 477, 458, 384] },
+    { id: 1617, pars: [6, 6, 4, 4], t: [494, 437, 446, 390] },
     { id: 1700, pars: [4, 4, 2, 2], t: [257, 257, 258, 260] },
     { id: 1701, pars: [4, 4, 2, 2], t: [390, 390, 258, 256] },
     { id: 1702, pars: [4, 4, 2, 2], t: [247, 247, 250, 247] },
