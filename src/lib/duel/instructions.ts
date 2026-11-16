@@ -1417,6 +1417,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Let go to shoot.", detail: "A faster shot comes from dragging further down the aim line: gold chevrons over the gun show its speed. It follows exactly the same path, only quicker.", helpOnly: true },
         { action: `${BUB_V12_REEF} bubbles`, detail: "make the reef. Clear it all for a bonus, and more for clearing it fast.", helpOnly: true },
         { action: "Ninety seconds", detail: "on the same field and queue for everyone.", helpOnly: true },
+        { action: "Levels:", detail: "Easy deals three colours, a smaller 75-bubble reef, an aim line that shows two bounces and the reef coming down every 10 shots; Normal the five colours and the reef above; Hard a 110-bubble reef that comes down every 5 shots and an aim line to one bounce; Expert six colours (the orange seahorse is the sixth), a 110-bubble reef coming down every 7 shots and a short aim line. The points below are Normal’s; every level’s parts still make 200.", helpOnly: true },
       ],
       // bubbleRev 11 (the arcade scoring standard): every part, its maximum and how it pays, 200 in all.
       score: liveStdHelp("bubble"),
