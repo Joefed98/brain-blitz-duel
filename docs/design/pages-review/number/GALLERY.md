@@ -70,4 +70,16 @@ tray in balanced rows. Operator's and Integer Pyramid's live effects:
 
 ## Stage 3: levels
 
-To come once the level registry is on main.
+Each game's live round at each level, practice at 390 × 844, a few seconds in. Today's game is Hard for Counterweight,
+Brimful, Checkout and Kakuro (Normal is a new, gentler deal on a new stamp) and Normal for the other four.
+
+| Game | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Counterweight | <img src="img/balance-easy.webp" width="120" alt="Counterweight easy"> | <img src="img/balance-normal.webp" width="120" alt="Counterweight normal"> | <img src="img/balance-hard.webp" width="120" alt="Counterweight hard"> | <img src="img/balance-expert.webp" width="120" alt="Counterweight expert"> |
+| Exact | <img src="img/target-easy.webp" width="120" alt="Exact easy"> | <img src="img/target-normal.webp" width="120" alt="Exact normal"> | <img src="img/target-hard.webp" width="120" alt="Exact hard"> | <img src="img/target-expert.webp" width="120" alt="Exact expert"> |
+| Operator | <img src="img/equation-easy.webp" width="120" alt="Operator easy"> | <img src="img/equation-normal.webp" width="120" alt="Operator normal"> | <img src="img/equation-hard.webp" width="120" alt="Operator hard"> | <img src="img/equation-expert.webp" width="120" alt="Operator expert"> |
+| Integer Pyramid | <img src="img/numpyramid-easy.webp" width="120" alt="Integer Pyramid easy"> | <img src="img/numpyramid-normal.webp" width="120" alt="Integer Pyramid normal"> | <img src="img/numpyramid-hard.webp" width="120" alt="Integer Pyramid hard"> | <img src="img/numpyramid-expert.webp" width="120" alt="Integer Pyramid expert"> |
+| Brimful | <img src="img/measure-easy.webp" width="120" alt="Brimful easy"> | <img src="img/measure-normal.webp" width="120" alt="Brimful normal"> | <img src="img/measure-hard.webp" width="120" alt="Brimful hard"> | <img src="img/measure-expert.webp" width="120" alt="Brimful expert"> |
+| Checkout | <img src="img/checkout-easy.webp" width="120" alt="Checkout easy"> | <img src="img/checkout-normal.webp" width="120" alt="Checkout normal"> | <img src="img/checkout-hard.webp" width="120" alt="Checkout hard"> | <img src="img/checkout-expert.webp" width="120" alt="Checkout expert"> |
+| Ballpark | <img src="img/numline-easy.webp" width="120" alt="Ballpark easy"> | <img src="img/numline-normal.webp" width="120" alt="Ballpark normal"> | <img src="img/numline-hard.webp" width="120" alt="Ballpark hard"> | <img src="img/numline-expert.webp" width="120" alt="Ballpark expert"> |
+| Kakuro | <img src="img/kakuro-easy.webp" width="120" alt="Kakuro easy"> | <img src="img/kakuro-normal.webp" width="120" alt="Kakuro normal"> | <img src="img/kakuro-hard.webp" width="120" alt="Kakuro hard"> | <img src="img/kakuro-expert.webp" width="120" alt="Kakuro expert"> |
