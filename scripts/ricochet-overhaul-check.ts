@@ -30,7 +30,11 @@
  *   bun scripts/ricochet-overhaul-check.ts [--record]
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { createCanvas } from "@napi-rs/canvas";
+import { createCanvas, GlobalFonts } from "@napi-rs/canvas";
+
+// The HUD's widths are measured in the app's own font (self-hosted, public/fonts), as swing-overhaul-check does, so the
+// fit doesn't depend on the machine's fallback font.
+GlobalFonts.registerFromPath("public/fonts/archivo-var-latin.woff2", "Archivo");
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync } from "node:fs";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
@@ -154,6 +158,7 @@ if (process.argv.includes("--record")) {
   for (const row of r2) {
     const lw = row.left.reduce((w, c) => w + actionChipWidth(ctx, c) + ACTION_CHIP_GAP, ACTION_HUD_EDGE);
     const rw = (row.right ?? []).reduce((w, c) => w + actionChipWidth(ctx, c) + ACTION_CHIP_GAP, ACTION_HUD_EDGE);
+    if (process.argv.includes("--verbose")) console.log("hud widths", lw, rw, NINJA_WORLD_W);
     ok(lw + rw <= NINJA_WORLD_W, `HUD: "${row.left.map((c) => c.label).join(", ")}" and "${(row.right ?? []).map((c) => c.label).join(", ")}" fit one row at their widest (${lw} + ${rw} px)`);
   }
 }
