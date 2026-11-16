@@ -470,6 +470,25 @@ stops:
 - **Reduced motion:** each is a 120 ms crossfade to the new state (no movement); the kit's own variants for the settle
   and the near miss.
 - The old CSS effects that animated `filter` (the portal flare, the pulsing exit, the fall's darkening) are gone.
+
+### Stage 3: levels (16 Nov 2026)
+
+Practice rounds at 390 × 844, each level chosen on the device (the framework's selector), at the start of play.
+
+| Easy | Normal | Hard | Expert |
+|---|---|---|---|
+| <img src="iceslide-level-easy.webp" width="160"> | <img src="iceslide-level-normal.webp" width="160"> | <img src="iceslide-level-hard.webp" width="160"> | <img src="iceslide-level-expert.webp" width="160"> |
+
+- **Easy**: 8 × 8 (44 px squares at 390, 42 px at 375), 8–12 slides, no holes or thin ice, at most one chevron and one
+  portal pair, 90 s, speed full by 20 s.
+- **Normal**: today's game exactly (12 × 12, 18–26 slides, every hazard, 90 s, slideRev 5).
+- **Hard**: 12 × 12, 24–30 slides, 5–8 holes (Normal 2–4), the route through a portal and over thin ice; **100 s**
+  (Joe's spec said 90: at 90 s every bot scored Hard below Expert), speed full by 40 s.
+- **Expert**: 12 across × 14 down, 28–36 slides, every hazard, 120 s, speed full by 45 s. The rink grows downwards and
+  keeps square squares: 28.7 px at 390 × 844 (as Normal), 25.9 px at 375 × 667 (Normal 27.4), the pad and buttons
+  unchanged, nothing scrolls.
+- Each level deals from its own seeded bank of 300 boards (`bun scripts/iceslide-levels-bank.ts [--check]`), every
+  board's fewest slides proved by breadth-first search; the par is that minimum. Any route to the exit counts.
 <!-- skid:end -->
 
 <!-- heave:start -->

@@ -675,6 +675,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           : [
               { action: "Undo and Reset", detail: "give the slide back: only the slides left standing count.", helpOnly: true },
               { action: "Arrow pad or swipe:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
+              // Difficulty levels (16 Nov 2026, iceslide.levels.ts): the speed bonus's time differs by level.
+              { action: "Speed by level:", detail: "full within 20 s on Easy, 40 s on Hard (100 s clock) and 45 s on Expert (120 s clock).", helpOnly: true },
             ]),
       ],
       score: parMovesDealt() ? parMovesPatternHelp("iceslide") : PATTERN_STD_HELP.iceslide,

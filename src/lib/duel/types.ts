@@ -1169,6 +1169,14 @@ export interface SlidePuzzleData {
   /** Puzzle score shape stamp (puzzleScoreRev.ts; set by generatePuzzle, kept on the banked intro example). */
   puzzleScoreRev?: number;
   type: "iceslide";
+  /**
+   * Difficulty levels (16 Nov 2026, src/lib/levels/pattern/iceslide.levels.ts): a level board's own width and height in
+   * squares (Easy 8 × 8, Expert 12 × 14). Absent on every 12 × 12 board (Normal and Hard).
+   */
+  cols?: number;
+  rows?: number;
+  /** A level's own clock (Expert 120 s); absent: the game's 90 s. */
+  timeLimitMs?: number;
   /** Wall cells the ball stops against. */
   walls: number[];
   /** Holes: sliding over one drops the ball back on the start. */

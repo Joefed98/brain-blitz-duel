@@ -284,6 +284,19 @@ const tessellate: StandardGame = {
 // The Pattern overhaul (15 Nov 2026): Skid's slideRev 5 (imported here, beside its game, so per-game work stays apart).
 import { countedSlides } from "../slide";
 import { usesPatternNov15 as usesSkidOverhaul } from "../patternNov15";
+import { gameLevelSettings as skidLevelSettings } from "@/lib/levels/gameLevels";
+import { puzzleLevel as skidPuzzleLevel } from "@/lib/levels/levels";
+import type { IceSlideLevelSettings } from "@/lib/levels/pattern/iceslide.levels";
+
+/**
+ * Skid's speed points: a level board (difficulty levels, 16 Nov 2026) is full by its level's own time (Easy 20 s, Hard
+ * 40 s, Expert 55 s, read from the stored puzzle's level); Normal and every older board as before.
+ */
+function skidSpeed(input: StandardInput): number {
+  const s = skidLevelSettings<IceSlideLevelSettings>("iceslide", skidPuzzleLevel(input.puzzle));
+  if (!s) return parMovesSpeed("iceslide", input);
+  return speedPoints(PAR_MOVES_STD.speed, input.msLeft, input.limitMs, s.fullByS * 1000);
+}
 
 const SLIDE_BOARDS = new WeakMap<object, SlideBoard>();
 const SLIDE_DIST = new WeakMap<object, Map<number, number | null>>();
@@ -320,7 +333,7 @@ const skid: StandardGame = {
       const overhaul = usesSkidOverhaul(p, "iceslide");
       if (input.graded.isCorrect) {
         const slides = countedSlides(replaySlide(memo(SLIDE_BOARDS, p, () => slideBoard(p)), decodeSlideMoves(input.answer)), overhaul);
-        return { finished: true, speed: parMovesSpeed("iceslide", input), bonus: parMovesPar(p, slides, p.minMoves ?? 0), measure: "par", facts: { slides, parSlides: p.minMoves ?? 0 } };
+        return { finished: true, speed: skidSpeed(input), bonus: parMovesPar(p, slides, p.minMoves ?? 0), measure: "par", facts: { slides, parSlides: p.minMoves ?? 0 } };
       }
       const { closed, total } = skidClosed(p, input.answer);
       const w = waste(num(input.graded.extra, overhaul ? "slidesPlayed" : "moves"), p.minMoves);
