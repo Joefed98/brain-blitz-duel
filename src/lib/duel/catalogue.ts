@@ -245,6 +245,8 @@ export const DEALT_CLOCK_MS: Partial<Record<PuzzleType, number>> = {
   spotdiff: 60_000,
   countup: 60_000,
   bomb: 90_000,
+  // Eagle Eye's scanRev 5 (the Attention overhaul, 15 Nov 2026) deals every level on a 60 s clock.
+  symscan: 60_000,
 };
 
 /** The clock a game is described with before it is dealt: today's dealt clock, else the definition's. */
