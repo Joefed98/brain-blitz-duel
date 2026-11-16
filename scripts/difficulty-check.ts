@@ -260,7 +260,10 @@ choice.setCatalogueLevel("hard");
 check(choice.chosenLevel("tents") === "hard" && choice.chosenLevel("tilt") === "hard", "the catalogue's switch sets the level for every game");
 // Tents and Trees has levels since the Logic overhaul (16 Nov 2026), so a game with none stands in. Changed with Joe's
 // approval, 15 Nov 2026 (routine consequence of the Logic overhaul).
-check(choice.playLevel("tubes") === "normal", "a game without that level plays Normal");
+// Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): Polypotions has levels since the Logic
+// overhaul's session 1, and with every train merged every active puzzle game has them, so an arcade game with none
+// (Tilt) stands in.
+check(!("tilt" in GAME_LEVELS) && choice.playLevel("tilt") === "normal", "a game without that level plays Normal");
 choice.setGameLevel("tents", "easy");
 check(choice.chosenLevel("tents") === "easy" && choice.chosenLevel("tilt") === "hard", "a game page's choice is that game's own");
 choice.resetLevelChoiceCache();

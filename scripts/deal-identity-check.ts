@@ -133,8 +133,8 @@ tasks.push({
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Word overhaul's era switch preWordOverhaul): 27.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): 27.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul's preSpeedOverhaul): 27.
-    // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine).
-    ok(names.size === 36, `36 era switches (${names.size})`);
+    // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): main's 26 plus the trains' 11 make 37.
+    ok(names.size === 37, `37 era switches (${names.size})`);
   },
 });
 
