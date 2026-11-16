@@ -21,7 +21,7 @@ export default function CurlingSummary({ puzzle, myAnswer }: RunSummaryProps) {
   const sum = useMemo(() => {
     if (puzzle.type !== "curling" || !myAnswer) return null;
     try {
-      return curlingSummary(puzzle.seed, myAnswer, puzzle.curlRev);
+      return curlingSummary(puzzle.seed, myAnswer, puzzle.curlRev, puzzle.level);
     } catch {
       return null;
     }

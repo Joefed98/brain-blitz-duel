@@ -61,7 +61,7 @@ export const CATALOGUE_DATA: Record<PuzzleType, CatalogueEntry> = {
   muggins: { name: "Muggins", category: "arcade", timeLimitMs: 93000, revealMs: 6000, revealHeading: "Your run", goal: "Play out your dominoes and score with the ends." },
   minigolf: { name: "Crazy Golf", category: "arcade", timeLimitMs: 123000, revealMs: 6000, revealHeading: "Your round", goal: "Hole all five holes in as few putts as you can." },
   pool: { name: "Cue Ball", category: "arcade", timeLimitMs: 93000, revealMs: 6000, revealHeading: "Your run", goal: "Pot your seven, spots or stripes, then the black, without a miss." },
-  curling: { name: "Curl Champ", category: "arcade", timeLimitMs: 123000, revealMs: 6000, revealHeading: "Your stones", goal: "Beat the three red stones to the button with all eight of yours." },
+  curling: { name: "Curl Champ", category: "arcade", timeLimitMs: 123000, revealMs: 6000, revealHeading: "Your stones", goal: "Beat the red stones to the button with all eight of yours." },
   blockfall: { name: "Blockzone", category: "arcade", timeLimitMs: 93000, revealMs: 6000, revealHeading: "Your run", goal: "Clear as many lines as you can in 90 seconds." },
   alleyroll: { name: "Ringer", category: "arcade", timeLimitMs: 63000, revealMs: 6000, revealHeading: "Your run", goal: "Roll nine balls up the lane into the cups." },
   rally: { name: "Rally", category: "arcade", timeLimitMs: 63000, revealMs: 6000, revealHeading: "Your run", goal: "Keep the rally going." },

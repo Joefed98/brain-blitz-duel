@@ -46,7 +46,18 @@ export interface GameLevels<S = Record<string, unknown>> {
  * Every game's levels beyond Normal. Empty until the family sessions add theirs (15 Nov 2026): every game offers
  * Normal only.
  */
-export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {};
+export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
+  // Curl Champ (the Sports overhaul, 15 Nov 2026): the reds each end starts with and the aids. Plain data mirroring the
+  // sim's CURL_LEVEL_REDS and CURL_LEVEL_AIDS (curling-levels-check proves they agree); each level deals from its own
+  // proved bank (curlingLevelBanks.server.ts), every seed at 200.
+  curling: {
+    levels: {
+      easy: { settings: { reds: 2, minCm: 60, maxCm: 130, houseZone: true, aimLine: "full", coreFull: 60 } },
+      hard: { settings: { reds: 4, minCm: 30, maxCm: 90, houseZone: true, aimLine: "third" } },
+      expert: { settings: { reds: 5, minCm: 20, maxCm: 70, houseZone: false, aimLine: "none" } },
+    },
+  },
+};
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */
 let registry: Partial<Record<string, GameLevels>> = GAME_LEVELS;

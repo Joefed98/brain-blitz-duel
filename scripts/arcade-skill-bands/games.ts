@@ -391,6 +391,8 @@ export const GAMES: GameSpec[] = [
     // curlRev 1, 2 and 3 measure on their own banks' sheets.
     seedForRev: (n, rev) => (rev === 1 ? curlingBankSeedFor(n) : rev === 2 ? curlingBankV2SeedFor(n) : rev === 3 ? curlingBankV3SeedFor(n) : undefined),
     gameFor: (rev) => curlingGameFor(rev ?? 1),
+    // The levels (16 Nov 2026): a dealt puzzle's level plays its own reds (Normal: the stamp's game as above).
+    gameForPuzzle: (p) => curlingGameFor(p.curlRev ?? 1, p.level),
     checkpoint: curlingCheckpoint,
     encode: (run) => encodeCurlingRun(run),
     replay: (seed, raw, rev) => replayCurlingRun(seed, raw, rev),

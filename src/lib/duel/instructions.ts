@@ -1179,7 +1179,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: liveStdHelp("pool", "Each foul costs 10."),
     },
     curling: {
-      goal: "Beat the three red stones to the button with all eight of yours.",
+      goal: "Beat the red stones to the button with all eight of yours.",
       how: [
         { action: "Slide the stone", detail: "along the start line, then drag the gold target to aim." },
         { action: "Tap In or Out;", detail: "the faint line shows the stone’s first third for that aim and turn." },
@@ -1190,7 +1190,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Above the zone", detail: "is takeout weight: heavy enough to knock a stone out of the house.", helpOnly: true },
         { action: "Brushing", detail: "also carries the stone a little further. Brush anywhere on the screen: left of the stone bends it left, right of it bends it right.", helpOnly: true },
         { action: "The stone curls", detail: "towards the side its turn takes it, more as it slows: the aim line shows only the start of it.", helpOnly: true },
-        { action: "Three red-handled stones", detail: "start in the house, the same for everyone. Every one can be hit with your stone staying on the button.", helpOnly: true },
+        { action: "Red-handled stones", detail: "start in the house (three on Normal; the level line says how many), the same for everyone. Every one can be hit with your stone staying on the button.", helpOnly: true },
         { action: "The house view, top right,", detail: "shows exactly where every stone sits, from above. Tap or drag in it to put the target there.", helpOnly: true },
         { action: "Throw turns grey", detail: "while a stone travels and lights up gold when the next one is ready with a weight set.", helpOnly: true },
         { action: "A stone short of the far hog line,", detail: "or through the back or the sides, is out of play.", helpOnly: true },

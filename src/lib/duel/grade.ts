@@ -1529,7 +1529,7 @@ function gradeUnderRev(
           ...common(run),
         };
       } else if (puzzle.type === "curling") {
-        const run = replayCurlingRun(puzzle.seed, answer, puzzle.curlRev);
+        const run = replayCurlingRun(puzzle.seed, answer, puzzle.curlRev, puzzle.level);
         revealRun = run;
         arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
         const parts = curlingStdParts(run.state);

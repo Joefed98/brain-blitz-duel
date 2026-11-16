@@ -17,6 +17,7 @@ import { MINIGOLF_REV } from "@/lib/arcade/minigolf";
 import { POOL_REV } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
 import { CURLING_BANK_V4 } from "./curlingBankV4.server";
+import { CURLING_LEVEL_BANKS } from "./curlingLevelBanks.server";
 import { MINIGOLF_BANK_V2 } from "./minigolfBankV2.server";
 import { POOL_BANK_V3 } from "./poolBankV3.server";
 import { ALLEYROLL_REV_DEALT } from "@/lib/arcade/alleyroll";
@@ -51,7 +52,14 @@ export function generatePool(): PoolPuzzleData {
   return { type: "pool", seed: POOL_BANK_V3[arcadeSeed() % POOL_BANK_V3.length]!, poolRev: POOL_REV };
 }
 
-export function generateCurling(): CurlingPuzzleData {
+export function generateCurling(level?: string | null): CurlingPuzzleData {
+  // The levels (the Sports overhaul, 15 Nov 2026): Easy, Hard and Expert each deal a sheet from their own bank, every
+  // seed proved at 200 at that level (curlingLevelBanks.server.ts); the deal stamps `level` itself (generate.server.ts).
+  // Normal (no level) is curlRev 4's deal exactly, the same draw from the same bank.
+  if (level === "easy" || level === "hard" || level === "expert") {
+    const bank = CURLING_LEVEL_BANKS[level];
+    return { type: "curling", seed: bank[arcadeSeed() % bank.length]!, curlRev: CURLING_REV };
+  }
   // curlRev 4 (3 Nov 2026): its own bank, proved with three reds and curling's count (curlingBankV4.server.ts); curlRev 3
   // rounds replay on curlingBankV3.server.ts's sheets, curlRev 2 on curlingBankV2's, curlRev 1 on curlingBank's.
   return { type: "curling", seed: CURLING_BANK_V4[arcadeSeed() % CURLING_BANK_V4.length]!, curlRev: CURLING_REV };

@@ -53,9 +53,9 @@ export interface CurlSummary {
   closestCm: number | null;
 }
 
-/** The summary for a stored run (seed, the stored answer, the stored curlRev). */
-export function curlingSummary(seed: number, answer: string, rev: number | null | undefined): CurlSummary {
-  const r = replayCurlingRun(seed, answer, rev);
+/** The summary for a stored run (seed, the stored answer, the stored curlRev and level). */
+export function curlingSummary(seed: number, answer: string, rev: number | null | undefined, level?: unknown): CurlSummary {
+  const r = replayCurlingRun(seed, answer, rev, level);
   return curlingSummaryOf(r.state, r.takeouts, r.opponents);
 }
 

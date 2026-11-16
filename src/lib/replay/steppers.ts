@@ -220,7 +220,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   pyramid: (p) => ({ game: pyramidGameFor(rev(p, "pyramidRev")) as AnyGame }),
   golfsol: (p) => ({ game: golfSolGameFor(rev(p, "golfSolRev")) as AnyGame }),
   muggins: (p) => ({ game: mugginsGameFor(rev(p, "mugginsRev")) as AnyGame }),
-  curling: (p) => ({ game: curlingGameFor(rev(p, "curlRev") ?? 1) as AnyGame }),
+  curling: (p) => ({ game: curlingGameFor(rev(p, "curlRev") ?? 1, (p as { level?: unknown }).level) as AnyGame }),
   blockfall: (p) => ({ game: blockfallGameFor(rev(p, "blockfallRev")) as AnyGame }),
   alleyroll: (p) => ({ game: alleyRollGameFor(rev(p, "alleyRollRev")) as AnyGame }),
   pool: (p) => ({ game: poolGameFor(rev(p, "poolRev")) as AnyGame }),

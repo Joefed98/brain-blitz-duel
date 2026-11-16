@@ -281,7 +281,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   // The Sports group (30 Oct 2026): each final state drawn by its own art, without the aim.
   minigolf: simple("#7FD58A", MINIGOLF_W, MINIGOLF_H, { draw: (ctx, s: MinigolfState) => drawMinigolf(ctx, s, null) }, (p, a) => replayMinigolfRun(seedOf(p), a, p.type === "minigolf" ? p.pars : undefined, p.type === "minigolf" ? p.golfRev : undefined)),
   // curlRev 2 draws a shorter world (390 × 540; display only).
-  curling: simple("#E8C35A", CURLING_W, CURLING_H, { draw: (ctx, s: CurlingState) => drawCurling(ctx, s, null) }, (p, a) => replayCurlingRun(seedOf(p), a, p.type === "curling" ? p.curlRev : undefined), undefined, undefined, (p) => curlingWorldHFor(p.type === "curling" ? p.curlRev : undefined)),
+  curling: simple("#E8C35A", CURLING_W, CURLING_H, { draw: (ctx, s: CurlingState) => drawCurling(ctx, s, null) }, (p, a) => replayCurlingRun(seedOf(p), a, p.type === "curling" ? p.curlRev : undefined, p.type === "curling" ? p.level : undefined), undefined, undefined, (p) => curlingWorldHFor(p.type === "curling" ? p.curlRev : undefined)),
   pool: simple("#3FA672", POOL_W, POOL_H, { draw: (ctx, s: PoolState) => drawPool(ctx, s, null) }, (p, a) => replayPoolRun(seedOf(p), a, p.type === "pool" ? p.poolRev : undefined)),
   pinball: simple("#FF4DFF", PIN_WORLD_W, PIN_WORLD_H, { draw: drawPinballAny }, (p, a) => replayPinballRun(seedOf(p), a, p.type === "pinball" ? p.pinRev : undefined), undefined, undefined, (p) => pinballWorldHFor(p.type === "pinball" ? p.pinRev : undefined)),
   // Cards & Board (30 Oct 2026): the final board as the run left it.

@@ -20,6 +20,7 @@ import {
   CURLING_RUN_TICKS,
   CURLING_W,
   curlingWorldHFor,
+  curlAidsFor,
   curlAimPath,
   curlDrawZone,
   curlWeightFromSwipeV3,
@@ -136,6 +137,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: CurlingPuzzleData | null = puzzle.type === "curling" ? puzzle : null;
   // The stored stamp picks the rules, the world's height and the controls (curlRev 2: slide the start, side brushing).
   const rev = data?.curlRev ?? 1;
+  /** The level it was dealt at (none: Normal) and that level's aids: the HOUSE zone and how much aim line shows. */
+  const level = data?.level;
+  const aids = curlAidsFor(rev >= 4 ? level : null);
   const v2 = rev >= 2;
   /** curlRev 3: the weight meter with the draw zone and the faint aim line. */
   const v3 = rev >= 3;
@@ -166,7 +170,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const fxTracker = useRef(new CurlFxTracker());
   const game = useMemo<ArcadeGame<CurlingState, ArcadeInputEvent | null>>(() => {
     // devWarp: development only (review shots, scripts/shots/curling-prepare-shots.ts); production plays the game as is.
-    const base = devWarp("curling", curlingGameFor(rev));
+    const base = devWarp("curling", curlingGameFor(rev, level));
     const fx = curlingFxFor(rev);
     return {
       ...base,
@@ -185,8 +189,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           const key = `${state.thrown}:${state.restTick}:${sx}:${bx}:${by}:${a.turn}`;
           if (key !== aidKey.current) {
             aidKey.current = key;
-            a.zone = curlDrawZone(sx, bx, by, a.turn, rev);
-            a.path = curlAimPath(state, sx, bx, by, a.zone?.tee ?? 316, a.turn);
+            // A level without the HOUSE zone (Expert) shows none, and its aim line only as far as the level allows
+            // (Easy the whole path, Expert none); the line follows the zone's tee weight as today.
+            const zone = curlDrawZone(sx, bx, by, a.turn, rev);
+            a.zone = aids.houseZone ? zone : null;
+            a.path = aids.aimPart ? curlAimPath(state, sx, bx, by, zone?.tee ?? 316, a.turn, aids.aimPart) : null;
           }
         }
         const now = performance.now();
@@ -203,7 +210,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         });
       },
     };
-  }, [rev, worldH]);
+  }, [rev, worldH, level, aids]);
 
   const setStart = (x: number) => {
     aim.current.startX = Math.max(-CURL_START_MAX, Math.min(CURL_START_MAX, x));
@@ -467,7 +474,7 @@ export const CURL_TURN_ROW_TOP = `min(calc(min(100cqh, 100cqw * ${CURL_VIEW_V4.h
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "curling") return null;
-  const result = replayCurlingRun(puzzle.seed, myAnswer ?? "", puzzle.curlRev);
+  const result = replayCurlingRun(puzzle.seed, myAnswer ?? "", puzzle.curlRev, puzzle.level);
   const parts = curlingStdParts(result.state) ?? [];
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto">

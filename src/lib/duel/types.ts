@@ -2821,6 +2821,12 @@ export interface CurlingPuzzleData {
    * in the house score their closeness), the same parts.
    */
   curlRev?: number;
+  /**
+   * The level it was dealt at (the Sports overhaul's levels, 15 Nov 2026; stamped by the deal, only when it isn't
+   * Normal): Easy 2 reds 60–130 cm, Hard 4 reds 30–90 cm, Expert 5 reds 20–70 cm, each from its own proved bank
+   * (curlingLevelBanks.server.ts). Absent: Normal, curlRev 4's three reds exactly.
+   */
+  level?: "easy" | "hard" | "expert";
 }
 
 /* ============================ New grid puzzles (1 Nov 2026) ============================ */
