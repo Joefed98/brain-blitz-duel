@@ -2398,9 +2398,9 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `blockparty.turn` | effects | `blockparty.turn` | 528 |
 | `blockparty.flip` | effects | `blockparty.flip` | 528 |
 | `blockparty.solve` | effects | `blockparty.solve` | 1000 |
-| `blockparty.pickup` | effects | `blockparty.pickup` | 334 |
+| `blockparty.pickup` | effects | `blockparty.pickup` | 182 |
 | `blockparty.illegal` | effects | `blockparty.illegal` | 606 |
-| `blockparty.undo` | effects | `blockparty.undo` | 334 |
+| `blockparty.undo` | effects | `blockparty.undo` | 182 |
 | `blockparty.reset` | effects | `blockparty.reset` | 528 |
 | `gravity.tilt` | effects | `gravity.tilt` | 3000 |
 | `gravity.stop` | effects | `gravity.stop` | 120 |

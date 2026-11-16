@@ -19,7 +19,7 @@ import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attenti
 import { parMovesDealt, parStrictDealt } from "./parMoves";
 import { operatorGapsDealt } from "./operatorGaps";
 import { prePatternNov15Pinned } from "./patternNov15";
-import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, flowRev3Help, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
+import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, flowRev3Help, laserRev4Help, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
 import { partialCreditDealt } from "./partialCredit";
 import { blockPatternHelp } from "./standard/patternText"; // tessellate (Pattern overhaul)
 import { standardNumberHelp } from "./standard/numberText";
@@ -719,7 +719,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
               { action: "Levels:", detail: "Easy gives five shots and three spare mirrors; Hard one spare; Expert one spare and two shots.", helpOnly: true },
             ]),
       ],
-      score: PATTERN_STD_HELP.laser,
+      // laserRev 4 (the Pattern overhaul): its own speed time and the levels’ times; older stamps keep the standard’s.
+      score: prePatternNov15Pinned() ? PATTERN_STD_HELP.laser : laserRev4Help(),
     },
     tower: {
       goal: "Move the whole tower onto the gold post.",
