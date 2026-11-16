@@ -9,6 +9,8 @@
  *     proved deal (exactly its witnessed seeds); the state carries it; the registry's settings are the sim's; the reach
  *     in play, the sliding hooks a quarter, the stall limit, the pterodactyl (none on Easy, faster on Hard and Expert),
  *     every stretch lit on Easy, seven dark ledge runs on Expert, Easy's course part full at half the course;
+ *     the vine's swing (16 Nov 2026, Joe: levers that test human timing): Normal's and Easy's swing exactly as before,
+ *     Hard's and Expert's faster (more gravity on a held vine), so a release a tick off flies a plainly different line;
  *  3. the 120 s rule (the run 90 s at every level);
  *  4. grace: a slip restarts the stretch and never ends the run at any level;
  *  5. 200 reachable at every level: each sampled dealt course's stored witness (scripts/fixtures/swing-level-<level>-
@@ -90,8 +92,8 @@ ok(json(levelsOf("swing")) === json(["easy", "normal", "hard", "expert"]), "2a: 
 const witnesses = Object.fromEntries(LEVELS.map((lv) => [lv, (JSON.parse(gunzipSync(readFileSync(swingLevelWitness(lv))).toString()) as { witnesses: SwingWitness[] }).witnesses])) as Record<SwingLevel, SwingWitness[]>;
 for (const lv of LEVELS) {
   const c = SWING_LEVELS[lv];
-  const reg = gameLevelSettings<{ reachPx: number; slidingVines: number; stallTicks: number; pterodactyl: boolean; darkRuns: number }>("swing", lv)!;
-  ok(reg.reachPx * 256 === c.reach && reg.slidingVines === c.sliders.reduce((a, b) => a + b, 0) && reg.stallTicks === c.stall && reg.pterodactyl === c.chasePace > 0 && reg.darkRuns === (c.dark ? c.runs.length : 0), `2b ${lv}: the registry's settings are the sim's`);
+  const reg = gameLevelSettings<{ reachPx: number; slidingVines: number; stallTicks: number; pterodactyl: boolean; darkRuns: number; vineSwing: number }>("swing", lv)!;
+  ok(reg.vineSwing === c.swing && reg.reachPx * 256 === c.reach && reg.slidingVines === c.sliders.reduce((a, b) => a + b, 0) && reg.stallTicks === c.stall && reg.pterodactyl === c.chasePace > 0 && reg.darkRuns === (c.dark ? c.runs.length : 0), `2b ${lv}: the registry's settings are the sim's`);
   ok(json(witnesses[lv].map((w) => w.seed)) === json(SWING_LEVEL_DEAL[lv]) && SWING_LEVEL_DEAL[lv].length >= 20, `2c ${lv}: the level's deal is exactly its ${SWING_LEVEL_DEAL[lv].length} witnessed courses`);
   const p = dealAt(4, lv);
   ok(puzzleLevel(p) === lv && p.swingRev === SWING_REV_BIG && SWING_LEVEL_DEAL[lv].includes(p.seed), `2d ${lv}: the deal stamps level "${lv}" on swingRev 18 and deals a course from the level's deal`);
@@ -119,6 +121,22 @@ ok(SWING_LEVELS.easy.stall > SWING_V17_STALL && SWING_LEVELS.hard.stall < SWING_
 ok(SWING_LEVELS.hard.chasePace > SWING_V14_CHASE_PACE && SWING_LEVELS.expert.chasePace >= SWING_LEVELS.hard.chasePace && SWING_LEVELS.easy.chasePace === 0, "2m: the pterodactyl faster on Hard and Expert, none on Easy");
 ok(SWING_LEVELS.expert.runs.length === 7 && SWING_V16_RUNS.length === 6 && !SWING_LEVELS.easy.dark && SWING_LEVELS.hard.dark, "2n: seven dark ledge runs on Expert (six on Normal and Hard), none on Easy");
 ok(SWING_LEVELS.easy.sliders.reduce((a, b) => a + b, 0) < 18 && SWING_LEVELS.hard.sliders.reduce((a, b) => a + b, 0) > 18 && SWING_LEVELS.expert.sliders.reduce((a, b) => a + b, 0) > SWING_LEVELS.hard.sliders.reduce((a, b) => a + b, 0), "2o: few sliding hooks on Easy, more on Hard, a few more on Expert (Normal 18)");
+
+// The vine's swing (Changed with Joe's approval, 16 Nov 2026 (routine consequence of the Action overhaul): the timing lever).
+ok(SWING_LEVELS.easy.swing === 100 && SWING_LEVELS.hard.swing > 100 && SWING_LEVELS.expert.swing > SWING_LEVELS.hard.swing, "2p: the vine swings as Normal's on Easy, faster on Hard, faster still on Expert");
+{
+  // The same body on the same held vine, stepped under each level's rules: the swing's speed after a quarter second, and
+  // how far one tick's release apart moves the release point (the timing the level asks for).
+  const base = swingGameFor(SWING_REV_BIG).init(dealAt(0).seed) as SwingState;
+  const at = (lvl: SwingLevel | null) => {
+    const s = { ...base, ...(lvl ? { lvl } : {}) } as SwingState;
+    const b = { ...swingBotKit.body(s), rope: 0, len: 130 * 256, grabLen: 130 * 256, th: 55000 * 16, om: 0, reelLeft: 0 } as any;
+    for (let t = 0; t < 15; t++) swingBotKit.move(b, s);
+    return Math.abs(b.om);
+  };
+  const [n, e, h, x] = [at(null), at("easy"), at("hard"), at("expert")];
+  ok(e === n && h > n && x > h, `2q: a held vine swings faster on Hard and Expert (|ω| after 0.25 s: Normal ${n}, Easy ${e}, Hard ${h}, Expert ${x})`);
+}
 
 /* 3. The 120 s rule, and 4. grace. */
 for (const lv of [null, ...LEVELS] as (SwingLevel | null)[]) {

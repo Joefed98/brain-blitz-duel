@@ -132,8 +132,8 @@ few more sliding vines than Hard, a little tighter stall limit, pterodactyl last
 deal stamps the puzzle's `level` (swingRev 18 only) and deals a course from that level's own proved deal
 (`SWING_LEVEL_DEAL`, `src/lib/duel/swingLevelDeal.server.ts`, `bun scripts/swing-slide-deal.ts --rev=18
 --level=<level> [--check]`: 24 courses a level whose flawless oracle replays to exactly 200 through `replaySwingRun` at
-the level; witnesses `scripts/fixtures/swing-level-<level>-witness.json.gz`; dropped: Easy 55 of 79, Hard 52 of 76,
-Expert 74 of 98). The sim reads the level into the state's `lvl` (absent at Normal, so a Normal state, course and score
+the level; witnesses `scripts/fixtures/swing-level-<level>-witness.json.gz`; dropped: Easy 55 of 79, Hard 24 of 48,
+Expert 20 of 44, Hard and Expert rebuilt on 16 Nov 2026 with the vine's swing below). The sim reads the level into the state's `lvl` (absent at Normal, so a Normal state, course and score
 are exactly today's: swing-levels-check 1 against 6 courses and 18 runs recorded on de3bec96,
 `scripts/fixtures/action-levels-legacy.json.gz`). Settings: `SWING_LEVELS` in `swing.ts` (the registry's
 `GAME_LEVELS.swing` repeats them for display); a change to one needs a new stamp.
@@ -146,6 +146,7 @@ are exactly today's: swing-levels-check 1 against 6 courses and 18 runs recorded
 | Pterodactyl (last quarter) | none | 2.4 px a tick | 3.2 px a tick | 3.4 px a tick |
 | Dark ledge runs | none (all lit) | 6 | 6 | 7 (`runs` 3,2,2,3,2,3,2, a run every 5 blocks) |
 | Course part full at | 50 % of the way | 70 % | 70 % | 70 % |
+| Vine swing (gravity on a held vine, `swing`) | 100 % | 100 % | 125 % | 145 % |
 
 The parts (course 110, pars 40, gates 10, streak 40 = 200), the 90 s run and the stretch restarts (no slip ends a run)
 are swingRev 18's at every level; Easy's course part is full sooner (a level's "full at"). How it works in the sim:
@@ -156,6 +157,15 @@ each level's sliding hooks (the first quarter too) and drops the pterodactyl on 
 0.7 s on a desktop core (Normal / Easy / Hard / Expert, more under load); `RoundIntro` builds the level's course while the
 intro is up (`prepareSwingCourse(seed, rev, level)`).
 
+- **The vine's swing** (16 Nov 2026, Joe: "add levers that test human timing rather than the route"): on Hard and
+  Expert a held vine swings faster (`SWING_LEVELS.swing`, the gravity in `moveBody`'s rope branch read from the level
+  while it is built or stepped; flight, reach and every other rule unchanged; Easy, Normal and every older revision at
+  100 %, so their states step exactly as before). A faster swing turns further each tick (|ω| after a quarter second from
+  the same hang: Normal 4,652, Hard 5,724, Expert 6,540 in the sim's units, swing-levels-check 2q), so a release a tick
+  early or late flies a plainly different line and the hook that line reaches comes and goes sooner: a test of the
+  player's timing, not of the route. The courses are built and proved on the same swing (the builder's reach test steps
+  the faster vine), and the flawless oracle still hits its exact tick, so each rebuilt deal keeps exactly 200 on every
+  course. Levers kept on the route (reach, stall, pterodactyl) are unchanged: tightening them broke the proof before.
 - **"King of the swingers"** ("Get 70 % of the way on Expert", the Course part full) is met on every sampled Expert
   witness (swing-levels-check 7b) and by the elite bot on all 8 measured Expert courses.
 - **Why the stall limits are where they are.** The elite bot's grab-to-grab gaps run 15–68 ticks (median 22, 95th
