@@ -252,5 +252,22 @@ for (const level of LEVELS3) {
   ok(balanceHidden(deal("balance", 1, "expert") as BalancePuzzleData), "Expert hides the readout");
 }
 
+/* ------------------------------------------------------------------ 9. Counterweight's goal line names its scales */
+// 16 Nov 2026 (Joe): the goal line names the scales each level deals; a four-scale deal keeps the game's own line.
+{
+  const { balanceGoalLine } = await import("../src/puzzles/balance");
+  const { frameGoal } = await import("../src/components/duel/GameFrame");
+  ok(frameGoal("balance") === "Balance each of the four scales", `Counterweight: the game's own goal line names four scales (${frameGoal("balance")})`);
+  for (const level of ["easy", "normal", "hard", "expert"] as const) {
+    for (const seed of [1, 2, 3]) {
+      const p = deal("balance", seed, level) as PuzzleData & { scales: unknown[] };
+      const n = p.scales.length;
+      const shown = balanceGoalLine(n) ?? frameGoal("balance");
+      const word = ["", "one", "two", "three", "four", "five", "six"][n];
+      ok(shown.includes(`${word} scales`) || (n === 1 && shown === "Balance the scale"), `Counterweight ${level} ${seed}: the goal line names ${n} scales ("${shown}")`);
+    }
+  }
+}
+
 console.log(failures ? `FAIL number-levels-balance-target-check: ${failures} failed, ${passes} passed` : `number-levels-balance-target-check: ${passes} passed, 0 failed`);
 process.exit(failures ? 1 : 0);

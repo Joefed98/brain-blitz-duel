@@ -112,6 +112,14 @@ deducible from the screen, no guessing) completes. Integer Pyramid's stones grow
 only). Checks: number-levels-balance-target-check, number-levels-equation-pyramid-check,
 number-levels-measure-numline-check, number-levels-checkout-kakuro-check.
 
+**Final push (16 Nov 2026).** Operator's Hard runs 85 s and Expert 78 s, each with full speed points finished within
+40 s (stored on the deal as `timeLimitMs` and `speedFullByS`; Normal and older stamps unchanged). Exact's Expert deals
+from a proved bank of 320 boards (`scripts/target-expert-bank.ts [--check]` writes `targetExpertBank.server.ts`; each
+board from the Expert rules and the person-like solver), in milliseconds. Integer Pyramid's given and placed stones are
+rendered to the empty socket's height, so there is no step between them. Counterweight's goal line names the scales its
+deal has (`useStageGoal`, "Balance each of the three scales" on Easy). Integer Pyramid's "Pharaoh" asks for 180 on
+Expert.
+
 **For Joe's scoring review (16 Nov 2026).** Integer Pyramid's Normal is today's game, unchanged: on main's level-tune.ts
 (40 seeds) the great bot averages 135.4 and finishes 35 % of runs (the near-perfect bot 188.7, every run finished), the
 largest gap between great and near-perfect play of the eight. Left as it is for the scoring review; nothing in this
