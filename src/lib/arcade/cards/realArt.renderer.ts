@@ -208,8 +208,15 @@ export function drawRealFelt(ctx: CanvasRenderingContext2D, w: number, h: number
     drawFelt(ctx, w, h);
     return;
   }
-  ctx.drawImage(images.get("felt")!, 0, 0, w, h);
+  // The baize's bottom stitching and rim (its last FELT_BOTTOM_CROP rows) are left out: the play screen's fill carries
+  // the table on below the world, and a stitched line along the world's bottom edge read as a border there
+  // (arcade-fill-check). The top and side stitching stay.
+  const felt = images.get("felt")!;
+  ctx.drawImage(felt, 0, 0, felt.naturalWidth, felt.naturalHeight - FELT_BOTTOM_CROP, 0, 0, w, h);
 }
+
+/** Image rows at the felt's bottom holding its stitching and rim (felt.webp is 1544 tall; the stitch is rows 1528–1535). */
+const FELT_BOTTOM_CROP = 24;
 
 /** The Mahjong table image if loaded (null: paint the code table). */
 export function mahjongTableImage(): HTMLImageElement | null {
