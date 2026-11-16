@@ -161,6 +161,10 @@ export interface OperatorLevelSettings {
   /** Full fills allowed per equation (stamped as the puzzle's tryLimit, graded from it). */
   tries: number;
   lines: readonly OperatorLevelLine[];
+  /** The level's clock in seconds (stamped as `timeLimitMs`); without one the type's 90 s. */
+  clockS?: number;
+  /** Full speed points when finished within this many seconds (stamped as `speedFullByS`); without one 60 s. */
+  fullByS?: number;
 }
 
 function recipeOf(line: OperatorLevelLine): Recipe {
@@ -259,5 +263,8 @@ export function generateOperatorLevel(settings: OperatorLevelSettings): Equation
     gapAnswers: built.map((b) => b.answer),
     gapsRev: OPERATOR_GAPS_REV,
     tryLimit: settings.tries,
+    // Operator level clocks (Joe, 16 Nov 2026): Hard and Expert run shorter, graded from the stored puzzle.
+    ...(settings.clockS ? { timeLimitMs: settings.clockS * 1000 } : {}),
+    ...(settings.fullByS ? { speedFullByS: settings.fullByS } : {}),
   } as EquationPuzzleData;
 }

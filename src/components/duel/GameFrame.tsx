@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ElementType, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ElementType, type ReactNode } from "react";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { boardBox } from "@/lib/boardBox";
@@ -71,6 +71,41 @@ const SHORT_GOALS: Partial<Record<PuzzleType, string>> = {
 
 export function frameGoal(type: PuzzleType): string {
   return SHORT_GOALS[type] ?? puzzleGoal(type).replace(/\.$/, "");
+}
+
+/**
+ * A live round's own goal line, where the dealt puzzle decides it (16 Nov 2026: Counterweight names the scales its level
+ * deals). Set by the stage while it is mounted, read by the goal line, the arena panel and the phone status; display only.
+ */
+const goalOverrides = new Map<PuzzleType, string>();
+const goalListeners = new Set<() => void>();
+function goalChanged(): void {
+  for (const l of goalListeners) l();
+}
+function subscribeGoal(l: () => void): () => void {
+  goalListeners.add(l);
+  return () => goalListeners.delete(l);
+}
+
+/** For a stage: the goal line it deals (cleared when the stage unmounts). */
+export function useStageGoal(type: PuzzleType, goal: string | null): void {
+  useIsoLayoutEffect(() => {
+    if (!goal) return;
+    goalOverrides.set(type, goal);
+    goalChanged();
+    return () => {
+      if (goalOverrides.get(type) === goal) goalOverrides.delete(type);
+      goalChanged();
+    };
+  }, [type, goal]);
+}
+
+/** The goal line to draw for a type: the live stage's own when it set one, else the game's. */
+export function useFrameGoal(type: PuzzleType): string;
+export function useFrameGoal(type: PuzzleType | undefined): string | null;
+export function useFrameGoal(type: PuzzleType | undefined): string | null {
+  const own = useSyncExternalStore(subscribeGoal, () => (type ? (goalOverrides.get(type) ?? null) : null), () => null);
+  return type ? (own ?? frameGoal(type)) : null;
 }
 
 /**
@@ -282,12 +317,13 @@ export function useGoalProgress(progress: GoalProgress): boolean {
 /** The puzzles' goal line: the goal left, the progress right, a stage bar under both where the game has stages. */
 export function GoalLine({ type, children }: { type: PuzzleType; children: ReactNode }) {
   const [progress, setProgress] = useState<GoalProgress | null>(null);
+  const goalText = useFrameGoal(type);
   const bar = GOAL_BAR_GAMES.has(type);
   return (
     <GoalLineContext.Provider value={setProgress}>
       <div data-goal-line data-goal-bar={bar ? "" : undefined} className="game-goal-line">
         <div className="game-goal-row">
-          <span data-goal-text className="game-goal-text">{frameGoal(type)}</span>
+          <span data-goal-text className="game-goal-text">{goalText}</span>
           {progress ? <span data-goal-progress className="game-goal-progress">{progress.text}</span> : null}
         </div>
         {bar ? (

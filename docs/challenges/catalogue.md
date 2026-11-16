@@ -408,7 +408,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Solid base | Build all four pyramids clean. | Classic | Clean | finish, `cleanPyramids` ≥ 4 |  | `numpyramid.solid-base` |
-| Pharaoh | Score 200 on Expert. | Expert | Perfect | `score` ≥ 200 | ● | `numpyramid.pharaoh` |
+| Pharaoh | Score 180 on Expert. | Expert | Perfect | `score` ≥ 180 | ● | `numpyramid.pharaoh` |
 
 #### Brimful (`measure`)
 

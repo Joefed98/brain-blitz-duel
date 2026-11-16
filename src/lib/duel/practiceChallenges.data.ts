@@ -317,7 +317,8 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("balance", "Heavyweight", "Balance all four within 60 s.", "C", "speed", false, speed(35, 60)),
   // Integer Pyramid (numpyramid): 150 + speed 40 (75 s) + clean pyramids 10.
   ch("numpyramid", "Solid base", "Build all four pyramids clean.", "C", "clean", false, all(FIN, f("cleanPyramids", "gte", 4))),
-  ch("numpyramid", "Pharaoh", "Score 200 on Expert.", "E", "perfect", true, score(200)),
+  // Changed with Joe's approval, 16 Nov 2026 (gentler Normal).
+  ch("numpyramid", "Pharaoh", "Score 180 on Expert.", "E", "perfect", true, score(180)),
   // Brimful (measure): 150 + speed 35 (60 s) + pours 15 (par).
   ch("measure", "Fill her up", "Measure all four targets.", "C", "finish", false, all(FIN)),
   ch("measure", "Not a drop spilt", "Measure all four in par pours.", "C", "par", false, all(FIN, f("pours", "lte", "@parPours"))),

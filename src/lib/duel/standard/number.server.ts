@@ -55,9 +55,15 @@ import {
 } from "./number";
 import { STANDARD_FINISH, cleanPoints, earlyPoints, parPoints, speedPoints } from "./shape";
 
-function speedFor(type: keyof typeof NUMBER_STANDARD, msLeft: number, limitMs: number): number {
+function speedFor(type: keyof typeof NUMBER_STANDARD, msLeft: number, limitMs: number, fullByS?: number): number {
   const g = NUMBER_STANDARD[type]!;
-  return speedPoints(g.speed, msLeft, limitMs, g.fullByS * 1000);
+  return speedPoints(g.speed, msLeft, limitMs, (fullByS ?? g.fullByS) * 1000);
+}
+
+/** A level's own "full by" time, stamped on the deal (Operator's Hard and Expert, 16 Nov 2026); none on Normal. */
+function storedFullByS(puzzle: unknown): number | undefined {
+  const v = (puzzle as { speedFullByS?: unknown }).speedFullByS;
+  return typeof v === "number" && v > 0 ? v : undefined;
 }
 
 /* ------------------------------------------------------------------ Exact */
@@ -186,7 +192,7 @@ const operator: StandardGame = {
     const clean = correct.filter((ok, i) => ok && (tries[i] ?? 0) <= 1).length;
     const cleanPts = Math.min(NUMBER_STANDARD.equation!.bonus, NUMBER_CLEAN_EACH * clean);
     const facts = { equationsRight: right, cleanEquations: clean };
-    if (graded.isCorrect) return { finished: true, speed: speedFor("equation", msLeft, limitMs), bonus: cleanPts, measure: "clean", facts };
+    if (graded.isCorrect) return { finished: true, speed: speedFor("equation", msLeft, limitMs, storedFullByS(puzzle)), bonus: cleanPts, measure: "clean", facts };
     return { finished: false, credit: NUMBER_PART_POINTS * right + ctx.early(NUMBER_PART_EARLY, right) + cleanPts, facts };
   },
 };

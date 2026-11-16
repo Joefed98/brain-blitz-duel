@@ -39,7 +39,9 @@ export const PAGE_CHECK_SPLITS: Record<string, { parts: number; jobs: number; pr
   // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): re-picked on main's merged screens (the step-3
   // train: 890 theme-check and 1,130 no-wrap-check draws), back to about 30 draws a part; were 24 parts / 4 jobs and 30 / 6.
   "theme-check.tsx": { parts: 30, jobs: 5, prefix: "play-theme", ceiling: 40 },
-  "no-wrap-check.tsx": { parts: 36, jobs: 6, prefix: "play-nowrap", ceiling: 40 },
+  // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): 36 → 42 parts on the Number overhaul's
+  // reveal screens (1,442 draws, about 34 a part).
+  "no-wrap-check.tsx": { parts: 42, jobs: 6, prefix: "play-nowrap", ceiling: 40 },
 };
 
 /** The jobs PAGE_CHECK_SPLITS gives: `<prefix>-<j>` runs parts j, j + jobs, j + 2 × jobs… of its check. */
@@ -125,7 +127,9 @@ export const SHARDS: Record<string, string[]> = {
   play15: ["arcade-room-practice-check.ts@1/3", "fission-repeat-check.ts", "app-shell-check.ts", "demo-intro-check.ts@6/6"],
   // share-check (21 Oct 2026: the podium's Share button, its text, link, clipboard fallback and card in the
   // harness, ~1 min with its dev server) rides here.
-  play17: ["share-check.ts"],
+  // number-demos-check (16 Nov 2026, the Number overhaul's intro demos, ~105 s whole) in halves, one beside share-check
+  // and one beside offline-check.
+  play17: ["share-check.ts", "number-demos-check.ts@1/2"],
   // Prompt D (23 Oct 2026): demo-intro-check (every active game's intro from its first frame to its demo playing,
   // with and without a demo, as an iPhone 11 home-screen app; ~8 s a game) and replay-board-check (46 puzzle replays on
   // the room's results screen, ~2 min). demo-intro-check in sixths since 8 Nov 2026: its thirds took 197–300 s on CI
@@ -138,7 +142,7 @@ export const SHARDS: Record<string, string[]> = {
   // Offline practice (31 Oct 2026): offline-check builds the app for production, installs the service worker, fills
   // every practice pack, plays three games offline, uploads the queue and swaps in a new build's worker (~5 min).
   // arcade-device-bottom-check's fifth layout part (@5/8, 2 Nov 2026) rides here, the lightest play job (~3.5 min).
-  play20: ["offline-check.ts", "arcade-device-bottom-check.ts@5/8"],
+  play20: ["offline-check.ts", "arcade-device-bottom-check.ts@5/8", "number-demos-check.ts@2/2"],
   // Browser checks that used to ride in the fast shards (1 Nov 2026): help-scroll-check (Chromium on a static page,
   // ~110 s, from g), battery-check (~190 s) and practice-switch-check (~60 s), both unlisted in the catch-all
   // before. BROWSER_CATCH_ALL: any browser check no shard lists runs here too.

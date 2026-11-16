@@ -444,7 +444,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
               { action: "A true equation", detail: "holds for 1 second, then moves on; the timer keeps running.", helpOnly: true },
               { action: "The last one", detail: "uses division in a harder mix; every step must stay a whole number, never below 0. 90 seconds for all four.", helpOnly: true },
               { action: "3 tries each:", detail: "each new full fill is a try; the same fill again is free. After the third wrong one the equation locks.", helpOnly: true },
-              { action: "Levels:", detail: "Easy uses 2 to 9 with one or two gaps a line and no ÷; Hard numbers to 25, one more gap a line, ÷ from line 3; Expert numbers to 30, every line mixed with 2 decoys, and 2 tries each.", helpOnly: true },
+              { action: "Levels:", detail: "Easy uses 2 to 9 with one or two gaps a line and no ÷; Hard numbers to 25, one more gap a line, ÷ from line 3; Expert numbers to 30, every line mixed with 2 decoys, and 2 tries each. Hard runs 85 s and Expert 78 s.", helpOnly: true },
             ]
         : operatorGapsDealt()
         ? [

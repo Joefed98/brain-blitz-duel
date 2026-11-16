@@ -268,6 +268,10 @@ export interface EquationPuzzleData {
   gapsRev?: number;
   /** gapsRev 1, server-side only until reveal: one fill per stage that makes it true (any true fill counts). */
   gapAnswers?: string[];
+  /** Operator level clocks (16 Nov 2026): a Hard or Expert deal's own clock; absent = the type's 90 s. */
+  timeLimitMs?: number;
+  /** With timeLimitMs: full speed points when finished within this many seconds; absent = 60. */
+  speedFullByS?: number;
 }
 
 export const EQUATION_TIME_MS = 90_000;

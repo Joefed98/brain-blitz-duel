@@ -6,11 +6,14 @@
  *   - Easy: one or two large numbers, a target of 101–300 whose fewest numbers is 3 or 4 (exactMinTiles).
  *   - Hard: exactly one large number, a target of 300–999 no four or five of the numbers reach, reached with all six.
  *   - Expert: small numbers only (1–10), a target of 500–999 needing all six, and a person-like solver
- *     (`personSolveTarget`) finds a route, so every Expert board can be worked out by a person.
+ *     (`personSolveTarget`) finds a route, so every Expert board can be worked out by a person. Since 16 Nov 2026
+ *     (Joe) Expert deals from a bank of boards made by this same rule (`TARGET_EXPERT_BANK`, built by
+ *     scripts/target-expert-bank.ts), not a live search.
  * Any route that hits the target counts (the graders are today's); the stored solution is a shortest one.
  */
 import { exactMinTiles } from "./standard/number.server";
-import { randInt, shuffled } from "./random";
+import { randInt, randomBelow, shuffled } from "./random";
+import { TARGET_EXPERT_BANK } from "./targetExpertBank.server";
 import { applyOperation, hasSolutionWithAtMostFourTiles, LARGE_TILES, solveTarget, solveWithAllSixTiles, TARGET_OPERATORS, TARGET_TILE_COUNT } from "./target";
 import type { TargetNumberPuzzleData, TargetStep } from "./types";
 
@@ -167,4 +170,10 @@ export function generateTargetLevel(settings: TargetLevelSettings): TargetNumber
     }
   }
   throw new Error("Exact: no level board found");
+}
+
+/** Exact's Expert: one board from the proved bank, drawn with the deal's own random source (seeded in rooms). */
+export function dealTargetExpert(): TargetNumberPuzzleData {
+  const entry = TARGET_EXPERT_BANK[randomBelow(TARGET_EXPERT_BANK.length)]!;
+  return { type: "target", tiles: [...entry.tiles], target: entry.target, solution: entry.solution.map((s) => ({ ...s })) };
 }

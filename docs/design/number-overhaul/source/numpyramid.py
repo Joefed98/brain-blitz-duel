@@ -15,6 +15,7 @@ from sprites import *  # noqa: F401,F403
 
 G = "numpyramid"
 BW, BH = 64, 58  # a block's sprite box in points (the app stretches it to the cell)
+BLOCK_Y, BLOCK_H = float(os.environ.get("NP_Y", "5.2")), float(os.environ.get("NP_H", "55.5"))
 
 
 def relief():
@@ -67,11 +68,14 @@ def block(cap=False):
     relief()
     tilt_camera()
     stone = limestone("lime", "#d9c6a0", "#ad9670")
-    box(3, 8, BW - 6, BH - 16, 14, stone, r=4.2)
+    # The block fills the socket's height in the sprite (Joe, 16 Nov 2026: no step between a given stone and an empty
+    # one now that the stones grow into the band above the board). BLOCK_Y / BLOCK_H put its drawn top and bottom on the
+    # socket's (8 and 166 px of 174) through the tilted camera.
+    box(3, BLOCK_Y, BW - 6, BLOCK_H, 14, stone, r=4.2)
     if cap:
         gold = mat("cap", "#dcb86e", 0.24, metal=1.0)
         add_bump(gold, 3, 0.02, stretch=(1, 50, 1), distance=0.0006)
-        box(3, 8, BW - 6, 10, 15.5, gold, r=2.4)
+        box(3, BLOCK_Y, BW - 6, 10, 15.5, gold, r=2.4)
 
 
 def given():

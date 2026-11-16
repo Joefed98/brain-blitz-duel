@@ -3,7 +3,8 @@
  * 3"): Operator's and Integer Pyramid's levels.
  *
  *   1. The registry: both games offer Easy, Hard and Expert with their settings; Operator names `open` (any true fill
- *      counts), Integer Pyramid this check as its proof; every level's clock is the game's own (90 s / 120 s, ≤ 120 s).
+ *      counts), Integer Pyramid this check as its proof; every level's clock is the game's own (90 s / 120 s, ≤ 120 s),
+ *      but Operator's Hard and Expert, which run 85 s and 78 s, full speed points within 40 s (Joe, 16 Nov 2026).
  *   2. Normal is today's game, byte for byte: a deal with the registry's entries is identical to one with no entries
  *      (and to one asking for "normal"), carries no `level`, and keeps Operator's 3 tries.
  *   3. Integer Pyramid's level banks: rebuilt byte for byte (scripts/number-pyramid-levels-bank.ts --check); every
@@ -54,7 +55,9 @@ for (const type of ["equation", "numpyramid"] as const) {
     const proof = levelProof(type, level);
     check(type === "equation" ? !!proof && "open" in proof : !!proof && "proof" in proof && proof.proof === "scripts/number-levels-equation-pyramid-check.ts", `1. ${type} ${level}: one-solution rule named`);
     const clock = (deal(type, 7, level) as { timeLimitMs?: number }).timeLimitMs ?? puzzleDef(type).timeLimitMs;
-    check(clock <= MAX_ROUND_CLOCK_MS && clock === (type === "equation" ? 90_000 : 120_000), `1. ${type} ${level}: clock ${clock / 1000} s`);
+    // Changed with Joe's approval, 16 Nov 2026 (Operator level clocks): Hard 85 s and Expert 78 s, the rest as before.
+    const want = type === "equation" ? (level === "hard" ? 85_000 : level === "expert" ? 78_000 : 90_000) : 120_000;
+    check(clock <= MAX_ROUND_CLOCK_MS && clock === want, `1. ${type} ${level}: clock ${clock / 1000} s`);
   }
 }
 
@@ -182,6 +185,15 @@ check((deal("equation", 3) as EquationPuzzleData).tryLimit === 3, "2. Operator's
     check(g.isCorrect === counts, `4. ${level}: all four right on a third try ${counts ? "counts" : "does not count"} (tryLimit ${p.tryLimit}, score ${g.score})`);
     const first = gradeAnswer(p as PuzzleData, joinCountSuffix(body, p.stages.map(() => 1)), 30_000);
     check(first.isCorrect && first.score >= 150, `4. ${level}: all four right first time finishes (${first.score})`);
+    // Operator level clocks (Joe, 16 Nov 2026): the level's own clock and "full by" time, graded from the stored puzzle.
+    const limit = p.timeLimitMs ?? 0;
+    const full = gradeAnswer(p as PuzzleData, joinCountSuffix(body, p.stages.map(() => 1)), limit - 40_000);
+    const late = gradeAnswer(p as PuzzleData, joinCountSuffix(body, p.stages.map(() => 1)), limit - 41_000);
+    check(p.speedFullByS === 40 && full.score === 200 && late.score < 200, `4. ${level}: full speed points within 40 s of the ${limit / 1000} s clock (${full.score} at 40 s, ${late.score} at 41 s)`);
+  }
+  {
+    const p = deal("equation", 11) as EquationPuzzleData;
+    check(p.timeLimitMs === undefined && p.speedFullByS === undefined, "4. Normal carries no clock or full-by time of its own (the type's 90 s, full by 60 s)");
   }
 }
 

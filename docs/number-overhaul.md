@@ -112,6 +112,11 @@ deducible from the screen, no guessing) completes. Integer Pyramid's stones grow
 only). Checks: number-levels-balance-target-check, number-levels-equation-pyramid-check,
 number-levels-measure-numline-check, number-levels-checkout-kakuro-check.
 
+**For Joe's scoring review (16 Nov 2026).** Integer Pyramid's Normal is today's game, unchanged: on main's level-tune.ts
+(40 seeds) the great bot averages 135.4 and finishes 35 % of runs (the near-perfect bot 188.7, every run finished), the
+largest gap between great and near-perfect play of the eight. Left as it is for the scoring review; nothing in this
+overhaul changes it.
+
 ## Intro demos
 
 `scripts/fixtures/number-demos.json`: one run per game recorded on its intro example deal at Normal

@@ -43,7 +43,7 @@ import { generateTileGrid } from "./tileGrid.server";
 import { generateWordSlide } from "./wordSlide.server";
 import { generateBalance } from "./numberRounds.server";
 import { generateBalanceLevel } from "./balanceLevels.server";
-import { generateTargetLevel, type TargetLevelSettings } from "./targetLevels.server";
+import { dealTargetExpert, generateTargetLevel, type TargetLevelSettings } from "./targetLevels.server";
 import type { BalanceLevelSettings } from "./balanceLevels";
 import { generateLightsOut, generatePipes, generateSudoku } from "./logic.server";
 import { generateFlow } from "./flow.server";
@@ -355,6 +355,8 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "kakuro") return dealKakuroLevel(gameSeed(type, context), context.level);
   // Exact's levels (targetLevels.server.ts, 15 Nov 2026): Normal is today's deal below.
   if (type === "target" && context.level) {
+    // Expert deals from its proved bank (Joe, 16 Nov 2026: no live search of up to 3 s; targetExpertBank.server.ts).
+    if (context.level === "expert" && gameLevelSettings<TargetLevelSettings>("target", "expert")) return dealTargetExpert();
     const settings = gameLevelSettings<TargetLevelSettings>("target", context.level);
     if (settings) return generateTargetLevel(settings);
   }

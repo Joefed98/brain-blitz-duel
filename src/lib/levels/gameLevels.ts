@@ -49,6 +49,7 @@ export interface GameLevels<S = Record<string, unknown>> {
 export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // Operator (operatorGaps.server.ts generateOperatorLevel): four equations per level, any true fill counts; every
   // line has a true fill the person-like search finds (scripts/number-levels-equation-pyramid-check.ts). Normal is today's.
+  // Hard and Expert have shorter clocks (Joe, 16 Nov 2026): 85 s and 78 s, full speed points within 40 s.
   equation: {
     levels: {
       easy: {
@@ -66,6 +67,8 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       hard: {
         settings: {
           tries: 3,
+          clockS: 85,
+          fullByS: 40,
           lines: [
             { count: 4, lo: 2, hi: 25, numberGaps: 0, signGaps: 3, decoys: 0, signs: "+-×", distinct: 2, maxAnswers: 1 },
             { count: 4, lo: 2, hi: 25, numberGaps: 4, signGaps: 0, decoys: 2, signs: "+-×", distinct: 2, maxAnswers: 3 },
@@ -78,6 +81,8 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       expert: {
         settings: {
           tries: 2,
+          clockS: 78,
+          fullByS: 40,
           lines: [
             { count: 4, lo: 2, hi: 30, numberGaps: 1, signGaps: 2, decoys: 2, signs: "+-×÷", distinct: 2, maxAnswers: 2 },
             { count: 5, lo: 2, hi: 30, numberGaps: 2, signGaps: 2, decoys: 2, signs: "+-×÷", distinct: 2, maxAnswers: 3 },

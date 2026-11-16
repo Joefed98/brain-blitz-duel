@@ -39,7 +39,7 @@ import { playLock } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
-import { useGoalProgress } from "@/components/duel/GameFrame";
+import { useGoalProgress, useStageGoal } from "@/components/duel/GameFrame";
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/batch-w-balance.css";
 // The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
@@ -332,6 +332,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
 
   // Polish batch W: in a live round the frame's goal line shows the scale; the old pip bar is not drawn.
   const inFrame = useGoalProgress({ done: current, total, text: `Scale ${current + 1} of ${total}` });
+  // The goal line names the scales this deal has (16 Nov 2026: Easy deals three); four keeps the game's own line.
+  useStageGoal("balance", balanceGoalLine(total));
   // The Number overhaul's effects (stage 2): balanceRev 4 in a live round only (intros and demos draw as before).
   const kitOn = freeMoves && inFrame;
   // Puzzle polish (3 Nov 2026, display only): in a live round the notches widen into the panel's width (up to
@@ -715,3 +717,11 @@ export const balancePuzzle: PuzzleDefinition = {
   Stage,
   Reveal,
 };
+
+const SCALE_WORDS = ["no", "one", "two", "three", "four", "five", "six"] as const;
+/** The goal line for a deal of `total` scales, or null where the game's own line ("four scales") is right. */
+export function balanceGoalLine(total: number): string | null {
+  if (total === 4 || total < 1) return null;
+  const word = SCALE_WORDS[total] ?? String(total);
+  return total === 1 ? "Balance the scale" : `Balance each of the ${word} scales`;
+}
