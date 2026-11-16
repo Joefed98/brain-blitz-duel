@@ -32,6 +32,10 @@ import { chainDemoCompatible } from "./chain";
 import { pairUsesDepth } from "./depth/matchmaker";
 import { STRIKEOUT_REV4 } from "./strikeout";
 import { createServerFn } from "@tanstack/react-start";
+import { NORMAL, puzzleLevel } from "@/lib/levels/levels";
+
+/** The Strategy games whose intro demos are recorded on the intro example deal at Normal (strategy-demos-check). */
+const STRATEGY_DEMO_GAMES: ReadonlySet<string> = new Set(["tilt", "matchup", "bubble", "inkbridge", "balltrack"]);
 import { isD4Type, isDepth4 } from "./depth4/stamps";
 
 import type { PuzzleData } from "./types";
@@ -92,6 +96,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
       return null;
     }
     const demo = (row as unknown as IntroDemoRow | null) ?? null;
+    // The Strategy overhaul, stage 3 (16 Nov 2026): the intro shows Normal, today's game; a Strategy demo dealt at another
+    // level (Easy, Hard, Expert) never plays as the intro.
+    if (STRATEGY_DEMO_GAMES.has(data.type) && demo && puzzleLevel(demo.puzzle) !== NORMAL) return null;
     if (data.type === "orbit" && (demo?.input_log.orbitBeltPeriodTicks !== ORBIT_BELT_PERIOD_TICKS || demo?.input_log.orbitBeltRevision !== ORBIT_BELT_REVISION)) return null;
     // Rev3 (scrolling-camera, wider zig-zag world) demos cannot replay as the legacy fixed-camera course, and vice versa.
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && (demo.puzzle.orbitRev ?? 0) !== ORBIT_REV3 && demo.puzzle.orbitRev !== ORBIT_REV4 && demo.puzzle.orbitRev !== ORBIT_REV_BAND && demo.puzzle.orbitRev !== ORBIT_REV_TUNED && demo.puzzle.orbitRev !== ORBIT_REV_XP && demo.puzzle.orbitRev !== ORBIT_REV_STD && demo.puzzle.orbitRev !== ORBIT_REV_FUEL) return null;
