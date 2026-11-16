@@ -2229,3 +2229,25 @@ export function flipGraceGameAt(level: FlipLevel): ArcadeGame<FlipState, ArcadeI
   }
   return game;
 }
+
+/**
+ * Builds a flipRev 13 course ahead of its round (RoundIntro calls it while the intro is up, rooms and practice; an async
+ * round's seed only arrives at its start, so it builds then): the build proves the course in the sim (about 100 ms at
+ * Normal, 300–450 ms at Expert and a few seconds where the builder re-rolls, more on a slow phone), and its cache makes
+ * the round's own init at the start a cache hit. Display timing only: the course is the seed's and level's whatever
+ * builds it, and when (flip-levels-check proves a cached course equals a fresh build).
+ */
+export function prepareFlipCourse(seed: number, rev?: number | null, level?: unknown): void {
+  if (rev === FLIP_REV_GRACE) flipCourseV8(seed, isFlipLevel(level) ? level : null);
+}
+
+/** Checks only: whether a course for this seed and level is in the cache (a prepared round's init is a hit). */
+export function flipCourseCached(seed: number, level?: FlipLevel | null): boolean {
+  return level ? cacheV8Level.has(`${level}:${seed | 0}`) : cacheV8.has(seed | 0);
+}
+
+/** Checks only: empties the course caches (Normal's and the levels'), so the next build is a fresh one. */
+export function flipClearCourseCache(): void {
+  cacheV8.clear();
+  cacheV8Level.clear();
+}

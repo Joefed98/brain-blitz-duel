@@ -33,6 +33,7 @@ import { useReducedMotion } from "@/lib/motion";
 /* Game code arrives with the game (speed fix 1, Nov 2026): these build a deal or load a game's art while the intro
    is up, fetching that game's sim or art chunk on first use, never with the room screen. */
 const prepareSwingCourse = (seed: number, rev?: number, level?: unknown) => void import("@/lib/arcade/swing").then((m) => m.prepareSwingCourse(seed, rev, level)).catch(() => undefined);
+const prepareFlipCourse = (seed: number, rev: number | undefined, level: unknown) => void import("@/lib/arcade/flip").then((m) => m.prepareFlipCourse(seed, rev, level)).catch(() => undefined);
 const prepareMoonTower = (seed: number, rev: number | undefined, level: unknown) => void import("@/lib/arcade/ricochetNinja").then((m) => m.moonGameFor(rev, level).init(seed)).catch(() => undefined);
 const prepareInkLevels = (seed: number, rev?: number | null) => void import("@/lib/arcade/inkBridge").then((m) => m.prepareInkLevels(seed, rev)).catch(() => undefined);
 const mgDeal = (seed: number) => void import("@/lib/arcade/cards/muggins").then((m) => m.mgDeal(seed)).catch(() => undefined);
@@ -202,6 +203,16 @@ export function RoundIntro({
     // (swingRev 18's levels: the stored level's course.)
     const level = (puzzle as { level?: unknown }).level;
     const timer = window.setTimeout(() => prepareSwingCourse(seed, swingRev, level), 120);
+    return () => window.clearTimeout(timer);
+  }, [puzzle]);
+
+  // Roofbound (flipRev 13, every level): the course is built and proved from the seed (cached) while the intro is up, so
+  // the round's own init is a cache hit (a level's course can take seconds on a phone; rooms and practice).
+  useEffect(() => {
+    if (puzzle?.type !== "flip") return;
+    const level = (puzzle as { level?: unknown }).level;
+    const { seed, flipRev } = puzzle;
+    const timer = window.setTimeout(() => prepareFlipCourse(seed, flipRev, level), 120);
     return () => window.clearTimeout(timer);
   }, [puzzle]);
 

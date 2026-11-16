@@ -19,8 +19,11 @@ import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import {
   flipCheckpoint,
+  flipClearCourseCache,
+  flipCourseCached,
   flipCourseV8,
   flipCrashCost,
+  prepareFlipCourse,
   flipGameFor,
   flipGraceScore,
   flipGraceSpecOf,
@@ -199,6 +202,49 @@ for (const level of LEVELS) {
   // Moving spikes slide by the tick alone.
   const mover = a.segs.find((seg) => seg.decision === FLIP_DECISION_MOVER);
   if (mover) ok(flipSegShift(mover, 1234) === flipSegShift({ ...mover }, 1234), `${level}: a moving spike's slide is a function of the tick alone`);
+}
+
+/* 7. The intro-time build (RoundIntro's prepareFlipCourse): display timing only. A prepared course is cached, the round's
+ * own init is then a cache hit, the cached course equals a fresh build, and a cache miss builds the same course. */
+for (const level of ["normal", ...LEVELS] as const) {
+  const lv = level === "normal" ? null : level;
+  const pool = lv ? FLIP_LEVEL_DEALS[lv] : FLIP_DEAL_V13;
+  const seed = pool[7]!;
+  // Empty the caches first, so the prepare is the build.
+  flipClearCourseCache();
+  ok(!flipCourseCached(seed, lv), `${level}: the course is not cached before the intro`);
+  prepareFlipCourse(seed, FLIP_REV_GRACE, lv);
+  ok(flipCourseCached(seed, lv), `${level}: prepareFlipCourse caches the course while the intro is up`);
+  const prepared = flipCourseV8(seed, lv);
+  const game = flipGameFor(FLIP_REV_GRACE, lv);
+  const t0 = performance.now();
+  const atStart = game.init(seed);
+  const initMs = performance.now() - t0;
+  ok(atStart.v8 === prepared.course && atStart.segs === prepared.segs, `${level}: the round's init uses the prepared course (a cache hit, ${initMs.toFixed(1)} ms)`);
+  flipClearCourseCache();
+  ok(!flipCourseCached(seed, lv), `${level}: evicted again`);
+  const fresh = game.init(seed);
+  ok(JSON.stringify(fresh) === JSON.stringify(atStart), `${level}: a cache miss builds the same course and start state as the prepared one`);
+  ok(JSON.stringify(flipCheckpoint(fresh)) === JSON.stringify(flipCheckpoint(atStart)), `${level}: the same checkpoint at the start`);
+  // Prepare is a no-op for every other stamp (it never builds or touches a flipRev 12 course).
+  flipClearCourseCache();
+  prepareFlipCourse(seed, FLIP_REV_DEAL, lv);
+  ok(!flipCourseCached(seed, lv), `${level}: prepareFlipCourse builds nothing for flipRev 12`);
+}
+// The replay through the server is the same with the course prepared or not.
+{
+  const level = "expert" as const;
+  const seed = FLIP_LEVEL_DEALS[level][3]!;
+  const w = readLevelWitnesses().find((x) => x.level === level && x.seed === seed)!;
+  const { raw } = encodeFlipLevelLog(level, seed, w.taps!.map(flipTap));
+  const p = { type: "flip" as const, seed, flipRev: FLIP_REV_GRACE, level };
+  prepareFlipCourse(seed, FLIP_REV_GRACE, level);
+  const warm = gradeAnswer(p, raw, 0);
+  flipClearCourseCache();
+  const cold = gradeAnswer(p, raw, 0);
+  // The grade's stored lines and parts (its diagnostics carry the replay's own timing in ms, which varies run to run).
+  const stable = (g: typeof warm) => JSON.stringify({ score: g.score, isCorrect: g.isCorrect, extra: Object.fromEntries(Object.entries((g.extra ?? {}) as Record<string, unknown>).filter(([k]) => !/diag|ms/i.test(k))) });
+  ok(warm.score === 200 && stable(cold) === stable(warm), "expert: the server's grade is the same with the course prepared or built cold");
 }
 
 /** A level's course built again in a fresh module copy (no cache shared with this process's). */

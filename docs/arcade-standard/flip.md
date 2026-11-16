@@ -129,10 +129,13 @@ landings (3–4 of the 5); Normal is not changed here (Joe approved a Normal cha
 Joe to play (the limited elite's best of the first 24 Expert deals; "well" on Expert here means 160+: clean time full,
 double flips and flow full, 6+ of the 9 perfect landings): room seed n=1 (course 640114144) 173 (elite 186), n=10 (1208933397) 173 (200), n=12 (573075131) 173 (193), n=22 (596575428) 173 (180), n=7 (1271176014) 166 (186), n=8 (1276757712) 166 (200); its Expert mean is 159.
 
-Build time (a course is built from the seed at round start and in the server replay): median about 110 ms on Normal,
-about 50 ms Easy, 200–250 ms Hard, 300–450 ms Expert on this machine, with a tail to several seconds where the builder
-re-rolls a course (most Hard and Expert seeds re-roll at least once); a decision for Joe whether to prebuild during the
-intro as Grappler does (`prepareSwingCourse`).
+Build time (a course is built from the seed and proved in the sim): median about 110 ms on Normal, about 50 ms Easy,
+200–250 ms Hard, 300–450 ms Expert on this machine, with a tail to several seconds where the builder re-rolls a course.
+So RoundIntro builds the round's course while the intro is up (`prepareFlipCourse(seed, rev, level)`, every flipRev 13
+level, rooms and practice; an async round's seed only arrives at its start, so it builds then, as Grappler's does), and
+the round's own init is a cache hit. Display timing only: flip-levels-check proves the prepared course is the cached one
+the init uses, that it equals a fresh build (a cache miss builds the same course and start state), that it builds
+nothing for older stamps, and that the server's grade is the same warm or cold.
 
 flip-levels-check (~50 s quick, `CHECKS_FULL=1` every dealt course and the deal file rebuilt byte for byte) proves
 Normal's deals byte for byte and flipRev 10–13 runs recorded on de3bec96 (`scripts/fixtures/levels-action-legacy.json.gz`),

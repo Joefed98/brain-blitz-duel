@@ -141,7 +141,6 @@ import { replayTenDropRun } from "@/lib/duel/tenDrop";
 import { replayWordfallRun } from "@/lib/duel/wordfall";
 import { replayColourClashRun } from "@/lib/duel/colourClash";
 import { clashVariantOf } from "@/lib/arcade/colourClash";
-import { puzzleLevel } from "@/lib/levels/levels";
 
 export interface ArcadeRevealRenderer {
   /** The game's own accent colour for tiles and the track. */
