@@ -13,12 +13,12 @@ import type { PuzzleData } from "@/lib/duel/types";
 
 let root: Root | null = null;
 
-export function playIntroDemo(puzzle: PuzzleData, log: PuzzleDemoLog, boxWidth: number, timeoutMs: number): Promise<{ answer: string | null; ms: number }> {
+export function playIntroDemo(puzzle: PuzzleData, log: PuzzleDemoLog, boxWidth: number, boxHeight: number, timeoutMs: number): Promise<{ answer: string | null; ms: number }> {
   root?.unmount();
   document.getElementById("number-intro-host")?.remove();
   const host = document.createElement("div");
   host.id = "number-intro-host";
-  host.style.cssText = `position:fixed;left:8px;top:8px;width:${boxWidth}px;z-index:99999;background:#0b0b0f`;
+  host.style.cssText = `position:fixed;left:8px;top:8px;width:${boxWidth}px;height:${boxHeight}px;z-index:99999;background:#0b0b0f`;
   document.body.appendChild(host);
   root = createRoot(host);
   return new Promise((resolve) => {

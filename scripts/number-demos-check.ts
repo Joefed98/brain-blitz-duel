@@ -40,6 +40,7 @@ const VERBOSE = args.includes("--verbose");
 const BROWSER = !args.includes("--no-browser");
 const named = args.filter((a) => !a.startsWith("--"));
 /** --part=k/n: the browser replays of every n-th demo from the k-th (the fast parts run whole in every part). */
+const BOX = (args.find((a) => a.startsWith("--box="))?.slice(6) ?? "360x340").split("x").map(Number) as [number, number];
 const PART = args.find((a) => a.startsWith("--part="))?.slice(7).split("/").map(Number) as [number, number] | undefined;
 const games = (named.length ? named : [...NUMBER_DEMO_GAMES]) as string[];
 
@@ -138,14 +139,14 @@ if (BROWSER && present.length) {
         // submit before the loop starts again.
         const loopMs = last + 90 + PUZZLE_DEMO_HOLD_MS;
         const played = (await page.evaluate(
-          async ({ puzzle, log, timeoutMs }) => {
+          async ({ puzzle, log, timeoutMs, box }) => {
             const url = "/scripts/number-demos-mount.tsx";
             const mount = (await import(/* @vite-ignore */ url)) as {
-              playIntroDemo: (p: unknown, l: unknown, w: number, t: number) => Promise<{ answer: string | null; ms: number }>;
+              playIntroDemo: (p: unknown, l: unknown, w: number, h: number, t: number) => Promise<{ answer: string | null; ms: number }>;
             };
-            return mount.playIntroDemo(puzzle, log, 300, timeoutMs);
+            return mount.playIntroDemo(puzzle, log, box[0], box[1], timeoutMs);
           },
-          { puzzle: demo.puzzle, log: demo.log, timeoutMs: loopMs + 30_000 },
+          { puzzle: demo.puzzle, log: demo.log, timeoutMs: loopMs + 30_000, box: BOX },
         )) as { answer: string | null; ms: number };
         if (played.answer === null) {
           fail(game, "the intro's demo never submitted");
