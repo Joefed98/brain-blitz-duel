@@ -32,6 +32,7 @@ import {
   inkIsLive,
   inkLiveNow,
   inkV13Proof,
+  inkV13Score,
   INK_LEVEL_NORMAL,
   INK_LEVEL_SETS,
   INK_LEVELS,
@@ -80,7 +81,8 @@ section("1. the registry and Normal's figures");
   ok(INK_LEVEL_SETS.easy.liveFrom === INK_LEVELS && INK_LEVEL_SETS.hard.liveFrom === 7 && INK_LEVEL_SETS.expert.liveFrom === 6, "live levels: none on Easy, from level 8 on Hard, from level 7 on Expert");
   // Expert's par margin is 0 % (the coordinator's lever of 16 Nov 2026 for a clear step; Joe's brief said 5 %).
   ok(INK_LEVEL_SETS.easy.parMarginPct === 25 && INK_LEVEL_SETS.hard.parMarginPct === 10 && INK_LEVEL_SETS.expert.parMarginPct === 0, "par margins 25 / 10 / 0 %");
-  ok(INK_LEVEL_SETS.easy.birdsPct === 50 && INK_LEVEL_SETS.hard.extraBirds.some((x) => x > 0) && INK_LEVEL_SETS.expert.extraBirds.every((x, i) => x >= (INK_LEVEL_SETS.hard.extraBirds[i] ?? 0)) && INK_LEVEL_SETS.expert.swayBirds > 0, "birds: half on Easy, more on Hard, at least as many on Expert, some swaying");
+  // Easy's birds are a quarter of today's since 16 Nov 2026 (Joe: an average player should have a real shot at a star; was half).
+  ok(INK_LEVEL_SETS.easy.birdsPct === 25 && INK_LEVEL_SETS.hard.extraBirds.some((x) => x > 0) && INK_LEVEL_SETS.expert.extraBirds.every((x, i) => x >= (INK_LEVEL_SETS.hard.extraBirds[i] ?? 0)) && INK_LEVEL_SETS.expert.swayBirds > 0, "birds: a quarter on Easy, more on Hard, at least as many on Expert, some swaying");
 }
 
 section("2. Normal is today's game");
@@ -233,8 +235,37 @@ section("5b. the pot's width and the speed part");
     ok(hi >= 0 && lo >= 100 - w / 2 - 4 - 2 - 1 && hi <= 100 + w / 2 + 4 + 2, `a ${w} px pot is drawn within 2 px of its rim caps (${lo}–${hi})`);
     ok(hi - lo >= w - 2, `a ${w} px pot fills its width (${hi - lo + 1} px)`);
   }
-  ok(inkSpeedFullTicks() === INK_V13_SPEED_FULL && inkSpeedFullTicks("easy") === INK_V13_SPEED_FULL, "speed full with 50 s left on Normal and Easy");
+  // Easy's speed part is full with 10 s left since 16 Nov 2026 (finishing every level in time is the speed; was 50 s).
+  ok(inkSpeedFullTicks() === INK_V13_SPEED_FULL && inkSpeedFullTicks("easy") === 10 * 60, "speed full with 50 s left on Normal, 10 s on Easy");
   ok(inkSpeedFullTicks("hard") === 70 * 60 && inkSpeedFullTicks("expert") === 85 * 60, "speed full with 70 s left on Hard, 85 s on Expert");
+}
+
+section("5c. Easy's clovers on the way, its trick shots and clovers parts, its wide pot");
+{
+  const set = INK_LEVEL_SETS.easy;
+  ok(set.cloverOnRoute === 60 && set.tricksFullAt === 2 && set.cloversFullAt === 1, "Easy: clovers on the easy line's path (60 % along), trick shots full at 2, clovers full at 1");
+  ok((["hard", "expert"] as const).every((d) => INK_LEVEL_SETS[d].cloverOnRoute === undefined && INK_LEVEL_SETS[d].tricksFullAt === undefined && INK_LEVEL_SETS[d].cloversFullAt === undefined), "Hard and Expert keep their clovers off the route and the parts' own counts");
+  // Every Easy clover on a plain level sits on its easy line's own drop (the easy line is its proved line).
+  let onRoute = 0;
+  let clovers = 0;
+  for (const s of states.get("easy")!) {
+    for (const lvl of s.list) {
+      const half = (lvl.potW ?? INK_BUCKET_W) / 2 + 4;
+      ok(lvl.bucketX - half >= 0 && lvl.bucketX + half <= INK_WORLD_W, `easy: the ${lvl.potW} px pot at ${lvl.bucketX} is whole on screen`);
+      if (!lvl.shamrock) continue;
+      clovers++;
+      if (!lvl.clouds?.length) {
+        ok(JSON.stringify(lvl.starRef) === JSON.stringify(lvl.ref), "easy: a plain level's clover is proved by its easy line");
+        onRoute++;
+      }
+    }
+  }
+  ok(clovers === 2 * states.get("easy")!.length && onRoute >= 1, `Easy runs carry two clovers each (${clovers}), the plain levels' on their easy line (${onRoute})`);
+  // The parts: on Easy 10 a trick shot up to 20 and 10 for a clover; every other level 5 a trick shot and 5 a clover.
+  const base = states.get("easy")![0]!;
+  const parts = (diff: InkDiff | undefined, tricks: number, shamrocks: number) => inkV13Score({ ...base, diff, acted: 1, levels: 3, tricks, shamrocks }).features;
+  ok(parts("easy", 1, 1)["tricks"] === 10 && parts("easy", 2, 1)["tricks"] === 20 && parts("easy", 4, 2)["tricks"] === 20 && parts("easy", 1, 1)["clovers"] === 10 && parts("easy", 0, 0)["clovers"] === 0, "Easy: 10 a trick shot to 20, 10 for a clover");
+  for (const d of [undefined, "hard", "expert"] as const) ok(parts(d, 1, 1)["tricks"] === 5 && parts(d, 4, 2)["tricks"] === 20 && parts(d, 1, 1)["clovers"] === 5 && parts(d, 0, 2)["clovers"] === 10, `${d ?? "normal"}: 5 a trick shot, 5 a clover (unchanged)`);
 }
 
 section("6. the clock; rated and the Daily");
