@@ -4,7 +4,7 @@
  * stage).
  *
  *   1. Settings: the four levels, each level's settings as agreed (Easy 8 × 8, 8–12 slides, no holes or thin ice;
- *      Hard 12 × 12, 24–30, more holes, 100 s; Expert 12 × 14, 28–36, every hazard, 120 s), `oneSolution` open (any route to
+ *      Hard 12 × 12, 24–30, more holes, 100 s; Expert 11 × 13, 28–36, every hazard, 120 s), `oneSolution` open (any route to
  *      the exit counts), every clock at most 120 s.
  *   2. The level banks (iceSlideLevelBank.server.ts): each level's size and SHA-256 build stamp, no copies, every
  *      entry re-proved by a fresh breadth-first search (verifyIceSlideLevelPuzzle: the stored fewest slides is the
@@ -17,16 +17,22 @@
  *      pre-overhaul deals and their 150 grades against scripts/fixtures/pattern-overhaul-iceslide-levels-normal.json
  *      (recorded on the tree before levels by scripts/pattern-overhaul-iceslide-levels-record.ts); asking for "normal"
  *      deals the same.
- *   5. The grid rule: no level is wider than Normal's 12 squares; Expert grows downwards to more squares than 12 × 12.
- *      The slide rules on a non-square board (a slide down runs to the bottom row of 14; the 12 × 12 default unchanged).
+ *   5. The grid rule: no level is wider than Normal's 12 squares; Expert grows downwards and narrower (Joe, 16 Nov 2026:
+ *      11 × 13, about Normal's 144 squares, taller than wide). The slide rules on a non-square board (a slide down runs
+ *      to the bottom row of 13; the 12 × 12 default unchanged).
  *   6. A flawless solve (the stored route by the level's speed time) scores 200 at every level; grading reads the
  *      level from the stored puzzle (the same finish at Hard's 38 s scores 200 as Hard, less with the level taken off);
  *      a half-done route gets credit between 1 and 130.
  *   7. Bots: the kit's near-perfect play finishes every level's boards, and the person-like player
  *      (scripts/iceslide-human.ts: a few slides ahead and back, no full search) finishes Expert boards and scores 150+
  *      on some (Expert is humanly possible to score well on).
- *   8. The stage and reveal draw a level board: Expert's 12 × 14 grid, tall shape and 168 squares, Easy's 8 × 8; Normal
+ *   8. The stage and reveal draw a level board: Expert's 11 × 13 grid, tall shape and 143 squares, Easy's 8 × 8; Normal
  *      keeps its square markup; the help names the level speed times from the settings.
+ *   9. The drawn squares (headless Chromium, practice at every level at 375 × 667 and 390 × 844; Joe, 16 Nov 2026: 12 × 14's
+ *      25.9 px squares at 375 were too small): each level's grid and square squares, Expert's within a few px of Hard's
+ *      (no smaller than Hard's less 1 px, at least 27 px at 375), the board and its pad and buttons on screen with no
+ *      scroll, and every piece's art (rocks, holes, portals, chevrons, thin ice, the exit, the ball) inside its own square.
+ *      Starts its own dev server, or `--url=<origin>` / ICESLIDE_LEVELS_URL.
  */
 import { readFileSync } from "node:fs";
 import { Window } from "happy-dom";
@@ -73,7 +79,7 @@ type L = (typeof LEVELS)[number];
 const WANT: Record<L, Partial<IceSlideLevelSettings>> = {
   easy: { cols: 8, rows: 8, minMoves: [8, 12], holes: [0, 0], thin: [0, 0], timeLimitMs: 90_000 },
   hard: { cols: 12, rows: 12, minMoves: [24, 30], holes: [5, 8], timeLimitMs: 100_000 },
-  expert: { cols: 12, rows: 14, minMoves: [28, 36], timeLimitMs: 120_000 },
+  expert: { cols: 11, rows: 13, minMoves: [28, 36], timeLimitMs: 120_000 },
 };
 const deal = (seed: number, level?: string) =>
   withSeededRandom(seed, () => generatePuzzle("iceslide", { bankSeed: seed, ...(level ? { level: level as never } : {}) })) as SlidePuzzleData;
@@ -124,7 +130,7 @@ for (const level of ICESLIDE_BANK_LEVELS) {
   }
 }
 for (const p of ICESLIDE_LEVEL_BANKS.easy) check(p.holes.length === 0 && (p.thin ?? []).length === 0, "easy bank: a hole or thin ice");
-for (const p of ICESLIDE_LEVEL_BANKS.expert) check(p.cols === 12 && p.rows === 14, "expert bank: a board not 12 × 14");
+for (const p of ICESLIDE_LEVEL_BANKS.expert) check(p.cols === 11 && p.rows === 13, "expert bank: a board not 11 × 13");
 for (const p of ICESLIDE_LEVEL_BANKS.hard) check(p.cols === undefined && p.rows === undefined, "hard bank: a 12 × 12 board carries a size");
 
 /* 3. Deals. */
@@ -171,13 +177,15 @@ for (const level of LEVELS) {
 
 /* 5. The grid rule and the rules on a non-square board. */
 for (const level of LEVELS) check(WANT[level].cols! <= 12, `${level}: wider than Normal's 12`);
-check(WANT.expert.rows! > WANT.expert.cols! && WANT.expert.cols! * WANT.expert.rows! > 144, "expert: doesn't grow downwards past 144 squares");
-check(slideStep(155, "D", 12, 14) === 167 && slideStep(167, "D", 12, 14) === null && slideStep(143, "D") === null && slideStep(131, "D") === 143, "rules: a step down on 12 × 14 or 12 × 12");
+// Joe (16 Nov 2026): Expert grows downwards and narrower, with about Normal's 144 squares (no fewer than 140).
+check(WANT.expert.rows! > WANT.expert.cols! && WANT.expert.cols! < 12 && WANT.expert.rows! > 12 && WANT.expert.cols! * WANT.expert.rows! >= 140, "expert: doesn't grow downwards and narrower with about 144 squares");
+check(slideStep(131, "D", 11, 13) === 142 && slideStep(142, "D", 11, 13) === null && slideStep(10, "R", 11, 13) === null && slideStep(143, "D") === null && slideStep(131, "D") === 143, "rules: a step on 11 × 13 or 12 × 12");
 check(slideStep(7, "R", 8, 8) === null && slideStep(6, "R", 8, 8) === 7 && slideStep(63, "D", 8, 8) === null, "rules: a step on 8 × 8");
 {
-  const tall = slideBoard({ walls: [], holes: [], start: 0, exit: 167, cols: 12, rows: 14 });
-  check(slideOutcome(tall, 0, 0, "D").cell === 156, "rules: a slide down a clear 12 × 14 column doesn't reach row 14");
-  check(slideSearch(tall)?.min === 2, "rules: the fewest slides corner to corner on 12 × 14");
+  const tall = slideBoard({ walls: [], holes: [], start: 0, exit: 142, cols: 11, rows: 13 });
+  check(slideOutcome(tall, 0, 0, "D").cell === 132, "rules: a slide down a clear 11 × 13 column doesn't reach row 13");
+  check(slideOutcome(tall, 0, 0, "R").cell === 10, "rules: a slide right along an 11 × 13 row doesn't stop at column 11");
+  check(slideSearch(tall)?.min === 2, "rules: the fewest slides corner to corner on 11 × 13");
   const square = slideBoard({ walls: [], holes: [], start: 0, exit: 143 });
   check(slideOutcome(square, 0, 0, "D").cell === 132 && square.cols === undefined, "rules: the 12 × 12 default changed");
 }
@@ -239,9 +247,9 @@ for (const level of LEVELS) {
     renderToStaticMarkup(React.createElement(iceSlidePuzzle.Stage, { puzzle: p, phaseStartedAt: 0, now: 0, locked: false, onSubmit: () => {}, onDraftAnswer: () => {} } as never));
   const cellsIn = (html: string) => (html.match(/class="ice-tile[^"]*"|class="ice-rock"/g) ?? []).length;
   const ex = play(dealt.expert[0]!);
-  check(/repeat\(12, minmax\(0, 1fr\)\)/.test(ex) && /repeat\(14, minmax\(0, 1fr\)\)/.test(ex), "stage: Expert isn't drawn 12 × 14");
-  check(ex.includes("data-ice-tall") && ex.includes(`--ice-ar:${12 / 14}`) && ex.includes("aspect-ratio:12 / 14"), "stage: Expert's rink isn't tall-shaped");
-  check(cellsIn(ex) === 168, `stage: Expert draws ${cellsIn(ex)} squares`);
+  check(/repeat\(11, minmax\(0, 1fr\)\)/.test(ex) && /repeat\(13, minmax\(0, 1fr\)\)/.test(ex), "stage: Expert isn't drawn 11 × 13");
+  check(ex.includes("data-ice-tall") && ex.includes(`--ice-ar:${11 / 13}`) && ex.includes("aspect-ratio:11 / 13"), "stage: Expert's rink isn't tall-shaped");
+  check(cellsIn(ex) === 143, `stage: Expert draws ${cellsIn(ex)} squares`);
   const easy = play(dealt.easy[0]!);
   check(/repeat\(8, minmax\(0, 1fr\)\)/.test(easy) && !easy.includes("data-ice-tall") && cellsIn(easy) === 64, "stage: Easy isn't a square 8 × 8");
   const normal = play(dealNormal(161_000));
@@ -249,13 +257,146 @@ for (const level of LEVELS) {
   const rev = renderToStaticMarkup(
     React.createElement(iceSlidePuzzle.Reveal, { timeLimitMs: 120_000, puzzle: dealt.expert[0]!, myAnswer: "", myCorrect: false, myMsRemaining: 0, myExtra: null } as never),
   );
-  check((rev.match(/data-reveal-board=""/g) ?? []).length === 2 && rev.includes("data-ice-tall") && cellsIn(rev) === 336, "reveal: Expert's two rinks aren't 12 × 14");
+  check((rev.match(/data-reveal-board=""/g) ?? []).length === 2 && rev.includes("data-ice-tall") && cellsIn(rev) === 286, "reveal: Expert's two rinks aren't 11 × 13");
   const css = readFileSync("src/polish-pattern/iceslide.css", "utf8");
   check(/\[data-polish="iceslide"\]\[data-ice-tall\] \.ice-stage-square/.test(css) && /\.ice-reveal-board\[data-ice-tall\]/.test(css), "css: no tall rink rules");
   const line = PUZZLE_INSTRUCTIONS.iceslide.how.find((l) => /level/i.test(l.action));
   check(!!line && line.helpOnly === true, "help: no level line (help only)");
   for (const level of LEVELS) check(!!line && line.detail.includes(`${settingsOf(level).fullByS} s on ${level[0]!.toUpperCase()}${level.slice(1)}`), `help: ${level}'s speed time isn't named`);
   check(PUZZLE_INSTRUCTIONS.iceslide.how.filter((l) => !l.helpOnly).length <= 4, "help: more than four intro HOW lines");
+}
+
+/* 9. The drawn squares in Chromium (Joe, 16 Nov 2026). */
+{
+  const { spawn } = await import("node:child_process");
+  const { chromium } = await import("playwright");
+  const { warmUp, gotoRetried } = await import("./browser-load");
+  const { practiceGameUrl } = await import("./practice-side-lib");
+  const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
+  const PORT = 5297;
+  const given = process.argv.find((a) => a.startsWith("--url="))?.slice(6) ?? process.env.ICESLIDE_LEVELS_URL;
+  let proc: ReturnType<typeof spawn> | null = null;
+  let origin = given?.replace(/\/$/, "") ?? `http://127.0.0.1:${PORT}`;
+  if (!given) {
+    proc = spawn("npx", ["vite", "dev", "--port", String(PORT), "--host", "127.0.0.1", "--strictPort"], { stdio: "ignore", detached: true });
+    let up = false;
+    for (let i = 0; i < 180 && !up; i++) {
+      try {
+        up = (await fetch(`${origin}/practice`)).ok;
+      } catch {
+        /* not up yet */
+      }
+      if (!up) await new Promise((r) => setTimeout(r, 1000));
+    }
+    check(up, "browser: the dev server didn't start");
+  }
+  const browser = await chromium.launch({ executablePath: CHROMIUM });
+  type Measured = {
+    cols: number;
+    rows: number;
+    cellW: number;
+    cellH: number;
+    cells: number;
+    boardBottom: number;
+    padTop: number;
+    actionsBottom: number;
+    vh: number;
+    scrolls: boolean;
+    artOutside: string[];
+    pieces: number;
+  };
+  const sizes: Record<string, Record<string, Measured>> = {};
+  try {
+    await warmUp(browser, practiceGameUrl(origin, "iceslide"), (page) => page.getByRole("button", { name: /^ready/i }).first().waitFor({ timeout: 180_000 }));
+    for (const [w, h] of [[375, 667], [390, 844]] as const) {
+      sizes[`${w}x${h}`] = {};
+      for (const level of ["easy", "normal", "hard", "expert"] as const) {
+        const context = await browser.newContext({ viewport: { width: w, height: h } });
+        await context.addInitScript((lv: string) => {
+          try {
+            localStorage.setItem("duelz-levels:v1", JSON.stringify({ catalogue: "normal", games: { iceslide: lv } }));
+            localStorage.setItem("duelz-level-intro:v1", "seen");
+          } catch {
+            /* */
+          }
+        }, level);
+        const page = await context.newPage();
+        try {
+          await gotoRetried(page, practiceGameUrl(origin, "iceslide"), `iceslide ${level}`, { waitUntil: "domcontentloaded" });
+          await page.getByRole("button", { name: /^ready/i }).first().click({ timeout: 180_000 });
+          await page.waitForSelector("[data-game-stage] .ice-board-grid", { timeout: 60_000 });
+          // The round's entrance fades in (no movement); wait out any settle before measuring.
+          await page.waitForTimeout(2500);
+          const m = (await page.evaluate(() => {
+            const grid = document.querySelector("[data-game-stage] .ice-board-grid") as HTMLElement;
+            const cs = getComputedStyle(grid);
+            const kids = [...grid.children] as HTMLElement[];
+            const first = kids[0]!.getBoundingClientRect();
+            const box = (sel: string) => document.querySelector(sel)?.getBoundingClientRect() ?? null;
+            const artOutside: string[] = [];
+            let pieces = 0;
+            for (const [i, cell] of kids.entries()) {
+              const c = cell.getBoundingClientRect();
+              for (const art of cell.querySelectorAll(".ice-art")) {
+                pieces++;
+                const a = art.getBoundingClientRect();
+                if (a.left < c.left - 1 || a.top < c.top - 1 || a.right > c.right + 1 || a.bottom > c.bottom + 1)
+                  artOutside.push(`${(art as HTMLImageElement).src.split("/").pop()} in square ${i}: ${a.width.toFixed(1)}×${a.height.toFixed(1)} in ${c.width.toFixed(1)}×${c.height.toFixed(1)}`);
+              }
+            }
+            const pad = box("[data-game-stage] [aria-label='Down']");
+            const actions = box("[data-game-stage] [data-game-controls='actions']");
+            return {
+              cols: cs.gridTemplateColumns.split(" ").length,
+              rows: cs.gridTemplateRows.split(" ").length,
+              cellW: first.width,
+              cellH: first.height,
+              cells: kids.length,
+              boardBottom: box("[data-game-stage] .ice-board")!.bottom,
+              padTop: pad?.top ?? -1,
+              actionsBottom: actions?.bottom ?? Infinity,
+              vh: innerHeight,
+              scrolls: document.scrollingElement!.scrollHeight > innerHeight + 1,
+              artOutside,
+              pieces,
+            };
+          })) as Measured;
+          sizes[`${w}x${h}`]![level] = m;
+        } catch (error) {
+          check(false, `browser ${w}x${h} ${level}: ${String((error as Error).message).split("\n")[0]}`);
+        } finally {
+          await context.close();
+        }
+      }
+    }
+  } finally {
+    await browser.close();
+    if (proc?.pid) {
+      try {
+        process.kill(-proc.pid);
+      } catch {
+        /* gone */
+      }
+    }
+  }
+  for (const [vp, byLevel] of Object.entries(sizes)) {
+    for (const [level, m] of Object.entries(byLevel)) {
+      const s = level === "normal" ? { cols: 12, rows: 12 } : settingsOf(level as L);
+      const where = `browser ${vp} ${level}`;
+      check(m.cols === s.cols && m.rows === s.rows && m.cells === s.cols * s.rows, `${where}: drawn ${m.cols} × ${m.rows} (${m.cells} squares)`);
+      check(Math.abs(m.cellW - m.cellH) < 0.6, `${where}: squares ${m.cellW.toFixed(1)} × ${m.cellH.toFixed(1)} aren't square`);
+      check(!m.scrolls, `${where}: the page scrolls`);
+      check(m.padTop > 0 && m.boardBottom <= m.padTop && m.actionsBottom <= m.vh, `${where}: the board (to ${m.boardBottom}) or its controls (pad from ${m.padTop}, buttons to ${m.actionsBottom}) aren't on screen in order`);
+      check(m.pieces >= 10 && m.artOutside.length === 0, `${where}: ${m.pieces} pieces' art, outside its square: ${m.artOutside.slice(0, 3).join("; ")}`);
+    }
+    const hard = byLevel.hard?.cellW ?? 0;
+    const expert = byLevel.expert?.cellW ?? 0;
+    console.log(`  ${vp}: squares ${Object.entries(byLevel).map(([l, m]) => `${l} ${m.cellW.toFixed(1)} px`).join(", ")}`);
+    // Expert's squares within a few px of Hard's: never more than 1 px smaller, never more than 4 px larger.
+    check(hard > 0 && expert >= hard - 1 && expert <= hard + 4, `${vp}: Expert's squares ${expert.toFixed(1)} px, Hard's ${hard.toFixed(1)} px`);
+    check(byLevel.easy !== undefined && byLevel.easy.cellW > hard + 8, `${vp}: Easy's squares ${byLevel.easy?.cellW.toFixed(1)} px aren't clearly larger than Hard's`);
+  }
+  check(Object.keys(sizes).length === 2 && (sizes["375x667"]?.expert?.cellW ?? 0) >= 27, `375x667: Expert's squares ${sizes["375x667"]?.expert?.cellW.toFixed(1)} px (12 × 14 drew 25.9)`);
 }
 
 console.log(`pattern-overhaul-iceslide-levels-check: ${passes} passed, ${failures.length} failed`);

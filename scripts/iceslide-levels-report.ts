@@ -26,6 +26,30 @@ if (process.argv.includes("--boards")) {
     return { index, par: p0.minMoves, score: run.score, solved: run.isCorrect, seconds: Math.round(run.seconds) };
   });
   rows.sort((a, b) => b.score - a.score);
+  // --tsv=<file>: the list for Joe, every board with a bank seed that deals it (`drawIceSlideLevel("expert", seed)`;
+  // a room or practice deal with that bankSeed at Expert) and its layout.
+  const tsv = arg("tsv");
+  if (tsv) {
+    const { drawIceSlideLevel, iceSlideLevelKey } = await import("../src/lib/duel/iceSlideLevels.server");
+    const { writeFileSync } = await import("node:fs");
+    const bank = ICESLIDE_LEVEL_BANKS.expert;
+    const seedOf = new Map<string, number>();
+    for (let seed = 0; seedOf.size < bank.length && seed < 1_000_000; seed++) {
+      const key = iceSlideLevelKey(drawIceSlideLevel("expert", seed));
+      if (!seedOf.has(key)) seedOf.set(key, seed);
+    }
+    const lines = rows.map((r) => {
+      const p = bank[r.index]!;
+      const layout = `start ${p.start} exit ${p.exit} rocks ${p.walls.join(",")} holes ${p.holes.join(",")} arrows ${(p.arrows ?? []).map((a) => `${a.cell}${a.dir}`).join(",")} portals ${(p.portals ?? []).map((q) => q.join("-")).join(",")} thin ${(p.thin ?? []).join(",")}`;
+      return [r.index, p.cols, p.rows, r.par, seedOf.get(iceSlideLevelKey(p)) ?? "", r.score, r.solved ? `${r.seconds}s` : "-", p.solution, layout].join("\t");
+    });
+    writeFileSync(
+      tsv,
+      `# Skid Expert boards (16 Nov 2026, 11 × 13): every board of the Expert bank (src/lib/duel/iceSlideLevelBank.server.ts), best first by the elite person-like player (scripts/iceslide-human.ts).\n` +
+        `# Squares are numbered row by row from 0 (11 across). bankSeed deals the board at Expert (drawIceSlideLevel). Written by \`bun scripts/iceslide-levels-report.ts --boards --tsv=<file>\`.\n` +
+        `bank#\tcols\trows\tpar\tbankSeed\tpersonScore\tpersonTime\tparRoute\tlayout\n${lines.join("\n")}\n`,
+    );
+  }
   for (const r of rows) console.log(`expert bank ${r.index}: par ${r.par}, person (elite) ${r.score}${r.solved ? ` in ${r.seconds} s` : " (unfinished)"}`);
   process.exit(0);
 }

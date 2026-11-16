@@ -278,7 +278,7 @@ function slideGame(p: PuzzleData): MoveGame<SlideState, Dir> {
 }
 // BASE 3.5 s per slide: tracing where the ball stops past holes, arrows and portals.
 // Difficulty levels (16 Nov 2026): the trace takes longer on a bigger rink, in proportion to its squares (Normal's and
-// Hard's 12 × 12 exactly 3.5 s; Easy's 8 × 8 1.56 s; Expert's 12 × 14 4.08 s).
+// Hard's 12 × 12 exactly 3.5 s; Easy's 8 × 8 1.56 s; Expert's 11 × 13 3.48 s).
 const iceslideKitNormal = moveKit("iceslide", slideGame, 3.5);
 const iceslideKit: PuzzleKit = {
   ...iceslideKitNormal,

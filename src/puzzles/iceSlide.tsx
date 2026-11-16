@@ -93,7 +93,7 @@ function Stage({
     () => slideBoard(data ?? { walls: [], holes: [], start: 0, exit: 0 }),
     [data],
   );
-  // Difficulty levels (16 Nov 2026): a level board's own size (Easy 8 × 8, Expert 12 × 14); else 12 × 12.
+  // Difficulty levels (16 Nov 2026): a level board's own size (Easy 8 × 8, Expert 11 × 13); else 12 × 12.
   const dims = slideDims(data);
   const tall = dims.rows !== dims.cols;
   const [moves, setMoves] = useStageState<SlideDir[]>(stateKey, "slideMoves", () => []);

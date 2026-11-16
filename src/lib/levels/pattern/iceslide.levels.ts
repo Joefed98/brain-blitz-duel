@@ -56,10 +56,13 @@ export const LEVELS_ICESLIDE: GameLevels<IceSlideLevelSettings> = {
       settings: { cols: 12, rows: 12, minMoves: [24, 30], walls: [30, 44], holes: [5, 8], arrows: [1, 3], portals: [1, 2], thin: [3, 5], routeUsesHazards: true, timeLimitMs: 100_000, fullByS: 40, bank: 300 },
       oneSolution: OPEN,
     },
-    // Expert: 12 across × 14 down (168 squares; 13 across would shrink every square on a phone), 28–36 slides, every
-    // hazard at Normal's density, the route through a portal and over thin ice; 120 s, speed full by 45 s.
+    // Expert: 11 across × 13 down (143 squares, Normal's 144 less one; Joe, 16 Nov 2026: 12 × 14's 25.9 px squares at
+    // 375 × 667 were too small to read the ice, holes and portals). The rink grows downwards and narrower: on a 375 × 667
+    // phone the height above the pad holds 13 rows at Hard's square size (28.1 px, Hard 27.4; 31.5 px at 390 × 844, Hard
+    // 28.7), where a 14th row would shrink every square to 25.9 px again. 28–36 slides, every hazard at Normal's density
+    // (rocks 30–43), the route through a portal and over thin ice; 120 s, speed full by 45 s.
     expert: {
-      settings: { cols: 12, rows: 14, minMoves: [28, 36], walls: [35, 51], holes: [3, 5], arrows: [1, 3], portals: [1, 2], thin: [3, 6], routeUsesHazards: true, timeLimitMs: 120_000, fullByS: 45, bank: 300 },
+      settings: { cols: 11, rows: 13, minMoves: [28, 36], walls: [30, 43], holes: [3, 5], arrows: [1, 3], portals: [1, 2], thin: [3, 6], routeUsesHazards: true, timeLimitMs: 120_000, fullByS: 45, bank: 300 },
       oneSolution: OPEN,
     },
   },

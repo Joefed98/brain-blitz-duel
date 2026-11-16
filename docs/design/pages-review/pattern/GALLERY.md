@@ -484,9 +484,12 @@ Practice rounds at 390 × 844, each level chosen on the device (the framework's 
 - **Normal**: today's game exactly (12 × 12, 18–26 slides, every hazard, 90 s, slideRev 5).
 - **Hard**: 12 × 12, 24–30 slides, 5–8 holes (Normal 2–4), the route through a portal and over thin ice; **100 s**
   (Joe's spec said 90: at 90 s every bot scored Hard below Expert), speed full by 40 s.
-- **Expert**: 12 across × 14 down, 28–36 slides, every hazard, 120 s, speed full by 45 s. The rink grows downwards and
-  keeps square squares: 28.7 px at 390 × 844 (as Normal), 25.9 px at 375 × 667 (Normal 27.4), the pad and buttons
-  unchanged, nothing scrolls.
+- **Expert**: 11 across × 13 down (143 squares), 28–36 slides, every hazard, 120 s, speed full by 45 s. Joe (16 Nov
+  2026): the first Expert, 12 × 14, drew 25.9 px squares at 375 × 667, too small to read the ice, holes and portals, so
+  the rink grows downwards and narrower: measured in Chromium (pattern-overhaul-iceslide-levels-check section 9), 28.1 px
+  at 375 × 667 (Hard 27.4) and 31.5 px at 390 × 844 (Hard 28.7), every piece's art inside its square, the pad and
+  buttons unchanged, nothing scrolls. Boards to play: `levels/iceslide-expert-boards.tsv` (every Expert bank board,
+  best first by the person-like player, with a bank seed that deals it, its par route and layout).
 - Each level deals from its own seeded bank of 300 boards (`bun scripts/iceslide-levels-bank.ts [--check]`), every
   board's fewest slides proved by breadth-first search; the par is that minimum. Any route to the exit counts.
 <!-- skid:end -->
