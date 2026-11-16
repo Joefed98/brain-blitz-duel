@@ -105,7 +105,7 @@ lines say what changes (instructions.ts).
 whose witness takes every part's maximum on the level and scores exactly 200 through the server replay.
 Kept: Easy 258, Hard 257, Expert 254 of the 260 (the rest: witnesses at 195–197, three Expert ones at 140).
 
-**Measured** (`bun scripts/action-levels-bands.ts flip --seeds=24`; real level deals graded by the server replay; mean /
+**Measured** (`bun scripts/flip-skyline-levels-bands.ts flip --seeds=24`; real level deals graded by the server replay; mean /
 median; every run finishes, grace). `limited` is the elite held to Joe's human limits
 (`scripts/arcade-skill-bands/humanLimits.ts`: 250 ± 30 ms reactions, 150 ms finger lag, 15 ms timing, 2.5 px aim):
 

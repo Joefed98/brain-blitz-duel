@@ -96,7 +96,7 @@ import {
   BT3_ZONE_W,
 } from "../src/lib/arcade/bastionTank";
 import { encodeBastionTankRun, replayBastionRun, replayBastionTankRun } from "../src/lib/duel/bastion";
-import { generateBastion } from "../src/lib/duel/arcade.server";
+import { generateBastion, pinBastionPreLevels } from "../src/lib/duel/arcade.server";
 import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { PUZZLE_REGISTRY, isRetired } from "../src/lib/duel/registry";
 import { arcadeGroupOf } from "../src/lib/duel/arcadeGroups";
@@ -132,11 +132,18 @@ const game = bastionTankGame;
 
 /* 2. The deal. */
 {
+  // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Expert): rooms deal bastionRev 4 at Normal;
+  // bastionRev 3, the game these sections prove, is the Expert deal and the bastionPreLevels pin's (bastion-levels-check).
   const dealt = Array.from({ length: 20 }, () => generateBastion());
-  ok(dealt.every((p) => p.type === "bastion" && p.bastionRev === BASTION_REV_IRON && p.seed > 0), "rooms deal bastionRev 3 on a fresh seed");
-  ok(BASTION_REV_DEALT === 3 && BASTION_REV_TANK === 2, "the dealt stamp is 3 (rev 2 still replays)");
+  ok(dealt.every((p) => p.type === "bastion" && p.bastionRev === 4 && p.seed > 0), "rooms deal bastionRev 4 on a fresh seed");
+  const expert = Array.from({ length: 20 }, () => generateBastion("expert"));
+  ok(expert.every((p) => p.type === "bastion" && p.bastionRev === BASTION_REV_IRON && p.seed > 0), "Expert deals bastionRev 3 on a fresh seed");
+  const was = pinBastionPreLevels(true);
+  ok(Array.from({ length: 20 }, () => generateBastion()).every((p) => p.bastionRev === BASTION_REV_IRON), "the bastionPreLevels pin deals bastionRev 3");
+  pinBastionPreLevels(was);
+  ok(BASTION_REV_DEALT === 4 && BASTION_REV_IRON === 3 && BASTION_REV_TANK === 2, "the dealt stamp is 4 (rev 3 and rev 2 still replay)");
   const def = PUZZLE_REGISTRY.bastion;
-  ok((def.generate() as { bastionRev?: number }).bastionRev === 3, "the registry's practice puzzle is bastionRev 3");
+  ok((def.generate() as { bastionRev?: number }).bastionRev === 4, "the registry's practice puzzle is bastionRev 4");
   ok(!isRetired("bastion"), "Iron Wall is active (dealt in rooms)");
   ok(arcadeGroupOf("bastion") === "action", "Iron Wall is in the Action group");
   ok(roundMaxFor("bastion") === 200, "Iron Wall's round maximum is 200");

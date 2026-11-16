@@ -124,19 +124,69 @@ Joe's review (`docs/design/game-reviews/action.md`). No stamp: the course, rules
   `swing.outOfReach`, `swing.pteroShadow`, `swing.stretchTally` for stage 2's effects.
 - Frames: `bun scripts/shots/swing-overhaul-frames.ts [--root=<main checkout>] [--tag=before|after] [--clip]`.
 
-### Levels (stage 3: the levers)
+### Levels (swingRev 18, 15 Nov 2026; Normal is today's game)
 
-Normal is today's swingRev 17. Each level that changes play is its own stamp with its own proved deal
-(`scripts/swing-slide-deal.ts`), all at most 120 s, rated rooms on Normal; "King of the swingers" (70 % of the course on
-Expert) must stay possible.
+Joe's levels: "Easy longer reach, few sliding vines, relaxed stall limit, no pterodactyl, all stretches lit; Normal
+today; Hard more sliding vines, tighter stall limit, pterodactyl last quarter faster; Expert slightly shorter reach, a
+few more sliding vines than Hard, a little tighter stall limit, pterodactyl last quarter faster, 7 dark stretches." The
+deal stamps the puzzle's `level` (swingRev 18 only) and deals a course from that level's own proved deal
+(`SWING_LEVEL_DEAL`, `src/lib/duel/swingLevelDeal.server.ts`, `bun scripts/swing-slide-deal.ts --rev=18
+--level=<level> [--check]`: 24 courses a level whose flawless oracle replays to exactly 200 through `replaySwingRun` at
+the level; witnesses `scripts/fixtures/swing-level-<level>-witness.json.gz`; dropped: Easy 55 of 79, Hard 52 of 76,
+Expert 74 of 98). The sim reads the level into the state's `lvl` (absent at Normal, so a Normal state, course and score
+are exactly today's: swing-levels-check 1 against 6 courses and 18 runs recorded on de3bec96,
+`scripts/fixtures/action-levels-legacy.json.gz`). Settings: `SWING_LEVELS` in `swing.ts` (the registry's
+`GAME_LEVELS.swing` repeats them for display); a change to one needs a new stamp.
 
-| Lever | Easy | Normal | Hard | Expert |
+| Lever (`SWING_LEVELS`) | Easy | Normal | Hard | Expert |
 |---|---|---|---|---|
-| Reach (`REACH`) | longer (about 260 px) | 220 px | 220 px | slightly shorter (about 205 px) |
-| Sliding vines (per quarter) | few (0, 1, 2, 2) | 0, 4, 6, 8 | more (2, 6, 8, 10) | a few more than Hard (3, 7, 9, 11) |
-| Streak stall limit (`SWING_V17_STALL`) | relaxed (about 200 ticks) | 150 | tighter (about 130) | a little tighter (about 120) |
-| Pterodactyl | none | last quarter | last quarter, faster | last quarter, faster |
-| Dark ledge runs | all lit | 6 dark | 6 dark | 7 dark |
+| Reach in play / built with | 250 / 220 px | 220 px | 220 px | 205 / 205 px |
+| Sliding vines a quarter | 0, 1, 2, 2 | 0, 4, 6, 8 | 2, 6, 8, 10 | 3, 7, 9, 11 |
+| Streak stall limit | 200 ticks | 150 | 55 | 50 |
+| Pterodactyl (last quarter) | none | 2.4 px a tick | 3.2 px a tick | 3.4 px a tick |
+| Dark ledge runs | none (all lit) | 6 | 6 | 7 (`runs` 3,2,2,3,2,3,2, a run every 5 blocks) |
+| Course part full at | 50 % of the way | 70 % | 70 % | 70 % |
+
+The parts (course 110, pars 40, gates 10, streak 40 = 200), the 90 s run and the stretch restarts (no slip ends a run)
+are swingRev 18's at every level; Easy's course part is full sooner (a level's "full at"). How it works in the sim:
+`withLevel` sets the reach (build reach while a course is built, play reach while it is stepped) and the level for the
+builder, as `withBody` sets the body, so every other revision steps exactly as before; the step reads the stall
+(`swingStall`) and the pterodactyl's pace from the state; `swingDarkFrom` lights everything on Easy; the builder places
+each level's sliding hooks (the first quarter too) and drops the pterodactyl on Easy. Builds: median ~0.2 / 0.2 / 0.3 /
+0.7 s on a desktop core (Normal / Easy / Hard / Expert, more under load); `RoundIntro` builds the level's course while the
+intro is up (`prepareSwingCourse(seed, rev, level)`).
+
+- **"King of the swingers"** ("Get 70 % of the way on Expert", the Course part full) is met on every sampled Expert
+  witness (swing-levels-check 7b) and by the elite bot on all 8 measured Expert courses.
+- **Why the stall limits are where they are.** The elite bot's grab-to-grab gaps run 15–68 ticks (median 22, 95th
+  percentile 42), so Joe's "about 130" changed nothing for strong players. At 40 / 32 ticks the near-perfect bot fell to
+  about 166 on Expert, but the flawless oracle no longer reached 200 on any course (0 of 6), so no proved deal could be
+  built; 55 / 50 is the tightest where it still does (about 1 course in 3–4).
+
+### Measured (15–16 Nov 2026)
+
+`bun scripts/action-levels-bands.ts swing --level=<level> --seeds=6|8 --each` (real deals, graded by the server; human
+limits: a ledge press reacts no sooner than 0.25 s, a grab comes no sooner than 0.15 s after the release; a release on
+the swing is a timed moment with the level's own timing error):
+
+| Bot | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Average | 112.5 | 86.3 | | |
+| Good | 138.8 | | | |
+| Great | | 156.5 | 156.8 | 150.1 |
+| Near-perfect | | 191.7 | 193.5 | 188.9 |
+| Elite | 199.0 | 198.8 | 197.0 | 197.0 |
+| Flawless | 200 (the deal's proof) | 200 | 200 | 200 |
+
+The shared tool (main's `bun scripts/level-tune.ts swing --level=all --seeds=4`, checkpoints every 300 ticks as
+Grappler's own, no human limits) gives near-perfect / elite 193.3 / 198.0 Easy, 187.5 / 199.0 Normal, 186.0 / 194.3 Hard,
+186.0 / 190.3 Expert ("finished" there is clearing every stretch: 75 / 25 / 0 / 0 % of elite runs).
+
+Easy is a clear step down (an average player +26, a good one well clear of Normal), but Grappler's strong players are near
+the ceiling at every level: Hard and Expert step down only a few points for great and near-perfect play, and the elite
+bot scores 193–200 on every Expert course (Expert courses to play, dealt seeds with the elite score: 1492875028 (200),
+138730531 (198), 310905574 (198), 1476148260 (197), 1089691770 (196), 843969757 (196), 794825887 (193)). A clearer step
+needs a decision from Joe (below the stall limits the proof breaks; see above).
 
 ## The jungle canopy (3 Nov 2026, the Action polish; display only, swingRev 17)
 

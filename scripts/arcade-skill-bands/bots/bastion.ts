@@ -19,7 +19,7 @@ import { bastionPlay, FLAWLESS, type BastionStyle } from "../../bastion-oracle";
 import { BASTION_REV_TANK, BT2_INPUT_AIM, BT2_INPUT_FIRE, BT2_INPUT_RANGES, BT2_INPUT_RELOAD, BT2_INPUT_TAP, BT2_RUN_TICKS } from "../../../src/lib/arcade/bastionTank";
 import { recordInput, type ArcadeInputEvent } from "../../../src/lib/arcade/engine";
 import type { SkillBot } from "../bot";
-import type { SkillLevel } from "../human";
+import type { Human, SkillLevel, SkillProfile } from "../human";
 
 const STYLES: Record<SkillLevel, BastionStyle> = {
   weak: { weakAim: 0.15, earlyReload: false, tapChance: 0.45, minWeakH: 2, droneTries: 1 },
@@ -31,10 +31,43 @@ const STYLES: Record<SkillLevel, BastionStyle> = {
   perfect: FLAWLESS,
 };
 
-export const bot: SkillBot = ({ seed, human, rev }) => {
+/**
+ * Human limits (bastionRev 4's levels, 15 Nov 2026; docs/arcade-standard/bastion.md "bastionRev 4: levels"): a real
+ * gunner on a phone notices a new tank no sooner than about 0.25 s after it appears, needs about 0.15 s to move the
+ * crosshair onto the next target and lift, points no closer than 5 px sd (the crosshair floats above the thumb), misjudges
+ * a moving target's lead by 25 % sd and times the reload needle no better than 30 ms sd. A tank within 300 ticks of the
+ * wall whose weak spot can't be hit now takes a hull shot instead of a wait (`adaptive`), and even a top player aims at
+ * the hull now and then (weak-spot aim at most 95 %). With `fixes` (the band tool, scripts/level-tune.ts and the Action
+ * intro demos) every level's profile is held to these floors; the checks that run this bot without `fixes` keep the
+ * bots they were proved with.
+ */
+export const BASTION_HUMAN_LIMITS = { reactionMs: 250, moveMs: 150, aimSdPx: 5, timingSdMs: 30, judgement: 0.25, adaptiveTicks: 300, weakAimMax: 0.95 } as const;
+/** The shot-to-shot think's base time (bastion-oracle.ts `thinkTicks(260, …)`). */
+const THINK_BASE_MS = 260;
+
+export function limitedProfile(p: SkillProfile): SkillProfile {
+  const L = BASTION_HUMAN_LIMITS;
+  return {
+    ...p,
+    reactionMs: [Math.max(p.reactionMs[0], L.reactionMs), p.reactionMs[1]],
+    aimSdPx: Math.max(p.aimSdPx, L.aimSdPx),
+    timingSdMs: Math.max(p.timingSdMs, L.timingSdMs),
+    thinkScale: Math.max(p.thinkScale, L.moveMs / THINK_BASE_MS),
+    judgement: Math.max(p.judgement, L.judgement),
+  };
+}
+
+/** The human with BASTION_HUMAN_LIMITS applied (the same seeded stream). */
+export function limitedHuman(human: Human): Human {
+  (human as { p: SkillProfile }).p = limitedProfile(human.p);
+  return human;
+}
+
+export const bot: SkillBot = ({ game, seed, human, rev, fixes }) => {
   const r = rev ?? BASTION_REV_TANK;
-  if (human.level === "perfect") return { events: bastionPlay(seed, undefined, FLAWLESS, r).events };
-  return { events: bastionPlay(seed, human, STYLES[human.level], r).events };
+  if (human.level === "perfect") return { events: bastionPlay(seed, undefined, FLAWLESS, r, game).events };
+  if (!fixes) return { events: bastionPlay(seed, human, STYLES[human.level], r, game).events };
+  return { events: bastionPlay(seed, limitedHuman(human), { ...STYLES[human.level], weakAim: Math.min(STYLES[human.level].weakAim, BASTION_HUMAN_LIMITS.weakAimMax), adaptive: BASTION_HUMAN_LIMITS.adaptiveTicks }, r, game).events };
 };
 
 /** Fires, reloads and taps at random moments and places (no aim). */

@@ -347,7 +347,9 @@ const dist = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0]! - 
   ok(sizes.length >= 4 && sizes.every((n) => n >= 13), `the panel's text is at least 13 px (${sizes.join(", ")})`);
   ok(/GOLD/.test(hud) && /PANEL_TOP = "#121A31"/.test(art), "the panel is navy with champagne-gold labels");
   const stage = readFileSync(new URL("../src/puzzles/bastion.tsx", import.meta.url), "utf8");
-  ok(/<ArtStill\s+game=\{bastionIronArtGame\}/.test(stage), "the intro still is the game's own art on bastionRev 3");
+  // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Expert): the intro still is drawn on the
+  // dealt stamp (bastionRev 4 at Normal), as it was on bastionRev 3 while rooms dealt it.
+  ok(/<ArtStill\s+game=\{bastionTankArtGameFor\(BASTION_REV_DEALT\)\}/.test(stage), "the intro still is the game's own art on the dealt stamp");
   const manifest = readFileSync(new URL("../src/lib/fx/manifest.ts", import.meta.url), "utf8");
   const sounds = readFileSync(new URL("../src/lib/fx/gameSounds.ts", import.meta.url), "utf8");
   for (const slot of ["weakTing", "shellIn", "jamGrind", "debris", "nearMiss", "panelCrack", "wallHeld", "tip", "dustWind", "stormFire"]) {

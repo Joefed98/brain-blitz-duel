@@ -5,7 +5,7 @@
  * Each moment plays its own slot (`<gameId>.<event>`, docs/sound-cues/arcade.md)
  * once that slot has a file, else the shared sound it always played, unchanged.
  */
-import { bastionDronePos, bastionDrones, bastionWave, BASTION_REV_IRON, BT2_MAG, BT2_WAVE_START, type BastionTankState } from "@/lib/arcade/bastionTank";
+import { bastionDronePos, bastionDronesOf, bastionWave, BASTION_REV_IRON, BT2_MAG, BT2_WAVE_START, type BastionTankState } from "@/lib/arcade/bastionTank";
 import { bastionNearMiss, bastionSettingNow, bastionSwipeHint, bastionTallyRows, BT_HELD_AT_MS, BT_SNAP_STEP } from "@/lib/arcade/bastionLook";
 import { cueHasFile, ensureCueLoop, ensureSlotLoop, isMusicMuted, musicVolume, playCueSlot, playSlotOr, setCueLoopRate, stopCueLoop, stopSlotLoop } from "@/lib/sound";
 import { liveCue, momentFrame } from "@/lib/fx/momentCues";
@@ -1337,7 +1337,7 @@ export function curlingSounds(): GameSounds<CurlingState> {
 /** Iron Wall (bastionRev 3): is a drone in the sky (not yet downed)? */
 function bastionDroneUp(s: BastionTankState): boolean {
   if (s.rev < BASTION_REV_IRON) return false;
-  return bastionDrones(s.seed).some((d, n) => !(s.droneMask & (1 << n)) && bastionDronePos(d, s.tick) !== null);
+  return bastionDronesOf(s).some((d, n) => !(s.droneMask & (1 << n)) && bastionDronePos(d, s.tick) !== null);
 }
 
 /**

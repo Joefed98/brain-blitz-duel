@@ -28,6 +28,9 @@ import {
   moonBigGame,
   moonCheckpoint,
   moonGame,
+  moonGameFor,
+  moonLevelOf,
+  type MoonLevel,
   MOON_BIG_REV,
   MOON_CHECKPOINT_KEYS,
   MOON_REV,
@@ -250,8 +253,21 @@ export interface MoonResult extends FlatReplay<MoonState, MoonCheckpoint> {
  * The single place a ricoRev 3 or 4 (Moon Climb) score is worked out (the stored seed and stamp; the phone's claim is
  * only compared). `rev` is the stored ricoRev (3 when absent).
  */
-export function replayMoonRun(seed: number, raw: string, rev: number | null | undefined = MOON_REV): MoonResult {
-  const r = ((rev ?? MOON_REV) >= MOON_BIG_REV ? moonBigRun : moonRun).replay(seed, raw);
+const moonLevelRuns = new Map<MoonLevel, typeof moonRun>();
+/** ricoRev 4 at a level (the puzzle's stored `level`): the same run format, the level's tower and rules. */
+function moonLevelRun(level: MoonLevel): typeof moonRun {
+  let run = moonLevelRuns.get(level);
+  if (!run) {
+    run = makeArcadeRun<MoonState, MoonCheckpoint>({ tag: "ricochet", game: moonGameFor(MOON_BIG_REV, level), checkpoint: moonCheckpoint, keys: MOON_CHECKPOINT_KEYS, interval: NINJA_CHECKPOINT_INTERVAL });
+    moonLevelRuns.set(level, run);
+  }
+  return run;
+}
+
+export function replayMoonRun(seed: number, raw: string, rev: number | null | undefined = MOON_REV, level?: unknown): MoonResult {
+  // A stored level (ricoRev 4 only; absent or Normal: today's run exactly).
+  const lvl = moonLevelOf(rev ?? MOON_REV, level);
+  const r = (lvl ? moonLevelRun(lvl) : (rev ?? MOON_REV) >= MOON_BIG_REV ? moonBigRun : moonRun).replay(seed, raw);
   const s = r.state;
   return { ...r, metres: ninjaMetres(s), rides: s.rides, flow: s.flow, bestFlow: s.bestStreak, scrolls: s.scrolls, hits: s.hits, leaps: s.leaps, djs: s.djs };
 }

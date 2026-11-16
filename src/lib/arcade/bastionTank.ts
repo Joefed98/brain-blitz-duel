@@ -36,7 +36,60 @@ export const BASTION_REV_TANK = 2;
  * (bastionDrones: shooting one down pays a fixed bonus; they never touch the base) and the parts re-cut for them.
  */
 export const BASTION_REV_IRON = 3;
-export const BASTION_REV_DEALT = BASTION_REV_IRON;
+/**
+ * bastionRev 4 (15 Nov 2026, the difficulty levels; docs/arcade-standard/bastion.md "bastionRev 4: levels"): Joe found
+ * Iron Wall much too hard, so bastionRev 3's game became Expert (the Expert deal is bastionRev 3 itself, stamped
+ * `level: "expert"`), and rev 4 is a gentler game at three levels, stamped on the puzzle's `level` (none = Normal):
+ * slower waves, a wider green zone, weak spots open longer, more base hits and fewer heavy tanks
+ * (BT4_LEVELS; each level's numbers are frozen under this stamp). Rooms, rated play and the Daily deal rev 4 at Normal.
+ */
+export const BASTION_REV_LEVELS = 4;
+export const BASTION_REV_DEALT = BASTION_REV_LEVELS;
+
+/** bastionRev 4's levels (Expert is bastionRev 3's game, not a rev-4 level). */
+export type BastionLevel = "easy" | "normal" | "hard";
+export const BASTION_LEVELS: readonly BastionLevel[] = ["easy", "normal", "hard"];
+
+export interface BastionLevelSettings {
+  /** Each wave's speed, per cent of the type's (rev 3: 44, 50, 56, 80, 104). */
+  pace: readonly [number, number, number, number, number];
+  /** The green zone's width, per mille of the needle's sweep (rev 3: 45, 90 ms). */
+  zoneW: number;
+  /** Ticks the weak spot is exposed of every BT2_WEAK_CYCLE (90; rev 3: 60). */
+  weakOpen: number;
+  /** Base hits that end the run (rev 3: 3). */
+  base: number;
+  /** Heavy tanks kept, the first ones in spawn order (rev 3: all 8); the rest roll on as mediums. */
+  heavies: number;
+  /** The weak spot's size, per cent of 14 × 14 at the wall (rev 3: 100). */
+  weakPct: number;
+  /** Drone speed, px a tick (rev 3: 4). */
+  droneSpeed: number;
+  /** The drone's size, per cent of 24 × 10 (rev 3: 100). */
+  dronePct: number;
+}
+
+/** bastionRev 4's levels. Frozen: a change here is a new stamp. */
+export const BT4_LEVELS: Readonly<Record<BastionLevel, BastionLevelSettings>> = {
+  easy: { pace: [32, 36, 41, 56, 74], zoneW: 160, weakOpen: 88, base: 5, heavies: 2, weakPct: 260, droneSpeed: 1, dronePct: 200 },
+  normal: { pace: [36, 41, 46, 64, 82], zoneW: 80, weakOpen: 84, base: 4, heavies: 5, weakPct: 240, droneSpeed: 1, dronePct: 120 },
+  hard: { pace: [40, 46, 51, 73, 95], zoneW: 60, weakOpen: 66, base: 3, heavies: 8, weakPct: 120, droneSpeed: 3, dronePct: 100 },
+};
+
+/** A rev-4 level from anything (a stored `level`; anything else, Expert included, is Normal). */
+export function bastionLevelOf(level: unknown): BastionLevel {
+  return level === "easy" || level === "hard" ? level : "normal";
+}
+
+/** A state's weak-spot size (per cent; 100 on rev 2 and 3). */
+export function bastionWeakPctOf(state: Pick<BastionTankState, "rev" | "lvl">): number {
+  return state.rev >= BASTION_REV_LEVELS ? BT4_LEVELS[bastionLevelOf(state.lvl)].weakPct : 100;
+}
+
+/** The level settings a state plays (null on rev 2 and 3). */
+export function bastionLevelSettings(state: Pick<BastionTankState, "rev" | "lvl">): BastionLevelSettings | null {
+  return state.rev >= BASTION_REV_LEVELS ? BT4_LEVELS[bastionLevelOf(state.lvl)] : null;
+}
 
 export const BT2_WORLD_W = 390;
 export const BT2_WORLD_H = 720;
@@ -77,8 +130,9 @@ export const BT2_WAVE_PACE = [44, 50, 56, 100, 134] as const;
 /** bastionRev 3: waves 4 and 5 eased (wave 5 the most); waves 1–3 as rev 2. */
 export const BT3_WAVE_PACE = [44, 50, 56, 80, 104] as const;
 
-/** A wave's pace (per cent of each type's speed) on a revision. */
-export function bastionWavePace(rev: number, wave: number): number {
+/** A wave's pace (per cent of each type's speed) on a revision (and, on rev 4, a level). */
+export function bastionWavePace(rev: number, wave: number, level?: unknown): number {
+  if (rev >= BASTION_REV_LEVELS) return BT4_LEVELS[bastionLevelOf(level)].pace[wave]!;
   return (rev >= BASTION_REV_IRON ? BT3_WAVE_PACE : BT2_WAVE_PACE)[wave]!;
 }
 /** Two tanks in one lane keep at least this much depth apart (the one behind waits). */
@@ -98,6 +152,8 @@ export const BT2_WAVE_START = [60, 660, 1260, 1860, 2460] as const;
 export const BT2_WAVE_WINDOW = 300;
 export const BT2_TANKS = BT2_WAVES.reduce((a, w) => a + w[0] + w[1] + w[2], 0);
 export const BT2_TOTAL_HP = BT2_WAVES.reduce((a, w) => a + w[0] * BT2_HP[0] + w[1] * BT2_HP[1] + w[2] * BT2_HP[2], 0);
+/** Heavy tanks in a run's plan (8). */
+export const BT2_HEAVIES = BT2_WAVES.reduce((a, w) => a + w[2], 0);
 /** The most weak-spot hits a run allows (one a scout or medium, two a heavy). */
 export const BT2_WEAK_POSSIBLE = BT2_WAVES.reduce((a, w) => a + w[0] + w[1] + 2 * w[2], 0);
 
@@ -118,8 +174,14 @@ export const BT2_ZONE_W = 30;
 export const BT3_ZONE_W = 45;
 
 /** The green zone's width (per mille of the sweep) on a revision. */
-export function bastionZoneW(rev: number): number {
+export function bastionZoneW(rev: number, level?: unknown): number {
+  if (rev >= BASTION_REV_LEVELS) return BT4_LEVELS[bastionLevelOf(level)].zoneW;
   return rev >= BASTION_REV_IRON ? BT3_ZONE_W : BT2_ZONE_W;
+}
+
+/** Base hits allowed (the run ends on the last) on a revision and level. */
+export function bastionBaseMax(rev: number, level?: unknown): number {
+  return rev >= BASTION_REV_LEVELS ? BT4_LEVELS[bastionLevelOf(level)].base : BT2_BASE;
 }
 /** The run ends this long after the last tank is gone (destroyed or at the wall). */
 export const BT2_END_HOLD = 45;
@@ -151,6 +213,8 @@ export interface Bt2PlanTank {
   chgZ: number;
   /** Where in its exposure cycle the weak spot starts (ticks; the vent is open BT2_WEAK_OPEN of every BT2_WEAK_CYCLE). */
   wphase: number;
+  /** bastionRev 4: ticks open of every BT2_WEAK_CYCLE (the level's; absent = BT2_WEAK_OPEN, rev 2 and 3). */
+  open?: number;
 }
 
 /** The weak spot glows (is exposed) for BT2_WEAK_OPEN ticks of every BT2_WEAK_CYCLE; closed, a hit there is a hull hit. */
@@ -158,8 +222,44 @@ export const BT2_WEAK_CYCLE = 90;
 export const BT2_WEAK_OPEN = 60;
 
 /** Is plan tank `p`'s weak spot exposed on `tick`? */
-export function bastionWeakOpen(p: Pick<Bt2PlanTank, "wphase">, tick: number): boolean {
-  return (tick + p.wphase) % BT2_WEAK_CYCLE < BT2_WEAK_OPEN;
+export function bastionWeakOpen(p: Pick<Bt2PlanTank, "wphase" | "open">, tick: number): boolean {
+  return (tick + p.wphase) % BT2_WEAK_CYCLE < (p.open ?? BT2_WEAK_OPEN);
+}
+
+/**
+ * The plan a revision and level plays: rev 2 and 3 the seed's plan (bastionPlan); rev 4 the same plan (the same lanes,
+ * spawns, speed changes and weak-spot phases) with only the level's first `heavies` heavy tanks kept (the rest roll on
+ * as mediums) and the level's weak-spot opening on every tank. Cached; never mutated.
+ */
+export function bastionPlanFor(seed: number, rev: number, level?: unknown): readonly Bt2PlanTank[] {
+  const plan = bastionPlan(seed);
+  if (rev < BASTION_REV_LEVELS) return plan;
+  const lvl = bastionLevelOf(level);
+  const key = `${seed | 0}:${lvl}`;
+  const hit = levelPlanCache.get(key);
+  if (hit) return hit;
+  const set = BT4_LEVELS[lvl];
+  let heavies = 0;
+  const out = plan.map((p) => {
+    const kind = p.kind === BT2_HEAVY && heavies++ >= set.heavies ? BT2_MEDIUM : p.kind;
+    return { ...p, kind, open: set.weakOpen };
+  });
+  if (levelPlanCache.size > 32) levelPlanCache.clear();
+  levelPlanCache.set(key, out);
+  return out;
+}
+const levelPlanCache = new Map<string, readonly Bt2PlanTank[]>();
+
+/** A state's plan (its revision's and level's). */
+export function bastionPlanOf(state: Pick<BastionTankState, "seed" | "rev" | "lvl">): readonly Bt2PlanTank[] {
+  return bastionPlanFor(state.seed, state.rev, state.lvl);
+}
+
+/** Hit points in a revision's and level's run (63 on rev 2 and 3). */
+export function bastionTotalHp(rev: number, level?: unknown): number {
+  if (rev < BASTION_REV_LEVELS) return BT2_TOTAL_HP;
+  const kept = Math.min(BT4_LEVELS[bastionLevelOf(level)].heavies, BT2_HEAVIES);
+  return BT2_TOTAL_HP - (BT2_HEAVIES - kept) * (BT2_HP[BT2_HEAVY] - BT2_HP[BT2_MEDIUM]);
 }
 
 /** The run's tanks in spawn order, from the seed alone (cached; never mutated). */
@@ -234,6 +334,14 @@ export interface Bt3Drone {
   dir: 1 | -1;
   y0: number;
   y1: number;
+  /** bastionRev 4: px a tick and size (per cent of 24 × 10), the level's; absent on rev 3 (4 px a tick, 100 %). */
+  speed?: number;
+  size?: number;
+}
+
+/** Ticks a drone at `speed` px a tick takes to cross the sky. */
+export function bastionDroneTicks(speed: number = BT3_DRONE_SPEED): number {
+  return Math.ceil((BT2_WORLD_W + 2 * BT3_DRONE_MARGIN) / speed);
 }
 
 /** The run's drones, from the seed alone (its own stream, so the tank plan is rev 2's exactly). */
@@ -257,21 +365,54 @@ const droneCache = new Map<number, readonly Bt3Drone[]>();
 /** Drone `d`'s centre on `tick`, or null while it is not in the sky. */
 export function bastionDronePos(d: Bt3Drone, tick: number): { x: number; y: number } | null {
   const k = tick - d.at;
-  if (k < 0 || k > BT3_DRONE_TICKS) return null;
-  const x = d.dir > 0 ? -BT3_DRONE_MARGIN + BT3_DRONE_SPEED * k : BT2_WORLD_W + BT3_DRONE_MARGIN - BT3_DRONE_SPEED * k;
-  const y = d.y0 + Math.floor(((d.y1 - d.y0) * k) / BT3_DRONE_TICKS);
+  const speed = d.speed ?? BT3_DRONE_SPEED;
+  const ticks = d.speed === undefined ? BT3_DRONE_TICKS : bastionDroneTicks(speed);
+  if (k < 0 || k > ticks) return null;
+  const x = d.dir > 0 ? -BT3_DRONE_MARGIN + speed * k : BT2_WORLD_W + BT3_DRONE_MARGIN - speed * k;
+  const y = d.y0 + Math.floor(((d.y1 - d.y0) * k) / ticks);
   return { x, y };
 }
 
+/**
+ * The drones a revision and level flies: rev 3 the seed's (bastionDrones); rev 4 the same three paths at the level's
+ * speed (BT4_LEVELS `droneSpeed`). Cached; never mutated.
+ */
+export function bastionDronesFor(seed: number, rev: number, level?: unknown): readonly Bt3Drone[] {
+  const ds = bastionDrones(seed);
+  if (rev < BASTION_REV_LEVELS) return ds;
+  const lvl = bastionLevelOf(level);
+  const key = `${seed | 0}:${lvl}`;
+  const hit = levelDroneCache.get(key);
+  if (hit) return hit;
+  const { droneSpeed: speed, dronePct: size } = BT4_LEVELS[lvl];
+  const out = ds.map((d) => ({ ...d, speed, size }));
+  if (levelDroneCache.size > 32) levelDroneCache.clear();
+  levelDroneCache.set(key, out);
+  return out;
+}
+const levelDroneCache = new Map<string, readonly Bt3Drone[]>();
+
+/** A state's drones (its revision's and level's). */
+export function bastionDronesOf(state: Pick<BastionTankState, "seed" | "rev" | "lvl">): readonly Bt3Drone[] {
+  return bastionDronesFor(state.seed, state.rev, state.lvl);
+}
+
 /** A drone's drawn (and collision) rectangle round its centre. */
-export function bastionDroneRect(x: number, y: number): readonly [number, number, number, number] {
-  return [x - BT3_DRONE_W / 2, y - BT3_DRONE_H / 2, x + BT3_DRONE_W / 2, y + BT3_DRONE_H / 2];
+export function bastionDroneRect(x: number, y: number, sizePct = 100): readonly [number, number, number, number] {
+  if (sizePct === 100) return [x - BT3_DRONE_W / 2, y - BT3_DRONE_H / 2, x + BT3_DRONE_W / 2, y + BT3_DRONE_H / 2];
+  // bastionRev 4's bigger drones: whole px round the centre.
+  const w = Math.floor((BT3_DRONE_W * sizePct) / 100);
+  const h = Math.floor((BT3_DRONE_H * sizePct) / 100);
+  const x0 = x - Math.floor(w / 2);
+  const y0 = y - Math.floor(h / 2);
+  return [x0, y0, x0 + w, y0 + h];
 }
 
 /** The tick the last drone has left the sky. */
-export function bastionDronesGone(seed: number): number {
-  const ds = bastionDrones(seed);
-  return ds[ds.length - 1]!.at + BT3_DRONE_TICKS + 1;
+export function bastionDronesGone(seed: number, rev: number = BASTION_REV_IRON, level?: unknown): number {
+  const ds = bastionDronesFor(seed, rev, level);
+  const last = ds[ds.length - 1]!;
+  return last.at + (last.speed === undefined ? BT3_DRONE_TICKS : bastionDroneTicks(last.speed)) + 1;
 }
 
 /* ------------------------------------------------------------- projection */
@@ -301,7 +442,11 @@ export interface Bt2Rects {
 const sc = (v: number, s256: number) => Math.floor((v * s256) / 256);
 
 /** A tank's drawn (and collision) rectangles at depth `zfp`: [x0, y0, x1, y1], whole world px. */
-export function bastionTankRects(kind: number, lane: number, zfp: number): Bt2Rects {
+/**
+ * `weakPct`: bastionRev 4's weak-spot size, per cent of BT2_WEAK_W × BT2_WEAK_H (the level's, BT4_LEVELS; 100 on rev 2
+ * and 3, exactly the rectangles as before).
+ */
+export function bastionTankRects(kind: number, lane: number, zfp: number, weakPct = 100): Bt2Rects {
   const s = bastionScale256(zfp);
   const ground = BT2_HORIZON_Y + Math.floor(((BT2_WALL_Y - BT2_HORIZON_Y) * s) / 256);
   const cx = BT2_VP_X + sc(BT2_LANE_X[lane] ?? 0, s);
@@ -313,8 +458,8 @@ export function bastionTankRects(kind: number, lane: number, zfp: number): Bt2Re
   const hull: Bt2Rect = [hx0, ground - hh, hx0 + hw, ground];
   const tx0 = cx - Math.floor(tw / 2);
   const turret: Bt2Rect = [tx0, ground - hh - th, tx0 + tw, ground - hh];
-  const ww = Math.max(2, sc(BT2_WEAK_W, s));
-  const wh = Math.max(2, sc(BT2_WEAK_H, s));
+  const ww = Math.max(2, sc(weakPct === 100 ? BT2_WEAK_W : Math.floor((BT2_WEAK_W * weakPct) / 100), s));
+  const wh = Math.max(2, sc(weakPct === 100 ? BT2_WEAK_H : Math.floor((BT2_WEAK_H * weakPct) / 100), s));
   const wx0 = cx + sc(BT2_WEAK_X[kind]!, s) - Math.floor(ww / 2);
   const wy1 = ground - sc(BT2_WEAK_UP[kind]!, s);
   const weak: Bt2Rect = [wx0, wy1 - wh, wx0 + ww, wy1];
@@ -368,6 +513,8 @@ export interface BastionTankState {
   tick: number;
   seed: number;
   rev: number;
+  /** bastionRev 4 only: the level (absent on rev 2 and 3). */
+  lvl?: BastionLevel;
   /** Inputs that reached the sim (any input counts: anyone who plays scores at least 1). */
   acted: number;
   aimX: number;
@@ -409,13 +556,16 @@ export interface BastionTankState {
   endedTick: number;
 }
 
-export function bastionTankInit(seed: number, rev: number = BASTION_REV_TANK): BastionTankState {
-  bastionPlan(seed);
-  if (rev >= BASTION_REV_IRON) bastionDrones(seed);
+export function bastionTankInit(seed: number, rev: number = BASTION_REV_TANK, level?: unknown): BastionTankState {
+  const r = rev >= BASTION_REV_LEVELS ? BASTION_REV_LEVELS : rev >= BASTION_REV_IRON ? BASTION_REV_IRON : BASTION_REV_TANK;
+  const lvl = r >= BASTION_REV_LEVELS ? bastionLevelOf(level) : undefined;
+  bastionPlanFor(seed, r, lvl);
+  if (r >= BASTION_REV_IRON) bastionDronesFor(seed, r, lvl);
   return {
     tick: 0,
     seed: seed | 0,
-    rev: rev >= BASTION_REV_IRON ? BASTION_REV_IRON : BASTION_REV_TANK,
+    rev: r,
+    ...(lvl ? { lvl } : {}),
     acted: 0,
     aimX: BT2_VP_X,
     aimY: 470,
@@ -433,7 +583,7 @@ export function bastionTankInit(seed: number, rev: number = BASTION_REV_TANK): B
     hits: 0,
     weak: 0,
     dry: 0,
-    base: BT2_BASE,
+    base: bastionBaseMax(r, lvl),
     breachAt: 0,
     destroyedHp: 0,
     kills: 0,
@@ -473,11 +623,11 @@ function startReload(s: BastionTankState): void {
 
 function land(s: BastionTankState, shell: Bt2Shell): void {
   if (s.rev >= BASTION_REV_IRON) {
-    const ds = bastionDrones(s.seed);
+    const ds = bastionDronesOf(s);
     for (let n = 0; n < ds.length; n++) {
       if (s.droneMask & (1 << n)) continue;
       const at = bastionDronePos(ds[n]!, s.tick);
-      if (!at || !inside(bastionDroneRect(at.x, at.y), shell.x, shell.y)) continue;
+      if (!at || !inside(bastionDroneRect(at.x, at.y, ds[n]!.size), shell.x, shell.y)) continue;
       s.droneMask |= 1 << n;
       s.drones += 1;
       s.impacts.push({ x: shell.x, y: shell.y, t: s.tick, r: 5, kind: -1, s256: 256 });
@@ -486,8 +636,8 @@ function land(s: BastionTankState, shell: Bt2Shell): void {
   }
   // Front-most first: the tanks are kept nearest the wall first.
   for (const t of s.tanks) {
-    const r = bastionTankRects(t.kind, t.lane, t.z);
-    const weak = bastionWeakOpen(bastionPlan(s.seed)[t.i]!, s.tick) && inside(r.weak, shell.x, shell.y, 1);
+    const r = bastionTankRects(t.kind, t.lane, t.z, bastionWeakPctOf(s));
+    const weak = bastionWeakOpen(bastionPlanOf(s)[t.i]!, s.tick) && inside(r.weak, shell.x, shell.y, 1);
     if (!weak && !inside(r.hull, shell.x, shell.y) && !inside(r.turret, shell.x, shell.y)) continue;
     const dmg = weak ? 2 : 1;
     const took = Math.min(dmg, t.hp);
@@ -543,7 +693,7 @@ export function bastionTankStep(prev: BastionTankState, input: ArcadeInputEvent 
     } else if (input.k === BT2_INPUT_TAP) {
       if (s.reloadAt >= 0 && s.reloadTap === 0) {
         const needle = bastionNeedle(s);
-        if (needle >= s.zone && needle <= s.zone + bastionZoneW(s.rev)) {
+        if (needle >= s.zone && needle <= s.zone + bastionZoneW(s.rev, s.lvl)) {
           s.reloadTap = 1;
           s.fast += 1;
           s.reloadEnd = Math.max(tick + 1, s.reloadAt + BT2_FAST_TICKS);
@@ -557,10 +707,10 @@ export function bastionTankStep(prev: BastionTankState, input: ArcadeInputEvent 
   }
 
   // Spawns.
-  const plan = bastionPlan(s.seed);
+  const plan = bastionPlanOf(s);
   while (s.nextSpawn < plan.length && plan[s.nextSpawn]!.spawn <= tick) {
     const p = plan[s.nextSpawn]!;
-    const v = Math.floor((BT2_SPEED[p.kind]! * bastionWavePace(s.rev, p.wave)) / 100);
+    const v = Math.floor((BT2_SPEED[p.kind]! * bastionWavePace(s.rev, p.wave, s.lvl)) / 100);
     s.tanks.push({ i: s.nextSpawn, kind: p.kind, lane: p.lane, z: BT2_FAR * FP, v, hp: BT2_HP[p.kind]!, changed: 0, flash: 0 });
     s.nextSpawn += 1;
   }
@@ -607,7 +757,7 @@ export function bastionTankStep(prev: BastionTankState, input: ArcadeInputEvent 
   } else if (tick >= BT2_RUN_TICKS) {
     s.ended = 1;
     s.endedTick = tick;
-  } else if (s.nextSpawn >= plan.length && s.tanks.length === 0 && s.shells.length === 0 && (s.rev < BASTION_REV_IRON || s.droneMask === (1 << BT3_DRONES) - 1 || tick >= bastionDronesGone(s.seed))) {
+  } else if (s.nextSpawn >= plan.length && s.tanks.length === 0 && s.shells.length === 0 && (s.rev < BASTION_REV_IRON || s.droneMask === (1 << BT3_DRONES) - 1 || tick >= bastionDronesGone(s.seed, s.rev, s.lvl))) {
     if (s.clearedAt === 0) s.clearedAt = tick;
     if (tick >= s.clearedAt + BT2_END_HOLD) {
       s.ended = 3;
@@ -665,19 +815,62 @@ export const BASTION_STD_SPEC_V3: StdSpec = {
 
 export const BASTION_V3_BAND_CURVE = bandCurve([0, BT2_TOTAL_HP], [0, BT3_CORE_MAX]);
 
-/** The spec a revision scores on. */
-export function bastionStdSpecFor(rev?: number | null): StdSpec {
+/**
+ * bastionRev 4's parts (exactly 200 at every level): rev 3's five parts and maximums; Armour is a share of the level's
+ * own hit points (BT4 Easy 51, Normal 57, Hard 63: the heavies kept) and Base intact is out of the level's base.
+ */
+function specV4(level: BastionLevel): StdSpec {
+  const hp = bastionTotalHp(BASTION_REV_LEVELS, level);
+  return {
+    field: "bastionRev",
+    rev: BASTION_REV_LEVELS,
+    parts: [
+      { key: "core", label: "Armour", max: BT3_CORE_MAX, of: hp, how: "knock out tank armour, every hit point worth the same" },
+      { key: "weak", label: "Weak spots", max: BT3_WEAK_MAX, of: BT3_WEAK_MAX, item: "weak-spot hit", how: "1 for each hit on a glowing weak spot" },
+      { key: "fast", label: "Fast reloads", max: BT3_FAST_MAX, of: BT3_FAST_MAX / BT3_FAST_EACH, item: "fast reload", how: `${BT3_FAST_EACH} for each fast reload` },
+      { key: "drone", label: "Drones", max: BT3_DRONE_MAX, of: BT3_DRONES, item: "drone", how: `${BT3_DRONE_EACH} for each of the ${BT3_DRONES} drones shot down` },
+      { key: "base", label: "Base intact", max: BT3_BASE_MAX, of: BT4_LEVELS[level].base, item: "base hit point", how: "all of it with the base unhurt, half with one hit" },
+    ],
+  };
+}
+
+/** bastionRev 4's spec at each level (Normal's is the dealt one, LIVE_BANDS). */
+export const BASTION_STD_SPEC_V4: Readonly<Record<BastionLevel, StdSpec>> = {
+  easy: specV4("easy"),
+  normal: specV4("normal"),
+  hard: specV4("hard"),
+};
+
+/** bastionRev 4's core lines (the hit points of each level's run). */
+export const BASTION_V4_BAND_CURVE = bandCurve([0, bastionTotalHp(BASTION_REV_LEVELS, "normal")], [0, BT3_CORE_MAX]);
+
+/** The spec a revision (and, on rev 4, a level) scores on. */
+export function bastionStdSpecFor(rev?: number | null, level?: unknown): StdSpec {
+  if ((rev ?? 0) >= BASTION_REV_LEVELS) return BASTION_STD_SPEC_V4[bastionLevelOf(level)];
   return (rev ?? 0) >= BASTION_REV_IRON ? BASTION_STD_SPEC_V3 : BASTION_STD_SPEC;
 }
 
-export function bastionBasePoints(base: number, ended: number): number {
+export function bastionBasePoints(base: number, ended: number, full: number = BT2_BASE): number {
   if (ended === 2) return 0;
-  return base >= 3 ? BT2_BASE_MAX : base === 2 ? 5 : 0;
+  return base >= full ? BT2_BASE_MAX : base === full - 1 ? 5 : 0;
 }
 
 /** bastionRev 2's scored parts (null for a state of any other revision). */
 export function bastionStdParts(state: BastionTankState): StdPart[] | null {
   if (!state) return null;
+  if (state.rev === BASTION_REV_LEVELS) {
+    const v4 = BASTION_STD_SPEC_V4[bastionLevelOf(state.lvl)];
+    const hp = bastionTotalHp(state.rev, state.lvl);
+    const full = bastionBaseMax(state.rev, state.lvl);
+    const drones = state.drones ?? 0;
+    return [
+      stdPart(v4, "core", stdLine(BT3_CORE_MAX, state.destroyedHp, hp), `${state.destroyedHp} of ${hp} hit points · ${state.kills} of ${BT2_TANKS} tanks`),
+      stdPart(v4, "weak", stdEach(state.weak, 1, BT3_WEAK_MAX), `${state.weak} weak-spot hit${state.weak === 1 ? "" : "s"}`),
+      stdPart(v4, "fast", stdEach(state.fast, BT3_FAST_EACH, BT3_FAST_MAX), `${state.fast} fast reload${state.fast === 1 ? "" : "s"}${state.jams ? ` · ${state.jams} jam${state.jams === 1 ? "" : "s"}` : ""}`),
+      stdPart(v4, "drone", stdEach(drones, BT3_DRONE_EACH, BT3_DRONE_MAX), `${drones} of ${BT3_DRONES} drones`),
+      stdPart(v4, "base", bastionBasePoints(state.base, state.ended, full), `base ${state.base} of ${full}`),
+    ];
+  }
   if (state.rev === BASTION_REV_IRON) {
     const v3 = BASTION_STD_SPEC_V3;
     const drones = state.drones ?? 0;
@@ -708,9 +901,9 @@ export function bastionTankScore(state: BastionTankState): number {
 export function bastionBandParts(state: BastionTankState): BandParts {
   const parts = bastionStdParts(state) ?? [];
   const get = (k: string) => parts.find((p) => p.key === k)?.points ?? 0;
-  const iron = state.rev === BASTION_REV_IRON;
+  const iron = state.rev >= BASTION_REV_IRON;
   return stdBandParts(
-    iron ? BASTION_STD_SPEC_V3 : BASTION_STD_SPEC,
+    state.rev >= BASTION_REV_LEVELS ? BASTION_STD_SPEC_V4[bastionLevelOf(state.lvl)] : iron ? BASTION_STD_SPEC_V3 : BASTION_STD_SPEC,
     { core: get("core"), features: iron ? { weak: get("weak"), fast: get("fast"), drone: get("drone"), base: get("base") } : { weak: get("weak"), fast: get("fast"), base: get("base") }, penalty: 0 },
     state.destroyedHp,
     `${state.kills} tanks · ${state.destroyedHp} HP`,
@@ -753,6 +946,8 @@ export function bastionTankCheckpoint(state: BastionTankState): Bt2Checkpoint {
   const extra = [state.aimX, state.aimY, state.cool, state.reloadEnd, state.jams, state.shots, state.nextSpawn, ...state.tanks.flatMap((t) => [t.i, t.z, t.v, t.hp]), ...state.shells.flatMap((s) => [s.x, s.y, s.at])];
   // bastionRev 3 adds its drones (rev 2's checksum is unchanged).
   if (state.rev === BASTION_REV_IRON) extra.push(state.drones, state.droneMask);
+  // bastionRev 4 adds its drones and its level (0 easy, 1 normal, 2 hard).
+  if (state.rev === BASTION_REV_LEVELS) extra.push(state.drones, state.droneMask, BASTION_LEVELS.indexOf(bastionLevelOf(state.lvl)));
   for (const value of [...Object.values(snap), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -795,7 +990,18 @@ export const bastionIronGame: ArcadeGame<BastionTankState, ArcadeInputEvent | nu
   init: (seed: number) => bastionTankInit(seed, BASTION_REV_IRON),
 };
 
-/** The tank game for a stored stamp (2 or 3; anything later plays rev 3). */
-export function bastionTankGameFor(rev?: number | null): ArcadeGame<BastionTankState, ArcadeInputEvent | null> {
+/** bastionRev 4's game at each level (the difficulty levels, 15 Nov 2026). */
+export const bastionLevelGames: Readonly<Record<BastionLevel, ArcadeGame<BastionTankState, ArcadeInputEvent | null>>> = {
+  easy: { ...bastionTankGame, init: (seed: number) => bastionTankInit(seed, BASTION_REV_LEVELS, "easy") },
+  normal: { ...bastionTankGame, init: (seed: number) => bastionTankInit(seed, BASTION_REV_LEVELS, "normal") },
+  hard: { ...bastionTankGame, init: (seed: number) => bastionTankInit(seed, BASTION_REV_LEVELS, "hard") },
+};
+
+/**
+ * The tank game for a stored stamp (2, 3 or 4; anything later plays rev 4) and, on rev 4, the puzzle's stored level
+ * (absent or anything but easy / hard: Normal). Rev 2 and 3 ignore the level (Expert is a rev-3 deal).
+ */
+export function bastionTankGameFor(rev?: number | null, level?: unknown): ArcadeGame<BastionTankState, ArcadeInputEvent | null> {
+  if ((rev ?? 0) >= BASTION_REV_LEVELS) return bastionLevelGames[bastionLevelOf(level)];
   return (rev ?? 0) >= BASTION_REV_IRON ? bastionIronGame : bastionTankGame;
 }

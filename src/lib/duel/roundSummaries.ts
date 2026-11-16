@@ -1,6 +1,6 @@
 import { equationVerdict, gapStageText, usesOperatorGaps } from "./operatorGaps";
 import { usesParMoves } from "./parMoves";
-import { bastionStdSpecFor } from "@/lib/arcade/bastionTank";
+import { bastionBaseMax, bastionStdSpecFor } from "@/lib/arcade/bastionTank";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { ARCADE_STANDARD } from "@/lib/arcade/standard";
 import { homerunStdSpecFor } from "@/lib/arcade/homerun";
@@ -1527,11 +1527,12 @@ const bastionSummary: SummaryBuilder = (result, puzzle) => {
     const base = Number(result.extra?.["base"] ?? 0);
     const fell = result.extra?.["fell"] === true;
     const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-    // Each stamp's own parts (rev 3 adds Drones).
-    const spec = bastionStdSpecFor(puzzle.bastionRev);
+    // Each stamp's own parts (rev 3 adds Drones; rev 4's are its level's, with the level's base).
+    const level = (puzzle as { level?: unknown }).level;
+    const spec = bastionStdSpecFor(puzzle.bastionRev, level);
     const parts = (spec?.parts ?? []).map((p) => `${p.label} ${Number(result.extra?.[`part_${p.key}`] ?? 0)}/${p.max}`);
     return {
-      summary: fell ? `${kills} tanks, base fell at ${ended.toFixed(1)}s` : `${kills} tanks, base ${base} / 3`,
+      summary: fell ? `${kills} tanks, base fell at ${ended.toFixed(1)}s` : `${kills} tanks, base ${base} / ${bastionBaseMax(puzzle.bastionRev ?? 2, level)}`,
       detail: parts,
     };
   }

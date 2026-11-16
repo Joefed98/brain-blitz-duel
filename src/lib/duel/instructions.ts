@@ -1564,6 +1564,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       }, [`Each life lost costs ${WAV_STD_LIFE_COST}, but losing the last just ends the run`, "Lives never take more than half your ships, hits and waves points", "Power-ups score nothing"]),
     },
     // Iron Wall (id bastion; bastionRev 3, 3 Nov 2026; docs/arcade-standard/bastion.md): the tank-defence shooter.
+    // bastionRev 4 (15 Nov 2026, the levels): the text describes Normal, the level rooms, rated play and the Daily deal.
     bastion: {
       goal: "Hold the wall against five waves of tanks as the battlefield turns to smoke.",
       how: [
@@ -1571,19 +1572,19 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Shells take a moment to land:", detail: "lead a moving tank.", helpOnly: true },
         { action: "Hit the glowing weak spot", detail: "for double damage, while it is open. Far tanks wear a badge: S Scout, M Medium, H Heavy." },
         { action: "Five shells.", detail: "Swipe down to reload early; tap while the needle is in the green for a fast reload." },
-        { action: "Three drones cross the sky:", detail: "small and fast. Lead one well ahead to shoot it down for a bonus." },
+        { action: "Three drones drift across the sky:", detail: "lead one a little ahead to shoot it down for a bonus." },
         { action: "Scouts take 1 hit, Mediums 2 and Heavies 4;", detail: "the pips above each tank show what is left, and far off a tank wears its letter badge (S, M or H) above its pips.", helpOnly: true },
         { action: "The battlefield changes as you fight:", detail: "a clear evening for waves 1 and 2, a dusty desert for 3 and 4, then a storm of battle smoke for the last wave. The tanks and the road look the same throughout.", helpOnly: true },
-        { action: "Weak spots open and close:", detail: "each glows orange for about a second, then shuts for half a second. A shell on a shut one is a plain hull hit.", helpOnly: true },
+        { action: "Weak spots open and close:", detail: "each glows orange for well over a second, then shuts briefly. A shell on a shut one is a plain hull hit.", helpOnly: true },
         { action: "The last two waves", detail: "are bigger and press harder, and every tank speeds up or slows down once on its way in.", helpOnly: true },
-        { action: "A drone", detail: "flies straight across in under two seconds; a shell into the sky takes half a second to get there. Drones never hit the base.", helpOnly: true },
+        { action: "A drone", detail: "drifts straight across in about seven seconds; a shell into the sky takes half a second to get there. Drones never hit the base.", helpOnly: true },
         { action: "Small, slow drags", detail: "move the crosshair less than your thumb, for fine aim.", helpOnly: true },
         { action: "Empty, the gun reloads by itself in 2 seconds.", detail: "A tap in the green finishes it in half the time; a tap outside jams it for half a second more. The first time you run dry, the panel reminds you once: swipe down to reload early.", helpOnly: true },
-        { action: "A tank that reaches the wall hits the base.", detail: "Three hits and the run ends early (you keep your score).", helpOnly: true },
+        { action: "A tank that reaches the wall hits the base.", detail: "Four hits and the run ends early (you keep your score).", helpOnly: true },
         { action: "On a computer:", detail: "the mouse aims, click fires, R reloads and Space is the fast-reload tap.", helpOnly: true },
         { action: "Everyone", detail: "faces the same tanks in the same waves, and the same drones.", helpOnly: true },
       ],
-      score: liveStdHelp("bastion", "Three hits on the base end the run."),
+      score: liveStdHelp("bastion", "Four hits on the base end the run."),
     },
     rooftop: {
       goal: "Survive the rooftops as long as you can.",

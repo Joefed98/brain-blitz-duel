@@ -74,14 +74,19 @@ import type { CanvasSize } from "./engine";
 import {
   bastionDronePos,
   bastionDroneRect,
-  bastionDrones,
+  bastionDronesOf,
+  bastionBaseMax,
+  bastionWeakPctOf,
   bastionNeedle,
-  bastionPlan,
+  bastionPlanOf,
   bastionZoneW,
   BT3_DRONES,
   bastionWeakOpen,
   bastionScale256,
   bastionIronGame,
+  bastionLevelGames,
+  bastionLevelOf,
+  BASTION_REV_LEVELS,
   bastionTankGame,
   bastionTankRects,
   BASTION_REV_IRON,
@@ -802,7 +807,18 @@ function paintWreck(ctx: CanvasRenderingContext2D, x: number, y: number, s: numb
  * A drone (bastionRev 3) exactly on its rectangle (bastionDroneRect: 24 × 10 round its centre): a dark delta body with a
  * gunmetal top, two rotor pods with their blur, a camera pod and a blinking red light at the nose.
  */
-export function paintDrone(ctx: CanvasRenderingContext2D, x: number, y: number, dir: number, tick: number, still: boolean): void {
+export function paintDrone(ctx: CanvasRenderingContext2D, x: number, y: number, dir: number, tick: number, still: boolean, sizePct = 100): void {
+  if (sizePct !== 100) {
+    // bastionRev 4's bigger drones (Easy, Normal): the same drone scaled about its centre onto its rectangle
+    // (bastionDroneRect with the size; whole px, so within a pixel of the scaled drawing).
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(sizePct / 100, sizePct / 100);
+    ctx.translate(-x, -y);
+    paintDrone(ctx, x, y, dir, tick, still);
+    ctx.restore();
+    return;
+  }
   const [x0, y0, x1, y1] = bastionDroneRect(x, y);
   const cx = (x0 + x1) / 2;
   const cy = (y0 + y1) / 2 + 0.5;
@@ -1009,8 +1025,8 @@ function rect(ctx: CanvasRenderingContext2D, r: Bt2Rect): void {
  * spot (a round orange vent on its square while exposed, a dark plate while closed), a hit's flash, haze on far ones and
  * the orange health pips above.
  */
-export function paintTank(ctx: CanvasRenderingContext2D, kind: number, lane: number, z: number, hp: number, flash: number, tick: number, still: boolean, open = true, pips = true, mark = 0): void {
-  const r = bastionTankRects(kind, lane, z);
+export function paintTank(ctx: CanvasRenderingContext2D, kind: number, lane: number, z: number, hp: number, flash: number, tick: number, still: boolean, open = true, pips = true, mark = 0, weakPct = 100): void {
+  const r = bastionTankRects(kind, lane, z, weakPct);
   const s = r.s256 / 256;
   const live = LIVERY[kind]!;
   const [hx0, hy0, hx1, hy1] = r.hull;
@@ -1408,7 +1424,7 @@ function paintHud(ctx: CanvasRenderingContext2D, state: BastionTankState, memory
   // The Action HUD (3 Nov 2026): WAVE (the main count) and, on Iron Wall, DRONES left; BASE right.
   const left: ActionChip[] = [{ label: "WAVE", value: `${wave + 1} / ${BT2_WAVE_COUNT}`, pulse: { id: "bastion", tick: state.tick } }];
   if (state.rev >= BASTION_REV_IRON) left.push({ label: "DRONES", value: `${state.drones} / ${BT3_DRONES}`, tone: state.drones > 0 ? "hot" : "plain" });
-  drawActionHud(ctx, W, [{ left, right: [{ label: "BASE", value: `${state.base} / ${BT2_BASE}`, tone: state.base >= 2 ? "good" : "bad" }] }]);
+  drawActionHud(ctx, W, [{ left, right: [{ label: "BASE", value: `${state.base} / ${bastionBaseMax(state.rev, state.lvl)}`, tone: state.base >= 2 ? "good" : "bad" }] }]);
 
   // Stage 2: a crack across the panel's glass for each base hit, where that tank came through; it stays all run.
   paintPanelCracks(ctx, state, memory, still);
@@ -1454,7 +1470,7 @@ function paintHud(ctx: CanvasRenderingContext2D, state: BastionTankState, memory
     ctx.fill();
     if (state.reloadTap !== 1) {
       ctx.fillStyle = state.reloadTap === 2 ? "rgba(255,107,91,0.55)" : "#9BE3AE";
-      ctx.fillRect(BAR_X + (BAR_W * state.zone) / 1000, reloadY - 7, (BAR_W * bastionZoneW(state.rev)) / 1000, 14);
+      ctx.fillRect(BAR_X + (BAR_W * state.zone) / 1000, reloadY - 7, (BAR_W * bastionZoneW(state.rev, state.lvl)) / 1000, 14);
     }
     // The needle: polished steel, lit on its left edge; green once a fast reload is in, red and shaking on a jam.
     const jamAge = memory && state.reloadTap === 2 && memory.jamAt >= 0 ? state.tick - memory.jamAt : -1;
@@ -1532,7 +1548,7 @@ export const BT_CRACK_X = [126, 236, 336] as const;
  * flashes white for 6 ticks as it splits.
  */
 function paintPanelCracks(ctx: CanvasRenderingContext2D, state: BastionTankState, memory: BtMemory | null, still: boolean): void {
-  const n = Math.min(BT2_BASE, state.breached);
+  const n = Math.min(bastionBaseMax(state.rev, state.lvl), state.breached);
   for (let k = 0; k < n; k++) {
     const lane = memory?.breachLanes[k] ?? [2, 0, 1][k]!;
     const path = bastionCrackPath(k, lane);
@@ -1799,7 +1815,8 @@ function drawBastionWorld(ctx: CanvasRenderingContext2D, state: BastionTankState
   if (set.mix < 1) deviceLayer(ctx, `bastion-set:${set.from}`, (c) => paintBackdrop(c, world, set.from));
   deviceLayer(ctx, `bastion-set:${set.to}`, (c) => paintBackdrop(c, world, set.to), set.mix);
   tankFog = BT_SETTING_LOOK[set.mix < 0.5 ? set.from : set.to].fog;
-  const plan = bastionPlan(state.seed);
+  const plan = bastionPlanOf(state);
+  const weakPct = bastionWeakPctOf(state);
   // Tanks, far ones first (the sim keeps them nearest first).
   const tanks: Bt2Tank[] = state.tanks;
   for (let i = tanks.length - 1; i >= 0; i--) {
@@ -1811,17 +1828,17 @@ function drawBastionWorld(ctx: CanvasRenderingContext2D, state: BastionTankState
     const tr = bastionTankRects(t.kind, t.lane, t.z);
     btViewTransform(ctx, tr.cx, (tr.turret[1] + tr.ground) / 2);
     paintTankShadow(ctx, t.kind, t.lane, t.z);
-    paintTank(ctx, t.kind, t.lane, t.z, t.hp, t.flash, state.tick, still, p ? bastionWeakOpen(p, state.tick) : true, true, t.i);
+    paintTank(ctx, t.kind, t.lane, t.z, t.hp, t.flash, state.tick, still, p ? bastionWeakOpen(p, state.tick) : true, true, t.i, weakPct);
     paintTankOutline(ctx, t.kind, t.lane, t.z);
     ctx.restore();
     paintTankBadge(ctx, t.kind, t.lane, t.z);
   }
   if (state.rev >= BASTION_REV_IRON) {
-    const ds = bastionDrones(state.seed);
+    const ds = bastionDronesOf(state);
     for (let n = 0; n < ds.length; n++) {
       if (state.droneMask & (1 << n)) continue;
       const at = bastionDronePos(ds[n]!, state.tick);
-      if (at) paintDrone(ctx, at.x, at.y - BT_VIEW_SKY_SHIFT, ds[n]!.dir, state.tick, still);
+      if (at) paintDrone(ctx, at.x, at.y - BT_VIEW_SKY_SHIFT, ds[n]!.dir, state.tick, still, ds[n]!.size);
     }
   }
   const lite = arcadeReducedEffects();
@@ -1914,7 +1931,7 @@ export function observeRun(ctx: object, state: BastionTankState): BtMemory {
     bastionLedgerStep(m.ledger, m.prev, state);
     if (state.jams > m.jams) m.jamAt = state.tick;
     m.jams = state.jams;
-    const plan = bastionPlan(state.seed);
+    const plan = bastionPlanOf(state);
     while (m.breachLanes.length < m.ledger.breaches.length) m.breachLanes.push(plan[m.ledger.breaches[m.breachLanes.length]!]?.lane ?? 1);
     for (const imp of state.impacts) if (imp.r === 0 && imp.t > m.tick && !m.near.has(impactKey(imp))) m.near.set(impactKey(imp), bastionNearMiss(state, imp));
     if (m.near.size > 40) for (const key of [...m.near.keys()].slice(0, m.near.size - 40)) m.near.delete(key);
@@ -1936,7 +1953,7 @@ function paintEndCard(ctx: CanvasRenderingContext2D, state: BastionTankState, me
   ctx.save();
   ctx.fillStyle = `rgba(8,11,22,${Math.min(0.68, ms / 300)})`;
   ctx.fillRect(0, 0, W, BT2_PANEL_Y);
-  const rows = memory.whole ? bastionWaveTallies(memory.ledger, bastionPlan(state.seed), BT2_WAVE_COUNT) : null;
+  const rows = memory.whole ? bastionWaveTallies(memory.ledger, bastionPlanOf(state), BT2_WAVE_COUNT) : null;
   const shown = still ? BT2_WAVE_COUNT : bastionTallyRows(ms, BT2_WAVE_COUNT);
   const top = 176;
   const rowH = 50;
@@ -2027,13 +2044,15 @@ export interface BtSummaryData {
   /** Each drone's tick downed (null: missed); empty on rev 2. */
   drones: (number | null)[];
   base: number;
+  /** bastionRev 4: the level's base hits (absent: 3). */
+  baseMax?: number;
   fell: boolean;
 }
 /** The text each row shows, for checks and screen readers: "WAVE 1 4 / 5" etc. */
 export function bastionSummaryRows(d: BtSummaryData): string[] {
   const rows = d.waves.map((w) => `WAVE ${w.wave + 1} ${w.kills} / ${w.tanks.length}`);
   if (d.rev >= BASTION_REV_IRON) rows.push(`DRONES ${d.drones.filter((t) => t !== null).length} / ${d.drones.length}`);
-  rows.push(`BASE ${d.base} / ${BT2_BASE}`);
+  rows.push(`BASE ${d.base} / ${d.baseMax ?? BT2_BASE}`);
   return rows;
 }
 
@@ -2119,8 +2138,12 @@ export function paintBastionSummary(ctx: CanvasRenderingContext2D, d: BtSummaryD
   }
   plate(y);
   label("BASE", y);
-  for (let i = 0; i < BT2_BASE; i++) {
-    const bx = x0 + 6 + i * 52;
+  const baseMax = d.baseMax ?? BT2_BASE;
+  // Three plates 52 apart (44 wide); bastionRev 4's four or five share the same span.
+  const step = baseMax <= BT2_BASE ? 52 : (52 * BT2_BASE) / baseMax;
+  const pw = step - 8;
+  for (let i = 0; i < baseMax; i++) {
+    const bx = x0 + 6 + i * step;
     const by = y + 14;
     const hit = i >= d.base;
     const g = ctx.createLinearGradient(0, by, 0, by + 24);
@@ -2129,25 +2152,26 @@ export function paintBastionSummary(ctx: CanvasRenderingContext2D, d: BtSummaryD
     g.addColorStop(1, hit ? "#2A1614" : "#20242B");
     ctx.fillStyle = g;
     ctx.beginPath();
-    ctx.roundRect(bx, by, 44, 24, 4);
+    ctx.roundRect(bx, by, pw, 24, 4);
     ctx.fill();
     if (hit) {
       ctx.strokeStyle = RED;
       ctx.lineWidth = 1.6;
       ctx.beginPath();
-      ctx.moveTo(bx + 14, by);
-      ctx.lineTo(bx + 20, by + 9);
-      ctx.lineTo(bx + 16, by + 15);
-      ctx.lineTo(bx + 24, by + 24);
-      ctx.moveTo(bx + 20, by + 9);
-      ctx.lineTo(bx + 31, by + 12);
+      const q = pw / 44;
+      ctx.moveTo(bx + 14 * q, by);
+      ctx.lineTo(bx + 20 * q, by + 9);
+      ctx.lineTo(bx + 16 * q, by + 15);
+      ctx.lineTo(bx + 24 * q, by + 24);
+      ctx.moveTo(bx + 20 * q, by + 9);
+      ctx.lineTo(bx + 31 * q, by + 12);
       ctx.stroke();
     } else {
       ctx.fillStyle = "rgba(226,192,122,0.55)";
-      ctx.fillRect(bx + 4, by + 2, 36, 1.5);
+      ctx.fillRect(bx + 4, by + 2, pw - 8, 1.5);
     }
   }
-  count(`${d.base} / ${BT2_BASE}`, y, d.fell ? RED : "#F3F1EC");
+  count(`${d.base} / ${baseMax}`, y, d.fell ? RED : "#F3F1EC");
   y += SUM_ROW;
   // The key, two short lines: a tank in colour, a faded one, a red plate and a gold dot.
   ctx.font = `600 13px ${DISPLAY}`;
@@ -2213,8 +2237,15 @@ export function drawBastionTankArt(ctx: CanvasRenderingContext2D, state: Bastion
 export const bastionTankArtGame = { ...bastionTankGame, draw: drawBastionTankArt };
 /** bastionRev 3's (Iron Wall's) game with the art. */
 export const bastionIronArtGame = { ...bastionIronGame, draw: drawBastionTankArt };
-/** The art game for a stored stamp. */
-export function bastionTankArtGameFor(rev?: number | null) {
+/** bastionRev 4's games with the art, one a level (the difficulty levels, 15 Nov 2026). */
+const bastionLevelArtGames = {
+  easy: { ...bastionLevelGames.easy, draw: drawBastionTankArt },
+  normal: { ...bastionLevelGames.normal, draw: drawBastionTankArt },
+  hard: { ...bastionLevelGames.hard, draw: drawBastionTankArt },
+};
+/** The art game for a stored stamp (and, on bastionRev 4, the puzzle's stored level). */
+export function bastionTankArtGameFor(rev?: number | null, level?: unknown) {
+  if ((rev ?? 0) >= BASTION_REV_LEVELS) return bastionLevelArtGames[bastionLevelOf(level)];
   return (rev ?? 0) >= BASTION_REV_IRON ? bastionIronArtGame : bastionTankArtGame;
 }
 

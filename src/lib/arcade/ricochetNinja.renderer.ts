@@ -57,13 +57,17 @@ import {
   SURF_ICE,
   SURF_MOSS,
   MODE_RIDE,
-  MOON_CORE_FULL_M,
   MOON_LEDGE_HW,
   MOON_REV,
-  MOON_SKY,
   MOON_SCROLLS,
   MOON_SKY_R,
   moonSkyAt,
+  moonFullM,
+  moonGameFor,
+  moonKnockPx,
+  moonLevelOf,
+  moonSkyCount,
+  type MoonLevel,
   type MoonState,
   type NinjaState,
 } from "./ricochetNinja";
@@ -154,8 +158,9 @@ function paintSky(ctx: CanvasRenderingContext2D): void {
  * pagoda and the mist (painted once per size, over the moon so it rises from behind them).
  */
 /** The night's progress, 0 at the foot of the tower to 1 at the core's full height: smooth, never going back. */
-export function moonNight(state: Pick<NinjaState, "best"> & { rev?: number }): number {
-  const p = Math.max(0, Math.min(1, ninjaClimbedPx(state) / (MOON_CORE_FULL_M * NINJA_PX_PER_M)));
+export function moonNight(state: Pick<NinjaState, "best"> & { rev?: number; lvl?: MoonLevel }): number {
+  // (A level's own full height: the night reaches its deepest there.)
+  const p = Math.max(0, Math.min(1, ninjaClimbedPx(state) / (moonFullM(state) * NINJA_PX_PER_M)));
   return p * p * (3 - 2 * p);
 }
 /** The moon's centre and radius for a night's progress (world px): large and low over the ridge, rising and a little smaller. */
@@ -1557,7 +1562,7 @@ export function moonFxEvents(ctx: object, s: MoonState): MoonFxEvent[] {
   if (s.scrolls > p.scrolls) mem.events.push({ kind: "scroll", t: s.tick, x: s.x, y: s.y >> 8 });
   if (s.hits > p.hits) {
     const lost = Math.max(1, Math.round((p.y - s.knockTo) / 256 / NINJA_PX_PER_M));
-    mem.events.push({ kind: "loss", t: s.tick, x: 0, y: 0, n: Math.min(lost, Math.round(NINJA_KNOCK / NINJA_PX_PER_M)) });
+    mem.events.push({ kind: "loss", t: s.tick, x: 0, y: 0, n: Math.min(lost, Math.round((isMoon(s) ? moonKnockPx(s as MoonState) : NINJA_KNOCK) / NINJA_PX_PER_M)) });
   }
   // A slide's trail left behind (a take-off or a hit): kept to fade, red where it broke the flow.
   const was = moonScuff(p);
@@ -1730,11 +1735,11 @@ export function moonHudRows(s: MoonState): ActionHudRow[] {
   const scroll = landed >= 0 && landed < 30 ? 1 - landed / 30 : 0;
   return [
     {
-      left: [{ label: "HEIGHT", value: `${m} m`, tone: m >= MOON_CORE_FULL_M ? "gold" : "plain", pulse: { id: "ricochet", tick: s.tick } }],
+      left: [{ label: "HEIGHT", value: `${m} m`, tone: m >= moonFullM(s) ? "gold" : "plain", pulse: { id: "ricochet", tick: s.tick } }],
       right: [{ label: "FLOW", value: `×${s.streak}`, tone: s.streak > 0 ? "gold" : "dim", flash: lit ? 1 - (s.tick - s.flowTick) / 30 : 0 }],
     },
     {
-      left: [{ label: "RIDES", value: `${s.rides}/${MOON_SKY}`, tone: s.rides >= MOON_SKY ? "gold" : "plain", flash: grab, icon: (c, x, y) => drawSkyLanternIcon(c, x, y) }],
+      left: [{ label: "RIDES", value: `${s.rides}/${moonSkyCount(s)}`, tone: s.rides >= moonSkyCount(s) ? "gold" : "plain", flash: grab, icon: (c, x, y) => drawSkyLanternIcon(c, x, y) }],
       right: [{ label: "SCROLLS", value: `${s.scrolls}/${MOON_SCROLLS}`, tone: s.scrolls >= MOON_SCROLLS ? "gold" : "plain", flash: scroll, icon: (c, x, y) => drawScrollIcon(c, x, y) }],
     },
   ];
@@ -1948,7 +1953,7 @@ export const NINJA_FX: ArcadeFxSpec<NinjaState> = {
     { kind: "combo", count: (s) => (isMoon(s) ? s.rides : s.lanterns), at: (s) => ninjaDrawPoint(s), label: (s) => (isMoon(s) ? "LANTERN RIDE!" : "LANTERN!"), colour: (s) => (isMoon(s) ? "#FFB259" : NINJA_GOLD) },
     { kind: "perfect", count: (s) => s.scrolls, at: (s) => ninjaDrawPoint(s), label: () => "SCROLL!", colour: () => "#FFF3C9" },
     { kind: "streak", count: (s) => ninjaMetres(s), every: 50, min: 50, label: (_s, n) => `${Math.floor(n / 50) * 50} m` },
-    { kind: "final", count: (s) => (ninjaMetres(s) >= (isMoon(s) ? MOON_CORE_FULL_M : NINJA_CORE_FULL_M) ? 1 : 0), label: () => "FULL HEIGHT!" },
+    { kind: "final", count: (s) => (ninjaMetres(s) >= (isMoon(s) ? moonFullM(s as MoonState) : NINJA_CORE_FULL_M) ? 1 : 0), label: () => "FULL HEIGHT!" },
   ],
   misses: [{ count: (s) => s.hits, at: (s) => ninjaDrawPoint(s) }],
 };
@@ -1968,13 +1973,20 @@ export const ninjaArtGame = { ...ninjaGame, draw: drawNinjaFrame };
 export const moonArtGame = { ...moonGame, draw: drawNinjaFrame };
 /** Moon Climb's bigger ninja (ricoRev 4) with its art. */
 export const moonBigArtGame = { ...moonBigGame, draw: drawNinjaFrame };
-/** Moon Climb's art game for a stamp (rev 3 or 4). */
-export function moonArtGameFor(rev: number | null | undefined) {
+const moonLevelArtGames = new Map<string, typeof moonBigArtGame>();
+/** Moon Climb's art game for a stamp (rev 3 or 4) and, on rev 4, the puzzle's stored level (absent: Normal). */
+export function moonArtGameFor(rev: number | null | undefined, level?: unknown) {
+  const lvl = moonLevelOf(rev, level);
+  if (lvl) {
+    let g = moonLevelArtGames.get(lvl);
+    if (!g) moonLevelArtGames.set(lvl, (g = { ...moonGameFor(rev, lvl), draw: drawNinjaFrame } as typeof moonBigArtGame));
+    return g;
+  }
   return (rev ?? 0) >= MOON_BIG_REV ? moonBigArtGame : moonArtGame;
 }
-/** The art game for a stamp. */
-export function ninjaArtGameFor(rev: number | null | undefined) {
-  return (rev ?? 0) >= MOON_REV ? moonArtGameFor(rev) : ninjaArtGame;
+/** The art game for a stamp (and its stored level). */
+export function ninjaArtGameFor(rev: number | null | undefined, level?: unknown) {
+  return (rev ?? 0) >= MOON_REV ? moonArtGameFor(rev, level) : ninjaArtGame;
 }
 
 /** The metres to px factor, for the reveal. */

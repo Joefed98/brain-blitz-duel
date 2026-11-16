@@ -1,5 +1,72 @@
 # Iron Wall (id `bastion`) on the arcade scoring standard (bastionRev 2, 1 Nov 2026; bastionRev 3, 3 Nov 2026)
 
+## bastionRev 4: levels (15 Nov 2026, the difficulty levels; docs/design/difficulty/README.md)
+
+Joe found Iron Wall much too hard. With his approval (15 Nov 2026: "Iron Wall's today game becomes Expert; Normal and
+Hard are new, gentler games", an exception to the framework's "Normal stays today's game" rule for Iron Wall only):
+
+- **Expert is bastionRev 3's game exactly**: the Expert deal is a `bastionRev: 3` puzzle stamped `level: "expert"`, so
+  it plays, replays and grades on rev 3's untouched sim (bastion-levels-check grades 40 recorded rev-3 runs with the
+  Expert stamp and without, identically).
+- **Easy, Normal and Hard are bastionRev 4** (`BASTION_REV_LEVELS`, dealt in rooms; rated play and the Daily take
+  Normal). The puzzle's `level` (none = Normal) picks the level's numbers, `BT4_LEVELS` in `bastionTank.ts`, frozen under
+  the stamp. The registry entry (`GAME_LEVELS.bastion`) names the stamp each level deals. Rev 4 is rev 3's plan, drones,
+  rules and parts with these levers:
+
+| Lever | Expert (rev 3) | Hard | Normal | Easy |
+| --- | --- | --- | --- | --- |
+| Wave pace, % of each type's speed | 44 50 56 80 104 | 40 46 51 73 95 | 36 41 46 64 82 | 32 36 41 56 74 |
+| Green zone (‰ of the sweep; ms) | 45 (90) | 60 (120) | 80 (160) | 160 (320) |
+| Weak spot open, ticks of 90 | 60 | 66 | 84 | 88 |
+| Weak spot size (of 14 × 14 at the wall) | 100 % | 120 % | 240 % | 260 % |
+| Base hits that end the run | 3 | 3 | 4 | 5 |
+| Heavy tanks (the first in spawn order; the rest are mediums) | 8 | 8 | 5 | 2 |
+| Hit points in the run (Armour's 110 is a share of these) | 63 | 63 | 57 | 51 |
+| Drone speed, px a tick (crossing) | 4 (1.8 s) | 3 (2.4 s) | 1 (7.3 s) | 1 (7.3 s) |
+| Drone size (of 24 × 10) | 100 % | 100 % | 120 % | 200 % |
+
+  The weak-spot size and the drones' speed and size are levers beyond Joe's list (decisions for Joe): without them the
+  60 points of weak spots and drones stay at Expert's precision on every level, and no human-limited player gets near
+  Normal's target. Every level keeps the 60 s run (63 s clock); the run is 30 tanks in rev 3's lanes, spawns, speed
+  changes and weak-spot phases (`bastionPlanFor`), the drones rev 3's paths (`bastionDronesFor`). Weak spots and drones
+  are drawn on their rectangles (`paintTank`'s `weakPct`, `paintDrone`'s `sizePct`: the 100 % drone scaled about its
+  centre); the HUD's BASE and the reveal's base plates read the level's base.
+- **Parts** (exactly 200 at every level, `BASTION_STD_SPEC_V4`): Armour 110 (the level's hit points on a straight
+  line), Weak spots 30, Fast reloads 20, Drones 30 (10 each), Base intact 10 (all of it unhurt, half with one hit, of the
+  level's base). Challenge goals are unchanged (the same parts and maximums).
+- **Proof**: the oracle scores exactly 200 on every tuning (0–59) and fresh (10000–10199) seed at every level through
+  `gradeAnswer` on the dealt puzzle (bastion-levels-check); arcade-standard-check's entry is Normal's, with Easy and Hard
+  in its extra section. Checks written for rev 3 pin `bastionPreLevels` (`pinBastionPreLevels(true)`).
+
+### Measured (15 Nov 2026; 60 room seeds a level, the skill-band bots under human limits)
+
+The bots play with **human limits** (`BASTION_HUMAN_LIMITS` in `scripts/arcade-skill-bands/bots/bastion.ts`, on with the
+skill-band tool's `fixes`, so the level tool and the band tool use them and every older check keeps its bots): a new
+tank noticed no sooner than 0.25 s, 0.15 s to move onto the next target, aim no better than 5 px sd (the crosshair
+floats above the thumb), a lead misjudged by 25 % sd, the reload needle timed to 30 ms sd; a tank within 5 s of the
+wall whose weak spot can't be hit now takes a hull shot, and even a top player aims at the hull now and then (weak-spot
+aim at most 95 %). Without the limits the elite bot scores 191 on Expert (rev 3), which is not what a person plays.
+
+Average score (finished = the base still standing at the end; star = runs at 175+):
+
+| Bot | Easy | Normal | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Weak | 106 (50/60 finish) | 74 (14/60) | 41 (0/60) | 33 (0/60) |
+| Average | 172 (26/60 star) | 153 (4/60 star) | 104 (19/60 finish) | 89 (2/60 finish) |
+| Good | 194 | 186 | 155 | 146 |
+| Great | 198 | 195 | 161 | 147 |
+| Near-perfect | 198 | 197 | 161 | 147 |
+| Elite | 198 | 197 | 162 (58/60 finish) | 146 (51/60 finish) |
+| Flawless (oracle) | 200 | 200 | 200 | 200 |
+
+`bun scripts/level-tune.ts bastion --level=all --seeds=30` (the shared tool as on main at de3bec96, checkpoints every
+300 ticks, which is Iron Wall's own `BT2_CHECKPOINT_INTERVAL`; no `--human-limits` option: the limits are the bastion
+bot's own, above, applied through `fixes`; graded by the server on real deals):
+Easy elite 197.8, Normal 197.6, Hard 161.4, Expert 144.3 (finished 100 / 100 / 100 / 77 %). The steps show most below
+the top: an average player moves from 89 (Expert) to 104 (Hard), 153 (Normal) and 172 (Easy, a star in 43 % of runs).
+"Well" on Expert: the human-limited elite player averages 146, finishes (base standing) in 85 % of runs and scores
+160–172 on its best boards.
+
 ## The Action overhaul (15 Nov 2026, phase 2 step 4; display and sound only, no stamp)
 
 From Joe's review (`docs/design/game-reviews/action.md`). Play, deal and scoring are unchanged on every revision
@@ -27,7 +94,7 @@ From Joe's review (`docs/design/game-reviews/action.md`). Play, deal and scoring
   shadow no wider than the hull; all inside the tank's rectangles), a gunmetal barrel on a cast mount, a concrete
   parapet with a lit coping, glass shell capsules and a recessed reload gauge with a steel needle. No glow edges, no
   glare over the HUD or the panel's numbers.
-- **Intro**: the still is the game's own art (bastionRev 3, seed 7, 10.7 s in, `ArtStill`).
+- **Intro**: the still is the game's own art (the dealt stamp: bastionRev 3, then bastionRev 4 at Normal since the levels; seed 7, 10.7 s in, `ArtStill`).
 - **Sounds**: new slots waiting for files (`docs/sound-cues/action-elevenlabs.md`): weak-spot ting, shells snapping in,
   jam grind, debris, near miss (a shell on open ground within a tank-length of a hull, `bastionNearMiss`), panel crack,
   WALL HELD, the tip, and the desert wind and storm-fire ambience beds.

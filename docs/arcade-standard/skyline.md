@@ -195,7 +195,7 @@ Code: `skylineGameFor(rev, level)`, `skylineLivesGameAt`, `skylineSpeedOf` / `sk
 passes `puzzleLevel(puzzle)` (grade.ts, the stage, the reveal, the run picture, round replays). Help: one "Levels:" line
 and the lives and wind lines say what changes (instructions.ts).
 
-**Measured** (`bun scripts/action-levels-bands.ts skyline --seeds=40 --bots=weak,…,limited`; real deals graded by the
+**Measured** (`bun scripts/flip-skyline-levels-bands.ts skyline --seeds=40 --bots=weak,…,limited`; real deals graded by the
 server replay; mean / median, finish = the run not ended by the last life). `limited` is the elite held to Joe's human
 limits (`scripts/arcade-skill-bands/humanLimits.ts`: 250 ± 30 ms reactions, 150 ms finger lag, 15 ms timing, 2.5 px aim):
 

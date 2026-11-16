@@ -16,7 +16,10 @@ import {
   SWING_CHECKPOINT_INTERVAL,
   SWING_CHECKPOINT_KEYS,
   swingExtra,
+  swingLevelGame,
+  swingPuzzleLevel,
   type SwingCheckpoint,
+  type SwingLevel,
   type SwingState,
 } from "@/lib/arcade/swing";
 import { makeArcadeRun, type FlatReplay } from "./arcadeRun";
@@ -58,10 +61,20 @@ export type SwingResult = FlatReplay<SwingState, SwingCheckpoint> & ReturnType<t
 export const encodeSwingRun = run.encode;
 export const decodeSwingRun = run.decode;
 
+const levelRuns = new Map<SwingLevel, typeof run>();
+/** swingRev 18 at a level (the puzzle's stored `level`): the same run format, the level's course and rules. */
+function levelRun(level: SwingLevel): typeof run {
+  let r = levelRuns.get(level);
+  if (!r) levelRuns.set(level, (r = makeArcadeRun<SwingState, SwingCheckpoint>({ tag: "swing", game: swingLevelGame(level), checkpoint: swingCheckpoint, keys: SWING_CHECKPOINT_KEYS, interval: SWING_CHECKPOINT_INTERVAL })));
+  return r;
+}
+
 /** The single place a Swing score is worked out. */
 /** `observe` (display only, the reveal's run picture): called with each state the replay steps to. */
-export function replaySwingRun(seed: number, raw: string, rev?: number, observe?: (state: SwingState) => void): SwingResult {
-  const picked = rev === SWING_REV_BIG ? bigRunV18 : rev === SWING_REV_SLIDE ? slideRunV17 : rev === SWING_REV_DARK ? darkRunV16 : rev === SWING_REV_REWORK ? reworkRunV15 : rev === SWING_REV_ASSAULT ? assaultRunV14 : rev === SWING_REV_EXPAND ? expandRunV13 : rev === SWING_REV_STRICT ? strictRunV11 : rev === SWING_REV_TARGET ? targetRunV10 : rev === SWING_REV_TALL ? tallRunV9 : rev === SWING_REV_SPREAD ? spreadRunV8 : rev === SWING_REV_TUNEC ? tunecRunV7 : rev === SWING_REV_TUNED ? tunedRunV6 : rev === SWING_REV_BAND ? bandRunV5 : rev === SWING_REV ? chaseRunV4 : rev === SWING_REV_V3 ? dragonRunV3 : rev === SWING_REV_V2 ? dragonRunV2 : run;
+/** `level`: the puzzle's stored level (swingRev 18 only; absent or Normal, today's run exactly). */
+export function replaySwingRun(seed: number, raw: string, rev?: number, observe?: (state: SwingState) => void, level?: unknown): SwingResult {
+  const lvl = swingPuzzleLevel(rev, level);
+  const picked = lvl ? levelRun(lvl) : rev === SWING_REV_BIG ? bigRunV18 : rev === SWING_REV_SLIDE ? slideRunV17 : rev === SWING_REV_DARK ? darkRunV16 : rev === SWING_REV_REWORK ? reworkRunV15 : rev === SWING_REV_ASSAULT ? assaultRunV14 : rev === SWING_REV_EXPAND ? expandRunV13 : rev === SWING_REV_STRICT ? strictRunV11 : rev === SWING_REV_TARGET ? targetRunV10 : rev === SWING_REV_TALL ? tallRunV9 : rev === SWING_REV_SPREAD ? spreadRunV8 : rev === SWING_REV_TUNEC ? tunecRunV7 : rev === SWING_REV_TUNED ? tunedRunV6 : rev === SWING_REV_BAND ? bandRunV5 : rev === SWING_REV ? chaseRunV4 : rev === SWING_REV_V3 ? dragonRunV3 : rev === SWING_REV_V2 ? dragonRunV2 : run;
   const result = picked.replay(seed, raw, observe);
   return { ...result, ...swingExtra(result.state) };
 }

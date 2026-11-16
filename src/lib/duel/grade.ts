@@ -122,7 +122,8 @@ import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwGrade, lwTallyLog, lwUsesLog, 
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
 import { decodeMoonRun, decodeNinjaRun, decodeRicoRun, isMoonRev, isNinjaRev, replayMoonRun, replayNinjaRun, replayRicoRun } from "./ricochet";
-import { MOON_CORE_FULL_M, NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
+import { moonFullM, moonSkyCount, NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { decodeBinTossRun, replayBinTossRun } from "./binToss";
 import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
 import { bullseyeDeadPoints, bullseyeStreakPoints } from "@/lib/arcade/bullseye";
@@ -199,6 +200,7 @@ import {
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
 import { balancePlaceLimits, equationTryLimit, floodMoveLimit, gravityTiltLimit, measureMoveLimits, splitCountSuffix, tubesPourLimit, tubesSendsUndo, GRAVITY_PROGRESS_REV, TUBES_PROGRESS_REV } from "./moveLimits";
 import { gravitySolverProgress, tubesSolverProgress } from "./solverProgress.server";
+import { puzzleLevel } from "@/lib/levels/levels";
 import {
   scoreWordSlide,
   wordSpeedBonus,
@@ -1352,10 +1354,11 @@ function gradeUnderRev(
       if (isMoonRev(puzzle.ricoRev)) {
         // ricoRev 3 and 4, Moon Climb: the tower dealt from the stored seed and stamp, the move log replayed; only that scores.
         const replayStart = performance.now();
-        const run = replayMoonRun(puzzle.seed, answer, puzzle.ricoRev);
+        // (ricoRev 4's levels: the stored level's tower, rules and full height; Normal exactly as before.)
+        const run = replayMoonRun(puzzle.seed, answer, puzzle.ricoRev, puzzleLevel(puzzle));
         revealRun = run;
         arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-        isCorrect = run.metres >= MOON_CORE_FULL_M;
+        isCorrect = run.metres >= moonFullM(run.state);
         correctCount = run.metres;
         score = run.score;
         extraDetail = {
@@ -1376,6 +1379,8 @@ function gradeUnderRev(
           inputs: decodeMoonRun(answer).events.length,
           claimedScore: decodeMoonRun(answer).claimedScore,
           ...(run.reason ? { reason: run.reason } : {}),
+          // A level's own lantern count and full height (display only; absent at Normal, so Normal's extra is unchanged).
+          ...(run.state.lvl ? { rideTotal: moonSkyCount(run.state), fullM: moonFullM(run.state) } : {}),
         };
         break;
       }
@@ -2298,7 +2303,7 @@ function gradeUnderRev(
         // bastionRev 2 (1 Nov 2026): the tank-defence shooter on the arcade scoring standard; the server's replay alone
         // scores, and the stored extra carries each part's points (numbers only) for the reveal.
         const replayStart = performance.now();
-        const run = replayBastionTankRun(puzzle.seed, answer, puzzle.bastionRev);
+        const run = replayBastionTankRun(puzzle.seed, answer, puzzle.bastionRev, puzzleLevel(puzzle));
         const decoded = decodeBastionTankRun(answer);
         revealRun = run as unknown as typeof revealRun;
         arcadeDiag = buildArcadeDiag(puzzle.type, run as unknown as Parameters<typeof buildArcadeDiag>[1], answer, performance.now() - replayStart);
@@ -2580,7 +2585,8 @@ function gradeUnderRev(
     }
     case "swing": {
       const replayStart = performance.now();
-      const run = replaySwingRun(puzzle.seed, answer, puzzle.swingRev);
+      // (swingRev 18's levels: the stored level's course and rules; Normal exactly as before.)
+      const run = replaySwingRun(puzzle.seed, answer, puzzle.swingRev, undefined, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)

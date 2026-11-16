@@ -60,6 +60,8 @@ import {
   swingAssaultCounts,
   swingAssaultLedges,
   type SwingState,
+  swingLevelGame,
+  swingPuzzleLevel,
 } from "./swing";
 import { artHash, reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
@@ -1056,7 +1058,15 @@ const darkArtGameV16 = { ...swingGameFor(SWING_REV_DARK), draw: drawSwingArt };
 const slideArtGameV17 = { ...swingGameFor(SWING_REV_SLIDE), draw: drawSwingArt };
 /** swingRev 18 (the bigger hero): the jungle with the hero and the held vine drawn 1.4× (display reads the state's `big`). */
 const bigArtGameV18 = { ...swingGameFor(SWING_REV_BIG), draw: drawSwingArt };
-export function swingArtGameFor(rev?: number): typeof swingArtGame {
+const levelArtGames = new Map<string, typeof swingArtGame>();
+export function swingArtGameFor(rev?: number, level?: unknown): typeof swingArtGame {
+  // (swingRev 18's levels: the puzzle's stored level's course and rules, drawn by the same art.)
+  const lvl = swingPuzzleLevel(rev, level);
+  if (lvl) {
+    let g = levelArtGames.get(lvl);
+    if (!g) levelArtGames.set(lvl, (g = { ...swingLevelGame(lvl), draw: drawSwingArt }));
+    return g;
+  }
   if (rev === SWING_REV_BIG) return bigArtGameV18;
   if (rev === SWING_REV_SLIDE) return slideArtGameV17;
   if (rev === SWING_REV_DARK) return darkArtGameV16;

@@ -105,7 +105,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "fivehands", field: "fiveHandsRev", rev: 3, batch: "Cards" },
   // Iron Wall (id bastion): the tank-defence shooter, born on the standard at bastionRev 2 (1 Nov 2026; the original was
   // unstamped); bastionRev 3 (3 Nov 2026) adds the drones and eases waves 4–5.
-  { type: "bastion", field: "bastionRev", rev: 3, batch: "Action" },
+  // bastionRev 4 (15 Nov 2026, the levels): a gentler game at Easy, Normal and Hard; bastionRev 3 is Expert.
+  // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Expert): the roster line follows the stamp.
+  { type: "bastion", field: "bastionRev", rev: 4, batch: "Action" },
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the standard.
   // Thirteen pyramidRev 3 (15 Nov 2026): a dead end waits for Undo (rev 2's deals and parts). Changed with Joe's approval,
   // 15 Nov 2026 (routine consequence of pyramidRev 3).

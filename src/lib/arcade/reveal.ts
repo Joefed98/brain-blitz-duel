@@ -188,7 +188,7 @@ const BUILDERS: Record<string, Builder> = {
     lines: [`${n(r, "metres")} m climbed · ${n(r, "rides")} lantern rides · ${n(r, "scrolls")} scrolls → ${s}`],
     tiles: [
       { label: "Height", value: `${n(r, "metres")} m` },
-      { label: "Lantern rides", value: `${n(r, "rides")} / ${MOON_SKY}` },
+      { label: "Lantern rides", value: `${n(r, "rides")} / ${"rideTotal" in r ? n(r, "rideTotal") : MOON_SKY}` },
       { label: "Scrolls", value: `${n(r, "scrolls")} / ${MOON_SCROLLS}` },
       { label: "Best flow", value: String(n(r, "bestFlow")) },
       { label: "Hits", value: String(n(r, "hits")) },

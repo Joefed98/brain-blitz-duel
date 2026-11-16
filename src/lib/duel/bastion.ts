@@ -17,11 +17,14 @@ import {
   type BasState,
 } from "@/lib/arcade/bastion";
 import {
-  bastionPlan,
+  bastionLevelGames,
+  bastionLevelOf,
+  bastionPlanOf,
   bastionStdParts,
   bastionTankCheckpoint,
   bastionIronGame,
   bastionTankGame,
+  BASTION_REV_LEVELS,
   BASTION_REV_TANK,
   BT2_CHECKPOINT_INTERVAL,
   BT2_CHECKPOINT_KEYS,
@@ -54,6 +57,13 @@ const ironRun = makeArcadeRun<BastionTankState, Bt2Checkpoint>({
   keys: BT2_CHECKPOINT_KEYS,
   interval: BT2_CHECKPOINT_INTERVAL,
 });
+
+/** bastionRev 4's replays, one a level (the difficulty levels, 15 Nov 2026; Expert is a bastionRev 3 deal). */
+const levelRuns = {
+  easy: makeArcadeRun<BastionTankState, Bt2Checkpoint>({ tag: "bastion", game: bastionLevelGames.easy, checkpoint: bastionTankCheckpoint, keys: BT2_CHECKPOINT_KEYS, interval: BT2_CHECKPOINT_INTERVAL }),
+  normal: makeArcadeRun<BastionTankState, Bt2Checkpoint>({ tag: "bastion", game: bastionLevelGames.normal, checkpoint: bastionTankCheckpoint, keys: BT2_CHECKPOINT_KEYS, interval: BT2_CHECKPOINT_INTERVAL }),
+  hard: makeArcadeRun<BastionTankState, Bt2Checkpoint>({ tag: "bastion", game: bastionLevelGames.hard, checkpoint: bastionTankCheckpoint, keys: BT2_CHECKPOINT_KEYS, interval: BT2_CHECKPOINT_INTERVAL }),
+};
 
 export type BastionRun = FlatRun<BasCheckpoint>;
 
@@ -102,9 +112,13 @@ export function isBastionTank(rev?: number | null): boolean {
   return (rev ?? 1) >= BASTION_REV_TANK;
 }
 
-/** The single place a bastionRev 2 or 3 score is worked out (`rev` the stored stamp; rev 2 when absent). */
-export function replayBastionTankRun(seed: number, raw: string, rev?: number | null): BastionTankResult {
-  const result = ((rev ?? BASTION_REV_TANK) >= BASTION_REV_TANK + 1 ? ironRun : tankRun).replay(seed, raw);
+/**
+ * The single place a bastionRev 2, 3 or 4 score is worked out (`rev` the stored stamp, rev 2 when absent; `level` the
+ * stored puzzle's level, read only on rev 4: absent, Normal or anything else is Normal).
+ */
+export function replayBastionTankRun(seed: number, raw: string, rev?: number | null, level?: unknown): BastionTankResult {
+  const r = rev ?? BASTION_REV_TANK;
+  const result = (r >= BASTION_REV_LEVELS ? levelRuns[bastionLevelOf(level)] : r >= BASTION_REV_TANK + 1 ? ironRun : tankRun).replay(seed, raw);
   const s = result.state;
   return {
     ...result,
@@ -126,5 +140,5 @@ export function replayBastionTankRun(seed: number, raw: string, rev?: number | n
 
 /** The wave reached (1-based): the wave of the last tank that rolled on. */
 function waveOf(s: BastionTankState): number {
-  return s.nextSpawn === 0 ? 1 : (bastionPlan(s.seed)[s.nextSpawn - 1]?.wave ?? 0) + 1;
+  return s.nextSpawn === 0 ? 1 : (bastionPlanOf(s)[s.nextSpawn - 1]?.wave ?? 0) + 1;
 }

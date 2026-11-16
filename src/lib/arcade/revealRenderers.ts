@@ -141,6 +141,7 @@ import { replayTenDropRun } from "@/lib/duel/tenDrop";
 import { replayWordfallRun } from "@/lib/duel/wordfall";
 import { replayColourClashRun } from "@/lib/duel/colourClash";
 import { clashVariantOf } from "@/lib/arcade/colourClash";
+import { puzzleLevel } from "@/lib/levels/levels";
 
 export interface ArcadeRevealRenderer {
   /** The game's own accent colour for tiles and the track. */
@@ -212,7 +213,7 @@ const BASTION_REVEAL: ArcadeRevealRenderer = {
   worldH: BT2_WORLD_H,
   heightFor: (p) => (bastionTankRound(p) ? BT2_WORLD_H : BAS_WORLD_H),
   drawFinal: (ctx, puzzle, answer) => {
-    if (bastionTankRound(puzzle)) bastionTankArtGame.draw(ctx, replayBastionTankRun(seedOf(puzzle), answer, puzzle.type === "bastion" ? puzzle.bastionRev : undefined).state, { width: BT2_WORLD_W, height: BT2_WORLD_H });
+    if (bastionTankRound(puzzle)) bastionTankArtGame.draw(ctx, replayBastionTankRun(seedOf(puzzle), answer, puzzle.type === "bastion" ? puzzle.bastionRev : undefined, (puzzle as { level?: unknown }).level).state, { width: BT2_WORLD_W, height: BT2_WORLD_H });
     else bastionGame.draw(ctx, replayBastionRun(seedOf(puzzle), answer).state, { width: BAS_WORLD_W, height: BAS_WORLD_H });
     return null;
   },
@@ -236,7 +237,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     heightFor: (p) => (p.type === "ricochet" && isNinjaRev(p.ricoRev) ? NINJA_WORLD_H : RICO_WORLD_H),
     drawFinal: (ctx, puzzle, answer) => {
       if (puzzle.type === "ricochet" && isMoonRev(puzzle.ricoRev)) {
-        const { state } = replayMoonRun(seedOf(puzzle), answer, puzzle.ricoRev);
+        const { state } = replayMoonRun(seedOf(puzzle), answer, puzzle.ricoRev, puzzleLevel(puzzle));
         moonArtGame.draw(ctx, state, { width: NINJA_WORLD_W, height: NINJA_WORLD_H });
         return ninjaDrawPoint(state);
       }
@@ -372,7 +373,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
       return (state as { rev?: number }).rev === 3 ? null : { x: state.x / FP, y: (state.y - state.camY) / FP };
     },
   },
-  swing: simple(GOLD, 390, 620, swingGame, (p, a) => replaySwingRun(seedOf(p), a, p.type === "swing" ? p.swingRev : undefined), undefined, undefined, (p) => swingRevealHFor(p.type === "swing" ? p.swingRev : undefined)),
+  swing: simple(GOLD, 390, 620, swingGame, (p, a) => replaySwingRun(seedOf(p), a, p.type === "swing" ? p.swingRev : undefined, undefined, puzzleLevel(p)), undefined, undefined, (p) => swingRevealHFor(p.type === "swing" ? p.swingRev : undefined)),
   snip: {
     accent: "#E84A7F",
     worldW: SNIP_CONFIG.viewW,

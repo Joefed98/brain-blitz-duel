@@ -27,6 +27,7 @@ import {
   type SwingState,
 } from "@/lib/arcade/swing";
 import { encodeSwingRun, replaySwingRun } from "@/lib/duel/swing";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { SWING_TIME_MS, type SwingPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { swingArtGameFor, swingJungleScene, swingJungleSceneKey, type SwingJungleScene } from "@/lib/arcade/swing.renderer";
@@ -79,7 +80,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       worldW={swingWorldWFor(data?.swingRev)}
       // swingRev 9: the taller cavern; every phone draws the stored revision's world.
       worldH={swingWorldHFor(data?.swingRev)}
-      game={swingArtGameFor(data?.swingRev)}
+      game={swingArtGameFor(data?.swingRev, puzzleLevel(puzzle))}
       sounds={swingSounds}
       // Stage 2: the end banner and the stretches tallying are seen before the answer goes (the jungle only).
       endHoldMs={(s: SwingState) => (s.slide ? SWING_END_HOLD_MS : 0)}
@@ -140,7 +141,7 @@ export function swingLine(r: { metres: number; survived: boolean; survivedSecond
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "swing") return null;
-  const result = replaySwingRun(puzzle.seed, myAnswer ?? "", puzzle.swingRev);
+  const result = replaySwingRun(puzzle.seed, myAnswer ?? "", puzzle.swingRev, undefined, puzzleLevel(puzzle));
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
@@ -212,7 +213,7 @@ function Legend({ colour, label, kind }: { colour: string; label: string; kind: 
  */
 export function SwingRunPicture({ puzzle, myAnswer }: RunPictureProps) {
   const trace = useMemo(
-    () => (puzzle.type === "swing" && (puzzle.swingRev ?? 0) >= SWING_REV_SLIDE && myAnswer ? traceSwingRun(puzzle.seed, myAnswer, puzzle.swingRev) : null),
+    () => (puzzle.type === "swing" && (puzzle.swingRev ?? 0) >= SWING_REV_SLIDE && myAnswer ? traceSwingRun(puzzle.seed, myAnswer, puzzle.swingRev, puzzleLevel(puzzle)) : null),
     [puzzle, myAnswer],
   );
   const canvas = useRef<HTMLCanvasElement | null>(null);

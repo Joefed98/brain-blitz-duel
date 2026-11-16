@@ -1,7 +1,9 @@
 import { checkOverride } from "@/lib/checkOverride";
 import { dealPinned, setDealPin } from "./dealEra";
 import { MOON_BIG_REV, MOON_REV } from "@/lib/arcade/ricochetNinja";
-import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
+import { BASTION_REV_DEALT, BASTION_REV_IRON } from "@/lib/arcade/bastionTank";
+import type { Level } from "@/lib/levels/levels";
+import { gameLevelSettings } from "@/lib/levels/gameLevels";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_LINE, sliceFoodSeedOk } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL, FLIP_REV_GRACE, isFlipLevel } from "@/lib/arcade/flip";
@@ -39,6 +41,8 @@ import { SWING_V9_BANK } from "./swingBankV9.server";
 import { SWING_V13_BANK } from "./swingBankV13.server";
 import { swingSlideDealSeed } from "./swingSlideDeal.server";
 import { swingBigDealSeed } from "./swingBigDeal.server";
+import { swingLevelDealSeed } from "./swingLevelDeal.server";
+import type { Level } from "@/lib/levels/levels";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV_BANDS } from "@/lib/arcade/wordfall";
 import { dealtTopupRev } from "./depthTopup";
@@ -334,9 +338,22 @@ export function generateWavefront(): WavefrontPuzzleData {
   return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_KEEP };
 }
 
-export function generateBastion(): BastionPuzzleData {
+export function generateBastion(level?: Level): BastionPuzzleData {
   // bastionRev 2 (1 Nov 2026): the tank-defence shooter; any seed deals its five waves (the oracle proves 200 on each).
-  return { type: "bastion", seed: arcadeSeed(), bastionRev: BASTION_REV_DEALT };
+  // bastionRev 4 (15 Nov 2026, the difficulty levels; docs/arcade-standard/bastion.md "bastionRev 4: levels"): Normal,
+  // Easy and Hard deal rev 4 (the deal stamps `level`, the sim reads it); Expert deals bastionRev 3's game exactly, the
+  // game every room dealt before the levels. Checks written for rev 3 pin `bastionPreLevels`: rev 3 at every level.
+  const asked = level ? gameLevelSettings<{ bastionRev: number }>("bastion", level)?.bastionRev : undefined;
+  const rev = dealPinned("bastionPreLevels") ? BASTION_REV_IRON : asked === BASTION_REV_IRON ? BASTION_REV_IRON : BASTION_REV_DEALT;
+  return { type: "bastion", seed: arcadeSeed(), bastionRev: rev };
+}
+
+/**
+ * Checks written for bastionRev 3: deal Iron Wall on bastionRev 3 as rooms did before the levels (the Action overhaul,
+ * 15 Nov 2026; returns the previous setting).
+ */
+export function pinBastionPreLevels(on: boolean): boolean {
+  return setDealPin("bastionPreLevels", on);
 }
 
 export function generateRooftop(): RooftopPuzzleData {
@@ -513,8 +530,11 @@ export function pinSwingPreBig(on: boolean): boolean {
   return setDealPin("swingPreBig", on);
 }
 
-export function generateSwing(): SwingPuzzleData {
+export function generateSwing(level?: Level): SwingPuzzleData {
   const roomSeed = arcadeSeed();
+  // swingRev 18's difficulty levels (15 Nov 2026): a course from the level's own proved deal (swingLevelDeal.server.ts;
+  // the deal stamps `level`). Normal (no level) deals exactly as before.
+  if (level && level !== "normal" && !dealPinned("swingPreAssault") && !dealPinned("swingPreRework") && !dealPinned("swingPreDark") && !dealPinned("swingPreSlide") && !dealPinned("swingPreBig")) return { type: "swing", seed: swingLevelDealSeed(level, roomSeed), swingRev: SWING_REV_BIG };
   // swingRev 18 (the bigger hero, 15 Nov 2026): from its own deal, courses built on the 14 px body whose oracle run
   // replays to exactly 200 (scripts/swing-slide-deal.ts --rev=18).
   if (!dealPinned("swingPreAssault") && !dealPinned("swingPreRework") && !dealPinned("swingPreDark") && !dealPinned("swingPreSlide") && !dealPinned("swingPreBig")) return { type: "swing", seed: swingBigDealSeed(roomSeed), swingRev: SWING_REV_BIG };

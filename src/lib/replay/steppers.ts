@@ -87,6 +87,7 @@ import {
   ORBIT_REV3_WORLD_W,
 } from "@/lib/arcade/orbitRev3";
 import { swingGameFor } from "@/lib/arcade/swing";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { snipGameFor } from "@/lib/arcade/snip";
 import { tiltGameFor } from "@/lib/arcade/tilt";
 import { makeBallTrackGame } from "@/lib/arcade/ballTrack";
@@ -209,7 +210,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   mahjong: (p) => ({ game: mahjongGameFor(rev(p, "mahjongRev")) as AnyGame }),
   homerun: (p) => ({ game: homerunGameFor(rev(p, "homerunRev")) as AnyGame }),
   // Bastion: bastionRev 2's tank game; the original turret for unstamped rounds.
-  bastion: (p) => ({ game: ((rev(p, "bastionRev") ?? 1) >= 2 ? bastionTankGameFor(rev(p, "bastionRev")) : bastionGame) as AnyGame }),
+  bastion: (p) => ({ game: ((rev(p, "bastionRev") ?? 1) >= 2 ? bastionTankGameFor(rev(p, "bastionRev"), (p as { level?: unknown }).level) : bastionGame) as AnyGame }),
   freekick: (p) => ({ game: freekickGameFor(rev(p, "freekickRev")) as AnyGame }),
   racing: (p) => ({ game: racingGameFor(rev(p, "racingRev")) as AnyGame }),
   freecell: (p) => ({ game: freecellGameFor(rev(p, "freecellRev")) as AnyGame }),
@@ -217,7 +218,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   pokersquares: (p) => ({ game: pokerSquaresGameFor(rev(p, "pokerSquaresRev")) as AnyGame }),
   fivehands: (p) => ({ game: fiveHandsGameFor(rev(p, "fiveHandsRev")) as AnyGame }),
   // Ricochet: the ninja wall-climb (ricoRev 2, events) or the original shaft (a tap list).
-  ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? { game: ninjaGameFor(rev(p, "ricoRev")) as AnyGame } : { game: ricoGame as AnyGame, taps: true }),
+  ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? { game: ninjaGameFor(rev(p, "ricoRev"), puzzleLevel(p)) as AnyGame } : { game: ricoGame as AnyGame, taps: true }),
   pyramid: (p) => ({ game: pyramidGameFor(rev(p, "pyramidRev")) as AnyGame }),
   golfsol: (p) => ({ game: golfSolGameFor(rev(p, "golfSolRev")) as AnyGame }),
   muggins: (p) => ({ game: mugginsGameFor(rev(p, "mugginsRev")) as AnyGame }),
@@ -238,7 +239,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   inkbridge: (p) => ({ game: inkBridgeGameFor(rev(p, "inkRev")) as AnyGame }),
   burst: (p) => ({ game: burstGameFor(rev(p, "burstRev")) as AnyGame }),
   orbit: orbitSource,
-  swing: (p) => ({ game: swingGameFor(rev(p, "swingRev")) as AnyGame }),
+  swing: (p) => ({ game: swingGameFor(rev(p, "swingRev"), puzzleLevel(p)) as AnyGame }),
   snip: (p) => ({ game: snipGameFor(rev(p, "snipRev")) as AnyGame }),
   tilt: (p) => ({ game: tiltGameFor(rev(p, "tiltRev")) as AnyGame }),
   balltrack: (p) => ({
