@@ -282,7 +282,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const glow = useSolveFx(complete, "trail.solve", 1150);
   // Batch W: the "12 / 26" count moves to the frame's goal line in a live round (display only).
   const placedTiles = data ? slots.filter((c, i) => c >= 0 && !data.givens.includes(i + 1)).length : 0;
-  const framed = useGoalProgress({ done: placedTiles, total: 26, text: `${placedTiles} / 26` });
+  // The squares to fill (26 on Normal's ten numbers; a level's own count otherwise, logicLevels.ts).
+  const toFill = data ? data.givens.filter((g) => g === null).length : 26;
+  const framed = useGoalProgress({ done: placedTiles, total: toFill, text: `${placedTiles} / ${toFill}` });
 
   // Desktop keys: Z or Backspace = Undo, R = Reset.
   useGameKeys((kind, key, event) => {
@@ -412,7 +414,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       {column && <div className="tr-spacer" aria-hidden />}
       {framed ? null : (
         <p className="shrink-0 font-mono text-sm text-muted-foreground">
-          {placedTiles} / 26
+          {placedTiles} / {toFill}
         </p>
       )}
       <div
@@ -431,7 +433,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       {framed ? (
         <LiveSummary
           testId="trail"
-          parts={complete ? ["Trail complete"] : [`Next ${nextNumber}`, `${26 - placedTiles} to go`]}
+          parts={complete ? ["Trail complete"] : [`Next ${nextNumber}`, `${toFill - placedTiles} to go`]}
         />
       ) : null}
       <div data-game-controls="actions" data-logic2-actions="" className="flex shrink-0 gap-3 px-2" style={{ width: TR_SIZE * cell + (TR_SIZE - 1) * GAP }}>

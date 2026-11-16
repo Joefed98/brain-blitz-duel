@@ -41,6 +41,10 @@ import { levelsOf, levelProof, gameLevelSettings } from "../src/lib/levels/gameL
 import { MAX_ROUND_CLOCK_MS, puzzleLevel, type Level } from "../src/lib/levels/levels";
 import type { PuzzleData } from "../src/lib/duel/types";
 import { tune } from "./level-tune";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { splitPuzzle } from "../src/lib/duel/secrets";
+import { trailPuzzle } from "../src/puzzles/trail";
 
 const FULL = process.env["CHECKS_FULL"] === "1" || process.argv.includes("--full");
 const BOARDS = FULL ? 10 : 3;
@@ -212,6 +216,16 @@ for (const { type, level } of LOGIC_LEVEL_BANKED) {
     }
   });
 }
+
+// The live count follows the board: Trail Easy shows 14 numbers, so 22 squares are left (not Normal's 26).
+check("trail easy: the count and \"to go\" follow the board's own blanks", () => {
+  const p = splitPuzzle(deal("trail", "easy", 0)).pub as Any;
+  const blanks = p.givens.filter((g: Any) => g === null).length;
+  assert.equal(blanks, 22);
+  const html = renderToStaticMarkup(createElement(trailPuzzle.Stage, { puzzle: p, phaseStartedAt: 0, now: 0, locked: false, onSubmit: () => {}, stateKey: "logic-levels-trail" }));
+  assert.match(html, />22 to go</);
+  assert.doesNotMatch(html, /26 to go/);
+});
 
 // 5. Expert is humanly possible: the elite bot finishes most Expert boards.
 for (const type of LOGIC_LEVEL_GAMES) {

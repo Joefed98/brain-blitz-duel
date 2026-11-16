@@ -156,7 +156,7 @@ export interface PuzzleKit {
  * level's boards need more thought per move than Normal's, so the kits' pace is scaled by it. A modelling assumption
  * stated for Joe; Normal is 1, so every Normal play is exactly as before.
  */
-export const LEVEL_THINK: Readonly<Record<string, number>> = { easy: 0.8, normal: 1, hard: 2.3, expert: 2.6 };
+export const LEVEL_THINK: Readonly<Record<string, number>> = { easy: 0.8, normal: 1, hard: 2.3, expert: 2.35 };
 
 /**
  * Per-game factors where a level changes how hard each move is rather than how many there are: Trail keeps 26 moves and

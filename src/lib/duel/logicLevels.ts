@@ -108,7 +108,7 @@ export const LOGIC_GAME_LEVELS: { [K in LogicLevelGame]: { levels: Levels<LogicL
   shikaku: levels<ShikakuLevel>(
     { height: 7, rects: [9, 11], maxArea: 8, minBig: 2, minEqualPairs: 1, person: [0, 0], timeLimitMs: 90_000 },
     { height: 12, rects: [15, 17], maxArea: 16, minBig: 5, minEqualPairs: 3, person: [0, 10], timeLimitMs: 90_000 },
-    { height: 14, rects: [20, 24], maxArea: 16, minBig: 6, minEqualPairs: 3, person: [0, 30], timeLimitMs: 120_000 },
+    { height: 13, rects: [18, 21], maxArea: 16, minBig: 6, minEqualPairs: 3, person: [0, 30], timeLimitMs: 120_000 },
   ),
   lightup: levels<LightUpLevel>(
     { height: 7, walls: [15, 19], numbered: 0.7, person: [0, 2], timeLimitMs: 90_000 },
