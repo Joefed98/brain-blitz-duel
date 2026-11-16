@@ -1,7 +1,8 @@
 /**
  * Lightbender (laser) levels beyond Normal (the Pattern overhaul, stage 3, 16 Nov 2026; docs/design/difficulty/README.md).
- * Plain data only: the phone reads it to draw the level selector; the server's deal (depth4/deal.server.ts →
- * laser.server.ts `generateLaserLevel`) reads the settings.
+ * Plain data only: the phone reads it to draw the level selector; the server's deal (depth4/deal.server.ts) reads the
+ * settings: Easy is generated live (laser.server.ts `generateLaserLevel`), Hard and Expert are drawn from their own
+ * seeded, proved banks (laserLevels.server.ts, `bun scripts/laser-bank.ts --level=<level> [--check]`).
  *
  * Normal has no entry: today's 10 × 10 board, 7–8 mirrors in the solution with 2 spare in the tray, one splitter, six
  * gems, 3–4 bombs, 3 shots, 60 s (laserRev 4; full speed by LASER_REV4_FULL_BY_S, patternRules.ts). Every level keeps
@@ -40,7 +41,8 @@ export type LaserLevelSettings = {
   humanTurns: number;
   /**
    * ...and must need at least this many: the level's floor of thinking. Normal's boards need 155 at the median (a
-   * quarter of them 15 or fewer); Hard's need at least Normal's median search, Expert's more than most Normal boards.
+   * quarter of them 15 or fewer, three quarters within about 770); Hard's need at least Normal's median search, Expert's
+   * as much as Normal's hardest quarter that a person still finishes (750–1,000: Expert is a clear step above Hard).
    */
   humanMinTurns: number;
 };
@@ -57,7 +59,7 @@ export const LEVELS_LASER: GameLevels<LaserLevelSettings> = {
     easy: { settings: { minMirrors: 4, maxMirrors: 5, spare: 3, minBombs: 1, maxBombs: 2, shots: 5, timeLimitMs: 60_000, fullByS: 20, humanTurns: 1000, humanMinTurns: 0 }, oneSolution: OPEN },
     // Hard: 8–9 mirrors, 1 spare, 4–5 bombs, 3 shots, 75 s.
     hard: { settings: { minMirrors: 8, maxMirrors: 9, spare: 1, minBombs: 4, maxBombs: 5, shots: 3, timeLimitMs: 75_000, fullByS: 35, humanTurns: 1000, humanMinTurns: 100 }, oneSolution: OPEN },
-    // Expert: 9–10 mirrors, 1 spare, 5–6 bombs, 2 shots, 90 s.
-    expert: { settings: { minMirrors: 9, maxMirrors: 10, spare: 1, minBombs: 5, maxBombs: 6, shots: 2, timeLimitMs: 90_000, fullByS: 40, humanTurns: 1000, humanMinTurns: 300 }, oneSolution: OPEN },
+    // Expert: 9–10 mirrors, 1 spare, 5–6 bombs, 2 shots, 90 s; full speed by 30 s (tighter a piece than Hard's 35 s).
+    expert: { settings: { minMirrors: 9, maxMirrors: 10, spare: 1, minBombs: 5, maxBombs: 6, shots: 2, timeLimitMs: 90_000, fullByS: 30, humanTurns: 1000, humanMinTurns: 750 }, oneSolution: OPEN },
   },
 };

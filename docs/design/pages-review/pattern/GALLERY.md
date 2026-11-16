@@ -611,7 +611,7 @@ sparks, then the solve flare.
 | Easy | 4–5 | 3 | 1–2 | 5 | 60 s | 20 s |
 | Normal | 7–8 | 2 | 3–4 | 3 | 60 s | 30 s (laserRev 4; 15 s before) |
 | Hard | 8–9 | 1 | 4–5 | 3 | 75 s | 35 s |
-| Expert | 9–10 | 1 | 5–6 | 2 | 90 s | 40 s |
+| Expert | 9–10 | 1 | 5–6 | 2 | 90 s | 30 s |
 
 - The same 10 × 10 board, six gems and one splitter at every level; the tray is the par plus the level's spare, the
   "Shots left" figure and the lock after the last shot follow the level's shots (stamped `shots`, absent = 3).
@@ -619,7 +619,9 @@ sparks, then the solve flare.
   par's mirrors exists on most boards). Every level board is still proved when dealt: the stored layout lights every
   gem and needs every piece, and a person-like solver (`laserSolve.server.ts`: aims at the gems it can see, two turns
   ahead, never into a bomb, backing up one decision at a time) lights it from the level's own tray, needing at least
-  100 tries on Hard and 300 on Expert and at most 1,000 (Normal's boards: 155 at the median).
+  100 tries on Hard and 750 on Expert and at most 1,000 (Normal's boards: 155 at the median, three quarters within
+  about 770). Hard and Expert deal from their own seeded banks (300 and 200 boards, `bun scripts/laser-bank.ts
+  --level=<level> [--check]`); Easy is generated live.
 - Twelve Expert boards to play, with their solutions: [levels/laser-expert-boards.md](levels/laser-expert-boards.md).
 <!-- lightbender:end -->
 

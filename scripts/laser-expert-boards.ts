@@ -2,12 +2,13 @@
  * Lightbender's Expert boards for Joe to play (the Pattern overhaul, levels, 16 Nov 2026). Not a check. Deals Expert
  * at room seeds 1–N exactly as a room does (`generatePuzzle("laser", { bankSeed, level: "expert" })` under the seed),
  * and writes each board as a drawing with its numbers: the par, bombs, the person-like solver's tries and the
- * Near-perfect kit's finish. Practice deals a fresh Expert board each time (no bank), every one under the same proofs.
+ * Near-perfect kit's finish. Practice draws from the same 200-board bank by its own deal seed.
  *
  *   bun scripts/laser-expert-boards.ts [N=12] > docs/design/pages-review/pattern/levels/laser-expert-boards.md
  */
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { solveLaserLikeAPerson } from "../src/lib/duel/laserSolve.server";
+import { laserLevelBank, laserLevelKey } from "../src/lib/duel/laserLevels.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import type { LaserPuzzleData } from "../src/lib/duel/types";
@@ -20,8 +21,8 @@ const ARROW: Record<string, string> = { U: "^", D: "v", L: "<", R: ">" };
 const out: string[] = [
   "# Lightbender Expert boards",
   "",
-  "Dealt at room seeds 1–" + N + " exactly as a room deals Expert (`bun scripts/laser-expert-boards.ts`). Practice deals a",
-  "fresh Expert board each time: Games → Lightbender → Expert. Key: `E` the emitter (its arrow the way it fires), `G` a",
+  "Dealt at room seeds 1–" + N + " exactly as a room deals Expert, from its bank (`bun scripts/laser-expert-boards.ts`). Practice deals a",
+  "board from the same bank each time: Games → Lightbender → Expert. Key: `E` the emitter (its arrow the way it fires), `G` a",
   "gem (`<`/`>`/`^`/`v` beside it: lit only travelling that way), `B` a bomb, `#` a wall, `.` empty. The solution's",
   "pieces are listed under each board (`/`, `\\`, `S|` / `S-` the splitter); cover them up to play.",
   "",
@@ -45,7 +46,8 @@ for (let seed = 1; seed <= N; seed++) {
     }
     rows.push(line.trimEnd());
   }
-  out.push(`## Room seed ${seed}`, "");
+  const index = laserLevelBank("expert").findIndex((e) => laserLevelKey(e) === laserLevelKey(p));
+  out.push(`## Room seed ${seed} (Expert bank #${index})`, "");
   out.push(`Par ${p.par} mirrors (tray ${p.mirrors}), ${p.bombs.length} bombs, ${p.shots} shots, ${puzzleTimeLimitMs(p) / 1000} s. Person-like solver: ${human.turns} tries. Near-perfect kit: ${run.score}${run.isCorrect ? ` in ${run.seconds.toFixed(0)} s` : " (unfinished)"}.`, "");
   out.push("```", ...rows, "```", "");
   out.push(`Solution: ${(p.solution ?? []).map((m) => `${String.fromCharCode(65 + (m.cell % 10))}${Math.floor(m.cell / 10) + 1} ${m.kind}`).join(", ")} (column letter A–J, row 1–10)`, "");

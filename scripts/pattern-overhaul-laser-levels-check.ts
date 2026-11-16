@@ -10,6 +10,9 @@
  *  3. What the generator proves on every level board: the stored layout lights every gem with no bomb, no subset of its
  *     pieces does (every piece needed), and the person-like solver lights the board from the level's own tray within
  *     the level's ceiling and past its floor (laserSolve.server.ts; its layout re-traced by the shared tracer).
+ *  3b. Hard's and Expert's banks: every entry passes those proofs and its level's ranges, no board twice, the entries
+ *     match their build stamp, and the first entries rebuild byte for byte from their seeds (all with CHECKS_FULL=1,
+ *     or `bun scripts/laser-bank.ts --check`); a room seed draws a bank entry.
  *  4. Why the levels are `open`: the exhaustive search finds a second lighting layout with only the par mirrors on most
  *     Normal boards (Lightbender takes any of them), and every layout it finds lights the board.
  *  5. Normal is exactly the deal before levels: byte for byte the deal with no levels, asking for Normal deals the same,
@@ -20,12 +23,13 @@
  *     15 s on laserRev 3 and older (unchanged); the level's shots bound the server's replay; a board without its level
  *     stamp grades as Normal.
  *  9. A clear step up and Expert humanly possible to score well on: the levers grow level by level, the person-like
- *     solver needs more tries each level up, the Near-perfect kit finishes nearly every Expert board in its two shots and
- *     averages at least 180 there.
+ *     solver needs more tries each level up, the Great and Good kits score less on Expert than on Hard, and the
+ *     Near-perfect kit finishes nearly every Expert board in its two shots and averages at least 180 there.
  *
  *   bun scripts/pattern-overhaul-laser-levels-check.ts
  */
-import { existsSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync } from "node:fs";
 
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { laserShotsOf, verifyLaser, isSplitter } from "../src/lib/duel/laser";
@@ -39,6 +43,10 @@ import { levelProof, levelsOf, withGameLevels, gameLevelSettings } from "../src/
 import { MAX_ROUND_CLOCK_MS, puzzleLevel, type Level } from "../src/lib/levels/levels";
 import type { LaserLevelSettings } from "../src/lib/levels/pattern/laser.levels";
 import { LASER_CELLS, LASER_GEMS, LASER_TIME_MS, type LaserPuzzleData } from "../src/lib/duel/types";
+import { LASER_BANK_LEVELS, LASER_BANK_SIZE, laserLevelBank, laserLevelKey } from "../src/lib/duel/laserLevels.server";
+import { LASER_HARD_BANK_BUILD } from "../src/lib/duel/laserHardBank.server";
+import { LASER_EXPERT_BANK_BUILD } from "../src/lib/duel/laserExpertBank.server";
+import { buildLaserBank, laserBankPath } from "./laser-bank";
 import { KITS } from "./puzzle-fairness/kits";
 import { SKILLS, hashText, makeRng } from "./puzzle-fairness/kit";
 import { asPhoneSends, gradeSteps } from "./standard-lib";
@@ -125,6 +133,48 @@ for (const level of LEVELS) {
 }
 const live = withSeededRandom(3, () => generatePuzzle("laser", { level: "expert" })) as Laser;
 check(puzzleLevel(live) === "expert" && live.shots === 2 && live.timeLimitMs === 90_000, "a level dealt without a room seed (practice) carries its level too");
+
+/* ------------------------------------------------------------------ 3b. the banks */
+console.log("3b. Hard's and Expert's banks");
+for (const level of LASER_BANK_LEVELS) {
+  const s = settingsOf(level);
+  const bank = laserLevelBank(level);
+  const build = level === "hard" ? LASER_HARD_BANK_BUILD : LASER_EXPERT_BANK_BUILD;
+  check(bank.length === LASER_BANK_SIZE[level] && build.entries === bank.length, `${level}: ${bank.length} boards (${LASER_BANK_SIZE[level]})`);
+  check(createHash("sha256").update(JSON.stringify(bank)).digest("hex") === build.sha256, `${level}: the entries match their build stamp`);
+  const t0 = Date.now();
+  let bad = 0;
+  let firstBad = "";
+  for (const [i, p] of bank.entries()) {
+    const solution = p.solution ?? [];
+    const why =
+      p.mirrors < s.minMirrors || p.mirrors > s.maxMirrors ? `${p.mirrors} mirrors`
+      : p.bombs.length < s.minBombs || p.bombs.length > s.maxBombs ? `${p.bombs.length} bombs`
+      : p.gems.length !== LASER_GEMS || p.splitterPieces !== 1 ? "gems or splitter"
+      : !verifyLaser(p, solution, 1).solved ? "the stored layout doesn't light every gem"
+      : (() => {
+          for (let mask = 0; mask < (1 << solution.length) - 1; mask++)
+            if (verifyLaser(p, solution.filter((_, k) => (mask & (1 << k)) !== 0), 1).solved) return "a subset lights every gem";
+          const human = solveLaserLikeAPerson({ ...p, mirrors: p.mirrors + s.spare }, s.humanTurns);
+          if (!human.solved || !verifyLaser({ ...p, mirrors: p.mirrors + s.spare }, human.layout!, 1).solved) return "not lit by the person-like solver";
+          return human.turns < s.humanMinTurns ? `the person-like solver needs only ${human.turns} tries` : null;
+        })();
+    if (why) {
+      bad++;
+      if (!firstBad) firstBad = `#${i}: ${why}`;
+    }
+  }
+  check(bad === 0, `${level}: every bank board passes its level's ranges and proofs${bad ? ` (${bad} not, first ${firstBad})` : ""} (${((Date.now() - t0) / 1000).toFixed(1)} s)`);
+  check(new Set(bank.map(laserLevelKey)).size === bank.length, `${level}: no board twice`);
+  const n = FULL ? bank.length : level === "hard" ? 6 : 3;
+  const rebuilt = buildLaserBank(level, n);
+  const committed = readFileSync(laserBankPath(level), "utf8");
+  const lines = (src: string) => src.split("\n").filter((l) => l.startsWith("  {"));
+  check(JSON.stringify(lines(rebuilt.source)) === JSON.stringify(lines(committed).slice(0, n)), `${level}: the first ${n} entries rebuild byte for byte from their seeds`);
+  const dealt = deal(level, 4242);
+  const strip0 = (p: LaserPuzzleData) => laserLevelKey(p);
+  check(bank.some((e) => strip0(e) === strip0(dealt)), `${level}: a room seed draws a bank entry`);
+}
 
 /* ------------------------------------------------------------------ 4. why the levels are open */
 console.log("4. open by design");
@@ -245,7 +295,22 @@ check(m["easy"]! < m["normal"]! && m["normal"]! < m["hard"]! && m["hard"]! < m["
 check(E.maxMirrors < 7 && H.minMirrors >= 8 && X.minMirrors > H.minMirrors, "the beam grows: Easy 4–5, Normal 7–8, Hard 8–9, Expert 9–10 mirrors");
 check(E.spare > 2 && H.spare < 2 && X.spare < 2 && E.shots > 3 && X.shots < 3 && X.minBombs > H.minBombs && H.minBombs > 3 && E.maxBombs < 3, "slack falls and danger grows: spare mirrors, shots and bombs");
 const kit = KITS.laser!;
-const SEEDS = FULL ? 60 : 20;
+const SEEDS = FULL ? 60 : 30;
+const kitAverage = (level: Lv, skill: "great" | "good") => {
+  let sum = 0;
+  for (let i = 0; i < SEEDS; i++) {
+    const p = deal(level, 900 + i);
+    const play = kit.play(p, makeRng(hashText(`laser-levels:${level}:${i}:${skill}`)), SKILLS[skill], puzzleTimeLimitMs(p));
+    sum += gradeSteps(p, asPhoneSends(p, play.steps), play.timed).score;
+  }
+  return sum / SEEDS;
+};
+for (const skill of ["great", "good"] as const) {
+  const h = kitAverage("hard", skill);
+  const x = kitAverage("expert", skill);
+  console.log(`   ${skill} kit: Hard ${h.toFixed(1)}, Expert ${x.toFixed(1)}`);
+  check(x < h - 4, `the ${skill} kit scores clearly less on Expert (${x.toFixed(1)}) than on Hard (${h.toFixed(1)})`);
+}
 let nearFinish = 0;
 let nearSum = 0;
 for (let i = 0; i < SEEDS; i++) {

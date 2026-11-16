@@ -26,6 +26,7 @@ import { gameLevelSettings } from "@/lib/levels/gameLevels";
 import { NORMAL, type Level } from "@/lib/levels/levels";
 import type { PipesLevelSettings } from "@/lib/levels/pattern/pipes.levels";
 import { generateLaser, generateLaserLevel } from "../laser.server";
+import { drawLaserLevel } from "../laserLevels.server";
 import type { LaserLevelSettings } from "@/lib/levels/pattern/laser.levels";
 import { isSplitter } from "../laser";
 import { LASER_TIME_MS, type PuzzleData, type PuzzleType } from "../types";
@@ -76,8 +77,11 @@ export function dealDepth4(type: PuzzleType, context: D4DealContext): PuzzleData
     }
     case "laser": {
       // Levels (16 Nov 2026, laser.levels.ts): a level's board, spare mirrors, shots and clock; Normal exactly as before.
+      // Hard and Expert draw from their proved banks by the deal's seed (laserLevels.server.ts); Easy is generated live.
       const settings = context.level && context.level !== NORMAL ? gameLevelSettings<LaserLevelSettings>("laser", context.level) : null;
-      const p = settings ? generateLaserLevel(settings) : generateLaser();
+      const p = !settings ? generateLaser()
+        : context.level === "hard" || context.level === "expert" ? drawLaserLevel(context.level, context.bankSeed, context.recentBankKeys)
+        : generateLaserLevel(settings);
       const par = (p.solution ?? []).filter((piece) => !isSplitter(piece.kind)).length;
       const dealt = { ...p, laserRev: dealtD4Rev("laser"), par, mirrors: p.mirrors + (settings ? settings.spare : LASER_SPARE_MIRRORS) };
       if (!settings) return dealt;
