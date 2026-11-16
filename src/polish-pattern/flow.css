@@ -1,94 +1,67 @@
 /* Pattern polish: flow (Chroma Lines). Presentation only. */
 
-/* --- Board: a dark tray of recessed slots --- */
+/* --- Board: a dark tray of recessed slots (the Pattern overhaul, 15 Nov 2026: rendered tiles) --- */
 .flow-board {
   border-radius: 8px;
   background: linear-gradient(180deg, #15171e, #0e0f14);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 0 16px rgba(0, 0, 0, 0.55);
 }
+/* Cells: the rendered dark slot (public/pattern-art/flow/cell.webp, set inline under a line's soft tint). */
 .flow-board .flow-cell,
 .game-column [data-polish="flow"] .flow-board .flow-cell[data-puzzle-cell],
 .flow-board .flow-cell[data-puzzle-cell] {
-  background-image: linear-gradient(160deg, rgba(255, 255, 255, 0.045), rgba(0, 0, 0, 0.2) 75%);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.55), inset 0 -1px 0 rgba(255, 255, 255, 0.03);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  border: 0;
+  box-shadow: none;
 }
 
-/* Walls: raised, cross-hatched blocks — clearly not a slot. */
+/* Walls: the rendered hatched steel block (wall.webp, inline): clearly not a slot. */
 .flow-board .flow-wall,
 .flow-board .flow-wall[data-puzzle-cell] {
-  background-color: #3d4252 !important;
-  background-image:
-    linear-gradient(150deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0) 45%),
-    linear-gradient(330deg, rgba(0, 0, 0, 0.35), rgba(0, 0, 0, 0) 50%),
-    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.32) 0 2px, transparent 2px 6px),
-    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.06) 0 2px, transparent 2px 6px) !important;
-  border-color: rgba(255, 255, 255, 0.12) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.5);
+  background-color: transparent !important;
+  background-size: 100% 100% !important;
+  background-repeat: no-repeat !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }
 
-/* --- Endpoints: glossy marbles --- */
+/* --- Endpoints: the rendered marble beads, each with its symbol --- */
 .flow-dot {
-  background-image: radial-gradient(
-    circle at 34% 30%,
-    rgba(255, 255, 255, 0.9) 0 9%,
-    rgba(255, 255, 255, 0.25) 22%,
-    rgba(255, 255, 255, 0) 45%,
-    rgba(0, 0, 0, 0.32) 100%
-  );
-  box-shadow:
-    0 0 0 1.5px var(--dot-rim, rgba(0, 0, 0, 0.6)),
-    0 0 0 3px rgba(10, 11, 15, 0.9),
-    0 2px 3px rgba(0, 0, 0, 0.5);
-  transition: box-shadow 200ms ease-out, transform 200ms ease-out;
+  display: block;
+  background: none;
 }
-.flow-dot-joined {
-  box-shadow:
-    0 0 0 1.5px var(--dot-rim, rgba(0, 0, 0, 0.6)),
-    0 0 0 3px rgba(10, 11, 15, 0.9),
-    0 0 9px 1px color-mix(in oklab, var(--dot, #fff) 75%, transparent);
-  animation: flow-dot-pop 260ms cubic-bezier(0.2, 0.9, 0.3, 1.4) both;
+.flow-dot > .flow-bead {
+  position: absolute;
+  /* The bead image carries 4 points of soft shadow round a 100-point bead (its own contact shadow: no CSS filter,
+     no drop shadow, no glow; Joe, 15 Nov 2026). */
+  inset: -4%;
+  width: 108%;
+  height: 108%;
+  pointer-events: none;
+  user-select: none;
 }
-@keyframes flow-dot-pop {
-  from { transform: scale(0.85); }
-  to { transform: scale(1); }
+.flow-dot > .flow-symbol {
+  position: absolute;
+  left: 27%;
+  top: 27%;
+  width: 46%;
+  height: 46%;
+  pointer-events: none;
+  overflow: visible;
 }
-
-/* --- Tubes --- */
+.flow-dot > .flow-symbol path {
+  fill: #ffffff;
+  stroke: rgba(12, 13, 26, 0.85);
+  stroke-width: 2.2px;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+}
+/* --- Tubes (Joe's fix, 15 Nov 2026): glossy tubes drawn in flowArt.tsx (a thin dark edge, darker sides, the saturated
+   body and a crisp highlight stripe), never a glow, blur, bright outer stroke or blend. The live board's effects are
+   the effects kit's (transform and opacity, src/lib/fx/kit.ts), so no keyframes here. --- */
 .flow-loose-end {
   opacity: 0.95;
-}
-.flow-pulse {
-  stroke-dasharray: 0.2 1.4;
-  stroke-dashoffset: 0.2;
-  opacity: 0;
-  animation: flow-pulse 460ms ease-in-out both;
-}
-.flow-pulse-solve {
-  animation-duration: 560ms;
-}
-@keyframes flow-pulse {
-  0% { stroke-dashoffset: 0.2; opacity: 0; }
-  12% { opacity: 1; }
-  88% { opacity: 1; }
-  100% { stroke-dashoffset: -1; opacity: 0; }
-}
-
-/* --- Completion: every tube pulses end to end, then the board glows --- */
-.flow-board-solved::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 3;
-  border-radius: 8px;
-  pointer-events: none;
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.7), inset 0 0 30px 8px rgba(255, 236, 170, 0.5);
-  opacity: 0;
-  animation: flow-board-glow 1150ms ease-out both;
-}
-@keyframes flow-board-glow {
-  0%, 45% { opacity: 0; }
-  65% { opacity: 1; }
-  100% { opacity: 0; }
 }
 
 /* --- Arena: equal gaps between the count line, the board and the bottom --- */
@@ -102,31 +75,146 @@
   margin-block: auto;
   height: min(100cqw, calc(100cqh - 48px));
 }
+/* Levels (16 Nov 2026): a board taller than wide (Expert's 9 × 12) takes its own aspect: as tall as the width allows,
+   never past the space, its width following its height (squares stay square). */
+.game-column [data-polish="flow"][data-stage-column][data-flow-grid] > [data-game-arena="board"] {
+  --arena-max: calc(100cqw * var(--flow-tall, 1));
+  height: min(calc(100cqw * var(--flow-tall, 1)), calc(100cqh - 48px));
+}
+.flow-board[data-flow-grid] {
+  width: auto;
+  height: 100%;
+  max-width: 100%;
+}
 
-/* --- Reveal: both boards as large as the space allows --- */
+/* --- Reveal (the Pattern overhaul, 15 Nov 2026): one board at a time (SolutionSwitch), drawn large --- */
 .answer-reveal-content .reveal-card > .flow-reveal {
   flex: 1 1 0;
   min-height: 0;
   container-type: size;
-  justify-content: center;
+  justify-content: flex-start;
 }
 .flow-reveal > .flow-reveal-boards {
-  flex: 0 1 auto;
+  flex: 1 1 auto;
+  min-height: 0;
 }
+/* Each column is shown alone, so its board takes the whole width; the space kept below it is that column's own
+   (the Solution's caption; the Yours caption, pills, pair strip and key). */
 .flow-reveal-board {
-  width: min(calc((100cqw - 12px) / 2), calc(100cqh - 76px));
+  width: min(100%, calc(100cqh - 44px));
+}
+.flow-reveal-board.flow-reveal-board-yours {
+  width: min(100%, calc(100cqh - 150px));
+}
+.flow-reveal-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--jz-text-2);
+}
+.flow-reveal-caption {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--jz-text-2);
+}
+.flow-reveal .hud-pills.flow-reveal-pills {
+  overflow: visible;
+  justify-content: center;
+  flex-wrap: wrap;
+  height: auto;
+  row-gap: 4px;
+}
+/* Each pair as its bead with a small mark: joined on the solution's route, joined another way, or not joined. */
+.flow-pair-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+}
+.flow-pair-chip {
+  position: relative;
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+}
+.flow-pair-bead {
+  position: absolute;
+  inset: 2px;
+  display: block;
+}
+.flow-pair-bead > .flow-bead {
+  position: absolute;
+  inset: -4%;
+  width: 108%;
+  height: 108%;
+}
+.flow-pair-bead > .flow-symbol {
+  position: absolute;
+  left: 27%;
+  top: 27%;
+  width: 46%;
+  height: 46%;
+}
+.flow-pair-bead > .flow-symbol path {
+  fill: #ffffff;
+  stroke: rgba(12, 13, 26, 0.85);
+  stroke-width: 2.2px;
+  paint-order: stroke fill;
+}
+.flow-pair-mark {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: grid;
+  place-items: center;
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--jz-bg);
+  background: var(--jz-text-2);
+}
+.flow-pair-chip[data-state="route"] .flow-pair-mark { background: #3ddc84; }
+.flow-pair-chip[data-state="other"] .flow-pair-mark { background: #f2b33d; }
+.flow-pair-chip[data-state="open"] .flow-pair-mark { background: #ff4d4d; color: #ffffff; }
+.flow-pair-chip[data-state="open"] .flow-pair-bead { opacity: 0.55; }
+.flow-reveal-key {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 10px;
+  font-size: 12px;
+  color: var(--jz-text-3);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .flow-dot-joined,
-  .flow-pulse {
-    animation: none;
-  }
-  .flow-pulse {
-    opacity: 0;
-  }
-  .flow-board-solved::after {
-    animation: none;
-    opacity: 0.7;
-  }
+/* The reveal's highlights on the player's board: a red ring round each dot of a pair not joined, a red dot in each
+   square left empty (rings and dots, no glow). */
+.flow-dot[data-flow-missed]::after {
+  content: "";
+  position: absolute;
+  inset: -12%;
+  border-radius: 999px;
+  border: 2.5px solid #ff4d4d;
+  pointer-events: none;
+}
+.flow-cell[data-flow-empty] {
+  position: relative;
+}
+.flow-cell[data-flow-empty]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22%;
+  height: 22%;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  background: #ff4d4d;
+  opacity: 0.85;
+  pointer-events: none;
 }

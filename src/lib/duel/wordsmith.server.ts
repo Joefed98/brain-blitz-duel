@@ -5,7 +5,8 @@ import { gameDisplayName } from "./gameNames";
  * dictionary and the board's word list never reach a device.
  */
 
-import { buildableFrom, commonWords, isWord, wordsFrom } from "./dictionary.server";
+import { buildableFrom, commonWords, isEverydayWord, isWord, wordsFrom } from "./dictionary.server";
+import { WORDSMITH_REV_EVERYDAY } from "./wordOverhaul";
 import { pick, shuffled } from "./random";
 import type { Graded } from "./grade";
 import { scoreWordsmith, WORDSMITH_REV_DEPTH, WORDSMITH_REV_TOPUP } from "./scoring";
@@ -105,6 +106,14 @@ export function generateWordsmithExample(): WordsmithPuzzleData {
   return preDepthPinned() ? made : { ...made, wordsmithRev: dealtTopupRev(WORDSMITH_REV_TOPUP, WORDSMITH_REV_DEPTH) };
 }
 
+/**
+ * A board of `size` letters whose centre allows between `range.min` and `range.max` words (the levels' deal, src/lib/duel/
+ * levels/wordsmith.server.ts; Normal deals through generateWordsmith, unchanged).
+ */
+export function generateWordsmithBand(size: number, range: { readonly min: number; readonly max: number }): WordsmithPuzzleData {
+  return generateWithinRange(size, range);
+}
+
 function generateWithinRange(size: number, range: { readonly min: number; readonly max: number }): WordsmithPuzzleData {
   const bank = sourceWords(size);
   for (let attempt = 0; attempt < 200 && bank.length; attempt++) {
@@ -135,10 +144,15 @@ export interface WordVerdict {
   points: number;
   word: string;
   reason?: string;
+  /** wordsmithRev 5 (the Word overhaul): a valid word off the everyday list, accepted quietly as a bonus word. */
+  bonus?: boolean;
 }
 
-/** Checks one submitted word live, during play. */
-export function checkWordsmithWord(letters: string[], raw: string, already: string[]): WordVerdict {
+/**
+ * Checks one submitted word live, during play. From wordsmithRev 5 (`rev`) a valid word off the everyday list says
+ * so (`bonus`): it scores as before but is not one of the board's counted words.
+ */
+export function checkWordsmithWord(letters: string[], raw: string, already: string[], rev?: number | null): WordVerdict {
   const word = raw.trim().toUpperCase();
   const base = { valid: false, points: 0, word };
   if (!/^[A-Z]+$/.test(word)) return { ...base, reason: "Letters only" };
@@ -149,7 +163,8 @@ export function checkWordsmithWord(letters: string[], raw: string, already: stri
   if (!isWord(word)) return { ...base, reason: "Not in the dictionary" };
   if (isPluralForm(word)) return { ...base, reason: "No plurals" };
   if (already.some((entry) => entry.toUpperCase() === word)) return { ...base, reason: "Already found" };
-  return { valid: true, points: wordsmithPoints(word), word };
+  const verdict: WordVerdict = { valid: true, points: wordsmithPoints(word), word };
+  return (rev ?? 0) >= WORDSMITH_REV_EVERYDAY && !isEverydayWord(word) ? { ...verdict, bonus: true } : verdict;
 }
 
 /**

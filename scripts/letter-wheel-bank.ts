@@ -3,6 +3,8 @@
  *
  *   bun scripts/letter-wheel-bank.ts            # wheelRev 1 bank → src/lib/duel/letterWheelBankRev1.server.ts
  *   bun scripts/letter-wheel-bank.ts --legacy   # the original bank → src/lib/duel/letterWheelBank.server.ts
+ *   bun scripts/letter-wheel-bank.ts --rev5     # wheelRev 5 bank (the Word overhaul) → src/lib/duel/letterWheelBankRev5.server.ts
+ *   bun scripts/letter-wheel-bank.ts --level=easy|hard|expert   # a level's bank (stage 3) → src/lib/duel/letterWheelBank<Level>.server.ts
  *   … --check                                   # rebuild in memory and compare with the committed file
  *   … --out=<path>                              # write somewhere else
  *
@@ -24,16 +26,28 @@
  * (the board's wide, short space above the wheel at 375 × 667). The layout with the
  * most words (then the smallest box) over 60 jittered attempts is kept. Candidates must
  * also be on the everyday list (commonWords), which drops abbreviations such as SEPT.
+ *
+ * wheelRev 5 (the Word overhaul, 15 Nov 2026, docs/design/game-reviews/word.md): rev 1's rules with at most two
+ * 3-letter words, and every slot word on the common-answers list too (answerWords, SCOWL sizes 10–35: no odd slot
+ * words such as INS, REF or EMO).
+ *
+ * Levels (the Word overhaul, stage 3, 15 Nov 2026; src/lib/levels/word/letterwheel.ts): rev 5's rules (every slot word
+ * on the common-answers list) with each level's own limits, `LW_LEVEL_LIMITS` in letterWheel.ts (wheel letters, words,
+ * box), each from its own seed.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 
-import { commonWords, isWord, wordsFrom } from "../src/lib/duel/dictionary.server";
+import { answerWords, commonWords, isWord, wordsFrom } from "../src/lib/duel/dictionary.server";
 import { isPluralForm } from "../src/lib/duel/wordsmith.server";
-import { lwGrade, lwSlotCells, LW_REV1_LIMITS } from "../src/lib/duel/letterWheel";
+import { lwGrade, lwSlotCells, LW_LEVEL_LIMITS, LW_REV1_LIMITS, LW_REV5_LIMITS, type LwLevel } from "../src/lib/duel/letterWheel";
 import type { LetterWheelSlot } from "../src/lib/duel/types";
 
 const args = process.argv.slice(2);
 const LEGACY = args.includes("--legacy");
+const LEVEL = (args.find((a) => a.startsWith("--level="))?.slice(8) ?? null) as LwLevel | null;
+if (LEVEL !== null && !(LEVEL in LW_LEVEL_LIMITS)) throw new Error(`unknown level ${LEVEL}`);
+// A level's bank keeps rev 5's word rules (every slot word a common answer).
+const REV5 = args.includes("--rev5") || LEVEL !== null;
 const CHECK = args.includes("--check");
 const OUT = args.find((a) => a.startsWith("--out="))?.slice(6);
 
@@ -53,9 +67,14 @@ interface Config {
   best: boolean;
 }
 
-const CFG: Config = LEGACY
+const LV = LEVEL ? LW_LEVEL_LIMITS[LEVEL] : null;
+const CFG: Config = LV
+  ? { bank: LV.bank, seed: LV.seed, seedLengths: [LV.letters], maxCols: LV.maxCols, maxRows: LV.maxRows, minWords: LV.minWords, maxWords: LV.maxWords, minLong: LV.minLong, maxShort: LV.maxShort, candidates: LV.candidates, attempts: 80, best: true }
+  : LEGACY
   ? { bank: 300, seed: 20261002, seedLengths: [6, 7], maxCols: 8, maxRows: 8, minWords: 8, maxWords: 9, minLong: 3, maxShort: 3, candidates: 18, attempts: 40, best: false }
-  : { bank: 300, seed: 20261014, seedLengths: [7], ...LW_REV1_LIMITS, candidates: 24, attempts: 60, best: true };
+  : REV5
+    ? { bank: 300, seed: 20261115, seedLengths: [7], ...LW_REV5_LIMITS, candidates: 24, attempts: 80, best: true }
+    : { bank: 300, seed: 20261014, seedLengths: [7], ...LW_REV1_LIMITS, candidates: 24, attempts: 60, best: true };
 
 const freqRank = new Map<string, number>();
 readFileSync(new URL("./data/word-frequency.txt", import.meta.url), "utf8")
@@ -180,10 +199,13 @@ function boxOf(lay: Placed[]): { rows: number; cols: number } {
 }
 
 const everyday = new Set(commonWords());
+/** wheelRev 5: the common-answers list (upper case), every slot word on it. */
+const answers = new Set<string>();
+if (REV5) for (let n = 3; n <= (LEVEL ? 9 : 7); n++) for (const w of answerWords(n)) answers.add(w);
 
 // ---- Seeds ----
 const seeds = shuffle(
-  commonWords().filter((w) => CFG.seedLengths.includes(w.length) && rank(w) < 15000 && !isPluralForm(w) && isWord(w)),
+  commonWords().filter((w) => CFG.seedLengths.includes(w.length) && rank(w) < 15000 && !isPluralForm(w) && isWord(w) && (!REV5 || answers.has(w.toUpperCase()))),
 );
 
 interface Entry { cols: number; rows: number; letters: string; slots: LetterWheelSlot[]; words: string[] }
@@ -200,7 +222,7 @@ for (const seed of seeds) {
   if (valid.length < CFG.minWords) { rejectedFew++; continue; }
   // Crossword candidates: common words only, most frequent first; the seed leads.
   // Rev 1 also requires the everyday list (drops abbreviations such as SEPT).
-  const common = valid.filter((w) => rank(w) < 20000 && (!CFG.best || everyday.has(w.toLowerCase()))).sort((a, b) => rank(a) - rank(b)).slice(0, CFG.candidates);
+  const common = valid.filter((w) => rank(w) < 20000 && (!CFG.best || everyday.has(w.toLowerCase())) && (!REV5 || answers.has(w))).sort((a, b) => rank(a) - rank(b)).slice(0, CFG.candidates);
   const S = seed.toUpperCase();
   let result: Placed[] | null = null;
   let resultKey = -Infinity;
@@ -286,11 +308,21 @@ if (problems.length || bank.length < CFG.bank) {
 
 const hist = new Map<number, number>();
 for (const e of bank) hist.set(e.words.length, (hist.get(e.words.length) ?? 0) + 1);
-console.log(`${LEGACY ? "legacy" : "wheelRev 1"} bank ${bank.length}; words per board`, Object.fromEntries([...hist].sort()),
+console.log(`${LEGACY ? "legacy" : LEVEL ? `${LEVEL} level` : REV5 ? "wheelRev 5" : "wheelRev 1"} bank ${bank.length}; words per board`, Object.fromEntries([...hist].sort()),
   `; rejected: ${rejectedFew} under ${CFG.minWords} words, ${rejectedLayout} no layout`,
   `; size max ${Math.max(...bank.map((e) => e.cols))}×${Math.max(...bank.map((e) => e.rows))}`);
 
-const text = LEGACY
+const LEVEL_NAME = LEVEL ? LEVEL[0]!.toUpperCase() + LEVEL.slice(1) : "";
+const text = LEVEL
+  ? `/**
+ * Roundabout's ${LEVEL} level bank (the Word overhaul, stage 3: LW_LEVEL_LIMITS.${LEVEL} in letterWheel.ts, every slot word
+ * on the common-answers list) — generated by scripts/letter-wheel-bank.ts --level=${LEVEL}. Do not edit by hand. Server-only.
+ */
+import type { LetterWheelBankEntry } from "./letterWheelBank.server";
+
+export const LETTER_WHEEL_BANK_${LEVEL.toUpperCase()}: LetterWheelBankEntry[] = ${JSON.stringify(bank)};
+`
+  : LEGACY
   ? `/**
  * Letter Wheel bank — generated by scripts/letter-wheel-bank.ts. Do not edit by hand.
  */
@@ -306,7 +338,17 @@ export interface LetterWheelBankEntry {
 
 export const LETTER_WHEEL_BANK: LetterWheelBankEntry[] = ${JSON.stringify(bank)};
 `
-  : `/**
+  : REV5
+    ? `/**
+ * Roundabout wheelRev 5 bank (the Word overhaul: 11–14 words, at most two of 3 letters, every word on the
+ * common-answers list, at most 11 × 9) — generated by scripts/letter-wheel-bank.ts --rev5. Do not edit by hand.
+ * Server-only.
+ */
+import type { LetterWheelBankEntry } from "./letterWheelBank.server";
+
+export const LETTER_WHEEL_BANK_REV5: LetterWheelBankEntry[] = ${JSON.stringify(bank)};
+`
+    : `/**
  * Roundabout wheelRev 1 bank (11–14 words, at most 11 × 9) — generated by
  * scripts/letter-wheel-bank.ts. Do not edit by hand. Server-only.
  */
@@ -314,7 +356,7 @@ import type { LetterWheelBankEntry } from "./letterWheelBank.server";
 
 export const LETTER_WHEEL_BANK_REV1: LetterWheelBankEntry[] = ${JSON.stringify(bank)};
 `;
-const target = OUT ?? new URL(`../src/lib/duel/${LEGACY ? "letterWheelBank" : "letterWheelBankRev1"}.server.ts`, import.meta.url).pathname;
+const target = OUT ?? new URL(`../src/lib/duel/${LEVEL ? `letterWheelBank${LEVEL_NAME}` : LEGACY ? "letterWheelBank" : REV5 ? "letterWheelBankRev5" : "letterWheelBankRev1"}.server.ts`, import.meta.url).pathname;
 if (CHECK) {
   const have = readFileSync(target, "utf8");
   if (have !== text) {

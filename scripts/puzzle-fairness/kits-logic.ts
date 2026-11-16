@@ -4,6 +4,8 @@
  * Colour Flood, Tents and Trees, Shikaku, Lamplighter. Answers are built with
  * the same encoders the phone Stages use; nothing here scores.
  */
+import { sudokuLogicSolve } from "../../src/lib/duel/sudokuLogic";
+import { leveled } from "../../src/lib/duel/attentionLevels";
 import type {
   BombPuzzleData,
   FloodPuzzleData,
@@ -32,17 +34,17 @@ import {
   type TowerMove,
   type TowerPegs,
 } from "../../src/lib/duel/tower";
-import { canPour, decodeTubeMoves, encodeTubeLog, encodeTubeMoves, pour, tubesSolved, type TubeMove, type TubeState, type TubeToken } from "../../src/lib/duel/tubes";
+import { canPour, decodeTubeMoves, encodeTubeLog, encodeTubeMoves, pour, tubesCapacity, tubesSolved, type TubeMove, type TubeState, type TubeToken } from "../../src/lib/duel/tubes";
 import { floodMoveLimit, tubesPourLimit, tubesSendsUndo } from "../../src/lib/duel/moveLimits";
-import { clueHolds, encodeSafeDraft, encodeSafeTries } from "../../src/lib/duel/safe";
+import { clueHolds, encodeSafeDraft, encodeSafeTries, safeShapeOf, SAFE_SHAPE_TODAY } from "../../src/lib/duel/safe";
 import { puzzleScoreRevOf } from "../../src/lib/duel/puzzleScoreRev";
 import { canonicalBombOrder, decodeBombActions, decodeBombConstraints, encodeBombActions, bombPredecessors } from "../../src/lib/duel/bomb";
-import { encodeNonoCells, type NonoMarks } from "../../src/lib/duel/nonogram";
-import { encodeFloodMoves, floodApply, floodSolved } from "../../src/lib/duel/flood";
+import { encodeNonoCells, nonoCellsOf, nonoDimsOf, type NonoMarks } from "../../src/lib/duel/nonogram";
+import { encodeFloodMoves, floodApply, floodColoursOf, floodColsOf, floodSolved } from "../../src/lib/duel/flood";
 import { encodeTents, orthNeighbours } from "../../src/lib/duel/tents";
 import { encodeShikaku, rectHas, rectValid, rectsOverlap, type ShikakuRect } from "../../src/lib/duel/shikaku";
 import { encodeBulbs, sightLine } from "../../src/lib/duel/lightUp";
-import { thinkMs, type Play, type PuzzleKit, type Rng, type Skill, type SpamPlay, type Step } from "./kit";
+import { atLevel, thinkMs, type Play, type PuzzleKit, type Rng, type Skill, type SpamPlay, type Step } from "./kit";
 
 /* ------------------------------------------------------------------------ */
 /*  Shared helpers                                                          */
@@ -211,6 +213,8 @@ const lightsKit: PuzzleKit = {
 
 // BASE 3.5 s per cell: a good player fills a 6×6 mini sudoku (~20 blanks) in about 70 s.
 const SUDOKU_BASE = 3.5;
+/** One advanced deduction (a pair, pointing or box-line), in seconds of looking. */
+const SUDOKU_ADVANCED = 9;
 
 const sudokuGrid = (givens: number[], state: Map<number, number>) => givens.map((g, c) => (g ? g : (state.get(c) ?? 0)));
 
@@ -238,6 +242,9 @@ const sudokuKit: PuzzleKit = {
   play(p, rng, skill) {
     const { givens, solution = [] } = p as SudokuPuzzleData;
     const targets = [...givens.keys()].filter((c) => !givens[c]).map((c) => [c, solution[c]!] as [number, number]);
+    // The Logic overhaul's levels (16 Nov 2026): each advanced step the board needs (a pair, pointing, box-line) is a
+    // longer look, SUDOKU_ADVANCED s spread over the blanks. Today's boards need none (singles), so they time as before.
+    const advanced = sudokuLogicSolve(givens).advanced;
     return placePlay<number>(
       {
         targets,
@@ -251,7 +258,7 @@ const sudokuKit: PuzzleKit = {
       },
       rng,
       skill,
-      SUDOKU_BASE,
+      SUDOKU_BASE + (advanced * SUDOKU_ADVANCED) / Math.max(1, targets.length),
     );
   },
 };
@@ -523,9 +530,12 @@ const tubesKit: PuzzleKit = {
   },
   play(p, rng, skill) {
     const pz = p as TubesPuzzleData;
-    const plan = decodeTubeMoves(pz.solution ?? "");
+    const plan = decodeTubeMoves(pz.solution ?? "", pz.tubes.length);
     let state = pz.tubes.map((t) => [...t]);
     const moves: TubeToken[] = [];
+    // The levels (the Logic overhaul): Expert's hidden layers mean looking before each pour (×1.6); taller flasks a
+    // little more to follow (×1 + 0.06 a layer past five). Today's board ×1.
+    const base = TUBES_BASE * (pz.hidden ? 1.6 : 1) * (1 + Math.max(0, tubesCapacity(pz.tubes) - 5) * 0.06);
     const steps: Step[] = [];
     let t = 0;
     const record = () => steps.push({ answer: tubesEncode(pz, moves), atMs: t });
@@ -534,15 +544,15 @@ const tubesKit: PuzzleKit = {
         const wrong = tubeLegal(state).filter((x) => x.from !== m.from || x.to !== m.to);
         if (wrong.length) {
           // A wrong pour, then Undo once it looks wrong (sometimes after one more look).
-          t += thinkMs(rng, TUBES_BASE, skill);
+          t += thinkMs(rng, base, skill);
           moves.push(rng.pick(wrong));
           record();
-          t += thinkMs(rng, TUBES_BASE * (rng.chance(0.5) ? 0.5 : 1.2), skill);
+          t += thinkMs(rng, base * (rng.chance(0.5) ? 0.5 : 1.2), skill);
           moves.push("undo");
           record();
         }
       }
-      t += thinkMs(rng, TUBES_BASE, skill);
+      t += thinkMs(rng, base, skill);
       state = pour(state, m.from, m.to);
       moves.push(m);
       record();
@@ -582,44 +592,52 @@ const safeKit: PuzzleKit = {
   },
   play(p, rng, skill) {
     const pz = p as SafePuzzleData;
-    const combo = pz.combination ?? [0, 0, 0, 0];
+    // A level's card (the Logic overhaul's levels): its own dials, range and tries (safeShapeOf; today's otherwise).
+    const shape = safeShapeOf(pz);
+    const span = shape.max + 1;
+    const combo = pz.combination ?? new Array(shape.dials).fill(0);
     const tries: number[][] = [];
     const steps: Step[] = [];
-    let dials = [0, 0, 0, 0];
+    let dials = new Array(shape.dials).fill(0);
     let t = 0;
-    // Near misses: every combination failing exactly one clue (a misread clue).
+    // Near misses: every combination failing exactly one clue (a misread clue); a level's card samples them.
     let nearMiss: number[][] | null = null;
     const near = () => {
       if (!nearMiss) {
         nearMiss = [];
-        for (let v = 0; v < 10000; v++) {
-          const d = [Math.floor(v / 1000), Math.floor(v / 100) % 10, Math.floor(v / 10) % 10, v % 10];
+        const total = span ** shape.dials;
+        const stride = total > 50_000 ? Math.ceil(total / 50_000) : 1;
+        for (let v = 0; v < total; v += stride) {
+          const d: number[] = [];
+          for (let i = shape.dials - 1, x = v; i >= 0; i--, x = Math.floor(x / span)) d[i] = x % span;
           if (pz.clues.filter((c) => !clueHolds(c, d)).length === 1) nearMiss.push(d);
         }
       }
       return nearMiss.length ? rng.pick(nearMiss) : null;
     };
+    // Deduction time per clue grows with the codes a clue must rule out (the levels' wider dials; today's ×1).
+    const hardness = shape === SAFE_SHAPE_TODAY ? 1 : Math.log(span ** shape.dials) / Math.log(10 ** 4);
     // puzzleScoreRev 2 drafts carry the dials as they stand (encodeSafeDraft); older rounds only the tries.
     const pending = puzzleScoreRevOf(p) >= 2;
     // The card is read dial by dial: each dial is set once its share of the clues is worked out (a first read
     // of every clue before the first try, half that on a re-read).
-    const readMs = () => pz.clues.reduce((sum) => sum + thinkMs(rng, SAFE_CLUE, skill), 0);
+    const readMs = () => pz.clues.reduce((sum) => sum + thinkMs(rng, SAFE_CLUE * hardness, skill), 0);
     let read = readMs();
-    for (let attempt = 0; attempt < SAFE_TRIES; attempt++) {
-      const wrong = attempt < SAFE_TRIES - 1 || rng.chance(0.5) ? rng.chance(Math.min(0.5, 2 * skill.err)) : false;
+    for (let attempt = 0; attempt < shape.tries; attempt++) {
+      const wrong = attempt < shape.tries - 1 || rng.chance(0.5) ? rng.chance(Math.min(0.5, 2 * skill.err)) : false;
       const goal = (wrong ? near() : null) ?? combo;
-      for (let i = 0; i < SAFE_DIALS; i++) {
-        t += read / SAFE_DIALS;
-        const delta = (goal[i]! - dials[i]! + 10) % 10;
-        const clicks = Math.min(delta, 10 - delta);
+      for (let i = 0; i < shape.dials; i++) {
+        t += read / shape.dials;
+        const delta = (goal[i]! - dials[i]! + span) % span;
+        const clicks = Math.min(delta, span - delta);
         for (let k = 0; k < clicks; k++) t += thinkMs(rng, SAFE_CLICK, skill, 0.2);
         dials[i] = goal[i]!;
-        if (pending) steps.push({ answer: encodeSafeDraft(tries, dials), atMs: t });
+        if (pending) steps.push({ answer: encodeSafeDraft(tries, dials, shape), atMs: t });
       }
       dials = [...goal];
       t += thinkMs(rng, 1, skill);
       tries.push([...dials]);
-      steps.push({ answer: encodeSafeTries(tries), atMs: t });
+      steps.push({ answer: encodeSafeTries(tries, shape), atMs: t });
       if (goal.every((d, i) => d === combo[i])) break;
       // Shaken: re-read the card (half the first read).
       read = readMs() / 2;
@@ -659,13 +677,18 @@ const bombKit: PuzzleKit = {
     const before = bombPredecessors(required, constraints);
     const all = bombAll(pz);
     const steps: Step[] = [];
-    let t = pz.rules.reduce((sum) => sum + thinkMs(rng, BOMB_RULE, skill), 0);
+    // Levels (the Attention overhaul, stage 3): a longer plan takes much longer to work out (every clue weighed against
+    // more orders) and is easier to slip on; on Expert a slip sets the bomb off at once (no Reset). Normal keeps today's.
+    const lv = leveled(pz) ? (pz.stepCount || 6) / 6 : 1;
+    const reason = lv === 1 ? 1 : lv * lv * 1.6;
+    const slip = Math.min(0.5, skill.err * (lv === 1 ? 1 : lv * lv * 2));
+    let t = pz.rules.reduce((sum) => sum + thinkMs(rng, BOMB_RULE * reason, skill), 0);
     let actions: string[] = [];
     let blown = false;
     let i = 0;
     let resets = 0;
     while (i < plan.length) {
-      if (!blown && rng.chance(skill.err)) {
+      if (!blown && rng.chance(slip)) {
         // A wrong action: an unneeded one, or a needed one too early.
         const done = new Set(actions);
         const wrongs = all.filter((a) => !done.has(a) && (!required.includes(a) || ![...(before.get(a) ?? [])].every((x) => done.has(x))));
@@ -673,7 +696,7 @@ const bombKit: PuzzleKit = {
           t += thinkMs(rng, BOMB_ACT * 1.5, skill);
           actions.push(rng.pick(wrongs));
           steps.push({ answer: encodeBombActions(actions), atMs: t });
-          if (resets < 3 && rng.chance(0.75)) {
+          if (!pz.bombInstant && resets < 3 && rng.chance(0.75)) {
             // Re-checks the card, spots it, taps Reset and starts the plan again.
             t += thinkMs(rng, BOMB_RULE, skill);
             actions = [];
@@ -683,6 +706,8 @@ const bombKit: PuzzleKit = {
             continue;
           }
           blown = true;
+          // Expert: the live check sets it off; the round ends with the steps made.
+          if (pz.bombInstant) return { steps };
         }
       }
       t += thinkMs(rng, BOMB_ACT, skill);
@@ -711,18 +736,19 @@ const nonoEncode = (n: number, cells: Iterable<number>) => {
 
 const nonoKit: PuzzleKit = {
   type: "nonogram",
-  nothing: (p) => nonoEncode((p as NonoPuzzleData).rows.length ** 2, []),
+  nothing: (p) => nonoEncode(nonoCellsOf(p as NonoPuzzleData), []),
   spam(p, rng) {
     const pz = p as NonoPuzzleData;
-    const size = pz.rows.length;
-    const n = size * size;
+    // A level's board is W × H (nonoDimsOf); today's square.
+    const { w: size, h } = nonoDimsOf(pz);
+    const n = size * h;
     const all = [...Array(n).keys()];
     const k = pz.rows.flat().reduce((a, b) => a + b, 0);
     // Fill only rows/cols whose clue is long (a "looks busy" fill).
     const busy = all.filter((c) => {
       const r = pz.rows[Math.floor(c / size)]!.reduce((a, b) => a + b, 0);
       const col = pz.cols[c % size]!.reduce((a, b) => a + b, 0);
-      return r + col > size;
+      return r + col > (size + h) / 2;
     });
     return [
       { label: "fill-all", answer: nonoEncode(n, all) },
@@ -733,7 +759,7 @@ const nonoKit: PuzzleKit = {
   },
   play(p, rng, skill) {
     const pz = p as NonoPuzzleData;
-    const n = pz.rows.length ** 2;
+    const n = nonoCellsOf(pz);
     const pattern = pz.pattern ?? [];
     const targets = [...Array(n).keys()].filter((c) => pattern[c]).map((c) => [c, 1] as [number, number]);
     return placePlay<number>(
@@ -772,16 +798,16 @@ const floodKit: PuzzleKit = {
       for (let i = 0; i < spamCount(limitMs, perSecond) && moves.length < cap; i++) {
         const c = pickColour(grid, i);
         if (c === grid[0]) continue; // the phone ignores the current colour
-        grid = floodApply(grid, c);
+        grid = floodApply(grid, c, floodColsOf(pz), floodColoursOf(pz));
         moves.push(c);
         if (floodSolved(grid)) break; // the phone submits on the flood
       }
       return moves;
     };
     return [
-      { label: "random-colours-2/s", answer: encodeFloodMoves(run(() => rng.below(FLOOD_COLOURS), 2)) },
-      { label: "cycle-colours-2/s", answer: encodeFloodMoves(run((_g, i) => i % FLOOD_COLOURS, 2)) },
-      { label: "random-colours-0.5/s", answer: encodeFloodMoves(run(() => rng.below(FLOOD_COLOURS), 0.5)) },
+      { label: "random-colours-2/s", answer: encodeFloodMoves(run(() => rng.below(floodColoursOf(pz)), 2)) },
+      { label: "cycle-colours-2/s", answer: encodeFloodMoves(run((_g, i) => i % floodColoursOf(pz), 2)) },
+      { label: "random-colours-0.5/s", answer: encodeFloodMoves(run(() => rng.below(floodColoursOf(pz)), 0.5)) },
     ];
   },
   play(p, rng, skill) {
@@ -790,23 +816,25 @@ const floodKit: PuzzleKit = {
     const moves: number[] = [];
     const steps: Step[] = [];
     let t = 0;
+    // The levels' bigger boards take a little longer to weigh a tap (×1 + a fifth for each colour past five).
+    const base = FLOOD_BASE * (1 + Math.max(0, floodColoursOf(pz) - 5) * 0.2) * Math.sqrt(pz.grid.length / 196);
     for (const colour of pz.solution ?? []) {
       if (floodSolved(grid)) break;
       if (rng.chance(skill.err)) {
         // A colour that swallows less than the plan's (no Undo on the phone).
-        const wrongs = [...Array(FLOOD_COLOURS).keys()].filter((c) => c !== colour && c !== grid[0]);
+        const wrongs = [...Array(floodColoursOf(pz)).keys()].filter((c) => c !== colour && c !== grid[0]);
         if (wrongs.length) {
           const c = rng.pick(wrongs);
-          t += thinkMs(rng, FLOOD_BASE, skill);
-          grid = floodApply(grid, c);
+          t += thinkMs(rng, base, skill);
+          grid = floodApply(grid, c, floodColsOf(pz), floodColoursOf(pz));
           moves.push(c);
           steps.push({ answer: encodeFloodMoves(moves), atMs: t });
           if (floodSolved(grid)) break;
         }
       }
       if (colour === grid[0]) continue; // already that colour after a slip: the plan's tap is a no-op
-      t += thinkMs(rng, FLOOD_BASE, skill);
-      grid = floodApply(grid, colour);
+      t += thinkMs(rng, base, skill);
+      grid = floodApply(grid, colour, floodColsOf(pz), floodColoursOf(pz));
       moves.push(colour);
       steps.push({ answer: encodeFloodMoves(moves), atMs: t });
     }
@@ -838,6 +866,7 @@ const tentsKit: PuzzleKit = {
     ];
   },
   play(p, rng, skill) {
+    skill = atLevel(skill, p);
     const pz = p as TentsPuzzleData;
     const trees = new Set(pz.trees);
     const sol = new Set(pz.solution ?? []);
@@ -914,6 +943,7 @@ const shikakuKit: PuzzleKit = {
     ];
   },
   play(p, rng, skill) {
+    skill = atLevel(skill, p);
     const pz = p as ShikakuPuzzleData;
     const sol = pz.solution ?? [];
     const targets = pz.clues.map((clue) => [clue.cell, sol.find((r) => rectHas(r, clue.cell, pz.size))!] as [number, ShikakuRect]);
@@ -975,6 +1005,7 @@ const lightupKit: PuzzleKit = {
     ];
   },
   play(p, rng, skill) {
+    skill = atLevel(skill, p);
     const pz = p as LightUpPuzzleData;
     const walls = new Set(pz.walls);
     const sol = new Set(pz.solution ?? []);

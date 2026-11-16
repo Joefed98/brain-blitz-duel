@@ -1,0 +1,74 @@
+/* The Speed overhaul's reveal pieces (SpeedRevealKit.tsx, Joe 15 Nov 2026): big, plain and legible on a phone. */
+.sr-numbers {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.sr-numbers[data-count="2"], .sr-numbers[data-count="4"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.sr-number {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.32);
+  padding: 8px 6px;
+}
+.sr-number-label { font-size: 13px; font-weight: 600; color: var(--reveal-text-2, rgba(255, 255, 255, 0.78)); white-space: nowrap; }
+.sr-number-value { margin: 0; font-size: 26px; font-weight: 900; line-height: 1.1; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sr-number[data-tone="gold"] .sr-number-value { color: var(--primary); }
+.sr-number[data-tone="good"] .sr-number-value { color: #7ee2a8; }
+.sr-number[data-tone="warn"] .sr-number-value { color: #ff8f7e; }
+
+.sr-panel {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  border-radius: 14px;
+  background: rgba(0, 0, 0, 0.32);
+  padding: 10px 10px 12px;
+}
+.sr-panel-title { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--reveal-text-2, rgba(255, 255, 255, 0.78)); }
+.sr-caption { margin: 0; text-align: center; font-size: 15px; font-weight: 600; color: #fff; }
+.sr-caption[data-tone="warn"] { color: #ff8f7e; }
+.sr-caption[data-tone="good"] { color: #7ee2a8; }
+
+.sr-pips { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.sr-pip { width: 14px; height: 14px; border-radius: 999px; border: 2px solid rgba(255, 255, 255, 0.45); }
+.sr-pip[data-pip="hit"] { background: #f08a3a; border-color: #f08a3a; }
+.sr-pip[data-pip="gold"] { background: var(--primary); border-color: #fff3c4; }
+.sr-pip[data-pip="miss"] { background: transparent; }
+.sr-pip[data-pip="wrong"] { background: #e0503c; border-color: #e0503c; }
+.sr-pip[data-pip="break"] { background: #e0503c; border-color: #fff; border-radius: 3px; }
+.sr-pip[data-pip="empty"] { border-color: rgba(255, 255, 255, 0.18); }
+/* Pull!'s doubles: every pair after the singles sits a little apart. */
+.sr-pips[data-groups] { max-width: 300px; }
+
+.sr-bars { display: flex; width: 100%; align-items: flex-end; justify-content: center; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.sr-bar { display: flex; flex: 1 1 0; max-width: 40px; flex-direction: column; align-items: center; gap: 3px; }
+.sr-bar-text { font-size: 12px; font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sr-bar-track { position: relative; display: flex; width: 100%; height: 96px; align-items: flex-end; border-radius: 6px; background: rgba(255, 255, 255, 0.08); overflow: hidden; }
+.sr-bar-fill { width: 100%; border-radius: 6px 6px 0 0; background: #8e8e98; }
+.sr-bar[data-tone="gold"] .sr-bar-fill { background: var(--primary); }
+.sr-bar[data-tone="good"] .sr-bar-fill { background: #f08a3a; }
+.sr-bar[data-tone="miss"] .sr-bar-fill { background: #e0503c; }
+.sr-bar[data-tone="miss"] .sr-bar-text { color: #ff8f7e; }
+.sr-bar-index { font-size: 12px; color: var(--reveal-text-2, rgba(255, 255, 255, 0.7)); }
+
+/* Bonk's burrows map: the 4 × 4 field, each burrow its hits (gold) and mistakes (red). */
+.sr-burrows { display: grid; width: min(100%, 280px); grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.sr-burrow { position: relative; display: flex; aspect-ratio: 1; align-items: center; justify-content: center; border-radius: 999px; background: radial-gradient(circle, #0a0705 55%, #3a2716 60%, #2a1b0e 100%); font-size: 18px; font-weight: 900; color: var(--primary); }
+.sr-burrow[data-wrong]::after { content: attr(data-wrong); position: absolute; right: -2px; top: -2px; min-width: 20px; height: 20px; border-radius: 999px; background: #e0503c; color: #fff; font-size: 12px; line-height: 20px; text-align: center; }
+.sr-burrow[data-hits="0"] { color: rgba(255, 255, 255, 0.35); }
+
+/* Tenfall's targets: ten plaques, each its target; made ones gold, made with a gold tile starred. */
+.sr-targets { display: grid; width: 100%; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.sr-target { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border-radius: 10px; background: rgba(255, 255, 255, 0.08); border: 2px solid rgba(255, 255, 255, 0.18); padding: 6px 0; font-size: 20px; font-weight: 900; color: rgba(255, 255, 255, 0.55); font-variant-numeric: tabular-nums; }
+.sr-target[data-made] { background: #efe3cb; border-color: #c9a35a; color: #2b1a0e; }
+.sr-target[data-gold] { background: var(--primary); border-color: #fff3c4; }
+.sr-target-mark { font-size: 11px; font-weight: 700; line-height: 1; }

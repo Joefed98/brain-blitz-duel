@@ -8,6 +8,7 @@
 
 import { encodeTowerMoves, towerPegsFromState, towerStacksLegal, type TowerMove, type TowerState } from "./tower";
 import {
+  TOWER_REV_LEVELS,
   TOWER_DISCS,
   TOWER_MAX_MINIMUM,
   TOWER_MIN_MINIMUM,
@@ -78,20 +79,44 @@ export function towerDistances(targetPeg: number, discs: number, pegs: number): 
   return dist;
 }
 
-export function generateTower(): TowerPuzzleData {
-  const pegs = Math.random() < 0.5 ? 3 : 4;
+/**
+ * A level's tower (the Logic overhaul's levels, 15 Nov 2026; gameLevels.ts): a fixed post count, the ring count, the
+ * band the exact minimum is drawn from and the clock. Left out, the deal is today's (3 or 4 posts at random, nine
+ * rings, 20–40 moves, 90 s).
+ */
+export type TowerLevelSettings = import("./logicLevels").TowerLevel;
+
+/** The distance tables the level deals draw from (one per pegs, target and rings; at most 4^9 entries). */
+const DIST_CACHE = new Map<string, Int16Array>();
+function cachedDistances(targetPeg: number, discs: number, pegs: number): Int16Array {
+  const id = `${pegs}:${targetPeg}:${discs}`;
+  let found = DIST_CACHE.get(id);
+  if (!found) {
+    if (DIST_CACHE.size >= 16) DIST_CACHE.clear();
+    found = towerDistances(targetPeg, discs, pegs);
+    DIST_CACHE.set(id, found);
+  }
+  return found;
+}
+
+export function generateTower(level?: TowerLevelSettings): TowerPuzzleData {
+  const pegs = level ? level.pegs : Math.random() < 0.5 ? 3 : 4;
+  const discs = level?.discs ?? TOWER_DISCS;
+  const lo = level?.minMoves[0] ?? TOWER_MIN_MINIMUM;
+  const hi = level?.minMoves[1] ?? TOWER_MAX_MINIMUM;
+  const timeLimitMs = level?.timeMs ?? TOWER_TIME_MS;
   for (let attempt = 1; attempt <= 40; attempt++) {
     const targetPeg = randomInt(pegs);
-    const dist = towerDistances(targetPeg, TOWER_DISCS, pegs);
+    const dist = level ? cachedDistances(targetPeg, discs, pegs) : towerDistances(targetPeg, discs, pegs);
     const band: number[] = [];
     for (let code = 0; code < dist.length; code++) {
       const d = dist[code]!;
-      if (d >= TOWER_MIN_MINIMUM && d <= TOWER_MAX_MINIMUM) band.push(code);
+      if (d >= lo && d <= hi) band.push(code);
     }
     if (!band.length) continue;
     const code = band[randomInt(band.length)]!;
-    let state = decodeState(code, TOWER_DISCS, pegs);
-    const start = towerPegsFromState(state, TOWER_DISCS, pegs);
+    let state = decodeState(code, discs, pegs);
+    const start = towerPegsFromState(state, discs, pegs);
     if (!towerStacksLegal(start)) continue;
 
     const minMoves = dist[code]!;
@@ -112,14 +137,16 @@ export function generateTower(): TowerPuzzleData {
 
     return {
       type: "tower",
-      discs: TOWER_DISCS,
+      discs,
       start,
       targetPeg,
       minMoves,
-      timeLimitMs: TOWER_TIME_MS,
-      stats: { discs: TOWER_DISCS, pegs, minMoves, attempts: attempt },
+      timeLimitMs,
+      stats: { discs, pegs, minMoves, attempts: attempt },
+      // The Logic overhaul's levels (logicLevels.ts): a fixed post count per level; the reveal's "moves from done".
+      ...(level ? { towerRev: TOWER_REV_LEVELS } : {}),
       solution: encodeTowerMoves(solution),
     };
   }
-  throw new Error("Tower generator could not build a spread in the 20–40 move band");
+  throw new Error(`Tower generator could not build a spread in the ${lo}–${hi} move band`);
 }

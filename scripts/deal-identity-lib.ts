@@ -105,6 +105,22 @@ export function digest(value: unknown): string {
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the game review fixes' Brimful measureRev 4):
  * preGameReviewNov15.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of notesRev 1, notesFree.ts): preNotesFree.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul, logicOverhaul1.ts): preLogicOverhaul1.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul, logicOverhaul2.ts: Trail
+ * depthRev 3 and Regions fillominoRev 2): preLogic2.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul, numberOverhaul.ts):
+ * preNumberOverhaul.
+ * Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): preCheckoutLevels and
+ * preKakuroLevels (Checkout's and Kakuro's new Normal, numberLevels.ts).
+ * Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): preMeasureLevels (Brimful's new
+ * Normal, measureLevels.ts; whole rooms need no entry: any pinned era deals Brimful's old Normal).
+ * Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): preBalanceLevels (Counterweight's
+ * new Normal, balanceLevels.ts; any pinned era deals its old Normal too).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul, patternNov15.ts): prePatternNov15.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Word overhaul, wordOverhaul.ts): preWordOverhaul.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): preAttentionOverhaul.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul, speedOverhaul.ts): preSpeedOverhaul.
+ * Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine).
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreGrace (orbitRev 15),
  * flipPreGrace (Roofbound flipRev 13), skylinePreLives (High Rise skylineRev 11).
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): ricoPreBig (Moon Climb ricoRev 4).
@@ -112,8 +128,9 @@ export function digest(value: unknown): string {
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreBig (Orbit orbitRev 16).
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): bastionPreLevels (Iron Wall
  * bastionRev 4, the levels).
+ * Changed with Joe's approval, 16 Nov 2026 (routine: main merged into the Action overhaul): both lists.
  */
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "orbitPreGrace", "flipPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels"];
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "preNumberOverhaul", "preCheckoutLevels", "preKakuroLevels", "preMeasureLevels", "preBalanceLevels", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul", "orbitPreGrace", "flipPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels"];
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {
@@ -172,11 +189,17 @@ export function variantDigests(name: string, pin: ((on: boolean) => unknown) | n
  */
 export function roomDigests(seeds: readonly number[]): Record<string, string> {
   // Whole rooms pin only the switches newer than the recording that reach a room's puzzle deals (Minefield's is an
+  // arcade deal, unpinned here as before).
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): preLogicOverhaul1 too.
+  // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): preLogic2 and prePatternNov15 too.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Word overhaul): preWordOverhaul too.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): preAttentionOverhaul.
   // arcade deal, unpinned here as before). Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action
   // overhaul): the new arcade stamps that reach a room's deals, orbitPreGrace and skylinePreLives, beside flipPreGrace;
   // ricoPreBig (Moon Climb ricoRev 4) and swingPreBig (Grappler swingRev 18), the same approval; orbitPreBig (Orbit
   // orbitRev 16), the same approval; bastionPreLevels (Iron Wall bastionRev 4), the same approval.
-  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "flipPreGrace", "orbitPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels"]);
+  // Changed with Joe's approval, 16 Nov 2026 (routine: main merged into the Action overhaul): both lists.
+  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul", "flipPreGrace", "orbitPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels"]);
 }
 
 function roomDigestsNow(seeds: readonly number[]): Record<string, string> {

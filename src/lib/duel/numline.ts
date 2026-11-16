@@ -192,3 +192,11 @@ export function numlineErrorLabel(error: number | null): string {
   if (error === null) return "—";
   return `${(error * 100).toFixed(1)}%`;
 }
+
+/** Expert (numlineLevels.ts): numbers placed on a line before its hidden end label shows (half of five, rounded up). */
+export const NUMLINE_HIDE_UNTIL = Math.ceil(NUMLINE_ITEMS / 2);
+
+/** The share of the line whose label is hidden now ("?"), or null: Expert's top end until half its numbers are placed. */
+export function numlineHiddenEnd(stage: Pick<NumlineStageData, "hideEnd">, placedOnLine: number): number | null {
+  return stage.hideEnd === "hi" && placedOnLine < NUMLINE_HIDE_UNTIL ? 1 : null;
+}

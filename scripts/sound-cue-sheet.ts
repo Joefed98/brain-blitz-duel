@@ -17,9 +17,9 @@ import type { PuzzleCategory, PuzzleType } from "../src/lib/duel/types";
 import { SOUND_MANIFEST } from "../src/lib/fx/manifest";
 
 const DIR = "docs/sound-cues";
-// action-elevenlabs.md is the Action overhaul's list of sounds for Joe to generate (15 Nov 2026), not cue documentation: its slots
-// are documented in their game's own page, so it is skipped here.
-const SKIP = new Set(["README.md", "cue-sheet.md", "action-elevenlabs.md"]);
+// action-elevenlabs.md (the Action overhaul, 15 Nov 2026) and number-elevenlabs.md (the Number overhaul) are lists of
+// sounds for Joe to generate, not cue documentation: their slots are documented in their games' own pages, so they are skipped here.
+const SKIP = new Set(["README.md", "cue-sheet.md", "action-elevenlabs.md", "number-elevenlabs.md"]);
 
 export type Status = "silent" | "synthesised placeholder" | "recorded sound";
 export type Category =

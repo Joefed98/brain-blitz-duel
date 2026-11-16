@@ -19,6 +19,20 @@ export const LW_MAX_WORDS = 400;
 export const LW_REV = 1;
 /** Bank limits for wheelRev 1 (scripts/letter-wheel-bank.ts). */
 export const LW_REV1_LIMITS = { maxCols: 11, maxRows: 9, minWords: 11, maxWords: 14, minLong: 7, maxShort: 5 } as const;
+/** wheelRev 5 (the Word overhaul, wordOverhaul.ts): rev 1's limits with at most two 3-letter words. */
+export const LW_REV5_LIMITS = { maxCols: 11, maxRows: 9, minWords: 11, maxWords: 14, minLong: 9, maxShort: 2 } as const;
+/**
+ * The levels' banks (the Word overhaul, stage 3, 15 Nov 2026; scripts/letter-wheel-bank.ts --level=…): rev 5's word
+ * rules with each level's own wheel and crossword. Easy a 6-letter wheel and a smaller crossword; Hard and Expert an
+ * 8-letter wheel and more words. No level is wider than 9 columns (squares about 40 px on a 375 px screen); the larger
+ * crosswords grow taller instead.
+ */
+export type LwLevel = "easy" | "hard" | "expert";
+export const LW_LEVEL_LIMITS: Readonly<Record<LwLevel, { bank: number; seed: number; letters: number; maxCols: number; maxRows: number; minWords: number; maxWords: number; minLong: number; maxShort: number; candidates: number }>> = {
+  easy: { bank: 200, seed: 20261116, letters: 6, maxCols: 9, maxRows: 8, minWords: 7, maxWords: 9, minLong: 4, maxShort: 3, candidates: 18 },
+  hard: { bank: 200, seed: 20261117, letters: 7, maxCols: 9, maxRows: 11, minWords: 12, maxWords: 15, minLong: 10, maxShort: 2, candidates: 28 },
+  expert: { bank: 200, seed: 20261118, letters: 7, maxCols: 9, maxRows: 12, minWords: 16, maxWords: 19, minLong: 14, maxShort: 2, candidates: 34 },
+};
 /** Misses (traces that are neither a slot word nor a dictionary word) that cost nothing. */
 export const LW_FREE_MISSES = 5;
 /** Points per miss beyond the free ones, off the unfinished credit or the finish's efficiency part. */

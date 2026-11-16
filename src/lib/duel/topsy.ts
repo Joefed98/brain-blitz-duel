@@ -13,9 +13,22 @@
  * ball still rolling (the others stop against it; `homeBlocks` on each board), and 2× the tilts. Its boards are
  * generated and solved under that rule. gravityRev 3 rounds keep balls rolling over a filled hole.
  *
+ * gravityRev 8 (the Pattern overhaul, 15 Nov 2026, patternNov15.ts): gravityRev 7's boards with each board's tilt limit
+ * its fewest tilts + TOPSY_V8_SPARE (the limits were about twice what anyone needs, worked out from an old all-stars
+ * route), and Undo and Reset give the tilts back: a board's count is the tilts still on it.
+ *
+ * The difficulty levels (16 Nov 2026, src/lib/levels/pattern/gravity.levels.ts): a round dealt at Easy, Hard or Expert
+ * carries `level` and gravityRev 8's rules; its boards come from a proved bank (topsy.server.ts generateTopsyLevel), it may
+ * have two boards (Easy) or eight balls a board (Expert), and its limits are each board's fewest + the level's spare
+ * (`topsySpare`). Everything here reads the round's own boards; Normal (no `level`) is unchanged.
+ *
  * Stored rounds (gravityRev absent, 1 or 2) keep the old four-ball, locking-target rules (gravity.ts).
  */
 import { eliteStretchPoints } from "./d5Remodels";
+import { usesPatternNov15 } from "./patternNov15";
+import { gameLevelSettings } from "@/lib/levels/gameLevels";
+import { NORMAL, puzzleLevel } from "@/lib/levels/levels";
+import type { TopsyLevelSettings } from "@/lib/levels/pattern/gravity.levels";
 import type { GravityDir, GravityPuzzleData } from "./types";
 
 /** The remodel's stamp. */
@@ -173,6 +186,59 @@ export interface TopsyReplay {
 
 /** Spare tilts over a board's minimum before its limit (rounded up to a multiple of 5, so it never shows the minimum). */
 export const TOPSY_SPARE_TILTS = 8;
+/** gravityRev 8 (the Pattern overhaul, 15 Nov 2026): the stamp, and the spare tilts over each board's fewest. */
+export const GRAVITY_REV_NOV15 = 8;
+export const TOPSY_V8_SPARE = 8;
+
+/** gravityRev 8's tilt limit for a board whose fewest tilts is `min` (`spare`: the level's, Normal's 8 by default). */
+export function topsyTiltLimitV8(min: number, spare = TOPSY_V8_SPARE): number {
+  return min + spare;
+}
+
+/**
+ * The difficulty levels (the Pattern overhaul, stage 3, 16 Nov 2026; src/lib/levels/pattern/gravity.levels.ts): a
+ * puzzle dealt at a level beyond Normal carries `level`, and its settings (balls, boards, the spare tilts over each
+ * board's fewest, the full-speed time) are read from the registry by it. Null for Normal and every puzzle without it.
+ */
+export function topsyLevelSettings(puzzle: unknown): TopsyLevelSettings | null {
+  const level = puzzleLevel(puzzle);
+  return level === NORMAL ? null : gameLevelSettings<TopsyLevelSettings>("gravity", level);
+}
+
+/** The spare tilts over a board's fewest a gravityRev 8 puzzle's limits carry (its level's; Normal's 8). */
+export function topsySpare(puzzle: unknown): number {
+  return topsyLevelSettings(puzzle)?.spare ?? TOPSY_V8_SPARE;
+}
+
+/** The balls on every board of a stored round, added up (Normal: 18). */
+export function topsyTotalBalls(puzzle: { boards?: readonly { starts: readonly number[] }[] | undefined }): number {
+  return (puzzle.boards ?? []).reduce((n, b) => n + b.starts.length, 0);
+}
+
+/**
+ * gravityRev 8's deal (generate.server.ts's patternNov15 line passes it): the stored boards unchanged, each tilt limit
+ * set from the board's stored fewest tilts (the server's own breadth-first search, `boardMins`). Deterministic.
+ */
+export function withTopsyV8Limits<T extends GravityPuzzleData>(puzzle: T): T {
+  if (!puzzle.boards || !puzzle.boardMins || puzzle.boardMins.length !== puzzle.boards.length) return puzzle;
+  // A level's deal (it carries `level` from its generator) takes the level's spare; Normal keeps 8.
+  const spare = topsySpare(puzzle);
+  return { ...puzzle, tiltLimits: puzzle.boardMins.map((m) => topsyTiltLimitV8(m, spare)) };
+}
+
+/** gravityRev 8: Undo and Reset give the tilts back (older stamps: every tilt that moved a ball counts). */
+export function topsyGivesTiltsBack(puzzle: unknown): boolean {
+  return usesPatternNov15(puzzle, "gravity");
+}
+
+/** The par a gravityRev 8 board is played against during play: its tilt limit less the spare (null on older stamps). */
+export function topsyBoardPar(puzzle: GravityPuzzleData, board: number): number | null {
+  if (!topsyGivesTiltsBack(puzzle)) return null;
+  const limit = puzzle.tiltLimits?.[board];
+  const spare = topsySpare(puzzle);
+  return typeof limit === "number" && limit > spare ? limit - spare : null;
+}
+
 export function topsyTiltLimit(min: number, rev = GRAVITY_REV_TOPSY): number {
   const limit = Math.ceil((min + TOPSY_SPARE_TILTS) / 5) * 5;
   // gravityRev 4 (Joe's phone notes, 27 Oct 2026): 2× the tilts.
@@ -183,8 +249,16 @@ export function topsyTiltLimit(min: number, rev = GRAVITY_REV_TOPSY): number {
  * The one place a tilt list becomes an outcome (phone and server). The list runs across the boards: once a
  * board is cleared, or its tilt limit is used up, the next tilt goes to the next board. X = undo (within the
  * board), Y = reset the board; neither gives a tilt back. A tilt that moves nothing does not count.
+ * `giveBack` (gravityRev 8): Undo gives its tilt back and Reset all the board's, so a board's count is the tilts still
+ * on it (the limit is judged on that count).
  */
-export function replayTopsy(boards: TopsyBoard[], tilts: GravityDir[], limits?: readonly number[], onBoard?: (board: number, state: TopsyState) => void): TopsyReplay {
+export function replayTopsy(
+  boards: TopsyBoard[],
+  tilts: GravityDir[],
+  limits?: readonly number[],
+  onBoard?: (board: number, state: TopsyState) => void,
+  giveBack = false,
+): TopsyReplay {
   const results: TopsyBoardResult[] = [];
   let index = 0;
   let walls = new Set(boards[0]?.walls ?? []);
@@ -197,12 +271,16 @@ export function replayTopsy(boards: TopsyBoard[], tilts: GravityDir[], limits?: 
     const board = boards[index];
     if (!board) break;
     if (dir === "X") {
-      if (history.length > 1) history.pop();
+      if (history.length > 1) {
+        history.pop();
+        if (giveBack) count--;
+      }
       onBoard?.(index, history[history.length - 1]!);
       continue;
     }
     if (dir === "Y") {
       history = [history[0]!];
+      if (giveBack) count = 0;
       onBoard?.(index, history[0]!);
       continue;
     }
@@ -241,7 +319,7 @@ export function replayTopsy(boards: TopsyBoard[], tilts: GravityDir[], limits?: 
 
 /** A stored round's replay (its boards and tilt limits). */
 export function replayTopsyPuzzle(puzzle: GravityPuzzleData & { boards: TopsyBoard[] }, tilts: GravityDir[], onBoard?: (board: number, state: TopsyState) => void): TopsyReplay {
-  return replayTopsy(puzzle.boards, tilts, puzzle.tiltLimits, onBoard);
+  return replayTopsy(puzzle.boards, tilts, puzzle.tiltLimits, onBoard, topsyGivesTiltsBack(puzzle));
 }
 
 /* ------------------------------------------------------------------ scoring (gravityRev 3, to 200) */

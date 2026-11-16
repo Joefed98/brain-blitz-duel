@@ -5,7 +5,7 @@
  * is stored privately.
  */
 
-import { cluesFor, countNonoSolutions, NONO_DEPTH_MAX_FILLED, NONO_DEPTH_MIN_FILLED, NONO_DEPTH_SIZE } from "./nonogram";
+import { cluesFor, cluesForRect, countNonoSolutions, nonoLogicSolve, NONO_DEPTH_MAX_FILLED, NONO_DEPTH_MIN_FILLED, NONO_DEPTH_SIZE } from "./nonogram";
 import { randomBelow, shuffled } from "./random";
 import { NONO_MAX_FILLED, NONO_MIN_FILLED, NONO_SIZE, type NonoPuzzleData } from "./types";
 
@@ -179,4 +179,51 @@ export function generateLegacyNonogram(): NonoPuzzleData {
   const pattern = patternFrom(NONO_PICTOGRAMS[0] ?? "");
   const { rows, cols } = cluesFor(pattern);
   return { type: "nonogram", rows, cols, pattern };
+}
+
+/* ------------------------------------------------------------------ levels (the Logic overhaul, 15 Nov 2026) */
+
+/**
+ * A level's picture (logicLevels.ts NonoLevel): a generated pattern, mirror-symmetric left to right like a drawn
+ * emblem, painted in strokes (runs of 2–5 along a row, a few dropped down a column) so it reads as shapes rather than
+ * noise, filled to the level's share, every row and column occupied. Kept only when its clues have exactly one
+ * picture and the human-style grader (nonogram.ts nonoLogicSolve) needs exactly the level's reasoning: "line" boards
+ * fall to single lines alone; "two" boards stick on single lines and need lines together. Shown upside down half the
+ * time (a symmetric picture's mirror is itself), so the same strokes give more boards. Rows and cols ride on the clue
+ * lists; the clock on `timeLimitMs`.
+ */
+export function generateNonogramLevel(level: import("./logicLevels").NonoLevel): NonoPuzzleData {
+  const { cols: w, rows: h } = level;
+  const [loShare, hiShare] = level.fill;
+  for (let attempt = 0; attempt < 40_000; attempt++) {
+    const pattern = new Array<boolean>(w * h).fill(false);
+    const half = Math.ceil(w / 2);
+    const target = Math.round(w * h * (loShare + Math.random() * (hiShare - loShare)));
+    let filled = 0;
+    const set = (r: number, c: number) => {
+      for (const cc of [c, w - 1 - c]) {
+        const i = r * w + cc;
+        if (!pattern[i]) {
+          pattern[i] = true;
+          filled++;
+        }
+      }
+    };
+    for (let guard = 0; filled < target && guard < 400; guard++) {
+      const r = randomBelow(h);
+      const c = randomBelow(half);
+      const len = 2 + randomBelow(4);
+      if (randomBelow(3) === 0) for (let k = 0; k < len && r + k < h; k++) set(r + k, c);
+      else for (let k = 0; k < len && c + k < half; k++) set(r, c + k);
+    }
+    const flipped = Math.random() < 0.5;
+    const shown = flipped ? Array.from({ length: w * h }, (_, i) => pattern[(h - 1 - Math.floor(i / w)) * w + (i % w)]!) : pattern;
+    const { rows, cols } = cluesForRect(shown, w, h);
+    if (!rows.every((c) => c.length > 0) || !cols.every((c) => c.length > 0)) continue;
+    // Settling every square by deduction proves the picture is the only one (logic-1-levels-check also counts).
+    const line = nonoLogicSolve(rows, cols, false).solved;
+    if (level.logic === "line" ? !line : line || !nonoLogicSolve(rows, cols, true).solved) continue;
+    return { type: "nonogram", rows, cols, pattern: shown, timeLimitMs: level.timeMs, ...(level.lockLines ? { lockLines: true } : {}) };
+  }
+  throw new Error("Mosaic generator could not build a picture for the level");
 }

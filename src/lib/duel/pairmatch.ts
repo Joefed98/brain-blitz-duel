@@ -15,14 +15,15 @@ export function encodePairFlips(flips: number[]): string {
   return flips.join(",");
 }
 
-export function decodePairFlips(raw: string): number[] {
+/** `cards`: the board's size (attentionLevels.ts `pairCardsOf`: a level's own board, else today's thirty). */
+export function decodePairFlips(raw: string, cards: number = PAIR_CARDS): number[] {
   // pairRev 2 answers end "@<ms>" (the gold match's time, depth/matchmaker.ts); older answers never carry "@".
   const text = String(raw ?? "");
   const mark = text.indexOf("@");
   return (mark < 0 ? text : text.slice(0, mark))
     .split(",")
     .map((part) => Number.parseInt(part, 10))
-    .filter((value) => Number.isInteger(value) && value >= 0 && value < PAIR_CARDS);
+    .filter((value) => Number.isInteger(value) && value >= 0 && value < cards);
 }
 
 export interface PairReplay {
@@ -35,7 +36,8 @@ export interface PairReplay {
   matched: number[];
 }
 
-export function replayPairs(cards: PairCard[], flips: number[]): PairReplay {
+/** `pairs`: the pairs a finish needs (attentionLevels.ts `pairsOf(puzzle)`: a level's own count, else today's fifteen). */
+export function replayPairs(cards: PairCard[], flips: number[], pairs: number = PAIR_PAIRS): PairReplay {
   const matched = new Set<number>();
   let tries = 0;
   let used = 0;
@@ -59,7 +61,7 @@ export function replayPairs(cards: PairCard[], flips: number[]): PairReplay {
   }
 
   return {
-    solved: matched.size >= PAIR_PAIRS * 2,
+    solved: matched.size >= pairs * 2,
     pairs: matched.size / 2,
     flips: used,
     tries,

@@ -1,11 +1,13 @@
 import type { Database } from "@/integrations/supabase/types";
 import { record, text } from "@/lib/validate";
 import { SHORT_MAX } from "./inputLimits";
+import { attentionDemoPlays } from "./attentionDemoRules";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
+import { fillominoStrokes, trailUndoEach } from "./logicOverhaul2";
 import { SWING_REV_BIG } from "@/lib/arcade/swing";
 import { INK_REV_BIG } from "@/lib/arcade/inkBridge";
-import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
+import { CLAY_REV_WIDE } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
 import { BRK_REV_STD } from "@/lib/arcade/breaker";
@@ -25,15 +27,19 @@ import { SLICE_REV_BIG, SLICE_REV_FOOD, SLICE_REV_STANDARD, SLICE_REV_TALL } fro
 import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
-import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
+import { TEN_DROP_RESET_REV } from "@/lib/arcade/tenDrop";
 import { SKYLINE_REV_COUNT, SKYLINE_REV_LIVES } from "@/lib/arcade/skyline";
 import { pinIsExpanded } from "@/lib/arcade/pinball";
 import { PIN_REV_STD } from "@/lib/arcade/pinball";
 import { chainDemoCompatible } from "./chain";
 import { pairUsesDepth } from "./depth/matchmaker";
 import { STRIKEOUT_REV4 } from "./strikeout";
+import { wordDemoStampOk } from "./wordDemoStamps";
 import { createServerFn } from "@tanstack/react-start";
+import { puzzleInputDemoCompatible } from "@/components/puzzles/wordInput";
+import { isPuzzleDemoLog } from "./puzzleDemo";
 import { isD4Type, isDepth4 } from "./depth4/stamps";
+import { logicDemoPlays } from "./logicDemoRules";
 
 import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
@@ -54,7 +60,6 @@ export const SAME_PLAY_DEMO_REVS = {
 export function demoRevAccepted(game: keyof typeof SAME_PLAY_DEMO_REVS, rev: number | null | undefined): boolean {
   return rev != null && (SAME_PLAY_DEMO_REVS[game] as readonly number[]).includes(rev);
 }
-
 /**
  * The stamps the six Action games' intro demos are recorded on (the Action overhaul, stage 3, 15 Nov 2026): the stamps
  * rooms deal. scripts/fixtures/action-demos.json holds a run on each (scripts/action-demos-record.ts), which
@@ -73,6 +78,34 @@ export const ACTION_DEMO_REVS = {
 import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG } from "@/lib/arcade/orbit";
 import { BT_BALLS, BT_V7_BALLS, btIsV7Play } from "@/lib/arcade/ballTrack";
 import { clashPlays3, CLASH_REV_DEPTH } from "@/lib/arcade/colourClash";
+
+/**
+ * The Number overhaul's intro demos (15 Nov 2026): the eight Number games got new pieces, layouts and controls, so a
+ * coordinate demo recorded before it would tap the wrong places. A demo of one of them plays only when its log carries
+ * NUMBER_DEMO_REV (added by scripts/number-demos-record.ts, saved by scripts/number-demos-save.ts) and its example
+ * carries at least the stamp its Normal deals today (NUMBER_DEMO_MIN_STAMPS; number-demos-check fails when the example
+ * deal's stamp moves on without this table, so a new Normal stops the older demo until one is recorded on it).
+ */
+export const NUMBER_DEMO_GAMES = ["balance", "target", "equation", "numpyramid", "measure", "checkout", "numline", "kakuro"] as const;
+export const NUMBER_DEMO_REV = 1;
+export const NUMBER_DEMO_MIN_STAMPS: Partial<Record<(typeof NUMBER_DEMO_GAMES)[number], { field: string; min: number }>> = {
+  balance: { field: "balanceRev", min: 5 },
+  equation: { field: "gapsRev", min: 2 },
+  measure: { field: "measureRev", min: 5 },
+  checkout: { field: "checkoutRev", min: 4 },
+  kakuro: { field: "kakuroRev", min: 3 },
+};
+
+/** Whether a saved demo of `type` may play under the Number overhaul's rule (other games: always). */
+export function numberDemoPlays(type: string, demo: { puzzle: unknown; input_log: unknown }): boolean {
+  if (!(NUMBER_DEMO_GAMES as readonly string[]).includes(type)) return true;
+  const log = demo.input_log as { numberDemoRev?: unknown } | null;
+  if (log?.numberDemoRev !== NUMBER_DEMO_REV) return false;
+  const puzzle = demo.puzzle as Record<string, unknown> | null;
+  if (puzzle?.["type"] !== type) return false;
+  const stamp = NUMBER_DEMO_MIN_STAMPS[type as (typeof NUMBER_DEMO_GAMES)[number]];
+  return !stamp || Number(puzzle[stamp.field] ?? 0) >= stamp.min;
+}
 
 export interface IntroDemoRow {
   game_type: string;
@@ -105,18 +138,33 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     });
     const { readIntroDemo } = await import("@/lib/data/practice.server");
     const { data: row, error } = await readIntroDemo(client, data.type);
-    if (error) {
-      console.error("[intro demo] read failed", error.message);
-      return null;
-    }
-    return introDemoFor(data, (row as unknown as IntroDemoRow | null) ?? null);
+    if (error) console.error("[intro demo] read failed", error.message);
+    const live = error ? null : acceptIntroDemo(data.type, (row as unknown as IntroDemoRow | null) ?? null);
+    // A demo bundled with the app (bundledDemos/) plays when the live row is missing, refused for an older stamp or
+    // recorded on an older presentation; a live row recorded on today's stamp and presentation still wins.
+    const { bundledIntroDemo } = await import("./bundledDemos");
+    return pickIntroDemo(data.type, live, bundledIntroDemo(data.type));
   });
 
 /**
- * The stop rules (pure, so checks can call them): the saved demo for `data.type`, or null when it must not play
- * because it was recorded on a stamp whose rules the intro no longer shows (the intro shows the game's still).
+ * Which demo the intro plays: the live row when it plays on today's stamp and presentation, else the demo bundled with
+ * the app (when there is one), else the live row as it was (an older puzzle demo the phone then refuses, as before).
+ */
+export function pickIntroDemo(type: string, live: IntroDemoRow | null, bundled: IntroDemoRow | null): IntroDemoRow | null {
+  if (live && (!isPuzzleDemoLog(live.input_log) || puzzleInputDemoCompatible(type, live.input_log))) return live;
+  return bundled ?? live;
+}
+
+/**
+ * The stop rules with the room data's shape (scripts/action-demos-check.ts calls it): `acceptIntroDemo` for `data.type`.
  */
 export function introDemoFor(data: { type: string }, demo: IntroDemoRow | null): IntroDemoRow | null {
+  return acceptIntroDemo(data.type, demo);
+}
+
+/** The saved demo for `type` if its stamp still plays today's game, else null (the rules below, one a game). */
+export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroDemoRow | null {
+  const data = { type };
   if (data.type === "orbit" && (demo?.input_log.orbitBeltPeriodTicks !== ORBIT_BELT_PERIOD_TICKS || demo?.input_log.orbitBeltRevision !== ORBIT_BELT_REVISION)) return null;
   // Rev3 (scrolling-camera, wider zig-zag world) demos cannot replay as the legacy fixed-camera course, and vice versa.
   if (data.type === "orbit" && demo?.puzzle.type === "orbit" && (demo.puzzle.orbitRev ?? 0) !== ORBIT_REV3 && demo.puzzle.orbitRev !== ORBIT_REV4 && demo.puzzle.orbitRev !== ORBIT_REV_BAND && demo.puzzle.orbitRev !== ORBIT_REV_TUNED && demo.puzzle.orbitRev !== ORBIT_REV_XP && demo.puzzle.orbitRev !== ORBIT_REV_STD && demo.puzzle.orbitRev !== ORBIT_REV_FUEL && demo.puzzle.orbitRev !== ORBIT_REV_BIG) return null;
@@ -131,17 +179,41 @@ export function introDemoFor(data: { type: string }, demo: IntroDemoRow | null):
   // older demo stays stopped (the intro shows its still) until one is recorded on the new stamp.
   // Joe's phone notes (27 Oct 2026): Topsy-Turvy gravityRev 4 (a ball home blocks) and Gradient tilesRev 4 (tiles lock,
   // new colour schemes) play differently, so only demos recorded on those stamps play.
-  if (data.type === "gravity" && demo?.puzzle.type === "gravity" && (demo.puzzle.gravityRev ?? 0) < 4) return null;
+  // The Pattern overhaul (15 Nov 2026): gravityRev 8 gives undone tilts back and limits each board to par + 8 (and
+  // older demos may show stars), so only a demo recorded on gravityRev 8 plays; until then the intro shows its still.
+  if (data.type === "gravity" && demo?.puzzle.type === "gravity" && (demo.puzzle.gravityRev ?? 0) < 8) return null;
+  // The Pattern overhaul (15 Nov 2026): Chroma Lines flowRev 3 cuts a crossed line and a tap on a dot no longer clears
+  // it, so only a demo recorded on flowRev 3 plays; until then the intro shows its still.
+  if (data.type === "flow" && demo?.puzzle.type === "flow" && (demo.puzzle.flowRev ?? 0) < 3) return null;
+  // The Pattern overhaul (15 Nov 2026): pipesRev 5 turns tiles both ways and shows leaks live, so a demo recorded
+  // before it (clockwise taps, no spills) stays stopped until one is recorded on pipesRev 5; the intro shows its still.
+  if (data.type === "pipes" && demo?.puzzle.type === "pipes" && (demo.puzzle.pipesRev ?? 0) < 5) return null;
+  // The Pattern overhaul (15 Nov 2026): Skid's slideRev 5 gives undone slides back (and older demos may show ice gems),
+  // so only a demo recorded on slideRev 5 plays; until then the intro shows its still.
+  if (data.type === "iceslide" && demo?.puzzle.type === "iceslide" && (demo.puzzle.slideRev ?? 0) < 5) return null;
+  // The Pattern overhaul (15 Nov 2026): Tessellate's blockRev 4 (its presentation already refuses older coordinate demos,
+  // wordInput.ts); the stamp too, as the other overhaul games, so only a demo recorded on blockRev 4 plays.
+  if (data.type === "blockparty" && demo?.puzzle.type === "blockparty" && (demo.puzzle.blockRev ?? 0) < 4) return null;
+  // The Pattern overhaul (15 Nov 2026): Gridlock's unblockRev 4 gives an undone slide back (a demo recorded before it
+  // counts the Undo as a move) and Lightbender's laserRev 4 undoes turns and moves too, so only a demo recorded on each
+  // new stamp plays; until a live one is saved, the bundled demo plays (bundledDemos/).
+  if (data.type === "unblock" && demo?.puzzle.type === "unblock" && (demo.puzzle.unblockRev ?? 0) < 4) return null;
+  if (data.type === "laser" && demo?.puzzle.type === "laser" && (demo.puzzle.laserRev ?? 0) < 4) return null;
   if (data.type === "tiles" && demo?.puzzle.type === "tiles" && (demo.puzzle.tilesRev ?? 0) < 4) return null;
   // Operator's gaps (puzzle polish, 3 Nov 2026, gapsRev 1): number and mixed gaps on a new screen, so a signs-only demo
   // stays stopped (the intro shows its still) until one is recorded on gapsRev 1.
   if (data.type === "equation" && demo?.puzzle.type === "equation" && (demo.puzzle.gapsRev ?? 0) < 1) return null;
+  // The Attention overhaul (15 Nov 2026): an Attention demo plays only when recorded on today's stamp, on Normal.
+  if (demo && !attentionDemoPlays(data.type, demo.puzzle)) return null;
   // Four-step bomb demos cannot replay the six-step example, and version-2 demos show the old clue wording (version 3 rewrote every clue, 14 Oct 2026).
   if (data.type === "bomb" && demo?.puzzle.type === "bomb" && demo.puzzle.bombVersion !== 3) return null;
   // strikeoutRev 3 (15 Oct 2026) shows ten strike markers, three vowel dots and an extra starting letter on words 1–3,
   // and strikeoutRev 4 (19 Oct 2026) twelve strike markers: an older demo would show the old board under the twelve-strike
   // help, so Strikeout's demo stays stopped until one is recorded on a rev-4 puzzle.
-  if (data.type === "strikeout" && demo?.puzzle.type === "strikeout" && demo.puzzle.strikeoutRev !== STRIKEOUT_REV4) return null;
+  // The Word overhaul (15 Nov 2026): Strikeout deals strikeoutRev 7, and every Word game's demo plays only on the stamp
+  // rooms deal today (wordDemoStamps.ts), so a rev-4 demo stays stopped as before and a rev-7 one plays.
+  if (data.type === "strikeout" && demo?.puzzle.type === "strikeout" && (demo.puzzle.strikeoutRev ?? 0) < STRIKEOUT_REV4) return null;
+  if (demo && !wordDemoStampOk(data.type, demo.puzzle)) return null;
   // Block-era Rainbow Bridge demos would show red blocks under the birds wording.
   // x200 (inkRev 10): a taller world with clouds, wind, coins and a shamrock; inkRev 11 (phone notes, 27 Oct 2026) drops
   // the wind and spreads the pickups, so its levels differ: only a demo recorded on inkRev 11 plays (the still shows until then).
@@ -154,7 +226,9 @@ export function introDemoFor(data: { type: string }, demo: IntroDemoRow | null):
   // taller sky: an older demo would show the old sky, so only a demo recorded on today's clayRev plays.
   // Depth to 200 (25 Oct 2026): clayRev 9 adds doubles and the hit streak, Bonk's whackRev 3 the gold combo and
   // diamonds; an older demo shows none of them, so each stays stopped (the intro shows its still) until re-recorded.
-  if (data.type === "clayshoot" && demo?.puzzle.type === "clayshoot" && demo.puzzle.clayRev !== CLAY_REV_DEPTH) return null;
+  // The Speed overhaul (15 Nov 2026): Pull! clayRev 10 (the wider quick-hit window) scores a run differently, so only a
+  // demo recorded on clayRev 10 plays (scripts/fixtures/speed-demos.json, speed-demos-check).
+  if (data.type === "clayshoot" && demo?.puzzle.type === "clayshoot" && demo.puzzle.clayRev !== CLAY_REV_WIDE) return null;
   // Joe's phone notes (27 Oct 2026): whackRev 4 keeps the diamond up longer, so only a demo recorded on it plays.
   if (data.type === "whack" && demo?.puzzle.type === "whack" && demo.puzzle.whackRev !== WHACK_REV_NOTES) return null;
   if (data.type === "chain" && demo?.puzzle.type === "chain" && !chainDemoCompatible(demo.puzzle)) return null;
@@ -283,15 +357,24 @@ export function introDemoFor(data: { type: string }, demo: IntroDemoRow | null):
   if (data.type === "snip" && demo?.puzzle.type === "snip" && demo.puzzle.snipRev !== SNIP_REV_EXPAND) return null;
   // Tenfall tenRev 4 (25 Oct 2026, depth to 200): gold tiles. An older demo shows no gold tile under the gold-tile
   // help, so Tenfall's intro shows its still until a demo is recorded on tenRev 4.
-  if (data.type === "tendrop" && demo?.puzzle.type === "tendrop" && (demo.puzzle.tenRev ?? 0) < TEN_DROP_DEPTH_REV) return null;
+  // The Speed overhaul (15 Nov 2026): tenRev 6 charges resets on a finished run too, so only a demo recorded on tenRev 6
+  // plays (its score and HUD are the dealt stamp's).
+  if (data.type === "tendrop" && demo?.puzzle.type === "tendrop" && demo.puzzle.tenRev !== TEN_DROP_RESET_REV) return null;
   // Logic depth to 200 (depthRev 1, 25 Oct 2026): Mosaic, Tents and Trees, Shikaku and Lamplighter deal bigger boards, and
   // Blackout, Hanoi, Polypotions and Safe Cracker show their par line or clean crack: an older demo would show the old
   // board or no feature, so these stay stopped (the intro shows its still) until one is recorded on depthRev 1.
   if (DEPTH_DEMO_STOPS.has(data.type) && depthRevOf(demo?.puzzle) < DEPTH_REV) return null;
+  // Logic overhaul 2 (15 Nov 2026): Trail's depthRev 3 (2.5 a undo) and Regions' fillominoRev 2 (a stroke a mistake) score
+  // differently, so only a demo recorded on those stamps plays (their presentation, LOGIC2_PRESENTATION, stops the rest).
+  if (data.type === "trail" && demo && !trailUndoEach(demo.puzzle)) return null;
+  if (data.type === "fillomino" && demo && !fillominoStrokes(demo.puzzle)) return null;
   // Depth batch 4 (25 Oct 2026, docs/depth/d4-pattern.md): Gridlock, Tessellate, Pipeline, Chroma Lines, Skid, Heave,
   // Lightbender and Turntable deal new stamps (par, gems, the gold crate, spare mirrors, the 7×7 board). A demo recorded
   // on an older puzzle would show the old rules, so each intro shows its still until a demo is recorded on the new stamp.
   if (isD4Type(data.type) && demo && !isDepth4(demo.puzzle)) return null;
+  // The Number overhaul (15 Nov 2026): new boards, pieces and layout for all eight Number games, so only a demo saved
+  // from scripts/fixtures/number-demos.json (NUMBER_DEMO_REV, on today's Normal stamps) plays.
+  if (demo && !numberDemoPlays(data.type, demo)) return null;
   // Expansion E4 (25 Oct 2026, docs/expansions/e4.md): High Rise's skylineRev 7 (taller view, special blocks, the
   // next-block preview, milestones). An older demo would show the old view without them, so the intro shows the
   // still until a demo is recorded on skylineRev 7. skylineRev 8 (27 Oct 2026, Joe's phone notes) keeps rev 7's play on a
@@ -319,8 +402,10 @@ export function introDemoFor(data: { type: string }, demo: IntroDemoRow | null):
   if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_STANDARD) return null;
   // Slice sliceRev 12 (3 Nov 2026, the Action polish): bigger, recognisable food; only a sliceRev 12 demo plays.
   if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_FOOD) return null;
+  // The Logic overhaul (15 Nov 2026, logicDemoRules.ts): Minefield plays only a minesRev 3 (Normal) demo; the six puzzle
+  // games' demos must be on Normal (and on the new presentation, puzzleInputDemoCompatible).
+  if (demo && !logicDemoPlays(data.type, demo.puzzle)) return null;
 
   return demo;
 }
-
 

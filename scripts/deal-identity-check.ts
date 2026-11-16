@@ -113,11 +113,27 @@ tasks.push({
     ok(withDealOptions(undefined, () => 7) === 7 && withDealOptions({}, () => 8) === 8, "no options run as they are");
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the 15 Nov 2026 layers: notesFree and the game
     // review fixes' gameReviewNov15).
-    ok(DEAL_LAYERS.map((l) => l.name).join(" ") === "standard pipesPlaced puzzleNotes parMoves operatorGaps partialCredit wordNov7 notesFree gameReviewNov15", "the layers in their order");
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul): numberOverhaul last.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): its patternNov15 layer.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Word overhaul): its layer, wordOverhaul, last.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): attentionOverhaul.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul's speedOverhaul layer).
+    // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine).
+    ok(DEAL_LAYERS.map((l) => l.name).join(" ") === "standard pipesPlaced puzzleNotes parMoves operatorGaps partialCredit wordNov7 notesFree gameReviewNov15 logicOverhaul1 logic2 numberOverhaul patternNov15 wordOverhaul attentionOverhaul speedOverhaul", "the layers in their order");
     const names = new Set<DealPin>(DEAL_PIN_NAMES);
     // Changed with Joe's approval, 13 Nov 2026: Minefield's minesPreLogic is the 24th era switch.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the 15 Nov 2026 era switches preNotesFree and
     // preGameReviewNov15): 26.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): preLogicOverhaul1, 27.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): preLogic2 is the 27th.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul): preNumberOverhaul is the 27th.
+    // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): the levels' check-only pins
+    // preBalanceLevels, preMeasureLevels, preCheckoutLevels and preKakuroLevels make 31.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): prePatternNov15, 27.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Word overhaul's era switch preWordOverhaul): 27.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): 27.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul's preSpeedOverhaul): 27.
+    // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): main's 26 plus the trains' 11 make 37.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreGrace (orbitRev 15), 27.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): flipPreGrace (flipRev 13) and
     // skylinePreLives (skylineRev 11), 29.
@@ -125,7 +141,9 @@ tasks.push({
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): swingPreBig (swingRev 18), 31.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreBig (orbitRev 16), 32.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): bastionPreLevels (bastionRev 4), 33.
-    ok(names.size === 33, `33 era switches (${names.size})`);
+    // Changed with Joe's approval, 16 Nov 2026 (routine: main merged into the Action overhaul): main's 37 plus the Action
+    // overhaul's 7 make 44.
+    ok(names.size === 44, `44 era switches (${names.size})`);
   },
 });
 

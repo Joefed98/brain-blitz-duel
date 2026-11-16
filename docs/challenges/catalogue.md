@@ -137,15 +137,15 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Clear road | Free the gold block in par moves. | Classic | Par | finish, `parts.efficiency` ≥ 20 |  | `unblock.par` |
-| Rush hour | Free the gold block within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 30 (by 40 s) |  | `unblock.speed` |
+| Clear road | Free the gold car in par moves. | Classic | Par | finish, `parts.efficiency` ≥ 20 |  | `unblock.par` |
+| Rush hour | Free the gold car within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 30 (by 40 s) |  | `unblock.speed` |
 | Green wave | Score 200 on an Expert jam. | Expert | Perfect | `score` ≥ 200 | ● | `unblock.green-wave` |
 
 #### Tessellate (`blockparty`)
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| No second thoughts | Fill the board without moving a piece twice. | Classic | Clean | finish, `parts.efficiency` ≥ 10 |  | `blockparty.no-second-thoughts` |
+| No second thoughts | Fill the board without dropping a piece where it won’t fit. | Classic | Clean | finish, `parts.efficiency` ≥ 10 |  | `blockparty.no-second-thoughts` |
 | Snap fit | Fill the board within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 40 s) |  | `blockparty.snap-fit` |
 
 #### Skid (`iceslide`)
@@ -183,14 +183,14 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | One shot | Light all six gems with your first FIRE. | Classic | Clean | finish, `fires` = 1 |  | `laser.one-shot` |
 | Hall of mirrors | Light all six on the first shot with par mirrors. | Classic | Par | finish, `parts.efficiency` ≥ 10 |  | `laser.hall-of-mirrors` |
-| Speed of light | Light all six within 15 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 15 s) | ● | `laser.speed-of-light` |
+| Speed of light | Light all six within 30 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 30 s) | ● | `laser.speed-of-light` |
 
 #### Chroma Lines (`flow`)
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | No redraws | Join every pair without redrawing a line. | Classic | Clean | finish, `redraws` = 0 |  | `flow.no-redraws` |
-| Paint stripper | Join every pair within 20 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 20 s) |  | `flow.paint-stripper` |
+| Paint stripper | Join every pair within 30 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 30 s) |  | `flow.paint-stripper` |
 | Spaghetti junction | Fill a Hard board. | Hard | Finish | finish |  | `flow.spaghetti-junction` |
 
 #### Pipeline (`pipes`)
@@ -256,7 +256,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Bird lover | Hit 15 clays without hitting a bird. | Classic | Clean | `hits` ≥ 15, `birdHits` = 0 |  | `clayshoot.bird-lover` |
 | Double trouble | Hit both clays of every double. | Classic | Full set | `depth.doublesHit` ≥ `depth.doublesTotal`, `depth.doublesTotal` ≥ 1 |  | `clayshoot.double-trouble` |
-| Dead eye | Hit all 25 clays in a row, each within a quarter second. | Classic | Streak | `depth.streak` ≥ 36 | ● | `clayshoot.dead-eye` |
+| Dead eye | Hit all 25 clays in a row, each within 400 ms. | Classic | Streak | `depth.streak` ≥ 36 | ● | `clayshoot.dead-eye` |
 
 #### Mixed Signals (`stroop`)
 
@@ -326,7 +326,7 @@ challenges never count. How the checks read a run:
 | Gold digger | Find a word through the gold tile. | Classic | Target | `goldWords` count ≥ 1 |  | `wordhunt.gold-digger` |
 | Long haul | Find three words of six letters or more. | Classic | Target | `longWords` ≥ 3 |  | `wordhunt.long-haul` |
 | Clean forage | Find 10 words without a single miss. | Classic | Clean | `words` count ≥ 10, `misses` = 0 |  | `wordhunt.clean-forage` |
-| Forager supreme | Score 170 or more on Hard. | Hard | Big score | `score` ≥ 170 | ● | `wordhunt.forager-supreme` |
+| Forager supreme | Score 160 or more on Hard. | Hard | Big score | `score` ≥ 160 | ● | `wordhunt.forager-supreme` |
 
 #### Interlock (`tilegrid`)
 
@@ -348,7 +348,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Hidden gem | Find the unlisted seventh word. | Classic | Full set | finish, `parts.efficiency` ≥ 30 |  | `wordsearch.hidden-gem` |
 | Eagle-eyed | Find all six within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 20 (by 40 s) |  | `wordsearch.eagle-eyed` |
-| Crow’s nest | Score 200 on Hard. | Hard | Perfect | `score` ≥ 200 | ● | `wordsearch.crows-nest` |
+| Crow’s nest | Score 195 or more on Hard. | Hard | Big score | `score` ≥ 195 | ● | `wordsearch.crows-nest` |
 
 #### Roundabout (`letterwheel`)
 
@@ -408,7 +408,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Solid base | Build all four pyramids clean. | Classic | Clean | finish, `cleanPyramids` ≥ 4 |  | `numpyramid.solid-base` |
-| Pharaoh | Score 200 on Expert. | Expert | Perfect | `score` ≥ 200 | ● | `numpyramid.pharaoh` |
+| Pharaoh | Score 180 on Expert. | Expert | Perfect | `score` ≥ 180 | ● | `numpyramid.pharaoh` |
 
 #### Brimful (`measure`)
 
@@ -446,7 +446,7 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Sum total | Fill the grid with no wrong digits. | Classic | Clean | finish, `mistakes` = 0 |  | `kakuro.sum-total` |
+| Sum total | Fill the grid without breaking a rule. | Classic | Clean | finish, `mistakes` = 0 |  | `kakuro.sum-total` |
 | Mental arithmetic | Fill a Hard grid. | Hard | Finish | finish |  | `kakuro.mental-arithmetic` |
 | Human calculator | Fill the grid within 60 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 60 s) |  | `kakuro.human-calculator` |
 

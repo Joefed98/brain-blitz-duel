@@ -1,6 +1,6 @@
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
-import { FramePills } from "@/components/puzzles/pattern/framePills";
+import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -16,6 +16,9 @@ import {
   pushSolutionFrames,
   replayPush,
 } from "@/lib/duel/push";
+import { pushParFor } from "@/lib/duel/pushPar";
+import { pushDeadSquares, stuckCrates } from "@/lib/duel/pushStuck";
+import { stuckHintOn } from "@/lib/duel/pushLevels";
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -26,6 +29,7 @@ import {
   type PushPuzzleData,
 } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
+import { gameFx } from "@/lib/fx/kit";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -39,8 +43,16 @@ function Board({
   facing,
   solveFx,
   gold,
+  lit,
+  goldOff,
+  moveFx,
+  stuck,
 }: {
+  stuck?: readonly number[] | undefined;
   gold?: { crate: number; target: number } | undefined;
+  lit?: boolean;
+  goldOff?: number;
+  moveFx?: boolean;
   walls: number[];
   targets: number[];
   crates: number[];
@@ -62,6 +74,10 @@ function Board({
       facing={facing}
       solveFx={solveFx ?? false}
       gold={gold}
+      lit={lit ?? false}
+      goldOff={goldOff ?? 0}
+      moveFx={moveFx ?? false}
+      stuck={stuck}
     />
   );
 }
@@ -71,8 +87,8 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-4">
       <p className="text-sm text-muted-foreground">
-        Push every crate onto a hatched floor marking. You can only push – never pull – and only one crate at a
-        time.
+        Push every crate onto a marked square. You can only push – never pull – and only one crate at a time.
+        Undo gives the push back.
       </p>
       <div className="flex items-center gap-2">
         <div style={{ width: 116 }}>
@@ -88,7 +104,7 @@ function IntroExample() {
         <span className="text-lg text-primary">▶</span>
       </div>
       <p className="text-xs text-muted-foreground">
-        Fewer pushes earn a bonus. You have 120 seconds.
+        The fewest pushes (par, shown as you play) earn a bonus. You have 120 seconds.
       </p>
     </div>
   );
@@ -101,6 +117,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
   const startPusher = puzzle.type === "push" ? puzzle.pusher : 0;
   const [moves, setMoves] = useStageState<SlideDir[]>(stateKey, "pushMoves", () => []);
   const submitted = useRef(false);
+  // Stage 2 (display only): a new key dims the gold mark (a push took the gold crate off it).
+  const [goldOff, setGoldOff] = useState(0);
+  // A crate home thumps and its mark glows only on a push (never when Undo or Reset puts a crate back on a mark).
+  const [moveFx, setMoveFx] = useState(false);
 
   const replay = useMemo(
     () => replayPush(walls, targets, startPusher, startCrates, moves),
@@ -112,6 +132,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
   const gold = puzzle.type === "push" && (puzzle.pushRev ?? 0) >= 1 ? puzzle.gold : undefined;
   const goldHome = gold ? replay.state.crates[gold.crate] === gold.target : false;
   const inFrame = useFrameProgress(replay.cratesOnTargets, targets.length, "home");
+  // The Pattern overhaul (15 Nov 2026, display only): par, the fewest pushes, looked up from the dealt layout.
+  const par = useMemo(() => (puzzle.type === "push" ? pushParFor(puzzle) : null), [puzzle]);
+  // Stage 3 (display only, no stamp): the stuck hint on the levels that have it (Easy, Normal): a crate on a square
+  // it can never leave for a mark is tinted, and the push that put it there plays push.stuck.
+  const dead = useMemo(() => (stuckHintOn(puzzle) ? pushDeadSquares(walls, targets) : null), [puzzle, walls, targets]);
+  const stuck = useMemo(() => (dead ? stuckCrates(replay.state.crates, dead) : undefined), [dead, replay.state.crates]);
 
   useEffect(() => {
     onDraftAnswer?.(encodePushMoves(moves));
@@ -131,7 +157,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
     const home = cratesOnTargets(result.state.crates, targets);
     soundCue(result.pushed ? "push.push" : "push.step");
     if (home > replay.cratesOnTargets && home < targets.length) soundCue("push.home");
+    if (dead && result.pushed && result.state.crates.some((cell, index) => dead.has(cell) && cell !== replay.state.crates[index])) soundCue("push.stuck");
     if (gold && !goldHome && result.state.crates[gold.crate] === gold.target) playCorrect();
+    // The Pattern overhaul (15 Nov 2026, sound only): the gold crate pushed off its gold mark.
+    if (gold && goldHome && result.state.crates[gold.crate] !== gold.target) {
+      soundCue("push.goldOff");
+      setGoldOff((key) => key + 1);
+    }
+    setMoveFx(true);
     setMoves((current) => [...current, dir]);
   };
 
@@ -139,14 +172,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
 
   const undo = () => setMoves((current) => current.slice(0, -1));
   const reset = () => setMoves([]);
+  // Undo and Reset as the buttons and keys run them: a crate they put back on a mark lands quietly (no thump or glow).
+  const undoMove = () => {
+    setMoveFx(false);
+    undo();
+  };
+  const resetMoves = () => {
+    setMoveFx(false);
+    reset();
+  };
 
   // Desktop keys: Z or Backspace = Undo, R = Reset (the arrows and WASD step through ArrowPad).
   useGameKeys((kind, key, event) => {
     const used = key === "z" || key === "Backspace" || key === "r";
     if (!used || kind !== "down" || event.repeat) return used;
     if (locked || !moves.length) return true;
-    if (key === "r") reset();
-    else undo();
+    if (key === "r") resetMoves();
+    else undoMove();
     return true;
   });
 
@@ -156,8 +198,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
     <div data-stage-column="2" data-polish="push" className="flex min-h-0 flex-1 flex-col gap-2">
       {inFrame ? null : (
         <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
-          pushes <span className="text-primary">{replay.pushes}</span> · moves {replay.moves} ·{" "}
-          {replay.cratesOnTargets} / {targets.length} home
+          pushes <span className="text-primary">{replay.pushes}</span>
+          {par ? ` · par ${par}` : ""} · moves {replay.moves} · {replay.cratesOnTargets} / {targets.length} home
         </p>
       )}
       <div
@@ -173,22 +215,26 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
           facing={moves.at(-1)}
           solveFx={solveFx}
           gold={gold}
+          lit={replay.solved}
+          goldOff={goldOff}
+          moveFx={moveFx}
+          stuck={stuck}
         />
       </div>
       <FramePills
         testId="push"
         items={[
-          { id: "pushes", label: "Pushes", value: replay.pushes },
-          { id: "moves", label: "Moves", value: replay.moves },
+          // The Pattern overhaul (15 Nov 2026): Pushes and Par (red once over par), as the other Pattern games show.
+          ...(par ? parPills("Pushes", replay.pushes, par, "pushes") : [{ id: "pushes", label: "Pushes", value: replay.pushes }]),
           gold ? { id: "gold", label: "Gold crate", value: goldHome ? "on its mark" : "not yet", ...(goldHome ? { tone: "good" as const } : {}) } : null,
         ]}
       />
-        <ArrowPad onPress={step} disabled={locked || replay.solved} />
+        <ArrowPad modeSwitch={false} onPress={step} disabled={locked || replay.solved} />
       <div data-game-controls="actions" className="flex shrink-0 justify-center gap-3 px-2">
         <button
           type="button"
           disabled={locked || !moves.length}
-          onClick={undo}
+          onClick={undoMove}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Undo
@@ -196,7 +242,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
         <button
           type="button"
           disabled={locked || !moves.length}
-          onClick={reset}
+          onClick={resetMoves}
           className="h-11 rounded-xl border border-border px-5 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
         >
           Reset
@@ -206,8 +252,32 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+const ARROW: Partial<Record<SlideDir, string>> = { U: "↑", D: "↓", L: "←", R: "→" };
+
+/** A stored figure from the grade (`extra`), when it is a number. */
+function storedNumber(extra: Record<string, unknown> | null | undefined, key: string): number | null {
+  const v = extra?.[key];
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
+/**
+ * The answer reveal (the Pattern overhaul, 15 Nov 2026). Two labelled columns for the reveal's Solution / Yours switch
+ * (SolutionSwitch), one board at a time at full size: the minimum solution playing back with its pushes as arrow chips,
+ * and the player's own final warehouse with the crates not home outlined red and the marks left empty ringed. The key
+ * numbers (par, the player's pushes, crates home, the gold crate, time left) come from the stored grade; the replay only
+ * stands in on a row stored without them. Any stamp reads the same stored fields.
+ */
+function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
   const isPush = puzzle.type === "push";
+  // Stage 2: the solve's payoff on the result, the kit's win on the reveal's own result card, once (silent: the reveal
+  // plays its score sound; no haptic outside a live board).
+  const won = Boolean(myCorrect && isPush);
+  const revealRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!won) return;
+    const card = revealRef.current?.closest(".answer-reveal-content, [data-reveal-screen]")?.querySelector("[data-verdict-row]");
+    gameFx("win", card ?? null, { silent: true, inGame: false });
+  }, [won]);
   const solution = isPush ? decodePushSolution(puzzle.solution ?? "") : [];
   const frames = useMemo(
     () => (isPush ? pushSolutionFrames(puzzle.crates, solution) : []),
@@ -217,40 +287,136 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
   );
   const [frame, setFrame] = useState(0);
 
-  // The minimum solution plays back over about three seconds.
+  // The minimum solution plays back over about three seconds, after a short pause on the start.
   useEffect(() => {
-    if (myCorrect || frames.length < 2) return;
+    if (frames.length < 2) return;
+    setFrame(0);
     const gap = Math.max(120, Math.round(3000 / (frames.length - 1)));
-    const timer = setInterval(() => {
-      setFrame((value) => (value + 1 < frames.length ? value + 1 : value));
-    }, gap);
-    return () => clearInterval(timer);
-  }, [frames.length, myCorrect]);
+    let id: ReturnType<typeof setInterval> | null = null;
+    const wait = setTimeout(() => {
+      id = setInterval(() => setFrame((value) => (value + 1 < frames.length ? value + 1 : value)), gap);
+    }, 600);
+    return () => {
+      clearTimeout(wait);
+      if (id !== null) clearInterval(id);
+    };
+  }, [frames.length]);
 
   if (!isPush) return null;
 
-  const crates = frames[Math.min(frame, Math.max(0, frames.length - 1))] ?? puzzle.crates;
-  const pusherCell = solution[Math.max(0, frame - 1)]?.cell ?? puzzle.pusher;
-  const mine = replayPush(
-    puzzle.walls,
-    puzzle.targets,
-    puzzle.pusher,
-    puzzle.crates,
-    decodePushMoves(myAnswer ?? ""),
+  const gold = (puzzle.pushRev ?? 0) >= 1 ? puzzle.gold : undefined;
+  const available = solution.length > 0 && frames.length === solution.length + 1;
+  const at = Math.min(frame, Math.max(0, frames.length - 1));
+  const crates = frames[at] ?? puzzle.crates;
+  const lastPush = at > 0 ? solution[at - 1] : undefined;
+  const pusherCell = lastPush?.cell ?? puzzle.pusher;
+
+  const mine = myAnswer !== null ? replayPush(puzzle.walls, puzzle.targets, puzzle.pusher, puzzle.crates, decodePushMoves(myAnswer)) : null;
+  const missedCrates = mine ? mine.state.crates.flatMap((cell, index) => (puzzle.targets.includes(cell) ? [] : [index])) : [];
+  const emptyMarks = mine ? puzzle.targets.filter((cell) => !mine.state.crates.includes(cell)) : [];
+
+  // The key numbers, from the stored grade.
+  const par = storedNumber(myExtra, "minPushes") ?? puzzle.minPushes ?? (solution.length || null);
+  const pushes = storedNumber(myExtra, "pushes") ?? mine?.pushes ?? null;
+  const total = storedNumber(myExtra, "crates") ?? puzzle.targets.length;
+  const home = storedNumber(myExtra, "cratesHome") ?? (mine ? cratesOnTargets(mine.state.crates, puzzle.targets) : null);
+  const storedGold = myExtra?.["goldHome"];
+  const goldHome = typeof storedGold === "boolean" ? storedGold : null;
+  const timeLeft = myCorrect && typeof myMsRemaining === "number" ? Math.max(0, Math.round(myMsRemaining / 1000)) : null;
+
+  const solutionBoard = (
+    <div className="push-reveal-space">
+      <div className="push-reveal-board" data-push-reveal-step={at}>
+        <Board walls={puzzle.walls} targets={puzzle.targets} crates={crates} pusher={pusherCell} facing={lastPush?.dir} gold={gold} />
+      </div>
+    </div>
   );
-  const min = puzzle.minPushes ?? solution.length;
+  const yoursBoard = mine ? (
+    <div className="push-reveal-space">
+      <div className="push-reveal-board" data-push-yours-board={myCorrect ? "solved" : "unfinished"}>
+        <WarehouseBoard
+          walls={puzzle.walls}
+          targets={puzzle.targets}
+          crates={mine.state.crates}
+          pusher={mine.state.pusher}
+          cols={PUSH_COLS}
+          cells={PUSH_CELLS}
+          gold={gold}
+          missed={myCorrect ? undefined : { crates: missedCrates, marks: emptyMarks }}
+        />
+      </div>
+    </div>
+  ) : null;
+  const route = available ? (
+    <div className="push-route" data-push-route={solution.length} aria-label={`The ${solution.length} pushes`}>
+      {solution.map((move, index) => (
+        <span key={index} className="push-route-chip" data-done={index < at ? "" : undefined} data-active={index === at - 1 ? "" : undefined}>
+          {ARROW[move.dir]}
+        </span>
+      ))}
+    </div>
+  ) : null;
+
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center gap-3">
-      <div className="push-reveal-space flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-3">
-        <div className="push-reveal-board">
-        <Board walls={puzzle.walls} targets={puzzle.targets} crates={myCorrect ? mine.state.crates : crates} pusher={myCorrect ? mine.state.pusher : pusherCell} gold={(puzzle.pushRev ?? 0) >= 1 ? puzzle.gold : undefined} />
+    <div ref={revealRef} className="push-reveal flex w-full flex-col items-center gap-2">
+      {available && yoursBoard ? (
+        <div className="push-reveal-pair flex w-full items-start justify-center gap-3">
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-2" data-push-solution="">
+            <span className="push-reveal-label">Solution</span>
+            {solutionBoard}
+            {route}
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col items-center gap-2" data-push-yours="">
+            <span className="push-reveal-label">Yours</span>
+            {yoursBoard}
+            {!myCorrect && missedCrates.length ? (
+              <p className="push-reveal-note" data-push-missed-count={missedCrates.length}>
+                {missedCrates.length === 1 ? "1 crate" : `${missedCrates.length} crates`} not on a mark (red); empty marks ringed
+              </p>
+            ) : null}
+          </div>
         </div>
-      {/* One line (6 Nov 2026: "Minimum · 27 pushes" over "✓ 27 pushes" said the pushes twice; the verdict row has the time). */}
-      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        {myCorrect
-          ? `✓ ${mine.pushes} push${mine.pushes === 1 ? "" : "es"}${mine.pushes === min ? " · the minimum" : ` · minimum ${min}`}`
-          : `${cratesOnTargets(mine.state.crates, puzzle.targets)} / ${puzzle.targets.length} crates home · minimum ${min} push${min === 1 ? "" : "es"}`}
-      </p>
+      ) : available ? (
+        <>
+          {solutionBoard}
+          {route}
+        </>
+      ) : yoursBoard ? (
+        yoursBoard
+      ) : (
+        <div className="push-reveal-space">
+          <div className="push-reveal-board">
+            <Board walls={puzzle.walls} targets={puzzle.targets} crates={puzzle.crates} pusher={puzzle.pusher} gold={gold} />
+          </div>
+        </div>
+      )}
+      {!available && <p className="push-reveal-note">Solution unavailable</p>}
+      <div className="push-reveal-keys" data-push-keys="">
+        {par ? (
+          <span className="push-key" data-push-key="par">
+            Par <span className="push-key-value">{par}</span>
+          </span>
+        ) : null}
+        {pushes !== null ? (
+          <span className="push-key" data-push-key="pushes" data-yours-only="">
+            You <span className="push-key-value">{pushes}</span>
+          </span>
+        ) : null}
+        {home !== null ? (
+          <span className="push-key" data-push-key="home" data-yours-only="">
+            Home <span className="push-key-value">{home} / {total}</span>
+          </span>
+        ) : null}
+        {gold && goldHome !== null ? (
+          <span className="push-key" data-push-key="gold" data-yours-only="">
+            Gold crate <span className="push-key-value">{goldHome ? "on its mark" : "not home"}</span>
+          </span>
+        ) : null}
+        {timeLeft !== null ? (
+          <span className="push-key" data-push-key="time" data-yours-only="">
+            Time left <span className="push-key-value">{timeLeft} s</span>
+          </span>
+        ) : null}
       </div>
     </div>
   );

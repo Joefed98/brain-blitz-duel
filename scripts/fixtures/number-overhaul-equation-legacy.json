@@ -1,0 +1,182 @@
+[
+ {
+  "seed": 11,
+  "answer": "|||#0,0,0,0",
+  "score": 0,
+  "isCorrect": false
+ },
+ {
+  "seed": 11,
+  "answer": "+,+|15,9,9|7,+,+,2|20,19,×,÷,+#1,1,1,1",
+  "score": 200,
+  "isCorrect": true
+ },
+ {
+  "seed": 11,
+  "answer": "+,+|15,9,9|7,-,-,2|#1,2,3,0",
+  "score": 63,
+  "isCorrect": false
+ },
+ {
+  "seed": 11,
+  "answer": "+,+|15,9,9|7,+,+,2|20,19,×,÷,+#4,1,2,1",
+  "score": 95,
+  "isCorrect": false
+ },
+ {
+  "seed": 11,
+  "answer": "|15,9,9||20,19,×,÷,+#0,1,0,1",
+  "score": 65,
+  "isCorrect": false
+ },
+ {
+  "seed": 23,
+  "answer": "|||#0,0,0,0",
+  "score": 0,
+  "isCorrect": false
+ },
+ {
+  "seed": 23,
+  "answer": "×,+|7,5,14|12,-,10,-|×,+,+,6,5#1,1,1,1",
+  "score": 200,
+  "isCorrect": true
+ },
+ {
+  "seed": 23,
+  "answer": "×,+|7,5,14|12,+,10,+|#1,2,3,0",
+  "score": 63,
+  "isCorrect": false
+ },
+ {
+  "seed": 23,
+  "answer": "×,+|7,5,14|12,-,10,-|×,+,+,6,5#4,1,2,1",
+  "score": 95,
+  "isCorrect": false
+ },
+ {
+  "seed": 23,
+  "answer": "|7,5,14||×,+,+,6,5#0,1,0,1",
+  "score": 65,
+  "isCorrect": false
+ },
+ {
+  "seed": 37,
+  "answer": "|||#0,0,0,0",
+  "score": 0,
+  "isCorrect": false
+ },
+ {
+  "seed": 37,
+  "answer": "+,+|10,6,2|10,-,2,-|+,7,×,÷,10#1,1,1,1",
+  "score": 200,
+  "isCorrect": true
+ },
+ {
+  "seed": 37,
+  "answer": "+,+|10,6,2|10,+,2,+|#1,2,3,0",
+  "score": 63,
+  "isCorrect": false
+ },
+ {
+  "seed": 37,
+  "answer": "+,+|10,6,2|10,-,2,-|+,7,×,÷,10#4,1,2,1",
+  "score": 95,
+  "isCorrect": false
+ },
+ {
+  "seed": 37,
+  "answer": "|10,6,2||+,7,×,÷,10#0,1,0,1",
+  "score": 65,
+  "isCorrect": false
+ },
+ {
+  "seed": 41,
+  "answer": "|||#0,0,0,0",
+  "score": 0,
+  "isCorrect": false
+ },
+ {
+  "seed": 41,
+  "answer": "×,×|14,10,10|12,×,11,-|×,-,6,÷,8#1,1,1,1",
+  "score": 200,
+  "isCorrect": true
+ },
+ {
+  "seed": 41,
+  "answer": "×,×|14,10,10|12,÷,11,+|#1,2,3,0",
+  "score": 63,
+  "isCorrect": false
+ },
+ {
+  "seed": 41,
+  "answer": "×,×|14,10,10|12,×,11,-|×,-,6,÷,8#4,1,2,1",
+  "score": 95,
+  "isCorrect": false
+ },
+ {
+  "seed": 41,
+  "answer": "|14,10,10||×,-,6,÷,8#0,1,0,1",
+  "score": 65,
+  "isCorrect": false
+ },
+ {
+  "seed": 59,
+  "answer": "|||#0,0,0,0",
+  "score": 0,
+  "isCorrect": false
+ },
+ {
+  "seed": 59,
+  "answer": "-,+|6,11,6|+,4,-,4|×,9,×,6,÷#1,1,1,1",
+  "score": 200,
+  "isCorrect": true
+ },
+ {
+  "seed": 59,
+  "answer": "-,+|6,11,6|-,4,+,4|#1,2,3,0",
+  "score": 63,
+  "isCorrect": false
+ },
+ {
+  "seed": 59,
+  "answer": "-,+|6,11,6|+,4,-,4|×,9,×,6,÷#4,1,2,1",
+  "score": 95,
+  "isCorrect": false
+ },
+ {
+  "seed": 59,
+  "answer": "|6,11,6||×,9,×,6,÷#0,1,0,1",
+  "score": 65,
+  "isCorrect": false
+ },
+ {
+  "seed": 73,
+  "answer": "|||#0,0,0,0",
+  "score": 0,
+  "isCorrect": false
+ },
+ {
+  "seed": 73,
+  "answer": "-,+|13,4,11|13,-,4,-|-,16,×,÷,2#1,1,1,1",
+  "score": 200,
+  "isCorrect": true
+ },
+ {
+  "seed": 73,
+  "answer": "-,+|13,4,11|13,+,4,+|#1,2,3,0",
+  "score": 63,
+  "isCorrect": false
+ },
+ {
+  "seed": 73,
+  "answer": "-,+|13,4,11|13,-,4,-|-,16,×,÷,2#4,1,2,1",
+  "score": 95,
+  "isCorrect": false
+ },
+ {
+  "seed": 73,
+  "answer": "|13,4,11||-,16,×,÷,2#0,1,0,1",
+  "score": 65,
+  "isCorrect": false
+ }
+]

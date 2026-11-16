@@ -97,6 +97,26 @@ export function swapwordBlindSwaps(start: string, swaps: readonly (readonly [num
 const TOTAL = "{max}" as unknown as number;
 
 /** The "?" help SCORE text for each Word game on the standard (`{max}` is the round maximum): one line a part. */
+/** Cryptogrid codewordRev 6 (the Word overhaul, wordOverhaul.ts): the clean crack counts only letters shown wrong. */
+export const CODEWORD_OVERHAUL_HELP = puzzleScoreList({
+  finish: "decode every number",
+  speed: { max: STD_CRYPTOGRID.speed, fullByS: STD_CRYPTOGRID.fullByS },
+  bonuses: [{ label: "Clean crack", how: "no letter that finished a word on the grid as no real word (trial letters in words still missing letters are free)", fixed: STD_CRYPTOGRID.clean }],
+  unfinished: "the share of the code decoded, more for decoding it early",
+  penalties: [`When not finished, each wrong letter left standing costs ${STD_CRYPTOGRID.wrongCost}`],
+  total: TOTAL,
+});
+
+/** Lookout `wordSearchRev 6` (the Word overhaul): the round goes on after the sixth word; speed is measured at it. */
+export const LOOKOUT_OVERHAUL_HELP = puzzleScoreList({
+  finish: "find all six listed words",
+  speed: { max: STD_LOOKOUT.speed, fullByS: STD_LOOKOUT.fullByS },
+  bonuses: [{ label: "Bonus word", how: "find the hidden bonus word, before or after the sixth word (the round goes on until you tap Done), finished or not", fixed: STD_LOOKOUT.bonus }],
+  unfinished: `${STD_LOOKOUT.word} for each word found, more for finding it early`,
+  penalties: [`When not finished, the first ${STD_LOOKOUT.freeWrong} wrong drags are free, then each costs ${STD_LOOKOUT.wrongCost}, taken from the words and the bonus word together`],
+  total: TOTAL,
+});
+
 export const WORD_STANDARD_HELP = {
   tilegrid: puzzleScoreList({
     finish: "place all 15 tiles in one connected grid, every run a real word",

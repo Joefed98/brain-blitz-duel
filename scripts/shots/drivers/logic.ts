@@ -58,8 +58,10 @@ function steps(type: PuzzleType, p: FullPuzzle): Step[] {
         .split(",")
         .map((move) => async (page: Page) => {
           const [from, to] = move.split(">").map(Number);
-          await tap(`button[aria-label="${label} ${from! + 1}"]`)(page);
-          await tap(`button[aria-label="${label} ${to! + 1}"]`)(page);
+          // Flasks are named with their contents ("Flask 3: red, blue on top"), posts by number alone.
+          const pick = (n: number) => (type === "tubes" ? `button[aria-label^="Flask ${n}:"]` : `button[aria-label="${label} ${n}"]`);
+          await tap(pick(from! + 1))(page);
+          await tap(pick(to! + 1))(page);
         });
     }
     case "safe":

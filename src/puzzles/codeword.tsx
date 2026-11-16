@@ -18,8 +18,30 @@ import { KeypadAction, LetterKeypad } from "@/components/puzzles/LetterKeypad";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
 import { goldFlip, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
+import { effectCue, stagger, wordFx } from "@/components/puzzles/wordFx";
+
+/** The grid's runs of two or more squares (rows, then columns), as square indices (display only: stage 2's glint). */
+function codewordRuns(cells: readonly number[], size: number): number[][] {
+  const runs: number[][] = [];
+  for (const across of [true, false])
+    for (let a = 0; a < size; a++) {
+      let run: number[] = [];
+      for (let b = 0; b <= size; b++) {
+        const i = across ? a * size + b : b * size + a;
+        if (b < size && (cells[i] ?? 0) > 0) run.push(i);
+        else {
+          if (run.length >= 2) runs.push(run);
+          run = [];
+        }
+      }
+    }
+  return runs;
+}
 import { HudPills } from "@/components/puzzles/HudPills";
-import "@/polish-layout/batch-w-codeword.css";
+import "@/polish-word/word-look.css";
+import "@/polish-word/cryptogrid.css";
+import { BoardPair, RevealKey, RevealNumbers } from "@/components/puzzles/WordReveal";
+import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 import "@/polish-layout/polish-nov3-word.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -65,6 +87,10 @@ export function Grid({
             key={i}
             data-cw-cell={n}
             data-cw-filled={letters[n - 1] ? "" : undefined}
+            data-wa={letters[n - 1] || look(n) === "given" || look(n) === "selected" ? "tile-sm" : "well"}
+            data-wa-tone={look(n) === "selected" ? "amber" : look(n) === "wrong" ? "red" : undefined}
+            data-wa-ring={look(n) === "selected" ? "" : undefined}
+            data-cw-look={look(n)}
             role={onCell ? "button" : undefined}
             aria-label={onCell ? `Number ${n}` : undefined}
             onClick={onCell ? () => onCell(n) : undefined}
@@ -140,6 +166,20 @@ function IntroExample() {
   );
 }
 
+/**
+ * The Word overhaul: the next number after `from` (in the grid's reading order, wrapping round) that is neither given
+ * nor filled; null when every number has a letter.
+ */
+export function codewordNextUnsolved(cells: readonly number[], from: number, given: ReadonlySet<number>, letters: readonly string[]): number | null {
+  const open = (n: number) => n > 0 && n !== from && !given.has(n) && !letters[n - 1];
+  const at = cells.indexOf(from);
+  for (let k = 1; k <= cells.length; k++) {
+    const n = cells[(Math.max(0, at) + k) % cells.length]!;
+    if (open(n)) return n;
+  }
+  return null;
+}
+
 /** A full grid's status (game review fix, 15 Nov 2026): "wrong" once the server has said this grid is wrong. */
 export function codewordFullStatus(checkedWrong: boolean): "wrong" | "checking" {
   return checkedWrong ? "wrong" : "checking";
@@ -177,6 +217,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     window.setTimeout(() => setNote((n) => (n === text ? null : n)), 1200);
   };
 
+  // codewordRev 7: the named runs' cells turn red for 1.6 s (live cells only) with the kit's wrong shake.
+  const flashNonWords = (runIndexes: readonly number[]) => {
+    const cellEls = gridRef.current?.firstElementChild?.children;
+    if (!cellEls || !data) return;
+    const runs = codewordRuns(data.cells, data.size);
+    const cells = [...new Set(runIndexes.flatMap((i) => runs[i] ?? []))];
+    for (const i of cells) {
+      const el = cellEls[i] as HTMLElement | undefined;
+      if (!el) continue;
+      el.setAttribute("data-cw-notword", "");
+      wordFx("wrong", el, null, { silent: true, noHaptic: true });
+      window.setTimeout(() => el.removeAttribute("data-cw-notword"), 1600);
+    }
+  };
+
   const latestActions = useRef(actions);
   latestActions.current = actions;
   const sync = useMoveSync(checkMoves, "codeword", (view, sentMoves) => {
@@ -189,7 +244,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
       setCheckedWrong(sentMoves);
       puzzleReject(gridRef.current, false);
       fx.onWrong();
-      flash("Not cracked yet: a letter is wrong");
+      effectCue("codeword.wrong");
+      // codewordRev 7: the server names the words on the grid that aren't real words; they flash red.
+      const named = "nonWords" in view && Array.isArray(view.nonWords) ? view.nonWords : [];
+      flash(named.length === 1 ? "Not cracked yet: 1 word isn’t a real word" : named.length > 1 ? `Not cracked yet: ${named.length} words aren’t real words` : "Not cracked yet: a letter is wrong");
+      if (named.length) flashNonWords(named);
     }
   });
 
@@ -249,6 +308,31 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     if (letters[selected - 1] === letter) return;
     record({ n: selected, letter });
     fx.onPlace();
+    // The Word overhaul: after a letter, the selection jumps to the next unsolved number (in grid order).
+    const after = replayCodeword(numbers, givens, [...actions, { n: selected, letter }]);
+    // Stage 2: the letter ripples out into every square with its number, nearest first, ticks rising; a word the
+    // letter completes glints.
+    const size = data.size;
+    const squares = data.cells.map((n, i) => (n === selected ? i : -1)).filter((i) => i >= 0);
+    const first = squares[0] ?? 0;
+    const far = (i: number) => Math.abs(Math.floor(i / size) - Math.floor(first / size)) + Math.abs((i % size) - (first % size));
+    const ordered = [...squares].sort((a, b) => far(a) - far(b));
+    const cellEls = gridRef.current?.firstElementChild?.children;
+    effectCue("codeword.ripple");
+    stagger(ordered.length, 55, (k) => wordFx("tap", cellEls?.[ordered[k]!], null, { silent: true }));
+    const filled = (i: number) => !!after[(data.cells[i] ?? 0) - 1];
+    const completed = codewordRuns(data.cells, size).filter((run) => run.some((i) => data.cells[i] === selected) && run.every(filled));
+    if (completed.length > 0) {
+      window.setTimeout(() => {
+        effectCue("codeword.word");
+        for (const run of completed) stagger(run.length, 35, (k) => wordFx("tap", cellEls?.[run[k]!], null, { silent: true }));
+      }, ordered.length * 55 + 60);
+    }
+    const next = codewordNextUnsolved(data.cells, selected, given, after);
+    if (next !== null) {
+      setSelected(next);
+      effectCue("codeword.jump");
+    }
   };
 
   const clear = () => {
@@ -270,7 +354,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   return (
     <div ref={root} data-stage-column="1" data-word-polish="codeword" className="flex min-h-0 flex-1 flex-col items-center gap-1 py-1" style={NO_SCROLL_STYLE}>
       <div data-game-arena="codeword" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
-        <div ref={gridRef} style={{ width: "min(100cqw, 100cqh, 420px)", aspectRatio: "1 / 1" }}>
+        <div ref={gridRef} style={{ width: "min(100cqw, 100cqh, 460px)", aspectRatio: "1 / 1" }}>
           <Grid
             size={data.size}
             cells={data.cells}
@@ -300,18 +384,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
         ) : null /* 3 Nov 2026 (Joe's audit): no on-board hint; the intro's HOW says "Tap a square, then a letter". */}
       </div>
       <LetterKeypad
+        keyCue="codeword.key"
         onLetter={pressLetter}
         tone={(letter) => (placed.has(letter) ? "used" : "plain")}
         locked={done}
-        keyHeight={42}
-        keyFontPx={19}
+        keyFontPx={20}
         left={
-          <KeypadAction label="Clear" keyHeight={42} fontPx={16} disabled={done || selected === null || given.has(selected) || !letters[(selected ?? 1) - 1]} onPress={clear}>
+          <KeypadAction keyCue="codeword.key" label="Clear" fontPx={16} disabled={done || selected === null || given.has(selected) || !letters[(selected ?? 1) - 1]} onPress={clear}>
             Clear
           </KeypadAction>
         }
         right={
-          <KeypadAction label="Next empty" keyHeight={42} fontPx={16} disabled={done || complete} onPress={nextEmpty}>
+          <KeypadAction keyCue="codeword.key" label="Next empty" fontPx={16} disabled={done || complete} onPress={nextEmpty}>
             Next
           </KeypadAction>
         }
@@ -320,7 +404,59 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   );
 }
 
-function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealProps) {
+/**
+ * The Word overhaul's reveal (codewordRev 6+): the cracked grid and your grid, one at a time and large (the shared
+ * Solution / Yours switch). On yours the given letters are gold, right letters dark tiles, wrong letters red and the
+ * numbers you never decoded empty; the numbers: letters decoded, wrong letters left standing, and (from the stored
+ * grade) the letters the grid showed you were wrong, which cost the clean crack.
+ */
+function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
+  if (puzzle.type !== "codeword") return null;
+  const solution = puzzle.solution ?? "";
+  const mine = replayCodeword(puzzle.numbers, puzzle.givens, decodeCodeword(myAnswer ?? "", puzzle.numbers));
+  const tally = codewordTally(mine, solution, puzzle.givens);
+  const given = new Set(puzzle.givens.map((g) => g.n));
+  const shown = typeof myExtra?.["wrongEntered"] === "number" ? (myExtra["wrongEntered"] as number) : null;
+  const box = { width: "min(84vw, 340px)", height: "min(84vw, 340px)" };
+  return (
+    <div data-word-reveal="codeword" data-wr-version="overhaul" className="wr">
+      <RevealNumbers
+        countAfterMs={200}
+        items={[
+          { id: "decoded", label: "Letters decoded", value: `${tally.correct}/${tally.hidden}`, tone: tally.solved ? "gold" : undefined },
+          { id: "wrong", label: "Wrong at the end", value: tally.wrong ?? 0, tone: (tally.wrong ?? 0) > 0 ? "warn" : undefined },
+          shown !== null ? { id: "shown", label: "Shown wrong", value: shown, tone: shown > 0 ? "warn" : undefined } : null,
+        ]}
+      />
+      <BoardPair
+        solution={
+          <div style={box}>
+            <Grid size={puzzle.size} cells={puzzle.cells} numbers={false} letters={[...solution]} look={(n) => (given.has(n) ? "given" : "right")} />
+          </div>
+        }
+        yours={
+          <div style={box}>
+            <Grid
+              size={puzzle.size}
+              cells={puzzle.cells}
+              numbers={false}
+              letters={mine}
+              look={(n) => (given.has(n) ? "given" : !mine[n - 1] ? "plain" : mine[n - 1] === solution[n - 1] ? "right" : "wrong")}
+            />
+          </div>
+        }
+      />
+      <RevealKey items={[{ tone: "gold", label: "Given" }, { tone: "black", label: "Right" }, { tone: "red", label: "Wrong" }, { tone: "well", label: "Not decoded" }]} />
+    </div>
+  );
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  if (overhaulReveal(props.puzzle)) return <RevealOverhaul {...props} />;
+  return <RevealOlder {...props} />;
+}
+
+function RevealOlder({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealProps) {
   if (puzzle.type !== "codeword") return null;
   const solution = puzzle.solution ?? "";
   const mine = replayCodeword(puzzle.numbers, puzzle.givens, decodeCodeword(myAnswer ?? "", puzzle.numbers));

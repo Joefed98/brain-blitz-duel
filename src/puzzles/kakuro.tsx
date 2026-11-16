@@ -1,21 +1,27 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { solutionProgress } from "@/lib/duel/progressFigures";
-import { useEffect, useMemo, useRef, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { useStageState } from "@/lib/duel/stageState";
-import { decodeKakuro, encodeKakuro, kakuroRuns, kakuroRunState, kakuroSolvedGrid, type KakuroRun } from "@/lib/duel/kakuro";
+import { decodeKakuro, encodeKakuro, kakuroNextEmpty, kakuroRunBroken, kakuroRuns, kakuroRunState, kakuroSolvedGrid, type KakuroRun } from "@/lib/duel/kakuro";
+import { numberArt } from "@/components/puzzles/number/overhaul";
+import { RevealFacts, RevealView, type RevealSide } from "@/components/puzzles/number/RevealParts";
+import "@/polish-layout/number-kakuro.css";
 import { KAKURO_SIZE, KAKURO_TIME_MS, type KakuroPuzzleData } from "@/lib/duel/types";
 import { directionOf, useGameKeys } from "@/lib/desktop";
 import { playCorrect } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { gameFx, releaseGameFx } from "@/lib/fx/kit";
+import { kakuroRunRate, kakuroSolveOrder } from "./kakuroFx";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+// The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
+import "@/polish-layout/number-overhaul.css";
 
 const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
 type Board = Pick<KakuroPuzzleData, "size" | "white" | "clues">;
-type Tone = "entry" | "wrong" | "missing" | "given";
+type Tone = "entry" | "wrong" | "missing" | "missed" | "given";
 
 /** Per white cell: the runs through it (across first). */
 function runsByCell(runs: readonly KakuroRun[]): Map<number, number[]> {
@@ -55,24 +61,33 @@ export function KakuroBoard({
   const byCell = useMemo(() => runsByCell(runs), [runs]);
   const white = useMemo(() => new Set(board.white), [board.white]);
   const clueAt = useMemo(() => new Map(board.clues.map((c) => [c.cell, c])), [board.clues]);
-  const states = runs.map((run) => kakuroRunState(run, values));
+  // The Number overhaul (display, every stamp): a run reads broken the moment it breaks a rule, including blanks that
+  // can no longer reach its clue (kakuroRunBroken); a full right run is done.
+  const states = runs.map((run) => (kakuroRunBroken(run, values) ? "bad" : kakuroRunState(run, values)));
   const lit = new Set<number>(selected !== null && selected !== undefined ? (byCell.get(selected) ?? []) : []);
   // A clue's state: its across run (top-right) and down run (bottom-left).
   const runOf = new Map<string, number>();
   runs.forEach((run, i) => runOf.set(`${run.clue}:${run.across ? "a" : "d"}`, i));
+  // The solve sweep (stage 2): the runs light across, then down (kakuroFx.ts).
+  const order = useMemo(() => kakuroSolveOrder(runs), [runs]);
   const sumClass = (i: number | undefined) =>
     i === undefined ? "" : states[i] === "done" ? "kakuro-sum-done" : states[i] === "bad" ? "kakuro-sum-bad" : lit.has(i) ? "kakuro-sum-lit" : "";
 
   return (
     <div
-      className={`kakuro-board logic-glass grid w-full shrink-0 select-none ${small ? "kakuro-small" : ""}`}
+      className={`kakuro-board grid w-full shrink-0 select-none ${small ? "kakuro-small" : ""}`}
+      data-number-kakuro=""
       style={{
+        "--kakuro-cell-art": `url(${numberArt("kakuro", "cell")})`,
+        "--kakuro-clue-art": `url(${numberArt("kakuro", "clue")})`,
+        "--kakuro-block-art": `url(${numberArt("kakuro", "block")})`,
         gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
         gridTemplateRows: `repeat(${size}, minmax(0, 1fr))`,
         aspectRatio: "1",
         gap: small ? 1 : 2,
         containerType: "inline-size",
         "--kakuro-n": size,
+        "--kakuro-step": `${order.step}ms`,
       } as CSSProperties}
     >
       {Array.from({ length: size * size }, (_, cell) => {
@@ -86,8 +101,8 @@ export function KakuroBoard({
               {clue ? (
                 <>
                   <span className="kakuro-diag" />
-                  {clue.right > 0 ? <span className={`kakuro-sum kakuro-sum-right ${sumClass(runOf.get(`${cell}:a`))}`}>{clue.right}</span> : null}
-                  {clue.down > 0 ? <span className={`kakuro-sum kakuro-sum-down ${sumClass(runOf.get(`${cell}:d`))}`}>{clue.down}</span> : null}
+                  {clue.right > 0 ? <span className={`kakuro-sum kakuro-sum-right ${sumClass(runOf.get(`${cell}:a`))}`} data-kakuro-run={runOf.get(`${cell}:a`)}>{clue.right}</span> : null}
+                  {clue.down > 0 ? <span className={`kakuro-sum kakuro-sum-down ${sumClass(runOf.get(`${cell}:d`))}`} data-kakuro-run={runOf.get(`${cell}:d`)}>{clue.down}</span> : null}
                 </>
               ) : null}
             </div>
@@ -107,8 +122,8 @@ export function KakuroBoard({
             type="button"
             disabled={!onSelect}
             onClick={onSelect ? () => onSelect(cell) : undefined}
-            className={`kakuro-cell logic-glass-cell press relative flex min-h-0 min-w-0 items-center justify-center ${isSelected ? "kakuro-selected" : inLit ? "kakuro-lit" : ""} ${done && !tones ? "kakuro-done" : ""} ${bad && !tones ? "kakuro-bad" : ""} kakuro-tone-${tone}`}
-            style={{ ...place, "--kakuro-i": row + col } as CSSProperties}
+            className={`kakuro-cell press relative flex min-h-0 min-w-0 items-center justify-center ${isSelected ? "kakuro-selected" : inLit ? "kakuro-lit" : ""} ${done && !tones ? "kakuro-done" : ""} ${bad && !tones ? "kakuro-bad" : ""} kakuro-tone-${tone}`}
+            style={{ ...place, "--kakuro-a": order.turns.get(cell)?.a ?? 0, "--kakuro-d": order.turns.get(cell)?.d ?? 0 } as CSSProperties}
             // 7 Nov 2026 (accessibility audit #16): the clue cells are hidden, so each white cell names its run sums
             // (and whether a run is complete or broken), the digit or its notes.
             aria-label={`Row ${row}, column ${col}, ${value ? value : marks.length ? `notes ${marks.join(" ")}` : "empty"}${mine
@@ -117,7 +132,7 @@ export function KakuroBoard({
             data-kakuro-cell={cell}
           >
             {value ? (
-              <span key={value} className={`kakuro-digit ${placed === cell ? "kakuro-pop" : ""}`}>
+              <span key={value} className="kakuro-digit" data-kakuro-placed={placed === cell ? "" : undefined}>
                 {value}
               </span>
             ) : marks.length ? (
@@ -190,23 +205,59 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const [pencilMode, setPencilMode] = useStageState<boolean>(key, "kakuroPencilMode", () => false);
   const [placed, setPlaced] = useStageState<number | null>(key, "kakuroPlaced", () => null);
   const submitted = useRef(false);
+  const boardBox = useRef<HTMLDivElement | null>(null);
   const encoded = encodeKakuro(values);
   const solved = data !== null && kakuroSolvedGrid(board, values);
   const solving = useSolveFx("kakuro", solved);
   const filled = board.white.filter((c) => values[c]).length;
   const inFrame = useFrameProgress(filled, board.white.length, "filled");
-  const doneRuns = runs.filter((run) => kakuroRunState(run, values) === "done").length;
-  const prevDone = useRef(doneRuns);
+  const doneSet = runs.map((run) => kakuroRunState(run, values) === "done");
+  const doneRuns = doneSet.filter(Boolean).length;
+  const prevDone = useRef(doneSet);
+  const brokenSet = runs.map((run) => kakuroRunBroken(run, values));
+  const prevBroken = useRef(brokenSet);
+  const clueEl = (run: number) => boardBox.current?.querySelector<HTMLElement>(`[data-kakuro-run="${run}"]`) ?? null;
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
   }, [encoded, onDraftAnswer]);
 
-  // A run completed right (not the last move, which plays the solve): a quiet chime.
+  // A run completed right (not the last move, which plays the solve): its clue turns gold with the kit's match (the
+  // clue swells and sparks, then is released back to its gold self) and a two-note pitched by the run's length
+  // (kakuroRunRate, through the cue's rate). Two runs completed by one digit: the combo in place of the run chime.
+  const doneKey = doneSet.map((d) => (d ? 1 : 0)).join("");
   useEffect(() => {
-    if (doneRuns > prevDone.current && !solved) soundCue("kakuro.run");
-    prevDone.current = doneRuns;
-  }, [doneRuns, solved]);
+    const was = prevDone.current;
+    prevDone.current = doneSet;
+    const fresh = doneSet.map((d, i) => (d && !was[i] ? i : -1)).filter((i) => i >= 0);
+    if (!fresh.length || solved) return;
+    for (const i of fresh) {
+      const el = clueEl(i);
+      const anim = gameFx("match", el, { silent: true });
+      if (anim) anim.finished.then(() => releaseGameFx(el), () => releaseGameFx(el));
+      else releaseGameFx(el);
+    }
+    if (fresh.length >= 2) {
+      soundCue("kakuro.combo");
+      gameFx("combo", boardBox.current?.querySelector("[data-kakuro-placed]"), { count: fresh.length, silent: true });
+    } else if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("duelz-sound", { detail: { cue: "kakuro.run", rate: kakuroRunRate(runs[fresh[0]!]!.cells.length) } }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doneKey, solved]);
+
+  // A run newly broken (a repeat, past its clue, or out of reach): its clue pulses red once (the kit's wrong) with a
+  // low tick, once.
+  const brokenKey = brokenSet.map((b) => (b ? 1 : 0)).join("");
+  useEffect(() => {
+    const was = prevBroken.current;
+    prevBroken.current = brokenSet;
+    const fresh = brokenSet.map((b, i) => (b && !was[i] ? i : -1)).filter((i) => i >= 0);
+    if (!fresh.length) return;
+    soundCue("kakuro.broken");
+    for (const i of fresh) gameFx("wrong", clueEl(i), { silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brokenKey]);
 
   useEffect(() => {
     if (!data || locked || submitted.current || !solved) return;
@@ -221,6 +272,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const tapDigit = (digit: number) => {
     if (!active || submitted.current || selected === null || !white.has(selected)) return;
     if (pencilMode) {
+      soundCue("kakuro.pencil");
       setPencil((current) =>
         current.map((marks, cell) =>
           cell === selected ? (marks.includes(digit) ? marks.filter((d) => d !== digit) : [...marks, digit].sort((a, b) => a - b)) : marks,
@@ -228,15 +280,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
       );
       return;
     }
+    const next = values.map((v, cell) => (cell === selected ? (v === digit ? 0 : digit) : v));
     if (values[selected] !== digit) {
       setPlaced(selected);
       soundCue("kakuro.place");
+      // The digit drops into its square (the kit's drop; the game's own cue above).
+      const cell = selected;
+      requestAnimationFrame(() => gameFx("drop", boardBox.current?.querySelector(`[data-kakuro-cell="${cell}"] .kakuro-digit`), { silent: true }));
+      // The Number overhaul: on to the next empty square of the run (across first, then down).
+      const following = kakuroNextEmpty(board, next, selected);
+      if (following !== null) setSelected(following);
     }
-    setValues((current) => current.map((v, cell) => (cell === selected ? (v === digit ? 0 : digit) : v)));
+    setValues(next);
   };
 
   const clearCell = () => {
     if (!active || submitted.current || selected === null) return;
+    if (values[selected] || pencil[selected]?.length) soundCue("kakuro.clear");
     setValues((current) => current.map((v, cell) => (cell === selected ? 0 : v)));
     setPencil((current) => current.map((marks, cell) => (cell === selected ? [] : marks)));
   };
@@ -269,14 +329,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             filled <span className="text-primary">{filled}</span> / {board.white.length}
           </p>
         )}
-        <div className="logic-square logic-glass-frame kakuro-frame">
+        <div ref={boardBox} className="logic-square kakuro-frame">
           <KakuroBoard
             board={board}
             values={values}
             pencil={pencil}
             selected={selected}
             placed={placed}
-            onSelect={active ? (cell) => setSelected(cell) : undefined}
+            onSelect={active ? (cell) => {
+              if (cell !== selected) soundCue("kakuro.select");
+              setSelected(cell);
+            } : undefined}
           />
         </div>
         <LiveSummary inArena className="logic-status" items={[<SummaryItem key="runs" label="Runs" value={`${doneRuns} / ${runs.length}`} />]} />
@@ -316,36 +379,83 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
-  if (puzzle.type !== "kakuro") return null;
-  const solution = puzzle.solution ?? [];
-  const mine = decodeKakuro(myAnswer ?? "", puzzle);
-  // The solution's digits, with each wrong digit of the player's shown in its place (red) and blanks dimmed.
-  const tones: Tone[] = new Array<Tone>(puzzle.size * puzzle.size).fill("entry");
-  const values = solution.map((v, cell) => {
+/**
+ * The reveal's two boards (the Number overhaul, 15 Nov 2026; display only): "Yours" draws the player's digits, a wrong
+ * one in red with a red outline and an empty square marked missed (the solution's digit faint in a dashed square);
+ * "Solution" draws the solved grid. Without the solution (a room's public half before its reveal), a digit is wrong
+ * when its run breaks a rule. Pure: the reveal and kakuro's checks share it.
+ */
+export function kakuroRevealBoard(
+  puzzle: Pick<KakuroPuzzleData, "size" | "white" | "clues" | "solution">,
+  mine: readonly number[],
+  side: RevealSide,
+): { values: number[]; tones: Tone[]; right: number; wrong: number; missed: number } {
+  const n = puzzle.size * puzzle.size;
+  const white = new Set(puzzle.white);
+  const solution = puzzle.solution && puzzle.solution.length === n ? puzzle.solution : null;
+  const values = new Array<number>(n).fill(0);
+  const tones = new Array<Tone>(n).fill("entry");
+  let right = 0, wrong = 0, missed = 0;
+  // Without the solution: a digit in a broken run is shown wrong (the rule the stage shows during play).
+  const brokenCells = new Set<number>();
+  if (!solution) for (const run of kakuroRuns(puzzle)) if (kakuroRunBroken(run, mine)) run.cells.forEach((c) => brokenCells.add(c));
+  for (let cell = 0; cell < n; cell++) {
+    if (!white.has(cell)) continue;
     const entry = mine[cell] ?? 0;
-    if (!puzzle.white.includes(cell)) return 0;
-    if (entry && entry !== v) {
-      tones[cell] = "wrong";
-      return entry;
+    const want = solution?.[cell] ?? 0;
+    const isWrong = entry !== 0 && (solution ? entry !== want : brokenCells.has(cell));
+    if (!entry) missed++;
+    else if (isWrong) wrong++;
+    else right++;
+    if (side === "solution" && solution) {
+      values[cell] = want;
+      tones[cell] = "entry";
+    } else if (!entry) {
+      values[cell] = want;
+      tones[cell] = "missed";
+    } else {
+      values[cell] = entry;
+      tones[cell] = isWrong ? "wrong" : "entry";
     }
-    tones[cell] = entry ? "entry" : "missing";
-    return v;
-  });
-  const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
+  }
+  return { values, tones, right, wrong, missed };
+}
+
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
+  const [side, setSide] = useState<RevealSide>("yours");
+  if (puzzle.type !== "kakuro") return null;
+  const mine = decodeKakuro(myAnswer ?? "", puzzle);
+  const hasSolution = !!puzzle.solution && puzzle.solution.length === puzzle.size * puzzle.size;
+  const shown = kakuroRevealBoard(puzzle, mine, hasSolution ? side : "yours");
+  const counts = kakuroRevealBoard(puzzle, mine, "yours");
+  const runs = kakuroRuns(puzzle);
+  const runsDone = runs.filter((run) => kakuroRunState(run, mine) === "done").length;
+  // The graded mistakes (the clean bonus's count, kakuroRev 2 rule-breaking digits only); a round with no stored
+  // count shows the wrong digits left on the board.
+  const stored = typeof myExtra?.["mistakes"] === "number" ? (myExtra["mistakes"] as number) : null;
+  const elapsed = myCorrect && myMsRemaining !== undefined ? Math.max(0, timeLimitMs - myMsRemaining) / 1000 : null;
   return (
-    <div className="logic-reveal">
-      <div className="logic-reveal-board">
-        <div className="logic-square-bare logic-glass-frame kakuro-frame" style={{ maxWidth: 320 }}>
-          <KakuroBoard board={puzzle} values={values} tones={tones} />
+    <div className="logic-reveal" data-kakuro-reveal>
+      {hasSolution ? <RevealView value={side} onChange={setSide} /> : null}
+      <div className="logic-reveal-board" data-kakuro-reveal-side={hasSolution ? side : "yours"}>
+        <div className="logic-square-bare kakuro-frame" style={{ maxWidth: 360, width: "100%" }}>
+          <KakuroBoard board={puzzle} values={shown.values} tones={shown.tones} />
         </div>
       </div>
-      {/* Solved: the verdict row above says it (4 Nov 2026: no repeated "Solved · 1.6s"). */}
-      {myCorrect ? null : (
-        <p className="logic-reveal-text text-center font-mono text-primary">
-          {solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${mine.filter(Boolean).length} / ${puzzle.white.length} filled`}
-        </p>
-      )}
+      {side === "yours" || !hasSolution ? (
+        <div className="kakuro-legend" aria-hidden="true">
+          {counts.wrong ? <span className="kakuro-legend-item"><i className="kakuro-key-wrong" />Wrong</span> : null}
+          {counts.missed ? <span className="kakuro-legend-item"><i className="kakuro-key-missed" />Missed</span> : null}
+        </div>
+      ) : null}
+      <RevealFacts
+        facts={[
+          { label: "Squares right", value: `${counts.right} / ${puzzle.white.length}`, tone: counts.right === puzzle.white.length ? "good" : undefined },
+          { label: "Runs complete", value: `${runsDone} / ${runs.length}` },
+          { label: "Mistakes", value: stored ?? counts.wrong, tone: (stored ?? counts.wrong) > 0 ? "miss" : undefined },
+          elapsed !== null && { label: "Time", value: `${elapsed.toFixed(1)} s` },
+        ]}
+      />
     </div>
   );
 }

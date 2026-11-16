@@ -16,7 +16,7 @@ import {
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { gravityTiltLimit, limitText } from "@/lib/duel/moveLimits";
-import { GRAV_TIME_MS, type GravityDir, type GravityPuzzleData } from "@/lib/duel/types";
+import { type GravityDir, type GravityPuzzleData } from "@/lib/duel/types";
 import { playCorrect, playLock, playSound } from "@/lib/sound";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
@@ -152,7 +152,7 @@ function ClassicStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "gra
         ]}
       />
       <div data-game-controls="pad" className="flex shrink-0 flex-col items-center gap-3">
-        <ArrowPad onPress={press} disabled={locked || replay.solved || replay.outOfTilts} />
+        <ArrowPad modeSwitch={false} onPress={press} disabled={locked || replay.solved || replay.outOfTilts} />
         <div data-game-controls="actions" className="flex gap-3 px-2">
           <Button
             type="button"
@@ -223,8 +223,10 @@ export const gravityMazePuzzle: PuzzleDefinition = {
   key: "gravity",
   name: gameDisplayName("gravity"),
   category: "pattern",
-  // gravityRev 3 stores its own 120 s clock on the puzzle; this is stored older rounds' clock.
-  timeLimitMs: GRAV_TIME_MS,
+  // 90 s: the clock of stored four-ball rounds (gravityRev 0–2) that carry none of their own. Every deal since
+  // gravityRev 3 stores its own 120 s (TOPSY_TIME_MS), which wins; screens that describe the game before it is dealt
+  // read catalogue.ts DEALT_CLOCK_MS (the Pattern overhaul, 15 Nov 2026).
+  timeLimitMs: 90_000,
   revealMs: 8_000,
   generate: () =>
     ({ type: "gravity", walls: [], starts: [0, 8, 72, 80], targets: [40, 41, 39, 31] }) satisfies GravityPuzzleData,
