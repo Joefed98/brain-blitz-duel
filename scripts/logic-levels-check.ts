@@ -16,7 +16,7 @@
  *      elite bot (the kits' near-perfect player) finishes most of them.
  *
  * Quick by default (a few boards a level, a sample of each bank); CHECKS_FULL=1 or --full: more boards and every bank
- * entry.
+ * entry. `--part=k/4` runs one quarter (every section for that part's games; CI runs the four on shards a, c, f, g).
  */
 import assert from "node:assert/strict";
 
@@ -49,6 +49,18 @@ const BOARDS = FULL ? 10 : 3;
 const BANK_SAMPLE = FULL ? LOGIC_LEVEL_BANK_SIZE : 6;
 const BOT_SEEDS = FULL ? 12 : 6;
 const LEVELS = ["easy", "hard", "expert"] as const;
+// CI runs this in four parts (`--part=k/4`, shards in .github/ci/shards.ts); each part checks every section for its own
+// games (whole run ~2 min locally; a part well under half of run-checks' 300 s limit on a 2-core runner).
+const partArg = process.argv.find((a) => a.startsWith("--part="));
+const [PART_K, PART_N] = partArg ? partArg.slice(7).split("/").map(Number) : [1, 1];
+/** The games in this part, balanced by run time (Trail and Loopline are the slowest; each part under a minute locally). */
+const PART_GROUPS: Record<number, readonly LogicLevelGame[][]> = {
+  1: [[...LOGIC_LEVEL_GAMES]],
+  4: [["trail"], ["fillomino", "tents"], ["fences"], ["lightup", "shikaku", "bridges"]],
+};
+for (const groups of Object.values(PART_GROUPS))
+  if ([...groups.flat()].sort().join() !== [...LOGIC_LEVEL_GAMES].sort().join()) throw new Error("the parts must hold every game once");
+const GAMES: readonly LogicLevelGame[] = PART_GROUPS[PART_N!]?.[PART_K! - 1] ?? LOGIC_LEVEL_GAMES.filter((_, i) => i % PART_N! === PART_K! - 1);
 const WIDTH: Partial<Record<LogicLevelGame, number>> = { tents: TENTS_SIZE, shikaku: SHIKAKU_SIZE, lightup: LIGHTUP_SIZE };
 
 let passed = 0;
@@ -165,7 +177,7 @@ function board(type: LogicLevelGame, level: (typeof LEVELS)[number], p: Any, whe
 }
 
 // 1. The registry.
-for (const type of LOGIC_LEVEL_GAMES) {
+for (const type of GAMES) {
   check(`${type}: offers Easy, Normal, Hard and Expert, each proved here, clocks at most 120 s`, () => {
     assert.deepEqual(levelsOf(type), ["easy", "normal", "hard", "expert"]);
     for (const level of LEVELS) {
@@ -176,7 +188,7 @@ for (const type of LOGIC_LEVEL_GAMES) {
 }
 
 // 2. Normal is today's game.
-for (const type of LOGIC_LEVEL_GAMES) {
+for (const type of GAMES) {
   check(`${type}: Normal deals exactly as before levels`, () => {
     const plain = deal(type, null, 0) as Any;
     const normal = deal(type, "normal", 0) as Any;
@@ -188,11 +200,11 @@ for (const type of LOGIC_LEVEL_GAMES) {
 }
 
 // 3. Live deals at every level.
-for (const type of LOGIC_LEVEL_GAMES)
+for (const type of GAMES)
   for (const level of LEVELS) for (let n = 0; n < BOARDS; n++) board(type, level, deal(type, level, n), `deal ${n}`);
 
 // 4. The banks.
-for (const { type, level } of LOGIC_LEVEL_BANKED) {
+for (const { type, level } of LOGIC_LEVEL_BANKED.filter((b) => GAMES.includes(b.type as LogicLevelGame))) {
   const bank = LOGIC_LEVEL_BANK[`${type}:${level}`] ?? [];
   check(`${type} ${level}: dealt from a bank of ${LOGIC_LEVEL_BANK_SIZE}`, () => {
     assert.equal(bank.length, LOGIC_LEVEL_BANK_SIZE);
@@ -216,7 +228,7 @@ for (const { type, level } of LOGIC_LEVEL_BANKED) {
 }
 
 // The live count follows the board: Trail Easy shows 14 numbers, so 22 squares are left (not Normal's 26).
-check("trail easy: the count and \"to go\" follow the board's own blanks", () => {
+if (GAMES.includes("trail")) check("trail easy: the count and \"to go\" follow the board's own blanks", () => {
   const p = splitPuzzle(deal("trail", "easy", 0)).pub as Any;
   assert.equal(trToFill(p.givens), 22);
   assert.equal(trToFill((splitPuzzle(deal("trail", null, 0)).pub as Any).givens), 26, "Normal's ten numbers leave 26");
@@ -226,7 +238,7 @@ check("trail easy: the count and \"to go\" follow the board's own blanks", () =>
 });
 
 // 5. Expert is humanly possible: the elite bot finishes most Expert boards.
-for (const type of LOGIC_LEVEL_GAMES) {
+for (const type of GAMES) {
   const rows = await tune(type, "expert", BOT_SEEDS);
   const elite = rows.find((r) => r.bot === "near-perfect")!;
   check(`${type} expert: the elite bot finishes most boards (${Math.round(elite.finishRate * 100)} %, average ${elite.average.toFixed(0)})`, () => {
@@ -235,7 +247,7 @@ for (const type of LOGIC_LEVEL_GAMES) {
   });
 }
 
-console.log(`logic-levels-check: ${passed} passed, ${failed} failed${FULL ? " (full)" : ""}`);
+console.log(`logic-levels-check${partArg ? ` ${PART_K}/${PART_N}` : ""}: ${passed} passed, ${failed} failed${FULL ? " (full)" : ""}`);
 if (failed) {
   console.log("FAIL");
   process.exit(1);

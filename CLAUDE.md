@@ -2629,7 +2629,7 @@ outside the repo.
   the level's band of trials (`logicLevelDeal.server.ts`); Trail Hard / Expert and Regions Expert come from banks
   (`logicLevelBank.server.ts`, `bun scripts/logic-level-bank.ts [--part=k/n | --merge=n | --check]`). The kits'
   thinking time per move scales by level (`LEVEL_THINK`, `LEVEL_THINK_GAME` in `scripts/puzzle-fairness/kit.ts`).
-  Checks: logic-overhaul-2-check, logic-demos-check, logic-levels-check (`CHECKS_FULL=1`: every bank entry).
+  Checks: logic-overhaul-2-check, logic-demos-check, logic-levels-check (quarters on shards a, c, f and g, `--part=k/4`, by game; `CHECKS_FULL=1`: every bank entry).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
