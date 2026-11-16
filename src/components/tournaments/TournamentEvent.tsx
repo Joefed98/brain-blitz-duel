@@ -1,3 +1,4 @@
+import { useAppMoment } from "@/components/fx/useMomentEnter";
 /**
  * An event page (wave 4, W4b; docs/mockups/wave-4/07 and 08): what it is, when, who's in, the fixed prizes, how it
  * works and entry; once live, the Arena's live board and "Find a duel", or the Score Attack's Play. Everything shown is
@@ -253,6 +254,8 @@ export function ScoreAttackPlay({ ev, onPlay }: { ev: TournamentEventView; onPla
   const me = board?.me ?? null;
   const done = me?.finished === true;
   const [openCard, openRow, closeCard] = useNameplateSheet<OpenRow>();
+  // The tournament result (15 Nov 2026, the effects pass): the kit's win payoff on your total, once it's in.
+  useAppMoment("win", "[data-tournament-result]", done ? ev.id : null);
   return (
     <div className="ap-stack" data-score-attack>
       <Panel pad>
@@ -262,7 +265,7 @@ export function ScoreAttackPlay({ ev, onPlay }: { ev: TournamentEventView; onPla
           </p>
         ) : done ? (
           <>
-            <h3 className="tn-card-title">{`Your total: ${me!.total.toLocaleString("en-GB")}`}</h3>
+            <h3 className="tn-card-title" data-tournament-result>{`Your total: ${me!.total.toLocaleString("en-GB")}`}</h3>
             <p className="tn-meta">{me!.place ? `${ordinal(me!.place)} of ${board!.count} so far` : "Places show once the board opens."}</p>
           </>
         ) : ev.status === "live" ? (

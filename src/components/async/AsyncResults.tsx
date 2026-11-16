@@ -1,3 +1,4 @@
+import { useMomentEnter } from "@/components/fx/useMomentEnter";
 import { JoulesLine } from "@/components/pass/JoulesLine";
 import { FxCountUp } from "@/components/fx/GameFx";
 import { VerdictLabel } from "@/components/duel/VerdictLabel";
@@ -54,6 +55,7 @@ export function AsyncResults({
   /** Under the buttons (the daily's SEND FEEDBACK link). */
   footer?: ReactNode;
 }) {
+  const enter = useMomentEnter("rise");
   const [reveals, setReveals] = useState<(AsyncReveal | null | undefined)[]>(() =>
     view.rounds.map(() => undefined),
   );
@@ -115,7 +117,7 @@ export function AsyncResults({
 
   return (
     <PhoneShell skin="play">
-      <div data-async-results className="flex flex-1 flex-col gap-4 animate-phase-in">
+      <div data-async-results className="flex flex-1 flex-col gap-4 animate-phase-in" {...enter}>
         <header className="flex flex-col items-center gap-1 text-center">
           <p className="th-kicker">{title}, results</p>
           <p className="th-score text-6xl tabular-nums text-foreground">
