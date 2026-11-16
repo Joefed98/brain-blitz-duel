@@ -64,6 +64,9 @@ def limestone(name="lime", c="#e4dac4", c2="#cbbd9f"):
 
 
 def block(cap=False):
+    # A placed stone's raised gold cap would stand above the socket's top, so its block starts 2 points lower: the cap's
+    # top meets the socket's top as the given stone's does (8 px of 174).
+    y, h = (BLOCK_Y + 2, BLOCK_H - 2) if cap else (BLOCK_Y, BLOCK_H)
     setup(BW, BH, scale=3, reflect=0.2)
     relief()
     tilt_camera()
@@ -71,11 +74,11 @@ def block(cap=False):
     # The block fills the socket's height in the sprite (Joe, 16 Nov 2026: no step between a given stone and an empty
     # one now that the stones grow into the band above the board). BLOCK_Y / BLOCK_H put its drawn top and bottom on the
     # socket's (8 and 166 px of 174) through the tilted camera.
-    box(3, BLOCK_Y, BW - 6, BLOCK_H, 14, stone, r=4.2)
+    box(3, y, BW - 6, h, 14, stone, r=4.2)
     if cap:
         gold = mat("cap", "#dcb86e", 0.24, metal=1.0)
         add_bump(gold, 3, 0.02, stretch=(1, 50, 1), distance=0.0006)
-        box(3, BLOCK_Y, BW - 6, 10, 15.5, gold, r=2.4)
+        box(3, y, BW - 6, 10, 15.5, gold, r=2.4)
 
 
 def given():
