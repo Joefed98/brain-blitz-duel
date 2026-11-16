@@ -15,6 +15,7 @@ import {
 import { LevelIntro } from "@/components/levels/LevelIntro";
 import { LevelSwitch } from "@/components/levels/LevelSwitch";
 import { levelsOf, resolveLevel } from "@/lib/levels/gameLevels";
+import { levelAbout } from "@/lib/levels/levelAbout";
 import { LEVEL_LABEL, NORMAL, storedLevelKey, type Level } from "@/lib/levels/levels";
 
 import { ChallengeRows, useChallengeJoules, useChallengeStates } from "./ChallengeRows";
@@ -147,6 +148,11 @@ export function GamePage({
           {levels.length > 1 && onLevel ? (
             <>
               <LevelSwitch value={level} onChange={onLevel} levels={levels} label={`${name} difficulty`} />
+              {levelAbout(type, level) ? (
+                <p data-game-page-level-about={level} className="gm-page-level-note">
+                  {levelAbout(type, level)}
+                </p>
+              ) : null}
               <LevelIntro />
             </>
           ) : null}

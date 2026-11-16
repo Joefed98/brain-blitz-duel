@@ -1,0 +1,15 @@
+/*
+ * Interlock's look (the Word overhaul, 15 Nov 2026): concept B's board, concept A's tiles. The board is a navy
+ * lacquer tray of recessed wells (word-look.css's well); tiles are glazed black, gold once in a real word, faint red
+ * while a run that is no word stands, sapphire while picked up. Display only.
+ */
+[data-polish="tilegrid"] [data-game-arena] > .grid {
+  border: 0;
+  border-radius: 16px;
+  background: url(/word-art/tray.webp) center / 100% 100% no-repeat;
+  box-shadow: 0 10px 22px rgb(0 0 0 / 0.45);
+  padding: 6px;
+}
+/* A tile can be dragged: no browser pan or text selection under the finger. */
+[data-polish="tilegrid"] [data-wa] { touch-action: none; user-select: none; }
+[data-polish="tilegrid"] .interlock-tray { gap: 4px 0; }

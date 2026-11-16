@@ -32,6 +32,7 @@ import { PIN_REV_STD } from "@/lib/arcade/pinball";
 import { chainDemoCompatible } from "./chain";
 import { pairUsesDepth } from "./depth/matchmaker";
 import { STRIKEOUT_REV4 } from "./strikeout";
+import { wordDemoStampOk } from "./wordDemoStamps";
 import { createServerFn } from "@tanstack/react-start";
 import { puzzleInputDemoCompatible } from "@/components/puzzles/wordInput";
 import { isPuzzleDemoLog } from "./puzzleDemo";
@@ -182,7 +183,10 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   // strikeoutRev 3 (15 Oct 2026) shows ten strike markers, three vowel dots and an extra starting letter on words 1–3,
   // and strikeoutRev 4 (19 Oct 2026) twelve strike markers: an older demo would show the old board under the twelve-strike
   // help, so Strikeout's demo stays stopped until one is recorded on a rev-4 puzzle.
-  if (data.type === "strikeout" && demo?.puzzle.type === "strikeout" && demo.puzzle.strikeoutRev !== STRIKEOUT_REV4) return null;
+  // The Word overhaul (15 Nov 2026): Strikeout deals strikeoutRev 7, and every Word game's demo plays only on the stamp
+  // rooms deal today (wordDemoStamps.ts), so a rev-4 demo stays stopped as before and a rev-7 one plays.
+  if (data.type === "strikeout" && demo?.puzzle.type === "strikeout" && (demo.puzzle.strikeoutRev ?? 0) < STRIKEOUT_REV4) return null;
+  if (demo && !wordDemoStampOk(data.type, demo.puzzle)) return null;
   // Block-era Rainbow Bridge demos would show red blocks under the birds wording.
   // x200 (inkRev 10): a taller world with clouds, wind, coins and a shamrock; inkRev 11 (phone notes, 27 Oct 2026) drops
   // the wind and spreads the pickups, so its levels differ: only a demo recorded on inkRev 11 plays (the still shows until then).

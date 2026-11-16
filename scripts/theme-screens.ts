@@ -93,6 +93,13 @@ interface RoomOpts {
    * overhaul: a harness addition).
    */
   puzzle?: { pub: PuzzleData; answer: string };
+  /**
+   * A puzzle round of this game instead of Box Six (the Word overhaul's screens, scripts/screens/word.ts; added with
+   * Joe's approval, 15 Nov 2026, routine consequence of the Word overhaul: a harness addition), the full puzzle so
+   * the reveal draws its own words, and this device's stored answer for it.
+   */
+  puzzleType?: string;
+  answer?: string;
 }
 
 function roomNow(status: Status, phase: string, opts: RoomOpts) {
@@ -130,13 +137,14 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
     score: opts.scores ? opts.scores(slot, round) : 190 - rankOf(slot) * 13 - round,
     submitted_at: iso(now - 5_000),
   });
-  const scored = status === "finished" || ["result", "standings", "winner_reveal"].includes(phase) || !!opts.revealParts;
+  const scored = status === "finished" || ["result", "standings", "winner_reveal"].includes(phase) || !!opts.revealParts || opts.answer !== undefined;
   const players = Array.from({ length: count }, (_, i) => player(i + 1));
   if (opts.join) players[0] = { ...players[0]!, status: "left" };
   const arcadeType = opts.arcadeType ?? "matchup";
   const arcadePuzzle =
     arcadeType === "matchup" ? ARCADE : (splitPuzzle(withSeededRandom(41, () => generatePuzzle(arcadeType as never))).pub as PuzzleData);
-  const puzzleRound = opts.puzzle?.pub ?? PUZZLE;
+  // Both harness additions (the Number overhaul's `puzzle`, the Word overhaul's `puzzleType`; puzzle train combine).
+  const puzzleRound = opts.puzzle?.pub ?? (opts.puzzleType ? (withSeededRandom(41, () => generatePuzzle(opts.puzzleType as never, { bankSeed: 41 })) as PuzzleData) : PUZZLE);
   const order = Array.from({ length: rounds }, (_, i) =>
     opts.arcade || i % 2 ? arcadeType : puzzleRound.type,
   );
@@ -167,7 +175,7 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
     results: scored
       ? players.flatMap((p) =>
           Array.from({ length: rounds }, (_, r) => {
-            const row = result(p.player_slot, r + 1);
+            const row = { ...result(p.player_slot, r + 1), ...(opts.answer !== undefined && p.player_slot === 1 ? { answer: opts.answer } : {}) };
             return opts.revealParts && p.player_slot === 1 ? { ...row, extra: { reveal: FOUR_PART_REVEAL } } : row;
           }),
         )

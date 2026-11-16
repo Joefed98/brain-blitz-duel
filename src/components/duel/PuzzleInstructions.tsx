@@ -10,16 +10,23 @@ import { INTRO_SCORE } from "@/lib/duel/introScore";
 import { scoreSentences } from "@/lib/duel/scoreList";
 import { soundCue } from "@/lib/fx/soundCues";
 import type { PuzzleType } from "@/lib/duel/types";
+import { levelAbout, levelAbouts } from "@/lib/levels/levelAbout";
+import { LEVEL_LABEL, NORMAL, type Level } from "@/lib/levels/levels";
 
 interface PuzzleInstructionsProps {
   type: PuzzleType;
   overlay?: boolean;
   /** Shown between HOW and SCORE (the intro's demo box, IntroStage, which takes the spare height). */
   beforeScore?: ReactNode;
+  /** The round's level (the intro): a level beyond Normal adds its one line under HOW. */
+  level?: Level;
 }
 
-export function PuzzleInstructions({ type, overlay = false, beforeScore }: PuzzleInstructionsProps) {
+export function PuzzleInstructions({ type, overlay = false, beforeScore, level = NORMAL }: PuzzleInstructionsProps) {
   const instructions = PUZZLE_INSTRUCTIONS[type] ?? removedDefinition(type).instructions;
+  // Levels (stage 3): the intro states this round's level; the help lists every level the game has.
+  const about = overlay ? "" : levelAbout(type, level);
+  const abouts = overlay ? levelAbouts(type) : [];
 
   return (
     <section
@@ -53,6 +60,24 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
           ))}
         </div>
       </div>
+      {about ? (
+        <p data-intro-level={level} className="intro-how-text shrink-0 leading-snug">
+          <strong className="intro-how-action">{LEVEL_LABEL[level]}:</strong> {about}
+        </p>
+      ) : null}
+      {abouts.length > 0 ? (
+        <div data-help-levels="" className="intro-how shrink-0">
+          <p className="intro-label">Levels</p>
+          <div className="flex flex-col gap-0.5 text-sm leading-snug text-muted-foreground">
+            <p><strong className="intro-how-action">Normal:</strong> the game as above.</p>
+            {abouts.map((row) => (
+              <p key={row.level}>
+                <strong className="intro-how-action">{row.label}:</strong> {row.about}
+              </p>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="intro-score shrink-0">
         <p className="intro-label">Score</p>
         {overlay ? (

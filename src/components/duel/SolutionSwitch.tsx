@@ -25,6 +25,10 @@ export const SOLUTION_SWITCH_TYPES: ReadonlySet<string> = new Set([
   "iceslide",
   // Heave (15 Nov 2026, the Pattern overhaul): the minimum solution playing back, and the player's own final warehouse.
   "push",
+  // The Word overhaul's reveals (15 Nov 2026, WordReveal.tsx BoardPair): Slider, Cryptogrid and Swapword (live stamps).
+  "wordslide",
+  "codeword",
+  "swapword",
 ]);
 // The Logic overhaul (15 Nov 2026): Tents and Trees, Shikaku, Lamplighter, Trail, Loopline, Regions and Island Link draw
 // their own switch (src/puzzles/logic2Reveal.tsx: your answer marked against the solution), so they left this list.

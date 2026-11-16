@@ -87,6 +87,8 @@ export const DEAL_PINS = {
   preKakuroLevels: { texts: false },
   /** patternNov15.ts: the eight Pattern games before the Pattern overhaul (15 Nov 2026). */
   prePatternNov15: { texts: true },
+  /** wordOverhaul.ts: Nucleus, Slider, Lookout, Roundabout and Cryptogrid before the Word overhaul (15 Nov 2026). */
+  preWordOverhaul: { texts: true },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

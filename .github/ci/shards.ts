@@ -41,6 +41,8 @@ export const PAGE_CHECK_SPLITS: Record<string, { parts: number; jobs: number; pr
   "theme-check.tsx": { parts: 30, jobs: 5, prefix: "play-theme", ceiling: 40 },
   // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): 36 → 42 parts on the Number overhaul's
   // reveal screens (1,442 draws, about 34 a part).
+  // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): 36 → 42 parts (the Word overhaul's level
+  // screens took every part to 41 draws; 42 parts give about 35 a part), jobs unchanged.
   "no-wrap-check.tsx": { parts: 42, jobs: 6, prefix: "play-nowrap", ceiling: 40 },
 };
 

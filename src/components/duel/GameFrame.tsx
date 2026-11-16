@@ -43,7 +43,7 @@ const SHORT_GOALS: Partial<Record<PuzzleType, string>> = {
   bridges: "Bridge every island to its number",
   kakuro: "Fill runs to add to their clues",
   lightup: "Light every white square",
-  wordsearch: "Find the six hidden words",
+  wordsearch: "Find the hidden words",
   strikeout: "Reveal five long words",
   codeword: "Each number is one letter",
   swapword: "Swap tiles until every word reads",

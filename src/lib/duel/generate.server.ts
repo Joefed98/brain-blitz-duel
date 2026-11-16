@@ -21,6 +21,7 @@ import { dealWordNov7 } from "./wordNov7";
 import { dealGameReviewNov15 } from "./gameReviewNov15";
 import { dealPatternNov15 } from "./patternNov15";
 import { withPipesTwoWayPar } from "./depth4/pipesTaps";
+import { dealWordOverhaul } from "./wordOverhaul.server";
 import { activeDealPins, dealPinned, withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
 import { dealNotesFree } from "./notesFree";
@@ -145,6 +146,7 @@ import { randomBelow } from "./random";
 import { saltSeed } from "./seededRng";
 import { NORMAL, stampLevel, type Level } from "@/lib/levels/levels";
 import { gameLevelSettings, resolveLevel } from "@/lib/levels/gameLevels";
+import { dealWordLevel } from "./wordLevels.server";
 
 /** Room-level context a generator may need beyond its own randomness. */
 export interface GenerateContext {
@@ -204,6 +206,8 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   // (logic.server.ts withPipesOneLayout). Topsy-Turvy gravityRev 8: tilt limits from each
   // board's fewest tilts (topsy.ts withTopsyV8Limits).
   { name: "patternNov15", deal: (p) => dealPatternNov15(p, (q) => (q.type === "pipes" ? withPipesTwoWayPar(withPipesOneLayout(q)) : q.type === "gravity" ? withTopsyV8Limits(q) : q)) },
+  // The Word overhaul (15 Nov 2026, wordOverhaul.ts): Nucleus, Slider, Lookout, Roundabout and Cryptogrid one stamp up.
+  { name: "wordOverhaul", deal: dealWordOverhaul },
 ];
 
 /**
@@ -263,6 +267,12 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (logicBoard) return logicBoard;
   if (context.bankSeed !== undefined && isBankedType(type))
     return drawBankedPuzzle(type, context.bankSeed, context.recentBankKeys);
+  // The Word overhaul's levels (stage 3, 15 Nov 2026): a Word game asked at a level beyond Normal is built by its own
+  // level deal (wordLevels.server.ts); Normal never reaches it.
+  if (context.level && context.level !== NORMAL) {
+    const atLevel = dealWordLevel(type, context.level as Exclude<Level, "normal">, context);
+    if (atLevel) return atLevel;
+  }
   if (type === "stroop") return generateColourClash();
   // Nucleus and Forage carry their scoring-targets stamp (18 Oct 2026; scoring.ts WORDSMITH_V1_CURVE, WORDHUNT_V1_CURVE).
   // Word depth (25 Oct 2026): Nucleus deals wordsmithRev 3 (the curve to 200 and the pangram bonus).

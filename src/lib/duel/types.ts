@@ -154,6 +154,8 @@ export interface WordsmithPuzzleData {
   source?: string;
   /** Scoring targets (18 Oct 2026): 1 = word points on WORDSMITH_V1_CURVE; absent = 2.5 × points. */
   wordsmithRev?: number;
+  /** Levels (the Word overhaul, stage 3): the level's own clock; absent = WORDSMITH_TIME_MS (Normal and every older round). */
+  timeLimitMs?: number;
 }
 
 /** One combining step: two values and an operator, giving a new value. */
@@ -860,6 +862,8 @@ export interface WordHuntPuzzleData {
   wordHuntRev?: number;
   /** wordHuntRev 3: the golden tile's index (public; a word traced through it scores double). */
   golden?: number;
+  /** Levels (the Word overhaul, stage 3): the level's own clock; absent = WORDHUNT_TIME_MS (Normal and every older round). */
+  timeLimitMs?: number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -2383,6 +2387,8 @@ export interface TileGridPuzzleData {
   solution?: string[];
   /** Word depth (25 Oct 2026): 1 = scored to 200 by the stretch curve (depth/tilegrid.server.ts). Absent on older rounds. */
   tileGridRev?: number;
+  /** The level's own clock (the Word overhaul's levels, 15 Nov 2026); absent: the game's 100 s. */
+  timeLimitMs?: number;
 }
 
 /* ============================== Word Slide ============================== */
@@ -2397,6 +2403,8 @@ export interface WordSlidePuzzleData {
   words?: string[];
   /** Par moves (25 Oct 2026, word depth d1): 1 = a finish within par adds the par bonus, up to 200. Absent on older rounds. */
   wordSlideRev?: number;
+  /** The level's own clock (the Word overhaul's levels, 15 Nov 2026); absent: the game's 100 s. */
+  timeLimitMs?: number;
 }
 
 /* ================================ Balance =============================== */
@@ -2780,6 +2788,8 @@ export interface LetterWheelPuzzleData {
   wheelRev?: number;
   /** wheelRev 2: the jar's size in drops (public; LW_JAR_DROPS unless the board's bonus words hold fewer). */
   jarSize?: number;
+  /** Levels (the Word overhaul, stage 3): the level's own clock; absent = LETTERWHEEL_TIME_MS (Normal and every older round). */
+  timeLimitMs?: number;
 }
 
 /** Strikeout: reveal five hidden five-letter words a letter at a time; five strikes end it. */
@@ -2801,6 +2811,14 @@ export interface StrikeoutPuzzleData {
   givens?: string[];
   /** The five hidden words, upper case — private until the reveal. */
   words?: string[];
+  /**
+   * Levels (the Word overhaul, stage 3, 15 Nov 2026): a puzzle dealt at a level beyond Normal carries its own strikes and
+   * vowel guesses per word (so2RulesFor); without them a puzzle plays its revision's rules, as every Normal deal does.
+   */
+  maxStrikes?: number;
+  maxVowels?: number;
+  /** A level's own clock (puzzleTimeLimitMs reads it); absent: the game's 100 s. */
+  timeLimitMs?: number;
 }
 
 /** Cryptogrid: a filled 7 × 7 crossword with a number in every white cell. */
@@ -2819,6 +2837,8 @@ export interface CodewordPuzzleData {
   givens: { n: number; letter: string }[];
   /** Letter of each number (index n − 1), upper case — private until the reveal. */
   solution?: string;
+  /** The round's clock when a level deals one (the Word overhaul's levels; absent: the game's own 120 s). */
+  timeLimitMs?: number;
 }
 
 /** Swapword: swap tiles until six crossing words read correctly. */
@@ -2836,6 +2856,8 @@ export interface SwapwordPuzzleData {
   maxSwaps: number;
   /** Solved letters in tile order — private until the reveal. */
   solution?: string;
+  /** The level's own clock (the Word overhaul's levels, 15 Nov 2026); absent: the game's 120 s. */
+  timeLimitMs?: number;
 }
 
 export interface WordSearchPlacement {
@@ -2858,6 +2880,12 @@ export interface WordSearchPuzzleData {
   placements?: WordSearchPlacement[];
   /** Rev 3 (25 Oct 2026, word depth): the unlisted on-theme bonus word and where it lies — private until the reveal. */
   bonus?: WordSearchPlacement;
+  /**
+   * Levels (the Word overhaul, stage 3, 15 Nov 2026): a taller board's rows (`size` is then its width; absent = `size`
+   * rows, every board before levels) and a level's own clock (puzzleTimeLimitMs reads it; absent = the game's 120 s).
+   */
+  rows?: number;
+  timeLimitMs?: number;
 }
 
 export interface ShikakuPuzzleData {

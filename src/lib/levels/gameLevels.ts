@@ -31,6 +31,7 @@ import { PATTERN_LEVELS } from "./pattern";
 
 /** The Logic overhaul's level proof (session 1): every level board of its seven games. */
 const LOGIC1_PROOF = "scripts/logic-1-levels-check.tsx";
+import { WORD_LEVELS } from "./word";
 
 /** How a level's boards are proven to have exactly one solution. */
 export type OneSolutionProof = { proof: string } | { open: string };
@@ -48,8 +49,8 @@ export interface GameLevels<S = Record<string, unknown>> {
 }
 
 /**
- * Every game's levels beyond Normal. Empty until the family sessions add theirs (15 Nov 2026): every game offers
- * Normal only.
+ * Every game's levels beyond Normal. A game with no entry offers Normal only. The Word games' entries (the Word
+ * overhaul, stage 3, 15 Nov 2026) live one file a game in ./word.
  */
 export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   /*
@@ -370,6 +371,8 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   },
   // The Pattern overhaul (15 Nov 2026): one data file per game in ./pattern/.
   ...PATTERN_LEVELS,
+  // The Word overhaul (15 Nov 2026, stage 3): one data file a game in ./word.
+  ...WORD_LEVELS,
 };
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */
