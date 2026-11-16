@@ -1,4 +1,3 @@
-import type { Level } from "@/lib/levels/levels";
 import { checkOverride } from "@/lib/checkOverride";
 import { dealPinned, setDealPin } from "./dealEra";
 import { MOON_BIG_REV, MOON_REV } from "@/lib/arcade/ricochetNinja";
