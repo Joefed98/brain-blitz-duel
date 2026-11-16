@@ -221,18 +221,20 @@ const asV8 = (p: GravityPuzzleData): GravityPuzzleData => ({ ...p, gravityRev: 8
       // The round's key numbers come from the stored grade, under their own "Round" label.
       // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul, stage 2: Joe's fix moved
       // the round's totals under "Round" and the per-board pills follow the switcher; section 11 proves the board pills).
+      // Changed with Joe's approval, 15 Nov 2026 (Topsy-Turvy's Round row on one line): the shorter labels, "Boards 3/3",
+      // "Home 18/18" and "Left 50 s" (were "3 of 3", "18 of 18", "Time left 50 s"); the levels check proves the fit.
       const e = r.extra;
       const round = text(r.html.slice(r.html.indexOf("data-topsy-keys")));
-      check(round.includes("Round") && round.includes(`Boards ${e.cleared} of 3`) && round.includes(`Home ${e.home} of 18`) && round.includes(`Tilts ${e.tilts}`) && round.includes(`Par ${e.parTilts ?? (p.boardMins ?? []).reduce((n, m) => n + m, 0)}`), `${stamp} ${label}: the round's numbers don't match the stored grade: ${round}`);
+      check(round.includes("Round") && round.includes(`Boards ${e.cleared}/3`) && round.includes(`Home ${e.home}/18`) && round.includes(`Tilts ${e.tilts}`) && round.includes(`Par ${e.parTilts ?? (p.boardMins ?? []).reduce((n, m) => n + m, 0)}`), `${stamp} ${label}: the round's numbers don't match the stored grade: ${round}`);
       check(!/[×✗]/.test(t), `${stamp} ${label}: a stray × or ✗ in the reveal`);
     }
     // Solved: board 1 opens, cleared, nothing marked missed; time left shown.
     check(/aria-selected="true"[^>]*>Board 1/.test(solved.html) && /Cleared/.test(text(solved.html)) && !/is-missed/.test(solved.html), `${stamp}: the solved reveal doesn't open on a cleared board 1 with nothing missed`);
-    check(/Time left 50 s/.test(text(solved.html)), `${stamp}: the solved reveal doesn't give the time left`);
+    check(/Left 50 s/.test(text(solved.html)), `${stamp}: the solved reveal doesn't give the time left`);
     // Unfinished: opens on board 2 (where the player stopped), every ball and cup there marked missed.
     check(/aria-selected="true"[^>]*>Board 2/.test(part.html), `${stamp}: the unfinished reveal doesn't open where the player stopped`);
     check((part.html.match(/data-missed=""/g) ?? []).length === 6 && /Not finished|Not reached/.test(text(part.html)), `${stamp}: the unfinished board's empty cups aren't marked (${(part.html.match(/data-missed=""/g) ?? []).length})`);
-    check(!/Time left/.test(text(part.html)), `${stamp}: an unfinished reveal shows a time left`);
+    check(!/Left \d+ s/.test(text(part.html)), `${stamp}: an unfinished reveal shows a time left`);
   }
   // The per-board line and pills: the board shown's own tilts against its own par (section 11 proves every board).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul, stage 2: Joe's fix).
@@ -274,7 +276,9 @@ const asV8 = (p: GravityPuzzleData): GravityPuzzleData => ({ ...p, gravityRev: 8
     }
     return { riff, alpha, w, bytes: buf.length };
   };
-  check(TOPSY_SPRITES.length === 15, `${TOPSY_SPRITES.length} sprites listed, not 15 (6 marbles, 6 cups, block, floor, frame)`);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul, stage 3: Expert's eight balls
+  // add a lime green and a pearl white marble and cup).
+  check(TOPSY_SPRITES.length === 19, `${TOPSY_SPRITES.length} sprites listed, not 19 (8 marbles, 8 cups, block, floor, frame)`);
   let total = 0;
   for (const url of TOPSY_SPRITES) {
     if (!existsSync(new URL(`../public${url}`, import.meta.url))) {
@@ -465,9 +469,10 @@ const asV8 = (p: GravityPuzzleData): GravityPuzzleData => ({ ...p, gravityRev: 8
       check(pill("tilts") === String(storedTilts), `${label} board ${i + 1}: the Tilts pill ${pill("tilts")} isn't the stored grade's board tilts ${storedTilts}`);
       check(pill("par") === String(p8r.boardMins![i]), `${label} board ${i + 1}: the Par pill ${pill("par")} isn't the board's stored par ${p8r.boardMins![i]}`);
       check(pill("home") === `${home} of 6`, `${label} board ${i + 1}: the Home pill ${pill("home")} isn't the grader's replay's ${home} of 6`);
-      check(!/Boards|Round|Time left/.test(text(sum)), `${label} board ${i + 1}: a round total sits among the board's pills`);
+      // Changed with Joe's approval, 15 Nov 2026 (Topsy-Turvy's Round row on one line): "Left 50 s" and "3/3" below.
+      check(!/Boards|Round|Left \d+ s/.test(text(sum)), `${label} board ${i + 1}: a round total sits among the board's pills`);
       const round = host.querySelector("[data-topsy-keys]");
-      check(text(round?.querySelector(".topsy-round-label")) === "Round" && text(round?.querySelector('[data-key="tilts"] b')) === String(extra["tilts"]) && text(round?.querySelector('[data-key="boards"] b')) === `${extra["cleared"]} of 3`, `${label} board ${i + 1}: the round's totals aren't under "Round" with the stored figures`);
+      check(text(round?.querySelector(".topsy-round-label")) === "Round" && text(round?.querySelector('[data-key="tilts"] b')) === String(extra["tilts"]) && text(round?.querySelector('[data-key="boards"] b')) === `${extra["cleared"]}/3`, `${label} board ${i + 1}: the round's totals aren't under "Round" with the stored figures`);
     }
     const sums = new Set<string>();
     for (const t of tabs) {

@@ -10,9 +10,11 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from sprite import *  # noqa: F401,F403
 import jzlib
 
-# The game's six ball colours (src/components/puzzles/pattern/topsyBoard.tsx TOPSY_COLOURS), in ball order.
+# The game's ball colours (src/components/puzzles/pattern/topsyBoard.tsx TOPSY_COLOURS), in ball order. The last two
+# (lime green, pearl white) are Expert's seventh and eighth balls (the difficulty levels, 16 Nov 2026).
 COLOURS = {
     "yellow": "#F5C542", "teal": "#2FD4C4", "purple": "#A97BFF", "pink": "#FF5FA2", "blue": "#4F8BFF", "orange": "#FF8A3D",
+    "green": "#8BE04A", "white": "#E8ECF2",
 }
 
 

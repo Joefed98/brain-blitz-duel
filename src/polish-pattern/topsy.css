@@ -184,6 +184,7 @@ html[data-reduced-effects] .topsy-ball.is-home { transition: none; }
   width: 34%;
   height: 34%;
 }
+.grav-tray.topsy-tray[data-topsy-board] .topsy-hole.is-home[data-topsy-hole="7"] .topsy-mark { fill: var(--jz-bg); stroke: var(--jz-white); stroke-width: 1px; }
 /* The marble: the sphere is 88 of the image's 108 points across, so the image runs 11.4 % past the ball's box. */
 .grav-tray.topsy-tray[data-topsy-board] .topsy-ball {
   background: none;
@@ -208,6 +209,8 @@ html[data-reduced-effects] .topsy-ball.is-home { transition: none; }
   stroke-width: 1.6px;
   paint-order: stroke fill;
 }
+/* Expert's pearl white ball (the eighth, the difficulty levels of 16 Nov 2026): its crescent dark on the pale glass. */
+.grav-tray.topsy-tray[data-topsy-board] .topsy-ball[data-ball="7"] .topsy-mark { fill: var(--jz-bg); stroke: var(--jz-white); stroke-width: 1px; }
 /* No glow round a ball or a cup (a contact shadow only). */
 [data-puzzle-play][data-puzzle-play] .grav-tray.topsy-tray[data-topsy-board] .grav-ball,
 [data-puzzle-play][data-puzzle-play] .grav-tray.topsy-tray[data-topsy-board] .grav-ball.is-locked {
@@ -293,6 +296,10 @@ html[data-reduced-effects] .topsy-ball.is-home { transition: none; }
   background: var(--jz-surface-2);
   box-shadow: inset 0 0 0 1px var(--jz-gold-ledge);
 }
+/* A long par route (Hard and Expert boards, 8–10 tilts) keeps to one line at 375 px: smaller chips and label. */
+.topsy-route-chips[data-long] { gap: 3px; }
+.topsy-route-chips[data-long] .topsy-route-label { font-size: 11px; letter-spacing: 0.06em; margin-right: 2px; }
+.topsy-route-chips[data-long] .topsy-chip { width: 21px; height: 21px; border-radius: 6px; font-size: 11px; }
 .topsy-key-pills { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; flex: 0 0 auto; }
 .topsy-key {
   display: inline-flex;
@@ -320,3 +327,14 @@ html[data-reduced-effects] .topsy-ball.is-home { transition: none; }
   border-top: 1px solid var(--jz-line);
 }
 .topsy-round-label { font: 700 12px/1 var(--jz-font, sans-serif); text-transform: uppercase; letter-spacing: 0.08em; color: var(--jz-text-3); margin-right: 2px; }
+/* Joe's stage-2 answer (16 Nov 2026): the Round row's pills on one line at 375 and 390 px, under the "Round" label,
+   with shorter labels ("Boards 3/3", "Left 50 s") and compact pills: labels 11 px, figures 12 px, never under 11 px
+   (pattern-overhaul-gravity-levels-check measures the widest row against both widths). */
+.topsy-round { flex-direction: column; gap: 5px; padding-top: 0; border-top: 0; align-self: stretch; }
+/* The label sits on the divider ("—— ROUND ——"), so the row costs no more height than the one line it replaced. */
+.topsy-round .topsy-round-label { display: flex; align-items: center; gap: 8px; align-self: stretch; font-size: 11px; margin-right: 0; }
+.topsy-round .topsy-round-label::before,
+.topsy-round .topsy-round-label::after { content: ""; flex: 1 1 auto; height: 1px; background: var(--jz-line); }
+.topsy-round-pills { display: flex; flex-wrap: nowrap; gap: 3px; justify-content: center; white-space: nowrap; }
+.topsy-round-pills .topsy-key { flex: 0 0 auto; gap: 2px; padding: 4px 5px; font-size: 11px; }
+.topsy-round-pills .topsy-key b { font-size: 12px; }

@@ -12,6 +12,10 @@ import { RING_TAPS, RING_UNDO, freshOffsets, ringsApply, ringsSolved } from "../
 import { SLIDE_DIRS, slideBoard, slideOutcome, slideSearch, type SlideState } from "../../src/lib/duel/slide";
 import { GRAVITY_DIRS, gravitySolved, tilt } from "../../src/lib/duel/gravity";
 import { gravityMinimum } from "../../src/lib/duel/gravity.server";
+import { isTopsy, topsyCleared, topsyGivesTiltsBack, topsyStart, topsyTilt, type TopsyBoard, type TopsyState } from "../../src/lib/duel/topsy";
+import { topsySearch } from "../../src/lib/duel/topsy.server";
+import type { GravityDir } from "../../src/lib/duel/types";
+import { TOPSY_READ_S, TOPSY_SKILLS, TOPSY_TILT_S } from "../d5-remodels/bots";
 import { BLOCK_ORIENTATIONS, BLOCK_PIECES, absoluteCells, blockGeometry, encodePlacements, fitsOn, orientationsFor, type BlockGeometry } from "../../src/lib/duel/blockParty";
 import { solveBlockBoard } from "../../src/lib/duel/blockPartyLevels.server";
 import { encodeLaserAnswer } from "../../src/lib/duel/laser";
@@ -296,7 +300,70 @@ function gravityGame(p: PuzzleData): MoveGame<number[], Dir> {
   };
 }
 // BASE 5 s per tilt: four balls move at once, so every tilt is planned for all of them.
-const gravityKit = moveKit("gravity", gravityGame, 5);
+const gravityOldKit = moveKit("gravity", gravityGame, 5);
+
+/**
+ * Topsy-Turvy's player (gravityRev 3+, the boards of topsy.ts; added with the difficulty levels, 16 Nov 2026): the
+ * kit above models the old one-board game, so on a Topsy-Turvy round it plays this instead (spam stays the old kit's).
+ * The D5 bots' model (scripts/d5-remodels/bots.ts playTopsy, TOPSY_SKILLS: pace and mistake rate a level): a good tilt
+ * is the next of a shortest route from where the balls stand; a mistake is a random tilt that moves something. With
+ * gravityRev 8's Undo giving the tilt back, a mistake noticed on the next action is undone 60 % of the time (else the
+ * player plays on from there). More balls are more to plan: a board of n balls takes √(n / 6) of a six-ball board's
+ * thinking a tilt, n / 6 of its reading time and n / 6 of its mistake rate (Normal's six balls: exactly the D5 model).
+ */
+const TOPSY_UNDO_SHARE = 0.6;
+function playTopsyKit(p: PuzzleData, rng: Rng, skill: Skill, limitMs: number): Play {
+  const q = p as Of<"gravity"> & { boards: TopsyBoard[] };
+  const ts = TOPSY_SKILLS[skill.level];
+  const limits = q.tiltLimits ?? [];
+  const tokens: GravityDir[] = [];
+  const steps: Step[] = [];
+  const think = (s: number) => Math.round(s * ts.pace * (0.65 + 0.7 * rng.next()) * 1000);
+  let at = 0;
+  const push = (t: GravityDir) => {
+    tokens.push(t);
+    steps.push({ answer: tokens.join(""), atMs: at });
+  };
+  const route = (board: TopsyBoard, state: TopsyState) => topsySearch({ ...board, starts: state.balls, stars: [] }, false, 14, 400_000)?.solution ?? null;
+  outer: for (const [b, board] of q.boards.entries()) {
+    const walls = new Set(board.walls);
+    const load = board.starts.length / 6;
+    at += think(TOPSY_READ_S * load);
+    const history: TopsyState[] = [topsyStart(board)];
+    let used = 0;
+    while (used < (limits[b] ?? Infinity)) {
+      if (at >= limitMs) break outer;
+      const state = history[history.length - 1]!;
+      if (topsyCleared(state)) break;
+      let dir: GravityDir | null = null;
+      const mistake = rng.next() < ts.err * load;
+      if (!mistake) dir = route(board, state)?.[0] ?? null;
+      const options = TOPSY_DIRS.filter((d) => topsyTilt(board, walls, state, d).moved);
+      if (!dir) dir = options[rng.below(options.length)]!;
+      at += think(TOPSY_TILT_S * Math.sqrt(load));
+      if (at >= limitMs) break outer;
+      push(dir);
+      const next = topsyTilt(board, walls, state, dir).state;
+      history.push(next);
+      used++;
+      if (!mistake || topsyCleared(next) || used >= (limits[b] ?? Infinity)) continue;
+      // Noticed on the next action: Undo gives the tilt back (gravityRev 8), or the player plays on from here.
+      if (rng.next() < TOPSY_UNDO_SHARE) {
+        at += think(TOPSY_TILT_S * 0.6 * Math.sqrt(load));
+        if (at >= limitMs) break outer;
+        push("X");
+        history.pop();
+        used--;
+      }
+    }
+  }
+  return { steps };
+}
+const TOPSY_DIRS: GravityDir[] = ["U", "D", "L", "R"];
+const gravityKit: PuzzleKit = {
+  ...gravityOldKit,
+  play: (p, rng, skill, limitMs) => (isTopsy(p as never) && topsyGivesTiltsBack(p) ? playTopsyKit(p, rng, skill, limitMs) : gravityOldKit.play(p, rng, skill, limitMs)),
+};
 
 /* ------------------------------------------------------------------------ */
 /*  Tessellate (blockparty)                                                  */

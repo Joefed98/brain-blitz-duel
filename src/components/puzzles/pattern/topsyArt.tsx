@@ -7,8 +7,9 @@
  */
 export const TOPSY_ART_BASE = "/pattern-art/gravity";
 
-/** The sprite colour names, in ball order (topsyBoard.tsx TOPSY_COLOURS: gold, teal, purple, pink, blue, orange). */
-export const TOPSY_ART_COLOURS = ["yellow", "teal", "purple", "pink", "blue", "orange"] as const;
+/** The sprite colour names, in ball order (topsyBoard.tsx TOPSY_COLOURS: gold, teal, purple, pink, blue, orange; then
+ * Expert's lime green and pearl white, the difficulty levels of 16 Nov 2026). */
+export const TOPSY_ART_COLOURS = ["yellow", "teal", "purple", "pink", "blue", "orange", "green", "white"] as const;
 
 export function topsyMarbleUrl(index: number): string {
   return `${TOPSY_ART_BASE}/marble-${TOPSY_ART_COLOURS[index % TOPSY_ART_COLOURS.length]}.webp`;
