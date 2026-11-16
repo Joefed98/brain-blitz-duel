@@ -347,6 +347,17 @@
   justify-content: space-evenly;
   gap: 14px;
 }
+/* Phones (game-fx.css "2d. phones: no dead band"): the panel still spans the space, but its parts sit together at its
+   foot, so the equation stays just above its keys in thumb reach and the spare height is above them. */
+@media (max-width: 699px) {
+  [data-puzzle-play] [data-number-overhaul][data-polish="equation"][data-stage-column] .op-board.opg-board {
+    justify-content: flex-end;
+  }
+  /* Intro demos keep the layout they were recorded on (as game-fx.css 2d): their parts spread as before. */
+  .intro-demo [data-puzzle-play] [data-number-overhaul][data-polish="equation"][data-stage-column] .op-board.opg-board {
+    justify-content: space-evenly;
+  }
+}
 [data-puzzle-play] [data-number-overhaul] .opg-board > .nov-stage {
   flex: 0 0 auto;
   align-self: stretch;
