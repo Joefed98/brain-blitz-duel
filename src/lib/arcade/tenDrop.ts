@@ -214,7 +214,7 @@ export interface TenDropPlan {
   gold?: number[];
 }
 
-function buildPlan(seed: number): { rng: number; plan: TenDropPlan } {
+function buildPlan(seed: number, stages: readonly TenDropStage[] = TD_CONFIG.stages): { rng: number; plan: TenDropPlan } {
   let rng = seed | 0;
   const draw = (bound: number): number => {
     const r = rngBelow(rng, bound);
@@ -225,7 +225,7 @@ function buildPlan(seed: number): { rng: number; plan: TenDropPlan } {
   const queues: number[][] = [];
   const proof: number[] = [];
   const tries: number[] = [];
-  for (const stage of TD_CONFIG.stages) {
+  for (const stage of stages) {
     let target = 0;
     let queue: number[] = [];
     let attempt = 0;
@@ -306,11 +306,26 @@ export interface TenDropState {
    * cleared (TD_RUN_TICKS − clear tick), for the unfinished score's "how early" extras. Scoring only.
    */
   earlyTicks?: number;
+  /**
+   * The Speed overhaul's levels (15 Nov 2026): the level's stages (targets, speeds, operator shares), from the
+   * puzzle's `tenLevel`. Absent: today's ten (every older round and Normal).
+   */
+  lv?: TenDropStage[];
 }
 
-function init(seed: number): TenDropState {
-  const built = buildPlan(seed);
-  return {
+/** A run's stages: its level's, else today's ten. */
+export function tdStagesOf(state: Pick<TenDropState, "lv">): readonly TenDropStage[] {
+  return state.lv ?? TD_CONFIG.stages;
+}
+
+/** How many targets a run holds: its level's count, else ten. */
+export function tdTargetsOf(state: Pick<TenDropState, "lv">): number {
+  return state.lv?.length ?? TD_TARGETS;
+}
+
+function init(seed: number, stages?: readonly TenDropStage[]): TenDropState {
+  const built = buildPlan(seed, stages);
+  const base = {
     tick: 0,
     rng: built.rng,
     plan: built.plan,
@@ -327,13 +342,14 @@ function init(seed: number): TenDropState {
     taps: 0,
     resetTick: -100,
     clearTick: -100,
-    log: [],
+    log: [] as number[],
   };
+  return stages ? { ...base, lv: stages.map((stage) => ({ ...stage })) } : base;
 }
 
 function isOver(state: TenDropState): boolean {
   return state.tick >= TD_RUN_TICKS ||
-    (state.cleared >= TD_TARGETS && state.tick - state.clearTick >= TD_CONFIG.clearHoldTicks);
+    (state.cleared >= tdTargetsOf(state) && state.tick - state.clearTick >= TD_CONFIG.clearHoldTicks);
 }
 
 /** Completion holds are gameplay time, not a paused client clock. */
@@ -360,7 +376,7 @@ function step(state: TenDropState, input: ArcadeInputEvent | null): TenDropState
     state = { ...state, stage: state.stage + 1, total: 0, queueIndex: 0,
       tiles: [], recentCols: [], spawnIn: 1 };
   }
-  const stage = c.stages[state.stage];
+  const stage = tdStagesOf(state)[state.stage];
   if (!stage) return { ...state, tick };
   const next: TenDropState = { ...state, tick };
 
@@ -444,8 +460,9 @@ export const TEN_DROP_SCORE_REV = 1;
 export const TD_REV1_FREE_RESETS = 5;
 
 /** The run's starting state under a score revision (0 / absent = the original 13 per target). */
-export function tenDropInit(seed: number, scoreRev?: number): TenDropState {
-  const state = init(seed);
+export function tenDropInit(seed: number, scoreRev?: number, stages?: readonly TenDropStage[] | null): TenDropState {
+  // A level's stages (the puzzle's `tenLevel`, tenRev 6 rounds only); absent, today's ten exactly.
+  const state = init(seed, stages && scoreRev === TEN_DROP_RESET_REV ? stages : undefined);
   if (scoreRev && scoreRev >= TEN_DROP_DEPTH_REV) {
     // tenRev 4: the same plan and rng as tenRev 3, plus each target's gold position (from a hash of the seed,
     // never the rng stream).
@@ -545,9 +562,10 @@ export function tdGoldPlan(seed: number, plan: TenDropPlan): number[] {
  * Rev 1: all ten = 120 + speedBonusCurve(30, …) (the full 30 when the last clears by 45 s);
  * otherwise floor(110 × targets ÷ 9) − 2 per reset beyond 5, so nine is 110.
  */
-export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS, scoreRev = 0, resets = 0, goldTens = 0, earlyTicks = 0): number {
+export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS, scoreRev = 0, resets = 0, goldTens = 0, earlyTicks = 0, targets = TD_TARGETS): number {
+  // A level's own count (tenRev 6 levels only; every other run has ten).
+  if (scoreRev >= TEN_DROP_STANDARD_REV) return tdStandardScore(clampInt(cleared, 0, targets), clearTick, resets, goldTens, earlyTicks, scoreRev >= TEN_DROP_RESET_REV, targets);
   const n = clampInt(cleared, 0, TD_TARGETS);
-  if (scoreRev >= TEN_DROP_STANDARD_REV) return tdStandardScore(n, clearTick, resets, goldTens, earlyTicks, scoreRev >= TEN_DROP_RESET_REV);
   if (scoreRev >= TEN_DROP_SCORE_REV) {
     if (n >= TD_TARGETS) {
       const left = clampInt(TD_RUN_TICKS - clearTick, 0, TD_RUN_TICKS);
@@ -572,7 +590,7 @@ export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS, scoreRev
 }
 
 function score(state: TenDropState): number {
-  const raw = tenDropScore(state.cleared, state.clearTick, state.scoreRev ?? 0, state.resets, state.goldTens ?? 0, state.earlyTicks ?? 0);
+  const raw = tenDropScore(state.cleared, state.clearTick, state.scoreRev ?? 0, state.resets, state.goldTens ?? 0, state.earlyTicks ?? 0, tdTargetsOf(state));
   return state.scoreRev === TEN_DROP_BANDS_REV ? bandMapTotal(TEN_DROP_BANDS_MAP, raw) : raw;
 }
 
@@ -656,7 +674,7 @@ export function tdStandardSpeed(left: number): number {
 
 /** tenRev 5's gold part: TD_STD_GOLD_POINTS per gold ten, at most TD_STD_GOLD_MAX (finished or not). */
 export function tdStandardGold(goldTens: number): number {
-  return Math.min(TD_STD_GOLD_MAX, TD_STD_GOLD_POINTS * clampInt(goldTens, 0, TD_TARGETS));
+  return Math.min(TD_STD_GOLD_MAX, TD_STD_GOLD_POINTS * clampInt(goldTens, 0, 12));
 }
 
 /**
@@ -673,16 +691,19 @@ export function tdResetCost(resets: number): number {
   return TD_REV3_RESET_COST * Math.max(0, resets - TD_REV3_FREE_RESETS);
 }
 
-function tdStandardScore(n: number, clearTick: number, resets: number, goldTens: number, earlyTicks: number, finishCost = false): number {
+function tdStandardScore(n: number, clearTick: number, resets: number, goldTens: number, earlyTicks: number, finishCost = false, targets = TD_TARGETS): number {
   const gold = tdStandardGold(goldTens);
-  if (n >= TD_TARGETS) {
+  if (n >= targets) {
     const left = clampInt(TD_RUN_TICKS - clearTick, 0, TD_RUN_TICKS);
     const full = TD_STD_FINISH + tdStandardSpeed(left) + gold;
     return finishCost ? clampInt(full - tdResetCost(resets), TD_RESET_FINISH_FLOOR, TD_DEPTH_MAX) : clampInt(full, 0, TD_DEPTH_MAX);
   }
   const early = clampInt(earlyTicks, 0, n * TD_RUN_TICKS);
   const cost = tdResetCost(resets);
-  const credit = Math.floor((TD_STD_TARGET_POINTS * n * TD_RUN_TICKS + early) / TD_RUN_TICKS) + gold - cost;
+  // A level's count spreads the same 120 over its targets (12 a target over ten: today's exactly).
+  const credit = targets === TD_TARGETS
+    ? Math.floor((TD_STD_TARGET_POINTS * n * TD_RUN_TICKS + early) / TD_RUN_TICKS) + gold - cost
+    : Math.floor((TD_STD_TARGET_POINTS * TD_TARGETS * n * TD_RUN_TICKS + early * targets) / (targets * TD_RUN_TICKS)) + gold - cost;
   return clampInt(credit, 0, TD_STD_UNFINISHED_CAP);
 }
 
@@ -799,3 +820,31 @@ export const tenDropGame: ArcadeGame<TenDropState, ArcadeInputEvent | null> = {
   draw,
   inputRanges: TD_INPUT_RANGES,
 };
+
+/**
+ * A level's stages (the Speed overhaul, stage 3; levels/speedLevels.ts), worked out once at the deal and stored on the
+ * puzzle (`tenLevel.stages`): `targets` stages whose targets climb evenly to `maxTarget`, today's speeds and gaps
+ * scaled by `speedPct` (gaps by the inverse, so tiles arrive at the same spacing), and the operators by `ops`:
+ * "plusMinus" digits and minus only (no operator needed), "more" today's mix with ÷3 doubled, "all" every operator
+ * evenly. Queues grow with the target so one pass can always reach it.
+ */
+export function tdLevelStages(level: { targets: number; maxTarget: number; ops: "plusMinus" | "more" | "all"; speedPct: number }): TenDropStage[] {
+  const base = TD_CONFIG.stages;
+  const out: TenDropStage[] = [];
+  for (let i = 0; i < level.targets; i++) {
+    const from = base[Math.min(base.length - 1, Math.floor((i * base.length) / level.targets))]!;
+    const hi = Math.max(12, Math.round((level.maxTarget * (i + 1)) / level.targets));
+    const lo = Math.max(10, Math.round(hi * 0.7));
+    const speed = Math.round((from.speed * level.speedPct) / 100);
+    const gap = Math.max(12, Math.round((from.gap * 100) / level.speedPct));
+    const len = Math.max(from.len, Math.min(20, 8 + Math.ceil(hi / 20)));
+    if (level.ops === "plusMinus") {
+      out.push({ lo, hi, speed, gap, len, digitLo: 1, digitHi: 10, mul2: 0, div2: 0, div3: 0, minus: 20, minusLo: 1, minusHi: 3, needOp: false });
+    } else if (level.ops === "more") {
+      out.push({ ...from, lo, hi, speed, gap, len, div3: Math.max(8, from.div3 * 2) });
+    } else {
+      out.push({ ...from, lo, hi, speed, gap, len, mul2: 20, div2: 12, div3: 12, minus: 15 });
+    }
+  }
+  return out;
+}

@@ -14,6 +14,7 @@ import {
 
 import { LevelIntro } from "@/components/levels/LevelIntro";
 import { LevelSwitch } from "@/components/levels/LevelSwitch";
+import { speedLevelLine } from "@/lib/levels/speedLevels";
 import { levelsOf, resolveLevel } from "@/lib/levels/gameLevels";
 import { LEVEL_LABEL, NORMAL, storedLevelKey, type Level } from "@/lib/levels/levels";
 
@@ -149,6 +150,11 @@ export function GamePage({
               <LevelSwitch value={level} onChange={onLevel} levels={levels} label={`${name} difficulty`} />
               <LevelIntro />
             </>
+          ) : null}
+          {speedLevelLine(type, level) ? (
+            <p data-game-page-level-line={level} className="gm-page-level-note">
+              {speedLevelLine(type, level)}
+            </p>
           ) : null}
           {level !== chosen ? (
             <p data-game-page-level-note className="gm-page-level-note">

@@ -1,3 +1,5 @@
+import { speedLevelLine } from "@/lib/levels/speedLevels";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { speedArtCss, speedArtUrl, type SpeedArtName } from "@/lib/fx/speedArt";
@@ -679,6 +681,8 @@ function revealDepthLine(milestones: readonly ChainMilestone[], extra: Record<st
 }
 
 export const chainTapPuzzle: PuzzleDefinition = {
+  // The Speed overhaul's levels: what the level changes, in one line on the round intro (Normal: none).
+  introLine: (puzzle) => speedLevelLine(puzzle.type, puzzleLevel(puzzle)),
   key: "chain",
   name: gameDisplayName("chain"),
   category: "speed",

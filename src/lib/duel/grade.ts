@@ -2120,7 +2120,7 @@ function gradeUnderRev(
     }
     case "whack": {
       const replayStart = performance.now();
-      const run = replayWhackRun(puzzle.seed, answer, puzzle.whackRev);
+      const run = replayWhackRun(puzzle.seed, answer, puzzle.whackRev, puzzle.bonkLevel);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2153,7 +2153,7 @@ function gradeUnderRev(
     }
     case "tendrop": {
       const replayStart = performance.now();
-      const run = replayTenDropRun(puzzle.seed, answer, puzzle.tenRev);
+      const run = replayTenDropRun(puzzle.seed, answer, puzzle.tenRev, puzzle.tenLevel?.stages);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2222,7 +2222,7 @@ function gradeUnderRev(
     }
     case "clayshoot": {
       const replayStart = performance.now();
-      const run = replayClayRun(puzzle.seed, answer, puzzle.clayRev);
+      const run = replayClayRun(puzzle.seed, answer, puzzle.clayRev, puzzle.pullLevel);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)

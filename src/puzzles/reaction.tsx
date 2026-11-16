@@ -1,3 +1,5 @@
+import { speedLevelLine } from "@/lib/levels/speedLevels";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
@@ -664,6 +666,8 @@ function BarTicks({ count }: { count: number }) {
 }
 
 export const reactionPuzzle: PuzzleDefinition = {
+  // The Speed overhaul's levels: what the level changes, in one line on the round intro (Normal: none).
+  introLine: (puzzle) => speedLevelLine(puzzle.type, puzzleLevel(puzzle)),
   key: "reaction",
   name: gameDisplayName("reaction"),
   category: "speed",

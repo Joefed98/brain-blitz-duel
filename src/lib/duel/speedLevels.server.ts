@@ -5,7 +5,9 @@
  */
 import type { Level } from "@/lib/levels/levels";
 import { gameLevelSettings } from "@/lib/levels/gameLevels";
-import type { AscendLevel, ChainLevel, FlashLevel } from "@/lib/levels/speedLevels";
+import { pullLevelClays, type AscendLevel, type BonkLevel, type ChainLevel, type FlashLevel, type PullLevel, type TenfallLevel } from "@/lib/levels/speedLevels";
+import { tdLevelStages } from "@/lib/arcade/tenDrop";
+import { generateClayShoot, generateTenDrop, generateWhack } from "./arcade.server";
 import { generateChain } from "./chain.server";
 import { buildReaction } from "@/puzzles/reaction";
 import { buildNumberHunt } from "@/puzzles/numberHunt";
@@ -24,6 +26,18 @@ export function dealSpeedLevel(type: PuzzleType, level: Level | undefined): Puzz
   if (type === "chain") {
     const settings = gameLevelSettings<ChainLevel>(type, level);
     return settings ? generateChain(undefined, settings) : null;
+  }
+  if (type === "whack") {
+    const settings = gameLevelSettings<BonkLevel>(type, level);
+    return settings ? { ...generateWhack(), bonkLevel: { ...settings, flips: [settings.flips[0], settings.flips[1]] } } : null;
+  }
+  if (type === "tendrop") {
+    const settings = gameLevelSettings<TenfallLevel>(type, level);
+    return settings ? { ...generateTenDrop(), tenLevel: { stages: tdLevelStages(settings) } } : null;
+  }
+  if (type === "clayshoot") {
+    const settings = gameLevelSettings<PullLevel>(type, level);
+    return settings ? { ...generateClayShoot(), pullLevel: pullLevelClays(settings) } : null;
   }
   return null;
 }

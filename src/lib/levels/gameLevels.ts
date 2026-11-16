@@ -26,7 +26,7 @@ import { checkOverride } from "@/lib/checkOverride";
 import type { PuzzleType } from "@/lib/duel/types";
 
 import { LEVELS, NORMAL, type Level } from "./levels";
-import { ASCEND_LEVELS, CHAIN_LEVELS, FLASH_LEVELS } from "./speedLevels";
+import { ASCEND_LEVELS, BONK_LEVELS, CHAIN_LEVELS, FLASH_LEVELS, PULL_LEVELS, TENFALL_LEVELS } from "./speedLevels";
 
 /** How a level's boards are proven to have exactly one solution. */
 export type OneSolutionProof = { proof: string } | { open: string };
@@ -72,6 +72,30 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       easy: { settings: { ...CHAIN_LEVELS.easy }, oneSolution: { open: "a speed game: each link's charm is fixed, only taps are timed" } },
       hard: { settings: { ...CHAIN_LEVELS.hard }, oneSolution: { open: "a speed game: each link's charm is fixed, only taps are timed" } },
       expert: { settings: { ...CHAIN_LEVELS.expert }, oneSolution: { open: "a speed game: each link's charm is fixed, only taps are timed" } },
+    },
+  },
+  // Bonk: how long a target stays up (start and end of the run), the most up at once, the rule flips, the hedgehogs.
+  whack: {
+    levels: {
+      easy: { settings: { ...BONK_LEVELS.easy }, oneSolution: { open: "a reaction game: every pop is timed, nothing to solve" } },
+      hard: { settings: { ...BONK_LEVELS.hard }, oneSolution: { open: "a reaction game: every pop is timed, nothing to solve" } },
+      expert: { settings: { ...BONK_LEVELS.expert }, oneSolution: { open: "a reaction game: every pop is timed, nothing to solve" } },
+    },
+  },
+  // Tenfall: how many targets and the biggest, the operators dealt and the tiles' speed.
+  tendrop: {
+    levels: {
+      easy: { settings: { ...TENFALL_LEVELS.easy }, oneSolution: { open: "a speed game: any taps that reach each target count" } },
+      hard: { settings: { ...TENFALL_LEVELS.hard }, oneSolution: { open: "a speed game: any taps that reach each target count" } },
+      expert: { settings: { ...TENFALL_LEVELS.expert }, oneSolution: { open: "a speed game: any taps that reach each target count" } },
+    },
+  },
+  // Pull!: how many clays, how many fly as pairs (and triples), how many birds and the clays' speed.
+  clayshoot: {
+    levels: {
+      easy: { settings: { ...PULL_LEVELS.easy }, oneSolution: { open: "a shooting game: every shot is timed, nothing to solve" } },
+      hard: { settings: { ...PULL_LEVELS.hard }, oneSolution: { open: "a shooting game: every shot is timed, nothing to solve" } },
+      expert: { settings: { ...PULL_LEVELS.expert }, oneSolution: { open: "a shooting game: every shot is timed, nothing to solve" } },
     },
   },
 };

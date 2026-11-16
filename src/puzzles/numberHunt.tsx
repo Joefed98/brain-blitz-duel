@@ -1,3 +1,5 @@
+import { speedLevelLine } from "@/lib/levels/speedLevels";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState, type CSSProperties, type RefObject } from "react";
 import { speedArtCss } from "@/lib/fx/speedArt";
@@ -691,6 +693,8 @@ export function buildNumberHunt(level?: AscendLevel): NumberHuntPuzzleData {
 }
 
 export const numberHuntPuzzle: PuzzleDefinition = {
+  // The Speed overhaul's levels: what the level changes, in one line on the round intro (Normal: none).
+  introLine: (puzzle) => speedLevelLine(puzzle.type, puzzleLevel(puzzle)),
   key: "numhunt",
   name: gameDisplayName("numhunt"),
   category: "speed",

@@ -1,3 +1,5 @@
+import { speedLevelLine } from "@/lib/levels/speedLevels";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { RevealCaption, RevealNumbers, RevealPanel } from "@/components/puzzles/SpeedRevealKit";
 import { WHACK_STATUS_HIT, WHACK_STATUS_WRONG } from "@/lib/arcade/whack";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
@@ -90,7 +92,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: WhackPuzzleData | null = puzzle.type === "whack" ? puzzle : null;
   const seed = data?.seed ?? 1;
   // whackRev 1 (scoring targets): the same play, its score lifted.
-  const whackGame = whackGameFor(data?.whackRev);
+  // The Speed overhaul's levels: the level's schedule rides on the puzzle (absent: today's).
+  const whackGame = whackGameFor(data?.whackRev, data?.bonkLevel);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const board = useRef<HTMLDivElement | null>(null);
@@ -368,7 +371,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "whack") return null;
-  const result = replayWhackRun(puzzle.seed, myAnswer ?? "", puzzle.whackRev);
+  const result = replayWhackRun(puzzle.seed, myAnswer ?? "", puzzle.whackRev, puzzle.bonkLevel);
   // The Speed overhaul (Joe, 15 Nov 2026; display only): the field as a map, each burrow its right hits (gold) and
   // its mistakes (a red badge), then the figures that explain the score.
   const s = result.state;
@@ -407,6 +410,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
 /** The schedule comes from the round's seed; the run is replayed on the server. */
 export const whackPuzzle: PuzzleDefinition = {
+  // The Speed overhaul's levels: what the level changes, in one line on the round intro (Normal: none).
+  introLine: (puzzle) => speedLevelLine(puzzle.type, puzzleLevel(puzzle)),
   key: "whack",
   name: gameDisplayName("whack"),
   category: "speed",

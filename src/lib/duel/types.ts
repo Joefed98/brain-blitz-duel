@@ -2236,6 +2236,29 @@ export interface TenDropPuzzleData {
    * tiles and a finish to 200, docs/depth/d2-number-tenfall.md). Absent = 13 per target.
    */
   tenRev?: number;
+  /**
+   * The Speed overhaul's levels (15 Nov 2026): the level's stages as dealt (tenDrop.ts `tdLevelStages`; stored whole, so
+   * a later change to the level never changes a stored round). Absent: today's ten targets.
+   */
+  tenLevel?: { stages: TenDropLevelStage[] };
+}
+
+/** One Tenfall stage as a level stores it (tenDrop.ts TenDropStage). */
+export interface TenDropLevelStage {
+  lo: number;
+  hi: number;
+  speed: number;
+  gap: number;
+  len: number;
+  digitLo: number;
+  digitHi: number;
+  mul2: number;
+  div2: number;
+  div3: number;
+  minus: number;
+  minusLo: number;
+  minusHi: number;
+  needOp: boolean;
 }
 
 /** Letterfall: a fixed 90-second run on the arcade engine, plus clock slack. */
@@ -2252,6 +2275,8 @@ export interface WordfallPuzzleData {
 }
 
 export interface ClayShootPuzzleData {
+  /** The Speed overhaul's levels (15 Nov 2026): the level's clays (clayShoot.ts ClayLevel); absent = today's 25. */
+  pullLevel?: { clays: number; singles: number; groups: number[]; golds: number; birds: number; speedPct: number; overlap: boolean };
   type: "clayshoot";
   /** Draws the whole launch schedule — identical for everyone. */
   seed: number;
@@ -2265,6 +2290,8 @@ export interface WhackPuzzleData {
   seed: number;
   /** Scoring targets (18 Oct 2026): 1 = the score lifted through WHACK_TARGET_LIFT; 2 score bands; 3 depth to 200 (the gold combo and diamonds); absent = the original score. */
   whackRev?: number;
+  /** The Speed overhaul's levels (15 Nov 2026): the level's schedule (whack.ts WhackLevel); absent = today's schedule. */
+  bonkLevel?: { lifeStart: number; lifeEnd: number; maxUp: number; flips: [number, number]; hedgehogPct: number; gapPct?: number };
 }
 
 export interface TentsPuzzleData {

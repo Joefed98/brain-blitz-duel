@@ -35,6 +35,7 @@ import {
   TD_LOG_RESET,
   TD_MINUS,
   TD_TARGETS,
+  tdTargetsOf,
   TD_GOLD,
   TD_W,
   type TenDropState,
@@ -362,7 +363,7 @@ function observe(ctx: CanvasRenderingContext2D, s: TenDropState, now: number): M
   const lastLog = s.log.length ? unpackTdLog(s.log[s.log.length - 1]!).tick : -1;
   if (!m || s.tick < m.tick || m.stage > s.stage) {
     // First frame this canvas sees (or a restarted run): remember, never animate.
-    m = { tiles: new Map(), tick: s.tick, logTick: lastLog, stage: s.stage, ghosts: [], rings: [], golds: [], solveAt: s.cleared >= TD_TARGETS ? -Infinity : 0, solveFrom: { x: TD_W / 2, y: TD_H / 2 } };
+    m = { tiles: new Map(), tick: s.tick, logTick: lastLog, stage: s.stage, ghosts: [], rings: [], golds: [], solveAt: s.cleared >= tdTargetsOf(s) ? -Infinity : 0, solveFrom: { x: TD_W / 2, y: TD_H / 2 } };
     for (const t of s.tiles) m.tiles.set(t.id, { col: t.col, y: t.y, tile: t.tile, gold: t.gold });
     memos.set(ctx, m);
     return m;
@@ -397,7 +398,7 @@ function observe(ctx: CanvasRenderingContext2D, s: TenDropState, now: number): M
     }
     m.stage = s.stage;
   }
-  if (s.cleared >= TD_TARGETS && m.solveAt === 0) m.solveAt = now;
+  if (s.cleared >= tdTargetsOf(s) && m.solveAt === 0) m.solveAt = now;
   m.tiles.clear();
   for (const t of s.tiles) m.tiles.set(t.id, { col: t.col, y: t.y, tile: t.tile, gold: t.gold });
   m.ghosts = m.ghosts.filter((g) => now - g.at < g.ms).slice(-8);

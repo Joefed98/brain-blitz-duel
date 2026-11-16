@@ -1,3 +1,5 @@
+import { speedLevelLine } from "@/lib/levels/speedLevels";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { RevealCaption, RevealNumbers, RevealPanel } from "@/components/puzzles/SpeedRevealKit";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { countUpText } from "@/lib/fx/kit";
@@ -32,6 +34,7 @@ import {
   TD_LOG_REFUSED,
   TD_LOG_RESET,
   TD_TARGETS,
+  tdTargetsOf,
   TD_W,
   type TenDropState,
 } from "@/lib/arcade/tenDrop";
@@ -89,7 +92,7 @@ const TD_CSS = `
  * "Target 25" and the cleared pegs, instead of the plank's "TOTAL 8" beside an unlabelled "25" plaque. The plank
  * keeps its fixed 56 px band above the board (arcade-play-check's ABOVE_PX.tendrop), the pills on one row inside it.
  */
-function Hud({ target, total, cleared, flash }: { target: number; total: number; cleared: number; flash: "" | "red" | "gold" }) {
+function Hud({ target, total, cleared, flash, targets = TD_TARGETS }: { target: number; total: number; cleared: number; flash: "" | "red" | "gold"; targets?: number }) {
   // The Speed overhaul (15 Nov 2026; display only): the total counts quickly to its new value, the target glows softly
   // within 5 of it (a sound as it gets close), and a hit throws a "TEN!" burst over the strip.
   const totalRef = useRef<HTMLSpanElement | null>(null);
@@ -154,12 +157,12 @@ function Hud({ target, total, cleared, flash }: { target: number; total: number;
             id: "cleared",
             label: (
               <span className="td-pegs" aria-hidden="true">
-                {Array.from({ length: TD_TARGETS }, (_, i) => (
+                {Array.from({ length: targets }, (_, i) => (
                   <span key={i} className="td-peg" data-on={i < cleared ? "1" : undefined} data-new={i === cleared - 1 ? "1" : undefined} />
                 ))}
               </span>
             ),
-            value: <span aria-label={`Targets cleared ${cleared} of ${TD_TARGETS}`}>{cleared}/{TD_TARGETS}</span>,
+            value: <span aria-label={`Targets cleared ${cleared} of ${targets}`}>{cleared}/{targets}</span>,
           },
         ]}
       />
@@ -210,12 +213,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const seed = data?.seed ?? 1;
   // The stored score revision rides in the sim state, so the phone's claim matches the server's replay.
   const scoreRev = data?.tenRev;
+  // The Speed overhaul's levels: the level's stages ride on the puzzle (absent: today's ten).
+  const levelStages = data?.tenLevel?.stages ?? null;
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const board = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const frameTiming = useArcadeFrameTiming(canvas);
-  const state = useRef<TenDropState>(tenDropInit(seed, scoreRev));
+  const state = useRef<TenDropState>(tenDropInit(seed, scoreRev, levelStages));
   const events = useRef<ArcadeInputEvent[]>([]);
   const checkpoints = useRef<ReturnType<typeof tenDropCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
@@ -244,7 +249,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     );
 
   useEffect(() => {
-    state.current = tenDropInit(seed, scoreRev);
+    state.current = tenDropInit(seed, scoreRev, levelStages);
     events.current = [];
     checkpoints.current = [];
     pending.current = [];
@@ -262,7 +267,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const feedback = arcadeFeedback({
       game: "tendrop",
       completeCue: (s) =>
-        (s as { cleared: number }).cleared >= TD_TARGETS ? "tendrop.solve" : null,
+        (s as TenDropState).cleared >= tdTargetsOf(s as TenDropState) ? "tendrop.solve" : null,
     });
     let seenCleared = 0;
     let seenResets = 0;
@@ -330,7 +335,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       }
       const flash: "" | "red" | "gold" =
         tenDropHolding(s) ? "gold" : s.tick - s.resetTick < 24 ? "red" : "";
-      const target = s.plan.targets[Math.min(s.stage, TD_TARGETS - 1)]!;
+      const target = s.plan.targets[Math.min(s.stage, tdTargetsOf(s) - 1)]!;
       const key = `${target}|${s.total}|${s.cleared}|${Math.ceil((tenDropGame.runTicks - s.tick) / 60)}|${flash}`;
       if (key !== shownKey) {
         shownKey = key;
@@ -381,14 +386,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [seed, data]);
 
-  const solveFx = useSolveFx(hud.cleared >= TD_TARGETS, "tendrop.solve");
+  const targetCount = levelStages?.length ?? TD_TARGETS;
+  const solveFx = useSolveFx(hud.cleared >= targetCount, "tendrop.solve");
 
   if (!data) return null;
 
   return (
     <div ref={wrap} data-polish="tendrop" data-solve={solveFx ? "1" : undefined} data-stage-column="0" className="flex min-h-0 w-full flex-1 flex-col select-none" style={GAME_ROOT_STYLE}>
       <PolishStyle id="tendrop" css={TD_CSS} />
-      <Hud target={hud.target} total={hud.total} cleared={hud.cleared} flash={hud.flash} />
+      <Hud target={hud.target} total={hud.total} cleared={hud.cleared} flash={hud.flash} targets={targetCount} />
       {/* The world at its own aspect, largest fit, top-anchored (15 Oct 2026, display only; tdView maps through this box). */}
       <ArcadeArenaSlot width={TD_W} height={TD_H} scene={tenDropArenaScene}>
       <div
@@ -420,16 +426,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "tendrop") return null;
-  const result = replayTenDropRun(puzzle.seed, myAnswer ?? "", puzzle.tenRev);
+  const result = replayTenDropRun(puzzle.seed, myAnswer ?? "", puzzle.tenRev, puzzle.tenLevel?.stages);
   // The Speed overhaul (Joe, 15 Nov 2026; display only): the ten targets as plaques, made ones in enamel, then the
   // figures that explain the score.
   const targets = result.state.plan.targets;
-  const finishS = result.cleared >= TD_TARGETS ? Math.round(result.state.clearTick / 6) / 10 : null;
+  const targetCount = tdTargetsOf(result.state);
+  const finishS = result.cleared >= targetCount ? Math.round(result.state.clearTick / 6) / 10 : null;
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <RevealPanel title="Targets" testId="tendrop">
         <div data-tendrop-reveal-targets="" className="sr-targets">
-          {targets.slice(0, TD_TARGETS).map((t, i) => (
+          {targets.slice(0, targetCount).map((t, i) => (
             <span key={i} className="sr-target" data-made={i < result.cleared ? "" : undefined}>
               {t}
               <span className="sr-target-mark">{i < result.cleared ? "made" : i === result.cleared ? "next" : ""}</span>
@@ -451,6 +458,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
 /** Targets and tile queues come from the round's seed; the run is replayed on the server. */
 export const tenDropPuzzle: PuzzleDefinition = {
+  // The Speed overhaul's levels: what the level changes, in one line on the round intro (Normal: none).
+  introLine: (puzzle) => speedLevelLine(puzzle.type, puzzleLevel(puzzle)),
   key: "tendrop",
   name: gameDisplayName("tendrop"),
   category: "speed",

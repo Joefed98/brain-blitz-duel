@@ -27,8 +27,8 @@ import { CHAIN_BLOCK, type ChainBreak } from "../src/lib/duel/types";
 
 export const SPEED_LEVEL_GAMES = ["reaction", "numhunt", "chain", "whack", "tendrop", "clayshoot"] as const satisfies readonly PuzzleType[];
 
-/** Joe's human limits: reactions about 250 ms, moves at least 150 ms (the kits' think floor is 250 ms), few slips. */
-export const HUMAN_LIMITS: Skill = { level: "near", pace: 0.5, err: 0.01, reactionMs: 250, reactionSd: 25 };
+/** Joe's human limits: reactions about 250 ms, moves at least 150 ms, slips at the arcade humans' best rate (0.8 %, kit.ts). */
+export const HUMAN_LIMITS: Skill = { level: "near", pace: 1.1, err: 0.008, reactionMs: 250, reactionSd: 25 };
 export const TUNE_BOTS: readonly [string, Skill][] = [["elite", ELITE], ["human", HUMAN_LIMITS]];
 
 /**
@@ -137,14 +137,16 @@ export interface SpeedTuneRow {
   bot: string;
   average: number;
   median: number;
+  /** The best tenth's lowest score (Expert's "humanly possible" rule reads it for the human player). */
+  top10: number;
   finishRate: number;
   runs: number;
   clockMs: number;
 }
 
-export function tuneSpeed(type: PuzzleType, level: Level, seeds = 20, from = 0): SpeedTuneRow[] {
+export function tuneSpeed(type: PuzzleType, level: Level, seeds = 20, from = 0, bots: readonly [string, Skill][] = TUNE_BOTS): SpeedTuneRow[] {
   const out: SpeedTuneRow[] = [];
-  for (const [bot, skill] of TUNE_BOTS) {
+  for (const [bot, skill] of bots) {
     const scores: number[] = [];
     let finished = 0;
     let dealt: Level = "normal";
@@ -167,6 +169,7 @@ export function tuneSpeed(type: PuzzleType, level: Level, seeds = 20, from = 0):
       bot,
       average: Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10,
       median: sorted[Math.floor((sorted.length - 1) / 2)]!,
+      top10: sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * 0.9))]!,
       finishRate: finished / scores.length,
       runs: scores.length,
       clockMs,
@@ -187,7 +190,7 @@ if (import.meta.main) {
       for (const r of tuneSpeed(game, level, seeds, from)) {
         rows.push(r);
         if (!args.includes("--json"))
-          console.log(`${r.game.padEnd(10)} ${r.level.padEnd(7)} ${r.bot.padEnd(6)} avg ${r.average.toFixed(1).padStart(6)}  median ${String(r.median).padStart(3)}  finished ${(r.finishRate * 100).toFixed(0).padStart(3)}%  clock ${r.clockMs / 1000} s${r.dealt !== r.level ? `  (dealt ${r.dealt})` : ""}`);
+          console.log(`${r.game.padEnd(10)} ${r.level.padEnd(7)} ${r.bot.padEnd(6)} avg ${r.average.toFixed(1).padStart(6)}  median ${String(r.median).padStart(3)}  top 10 % ${String(r.top10).padStart(3)}  finished ${(r.finishRate * 100).toFixed(0).padStart(3)}%  clock ${r.clockMs / 1000} s${r.dealt !== r.level ? `  (dealt ${r.dealt})` : ""}`);
       }
     }
   }

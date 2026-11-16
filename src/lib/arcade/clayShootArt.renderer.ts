@@ -26,6 +26,7 @@ import {
   CLAY_W,
   clayGravity,
   clayPairOf,
+  clayGroupsOf,
   clayStreakMultiplier,
   clayWorldH,
   CLAY_DOUBLES,
@@ -829,6 +830,11 @@ function clayDrawnAt(state: ClayState, i: number, ahead: number): { x: number; y
 }
 
 function drawDoubleTethers(c: CanvasRenderingContext2D, state: ClayState, ahead: number, still: boolean): void {
+  // A level's groups (doubles and triples): each pair of clays launched one after the other in a group, as below.
+  if (state.lv) {
+    for (const group of clayGroupsOf(state)) for (let k = 0; k + 1 < group.length; k++) drawTether(c, state, group[k]!, group[k + 1]!, ahead, still);
+    return;
+  }
   for (let p = 0; p < CLAY_DOUBLES; p++) {
     const a = CLAY_CONFIG.singles + 2 * p;
     const b = a + 1;
@@ -861,6 +867,34 @@ function drawDoubleTethers(c: CanvasRenderingContext2D, state: ClayState, ahead:
   }
 }
 
+function drawTether(c: CanvasRenderingContext2D, state: ClayState, a: number, b: number, ahead: number, still: boolean): void {
+  const fa = state.status[a] === CLAY_FLYING, fb = state.status[b] === CLAY_FLYING;
+  if (fa !== fb && (state.status[a] === CLAY_HIT || state.status[b] === CLAY_HIT)) {
+    const at = clayDrawnAt(state, fa ? a : b, ahead);
+    const pulse = still ? 0.5 : 0.5 + 0.5 * Math.sin(state.tick * 0.35);
+    c.save();
+    c.strokeStyle = `rgba(255,214,106,${0.55 + 0.35 * pulse})`;
+    c.lineWidth = 1.6;
+    c.beginPath();
+    c.ellipse(at.x, at.y, R + 3, RY + 3, 0, 0, TAU);
+    c.stroke();
+    c.restore();
+    return;
+  }
+  if (!fa || !fb) return;
+  const pa = clayDrawnAt(state, a, ahead), pb = clayDrawnAt(state, b, ahead);
+  c.save();
+  c.strokeStyle = "rgba(255,214,106,0.38)";
+  c.lineWidth = 1.2;
+  c.setLineDash([3, 5]);
+  c.lineDashOffset = still ? 0 : -state.tick * 0.6;
+  c.beginPath();
+  c.moveTo(pa.x, pa.y);
+  c.lineTo(pb.x, pb.y);
+  c.stroke();
+  c.restore();
+}
+
 /** A short gold word over a world point, rising a little (still under reduced motion or effects). */
 function tag(c: CanvasRenderingContext2D, text: string, x: number, y: number, age: number, calm: boolean, size: number): void {
   c.save();
@@ -891,7 +925,13 @@ function drawDepthTags(c: CanvasRenderingContext2D, state: ClayState, calm: bool
   const age = state.tick - state.doneTick[last]!;
   if (age < 0 || age >= TAG_TICKS) return;
   const x = state.x[last]! / 256, y = state.y[last]! / 256;
-  const pair = clayPairOf(last);
+  // A level's group: the word when its last clay completes it ("TRIPLE!" for three).
+  const levelGroup = state.lv ? clayGroupsOf(state).find((g) => g.includes(last)) ?? null : null;
+  if (levelGroup && levelGroup.every((i) => state.status[i] === CLAY_HIT)) {
+    tag(c, levelGroup.length >= 3 ? "TRIPLE!" : "DOUBLE!", x, y, age, calm, 17);
+    return;
+  }
+  const pair = state.lv ? -1 : clayPairOf(last);
   const partner = pair < 0 ? -1 : last % 2 === CLAY_CONFIG.singles % 2 ? last + 1 : last - 1;
   if (partner >= 0 && state.status[partner] === CLAY_HIT) {
     tag(c, "DOUBLE!", x, y, age, calm, 17);

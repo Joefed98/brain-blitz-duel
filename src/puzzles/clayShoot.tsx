@@ -1,3 +1,5 @@
+import { speedLevelLine } from "@/lib/levels/speedLevels";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { RevealCaption, RevealNumbers, RevealPanel, RevealPips } from "@/components/puzzles/SpeedRevealKit";
 import { HudPills } from "@/components/puzzles/HudPills";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
@@ -182,7 +184,9 @@ function Pips({ status, kind }: { status: number[]; kind: number[] }) {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: ClayShootPuzzleData | null = puzzle.type === "clayshoot" ? puzzle : null;
   const seed = data?.seed ?? 1;
-  const game = clayArtGameFor(data?.clayRev);
+  // The Speed overhaul's levels: the level's clays ride on the puzzle (absent: today's 25).
+  const game = clayArtGameFor(data?.clayRev, data?.pullLevel);
+  const clayTotal = data?.pullLevel?.clays ?? CLAY_COUNT;
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const board = useRef<HTMLDivElement | null>(null);
@@ -193,7 +197,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const checkpoints = useRef<ReturnType<typeof clayCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
   const submitted = useRef(false);
-  const [hud, setHud] = useState({ hits: 0, orangeHits: 0, goldHits: 0, birdHits: 0, status: new Array<number>(CLAY_COUNT).fill(0), streak: 1, doubles: 0 });
+  const [hud, setHud] = useState({ hits: 0, orangeHits: 0, goldHits: 0, birdHits: 0, status: new Array<number>(clayTotal).fill(0), streak: 1, doubles: 0 });
   const [dev, setDev] = useState<string | null>(null);
   useNoTouchScroll(wrap);
 
@@ -332,7 +336,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             return `${i + 1}:${Math.round((100 * f.coverage) / CLAY_W)}%/${(f.ticks / 60).toFixed(1)}s`;
           })
           .join(" ");
-        setDev(`tick ${s.tick} · queue ${s.next}/${CLAY_COUNT} · shots ${s.shots} · ${log}\n${paths}`);
+        setDev(`tick ${s.tick} · queue ${s.next}/${clayTotal} · shots ${s.shots} · ${log}\n${paths}`);
       }
 
       reportArcadeTick(s.tick, game.isOver(s));
@@ -387,13 +391,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           testId="clayshoot"
           className="clay-hud-pills"
           items={[
-            { id: "clays", label: "Clays", value: `${hud.hits}/${CLAY_COUNT}`, tone: "gold" },
+            { id: "clays", label: "Clays", value: `${hud.hits}/${clayTotal}`, tone: "gold" },
             { id: "streak", label: "Streak", value: `×${hud.streak}`, ...(hud.streak > 1 ? { tone: "gold" as const } : {}) },
           ]}
         />
       ) : (
         <p className="shrink-0 text-center font-mono text-xs font-semibold leading-none text-foreground">
-          <span className="text-primary">{hud.hits}</span> / {CLAY_COUNT} · {hud.orangeHits} orange · {hud.goldHits} gold · {hud.birdHits} birds
+          <span className="text-primary">{hud.hits}</span> / {clayTotal} · {hud.orangeHits} orange · {hud.goldHits} gold · {hud.birdHits} birds
         </p>
       )}
       <div className="shrink-0"><Pips status={hud.status} kind={state.current.schedule.kind} /></div>
@@ -426,7 +430,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 /** One short summary (4 Nov 2026): the shots, the costs and the depth points are the breakdown's rows. */
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "clayshoot") return null;
-  const result = replayClayRun(puzzle.seed, myAnswer ?? "", puzzle.clayRev);
+  const result = replayClayRun(puzzle.seed, myAnswer ?? "", puzzle.clayRev, puzzle.pullLevel);
+  const groupCount = puzzle.pullLevel?.groups.length ?? CLAY_DOUBLES;
   // The Speed overhaul (Joe, 15 Nov 2026; display only): every clay in launch order (orange or gold filled when
   // hit, hollow when it got away), then the figures that explain the score.
   const s = result.state;
@@ -435,7 +440,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <RevealPanel title="Every clay" testId="clayshoot">
-        <RevealPips testId="clayshoot" label={`${result.hits} of ${result.total} clays hit`} pips={pips} groups={CLAY_DOUBLES} />
+        <RevealPips testId="clayshoot" label={`${result.hits} of ${result.total} clays hit`} pips={pips} groups={groupCount} />
         <RevealCaption>Filled: hit · hollow: got away · the last 14 fly in pairs</RevealCaption>
       </RevealPanel>
       <RevealNumbers
@@ -443,7 +448,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         items={[
           // Only what the stored breakdown above doesn't already say.
           s.dp ? { id: "streak", label: "Best streak", value: s.dp.best, tone: "gold" as const } : null,
-          doubles !== null ? { id: "doubles", label: "Doubles", value: `${doubles}/${CLAY_DOUBLES}` } : null,
+          doubles !== null ? { id: "doubles", label: "Doubles", value: `${doubles}/${groupCount}` } : null,
           { id: "birds", label: "Birds hit", value: result.birdHits, ...(result.birdHits ? { tone: "warn" as const } : { tone: "good" as const }) },
         ]}
       />
@@ -453,6 +458,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
 /** The launch schedule comes from the round's seed; the run is replayed on the server. */
 export const clayShootPuzzle: PuzzleDefinition = {
+  // The Speed overhaul's levels: what the level changes, in one line on the round intro (Normal: none).
+  introLine: (puzzle) => speedLevelLine(puzzle.type, puzzleLevel(puzzle)),
   key: "clayshoot",
   name: gameDisplayName("clayshoot"),
   category: "speed",

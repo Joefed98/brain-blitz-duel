@@ -12,7 +12,7 @@
 import { appendClientCounters, arcadeCounters } from "../../src/lib/arcade/diagnostics";
 import { inputAt, recordInput, TICK_MS, type ArcadeGame, type ArcadeInputEvent } from "../../src/lib/arcade/engine";
 import {
-  tenDropCheckpoint, tenDropGame, tenDropHolding, tenDropInit, tdApply, TEN_DROP_RESET_REV,
+  tenDropCheckpoint, tenDropGame, tenDropHolding, tenDropInit, tdApply, tdStagesOf, tdTargetsOf, TEN_DROP_RESET_REV,
   TD_CHECKPOINT_INTERVAL, TD_CONFIG, TD_H, TD_INPUT_TAP, type TenDropState,
 } from "../../src/lib/arcade/tenDrop";
 import { encodeTenDropRun } from "../../src/lib/duel/tenDrop";
@@ -108,14 +108,16 @@ function tenDropDrive(p: PuzzleData, pick: Pick<TenDropState> | null): Driven<Te
   // From tenRev 6 (the Speed overhaul, 15 Nov 2026) the kit plays the stamp's own board and score (tenDropInit with the
   // stamp, as the server's replay does), so its runs replay unflagged; older stamps keep the plain board they always drove.
   const rev = p.type === "tendrop" ? (p.tenRev ?? 0) : 0;
-  const game = rev >= TEN_DROP_RESET_REV ? { ...tenDropGame, init: (seed: number) => tenDropInit(seed, rev) } : tenDropGame;
+  const stages = p.type === "tendrop" ? p.tenLevel?.stages : undefined;
+  const game = rev >= TEN_DROP_RESET_REV ? { ...tenDropGame, init: (seed: number) => tenDropInit(seed, rev, stages) } : tenDropGame;
   return drive(game, p.type === "tendrop" ? p.seed : 1, "tendrop", tenDropCheckpoint, TD_CHECKPOINT_INTERVAL, encodeTenDropRun, pick);
 }
 
 /** A tap aimed at a tile's centre `dt` ticks from now (where it will be when the finger lands). */
 function tdTapAt(s: TenDropState, tileIdx: number, dt: number, jitterPx: number): Ev | null {
   const tile = s.tiles[tileIdx]!;
-  const speed = TD_CONFIG.stages[s.stage]!.speed;
+  // The run's own stages (a level's, else today's ten: the same speeds as before).
+  const speed = tdStagesOf(s)[s.stage]!.speed;
   const top = (tile.y + speed * dt) / 256;
   if (top > TD_H - 8) return null;
   return { k: TD_INPUT_TAP, a: tile.col, b: Math.round(Math.max(0, Math.min(TD_H, top + TD_CONFIG.tileH / 2 + jitterPx))), c: 0, d: 0 };
@@ -179,7 +181,7 @@ const tenDropKit: PuzzleKit = {
     let nextLook = 1;
     let finishTick = 0;
     const run = tenDropDrive(p, (s, t) => {
-      if (s.cleared >= 10 && !finishTick) finishTick = s.clearTick;
+      if (s.cleared >= tdTargetsOf(s) && !finishTick) finishTick = s.clearTick;
       if (pending && pending.tick <= t) { const ev = pending.ev; pending = null; nextLook = t + 1; return ev; }
       if (pending || t < nextLook || tenDropHolding(s) || s.cleared > s.stage) return null;
       const target = s.plan.targets[s.stage]!;
@@ -215,7 +217,7 @@ const tenDropKit: PuzzleKit = {
       return null;
     });
     const s = run.state;
-    const end = s.cleared >= 10 ? (finishTick || s.clearTick) : s.tick;
+    const end = s.cleared >= tdTargetsOf(s) ? (finishTick || s.clearTick) : s.tick;
     return { steps: [{ answer: run.raw, atMs: tickMs(end) }], timed: true };
   },
 };
@@ -495,7 +497,7 @@ function whackDrive(p: PuzzleData, pick: Pick<WhackState> | null): Driven<WhackS
   // whackRev 3 adds diamonds (its own game) and whackRev 4 keeps them up longer (its own game: the kit drove it as the
   // old board, so its runs desynced at the first checkpoint; fixed 15 Nov 2026 for the Speed intro demos); every older
   // revision plays the same board.
-  return drive(whackGameFor(p.type === "whack" && (p.whackRev === 3 || p.whackRev === 4) ? p.whackRev : undefined), p.type === "whack" ? p.seed : 1, "whack", whackCheckpoint, WHACK_CHECKPOINT_INTERVAL, encodeWhackRun, pick);
+  return drive(whackGameFor(p.type === "whack" && (p.whackRev === 3 || p.whackRev === 4) ? p.whackRev : undefined, p.type === "whack" ? p.bonkLevel : undefined), p.type === "whack" ? p.seed : 1, "whack", whackCheckpoint, WHACK_CHECKPOINT_INTERVAL, encodeWhackRun, pick);
 }
 const whackTap = (hole: number): Ev => ({ k: WHACK_INPUT_TAP, a: hole, b: 0, c: 0 });
 
@@ -573,7 +575,7 @@ const whackKit: PuzzleKit = {
 
 function clayDrive(p: PuzzleData, pick: Pick<ClayState> | null): Driven<ClayState> {
   const rev = p.type === "clayshoot" ? p.clayRev : undefined;
-  return drive(clayGameFor(rev), p.type === "clayshoot" ? p.seed : 1, "clayshoot", clayCheckpoint, CLAY_CHECKPOINT_INTERVAL, (r) => encodeClayRun(r, rev), pick);
+  return drive(clayGameFor(rev, p.type === "clayshoot" ? p.pullLevel : undefined), p.type === "clayshoot" ? p.seed : 1, "clayshoot", clayCheckpoint, CLAY_CHECKPOINT_INTERVAL, (r) => encodeClayRun(r, rev), pick);
 }
 
 /** Where clay i will be after dt ticks (sim motion: x += vx; vy += g; y += vy), px. */
