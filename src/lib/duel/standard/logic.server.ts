@@ -12,11 +12,11 @@ import { decodePresses, decodeSudoku, lightsOnCount, replayLights } from "../log
 import { gradeSudokuGrid } from "../logic.server";
 import { decodeTowerMoves, replayTower } from "../tower";
 import { decodeTubeLog, decodeTubeMoves, replayTubeLog, replayTubes, sortedTubeCount } from "../tubes";
-import { tubesPourLimit, tubesSendsUndo, floodMoveLimit } from "../moveLimits";
-import { decodeSafePending, decodeSafeTries, dialsCorrect, safeOpenedOn } from "../safe";
+import { tubesPourLimit, tubesRefundsUndo, tubesSendsUndo, floodMoveLimit } from "../moveLimits";
+import { decodeSafePending, decodeSafeTries, dialsCorrect, safeOpenedOn, safeShapeOf } from "../safe";
 import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "../bomb";
-import { decodeNonoCells, nonoSizeOf, replayNonogram } from "../nonogram";
-import { decodeFloodMoves, replayFlood } from "../flood";
+import { decodeNonoCells, nonoCellsOf, nonoSizeOf, replayNonogram } from "../nonogram";
+import { decodeFloodMoves, floodColoursOf, floodColsOf, floodPlayable, replayFlood } from "../flood";
 import { decodeTents, tentsHeightOf } from "../tents";
 import { acceptedRects, decodeShikaku, shikakuHeightOf, type ShikakuRect } from "../shikaku";
 import { decodeBulbs } from "../lightUp";
@@ -162,7 +162,7 @@ const tower: StandardGame = {
 /* ------------------------------------------------------------------ Polypotions */
 
 function tubesReplay(p: Of<"tubes">, answer: string) {
-  return tubesSendsUndo(p) ? replayTubeLog(p.tubes, decodeTubeLog(answer), tubesPourLimit(p)) : replayTubes(p.tubes, decodeTubeMoves(answer));
+  return tubesSendsUndo(p) ? replayTubeLog(p.tubes, decodeTubeLog(answer, p.tubes.length), tubesPourLimit(p), undefined, tubesRefundsUndo(p)) : replayTubes(p.tubes, decodeTubeMoves(answer, p.tubes.length));
 }
 
 function tubesShare(p: Of<"tubes">, answer: string): { corked: number; total: number } {
@@ -179,7 +179,7 @@ const tubes: StandardGame = {
     if (usesPartialCredit(p)) {
       // The boards stood on, start first (Undo and Reset included), as grade.ts collects them.
       const boards = [p.tubes];
-      const replay = tubesSendsUndo(p) ? replayTubeLog(p.tubes, decodeTubeLog(input.answer), tubesPourLimit(p), (b) => boards.push(b)) : replayTubes(p.tubes, decodeTubeMoves(input.answer));
+      const replay = tubesSendsUndo(p) ? replayTubeLog(p.tubes, decodeTubeLog(input.answer, p.tubes.length), tubesPourLimit(p), (b) => boards.push(b), tubesRefundsUndo(p)) : replayTubes(p.tubes, decodeTubeMoves(input.answer, p.tubes.length));
       if (!tubesSendsUndo(p)) boards.push(replay.tubes);
       const share = tubesSolverProgress(p, boards, replay.moves);
       return { finished: false, credit: solverCredit(share), facts: { progress: Math.round(clamp01(share) * 100), corked: tubesShare(p, input.answer).corked } };
@@ -198,8 +198,9 @@ const SAFE_FREE_DIAL = 1;
 
 function safeDials(p: Of<"safe">, answer: string): number {
   const combination = p.combination ?? [];
-  const tries = decodeSafeTries(answer);
-  const pending = tries.length >= 3 ? [] : [decodeSafePending(answer) ?? []];
+  const shape = safeShapeOf(p);
+  const tries = decodeSafeTries(answer, shape);
+  const pending = tries.length >= shape.tries ? [] : [decodeSafePending(answer, shape) ?? []];
   return Math.max(0, ...[...tries, ...pending].map((t) => dialsCorrect(t, combination)));
 }
 
@@ -209,7 +210,7 @@ const safe: StandardGame = {
     const p = input.puzzle as Of<"safe">;
     const combination = p.combination ?? [];
     if (input.graded.isCorrect) {
-      const openedOn = safeOpenedOn(decodeSafeTries(input.answer), combination);
+      const openedOn = safeOpenedOn(decodeSafeTries(input.answer, safeShapeOf(p)), combination);
       // Today's finish cuts the speed points by the try (1st all, 2nd about half, 3rd none); each wrong try also costs
       // the clean crack 2.5.
       return cleanFinish("safe", input, Math.max(0, openedOn - 1), tryEfficiency(openedOn) / PUZZLE_EFFICIENCY_POINTS, { openedOn });
@@ -240,7 +241,7 @@ const bomb: StandardGame = {
 /* ------------------------------------------------------------------ Mosaic */
 
 function nonoReplay(p: Of<"nonogram">, answer: string) {
-  return replayNonogram(p.pattern ?? [], decodeNonoCells(answer, nonoSizeOf(p)));
+  return replayNonogram(p.pattern ?? [], decodeNonoCells(answer, nonoSizeOf(p), nonoCellsOf(p)));
 }
 
 const nonogram: StandardGame = {
@@ -250,11 +251,11 @@ const nonogram: StandardGame = {
     const pattern = p.pattern ?? [];
     if (input.graded.isCorrect) {
       // Each distinct cell ever filled that is not in the picture.
-      const wrongOf = (d: string) => decodeNonoCells(d, nonoSizeOf(p)).filter((cell) => !pattern[cell]).map(String);
+      const wrongOf = (d: string) => decodeNonoCells(d, nonoSizeOf(p), nonoCellsOf(p)).filter((cell) => !pattern[cell]).map(String);
       // notesRev 1 (notesFree.ts): a wrong fill the very next tap turns into a × costs nothing.
       const wrong = usesNotesFree(p) && input.drafts
-        ? leftWrongKeys(input.drafts, wrongOf, listLessOne((d) => decodeNonoCells(d, nonoSizeOf(p))))
-        : everWrong(input, (d) => decodeNonoCells(d, nonoSizeOf(p)), (cell) => (pattern[cell] ? null : String(cell)));
+        ? leftWrongKeys(input.drafts, wrongOf, listLessOne((d) => decodeNonoCells(d, nonoSizeOf(p), nonoCellsOf(p))))
+        : everWrong(input, (d) => decodeNonoCells(d, nonoSizeOf(p), nonoCellsOf(p)), (cell) => (pattern[cell] ? null : String(cell)));
       return cleanFinish("nonogram", input, wrong);
     }
     const r = nonoReplay(p, input.answer);
@@ -265,9 +266,12 @@ const nonogram: StandardGame = {
 /* ------------------------------------------------------------------ Colour Flood */
 
 function floodState(p: Of<"flood">, answer: string) {
-  const replay = replayFlood(p.grid, decodeFloodMoves(answer), undefined, floodMoveLimit(p));
-  const start = replayFlood(p.grid, []).region;
-  return { replay, start, flooded: Math.max(0, replay.region - start), total: Math.max(1, p.grid.length - start) };
+  const cols = floodColsOf(p);
+  const colours = floodColoursOf(p);
+  const replay = replayFlood(p.grid, decodeFloodMoves(answer, colours), cols, floodMoveLimit(p), colours);
+  const start = replayFlood(p.grid, [], cols, null, colours).region;
+  // A level's blocked squares are never flooded, so they never count (today's board has none: grid.length).
+  return { replay, start, flooded: Math.max(0, replay.region - start), total: Math.max(1, floodPlayable(p.grid) - start) };
 }
 
 /** The standard's move limit (the stored one: par + 6 on depthRev 4, par + 10 on depthRev 3). */

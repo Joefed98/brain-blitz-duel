@@ -59,6 +59,8 @@ const OUT = opt("out") ?? ".shots";
 const TAG = opt("tag") ?? "after";
 const DPR = Number(opt("dpr") ?? 1);
 const HOLD_MS = Number(opt("hold") ?? 2000);
+/** A difficulty level to deal at (real deals, not the intro example; frames are tagged with it). */
+const LEVEL = opt("level") ?? null;
 const PHASES = new Set((opt("phases") ?? "intro,play,solve,reveal").split(","));
 const SIZES = (opt("sizes") ?? "375x667,390x844").split(",").map((s) => {
   const [w, h] = s.split("x").map(Number);
@@ -313,6 +315,7 @@ async function newRun(
     reducedMotion: flag("reduced-motion") ? "reduce" : "no-preference",
   });
   await context.addInitScript(SEED_RANDOM);
+  if (LEVEL) await context.addInitScript(`try { localStorage.setItem("duelz-levels:v1", JSON.stringify({ catalogue: ${JSON.stringify(LEVEL)}, games: {} })); } catch {}`);
   const page = await context.newPage();
   const run: Run = { page, close: () => context.close(), cues: [], errors: [], holdGrade: false };
   page.on("pageerror", (e) => run.errors.push(String(e.message ?? e).split("\n")[0]!));
@@ -325,6 +328,8 @@ async function newRun(
     const request = route.request();
     const name = serverFnName(request.url());
     const body = request.postData() ?? "";
+    // --level=easy|hard|expert (the difficulty levels): a real deal at that level, not the fixed intro example.
+    if (/practiceGenerate/.test(name) && LEVEL) return route.continue();
     if (/practiceGenerate/.test(name)) {
       // Seroval: {"t":2,"s":3} is false, {"t":2,"s":2} is true.
       return route.continue({

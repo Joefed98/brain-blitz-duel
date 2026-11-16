@@ -291,7 +291,8 @@ export function puzzleRunMs(puzzle: PuzzleData | undefined): number | null {
   if (!puzzle) return null;
   const info = puzzleInfo(puzzle.type);
   if (!usesArcadeClock(puzzle.type)) return null;
-  return info.timeLimitMs - ARCADE_PHASE_SLACK_MS;
+  // A run dealt its own clock (Minefield's Expert level, 120 s) carries it; every other run is the definition's.
+  return puzzleTimeLimitMs(puzzle) - ARCADE_PHASE_SLACK_MS;
 }
 
 export function puzzleShowsTimer(puzzle: PuzzleData | undefined): boolean {

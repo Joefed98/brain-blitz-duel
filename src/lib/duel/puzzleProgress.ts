@@ -56,7 +56,7 @@ import { decodeActionLog } from "./actionLog";
 import { replayLaserActions } from "./laserLog";
 import { verifyLaser } from "./laser";
 import { decodePairFlips, replayPairs } from "./pairmatch";
-import { clueHolds, decodeSafePending, decodeSafeTries, dialsCorrect } from "./safe";
+import { clueHolds, decodeSafePending, decodeSafeTries, dialsCorrect, safeShapeOf } from "./safe";
 import { decodeFloodMoves, replayFlood } from "./flood";
 import { floodMoveLimit } from "./moveLimits";
 import { DEPTH_REV_TOPUP, depthRevOf } from "./logicDepth";
@@ -178,8 +178,9 @@ export function rev3Progress(input: ProgressInput): number | null {
     case "safe": {
       const combination = puzzle.combination ?? [];
       if (!combination.length) return 0;
-      const tries = decodeSafeTries(answer);
-      const pending = tries.length >= SAFE_TRIES ? [] : [decodeSafePending(answer) ?? []];
+      const shape = safeShapeOf(puzzle);
+      const tries = decodeSafeTries(answer, shape);
+      const pending = tries.length >= shape.tries ? [] : [decodeSafePending(answer, shape) ?? []];
       const right = Math.max(0, ...[...tries, ...pending].map((t) => dialsCorrect(t, combination)));
       const share = Math.max(0, right - SAFE_FREE_DIALS) / Math.max(1, combination.length - SAFE_FREE_DIALS);
       const dials = Math.pow(share, SAFE_CURVE);
@@ -232,7 +233,6 @@ export const PAIR_FREE_MISSES = 14;
 export const PAIR_MISSES_PER_PAIR = 3;
 /** Progress = share ^ PAIR_CURVE (below 1: the first pairs count a little more). */
 export const PAIR_CURVE = 0.75;
-const SAFE_TRIES = 3;
 /** Progress = share ^ SAFE_CURVE (below 1: the second dial right counts a little more than an even share). */
 export const SAFE_CURVE = 0.85;
 /** Progress = share ^ LASER_CURVE (above 1: the last gems, the hard ones, count a little more). */
@@ -941,6 +941,29 @@ function towerTable(pegs: number, target: number, discs: number): Uint8Array {
   }
   TOWER_TABLES.set(id, dist);
   return dist;
+}
+
+/**
+ * Hanoi's moves still needed from where a played move list leaves the board (the Logic overhaul's levels: the
+ * timed-out reveal's "N moves from done"); null on a board no server dealt.
+ */
+export function towerMovesLeft(start: number[][], targetPeg: number, discs: number, moves: { from: number; to: number }[]): number | null {
+  let pegs: TowerPegs = towerPegsFrom(start);
+  const n = pegs.length;
+  if (!towerBoardLegal(n, targetPeg, discs)) return null;
+  const table = towerTable(n, targetPeg, discs);
+  for (const m of moves) {
+    if (!towerCanMove(pegs, m.from, m.to)) break;
+    pegs = pegs.map((peg) => [...peg]);
+    pegs[m.to]!.push(pegs[m.from]!.pop()!);
+    if ((pegs[targetPeg] ?? []).length === discs) break;
+  }
+  const at = new Array<number>(discs + 1).fill(0);
+  pegs.forEach((peg, i) => peg.forEach((d) => { at[d] = i; }));
+  let c = 0;
+  for (let d = discs; d >= 1; d--) c = c * n + at[d]!;
+  const d = table[c]!;
+  return d === 255 ? null : d;
 }
 
 function towerProgress(start: number[][], targetPeg: number, discs: number, moves: { from: number; to: number }[], minMoves: number): number {

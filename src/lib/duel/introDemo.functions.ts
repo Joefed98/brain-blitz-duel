@@ -33,6 +33,7 @@ import { pairUsesDepth } from "./depth/matchmaker";
 import { STRIKEOUT_REV4 } from "./strikeout";
 import { createServerFn } from "@tanstack/react-start";
 import { isD4Type, isDepth4 } from "./depth4/stamps";
+import { logicDemoPlays } from "./logicDemoRules";
 
 import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
@@ -87,11 +88,15 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     });
     const { readIntroDemo } = await import("@/lib/data/practice.server");
     const { data: row, error } = await readIntroDemo(client, data.type);
+    // The Logic overhaul's six puzzle games carry a demo bundled with the app (bundledDemos/logic1.ts): a live row
+    // recorded on today's presentation wins; otherwise (no row, an older one, a failed read) the bundled demo plays.
+    const { bundledLogicDemo, pickLogicDemo } = await import("./bundledDemos/logic1");
     if (error) {
       console.error("[intro demo] read failed", error.message);
-      return null;
+      return bundledLogicDemo(data.type);
     }
     const demo = (row as unknown as IntroDemoRow | null) ?? null;
+    if (bundledLogicDemo(data.type)) return pickLogicDemo(data.type, demo);
     if (data.type === "orbit" && (demo?.input_log.orbitBeltPeriodTicks !== ORBIT_BELT_PERIOD_TICKS || demo?.input_log.orbitBeltRevision !== ORBIT_BELT_REVISION)) return null;
     // Rev3 (scrolling-camera, wider zig-zag world) demos cannot replay as the legacy fixed-camera course, and vice versa.
     if (data.type === "orbit" && demo?.puzzle.type === "orbit" && (demo.puzzle.orbitRev ?? 0) !== ORBIT_REV3 && demo.puzzle.orbitRev !== ORBIT_REV4 && demo.puzzle.orbitRev !== ORBIT_REV_BAND && demo.puzzle.orbitRev !== ORBIT_REV_TUNED && demo.puzzle.orbitRev !== ORBIT_REV_XP && demo.puzzle.orbitRev !== ORBIT_REV_STD && demo.puzzle.orbitRev !== ORBIT_REV_FUEL) return null;
@@ -283,6 +288,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_STANDARD) return null;
     // Slice sliceRev 12 (3 Nov 2026, the Action polish): bigger, recognisable food; only a sliceRev 12 demo plays.
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_FOOD) return null;
+    // The Logic overhaul (15 Nov 2026, logicDemoRules.ts): Minefield plays only a minesRev 3 (Normal) demo; the six puzzle
+    // games' demos must be on Normal (and on the new presentation, puzzleInputDemoCompatible).
+    if (demo && !logicDemoPlays(data.type, demo.puzzle)) return null;
 
     return demo;
   });

@@ -63,6 +63,11 @@ export const GRAVITY_LIMIT_REV = 1;
  * as an average player.
  */
 export const TUBES_PROGRESS_REV = 2;
+/**
+ * Polypotions tubesRev 3 (Logic overhaul 1, 15 Nov 2026, logicOverhaul1.ts): tubesRev 2's board, limit and progress,
+ * but Undo gives its pour back and Reset gives every pour back (the count is the pours standing on the board).
+ */
+export const TUBES_REFUND_REV = 3;
 export const GRAVITY_PROGRESS_REV = 2;
 export const BALANCE_LIMIT_REV = 1;
 export const EQUATION_LIMIT_REV = 1;
@@ -95,6 +100,11 @@ export function floodMoveLimit(p: Pick<FloodPuzzleData, "floodRev" | "moveLimit"
 /** Polypotions: pours allowed (Undo and Reset never give one back), or null. */
 export function tubesPourLimit(p: Pick<TubesPuzzleData, "tubesRev" | "pourLimit">): number | null {
   return (p.tubesRev ?? 0) >= TUBES_LIMIT_REV ? positive(p.pourLimit) : null;
+}
+
+/** Polypotions from tubesRev 3: Undo and Reset give their pours back. */
+export function tubesRefundsUndo(p: Pick<TubesPuzzleData, "tubesRev">): boolean {
+  return (p.tubesRev ?? 0) >= TUBES_REFUND_REV;
 }
 
 /** Polypotions from tubesRev 1 sends Undo and Reset in its pour list. */

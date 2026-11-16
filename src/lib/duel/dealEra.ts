@@ -70,6 +70,8 @@ export const DEAL_PINS = {
   preNotesFree: { texts: false },
   /** gameReviewNov15.ts: Brimful measureRev 3, before the game review fixes (15 Nov 2026). */
   preGameReviewNov15: { texts: false },
+  /** logicOverhaul1.ts: Polypotions tubesRev 2, before the Logic overhaul's refunding Undo (15 Nov 2026). */
+  preLogicOverhaul1: { texts: true },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

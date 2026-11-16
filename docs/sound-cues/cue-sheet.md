@@ -19,15 +19,15 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 35 | 0 | 488 | 523 |
+| game event | 46 | 0 | 488 | 534 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
-| UI tap | 10 | 0 | 30 | 40 |
-| fail sting | 4 | 0 | 37 | 41 |
-| success sting | 1 | 0 | 75 | 76 |
+| UI tap | 11 | 0 | 30 | 41 |
+| fail sting | 5 | 0 | 37 | 42 |
+| success sting | 2 | 0 | 75 | 77 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 61 | 1 | 984 | 1046 |
+| **all** | 75 | 1 | 984 | 1060 |
 
 ## Silent and placeholder cues
 
@@ -195,6 +195,10 @@ Grouped by game or screen. These are the cues still missing a sound.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `sudoku.place` | A digit is entered in a cell (not pencil marks, not clearing) [logic.md] |  | 5–40 (per move) | silent | none | 170 | UI tap | `sudoku.place` |
+| `sudoku.clash` | A digit makes a row, column or box repeat (the clashing digits turn red) [logic.md] |  | 5–40 (per move) | silent | none | 360 | game event | `sudoku.clash` |
+| `sudoku.pencil` | A pencil mark is added or removed [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `sudoku.pencil` |
+| `sudoku.line` | A digit completes a row, column or box (pitched up when it completes several) [logic.md] |  | 1–5 | silent | none | 420 | game event | `sudoku.line` |
+| `sudoku.check` | Box Six Expert: Check pressed with no clash (a clash plays sudoku.clash as it shows) [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `sudoku.check` |
 
 ### Colour Flood
 
@@ -215,18 +219,38 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `lightup.lamp` | A lamp is placed [logic.md] |  | 5–40 (per move) | silent | none | 40 | game event | `lightup.lamp` |
 | `lightup.dot` | A square is marked with a dot [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `lightup.dot` |
 
+### Minefield
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `minesweeper.cascadeTick` | Minefield: a cascade opens; up to 8 ticks, 45 ms apart, rising in pitch [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `minesweeper.cascadeTick` |
+| `minesweeper.defuse` | Minefield: each mine still hidden at the clear, one by one [logic.md] |  | 0–1 | silent | none | 1000 | success sting | `minesweeper.defuse` |
+| `minesweeper.tapNumber` | Minefield: a number tapped before its flags add up [logic.md] |  | 5–40 (per move) | silent | none | 80 | UI tap | `minesweeper.tapNumber` |
+
 ### Mosaic
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `nonogram.fill` | A cell is filled [logic.md] |  | 5–40 (per move) | silent | none | 170 | game event | `nonogram.fill` |
 | `nonogram.mark` | A cell is marked empty (×) [logic.md] |  | 5–40 (per move) | silent | none | 140 | UI tap | `nonogram.mark` |
+| `nonogram.paint` | A drag paints one more square (fill) [logic.md] |  | 5–40 (per move) | silent | none | 90 | game event | `nonogram.paint` |
+| `nonogram.line` | A line now matches its numbers (pitched up for several at once) [logic.md] |  | 1–5 | silent | none | 420 | game event | `nonogram.line` |
+| `nonogram.autoCross` | Mosaic Easy: a line matching its numbers crosses its empty squares [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `nonogram.autoCross` |
 
 ### Polypotions
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `tubes.pour` | A pour lands [logic.md] |  | 5–40 (per move) | silent | none | 240 | game event | `tubes.pour` |
+| `tubes.undo` | Undo is tapped (tubesRev 3 gives the pour back) [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tubes.undo` |
+| `tubes.outOfPours` | The last allowed pour leaves the board unsorted [logic.md] |  | 5–40 (per move) | silent | none | 1100 | game event | `tubes.outOfPours` |
+| `tubes.uncover` | Polypotions Expert: a hidden layer uncovered [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tubes.uncover` |
+
+### Safe Cracker
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `safe.wrongTry` | A try that breaks a clue (the broken clues flash red) [logic.md] |  | 5–40 (per move) | silent | none | 520 | fail sting | `safe.wrongTry` |
 
 ### Shikaku
 

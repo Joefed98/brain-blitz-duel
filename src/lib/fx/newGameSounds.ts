@@ -35,6 +35,21 @@ export const NEW_GAME_SOUND_FILES: Readonly<Record<string, NewGameSoundFile>> = 
 const MOVE = ["move"] as const;
 export const NEW_GAME_SOUND_REPLACES: Readonly<Record<string, readonly string[]>> = {
   "sudoku.place": MOVE,
+  // The Logic overhaul, session 1 (15 Nov 2026): its new slots and the shared sound each plays with today.
+  "sudoku.clash": MOVE,
+  "sudoku.pencil": MOVE,
+  "sudoku.check": MOVE,
+  "tubes.uncover": MOVE,
+  "nonogram.autoCross": MOVE,
+  "tubes.undo": MOVE,
+  "tubes.outOfPours": ["wrong"],
+  "safe.wrongTry": ["wrong"],
+  "nonogram.paint": MOVE,
+  "sudoku.line": MOVE,
+  "nonogram.line": MOVE,
+  "minesweeper.cascadeTick": ["tick"],
+  "minesweeper.defuse": ["tick"],
+  "minesweeper.tapNumber": ["tick"],
   "tower.drop": MOVE,
   "tubes.pour": MOVE,
   "nonogram.fill": MOVE,

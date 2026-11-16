@@ -230,6 +230,47 @@ export function sudokuBox(cell: number): number {
   );
 }
 
+/**
+ * Box Six's live clashes (Logic overhaul 1, display only): every filled cell whose digit repeats in its row, column or
+ * box. Shown during play; the clean bonus still counts every wrong digit ever typed, as before.
+ */
+export function sudokuClashes(grid: readonly number[]): Set<number> {
+  const out = new Set<number>();
+  for (let a = 0; a < SUDOKU_CELLS; a++) {
+    const v = grid[a] ?? 0;
+    if (!v) continue;
+    for (let b = a + 1; b < SUDOKU_CELLS; b++) {
+      if (grid[b] !== v) continue;
+      const same =
+        Math.floor(a / SUDOKU_COLS) === Math.floor(b / SUDOKU_COLS) ||
+        a % SUDOKU_COLS === b % SUDOKU_COLS ||
+        sudokuBox(a) === sudokuBox(b);
+      if (same) { out.add(a); out.add(b); }
+    }
+  }
+  return out;
+}
+
+/**
+ * Box Six's completed groups (Logic overhaul 1, display only): the rows, columns and boxes that are full with no
+ * repeat, as lists of their cells ("r0", "c3", "b5" keys).
+ */
+export function sudokuCompleteGroups(grid: readonly number[]): Map<string, number[]> {
+  const groups = new Map<string, number[]>();
+  for (let cell = 0; cell < SUDOKU_CELLS; cell++) {
+    for (const key of [`r${Math.floor(cell / SUDOKU_COLS)}`, `c${cell % SUDOKU_COLS}`, `b${sudokuBox(cell)}`]) {
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(cell);
+    }
+  }
+  const out = new Map<string, number[]>();
+  for (const [key, cells] of groups) {
+    const digits = cells.map((c) => grid[c] ?? 0);
+    if (digits.every(Boolean) && new Set(digits).size === digits.length) out.set(key, cells);
+  }
+  return out;
+}
+
 /** True when no row, column or box repeats a digit (empties ignored). */
 export function sudokuLegal(grid: number[]): boolean {
   const groups: Record<string, Set<number>> = {};

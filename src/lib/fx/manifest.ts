@@ -552,6 +552,21 @@ const ENTRIES = {
   // 15 Nov 2026 (Joe: one sound on opening): the opening's recording, played through the cue so it stands in for the
   // generic lock / correct of that moment; NEW_GAME_SOUNDS on swaps in the placeholder safe.solve.mp3.
   "safe.solve": { channel: "effects", frequency: 0, ms: 2200, url: "/sounds/pz_safe_open.mp3" },
+  // The Logic overhaul, session 1 (15 Nov 2026): placeholders until Joe's ElevenLabs files
+  // (docs/sound-cues/logic-elevenlabs.md); each drops in by its slot name.
+  "sudoku.clash": { channel: "effects", frequency: 0, ms: 220, url: null },
+  "sudoku.pencil": { channel: "effects", frequency: 0, ms: 120, url: null },
+  // The levels (stage 3): Box Six Expert's Check with no clash, Polypotions Expert's uncovered layer, Mosaic Easy's crossed gaps.
+  "sudoku.check": { channel: "effects", frequency: 0, ms: 200, url: null },
+  "tubes.uncover": { channel: "effects", frequency: 0, ms: 300, url: null },
+  "nonogram.autoCross": { channel: "effects", frequency: 0, ms: 140, url: null },
+  "tubes.undo": { channel: "effects", frequency: 0, ms: 200, url: null },
+  "tubes.outOfPours": { channel: "effects", frequency: 0, ms: 700, url: null },
+  "safe.wrongTry": { channel: "effects", frequency: 0, ms: 400, url: null },
+  "nonogram.paint": { channel: "effects", frequency: 0, ms: 90, url: null, gapMs: 40 },
+  // Stage 2 (the effects): a completed line's chime (pitched up for several at once).
+  "sudoku.line": { channel: "effects", frequency: 0, ms: 500, url: null },
+  "nonogram.line": { channel: "effects", frequency: 0, ms: 400, url: null },
   "shikaku.place": { channel: "effects", frequency: 0, ms: 180, url: null },
   "shikaku.remove": { channel: "effects", frequency: 0, ms: 200, url: null },
   "shikaku.solve": { channel: "effects", frequency: 0, ms: 1000, url: "/sounds/done.glowSweep.mp3" },
@@ -1099,6 +1114,11 @@ const ENTRIES = {
   "racing.kerb": { channel: "effects", frequency: 0, ms: 672, url: "/sounds/racing_kerb_loop.mp3", loop: true },
   "racing.grassLoop": { channel: "effects", frequency: 0, ms: 726, url: "/sounds/racing_grass_loop.mp3", loop: true },
   "racing.roar": { channel: "effects", frequency: 0, ms: 3477, url: "/sounds/sports_crowd_roar.mp3" },
+  // The Logic overhaul (15 Nov 2026, stage 3's sounds): the cascade's rising ticks, each mine defused at the clear, a
+  // number tapped before its flags add up. Placeholders until Joe's ElevenLabs files (docs/sound-cues/logic-elevenlabs.md).
+  "minesweeper.cascadeTick": { channel: "effects", frequency: 0, ms: 50, url: null },
+  "minesweeper.defuse": { channel: "effects", frequency: 0, ms: 150, url: null },
+  "minesweeper.tapNumber": { channel: "effects", frequency: 0, ms: 100, url: null, gapMs: 60 },
   "minesweeper.unflag": { channel: "effects", frequency: 0, ms: 350, url: "/sounds/mines_unflag.mp3" },
   "mahjong.select": { channel: "effects", frequency: 0, ms: 200, url: "/sounds/mahjong_select.mp3" },
   "mahjong.invalid": { channel: "effects", frequency: 0, ms: 300, url: "/sounds/mahjong_invalid.mp3" },

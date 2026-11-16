@@ -21,6 +21,7 @@ import { dealGameReviewNov15 } from "./gameReviewNov15";
 import { withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
 import { dealNotesFree } from "./notesFree";
+import { dealLogicOverhaul1 } from "./logicOverhaul1";
 import { topsyPlainRoutes } from "./topsy.server";
 import { varyTallyTray } from "@/puzzles/countUp";
 import { stampMoveLimits } from "./moveLimits.server";
@@ -47,6 +48,8 @@ import { generateIceSlide } from "./slide.server";
 import { generatePush } from "./push.server";
 import { generateLaser } from "./laser.server";
 import { generateTower } from "./tower.server";
+import { levelSettings, towerSettingsFor, type SudokuLevel, type SafeLevel, type NonoLevel, type FloodLevel, type TubesLevel } from "./logicLevels";
+import { dealFloodLevel, dealSafeLevel, dealSudokuLevel, dealTubesLevel } from "./logicLevelBanks.server";
 import { generateMaze } from "./maze.server";
 import { generateTubes } from "./tubes.server";
 import { generateSafe } from "./safe.server";
@@ -57,7 +60,7 @@ import { dealsD5Remodels } from "./d5Remodels";
 import { generateTopsy } from "./topsy.server";
 import { generateJumbledDealt } from "./jumbled.server";
 import { generateChain } from "./chain.server";
-import { generateNonogram } from "./nonogram.server";
+import { generateNonogram, generateNonogramLevel } from "./nonogram.server";
 import { generatePairMatch } from "./pairmatch.server";
 import { generateFlood } from "./flood.server";
 import { generateRings } from "./rings.server";
@@ -179,6 +182,8 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   { name: "notesFree", deal: dealNotesFree },
   // The game review fixes (15 Nov 2026, gameReviewNov15.ts): Brimful measureRev 4 (out of moves ends only that puzzle).
   { name: "gameReviewNov15", deal: dealGameReviewNov15 },
+  // The Logic overhaul, session 1 (15 Nov 2026, logicOverhaul1.ts): Polypotions tubesRev 3 (Undo gives the pour back).
+  { name: "logicOverhaul1", deal: dealLogicOverhaul1 },
 ];
 
 /**
@@ -224,6 +229,11 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   // Depth batch 4 (docs/depth/d4-pattern.md): eight Pattern / Logic games deal their 200-point stamp.
   const depth = dealDepth4(type, context);
   if (depth) return depth;
+  // Polypotions' levels (the Logic overhaul, logicLevels.ts) come from their own proved banks, before today's bank.
+  if (type === "tubes") {
+    const lv = levelSettings<TubesLevel>("tubes", context.level);
+    if (lv) return dealTubesLevel(lv, context.level!, context.bankSeed);
+  }
   if (context.bankSeed !== undefined && isBankedType(type))
     return drawBankedPuzzle(type, context.bankSeed, context.recentBankKeys);
   if (type === "stroop") return generateColourClash();
@@ -241,21 +251,33 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "balance") return generateBalance();
   if (type === "lightsout") return generateLightsOut();
   if (type === "pipes") return generatePipes();
-  if (type === "sudoku") return generateSudoku();
+  if (type === "sudoku") {
+    const lv = levelSettings<SudokuLevel>("sudoku", context.level);
+    return lv ? dealSudokuLevel(lv, context.level!, context.bankSeed) : generateSudoku();
+  }
   if (type === "flow") return generateFlow();
   if (type === "iceslide") return generateIceSlide();
   if (type === "push") return generatePush();
   if (type === "laser") return generateLaser();
-  if (type === "tower") return generateTower();
+  if (type === "tower") return generateTower(towerSettingsFor(context.level));
   if (type === "maze") return generateMaze();
   if (type === "tubes") return generateTubes();
-  if (type === "safe") return generateSafe();
+  if (type === "safe") {
+    const lv = levelSettings<SafeLevel>("safe", context.level);
+    return lv ? dealSafeLevel(lv, context.level!, context.bankSeed) : generateSafe();
+  }
   if (type === "bomb") return generateBomb();
   if (type === "gravity") return generateGravity();
   if (type === "chain") return generateChain();
-  if (type === "nonogram") return generateNonogram();
+  if (type === "nonogram") {
+    const lv = levelSettings<NonoLevel>("nonogram", context.level);
+    return lv ? generateNonogramLevel(lv) : generateNonogram();
+  }
   if (type === "pairmatch") return generatePairMatch();
-  if (type === "flood") return generateFlood();
+  if (type === "flood") {
+    const lv = levelSettings<FloodLevel>("flood", context.level);
+    return lv ? dealFloodLevel(lv, context.level!, context.bankSeed) : generateFlood();
+  }
   if (type === "tiles") return generateTiles();
   if (type === "rings") return generateRings();
   if (type === "hover") return generateHover();
@@ -270,7 +292,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "ricochet") return generateRicochet();
   if (type === "breaker") return generateBreaker();
   if (type === "pinball") return generatePinball();
-  if (type === "minesweeper") return generateMinesweeper();
+  if (type === "minesweeper") return generateMinesweeper(context.level);
   if (type === "mahjong") return generateMahjong();
   if (type === "homerun") return generateHomerun();
   if (type === "freekick") return generateFreekick();

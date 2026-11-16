@@ -297,6 +297,107 @@ def _(r):
     return room(mix(b, glass, wash), r, 0.12, 0.14)
 
 
+# The Logic overhaul, session 1 (15 Nov 2026): placeholders for its new slots until Joe's ElevenLabs files
+# (docs/sound-cues/logic-elevenlabs.md).
+
+@sound("sudoku.clash", ["sudoku.clash"], "placeholder: a low, muted wooden knock, slightly off-key")
+def _(r):
+    n = n_of(0.2)
+    x = struck(WOOD, 210, 0, 0.12, n, r, 0.03) + struck(WOOD, 226, 0, 0.1, n, r, 0.03) * 0.6 + thump(140, 90, 0.05, n) * 0.5
+    return room(x, r, 0.08, 0.1)
+
+
+@sound("sudoku.pencil", ["sudoku.pencil"], "placeholder: a pencil tip on paper, a very quiet tick")
+def _(r):
+    n = n_of(0.06)
+    return svf(noise(n, r), 5200, 1.6) * env(n, 0.002, 0.04) * 0.6
+
+
+@sound("tubes.undo", ["tubes.undo"], "placeholder: a glass vial set back in a wooden rack, a light clink")
+def _(r):
+    n = n_of(0.2)
+    x = struck(GLASS, 2100, 0, 0.14, n, r) * 0.5 + struck(WOOD, 620, 0, 0.06, n, r) * 0.4
+    return room(x, r, 0.08, 0.1)
+
+
+@sound("tubes.outOfPours", ["tubes.outOfPours"], "placeholder: an empty glass vial tapped twice, hollow and final")
+def _(r):
+    n = n_of(0.6)
+    one = struck(GLASS, 1180, 0, 0.3, n, r) * 0.7
+    two = at(struck(GLASS, 990, 0, 0.35, n_of(0.45), r) * 0.7, 0.15, n)
+    return room(mix(one, two), r, 0.12, 0.14)
+
+
+@sound("safe.wrongTry", ["safe.wrongTry"], "placeholder: a safe handle jerked against a locked bolt, a dull clunk")
+def _(r):
+    n = n_of(0.38)
+    x = struck(METAL, 180, 0, 0.18, n, r, 0.01) * 0.6 + thump(110, 70, 0.1, n) * 0.8 + click(n, r, 2400) * 0.3
+    return room(x, r, 0.1, 0.12)
+
+
+@sound("sudoku.line", ["sudoku.line"], "placeholder: a gentle rising two-note glass chime, a line completed")
+def _(r):
+    n = n_of(0.5)
+    one = struck(GLASS, 1320, 0, 0.3, n, r) * 0.5
+    two = at(struck(GLASS, 1760, 0, 0.32, n_of(0.38), r) * 0.5, 0.11, n)
+    return room(mix(one, two), r, 0.1, 0.12)
+
+
+@sound("nonogram.line", ["nonogram.line"], "placeholder: a small porcelain chime, one clear note")
+def _(r):
+    n = n_of(0.4)
+    return room(struck(GLASS, 1480, 0, 0.3, n, r) * 0.6 + struck(STONE, 2960, 0, 0.08, n, r) * 0.15, r, 0.1, 0.12)
+
+
+@sound("minesweeper.cascadeTick", ["minesweeper.cascadeTick"], "placeholder: a dry stone tick, very short")
+def _(r):
+    n = n_of(0.05)
+    return struck(STONE, 2200, 0, 0.03, n, r) * 0.6 + click(n, r, 5000, 1.5) * 0.4
+
+
+@sound("minesweeper.defuse", ["minesweeper.defuse"], "placeholder: a soft spring-loaded pin locking, one mine defused")
+def _(r):
+    n = n_of(0.15)
+    x = struck(METAL, 1900, 0, 0.06, n, r) * 0.45 + click(n, r, 3800, 2.0) * 0.5 + thump(320, 220, 0.03, n) * 0.25
+    return room(x, r, 0.06, 0.08)
+
+
+@sound("minesweeper.tapNumber", ["minesweeper.tapNumber"], "placeholder: a tiny dull knock on stone")
+def _(r):
+    n = n_of(0.1)
+    return struck(STONE, 520, 0, 0.06, n, r) * 0.6 + thump(200, 140, 0.04, n) * 0.5
+
+
+@sound("sudoku.check", ["sudoku.check"], "placeholder: Box Six Expert's Check with no clash, a dry wooden double tick")
+def _(r):
+    n = n_of(0.2)
+    a = struck(WOOD, 900, 0, 0.04, n, r) * 0.55
+    b = struck(WOOD, 1200, 0, 0.04, n, r) * 0.45
+    d = int(0.07 * 44100)
+    out = a.copy()
+    out[d:] += b[: n - d]
+    return room(out, r, 0.06, 0.06)
+
+
+@sound("tubes.uncover", ["tubes.uncover"], "placeholder: Polypotions Expert, a hidden layer uncovered, a soft glassy shimmer")
+def _(r):
+    n = n_of(0.3)
+    return room(struck(GLASS, 1980, 0, 0.18, n, r) * 0.32 + struck(GLASS, 2970, 0, 0.12, n, r) * 0.18, r, 0.1, 0.12)
+
+
+@sound("nonogram.autoCross", ["nonogram.autoCross"], "placeholder: Mosaic Easy, a matched line's gaps crossed, a quick soft pencil flick")
+def _(r):
+    n = n_of(0.14)
+    return svf(noise(n, r), 3800, 1.2) * env(n, 0.004, 0.06) * 0.55
+
+
+@sound("nonogram.paint", ["nonogram.paint"], "placeholder: a tiny dry ceramic tick for each square a drag paints")
+def _(r):
+    n = n_of(0.07)
+    x = struck(STONE, 1650, 0, 0.04, n, r) * 0.6 + click(n, r, 6000, 2.0) * 0.4
+    return x
+
+
 @sound("nonogram.fill", ["nonogram.fill"], "a felt stamp: a soft, dense press into the square")
 def _(r):
     n = n_of(0.12)

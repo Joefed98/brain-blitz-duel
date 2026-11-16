@@ -19,6 +19,8 @@ import {
   PIPE_BITS,
 } from "./logic";
 import { pick, shuffled } from "./random";
+import type { SudokuLevel } from "./logicLevels";
+import { sudokuLogicGrade, sudokuLogicSolve } from "./sudokuLogic";
 import {
   LIGHTS_CELLS,
   LIGHTS_MAX_BUILD,
@@ -315,6 +317,44 @@ export function countSudokuSolutions(puzzle: number[], limit = 2): number {
  */
 export function generateSudoku(): SudokuPuzzleData {
   return { ...buildSudoku(SUDOKU_REV1_MIN_GIVENS, SUDOKU_REV1_MAX_GIVENS), sudokuRev: SUDOKU_REV_FEWER };
+}
+
+/**
+ * A level's board (the Logic overhaul's levels, logicLevels.ts): givens in the level's band, removed one at a time from
+ * a full grid while the board keeps exactly one solution, and kept only when the human-style grader (sudokuLogic.ts)
+ * solves it with the level's steps: Easy by singles alone, Hard and Expert needing at least one advanced step. The
+ * level's clash and keypad rules ride on the puzzle (`clashes`, `hideUsed`) for the stage; `sudokuRev` stays 1 (the
+ * grade reads only the givens), and the dealt `level` says which level it is.
+ */
+export function generateSudokuLevel(level: SudokuLevel): SudokuPuzzleData {
+  const [lo, hi] = level.givens;
+  for (let attempt = 0; attempt < 4000; attempt++) {
+    const solution = shuffledSolution();
+    const givens = [...solution];
+    const target = lo + randomInt(hi - lo + 1);
+    let remaining = SUDOKU_CELLS;
+    for (const cell of shuffled(Array.from({ length: SUDOKU_CELLS }, (_, i) => i))) {
+      if (remaining <= target) break;
+      const kept = givens[cell]!;
+      givens[cell] = 0;
+      if (countSudokuSolutions(givens) === 1) remaining -= 1;
+      else givens[cell] = kept;
+    }
+    if (remaining < lo || remaining > hi) continue;
+    const grade = sudokuLogicGrade(givens);
+    if (grade !== level.steps) continue;
+    if ((level.minAdvanced ?? 0) > 0 && sudokuLogicSolve(givens).advanced < level.minAdvanced!) continue;
+    return {
+      type: "sudoku",
+      givens,
+      solution,
+      sudokuRev: SUDOKU_REV_FEWER,
+      timeLimitMs: level.timeMs,
+      ...(level.clashes === "check" ? { clashes: "check" as const } : {}),
+      ...(level.hideUsed ? { hideUsed: true } : {}),
+    };
+  }
+  throw new Error(`${gameDisplayName("sudoku")} generator could not build a ${level.steps} board with ${lo}–${hi} givens`);
 }
 
 export function generateClassicSudoku(): SudokuPuzzleData {

@@ -1,7 +1,7 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
-import { decodeSudoku, encodeSudoku, sudokuBox, sudokuSolved } from "@/lib/duel/logic";
+import { decodeSudoku, encodeSudoku, sudokuBox, sudokuClashes, sudokuCompleteGroups, sudokuSolved } from "@/lib/duel/logic";
 import {
   SUDOKU_BOX_COLS,
   SUDOKU_BOX_ROWS,
@@ -13,12 +13,15 @@ import {
 import { directionOf, useGameKeys } from "@/lib/desktop";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { RevealFacts } from "./logicReveal";
+import { lightCells } from "./logicMotion";
+import { gameFx } from "@/lib/fx/kit";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 const DIGITS = [1, 2, 3, 4, 5, 6];
 
-type CellTone = "given" | "entry" | "wrong";
+type CellTone = "given" | "entry" | "wrong" | "missed";
 
 function boxEdges(cell: number): string {
   const row = Math.floor(cell / SUDOKU_COLS);
@@ -40,6 +43,7 @@ export function SudokuGrid({
   onSelect,
   cols = SUDOKU_COLS,
   placed,
+  clashes,
 }: {
   values: number[];
   tones: CellTone[];
@@ -49,6 +53,8 @@ export function SudokuGrid({
   cols?: number | undefined;
   /** The cell that just took a digit (it pops in). */
   placed?: number | null | undefined;
+  /** Cells whose digit repeats in a row, column or box (live clashes, display only). */
+  clashes?: ReadonlySet<number> | undefined;
 }) {
   const selectedRow =
     selected === null || selected === undefined ? -1 : Math.floor(selected / cols);
@@ -73,12 +79,15 @@ export function SudokuGrid({
           (row === selectedRow || col === selectedCol || sudokuBox(cell) === selectedBox);
         const tone = tones[cell] ?? "entry";
         const marks = pencil?.[cell] ?? [];
+        const clash = clashes?.has(cell) ?? false;
         return (
           <button
             key={cell}
             type="button"
             disabled={!onSelect}
             onClick={onSelect ? () => onSelect(cell) : undefined}
+            data-clash={clash ? "" : undefined}
+            data-tone={tone}
             className={`logic-sudoku-cell relative flex items-center justify-center font-display font-bold ${boxEdges(cell)} ${
               cell === selected
                 ? "bg-primary/20 outline outline-2 -outline-offset-2 outline-primary"
@@ -86,9 +95,16 @@ export function SudokuGrid({
                   ? "bg-muted/40"
                   : "bg-card"
             } ${tone === "given" ? "text-foreground" : tone === "wrong" ? "text-destructive" : "text-primary"}`}
-            style={{ fontSize: "max(15px, calc(100cqw / 6 * 0.52))", "--logic-row": row, "--logic-box": sudokuBox(cell) } as CSSProperties}
+            data-cell={cell}
+            style={{
+              fontSize: "max(15px, calc(100cqw / 6 * 0.52))",
+              "--logic-row": row,
+              "--logic-box": sudokuBox(cell),
+              // The solve's gold runs out from the last cell placed (Logic overhaul 1).
+              "--logic-dist": placed === null || placed === undefined ? row + col : Math.max(Math.abs(row - Math.floor(placed / cols)), Math.abs(col - (placed % cols))),
+            } as CSSProperties}
             // 7 Nov 2026 (accessibility audit #16): the label said only "Cell N" and replaced the digit.
-            aria-label={`Row ${row + 1} column ${col + 1}, ${value ? value : marks.length ? `notes ${marks.join(" ")}` : "empty"}${tone === "given" ? ", given" : tone === "wrong" ? ", wrong" : ""}`}
+            aria-label={`Row ${row + 1} column ${col + 1}, ${value ? value : marks.length ? `notes ${marks.join(" ")}` : "empty"}${tone === "given" ? ", given" : tone === "wrong" ? ", wrong" : tone === "missed" ? ", missed" : ""}${clash ? ", clashes" : ""}`}
           >
             {value ? (
               <span key={value} className={`logic-sudoku-digit ${tone === "given" ? "logic-sudoku-given" : ""} ${placed === cell ? "logic-sudoku-pop" : ""}`}>
@@ -140,6 +156,9 @@ function IntroExample() {
   );
 }
 
+/** How long Check shows Expert's clashes. */
+export const CHECK_SHOW_MS = 2_000;
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const givens = puzzle.type === "sudoku" ? puzzle.givens : [];
   const [entries, setEntries] = useState<number[]>(() => new Array(SUDOKU_CELLS).fill(0));
@@ -150,6 +169,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const [pencilMode, setPencilMode] = useState(false);
   const [placed, setPlaced] = useState<number | null>(null);
   const submitted = useRef(false);
+  const gridRef = useRef<HTMLDivElement>(null);
 
   const grid = useMemo(
     () => givens.map((given, cell) => (given ? given : (entries[cell] ?? 0))),
@@ -164,6 +184,26 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   // The player's own cells only ("1 / 22 filled"), never the givens (Logic review, 15 Nov 2026).
   const filled = sudokuEntryCount(givens, grid);
   const inFrame = useFrameProgress(filled.done, filled.total, "filled");
+  // Logic overhaul 1: clashes are shown while playing (the clean bonus still counts every wrong digit typed). Expert
+  // (`clashes: "check"`, the levels) shows them only for a moment after Check is pressed.
+  const onCheck = puzzle.type === "sudoku" && puzzle.clashes === "check";
+  const [checkedAt, setCheckedAt] = useState<number | null>(null);
+  const liveClashes = useMemo(() => sudokuClashes(grid), [grid]);
+  const clashes = useMemo(() => (onCheck && checkedAt === null ? new Set<number>() : liveClashes), [onCheck, checkedAt, liveClashes]);
+  useEffect(() => {
+    if (checkedAt === null) return;
+    const t = setTimeout(() => setCheckedAt(null), CHECK_SHOW_MS);
+    return () => clearTimeout(t);
+  }, [checkedAt]);
+  // Easy (`hideUsed`): a digit already placed six times leaves the keypad.
+  const hideUsed = puzzle.type === "sudoku" && puzzle.hideUsed === true;
+  const usedUp = useMemo(() => new Set(DIGITS.filter((d) => grid.filter((v) => v === d).length >= SUDOKU_COLS)), [grid]);
+  const clashCount = clashes.size;
+  const lastClashes = useRef(0);
+  useEffect(() => {
+    if (clashCount > lastClashes.current) soundCue("sudoku.clash");
+    lastClashes.current = clashCount;
+  }, [clashCount]);
 
   useEffect(() => {
     if (locked || submitted.current) return;
@@ -208,6 +248,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     if (locked || submitted.current || selected === null) return;
     if (givens[selected]) return;
     if (pencilMode) {
+      soundCue("sudoku.pencil");
       setPencil((current) =>
         current.map((marks, cell) =>
           cell === selected
@@ -222,6 +263,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     if (entries[selected] !== digit) {
       setPlaced(selected);
       soundCue("sudoku.place");
+      // A row, column or box this digit completes lights along it with a rising note; several at once are a combo.
+      const nextGrid = grid.map((value, cell) => (cell === selected ? digit : value));
+      const before = sudokuCompleteGroups(grid);
+      const fresh = [...sudokuCompleteGroups(nextGrid)].filter(([key]) => !before.has(key));
+      if (fresh.length && !sudokuSolved(nextGrid, givens)) {
+        const root = gridRef.current;
+        const at = selected;
+        for (const [, cells] of fresh) {
+          const ordered = [...cells].sort((a, b) => Math.abs(a - at) - Math.abs(b - at));
+          lightCells(ordered.map((c) => root?.querySelector<HTMLElement>(`[data-cell="${c}"]`)));
+        }
+        if (fresh.length > 1) gameFx("combo", root?.querySelector(`[data-cell="${at}"]`), { count: fresh.length, silent: true });
+        soundCue("sudoku.line", 1 + (fresh.length - 1) * 0.12);
+      }
+      if (!onCheck && sudokuClashes(nextGrid).has(selected)) {
+        gameFx("wrong", gridRef.current?.querySelector(`[data-cell="${selected}"] .logic-sudoku-digit`), { silent: true });
+      }
     }
     setEntries((current) =>
       current.map((value, cell) => (cell === selected ? (value === digit ? 0 : digit) : value)),
@@ -238,13 +296,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <div data-logic-stage="sudoku" data-logic-solved={solving ? "" : undefined} data-stage-column="3" className="relative flex min-h-0 flex-1 flex-col gap-3">
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic">
-        <div className="logic-square-bare logic-sudoku-frame">
+        <div ref={gridRef} className="logic-square-bare logic-sudoku-frame">
           <SudokuGrid
             values={grid}
             tones={tones}
             pencil={pencil}
             selected={selected}
             placed={placed}
+            clashes={clashes}
             onSelect={locked ? undefined : (cell) => setSelected(cell)}
           />
         </div>
@@ -256,14 +315,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               key={digit}
               type="button"
               onClick={() => tapDigit(digit)}
-              disabled={locked}
+              disabled={locked || (hideUsed && usedUp.has(digit))}
+              data-used-up={hideUsed && usedUp.has(digit) ? "" : undefined}
+              aria-hidden={hideUsed && usedUp.has(digit) ? true : undefined}
               className={`logic-sudoku-key press tap-target rounded-lg py-2 font-display text-lg font-bold text-foreground disabled:opacity-40 ${inFrame ? "gf-glass" : "border border-border bg-card"}`}
             >
               {digit}
             </button>
           ))}
         </div>
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className={`grid gap-1.5 ${onCheck ? "grid-cols-3" : "grid-cols-2"}`}>
           <button
             type="button"
             onClick={() => setPencilMode((current) => !current)}
@@ -276,6 +337,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           >
             Pencil
           </button>
+          {onCheck ? (
+            <button
+              type="button"
+              data-sudoku-check=""
+              onClick={() => {
+                if (locked) return;
+                setCheckedAt(Date.now());
+                // The clash sound plays as the clashes appear (the clash count's effect above); a clean grid ticks.
+                if (liveClashes.size) gameFx("wrong", gridRef.current, { silent: true });
+                else soundCue("sudoku.check");
+              }}
+              disabled={locked}
+              className="press tap-target rounded-lg border border-border bg-card py-2 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+            >
+              Check
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={clearCell}
@@ -324,28 +402,49 @@ export function sudokuRevealCells(givens: readonly number[], solution: readonly 
   return { values, tones, correct };
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+/**
+ * The reveal (Logic overhaul 1, 15 Nov 2026): one big board at a time through the shared Solution / Yours switch.
+ * Solution: the finished grid, the cells you missed or got wrong ringed. Yours: your grid, wrong digits in red, empty
+ * cells empty. Under it, the numbers behind the score: right, wrong and empty among your cells.
+ */
+function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "sudoku") return null;
   const solution = puzzle.solution ?? puzzle.givens;
   const mine = decodeSudoku(myAnswer ?? "");
   const blanks = puzzle.givens.filter((given) => !given).length;
-  const { values, tones, correct } = sudokuRevealCells(puzzle.givens, solution, mine);
-  const elapsed =
-    myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
+  const yours = sudokuRevealCells(puzzle.givens, solution, mine);
+  const wrong = yours.tones.filter((tone) => tone === "wrong").length;
+  const empty = puzzle.givens.filter((given, cell) => !given && !(mine[cell] ?? 0)).length;
+  // The solution with every cell you didn't get right ringed ("missed").
+  const solutionTones = solution.map((value, cell) =>
+    puzzle.givens[cell] ? "given" : (mine[cell] ?? 0) === value ? "entry" : "missed",
+  ) as CellTone[];
 
   return (
     <div className="logic-reveal">
       <div className="logic-reveal-board">
-        <div className="logic-square-bare logic-sudoku-frame" style={{ maxWidth: 300 }}>
-          <SudokuGrid values={values} tones={tones} />
+        <div className="logic-reveal-pair">
+          <div className="logic-reveal-col">
+            <span className="logic-reveal-label">Solution</span>
+            <div className="logic-square-bare logic-sudoku-frame">
+              <SudokuGrid values={solution} tones={solutionTones} />
+            </div>
+          </div>
+          <div className="logic-reveal-col">
+            <span className="logic-reveal-label">Yours</span>
+            <div className="logic-square-bare logic-sudoku-frame">
+              <SudokuGrid values={yours.values} tones={yours.tones} />
+            </div>
+          </div>
         </div>
       </div>
-      {/* Solved: the verdict row above says it (4 Nov 2026). */}
-      {myCorrect ? null : (
-        <p className="logic-reveal-text text-center font-mono uppercase tracking-widest text-muted-foreground">
-          {`${correct} / ${blanks} correct`}
-        </p>
-      )}
+      <RevealFacts
+        items={[
+          { label: `Right of ${blanks}`, value: yours.correct, tone: "good" },
+          { label: "Wrong", value: wrong, tone: wrong ? "bad" : undefined },
+          { label: "Empty", value: empty },
+        ]}
+      />
     </div>
   );
 }
