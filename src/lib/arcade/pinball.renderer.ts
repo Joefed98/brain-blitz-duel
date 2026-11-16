@@ -813,10 +813,13 @@ export function drawBumperFlash(ctx: Ctx, state: PinState): void {
     ctx.beginPath();
     ctx.arc(bx, by, PIN_BUMPER_R, 0, Math.PI * 2);
     ctx.fill();
+    // The Retro overhaul, stage 2: the cap's ring swells 2 px as it is struck and settles back over 6 ticks (inside
+    // the bounds rule's 2 px).
+    const swell = age < 6 ? 2 * (1 - age / 6) : 0;
     ctx.strokeStyle = RETRO_WHITE;
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(bx, by, PIN_BUMPER_R - 1.5, 0, Math.PI * 2);
+    ctx.arc(bx, by, PIN_BUMPER_R - 1.5 + swell, 0, Math.PI * 2);
     ctx.stroke();
     // Polish A2: the flare, eight short rays of light off the bumper's skirt, fading with the glow.
     ctx.strokeStyle = `rgba(255,190,255,${(0.6 * k).toFixed(3)})`;

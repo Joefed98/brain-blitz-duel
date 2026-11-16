@@ -23,6 +23,8 @@
  * Score: up to 130 for barriers plus up to 20 for stars, cap 150.
  */
 
+import { retroLevelSettings, withRetroLevel, type HoverLv } from "./retroLevels";
+import type { Level } from "@/lib/levels/levels";
 import {
   clampInt,
   px,
@@ -133,6 +135,9 @@ export interface HoverPickup {
 }
 
 export interface HoverState extends BandFields {
+  /** hoverRev 11 (the Retro overhaul, stage 3): 1 = the run starts shielded. Stage 3's level settings on a level's run. */
+  grace?: number;
+  lv?: HoverLv;
   tick: number;
   /** Disc centre, fixed-point. */
   y: number;
@@ -606,7 +611,8 @@ export const hoverGame: ArcadeGame<HoverState> = {
 export const hoverRev2Game: ArcadeGame<HoverState> = { ...hoverGame, init: initRev2 };
 
 /** The game for a stored round: its hoverRev picks the rules (absent = original). */
-export function hoverGameFor(rev?: number | null): ArcadeGame<HoverState> {
+export function hoverGameFor(rev?: number | null, level?: Level | null): ArcadeGame<HoverState> {
+  if (rev === HOVER_REV_SHIELD) return hoverShieldFor(level);
   if (rev === HOVER_REV_STANDARD) return hoverStandardGame;
   if (rev === HOVER_REV_EXPAND) return hoverExpandGame;
   if (rev === HOVER_REV_STRICT || rev === HOVER_REV_PARKED) return hoverStrictGame;
@@ -709,7 +715,7 @@ export const hoverTallGame: ArcadeGame<HoverState> = { ...hoverTunecGame, init: 
 
 /** The world height (px) a stored round's hoverRev plays in. */
 export function hoverWorldHFor(rev?: number | null): number {
-  if (rev === HOVER_REV_EXPAND || rev === HOVER_REV_STANDARD) return HOVER_EXPAND_H;
+  if (rev === HOVER_REV_EXPAND || rev === HOVER_REV_STANDARD || rev === HOVER_REV_SHIELD) return HOVER_EXPAND_H;
   return rev === HOVER_REV_TALL || rev === HOVER_REV_TARGET || rev === HOVER_REV_STRICT || rev === HOVER_REV_PARKED ? HOVER_TALL_H : HOVER_WORLD_H;
 }
 
@@ -1279,6 +1285,8 @@ function touches(x0: number, oy: number, r: number, distance: number, y: number)
 
 function stepExpand(state: HoverState, tapped: boolean): HoverState {
   if (isOver(state)) return state;
+  // A level (stage 3 of the Retro overhaul) scrolls at its own pace; Normal's is hoverScroll exactly.
+  const scroll = hoverScrollOf(state, state.gates);
   let vy = clampInt(
     tapped ? HOVER_IMPULSE : state.vy + HOVER_GRAVITY,
     -HOVER_TERMINAL,
@@ -1286,7 +1294,7 @@ function stepExpand(state: HoverState, tapped: boolean): HoverState {
   );
   let y = state.y + vy;
   const tick = state.tick + 1;
-  const distance = state.distance + hoverScroll(state.gates);
+  const distance = state.distance + scroll;
   let gates = state.gates;
   while (gates < state.pillars.length && distance > passedAt(state.pillars[gates]!)) gates += 1;
 
@@ -1596,3 +1604,51 @@ export const hoverStandardGame: ArcadeGame<HoverState> = {
   ...hoverExpandGame,
   init: (seed) => ({ ...initExpand(seed), std: 1, ctrFine: 0 }),
 };
+
+/* ================= The Retro overhaul, stage 3: a forgiven first crash (hoverRev 11, 16 Nov 2026) ================= */
+
+/**
+ * hoverRev 11 (the Retro overhaul, stage 3, Joe, 16 Nov 2026: "grace on a first miss"; docs/arcade-standard/hover.md
+ * "hoverRev 11"): hoverRev 10's course, rules, parts and scoring exactly, with the saucer starting shielded: the first crash
+ * breaks the shield (hoverRev 9's rule: the saucer flies on, untouchable for a moment) instead of ending the run. A shield
+ * picked up later works as before. A level (retroLevels.ts) sets the starting shield, widens the gaps (Easy only, about
+ * each gap's centre, inside the world's margins, so every proved course stays passable) and sets the scroll's pace (the
+ * scroll still speeds up barrier by barrier). States add `grace: 1`, outside the checkpoint checksum (the shield already
+ * is in it).
+ */
+export const HOVER_REV_SHIELD = 11;
+
+/** The scroll a state flies at after `gates` barriers: hoverScroll, or a level's share of it (stage 3). */
+export function hoverScrollOf(state: { lv?: HoverLv | undefined }, gates: number): number {
+  return state.lv ? Math.trunc((hoverScroll(gates) * state.lv.scrollPct) / 100) : hoverScroll(gates);
+}
+
+function widenGaps(state: HoverState, pct: number): HoverState {
+  if (pct <= 100) return state;
+  const bottom = hoverBottom(state);
+  const pillars = state.pillars.map((p) => {
+    if (!p.gapH) return p;
+    const gapH = Math.min(bottom - 2 * HOVER_GAP_MARGIN, Math.trunc((p.gapH * pct) / 100));
+    const centre = p.gapTop + (p.gapH >> 1);
+    const gapTop = clampInt(centre - (gapH >> 1), HOVER_GAP_MARGIN, bottom - HOVER_GAP_MARGIN - gapH);
+    return { ...p, gapTop, gapH, ...(p.starDy !== undefined ? { starDy: p.starDy + (p.gapTop - gapTop) } : {}) };
+  });
+  return { ...state, pillars };
+}
+
+export const hoverShieldGame: ArcadeGame<HoverState> = {
+  ...hoverStandardGame,
+  init: (seed) => ({ ...hoverStandardGame.init(seed), shield: 1, grace: 1 }),
+};
+const hoverShieldByLevel = new Map<string, ArcadeGame<HoverState>>();
+/** hoverRev 11 at a level (retroLevels.ts). */
+function hoverShieldFor(level?: Level | null): ArcadeGame<HoverState> {
+  const lv = retroLevelSettings("hover", level);
+  if (!lv) return hoverShieldGame;
+  let game = hoverShieldByLevel.get(level!);
+  if (!game) {
+    game = withRetroLevel<HoverState, HoverLv, ArcadeGame<HoverState>>(hoverShieldGame, lv, (state, l) => widenGaps({ ...state, shield: l.shield }, l.gapPct));
+    hoverShieldByLevel.set(level!, game);
+  }
+  return game;
+}

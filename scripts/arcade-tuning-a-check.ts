@@ -79,11 +79,16 @@ import { encodeSwingRun, replaySwingRun } from "../src/lib/duel/swing";
 import { SWING_V4_BANK } from "../src/lib/duel/swingBankV4.server";
 import { proveSwingSeedV4 } from "../src/lib/duel/swingProof.server";
 import { tiltCupReachable, tiltDealableX, tiltGameFor, tiltSeedCupsReachable, TILT_REV_BAND, TILT_REV_BIG } from "../src/lib/arcade/tilt";
-import { generateOrbit, generateSkyline, generateSwing, generateTilt, generateWavefront, pinOrbitPreFuel } from "../src/lib/duel/arcade.server";
+import { generateOrbit, generateSkyline, generateSwing, generateTilt, generateWavefront, pinOrbitPreFuel, pinPreRetro } from "../src/lib/duel/arcade.server";
 import { skylineGameFor, SKYLINE_REV_EXPAND, SKYLINE_REV_STD, SKYLINE_REV_TALL } from "../src/lib/arcade/skyline";
 import { APP_FLAG_LOGO_URL } from "../src/lib/brand";
 import { PUZZLE_INSTRUCTIONS as INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { playRevOf } from "./scoring-targets-revs";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal the overhaul's stamps
+// (Wavefront wavRev 14's charged shot, Fission burstRev 12…); this check was written for the deal before it, so it pins
+// preRetro.
+pinPreRetro(true);
 
 const FULL = process.env.CHECKS_FULL === "1" || process.argv.includes("--full");
 const ONLY = (process.env.TUNING_A_ONLY ?? "").split(",").filter(Boolean);

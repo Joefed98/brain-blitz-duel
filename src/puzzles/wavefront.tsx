@@ -1,4 +1,6 @@
 import { useRef } from "react";
+import { puzzleLevel } from "@/lib/levels/levels";
+import { RETRO_PAYOFF_MS } from "@/lib/arcade/retroFx.renderer";
 import { heldHorizontal } from "@/lib/desktop";
 import { wavefrontFill } from "@/lib/arcade/arenaFills.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -6,7 +8,10 @@ import {
   wavCheckpoint,
   WAV_BG,
   WAV_CHECKPOINT_INTERVAL,
-  WAV_REV_KEEP,
+  WAV_REV_CHARGE,
+  WAV_REV_BIG,
+  WAV_V14_HOLD,
+  WAV_V14_LIFT,
   wavDragZoneTop,
   wavefrontWorldHFor,
   WAV_WORLD_W,
@@ -27,12 +32,12 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 function IntroExample() {
   return (
     <ArtStill
-      game={wavefrontArtGameFor(WAV_REV_KEEP)}
+      game={wavefrontArtGameFor(WAV_REV_BIG)}
       worldW={WAV_WORLD_W}
-      worldH={wavefrontWorldHFor(WAV_REV_KEEP)}
+      worldH={wavefrontWorldHFor(WAV_REV_BIG)}
       ticks={150}
       input={null}
-      caption="Your ship fires on its own. Shoot the glowing carriers for power-ups, hit the bosses’ weak points."
+      caption="Your ship fires on its own. Hold a second and lift for a heavy blast that cracks armour."
     />
   );
 }
@@ -54,14 +59,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       locked={locked}
       worldW={WAV_WORLD_W}
       worldH={worldH}
-      game={wavefrontArtGameFor(data?.wavRev)}
+      game={wavefrontArtGameFor(data?.wavRev, puzzleLevel(data))}
       sounds={wavefrontSounds}
       checkpoint={wavCheckpoint}
       interval={WAV_CHECKPOINT_INTERVAL}
       encodeRun={encodeWavefrontRun}
+      // Stage 3 of the Retro overhaul: the boss's staged explosion plays out before the run is sent (display only).
+      endHoldMs={(state) => ((state as { bossKilled?: number }).bossKilled ? RETRO_PAYOFF_MS : 0)}
       pointer={(kind, x, y) => {
         if (kind === "down" && y < wavDragZoneTop(worldH)) return null;
-        return { a: x, b: 0, c: 0 };
+        // wavRev 14: the touch starts the charged shot's hold and the lift ends it (a lift after 1 s fires the blast).
+        const charged = (data?.wavRev ?? 0) >= WAV_REV_CHARGE;
+        return { a: x, b: 0, c: charged && kind === "down" ? WAV_V14_HOLD : charged && kind === "up" ? WAV_V14_LIFT : 0 };
       }}
       // Desktop keys: ←/→ (A/D) slide the aim, the same absolute x a drag sets, 6 px a tick.
       tickInput={(state) => {
@@ -92,7 +101,7 @@ export function wavefrontLine(r: {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "wavefront") return null;
-  const result = replayWavefrontRun(puzzle.seed, myAnswer ?? "", puzzle.wavRev);
+  const result = replayWavefrontRun(puzzle.seed, myAnswer ?? "", puzzle.wavRev, puzzleLevel(puzzle));
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
@@ -114,7 +123,7 @@ export const wavefrontPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: WAVEFRONT_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "wavefront", seed: 1, wavRev: WAV_REV_KEEP }) satisfies WavefrontPuzzleData,
+  generate: () => ({ type: "wavefront", seed: 1, wavRev: WAV_REV_BIG }) satisfies WavefrontPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

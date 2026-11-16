@@ -114,7 +114,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // crossRev 12 (Nov 2026): the hit that ends the run is free; hits take at most half the rows' points.
     cross: "Cross again and again; bonuses for no-stop streaks and close calls; hits cost. Up to {max}.",
     breaker: "Break bricks; gold bricks 10 each (30 for all three); a fast clear adds more. Up to {max}.",
-    rally: "Hit gold balls back; bonuses for pink pads and gold targets. Up to {max}.",
+    rally: "Hit gold balls back; bonuses for pink pads, gold targets and spin shots. Up to {max}.",
     // Cards & Board (30 Oct 2026), on the arcade scoring standard.
     minesweeper: "Uncover safe squares; bonuses for no mines hit and a fast clear. Up to {max}.",
     mahjong: "Clear pairs; bonuses for no shuffles and a fast clear. Up to {max}.",

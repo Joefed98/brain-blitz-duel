@@ -9,7 +9,7 @@ import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import {
   HOVER_CHECKPOINT_INTERVAL,
-  HOVER_REV_STANDARD,
+  HOVER_REV_SHIELD, HOVER_REV_STANDARD,
   HOVER_STD_CENTRE,
   HOVER_STD_CHAINS,
   HOVER_STD_CORE,
@@ -27,7 +27,7 @@ const WITNESS = new URL("../fixtures/hover-x200-witness.json.gz", import.meta.ur
 
 /** Plays a tap log on hoverRev 10 as the phone does and returns the server replay of the encoded answer. */
 export function replayStandard(seed: number, taps: number[]) {
-  const game = hoverGameFor(HOVER_REV_STANDARD);
+  const game = hoverGameFor(HOVER_REV_SHIELD);
   const set = new Set(taps);
   let s = game.init(seed) as HoverState;
   const checkpoints = [];
@@ -36,13 +36,15 @@ export function replayStandard(seed: number, taps: number[]) {
     if (s.tick % HOVER_CHECKPOINT_INTERVAL === 0) checkpoints.push(hoverCheckpoint(s));
   }
   const raw = encodeHoverRun({ seed, claimedScore: game.score(s), inputs: [...set].sort((a, b) => a - b), endTick: s.tick, checkpoints });
-  return replayHoverRun(seed, raw, HOVER_REV_STANDARD);
+  return replayHoverRun(seed, raw, HOVER_REV_SHIELD);
 }
 
 export const entry: StdEntry = {
   type: "hover",
   field: "hoverRev",
-  rev: HOVER_REV_STANDARD,
+  // hoverRev 11 since 16 Nov 2026 (the Retro overhaul, stage 3): hoverRev 10 starting shielded; the same parts.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
+  rev: HOVER_REV_SHIELD,
   parts: [
     { key: "core", label: "Barriers passed", max: HOVER_STD_CORE },
     { key: "chains", label: "Star chains", max: HOVER_STD_CHAINS },

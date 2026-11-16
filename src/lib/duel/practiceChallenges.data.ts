@@ -398,14 +398,14 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("hover", "All the way", "Pass every barrier.", "C", "finish", true, all(f("gates", "gte", "@totalGates"), f("totalGates", "gte", 1))),
   // Pinball (pinball): table points 130 + J-O-U-L-Z 20 + multiball 20 + jackpots 15 + ramp combos 15.
   ch("pinball", "Multiball madness", "Start multiball.", "C", "target", false, part("Multiball", 20), "pinball.multiball"),
-  ch("pinball", "Spell it out", "Spell J-O-U-L-Z twice.", "C", "maxout", false, part("J-O-U-L-Z", 20), "pinball.joulz"),
+  ch("pinball", "Spell it out", "Spell J-O-U-L-Z in one game.", "C", "maxout", false, part("J-O-U-L-Z", 20), "pinball.joulz"),
   ch("pinball", "Jackpot", "Hit three jackpots.", "C", "fullset", true, part("Jackpots", 15)),
   // Rally (rally): gold-ball hits 140 + pink pads 30 + gold targets 30.
   ch("rally", "Pink pong", "Strike pink pads five times.", "C", "target", false, all(line("Pink pads", "gte", 15))),
   ch("rally", "Target practice", "Hit all six gold targets.", "C", "fullset", false, part("Gold targets", 30)),
-  ch("rally", "Rally king", "Return 23 gold balls on Hard.", "H", "maxout", false, part("Gold-ball hits", 140)),
+  ch("rally", "Rally king", "Return 23 gold balls on Hard.", "H", "maxout", false, part("Gold-ball hits", 130)),
   // Meteor (snake): stars 120 + gold stars 40 + combos 20 + lane rides 10 + warp stars 10.
-  ch("snake", "Star eater", "Eat 28 stars; a gold star counts as two.", "C", "target", false, all(f("meteorParts.core", "gte", 120))),
+  ch("snake", "Star eater", "Eat 36 stars; a gold star counts as two.", "C", "target", false, all(f("meteorParts.core", "gte", 120))),
   ch("snake", "Comet tail", "Score 150 or more.", "C", "bigscore", false, score(150)),
   ch("snake", "Golden comet", "Eat all seven gold stars.", "C", "fullset", false, all(f("goldStars", "gte", "@goldStarsDealt"), f("goldStarsDealt", "gte", 7))),
   // Wavefront (wavefront): ships 150 + boss destroyed 10 + boss speed 10 + saucers 20 + cannons and weak points 10.

@@ -11,32 +11,32 @@
 import { bandCurve, bandHelp, type BandCurve, type BandHelpWords } from "./scoreBands";
 import { roundMaxFor } from "../duel/roundMax";
 import { BT_REV_STD, BT_REV_STRICT, BT_V8_BAND_CURVE } from "./ballTrack";
-import { WAV_REV_KEEP, WAV_REV_STRICT, WAV_V12_BAND_CURVE } from "./wavefront";
+import { WAV_REV_BIG, WAV_REV_STRICT, WAV_V12_BAND_CURVE } from "./wavefront";
 import { FLIP_REV_DEAL, FLIP_REV_STRICT, FLIP_V11_BAND_CURVE } from "./flip";
 import { INK_REV_BIG, INK_REV_STRICT, INK_V13_BAND_CURVE } from "./inkBridge";
 import { MATCHUP_REV_SIX, MATCHUP_REV_STRICT, MATCHUP_V12_BAND_CURVE } from "./matchup";
 import { BUB_REV_STD, BUB_REV_STRICT, BUB_V11_BAND_CURVE, BUB_V11_STD_SPEC } from "./bubble";
-import { CROSS_REV_KEEP, CROSS_REV_STRICT, CROSS_V11_BAND_CURVE } from "./cross";
+import { CROSS_REV_LIGHT, CROSS_REV_STRICT, CROSS_V11_BAND_CURVE } from "./cross";
 import { MINES_REV_LOGIC, MINES_STD_SPEC_V2, MINES_V1_BAND_CURVE } from "./minesweeper";
 import { MAHJONG_REV_DEALT, MAHJONG_STD_SPEC, MAHJONG_V1_BAND_CURVE } from "./mahjong";
-import { RALLY_REV_STD, RALLY_REV_STRICT, RALLY_STD_SPEC, RALLY_V12_BAND_CURVE } from "./rally";
-import { SNAKE_REV_12, SNAKE_REV_STRICT, SNAKE_V12_BAND_CURVE } from "./snake";
+import { RALLY_REV_LIVES, RALLY_REV_STRICT, RALLY_STD_SPEC_V13, RALLY_V13_BAND_CURVE } from "./rally";
+import { SNAKE_REV_GRACE, SNAKE_REV_STRICT, SNAKE_V13_BAND_CURVE } from "./snake";
 import { BINTOSS_REV_STRICT, BINTOSS_REV_STD, BINTOSS_STD_SPEC, BINTOSS_V9_BAND_CURVE } from "./binToss";
 import { stdHelp, type StdSpec } from "./arcadeStandard";
 import { SNIP_REV_EXPAND, SNIP_REV_STRICT, SNIP_V11_BAND_CURVE } from "./snip";
-import { HOVER_REV_STANDARD, HOVER_REV_STRICT, HOVER_V10_BAND_CURVE } from "./hover";
+import { HOVER_REV_SHIELD, HOVER_REV_STRICT, HOVER_V10_BAND_CURVE } from "./hover";
 import { SKYLINE_REV_COUNT, SKYLINE_REV_STRICT, SKYLINE_STD_SPEC_V10, SKYLINE_V9_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
-import { BRK_REV_STD, BRK_REV_STRICT, BRK_V11_BAND_CURVE } from "./breaker";
+import { BRK_REV_CLEAR, BRK_REV_STRICT, BRK_V12_BAND_CURVE } from "./breaker";
 import { TILT_REV_BIG, TILT_REV_STRICT, TILT_V12_BAND_CURVE } from "./tilt";
 import { ORBIT_REV_STRICT, ORBIT_REV_FUEL } from "./orbit";
 import { ORBIT_V14_BAND_CURVE } from "./orbitRev3";
-import { BEAT_REV_STD, BEAT_REV_STRICT, BEAT_STD_SPEC, BEAT_V11_BAND_CURVE } from "./beat";
+import { BEAT_REV_FLOOR, BEAT_REV_STRICT, BEAT_STD_SPEC_V12, BEAT_V11_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_REV_LINE, SLICE_V13_BAND_CURVE } from "./slice";
-import { BURST_REV_AIM, BURST_REV_STRICT, BURST_V10_BAND_CURVE } from "./burst";
+import { BURST_REV_BIG, BURST_REV_STRICT, BURST_V10_BAND_CURVE } from "./burst";
 import { SWING_REV_SLIDE, SWING_REV_STRICT, SWING_V17_BAND_CURVE } from "./swing";
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
-import { PIN_REV_STD, PIN_STD_SPEC, PIN_V6_BAND_CURVE } from "./pinball4";
+import { PIN_REV_SAVE, PIN_STD_SPEC_V8, PIN_V6_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
 import { BASTION_REV_DEALT, BASTION_STD_SPEC_V3, BASTION_V3_BAND_CURVE } from "./bastionTank";
 import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V4_BAND_CURVE } from "./homerun";
@@ -88,7 +88,8 @@ function stdCoreCurve(spec: StdSpec): BandCurve {
 
 export const LIVE_BANDS = {
   balltrack: { field: "btRev", rev: BT_REV_STD, curve: BT_V8_BAND_CURVE, strictRev: BT_REV_STRICT },
-  wavefront: { field: "wavRev", rev: WAV_REV_KEEP, curve: WAV_V12_BAND_CURVE, strictRev: WAV_REV_STRICT },
+  // wavRev 14 (the Retro overhaul, 15 Nov 2026): wavRev 13 plus the charged shot; the same parts.
+  wavefront: { field: "wavRev", rev: WAV_REV_BIG, curve: WAV_V12_BAND_CURVE, strictRev: WAV_REV_STRICT },
   // flipRev 11 (3 Nov 2026): the core's straight line (clean half seconds → 100; a saved crash costs 20 s); perfect landings,
   // double flips and the flow streak up to 100 more. flipRev 10: half seconds survived → 150 (FLIP_V10_BAND_CURVE).
   // flipRev 12 (3 Nov 2026): flipRev 11's game and core line, dealt from the proved courses.
@@ -103,21 +104,24 @@ export const LIVE_BANDS = {
   bubble: { field: "bubbleRev", rev: BUB_REV_STD, curve: BUB_V11_BAND_CURVE, strictRev: BUB_REV_STRICT, std: BUB_V11_STD_SPEC },
   // crossRev 11 (3 Nov 2026): no coins; the core 150 on a straight line, full at 76 units; the no-stop streak 40 and close
   // calls 10 (the help says so); a hit costs 15. crossRev 10: 150 at 92 units (CROSS_V10_BAND_CURVE), coins and a clean streak.
-  cross: { field: "crossRev", rev: CROSS_REV_KEEP, curve: CROSS_V11_BAND_CURVE, strictRev: CROSS_REV_STRICT },
+  cross: { field: "crossRev", rev: CROSS_REV_LIGHT, curve: CROSS_V11_BAND_CURVE, strictRev: CROSS_REV_STRICT },
   // rallyRev 12 (the arcade scoring standard): gold-ball hits on a straight line, pads and gold targets fixed.
-  rally: { field: "rallyRev", rev: RALLY_REV_STD, curve: RALLY_V12_BAND_CURVE, strictRev: RALLY_REV_STRICT, std: RALLY_STD_SPEC },
+  // rallyRev 13 (the Retro overhaul, 15 Nov 2026): two lives; gold hits 130 + pads 30 + targets 30 + spin shots 10.
+  rally: { field: "rallyRev", rev: RALLY_REV_LIVES, curve: RALLY_V13_BAND_CURVE, strictRev: RALLY_REV_STRICT, std: RALLY_STD_SPEC_V13 },
   // snakeRev 12 (1 Nov 2026): the core's straight line to 120 at 20 core stars (a gold star counts 2); gold stars, combos, lane rides
   // and warp stars pay up to 80 more (the help says so). snakeRev 11: 120 at 27 stars (SNAKE_V11_BAND_CURVE).
-  snake: { field: "snakeRev", rev: SNAKE_REV_12, curve: SNAKE_V12_BAND_CURVE, strictRev: SNAKE_REV_STRICT },
+  // snakeRev 13 (the Retro overhaul, 15 Nov 2026): wrap-around edges; the core full at 36 core stars.
+  snake: { field: "snakeRev", rev: SNAKE_REV_GRACE, curve: SNAKE_V13_BAND_CURVE, strictRev: SNAKE_REV_STRICT },
   bintoss: { field: "binRev", rev: BINTOSS_REV_STD, curve: BINTOSS_V9_BAND_CURVE, strictRev: BINTOSS_REV_STRICT, std: BINTOSS_STD_SPEC },
   snip: { field: "snipRev", rev: SNIP_REV_EXPAND, curve: SNIP_V11_BAND_CURVE, strictRev: SNIP_REV_STRICT },
   // hoverRev 10 (the arcade scoring standard): the core, barriers on one straight line to 120; the features add 80 (the help says so).
-  hover: { field: "hoverRev", rev: HOVER_REV_STANDARD, curve: HOVER_V10_BAND_CURVE, strictRev: HOVER_REV_STRICT },
+  hover: { field: "hoverRev", rev: HOVER_REV_SHIELD, curve: HOVER_V10_BAND_CURVE, strictRev: HOVER_REV_STRICT },
   // skylineRev 9 (the arcade scoring standard): floors on a straight line to 140, then perfect drops, the streak and gold.
   skyline: { field: "skylineRev", rev: SKYLINE_REV_COUNT, curve: SKYLINE_V9_BAND_CURVE, strictRev: SKYLINE_REV_STRICT, std: SKYLINE_STD_SPEC_V10 },
   junction: { field: "junctionRev", rev: JUNC_REV_BAND, curve: JUNC_BAND_CURVE },
   // brkRev 11 (the arcade scoring standard): the bricks' straight line to 140; clear 10, speed 20 and gold 30 on top (the help says so).
-  breaker: { field: "brkRev", rev: BRK_REV_STD, curve: BRK_V11_BAND_CURVE, strictRev: BRK_REV_STRICT },
+  // brkRev 12 (the Retro overhaul, 15 Nov 2026): the 9-row wall, its core on the board's 81 bricks.
+  breaker: { field: "brkRev", rev: BRK_REV_CLEAR, curve: BRK_V12_BAND_CURVE, strictRev: BRK_REV_STRICT },
   // tiltRev 10 (the arcade scoring standard): the core's straight line (35 a maze, to 140); finish, speed and gold stars add up to 60 (the help says so).
   // tiltRev 11 (3 Nov 2026): no gold stars; the core's straight line (35 a maze, to 140, up to 20 of a maze for
   // progress); par 24, a clean run 12 and speed 24 add up to 60 more (the help says so).
@@ -127,12 +131,14 @@ export const LIVE_BANDS = {
   // orbitRev 14 (the fuel meter): the same parts and straight line on the fuel bank's zigzag courses.
   orbit: { field: "orbitRev", rev: ORBIT_REV_FUEL, curve: ORBIT_V14_BAND_CURVE, strictRev: ORBIT_REV_STRICT },
   // beatRev 11 (the arcade scoring standard): beatRev 10's play; accuracy on a straight line to 130, four fixed features.
-  beat: { field: "beatRev", rev: BEAT_REV_STD, curve: BEAT_V11_BAND_CURVE, strictRev: BEAT_REV_STRICT, std: BEAT_STD_SPEC },
+  // beatRev 12 (the Retro overhaul, 15 Nov 2026): beatRev 11 with a missed note scoring 0 rather than −2.
+  beat: { field: "beatRev", rev: BEAT_REV_FLOOR, curve: BEAT_V11_BAND_CURVE, strictRev: BEAT_REV_STRICT, std: BEAT_STD_SPEC_V12 },
   // sliceRev 11 (the arcade scoring standard): the core's straight line to 120; combo, golden fruit, tickets and dodges pay up to 80 more.
   // sliceRev 12 (3 Nov 2026): bigger food; the core's straight line from half the food thrown to 120.
   slice: { field: "sliceRev", rev: SLICE_REV_LINE, curve: SLICE_V13_BAND_CURVE, strictRev: SLICE_REV_STRICT },
   // burstRev 10 (the arcade scoring standard): the core's straight line (140 at all 87 atoms); wave clears, golden atoms and lives on top (the help says so).
-  burst: { field: "burstRev", rev: BURST_REV_AIM, curve: BURST_V10_BAND_CURVE, strictRev: BURST_REV_STRICT },
+  // burstRev 12 (the Retro overhaul, 15 Nov 2026): burstRev 11 with the wave-clear bonus running out at 3× the quick time.
+  burst: { field: "burstRev", rev: BURST_REV_BIG, curve: BURST_V10_BAND_CURVE, strictRev: BURST_REV_STRICT },
   // swingRev 17 (the sliding hooks and the clean-swing streak, 90 s): the course's straight line to 140, full at SWING_V17_FULL
   // per mille; pars, gates and the streak pay up to 60 more (the help says so).
   swing: { field: "swingRev", rev: SWING_REV_SLIDE, curve: SWING_V17_BAND_CURVE, strictRev: SWING_REV_STRICT },
@@ -140,7 +146,8 @@ export const LIVE_BANDS = {
   // bull streak and dead-centre darts.
   bullseye: { field: "bullRev", rev: BULLSEYE_REV_STD, curve: BULLSEYE_V9_BAND_CURVE, strictRev: BULLSEYE_REV_STRICT, std: BULLSEYE_STD_SPEC },
   // pinRev 6 (29 Oct 2026): the arcade scoring standard (table points on a straight line to 130, four features to 70).
-  pinball: { field: "pinRev", rev: PIN_REV_STD, curve: PIN_V6_BAND_CURVE, strictRev: PIN_REV_STRICT, std: PIN_STD_SPEC },
+  // pinRev 7 (the Retro overhaul, 15 Nov 2026): pinRev 6 with one J-O-U-L-Z set filling its part.
+  pinball: { field: "pinRev", rev: PIN_REV_SAVE, curve: PIN_V6_BAND_CURVE, strictRev: PIN_REV_STRICT, std: PIN_STD_SPEC_V8 },
   // Cards & Board (30 Oct 2026), on the arcade scoring standard from their first revision: the core's straight line
   // (Minesweeper in per mille of the safe squares beyond the opening, Mahjong in pairs) and fixed features to 200.
   // minesRev 2 (13 Nov 2026): 20 mines, the same straight core line.

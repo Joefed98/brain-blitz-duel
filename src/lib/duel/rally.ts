@@ -4,6 +4,7 @@
  * the server replays with the STORED seed and keeps its own score.
  */
 
+import type { Level } from "@/lib/levels/levels";
 import type { InputDiag } from "@/lib/arcade/engine";
 
 import {
@@ -16,8 +17,7 @@ import {
   RALLY_INPUT_RANGES,
   RALLY_RUN_TICKS,
   type RallyCheckpoint,
-  type RallyState,
-} from "@/lib/arcade/rally";
+  type RallyState, rallyPaddleWOf } from "@/lib/arcade/rally";
 import {
   checkInputEvents,
   decodeInputEvents,
@@ -119,13 +119,13 @@ export interface RallyResult {
 }
 
 /** The single place a Rally score is worked out. */
-export function replayRallyRun(seed: number, raw: string, rev?: number | null): RallyResult {
+export function replayRallyRun(seed: number, raw: string, rev?: number | null, level?: Level | null): RallyResult {
   const run = decodeRallyRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, RALLY_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < RALLY_RUN_TICKS;
   // The revision's own game (rallyRev 10 has its own step and its wider court's input range; every earlier
   // revision shares rallyGame's step, so this is the same sim they always replayed on).
-  const game = rallyGameFor(rev);
+  const game = rallyGameFor(rev, level);
   const check = checkInputEvents(run.events, RALLY_RUN_TICKS, game.inputRanges ?? RALLY_INPUT_RANGES);
   const events = new Map<number, ArcadeInputEvent>();
   for (const event of check.events) events.set(event.t, event);
@@ -163,7 +163,7 @@ export function replayRallyRun(seed: number, raw: string, rev?: number | null): 
     targetHits: state.targetHits ?? 0,
     bounces: state.bounces ?? 0,
     rallyRev: state.rev ?? 0,
-    paddleWidth: rallyPaddleW(rallyTotalHits(state)),
+    paddleWidth: rallyPaddleWOf(state),
     survived: rallySurvived(state),
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,
     score: replayScore,

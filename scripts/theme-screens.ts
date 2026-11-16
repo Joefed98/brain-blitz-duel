@@ -77,6 +77,8 @@ interface RoomOpts {
   colours?: (slot: number) => number;
   /** An arcade round of this game instead of Gemstone (with `arcade`). */
   arcadeType?: string;
+  /** A stored arcade run for this device (slot 1): the round's puzzle and the run's answer (the Retro reveals' summary). */
+  arcadeRun?: { puzzle: PuzzleData; answer: string };
   /** The host's user id (default u1, this device: "u2" draws the lobby as a guest sees it). */
   host?: string;
   /** The room's stored settings (duels.selected_categories; default [], an older room's Standard mix). */
@@ -124,12 +126,13 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
     score: opts.scores ? opts.scores(slot, round) : 190 - rankOf(slot) * 13 - round,
     submitted_at: iso(now - 5_000),
   });
-  const scored = status === "finished" || ["result", "standings", "winner_reveal"].includes(phase) || !!opts.revealParts;
+  const scored = status === "finished" || ["result", "standings", "winner_reveal"].includes(phase) || !!opts.revealParts || !!opts.arcadeRun;
   const players = Array.from({ length: count }, (_, i) => player(i + 1));
   if (opts.join) players[0] = { ...players[0]!, status: "left" };
   const arcadeType = opts.arcadeType ?? "matchup";
-  const arcadePuzzle =
-    arcadeType === "matchup" ? ARCADE : (splitPuzzle(withSeededRandom(41, () => generatePuzzle(arcadeType as never))).pub as PuzzleData);
+  const arcadePuzzle = opts.arcadeRun
+    ? opts.arcadeRun.puzzle
+    : arcadeType === "matchup" ? ARCADE : (splitPuzzle(withSeededRandom(41, () => generatePuzzle(arcadeType as never))).pub as PuzzleData);
   const order = Array.from({ length: rounds }, (_, i) =>
     opts.arcade || i % 2 ? arcadeType : "sudoku",
   );
@@ -160,7 +163,7 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
     results: scored
       ? players.flatMap((p) =>
           Array.from({ length: rounds }, (_, r) => {
-            const row = result(p.player_slot, r + 1);
+            const row = { ...result(p.player_slot, r + 1), ...(opts.arcadeRun && p.player_slot === 1 ? { answer: opts.arcadeRun.answer } : {}) };
             return opts.revealParts && p.player_slot === 1 ? { ...row, extra: { reveal: FOUR_PART_REVEAL } } : row;
           }),
         )

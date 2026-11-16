@@ -90,7 +90,7 @@ import {
   SNAKE_V9_H,
   type SnakeState,
 } from "./snake";
-import { burstFloorY, burstGoldenCount, BURST_FLOOR_Y, BURST_LIVES, BURST_TALL_H, BURST_WORLD_W, type BurstState } from "./burst";
+import { burstFloorY, burstGoldenCount, BURST_FLOOR_Y, BURST_LIVES, burstLivesOf, BURST_TALL_H, BURST_WORLD_W, type BurstState } from "./burst";
 import { SKYLINE_STREAK_FROM, SKYLINE_TALL_H, SKYLINE_WIND_FROM, SKYLINE_WORLD_H, SKYLINE_WORLD_W, skylineWorldH, type SkylineState } from "./skyline";
 import {
   crossColumnCentreFp,
@@ -759,7 +759,7 @@ export const BURST_FX: ArcadeFxSpec<BurstState> = {
     // Mirrors the sim's own top-up condition (burstScoreOf): finished, no life lost, 4+ waves.
     {
       kind: "final",
-      count: (s) => (s.ended === 1 && s.lives === BURST_LIVES && s.cleared >= 4 ? 1 : 0),
+      count: (s) => (s.ended === 1 && s.lives === burstLivesOf(s) && s.cleared >= 4 ? 1 : 0),
       label: () => "FLAWLESS!",
     },
   ],

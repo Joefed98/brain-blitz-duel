@@ -60,11 +60,20 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `ricochet.flow` | Moon Climb | Each Flow step (every 7 clean leaps in a row, ricoRev 3) | `combo` (0.75) | 0–16 | 120 ms |
 | `hover.start` | Hover | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `hover.crash` | Hover | The craft crashes | `arc_retro_explode` | 0–1 | 260 ms |
-| `hover.gate` | Hover | A barrier is passed | `arc_retro_note` | 20–60 | 90 ms |
+| `hover.gate` | Hover | A barrier is passed; since the Retro overhaul (15 Nov 2026) a semitone higher for each gate in a row passed without a scrape or a shield breaking, at most an octave | `arc_retro_note` | 20–60 | 90 ms |
 | `hover.star` | Hover | A gold star is collected (hoverRev 2+) | `arc_retro_coin` (0.8) | 3–10 | 120 ms |
+| `hover.thrust` | Hover | Each tap: the thrust puff under the saucer (the Retro overhaul) | `arc_retro_blip` (0.18) | every tap | 60 ms |
+| `hover.scrape` | Hover | The saucer's edge passes within 3 px of a gap's edge: sparks off the barrier (the Retro overhaul; `hoverScrape` in retroMoments.ts) | `arc_retro_blip` (0.45) | 0–20 | 150 ms |
+| `hover.deadCentre` | Hover | A tight gate threaded dead centre: its rims flash gold (hoverRev 9+, the Retro overhaul) | `arc_retro_coin` (0.6) | 0–10 | 250 ms |
+| `hover.shieldShatter` | Hover | A shield shatters in place of a crash: glass shards round the saucer (hoverRev 9+, the Retro overhaul; was `hover.crash`) | `arc_retro_hit` (0.9) | 0–3 | 450 ms |
+| `breaker.goldTang` | Breaker | Each hit on a gold brick that doesn't break it: a metallic tang, the brick's crack deepening (the Retro overhaul) | `arc_retro_coin` (0.6, ×1.6) | 0–12 | 200 ms |
+| `breaker.capsuleIcon` | Breaker | A caught power-up: its icon rises over the paddle (the Retro overhaul) | `arc_retro_blip` (0.45, ×1.5) | 0–8 | 120 ms |
+| `rally.fwip` | Rally | A swiped return starts a curl: a white swirl leaves the ball (the Retro overhaul) | `arc_retro_blip` (0.4, ×1.8) | 0–20 | 150 ms |
+| `rally.edgeSave` | Rally | A return on the paddle's last 4 px: sparks off that end (`rallyEdgeSave` in retroMoments.ts) | `arc_retro_hit` (0.45, ×1.7) | 0–15 | 100 ms |
 | `snake.start` | Meteor | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `snake.dead` | Meteor | The snake dies | `arc_retro_explode` | 0–1 | 260 ms |
 | `snake.eat` | Meteor | A star is eaten | `arc_retro_blip` | 10–40 | 50 ms |
+| `snake.saved` | Meteor | A crash forgiven (snakeRev 15, the comet holds still) | `arc_retro_explode` (softer, faster; Joe's file to come) | 0–2 | 400 ms |
 | `snake.rockLand` | Meteor | A rock lands clear of the head (snakeRev 2+) | `arc_retro_hit` (0.7) | 5–20 | 120 ms |
 | `snake.rockWarn` | Meteor | A rock's shadow appears | `arc_retro_note` (0.5, slowed ×0.7) | 5–20 | 90 ms |
 | `snake.showerAlarm` | Meteor | A meteor shower's three shadows appear (snakeRev 3+) | `arc_retro_note` (0.7, slowed ×0.5) | 1–3 | 180 ms |
@@ -93,6 +102,7 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `rally.dead` | Rally | The rally ends | `arc_retro_explode` | 0–1 | 260 ms |
 | `rally.goldHit` | Rally | The gold ball is returned | `arc_retro_note` | 3–10 | 90 ms |
 | `rally.hit` | Rally | The ball is returned | `arc_retro_blip` | 30–80 | 50 ms |
+| `rally.lifeLost` | Rally | The blue ball is missed with a life to spare (rallyRev 13); the run goes on | `arc_retro_explode` (0.7) | 0–1 | 420 ms |
 | `burst.start` | Fission | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `burst.gameOver` | Fission | The run ends on the last life | `arc_retro_explode` | 0–1 | 260 ms |
 | `burst.lifeLost` | Fission | A life is lost | `arc_lose_life` | 0–3 | 220 ms |

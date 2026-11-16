@@ -1,5 +1,7 @@
 /**
- * arcade-standard-check's case for `beat` (see ./entry.ts): Tempo beatRev 11 (docs/arcade-standard/beat.md).
+ * arcade-standard-check's case for `beat` (see ./entry.ts): Tempo beatRev 12 (docs/arcade-standard/beat.md; beatRev 11 with
+ * a missed note scoring 0). Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the
+ * entry moved to the dealt stamp, beatRev 12; beatRev 11's miss cost is still proved below on a beatRev 11 state.
  * States are built by hand from beatRev 11's init; the sim's rules are read, never copied.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -11,13 +13,14 @@ import {
   beatGameFor,
   beatStdParts,
   BEAT_REV_EASE,
+  BEAT_REV_FLOOR,
   BEAT_REV_STD,
   BEAT_V11_ACC_FULL,
   type BeatState,
 } from "../../src/lib/arcade/beat";
 
 const SEED = 4242;
-const game = beatGameFor(BEAT_REV_STD);
+const game = beatGameFor(BEAT_REV_FLOOR);
 
 /** beatRev 11's init with the run over and input recorded. */
 function base(): BeatState {
@@ -84,7 +87,11 @@ export const stdCase: StdCase = {
     ok(parts({ ...bare, goldsHit: 3, doublesDone: 3 }).gold === 0 && parts({ ...bare, goldsHit: 3, doublesDone: 3 }).double === 0, "beat: no golden notes or double taps in the song pay 0");
     // Mistakes: a miss costs 2 quarters of the song (Perfect 4, Good 3, OK 1), never below 0.
     const a = plain(800);
-    ok(beatAccuracy({ ...a, misses: 1 }) === 798 && beatAccuracy({ ...a, misses: 1000 }) === 0, "beat: a miss costs 2 thousandths on a 250-note song, accuracy never below 0");
+    const v11 = { ...a, floor: undefined };
+    ok(beatGameFor(BEAT_REV_STD).init(SEED).floor === undefined, "beat: beatRev 11 states carry no floor");
+    ok(beatAccuracy({ ...v11, misses: 1 }) === 798 && beatAccuracy({ ...v11, misses: 1000 }) === 0, "beat: on beatRev 11 a miss costs 2 thousandths on a 250-note song, accuracy never below 0");
+    // beatRev 12: a missed note scores 0, so misses never take away what the hits earned.
+    ok(a.floor === 1 && beatAccuracy({ ...a, misses: 1 }) === 800 && beatAccuracy({ ...a, misses: 1000 }) === 800, "beat: on beatRev 12 a missed note scores 0 and takes nothing off");
     ok(beatAccuracy({ ...a, perfect: 0, good: 100, ok: 0 }) === 300 && beatAccuracy({ ...a, perfect: 0, good: 0, ok: 100 }) === 100, "beat: Good counts 3, OK 1");
     // Features never touch the core: the same judgements with every feature earned keep the same accuracy points.
     const mid = plain(700);

@@ -16,6 +16,7 @@ import { ARCADE_INPUT_DRAG } from "../../../src/lib/arcade/engine";
 import {
   rallyBonusLive,
   rallyPaddleW,
+  rallyPaddleWOf,
   rallyTotalHits,
   rallyTargetLeft,
   rallyWorldW,
@@ -126,7 +127,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
    * paddle's half-width to spare)? A strong player keeps both balls when they can.
    */
   const canBoth = (first: { x: number; t: number }, second: { x: number; t: number }, s: RallyState): boolean => {
-    const half = rallyPaddleW(rallyTotalHits(s) + 1) / 2;
+    const half = rallyPaddleWOf(s, 1) / 2;
     const step = FINGER[level]!;
     const reachFirst = Math.max(0, Math.abs(first.x - finger) - half * 0.6) / step;
     const reachSecond = react + Math.max(0, Math.abs(second.x - first.x) - half * 0.6) / step;
@@ -154,7 +155,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
         const key = `both:${aim.key}:${blue.key}`;
         let both = plans.get(key);
         if (both === undefined) plans.set(key, (both = tenCourt && human.chance(BOTH[level]!)));
-        const half = rallyPaddleW(rallyTotalHits(s)) / 2;
+        const half = rallyPaddleWOf(s) / 2;
         const reach = FINGER[level]! * Math.max(0, blue.t - aim.t - 6) + half * 0.8;
         if (!both || Math.abs(blue.x - aim.x) > reach) aim = blue;
       }
@@ -174,7 +175,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
         reads.set(aim.key, r);
       }
       // The read sharpens as the ball comes in, but one reaction late.
-      const half = rallyPaddleW(rallyTotalHits(s)) / 2;
+      const half = rallyPaddleWOf(s) / 2;
       const err = r.err * (READ[level]! * aim.t + human.p.aimSdPx * 0.6);
       let off = 0;
       let goal: number | null = null;

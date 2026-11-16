@@ -561,7 +561,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Multiball madness | Start multiball. | Classic | Target | line “Multiball” = 20 of 20 |  | `pinball.multiball` |
-| Spell it out | Spell J-O-U-L-Z twice. | Classic | Max-out | line “J-O-U-L-Z” = 20 of 20 |  | `pinball.joulz` |
+| Spell it out | Spell J-O-U-L-Z in one game. | Classic | Max-out | line “J-O-U-L-Z” = 20 of 20 |  | `pinball.joulz` |
 | Jackpot | Hit three jackpots. | Classic | Full set | line “Jackpots” = 15 of 15 | ● | `pinball.jackpot` |
 
 #### Rally (`rally`)
@@ -570,13 +570,13 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Pink pong | Strike pink pads five times. | Classic | Target | line “Pink pads” ≥ 15 |  | `rally.pink-pong` |
 | Target practice | Hit all six gold targets. | Classic | Full set | line “Gold targets” = 30 of 30 |  | `rally.target-practice` |
-| Rally king | Return 23 gold balls on Hard. | Hard | Max-out | line “Gold-ball hits” = 140 of 140 |  | `rally.rally-king` |
+| Rally king | Return 23 gold balls on Hard. | Hard | Max-out | line “Gold-ball hits” = 130 of 130 |  | `rally.rally-king` |
 
 #### Meteor (`snake`)
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Star eater | Eat 28 stars; a gold star counts as two. | Classic | Target | `meteorParts.core` ≥ 120 |  | `snake.star-eater` |
+| Star eater | Eat 36 stars; a gold star counts as two. | Classic | Target | `meteorParts.core` ≥ 120 |  | `snake.star-eater` |
 | Comet tail | Score 150 or more. | Classic | Big score | `score` ≥ 150 |  | `snake.comet-tail` |
 | Golden comet | Eat all seven gold stars. | Classic | Full set | `goldStars` ≥ `goldStarsDealt`, `goldStarsDealt` ≥ 7 |  | `snake.golden-comet` |
 

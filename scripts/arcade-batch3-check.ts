@@ -98,8 +98,13 @@ import {
 import { encodeSwingRun, replaySwingRun } from "../src/lib/duel/swing";
 import { proveSwingSeedV4 } from "../src/lib/duel/swingProof.server";
 import { SWING_V4_BANK } from "../src/lib/duel/swingBankV4.server";
-import { generateBreaker, generateBurst, generateSwing, generateWavefront } from "../src/lib/duel/arcade.server";
+import { generateBreaker, generateBurst, generateSwing, generateWavefront, pinPreRetro } from "../src/lib/duel/arcade.server";
 import { playRevOf } from "./scoring-targets-revs";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal the overhaul's stamps
+// (Breaker brkRev 12, Rally rallyRev 13, Meteor snakeRev 13…); this check was written for the deal before it, so it pins
+// preRetro.
+pinPreRetro(true);
 
 let checks = 0;
 const ok = (value: unknown, message: string) => {

@@ -5,6 +5,7 @@
  * Oct 2026 score-band pass; `next` (when set) is the revision stamped after it.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { puzzleLevel, type Level } from "../../src/lib/levels/levels";
 import type { ArcadeGame } from "../../src/lib/arcade/engine";
 import type { PuzzleType } from "../../src/lib/duel/types";
 import { btCheckpoint, btIsV7Play, makeBallTrackGame, BT_REV, BT_REV_BAND, BT_REV_TALL, BT_REV_TARGET, BT_REV_STRICT, BT_REV_STD } from "../../src/lib/arcade/ballTrack";
@@ -396,5 +397,26 @@ export const GAMES: GameSpec[] = [
     replay: (seed, raw, rev) => replayCurlingRun(seed, raw, rev),
   },
 ];
+
+/**
+ * Stage 3 of the Retro overhaul (16 Nov 2026): the Retro games' levels change their sims, so the level tuning tool
+ * (scripts/level-tune.ts) builds each from the dealt puzzle's stamp and level through its `…GameFor(rev, level)`.
+ */
+const RETRO_LEVEL_GAMES: Record<string, [string, (rev: number | null, level: Level) => ArcadeGame<any, any>]> = {
+  breaker: ["brkRev", (rev, level) => breakerGameFor(rev, level)],
+  cross: ["crossRev", (rev, level) => crossGameFor(rev, level)],
+  snake: ["snakeRev", (rev, level) => snakeGameFor(rev, level)],
+  beat: ["beatRev", (rev, level) => beatGameFor(rev, level)],
+  burst: ["burstRev", (rev, level) => burstGameFor(rev, level)],
+  rally: ["rallyRev", (rev, level) => rallyGameFor(rev, level)],
+  hover: ["hoverRev", (rev, level) => hoverGameFor(rev, level)],
+  pinball: ["pinRev", (rev, level) => pinballGameForAny(rev, level)],
+  wavefront: ["wavRev", (rev, level) => wavefrontGameFor(rev, level)],
+  blockfall: ["blockfallRev", (rev, level) => blockfallGameFor(rev, level)],
+};
+for (const g of GAMES) {
+  const own = RETRO_LEVEL_GAMES[g.type];
+  if (own) g.gameForPuzzle = (puzzle) => own[1](puzzle[own[0]] ?? null, puzzleLevel(puzzle));
+}
 
 export const GAME_BY_TYPE = new Map(GAMES.map((g) => [g.type, g]));

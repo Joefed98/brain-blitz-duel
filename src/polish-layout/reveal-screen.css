@@ -279,3 +279,150 @@
   padding: 12px;
   box-sizing: border-box;
 }
+
+/* ---- The Retro overhaul, stage 2 (15 Nov 2026): a Retro game's run summary (RetroRunSummary.tsx) -------------------
+   The key numbers in plain words, a timeline of the run's moments along the clock and, for Breaker, Meteor and
+   Blockzone, the board as the run left it. Every height is fixed, so the box holds its space before the summary loads. */
+.retro-summary {
+  display: flex;
+  width: 100%;
+  flex-shrink: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--jz-radius);
+  background: color-mix(in srgb, var(--jz-bg) 72%, transparent);
+  box-shadow: inset 0 0 0 1px var(--jz-line);
+  font-family: var(--jz-font);
+}
+.retro-summary-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 66px;
+}
+.retro-summary-with-picture .retro-summary-top {
+  height: 104px;
+}
+.retro-summary-picture {
+  display: block;
+  flex-shrink: 0;
+  width: 58px;
+  height: 104px;
+  border-radius: 4px;
+  box-shadow: 0 0 0 1px var(--jz-line);
+}
+.retro-summary-stats {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+}
+.retro-summary-stat {
+  display: flex;
+  height: 22px;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 14px;
+  line-height: 22px;
+}
+.retro-summary-stat dt {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--reveal-text-2, var(--jz-text-2));
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.retro-summary-stat dd {
+  margin: 0;
+  flex-shrink: 0;
+  color: var(--jz-text);
+  font-weight: var(--jz-weight-bold);
+  white-space: nowrap;
+}
+.retro-summary-timeline-wrap {
+  display: flex;
+  height: 36px;
+  flex-direction: column;
+  gap: 6px;
+}
+.retro-summary-timeline {
+  position: relative;
+  height: 14px;
+  overflow: hidden;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--jz-text) 10%, transparent);
+}
+.retro-summary-unplayed {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(135deg, transparent 0 4px, color-mix(in srgb, var(--jz-text) 8%, transparent) 4px 6px);
+}
+.retro-summary-mark,
+.retro-summary-note {
+  position: absolute;
+  top: 2px;
+  width: 3px;
+  height: 10px;
+  margin-left: -1px;
+  border-radius: 1px;
+}
+.retro-summary-note {
+  top: 0;
+  width: 2px;
+  height: 14px;
+  opacity: 0.85;
+}
+.retro-summary-mark[data-mark="gold"] {
+  top: 1px;
+  width: 4px;
+  height: 12px;
+}
+.retro-summary-mark[data-mark="miss"] {
+  top: 0;
+  width: 4px;
+  height: 14px;
+}
+[data-mark="good"] {
+  background: var(--jz-cyan);
+}
+[data-mark="gold"],
+[data-note="perfect"] {
+  background: var(--jz-gold);
+}
+[data-mark="miss"],
+[data-note="miss"] {
+  background: var(--jz-red);
+}
+[data-note="good"] {
+  background: var(--jz-cyan);
+}
+[data-note="ok"] {
+  background: var(--jz-text-3);
+}
+.retro-summary-legend {
+  display: flex;
+  height: 16px;
+  gap: 12px;
+  overflow: hidden;
+  color: var(--reveal-text-2, var(--jz-text-2));
+  font-size: 12px;
+  line-height: 16px;
+  white-space: nowrap;
+}
+.retro-summary-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.retro-summary-legend i {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+}

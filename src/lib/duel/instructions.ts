@@ -140,8 +140,7 @@ import {
   WAV_STD_CORE_FULL,
   WAV_STD_LIFE_COST,
   WAVEFRONT_STD,
-  WAVEFRONT_STD_KEEP,
-} from "@/lib/arcade/wavefront";
+  WAVEFRONT_STD_KEEP, WAV_V14_HEAVY_HITS } from "@/lib/arcade/wavefront";
 import {
   INK_CLOUD_LEVELS,
   INK_V13_CLOVERS,
@@ -171,6 +170,7 @@ import {
   SNAKE_STD_WARP_TICKS,
   SNAKE_STD_WARP_POINTS,
   SNAKE_V12_CORE_STARS,
+  SNAKE_V13_CORE_STARS,
   SNAKE_V12_GOLD_CORE,
 } from "@/lib/arcade/snake";
 import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
@@ -216,7 +216,7 @@ import {
   BULLSEYE_V8_STREAK_STEP,
   BULLSEYE_V9_DEAD_CAP,
 } from "@/lib/arcade/bullseye";
-import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_TARGET_PTS } from "@/lib/arcade/rally";
+import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_TARGET_PTS, RALLY_V13_LIVES, RALLY_V13_SPIN_MAX, RALLY_V13_SPIN_PTS } from "@/lib/arcade/rally";
 import {
   BURST_V9_CAPS,
   BURST_V9_CLEAR_MAX,
@@ -309,6 +309,7 @@ import {
   BRK_V9_GOLD,
   BRK_V9_GOLD_POINTS,
   BRK_V9_ROWS,
+  BRK_V12_ROWS,
   BRK_V9_SKILL_MAX,
   BRK_V9_SKILL_PAY,
   BRK_V11_BRICKS,
@@ -976,7 +977,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     snake: {
       goal: "Eat the stars; don’t crash.",
       how: [
-        { action: "Swipe to turn.", detail: "Stars grow and speed you up." },
+        { action: "Swipe to turn.", detail: "Off one edge, on at the other." },
         { action: "Red shadow?", detail: "A rock lands there in 2 s." },
         { action: "Gold stars, lanes, wormholes:", detail: "bonus points." },
         { action: "Quick stars build a combo;", detail: "wormholes and violet lanes are quick, risky shortcuts.", helpOnly: true },
@@ -985,17 +986,18 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Gold comet stars:", detail: `about every 7 s a gold star appears for 5 s and fades. The ${SNAKE_STD_GOLDS} gold stars share ${SNAKE_STD_CAPS.gold} points: each is worth about ${(SNAKE_STD_CAPS.gold / SNAKE_STD_GOLDS).toFixed(1)} the moment it appears, falling evenly to 0 as it fades. Each also counts as ${SNAKE_V12_GOLD_CORE} stars towards your stars. It doesn’t make you longer.`, helpOnly: true },
         { action: "Violet speed lanes:", detail: `one row and two columns. Travelling along one you move faster; every ride of ${SNAKE_STD_LANE_RIDE} squares in a row along a lane scores ${SNAKE_STD_LANE_POINTS}.`, helpOnly: true },
         { action: "Combo:", detail: `eat stars within ${SNAKE_STD_COMBO_TICKS / 60} s of each other; from the third in a row each star adds 1 bonus point.`, helpOnly: true },
-        { action: "Rocks hit only your head.", detail: "A rock on your tail does nothing, and your tail passes through rocks. A big rock fills a 2 × 2 block: keep your head off all four squares.", helpOnly: true },
+        { action: "Rocks hit only your head.", detail: "A rock on your tail does nothing, and your tail passes through rocks. Rocks come in three sizes: one square, two squares side by side or one above the other, and a big 2 × 2 block. Keep your head off every square a rock covers.", helpOnly: true },
         { action: "Rocks start at length 9:", detail: "one more every 4 stars, up to 11. Stars never appear on a rock.", helpOnly: true },
         { action: "The meteor shower", detail: "comes once, when you reach 20 stars: three red shadows, then three rocks land together 2 s later. With the shower, at most 14 rocks.", helpOnly: true },
-        { action: "Hit a wall, your tail or a rock with your head", detail: "and the run ends.", helpOnly: true },
+        { action: "The edges wrap:", detail: "go out through one side and you come back in on the opposite side, in the same row or column. Stars make you longer and faster.", helpOnly: true },
+        { action: "Hit your tail or a rock with your head", detail: "and the run ends.", helpOnly: true },
         { action: "Field:", detail: `${SNAKE_V9_COLS} squares across and ${SNAKE_V9_ROWS} down, so stars can be further away.`, helpOnly: true },
         { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
       ],
-      // snakeRev 12 (1 Nov 2026): stars on a straight line to 120, full at 28, a big gold star counting 2; then four fixed
-      // feature parts, 200 in all.
+      // snakeRev 12 (1 Nov 2026): stars on a straight line to 120, a big gold star counting 2; then four fixed feature parts,
+      // 200 in all. snakeRev 13 and 14 (the Retro overhaul): the line is full at 36 stars (was 28).
       score: scoreList([
-        { label: "Stars", how: `every star eaten counts, a big gold star counts ${SNAKE_V12_GOLD_CORE}; all of it at ${SNAKE_V12_CORE_STARS} stars`, max: SNAKE_STD_CORE_MAX },
+        { label: "Stars", how: `every star eaten counts, a big gold star counts ${SNAKE_V12_GOLD_CORE}; all of it at ${SNAKE_V13_CORE_STARS} stars`, max: SNAKE_STD_CORE_MAX },
         { label: "Gold stars", how: "eat a gold star soon after it appears for more", max: SNAKE_STD_CAPS.gold },
         { label: "Combos", how: `1 for each star from the third eaten within ${SNAKE_STD_COMBO_TICKS / 60} s of the last`, max: SNAKE_STD_CAPS.combo },
         { label: "Lane rides", how: `${SNAKE_STD_LANE_POINTS} for every ${SNAKE_STD_LANE_RIDE} squares along a violet lane`, max: SNAKE_STD_CAPS.lane },
@@ -1050,7 +1052,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Five power-up bricks drop a capsule; each brick shows its power.", detail: "Tap anywhere to fire a laser or ×3 you’ve caught; any longer touch moves the paddle.", helpOnly: true },
         { action: "Green beam = laser:", detail: "one beam straight up from the paddle that hits the first 4 bricks above it.", helpOnly: true },
         { action: "Silver three arrows = three shots:", detail: "each tap fires an extra ball straight up; it vanishes at the first wall it hits.", helpOnly: true },
-        { action: "Bronze two balls = double balls", detail: "at once. There are two per board, in the lower rows.", helpOnly: true },
+        { action: "Bronze balls = multi-ball:", detail: "every ball in play becomes three. There are two per board, in the lower rows.", helpOnly: true },
+        { action: "The wall:", detail: `${BRK_V12_ROWS} rows of ${BRK_V9_COLS} bricks, three of them gold, the power-up bricks low in the wall. A strong player can clear it inside the 90 seconds.`, helpOnly: true },
         { action: "Orange flame = Fireball:", detail: "for 2.5 seconds your balls smash straight through bricks without bouncing.", helpOnly: true },
         { action: "Sliding rows:", detail: "one row starts at 30 s and another at 60 s, half a brick each way, slowly and always the same.", helpOnly: true },
         { action: `${BRK_V9_GOLD} gold bricks`, detail: `sit near the top, each behind an armoured brick. Any ${BRK_V10_GOLD_HITS} hits break one: balls, Fireball balls, ×3 shots and the laser all count, and each hit cracks it further.`, helpOnly: true },
@@ -1343,21 +1346,22 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     rally: {
       goal: "Keep the rally going.",
       how: [
-        { action: "Drag the paddle.", detail: "Miss the blue ball: over." },
+        { action: "Drag the paddle.", detail: `A miss costs 1 of ${RALLY_V13_LIVES} lives.` },
         { action: "Gold balls score:", detail: `each hit, +${RALLY_V12_PAD_PTS} a pink pad.` },
-        { action: "Gold target:", detail: `+${RALLY_V12_TARGET_PTS} before its ring runs out.` },
+        { action: "Swipe as you hit", detail: `to curl it: +${RALLY_V13_SPIN_PTS} if it scores.` },
         { action: "Drag to move the paddle", detail: "along the bottom.", helpOnly: true },
         { action: "Every hit", detail: "makes the paddle smaller and the ball faster.", helpOnly: true },
         { action: "A gold ball drops in", detail: "every ten seconds – only gold balls score.", helpOnly: true },
         { action: "Two pink target pads", detail: `sit on the far wall, one in each half. A gold ball that hits one scores ${RALLY_V12_PAD_PTS}, and the pad moves to a new spot in its own half, so the two never overlap. The spots are the same for everyone in the room.`, helpOnly: true },
         { action: `${RALLY_V10_BONUS_COUNT} gold targets a round:`, detail: `each appears at its own moment and spot in the upper court (the same for everyone in the room) and stays about ${RALLY_V11_BONUS_LIFE / 60} seconds, its ring counting down. Any ball that touches it scores ${RALLY_V12_TARGET_PTS}; a miss costs nothing.`, helpOnly: true },
-        { action: "Aim with the paddle:", detail: "where the ball meets it sets the angle; swipe the paddle as you hit to spin the return: the ball sets off the way you swiped, then curves back round the other way (swipe left: it goes left, then bends right). The faster the swipe, the bigger the curve. Spin scores nothing itself.", helpOnly: true },
+        { action: "Aim with the paddle:", detail: `where the ball meets it sets the angle; swipe the paddle as you hit to spin the return: the ball sets off the way you swiped, then curves back round the other way (swipe left: it goes left, then bends right). The faster the swipe, the bigger the curve. A curving ball that strikes a pink pad or a gold target is a spin shot: +${RALLY_V13_SPIN_PTS} each, up to ${RALLY_V13_SPIN_MAX}.`, helpOnly: true },
         { action: "From 30 seconds a bumper", detail: "appears mid-court (it blinks a warning first). Balls bounce off it like a mirror, at the same speed.", helpOnly: true },
         { action: "For the last 15 seconds", detail: "a second bumper joins it (from 45 s, with the same blinking warning), always far enough away for a ball to pass between them.", helpOnly: true },
-        { action: "Miss the blue ball", detail: "and the run is over: you keep what you have scored. Blue returns and lasting the minute score nothing themselves.", helpOnly: true },
+        { action: "Miss the blue ball", detail: `and you lose a life: it serves again from mid-court after a second and a half. Lose all ${RALLY_V13_LIVES} and the run is over: you keep what you have scored. Blue returns and lasting the minute score nothing themselves.`, helpOnly: true },
       ],
       // rallyRev 12 (the arcade scoring standard, docs/arcade-standard/rally.md): gold-ball hits on a straight line, pads and gold targets fixed.
-      score: liveStdHelp("rally", "Losing the blue ball ends the run."),
+      // rallyRev 13 (the Retro overhaul, 15 Nov 2026): two lives and spin shots.
+      score: liveStdHelp("rally", `The second miss ends the run.`),
     },
 
     steady: {
@@ -1524,7 +1528,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag to move;", detail: "you fire on your own." },
         { action: "Shoot glowing carriers;", detail: "catch what they drop." },
-        { action: "Bosses:", detail: "hit the cannons and the open core." },
+        { action: "Hold, then lift:", detail: "a heavy blast." },
+        { action: "Bosses:", detail: "hit the cannons and the open core.", helpOnly: true },
+        { action: "The charged shot:", detail: `keep your finger down at least a second, then lift it: a heavy blast flies up through ${WAV_V14_HEAVY_HITS} ships, cracks ${WAV_V14_HEAVY_HITS} armour plates at once and does double damage to a boss's cannons and open core. Your ship keeps firing on its own all the while.`, helpOnly: true },
         { action: "Red bolts and divers cost a life:", detail: `you have 3. Each life but your last costs ${WAV_STD_LIFE_COST} points; losing the last just ends the run.`, helpOnly: true },
         { action: "The run lasts 90 seconds.", detail: "Each new wave flies in from the top 2 seconds after you clear one. Don’t let a formation reach your line.", helpOnly: true },
         { action: "From wave 3, ships peel off and dive at you,", detail: "then fly back to their place. Shoot them on the way; one that rams you costs a life.", helpOnly: true },
@@ -1651,7 +1657,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Hold ◀ or ▶ to walk; tap anywhere on the arena to fire straight up.", detail: `There is no FIRE button: every tap on the arena is a shot. A shot that reaches the top without hitting anything is wasted: you get one free for each atom you pop (at least ${BURST_V11_FREE_MISSES}), then each costs ${BURST_V11_MISS_COST}.`, helpOnly: true },
         { action: "Big atoms split into smaller ones;", detail: "the smallest pop.", helpOnly: true },
         { action: `${BURST_V10_WAVES} waves, ${BURST_V10_ATOMS} atoms:`, detail: `counting every piece the splits make. Clear all ${BURST_V10_WAVES} waves and the run is complete.`, helpOnly: true },
-        { action: "Wave-clear bonus:", detail: `each wave you clear pays up to ${BURST_V10_CLEAR_PER_WAVE}: the full ${BURST_V10_CLEAR_PER_WAVE} within its quick time (1 s plus 0.6 s for every atom it holds, splits included), then evenly less, down to 0 at twice that. The counter (CLEAR +${BURST_V10_CLEAR_PER_WAVE}) shows what the wave on screen still pays.`, helpOnly: true },
+        { action: "Wave-clear bonus:", detail: `each wave you clear pays up to ${BURST_V10_CLEAR_PER_WAVE}: the full ${BURST_V10_CLEAR_PER_WAVE} within its quick time (1 s plus 0.6 s for every atom it holds, splits included), then evenly less, down to 0 at three times that. The counter (CLEAR +${BURST_V10_CLEAR_PER_WAVE}) shows what the wave on screen still pays.`, helpOnly: true },
         { action: `${BURST_V10_GOLDENS} golden atoms:`, detail: `one with each wave, a second or two after it appears, at its own spot (the same for everyone in the room). It bounces like the other atoms and fades after about 5 seconds. A shot that reaches one scores ${BURST_V10_GOLDEN_PTS}. It hurts like any atom: touching it costs a life.`, helpOnly: true },
         { action: "Power-ups ride on atoms:", detail: "an atom showing a small icon drops that power-up when you split it (the same atoms for everyone). Walk under it to catch it. DOUBLE fires two beams a shot for 8 s; BURST fires three quick short shots a tap for 8 s; FREEZE stops every atom for 3 s. Frozen atoms still hurt if you walk into one. They score nothing themselves.", helpOnly: true },
       ],

@@ -1,4 +1,6 @@
 import { reducedMotion } from "./art.renderer";
+import { fxFlash, fxRing, fxSparks, retroFx } from "./retroFx.renderer";
+import { rallyEdgeSave } from "./retroMoments";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx, drawFxGlow } from "./arcadeFx.renderer";
 import { rallyFxFor } from "./arcadeFxGames.renderer";
@@ -28,11 +30,13 @@ import {
   rallyBonusPtsOf,
   RALLY_V10_BONUS_R,
   rallyBonusCount,
+  rallyLivesOf,
+  RALLY_V13_LIVES,
+  RALLY_V13_RELAUNCH,
   rallyBonusNow,
   rallyWorldW,
   RALLY_V11_EXP,
-  type RallyState,
-} from "./rally";
+  type RallyState, rallyPaddleWOf } from "./rally";
 import { px, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
 import type { BandFields } from "./scoreBands";
 import {
@@ -115,10 +119,11 @@ function courtLayer(ctx: CanvasRenderingContext2D, RALLY_WORLD_H: number, RALLY_
   const courtBottom = RALLY_PADDLE_Y + RALLY_PADDLE_H + 10;
   c.fillStyle = linear(c, 0, courtTop, 0, courtBottom, [[0, "rgba(22,64,112,0.55)"], [1, "rgba(14,86,110,0.6)"]]);
   c.fillRect(left + inset, courtTop, right - left - 2 * inset, courtBottom - courtTop);
-  c.fillStyle = "rgba(220,248,255,0.55)";
+  c.fillStyle = "rgba(230,250,255,0.8)";
   c.fillRect(left + inset, courtTop, right - left - 2 * inset, 2);
   c.fillRect(left + inset, courtTop, 2, courtBottom - courtTop);
   c.fillRect(right - inset - 2, courtTop, 2, courtBottom - courtTop);
+  paintCourtFinish(c, left + inset, courtTop, right - left - 2 * inset, courtBottom - courtTop);
   for (const [x0, dir] of [[left, 1], [right, -1]] as const) {
     c.fillStyle = linear(c, x0, 0, x0 + dir * 22, 0, [[0, "rgba(61,255,224,0.32)"], [1, "rgba(61,255,224,0)"]]);
     c.fillRect(dir > 0 ? x0 : x0 - 22, top, 22, RALLY_WORLD_H - top);
@@ -146,7 +151,14 @@ function courtLayer(ctx: CanvasRenderingContext2D, RALLY_WORLD_H: number, RALLY_
     const ang = (a / 48) * Math.PI * 2;
     c.fillRect(Math.round(RALLY_WORLD_W / 2 + Math.cos(ang) * ring) - 1, Math.round(mid + Math.sin(ang) * ring) - 1, 2, 2);
   }
-  c.fillStyle = `${COURT}40`;
+  // The service lines painted on (the Retro overhaul, 15 Nov 2026): brighter, each with a 1 px shadow under it so the
+  // paint sits on the surface.
+  c.fillStyle = "rgba(0,8,20,0.45)";
+  const shadowBox = 96;
+  c.fillRect(Math.round(RALLY_WORLD_W / 2) + 1, mid + 1, 1, shadowBox);
+  c.fillRect(left + 30, mid + shadowBox + 2, right - left - 60, 1);
+  c.fillRect(left + 30, mid - shadowBox, right - left - 60, 1);
+  c.fillStyle = "rgba(225,245,255,0.62)";
   const box = 96;
   c.fillRect(Math.round(RALLY_WORLD_W / 2) - 1, mid + 1, 2, box);
   c.fillRect(left + 30, mid + box, right - left - 60, 2);
@@ -163,6 +175,64 @@ function courtLayer(ctx: CanvasRenderingContext2D, RALLY_WORLD_H: number, RALLY_
   }
   courts.set(ctx, { key, layer });
   return layer;
+}
+
+/**
+ * The court's finish (the Retro overhaul; display only, painted once into the court layer). One hard court in today's
+ * teal-blue, rich as a whole (stage 2, Joe: no box on the court): a deeper surface laid in large faint panels (a 2-tone
+ * pixel checker, the way a hard court is poured), two soft floodlight pools from the far corners and the light falling
+ * away towards the player, the court darkening towards its side lines, a fine grain of lighter and darker specks so it
+ * reads as a surface, and a lacquer sheen along the near baseline. The CRT scanlines over it keep it retro. Nothing over
+ * the play area is bright: the lines and the ball stay the clearest things on the court.
+ */
+function paintCourtFinish(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
+  c.save();
+  c.beginPath();
+  c.rect(x, y, w, h);
+  c.clip();
+  c.fillStyle = linear(c, 0, y, 0, y + h, [[0, "rgba(10,56,110,0.62)"], [0.55, "rgba(8,60,100,0.6)"], [1, "rgba(6,70,92,0.62)"]]);
+  c.fillRect(x, y, w, h);
+  // Large faint panels.
+  const panel = 52;
+  for (let py = 0; py * panel < h; py++)
+    for (let px = 0; px * panel < w; px++) {
+      if ((px + py) % 2) continue;
+      c.fillStyle = "rgba(120,200,255,0.035)";
+      c.fillRect(Math.round(x + px * panel), Math.round(y + py * panel), panel, panel);
+    }
+  // Two floodlight pools at the far end.
+  for (const fx of [x + w * 0.24, x + w * 0.76]) {
+    const pool = c.createRadialGradient(fx, y + h * 0.1, 6, fx, y + h * 0.18, h * 0.42);
+    pool.addColorStop(0, "rgba(190,236,255,0.2)");
+    pool.addColorStop(0.45, "rgba(150,214,255,0.08)");
+    pool.addColorStop(1, "rgba(150,214,255,0)");
+    c.fillStyle = pool;
+    c.fillRect(x, y, w, h);
+  }
+  // Darkening towards the side lines.
+  for (const [x0, dir] of [[x, 1], [x + w, -1]] as const) {
+    c.fillStyle = linear(c, x0, 0, x0 + dir * w * 0.24, 0, [[0, "rgba(0,10,26,0.42)"], [1, "rgba(0,10,26,0)"]]);
+    c.fillRect(dir > 0 ? x0 : x0 - w * 0.24, y, w * 0.24, h);
+  }
+  let v = 0x2a11_5eed | 0;
+  const next = () => {
+    v = (Math.imul(v, 1103515245) + 12345) | 0;
+    return ((v >>> 8) & 0xffff) / 0x10000;
+  };
+  const specks = Math.round((w * h) / 60);
+  for (let i = 0; i < specks; i++) {
+    const sx = Math.floor(x + next() * w);
+    const sy = Math.floor(y + next() * h);
+    c.fillStyle = next() < 0.5 ? "rgba(170,230,255,0.1)" : "rgba(0,10,24,0.24)";
+    c.fillRect(sx, sy, next() < 0.15 ? 2 : 1, 1);
+  }
+  const sheen = c.createLinearGradient(0, y + h - 90, 0, y + h);
+  sheen.addColorStop(0, "rgba(140,230,255,0)");
+  sheen.addColorStop(0.7, "rgba(140,230,255,0.1)");
+  sheen.addColorStop(1, "rgba(140,230,255,0)");
+  c.fillStyle = sheen;
+  c.fillRect(x, y + h - 90, w, 90);
+  c.restore();
 }
 
 /** Side walls as neon tubes with running lights (presentation clock; still under reduced motion). */
@@ -273,7 +343,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
     });
   }
 
-  const width = rallyPaddleW(rallyTotalHits(state));
+  const width = rallyPaddleWOf(state);
   // Tuning D: the paddle lights up on every hit (presentation clock, never sim state).
   const hitAge = retroEventAge(key, "rally-hit", false);
   if (!reducedMotion() && hitAge < 260) {
@@ -283,6 +353,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
   // Polish A1: the paddle's own teal light.
   glow(ctx, PADDLE, state.paddleX, RALLY_PADDLE_Y + RALLY_PADDLE_H / 2, width / 2 + 16, 16, 0.4);
   retroPaddle(ctx, state.paddleX - width / 2, RALLY_PADDLE_Y, width, RALLY_PADDLE_H, PADDLE, "#0E4A44", bloom);
+  rallyEffects(ctx, state, width, RALLY_PADDLE_Y);
 
   state.golds.forEach((ball, i) => {
     const x = px(ball.x);
@@ -295,7 +366,12 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
 
   const bx = px(state.x);
   const by = px(state.y);
-  if (!state.dead) {
+  // rallyRev 13: a lost blue ball waits at the serve spot, blinking, with the serve countdown over it.
+  const serveLeft = (state.relaunch ?? 0) > state.tick ? (state.relaunch ?? 0) - state.tick : 0;
+  if (serveLeft > 0) {
+    if (Math.floor(serveLeft / 8) % 2 === 0) retroBall(ctx, bx, by, RALLY_BALL_R, "#7AAAFF");
+    retroText(ctx, String(Math.ceil((serveLeft * 3) / RALLY_V13_RELAUNCH)), bx, by - 30, 14, RETRO_WHITE, "center", 3);
+  } else if (!state.dead) {
     drawRetroTrail(ctx, retroTrail(key, state.tick, "main", bx, by, trailLen(state, state.spin)), RALLY_BALL_R, heat);
     glow(ctx, heat, bx, by, RALLY_BALL_R + 8, RALLY_BALL_R + 8, 0.45);
   }
@@ -318,6 +394,9 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
       { text: `PADS ${state.targetHits ?? 0}`, colour: PAD },
       { text: `TARGETS ${rallyBonusCount(state)}/${RALLY_V10_BONUS_COUNT}`, colour: GOLD },
     ], pulse);
+    // rallyRev 13: the blue-ball lives as small balls under the gold count (a spent one dim).
+    const lives = rallyLivesOf(state);
+    if (lives !== null) for (let i = 0; i < RALLY_V13_LIVES; i++) retroBall(ctx, 18 + i * 18, 34, 5, i < lives ? "#7AAAFF" : "rgba(122,170,255,0.22)");
   } else if ((state as RallyState & BandFields).band) {
     retroHud(ctx, RALLY_WORLD_W, { text: `RALLY ${state.hits}` }, [
       { text: `GOLD ${state.goldHits}`, colour: GOLD },
@@ -442,3 +521,22 @@ function drawTracked(ctx: CanvasRenderingContext2D, state: RallyState, size: Can
 
 export const rallyArtGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = { ...rallyGame, draw: drawTracked };
 export const rallyRevealGame = { draw: drawReveal };
+
+/**
+ * Rally's in-world moments (the Retro overhaul, stage 2; display only): a return on the paddle's last 4 px throws sparks
+ * off that end (an edge save), and a curling return draws a short white swirl behind the ball as it leaves.
+ */
+function rallyEffects(ctx: CanvasRenderingContext2D, state: RallyState, width: number, paddleY: number): void {
+  const fx = retroFx(ctx, "rally", state.tick);
+  // Each return flashes the paddle's face in the ball's colour (blue, or gold for a gold ball).
+  fx.rise("blueRet", state.hits, () => ({ x: state.paddleX - width / 2, y: paddleY, n: 0, c: "#7FD3FF" }));
+  fx.rise("goldRet", state.goldHits, () => ({ x: state.paddleX - width / 2, y: paddleY, n: 0, c: "#FFD84A" }));
+  for (const kind of ["blueRet", "goldRet"]) fx.each(kind, 8, (e, age) => fxFlash(ctx, state.paddleX - width / 2, paddleY, width, RALLY_PADDLE_H, age, e.c ?? "#FFFFFF", 0.55));
+  fx.rise("returns", state.hits + state.goldHits, () => {
+    const edge = rallyEdgeSave(state, width);
+    return edge ? { x: edge.x, y: paddleY, n: edge.side } : null;
+  });
+  fx.each("returns", 16, (e, age) => fxSparks(fx, ctx, e.x, e.y, age, "#FFF4C2", { n: 8, spread: 12, seed: e.tick, up: true }));
+  fx.rise("spin", state.spun ?? 0, () => ({ x: state.x / 256, y: state.y / 256, n: state.spin ?? 0 }));
+  fx.each("spin", 20, (e, age) => fxRing(fx, ctx, e.x, e.y, 4, 16, age, "#FFFFFF", 1));
+}

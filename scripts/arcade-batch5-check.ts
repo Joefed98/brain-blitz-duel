@@ -80,7 +80,7 @@ import {
 } from "../src/lib/arcade/binToss";
 import { encodeBinTossRun, replayBinTossRun } from "../src/lib/duel/binToss";
 import { BINTOSS_REV_EXPAND } from "../src/lib/arcade/binToss";
-import { generateBeat, generateBinToss, generateBullseye, generateInkBridge, generateOrbit, generateRally, pinInkPreClover, pinOrbitPreFuel } from "../src/lib/duel/arcade.server";
+import { generateBeat, generateBinToss, generateBullseye, generateInkBridge, generateOrbit, generateRally, pinInkPreClover, pinOrbitPreFuel, pinPreRetro } from "../src/lib/duel/arcade.server";
 import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV4, ORBIT_REV_SWEPT, ORBIT_REV_TUNED, ORBIT_REV_STD, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
 import { decodeOrbitHoles, decodeRev3Planets, initRev4From, orbitRev3Game, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../src/lib/arcade/orbitRev3";
 import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
@@ -91,6 +91,10 @@ import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { playRevOf } from "./scoring-targets-revs";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal rallyRev 13 (lives,
+// retro-overhaul-check); this check was written for the deal before it, so it pins preRetro (rallyRev 12, beatRev 11).
+pinPreRetro(true);
 
 let checks = 0;
 const ok = (value: unknown, message: string) => {

@@ -1,5 +1,14 @@
 # Meteor (`snake`): the arcade scoring standard, snakeRev 11 and 12
 
+## snakeRev 15 (the Retro overhaul, stage 3, 16 Nov 2026): the first crash forgiven
+
+snakeRev 14's world, rocks, wrap, parts and scoring exactly, with one grace at Normal (`SNAKE_V15_GRACE`): a crash that
+would end the run instead leaves the comet where it was before the step (a rock landing on the head leaves the rock and
+the comet under it) and holds it still for `SNAKE_V15_STUN_TICKS` (90; a turn chosen then is kept), with "SAVED!" over
+the board and `snake.saved`. The second crash ends the run as before. Levels (retroLevels.ts): Easy 3 lives, Hard 2 with
+walls, Expert 1 with walls; each sets its pace and the stars the core is full at. States add `grace`, `graceUsed`,
+`stunTo`, folded into the checkpoint checksum last. Rooms deal it (preRetro: snakeRev 12).
+
 29 Oct 2026. Rooms and practice dealt **snakeRev 11** (was 10) until 1 Nov 2026, when snakeRev 12 replaced it (gold stars count 2 towards the core, full at 28; see "snakeRev 12" below). snakeRev 11 plays exactly as snakeRev 10: the same
 19 × 34 field, stars, rocks (2 × 2 ones too), meteor shower, lanes, three wormhole pairs and gold-star schedule, all
 drawn the same way from the room seed. Only the scoring is new. Every older stamp (unstamped, 1–10) replays and scores
@@ -7,6 +16,24 @@ exactly as before.
 
 Code: `src/lib/arcade/snake.ts` ("The arcade scoring standard (snakeRev 11)"), `snakeStdParts` / `snakeStdScore`.
 Check: `scripts/snake-standard-check.ts` (~15–25 s). Standard module: `scripts/arcade-standard/snake.ts`.
+
+
+## snakeRev 14: rocks in three sizes (the Retro overhaul, 15 Nov 2026)
+
+Joe (15 Nov 2026): "varied Meteor rock sizes, with their stamps". New stamp **snakeRev 14** (`SNAKE_REV_SIZES`):
+snakeRev 13's world, wrapping edges, parts and scoring, with the rocks in three sizes. After everything snakeRev 13 draws
+from the room seed, `SNAKE_V14_MID_ROCKS` (4) of the single-square rock slots (from the second on, never a 2 × 2 one)
+grow into a **2 × 1** or **1 × 2** rock, trying the four placements from a seeded start: none on a star, gold star,
+mouth or the border, none touching the shower squares or another rock (snakeRev 10's rule for its 2 × 2 rocks). Every
+one of 300 seeds tried gets all four. So a run holds small (1 × 1), middle (2 × 1, 1 × 2) and large (2 × 2) rocks, the
+same for every player; each lands only for a meteor that has earned a rock, counts as one rock, shows its shadow on every
+square it will cover, and the head may not enter (or be under) any of them. States add `midRocks` and `midRocksV`
+(anchors), folded into the checkpoint checksum last; `snakeRockSpan` and `snakeRockShape` read them (the bot sees rocks
+only through those). Rooms deal it; only an intro demo recorded on snakeRev 14 plays.
+
+Medians (p10–p90) on 20 room seeds, `bun scripts/arcade-skill-bands.ts snake --rev=now --seeds=20 --levels=all`:
+weak 60 (42–85), average 84 (59–104), good 126 (73–146), great 152 (109–167), near-perfect 174 (153–177), elite 176
+(169–184), flawless 180 (174–188); snakeRev 13's were measured on the same tool in stage 1 (docs/design/retro-overhaul.md).
 
 ## Parts
 

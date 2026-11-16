@@ -26,9 +26,10 @@ import { Human, LEVELS } from "./arcade-skill-bands/human";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { ROUND_MAX } from "../src/lib/duel/roundMax";
 import { LIVE_BANDS, liveStrictRev } from "../src/lib/arcade/liveBands";
-import { snakeV9Bonus, snakeRow, snakeCol, SNAKE_REV_200, SNAKE_REV_12, SNAKE_V12_BAND_CURVE, SNAKE_REV_STRICT, SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS } from "../src/lib/arcade/snake";
-import { BURST_REV_STD, BURST_REV_STRICT, BURST_V6_BAND_CURVE } from "../src/lib/arcade/burst";
-import { beatV9Bonus, BEAT_REV_200, BEAT_REV_EASE, BEAT_REV_STD, BEAT_REV_STRICT, BEAT_STD_SPEC, BEAT_V10_BAND_CURVE, BEAT_V9_CAPS, BEAT_V9_FIVE_FROM, BEAT_V9_BREAK, BEAT_DOUBLE_GAP, BEAT_V9_BAND_CURVE, BEAT_V9_RUN_TICKS } from "../src/lib/arcade/beat";
+import { snakeV9Bonus, snakeRow, snakeCol, SNAKE_REV_200, SNAKE_REV_12, SNAKE_V12_BAND_CURVE, SNAKE_REV_STRICT, SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS, SNAKE_REV_GRACE, SNAKE_V13_BAND_CURVE } from "../src/lib/arcade/snake";
+import { BURST_REV_BIG, BURST_REV_STD, BURST_REV_STRICT, BURST_V6_BAND_CURVE } from "../src/lib/arcade/burst";
+import { beatV9Bonus, BEAT_REV_200, BEAT_REV_EASE, BEAT_REV_STD, BEAT_REV_STRICT, BEAT_STD_SPEC, BEAT_V10_BAND_CURVE, BEAT_V9_CAPS, BEAT_V9_FIVE_FROM, BEAT_V9_BREAK, BEAT_DOUBLE_GAP, BEAT_V9_BAND_CURVE, BEAT_V9_RUN_TICKS, BEAT_REV_FLOOR, BEAT_STD_SPEC_V12 } from "../src/lib/arcade/beat";
+import { playRevOf } from "./scoring-targets-revs";
 
 const RECORD = process.argv.includes("--record");
 const NEW_FIXTURE = "scripts/fixtures/expansion-e2-new.json.gz";
@@ -60,17 +61,23 @@ for (const [type, top] of [["snake", SNAKE_REV_STRICT], ["beat", BEAT_REV_STRICT
 // Joe's phone notes (27 Oct 2026): rooms moved on to snakeRev 10 (snake-rev10-check) and beatRev 10 (tempo-ease-check); snakeRev 9 and beatRev 9 stay proved below.
 // The arcade scoring standard (29 Oct 2026): rooms moved on to snakeRev 11 (snake-standard-check); snakeRev 9 and 10 stay proved here and in snake-rev10-check.
 // 1 Nov 2026: rooms moved on to snakeRev 12 (gold stars count 2 towards the core, snake-rev12-check).
-ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_12, "rooms deal snakeRev 12 (snakeRev 11 before 1 Nov 2026, snakeRev 10 before the arcade scoring standard)");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 13 (the edges
+// wrap, the core full at 36), one above snakeRev 12; the help reads its core line.
+ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_GRACE && SNAKE_REV_GRACE === SNAKE_REV_12 + 3 /* Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 15 (14's rocks in three sizes, the first crash forgiven) */, "rooms deal snakeRev 12 (snakeRev 11 before 1 Nov 2026, snakeRev 10 before the arcade scoring standard)");
 // The arcade scoring standard (29 Oct 2026): rooms moved on again to beatRev 11 (beat-standard-check).
-ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_STD && BEAT_REV_STD === BEAT_REV_EASE + 1, "rooms deal beatRev 11 (beatRev 10 before the scoring standard, beatRev 9 before the phone notes)");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal beatRev 12, beatRev 11's play
+// with a missed note scoring 0 (retro-overhaul-check).
+ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_FLOOR && BEAT_REV_FLOOR === BEAT_REV_STD + 1 && BEAT_REV_STD === BEAT_REV_EASE + 1, "rooms deal beatRev 12 (beatRev 11 before the Retro overhaul, (beatRev 10 before the scoring standard, beatRev 9 before the phone notes)");
 ok(ROUND_MAX.snake === 200 && ROUND_MAX.beat === 200, "ROUND_MAX: Meteor and Tempo are 200");
 // Tempo's help reads beatRev 11's standard since 29 Oct 2026 (beat-standard-check); beatRev 9 and 10 score on BEAT_V9_BAND_CURVE.
-ok(LIVE_BANDS.snake.curve === SNAKE_V12_BAND_CURVE && LIVE_BANDS.beat.std === BEAT_STD_SPEC && BEAT_V10_BAND_CURVE === BEAT_V9_BAND_CURVE, "the help reads the new curves (Meteor: snakeRev 12's straight core line; Tempo's standard since beatRev 11)");
+ok(LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE && LIVE_BANDS.beat.std === BEAT_STD_SPEC_V12 && BEAT_STD_SPEC_V12.parts.length === BEAT_STD_SPEC.parts.length && BEAT_V10_BAND_CURVE === BEAT_V9_BAND_CURVE, "the help reads the new curves (Meteor: snakeRev 12's straight core line; Tempo's standard since beatRev 11)");
 ok(liveStrictRev("snake") === SNAKE_REV_STRICT && liveStrictRev("beat") === BEAT_REV_STRICT, "their score-bands revisions are the ones rooms dealt before (strictRev)");
 // Fission was split out of E2: burstRev 6 stays its score-bands revision on its strict curve; expansion E9 (docs/expansions/e9.md)
 // then moved rooms on to burstRev 8 at 200 (expansion-e9-check covers it).
 // The scoring audit (Nov 2026): rooms deal burstRev 11, burstRev 10's play (scoring-audit-arcade-check).
-ok((generatePuzzle("burst") as any).burstRev === BURST_REV_STD + 1 && ROUND_MAX.burst === 200 && liveStrictRev("burst") === BURST_REV_STRICT && BURST_V6_BAND_CURVE.points.at(-1) === 140, "Fission is not E2's: burstRev 6 stays its strict revision (its strict curve, 140 at the top); rooms deal burstRev 11 (burstRev 10's play, the arcade scoring standard, after E9's burstRev 8 and the phone-test notes' 9) at 200");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): burstRev 12 keeps burstRev 11's play.
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal burstRev 13 (bigger atoms).
+ok((generatePuzzle("burst") as any).burstRev === BURST_REV_BIG && ROUND_MAX.burst === 200 && liveStrictRev("burst") === BURST_REV_STRICT && BURST_V6_BAND_CURVE.points.at(-1) === 140, "Fission is not E2's: burstRev 6 stays its strict revision (its strict curve, 140 at the top); rooms deal burstRev 13 (the Retro overhaul; burstRev 11 before it, burstRev 10's play, the arcade scoring standard, after E9's burstRev 8 and the phone-test notes' 9) at 200");
 ok(SNAKE_V9_CAPS.gold + SNAKE_V9_CAPS.combo + SNAKE_V9_CAPS.lane + SNAKE_V9_CAPS.warp === 50, "Meteor's caps add to 50");
 ok(BEAT_V9_CAPS.fever + BEAT_V9_CAPS.gold + BEAT_V9_CAPS.double + BEAT_V9_CAPS.streak === 50, "Tempo's caps add to 50");
 

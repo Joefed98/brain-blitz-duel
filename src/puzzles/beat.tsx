@@ -1,4 +1,7 @@
 import { beatAmbient, beatFill } from "@/lib/arcade/arenaFills.renderer";
+import { puzzleLevel } from "@/lib/levels/levels";
+import { ArtStill } from "@/components/puzzles/ArtStill";
+import { beatWorldH, BEAT_REV_FLOOR } from "@/lib/arcade/beat";
 import { auditEventAt } from "@/lib/arcade/auditInput";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -7,7 +10,14 @@ import { beatLaneAt } from "@/components/puzzles/tapMapping";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
+import { useGameKeys } from "@/lib/desktop";
+
+/** The lane a desktop key plays (stage 3 of the Retro overhaul): D F J K on four lanes, D F Space J K on five; −1 for any other key. */
+function beatKeyLane(key: string, lanes: number): number {
+  const order = lanes >= 5 ? ["d", "f", " ", "j", "k"] : ["d", "f", "j", "k"];
+  return order.indexOf(key);
+}
 
 import {
   MAX_CATCH_UP_TICKS,
@@ -64,46 +74,30 @@ import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 /** Rev 2: the sideways finger travel (screen px) that counts as a swipe. */
 const SWIPE_MIN_PX = 24;
 
+/**
+ * The intro still (the Retro overhaul, 15 Nov 2026: a real frame of today's game, not an old drawing): the dealt
+ * stamp's own renderer a few seconds into a fixed seed's run, with no input, the first notes falling to the lane buttons.
+ */
 function IntroExample() {
+  const game = { ...beatGameFor(BEAT_REV_FLOOR), draw: beatArtGame.draw };
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg
-        viewBox="0 0 168 120"
-        width={168}
-        height={120}
-        aria-hidden="true"
-        style={{ background: BEAT_BG, borderRadius: 10 }}
-      >
-        {[0, 1, 2, 3].map((lane) => (
-          <rect
-            key={lane}
-            x={12 + lane * 36}
-            y={6}
-            width={32}
-            height={108}
-            fill="rgba(255,255,255,0.04)"
-            rx={4}
-          />
-        ))}
-        <line x1={8} y1={92} x2={160} y2={92} stroke="rgba(255,255,255,0.4)" strokeWidth={2} />
-        <rect x={48} y={86} width={32} height={12} rx={4} fill={BEAT_LANE_COLOURS[1]} />
-        <rect x={120} y={40} width={32} height={12} rx={4} fill={BEAT_LANE_COLOURS[3]} />
-        {/* beatRev 9: a golden note and the fever meter. */}
-        <rect x={12} y={30} width={32} height={12} rx={4} fill="#FFF2B0" stroke="#FFD84A" strokeWidth={2} />
-        <rect x={12} y={8} width={144} height={6} rx={3} fill="rgba(255,255,255,0.12)" />
-        <rect x={12} y={8} width={100} height={6} rx={3} fill="#FF4FD8" />
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">
-        Tap the lane as its note meets the line; fill the meter and tap it for FEVER.
-      </p>
-    </div>
+    <ArtStill
+      game={game}
+      worldW={BEAT_WORLD_W}
+      worldH={beatWorldH(game.init(7))}
+      ticks={300}
+      input={null}
+      caption="Tap a lane as its note reaches the button on the line. Swipe the arrow notes; hold the long ones."
+    />
   );
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BeatPuzzleData | null = puzzle.type === "beat" ? puzzle : null;
   const seed = data?.seed ?? 1;
-  const beatGame = beatGameFor(data?.beatRev);
+  // One game object per stamp and level (stage 3 of the Retro overhaul: a level wraps init; a new object each render
+  // would restart the run).
+  const beatGame = useMemo(() => beatGameFor(data?.beatRev, puzzleLevel(data)), [data?.beatRev, puzzleLevel(data)]);
   // beatRev 6: the taller lanes; every phone draws the stored revision's world.
   const BEAT_WORLD_H = beatWorldHFor(data?.beatRev);
 
@@ -293,6 +287,37 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     if (lane === undefined || submitted.current) return;
     pending.current.push({ t: 0, k: BEAT_INPUT_RELEASE, a: lane, b: 0, c: 0, d: 0 });
   };
+
+  // Desktop lane keys (stage 3 of the Retro overhaul): D F J K for four lanes, D F Space J K for five; a held key is a
+  // held finger (hold notes), ← / → flick the lane last pressed, Enter starts fever. The same inputs a tap sends.
+  const keyLanes = useRef(new Map<string, number>());
+  const lastKeyLane = useRef(0);
+  useGameKeys((kind, key) => {
+    if (locked || submitted.current || beatGame.isOver(state.current)) return false;
+    if (kind === "down" && key === "Enter" && state.current.exp) {
+      pending.current.push({ t: 0, k: BEAT_INPUT_FEVER, a: 0, b: 0, c: 0, d: 0 });
+      return true;
+    }
+    if (kind === "down" && (key === "ArrowLeft" || key === "ArrowRight") && data?.beatRev) {
+      pending.current.push({ t: 0, k: BEAT_INPUT_SWIPE, a: lastKeyLane.current, b: key === "ArrowRight" ? 1 : 0, c: 0, d: 0 });
+      return true;
+    }
+    if (kind === "up") {
+      const lane = keyLanes.current.get(key);
+      if (lane === undefined) return false;
+      keyLanes.current.delete(key);
+      pending.current.push({ t: 0, k: BEAT_INPUT_RELEASE, a: lane, b: 0, c: 0, d: 0 });
+      return true;
+    }
+    const lanes = state.current.exp ? beatLanesAt(state.current, state.current.tick + 1) : 4;
+    const lane = beatKeyLane(key, lanes);
+    if (lane < 0) return false;
+    if (keyLanes.current.has(key)) return true;
+    keyLanes.current.set(key, lane);
+    lastKeyLane.current = lane;
+    pending.current.push({ t: 0, k: BEAT_INPUT_TAP, a: lane, b: 0, c: 0, d: 0 });
+    return true;
+  });
 
   if (!data) return null;
 

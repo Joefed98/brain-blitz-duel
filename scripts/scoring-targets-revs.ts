@@ -96,7 +96,28 @@ export const AUDIT_REVS: Partial<Record<LiveBandGame, readonly [rev: number, pla
   slice: [13, 12],
 };
 
+/**
+ * The Retro overhaul's score-only revisions (15 Nov 2026, docs/design/game-reviews/retro.md): type → [the revision, the
+ * revision whose play it keeps exactly]. Tempo beatRev 12 scores a missed note 0 rather than −2; Fission burstRev 12's
+ * wave-clear bonus runs out at three times the quick time (retro-overhaul-check proves the same play and that no run
+ * scores less).
+ */
+export const RETRO_REVS: Partial<Record<LiveBandGame, readonly [rev: number, play: number]>> = {
+  beat: [12, 11],
+  // Fission burstRev 12: burstRev 11's play tick for tick; its wave-clear bonus runs out at three times the quick time.
+  burst: [12, 11],
+  // Pinball pinRev 7: pinRev 6's play tick for tick; one J-O-U-L-Z set fills its part.
+  pinball: [7, 6],
+};
+
+/** Stage 3 of the Retro overhaul (16 Nov 2026): Pinball pinRev 8 keeps pinRev 7's play tick for tick (it counts outlane saves). */
+export const RETRO_STAGE3_REVS: Partial<Record<LiveBandGame, readonly [rev: number, play: number]>> = { pinball: [8, 7] };
+
 export function playRevOf(type: string, rev: number | undefined | null): number | undefined | null {
+  const stage3 = RETRO_STAGE3_REVS[type as LiveBandGame];
+  if (stage3 && rev === stage3[0]) return playRevOf(type, stage3[1]);
+  const retro = RETRO_REVS[type as LiveBandGame];
+  if (retro && rev === retro[0]) return playRevOf(type, retro[1]);
   const audit = AUDIT_REVS[type as LiveBandGame];
   if (audit && rev === audit[0]) return playRevOf(type, audit[1]);
   const deal = DEAL_REVS[type as LiveBandGame];

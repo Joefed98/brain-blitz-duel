@@ -142,23 +142,23 @@ import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_SIX, MATCHUP_REV_STD, MA
 import { BUB_REV_BAND, BUB_REV_TALL, BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
 import { CROSS_REV_BAND, CROSS_REV_EXPAND, CROSS_REV_FLOW, CROSS_REV_SMALL, CROSS_REV_STD } from "@/lib/arcade/cross";
 import { RALLY_REV_BAND, RALLY_REV_TALL, RALLY_REV_TUNED, RALLY_REV_TUNEF } from "@/lib/arcade/rally";
-import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL, SNAKE_REV_10, SNAKE_REV_STD, SNAKE_REV_12 } from "@/lib/arcade/snake";
+import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL, SNAKE_REV_10, SNAKE_REV_STD, SNAKE_REV_12, SNAKE_REV_WRAP } from "@/lib/arcade/snake";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
 import { SNIP_REV_BAND, SNIP_REV_BANK6, SNIP_REV_EXPAND, SNIP_REV_PROVEN, SNIP_REV_TALL } from "@/lib/arcade/snip";
 import { SKYLINE_REV_BAND, SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
 import { HOVER_REV_BAND, HOVER_REV_EXPAND, HOVER_REV_STANDARD, HOVER_REV_TALL, HOVER_REV_TUNEC } from "@/lib/arcade/hover";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
-import { BRK_REV_BAND, BRK_REV_STD, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
+import { BRK_REV_BAND, BRK_REV_CLEAR, BRK_REV_STD, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
 import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
-import { pin4Checkpoint, pinball5Game, pinball6Game, PIN_REV_LONG } from "@/lib/arcade/pinball4";
+import { pin4Checkpoint, pinball5Game, pinball6Game, pinball7Game, pinball8Game, PIN_REV_LONG } from "@/lib/arcade/pinball4";
 // The arcade scoring standard, batch B (29 Oct 2026): each game's standard stamp.
 import { SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
-import { PIN_REV_STD } from "@/lib/arcade/pinball";
-import { RALLY_REV_STD } from "@/lib/arcade/rally";
+import { PIN_REV_JOULZ, PIN_REV_STD } from "@/lib/arcade/pinball";
+import { RALLY_REV_LIVES, RALLY_REV_STD } from "@/lib/arcade/rally";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
-import { BEAT_REV_STD } from "@/lib/arcade/beat";
+import { BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
 import { minesCheckpoint, minesweeperGameFor, MINES_REV_LOGIC, MINES_REV_STD } from "@/lib/arcade/minesweeper";
 import { encodeMinesweeperRun, replayMinesweeperRun } from "@/lib/duel/minesweeper";
@@ -1025,6 +1025,32 @@ const GAMES: Game[] = [
   // Minefield minesRev 2 (13 Nov 2026: a Logic game with 20 mines), appended so every earlier entry keeps its stream.
   { key: "minesweeper/v2", game: minesweeperGameFor(MINES_REV_LOGIC), checkpoint: minesCheckpoint, mode: "events", rate: 60, encode: encodeMinesweeperRun, replay: (seed: number, raw: string) => replayMinesweeperRun(seed, raw, MINES_REV_LOGIC) },  // Thirteen pyramidRev 3 (15 Nov 2026: a dead end waits for Undo), appended so every earlier entry keeps its stream.
   { key: "pyramid/v3", game: pyramidGameFor(3), checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 3) },
+  // Tempo beatRev 12 (15 Nov 2026, the Retro overhaul: a missed note scores 0), appended so every earlier entry keeps its stream.
+  { key: "beat/floor", game: beatGameFor(BEAT_REV_FLOOR), checkpoint: beatCheckpoint, mode: "events", rate: 200, encode: encodeBeatRun, replay: (seed: number, raw: string) => replayBeatRun(seed, raw, BEAT_REV_FLOOR) },
+  // Rally rallyRev 13 (15 Nov 2026, the Retro overhaul: two lives, spin shots), appended so every earlier entry keeps its stream.
+  { key: "rally/lives", game: rallyGameFor(RALLY_REV_LIVES), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, RALLY_REV_LIVES) },
+  // Pinball pinRev 7 (15 Nov 2026, the Retro overhaul: one J-O-U-L-Z set), appended so every earlier entry keeps its stream.
+  { key: "pinball/joulz", game: pinball7Game, checkpoint: pin4Checkpoint, mode: "events", rate: 120, encode: encodePinballRun, replay: (seed: number, raw: string) => replayPinballRun(seed, raw, PIN_REV_JOULZ) },
+  // Meteor snakeRev 13 (15 Nov 2026, the Retro overhaul: wrap-around edges), appended so every earlier entry keeps its stream.
+  { key: "snake/wrap", game: snakeGameFor(SNAKE_REV_WRAP), checkpoint: snakeCheckpoint, mode: "events", rate: 60, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_WRAP) },
+  // Breaker brkRev 12 (15 Nov 2026, the Retro overhaul: the clearable wall), appended so every earlier entry keeps its stream.
+  { key: "breaker/clear", game: breakerGameFor(BRK_REV_CLEAR), checkpoint: brkCheckpoint, mode: "events", rate: 950, encode: encodeBreakerRun, replay: (seed: number, raw: string) => replayBreakerRun(seed, raw, BRK_REV_CLEAR) },
+  // Wavefront wavRev 14 (15 Nov 2026, the Retro overhaul: the charged shot), appended so every earlier entry keeps its stream.
+  { key: "wavefront/charge", game: wavefrontGameFor(14), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, 14) },
+  // Meteor snakeRev 14 (15 Nov 2026, the Retro overhaul: rocks in three sizes), appended so every earlier entry keeps its stream.
+  { key: "snake/sizes", game: snakeGameFor(14), checkpoint: snakeCheckpoint, mode: "events", rate: 60, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, 14) },
+  // Fission burstRev 13 (15 Nov 2026, the Retro overhaul: bigger atoms), appended so every earlier entry keeps its stream.
+  { key: "burst/big", game: burstGameFor(13), checkpoint: burstCheckpoint, mode: "events", rate: 120, encode: encodeBurstRun, replay: (seed: number, raw: string) => replayBurstRun(seed, raw, 13) },
+  // Meteor snakeRev 15 (16 Nov 2026, the Retro overhaul stage 3: the first crash forgiven), appended so every earlier entry keeps its stream.
+  // Spacewalk crossRev 13 (16 Nov 2026, the Retro overhaul stage 3: lighter traffic), appended so every earlier entry keeps its stream.
+  { key: "cross/light", game: crossGameFor(13), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, 13) },
+  // Wavefront wavRev 15 (16 Nov 2026, the Retro overhaul stage 3: larger hit cells), appended so every earlier entry keeps its stream.
+  { key: "wavefront/big", game: wavefrontGameFor(15), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, 15) },
+  // Pinball pinRev 8 (16 Nov 2026, the Retro overhaul stage 3: outlane saves counted), appended so every earlier entry keeps its stream.
+  { key: "pinball/save", game: pinball8Game, checkpoint: pin4Checkpoint, mode: "events", rate: 120, encode: encodePinballRun, replay: (seed: number, raw: string) => replayPinballRun(seed, raw, 8) },
+  // Hover hoverRev 11 (16 Nov 2026, the Retro overhaul stage 3: starting shielded), appended so every earlier entry keeps its stream.
+  { key: "hover/shield", game: hoverGameFor(11), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, 11) },
+  { key: "snake/grace", game: snakeGameFor(15), checkpoint: snakeCheckpoint, mode: "events", rate: 60, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, 15) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

@@ -7,6 +7,8 @@
  * server always agree on the accuracy.
  */
 
+import { retroLevelSettings, type BeatLv } from "./retroLevels";
+import type { Level } from "@/lib/levels/levels";
 import {
   clampInt,
   inputRange,
@@ -205,6 +207,8 @@ function buildChart(seed: number): { rng: number; chart: BeatChart } {
 /* ================================ State ================================ */
 
 export interface BeatState extends BandFields {
+  /** Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. */
+  lv?: BeatLv;
   /** Rev 2 only: the stamp, and swipe notes judged so far (hit, and missed or wrong way). */
   rev?: number;
   swipesHit?: number;
@@ -221,6 +225,8 @@ export interface BeatState extends BandFields {
   ease?: number;
   /** beatRev 11 only (the arcade scoring standard, 29 Oct 2026): 1 = scored on BEAT_STD_SPEC (beatRev 10's play). */
   std?: number;
+  /** beatRev 12 only (the Retro overhaul, 15 Nov 2026): 1 = a missed note scores 0 rather than −2 (outside the checksum). */
+  floor?: number;
   /** Fever: the meter (half steps, to BEAT_FEVER_FULL), ticks of fever left, fevers had, quarters earned in fever. */
   meter?: number;
   fever?: number;
@@ -306,8 +312,15 @@ export interface BeatWindows {
 export const BEAT_WINDOWS: BeatWindows = { perfect: BEAT_PERFECT_TICKS, good: BEAT_GOOD_TICKS, ok: BEAT_OK_TICKS };
 
 /** The windows a state judges with: beatRev 10's wider ones, or the original. */
-export function beatWindows(state: { ease?: number }): BeatWindows {
+export function beatWindows(state: { ease?: number; lv?: BeatLv | undefined }): BeatWindows {
+  // A level (stage 3 of the Retro overhaul) judges with its own windows.
+  if (state.lv) return { perfect: state.lv.perfect, good: state.lv.good, ok: state.lv.ok };
   return state.ease ? BEAT_V10_WINDOWS : BEAT_WINDOWS;
+}
+
+/** The notes' fall time on screen (ticks) a state draws with: its level's, else BEAT_FALL_TICKS. Display only. */
+export function beatFallOf(state: { lv?: BeatLv | undefined }): number {
+  return state.lv?.fall ?? BEAT_FALL_TICKS;
 }
 
 /** Judgement for a tick distance, or a miss when it is outside every window. */
@@ -631,7 +644,8 @@ function draw(ctx: CanvasRenderingContext2D, state: BeatState, size: CanvasSize)
   ctx.stroke();
 
   const travel = BEAT_HIT_LINE_Y - BEAT_HUD_H;
-  const yAt = (remaining: number) => BEAT_HUD_H + (travel * (BEAT_FALL_TICKS - remaining)) / BEAT_FALL_TICKS;
+  const FALL = beatFallOf(state);
+  const yAt = (remaining: number) => BEAT_HUD_H + (travel * (FALL - remaining)) / FALL;
   for (let index = 0; index < state.chart.ticks.length; index++) {
     const lane = state.chart.lanes[index]!;
     const hold = state.chart.holds[index]!;
@@ -639,7 +653,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BeatState, size: CanvasSize)
     if (state.judged[index] !== BEAT_JUDGE_NONE && !held) continue;
     const hitTick = state.chart.ticks[index]!;
     const remaining = hitTick - state.tick;
-    if (remaining > BEAT_FALL_TICKS || remaining + hold < -BEAT_OK_TICKS) continue;
+    if (remaining > FALL || remaining + hold < -beatWindows(state).ok) continue;
     const colour = BEAT_LANE_COLOURS[lane % BEAT_LANE_COLOURS.length]!;
     if (hold > 0) {
       // The tail, from the head (pinned to the line while held) up to its end.
@@ -726,7 +740,9 @@ function initRev2(seed: number): BeatState {
 export const beatRev2Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ...beatGame, init: initRev2, inputRanges: BEAT_V2_INPUT_RANGES };
 
 /** Takes puzzle.beatRev; anything else is the original game. */
-export function beatGameFor(rev?: number | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
+export function beatGameFor(rev?: number | null, level?: Level | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
+  // Stage 3 of the Retro overhaul: beatRev 12 at a level (retroLevels.ts: the hit windows; the fall time is drawn).
+  if (rev === BEAT_REV_FLOOR) return beatV12LevelGame(level);
   if (rev === BEAT_REV_STD) return beatV11Game;
   if (rev === BEAT_REV_EASE) return beatV10Game;
   if (rev === BEAT_REV_200) return beatV9Game;
@@ -890,7 +906,7 @@ export const beatTallGame: ArcadeGame<BeatState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's beatRev plays in. */
 export function beatWorldHFor(rev?: number | null): number {
-  return rev === BEAT_REV_STD || rev === BEAT_REV_EASE || rev === BEAT_REV_200 || rev === BEAT_REV_TALL || rev === BEAT_REV_TARGET || rev === BEAT_REV_STRICT ? BEAT_TALL_H : BEAT_WORLD_H;
+  return rev === BEAT_REV_FLOOR || rev === BEAT_REV_STD || rev === BEAT_REV_EASE || rev === BEAT_REV_200 || rev === BEAT_REV_TALL || rev === BEAT_REV_TARGET || rev === BEAT_REV_STRICT ? BEAT_TALL_H : BEAT_WORLD_H;
 }
 
 /* ================= Scoring targets (beatRev 7, 18 Oct 2026) ================= */
@@ -1279,9 +1295,10 @@ export const BEAT_STD_SPEC: StdSpec = {
   ],
 };
 
-/** The chart's per mille: Perfect 4, Good 3, OK 1, a miss −2 (floor 0), over 4 × notes. */
+/** The chart's per mille: Perfect 4, Good 3, OK 1, a miss −2 (floor 0; beatRev 12: a miss 0), over 4 × notes. */
 export function beatAccuracy(state: BeatState): number {
-  const quarters = Math.max(0, BEAT_PERFECT_Q * state.perfect + BEAT_GOOD_Q * state.good + BEAT_OK_Q * state.ok - 2 * state.misses);
+  const missCost = state.floor ? 0 : 2;
+  const quarters = Math.max(0, BEAT_PERFECT_Q * state.perfect + BEAT_GOOD_Q * state.good + BEAT_OK_Q * state.ok - missCost * state.misses);
   return Math.floor((1000 * quarters) / Math.max(1, BEAT_PERFECT_Q * beatNoteCount(state)));
 }
 
@@ -1297,6 +1314,7 @@ export function beatFeatureCounts(state: BeatState): { golds: number; doubles: n
 /** beatRev 11's parts (core first), or null for a state not on the standard. */
 export function beatStdParts(state: BeatState): StdPart[] | null {
   if (!state.std) return null;
+  const spec = state.floor ? BEAT_STD_SPEC_V12 : BEAT_STD_SPEC;
   const acc = beatAccuracy(state);
   const { golds, doubles } = beatFeatureCounts(state);
   const notes = beatNoteCount(state);
@@ -1305,11 +1323,11 @@ export function beatStdParts(state: BeatState): StdPart[] | null {
   const done = state.doublesDone ?? 0;
   const streak = state.maxStreak ?? 0;
   return [
-    stdPart(BEAT_STD_SPEC, "core", stdLine(BEAT_V11_MAX.core, acc, BEAT_V11_ACC_FULL), `${acc} of 1,000`),
-    stdPart(BEAT_STD_SPEC, "fever", stdLine(BEAT_V11_MAX.fever, Math.min(fevers, BEAT_V11_FEVERS_FULL), BEAT_V11_FEVERS_FULL), `${fevers} fever${fevers === 1 ? "" : "s"}`),
-    stdPart(BEAT_STD_SPEC, "gold", stdLine(BEAT_V11_MAX.gold, goldsHit, golds), `${goldsHit} of ${golds}`),
-    stdPart(BEAT_STD_SPEC, "double", stdLine(BEAT_V11_MAX.double, done, doubles), `${done} of ${doubles}`),
-    stdPart(BEAT_STD_SPEC, "streak", stdLine(BEAT_V11_MAX.streak, streak, notes), `${streak} of ${notes} notes`),
+    stdPart(spec, "core", stdLine(BEAT_V11_MAX.core, acc, BEAT_V11_ACC_FULL), `${acc} of 1,000`),
+    stdPart(spec, "fever", stdLine(BEAT_V11_MAX.fever, Math.min(fevers, BEAT_V11_FEVERS_FULL), BEAT_V11_FEVERS_FULL), `${fevers} fever${fevers === 1 ? "" : "s"}`),
+    stdPart(spec, "gold", stdLine(BEAT_V11_MAX.gold, goldsHit, golds), `${goldsHit} of ${golds}`),
+    stdPart(spec, "double", stdLine(BEAT_V11_MAX.double, done, doubles), `${done} of ${doubles}`),
+    stdPart(spec, "streak", stdLine(BEAT_V11_MAX.streak, streak, notes), `${streak} of ${notes} notes`),
   ];
 }
 
@@ -1341,3 +1359,51 @@ export const beatV11Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = {
   init: (seed) => ({ ...beatV10Game.init(seed), std: 1 }),
   score: (state) => stdScore(beatStdParts(state) ?? [], Boolean(state.acted)),
 };
+
+/* ================= The Retro overhaul: no note below 0 (beatRev 12, 15 Nov 2026) ================= */
+
+/**
+ * beatRev 12 (the Retro overhaul, docs/design/game-reviews/retro.md "Tempo", docs/arcade-standard/beat.md "beatRev
+ * 12"): beatRev 11's song, chart, windows, features and parts exactly, but a missed note scores 0 instead of −2, so a
+ * miss-heavy run still earns its hits (a third of the notes Perfect is 333 of 1,000, not 0). Every note Perfect is
+ * still 1,000 and 200 overall. States add `floor: 1`, outside the checkpoint checksum (playRevOf maps 12 to 11's play).
+ */
+export const BEAT_REV_FLOOR = 12;
+
+export const BEAT_STD_SPEC_V12: StdSpec = {
+  ...BEAT_STD_SPEC,
+  rev: BEAT_REV_FLOOR,
+  parts: BEAT_STD_SPEC.parts.map((p) =>
+    p.key === "core" ? { ...p, how: "every note scores by its timing (Perfect best, then Good, then OK; a missed note scores nothing), every note Perfect for all of it" } : p,
+  ),
+};
+
+export const beatV12Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = {
+  ...beatV11Game,
+  init: (seed) => ({ ...beatV11Game.init(seed), floor: 1 }),
+};
+
+/** beatRev 12's plan at a level (stage 3 of the Retro overhaul): Normal's sections with the off-beat and chord shares
+ * scaled (capped at 95 %), and the OK window the last note must fit inside. */
+function beatLevelPlan(lv: BeatLv): BeatChartPlan {
+  const scale = (v: number, pct: number) => (v > 0 ? Math.min(95, Math.round((v * pct) / 100)) : 0);
+  return {
+    ...V10_PLAN,
+    sections: V10_PLAN.sections.map(([from, eighth, chord]) => [from, scale(eighth, lv.eighthPct), scale(chord, lv.chordPct)] as const),
+    ok: Math.max(V10_PLAN.ok, lv.ok),
+  };
+}
+
+const beatV12ByLevel = new Map<string, ArcadeGame<BeatState, ArcadeInputEvent | null>>();
+/** beatRev 12 at a level: the chart built on the level's plan, its windows and fall time on the state (`lv`). */
+function beatV12LevelGame(level?: Level | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
+  const lv = retroLevelSettings("beat", level);
+  if (!lv) return beatV12Game;
+  let game = beatV12ByLevel.get(level!);
+  if (!game) {
+    const plan = beatLevelPlan(lv);
+    game = { ...beatV12Game, init: (seed) => ({ ...initV9(seed, plan), ease: 1, std: 1, floor: 1, lv }) };
+    beatV12ByLevel.set(level!, game);
+  }
+  return game;
+}

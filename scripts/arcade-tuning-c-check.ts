@@ -53,7 +53,7 @@ import { swingGameFor, SWING_BAND_CURVE, SWING_REV_TUNED, SWING_REV_TUNEC, SWING
 import { hoverGameFor, HOVER_BAND_CURVE, HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC, HOVER_V4_BAND_CURVE } from "../src/lib/arcade/hover";
 import { inkBridgeGameFor, INK_BAND_CURVE, INK_REV_BAND, INK_REV_SPREAD, INK_REV_STRICT, INK_REV_TUNEC, INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
 import { flipGameFor, flipWarpAmp, FLIP_BAND_CURVE, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC, FLIP_V4_BAND_CURVE, FLIP_WARP_FROM_V4 } from "../src/lib/arcade/flip";
-import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_STD_SPEC, BEAT_V4_BAND_CURVE } from "../src/lib/arcade/beat";
+import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_STD_SPEC, BEAT_V4_BAND_CURVE, BEAT_STD_SPEC_V12 } from "../src/lib/arcade/beat";
 import { stdHelp } from "../src/lib/arcade/arcadeStandard";
 import {
   wavDropPx,
@@ -87,13 +87,18 @@ import {
   type TiltState,
 } from "../src/lib/arcade/tilt";
 import { SLICE_REV_BIG, SLICE_REV_EXPAND, sliceGameFor, SLICE_BLADE_V4, SLICE_INPUT_BEGIN, SLICE_INPUT_SWIPE, SLICE_R, SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TUNEC, sliceObjectAt, type SliceState } from "../src/lib/arcade/slice";
-import { generateBeat, generateFlip, generateInkBridge, pinInkPreClover, generateMatchup, generateSlice, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
+import { generateBeat, generateFlip, generateInkBridge, pinInkPreClover, generateMatchup, generateSlice, generateSwing, generateTilt, generateWavefront, pinPreRetro } from "../src/lib/duel/arcade.server";
 import { generateHover } from "../src/lib/duel/hover.server";
 import { isRetired, puzzleDef, PUZZLE_TYPES, typesInCategory } from "../src/lib/duel/registry";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
 import { playTilt } from "./tilt-bot";
 import { playRevOf } from "./scoring-targets-revs";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal the overhaul's stamps
+// (Wavefront wavRev 14's charged shot, Fission burstRev 12…); this check was written for the deal before it, so it pins
+// preRetro.
+pinPreRetro(true);
 
 const ONLY = (process.env.TUNING_C_ONLY ?? "").split(",").filter(Boolean);
 const want = (type: string) => ONLY.length === 0 || ONLY.includes(type);
@@ -271,7 +276,8 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   // (swingRev 14) on its sections' curve (swing-assault-check); the swinging course (swingRev 15) as a share of the course. Tempo's beatRev 11 (the arcade scoring
   // standard) states its standard parts instead (arcade-help-bands-check, beat-standard-check).
   // Text pass (4 Nov 2026): the help is a list of parts ("A good run (100 points)" was internal wording, now gone).
-  ok(hasScorePart(PUZZLE_INSTRUCTIONS.swing.score, "Course", 110) && hasScorePart(PUZZLE_INSTRUCTIONS.inkbridge.score, "Levels", 120) && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelpLines(BEAT_STD_SPEC)), "the \"?\" help states the parts rooms deal");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): Tempo's help reads beatRev 12's spec.
+  ok(hasScorePart(PUZZLE_INSTRUCTIONS.swing.score, "Course", 110) && hasScorePart(PUZZLE_INSTRUCTIONS.inkbridge.score, "Levels", 120) && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelpLines(BEAT_STD_SPEC_V12)), "the \"?\" help states the parts rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */
