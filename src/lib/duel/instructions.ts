@@ -1918,7 +1918,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A marble rolling into an upright tube", detail: "drops a row.", helpOnly: true },
         { action: "A closed drop on the bottom row", detail: "sends marbles rolling past it (gold →).", helpOnly: true },
         { action: `${BT_V7_BALLS} marbles drop, one about every 1.4 seconds`, detail: "until 49 seconds; the run lasts a minute.", helpOnly: true },
-        { action: "On Easy, 28 marbles drop every 1.8 seconds", detail: "and the cups never move; on Hard and Expert, 42 drop every 1.2 and 1.1 seconds and the cups move more often (the intro says this round’s). The parts count this round’s marbles and gold marbles.", helpOnly: true },
+        { action: "On Easy, 16 marbles drop every 3.2 seconds", detail: "and the cups never move; on Hard and Expert, 42 drop every 1.2 and 1.1 seconds and the cups move more often (the intro says this round’s). The parts count this round’s marbles and gold marbles, and on Easy the combos fill at 10.", helpOnly: true },
         { action: "Mid-round the bottom row moves and the cups swap colours;", detail: "the count under the board (“20 to switch up”) gives the seconds to the next switch-up.", helpOnly: true },
       ],
       // btRev 8 (the arcade scoring standard, docs/arcade-standard/balltrack.md): marbles home on one even line, then the
