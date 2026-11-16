@@ -1,4 +1,4 @@
-# Sports overhaul: Cue Ball, Curl Champ, Apex (stages 1 and 2)
+# Sports overhaul: Cue Ball, Curl Champ, Apex (stages 1 to 3)
 
 Phase 2, step 4. This page shows each game three ways: today (main), the concept Joe chose
 (`docs/design/game-concepts/sports.md`, PR #426) and the new frame. It also shows the answer reveal before and after, plus
@@ -15,7 +15,7 @@ short clips.
 - Stage 2: Joe's notes on Apex's track, then the effects on the kit (#422). Each game's "Effects" section below shows
   them.
 - The clips show both stages.
-- Stage 3 (the difficulty levels) comes once PR #432 is on main.
+- Stage 3: the difficulty levels on #432's framework (section at the end), plus the clips, tiles, demos and Apex's 4× measurement.
 
 ## Cue Ball
 
@@ -134,3 +134,34 @@ The three tiles, today and new, drawn with the rendered art: Cue Ball's table, C
 car with the Captain at the wheel.
 
 <img src="tiles.webp" width="560">
+
+## Stage 3: levels
+
+Normal is today's game, byte for byte, in all three; rated play and the Daily stay Normal. Each level that changes play deals
+from its own proved bank or deal (a perfect witness at 200 through the server replay). Bot numbers are for information
+only (Joe, 16 Nov 2026): the levels are set by design, and Joe's playtest decides.
+
+| Game | Easy | Hard | Expert |
+|---|---|---|---|
+| Cue Ball | long aim preview, −5 a foul | short preview, −10 a foul | ghost-ball aim only, −15 a foul |
+| Curl Champ | 2 reds 60–130 cm, whole aim path, Stones full at 60 | 4 reds 30–90 cm | 5 reds 20–70 cm, no HOUSE zone, no aim line |
+| Apex | softer gravel, wider road and kerbs, both aids, gentler par | harsher gravel, one aid, tighter spread | harshest gravel, tighter hairpins, no aids, faster par |
+
+Elite bot means (information only). Cue Ball and Apex are from each game's own bands tool; Curl Champ is from its
+per-sheet tool, each bank sheet played twice. Apex runs on its own 120-tick checkpoints (main's `level-tune.ts` samples
+every 300; #444's tool, not on main, was not used):
+
+| Game | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Cue Ball | 177 | 164 | 156–160 | 138–140 |
+| Curl Champ | 196 | 188 | 183 | 146 |
+| Apex | 199.9 | 186.7 | 172.1 | 157.4 |
+
+**Expert boards to play** (each with a proved 200):
+- Cue Ball: 2098028836, 375698285, 1013219936, 1265396467, 1153387088.
+- Curl Champ: 2123852630, 156865439, 1726034549, 1797073985, 280906664.
+- Apex: 620573248 and 250938337 (Harbour Run), 193054080 and 1175901615 (Sunset Park), 1394605478 (Ridge Loop: the
+  oracle reaches 200, no bot finishes).
+
+**Apex at 4× CPU** (`bun scripts/arcade-perf.ts racing --rates=4`): the frame's own draw is 14.1 ms against main's
+8.7 ms. The whole frame misses the 33.3 ms target on main too.
