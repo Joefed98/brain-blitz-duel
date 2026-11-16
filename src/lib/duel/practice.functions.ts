@@ -494,9 +494,9 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
       if (priv["type"] !== "wordsearch") throw new Error("That puzzle didn’t load. Try another.");
       const puzzle = mergePuzzle(pub, priv);
       if (puzzle.type !== "wordsearch") return { valid: false as const, points: 0, word: "" };
-      const { checkWordSearchPath } = await import("./wordSearch");
+      const { checkWordSearchPath, wsRowsOf } = await import("./wordSearch");
       const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
-      return checkWordSearchPath(puzzle.placements ?? [], puzzle.size, path, found, puzzle.bonus);
+      return checkWordSearchPath(puzzle.placements ?? [], puzzle.size, path, found, puzzle.bonus, wsRowsOf(puzzle));
     }
     if (data.puzzle.type === "wordhunt") {
       const { checkWordHuntPath } = await import("./wordHunt.server");

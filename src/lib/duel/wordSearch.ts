@@ -119,13 +119,21 @@ export function wsChipSlots(
 }
 const MAX_SELECTIONS = 300;
 
+/**
+ * A board's rows: `size` is its width (columns); the Word overhaul's taller levels (15 Nov 2026) carry `rows`. Every
+ * board before them is square, so rows = size.
+ */
+export function wsRowsOf(puzzle: { size: number; rows?: number | undefined }): number {
+  return typeof puzzle.rows === "number" && Number.isInteger(puzzle.rows) && puzzle.rows > 0 ? puzzle.rows : puzzle.size;
+}
+
 /** Cells of the straight line start → end, or null if it is not one of the eight directions. */
-export function wsLine(start: number, end: number, size: number): number[] | null {
+export function wsLine(start: number, end: number, size: number, rows: number = size): number[] | null {
   const r0 = Math.floor(start / size);
   const c0 = start % size;
   const r1 = Math.floor(end / size);
   const c1 = end % size;
-  if ([r0, c0, r1, c1].some((v) => v < 0 || v >= size)) return null;
+  if ([c0, c1].some((v) => v < 0 || v >= size) || [r0, r1].some((v) => v < 0 || v >= rows)) return null;
   const dr = r1 - r0;
   const dc = c1 - c0;
   if (!(dr === 0 || dc === 0 || Math.abs(dr) === Math.abs(dc))) return null;
@@ -136,7 +144,7 @@ export function wsLine(start: number, end: number, size: number): number[] | nul
 }
 
 /** The phone's drag: snaps the finger to the nearest of the eight directions. */
-export function wsSnapLine(start: number, current: number, size: number): number[] {
+export function wsSnapLine(start: number, current: number, size: number, rows: number = size): number[] {
   const r0 = Math.floor(start / size);
   const c0 = start % size;
   const dr = Math.floor(current / size) - r0;
@@ -150,7 +158,7 @@ export function wsSnapLine(start: number, current: number, size: number): number
   while (len > 0) {
     const r = r0 + sr * len;
     const c = c0 + sc * len;
-    if (r >= 0 && r < size && c >= 0 && c < size) break;
+    if (r >= 0 && r < rows && c >= 0 && c < size) break;
     len--;
   }
   return Array.from({ length: len + 1 }, (_, i) => (r0 + sr * i) * size + (c0 + sc * i));
@@ -171,12 +179,12 @@ export function wsEncode(selections: readonly number[][]): string {
   return selections.map((cells) => `${cells[0]}.${cells[cells.length - 1]}`).join(",");
 }
 
-export function wsDecode(answer: string, size: number): number[][] {
+export function wsDecode(answer: string, size: number, rows: number = size): number[][] {
   const out: number[][] = [];
   for (const part of String(answer ?? "").split(",").slice(0, MAX_SELECTIONS)) {
     const m = /^(\d{1,3})\.(\d{1,3})$/.exec(part);
     if (!m) continue;
-    const line = wsLine(Number(m[1]), Number(m[2]), size);
+    const line = wsLine(Number(m[1]), Number(m[2]), size, rows);
     if (line && line.length >= 2) out.push(line);
   }
   return out;
@@ -208,8 +216,9 @@ export function checkWordSearchPath(
   path: readonly number[],
   already: readonly string[],
   bonus?: WordSearchPlacement,
+  rows: number = size,
 ): { valid: boolean; points: number; word: string; reason?: string; bonus?: boolean } {
-  const line = path.length >= 2 ? wsLine(path[0]!, path[path.length - 1]!, size) : null;
+  const line = path.length >= 2 ? wsLine(path[0]!, path[path.length - 1]!, size, rows) : null;
   if (!line || line.join(".") !== path.join(".")) return { valid: false, points: 0, word: "", reason: "Not a line" };
   if (bonus && wsMatch([bonus], line) === 0) {
     if (already.map((w) => w.toUpperCase()).includes(bonus.word)) return { valid: false, points: 0, word: bonus.word, reason: "Already found" };

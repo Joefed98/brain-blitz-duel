@@ -25,9 +25,9 @@ export async function checkRoundWord(
   if (pub.type === "wordsearch") {
     const puzzle = mergePuzzle(pub, await priv());
     if (puzzle.type !== "wordsearch") return { valid: false as const, points: 0, word: "" };
-    const { checkWordSearchPath } = await import("./wordSearch");
+    const { checkWordSearchPath, wsRowsOf } = await import("./wordSearch");
     const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
-    return checkWordSearchPath(puzzle.placements ?? [], puzzle.size, path, found, puzzle.bonus);
+    return checkWordSearchPath(puzzle.placements ?? [], puzzle.size, path, found, puzzle.bonus, wsRowsOf(puzzle));
   }
   if (pub.type === "wordhunt") {
     const { checkWordHuntPath } = await import("./wordHunt.server");

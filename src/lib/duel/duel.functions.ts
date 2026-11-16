@@ -1343,9 +1343,9 @@ export const checkWordFn = createServerFn({ method: "POST" })
       const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
       const puzzle = mergePuzzle(pub, priv);
       if (puzzle.type !== "wordsearch") return { valid: false as const, points: 0, word: "" };
-      const { checkWordSearchPath } = await import("./wordSearch");
+      const { checkWordSearchPath, wsRowsOf } = await import("./wordSearch");
       const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
-      return checkWordSearchPath(puzzle.placements ?? [], puzzle.size, path, found, puzzle.bonus);
+      return checkWordSearchPath(puzzle.placements ?? [], puzzle.size, path, found, puzzle.bonus, wsRowsOf(puzzle));
     }
     if (pub?.type === "wordhunt") {
       const { checkWordHuntPath } = await import("./wordHunt.server");

@@ -43,7 +43,7 @@ import { balancePlaceLimits, equationTryLimit, measureMoveLimits, splitCountSuff
 import { equationStageCorrect, parseOperators, splitStages } from "./stagedRounds";
 import { decodeMeasureActions, measureActions, measureApply, measureSolved, splitMeasureRound } from "./measure";
 import { measureBoardOut } from "./gameReviewNov15";
-import { decodeStrikeout2, replayStrikeout2, so2Rules, so2Tally, STRIKEOUT_REV2, strikeoutRevOf } from "./strikeout";
+import { decodeStrikeout2, replayStrikeout2, so2Rules, so2Tally, STRIKEOUT_REV2, strikeoutRevOf, so2RulesFor } from "./strikeout";
 import { isCommonPrefix, isWord } from "./dictionary.server";
 import { decodeSteps, madeDistance, replayTargetSteps } from "./target";
 import { decodeRingTaps, freshOffsets, RING_RESET, RING_TAPS, RING_UNDO, ringPatternIndex, ringsApply, ringsSolved } from "./rings";
@@ -215,7 +215,7 @@ export function rev3Progress(input: ProgressInput): number | null {
  */
 export function rev3EfficiencyOverride(puzzle: PuzzleData, extra: Record<string, unknown> | null | undefined): number | null {
   if (puzzle.type === "strikeout" && strikeoutRevOf(puzzle) >= STRIKEOUT_REV2) {
-    const max = so2Rules(strikeoutRevOf(puzzle)).maxStrikes;
+    const max = so2RulesFor(puzzle).maxStrikes;
     const strikes = typeof extra?.["strikes"] === "number" ? (extra["strikes"] as number) : 0;
     const span = Math.max(1, max - STRIKEOUT_FREE_STRIKES);
     return Math.max(0, Math.min(1, (max - strikes) / span));
@@ -408,7 +408,7 @@ function strikeoutProgress(puzzle: Extract<PuzzleData, { type: "strikeout" }>, a
   if (strikeoutRevOf(puzzle) < STRIKEOUT_REV2) return null;
   const words = puzzle.words ?? [];
   if (!words.length) return 0;
-  const state = replayStrikeout2(words, puzzle.givens ?? [], decodeStrikeout2(answer), isWord, so2Rules(strikeoutRevOf(puzzle)));
+  const state = replayStrikeout2(words, puzzle.givens ?? [], decodeStrikeout2(answer), isWord, so2RulesFor(puzzle));
   const tally = so2Tally(state);
   const w = tally.solvedWords;
   let within = 0;
