@@ -36,7 +36,7 @@ import { drawPushLevel, isPushLevel } from "../pushLevels.server";
 import { drawBlockD4 } from "./blockD4.server";
 import { drawBlockLevel } from "../blockPartyLevels.server";
 import { BLOCK_LEVEL_BANK } from "../blockPartyLevelBank.server";
-import type { Level } from "@/lib/levels/levels";
+import { drawFlowLevel } from "../flowLevels.server";
 
 /** Lightbender's spare mirrors on laserRev 1. */
 export const LASER_SPARE_MIRRORS = 2;
@@ -47,7 +47,8 @@ export interface D4DealContext {
   unblockRow?: UnblockBankRow | null;
   bankSeed?: number;
   recentBankKeys?: ReadonlySet<string> | undefined;
-  /** The level the deal is made at (generate.server.ts; absent at Normal). Tessellate deals its level boards. */
+  /** The level the deal is made at (generate.server.ts; absent at Normal). Pipeline, Tessellate and Chroma Lines
+   * deal their level boards from it. */
   level?: Level | undefined;
 }
 
@@ -79,6 +80,8 @@ export function dealDepth4(type: PuzzleType, context: D4DealContext): PuzzleData
       return { ...p, laserRev: dealtD4Rev("laser"), par, mirrors: p.mirrors + LASER_SPARE_MIRRORS };
     }
     case "flow": {
+      // Levels (16 Nov 2026): Easy, Hard and Expert deal from their own banks (live without a seed); Normal as before.
+      if (context.level && context.level !== "normal") return { ...drawFlowLevel(context.level, context.bankSeed, context.recentBankKeys), flowRev: D4_REV };
       if (context.bankSeed === undefined) return null;
       const p = drawBankedPuzzle("flow", context.bankSeed, context.recentBankKeys);
       return { ...(p as Extract<PuzzleData, { type: "flow" }>), flowRev: D4_REV };

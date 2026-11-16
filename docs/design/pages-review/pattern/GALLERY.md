@@ -344,6 +344,33 @@ and the solve.
   silent) under `flow.solve`.
 - **Reduced motion:** each change shows as a 120 ms crossfade (the head, the joined tube, the cut part, the solve), no
   light runs and no particles.
+
+### Stage 3: levels (16 Nov 2026)
+
+**Lines today, for Joe's brightness check: a fresh Normal round mid-play from the current code | concept A** (390 × 844,
+colours unchanged)
+
+| Normal now (mid-play) | Concept A |
+|---|---|
+| <img src="flow-level-normal.webp" width="180" alt="Chroma Lines Normal, mid-play, current code"> | <img src="flow-concept-A.webp" width="180" alt="Chroma Lines concept A"> |
+
+**The four levels, mid-play** (390 × 844, practice, about half the pairs joined)
+
+| Easy | Normal | Hard | Expert |
+|---|---|---|---|
+| <img src="flow-level-easy.webp" width="160" alt="Chroma Lines Easy: 6 by 6"> | <img src="flow-level-normal.webp" width="160" alt="Chroma Lines Normal: 9 by 9"> | <img src="flow-level-hard.webp" width="160" alt="Chroma Lines Hard: 9 by 9, fewer longer lines"> | <img src="flow-level-expert.webp" width="160" alt="Chroma Lines Expert: 9 wide by 12 tall"> |
+
+**Expert's answer reveal** (the 9 × 12 board at its own aspect, all 14 pairs): <img src="flow-level-expert-reveal.webp" width="180" alt="Chroma Lines Expert reveal">
+
+- **Easy:** 6 × 6, 5–6 pairs, no walls, 75 s; full speed by 15 s.
+- **Normal:** today's game (9 × 9, 10–12 pairs, 2–4 walls, 75 s), the same bank and deal; full speed by 30 s on
+  flowRev 3 (was 20 s, which no strong player reached).
+- **Hard:** 9 × 9, 8–9 pairs with longer lines (8+ squares on average), 4–6 walls, 75 s; full speed by 35 s.
+- **Expert:** 9 wide × 12 tall (squares stay about 39 px on a 375 px phone; the board grows downwards), 12–14 pairs,
+  4–6 walls, 90 s; full speed by 45 s. Two new colours for the 13th and 14th pairs: cyan (a hexagon) and tan (two
+  bars), each a Blender bead like the twelve.
+- Every level's boards come from their own seeded bank of 500, each proved to have exactly one solution and finished by
+  a solver that reasons like a person (no guessing).
 <!-- chroma:end -->
 
 <!-- skid:start -->

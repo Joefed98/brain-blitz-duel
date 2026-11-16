@@ -25,7 +25,7 @@ import { replayGems } from "./depth4/iceGems";
 import { gemMinMoves } from "./depth4/gems.server";
 import { activeLightPresses, decodePresses, decodeSides, lightsAllOff, lightsOnCount, pipesDims, replayLights } from "./logic";
 import { gradePipesBoard, gradeSudokuGrid } from "./logic.server";
-import { decodeFlowPaths, verifyFlow } from "./flow";
+import { decodeFlowPaths, flowCellCount, flowGrid, verifyFlow } from "./flow";
 import { countedSlides, decodeSlideMoves, replaySlide, slideBoard, slideDistance } from "./slide";
 import { cratesOnTargets, decodePushMoves, replayPush } from "./push";
 import { decodeLaserAnswer, isSplitter, verifyLaser } from "./laser";
@@ -758,8 +758,10 @@ function gradeUnderRev(
     case "flow": {
       // Every path the phone sends is re-walked here: contiguous, ending on the
       // right dots, and sharing no cell with another colour.
-      const paths = decodeFlowPaths(answer, puzzle.pairs.length || FLOW_PAIRS);
-      const verdict = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? []);
+      // Levels (16 Nov 2026): the board's own grid (9 × 9 for every puzzle without `cols` / `rows`).
+      const grid = flowGrid(puzzle);
+      const paths = decodeFlowPaths(answer, puzzle.pairs.length || FLOW_PAIRS, flowCellCount(grid));
+      const verdict = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? [], grid);
       isCorrect = verdict.solved;
       correctCount = verdict.pairsJoined;
       // Rev 1: an unfinished board earns only pairs joined along their (unique) solution route.

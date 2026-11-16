@@ -3,7 +3,9 @@
  * (docs/scoring-standard.md). Written from patternRules.ts's numbers (the grader's own), with {max} for the game's
  * maximum (roundMax.ts, 200), so the texts always state what the standard's stamp deals. Shared, pure.
  */
-import { BLOCK_STD, FLOW_STD, ICE_STD, LASER_STD, PATTERN_STD, PUSH_STD, TOPSY_STD, type PatternStdType } from "./patternRules";
+import { BLOCK_STD, FLOW_REV3_FULL_BY_S, FLOW_STD, ICE_STD, LASER_STD, PATTERN_STD, PUSH_STD, TOPSY_STD, type PatternStdType } from "./patternRules";
+import { gameLevelSettings } from "@/lib/levels/gameLevels";
+import { LEVEL_LABEL } from "@/lib/levels/levels";
 import { puzzleScoreList, type ScoreLine } from "../scoreList";
 import { fillMax } from "../roundMax";
 import { preNov7Pinned } from "../speedPipesNov7";
@@ -138,8 +140,32 @@ export const blockPatternHelp = (): string => (prePatternNov15Pinned() ? PATTERN
 export const blockPatternIntro = (): string => (prePatternNov15Pinned() ? PATTERN_STD_INTRO.blockparty : BLOCK_NOV15_INTRO);
 // ---- tessellate:end
 
+// ---- chroma:start (the Pattern overhaul, levels, 16 Nov 2026)
+/**
+ * Chroma Lines on flowRev 3: full speed by FLOW_REV3_FULL_BY_S on Normal and by each level's own time (flow.levels.ts),
+ * so the help names them all.
+ */
+function flowLevelTimes(): string {
+  const parts = (["easy", "hard", "expert"] as const).flatMap((level) => {
+    const s = gameLevelSettings<{ fullByS?: number }>("flow", level);
+    return s?.fullByS ? [`${LEVEL_LABEL[level]} ${s.fullByS} s`] : [];
+  });
+  return parts.length ? `on Normal; ${parts.join(", ")}` : "";
+}
+export function flowRev3Help(): string {
+  return puzzleScoreList({
+    finish: "join every pair",
+    speed: { max: PATTERN_STD.flow.speed, fullByS: FLOW_REV3_FULL_BY_S, note: flowLevelTimes() || undefined },
+    bonuses: [{ label: "Clean lines", how: `never redraw a finished line, ${fmt(FLOW_STD.perRedraw)} less for each you change`, max: FLOW_STD.clean }],
+    unfinished: "the share of the pairs joined along their own route, more for doing it early",
+    total: "{max}" as unknown as number,
+  });
+}
+// ---- chroma:end
+
 /** The help as shown ({max} filled in: the game's maximum, 200). */
 export function patternStdHelp(type: PatternStdType): string {
+  if (type === "flow" && !prePatternNov15Pinned()) return fillMax(flowRev3Help(), type);
   if (type === "blockparty") return fillMax(blockPatternHelp(), type);
   if (isPartialPatternType(type) && partialCreditDealt()) return fillMax(PARTIAL_PATTERN_HELP[type], type);
   if (type === "pipes") return fillMax(pipesPatternHelp(), type);
