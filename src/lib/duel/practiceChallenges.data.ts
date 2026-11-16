@@ -456,14 +456,16 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Five Hands (fivehands): rows plus the picked column, × 1.4, capped at 200.
   ch("fivehands", "Handsome", "Score 150 or more.", "C", "bigscore", false, score(150)),
   ch("fivehands", "Pick of the bunch", "Pick the best bonus column on the table.", "C", "par", false, all(f("column", "gte", 0), f("columnPoints", "gte", "@bestColumnPoints"))),
-  ch("fivehands", "High roller", "Score 170 or more on Hard.", "H", "bigscore", true, score(170)),
+  // Changed with Joe's approval, 16 Nov 2026 (level challenge thresholds): 170 → 160.
+  ch("fivehands", "High roller", "Score 160 or more on Hard.", "H", "bigscore", true, score(160)),
   // Free Cell (freecell): cards 105 + par moves 50 + speed 45 (32 s).
   ch("freecell", "All home", "Get all 40 cards home.", "C", "finish", false, part("Cards", 105)),
   ch("freecell", "By the book", "Finish in par moves.", "C", "par", false, part("Par moves", 50)),
   ch("freecell", "Card sharp", "Finish within 32 s.", "C", "speed", true, part("Speed", 45)),
   // Mahjong Solitaire (mahjong): pairs 150 + no shuffles 20 + speed 30 (65 s).
   ch("mahjong", "No shuffle", "Clear the stack without a Shuffle.", "C", "clean", false, all(full("Pairs", 150), full("No shuffles", 20))),
-  ch("mahjong", "Tile rush", "Clear a Hard stack within 65 s.", "H", "speed", false, part("Speed", 30)),
+  // Changed with Joe's approval, 16 Nov 2026 (level challenge thresholds): the text matches Hard's speed rule (65 s → 25 s).
+  ch("mahjong", "Tile rush", "Clear a Hard stack within 25 s.", "H", "speed", false, part("Speed", 30)),
   // Minefield (minesweeper): safe squares 150 + no mines hit 20 + speed 30 (37 s on minesRev 2, 13 Nov 2026; 50 s on rev 1).
   ch("minesweeper", "Light feet", "Clear the board without hitting a mine.", "C", "clean", false, all(full("Safe squares", 150), full("No mines hit", 20))),
   ch("minesweeper", "Sweep", "Clear the board within 37 s.", "C", "speed", false, part("Speed", 30)),

@@ -13,6 +13,7 @@
  * generated from those constants). A retune that moves a number fails here.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { MAHJONG_LEVEL_RULES } from "../src/lib/arcade/mahjong";
 import { readFileSync } from "node:fs";
 
 import { ARCADE_STANDARD } from "../src/lib/arcade/standard";
@@ -262,7 +263,9 @@ function expectations(): Record<string, Expect> {
     "fivehands.pick-of-the-bunch": { th: [[0, 0]] },
     "freecell.all-home": { say: [[40, Number(/all (\d+) home/.exec(specPart("freecell", "Cards")?.how ?? "")?.[1])]] },
     "freecell.card-sharp": { say: [[32, withinS("freecell", "Speed")]] },
-    "mahjong.tile-rush": { say: [[65, withinS("mahjong", "Speed")]] },
+    // Changed with Joe's approval, 16 Nov 2026 (level challenge thresholds): Tile rush is a Hard goal, so its number is
+    // Hard's own speed rule (full by 25 s, MAHJONG_LEVEL_RULES.hard), not Normal's 65 s.
+    "mahjong.tile-rush": { say: [[25, MAHJONG_LEVEL_RULES.hard.speedFullS]] },
     // Changed with Joe's approval, 13 Nov 2026: Minefield's minesRev 2 is full by 37 s (the near-perfect median clear on 20 mines).
     "minesweeper.sweep": { say: [[37, withinS("minesweeper", "Speed")]] },
     "pyramid.paired-up": { say: [[10, of("pyramid", "Pyramid pairs")], [2, 2]] },
