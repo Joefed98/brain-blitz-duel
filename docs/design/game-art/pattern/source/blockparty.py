@@ -30,6 +30,9 @@ COLOURS = {
     "brown": "#8B5A2B",
     "yellow": "#FFE600",
     "white": "#E9E6DE",
+    # Stage 3 (levels, 16 Nov 2026): Expert's tenth and eleventh pieces (the U and the P).
+    "cyan": "#2FD3EE",
+    "slate": "#7F8AA3",
 }
 
 

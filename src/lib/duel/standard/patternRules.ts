@@ -5,6 +5,7 @@
  * (patternText.ts) quote them, so the two never drift. Shared, pure.
  */
 import type { PuzzleType } from "../types";
+import { blockLevelFullByS } from "../blockParty";
 
 export type PatternStdType = "unblock" | "blockparty" | "iceslide" | "gravity" | "tiles" | "rings" | "laser" | "flow" | "pipes" | "push";
 
@@ -21,6 +22,11 @@ export const TILES_REV5_FULL_BY_S = 80;
 /** The full-speed time a puzzle on the standard is graded with, by its stamp (only Gradient's moved). */
 export function patternFullByS(type: PatternStdType, puzzle: { tilesRev?: number }): number {
   if (type === "tiles" && (puzzle.tilesRev ?? 0) < TILES_REV_FAST) return TILES_REV5_FULL_BY_S;
+  // Tessellate's levels (the Pattern overhaul, stage 3): a board dealt at a level is full speed by its level's time.
+  if (type === "blockparty") {
+    const own = blockLevelFullByS(puzzle);
+    if (own !== null) return own;
+  }
   return PATTERN_STD[type].fullByS;
 }
 
