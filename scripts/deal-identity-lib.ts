@@ -110,8 +110,10 @@ export function digest(value: unknown): string {
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): ricoPreBig (Moon Climb ricoRev 4).
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): swingPreBig (Grappler swingRev 18).
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreBig (Orbit orbitRev 16).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): bastionPreLevels (Iron Wall
+ * bastionRev 4, the levels).
  */
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "orbitPreGrace", "flipPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig"];
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "orbitPreGrace", "flipPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels"];
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {
@@ -173,8 +175,8 @@ export function roomDigests(seeds: readonly number[]): Record<string, string> {
   // arcade deal, unpinned here as before). Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action
   // overhaul): the new arcade stamps that reach a room's deals, orbitPreGrace and skylinePreLives, beside flipPreGrace;
   // ricoPreBig (Moon Climb ricoRev 4) and swingPreBig (Grappler swingRev 18), the same approval; orbitPreBig (Orbit
-  // orbitRev 16), the same approval.
-  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "flipPreGrace", "orbitPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig"]);
+  // orbitRev 16), the same approval; bastionPreLevels (Iron Wall bastionRev 4), the same approval.
+  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "flipPreGrace", "orbitPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels"]);
 }
 
 function roomDigestsNow(seeds: readonly number[]): Record<string, string> {

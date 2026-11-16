@@ -124,7 +124,8 @@ tasks.push({
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): ricoPreBig (ricoRev 4), 30.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): swingPreBig (swingRev 18), 31.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreBig (orbitRev 16), 32.
-    ok(names.size === 32, `32 era switches (${names.size})`);
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): bastionPreLevels (bastionRev 4), 33.
+    ok(names.size === 33, `33 era switches (${names.size})`);
   },
 });
 

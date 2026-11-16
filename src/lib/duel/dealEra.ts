@@ -82,6 +82,8 @@ export const DEAL_PINS = {
   ricoPreBig: { texts: false },
   /** arcade.server.ts: Orbit orbitRev 15, before the bigger planets (the Action overhaul's stage 3, 15 Nov 2026). */
   orbitPreBig: { texts: false },
+  /** arcade.server.ts: Iron Wall bastionRev 3, before the levels (the Action overhaul, 15 Nov 2026). */
+  bastionPreLevels: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

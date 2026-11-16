@@ -96,7 +96,7 @@ const SIMPLE: Record<string, (p: PuzzleData, look: GameLook) => Draw> = {
   minesweeper: () => drawMinesweeper as Draw,
   mahjong: () => drawMahjong as Draw,
   homerun: () => homerunArtGame.draw as Draw,
-  bastion: (p) => (((p as { bastionRev?: number }).bastionRev ?? 1) >= 2 ? bastionTankArtGameFor((p as { bastionRev?: number }).bastionRev).draw : bastionGame.draw) as Draw,
+  bastion: (p) => (((p as { bastionRev?: number }).bastionRev ?? 1) >= 2 ? bastionTankArtGameFor((p as { bastionRev?: number }).bastionRev, (p as { level?: unknown }).level).draw : bastionGame.draw) as Draw,
   freekick: (_p, look) => ((ctx, s, size) => withFreekickLook(look, () => freekickArtGame.draw(ctx, s, size))) as Draw,
   racing: (_p, look) => ((ctx, s, size) => drawRacingArt(ctx, s, size, look)) as Draw,
   freecell: () => freecellArt.draw as Draw,

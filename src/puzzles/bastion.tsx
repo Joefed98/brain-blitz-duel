@@ -29,9 +29,9 @@ import {
   BT2_WORLD_W,
   type BastionTankState,
 } from "@/lib/arcade/bastionTank";
-import { bastionScene, bastionSceneKey, bastionIronArtGame, bastionSummaryHeight, bastionSummaryRows, bastionTankArtGameFor, BT2_ART_BG, BT_SUMMARY_W, paintBastionSummary, type BtSummaryData } from "@/lib/arcade/bastionTank.renderer";
+import { bastionScene, bastionSceneKey, bastionSummaryHeight, bastionSummaryRows, bastionTankArtGameFor, BT2_ART_BG, BT_SUMMARY_W, paintBastionSummary, type BtSummaryData } from "@/lib/arcade/bastionTank.renderer";
 import { bastionEndHoldMs, bastionWaveTallies } from "@/lib/arcade/bastionLook";
-import { bastionPlan, BT2_TOTAL_HP, BT2_WAVE_COUNT, BT3_DRONES } from "@/lib/arcade/bastionTank";
+import { bastionBaseMax, bastionPlanOf, bastionTotalHp, BT2_WAVE_COUNT, BT3_DRONES } from "@/lib/arcade/bastionTank";
 import { bastionTankLedger } from "@/lib/duel/bastionLedger";
 import { canvasRatio } from "@/lib/battery";
 import { ArtStill } from "@/components/puzzles/ArtStill";
@@ -193,13 +193,14 @@ function LegacyReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /* ============================== bastionRev 2 ============================== */
 
 /**
- * The intro still (Action overhaul, 15 Nov 2026): Iron Wall's own art (bastionRev 3) on a fixed seed a few seconds in
+ * The intro still (Action overhaul, 15 Nov 2026): Iron Wall's own art (the dealt stamp at Normal: bastionRev 4 since the
+ * levels, 15 Nov 2026) on a fixed seed a few seconds in
  * with no input, so the intro shows the real road, tanks and panel rather than a drawing of them.
  */
 function IntroExample() {
   return (
     <ArtStill
-      game={bastionIronArtGame}
+      game={bastionTankArtGameFor(BASTION_REV_DEALT)}
       worldW={BT2_WORLD_W}
       worldH={BT2_WORLD_H}
       seed={7}
@@ -234,7 +235,9 @@ interface Gesture {
 function TankStage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BastionPuzzleData | null = puzzle.type === "bastion" ? puzzle : null;
   const rev = data?.bastionRev;
-  const game = useMemo(() => bastionTankArtGameFor(rev), [rev]);
+  // bastionRev 4: the puzzle's stored level picks the game (the deal stamps it; none = Normal).
+  const level = (data as { level?: unknown } | null)?.level;
+  const game = useMemo(() => bastionTankArtGameFor(rev, level), [rev, level]);
   const live = useRef<BastionTankState | null>(null);
   // The crosshair in the view (bastionView.ts: what the player sees); the aim sent is its exact world point.
   const aim = useRef({ x: 195, y: btViewY(470) });
@@ -342,22 +345,24 @@ function Reveal(props: PuzzleRevealProps) {
   const { puzzle, myAnswer } = props;
   if (puzzle.type !== "bastion") return null;
   if (!isBastionTank(puzzle.bastionRev)) return <LegacyReveal {...props} />;
-  return <TankReveal seed={puzzle.seed} answer={myAnswer ?? ""} rev={puzzle.bastionRev} />;
+  return <TankReveal seed={puzzle.seed} answer={myAnswer ?? ""} rev={puzzle.bastionRev} level={(puzzle as { level?: unknown }).level} />;
 }
 
 /** The arcade reveal's run picture (PuzzleDefinition.RunPicture): the tank shooter's only; the original turret has none. */
 function RunPicture({ puzzle, myAnswer }: RunPictureProps) {
   if (puzzle.type !== "bastion" || !isBastionTank(puzzle.bastionRev)) return null;
-  return <TankReveal seed={puzzle.seed} answer={myAnswer} rev={puzzle.bastionRev} />;
+  return <TankReveal seed={puzzle.seed} answer={myAnswer} rev={puzzle.bastionRev} level={(puzzle as { level?: unknown }).level} />;
 }
 
 /** The reveal's picture data from a stored run (the real sim, tick by tick; display only). */
-export function bastionSummaryOf(seed: number, answer: string, rev?: number | null): { data: BtSummaryData; destroyedHp: number; weak: number; fast: number; drones: number } {
-  const { ledger, state } = bastionTankLedger(seed, answer, rev);
+export function bastionSummaryOf(seed: number, answer: string, rev?: number | null, level?: unknown): { data: BtSummaryData; destroyedHp: number; totalHp: number; weak: number; fast: number; drones: number } {
+  const { ledger, state } = bastionTankLedger(seed, answer, rev, level);
   const iron = state.rev >= 3;
+  const baseMax = bastionBaseMax(state.rev, state.lvl);
   return {
-    data: { rev: state.rev, waves: bastionWaveTallies(ledger, bastionPlan(seed), BT2_WAVE_COUNT), drones: iron ? ledger.drones : [], base: state.base, fell: state.ended === 2 },
+    data: { rev: state.rev, waves: bastionWaveTallies(ledger, bastionPlanOf(state), BT2_WAVE_COUNT), drones: iron ? ledger.drones : [], base: state.base, ...(state.rev >= 4 ? { baseMax } : {}), fell: state.ended === 2 },
     destroyedHp: state.destroyedHp,
+    totalHp: bastionTotalHp(state.rev, state.lvl),
     weak: state.weak,
     fast: state.fast,
     drones: state.drones ?? 0,
@@ -369,8 +374,8 @@ export function bastionSummaryOf(seed: number, answer: string, rev?: number | nu
  * in one picture (paintBastionSummary: each wave's tanks and what became of them, the drones and the base), drawn from
  * the stored log replayed through the real sim. No score or grade is worked out here; the stored score is the reveal's.
  */
-function TankReveal({ seed, answer, rev }: { seed: number; answer: string; rev?: number | null | undefined }) {
-  const run = useMemo(() => bastionSummaryOf(seed, answer, rev), [seed, answer, rev]);
+function TankReveal({ seed, answer, rev, level }: { seed: number; answer: string; rev?: number | null | undefined; level?: unknown }) {
+  const run = useMemo(() => bastionSummaryOf(seed, answer, rev, level), [seed, answer, rev, level]);
   const box = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [width, setWidth] = useState(BT_SUMMARY_W);
@@ -400,7 +405,7 @@ function TankReveal({ seed, answer, rev }: { seed: number; answer: string; rev?:
     paintBastionSummary(ctx, run.data);
   }, [run, width, cssH]);
   const stats: { value: string; label: string }[] = [
-    { value: `${run.destroyedHp} / ${BT2_TOTAL_HP}`, label: "Armour knocked out" },
+    { value: `${run.destroyedHp} / ${run.totalHp}`, label: "Armour knocked out" },
     { value: `${run.weak}`, label: run.weak === 1 ? "Weak-spot hit" : "Weak-spot hits" },
     { value: `${run.fast}`, label: run.fast === 1 ? "Fast reload" : "Fast reloads" },
   ];

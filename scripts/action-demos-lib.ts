@@ -211,7 +211,8 @@ export function judgeWindow(type: ActionDemoType, puzzle: PuzzleData, raw: strin
     need(moments.inputs! >= 6, `only ${moments.inputs} leaps`);
   } else if (type === "bastion") {
     Object.assign(moments, { base: s.base, armour: s.destroyedHp ?? 0, weakSpots: s.weak ?? 0, fastReloads: s.fast ?? 0 });
-    need(s.base === 3, "a base hit in the window");
+    // bastionRev 4 (the levels): the dealt level's whole base (Normal's 4; rev 3's 3).
+    need(s.base === (s.rev >= 4 ? 4 : 3), "a base hit in the window");
     need((s.destroyedHp ?? 0) >= 4, `only ${s.destroyedHp ?? 0} armour destroyed`);
   } else if (type === "skyline") {
     Object.assign(moments, { floors: s.placed ?? 0, perfects: s.perfects ?? 0, livesLost: s.livesLost ?? 0 });

@@ -198,6 +198,7 @@ import {
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
 import { balancePlaceLimits, equationTryLimit, floodMoveLimit, gravityTiltLimit, measureMoveLimits, splitCountSuffix, tubesPourLimit, tubesSendsUndo, GRAVITY_PROGRESS_REV, TUBES_PROGRESS_REV } from "./moveLimits";
 import { gravitySolverProgress, tubesSolverProgress } from "./solverProgress.server";
+import { puzzleLevel } from "@/lib/levels/levels";
 import {
   scoreWordSlide,
   wordSpeedBonus,
@@ -2297,7 +2298,7 @@ function gradeUnderRev(
         // bastionRev 2 (1 Nov 2026): the tank-defence shooter on the arcade scoring standard; the server's replay alone
         // scores, and the stored extra carries each part's points (numbers only) for the reveal.
         const replayStart = performance.now();
-        const run = replayBastionTankRun(puzzle.seed, answer, puzzle.bastionRev);
+        const run = replayBastionTankRun(puzzle.seed, answer, puzzle.bastionRev, puzzleLevel(puzzle));
         const decoded = decodeBastionTankRun(answer);
         revealRun = run as unknown as typeof revealRun;
         arcadeDiag = buildArcadeDiag(puzzle.type, run as unknown as Parameters<typeof buildArcadeDiag>[1], answer, performance.now() - replayStart);

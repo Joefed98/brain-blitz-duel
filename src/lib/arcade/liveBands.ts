@@ -38,7 +38,7 @@ import { SWING_REV_BIG, SWING_REV_STRICT, SWING_V17_BAND_CURVE } from "./swing";
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
 import { PIN_REV_STD, PIN_STD_SPEC, PIN_V6_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
-import { BASTION_REV_DEALT, BASTION_STD_SPEC_V3, BASTION_V3_BAND_CURVE } from "./bastionTank";
+import { BASTION_REV_DEALT, BASTION_STD_SPEC_V4, BASTION_V4_BAND_CURVE } from "./bastionTank";
 import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V4_BAND_CURVE } from "./homerun";
 import { FREEKICK_REV_DEALT, FREEKICK_V4_STD_SPEC, FREEKICK_V4_BAND_CURVE } from "./freekick";
 import { RACING_REV_DEALT, RACING_V3_BAND_CURVE, RACING_V3_STD_SPEC } from "./racing";
@@ -183,7 +183,9 @@ export const LIVE_BANDS = {
   alleyroll: { field: "alleyRollRev", rev: ALLEYROLL_REV_DEALT, curve: AR_V2_BAND_CURVE, std: AR2_STD_SPEC, born: true },
   // Iron Wall (id bastion) bastionRev 3 (3 Nov 2026: eased waves 4–5, a 90 ms green zone, the drones); the tank-defence
   // shooter was born on the arcade scoring standard at bastionRev 2 (the original Bastion, unstamped, never had a score band).
-  bastion: { field: "bastionRev", rev: BASTION_REV_DEALT, curve: BASTION_V3_BAND_CURVE, std: BASTION_STD_SPEC_V3, born: true },
+  // bastionRev 4 (15 Nov 2026, the difficulty levels): a gentler game at Easy, Normal and Hard (bastionRev 3's game is
+  // Expert); rooms deal Normal, whose spec this is (Armour of Normal's 57 hit points, base of 4).
+  bastion: { field: "bastionRev", rev: BASTION_REV_DEALT, curve: BASTION_V4_BAND_CURVE, std: BASTION_STD_SPEC_V4.normal, born: true },
 } as const satisfies Record<string, LiveBand>;
 
 export type LiveBandGame = keyof typeof LIVE_BANDS;

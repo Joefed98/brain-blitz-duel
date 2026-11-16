@@ -13,18 +13,20 @@
  * fires at its centre then, unless a tank is close to the wall; a human notices it a reaction time after it appears,
  * leads it from its motion with their judgement and aim, and tries a set number of times (bots/bastion.ts `droneTries`).
  *
- *   bun scripts/bastion-oracle.ts [from] [count] [rev]   prints each seed's oracle score and parts (rev 2 by default)
+ *   bun scripts/bastion-oracle.ts [from] [count] [rev] [level]   prints each seed's oracle score and parts (rev 2 by
+ *   default; bastionRev 4 takes easy, normal or hard)
  */
-import { inputAt, recordInput, type ArcadeInputEvent } from "../src/lib/arcade/engine";
+import { inputAt, recordInput, type ArcadeGame, type ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
   bastionFlight,
-  bastionPlan,
+  bastionPlanOf,
   bastionWeakOpen,
   bastionNeedle,
   bastionStdParts,
   bastionDronePos,
   bastionDroneRect,
-  bastionDrones,
+  bastionDronesOf,
+  bastionWeakPctOf,
   bastionTankGameFor,
   bastionTankRects,
   bastionZoneW,
@@ -55,6 +57,12 @@ export interface BastionStyle {
   minWeakH: number;
   /** bastionRev 3: shots tried at each drone (0: never). */
   droneTries?: number;
+  /**
+   * Human limits (bots/bastion.ts, the level tuning): a tank within this many ticks of the wall whose weak spot can't
+   * be hit now (closed, or too small for the player's aim) takes a hull shot instead of waiting (absent: wait, the
+   * bots as first proved).
+   */
+  adaptive?: number;
 }
 
 export const FLAWLESS: BastionStyle = { weakAim: 1, earlyReload: true, tapChance: 1, minWeakH: 2, droneTries: 1 };
@@ -66,7 +74,7 @@ function centre(r: Bt2Rect): [number, number] {
 /** The first tank (nearest the wall) whose rectangles contain the point at this state, or null. */
 function firstAt(s: BastionTankState, x: number, y: number): number | null {
   for (const t of s.tanks) {
-    const r = bastionTankRects(t.kind, t.lane, t.z);
+    const r = bastionTankRects(t.kind, t.lane, t.z, bastionWeakPctOf(s));
     const inR = (q: Bt2Rect, pad = 0) => x >= q[0] - pad && x <= q[2] + pad && y >= q[1] - pad && y <= q[3] + pad;
     if (inR(r.weak, 1) || inR(r.hull) || inR(r.turret)) return t.i;
   }
@@ -85,11 +93,18 @@ interface Shot {
  * Plays a run. With no Human it is the oracle (exact sight, aim and timing); with one, each shot and tap carries
  * that level's errors and `style` sets what the player tries.
  */
-export function bastionPlay(seed: number, human?: Human, style: BastionStyle = FLAWLESS, rev: number = BASTION_REV_TANK): { events: ArcadeInputEvent[]; state: BastionTankState } {
-  const game = bastionTankGameFor(rev);
+export function bastionPlay(
+  seed: number,
+  human?: Human,
+  style: BastionStyle = FLAWLESS,
+  rev: number = BASTION_REV_TANK,
+  /** The game to play (bastionRev 4: its level's, `bastionTankGameFor(4, level)`); the revision's otherwise. */
+  played?: ArcadeGame<BastionTankState, ArcadeInputEvent | null>,
+): { events: ArcadeInputEvent[]; state: BastionTankState } {
+  const game = played ?? bastionTankGameFor(rev);
   const events: ArcadeInputEvent[] = [];
   let s = game.init(seed);
-  const drones = s.rev > BASTION_REV_TANK ? bastionDrones(seed) : [];
+  const drones = s.rev > BASTION_REV_TANK ? bastionDronesOf(s) : [];
   const droneTried = drones.map(() => 0);
   const droneSeen = drones.map((d) => d.at + (human ? human.reactTicks() : 0));
   let droneFlying = -1;
@@ -112,7 +127,7 @@ export function bastionPlay(seed: number, human?: Human, style: BastionStyle = F
         if (!want) tapAt = -1;
         else {
           // The needle crosses the zone's middle at this offset; the human times it with their error.
-          const mid = s.zone + Math.floor(bastionZoneW(s.rev) / 2);
+          const mid = s.zone + Math.floor(bastionZoneW(s.rev, s.lvl) / 2);
           const off = Math.ceil((mid * BT2_RELOAD_TICKS) / 1000) + (human ? human.timingTicks(1) : 0);
           tapAt = s.reloadAt + Math.max(1, off);
         }
@@ -141,7 +156,7 @@ export function bastionPlay(seed: number, human?: Human, style: BastionStyle = F
           y = Math.round(now.y + (at.y - now.y) * lead + human.aim(1, 1.2));
           x = Math.max(0, Math.min(BT2_WORLD_W, x));
         } else {
-          const r = bastionDroneRect(at.x, at.y);
+          const r = bastionDroneRect(at.x, at.y, drones[n]!.size);
           x = Math.floor((r[0] + r[2]) / 2);
           y = Math.floor((r[1] + r[3]) / 2);
         }
@@ -176,7 +191,7 @@ function urgent(s: BastionTankState, ticks = 130): boolean {
 
 function pickShot(s: BastionTankState, pending: Shot[], seen: Map<number, number>, human: Human | undefined, style: BastionStyle): Omit<Shot, "lands"> | null {
   if (s.tanks.length === 0) return null;
-  const game = bastionTankGameFor(s.rev);
+  const game = bastionTankGameFor(s.rev, s.lvl);
   // The field as it will be: frames[f] is the state f ticks after the shot's tick (no further input).
   const frames: BastionTankState[] = [];
   let c = game.step(s, null);
@@ -185,62 +200,73 @@ function pickShot(s: BastionTankState, pending: Shot[], seen: Map<number, number
     c = game.step(c, null);
     frames.push(c);
   }
-  const plan = bastionPlan(s.seed);
+  const plan = bastionPlanOf(s);
   const order = [...s.tanks].sort((a, b) => Math.floor(a.z / a.v) - Math.floor(b.z / b.v));
   for (const tank of order) {
     if ((seen.get(tank.i) ?? 0) > s.tick) continue;
     const owed = tank.hp - pending.filter((p) => p.tank === tank.i).reduce((a, p) => a + p.dmg, 0);
     if (owed <= 0) continue;
-    const weakAim = style.weakAim >= 1 || (human?.chance(style.weakAim) ?? true);
-    // Find the flight that lands on the tank: flight(y at landing) == f.
-    for (let f = 18; f <= 30 && f < frames.length; f++) {
-      const fr = frames[f]!;
-      const tt = fr.tanks.find((x) => x.i === tank.i);
-      if (!tt || tt.hp <= 0) break;
-      const r = bastionTankRects(tt.kind, tt.lane, tt.z);
-      const [hx, hy] = centre([r.hull[0], r.turret[1], r.hull[2], r.hull[3]]);
-      const [wx, wy] = centre(r.weak);
-      const [x, y] = weakAim ? [wx, wy] : [hx, hy];
-      if (bastionFlight(y) !== f) continue;
-      // The weak spot must be exposed when the shell lands: the oracle knows the cycle; a human judges it from the glow
-      // with their timing error, and waits for the next opening.
-      if (weakAim && !bastionWeakOpen(plan[tank.i]!, fr.tick + (human ? human.timingTicks(1.5) : 0))) break;
-      // A human waits until the target is big enough for their aim, unless the tank is close to the wall.
-      if (human) {
-        const sigma = human.p.aimSdPx;
-        const size = weakAim ? Math.min(r.weak[2] - r.weak[0], r.weak[3] - r.weak[1]) : Math.min(r.hull[2] - r.hull[0], r.hull[3] - r.turret[1]);
-        const close = tt.z < tt.v * 100;
-        if (!close && size < sigma * (weakAim ? 1.6 : 2.2)) break;
+    const aimAt = (weakAim: boolean): Omit<Shot, "lands"> | null => {
+      // Find the flight that lands on the tank: flight(y at landing) == f.
+      for (let f = 18; f <= 30 && f < frames.length; f++) {
+        const fr = frames[f]!;
+        const tt = fr.tanks.find((x) => x.i === tank.i);
+        if (!tt || tt.hp <= 0) break;
+        const r = bastionTankRects(tt.kind, tt.lane, tt.z, bastionWeakPctOf(s));
+        const [hx, hy] = centre([r.hull[0], r.turret[1], r.hull[2], r.hull[3]]);
+        const [wx, wy] = centre(r.weak);
+        const [x, y] = weakAim ? [wx, wy] : [hx, hy];
+        if (bastionFlight(y) !== f) continue;
+        // The weak spot must be exposed when the shell lands: the oracle knows the cycle; a human judges it from the glow
+        // with their timing error, and waits for the next opening.
+        if (weakAim && !bastionWeakOpen(plan[tank.i]!, fr.tick + (human ? human.timingTicks(1.5) : 0))) break;
+        // A human waits until the target is big enough for their aim, unless the tank is close to the wall.
+        if (human) {
+          const sigma = human.p.aimSdPx;
+          const size = weakAim ? Math.min(r.weak[2] - r.weak[0], r.weak[3] - r.weak[1]) : Math.min(r.hull[2] - r.hull[0], r.hull[3] - r.turret[1]);
+          const close = tt.z < tt.v * 100;
+          if (!close && size < sigma * (weakAim ? 1.6 : 2.2)) break;
+        }
+        if (weakAim && r.weak[3] - r.weak[1] < style.minWeakH) break;
+        if (firstAt(fr, x, y) !== tank.i) break;
+        if (!human) return { tank: tank.i, x, y, dmg: weakAim ? 2 : 1 };
+        // A human leads from the tank's screen motion now (no knowledge of a speed change to come), misjudges the lead a
+        // little and points with their error.
+        const now = bastionTankRects(tank.kind, tank.lane, tank.z, bastionWeakPctOf(s));
+        const [nx, ny] = weakAim ? centre(now.weak) : centre([now.hull[0], now.turret[1], now.hull[2], now.hull[3]]);
+        const prev = s.tanks.find((q) => q.i === tank.i)!;
+        const back = bastionTankRects(prev.kind, prev.lane, prev.z + prev.v * 4, bastionWeakPctOf(s));
+        const [bx, by] = weakAim ? centre(back.weak) : centre([back.hull[0], back.turret[1], back.hull[2], back.hull[3]]);
+        const lead = 1 + human.p.judgement * human.normal();
+        const px = nx + ((nx - bx) / 4) * f * lead + human.aim(1, 1);
+        const py = ny + ((ny - by) / 4) * f * lead + human.aim(1, 1);
+        const ax = Math.round(px);
+        const ay = Math.round(py);
+        return { tank: tank.i, x: ax, y: ay, dmg: weakAim ? 2 : 1 };
       }
-      if (weakAim && r.weak[3] - r.weak[1] < style.minWeakH) break;
-      if (firstAt(fr, x, y) !== tank.i) break;
-      if (!human) return { tank: tank.i, x, y, dmg: weakAim ? 2 : 1 };
-      // A human leads from the tank's screen motion now (no knowledge of a speed change to come), misjudges the lead a
-      // little and points with their error.
-      const now = bastionTankRects(tank.kind, tank.lane, tank.z);
-      const [nx, ny] = weakAim ? centre(now.weak) : centre([now.hull[0], now.turret[1], now.hull[2], now.hull[3]]);
-      const prev = s.tanks.find((q) => q.i === tank.i)!;
-      const back = bastionTankRects(prev.kind, prev.lane, prev.z + prev.v * 4);
-      const [bx, by] = weakAim ? centre(back.weak) : centre([back.hull[0], back.turret[1], back.hull[2], back.hull[3]]);
-      const lead = 1 + human.p.judgement * human.normal();
-      const px = nx + ((nx - bx) / 4) * f * lead + human.aim(1, 1);
-      const py = ny + ((ny - by) / 4) * f * lead + human.aim(1, 1);
-      const ax = Math.round(px);
-      const ay = Math.round(py);
-      return { tank: tank.i, x: ax, y: ay, dmg: weakAim ? 2 : 1 };
+      return null;
+    };
+    const chosen = style.weakAim >= 1 || (human?.chance(style.weakAim) ?? true);
+    const shot = aimAt(chosen);
+    if (shot) return shot;
+    // An adaptive player (style.adaptive) puts a shell in the hull of a pressing tank whose weak spot is closed or too
+    // small for their aim, instead of waiting for it.
+    if (style.adaptive && chosen && tank.z < tank.v * (style.adaptive ?? 0)) {
+      const hull = aimAt(false);
+      if (hull) return hull;
     }
   }
   return null;
 }
 
-/** The oracle's log for a seed (rev 2 by default). */
-export function bastionOracleRun(seed: number, rev: number = BASTION_REV_TANK): ArcadeInputEvent[] {
-  return bastionPlay(seed, undefined, FLAWLESS, rev).events;
+/** The oracle's log for a seed (rev 2 by default; `level` bastionRev 4's). */
+export function bastionOracleRun(seed: number, rev: number = BASTION_REV_TANK, level?: string): ArcadeInputEvent[] {
+  return bastionPlay(seed, undefined, FLAWLESS, rev, bastionTankGameFor(rev, level)).events;
 }
 
 /** Replays a log through the sim (the server's replay is src/lib/duel/bastion.ts). */
-export function bastionPlayLog(seed: number, events: readonly ArcadeInputEvent[], rev: number = BASTION_REV_TANK): BastionTankState {
-  const game = bastionTankGameFor(rev);
+export function bastionPlayLog(seed: number, events: readonly ArcadeInputEvent[], rev: number = BASTION_REV_TANK, level?: string): BastionTankState {
+  const game = bastionTankGameFor(rev, level);
   let s = game.init(seed);
   const at = new Map(events.map((e) => [e.t, e]));
   while (!game.isOver(s)) s = game.step(s, at.get(s.tick + 1) ?? null);
@@ -253,11 +279,12 @@ if (import.meta.main) {
   const from = Number(process.argv[2] ?? 0);
   const count = Number(process.argv[3] ?? 20);
   const rev = Number(process.argv[4] ?? BASTION_REV_TANK);
-  const game = bastionTankGameFor(rev);
+  const level = process.argv[5];
+  const game = bastionTankGameFor(rev, level);
   let at200 = 0;
   const t0 = performance.now();
   for (let seed = from; seed < from + count; seed++) {
-    const { state } = bastionPlay(seed, undefined, FLAWLESS, rev);
+    const { state } = bastionPlay(seed, undefined, FLAWLESS, rev, game);
     const score = game.score(state);
     if (score === 200) at200++;
     const parts = bastionStdParts(state)!.map((p) => `${p.key} ${p.points}/${p.max}`).join(" ");
