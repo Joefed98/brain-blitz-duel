@@ -6,19 +6,26 @@
  * box (the drag target), and the 7 × 7 grid box is exactly what the drag maths
  * measures.
  */
-import { memo, useId, useLayoutEffect, useRef } from "react";
+import { createContext, memo, useContext, useId, useLayoutEffect, useRef } from "react";
 
 import { gameFxVariant } from "@/lib/fx/kit";
 
-import { UNBLOCK_COLS as N, UNBLOCK_EXIT_ROW } from "@/lib/duel/types";
+import { UNBLOCK_COLS, UNBLOCK_EXIT_ROW } from "@/lib/duel/types";
 
-/** Kerb thickness around the 7 × 7 bays, as a % of the whole lot. */
+/** Kerb thickness around the bays (7 × 7, or Easy's 6 × 6), as a % of the whole lot. */
 export const UNBLOCK_WALL = 4.5;
 
 const V = 1000; // lot art viewBox
 const W0 = (UNBLOCK_WALL / 100) * V; // kerb in art units
-const CELL = (V - 2 * W0) / N;
-const EXIT_Y = W0 + UNBLOCK_EXIT_ROW * CELL;
+
+/**
+ * The lot's size, columns and rows (the difficulty levels, 15 Nov 2026: Easy's lot is 6 × 6; every other lot 7 × 7).
+ * UnblockLot provides it; every car, ghost and effect inside the lot reads it, so a bay is 100 / n % of the grid box.
+ */
+export const UnblockColsContext = createContext<number>(UNBLOCK_COLS);
+export function useUnblockCols(): number {
+  return useContext(UnblockColsContext);
+}
 
 function cleanId(raw: string) {
   return `ub${raw.replace(/[^a-zA-Z0-9_-]/g, "")}`;
@@ -42,13 +49,22 @@ export function unblockCarSprite(id: number, axis: "h" | "v", len: number): stri
 }
 
 export const UNBLOCK_LOT_SPRITE = `${UNBLOCK_ART_BASE}/lot.webp`;
+/** Easy's 6 × 6 lot (the same kerb, six bays a side; docs/design/game-art/pattern/source/unblock.py `lot-6`). */
+export const UNBLOCK_LOT6_SPRITE = `${UNBLOCK_ART_BASE}/lot-6.webp`;
+
+/** The rendered lot for a lot of `n` bays a side. */
+export function unblockLotSprite(n: number): string {
+  return n === 6 ? UNBLOCK_LOT6_SPRITE : UNBLOCK_LOT_SPRITE;
+}
 
 /** The static car park: the rendered lot, with the exit's gold markings drawn over it. Rendered once per board. */
-const LotArt = memo(function LotArt({ base }: { base: string }) {
+const LotArt = memo(function LotArt({ base, n }: { base: string; n: number }) {
+  const CELL = (V - 2 * W0) / n;
+  const EXIT_Y = W0 + UNBLOCK_EXIT_ROW * CELL;
   const gapMid = EXIT_Y + CELL / 2;
   return (
     <>
-      <img className="unblock-lot-sprite" src={UNBLOCK_LOT_SPRITE} alt="" aria-hidden="true" draggable={false} decoding="async" />
+      <img className="unblock-lot-sprite" src={unblockLotSprite(n)} alt="" aria-hidden="true" draggable={false} decoding="async" />
       <svg className="unblock-lot-art" viewBox={`0 0 ${V} ${V}`} preserveAspectRatio="none" aria-hidden="true">
         <defs>
           <linearGradient id={`${base}-exitglow`} x1="0" y1="0" x2="1" y2="0">
@@ -72,15 +88,18 @@ const LotArt = memo(function LotArt({ base }: { base: string }) {
   );
 });
 
-/** The board frame: kerb and tarmac around the measured 7 × 7 grid. */
+/** The board frame: kerb and tarmac around the measured grid (7 × 7, or `cols` × `cols`). */
 export function UnblockLot({
   size,
+  cols = UNBLOCK_COLS,
   gridRef,
   celebrate,
   glint,
   children,
 }: {
   size?: number | undefined;
+  /** The lot's size (`unblockCols(puzzle)`); 7 by default. */
+  cols?: number | undefined;
   gridRef?: React.Ref<HTMLDivElement> | undefined;
   celebrate?: boolean | undefined;
   /** The lane-cleared glint (stage 2): a new key plays it once, from the gold car's nose to the exit. */
@@ -89,17 +108,20 @@ export function UnblockLot({
 }) {
   const base = cleanId(useId());
   return (
-    <div
-      className="unblock-lot"
-      data-celebrate={celebrate ? "on" : undefined}
-      style={size ? { width: size, height: size } : undefined}
-    >
-      <LotArt base={base} />
-      {glint ? <UnblockLaneGlint key={glint.key} fromCol={glint.fromCol} /> : null}
-      <div ref={gridRef} className="unblock-grid">
-        {children}
+    <UnblockColsContext.Provider value={cols}>
+      <div
+        className="unblock-lot"
+        data-celebrate={celebrate ? "on" : undefined}
+        data-unblock-cols={cols}
+        style={size ? { width: size, height: size } : undefined}
+      >
+        <LotArt base={base} n={cols} />
+        {glint ? <UnblockLaneGlint key={glint.key} fromCol={glint.fromCol} /> : null}
+        <div ref={gridRef} className="unblock-grid">
+          {children}
+        </div>
       </div>
-    </div>
+    </UnblockColsContext.Provider>
   );
 }
 
@@ -127,6 +149,7 @@ export const UnblockCarArt = memo(function UnblockCarArt({
 
 /** Speed streaks and an exit burst along the exit lane while the gold car drives out. */
 export function UnblockExitFx({ fromCol }: { fromCol: number }) {
+  const N = useUnblockCols();
   // The kerb, measured in grid widths, so the lane runs out through the gap.
   const wall = (UNBLOCK_WALL / (100 - 2 * UNBLOCK_WALL)) * 100;
   return (
@@ -160,6 +183,7 @@ export const UNBLOCK_GLINT_MS = { full: 560, lite: 340, reduced: 240 } as const;
  * motion a still glow along the lane fading in and out. Plays once a key (UnblockLot keys it on the clearing move).
  */
 function UnblockLaneGlint({ fromCol }: { fromCol: number }) {
+  const N = useUnblockCols();
   const band = useRef<HTMLSpanElement>(null);
   useLayoutEffect(() => {
     const el = band.current;

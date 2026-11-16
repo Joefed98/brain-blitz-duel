@@ -46,8 +46,8 @@ export interface D4DealContext {
   unblockRow?: UnblockBankRow | null;
   bankSeed?: number;
   recentBankKeys?: ReadonlySet<string> | undefined;
-  /** The level the deal is made at (generate.server.ts; absent at Normal). Pipeline, Tessellate and Chroma Lines
-   * deal their level boards from it. */
+  /** The level the deal is made at (generate.server.ts; absent at Normal). Gridlock, Pipeline, Tessellate and Chroma
+   * Lines deal their level boards from it. */
   level?: Level | undefined;
 }
 
@@ -60,7 +60,7 @@ export function dealDepth4(type: PuzzleType, context: D4DealContext): PuzzleData
   if (dealPinned("depth4Off") || !isD4Type(type) || dealtPuzzleScoreRev() < PUZZLE_SCORE_REV_HELPER) return null;
   switch (type) {
     case "unblock": {
-      const p = generateUnblock(context.unblockRow);
+      const p = generateUnblock(context.unblockRow, context.level, context.bankSeed);
       return { ...p, unblockRev: dealtD4Rev("unblock"), par: p.minMoves ?? 0 };
     }
     case "rings": {

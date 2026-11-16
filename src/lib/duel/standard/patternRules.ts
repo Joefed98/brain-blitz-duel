@@ -40,6 +40,13 @@ export function flowFullByS(puzzle: { flowRev?: number; level?: unknown }): numb
 export function patternFullByS(type: PatternStdType, puzzle: { tilesRev?: number; blockRev?: number; flowRev?: number; level?: unknown }): number {
   if (type === "tiles" && (puzzle.tilesRev ?? 0) < TILES_REV_FAST) return TILES_REV5_FULL_BY_S;
   if (type === "flow") return flowFullByS(puzzle);
+  // Gridlock's levels (the Pattern overhaul, stage 3): a board dealt at a level is full speed by its level's time
+  // (unblock.levels.ts `speedFullByS`); Normal and every puzzle dealt before levels keep 40 s.
+  if (type === "unblock" && puzzle.level !== undefined) {
+    const level = puzzleLevel(puzzle);
+    const own = level === "normal" ? null : gameLevelSettings<{ speedFullByS?: number }>("unblock", level)?.speedFullByS;
+    if (typeof own === "number") return own;
+  }
   // Tessellate's levels (the Pattern overhaul, stage 3): a board dealt at a level is full speed by its level's time.
   if (type === "blockparty") {
     const own = blockLevelFullByS(puzzle);

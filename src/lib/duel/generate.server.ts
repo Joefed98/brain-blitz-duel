@@ -240,7 +240,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "wordsmith") return { ...generateWordsmith(), wordsmithRev: dealtDepthRev(dealtTopupRev(WORDSMITH_REV_TOPUP, WORDSMITH_REV_DEPTH), WORDSMITH_REV_TARGET) };
   // Forage wordHuntRev 3 (word depth, 25 Oct 2026; wordHunt.ts): the 6×6 board with its golden tile.
   if (type === "wordhunt") return dealtDepthRev(WORDHUNT_REV_DEPTH, WORDHUNT_REV_TARGET) >= WORDHUNT_REV_DEPTH ? generateWordHuntDepth() : { ...generateWordHunt(), wordHuntRev: WORDHUNT_REV_TARGET };
-  if (type === "unblock") return generateUnblock(context.unblockRow);
+  if (type === "unblock") return generateUnblock(context.unblockRow, context.level, context.bankSeed);
   if (type === "blockparty") return generateBlockParty();
   // Word depth (25 Oct 2026): Interlock tileGridRev 1 scores to 200 (depth/tilegrid.server.ts); the board is unchanged.
   if (type === "tilegrid") return stampTileGridRev(generateTileGrid());
