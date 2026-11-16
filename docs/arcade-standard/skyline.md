@@ -230,7 +230,7 @@ Expert boards for Joe to play (the limited elite's best of the first 40 Expert d
 145 ms elite in brackets): n=29 (1530145177) 146 (155), n=39 (1523294388) 139 (162), n=34 (989469536) 136 (166), n=14
 (30710843) 134 (156), n=25 (870299109) 133 (156), n=38 (495834591) 128 (167). The clip
 (`docs/design/pages-review/action/skyline/expert-clip.webp`, `bun scripts/shots/action-expert-clip.ts skyline 29
---from=30 --secs=5 --width=195 --q=28`) is the limited elite's n=29 run, 146 by the server.
+--from=30 --secs=5`) is the limited elite's n=29 run, 146 by the server.
 
 **For Joe's scoring review** (16 Nov 2026): High Rise's Normal under human limits (the limited elite) is 123 mean, 122
 median, short of the ~198 guide (the limited bot, reacting in a quarter second, often lets a fast pass go and takes the

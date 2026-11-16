@@ -12,7 +12,7 @@
  * The world is scaled to --width; the quality steps down from --q by 5 until the file fits --max bytes (the gallery's
  * budget); a stretch reaching the run's end holds the last state --hold seconds for the end card. --frames keeps the PNGs.
  * <seed> is what each game's "Levels" section lists (docs/arcade-standard/<game>.md): Roofbound a room seed n
- * (`dealAt` n, scripts/flip-skyline-levels-bands.ts), Moon Climb a dealt tower seed (found among the first 64 Expert
+ * (`dealAt` n, scripts/flip-skyline-levels-bands.ts), High Rise the same, Moon Climb a dealt tower seed (found among the first 64 Expert
  * deals), Orbit an Expert bank entry (the first deal whose seed picks that entry, `seed mod bank length`). One row per
  * game in GAMES below: other games add their own row.
  */
@@ -108,6 +108,18 @@ const GAMES: Record<string, (seed: number) => Promise<Clip>> = {
     const art = flipArtGameFor(puzzle.flipRev, puzzle.level);
     const h = flipWorldH(r.states[0]);
     return { states: r.states, score: r.score, label: `room seed ${n}`, w: FLIP_WORLD_W, h, draw: (ctx, s) => art.draw(ctx, s, { width: FLIP_WORLD_W, height: h }) };
+  },
+  /** High Rise: room seed n (flip-skyline-levels-bands.ts `dealAt`), the limited elite (humanLimits.ts). */
+  skyline: async (n) => {
+    await loadBot("skyline");
+    const { limitedElite } = await import("../arcade-skill-bands/humanLimits");
+    const { drawSkylineArt } = await import("../../src/lib/arcade/skyline.renderer");
+    const { SKYLINE_WORLD_W, skylineWorldH } = await import("../../src/lib/arcade/skyline");
+    const puzzle = dealAt("skyline" as never, "expert", n) as any;
+    const r = playAndGrade("skyline", puzzle, puzzle.skylineRev, limitedElite("skyline", puzzle.seed));
+    if (r.flagged) throw new Error("flagged");
+    const h = skylineWorldH(r.states[0]);
+    return { states: r.states, score: r.score, label: `room seed ${n}`, w: SKYLINE_WORLD_W, h, draw: (ctx, s) => drawSkylineArt(ctx, s, { width: SKYLINE_WORLD_W, height: h }) };
   },
   /** Moon Climb: the dealt tower seed (action-levels-bands.ts --each), the elite under human limits. */
   ricochet: async (towerSeed) => {
