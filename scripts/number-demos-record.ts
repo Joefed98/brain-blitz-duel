@@ -142,8 +142,8 @@ async function pyramidBot(page: Page, puzzle: Full) {
     empties.sort((a, b) => b - a);
     for (const cell of empties) {
       const tile = stage(page).locator("[data-np-tray] .pyramid-tray-tile").filter({ hasText: new RegExp(`^\\s*${solution[cell]}\\s*$`) }).first();
-      await tap(page, tile, 200);
-      await tap(page, stage(page).locator(`[data-np-cell="${cell}"]`).last(), 240);
+      await tap(page, tile, 110);
+      await tap(page, stage(page).locator(`[data-np-cell="${cell}"]`).last(), 150);
     }
   }
 }
@@ -166,12 +166,12 @@ async function ballparkBot(page: Page, puzzle: Full) {
       await page.mouse.down();
       for (let i = 1; i <= 6; i++) {
         await page.mouse.move(from + ((x - from) * i) / 6, y);
-        await pause(page, 35);
+        await pause(page, 25);
       }
-      await pause(page, 90);
+      await pause(page, 60);
       await page.mouse.up();
-      await pause(page, 260);
-      await tap(page, stage(page).getByRole("button", { name: /^place$/i }), 380);
+      await pause(page, 160);
+      await tap(page, stage(page).getByRole("button", { name: /^place$/i }), 260);
     }
   }
 }
