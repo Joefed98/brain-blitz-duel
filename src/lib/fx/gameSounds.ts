@@ -1406,7 +1406,7 @@ export function racingSounds(): GameSounds<RacingState> {
       loopCue("racing.idle", gridded, ENGINE_VOLUME);
       loopCue("racing.drive", driving, ENGINE_VOLUME);
       if (driving) setCueLoopRate("racing.drive", ENGINE_RATE_LO + ((ENGINE_RATE_HI - ENGINE_RATE_LO) * state.v) / RACING_VMAX);
-      const onKerb = !state.off && !state.wall && Math.abs(state.x) + RACING_CAR_HALF > RACING_ROAD_X;
+      const onKerb = !state.off && !state.wall && Math.abs(state.x) + RACING_CAR_HALF > (state.lv ? state.lv.road : RACING_ROAD_X);
       loopCue("racing.kerb", driving && onKerb && state.v > 0, 0.25);
       loopCue("racing.grassLoop", driving && state.off === 1 && state.v > 0, 0.25);
       // Stage 2 (the Sports overhaul): the wind past the cockpit with the speed lines, above 200 km/h (silent until

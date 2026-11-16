@@ -8,7 +8,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 import type { RunSummaryProps } from "@/components/duel/runSummary";
 import { canvasRatio } from "@/lib/battery";
-import { racingCircuitOf, RACING_CIRCUITS, RACING_REV_4, RACING_SECTORS, racingTrackFor } from "@/lib/arcade/racing";
+import { racingCircuitOf, racingLevelOf, RACING_CIRCUITS, RACING_REV_4, RACING_SECTORS, racingTrackFor } from "@/lib/arcade/racing";
 import { racingRunMoments } from "@/lib/arcade/racingMap";
 import { drawRacingRunMap } from "@/lib/arcade/racingMap.renderer";
 import { decodeRacingRun } from "@/lib/duel/racing";
@@ -56,12 +56,12 @@ export default function RacingSummary({ puzzle, myAnswer }: RunSummaryProps) {
     if (!data || !myAnswer) return null;
     try {
       const decoded = decodeRacingRun(myAnswer);
-      return racingRunMoments(data.seed, data.racingRev, decoded.events);
+      return racingRunMoments(data.seed, data.racingRev, decoded.events, data.racingLevel);
     } catch {
       return null;
     }
   }, [data, myAnswer]);
-  const track = data ? racingTrackFor(data.seed, data.racingRev) : null;
+  const track = data ? racingTrackFor(data.seed, data.racingRev, racingLevelOf(data.racingLevel)) : null;
   const ref = useRef<HTMLCanvasElement | null>(null);
   useEffect(() => {
     const node = ref.current;

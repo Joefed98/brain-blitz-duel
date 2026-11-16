@@ -58,6 +58,18 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       expert: { settings: { preview: "ghost", foul: 15 } },
     },
   },
+  // Apex (stage 3, 16 Nov 2026; docs/arcade-standard/racing.md "Levels"): racingRev 4's settings per level, stamped on
+  // the deal as `racingLevel` (sports.server.ts) so the sim plays the stored copy (src/lib/arcade/racing.ts
+  // RacingLevelSettings). keep: the gravel's % of speed kept; road / kerb / wall: lateral units (Normal 65536 / 73728 /
+  // 131072); tight: added to every hairpin's peak; aids: 2 signs, boards and braking points, 1 signs and boards, 0 signs
+  // only; pace: the full pace per circuit (tenths of a km/h), the oracle's on Expert's tighter hairpins.
+  racing: {
+    levels: {
+      easy: { settings: { keep: 80, road: 75366, kerb: 83558, wall: 140902, tight: 0, aids: 2, pace: [1920, 2055, 1750] } },
+      hard: { settings: { keep: 60, road: 65536, kerb: 73728, wall: 108134, tight: 0, aids: 1, spread: 320 } },
+      expert: { settings: { keep: 50, road: 65536, kerb: 73728, wall: 108134, tight: 2, aids: 0, pace: [2175, 2352, 1964], spread: 250 } },
+    },
+  },
 };
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */

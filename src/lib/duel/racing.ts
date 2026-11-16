@@ -3,6 +3,7 @@
 import {
   racingCheckpoint,
   racingGameFor,
+  racingLevelOf,
   racingGoTick,
   racingStdParts,
   RACING_CHECKPOINT_INTERVAL,
@@ -13,15 +14,16 @@ import {
   RACING_SECTORS,
   RACING_TOTAL,
   type RacingCheckpoint,
+  type RacingLevelSettings,
   type RacingState,
 } from "@/lib/arcade/racing";
 import type { StdPart } from "@/lib/arcade/arcadeStandard";
 import { makeArcadeRun, type FlatReplay } from "./arcadeRun";
 
-const runFor = (rev: number) =>
+const runFor = (rev: number, lv?: RacingLevelSettings | null) =>
   makeArcadeRun<RacingState, RacingCheckpoint>({
     tag: "racing",
-    game: racingGameFor(rev),
+    game: racingGameFor(rev, lv),
     checkpoint: racingCheckpoint,
     keys: RACING_CHECKPOINT_KEYS,
     interval: RACING_CHECKPOINT_INTERVAL,
@@ -56,10 +58,23 @@ export interface RacingResult extends FlatReplay<RacingState, RacingCheckpoint> 
 export const encodeRacingRun = run.encode;
 export const decodeRacingRun = run.decode;
 
-/** The single place an Apex score is worked out (unstamped = racingRev 1). */
-export function replayRacingRun(seed: number, raw: string, rev?: number | null): RacingResult {
+/** racingRev 4 at a difficulty level: one run per stored settings (cached). */
+const levelRuns = new Map<string, ReturnType<typeof runFor>>();
+function levelRun(lv: RacingLevelSettings): ReturnType<typeof runFor> {
+  const key = JSON.stringify(lv);
+  let r = levelRuns.get(key);
+  if (!r) levelRuns.set(key, (r = runFor(RACING_REV_4, lv)));
+  return r;
+}
+
+/**
+ * The single place an Apex score is worked out (unstamped = racingRev 1). `level` is the stored puzzle's racingLevel
+ * (racingRev 4 only; absent at Normal): its settings play in the sim, never the registry's.
+ */
+export function replayRacingRun(seed: number, raw: string, rev?: number | null, level?: unknown): RacingResult {
   const r = rev ?? 1;
-  const result = (r >= RACING_REV_4 ? runV4 : r >= RACING_REV_3 ? runV3 : r >= RACING_REV_2 ? runV2 : run).replay(seed, raw);
+  const lv = r >= RACING_REV_4 ? racingLevelOf(level) : null;
+  const result = (lv ? levelRun(lv) : r >= RACING_REV_4 ? runV4 : r >= RACING_REV_3 ? runV3 : r >= RACING_REV_2 ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return {
     ...result,

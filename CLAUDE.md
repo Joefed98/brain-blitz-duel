@@ -2603,6 +2603,13 @@ outside the repo.
   `src/lib/gameControls.ts` (schemes per game, chosen from the game menu, the Controls tab and Settings; input mapping
   only; game-controls-check). The reveal's verdict row is the shared result card (`reveal-result`) with practice's
   stars and new best (`RevealPayoff`).
+- **Apex's levels** (stage 3, 16 Nov 2026, `docs/arcade-standard/racing.md` "Levels"; no stamp: Normal is racingRev 4
+  byte for byte): Easy, Hard and Expert in `GAME_LEVELS.racing`, stamped on the deal as `racingLevel` (gravel keep, kerb,
+  wall, Expert's tighter hairpins, a per-level par pace and spread, display aids) and carried in the sim's state (`lv`,
+  in the checksum); the replay reads the stored copy (`replayRacingRun(seed, raw, rev, racingLevel)`). Each level deals
+  from its own proved deal (`racingDealV4Easy/Hard/Expert.server.ts`, `bun scripts/racing-deal.ts --rev=4 --level=…`).
+  Level lines for the intro and help: `src/lib/levels/levelNotes.ts`. racing-levels-check (~3 s);
+  `bun scripts/racing-levels-bands.ts` measures the bots per level.
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).

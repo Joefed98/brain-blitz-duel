@@ -222,7 +222,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   // The Sports group (30 Oct 2026): each game's final frame at world size.
   homerun: simple(GOLD, HOMERUN_WORLD_W, HOMERUN_WORLD_H, homerunArtGame, (p, a) => replayHomerunRun(seedOf(p), a, p.type === "homerun" ? p.homerunRev : undefined)),
   freekick: simple(GOLD, FREEKICK_WORLD_W, FREEKICK_WORLD_H, freekickArtGame, (p, a) => replayFreekickRun(seedOf(p), a, p.type === "freekick" ? p.freekickRev : undefined)),
-  racing: simple(GOLD, RACING_WORLD_W, RACING_WORLD_H, racingArtGame, (p, a) => replayRacingRun(seedOf(p), a, p.type === "racing" ? p.racingRev : undefined)),
+  racing: simple(GOLD, RACING_WORLD_W, RACING_WORLD_H, racingArtGame, (p, a) => replayRacingRun(seedOf(p), a, p.type === "racing" ? p.racingRev : undefined, p.type === "racing" ? p.racingLevel : undefined)),
   // Cards & Board: the final table, drawn by the game's own art.
   freecell: simple(GOLD, FC_WORLD_W, FC_WORLD_H, freecellArt, (p, a) => replayFreecellRun(seedOf(p), a, p.type === "freecell" ? p.freecellRev : undefined)),
   tripeaks: simple(GOLD, TP_WORLD_W, TP_WORLD_H, tripeaksArt, (p, a) => replayTripeaksRun(seedOf(p), a)),
