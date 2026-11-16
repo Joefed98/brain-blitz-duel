@@ -117,8 +117,12 @@ export interface BubbleResult {
 }
 
 /** The single place a Bubble Pop score is worked out. */
-export function replayBubbleRun(seed: number, raw: string, rev?: number | null): BubbleResult {
-  const bubbleGame = bubbleGameFor(rev);
+/**
+ * `level` is the stored puzzle's level (puzzleLevel; bubbleRev 12's levels, stage 3): left out or Normal, the run
+ * replays exactly as before.
+ */
+export function replayBubbleRun(seed: number, raw: string, rev?: number | null, level?: unknown): BubbleResult {
+  const bubbleGame = bubbleGameFor(rev, level);
   const run = decodeBubbleRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, BUB_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < BUB_RUN_TICKS;

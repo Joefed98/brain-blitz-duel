@@ -80,7 +80,7 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   muggins: (p, a) => replayMugginsRun(p.seed, a, p.mugginsRev),
   rally: (p, a) => replayRallyRun(p.seed, a, p.rallyRev),
   slice: (p, a) => replaySliceRun(p.seed, a, p.sliceRev),
-  bubble: (p, a) => replayBubbleRun(p.seed, a, p.bubbleRev),
+  bubble: (p, a) => replayBubbleRun(p.seed, a, p.bubbleRev, (p as { level?: unknown }).level),
   beat: (p, a) => replayBeatRun(p.seed, a, p.beatRev),
   snake: (p, a) => replaySnakeRun(p.seed, a, p.snakeRev),
   cross: (p, a) => replayCrossRun(p.seed, a, p.crossRev),

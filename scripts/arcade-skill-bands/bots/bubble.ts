@@ -27,6 +27,21 @@ const FAST_DRAG: Record<SkillLevel, number> = { weak: 140, average: 160, good: 1
 const BANK_ERR = 0.6;
 /** Chance a bank-shot target is noticed at all, per level. */
 const BANK_SEE: Record<SkillLevel, number> = { weak: 0.25, average: 0.45, good: 0.65, great: 0.82, near: 0.93, elite: 0.985, perfect: 1 };
+/**
+ * bubbleRev 12's levels (stage 3): the aim trail's reach (the state's `trail`, display only; absent at Normal, where
+ * the trail runs to the top). A bank shot with more bounces than the trail shows is noticed less often and aimed less
+ * surely; Expert's short trail (0) makes every aim less sure.
+ */
+function trailSee(trail: number | undefined, bounces: number): number {
+  if (trail === undefined) return 1;
+  if (trail === 0) return 0.6;
+  return bounces > trail ? 0.5 : 1;
+}
+function trailErr(trail: number | undefined, bounces: number): number {
+  if (trail === undefined) return 1;
+  if (trail === 0) return 1.35 + 0.15 * bounces;
+  return bounces > trail ? 1 + 0.4 * (bounces - trail) : 1;
+}
 /** Base (average-player) think time per shot, ms; a special in the shooter adds more. */
 const THINK_MS = 1100;
 const SPECIAL_THINK_MS = 500;
@@ -148,7 +163,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       const featurePts = init.std ? bubStdFeaturePoints : bubV8FeaturePoints;
       if (init.std) featureWeight = (eye * 95) / 120;
       for (const w of windows) {
-        if (w.o.bank && !human.chance(BANK_SEE[level]!)) continue;
+        if (w.o.bank && !human.chance(BANK_SEE[level]! * trailSee(init.trail, w.o.bounces))) continue;
         const a = w.o.after;
         const removed = before - bubRemaining(a);
         let value = removed;
@@ -181,7 +196,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       const choice = opts[human.pick(opts.map((o) => o.value), special ? 1.4 : 1)]!;
       // Lining the trail up on the target: pointing error measured where the bubble arrives
       // (wider per bounce), plus release jitter over the drag itself.
-      const sdRad = Math.hypot((human.p.aimSdPx * (1 + BANK_ERR * choice.o.bounces)) / Math.max(120, choice.o.path), (0.3 * human.p.aimSdPx) / DRAG_PX);
+      const sdRad = trailErr(init.trail, choice.o.bounces) * Math.hypot((human.p.aimSdPx * (1 + BANK_ERR * choice.o.bounces)) / Math.max(120, choice.o.path), (0.3 * human.p.aimSdPx) / DRAG_PX);
       let angle = choice.angle + sdRad * human.normal();
       if (human.slip(0.3)) angle += 4 * sdRad * human.normal(); // fumbled release
       angle = Math.max((8 * Math.PI) / 180, Math.min((172 * Math.PI) / 180, angle));

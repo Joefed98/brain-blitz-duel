@@ -37,6 +37,8 @@ import {
   bubDangerLine,
   bubRowsOf,
   BUB_V8_CHESTS,
+  BUB_SIXTH,
+  BUB_SHORT_TRAIL_PX,
   type BubState,
   bubBombRadius,
   bubMineNearest,
@@ -62,10 +64,12 @@ import {
   SEA_TEXT,
 } from "./seas.renderer";
 
-export type BubCreature = "crab" | "starfish" | "fish" | "jellyfish" | "shell";
+export type BubCreature = "crab" | "starfish" | "fish" | "jellyfish" | "shell" | "seahorse";
 /** Colour value 1…5 → creature, one-to-one. */
 export const BUB_CREATURES: readonly BubCreature[] = ["crab", "starfish", "fish", "jellyfish", "shell"];
 export function bubCreature(value: number): BubCreature {
+  // The sixth colour (Expert only): a seahorse, a shape no other creature shares (drawn in code; no sprite yet).
+  if (value === BUB_SIXTH) return "seahorse";
   return BUB_CREATURES[(value - 1) % BUB_CREATURES.length] ?? "fish";
 }
 
@@ -78,7 +82,7 @@ function creatureArtReady(): boolean {
 export function drawCreature(c: CanvasRenderingContext2D, kind: BubCreature, cx: number, cy: number, r: number): void {
   // Art pilot (Underwater): creature sprites inside the bubble (the bubble circle stays the drawn bound),
   // only once all five are ready so art and drawn symbols never mix.
-  if (creatureArtReady() && drawArtSprite(c, "underwater", kind, cx - r * 0.62, cy - r * 0.62, r * 1.24, r * 1.24)) return;
+  if (kind !== "seahorse" && creatureArtReady() && drawArtSprite(c, "underwater", kind, cx - r * 0.62, cy - r * 0.62, r * 1.24, r * 1.24)) return;
   c.save();
   c.fillStyle = "rgba(8,20,36,0.82)";
   c.strokeStyle = "rgba(8,20,36,0.82)";
@@ -154,6 +158,32 @@ export function drawCreature(c: CanvasRenderingContext2D, kind: BubCreature, cx:
         c.quadraticCurveTo(cx + (dx - 0.12) * r, cy + r * 0.32, cx + dx * r, cy + r * 0.62);
       }
       c.stroke();
+      break;
+    case "seahorse":
+      // Expert's sixth colour: head and snout up top, a curved body and a curled tail (an S no other creature has).
+      c.beginPath();
+      c.ellipse(cx + r * 0.05, cy - r * 0.42, r * 0.22, r * 0.18, 0, 0, Math.PI * 2);
+      c.fill();
+      c.beginPath();
+      c.moveTo(cx + r * 0.2, cy - r * 0.48);
+      c.lineTo(cx + r * 0.58, cy - r * 0.4);
+      c.lineTo(cx + r * 0.22, cy - r * 0.32);
+      c.closePath();
+      c.fill();
+      c.lineWidth = Math.max(1.2, r * 0.26);
+      c.beginPath();
+      c.moveTo(cx, cy - r * 0.28);
+      c.quadraticCurveTo(cx - r * 0.34, cy + r * 0.05, cx, cy + r * 0.3);
+      c.quadraticCurveTo(cx + r * 0.3, cy + r * 0.56, cx + r * 0.02, cy + r * 0.66);
+      c.stroke();
+      c.lineWidth = Math.max(1, r * 0.14);
+      c.beginPath();
+      c.arc(cx - r * 0.12, cy + r * 0.6, r * 0.13, 0, Math.PI * 1.6);
+      c.stroke();
+      c.fillStyle = "rgba(255,255,255,0.9)";
+      c.beginPath();
+      c.arc(cx + r * 0.08, cy - r * 0.46, r * 0.07, 0, Math.PI * 2);
+      c.fill();
       break;
   }
   c.restore();
@@ -1391,16 +1421,24 @@ export function drawBubbleAimTrail(
   ctx.lineWidth = Math.max(0.8, rs);
   const stepLen = Math.hypot(vx, vy);
   if (fast > 0) drawFastChevrons(ctx, BUB_SHOOTER_X * sx, (BUB_SHOOTER_Y - BUB_R - 12) * sy, rs, fast);
+  // Levels (stage 3, display only): the trail's reach. Normal (no `trail`) draws it as before; Easy shows two bounces,
+  // Hard one (each ends where the shot next meets a wall), Expert a short trail from the gun.
+  const reach = state.trail;
+  let bounces = 0;
   for (let i = 0; i < 160 && y > 0; i++) {
     x += vx;
     y += vy;
     if (x < left) {
       x = left + (left - x);
       vx = -vx;
+      bounces++;
     } else if (x > right) {
       x = right - (x - right);
       vx = -vx;
+      bounces++;
     }
+    if (reach !== undefined && reach > 0 && bounces > reach) break;
+    if (reach === 0 && travelled >= BUB_SHORT_TRAIL_PX) break;
     travelled += stepLen;
     if (travelled >= next) {
       next += 11;

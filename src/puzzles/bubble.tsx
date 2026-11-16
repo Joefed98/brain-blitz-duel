@@ -22,6 +22,7 @@ import {
 import {
   bubCheckpoint,
   bubbleGameFor,
+  bubColoursOf,
   bubColour,
   BUB_BG,
   BUB_CHECKPOINT_INTERVAL,
@@ -59,7 +60,8 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BubblePuzzleData | null = puzzle.type === "bubble" ? puzzle : null;
   const seed = data?.seed ?? 1;
-  const bubbleGame = bubbleGameFor(data?.bubbleRev);
+  // Levels (stage 3): the stored puzzle's level picks bubbleRev 12's reef, colours and descent cadence.
+  const bubbleGame = bubbleGameFor(data?.bubbleRev, (data as { level?: unknown } | null)?.level);
   // bubbleRev 5: the deeper tank; every phone draws the stored revision's world.
   const BUB_WORLD_H = bubbleWorldHFor(data?.bubbleRev);
 
@@ -321,13 +323,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "bubble") return null;
-  const result = replayBubbleRun(puzzle.seed, myAnswer ?? "", puzzle.bubbleRev);
+  const result = replayBubbleRun(puzzle.seed, myAnswer ?? "", puzzle.bubbleRev, (puzzle as { level?: unknown }).level);
   const shots = decodeBubbleRun(myAnswer ?? "").events.length;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="flex shrink-0 items-center gap-2">
-        {[1, 2, 3, 4, 5].map((value) => (
+        {bubColoursOf(result.state).map((value) => (
           <span
             key={value}
             className="h-4 w-4 rounded-full"
