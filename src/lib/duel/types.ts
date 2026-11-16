@@ -992,6 +992,11 @@ export interface PipesPuzzleData {
   par?: number;
   /** Server-side only: the solved open sides of every tile. */
   solution?: number[];
+  /** Difficulty levels (15 Nov 2026): a level board's width and height; absent = today's 7 × 7 (Normal, older rounds). */
+  cols?: number;
+  rows?: number;
+  /** Expert: no live spill marks at the network's open ends during play (the reveal still shows them). */
+  hideLeaks?: boolean;
 }
 
 /* -------------------------------------------------------------------------- */

@@ -134,15 +134,29 @@ export function shapeForMask(mask: number): PipeShape {
   return "end";
 }
 
-/** The neighbour reached through one opening, or null at a wall. */
-export function pipeNeighbour(cell: number, bit: number): number | null {
-  const row = Math.floor(cell / PIPES_COLS);
-  const col = cell % PIPES_COLS;
-  if (bit === PIPE_N) return row > 0 ? cell - PIPES_COLS : null;
-  if (bit === PIPE_S) return row < PIPES_COLS - 1 ? cell + PIPES_COLS : null;
+/**
+ * The neighbour reached through one opening, or null at a wall. `cols` and `rows` are the board's (difficulty levels,
+ * 15 Nov 2026: Easy 5 × 5, Hard 8 × 8, Expert 8 × 11); left out they are today's 7 × 7, so every Normal and older board
+ * reads exactly as before.
+ */
+export function pipeNeighbour(cell: number, bit: number, cols: number = PIPES_COLS, rows: number = cols): number | null {
+  const row = Math.floor(cell / cols);
+  const col = cell % cols;
+  if (bit === PIPE_N) return row > 0 ? cell - cols : null;
+  if (bit === PIPE_S) return row < rows - 1 ? cell + cols : null;
   if (bit === PIPE_W) return col > 0 ? cell - 1 : null;
-  if (bit === PIPE_E) return col < PIPES_COLS - 1 ? cell + 1 : null;
+  if (bit === PIPE_E) return col < cols - 1 ? cell + 1 : null;
   return null;
+}
+
+/**
+ * A Pipeline board's width and height (difficulty levels, 15 Nov 2026): a level board carries `cols` / `rows`; every
+ * board without them (Normal and every stored round) is today's 7 × 7.
+ */
+export function pipesDims(puzzle: { cols?: number | undefined; rows?: number | undefined } | null | undefined): { cols: number; rows: number; cells: number } {
+  const cols = puzzle?.cols && puzzle.cols > 0 ? puzzle.cols : PIPES_COLS;
+  const rows = puzzle?.rows && puzzle.rows > 0 ? puzzle.rows : puzzle?.cols && puzzle.cols > 0 ? puzzle.cols : PIPES_COLS;
+  return { cols, rows, cells: puzzle?.cols ? cols * rows : PIPES_CELLS };
 }
 
 const OPPOSITE: Record<number, number> = {
@@ -161,14 +175,16 @@ export interface PipesState {
 }
 
 /** Works out the live water flow and the leaks of a board. */
-export function pipesState(tiles: PipeTile[], source: number): PipesState {
+export function pipesState(tiles: PipeTile[], source: number, cols: number = PIPES_COLS): PipesState {
+  // A level board's height follows from its tiles; 7 × 7 (every board before levels) is unchanged.
+  const rows = cols === PIPES_COLS ? PIPES_COLS : Math.ceil(tiles.length / cols);
   const openings = tiles.map(tileOpenings);
   const leaks = new Set<number>();
 
   for (let cell = 0; cell < tiles.length; cell++) {
     for (const bit of [PIPE_N, PIPE_E, PIPE_S, PIPE_W]) {
       if (!(openings[cell]! & bit)) continue;
-      const next = pipeNeighbour(cell, bit);
+      const next = pipeNeighbour(cell, bit, cols, rows);
       if (next === null || !(openings[next]! & OPPOSITE[bit]!)) leaks.add(cell);
     }
   }
@@ -181,7 +197,7 @@ export function pipesState(tiles: PipeTile[], source: number): PipesState {
       const cell = queue.pop()!;
       for (const bit of [PIPE_N, PIPE_E, PIPE_S, PIPE_W]) {
         if (!(openings[cell]! & bit)) continue;
-        const next = pipeNeighbour(cell, bit);
+        const next = pipeNeighbour(cell, bit, cols, rows);
         if (next === null || connected.has(next)) continue;
         if (!(openings[next]! & OPPOSITE[bit]!)) continue;
         connected.add(next);

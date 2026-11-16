@@ -17,7 +17,7 @@ import { encodeLaserAnswer } from "../../src/lib/duel/laser";
 import { appendAction, encodeActionLog, usesActionLog, type LoggedAction } from "../../src/lib/duel/actionLog";
 import { laserAction } from "../../src/lib/duel/laserLog";
 import { encodeFlowPaths, flowNeighbours } from "../../src/lib/duel/flow";
-import { PIPE_BITS, pipeNeighbour, rotateMask, tileOpenings } from "../../src/lib/duel/logic";
+import { PIPE_BITS, pipeNeighbour, pipesDims, rotateMask, tileOpenings } from "../../src/lib/duel/logic";
 import { thinkMs, type Play, type PuzzleKit, type Rng, type Skill, type Step } from "./kit";
 
 type Of<T extends PuzzleData["type"]> = Extract<PuzzleData, { type: T }>;
@@ -701,7 +701,7 @@ const pipesKit: PuzzleKit = {
     for (let i = 0; i < order.length; i++) {
       for (const bit of PIPE_BITS) {
         if (!(goal[order[i]!]! & bit)) continue;
-        const n = pipeNeighbour(order[i]!, bit);
+        const n = pipeNeighbour(order[i]!, bit, pipesDims(q).cols, pipesDims(q).rows);
         if (n !== null && !seen.has(n)) {
           seen.add(n);
           order.push(n);

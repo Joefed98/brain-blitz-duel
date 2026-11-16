@@ -23,7 +23,7 @@ import { decodePipesTurns, pipesAfterTurns } from "./depth4/pipesTaps";
 import { usesPatternNov15 } from "./patternNov15";
 import { replayGems } from "./depth4/iceGems";
 import { gemMinMoves } from "./depth4/gems.server";
-import { activeLightPresses, decodePresses, decodeSides, lightsAllOff, lightsOnCount, replayLights } from "./logic";
+import { activeLightPresses, decodePresses, decodeSides, lightsAllOff, lightsOnCount, pipesDims, replayLights } from "./logic";
 import { gradePipesBoard, gradeSudokuGrid } from "./logic.server";
 import { decodeFlowPaths, verifyFlow } from "./flow";
 import { countedSlides, decodeSlideMoves, replaySlide, slideBoard, slideDistance } from "./slide";
@@ -726,19 +726,21 @@ function gradeUnderRev(
       // Connectivity and leaks are worked out here, so any valid layout counts.
       // pipesRev 1 (depth batch 4): the board comes from the tap log alone; the taps up to the solve are counted.
       // pipesRev 5 (the Pattern overhaul, patternNov15.ts): "-cell" in the log is an anticlockwise turn.
+      // Difficulty levels: a level board's width from the stored puzzle (pipesDims; 7 on every board before levels).
+      const cols = pipesDims(puzzle).cols;
       const taps = isDepth4(puzzle) ? decodePipesTurns(answer, puzzle.tiles.length, usesPatternNov15(puzzle, "pipes")) : null;
       let turns = 0;
       if (taps) {
         for (let k = 0; k <= taps.length; k++) {
           turns = k;
-          if (gradePipesBoard(puzzle.source, pipesAfterTurns(puzzle.tiles, taps.slice(0, k))).solved) break;
+          if (gradePipesBoard(puzzle.source, pipesAfterTurns(puzzle.tiles, taps.slice(0, k)), cols).solved) break;
         }
       }
       const board = taps ? pipesAfterTurns(puzzle.tiles, taps.slice(0, turns)) : decodeSides(puzzle.tiles, answer);
-      const verdict = gradePipesBoard(puzzle.source, board);
+      const verdict = gradePipesBoard(puzzle.source, board, cols);
       isCorrect = verdict.solved;
       correctCount = verdict.connected;
-      const startConnected = scoreRev1() ? gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, "")).connected : 0;
+      const startConnected = scoreRev1() ? gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, ""), cols).connected : 0;
       score = scorePipes(verdict.solved, verdict.connected, ms, timeLimitMs, startConnected);
       extraDetail = { solved: verdict.solved, connected: verdict.connected, ...(taps ? { turns, par: puzzle.par ?? 0 } : {}) };
       break;
