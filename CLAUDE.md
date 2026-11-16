@@ -2638,7 +2638,9 @@ outside the repo.
   stored puzzle passes `puzzleLevel(puzzle)`** (stage, `replay…Run(seed, raw, rev, level)`, grade.ts, steppers.ts, the
   bots' `RETRO_LEVEL_GAMES` in games.ts). New Normal stamps: Hover `hoverRev 11` (starts shielded), Meteor `snakeRev 15`
   (the first crash forgiven), Spacewalk `crossRev 13` (lighter traffic), Wavefront `wavRev 15` (hit boxes 3 px larger,
-  `WAV_V15_HIT_PAD`), Pinball `pinRev 8` (outlane saves counted; pinRev 7's play), each pinned off by `preRetro`. Round-end
+  `WAV_V15_HIT_PAD`; dealt only from `WAV_DEAL`, seeds with a witness at 200 through the server replay at every level,
+`bun scripts/wavefront-big-deal.ts [--check]`, wavefront-deal-check), Pinball `pinRev 8` (outlane saves counted; pinRev
+7's play), each pinned off by `preRetro`. Round-end
   payoffs on the presentation clock (`retroEndAge`, `retroPayoffBanner`, the stage holds the submit `RETRO_PAYOFF_MS`).
   Fission's one-thumb option (`src/lib/arcade/fissionThumb.ts`, Settings → Game controls) and Tempo's D F J K keys are input
   mapping only. Intro demos: `scripts/retro-demos.json` (bot runs on each game's intro example deal and dealt stamp,

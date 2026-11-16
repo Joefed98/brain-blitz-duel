@@ -139,7 +139,7 @@ plays its stand-in (or nothing) until Joe's ElevenLabs recording drops in by nam
 | Wavefront | Power-up: a ring round the fighter and a chirp | done |
 | Wavefront | Enemy bolt near-miss (4 px): a streak and a zip | done |
 | Wavefront | A richer space scene with depth (nebula, planet, moon, drifting stars) | done (stage 2) |
-| Wavefront | Larger hit cells, a wider formation | larger hit cells done (wavRev 15, 200 re-proved); the wider formation not done (a deal change of its own) |
+| Wavefront | Larger hit cells, a wider formation | larger hit cells done (wavRev 15, dealt only on seeds proved at 200 at every level); **the wider formation is a follow-up after the trains** (Joe, 16 Nov 2026) |
 | Fission | Bigger atoms | done (burstRev 13) |
 | Fission | Kinder wave clears | done (burstRev 12) |
 | Fission | Split pop pitched by the atom's size | done |
@@ -230,10 +230,19 @@ deal**, with no `lv`: rated play and the Daily stay on it. Five games needed a n
 | Tempo (beatRev 12) | nothing | windows 5 / 10 / 16, fall 110 | 3 / 6 / 11, fall 75, chart 170 % off-beats, 160 % chords | 2 / 5 / 10, fall 60, 240 % / 220 % |
 | Meteor (snakeRev 15) | the first crash forgiven (the comet holds 1.5 s, SAVED!) | 3 lives, pace 9 → 5, full at 27 | 2 lives, 8 → 4, walls, full at 50 | 1 life, 8 → 3, walls, full at 48 |
 | Fission (burstRev 13) | nothing | 4 lives, atoms 125 %, quick 150 %, 40 free beams | 3 lives, quick 75 %, 12 free | 2 lives, quick 60 %, 8 free |
-| Wavefront (wavRev 15) | larger hit cells (3 px each side, hull drawn to match) | 4 lives, bolts 80 %, boss 80 %, kill by 24 s | 3 lives, bolts 120 %, boss 130 %, 16 s | 2 lives, bolts 140 %, boss 160 %, 12 s |
+| Wavefront (wavRev 15) | larger hit cells (3 px each side, hull drawn to match); dealt only on proved seeds | 4 lives, bolts 80 %, boss 80 %, kill by 24 s | 3 lives, bolts 120 %, boss 130 %, 16 s | 2 lives, bolts 140 %, boss 160 %, 16 s |
 | Spacewalk (crossRev 13) | lighter traffic (half on the first crossing, full at the seventh) | thinner still, 4 lives, hits 10, full at 70 | crossRev 12's traffic, 3 lives | densest, 2 lives, hits 20, full at 80 |
 | Pinball (pinRev 8) | counts outlane saves (play unchanged) | 4 balls, 10 s ball save, gravity 85 %, multiball 25 s, full at 50,000 | gravity 110 %, multiball 18 s | 2 balls, gravity 120 %, multiball 15 s, full at 66,000 |
 | Blockzone (blockfallRev 2) | nothing | gravity 125 % (slower), lock 40, full at 40 | 80 %, lock 24, 2 previews, full at 57 | 60 %, lock 18, 1 preview, full at 62 |
+
+**Wavefront's deal** (Joe, 16 Nov 2026: every dealt seed at every level must be able to reach 200): with the larger hit
+cells the flawless player's bolts meet ships before a saucer often enough that 200 wasn't reachable on every seed, and
+Expert's 12 s kill time put the speed part out of reach. Expert's kill time is 16 s (Hard's), and rooms deal wavRev 15
+only from `WAV_DEAL` (`src/lib/duel/wavefrontDeal.server.ts`, built by `bun scripts/wavefront-big-deal.ts`): seeds where a
+witness run scores exactly 200 through the server replay at Normal, Easy, Hard and Expert (the flawless player with its
+saucer timing shifted until one does; witnesses `scripts/fixtures/wavefront-big-deal-witness.json.gz`).
+wavefront-deal-check replays every witness and proves rooms deal only those seeds. **Wavefront's wider formation** moves to
+a follow-up after the trains.
 
 **Settings that change through a run.** Every level keeps its game's own build-up and sets how hard it starts or how far
 it goes: Hover's scroll speeds up barrier by barrier (a level scales it), Rally's paddle narrows and its bumpers arrive

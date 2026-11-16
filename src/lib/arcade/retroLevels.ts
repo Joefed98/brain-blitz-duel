@@ -122,7 +122,7 @@ export const RALLY_LEVELS: Table<RallyLv> = {
 export const WAVEFRONT_LEVELS: Table<WavefrontLv> = {
   easy: { lives: 4, boltPct: 80, bossPct: 80, killS: 24 },
   hard: { lives: 3, boltPct: 120, bossPct: 130, killS: 16 },
-  expert: { lives: 2, boltPct: 140, bossPct: 160, killS: 12 },
+  expert: { lives: 2, boltPct: 140, bossPct: 160, killS: 16 },
 };
 export const BURST_LEVELS: Table<BurstLv> = {
   easy: { lives: 4, sizePct: 125, quickPct: 150, freeWhiffs: 40 },

@@ -6,6 +6,7 @@ import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_LINE, sliceFoodSeedOk } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL } from "@/lib/arcade/flip";
 import { flipDealSeed } from "./flipDeal.server";
+import { wavDealSeed } from "./wavefrontDeal.server";
 import { CROSS_REV_KEEP, CROSS_REV_LIGHT } from "@/lib/arcade/cross";
 import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_STD } from "@/lib/arcade/inkBridge";
 import { inkBigDealSeed } from "./inkBigDeal.server";
@@ -330,7 +331,10 @@ export function generateWavefront(): WavefrontPuzzleData {
   // wavRev 12 (the arcade scoring standard, 29 Oct 2026): wavRev 11 play scored in fixed parts that total 200.
   // wavRev 13 (Nov 2026, the scoring audit): wavRev 12's play; the life that ends the run is free, lives capped at half the core.
   // wavRev 14 (the Retro overhaul, 15 Nov 2026): the charged shot (preRetro: wavRev 13).
-  return { type: "wavefront", seed: arcadeSeed(), wavRev: dealPinned("preRetro") ? WAV_REV_KEEP : WAV_REV_BIG };
+  // wavRev 15 (stage 3, 16 Nov 2026): larger hit cells, dealt only on the seeds proved to reach 200 at every level
+  // (wavefrontDeal.server.ts).
+  if (dealPinned("preRetro")) return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_KEEP };
+  return { type: "wavefront", seed: wavDealSeed(arcadeSeed()), wavRev: WAV_REV_BIG };
 }
 
 export function generateBastion(): BastionPuzzleData {
