@@ -87,7 +87,36 @@ card), Integer Pyramid's tray in balanced rows (`npTrayRows`).
 
 ## Stage 3: levels (with the level registry)
 
-To come. Joe's rules: at most 120 s at every level; exactly one solution where the game is a one-answer puzzle;
-Normal is the rated level; the elite bot about 198 / 160 / 140 on Normal / Hard / Expert; Expert completed by a
-person-like solver (every step deducible from the screen) and finished by the elite bot on most boards; a grid whose
-squares would fall under about 40 px on a 375 px screen grows downwards instead.
+Every Number game has Easy, Normal, Hard and Expert (`GAME_LEVELS` in `src/lib/levels/gameLevels.ts`, dealt through
+`context.level` and stamped `puzzleLevel`); rated play and the Daily deal Normal (`modeLevel`). Every clock is at most
+120 s. Joe's decision (15 Nov 2026): for Counterweight, Brimful, Checkout and Kakuro today's game becomes Hard exactly,
+and Normal, Easy and Expert are new deals on new stamps (`balanceRev 5`, `measureRev 5`, `checkoutRev 4`,
+`kakuroRev 3`); the other four keep today's game as Normal. The era pins `preBalanceLevels`, `preMeasureLevels`,
+`preCheckoutLevels` and `preKakuroLevels` (`dealEra.ts`) deal today's game at Normal for the checks written for it, and
+any older era pinned does the same. Older stamps deal, grade and replay as before.
+
+| Game | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Counterweight | 3 scales of 6 notches | 4 scales of 8 notches, gentler | today's | 4 scales of 10 notches, tight hangs, readout hidden |
+| Exact | targets 101–300 | today's | one large, 300–999, all six needed | small numbers only, 500–999, all six |
+| Operator | 2–9, + − × | today's | 2–25, one more gap, ÷ from line 3 | 2–30, mixed gaps, 2 decoys, 2 tries |
+| Integer Pyramid | 4 rows | today's | 5 rows, 3 decoys | 6 rows, 3 decoys |
+| Brimful | 3 boards, 2 jugs and tap | 4 gentler boards | today's | 4 long boards, 1.5× limit |
+| Checkout | 3 boards, any dart finishes | 5 boards, double finish | today's | 5 odd boards (×4, minus wedges, treble finish) |
+| Ballpark | 0–10, 0–100, 0–1 | today's | harder numbers | a 0–10,000 line, each line's end hidden until 3 are placed |
+| Kakuro | 5 × 5 | 6 × 6 | today's | 7 × 7 |
+
+Proofs: one-solution games (Integer Pyramid, Kakuro, Counterweight's single-arrangement scales) are proved at deal time
+or by their banks (`scripts/number-pyramid-levels-bank.ts`); Expert deals only boards a person-like solver (every step
+deducible from the screen, no guessing) completes. Integer Pyramid's stones grow into the band above the board (display
+only). Checks: number-levels-balance-target-check, number-levels-equation-pyramid-check,
+number-levels-measure-numline-check, number-levels-checkout-kakuro-check.
+
+## Intro demos
+
+`scripts/fixtures/number-demos.json`: one run per game recorded on its intro example deal at Normal
+(`bun scripts/number-demos-record.ts <game>`), each scoring 200 through the server replay (number-demos-check). The stop
+rules in `introDemo.functions.ts` play a Number demo only with `numberDemoRev 1` on today's Normal stamps. Saving:
+`DEMOS_URL=… INTRO_DEMO_KEY=… bun scripts/number-demos-save.ts [--dry]` (never prompts, never prints the key; refuses
+unless the server's deal matches the fixture; exit 0 / 1 / 2); run the dev server with
+`NODE_OPTIONS=--max-old-space-size=6144`. Nobody saves demos to the live database.

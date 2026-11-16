@@ -16,6 +16,7 @@ import {
   type PuzzleDemoLog,
 } from "@/lib/duel/puzzleDemo";
 import { useGameDef } from "@/lib/duel/gameLoader";
+import { puzzleInfo } from "@/lib/duel/catalogue";
 import type { PuzzleStageProps } from "@/puzzles/types";
 import { GameKeysOff } from "@/lib/desktop";
 import { clearStageState } from "@/lib/duel/stageState";
@@ -42,13 +43,30 @@ export function usePuzzleDemo(type: PuzzleType): { puzzle: PuzzleData; log: Puzz
   return { puzzle: demo.puzzle, log };
 }
 
+/**
+ * The Number overhaul's demos (15 Nov 2026, scripts/fixtures/number-demos.json): recorded on the practice screen, whose
+ * play layout those games style under PhoneShell's surface (data-puzzle-play and friends) and its region and stage
+ * boxes. A log carrying numberDemoRev is played inside the same elements, so its touches land where they were made;
+ * every other demo is drawn exactly as before.
+ */
+const playScreenDemo = (log: PuzzleDemoLog): boolean => Number((log as { numberDemoRev?: unknown }).numberDemoRev ?? 0) >= 1;
+
 /** Intro slot for non-engine puzzles: the saved demo over the fixed intro example. */
-export function PuzzleIntroDemo({ demo, onReady }: { demo: { puzzle: PuzzleData; log: PuzzleDemoLog }; onReady?: () => void }) {
+export function PuzzleIntroDemo({
+  demo,
+  onReady,
+  onDemoSubmit,
+}: {
+  demo: { puzzle: PuzzleData; log: PuzzleDemoLog };
+  onReady?: () => void;
+  /** Checks only (number-demos-check): what the demo's Stage submits. The intro never passes it. */
+  onDemoSubmit?: (answer: string) => void;
+}) {
   // The game's own chunk (gameLoader.ts): the intro keeps its still until it is here and the demo is ready.
   const definition = useGameDef(demo.puzzle.type);
   return (
     <div className="flex h-full w-full justify-center">
-      {definition ? <PuzzleDemoPlayer Stage={definition.Stage} puzzle={demo.puzzle} log={demo.log} onReady={onReady} /> : null}
+      {definition ? <PuzzleDemoPlayer Stage={definition.Stage} puzzle={demo.puzzle} log={demo.log} onReady={onReady} onDemoSubmit={onDemoSubmit} /> : null}
     </div>
   );
 }
@@ -58,11 +76,13 @@ function PuzzleDemoPlayer({
   puzzle,
   log,
   onReady,
+  onDemoSubmit,
 }: {
   Stage: ComponentType<PuzzleStageProps>;
   puzzle: PuzzleData;
   log: PuzzleDemoLog;
   onReady?: (() => void) | undefined;
+  onDemoSubmit?: ((answer: string) => void) | undefined;
 }) {
   const events = useMemo(() => expandActions(log.actions), [log]);
   const loopMs = (events.at(-1)?.t ?? 0) + PUZZLE_DEMO_HOLD_MS;
@@ -75,6 +95,7 @@ function PuzzleDemoPlayer({
   const verdictIndex = useRef(0);
   const stateKey = `intro-demo-${puzzle.type}-${loop.id}`;
   const mounted = scale > 0 && loop.id > 0;
+  const playScreen = playScreenDemo(log);
 
   // Silent while mounted; real taps briefly lift the hush for Ready/Back.
   useEffect(() => {
@@ -316,7 +337,7 @@ function PuzzleDemoPlayer({
       style={{ aspectRatio: `${log.w} / ${log.h}` }}
       aria-label="Demo of the puzzle being solved"
     >
-      {mounted ? (
+      {mounted && !playScreen ? (
         <div
           ref={stageRef}
           aria-hidden="true"
@@ -338,13 +359,52 @@ function PuzzleDemoPlayer({
               phaseStartedAt={loop.start}
               now={now}
               locked={false}
-              onSubmit={() => undefined}
+              onSubmit={(answer) => onDemoSubmit?.(answer)}
               checkWord={(word) => verdict({ valid: false, points: 0, word }).then((v) => ({ ...v, points: v.points ?? 0, word: v.word ?? word }))}
               checkMoves={() => Promise.resolve(null)}
             />
           </GameKeysOff.Provider>
           </ArrowModeOverride.Provider>
           </GameColumnLayout.Provider>
+        </div>
+      ) : null}
+      {mounted && playScreen ? (
+        // PhoneShell's surface, region and stage (the practice screen these demos were recorded on).
+        <div
+          aria-hidden="true"
+          className="game-screen absolute left-1/2 top-1/2 flex flex-col overflow-hidden bg-background"
+          data-category={puzzleInfo(puzzle.type).theme.accent}
+          data-puzzle-surface={puzzle.type}
+          data-puzzle-screen=""
+          data-puzzle-play=""
+          style={{
+            width: log.w,
+            height: log.h,
+            transform: `translate(-50%, -50%) scale(${scale})`,
+            transformOrigin: "center center",
+          }}
+        >
+          <div ref={stageRef} data-game-region="" className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div data-game-stage="" className="game-column game-column-centred game-column-lifted flex min-h-0 flex-1 flex-col">
+              <GameColumnLayout.Provider value={(log.layout ?? 0) >= 1}>
+              <ArrowModeOverride.Provider value={log.joystick ?? false}>
+              <GameKeysOff.Provider value>
+                <Stage
+                  key={stateKey}
+                  stateKey={stateKey}
+                  puzzle={puzzle}
+                  phaseStartedAt={loop.start}
+                  now={now}
+                  locked={false}
+                  onSubmit={(answer) => onDemoSubmit?.(answer)}
+                  checkWord={(word) => verdict({ valid: false, points: 0, word }).then((v) => ({ ...v, points: v.points ?? 0, word: v.word ?? word }))}
+                  checkMoves={() => Promise.resolve(null)}
+                />
+              </GameKeysOff.Provider>
+              </ArrowModeOverride.Provider>
+              </GameColumnLayout.Provider>
+            </div>
+          </div>
         </div>
       ) : null}
       <canvas ref={cursorRef} className="pointer-events-none absolute inset-0 h-full w-full" />
