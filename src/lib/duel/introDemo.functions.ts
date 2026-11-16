@@ -33,6 +33,7 @@ import { pairUsesDepth } from "./depth/matchmaker";
 import { STRIKEOUT_REV4 } from "./strikeout";
 import { createServerFn } from "@tanstack/react-start";
 import { isD4Type, isDepth4 } from "./depth4/stamps";
+import { logicDemoPlays } from "./logicDemoRules";
 
 import type { PuzzleData } from "./types";
 import type { PuzzleDemoLog } from "./puzzleDemo";
@@ -283,6 +284,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_STANDARD) return null;
     // Slice sliceRev 12 (3 Nov 2026, the Action polish): bigger, recognisable food; only a sliceRev 12 demo plays.
     if (data.type === "slice" && demo?.puzzle.type === "slice" && demo.puzzle.sliceRev !== SLICE_REV_FOOD) return null;
+    // The Logic overhaul (15 Nov 2026, logicDemoRules.ts): Minefield plays only a minesRev 3 (Normal) demo; the six puzzle
+    // games' demos must be on Normal (and on the new presentation, puzzleInputDemoCompatible).
+    if (demo && !logicDemoPlays(data.type, demo.puzzle)) return null;
 
     return demo;
   });

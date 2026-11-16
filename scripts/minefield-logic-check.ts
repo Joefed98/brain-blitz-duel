@@ -17,6 +17,7 @@
  *
  *   bun scripts/minefield-logic-check.ts [--full] [--record]
  */
+import { MINES_REV_NORMAL } from "../src/lib/arcade/minesweeper";
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
@@ -179,7 +180,8 @@ function ok(cond: unknown, label: string): void {
   ok(arcadeGroupOf("minesweeper") === null, "Minefield is in no arcade group");
   ok("minesweeper" in ENGINE_GAME_WORLDS && !(ACTIVE_ARCADE_GAMES as readonly string[]).includes("minesweeper"), "Minefield's world is an engine game's, not an active arcade game's");
   ok(PUZZLE_REVEAL_ENGINE_TYPES.has("minesweeper"), "Minefield takes the puzzle reveal with its breakdown");
-  ok(PRACTICE_STAMPS.minesweeper?.includes(`minesRev=${MINES_REV_LOGIC}`) === true, `practice stamps name minesRev ${MINES_REV_LOGIC} (${PRACTICE_STAMPS.minesweeper})`);
+  // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): practice's Normal deals minesRev 3.
+  ok(PRACTICE_STAMPS.minesweeper?.includes(`minesRev=${MINES_REV_NORMAL}`) === true, `practice stamps name minesRev ${MINES_REV_NORMAL} (${PRACTICE_STAMPS.minesweeper})`);
   const ten = PUZZLE_CATALOGUE.tendrop;
   ok(ten.category === "speed" && ten.arcadeRun === true && typesInCategory("speed").includes("tendrop") && !typesInCategory("number").includes("tendrop"), "Tenfall is a Speed game, out of Number");
   ok(PRACTICE_STAMPS.tendrop === "puzzleScoreRev=3 speedPar=1 tenRev=5", `Tenfall's stamps are unchanged (${PRACTICE_STAMPS.tendrop})`);

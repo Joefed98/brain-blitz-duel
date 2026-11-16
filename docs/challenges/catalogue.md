@@ -689,7 +689,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Light feet | Clear the board without hitting a mine. | Classic | Clean | line “Safe squares” = 150 of 150, line “No mines hit” = 20 of 20 |  | `minesweeper.light-feet` |
-| Sweep | Clear the board within 37 s. | Classic | Speed | line “Speed” = 30 of 30 |  | `minesweeper.sweep` |
+| Sweep | Clear the board within 29 s. | Classic | Speed | line “Speed” = 30 of 30 |  | `minesweeper.sweep` |
 | Bomb disposal | Clear an Expert field. | Expert | Finish | line “Safe squares” = 150 of 150 | ● | `minesweeper.bomb-disposal` |
 
 #### Thirteen (`pyramid`)

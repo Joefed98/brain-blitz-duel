@@ -11,7 +11,7 @@ import { SW6_SPARE_SWAPS, SWAP_PAR_BONUS_TOPUP } from "./swapword";
 import { STD_ROUNDABOUT, STD_STRIKEOUT, WORD_NOV7_HELP, WORD_STANDARD_HELP } from "./standard/word";
 import { wordNov7Dealt } from "./wordNov7";
 import { preStandardPinned } from "./standard/stamps";
-import { MINES_COUNT_V2, MINES_HIT_COST } from "@/lib/arcade/minesweeper";
+import { MINES_HIT_COST } from "@/lib/arcade/minesweeper";
 import { MAHJONG_SHUFFLE_COST } from "@/lib/arcade/mahjong";
 import { puzzleNotesDealt } from "./puzzleNotes";
 import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
@@ -610,6 +610,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Pencil marks", detail: "are for notes." },
         { action: "A clash turns red:", detail: "a number repeated in its row, column or box." },
         { action: "13 to 15 numbers", detail: "are given, and only one grid fits them.", helpOnly: true },
+        { action: "Levels:", detail: "Easy has more digits given and hides a digit once all six are placed; Hard and Expert give fewer and need a pair or pointing step; on Expert, clashes show only when you press Check.", helpOnly: true },
       ],
       score: logicStandardHelp("sudoku"),
     },
@@ -669,6 +670,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Perfect solve:", detail: "the fewest moves (par) scores a bonus." },
         { action: "Colour shows size.", detail: "Each puzzle has 3 or 4 posts.", helpOnly: true },
         { action: "A wrong post", detail: "bounces the ring back; it stays lifted for another try.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 7 rings on 4 posts; Hard 9 rings and Expert 10 rings on 3 posts, 120 seconds; Normal 3 or 4 posts. Run out of time and the reveal says how many moves you were from done.", helpOnly: true },
       ],
       score: logicStandardHelp("tower"),
     },
@@ -699,6 +701,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         logicOverhaul1Dealt()
           ? { action: "Pours are limited", detail: "(the counter). Undo gives its pour back; out of pours, the board ends.", helpOnly: true }
           : { action: "Pours are limited", detail: "(the counter). Undo and Reset don’t give a pour back; out of pours, the board ends.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 6 flasks of 4 colours; Hard 10 taller flasks of 7 layers on 120 seconds; Expert 12 flasks of 10 colours with one spare, and only each flask\u2019s top colour shows until you uncover the layers below.", helpOnly: true },
       ],
       score: logicStandardHelp("tubes"),
     },
@@ -710,6 +713,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Only one code", detail: "fits every clue." },
         { action: "Clean crack:", detail: "open it on the first try for the full bonus." },
         { action: "A wrong try", detail: "marks the clues its code broke.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 3 dials of 0\u20139 with simple clues; Hard 4 dials of 0\u201315 with primes, squares and differences; Expert 5 dials of 0\u201320, six clues and only two tries.", helpOnly: true },
       ],
       score: logicStandardHelp("safe"),
     },
@@ -765,6 +769,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap or drag", detail: "to fill; tap again to mark empty. A drag paints like its first square." },
         { action: "The numbers", detail: "are the filled runs, in order." },
         { action: "A line dims", detail: "once it matches." },
+        { action: "Levels:", detail: "Easy is 6 \u00d7 6 and a line that matches its numbers fills its gaps with \u00d7; Hard 9 \u00d7 11; Expert 9 \u00d7 14, where some squares need two lines read together.", helpOnly: true },
       ],
       score: logicStandardHelp("nonogram"),
     },
@@ -786,6 +791,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Your region grows", detail: "into touching cells of it." },
         { action: "You start", detail: "from the top-left corner." },
         { action: "Moves are limited:", detail: `par + ${FLOOD_STANDARD_SPARE_MOVES} (the counter). Out of moves, the board ends and scores 0.`, helpOnly: true },
+        { action: "Levels:", detail: "Easy is 10 \u00d7 10 in four colours; Hard 12 \u00d7 17 in six; Expert 14 \u00d7 24 in six with stones the paint never covers. Every level gives par + 6 moves.", helpOnly: true },
       ],
       score: logicStandardHelp("flood"),
     },
@@ -1078,7 +1084,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a number", detail: "whose flags are all placed to reveal the rest round it." },
         { action: "The opening is revealed for you:", detail: "every board can be solved by logic alone, no guessing.", helpOnly: true },
         { action: "A mine costs 5", detail: "and stays marked; play goes on.", helpOnly: true },
-        { action: "One board for everyone,", detail: `${MINES_COUNT_V2} mines on 10 × 16, 90 seconds.`, helpOnly: true },
+        { action: "One board for everyone,", detail: "on Normal 16 mines on 10 × 16, 90 seconds.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is 8 × 12 with 9 mines; Hard today\u2019s 20 mines; Expert 12 × 18 with 30 mines and a small opening, 120 seconds. Never a guess on any level.", helpOnly: true },
       ],
       score: liveStdHelp("minesweeper", `Each mine hit costs ${MINES_HIT_COST}.`),
     },

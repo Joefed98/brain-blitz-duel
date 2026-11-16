@@ -28,7 +28,7 @@ import type { PuzzleType } from "@/lib/duel/types";
 import { LEVELS, NORMAL, type Level } from "./levels";
 
 /** The Logic overhaul's level proof (session 1): every level board of its seven games. */
-const LOGIC1_PROOF = "scripts/logic-1-levels-check.ts";
+const LOGIC1_PROOF = "scripts/logic-1-levels-check.tsx";
 
 /** How a level's boards are proven to have exactly one solution. */
 export type OneSolutionProof = { proof: string } | { open: string };
