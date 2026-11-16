@@ -1357,6 +1357,13 @@ export interface LaserPuzzleData {
   laserRev?: number;
   /** laserRev 1: the mirrors the stored solution uses (an elegant beam lights every gem with no more). */
   par?: number;
+  /**
+   * The shots the round gives (the Pattern overhaul's levels, 16 Nov 2026: Easy 5, Expert 2; laser.levels.ts).
+   * Absent = LASER_MAX_FIRES (3), every Normal and every older round. Read through `laserShotsOf`.
+   */
+  shots?: number;
+  /** The round's clock when it isn't LASER_TIME_MS (Hard 75 s, Expert 90 s). */
+  timeLimitMs?: number;
 }
 
 /* -------------------------------------------------------------------------- */

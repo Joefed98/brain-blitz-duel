@@ -712,7 +712,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           ? []
           : [
               { action: "Undo is free:", detail: "it takes back your last change (a place, turn, move or Reset) and costs nothing; a shot isn’t given back.", helpOnly: true },
-              { action: "Out of shots:", detail: "after your third shot the board locks.", helpOnly: true },
+              { action: "Out of shots:", detail: "after your last shot the board locks.", helpOnly: true },
+              // Difficulty levels (16 Nov 2026, laser.levels.ts): the shots and spare mirrors differ by level.
+              { action: "Levels:", detail: "Easy gives five shots and three spare mirrors; Hard one spare; Expert one spare and two shots.", helpOnly: true },
             ]),
       ],
       score: PATTERN_STD_HELP.laser,

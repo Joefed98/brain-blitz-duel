@@ -54,6 +54,12 @@ export function flipMirror(kind: MirrorKind): MirrorKind {
   return kind === "/" ? "\\" : "/";
 }
 
+/** The shots a round gives: the puzzle's own (a level's, laser.levels.ts) or LASER_MAX_FIRES (3). */
+export function laserShotsOf(puzzle: { shots?: number | undefined } | null | undefined): number {
+  const own = puzzle?.shots;
+  return typeof own === "number" && Number.isInteger(own) && own >= 1 && own <= 9 ? own : LASER_MAX_FIRES;
+}
+
 export function isSplitter(kind: MirrorKind): boolean {
   return kind === "S|" || kind === "S-";
 }
@@ -201,9 +207,10 @@ export function verifyLaser(
     directionalGems?: { cell: number; from: BeamDir }[];
     mirrors: number;
     splitterPieces?: number;
+    shots?: number;
   },
   placements: MirrorPlacement[],
-  fires = LASER_MAX_FIRES,
+  fires = laserShotsOf(puzzle),
 ): LaserVerdict {
   const taken = new Set([...puzzle.blocks, ...puzzle.bombs, ...puzzle.gems, ...(puzzle.splitters ?? []), puzzle.source]);
   const legal: MirrorPlacement[] = [];
@@ -231,7 +238,8 @@ export function verifyLaser(
     puzzle.splitters,
     puzzle.directionalGems,
   );
-  const shot = Math.max(1, Math.min(LASER_MAX_FIRES, Math.round(fires) || LASER_MAX_FIRES));
+  const shots = laserShotsOf(puzzle);
+  const shot = Math.max(1, Math.min(shots, Math.round(fires) || shots));
   return {
     solved: trace.litAll,
     gemsLit: trace.gemsLit.length,

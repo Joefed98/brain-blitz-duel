@@ -36,10 +36,27 @@ export function flowFullByS(puzzle: { flowRev?: number; level?: unknown }): numb
   return own ?? FLOW_REV3_FULL_BY_S;
 }
 
+/**
+ * Lightbender from laserRev 4 (the Pattern overhaul, levels, 16 Nov 2026): full speed by LASER_REV4_FULL_BY_S on
+ * Normal (a strong player's finish: the Near-perfect kit's 90th percentile is 28 s; laserRev 3 and older keep
+ * PATTERN_STD.laser's 15 s) and by each level's own `fullByS` (laser.levels.ts) on Easy, Hard and Expert.
+ */
+export const LASER_REV_LEVELS = 4;
+export const LASER_REV4_FULL_BY_S = 30;
+
+export function laserFullByS(puzzle: { laserRev?: number; level?: unknown }): number {
+  if ((puzzle.laserRev ?? 0) < LASER_REV_LEVELS) return PATTERN_STD.laser.fullByS;
+  const level = puzzleLevel(puzzle);
+  const own = level === "normal" ? null : gameLevelSettings<{ fullByS?: number }>("laser", level)?.fullByS;
+  return own ?? LASER_REV4_FULL_BY_S;
+}
+
 /** The full-speed time a puzzle on the standard is graded with, by its stamp (Gradient's and Chroma Lines' moved). */
-export function patternFullByS(type: PatternStdType, puzzle: { tilesRev?: number; blockRev?: number; flowRev?: number; level?: unknown }): number {
+export function patternFullByS(type: PatternStdType, puzzle: { tilesRev?: number; blockRev?: number; flowRev?: number; laserRev?: number; level?: unknown }): number {
   if (type === "tiles" && (puzzle.tilesRev ?? 0) < TILES_REV_FAST) return TILES_REV5_FULL_BY_S;
   if (type === "flow") return flowFullByS(puzzle);
+  // Lightbender's levels (the Pattern overhaul, stage 3): laserRev 4's Normal 30 s and each level's own time.
+  if (type === "laser") return laserFullByS(puzzle);
   // Gridlock's levels (the Pattern overhaul, stage 3): a board dealt at a level is full speed by its level's time
   // (unblock.levels.ts `speedFullByS`); Normal and every puzzle dealt before levels keep 40 s.
   if (type === "unblock" && puzzle.level !== undefined) {
