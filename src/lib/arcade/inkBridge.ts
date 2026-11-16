@@ -27,7 +27,7 @@ import {
 } from "./engine";
 import { BAND_STRICT_MARK, bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 import { isin, TRIG_ONE } from "./trig";
-import { stdBandParts, stdCore, stdLine, stdPartLine, stdSpecPart, stdSpeed, stdTotal, type StdBreakdown, type StdSpec } from "./arcadeStandard";
+import { stdBandParts, stdCore, stdLine, stdPartLine, stdSpecPart, stdSpeed, stdTotal, type StdBreakdown, type StdSpec, type StdSpecPart } from "./arcadeStandard";
 
 /* ============================== Constants ============================== */
 
@@ -163,6 +163,9 @@ export type InkDiff = "easy" | "hard" | "expert";
  * 1.25×, today's birds, moving from level 9, 10 %; Hard 1.1×, more birds, from level 8, 10 %; Expert 1.0×, more birds
  * some moving, from level 7, 5 %."). "Moving levels" are the live levels (the coin falls while you draw); Normal's
  * figures are today's inkRev 15 exactly (INK_LEVEL_NORMAL documents them; a Normal run carries no set).
+ * Easy, 16 Nov 2026 (Joe: an average player should have a real shot at a star): a quarter of the birds, a 110 px pot
+ * kept whole on screen, the clovers on the easy line's own path, trick shots full at 2 and clovers at 1, speed full with
+ * 10 s left (it was half the birds, an 80 px pot, clovers off the route, the parts' own counts and 50 s).
  */
 export interface InkLevelSet {
   /** Each level's ink as a share of inkRev 10's (percent; Normal 125, inkClover's quarter more). */
@@ -184,6 +187,14 @@ export interface InkLevelSet {
   potW?: number;
   /** The speed part is full with this many seconds left (today's INK_V13_SPEED_FULL, 50 s). */
   speedFullLeftS?: number;
+  /**
+   * Easy: a plain clover level's clover sits on its easy line's own path (this percent of the way along the part of the
+   * path a pickup may take, spout to pot) instead of on a bonus line off the route; the easy line is then its witness.
+   */
+  cloverOnRoute?: number;
+  /** The trick shots and clovers parts are full at this many (today's: every cloud level's trick shot, both clovers). */
+  tricksFullAt?: number;
+  cloversFullAt?: number;
 }
 
 /** Today's Normal figures (what INK_LEVEL_SETS departs from; nothing reads this to build a Normal run). */
@@ -191,7 +202,7 @@ export const INK_LEVEL_NORMAL: InkLevelSet = { inkPct: 125, birdsPct: 100, extra
 
 /** The three other levels' rules (mirrored as plain data in src/lib/levels/gameLevels.ts; ink-levels-check proves it). */
 export const INK_LEVEL_SETS: Readonly<Record<InkDiff, InkLevelSet>> = {
-  easy: { inkPct: 150, birdsPct: 50, extraBirds: [], liveFrom: INK_LEVELS, parMarginPct: 25, swayLevels: [], swayBirds: 0, stillPot: true, potW: 80 },
+  easy: { inkPct: 150, birdsPct: 25, extraBirds: [], liveFrom: INK_LEVELS, parMarginPct: 25, swayLevels: [], swayBirds: 0, stillPot: true, potW: 110, speedFullLeftS: 10, cloverOnRoute: 60, tricksFullAt: 2, cloversFullAt: 1 },
   hard: { inkPct: 110, birdsPct: 100, extraBirds: [0, 2, 2, 2, 2, 2, 2, 2, 2, 2], liveFrom: 7, parMarginPct: 10, swayLevels: [], swayBirds: 0, potW: 48, speedFullLeftS: 70 },
   expert: { inkPct: 100, birdsPct: 100, extraBirds: [0, 2, 3, 3, 3, 3, 3, 3, 3, 3], liveFrom: 6, parMarginPct: 0, swayLevels: [4, 5], swayBirds: 3, potW: 42, speedFullLeftS: 85 },
 };
@@ -1001,6 +1012,9 @@ function layout(
     bucketX = placed.x;
     bucketY = placed.y;
   }
+  // Stage 3 (Easy): a pot wider than today's is kept whole on screen, rim caps and all (narrower pots never move).
+  const wide = levelSetNow()?.potW;
+  if (wide && wide > INK_BUCKET_W) bucketX = clampInt(bucketX, wide / 2 + RIM_R + 4, INK_WORLD_W - wide / 2 - RIM_R - 4);
   let slideAmp = 0;
   let slidePeriod = 1;
   let slidePhase = 0;
@@ -2742,8 +2756,35 @@ function decorate13(lvl: InkLevel, level: number, kind: InkKind, clover: boolean
     const c = cloudBonus(L, level, ink, draw);
     return c ? finish(c.level, c.bonus) ?? "swap" : "swap";
   }
+  const onRoute = levelSetNow()?.cloverOnRoute;
+  if (onRoute !== undefined) {
+    const b = routeClover(L, ink, onRoute);
+    return b ? finish(L, b) : null;
+  }
   const b = plainBonus(L, ink, draw, routeOf(L, ink), INK_V11_STAR_OFF_ROUTE);
   return b ? finish(L, b) : null;
+}
+
+/**
+ * Stage 3 (Easy, INK_LEVEL_SETS.easy.cloverOnRoute): the clover on the easy line's own path, `pct` % of the way along
+ * the points a pickup may take (inside the world's sides, clear of the spout, the pot's mouth and every bird); the easy
+ * line, on its own release, is the clover's proved line. Null if the path has no such point.
+ */
+function routeClover(lvl: InkLevel, ink: number, pct: number): Bonus | null {
+  const pen = phoneSegs(lvl.ref, ink);
+  const path: Pt[] = [];
+  if (dropWithHit(lvl, pen.segs, lvl.refT0 ?? 0, path).result !== 1) return null;
+  const spots: Pt[] = [];
+  for (const p of path) {
+    const x = Math.trunc(p.x / FP);
+    const y = Math.trunc(p.y / FP);
+    if (y < SPOUT_Y + 40 || y > lvl.bucketY - 40 || x < 14 || x > INK_WORLD_W - 14) continue;
+    if (lvl.blocks.some((b) => blockDistance2(b, x, y) < (INK_STAR_R + BALL_R + 4) ** 2)) continue;
+    spots.push({ x, y });
+  }
+  if (!spots.length) return null;
+  const star = spots[Math.min(spots.length - 1, Math.trunc(((spots.length - 1) * pct) / 100))]!;
+  return { ref: lvl.ref.map((l) => [...l]), t0: lvl.refT0 ?? 0, star, path };
 }
 
 /** inkRev 13: a plain level's easy line pots as a phone draws it and holds for a hand, and the coin never pots unaided. */
@@ -4098,12 +4139,15 @@ export function inkV13Score(state: InkState): StdBreakdown {
   const levels = clampInt(state.levels, 0, INK_LEVELS);
   const left = INK_RUN_TICKS - clampInt(state.endedTick || state.tick, 0, INK_RUN_TICKS);
   const part = (key: string) => stdSpecPart(INK_V13_STD, key);
+  const set = state.diff ? INK_LEVEL_SETS[state.diff] : null;
+  const fullAt = (p: StdSpecPart, got: number, at?: number) => (at ? stdLine(p.max, got, at) : stdPartLine(p, got));
   return {
     core: stdPartLine(stdCore(INK_V13_STD), levels),
     features: {
       par: stdLine(INK_V13_PAR_MAX, clampInt(state.inkPar ?? 0, 0, 1000 * INK_LEVELS), 1000 * INK_LEVELS),
-      tricks: stdPartLine(part("tricks"), state.tricks ?? 0),
-      clovers: stdPartLine(part("clovers"), state.shamrocks ?? 0),
+      // Stage 3: a level's own "full at" for the trick shots and clovers (Easy); every other level the part's own count.
+      tricks: fullAt(part("tricks"), state.tricks ?? 0, set?.tricksFullAt),
+      clovers: fullAt(part("clovers"), state.shamrocks ?? 0, set?.cloversFullAt),
       // Stage 3: a level's own "full with N s left" (Hard 70 s, Expert 85 s; Normal and Easy keep 50 s).
       speed: levels >= INK_LEVELS ? stdSpeed(INK_V13_SPEED_MAX, left, inkSpeedFullTicks(state.diff), 0) : 0,
     },

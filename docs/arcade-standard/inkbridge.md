@@ -17,19 +17,21 @@ so Easy's pot stands still on every level as well (a decision for Joe).
 | | Easy | Normal (today) | Hard | Expert |
 | --- | --- | --- | --- | --- |
 | Ink (× inkRev 10's; live levels × 1.5 more) | 1.5 | 1.25 | 1.1 | 1.0 |
-| Birds a level | half today's (rounded up) | today's | +2 (levels 2–10) | +2 on level 2, +3 on 3–10 |
+| Birds a level | a quarter of today's (rounded up, at least one) | today's | +2 (levels 2–10) | +2 on level 2, +3 on 3–10 |
 | Swaying birds | none | none | none | up to 3 on levels 5–6 (moving-pot levels) |
 | Live levels | none | 9–10 | 8–10 | 7–10 |
 | Moving pot | none | 5–10 | 5–10 | 5–10 |
 | Ink par margin | 25 % | 10 % | 10 % | 0 % |
-| Pot width (rim cap to rim cap) | 80 px | 64 px | 48 px | 42 px |
-| Speed part full with | 50 s left | 50 s left | 70 s left | 85 s left |
+| Pot width (rim cap to rim cap) | 110 px, kept whole on screen | 64 px | 48 px | 42 px |
+| Speed part full with | 10 s left | 50 s left | 70 s left | 85 s left |
+| Clovers | on the easy line's own path | off the route | off the route | off the route |
+| Trick shots / clovers parts full at | 2 trick shots (10 each) / 1 clover (10) | 4 (5 each) / 2 (5 each) | 4 / 2 | 4 / 2 |
 
 **Second pass (16 Nov 2026, for a clear step up):** the first pass (Joe's figures alone) left Hard and Expert scoring like
 Normal for the bots, so three levers that cost a planning player were added on the harder levels: a narrower pot (its
 collision opening, `InkLevel.potW` / `inkPotHalf`, the rim caps and the crossing test; the pot art drawn to the same
 width, `drawPot(…, w)`), Expert's par margin at 0 %, and a stricter speed part (`inkSpeedFullTicks(diff)`). Easy's pot is
-wider (80 px). The help's "50 s left" line is the game's, not the level's (a decision for Joe).
+wider (80 px then; 110 px since the Easy pass below). The help's "50 s left" line is the game's, not the level's (a decision for Joe).
 
 Code: `INK_LEVEL_SETS` / `InkLevelSet` / `INK_LEVEL_NORMAL` in `src/lib/arcade/inkBridge.ts` (the rules; mirrored as plain
 data in `GAME_LEVELS.inkbridge`, `src/lib/levels/gameLevels.ts`), `inkBridgeGameFor(rev, level)`,
@@ -89,7 +91,47 @@ A clear step at every skill: Easy above Normal, then Hard, then Expert. Expert s
 the elite held to 250 ms reactions averages 166 and reaches 193 on its best seed; every Expert entry is proved to 200 by
 the oracle. The first pass (Joe's figures alone: ink, birds, swaying birds, live levels, par margins) moved the bots
 little (elite 191 / 190 / 192 on Normal / Hard / Expert); Expert +4 birds and faster, wider pot slides were also tried
-and dropped. The average player's Easy star share is still 0 of 16 (its average 127, Good 162): a decision for Joe.
+and dropped. The average player's Easy star share was still 0 of 16 (its average 127, Good 162); the Easy pass below
+fixes that.
+
+**The Easy pass (16 Nov 2026, Joe: an average player should have a real shot at a star, a run of 175+).** On the
+first Easy the average bot reached 175+ on 0 of 16 runs. Its runs showed why: it never goes for the bonus lines (one try
+in ten), so the trick shots and clovers (30 points) were out of its reach and its ceiling was 170 (levels 120 + ink
+par 30 + speed 20), and about ten failed drops a run (birds just under the spout, coins rolling past the pot) left it
+out of time before level 10, so speed rarely paid. More ink alone moved nothing (1.5× → 2.5×: 125 → 127). Easy only
+(Normal, Hard and Expert byte for byte as before, ink-levels-check sections 2 and 5c); no stamp (Easy was never dealt
+live):
+
+- **Fewer birds**: a quarter of today's on each level (`birdsPct` 25, was 50).
+- **A wider pot**: 110 px (`potW`, was 80), kept whole on screen with its rim caps (a pot wider than today's is clamped
+  in from the world’s sides, `layout`; narrower pots never move).
+- **Clovers on the way** (`cloverOnRoute` 60): a plain clover level's clover sits on its easy line's own drop, 60 % of
+  the way along the points a pickup may take (inside the sides, clear of the spout, the pot's mouth and every bird;
+  `routeClover`), and the easy line is its proved line, so a coin that takes the natural route picks it up. A cloud
+  level's clover stays at the top of its trick line's bounce.
+- **The bonus parts full sooner** (`tricksFullAt` 2, `cloversFullAt` 1; the parts' maximums and the 200 unchanged): 10 a
+  trick shot up to 20, and 10 for a clover. Every other level keeps 5 a trick shot (4) and 5 a clover (2).
+- **Speed full with 10 s left** (`speedFullLeftS` 10, was 50 s): finishing all ten levels in time is the speed.
+
+Ink (1.5×), the par margin (25 %), no live levels and the still pot are unchanged. The deal was rebuilt
+(`bun scripts/ink-big-deal.ts --rev=15 --level=easy`: the first 60 candidates kept, none dropped; `--check` re-proves
+every witness at exactly 200 through the server replay of the level).
+
+Before → after on Easy (`bun scripts/ink-levels-bands.ts easy --human`; before on the first 16 dealt seeds, after on the
+first 16 and on all 60):
+
+| Skill | Before (16) | After (16) | After (60) |
+| --- | --- | --- | --- |
+| Weak | 83.6 (0 at 175+) | 111.5 (0) | 103.8 (0) |
+| Average | 126.7 (0 of 16) | 164.0 (7 of 16, 44 %) | 162.9 (29 of 60, 48 %; median 173) |
+| Good | 162.4 (2) | 181.1 (13) | 184.3 (52) |
+| Great | 181.8 (14) | 195.5 (16) | 194.2 (60) |
+| Near-perfect | 193.5 (16; 5 at 200) | 199.3 (16; 14) | 198.7 (60; 47) |
+| Elite | 196.9 (16; 8 at 200) | 199.8 (16; 14) | 199.7 (60; 52) |
+| Elite, human limits | 196.9 | 199.8 | 199.7 |
+
+Easy stays well clear of Normal at every skill (Normal's average 90.8, Good 131.8, elite 190.8). On 40 fresh candidate
+seeds during tuning, the pot's width set the average's star share most: 100 px 28–38 %, 110 px 45 %.
 
 Expert seeds to play (deal index, seed, the human-limited elite's score): #10 1339482591 (193), #0 1655421732 (186), #11
 830227958 (182), #3 1911792321 (170), #4 735923524 (152, among the hardest).

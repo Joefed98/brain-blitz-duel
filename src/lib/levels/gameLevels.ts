@@ -92,7 +92,7 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // birds, live from 8 (level 9), 10 %. Each level deals from its own proved deal (ink-levels-check).
   inkbridge: {
     levels: {
-      easy: { settings: { inkPct: 150, birdsPct: 50, extraBirds: [], liveFrom: 10, parMarginPct: 25, swayLevels: [], swayBirds: 0, stillPot: true, potW: 80 } },
+      easy: { settings: { inkPct: 150, birdsPct: 25, extraBirds: [], liveFrom: 10, parMarginPct: 25, swayLevels: [], swayBirds: 0, stillPot: true, potW: 110, speedFullLeftS: 10, cloverOnRoute: 60, tricksFullAt: 2, cloversFullAt: 1 } },
       hard: { settings: { inkPct: 110, birdsPct: 100, extraBirds: [0, 2, 2, 2, 2, 2, 2, 2, 2, 2], liveFrom: 7, parMarginPct: 10, swayLevels: [], swayBirds: 0, potW: 48, speedFullLeftS: 70 } },
       expert: { settings: { inkPct: 100, birdsPct: 100, extraBirds: [0, 2, 3, 3, 3, 3, 3, 3, 3, 3], liveFrom: 6, parMarginPct: 0, swayLevels: [4, 5], swayBirds: 3, potW: 42, speedFullLeftS: 85 } },
     },
