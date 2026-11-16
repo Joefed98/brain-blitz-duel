@@ -26,6 +26,7 @@ import { checkOverride } from "@/lib/checkOverride";
 import type { PuzzleType } from "@/lib/duel/types";
 
 import { LEVELS, NORMAL, type Level } from "./levels";
+import { ASCEND_LEVELS, CHAIN_LEVELS, FLASH_LEVELS } from "./speedLevels";
 
 /** How a level's boards are proven to have exactly one solution. */
 export type OneSolutionProof = { proof: string } | { open: string };
@@ -46,7 +47,34 @@ export interface GameLevels<S = Record<string, unknown>> {
  * Every game's levels beyond Normal. Empty until the family sessions add theirs (15 Nov 2026): every game offers
  * Normal only.
  */
-export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {};
+export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
+  // The Speed overhaul (stage 3, 15 Nov 2026; speedLevels.ts has each lever). Answers are timed taps, not a board with
+  // one solution, so each level's uniqueness rule is open by design.
+  // Flash: flashes, decoys a flash, the gold-like share of decoys, how long the gold stays up (Expert 1 s); 60 s.
+  reaction: {
+    levels: {
+      easy: { settings: { ...FLASH_LEVELS.easy }, oneSolution: { open: "a reaction game: every tap is timed, nothing to solve" } },
+      hard: { settings: { ...FLASH_LEVELS.hard }, oneSolution: { open: "a reaction game: every tap is timed, nothing to solve" } },
+      expert: { settings: { ...FLASH_LEVELS.expert }, oneSolution: { open: "a reaction game: every tap is timed, nothing to solve" } },
+    },
+  },
+  // Ascend: how many numbers and their range, the reshuffle interval, the clock and the order (Expert highest first).
+  numhunt: {
+    levels: {
+      easy: { settings: { ...ASCEND_LEVELS.easy }, oneSolution: { open: "a speed game: the order is fixed, only taps are timed" } },
+      hard: { settings: { ...ASCEND_LEVELS.hard }, oneSolution: { open: "a speed game: the order is fixed, only taps are timed" } },
+      expert: { settings: { ...ASCEND_LEVELS.expert }, oneSolution: { open: "a speed game: the order is fixed, only taps are timed" } },
+    },
+  },
+  // Don't Break the Chain: the chain's length, the tap windows, the reversed runs, the cycle's length and the clock.
+  chain: {
+    levels: {
+      easy: { settings: { ...CHAIN_LEVELS.easy }, oneSolution: { open: "a speed game: each link's charm is fixed, only taps are timed" } },
+      hard: { settings: { ...CHAIN_LEVELS.hard }, oneSolution: { open: "a speed game: each link's charm is fixed, only taps are timed" } },
+      expert: { settings: { ...CHAIN_LEVELS.expert }, oneSolution: { open: "a speed game: each link's charm is fixed, only taps are timed" } },
+    },
+  },
+};
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */
 let registry: Partial<Record<string, GameLevels>> = GAME_LEVELS;

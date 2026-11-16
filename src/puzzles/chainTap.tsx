@@ -16,6 +16,7 @@ import {
   chainLongCycles,
   chainRequiredAt,
   chainReversedAt,
+  chainReverseStarts,
   chainTapVerdict,
   chainWindowMs,
   chainWindowShrinksAfter,
@@ -444,7 +445,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
     setPulse(nodeId);
     setTimeout(() => setPulse((current) => (current === nodeId ? null : current)), 180);
     const made = links + 1;
-    const reverseNow = chainLongCycles(data ?? undefined) && made === CHAIN_REVERSE_AT;
+    const reverseNow = chainReverseStarts(data ?? undefined).includes(made);
     // Speed review fixes (15 Nov 2026, display only): FASTER shows when the next link's window actually shrinks
     // (links 13 and 26 on today's bands), and a milestone's line shows at its own link (10, 20, 30).
     if (chainWindowShrinksAfter(made, data)) {
@@ -475,7 +476,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
    const need = chainRequiredAt(data, links);
    const reversed = chainReversedAt(data, links) && !over;
    // chainCycleRev 1: the warning banner before the reversed board, then a reverse flash as it starts.
-   const reverseSoon = chainLongCycles(data) && !over && links >= CHAIN_REVERSE_WARN_AT && links < CHAIN_REVERSE_AT;
+   // The levels (the Speed overhaul): the next reversed run's start (today's link 20, or each of a level's runs).
+   const reverseNext = chainReverseStarts(data).find((at) => links < at) ?? null;
+   const reverseSoon = !over && reverseNext !== null && links >= reverseNext - (CHAIN_REVERSE_AT - CHAIN_REVERSE_WARN_AT) && links < reverseNext;
    const changedAt = taps[boardIndex * CHAIN_BLOCK - 1]?.t;
    const cycleHighlight = boardIndex > 0 && changedAt !== undefined && clock - changedAt < CYCLE_HIGHLIGHT_MS && !over;
 
@@ -493,7 +496,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStartedAt, stateK
       <RuleStrip cycle={cycle} active={chainCycleIndex(data, links)} highlight={cycleHighlight && !reversed} reversed={reversed} />
       {(reverseSoon || reversed) && (
         <p data-chain-reverse-banner={reversed ? "on" : "soon"} role="status" className={`chain-reverse-banner mx-auto shrink-0 rounded-full px-3 py-0.5 text-center font-display text-sm font-black uppercase tracking-widest ${reversed ? "bg-warn text-background" : "bg-warn/20 text-warn"}`}>
-          {reversed ? "← Reversed: last to first" : `Reverse after link ${CHAIN_REVERSE_AT}!`}
+          {reversed ? "← Reversed: last to first" : `Reverse after link ${reverseNext ?? CHAIN_REVERSE_AT}!`}
         </p>
       )}
       <p className="relative shrink-0 text-center font-mono text-3xl font-bold leading-none tabular-nums">

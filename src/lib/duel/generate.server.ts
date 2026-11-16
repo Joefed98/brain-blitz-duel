@@ -58,6 +58,7 @@ import { dealsD5Remodels } from "./d5Remodels";
 import { generateTopsy } from "./topsy.server";
 import { generateJumbledDealt } from "./jumbled.server";
 import { generateChain } from "./chain.server";
+import { dealSpeedLevel } from "./speedLevels.server";
 import { generateNonogram } from "./nonogram.server";
 import { generatePairMatch } from "./pairmatch.server";
 import { generateFlood } from "./flood.server";
@@ -221,6 +222,10 @@ function dealAtLevel(type: PuzzleType, context: GenerateContext): PuzzleData {
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
+  // The Speed overhaul's levels (stage 3, 15 Nov 2026): Easy, Hard and Expert deals of the six Speed games; Normal
+  // (no level) falls through to today's deal.
+  const speedLevel = dealSpeedLevel(type, context.level);
+  if (speedLevel) return speedLevel;
   // The D5 remodels are dealt live (Topsy-Turvy's old bank stays for its checks and stored rounds; checks written
   // for the previous versions pin the old deal, d5Remodels.ts).
   if (type === "gravity" && dealsD5Remodels()) return generateTopsy();

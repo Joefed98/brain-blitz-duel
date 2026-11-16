@@ -8,6 +8,7 @@
  */
 
 import { randInt } from "./random";
+import type { ChainLevel } from "@/lib/levels/speedLevels";
 import { chainRequired } from "./chain";
 import { CHAIN_DEPTH_REV, CHAIN_DEPTH_TOPUP_REV } from "./depth/chain";
 import { dealtTopupRev } from "./depthTopup";
@@ -148,20 +149,20 @@ export function chainLongBoardFaces(cycle: ChainRuleItem[], random: () => number
  * chainCycleRev 1: five different charms; no shape or colour used more than
  * twice, and neighbours (the last and first too) share neither shape nor colour.
  */
-function longCycle(random: () => number, previous: ChainRuleItem[] | undefined): ChainRuleItem[] {
+function longCycle(random: () => number, previous: ChainRuleItem[] | undefined, length = CHAIN_CYCLE_LONG): ChainRuleItem[] {
   for (;;) {
     const cycle: ChainRuleItem[] = [];
-    for (let tries = 0; tries < 200 && cycle.length < CHAIN_CYCLE_LONG; tries++) {
+    for (let tries = 0; tries < 200 && cycle.length < length; tries++) {
       const face = { shape: pick(CHAIN_SHAPES, random), colour: pick(CHAIN_COLOURS, random) } as ChainRuleItem;
       const last = cycle.at(-1);
       if (cycle.some((item) => sameItem(item, face))) continue;
       if (cycle.filter((item) => item.shape === face.shape).length >= 2) continue;
       if (cycle.filter((item) => item.colour === face.colour).length >= 2) continue;
       if (last && (last.shape === face.shape || last.colour === face.colour)) continue;
-      if (cycle.length === CHAIN_CYCLE_LONG - 1 && (cycle[0]!.shape === face.shape || cycle[0]!.colour === face.colour)) continue;
+      if (cycle.length === length - 1 && (cycle[0]!.shape === face.shape || cycle[0]!.colour === face.colour)) continue;
       cycle.push(face);
     }
-    if (cycle.length < CHAIN_CYCLE_LONG) continue;
+    if (cycle.length < length) continue;
     // The board must change at every reshuffle: a different first charm and a different set.
     if (previous && (sameItem(previous[0]!, cycle[0]!) || cycle.every((item) => previous.some((old) => sameItem(item, old))))) continue;
     return cycle;
@@ -201,12 +202,17 @@ export function chainBoardFaces(cycle: ChainRuleItem[], block: number, random = 
   return shuffle(faces, random);
 }
 
-/** chainCycleRev 1: eight boards, each with its own five-symbol cycle. */
-function generateLongChain(seed: number): ChainPuzzleData {
+/**
+ * chainCycleRev 1: eight boards, each with its own five-symbol cycle. At a level (the Speed overhaul, stage 3;
+ * levels/speedLevels.ts) a board per five links, the level's cycle length, and the level's links, windows, reversed runs
+ * and clock stamped as `chainLevel` and `timeLimitMs`. Normal (no level) deals exactly as before.
+ */
+function generateLongChain(seed: number, level?: ChainLevel): ChainPuzzleData {
   const random = seededRandom(seed);
   const cycles: ChainRuleItem[][] = [];
-  const boards: ChainNode[][] = Array.from({ length: CHAIN_BOARDS }, () => {
-    const cycle = longCycle(random, cycles.at(-1));
+  const boardCount = level ? Math.ceil(level.links / CHAIN_BLOCK) : CHAIN_BOARDS;
+  const boards: ChainNode[][] = Array.from({ length: boardCount }, () => {
+    const cycle = longCycle(random, cycles.at(-1), level?.cycle);
     cycles.push(cycle);
     let points = samplePoints(random);
     while (!points) points = samplePoints(random);
@@ -225,11 +231,17 @@ function generateLongChain(seed: number): ChainPuzzleData {
     cycle: cycles[0] ?? [],
     cycles,
     boards,
+    ...(level
+      ? {
+          chainLevel: { links: level.links, bands: level.bands.map((band) => ({ ...band })), reverse: level.reverse.map(([from, to]) => [from, to] as [number, number]) },
+          timeLimitMs: level.timeLimitMs,
+        }
+      : {}),
   };
 }
 
-export function generateChain(seed = randInt(0, 0x7fffffff)): ChainPuzzleData {
-  return generateLongChain(seed);
+export function generateChain(seed = randInt(0, 0x7fffffff), level?: ChainLevel): ChainPuzzleData {
+  return generateLongChain(seed, level);
 }
 
 /** The three-symbol generator rooms used before chainCycleRev 1 (kept for checks and fixtures). */

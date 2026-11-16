@@ -238,6 +238,14 @@ export interface ReactionPuzzleData {
   decoys: { at: number; color: ReactionDecoyColour }[];
   /** Tap-log answers (tapLog.ts TAP_REV); unstamped rounds keep per-flash summaries. */
   tapRev?: number;
+  /** Expert (the Speed overhaul's levels, 15 Nov 2026): how long each gold flash stays up, in ms; absent = REACTION_FLASH_MS. */
+  flashMs?: number;
+}
+
+/** How long a puzzle's gold flashes stay up: its own `flashMs` (Expert), else the 1.5 s every older round used. */
+export function flashWindowMs(puzzle: unknown): number {
+  const own = puzzle && typeof puzzle === "object" ? (puzzle as { flashMs?: unknown }).flashMs : undefined;
+  return typeof own === "number" && own > 0 ? own : REACTION_FLASH_MS;
 }
 
 export type Operator = "+" | "-" | "×" | "÷";
@@ -340,6 +348,14 @@ export interface NumberHuntPuzzleData {
   layouts: HuntSpot[][];
   /** Tap-log answers (tapLog.ts TAP_REV); unstamped rounds keep "reached,errors" summaries. */
   tapRev?: number;
+  /**
+   * The Speed overhaul's levels (15 Nov 2026): the board reshuffles every `moveMs` (0 = never; absent = every 15 s
+   * over four layouts, every older round), on the level's own clock (`timeLimitMs`). On Expert the spots are stored
+   * highest first (`descending`), so "next" is still the next spot in the list.
+   */
+  moveMs?: number;
+  timeLimitMs?: number;
+  descending?: boolean;
 }
 
 export type PuzzleData =
@@ -1684,6 +1700,13 @@ export interface ChainPuzzleData {
   rulesVersion?: number;
   /** CHAIN_TIME_REV: the finish bonus is capped by the replayed last tap; absent = the claimed time. */
   chainTimeRev?: number;
+  /**
+   * The Speed overhaul's levels (15 Nov 2026): the level's chain length, windows (`upTo` 1-based links) and reversed
+   * runs (1-based, inclusive), on its own clock (`timeLimitMs`); the cycles stored on the boards carry its cycle length.
+   * Absent: today's 40 links, windows and the one reversed board (every round dealt before the levels, and Normal).
+   */
+  chainLevel?: { links: number; bands: { upTo: number; ms: number }[]; reverse: [number, number][] };
+  timeLimitMs?: number;
   /** CHAIN_CYCLE_REV: five-symbol cycles and the reversed board from link 20; absent = three-symbol cycles. */
   chainCycleRev?: number;
   /** Depth to 200 (25 Oct 2026, depth/chain.ts CHAIN_DEPTH_REV): milestones at 10 / 20 / 30 links and the stretched finish, up to 200; absent = 150. */

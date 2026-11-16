@@ -28,6 +28,7 @@ import {
   REACTION_MAX_FLASHES,
   REACTION_MIN_FLASHES,
   REACTION_FLASH_MS,
+  flashWindowMs,
   REACTION_MISS_MS,
   REACTION_ROUND_MS,
   type ReactionDecoyColour,
@@ -43,6 +44,7 @@ import { roundMaxFor } from "@/lib/duel/roundMax";
 
 import { RevealBars, RevealCaption, RevealNumbers, RevealPanel } from "@/components/puzzles/SpeedRevealKit";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import type { FlashLevel } from "@/lib/levels/speedLevels";
 
 const DECOY_COLOURS = REACTION_PLAIN_DECOYS;
 
@@ -62,30 +64,39 @@ const FLASH_ART_STYLE = {
  * once; the rest are a seeded mix of plain and gold-like; the first decoy of the
  * round is always a plain colour.
  */
-function dealDecoyKinds(count: number): ReactionDecoyColour[] {
+function dealDecoyKinds(count: number, level?: FlashLevel): ReactionDecoyColour[] {
+  // Levels (the Speed overhaul, stage 3): Easy deals plain colours only; Hard weights the gold-like kinds up.
+  if (level && level.goldLike <= 0) return Array.from({ length: count }, () => pick(REACTION_PLAIN_DECOYS));
   const kinds: ReactionDecoyColour[] = [...REACTION_GOLD_LIKE_DECOYS].slice(0, Math.max(0, count - 1));
-  while (kinds.length < count - 1) kinds.push(randInt(0, 1) === 0 ? pick(REACTION_PLAIN_DECOYS) : pick(REACTION_GOLD_LIKE_DECOYS));
+  const goldLikePct = level ? Math.round(level.goldLike * 100) : 50;
+  while (kinds.length < count - 1)
+    kinds.push(level ? (randInt(1, 100) <= goldLikePct ? pick(REACTION_GOLD_LIKE_DECOYS) : pick(REACTION_PLAIN_DECOYS)) : randInt(0, 1) === 0 ? pick(REACTION_PLAIN_DECOYS) : pick(REACTION_GOLD_LIKE_DECOYS));
   return count > 0 ? [pick(REACTION_PLAIN_DECOYS), ...shuffled(kinds)] : [];
 }
 
-/** 5–8 gold flashes, each preceded by proportionally spaced seeded decoys. */
-export function buildReaction(): ReactionPuzzleData {
-  const flashCount = randInt(REACTION_MIN_FLASHES, REACTION_MAX_FLASHES);
+/**
+ * 5–8 gold flashes, each preceded by proportionally spaced seeded decoys. At a level other than Normal (the Speed
+ * overhaul, stage 3; levels/speedLevels.ts) the level's flash and decoy counts and decoy kinds, decoys packed closer so
+ * they fit, and on Expert the gold's shorter window stamped as `flashMs`. Normal (no level) deals exactly as before.
+ */
+export function buildReaction(level?: FlashLevel): ReactionPuzzleData {
+  const flashCount = level ? randInt(level.flashes[0], level.flashes[1]) : randInt(REACTION_MIN_FLASHES, REACTION_MAX_FLASHES);
+  const windowMs = level?.flashMs ?? REACTION_FLASH_MS;
   let flashes: number[] = [];
   let decoys: ReactionPuzzleData["decoys"] = [];
   for (let attempt = 0; attempt < 1_000; attempt++) {
     const list = [randInt(4_000, 7_000)];
     while (list.length < flashCount) list.push(list[list.length - 1]! + randInt(5_000, 8_000));
-    if (list[list.length - 1]! + REACTION_FLASH_MS > REACTION_ROUND_MS - 500) continue;
+    if (list[list.length - 1]! + windowMs > REACTION_ROUND_MS - 500) continue;
 
     // Begin at two per flash, then vary to a seeded total of 8–12.
-    const counts = Array.from({ length: flashCount }, () => randInt(1, 3));
+    const counts = Array.from({ length: flashCount }, () => (level ? randInt(level.decoys[0], level.decoys[1]) : randInt(1, 3)));
 
     const proposed: ReactionPuzzleData["decoys"] = [];
     let valid = true;
     for (let flashIndex = 0; flashIndex < list.length; flashIndex++) {
-      const segmentStart = flashIndex === 0 ? 0 : list[flashIndex - 1]! + REACTION_FLASH_MS;
-      let cursor = list[flashIndex]! - randInt(1_000, 5_000);
+      const segmentStart = flashIndex === 0 ? 0 : list[flashIndex - 1]! + windowMs;
+      let cursor = list[flashIndex]! - (level ? randInt(800, 2_000) : randInt(1_000, 5_000));
       const backwards: ReactionPuzzleData["decoys"] = [];
       for (let n = 0; n < counts[flashIndex]!; n++) {
         if (cursor < segmentStart + 250) {
@@ -93,7 +104,7 @@ export function buildReaction(): ReactionPuzzleData {
           break;
         }
         backwards.push({ at: cursor, color: pick(DECOY_COLOURS) });
-        cursor -= randInt(1_500, 4_000);
+        cursor -= level ? randInt(900, 1_600) : randInt(1_500, 4_000);
       }
       proposed.push(...backwards.reverse());
       if (!valid) break;
@@ -108,11 +119,11 @@ export function buildReaction(): ReactionPuzzleData {
     decoys = flashes.flatMap((flash, index) => [
       { at: flash - 4_500, color: DECOY_COLOURS[index % 3]! },
       { at: flash - 2_000, color: DECOY_COLOURS[(index + 1) % 3]! },
-    ]);
+    ].slice(level ? 2 - Math.min(2, level.decoys[0]) : 0));
   }
-  const kinds = dealDecoyKinds(decoys.length);
+  const kinds = dealDecoyKinds(decoys.length, level);
   decoys = decoys.map((decoy, index) => ({ at: decoy.at, color: kinds[index]! }));
-  return { type: "reaction", flashes, decoys, tapRev: dealtTapRev("reaction") };
+  return { type: "reaction", flashes, decoys, tapRev: dealtTapRev("reaction"), ...(level && level.flashMs !== REACTION_FLASH_MS ? { flashMs: level.flashMs } : {}) };
 }
 
 export function reactionAverage(times: number[], falseStarts: number, flashCount = times.length): number {
@@ -194,7 +205,7 @@ function LegacyStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
 
   // A gold flash with no tap in 1.5 s records the miss value.
   useEffect(() => {
-    const missed = flashes.findIndex((f, i) => times[i] === null && t >= f + REACTION_FLASH_MS);
+    const missed = flashes.findIndex((f, i) => times[i] === null && t >= f + flashWindowMs(puzzle));
     if (missed < 0) return;
     setTimes((prev) => {
       if (prev[missed] !== null) return prev;
@@ -219,14 +230,14 @@ function LegacyStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
 
   if (puzzle.type !== "reaction") return null;
 
-  const liveIndex = flashes.findIndex((f, i) => times[i] === null && t >= f && t < f + REACTION_FLASH_MS);
+  const liveIndex = flashes.findIndex((f, i) => times[i] === null && t >= f && t < f + flashWindowMs(puzzle));
   const decoy = decoys.find((d) => t >= d.at && t < d.at + REACTION_DECOY_MS) ?? null;
   const done = times.every((v) => v !== null);
 
   const handleTap = () => {
     if (locked || done) return;
     const stamp = serverNow() - phaseStartedAt;
-    const index = flashes.findIndex((f, i) => times[i] === null && stamp >= f && stamp < f + REACTION_FLASH_MS);
+    const index = flashes.findIndex((f, i) => times[i] === null && stamp >= f && stamp < f + flashWindowMs(puzzle));
     if (index >= 0) {
       const ms = Math.max(1, Math.round(stamp - flashes[index]!));
       setTimes((prev) => {
@@ -481,7 +492,7 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
 
   if (puzzle.type !== "reaction") return null;
 
-  const liveIndex = flashes.findIndex((f, i) => replay.times[i] === null && t >= f && t < f + REACTION_FLASH_MS);
+  const liveIndex = flashes.findIndex((f, i) => replay.times[i] === null && t >= f && t < f + flashWindowMs(puzzle));
   const decoy = decoys.find((d) => t >= d.at && t < d.at + REACTION_DECOY_MS) ?? null;
   const steadyLine = usesFlashDepth(puzzle) && flashes.length ? flashSteadyLine(replay.times, replay.falseStarts) : null;
 

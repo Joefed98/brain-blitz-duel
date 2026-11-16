@@ -9,6 +9,8 @@ import { randInt } from "@/lib/duel/random";
 import {
   TAP_LOG_MAX,
   TAP_LOG_PREFIX,
+  ascendLayoutIndex,
+  ascendMoveMs,
   dealtTapRev,
   decodeNumberTaps,
   encodeNumberTaps,
@@ -37,6 +39,8 @@ import { RevealCaption, RevealNumbers } from "@/components/puzzles/SpeedRevealKi
 import { ascendFlow, liveFlowMultiplier, usesAscendDepth } from "@/lib/duel/depth/ascend";
 import { ascendBestRun, ascendStandard } from "@/lib/duel/standard/attention";
 
+import type { AscendLevel } from "@/lib/levels/speedLevels";
+import { puzzleTimeLimitMs } from "@/lib/duel/catalogue";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Reference size of the puzzle area on a 390px-wide phone, used for spacing. */
@@ -80,13 +84,14 @@ export function ascendDiscSize(spots: readonly { x: number; y: number }[], w: nu
  * disc glides from where it was to its new place (the kit's slide, transform only; each disc's button is at its new
  * place at once, so a tap during the glide counts as before) with a whoosh.
  */
-function useShuffleCues(arenaRef: RefObject<HTMLDivElement | null>, spots: readonly HuntSpot[], elapsed: number): void {
-  const cycle = Math.floor(Math.max(0, elapsed) / NUMHUNT_MOVE_MS);
-  const warnAt = NUMHUNT_MOVE_MS - 1000;
+function useShuffleCues(arenaRef: RefObject<HTMLDivElement | null>, spots: readonly HuntSpot[], elapsed: number, moveMs = NUMHUNT_MOVE_MS, shuffles = 3): void {
+  const every = moveMs > 0 ? moveMs : Number.POSITIVE_INFINITY;
+  const cycle = Math.floor(Math.max(0, elapsed) / every);
+  const warnAt = every - 1000;
   const warned = useRef(-1);
   useEffect(() => {
-    const inCycle = Math.max(0, elapsed) % NUMHUNT_MOVE_MS;
-    if (inCycle >= warnAt && warned.current !== cycle && cycle < 3) {
+    const inCycle = Math.max(0, elapsed) % every;
+    if (inCycle >= warnAt && warned.current !== cycle && cycle < shuffles) {
       warned.current = cycle;
       playCueSlot("numhunt.warn", 0.7);
     }
@@ -163,7 +168,7 @@ export function storedAscendRun(extra: Record<string, unknown> | null | undefine
 
 function loggedRun(puzzle: NumberHuntPuzzleData, answer: string | null) {
   if (!answer?.startsWith(TAP_LOG_PREFIX)) return { reached: 0, errors: 0, elapsedMs: 0 };
-  const replay = replayAscend(puzzle, decodeNumberTaps(answer, NUMHUNT_TIME_MS, puzzle).taps);
+  const replay = replayAscend(puzzle, decodeNumberTaps(answer, puzzleTimeLimitMs(puzzle), puzzle).taps);
   return { reached: replay.reached, errors: replay.errors, elapsedMs: replay.finishedAt ?? 0 };
 }
 
@@ -303,7 +308,7 @@ function LegacyStage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleSt
     return () => clearTimeout(id);
   }, [flash]);
 
-  const layoutIndex = Math.min(3, Math.floor(Math.max(0, now - phaseStartedAt) / NUMHUNT_MOVE_MS));
+  const layoutIndex = puzzle.type === "numhunt" ? ascendLayoutIndex(puzzle, now - phaseStartedAt) : 0;
   const spots = layouts[layoutIndex] ?? (puzzle.type === "numhunt" ? puzzle.spots : []);
 
   useEffect(() => {
@@ -345,6 +350,8 @@ function LegacyStage({ puzzle, phaseStartedAt, now, locked, onSubmit }: PuzzleSt
       elapsed={Math.max(0, now - phaseStartedAt)}
       onTap={handleTap}
       arenaRef={arenaRef}
+      moveMs={puzzle.type === "numhunt" ? ascendMoveMs(puzzle) : NUMHUNT_MOVE_MS}
+      shuffles={Math.max(0, layouts.length - 1)}
     />
   );
 }
@@ -361,6 +368,8 @@ function AscendBoard({
   arenaRef,
   flow = null,
   run = null,
+  moveMs = NUMHUNT_MOVE_MS,
+  shuffles = 3,
 }: {
   spots: HuntSpot[];
   next: number;
@@ -375,6 +384,9 @@ function AscendBoard({
   flow?: number | null;
   /** The scoring standard (tapRev 6): the run of right taps since the last wrong one (null: an older round, no chip). */
   run?: number | null;
+  /** The level's reshuffle interval (0 = the board never moves: no timer) and how many reshuffles the round holds. */
+  moveMs?: number;
+  shuffles?: number;
 }) {
   const spotsRef = useRef(spots);
   spotsRef.current = spots;
@@ -382,7 +394,7 @@ function AscendBoard({
   // than the closest pair allows, so no two ever touch); each disc's button is the disc, as before.
   const board = useBoardSize(arenaRef);
   const discSize = ascendDiscSize(spots, board.w, board.h);
-  useShuffleCues(arenaRef, spots, elapsed);
+  useShuffleCues(arenaRef, spots, elapsed, moveMs, shuffles);
   useEffect(() => registerFxPreview("numhunt", () => fireAscendFinish(arenaRef.current, spotsRef.current)), [arenaRef]);
   return (
     <div data-polish="numhunt" data-stage-column="3" className="flex min-h-0 flex-1 flex-col gap-3">
@@ -398,7 +410,7 @@ function AscendBoard({
             { id: "errors", label: "Errors", value: errors, ...(errors > 0 ? { tone: "warn" as const } : {}) },
           ]}
         />
-        <MoveTimer elapsed={elapsed} />
+        {moveMs > 0 && shuffles > 0 ? <MoveTimer elapsed={elapsed} moveMs={moveMs} /> : null}
       </div>
 
       <div ref={arenaRef} data-game-arena="tall" data-ascend-art="" style={ASCEND_ART_STYLE} className={`ascend-board relative min-h-[320px] flex-1 rounded-2xl border border-border bg-muted/10 ${pulse ? "animate-pulse" : ""}`}>
@@ -431,10 +443,10 @@ function currentRun(outcomes: readonly string[]): number {
  * The count-up timer centred above the board: 0 to 15 s, back to 0 when the
  * untapped discs move (every NUMHUNT_MOVE_MS), then up again. Display only.
  */
-function MoveTimer({ elapsed }: { elapsed: number }) {
-  const inCycle = Math.max(0, elapsed) % NUMHUNT_MOVE_MS;
-  const fraction = inCycle / NUMHUNT_MOVE_MS;
-  const soon = NUMHUNT_MOVE_MS - inCycle <= 3_000;
+function MoveTimer({ elapsed, moveMs = NUMHUNT_MOVE_MS }: { elapsed: number; moveMs?: number }) {
+  const inCycle = Math.max(0, elapsed) % moveMs;
+  const fraction = inCycle / moveMs;
+  const soon = moveMs - inCycle <= 3_000;
   return (
     <div data-ascend-timer="" aria-label={`${Math.floor(inCycle / 1000)} seconds since the discs moved`} className="ascend-move-timer flex min-w-24 flex-col items-center gap-1">
       <span className={`font-mono text-2xl font-bold leading-none tabular-nums ${soon ? "text-warn" : "text-foreground"}`}>
@@ -474,7 +486,7 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
     return () => clearTimeout(id);
   }, [flash]);
 
-  const layoutIndex = Math.min(3, Math.floor(Math.max(0, now - phaseStartedAt) / NUMHUNT_MOVE_MS));
+  const layoutIndex = puzzle.type === "numhunt" ? ascendLayoutIndex(puzzle, now - phaseStartedAt) : 0;
   const spots = layouts[layoutIndex] ?? (puzzle.type === "numhunt" ? puzzle.spots : []);
 
   useEffect(() => {
@@ -530,6 +542,8 @@ function LoggedStage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAns
       arenaRef={arenaRef}
       flow={usesAscendDepth(puzzle) ? liveFlowMultiplier(ascendFlow(puzzle, taps.current), Math.max(0, now - phaseStartedAt)) : null}
       run={ascendStandard(puzzle) ? currentRun(replay.outcomes) : null}
+      moveMs={puzzle.type === "numhunt" ? ascendMoveMs(puzzle) : NUMHUNT_MOVE_MS}
+      shuffles={Math.max(0, layouts.length - 1)}
     />
   );
 }
@@ -560,7 +574,7 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   // The scoring standard (tapRev 6): the flow streak's best run (the stored grade's, else the log's) and its stored points.
   const standard = ascendStandard(puzzle) && usesTapLog(puzzle);
   const storedRun = myExtra?.["bestRun"];
-  const bestRun = !standard ? 0 : typeof storedRun === "number" ? storedRun : ascendBestRun(replayAscend(puzzle, decodeNumberTaps(myAnswer ?? "", NUMHUNT_TIME_MS, puzzle).taps).outcomes);
+  const bestRun = !standard ? 0 : typeof storedRun === "number" ? storedRun : ascendBestRun(replayAscend(puzzle, decodeNumberTaps(myAnswer ?? "", puzzleTimeLimitMs(puzzle), puzzle).taps).outcomes);
   const flowPoints = typeof myExtra?.["flowPoints"] === "number" ? (myExtra["flowPoints"] as number) : null;
   // The server's own count first (15 Nov 2026): the server replays the log only up to its receipt (latestTapMs), so the
   // phone's replay of the whole log could show 24/24 beside a "Not solved" verdict. The stored figures are what was
@@ -606,11 +620,13 @@ function Reveal({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   );
 }
 
-/** Twenty-four distinct two-digit numbers, ascending. */
-function pickValues(): number[] {
+/** Twenty-four distinct two-digit numbers, ascending (a level: its count and range; Expert highest first). */
+function pickValues(level?: AscendLevel): number[] {
   const pool = new Set<number>();
-  while (pool.size < NUMHUNT_COUNT) pool.add(randInt(10, 99));
-  return [...pool].sort((a, b) => a - b);
+  const count = level?.count ?? NUMHUNT_COUNT;
+  while (pool.size < count) pool.add(level ? randInt(level.min, level.max) : randInt(10, 99));
+  const sorted = [...pool].sort((a, b) => a - b);
+  return level?.descending ? sorted.reverse() : sorted;
 }
 
 /**
@@ -621,7 +637,7 @@ function buildLayout(values: number[]): HuntSpot[] {
   for (let attempt = 0; attempt < 400; attempt++) {
     const spots: HuntSpot[] = [];
     let ok = true;
-    for (let i = 0; i < NUMHUNT_COUNT; i++) {
+    for (let i = 0; i < values.length; i++) {
       let placed = false;
       for (let tries = 0; tries < 300; tries++) {
         const spot: HuntSpot = {
@@ -644,17 +660,34 @@ function buildLayout(values: number[]): HuntSpot[] {
     if (ok) return spots;
   }
   // Fallback staggered grid — 24 circles (4 × 6) with safe spacing at 390×700.
-  return Array.from({ length: NUMHUNT_COUNT }, (_, i) => ({
+  return Array.from({ length: values.length }, (_, i) => ({
       x: 10 + (i % 4) * 27,
       y: 8 + Math.floor(i / 4) * 16.8,
       n: values[i]!,
     }));
 }
 
-export function buildNumberHunt(): NumberHuntPuzzleData {
-  const values = pickValues();
-  const layouts = Array.from({ length: 4 }, () => buildLayout(values));
-  return { type: "numhunt", spots: layouts[0]!, layouts, tapRev: dealtTapRev("numhunt") };
+/**
+ * At a level other than Normal (the Speed overhaul, stage 3; levels/speedLevels.ts) the level's count, range, order,
+ * reshuffles and clock, stamped as `moveMs`, `timeLimitMs` and `descending`. Normal (no level) deals exactly as before.
+ */
+export function buildNumberHunt(level?: AscendLevel): NumberHuntPuzzleData {
+  const values = pickValues(level);
+  if (!level) {
+    const layouts = Array.from({ length: 4 }, () => buildLayout(values));
+    return { type: "numhunt", spots: layouts[0]!, layouts, tapRev: dealtTapRev("numhunt") };
+  }
+  const count = level.moveMs > 0 ? Math.max(1, Math.ceil(level.timeLimitMs / level.moveMs)) : 1;
+  const layouts = Array.from({ length: count }, () => buildLayout(values));
+  return {
+    type: "numhunt",
+    spots: layouts[0]!,
+    layouts,
+    tapRev: dealtTapRev("numhunt"),
+    moveMs: level.moveMs,
+    timeLimitMs: level.timeLimitMs,
+    ...(level.descending ? { descending: true } : {}),
+  };
 }
 
 export const numberHuntPuzzle: PuzzleDefinition = {
