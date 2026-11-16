@@ -19,7 +19,7 @@ import {
   PIPE_BITS,
 } from "./logic";
 import { pick, shuffled } from "./random";
-import { deducePipes } from "./pipesSolve.server";
+import { countPipesSolutions, deducePipes } from "./pipesSolve.server";
 import type { PipesLevelSettings } from "@/lib/levels/pattern/pipes.levels";
 import {
   LIGHTS_CELLS,
@@ -214,6 +214,27 @@ export function generatePipes(): PipesPuzzleData {
     return { type: "pipes", tiles, source: root, solution: masks };
   }
   throw new Error(`${gameDisplayName("pipes")} generator could not build a proven-solvable board`);
+}
+
+/**
+ * pipesRev 5's Normal board has exactly one solution (Joe, 16 Nov 2026): about 4 % of today's 7 × 7 deals have two
+ * layouts that both join every pipe (the grader accepts either, so the board has no single answer). On pipesRev 5
+ * (the patternNov15 layer, generate.server.ts) such a board is dealt again from the same seeded stream, the next
+ * draw in line, until the searching solver (`countPipesSolutions`, stopping at 2) finds exactly one layout. A board
+ * that already has one is returned untouched (the same object), so 96 % of Normal deals are byte for byte the board
+ * before. Level boards (`cols` set) are proved one-solution when built (`generatePipesLevel`) and pass through.
+ * pipesRev 4 and below never reach this (the layer only moves a pipesRev 4 deal up).
+ */
+export function withPipesOneLayout<T extends { type: string }>(puzzle: T): T {
+  const q = puzzle as unknown as PipesPuzzleData;
+  if (q.type !== "pipes" || q.cols !== undefined || q.rows !== undefined) return puzzle;
+  const oneLayout = (p: PipesPuzzleData) => countPipesSolutions(p.tiles.map(tileOpenings), PIPES_COLS, PIPES_COLS, 2) === 1;
+  if (oneLayout(q)) return puzzle;
+  for (let attempt = 0; attempt < 200; attempt++) {
+    const next = generatePipes();
+    if (oneLayout(next)) return { ...puzzle, tiles: next.tiles, source: next.source, solution: next.solution } as T;
+  }
+  throw new Error(`${gameDisplayName("pipes")} generator could not build a one-solution board`);
 }
 
 /**

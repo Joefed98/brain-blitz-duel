@@ -6,16 +6,19 @@
  *   1. Settings dealt: every level deals its size (5 × 5, 8 × 8, 8 × 11), its scramble share (Easy exactly 60 %, Hard at
  *      least 90 %, Expert at least 95 %), its leaks rule (Expert `hideLeaks`), the level stamp, today's stamps
  *      (pipesRev 5) and the two-way par; every clock is at most 120 s.
- *   2. One solution: every dealt board (60 a level) is fixed by the person-like solver (`deducePipes`: matching sides,
+ *   2. One solution: every dealt board (60 a level; 400 at CHECKS_FULL=1) is fixed by the person-like solver (`deducePipes`: matching sides,
  *      no loops, no sealed-off group, no guessing), which also proves Expert humanly solvable, AND the searching solver
  *      (`countPipesSolutions`) finds exactly one layout; both equal the stored solution.
- *   3. Normal is byte for byte the deal before levels: 40 live and 10 pre-overhaul deals against
+ *   2b. Normal has exactly one solution on pipesRev 5 (120 deals; 1,000 at CHECKS_FULL=1): pipesRev 4's board where it
+ *      has one layout, a two-layout board dealt again (16 Nov 2026).
+ *   3. Normal is byte for byte the deal before levels (bar the redrawn two-layout boards): 40 live and 10 pre-overhaul deals against
  *      scripts/fixtures/pattern-overhaul-pipes-levels-normal.json (recorded on the tree before levels by
  *      scripts/pattern-overhaul-pipes-levels-record.ts); asking for "normal" deals the same; a level the board lacks
  *      reads as 7 × 7 (pipesDims).
  *   4. The grid rule: no level is more than 8 tiles across (≥ 40 px tiles on a 375 px phone's 351 px board), and
  *      Expert keeps at least 81 tiles by growing downwards.
- *   5. A flawless solve (par turns, full time) scores 200 at every level; the kit's near-perfect play finishes.
+ *   5. A flawless solve (par turns, full time) scores 200 at every level, and at the level's full-speed time (Expert
+ *      90 s, the rest 60 s) still 200; the kit's near-perfect play finishes.
  *   6. Grading reads the stored board's own size: a level board's solve is correct with every tile joined (25 / 64 /
  *      88), an unfinished one gets credit out of its own tiles, the summary counts its own tiles; and the same tiles
  *      read as a 7 × 7 board would not solve (so the size really is read from the puzzle).
@@ -63,11 +66,16 @@ const check = (ok: boolean, message: string) => {
 };
 type Pipes = Extract<PuzzleData, { type: "pipes" }>;
 const LEVELS = ["easy", "hard", "expert"] as const;
-const WANT: Record<(typeof LEVELS)[number], { cols: number; rows: number; scrambled: number; exact: boolean; leaks: boolean }> = {
-  easy: { cols: 5, rows: 5, scrambled: 0.6, exact: true, leaks: true },
-  hard: { cols: 8, rows: 8, scrambled: 0.9, exact: false, leaks: true },
-  expert: { cols: 8, rows: 11, scrambled: 0.95, exact: false, leaks: false },
+const WANT: Record<(typeof LEVELS)[number], { cols: number; rows: number; scrambled: number; exact: boolean; leaks: boolean; fullByS: number }> = {
+  easy: { cols: 5, rows: 5, scrambled: 0.6, exact: true, leaks: true, fullByS: 60 },
+  hard: { cols: 8, rows: 8, scrambled: 0.9, exact: false, leaks: true, fullByS: 60 },
+  // Expert full speed by 90 s (Joe, 16 Nov 2026; was the game's 60 s).
+  expert: { cols: 8, rows: 11, scrambled: 0.95, exact: false, leaks: false, fullByS: 90 },
 };
+// Quick depth: 60 boards a level (and 120 Normal deals); CHECKS_FULL=1: 400 a level and 1,000 Normal deals.
+const FULL = process.env.CHECKS_FULL === "1" || process.argv.includes("--full");
+const PER_LEVEL = FULL ? 400 : 60;
+const NORMAL_DEALS = FULL ? 1000 : 120;
 const deal = (seed: number, level?: string) =>
   withSeededRandom(seed, () => generatePuzzle("pipes", { bankSeed: seed, ...(level ? { level: level as never } : {}) })) as Pipes;
 
@@ -86,11 +94,11 @@ const dealt: Record<string, Pipes[]> = {};
 for (const level of LEVELS) {
   const s = gameLevelSettings<PipesLevelSettings>("pipes", level)!;
   const w = WANT[level];
-  check(s.cols === w.cols && s.rows === w.rows && s.scrambled === w.scrambled && Boolean(s.exact) === w.exact && s.leaks === w.leaks, `${level}: settings ${JSON.stringify(s)}`);
+  check(s.cols === w.cols && s.rows === w.rows && s.scrambled === w.scrambled && Boolean(s.exact) === w.exact && s.leaks === w.leaks && (s.speedFullByS ?? 60) === w.fullByS, `${level}: settings ${JSON.stringify(s)}`);
   const proof = levelProof("pipes", level);
   check(!!proof && "proof" in proof && proof.proof === "scripts/pattern-overhaul-pipes-levels-check.ts", `${level}: oneSolution doesn't name this check`);
   dealt[level] = [];
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < PER_LEVEL; i++) {
     const seed = 153_000 + 101 * i;
     const p = deal(seed, level);
     dealt[level]!.push(p);
@@ -147,25 +155,68 @@ for (const level of LEVELS) {
   rec([]);
   check(compared === 5 ** 6, `solver: compared ${compared} 3 × 2 boards against brute force`);
   check(single > 0 && several === 0, `solver: brute force found ${single} one-layout and ${several} many-layout 3 × 2 boards`);
-  // Larger boards with two layouts do occur (about 4 % of Normal's 7 × 7 deals): on such deals the searching solver
-  // finds two different layouts that both solve, and the person-like solver refuses the board.
+  // Larger boards with two layouts do occur: about 4 % of the 7 × 7 boards Normal dealt before pipesRev 5's uniqueness
+  // pass (the pipesRev 4 deal, pinPrePatternNov15). On such deals the searching solver finds two different layouts
+  // that both solve, and the person-like solver refuses the board.
   let twoLayout = 0;
-  for (let i = 0; i < 300 && twoLayout < 5; i++) {
-    const p = deal(154_000 + 7 * i);
+  const was = pinPrePatternNov15(true);
+  try {
+    for (let i = 0; i < 300 && twoLayout < 5; i++) {
+      const p = deal(154_000 + 7 * i);
+      const masks = p.tiles.map(tileOpenings);
+      const layouts = pipesSolutions(masks, 7, 7, 2);
+      check(layouts.length >= 1, `solver: pipesRev 4 deal ${154_000 + 7 * i} has no layout`);
+      if (layouts.length < 2) continue;
+      twoLayout++;
+      check(layouts[0]!.join() !== layouts[1]!.join(), "solver: two equal layouts");
+      for (const l of layouts) check(gradePipesBoard(p.source, l.map((sides) => ({ sides }))).solved, "solver: a found layout doesn't solve");
+      check(deducePipes(masks, 7, 7) === null, "solver: the person-like solver fixed a two-layout board");
+    }
+  } finally {
+    pinPrePatternNov15(was);
+  }
+  check(twoLayout >= 3, `solver: only ${twoLayout} two-layout pipesRev 4 deals in 300`);
+}
+
+/* 2b. Normal has exactly one solution on pipesRev 5 (Joe, 16 Nov 2026; logic.server.ts withPipesOneLayout): every live
+   Normal deal's tiles have exactly one layout (the searching solver, stopping at 2), and it is the stored solution.
+   The deal is pipesRev 4's board whenever that board already has one layout (the same tiles, source and solution);
+   only a two-layout board is dealt again (a different board), so the change is exactly the redraw. pipesRev 4 and
+   below deal as before (section 3's pre-overhaul fixture, and deal-identity-check). */
+{
+  let redealt = 0;
+  for (let i = 0; i < NORMAL_DEALS; i++) {
+    const seed = 155_000 + 31 * i;
+    const p = deal(seed);
+    check(p.pipesRev === 5 && p.cols === undefined && p.tiles.length === 49, `normal ${seed}: not a pipesRev 5 7 × 7 board`);
     const masks = p.tiles.map(tileOpenings);
     const layouts = pipesSolutions(masks, 7, 7, 2);
-    check(layouts.length >= 1, `solver: Normal deal ${154_000 + 7 * i} has no layout`);
-    if (layouts.length < 2) continue;
-    twoLayout++;
-    check(layouts[0]!.join() !== layouts[1]!.join(), "solver: two equal layouts");
-    for (const l of layouts) check(gradePipesBoard(p.source, l.map((sides) => ({ sides }))).solved, "solver: a found layout doesn't solve");
-    check(deducePipes(masks, 7, 7) === null, "solver: the person-like solver fixed a two-layout board");
+    check(layouts.length === 1, `normal ${seed}: ${layouts.length} layouts`);
+    check(layouts[0]?.join() === p.solution!.map((m) => m & 15).join(), `normal ${seed}: the one layout isn't the stored solution`);
+    check(p.par === pipesTwoWayParTurns(p.tiles, p.solution!), `normal ${seed}: par ${p.par} isn't the redrawn board's two-way par`);
+    const was = pinPrePatternNov15(true);
+    let before: Pipes;
+    try {
+      before = deal(seed);
+    } finally {
+      pinPrePatternNov15(was);
+    }
+    const beforeLayouts = countPipesSolutions(before.tiles.map(tileOpenings), 7, 7, 2);
+    const sameBoard = JSON.stringify([p.tiles, p.source, p.solution]) === JSON.stringify([before.tiles, before.source, before.solution]);
+    if (beforeLayouts === 1) check(sameBoard, `normal ${seed}: a one-layout board was dealt again`);
+    else {
+      redealt++;
+      check(!sameBoard, `normal ${seed}: a two-layout board was kept`);
+    }
   }
-  check(twoLayout >= 3, `solver: only ${twoLayout} two-layout Normal deals in 300`);
+  check(redealt >= 1 && redealt <= NORMAL_DEALS * 0.1, `normal: ${redealt} of ${NORMAL_DEALS} deals redrawn (about 4 % expected)`);
 }
 
 /* 3. Normal byte for byte. */
 {
+  // Re-recorded 16 Nov 2026 (uniqueness on pipesRev 5): 2 of the 40 live entries (seeds 153073, 153369) are boards
+  // dealt again for having two layouts (tiles, source, solution and par); the other 38 and all 10 pre-overhaul
+  // entries are byte for byte the earlier recording (section 2b proves the redraw rule on every Normal deal).
   const fx = JSON.parse(readFileSync(PIPES_LEVELS_NORMAL_FIXTURE, "utf8")) as PipesLevelsNormalFixture;
   check(fx.live.length === PIPES_LEVELS_NORMAL_SEEDS.length && fx.prePattern.length === 10, "normal: fixture size");
   for (const { seed, puzzle } of fx.live) {
@@ -200,6 +251,11 @@ for (const level of LEVELS) {
     const gr = gradeAnswer(p, encodePipesTurnAnswer(board, log), 120_000);
     const extra = gr.extra as { connected?: number; turns?: number };
     check(gr.isCorrect && gr.score === 200, `${level}: a flawless solve grades ${gr.isCorrect} ${gr.score}`);
+    // Full speed by the level's time (Expert 90 s, the rest 60 s): a flawless solve at exactly that time is 200, a
+    // second later it isn't.
+    const fullBy = WANT[level].fullByS * 1000;
+    check(gradeAnswer(p, encodePipesTurnAnswer(board, log), 120_000 - fullBy).score === 200, `${level}: a flawless solve at ${WANT[level].fullByS} s isn't 200`);
+    check(gradeAnswer(p, encodePipesTurnAnswer(board, log), 120_000 - fullBy - 3000).score < 200, `${level}: a flawless solve 3 s after ${WANT[level].fullByS} s is still 200`);
     check(extra.connected === cols * rows && extra.turns === p.par, `${level}: graded connected ${extra.connected}, turns ${extra.turns}`);
     // Read as a 7 × 7 board the same tiles don't solve (the grader really reads the stored size).
     check(!gradePipesBoard(p.source, board).solved, `${level}: the solved board also solves read as 7 × 7`);

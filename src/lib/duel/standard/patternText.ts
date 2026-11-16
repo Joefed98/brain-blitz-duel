@@ -124,9 +124,29 @@ export const PIPES_PLACED_HELP = help("pipes", "join every pipe to the source", 
  */
 export const PIPES_TWO_WAY_HELP = help("pipes", "join every pipe to the source", [parLine("pipes", "Turns", "finish in the fewest turns, either way (par)", P("pipes"))], "the share of the tiles you turn to fit, more for doing it early; turning a tile wrong takes it down");
 export const PIPES_TWO_WAY_INTRO = "Join every pipe to the source; bonuses for speed and the fewest turns. Up to {max}.";
+/**
+ * Pipeline's levels (16 Nov 2026, pipes.levels.ts): a level that sets its own full-speed time (Expert 90 s) is named in
+ * the speed line, as Chroma Lines' and Lightbender's are.
+ */
+function pipesLevelTimes(): string {
+  const parts = (["easy", "hard", "expert"] as const).flatMap((level) => {
+    const s = gameLevelSettings<{ speedFullByS?: number }>("pipes", level);
+    return s?.speedFullByS ? [`${LEVEL_LABEL[level]} ${s.speedFullByS} s`] : [];
+  });
+  return parts.join(", ");
+}
+function pipesTwoWayLevelsHelp(): string {
+  return puzzleScoreList({
+    finish: "join every pipe to the source",
+    speed: { max: PATTERN_STD.pipes.speed, fullByS: PATTERN_STD.pipes.fullByS, note: pipesLevelTimes() || undefined },
+    bonuses: [parLine("pipes", "Turns", "finish in the fewest turns, either way (par)", P("pipes"))],
+    unfinished: "the share of the tiles you turn to fit, more for doing it early; turning a tile wrong takes it down",
+    total: "{max}" as unknown as number,
+  });
+}
 /** Pipeline's help for the stamp dealt now. */
 export const pipesPatternHelp = (): string =>
-  preNov7Pinned() ? PATTERN_STD_HELP.pipes : prePatternNov15Pinned() ? PIPES_PLACED_HELP : PIPES_TWO_WAY_HELP;
+  preNov7Pinned() ? PATTERN_STD_HELP.pipes : prePatternNov15Pinned() ? PIPES_PLACED_HELP : pipesTwoWayLevelsHelp();
 
 // ---- tessellate:start (the Pattern overhaul, 15 Nov 2026; patternNov15.ts)
 /**

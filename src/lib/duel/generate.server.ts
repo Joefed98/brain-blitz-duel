@@ -44,7 +44,7 @@ import { generateWordsmith } from "./wordsmith.server";
 import { generateTileGrid } from "./tileGrid.server";
 import { generateWordSlide } from "./wordSlide.server";
 import { generateBalance } from "./numberRounds.server";
-import { generateLightsOut, generatePipes, generateSudoku } from "./logic.server";
+import { generateLightsOut, generatePipes, generateSudoku, withPipesOneLayout } from "./logic.server";
 import { generateFlow } from "./flow.server";
 import { generateIceSlide } from "./slide.server";
 import { generatePush } from "./push.server";
@@ -183,9 +183,10 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   // The game review fixes (15 Nov 2026, gameReviewNov15.ts): Brimful measureRev 4 (out of moves ends only that puzzle).
   { name: "gameReviewNov15", deal: dealGameReviewNov15 },
   // The Pattern overhaul (15 Nov 2026, patternNov15.ts): the eight Pattern games' agreed changes, one stamp up each.
-  // Pipeline pipesRev 5: par counted both ways (depth4/pipesTaps.ts). Topsy-Turvy gravityRev 8: tilt limits from each
+  // Pipeline pipesRev 5: par counted both ways (depth4/pipesTaps.ts), and a Normal board with two layouts dealt again
+  // (logic.server.ts withPipesOneLayout). Topsy-Turvy gravityRev 8: tilt limits from each
   // board's fewest tilts (topsy.ts withTopsyV8Limits).
-  { name: "patternNov15", deal: (p) => dealPatternNov15(p, (q) => (q.type === "pipes" ? withPipesTwoWayPar(q) : q.type === "gravity" ? withTopsyV8Limits(q) : q)) },
+  { name: "patternNov15", deal: (p) => dealPatternNov15(p, (q) => (q.type === "pipes" ? withPipesTwoWayPar(withPipesOneLayout(q)) : q.type === "gravity" ? withTopsyV8Limits(q) : q)) },
 ];
 
 /**

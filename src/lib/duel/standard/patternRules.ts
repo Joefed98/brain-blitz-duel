@@ -70,6 +70,13 @@ export function patternFullByS(type: PatternStdType, puzzle: { tilesRev?: number
     const own = blockLevelFullByS(puzzle);
     if (own !== null) return own;
   }
+  // Pipeline's levels (Joe, 16 Nov 2026): a board dealt at a level is full speed by its level's `speedFullByS` where it
+  // sets one (Expert 90 s); every other level, Normal and every board dealt before levels keep the game's 60 s.
+  if (type === "pipes" && puzzle.level !== undefined) {
+    const level = puzzleLevel(puzzle);
+    const own = level === "normal" ? null : gameLevelSettings<{ speedFullByS?: number }>("pipes", level)?.speedFullByS;
+    if (typeof own === "number") return own;
+  }
   // Heave's levels (stage 3): a board dealt at a level is full speed by its level's time (Normal keeps 45 s).
   if (type === "push") {
     const own = pushLevelFullByS({ type, ...puzzle });
