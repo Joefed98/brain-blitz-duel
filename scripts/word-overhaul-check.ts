@@ -94,7 +94,9 @@ const SEEDS = Array.from({ length: 24 }, (_, i) => 1000 + i * 37);
     ok(old[key] === before, `${type}: pinned, the stamp before (${before}; got ${String(old[key])})`);
     ok(usesWordOverhaul(live) && !usesWordOverhaul(old), `${type}: usesWordOverhaul tells the stamps apart`);
   }
-  ok(DEAL_LAYERS.at(-1)?.name === "wordOverhaul", "the overhaul is the last deal layer");
+  // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): the layers merged after it (Attention's
+  // and Speed's, which never touch a Word game) follow it; it is still after every layer before it.
+  ok(DEAL_LAYERS.map((l) => l.name).slice(-3).join(" ") === "wordOverhaul attentionOverhaul speedOverhaul", "the overhaul is the last deal layer");
   // Pinned, the deal is the stamp before exactly (the layer never touches it).
   for (const type of ["interlock", "tilegrid", "wordhunt", "strikeout", "swapword"]) {
     if (type === "interlock") continue;
