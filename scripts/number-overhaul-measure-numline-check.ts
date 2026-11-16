@@ -140,7 +140,9 @@ const between = (text: string, from: string, to: string) => {
 /* ------------------------------------------------------------------ 5. The deals are unchanged */
 {
   const digest = (type: "measure" | "numline", seed: number) =>
-    JSON.stringify(withSeededRandom(seed, () => generatePuzzle(type, type === "measure" ? { bankSeed: seed } : {})));
+    // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): Brimful's overhaul-era game is
+    // dealt at Hard now (measureLevels.ts; Normal is the new measureRev 5 game), so its deal is compared there.
+    JSON.stringify(withSeededRandom(seed, () => generatePuzzle(type, type === "measure" ? { bankSeed: seed, level: "hard" } : {})));
   for (const type of ["measure", "numline"] as const) {
     let same = 0;
     for (let seed = 0; seed < 30; seed++) {

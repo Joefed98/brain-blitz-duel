@@ -109,8 +109,12 @@ export function digest(value: unknown): string {
  * preNumberOverhaul.
  * Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): preCheckoutLevels and
  * preKakuroLevels (Checkout's and Kakuro's new Normal, numberLevels.ts).
+ * Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): preMeasureLevels (Brimful's new
+ * Normal, measureLevels.ts; whole rooms need no entry: any pinned era deals Brimful's old Normal).
+ * Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): preBalanceLevels (Counterweight's
+ * new Normal, balanceLevels.ts; any pinned era deals its old Normal too).
  */
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preNumberOverhaul", "preCheckoutLevels", "preKakuroLevels"];
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preNumberOverhaul", "preCheckoutLevels", "preKakuroLevels", "preMeasureLevels", "preBalanceLevels"];
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {

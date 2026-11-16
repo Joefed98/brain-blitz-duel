@@ -19,6 +19,7 @@
 import { readFileSync } from "node:fs";
 
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
+import { setDealPin } from "../src/lib/duel/dealEra";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { pinPreNumberOverhaul, CHECKOUT_REV_BUST, KAKURO_REV_RULE_MISTAKES } from "../src/lib/duel/numberOverhaul";
 import {
@@ -47,12 +48,18 @@ const ok = (cond: boolean, label: string) => {
   }
 };
 
+// Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): today's game is dealt at Normal
+// with the levels pinned (numberLevels.ts), so this check keeps proving the overhaul's stamps on today's boards.
 const deal = <T>(type: "checkout" | "kakuro", seed: number, pinned = false): T => {
   const was = pinPreNumberOverhaul(pinned);
+  const wasCheckout = setDealPin("preCheckoutLevels", true);
+  const wasKakuro = setDealPin("preKakuroLevels", true);
   try {
     return withSeededRandom(seed, () => generatePuzzle(type)) as T;
   } finally {
     pinPreNumberOverhaul(was);
+    setDealPin("preCheckoutLevels", wasCheckout);
+    setDealPin("preKakuroLevels", wasKakuro);
   }
 };
 

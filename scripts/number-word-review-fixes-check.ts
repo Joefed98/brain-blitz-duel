@@ -164,7 +164,11 @@ const helpText = (type: keyof typeof PUZZLE_INSTRUCTIONS) => {
   const deal = (seed: number, pinned: boolean) => {
     const before = pinPreGameReviewNov15(pinned);
     try {
-      return withSeededRandom(seed, () => generatePuzzle("measure", { bankSeed: seed })) as MeasurePuzzleData;
+      // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): the measureRev 4 game is dealt
+      // at Hard (measureLevels.ts); Normal is the new measureRev 5 game. The pinned era still deals rev 3 at Normal.
+      const made = withSeededRandom(seed, () => generatePuzzle("measure", pinned ? { bankSeed: seed } : { bankSeed: seed, level: "hard" }));
+      const { level: _level, ...rest } = made as unknown as Record<string, unknown>;
+      return rest as unknown as MeasurePuzzleData;
     } finally {
       pinPreGameReviewNov15(before);
     }
@@ -176,7 +180,9 @@ const helpText = (type: keyof typeof PUZZLE_INSTRUCTIONS) => {
   const { measureRev: _a, ...liveRest } = live as unknown as Record<string, unknown>;
   const { measureRev: _b, ...oldRest } = old as unknown as Record<string, unknown>;
   ok(JSON.stringify(liveRest) === JSON.stringify(oldRest), "Brimful: measureRev is the only difference from the older deal");
-  ok(PRACTICE_STAMPS.measure.includes("measureRev=4"), `Brimful: practice stamps carry measureRev 4 (${PRACTICE_STAMPS.measure})`);
+  // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): practice's Normal is the new
+  // measureRev 5 game (measureLevels.ts), today's measureRev 4 is Hard.
+  ok(PRACTICE_STAMPS.measure.includes("measureRev=5"), `Brimful: practice stamps carry Normal's measureRev 5 (${PRACTICE_STAMPS.measure})`);
 
   /** Legal moves on `board` that never solve it, until its limit is used up. */
   const exhaust = (p: MeasurePuzzleData, i: number): MeasureAction[] => {

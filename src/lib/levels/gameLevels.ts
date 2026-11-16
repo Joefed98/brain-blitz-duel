@@ -243,7 +243,7 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
             { wedges: "uneven", finish: 3, quad: true, maxDarts: 3, exact: true, target: [150, 320], notGreedy: true },
             { wedges: "shuffled", negatives: true, finish: 2, maxDarts: 4, exact: true, target: [80, 170], notGreedy: true },
             { wedges: "uneven", negatives: true, quad: true, finish: 2, maxDarts: 4, exact: true, target: [120, 280], notGreedy: true },
-            { wedges: "uneven", negatives: true, quad: true, finish: 3, maxDarts: 4, exact: true, target: [150, 320], notGreedy: true },
+            { wedges: "uneven", negatives: true, quad: true, finish: 3, maxDarts: 3, exact: true, target: [150, 320], notGreedy: true },
           ],
           person: true,
         },
@@ -265,7 +265,7 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
         oneSolution: { proof: "scripts/number-levels-checkout-kakuro-check.ts" },
       },
       expert: {
-        settings: { size: 7, whiteMin: 26, whiteMax: 30, gradeMin: 4, gradeMax: 12, maxBlocks: 12, person: true },
+        settings: { size: 7, whiteMin: 26, whiteMax: 28, gradeMin: 4, gradeMax: 12, maxBlocks: 12, person: true },
         oneSolution: { proof: "scripts/number-levels-checkout-kakuro-check.ts" },
       },
     },

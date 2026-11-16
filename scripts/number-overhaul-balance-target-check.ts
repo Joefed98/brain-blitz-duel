@@ -42,8 +42,12 @@ const ok = (cond: boolean, label: string) => {
 };
 
 /* 1. Deals. */
-const live = withSeededRandom(7, () => generatePuzzle("balance")) as BalancePuzzleData;
-ok(live.balanceRev === BALANCE_REV_FREE_MOVES && balanceFreeMoves(live), `Counterweight deals balanceRev ${BALANCE_REV_FREE_MOVES} live (${live.balanceRev})`);
+// Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): the overhaul's balanceRev 4 game
+// is dealt at Hard now (balanceLevels.ts; Normal is the new balanceRev 5 game), so the live deal compared is Hard's.
+const liveDealt = withSeededRandom(7, () => generatePuzzle("balance", { level: "hard" })) as BalancePuzzleData & { level?: string };
+const { level: _hardLevel, ...liveRest } = liveDealt;
+const live = liveRest as BalancePuzzleData;
+ok(live.balanceRev === BALANCE_REV_FREE_MOVES && balanceFreeMoves(live), `Counterweight deals balanceRev ${BALANCE_REV_FREE_MOVES} live at Hard (${live.balanceRev})`);
 const was = pinPreNumberOverhaul(true);
 const old = withSeededRandom(7, () => generatePuzzle("balance")) as BalancePuzzleData;
 pinPreNumberOverhaul(was);
@@ -113,7 +117,8 @@ ok(toggleOperator("+", "×") === "×", "Exact: another operator replaces the pic
 const bal = readFileSync("src/puzzles/balance.tsx", "utf8");
 ok(/balanceHangCost\(placement, tray, peg, freeMoves\)/.test(bal), "balance.tsx counts hangs through balanceHangCost on the stamp");
 ok(/const freeMoves = balanceFreeMoves\(data\)/.test(bal), "balance.tsx reads the stamp through balanceFreeMoves");
-ok(/freeMoves \? balanceTorqueText\(scale, placement\) : undefined/.test(bal), "the balance under the beam shows on balanceRev 4 only");
+// Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): Expert (balanceRev 5) hides it too.
+ok(/freeMoves && !balanceHidden\(data\) \? balanceTorqueText\(scale, placement\) : undefined/.test(bal), "the balance under the beam shows on balanceRev 4+ only, and not at Expert");
 ok(/lastTap\.current/.test(bal), "older stamps keep the double tap back to the tray");
 ok(/Pick a weight first/.test(bal) && /onEmptyNotch=\{emptyNotch\}/.test(bal), "a notch tapped with nothing picked nudges the tray");
 const tgt = readFileSync("src/puzzles/targetNumber.tsx", "utf8");

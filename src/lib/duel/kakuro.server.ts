@@ -384,7 +384,7 @@ function levelLayoutWhite(size: number, black: ReadonlySet<number>, min: number,
 }
 
 /** A random layout in the level's band: interior black cells drawn from the seed until the white rules hold. */
-type FullKakuroLevel = Required<Omit<KakuroLevelSettings, "today">>;
+type FullKakuroLevel = Required<Omit<KakuroLevelSettings, "today" | "maxPasses">> & { maxPasses: number | null };
 
 function levelLayout(rng: SeededRng, settings: FullKakuroLevel): number[] {
   const { size } = settings;
@@ -480,6 +480,7 @@ export function generateKakuroLevel(seed: number, level: KakuroLevelSettings, re
     gradeMax: level.gradeMax ?? KAKURO_GRADE_MAX,
     maxBlocks: level.maxBlocks ?? KAKURO_MAX_BLOCKS,
     person: level.person ?? false,
+    maxPasses: level.maxPasses ?? null,
   };
   const { size } = settings;
   const rng = seededRng((seed ^ 0x6b6c7631) >>> 0);
@@ -508,7 +509,11 @@ export function generateKakuroLevel(seed: number, level: KakuroLevelSettings, re
     const board = boardOf();
     const proof = searchKakuro(board, 2);
     if (proof.count !== 1 || proof.branches < settings.gradeMin || proof.branches > settings.gradeMax) continue;
-    if (settings.person && !kakuroPersonSolve(board).solved) continue;
+    if (settings.person || settings.maxPasses !== null) {
+      const person = kakuroPersonSolve(board);
+      if (!person.solved) continue;
+      if (settings.maxPasses !== null && Math.max(...white.map((c) => person.round[c]!)) > settings.maxPasses) continue;
+    }
     const solution = values.map((v, cell) => (white.includes(cell) ? v : 0));
     return { type: "kakuro", kakuroRev: rev, size, white: [...white], clues: board.clues, grade: proof.branches, solution };
   }

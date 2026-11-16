@@ -510,7 +510,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         )}
         <Button type="button" variant="ghost" size="sm" className="np-skip h-11 min-w-11" disabled={busy} onClick={() => advance(placements)}>{stage >= NP_SET_SIZE - 1 ? "Finish" : "Skip"}</Button>
       </div>
-      <div ref={arenaRef} data-game-arena="board" className={`flex min-h-0 w-full items-center justify-center ${column ? "shrink-0" : "flex-1"}`} style={column ? { height: board.rows * (cellH + 4) + 16 } : undefined}>
+      <div ref={arenaRef} data-game-arena="board" className={`flex min-h-0 w-full items-center justify-center ${column ? "shrink-0" : "flex-1"}`} style={column ? { height: board.rows * (cellH + 4) + 16, maxHeight: "none", flexShrink: 0 } : undefined}>
         <NumberStage type="numpyramid" index={stage} exit={holding ? "clear" : null} className="justify-center">
         <div className="relative" style={NO_TOUCH}>
           <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} seams={drag ? undefined : seams} cellW={cellW} cellH={cellH} fontSize={fontSize} lit={lit} gold={complete} plinth animate={false} />
@@ -530,7 +530,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
           const from = looseRows.slice(0, row).reduce((a, b) => a + b, 0);
           return (
             <div key={row} data-np-tray-row={count} className="flex justify-center gap-1.5">
-              {looseTray.slice(from, from + count).map((tray) => <div key={tray} className={`${tileClass(tray)} ${drag?.tray === tray ? "opacity-30" : ""}`} style={{ width: trayW, height: 44, fontSize: 22 }} onPointerDown={(e) => start(e, tray, null)}>{board.tray[tray]}</div>)}
+              {looseTray.slice(from, from + count).map((tray) => <div key={tray} className={`${tileClass(tray)} ${drag?.tray === tray ? "opacity-30" : ""}`} style={{ width: trayW, height: 44, fontSize: trayFont(board.tray[tray]!, trayW) }} onPointerDown={(e) => start(e, tray, null)}>{board.tray[tray]}</div>)}
             </div>
           );
         })}
@@ -666,6 +666,11 @@ function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealPr
     </div>
   );
 }
+/** A tray tile's numeral size: 22 px, smaller for a three-digit number on a narrow tile (Expert's tops), so it never spills. */
+function trayFont(value: number, width: number): number {
+  return Math.min(22, Math.floor((width - 8) / (String(value).length * 0.64)));
+}
+
 export const numberPyramidPuzzle: PuzzleDefinition = {
   key: "numpyramid",
   name: gameDisplayName("numpyramid"),

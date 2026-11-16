@@ -25,55 +25,92 @@ export interface TargetLevelSettings {
   person?: boolean;
 }
 
-/** States the person-like solver may look at before it gives up. */
-export const TARGET_PERSON_BUDGET = 4000;
-/** Pools it keeps after each step (a person keeps a few promising lines in mind). */
-export const TARGET_PERSON_BEAM = 12;
+/** Lines of thought the person-like solver may try before it gives up. */
+export const TARGET_PERSON_BUDGET = 20000;
+
+type Made = { value: number; steps: TargetStep[] };
+
+/** Every number a person can make from up to `max` of these tiles exactly, with its steps (small pools only). */
+function makeable(pool: readonly number[], max: number): Map<number, TargetStep[]> {
+  const out = new Map<number, TargetStep[]>();
+  const rec = (items: Made[]) => {
+    for (const m of items) if (!out.has(m.value)) out.set(m.value, m.steps);
+    if (items.length < 2) return;
+    for (let i = 0; i < items.length; i++)
+      for (let j = 0; j < items.length; j++) {
+        if (i === j) continue;
+        for (const operator of TARGET_OPERATORS) {
+          if ((operator === "+" || operator === "×") && j < i) continue;
+          const a = items[i]!;
+          const b = items[j]!;
+          const result = applyOperation(a.value, b.value, operator);
+          if (result === null) continue;
+          const rest = items.filter((_, k) => k !== i && k !== j);
+          rec([...rest, { value: result, steps: [...a.steps, ...b.steps, { a: a.value, b: b.value, operator, result }] }]);
+        }
+      }
+  };
+  rec(pool.slice(0, max).map((value) => ({ value, steps: [] })));
+  return out;
+}
 
 /**
- * A person-like solver: works forward a step at a time from the numbers on screen, keeping only the few most
- * promising pools (the ones whose closest number is nearest the target, then the ones with something left to adjust
- * with), never more than `TARGET_PERSON_BEAM`, and stops after `budget` pools looked at. Returns the route and the
- * pools it looked at, or null.
+ * A person-like solver (Joe's rule: every Expert board can be worked out by a person). It thinks the way people do at
+ * this game, backwards from the target: "the target is something near it, adjusted by a small number I can make from
+ * one or two tiles" (T = X ± v, or X × v, or X ÷ v), then the same for X with the tiles left; when three or fewer
+ * tiles are left it tries every way to make X from them (a person can check three numbers by hand). At most three
+ * adjustments deep, and it stops after `budget` lines of thought. Returns the route and the lines it tried, or null.
  */
 export function personSolveTarget(tiles: readonly number[], target: number, budget = TARGET_PERSON_BUDGET): { steps: TargetStep[]; looked: number } | null {
-  type State = { pool: number[]; steps: TargetStep[] };
-  const near = (pool: number[]) => Math.min(...pool.map((v) => Math.abs(v - target)));
-  let beam: State[] = [{ pool: [...tiles], steps: [] }];
   let looked = 0;
-  const seen = new Set<string>();
-  while (beam.length) {
-    const next: State[] = [];
-    for (const state of beam) {
-      const { pool } = state;
-      for (let i = 0; i < pool.length; i++)
-        for (let j = 0; j < pool.length; j++) {
-          if (i === j) continue;
-          for (const operator of TARGET_OPERATORS) {
-            if ((operator === "+" || operator === "×") && j < i) continue;
-            const a = pool[i]!;
-            const b = pool[j]!;
-            // A person never multiplies or divides by 1.
-            if ((operator === "×" || operator === "÷") && (b === 1 || a === 1)) continue;
-            const result = applyOperation(a, b, operator);
-            if (result === null) continue;
-            const rest = pool.filter((_, k) => k !== i && k !== j);
-            const made = [...rest, result];
-            const key = [...made].sort((x, y) => x - y).join(",");
-            if (seen.has(key)) continue;
-            seen.add(key);
-            looked++;
-            const steps = [...state.steps, { a, b, operator, result }];
-            if (result === target) return { steps, looked };
-            if (looked >= budget) return null;
-            if (made.length >= 2) next.push({ pool: made, steps });
-          }
-        }
+  const pairs = (n: number): number[][] => {
+    const out: number[][] = [];
+    for (let i = 0; i < n; i++) out.push([i]);
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) out.push([i, j]);
+    return out;
+  };
+  const solve = (pool: number[], goal: number, depth: number): TargetStep[] | null => {
+    if (looked >= budget) return null;
+    if (pool.length <= 3) {
+      looked++;
+      const all = new Map<number, TargetStep[]>();
+      // Every subset of the few tiles left.
+      for (let mask = 1; mask < 1 << pool.length; mask++) {
+        const sub = pool.filter((_, k) => mask & (1 << k));
+        for (const [v, st] of makeable(sub, sub.length)) if (!all.has(v)) all.set(v, st);
+      }
+      return all.get(goal) ?? null;
     }
-    next.sort((x, y) => near(x.pool) - near(y.pool) || y.pool.length - x.pool.length);
-    beam = next.slice(0, TARGET_PERSON_BEAM);
-  }
-  return null;
+    if (pool.includes(goal)) return [];
+    if (depth === 0) return null;
+    for (const idx of pairs(pool.length)) {
+      const sub = idx.map((k) => pool[k]!);
+      const rest = pool.filter((_, k) => !idx.includes(k));
+      for (const [v, vSteps] of makeable(sub, 2)) {
+        const options: { x: number; operator: TargetStep["operator"]; xFirst: boolean }[] = [
+          { x: goal - v, operator: "+", xFirst: true },
+          { x: goal + v, operator: "-", xFirst: true },
+          { x: v - goal, operator: "-", xFirst: false },
+        ];
+        if (v > 1 && goal % v === 0) options.push({ x: goal / v, operator: "×", xFirst: true });
+        if (v > 1) options.push({ x: goal * v, operator: "÷", xFirst: true });
+        for (const { x, operator, xFirst } of options) {
+          if (x <= 0) continue;
+          looked++;
+          if (looked >= budget) return null;
+          const xSteps = solve(rest, x, depth - 1);
+          if (!xSteps) continue;
+          const [a, b] = xFirst ? [x, v] : [v, x];
+          const result = applyOperation(a, b, operator);
+          if (result !== goal) continue;
+          return [...xSteps, ...vSteps, { a, b, operator, result }];
+        }
+      }
+    }
+    return null;
+  };
+  const steps = solve([...tiles], target, 3);
+  return steps ? { steps, looked } : null;
 }
 
 function rollLevelTiles(large: readonly [number, number]): number[] {

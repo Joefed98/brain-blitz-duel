@@ -20,7 +20,6 @@
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import type { Page, Request } from "playwright";
-import { fromJSON } from "seroval";
 
 import { puzzlePresentation, REVISED_PUZZLE_DEMOS } from "../src/components/puzzles/wordInput";
 import { gradeAnswer } from "../src/lib/duel/gradeAnswer.server";
@@ -67,9 +66,9 @@ async function tap(page: Page, loc: ReturnType<Page["locator"]>, after = 380) {
   const y = box.y + box.height / 2;
   await page.mouse.move(x, y);
   await page.mouse.down();
-  await pause(70);
+  await pause(page, 70);
   await page.mouse.up();
-  await pause(after);
+  await pause(page, after);
 }
 
 async function tapText(page: Page, scope: ReturnType<Page["locator"]>, value: string | number, after?: number) {
@@ -84,11 +83,14 @@ async function tapText(page: Page, scope: ReturnType<Page["locator"]>, value: st
 
 /* ----------------------------------------------------------------- bots */
 
-/** Exact: each solution step, a tile, the operator, the other tile, Lock. */
+/** Exact: each solution step, a tile, the operator, the other tile; the last step hits the target. */
 async function exactBot(page: Page, puzzle: Full) {
   const tiles = () => stage(page).locator('[data-game-controls="numbers"] button:not([disabled])');
   for (const s of puzzle.solution as { a: number; b: number; operator: string }[]) {
-    await tapText(page, tiles(), s.a, 300);
+    // A merge leaves its result picked: a step that starts from it goes straight to the operator.
+    const picked = stage(page).locator('[data-game-controls="numbers"] button[aria-pressed="true"]');
+    const startsPicked = (await picked.count()) > 0 && (await picked.first().innerText()).trim() === String(s.a);
+    if (!startsPicked) await tapText(page, tiles(), s.a, 300);
     const label = s.operator === "-" ? "−" : s.operator;
     await tap(page, stage(page).locator('[data-game-controls="operators"] button', { hasText: label }).first(), 300);
     // The second tile: the same value as the first is the one not already picked.
@@ -108,8 +110,9 @@ async function exactBot(page: Page, puzzle: Full) {
       done = true;
     }
     if (!done) throw new Error(`Exact: no second tile ${s.b}`);
-    const lock = stage(page).getByRole("button", { name: /^lock/i });
-    if (await lock.count()) await tap(page, lock.first(), 650);
+    // The step merges; hitting the target locks the answer at once (no Lock tap: Lock ends the round). The merge
+    // slides the result in: wait for it before the next step's first tap.
+    await pause(page, 700);
   }
 }
 
@@ -206,7 +209,45 @@ export function exampleBody(body: string): string {
   return JSON.stringify(parsed);
 }
 
-const decode = (text: string): unknown => fromJSON(JSON.parse(text));
+/** Seroval's JSON nodes for plain data (the server functions' bodies and replies): numbers, strings, constants, arrays,
+ * objects and back-references. Anything else is refused. */
+export function decode(text: string): unknown {
+  const refs = new Map<number, unknown>();
+  const CONST = [null, undefined, true, false, -0, Infinity, -Infinity, NaN];
+  type Node = { t: number; s?: unknown; i?: number; a?: (Node | null)[]; p?: { k: string[]; v: Node[] } };
+  // seroval's own string escapes, inside the JSON's (deserializeString).
+  const ESC: Record<string, string> = { "\\\\": "\\", '\\"': '"', "\\n": "\n", "\\r": "\r", "\\b": "\b", "\\t": "\t", "\\f": "\f", "\\u2028": "\u2028", "\\u2029": "\u2029", "\\x3C": "<" };
+  const unesc = (str: string) => (str.includes("\\") ? str.replace(/(\\\\|\\"|\\n|\\r|\\b|\\t|\\f|\\u2028|\\u2029|\\x3C)/g, (m) => ESC[m]!) : str);
+  const walk = (n: Node | null): unknown => {
+    if (n === null) return undefined;
+    switch (n.t) {
+      case 0: return n.s;
+      case 1: return unesc(n.s as string);
+      case 2: return CONST[n.s as number];
+      case 4: return refs.get(n.i!);
+      case 9: {
+        const out: unknown[] = [];
+        refs.set(n.i!, out);
+        for (const x of n.a ?? []) out.push(walk(x));
+        return out;
+      }
+      case 10:
+      case 11: {
+        const out: Record<string, unknown> = {};
+        refs.set(n.i!, out);
+        n.p?.k.forEach((k, j) => {
+          const v = walk(n.p!.v[j]!);
+          if (v !== undefined) out[k] = v;
+        });
+        return out;
+      }
+      default:
+        throw new Error(`unsupported seroval node ${n.t}`);
+    }
+  };
+  const top = JSON.parse(text) as { t: Node } | Node;
+  return walk(("t" in top && typeof top.t === "object" ? top.t : top) as Node);
+}
 
 async function recordGame(page: Page, origin: string, game: string, verbose: boolean): Promise<NumberDemo> {
   const bot = BOTS[game];
@@ -217,6 +258,7 @@ async function recordGame(page: Page, origin: string, game: string, verbose: boo
   let graded: { data: Record<string, unknown>; result: Record<string, unknown> } | null = null;
   const onDone = async (request: Request) => {
     const name = serverFnName(request.url());
+    if (verbose && name.includes("export")) console.log("  fn", name.replace(/.*"export":"/, "").slice(0, 60));
     if (!/practiceGenerate|practiceGrade/.test(name)) return;
     const response = await request.response();
     if (!response) return;
@@ -227,18 +269,24 @@ async function recordGame(page: Page, origin: string, game: string, verbose: boo
       graded = { data, result: ((result as { result?: unknown }).result ?? result) as Record<string, unknown> };
     }
   };
-  page.on("requestfinished", (r) => void onDone(r));
+  page.on("requestfinished", (r) => void onDone(r).catch((e) => console.log(`  (${serverFnName(r.url()).slice(0, 90)}: ${(e as Error).message})`)));
+  // The shared dev server is edited by other sessions: its hot-reload socket is answered here and never forwarded, so
+  // no reload lands mid-recording.
+  await page.routeWebSocket(() => true, () => undefined);
   await page.route("**/_serverFn/**", async (route) => {
     const request = route.request();
     if (/practiceGenerate/.test(serverFnName(request.url()))) return route.continue({ postData: exampleBody(request.postData() ?? "") });
     return route.continue();
   });
+  // A game's page (?page=<id>, where ?game= lands today) deals on Play and opens the round in its 3-2-1; an older
+  // build's ?game= link opens the full intro with Ready. Either way the deal is the example (the request above).
   await page.goto(`${origin}/practice?game=${encodeURIComponent(game)}`, { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: /^Ready/ }).first().waitFor({ timeout: 120_000 });
+  const start = page.getByRole("button", { name: /^(Ready|Play)$/ }).first();
+  await start.waitFor({ timeout: 240_000 });
   await pause(page, 1500);
+  await start.click();
+  await page.locator("[data-game-stage]").first().waitFor({ timeout: 60_000 });
   if (JSON.stringify(dealt) !== JSON.stringify(pub)) throw new Error(`the page was not dealt this tree's example:\n page ${JSON.stringify(dealt)}\n tree ${JSON.stringify(pub)}`);
-  await page.getByRole("button", { name: /^Ready/ }).first().click();
-  await page.locator("[data-game-stage]").first().waitFor({ timeout: 30_000 });
   // The stage is live once the round clock runs: attach the app's recorder to the region, as the practice route does.
   await pause(page, 1200);
   await page.evaluate(async () => {
@@ -250,6 +298,7 @@ async function recordGame(page: Page, origin: string, game: string, verbose: boo
   });
   await pause(page, 600);
   await bot(page, full);
+  if (verbose) await page.screenshot({ path: `/tmp/number-demo-${game}-end.png` });
   for (let i = 0; i < 100 && !graded; i++) await pause(page, 100);
   if (!graded) throw new Error("the run never sent its answer");
   const log = (await page.evaluate(() => (window as unknown as { __rec: { finish: () => unknown } }).__rec.finish())) as PuzzleDemoLog;

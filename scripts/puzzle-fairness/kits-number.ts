@@ -7,6 +7,7 @@
 import type {
   BalancePuzzleData,
   CheckoutPuzzleData,
+  CheckoutStageData,
   EquationPuzzleData,
   MeasureBoardData,
   MeasurePuzzleData,
@@ -32,6 +33,7 @@ import {
 } from "../../src/lib/duel/measure";
 import {
   CHECKOUT_BULL,
+  CHECKOUT_STANDARD,
   checkoutBustFreeOrder,
   checkoutOptions,
   checkoutValid,
@@ -41,7 +43,9 @@ import {
   type CheckoutDart,
 } from "../../src/lib/duel/checkout";
 import { checkoutBust } from "../../src/lib/duel/numberOverhaul";
-import { encodeNumline, numlineShare, numlineValue, NUMLINE_SCALE, NUMLINE_TOTAL, NUMLINE_ITEMS } from "../../src/lib/duel/numline";
+import { checkoutLevelsBoard } from "../../src/lib/duel/numberLevels";
+import { puzzleLevel } from "../../src/lib/levels/levels";
+import { encodeNumline, numlineHiddenEnd, numlineShare, numlineValue, NUMLINE_SCALE, NUMLINE_TOTAL, NUMLINE_ITEMS } from "../../src/lib/duel/numline";
 import { thinkMs, type PuzzleKit, type Rng, type SpamPlay, type Step } from "./kit";
 
 /** The phone's "CORRECT" hold between stages (StageCorrect.tsx STAGE_CORRECT_HOLD_MS). */
@@ -86,6 +90,9 @@ function randomTargetStep(pool: number[], rng: Rng): TStep | null {
   }
   return null;
 }
+
+/** Exact's levels: how much longer than Normal each step's search takes (Normal 1). */
+const TARGET_LEVEL_SEARCH = { easy: 0.8, hard: 2.6, expert: 3.0 } as const;
 
 const targetKit: PuzzleKit = {
   type: "target",
@@ -132,8 +139,10 @@ const targetKit: PuzzleKit = {
   },
   play(p, rng, skill) {
     // BASE 8 s per step: a good player finds a five-step exact chain in ~40 s.
-    const BASE = 8;
     const puzzle = p as TargetNumberPuzzleData;
+    // Exact's levels (targetLevels.server.ts): the kit knows the route, so a level's search is its think time: Hard
+    // needs every number (a longer hunt for the one route), Expert has no large number to build from.
+    const BASE = 8 * (TARGET_LEVEL_SEARCH[puzzleLevel(puzzle) as keyof typeof TARGET_LEVEL_SEARCH] ?? 1);
     const rec = recorder();
     const steps: TStep[] = [];
     for (const want of puzzle.solution) {
@@ -778,6 +787,22 @@ const measureKit: PuzzleKit = {
 
 /* ================================ Checkout ================================ */
 
+/**
+ * How much longer each dart takes on a level board (checkoutRev 4, and Hard's boards stamped `level`): any-ring boards
+ * are quicker, shuffled and uneven numbers have to be found and added, and negatives are one more thing to weigh.
+ */
+export function checkoutBoardEffort(s: CheckoutStageData): number {
+  const standard = s.wedges.every((v, i) => v === CHECKOUT_STANDARD[i]);
+  const uneven = s.wedges.some((v) => Math.abs(v) > 20) || new Set(s.wedges.map(Math.abs)).size < 20;
+  return (
+    (s.anyRing ? EFFORT.anyRing : 1) *
+    (standard ? 1 : uneven ? EFFORT.uneven : EFFORT.shuffled) *
+    (s.wedges.some((v) => v < 0) ? EFFORT.negatives : 1) *
+    1
+  );
+}
+const EFFORT = { anyRing: 0.8, shuffled: 1.15, uneven: 1.25, negatives: 1.1 };
+
 const checkoutKit: PuzzleKit = {
   type: "checkout",
   nothing: () => joinCheckoutRound([]),
@@ -843,12 +868,16 @@ const checkoutKit: PuzzleKit = {
   },
   play(p, rng, skill) {
     // BASE 5 s per dart: find a wedge on an odd board and subtract in your head (wedge + ring taps).
-    const BASE = 5;
+    const BASE_DART = 5;
     const puzzle = p as CheckoutPuzzleData;
     const rec = recorder();
     const solved: string[] = puzzle.stages.map(() => "");
+    // Levels (checkoutRev 4, numberLevels.ts, and Hard's boards stamped `level`): each dart takes longer on a stranger
+    // board (checkoutBoardEffort). Earlier stamps dealt without a level play exactly as before.
+    const levelled = checkoutLevelsBoard(puzzle) || puzzleLevel(puzzle) !== "normal";
     for (let i = 0; i < puzzle.stages.length; i++) {
       const s = puzzle.stages[i]!;
+      const BASE = BASE_DART * (levelled ? checkoutBoardEffort(s) : 1);
       // checkoutRev 3 (the Number overhaul): a player throws the route in an order that never busts.
       const stored = decodeCheckoutDarts(puzzle.routes?.[i] ?? "", s.maxDarts);
       const route = checkoutBust(puzzle) ? checkoutBustFreeOrder(s, stored) : stored;

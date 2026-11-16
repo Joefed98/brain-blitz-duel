@@ -1,6 +1,7 @@
 import { BALANCE_CSS, BALANCE_DEFS, IronKettlebell, ScalesLevelFx } from "@/components/puzzles/balanceArt";
 import { NumberStage, numberArt, stageFailCue, type StageExit } from "@/components/puzzles/number/overhaul";
 import { balanceFreeMoves } from "@/lib/duel/numberOverhaul";
+import { balanceHidden } from "@/lib/duel/balanceLevels";
 import { balanceHangCost, balanceLeftOnTray, balanceMovedWeights, balanceNearMiss, balanceRevealMarks, balanceTiltDeg, balanceTorqueText } from "@/lib/duel/numberOverhaulInput";
 import { gameFx, releaseGameFx } from "@/lib/fx/kit";
 import { balanceTorque } from "@/lib/duel/balance";
@@ -484,7 +485,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
     toTray(selected);
   };
   const exit: StageExit = failing === current ? "fail" : holding ? "clear" : null;
-  const torque = freeMoves ? balanceTorqueText(scale, placement) : undefined;
+  // Counterweight's Expert (balanceRev 5, balanceLevels.ts): no readout; the beam still tips.
+  const torque = freeMoves && !balanceHidden(data) ? balanceTorqueText(scale, placement) : undefined;
   // A live round's instrument fills the wall (Beam `fill`, Joe 15 Nov 2026): as tall as the panel, its parts centred.
   const beamHeight = inFrame ? Math.max(146, arenaHeight - 24) : beamHeightFor(arenaHeight, 300);
   // The instrument stands on the bench: centred in the panel, with the desk from its base down.

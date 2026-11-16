@@ -62,6 +62,8 @@ export interface KakuroLevelSettings {
   maxBlocks?: number;
   /** Every board completed by the person-like solver (kakuro.server.ts `kakuroPersonSolve`). */
   person?: boolean;
+  /** At most this many of the person-like solver's passes over the runs (a gentler board: every square seen sooner). */
+  maxPasses?: number;
 }
 
 /** The new Normal (gentler than today's, which is now Hard): three standard boards and two with shuffled numbers. */
@@ -85,6 +87,7 @@ export const KAKURO_NORMAL: KakuroLevelSettings = {
   gradeMax: 4,
   maxBlocks: 7,
   person: true,
+  maxPasses: 3,
 };
 
 /** True when a check asks for the world before these levels: a Normal deal is then today's game. */

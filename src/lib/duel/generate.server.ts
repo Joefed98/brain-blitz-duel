@@ -18,7 +18,7 @@ import { dealPipesPlaced } from "./speedPipesNov7";
 import { dealOperatorGaps, generateOperatorLevel, type OperatorLevelSettings } from "./operatorGaps.server";
 import { dealWordNov7 } from "./wordNov7";
 import { dealGameReviewNov15 } from "./gameReviewNov15";
-import { dealPinned, withDealOptions, type DealOptions } from "./dealEra";
+import { activeDealPins, dealPinned, withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
 import { dealNotesFree } from "./notesFree";
 import { dealNumberOverhaul } from "./numberOverhaul";
@@ -364,10 +364,11 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
 
 /**
  * Counterweight (balanceLevels.ts): Hard is today's deal exactly; Normal, Easy and Expert the balanceRev 5 deals. The
- * check-only pin `preBalanceLevels` deals today's game at Normal, as rooms did before levels.
+ * check-only pin `preBalanceLevels` (or any older era pinned) deals today's game at Normal, as rooms did before levels.
  */
 function dealBalanceLevel(level: Level | undefined): PuzzleData {
-  if (!level && dealPinned("preBalanceLevels")) return generateBalance();
+  // Any era pinned is from before this change, so it deals today's game at Normal too (as Brimful's levels do).
+  if (!level && (dealPinned("preBalanceLevels") || activeDealPins().length > 0)) return generateBalance();
   return generateBalanceLevel(level ? (gameLevelSettings("balance", level) as BalanceLevelSettings | null) : null);
 }
 
