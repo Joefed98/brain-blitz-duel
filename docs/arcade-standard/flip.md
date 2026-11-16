@@ -134,7 +134,7 @@ about 50 ms Easy, 200–250 ms Hard, 300–450 ms Expert on this machine, with a
 re-rolls a course (most Hard and Expert seeds re-roll at least once); a decision for Joe whether to prebuild during the
 intro as Grappler does (`prepareSwingCourse`).
 
-flip-levels-check (~2 min quick, `CHECKS_FULL=1` every dealt course and the deal file rebuilt byte for byte) proves
+flip-levels-check (~50 s quick, `CHECKS_FULL=1` every dealt course and the deal file rebuilt byte for byte) proves
 Normal's deals byte for byte and flipRev 10–13 runs recorded on de3bec96 (`scripts/fixtures/levels-action-legacy.json.gz`),
 each level's rules and stamped settings, the 120 s rule, grace, 200 on every level's witnesses, and identical worlds.
 

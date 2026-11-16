@@ -223,7 +223,7 @@ Easy gives a good player a star most runs (median 168, p90 187) and an average o
 
 Skyscraper ("Build 61 floors on Expert", switched off until levels go live for challenges): the oracle builds 61+ floors
 on Expert on every seed checked (fewest 103 floors; skyline-levels-check), the 145 ms elite on 19 of 40.
-skyline-levels-check (~40 s) proves Normal's deals byte for byte and skylineRev 9–11 runs recorded on de3bec96
+skyline-levels-check (~10 s) proves Normal's deals byte for byte and skylineRev 9–11 runs recorded on de3bec96
 (`scripts/fixtures/levels-action-legacy.json.gz`), each level's rules, the 120 s rule, grace, the oracle at 200 through the
 server replay on every level (tuning 0–29 and fresh 10000–10019; `CHECKS_FULL=1` 0–59 and 10000–10199), identical worlds
 and the Skyscraper.
