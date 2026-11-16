@@ -1,5 +1,6 @@
 /**
- * Which Logic overhaul levels are dealt from a bank (stage 3, 16 Nov 2026): the ones that take seconds to build live.
+ * Which Logic overhaul levels are dealt from a bank (stage 3, 16 Nov 2026): the ones that take seconds to build live
+ * (Trail Hard and Expert, Regions Expert, Loopline Expert).
  * Shared by the deal (logicLevelDeal.server.ts), the bank builder (scripts/logic-level-bank.ts) and its check.
  */
 import type { Level } from "@/lib/levels/levels";
@@ -9,6 +10,8 @@ export const LOGIC_LEVEL_BANKED: readonly { type: PuzzleType; level: Level }[] =
   { type: "trail", level: "hard" },
   { type: "trail", level: "expert" },
   { type: "fillomino", level: "expert" },
+  // Loopline Expert (16 Nov 2026): an 8 × 8 loop the solver proves takes up to a minute on some seeds.
+  { type: "fences", level: "expert" },
 ];
 
 /** Boards in each bank. */

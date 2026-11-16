@@ -37,6 +37,11 @@ function chebyshev(a: number, b: number, size: number): number {
 }
 
 /** Answer = cell indices in number order, dot-separated; -1 is an unplaced tile. */
+/** The squares a player fills: every square without a number (26 on Normal's ten numbers; a level's own count otherwise). */
+export function trToFill(givens: readonly (number | null)[]): number {
+  return givens.filter((g) => g === null).length;
+}
+
 export function trEncode(path: readonly number[]): string {
   return path.join(".");
 }

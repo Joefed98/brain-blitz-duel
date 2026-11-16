@@ -13,7 +13,7 @@ const STEP_SCALE = [0, 2, 4, 5, 7, 9, 11];
 export function trailStepRate(step: number): number {
   return 2 ** (STEP_SCALE[(Math.max(1, step) - 1) % STEP_SCALE.length]! / 12);
 }
-import { trCanStep, trComplete, trCorrectPrefix, trCorrectTiles, trDecode, trDragPath, trEncode, trTapPath, trUndoPlayer, trSlots, TR_SIZE } from "@/lib/duel/trail";
+import { trCanStep, trComplete, trCorrectPrefix, trCorrectTiles, trDecode, trDragPath, trEncode, trTapPath, trToFill, trUndoPlayer, trSlots, TR_SIZE } from "@/lib/duel/trail";
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { TRAIL_TIME_MS, type TrailPuzzleData } from "@/lib/duel/types";
@@ -283,7 +283,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   // Batch W: the "12 / 26" count moves to the frame's goal line in a live round (display only).
   const placedTiles = data ? slots.filter((c, i) => c >= 0 && !data.givens.includes(i + 1)).length : 0;
   // The squares to fill (26 on Normal's ten numbers; a level's own count otherwise, logicLevels.ts).
-  const toFill = data ? data.givens.filter((g) => g === null).length : 26;
+  const toFill = data ? trToFill(data.givens) : 26;
   const framed = useGoalProgress({ done: placedTiles, total: toFill, text: `${placedTiles} / ${toFill}` });
 
   // Desktop keys: Z or Backspace = Undo, R = Reset.

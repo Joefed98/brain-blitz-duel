@@ -61,11 +61,17 @@ function build(type: LogicLevelGame, level: Level, seed: () => number, k: number
   }
 }
 
+function isLogicSettings(settings: unknown): settings is { person: readonly [number, number]; timeLimitMs: number } {
+  const s = settings as { person?: unknown; timeLimitMs?: unknown };
+  return Array.isArray(s.person) && s.person.length === 2 && typeof s.timeLimitMs === "number";
+}
+
 /** The level's board, or null at Normal and for a game this doesn't cover (the caller then deals as before levels). */
 export function dealLogicLevel(type: PuzzleType, level: Level | undefined, seed: () => number): PuzzleData | null {
   if (!isLogicLevelGame(type)) return null;
   const settings = logicLevel(type, level);
-  if (!settings || !level) return null;
+  // Only the Logic levels' own settings (a check's stand-in registry may hold others: then the game's Normal board).
+  if (!settings || !level || !isLogicSettings(settings)) return null;
   // The grid games' seed is drawn once (a room's is its own; elsewhere one draw), then stepped per try.
   const base = seed();
   // A slow level comes from its bank (logicLevelBankSpec.ts), the entry picked by the same seed.

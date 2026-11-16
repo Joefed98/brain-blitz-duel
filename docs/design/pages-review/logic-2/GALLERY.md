@@ -83,8 +83,42 @@ no seam between lit squares, the falloff kept.
 
 ## Stage 3: levels
 
-Waiting for the difficulty framework on main. Expert boards will be kept only when a person-style solver (every step
-deducible, no guessing) completes them and the elite bot finishes most of them (Joe, 15 Nov 2026). Grids planned to grow
-downwards so no square falls below about 40 px on a 375 px phone (to be measured when built): Tents and Trees Expert
-8 × 13 (was 10 × 10), Shikaku Expert 9 × 16 (was 12 × 12), Lamplighter Expert 9 × 14 (was 11 × 11), Island Link Expert
-8 × 11 (was 9 × 9); Trail 7 × 7, Loopline 8 × 8 and Regions 8 × 8 fit as they are.
+On the difficulty framework (#432): each game offers Easy, Normal, Hard and Expert (`src/lib/duel/logicLevels.ts`).
+Normal is today's game, byte for byte. Every level keeps Normal's board width and grows downwards, so no square is
+smaller than Normal's on a 375 × 667 phone. Every Easy, Hard and Expert board has exactly one solution (the game's own
+solver), and a person-style solver (`logicHuman.server.ts`: the game's rules of deduction plus one-step "try it, see the
+contradiction" trials, never guessing) must finish it with a number of trials inside the level's band, or the board is
+dealt again. Trail Hard and Expert and Regions Expert take seconds to build, so they come from banks of 120 boards
+each, built the same way (`bun scripts/logic-level-bank.ts`). Each picture is **Easy | Normal | Hard | Expert** at
+390 × 844.
+
+| Game | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Tents and Trees | 8 × 6, 7–8 tents, every count shown, 90 s | 8 × 9, 12–13 | 8 × 10, 13–14, half the counts hidden, 90 s | 8 × 12, 17–18, half hidden, 120 s |
+| Shikaku | 10 × 7, 9–11 rectangles, largest 8 | 10 × 11, 17–21 | 10 × 12, 15–17, largest 16 | 10 × 13, 18–21, largest 16, 120 s |
+| Lamplighter | 9 × 7, 15–19 walls, 70 % numbered | 9 × 10, half numbered | 9 × 10, 18–22 walls, 35 % numbered | 9 × 12, 26–30 walls, 35 %, 120 s |
+| Trail | 14 numbers, an easy search | 10 numbers (the bank) | 10 hard numbers (search over 35,000 steps) | 10 harder numbers (over 70,000 steps) |
+| Loopline | 5 × 5, 14+ numbers | 6 × 6 | 7 × 7, 18+ numbers | 8 × 8, 19+ numbers, 120 s |
+| Regions | 6 × 6, 16–22 numbers | 7 × 7 | 7 × 7, 10–15 numbers | 8 × 8, 10–14 numbers, 120 s |
+| Island Link | 6 × 6, 7–9 islands | 7 × 7 | 8 × 8, 13–16 islands | 8 × 8, 18–22 islands, 120 s |
+
+### Tents and Trees
+![Tents and Trees levels](img/levels-tents.webp)
+
+### Shikaku
+![Shikaku levels](img/levels-shikaku.webp)
+
+### Lamplighter
+![Lamplighter levels](img/levels-lightup.webp)
+
+### Trail
+![Trail levels](img/levels-trail.webp)
+
+### Loopline
+![Loopline levels](img/levels-fences.webp)
+
+### Regions
+![Regions levels](img/levels-fillomino.webp)
+
+### Island Link
+![Island Link levels](img/levels-bridges.webp)

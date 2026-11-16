@@ -8,6 +8,7 @@
  *   bun scripts/logic-level-bank.ts [--part=k/n]      build (or one part, written to .logic-level-bank/part-k.json)
  *   bun scripts/logic-level-bank.ts --merge=n         join n parts into the bank file
  *   bun scripts/logic-level-bank.ts --check[=k/n]     rebuild entries (or a part) and compare with the bank, byte for byte
+ *   --only=type:level[,…]                              build, merge or check only those banks (a merge keeps the others)
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
@@ -23,8 +24,9 @@ const PARTS = ".logic-level-bank";
 const arg = (name: string) => process.argv.find((a) => a === `--${name}` || a.startsWith(`--${name}=`));
 const value = (name: string) => arg(name)?.split("=")[1];
 
-/** Every (bank, entry) job in a fixed order. */
-const jobs = LOGIC_LEVEL_BANKED.flatMap(({ type, level }) => Array.from({ length: LOGIC_LEVEL_BANK_SIZE }, (_, i) => ({ type, level, i })));
+const only = value("only")?.split(",");
+/** Every (bank, entry) job in a fixed order (only the asked-for banks with --only). */
+const jobs = LOGIC_LEVEL_BANKED.filter(({ type, level }) => !only || only.includes(`${type}:${level}`)).flatMap(({ type, level }) => Array.from({ length: LOGIC_LEVEL_BANK_SIZE }, (_, i) => ({ type, level, i })));
 
 function build(type: PuzzleType, level: Level, i: number): PuzzleData {
   const seed = logicLevelBankSeed(type, level, i);
@@ -54,7 +56,9 @@ ${lines.join("\n")}
 const check = arg("check");
 const merge = value("merge");
 if (merge) {
-  const all: Record<string, PuzzleData[]> = {};
+  // With --only, the banks not rebuilt are kept from the bank file as it is.
+  const kept = only ? (await import("../src/lib/duel/logicLevelBank.server")).LOGIC_LEVEL_BANK : {};
+  const all: Record<string, PuzzleData[]> = Object.fromEntries(Object.entries(kept).filter(([k]) => !only!.includes(k)).map(([k, v]) => [k, [...v]]));
   for (let k = 1; k <= Number(merge); k++) {
     const part = JSON.parse(readFileSync(`${PARTS}/part-${k}.json`, "utf8")) as { type: string; level: string; i: number; p: PuzzleData }[];
     for (const e of part) (all[key(e.type, e.level)] ??= [])[e.i] = e.p;

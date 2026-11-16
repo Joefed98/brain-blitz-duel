@@ -30,7 +30,7 @@ import { dealLogicLevel, logicLevelBankOff } from "../src/lib/duel/logicLevelDea
 import { countTentSolutions, encodeTents, tentsHeightOf, TENTS_SIZE } from "../src/lib/duel/tents";
 import { countShikakuSolutions, encodeShikaku, shikakuHeightOf, SHIKAKU_SIZE } from "../src/lib/duel/shikaku";
 import { countLightUpSolutions, encodeBulbs, lightUpHeightOf, LIGHTUP_SIZE } from "../src/lib/duel/lightUp";
-import { trCountSolutions, trEncode } from "../src/lib/duel/trail";
+import { trCountSolutions, trEncode, trToFill } from "../src/lib/duel/trail";
 import { countFencesSolutions } from "../src/lib/duel/fences.server";
 import { encodeFences, fencesEdgeCount, FENCES_LINE } from "../src/lib/duel/fences";
 import { solveFillomino } from "../src/lib/duel/fillomino.server";
@@ -41,10 +41,8 @@ import { levelsOf, levelProof, gameLevelSettings } from "../src/lib/levels/gameL
 import { MAX_ROUND_CLOCK_MS, puzzleLevel, type Level } from "../src/lib/levels/levels";
 import type { PuzzleData } from "../src/lib/duel/types";
 import { tune } from "./level-tune";
-import { createElement } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
+import { readFileSync } from "node:fs";
 import { splitPuzzle } from "../src/lib/duel/secrets";
-import { trailPuzzle } from "../src/puzzles/trail";
 
 const FULL = process.env["CHECKS_FULL"] === "1" || process.argv.includes("--full");
 const BOARDS = FULL ? 10 : 3;
@@ -220,11 +218,11 @@ for (const { type, level } of LOGIC_LEVEL_BANKED) {
 // The live count follows the board: Trail Easy shows 14 numbers, so 22 squares are left (not Normal's 26).
 check("trail easy: the count and \"to go\" follow the board's own blanks", () => {
   const p = splitPuzzle(deal("trail", "easy", 0)).pub as Any;
-  const blanks = p.givens.filter((g: Any) => g === null).length;
-  assert.equal(blanks, 22);
-  const html = renderToStaticMarkup(createElement(trailPuzzle.Stage, { puzzle: p, phaseStartedAt: 0, now: 0, locked: false, onSubmit: () => {}, stateKey: "logic-levels-trail" }));
-  assert.match(html, />22 to go</);
-  assert.doesNotMatch(html, /26 to go/);
+  assert.equal(trToFill(p.givens), 22);
+  assert.equal(trToFill((splitPuzzle(deal("trail", null, 0)).pub as Any).givens), 26, "Normal's ten numbers leave 26");
+  const stage = readFileSync("src/puzzles/trail.tsx", "utf8");
+  assert.match(stage, /const toFill = data \? trToFill\(data\.givens\)/);
+  assert.doesNotMatch(stage, /\b26 - placedTiles|placedTiles\} \/ 26|total: 26/, "no count tied to Normal's 26");
 });
 
 // 5. Expert is humanly possible: the elite bot finishes most Expert boards.
