@@ -3,7 +3,12 @@
  * server (to replay the moves a phone sends). Pure logic, no rendering.
  */
 
-import { UNBLOCK_COLS as N, UNBLOCK_EXIT_ROW, type UnblockVehicle } from "./types";
+import { UNBLOCK_COLS, UNBLOCK_EXIT_ROW, type UnblockVehicle } from "./types";
+
+/*
+ * Every rule takes the lot's size `n` (columns = rows; `unblockCols(puzzle)`), 7 by default: every deal before the
+ * difficulty levels, and Normal, Hard and Expert. Easy's lot is 6×6 (src/lib/levels/pattern/unblock.levels.ts).
+ */
 
 export interface UnblockMove {
   id: number;
@@ -11,17 +16,17 @@ export interface UnblockMove {
   to: number;
 }
 
-export function vehicleCells(v: UnblockVehicle): number[] {
+export function vehicleCells(v: UnblockVehicle, N: number = UNBLOCK_COLS): number[] {
   return Array.from({ length: v.len }, (_, i) =>
     v.axis === "h" ? v.row * N + v.col + i : (v.row + i) * N + v.col,
   );
 }
 
-export function occupancy(vehicles: UnblockVehicle[], skipId?: number): Set<number> {
+export function occupancy(vehicles: UnblockVehicle[], skipId?: number, N: number = UNBLOCK_COLS): Set<number> {
   const cells = new Set<number>();
   for (const v of vehicles) {
     if (v.id === skipId) continue;
-    for (const cell of vehicleCells(v)) cells.add(cell);
+    for (const cell of vehicleCells(v, N)) cells.add(cell);
   }
   return cells;
 }
@@ -35,10 +40,10 @@ function withPosition(v: UnblockVehicle, to: number): UnblockVehicle {
 }
 
 /** The lowest and highest position this vehicle can slide to right now. */
-export function slideRange(vehicles: UnblockVehicle[], id: number): { min: number; max: number } {
+export function slideRange(vehicles: UnblockVehicle[], id: number, N: number = UNBLOCK_COLS): { min: number; max: number } {
   const v = vehicles.find((entry) => entry.id === id);
   if (!v) return { min: 0, max: 0 };
-  const blocked = occupancy(vehicles, id);
+  const blocked = occupancy(vehicles, id, N);
   const start = position(v);
 
   let min = start;
@@ -58,22 +63,22 @@ export function slideRange(vehicles: UnblockVehicle[], id: number): { min: numbe
 }
 
 /** Where a drag actually lands: clamped to the first obstacle or the edge. */
-export function clampSlide(vehicles: UnblockVehicle[], id: number, wanted: number): number {
-  const { min, max } = slideRange(vehicles, id);
+export function clampSlide(vehicles: UnblockVehicle[], id: number, wanted: number, N: number = UNBLOCK_COLS): number {
+  const { min, max } = slideRange(vehicles, id, N);
   return Math.max(min, Math.min(max, wanted));
 }
 
-export function applyMove(vehicles: UnblockVehicle[], move: UnblockMove): UnblockVehicle[] | null {
+export function applyMove(vehicles: UnblockVehicle[], move: UnblockMove, N: number = UNBLOCK_COLS): UnblockVehicle[] | null {
   const v = vehicles.find((entry) => entry.id === move.id);
   if (!v) return null;
-  const { min, max } = slideRange(vehicles, move.id);
+  const { min, max } = slideRange(vehicles, move.id, N);
   if (!Number.isInteger(move.to) || move.to < min || move.to > max) return null;
   if (move.to === position(v)) return null;
   return vehicles.map((entry) => (entry.id === move.id ? withPosition(entry, move.to) : entry));
 }
 
 /** Solved when the gold car's nose reaches the exit gap on the right edge. */
-export function isSolved(vehicles: UnblockVehicle[]): boolean {
+export function isSolved(vehicles: UnblockVehicle[], N: number = UNBLOCK_COLS): boolean {
   const gold = vehicles.find((v) => v.id === 0);
   if (!gold) return false;
   return gold.axis === "h" && gold.row === UNBLOCK_EXIT_ROW && gold.col + gold.len === N;
@@ -111,21 +116,21 @@ export interface UnblockReplay {
 }
 
 /** Replays the phone's moves on the stored layout; illegal moves are dropped. */
-export function replayUnblock(start: UnblockVehicle[], moves: UnblockMove[]): UnblockReplay {
+export function replayUnblock(start: UnblockVehicle[], moves: UnblockMove[], N: number = UNBLOCK_COLS): UnblockReplay {
   let state = start.map((v) => ({ ...v }));
   let played = 0;
   const history = [state];
   for (const move of moves) {
     if (move.id === -1 && move.to === 0) { if (history.length > 1) history.pop(); state = history[history.length - 1]!; continue; }
     if (move.id === -2 && move.to === 0) { history.length = 1; state = history[0]!; continue; }
-    const next = applyMove(state, move);
+    const next = applyMove(state, move, N);
     if (!next) continue;
     state = next;
     history.push(state);
     played += 1;
-    if (isSolved(state)) break;
+    if (isSolved(state, N)) break;
   }
-  return { solved: isSolved(state), moves: played, net: history.length - 1, vehicles: state };
+  return { solved: isSolved(state, N), moves: played, net: history.length - 1, vehicles: state };
 }
 
 export function serialiseLayout(vehicles: UnblockVehicle[]): string {

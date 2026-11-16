@@ -20,6 +20,7 @@ import { dealtPuzzleScoreRev } from "../puzzleScoreRev";
 import { PUZZLE_SCORE_REV_HELPER } from "../puzzleScoreRev3";
 import { drawBankedPuzzle } from "../puzzleBank.server";
 import { generateUnblock, type UnblockBankRow } from "../unblock.server";
+import type { Level } from "@/lib/levels/levels";
 import { generateRings, RINGS_TWO_RULE_PATTERNS } from "../rings.server";
 import { generatePipes } from "../logic.server";
 import { generateLaser } from "../laser.server";
@@ -38,6 +39,8 @@ const ICE_GEM_SEED = 0x1ce9e35;
 
 export interface D4DealContext {
   unblockRow?: UnblockBankRow | null;
+  /** The level (src/lib/levels/; Normal when left out): Gridlock's boards come from the level's bank. */
+  level?: Level | undefined;
   bankSeed?: number;
   recentBankKeys?: ReadonlySet<string> | undefined;
 }
@@ -51,7 +54,7 @@ export function dealDepth4(type: PuzzleType, context: D4DealContext): PuzzleData
   if (dealPinned("depth4Off") || !isD4Type(type) || dealtPuzzleScoreRev() < PUZZLE_SCORE_REV_HELPER) return null;
   switch (type) {
     case "unblock": {
-      const p = generateUnblock(context.unblockRow);
+      const p = generateUnblock(context.unblockRow, context.level, context.bankSeed);
       return { ...p, unblockRev: dealtD4Rev("unblock"), par: p.minMoves ?? 0 };
     }
     case "rings": {

@@ -245,6 +245,7 @@ import {
   FLOW_PAIRS,
   CHAIN_TIME_MS,
   CHAIN_TIME_REV,
+  unblockCols,
   type PuzzleData,
 } from "./types";
 
@@ -653,7 +654,9 @@ function gradeUnderRev(
     case "unblock": {
       // The phone sends its slides; every one is replayed on the stored layout.
       const played = decodeMoves(answer);
-      const replay = replayUnblock(puzzle.vehicles, played);
+      // The lot's size (the difficulty levels: Easy's 6×6; absent = 7, every older deal).
+      const lot = unblockCols(puzzle);
+      const replay = replayUnblock(puzzle.vehicles, played, lot);
       const min = puzzle.minMoves ?? 0;
       isCorrect = replay.solved;
       let progress = 0;
@@ -661,8 +664,8 @@ function gradeUnderRev(
       if (!replay.solved) {
         // Progress is the share of the gold car's blockers cleared from its
         // lane — a cheap count, so no solver ever runs during a room.
-        const before = blockingCars(puzzle.vehicles);
-        const after = blockingCars(replay.vehicles);
+        const before = blockingCars(puzzle.vehicles, lot);
+        const after = blockingCars(replay.vehicles, lot);
         if (before > 0) progress = Math.max(0, (before - after) / before) * (scoreRev1() ? 1 : 0.9);
         fewerBlockers = after < before;
       }

@@ -9,7 +9,7 @@ import { applyMove, countedMoves, decodeMoves, position, replayUnblock, vehicleC
 import { unblockCarSprite } from "@/components/puzzles/pattern/unblockArt";
 import { usesPatternNov15 } from "@/lib/duel/patternNov15";
 import "@/polish-layout/polish-nov3-pattern.css";
-import { UNBLOCK_COLS, UNBLOCK_TIME_MS, type UnblockPuzzleData, type UnblockVehicle } from "@/lib/duel/types";
+import { UNBLOCK_COLS, UNBLOCK_TIME_MS, unblockCols, type UnblockPuzzleData, type UnblockVehicle } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -51,7 +51,7 @@ function IntroExample() {
         </svg>
       </div>
       <p className="text-xs text-muted-foreground">
-        Fewer moves earn a bonus; Undo gives a move back. You have 60 seconds.
+        Fewer moves earn a bonus; Undo gives a move back. Beat the clock.
       </p>
     </div>
   );
@@ -71,18 +71,19 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
   );
 }
 
-const pct = (value: number) => `${(value * 100) / UNBLOCK_COLS}%`;
+/** A position in bays as a % of the lot's grid (`n` bays a side). */
+const pct = (value: number, n: number) => `${(value * 100) / n}%`;
 
 /** The cars standing in the gold car's lane, between its nose and the exit (an unfinished board's blockers). */
-export function laneBlockers(vehicles: UnblockVehicle[]): number[] {
+export function laneBlockers(vehicles: UnblockVehicle[], n: number = UNBLOCK_COLS): number[] {
   const gold = vehicles.find((v) => v.id === 0);
   if (!gold || gold.axis !== "h") return [];
   const out: number[] = [];
   for (const v of vehicles) {
     if (v.id === 0) continue;
-    const cells = vehicleCells(v);
-    for (let col = gold.col + gold.len; col < UNBLOCK_COLS; col++) {
-      if (cells.includes(gold.row * UNBLOCK_COLS + col)) {
+    const cells = vehicleCells(v, n);
+    for (let col = gold.col + gold.len; col < n; col++) {
+      if (cells.includes(gold.row * n + col)) {
         out.push(v.id);
         break;
       }
@@ -101,12 +102,12 @@ export interface RouteChip {
 }
 
 /** The par route as chips, walked on the stored layout (null if the stored solution doesn't play). */
-export function routeChips(start: UnblockVehicle[], moves: { id: number; to: number }[]): RouteChip[] | null {
+export function routeChips(start: UnblockVehicle[], moves: { id: number; to: number }[], n: number = UNBLOCK_COLS): RouteChip[] | null {
   let state = start;
   const out: RouteChip[] = [];
   for (const m of moves) {
     const v = state.find((x) => x.id === m.id);
-    const next = applyMove(state, m);
+    const next = applyMove(state, m, n);
     if (!v || !next) return null;
     const from = position(v);
     const forward = m.to > from;
@@ -117,7 +118,7 @@ export function routeChips(start: UnblockVehicle[], moves: { id: number; to: num
 }
 
 /** Red outlines over an unfinished board's blockers (drawn inside the board's grid, on each car's box). */
-function BlockerMarks({ vehicles, ids }: { vehicles: UnblockVehicle[]; ids: number[] }) {
+function BlockerMarks({ vehicles, ids, n }: { vehicles: UnblockVehicle[]; ids: number[]; n: number }) {
   return (
     <>
       {vehicles
@@ -129,10 +130,10 @@ function BlockerMarks({ vehicles, ids }: { vehicles: UnblockVehicle[]; ids: numb
             className="unblock-blocker pointer-events-none absolute"
             data-unblock-blocker={v.id}
             style={{
-              left: pct(v.col),
-              top: pct(v.row),
-              width: pct(v.axis === "h" ? v.len : 1),
-              height: pct(v.axis === "v" ? v.len : 1),
+              left: pct(v.col, n),
+              top: pct(v.row, n),
+              width: pct(v.axis === "h" ? v.len : 1, n),
+              height: pct(v.axis === "v" ? v.len : 1, n),
             }}
           />
         ))}
@@ -208,11 +209,13 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
 
   // Guarded: a missing or unreadable solution must never break the round (the player's own board stands in).
   const start = (puzzle.vehicles ?? []).map((vehicle) => ({ ...vehicle }));
+  // The lot's size (the difficulty levels: Easy's 6×6; absent = 7).
+  const n = unblockCols(puzzle);
   const playOut = (moves: ReturnType<typeof decodeMoves>) => {
     let vehicles = start;
     try {
       for (const move of moves) {
-        const next = applyMove(vehicles, move);
+        const next = applyMove(vehicles, move, n);
         if (!next) return null;
         vehicles = next;
       }
@@ -221,14 +224,14 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
     }
     return vehicles;
   };
-  const chips = solution.length > 0 && start.length > 0 ? routeChips(start, solution) : null;
+  const chips = solution.length > 0 && start.length > 0 ? routeChips(start, solution, n) : null;
   const available = chips !== null;
   const shown = available ? (playOut(solution.slice(0, step)) ?? start) : start;
   // The player's board as the grader left it (Undo -1:0 and Reset -2:0 replayed as replayUnblock does).
-  const replay = start.length > 0 && myAnswer !== null ? safeReplay(start, myAnswer) : null;
+  const replay = start.length > 0 && myAnswer !== null ? safeReplay(start, myAnswer, n) : null;
   const overhaul = usesPatternNov15(puzzle, "unblock");
   const yours = replay?.vehicles ?? null;
-  const blockers = yours && !myCorrect ? laneBlockers(yours) : [];
+  const blockers = yours && !myCorrect ? laneBlockers(yours, n) : [];
 
   // The key numbers from the stored grade (its `moves`, par and time left); the replay only stands in on a row
   // stored without them.
@@ -242,14 +245,14 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
   const solutionBoard = (
     <div className="unblock-reveal-space">
       <div className="unblock-reveal-board" data-unblock-reveal-step={step}>
-        <UnblockBoard vehicles={shown} />
+        <UnblockBoard vehicles={shown} cols={n} />
       </div>
     </div>
   );
   const yoursBoard = yours ? (
     <div className="unblock-reveal-space">
       <div className="unblock-reveal-board" data-unblock-yours-board={myCorrect ? "solved" : "unfinished"}>
-        <UnblockBoard vehicles={yours}>{blockers.length ? <BlockerMarks vehicles={yours} ids={blockers} /> : null}</UnblockBoard>
+        <UnblockBoard vehicles={yours} cols={n}>{blockers.length ? <BlockerMarks vehicles={yours} ids={blockers} n={n} /> : null}</UnblockBoard>
       </div>
     </div>
   ) : null;
@@ -285,7 +288,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
       ) : start.length > 0 ? (
         <div className="unblock-reveal-space">
           <div className="unblock-reveal-board">
-            <UnblockBoard vehicles={start} />
+            <UnblockBoard vehicles={start} cols={n} />
           </div>
         </div>
       ) : null}
@@ -317,9 +320,9 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
 }
 
 /** The grader's own replay of a stored answer (undo and reset markers included); null if it can't be read. */
-export function safeReplay(start: UnblockVehicle[], answer: string) {
+export function safeReplay(start: UnblockVehicle[], answer: string, n: number = UNBLOCK_COLS) {
   try {
-    return replayUnblock(start, decodeMoves(answer));
+    return replayUnblock(start, decodeMoves(answer), n);
   } catch {
     return null;
   }

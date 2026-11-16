@@ -61,7 +61,7 @@ import { decodeFloodMoves, replayFlood } from "./flood";
 import { floodMoveLimit } from "./moveLimits";
 import { DEPTH_REV_TOPUP, depthRevOf } from "./logicDepth";
 import { D4_REV_TOPUP, d4RevOf } from "./depth4/stamps";
-import { LIGHTS_CELLS, PUSH_COLS, RINGS_COUNT, UNBLOCK_COLS, UNBLOCK_EXIT_ROW, RINGS_SEGMENTS, type PuzzleData, type SlideDir, type UnblockVehicle } from "./types";
+import { LIGHTS_CELLS, PUSH_COLS, RINGS_COUNT, UNBLOCK_EXIT_ROW, RINGS_SEGMENTS, unblockCols, type PuzzleData, type SlideDir, type UnblockVehicle } from "./types";
 
 /** What the progress measures read from the rev-1 grade. */
 export interface ProgressInput {
@@ -154,7 +154,7 @@ export function rev3Progress(input: ProgressInput): number | null {
     case "rings":
       return ringsProgress(puzzle.segments, puzzle.pattern, decodeRingTaps(answer), puzzle.minMoves ?? 0, d4RevOf(puzzle) >= D4_REV_TOPUP ? RINGS_TOPUP_WASTE : MOVE_WASTE_WEIGHT.rings);
     case "unblock":
-      return unblockProgress(puzzle.vehicles, decodeMoves(answer), puzzle.minMoves ?? 0);
+      return unblockProgress(puzzle.vehicles, decodeMoves(answer), puzzle.minMoves ?? 0, unblockCols(puzzle));
     case "push":
       return pushProgress(puzzle, decodePushMoves(answer));
     case "tiles": {
@@ -606,11 +606,11 @@ const UNBLOCK_STATE_CAP = 200_000;
  * Layouts are base-8 numbers (one digit a block) and the edges flat typed arrays, so a board of 140,000 layouts
  * builds in well under a second once per server isolate (gridlock-table timings in scoring-rev3-check).
  */
-function unblockDistances(start: UnblockVehicle[]): (layout: number) => number | undefined {
-  const id = start.map((v) => `${v.id}${v.axis}${v.len}${v.row}${v.col}`).join(",");
+function unblockDistances(start: UnblockVehicle[], N: number): (layout: number) => number | undefined {
+  // The lot's size is part of the key (the difficulty levels: Easy's 6×6 lot reads the same layout text as a 7×7 one).
+  const id = `${N}/${start.map((v) => `${v.id}${v.axis}${v.len}${v.row}${v.col}`).join(",")}`;
   const found = UNBLOCK_TABLES.get(id);
   if (found) return found;
-  const N = UNBLOCK_COLS;
   const V = start.length;
   const horiz = start.map((v) => v.axis === "h");
   const lens = start.map((v) => v.len);
@@ -711,7 +711,7 @@ function unblockDistances(start: UnblockVehicle[]): (layout: number) => number |
 }
 
 /** Gridlock: each layout's fewest moves from a table of the whole board (a move slides one block any distance). */
-function unblockProgress(start: UnblockVehicle[], played: { id: number; to: number }[], minMoves: number): number {
+function unblockProgress(start: UnblockVehicle[], played: { id: number; to: number }[], minMoves: number, N: number): number {
   let state = start.map((v) => ({ ...v }));
   const history = [state];
   const boards = [state];
@@ -719,15 +719,15 @@ function unblockProgress(start: UnblockVehicle[], played: { id: number; to: numb
   for (const move of played) {
     if (move.id === -1 && move.to === 0) { if (history.length > 1) history.pop(); state = history[history.length - 1]!; boards.push(state); continue; }
     if (move.id === -2 && move.to === 0) { history.length = 1; state = history[0]!; boards.push(state); continue; }
-    const next = applyMove(state, move);
+    const next = applyMove(state, move, N);
     if (!next) continue;
     state = next;
     history.push(state);
     boards.push(state);
     moves++;
-    if (unblockSolved(state)) break;
+    if (unblockSolved(state, N)) break;
   }
-  const dist = unblockDistances(start);
+  const dist = unblockDistances(start, N);
   let closer = 0;
   for (const b of boards) {
     const d = dist(unblockKey(b));
