@@ -40,7 +40,6 @@ import { SWING_V13_BANK } from "./swingBankV13.server";
 import { swingSlideDealSeed } from "./swingSlideDeal.server";
 import { swingBigDealSeed } from "./swingBigDeal.server";
 import { swingLevelDealSeed } from "./swingLevelDeal.server";
-import type { Level } from "@/lib/levels/levels";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV_BANDS } from "@/lib/arcade/wordfall";
 import { dealtTopupRev } from "./depthTopup";

@@ -199,7 +199,6 @@ import {
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
 import { balancePlaceLimits, equationTryLimit, floodMoveLimit, gravityTiltLimit, measureMoveLimits, splitCountSuffix, tubesPourLimit, tubesSendsUndo, GRAVITY_PROGRESS_REV, TUBES_PROGRESS_REV } from "./moveLimits";
 import { gravitySolverProgress, tubesSolverProgress } from "./solverProgress.server";
-import { puzzleLevel } from "@/lib/levels/levels";
 import {
   scoreWordSlide,
   wordSpeedBonus,
