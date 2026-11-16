@@ -30,7 +30,7 @@ import { tiltPitLip } from "@/lib/arcade/tiltLip";
 import { homerunFence, homerunPlan, OUT_CAUGHT, OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
 import { FK_AIM, FK_FLIGHT, FK_NET_Z, FK_OUT_GOAL, FK_OUT_SAVED, FK_OUT_WALL, FK_OUT_WIDE, type FreekickState } from "@/lib/arcade/freekick";
 import { RACING_CAR_HALF, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceSpeed, racingGoTick, racingLightsOn, racingSegAt, racingTrack, type RacingState } from "@/lib/arcade/racing";
-import { btEventCountdown, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
+import { btEventCountdown, btMovesOf, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, type JuncState } from "@/lib/arcade/junction";
 import { skylineFlagAt, skylineGustAt, skylineShownMult, SKYLINE_REV_STD, SKYLINE_V9_STREAK_MAX, type SkylineState } from "@/lib/arcade/skyline";
 import { INK_BUCKET_H, INK_LIVE_PRE_CAP, inkBlockH, inkIsLive, type InkState } from "@/lib/arcade/inkBridge";
@@ -820,9 +820,9 @@ export function ballTrackSounds(course?: BtCourse): GameSounds<BtState> {
         // the cups' pulse in the second before they move.
         if (course?.boost?.length && state.balls.some((b) => course.boost!.includes(b.cell) && !prev!.balls.some((p) => p.id === b.id && p.cell === b.cell))) effectCue("balltrack.booster", 120);
         if ((state.streak ?? 0) > (prev.streak ?? 0) && (state.streak ?? 0) >= 2) effectCue("balltrack.combo", 0, Math.min(2, 1 + 0.06 * ((state.streak ?? 0) - 2)));
-        if (course && [course.relay.tick, course.shuffle.tick].some((t) => prev!.tick < t - 60 && state.tick >= t - 60)) effectCue("balltrack.cupPulse");
+        if (course && btMovesOf(course).map((m) => m.tick).some((t) => prev!.tick < t - 60 && state.tick >= t - 60)) effectCue("balltrack.cupPulse");
         // The cups slide to new places (relay, then shuffle) and flash.
-        if (course && [course.relay.tick, course.shuffle.tick].some((t) => prev!.tick < t && state.tick >= t)) effectCue("balltrack.shuffle");
+        if (course && btMovesOf(course).map((m) => m.tick).some((t) => prev!.tick < t && state.tick >= t)) effectCue("balltrack.shuffle");
         // Each step of the hopper's 5-4-3-2-1 before the relay and the shuffle.
         const count = course ? btEventCountdown(course, state.tick) : null;
         if (course && count !== null && count !== btEventCountdown(course, prev.tick)) effectCue("balltrack.countdown");

@@ -14,6 +14,7 @@ import { inputAt, MAX_CATCH_UP_TICKS, recordInput, TICK_MS, type ArcadeInputEven
 import {
   btCheckpoint,
   btEventCountdown,
+  btMovesOf,
   makeBallTrackGame,
   BT_BALLS,
   BT_CHECKPOINT_INTERVAL,
@@ -28,6 +29,7 @@ import {
   BT_PALETTE,
   BT_TILE,
   BT_W,
+  BT_RUN_TICKS,
   type BtCheckpoint,
   type BtCourse,
   type BtState,
@@ -153,7 +155,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       const s = state.current;
       sounds.frame(s, !game.isOver(s) && !lockedRef.current);
       if (s.home > seenHome) seenHome = s.home;
-      const bottomEvents = (s.tick >= course.relay.tick ? 1 : 0) + (s.tick >= course.shuffle.tick ? 1 : 0);
+      const bottomEvents = btMovesOf(course).filter((m) => s.tick >= m.tick).length;
       if (bottomEvents > shuffled) {
         shuffled = bottomEvents;
         playTick();
@@ -336,7 +338,7 @@ function BtHud({ view }: { view: BtHudView }) {
 
 /** Whole seconds (rounded up) until the course's next switch-up (the re-lay, then the shuffle), or null after both. Display only. */
 function btSwitchUpIn(course: BtCourse, tick: number): number | null {
-  const next = [course.relay.tick, course.shuffle.tick].filter((t) => t > tick);
+  const next = btMovesOf(course).map((m) => m.tick).filter((t) => t > tick);
   return next.length ? Math.ceil((Math.min(...next) - tick) / 60) : null;
 }
 
@@ -370,6 +372,14 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   );
 }
 
+/** The intro line for a level course (Easy, Hard, Expert: its marbles, release pace and cup moves); null on Normal. */
+export function btLevelIntroLine(course: BtCourse): string | null {
+  if (course.drop === undefined) return null;
+  const secs = (course.drop / 60).toFixed(1);
+  const moves = btMovesOf(course).filter((m) => m.tick < BT_RUN_TICKS).length;
+  return `${course.balls.length} marbles, one every ${secs} s · ${moves ? `the cups move ${moves} times` : "the cups never move"}`;
+}
+
 /** The course comes from the server-only bank; the full input log is replayed on the server. */
 export const ballTrackPuzzle: PuzzleDefinition = {
   key: "balltrack",
@@ -381,6 +391,8 @@ export const ballTrackPuzzle: PuzzleDefinition = {
   generate: () => ({ type: "balltrack", seed: 1, course: PRACTICE_COURSE }) satisfies BallTrackPuzzleData,
   check: () => false,
   revealHeading: "Your run",
+  // Levels (Strategy overhaul stage 3): a level course says its own pace and cup moves; Normal shows no line, as before.
+  introLine: (puzzle) => (puzzle.type === "balltrack" ? btLevelIntroLine(puzzle.course) : null),
   IntroExample,
   Stage,
   Reveal,

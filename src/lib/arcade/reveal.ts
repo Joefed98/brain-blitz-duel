@@ -6,7 +6,7 @@
  */
 
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
-import { BT_BALLS, BT_V7_BALLS } from "./ballTrack";
+import { btStateBalls } from "./ballTrack";
 import { whackDepthScore, type WhackState } from "./whack";
 import { CLAY_DOUBLES, clayDepthScore, clayDoublesHit, type ClayState } from "./clayShoot";
 import { MATCHUP_PAR_RAW, matchupCoreGemsOf, matchupGoalsMet, matchupGoalsOf, matchupTreasuresOf, type MatchupState } from "./matchup";
@@ -911,7 +911,8 @@ const BUILDERS: Record<string, Builder> = {
   },
   balltrack: (r, s) => {
     // btRev 7 drops 36 marbles (every earlier course 30): the replay's own state says which.
-    const all = (r["state"] as { r7?: number } | undefined)?.r7 ? BT_V7_BALLS : BT_BALLS;
+    // A level course (Easy 28, Hard and Expert 42) carries its own count on the state (`nb`).
+    const all = btStateBalls((r["state"] as { r7?: number; nb?: number } | undefined) ?? {});
     const done = n(r, "home") >= all;
     return {
       axis: { value: n(r, "home"), max: all, label: "Marbles home" },

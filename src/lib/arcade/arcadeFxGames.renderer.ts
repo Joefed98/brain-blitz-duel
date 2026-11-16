@@ -180,7 +180,7 @@ function bubSpecialPoint(s: BubState): { x: number; y: number } {
 }
 import { SNIP_CONFIG, SNIP_COURSES, SNIP_EATEN, SNIP_H, SNIP_TALL_H, SNIP_X_LEVELS, SNIP_X_VIEW_H, snipCamera, snipWorldH, type SnipState } from "./snip";
 import { TILT_MAX_MAZES, TILT_X_H, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
-import { btWorldH, BT_BALLS, BT_H, BT_HOPPER_H, BT_TALL_H, BT_V7_BALLS, BT_V7_H, BT_W, type BtState } from "./ballTrack";
+import { btStateBalls, btWorldH, BT_BALLS, BT_H, BT_HOPPER_H, BT_TALL_H, BT_V7_BALLS, BT_V7_H, BT_W, type BtState } from "./ballTrack";
 import { wfWord, wfWorldH, WF_H, WF_H_V2, WF_PAR, WF_W, WF_WELL_Y, type WordfallState } from "./wordfall";
 import {
   matchupIsJackpot,
@@ -1440,7 +1440,7 @@ export const BALLTRACK_FX: ArcadeFxSpec<BtState> = {
   events: [
     { kind: "streak", count: (s) => s.home, every: 5, label: (_s, n) => `${n} HOME` },
     // btRev 7 drops 36 marbles (every earlier course 30).
-    { kind: "final", count: (s) => (s.home >= (s.r7 ? BT_V7_BALLS : BT_BALLS) ? 1 : 0), label: (s) => `ALL ${s.r7 ? BT_V7_BALLS : BT_BALLS} HOME!` },
+    { kind: "final", count: (s) => (s.home >= btStateBalls(s) ? 1 : 0), label: (s) => `ALL ${btStateBalls(s)} HOME!` },
     // btRev 2 only: a marble home after riding a turned tube, or after passing a switch point.
     { kind: "pop", count: (s) => s.rideHomes ?? 0, label: () => "TURNED HOME!" },
     { kind: "pop", count: (s) => s.switchHomes ?? 0, label: () => "SWITCHED HOME!" },

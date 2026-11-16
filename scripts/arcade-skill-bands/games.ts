@@ -223,6 +223,8 @@ export const GAMES: GameSpec[] = [
     // Rooms deal a bank course; the stored seed picks it.
     seedFor: (n) => roomSeed(n) % BALL_TRACK_BANK.length,
     gameFor: (rev, seed) => makeBallTrackGame(btCourseFor(rev, seed), rev),
+    // Levels (Strategy overhaul stage 3): the dealt puzzle's own course (a level's proved list, or the bank's on Normal).
+    gameForPuzzle: (puzzle) => makeBallTrackGame(puzzle.course, puzzle.btRev),
     checkpoint: btCheckpoint,
     encode: (run, rev, seed) => encodeBallTrackRun(btCourseFor(rev, seed), run, rev),
     replay: (seed, raw, rev) => replayBallTrackRun(btCourseFor(rev, seed), seed, raw, rev),

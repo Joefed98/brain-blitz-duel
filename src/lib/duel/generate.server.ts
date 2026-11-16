@@ -311,7 +311,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "tents") return generateTents();
   if (type === "shikaku") return generateShikaku();
   if (type === "lightup") return generateLightUp();
-  if (type === "balltrack") return generateBallTrack();
+  if (type === "balltrack") return generateBallTrack(context.level);
   if (type === "numpyramid") return generateNumberPyramid();
   if (type === "trail") return generateTrail();
   if (type === "dig") return generateDig();
