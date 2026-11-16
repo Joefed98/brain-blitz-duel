@@ -2623,7 +2623,19 @@ outside the repo.
   `scripts/fixtures/word-demos.json` (`bun scripts/word-demos-record.ts`: the near-perfect kit on today's intro example),
   proved by word-demos-check (each run scores exactly the server's grade). Nothing saves a demo; the manual "Save intro
   demos" workflow does after the final merge. Effect moments' own cues go through `effectCue` (wordFx.ts), the finish
-  cues through `wordCue`.
+  cues through `wordCue`. The workflow runs `scripts/word-demos-save.ts` (DEMOS_URL, INTRO_DEMO_KEY, DEMOS_GAMES,
+  DEMOS_DRY / `--dry`; flags win; exit 0 / 1 / 2): headless Chromium plays each fixture run on the real stage in
+  practice's dev mode (one step player a game, `scripts/word-demos-players.ts`), refuses unless the served deal's public
+  half and the sent answer are the fixture's, then presses Save as intro demo.
+  *Stage 3, levels* (15–16 Nov 2026, on #432's framework): each Word game's entry is its own file
+  (`src/lib/levels/word/<game>.ts`: settings and one plain `ABOUT` line a level, read by `levelAbout` for the round
+  intro, the "?" help's Levels block and the game page) and its level deal `src/lib/duel/levels/<game>.server.ts`
+  (`dealWordLevel` in wordLevels.server.ts, hooked in generateUnstamped, never reached at Normal). Cryptogrid: Easy 8
+  starting letters / 120 s, Hard 5 / 60 s, Expert 4 / 50 s on the 666 bank boards a human-like solver cracks from four
+  letters alone (`codewordHuman.server.ts`, `codewordExpert.data.ts` by `bun scripts/codeword-expert-bank.ts
+  [--check]`); codeword-levels-check proves the clocks, deals, one solution and the tuning. Cryptogrid `codewordRev 7`
+  (`CODEWORD_REV_NAMES`): a full grid that isn't cracked is answered with the words on it that aren't real words
+  (`CwView.nonWords`), which flash red on the live board.
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
   `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
   `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,

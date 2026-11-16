@@ -1984,11 +1984,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap a square,", detail: "then a letter." },
         { action: "Every square", detail: "with that number fills." },
-        { action: "Six numbers", detail: "start decoded." },
+        { action: "Six numbers", detail: "start decoded (on Normal)." },
         { action: "Each letter has one number.", detail: "Using a letter again moves it from its old number; Clear empties the selected number.", helpOnly: true },
         { action: "The strip above the keys", detail: "shows what you have decoded.", helpOnly: true },
         { action: "After each letter", detail: "the next number still to decode is picked for you.", helpOnly: true },
         { action: "The grid completes", detail: "the moment every number is right.", helpOnly: true },
+        { action: "A full grid that isn’t cracked", detail: "flashes the words on it that aren’t real words.", helpOnly: true },
       ],
       score: preStandardPinned() ? stretchHelp("codeword", CODEWORD_STRETCH) : wordOverhaulDealt("codeword") ? CODEWORD_OVERHAUL_HELP : WORD_STANDARD_HELP.codeword,
     },

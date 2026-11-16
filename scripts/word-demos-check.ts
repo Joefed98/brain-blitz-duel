@@ -29,7 +29,8 @@ import {
 import { INTRO_EXAMPLE_ID } from "../src/lib/duel/puzzleDemo";
 import { hashText } from "./puzzle-fairness/kit";
 import { gradeSteps } from "./standard-lib";
-import { WORD_DEMO_LEVEL, WORD_DEMO_TYPES, exampleStamps, playWordDemo, wordIntroExample, type WordDemoRun } from "./word-demos-lib";
+import { WORD_DEMO_LEVEL, WORD_DEMO_TYPES, exampleStamps, playWordDemo, publicDigestOf, wordIntroExample, type WordDemoRun } from "./word-demos-lib";
+import { splitPuzzle } from "../src/lib/duel/secrets";
 
 let checks = 0;
 const ok = (cond: unknown, message: string) => {
@@ -50,6 +51,7 @@ for (const run of fixture.runs) {
   const example = wordIntroExample(t);
   ok(hashText(JSON.stringify(example)) === run.exampleDigest, `${t}: the example practice deals today is the one the run played`);
   ok(JSON.stringify(exampleStamps(example)) === JSON.stringify(run.stamps), `${t}: the run's stamps are the example's`);
+  ok(publicDigestOf(splitPuzzle(example).pub as typeof example) === run.publicDigest, `${t}: the served half's digest is the example's (the save script compares it)`);
   const field = WORD_DEMO_STAMP[t]!;
   ok(run.stamps[field] === LIVE_DEAL[t]?.[field], `${t}: ${field} ${run.stamps[field]} is the stamp rooms deal (${LIVE_DEAL[t]?.[field]})`);
   for (const [k, v] of Object.entries(run.stamps)) {
@@ -89,6 +91,31 @@ ok(/demo\.puzzle\.strikeoutRev \?\? 0\) < STRIKEOUT_REV4\) return null;/.test(in
 for (const file of ["scripts/word-demos-lib.ts", "scripts/word-demos-record.ts"]) {
   const src = readFileSync(file, "utf8");
   ok(!/supabase|createClient|saveIntroDemo|savePuzzle/i.test(src.replace(/\/\*[\s\S]*?\*\//g, "")), `${file}: never touches a database`);
+}
+
+// 5. The save script (scripts/word-demos-save.ts): every game has a step player; without the URL or the key it saves
+// nothing and exits 2; it never prints the key.
+{
+  const { STEP_PLAYERS } = await import("./word-demos-players");
+  for (const t of WORD_DEMO_TYPES) ok(typeof STEP_PLAYERS[t]?.step === "function", `${t}: a step player for the save`);
+  const { spawnSync } = await import("node:child_process");
+  const run = (env: Record<string, string>, extra: string[] = []) => {
+    const r = spawnSync(process.execPath, ["scripts/word-demos-save.ts", ...extra], {
+      env: { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", ...env },
+      encoding: "utf8",
+    });
+    return { code: r.status, out: `${r.stdout}${r.stderr}` };
+  };
+  const secret = "check-secret-4b7e";
+  const noUrl = run({ INTRO_DEMO_KEY: secret });
+  ok(noUrl.code === 2 && !noUrl.out.includes(secret), "save: no URL exits 2 and never prints the key");
+  const noKey = run({ DEMOS_URL: "http://127.0.0.1:9" });
+  ok(noKey.code === 2, "save: no key exits 2");
+  const flagKey = run({}, [`--key=${secret}`]);
+  ok(flagKey.code === 2 && !flagKey.out.includes(secret), "save: a key passed as a flag is never printed either");
+  const src = readFileSync("scripts/word-demos-save.ts", "utf8");
+  ok(/served deal isn't the fixture's intro example/.test(src) && /answer sent isn't the run's/.test(src), "save: refuses a deal or an answer that isn't the fixture's");
+  ok(!/console\.log\([^)]*\bkey\b(?!\))/.test(src.replace(/demo key|the key|INTRO_DEMO_KEY|--key/g, "")), "save: no log line prints the key");
 }
 
 console.log(`PASS: word demos — ${checks} checks (${fixture.runs.map((r) => `${r.type} ${r.score}`).join(", ")})`);

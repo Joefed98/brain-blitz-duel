@@ -2714,6 +2714,8 @@ export interface CodewordPuzzleData {
   givens: { n: number; letter: string }[];
   /** Letter of each number (index n − 1), upper case — private until the reveal. */
   solution?: string;
+  /** The round's clock when a level deals one (the Word overhaul's levels; absent: the game's own 120 s). */
+  timeLimitMs?: number;
 }
 
 /** Swapword: swap tiles until six crossing words read correctly. */

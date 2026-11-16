@@ -42,6 +42,7 @@ import { LETTER_WHEEL_BANK_REV5 } from "../src/lib/duel/letterWheelBankRev5.serv
 import { wsEncode } from "../src/lib/duel/wordSearch";
 import { codewordRuns, encodeCodeword } from "../src/lib/duel/codeword";
 import {
+  CODEWORD_REV_NAMES,
   CODEWORD_REV_VISIBLE,
   LOOKOUT_REV_DONE,
   SLIDER_REV_PROVEN,
@@ -82,13 +83,15 @@ const SEEDS = Array.from({ length: 24 }, (_, i) => 1000 + i * 37);
     ["wordslide", "wordSlideRev", SLIDER_REV_PROVEN],
     ["wordsearch", "wordSearchRev", LOOKOUT_REV_DONE],
     ["letterwheel", "wheelRev", WHEEL_REV_COMMON],
-    ["codeword", "codewordRev", CODEWORD_REV_VISIBLE],
+    ["codeword", "codewordRev", CODEWORD_REV_NAMES],
   ];
   for (const [type, key, rev] of stamps) {
     const live = deal(type, 77) as unknown as Record<string, unknown>;
     const old = deal(type, 77, true) as unknown as Record<string, unknown>;
     ok(live[key] === rev, `${type}: rooms deal ${key} ${rev} (got ${String(live[key])})`);
-    ok(old[key] === rev - 1, `${type}: pinned, the stamp before (${rev - 1}; got ${String(old[key])})`);
+    // Cryptogrid moved two stamps (6 then 7, stage 3); the stamp before the overhaul is 5.
+    const before = type === "codeword" ? CODEWORD_REV_VISIBLE - 1 : rev - 1;
+    ok(old[key] === before, `${type}: pinned, the stamp before (${before}; got ${String(old[key])})`);
     ok(usesWordOverhaul(live) && !usesWordOverhaul(old), `${type}: usesWordOverhaul tells the stamps apart`);
   }
   ok(DEAL_LAYERS.at(-1)?.name === "wordOverhaul", "the overhaul is the last deal layer");
@@ -429,6 +432,36 @@ const SEEDS = Array.from({ length: 24 }, (_, i) => 1000 + i * 37);
   const { renderToStaticMarkup } = await import("react-dom/server");
   const html = renderToStaticMarkup(createElement(RevealChips, { items: [{ text: "CAT", kind: "found" }, { text: "TIGER", kind: "longest" }], drop: true }));
   ok(/data-wr-drop=""/.test(html) && /TIGER/.test(html) && /CAT/.test(html), "round end: every word is in the markup from the start");
+}
+
+// 12. Cryptogrid codewordRev 7 (stage 3, Joe 15 Nov 2026): a full grid that isn't cracked names its non-words.
+{
+  const { checkCodewordMoves } = await import("../src/lib/duel/codeword.server");
+  const { isWord } = await import("../src/lib/duel/dictionary.server");
+  const p7 = deal("codeword", 501) as Extract<PuzzleData, { type: "codeword" }>;
+  ok(p7.codewordRev === CODEWORD_REV_NAMES && CODEWORD_REV_NAMES === CODEWORD_REV_VISIBLE + 1, "cryptogrid names: rooms deal codewordRev 7");
+  const sol = p7.solution ?? "";
+  const given = new Set(p7.givens.map((g) => g.n));
+  const hidden = Array.from({ length: p7.numbers }, (_, i) => i + 1).filter((n) => !given.has(n));
+  const right = hidden.map((n) => ({ n, letter: sol[n - 1]! }));
+  // Swap two hidden numbers' letters: a full grid that isn't cracked.
+  const [a, b] = [hidden[0]!, hidden[1]!];
+  const swapped = right.map((x) => (x.n === a ? { n: a, letter: sol[b - 1]! } : x.n === b ? { n: b, letter: sol[a - 1]! } : x));
+  const view = checkCodewordMoves(p7, encodeCodeword(swapped));
+  const letters = Array.from({ length: p7.numbers }, (_, i) => (given.has(i + 1) ? sol[i]! : swapped.find((x) => x.n === i + 1)!.letter));
+  const runs = codewordRuns(p7.cells, p7.size);
+  const expected = runs.map((r, i) => ({ i, w: r.cells.map((c) => letters[p7.cells[c]! - 1]).join("") })).filter((r) => !isWord(r.w)).map((r) => r.i);
+  ok(view.complete && !view.solved && Array.isArray(view.nonWords) && view.nonWords.length > 0, "cryptogrid names: a full wrong grid names words");
+  ok(JSON.stringify(view.nonWords) === JSON.stringify(expected), "cryptogrid names: exactly the runs that read as no real word");
+  ok((view.nonWords ?? []).every((i) => runs[i]!.cells.some((c) => p7.cells[c] === a || p7.cells[c] === b)), "cryptogrid names: only words through a wrong letter");
+  ok(checkCodewordMoves(p7, encodeCodeword(right)).nonWords === undefined, "cryptogrid names: none on a cracked grid");
+  ok(checkCodewordMoves(p7, encodeCodeword(swapped.slice(0, -1))).nonWords === undefined, "cryptogrid names: none on a grid not yet full");
+  const p6 = { ...p7, codewordRev: CODEWORD_REV_VISIBLE };
+  ok(checkCodewordMoves(p6, encodeCodeword(swapped)).nonWords === undefined, "cryptogrid names: rev 6 rounds get no names, as before");
+  ok(gradeAnswer(p7, encodeCodeword(right), 60_000).score === gradeAnswer(p6, encodeCodeword(right), 60_000).score, "cryptogrid names: rev 7 scores as rev 6");
+  // The stage's own runs list the squares in the server's order (rows, then columns), so the named runs flash right.
+  const stage = readFileSync("src/puzzles/codeword.tsx", "utf8");
+  ok(/flashNonWords\(named\)/.test(stage) && /data-cw-notword/.test(stage) && /data-cw-notword/.test(readFileSync("src/polish-word/cryptogrid.css", "utf8")), "cryptogrid names: the stage flashes them red");
 }
 
 console.log(`word-overhaul-check: ${passes} passed, ${failures.length} failed`);

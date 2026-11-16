@@ -217,6 +217,21 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     window.setTimeout(() => setNote((n) => (n === text ? null : n)), 1200);
   };
 
+  // codewordRev 7: the named runs' cells turn red for 1.6 s (live cells only) with the kit's wrong shake.
+  const flashNonWords = (runIndexes: readonly number[]) => {
+    const cellEls = gridRef.current?.firstElementChild?.children;
+    if (!cellEls || !data) return;
+    const runs = codewordRuns(data.cells, data.size);
+    const cells = [...new Set(runIndexes.flatMap((i) => runs[i] ?? []))];
+    for (const i of cells) {
+      const el = cellEls[i] as HTMLElement | undefined;
+      if (!el) continue;
+      el.setAttribute("data-cw-notword", "");
+      wordFx("wrong", el, null, { silent: true, noHaptic: true });
+      window.setTimeout(() => el.removeAttribute("data-cw-notword"), 1600);
+    }
+  };
+
   const latestActions = useRef(actions);
   latestActions.current = actions;
   const sync = useMoveSync(checkMoves, "codeword", (view, sentMoves) => {
@@ -230,7 +245,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
       puzzleReject(gridRef.current, false);
       fx.onWrong();
       effectCue("codeword.wrong");
-      flash("Not cracked yet: a letter is wrong");
+      // codewordRev 7: the server names the words on the grid that aren't real words; they flash red.
+      const named = "nonWords" in view && Array.isArray(view.nonWords) ? view.nonWords : [];
+      flash(named.length === 1 ? "Not cracked yet: 1 word isn’t a real word" : named.length > 1 ? `Not cracked yet: ${named.length} words aren’t real words` : "Not cracked yet: a letter is wrong");
+      if (named.length) flashNonWords(named);
     }
   });
 

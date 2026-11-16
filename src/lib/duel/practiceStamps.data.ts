@@ -17,7 +17,7 @@ export const PRACTICE_STAMPS = {
   "chain": "chainCycleRev=1 chainDepthRev=3 chainTimeRev=1 puzzleScoreRev=3 rulesVersion=2 speedPar=1",
   "checkout": "checkoutRev=2 depthRev=3 puzzleScoreRev=3 speedPar=1",
   "clayshoot": "clayRev=9 puzzleScoreRev=3 speedPar=1",
-  "codeword": "codewordRev=6 puzzleScoreRev=3 speedPar=1",
+  "codeword": "codewordRev=7 puzzleScoreRev=3 speedPar=1",
   "countup": "countRev=6 puzzleScoreRev=3 speedPar=1",
   "cross": "crossRev=12 puzzleScoreRev=3 speedPar=1",
   "curling": "curlRev=4 puzzleScoreRev=3 speedPar=1",

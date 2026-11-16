@@ -25,3 +25,10 @@
   background: url(/word-art/key.webp) center / 100% 100% no-repeat;
 }
 [data-word-polish="codeword"] [data-cw-key][data-cw-key-on] { background-image: url(/word-art/tile-amber.webp); box-shadow: inset 0 0 0 1.5px var(--jz-gold); }
+
+/* codewordRev 7 (stage 3): a full grid that isn't cracked flashes the words on it that aren't real words, red, for a
+   moment (the live board's cells only; the shared Grid markup is unchanged). */
+[data-word-polish="codeword"] [data-cw-cell][data-cw-notword][data-wa][data-wa] {
+  background-image: url(/word-art/tile-red.webp);
+  box-shadow: inset 0 0 0 2px var(--jz-red);
+}

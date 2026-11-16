@@ -32,14 +32,23 @@ export const SLIDER_REV_PROVEN = 6;
 export const LOOKOUT_REV_DONE = 6;
 export const WHEEL_REV_COMMON = 5;
 export const CODEWORD_REV_VISIBLE = 6;
+/**
+ * Cryptogrid codewordRev 7 (the Word overhaul, stage 3, Joe 15 Nov 2026): rev 6's board and scoring, and a full grid that
+ * isn't cracked is answered with the words on it that aren't real words, which flash on the board (the live check's
+ * `nonWords`). Rev 6 rounds get no names, as before.
+ */
+export const CODEWORD_REV_NAMES = 7;
 
-/** Each game's stamp key, the stamp a new deal must carry to move up (`from`) and the stamp it moves up to. */
-export const WORD_OVERHAUL_STAMPS: Partial<Record<PuzzleType, { key: string; from: number; rev: number }>> = {
+/**
+ * Each game's stamp key, the stamp a new deal must carry to move up (`from`), the overhaul's first stamp (`rev`: a puzzle
+ * on it or later uses the overhaul's rules) and the stamp new deals carry (`deal`, when later than `rev`).
+ */
+export const WORD_OVERHAUL_STAMPS: Partial<Record<PuzzleType, { key: string; from: number; rev: number; deal?: number }>> = {
   wordsmith: { key: "wordsmithRev", from: 4, rev: WORDSMITH_REV_EVERYDAY },
   wordslide: { key: "wordSlideRev", from: 5, rev: SLIDER_REV_PROVEN },
   wordsearch: { key: "wordSearchRev", from: 5, rev: LOOKOUT_REV_DONE },
   letterwheel: { key: "wheelRev", from: 4, rev: WHEEL_REV_COMMON },
-  codeword: { key: "codewordRev", from: 5, rev: CODEWORD_REV_VISIBLE },
+  codeword: { key: "codewordRev", from: 5, rev: CODEWORD_REV_VISIBLE, deal: CODEWORD_REV_NAMES },
 };
 
 /** Checks written for the stamps before the overhaul pin new deals to them (returns the previous setting). */
@@ -83,7 +92,7 @@ export function overhaulStamp<T extends PuzzleData>(puzzle: T): T {
   const st = WORD_OVERHAUL_STAMPS[puzzle.type];
   if (!st || dealPinned("preWordOverhaul")) return puzzle;
   if (stampOf(puzzle, st.key) !== st.from) return puzzle;
-  return { ...puzzle, [st.key]: st.rev } as T;
+  return { ...puzzle, [st.key]: st.deal ?? st.rev } as T;
 }
 
 /* ------------------------------------------------------------------------------------- Cryptogrid (rev 6) */

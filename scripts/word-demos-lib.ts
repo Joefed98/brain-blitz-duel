@@ -18,6 +18,12 @@ import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { SKILLS, hashText, makeRng, type Step } from "./puzzle-fairness/kit";
 import { KITS } from "./puzzle-fairness/kits";
 import { asPhoneSends, gradeSteps } from "./standard-lib";
+import { splitPuzzle } from "../src/lib/duel/secrets";
+
+/** The digest of a public half as the phone holds it (keys in the order served). */
+export function publicDigestOf(pub: PuzzleData): number {
+  return hashText(JSON.stringify(pub));
+}
 
 /** The nine Word games, in the order the fixture lists them. */
 export const WORD_DEMO_TYPES = ["wordsmith", "tilegrid", "wordslide", "wordhunt", "wordsearch", "letterwheel", "strikeout", "codeword", "swapword"] as const satisfies readonly PuzzleType[];
@@ -31,6 +37,8 @@ export interface WordDemoRun {
   exampleId: string;
   /** hashText of the dealt example (public and private halves). */
   exampleDigest: number;
+  /** hashText of the example's public half, the deal the phone is served (the save script compares the served deal). */
+  publicDigest: number;
   /** The example's top-level version stamps, as a deal signature reads them. */
   stamps: Record<string, number>;
   /** The kit player's drafts, each at its round-clock ms, as the phone sends them. */
@@ -67,6 +75,7 @@ export function playWordDemo(type: WordDemoType): WordDemoRun {
     type,
     exampleId: INTRO_EXAMPLE_ID,
     exampleDigest: hashText(JSON.stringify(puzzle)),
+    publicDigest: publicDigestOf(splitPuzzle(puzzle).pub as PuzzleData),
     stamps: exampleStamps(puzzle),
     steps,
     timed: play.timed,
