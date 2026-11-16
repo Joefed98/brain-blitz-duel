@@ -1,3 +1,4 @@
+import { useMomentEnter } from "@/components/fx/useMomentEnter";
 import { VerdictLabel } from "./VerdictLabel";
 import { MetaChips } from "@/components/app/MetaChips";
 import { Panel } from "@/design/components";
@@ -86,6 +87,7 @@ export function RoundResult({
   highlight,
   gameType,
 }: RoundResultProps) {
+  const enter = useMomentEnter("rise");
   const iWon = myRoundScore > opponentRoundScore;
   const theyWon = opponentRoundScore > myRoundScore;
   const cued = useRef(false);
@@ -107,7 +109,7 @@ export function RoundResult({
   useGameFxOnce("win", mine, iWon, { silent: true, noHaptic: true });
 
   return (
-    <div className="flex flex-1 flex-col justify-between gap-5 pt-1 animate-phase-in">
+    <div className="flex flex-1 flex-col justify-between gap-5 pt-1 animate-phase-in" {...enter}>
       <div className="flex flex-col gap-5">
         <header className="flex flex-col gap-0.5 text-left">
           <div className="rs-head">

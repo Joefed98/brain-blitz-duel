@@ -1,3 +1,4 @@
+import { useMomentEnter } from "@/components/fx/useMomentEnter";
 import { useEffect, useRef, type ReactNode } from "react";
 
 import { puzzleName } from "@/lib/duel/catalogue";
@@ -92,6 +93,7 @@ export function FinalResult({
   celebrations,
   joulesSinceMs = null,
 }: FinalResultProps) {
+  const enter = useMomentEnter("fade");
   // Large and in white, not all caps (Polish batch R): "You win!", "Priya wins", "Draw".
   const headline = outcome === "win" ? "You win!" : outcome === "loss" ? `${opponentName} wins` : "Draw";
   const myColour = colourOf(myLook);
@@ -141,7 +143,7 @@ export function FinalResult({
   );
 
   return (
-    <div ref={screenRef} className="relative flex flex-1 flex-col gap-5 pt-4 text-left animate-phase-in">
+    <div ref={screenRef} className="relative flex flex-1 flex-col gap-5 pt-4 text-left animate-phase-in" {...enter}>
       <h1 data-names className="relative truncate text-center text-[40px] font-extrabold leading-tight text-foreground animate-word-scale-in">
         {headline}
       </h1>
