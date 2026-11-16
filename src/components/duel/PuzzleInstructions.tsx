@@ -10,16 +10,27 @@ import { INTRO_SCORE } from "@/lib/duel/introScore";
 import { scoreSentences } from "@/lib/duel/scoreList";
 import { soundCue } from "@/lib/fx/soundCues";
 import type { PuzzleType } from "@/lib/duel/types";
+import { CARD_LEVEL_TEXT } from "@/lib/levels/cardLevelText.data";
+
+const LEVEL_NAME = { easy: "Easy", hard: "Hard", expert: "Expert" } as const;
 
 interface PuzzleInstructionsProps {
   type: PuzzleType;
+  /** The round's level (the Cards & Board levels): its own goal, lines and score in place of Normal's. */
+  level?: "easy" | "hard" | "expert" | null;
   overlay?: boolean;
   /** Shown between HOW and SCORE (the intro's demo box, IntroStage, which takes the spare height). */
   beforeScore?: ReactNode;
 }
 
-export function PuzzleInstructions({ type, overlay = false, beforeScore }: PuzzleInstructionsProps) {
+export function PuzzleInstructions({ type, overlay = false, beforeScore, level = null }: PuzzleInstructionsProps) {
   const instructions = PUZZLE_INSTRUCTIONS[type] ?? removedDefinition(type).instructions;
+  const levelText = level ? (CARD_LEVEL_TEXT[type]?.[level] ?? null) : null;
+  // A level's own lines first (marked), then Normal's lines that hold at every level; the intro keeps at most four.
+  const how = [
+    ...(levelText ? levelText.how.map((detail, i) => ({ action: i === 0 ? `${LEVEL_NAME[level!]}:` : "", detail, level: true })) : []),
+    ...instructions.how.filter((line) => (overlay || !line.helpOnly) && !(levelText && line.normalOnly)),
+  ].slice(0, overlay ? undefined : 4);
 
   return (
     <section
@@ -35,7 +46,7 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
         <p
           className={`intro-goal-text${overlay ? " intro-goal-text-help" : ""}`}
         >
-          {instructions.goal}
+          {levelText ? levelText.goal : instructions.goal}
         </p>
       </div>
       {/* The intro (3 Nov 2026, Joe's audit): GOAL, then the demo box (about 40 % of the height), then HOW and
@@ -46,9 +57,9 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
         <div
           className={`flex flex-col gap-0.5 leading-snug ${overlay ? "text-sm text-muted-foreground" : "intro-how-text"}`}
         >
-          {instructions.how.filter((line) => overlay || !line.helpOnly).map((line) => (
-            <p key={`${line.action}-${line.detail}`}>
-              <strong className="intro-how-action">{line.action}</strong> {line.detail}
+          {how.map((line) => (
+            <p key={`${line.action}-${line.detail}`} {...("level" in line ? { "data-level-line": "" } : {})}>
+              {line.action ? <><strong className="intro-how-action">{line.action}</strong> {line.detail}</> : line.detail}
             </p>
           ))}
         </div>
@@ -58,13 +69,13 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
         {overlay ? (
           // The help's SCORE is a list too (text pass, 4 Nov 2026): one row a part, then penalties, then the total.
           <ul data-help-score-parts="" className="flex flex-col gap-0.5 text-sm leading-snug text-muted-foreground">
-            {scoreParts(instructions.score).map((part) => (
+            {scoreParts(levelText ? levelText.score : instructions.score).map((part) => (
               <li key={part}>{part}</li>
             ))}
           </ul>
         ) : (
           <ul data-intro-score-parts="" className="intro-score-text flex flex-col gap-0.5 leading-snug">
-            {scoreParts(INTRO_SCORE[type]).map((part) => (
+            {scoreParts(levelText ? levelText.intro : INTRO_SCORE[type]).map((part) => (
               <li key={part} className="intro-score-part">{part}</li>
             ))}
           </ul>
@@ -96,9 +107,11 @@ interface PuzzleHelpProps {
   type: PuzzleType;
   open: boolean;
   onClose: () => void;
+  /** The round's level (the Cards & Board levels). */
+  level?: "easy" | "hard" | "expert" | null;
 }
 
-export function PuzzleHelp({ type, open, onClose }: PuzzleHelpProps) {
+export function PuzzleHelp({ type, open, onClose, level = null }: PuzzleHelpProps) {
   useEffect(() => {
     if (!open) return;
     soundCue("shared.help.open");
@@ -149,7 +162,7 @@ export function PuzzleHelp({ type, open, onClose }: PuzzleHelpProps) {
           </button>
         </div>
         <div data-help-scroll data-scrollable className="help-sheet-scroll min-h-0 flex-1 px-4 pb-4 pt-3">
-          <PuzzleInstructions type={type} overlay />
+          <PuzzleInstructions type={type} overlay level={level} />
           {type === "lightup" && <HelpExample type={type} />}
           <p className="mt-4 text-center font-mono text-xs uppercase text-muted-foreground">
             Tap outside or × to close

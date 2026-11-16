@@ -271,14 +271,14 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "breaker") return generateBreaker();
   if (type === "pinball") return generatePinball();
   if (type === "minesweeper") return generateMinesweeper();
-  if (type === "mahjong") return generateMahjong();
+  if (type === "mahjong") return generateMahjong(context.level);
   if (type === "homerun") return generateHomerun();
   if (type === "freekick") return generateFreekick();
   if (type === "racing") return generateRacing();
-  if (type === "freecell") return generateFreecell();
-  if (type === "tripeaks") return generateTripeaks();
+  if (type === "freecell") return generateFreecell(context.level);
+  if (type === "tripeaks") return generateTripeaks(context.level);
   if (type === "pokersquares") return generatePokerSquares();
-  if (type === "fivehands") return generateFiveHands();
+  if (type === "fivehands") return generateFiveHands(context.level);
   if (type === "pyramid") return generatePyramid();
   if (type === "golfsol") return generateGolfSol();
   if (type === "muggins") return generateMuggins();

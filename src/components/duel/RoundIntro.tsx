@@ -1,4 +1,5 @@
 import { puzzleDef, puzzleName, typeTimeLimitMs, usesArcadeClock } from "@/lib/duel/catalogue";
+import { levelOfPuzzle } from "@/lib/levels/levels";
 import { useGameDef } from "@/lib/duel/gameLoader";
 import { GameIntroExample } from "@/components/duel/GameParts";
 import { levelStarsOf } from "@/lib/practice/progress";
@@ -113,7 +114,9 @@ export function RoundIntro({
   // Engine games play their demo once a recorded one is there; until then, and for good when it is
   // stopped or missing, the same box shows the game's still (IntroStage), so the intro never moves.
   const savedArcadeDemo = useArcadeIntroDemo(type);
-  const arcadeDemo = hasIntroDemo(type) && savedArcadeDemo !== "pending" ? savedArcadeDemo : null;
+  // A level other than Normal (the Cards & Board levels): the saved demo shows Normal's game, so the still shows instead.
+  const atLevel = puzzle ? levelOfPuzzle(puzzle) !== null : false;
+  const arcadeDemo = hasIntroDemo(type) && savedArcadeDemo !== "pending" && !atLevel ? savedArcadeDemo : null;
   const reducedMotion = useReducedMotion();
   const loadedDef = useGameDef(type);
   const introLine = puzzle ? (loadedDef?.introLine?.(puzzle) ?? null) : null;
@@ -353,10 +356,11 @@ export function RoundIntro({
           >
             <PuzzleInstructions
               type={type}
+              level={puzzle ? levelOfPuzzle(puzzle) : null}
               beforeScore={
                 <IntroStage
                   key={type}
-                  still={<GameIntroExample type={type} />}
+                  still={<GameIntroExample type={type} level={puzzle ? levelOfPuzzle(puzzle) : null} />}
                   aspect={arcadeDemo ? introDemoAspect(type, arcadeDemo) : puzzleDemo ? puzzleDemo.log.w / puzzleDemo.log.h : null}
                   // Reduce Motion (7 Nov 2026, accessibility audit #11): a demo loops until Ready with no pause, so
                   // it isn't played; the game's still holds the same box (IntroStage sizes it by the text alone).

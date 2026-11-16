@@ -198,3 +198,19 @@ to exactly 200 with the bank's par.
 - "Cards in correct sorted runs" is read as each column's run from its base card up (two or more cards); a run stacked on
   an unsorted card does not count until the cards under it are sorted.
 - Weak and average bots rarely finish in two minutes; FreeCell's core is what pays them.
+
+## Levels (the Cards & Board overhaul, stage 3, 15 Nov 2026)
+
+Normal is freecellRev 5 exactly. A level deal carries `level` and freecellRev 5; its game is `freecellLevelGame(level)`
+(`FC_LEVEL_RULES` in freecell.ts), dealt from its own solved bank (`freecellDealsLevels.data.ts`,
+`bun scripts/freecell-level-bank.ts [--check]`, solutions in `scripts/fixtures/freecell-solutions-levels.json`).
+
+| Level | Deal | Free cells | Undo | Hints | Par 0 at | Speed full by |
+|---|---|---|---|---|---|---|
+| Easy | 32 cards (Ace–8), deal seeds 1, 2, 3 … | 5 (the fifth is pile 13) | free, unlimited | free; the glow shows by itself after 8 s idle | 2 × par | 60 s |
+| Normal | today (40 cards) | 4 | a move, unlimited | none | 1.5 × par | 32 s |
+| Hard | 52 cards, the 120 shortest of the Normal-era bank's seeds re-solved (par 29–41) | 4 | a move, unlimited | 5 points each | 1.25 × par | 25 s |
+| Expert | 52 cards, the same seeds solved with 3 cells, the 120 shortest (par 32–43) | 3 | a move, 3 at most | one | 1.25 × par | 25 s |
+
+Parts on every level: cards 105 (all home), par 50, speed 45; a hint's cost comes off the cards part. The elite bot finishes
+52-card deals in about 47–52 s, so Hard keeps 52 cards (the brief's 48-card fallback is not needed).

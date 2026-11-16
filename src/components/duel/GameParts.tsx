@@ -5,6 +5,7 @@
  * example draw nothing until it lands, then the game's own component mounts once. The Stage also asks for the
  * game's own sounds (lib/sound.ts loadGameSounds).
  */
+import type { Level } from "@/lib/levels/levels";
 import { useEffect } from "react";
 
 import type { PuzzleRevealProps, PuzzleStageProps, RunPictureProps } from "@/puzzles/types";
@@ -29,11 +30,11 @@ export function GameReveal(props: PuzzleRevealProps) {
   return <Reveal {...props} />;
 }
 
-export function GameIntroExample({ type }: { type: PuzzleType | RemovedPuzzleType }) {
+export function GameIntroExample({ type, level }: { type: PuzzleType | RemovedPuzzleType; level?: Level | null }) {
   const definition = useGameDef(type);
   if (!definition) return null;
   const Example = definition.IntroExample;
-  return <Example />;
+  return <Example level={level ?? null} />;
 }
 
 /**

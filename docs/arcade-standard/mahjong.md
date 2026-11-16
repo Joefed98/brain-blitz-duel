@@ -100,3 +100,16 @@ selected tile glows gold; a pair taken lifts and fades in gold; a Shuffle washes
 cards-board-check, arcade-standard-check (entry `scripts/arcade-standard/mahjong.ts`), arcade-room-identity-check
 (`scripts/room-identity/mahjong.ts`), arcade-self-replay-check (entry `mahjong`), replay-check, arcade-fx-check,
 tile-scenes-check, round-max-check, category-pool-check. The intro shows a still (no demo recorded).
+
+## Levels (the Cards & Board overhaul, stage 3, 15 Nov 2026)
+
+Normal is mahjongRev 2 exactly. A level deal carries `level` and mahjongRev 2; its game is `mahjongLevelGame(level)`
+(`MAHJONG_LEVEL_RULES`), built backwards as Normal's on its own layout, so every deal clears (`mahjongBuildClears`). A
+board's layout is told by its length (56, 72 or 88 places), on the same 6 × 7 footprint and world.
+
+| Level | Tiles | Layers | Faces dealt four times | Shuffle | Hints | Speed full by |
+|---|---|---|---|---|---|---|
+| Easy | 56 | 3 | 2 | −2 | free; the glow shows by itself after 8 s idle | 70 s |
+| Normal | 72 (today) | 4 | 6 | −5 | none | 65 s |
+| Hard | 72 | 4 | 10 | −8 | −5 each | 25 s |
+| Expert | 88 | 5 | 12 | −10 | one | 30 s |

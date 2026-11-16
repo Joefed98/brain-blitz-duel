@@ -248,6 +248,13 @@ import {
   type PuzzleData,
 } from "./types";
 
+/** The difficulty levels (15 Nov 2026): a level deal's level ("easy" | "hard" | "expert"), or null for Normal (every
+ *  deal before levels), so Normal grades exactly as before. */
+function levelOfDeal(puzzle: PuzzleData): "easy" | "hard" | "expert" | null {
+  const level = puzzleLevel(puzzle);
+  return level === "normal" ? null : level;
+}
+
 export interface SubmitExtra {
   reactionAvgMs?: number | undefined;
   correctCount?: number | undefined;
@@ -1637,7 +1644,8 @@ function gradeUnderRev(
     // Cards & Board (30 Oct 2026): the server's own replay of the move log on the stored deal.
     case "freecell": {
       const replayStart = performance.now();
-      const run = replayFreecellRun(puzzle.seed, answer, puzzle.freecellRev);
+      const level = levelOfDeal(puzzle);
+      const run = replayFreecellRun(puzzle.seed, answer, puzzle.freecellRev, level);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       isCorrect = run.finished;
@@ -1650,6 +1658,7 @@ function gradeUnderRev(
         moves: run.moves,
         par: run.par,
         ...((puzzle.freecellRev ?? 1) >= 2 ? { undos: run.undos, resets: run.resets } : {}),
+        ...(level ? { level, hints: run.hints } : {}),
         finished: run.finished,
         finishSeconds: run.finishSeconds,
         endedSeconds: run.endedSeconds,
@@ -1667,7 +1676,8 @@ function gradeUnderRev(
     }
     case "tripeaks": {
       const replayStart = performance.now();
-      const run = replayTripeaksRun(puzzle.seed, answer, puzzle.tripeaksRev);
+      const tpLevel = levelOfDeal(puzzle);
+      const run = replayTripeaksRun(puzzle.seed, answer, puzzle.tripeaksRev, tpLevel);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       isCorrect = run.finished;
@@ -1681,6 +1691,7 @@ function gradeUnderRev(
         stockLeft: run.stockLeft,
         // tripeaksRev 2: stock cards turned and the deal's stock par (the reveal's Stock par tile).
         ...((puzzle.tripeaksRev ?? 1) >= 2 ? { stockTurns: run.stockTurns, stockPar: run.stockPar } : {}),
+        ...(tpLevel ? { level: tpLevel, hints: run.hints, undos: run.undos } : {}),
         finished: run.finished,
         finishSeconds: run.finishSeconds,
         endedSeconds: run.endedSeconds,
@@ -1783,7 +1794,8 @@ function gradeUnderRev(
     // Five Hands (31 Oct 2026): the deck is shuffled from the stored seed and the run replayed; only that scores.
     case "fivehands": {
       const replayStart = performance.now();
-      const run = replayFiveHandsRun(puzzle.seed, answer, puzzle.fiveHandsRev);
+      const fhLevel = levelOfDeal(puzzle);
+      const run = replayFiveHandsRun(puzzle.seed, answer, puzzle.fiveHandsRev, fhLevel);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       isCorrect = run.finished;
@@ -1798,6 +1810,7 @@ function gradeUnderRev(
         ...((puzzle.fiveHandsRev ?? 1) >= 3 ? { column: run.column, columnPoints: run.columnPoints, columnHand: run.columnHand } : {}),
         // Practice challenges (wave 2 C1b, display data only): the best column on the run's table (null until every row is complete).
         ...((puzzle.fiveHandsRev ?? 1) >= 3 ? { bestColumnPoints: fiveHandsBestColumnPoints(run.state) } : {}),
+        ...(fhLevel ? { level: fhLevel, hints: run.state.hints ?? 0 } : {}),
         finished: run.finished,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -1815,7 +1828,8 @@ function gradeUnderRev(
     // Pyramid (1 Nov 2026): the deal is built from the stored seed and the run replayed; only that scores.
     case "pyramid": {
       const replayStart = performance.now();
-      const run = replayPyramidRun(puzzle.seed, answer, puzzle.pyramidRev);
+      const pyLevel = levelOfDeal(puzzle);
+      const run = replayPyramidRun(puzzle.seed, answer, puzzle.pyramidRev, pyLevel);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       isCorrect = run.finished;
@@ -1824,6 +1838,7 @@ function gradeUnderRev(
       extraDetail = {
         pyramidRev: puzzle.pyramidRev ?? 1,
         removed: run.removed,
+        ...(pyLevel ? { level: pyLevel, hints: run.state.hints ?? 0 } : {}),
         ppPairs: run.ppPairs,
         kings: run.kings,
         finished: run.finished,
@@ -1935,7 +1950,8 @@ function gradeUnderRev(
     }
     case "mahjong": {
       const replayStart = performance.now();
-      const run = replayMahjongRun(puzzle.seed, answer, puzzle.mahjongRev);
+      const mjLevel = levelOfDeal(puzzle);
+      const run = replayMahjongRun(puzzle.seed, answer, puzzle.mahjongRev, mjLevel);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1946,6 +1962,7 @@ function gradeUnderRev(
       extraDetail = {
         mahjongRev: puzzle.mahjongRev ?? 1,
         pairs: run.pairs,
+        ...(mjLevel ? { level: mjLevel, hints: run.state.hints ?? 0, of: run.state.face.length / 2 } : {}),
         shuffles: run.shuffles,
         misses: run.misses,
         cleared: run.cleared,

@@ -2,6 +2,7 @@ import type { Database } from "@/integrations/supabase/types";
 import { record, text } from "@/lib/validate";
 import { SHORT_MAX } from "./inputLimits";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
+import { cardsDemoPlays } from "./cardsDemoRules";
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { SWING_REV_BIG } from "@/lib/arcade/swing";
 import { INK_REV_BIG } from "@/lib/arcade/inkBridge";
@@ -135,6 +136,8 @@ export function introDemoFor(data: { type: string }, demo: IntroDemoRow | null):
 
   // The fixed-splitter demo cannot replay the new movable-piece example.
   if (data.type === "laser" && demo?.puzzle.type === "laser" && demo.puzzle.splitterPieces !== 1) return null;
+  // The Cards & Board overhaul (15 Nov 2026): only a demo recorded on today's stamps, at Normal, plays (cardsDemoRules.ts).
+  if (demo && !cardsDemoPlays(data.type, demo.puzzle)) return null;
   // Old Ball Track queues and release timings cannot replay the current run.
   if (data.type === "balltrack" && demo?.puzzle.type === "balltrack" && demo.puzzle.course.balls.length !== (btIsV7Play(demo.puzzle.btRev) ? BT_V7_BALLS : BT_BALLS)) return null;
   // Open-stream Colour Clash demos cannot replay the fixed-queue run.

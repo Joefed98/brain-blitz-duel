@@ -17,6 +17,7 @@ import { RevealBreakdown } from "./RevealBreakdown";
 import { RetroRunSummary } from "./RetroRunSummary";
 import { GameRunPicture, useHasRunPicture } from "./GameParts";
 import { moonHitsLine } from "@/lib/duel/moonRevealHits";
+import { CardsRevealPicture, CARDS_REVEAL_TYPES } from "./CardsRevealPicture";
 import { COST_LINE, PENALTY_LINE, realFullClear, statRepeatsPart, summaryText } from "@/lib/duel/revealBreakdown";
 import { bandStdLines, standardPartLabels } from "@/lib/duel/arcadeBandStd";
 
@@ -378,6 +379,8 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
 
         {/* The Retro overhaul (stage 2): a Retro game's run summary, its key numbers and its moments along the clock. */}
         {myScore !== null ? <RetroRunSummary puzzle={puzzle} answer={myAnswer} /> : null}
+        {/* Cards & Board (the overhaul, 15 Nov 2026): the final table large, the key numbers and a run summary. */}
+        {CARDS_REVEAL_TYPES.has(puzzle.type) && myScore !== null ? <CardsRevealPicture puzzle={puzzle} answer={myAnswer ?? null} /> : null}
 
         {/* The full breakdown: open in practice, one tap away in a room (always in the markup). */}
         {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}

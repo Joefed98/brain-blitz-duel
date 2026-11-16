@@ -667,7 +667,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Handsome | Score 150 or more. | Classic | Big score | `score` ≥ 150 |  | `fivehands.handsome` |
 | Pick of the bunch | Pick the best bonus column on the table. | Classic | Par | `column` ≥ 0, `columnPoints` ≥ `bestColumnPoints` |  | `fivehands.pick-of-the-bunch` |
-| High roller | Score 170 or more on Hard. | Hard | Big score | `score` ≥ 170 | ● | `fivehands.high-roller` |
+| High roller | Score 160 or more on Hard. | Hard | Big score | `score` ≥ 160 | ● | `fivehands.high-roller` |
 
 #### Free Cell (`freecell`)
 
@@ -682,7 +682,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | No shuffle | Clear the stack without a Shuffle. | Classic | Clean | line “Pairs” = 150 of 150, line “No shuffles” = 20 of 20 |  | `mahjong.no-shuffle` |
-| Tile rush | Clear a Hard stack within 65 s. | Hard | Speed | line “Speed” = 30 of 30 |  | `mahjong.tile-rush` |
+| Tile rush | Clear a Hard stack within 25 s. | Hard | Speed | line “Speed” = 30 of 30 |  | `mahjong.tile-rush` |
 
 #### Minefield (`minesweeper`)
 

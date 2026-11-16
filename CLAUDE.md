@@ -2662,6 +2662,56 @@ outside the repo.
   `orbitFuelBank{Easy,Hard,Expert}.server.ts`, `bun scripts/orbit-fuel-bank.ts --level=…`): orbit-levels-check, bands
   `bun scripts/orbit-level-bands.ts`. Human limits in the tuning are each game's own bot constraint (documented per
   game), measured with main's `scripts/level-tune.ts` (checkpoints every 300 ticks), not #444's.
+- **Cards & Board overhaul, stage 1** (15 Nov 2026, phase 2 step 4; `docs/design/pages-review/cards-board/GALLERY.md`;
+  display, input mapping, sound and haptics only, no stamps): Free Cell, Summit, Five Hands and Thirteen draw real
+  cards and Mahjong real tiles, Blender renders (`scripts/cards-board-art/`: `textures.ts` paints the faces,
+  `render.py` renders them with the pip `bpy` module, `pack.py` writes `public/cards-board/*.webp`; **re-run all three
+  after changing `cardFace.renderer.ts` or Mahjong's faces**), drawn by `src/lib/arcade/cards/realArt.renderer.ts`
+  (`drawRealCard`, `drawRealFelt`, `drawRealTile`; the flat faces until the images load and in node). On the live stage
+  cards slide and flip (`CardMotion` / `CardLayer`, held by each game's view; reveals and replays draw still; reduced
+  motion places at once). Reset asks first (`confirmBoxes`, Mahjong's footer question); Free Cell's Undo and Reset are
+  labelled buttons under the columns; Five Hands' POINTS is the score; a light `cardFeel()` touch on pick up, place and
+  match (haptics-check counts it). The arcade reveal draws `CardsRevealPicture` for the five (final table, three key
+  numbers, a run summary). The shared `drawCard` (Full House and the retired games) is unchanged.
+  cards-board-overhaul-check (~1 s); skins-default-check pins the four redesigned card games to
+  `scripts/fixtures/skins-default-frames-cards.json`; sound slots for Joe's recordings in
+  `docs/sound-cues/cards-board-elevenlabs.md`. Stages 2 (effects, with the kit) and 3 (levels and hints) follow.
+- **Cards & Board overhaul, stage 2** (15 Nov 2026; the effects, `docs/design/pages-review/cards-board/GALLERY.md`
+  "Stage 2"; display and sound only, no stamps): each game's renderer starts its effects from what changed in the sim's
+  state (`src/lib/arcade/cards/cardsFx.renderer.ts`: `FxTimeline` on the wall clock, held by the live stage's view, so
+  reveals, replays and stills draw none; nothing starts under reduced motion). Mahjong's stage now holds a view
+  (`mahjongNewView`, `mahjongArtGameFor(rev, view)`, one game object per revision and view); `mahjongBlockers` (mahjong.ts)
+  names the tiles keeping a place blocked. 24 new sound slots (`overCue` in gameSounds.ts: a slot's own file once set,
+  the sound that played there before until then; listed in `docs/sound-cues/cards-board-elevenlabs.md`); Free Cell's
+  home chime climbs a major scale per rank (`fcHomeRate`). Clips: `bun scripts/shots/cards-board-fx-clips.ts` (the
+  flawless lines through the real renderers on a virtual clock; `CardMotion.clock`). cards-board-overhaul-check section 9.
+- **Cards & Board overhaul, stage 3** (16 Nov 2026; the levels, `docs/design/pages-review/cards-board/GALLERY.md`
+  "Stage 3", each game's page in `docs/arcade-standard/` "Levels"): Easy, Hard and Expert for Free Cell, Mahjong, Summit,
+  Five Hands and Thirteen in `GAME_LEVELS`; Normal is today's game exactly (a Normal deal carries no `level` and never
+  reaches the level code). Each sim holds its rules (`FC_LEVEL_RULES`, `MAHJONG_LEVEL_RULES`, `TP_LEVEL_RULES`,
+  `FH_LEVEL_RULES`, `PY_LEVEL_RULES`) and a level game (`<game>LevelGame`, `<game>GameAt(rev, level)`, read by the stage,
+  the replay `replay<Game>Run(seed, raw, rev, level)`, grade.ts, the reveals and the replay steppers). Deals: Free Cell's
+  level banks (`freecellDealsLevels.data.ts`, `bun scripts/freecell-level-bank.ts`), Summit's Easy subset (`TP_EASY_DEALS`)
+  and Expert bank (`tripeaksExpert.data.ts`, `bun scripts/tripeaks-expert-bank.ts`), Mahjong's 56/88 layouts
+  (`mahjongLayoutOf`: a board's layout is told by its length) and Thirteen's level deals (`pyBuildLevelDeal`), all built or
+  proved. Hints: an input the sim counts (free on Easy, 5 points on Hard, one on Expert; none on Normal), the move shown
+  display only (`fcHintMove`, `mahjongHintPair`, `tpHintMove`, `fhHintRow`, `pyHintMove`; the solvers moved into
+  `src/lib/arcade/cards/`), Easy's glow by itself after 8 s idle. Five Hands' levels carry their own `timeLimitMs`
+  (`puzzleRunMs` honours it). The intro and "?" help take the level (`PuzzleInstructions` / `PuzzleHelp` `level`, words in
+  `src/lib/levels/cardLevelText.data.ts` from `bun scripts/cards-level-text.ts`; Normal lines that state today's numbers
+  carry `normalOnly`); a level's intro shows the still, not Normal's demo. Sounds `cards.hint`, `cards.hintIdle`,
+  `cards.deadEnd` (silent until set). Tuning: `bun scripts/cards-levels-tune.ts` (each part's average per level); the
+  Summit and Thirteen bots model the missing glow as longer search (`NO_GLOW_SCAN`). Intro demos:
+  `scripts/fixtures/cards-demos.json` (elite runs on each example deal, `bun scripts/cards-demos-record.ts`), saved by
+  `scripts/cards-demos-save.ts` (DEMOS_URL, INTRO_DEMO_KEY), played only on today's stamps (`cardsDemoRules.ts`).
+  cards-levels-check (~50 s) and cards-demos-check (~2 s). Second pass (16 Nov 2026, Joe): Summit's Hard and Expert deal
+  from the no-wrap bank (Hard its easier deals, `TP_HARD_NOWRAP_DEALS`; Expert its 100 hardest by stock par), Five Hands'
+  Hard and Expert stricter hand tables (`FH_TABLE_HARD` / `FH_TABLE_EXPERT`, a pair 10; the intro still takes the level,
+  `IntroExample`'s `level` prop), Thirteen's Hard filter adds a three-removal look and Expert deals exactly three Kings
+  with a four-removal filter. Measured two ways: the skill-band bots and a player held to human limits
+  (`scripts/cards-human-limits.ts`, 0.25 s to react and 0.15 s to move, visible cards only; `cards-levels-tune.ts
+  --bots=human`, best tenth reported); cards-levels-order-check (one game a part, `--part=k/5`, ~2–25 s each) fails unless
+  every level is clearly below the one before.
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
   `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
   `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,

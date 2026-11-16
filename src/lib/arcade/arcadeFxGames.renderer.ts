@@ -13,7 +13,7 @@
 import { CURLING_FX_V4, MINIGOLF_FX, POOL_FX } from "./sportsFx.renderer";
 import type { ArcadeFxMiss, ArcadeFxMoment, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
 import { minesCellX, minesCellY, minesCleared, MINES_CELL, MINES_WORLD_H, MINES_WORLD_W, type MinesState } from "./minesweeper";
-import { mahjongCleared, mahjongSlotRect, MAHJONG_WORLD_H, MAHJONG_WORLD_W, type MahjongState } from "./mahjong";
+import { mahjongCleared, mahjongLayoutOf, mahjongSlotRect, MAHJONG_WORLD_H, MAHJONG_WORLD_W, type MahjongState } from "./mahjong";
 import { FREEKICK_FX, HOMERUN_FX, RACING_FX } from "./sportsFx.renderer";
 import { FREECELL_FX } from "./cards/freecell.renderer";
 import { TRIPEAKS_FX } from "./cards/tripeaks.renderer";
@@ -1554,14 +1554,14 @@ export const MINESWEEPER_FX: ArcadeFxSpec<MinesState> = {
 
 const mahjongPoint = (s: MahjongState) => {
   if (s.lastA < 0) return null;
-  const a = mahjongSlotRect(s.lastA);
-  const b = mahjongSlotRect(s.lastB);
+  const a = mahjongSlotRect(s.lastA, mahjongLayoutOf(s.face));
+  const b = mahjongSlotRect(s.lastB, mahjongLayoutOf(s.face));
   return { x: (a.x + b.x + a.w) / 2, y: (a.y + b.y + a.h) / 2 };
 };
 
-const mahjongSlotCentre = (slot: number): { x: number; y: number } | null => {
+const mahjongSlotCentre = (s: MahjongState, slot: number): { x: number; y: number } | null => {
   if (slot < 0) return null;
-  const r = mahjongSlotRect(slot);
+  const r = mahjongSlotRect(slot, mahjongLayoutOf(s.face));
   return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
 };
 
@@ -1581,8 +1581,8 @@ export const MAHJONG_FX: ArcadeFxSpec<MahjongState> = {
     { kind: "final", count: (s) => (mahjongCleared(s) ? 1 : 0), label: () => "CLEARED!" },
   ],
   misses: [
-    { count: (s) => s.blocked, at: (s) => mahjongSlotCentre(s.lastBlocked) },
-    { count: (s) => s.misses, at: (s) => mahjongSlotCentre(s.sel) },
+    { count: (s) => s.blocked, at: (s) => mahjongSlotCentre(s, s.lastBlocked) },
+    { count: (s) => s.misses, at: (s) => mahjongSlotCentre(s, s.sel) },
   ],
 };
 

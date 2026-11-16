@@ -123,6 +123,7 @@ const solveTemplate = new Set([...text.matchAll(/useSolveFx\(\s*"([a-z0-9]+)"/g)
 const played = (id: string) => text.includes(`"${id}"`) || text.includes(`'${id}'`) || solveTemplate.has(id);
 /** The Action overhaul's slots waiting for Joe's recordings: listed one a line in docs/sound-cues/action-elevenlabs.md. */
 const ACTION_ELEVENLABS = "waits for Joe's ElevenLabs recording (docs/sound-cues/action-elevenlabs.md); silent until its file is set";
+const CARDS_BOARD_AWAITING = "a Cards & Board overhaul slot awaiting Joe's recording; plays the earlier sound until then (overCue)";
 /** Played keys with no file of their own that keep it so, and why. */
 const EXEMPT: Record<string, string> = {
   "laser.gem": "Lightbender's gem plays its own pz_laser_gem recording on the same beam step",
@@ -227,6 +228,40 @@ const EXEMPT: Record<string, string> = {
   "swing.pteroShadow": ACTION_ELEVENLABS,
   "swing.streakMeter": ACTION_ELEVENLABS,
   "swing.stretchTally": ACTION_ELEVENLABS,
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Cards and Board overhaul): the overhaul's new
+  // card and tile slots wait for Joe's recordings (docs/sound-cues/cards-board-elevenlabs.md); until then each plays
+  // the sound that played there before (overCue in gameSounds.ts).
+  "freecell.undo": CARDS_BOARD_AWAITING,
+  "freecell.reset": CARDS_BOARD_AWAITING,
+  "mahjong.undo": CARDS_BOARD_AWAITING,
+  "mahjong.reset": CARDS_BOARD_AWAITING,
+  "pyramid.undo": CARDS_BOARD_AWAITING,
+  "pyramid.reset": CARDS_BOARD_AWAITING,
+  "tripeaks.flip": CARDS_BOARD_AWAITING,
+  "freecell.wobble": CARDS_BOARD_AWAITING,
+  "freecell.combo": CARDS_BOARD_AWAITING,
+  "freecell.bounce": CARDS_BOARD_AWAITING,
+  "mahjong.pairFly": CARDS_BOARD_AWAITING,
+  "mahjong.wrongPair": CARDS_BOARD_AWAITING,
+  "mahjong.blockers": CARDS_BOARD_AWAITING,
+  "mahjong.spin": CARDS_BOARD_AWAITING,
+  "mahjong.nearEnd": CARDS_BOARD_AWAITING,
+  "mahjong.shower": CARDS_BOARD_AWAITING,
+  "tripeaks.ladderBreak": CARDS_BOARD_AWAITING,
+  "tripeaks.peakFly": CARDS_BOARD_AWAITING,
+  "tripeaks.nudge": CARDS_BOARD_AWAITING,
+  "tripeaks.stuck": CARDS_BOARD_AWAITING,
+  "tripeaks.peaksLight": CARDS_BOARD_AWAITING,
+  "fivehands.flip": CARDS_BOARD_AWAITING,
+  "fivehands.stamp": CARDS_BOARD_AWAITING,
+  "fivehands.bigStamp": CARDS_BOARD_AWAITING,
+  "fivehands.columnTick": CARDS_BOARD_AWAITING,
+  "fivehands.countUp": CARDS_BOARD_AWAITING,
+  "pyramid.pairFly": CARDS_BOARD_AWAITING,
+  "pyramid.kingFlourish": CARDS_BOARD_AWAITING,
+  "pyramid.wrongPair": CARDS_BOARD_AWAITING,
+  "pyramid.uncover": CARDS_BOARD_AWAITING,
+  "pyramid.outline": CARDS_BOARD_AWAITING,
 };
 const needed: string[] = [];
 for (const [id, e] of Object.entries(manifest)) {

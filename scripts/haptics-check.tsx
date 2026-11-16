@@ -536,8 +536,11 @@ const CALL_SITES: Record<string, Record<string, number>> = {
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of Blockzone's top-out haptic): impact 19 → 20.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): Rally's life lost (rallyRev 13),
  * impact 20 → 21.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Cards and Board overhaul): tick 0 → 1, the
+ * light pick up / place / match touch in the five card and tile games (cardFeel).
+ * Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): impact 21 and tick 1 together.
  */
-const FEEL = { success: 7, error: 1, impact: 21 };
+const FEEL = { success: 7, error: 1, impact: 21, tick: 1 };
 const found: Record<string, Record<string, number>> = {};
 for (const file of files) {
   const rel = file.slice(SRC.length + 1);

@@ -89,6 +89,13 @@ interface RoomOpts {
   scores?: (slot: number, round: number) => number;
   /** The host's Start has claimed the room: its rounds are being dealt (Security C1a, dealClaim.ts). */
   dealing?: boolean;
+  /**
+   * My stored run (slot 1) for the round (the Cards & Board overhaul's reveal picture draws from it). Harness addition,
+   * changed with Joe's approval, 15 Nov 2026 (routine consequence of the Cards and Board overhaul).
+   */
+  answer?: string;
+  /** The arcade round's stored puzzle (with `arcadeType`) instead of a fresh deal. */
+  arcadePuzzle?: PuzzleData;
 }
 
 function roomNow(status: Status, phase: string, opts: RoomOpts) {
@@ -116,7 +123,7 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
     duel_id: "duel-theme",
     player_slot: slot,
     round_number: round,
-    answer: "",
+    answer: slot === 1 && opts.answer ? opts.answer : "",
     is_correct: slot % 3 !== 0,
     ms_remaining: slot === 2 ? 0 : 20_000 - slot * 900,
     reaction_avg_ms: null,
@@ -126,13 +133,13 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
     score: opts.scores ? opts.scores(slot, round) : 190 - rankOf(slot) * 13 - round,
     submitted_at: iso(now - 5_000),
   });
-  const scored = status === "finished" || ["result", "standings", "winner_reveal"].includes(phase) || !!opts.revealParts || !!opts.arcadeRun;
+  const scored = status === "finished" || ["result", "standings", "winner_reveal"].includes(phase) || !!opts.revealParts || !!opts.arcadeRun || !!opts.answer;
   const players = Array.from({ length: count }, (_, i) => player(i + 1));
   if (opts.join) players[0] = { ...players[0]!, status: "left" };
   const arcadeType = opts.arcadeType ?? "matchup";
   const arcadePuzzle = opts.arcadeRun
     ? opts.arcadeRun.puzzle
-    : arcadeType === "matchup" ? ARCADE : (splitPuzzle(withSeededRandom(41, () => generatePuzzle(arcadeType as never))).pub as PuzzleData);
+    : opts.arcadePuzzle ?? (arcadeType === "matchup" ? ARCADE : (splitPuzzle(withSeededRandom(41, () => generatePuzzle(arcadeType as never))).pub as PuzzleData));
   const order = Array.from({ length: rounds }, (_, i) =>
     opts.arcade || i % 2 ? arcadeType : "sudoku",
   );

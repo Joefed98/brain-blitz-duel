@@ -14,7 +14,7 @@
  *
  * One child process per game (@napi-rs/canvas returns its native memory only when the process exits).
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { SKIN_GAMES, drawFrames, digest, type SkinGame } from "./skins/frames";
 import { baseDigests, baseLine, type BaseDigests } from "./skins/base";
 
@@ -29,6 +29,19 @@ if (one) {
 }
 
 const stored = JSON.parse(readFileSync("scripts/fixtures/skins-default-frames.json", "utf8")) as Record<string, Record<string, string>>;
+/**
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Cards and Board overhaul: a fixture for screens
+ * deliberately redesigned). Free Cell, Summit, Thirteen and Five Hands draw real cards since the overhaul, so main's
+ * frames no longer apply to them. For these four the check holds what the hook must keep, that no look and the default
+ * look draw identically, and pins the redesigned frames to their own record (scripts/fixtures/skins-default-frames-cards.json,
+ * `--record-cards` writes it), asserted on the machine that drew main's stored digests (the same rasteriser). Every
+ * other game is checked against main exactly as before.
+ */
+const REDESIGNED = new Set<string>(["freecell", "tripeaks", "pyramid", "fivehands"]);
+const CARDS_FIXTURE = "scripts/fixtures/skins-default-frames-cards.json";
+const cardsStored = existsSync(CARDS_FIXTURE) ? (JSON.parse(readFileSync(CARDS_FIXTURE, "utf8")) as Record<string, Record<string, string>>) : {};
+const recordCards = process.argv.includes("--record-cards");
+const cardsOut: Record<string, Record<string, string>> = {};
 let passes = 0;
 const failures: string[] = [];
 let base: BaseDigests | null = null;
@@ -51,6 +64,31 @@ for (const g of SKIN_GAMES) {
     continue;
   }
   const got = JSON.parse(line.slice(5)) as { plain: Record<string, string>; looked: Record<string, string> };
+  if (REDESIGNED.has(g)) {
+    const names = Object.keys(got.plain);
+    cardsOut[g] = got.plain;
+    let bad = 0;
+    for (const name of names) {
+      if (got.looked[name] !== got.plain[name]) {
+        bad++;
+        failures.push(`${g} ${name}: the default look draws differently from no look argument`);
+      }
+      if (!recordCards && storedHere && cardsStored[g] && cardsStored[g]![name] !== got.plain[name]) {
+        bad++;
+        failures.push(`${g} ${name}: differs from the overhaul's recorded frame`);
+      }
+    }
+    if (names.length !== Object.keys(want[g] ?? {}).length || (!recordCards && storedHere && Object.keys(cardsStored[g] ?? {}).length !== names.length)) {
+      bad++;
+      failures.push(`${g}: frame list changed (${names.length} drawn)`);
+    }
+    if (bad) console.log(`  FAIL ${g}: ${bad} frame(s) differ`);
+    else {
+      passes++;
+      console.log(`  ok ${g} (redesigned in the Cards and Board overhaul): ${names.length} frames, no look and the default look identical${storedHere ? ", the overhaul's record" : ""}`);
+    }
+    continue;
+  }
   const names = Object.keys(want[g] ?? {});
   let bad = 0;
   for (const name of names) {
@@ -74,6 +112,10 @@ for (const g of SKIN_GAMES) {
     passes++;
     console.log(`  ok ${g}: ${names.length} frames identical to main${storedHere ? " (live and stored)" : " (live)"}, with no look and with the default look`);
   }
+}
+if (recordCards) {
+  writeFileSync(CARDS_FIXTURE, JSON.stringify(cardsOut, null, 1) + "\n");
+  console.log(`  recorded ${CARDS_FIXTURE}`);
 }
 if (failures.length) {
   for (const f of failures.slice(0, 20)) console.log(`  FAIL ${f}`);

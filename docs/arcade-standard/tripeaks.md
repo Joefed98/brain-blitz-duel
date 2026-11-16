@@ -149,3 +149,23 @@ Every bank deal reaches 200: cards-check replays all 300 lines through the serve
 - The brief's "24-card stock" counts the card that starts the discard (23 left to turn).
 - The bank holds only clearable deals, so the core pays well even for weak play; the 60 s run, the features and speed
   separate the levels.
+
+## Levels (the Cards & Board overhaul, stage 3, 15 Nov 2026)
+
+Normal is tripeaksRev 3 exactly. A level deal carries `level` and tripeaksRev 3; its game is `tripeaksLevelGame(level)`
+(`TP_LEVEL_RULES`). All 60 s.
+
+| Level | Deals | Glow | Ace–King wrap | Undo | Hints | Speed full by |
+|---|---|---|---|---|---|---|
+| Easy | the bank's deals with a stock par of 12 or less (`TP_EASY_DEALS`) | on | yes | 3 | free; the glow shows by itself after 8 s idle | 25 s |
+| Normal | today | on | yes | none | none | 20 s |
+| Hard | the no-wrap bank's 108 easier deals (`TP_HARD_NOWRAP_DEALS`, no-wrap stock par 8–18) | off | no | none | −5 each | 20 s |
+| Expert | the no-wrap bank's 100 hardest deals (`TP_EXPERT_DEALS`, no-wrap stock par 18–23) | off | no | none | one | 16 s |
+
+The no-wrap bank (`tripeaksExpert.data.ts`, `bun scripts/tripeaks-expert-bank.ts [--check]`): deal seeds 1–700 the solver
+clears without the Ace–King wrap with a run of ten (208 clear), each with its no-wrap stock par; the 100 with the highest
+par are Expert's, the rest Hard's (16 Nov 2026, Joe: Hard and Expert step up through the deal itself). Every deal's line
+is in `scripts/fixtures/tripeaks-expert-lines.json` (`{ expert, hard }`), replayed by cards-levels-check.
+
+On Easy a dead end waits while an undo is left. The glow is display only; the skill-band bots model its absence as
+1.6 × the search time (human limits; `NO_GLOW_SCAN` in the bot).
