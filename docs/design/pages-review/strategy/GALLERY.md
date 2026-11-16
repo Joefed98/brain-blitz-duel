@@ -106,13 +106,15 @@ Concept A's warm wood and gold tubes (today's), marbles drawn bigger (27 px in t
 
 One frame per level, Easy · Normal · Hard · Expert left to right: the Near-perfect bot's run at the same tick on each level's own deal (`bun scripts/shots/strategy-level-frames.ts`; Normal is the intro example deal). Elite bot averages, Easy / Normal / Hard / Expert, under human limits (about 0.25 s to react, 0.15 s to move) unless marked; each game's levels check proves 200 is reachable at every level.
 
-| Game | Levels | Elite averages |
-|---|---|---|
-| Tilt | <img src="img/tilt-levels.webp" width="560"> | 193 / 144 / 141 / 121 |
-| Gemstone (matchupRev 13, two-hit ice) | <img src="img/matchup-levels.webp" width="560"> | 197 / 158 / 146 / 137 |
-| Coral Pop | <img src="img/bubble-levels.webp" width="560"> | 194 / 179 / 169 / 132 |
-| Rainbow Bridge | <img src="img/inkbridge-levels.webp" width="560"> | 197 / 189 / 181 / 165 |
-| Ball Tracker | <img src="img/balltrack-levels.webp" width="560"> | 198 / 196 / 179 / 145 |
+| Game | Levels | Elite averages | Average player's star share on Easy (175+) |
+|---|---|---|---|
+| Tilt | <img src="img/tilt-levels.webp" width="560"> | 193 / 144 / 141 / 121 | 53 % |
+| Gemstone (matchupRev 13, two-hit ice) | <img src="img/matchup-levels.webp" width="560"> | 197 / 158 / 146 / 137 | 32 % |
+| Coral Pop | <img src="img/bubble-levels.webp" width="560"> | 195 / 179 / 169 / 132 | 36 % (was 5 %) |
+| Rainbow Bridge | <img src="img/inkbridge-levels.webp" width="560"> | 200 / 189 / 181 / 165 | 48 % (was 0 %) |
+| Ball Tracker | <img src="img/balltrack-levels.webp" width="560"> | 198 / 196 / 179 / 145 | 37 % (was 5 %) |
+
+Final pass (16 Nov 2026): Easy made easier on Coral Pop (3 colours), Rainbow Bridge (a quarter of the birds, a 110 px pot, a clover on the easy line, bonuses paid sooner) and Ball Tracker (16 marbles every 3.2 s, combos full at 10); Expert's extra pieces are rendered like the rest (Gemstone's cyan heart, Coral Pop's orange bubble, both visible in the Expert frames above); each game's "?" help has a Levels line.
 
 ## Image sizes (new art shipped in the app)
 

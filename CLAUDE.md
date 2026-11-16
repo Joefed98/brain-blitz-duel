@@ -2653,6 +2653,12 @@ outside the repo.
   `DEMOS_DRY` / `--dry`; refuses a deal that differs from the fixture; exits 0 / 1 / 2; never prints the key), and a
   version rule in `getIntroDemoFn`: a Strategy demo dealt at another level than Normal never plays. Frames:
   `bun scripts/shots/strategy-level-frames.ts`.
+  Final pass (16 Nov 2026): Easy made easier (the average bot stars on about a third to a half of runs) on Coral Pop (3
+  colours, core full at 50), Rainbow Bridge (a quarter of the birds, a 110 px pot, a clover on the easy line,
+  `tricksFullAt` / `cloversFullAt`, speed full with 10 s left) and Ball Tracker (16 marbles every 3.2 s, the course's
+  `combo` full at 10); Gemstone's cyan heart (`gem-heart`) and Coral Pop's orange bubble (`bubble-orange`) are rendered
+  (`strategy_art.py gem7 bubble6`); each game's "?" help has a help-only "Levels:" line (strategy-overhaul-check).
+  Tilt's Normal (elite ~144 under human limits) is noted for Joe's scoring review in docs/arcade-standard/tilt.md.
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
   `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
   `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,
