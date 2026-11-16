@@ -1,3 +1,4 @@
+import { useMomentEnter } from "@/components/fx/useMomentEnter";
 import { VerdictLabel } from "./VerdictLabel";
 import { LeftTag } from "./LeftTag";
 import { MetaChips } from "@/components/app/MetaChips";
@@ -61,6 +62,7 @@ export function RoundResultsTable({
   continueState,
   highlight,
 }: RoundResultsTableProps) {
+  const enter = useMomentEnter("rise");
   const ordered = roundResultOrder(rows, times);
   const topScore = Math.max(0, ...ordered.map((row) => row.roundScore));
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -94,7 +96,7 @@ export function RoundResultsTable({
   useGameFxOnce("win", myRow, iTopped, { silent: true, noHaptic: true });
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1 text-left animate-phase-in">
+    <div className="flex min-h-0 flex-1 flex-col gap-3 pt-1 text-left animate-phase-in" {...enter}>
       <header className="flex shrink-0 flex-col gap-0.5">
         <div className="rs-head">
           <h1 className="rs-title">{finalRound ? "Final round" : "Round results"}</h1>
