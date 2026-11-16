@@ -3,7 +3,7 @@
  * (docs/scoring-standard.md). Written from patternRules.ts's numbers (the grader's own), with {max} for the game's
  * maximum (roundMax.ts, 200), so the texts always state what the standard's stamp deals. Shared, pure.
  */
-import { BLOCK_STD, FLOW_REV3_FULL_BY_S, FLOW_STD, ICE_STD, LASER_STD, PATTERN_STD, PUSH_STD, TOPSY_STD, type PatternStdType } from "./patternRules";
+import { BLOCK_STD, FLOW_REV3_FULL_BY_S, FLOW_STD, ICE_STD, LASER_REV4_FULL_BY_S, LASER_STD, PATTERN_STD, PUSH_STD, TOPSY_STD, type PatternStdType } from "./patternRules";
 import { gameLevelSettings } from "@/lib/levels/gameLevels";
 import { LEVEL_LABEL } from "@/lib/levels/levels";
 import { puzzleScoreList, type ScoreLine } from "../scoreList";
@@ -163,9 +163,36 @@ export function flowRev3Help(): string {
 }
 // ---- chroma:end
 
+// ---- lightbender:start (the Pattern overhaul, levels, 16 Nov 2026)
+/**
+ * Lightbender on laserRev 4: full speed by LASER_REV4_FULL_BY_S on Normal and by each level's own time
+ * (laser.levels.ts), so the help names them all.
+ */
+function laserLevelTimes(): string {
+  const parts = (["easy", "hard", "expert"] as const).flatMap((level) => {
+    const s = gameLevelSettings<{ fullByS?: number }>("laser", level);
+    return s?.fullByS ? [`${LEVEL_LABEL[level]} ${s.fullByS} s`] : [];
+  });
+  return parts.length ? `on Normal; ${parts.join(", ")}` : "";
+}
+export function laserRev4Help(): string {
+  return puzzleScoreList({
+    finish: "light all six gems",
+    speed: { max: PATTERN_STD.laser.speed, fullByS: LASER_REV4_FULL_BY_S, note: laserLevelTimes() || undefined },
+    bonuses: [
+      { label: "Mirrors", how: "use no more mirrors than the solution needs for all of it, nothing at twice that", max: LASER_STD.mirrors },
+      { label: "First shot", how: "solve it with your first shot", max: LASER_STD.firstShot },
+    ],
+    unfinished: `${LASER_STD.perGem} for each gem your best shot lit without a bomb, more for lighting it early`,
+    total: "{max}" as unknown as number,
+  });
+}
+// ---- lightbender:end
+
 /** The help as shown ({max} filled in: the game's maximum, 200). */
 export function patternStdHelp(type: PatternStdType): string {
   if (type === "flow" && !prePatternNov15Pinned()) return fillMax(flowRev3Help(), type);
+  if (type === "laser" && !prePatternNov15Pinned()) return fillMax(laserRev4Help(), type);
   if (type === "blockparty") return fillMax(blockPatternHelp(), type);
   if (isPartialPatternType(type) && partialCreditDealt()) return fillMax(PARTIAL_PATTERN_HELP[type], type);
   if (type === "pipes") return fillMax(pipesPatternHelp(), type);

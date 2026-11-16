@@ -14,11 +14,14 @@ import { GRAVITY_DIRS, gravitySolved, tilt } from "../../src/lib/duel/gravity";
 import { gravityMinimum } from "../../src/lib/duel/gravity.server";
 import { BLOCK_ORIENTATIONS, BLOCK_PIECES, absoluteCells, blockGeometry, encodePlacements, fitsOn, orientationsFor, type BlockGeometry } from "../../src/lib/duel/blockParty";
 import { solveBlockBoard } from "../../src/lib/duel/blockPartyLevels.server";
-import { encodeLaserAnswer } from "../../src/lib/duel/laser";
+import { encodeLaserAnswer, laserShotsOf } from "../../src/lib/duel/laser";
 import { appendAction, encodeActionLog, usesActionLog, type LoggedAction } from "../../src/lib/duel/actionLog";
 import { laserAction } from "../../src/lib/duel/laserLog";
 import { encodeFlowPaths, flowGrid, flowNeighbours } from "../../src/lib/duel/flow";
 import { solveFlowLikeAPerson } from "../../src/lib/duel/flowHuman.server";
+import { solveLaserLikeAPerson } from "../../src/lib/duel/laserSolve.server";
+import { gameLevelSettings } from "../../src/lib/levels/gameLevels";
+import type { LaserLevelSettings } from "../../src/lib/levels/pattern/laser.levels";
 import { puzzleLevel } from "../../src/lib/levels/levels";
 import { PIPE_BITS, pipeNeighbour, pipesDims, rotateMask, tileOpenings } from "../../src/lib/duel/logic";
 import { thinkMs, type Play, type PuzzleKit, type Rng, type Skill, type Step } from "./kit";
@@ -584,6 +587,23 @@ function randomLayout(q: Of<"laser">, rng: Rng): MirrorPlacement[] {
 // BASE 5 s per piece: trace the beam, choose the piece and its facing, drag it on.
 const LASER_BASE = 5;
 /**
+ * Levels (16 Nov 2026): a level's board is timed by what it asks of a player, not a flat 5 s a piece: LASER_PER_PIECE a
+ * piece set down and turned, plus LASER_PER_WHAT_IF for each piece the person-like solver tries before it finds the
+ * beam (laserSolve.server.ts; most are dismissed at a glance), shared over the pieces. Calibrated so a typical Normal
+ * board (8.5 pieces, 155 tries, the median) costs the same 42.5 s as the flat rate; Normal itself keeps the flat 5 s,
+ * so its plays are unchanged.
+ */
+const LASER_PER_PIECE = 4.09;
+const LASER_PER_WHAT_IF = 0.05;
+function laserPieceBase(q: Of<"laser">): number {
+  const level = puzzleLevel(q);
+  if (level === "normal") return LASER_BASE;
+  const settings = gameLevelSettings<LaserLevelSettings>("laser", level);
+  const turns = solveLaserLikeAPerson(q, settings?.humanTurns ?? 1000).turns;
+  const pieces = Math.max(1, (q.solution ?? []).length);
+  return LASER_PER_PIECE + (LASER_PER_WHAT_IF * turns) / pieces;
+}
+/**
  * Puzzles stamped alogRev 1 (13 Oct 2026, #40) take the phone's action log (every placement,
  * removal and FIRE on the round clock); older ones the "fires|layout" answer. The play below
  * keeps both in step so stored and new rounds see the same player.
@@ -606,10 +626,10 @@ const laserKit: PuzzleKit = {
     const q = p as Of<"laser">;
     if (usesActionLog(p)) {
       const empty = new LaserLog(true);
-      for (let shot = 0; shot < LASER_MAX_FIRES; shot++) empty.fire(1000 + shot * 2500);
+      for (let shot = 0; shot < laserShotsOf(q); shot++) empty.fire(1000 + shot * 2500);
       const random = new LaserLog(true);
       let t = 500;
-      for (let shot = 0; shot < LASER_MAX_FIRES; shot++) {
+      for (let shot = 0; shot < laserShotsOf(q); shot++) {
         random.add(laserAction.reset(), (t += 400));
         for (const m of randomLayout(q, rng)) random.place(m, (t += 600));
         random.fire((t += 800));
@@ -654,8 +674,9 @@ const laserKit: PuzzleKit = {
       const options = free.filter((c) => !used.has(c));
       return { cell: rng.pick(options), kind: good.kind };
     };
+    const pieceBase = laserPieceBase(q);
     solution.forEach((good, i) => {
-      at += thinkMs(rng, LASER_BASE, skill);
+      at += thinkMs(rng, pieceBase, skill);
       if (rng.chance(skill.err)) {
         placed.push(wrongPiece(good));
         wrongIdx.add(i);
@@ -663,7 +684,7 @@ const laserKit: PuzzleKit = {
       log.place(placed[placed.length - 1]!, at);
       draft();
     });
-    while (fires < LASER_MAX_FIRES) {
+    while (fires < laserShotsOf(q)) {
       at += thinkMs(rng, 1, skill); // tap Fire
       fires += 1;
       log.fire(at);
@@ -673,11 +694,11 @@ const laserKit: PuzzleKit = {
         break;
       }
       steps.push({ answer: log.answer(placed, fires), atMs: at });
-      if (fires >= LASER_MAX_FIRES) break;
+      if (fires >= laserShotsOf(q)) break;
       // Read the miss, then fix what the beam showed (and maybe slip again).
       at += thinkMs(rng, 3, skill);
       for (const i of [...wrongIdx]) {
-        at += thinkMs(rng, LASER_BASE * 0.7, skill);
+        at += thinkMs(rng, pieceBase * 0.7, skill);
         log.remove(placed[i]!.cell, at);
         if (rng.chance(skill.err / 2)) placed[i] = wrongPiece(solution[i]!);
         else {

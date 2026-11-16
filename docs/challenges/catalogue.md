@@ -183,7 +183,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | One shot | Light all six gems with your first FIRE. | Classic | Clean | finish, `fires` = 1 |  | `laser.one-shot` |
 | Hall of mirrors | Light all six on the first shot with par mirrors. | Classic | Par | finish, `parts.efficiency` ≥ 10 |  | `laser.hall-of-mirrors` |
-| Speed of light | Light all six within 15 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 15 s) | ● | `laser.speed-of-light` |
+| Speed of light | Light all six within 30 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 30 s) | ● | `laser.speed-of-light` |
 
 #### Chroma Lines (`flow`)
 

@@ -25,9 +25,10 @@ import { generatePipes, generatePipesLevel } from "../logic.server";
 import { gameLevelSettings } from "@/lib/levels/gameLevels";
 import { NORMAL, type Level } from "@/lib/levels/levels";
 import type { PipesLevelSettings } from "@/lib/levels/pattern/pipes.levels";
-import { generateLaser } from "../laser.server";
+import { generateLaser, generateLaserLevel } from "../laser.server";
+import type { LaserLevelSettings } from "@/lib/levels/pattern/laser.levels";
 import { isSplitter } from "../laser";
-import type { PuzzleData, PuzzleType } from "../types";
+import { LASER_TIME_MS, type PuzzleData, type PuzzleType } from "../types";
 import { pipesParTurns } from "./pipesTaps";
 import { D4_REV, dealtD4Rev, isD4Type } from "./stamps";
 import { addIceGems } from "./gems.server";
@@ -47,7 +48,7 @@ export interface D4DealContext {
   bankSeed?: number;
   recentBankKeys?: ReadonlySet<string> | undefined;
   /** The level the deal is made at (generate.server.ts; absent at Normal). Pipeline, Tessellate and Chroma Lines
-   * deal their level boards from it. */
+   * deal their level boards from it, and Lightbender. */
   level?: Level | undefined;
 }
 
@@ -74,9 +75,13 @@ export function dealDepth4(type: PuzzleType, context: D4DealContext): PuzzleData
       return { ...p, pipesRev: dealtD4Rev("pipes"), par: pipesParTurns(p.tiles, p.solution ?? []) };
     }
     case "laser": {
-      const p = generateLaser();
+      // Levels (16 Nov 2026, laser.levels.ts): a level's board, spare mirrors, shots and clock; Normal exactly as before.
+      const settings = context.level && context.level !== NORMAL ? gameLevelSettings<LaserLevelSettings>("laser", context.level) : null;
+      const p = settings ? generateLaserLevel(settings) : generateLaser();
       const par = (p.solution ?? []).filter((piece) => !isSplitter(piece.kind)).length;
-      return { ...p, laserRev: dealtD4Rev("laser"), par, mirrors: p.mirrors + LASER_SPARE_MIRRORS };
+      const dealt = { ...p, laserRev: dealtD4Rev("laser"), par, mirrors: p.mirrors + (settings ? settings.spare : LASER_SPARE_MIRRORS) };
+      if (!settings) return dealt;
+      return { ...dealt, shots: settings.shots, ...(settings.timeLimitMs !== LASER_TIME_MS ? { timeLimitMs: settings.timeLimitMs } : {}) };
     }
     case "flow": {
       // Levels (16 Nov 2026): Easy, Hard and Expert deal from their own banks (live without a seed); Normal as before.

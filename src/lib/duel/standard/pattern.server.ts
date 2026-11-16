@@ -28,7 +28,8 @@ import { usesPipesPlaced } from "../speedPipesNov7";
 import { gradePipesBoard } from "../logic.server";
 import { decodePipesTurns, pipesAfterTurns } from "../depth4/pipesTaps";
 import { cratesOnTargets, decodePushMoves, replayPush } from "../push";
-import { FLOW_PAIRS, LASER_MAX_FIRES, RINGS_SEGMENTS } from "../types";
+import { FLOW_PAIRS, RINGS_SEGMENTS } from "../types";
+import { laserShotsOf } from "../laser";
 import { GRADIENT_WASTE_WEIGHT, PARTIAL_SHARE_POINTS, usesPartialCredit } from "../partialCredit";
 import { rev3Progress, solverShare } from "../puzzleProgress";
 import { decodeGradient, gradientMinimum, gradientSwapLimit, replayGradient } from "../jumbled";
@@ -478,7 +479,7 @@ const lightbender: StandardGame = {
       const first = num(extra, "fires") === 1 ? LASER_STD.firstShot : 0;
       return { finished: true, speed: speed("laser", input), bonus: fewer + first, measure: "elegant beam" };
     }
-    const { gems, times } = laserBestGems(extra, input.limitMs, LASER_MAX_FIRES);
+    const { gems, times } = laserBestGems(extra, input.limitMs, laserShotsOf(p));
     const early = times.reduce<number>((sum, t) => sum + (t === null ? 0 : LASER_STD.earlyPerGem * (1 - Math.max(0, Math.min(input.limitMs, t)) / input.limitMs)), 0);
     return { finished: false, credit: LASER_STD.perGem * gems + early, facts: { bestGems: gems } };
   },

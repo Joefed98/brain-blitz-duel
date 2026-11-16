@@ -12,6 +12,7 @@ import {
   encodeLaserAnswer,
   flipMirror,
   isSplitter,
+  laserShotsOf,
   traceBeam,
   verifyLaser,
   type BeamTrace,
@@ -30,7 +31,6 @@ import {
   LASER_CELLS,
   LASER_COLS,
   LASER_FADE_MS,
-  LASER_MAX_FIRES,
   LASER_TIME_MS,
   type BeamDir,
   type LaserPuzzleData,
@@ -381,6 +381,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
   const directionalGems = isLaser ? puzzle.directionalGems ?? [] : [];
   const total = isLaser ? puzzle.mirrors : 0;
   const splitterTotal = isLaser ? puzzle.splitterPieces ?? 0 : 0;
+  // The round's shots: 3, or a level's own (laser.levels.ts: Easy 5, Expert 2).
+  const shotsGiven = laserShotsOf(isLaser ? puzzle : null);
   const [selected, setSelected] = useState<MirrorKind>("/");
 
   const [placed, setPlaced] = useStageState<MirrorPlacement[]>(stateKey, "mirrors", () => []);
@@ -419,7 +421,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
   const dragRef = useRef<{ kind: "tray" | "move"; from: number | null; piece?: MirrorKind } | null>(null);
   const busyRef = useRef(false);
   // laserRev 4: once the last shot has faded without a solve the board locks (nothing left to fire it with).
-  const outOfShots = overhaul && fires >= LASER_MAX_FIRES && !submitted.current && !shot;
+  const outOfShots = overhaul && fires >= shotsGiven && !submitted.current && !shot;
   busyRef.current = Boolean(locked || submitted.current || shot || outOfShots);
 
   const clearTimers = () => {
@@ -446,7 +448,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
   const gemsShown = laserGemsShown(bestLit, litGems.length);
   const bombFlash = Boolean(shot?.done && shot.trace.hitBomb);
   const solved = submitted.current;
-  const firesLeft = Math.max(0, LASER_MAX_FIRES - fires);
+  const firesLeft = Math.max(0, shotsGiven - fires);
   const inFrame = useInFrame();
   // The near miss's moment: two soft pulses on the dark gem (a piece, so allowed over the board) and on the pill.
   useEffect(() => {
@@ -634,7 +636,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
           timers.current.push(
             window.setTimeout(() => {
               setShot(null);
-              if (overhaul && attempt >= LASER_MAX_FIRES) soundCue("laser.outOfShots");
+              if (overhaul && attempt >= shotsGiven) soundCue("laser.outOfShots");
             }, LASER_FADE_MS),
           );
         },
@@ -644,6 +646,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "laser", ph
   }, [
     locked,
     firesLeft,
+    shotsGiven,
     shot,
     source,
     dir,
@@ -961,7 +964,7 @@ export function laserRevealView(
   const finalGems = numberOf(extra, "gemsLit") ?? replay.gemsLit;
   const finalHitBomb = extra?.["hitBomb"] === true || replay.hitBomb;
   // The grader also counts the layout at the buzzer when a shot was left (laserBestGems).
-  if (used < LASER_MAX_FIRES && !finalHitBomb && finalGems > bestGems) return finish(replay.layout, null, finalGems, used, storedShots);
+  if (used < laserShotsOf(puzzle) && !finalHitBomb && finalGems > bestGems) return finish(replay.layout, null, finalGems, used, storedShots);
   if (best >= 0) return finish(layoutAtShot(best + 1), best + 1, bestGems, used, storedShots);
   // Every shot hit a bomb, or none was fired: the last shot's board (else the board at the buzzer).
   return finish(used ? layoutAtShot(used) : replay.layout, used || null, 0, used, storedShots);
@@ -1078,7 +1081,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
             className="laser-reveal-pills"
             items={[
               { id: "gems", label: "Gems", value: `${view.gems}/${total}`, tone: view.solved ? "good" : undefined },
-              { id: "shots", label: "Shots", value: `${view.shotsUsed}/${LASER_MAX_FIRES}` },
+              { id: "shots", label: "Shots", value: `${view.shotsUsed}/${laserShotsOf(puzzle)}` },
               view.mirrors !== null ? { id: "mirrors", label: "Mirrors", value: view.mirrors, tone: view.par > 0 && view.mirrors > view.par ? "warn" : undefined } : null,
               view.par > 0 ? { id: "par", label: "Par", value: view.par, tone: "gold" } : null,
               timeLeft !== null ? { id: "time", label: "Time left", value: `${timeLeft} s` } : null,

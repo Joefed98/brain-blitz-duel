@@ -72,7 +72,16 @@ const sameBoard = (a: MirrorPlacement[], b: MirrorPlacement[]) => {
   return key(a) === key(b);
 };
 
-/* 1. Older stamps grade exactly as before; laserRev 4 grades as laserRev 3. */
+/* 1. Older stamps grade exactly as before; laserRev 4 grades as laserRev 3 but for the speed's full-by time. */
+const { speedPoints } = await import("../src/lib/duel/standard/shape");
+const { LASER_REV4_FULL_BY_S, PATTERN_STD } = await import("../src/lib/duel/standard/patternRules");
+/** laserRev 3's stored grade with a finish's speed worked out on laserRev 4's 30 s (the only rule laserRev 4 moved). */
+function rev4Expected(c: LegacyCase, storedMs: number): { score: number; extra: unknown } {
+  const parts = (c.extra as { parts?: { kind?: string; base: number; efficiency: number; speed: number } } | null)?.parts;
+  if (!c.isCorrect || parts?.kind !== "finish") return { score: c.score, extra: c.extra };
+  const speed = Math.round(Math.min(200 - 150 - parts.efficiency, speedPoints(PATTERN_STD.laser.speed, storedMs, 60_000, LASER_REV4_FULL_BY_S * 1000)));
+  return { score: parts.base + parts.efficiency + speed, extra: { ...(c.extra as object), parts: { ...parts, speed } } };
+}
 const fx = JSON.parse(gunzipSync(readFileSync(LASER_OVERHAUL_FIXTURE)).toString()) as {
   puzzles: { era: string; seed: number; puzzle: LaserPuzzleData }[];
   cases: LegacyCase[];
@@ -82,6 +91,7 @@ const fx = JSON.parse(gunzipSync(readFileSync(LASER_OVERHAUL_FIXTURE)).toString(
   check(fx.cases.some((c) => /turn and back|move and back/.test(c.label)), "legacy: no case turns or moves a piece back");
   let diff = 0;
   let diff4 = 0;
+  let moved4 = 0;
   for (const c of fx.cases) {
     const p = fx.puzzles.find((x) => x.era === c.era && x.seed === c.seed)!.puzzle;
     const gr = gradeAnswer(p, c.answer, c.msLeft);
@@ -90,12 +100,18 @@ const fx = JSON.parse(gunzipSync(readFileSync(LASER_OVERHAUL_FIXTURE)).toString(
     if (c.era === "rev3") {
       const p4 = { ...p, laserRev: 4 } as LaserPuzzleData;
       const g4 = gradeAnswer(p4, c.answer, c.msLeft);
-      if ((g4.score !== c.score || g4.isCorrect !== c.isCorrect || JSON.stringify(g4.extra ?? null) !== JSON.stringify(c.extra)) && diff4++ < 3)
-        failures.push(`rev4: ${c.seed} ${c.label} grades ${g4.score} on laserRev 4 (laserRev 3: ${c.score})`);
+      // Changed with Joe's approval, 16 Nov 2026 (Lightbender's levels: Normal full speed by 30 s on laserRev 4, never
+      // dealt live): laserRev 4 grades as laserRev 3 in everything but a finish's speed part, which is full by
+      // LASER_REV4_FULL_BY_S (30 s) instead of laserRev 3's 15 s.
+      const want = rev4Expected(c, gr.storedMs);
+      if ((g4.score !== want.score || g4.isCorrect !== c.isCorrect || JSON.stringify(g4.extra ?? null) !== JSON.stringify(want.extra)) && diff4++ < 3)
+        failures.push(`rev4: ${c.seed} ${c.label} grades ${g4.score} on laserRev 4 (want ${want.score}; laserRev 3: ${c.score})`);
+      if (c.isCorrect && want.score !== c.score) moved4++;
     }
   }
   check(diff === 0, `legacy: ${diff} of ${fx.cases.length} cases regrade differently`);
   check(diff4 === 0, `rev4: ${diff4} cases grade differently on laserRev 4`);
+  check(moved4 > 0, "rev4: no finish's speed moved with the 30 s full-speed time");
   check(fx.puzzles.every((x) => !usesPatternNov15(x.puzzle, "laser")), "legacy: a fixture puzzle reads as laserRev 4");
   check(fx.puzzles.some((x) => x.puzzle.laserRev === 3) && fx.puzzles.some((x) => x.puzzle.laserRev === 2), "legacy: the fixture lacks laserRev 3 or 2");
 }
@@ -292,6 +308,27 @@ const p4 = live[0]!;
   check(!s.host.querySelector("[data-laser-spent]"), "rev3: the board locks after three shots");
   await s.down(s.free[1]!);
   check(s.host.querySelectorAll("[data-mirror]").length === 1, "rev3: a tap after three shots no longer places a mirror");
+  await act(async () => s.root.unmount());
+}
+for (const shots of [2, 5]) {
+  // The levels (16 Nov 2026, laser.levels.ts): the stage gives the puzzle's own shots (Expert 2, Easy 5) and locks after
+  // the last of them; the log's replay counts the same shots.
+  const pl = { ...p4, shots } as LaserPuzzleData;
+  const s = await playStage(pl, `pol-shots-${shots}`);
+  const left = () => s.host.querySelector("[data-laser-shots-left]")?.getAttribute("data-laser-shots-left");
+  check(left() === String(shots), `levels: ${shots} shots: the stage starts with ${left()} shots left`);
+  for (let shot = 0; shot < shots - 1; shot++) await s.click(s.button(/^Fire$/));
+  await settle();
+  check(!s.host.querySelector("[data-laser-spent]") && left() === "1", `levels: ${shots} shots: locked or wrong count before the last shot (${left()})`);
+  await s.click(s.button(/^Fire$/));
+  await settle();
+  check(!!s.host.querySelector("[data-laser-spent]") && left() === "0" && s.button(/^Fire$/).disabled, `levels: ${shots} shots: the board doesn't lock after the last shot`);
+  const replay = replayLaserLog(pl, s.draft(), 60_000);
+  check(replay.shots === shots, `levels: ${shots} shots: the server's replay counts ${replay.shots}`);
+  // A FIRE beyond the level's shots is dropped by the server, as the third was before levels.
+  const more = encodeActionLog(appendAction(decodeActionLog(s.draft(), 60_000).actions, "f", 50_000));
+  const extra = replayLaserLog(pl, more, 60_000);
+  check(extra.shots === shots && extra.diag.dropped === 1, `levels: ${shots} shots: a FIRE beyond them counts (${extra.shots}, dropped ${extra.diag.dropped})`);
   await act(async () => s.root.unmount());
 }
 
