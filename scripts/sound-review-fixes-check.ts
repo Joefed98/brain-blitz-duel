@@ -133,7 +133,7 @@ const EXEMPT: Record<string, string> = {
   "measure.reject": "a wrong-move shake: the quiet wrong (job 2's rule)",
   "tendrop.refused": "a wrong-move shake: the quiet wrong (job 2's rule; it played the tap tick)",
   "equation.advance": "a stage moment: keeps the shared stage_complete (one sound for every stage game, a decision for Joe)",
-  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul): numline.line is no longer
+  // Changed with Joe's approval, 16 Nov 2026 (follows approved overhaul): numline.line is no longer
   // played; Ballpark's stage moment plays its own numline.stageClear (NumberStage), so its exemption is retired.
 };
 const needed: string[] = [];
