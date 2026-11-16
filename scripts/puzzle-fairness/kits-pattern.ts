@@ -5,7 +5,7 @@
  * the runner grades it through gradeAnswer.
  */
 import type { PuzzleData, BlockPlacement, MirrorPlacement, MirrorKind } from "../../src/lib/duel/types";
-import { BLOCK_COLS, LASER_CELLS, LASER_MAX_FIRES } from "../../src/lib/duel/types";
+import { BLOCK_COLS, LASER_CELLS, LASER_MAX_FIRES, unblockCols } from "../../src/lib/duel/types";
 import { applyMove, decodeMoves, encodeMoves, isSolved as unblockSolved, position, slideRange, type UnblockMove } from "../../src/lib/duel/unblock";
 import { tilesLayout, tilesMovable, tilesSlide, tilesSolved, TILES_UNDO } from "../../src/lib/duel/tiles";
 import { RING_TAPS, RING_UNDO, freshOffsets, ringsApply, ringsSolved } from "../../src/lib/duel/rings";
@@ -168,19 +168,21 @@ function moveKit<S, M>(
 type Vehicles = Of<"unblock">["vehicles"];
 function unblockGame(p: PuzzleData): MoveGame<Vehicles, UnblockMove> {
   const q = p as Of<"unblock">;
+  // The lot's size (the difficulty levels: Easy's 6×6; absent = 7).
+  const n = unblockCols(q);
   return {
     start: q.vehicles.map((v) => ({ ...v })),
     solution: decodeMoves(q.solution ?? ""),
     legal: (s) => {
       const out: UnblockMove[] = [];
       for (const v of s) {
-        const { min, max } = slideRange(s, v.id);
+        const { min, max } = slideRange(s, v.id, n);
         for (let to = min; to <= max; to++) if (to !== position(v)) out.push({ id: v.id, to });
       }
       return out;
     },
-    apply: (s, m) => applyMove(s, m) ?? s,
-    solved: unblockSolved,
+    apply: (s, m) => applyMove(s, m, n) ?? s,
+    solved: (s) => unblockSolved(s, n),
     same: (a, b) => a.id === b.id && a.to === b.to,
     token: (m) => encodeMoves([m]),
     sep: ",",

@@ -11,7 +11,7 @@ import type { TimedDraft } from "./timeline";
 import { BLOCK_STD, FLOW_STD, ICE_STD, LASER_STD, PATTERN_STD, PUSH_STD, SHARE_CREDIT, SHARE_EARLY, TOPSY_STD, patternFullByS, type PatternStdType } from "./patternRules";
 import type { PuzzleData, UnblockVehicle, PuzzleType } from "../types";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, PAR_STRICT_ZERO_AT, usesParMoves, usesParStrict } from "../parMoves";
-import { UNBLOCK_COLS } from "../types";
+import { UNBLOCK_COLS, unblockCols } from "../types";
 import { applyMove, decodeMoves, isSolved as unblockSolved, vehicleCells } from "../unblock";
 import { blockGeometry, blockIllegalDrops, decodePlacements, verifyPlacements } from "../blockParty";
 import { usesPatternNov15 } from "../patternNov15";
@@ -118,12 +118,11 @@ function memo<K extends object, V>(store: WeakMap<K, V>, key: K, make: () => V):
  * cars standing where it has to go to leave the cells it must free, taking its way out (up or down, left or right)
  * with the fewest cars in it. Counted once each; the gold car itself is never counted.
  */
-export function gridlockChain(vehicles: readonly UnblockVehicle[]): number {
-  const N = UNBLOCK_COLS;
+export function gridlockChain(vehicles: readonly UnblockVehicle[], N: number = UNBLOCK_COLS): number {
   const gold = vehicles.find((v) => v.id === 0);
   if (!gold) return 0;
   const at = new Map<number, UnblockVehicle>();
-  for (const v of vehicles) for (const c of vehicleCells(v)) at.set(c, v);
+  for (const v of vehicles) for (const c of vehicleCells(v, N)) at.set(c, v);
   const chain = new Set<number>();
   const queue: { v: UnblockVehicle; free: number[] }[] = [];
   const need = (cells: readonly number[]) => {
@@ -170,7 +169,9 @@ export function gridlockChain(vehicles: readonly UnblockVehicle[]): number {
  * back). A solve clears the whole chain.
  */
 function gridlockCleared(puzzle: Of<"unblock">, answer: string): { cleared: number; total: number } {
-  const total = gridlockChain(puzzle.vehicles);
+  // The lot's size (the difficulty levels: Easy's 6×6; absent = 7).
+  const N = unblockCols(puzzle);
+  const total = gridlockChain(puzzle.vehicles, N);
   let state = puzzle.vehicles.map((v) => ({ ...v }));
   const history = [state];
   let best = total;
@@ -185,12 +186,12 @@ function gridlockCleared(puzzle: Of<"unblock">, answer: string): { cleared: numb
       state = history[0]!;
       continue;
     }
-    const next = applyMove(state, move);
+    const next = applyMove(state, move, N);
     if (!next) continue;
     state = next;
     history.push(state);
-    if (unblockSolved(state)) return { cleared: total, total };
-    best = Math.min(best, gridlockChain(state));
+    if (unblockSolved(state, N)) return { cleared: total, total };
+    best = Math.min(best, gridlockChain(state, N));
   }
   return { cleared: Math.max(0, total - best), total };
 }

@@ -892,6 +892,19 @@ export interface UnblockPuzzleData {
   minMoves?: number;
   /** Server-side only: one minimum-length solution, as encoded moves. */
   solution?: string;
+  /**
+   * The lot's size, columns and rows (the difficulty levels, 15 Nov 2026: Easy's 6×6 lot). Absent = UNBLOCK_COLS (7),
+   * every deal before levels and every Normal, Hard and Expert deal. Public.
+   */
+  cols?: number;
+  /** The level's own clock (Expert's 75 s); absent = UNBLOCK_TIME_MS. */
+  timeLimitMs?: number;
+}
+
+/** A Gridlock puzzle's lot size: its own `cols`, else 7 (every deal before levels). */
+export function unblockCols(puzzle: { cols?: number } | null | undefined): number {
+  const n = puzzle?.cols;
+  return typeof n === "number" && Number.isInteger(n) && n >= 5 && n <= 8 ? n : UNBLOCK_COLS;
 }
 
 /* -------------------------------------------------------------------------- */

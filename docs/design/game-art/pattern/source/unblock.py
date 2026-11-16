@@ -106,12 +106,13 @@ def car(colour, length, axis, gold=False):
     b(10, 67, 6, 13, 2.5, tail, r=1.5, z=tz)
 
 
-def lot():
-    """The car park: concrete kerb, dark asphalt, worn white bay lines and the exit gap in the right kerb (row 2)."""
+def lot(n=7):
+    """The car park: concrete kerb, dark asphalt, worn white bay lines and the exit gap in the right kerb (row 2).
+    `n` bays a side: 7 (every level but Easy), 6 (Easy's lot, the difficulty levels of 15 Nov 2026, "lot-6")."""
     V = 1000
     begin(V, 900, pad=0, light=LIGHT * 0.8)
     W0 = 45
-    CELL = (V - 2 * W0) / 7
+    CELL = (V - 2 * W0) / n
     kerb = mat("kerb", "#23252b", 0.7)
     add_bump(kerb, 90, 0.08, distance=0.004)
     asphalt = mat("asphalt", "#0d0e11", 0.72)
@@ -121,7 +122,7 @@ def lot():
     box(W0 - 2, W0 - 2, V - 2 * W0 + 4, V - 2 * W0 + 4, 10.6, asphalt, r=8)
     ey = W0 + 2 * CELL
     box(V - W0 - 6, ey, W0 + 6, CELL, 10.6, asphalt, r=0)        # the exit gap through the kerb
-    for k in range(1, 7):
+    for k in range(1, n):
         at = W0 + k * CELL
         box(at - 1.5, W0 + 10, 3, V - 2 * W0 - 20, 10.75, paintm, r=0.5)
         box(W0 + 10, at - 1.5, V - 2 * W0 - 20, 3, 10.75, paintm, r=0.5)
@@ -131,7 +132,7 @@ def gold_sprites():
     return {"gold-2h": lambda: car("gold", 2, "h", gold=True)}
 
 
-SPRITES = {"lot": lot, **gold_sprites()}
+SPRITES = {"lot": lot, "lot-6": lambda: lot(6), **gold_sprites()}
 for c in BODIES:
     for n in (2, 3):
         for a in ("h", "v"):
