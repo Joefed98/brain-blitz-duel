@@ -312,6 +312,8 @@ export function PhoneStatus({ type, tray }: { type: PuzzleType; tray: { current:
     };
   }, [tray]);
   const shown = room >= PHONE_STATUS_MIN_PX;
+  // A level's own goal (the Attention overhaul's levels) where its stage publishes one.
+  const goalText = useFrameGoal(type);
   useEffect(() => {
     const layout = tray.current?.closest("[data-round-layout]");
     if (!layout) return;
@@ -321,7 +323,7 @@ export function PhoneStatus({ type, tray }: { type: PuzzleType; tray: { current:
   if (!shown) return null;
   return (
     <div data-phone-status-panel className="phone-status" style={{ height: room }}>
-      <p className="phone-status-goal">{frameGoal(type)}</p>
+      <p className="phone-status-goal">{goalText}</p>
       <BoardStatus className="phone-status-figures" pills={mirrored} />
     </div>
   );
