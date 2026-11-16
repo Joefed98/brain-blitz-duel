@@ -1219,6 +1219,8 @@ export interface PushPuzzleData {
   minPushes?: number;
   /** Server-side only: one minimum solution, as "cell:dir" pushes. */
   solution?: string;
+  /** Levels (the Pattern overhaul, stage 3): the level dealt at (none = Normal); its board comes from the level bank. */
+  level?: "easy" | "hard" | "expert";
 }
 
 /* -------------------------------------------------------------------------- */

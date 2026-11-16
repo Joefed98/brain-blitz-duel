@@ -1,5 +1,5 @@
 /**
- * Writes src/lib/duel/pushPar.data.ts: Heave's par (the fewest pushes) for every layout either bank deals, keyed by
+ * Writes src/lib/duel/pushPar.data.ts: Heave's par (the fewest pushes) for every layout any Heave bank deals (the level banks too), keyed by
  * pushLayoutKey (pushPar.ts), so the phone can show par without the server sending `minPushes`.
  *
  *   bun scripts/push-par-data.ts [--check]
@@ -9,11 +9,13 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { PUSH_BANK } from "../src/lib/duel/pushBank.server";
 import { PUSH_D4_BANK } from "../src/lib/duel/depth4/pushD4Bank.server";
+import { PUSH_LEVEL_BANK } from "../src/lib/duel/pushLevelBank.server";
 import { pushLayoutKey } from "../src/lib/duel/pushPar";
 
 export function buildPushPars(): Record<string, number> {
   const out: Record<string, number> = {};
-  for (const entry of [...PUSH_BANK, ...PUSH_D4_BANK]) {
+  // Every bank Heave deals: the original, Normal's depth-batch-4 bank and the level banks (Easy, Hard, Expert).
+  for (const entry of [...PUSH_BANK, ...PUSH_D4_BANK, ...PUSH_LEVEL_BANK.easy, ...PUSH_LEVEL_BANK.hard, ...PUSH_LEVEL_BANK.expert]) {
     const key = pushLayoutKey(entry);
     if (key in out && out[key] !== entry.minPushes) throw new Error(`two layouts share key ${key}`);
     out[key] = entry.minPushes;

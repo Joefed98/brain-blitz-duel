@@ -6,6 +6,7 @@
  */
 import type { PuzzleType } from "../types";
 import { blockLevelFullByS } from "../blockParty";
+import { pushLevelFullByS } from "../pushLevels";
 
 export type PatternStdType = "unblock" | "blockparty" | "iceslide" | "gravity" | "tiles" | "rings" | "laser" | "flow" | "pipes" | "push";
 
@@ -25,6 +26,11 @@ export function patternFullByS(type: PatternStdType, puzzle: { tilesRev?: number
   // Tessellate's levels (the Pattern overhaul, stage 3): a board dealt at a level is full speed by its level's time.
   if (type === "blockparty") {
     const own = blockLevelFullByS(puzzle);
+    if (own !== null) return own;
+  }
+  // Heave's levels (stage 3): a board dealt at a level is full speed by its level's time (Normal keeps 45 s).
+  if (type === "push") {
+    const own = pushLevelFullByS({ type, ...puzzle });
     if (own !== null) return own;
   }
   return PATTERN_STD[type].fullByS;

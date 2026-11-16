@@ -17,6 +17,8 @@ import {
   replayPush,
 } from "@/lib/duel/push";
 import { pushParFor } from "@/lib/duel/pushPar";
+import { pushDeadSquares, stuckCrates } from "@/lib/duel/pushStuck";
+import { stuckHintOn } from "@/lib/duel/pushLevels";
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -44,7 +46,9 @@ function Board({
   lit,
   goldOff,
   moveFx,
+  stuck,
 }: {
+  stuck?: readonly number[] | undefined;
   gold?: { crate: number; target: number } | undefined;
   lit?: boolean;
   goldOff?: number;
@@ -73,6 +77,7 @@ function Board({
       lit={lit ?? false}
       goldOff={goldOff ?? 0}
       moveFx={moveFx ?? false}
+      stuck={stuck}
     />
   );
 }
@@ -129,6 +134,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
   const inFrame = useFrameProgress(replay.cratesOnTargets, targets.length, "home");
   // The Pattern overhaul (15 Nov 2026, display only): par, the fewest pushes, looked up from the dealt layout.
   const par = useMemo(() => (puzzle.type === "push" ? pushParFor(puzzle) : null), [puzzle]);
+  // Stage 3 (display only, no stamp): the stuck hint on the levels that have it (Easy, Normal): a crate on a square
+  // it can never leave for a mark is tinted, and the push that put it there plays push.stuck.
+  const dead = useMemo(() => (stuckHintOn(puzzle) ? pushDeadSquares(walls, targets) : null), [puzzle, walls, targets]);
+  const stuck = useMemo(() => (dead ? stuckCrates(replay.state.crates, dead) : undefined), [dead, replay.state.crates]);
 
   useEffect(() => {
     onDraftAnswer?.(encodePushMoves(moves));
@@ -148,6 +157,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
     const home = cratesOnTargets(result.state.crates, targets);
     soundCue(result.pushed ? "push.push" : "push.step");
     if (home > replay.cratesOnTargets && home < targets.length) soundCue("push.home");
+    if (dead && result.pushed && result.state.crates.some((cell, index) => dead.has(cell) && cell !== replay.state.crates[index])) soundCue("push.stuck");
     if (gold && !goldHome && result.state.crates[gold.crate] === gold.target) playCorrect();
     // The Pattern overhaul (15 Nov 2026, sound only): the gold crate pushed off its gold mark.
     if (gold && goldHome && result.state.crates[gold.crate] !== gold.target) {
@@ -208,6 +218,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "push" }: P
           lit={replay.solved}
           goldOff={goldOff}
           moveFx={moveFx}
+          stuck={stuck}
         />
       </div>
       <FramePills

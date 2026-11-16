@@ -144,6 +144,7 @@ export function WarehouseBoard({
   lit = false,
   goldOff = 0,
   moveFx = false,
+  stuck,
 }: {
   walls: number[];
   targets: number[];
@@ -164,6 +165,9 @@ export function WarehouseBoard({
   goldOff?: number;
   /** Stage 2: the last change was a push (a crate landing then thumps and its mark glows; not after Undo or Reset). */
   moveFx?: boolean;
+  /** Stage 3, the stuck hint (Easy and Normal; display only): crates (indices into `crates`) on a square from which
+   *  they can never reach a mark (pushStuck.ts), tinted red. */
+  stuck?: readonly number[] | undefined;
 }) {
   const id = useId().replace(/:/g, "");
   const rows = Math.ceil(cells / cols);
@@ -244,6 +248,7 @@ export function WarehouseBoard({
           className={`push-piece${gold?.crate === index ? " d4-gold-crate" : ""}`}
           data-gold-home={gold?.crate === index && cell === gold.target ? "" : undefined}
           data-push-missed={missed?.crates.includes(index) ? "" : undefined}
+          data-push-stuck={stuck?.includes(index) ? "" : undefined}
           style={pieceStyle(cell, cols, rows)}
         >
           <div ref={(node) => void (crateNodes.current[index] = node)} className="push-piece-inner">

@@ -691,6 +691,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Par", detail: "is the fewest pushes, shown beside your pushes.", helpOnly: true },
         { action: "A green tick", detail: "marks a crate on a mark; the gold crate goes on the gold mark.", helpOnly: true },
         { action: "Undo and Reset", detail: "give the push back: only the pushes left on the board count.", helpOnly: true },
+        // Difficulty levels (16 Nov 2026, push.levels.ts): the stuck hint on Easy and Normal only (display only).
+        { action: "On Easy and Normal", detail: "a crate pushed where it can never reach a mark turns red: undo it.", helpOnly: true },
         { action: "Arrows or swipe:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
       ],
       score: PATTERN_STD_HELP.push,

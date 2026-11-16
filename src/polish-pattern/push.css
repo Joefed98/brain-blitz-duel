@@ -240,3 +240,17 @@
   color: var(--jz-text-2);
 }
 .push-key-value { font-weight: 800; color: var(--foreground); font-variant-numeric: tabular-nums; }
+
+/* Stage 3, the stuck hint (Easy and Normal; display only): a crate pushed where it can never reach a mark takes a red
+   wash and a red edge, inside its cell; Undo takes it back off. */
+.push-piece[data-push-stuck] .push-piece-inner::before {
+  content: "";
+  position: absolute;
+  inset: 6%;
+  border-radius: 10%;
+  background: rgba(214, 48, 49, 0.38); /* design-lint-ignore: game art, the stuck crate's wash */
+  box-shadow: inset 0 0 0 2px rgba(255, 92, 92, 0.95); /* design-lint-ignore: game art, the stuck crate's edge */
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: 1;
+}

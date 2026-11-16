@@ -32,6 +32,7 @@ import { pipesParTurns } from "./pipesTaps";
 import { D4_REV, dealtD4Rev, isD4Type } from "./stamps";
 import { addIceGems } from "./gems.server";
 import { drawPushD4 } from "./pushD4.server";
+import { drawPushLevel, isPushLevel } from "../pushLevels.server";
 import { drawBlockD4 } from "./blockD4.server";
 import { drawBlockLevel } from "../blockPartyLevels.server";
 import { BLOCK_LEVEL_BANK } from "../blockPartyLevelBank.server";
@@ -89,6 +90,9 @@ export function dealDepth4(type: PuzzleType, context: D4DealContext): PuzzleData
       return { ...withSeededRandom(ICE_GEM_SEED ^ context.bankSeed, () => addIceGems(p)), slideRev: D4_REV };
     }
     case "push":
+      // Levels (the Pattern overhaul, stage 3): Easy, Hard and Expert deal from their own proved bank by the room seed
+      // (pushLevels.server.ts); Normal exactly as before.
+      if (isPushLevel(context.level)) return { ...drawPushLevel(context.level, context.bankSeed), pushRev: dealtD4Rev("push") };
       return { ...drawPushD4(context.bankSeed), pushRev: dealtD4Rev("push") };
     case "blockparty": {
       // Levels (the Pattern overhaul, stage 3): Easy, Hard and Expert deal from their own proved banks by the room seed
