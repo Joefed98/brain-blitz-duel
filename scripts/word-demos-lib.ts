@@ -32,6 +32,13 @@ export type WordDemoType = (typeof WORD_DEMO_TYPES)[number];
 /** The level the demo player plays at. */
 export const WORD_DEMO_LEVEL = "near" as const;
 
+/**
+ * The open games (word finds with no finish: Nucleus, Forage) keep finding words until the buzzer; an intro demo shows
+ * the first 30 s of the run (the moves made by then, graded as the phone sends them at the buzzer).
+ */
+export const DEMO_OPEN_TYPES: ReadonlySet<string> = new Set(["wordsmith", "wordhunt"]);
+export const DEMO_OPEN_CAP_MS = 30_000;
+
 export interface WordDemoRun {
   type: WordDemoType;
   exampleId: string;
@@ -69,7 +76,8 @@ export function playWordDemo(type: WordDemoType): WordDemoRun {
   const puzzle = wordIntroExample(type);
   const limit = puzzleTimeLimitMs(puzzle);
   const play = kit.play(puzzle, makeRng(hashText(`word-demo:${type}:${INTRO_EXAMPLE_ID}`)), SKILLS[WORD_DEMO_LEVEL], limit);
-  const steps = asPhoneSends(puzzle, play.steps);
+  const all = asPhoneSends(puzzle, play.steps);
+  const steps = DEMO_OPEN_TYPES.has(type) ? all.filter((s) => s.atMs <= DEMO_OPEN_CAP_MS) : all;
   const run = gradeSteps(puzzle, steps, play.timed);
   return {
     type,

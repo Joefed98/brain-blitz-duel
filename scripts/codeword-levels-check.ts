@@ -13,7 +13,8 @@
  *     every Expert-list board, at its four letters, too (all 666), and so every Hard board's five (a superset of four).
  *  6. Reasoning alone: every Expert-list board is decoded by the human-like solver from its four letters, to the real
  *     solution, and the list rebuilds byte for byte (scripts/codeword-expert-bank.ts).
- *  7. The tuning: the kit's near-perfect and great players on fixed seeds land in the bands tuned for each level.
+ *  7. The tuning: the kit's near-perfect and great players on fixed seeds land in the bands tuned for each level, and
+ *     the great player steps down from Normal to Hard to Expert (Joe, 16 Nov 2026: a clear step up in difficulty).
  *
  *   bun scripts/codeword-levels-check.ts
  */
@@ -112,10 +113,11 @@ ok(dataText.includes(`the ${list.length} of ${CODEWORD_BANK.length}`), "the data
 const BANDS: Record<Level, { near: [number, number]; great: [number, number] }> = {
   easy: { near: [190, 200], great: [185, 200] },
   normal: { near: [190, 200], great: [185, 200] },
-  hard: { near: [185, 200], great: [150, 200] },
-  expert: { near: [165, 200], great: [60, 160] },
+  hard: { near: [185, 200], great: [175, 198] },
+  expert: { near: [185, 200], great: [130, 190] },
 };
 const kit = KITS.codeword!;
+const greatAvg: Partial<Record<Level, number>> = {};
 for (const level of ["easy", "normal", "hard", "expert"] as Level[]) {
   const scores = { near: [] as number[], great: [] as number[] };
   for (const seed of SEEDS.slice(0, 20)) {
@@ -129,7 +131,9 @@ for (const level of ["easy", "normal", "hard", "expert"] as Level[]) {
     const avg = scores[who].reduce((a, b) => a + b, 0) / scores[who].length;
     const [lo, hi] = BANDS[level][who];
     ok(avg >= lo && avg <= hi, `${level}: the ${who} player averages ${avg.toFixed(1)} (tuned ${lo}–${hi})`);
+    if (who === "great") greatAvg[level] = avg;
   }
 }
+ok(greatAvg.normal! > greatAvg.hard! && greatAvg.hard! > greatAvg.expert! + 10, `a clear step up: great ${greatAvg.normal!.toFixed(1)} → ${greatAvg.hard!.toFixed(1)} → ${greatAvg.expert!.toFixed(1)}`);
 
-console.log(`PASS codeword-levels-check: ${checks} checks (Easy 8 letters 120 s, Hard 5 letters 60 s, Expert 4 letters 50 s on ${list.length} reasoning-only boards)`);
+console.log(`PASS codeword-levels-check: ${checks} checks (Easy 8 letters 120 s, Hard 5 letters 75 s, Expert 4 letters 65 s on ${list.length} reasoning-only boards)`);

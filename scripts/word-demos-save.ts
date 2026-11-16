@@ -15,7 +15,7 @@
  * saved (or, dry, would be), 1 if any failed, 2 if the URL or the key is missing. The dev server needs
  * NODE_OPTIONS=--max-old-space-size=6144 and INTRO_DEMO_KEY set to the same key.
  */
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { chromium, type Page, type Route } from "playwright";
 
 import { hashText } from "./puzzle-fairness/kit";
@@ -120,7 +120,10 @@ async function saveOne(page: Page, run: WordDemoRun): Promise<string | null> {
     await page.locator("[data-game-stage]").first().waitFor({ timeout: 60_000 });
     if (!served || typeof served !== "object") return "the deal wasn't served";
     if ((served as { type?: string }).type !== run.type) return "the served deal is another game";
-    if (hashText(JSON.stringify(served)) !== run.publicDigest) return "the served deal isn't the fixture's intro example";
+    if (hashText(JSON.stringify(served)) !== run.publicDigest) {
+      if (process.env["DEMOS_SHOTS"]) writeFileSync(`${process.env["DEMOS_SHOTS"]}/${run.type}-served.json`, JSON.stringify(served));
+      return "the served deal isn't the fixture's intro example";
+    }
     // The moves, each at its own round-clock time.
     const player = STEP_PLAYERS[run.type];
     if (!player) return "no step player";
@@ -144,6 +147,7 @@ async function saveOne(page: Page, run: WordDemoRun): Promise<string | null> {
     await page.getByRole("button", { name: /Saved ✓/ }).waitFor({ timeout: 30_000 });
     return null;
   } catch (error) {
+    if (process.env["DEMOS_SHOTS"]) await page.screenshot({ path: `${process.env["DEMOS_SHOTS"]}/${run.type}-fail.png` }).catch(() => {});
     return String((error as Error).message ?? error).split("\n")[0]!;
   } finally {
     await page.unroute("**/_serverFn/**", onRoute);
@@ -174,12 +178,15 @@ async function main(): Promise<number> {
         failed++;
         console.log(`FAIL ${run.type}: ${why}`);
       } else console.log(`OK ${run.type}${dry ? " (dry run: not saved)" : ""}`);
-      // Back to the list for the next game.
-      await page.evaluate(() => {
-        window.history.pushState({}, "", "/practice");
-        window.dispatchEvent(new PopStateEvent("popstate"));
-      });
-      await page.waitForTimeout(800);
+      // Back to the list for the next game, through the reveal's own Back (the route keeps the Intro examples switch).
+      const back = page.locator("[data-practice-reveal-actions]").getByRole("button", { name: "Back" });
+      if (await back.isVisible().catch(() => false)) await back.click();
+      else
+        await page.evaluate(() => {
+          window.history.pushState({}, "", "/practice");
+          window.dispatchEvent(new PopStateEvent("popstate"));
+        });
+      await page.waitForTimeout(1200);
     }
   } finally {
     await browser.close();

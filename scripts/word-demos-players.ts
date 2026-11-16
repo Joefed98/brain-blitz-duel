@@ -51,11 +51,21 @@ const STAGE = "[data-game-stage]";
 const key = (letter: string) => `${STAGE} [data-key="${letter}"]`;
 const button = (page: Page, name: string) => page.locator(STAGE).getByRole("button", { name, exact: true }).first();
 
-/** The new tokens after a move (answers that grow by comma-separated tokens). */
+/**
+ * The new tokens after a move: the comma-separated tokens of the answer after it that the answer before it lacks (as many
+ * times as they are new), in the order they stand. Word lists (Nucleus, Forage, Roundabout) put the newest word first;
+ * move lists append.
+ */
 function added(before: string, after: string): string[] {
-  const a = before ? before.split(",") : [];
-  const b = after ? after.split(",") : [];
-  return b.slice(a.length);
+  const left = new Map<string, number>();
+  for (const t of before ? before.split(",") : []) left.set(t, (left.get(t) ?? 0) + 1);
+  const out: string[] = [];
+  for (const t of after ? after.split(",") : []) {
+    const n = left.get(t) ?? 0;
+    if (n > 0) left.set(t, n - 1);
+    else out.push(t);
+  }
+  return out;
 }
 
 export type StepPlayer = (page: Page, before: string, after: string) => Promise<void>;

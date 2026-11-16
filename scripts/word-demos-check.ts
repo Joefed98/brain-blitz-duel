@@ -29,7 +29,7 @@ import {
 import { INTRO_EXAMPLE_ID } from "../src/lib/duel/puzzleDemo";
 import { hashText } from "./puzzle-fairness/kit";
 import { gradeSteps } from "./standard-lib";
-import { WORD_DEMO_LEVEL, WORD_DEMO_TYPES, exampleStamps, playWordDemo, publicDigestOf, wordIntroExample, type WordDemoRun } from "./word-demos-lib";
+import { DEMO_OPEN_CAP_MS, DEMO_OPEN_TYPES, WORD_DEMO_LEVEL, WORD_DEMO_TYPES, exampleStamps, playWordDemo, publicDigestOf, wordIntroExample, type WordDemoRun } from "./word-demos-lib";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 
 let checks = 0;
@@ -62,7 +62,8 @@ for (const run of fixture.runs) {
   ok(regraded.score === run.score, `${t}: the stored score ${run.score} is the server's grade (${regraded.score})`);
   ok(regraded.isCorrect === run.isCorrect, `${t}: the stored verdict is the server's`);
   ok(run.steps.length > 0 && run.steps.every((s, i) => i === 0 || s.atMs >= run.steps[i - 1]!.atMs), `${t}: drafts in round-clock order`);
-  ok(run.score >= 150, `${t}: a demo worth showing (${run.score})`);
+  ok(run.score >= (DEMO_OPEN_TYPES.has(t) ? 60 : 150), `${t}: a demo worth showing (${run.score})`);
+  if (DEMO_OPEN_TYPES.has(t)) ok(run.steps.every((s) => s.atMs <= DEMO_OPEN_CAP_MS) && run.steps.length >= 3, `${t}: an open game's demo is its first 30 s (${run.steps.length} moves)`);
   const again = playWordDemo(t);
   ok(JSON.stringify(again) === JSON.stringify(run), `${t}: a fresh play records the same run`);
 }
