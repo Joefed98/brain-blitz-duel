@@ -386,10 +386,12 @@ Frames: `bun scripts/shots/bastion-fx-shots.ts --out=<dir>`.
 ### Stage 3: levels (16 Nov 2026)
 
 Expert (bastionRev 3, Iron Wall as rooms dealt it before the levels) played by the Elite bot under human limits on seed
-30710843, server score **172**; 5 s from 40.6 s, every 1/8 s, the game's own art (`bun scripts/shots/action-expert-clip.ts
-bastion 30710843`):
+30710843, server score **172**; 5 s from 40.6 s (wave 5) at 5 frames a second, the game's own art
+(`bun scripts/shots/action-expert-clip.ts bastion 30710843 --from=40.6 --secs=5 --q=40 --encoder=pillow
+--out=docs/design/pages-review/action/bastion/expert-clip.webp`, 59 KB; Pillow writes every frame whole, since ffmpeg's
+changed-rectangle frames break Iron Wall's shifting smoke and sky into blocks):
 
-<img src="bastion/expert-clip.webp" width="195">
+<img src="bastion/expert-clip.webp" width="180">
 
 The bigger weak spots of Easy, Normal and Hard drawn inside the tank (Joe, 16 Nov 2026; the hit area, blue, unchanged;
 each pair before | after, Expert's unchanged):
