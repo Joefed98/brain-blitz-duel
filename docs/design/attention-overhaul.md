@@ -114,10 +114,24 @@ proved by search over all orders (`bombLevels.server.ts`: one order, the stored 
 `attention-levels-check` proves all of it, the clocks, the legibility minimums at every level, 200 for a flawless run at
 every level, Expert's live check, and that Expert is humanly possible.
 
-**Measured** (`bun scripts/level-tune.ts <game> --level=all --seeds=40`, the shared tool; the kits' Near-perfect, the
-elite bot): see the stage 3 report. The kits learned the levels' real costs (a bigger board takes longer to search and is
-easier to slip on; more look-alikes or near-miss groups cause more slips; a hidden exit is followed into more dead ends;
-a longer bomb takes much longer to reason out); every Normal keeps today's figures exactly.
+**Measured** (16 Nov 2026, main 82f2f648's `scripts/level-tune.ts` deal and the shared puzzle-fairness kits, 40 seeds a
+level, under human limits applied to each kit run: the first action at least 0.25 s in, each later one at least 0.15 s
+after the one before, #444's limits, not its tool). Average score, Great bot / Near-perfect bot; Expert's best tenth the
+mean of its top 4 runs:
+
+| Game | Easy | Normal | Hard | Expert | Expert best tenth |
+| --- | --- | --- | --- | --- | --- |
+| Eagle Eye | 184 / 193 | 187 / 196 | 159 / 179 | 148 / 175 | 166 / 189 |
+| Double Take | 185 / 196 | 179 / 188 | 162 / 176 | 150 / 173 | 171 / 189 |
+| Tally | 166 / 192 | 162 / 185 | 125 / 169 | 115 / 160 | 183 / 200 |
+| Labyrinth | 196 / 199 | 184 / 196 | 158 / 176 | 150 / 169 | 162 / 189 |
+| Bomb Defusal | 197 / 200 | 182 / 194 | 113 / 168 | 72 / 136 | 176 / 189 |
+| Matchmaker | 197 / 197 | 192 / 199 | 154 / 165 | 151 / 153 | 156 / 165 |
+
+The great bot's Hard → Expert step is at least 8 points on Eagle Eye (11) and Double Take (12), so Expert needed no further
+lever. The kits learned the levels' real costs (a bigger board takes longer to search and is easier to slip on; more
+look-alikes or near-miss groups cause more slips; a hidden exit is followed into more dead ends; a longer bomb takes much
+longer to reason out); every Normal keeps today's figures exactly.
 
 **Humanly possible.** A person-like solver (scripts/attention-levels-lib.ts) works out every Expert bomb in the bank
 within a few dozen orders tried in the head (median 19, at most 99), and reaches Expert's hidden exit, reading the walls
