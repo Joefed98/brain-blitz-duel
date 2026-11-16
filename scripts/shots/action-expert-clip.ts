@@ -15,7 +15,7 @@
  * scene that changes all over every frame (Iron Wall).
  * <seed> is what each game's "Levels" section lists (docs/arcade-standard/<game>.md): Roofbound a room seed n
  * (`dealAt` n, scripts/flip-skyline-levels-bands.ts), High Rise the same, Moon Climb a dealt tower seed (found among the first 64 Expert
- * deals), Orbit an Expert bank entry (the first deal whose seed picks that entry, `seed mod bank length`). One row per
+ * deals), Grappler a dealt course seed (SWING_LEVEL_DEAL.expert), Orbit an Expert bank entry (the first deal whose seed picks that entry, `seed mod bank length`). One row per
  * game in GAMES below: other games add their own row.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -138,6 +138,20 @@ const GAMES: Record<string, (seed: number) => Promise<Clip>> = {
     const r = playAndGrade("ricochet", puzzle, puzzle.ricoRev, limitedHuman("ricochet", puzzle.seed, "elite"));
     if (r.flagged) throw new Error("flagged");
     return { states: r.states, score: r.score, label: `tower ${towerSeed}`, w: NINJA_WORLD_W, h: NINJA_WORLD_H, draw: (ctx, s) => drawNinjaFrame(ctx, s, { width: NINJA_WORLD_W, height: NINJA_WORLD_H }) };
+  },
+  /** Grappler: a dealt Expert course seed (SWING_LEVEL_DEAL.expert; action-levels-bands.ts --each), the elite under human limits. */
+  swing: async (courseSeed) => {
+    await loadBot("swing");
+    const { limitedHuman } = await import("../action-levels-bands");
+    const { swingArtGameFor } = await import("../../src/lib/arcade/swing.renderer");
+    const { SWING_WORLD_W, swingWorldHFor } = await import("../../src/lib/arcade/swing");
+    // The level's deal on this course (a level puzzle's stamps and level, the course seed given; the course is in the deal).
+    const puzzle = { ...(dealAt("swing" as never, "expert", 0) as any), seed: courseSeed };
+    const r = playAndGrade("swing", puzzle, puzzle.swingRev, limitedHuman("swing", courseSeed, "elite"));
+    if (r.flagged) throw new Error("flagged");
+    const art = swingArtGameFor(puzzle.swingRev, puzzle.level);
+    const h = swingWorldHFor(puzzle.swingRev);
+    return { states: r.states, score: r.score, label: `course ${courseSeed}`, w: SWING_WORLD_W, h, draw: (ctx, s) => art.draw(ctx, s, { width: SWING_WORLD_W, height: h }) };
   },
   /** Orbit: Expert bank entry (a deal takes entry seed mod 31), the elite under ORBIT_HUMAN_LIMITS. */
   orbit: async (entry) => {

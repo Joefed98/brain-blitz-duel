@@ -132,8 +132,8 @@ few more sliding vines than Hard, a little tighter stall limit, pterodactyl last
 deal stamps the puzzle's `level` (swingRev 18 only) and deals a course from that level's own proved deal
 (`SWING_LEVEL_DEAL`, `src/lib/duel/swingLevelDeal.server.ts`, `bun scripts/swing-slide-deal.ts --rev=18
 --level=<level> [--check]`: 24 courses a level whose flawless oracle replays to exactly 200 through `replaySwingRun` at
-the level; witnesses `scripts/fixtures/swing-level-<level>-witness.json.gz`; dropped: Easy 55 of 79, Hard 52 of 76,
-Expert 74 of 98). The sim reads the level into the state's `lvl` (absent at Normal, so a Normal state, course and score
+the level; witnesses `scripts/fixtures/swing-level-<level>-witness.json.gz`; dropped: Easy 55 of 79, Hard 24 of 48,
+Expert 20 of 44, Hard and Expert rebuilt on 16 Nov 2026 with the vine's swing below). The sim reads the level into the state's `lvl` (absent at Normal, so a Normal state, course and score
 are exactly today's: swing-levels-check 1 against 6 courses and 18 runs recorded on de3bec96,
 `scripts/fixtures/action-levels-legacy.json.gz`). Settings: `SWING_LEVELS` in `swing.ts` (the registry's
 `GAME_LEVELS.swing` repeats them for display); a change to one needs a new stamp.
@@ -146,6 +146,7 @@ are exactly today's: swing-levels-check 1 against 6 courses and 18 runs recorded
 | Pterodactyl (last quarter) | none | 2.4 px a tick | 3.2 px a tick | 3.4 px a tick |
 | Dark ledge runs | none (all lit) | 6 | 6 | 7 (`runs` 3,2,2,3,2,3,2, a run every 5 blocks) |
 | Course part full at | 50 % of the way | 70 % | 70 % | 70 % |
+| Vine swing (gravity on a held vine, `swing`) | 100 % | 100 % | 125 % | 145 % |
 
 The parts (course 110, pars 40, gates 10, streak 40 = 200), the 90 s run and the stretch restarts (no slip ends a run)
 are swingRev 18's at every level; Easy's course part is full sooner (a level's "full at"). How it works in the sim:
@@ -156,37 +157,47 @@ each level's sliding hooks (the first quarter too) and drops the pterodactyl on 
 0.7 s on a desktop core (Normal / Easy / Hard / Expert, more under load); `RoundIntro` builds the level's course while the
 intro is up (`prepareSwingCourse(seed, rev, level)`).
 
+- **The vine's swing** (16 Nov 2026, Joe: "add levers that test human timing rather than the route"): on Hard and
+  Expert a held vine swings faster (`SWING_LEVELS.swing`, the gravity in `moveBody`'s rope branch read from the level
+  while it is built or stepped; flight, reach and every other rule unchanged; Easy, Normal and every older revision at
+  100 %, so their states step exactly as before). A faster swing turns further each tick (|ω| after a quarter second from
+  the same hang: Normal 4,652, Hard 5,724, Expert 6,540 in the sim's units, swing-levels-check 2q), so a release a tick
+  early or late flies a plainly different line and the hook that line reaches comes and goes sooner: a test of the
+  player's timing, not of the route. The courses are built and proved on the same swing (the builder's reach test steps
+  the faster vine), and the flawless oracle still hits its exact tick, so each rebuilt deal keeps exactly 200 on every
+  course. Levers kept on the route (reach, stall, pterodactyl) are unchanged: tightening them broke the proof before.
 - **"King of the swingers"** ("Get 70 % of the way on Expert", the Course part full) is met on every sampled Expert
-  witness (swing-levels-check 7b) and by the elite bot on all 8 measured Expert courses.
+  witness (swing-levels-check 7b), on the rebuilt deal as on the first.
 - **Why the stall limits are where they are.** The elite bot's grab-to-grab gaps run 15–68 ticks (median 22, 95th
   percentile 42), so Joe's "about 130" changed nothing for strong players. At 40 / 32 ticks the near-perfect bot fell to
   about 166 on Expert, but the flawless oracle no longer reached 200 on any course (0 of 6), so no proved deal could be
   built; 55 / 50 is the tightest where it still does (about 1 course in 3–4).
 
-### Measured (15–16 Nov 2026)
+### Measured (16 Nov 2026, with the faster vine on Hard and Expert; information only)
 
-`bun scripts/action-levels-bands.ts swing --level=<level> --seeds=6|8 --each` (real deals, graded by the server; human
+`bun scripts/action-levels-bands.ts swing --level=<level> --seeds=6 --each` (real deals, graded by the server; human
 limits: a ledge press reacts no sooner than 0.25 s, a grab comes no sooner than 0.15 s after the release; a release on
-the swing is a timed moment with the level's own timing error):
+the swing is a timed moment with the level's own timing error). Averages over 6 dealt courses a level; Joe: bots play
+differently from people, and his playtest decides.
 
 | Bot | Easy | Normal | Hard | Expert |
 |---|---|---|---|---|
-| Average | 112.5 | 86.3 | | |
-| Good | 138.8 | | | |
-| Great | | 156.5 | 156.8 | 150.1 |
-| Near-perfect | | 191.7 | 193.5 | 188.9 |
-| Elite | 199.0 | 198.8 | 197.0 | 197.0 |
-| Flawless | 200 (the deal's proof) | 200 | 200 | 200 |
+| Weak | 88.3 | 61.8 | 67.3 | 67.2 |
+| Average | 112.5 | 86.3 | 89.0 | 78.5 |
+| Good | 138.8 | 114.5 | 114.7 | 111.7 |
+| Great | 158.2 | 156.5 | 147.2 | 157.7 |
+| Near-perfect | 196.8 | 191.7 | 198.0 | 195.2 |
+| Elite | 199.0 | 198.8 | 199.5 | 198.0 |
+| Flawless | 200 | 200 | 200 | 200 |
 
-The shared tool (main's `bun scripts/level-tune.ts swing --level=all --seeds=4`, checkpoints every 300 ticks as
-Grappler's own, no human limits) gives near-perfect / elite 193.3 / 198.0 Easy, 187.5 / 199.0 Normal, 186.0 / 194.3 Hard,
-186.0 / 190.3 Expert ("finished" there is clearing every stretch: 75 / 25 / 0 / 0 % of elite runs).
+What it shows: the bots plan their releases with the sim's own look-ahead and the elite bot's timing error is about half
+a tick, so the faster swing barely touches it (the deal's proof plays at an exact tick, as it must). The average player
+drops on Expert (78.5 against Normal's 86.3); weak and great move by noise-sized amounts on six courses. The faster swing
+is a design change for people's timing, kept without re-tuning (Joe, 16 Nov 2026).
 
-Easy is a clear step down (an average player +26, a good one well clear of Normal), but Grappler's strong players are near
-the ceiling at every level: Hard and Expert step down only a few points for great and near-perfect play, and the elite
-bot scores 193–200 on every Expert course (Expert courses to play, dealt seeds with the elite score: 1492875028 (200),
-138730531 (198), 310905574 (198), 1476148260 (197), 1089691770 (196), 843969757 (196), 794825887 (193)). A clearer step
-needs a decision from Joe (below the stall limits the proof breaks; see above).
+Expert courses to play (dealt seeds, the human-limited elite's server score): 416796831 (200, the gallery clip),
+519412512 (198), 527841388 (198), 1116863695 (198), 1492875028 (196). "King of the swingers" (70 % of the way on Expert) is met on
+every Expert course's witness (swing-levels-check 7b; with `CHECKS_FULL=1`, all 24).
 
 ## The jungle canopy (3 Nov 2026, the Action polish; display only, swingRev 17)
 

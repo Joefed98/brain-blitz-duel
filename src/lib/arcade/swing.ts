@@ -225,7 +225,9 @@ function moveBody(b: Body, c: { ceil: number[]; floor: number[]; spikes: Spike[]
   if (b.rope >= 0) {
     const a = c.anchors[b.rope]!;
     const t = b.th >> 4;
-    b.om -= Math.trunc((GRAVITY * isin(t) * SUB * ANG_PER_RAD) / (TRIG_ONE * b.len));
+    // (A swingRev 18 level may swing the vine faster: its rope gravity, per cent; Normal, Easy and every older revision 100.)
+    const g = LEVEL && LEVEL.swing !== 100 ? Math.trunc((GRAVITY * LEVEL.swing) / 100) : GRAVITY;
+    b.om -= Math.trunc((g * isin(t) * SUB * ANG_PER_RAD) / (TRIG_ONE * b.len));
     if (b.reelLeft > 0) {
       // Conserve angular momentum (len² · ω) while the rope length changes.
       const old = b.len;
@@ -4776,11 +4778,18 @@ export interface SwingLevelCfg {
   runEvery: number;
   /** The course stream's salt (each level's courses its own). */
   salt: number;
+  /**
+   * The vine's swing speed: the gravity on a held vine, per cent (100: Normal's; Hard and Expert faster, 16 Nov 2026).
+   * A faster swing moves further each tick, so a release a tick early or late flies a plainly different line: a test of
+   * the player's timing, not of the route (the oracle still hits its exact tick, and the courses are built and proved
+   * on the same swing). Flight is unchanged.
+   */
+  swing: number;
 }
 export const SWING_LEVELS: Readonly<Record<SwingLevel, SwingLevelCfg>> = {
-  easy: { reach: 250 * FP, buildReach: 220 * FP, sliders: [0, 1, 2, 2], stall: 200, chasePace: 0, dark: false, full: 500, runs: SWING_V16_RUNS, squeezeRuns: SWING_V16_SQUEEZE_RUNS, squeezes: SWING_V16_SQUEEZES, runEvery: 6, salt: 0x2a5f8c17 },
-  hard: { reach: 220 * FP, buildReach: 220 * FP, sliders: [2, 6, 8, 10], stall: 55, chasePace: 820, dark: true, full: SWING_V17_FULL, runs: SWING_V16_RUNS, squeezeRuns: SWING_V16_SQUEEZE_RUNS, squeezes: SWING_V16_SQUEEZES, runEvery: 6, salt: 0x4b7e9d23 },
-  expert: { reach: 205 * FP, buildReach: 205 * FP, sliders: [3, 7, 9, 11], stall: 50, chasePace: 870, dark: true, full: SWING_V17_FULL, runs: [3, 2, 2, 3, 2, 3, 2], squeezeRuns: SWING_V16_SQUEEZE_RUNS, squeezes: SWING_V16_SQUEEZES, runEvery: 5, salt: 0x6c1fae39 },
+  easy: { reach: 250 * FP, buildReach: 220 * FP, sliders: [0, 1, 2, 2], stall: 200, chasePace: 0, dark: false, full: 500, runs: SWING_V16_RUNS, squeezeRuns: SWING_V16_SQUEEZE_RUNS, squeezes: SWING_V16_SQUEEZES, runEvery: 6, salt: 0x2a5f8c17, swing: 100 },
+  hard: { reach: 220 * FP, buildReach: 220 * FP, sliders: [2, 6, 8, 10], stall: 55, chasePace: 820, dark: true, full: SWING_V17_FULL, runs: SWING_V16_RUNS, squeezeRuns: SWING_V16_SQUEEZE_RUNS, squeezes: SWING_V16_SQUEEZES, runEvery: 6, salt: 0x4b7e9d23, swing: 125 },
+  expert: { reach: 205 * FP, buildReach: 205 * FP, sliders: [3, 7, 9, 11], stall: 50, chasePace: 870, dark: true, full: SWING_V17_FULL, runs: [3, 2, 2, 3, 2, 3, 2], squeezeRuns: SWING_V16_SQUEEZE_RUNS, squeezes: SWING_V16_SQUEEZES, runEvery: 5, salt: 0x6c1fae39, swing: 145 },
 };
 const LEVEL_SHAPES: Record<SwingLevel, V15Shape> = {
   easy: levelShape("easy"),
