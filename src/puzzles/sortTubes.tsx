@@ -16,6 +16,8 @@ import {
   replayTubes,
   topGroup,
   tubeSorted,
+  tubesCapacity,
+  tubesColourCount,
   type TubeMove,
   type TubeState,
   type TubeToken,
@@ -43,10 +45,15 @@ const BALL_COLOURS = [
   "ORANGE",
   "BROWN",
   "YELLOW",
+  // The levels' Expert board (ten colours, 15 Nov 2026).
+  "TEAL",
+  "PEARL",
 ] as const;
+const EXTRA_COLOURS: Record<string, string> = { TEAL: "#19B5AD", PEARL: "#E6DFD2" };
 
 function ballColour(index: number): string {
-  return GLYPH_COLOURS[BALL_COLOURS[index % BALL_COLOURS.length]!];
+  const name = BALL_COLOURS[index % BALL_COLOURS.length]!;
+  return EXTRA_COLOURS[name] ?? GLYPH_COLOURS[name as keyof typeof GLYPH_COLOURS];
 }
 
 /** A flask's contents in words, bottom to top (7 Nov 2026, accessibility audit #16: the label was "Flask N" alone). */
@@ -57,7 +64,7 @@ function flaskLabel(index: number, tube: readonly number[], sorted: boolean): st
 }
 
 /** A faint symbol per liquid colour, as a second cue beside the colour itself. */
-const POTION_SYMBOLS = ["●", "▲", "■", "◆", "★", "✚", "♥", "✦"] as const;
+const POTION_SYMBOLS = ["●", "▲", "■", "◆", "★", "✚", "♥", "✦", "✿", "☾"] as const;
 
 /** Ten glass flasks in two rows of five; each ball is one countable liquid layer. */
 export function Tubes({
@@ -69,6 +76,7 @@ export function Tubes({
   layerHeight,
   poured,
   justCorked,
+  hiddenLayers,
 }: {
   /** Flasks corked by the pour just made (they ring once). */
   justCorked?: readonly number[] | undefined;
@@ -81,16 +89,27 @@ export function Tubes({
   layerHeight?: string;
   /** The flask that was just poured into, and how many layers arrived. */
   poured?: { tube: number; count: number; key: number } | null;
+  /** Expert (`hidden`): layers not yet uncovered, as "flask:layer" (shown dark with a ?). */
+  hiddenLayers?: ReadonlySet<string> | undefined;
 }) {
   const ballSize = compact ? 9 : 11;
+  // A level's board (the Logic overhaul's levels): 6, 10 or 12 flasks of 4–7 layers; today's 10 of 5 in two rows of five.
+  const capacity = tubesCapacity(tubes);
+  const across = tubes.length <= 6 ? 3 : tubes.length <= 10 ? 5 : 6;
+  const rows = Math.ceil(tubes.length / across);
   let corkOrder = 0;
   return (
-    <div className={`logic-potions grid w-full grid-cols-5 grid-rows-2 justify-center ${compact ? "gap-2 h-full place-items-end" : "gap-3 px-2 tubes-play-board shrink-0 place-items-center"}`}>
+    <div
+      data-flasks={tubes.length}
+      data-capacity={capacity}
+      className={`logic-potions grid w-full justify-center ${compact ? "gap-2 h-full place-items-end" : "gap-3 px-2 tubes-play-board shrink-0 place-items-center"}`}
+      style={{ gridTemplateColumns: `repeat(${across}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`, "--tube-cap": capacity, "--tube-rows": rows, "--tube-across": across } as CSSProperties}
+    >
       {tubes.map((tube, index) => {
         const isLifted = lifted === index;
         const group = topGroup(tube);
         const liftCount = isLifted && group ? group.count : 0;
-        const sorted = tubeSorted(tube);
+        const sorted = tubeSorted(tube, capacity);
         const order = sorted ? corkOrder++ : 0;
         return (
           <Button
@@ -119,6 +138,7 @@ export function Tubes({
                 const rising = isLifted && ball >= tube.length - liftCount;
                 const topLayer = ball === tube.length - 1;
                 const arriving = poured?.tube === index && ball >= tube.length - poured.count;
+                const veiled = hiddenLayers?.has(`${index}:${ball}`) ?? false;
                 return (
                   <span
                     key={arriving ? `${ball}-${poured?.key}` : ball}
@@ -126,18 +146,19 @@ export function Tubes({
                     // Presentation only: a same-colour layer above joins this one with a faint line, so one colour reads as one body of liquid.
                     data-same-above={tube[ball + 1] === colour ? "" : undefined}
                     // The rendered liquid (public/logic-art/potion-<colour>[-bottom].webp; display only).
-                    data-potion={BALL_COLOURS[colour % BALL_COLOURS.length]!.toLowerCase()}
+                    data-potion={veiled ? "hidden" : BALL_COLOURS[colour % BALL_COLOURS.length]!.toLowerCase()}
+                    data-hidden-layer={veiled ? "" : undefined}
                     data-bottom={ball === 0 ? "" : undefined}
                     style={{
                       ...(compact ? { height: layerHeight ?? ballSize + 3 } : {}),
-                      backgroundColor: ballColour(colour),
+                      backgroundColor: veiled ? "var(--potion-hidden, #2a2632)" : ballColour(colour),
                       transform: rising ? "translateY(-4px)" : "none",
                       transition: "transform 150ms ease",
                       boxShadow: rising ? "0 0 0 2px var(--primary)" : undefined,
                       ...(arriving ? { animationDelay: `calc(var(--pour-delay, 0ms) + ${(ball - (tube.length - (poured?.count ?? 0))) * 90}ms)` } : {}),
                     }}
                   >
-                    {!compact && <span aria-hidden="true" className="logic-potion-glyph">{POTION_SYMBOLS[colour % POTION_SYMBOLS.length]}</span>}
+                    {!compact && <span aria-hidden="true" className="logic-potion-glyph">{veiled ? "?" : POTION_SYMBOLS[colour % POTION_SYMBOLS.length]}</span>}
                     {topLayer && !compact && <span aria-hidden="true" className={`logic-potion-surface ${arriving ? "logic-potion-surface-pour" : ""}`} />}
                     {!compact && topLayer && !sorted && (
                       <>
@@ -209,7 +230,38 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const replay = useMemo(() => play(moves), [start, moves, logged, pourLimit]);
   const solving = useSolveFx("tubes", isTubes && replay.solved);
-  const inFrame = useFrameProgress(replay.sorted, TUBES_COLOURS, "corked");
+  const inFrame = useFrameProgress(replay.sorted, isTubes ? tubesColourCount(start) : TUBES_COLOURS, "corked");
+  // Expert (`hidden`, the levels): a starting layer stays hidden until it has been the top of its flask (or moved).
+  // Display only: the lowest each flask has been emptied to over the boards played (undone boards included: seen is
+  // seen), and every layer at or above that height has shown.
+  const hiddenLayers = useMemo(() => {
+    if (!isTubes || !puzzle.hidden) return undefined;
+    const low = start.map((tube) => tube.length);
+    const boards: TubeState[] = [start];
+    let state: TubeState = start.map((t) => [...t]);
+    const history: TubeState[] = [state];
+    for (const token of moves) {
+      if (token === "undo") { if (history.length > 1) history.pop(); state = history[history.length - 1]!; boards.push(state); continue; }
+      if (token === "reset") { history.length = 1; state = history[0]!; boards.push(state); continue; }
+      if (!canPour(state, token.from, token.to)) continue;
+      state = pour(state, token.from, token.to);
+      history.push(state);
+      boards.push(state);
+    }
+    // A flask's starting layers still in place at its bottom (`keep`) only fall when a pour takes them off the top,
+    // so the layer at keep − 1 was the top at that moment: every layer from the lowest keep − 1 up has shown.
+    for (const b of boards) b.forEach((tube, i) => {
+      let keep = 0;
+      while (keep < tube.length && keep < start[i]!.length && tube[keep] === start[i]![keep]) keep++;
+      low[i] = Math.min(low[i]!, keep);
+    });
+    const out = new Set<string>();
+    start.forEach((tube, i) => {
+      for (let ball = 0; ball < Math.min(low[i]!, tube.length) - 1; ball++) out.add(`${i}:${ball}`);
+    });
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTubes, start, moves, replay]);
 
   useEffect(() => {
     onDraftAnswer?.(encode(moves));
@@ -258,7 +310,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
     // the level the liquid reaches.
     const total = animatePour(boardRef.current, lifted, tube, colour, count);
     soundCue("tubes.pour", 0.85 + after.length * 0.07);
-    if (tubeSorted(after)) {
+    if (tubeSorted(after, tubesCapacity(start))) {
       // The cork pops in as the pour settles; two within a few seconds are a combo.
       const now = Date.now();
       const combo = now - lastCork.current < CORK_COMBO_MS;
@@ -320,7 +372,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
           </p>
         )}
         <div ref={boardRef} className="relative" style={{ "--pour-delay": `${pourDelay}ms` } as CSSProperties}>
-          <Tubes tubes={replay.tubes} lifted={lifted} shake={shake} onTube={tapTube} poured={poured} justCorked={justCorked} />
+          <Tubes tubes={replay.tubes} lifted={lifted} shake={shake} onTube={tapTube} poured={poured} justCorked={justCorked} hiddenLayers={hiddenLayers} />
           {outShown ? (
             <div role="status" data-out-of-pours="" className="logic-out-banner">
               Out of pours
@@ -374,12 +426,12 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "tubes") return null;
   const pourLimit = tubesPourLimit(puzzle);
   const mine = tubesSendsUndo(puzzle)
-    ? replayTubeLog(puzzle.tubes, decodeTubeLog(myAnswer ?? ""), pourLimit, undefined, tubesRefundsUndo(puzzle))
-    : replayTubes(puzzle.tubes, decodeTubeMoves(myAnswer ?? ""));
+    ? replayTubeLog(puzzle.tubes, decodeTubeLog(myAnswer ?? "", puzzle.tubes.length), pourLimit, undefined, tubesRefundsUndo(puzzle))
+    : replayTubes(puzzle.tubes, decodeTubeMoves(myAnswer ?? "", puzzle.tubes.length));
   const par = puzzle.par ?? puzzle.minMoves ?? 0;
   const route: ReactNode[] = [];
   let state = puzzle.tubes.map((tube) => [...tube]);
-  for (const move of decodeTubeMoves(puzzle.solution ?? "")) {
+  for (const move of decodeTubeMoves(puzzle.solution ?? "", puzzle.tubes.length)) {
     if (!canPour(state, move.from, move.to)) break;
     const top = state[move.from]![state[move.from]!.length - 1]!;
     route.push(<MovePicture colour={ballColour(top)} from={move.from + 1} to={move.to + 1} />);
@@ -397,7 +449,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
         items={[
           { label: pourLimit !== null ? `Pours used of ${pourLimit}` : "Pours", value: mine.moves, tone: mine.solved && par && mine.moves <= par ? "gold" : undefined },
           par > 0 && { label: "Par", value: par },
-          { label: `Sorted of ${TUBES_COLOURS}`, value: mine.sorted, tone: mine.solved ? "good" : undefined },
+          { label: `Sorted of ${tubesColourCount(puzzle.tubes)}`, value: mine.sorted, tone: mine.solved ? "good" : undefined },
         ]}
       />
       <MoveStrip testId="tubes" title="Shortest route" moves={route} />

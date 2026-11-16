@@ -1,3 +1,4 @@
+import { floodPlayable } from "./flood";
 import { equationVerdict, gapStageText, usesOperatorGaps } from "./operatorGaps";
 import { usesParMoves } from "./parMoves";
 import { bastionStdSpecFor } from "@/lib/arcade/bastionTank";
@@ -805,7 +806,7 @@ const tubesSummary: SummaryBuilder = (result, puzzle) => {
     };
   }
   return {
-    summary: `${sorted} / ${TUBES_COLOURS} tubes`,
+    summary: `${sorted} / ${puzzle.type === "tubes" ? new Set(puzzle.tubes.flat()).size || TUBES_COLOURS : TUBES_COLOURS} tubes`,
     detail: [`${moves} pour${moves === 1 ? "" : "s"} made`],
   };
 };
@@ -951,7 +952,7 @@ const floodSummary: SummaryBuilder = (result, puzzle) => {
   return {
     summary: result.is_correct
       ? `Solved, ${moves} moves (par ${par}), ${seconds(elapsedMs(result, puzzle))}`
-      : `${region} / ${FLOOD_CELLS} cells`,
+      : `${region} / ${floodPlayable(puzzle.grid) || FLOOD_CELLS} cells`,
     detail: [result.is_correct && moves <= par ? "Flooded in par" : `${moves} moves made`],
   };
 };

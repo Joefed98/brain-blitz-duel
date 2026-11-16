@@ -149,6 +149,16 @@
 :is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="brown"][data-bottom] { background-image: url("/logic-art/potion-brown-bottom.webp"); }
 :is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="yellow"] { background-image: url("/logic-art/potion-yellow.webp"); }
 :is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="yellow"][data-bottom] { background-image: url("/logic-art/potion-yellow-bottom.webp"); }
+/* The levels' Expert colours (ten), and its hidden layers: dark, unlit liquid marked "?". */
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="teal"] { background-image: url("/logic-art/potion-teal.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="teal"][data-bottom] { background-image: url("/logic-art/potion-teal-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="pearl"] { background-image: url("/logic-art/potion-pearl.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="pearl"][data-bottom] { background-image: url("/logic-art/potion-pearl-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-hidden-layer] {
+  background-image: none !important;
+  background: linear-gradient(90deg, #1c1922, #2f2a38 45%, #1c1922) !important;
+}
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-hidden-layer] .logic-potion-glyph { color: rgba(255, 255, 255, 0.55); }
 :is(#logic-overhaul-1, html) .logic-potions .logic-potion-surface {
   top: -4px;
   height: 9px;
@@ -640,3 +650,20 @@
 :is(#logic-overhaul-1, html) .logic-safe-drums[data-dials="5"] { gap: 4px; }
 :is(#logic-overhaul-1, html) .logic-safe-drums[data-dials="5"] .logic-drum-live { width: 50px !important; }
 :is(#logic-overhaul-1, html) .logic-safe-drums[data-dials="5"] .logic-drum-live .logic-drum-digit { font-size: 0.86em; }
+
+/* Levels (stage 3): Colour Flood's sixth colour and Expert's blocked stones; the tall boards keep their own aspect. */
+:root { --flood-f: #9C5BFF; }
+:is(#logic-overhaul-1, html) .logic-paint-pot[aria-label="Violet"] { background-image: url("/logic-art/flood-pot-6.webp") !important; }
+:is(#logic-overhaul-1, html) .logic-flood-stone {
+  background: radial-gradient(circle at 35% 30%, #4a4f58, #23262c 70%) !important;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+:is(#logic-overhaul-1, html) .logic-flood[data-flood-tall] { aspect-ratio: auto; }
+
+/* Levels (stage 3): a layer's height follows the board's flasks and layers (today's 5 layers in 2 rows of 5 give the
+   same height as polish-logic/logic.css's rule). */
+:is(#logic-overhaul-1, html) [data-logic-stage="tubes"] .logic-potions[data-capacity]:not([data-capacity="5"]) .tubes-play-layer,
+:is(#logic-overhaul-1, html) [data-logic-stage="tubes"] .logic-potions[data-flasks]:not([data-flasks="10"]) .tubes-play-layer {
+  height: calc(min(calc((min(calc(100cqh - 28px), 620px) / var(--tube-rows) - 36px) / (var(--tube-cap) + 1)), calc((100cqw - 32px) / var(--tube-across) - 16px)) + 4px);
+}

@@ -5,6 +5,8 @@ import {
   decodeNonoCells,
   encodeNonoCells,
   lineSatisfied,
+  nonoCellsOf,
+  nonoDimsOf,
   nonoSizeOf,
   type NonoMarks,
 } from "@/lib/duel/nonogram";
@@ -58,10 +60,13 @@ export function Board({
   /** The cell that was just tapped, keyed per tap (its tile pops). */
   tapped?: { index: number; key: number } | null;
 }) {
+  // A level's board is grown downwards (the Logic overhaul's levels): W columns by H rows, from the clue lists.
+  const W = cols.length || size;
+  const H = rows.length || size;
   const cellsOf = (line: "row" | "col", index: number) =>
-    Array.from({ length: size }, (_, other) =>
-      line === "row" ? marks[index * size + other] === 1 : marks[other * size + index] === 1,
-    );
+    line === "row"
+      ? Array.from({ length: W }, (_, other) => marks[index * W + other] === 1)
+      : Array.from({ length: H }, (_, other) => marks[other * W + index] === 1);
 
   // Drag to paint: while a pointer that went down on a cell is held, the cells it crosses are painted.
   const painting = useRef(false);
@@ -84,16 +89,18 @@ export function Board({
     <div
       onPointerMove={onMove}
       data-nono-paint={onPaint ? "" : undefined}
+      data-nono-tall={W !== H ? "" : undefined}
       className={`logic-nono grid gap-0 ${fluid ? "logic-nonogram-board" : ""} ${reveal ? "logic-nono-reveal w-full" : ""}`}
       style={{
-        gridTemplateColumns: fluid ? `1.15fr repeat(${size}, minmax(0, 1fr))` : reveal ? `auto repeat(${size}, minmax(0, 1fr))` : `auto repeat(${size}, ${cell}px)`,
-        gridTemplateRows: fluid ? `auto repeat(${size}, minmax(0, 1fr))` : reveal ? `auto repeat(${size}, auto)` : `auto repeat(${size}, ${cell}px)`,
+        gridTemplateColumns: fluid ? `1.15fr repeat(${W}, minmax(0, 1fr))` : reveal ? `auto repeat(${W}, minmax(0, 1fr))` : `auto repeat(${W}, ${cell}px)`,
+        gridTemplateRows: fluid ? `auto repeat(${H}, minmax(0, 1fr))` : reveal ? `auto repeat(${H}, auto)` : `auto repeat(${H}, ${cell}px)`,
+        ...(W !== H ? ({ "--nono-w": W, "--nono-h": H } as CSSProperties) : {}),
         ...(reveal ? { fontSize: 12 } : {}),
       }}
     >
       <span />
       {cols.map((clue, col) => {
-        const guide = size >= 10 && (col + 1) % 5 === 0 && col + 1 !== size;
+        const guide = H >= 10 && (col + 1) % 5 === 0 && col + 1 !== W;
         return (
           <span
             key={`c${col}`}
@@ -109,7 +116,7 @@ export function Board({
         );
       })}
       {rows.map((clue, row) => {
-        const rowGuide = size >= 10 && (row + 1) % 5 === 0 && row + 1 !== size;
+        const rowGuide = H >= 10 && (row + 1) % 5 === 0 && row + 1 !== H;
         return (
         <Fragment key={`r${row}`}>
           <span
@@ -125,13 +132,13 @@ export function Board({
               <span key={`${row}-${index}`}>{run}</span>
             ))}
           </span>
-          {Array.from({ length: size }, (_, col) => {
-            const index = row * size + col;
+          {Array.from({ length: W }, (_, col) => {
+            const index = row * W + col;
             const mark = marks[index] ?? 0;
             const gold = goldCells?.has(index);
             const wrong = wrongCells?.has(index);
             const missed = missedCells?.has(index);
-            const colGuide = size >= 10 && (col + 1) % 5 === 0 && col + 1 !== size;
+            const colGuide = H >= 10 && (col + 1) % 5 === 0 && col + 1 !== W;
             const popped = tapped?.index === index;
             return (
               <button
@@ -213,12 +220,13 @@ function Stage({
   stateKey = "nonogram",
 }: PuzzleStageProps) {
   const data: NonoPuzzleData | null = puzzle.type === "nonogram" ? puzzle : null;
-  // 7 × 7 before the depth revision, 8 × 8 on it (the clue count).
+  // 7 × 7 before the depth revision, 8 × 8 on it (the clue count); a level's board W × H (nonoDimsOf).
   const SIZE = nonoSizeOf(data);
+  const { w: W, h: H } = nonoDimsOf(data);
   const [marks, setMarks] = useStageState<NonoMarks>(
     stateKey,
     "nonoMarks",
-    () => Array.from({ length: SIZE * SIZE }, () => 0) as NonoMarks,
+    () => Array.from({ length: W * H }, () => 0) as NonoMarks,
   );
   const [tapped, setTapped] = useState<{ index: number; key: number } | null>(null);
   const submitted = useRef(false);
@@ -233,25 +241,26 @@ function Stage({
   const complete = useMemo(() => {
     if (!data) return false;
     const filledRow = (row: number) =>
-      Array.from({ length: SIZE }, (_, col) => marks[row * SIZE + col] === 1);
+      Array.from({ length: W }, (_, col) => marks[row * W + col] === 1);
     const filledCol = (col: number) =>
-      Array.from({ length: SIZE }, (_, row) => marks[row * SIZE + col] === 1);
+      Array.from({ length: H }, (_, row) => marks[row * W + col] === 1);
     return (
       data.rows.every((clue, row) => lineSatisfied(clue, filledRow(row))) &&
       data.cols.every((clue, col) => lineSatisfied(clue, filledCol(col)))
     );
-  }, [data, marks, SIZE]);
+  }, [data, marks, W, H]);
   const solving = useSolveFx("nonogram", complete);
   const linesDone = useMemo(() => {
     if (!data) return 0;
     const line = (cells: number[]) => cells.map((cell) => marks[cell] === 1);
-    const span = Array.from({ length: SIZE }, (_, i) => i);
+    const across = Array.from({ length: W }, (_, i) => i);
+    const down = Array.from({ length: H }, (_, i) => i);
     return (
-      data.rows.filter((clue, row) => lineSatisfied(clue, line(span.map((col) => row * SIZE + col)))).length +
-      data.cols.filter((clue, col) => lineSatisfied(clue, line(span.map((row) => row * SIZE + col)))).length
+      data.rows.filter((clue, row) => lineSatisfied(clue, line(across.map((col) => row * W + col)))).length +
+      data.cols.filter((clue, col) => lineSatisfied(clue, line(down.map((row) => row * W + col)))).length
     );
-  }, [data, marks, SIZE]);
-  useFrameProgress(linesDone, SIZE * 2, "lines");
+  }, [data, marks, W, H]);
+  useFrameProgress(linesDone, W + H, "lines");
 
   // A line that now matches its numbers: its clue lights with a chime; two or more at once are a combo
   // (Logic overhaul 1; the clue turning gold only when the line is truly right needs the solution: the levels stage).
@@ -260,10 +269,11 @@ function Stage({
   useEffect(() => {
     if (!data) return;
     const line = (cells: number[]) => cells.map((cell) => marks[cell] === 1);
-    const span = Array.from({ length: SIZE }, (_, i) => i);
+    const across = Array.from({ length: W }, (_, i) => i);
+    const down = Array.from({ length: H }, (_, i) => i);
     const now = new Set<string>([
-      ...data.rows.flatMap((clue, row) => (lineSatisfied(clue, line(span.map((col) => row * SIZE + col))) ? [`r${row}`] : [])),
-      ...data.cols.flatMap((clue, col) => (lineSatisfied(clue, line(span.map((row) => row * SIZE + col))) ? [`c${col}`] : [])),
+      ...data.rows.flatMap((clue, row) => (lineSatisfied(clue, line(across.map((col) => row * W + col))) ? [`r${row}`] : [])),
+      ...data.cols.flatMap((clue, col) => (lineSatisfied(clue, line(down.map((row) => row * W + col))) ? [`c${col}`] : [])),
     ]);
     const before = doneLines.current;
     doneLines.current = now;
@@ -271,10 +281,21 @@ function Stage({
     if (!before || complete) return;
     const fresh = [...now].filter((key) => !before.has(key));
     if (!fresh.length) return;
+    // Easy (`lockLines`): a line that now matches its numbers crosses its empty squares (still changeable: only the
+    // server knows the picture, so a matching line is never locked as right).
+    if (data.lockLines) {
+      const cross = new Set<number>();
+      for (const key of fresh) {
+        const n = Number(key.slice(1));
+        const cells = key[0] === "r" ? across.map((col) => n * W + col) : down.map((row) => row * W + n);
+        for (const c of cells) if ((marks[c] ?? 0) === 0) cross.add(c);
+      }
+      if (cross.size) setMarks((current) => current.map((m, at) => (cross.has(at) ? 2 : m)) as NonoMarks);
+    }
     lightCells(fresh.map((key) => boardRef.current?.querySelector<HTMLElement>(`[data-clue="${key}"]`)), 0);
     soundCue("nonogram.line", 1 + (fresh.length - 1) * 0.12);
     if (fresh.length > 1) gameFx("combo", boardRef.current?.querySelector(`[data-clue="${fresh[0]}"]`), { count: fresh.length, silent: true });
-  }, [data, marks, SIZE, complete]);
+  }, [data, marks, W, H, complete]);
 
   // Every line matching its clues means the picture is the stored one.
   useEffect(() => {
@@ -286,7 +307,7 @@ function Stage({
 
   useEffect(() => {
     if (!data || locked || submitted.current) return;
-    if (now < phaseStartedAt + NONO_TIME_MS - 400) return;
+    if (now < phaseStartedAt + (data.timeLimitMs ?? NONO_TIME_MS) - 400) return;
     submitted.current = true;
     onSubmit(encodeNonoCells(marks));
   }, [now, phaseStartedAt, locked, data, marks, onSubmit]);
@@ -339,13 +360,13 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "nonogram") return null;
   const pattern = puzzle.pattern ?? [];
   const size = nonoSizeOf(puzzle);
-  const filled = decodeNonoCells(myAnswer ?? "", size);
+  const filled = decodeNonoCells(myAnswer ?? "", size, nonoCellsOf(puzzle));
   const mine = new Set(filled);
   const correct = filled.filter((cell) => pattern[cell]).length;
   const total = pattern.filter(Boolean).length;
 
   const solutionMarks = pattern.map((cell) => (cell ? 1 : 0)) as NonoMarks;
-  const myMarks = Array.from({ length: size * size }, (_, index) =>
+  const myMarks = Array.from({ length: nonoCellsOf(puzzle) }, (_, index) =>
     mine.has(index) ? 1 : 0,
   ) as NonoMarks;
   const wrongCells = new Set(filled.filter((cell) => !pattern[cell]));

@@ -2,7 +2,7 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useMemo, useRef, type CSSProperties } from "react";
 
-import { decodeFloodMoves, encodeFloodMoves, floodApply, floodSolved, regionCells, replayFlood } from "@/lib/duel/flood";
+import { decodeFloodMoves, encodeFloodMoves, FLOOD_BLOCKED, floodApply, floodColoursOf, floodColsOf, floodPlayable, floodSolved, regionCells, replayFlood } from "@/lib/duel/flood";
 import { floodMoveLimit, limitText } from "@/lib/duel/moveLimits";
 import { useStageState } from "@/lib/duel/stageState";
 import {
@@ -25,8 +25,9 @@ import { gameFx } from "@/lib/fx/kit";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** Wet-paint display colours for stored indices 0–4 (red, blue, green, yellow, orange), chosen to stay distinct with red-green colour blindness. */
-const FLOOD_FILLS = ["var(--flood-a)", "var(--flood-b)", "var(--flood-c)", "var(--flood-d)", "var(--flood-e)"];
-const FLOOD_NAMES = ["Magenta", "Blue", "Mint", "Yellow", "Orange"];
+const FLOOD_FILLS = ["var(--flood-a)", "var(--flood-b)", "var(--flood-c)", "var(--flood-d)", "var(--flood-e)", "var(--flood-f)"];
+/** The sixth colour (violet) is dealt only on the Hard and Expert levels (six colours). */
+const FLOOD_NAMES = ["Magenta", "Blue", "Mint", "Yellow", "Orange", "Violet"];
 
 function fillOf(colour: number): string {
   return FLOOD_FILLS[colour % FLOOD_FILLS.length]!;
@@ -51,13 +52,19 @@ export function Board({
   ripple?: { cells: Set<number>; key: number } | undefined;
 }) {
   const region = new Set(regionCells(grid, size));
+  const tall = grid.length !== size * size;
   const edge = (index: number, neighbour: number | null) =>
     neighbour === null || !region.has(neighbour);
 
   return (
     <div
       className={`puzzle-board logic-flood relative grid gap-0 ${fluid ? "w-full aspect-square" : ""}`}
-      style={{ gridTemplateColumns: `repeat(${size}, ${fluid ? "minmax(0, 1fr)" : `${cell}px`})` }}
+      data-flood-tall={tall ? "" : undefined}
+      style={{
+        gridTemplateColumns: `repeat(${size}, ${fluid ? "minmax(0, 1fr)" : `${cell}px`})`,
+        // A level's board is grown downwards: its own aspect (columns ÷ rows).
+        ...(tall && fluid ? { aspectRatio: `${size} / ${grid.length / size}` } : {}),
+      }}
       aria-label={`${gameDisplayName("flood")} board`}
     >
       <span aria-hidden="true" className="logic-flood-sheen" />
@@ -65,7 +72,10 @@ export function Board({
         const row = Math.floor(index / size);
         const col = index % size;
         const mine = region.has(index);
-        const nb = [row > 0 ? index - size : null, col < size - 1 ? index + 1 : null, row < size - 1 ? index + size : null, col > 0 ? index - 1 : null];
+        // Expert's blocked squares (FLOOD_BLOCKED): a dark stone the flood never takes.
+        if (colour === FLOOD_BLOCKED)
+          return <span key={index} data-flood-blocked="" aria-hidden="true" className="flood-tile logic-flood-stone" style={{ width: fluid ? "100%" : cell, height: fluid ? "100%" : cell }} />;
+        const nb = [row > 0 ? index - size : null, col < size - 1 ? index + 1 : null, index + size < grid.length ? index + size : null, col > 0 ? index - 1 : null];
         // A side is an edge where the colour changes (or the board ends); same-colour cells join seamlessly.
         const side = nb.map((n) => n === null || grid[n] !== colour);
         const line = nb.map((n) => n !== null && grid[n] !== colour);
@@ -133,14 +143,17 @@ function Stage({
 
   // floodRev 1: a visible move limit; the last allowed tap ends the board (moveLimits.ts).
   const moveLimit = data ? floodMoveLimit(data) : null;
-  const replay = data ? replayFlood(data.grid, moves, undefined, moveLimit) : null;
+  // A level's board (the Logic overhaul's levels): its width, colours and clock; today's otherwise.
+  const cols = floodColsOf(data);
+  const colours = floodColoursOf(data);
+  const replay = data ? replayFlood(data.grid, moves, cols, moveLimit, colours) : null;
   const solving = useSolveFx("flood", Boolean(replay?.solved && moves.length));
-  const inFrame = useFrameProgress(replay?.region ?? 0, FLOOD_CELLS, "flooded");
+  const inFrame = useFrameProgress(replay?.region ?? 0, data ? floodPlayable(data.grid) : FLOOD_CELLS, "flooded");
   // Presentation only: which cells the last move swallowed, for the wet-paint ripple.
   const ripple = useMemo(() => {
     if (!data || !moves.length) return undefined;
-    const before = new Set(regionCells(replayFlood(data.grid, moves.slice(0, -1)).grid, FLOOD_SIZE));
-    const after = regionCells(replayFlood(data.grid, moves).grid, FLOOD_SIZE);
+    const before = new Set(regionCells(replayFlood(data.grid, moves.slice(0, -1), cols, null, colours).grid, cols));
+    const after = regionCells(replayFlood(data.grid, moves, cols, null, colours).grid, cols);
     return { cells: new Set(after.filter((cell) => !before.has(cell))), key: moves.length };
   }, [data, moves]);
 
@@ -150,7 +163,7 @@ function Stage({
 
   useEffect(() => {
     if (!data || locked || submitted.current) return;
-    if (now < phaseStartedAt + FLOOD_TIME_MS - 400) return;
+    if (now < phaseStartedAt + (data.timeLimitMs ?? FLOOD_TIME_MS) - 400) return;
     submitted.current = true;
     onSubmit(encodeFloodMoves(moves));
   }, [now, phaseStartedAt, locked, data, moves, onSubmit]);
@@ -158,7 +171,7 @@ function Stage({
   // Desktop keys: 1–5 tap the colour pot in that place, left to right.
   useGameKeys((kind, key, event) => {
     if (!data || !replay) return false;
-    const colour = /^[1-9]$/.test(key) && Number(key) <= FLOOD_COLOURS ? Number(key) - 1 : null;
+    const colour = /^[1-9]$/.test(key) && Number(key) <= colours ? Number(key) - 1 : null;
     if (colour === null) return false;
     if (kind === "down" && !event.repeat) tap(colour);
     return true;
@@ -175,7 +188,7 @@ function Stage({
     }
     const next = [...moves, colour];
     setMoves(next);
-    const after = replayFlood(data.grid, next, undefined, moveLimit);
+    const after = replayFlood(data.grid, next, cols, moveLimit, colours);
     // The whoosh grows with the squares taken (a big gulp plays longer and lower); 20+ squares is a combo sparkle.
     const taken = Math.max(0, after.region - replay.region);
     soundCue("flood.spread", Math.max(0.7, 1.2 - taken / 90));
@@ -200,7 +213,7 @@ function Stage({
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic" className="px-3">
         <div className="logic-square-bare logic-flood-frame">
-          <Board grid={replay.grid} fluid ripple={ripple} />
+          <Board grid={replay.grid} size={cols} fluid ripple={ripple} />
         </div>
       </div>
       {/* The moves line sits above the colours and the colours are lifted off the bottom edge (14 Oct 2026), so nothing is cut off. */}
@@ -230,14 +243,14 @@ function Stage({
         </div>
       )}
       <div data-game-controls="colours" className="flood-colours flex shrink-0 items-center gap-2">
-        {Array.from({ length: FLOOD_COLOURS }, (_, colour) => (
+        {Array.from({ length: colours }, (_, colour) => (
           <button
             key={colour}
             type="button"
             aria-label={FLOOD_NAMES[colour]}
             onPointerDown={() => tap(colour)}
             className={`flood-tile logic-paint-pot ${replay.grid[0] === colour ? "logic-paint-pot-current" : ""}`}
-            style={{ width: 52, height: 52, backgroundColor: fillOf(colour) }}
+            style={{ width: colours > 5 ? 46 : 52, height: colours > 5 ? 46 : 52, backgroundColor: fillOf(colour) }}
           />
         ))}
       </div>
@@ -249,7 +262,7 @@ function Stage({
  * The colours of the moves the replay counted, in order (display only; the same walk as replayFlood: an undo (-1)
  * takes the board back but a counted move stays counted, a tap that changes nothing is not a move).
  */
-function countedMoves(start: number[], moves: number[], limit: number | null): number[] {
+function countedMoves(start: number[], moves: number[], limit: number | null, cols = FLOOD_SIZE, colours = FLOOD_COLOURS): number[] {
   const history = [[...start]];
   const out: number[] = [];
   for (const colour of moves) {
@@ -257,7 +270,7 @@ function countedMoves(start: number[], moves: number[], limit: number | null): n
     if (colour === -1) { if (history.length > 1) history.pop(); continue; }
     const grid = history[history.length - 1]!;
     if (floodSolved(grid)) break;
-    const next = floodApply(grid, colour);
+    const next = floodApply(grid, colour, cols, colours);
     if (next === grid) continue;
     history.push(next);
     out.push(colour);
@@ -273,13 +286,15 @@ function countedMoves(start: number[], moves: number[], limit: number | null): n
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "flood") return null;
   const moveLimit = floodMoveLimit(puzzle);
-  const decoded = decodeFloodMoves(myAnswer ?? "");
-  const replay = replayFlood(puzzle.grid, decoded, undefined, moveLimit);
-  const made = countedMoves(puzzle.grid, decoded, moveLimit);
+  const cols = floodColsOf(puzzle);
+  const colours = floodColoursOf(puzzle);
+  const decoded = decodeFloodMoves(myAnswer ?? "", colours);
+  const replay = replayFlood(puzzle.grid, decoded, cols, moveLimit, colours);
+  const made = countedMoves(puzzle.grid, decoded, moveLimit, cols, colours);
   const par = puzzle.par;
   const route = puzzle.solution ?? [];
   const tone = par > 0 && replay.solved ? (replay.moves <= par ? "gold" : undefined) : undefined;
-  const flooded = Math.round((100 * replay.region) / FLOOD_CELLS);
+  const flooded = Math.round((100 * replay.region) / floodPlayable(puzzle.grid));
   const swatches = (colours: readonly number[], over: number) =>
     colours.map((colour, i) => (
       <i
@@ -295,7 +310,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
     <div className="logic-reveal">
       <div className="logic-reveal-board flex flex-col items-center gap-3">
         <div className="logic-square-bare logic-flood-frame logic-flood-reveal-board" data-flood-reveal-board="">
-          <Board grid={replay.grid} fluid />
+          <Board grid={replay.grid} size={cols} fluid />
         </div>
       </div>
       <RevealFacts

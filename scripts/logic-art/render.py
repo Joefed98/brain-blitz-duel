@@ -147,6 +147,8 @@ SEG = 50
 POTION_COLOURS = {  # the app's eight (ShapeGlyph GLYPH_COLOURS order in sortTubes BALL_COLOURS), B's richer glazes
     "red": "#FF4D4D", "blue": "#4D8CFF", "green": "#3DDC84", "purple": "#B26BFF",
     "pink": "#FF6BD6", "orange": "#FF8A3D", "brown": "#9a5a34", "yellow": "#FFE600",
+    # The levels' Expert board has ten colours (15 Nov 2026): teal and a milky pearl.
+    "teal": "#19B5AD", "pearl": "#E6DFD2",
 }
 
 
@@ -154,6 +156,7 @@ POTION_COLOURS = {  # the app's eight (ShapeGlyph GLYPH_COLOURS order in sortTub
 POTION_B = {
     "red": "#e8414a", "blue": "#3f7cf0", "green": "#3cc46a", "purple": "#9a5cf0",
     "pink": "#f063b8", "orange": "#f08a2a", "brown": "#9a5a34", "yellow": "#f2cc2a",
+    "teal": "#15aaa2", "pearl": "#e2dacb",
 }
 
 
@@ -284,7 +287,7 @@ def mosaic_well():
 
 
 # ------------------------------------------------------------------ Colour Flood: enamel, glass paint pots
-FLOOD = ["#E0508F", "#3D7BFF", "#5EE6C8", "#FFE14D", "#FF8A1F"]
+FLOOD = ["#E0508F", "#3D7BFF", "#5EE6C8", "#FFE14D", "#FF8A1F", "#9C5BFF"]
 
 
 def flood_enamel():
@@ -386,7 +389,7 @@ SPRITES = {
     **{f"hanoi-ring-{i + 1}": (lambda i=i: hanoi_ring(i)) for i in range(9)},
     "safe-door": safe_door, "safe-drum": safe_drum,
     "mosaic-tile": mosaic_tile, "mosaic-well": mosaic_well,
-    "flood-enamel": flood_enamel, **{f"flood-pot-{i + 1}": (lambda i=i: flood_pot(i)) for i in range(5)},
+    "flood-enamel": flood_enamel, **{f"flood-pot-{i + 1}": (lambda i=i: flood_pot(i)) for i in range(6)},
     "mine-raised": mine_raised, "mine-open": mine_open, "mine-mine": mine_mine, "mine-flag": mine_flag,
 }
 

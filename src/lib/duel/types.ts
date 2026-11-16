@@ -1442,6 +1442,10 @@ export const TUBES_TUBE_POINTS = 22;
 export const TUBES_PARTIAL_POINTS = 60;
 
 export interface TubesPuzzleData {
+  /** A level's own clock (the Logic overhaul's levels). Absent = the definition's 90 s. */
+  timeLimitMs?: number;
+  /** Expert: only each flask's top colour shows until the layers under it are uncovered (display only). */
+  hidden?: boolean;
   /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
   depthRev?: number;
   /** The depth revision's public par: the stored minimum, shown on the board (logicDepthStamp.server.ts). */
@@ -1738,6 +1742,10 @@ export interface NonoPuzzleData {
   cols: number[][];
   /** Server-side only: the one picture these clues describe. */
   pattern?: boolean[];
+  /** A level's own clock (the Logic overhaul's levels). Absent = the definition's 120 s. */
+  timeLimitMs?: number;
+  /** Easy: a row or column whose filled squares match its numbers locks (display and input only). */
+  lockLines?: boolean;
 }
 
 /* ============================== Pair Match ============================== */
@@ -1800,6 +1808,11 @@ export interface FloodPuzzleData {
   floodRev?: number;
   /** Taps allowed (floodRev 1). */
   moveLimit?: number;
+  /** A level's board (the Logic overhaul's levels): its width (rows = grid ÷ cols), its colours and its clock. Absent =
+   *  today's 14 × 14 in five colours, 60 s. Expert's blocked squares are FLOOD_BLOCKED in the grid. */
+  cols?: number;
+  colours?: number;
+  timeLimitMs?: number;
 }
 
 /* ============================= Sliding Tiles ============================= */

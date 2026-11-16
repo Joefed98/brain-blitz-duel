@@ -18,6 +18,26 @@ export function cloneTubes(state: TubeState): TubeState {
   return state.map((tube) => [...tube]);
 }
 
+/**
+ * A flask's capacity on a board: every colour has exactly one flask's worth of layers, and pours never change how
+ * many of each there are, so it is the count of any one colour (the Logic overhaul's levels deal 4, 5, 7 and 6; today's
+ * boards are 5, TUBE_CAPACITY). Read from the board, so every rule below needs no extra field.
+ */
+export function tubesCapacity(state: TubeState): number {
+  let colour = -1;
+  let n = 0;
+  for (const tube of state) for (const ball of tube) {
+    if (colour === -1) colour = ball;
+    if (ball === colour) n++;
+  }
+  return n > 0 ? n : TUBE_CAPACITY;
+}
+
+/** The colours on a board (8 today). */
+export function tubesColourCount(state: TubeState): number {
+  return new Set(state.flat()).size || TUBES_COLOURS;
+}
+
 /** The run of same-coloured balls at the top of a tube. */
 export function topGroup(tube: number[]): { colour: number; count: number } | null {
   if (!tube.length) return null;
@@ -31,26 +51,26 @@ export function topGroup(tube: number[]): { colour: number; count: number } | nu
 }
 
 /** How many balls a pour would actually move (0 when the pour is illegal). */
-export function pourAmount(state: TubeState, from: number, to: number): number {
+export function pourAmount(state: TubeState, from: number, to: number, capacity: number = tubesCapacity(state)): number {
   if (from === to) return 0;
   const source = state[from];
   const destination = state[to];
   if (!source || !destination) return 0;
   const group = topGroup(source);
   if (!group) return 0;
-  const room = TUBE_CAPACITY - destination.length;
+  const room = capacity - destination.length;
   if (room <= 0) return 0;
   const target = topGroup(destination);
   if (target && target.colour !== group.colour) return 0;
   return Math.min(group.count, room);
 }
 
-export function canPour(state: TubeState, from: number, to: number): boolean {
-  return pourAmount(state, from, to) > 0;
+export function canPour(state: TubeState, from: number, to: number, capacity?: number): boolean {
+  return pourAmount(state, from, to, capacity ?? tubesCapacity(state)) > 0;
 }
 
-export function pour(state: TubeState, from: number, to: number): TubeState {
-  const amount = pourAmount(state, from, to);
+export function pour(state: TubeState, from: number, to: number, capacity?: number): TubeState {
+  const amount = pourAmount(state, from, to, capacity ?? tubesCapacity(state));
   if (amount <= 0) return state;
   const next = cloneTubes(state);
   const moved = next[from]!.splice(next[from]!.length - amount, amount);
@@ -59,22 +79,23 @@ export function pour(state: TubeState, from: number, to: number): TubeState {
 }
 
 /** A finished tube: full and all one colour. */
-export function tubeSorted(tube: number[]): boolean {
-  return tube.length === TUBE_CAPACITY && tube.every((colour) => colour === tube[0]);
+export function tubeSorted(tube: number[], capacity: number = TUBE_CAPACITY): boolean {
+  return tube.length === capacity && tube.every((colour) => colour === tube[0]);
 }
 
-export function sortedTubeCount(state: TubeState): number {
-  return state.filter(tubeSorted).length;
+export function sortedTubeCount(state: TubeState, capacity: number = tubesCapacity(state)): number {
+  return state.filter((tube) => tubeSorted(tube, capacity)).length;
 }
 
 /** Solved when every tube is either empty or a full single-colour tube. */
-export function tubesSolved(state: TubeState): boolean {
-  return state.every((tube) => tube.length === 0 || tubeSorted(tube));
+export function tubesSolved(state: TubeState, capacity: number = tubesCapacity(state)): boolean {
+  return state.every((tube) => tube.length === 0 || tubeSorted(tube, capacity));
 }
 
 /** True when a colour already sits entirely in one tube. */
 export function colourAlreadyHome(state: TubeState): boolean {
-  for (let colour = 0; colour < TUBES_COLOURS; colour++) {
+  const colours = tubesColourCount(state);
+  for (let colour = 0; colour < colours; colour++) {
     const holding = state.filter((tube) => tube.includes(colour));
     if (holding.length === 1) return true;
   }
@@ -85,7 +106,7 @@ export function encodeTubeMoves(moves: TubeMove[]): string {
   return moves.map(({ from, to }) => `${from}>${to}`).join(",");
 }
 
-export function decodeTubeMoves(raw: string): TubeMove[] {
+export function decodeTubeMoves(raw: string, count: number = TUBES_COUNT): TubeMove[] {
   return (raw ?? "")
     .split(",")
     .map((part) => part.split(">").map((value) => Number.parseInt(value, 10)))
@@ -93,7 +114,7 @@ export function decodeTubeMoves(raw: string): TubeMove[] {
       (pair) =>
         pair.length === 2 &&
         pair.every(
-          (value) => Number.isInteger(value) && value >= 0 && (value as number) < TUBES_COUNT,
+          (value) => Number.isInteger(value) && value >= 0 && (value as number) < count,
         ),
     )
     .map(([from, to]) => ({ from: from!, to: to! }))
@@ -106,17 +127,18 @@ export function replayTubes(
   moves: TubeMove[],
 ): { tubes: TubeState; moves: number; solved: boolean; sorted: number } {
   let state = cloneTubes(start);
+  const cap = tubesCapacity(start);
   let applied = 0;
   for (const move of moves) {
-    if (!canPour(state, move.from, move.to)) continue;
-    state = pour(state, move.from, move.to);
+    if (!canPour(state, move.from, move.to, cap)) continue;
+    state = pour(state, move.from, move.to, cap);
     applied += 1;
   }
   return {
     tubes: state,
     moves: applied,
-    solved: applied > 0 && tubesSolved(state),
-    sorted: sortedTubeCount(state),
+    solved: applied > 0 && tubesSolved(state, cap),
+    sorted: sortedTubeCount(state, cap),
   };
 }
 
@@ -140,7 +162,7 @@ export function encodeTubeLog(tokens: readonly TubeToken[]): string {
 /** Longest pour log read (Undo and Reset included). */
 export const TUBE_LOG_MAX = 300;
 
-export function decodeTubeLog(raw: string): TubeToken[] {
+export function decodeTubeLog(raw: string, count: number = TUBES_COUNT): TubeToken[] {
   const out: TubeToken[] = [];
   for (const part of String(raw ?? "").split(",")) {
     if (out.length >= TUBE_LOG_MAX) break;
@@ -149,7 +171,7 @@ export function decodeTubeLog(raw: string): TubeToken[] {
     else if (token === "r") out.push("reset");
     else {
       const pair = token.split(">").map((value) => Number.parseInt(value, 10));
-      if (pair.length === 2 && pair.every((v) => Number.isInteger(v) && v >= 0 && v < TUBES_COUNT)) out.push({ from: pair[0]!, to: pair[1]! });
+      if (pair.length === 2 && pair.every((v) => Number.isInteger(v) && v >= 0 && v < count)) out.push({ from: pair[0]!, to: pair[1]! });
     }
   }
   return out;
@@ -171,10 +193,11 @@ export function replayTubeLog(
   refund = false,
 ): { tubes: TubeState; moves: number; solved: boolean; sorted: number; outOfPours: boolean; depth: number } {
   const history: TubeState[] = [cloneTubes(start)];
+  const cap = tubesCapacity(start);
   let poured = 0;
   for (const token of tokens) {
     const state = history[history.length - 1]!;
-    if (poured > 0 && tubesSolved(state)) break;
+    if (poured > 0 && tubesSolved(state, cap)) break;
     if (limit !== null && poured >= limit) break;
     if (token === "undo") {
       if (history.length > 1) {
@@ -190,12 +213,12 @@ export function replayTubeLog(
       onBoard?.(history[0]!);
       continue;
     }
-    if (!canPour(state, token.from, token.to)) continue;
-    history.push(pour(state, token.from, token.to));
+    if (!canPour(state, token.from, token.to, cap)) continue;
+    history.push(pour(state, token.from, token.to, cap));
     poured += 1;
     onBoard?.(history[history.length - 1]!);
   }
   const tubes = history[history.length - 1]!;
-  const solved = poured > 0 && tubesSolved(tubes);
-  return { tubes, moves: poured, solved, sorted: sortedTubeCount(tubes), outOfPours: limit !== null && poured >= limit && !solved, depth: history.length - 1 };
+  const solved = poured > 0 && tubesSolved(tubes, cap);
+  return { tubes, moves: poured, solved, sorted: sortedTubeCount(tubes, cap), outOfPours: limit !== null && poured >= limit && !solved, depth: history.length - 1 };
 }

@@ -48,7 +48,8 @@ import { generateIceSlide } from "./slide.server";
 import { generatePush } from "./push.server";
 import { generateLaser } from "./laser.server";
 import { generateTower } from "./tower.server";
-import { levelSettings, towerSettingsFor, type SudokuLevel, type SafeLevel } from "./logicLevels";
+import { levelSettings, towerSettingsFor, type SudokuLevel, type SafeLevel, type NonoLevel, type FloodLevel, type TubesLevel } from "./logicLevels";
+import { dealFloodLevel, dealTubesLevel } from "./logicLevelBanks.server";
 import { generateMaze } from "./maze.server";
 import { generateTubes } from "./tubes.server";
 import { generateSafe, generateSafeLevel } from "./safe.server";
@@ -59,7 +60,7 @@ import { dealsD5Remodels } from "./d5Remodels";
 import { generateTopsy } from "./topsy.server";
 import { generateJumbledDealt } from "./jumbled.server";
 import { generateChain } from "./chain.server";
-import { generateNonogram } from "./nonogram.server";
+import { generateNonogram, generateNonogramLevel } from "./nonogram.server";
 import { generatePairMatch } from "./pairmatch.server";
 import { generateFlood } from "./flood.server";
 import { generateRings } from "./rings.server";
@@ -228,6 +229,11 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   // Depth batch 4 (docs/depth/d4-pattern.md): eight Pattern / Logic games deal their 200-point stamp.
   const depth = dealDepth4(type, context);
   if (depth) return depth;
+  // Polypotions' levels (the Logic overhaul, logicLevels.ts) come from their own proved banks, before today's bank.
+  if (type === "tubes") {
+    const lv = levelSettings<TubesLevel>("tubes", context.level);
+    if (lv) return dealTubesLevel(lv, context.level!, context.bankSeed);
+  }
   if (context.bankSeed !== undefined && isBankedType(type))
     return drawBankedPuzzle(type, context.bankSeed, context.recentBankKeys);
   if (type === "stroop") return generateColourClash();
@@ -263,9 +269,15 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "bomb") return generateBomb();
   if (type === "gravity") return generateGravity();
   if (type === "chain") return generateChain();
-  if (type === "nonogram") return generateNonogram();
+  if (type === "nonogram") {
+    const lv = levelSettings<NonoLevel>("nonogram", context.level);
+    return lv ? generateNonogramLevel(lv) : generateNonogram();
+  }
   if (type === "pairmatch") return generatePairMatch();
-  if (type === "flood") return generateFlood();
+  if (type === "flood") {
+    const lv = levelSettings<FloodLevel>("flood", context.level);
+    return lv ? dealFloodLevel(lv, context.level!, context.bankSeed) : generateFlood();
+  }
   if (type === "tiles") return generateTiles();
   if (type === "rings") return generateRings();
   if (type === "hover") return generateHover();

@@ -37,9 +37,9 @@ import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "./bomb"
 import { decodeGravityTilts, replayGravity } from "./gravity";
 import { blockingCars } from "./unblock.server";
 import { decodeChainAnswer, replayChain } from "./chain";
-import { decodeNonoCells, nonoSizeOf, replayNonogram } from "./nonogram";
+import { decodeNonoCells, nonoCellsOf, nonoSizeOf, replayNonogram } from "./nonogram";
 import { decodePairFlips, replayPairs } from "./pairmatch";
-import { decodeFloodMoves, replayFlood } from "./flood";
+import { decodeFloodMoves, floodColoursOf, floodColsOf, replayFlood } from "./flood";
 import { decodeTileMoves, replayTiles, tilesLayout } from "./tiles";
 import { decodeRingTaps, replayRings } from "./rings";
 import { decodeHoverRun, replayHoverRun } from "./hover";
@@ -943,8 +943,8 @@ function gradeUnderRev(
       // The boards the player stood on, start first (tubesRev 2: a dead board keeps the best before it).
       const tubeBoards = [puzzle.tubes];
       const replay = tubesSendsUndo(puzzle)
-        ? replayTubeLog(puzzle.tubes, decodeTubeLog(answer), pourLimit, (b) => tubeBoards.push(b), tubesRefundsUndo(puzzle))
-        : replayTubes(puzzle.tubes, decodeTubeMoves(answer));
+        ? replayTubeLog(puzzle.tubes, decodeTubeLog(answer, puzzle.tubes.length), pourLimit, (b) => tubeBoards.push(b), tubesRefundsUndo(puzzle))
+        : replayTubes(puzzle.tubes, decodeTubeMoves(answer, puzzle.tubes.length));
       isCorrect = replay.solved;
       correctCount = replay.moves;
       const colours = new Set(puzzle.tubes.flat()).size;
@@ -1074,7 +1074,7 @@ function gradeUnderRev(
     }
     case "nonogram": {
       // The submitted cells are checked against the stored picture, never a client verdict.
-      const replay = replayNonogram(puzzle.pattern ?? [], decodeNonoCells(answer, nonoSizeOf(puzzle)));
+      const replay = replayNonogram(puzzle.pattern ?? [], decodeNonoCells(answer, nonoSizeOf(puzzle), nonoCellsOf(puzzle)));
       isCorrect = replay.solved;
       correctCount = replay.correct;
       errors = replay.wrong;
@@ -1105,7 +1105,8 @@ function gradeUnderRev(
       // Every tapped colour is replayed on the stored grid.
       // floodRev 1: taps beyond the stored move limit are ignored, so running out ends the board unfinished.
       const moveLimit = floodMoveLimit(puzzle);
-      const replay = replayFlood(puzzle.grid, decodeFloodMoves(answer), undefined, moveLimit);
+      // A level's board has its own width and colours (flood.ts floodColsOf / floodColoursOf; today's otherwise).
+      const replay = replayFlood(puzzle.grid, decodeFloodMoves(answer, floodColoursOf(puzzle)), floodColsOf(puzzle), moveLimit, floodColoursOf(puzzle));
       isCorrect = replay.solved;
       correctCount = replay.region;
       score = scoreFlood(replay.solved, replay.moves, puzzle.par, replay.region, ms, timeLimitMs, scoreRev1() ? replayFlood(puzzle.grid, []).region : 0, moveLimit);

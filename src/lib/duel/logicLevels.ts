@@ -47,6 +47,8 @@ export interface NonoLevel {
   timeMs: number;
 }
 export interface FloodLevel {
+  /** Smoothing passes when painting (fewer = more, smaller blobs = a higher par). */
+  smooth: number;
   cols: number;
   rows: number;
   colours: number;

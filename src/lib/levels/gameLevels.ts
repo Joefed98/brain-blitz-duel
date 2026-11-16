@@ -97,16 +97,16 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
     levels: {
       easy: { settings: { cols: 6, rows: 6, fill: [0.5, 0.7], logic: "line", lockLines: true, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
       hard: { settings: { cols: 9, rows: 11, fill: [0.5, 0.65], logic: "line", lockLines: false, timeMs: 120_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      expert: { settings: { cols: 9, rows: 14, fill: [0.48, 0.62], logic: "two", lockLines: false, timeMs: 120_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { cols: 9, rows: 14, fill: [0.5, 0.6], logic: "two", lockLines: false, timeMs: 120_000 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
-  // Colour Flood. Levers: columns × rows (grown downwards past 14 wide), colours, the exact minimum (par) band,
+  // Colour Flood. Levers: blob smoothing, columns × rows (grown downwards past 14 wide), colours, the exact minimum (par) band,
   // blocked squares (never flooded, never counted), the clock; the move allowance stays par + 6.
   flood: {
     levels: {
-      easy: { settings: { cols: 10, rows: 10, colours: 4, par: [7, 9], blocked: 0, timeMs: 60_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      hard: { settings: { cols: 12, rows: 17, colours: 6, par: [14, 18], blocked: 0, timeMs: 75_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      expert: { settings: { cols: 14, rows: 24, colours: 6, par: [18, 22], blocked: 14, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      easy: { settings: { smooth: 2, cols: 10, rows: 10, colours: 4, par: [7, 9], blocked: 0, timeMs: 60_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      hard: { settings: { smooth: 1, cols: 12, rows: 17, colours: 6, par: [14, 18], blocked: 0, timeMs: 75_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { smooth: 2, cols: 14, rows: 24, colours: 6, par: [18, 22], blocked: 14, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
   // Minefield (an arcade-run Logic game). Levers: columns × rows (grown downwards past 10 wide), mines, the opening's

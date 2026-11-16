@@ -18,9 +18,13 @@ import {
   tubeSorted,
   tubesKey,
   tubesSolved,
+  pourAmount,
+  tubesCapacity as tubesCapacityOf,
+  tubesSolved as tubesSolvedWith,
   type TubeMove,
   type TubeState,
 } from "./tubes";
+import { flasksKey, tubesLowerBound } from "./solverProgress.server";
 import {
   TUBE_CAPACITY,
   TUBES_BFS_CAP,
@@ -176,4 +180,124 @@ export function verifyTubesPuzzle(puzzle: TubesPuzzleData): string | null {
   const replay = replayTubes(tubes, decodeTubeMoves(puzzle.solution ?? ""));
   if (!replay.solved || replay.moves !== puzzle.minMoves) return "solution does not replay";
   return null;
+}
+
+/* ------------------------------------------------------------------ levels (the Logic overhaul, 15 Nov 2026) */
+
+/**
+ * The fewest pours and one shortest list, by A* on the admissible bound solverProgress.server.ts proves exact
+ * (tubesLowerBound), within a node budget; null past it. The levels' boards are too large for today's breadth-first
+ * search, and this finds the same minimum.
+ */
+export function tubesLevelMinimum(start: TubeState, budget = 2_000_000): { minMoves: number; solution: TubeMove[] } | null {
+  const cap = tubesCapacityOf(start);
+  if (tubesSolvedWith(start, cap)) return { minMoves: 0, solution: [] };
+  interface N { f: number; g: number; s: TubeState; parent: N | null; move: TubeMove | null }
+  const heap: N[] = [];
+  const better = (a: N, b: N) => a.f < b.f || (a.f === b.f && a.g > b.g);
+  const push = (n: N) => {
+    heap.push(n);
+    for (let i = heap.length - 1; i > 0; ) {
+      const p = (i - 1) >> 1;
+      if (!better(heap[i]!, heap[p]!)) break;
+      [heap[i], heap[p]] = [heap[p]!, heap[i]!];
+      i = p;
+    }
+  };
+  const pop = (): N => {
+    const top = heap[0]!;
+    const last = heap.pop()!;
+    if (heap.length) {
+      heap[0] = last;
+      for (let i = 0; ; ) {
+        const l = 2 * i + 1, r = l + 1;
+        let m = i;
+        if (l < heap.length && better(heap[l]!, heap[m]!)) m = l;
+        if (r < heap.length && better(heap[r]!, heap[m]!)) m = r;
+        if (m === i) break;
+        [heap[i], heap[m]] = [heap[m]!, heap[i]!];
+        i = m;
+      }
+    }
+    return top;
+  };
+  const seen = new Map<string, number>([[flasksKey(start), 0]]);
+  push({ f: tubesLowerBound(start), g: 0, s: start, parent: null, move: null });
+  let nodes = 0;
+  while (heap.length) {
+    const node = pop();
+    if (tubesSolvedWith(node.s, cap)) {
+      const path: TubeMove[] = [];
+      for (let w: N | null = node; w && w.move; w = w.parent) path.unshift(w.move);
+      return { minMoves: path.length, solution: path };
+    }
+    if ((seen.get(flasksKey(node.s)) ?? Infinity) < node.g) continue;
+    for (let from = 0; from < node.s.length; from++) {
+      for (let to = 0; to < node.s.length; to++) {
+        if (pourAmount(node.s, from, to, cap) <= 0) continue;
+        if (++nodes > budget) return null;
+        const next = pour(node.s, from, to, cap);
+        const k = flasksKey(next);
+        const g = node.g + 1;
+        if ((seen.get(k) ?? Infinity) <= g) continue;
+        seen.set(k, g);
+        push({ f: g + tubesLowerBound(next), g, s: next, parent: node, move: { from, to } });
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * A level's board (logicLevels.ts TubesLevel): `colours` full flasks of `capacity` layers scrambled backwards with
+ * legal reverse pours among `flasks` flasks (the rest empty), no flask finished and no colour home at the start, its
+ * exact minimum (tubesLevelMinimum) inside the level's band. The flasks, layers and clock ride on the board itself
+ * (each colour's layer count is the capacity, tubes.ts tubesCapacity) and `timeLimitMs`; Expert adds `hidden: true`
+ * (the stage shows only each flask's top colour until it is uncovered; the grade is unchanged).
+ */
+export function generateTubesLevel(level: import("./logicLevels").TubesLevel): TubesPuzzleData {
+  const [lo, hi] = level.minMoves;
+  for (let attempt = 0; attempt < 600; attempt++) {
+    const full = Array.from({ length: level.colours }, (_, colour) => new Array<number>(level.capacity).fill(colour));
+    let state: TubeState = shuffled([...full, ...Array.from({ length: level.flasks - level.colours }, () => [] as number[])]);
+    const scrambles = randInt(level.capacity * level.colours * 2, level.capacity * level.colours * 3);
+    for (let step = 0; step < scrambles; step++) {
+      const options = reversePoursCap(state, level.capacity);
+      if (!options.length) break;
+      state = applyReverse(state, options[randomBelow(options.length)]!);
+    }
+    if (state.some((tube) => tubeSorted(tube, level.capacity))) continue;
+    if (colourAlreadyHome(state)) continue;
+    const found = tubesLevelMinimum(state);
+    if (!found || found.minMoves < lo || found.minMoves > hi) continue;
+    return {
+      type: "tubes",
+      tubes: state,
+      minMoves: found.minMoves,
+      solution: encodeTubeMoves(found.solution),
+      timeLimitMs: level.timeMs,
+      ...(level.hidden ? { hidden: true } : {}),
+    };
+  }
+  throw new Error("Polypotions generator could not build a proven board for the level");
+}
+
+/** Reverse pours on a board of `capacity`-layer flasks (today's reversePours, its capacity a parameter). */
+function reversePoursCap(state: TubeState, capacity: number): { from: number; to: number; count: number }[] {
+  const options: { from: number; to: number; count: number }[] = [];
+  for (let from = 0; from < state.length; from++) {
+    const group = topGroup(state[from]!);
+    if (!group) continue;
+    for (let count = 1; count <= group.count; count++) {
+      for (let to = 0; to < state.length; to++) {
+        if (to === from) continue;
+        const destination = state[to]!;
+        if (destination.length + count > capacity) continue;
+        const target = topGroup(destination);
+        if (target && target.colour === group.colour) continue;
+        options.push({ from, to, count });
+      }
+    }
+  }
+  return options;
 }
