@@ -7,6 +7,7 @@
 import type {
   BalancePuzzleData,
   CheckoutPuzzleData,
+  CheckoutStageData,
   EquationPuzzleData,
   MeasureBoardData,
   MeasurePuzzleData,
@@ -32,6 +33,8 @@ import {
 } from "../../src/lib/duel/measure";
 import {
   CHECKOUT_BULL,
+  CHECKOUT_STANDARD,
+  checkoutBustFreeOrder,
   checkoutOptions,
   checkoutValid,
   decodeCheckoutDarts,
@@ -39,7 +42,10 @@ import {
   joinCheckoutRound,
   type CheckoutDart,
 } from "../../src/lib/duel/checkout";
-import { encodeNumline, numlineShare, numlineValue, NUMLINE_SCALE, NUMLINE_TOTAL, NUMLINE_ITEMS } from "../../src/lib/duel/numline";
+import { checkoutBust } from "../../src/lib/duel/numberOverhaul";
+import { checkoutLevelsBoard } from "../../src/lib/duel/numberLevels";
+import { puzzleLevel } from "../../src/lib/levels/levels";
+import { encodeNumline, numlineHiddenEnd, numlineShare, numlineValue, NUMLINE_SCALE, NUMLINE_TOTAL, NUMLINE_ITEMS } from "../../src/lib/duel/numline";
 import { atLevel, thinkMs, type PuzzleKit, type Rng, type SpamPlay, type Step } from "./kit";
 
 /** The phone's "CORRECT" hold between stages (StageCorrect.tsx STAGE_CORRECT_HOLD_MS). */
@@ -84,6 +90,9 @@ function randomTargetStep(pool: number[], rng: Rng): TStep | null {
   }
   return null;
 }
+
+/** Exact's levels: how much longer than Normal each step's search takes (Normal 1). */
+const TARGET_LEVEL_SEARCH = { easy: 0.8, hard: 2.6, expert: 3.0 } as const;
 
 const targetKit: PuzzleKit = {
   type: "target",
@@ -130,8 +139,10 @@ const targetKit: PuzzleKit = {
   },
   play(p, rng, skill) {
     // BASE 8 s per step: a good player finds a five-step exact chain in ~40 s.
-    const BASE = 8;
     const puzzle = p as TargetNumberPuzzleData;
+    // Exact's levels (targetLevels.server.ts): the kit knows the route, so a level's search is its think time: Hard
+    // needs every number (a longer hunt for the one route), Expert has no large number to build from.
+    const BASE = 8 * (TARGET_LEVEL_SEARCH[puzzleLevel(puzzle) as keyof typeof TARGET_LEVEL_SEARCH] ?? 1);
     const rec = recorder();
     const steps: TStep[] = [];
     for (const want of puzzle.solution) {
@@ -419,6 +430,8 @@ const balanceKit: PuzzleKit = {
     // scale takes 10 s a weight: five weights over seven free notches at distances to 5 is a search, not a sum.
     const BASE_8 = 5;
     const BASE_10 = 10;
+    const BASE_6 = 4;
+    const HIDDEN_FACTOR = 1.1;
     const puzzle = p as BalancePuzzleData;
     const limits = balancePlaceLimits(puzzle);
     const rec = recorder();
@@ -429,7 +442,10 @@ const balanceKit: PuzzleKit = {
       const scale = puzzle.scales[s]!;
       const sol = puzzle.solutions?.[s] ?? [];
       const pl = placements[s]!;
-      const BASE = scalePegs(scale) > 8 ? BASE_10 : BASE_8;
+      // Counterweight's levels (balanceRev 5, balanceLevels.ts): Easy's 6-notch scales are shorter sums (4 s a
+      // weight); Expert hides the readout, so every weight is a torque sum in the head (HIDDEN_FACTOR longer).
+      const pegsHere = scalePegs(scale);
+      const BASE = (pegsHere > 8 ? BASE_10 : pegsHere < 8 ? BASE_6 : BASE_8) * (puzzle.hideBalance ? HIDDEN_FACTOR : 1);
       // balanceRev 1: each hang counts; the phone refuses hangs past the scale's limit.
       const canHang = () => !limits || hangs[s]! < limits[s]!;
       const hang = (i: number, peg: number) => { pl[i] = peg; hangs[s]!++; rec.push(answer()); };
@@ -772,6 +788,22 @@ const measureKit: PuzzleKit = {
 
 /* ================================ Checkout ================================ */
 
+/**
+ * How much longer each dart takes on a level board (checkoutRev 4, and Hard's boards stamped `level`): any-ring boards
+ * are quicker, shuffled and uneven numbers have to be found and added, and negatives are one more thing to weigh.
+ */
+export function checkoutBoardEffort(s: CheckoutStageData): number {
+  const standard = s.wedges.every((v, i) => v === CHECKOUT_STANDARD[i]);
+  const uneven = s.wedges.some((v) => Math.abs(v) > 20) || new Set(s.wedges.map(Math.abs)).size < 20;
+  return (
+    (s.anyRing ? EFFORT.anyRing : 1) *
+    (standard ? 1 : uneven ? EFFORT.uneven : EFFORT.shuffled) *
+    (s.wedges.some((v) => v < 0) ? EFFORT.negatives : 1) *
+    1
+  );
+}
+const EFFORT = { anyRing: 0.8, shuffled: 1.15, uneven: 1.25, negatives: 1.1 };
+
 const checkoutKit: PuzzleKit = {
   type: "checkout",
   nothing: () => joinCheckoutRound([]),
@@ -792,7 +824,7 @@ const checkoutKit: PuzzleKit = {
         darts.push(rng.pick(options.filter((d) => d.ring === s.finish)));
         t += (2 * count + 1) * TAP_MS;
         if (t > limitMs) break;
-        if (checkoutValid(s, darts)) { solved[stage] = encodeCheckoutDarts(darts); t += 900; }
+        if (checkoutValid(s, darts, checkoutBust(puzzle))) { solved[stage] = encodeCheckoutDarts(darts); t += 900; }
         else t += count * TAP_MS + TAP_MS; // Undo each dart, then tap the next board's tab
         stage = (stage + 1) % puzzle.stages.length;
       }
@@ -808,7 +840,7 @@ const checkoutKit: PuzzleKit = {
         for (const d of finishers) {
           t += 4 * TAP_MS;
           if (t > limitMs) break outer;
-          if (checkoutValid(s, [d])) { solved[i] = encodeCheckoutDarts([d]); t += 900; break; }
+          if (checkoutValid(s, [d], checkoutBust(puzzle))) { solved[i] = encodeCheckoutDarts([d]); t += 900; break; }
         }
         t += TAP_MS;
       }
@@ -829,7 +861,7 @@ const checkoutKit: PuzzleKit = {
         }
         const fin = options.find((d) => d.ring === s.finish && value(d) === left);
         if (fin) darts.push(fin);
-        return checkoutValid(s, darts) ? encodeCheckoutDarts(darts) : "";
+        return checkoutValid(s, darts, checkoutBust(puzzle)) ? encodeCheckoutDarts(darts) : "";
       });
       out.push({ label: "greedy", answer: joinCheckoutRound(solved) });
     }
@@ -837,13 +869,19 @@ const checkoutKit: PuzzleKit = {
   },
   play(p, rng, skill) {
     // BASE 5 s per dart: find a wedge on an odd board and subtract in your head (wedge + ring taps).
-    const BASE = 5;
+    const BASE_DART = 5;
     const puzzle = p as CheckoutPuzzleData;
     const rec = recorder();
     const solved: string[] = puzzle.stages.map(() => "");
+    // Levels (checkoutRev 4, numberLevels.ts, and Hard's boards stamped `level`): each dart takes longer on a stranger
+    // board (checkoutBoardEffort). Earlier stamps dealt without a level play exactly as before.
+    const levelled = checkoutLevelsBoard(puzzle) || puzzleLevel(puzzle) !== "normal";
     for (let i = 0; i < puzzle.stages.length; i++) {
       const s = puzzle.stages[i]!;
-      const route = decodeCheckoutDarts(puzzle.routes?.[i] ?? "", s.maxDarts);
+      const BASE = BASE_DART * (levelled ? checkoutBoardEffort(s) : 1);
+      // checkoutRev 3 (the Number overhaul): a player throws the route in an order that never busts.
+      const stored = decodeCheckoutDarts(puzzle.routes?.[i] ?? "", s.maxDarts);
+      const route = checkoutBust(puzzle) ? checkoutBustFreeOrder(s, stored) : stored;
       const options = checkoutOptions(s);
       let guard = 0;
       while (!solved[i] && guard++ < 10) {
@@ -854,7 +892,7 @@ const checkoutKit: PuzzleKit = {
           rec.push(joinCheckoutRound(solved));
         }
         rec.wait(TAP_MS); // Throw
-        if (checkoutValid(s, darts)) {
+        if (checkoutValid(s, darts, checkoutBust(puzzle))) {
           solved[i] = encodeCheckoutDarts(darts);
           rec.push(joinCheckoutRound(solved));
         } else {
@@ -894,14 +932,21 @@ const numlineKit: PuzzleKit = {
     const puzzle = p as NumlinePuzzleData;
     const rec = recorder();
     // Estimation spread (share of the line): near ≈ 0.8 %, great 1.5 %, good 2.5 %, average 4.5 %.
-    const sd = 0.005 + 0.2 * skill.err;
+    // Ballpark's levels (numlineLevels.server.ts, 15 Nov 2026): Easy's whole numbers and simple fractions are quicker
+    // and closer, Hard's and Expert's harder items slower and wider; Expert's numbers placed before the hidden end
+    // label shows are guessed against a remembered scale (twice the spread). Normal (no level) exactly as before.
+    const level = puzzleLevel(puzzle);
+    const LEVEL_SPREAD = { easy: 0.6, normal: 1, hard: 1.5, expert: 1.6 } as const;
+    const LEVEL_TIME = { easy: 0.7, normal: 1, hard: 1.3, expert: 1.4 } as const;
+    const sd = (0.005 + 0.2 * skill.err) * LEVEL_SPREAD[level];
     const placements: number[] = [];
     puzzle.stages.forEach((stage, s) => {
       for (let i = 0; i < NUMLINE_ITEMS; i++) {
         const value = puzzle.values?.[s]?.[i];
         const truth = value ? numlineShare(stage, numlineValue(value)) : 0.5;
-        rec.wait(thinkMs(rng, BASE, skill));
-        const miss = rng.chance(skill.err) ? rng.normal(0, 0.12) : rng.normal(0, sd);
+        rec.wait(thinkMs(rng, BASE * LEVEL_TIME[level], skill));
+        const blind = numlineHiddenEnd(stage, i) !== null ? 2 : 1;
+        const miss = rng.chance(skill.err) ? rng.normal(0, 0.12) : rng.normal(0, sd * blind);
         const share = Math.max(0, Math.min(1, truth + miss));
         placements.push(Math.round(share * NUMLINE_SCALE));
         rec.push(encodeNumline(placements));

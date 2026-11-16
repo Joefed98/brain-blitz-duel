@@ -80,6 +80,8 @@ function stampLimitsOnly(puzzle: PuzzleData): PuzzleData {
         tiltLimit: upTo5(puzzle.minMoves + GRAVITY_SPARE_TILTS),
       };
     case "balance": {
+      // Counterweight's levels (balanceRev 5, balanceLevels.ts) carry their own limits.
+      if ((puzzle.balanceRev ?? 0) >= 5) return puzzle;
       // Four scales (generateBalance since 14 Oct 2026) are balanceRev 2; a three-scale puzzle stays 1.
       // Joe's phone notes (27 Oct 2026): four-scale puzzles are balanceRev 3, the same scales with 1.5× the hangs.
       const four = puzzle.scales.length === BAL_REV2_SCALES;
@@ -94,7 +96,8 @@ function stampLimitsOnly(puzzle: PuzzleData): PuzzleData {
       };
     }
     case "equation":
-      return { ...puzzle, equationRev: EQUATION_LIMIT_REV, tryLimit: EQUATION_TRIES };
+      // A level's deal (operatorGaps.server.ts generateOperatorLevel) brings its own tries; Normal has none, so 3.
+      return { ...puzzle, equationRev: EQUATION_LIMIT_REV, tryLimit: puzzle.tryLimit ?? EQUATION_TRIES };
     case "measure": {
       const mins = puzzle.minMoves ?? [];
       if (mins.length !== puzzle.boards.length || mins.some((m) => !(m > 0))) return puzzle;

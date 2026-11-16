@@ -55,10 +55,110 @@ belongs to Rotation and shared screens.
 | balance.select | a weight is selected | 140 ms |
 | balance.drop | a weight is hung on a notch | 230 ms |
 | balance.lift | double-tap returns a weight to the tray | 260 ms |
-| balance.level | a non-final scale balances | 760 ms |
+| balance.level | a non-final scale balances (until 15 Nov 2026; the Number overhaul plays balance.stageClear instead, older rounds included) | 760 ms |
 | balance.solve | the final scale balances | 1100 ms |
 | tendrop.apply | a tap applies a tile without hitting the target | 200 ms pop |
 | tendrop.clear | a target is cleared | 360 ms ring, plus the 0.5 s hold glow |
 | tendrop.reset | the total overshoots and resets | 360 ms ring, 24-tick frame flash |
 | tendrop.refused | a ÷ or − tile is refused | 18-tick shake |
 | tendrop.solve | all ten targets cleared: last target bursts, remaining tiles shimmer | 1200 ms |
+
+## The Number overhaul's stage moments (15 Nov 2026)
+
+One "stage complete" moment for the six stage games (`src/components/puzzles/number/overhaul.tsx`): the finished
+stage lifts and slides away with a rising two-note, and the stage pip fills. Skip and fail have their own, clearly
+different sounds. Each plays a library stand-in until Joe's ElevenLabs file (docs/sound-cues/number-elevenlabs.md)
+takes the slot's name.
+
+| Cue | Trigger | Length |
+|---|---|---|
+| balance.stageClear | a scale balances (not the last): the stage lifts and slides away, the stage pip fills | 160 ms rising two-note |
+| balance.skip | kept for a skip this game may get: the stage slides away | 528 ms flat swish |
+| balance.fail | out of hangs: the scale greys and slides away: the stage slides away | 90 ms dull thunk |
+| equation.stageClear | an equation comes out true (not the last): the stage lifts and slides away, the stage pip fills | 160 ms rising two-note |
+| equation.skip | Next skips an equation: the stage slides away | 528 ms flat swish |
+| equation.fail | an equation runs out of tries: the stage slides away | 90 ms dull thunk |
+| numpyramid.stageClear | a pyramid is complete and right (not the last): the stage lifts and slides away, the stage pip fills | 160 ms rising two-note |
+| numpyramid.skip | Skip moves on from a pyramid: the stage slides away | 528 ms flat swish |
+| numpyramid.fail | kept for a failed stage this game may get: the stage slides away | 90 ms dull thunk |
+| measure.stageClear | a jug reaches its target (not the last board): the stage lifts and slides away, the stage pip fills | 160 ms rising two-note |
+| measure.skip | kept for a skip this game may get: the stage slides away | 528 ms flat swish |
+| measure.fail | a board runs out of moves: the stage slides away | 90 ms dull thunk |
+| checkout.stageClear | a board checks out (not the last): the stage lifts and slides away, the stage pip fills | 160 ms rising two-note |
+| checkout.skip | kept for a skip this game may get: the stage slides away | 528 ms flat swish |
+| checkout.fail | a dart busts the board (checkoutRev 3): the stage slides away | 90 ms dull thunk |
+| numline.stageClear | a line of five is placed (not the last): the stage lifts and slides away, the stage pip fills | 160 ms rising two-note |
+| numline.skip | kept for a skip this game may get: the stage slides away | 528 ms flat swish |
+| numline.fail | kept for a failed stage this game may get: the stage slides away | 90 ms dull thunk |
+
+### Counterweight (Number overhaul)
+
+| Cue | Trigger | Length |
+|---|---|---|
+| balance.pickup | balanceRev 4: one tap picks a hung kettlebell up off its notch | 150 ms |
+| balance.nudge | a free notch tapped with no weight picked: the tray nudges, "Pick a weight first" | 300 ms nudge |
+
+### Exact (Number overhaul)
+
+| Cue | Trigger | Length |
+|---|---|---|
+| target.operator | an operator key picked, or the picked one tapped again to drop it | 120 ms |
+| target.undo | Undo takes the last step back | 200 ms |
+| target.reset | Reset puts every number back | 300 ms |
+| target.lock | Lock pressed with a step made (not the exact hit, which plays target.solve) | 400 ms stamp |
+
+### Ballpark (Number overhaul)
+
+| Cue | Trigger | Length |
+|---|---|---|
+| numline.edge | a touch or drag past an end of the line: a short stop shows at that end (the marker clamps there) | 320 ms bump |
+
+### Checkout (Number overhaul)
+
+| Cue | Trigger | Length |
+|---|---|---|
+| checkout.bust | a dart busts the board (checkoutRev 3): "Bust", the darts drop out | 250 ms |
+| checkout.undo | Undo pulls the last dart: a light tug | 528 ms |
+| checkout.nudge | a ring is tapped before a wedge is picked: "Pick a wedge first" | 486 ms |
+| checkout.switch | another board's tab is chosen | 486 ms |
+| checkout.bigFinish | a board checks out on a big finish that pays: the crowd's "oh!" | 600 ms |
+
+### Kakuro (Number overhaul)
+
+| Cue | Trigger | Length |
+|---|---|---|
+| kakuro.select | another square is tapped | 486 ms |
+| kakuro.pencil | a pencil mark is set or taken off | 486 ms |
+| kakuro.clear | Clear empties a square that held a digit or marks | 528 ms |
+| kakuro.broken | a run newly breaks a rule (a repeat, past its clue, out of reach): its clue turns red | 250 ms low tick |
+| kakuro.combo | one digit completes two runs at once (in place of kakuro.run) | 600 ms |
+
+### Operator (Number overhaul)
+
+| Cue | Trigger | Length |
+|---|---|---|
+| equation.tryCracked | a new full line is wrong and uses a try: a try pip cracks (gapsRev 2: a fill already tried uses none) | 140 ms dry crack |
+| equation.chooseGap | an empty gap is tapped to fill it next (tapped again lets go) | 120 ms soft tick |
+| equation.clearGap | a filled gap is tapped and empties | 120 ms soft lift |
+| equation.goBack | gapsRev 2: an earlier equation's chip is tapped to go back to it | 300 ms slide-back tick |
+
+### Integer Pyramid (Number overhaul)
+
+| Cue | Trigger | Length |
+|---|---|---|
+| numpyramid.pick | a stone is picked up (a tap on a tray tile or a placed stone) | 120 ms wooden lift |
+| numpyramid.swap | a placed stone is dropped on another placed stone and they swap | 150 ms double knock |
+| numpyramid.unplace | a placed stone goes back to the tray (double tap or drag) | 140 ms wooden lift |
+| numpyramid.seam | a sum the player had a hand in comes out right: a faint gold seam | 200 ms soft chime |
+| numpyramid.crack | a sum the player had a hand in comes out wrong: a red crack between the three stones | 250 ms stone crack |
+
+### The remaining Number overhaul slots
+
+| Cue | Trigger | Length |
+|---|---|---|
+| checkout.wrong | a Throw that doesn't check out (the score bar shakes) | 300 ms |
+| measure.target | the water meets the target line (wired with the effects kit) | 200 ms |
+| measure.near | one move from the target (wired with the effects kit) | 250 ms |
+| numline.dragTick | the marker crosses a tenth of the line (wired with the effects kit) | 30 ms |
+| numline.bullseye | a bullseye lands at the payoff (wired with the effects kit) | 250 ms |
+| numpyramid.row | a full row of the pyramid right (wired with the effects kit) | 300 ms |

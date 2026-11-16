@@ -58,6 +58,34 @@ import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, O
 import { BT_BALLS, BT_V7_BALLS, btIsV7Play } from "@/lib/arcade/ballTrack";
 import { clashPlays3, CLASH_REV_DEPTH } from "@/lib/arcade/colourClash";
 
+/**
+ * The Number overhaul's intro demos (15 Nov 2026): the eight Number games got new pieces, layouts and controls, so a
+ * coordinate demo recorded before it would tap the wrong places. A demo of one of them plays only when its log carries
+ * NUMBER_DEMO_REV (added by scripts/number-demos-record.ts, saved by scripts/number-demos-save.ts) and its example
+ * carries at least the stamp its Normal deals today (NUMBER_DEMO_MIN_STAMPS; number-demos-check fails when the example
+ * deal's stamp moves on without this table, so a new Normal stops the older demo until one is recorded on it).
+ */
+export const NUMBER_DEMO_GAMES = ["balance", "target", "equation", "numpyramid", "measure", "checkout", "numline", "kakuro"] as const;
+export const NUMBER_DEMO_REV = 1;
+export const NUMBER_DEMO_MIN_STAMPS: Partial<Record<(typeof NUMBER_DEMO_GAMES)[number], { field: string; min: number }>> = {
+  balance: { field: "balanceRev", min: 5 },
+  equation: { field: "gapsRev", min: 2 },
+  measure: { field: "measureRev", min: 5 },
+  checkout: { field: "checkoutRev", min: 4 },
+  kakuro: { field: "kakuroRev", min: 3 },
+};
+
+/** Whether a saved demo of `type` may play under the Number overhaul's rule (other games: always). */
+export function numberDemoPlays(type: string, demo: { puzzle: unknown; input_log: unknown }): boolean {
+  if (!(NUMBER_DEMO_GAMES as readonly string[]).includes(type)) return true;
+  const log = demo.input_log as { numberDemoRev?: unknown } | null;
+  if (log?.numberDemoRev !== NUMBER_DEMO_REV) return false;
+  const puzzle = demo.puzzle as Record<string, unknown> | null;
+  if (puzzle?.["type"] !== type) return false;
+  const stamp = NUMBER_DEMO_MIN_STAMPS[type as (typeof NUMBER_DEMO_GAMES)[number]];
+  return !stamp || Number(puzzle[stamp.field] ?? 0) >= stamp.min;
+}
+
 export interface IntroDemoRow {
   game_type: string;
   seed: number;
@@ -266,6 +294,9 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Lightbender and Turntable deal new stamps (par, gems, the gold crate, spare mirrors, the 7×7 board). A demo recorded
     // on an older puzzle would show the old rules, so each intro shows its still until a demo is recorded on the new stamp.
     if (isD4Type(data.type) && demo && !isDepth4(demo.puzzle)) return null;
+    // The Number overhaul (15 Nov 2026): new boards, pieces and layout for all eight Number games, so only a demo saved
+    // from scripts/fixtures/number-demos.json (NUMBER_DEMO_REV, on today's Normal stamps) plays.
+    if (demo && !numberDemoPlays(data.type, demo)) return null;
     // Expansion E4 (25 Oct 2026, docs/expansions/e4.md): High Rise's skylineRev 7 (taller view, special blocks, the
     // next-block preview, milestones). An older demo would show the old view without them, so the intro shows the
     // still until a demo is recorded on skylineRev 7. skylineRev 8 (27 Oct 2026, Joe's phone notes) keeps rev 7's play on a

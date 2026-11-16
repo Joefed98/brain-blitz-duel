@@ -17,6 +17,7 @@ import { puzzleNotesDealt } from "./puzzleNotes";
 import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
 import { parMovesDealt, parStrictDealt } from "./parMoves";
 import { operatorGapsDealt } from "./operatorGaps";
+import { preNumberOverhaulPinned } from "./numberOverhaul";
 import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
 import { partialCreditDealt } from "./partialCredit";
 import { logicOverhaul1Dealt } from "./logicOverhaul1";
@@ -393,11 +394,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap a kettlebell,", detail: "then a notch on the beam." },
         { action: "Further out", detail: "counts for more." },
-        { action: "Double-tap a kettlebell", detail: "to put it back." },
+        { action: "Tap a hung kettlebell", detail: "to pick it up: moving it to another notch is free; tap it again to put it back." },
         { action: "A 2 on notch 3", detail: "equals a 3 on notch 2.", helpOnly: true },
         { action: "Dark iron weights", detail: "with a lock are fixed.", helpOnly: true },
-        { action: "The fourth scale", detail: "is wider: 10 notches, 5 each side, and five weights to hang.", helpOnly: true },
-        { action: "Hangs are limited:", detail: "9 / 12 / 15 / 18 hangs on the four scales (the counter). Out of hangs, the scale ends unbalanced and the next one starts.", helpOnly: true },
+        { action: "Hangs are limited:", detail: "the counter shows each scale's; only a kettlebell hung from the tray counts. Out of hangs, the scale ends unbalanced and the next one starts.", helpOnly: true },
+        { action: "Under the beam,", detail: "the turning force on each side: left | right. Equal is balanced.", helpOnly: true },
+        { action: "Levels:", detail: "Easy has three short scales; Hard is four scales up to five weights, the last 10 notches wide; Expert has up to six weights on 10 notches, fewer hangs and no numbers under the beam.", helpOnly: true },
       ],
       score: standardNumberHelp("balance"),
     },
@@ -424,13 +426,28 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Use each number", detail: "once at most." },
         { action: "Every step", detail: "must be a whole number." },
         { action: "Elegance bonus:", detail: "hit the target with 5 numbers, not all 6." },
+        { action: "Levels:", detail: "Easy targets to 300 with 3 or 4 numbers; Hard has one large number and needs all six; Expert small numbers only, a target of 500 or more, all six needed.", helpOnly: true },
+        { action: "Tap the chosen sign again", detail: "to drop it. Undo takes a step back; Reset starts again.", helpOnly: true },
+        { action: "Lock in", detail: "your closest number once you have made a step; it turns gold when it can be used.", helpOnly: true },
       ],
       score: standardNumberHelp("target"),
     },
     equation: {
       goal: "Fill the gaps so each equation is true.",
       // Operator's gaps (puzzle polish, 3 Nov 2026, operatorGaps.ts): sign gaps, number gaps, then both.
-      how: operatorGapsDealt()
+      how: operatorGapsDealt() && !preNumberOverhaulPinned()
+        ? [
+              // gapsRev 2 (the Number overhaul, 15 Nov 2026): a try only for a new fill; any open equation can be gone back to.
+              { action: "Gold circles", detail: "take a sign; navy squares take a number from the tray." },
+              { action: "Work left to right,", detail: "in the order shown. Any answer that’s true counts." },
+              { action: "Four equations:", detail: "signs, then numbers, then both. Next skips; tap an equation’s number to go back." },
+              { action: "Each tray number", detail: "can be used once; some are decoys. Tap an empty gap to fill it next, a filled one to empty it.", helpOnly: true },
+              { action: "A true equation", detail: "holds for 1 second, then moves on; the timer keeps running.", helpOnly: true },
+              { action: "The last one", detail: "uses division in a harder mix; every step must stay a whole number, never below 0. 90 seconds for all four.", helpOnly: true },
+              { action: "3 tries each:", detail: "each new full fill is a try; the same fill again is free. After the third wrong one the equation locks.", helpOnly: true },
+              { action: "Levels:", detail: "Easy uses 2 to 9 with one or two gaps a line and no ÷; Hard numbers to 25, one more gap a line, ÷ from line 3; Expert numbers to 30, every line mixed with 2 decoys, and 2 tries each. Hard runs 85 s and Expert 78 s.", helpOnly: true },
+            ]
+        : operatorGapsDealt()
         ? [
               { action: "Gold circles", detail: "take a sign; teal squares take a number from the tray." },
               { action: "Work left to right,", detail: "in the order shown. Any answer that’s true counts." },
@@ -1863,23 +1880,28 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Every pour, Fill or Empty", detail: "is a move." },
         { action: "Par pours:", detail: "solve the puzzles in their fewest moves for a bonus." },
         { action: "A pour", detail: "stops when the first jug is empty or the second is full.", helpOnly: true },
-        { action: "Puzzle 4", detail: "has no tap or drain: make the split shown on the jugs.", helpOnly: true },
+        { action: "On Hard and Expert, puzzle 4", detail: "has no tap or drain: make the split shown on the jugs.", helpOnly: true },
         { action: "Reset", detail: "starts the puzzle again; it costs no move, and the moves so far still count.", helpOnly: true },
-        { action: "Moves are limited", detail: "to about 4½× the fewest (the counter). Out of moves, that puzzle ends and the next one starts.", helpOnly: true },
+        { action: "The gold line", detail: "on a jug marks the target amount.", helpOnly: true },
+        { action: "Moves are limited", detail: "to about 4½× the fewest (the counter; 1½× on Expert). Out of moves, that puzzle ends and the next one starts.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is three short two-jug puzzles; Normal four gentler ones with a tap throughout; Hard is the classic set; Expert has longer puzzles, three jugs from puzzle 2 and no tap from puzzle 3.", helpOnly: true },
       ],
       score: standardNumberHelp("measure"),
     },
     checkout: {
       goal: "Score exactly the target with your darts.",
       how: [
-        { action: "Tap a number,", detail: "then x1, x2 or x3." },
-        { action: "Hit zero exactly", detail: "and finish in the ring shown." },
+        { action: "Tap a number,", detail: "then Single, Double or Treble." },
+        { action: "Hit zero exactly", detail: "and finish in the ring shown. Go past it and it's bust: the board starts again." },
         { action: "Tap Throw", detail: "to check." },
         { action: "Big finish:", detail: "end a board of 100+ on the Bull or a treble for a bonus." },
         { action: "Outer bull = 25,", detail: "inner bull = 50 (a double).", helpOnly: true },
         { action: "The ring shown", detail: "is a double or a treble.", helpOnly: true },
-        { action: "Every board is different.", detail: "Solve the five in any order; a wrong throw only costs time. Undo takes a dart back.", helpOnly: true },
-        { action: "Board 4", detail: "has a gold x4 ring. Board 5 has two minus numbers and must finish in exactly 4 darts.", helpOnly: true },
+        { action: "Every board is different.", detail: "Solve them in any order; a wrong throw only costs time. Undo takes a dart back.", helpOnly: true },
+        { action: "Pick a number first;", detail: "Single, Double and Treble wait for it.", helpOnly: true },
+        { action: "Board 4", detail: "has a gold x4 ring. Board 5 has two minus numbers and must finish in exactly 4 darts (Hard).", helpOnly: true },
+        { action: "Bust:", detail: "below zero, zero off the finishing ring, or 1 left when the finish is a double. The darts drop out and that board starts again.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is three standard boards that finish on any dart; Normal three standard and two shuffled; Hard the classic five; Expert five odd boards (uneven and minus numbers, x4) with an exact dart count.", helpOnly: true },
       ],
       score: standardNumberHelp("checkout"),
     },
@@ -1889,6 +1911,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a square", detail: "then a number from 1 to 9." },
         { action: "Each run", detail: "adds to the clue before it; no digit twice in a run." },
         { action: "Pencil", detail: "keeps notes; they never count." },
+        { action: "After a digit,", detail: "the next empty square in its run is chosen for you.", helpOnly: true },
+        { action: "A broken run", detail: "shows its clue in red with a thin red outline.", helpOnly: true },
+        { action: "A mistake", detail: "is only a digit that breaks a rule: a repeat in a run, or a run that can no longer make its clue.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is a small 5 × 5 board; Normal a gentler 6 × 6; Hard the classic 6 × 6; Expert a 7 × 7 board with longer chains of reasoning.", helpOnly: true },
       ],
       score: gridStandardHelp("kakuro"),
     },
@@ -1900,8 +1926,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Estimate:", detail: "no calculator needed." },
         { action: "Bullseyes:", detail: "land within 1% of exact for a bonus." },
         { action: "A magnifier", detail: "shows where your finger is.", helpOnly: true },
+        { action: "Past an end,", detail: "the marker stops at that end.", helpOnly: true },
         { action: "Placed numbers are locked.", detail: "Five numbers on each of three lines.", helpOnly: true },
         { action: "Numbers include", detail: "fractions, percentages, powers and roots.", helpOnly: true },
+        { action: "Levels:", detail: "Easy uses 0 to 10, 0 to 100 and 0 to 1 with whole numbers and simple fractions; Hard harder fractions, −100 to 100 and 0 to 1,000; Expert ends on 0 to 10,000, and each line’s top label shows only once three of its numbers are placed.", helpOnly: true },
       ],
       score: standardNumberHelp("numline"),
     },
@@ -1909,10 +1937,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Each cell is the sum of the two below it.",
       how: [
         { action: "Drag a tile", detail: "into an empty cell." },
-        { action: "Two tiles", detail: "are decoys." },
+        { action: "Some tiles", detail: "are decoys." },
         { action: "Skip", detail: "moves to the next pyramid." },
         { action: "Four pyramids", detail: "to complete, one after another.", helpOnly: true },
         { action: "Double-tap a placed tile", detail: "to return it to the tray; drag it onto another cell to swap.", helpOnly: true },
+        { action: "Once both stones below are filled,", detail: "a gold seam shows the sum is right; a red crack shows it's wrong.", helpOnly: true },
+        { action: "On the last pyramid,", detail: "Skip reads Finish and ends the round.", helpOnly: true },
+        { action: "Levels:", detail: "Easy is four 4-row pyramids with 1 decoy; Normal 5 rows with 2; Hard 5 rows, more empty stones, bigger numbers and 3 decoys; Expert 6-row pyramids with 3 decoys.", helpOnly: true },
       ],
       score: standardNumberHelp("numpyramid"),
     },

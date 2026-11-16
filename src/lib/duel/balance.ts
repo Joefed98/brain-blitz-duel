@@ -24,6 +24,8 @@ export const BAL_SCALES = 3;
 export const BAL_REV2_SCALES = 4;
 /** Notches on balanceRev 2's fourth scale. */
 export const BAL_REV2_WIDE_PEGS = 10;
+/** Notches on the levels' Easy scales (balanceRev 5): distances 1–3 a side. */
+export const BAL_LEVELS_EASY_PEGS = 6;
 /** The registry's clock: stored rounds. balanceRev 2 puzzles carry BAL_REV2_TIME_MS as `timeLimitMs`. */
 export const BAL_TIME_MS = 90_000;
 export const BAL_REV2_TIME_MS = 120_000;
@@ -34,6 +36,8 @@ export type Placement = (number | null)[];
 
 /** A scale's notch count (8 unless it carries its own). */
 export function scalePegs(scale: Pick<BalanceScale, "pegs">): number {
+  // The levels' Easy scale (balanceRev 5, balanceLevels.ts) has 6 notches (3 a side); no stored scale carries 6.
+  if (scale.pegs === BAL_LEVELS_EASY_PEGS) return BAL_LEVELS_EASY_PEGS;
   return scale.pegs === BAL_REV2_WIDE_PEGS ? BAL_REV2_WIDE_PEGS : BAL_PEGS;
 }
 

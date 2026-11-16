@@ -108,9 +108,17 @@ export function digest(value: unknown): string {
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul, logicOverhaul1.ts): preLogicOverhaul1.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul, logicOverhaul2.ts: Trail
  * depthRev 3 and Regions fillominoRev 2): preLogic2.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul, numberOverhaul.ts):
+ * preNumberOverhaul.
+ * Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): preCheckoutLevels and
+ * preKakuroLevels (Checkout's and Kakuro's new Normal, numberLevels.ts).
+ * Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): preMeasureLevels (Brimful's new
+ * Normal, measureLevels.ts; whole rooms need no entry: any pinned era deals Brimful's old Normal).
+ * Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): preBalanceLevels (Counterweight's
+ * new Normal, balanceLevels.ts; any pinned era deals its old Normal too).
  * Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine).
  */
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2"];
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "preNumberOverhaul", "preCheckoutLevels", "preKakuroLevels", "preMeasureLevels", "preBalanceLevels"];
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {

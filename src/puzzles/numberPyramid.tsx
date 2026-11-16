@@ -4,32 +4,42 @@ import { useContext, useEffect, useRef, useState, type CSSProperties } from "rea
 
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 import {
-  npBrokenCells,
   npComplete,
-  npCorrectCells,
   npDecode,
   npDecodeRound,
   npEncodeRound,
   npFilled,
+  npBrokenCells,
   npIndex,
+  npSeams,
+  NP_TRAY_GAP,
+  NP_TRAY_MIN_W,
+  npTrayRows,
   NP_SET_SIZE,
   type NpPlacements,
+  type NpSeam,
 } from "@/lib/duel/numberPyramid";
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import { NUMPYRAMID_TIME_MS, type NumberPyramidPuzzleData } from "@/lib/duel/types";
-import { playCorrect } from "@/lib/sound";
 import { Button } from "@/components/ui/button";
 import { StageProgress } from "@/components/puzzles/StageProgress";
-import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
+import { useStageCorrectHold } from "@/components/puzzles/StageCorrect";
+import { NUMBER_STAGE_MOMENT_SOUND, NumberStage } from "@/components/puzzles/number/overhaul";
+import { gameFx } from "@/lib/fx/kit";
+import { npRowsRight } from "@/lib/duel/numberOverhaulFx";
+import { RevealBoards, RevealFacts, RevealView, useRevealBoard, type BoardMark, type RevealSide } from "@/components/puzzles/number/RevealParts";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
 import { GoalLineContext } from "@/components/duel/GameFrame";
 import { LiveSummary } from "@/components/puzzles/batchW/LiveSummary";
 import "@/polish-layout/batch-w-numpyramid.css";
+import "@/polish-number/numpyramid.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
+// The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
+import "@/polish-layout/number-overhaul.css";
 
 const NO_TOUCH: CSSProperties = { touchAction: "none", userSelect: "none", WebkitUserSelect: "none" };
 
@@ -113,6 +123,9 @@ export function Pyramid({
   gap = 4,
   plinth = false,
   animate = true,
+  seams,
+  missed,
+  fix,
 }: {
   rows: number;
   givens: readonly (number | null)[];
@@ -131,10 +144,20 @@ export function Pyramid({
   plinth?: boolean;
   /** Block set-in on a new placement (off for the static reveal). */
   animate?: boolean;
+  /** The Number overhaul (display only): the judged sums, a faint gold seam if right, a red crack if wrong. */
+  seams?: readonly NpSeam[] | undefined;
+  /** Reveal: empty stones the player left (a dashed red outline). */
+  missed?: ReadonlySet<number> | undefined;
+  /** Reveal, the solution: stones the player didn't have right (a champagne outline). */
+  fix?: ReadonlySet<number> | undefined;
 }) {
   const size = fontSize ?? Math.round(Math.min(cellH * 0.5, cellW * 0.36));
+  const bottomW = rows * cellW + (rows - 1) * gap;
+  const boxW = plinth ? bottomW + 8 : bottomW;
+  const rowLeft = (r: number) => (boxW - ((r + 1) * cellW + r * gap)) / 2;
+  const rowTop = (r: number) => r * (cellH + gap);
   return (
-    <div className="np-art flex flex-col items-center" style={{ gap }}>
+    <div className="np-art relative flex flex-col items-center" style={{ gap }}>
       <PolishStyle id="numpyramid" css={NP_CSS} />
       {Array.from({ length: rows }, (_, r) => (
         <div key={r} className="np-row flex" style={{ gap }}>
@@ -147,11 +170,12 @@ export function Pyramid({
               <div
                 key={c}
                 data-np-cell={given ? undefined : cell}
-                className={`np-stone ${given ? "np-given" : "np-socket"} ${dragFrom === cell ? "opacity-30" : ""}`}
+                data-np-missed={missed?.has(cell) ? "" : undefined}
+                className={`np-stone ${given ? "np-given" : "np-socket"} ${dragFrom === cell ? "opacity-30" : ""}${missed?.has(cell) ? " np-missed" : ""}`}
                 style={{ width: cellW, height: cellH, fontSize: size }}
               >
                 {given ? value : value != null ? (
-                  <span key={`${cell}:${value}`} className={`np-stone np-block${animate ? " np-set" : ""}${mark === false ? " np-wrong" : ""}`}>{value}</span>
+                  <span key={`${cell}:${value}`} data-np-wrong={mark === false ? "" : undefined} data-np-fix={fix?.has(cell) ? "" : undefined} className={`np-stone np-block${animate ? " np-set" : ""}${mark === false ? " np-wrong" : ""}${fix?.has(cell) ? " np-fix" : ""}`}>{value}</span>
                 ) : null}
                 {lit && <span className="np-glow" style={{ animationDelay: `${(rows - 1 - r) * 90}ms` }} />}
                 {gold && (
@@ -166,6 +190,25 @@ export function Pyramid({
         </div>
       ))}
       {plinth && <div className="np-plinth" style={{ width: rows * cellW + (rows - 1) * gap + 8, height: 8 }} />}
+      {seams?.length ? (
+        <svg className="np-seams" width={boxW} height={rows * (cellH + gap)} aria-hidden="true">
+          {seams.map(({ row, col, state }) => {
+            const x = rowLeft(row) + col * (cellW + gap);
+            const cx = x + cellW / 2;
+            const yBottom = rowTop(row) + cellH;
+            if (state === "right") return <line key={`${row}:${col}`} data-np-seam="right" className="np-seam" x1={x + cellW * 0.16} x2={x + cellW * 0.84} y1={yBottom + gap / 2} y2={yBottom + gap / 2} />;
+            const yLow = rowTop(row + 1);
+            const points = [
+              [cx + 1, yBottom - cellH * 0.22],
+              [cx - 3, yBottom - cellH * 0.08],
+              [cx + 2, yBottom + gap / 2],
+              [cx - 2, yLow + cellH * 0.14],
+              [cx + 1.5, yLow + cellH * 0.3],
+            ].map(([a, b]) => `${a},${b}`).join(" ");
+            return <polyline key={`${row}:${col}`} data-np-seam="wrong" className="np-crack" points={points} />;
+          })}
+        </svg>
+      ) : null}
     </div>
   );
 }
@@ -231,7 +274,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const submitted = useRef(false);
   const lastPlacedTap = useRef<{ cell: number; at: number } | null>(null);
   const box = useRef<HTMLDivElement | null>(null);
-  const [size, setSize] = useState({ width: 340, height: 500 });
+  const [size, setSize] = useState({ width: 340, height: 500, free: 0 });
+  // The board area's own height (stage 2 fix): the pyramid is sized to it, so it never spills over the status line.
+  const arenaRef = useRef<HTMLDivElement | null>(null);
+  const [arenaH, setArenaH] = useState(0);
+  useBeforePaint(() => {
+    const node = arenaRef.current;
+    if (!node) return;
+    const measure = () => setArenaH(node.clientHeight);
+    const ro = new ResizeObserver(measure);
+    ro.observe(node); measure();
+    return () => ro.disconnect();
+  }, [!!data]);
   const board = data?.pyramids[Math.min(stage, NP_SET_SIZE - 1)];
   const placements = allPlacements[stage] ?? {};
   const encoded = npEncodeRound(stage, allPlacements);
@@ -240,7 +294,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   useBeforePaint(() => {
     const node = box.current;
     if (!node) return;
-    const measure = () => setSize({ width: node.clientWidth, height: node.clientHeight });
+    const measure = () => {
+      // Stage 3 (Joe, 15 Nov 2026): the height the pyramid may take on a phone's column layout is the box less its
+      // fixed rows (the stage pips, the status row and the tray), so the stones grow into the band above the board.
+      let fixed = 0;
+      let count = 0;
+      for (const child of Array.from(node.children) as HTMLElement[]) {
+        if (child.classList.contains("np-spacer") || child.hasAttribute("data-game-arena") || child.classList.contains("np-ghost")) continue;
+        fixed += child.offsetHeight;
+        count++;
+      }
+      setSize({ width: node.clientWidth, height: node.clientHeight, free: Math.max(0, node.clientHeight - fixed - 4 * (count + 2) - 4) });
+    };
     const ro = new ResizeObserver(measure);
     ro.observe(node); measure();
     return () => ro.disconnect();
@@ -252,16 +317,65 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     finalStage: stage >= NP_SET_SIZE - 1,
     locked: locked || submitted.current,
     stateKey: key,
-    onAdvance: () => { playCorrect(); advance(placements); },
+    onAdvance: () => advance(placements),
   });
   // Completion: the final board's sums light from the bottom row up (display only, after the submit).
   const lit = useSolveFx(complete && stage >= NP_SET_SIZE - 1, "numpyramid.solve", 1100);
   const busy = locked || submitted.current || complete;
-  // Game review fix (15 Nov 2026, display only): a full pyramid that isn't right marks the stones that break a
-  // sum in red and gets the shared wrong-move shake with its quiet reject sound, once per arrangement.
+  // Game review fix (15 Nov 2026, display only): a full pyramid that isn't right gets the shared wrong-move shake with
+  // its quiet reject sound, once per arrangement. The Number overhaul (Joe's approval, 15 Nov 2026): its broken sums
+  // show as cracks only (the seams below), no red fill on the stones.
   const fullValues = board ? npFilled(board.givens, board.tray, placements) : [];
   const fullWrong = !!board && !complete && fullValues.every((v) => v != null);
-  const broken = fullWrong && board ? npBrokenCells(board.givens, fullValues, board.rows) : [];
+  // The Number overhaul (display only): each judged sum shows as a gold seam or a red crack as soon as it can be judged.
+  const seams = board ? npSeams(board.givens, fullValues, board.rows) : [];
+  const rightSeams = seams.filter((x) => x.state === "right").length;
+  const wrongSeams = seams.length - rightSeams;
+  // Stage 2 (the effects kit), display only: a sum judged right pops its stone with gold sparks, a wrong one shakes it
+  // (each plays its own cue, so the kit's sound is left out); a full row right is the kit's combo, counting up the rows,
+  // with `numpyramid.row`.
+  const rowsRight = board ? npRowsRight(board.givens, fullValues, board.rows).length : 0;
+  const seamKeys = seams.map((x) => `${x.row}:${x.col}:${x.state}`).join(",");
+  const seamCounts = useRef({ stage, right: rightSeams, wrong: wrongSeams, rows: rowsRight, keys: seamKeys });
+  useEffect(() => {
+    const was = seamCounts.current;
+    seamCounts.current = { stage, right: rightSeams, wrong: wrongSeams, rows: rowsRight, keys: seamKeys };
+    if (was.stage !== stage || locked || submitted.current) return;
+    const before = new Set(was.keys ? was.keys.split(",") : []);
+    const stoneAt = (row: number, col: number) => box.current?.querySelectorAll<HTMLElement>(".np-row")[row]?.children[col] ?? null;
+    for (const seam of seams) {
+      if (before.has(`${seam.row}:${seam.col}:${seam.state}`)) continue;
+      if (seam.state === "wrong") gameFx("wrong", stoneAt(seam.row, seam.col), { silent: true });
+      else if (!complete) gameFx("combo", stoneAt(seam.row, seam.col), { count: 1, silent: true });
+    }
+    if (rowsRight > was.rows && !complete) {
+      soundCue("numpyramid.row");
+      const top = npRowsRight(board!.givens, fullValues, board!.rows)[0] ?? 0;
+      gameFx("combo", box.current?.querySelectorAll<HTMLElement>(".np-row")[top] ?? null, { count: rowsRight, silent: true });
+    } else if (wrongSeams > was.wrong) soundCue("numpyramid.crack");
+    else if (rightSeams > was.right && !complete) soundCue("numpyramid.seam");
+  }, [stage, rightSeams, wrongSeams, rowsRight, seamKeys, complete, locked]);
+
+  // Stage 2: a stone set on the pyramid drops in with the kit (its own `numpyramid.place` cue plays).
+  const [fresh, setFresh] = useState<number | null>(null);
+  useEffect(() => {
+    if (fresh === null) return;
+    gameFx("drop", box.current?.querySelector(`[data-np-cell="${fresh}"] .np-block`) ?? null, { silent: true });
+  }, [fresh, placements]);
+
+  // Stage 2: a completed board's gold sweep runs from the bottom row up, a rising note with each row (the kit's
+  // stars, one step higher a row). Only when completed here, never on a restore.
+  const wasComplete = useRef({ stage, complete });
+  const sweepTimers = useRef<number[]>([]);
+  useEffect(() => {
+    const was = wasComplete.current;
+    wasComplete.current = { stage, complete };
+    if (!board || !complete || (was.stage === stage && was.complete) || locked) return;
+    if (was.stage !== stage) return;
+    // The notes outlive a later re-render (the submit locks the stage at once); only unmounting stops them.
+    sweepTimers.current = Array.from({ length: board.rows }, (_, i) => window.setTimeout(() => gameFx("stars", null, { count: i + 1, inGame: true }), i * NP_GOLD_ROW_MS));
+  }, [stage, complete, board, locked]);
+  useEffect(() => () => sweepTimers.current.forEach((t) => window.clearTimeout(t)), []);
   const fullWrongKey = fullWrong ? `${stage}:${npEncodeRound(stage, [placements])}` : "";
   useEffect(() => {
     if (fullWrongKey && !locked && !submitted.current) wrongMoveFlash(box.current?.querySelector("[data-game-arena]") ?? box.current);
@@ -273,6 +387,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const advance = (nextPlacements: NpPlacements) => {
     const boards = [...allPlacements]; boards[stage] = nextPlacements; setAllPlacements(boards);
     setSelected(null); setDrag(null);
+    // Skip (or Finish) on a pyramid not complete: its own flat swish, never the stage-complete sound.
+    if (board && !npComplete(board.givens, board.tray, nextPlacements, board.rows)) soundCue("numpyramid.skip");
     if (stage >= NP_SET_SIZE - 1) { submitted.current = true; onSubmit(npEncodeRound(NP_SET_SIZE, boards)); return; }
     setStage(stage + 1);
   };
@@ -293,13 +409,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   // The plinth runs 4px past each side of the bottom row.
   const widthFit = Math.floor((size.width - (board.rows - 1) * 4 - 12) / board.rows);
   const cellW = Math.max(44, widthFit);
-  const trayW = Math.max(44, Math.floor((size.width - 16 - 5 * 6) / 6));
-  const trayRows = Math.ceil(board.tray.length / 6);
-  const heightFit = Math.floor((size.height - 132 - trayRows * 50 - (board.rows - 1) * 4) / board.rows);
+  // The Number overhaul's layout pass (Joe, 15 Nov 2026): the tray in balanced rows (npTrayRows), never a tile alone
+  // on a row. The board's size reserves the full tray's rows, so it never jumps as tiles are placed.
+  const trayWidth = size.width - 16;
+  const trayRows = Math.max(1, npTrayRows(board.tray.length, trayWidth).length);
+  const looseTray = board.tray.map((_, tray) => tray).filter((tray) => !placedTray.has(tray));
+  const looseRows = npTrayRows(looseTray.length, trayWidth);
+  const trayPer = Math.max(1, looseRows[0] ?? 1);
+  const trayW = Math.max(NP_TRAY_MIN_W, Math.min(64, Math.floor((trayWidth - (trayPer - 1) * NP_TRAY_GAP) / trayPer)));
+  // From the board area's measured height (less the plinth and a margin) once known; the old estimate before that.
+  // On the column layout the pyramid takes the whole free band (the board area is sized to it, the spacers keep the rest).
+  const bandH = column && size.free > 0 ? size.free : arenaH;
+  const heightFit = bandH > 0
+    ? Math.floor((bandH - 20 - (board.rows - 1) * 4) / board.rows)
+    : Math.floor((size.height - 132 - trayRows * 50 - (board.rows - 1) * 4) / board.rows);
   // Batch W: in a live round the width-limited bricks grow into the spare height (up to 1.15 × their width), never shorter than main's.
   const mainH = Math.max(44, Math.min(Math.round(cellW * 0.82), heightFit));
   const cellH = framed ? Math.max(mainH, Math.min(Math.round(cellW * 1.15), heightFit)) : mainH;
-  const fontSize = Math.round(Math.min(cellH * 0.5, cellW * (framed ? 0.4 : 0.36)));
+  const fontSize = Math.round(Math.min(cellH * 0.52, cellW * (framed ? 0.42 : 0.38)));
 
   const drop = (tray: number, from: number | null, cell: number | null) => {
     if (busy) return;
@@ -307,10 +434,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     if (from !== null) delete next[from];
     if (cell !== null) {
       const occupant = next[cell];
-      if (occupant !== undefined && occupant !== tray && from !== null) next[from] = occupant;
+      const swap = occupant !== undefined && occupant !== tray && from !== null;
+      if (swap) next[from] = occupant;
       next[cell] = tray;
-      soundCue("numpyramid.place");
-    }
+      soundCue(swap ? "numpyramid.swap" : "numpyramid.place");
+      setFresh(cell);
+    } else if (from !== null) soundCue("numpyramid.unplace");
     updatePlacements(next);
   };
   const targetAt = (x: number, y: number): number | "tray" | null => {
@@ -340,7 +469,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         }
       }
       if (selected && selected.tray !== d.tray && d.from !== null) { drop(selected.tray, selected.from, d.from); setSelected(null); }
-      else setSelected(selected?.tray === d.tray ? null : { tray: d.tray, from: d.from });
+      else {
+        if (selected?.tray !== d.tray) soundCue("numpyramid.pick");
+        setSelected(selected?.tray === d.tray ? null : { tray: d.tray, from: d.from });
+      }
       return;
     }
     const target = targetAt(event.clientX, event.clientY);
@@ -359,7 +491,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   return (
     <div ref={box} data-polish="numpyramid" data-bw-live={framed ? "" : undefined} data-play-area data-stage-column="1" className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 py-0.5 select-none" style={NO_TOUCH} onPointerMove={move} onPointerUp={(e) => (drag ? end(e) : tapEmpty(e))} onPointerCancel={() => setDrag(null)}>
       {column && <div className="np-spacer" aria-hidden />}
-      <StageProgress stage={stage} total={NP_SET_SIZE} quiet={stage > 0 && !!data.pyramids[stage - 1] && !npComplete(data.pyramids[stage - 1]!.givens, data.pyramids[stage - 1]!.tray, allPlacements[stage - 1] ?? {}, data.pyramids[stage - 1]!.rows)} />
+      {/* A skip moves on quietly; a completed pyramid's moment is the shared NumberStage's, with its own sound. */}
+      <StageProgress stage={stage} total={NP_SET_SIZE} quiet={stage > 0 && !!data.pyramids[stage - 1] && !npComplete(data.pyramids[stage - 1]!.givens, data.pyramids[stage - 1]!.tray, allPlacements[stage - 1] ?? {}, data.pyramids[stage - 1]!.rows) || NUMBER_STAGE_MOMENT_SOUND} />
       <div className="flex h-11 w-full shrink-0 items-center justify-between">
         {framed ? (
           <div className="min-w-0 flex-1">
@@ -375,12 +508,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
         ) : (
           <p className="font-mono text-xs uppercase text-muted-foreground">Pyramid {stage + 1} of {NP_SET_SIZE}</p>
         )}
-        <Button type="button" variant="ghost" size="sm" className="h-11 min-w-11" disabled={busy} onClick={() => advance(placements)}>{stage >= NP_SET_SIZE - 1 ? "Finish" : "Skip"}</Button>
+        <Button type="button" variant="ghost" size="sm" className="np-skip h-11 min-w-11" disabled={busy} onClick={() => advance(placements)}>{stage >= NP_SET_SIZE - 1 ? "Finish" : "Skip"}</Button>
       </div>
-      <StageCorrect visible={holding} />
-      <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center">
+      <div ref={arenaRef} data-game-arena="board" className={`flex min-h-0 w-full items-center justify-center ${column ? "shrink-0" : "flex-1"}`} style={column ? { height: board.rows * (cellH + 4) + 16, maxHeight: "none", flexShrink: 0 } : undefined}>
+        <NumberStage type="numpyramid" index={stage} exit={holding ? "clear" : null} className="justify-center">
         <div className="relative" style={NO_TOUCH}>
-          <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} {...(broken.length ? { marks: Object.fromEntries(broken.map((cell) => [cell, false])) } : {})} cellW={cellW} cellH={cellH} fontSize={fontSize} lit={lit} gold={complete} plinth />
+          <Pyramid rows={board.rows} givens={board.givens} values={filled.map((v, i) => (drag?.from === i ? null : v))} seams={drag ? undefined : seams} cellW={cellW} cellH={cellH} fontSize={fontSize} lit={lit} gold={complete} plinth animate={false} />
           {/* The pick-up layer sits above the placed blocks (.np-block is z-index 1): below them, taps on a
               placed tile never reached it, so tiles could not be double-tapped back or dragged to another cell. */}
           <div className="absolute inset-0 flex flex-col items-center" style={{ gap: 4, zIndex: 3 }}>
@@ -389,10 +522,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             </div>)}
           </div>
         </div>
+        </NumberStage>
       </div>
       {column && <div className="np-spacer" aria-hidden />}
-      <div data-np-tray data-game-controls="tray" className={`${column ? "" : "mt-auto "}np-quarry flex w-full shrink-0 flex-wrap content-start justify-center gap-1.5 p-2`} style={{ ...NO_TOUCH, minHeight: trayRows * 50 + 10 }}>
-        {board.tray.map((value, tray) => placedTray.has(tray) ? null : <div key={tray} className={`${tileClass(tray)} ${drag?.tray === tray ? "opacity-30" : ""}`} style={{ width: trayW, height: 44, fontSize: 21 }} onPointerDown={(e) => start(e, tray, null)}>{value}</div>)}
+      <div data-np-tray data-game-controls="tray" className={`${column ? "" : "mt-auto "}np-quarry flex w-full shrink-0 flex-col items-center justify-start gap-1.5 p-2`} style={{ ...NO_TOUCH, minHeight: trayRows * 50 + 10 }}>
+        {looseRows.map((count, row) => {
+          const from = looseRows.slice(0, row).reduce((a, b) => a + b, 0);
+          return (
+            <div key={row} data-np-tray-row={count} className="flex justify-center gap-1.5">
+              {looseTray.slice(from, from + count).map((tray) => <div key={tray} className={`${tileClass(tray)} ${drag?.tray === tray ? "opacity-30" : ""}`} style={{ width: trayW, height: 44, fontSize: trayFont(board.tray[tray]!, trayW) }} onPointerDown={(e) => start(e, tray, null)}>{board.tray[tray]}</div>)}
+            </div>
+          );
+        })}
       </div>
       {/* position is inline: .np-stone's position: relative (NP_CSS, injected after the utilities) beat the fixed class, so the
           ghost joined the column, pushed the pyramid up mid-drag and drops landed between cells. */}
@@ -406,7 +547,9 @@ function useHostSpace(fallback: { w: number; h: number }) {
   const root = useRef<HTMLDivElement | null>(null);
   const [space, setSpace] = useState(fallback);
   useBeforePaint(() => {
-    const host = root.current?.parentElement;
+    // The Number overhaul's reveal: the board's own box (flex-filled, min-height 0), so the pyramid is sized to the space
+    // the reveal really has, never to a parent that grows with what it holds.
+    const host = root.current;
     if (!host) return;
     const read = () => setSpace({ w: host.clientWidth, h: host.clientHeight });
     const ro = new ResizeObserver(read);
@@ -416,47 +559,118 @@ function useHostSpace(fallback: { w: number; h: number }) {
   return [root, space] as const;
 }
 
-function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
+/** One pyramid's reveal state (the Number overhaul). */
+export interface NpRevealBoard {
+  mark: BoardMark;
+  mine: (number | null)[];
+  solution: (number | null)[] | null;
+  /** Placed stones right (true) or wrong (false), by cell. */
+  marks: Record<number, boolean>;
+  wrong: number;
+  empty: number;
+  /** The stones the player didn't have right: wrong or empty (for the solution's outline). */
+  fix: Set<number>;
+  missed: Set<number>;
+}
+
+/** Each pyramid's reveal state from the stored answer (solutions where the reveal has them). */
+export function npRevealBoards(puzzle: NumberPyramidPuzzleData, myAnswer: string | null): NpRevealBoard[] {
+  const decoded = npDecodeRound(myAnswer ?? "");
+  return puzzle.pyramids.map((board, index) => {
+    const solution = puzzle.solutions?.[index] ?? null;
+    const placements = npDecode(decoded.boards[index] ?? "", board.givens, board.tray.length);
+    const mine = npFilled(board.givens, board.tray, placements);
+    const complete = npComplete(board.givens, board.tray, placements, board.rows);
+    const marks: Record<number, boolean> = {};
+    const fix = new Set<number>();
+    const missed = new Set<number>();
+    let wrong = 0;
+    // Without a solution the reveal can still judge the sums: a stone in a broken sum is wrong, the rest unmarked.
+    const broken = solution ? null : new Set(npBrokenCells(board.givens, mine, board.rows));
+    board.givens.forEach((g, cell) => {
+      if (g != null) return;
+      if (mine[cell] == null) {
+        missed.add(cell);
+        fix.add(cell);
+        return;
+      }
+      const ok = solution ? mine[cell] === solution[cell] : !broken!.has(cell);
+      if (solution || !ok) marks[cell] = ok;
+      if (!ok) { wrong++; fix.add(cell); }
+    });
+    const placed = board.givens.filter((g, cell) => g == null && mine[cell] != null).length;
+    return { mark: complete ? "right" : placed ? "wrong" : "open", mine, solution, marks, wrong, empty: missed.size, fix, missed };
+  });
+}
+
+function npRevealNote(b: NpRevealBoard, side: RevealSide): string {
+  if (b.mark === "right") return "Complete";
+  if (side === "solution") return "The solution";
+  if (b.mark === "open") return "Not reached";
+  const parts = [b.wrong ? `${b.wrong} wrong` : null, b.empty ? `${b.empty} empty` : null].filter(Boolean);
+  return parts.length ? parts.join(" · ") : "Not complete";
+}
+
+function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealProps) {
   const [dev, setDev] = useState(false);
   useEffect(() => setDev(devDiagnosticsOn()), []);
   const [root, space] = useHostSpace({ w: 343, h: 440 });
-  if (puzzle.type !== "numpyramid") return null;
-  const decoded = npDecodeRound(myAnswer ?? "");
-  let completed = 0;
-  let totalRight = 0;
-  let totalEmpty = 0;
-  // Brick sizes: two pyramids a row (solution, yours), four rows, a 14px index column; text never below 12px.
-  const rowsMax = Math.max(...puzzle.pyramids.map((b) => b.rows));
-  const gap = 3;
-  const pyramidW = (space.w - 14 - 8 - 12 - 8) / 2;
-  const cellW = Math.max(24, Math.min(40, Math.floor((pyramidW - (rowsMax - 1) * gap) / rowsMax)));
-  const perBoard = (space.h - 18 - 28 - (dev ? 16 : 0) - 6 * 5) / 4;
-  const cellH = Math.max(15, Math.min(28, Math.floor((perBoard - (rowsMax - 1) * gap) / rowsMax)));
-  const fontSize = Math.max(12, Math.min(16, Math.floor(Math.min(cellH * 0.78, cellW * 0.44))));
-  const rows = puzzle.pyramids.map((board, index) => {
-    const solution = puzzle.solutions?.[index] ?? [];
-    const placements = npDecode(decoded.boards[index] ?? "", board.givens, board.tray.length);
-    const mine = npFilled(board.givens, board.tray, placements);
-    const right = npCorrectCells(board.givens, board.tray, solution, placements);
-    const empties = board.givens.filter((g) => g == null).length;
-    const complete = npComplete(board.givens, board.tray, placements, board.rows);
-    if (complete) completed++; totalRight += right; totalEmpty += empties;
-    const marks: Record<number, boolean> = {};
-    board.givens.forEach((g, cell) => { if (g == null && mine[cell] != null) marks[cell] = mine[cell] === solution[cell]; });
-    const label = <span className="np-reveal-label w-3.5 shrink-0 text-center font-mono text-xs font-bold">{index + 1}</span>;
-    return {
-      solution: <div key={index} className="flex items-center justify-center gap-2" aria-label={`Pyramid ${index + 1}, solution`}>{label}<Pyramid rows={board.rows} givens={board.givens} values={solution} cellW={cellW} cellH={cellH} gap={gap} fontSize={fontSize} animate={false} /></div>,
-      yours: <div key={index} className="flex items-center justify-center gap-2" aria-label={`Pyramid ${index + 1}, yours`}>{label}<Pyramid rows={board.rows} givens={board.givens} values={mine} cellW={cellW} cellH={cellH} gap={gap} fontSize={fontSize} marks={marks} animate={false} /></div>,
-    };
-  });
-  // Two columns, the solution's four pyramids and yours (4 Nov 2026): the reveal's Solution / Yours switch shows one.
-  return <div ref={root} className="flex w-full flex-col items-center gap-1.5">
-    <div className="flex w-full items-start justify-center gap-3">
-      <div className="flex flex-col items-center gap-1.5"><span className="np-reveal-label text-center text-xs uppercase tracking-widest">Solution</span>{rows.map((r) => r.solution)}</div>
-      <div className="flex flex-col items-center gap-1.5"><span className="np-reveal-label text-center text-xs uppercase tracking-widest">Yours</span>{rows.map((r) => r.yours)}</div>
+  const data = puzzle.type === "numpyramid" ? puzzle : null;
+  const boards = data ? npRevealBoards(data, myAnswer) : [];
+  // The Number overhaul: one pyramid at a time, big, opening on the first not complete.
+  const [index, setIndex] = useRevealBoard(boards.map((b) => b.mark));
+  const [side, setSide] = useState<RevealSide>("solution");
+  if (!data || !boards.length) return null;
+  const cur = boards[index]!;
+  const board = data.pyramids[index]!;
+  const both = cur.mark !== "right" && cur.solution !== null;
+  const view: RevealSide = both ? side : "yours";
+  // Brick sizes for one pyramid at the reveal's full width, in the height left by the tabs, switch, note and facts.
+  const rows = board.rows;
+  const gap = 4;
+  const pyramidW = Math.min(space.w, 420) - 12;
+  const widthFit = Math.floor((pyramidW - (rows - 1) * gap) / rows);
+  // Under the pyramid: the tabs (44 + 12), the switch (44 + 10), the note (24 + 10) and the facts (two rows on a small
+  // phone, 52 + 12).
+  const room = space.h - 56 - (both ? 54 : 0) - 34 - 64 - (dev ? 16 : 0);
+  // Stage 2 (inside the shared reveal layout of #422): the stones keep their shape when the height is the limit (a
+  // 375 × 667 phone), narrowing with it rather than squashing flat.
+  const heightFit = Math.floor((room - (rows - 1) * gap) / rows);
+  const cellW = Math.max(24, Math.min(68, widthFit, Math.round(Math.max(22, heightFit) / 0.86)));
+  const cellH = Math.max(22, Math.min(58, heightFit, Math.round(cellW * 0.86)));
+  const fontSize = Math.max(14, Math.min(26, Math.floor(Math.min(cellH * 0.56, cellW * 0.44))));
+  const done = boards.filter((b) => b.mark === "right").length;
+  const wrongTotal = boards.reduce((n, b) => n + b.wrong, 0);
+  const used = myMsRemaining === undefined ? null : Math.max(0, (timeLimitMs - myMsRemaining) / 1000);
+  return (
+    <div ref={root} className="np-rv flex w-full min-h-0 flex-1 flex-col items-center gap-3" data-np-reveal>
+      <RevealBoards noun="Pyramid" marks={boards.map((b) => b.mark)} index={index} onIndex={(i) => { setIndex(i); setSide("solution"); }}>
+        {both ? <RevealView value={view} onChange={setSide} /> : null}
+        <div aria-label={`Pyramid ${index + 1}, ${view === "solution" ? "solution" : "yours"}`} data-np-reveal-view={view}>
+          {view === "solution" ? (
+            <Pyramid rows={rows} givens={board.givens} values={cur.solution!} cellW={cellW} cellH={cellH} gap={gap} fontSize={fontSize} animate={false} fix={cur.fix} />
+          ) : (
+            <Pyramid rows={rows} givens={board.givens} values={cur.mine} cellW={cellW} cellH={cellH} gap={gap} fontSize={fontSize} marks={cur.marks} missed={cur.missed} animate={false} gold={cur.mark === "right"} />
+          )}
+        </div>
+        <p className="np-rv-note" data-mark={view === "yours" ? cur.mark : "right"} data-np-reveal-note>{npRevealNote(cur, view)}</p>
+      </RevealBoards>
+      <RevealFacts
+        facts={[
+          { label: "Complete", value: `${done} of ${boards.length}`, ...(done === boards.length ? { tone: "good" as const } : {}) },
+          { label: "Wrong stones", value: wrongTotal, ...(wrongTotal ? { tone: "miss" as const } : {}) },
+          used !== null && { label: "Time", value: `${used.toFixed(1)} s` },
+        ]}
+      />
+      {dev && <p className="font-mono text-[10px] text-muted-foreground">dev · every solution shown</p>}
     </div>
-    <p className="font-mono text-base text-primary">{myCorrect ? "4 / 4 complete" : `${completed} complete · ${totalRight} / ${totalEmpty} cells right`}</p>{dev && <p className="font-mono text-[10px] text-muted-foreground">dev · all four solutions shown</p>}</div>;
+  );
 }
+/** A tray tile's numeral size: 22 px, smaller for a three-digit number on a narrow tile (Expert's tops), so it never spills. */
+function trayFont(value: number, width: number): number {
+  return Math.min(22, Math.floor((width - 8) / (String(value).length * 0.64)));
+}
+
 export const numberPyramidPuzzle: PuzzleDefinition = {
   key: "numpyramid",
   name: gameDisplayName("numpyramid"),

@@ -87,6 +87,12 @@ interface RoomOpts {
   scores?: (slot: number, round: number) => number;
   /** The host's Start has claimed the room: its rounds are being dealt (Security C1a, dealClaim.ts). */
   dealing?: boolean;
+  /**
+   * A puzzle round of this public puzzle instead of Box Six, and my stored answer for it (the Number overhaul's
+   * reveals, scripts/screens/number.ts). Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number
+   * overhaul: a harness addition).
+   */
+  puzzle?: { pub: PuzzleData; answer: string };
 }
 
 function roomNow(status: Status, phase: string, opts: RoomOpts) {
@@ -114,7 +120,7 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
     duel_id: "duel-theme",
     player_slot: slot,
     round_number: round,
-    answer: "",
+    answer: slot === 1 && opts.puzzle ? opts.puzzle.answer : "",
     is_correct: slot % 3 !== 0,
     ms_remaining: slot === 2 ? 0 : 20_000 - slot * 900,
     reaction_avg_ms: null,
@@ -130,8 +136,9 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
   const arcadeType = opts.arcadeType ?? "matchup";
   const arcadePuzzle =
     arcadeType === "matchup" ? ARCADE : (splitPuzzle(withSeededRandom(41, () => generatePuzzle(arcadeType as never))).pub as PuzzleData);
+  const puzzleRound = opts.puzzle?.pub ?? PUZZLE;
   const order = Array.from({ length: rounds }, (_, i) =>
-    opts.arcade || i % 2 ? arcadeType : "sudoku",
+    opts.arcade || i % 2 ? arcadeType : puzzleRound.type,
   );
   return {
     duel: {
@@ -147,7 +154,7 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
       round_count: rounds,
       round_order: order,
       no_maths: false,
-      puzzles_public: order.map((t) => (t === arcadeType ? arcadePuzzle : PUZZLE)),
+      puzzles_public: order.map((t) => (t === arcadeType ? arcadePuzzle : puzzleRound)),
       current_round: status === "waiting" ? 0 : rounds,
       phase,
       phase_started_at: iso(now + 500),

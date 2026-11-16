@@ -268,6 +268,10 @@ export interface EquationPuzzleData {
   gapsRev?: number;
   /** gapsRev 1, server-side only until reveal: one fill per stage that makes it true (any true fill counts). */
   gapAnswers?: string[];
+  /** Operator level clocks (16 Nov 2026): a Hard or Expert deal's own clock; absent = the type's 90 s. */
+  timeLimitMs?: number;
+  /** With timeLimitMs: full speed points when finished within this many seconds; absent = 60. */
+  speedFullByS?: number;
 }
 
 export const EQUATION_TIME_MS = 90_000;
@@ -2369,6 +2373,8 @@ export interface BalancePuzzleData {
   placeLimits?: number[];
   /** balanceRev 2: the round clock (120,000 ms). Absent on stored rounds, which keep the registry's 90 s. */
   timeLimitMs?: number;
+  /** balanceRev 5 at Expert (balanceLevels.ts): the balance readout under the beam is not shown. */
+  hideBalance?: boolean;
 }
 
 /* ========================== Wavefront / Bastion ========================== */
@@ -2518,7 +2524,7 @@ export const WORDSEARCH_TIME_MS = 120_000;
 export const NUMPYRAMID_TIME_MS = 120_000;
 
 export interface NumberPyramidBoardData {
-  rows: 4 | 5;
+  rows: 4 | 5 | 6;
   givens: (number | null)[];
   tray: number[];
 }
@@ -2594,6 +2600,11 @@ export interface CheckoutStageData {
   exactDarts?: boolean;
   /** Ring the last dart must land in: 2 = double, 3 = treble. */
   finish: 2 | 3;
+  /**
+   * checkoutRev 4 (levels, numberLevels.ts): Easy's boards check out on any dart (any ring, the Bull too); `finish` stays
+   * 2 for the big finish's rule. Absent on every board dealt before.
+   */
+  anyRing?: boolean;
   /** True when the board has a thin x4 ring. */
   quad?: boolean;
   /**
@@ -2633,6 +2644,11 @@ export interface NumlineStageData {
   hi: number;
   /** What each item shows, in play order. */
   items: string[];
+  /**
+   * Expert (numlineLevels.ts, 15 Nov 2026): the line's top end label is hidden ("?") until half its numbers are
+   * placed. Display only; absent on every other line.
+   */
+  hideEnd?: "hi";
 }
 
 export interface NumlinePuzzleData {

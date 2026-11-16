@@ -2,15 +2,27 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useContext, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
-import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
+import { useStageCorrectHold } from "@/components/puzzles/StageCorrect";
+import { NumberStage, numberArt, stageFailCue, type StageExit } from "@/components/puzzles/number/overhaul";
+import {
+  RevealBoards,
+  RevealFacts,
+  RevealView,
+  firstBoardToShow,
+  useRevealBoard,
+  type BoardMark,
+  type RevealSide,
+} from "@/components/puzzles/number/RevealParts";
+import { Button } from "@/design/components";
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import {
   decodeMeasureActions,
   encodeMeasureRound,
+  measureLineStates,
   measureApply,
   replayMeasure,
   splitMeasureRound,
-  MEASURE_BOARDS,
+  MEASURE_BOARDS as MEASURE_BOARDS_TODAY,
   type MeasureAction,
 } from "@/lib/duel/measure";
 import { useGameKeys } from "@/lib/desktop";
@@ -19,7 +31,9 @@ import { limitText, measureMoveLimits } from "@/lib/duel/moveLimits";
 import { measureBoardOut } from "@/lib/duel/gameReviewNov15";
 import { MEASURE_TIME_MS, type MeasureBoardData, type MeasurePuzzleData } from "@/lib/duel/types";
 import { useReducedMotion } from "@/lib/motion";
-import { playCorrect, playWrong } from "@/lib/sound";
+import { gameFx, releaseGameFx } from "@/lib/fx/kit";
+import { MEASURE_FILL_GAP_MS, measureFillPlays, measureLinesReached, measureNearJugs } from "@/lib/duel/measureFx";
+import { playWrong } from "@/lib/sound";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
@@ -27,7 +41,8 @@ import { GoalLineContext } from "@/components/duel/GameFrame";
 import { HudPills } from "@/components/puzzles/HudPills";
 import { usesNumberDepth } from "@/lib/duel/numberDepth";
 import "@/polish-layout/batch-w-measure.css";
-import { StepChips } from "@/components/puzzles/number/StepChips";
+// The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
+import "@/polish-layout/number-overhaul.css";
 
 /** iOS: no text selection or callout on long presses anywhere in the game. */
 const ROOT_STYLE: CSSProperties = {
@@ -46,6 +61,17 @@ const FLOW_MS = 320;
 const SOLVE_MS = 1100;
 /** Room above the jugs for the pour stream's arc. */
 const STREAM_TOP = 22;
+/**
+ * The Number overhaul's glass (15 Nov 2026, display only): the Blender-rendered jug shell (public/number/measure/
+ * jug-front.webp, docs/design/number-overhaul/source/measure.py) is a 120 x 300 point sprite drawn 9-slice over the
+ * water. In sprite points: the lip slice 10, the wall slices 9, the base slice 24; the inner wall sits 7.2 in from
+ * the sprite's sides, the inside of the thick base 17.5 up from its bottom and the lip's top 6 above the inside.
+ */
+const JUG_SPRITE = { w: 120, lip: 10, wall: 9, base: 24, inWall: 7.2, inBase: 17.5, inTop: 6 } as const;
+/** The jug sprite's 9-slice in image pixels (rendered at 3 px a point). */
+const JUG_SLICE = `${JUG_SPRITE.lip * 3} ${JUG_SPRITE.wall * 3} ${JUG_SPRITE.base * 3} ${JUG_SPRITE.wall * 3}`;
+/** Height under a jug's water for its glass base, at this jug width. */
+export const measureGlassBase = (width: number) => Math.round((JUG_SPRITE.inBase * width) / JUG_SPRITE.w);
 const NO_ACTIONS: MeasureAction[] = [];
 
 /* Number polish (13 Oct 2026): display only. Clear glass, moving water, litre marks. */
@@ -68,34 +94,49 @@ export const MEASURE_CSS = `
 /* The shared [data-polish] rule sizes the arena to its content; the jugs are fitted to the arena’s height, so it must fill instead. */
 .game-column [data-polish="measure"][data-play-area] > [data-game-arena] { flex: 1 1 0; max-height: none; }
 [data-polish="measure"] [data-game-arena] { background: radial-gradient(ellipse 70% 55% at 50% 62%, rgba(120, 175, 255, 0.07), transparent 70%); }
+/* The Number overhaul (15 Nov 2026): the glass is the rendered shell (.mj-shell) in front of the water; this box only
+   clips the water to the inside of the glass. No glow anywhere: a picked jug lifts and takes a champagne outline. */
 [data-polish="measure"] .mj-glass {
-  position: absolute; inset: 0; overflow: hidden; border: 2px solid var(--measure-glass-edge); border-top-color: rgba(232, 242, 255, 0.85);
-  border-radius: 5px 5px 16px 16px;
-  background: linear-gradient(90deg, rgba(210, 230, 255, 0.14), rgba(210, 230, 255, 0.045) 22%, rgba(210, 230, 255, 0.02) 62%, rgba(210, 230, 255, 0.1));
-  box-shadow: 0 10px 14px -10px rgba(0, 0, 0, 0.75), inset 0 -8px 12px -6px rgba(170, 210, 255, 0.12);
-  transition: box-shadow 150ms ease-out, border-color 150ms ease-out;
+  position: absolute; inset: 0; overflow: hidden; border-radius: 0 0 7px 7px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--jz-text) 5%, transparent), color-mix(in srgb, var(--jz-text) 2%, transparent));
 }
-[data-polish="measure"] .mj-glass[data-selected] { border-color: var(--primary); box-shadow: 0 0 0 2px var(--primary), 0 0 18px -2px color-mix(in oklab, var(--primary) 60%, transparent); }
-[data-polish="measure"] .mj-glass::before { content: ""; position: absolute; z-index: 3; top: 5px; bottom: 9px; right: 13%; width: 5px; border-radius: 3px; pointer-events: none;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.12) 55%, rgba(255, 255, 255, 0.03)); }
-[data-polish="measure"] .mj-glass::after { content: ""; position: absolute; z-index: 3; top: 8px; bottom: 14px; right: 25%; width: 2px; border-radius: 2px; pointer-events: none;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.22), transparent); }
+[data-polish="measure"] .mj-shell { position: absolute; z-index: 4; box-sizing: border-box; border-style: solid; border-color: transparent; pointer-events: none; }
+[data-polish="measure"] [data-measure-jug] > div:first-child { outline: 0 solid transparent; outline-offset: 6px; border-radius: 6px 6px 12px 12px; transition: outline-color 150ms ease-out; }
+[data-polish="measure"] [data-measure-jug][data-selected] > div:first-child { outline: 2px solid var(--jz-gold); }
 [data-polish="measure"] .mj-water { position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; transform-origin: 50% 100%; will-change: transform;
-  background: linear-gradient(to bottom, var(--mj-water-top), var(--mj-water) 38%, var(--mj-water-deep));
-  box-shadow: inset 6px 0 8px -4px rgba(255, 255, 255, 0.18), inset -6px 0 8px -4px rgba(0, 20, 60, 0.35);
+  /* Glossy water (the Number overhaul's material pass, 15 Nov 2026): a gloss band down the left, the body rounding
+     into shade on the right (a curved column), and depth from the bright top to the deep bottom. */
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, 0.30) 0 5%, rgba(255, 255, 255, 0.10) 16%, transparent 40%, transparent 62%, rgba(0, 18, 60, 0.20) 86%, rgba(0, 18, 60, 0.34)),
+    linear-gradient(to bottom, var(--mj-water-top), var(--mj-water) 30%, var(--mj-water-deep));
+  box-shadow: inset 0 -10px 14px -8px rgba(0, 12, 40, 0.45);
   transition: transform ${LEVEL_MS}ms cubic-bezier(0.3, 0.7, 0.4, 1); }
+/* Stage 2 effects (the kit): the liquid settles as one (transform-origin at its foot), the target line flashes. */
+[data-polish="measure"] .mj-liquid { position: absolute; inset: 0; z-index: 1; transform-origin: 50% 100%; }
+[data-polish="measure"] .mj-line-flash { position: absolute; left: -2px; right: -2px; top: -5px; height: 7px; border-radius: 4px; opacity: 0;
+  background: var(--jz-gold); pointer-events: none; }
 [data-polish="measure"] .mj-surface { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; z-index: 1; overflow: hidden; will-change: transform;
   transition: transform ${LEVEL_MS}ms cubic-bezier(0.3, 0.7, 0.4, 1), opacity 120ms linear; }
 [data-polish="measure"] .mj-wave { position: absolute; left: 0; top: 0; height: 6px; width: calc(100% + 40px); background: var(--mj-water-top);
   -webkit-mask: ${WAVE_MASK} repeat-x 0 0 / 40px 6px; mask: ${WAVE_MASK} repeat-x 0 0 / 40px 6px; animation: mj-wave 2.4s linear infinite; will-change: transform; }
+/* The meniscus: a crisp bright line along the water's top, inside the glass. */
+[data-polish="measure"] .mj-surface::after { content: ""; position: absolute; left: 3%; right: 3%; top: 2px; height: 1.5px; border-radius: 1px; z-index: 2;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.55) 60%, rgba(255, 255, 255, 0.85)); }
+/* The glass's own crisp highlight, down the right-hand curve (narrow, clear of the litre marks on the left). */
+[data-polish="measure"] .mj-glass::after { content: ""; position: absolute; top: 4%; bottom: 3%; right: 13%; width: 4%; max-width: 5px; min-width: 2px; z-index: 3;
+  border-radius: 999px; pointer-events: none;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.22) 55%, rgba(255, 255, 255, 0.06)); }
 [data-polish="measure"] .mj-wave-back { top: -1px; opacity: 0.5; background: color-mix(in oklab, var(--mj-water-top) 70%, white); animation-duration: 3.7s; animation-direction: reverse; }
 @keyframes mj-wave { from { transform: translateX(0); } to { transform: translateX(-40px); } }
-[data-polish="measure"] .mj-ticks { position: absolute; inset: 0; z-index: 2; pointer-events: none; }
-[data-polish="measure"] .mj-tick { position: absolute; left: 0; display: flex; align-items: center; color: rgba(236, 244, 255, 0.9); text-shadow: 0 1px 1px rgba(0, 10, 30, 0.6); }
-[data-polish="measure"] .mj-tick > i { display: block; height: 2px; border-radius: 0 1px 1px 0; background: currentColor; box-shadow: 0 1px 0 rgba(0, 10, 30, 0.35); }
-[data-polish="measure"] .mj-tick-r { position: absolute; right: 0; width: 5px; height: 1px; background: rgba(236, 244, 255, 0.4); }
-[data-polish="measure"] .mj-line { position: absolute; left: 0; right: 0; z-index: 2; pointer-events: none; height: 0; border-top: 3px dashed var(--primary);
-  filter: drop-shadow(0 0 3px color-mix(in oklab, var(--primary) 60%, transparent)); }
+[data-polish="measure"] .mj-ticks { position: absolute; inset: 0 0 0 4px; z-index: 5; pointer-events: none; }
+[data-polish="measure"] .mj-tick { position: absolute; left: 0; display: flex; align-items: center; color: var(--jz-text); }
+[data-polish="measure"] .mj-tick-n { margin-left: 3px; font-family: var(--jz-font); font-weight: 800; font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 2px var(--jz-bg), 0 0 2px var(--jz-bg), 0 1px 1px var(--jz-bg); }
+[data-polish="measure"] .mj-tick > i { display: block; height: 2px; border-radius: 0 1px 1px 0; background: currentColor; box-shadow: 0 1px 0 color-mix(in srgb, var(--jz-bg) 50%, transparent); }
+[data-polish="measure"] .mj-tick-r { position: absolute; right: 0; width: 5px; height: 1px; background: color-mix(in srgb, var(--jz-text) 40%, transparent); }
+[data-polish="measure"] .mj-line { position: absolute; left: 0; right: 0; z-index: 5; pointer-events: none; height: 0; border-top: 3px solid var(--jz-gold); }
+[data-polish="measure"] .mj-line-tag { position: absolute; right: 8px; top: -10px; transform: translateY(-50%); padding: 1px 5px; border-radius: 6px;
+  background: var(--jz-gold); color: var(--jz-on-gold); font-family: var(--jz-font); font-weight: 800; font-size: 12px; line-height: 15px; }
 [data-polish="measure"] .mj-stream { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; z-index: 5; }
 [data-polish="measure"] .mj-stream .mj-flow { stroke-dasharray: 1 1; stroke-dashoffset: 1; animation: mj-flow ${FLOW_MS}ms ease-out forwards; }
 [data-polish="measure"] .mj-stream .mj-splash { transform-box: fill-box; transform-origin: center; opacity: 0; animation: mj-splash ${FLOW_MS - 90}ms ease-out 90ms forwards; }
@@ -105,19 +146,41 @@ export const MEASURE_CSS = `
 @keyframes mj-fade { 0%, 60% { opacity: 1; } 100% { opacity: 0; } }
 [data-polish="measure"] .mj-fx { position: absolute; inset: 0; pointer-events: none; z-index: 4; }
 [data-polish="measure"] .mj-ripple { position: absolute; left: 4%; width: 92%; height: 12px; margin-bottom: -6px; border-radius: 50%;
-  border: 3px solid color-mix(in oklab, var(--primary) 40%, white); box-shadow: 0 0 8px color-mix(in oklab, var(--primary) 70%, transparent); opacity: 0; animation: mj-ripple 820ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
+  border: 3px solid var(--jz-gold); opacity: 0; animation: mj-ripple 820ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards; }
 @keyframes mj-ripple { 0% { opacity: 0.95; transform: scale(0.2, 0.4); } 100% { opacity: 0; transform: scale(1.15, 1.6); } }
 [data-polish="measure"] .mj-spark { position: absolute; margin: 0 0 -7px -7px; opacity: 0; background: radial-gradient(circle, #fff 0 30%, var(--primary) 65%);
   clip-path: polygon(50% 0, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0 50%, 38% 38%); animation: mj-spark 640ms ease-out forwards; }
 @keyframes mj-spark { 0% { opacity: 0; transform: scale(0) rotate(0deg); } 35% { opacity: 1; transform: scale(1.15) rotate(40deg); } 100% { opacity: 0; transform: scale(0.4) rotate(90deg); } }
-[data-polish="measure"] .mj-glass[data-solved] { border-color: var(--primary); box-shadow: 0 0 0 2px color-mix(in oklab, var(--primary) 70%, transparent), 0 0 22px -2px color-mix(in oklab, var(--primary) 55%, transparent); }
-[data-polish="measure"] .mj-glass[data-solved] .mj-line { border-top-style: solid; }
-[data-polish="measure"] .mj-amount { font-size: 17px; font-weight: 600; color: var(--foreground); }
-[data-polish="measure"] .mj-amount[data-hit] { color: var(--primary); font-weight: 700; }
-[data-polish="measure"] .mj-cap { font-size: 14px; color: rgba(220, 228, 240, 0.78); }
-[data-polish="measure"] .mj-row { border-left: 3px solid var(--measure-water); background: rgba(120, 175, 255, 0.05); }
-[data-polish="measure"] .mj-row[data-solved] { border-left-color: var(--primary); }
-[data-polish="measure"] .mj-par { color: #F5B82E; font-weight: 700; }
+[data-polish="measure"] .mj-glass[data-solved] .mj-line { border-top-width: 4px; }
+[data-polish="measure"] .mj-amount { font-family: var(--jz-font); font-size: 20px; font-weight: 800; color: var(--jz-text); font-variant-numeric: tabular-nums; }
+[data-polish="measure"] .mj-amount[data-hit] { color: var(--jz-gold); }
+[data-polish="measure"] .mj-cap { font-family: var(--jz-font); font-size: 15px; font-weight: 700; color: var(--jz-text-2); }
+[data-polish="measure"] .mj-row { border-left: 3px solid var(--measure-water); background: color-mix(in srgb, var(--measure-water) 5%, transparent); }
+[data-polish="measure"] .mj-row[data-solved] { border-left-color: var(--jz-gold); }
+[data-polish="measure"] .mj-par { color: var(--jz-gold); font-weight: 700; }
+/* The reveal's best line: small jug pictures, one per move. */
+[data-polish="measure"] .mj-line-pics { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px 6px; width: 100%; margin: 2px 0 0; padding: 0; list-style: none; }
+[data-polish="measure"] .mj-pic { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 44px; }
+[data-polish="measure"] .mj-pic-jugs { display: flex; align-items: flex-end; gap: 3px; }
+[data-polish="measure"] .mj-pic-jug { position: relative; width: var(--mj-pic-w, 24px); min-height: 22px; overflow: hidden; border: 2px solid color-mix(in srgb, var(--jz-text) 60%, transparent); border-top-width: 1px; border-radius: 3px 3px 6px 6px; }
+[data-polish="measure"] .mj-pic-jug[data-hit] { border-color: var(--jz-gold); }
+[data-polish="measure"] .mj-pic-water { position: absolute; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.30) 0 8%, transparent 40%, rgba(0, 18, 60, 0.28)), linear-gradient(to bottom, var(--mj-water-top), var(--mj-water) 35%, var(--mj-water-deep));
+  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.8); }
+/* The picture's glass: a cool edge and a crisp highlight down its right side, as on the live jugs. */
+[data-polish="measure"] .mj-pic-jug { background: linear-gradient(90deg, rgba(200, 225, 255, 0.10), rgba(255, 255, 255, 0.02) 45%, rgba(200, 225, 255, 0.12)); }
+[data-polish="measure"] .mj-pic-jug::after { content: ""; position: absolute; top: 6%; bottom: 8%; right: 16%; width: 2px; border-radius: 1px; z-index: 1;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.12)); pointer-events: none; }
+[data-polish="measure"] .mj-pic-n { position: absolute; z-index: 2; left: 0; right: 0; bottom: 2px; text-align: center; font-family: var(--jz-font); font-weight: 800; font-size: 15px; line-height: 16px; color: var(--jz-text); text-shadow: 0 0 3px var(--jz-bg); }
+/* A short screen (375 x 667 under the shared reveal layout's stars row): smaller pictures so nothing is shrunk to fit. */
+@media (max-height: 700px) { [data-polish="measure"] .mj-line-pics { --mj-pic-max: 64px; } [data-polish="measure"] .mj-reveal-jugs { display: none; } }
+[data-polish="measure"] .mj-pic-label { font-family: var(--jz-font); font-size: 13px; font-weight: 700; color: var(--jz-text-2); white-space: nowrap; }
+[data-polish="measure"] .mj-pic[data-last] .mj-pic-label { color: var(--jz-gold); }
+[data-polish="measure"] .mj-pic[data-miss] .mj-pic-label { color: var(--jz-red); }
+[data-polish="measure"] .mj-pic[data-miss] .mj-pic-jug { border-color: color-mix(in srgb, var(--jz-red) 70%, transparent); }
+[data-polish="measure"] .mj-reveal-goal { font-family: var(--jz-font); font-size: 22px; font-weight: 800; line-height: 1.2; color: var(--jz-gold); text-align: center; }
+[data-polish="measure"] .mj-reveal-jugs { font-family: var(--jz-font); font-size: 15px; font-weight: 600; color: var(--jz-text-2); text-align: center; }
+[data-polish="measure"] .mj-reveal-note { font-family: var(--jz-font); font-size: 15px; color: var(--jz-text-2); }
 [data-polish="measure"] .mj-dim { color: rgba(220, 228, 240, 0.8); }
 @media (prefers-reduced-motion: reduce) {
   [data-polish="measure"] .mj-water, [data-polish="measure"] .mj-surface, [data-polish="measure"] .mj-glass { transition: none; }
@@ -215,6 +278,7 @@ export function Jugs({
   flow,
   celebrate,
   onJug,
+  kitLift = false,
 }: {
   board: MeasureBoardData;
   amounts: readonly number[];
@@ -227,13 +291,18 @@ export function Jugs({
   /** Completion effect on the solved jugs at their target line. */
   celebrate?: "move" | "static" | null;
   onJug?: ((jug: number) => void) | undefined;
+  /** Stage 2 (the live round): the effects kit lifts a picked jug (pickUp), so the CSS lift is left out. */
+  kitLift?: boolean;
 }) {
   const lines = targetLines(board);
   const maxCap = Math.max(...board.caps);
   const tall = maxCap * litre;
   const small = litre < 9;
   const gap = Math.max(10, Math.round(width * 0.28));
-  const tickFont = Math.min(12, Math.max(8, litre * 0.8));
+  // Bold, legible litre numbers (the overhaul: 11 px at least, 15 px at most).
+  const tickFont = Math.min(15, Math.max(11, litre * 0.9));
+  const k = width / JUG_SPRITE.w;
+  const base = measureGlassBase(width);
   return (
     <div className="relative flex items-end justify-center" style={{ gap, paddingTop: STREAM_TOP }}>
       {board.caps.map((cap, jug) => {
@@ -252,19 +321,22 @@ export function Jugs({
             type="button"
             data-puzzle-cell={jug}
             data-measure-jug={jug}
+            data-selected={isSelected ? "" : undefined}
             disabled={!onJug}
             onClick={() => onJug?.(jug)}
             aria-label={`Jug ${jug + 1}: ${amount} of ${cap} litres`}
-            className={`relative flex flex-col items-center justify-end transition-transform duration-150 ${isSelected ? "-translate-y-2" : ""} ${shake === jug ? "animate-shake" : ""}`}
-            style={{ width, height: tall + 26 }}
+            className={`relative flex flex-col items-center justify-end transition-transform duration-150 ${isSelected && !kitLift ? "-translate-y-2" : ""} ${shake === jug ? "animate-shake" : ""}`}
+            style={{ width, height: tall + 26 + base }}
           >
-            <div className="relative w-full" style={{ height }}>
+            <div className="relative w-full" data-measure-glass={jug} style={{ height: height + base, transformOrigin: "50% 100%" }}>
+              <div className="absolute inset-x-0 top-0" style={{ height }}>
               <div
                 className="mj-glass"
                 data-selected={isSelected ? "" : undefined}
                 data-solved={party ? "" : undefined}
               >
                 {/* Body scales from the bottom and the surface strip rides up, so nothing ever lies outside the glass. */}
+                <div className="mj-liquid" data-measure-liquid={jug}>
                 <div className="mj-water" style={{ height, transform: `scaleY(${body})` }} />
                 <div
                   className="mj-surface"
@@ -273,6 +345,7 @@ export function Jugs({
                   <span className="mj-wave mj-wave-back" />
                   <span className="mj-wave" />
                 </div>
+                </div>
                 {/* Litre markings: a tick every litre, a number every litre (every other on small jugs). */}
                 <div className="mj-ticks">
                   {marks.map((l) => (
@@ -280,7 +353,7 @@ export function Jugs({
                       <i style={{ width: l % 5 === 0 ? 12 : 7 }} />
                       {!small || l % 2 === 0 ? (
                         <span
-                          className="ml-0.5 font-mono leading-none"
+                          className="mj-tick-n leading-none"
                           style={{ fontSize: tickFont, transform: "translateY(0.5px)" }}
                         >
                           {l}
@@ -293,7 +366,10 @@ export function Jugs({
                   ))}
                 </div>
                 {line !== null && line !== undefined ? (
-                  <div data-measure-target className="mj-line" style={{ bottom: line * litre - 1.5 }} />
+                  <div data-measure-target className="mj-line" style={{ bottom: line * litre - 1.5 }}>
+                    <span className="mj-line-flash" data-measure-line-flash={jug} aria-hidden="true" />
+                    <span className="mj-line-tag">{line}</span>
+                  </div>
                 ) : null}
                 {party === "move" ? (
                   <div className="mj-fx" aria-hidden="true">
@@ -324,8 +400,22 @@ export function Jugs({
                   ))}
                 </div>
               ) : null}
+              </div>
+              {/* The glass in front of the water: the rendered shell, stretched 9-slice to this jug. */}
+              <span
+                aria-hidden="true"
+                className="mj-shell"
+                style={{
+                  left: -JUG_SPRITE.inWall * k,
+                  right: -JUG_SPRITE.inWall * k,
+                  top: -JUG_SPRITE.inTop * k,
+                  bottom: base - JUG_SPRITE.inBase * k,
+                  borderWidth: `${JUG_SPRITE.lip * k}px ${JUG_SPRITE.wall * k}px ${JUG_SPRITE.base * k}px`,
+                  borderImage: `url(${numberArt("measure", "jug-front")}) ${JUG_SLICE} fill / ${JUG_SPRITE.lip * k}px ${JUG_SPRITE.wall * k}px ${JUG_SPRITE.base * k}px stretch`,
+                }}
+              />
             </div>
-            <span className="mt-1 h-5 font-mono leading-5">
+            <span className="mt-1 h-5 leading-5">
               <span className="mj-amount" data-hit={hit ? "" : undefined}>
                 {amount}
               </span>
@@ -419,6 +509,9 @@ function Stage({
   stateKey = "measure",
 }: PuzzleStageProps) {
   const data: MeasurePuzzleData | null = puzzle.type === "measure" ? puzzle : null;
+  // Brimful's levels (measureLevels.ts, 15 Nov 2026): Easy deals three boards, every other puzzle four, so the stage
+  // counts the dealt boards (four on every older stamp, exactly as before).
+  const MEASURE_BOARDS = data?.boards.length || MEASURE_BOARDS_TODAY;
   // Batch W: in a live round the goal line shows "Stage n of 3", so the row drops its "Puzzle n of 3".
   const framed = Boolean(useContext(GoalLineContext));
   const [stage, setStage] = useStageState<number>(stateKey, "measureStage", () => 0);
@@ -467,6 +560,50 @@ function Stage({
     return () => clearTimeout(timer);
   }, [flow]);
 
+  /*
+   * Stage 2 effects (the Number overhaul, the effects kit; display only, never a move, grade or clock): a picked jug
+   * lifts (pickUp) and the pour tilts it over towards the jug it pours into (pour); the receiving water settles (tap,
+   * from the liquid's foot); a jug reaching its target line flashes the line (match) with a bright plink; one move from
+   * the target, the matching jug pulses a hint (nearMiss). The game's own cues play the sounds (kit calls are silent).
+   */
+  const glassOf = (jug: number | null) => (jug === null ? null : box.current?.querySelector(`[data-measure-glass="${jug}"]`) ?? null);
+  const liquidOf = (jug: number) => box.current?.querySelector(`[data-measure-liquid="${jug}"]`) ?? null;
+  const fxTimers = useRef<number[]>([]);
+  const later = (ms: number, fn: () => void) => {
+    fxTimers.current.push(window.setTimeout(fn, ms));
+  };
+  useEffect(() => () => fxTimers.current.forEach((t) => window.clearTimeout(t)), []);
+  // A jug picked before a reload is lifted again.
+  useEffect(() => {
+    if (selected !== null) gameFx("pickUp", glassOf(selected), { silent: true });
+    // Only on mount and on a new puzzle.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage]);
+  const lastAmounts = useRef<{ stage: number; amounts: readonly number[]; count: number } | null>(null);
+  useEffect(() => {
+    if (!board || !replay) return;
+    const was = lastAmounts.current;
+    lastAmounts.current = { stage, amounts: replay.amounts, count: actions.length };
+    if (!was || was.stage !== stage || actions.length <= was.count || actions[actions.length - 1]?.kind === "reset") return;
+    // The settle and the line's flash land as the pour finishes (the stream's length).
+    later(380, () => {
+      for (const jug of measureLinesReached(board, was.amounts, replay.amounts)) {
+        const flash = box.current?.querySelector(`[data-measure-line-flash="${jug}"]`) ?? null;
+        gameFx("match", flash, { silent: true });
+        later(420, () => releaseGameFx(flash));
+        // The plink for a jug on its line that doesn't finish the puzzle; a finish has the stage moment's chime.
+        if (!replay.solved) soundCue("measure.target");
+      }
+      if (replay.solved) return;
+      const near = measureNearJugs(board, replay.amounts);
+      if (near.length) {
+        gameFx("nearMiss", glassOf(near[0]!), { silent: true });
+        soundCue("measure.near");
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stage, actions.length]);
+
   const complete = replay?.solved ?? false;
   const outOfMoves = replay?.outOfMoves ?? false;
   const boardOut = !!data && measureBoardOut(data);
@@ -476,7 +613,9 @@ function Stage({
     // short beat, with the fail sound (never a solve's).
     if (boardOut && stage < MEASURE_BOARDS - 1) {
       setSelected(null);
-      playWrong();
+      // The Number overhaul (Joe's approval, 15 Nov 2026): the board's own dull thunk, the shared fail moment's
+      // `measure.fail` (never a solve's); the slide-away (NumberStage, quiet for this exit) goes with it.
+      soundCue(stageFailCue("measure"));
       const timer = setTimeout(() => {
         setFlow(null);
         setStage(stage + 1);
@@ -506,10 +645,8 @@ function Stage({
     finalStage: stage >= MEASURE_BOARDS - 1,
     locked: locked || submitted.current,
     stateKey,
-    onAdvance: () => {
-      playCorrect();
-      advance();
-    },
+    // The Number overhaul: the stage moment (`measure.stageClear`, NumberStage) is the board's one success sound.
+    onAdvance: advance,
   });
 
   // Desktop keys: 1–n tap jugs 1–n (left to right), F = Fill, E = Empty (boards with a tap), R = Reset.
@@ -550,29 +687,57 @@ function Stage({
     if (selected === null) {
       setSelected(jug);
       soundCue("measure.select");
+      gameFx("pickUp", glassOf(jug), { silent: true });
       return;
     }
     if (selected === jug) {
       setSelected(null);
+      releaseGameFx(glassOf(jug));
       return;
     }
     const from = selected;
     setSelected(null);
+    releaseGameFx(glassOf(from));
     if (!act({ kind: "pour", from, to: jug })) {
       reject(jug);
       return;
     }
     soundCue("measure.pour");
     setFlow({ kind: "pour", from, to: jug, id: ++flowId.current });
+    // The jug tips over towards the one it pours into, holds while it pours, and comes back; the other's water settles.
+    // It pivots on its foot's corner nearest the other jug, so it tips over towards it, not into it.
+    const source = glassOf(from) as HTMLElement | null;
+    if (source) source.style.transformOrigin = jug > from ? "100% 100%" : "0% 100%";
+    gameFx("pour", source, { tilt: jug > from ? 28 : -28, silent: true });
+    later(800, () => {
+      if (source) source.style.transformOrigin = "50% 100%";
+    });
+    later(380, () => gameFx("tap", liquidOf(jug), { silent: true }));
   };
   const fillOrEmpty = (kind: "fill" | "empty") => {
     if (selected === null) return;
     const jug = selected;
+    const before = replay?.amounts[jug] ?? 0;
     if (!act({ kind, jug })) reject(jug);
     else {
       setSelected(null);
-      soundCue(kind === "fill" ? "measure.fill" : "measure.empty");
-      if (kind === "fill") setFlow({ kind: "fill", to: jug, id: ++flowId.current });
+      releaseGameFx(glassOf(jug));
+      if (kind === "fill") {
+        // Running water sized to the amount: one play up to 4 litres, two up to 8, three beyond.
+        const plays = measureFillPlays((board?.caps[jug] ?? 0) - before);
+        for (let i = 0; i < plays; i++) later(i * MEASURE_FILL_GAP_MS, () => soundCue("measure.fill"));
+        setFlow({ kind: "fill", to: jug, id: ++flowId.current });
+        later(380, () => gameFx("tap", liquidOf(jug), { silent: true }));
+      } else {
+        // A splash: the jug tips out over its outer side.
+        soundCue("measure.empty");
+        const tipped = glassOf(jug) as HTMLElement | null;
+        if (tipped) tipped.style.transformOrigin = jug === 0 ? "0% 100%" : "100% 100%";
+        gameFx("pour", tipped, { tilt: jug === 0 ? -40 : 40, silent: true });
+        later(800, () => {
+          if (tipped) tipped.style.transformOrigin = "50% 100%";
+        });
+      }
     }
   };
   const reset = () => {
@@ -587,10 +752,12 @@ function Stage({
   );
   // Height-fitted: the stream room above (22 px) and the amount label below (26 px). Batch W: in a live
   // round the jugs may grow further into the free height (40 px a litre, 124 px wide, never smaller).
-  const litre = Math.max(6, Math.min(framed ? 40 : 30, Math.floor((size.height - 56) / maxCap)));
+  // The overhaul's glass base (measureGlassBase) takes its few pixels under the water from the same height.
+  const litre = Math.max(6, Math.min(framed ? 40 : 30, Math.floor((size.height - 56 - measureGlassBase(jugWidth)) / maxCap)));
   const atStart = replay.amounts.every((v, i) => v === board.start[i]);
-  const button =
-    "gf-glass h-11 min-w-[72px] flex-1 rounded-xl border border-border font-mono text-xs uppercase tracking-widest text-foreground disabled:opacity-40";
+  // The overhaul: navy secondary buttons (no teal, no glow).
+  const button = "min-w-[72px] flex-1";
+  const exit: StageExit = holding ? "clear" : boardOut && outOfMoves && stage < MEASURE_BOARDS - 1 ? "fail" : null;
 
   return (
     <div
@@ -624,16 +791,16 @@ function Stage({
             },
           ]}
         />
-        <p className="font-display text-sm font-bold text-primary" data-measure-goal>
+        <p className="font-display text-sm font-bold" style={{ color: "var(--jz-gold)" }} data-measure-goal>
           {goalText(board)}
         </p>
       </div>
-      <StageCorrect visible={holding} />
       <div
         ref={box}
         data-game-arena="board"
         className="flex min-h-0 w-full flex-1 items-center justify-center"
       >
+        <NumberStage type="measure" index={stage} exit={exit} quiet={exit === "fail"} className="justify-center">
         <Jugs
           key={stage}
           board={board}
@@ -645,7 +812,9 @@ function Stage({
           flow={flow}
           celebrate={solveFx ? (reduced ? "static" : "move") : null}
           onJug={busy ? undefined : tapJug}
+          kitLift
         />
+        </NumberStage>
       </div>
       {framed ? (
         // Puzzle polish (3 Nov 2026): the live status as label-and-value pills (Batch W's one summary line before).
@@ -672,8 +841,8 @@ function Stage({
       <div data-game-controls="actions" className="flex w-full shrink-0 justify-center gap-2 px-1">
         {board.tap ? (
           <>
-            <button
-              type="button"
+            <Button
+              size={44}
               className={button}
               disabled={
                 busy ||
@@ -683,84 +852,174 @@ function Stage({
               onClick={() => fillOrEmpty("fill")}
             >
               Fill
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              size={44}
               className={button}
               disabled={busy || selected === null || (replay.amounts[selected] ?? 0) <= 0}
               onClick={() => fillOrEmpty("empty")}
             >
               Empty
-            </button>
+            </Button>
           </>
         ) : null}
-        <button type="button" className={button} disabled={busy || atStart} onClick={reset}>
+        <Button size={44} className={button} disabled={busy || atStart} onClick={reset}>
           Reset
-        </button>
+        </Button>
       </div>
     </div>
   );
 }
 
-/** The best route's moves, one label each (the reveal draws them as numbered chips). */
-function routeSteps(board: MeasureBoardData, raw: string): string[] {
-  return decodeMeasureActions(raw, board.caps.length)
-    .map((a) =>
-      a.kind === "fill"
-        ? `Fill ${board.caps[a.jug]}`
-        : a.kind === "empty"
-          ? `Empty ${board.caps[a.jug]}`
-          : a.kind === "pour"
-            ? `${board.caps[a.from]}→${board.caps[a.to]}`
-            : "Reset",
-    );
+/** One move's short label under its picture (the reveal's best line). */
+export function measureMoveLabel(board: MeasureBoardData, a: MeasureAction | null): string {
+  if (!a) return "Start";
+  return a.kind === "fill"
+    ? `Fill ${board.caps[a.jug]}`
+    : a.kind === "empty"
+      ? `Empty ${board.caps[a.jug]}`
+      : a.kind === "pour"
+        ? `${board.caps[a.from]}→${board.caps[a.to]}`
+        : "Reset";
 }
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
-  if (puzzle.type !== "measure") return null;
-  const parts = splitMeasureRound(myAnswer);
+/** One puzzle's verdict and lines for the reveal (display only; the server grades). */
+export interface MeasureRevealBoard {
+  board: MeasureBoardData;
+  mark: BoardMark;
+  /** The player's own moves on it (encoded), "" when not reached. */
+  mine: string;
+  /** Their move count, when they played it. */
+  moves: number | null;
+  solved: boolean;
+  outOfMoves: boolean;
+  /** The fewest moves possible, when the reveal knows it. */
+  fewest: number | null;
+  /** The best line (encoded), when the reveal has it (the server's private half). */
+  best: string | null;
+}
+
+/**
+ * Each puzzle's verdict, in order, as the server counts them: a puzzle is played only while every one before it was
+ * solved (measureRev 4: or ran out of its moves). Works for every stamp: older rounds carry no limits or minimums.
+ */
+export function measureRevealBoards(puzzle: MeasurePuzzleData, answer: string | null): MeasureRevealBoard[] {
+  const parts = splitMeasureRound(answer ?? "");
+  const limits = measureMoveLimits(puzzle);
   let open = true;
+  return puzzle.boards.map((board, index) => {
+    const raw = open ? (parts[index] ?? "") : "";
+    const replay = open ? replayMeasure(board, decodeMeasureActions(raw, board.caps.length), limits?.[index] ?? null) : null;
+    const reached = open;
+    if (!replay?.solved && !(measureBoardOut(puzzle) && replay?.outOfMoves)) open = false;
+    const played = reached && (replay?.moves ?? 0) > 0;
+    return {
+      board,
+      mark: replay?.solved ? "right" : played || (reached && replay?.outOfMoves) ? "wrong" : "open",
+      mine: reached ? raw : "",
+      moves: reached ? (replay?.moves ?? 0) : null,
+      solved: !!replay?.solved,
+      outOfMoves: !!replay?.outOfMoves,
+      // The public par (depthRev 1) is the same fewest count, so a reveal without the private half still has it.
+      fewest: puzzle.minMoves?.[index] ?? puzzle.par?.[index] ?? null,
+      best: puzzle.solutions?.[index] ?? null,
+    };
+  });
+}
+
+/** The puzzle's goal in plain words. */
+function revealGoal(board: MeasureBoardData): string {
+  return board.goal === "split" ? `Split into ${(board.split ?? []).join(" and ")} L` : `Make ${board.target} L in any jug`;
+}
+
+/**
+ * A line of moves as jug pictures (the Number overhaul's reveal, 15 Nov 2026): the jugs at the start and after each
+ * move, the move's name under each; the last picture's target jug in gold when it is solved, or marked "Not solved".
+ */
+function LinePictures({ board, raw, kind, solved }: { board: MeasureBoardData; raw: string; kind: "best" | "yours"; solved: boolean }) {
+  const states = measureLineStates(board, raw);
+  const maxCap = Math.max(...board.caps);
+  // As large as the line allows: a short line's pictures are drawn bigger.
+  const H = states.length <= 6 ? 112 : states.length <= 10 ? 80 : 60;
+  const jugW = states.length <= 6 ? (board.caps.length > 2 ? 18 : 25) : 20;
   return (
-    <div className="flex w-full flex-col items-stretch gap-1.5 px-1" data-polish="measure">
-      <PolishStyle id="measure" css={MEASURE_CSS} />
-      {puzzle.boards.map((board, index) => {
-        const mine = open
-          ? replayMeasure(board, decodeMeasureActions(parts[index] ?? "", board.caps.length), measureMoveLimits(puzzle)?.[index] ?? null)
-          : null;
-        // measureRev 4: a puzzle out of its moves ends only itself, so the next one was still played.
-        if (!mine?.solved && !(measureBoardOut(puzzle) && mine?.outOfMoves)) open = false;
-        const min = puzzle.minMoves?.[index];
+    <ol
+      className="mj-line-pics"
+      style={{ ["--mj-pic-w" as string]: `${jugW}px` }}
+      data-measure-line={kind}
+      data-measure-best={kind === "best" ? states.length - 1 : undefined}
+      aria-label={`${kind === "best" ? "Fewest moves" : "Your moves"}: ${states.slice(1).map((st) => measureMoveLabel(board, st.action)).join(", ") || "none"}`}
+    >
+      {states.map((st, i) => {
+        const last = i === states.length - 1;
         return (
-          <div
-            key={index}
-            data-puzzle-cell={index}
-            data-solved={mine?.solved ? "" : undefined}
-            className="mj-row rounded-lg border border-border px-2 py-1"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-x-2 font-mono text-xs">
-              <span className="mj-dim whitespace-nowrap">
-                {index + 1}. Jugs {board.caps.join(", ")} ·{" "}
-                {board.goal === "split"
-                  ? `split ${(board.split ?? []).join("-")}`
-                  : `${board.target} L`}
-              </span>
-              <span
-                className={`ml-auto whitespace-nowrap ${mine?.solved ? "font-bold text-primary" : "text-warn"}`}
-              >
-                {mine?.solved ? `✓ ${mine.moves} moves` : mine ? (mine.outOfMoves ? "✗ out of moves" : "✗ unsolved") : "—"}
-                {usesNumberDepth(puzzle) && mine?.solved && min !== undefined && mine.moves <= min ? (
-                  <span className="mj-par"> · ★ par</span>
-                ) : (
-                  <span className="mj-dim"> · best {min ?? "?"}</span>
-                )}
-              </span>
-            </div>
-            {puzzle.solutions?.[index] ? (
-              <StepChips testId="measure" label="Best" steps={routeSteps(board, puzzle.solutions[index]!)} />
-            ) : null}
-          </div>
+          <li key={i} className="mj-pic" data-last={last ? "" : undefined} data-miss={last && !solved ? "" : undefined}>
+            <span className="mj-pic-jugs" aria-hidden="true" style={{ height: `min(${H}px, var(--mj-pic-max, ${H}px))` }}>
+              {board.caps.map((cap, jug) => {
+                const hit = last && solved && measureSolvedJug(board, st.amounts[jug] ?? 0, jug);
+                return (
+                  <span key={jug} className="mj-pic-jug" data-hit={hit ? "" : undefined} style={{ height: `max(22px, ${Math.round((cap / maxCap) * 1000) / 10}%)` }}>
+                    <span className="mj-pic-water" style={{ height: `${((st.amounts[jug] ?? 0) / cap) * 100}%` }} />
+                    <span className="mj-pic-n">{st.amounts[jug] ?? 0}</span>
+                  </span>
+                );
+              })}
+            </span>
+            <span className="mj-pic-label">{last && !solved && i > 0 ? "Not solved" : measureMoveLabel(board, st.action)}</span>
+          </li>
         );
       })}
+    </ol>
+  );
+}
+
+/**
+ * The reveal (the Number overhaul, 15 Nov 2026): one puzzle at a time with numbered tabs (each marked solved, not
+ * solved or not reached), opening on the first not solved; the puzzle's goal and jugs; your moves against the fewest,
+ * as jug pictures, with "Yours" and "Fewest moves" to switch between them; the numbers behind the score.
+ */
+function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealProps) {
+  const boards = puzzle.type === "measure" ? measureRevealBoards(puzzle, myAnswer) : [];
+  const marks = boards.map((b) => b.mark);
+  const [index, setIndex] = useRevealBoard(marks);
+  const [side, setSide] = useState<RevealSide>(() => (boards[firstBoardToShow(marks)]?.best ? "solution" : "yours"));
+  if (puzzle.type !== "measure") return null;
+  const b = boards[index]!;
+  const solved = boards.filter((x) => x.solved).length;
+  const limitMs = timeLimitMs;
+  const seconds = solved === boards.length && myMsRemaining !== undefined ? ((limitMs - myMsRemaining) / 1000).toFixed(1) : null;
+  const atPar = boards.filter((x) => x.solved && x.fewest !== null && x.moves !== null && x.moves <= x.fewest).length;
+  const view: RevealSide = b.best ? side : "yours";
+  return (
+    <div className="mj-reveal flex w-full flex-col items-center gap-3 px-1" data-polish="measure" data-number-reveal="measure">
+      <PolishStyle id="measure" css={MEASURE_CSS} />
+      <RevealFacts
+        facts={[
+          { label: "Solved", value: `${solved} of ${boards.length}`, tone: solved === boards.length ? "good" : undefined },
+          usesNumberDepth(puzzle) && { label: "At fewest moves", value: `${atPar} of ${boards.length}` },
+          seconds ? { label: "Time", value: `${seconds} s` } : null,
+        ]}
+      />
+      <RevealBoards noun="Puzzle" marks={marks} index={index} onIndex={setIndex}>
+        <p className="mj-reveal-goal" data-measure-goal-text>{revealGoal(b.board)}</p>
+        <p className="mj-reveal-jugs">Jugs {b.board.caps.map((c) => `${c} L`).join(" · ")}{b.board.tap ? " · a tap" : ""}</p>
+        <RevealFacts
+          facts={[
+            b.moves !== null
+              ? { label: "Your moves", value: b.solved ? b.moves : b.outOfMoves ? "Ran out" : b.moves ? `${b.moves}, not solved` : "None", tone: b.solved ? "good" : "miss" }
+              : { label: "Your moves", value: "Not reached", tone: "miss" },
+            b.fewest !== null && { label: "Fewest possible", value: b.fewest },
+          ]}
+        />
+        {b.best ? <RevealView value={view} onChange={setSide} /> : null}
+        {view === "solution" && b.best ? (
+          <LinePictures key={`best-${index}`} board={b.board} raw={b.best} kind="best" solved />
+        ) : b.moves !== null ? (
+          <LinePictures key={`mine-${index}`} board={b.board} raw={b.mine} kind="yours" solved={b.solved} />
+        ) : (
+          <p className="mj-reveal-note">You didn’t reach this puzzle.</p>
+        )}
+      </RevealBoards>
     </div>
   );
 }

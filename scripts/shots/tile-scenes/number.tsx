@@ -3,7 +3,8 @@ import { tileSprite } from "@/lib/arcade/tenDrop.renderer";
 import { PolishStyle } from "@/components/puzzles/numberPolish";
 import { BalanceArt, Beam } from "@/puzzles/balance";
 import { Board as CheckoutBoard } from "@/puzzles/checkout";
-import { OPERATOR_CSS, OperatorSlot } from "@/puzzles/equation";
+import { GapLine } from "@/puzzles/equationGaps";
+import type { EquationStage } from "@/lib/duel/types";
 import { Jugs, MEASURE_CSS } from "@/puzzles/measure";
 import { Pyramid } from "@/puzzles/numberPyramid";
 import { Line as TapeLine, Pin } from "@/puzzles/numline";
@@ -42,27 +43,17 @@ export const NUMBER_SCENES: SceneSet = {
     </Scaled>
   )),
 
-  // Operator: the equation strip with the gold × chip in its slot, and the gold target.
-  equation: domScene(() => (
-    <Scaled x={4} y={8} scale={1} attrs={{ "data-polish": "equation" }}>
-      <PolishStyle id="equation" css={OPERATOR_CSS} />
-      <div
-        className="op-equation flex flex-col items-center justify-center gap-1 py-2 font-mono font-bold tabular-nums"
-        style={{ width: 96, ["--fit-fs" as string]: "30px" }}
-      >
-        <span className="op-line">
-          <span className="op-term">
-            <span>3</span>
-            <OperatorSlot value="×" />
-          </span>
-          <span className="op-term">
-            <span>4</span>
-          </span>
-        </span>
-        <span className="op-goal" style={{ fontSize: 26 }}>= 12</span>
-      </div>
-    </Scaled>
-  )),
+  // Operator (the Number overhaul): the live gaps equation, a champagne sign gap holding × and the gold target.
+  equation: domScene(() => {
+    const stage: EquationStage = { numbers: [3, 4], target: 12, signs: [null] };
+    return (
+      <Scaled x={1} y={28} scale={0.82} attrs={{ "data-operator-gaps": "", "data-number-overhaul": "" }}>
+        <div className="opg-equation opg-intro" style={{ width: 124 }}>
+          <span className="opg-line"><GapLine stage={stage} fills={["×"]} /></span>
+        </div>
+      </Scaled>
+    );
+  }),
 
   // Brimful: the 5 and 3 glass jugs, the big one filled to its gold target line.
   measure: domScene(() => (

@@ -1,0 +1,156 @@
+/*
+ * The Number overhaul (15 Nov 2026, docs/number-overhaul.md): shared by the eight Number games. Display only.
+ * Tokens only (DESIGN.md): champagne gold and navy controls, no glows, darker backgrounds.
+ */
+
+/* A darker Number background: the category's colour kept, at about half the strength. Checkout keeps its cabinet. */
+[data-puzzle-play][data-category="number"] > .screen-background {
+  background:
+    radial-gradient(130% 45% at 50% 0%, color-mix(in srgb, var(--category-accent) 10%, transparent), transparent 65%),
+    radial-gradient(120% 40% at 50% 100%, color-mix(in srgb, var(--category-accent) 7%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--frame-deep) 0%, var(--jz-bg) 40%, var(--jz-bg) 62%, var(--frame-deep) 100%);
+}
+
+/* The stage pip fills in as the stage clears (the frame's goal bar), in champagne gold, without a glow. */
+[data-category="number"] .game-goal-bar > span[data-done] {
+  background: var(--jz-gold);
+  box-shadow: none;
+  animation: nov-pip-fill 360ms var(--jz-ease-out, cubic-bezier(.2, .8, .2, 1)) both;
+  transform-origin: left center;
+}
+@keyframes nov-pip-fill {
+  from { transform: scaleX(0.15); }
+  to { transform: scaleX(1); }
+}
+
+/* One stage's box: the next stage slides in from the right; the finished one lifts and slides away to the left. */
+.nov-stage {
+  display: flex;
+  min-height: 0;
+  width: 100%;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+}
+.nov-stage[data-stage-enter] {
+  animation: nov-stage-in 320ms cubic-bezier(.2, .8, .2, 1) both;
+}
+.nov-stage[data-stage-exit="clear"] {
+  animation: nov-stage-clear 620ms cubic-bezier(.5, 0, .75, 0) 320ms both;
+  pointer-events: none;
+}
+.nov-stage[data-stage-exit="skip"],
+.nov-stage[data-stage-exit="fail"] {
+  animation: nov-stage-leave 420ms cubic-bezier(.5, 0, .75, 0) 420ms both;
+  pointer-events: none;
+}
+@keyframes nov-stage-in {
+  from { opacity: 0; transform: translateX(28%); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes nov-stage-clear {
+  0% { opacity: 1; transform: none; }
+  30% { opacity: 1; transform: translateY(-12px); }
+  100% { opacity: 0; transform: translate(-60%, -12px); }
+}
+@keyframes nov-stage-leave {
+  from { opacity: 1; transform: none; }
+  to { opacity: 0; transform: translateX(-45%); }
+}
+/* Reduced motion: no movement; the finished stage simply stays until the next one replaces it. */
+@media (prefers-reduced-motion: reduce) {
+  .nov-stage[data-stage-enter],
+  .nov-stage[data-stage-exit="clear"],
+  .nov-stage[data-stage-exit="skip"],
+  .nov-stage[data-stage-exit="fail"] {
+    animation: none;
+  }
+  [data-category="number"] .game-goal-bar > span[data-done] {
+    animation: none;
+  }
+}
+
+/*
+ * Controls: champagne gold and navy only (the style guide). The shared puzzle surface dyes secondary actions in the
+ * category's green (styles.css [data-puzzle-action]); in the Number games they are navy with light text and no
+ * outline, and the one primary action stays champagne gold.
+ */
+[data-puzzle-surface][data-category="number"] [data-puzzle-action]:not([data-puzzle-action="primary"]) {
+  background-color: var(--jz-surface-2) !important;
+  color: var(--jz-text) !important;
+  box-shadow: none;
+}
+/* A HUD pill's "gold" value (a target, par) is the interface's champagne, never the category's green. */
+[data-category="number"] [data-game-stage] .jz-status[data-tone="accent"] .jz-status-value {
+  color: var(--jz-gold);
+}
+/* Icon actions (Exact's Undo and Reset) likewise: navy, no category-coloured outline. */
+[data-puzzle-surface][data-category="number"] .puzzle-secondary-control {
+  border-color: transparent !important;
+  background-color: var(--jz-surface-2) !important;
+  color: var(--jz-text) !important;
+  box-shadow: none !important;
+}
+
+/* ---------------------------------------------------------------- the reveals (RevealParts.tsx) */
+.nrv-boards {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.nrv-tabs {
+  display: flex;
+  width: 100%;
+  justify-content: center;
+  gap: 8px;
+}
+.nrv-tab {
+  display: inline-flex;
+  min-width: 52px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: 12px;
+  background: var(--jz-surface-2);
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+  font-size: 17px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+.nrv-tab[data-current] {
+  background: var(--jz-gold);
+  color: var(--jz-on-gold);
+}
+.nrv-tab-mark {
+  font-size: 15px;
+}
+.nrv-tab[data-mark="right"]:not([data-current]) .nrv-tab-mark { color: var(--jz-cyan); }
+.nrv-tab[data-mark="wrong"]:not([data-current]) .nrv-tab-mark { color: var(--jz-red); }
+.nrv-tab[data-mark="open"]:not([data-current]) .nrv-tab-mark { color: var(--jz-text-3); }
+.nrv-board {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  /* Never spill above the tabs when a board is taller than the space (it scrolls down instead). */
+  justify-content: safe center;
+  gap: 10px;
+}
+.nrv-view {
+  width: min(100%, 280px);
+}
+.nrv-facts {
+  display: flex;
+  width: 100%;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
