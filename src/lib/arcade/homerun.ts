@@ -95,9 +95,9 @@ export const HOMERUN_V3_VIEW_ROWS = 60;
 /** The stage's view height (world px) for a revision: the world, plus homerunRev 3's rows below it. */
 export function homerunViewHFor(rev?: number | null): number {
   // homerunRev 4 has no buttons over the field: the view is the world again. homerunRev 5's Contact / Power row sits
-  // under the plate again, so its view runs rev 3's 60 rows below the world (display only).
+  // below the play area (Joe, 16 Nov 2026), so its view is the world too (display only).
   const r = rev ?? 1;
-  return r === HOMERUN_REV_3 || r >= 5 ? HOMERUN_WORLD_H + HOMERUN_V3_VIEW_ROWS : HOMERUN_WORLD_H;
+  return r === HOMERUN_REV_3 ? HOMERUN_WORLD_H + HOMERUN_V3_VIEW_ROWS : HOMERUN_WORLD_H;
 }
 export const HOMERUN_BG = "#05070E";
 export const HOMERUN_RUN_SECONDS = 60;

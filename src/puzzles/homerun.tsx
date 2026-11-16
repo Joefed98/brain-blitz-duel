@@ -174,6 +174,45 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const start = useRef<{ x: number; y: number; sent: boolean } | null>(null);
   // homerunRev 2 reads the swipe over a longer chord (18 px, rev 1 12 px) so its angle, the aim, is steadier.
   const startPx = homerunSwingStartPx(data?.homerunRev);
+  // The Contact / Power choice for the next pitch; the lit one is the sim's. Only the buttons take a touch.
+  const swingRow = (send: (payload: PointerPayload) => void, below: boolean) => (
+    <div
+      data-game-controls="swing"
+      aria-hidden={live || undefined}
+      className={`${below ? "flex shrink-0 px-1" : "pointer-events-none absolute inset-x-1 flex"} h-[52px] items-center gap-2 transition-opacity duration-150 ${live ? "opacity-0" : "opacity-100"}`}
+      style={below ? undefined : { bottom: "max(0px, calc(env(safe-area-inset-bottom, 0px) - 4px))" }}
+    >
+      {[
+        { m: HOMERUN_MODE_CONTACT, label: "Contact", hint: innings ? "wider timing, shorter hits" : "easier timing" },
+        { m: HOMERUN_MODE_POWER, label: "Power", hint: innings ? "tight timing, goes further" : "goes further" },
+      ].map(({ m, label, hint }) => (
+        <ArcadeControlButton
+          key={m}
+          type="button"
+          aria-label={`${label} swing`}
+          aria-pressed={mode === m}
+          disabled={locked || live}
+          data-swing-mode={m === HOMERUN_MODE_POWER ? "power" : "contact"}
+          className={`${MODE_BUTTON} ${live ? "pointer-events-none" : "pointer-events-auto"} ${
+            mode === m
+              ? "border-primary bg-primary/20 text-primary shadow-[0_0_12px_rgba(245,184,46,0.3)] hover:bg-primary/20 active:bg-primary/30"
+              : "border-foreground/25 bg-background/40 text-foreground/80 active:bg-foreground/15"
+          }`}
+          onPressStart={(event) => {
+            send(pick(m));
+            // The press registering (#422's kit: a sink and spring, its tick; never a haptic).
+            gameFx("tap", event.currentTarget);
+          }}
+        >
+          <span className="flex flex-col items-center leading-tight">
+            <span>{label}</span>
+            <span className="text-[10px] font-semibold opacity-75">{hint}</span>
+          </span>
+        </ArcadeControlButton>
+      ))}
+    </div>
+  );
+
   return (
     <ArcadeCanvasStage
       diagKey="homerun"
@@ -275,49 +314,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         return true;
       }}
       overlay={
-        choose
-          ? (send) => (
-              // The swing choice for the next pitch, over the bottom of the field (below the plate); the lit one is the sim's.
-              // Drawn in the arena so the world reaches the bottom, and lifted by the home bar: the row ends at least 12 px
-              // above env(safe-area-inset-bottom) (the arena ends 16 px above the screen's bottom, so the lift is the inset
-              // less 4 px). Only the buttons take a touch; a swipe beside them reaches the canvas.
-              <div
-                data-game-controls="swing"
-                aria-hidden={live || undefined}
-                className={`pointer-events-none absolute inset-x-1 flex h-[52px] items-center gap-2 transition-opacity duration-150 ${live ? "opacity-0" : "opacity-100"}`}
-                style={{ bottom: "max(0px, calc(env(safe-area-inset-bottom, 0px) - 4px))" }}
-              >
-                {[
-                  { m: HOMERUN_MODE_CONTACT, label: "Contact", hint: innings ? "wider timing, shorter hits" : "easier timing" },
-                  { m: HOMERUN_MODE_POWER, label: "Power", hint: innings ? "tight timing, goes further" : "goes further" },
-                ].map(({ m, label, hint }) => (
-                  <ArcadeControlButton
-                    key={m}
-                    type="button"
-                    aria-label={`${label} swing`}
-                    aria-pressed={mode === m}
-                    disabled={locked || live}
-                    data-swing-mode={m === HOMERUN_MODE_POWER ? "power" : "contact"}
-                    className={`${MODE_BUTTON} ${live ? "pointer-events-none" : "pointer-events-auto"} ${
-                      mode === m
-                        ? "border-primary bg-primary/20 text-primary shadow-[0_0_12px_rgba(245,184,46,0.3)] hover:bg-primary/20 active:bg-primary/30"
-                        : "border-foreground/25 bg-background/40 text-foreground/80 active:bg-foreground/15"
-                    }`}
-                    onPressStart={(event) => {
-                      send(pick(m));
-                      // The press registering (#422's kit: a sink and spring, its tick; never a haptic).
-                      gameFx("tap", event.currentTarget);
-                    }}
-                  >
-                    <span className="flex flex-col items-center leading-tight">
-                      <span>{label}</span>
-                      <span className="text-[10px] font-semibold opacity-75">{hint}</span>
-                    </span>
-                  </ArcadeControlButton>
-                ))}
-              </div>
-            )
-          : undefined
+        // homerunRev 3: the swing choice over the bottom of the field (below the plate), drawn in the arena so the world
+        // reaches the bottom and lifted by the home bar.
+        choose && !innings ? (send) => swingRow(send, false) : undefined
+      }
+      footer={
+        // homerunRev 5 (Joe, 16 Nov 2026): the same row below the play area, as every other arcade game's controls, in
+        // rooms and Practice alike; it keeps its height while it fades for the pitch, so the field never moves.
+        innings ? (send) => swingRow(send, true) : undefined
       }
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}

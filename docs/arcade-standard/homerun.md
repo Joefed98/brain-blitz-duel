@@ -17,6 +17,8 @@ which replay and score exactly as before). One innings of real batting with cons
   340 ft; Power's ±3 and at most 450 ft. A swing within the PERFECT window (±1 tick on Easy and Normal, the exact tick
   on Hard and Expert) goes exactly where it was swiped at full carry; each tick beyond takes carry and moves it 3° (early
   pulls, late pushes). A ball outside the zone hit at all is weak contact (52 %), never PERFECT.
+  The Contact / Power buttons sit below the play area, as every other arcade game's controls, in rooms and Practice
+  alike (Joe, 16 Nov 2026; the view is the world, 390 × 720, with no rows below the plate).
 - **The field**: seven fielders, shifting every pitch; a ball landing in a catch area is an out. Otherwise a single
   (short of 170 ft), a double, a triple (within 30 ft of the wall) or a home run over it (400 ft in centre, 330 down the
   lines); an outfielder within 11° of the ball's line holds it to one base less. Runners advance by the hit's bases, a
