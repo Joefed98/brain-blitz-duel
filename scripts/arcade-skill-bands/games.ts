@@ -298,6 +298,8 @@ export const GAMES: GameSpec[] = [
     // swingRev 14 (the assault course), 15 (the swinging course), 16 (its dark ledge runs) and 17 (its sliding hooks) rooms deal any seed (generateSwing): the room seed itself.
     seedForRev: (n, rev) => (rev === SWING_REV_BIG ? swingBigDealSeed(roomSeed(n)) : rev === SWING_REV_SLIDE ? swingSlideDealSeed(roomSeed(n)) : rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK ? roomSeed(n) : rev === SWING_REV_EXPAND || rev === SWING_REV_STRICT ? SWING_V13_BANK[roomSeed(n) % SWING_V13_BANK.length]!.seed : undefined),
     gameFor: (rev) => swingGameFor(rev ?? undefined),
+    // The difficulty levels (15 Nov 2026): the dealt puzzle's stamp and stored level.
+    gameForPuzzle: (p) => swingGameFor(p.swingRev ?? undefined, p.level),
     checkpoint: swingCheckpoint,
     encode: (run) => encodeSwingRun(run),
     replay: (seed, raw, rev) => replaySwingRun(seed, raw, rev ?? undefined),
@@ -357,6 +359,8 @@ export const GAMES: GameSpec[] = [
       (seed, raw, rev) => ((rev ?? 2) >= MOON_REV ? replayMoonRun(seed, raw, rev) : replayNinjaRun(seed, raw)),
     ),
     encode: (run, rev) => ((rev ?? 2) >= MOON_REV ? encodeMoonRun(run) : encodeNinjaRun(run)),
+    // The difficulty levels (15 Nov 2026): the dealt puzzle's stamp and stored level (ricoRev 4).
+    gameForPuzzle: (p) => ninjaGameFor(p.ricoRev, p.level),
   },
   // Iron Wall (id bastion): the tank-defence shooter, born on the arcade scoring standard at bastionRev 2 (1 Nov 2026);
   // bastionRev 3 (3 Nov 2026) eases waves 4–5 and adds the drones; any seed. "live" is rev 2, "next" rev 3.

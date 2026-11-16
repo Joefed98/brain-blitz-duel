@@ -204,6 +204,7 @@ import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from 
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
 import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG } from "@/lib/arcade/swing";
 import { SWING_BIG_DEAL } from "@/lib/duel/swingBigDeal.server";
+import { SWING_LEVEL_DEAL } from "@/lib/duel/swingLevelDeal.server";
 import { SWING_V13_BANK } from "@/lib/duel/swingBankV13.server";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
@@ -1075,6 +1076,10 @@ const GAMES: Game[] = [
       return replayOrbitRun(seed, raw, ORBIT_REV_BIG, e.planets, e.holes, e.extras);
     },
   },
+  // Moon Climb ricoRev 4's and Grappler swingRev 18's difficulty levels (15 Nov 2026, the Action overhaul), appended so
+  // every earlier entry keeps its stream: each level's own towers and courses (Grappler's from the level's proved deal).
+  ...(["easy", "hard", "expert"] as const).map((lv) => ({ key: `ricochet/${lv}`, interval: NINJA_CHECKPOINT_INTERVAL, game: moonGameFor(4, lv), checkpoint: moonCheckpoint, mode: "events" as const, rate: 30, encode: encodeMoonRun, replay: (seed: number, raw: string) => replayMoonRun(seed, raw, 4, lv) })),
+  ...(["easy", "hard", "expert"] as const).map((lv) => ({ key: `swing/${lv}`, game: swingGameFor(SWING_REV_BIG, lv), checkpoint: swingCheckpoint, mode: "events" as const, rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_BIG, undefined, lv), seedFor: (n: number) => SWING_LEVEL_DEAL[lv][n % SWING_LEVEL_DEAL[lv].length]! })),
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

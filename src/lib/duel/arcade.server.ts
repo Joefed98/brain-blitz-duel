@@ -37,6 +37,8 @@ import { SWING_V9_BANK } from "./swingBankV9.server";
 import { SWING_V13_BANK } from "./swingBankV13.server";
 import { swingSlideDealSeed } from "./swingSlideDeal.server";
 import { swingBigDealSeed } from "./swingBigDeal.server";
+import { swingLevelDealSeed } from "./swingLevelDeal.server";
+import type { Level } from "@/lib/levels/levels";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV_BANDS } from "@/lib/arcade/wordfall";
 import { dealtTopupRev } from "./depthTopup";
@@ -505,8 +507,11 @@ export function pinSwingPreBig(on: boolean): boolean {
   return setDealPin("swingPreBig", on);
 }
 
-export function generateSwing(): SwingPuzzleData {
+export function generateSwing(level?: Level): SwingPuzzleData {
   const roomSeed = arcadeSeed();
+  // swingRev 18's difficulty levels (15 Nov 2026): a course from the level's own proved deal (swingLevelDeal.server.ts;
+  // the deal stamps `level`). Normal (no level) deals exactly as before.
+  if (level && level !== "normal" && !dealPinned("swingPreAssault") && !dealPinned("swingPreRework") && !dealPinned("swingPreDark") && !dealPinned("swingPreSlide") && !dealPinned("swingPreBig")) return { type: "swing", seed: swingLevelDealSeed(level, roomSeed), swingRev: SWING_REV_BIG };
   // swingRev 18 (the bigger hero, 15 Nov 2026): from its own deal, courses built on the 14 px body whose oracle run
   // replays to exactly 200 (scripts/swing-slide-deal.ts --rev=18).
   if (!dealPinned("swingPreAssault") && !dealPinned("swingPreRework") && !dealPinned("swingPreDark") && !dealPinned("swingPreSlide") && !dealPinned("swingPreBig")) return { type: "swing", seed: swingBigDealSeed(roomSeed), swingRev: SWING_REV_BIG };

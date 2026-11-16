@@ -103,7 +103,7 @@ const SIMPLE: Record<string, (p: PuzzleData, look: GameLook) => Draw> = {
   tripeaks: (_p, look) => ((ctx, s, size) => withCardsLook(look, () => tripeaksArt.draw(ctx, s, size))) as Draw,
   pokersquares: (_p, look) => ((ctx, s, size) => withCardsLook(look, () => pokerSquaresArt.draw(ctx, s, size))) as Draw,
   fivehands: (_p, look) => ((ctx, s, size) => withCardsLook(look, () => fiveHandsArt.draw(ctx, s, size))) as Draw,
-  ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? ninjaArtGameFor(rev(p, "ricoRev")).draw : ricoGame.draw) as Draw,
+  ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? ninjaArtGameFor(rev(p, "ricoRev"), (p as { level?: unknown }).level).draw : ricoGame.draw) as Draw,
   pyramid: (_p, look) => ((ctx, s, size) => withCardsLook(look, () => pyramidArt.draw(ctx, s, size))) as Draw,
   golfsol: () => golfSolArt.draw as Draw,
   muggins: () => mugginsArt.draw as Draw,

@@ -35,6 +35,7 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { CardStill } from "@/components/puzzles/CardStill";
 import { encodeMoonRun, encodeNinjaRun, isMoonRev, isNinjaRev, replayNinjaRun } from "@/lib/duel/ricochet";
+import { puzzleLevel } from "@/lib/levels/levels";
 import {
   ninjaCheckpoint,
   ninjaDeal,
@@ -350,7 +351,7 @@ function NinjaStage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProp
       locked={locked}
       worldW={NINJA_WORLD_W}
       worldH={NINJA_WORLD_H}
-      game={(moon ? moonArtGameFor(data?.ricoRev) : ninjaArtGame) as typeof ninjaArtGame}
+      game={(moon ? moonArtGameFor(data?.ricoRev, puzzleLevel(puzzle)) : ninjaArtGame) as typeof ninjaArtGame}
       sounds={ninjaSounds}
       checkpoint={(moon ? moonCheckpoint : ninjaCheckpoint) as typeof ninjaCheckpoint}
       interval={NINJA_CHECKPOINT_INTERVAL}
@@ -431,7 +432,7 @@ export function RunPicture({ puzzle, myAnswer }: RunPictureProps) {
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const wrap = useRef<HTMLDivElement | null>(null);
   const moon = puzzle.type === "ricochet" && isMoonRev(puzzle.ricoRev);
-  const summary = useMemo(() => (puzzle.type === "ricochet" && moon ? moonRunSummary(puzzle.seed, myAnswer, puzzle.ricoRev) : null), [puzzle, myAnswer, moon]);
+  const summary = useMemo(() => (puzzle.type === "ricochet" && moon ? moonRunSummary(puzzle.seed, myAnswer, puzzle.ricoRev, puzzleLevel(puzzle)) : null), [puzzle, myAnswer, moon]);
   const ninja = useMemo(() => (puzzle.type === "ricochet" && !moon && isNinjaRev(puzzle.ricoRev) ? replayNinjaRun(puzzle.seed, myAnswer) : null), [puzzle, myAnswer, moon]);
   useEffect(() => {
     const node = canvas.current;
