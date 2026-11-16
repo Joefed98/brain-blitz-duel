@@ -103,8 +103,10 @@ const deal = (n: number, level?: SkylineLevel) => {
   }
   const e = SKYLINE_LEVEL_RULES;
   ok(e.easy.tol === 5 * 256 && e.easy.windFrom === 30 && e.easy.lives === 3 && e.easy.speedMax < skylineSpeed(1000), "Easy: slower slide, 5 px, wind from 30, 3 lives (Joe's table)");
-  ok(e.hard.tol === 3 * 256 && e.hard.windFrom === 15 && e.hard.lives === 2 && e.hard.speedStart > skylineSpeed(0) && e.hard.speedMax > skylineSpeed(1000), "Hard: faster slide, 3 px, wind from 15, 2 lives");
-  ok(e.expert.tol === 2 * 256 && e.expert.windFrom === 10 && e.expert.lives === 2 && e.expert.speedStart > e.hard.speedStart && e.expert.speedMax > e.hard.speedMax, "Expert: the fastest slide, 2 px, wind from 10, 2 lives");
+  // Changed with Joe's approval, 16 Nov 2026 (routine consequence of the Action overhaul): Hard and Expert keep 3 lives
+  // (were 2); Expert stays harder than Hard by its slide, its 2 px tolerance and its earlier wind.
+  ok(e.hard.tol === 3 * 256 && e.hard.windFrom === 15 && e.hard.lives === 3 && e.hard.speedStart > skylineSpeed(0) && e.hard.speedMax > skylineSpeed(1000), "Hard: faster slide, 3 px, wind from 15, 3 lives");
+  ok(e.expert.tol === 2 * 256 && e.expert.windFrom === 10 && e.expert.lives === 3 && e.expert.speedStart > e.hard.speedStart && e.expert.speedMax > e.hard.speedMax, "Expert: the fastest slide, 2 px, wind from 10, 3 lives");
   // The tolerance decides a perfect drop: a block 4 px off the tower is perfect on Easy and not on Normal.
   const base = skylineGameFor(SKYLINE_REV_LIVES).init(7);
   const below = base.blocks[0]!;

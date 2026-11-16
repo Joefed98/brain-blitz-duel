@@ -1088,8 +1088,8 @@ export interface SkylineLevelRules {
 
 export const SKYLINE_LEVEL_RULES: Readonly<Record<SkylineLevel, SkylineLevelRules>> = {
   easy: { speedStart: 448, speedStep: 12, speedMax: 896, tol: 1_280, windFrom: 30, lives: 3 },
-  hard: { speedStart: 896, speedStep: 30, speedMax: 1_792, tol: 768, windFrom: 15, lives: 2 },
-  expert: { speedStart: 960, speedStep: 32, speedMax: 1_920, tol: 512, windFrom: 10, lives: 2 },
+  hard: { speedStart: 896, speedStep: 30, speedMax: 1_792, tol: 768, windFrom: 15, lives: 3 },
+  expert: { speedStart: 960, speedStep: 32, speedMax: 1_920, tol: 512, windFrom: 10, lives: 3 },
 };
 
 /** The level's code in a state (`lvl`). */

@@ -129,6 +129,9 @@ landings (3–4 of the 5); Normal is not changed here (Joe approved a Normal cha
 Joe to play (the limited elite's best of the first 24 Expert deals; "well" on Expert here means 160+: clean time full,
 double flips and flow full, 6+ of the 9 perfect landings): room seed n=1 (course 640114144) 173 (elite 186), n=10 (1208933397) 173 (200), n=12 (573075131) 173 (193), n=22 (596575428) 173 (180), n=7 (1271176014) 166 (186), n=8 (1276757712) 166 (200); its Expert mean is 159.
 
+**For Joe's scoring review** (16 Nov 2026): Roofbound's Normal under human limits (the limited elite) scores 183 mean,
+188 median, short of the ~198 guide; Normal is unchanged (High Rise's Normal, 123, is noted in skyline.md).
+
 Build time (a course is built from the seed and proved in the sim): median about 110 ms on Normal, about 50 ms Easy,
 200–250 ms Hard, 300–450 ms Expert on this machine, with a tail to several seconds where the builder re-rolls a course.
 So RoundIntro builds the round's course while the intro is up (`prepareFlipCourse(seed, rev, level)`, every flipRev 13

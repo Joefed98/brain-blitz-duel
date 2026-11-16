@@ -857,8 +857,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap to drop", detail: "the sliding block on the tower." },
         { action: "Perfect drops", detail: "in a row build a streak." },
         { action: "Next block:", detail: "gold, narrow or wide." },
-        { action: "3 lives:", detail: "a miss costs one; the run goes on (2 lives on Hard and Expert)." },
-        { action: "Lives:", detail: "you have 3 (2 on Hard and Expert). A block that misses the tower falls away and costs a life; the same block comes again and your streak starts over. Losing the last life ends the run. A tap just after a lost life is ignored, so a double tap can’t cost two.", helpOnly: true },
+        { action: "3 lives:", detail: "a miss costs one; the run goes on." },
+        { action: "Lives:", detail: "you have 3 at every level. A block that misses the tower falls away and costs a life; the same block comes again and your streak starts over. Losing the last life ends the run. A tap just after a lost life is ignored, so a double tap can’t cost two.", helpOnly: true },
         { action: "A wide block helps:", detail: "after five drops in a row that aren’t perfect, the next block is a wide one. Centre it and the tower widens again.", helpOnly: true },
         { action: "Dusk to night:", detail: "the city lights come on as your tower climbs.", helpOnly: true },
         { action: "Next-block preview:", detail: "five gold blocks come in every run, at the same places for everyone; land one perfectly to score it. Narrow is harder and wide easier; both count as a floor like any other.", helpOnly: true },
@@ -867,7 +867,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         // Levels (15 Nov 2026, docs/arcade-standard/skyline.md "Levels"): what each level changes, from the sim's own table.
         {
           action: "Levels:",
-          detail: `Easy slides slower, a drop within ${SKYLINE_LEVEL_RULES.easy.tol / 256} px is perfect and the wind comes later. Hard slides faster with ${SKYLINE_LEVEL_RULES.hard.lives} lives and wind from block ${SKYLINE_LEVEL_RULES.hard.windFrom}. Expert slides fastest, a drop must be within ${SKYLINE_LEVEL_RULES.expert.tol / 256} px to be perfect, with ${SKYLINE_LEVEL_RULES.expert.lives} lives and wind from block ${SKYLINE_LEVEL_RULES.expert.windFrom}. Normal: within ${SKYLINE_PERFECT_TOL / 256} px, ${SKYLINE_V11_LIVES} lives.`,
+          detail: `Easy slides slower, a drop within ${SKYLINE_LEVEL_RULES.easy.tol / 256} px is perfect and the wind comes later. Hard slides faster with wind from block ${SKYLINE_LEVEL_RULES.hard.windFrom}. Expert slides fastest, a drop must be within ${SKYLINE_LEVEL_RULES.expert.tol / 256} px to be perfect, and the wind blows from block ${SKYLINE_LEVEL_RULES.expert.windFrom}. Normal: within ${SKYLINE_PERFECT_TOL / 256} px. ${SKYLINE_V11_LIVES} lives at every level.`,
           helpOnly: true,
         },
         { action: "Overhang is cut", detail: "so the next block is narrower. Line it up exactly (a perfect drop) and the block grows back a little.", helpOnly: true },
