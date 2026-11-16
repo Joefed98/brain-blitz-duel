@@ -160,6 +160,12 @@ export interface GameSpec {
   fixtureSeedFor?: (n: number) => number;
   /** The game (sim + score) for a revision and stored seed. */
   gameFor: (rev: number | null, seed: number) => ArcadeGame<any, any>;
+  /**
+   * The difficulty framework (15 Nov 2026): a game whose levels change its sim builds the game from the dealt puzzle
+   * (its stamp, seed and level) here; scripts/level-tune.ts uses it when set, else `gameFor`. The band tool and the
+   * checks keep reading `gameFor`.
+   */
+  gameForPuzzle?: (puzzle: any) => ArcadeGame<any, any>;
   checkpoint: (state: any) => unknown;
   encode: (run: any, rev: number | null, seed: number) => string;
   replay: (seed: number, raw: string, rev: number | null) => any;

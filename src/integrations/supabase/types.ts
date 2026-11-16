@@ -2481,6 +2481,7 @@ export type Database = {
           finished_at: string | null
           id: string
           kind: string
+          level: string
           pick: string
           starts_at: string
           status: string
@@ -2496,6 +2497,7 @@ export type Database = {
           finished_at?: string | null
           id: string
           kind: string
+          level?: string
           pick: string
           starts_at: string
           status?: string
@@ -2511,6 +2513,7 @@ export type Database = {
           finished_at?: string | null
           id?: string
           kind?: string
+          level?: string
           pick?: string
           starts_at?: string
           status?: string

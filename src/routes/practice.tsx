@@ -97,6 +97,9 @@ import { ONLINE_ONLY_TYPES } from "@/lib/offline/offlineStatus";
 import { syncOffline } from "@/lib/offline/install";
 import { notePracticeRoundFinished } from "@/lib/offline/packGrowth";
 import { takePackDeal } from "@/lib/offline/packs";
+import { playLevel, setCatalogueLevel, setGameLevel, useLevelChoice } from "@/lib/levels/levelChoice";
+import { LEVEL_LABEL, NORMAL, storedLevelKey } from "@/lib/levels/levels";
+import { readPracticeSide, rememberPracticeSide, type PracticeSide } from "@/lib/duel/practiceSide";
 import { flushQueue, queueRun } from "@/lib/offline/queue";
 
 /** How long a live deal may take before practice falls back to a saved pack deal (a weak signal underground). */
@@ -211,7 +214,8 @@ function PracticeFooter() {
  * account's best and a queued run's clock for the checks that read them.
  */
 function TileBest({ type, pending, progress }: { type: PuzzleType; pending: boolean; progress: PracticeProgressView | null }) {
-  const best = bestOf(progress, type);
+  // The best at the level this player plays the game at (the catalogue's difficulty switch).
+  const best = bestOf(progress, type, storedLevelKey(playLevel(type)));
   return (
     <span
       id={tileDescriptionId(type)}
@@ -242,6 +246,15 @@ function PracticeScreen() {
   const [stage, setStage] = useState<Stage>("list");
   // The catalogue's chip (All, a category or an arcade group) and its search (phase 2 step 3).
   const [catalogueFilter, setCatalogueFilter] = useState<CatalogueFilter>("all");
+  // The catalogue's top (difficulty framework, 15 Nov 2026): the Puzzles | Arcade switch (remembered on the device,
+  // read after the first paint so the server's render and the phone's agree) and the level choice (levelChoice.ts).
+  const [side, setSide] = useState<PracticeSide>("puzzles");
+  useEffect(() => setSide(readPracticeSide()), []);
+  const chooseSide = useCallback((next: PracticeSide) => {
+    rememberPracticeSide(next);
+    setSide(next);
+  }, []);
+  const levelChoice = useLevelChoice();
   // Wave 2 E2: the player's own tile style on their game tiles, and the games early access holds back (Joulz Plus).
   const myTileStyle = useMyIdentity().loadout?.slots["tile-style"] ?? null;
   const heldBack = useEarlyAccessHeld();
@@ -415,7 +428,10 @@ function PracticeScreen() {
       });
       setType(next);
       if (!exampleMode) notePracticePlayed(next);
-      setDeviceBest(bestOf(practiceProgressNow(), next));
+      // The level this player plays the game at (levelChoice.ts; Normal where the game lacks it; the intro example
+      // is always Normal).
+      const level = exampleMode ? NORMAL : playLevel(next);
+      setDeviceBest(bestOf(practiceProgressNow(), next, storedLevelKey(level)));
       setNewBest(false);
       setEarnedStar(null);
       setGraded(null);
@@ -440,7 +456,7 @@ function PracticeScreen() {
       let live: Promise<Made | null> | null = null;
       let slow = false;
       if (isOnline() || exampleMode) {
-        live = practiceGenerateFn({ data: { type: next, example: exampleMode } }).then(
+        live = practiceGenerateFn({ data: { type: next, example: exampleMode, ...(level !== NORMAL ? { level } : {}) } }).then(
           (m) => m as Made,
           () => null,
         );
@@ -450,7 +466,8 @@ function PracticeScreen() {
           slow = true;
         }
       }
-      if (!made && !exampleMode) {
+      // Saved packs hold Normal deals only, so another level needs a connection.
+      if (!made && !exampleMode && level === NORMAL) {
         const deal = await takePackDeal(next);
         if (deal) {
           made = { puzzle: deal.puzzle, sealed: deal.sealed };
@@ -460,7 +477,13 @@ function PracticeScreen() {
       if (!made && slow && live) made = await live;
       if (!made) {
         const name = PUZZLE_REGISTRY[next].name;
-        setNotice(ONLINE_ONLY_TYPES.has(next) ? `${name} is online only.` : `No ${name} games are saved for offline play yet.`);
+        setNotice(
+          ONLINE_ONLY_TYPES.has(next)
+            ? `${name} is online only.`
+            : level !== NORMAL
+              ? `${name} on ${LEVEL_LABEL[level]} needs a connection. Normal games are saved for offline play.`
+              : `No ${name} games are saved for offline play yet.`,
+        );
         setType(null);
         setStage("list");
         return;
@@ -722,6 +745,8 @@ function PracticeScreen() {
                 notice={notice}
                 mark={pageMark}
                 onBack={closePage}
+                level={levelChoice.games[pageType] ?? levelChoice.catalogue}
+                onLevel={(next) => setGameLevel(pageType, next)}
                 onPlay={() => void load(pageType, true)}
               />
         </PhoneShell>
@@ -744,6 +769,10 @@ function PracticeScreen() {
           searchOpen={searchOpen}
           filter={catalogueFilter}
           onFilter={setCatalogueFilter}
+          side={side}
+          onSide={chooseSide}
+          level={levelChoice.catalogue}
+          onLevel={setCatalogueLevel}
           hidden={heldBack}
           tileStyle={myTileStyle}
           onOpen={openPage}
