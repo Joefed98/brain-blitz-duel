@@ -157,6 +157,8 @@ export const RACING_V3_RECOVER_MUL = 2;
  *  - road / kerb / wall: the tarmac's half width, the kerb's edge and the tyre wall's face (lateral units; Normal
  *    RACING_ROAD_X, RACING_KERB_X, RACING_WALL_X). Only the kerb and the wall are play; the road is drawn.
  *  - tight: added to every hairpin's peak curvature (0 keeps the circuit's own corners).
+ *  - tightBy: per circuit, in place of `tight` (Joe, 16 Nov 2026: Expert keeps Ridge Loop's own hairpins, so a strong
+ *    driver can finish it; absent: `tight` on every circuit).
  *  - aids: display only: 2 corner signs, braking boards and braking points on the road; 1 signs and boards (Normal's);
  *    0 the signs alone, no boards and no racing line or skid marks.
  *  - pace: the full pace per circuit (tenths of a km/h; absent: RACING_V4_PACE's).
@@ -169,9 +171,15 @@ export interface RacingLevelSettings {
   kerb: number;
   wall: number;
   tight: number;
+  tightBy?: readonly number[];
   aids: number;
   pace?: readonly number[];
   spread?: number;
+}
+
+/** The hairpins' extra peak a level gives a circuit: its `tightBy` entry, else `tight` (0 with no level). */
+export function racingTightFor(lv: Pick<RacingLevelSettings, "tight" | "tightBy"> | null | undefined, circuit: number): number {
+  return lv ? (lv.tightBy?.[circuit] ?? lv.tight) : 0;
 }
 
 /** The car-centre limits of a state: the clean edge (a wheel past the kerb) and the wall stop. */
@@ -421,7 +429,7 @@ function assembleCircuit(index: number, tight: number): RacingTrack {
  * say so), else the seed's own layout (racingRev 1–3).
  */
 export function racingTrackFor(seed: number, rev: number | null | undefined, lv?: RacingLevelSettings | null): RacingTrack {
-  return (rev ?? 1) >= RACING_REV_4 ? racingCircuit(racingCircuitOf(seed), lv?.tight ?? 0) : racingTrack(seed);
+  return (rev ?? 1) >= RACING_REV_4 ? racingCircuit(racingCircuitOf(seed), racingTightFor(lv, racingCircuitOf(seed))) : racingTrack(seed);
 }
 
 /** The circuit of a state (the sim, renderer, sounds and bots all ask this). */
@@ -955,6 +963,7 @@ export function racingChecksum(s: RacingState): number {
     mix(s.lv.kerb);
     mix(s.lv.wall);
     mix(s.lv.tight);
+    for (const t of s.lv.tightBy ?? []) mix(t);
     for (const p of s.lv.pace ?? []) mix(p);
     mix(s.lv.spread ?? 0);
   }
@@ -1049,7 +1058,8 @@ export function racingLevelOf(raw: unknown): RacingLevelSettings | null {
   if (keep === null || road === null || kerb === null || wall === null || tight === null || aids === null) return null;
   const pace = Array.isArray(o["pace"]) && o["pace"].length === RACING_CIRCUITS.length && o["pace"].every((p) => typeof p === "number" && Number.isFinite(p)) ? (o["pace"] as number[]).map((p) => Math.trunc(p)) : null;
   const spread = n("spread");
-  return { keep, road, kerb, wall, tight, aids, ...(pace ? { pace } : {}), ...(spread !== null && spread > 0 ? { spread } : {}) };
+  const tightBy = Array.isArray(o["tightBy"]) && o["tightBy"].length === RACING_CIRCUITS.length && o["tightBy"].every((t) => typeof t === "number" && Number.isFinite(t)) ? (o["tightBy"] as number[]).map((t) => Math.trunc(t)) : null;
+  return { keep, road, kerb, wall, tight, ...(tightBy ? { tightBy } : {}), aids, ...(pace ? { pace } : {}), ...(spread !== null && spread > 0 ? { spread } : {}) };
 }
 
 const levelGames = new Map<string, ArcadeGame<RacingState, ArcadeInputEvent | null>>();

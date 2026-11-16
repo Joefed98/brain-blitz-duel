@@ -16,7 +16,7 @@
  * two diagonals); the human places the dot with a small error (DOT_SD units of the safe radius's 100) and fires it as
  * poolRev 2's input (power in c, the dot in d).
  */
-import { POOL_AIM, POOL_CUE, POOL_LEVEL_PREVIEW, type PoolPreview, type PoolState } from "../../../src/lib/arcade/pool";
+import { POOL_AIM, POOL_CUE, POOL_LEVEL_BLACK_AT, POOL_LEVEL_PREVIEW, type PoolPreview, type PoolState } from "../../../src/lib/arcade/pool";
 import { candidates, goodShots, NO_SPIN, powerFor, shotFor, shotParts, type Shot, type Spin } from "../../pool-oracle";
 import { driveEvents, Plan, type SkillBot } from "../bot";
 
@@ -48,13 +48,15 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   const init = game.init(seed) as PoolState;
   const rev = init.rev;
   const sight = POOL_PERCEPTION[POOL_LEVEL_PREVIEW[init.level ?? "normal"]];
+  /** Easy's open black (0 elsewhere, so every other level plays exactly as before). */
+  const blackAt = POOL_LEVEL_BLACK_AT[init.level ?? "normal"];
   /** The aim error in radians: the finger's, then (off Normal) the level's judgement of where to aim. */
   const aimError = (): number => (sight.aim === 1 ? human.aim(1) : human.aim(1, sight.aim)) / AIM_REACH_PX + (sight.judge > 0 ? (human.normal() * sight.judge) / AIM_REACH_PX : 0);
   const dot = (spin: Spin): Spin =>
     rev >= 2 && (spin.tb !== 0 || spin.side !== 0) ? { tb: Math.round(spin.tb + human.normal() * DOT_SD), side: Math.round(spin.side + human.normal() * DOT_SD) } : spin;
   const decide = (s: PoolState): Shot | null => {
     const perfect = human.level === "perfect";
-    const goods = goodShots(s.balls, { limit: perfect ? 6 : 5, rev });
+    const goods = goodShots(s.balls, { limit: perfect ? 6 : 5, rev, blackAt });
     if (goods.length) {
       let choice = goods[0]!;
       if (!perfect) {
@@ -72,7 +74,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       return shotFor(angle, Math.max(40, Math.min(1000, power)), spin, rev);
     }
     // Nothing pots cleanly: the easiest-looking pot anyway (or a soft roll at the nearest target ball).
-    const c = candidates(s.balls, 85)[0];
+    const c = candidates(s.balls, 85, blackAt)[0];
     if (c) return shotFor(c.angle + aimError(), Math.round(powerFor(c.cueDist, c.objDist, c.cut) * (rev >= 3 ? 0.8 : 1) * human.power()), NO_SPIN, rev);
     const cue = s.balls.find((b) => b.id === POOL_CUE)!;
     const t = s.balls.find((b) => !b.down && b.id !== POOL_CUE)!;

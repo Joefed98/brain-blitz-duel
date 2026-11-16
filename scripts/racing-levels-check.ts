@@ -146,12 +146,19 @@ ok(modeLevel("rated", "expert") === "normal" && modeLevel("daily", "easy") === "
   const wide = R.racingStep({ ...easyState, tick: 600, s: R.RACING_SEG * 40, v: 2000, x: R.RACING_CLEAN_X + 3000, acted: 1 }, null);
   const narrow = R.racingStep({ ...n4, tick: 600, s: R.RACING_SEG * 40, v: 2000, x: R.RACING_CLEAN_X + 3000, acted: 1 }, null);
   ok(wide.off === 0 && narrow.off === 1, "Easy's wider kerb keeps a car clean where Normal's is on the grass");
-  // Expert's hairpins: every hairpin's peak raised, every other segment and the hills unchanged.
+  // Expert's hairpins: every hairpin's peak raised by its circuit's tightBy (Ridge Loop keeps its own, Joe 16 Nov 2026),
+  // every other segment and the hills unchanged.
+  ok(JSON.stringify(settings("expert").tightBy) === JSON.stringify([2, 2, 0]) && R.racingCircuitOf(2) === 2 && R.RACING_CIRCUITS[2]!.id === "ridge", "Expert tightens Sunset Park's and Harbour Run's hairpins by 2 and keeps Ridge Loop's own");
   for (let c = 0; c < 3; c++) {
     const t0 = R.racingCircuit(c);
     const tx = R.racingTrackFor(c, 4, settings("expert"));
+    const add = R.racingTightFor(settings("expert"), c);
+    if (add === 0) {
+      ok(tx === t0, `circuit ${c + 1}: Expert races the circuit's own hairpins`);
+      continue;
+    }
     const hairpins = t0.sections.filter((s) => s.kind === R.RACING_SEC_HAIRPIN);
-    const peaks = hairpins.every((h, i) => tx.sections.filter((s) => s.kind === R.RACING_SEC_HAIRPIN)[i]!.peak === h.peak + settings("expert").tight);
+    const peaks = hairpins.every((h, i) => tx.sections.filter((s) => s.kind === R.RACING_SEC_HAIRPIN)[i]!.peak === h.peak + add);
     let others = true;
     for (let i = 0; i < R.RACING_LAP_SEGS; i++) {
       const inHairpin = hairpins.some((h) => i >= h.start && i < h.start + h.len);

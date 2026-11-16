@@ -14,7 +14,7 @@ export const LEVEL_NOTES: Partial<Record<string, Partial<Record<Exclude<Level, "
   racing: {
     easy: "Easy: a wider track, a lower par pace, the gravel keeps 80 % of your speed, and braking points are painted before each sharp corner.",
     hard: "Hard: every km/h under the par pace costs more, the gravel keeps only 60 % of your speed and the tyre walls are closer.",
-    expert: "Expert: tighter hairpins, every km/h under par costs even more, the gravel keeps half your speed, the walls are closer, and only the corner speed signs help (no braking boards or racing line).",
+    expert: "Expert: tighter hairpins (Ridge Loop keeps its own), every km/h under par costs even more, the gravel keeps half your speed, the walls are closer, and only the corner speed signs help (no braking boards or racing line).",
   },
 };
 

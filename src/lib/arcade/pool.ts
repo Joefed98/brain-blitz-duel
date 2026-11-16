@@ -213,6 +213,16 @@ export type PoolLevel = "easy" | "hard" | "expert";
  * The registry (src/lib/levels/gameLevels.ts) mirrors these numbers; the sim reads only this table.
  */
 export const POOL_LEVEL_FOUL: Readonly<Record<"normal" | PoolLevel, number>> = { easy: 5, normal: POOL_FOUL_PTS, hard: 10, expert: 15 };
+/**
+ * How many of the player's seven may still be up when the black opens (Joe, 16 Nov 2026: Easy kinder, so an average
+ * player has a real shot at a star; without the black a run tops out at 170). Easy 2 (the black opens at 5 of 7, where
+ * the core part is already full), every other level 0 (all seven first, today's rule). poolRev 4 levels only.
+ */
+export const POOL_LEVEL_BLACK_AT: Readonly<Record<"normal" | PoolLevel, number>> = { easy: 2, normal: 0, hard: 0, expert: 0 };
+/** True when the black is the player's to pot: their balls left are at most the level's POOL_LEVEL_BLACK_AT. */
+export function poolBlackOpen(s: Pick<PoolState, "spotsDown" | "level">): boolean {
+  return POOL_SPOTS - s.spotsDown <= POOL_LEVEL_BLACK_AT[s.level ?? "normal"];
+}
 /** What each level's aim preview shows (display only; the sim never reads it). */
 export type PoolPreview = "long" | "normal" | "short" | "ghost";
 export const POOL_LEVEL_PREVIEW: Readonly<Record<"normal" | PoolLevel, PoolPreview>> = { easy: "long", normal: "normal", hard: "short", expert: "ghost" };
@@ -639,14 +649,16 @@ function resolveShot(s: PoolState): void {
   const spotsBefore = POOL_SPOTS - (s.spotsDown - s.shotSpots);
   // poolRev 3: a shot that touches no ball at all is a foul too.
   const missed = s.rev >= 3 && s.firstHit < 0;
-  const foul = (s.firstHit >= 0 && (poolIsStripe(s.firstHit) || (s.firstHit === POOL_BLACK && spotsBefore > 0))) || s.shotStripes > 0 || missed;
+  // The black is open with at most the level's POOL_LEVEL_BLACK_AT of the player's balls up (0 but on Easy).
+  const blackAt = POOL_LEVEL_BLACK_AT[s.level ?? "normal"];
+  const foul = (s.firstHit >= 0 && (poolIsStripe(s.firstHit) || (s.firstHit === POOL_BLACK && spotsBefore > blackAt))) || s.shotStripes > 0 || missed;
   if (foul) {
     s.fouls += 1;
     s.foulTick = s.tick;
   }
   let legal = s.shotSpots;
   if (s.shotBlack) {
-    if (spotsBefore === 0 && !s.shotCue && !foul) {
+    if (spotsBefore <= blackAt && !s.shotCue && !foul) {
       s.black = 1;
       s.finishAt = s.tick + s.lost;
       legal += 1;

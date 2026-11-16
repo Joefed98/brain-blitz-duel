@@ -1,7 +1,7 @@
 /**
  * Apex's Expert deal (racingRev 4 at the expert level; built by `bun scripts/racing-deal.ts --rev=4 --level=expert`, do not
  * edit): 300 seeds, 100 on each of the three named circuits (racingCircuitOf), each proved with the level's
- * settings (GAME_LEVELS.racing.expert, stamped on the deal as racingLevel: {"keep":50,"road":65536,"kerb":73728,"wall":108134,"tight":2,"aids":0,"pace":[2175,2352,1964],"spread":250}): the oracle
+ * settings (GAME_LEVELS.racing.expert, stamped on the deal as racingLevel: {"keep":50,"road":65536,"kerb":73728,"wall":108134,"tight":2,"tightBy":[2,2,0],"aids":0,"pace":[2175,2352,1964],"spread":250}): the oracle
  * (scripts/racing-oracle.ts) on the level's sim replays through replayRacingRun to exactly 200 (both laps, all 8 sectors
  * clean, the level's par pace). 0 candidates dropped.
  */

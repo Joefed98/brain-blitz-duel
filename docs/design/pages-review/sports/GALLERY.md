@@ -143,9 +143,9 @@ only (Joe, 16 Nov 2026): the levels are set by design, and Joe's playtest decide
 
 | Game | Easy | Hard | Expert |
 |---|---|---|---|
-| Cue Ball | long aim preview, −5 a foul | short preview, −10 a foul | ghost-ball aim only, −15 a foul |
+| Cue Ball | long aim preview, the black opens at 5 of your 7, −5 a foul | short preview, −10 a foul | ghost-ball aim only, −15 a foul |
 | Curl Champ | 2 reds 60–130 cm, whole aim path, Stones full at 60 | 4 reds 30–90 cm | 5 reds 20–70 cm, no HOUSE zone, no aim line |
-| Apex | softer gravel, wider road and kerbs, both aids, gentler par | harsher gravel, one aid, tighter spread | harshest gravel, tighter hairpins, no aids, faster par |
+| Apex | softer gravel, wider road and kerbs, both aids, gentler par | harsher gravel, one aid, tighter spread | harshest gravel, tighter hairpins (Ridge Loop keeps its own), no aids, faster par |
 
 Elite bot means (information only). Cue Ball and Apex are from each game's own bands tool; Curl Champ is from its
 per-sheet tool, each bank sheet played twice. Apex runs on its own 120-tick checkpoints (main's `level-tune.ts` samples
@@ -160,8 +160,12 @@ every 300; #444's tool, not on main, was not used):
 **Expert boards to play** (each with a proved 200):
 - Cue Ball: 2098028836, 375698285, 1013219936, 1265396467, 1153387088.
 - Curl Champ: 2123852630, 156865439, 1726034549, 1797073985, 280906664.
-- Apex: 620573248 and 250938337 (Harbour Run), 193054080 and 1175901615 (Sunset Park), 1394605478 (Ridge Loop: the
-  oracle reaches 200, no bot finishes).
+- Apex: 620573248 and 250938337 (Harbour Run), 193054080 and 1175901615 (Sunset Park), 1394605478 and 190146758 (Ridge Loop,
+  which keeps its own hairpins on Expert since Joe's note: elite 186 and 196, was 127 with no finish).
+
+**After Joe's notes (16 Nov 2026), one design change each, measured once for information:** Cue Ball Easy's black opens at 5
+of your 7 (average players 10 % of runs at a star, were 0 %; elite 184); Apex Expert keeps Ridge Loop's own hairpins (the
+300 Expert seeds re-proved at 200).
 
 **Apex at 4× CPU** (`bun scripts/arcade-perf.ts racing --rates=4`): the frame's own draw is 14.1 ms against main's
 8.7 ms. The whole frame misses the 33.3 ms target on main too.

@@ -15,6 +15,8 @@ import {
   poolGameFor,
   poolIsSpot,
   poolLevelOf,
+  POOL_LEVEL_BLACK_AT,
+  POOL_SPOTS,
   POOL_LEVEL_FOUL,
   POOL_LEVEL_PREVIEW,
   poolPenalty,
@@ -484,7 +486,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** The intro's line for a level beyond Normal (null at Normal: today's intro, unchanged). */
 export function poolLevelLine(level: unknown): string | null {
   const lv = poolLevelOf(level);
-  if (lv === "easy") return `Easy: the preview runs the object ball's path all the way, and a foul costs ${POOL_LEVEL_FOUL.easy}.`;
+  if (lv === "easy") return `Easy: a full-length preview, the black opens at ${POOL_SPOTS - POOL_LEVEL_BLACK_AT.easy} of your 7, a foul costs ${POOL_LEVEL_FOUL.easy}.`;
   if (lv === "hard") return `Hard: the preview shows less of the object ball's line; a foul costs ${POOL_LEVEL_FOUL.hard}.`;
   if (lv === "expert") return `Expert: only the ghost ball shows, no lines past it, and a foul costs ${POOL_LEVEL_FOUL.expert}.`;
   return null;

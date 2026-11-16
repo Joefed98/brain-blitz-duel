@@ -455,7 +455,7 @@ level's settings are in `GAME_LEVELS.racing` (src/lib/levels/gameLevels.ts) and 
 |---|---|---|---|---|
 | Gravel keeps | 80 % | 65 % | 60 % | 50 % |
 | Tarmac / kerb / wall (lateral units) | 75366 / 83558 / 140902 | 65536 / 73728 / 131072 | 65536 / 73728 / 108134 | 65536 / 73728 / 108134 |
-| Hairpins | the circuit's | the circuit's | the circuit's | every peak +2 |
+| Hairpins | the circuit's | the circuit's | the circuit's | every peak +2 on Sunset Park and Harbour Run; Ridge Loop's own (`tightBy` [2, 2, 0]) |
 | Full pace (Sunset / Harbour / Ridge, tenths of km/h) | 1920 / 2055 / 1750 | 2215 / 2385 / 2030 | 2215 / 2385 / 2030 | 2175 / 2352 / 1964 (the oracle's on the tighter hairpins) |
 | Pace spread (full − zero) | 695 | 695 | 320 | 250 |
 | Aids (display) | signs, boards, painted braking points | signs, boards, racing line | as Normal | signs only (no boards, racing line or skid marks) |
@@ -471,3 +471,9 @@ a racingRev 4 seed only picks the circuit, so the lists equal Normal's). Text: t
 `bun scripts/racing-levels-bands.ts` (the skill-band bots on dealt puzzles, graded through gradeAnswer; `--expert-seeds=N`
 lists Expert seeds with the elite bot's score) and `bun scripts/level-tune.ts racing --level=all`. Proved by
 racing-levels-check.
+
+**Ridge Loop on Expert (Joe, 16 Nov 2026):** no bot finished Ridge Loop's tightened hairpins on Expert, so Expert keeps
+Ridge Loop's own hairpins (`tightBy`, one entry per circuit, in place of `tight`; the sim reads it through
+`racingTightFor`, and it is in the checksum when present). Its gravel, walls, missing aids, par pace (1964, the oracle's
+on the tighter hairpins, so a little easier to reach) and spread are unchanged. The Expert deal re-proved: all 300 seeds
+reach 200 through the server replay with the new settings (0 dropped).

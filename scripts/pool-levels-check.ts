@@ -22,8 +22,8 @@
 import { readFileSync } from "node:fs";
 import { createCanvas, Path2D as NapiPath2D } from "@napi-rs/canvas";
 
-import { poolGameFor, poolGameForPuzzle, poolPenalty, POOL_CUE, POOL_LEVEL_FOUL, POOL_LEVEL_PREVIEW, POOL_W, POOL_H, type PoolState } from "../src/lib/arcade/pool";
-import { drawPool, type PoolAim } from "../src/lib/arcade/pool.renderer";
+import { poolBlackOpen, poolGameFor, poolGameForPuzzle, poolPenalty, POOL_CUE, POOL_LEVEL_BLACK_AT, POOL_LEVEL_FOUL, POOL_SPOTS, POOL_LEVEL_PREVIEW, POOL_W, POOL_H, type PoolState } from "../src/lib/arcade/pool";
+import { drawPool, poolBlackStatus, type PoolAim } from "../src/lib/arcade/pool.renderer";
 import { replayPoolRun } from "../src/lib/duel/pool";
 import { gradeAnswer } from "../src/lib/duel/gradeAnswer.server";
 import type { Level } from "../src/lib/levels/levels";
@@ -185,6 +185,33 @@ ok(poolLevelLine(undefined) === null && poolLevelLine("normal") === null, "Norma
 for (const lv of LEVELS) {
   const line = poolLevelLine(lv) ?? "";
   ok(line.includes(String(POOL_LEVEL_FOUL[lv])) && line.length <= 90, `${lv}: "${line}"`);
+}
+
+console.log("9. Easy's black opens at 5 of 7 (Joe, 16 Nov 2026); every other level all seven first");
+{
+  ok(POOL_LEVEL_BLACK_AT.easy === 2 && POOL_LEVEL_BLACK_AT.normal === 0 && POOL_LEVEL_BLACK_AT.hard === 0 && POOL_LEVEL_BLACK_AT.expert === 0, "the black opens with 2 of your 7 up on Easy, with none up at Normal, Hard and Expert");
+  ok(gameLevelSettings<{ blackAt: number }>("pool", "easy")?.blackAt === POOL_LEVEL_BLACK_AT.easy, "the registry's Easy blackAt mirrors the sim's");
+  ok((poolLevelLine("easy") ?? "").includes(`${POOL_SPOTS - POOL_LEVEL_BLACK_AT.easy} of your 7`), "Easy's intro line names the black's opening");
+  for (const [lv, down, open] of [["easy", 4, false], ["easy", 5, true], ["easy", 7, true], [undefined, 6, false], [undefined, 7, true], ["hard", 6, false], ["expert", 6, false]] as const) {
+    const st = { spotsDown: down, black: 0, level: lv } as const;
+    ok(poolBlackOpen(st) === open && poolBlackStatus(st) === (open ? "open" : "locked"), `${lv ?? "normal"} with ${down} of 7 down: the black is ${open ? "open" : "locked"} (sim and display agree)`);
+  }
+  // Easy average players' runs: a legal black (the black part) only ever with 5+ of their 7 down, and some clear early.
+  let early = 0;
+  let wrong = 0;
+  let normalWrong = 0;
+  const N = FULL ? 60 : 20;
+  for (let n = 0; n < N; n++) {
+    const e = playPool("easy", "average", n);
+    const st = e.state as PoolState;
+    if (st.black === 1 && st.spotsDown < POOL_SPOTS - POOL_LEVEL_BLACK_AT.easy) wrong++;
+    if (st.black === 1 && st.spotsDown < POOL_SPOTS) early++;
+    const m = playPool("normal", "average", n).state as PoolState;
+    if (m.black === 1 && m.spotsDown < POOL_SPOTS) normalWrong++;
+  }
+  ok(wrong === 0, `Easy: no legal black with fewer than 5 of 7 down (${N} average runs)`);
+  ok(early > 0, `Easy: average players pot the black early (at 5 or 6 of 7) on ${early} of ${N} runs`);
+  ok(normalWrong === 0, `Normal: a legal black only after all seven (${N} average runs)`);
 }
 
 if (failures.length) {

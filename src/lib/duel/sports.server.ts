@@ -58,6 +58,7 @@ export function generateRacing(level: Level = NORMAL): RacingPuzzleData {
       kerb: settings.kerb,
       wall: settings.wall,
       tight: settings.tight,
+      ...(settings.tightBy ? { tightBy: [...settings.tightBy] } : {}),
       aids: settings.aids,
       ...(settings.pace ? { pace: [...settings.pace] } : {}),
       ...(settings.spread ? { spread: settings.spread } : {}),

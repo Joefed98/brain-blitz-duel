@@ -37,6 +37,8 @@ export interface PoolRunResult {
   score: number;
   cleared: boolean;
   fouls: number;
+  /** The run's end state (the server's replay of the log). */
+  state: PoolState;
   events: readonly { t: number }[];
 }
 
@@ -64,7 +66,7 @@ export function playPool(level: Level, player: SkillLevel, n: number): PoolRunRe
   const events = out.events ?? [];
   const { raw, state } = poolRunRaw(puzzle, events);
   const graded = gradeAnswer(puzzle as PuzzleData, raw, 0);
-  return { score: graded.score, cleared: state.black === 1, fouls: state.fouls, events };
+  return { score: graded.score, cleared: state.black === 1, fouls: state.fouls, state: state as PoolState, events };
 }
 
 if (import.meta.main) {

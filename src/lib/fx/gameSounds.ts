@@ -41,7 +41,7 @@ import { SNIP_EATEN, type SnipState } from "@/lib/arcade/snip";
 import { arenaLight } from "@/lib/arcade/arenaFills.renderer";
 import { POOL_DROP_MOUTH_TICKS } from "@/lib/arcade/pool.renderer";
 import { MG_AIM, MG_BALL_R, MG_ROLL, MG_STOP_V, type MinigolfState } from "@/lib/arcade/minigolf";
-import { POOL_AIM, POOL_CUE, POOL_MAX_V, POOL_MIN_V, POOL_ROLL, POOL_SPOTS, type PoolState } from "@/lib/arcade/pool";
+import { poolBlackOpen, POOL_AIM, POOL_CUE, POOL_MAX_V, POOL_MIN_V, POOL_ROLL, POOL_SPOTS, type PoolState } from "@/lib/arcade/pool";
 import { poolJawContact, POOL_FX_DROP_TICKS, POOL_FX_FLIGHT_TICKS } from "@/lib/arcade/poolFx";
 import { curlShotTeam, curlTakeouts, TEAM_MINE, type CurlingState } from "@/lib/arcade/curling";
 import { curlShortBy, NEAR_MISS_CM } from "@/lib/arcade/curlingFx";
@@ -1142,7 +1142,7 @@ export function poolSounds(): GameSounds<PoolState> {
         // A ball off a pocket's jaw (the art's shiver): the rattle, a library knock until its file.
         if (state.cushionTick > prev.cushionTick && poolJawContact(state) !== null) sfx("pool.jawRattle", "arc_bounce", 0.55, 1, true);
         // The seven down: the black unlocks; a run of pots grows; a potted ball lands in the rack (silent until their files).
-        if (state.spotsDown >= POOL_SPOTS && prev.spotsDown < POOL_SPOTS) effectCue("pool.blackUnlock");
+        if (poolBlackOpen(state) && !poolBlackOpen(prev)) effectCue("pool.blackUnlock");
         if (state.streak >= 2 && state.streak > prev.streak) effectCue("pool.streakUp");
         if (state.rev >= 2) {
           for (const b of state.balls) {

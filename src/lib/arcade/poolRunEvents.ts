@@ -7,7 +7,7 @@
  */
 import { checkInputEvents, type ArcadeInputEvent } from "./engine";
 import { decodeSportsRun } from "./sportsKit";
-import { poolGameFor, poolIsStripe, POOL_BLACK, POOL_CUE, POOL_POCKETS, POOL_SPOTS, type PoolBall, type PoolState } from "./pool";
+import { poolBlackOpen, poolGameFor, poolIsStripe, POOL_BLACK, POOL_CUE, POOL_POCKETS, POOL_SPOTS, type PoolBall, type PoolState } from "./pool";
 
 export interface PoolPotEvent {
   /** The sim's ball id (1–7 the player's set, 9–15 the other set, 8 the black). */
@@ -83,7 +83,7 @@ export function poolRunEvents(seed: number, raw: string, rev?: number | null, le
       const was = prev.balls.find((p) => p.id === b.id);
       if (!b.down || !was || was.down) continue;
       if (b.id === POOL_CUE) continue;
-      const mine = !poolIsStripe(b.id) && (b.id !== POOL_BLACK || prev.spotsDown >= POOL_SPOTS);
+      const mine = !poolIsStripe(b.id) && (b.id !== POOL_BLACK || poolBlackOpen(prev));
       pots.push({ id: b.id, pocket: poolPocketIndex(b), tick: state.tick, mine });
     }
     const cue = prev.balls.find((b) => b.id === POOL_CUE)!;

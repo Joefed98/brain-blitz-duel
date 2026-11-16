@@ -52,6 +52,7 @@ import {
   POOL_POCKETS,
   POOL_RAIL,
   POOL_SPOTS,
+  poolBlackOpen,
   POOL_W,
   type PoolBall,
   type PoolPreview,
@@ -1269,10 +1270,10 @@ function chip(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, la
  */
 export type PoolBlackStatus = "locked" | "open" | "down" | "early";
 
-export function poolBlackStatus(s: Pick<PoolState, "spotsDown" | "black">): PoolBlackStatus {
+export function poolBlackStatus(s: Pick<PoolState, "spotsDown" | "black" | "level">): PoolBlackStatus {
   if (s.black === 1) return "down";
   if (s.black === 2) return "early";
-  return s.spotsDown >= POOL_SPOTS ? "open" : "locked";
+  return poolBlackOpen(s) ? "open" : "locked";
 }
 
 /** The lock badge beside a dimmed black: a small padlock on a dark disc, up and right of the ball (inside 16 px). */

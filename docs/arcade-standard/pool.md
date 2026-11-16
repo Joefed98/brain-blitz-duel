@@ -201,14 +201,28 @@ foul's cost (`POOL_LEVEL_FOUL`, `poolFoulPts`) and by the stage only for the aim
 only). Older stamps ignore it. The parts and their 200 are unchanged, and every proved bank witness still replays to
 200 at every level (pool-levels-check).
 
-| Level | Aim preview | A foul |
-| --- | --- | --- |
-| Easy | the object ball's path all the way to its first cushion, the cue ball's path full length | −5 |
-| Normal | today's (the object ball's line 0.6 of the reach, the cue ball's path half) | −10 |
-| Hard | the object ball's line a quarter of the reach | −10 |
-| Expert | the ghost ball and the line to it only | −15 |
+| Level | Aim preview | A foul | The black opens |
+| --- | --- | --- | --- |
+| Easy | the object ball's path all the way to its first cushion, the cue ball's path full length | −5 | at 5 of your 7 |
+| Normal | today's (the object ball's line 0.6 of the reach, the cue ball's path half) | −10 | after all 7 |
+| Hard | the object ball's line a quarter of the reach | −10 | after all 7 |
+| Expert | the ghost ball and the line to it only | −15 | after all 7 |
 
 Bots (`scripts/arcade-skill-bands/bots/pool.ts`, `POOL_PERCEPTION`, perception only, Normal untouched): Easy's longer
 line steadies the aim (×0.8), Hard adds 2.6 phone px of judgement on where to aim, Expert 3.0 and plans the leave less
 well (0.8). Tuning: `bun scripts/pool-levels-tune.ts` (mean, median, clear rate, 175+ per level and player) and the
 shared `bun scripts/level-tune.ts pool --level=all`.
+
+**Easy's open black (Joe, 16 Nov 2026).** Without the black a run tops out at 170 (your balls 140 + pots in a row 30),
+under a star's 175, and an average player never cleared in 90 s, so a smaller foul or a longer preview could not give
+them a star. Easy now opens the black once 5 of your 7 are down (`POOL_LEVEL_BLACK_AT`, `poolBlackOpen`; at 5 the
+"Your balls" part is already full): with 1 or 2 of yours still up, hitting the black first is no foul and potting it
+cleanly ends the rack (Black 10 and Speed). Normal, Hard and Expert keep today's rule (all seven first). The layouts and
+the proved bank are unchanged (a perfect run still pots all seven and the black for 200). Measured once, for
+information (`bun scripts/pool-levels-tune.ts --levels=easy`, 30 deals): average players 117 mean, 13 % clears, 10 % of
+runs at 175+ (was 112, 0 %, 0 %); elite 184.
+
+**For Joe's scoring review: Cue Ball's Normal.** The elite bot averages 164 on Normal (stage 3's measurement, 30 deals),
+well under the levels guide's 198 for a strong player. Normal is today's live poolRev 4 game and was left unchanged
+on purpose (the levels may not touch it). The gap is mostly the clear: the black and Speed (30 together) need all seven
+down first, inside 90 s.
