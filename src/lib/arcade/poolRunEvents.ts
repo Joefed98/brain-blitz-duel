@@ -63,8 +63,8 @@ export function poolPocketIndex(b: Pick<PoolBall, "x" | "y">): number {
 }
 
 /** Replays `raw` on `seed` at its stamp and collects the run's events (the same steps as the server's replay). */
-export function poolRunEvents(seed: number, raw: string, rev?: number | null): PoolRunEvents {
-  const game = poolGameFor(rev);
+export function poolRunEvents(seed: number, raw: string, rev?: number | null, level?: unknown): PoolRunEvents {
+  const game = poolGameFor(rev, undefined, level);
   const run = decodeSportsRun(raw, game.runTicks);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, game.runTicks) : 0;
   const check = checkInputEvents(run.events, game.runTicks, game.inputRanges ?? []);

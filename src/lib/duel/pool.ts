@@ -22,8 +22,9 @@ export interface PoolResult extends SportsResult<PoolState> {
 }
 
 /** The single place a Speed Pool score is worked out. */
-export function replayPoolRun(seed: number, raw: string, rev?: number | null): PoolResult {
-  const run = replaySportsRun("pool", poolGameFor(rev), poolCheckpoint, seed, raw);
+export function replayPoolRun(seed: number, raw: string, rev?: number | null, level?: unknown): PoolResult {
+  // The level (stage 3 of the Sports overhaul) sets only a foul's cost; a puzzle without `level` is Normal.
+  const run = replaySportsRun("pool", poolGameFor(rev, undefined, level), poolCheckpoint, seed, raw);
   const s = run.state;
   return {
     ...run,

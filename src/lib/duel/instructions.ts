@@ -1175,6 +1175,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The black is locked", detail: "(dimmed, with a padlock) until your seven are down; then NOW THE BLACK lights up and a gold ring marks it.", helpOnly: true },
         { action: "The black too early", detail: "(while it is locked) ends your run with no black or speed points.", helpOnly: true },
         { action: "Every layout is proved clearable", detail: "without a miss. The same table and set for everyone.", helpOnly: true },
+        { action: "Levels:", detail: "Easy runs the object ball's path all the way and a foul costs 5; Normal is as above; Hard shows less of the object ball's line; Expert shows only the ghost ball and a foul costs 15.", helpOnly: true },
       ],
       score: liveStdHelp("pool", "Each foul costs 10."),
     },

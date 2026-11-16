@@ -18,7 +18,7 @@ import {
   POOL_CR,
   POOL_CT,
   POOL_CUE,
-  POOL_FOUL_PTS,
+  poolFoulPts,
   POOL_JAWS,
   POOL_POCKETS,
   POOL_ROLL,
@@ -161,7 +161,7 @@ export function poolFoulLabel(s: PoolState, w = 74, h = 20): { text: string; x: 
   if (y - h / 2 < POOL_CT + 2) y = cy + R + 8 + h / 2;
   const x = Math.max(POOL_CL + 2 + w / 2, Math.min(POOL_CR - 2 - w / 2, cx));
   y = Math.max(POOL_CT + 2 + h / 2, Math.min(POOL_CB - 2 - h / 2, y));
-  return { text: `FOUL −${POOL_FOUL_PTS}`, x, y, age };
+  return { text: `FOUL −${poolFoulPts(s)}`, x, y, age };
 }
 
 /** The pocket a ball went down in (world px): the nearest. */

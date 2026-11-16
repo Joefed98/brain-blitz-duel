@@ -46,7 +46,19 @@ export interface GameLevels<S = Record<string, unknown>> {
  * Every game's levels beyond Normal. Empty until the family sessions add theirs (15 Nov 2026): every game offers
  * Normal only.
  */
-export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {};
+export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
+  // Cue Ball (the Sports overhaul's stage 3, 15 Nov 2026; docs/arcade-standard/pool.md "Levels"): the same layouts and
+  // physics at every level (poolRev 4's proved bank proves 200 at each); a level changes what the aim preview shows and a
+  // foul's cost. The sim reads the cost from POOL_LEVEL_FOUL (src/lib/arcade/pool.ts), mirrored here; pool-levels-check
+  // proves the two agree.
+  pool: {
+    levels: {
+      easy: { settings: { preview: "long", foul: 5 } },
+      hard: { settings: { preview: "short", foul: 10 } },
+      expert: { settings: { preview: "ghost", foul: 15 } },
+    },
+  },
+};
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */
 let registry: Partial<Record<string, GameLevels>> = GAME_LEVELS;

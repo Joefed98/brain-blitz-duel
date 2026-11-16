@@ -107,7 +107,7 @@ import { minigolfCheckpoint, minigolfGameFor, MINIGOLF_REV, MINIGOLF_REV_CLASSIC
 import { encodeMinigolfRun, replayMinigolfRun } from "../../src/lib/duel/minigolf";
 import { MINIGOLF_BANK, minigolfBankEntryFor } from "../../src/lib/duel/minigolfBank.server";
 import { MINIGOLF_BANK_V2, minigolfBankV2EntryFor } from "../../src/lib/duel/minigolfBankV2.server";
-import { poolCheckpoint, poolGameFor, POOL_REV } from "../../src/lib/arcade/pool";
+import { poolCheckpoint, poolGameFor, poolGameForPuzzle, POOL_REV } from "../../src/lib/arcade/pool";
 import { encodePoolRun, replayPoolRun } from "../../src/lib/duel/pool";
 import { poolBankV2SeedFor } from "../../src/lib/duel/poolBankV2.server";
 import { poolBankV3SeedFor } from "../../src/lib/duel/poolBankV3.server";
@@ -378,6 +378,8 @@ export const GAMES: GameSpec[] = [
     // poolRev 2 and 3 measure on their own banks' layouts.
     seedForRev: (n, rev) => (rev === 2 ? poolBankV2SeedFor(n) : rev === 3 ? poolBankV3SeedFor(n) : undefined),
     gameFor: (rev) => poolGameFor(rev),
+    // The level (stage 3): the dealt puzzle's level rides on the state, so the bot sees its preview and fouls cost its level's.
+    gameForPuzzle: (puzzle) => poolGameForPuzzle(puzzle),
     checkpoint: poolCheckpoint,
     encode: (run) => encodePoolRun(run),
     replay: (seed, raw, rev) => replayPoolRun(seed, raw, rev),

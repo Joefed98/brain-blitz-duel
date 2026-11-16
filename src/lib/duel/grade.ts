@@ -1509,7 +1509,7 @@ function gradeUnderRev(
           ...common(run),
         };
       } else if (puzzle.type === "pool") {
-        const run = replayPoolRun(puzzle.seed, answer, puzzle.poolRev);
+        const run = replayPoolRun(puzzle.seed, answer, puzzle.poolRev, (puzzle as { level?: unknown }).level);
         revealRun = run;
         arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
         const parts = poolStdParts(run.state);

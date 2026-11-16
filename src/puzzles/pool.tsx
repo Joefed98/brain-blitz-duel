@@ -14,6 +14,9 @@ import {
   poolCheckpoint,
   poolGameFor,
   poolIsSpot,
+  poolLevelOf,
+  POOL_LEVEL_FOUL,
+  POOL_LEVEL_PREVIEW,
   poolPenalty,
   poolRevOf,
   poolShot2,
@@ -223,6 +226,8 @@ const wrapAngle = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: PoolPuzzleData | null = puzzle.type === "pool" ? puzzle : null;
   const rev = poolRevOf(data?.poolRev);
+  // The level's aim preview (stage 3 of the Sports overhaul; display only): Easy long, Hard short, Expert the ghost ball.
+  const preview = POOL_LEVEL_PREVIEW[poolLevelOf((data as { level?: unknown } | null)?.level) ?? "normal"];
   /** The cue's angle round the ball for the shot it was set on (presentation until a shot is sent). */
   const aim = useRef<{ shots: number; angle: number } | null>(null);
   const drag = useRef<{ angle: number; x: number; y: number; moved: number; at: number } | null>(null);
@@ -254,14 +259,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   turnedRef.current = useDesktopPresentation().rotate;
   // The sim, with a draw that paints the table, the cue and the aim the player is lining up (presentation only).
   const game = useMemo<ArcadeGame<PoolState, ArcadeInputEvent | null>>(() => {
-    const base = poolGameFor(data?.poolRev);
+    const base = poolGameFor(data?.poolRev, undefined, (data as { level?: unknown } | undefined)?.level);
     return {
       ...base,
       draw: (ctx, s) => {
         last.current = s;
         const a = s.phase === POOL_AIM && !s.over ? currentAngle(s) : null;
         const sp = spinRef.current;
-        const view: PoolAim | null = a !== null ? { dx: Math.cos(a), dy: Math.sin(a), power: pull.current, spinX: sp.x, spinY: sp.y } : null;
+        const view: PoolAim | null = a !== null ? { dx: Math.cos(a), dy: Math.sin(a), power: pull.current, spinX: sp.x, spinY: sp.y, ...(preview !== "normal" ? { preview } : {}) } : null;
         // The desktop rotate mode turns the table (desktopModes.ts): its numbers and pop-ups are drawn turned back
         // so they read upright, and its HUD chips go on the upright strip (`hud` below), never on the turned table.
         const turned = turnedRef.current;
@@ -271,7 +276,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       },
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data?.poolRev]);
+  }, [data?.poolRev, (data as { level?: unknown } | undefined)?.level]);
 
   const paintPanel = () => {
     const node = panel.current;
@@ -455,7 +460,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "pool") return null;
-  const result = replayPoolRun(puzzle.seed, myAnswer ?? "", puzzle.poolRev);
+  const result = replayPoolRun(puzzle.seed, myAnswer ?? "", puzzle.poolRev, (puzzle as { level?: unknown }).level);
   const parts = poolStdParts(result.state);
   const lines = parts ? parts.map((part) => `${part.label}: ${part.detail}`) : [];
   const penalty = poolPenalty(result.state);
@@ -476,6 +481,15 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   );
 }
 
+/** The intro's line for a level beyond Normal (null at Normal: today's intro, unchanged). */
+export function poolLevelLine(level: unknown): string | null {
+  const lv = poolLevelOf(level);
+  if (lv === "easy") return `Easy: the preview runs the object ball's path all the way, and a foul costs ${POOL_LEVEL_FOUL.easy}.`;
+  if (lv === "hard") return `Hard: the preview shows less of the object ball's line; a foul costs ${POOL_LEVEL_FOUL.hard}.`;
+  if (lv === "expert") return `Expert: only the ghost ball shows, no lines past it, and a foul costs ${POOL_LEVEL_FOUL.expert}.`;
+  return null;
+}
+
 /** The seed is dealt on the server from the proven bank; every run is replayed there for scoring. */
 export const poolPuzzle: PuzzleDefinition = {
   key: "pool",
@@ -487,6 +501,8 @@ export const poolPuzzle: PuzzleDefinition = {
   generate: () => ({ type: "pool", seed: 1, poolRev: POOL_REV }) satisfies PoolPuzzleData,
   check: () => false,
   revealHeading: "Your run",
+  // The level's own line on the intro (stage 3 of the Sports overhaul): what its aim preview shows and a foul's cost.
+  introLine: (puzzle) => (puzzle.type === "pool" ? poolLevelLine((puzzle as { level?: unknown }).level) : null),
   IntroExample,
   Stage,
   Reveal,

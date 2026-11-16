@@ -191,3 +191,24 @@ pool-check (both banks' witnesses at 200 through the server replay on their own 
 as poolRev 1, rooms deal poolRev 2 from its bank, the spin encoding and safe circle, follow, draw and side scaling with
 the dot, the rules on both revisions, drop ticks on poolRev 2 only), arcade-standard-check's entry (poolRev 2's parts,
 every poolRev 2 witness 200, poolRev 1's parts and witnesses unchanged), arcade-self-replay's `pool` entries.
+
+## Levels (stage 3 of the Sports overhaul, 15 Nov 2026)
+
+On the difficulty framework (`docs/design/difficulty/README.md`; `GAME_LEVELS.pool` in `src/lib/levels/gameLevels.ts`),
+poolRev 4, 90 s at every level. Normal is today's game byte for byte (no `level` on the puzzle or the state); rated
+play, the Daily and challenges stay Normal. The level rides on the stored puzzle (`level`), read by the sim only for a
+foul's cost (`POOL_LEVEL_FOUL`, `poolFoulPts`) and by the stage only for the aim preview (`POOL_LEVEL_PREVIEW`, display
+only). Older stamps ignore it. The parts and their 200 are unchanged, and every proved bank witness still replays to
+200 at every level (pool-levels-check).
+
+| Level | Aim preview | A foul |
+| --- | --- | --- |
+| Easy | the object ball's path all the way to its first cushion, the cue ball's path full length | −5 |
+| Normal | today's (the object ball's line 0.6 of the reach, the cue ball's path half) | −10 |
+| Hard | the object ball's line a quarter of the reach | −10 |
+| Expert | the ghost ball and the line to it only | −15 |
+
+Bots (`scripts/arcade-skill-bands/bots/pool.ts`, `POOL_PERCEPTION`, perception only, Normal untouched): Easy's longer
+line steadies the aim (×0.8), Hard adds 2.6 phone px of judgement on where to aim, Expert 3.0 and plans the leave less
+well (0.8). Tuning: `bun scripts/pool-levels-tune.ts` (mean, median, clear rate, 175+ per level and player) and the
+shared `bun scripts/level-tune.ts pool --level=all`.
