@@ -842,7 +842,8 @@ function stepInputs4(seed: number, inputs: { k: number; a?: number; b?: number; 
 /* 17. Rev 4's parts. */
 {
   // Routine consequence of the Home Run and Top Bins overhaul (15 Nov 2026): rooms deal freekickRev 5 (freekick-layered-check).
-  ok(FREEKICK_REV_DEALT === 5 && freekickGameFor(4) === freekickGameV4 && freekickGameFor(5) !== freekickGameV4 && freekickGameFor(3) === freekickGameV3, "rooms deal freekickRev 5; 4 still plays rev 4, 3 rev 3");
+  // Changed with Joe's approval, 16 Nov 2026 (Top Bins Normal eased): rooms deal freekickRev 6.
+  ok(FREEKICK_REV_DEALT === 6 && freekickGameFor(4) === freekickGameV4 && freekickGameFor(5) !== freekickGameV4 && freekickGameFor(6) !== freekickGameV4 && freekickGameFor(3) === freekickGameV3, "rooms deal freekickRev 6; 4 still plays rev 4, 3 rev 3");
   ok(stdSpecMax(FREEKICK_V4_STD_SPEC) === 200 && FREEKICK_V4_STD_SPEC.rev === FREEKICK_REV_4, "v4 spec: 200 on freekickRev 4");
   ok(FREEKICK_V4_STD_SPEC.parts.map((p) => `${p.key}:${p.label}:${p.max}`).join() === "core:Goals:120,targets:Targets:40,curl:Round the wall:10,bent:Curl bonus:20,streak:Five in a row:10", "v4 spec: Goals 120, Targets 40, Round the wall 10, Curl bonus 20, Five in a row 10");
   const s0 = { ...freekickGameV4.init(FREEKICK_DEAL_V4[0]!), acted: 1 };
