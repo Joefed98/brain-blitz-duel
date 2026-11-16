@@ -201,11 +201,11 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Lightbender (laser): 150 + speed 40 (30 s on laserRev 4, 15 s before) + mirrors 5 + first shot 5.
   ch("laser", "One shot", "Light all six gems with your first FIRE.", "C", "clean", false, all(FIN, f("fires", "eq", 1))),
   ch("laser", "Hall of mirrors", "Light all six on the first shot with par mirrors.", "C", "par", false, all(FIN, eff(10))),
-  // 15 s → 30 s (16 Nov 2026): laserRev 4 gives full speed by 30 s on Normal (patternRules.ts LASER_REV4_FULL_BY_S).
+  // 15 s → 30 s (16 Nov 2026): laserRev 4 gives full speed by 30 s on Normal (patternRules.ts LASER_REV4_FULL_BY_S). Changed with Joe's approval, 16 Nov 2026 (Normal eased on new stamp).
   ch("laser", "Speed of light", "Light all six within 30 s.", "C", "speed", true, speed(40, 30)),
   // Chroma Lines (flow): 150 + speed 40 (30 s on flowRev 3, 20 s before) + clean lines 10.
   ch("flow", "No redraws", "Join every pair without redrawing a line.", "C", "clean", false, all(FIN, f("redraws", "eq", 0))),
-  // 20 s → 30 s (16 Nov 2026): flowRev 3 gives full speed by 30 s on Normal (patternRules.ts FLOW_REV3_FULL_BY_S).
+  // 20 s → 30 s (16 Nov 2026): flowRev 3 gives full speed by 30 s on Normal (patternRules.ts FLOW_REV3_FULL_BY_S). Changed with Joe's approval, 16 Nov 2026 (Normal eased on new stamp).
   ch("flow", "Paint stripper", "Join every pair within 30 s.", "C", "speed", false, speed(40, 30)),
   ch("flow", "Spaghetti junction", "Fill a Hard board.", "H", "finish", false, all(FIN)),
   // Pipeline (pipes): 150 + speed 40 (60 s) + taps 10 (par).
