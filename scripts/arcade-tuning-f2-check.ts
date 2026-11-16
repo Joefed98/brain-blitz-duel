@@ -68,7 +68,16 @@ import {
   type MatchupState,
 } from "../src/lib/arcade/matchup";
 import { encodeMatchupRun, replayMatchupRun } from "../src/lib/duel/matchup";
-import { generateBubble, generateCross, generateMatchup, generateSlice, generateSnip, generateSwing } from "../src/lib/duel/arcade.server";
+import { generateBubble, generateCross, generateMatchup, generateSlice, generateSnip, generateSwing, pinPreRetro } from "../src/lib/duel/arcade.server";
+
+function preRetroDeal<T>(deal: () => T): T {
+  pinPreRetro(true);
+  try {
+    return deal();
+  } finally {
+    pinPreRetro(false);
+  }
+}
 import { BUB_REV_TORPEDO } from "../src/lib/arcade/bubble";
 import { SWING_REV_SPREAD } from "../src/lib/arcade/swing";
 import { SNIP_REV_EXPAND, SNIP_REV_PROVEN } from "../src/lib/arcade/snip";
@@ -138,7 +147,10 @@ section("Old rounds replay and score exactly as before");
 section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
 {
   const stamps: [string, string, number | undefined, number][] = [
-    ["cross", "crossRev", playRevOf("cross", generateCross().crossRev), CROSS_REV_SMALL],
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): crossRev 13 (stage 3, lighter
+    // traffic) is new play, so the deal is read with the preRetro pin (crossRev 12, crossRev 10's play), as other checks
+    // written for the stamps before the overhaul do; retro-overhaul-check covers crossRev 13.
+    ["cross", "crossRev", playRevOf("cross", preRetroDeal(generateCross).crossRev), CROSS_REV_SMALL],
     // Taller worlds batch 2 (16 Oct 2026) moved Slice and Coral Pop on to their taller worlds (sliceRev 6, bubbleRev 5); arcade-tuning-g2-check covers them.
     ["slice", "sliceRev", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_LONG],
     ["matchup", "matchupRev", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR],

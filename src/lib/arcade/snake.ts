@@ -808,7 +808,7 @@ export const snakeTallGame: ArcadeGame<SnakeState, ArcadeInputEvent | null> = { 
 
 /** The world height (px) a stored round's snakeRev plays in. */
 export function snakeWorldHForRev(rev?: number | null): number {
-  if (rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12 || rev === SNAKE_REV_WRAP || rev === SNAKE_REV_SIZES) return SNAKE_V9_H;
+  if (rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12 || rev === SNAKE_REV_WRAP || rev === SNAKE_REV_SIZES || rev === SNAKE_REV_GRACE) return SNAKE_V9_H;
   return rev === SNAKE_REV_TALL || rev === SNAKE_REV_ROCKS || rev === SNAKE_REV_TARGET || rev === SNAKE_REV_STRICT ? SNAKE_TALL_H : SNAKE_WORLD_H;
 }
 
@@ -915,7 +915,7 @@ export function snakeWorldWOf(state: { cols?: number }): number {
 }
 /** The world width (px) a stored round's snakeRev plays in. */
 export function snakeWorldWForRev(rev?: number | null): number {
-  return rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12 || rev === SNAKE_REV_WRAP || rev === SNAKE_REV_SIZES ? SNAKE_V9_WORLD_W : SNAKE_WORLD_W;
+  return rev === SNAKE_REV_200 || rev === SNAKE_REV_10 || rev === SNAKE_REV_STD || rev === SNAKE_REV_12 || rev === SNAKE_REV_WRAP || rev === SNAKE_REV_SIZES || rev === SNAKE_REV_GRACE ? SNAKE_V9_WORLD_W : SNAKE_WORLD_W;
 }
 
 /** The other mouth of a wormhole, or the square itself when it is not a mouth. */
