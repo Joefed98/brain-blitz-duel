@@ -1031,14 +1031,16 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
   );
   // The player's line: the shot drawn and what it lit ("You: …", shown only under Yours).
   const result = view.solved
-    ? `You: all ${total} gems · ${ORDINAL[(view.shot ?? 1) - 1] ?? ""} shot`
+    ? `You: ${total} of ${total} gems · ${ORDINAL[(view.shot ?? 1) - 1] ?? ""} shot`
     : view.shot === null
       ? view.gems > 0
         ? `You: ${view.gems} of ${total} gems at the buzzer`
-        : "You: no shot fired"
+        : "You: Missed, no shot fired"
       : view.trace.hitBomb
-        ? `You: ${ORDINAL[view.shot - 1]} shot hit a bomb`
-        : `You: best shot ${ORDINAL[view.shot - 1]}, ${view.gems} of ${total} gems`;
+        ? `You: Missed, ${ORDINAL[view.shot - 1]} shot hit a bomb`
+        : view.gems > 0
+          ? `You: best shot ${ORDINAL[view.shot - 1]}, ${view.gems} of ${total} gems`
+          : `You: Missed, no gems lit`;
 
   return (
     <div ref={winRef} className="laser-reveal flex w-full min-h-0 flex-col items-center gap-2" data-laser-reveal="">
