@@ -63,7 +63,7 @@ function StatValue({ value, className }: { value: string; className: string }) {
 
 export default function PoolSummary({ puzzle, myAnswer }: RunSummaryProps) {
   const rev = puzzle.type === "pool" ? (puzzle.poolRev ?? 1) : 1;
-  const events = useMemo(() => (puzzle.type === "pool" && myAnswer ? poolRunEvents(puzzle.seed, myAnswer, puzzle.poolRev) : null), [puzzle, myAnswer]);
+  const events = useMemo(() => (puzzle.type === "pool" && myAnswer ? poolRunEvents(puzzle.seed, myAnswer, puzzle.poolRev, (puzzle as { level?: unknown }).level) : null), [puzzle, myAnswer]);
   const box = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   const [w, setW] = useState(0);

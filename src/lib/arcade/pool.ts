@@ -204,6 +204,22 @@ export const POOL_FOLLOW_PTS = 5;
 export const POOL_STREAK_MAX = 30;
 export const POOL_SPEED_PTS = 20;
 export const POOL_FOUL_PTS = 10;
+/** The levels beyond Normal (the Sports overhaul's stage 3, 15 Nov 2026), on poolRev 4 only. */
+export type PoolLevel = "easy" | "hard" | "expert";
+/**
+ * A foul's cost at each level (Joe's levels): Easy 5, Normal 10, Hard 10, Expert 15. The level rides on the state (only
+ * when it isn't Normal, so a Normal run's state is byte for byte today's) from the dealt puzzle's `level`; the layouts,
+ * physics and parts are the same at every level, so poolRev 4's proved bank proves 200 at each (pool-levels-check).
+ * The registry (src/lib/levels/gameLevels.ts) mirrors these numbers; the sim reads only this table.
+ */
+export const POOL_LEVEL_FOUL: Readonly<Record<"normal" | PoolLevel, number>> = { easy: 5, normal: POOL_FOUL_PTS, hard: 10, expert: 15 };
+/** What each level's aim preview shows (display only; the sim never reads it). */
+export type PoolPreview = "long" | "normal" | "short" | "ghost";
+export const POOL_LEVEL_PREVIEW: Readonly<Record<"normal" | PoolLevel, PoolPreview>> = { easy: "long", normal: "normal", hard: "short", expert: "ghost" };
+/** A level read from anything (a stored puzzle's `level`): only easy, hard and expert are levels; the rest is Normal. */
+export function poolLevelOf(level: unknown): PoolLevel | null {
+  return level === "easy" || level === "hard" || level === "expert" ? level : null;
+}
 /**
  * Speed: full when the black goes down by this many seconds (the near-perfect skill-band median finish, measured with
  * scripts/arcade-skill-bands.ts pool --levels=near: 66.6 s over 30 bank layouts), 0 at the buzzer.
@@ -378,6 +394,8 @@ export interface PoolState {
   seed: number;
   /** poolRev 4: the player's set (POOL_SET_*; the seed's, display and words only: the sim's 1–7 are always the player's). */
   set?: number;
+  /** The level it was dealt at, only when not Normal (poolRev 4): a foul's cost (POOL_LEVEL_FOUL) and the preview. */
+  level?: PoolLevel;
   cueSpots: { x: number; y: number }[];
   balls: PoolBall[];
   phase: number;
@@ -422,13 +440,14 @@ function cloneBalls(balls: readonly PoolBall[]): PoolBall[] {
   return balls.map((b) => ({ ...b }));
 }
 
-function initState(seed: number, rev: number, set?: number): PoolState {
+function initState(seed: number, rev: number, set?: number, level?: PoolLevel | null): PoolState {
   const layout = poolLayout(seed);
   return {
     tick: 0,
     rev,
     seed,
     ...(rev >= 4 ? { set: set ?? poolSetFor(seed, rev) } : {}),
+    ...(rev >= 4 && level ? { level } : {}),
     cueSpots: layout.cueSpots,
     balls: layout.balls,
     phase: POOL_AIM,
@@ -742,9 +761,14 @@ export function poolStdParts(s: PoolState): StdPart[] | null {
   ];
 }
 
+/** A foul's cost for this run: its level's (POOL_LEVEL_FOUL), 10 at Normal and on every older stamp. */
+export function poolFoulPts(s: Pick<PoolState, "level">): number {
+  return POOL_LEVEL_FOUL[s.level ?? "normal"];
+}
+
 /** Fouls' cost (positive). */
 export function poolPenalty(s: PoolState): number {
-  return s.fouls * POOL_FOUL_PTS;
+  return s.fouls * poolFoulPts(s);
 }
 
 export function poolScore(s: PoolState): number {
@@ -770,18 +794,24 @@ const noDraw = (_ctx: CanvasRenderingContext2D, _s: PoolState, _size: CanvasSize
  * The game for a stored revision: poolRev 4 as rooms deal it today, 3 and 2 as stored; 1 or unstamped plays poolRev 1
  * exactly. `set` (checks only) deals a poolRev 4 table with the other set than its seed's: the sim plays it identically.
  */
-export function poolGameFor(rev?: number | null, set?: number): ArcadeGame<PoolState, ArcadeInputEvent | null> {
+export function poolGameFor(rev?: number | null, set?: number, level?: unknown): ArcadeGame<PoolState, ArcadeInputEvent | null> {
   const r = poolRevOf(rev);
+  const lv = poolLevelOf(level);
   return {
     key: "pool",
     runTicks: poolRunTicksFor(r),
-    init: (seed: number) => initState(seed, r, set),
+    init: (seed: number) => initState(seed, r, set, lv),
     step: stepState,
     isOver: (s) => s.over === 1,
     score: poolScore,
     draw: noDraw,
     inputRanges: r >= 2 ? POOL_INPUT_RANGES_V2 : POOL_INPUT_RANGES,
   };
+}
+
+/** The game for a stored puzzle: its stamp and its level (a puzzle without `level` is Normal). */
+export function poolGameForPuzzle(puzzle: { poolRev?: number | null; level?: unknown }): ArcadeGame<PoolState, ArcadeInputEvent | null> {
+  return poolGameFor(puzzle.poolRev, undefined, puzzle.level);
 }
 
 export { STD_MAX as POOL_MAX };

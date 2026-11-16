@@ -54,6 +54,7 @@ import {
   POOL_SPOTS,
   POOL_W,
   type PoolBall,
+  type PoolPreview,
   type PoolState,
 } from "./pool";
 
@@ -83,6 +84,12 @@ export const poolBallColour = (id: number): string => (id === POOL_CUE ? "#F4F1E
 export interface PoolAim {
   dx: number;
   dy: number;
+  /**
+   * What the level's preview shows (stage 3 of the Sports overhaul; display only): "long" (Easy) the object ball's path
+   * to the cushion and a longer cue-ball line, "short" (Hard) a shorter object-ball line, "ghost" (Expert) the ghost
+   * ball and the line to it only. Absent or "normal": today's preview, unchanged.
+   */
+  preview?: PoolPreview;
   /** 0…1, the pull on the meter. */
   power: number;
   /** The spin dot: x side (right +), y top (+) or back (−), each −100…100. */
@@ -677,17 +684,25 @@ function drawAim(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAim): voi
   ctx.arc(hit.x, hit.y, R, 0, Math.PI * 2);
   ctx.stroke();
   const reach = 30 + 70 * Math.max(0.2, aim.power);
+  const preview = aim.preview ?? "normal";
+  // Expert: the ghost ball and the line to it, nothing past the contact.
+  if (preview === "ghost") {
+    ctx.restore();
+    return;
+  }
   if (hit.ball) {
     const bx = px(hit.ball.x);
     const by = px(hit.ball.y);
     const nx = (bx - hit.x) / (2 * R);
     const ny = (by - hit.y) / (2 * R);
-    // The object ball's line (along the line of centres), short.
+    // The object ball's line (along the line of centres), short; Easy runs it on to the cushion it heads for, Hard
+    // shows less of it.
+    const objLen = preview === "long" ? poolCushionBounce(bx, by, nx, ny).d : reach * (preview === "short" ? POOL_SHORT_OBJECT : 0.6);
     ctx.strokeStyle = "rgba(255,255,255,0.85)";
     ctx.lineWidth = 1.6;
     ctx.beginPath();
     ctx.moveTo(bx + nx * R, by + ny * R);
-    ctx.lineTo(bx + nx * (R + reach * 0.6), by + ny * (R + reach * 0.6));
+    ctx.lineTo(bx + nx * (R + Math.max(0, objLen - R)), by + ny * (R + Math.max(0, objLen - R)));
     ctx.stroke();
     // The cue ball's path: the tangent line, bent by follow or draw.
     const dot = ux * nx + uy * ny;
@@ -704,7 +719,8 @@ function drawAim(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAim): voi
       ctx.setLineDash([3, 4]);
       ctx.beginPath();
       ctx.moveTo(hit.x, hit.y);
-      ctx.lineTo(hit.x + (tx / tl) * reach * 0.5, hit.y + (ty / tl) * reach * 0.5);
+      const cueLen = reach * (preview === "long" ? 1 : 0.5);
+      ctx.lineTo(hit.x + (tx / tl) * cueLen, hit.y + (ty / tl) * cueLen);
       ctx.stroke();
       ctx.setLineDash([]);
       // Side spin (stage 2): the cue ball runs on to its first cushion and bends there as the sim bends it.
@@ -775,6 +791,8 @@ function drawSideBend(ctx: CanvasRenderingContext2D, x: number, y: number, ux: n
 
 /** The cue's length (world px) and how far back a full pull draws it from the ball. */
 const CUE_LEN = 300;
+/** Hard's object-ball line: this share of the reach (today's Normal shows 0.6 of it). */
+export const POOL_SHORT_OBJECT = 0.25;
 const CUE_PULL = 46;
 
 /**
