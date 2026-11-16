@@ -92,6 +92,12 @@ each scored through the server replay. A practice round at Expert deals one of t
 | 584028232 | 139 | 160 | 16 runs, 14 home runs, 0 outs |
 | Average | 139 | 143 | |
 
+**For when challenges have levels** (Joe, 16 Nov 2026; no change now): "Perfect ten" (the perfect streak's full 40)
+can't be done on Hard or Expert under human limits: the elite bot under them completes it on 95 % of Easy innings and
+80 % of Normal, but 0 % of Hard and Expert, since it needs the exact tick on the fastest pitches. When Practice
+challenges can be set per level, its Hard and Expert version should ask for five in a row instead. The other two hold
+up: Good eye 90 / 95 / 100 / 100 % and Out of the park 100 / 100 / 85 / 35 % (Easy / Normal / Hard / Expert, 20 seeds).
+
 Checks: homerun-innings-check (the deal, the count, the runners, contact, the plan, the replay, the bands),
 arcade-standard-check's entry, homerun-check (rev 1–4 unchanged).
 
