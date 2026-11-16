@@ -46,7 +46,12 @@ export interface GameLevels<S = Record<string, unknown>> {
  * Every game's levels beyond Normal. Empty until the family sessions add theirs (15 Nov 2026): every game offers
  * Normal only.
  */
-export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {};
+export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
+  // Crazy Golf (golfRev 3, the Crazy Golf overhaul; docs/arcade-standard/minigolf.md "Levels"): each level's rules live
+  // in the sim (MG_LEVELS: par, the stroke limit, the sails, the extra hazards, the slopes, the Speed time) and every
+  // level's pars are proven on the hole bank; the deal reads `context.level` (sports.server.ts generateMinigolf).
+  minigolf: { levels: { easy: { settings: {} }, hard: { settings: {} }, expert: { settings: {} } } },
+};
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */
 let registry: Partial<Record<string, GameLevels>> = GAME_LEVELS;

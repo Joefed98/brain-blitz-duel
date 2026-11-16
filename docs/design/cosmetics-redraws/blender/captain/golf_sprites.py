@@ -41,6 +41,16 @@ GOLF_POSES = {
         "ha": [[94, 120], [98, 119]], "hp": [[71, 118], [89, 118]], "kn": [[68, 152], [92, 152]],
         "ft": [[63, 184], [97, 184]], "lean": 0,
     },
+    "back": {
+        "neck": [80, 70], "hip": [80, 116], "sh": [[63, 78], [97, 78]], "el": [[62, 98], [80, 100]],
+        "ha": [[64, 118], [68, 117]], "hp": [[71, 118], [89, 118]], "kn": [[68, 152], [92, 152]],
+        "ft": [[63, 184], [97, 184]], "lean": 0,
+    },
+    "chipback": {
+        "neck": [80, 70], "hip": [80, 116], "sh": [[63, 78], [97, 78]], "el": [[60, 90], [76, 88]],
+        "ha": [[56, 84], [60, 82]], "hp": [[71, 118], [89, 118]], "kn": [[68, 152], [90, 152]],
+        "ft": [[63, 184], [97, 184]], "lean": 0,
+    },
     "chip": {
         "neck": [80, 68], "hip": [80, 116], "sh": [[63, 76], [97, 76]], "el": [[84, 90], [102, 86]],
         "ha": [[104, 84], [108, 82]], "hp": [[71, 118], [89, 118]], "kn": [[70, 152], [92, 150]],
@@ -52,9 +62,11 @@ GOLF_DEPTH = {
     "address": {"el": (-10, -10), "ha": (-20, -20), "kn": (-3, -3), "ft": (0, 0)},
     "putt": {"el": (-10, -12), "ha": (-20, -20), "kn": (-3, -3), "ft": (0, 0)},
     "chip": {"el": (-8, -10), "ha": (-14, -14), "kn": (-3, -2), "ft": (0, 0)},
+    "back": {"el": (-10, -10), "ha": (-20, -20), "kn": (-3, -3), "ft": (0, 0)},
+    "chipback": {"el": (-8, -10), "ha": (-14, -14), "kn": (-3, -3), "ft": (0, 0)},
 }
 # Where each pose's club head sits (art units: x, height above the soles, depth).
-CLUB_HEAD = {"address": (80, 2, -34), "putt": (112, 6, -30), "chip": (128, 40, -22)}
+CLUB_HEAD = {"address": (80, 2, -34), "putt": (112, 6, -30), "chip": (128, 40, -22), "back": (46, 8, -30), "chipback": (30, 46, -20)}
 
 captain.POSES.update(GOLF_POSES)
 captain.POSE_DEPTH.update(GOLF_DEPTH)
@@ -87,19 +99,20 @@ def club(pose):
     o.rotation_quaternion = Vector((0, 0, 1)).rotation_difference(shaft.normalized())
     o.data.materials.append(lib.material("shaft", base=(1.0, 0.74, 0.34), metallic=1.0, roughness=0.2))
     # The head: a putter's flat black blade or a wedge's gold blade, along the target line (+X).
-    w, d, h = (12 * s, 4 * s, 3.4 * s) if pose != "chip" else (9 * s, 2.4 * s, 6 * s)
+    wedge = pose in ("chip", "chipback")
+    w, d, h = (12 * s, 4 * s, 3.4 * s) if not wedge else (9 * s, 2.4 * s, 6 * s)
     bpy.ops.mesh.primitive_cube_add(size=1, location=head)
     hd_o = bpy.context.object
     hd_o.scale = (w, d, h)
     bev = hd_o.modifiers.new("b", "BEVEL")
     bev.width = 0.8 * s
     bev.segments = 3
-    if pose == "chip":
+    if wedge:
         hd_o.data.materials.append(lib.material("wedge", base=(1.0, 0.76, 0.36), metallic=1.0, roughness=0.15))
     else:
         hd_o.data.materials.append(lib.material("putter", base=(0.012, 0.014, 0.02), metallic=0.4, roughness=0.18, coat=1.0))
     # A gold sight line on the putter's top.
-    if pose != "chip":
+    if not wedge:
         bpy.ops.mesh.primitive_cube_add(size=1, location=head + Vector((0, 0, h / 2 + 0.2 * s)))
         line = bpy.context.object
         line.scale = (w * 0.7, 0.7 * s, 0.4 * s)
@@ -108,12 +121,16 @@ def club(pose):
 
 def sprite(pose, px=256):
     lib.reset(px, px, samples=int(os.environ.get("SAMPLES", 96)), transparent=True)
-    lib.world((0.42, 0.48, 0.58), 0.35)
+    # Round 2 (Joe, 15 Nov 2026: "lit and recognisable", not a dark blob): a brighter sky, a stronger key, a soft
+    # front fill so the navy suit, the gold and the visor read, and a cool rim light separating him from the turf.
+    lib.world((0.55, 0.6, 0.7), 0.55)
     captain.build(pose=pose, location=(0, 0, 0), height=HEIGHT)
     club(pose)
-    # The course's light: a warm key from the top left, a soft cool fill.
+    lib.area_light((0.0, -4.0, 4.0), (0, 0, 0.9), 420, 4.0, (1.0, 0.97, 0.92))
+    lib.area_light((2.5, 3.0, 2.2), (0, 0, 1.0), 380, 1.5, (0.75, 0.85, 1.0))
+    # The course's light: a warm key from the top left.
     sun = bpy.data.lights.new("sun", "SUN")
-    sun.energy = 3.4
+    sun.energy = 4.2
     sun.angle = math.radians(10)
     sun.color = (1.0, 0.95, 0.86)
     o = bpy.data.objects.new("sun", sun)
@@ -125,7 +142,7 @@ def sprite(pose, px=256):
     plane.is_shadow_catcher = True
     # From above, tipped 30° towards the ball's side (so the visor, the bolt and the club read, not just the helmet's
     # crown), the body a little behind the frame's middle so the club's head reaches towards the ball.
-    tip = math.radians(30)
+    tip = math.radians(38)
     target = Vector((0, -0.2, 0.8))
     lib.camera(tuple(target + Vector((0, -math.sin(tip), math.cos(tip))) * 12), tuple(target), ortho_scale=GROUND)
     png = os.path.join(lib.TMP, f"captain-golf-{pose}.png")
@@ -137,5 +154,5 @@ def sprite(pose, px=256):
 
 
 if __name__ == "__main__":
-    for p in sys.argv[1:] or ["address", "putt", "chip"]:
+    for p in sys.argv[1:] or ["address", "back", "putt", "chipback", "chip"]:
         sprite(p)

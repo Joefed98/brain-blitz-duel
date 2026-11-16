@@ -5,7 +5,7 @@
 import { preloadSceneImages } from "./skins/sceneImages";
 import { COURSE_IMAGES } from "./skins/minigolfCourse";
 /** Captain Joulz on the Crazy Golf course (minigolf.renderer.ts drawCaptain). */
-const CAPTAIN_IMAGES = ["mg.captain-address", "mg.captain-putt", "mg.captain-chip"] as const;
+const CAPTAIN_IMAGES = ["mg.captain-address", "mg.captain-back", "mg.captain-putt", "mg.captain-chipback", "mg.captain-chip"] as const;
 import { arcadeWorldOf } from "./arcadeFxGames.renderer";
 import { isArtWorld, preloadArtWorld } from "./sprites.renderer";
 

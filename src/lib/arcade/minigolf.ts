@@ -398,6 +398,8 @@ export interface MgHole {
   loops?: MgLoop[];
   /** Bridges over water (golfRev 3): no water inside their deck; their low side rails are in `segs`. */
   bridges?: MgBridge[];
+  /** Castle towers (golfRev 3): round and tall, the last entries of `planters` (the sim meets them as planters). */
+  towers?: MgCircle[];
 }
 
 /**
@@ -496,6 +498,11 @@ export interface MgGate {
   /** True when the wall runs across the hole (along x). */
   across: boolean;
   segs: Seg[];
+  /**
+   * golfRev 3 (round 2 of the overhaul): the buildings on the wall, solid in the sim (their outlines are in `segs`
+   * after the two wall pieces): a windmill's house either side of its doorway, a castle's keep. Boxes in units.
+   */
+  boxes?: { x0: number; y0: number; x1: number; y1: number }[];
 }
 
 /** A windmill's hub (units), its turn (angle units a tick, ± by the mirror), the angle at tick 0 and its wall's line. */
@@ -507,6 +514,9 @@ export interface MgWindmill {
   /** The sails' turn in 4096ths of a radian a tick (the surface speed for the bounce), signed as `spin`. */
   w4096: number;
   across: boolean;
+  /** golfRev 3: the hub's height above the doorway and the sails' width (px); MG_MILL_H and MG_SAIL_W when absent. */
+  h?: number;
+  sw?: number;
 }
 
 /** A tunnel: entrance centre, exit centre (units) and the exit's heading (NORM_ONE). */
@@ -1094,10 +1104,11 @@ export function mgSails(m: MgWindmill, tick: number): MgSailFoot[] {
     if (phi <= -MG_MILL_PHI || phi >= MG_MILL_PHI) continue;
     const c = icos(phi);
     const s = isin(phi);
-    const at = idiv(fp(MG_MILL_H) * s, c);
-    const half = idiv(fp(MG_SAIL_W / 2) * TRIG_ONE, c);
+    const hub = m.h ?? MG_MILL_H;
+    const at = idiv(fp(hub) * s, c);
+    const half = idiv(fp((m.sw ?? MG_SAIL_W) / 2) * TRIG_ONE, c);
     // The foot's speed along the line: H·ω ÷ cos²(φ).
-    const v = idiv(idiv(fp(MG_MILL_H) * m.w4096, 4096) * TRIG_ONE * TRIG_ONE, c * c);
+    const v = idiv(idiv(fp(hub) * m.w4096, 4096) * TRIG_ONE * TRIG_ONE, c * c);
     const seg: Seg = m.across
       ? { ax: m.x + at - half, ay: m.y, bx: m.x + at + half, by: m.y, r: fp(MG_SAIL_R) }
       : { ax: m.x, ay: m.y + at - half, bx: m.x, by: m.y + at + half, r: fp(MG_SAIL_R) };

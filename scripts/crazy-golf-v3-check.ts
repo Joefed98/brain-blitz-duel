@@ -93,6 +93,10 @@ HOLE_TEMPLATES.forEach((t, ti) => {
   // bowls, domes and banked curves.
   const crazy = [t.gates?.some((g) => g[0] === "mill"), t.gates?.some((g) => g[0] === "castle"), t.tunnels?.length, t.slopes?.length, t.loops?.length, t.bridges?.length, t.bowls?.length, t.hills?.length, t.curves?.length].filter(Boolean).length;
   ok(crazy >= 2, `${t.name}: at least two crazy-golf features (${crazy})`);
+  // Round 2 (Joe, 15 Nov 2026: "aim for 3–4 in play"): at least three big ones, the buildings and structures a ball
+  // goes through, over or round: windmills, castles, tunnels, ramps, loops, bridges and banked curves.
+  const big = (t.gates?.length ?? 0) + (t.tunnels?.length ?? 0) + (t.slopes?.length ?? 0) + (t.loops?.length ?? 0) + (t.bridges?.length ?? 0) + (t.curves?.length ?? 0);
+  ok(big >= 3, `${t.name}: at least three big features in play (${big})`);
   for (let v = 0; v < variantCount(t); v++) {
     variants++;
     const id = ti * 100 + v;

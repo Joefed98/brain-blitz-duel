@@ -18,6 +18,7 @@
  * best next putt ends nearest, instead of nudging the ball against the slope stroke after stroke.
  * The bot never looks at the score.
  */
+import { botV3 } from "./minigolfV3";
 import { readFileSync } from "node:fs";
 import { MG_AIM, MG_MILL_PERIOD, MG_POWER_MAX, MINIGOLF_HOLES, type MinigolfState } from "../../../src/lib/arcade/minigolf";
 import { decodeSportsRun } from "../../../src/lib/arcade/sportsKit";
@@ -55,7 +56,13 @@ function routesOf(seed: number, init: MinigolfState, step: (s: MinigolfState, e:
   return routes;
 }
 
-export const bot: SkillBot = ({ game, seed, human, fixes }) => {
+export const bot: SkillBot = (ctx) => {
+  // golfRev 3 (the Crazy Golf overhaul) plays its own bot (putt or chip, the hole bank's witnesses).
+  if ((ctx.game.init(ctx.seed) as MinigolfState).rev === 3) return botV3(ctx);
+  return botV2(ctx);
+};
+
+const botV2: SkillBot = ({ game, seed, human, fixes }) => {
   const init = game.init(seed) as MinigolfState;
   const routes = routesOf(seed, init, (s, e) => game.step(s, e));
   const v2 = init.rev >= 2;

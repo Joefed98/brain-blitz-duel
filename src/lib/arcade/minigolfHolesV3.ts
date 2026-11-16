@@ -30,6 +30,23 @@ const WORLD_H = 690;
 export const V3_MILL_HALF = 42;
 export const V3_GATE_R = 6;
 export const V3_CURVE_R = 4;
+/**
+ * Round 2 of the overhaul (Joe, 15 Nov 2026: big, unmistakable features). A windmill's hub stands V3_MILL_H above its
+ * doorway with sails V3_SAIL_W wide (so its sails are long and broad: each reaches V3_MILL_H ÷ cos 39° to the ground),
+ * and its house stands either side of the doorway, V3_HOUSE_W wide and V3_HOUSE_D deep behind the wall's line, solid.
+ * A castle's gate has a round tower V3_TOWER_R either side of its opening, and its keep (where the template names one)
+ * is a solid box V3_KEEP_W along the wall and V3_KEEP_D across it, centred on the wall.
+ */
+export const V3_MILL_H = 50;
+export const V3_SAIL_W = 22;
+export const V3_HOUSE_W = 30;
+export const V3_HOUSE_D = 60;
+export const V3_TOWER_R = 17;
+export const V3_KEEP_W = 60;
+export const V3_KEEP_D = 50;
+/** A castle's curtain wall is thicker than a plain gate's (its half thickness, px). */
+export const V3_CASTLE_R = 9;
+const BOX_R = 2;
 const CURVE_PIECES = 8;
 /** The windmill's spin at each level's setting (angle units a tick) and its surface speed in 4096ths of a radian. */
 export const V3_MILL_SPINS = { slow: 128, normal: 256, fast: 512 } as const;
@@ -73,7 +90,8 @@ export interface HoleTemplate {
   ponds?: C3[][];
   sands?: C3[][];
   slopes?: [number, number, number, number, number, number, number][];
-  gates?: ["castle" | "mill", number, number, number, number, number, number][];
+  /** Gates: kind, the wall's ends, its opening's centre along it and half-width; a castle may name its keep's place along the wall. */
+  gates?: (["castle" | "mill", number, number, number, number, number, number] | ["castle", number, number, number, number, number, number, number])[];
   tunnels?: [number, number, number, number, number][];
   hills?: [number, number, number, number][];
   curves?: [number, number, number, number, number][];
@@ -123,6 +141,8 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     bowls: [[150, 102, 62, -14]],
     sands: [[[54, 176, 18], [72, 190, 14], [86, 198, 10]]],
     rocks: [[236, 190, 12]],
+    hills: [[150, 400, 30, 9]],
+    tunnels: [[40, 470, 254, 190, -90]],
     extra: { sands: [[[226, 420, 16], [240, 432, 12]]], rocks: [[96, 336, 11]] },
   },
   {
@@ -141,6 +161,8 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     sands: [[[214, 156, 16], [230, 170, 14], [242, 184, 9]]],
     rocks: [[88, 168, 12]],
     planters: [[150, 160, 11]],
+    hills: [[150, 230, 28, 9]],
+    gates: [["castle", 0, 206, 300, 206, 150, 24]],
     extra: { sands: [[[88, 410, 16], [104, 422, 12]]], rocks: [[210, 380, 11]] },
   },
   {
@@ -157,6 +179,8 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     rocks: [[52, 150, 11]],
     sands: [[[230, 160, 15], [246, 172, 11]]],
     hills: [[150, 420, 34, 9]],
+    gates: [["castle", 0, 150, 300, 150, 150, 24, 248]],
+    slopes: [[0, 450, 300, 500, 0, 1, 2]],
     extra: { rocks: [[118, 160, 10]], sands: [[[70, 410, 15], [84, 422, 11]]] },
   },
   {
@@ -168,10 +192,11 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     poly: OCT(300, 520, 46),
     tees: [[150, 482], [92, 470], [208, 470]],
     cups: [[150, 112], [128, 124], [172, 122]],
-    gates: [["castle", 0, 280, 300, 280, 150, 22]],
+    gates: [["castle", 0, 280, 300, 280, 150, 22, 52]],
     bowls: [[150, 118, 70, -12]],
     slopes: [[0, 300, 300, 380, 0, 1, 2]],
     sands: [[[54, 152, 16], [64, 172, 12]], [[246, 152, 16], [236, 172, 12]]],
+    tunnels: [[44, 360, 254, 236, -90]],
     extra: { rocks: [[150, 214, 10]], sands: [[[90, 430, 15], [104, 440, 11]]] },
   },
   /* ------------------------------ slot 1 (340 × 580) ------------------------------ */
@@ -190,6 +215,7 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     curves: [[80, 80, 80, 180, 270]],
     tunnels: [[34, 300, 236, 48, 0]],
     bowls: [[292, 100, 46, -12]],
+    gates: [["castle", 0, 252, 150, 252, 75, 22]],
     extra: { rocks: [[100, 300, 11]], sands: [[[110, 150, 14], [126, 164, 10]]] },
   },
   {
@@ -206,6 +232,8 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     sands: [[[268, 280, 20], [290, 294, 15]], [[60, 470, 16], [78, 482, 12]]],
     rocks: [[176, 128, 12]],
     hills: [[110, 290, 40, 9]],
+    slopes: [[0, 450, 340, 505, 0, 1, 2]],
+    tunnels: [[40, 290, 60, 150, -90]],
     extra: { rocks: [[236, 440, 10]], sands: [[[120, 120, 14], [134, 132, 10]]] },
   },
   {
@@ -217,7 +245,10 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     poly: OCT(340, 580, 40),
     tees: [[170, 544], [100, 540], [240, 540]],
     cups: [[170, 80], [96, 96], [250, 92]],
-    gates: [["castle", 0, 300, 340, 300, 230, 22]],
+    gates: [
+      ["castle", 0, 300, 340, 300, 230, 22, 70],
+      ["mill", 0, 476, 340, 476, 170, V3_MILL_HALF],
+    ],
     ponds: [[[28, 352, 26], [76, 348, 28], [126, 352, 28], [176, 348, 28], [226, 352, 28], [276, 348, 28], [320, 352, 24]]],
     bridges: [[214, 316, 246, 390]],
     sands: [[[262, 196, 16], [280, 212, 12]]],
@@ -238,6 +269,8 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     tunnels: [[40, 376, 60, 226, -90]],
     sands: [[[150, 186, 18], [176, 196, 14]]],
     rocks: [[300, 210, 12]],
+    gates: [["castle", 0, 160, 340, 160, 170, 24]],
+    slopes: [[0, 440, 340, 500, 0, 1, 2]],
     extra: { rocks: [[150, 420, 11]], sands: [[[220, 110, 14], [236, 122, 10]]] },
   },
   /* ------------------------------ slot 2 (370 × 620) ------------------------------ */
@@ -257,6 +290,7 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     hills: [[180, 312, 42, 10]],
     bowls: [[298, 66, 42, -12]],
     sands: [[[288, 150, 16], [310, 162, 12]]],
+    gates: [["castle", 220, 270, 370, 270, 295, 22]],
     extra: { rocks: [[260, 300, 11]], sands: [[[90, 520, 14], [104, 532, 10]]] },
   },
   {
@@ -273,6 +307,8 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     bowls: [[185, 184, 34, -12]],
     gates: [["mill", 0, 420, 370, 420, 185, V3_MILL_HALF]],
     sands: [[[70, 470, 18], [92, 484, 14]]],
+    slopes: [[0, 500, 370, 556, 0, 1, 2]],
+    tunnels: [[60, 520, 80, 300, -90]],
     extra: { rocks: [[260, 500, 11]], sands: [[[290, 340, 15], [306, 352, 11]]] },
   },
   {
@@ -307,10 +343,13 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     // A meandering stream (x every 17 px, y = 340 + 22·sin(2πx ÷ 370), written out as integers).
     ponds: [[[-4, 340, 19], [13, 346, 19], [30, 352, 19], [47, 357, 19], [64, 360, 19], [81, 362, 19], [98, 362, 19], [115, 360, 19], [132, 356, 19], [149, 351, 19], [166, 346, 19], [183, 339, 19], [200, 333, 19], [217, 327, 19], [234, 323, 19], [251, 320, 19], [268, 318, 19], [285, 318, 19], [302, 321, 19], [319, 324, 19], [336, 329, 19], [353, 335, 19], [370, 341, 19]]],
     bridges: [[169, 300, 201, 404]],
-    gates: [["mill", 0, 200, 370, 200, 185, V3_MILL_HALF]],
-    sands: [[[262, 470, 16], [280, 482, 12]]],
+    gates: [
+      ["mill", 0, 230, 370, 230, 185, V3_MILL_HALF],
+      ["castle", 0, 470, 370, 470, 120, 22, 290],
+    ],
+    sands: [[[262, 540, 16], [280, 552, 12]]],
     rocks: [[110, 140, 12]],
-    planters: [[290, 260, 11]],
+    slopes: [[0, 500, 370, 556, 0, 1, 2]],
     extra: { rocks: [[90, 450, 11]], sands: [[[240, 120, 14], [254, 132, 10]]] },
   },
   /* ------------------------------ slot 3 (390 × 650), uneven ------------------------------ */
@@ -323,11 +362,15 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     poly: OCT(390, 650, 50),
     tees: [[195, 612], [110, 604], [280, 604]],
     cups: [[195, 86], [118, 106], [272, 104]],
-    gates: [["mill", 0, 330, 390, 330, 195, V3_MILL_HALF]],
+    gates: [
+      ["mill", 0, 330, 390, 330, 195, V3_MILL_HALF],
+      ["castle", 0, 200, 390, 200, 195, 24, 330],
+    ],
     sands: [[[150, 210, 20], [176, 220, 16]], [[264, 420, 20], [286, 434, 15]]],
     ponds: [[[80, 430, 20], [100, 446, 15]]],
     swells: [[120, 500, 90, 12], [270, 500, 80, -9], [120, 190, 80, -9], [280, 190, 70, 9]],
     bowls: [[195, 92, 50, -12]],
+    tunnels: [[60, 560, 330, 130, -90]],
     extra: { rocks: [[300, 260, 11]], sands: [[[90, 250, 14], [104, 262, 10]]] },
   },
   {
@@ -345,6 +388,8 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     tunnels: [[60, 560, 70, 160, -90]],
     sands: [[[96, 100, 20], [114, 112, 14]]],
     swells: [[80, 330, 110, 12], [310, 330, 110, -12], [195, 140, 90, 9]],
+    gates: [["castle", 0, 130, 390, 130, 195, 24]],
+    slopes: [[0, 470, 390, 520, 0, 1, 2]],
     extra: { rocks: [[300, 480, 11]], sands: [[[290, 150, 14], [304, 162, 10]]] },
   },
   {
@@ -363,6 +408,8 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     sands: [[[96, 200, 18], [118, 214, 14]], [[300, 520, 18], [318, 534, 13]]],
     swells: [[80, 500, 100, -12], [310, 200, 100, -12], [195, 190, 80, 9]],
     rocks: [[300, 260, 12]],
+    gates: [["castle", 0, 170, 390, 170, 195, 24, 60]],
+    slopes: [[0, 520, 390, 576, 0, 1, 2]],
     extra: { rocks: [[110, 300, 11]], sands: [[[300, 176, 14], [312, 188, 10]]] },
   },
   {
@@ -376,9 +423,13 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     cups: [[90, 80], [150, 72], [70, 136]],
     ponds: [[[170, 330, 56], [126, 290, 42], [214, 376, 42], [110, 380, 32], [232, 270, 32]]],
     bridges: [[110, 314, 240, 346]],
-    gates: [["castle", 0, 200, 390, 200, 120, 22]],
-    sands: [[[300, 150, 20], [320, 166, 15]], [[60, 520, 18], [80, 534, 13]]],
+    gates: [
+      ["castle", 0, 200, 390, 200, 120, 22, 320],
+      ["mill", 0, 486, 390, 486, 280, V3_MILL_HALF],
+    ],
+    sands: [[[300, 150, 20], [320, 166, 15]], [[60, 540, 18], [80, 554, 13]]],
     swells: [[320, 300, 80, 12], [90, 470, 80, -9], [200, 540, 90, 9]],
+    slopes: [[0, 520, 390, 570, 0, 1, 2]],
     extra: { rocks: [[300, 440, 11]], sands: [[[180, 120, 14], [194, 132, 10]]] },
   },
   /* ------------------------------ slot 4 (390 × 690), uneven ------------------------------ */
@@ -397,7 +448,7 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     slopes: [[0, 240, 150, 450, 0, 1, 2]],
     gates: [
       ["mill", 0, 460, 390, 460, 318, V3_MILL_HALF],
-      ["castle", 0, 230, 390, 230, 75, 20],
+      ["castle", 0, 230, 390, 230, 75, 20, 300],
     ],
     sands: [[[178, 598, 22], [204, 610, 16]]],
     swells: [[200, 560, 90, 9], [210, 340, 70, 9]],
@@ -420,6 +471,8 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     hills: [[195, 470, 44, 10]],
     bowls: [[195, 160, 96, -14]],
     swells: [[100, 300, 80, 9], [290, 300, 80, 9], [195, 580, 100, 9]],
+    slopes: [[0, 560, 390, 620, 0, 1, 2]],
+    gates: [["castle", 0, 350, 390, 350, 195, 26]],
     extra: { rocks: [[140, 330, 11]], sands: [[[260, 560, 14], [274, 572, 10]]] },
   },
   {
@@ -431,8 +484,10 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
     poly: OCT(390, 690, 44),
     tees: [[195, 652], [80, 644], [310, 644]],
     cups: [[195, 80], [96, 96], [294, 96]],
-    walls: [[0, 230, 150, 230], [240, 230, 390, 230]],
-    gates: [["mill", 0, 460, 390, 460, 195, V3_MILL_HALF]],
+    gates: [
+      ["castle", 0, 230, 390, 230, 195, 30, 60],
+      ["mill", 0, 460, 390, 460, 195, V3_MILL_HALF],
+    ],
     slopes: [[0, 480, 390, 560, 0, 1, 2]],
     sands: [[[195, 300, 18], [218, 312, 14]], [[60, 580, 16], [78, 594, 13]]],
     rocks: [[330, 360, 12], [60, 360, 12]],
@@ -454,7 +509,7 @@ export const HOLE_TEMPLATES: readonly HoleTemplate[] = [
       [[166, 290, 24], [212, 284, 26], [258, 280, 28], [306, 278, 28], [354, 276, 28], [398, 276, 26]],
     ],
     bridges: [[96, 456, 126, 534], [270, 238, 300, 318]],
-    gates: [["castle", 0, 170, 390, 170, 195, 22]],
+    gates: [["castle", 0, 170, 390, 170, 195, 22, 330]],
     loops: [[330, 430, -90, 90]],
     sands: [[[110, 260, 18], [132, 272, 14]], [[280, 580, 18], [300, 594, 14]]],
     swells: [[110, 360, 100, 12], [195, 590, 80, 9]],
@@ -522,7 +577,7 @@ export function buildHoleV3(
   id: number,
   index: number,
   level: MgLevel = "normal",
-): MgHole & { swells: MgSwell[]; tall: Seg[]; pondGroups: number[]; sandGroups: number[]; holeId: number; loops: MgLoop[]; bridges: MgBridge[]; bowls: MgSwell[] } {
+): MgHole & { swells: MgSwell[]; tall: Seg[]; pondGroups: number[]; sandGroups: number[]; holeId: number; loops: MgLoop[]; bridges: MgBridge[]; bowls: MgSwell[]; towers: MgCircle[] } {
   const d = decodeHoleId(id);
   if (!d) throw new Error(`minigolf: no hole ${id}`);
   const t0 = HOLE_TEMPLATES[d.template]!;
@@ -622,7 +677,7 @@ export function buildHoleV3(
     const st = scale(strength);
     return { x0: Math.min(a.x, b.x), y0: a.y, x1: Math.max(a.x, b.x), y1: b.y, ax: (mirror ? -dx : dx) * st, ay: dy * st };
   });
-  const gates: MgGate[] = (t.gates ?? []).map(([kind, ax, ay, bx, by, along, half]) => {
+  const gates: MgGate[] = (t.gates ?? []).map(([kind, ax, ay, bx, by, along, half, keepAt]) => {
     const across = ay === by;
     const a = P(ax, ay);
     const b = P(bx, by);
@@ -630,7 +685,7 @@ export function buildHoleV3(
     const h2 = fp(half);
     const lo = across ? { x: Math.min(a.x, b.x), y: a.y } : { x: a.x, y: Math.min(a.y, b.y) };
     const hi = across ? { x: Math.max(a.x, b.x), y: a.y } : { x: a.x, y: Math.max(a.y, b.y) };
-    const r = fp(V3_GATE_R);
+    const r = fp(kind === "castle" ? V3_CASTLE_R : V3_GATE_R);
     const segs: Seg[] = across
       ? [
           { ax: lo.x, ay: lo.y, bx: c.x - h2, by: c.y, r },
@@ -640,12 +695,45 @@ export function buildHoleV3(
           { ax: lo.x, ay: lo.y, bx: c.x, by: c.y - h2, r },
           { ax: c.x, ay: c.y + h2, bx: hi.x, by: hi.y, r },
         ];
-    return { kind, ax: lo.x, ay: lo.y, bx: hi.x, by: hi.y, cx: c.x, cy: c.y, half: h2, across, segs };
+    // The buildings on the wall (round 2): solid boxes whose outlines join the wall's pieces.
+    const boxes: { x0: number; y0: number; x1: number; y1: number }[] = [];
+    const box = (a0: number, a1: number, c0: number, c1: number) => {
+      // a0..a1 along the wall, c0..c1 across it (units, relative to the opening's centre).
+      const xs = across ? [c.x + a0, c.x + a1] : [c.x + c0, c.x + c1];
+      const ys = across ? [c.y + c0, c.y + c1] : [c.y + a0, c.y + a1];
+      boxes.push({ x0: Math.min(xs[0]!, xs[1]!), y0: Math.min(ys[0]!, ys[1]!), x1: Math.max(xs[0]!, xs[1]!), y1: Math.max(ys[0]!, ys[1]!) });
+    };
+    if (kind === "mill") {
+      const w = fp(V3_HOUSE_W);
+      const d = fp(V3_HOUSE_D);
+      box(-h2 - w, -h2, -d, 0);
+      box(h2, h2 + w, -d, 0);
+    } else if (keepAt !== undefined) {
+      const k = (across ? P(keepAt, ay).x : P(ax, keepAt).y) - (across ? c.x : c.y);
+      box(k - fp(V3_KEEP_W / 2), k + fp(V3_KEEP_W / 2), -fp(V3_KEEP_D / 2), fp(V3_KEEP_D / 2));
+    }
+    const br = fp(BOX_R);
+    for (const b of boxes)
+      segs.push(
+        { ax: b.x0, ay: b.y0, bx: b.x1, by: b.y0, r: br },
+        { ax: b.x1, ay: b.y0, bx: b.x1, by: b.y1, r: br },
+        { ax: b.x1, ay: b.y1, bx: b.x0, by: b.y1, r: br },
+        { ax: b.x0, ay: b.y1, bx: b.x0, by: b.y0, r: br },
+      );
+    return { kind, ax: lo.x, ay: lo.y, bx: hi.x, by: hi.y, cx: c.x, cy: c.y, half: h2, across, segs, boxes };
   });
+  // A castle's towers either side of its opening (tall, met as planters).
+  const towers: MgCircle[] = [];
+  for (const g of gates) {
+    if (g.kind !== "castle") continue;
+    const off = g.half + fp(V3_TOWER_R);
+    for (const side of [-1, 1]) towers.push({ x: g.across ? g.cx + side * off : g.cx, y: g.across ? g.cy : g.cy + side * off, r: fp(V3_TOWER_R) });
+  }
+  planters.push(...towers);
   const spin = V3_MILL_SPINS[mill];
   const windmills: MgWindmill[] = gates
     .filter((g) => g.kind === "mill")
-    .map((g, k) => ({ x: g.cx, y: g.cy, spin: mirror ? -spin : spin, phase: millPhase(id, k), w4096: mirror ? -W4096_OF[mill] : W4096_OF[mill], across: g.across }));
+    .map((g, k) => ({ x: g.cx, y: g.cy, spin: mirror ? -spin : spin, phase: millPhase(id, k), w4096: mirror ? -W4096_OF[mill] : W4096_OF[mill], across: g.across, h: V3_MILL_H, sw: V3_SAIL_W }));
   const tunnels: MgTunnel[] = (t.tunnels ?? []).map(([ix, iy, ex, ey, deg]) => {
     const a = degAng(deg);
     const dx = idiv(icos(a) * NORM_ONE, TRIG_ONE);
@@ -709,6 +797,7 @@ export function buildHoleV3(
     loops,
     bridges,
     bowls,
+    towers,
   };
 }
 

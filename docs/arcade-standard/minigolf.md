@@ -34,6 +34,22 @@ water, bowls round the cup, domes and banked curves, at least two on every templ
   them).
 - **Bowls**: a hollow round the cup (a swell with k −10 to −14, at every level and slot) that gathers a ball in.
 
+**Big features** (round 3, Joe, 16 Nov 2026: "most holes are a big green with two small features"): every template now
+has at least three of the big ones in play (windmills, castles, tunnels, ramps, loops, bridges, banked curves;
+crazy-golf-v3-check counts them), and the buildings are solid in the sim, so what is drawn is what the ball meets:
+
+- **Windmills** stand a house either side of the doorway (`MgGate.boxes`: two blocks `V3_HOUSE_W` 30 px wide and
+  `V3_HOUSE_D` 60 px deep behind the wall's line, their outlines tall segments), the ball rolling through the passage
+  between them, and turn long, broad sails: the hub `V3_MILL_H` 50 px above the doorway (golfRev 2's 28) and the sails
+  `V3_SAIL_W` 22 px wide (`MgWindmill.h` / `sw`; golfRev 1 and 2 keep `MG_MILL_H` and `MG_SAIL_W`), so each sail's foot
+  sweeps the doorway at 50·tan φ.
+- **Castles**: a curtain wall `V3_CASTLE_R` 9 px thick with battlements, a round tower `V3_TOWER_R` 17 px either side of the
+  gate (`MgHole.towers`, the last entries of `planters`, so the sim meets them as planters; a chip meets them too), the
+  gatehouse's arch over the opening (overhead), and, on most castles, a keep: a solid box `V3_KEEP_W` × `V3_KEEP_D`
+  (60 × 50 px) on the wall with a flag.
+- **Tunnels** have stone portals round their mouths, **ramps** a deck lit from the crest down to a shaded toe with red and
+  white kerbs (no arrows), and **loops** stand up from the lane as a loop of track (far half behind, near half lit).
+
 **Bunkers and ponds are smooth shapes** (Joe, 15 Nov 2026: "never clusters of circles"): each is the level set of a field
 over its circles, Σ (r²/d²)² (`mgMetaSum`, integer, 4096ths). A lone circle is exactly its circle and overlapping ones
 melt into one outline; the fourth power keeps a ring of circles from flooding its middle, so an island green stays an
@@ -58,8 +74,9 @@ ground only: a chip flies over them.
 **The look** (display only): the slopes, hills and swells read through light and shadow alone (no arrows): a height
 field from the sim's own pieces (`groundHeight`, `src/lib/arcade/minigolfV3Ground.renderer.ts`) lit from the top left,
 and the mowing stripes laid on the ground so they bend over it. Captain Joulz stands beside the ball (top-down sprites
-from the approved 3D Captain, `docs/design/cosmetics-redraws/blender/captain/golf_sprites.py`: addressing it while
-aiming, following through after a putt or a chip), always to the side of the line. The HUD's chips are 14 px.
+from the approved 3D Captain, `docs/design/cosmetics-redraws/blender/captain/golf_sprites.py`, round 3: lit by a key, a
+front fill and a cool rim so he reads at 120 px; addressing the ball, the backswing (putter or wedge) once the pull
+passes 15 % of full power, then the follow-through after a putt or a chip), always to the side of the line. The HUD's chips are 14 px.
 
 **Moments** (display, sound, haptics): aiming stretches a rubber band from the ball to the finger with a soft tone rising
 with power; a putt's "tock" and a faint speed trail; a chip's "click", the ball lifted over its shadow and a ring where

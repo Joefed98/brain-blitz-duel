@@ -1,7 +1,7 @@
 /*
  * Crazy Golf's reveal (the Crazy Golf overhaul, 15 Nov 2026): the scorecard that is also the hole switcher, the big
- * hole map and the key numbers. Tokens only. The scorecard fills hole by hole (each cell rising in after the one
- * before it); under reduced motion every cell is simply there.
+ * hole map and the key numbers. Tokens only. The scorecard's fill is the effects kit's (minigolfReveal.tsx: drop / match
+ * per cell, its own reduced-motion crossfade).
  */
 [data-minigolf-reveal] {
   display: flex;
@@ -29,8 +29,6 @@
   border: 1px solid var(--jz-line);
   background: var(--jz-surface);
   color: var(--jz-text);
-  animation: mg-card-in var(--jz-dur-select) var(--jz-ease-out) both;
-  animation-delay: calc(var(--i, 0) * 140ms);
 }
 [data-minigolf-reveal] [data-scorecard] button[aria-pressed="true"] {
   border-color: var(--jz-gold);
@@ -99,19 +97,4 @@
   text-align: center;
   font-size: 13px;
   color: var(--jz-text-2);
-}
-@keyframes mg-card-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  [data-minigolf-reveal] [data-scorecard] button {
-    animation: none;
-  }
 }

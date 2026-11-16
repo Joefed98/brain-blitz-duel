@@ -8,9 +8,11 @@
  * sails' repeat. Then the gesture's errors: aim over the pull's length, a relative power error, think time, the odd
  * mis-hit, and the windmill's timing.
  *
- * The level's aim preview (display only in the game) is what a player reads the power from, so it is modelled as a
- * scale on the power error: Easy's line to the first bounce 0.6, Normal's full line 1, Hard's shorter one (35 %) 1.75,
- * Expert's shortest (20 %) 2.3 (docs/arcade-standard/minigolf.md "golfRev 3", with the measurements).
+ * Human limits (Joe, 15 Nov 2026, for the levels' tuning with the shared tool, scripts/level-tune.ts): at least
+ * 0.25 s to react to a ball coming to rest and 0.15 s to move the finger into the pull, on top of the skill level's
+ * own reaction and think time. No modelled effect of the aim preview: every level is read through the sim alike, so
+ * the levels differ only by what the sim itself changes (par, the stroke limit, the sails, the extra hazards, the
+ * slopes and the Speed time).
  *
  * The bot never looks at the score.
  */
@@ -23,8 +25,9 @@ import { angleTo, dirOf, holingShotsV3, leavesV3, millPeriodOf, type Shot } from
 const KNOWS_ROUTE: Record<SkillLevel, number> = { weak: 0, average: 0, good: 0.25, great: 0.6, near: 0.9, elite: 1, perfect: 1 };
 const THINK_MS = 1500;
 const TEE_MS = 1400;
-/** The aim preview's effect on reading the power (see the header). */
-export const PREVIEW_POWER_SCALE = { easy: 0.6, normal: 1, hard: 1.75, expert: 2.3 } as const;
+/** Human limits: 0.25 s to react (ticks) and 0.15 s to move the finger into the pull. */
+const REACT_MIN_TICKS = 15;
+const MOVE_TICKS = 9;
 
 type Witness = Record<string, { shots: [number, number, number, number, number][]; holed: number }>;
 let witness: Witness | null = null;
@@ -36,7 +39,6 @@ function witnessOf(): Witness {
 export const botV3: SkillBot = ({ game, seed, human }) => {
   const init = game.init(seed) as MinigolfState;
   const level = init.level;
-  const powerScale = PREVIEW_POWER_SCALE[level];
   let readyAt = -1;
   let plannedFor = "";
   let lastHole = -1;
@@ -79,7 +81,7 @@ export const botV3: SkillBot = ({ game, seed, human }) => {
   const execute = (p: Shot): Shot => {
     const pull = Math.max(60, (p.c / MG_POWER_MAX) * 150);
     const angle = Math.atan2(p.b, p.a) + human.aim(1, 1) / pull;
-    let c = p.c * (1 + (human.power() - 1) * powerScale);
+    let c = p.c * human.power();
     if (human.slip(0.5)) c *= human.chance(0.5) ? 0.55 : 1.5;
     return { k: p.k, a: Math.round(Math.cos(angle) * 4000), b: Math.round(Math.sin(angle) * 4000), c: Math.max(1, Math.min(MG_POWER_MAX, Math.round(c))) };
   };
@@ -96,7 +98,7 @@ export const botV3: SkillBot = ({ game, seed, human }) => {
           shotOnHole = 0;
         }
         const think = human.thinkTicks(THINK_MS + (shotOnHole === 0 ? TEE_MS : 0));
-        readyAt = t + human.reactTicks() + think;
+        readyAt = t + Math.max(REACT_MIN_TICKS, human.reactTicks()) + MOVE_TICKS + think;
         const p = plan(s, readyAt);
         planned = p.shot;
         const waits = p.at - readyAt + (p.shot.w ?? 0);

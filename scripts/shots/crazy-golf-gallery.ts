@@ -119,9 +119,33 @@ try {
     await page.locator("[data-game-stage] canvas").first().waitFor({ timeout: 60_000 });
     await page.waitForTimeout(4500);
     note("start", webp(await page.screenshot(), "start", 585));
+    if (AFTER) {
+      // The Captain's stroke (round 2): addressing the ball, the backswing growing with the pull, then the strike.
+      const canvas = page.locator("[data-game-stage] canvas").first();
+      const box = (await canvas.boundingBox())!;
+      const x = box.x + box.width * 0.5;
+      const y = box.y + box.height * 0.5;
+      const sf: Buffer[] = [];
+      await page.mouse.move(x, y);
+      sf.push(await page.screenshot({ scale: "css" }));
+      await page.mouse.down();
+      for (let i = 1; i <= 12; i++) {
+        await page.mouse.move(x + i * 1.6, y + i * 7.5);
+        await page.waitForTimeout(60);
+        sf.push(await page.screenshot({ scale: "css" }));
+      }
+      note("aim", webp(await page.screenshot(), "aim", 585));
+      await page.mouse.up();
+      for (let i = 0; i < 18; i++) {
+        sf.push(await page.screenshot({ scale: "css" }));
+        await page.waitForTimeout(60);
+      }
+      note("clip-stroke", clip(sf, "stroke"));
+      await page.waitForTimeout(6000);
+    }
     await pull(page, 90, true);
     await page.waitForTimeout(200);
-    note("aim", webp(await page.screenshot(), "aim", 585));
+    if (!AFTER) note("aim", webp(await page.screenshot(), "aim", 585));
     // A putt clip: the release and the roll.
     const frames: Buffer[] = [];
     await page.mouse.up();

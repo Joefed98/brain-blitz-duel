@@ -4,10 +4,15 @@
  * the chosen hole is drawn large with every stroke on it (putts white, chips' flights dotted blue, each resting spot
  * numbered, water marked red, the drop ringed gold). Under it, the hole in one plain line and the key numbers behind
  * the score: strokes against par, holes holed, chips, water. Every revision (golfRev 1–3) draws this way.
+ *
+ * Its moments are the shared effects kit's (src/lib/fx/kit.ts, #422): each scorecard cell lands with `drop` in turn,
+ * a hole under par lands as `match`, and the strokes count up (`FxCountUp`). Silent: the reveal plays its own sounds.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import { FxCountUp } from "@/components/fx/GameFx";
 import { drawMinigolfRevealHole } from "@/lib/arcade/minigolf.renderer";
+import { gameFx } from "@/lib/fx/kit";
 import { MINIGOLF_HOLES } from "@/lib/arcade/minigolf";
 import { minigolfShotTrace } from "@/lib/duel/minigolf";
 import type { MinigolfPuzzleData } from "@/lib/duel/types";
@@ -46,6 +51,14 @@ export function MinigolfReveal({ puzzle, answer }: { puzzle: MinigolfPuzzleData;
   const [sel, setSel] = useState(first);
   useEffect(() => setSel(first), [first]);
   const canvas = useRef<HTMLCanvasElement | null>(null);
+  const card = useRef<HTMLOListElement | null>(null);
+  // The scorecard fills hole by hole (the kit's drop; a hole under par its match), once per reveal.
+  useEffect(() => {
+    const cells = card.current?.querySelectorAll<HTMLButtonElement>("button") ?? [];
+    cells.forEach((el, i) => {
+      gameFx(el.dataset["result"] === "under" ? "match" : "drop", el, { delayMs: i * 140, silent: true, inGame: false });
+    });
+  }, [trace]);
   const hole = s.course[sel]!;
   const aspect = (hole.box.w + 12) / (hole.box.h + 12);
 
@@ -81,7 +94,7 @@ export function MinigolfReveal({ puzzle, answer }: { puzzle: MinigolfPuzzleData;
 
   return (
     <div data-minigolf-reveal="">
-      <ol data-scorecard="" aria-label="Scorecard">
+      <ol ref={card} data-scorecard="" aria-label="Scorecard">
         {Array.from({ length: MINIGOLF_HOLES }, (_, i) => {
           const holed = s.holed[i] === 1;
           const taken = s.taken[i] ?? 0;
@@ -94,7 +107,6 @@ export function MinigolfReveal({ puzzle, answer }: { puzzle: MinigolfPuzzleData;
                 aria-pressed={sel === i}
                 aria-label={`Hole ${i + 1}, par ${par}: ${holeWord(taken, par, holed)}`}
                 data-result={result}
-                style={{ "--i": i } as React.CSSProperties}
                 onClick={() => setSel(i)}
               >
                 <span data-cell-hole="">Hole {i + 1}</span>
@@ -114,7 +126,9 @@ export function MinigolfReveal({ puzzle, answer }: { puzzle: MinigolfPuzzleData;
       <dl data-key-numbers="">
         <div>
           <dt>Strokes</dt>
-          <dd>{strokesTotal}</dd>
+          <dd>
+            <FxCountUp value={strokesTotal} silent />
+          </dd>
         </div>
         <div>
           <dt>{allHoled ? "Against par" : "Holed"}</dt>
