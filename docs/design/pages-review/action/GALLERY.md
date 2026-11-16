@@ -211,6 +211,12 @@ squiggle. Now the path folds into rows that keep every stretch at least 34 px wi
 
 Frames: `bun scripts/shots/swing-reveal-shots.ts [--old=<renderer file>] [--tag=before]`.
 
+**Expert** (16 Nov 2026: the vine swings 45 % faster on Expert, 25 % on Hard, so the release asks for tighter timing).
+Dealt Expert course 416796831, the human-limited elite bot from 62 s to 67 s (around stretch 41 of 52), server score 200;
+`bun scripts/shots/action-expert-clip.ts swing 416796831 --from=62 --secs=5` (70 KB):
+
+![Grappler Expert](swing/expert-clip.webp)
+
 
 ## Moon Climb
 

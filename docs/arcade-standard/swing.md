@@ -167,36 +167,37 @@ intro is up (`prepareSwingCourse(seed, rev, level)`).
   the faster vine), and the flawless oracle still hits its exact tick, so each rebuilt deal keeps exactly 200 on every
   course. Levers kept on the route (reach, stall, pterodactyl) are unchanged: tightening them broke the proof before.
 - **"King of the swingers"** ("Get 70 % of the way on Expert", the Course part full) is met on every sampled Expert
-  witness (swing-levels-check 7b) and by the elite bot on all 8 measured Expert courses.
+  witness (swing-levels-check 7b), on the rebuilt deal as on the first.
 - **Why the stall limits are where they are.** The elite bot's grab-to-grab gaps run 15–68 ticks (median 22, 95th
   percentile 42), so Joe's "about 130" changed nothing for strong players. At 40 / 32 ticks the near-perfect bot fell to
   about 166 on Expert, but the flawless oracle no longer reached 200 on any course (0 of 6), so no proved deal could be
   built; 55 / 50 is the tightest where it still does (about 1 course in 3–4).
 
-### Measured (15–16 Nov 2026)
+### Measured (16 Nov 2026, with the faster vine on Hard and Expert; information only)
 
-`bun scripts/action-levels-bands.ts swing --level=<level> --seeds=6|8 --each` (real deals, graded by the server; human
+`bun scripts/action-levels-bands.ts swing --level=<level> --seeds=6 --each` (real deals, graded by the server; human
 limits: a ledge press reacts no sooner than 0.25 s, a grab comes no sooner than 0.15 s after the release; a release on
-the swing is a timed moment with the level's own timing error):
+the swing is a timed moment with the level's own timing error). Averages over 6 dealt courses a level; Joe: bots play
+differently from people, and his playtest decides.
 
 | Bot | Easy | Normal | Hard | Expert |
 |---|---|---|---|---|
-| Average | 112.5 | 86.3 | | |
-| Good | 138.8 | | | |
-| Great | | 156.5 | 156.8 | 150.1 |
-| Near-perfect | | 191.7 | 193.5 | 188.9 |
-| Elite | 199.0 | 198.8 | 197.0 | 197.0 |
-| Flawless | 200 (the deal's proof) | 200 | 200 | 200 |
+| Weak | 88.3 | 61.8 | 67.3 | 67.2 |
+| Average | 112.5 | 86.3 | 89.0 | 78.5 |
+| Good | 138.8 | 114.5 | 114.7 | 111.7 |
+| Great | 158.2 | 156.5 | 147.2 | 157.7 |
+| Near-perfect | 196.8 | 191.7 | 198.0 | 195.2 |
+| Elite | 199.0 | 198.8 | 199.5 | 198.0 |
+| Flawless | 200 | 200 | 200 | 200 |
 
-The shared tool (main's `bun scripts/level-tune.ts swing --level=all --seeds=4`, checkpoints every 300 ticks as
-Grappler's own, no human limits) gives near-perfect / elite 193.3 / 198.0 Easy, 187.5 / 199.0 Normal, 186.0 / 194.3 Hard,
-186.0 / 190.3 Expert ("finished" there is clearing every stretch: 75 / 25 / 0 / 0 % of elite runs).
+What it shows: the bots plan their releases with the sim's own look-ahead and the elite bot's timing error is about half
+a tick, so the faster swing barely touches it (the deal's proof plays at an exact tick, as it must). The average player
+drops on Expert (78.5 against Normal's 86.3); weak and great move by noise-sized amounts on six courses. The faster swing
+is a design change for people's timing, kept without re-tuning (Joe, 16 Nov 2026).
 
-Easy is a clear step down (an average player +26, a good one well clear of Normal), but Grappler's strong players are near
-the ceiling at every level: Hard and Expert step down only a few points for great and near-perfect play, and the elite
-bot scores 193–200 on every Expert course (Expert courses to play, dealt seeds with the elite score: 1492875028 (200),
-138730531 (198), 310905574 (198), 1476148260 (197), 1089691770 (196), 843969757 (196), 794825887 (193)). A clearer step
-needs a decision from Joe (below the stall limits the proof breaks; see above).
+Expert courses to play (dealt seeds, the human-limited elite's server score): 416796831 (200, the gallery clip),
+519412512 (198), 527841388 (198), 1116863695 (198), 1492875028 (196). "King of the swingers" (70 % of the way on Expert) is met on
+every Expert course's witness (swing-levels-check 7b; with `CHECKS_FULL=1`, all 24).
 
 ## The jungle canopy (3 Nov 2026, the Action polish; display only, swingRev 17)
 
