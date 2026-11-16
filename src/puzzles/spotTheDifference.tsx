@@ -1,6 +1,6 @@
 import { SWEET_NAMES } from "@/components/puzzles/refreshIcons";
 import { registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
-import { useGoalProgress } from "@/components/duel/GameFrame";
+import { useGoalProgress, useLevelGoal } from "@/components/duel/GameFrame";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useGameKeys } from "@/lib/desktop";
 import { memo, useEffect, useMemo, useRef, useState } from "react";
@@ -26,6 +26,7 @@ import { RevealLegend, RevealStats, RevealTabs } from "@/components/puzzles/atte
 import { attnSound } from "@/components/puzzles/attention/attentionFx";
 import { gameFx } from "@/lib/fx/kit";
 import { spotWaitsForNext } from "@/lib/duel/attentionOverhaul";
+import { spotGridOf, spotPerPicture } from "@/lib/duel/attentionLevels";
 import { SPOT_BONUS_SCALE, SPOT_DEPTH_REV } from "@/lib/duel/depth/doubleTake";
 import { ATTENTION_REWORK_TIME_MS, SPOT_TWO_WRONG_LIMIT, parseSpotTaps, spotScenes, type SpotTheme } from "@/lib/duel/attentionRev";
 import { reefLabel } from "./doubleTakeReef";
@@ -69,18 +70,19 @@ const PANEL_W = SPOT_COLS * CELL_W;
 const PANEL_H = SPOT_ROWS * CELL_H;
 const SHAPE = 36;
 
-function cellCentre(cell: number): { x: number; y: number } {
-  const col = cell % SPOT_COLS;
-  const row = Math.floor(cell / SPOT_COLS);
+/** A cell's centre; `cols`: the picture's columns (a level's own grid, else today's eight). */
+function cellCentre(cell: number, cols: number = SPOT_COLS): { x: number; y: number } {
+  const col = cell % cols;
+  const row = Math.floor(cell / cols);
   return { x: col * CELL_W + CELL_W / 2, y: row * CELL_H + CELL_H / 2 };
 }
 
 /** Chebyshev distance in cells — used to keep the differences apart. */
-function cellsApart(a: number, b: number): number {
-  const ac = a % SPOT_COLS;
-  const ar = Math.floor(a / SPOT_COLS);
-  const bc = b % SPOT_COLS;
-  const br = Math.floor(b / SPOT_COLS);
+function cellsApart(a: number, b: number, cols: number = SPOT_COLS): number {
+  const ac = a % cols;
+  const ar = Math.floor(a / cols);
+  const bc = b % cols;
+  const br = Math.floor(b / cols);
   return Math.max(Math.abs(ac - bc), Math.abs(ar - br));
 }
 
@@ -106,8 +108,8 @@ function sweetLabel(label: string): string {
   return label.replace(/\b(circle|square|triangle|star|hexagon|arrow)\b/g, kind => SWEET_NAMES[kind as SpotShapeKind]).replace('A shape', 'A sweet');
 }
 
-function DrawnShape({ shape, size = SHAPE, theme = "shop" }: { shape: SpotShape; size?: number; theme?: SpotTheme }) {
-  const { x, y } = cellCentre(shape.cell);
+function DrawnShape({ shape, size = SHAPE, theme = "shop", cols = SPOT_COLS }: { shape: SpotShape; size?: number; theme?: SpotTheme; cols?: number }) {
+  const { x, y } = cellCentre(shape.cell, cols);
   // spotRev 2's hidden difference: the same art, a little smaller.
   const scale = (size / 40) * (shape.small ? SPOT_BONUS_SCALE : 1);
   const turns = [
@@ -125,11 +127,11 @@ function DrawnShape({ shape, size = SHAPE, theme = "shop" }: { shape: SpotShape;
 }
 
 /** The sweets of one picture; re-rendered only when the picture itself changes. */
-const SweetLayer = memo(function SweetLayer({ shapes, size, theme }: { shapes: SpotShape[]; size: number; theme: SpotTheme }) {
+const SweetLayer = memo(function SweetLayer({ shapes, size, theme, cols }: { shapes: SpotShape[]; size: number; theme: SpotTheme; cols: number }) {
   return (
     <g pointerEvents="none">
       {shapes.map((shape) => (
-        <DrawnShape key={`${shape.cell}-${shape.kind}${shape.small ? "-s" : ""}`} shape={shape} size={size} theme={theme} />
+        <DrawnShape key={`${shape.cell}-${shape.kind}${shape.small ? "-s" : ""}`} shape={shape} size={size} theme={theme} cols={cols} />
       ))}
     </g>
   );
@@ -143,11 +145,16 @@ export function Panel({
   wrongCell,
   onTap,
   height,
-  rows = SPOT_ROWS,
+  rows,
   fitHeight = false,
   shapeSize = SHAPE,
   theme = "shop",
+  cols = SPOT_COLS,
+  gridRows = SPOT_ROWS,
 }: {
+  /** The picture's grid (a level's own, else today's 8 × 6). */
+  cols?: number;
+  gridRows?: number;
   /** Which picture: the sweet shop or (spotRev 1, picture 2) the rock pool. */
   theme?: SpotTheme;
   shapes: SpotShape[];
@@ -166,9 +173,12 @@ export function Panel({
   fitHeight?: boolean;
   shapeSize?: number;
 }) {
+  const panelW = cols * CELL_W;
+  const panelH = gridRows * CELL_H;
+  const at = (cell: number) => cellCentre(cell, cols);
   return (
     <svg
-      viewBox={`0 0 ${PANEL_W} ${rows * CELL_H}`}
+      viewBox={`0 0 ${panelW} ${(rows ?? gridRows) * CELL_H}`}
       width="100%"
       preserveAspectRatio="xMidYMid meet"
       {...(height ? { height } : {})}
@@ -181,14 +191,14 @@ export function Panel({
         href={attentionArt("spotdiff", theme === "reef" ? "rockpool" : "shelves")}
         x={0}
         y={0}
-        width={PANEL_W}
-        height={PANEL_H}
+        width={panelW}
+        height={panelH}
         preserveAspectRatio="xMidYMin slice"
         data-dt-backdrop={theme}
       />
-      <SweetLayer shapes={shapes} size={shapeSize} theme={theme} />
+      <SweetLayer shapes={shapes} size={shapeSize} theme={theme} cols={cols} />
       {missed.map((cell) => {
-        const { x, y } = cellCentre(cell);
+        const { x, y } = at(cell);
         return (
           <ellipse
             key={`m${cell}`}
@@ -204,7 +214,7 @@ export function Panel({
         );
       })}
       {found.map((cell) => {
-        const { x, y } = cellCentre(cell);
+        const { x, y } = at(cell);
         return (
           <ellipse
             key={`f${cell}`}
@@ -222,7 +232,7 @@ export function Panel({
         );
       })}
       {hidden.map((cell) => {
-        const { x, y } = cellCentre(cell);
+        const { x, y } = at(cell);
         return (
           <g key={`h${cell}`} className="dt-ring-hidden" data-dt-hidden-found={cell} style={{ transformBox: "fill-box", transformOrigin: "center" }}>
             <ellipse cx={x} cy={y} rx={CELL_W / 2 - 2} ry={CELL_H / 2 - 2} fill="none" stroke="var(--primary)" strokeWidth="2.5" />
@@ -232,7 +242,7 @@ export function Panel({
       })}
       {wrongCell !== null && wrongCell !== undefined
         ? (() => {
-            const { x, y } = cellCentre(wrongCell);
+            const { x, y } = at(wrongCell);
             return (
               <ellipse
                 data-dt-wrong=""
@@ -249,8 +259,8 @@ export function Panel({
           })()
         : null}
       {onTap
-        ? Array.from({ length: SPOT_CELLS }, (_, cell) => {
-            const { x, y } = cellCentre(cell);
+        ? Array.from({ length: cols * gridRows }, (_, cell) => {
+            const { x, y } = at(cell);
             return (
               <rect
                 key={`t${cell}`}
@@ -381,6 +391,8 @@ export function spotTapIgnored(sceneTaps: number[], foundCells: number[], hidden
 
 function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data = puzzle.type === "spotdiff" ? puzzle : null;
+  // A level's pictures (stage 3 of the Attention overhaul) have their own grid; every other round today's 8 × 6.
+  const grid = spotGridOf(data);
   const scenes = useMemo(() => (data ? spotScenes(data) : []), [data]);
   const twoPictures = scenes.length > 1;
   const key = scenes.map((sc) => sc.top.map((s) => `${s.cell}${s.kind}${s.colour}`).join("|")).join("/");
@@ -401,7 +413,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
   const hasHidden = allHidden.some((cells) => cells.length > 0);
   const glow = useRef<() => void>(() => undefined);
   glow.current = () => {
-    if (arenaRef.current) playDifferenceGlow(arenaRef.current, groups.flat(), { cols: SPOT_COLS, cell: CELL_W, width: PANEL_W, height: PANEL_H });
+    if (arenaRef.current) playDifferenceGlow(arenaRef.current, groups.flat(), { cols: grid.cols, cell: CELL_W, width: grid.cols * CELL_W, height: grid.rows * CELL_H });
   };
   useEffect(() => registerFxPreview("spotdiff", () => glow.current()), []);
 
@@ -415,7 +427,10 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
   const sceneTaps = taps[scene] ?? [];
   const foundGroups = groups.filter((g) => g.some((cell) => sceneTaps.includes(cell)));
   const foundCells = foundGroups.flat();
-  const total = Math.min(SPOT_DIFFERENCES, groups.length) || SPOT_DIFFERENCES;
+  const perPicture = spotPerPicture(data);
+  // A level's pictures (stage 3): the goal line says their own count of differences.
+  useLevelGoal("spotdiff", data && perPicture !== 6 ? `Find ${perPicture} differences in each` : null);
+  const total = Math.min(perPicture, groups.length) || perPicture;
   const groupCells = new Set([...groups.flat(), ...hidden]);
   const misses = sceneTaps.filter((c) => !groupCells.has(c)).length;
   const hiddenFound = hidden.filter((c) => sceneTaps.includes(c));
@@ -558,11 +573,11 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
       >
         <div data-dt-panels="" className="flex min-h-0 flex-1 flex-col gap-3">
           <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-            <Panel shapes={current.top} theme={current.theme} found={foundCells} hidden={hiddenFound} wrongCell={wrong} onTap={tap} fitHeight shapeSize={SHAPE} />
+            <Panel shapes={current.top} theme={current.theme} found={foundCells} hidden={hiddenFound} wrongCell={wrong} onTap={tap} fitHeight shapeSize={SHAPE} cols={grid.cols} gridRows={grid.rows} />
           </div>
           <div className="h-px w-full shrink-0 bg-border" aria-hidden="true" />
           <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
-            <Panel shapes={current.bottom} theme={current.theme} found={foundCells} hidden={hiddenFound} wrongCell={wrong} onTap={tap} fitHeight shapeSize={SHAPE} />
+            <Panel shapes={current.bottom} theme={current.theme} found={foundCells} hidden={hiddenFound} wrongCell={wrong} onTap={tap} fitHeight shapeSize={SHAPE} cols={grid.cols} gridRows={grid.rows} />
           </div>
         </div>
       </div>
@@ -701,6 +716,8 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
       <div className="dt-reveal-panels dt-arena w-full overflow-hidden rounded-2xl border border-border bg-card p-1" data-dt-theme={pic.scene.theme} data-dt-reveal-side={panelSide}>
         <div className="w-full overflow-hidden rounded-lg">
           <Panel
+            cols={spotGridOf(puzzle).cols}
+            gridRows={spotGridOf(puzzle).rows}
             shapes={panelSide === "top" ? pic.scene.top : pic.scene.bottom}
             theme={pic.scene.theme}
             found={pic.foundCells}
@@ -762,8 +779,8 @@ function otherColour(colour: StroopColour): StroopColour {
 }
 
 /** Fills every cell of the grid — both panels are complete pictures. */
-function fillGrid(): SpotShape[] {
-  return Array.from({ length: SPOT_CELLS }, (_, cell) => {
+function fillGrid(cells: number = SPOT_CELLS): SpotShape[] {
+  return Array.from({ length: cells }, (_, cell) => {
     const kind = pick(KINDS);
     const shape: SpotShape = { cell, kind, colour: pick(COLOUR_KEYS) };
     if (TURNABLE.includes(kind) && Math.random() < 0.4) shape.rot = 90;
@@ -846,9 +863,9 @@ export function buildSpotDifference(): SpotPuzzleData {
  * spotRev 2: one shape, at least two cells from every counted difference, drawn smaller in one panel (either), so
  * the picture differs in a seventh way the "n / 6" count never shows. Null only if no cell is far enough away.
  */
-function hideBonus(pic: { top: SpotShape[]; bottom: SpotShape[]; differences: SpotDifference[] }): { top: SpotShape[]; bottom: SpotShape[]; bonus: SpotDifference } | null {
+export function hideBonus(pic: { top: SpotShape[]; bottom: SpotShape[]; differences: SpotDifference[] }, cols: number = SPOT_COLS): { top: SpotShape[]; bottom: SpotShape[]; bonus: SpotDifference } | null {
   const used = pic.differences.flatMap((d) => d.cells);
-  const options = pic.top.filter((shape) => used.every((cell) => cellsApart(cell, shape.cell) >= 2));
+  const options = pic.top.filter((shape) => used.every((cell) => cellsApart(cell, shape.cell, cols) >= 2));
   if (options.length === 0) return null;
   const cell = pick(options).cell;
   const inTop = Math.random() < 0.5;
@@ -866,12 +883,29 @@ export function hiddenCells(top: SpotShape[], bottom: SpotShape[]): number[] {
   return top.flatMap((shape) => ((shape.small ?? false) !== (byBottom.get(shape.cell)?.small ?? false) ? [shape.cell] : []));
 }
 
-function buildSpotPicture(): SpotPuzzleData {
+/** The levers a picture is built to: its grid, its count of differences, and the kinds drawn (repeats weight a kind). */
+export interface SpotPictureLevers {
+  cols: number;
+  rows: number;
+  differences: number;
+  kinds: readonly SpotDifferenceKind[];
+}
+
+const TODAY_PICTURE: SpotPictureLevers = { cols: SPOT_COLS, rows: SPOT_ROWS, differences: SPOT_DIFFERENCES, kinds: ["colour", "kind", "turn"] };
+
+/** One picture pair at a level (stage 3 of the Attention overhaul): today's builder on the level's levers. */
+export function buildSpotPictureAt(l: SpotPictureLevers): Pick<SpotPuzzleData, "top" | "bottom"> & { differences: SpotDifference[] } {
+  const { top, bottom, differences = [] } = buildSpotPicture(l);
+  return { top, bottom, differences };
+}
+
+function buildSpotPicture(l: SpotPictureLevers = TODAY_PICTURE): SpotPuzzleData {
   // Only changes that work on a full grid: a colour, a shape, or a turn.
-  const ALL: SpotDifferenceKind[] = ["colour", "kind", "turn"];
+  const ALL: readonly SpotDifferenceKind[] = l.kinds;
+  const SPOT_DIFFERENCES = l.differences;
 
   for (let attempt = 0; attempt < 400; attempt++) {
-    const top = fillGrid();
+    const top = fillGrid(l.cols * l.rows);
     const candidates = shuffled(top);
 
     const bottom = new Map(top.map((s) => [s.cell, { ...s }]));
@@ -881,7 +915,7 @@ function buildSpotPicture(): SpotPuzzleData {
     for (const shape of candidates) {
       if (differences.length === SPOT_DIFFERENCES) break;
       // Differences never sit next to each other.
-      if (usedCells.some((cell) => cellsApart(cell, shape.cell) < 2)) continue;
+      if (usedCells.some((cell) => cellsApart(cell, shape.cell, l.cols) < 2)) continue;
       const applied = applyDifference(pick(shuffled(ALL)), shape);
       if (!applied) continue;
       bottom.set(applied.bottom.cell, applied.bottom);

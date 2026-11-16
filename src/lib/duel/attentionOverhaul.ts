@@ -15,7 +15,11 @@
  *     orange or pink / purple) over six shapes (the hexagon and the diamond added), and turning a third card while a
  *     miss is showing turns the miss back at once. Replay and scoring are pairRev 3's.
  *
- * Eagle Eye, Labyrinth and Bomb Defusal change look, sound, help and input only (no stamp): their levels come later.
+ *   - Eagle Eye `scanRev 5` (SCAN_REV_MINUTE, the levels' stage): a 60 s clock at every level, speed full by the
+ *     level's time; Normal's grids and every other rule are scanRev 4's.
+ *
+ * Labyrinth and Bomb Defusal change look, sound, help and input here; their levels deal on their own levers
+ * (attentionLevels.server.ts).
  *
  * Every older stamp deals, grades and reads exactly as before. Checks written for the stamps before pin new deals to
  * them with `pinPreAttentionOverhaul(true)`. Shared by phone and server, pure but for the deal's seeded picks.
@@ -23,7 +27,8 @@
 import { dealPinned, setDealPin } from "./dealEra";
 import { PAIR_ENAMEL, SPOT_ENAMEL, TALLY_ENAMEL, lightnessApart } from "./attentionPalette.data";
 import { pick, randInt, randomBelow, shuffled } from "./random";
-import type { CountUpPuzzleData, CountUpShape, CountUpStage, GlyphColour, PairCard, PairPuzzleData, SpotPuzzleData, SpotShape, StroopColour } from "./types";
+import type { CountUpPuzzleData, CountUpShape, CountUpStage, GlyphColour, PairCard, PairPuzzleData, SpotPuzzleData, SpotShape, StroopColour, SymbolScanPuzzleData } from "./types";
+import { SCAN_MINUTE_MS } from "@/lib/levels/attentionLevels.data";
 
 /** Double Take's stamp on the scoring standard (standard/stamps.ts, one above its live 2) and the hidden difference. */
 export const SPOT_REV_STANDARD = 3;
@@ -37,6 +42,15 @@ export const COUNT_REV_MARKS = 7;
 export const PAIR_REV_STANDARD = 3;
 /** Matchmaker: five legible colours over six shapes, a third card skips the flip-back wait. */
 export const PAIR_REV_CLEAR = 4;
+
+/** Eagle Eye's stamp on the scoring standard. */
+export const SCAN_REV_STANDARD = 4;
+/**
+ * Eagle Eye `scanRev 5` (the overhaul's levels, stage 3): every level, Normal included, on a 60 s clock (SCAN_MINUTE_MS,
+ * stored on the puzzle), speed full by the level's own time (attentionLevels.data.ts SCAN_LEVELS). Normal's grids are
+ * scanRev 4's; everything else grades as scanRev 4 does.
+ */
+export const SCAN_REV_MINUTE = 5;
 
 /** Checks written for the stamps before 15 Nov 2026's overhaul deal them; returns the previous setting. */
 export function pinPreAttentionOverhaul(on: boolean): boolean {
@@ -57,6 +71,8 @@ export const spotWaitsForNext = (puzzle: unknown): boolean => (typed<SpotPuzzleD
 /** Tally countRev 7+: spread trays and tap-to-mark. */
 export const tallySpread = (puzzle: unknown): boolean => (typed<CountUpPuzzleData>(puzzle, "countup")?.countRev ?? 0) >= COUNT_REV_MARKS;
 /** Matchmaker pairRev 4+: the clear palette and the quick flip-back. */
+/** Eagle Eye scanRev 5+: the 60 s clock and the level's speed. */
+export const scanMinute = (puzzle: unknown): boolean => (typed<SymbolScanPuzzleData>(puzzle, "symscan")?.scanRev ?? 0) >= SCAN_REV_MINUTE;
 export const pairClear = (puzzle: unknown): boolean => (typed<PairPuzzleData>(puzzle, "pairmatch")?.pairRev ?? 0) >= PAIR_REV_CLEAR;
 
 /**
@@ -69,6 +85,8 @@ export function dealAttentionOverhaul<T extends { type: string }>(puzzle: T): T 
   if (spot && spot.spotRev === SPOT_REV_STANDARD) return { ...legibleSpot(spot), spotRev: SPOT_REV_NEXT } as unknown as T;
   const count = typed<CountUpPuzzleData>(puzzle, "countup");
   if (count && count.countRev === COUNT_REV_NOTES) return { ...spreadTally(count), countRev: COUNT_REV_MARKS } as unknown as T;
+  const scan = typed<SymbolScanPuzzleData>(puzzle, "symscan");
+  if (scan && scan.scanRev === SCAN_REV_STANDARD) return { ...scan, scanRev: SCAN_REV_MINUTE, timeLimitMs: SCAN_MINUTE_MS } as unknown as T;
   const pair = typed<PairPuzzleData>(puzzle, "pairmatch");
   if (pair && pair.pairRev === PAIR_REV_STANDARD) return { ...clearPairBoard(pair), pairRev: PAIR_REV_CLEAR } as unknown as T;
   return puzzle;
@@ -116,6 +134,7 @@ const TALLY_COLOURS = Object.keys(TALLY_ENAMEL) as GlyphColour[];
 export function tallyCountedColours(stage: CountUpStage): GlyphColour[] {
   if (stage.compare) return [stage.compare.more, stage.compare.less];
   if (stage.ask === "shape") return [];
+  if (stage.alsoColour) return [stage.targetColour, stage.alsoColour];
   return [stage.targetColour];
 }
 

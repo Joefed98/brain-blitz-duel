@@ -508,6 +508,7 @@ const ENTRIES = {
   "maze.back": { channel: "effects", frequency: 0, ms: 40, url: null },
   "maze.deadEnd": { channel: "effects", frequency: 0, ms: 300, url: null },
   "bomb.step": { channel: "effects", frequency: 0, ms: 50, url: null },
+  "bomb.instant": { channel: "effects", frequency: 0, ms: 800, url: null },
   "pairmatch.flip": { channel: "effects", frequency: 0, ms: 100, url: null },
   "pairmatch.match": { channel: "effects", frequency: 0, ms: 350, url: null },
   "pairmatch.miss": { channel: "effects", frequency: 0, ms: 150, url: null },

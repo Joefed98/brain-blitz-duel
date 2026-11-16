@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ElementType, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ElementType, type ReactNode } from "react";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { boardBox } from "@/lib/boardBox";
@@ -71,6 +71,37 @@ const SHORT_GOALS: Partial<Record<PuzzleType, string>> = {
 
 export function frameGoal(type: PuzzleType): string {
   return SHORT_GOALS[type] ?? puzzleGoal(type).replace(/\.$/, "");
+}
+
+/**
+ * A level's own goal (the Attention overhaul's levels: "Find all 21 pairs" on Expert), published by the stage while it is
+ * up and read by the goal line and the computer's side panel in place of the game's fixed goal. Display only.
+ */
+let levelGoal: { type: PuzzleType; text: string } | null = null;
+const levelGoalListeners = new Set<() => void>();
+export function publishLevelGoal(type: PuzzleType, text: string | null): void {
+  const next = text ? { type, text } : null;
+  if (levelGoal?.type === next?.type && levelGoal?.text === next?.text) return;
+  levelGoal = next;
+  levelGoalListeners.forEach((l) => l());
+}
+
+/** The goal line's text: a level's own goal while its stage publishes one, else the game's. */
+export function useFrameGoal(type: PuzzleType): string {
+  const own = useSyncExternalStore(
+    (l) => (levelGoalListeners.add(l), () => levelGoalListeners.delete(l)),
+    () => (levelGoal && levelGoal.type === type ? levelGoal.text : null),
+    () => null,
+  );
+  return own ?? frameGoal(type);
+}
+
+/** A stage's level goal, published while it is mounted (null: the game's own goal). */
+export function useLevelGoal(type: PuzzleType, text: string | null): void {
+  useEffect(() => {
+    publishLevelGoal(type, text);
+    return () => publishLevelGoal(type, null);
+  }, [type, text]);
 }
 
 /**
@@ -283,11 +314,12 @@ export function useGoalProgress(progress: GoalProgress): boolean {
 export function GoalLine({ type, children }: { type: PuzzleType; children: ReactNode }) {
   const [progress, setProgress] = useState<GoalProgress | null>(null);
   const bar = GOAL_BAR_GAMES.has(type);
+  const goalText = useFrameGoal(type);
   return (
     <GoalLineContext.Provider value={setProgress}>
       <div data-goal-line data-goal-bar={bar ? "" : undefined} className="game-goal-line">
         <div className="game-goal-row">
-          <span data-goal-text className="game-goal-text">{frameGoal(type)}</span>
+          <span data-goal-text className="game-goal-text">{goalText}</span>
           {progress ? <span data-goal-progress className="game-goal-progress">{progress.text}</span> : null}
         </div>
         {bar ? (

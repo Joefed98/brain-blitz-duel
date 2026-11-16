@@ -17,6 +17,7 @@ import { puzzleNotesDealt } from "./puzzleNotes";
 import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attentionTexts";
 import { parMovesDealt, parStrictDealt } from "./parMoves";
 import { preAttentionOverhaulPinned } from "./attentionOverhaul";
+import { ATTENTION_LEVEL_HELP } from "./attentionLevels";
 
 /** The Attention overhaul's help (15 Nov 2026, attentionOverhaul.ts) while its stamps are dealt. */
 const attentionOverhaulDealt = () => !preAttentionOverhaulPinned();
@@ -499,8 +500,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap each eagle", detail: "facing the target’s way." },
         { action: "Press Submit", detail: "to lock the grid." },
-        { action: "Three grids,", detail: "each bigger, in 30 seconds." },
+        // The Attention overhaul's levels (scanRev 5): a 60 s clock at every level.
+        { action: "Three grids,", detail: attentionOverhaulDealt() ? "each bigger, in 60 seconds." : "each bigger, in 30 seconds." },
         { action: "Grid 3 has two targets:", detail: "tap every eagle facing either one.", helpOnly: true },
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.symscan, helpOnly: true }] : []),
       ],
       score: STANDARD_ATTENTION_HELP.symscan(),
     },
@@ -518,6 +521,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           ? { action: "Next picture", detail: "moves on (Done on the last); you can’t go back.", helpOnly: true }
           : { action: "Next picture", detail: "moves on early; you can’t go back.", helpOnly: true },
         ...(attentionOverhaulDealt() ? [{ action: "5 misses allowed", detail: "for the finish bonus.", helpOnly: true }] : []),
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.spotdiff, helpOnly: true }] : []),
       ],
       score: STANDARD_ATTENTION_HELP.spotdiff(),
     },
@@ -547,6 +551,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         ...(attentionOverhaulDealt() ? [{ action: "Tap a shape", detail: "to mark it as counted (a dot stays on it)." }] : []),
         { action: "Four trays", detail: "share 60 seconds.", helpOnly: true },
         { action: "Colours", detail: "are red, blue, green, purple, pink, orange and white.", helpOnly: true },
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.countup, helpOnly: true }] : []),
       ],
       score: STANDARD_ATTENTION_HELP.countup(),
     },
@@ -695,6 +700,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         // The Attention overhaul (15 Nov 2026): backtracking and the controls, said plainly.
         { action: "Backtracking", detail: "counts against par: every step walked counts, back ones too.", helpOnly: true },
         { action: "Arrows or joystick:", detail: "choose in the game menu or in Settings.", helpOnly: true },
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.maze, helpOnly: true }] : []),
       ],
       // The scoring standard (mazeRev 3): standard/attentionTexts.ts.
       score: parMovesDealt() ? PAR_MOVES_MAZE_HELP() : STANDARD_ATTENTION_HELP.maze(),
@@ -735,7 +741,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           : { action: "Reset", detail: "clears your steps; a wrong order explodes at DEFUSE." },
         { action: "Clues say", detail: "which step an action is, what comes before or straight after what, and what not to do. “Before” means any time earlier.", helpOnly: true },
         { action: "Only one order fits:", detail: "the clues together allow exactly one six-step sequence, and every clue is needed.", helpOnly: true },
-        { action: "Wires", detail: "are numbered 1–7 from the left.", helpOnly: true },
+        { action: "Wires", detail: attentionOverhaulDealt() ? "are numbered from 1 on the left (Normal has 7)." : "are numbered 1–7 from the left.", helpOnly: true },
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.bomb, helpOnly: true }] : []),
       ],
       score: logicStandardHelp("bomb"),
     },
@@ -790,6 +797,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Remember", detail: "where each card was." },
         // The streak and the gold pair, one short line.
         { action: "Bonus:", detail: "match in a row for a streak; find the gold pair in 30 s." },
+        ...(attentionOverhaulDealt() ? [{ action: "Levels:", detail: ATTENTION_LEVEL_HELP.pairmatch, helpOnly: true }] : []),
       ],
       score: STANDARD_ATTENTION_HELP.pairmatch(),
     },

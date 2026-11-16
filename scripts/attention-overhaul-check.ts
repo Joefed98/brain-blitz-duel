@@ -97,8 +97,16 @@ const L = P.lightness;
   check(deal("countup", 1, true).countRev === O.COUNT_REV_NOTES, "pinned: Tally not countRev 6");
   check(deal("pairmatch", 1, true).pairRev === O.PAIR_REV_STANDARD, "pinned: Matchmaker not pairRev 3");
   // The layer leaves every other game and every older stamp alone.
-  for (const type of ["symscan", "maze", "bomb", "reaction"]) {
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): stage 3's levels move
+  // Eagle Eye to scanRev 5 (its 60 s clock, Joe's brief), so the layer changes its deal by exactly that stamp and clock.
+  for (const type of ["maze", "bomb", "reaction"]) {
     check(JSON.stringify(deal(type, 3)) === JSON.stringify(deal(type, 3, true)), `${type}: the overhaul layer changed its deal`);
+  }
+  {
+    const { scanRev: _a, timeLimitMs: _b, ...live } = deal("symscan", 3) as AnyPuzzle;
+    const { scanRev: _c, ...pinned } = deal("symscan", 3, true) as AnyPuzzle;
+    check(JSON.stringify(live) === JSON.stringify(pinned), "symscan: the layer changed more than scanRev and the clock");
+    check(deal("symscan", 3).scanRev === O.SCAN_REV_MINUTE && deal("symscan", 3).timeLimitMs === 60_000, "symscan: not scanRev 5 on the 60 s clock");
   }
   const older = { ...deal("spotdiff", 2, true), spotRev: 2 };
   check(O.dealAttentionOverhaul(older) === older, "the layer moved a spotRev 2 puzzle");

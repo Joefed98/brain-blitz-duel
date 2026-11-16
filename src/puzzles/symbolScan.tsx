@@ -458,17 +458,17 @@ function nonAdjacentDirs(target: ArrowDir): ArrowDir[] {
   return DIRECTIONS.filter((d) => d !== target && !adjacent.includes(d));
 }
 
-function buildStage(cols: number): { stage: SymbolScanStage; targets: number[] } {
+function buildStage(cols: number, range: readonly [number, number] = [SYMSCAN_MIN_TARGETS, SYMSCAN_MAX_TARGETS], share = ADJACENT_SHARE): { stage: SymbolScanStage; targets: number[] } {
   const cellCount = cols * cols;
   const target = pick(DIRECTIONS);
-  const count = randInt(SYMSCAN_MIN_TARGETS, SYMSCAN_MAX_TARGETS);
+  const count = randInt(range[0], range[1]);
   const targets = shuffled(Array.from({ length: cellCount }, (_, i) => i))
     .slice(0, count)
     .sort((a, b) => a - b);
   const near = adjacentDirs(target);
   const far = nonAdjacentDirs(target);
   const cells = Array.from({ length: cellCount }, (_, i) =>
-    targets.includes(i) ? target : Math.random() < ADJACENT_SHARE ? pick(near) : pick(far),
+    targets.includes(i) ? target : Math.random() < share ? pick(near) : pick(far),
   );
   return { stage: { target, cols, cells }, targets };
 }
@@ -476,14 +476,14 @@ function buildStage(cols: number): { stage: SymbolScanStage; targets: number[] }
 /** scanRev 1 grid 3: eagles facing either of two directions at least 90° apart, SCAN_TWO_EACH of each. */
 export const SCAN_TWO_EACH: [number, number] = [4, 6];
 
-function buildTwoTargetStage(cols: number): { stage: SymbolScanStage; targets: number[] } {
+function buildTwoTargetStage(cols: number, each: readonly [number, number] = SCAN_TWO_EACH, share = ADJACENT_SHARE): { stage: SymbolScanStage; targets: number[] } {
   const cellCount = cols * cols;
   const target = pick(DIRECTIONS);
   const ti = DIRECTIONS.indexOf(target);
   // Never a neighbour: the two targets must read as clearly different facings.
   const alsoTarget = pick(DIRECTIONS.filter((_, i) => Math.min((i - ti + 8) % 8, (ti - i + 8) % 8) >= 2));
-  const first = randInt(SCAN_TWO_EACH[0], SCAN_TWO_EACH[1]);
-  const second = randInt(SCAN_TWO_EACH[0], SCAN_TWO_EACH[1]);
+  const first = randInt(each[0], each[1]);
+  const second = randInt(each[0], each[1]);
   const order = shuffled(Array.from({ length: cellCount }, (_, i) => i));
   const firstCells = order.slice(0, first);
   const secondCells = order.slice(first, first + second);
@@ -492,9 +492,24 @@ function buildTwoTargetStage(cols: number): { stage: SymbolScanStage; targets: n
   const near = others.filter((d) => adjacentDirs(target).includes(d) || adjacentDirs(alsoTarget).includes(d));
   const far = others.filter((d) => !near.includes(d));
   const cells = Array.from({ length: cellCount }, (_, i) =>
-    firstCells.includes(i) ? target : secondCells.includes(i) ? alsoTarget : far.length === 0 || Math.random() < ADJACENT_SHARE ? pick(near) : pick(far),
+    firstCells.includes(i) ? target : secondCells.includes(i) ? alsoTarget : far.length === 0 || Math.random() < share ? pick(near) : pick(far),
   );
   return { stage: { target, alsoTarget, cols, cells }, targets };
+}
+
+/** The levers a level's grids are built to (attentionLevels.data.ts ScanLevel). */
+export interface ScanLevers {
+  grids: readonly number[];
+  targets: readonly [number, number];
+  twoFrom: number;
+  twoEach: readonly [number, number];
+  lookalikes: number;
+}
+
+/** A level's three grids (stage 3 of the Attention overhaul): today's builders on the level's levers. */
+export function buildScanGridsAt(l: ScanLevers): { stages: SymbolScanStage[]; targets: number[][] } {
+  const built = l.grids.map((cols, i) => (i >= l.twoFrom ? buildTwoTargetStage(cols, l.twoEach, l.lookalikes) : buildStage(cols, l.targets, l.lookalikes)));
+  return { stages: built.map((b) => b.stage), targets: built.map((b) => b.targets) };
 }
 
 export function buildSymbolScan(): SymbolScanPuzzleData {

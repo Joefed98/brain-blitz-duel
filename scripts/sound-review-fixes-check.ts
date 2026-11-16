@@ -154,6 +154,7 @@ const EXEMPT: Record<string, string> = {
   "maze.back": ATTENTION_ELEVENLABS,
   "maze.deadEnd": ATTENTION_ELEVENLABS,
   "bomb.step": ATTENTION_ELEVENLABS,
+  "bomb.instant": ATTENTION_ELEVENLABS,
   "pairmatch.flip": ATTENTION_ELEVENLABS,
   "pairmatch.match": ATTENTION_ELEVENLABS,
   "pairmatch.miss": ATTENTION_ELEVENLABS,

@@ -1,5 +1,6 @@
 import { equationVerdict } from "./operatorGaps";
 import { buildArcadeReveal } from "@/lib/arcade/reveal";
+import { pairCardsOf, pairsOf, tallyTrays } from "./attentionLevels";
 import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
 import { puzzleUsesTieRev } from "./tieBreak";
 import { isRemovedType } from "./removedGames";
@@ -1084,7 +1085,7 @@ function gradeUnderRev(
     }
     case "pairmatch": {
       // The flip list is re-walked on the stored board to count the pairs found.
-      const replay = replayPairs(puzzle.cards, decodePairFlips(answer));
+      const replay = replayPairs(puzzle.cards, decodePairFlips(answer, pairCardsOf(puzzle)), pairsOf(puzzle));
       isCorrect = replay.solved;
       correctCount = replay.pairs;
       score = scorePairMatch(replay.solved, replay.pairs, ms, timeLimitMs, replay.tries);
@@ -3082,7 +3083,8 @@ function gradeUnderRev(
         const truths = puzzle.stages.map(countUpStageTruth);
         const given = truths.map((_, i) => parseCount(parts[i] ?? ""));
         correctCount = truths.filter((truth, i) => given[i] === truth).length;
-        isCorrect = truths.length === COUNT_REV2_TRAYS && correctCount === COUNT_REV2_TRAYS;
+        // A level's trays (stage 3 of the Attention overhaul): its own count; every other round four.
+        isCorrect = truths.length === tallyTrays(puzzle) && correctCount === tallyTrays(puzzle);
         score = scoreCountRev2(given, truths, ms, timeLimitMs);
         break;
       }

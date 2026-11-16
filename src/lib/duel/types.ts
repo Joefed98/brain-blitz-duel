@@ -323,6 +323,8 @@ export interface SymbolScanPuzzleData {
   targets?: number[][];
   /** Two-direction revision (14 Oct 2026): 1 = grid 3 has two target directions, rebalanced stage scores. */
   scanRev?: number;
+  /** scanRev 5 (the Attention overhaul's levels): the 60 s clock; absent before (30 s). */
+  timeLimitMs?: number;
 }
 
 export interface HuntSpot {
@@ -776,6 +778,8 @@ export interface CountUpStage {
    * shapes?"). Absent: the colour and the shape together, as every tray before.
    */
   ask?: "shape" | "colour";
+  /** Expert (the Attention overhaul's levels): the shape in either targetColour or this colour counts. */
+  alsoColour?: GlyphColour;
 }
 
 export interface CountUpPuzzleData {
@@ -1407,6 +1411,8 @@ export interface MazePuzzleData {
   cols?: number;
   rows?: number;
   stars?: number[];
+  /** A level's own clock (attentionLevels.data.ts); absent at Normal (60 s). */
+  timeLimitMs?: number;
 }
 
 /* ============================ Sort the Tubes ============================ */
@@ -1540,6 +1546,11 @@ export interface BombPuzzleData {
   bombVersion?: 2 | 3;
   /** Version 2 carries its own clock; version 1 uses BOMB_TIME_MS. */
   timeLimitMs?: number;
+  /**
+   * Expert (the Attention overhaul's levels): 1 = the first wrong step sets the bomb off at once, checked live on the
+   * server (checkMoves), with no Reset; the answer is every step made. Absent: judged only at DEFUSE.
+   */
+  bombInstant?: 1;
   /** Server-side only: the required actions, as `bA,w2`. */
   required?: string;
   /** Server-side only: the ordering the rules impose, as `bA<w2;last:w6`. */
@@ -1757,6 +1768,8 @@ export interface PairPuzzleData {
   pairRev?: number;
   /** pairRev 1: the gold pair's face (one of the fifteen), dealt on the server. */
   gold?: PairCard;
+  /** A level's own clock (attentionLevels.data.ts); absent at Normal (the game's 90 s). */
+  timeLimitMs?: number;
 }
 
 /* ============================= Colour Flood ============================= */

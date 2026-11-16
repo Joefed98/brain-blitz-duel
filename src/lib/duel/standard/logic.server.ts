@@ -15,6 +15,7 @@ import { decodeTubeLog, decodeTubeMoves, replayTubeLog, replayTubes, sortedTubeC
 import { tubesPourLimit, tubesSendsUndo, floodMoveLimit } from "../moveLimits";
 import { decodeSafePending, decodeSafeTries, dialsCorrect, safeOpenedOn } from "../safe";
 import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "../bomb";
+import { bombLevel, leveled } from "../attentionLevels";
 import { decodeNonoCells, nonoSizeOf, replayNonogram } from "../nonogram";
 import { decodeFloodMoves, replayFlood } from "../flood";
 import { decodeTents, tentsHeightOf } from "../tents";
@@ -231,7 +232,11 @@ const bomb: StandardGame = {
   parts: (p, a) => bombPrefix(p as Of<"bomb">, a).prefix,
   grade(input, ctx) {
     const p = input.puzzle as Of<"bomb">;
-    if (input.graded.isCorrect) return { finished: true, speed: speedOf("bomb", input), bonus: 0, measure: "bonus" };
+    // A level's panel (the Attention overhaul, stage 3): speed full by the level's own time.
+    if (input.graded.isCorrect) {
+      if (leveled(p)) return { finished: true, speed: speedPoints(LOGIC_STANDARD.bomb.speed, input.msLeft, input.limitMs, bombLevel(p).fullByS * 1000), bonus: 0, measure: "bonus" };
+      return { finished: true, speed: speedOf("bomb", input), bonus: 0, measure: "bonus" };
+    }
     const b = bombPrefix(p, input.answer);
     return { finished: false, credit: shareCredit(ctx, b.prefix, b.steps), facts: { correctPrefix: b.prefix } };
   },

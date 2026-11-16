@@ -85,7 +85,7 @@ export const PRACTICE_STAMPS = {
   "swapword": "puzzleScoreRev=3 speedPar=1 swapwordRev=7",
   "swerve": "puzzleScoreRev=3 speedPar=1",
   "swing": "puzzleScoreRev=3 speedPar=1 swingRev=17",
-  "symscan": "puzzleScoreRev=3 scanRev=4 speedPar=1",
+  "symscan": "puzzleScoreRev=3 scanRev=5 speedPar=1",
   "target": "depthRev=4 puzzleScoreRev=3 speedPar=1",
   "tendrop": "puzzleScoreRev=3 speedPar=1 tenRev=5",
   "tents": "depthRev=2 notesRev=1 puzzleScoreRev=3 speedPar=1",

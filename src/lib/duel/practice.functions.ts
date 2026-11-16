@@ -523,7 +523,7 @@ export const practiceCheckMovesFn = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }) => {
     const type = data.puzzle?.type;
-    if (type !== "strikeout" && type !== "codeword" && type !== "swapword") return null;
+    if (type !== "strikeout" && type !== "codeword" && type !== "swapword" && !(type === "bomb" && data.puzzle.bombInstant)) return null;
     if (!(await practiceLimit("check"))) return null;
     const { priv, pub } = await openDealOrThrow(data.sealed, data.puzzle);
     const { checkPuzzleMoves } = await import("./moves.server");

@@ -35,6 +35,7 @@ shared screens.
 | `bomb.cut` | A wire is cut | 220 ms recoil, 300 ms sparks |
 | `bomb.press` | Button A or B is pressed | 200 ms press |
 | `bomb.step` | Each step fills a pip in the step counter (the Attention overhaul, 15 Nov 2026) | 50 ms |
+| `bomb.instant` | Expert: a wrong step sets the bomb off at once (the Attention overhaul's levels) | 800 ms |
 | `bomb.defuse` | DEFUSE is tapped (the submission; not a verdict) | LED timer freezes and blinks (640 ms), fuse spark dies (360 ms) |
 | `bomb.solve` | The reveal shows a verified defuse | 700 ms status lamp turns red to green |
 | `nonogram.fill` | A cell is filled | 170 ms tile pop |

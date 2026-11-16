@@ -121,6 +121,10 @@ html body .pairmatch-face-front.pairmatch-face-front.pairmatch-face-front.is-mat
 .pairmatch-board-clear {
   max-width: min(100%, 380px);
 }
+/* A level's board (stage 3): narrowed so its rows fit the space under the header and pills on any phone. */
+.pairmatch-board-clear[data-pair-cols] {
+  max-width: min(100%, 380px, calc((100dvh - var(--safe-top, 0px) - var(--safe-bottom, 0px) - 230px) * var(--pair-shape)));
+}
 .pairmatch-symbol {
   width: 72%;
   height: auto;

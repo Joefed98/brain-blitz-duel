@@ -14,7 +14,7 @@ import { puzzleDef, puzzleGoal } from "@/lib/duel/catalogue";
 import type { PuzzleType } from "@/lib/duel/types";
 import { SCHEME_LABEL, SCHEME_NOTE, schemesFor, setSchemeFor, useControlScheme, type ControlScheme } from "@/lib/gameControls";
 
-import { frameGoal } from "./GameFrame";
+import { useFrameGoal } from "./GameFrame";
 
 /** This player's avatar in the frame: their card's avatar (an account) or their colour and initial (a guest). */
 export function FrameMe({ size = 36 }: { size?: number }) {
@@ -54,7 +54,8 @@ export function ArenaGamePanel({
   /** Practice: the score block is the best already, and this game's challenges are shown. */
   practice: boolean;
 }) {
-  const goal = type ? (arcade ? puzzleGoal(type).replace(/\.$/, "") : frameGoal(type)) : null;
+  const levelGoal = useFrameGoal(type ?? "symscan");
+  const goal = type ? (arcade ? puzzleGoal(type).replace(/\.$/, "") : levelGoal) : null;
   return (
     <div data-arena-game data-in-room={inRoom ? "" : undefined} className="arena-game">
       <div className="arena-game-head">

@@ -4,6 +4,7 @@
  * Colour Flood, Tents and Trees, Shikaku, Lamplighter. Answers are built with
  * the same encoders the phone Stages use; nothing here scores.
  */
+import { leveled } from "../../src/lib/duel/attentionLevels";
 import type {
   BombPuzzleData,
   FloodPuzzleData,
@@ -659,13 +660,18 @@ const bombKit: PuzzleKit = {
     const before = bombPredecessors(required, constraints);
     const all = bombAll(pz);
     const steps: Step[] = [];
-    let t = pz.rules.reduce((sum) => sum + thinkMs(rng, BOMB_RULE, skill), 0);
+    // Levels (the Attention overhaul, stage 3): a longer plan takes much longer to work out (every clue weighed against
+    // more orders) and is easier to slip on; on Expert a slip sets the bomb off at once (no Reset). Normal keeps today's.
+    const lv = leveled(pz) ? (pz.stepCount || 6) / 6 : 1;
+    const reason = lv === 1 ? 1 : lv * lv * 1.6;
+    const slip = Math.min(0.5, skill.err * (lv === 1 ? 1 : lv * lv * 2));
+    let t = pz.rules.reduce((sum) => sum + thinkMs(rng, BOMB_RULE * reason, skill), 0);
     let actions: string[] = [];
     let blown = false;
     let i = 0;
     let resets = 0;
     while (i < plan.length) {
-      if (!blown && rng.chance(skill.err)) {
+      if (!blown && rng.chance(slip)) {
         // A wrong action: an unneeded one, or a needed one too early.
         const done = new Set(actions);
         const wrongs = all.filter((a) => !done.has(a) && (!required.includes(a) || ![...(before.get(a) ?? [])].every((x) => done.has(x))));
@@ -673,7 +679,7 @@ const bombKit: PuzzleKit = {
           t += thinkMs(rng, BOMB_ACT * 1.5, skill);
           actions.push(rng.pick(wrongs));
           steps.push({ answer: encodeBombActions(actions), atMs: t });
-          if (resets < 3 && rng.chance(0.75)) {
+          if (!pz.bombInstant && resets < 3 && rng.chance(0.75)) {
             // Re-checks the card, spots it, taps Reset and starts the plan again.
             t += thinkMs(rng, BOMB_RULE, skill);
             actions = [];
@@ -683,6 +689,8 @@ const bombKit: PuzzleKit = {
             continue;
           }
           blown = true;
+          // Expert: the live check sets it off; the round ends with the steps made.
+          if (pz.bombInstant) return { steps };
         }
       }
       t += thinkMs(rng, BOMB_ACT, skill);

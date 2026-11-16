@@ -1,6 +1,7 @@
 import type { Database } from "@/integrations/supabase/types";
 import { record, text } from "@/lib/validate";
 import { SHORT_MAX } from "./inputLimits";
+import { attentionDemoPlays } from "./attentionDemoRules";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { SWING_REV_SLIDE } from "@/lib/arcade/swing";
@@ -111,6 +112,8 @@ export const getIntroDemoFn = createServerFn({ method: "GET" })
     // Operator's gaps (puzzle polish, 3 Nov 2026, gapsRev 1): number and mixed gaps on a new screen, so a signs-only demo
     // stays stopped (the intro shows its still) until one is recorded on gapsRev 1.
     if (data.type === "equation" && demo?.puzzle.type === "equation" && (demo.puzzle.gapsRev ?? 0) < 1) return null;
+    // The Attention overhaul (15 Nov 2026): an Attention demo plays only when recorded on today's stamp, on Normal.
+    if (demo && !attentionDemoPlays(data.type, demo.puzzle)) return null;
     // Four-step bomb demos cannot replay the six-step example, and version-2 demos show the old clue wording (version 3 rewrote every clue, 14 Oct 2026).
     if (data.type === "bomb" && demo?.puzzle.type === "bomb" && demo.puzzle.bombVersion !== 3) return null;
     // strikeoutRev 3 (15 Oct 2026) shows ten strike markers, three vowel dots and an extra starting letter on words 1–3,

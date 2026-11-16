@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 49 | 0 | 488 | 537 |
+| game event | 50 | 0 | 488 | 538 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 12 | 0 | 30 | 42 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 0 | 1 | 22 | 23 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 81 | 1 | 984 | 1066 |
+| **all** | 82 | 1 | 984 | 1067 |
 
 ## Silent and placeholder cues
 
@@ -118,6 +118,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `bomb.press` | Button A or B is pressed [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `bomb.press` |
 | `bomb.step` | Each step fills a pip in the step counter (the Attention overhaul, 15 Nov 2026) [logic.md] |  | 5–40 (per move) | silent | none | 50 | game event | `bomb.step` |
+| `bomb.instant` | Expert: a wrong step sets the bomb off at once (the Attention overhaul's levels) [logic.md] |  | 5–40 (per move) | silent | none | 800 | game event | `bomb.instant` |
 
 ### Double Take
 

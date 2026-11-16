@@ -30,6 +30,7 @@ export const ATTENTION_SOUND_FALLBACKS = {
   "maze.deadEnd": "lock",
   "bomb.step": "tick",
   "bomb.press": "lock",
+  "bomb.instant": "pz_bomb_explode",
   "pairmatch.flip": "move",
   "pairmatch.match": "correct",
   "pairmatch.miss": "wrong",

@@ -2,6 +2,9 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { capSprite, wireSprite } from "@/components/puzzles/attention/attentionArt";
 import { RevealStats } from "@/components/puzzles/attention/RevealParts";
+import { useMoveSync } from "@/components/puzzles/useMoveSync";
+import { useLevelGoal } from "@/components/duel/GameFrame";
+import { leveled } from "@/lib/duel/attentionLevels";
 import { attnSound } from "@/components/puzzles/attention/attentionFx";
 import { gameFx } from "@/lib/fx/kit";
 
@@ -194,7 +197,7 @@ export function Panel({
 }
 
 
-const TOKEN_RE = /(wires \d and \d|wire \d|button [AB]|press [AB]|\b(?:Red|Blue|Green|Yellow|White|Black)\b)/gi;
+const TOKEN_RE = /(wires \d and \d\b|wire \d\b|button [AB]\b|press [AB]\b|\b(?:Red|Blue|Green|Yellow|White|Black)\b)/gi;
 
 function Swatch({ colour }: { colour: WireColour }) {
   return (
@@ -303,6 +306,7 @@ function Stage({
   locked,
   onSubmit,
   onDraftAnswer,
+  checkMoves,
   stateKey = "bomb",
 }: PuzzleStageProps) {
   const isBomb = puzzle.type === "bomb";
@@ -310,7 +314,22 @@ function Stage({
   const [frozenAt, setFrozenAt] = useState<number | null>(null);
   const submitted = useRef(false);
   const stepTotal = (isBomb ? puzzle.stepCount || BOMB_MAX_SEQUENCE : BOMB_MAX_SEQUENCE);
+  // Expert (the Attention overhaul's levels): every step is checked live on the server; the first wrong one sets the
+  // bomb off at once and sends the steps made (the server grades the same list). No Reset.
+  const instant = isBomb && !!puzzle.bombInstant;
+  const [blown, setBlown] = useState(false);
+  const live = useMoveSync(checkMoves, "bomb", (view) => {
+    if (view.live || submitted.current) return;
+    submitted.current = true;
+    setBlown(true);
+    attnSound("bomb.instant", { volume: 0.8 });
+    setFrozenAt(Date.now());
+    onSubmit(encodeBombActions(latestActions.current));
+  });
+  const latestActions = useRef<BombAction[]>([]);
   const inFrame = useFrameProgress(Math.min(actions.length, stepTotal), stepTotal, "steps");
+  // A level's panel (stage 3): the goal line says its own number of steps.
+  useLevelGoal("bomb", isBomb && leveled(puzzle) ? `Defuse the bomb in ${stepTotal} steps` : null);
 
   useEffect(() => {
     onDraftAnswer?.(encodeBombActions(actions));
@@ -331,6 +350,8 @@ function Stage({
     window.setTimeout(() => attnSound("bomb.step", { volume: 0.35, rate: 1 + actions.length * 0.04 }), 90);
     const next = [...actions, action];
     setActions(next);
+    latestActions.current = next;
+    if (instant) live(encodeBombActions(next));
   };
 
   useEffect(() => {
@@ -362,7 +383,7 @@ function Stage({
     } else if (button) act(pressAction(button.label));
     else if (key === "Enter") {
       if (!(locked || !actions.length)) defuse();
-    } else if (!(locked || !actions.length || submitted.current)) setActions([]);
+    } else if (!instant && !(locked || !actions.length || submitted.current)) setActions([]);
     return true;
   });
 
@@ -377,7 +398,7 @@ function Stage({
   const last = actions.at(-1);
 
   return (
-    <div data-stage-column="2" data-logic-stage="bomb" className="relative flex min-h-0 flex-1 flex-col gap-2">
+    <div data-stage-column="2" data-logic-stage="bomb" data-bomb-blown={blown ? "" : undefined} data-bomb-instant={instant ? "" : undefined} className="relative flex min-h-0 flex-1 flex-col gap-2">
       <div data-game-arena="logic">
         {/* The Attention overhaul: a clean matte card, each clue numbered on its own pip, names as coloured chips. */}
         <ol className="logic-bomb-rules bomb-clues w-full shrink-0 rounded-xl p-2" data-bomb-clues="">
@@ -426,7 +447,7 @@ function Stage({
           Defuse
         </Button>
         </div>
-        <button
+        {instant ? null : <button
           type="button"
           disabled={locked || !actions.length || submitted.current}
           onClick={() => {
@@ -436,7 +457,7 @@ function Stage({
           className="attn-action h-11 rounded-xl px-4 font-display text-xs font-bold uppercase tracking-widest disabled:opacity-40"
         >
           Reset
-        </button>
+        </button>}
       </div>
     </div>
   );

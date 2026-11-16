@@ -65,3 +65,20 @@ proper moment at the end. Nothing shakes the board.
 
 The sounds without Joe's files yet play a library stand-in (`ATTENTION_SOUND_FALLBACKS` in
 `src/components/puzzles/attention/attentionFx.ts`). A recording dropped in under its slot name replaces it.
+
+## Stage 3: the levels
+
+Each game's live stage at Easy, Hard and Expert (390 × 844 practice). Normal is the stage shown above. A bigger level
+grows the board downwards; the goal line says the level's own counts.
+
+| Game | Easy | Hard | Expert |
+|---|---|---|---|
+| Eagle Eye | <img src="img/levels/symscan-easy.webp" width="180"> | <img src="img/levels/symscan-hard.webp" width="180"> | <img src="img/levels/symscan-expert.webp" width="180"> |
+| Double Take | <img src="img/levels/spotdiff-easy.webp" width="180"> | <img src="img/levels/spotdiff-hard.webp" width="180"> | <img src="img/levels/spotdiff-expert.webp" width="180"> |
+| Tally | <img src="img/levels/countup-easy.webp" width="180"> | <img src="img/levels/countup-hard.webp" width="180"> | <img src="img/levels/countup-expert.webp" width="180"> |
+| Labyrinth | <img src="img/levels/maze-easy.webp" width="180"> | <img src="img/levels/maze-hard.webp" width="180"> | <img src="img/levels/maze-expert.webp" width="180"> |
+| Bomb Defusal | <img src="img/levels/bomb-easy.webp" width="180"> | <img src="img/levels/bomb-hard.webp" width="180"> | <img src="img/levels/bomb-expert.webp" width="180"> |
+| Matchmaker | <img src="img/levels/pairmatch-easy.webp" width="180"> | <img src="img/levels/pairmatch-hard.webp" width="180"> | <img src="img/levels/pairmatch-expert.webp" width="180"> |
+
+Labyrinth's Expert hides the exit until the trail is within four squares of it. Bomb Defusal's Expert has no Reset: the
+first wrong step sets it off. Tally's Expert has no marks. Frames from `bun scripts/attention-art/level-shots.ts`.

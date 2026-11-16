@@ -110,8 +110,9 @@ check("docs/sound-cues/logic.md matches the code", () => {
   const doc = readFileSync("docs/sound-cues/logic.md", "utf8");
   const listed = new Set([...doc.matchAll(/^\| `([a-z]+\.[a-z]+)` \|/gm)].map((m) => m[1]!));
   assert.deepEqual([...fired].sort(), [...listed].sort());
-  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): bomb.step's pip click.
-  assert.equal(fired.size, 35);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): bomb.step's pip click,
+  // and Expert's bomb.instant.
+  assert.equal(fired.size, 36);
 });
 
 if (failures) {

@@ -1395,7 +1395,7 @@ export const checkMovesFn = createServerFn({ method: "POST" })
     )
       return null;
     const pub = room.puzzles_public[data.roundNumber - 1];
-    if (!pub || (pub.type !== "strikeout" && pub.type !== "codeword" && pub.type !== "swapword")) return null;
+    if (!pub || (pub.type !== "strikeout" && pub.type !== "codeword" && pub.type !== "swapword" && !(pub.type === "bomb" && pub.bombInstant))) return null;
     const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
     const { checkPuzzleMoves } = await import("./moves.server");
     return checkPuzzleMoves(mergePuzzle(pub, priv), data.moves);

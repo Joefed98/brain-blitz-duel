@@ -37,6 +37,7 @@ import {
   usesMazeDepth,
 } from "@/lib/duel/depth/labyrinth";
 import { mazeColsOf, mazeStraightFill } from "@/lib/duel/maze";
+import { mazeExitShown } from "@/lib/duel/attentionLevels";
 import { MAZE_CELLS, MAZE_COLS, MAZE_TIME_MS, type MazePuzzleData } from "@/lib/duel/types";
 import { playCorrect, playSound } from "@/lib/sound";
 import { mazeStandard } from "@/lib/duel/standard/attention";
@@ -118,7 +119,10 @@ export function MazeBoard({
   k = 1,
   stars,
   taken,
+  exitShown = true,
 }: {
+  /** Expert (stage 3 of the Attention overhaul): false until the trail's head is near the exit (display only). */
+  exitShown?: boolean;
   /** mazeRev 1: the detour stars' cells, and those the ball has taken (drawn as a faint outline). */
   stars?: readonly number[] | undefined;
   taken?: readonly number[] | undefined;
@@ -196,7 +200,7 @@ export function MazeBoard({
         <MazeWalls cells={cells} cols={cols} rows={rows} k={k} />
         {/* Start pad and exit tile: clear ends, drawn on the floor under the route. */}
         <rect x={(start % cols) + 0.08} y={Math.floor(start / cols) * k + 0.08} width={0.84} height={k - 0.16} rx={0.16} fill="var(--maze-start-floor)" stroke="var(--maze-start)" strokeWidth={0.05} />
-        <rect className="maze-exit-glow" x={(exit % cols) + 0.08} y={Math.floor(exit / cols) * k + 0.08} width={0.84} height={k - 0.16} rx={0.16} fill="var(--maze-exit-floor)" stroke={GOLD} strokeWidth={0.05} />
+        {exitShown && <rect className="maze-exit-glow" x={(exit % cols) + 0.08} y={Math.floor(exit / cols) * k + 0.08} width={0.84} height={k - 0.16} rx={0.16} fill="var(--maze-exit-floor)" stroke={GOLD} strokeWidth={0.05} />}
         {ghost && ghost.length > 1 && (
           <polyline
             points={ghost.map(centre).join(" ")}
@@ -251,6 +255,7 @@ export function MazeBoard({
           );
         })}
         {/* Goal: a gold star flag marking the exit cell, lit by a soft halo inside its cell. */}
+        {exitShown && <g data-maze-exit="">
         <circle
           className="maze-exit-glow"
           cx={cx(exit)}
@@ -266,6 +271,7 @@ export function MazeBoard({
           strokeLinejoin="round"
           style={{ filter: "drop-shadow(0 0 0.12px var(--primary))" }}
         />
+        </g>}
         {/* Player: current route head, a larger glowing gold dot. */}
         {(() => {
           const head = path.length ? path[path.length - 1]! : start;
@@ -521,7 +527,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
 
       <div ref={arenaRef} data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         {/* mazeRev 1: the same board box as before (taller-than-square by k), split into 23 rows. */}
-        <MazeBoard cells={cells} cols={cols} start={start} exit={exit} path={path} onCell={touch} k={(k * cols) / rows} stars={stars} taken={taken} />
+        <MazeBoard cells={cells} cols={cols} start={start} exit={exit} path={path} onCell={touch} k={(k * cols) / rows} stars={stars} taken={taken} exitShown={!isMaze || solved || mazeExitShown(puzzle, path[path.length - 1] ?? start, cols)} />
       </div>
 
        <div data-game-controls="pad" data-maze-pad="" className="flex shrink-0 flex-col items-center justify-center">

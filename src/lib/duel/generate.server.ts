@@ -132,6 +132,7 @@ import { randomBelow } from "./random";
 import { saltSeed } from "./seededRng";
 import { NORMAL, stampLevel, type Level } from "@/lib/levels/levels";
 import { resolveLevel } from "@/lib/levels/gameLevels";
+import { dealAttentionLevel } from "./attentionLevels.server";
 
 /** Room-level context a generator may need beyond its own randomness. */
 export interface GenerateContext {
@@ -216,7 +217,10 @@ function dealAtLevel(type: PuzzleType, context: GenerateContext): PuzzleData {
   const stamped = stampNumberDepth({ ...(made as object), speedPar: SPEED_PAR_VERSION, puzzleScoreRev: dealtPuzzleScoreRev() } as unknown as PuzzleData);
   // The layers move stamps up on today's score revision only.
   if (puzzleScoreRevOf(stamped) !== PUZZLE_SCORE_REV_DEALT) return stamped;
-  return DEAL_LAYERS.reduce((puzzle, layer) => layer.deal(puzzle), stamped);
+  const layered = DEAL_LAYERS.reduce((puzzle, layer) => layer.deal(puzzle), stamped);
+  // The Attention games' levels (stage 3 of the overhaul) re-deal their board on the level's levers, after every layer;
+  // a context without a level (Normal) is never touched.
+  return context.level && context.level !== NORMAL ? dealAttentionLevel(layered, context.level) : layered;
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {
