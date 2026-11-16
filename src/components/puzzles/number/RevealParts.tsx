@@ -13,8 +13,8 @@
  */
 import { useState, type ReactNode } from "react";
 
-import { Chip } from "@/design/components";
-import { Segmented } from "@/design/components";
+import { Chip } from "@/design/components/Chip";
+import { Segmented } from "@/design/components/Segmented";
 
 /** A board's verdict on its tab: right, wrong (tried, not right), or not reached. */
 export type BoardMark = "right" | "wrong" | "open";

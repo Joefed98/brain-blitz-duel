@@ -46,7 +46,7 @@ import { BALLPARK_STD_FULL, isStdBullseye } from "@/lib/duel/standard/number";
 import "@/polish-layout/batch-w-numline.css";
 import { NumberStage, numberArt } from "@/components/puzzles/number/overhaul";
 import { RevealBoards, RevealFacts, useRevealBoard, type BoardMark } from "@/components/puzzles/number/RevealParts";
-import { Button } from "@/design/components";
+import { Button } from "@/design/components/Button";
 // The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
 import "@/polish-layout/number-overhaul.css";
 

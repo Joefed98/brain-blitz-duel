@@ -71,6 +71,8 @@ const BOTH = new Set([
   "target",
   "countup",
   "symscan",
+  // The Number overhaul (15 Nov 2026): Integer Pyramid's reveal draws its own Yours / Solution switch (RevealParts.tsx).
+  "numpyramid",
 ]);
 
 /** What the reveal's board draws for this round. */

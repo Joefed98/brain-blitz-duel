@@ -13,7 +13,7 @@ import {
   type BoardMark,
   type RevealSide,
 } from "@/components/puzzles/number/RevealParts";
-import { Button } from "@/design/components";
+import { Button } from "@/design/components/Button";
 import { StageProgress } from "@/components/puzzles/StageProgress";
 import {
   decodeMeasureActions,
