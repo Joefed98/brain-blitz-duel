@@ -820,7 +820,7 @@ import {
   orbitViewW,
   type OrbitCamOffset,
 } from "./orbitCamera";
-import { orbitHoleLive, orbitRev3Game, orbitWorldHFor, orbitXpCounts, ORBIT_FUEL_MAX, ORBIT_DUST_R, ORBIT_HOLE_R, ORBIT_MOON_ASSIST, ORBIT_MOON_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
+import { orbitHoleLive, orbitRev3Game, orbitWorldHFor, orbitXpCounts, orbitTankOf, ORBIT_DUST_R, ORBIT_HOLE_R, ORBIT_MOON_ASSIST, ORBIT_MOON_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
 import { devDisplayAllowed } from "@/lib/devDisplay";
 import { drawHudTextPillRow, HUD_TEXT_PILL_H, type HudTextPill } from "./hudPill.renderer";
 
@@ -836,8 +836,9 @@ import { ORBIT_GRACE_HOLD_TICKS } from "./orbitRev3";
 import { drawCatchLock, drawHoldRing, drawLaunchPuff, drawSunBloom, orbitFlameOn, orbitLowFuel, orbitLowFuelWash, ORBIT_SUN_HOLD_MS } from "./orbitEffects.renderer";
 
 /** The run's slips so far (display only): checkpoint respawns used plus orbitRev 15's automatic respawns; never falls. */
-export function orbitSlips(state: { respawns: number; autoRespawns?: number }): number {
-  return Math.max(0, 1 - state.respawns) + (state.autoRespawns ?? 0);
+export function orbitSlips(state: { respawns: number; autoRespawns?: number; cpAuto?: number; cpUsed?: number }): number {
+  // Easy's automatic checkpoints re-arm the respawn, so they count their uses (cpUsed) instead.
+  return (state.cpAuto ? (state.cpUsed ?? 0) : Math.max(0, 1 - state.respawns)) + (state.autoRespawns ?? 0);
 }
 
 /** The Action overhaul's HUD labels and values on the expansion's view (display only): at most two rows. */
@@ -1937,8 +1938,10 @@ function drawSputter(ctx: CanvasRenderingContext2D, sp: OrbitSputter, cam: { x: 
 
 function drawFuelMeter(ctx: CanvasRenderingContext2D, state: OrbitRev3State, sputter: OrbitSputter | null, W: number, H: number, still: boolean): void {
   const m = ORBIT_FUEL_METER;
-  const fuel = Math.max(0, Math.min(ORBIT_FUEL_MAX, state.fuel ?? 0));
-  const share = fuel / ORBIT_FUEL_MAX;
+  // Levels: the gauge is the level's own tank (orbitTankOf: ORBIT_FUEL_MAX on Normal and every older round).
+  const tank = orbitTankOf(state);
+  const fuel = Math.max(0, Math.min(tank, state.fuel ?? 0));
+  const share = fuel / tank;
   const draining = state.flying > 0;
   const x = W - m.right - m.w;
   const y = H - m.bottom - m.h;

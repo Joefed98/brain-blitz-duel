@@ -11,7 +11,11 @@ import { ORBIT_REV3_BANK, type OrbitRev3BankEntry } from "./orbitRev3Bank.server
 import { ORBIT_HOLE_BANK } from "./orbitHoleBank.server";
 import type { OrbitExtrasRow, OrbitHoleRow, OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "./orbitXpBank.server";
-import { ORBIT_FUEL_BANK } from "./orbitFuelBank.server";
+import { ORBIT_FUEL_BANK, type OrbitFuelBankEntry } from "./orbitFuelBank.server";
+import { ORBIT_FUEL_BANK_EASY } from "./orbitFuelBankEasy.server";
+import { ORBIT_FUEL_BANK_HARD } from "./orbitFuelBankHard.server";
+import { ORBIT_FUEL_BANK_EXPERT } from "./orbitFuelBankExpert.server";
+import type { OrbitLevelName } from "@/lib/arcade/orbitRev3";
 
 export { encodeRev3Planets, decodeRev3Planets, type OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
 import { decodeRev3Planets } from "@/lib/arcade/orbitRev3";
@@ -53,11 +57,19 @@ const ORBIT_REV3_BY_SEED = new Map(ORBIT_REV3_BANK.map((entry) => [entry.seed, e
  * zigzag planets, black holes and features, proved on rev 14's rules (scripts/orbit-fuel-bank.ts), or null
  * if the bank is empty.
  */
-export function orbitFuelCourseForSeed(seed: number): { planets: OrbitRev3CompactPlanet[]; holes: OrbitHoleRow[]; extras: OrbitExtrasRow } | null {
-  if (ORBIT_FUEL_BANK.length === 0) return null;
-  const entry = ORBIT_FUEL_BANK[((seed % ORBIT_FUEL_BANK.length) + ORBIT_FUEL_BANK.length) % ORBIT_FUEL_BANK.length]!;
+export function orbitFuelCourseForSeed(seed: number, level?: OrbitLevelName): { planets: OrbitRev3CompactPlanet[]; holes: OrbitHoleRow[]; extras: OrbitExtrasRow } | null {
+  // Levels (docs/arcade-standard/orbit.md "Levels"): Easy, Hard and Expert deal from their own proved banks.
+  const bank = level ? ORBIT_LEVEL_BANKS[level] : ORBIT_FUEL_BANK;
+  if (bank.length === 0) return null;
+  const entry = bank[((seed % bank.length) + bank.length) % bank.length]!;
   return { planets: entry.planets, holes: entry.holes, extras: entry.extras };
 }
+/** Each level's proved bank (scripts/orbit-fuel-bank.ts --level=…). */
+export const ORBIT_LEVEL_BANKS: Readonly<Record<OrbitLevelName, readonly OrbitFuelBankEntry[]>> = {
+  easy: ORBIT_FUEL_BANK_EASY,
+  hard: ORBIT_FUEL_BANK_HARD,
+  expert: ORBIT_FUEL_BANK_EXPERT,
+};
 
 /** Proved planets for a room seed, straight from the bank (null if the bank is empty). */
 export function orbitRev3PlanetsForSeed(seed: number): Planet[] | null {

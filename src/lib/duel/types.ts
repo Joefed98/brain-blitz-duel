@@ -2437,6 +2437,11 @@ export interface OrbitPuzzleData {
   orbitRev?: number;
   /** Rev3 only: the proved 0..ORBIT_TOTAL planet layout, shipped so client play, reveal and grading never re-prove the course. */
   planets?: OrbitRev3CompactPlanet[];
+  /**
+   * Levels (orbitRev 16 only; stamped by the deal, never present at Normal): the level the course was dealt at, from
+   * that level's proved bank; the sim reads its rules (orbitLevelFields). Absent = Normal.
+   */
+  level?: "easy" | "hard" | "expert";
   /** Rev 4 and 5: proved black holes (rev 5 may carry none), [from, to, x, y] each (orbitHoleBank.server.ts). */
   holes?: OrbitHoleRow[];
   /** orbitRev 12, 13 and 14 (the expansion to 200): the course's proved stardust, slingshot moons and asteroid fields (orbitXpBank.server.ts; orbitRev 14: orbitFuelBank.server.ts). */

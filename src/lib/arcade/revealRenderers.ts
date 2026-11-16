@@ -330,7 +330,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
       return in390(orbitWorldWFor(rev), orbitDrawHFor(rev));
     },
     drawFinal: (ctx, puzzle, answer) => {
-      const { state } = replayOrbitRun(seedOf(puzzle), answer, puzzle.type === "orbit" ? puzzle.orbitRev : undefined, puzzle.type === "orbit" ? puzzle.planets : undefined, puzzle.type === "orbit" ? puzzle.holes : undefined, puzzle.type === "orbit" ? puzzle.extras : undefined);
+      const { state } = replayOrbitRun(seedOf(puzzle), answer, puzzle.type === "orbit" ? puzzle.orbitRev : undefined, puzzle.type === "orbit" ? puzzle.planets : undefined, puzzle.type === "orbit" ? puzzle.holes : undefined, puzzle.type === "orbit" ? puzzle.extras : undefined, undefined, puzzle.type === "orbit" ? puzzle.level : undefined);
       const xpStart = puzzle.type === "orbit" && orbitXpRev(puzzle.orbitRev) ? orbitStartForPuzzle(puzzle) : null;
       if (xpStart) {
         // Visual reconstruction through the art sim (camera and effects observe every tick), as below.

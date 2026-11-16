@@ -608,6 +608,17 @@ export interface OrbitRev3State extends BandFields {
   autoRespawns?: number;
   /** orbitRev 16 only: 1 = the bigger planets (display bounds only; outside the checksum: the play is orbitRev 15's). */
   big?: number;
+  /**
+   * Levels only (docs/arcade-standard/orbit.md "Levels"; set only by orbitLevelFields from a puzzle's stored `level`,
+   * absent on every Normal round and every older one): `tank` = the full tank, ticks of free flight (ORBIT_FUEL_MAX
+   * when absent); `cpAuto` = 1, Easy's automatic checkpoints (SET CHECKPOINT not offered); `cpNone` = 1, Expert's
+   * respawn only (no checkpoint). Folded into the checkpoint checksum last, only when present.
+   */
+  tank?: number;
+  cpAuto?: number;
+  cpNone?: number;
+  /** Easy (cpAuto) only: the automatic checkpoints used so far (the respawn count re-arms, so slips count these). */
+  cpUsed?: number;
   tick: number;
   rng: number;
   cur: number;
@@ -688,6 +699,8 @@ function isOver(state: OrbitRev3State): boolean {
 }
 
 export function orbitRev3CanSetCheckpoint(state: OrbitRev3State): boolean {
+  // Levels: Easy sets its checkpoints itself and Expert has none, so neither offers SET CHECKPOINT.
+  if (state.cpAuto || state.cpNone) return false;
   return state.ended === 0 && state.flying === 0 && !(state.warp ?? 0) && state.checkpoint < 0 && state.respawns > 0;
 }
 
@@ -711,7 +724,13 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
     if (s.checkpoint >= 0 && s.respawns > 0) {
       s.respawns -= 1;
       s.respawnTick = tick;
-      s.cur = s.checkpoint;
+      // Easy (cpAuto): the automatic checkpoint brings the rocket back at once at the planet the flight left (the last
+      // caught, never behind it), with no hold; it is spent until the next tenth planet re-arms it.
+      if (s.cpAuto) {
+        s.checkpoint = -1;
+        s.cpUsed = (s.cpUsed ?? 0) + 1;
+      }
+      else s.cur = s.checkpoint;
       const p = s.planets[s.cur]!;
       s.angle = 3 * ANG_QUARTER;
       const pos = orbitPos(p, s.angle);
@@ -721,7 +740,7 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
       s.vy = 0;
       s.flying = 0;
       if (s.xp) s.lapLeft = lapPhases(p).length;
-      if (s.fuel !== undefined) s.fuel = ORBIT_FUEL_MAX;
+      if (s.fuel !== undefined) s.fuel = orbitTankOf(s);
       respawned = true;
       return;
     }
@@ -740,7 +759,7 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
       s.vy = 0;
       s.flying = 0;
       if (s.xp) s.lapLeft = lapPhases(p).length;
-      s.fuel = ORBIT_FUEL_MAX;
+      s.fuel = orbitTankOf(s);
       respawned = true;
       return;
     }
@@ -830,7 +849,16 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
     }
     // orbitRev 14: any planet the rocket reaches catches it (ahead or behind), not only the next two.
     const j = hole ? -1 : s.fuel !== undefined ? orbitCaptureAny(s.planets, s.cur, s.x, s.y) : captureAt(s.planets, s.cur, s.x, s.y);
-    if (s.fuel !== undefined && (hole || j >= 0)) s.fuel = ORBIT_FUEL_MAX;
+    if (s.fuel !== undefined && (hole || j >= 0)) s.fuel = orbitTankOf(s);
+    // Easy (cpAuto): a catch that takes the furthest planet reached past a tenth planet (10, 20, 30) arms the
+    // checkpoint there (one respawn), whether or not the last one was used.
+    if (s.cpAuto && (hole || j >= 0)) {
+      const at = hole ? hole.to : j;
+      if (at < ORBIT_TOTAL && Math.trunc(at / ORBIT_AUTO_CHECKPOINT_EVERY) > Math.trunc(s.best / ORBIT_AUTO_CHECKPOINT_EVERY)) {
+        s.checkpoint = at;
+        s.respawns = 1;
+      }
+    }
     if (s.xp && (hole || j >= 0)) {
       if (s.arm) s.perfect = (s.perfect ?? 0) + 1;
       s.arm = 0;
@@ -1321,8 +1349,9 @@ export function orbitWorldWFor(rev?: number | null): number {
 }
 
 /** The start for a stored bank-course orbitRev (4–8), or null for an earlier one. */
-export function orbitRev3StartFor(rev: number | null | undefined, extras?: OrbitExtras | null): ((planets: Planet[], worldW: number, holes: OrbitHole[]) => OrbitRev3State) | null {
-  if (rev === ORBIT_REV_BIG) return (planets, worldW, holes) => initBigFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
+export function orbitRev3StartFor(rev: number | null | undefined, extras?: OrbitExtras | null, level?: unknown): ((planets: Planet[], worldW: number, holes: OrbitHole[]) => OrbitRev3State) | null {
+  // Levels (orbitRev 16 only): the stored level's rules; Normal and no level are initBigFrom exactly.
+  if (rev === ORBIT_REV_BIG) return (planets, worldW, holes) => initLevelFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS, level);
   if (rev === ORBIT_REV_GRACE) return (planets, worldW, holes) => initGraceFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
   if (rev === ORBIT_REV_FUEL) return (planets, worldW, holes) => initFuelFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
   if (rev === ORBIT_REV_STD) return (planets, worldW, holes) => initStdFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
@@ -1642,8 +1671,8 @@ export function initXpFrom(planets: Planet[], worldW: number, holes: OrbitHole[]
 }
 
 /** A stored round's start from its puzzle fields (every bank-course revision, 4–13), or null for rev 3 and earlier. */
-export function orbitStartForPuzzle(p: { orbitRev?: number | undefined; planets?: OrbitRev3CompactPlanet[] | undefined; holes?: OrbitHoleRow[] | undefined; extras?: OrbitExtrasRow | undefined }): (() => OrbitRev3State) | null {
-  const start = orbitRev3StartFor(p.orbitRev, orbitXpRev(p.orbitRev) ? decodeOrbitExtras(p.extras) : null);
+export function orbitStartForPuzzle(p: { orbitRev?: number | undefined; planets?: OrbitRev3CompactPlanet[] | undefined; holes?: OrbitHoleRow[] | undefined; extras?: OrbitExtrasRow | undefined; level?: unknown }): (() => OrbitRev3State) | null {
+  const start = orbitRev3StartFor(p.orbitRev, orbitXpRev(p.orbitRev) ? decodeOrbitExtras(p.extras) : null, p.level);
   if (!start || !p.planets || p.planets.length === 0) return null;
   const planets = decodeRev3Planets(p.planets);
   const holes = decodeOrbitHoles(p.holes ?? []);
@@ -1744,6 +1773,10 @@ export function initStdFrom(planets: Planet[], worldW: number, holes: OrbitHole[
 export const ORBIT_FUEL_MAX = 160;
 /** Every proved hop on an orbitRev 14 course lands within this many ticks of flight (a quarter of the tank to spare). */
 export const ORBIT_FUEL_HOP_MAX = 120;
+/** The full tank: a level's own (`tank`), else ORBIT_FUEL_MAX. */
+export function orbitTankOf(s: Pick<OrbitRev3State, "tank">): number {
+  return s.tank ?? ORBIT_FUEL_MAX;
+}
 
 /** orbitRev 14: the planet (other than the one just left) whose capture area holds (x, y): ahead first, then behind; -1. */
 export function orbitCaptureAny(planets: readonly Planet[], cur: number, x: number, y: number): number {
@@ -1793,4 +1826,40 @@ export function initGraceFrom(planets: Planet[], worldW: number, holes: OrbitHol
  */
 export function initBigFrom(planets: Planet[], worldW: number, holes: OrbitHole[], extras: OrbitExtras): OrbitRev3State {
   return { ...initGraceFrom(orbitBigPlanets(planets), worldW, holes, extras), big: 1 };
+}
+
+/* ============ Levels (the Action overhaul, stage 3, 16 Nov 2026; docs/arcade-standard/orbit.md "Levels") ============ */
+/*
+ * Easy, Hard and Expert are orbitRev 16 on a course from the level's own proved bank (orbitFuelBankLevels.server.ts,
+ * scripts/orbit-fuel-bank.ts --level=…: the zigzag, the black holes and the belts are the course's), with the level's
+ * rules from the puzzle's stored `level` (the deal stamps it; Normal never carries it, so every Normal round and every
+ * older one plays exactly as before):
+ *  - the tank (`tank`): Easy 240, Hard 140, Expert 120 ticks of free flight (Normal 160);
+ *  - checkpoints: Easy arms its own on every tenth planet (cpAuto; a slip then respawns at once where it left, no
+ *    hold), Hard keeps SET CHECKPOINT as Normal, Expert has none (cpNone): every slip is grace's 3 s hold.
+ * Grace, the 90 s run, the features and the six parts (200) are orbitRev 16's at every level. Integer only.
+ */
+export type OrbitLevelName = "easy" | "hard" | "expert";
+/** Easy's checkpoint re-arms on reaching every this-many-th planet. */
+export const ORBIT_AUTO_CHECKPOINT_EVERY = 10;
+export interface OrbitLevelRules {
+  tank: number;
+  checkpoints: "auto" | "one" | "none";
+}
+export const ORBIT_LEVEL_RULES: Readonly<Record<OrbitLevelName, OrbitLevelRules>> = {
+  easy: { tank: 240, checkpoints: "auto" },
+  hard: { tank: 140, checkpoints: "one" },
+  expert: { tank: 120, checkpoints: "none" },
+};
+/** A stored level's state fields (nothing for Normal, an unknown level or none). */
+export function orbitLevelFields(level: unknown): Partial<Pick<OrbitRev3State, "tank" | "cpAuto" | "cpNone" | "cpUsed">> {
+  const rules = typeof level === "string" && Object.prototype.hasOwnProperty.call(ORBIT_LEVEL_RULES, level) ? ORBIT_LEVEL_RULES[level as OrbitLevelName] : null;
+  if (!rules) return {};
+  return { tank: rules.tank, ...(rules.checkpoints === "auto" ? { cpAuto: 1, cpUsed: 0 } : rules.checkpoints === "none" ? { cpNone: 1 } : {}) };
+}
+/** A level's start: orbitRev 16's with the level's fields and a full tank of the level's size. */
+export function initLevelFrom(planets: Planet[], worldW: number, holes: OrbitHole[], extras: OrbitExtras, level: unknown): OrbitRev3State {
+  const s = initBigFrom(planets, worldW, holes, extras);
+  const fields = orbitLevelFields(level);
+  return fields.tank === undefined ? s : { ...s, ...fields, fuel: fields.tank };
 }

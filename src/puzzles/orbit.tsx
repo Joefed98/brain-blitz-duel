@@ -342,7 +342,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   // The expansion's view (orbitRev 12+): the run's picture (stage 2), the same the arcade reveal draws, never the old
   // block of text lines (15 Nov 2026). Earlier revisions keep their lines.
   if (orbitXpRev(puzzle.orbitRev)) return myAnswer ? <OrbitRunPicture puzzle={puzzle} myAnswer={myAnswer} /> : null;
-  const result = replayOrbitRun(puzzle.seed, myAnswer ?? "", puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras);
+  const result = replayOrbitRun(puzzle.seed, myAnswer ?? "", puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras, undefined, puzzle.level);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
