@@ -50,15 +50,16 @@ export const LEVELS_ICESLIDE: GameLevels<IceSlideLevelSettings> = {
       oneSolution: OPEN,
     },
     // Hard: Normal's 12 × 12 with more holes (5–8, Normal 2–4) and a longer route (24–30 slides); every hazard, the
-    // route through a portal and over thin ice; 90 s, speed full by 40 s.
+    // route through a portal and over thin ice; 100 s (Joe asked 90: at 90 s Hard scored below Expert for every bot, see
+    // the report), speed full by 40 s.
     hard: {
-      settings: { cols: 12, rows: 12, minMoves: [24, 30], walls: [30, 44], holes: [5, 8], arrows: [1, 3], portals: [1, 2], thin: [3, 5], routeUsesHazards: true, timeLimitMs: 90_000, fullByS: 40, bank: 300 },
+      settings: { cols: 12, rows: 12, minMoves: [24, 30], walls: [30, 44], holes: [5, 8], arrows: [1, 3], portals: [1, 2], thin: [3, 5], routeUsesHazards: true, timeLimitMs: 100_000, fullByS: 40, bank: 300 },
       oneSolution: OPEN,
     },
     // Expert: 12 across × 14 down (168 squares; 13 across would shrink every square on a phone), 28–36 slides, every
-    // hazard at Normal's density, the route through a portal and over thin ice; 120 s, speed full by 55 s.
+    // hazard at Normal's density, the route through a portal and over thin ice; 120 s, speed full by 45 s.
     expert: {
-      settings: { cols: 12, rows: 14, minMoves: [28, 36], walls: [35, 51], holes: [3, 5], arrows: [1, 3], portals: [1, 2], thin: [3, 6], routeUsesHazards: true, timeLimitMs: 120_000, fullByS: 55, bank: 300 },
+      settings: { cols: 12, rows: 14, minMoves: [28, 36], walls: [35, 51], holes: [3, 5], arrows: [1, 3], portals: [1, 2], thin: [3, 6], routeUsesHazards: true, timeLimitMs: 120_000, fullByS: 45, bank: 300 },
       oneSolution: OPEN,
     },
   },

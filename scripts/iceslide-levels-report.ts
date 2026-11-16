@@ -16,6 +16,20 @@ const seeds = Number(arg("seeds") ?? 40);
 const from = Number(arg("from") ?? 0);
 const levels = (arg("level") ?? "easy,normal,hard,expert").split(",") as Level[];
 
+// --boards: every Expert bank board with the elite person-like player's graded score (boards for Joe to play).
+if (process.argv.includes("--boards")) {
+  const { ICESLIDE_LEVEL_BANKS } = await import("../src/lib/duel/iceSlideLevelBank.server");
+  const rows = ICESLIDE_LEVEL_BANKS.expert.map((p0, index) => {
+    const p = { ...p0, timeLimitMs: 120_000, slideRev: 5, puzzleScoreRev: 3, speedPar: 1, par: p0.minMoves, level: "expert" } as typeof p0;
+    const play = playSkidLikeAPerson(p, SKID_ELITE_PERSON, 120_000);
+    const run = gradeSteps(p, play.steps);
+    return { index, par: p0.minMoves, score: run.score, solved: run.isCorrect, seconds: Math.round(run.seconds) };
+  });
+  rows.sort((a, b) => b.score - a.score);
+  for (const r of rows) console.log(`expert bank ${r.index}: par ${r.par}, person (elite) ${r.score}${r.solved ? ` in ${r.seconds} s` : " (unfinished)"}`);
+  process.exit(0);
+}
+
 for (const level of levels) {
   const tryOut = arg("person");
   for (const who of tryOut ? [{ ...SKID_ELITE_PERSON, name: "person (try)", ...JSON.parse(tryOut) }] : [SKID_GOOD_PERSON, SKID_ELITE_PERSON]) {

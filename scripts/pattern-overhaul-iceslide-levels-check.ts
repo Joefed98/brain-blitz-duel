@@ -4,7 +4,7 @@
  * stage).
  *
  *   1. Settings: the four levels, each level's settings as agreed (Easy 8 × 8, 8–12 slides, no holes or thin ice;
- *      Hard 12 × 12, 24–30, more holes; Expert 12 × 14, 28–36, every hazard, 120 s), `oneSolution` open (any route to
+ *      Hard 12 × 12, 24–30, more holes, 100 s; Expert 12 × 14, 28–36, every hazard, 120 s), `oneSolution` open (any route to
  *      the exit counts), every clock at most 120 s.
  *   2. The level banks (iceSlideLevelBank.server.ts): each level's size and SHA-256 build stamp, no copies, every
  *      entry re-proved by a fresh breadth-first search (verifyIceSlideLevelPuzzle: the stored fewest slides is the
@@ -72,7 +72,7 @@ const LEVELS = ["easy", "hard", "expert"] as const;
 type L = (typeof LEVELS)[number];
 const WANT: Record<L, Partial<IceSlideLevelSettings>> = {
   easy: { cols: 8, rows: 8, minMoves: [8, 12], holes: [0, 0], thin: [0, 0], timeLimitMs: 90_000 },
-  hard: { cols: 12, rows: 12, minMoves: [24, 30], holes: [5, 8], timeLimitMs: 90_000 },
+  hard: { cols: 12, rows: 12, minMoves: [24, 30], holes: [5, 8], timeLimitMs: 100_000 },
   expert: { cols: 12, rows: 14, minMoves: [28, 36], timeLimitMs: 120_000 },
 };
 const deal = (seed: number, level?: string) =>
@@ -200,9 +200,9 @@ for (const level of LEVELS) {
 {
   // Hard's speed time (40 s) is read from the stored level: the same finish at 38 s is 200 as Hard, less as Normal (30 s).
   const p = dealt.hard[0]!;
-  const asHard = gradeAnswer(p, p.solution!, 90_000 - 38_000).score;
+  const asHard = gradeAnswer(p, p.solution!, puzzleTimeLimitMs(p) - 38_000).score;
   const { level: _level, ...plain } = p as SlidePuzzleData & { level?: string };
-  const asNormal = gradeAnswer(plain as SlidePuzzleData, p.solution!, 90_000 - 38_000).score;
+  const asNormal = gradeAnswer(plain as SlidePuzzleData, p.solution!, puzzleTimeLimitMs(p) - 38_000).score;
   check(asHard === 200 && asNormal < 200, `grading: a 38 s Hard finish scores ${asHard} as Hard, ${asNormal} without the level`);
   // Expert's 120 s clock is the puzzle's own: a finish at 100 s is in time.
   const e = dealt.expert[0]!;

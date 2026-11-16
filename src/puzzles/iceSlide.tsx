@@ -75,7 +75,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Reaching the exit in par slides earns a bonus; Undo gives a slide back. You have 90 seconds (120 on Expert).
+        Reaching the exit in par slides earns a bonus; Undo gives a slide back. You have 90 seconds (100 on Hard, 120 on Expert).
       </p>
     </div>
   );

@@ -14,19 +14,24 @@
 /* Difficulty levels (16 Nov 2026): Expert's 12 × 14 rink grows downwards (`--ice-ar` is its width over its height), as
    large as fits above the same controls; square levels (Easy's 8 × 8, Hard's 12 × 12) use the rules above unchanged. */
 .game-column [data-polish="iceslide"][data-ice-tall] > [data-game-arena="board"] {
-  height: min(calc(100cqw / var(--ice-ar)), calc(100cqh - 156px));
-}
-.game-column [data-polish="iceslide"][data-ice-tall] .ice-stage-square {
-  width: min(100cqw, calc((100cqh - 156px) * var(--ice-ar)));
-  height: min(calc(100cqw / var(--ice-ar)), calc(100cqh - 156px));
+  flex: 1 1 auto;
+  height: auto;
+  max-height: calc(100cqw / var(--ice-ar));
 }
 /* The live round's play screen (batch P's 160 px budget, polish-batch-p/batch-p.css), the same tall shape. */
 [data-puzzle-play][data-puzzle-play] .game-column [data-polish="iceslide"][data-ice-tall] > [data-game-arena="board"] {
-  height: min(calc(100cqw / var(--ice-ar)), calc(100cqh - 160px));
+  flex: 1 1 auto;
+  height: auto;
+  max-height: calc(100cqw / var(--ice-ar));
 }
+/* The rink takes the arena's real height (the arena shrinks to leave the pad and buttons room) and its own shape from
+   it, so the squares stay square on every phone. */
+.game-column [data-polish="iceslide"][data-ice-tall] .ice-stage-square,
 [data-puzzle-play][data-puzzle-play] .game-column [data-polish="iceslide"][data-ice-tall] .ice-stage-square {
-  width: min(100cqw, calc((100cqh - 160px) * var(--ice-ar)));
-  height: min(calc(100cqw / var(--ice-ar)), calc(100cqh - 160px));
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  aspect-ratio: var(--ice-ar);
 }
 
 /* ---------- The rink ----------
