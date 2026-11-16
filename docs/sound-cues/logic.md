@@ -79,9 +79,6 @@ Placeholder slots (no file yet: silent until Joe's ElevenLabs recordings, `logic
 | `nonogram.paint` | A drag paints one more square (fill) | 90 ms press-in |
 | `sudoku.line` | A digit completes a row, column or box (pitched up when it completes several) | 420 ms glow along the line |
 | `nonogram.line` | A line now matches its numbers (pitched up for several at once) | 420 ms glow on its clue |
-| `minesweeper.cascadeTick` | Minefield: a cascade opens; up to 8 ticks, 45 ms apart, rising in pitch | — |
-| `minesweeper.defuse` | Minefield: each mine still hidden at the clear, one by one | a gold ring fading on the mine |
-| `minesweeper.tapNumber` | Minefield: a number tapped before its flags add up | 18-tick shake of the number |
 | `sudoku.check` | Box Six Expert: Check pressed with no clash (a clash plays `sudoku.clash` as it shows) | the Check button |
 | `tubes.uncover` | Polypotions Expert: a hidden layer uncovered | its veil lifts |
 | `nonogram.autoCross` | Mosaic Easy: a line matching its numbers crosses its empty squares | the ×s appear |

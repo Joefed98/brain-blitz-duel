@@ -387,9 +387,9 @@ Grouped by game or screen. These are the cues still missing a sound.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `minesweeper.cascadeTick` | Minefield: a cascade opens; up to 8 ticks, 45 ms apart, rising in pitch [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `minesweeper.cascadeTick` |
-| `minesweeper.defuse` | Minefield: each mine still hidden at the clear, one by one [logic.md] |  | 0–1 | silent | none | 1000 | success sting | `minesweeper.defuse` |
-| `minesweeper.tapNumber` | Minefield: a number tapped before its flags add up [logic.md] |  | 5–40 (per move) | silent | none | 80 | UI tap | `minesweeper.tapNumber` |
+| `minesweeper.cascadeTick` | Minefield: a cascade opens; up to 8 ticks, 45 ms apart, rising in pitch [minefield.md] |  | 5–40 (per move) | silent | none | 200 | game event | `minesweeper.cascadeTick` |
+| `minesweeper.defuse` | Minefield: each mine still hidden at the clear, one by one [minefield.md] |  | 0–1 | silent | none | 1000 | success sting | `minesweeper.defuse` |
+| `minesweeper.tapNumber` | Minefield: a number tapped before its flags add up [minefield.md] |  | 5–40 (per move) | silent | none | 80 | UI tap | `minesweeper.tapNumber` |
 
 ### Mosaic
 

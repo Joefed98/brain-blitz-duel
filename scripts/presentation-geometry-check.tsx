@@ -130,7 +130,12 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
     root.innerHTML = phase === "intro" ? renderToStaticMarkup(<miniSudokuPuzzle.IntroExample />)
       : phase === "live" ? renderToStaticMarkup(<miniSudokuPuzzle.Stage puzzle={sudoku} phaseStartedAt={0} now={0} locked={false} onSubmit={() => undefined} />)
       : renderToStaticMarkup(<miniSudokuPuzzle.Reveal puzzle={sudoku} myAnswer={null} myCorrect={false} myReactionAvgMs={null} timeLimitMs={90000} />);
-    const cells = [...root.querySelectorAll(".sudoku-grid > button")];
+    // The reveal shows two boards, Solution and Yours (the Logic overhaul's reveal, 15 Nov 2026); each is checked.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul).
+    const grids = [...root.querySelectorAll(".sudoku-grid")];
+    assert.equal(grids.length, phase === "reveal" ? 2 : 1);
+    for (const grid of grids) {
+    const cells = [...grid.querySelectorAll(":scope > button")];
     assert.equal(cells.length, 36);
     cells.forEach((cell, i) => {
       const r = Math.floor(i / 6), c = i % 6;
@@ -139,6 +144,7 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
       assert.equal(cell.classList.contains("sudoku-box-bottom"), r === 5);
       assert.equal(cell.classList.contains("sudoku-box-right"), c === 5);
     });
+    }
     assert.equal(root.querySelectorAll(".sudoku-grid > svg").length, 0);
     checks++;
   }
