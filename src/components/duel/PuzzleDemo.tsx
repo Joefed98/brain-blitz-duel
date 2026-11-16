@@ -17,6 +17,7 @@ import {
 } from "@/lib/duel/puzzleDemo";
 import { useGameDef } from "@/lib/duel/gameLoader";
 import { puzzleInfo } from "@/lib/duel/catalogue";
+import { GoalLineContext } from "./GameFrame";
 import type { PuzzleStageProps } from "@/puzzles/types";
 import { GameKeysOff } from "@/lib/desktop";
 import { clearStageState } from "@/lib/duel/stageState";
@@ -50,6 +51,8 @@ export function usePuzzleDemo(type: PuzzleType): { puzzle: PuzzleData; log: Puzz
  * every other demo is drawn exactly as before.
  */
 const playScreenDemo = (log: PuzzleDemoLog): boolean => Number((log as { numberDemoRev?: unknown }).numberDemoRev ?? 0) >= 1;
+/** The practice screen's goal line takes the stage's progress (a stage counter leaves the board); the demo shows none. */
+const QUIET_GOAL_LINE = () => undefined;
 
 /** Intro slot for non-engine puzzles: the saved demo over the fixed intro example. */
 export function PuzzleIntroDemo({
@@ -386,6 +389,7 @@ function PuzzleDemoPlayer({
         >
           <div ref={stageRef} data-game-region="" className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
             <div data-game-stage="" className="game-column game-column-centred game-column-lifted flex min-h-0 flex-1 flex-col">
+              <GoalLineContext.Provider value={QUIET_GOAL_LINE}>
               <GameColumnLayout.Provider value={(log.layout ?? 0) >= 1}>
               <ArrowModeOverride.Provider value={log.joystick ?? false}>
               <GameKeysOff.Provider value>
@@ -403,6 +407,7 @@ function PuzzleDemoPlayer({
               </GameKeysOff.Provider>
               </ArrowModeOverride.Provider>
               </GameColumnLayout.Provider>
+              </GoalLineContext.Provider>
             </div>
           </div>
         </div>

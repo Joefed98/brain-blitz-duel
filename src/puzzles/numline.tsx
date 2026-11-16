@@ -580,13 +580,18 @@ function Stage({
   const busy = locked || submitted.current || placements.length >= NUMLINE_TOTAL || clearing !== null;
   const span = size.width - 2 * SIDE;
 
-  const shareAt = (clientX: number) => {
+  // A touch in layout px from the line box's left edge. Drawn scaled (the intro's demo box shrinks the stage by a
+  // transform), the screen box is smaller than the layout width, so the touch is mapped back; unscaled (every real
+  // round) the rect matches the layout width and the touch is used exactly as before. Input mapping only, no stamp.
+  const localX = (clientX: number) => {
     const rect = box.current?.getBoundingClientRect();
     const left = rect?.left ?? size.left;
-    return Math.max(0, Math.min(1, (clientX - left - SIDE) / Math.max(1, span)));
+    const scaled = rect && rect.width > 0 && Math.abs(rect.width - size.width) > 1;
+    return scaled ? ((clientX - left) * size.width) / rect.width : clientX - left;
   };
+  const shareAt = (clientX: number) => Math.max(0, Math.min(1, (localX(clientX) - SIDE) / Math.max(1, span)));
   const bumpAt = (clientX: number) => {
-    const side = numlineEdgeOf(clientX, box.current?.getBoundingClientRect().left ?? size.left, span);
+    const side = numlineEdgeOf(localX(clientX), 0, span);
     if (side && side !== edge?.side) {
       setEdge({ side, id: Date.now() });
       soundCue("numline.edge");
