@@ -42,8 +42,7 @@ import { ORBIT_FUEL_BANK, type OrbitFuelBankEntry } from "../src/lib/duel/orbitF
 import { ORBIT_LEVEL_BANKS } from "../src/lib/duel/orbitRev3Course.server";
 import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
-import { goalMet } from "../src/lib/duel/practiceChallenges";
-import { PRACTICE_CHALLENGES } from "../src/lib/duel/practiceChallenges.data";
+import { PRACTICE_CHALLENGES, goalMet } from "../src/lib/duel/practiceChallenges";
 import { gameLevelSettings, levelsOf } from "../src/lib/levels/gameLevels";
 import { dealAt } from "./level-tune";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";

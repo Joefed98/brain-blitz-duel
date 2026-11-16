@@ -5,7 +5,7 @@
  * run graded by the server's own replay on the dealt puzzle (`gradeAnswer`).
  *
  *   bun scripts/orbit-level-bands.ts [--levels=easy,normal,hard,expert] [--bots=average,good,great,near,elite]
- *                                    [--seeds=20] [--from=0] [--raw]
+ *                                    [--seeds=20] [--from=0] [--raw] [--list]
  *
  * Human limits (the default; `--raw` plays the shared elite profile as it is): the elite bot reacts in about 0.25 s
  * (reaction 250 ± 30 ms, PROFILES.elite's 145 ± 15) and takes about 0.15 s more to read the new orbit and move
@@ -15,7 +15,7 @@
  */
 import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnostics";
-import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
+import { GAME_BY_TYPE, roomSeed } from "./arcade-skill-bands/games";
 import { ELITE_BY_GAME, Human, type SkillLevel } from "./arcade-skill-bands/human";
 import { bot } from "./arcade-skill-bands/bots/orbit";
 import { dealAt } from "./level-tune";
@@ -33,7 +33,7 @@ export interface OrbitBandRow {
 }
 
 /** One run of the bot at `skill` on deal n of `level`: the server's score and whether it reached the sun. */
-export function playOrbitLevel(level: Level, skill: SkillLevel, n: number): { score: number; finished: boolean; level: Level } {
+export function playOrbitLevel(level: Level, skill: SkillLevel, n: number): { score: number; finished: boolean; level: Level; seed: number } {
   const spec = GAME_BY_TYPE.get("orbit")!;
   const puzzle = dealAt("orbit", level, n) as unknown as { seed: number; orbitRev: number };
   const game = spec.gameForPuzzle!(puzzle);
@@ -50,7 +50,7 @@ export function playOrbitLevel(level: Level, skill: SkillLevel, n: number): { sc
   const body = { seed, claimedScore: claimed, events: out.events ?? [], inputs: [], taps: [], endTick: state.tick, checkpoints };
   const raw = appendClientCounters(spec.encode(body, puzzle.orbitRev, seed), arcadeCounters("orbit", state, claimed));
   const graded = gradeAnswer(puzzle as never, raw, 0);
-  return { score: graded.score, finished: state.finished === 1, level: puzzleLevel(puzzle) };
+  return { score: graded.score, finished: state.finished === 1, level: puzzleLevel(puzzle), seed };
 }
 
 export function withHumanLimits<T>(on: boolean, fn: () => T): T {
@@ -80,6 +80,7 @@ if (import.meta.main) {
         const scores = runs.map((r) => r.score);
         const mean = scores.reduce((a, c) => a + c, 0) / scores.length;
         const fin = runs.filter((r) => r.finished).length / runs.length;
+        if (args.includes("--list")) runs.forEach((r, i) => console.log(`  ${level} ${b} deal ${from + i} (room seed ${roomSeed(from + i)}, course seed ${r.seed}): ${r.score}${r.finished ? " · sun" : ""}`));
         console.log(`${level.padEnd(7)} ${b.padEnd(8)} mean ${mean.toFixed(1).padStart(5)}  median ${pct(scores, 0.5)}  (${pct(scores, 0.1)}–${pct(scores, 0.9)})  sun ${(fin * 100).toFixed(0)}%  [dealt ${runs[0]!.level}]`);
       }
     }

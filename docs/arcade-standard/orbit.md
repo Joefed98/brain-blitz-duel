@@ -316,16 +316,77 @@ the expansion's view is the same picture, never the old lines.
 `ORBIT_SUN_HOLD_MS` 1,500 ms (`orbitEndHoldMs`), so the bloom, ALL 40 PLANETS! and the count-up show in practice too;
 the finished run is the draft meanwhile. A dry end still holds 600 ms for the sputter.
 
-### Levels (stage 3 of the overhaul, not built yet)
+### Levels (stage 3 of the overhaul, 16 Nov 2026)
 
-Joe's levers, for the difficulty framework (Normal is orbitRev 15 as above; every level a new stamp with its own proved
-bank, rated rooms on Normal, max 120 s):
+Easy, Hard and Expert through the difficulty framework (`GAME_LEVELS.orbit` in `src/lib/levels/gameLevels.ts`,
+docs/design/difficulty/README.md). Normal is exactly today's game: the same deal byte for byte (the Normal fuel bank is
+untouched, no `level` field), and rated matches and the Daily stay Normal. Each level is orbitRev 16 on a course from
+**its own proved bank** (`src/lib/duel/orbitFuelBank{Easy,Hard,Expert}.server.ts`, 32 / 32 / 31 courses, about 80 KB
+each, server only), picked by the seed as Normal's (`orbitFuelCourseForSeed(seed, level)`); the deal stamps `level` and
+the sim reads its rules from the stored level (`orbitLevelFields`, `initLevelFrom` in `orbitRev3.ts`; the state's
+`tank`, `cpAuto` / `cpNone`, `cpUsed`, folded into the checkpoint checksum last, only when present). Grace, the 90 s run,
+the features (30 motes, 4 slingshots, 3 fields) and the six parts (200) are orbitRev 16's at every level.
 
-| | Easy | Normal | Hard | Expert |
+| Lever | Easy | Normal (today) | Hard | Expert |
 |---|---|---|---|---|
-| Fuel (`ORBIT_FUEL_MAX`) | much more (240 ticks) | 160 | less (140) | least (120) |
-| Zigzag step | shorter (40–150 px) | 60–220 px | longer (80–240 px) | longest (100–260 px) |
-| Black holes / belts from | planet 25 | 21 / 31 | 15 / 25 | 11 / 21 |
-| Checkpoints | automatic every 10 planets | one (SET CHECKPOINT) | one | respawn only (grace) |
+| Tank (ticks of free flight) | 240 | 160 | 140 | 120 |
+| Longest proved hop (ticks) | 120 | 120 | 105 | 90 |
+| Zigzag: sideways step | 30–150 px | 60–220 px | 110–270 px | 140–300 px |
+| Zigzag: lift (× 1.15) | 130–200 px | 150–230 px | 170–250 px | 190–270 px |
+| Narrowest release window a hop is built with | 4 ticks | 4 ticks | 3 ticks | 2 ticks |
+| Black holes beside planets | 25 | 10, 20, 29 | 15, 25, 34 | 11, 21, 30 |
+| Belts from planet | 25 | 31 | 25 | 21 |
+| Checkpoints | automatic on planets 10, 20, 30 | one (SET CHECKPOINT) | one (SET CHECKPOINT) | none (grace only) |
 
-"Stargazer" (all the stardust on Hard) must stay possible: the Hard bank's witnesses must take all 30 motes.
+- **Today's Normal values, confirmed**: belts from planet 31 (`ORBIT_HAZARD_FROM`), black holes beside planets 10, 20 and
+  29 (`HOLE_FROM` 9, 19, 28, 0-based). The earlier draft of this table said "21 / 31"; 21 is where figure-eights start
+  (`ORBIT_EIGHT_FROM`), not black holes. Joe's "from N" is read as the first hole beside planet N, the others 10 and 19
+  on (as Normal's), while a hole's target stays short of the sun.
+- **Easy's automatic checkpoints.** With grace a slip already respawns at the planet the flight left, so a checkpoint
+  that sent the rocket *back* to planet 10 would cost more than it saves. On Easy the checkpoint arms itself whenever a
+  catch takes the furthest planet past 10, 20 or 30; a slip then respawns **at once at the planet it left, with no hold**,
+  spending it until the next tenth planet; with none armed, grace's 3 s hold. SET CHECKPOINT is not offered on Easy or
+  Expert (`orbitCanSetCheckpoint` / `orbitRev3CanSetCheckpoint`, so the button hides).
+- **Easy's belts from 25** are Joe's words; they are earlier than Normal's 31 (decision for Joe).
+- **The banks.** `bun scripts/orbit-fuel-bank.ts --level=easy|hard|expert` builds a level's bank from its settings in
+  `GAME_LEVELS` (`levelCourse`), `--check [n] --level=…` rebuilds the first n byte for byte, `--rev=16 --level=…`
+  re-proves every witness through the server replay. A level course is proved on its own rules only: the holes are
+  placed on a walk with the level's tank (`buildHoles`' `HoleWalk`, `windowHopDelay`) and the old-rule bot is skipped
+  (it asks for four-tick windows and rev-3 flight ends); the witness (`scripts/orbit-xp-lib.ts`) then takes every
+  feature and the sun with half the run left, 200, its flights landing with a quarter of the tank to spare. Without
+  `--level` the script builds the Normal bank exactly as before.
+- **Stargazer** ("Collect all the stardust on Hard") is met by every Hard witness as the server grades it.
+
+#### Measured (16 Nov 2026)
+
+`bun scripts/orbit-level-bands.ts --seeds=16` (16 real deals a level, `generatePuzzle("orbit", { bankSeed, level })`,
+the skill-band bot, every run graded by the server's replay on the dealt puzzle; checkpoints every 300 ticks, Orbit's
+`ORBIT_CHECKPOINT_INTERVAL`). **Human limits on the elite bot** (this tool's own constraint, `ORBIT_HUMAN_LIMITS`): a
+reaction of 250 ± 30 ms (elite's 145 ± 15) and a thinkScale of 0.43, so the bot's 350 ms read of each new orbit takes
+about 150 ms more before it can move (elite's 0.32); timing (9 ms) and aim are elite's. The other levels are the shared
+profiles. Mean, median (p10–p90), share of runs reaching the sun:
+
+| Bot | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Average | 116, 118 (98–125), 0 % | 107, 98 (84–130), 0 % | 79, 75 (47–110), 0 % | 82, 87 (66–97), 0 % |
+| Good | 141, 139 (113–163), 6 % | 143, 145 (125–154), 6 % | 104, 102 (73–129), 0 % | 104, 104 (82–120), 0 % |
+| Great | 173, 172 (167–179), 88 % | 160, 159 (145–169), 19 % | 120, 122 (97–138), 0 % | 124, 122 (103–139), 0 % |
+| Near-perfect | 186, 187 (178–191), 100 % | 184, 183 (173–193), 100 % | 157, 160 (129–176), 50 % | 154, 152 (125–168), 25 % |
+| Elite (human limits) | 185, 185 (180–187), 100 % | 184, 188 (172–193), 94 % | 170, 175 (146–185), 75 % | 160, 161 (147–172), 44 % |
+
+The shared tool, `bun scripts/level-tune.ts orbit --level=all --seeds=20` (main's version, raw profiles, checkpoints
+every 300 ticks): see the table below it.
+
+| Bot (20 deals a level) | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Near-perfect | avg 184.7, median 185, sun 100 % | 183.2, 181, 100 % | 157.1, 155, 45 % | 154.3, 154, 30 % |
+| Elite (raw profile) | 190.3, 192, 100 % | 186.6, 191, 95 % | 173.2, 176, 80 % | 162.7, 162, 45 % |
+
+Reading it: a clear step at the top (elite 185 → 184 → 170 → 160, near-perfect 186 → 184 → 157 → 154); Hard and Expert
+cut the middle levels hard (great 173 → 160 → 120 → 124). Easy lifts great to 173 and average to 116, but no average
+run reaches the sun in 90 s, so the 175 star is out of an average player's reach (great reaches it on about half the
+runs): giving the average player a shot needs a longer Easy round (up to 120 s), a run-length change across the stage,
+replay and speed part (decision for Joe). Expert "scored well" means 150+ (elite: 13 of 16 deals, 180 the best, the sun
+on 7): Expert courses to try (elite with human limits): bank #7 (bank seed 833130779; 172, 180 and 179 on three deals, the
+sun each time), #5 (bank seed −1004237067; 170, the sun), #11 (bank seed −1530903713; 165, the sun), and the hardest seen,
+#13 (bank seed 307522173; 135) and #22 (bank seed 1120914580; 147). A deal takes bank entry `seed mod 31`.
