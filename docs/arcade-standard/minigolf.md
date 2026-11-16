@@ -268,3 +268,8 @@ bot's greedy planner reaches 196; the oracle's witnesses reach 200 on every cour
 
 Proofs: minigolf-check (golfRev 2's bank, witnesses, courses and rules, and golfRev 1 unchanged),
 arcade-standard-check's entry (both banks' witnesses at 200).
+
+## For the later polish pass (Joe, 16 Nov 2026)
+
+- **Castles** should read more clearly as castles from above.
+- **Captain Joulz** in a slightly more upright three-quarter view (`golf_sprites.py`: the camera's tip, now 38°).
