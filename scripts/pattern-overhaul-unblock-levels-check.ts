@@ -12,7 +12,7 @@
  *  3. Rebuilt byte for byte from the seed stream (scripts/unblock-levels-bank.ts): quick depth the first Easy boards
  *     and one Hard board (every run); `--rebuild` the whole file (about two hours on one core, as the bank script's `--check`).
  *  4. Deals: each level dealt through generatePuzzle (rooms and practice), stamped `level`, unblockRev 4, par = the
- *     bank's minimum, the board one of the level's bank; `cols` only on Easy (6), `timeLimitMs` only on Expert (75 s);
+ *     bank's minimum, the board one of the level's bank; `cols` only on Easy (6), `timeLimitMs` only on Expert (90 s);
  *     the same bank seed deals every player the same board; a pre-drawn Normal row never reaches another level.
  *  5. Normal is today's deal: `level: "normal"` deals exactly what no level deals, with no level, size or clock field.
  *  6. The grid fits: every level's bays are at least 40 px on a 375 px phone (a 351 px board), with the lot's box
@@ -76,7 +76,7 @@ const settingsOf = (level: (typeof BANKED)[number]) => gameLevelSettings<Unblock
   const spec: Record<(typeof BANKED)[number], UnblockLevelSettings> = {
     easy: { cols: 6, minMoves: [6, 12], cars: [8, 10], timeLimitMs: 60_000, speedFullByS: 40 },
     hard: { cols: 7, minMoves: [22, 30], cars: [12, 14], timeLimitMs: 60_000, speedFullByS: 28 },
-    expert: { cols: 7, minMoves: [30, 40], cars: [13, 15], timeLimitMs: 75_000, speedFullByS: 30 },
+    expert: { cols: 7, minMoves: [40, 48], cars: [13, 15], timeLimitMs: 90_000, speedFullByS: 30 },
   };
   for (const level of BANKED) {
     check(same(settingsOf(level), spec[level]), `${level}: settings ${JSON.stringify(settingsOf(level))}`);
@@ -133,6 +133,15 @@ const settingsOf = (level: (typeof BANKED)[number]) => gameLevelSettings<Unblock
     const mins = bank.map((e) => Number(e.split("|")[1]));
     console.log(`  ${level}: ${bank.length} boards, minimum ${Math.min(...mins)}–${Math.max(...mins)} (mean ${(mins.reduce((a, b) => a + b, 0) / mins.length).toFixed(1)}), ${proved} proved by BFS`);
   }
+  // Expert is a real step beyond Hard (Joe, 16 Nov 2026): deeper boards, every one longer than Hard's longest, and
+  // the bank's mean at least 12 moves above Hard's.
+  const minsOf = (level: (typeof BANKED)[number]) => UNBLOCK_LEVEL_BANK[level].map((e) => Number(e.split("|")[1]));
+  const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  const hard = minsOf("hard");
+  const expert = minsOf("expert");
+  check(Math.min(...expert) > Math.max(...hard), `Expert's shortest board (${Math.min(...expert)}) isn't longer than Hard's longest (${Math.max(...hard)})`);
+  check(mean(expert) >= mean(hard) + 12, `Expert's boards average ${mean(expert).toFixed(1)} moves, Hard's ${mean(hard).toFixed(1)} (not 12 deeper)`);
+  check(new Set(expert).size >= 4, `Expert's depths take only ${new Set(expert).size} values`);
 }
 
 /* ---------------------------------------------------------------- 3. rebuilt byte for byte */
@@ -254,7 +263,7 @@ const dealt: Partial<Record<Level, UnblockPuzzleData>> = {};
   );
   check(reveal.includes("lot-6.webp") && !reveal.includes("Solution unavailable") && reveal.includes(`data-unblock-route="${dealt.easy!.minMoves}"`), "the Easy reveal doesn't play its line on the 6×6 lot");
   const src = readFileSync(new URL("../src/components/puzzles/UnblockPuzzle.tsx", import.meta.url), "utf8");
-  check(/phaseStartedAt \+ clockMs - now/.test(src) && /puzzle\.timeLimitMs \?\? UNBLOCK_TIME_MS/.test(src), "the stage's lock-in doesn't read the puzzle's own clock (Expert's 75 s)");
+  check(/phaseStartedAt \+ clockMs - now/.test(src) && /puzzle\.timeLimitMs \?\? UNBLOCK_TIME_MS/.test(src), "the stage's lock-in doesn't read the puzzle's own clock (Expert's 90 s)");
 }
 
 const total = passes + failures.length;

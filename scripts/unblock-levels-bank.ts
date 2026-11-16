@@ -16,7 +16,8 @@
  *   bun scripts/unblock-levels-bank.ts --level=hard --raw=<file>  one level's whole bank into <file> (one entry a line)
  *   bun scripts/unblock-levels-bank.ts --merge=<easy>,<hard>,<expert>  the file from three such runs (in parallel)
  *
- * A Hard board takes about 15 s and an Expert one about 30 s on one core (a hill climb of component searches).
+ * A Hard board takes about 15 s and an Expert one (40–48 moves) one to two minutes on one core (a hill climb of component
+ * searches); build Expert in four parts with --from/--count/--raw, then --merge.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 
@@ -246,6 +247,9 @@ function mutate(rng: SeededRng, vs: readonly V[], s: UnblockLevelSettings): V[] 
   return car ? [...rest, car] : null;
 }
 
+/** Levels whose climb aims at the range's floor, the board then the drawn depth or the lot's hardest (Expert). */
+const CLIMB_TO_FLOOR: Record<BankLevel, boolean> = { easy: false, hard: false, expert: true };
+
 /** Steps one climb may take before the attempt gives up (the next attempt starts from a fresh lot). */
 const CLIMB_STEPS = 1_500;
 
@@ -255,9 +259,14 @@ const CLIMB_STEPS = 1_500;
  * first layout (in exploration order) exactly that many moves from solved. An entry "layout|minimum|solution", or null
  * if the climb ran out of steps.
  */
-function attempt(rng: SeededRng, s: UnblockLevelSettings): string | null {
+function attempt(rng: SeededRng, s: UnblockLevelSettings, level: BankLevel): string | null {
   const N = s.cols;
-  const target = rng.int(s.minMoves[0], s.minMoves[1]);
+  const drawn = rng.int(s.minMoves[0], s.minMoves[1]);
+  // Expert (16 Nov 2026): climb only to the range's floor, then take the drawn depth or the lot's hardest, whichever
+  // is less (climbing straight to a drawn 40–48 was far too slow: a board in minutes). Easy and Hard climb to the drawn
+  // target as before, so their banks are unchanged byte for byte.
+  const floorClimb = CLIMB_TO_FLOOR[level];
+  const target = floorClimb ? s.minMoves[0] : drawn;
   let lot = randomLayout(rng, s);
   if (!lot) return null;
   let comp = component(lot, N);
@@ -279,9 +288,10 @@ function attempt(rng: SeededRng, s: UnblockLevelSettings): string | null {
     }
   }
   if (!comp || score < target || lot.length - 1 < s.cars[0]) return null;
+  const depth = floorClimb ? Math.min(drawn, score) : target;
   let at = -1;
   for (let i = 0; i < comp.count; i++) {
-    if (comp.dist[i] === target) {
+    if (comp.dist[i] === depth) {
       at = i;
       break;
     }
@@ -289,7 +299,7 @@ function attempt(rng: SeededRng, s: UnblockLevelSettings): string | null {
   const start = placeAt(lot, comp.keys[at]!);
   const moves: string[] = [];
   let key = comp.keys[at]!;
-  for (let d = target; d > 0; d--) {
+  for (let d = depth; d > 0; d--) {
     let chosen: { next: number; car: number; to: number } | null = null;
     comp.neighbours(key, (next, car, to) => {
       if (!chosen && comp!.dist[comp!.indexOf(next)] === d - 1) chosen = { next, car, to };
@@ -299,7 +309,7 @@ function attempt(rng: SeededRng, s: UnblockLevelSettings): string | null {
     moves.push(`${c.car}:${c.to}`);
     key = c.next;
   }
-  return `${serialise(start)}|${target}|${moves.join(";")}`;
+  return `${serialise(start)}|${depth}|${moves.join(";")}`;
 }
 
 /** Entry i of a level, given the layouts of the entries before it. Returns the entry and the attempt that made it. */
@@ -307,7 +317,7 @@ export function buildEntry(level: BankLevel, i: number, earlier: ReadonlySet<str
   const s = settingsOf(level);
   for (let a = 0; a < MAX_ATTEMPTS; a++) {
     const rng = seededRng(saltSeed(saltSeed(i, `unblock-levels:${level}`), String(a)));
-    const entry = attempt(rng, s);
+    const entry = attempt(rng, s, level);
     if (!entry) continue;
     if (earlier.has(entry.split("|")[0]!)) continue;
     return { entry, attempts: a + 1 };

@@ -77,13 +77,18 @@ an unfinished third of the line):
 
 - **Easy:** a 6 × 6 lot (its own render, `lot-6.webp`; bays about 53 px on a 375 px phone), 8–10 cars, 6–12 moves at
   the minimum, 60 s, full speed by 40 s. **Normal:** today's game exactly (7 × 7, 15–22 moves, 60 s). **Hard:** 7 × 7,
-  12–14 cars, 22–30 moves, 60 s, full speed by 28 s. **Expert:** 7 × 7, 13–15 cars, 30–40 moves, 75 s, full speed by
+  12–14 cars, 22–30 moves, 60 s, full speed by 28 s. **Expert (deeper boards, 16 Nov 2026):** 7 × 7, 13–15
+  cars, 40–48 moves at the minimum (mean 42.0, every board longer than Hard's longest; was 30–40), 90 s, full speed by
   30 s. The lot is the same square at every level; the cars, the ghost, the glint and the drive-out size from the lot.
 - Each level deals from its own seeded bank of 120 boards (`scripts/unblock-levels-bank.ts`, rebuilt byte for byte),
   every board's minimum (the par) proved by breadth-first search over its whole lot
   (`pattern-overhaul-unblock-levels-check`). Any route out counts.
-- Elite bots (level-tune, 40 deals): near-perfect 199.9 / 199.8 / 195.9 / 192.1, great 199.2 / 198.5 / 178.7 / 176.0
-  (Easy / Normal / Hard / Expert).
+- Elite bots (level-tune, 60 deals, for information): near-perfect 199.8 / 199.8 / 195.9 / 189.6, great 199.0 / 198.1 /
+  179.5 / 176.2 (Easy / Normal / Hard / Expert). The person-like solver (`scripts/unblock-human.ts`, 40 deals): Hard
+  164.3 avg, 73 % finished; Expert 149.0 avg, 70 % finished, twice the layouts imagined (median 4,621 against 2,125);
+  on all 120 Expert boards 73 % finished, median 176. Every Expert board, with a room seed that deals it and the
+  solver's score: `levels/unblock-expert-boards.tsv`. (The Expert frame above shows a board from the earlier bank: the
+  lot, cars and art are the same at every depth.)
 <!-- gridlock:end -->
 
 <!-- tessellate:start -->
