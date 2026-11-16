@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 
 import { ArrowPad, usePrefersReducedMotion, useSwipe } from "@/components/puzzles/GridDrag";
 import {
@@ -9,13 +9,13 @@ import {
   oneSlideFromExit,
   replaySlide,
   slideBoard,
+  slideDims,
   slideOutcome,
   slideSearch,
 } from "@/lib/duel/slide";
 import { useGameKeys } from "@/lib/desktop";
 import { useStageState } from "@/lib/duel/stageState";
 import {
-  SLIDE_COLS,
   SLIDE_TIME_MS,
   type SlideDir,
   type SlidePuzzleData,
@@ -75,7 +75,7 @@ function IntroExample() {
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Reaching the exit in par slides earns a bonus; Undo gives a slide back. You have 90 seconds.
+        Reaching the exit in par slides earns a bonus; Undo gives a slide back. You have 90 seconds (120 on Expert).
       </p>
     </div>
   );
@@ -93,6 +93,9 @@ function Stage({
     () => slideBoard(data ?? { walls: [], holes: [], start: 0, exit: 0 }),
     [data],
   );
+  // Difficulty levels (16 Nov 2026): a level board's own size (Easy 8 × 8, Expert 12 × 14); else 12 × 12.
+  const dims = slideDims(data);
+  const tall = dims.rows !== dims.cols;
   const [moves, setMoves] = useStageState<SlideDir[]>(stateKey, "slideMoves", () => []);
   const submitted = useRef(false);
   const [flash, setFlash] = useState(false);
@@ -241,7 +244,13 @@ function Stage({
   if (!data) return null;
 
   return (
-    <div data-stage-column="2" data-polish="iceslide" className="flex min-h-0 flex-1 flex-col gap-2">
+    <div
+      data-stage-column="2"
+      data-polish="iceslide"
+      data-ice-tall={tall ? "true" : undefined}
+      style={tall ? ({ "--ice-ar": `${dims.cols / dims.rows}` } as CSSProperties) : undefined}
+      className="flex min-h-0 flex-1 flex-col gap-2"
+    >
       {inFrame ? null : (
         <p className="text-center font-mono text-xs uppercase tracking-widest text-muted-foreground">
           moves <span className="text-primary">{slidesShown}</span>
@@ -256,8 +265,9 @@ function Stage({
         }}
         {...swipe}
       >
-        <div className="ice-stage-square relative aspect-square h-full max-h-full w-full max-w-full">
+        <div className={`ice-stage-square relative${tall ? "" : " aspect-square"} h-full max-h-full w-full max-w-full`}>
           <Board
+            {...(dims.cols !== 12 || dims.rows !== 12 ? { cols: dims.cols, cells: dims.cells } : {})}
             walls={data.walls}
             holes={data.holes ?? []}
             arrows={data.arrows ?? []}
@@ -274,20 +284,20 @@ function Stage({
             nearPulse={nearSpot}
             ballFx={ballFx}
           >
-            <IceTrail cells={fx.trail} cols={SLIDE_COLS} rows={SLIDE_COLS} fading={fx.trailFading} />
-            {gems.length ? <IceGems gems={gems} collected={gemsShown} cols={SLIDE_COLS} /> : null}
-            {fx.fall ? <IceFallingBall key={fx.fall.key} cell={fx.fall.cell} cols={SLIDE_COLS} /> : null}
+            <IceTrail cells={fx.trail} cols={dims.cols} rows={dims.rows} fading={fx.trailFading} />
+            {gems.length ? <IceGems gems={gems} collected={gemsShown} cols={dims.cols} /> : null}
+            {fx.fall ? <IceFallingBall key={fx.fall.key} cell={fx.fall.cell} cols={dims.cols} rows={dims.rows} /> : null}
           </Board>
           {visualBall && (
             <span
               aria-label="Ball"
               className="pointer-events-none absolute z-10 block rounded-full ice-player ice-ball"
               style={{
-                // One square (12 across): the ball render is 90 % of it, as the resting ball.
-                width: "calc((100% - 22px) / 12)",
-                height: "calc((100% - 22px) / 12)",
-                left: `calc((100% - 22px) * ${((visualBall.cell % SLIDE_COLS) + 0.5) / SLIDE_COLS} + ${(visualBall.cell % SLIDE_COLS) * 2}px)`,
-                top: `calc((100% - 22px) * ${(Math.floor(visualBall.cell / SLIDE_COLS) + 0.5) / SLIDE_COLS} + ${Math.floor(visualBall.cell / SLIDE_COLS) * 2}px)`,
+                // One square (2 px gaps between squares): the ball render is 90 % of it, as the resting ball.
+                width: `calc((100% - ${2 * (dims.cols - 1)}px) / ${dims.cols})`,
+                height: `calc((100% - ${2 * (dims.rows - 1)}px) / ${dims.rows})`,
+                left: `calc((100% - ${2 * (dims.cols - 1)}px) * ${((visualBall.cell % dims.cols) + 0.5) / dims.cols} + ${(visualBall.cell % dims.cols) * 2}px)`,
+                top: `calc((100% - ${2 * (dims.rows - 1)}px) * ${(Math.floor(visualBall.cell / dims.cols) + 0.5) / dims.rows} + ${Math.floor(visualBall.cell / dims.cols) * 2}px)`,
                 transform: "translate(-50%, -50%)",
                 transition: visualBall.jump || reducedMotion ? "none" : "left 90ms linear, top 90ms linear",
               }}
@@ -374,6 +384,8 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleR
   }, [won]);
   if (puzzle.type !== "iceslide") return null;
   const board = slideBoard(puzzle);
+  const dims = slideDims(puzzle);
+  const revealTall = dims.rows !== dims.cols;
   const best = puzzle.solution
     ? (puzzle.solution.split("") as SlideDir[])
     : (slideSearch(board)?.route ?? []);
@@ -395,8 +407,14 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleR
     seconds !== null ? { id: "time", label: "Time left", value: `${seconds} s` } : null,
   ];
   const rink = (props: { route: number[]; ball: number; broken?: number; fallen?: number[] }) => (
-    <div className="ice-reveal-board" data-reveal-board="">
+    <div
+      className="ice-reveal-board"
+      data-reveal-board=""
+      data-ice-tall={revealTall ? "true" : undefined}
+      style={revealTall ? ({ "--ice-ar": `${dims.cols / dims.rows}` } as CSSProperties) : undefined}
+    >
       <Board
+        {...(dims.cols !== 12 || dims.rows !== 12 ? { cols: dims.cols, cells: dims.cells } : {})}
         walls={puzzle.walls}
         holes={puzzle.holes ?? []}
         arrows={puzzle.arrows ?? []}

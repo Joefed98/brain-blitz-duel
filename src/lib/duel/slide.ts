@@ -8,7 +8,6 @@
  */
 
 import {
-  SLIDE_CELLS,
   SLIDE_COLS as N,
   type SlideArrow,
   type SlideDir,
@@ -17,14 +16,25 @@ import {
 
 export const SLIDE_DIRS: SlideDir[] = ["U", "D", "L", "R"];
 
-export function slideStep(cell: number, dir: SlideDir): number | null {
+/**
+ * One square on in `dir`, or null at the edge. A board is 12 × 12 unless a level gives it its own `cols` × `rows`
+ * (difficulty levels, 16 Nov 2026: Easy 8 × 8, Expert 12 × 14); the defaults are today's board exactly.
+ */
+export function slideStep(cell: number, dir: SlideDir, cols = N, rows = N): number | null {
   if (dir === "X" || dir === "Y") return null;
-  const row = Math.floor(cell / N);
-  const col = cell % N;
-  if (dir === "U") return row > 0 ? cell - N : null;
-  if (dir === "D") return row < N - 1 ? cell + N : null;
+  const row = Math.floor(cell / cols);
+  const col = cell % cols;
+  if (dir === "U") return row > 0 ? cell - cols : null;
+  if (dir === "D") return row < rows - 1 ? cell + cols : null;
   if (dir === "L") return col > 0 ? cell - 1 : null;
-  return col < N - 1 ? cell + 1 : null;
+  return col < cols - 1 ? cell + 1 : null;
+}
+
+/** A stored board's size: its own `cols` × `rows` (a level board), else today's 12 × 12. */
+export function slideDims(puzzle: { cols?: number | undefined; rows?: number | undefined } | null | undefined): { cols: number; rows: number; cells: number } {
+  const cols = puzzle?.cols ?? N;
+  const rows = puzzle?.rows ?? N;
+  return { cols, rows, cells: cols * rows };
 }
 
 export interface SlideBoard {
@@ -36,10 +46,13 @@ export interface SlideBoard {
   thin: Map<number, number>;
   start: number;
   exit: number;
+  /** The board's size (absent: 12 × 12). */
+  cols?: number;
+  rows?: number;
 }
 
 export function slideBoard(
-  puzzle: Pick<SlidePuzzleData, "walls" | "holes" | "arrows" | "portals" | "thin" | "start" | "exit">,
+  puzzle: Pick<SlidePuzzleData, "walls" | "holes" | "arrows" | "portals" | "thin" | "start" | "exit"> & { cols?: number | undefined; rows?: number | undefined },
 ): SlideBoard {
   const portals = new Map<number, number>();
   for (const [a, b] of puzzle.portals ?? []) {
@@ -54,7 +67,12 @@ export function slideBoard(
     thin: new Map((puzzle.thin ?? []).map((cell, bit) => [cell, bit])),
     start: puzzle.start,
     exit: puzzle.exit,
+    ...(puzzle.cols !== undefined || puzzle.rows !== undefined ? { cols: puzzle.cols ?? N, rows: puzzle.rows ?? N } : {}),
   };
+}
+
+function boardCells(board: Pick<SlideBoard, "cols" | "rows">): number {
+  return (board.cols ?? N) * (board.rows ?? N);
 }
 
 export interface SlideOutcome {
@@ -78,8 +96,10 @@ export function slideOutcome(board: SlideBoard, from: number, mask: number, dir:
   let heading = dir;
   let broke = 0;
   let portal = false;
-  for (let guard = 0; guard < SLIDE_CELLS * 4; guard++) {
-    const next = slideStep(cell, heading);
+  const cols = board.cols ?? N;
+  const rows = board.rows ?? N;
+  for (let guard = 0; guard < cols * rows * 4; guard++) {
+    const next = slideStep(cell, heading, cols, rows);
     if (next === null || board.walls.has(next)) break;
     cell = next;
     path.push(cell);
@@ -212,10 +232,11 @@ export function replaySlide(board: SlideBoard, moves: SlideDir[]): SlideReplay {
 export function slideSearch(
   board: SlideBoard,
   from: SlideState = { cell: board.start, mask: 0 },
-  maxDepth = SLIDE_CELLS * 4,
+  maxDepth = boardCells(board) * 4,
 ): { min: number; route: SlideDir[] } | null {
   if (from.cell === board.exit) return { min: 0, route: [] };
-  const key = (s: SlideState) => s.mask * SLIDE_CELLS + s.cell;
+  const cells = boardCells(board);
+  const key = (s: SlideState) => s.mask * cells + s.cell;
   const states: SlideState[] = [from];
   const parent: number[] = [-1];
   const via: SlideDir[] = ["X"];

@@ -11,6 +11,23 @@
   height: min(100cqw, calc(100cqh - 156px));
   flex: 0 0 auto;
 }
+/* Difficulty levels (16 Nov 2026): Expert's 12 × 14 rink grows downwards (`--ice-ar` is its width over its height), as
+   large as fits above the same controls; square levels (Easy's 8 × 8, Hard's 12 × 12) use the rules above unchanged. */
+.game-column [data-polish="iceslide"][data-ice-tall] > [data-game-arena="board"] {
+  height: min(calc(100cqw / var(--ice-ar)), calc(100cqh - 156px));
+}
+.game-column [data-polish="iceslide"][data-ice-tall] .ice-stage-square {
+  width: min(100cqw, calc((100cqh - 156px) * var(--ice-ar)));
+  height: min(calc(100cqw / var(--ice-ar)), calc(100cqh - 156px));
+}
+/* The live round's play screen (batch P's 160 px budget, polish-batch-p/batch-p.css), the same tall shape. */
+[data-puzzle-play][data-puzzle-play] .game-column [data-polish="iceslide"][data-ice-tall] > [data-game-arena="board"] {
+  height: min(calc(100cqw / var(--ice-ar)), calc(100cqh - 160px));
+}
+[data-puzzle-play][data-puzzle-play] .game-column [data-polish="iceslide"][data-ice-tall] .ice-stage-square {
+  width: min(100cqw, calc((100cqh - 160px) * var(--ice-ar)));
+  height: min(calc(100cqw / var(--ice-ar)), calc(100cqh - 160px));
+}
 
 /* ---------- The rink ----------
    The Pattern overhaul (15 Nov 2026, look A): every piece is a Blender render (public/pattern-art/iceslide/, from
@@ -197,6 +214,9 @@ span.ice-player.ice-ball { background: none; }
 .ice-reveal-col { min-width: 0; }
 .ice-reveal-board { width: min(calc(50cqw - 8px), 230px); aspect-ratio: 1; }
 [data-solution-view] .ice-reveal-board { width: min(100cqw, 380px); }
+/* Expert's tall rink on the reveal: its own shape, a little narrower so it stands no taller than a square one would. */
+.ice-reveal-board[data-ice-tall] { aspect-ratio: var(--ice-ar); width: min(calc((50cqw - 8px) * var(--ice-ar)), calc(230px * var(--ice-ar))); }
+[data-solution-view] .ice-reveal-board[data-ice-tall] { width: min(100cqw, calc(380px * var(--ice-ar))); }
 .ice-reveal-label { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--jz-text-2); }
 .ice-reveal-caption { font-size: 15px; font-weight: 600; color: var(--jz-text); }
 .hud-pills.ice-reveal-pills { justify-content: center; flex-wrap: wrap; height: auto; row-gap: 6px; overflow: visible; }
