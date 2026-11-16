@@ -1399,13 +1399,14 @@ export const TILT_FX: ArcadeFxSpec<TiltState> = {
     {
       kind: "clear",
       count: (s) => s.mazes,
-      when: (s) => s.mazes < TILT_MAX_MAZES,
+      // Levels (stage 3): a level's run ends at its own maze count (Easy three).
+      when: (s) => s.mazes < (s.lvl ? s.list.length : TILT_MAX_MAZES),
       label: (_s, n) => `MAZE ${n} DONE!`,
     },
     {
       kind: "final",
-      count: (s) => (s.mazes >= TILT_MAX_MAZES ? 1 : 0),
-      label: () => "ALL 4 MAZES!",
+      count: (s) => (s.mazes >= (s.lvl ? s.list.length : TILT_MAX_MAZES) ? 1 : 0),
+      label: (s) => (s.lvl ? `ALL ${s.list.length} MAZES!` : "ALL 4 MAZES!"),
     },
     // tiltRev 2 (original rounds keep these at 0 / undefined): a bonus star, the first marble in its cup.
     { kind: "pop", count: (s) => s.stars ?? 0, at: (s) => tiltMarbleAt(s), label: () => "BONUS STAR!" },

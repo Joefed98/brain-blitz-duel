@@ -386,7 +386,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     },
   },
   // tiltRev 8: the taller world (the art draws the expansion's camera from the state).
-  tilt: simple("#2EC4B6", 440, 470, tiltGame, (p, a) => replayTiltRun(seedOf(p), a, p.type === "tilt" ? p.tiltRev : undefined), undefined, tiltGame, (p) => tiltWorldHFor(p.type === "tilt" ? p.tiltRev : undefined)),
+  tilt: simple("#2EC4B6", 440, 470, tiltGame, (p, a) => replayTiltRun(seedOf(p), a, p.type === "tilt" ? p.tiltRev : undefined, p.type === "tilt" ? p.level : undefined), undefined, tiltGame, (p) => tiltWorldHFor(p.type === "tilt" ? p.tiltRev : undefined)),
   balltrack: {
     accent: GOLD,
     worldW: BT_W,

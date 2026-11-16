@@ -17,8 +17,10 @@ import { minesBoard, minesCountFor, minesSolve, MINES_REV_LOGIC, MINES_REV_STD }
 import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_COUNT } from "@/lib/arcade/skyline";
-import { TILT_REV_BIG } from "@/lib/arcade/tilt";
+import { TILT_REV_BIG, isTiltLevel } from "@/lib/arcade/tilt";
 import { TILT_DEAL_V12 } from "./tiltDealV12.server";
+import { TILT_DEAL_LEVELS } from "./tiltDealLevels.server";
+import type { Level } from "@/lib/levels/levels";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE } from "@/lib/arcade/swing";
@@ -500,7 +502,15 @@ export function generateSwing(): SwingPuzzleData {
   throw new Error("Couldn’t build the course. Try again.");
 }
 
-export function generateTilt(): TiltPuzzleData {
+export function generateTilt(level?: Level): TiltPuzzleData {
+  // Levels (stage 3, 15 Nov 2026): easy, hard and expert deal tiltRev 12 from their own proved deals
+  // (tiltDealLevels.server.ts, scripts/tilt-deal.ts --level: seeds the oracle played to exactly 200 through the server's
+  // replay at that level); the deal stamps the level itself. Normal (no level) deals below exactly as before.
+  if (level && isTiltLevel(level)) {
+    const list = TILT_DEAL_LEVELS[level];
+    const at = arcadeSeed();
+    return { type: "tilt", seed: list[((at % list.length) + list.length) % list.length]!, tiltRev: TILT_REV_BIG };
+  }
   // tiltRev 9: tiltRev 8's play (the expansion) on the lifted curves (Joe's phone notes, 27 Oct 2026). A seed from the
   // bank (TILT_BANK, scripts/tilt-bank.ts): every maze fully dealt (tiltDealableX) and played to 200 by the oracle
   // through the server's replay (tilt-expand-check replays each).

@@ -2613,7 +2613,7 @@ function gradeUnderRev(
     }
     case "tilt": {
       const replayStart = performance.now();
-      const run = replayTiltRun(puzzle.seed, answer, puzzle.tiltRev);
+      const run = replayTiltRun(puzzle.seed, answer, puzzle.tiltRev, puzzle.level);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2628,6 +2628,8 @@ function gradeUnderRev(
         ...(tiltIsExpand(puzzle.tiltRev) ? { quickStars: run.quickStars, totalQuick: run.totalQuick, falls: run.falls, skillPoints: run.skillPoints } : {}),
         // tiltRev 11: mazes within par and mazes finished before the first fall.
         ...(run.parsMet !== undefined ? { parsMet: run.parsMet, cleanMazes: run.cleanMazes } : {}),
+        // Levels (stage 3): a level's run stores its level and maze count (absent on every Normal round).
+        ...(run.state.lvl ? { level: run.state.lvl, totalMazes: run.state.list.length } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,

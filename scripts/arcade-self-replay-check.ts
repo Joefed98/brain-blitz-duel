@@ -106,7 +106,7 @@ import { encodeBurstRun, replayBurstRun } from "@/lib/duel/burst";
 import { orbitCheckpoint, orbitGame } from "@/lib/arcade/orbit";
 import { encodeOrbitRun, replayOrbitRun } from "@/lib/duel/orbit";
 import { swingCheckpoint, swingGame } from "@/lib/arcade/swing";
-import { tiltCheckpoint, tiltGame, tiltGameFor, TILT_REV } from "@/lib/arcade/tilt";
+import { tiltCheckpoint, tiltGame, tiltGameFor, tiltLevelGame, TILT_REV } from "@/lib/arcade/tilt";
 import { encodeTiltRun, replayTiltRun } from "@/lib/duel/tilt";
 import { hotfloorCheckpoint, hotFloorGame } from "@/lib/arcade/hotFloor";
 import { encodeHotFloorRun, replayHotFloorRun } from "@/lib/duel/hotFloor";
@@ -1067,6 +1067,8 @@ const GAMES: Game[] = [
   { key: "matchup/ice2", game: matchupGameFor(MATCHUP_REV_ICE2), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_ICE2) },
   { key: "matchup/ice2-easy", game: matchupGameFor(MATCHUP_REV_ICE2, "easy"), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_ICE2, "easy") },
   { key: "matchup/ice2-expert", game: matchupGameFor(MATCHUP_REV_ICE2, "expert"), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_ICE2, "expert") },
+  // Tilt's Expert level (stage 3, 15 Nov 2026: tiltRev 12 at expert), appended so every earlier entry keeps its stream.
+  { key: "tilt/expert", game: tiltLevelGame("expert"), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_BIG, "expert") },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

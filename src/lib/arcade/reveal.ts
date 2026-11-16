@@ -881,7 +881,8 @@ const BUILDERS: Record<string, Builder> = {
   },
   tilt: (r, s) => {
     // tiltRev 8 (the expansion, docs/expansions/x200-tilt.md): three mazes and quick stars; tiltRev 10 four mazes again.
-    const all = n(r, "tiltRev") === 8 || n(r, "tiltRev") === 9 ? 3 : 4;
+    // Levels (stage 3): a level's run stores its own maze count (Easy three).
+    const all = n(r, "totalMazes") > 0 ? n(r, "totalMazes") : n(r, "tiltRev") === 8 || n(r, "tiltRev") === 9 ? 3 : 4;
     const done = n(r, "mazes") >= all;
     const quick = n(r, "totalQuick") > 0;
     // tiltRev 11: no gold stars; mazes within par and a clean run instead.

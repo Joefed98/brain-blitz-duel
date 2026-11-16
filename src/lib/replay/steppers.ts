@@ -88,7 +88,7 @@ import {
 } from "@/lib/arcade/orbitRev3";
 import { swingGameFor } from "@/lib/arcade/swing";
 import { snipGameFor } from "@/lib/arcade/snip";
-import { tiltGameFor } from "@/lib/arcade/tilt";
+import { tiltGameForLevel } from "@/lib/arcade/tilt";
 import { makeBallTrackGame } from "@/lib/arcade/ballTrack";
 import { whackGameFor } from "@/lib/arcade/whack";
 import { clayGameFor } from "@/lib/arcade/clayShoot";
@@ -240,7 +240,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   orbit: orbitSource,
   swing: (p) => ({ game: swingGameFor(rev(p, "swingRev")) as AnyGame }),
   snip: (p) => ({ game: snipGameFor(rev(p, "snipRev")) as AnyGame }),
-  tilt: (p) => ({ game: tiltGameFor(rev(p, "tiltRev")) as AnyGame }),
+  tilt: (p) => ({ game: tiltGameForLevel(rev(p, "tiltRev"), (p as { level?: unknown }).level) as AnyGame }),
   balltrack: (p) => ({
     game: makeBallTrackGame(
       (p as unknown as { course: Parameters<typeof makeBallTrackGame>[0] }).course,

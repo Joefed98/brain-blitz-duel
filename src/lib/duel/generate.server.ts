@@ -306,7 +306,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "orbit") return generateOrbit();
   if (type === "swing") return generateSwing();
   if (type === "snip") return generateSnip();
-  if (type === "tilt") return generateTilt();
+  if (type === "tilt") return generateTilt(context.level);
   if (type === "hotfloor") return generateHotFloor();
   if (type === "tents") return generateTents();
   if (type === "shikaku") return generateShikaku();

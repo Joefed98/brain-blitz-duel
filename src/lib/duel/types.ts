@@ -2461,6 +2461,8 @@ export interface TiltPuzzleData {
   seed: number;
   /** Rules revision (2 = bonus stars, two marbles from maze 3, rimmed cups; 3 = score bands; 4 = amber start away from its cup, stars at the holes, Tuning C); absent = original rules. */
   tiltRev?: number;
+  /** Levels (stage 3; tiltRev 12 only): the level the round was dealt at, stamped by the deal; absent = Normal. */
+  level?: "easy" | "hard" | "expert";
 }
 
 export interface HotFloorPuzzleData {

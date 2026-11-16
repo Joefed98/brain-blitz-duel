@@ -10,7 +10,7 @@ import { tiltPitLip } from "./tiltLip";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import { TILT_FX } from "./arcadeFxGames.renderer";
-import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltBandGame, tiltGame, tiltRev2Game, tiltStarPoint, tiltTotalStars, tiltTunecGame, tiltTargetGame, tiltStrictGame, tiltExpandGame, tiltLiftGame, tiltStdGame, tiltParGame, tiltBigGame, tiltParLeftX, tiltOverParT, tiltIsExpand, TILT_REV, TILT_REV_PAR, TILT_REV_BIG, TILT_B_CUP, TILT_REV_BAND, TILT_REV_TUNEC, TILT_REV_TARGET, TILT_REV_STRICT, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_X_W, TILT_X_H, TILT_X_QUICK_TAIL, TILT_X_FALL_HOLD, tiltCellCentre, tiltQuickLeftX, tiltQuickFullLeftX, type Maze, type TiltState } from "./tilt";
+import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltBandGame, tiltGame, tiltRev2Game, tiltStarPoint, tiltTotalStars, tiltTunecGame, tiltTargetGame, tiltStrictGame, tiltExpandGame, tiltLiftGame, tiltStdGame, tiltParGame, tiltBigGame, tiltParLeftX, tiltOverParT, tiltIsExpand, TILT_REV, TILT_REV_PAR, TILT_REV_BIG, TILT_B_CUP, TILT_REV_BAND, TILT_REV_TUNEC, TILT_REV_TARGET, TILT_REV_STRICT, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_X_W, TILT_X_H, TILT_X_QUICK_TAIL, TILT_X_FALL_HOLD, tiltCellCentre, tiltQuickLeftX, tiltQuickFullLeftX, tiltLevelGame, isTiltLevel, type TiltLevel, type Maze, type TiltState } from "./tilt";
 import {
   TOY_BRASS, TOY_BRASS_DARK, TOY_INK, TOY_OAK_LIGHT, TOY_TABLE, TOY_TABLE_LIT, TOY_WOOD_DARK,
   toyBoard, toyChangeAge, toyGrain, toyMarble,
@@ -728,7 +728,9 @@ const tiltBandArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...til
 const tiltTunecArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltTunecGame, draw };
 const tiltTargetArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltTargetGame, draw };
 const tiltStrictArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltStrictGame, draw };
-export function tiltArtGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+export function tiltArtGameFor(rev?: number | null, level?: unknown): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  // Levels (stage 3): a tiltRev 12 round dealt at easy, hard or expert draws its level's game (tiltRev 12's art).
+  if (rev === TILT_REV_BIG && isTiltLevel(level)) return tiltLevelArtGame(level);
   if (rev === TILT_REV_BIG) return tiltBigArtGame;
   if (rev === TILT_REV_PAR) return tiltParArtGame;
   if (rev === TILT_REV_STD) return tiltStdArtGame;
@@ -1449,6 +1451,15 @@ const tiltLiftArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...til
 const tiltStdArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltStdGame, draw: drawX };
 const tiltParArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltParGame, draw: drawX };
 const tiltBigArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltBigGame, draw: drawX };
+const levelArtGames = new Map<TiltLevel, ArcadeGame<TiltState, ArcadeInputEvent | null>>();
+function tiltLevelArtGame(level: TiltLevel): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  let g = levelArtGames.get(level);
+  if (!g) {
+    g = { ...tiltLevelGame(level), draw: drawX };
+    levelArtGames.set(level, g);
+  }
+  return g;
+}
 
 /* ================= tiltRev 12 (3 Nov 2026): walnut and brass, bigger pieces, the HUD in pills ================= */
 
