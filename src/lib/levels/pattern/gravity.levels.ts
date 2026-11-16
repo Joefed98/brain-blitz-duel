@@ -45,8 +45,11 @@ export const LEVELS_GRAVITY: GameLevels<TopsyLevelSettings> = {
     // Easy: two boards of three balls, each board 2–4 tilts at the fewest, a generous limit (the fewest + 12), full
     // speed by 20 s.
     easy: { settings: { balls: 3, boards: 2, minTilts: [2, 4], walls: [14, 22], spare: 12, timeLimitMs: 120_000, speedFullByS: 20 }, oneSolution: OPEN },
-    // Hard: three boards of six balls, 6–9 tilts at the fewest, a limit of the fewest + 6, full speed by 45 s.
-    hard: { settings: { balls: 6, boards: 3, minTilts: [6, 9], walls: [14, 22], spare: 6, timeLimitMs: 120_000, speedFullByS: 45 }, oneSolution: OPEN },
+    // Hard: three boards of six balls, 6–9 tilts at the fewest, a limit of the fewest + 6, full speed by 30 s (Joe, 16
+    // Nov 2026: was 45 s, which sat Hard barely below Normal; 30 s is under Normal's 32 s for more tilts, so the speed
+    // points ask for quicker play per tilt than Normal does. Grading: speed is full when the round is cleared within
+    // this time, so a lower time is the harder one).
+    hard: { settings: { balls: 6, boards: 3, minTilts: [6, 9], walls: [14, 22], spare: 6, timeLimitMs: 120_000, speedFullByS: 30 }, oneSolution: OPEN },
     // Expert: three boards of eight balls (two more colours: lime green with a heart, pearl white with a crescent),
     // 7–10 tilts at the fewest, a limit of the fewest + 5, full speed by 50 s; every board one the person-like solver
     // clears inside its limit.
