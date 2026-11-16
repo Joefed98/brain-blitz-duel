@@ -539,7 +539,7 @@ section("Mixed Signals clashRev 5: the gentler unfinished credit");
 section("Intro demos stay stopped until re-recorded on the taller revision");
 {
   const src = read("src/lib/duel/introDemo.functions.ts");
-  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): beatRev 12 plays beatRev 11 exactly,
+  // Changed with Joe's approval, 16 Nov 2026 (follows approved overhaul): beatRev 12 plays beatRev 11 exactly,
   // so the rule names both through SAME_PLAY_DEMO_REVS; the list must be exactly those two.
   ok(
     /data\.type === "beat" && demo\?\.puzzle\.type === "beat" && !demoRevAccepted\("beat", demo\.puzzle\.beatRev\)\) return null/.test(src) &&

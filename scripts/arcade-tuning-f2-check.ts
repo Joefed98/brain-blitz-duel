@@ -147,7 +147,7 @@ section("Old rounds replay and score exactly as before");
 section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
 {
   const stamps: [string, string, number | undefined, number][] = [
-    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): crossRev 13 (stage 3, lighter
+    // Changed with Joe's approval, 16 Nov 2026 (follows approved overhaul): crossRev 13 (stage 3, lighter
     // traffic) is new play, so the deal is read with the preRetro pin (crossRev 12, crossRev 10's play), as other checks
     // written for the stamps before the overhaul do; retro-overhaul-check covers crossRev 13.
     ["cross", "crossRev", playRevOf("cross", preRetroDeal(generateCross).crossRev), CROSS_REV_SMALL],

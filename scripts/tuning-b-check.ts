@@ -297,7 +297,7 @@ section("Fission controls");
 {
   const source = readFileSync("src/puzzles/burst.tsx", "utf8");
   ok(!/aria-label="Fire"/.test(source) && !/content-\['FIRE'\]/.test(source), "no FIRE button");
-  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the pointer handler also serves the
+  // Changed with Joe's approval, 16 Nov 2026 (follows approved overhaul): the pointer handler also serves the
   // one-thumb option (fissionThumb.ts, off by default); with it off, a tap on the arena fires and nothing else does.
   ok(/pointer=\{\(kind, x\) => \{[\s\S]*?if \(thumb\) \{[\s\S]*?\n        \}\n        return kind === "down" \? fire\(\) : null;\n      \}\}/.test(source), "a tap on the arena fires");
   ok(/k: BURST_INPUT_FIRE, a: 0, b: fireFlip\.current, c: 0/.test(source), "the arena tap sends the same fire input as the old button");
