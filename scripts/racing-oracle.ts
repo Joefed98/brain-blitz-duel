@@ -25,7 +25,7 @@ import {
   racingV2SteerTarget,
   racingPush,
   racingSegAt,
-  racingTrackFor,
+  racingTrackOf,
   RACING_ACCEL,
   RACING_BRAKE,
   RACING_COAST,
@@ -38,6 +38,7 @@ import {
   RACING_STEER_K,
   RACING_STICK_MAX,
   RACING_VMAX,
+  type RacingLevelSettings,
   type RacingState,
   type RacingTrack,
 } from "../src/lib/arcade/racing";
@@ -86,7 +87,8 @@ export const ORACLE_TUNING: DriveTuning = { share: 0.995, brakeShare: 0.99, look
 
 /** One tick of the driver: the joystick for the state about to step (pedal, steer). */
 export function racingDriverInput(state: RacingState, profile: Int32Array, tune: DriveTuning, view?: { x: number; v: number; s: number }): { steer: number; pedal: number } {
-  const track = racingTrackFor(state.seed, state.rev);
+  // The state's own circuit (a level's tighter hairpins included).
+  const track = racingTrackOf(state);
   const seen = view ?? state;
   // The profile is indexed by race segment modulo its length (a lap's, or the whole race's for the bots).
   const seg = Math.floor(seen.s / RACING_SEG);
@@ -128,11 +130,11 @@ export function racingStickFor(rev: number, steer: number): number {
   return rev >= RACING_REV_2 ? racingV2StickFor(steer) : steer;
 }
 
-/** Plays a seed with the driver, recording the phone's log (one event a tick, only on a change). */
-export function racingDrive(seed: number, tune: DriveTuning, quant = 1, rev = 1): { events: ArcadeInputEvent[]; state: RacingState } {
-  const game = racingGameFor(rev);
-  const profile = racingSpeedProfile(racingTrackFor(seed, rev), tune.share, tune.brakeShare);
+/** Plays a seed with the driver, recording the phone's log (one event a tick, only on a change); `lv` a level's settings. */
+export function racingDrive(seed: number, tune: DriveTuning, quant = 1, rev = 1, lv?: RacingLevelSettings | null): { events: ArcadeInputEvent[]; state: RacingState } {
+  const game = racingGameFor(rev, lv);
   let state = game.init(seed);
+  const profile = racingSpeedProfile(racingTrackOf(state), tune.share, tune.brakeShare);
   const events: ArcadeInputEvent[] = [];
   let last = "";
   while (!game.isOver(state) && state.tick < game.runTicks) {
@@ -150,9 +152,9 @@ export function racingDrive(seed: number, tune: DriveTuning, quant = 1, rev = 1)
   return { events, state };
 }
 
-/** The oracle's log for a seed (racingRev 1 unless a revision is given). */
-export function oracleRun(seed: number, rev = 1): ArcadeInputEvent[] {
-  return racingDrive(seed, ORACLE_TUNING, 1, rev).events;
+/** The oracle's log for a seed (racingRev 1 unless a revision is given; `lv` a racingRev 4 level's settings). */
+export function oracleRun(seed: number, rev = 1, lv?: RacingLevelSettings | null): ArcadeInputEvent[] {
+  return racingDrive(seed, ORACLE_TUNING, 1, rev, lv).events;
 }
 
 if (import.meta.main) {

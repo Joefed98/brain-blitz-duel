@@ -28,11 +28,11 @@ import {
   RACING_SEG,
   RACING_VMAX,
   RACING_WALL_LIMIT,
-  racingCornerAdvice,
+  racingCornerAdviceOf,
+  racingWallLimit,
   racingGoTick,
   racingKmh,
   racingPace10,
-  racingTrackOf,
   type RacingCornerSign,
   type RacingState,
 } from "./racing";
@@ -77,7 +77,7 @@ export function racingSpeedLines(s: RacingState): number {
 
 /** On the kerb: a wheel past the tarmac's edge, neither on the grass nor against the wall (the sound observer's rule). */
 export function racingOnKerb(s: RacingState): boolean {
-  return !s.off && !s.wall && Math.abs(s.x) + RACING_CAR_HALF > RACING_ROAD_X;
+  return !s.off && !s.wall && Math.abs(s.x) + RACING_CAR_HALF > (s.lv ? s.lv.road : RACING_ROAD_X);
 }
 
 /** The kerb's rumble: the view's offset this tick (a pixel or two), 0 off the kerb or under reduced motion. */
@@ -124,7 +124,7 @@ export function racingGrassDrop(s: RacingState): number {
 /** A wall scrape: against the tyre wall and still moving (at least an eighth of top speed); the side (−1 left, 1 right). */
 export function racingScrape(s: RacingState): number {
   if (!live(s) || !s.wall || s.v < RACING_VMAX / 8) return 0;
-  return s.x > 0 || s.x >= RACING_WALL_LIMIT ? 1 : -1;
+  return s.x > 0 || s.x >= (s.lv ? racingWallLimit(s) : RACING_WALL_LIMIT) ? 1 : -1;
 }
 
 /** Sparks off the car's side while it scrapes (fanning back from the touching side); none otherwise. */
@@ -158,9 +158,8 @@ export interface CornerEntry {
  */
 export function racingCornerEntry(s: RacingState, entryAt: (startS: number) => { v: number; tick: number } | null): CornerEntry | null {
   if (s.tick <= racingGoTick(s.rev) || s.finishTick > 0) return null;
-  const track = racingTrackOf(s);
   const lapS = s.s % RACING_LAP;
-  for (const sign of racingCornerAdvice(track)) {
+  for (const sign of racingCornerAdviceOf(s)) {
     const start = sign.corner.start * RACING_SEG;
     const into = lapS - start;
     if (into < 0 || into > sign.corner.len * RACING_SEG) continue;
@@ -222,8 +221,7 @@ export function observeRacingFx(
 ): { entryAt: (startS: number) => { v: number; tick: number } | null; finishedMs: number | null; laps: number[] } {
   const m = memoryOf(ctx, s);
   if (s.s > m.lastS) {
-    const track = racingTrackOf(s);
-    for (const sign of racingCornerAdvice(track)) {
+    for (const sign of racingCornerAdviceOf(s)) {
       for (let lap = 0; lap < RACING_LAPS; lap++) {
         const at = lap * RACING_LAP + sign.corner.start * RACING_SEG;
         if (m.lastS < at && s.s >= at && !m.entries.has(at)) m.entries.set(at, { v: at - m.lastS < s.s - at ? m.lastV : s.v, tick: s.tick });

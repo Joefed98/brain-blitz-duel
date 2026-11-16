@@ -442,3 +442,32 @@ segments either way, so it settles just off centre on the straights and swings t
 hazy rose, the near ridge and roadside trees as dark silhouettes with a warm rim; darker dusk grass, gravel and
 asphalt; a warm sheen up the road towards the sun; the car's long soft shadow towards the camera. All painted: no
 image budget used beyond the car's 285 KB.
+
+## Levels (stage 3, 16 Nov 2026)
+
+racingRev 4 at Easy, Hard and Expert (the difficulty framework, docs/design/difficulty/README.md). Normal is racingRev 4
+byte for byte: no `level` or `racingLevel` field, the same deal draw, the same state, checksum and pixels. Each other
+level's settings are in `GAME_LEVELS.racing` (src/lib/levels/gameLevels.ts) and are stamped on the dealt puzzle as
+`racingLevel`; the sim carries them in its state (`lv`, in the checksum) and the server replay reads the stored copy
+(`replayRacingRun(seed, raw, rev, puzzle.racingLevel)`), never the registry. Older stamps ignore the field.
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Gravel keeps | 80 % | 65 % | 60 % | 50 % |
+| Tarmac / kerb / wall (lateral units) | 75366 / 83558 / 140902 | 65536 / 73728 / 131072 | 65536 / 73728 / 108134 | 65536 / 73728 / 108134 |
+| Hairpins | the circuit's | the circuit's | the circuit's | every peak +2 |
+| Full pace (Sunset / Harbour / Ridge, tenths of km/h) | 1920 / 2055 / 1750 | 2215 / 2385 / 2030 | 2215 / 2385 / 2030 | 2175 / 2352 / 1964 (the oracle's on the tighter hairpins) |
+| Pace spread (full − zero) | 695 | 695 | 320 | 250 |
+| Aids (display) | signs, boards, painted braking points | signs, boards, racing line | as Normal | signs only (no boards, racing line or skid marks) |
+
+The pace line is the step for strong drivers: on Easy, Normal and Hard the oracle drives the same line, so the gravel and
+walls only touch drivers who leave the tarmac (the elite bots hardly do). A narrower spread makes each km/h short of par
+cost more, 200 still at the par pace. Easy's lower par gives an average driver a real shot at a star.
+
+Deals: `bun scripts/racing-deal.ts --rev=4 --level=easy|hard|expert [--check]` writes `racingDealV4Easy/Hard/Expert.server.ts`,
+100 seeds a circuit, each proved by the oracle on the level's sim to exactly 200 through the server replay (0 dropped on each;
+a racingRev 4 seed only picks the circuit, so the lists equal Normal's). Text: the intro line and the "?" help note come from
+`src/lib/levels/levelNotes.ts`. Challenges stay Normal (the framework completes them on a Normal run only). Measured with
+`bun scripts/racing-levels-bands.ts` (the skill-band bots on dealt puzzles, graded through gradeAnswer; `--expert-seeds=N`
+lists Expert seeds with the elite bot's score) and `bun scripts/level-tune.ts racing --level=all`. Proved by
+racing-levels-check.

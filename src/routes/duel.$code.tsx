@@ -23,6 +23,7 @@ import { preloadGame } from "@/lib/duel/gameLoader";
 import { hostKey, seatKey } from "@/lib/duel/seatKey";
 import { useDemoKey } from "@/components/duel/SaveDemoButton";
 import { PuzzleHelp } from "@/components/duel/PuzzleInstructions";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { RoundIntro } from "@/components/duel/RoundIntro";
 import { preloadGameData } from "@/lib/duel/gamePreload";
 import { markOnboardingSeen } from "@/lib/onboarding";
@@ -1483,7 +1484,7 @@ function DuelScreen() {
         overlay={
           <>
             {puzzle && (
-              <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} />
+              <PuzzleHelp type={puzzle.type} level={puzzleLevel(puzzle)} open={helpOpen} onClose={() => setHelpOpen(false)} />
             )}
             {myResult && !boardHeld && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">

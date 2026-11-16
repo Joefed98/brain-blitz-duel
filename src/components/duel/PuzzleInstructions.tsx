@@ -10,16 +10,21 @@ import { INTRO_SCORE } from "@/lib/duel/introScore";
 import { scoreSentences } from "@/lib/duel/scoreList";
 import { soundCue } from "@/lib/fx/soundCues";
 import type { PuzzleType } from "@/lib/duel/types";
+import { NORMAL, type Level } from "@/lib/levels/levels";
+import { levelNote } from "@/lib/levels/levelNotes";
 
 interface PuzzleInstructionsProps {
   type: PuzzleType;
+  /** The round's dealt level: a level other than Normal adds its line (levelNotes.ts) to HOW. */
+  level?: Level;
   overlay?: boolean;
   /** Shown between HOW and SCORE (the intro's demo box, IntroStage, which takes the spare height). */
   beforeScore?: ReactNode;
 }
 
-export function PuzzleInstructions({ type, overlay = false, beforeScore }: PuzzleInstructionsProps) {
+export function PuzzleInstructions({ type, level = NORMAL, overlay = false, beforeScore }: PuzzleInstructionsProps) {
   const instructions = PUZZLE_INSTRUCTIONS[type] ?? removedDefinition(type).instructions;
+  const note = levelNote(type, level);
 
   return (
     <section
@@ -51,6 +56,7 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore }: Puzzl
               <strong className="intro-how-action">{line.action}</strong> {line.detail}
             </p>
           ))}
+          {note && overlay ? <p data-help-level-note="">{note}</p> : null}
         </div>
       </div>
       <div className="intro-score shrink-0">
@@ -94,11 +100,13 @@ function HelpExample({ type }: { type: PuzzleType }) {
 
 interface PuzzleHelpProps {
   type: PuzzleType;
+  /** The round's dealt level (its line shows in HOW when it isn't Normal). */
+  level?: Level;
   open: boolean;
   onClose: () => void;
 }
 
-export function PuzzleHelp({ type, open, onClose }: PuzzleHelpProps) {
+export function PuzzleHelp({ type, level = NORMAL, open, onClose }: PuzzleHelpProps) {
   useEffect(() => {
     if (!open) return;
     soundCue("shared.help.open");
@@ -149,7 +157,7 @@ export function PuzzleHelp({ type, open, onClose }: PuzzleHelpProps) {
           </button>
         </div>
         <div data-help-scroll data-scrollable className="help-sheet-scroll min-h-0 flex-1 px-4 pb-4 pt-3">
-          <PuzzleInstructions type={type} overlay />
+          <PuzzleInstructions type={type} level={level} overlay />
           {type === "lightup" && <HelpExample type={type} />}
           <p className="mt-4 text-center font-mono text-xs uppercase text-muted-foreground">
             Tap outside or × to close

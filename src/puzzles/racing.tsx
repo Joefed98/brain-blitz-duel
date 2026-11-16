@@ -7,6 +7,7 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
   racingCheckpoint,
   racingGameFor,
+  racingLevelOf,
   RACING_BG,
   RACING_CHECKPOINT_INTERVAL,
   RACING_INPUT_STICK,
@@ -42,6 +43,8 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 import { canvasRatio } from "@/lib/battery";
 import { racingFinishHoldMs } from "@/lib/arcade/racingFx.renderer";
 import { useDesktopPresentation } from "@/lib/desktopPresentation";
+import { puzzleLevel } from "@/lib/levels/levels";
+import { levelNote } from "@/lib/levels/levelNotes";
 
 const STILL = 200;
 
@@ -109,9 +112,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const [look, lookRef] = useGameLookRef("racing");
   const scene = useMemo(() => racingSceneFor(look), [look]);
   const game = useMemo(
-    () => ({ ...racingGameFor(data?.racingRev), draw: (ctx: CanvasRenderingContext2D, s: RacingState, size: CanvasSize) => drawRacingPlay(ctx, s, size, lookRef.current) }),
+    () => ({ ...racingGameFor(data?.racingRev, racingLevelOf(data?.racingLevel)), draw: (ctx: CanvasRenderingContext2D, s: RacingState, size: CanvasSize) => drawRacingPlay(ctx, s, size, lookRef.current) }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data?.racingRev],
+    [data?.racingRev, data?.racingLevel],
   );
   // The computer layout (1 Nov 2026, display only): the renderer's large-screen path while this screen is on it.
   const largeScreen = useDesktopPresentation().mode !== null;
@@ -225,7 +228,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "racing") return null;
-  const result = replayRacingRun(puzzle.seed, myAnswer ?? "", puzzle.racingRev);
+  const result = replayRacingRun(puzzle.seed, myAnswer ?? "", puzzle.racingRev, puzzle.racingLevel);
   // What the run did, part by part (the points are the stored score's, shown by the arcade reveal above).
   const lines = result.parts.map((part) => `${part.label}: ${part.detail}`);
   const headline = result.finished
@@ -256,6 +259,8 @@ export const racingPuzzle: PuzzleDefinition = {
   timeLimitMs: RACING_TIME_MS,
   revealMs: 6_000,
   generate: () => ({ type: "racing", seed: 1, racingRev: RACING_REV_DEALT }) satisfies RacingPuzzleData,
+  // A level other than Normal says what it changes on the intro (levelNotes.ts; the "?" help shows the same line).
+  introLine: (puzzle) => levelNote("racing", puzzleLevel(puzzle)),
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

@@ -33,7 +33,7 @@ import { homerunGameFor } from "@/lib/arcade/homerun";
 import { bastionGame } from "@/lib/arcade/bastion";
 import { bastionTankGameFor } from "@/lib/arcade/bastionTank";
 import { freekickGameFor } from "@/lib/arcade/freekick";
-import { racingGameFor } from "@/lib/arcade/racing";
+import { racingGameFor, racingLevelOf } from "@/lib/arcade/racing";
 import { freecellGameFor } from "@/lib/arcade/cards/freecell";
 import { tripeaksGameFor } from "@/lib/arcade/cards/tripeaks";
 import { pokerSquaresGameFor } from "@/lib/arcade/cards/pokerSquares";
@@ -210,7 +210,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   // Bastion: bastionRev 2's tank game; the original turret for unstamped rounds.
   bastion: (p) => ({ game: ((rev(p, "bastionRev") ?? 1) >= 2 ? bastionTankGameFor(rev(p, "bastionRev")) : bastionGame) as AnyGame }),
   freekick: (p) => ({ game: freekickGameFor(rev(p, "freekickRev")) as AnyGame }),
-  racing: (p) => ({ game: racingGameFor(rev(p, "racingRev")) as AnyGame }),
+  racing: (p) => ({ game: racingGameFor(rev(p, "racingRev"), racingLevelOf((p as { racingLevel?: unknown }).racingLevel)) as AnyGame }),
   freecell: (p) => ({ game: freecellGameFor(rev(p, "freecellRev")) as AnyGame }),
   tripeaks: (p) => ({ game: tripeaksGameFor(rev(p, "tripeaksRev")) as AnyGame }),
   pokersquares: (p) => ({ game: pokerSquaresGameFor(rev(p, "pokerSquaresRev")) as AnyGame }),
