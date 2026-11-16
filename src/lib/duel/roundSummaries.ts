@@ -821,7 +821,7 @@ const safeSummary: SummaryBuilder = (result, puzzle) => {
     };
   }
   return {
-    summary: `Locked, ${right} / ${SAFE_DIALS} dials`,
+    summary: `Locked, ${right} / ${puzzle.dialCount ?? SAFE_DIALS} dials`,
     detail: [`${Number(result.extra?.["tries"] ?? 0)} tries used`],
   };
 };

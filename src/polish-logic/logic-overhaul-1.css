@@ -633,3 +633,10 @@
   :is(#logic-overhaul-1, html) .logic-line-glow { display: none; }
   :is(#logic-overhaul-1, html) [data-logic-solved] .logic-sudoku-cell::after { animation: none; opacity: 0.85; }
 }
+
+/* Levels (stage 3): Easy's used-up digits leave the keypad (their place is kept, so nothing moves). */
+:is(#logic-overhaul-1, html) .logic-sudoku-key[data-used-up] { visibility: hidden; }
+/* Expert's five drums (levels): a little narrower, so the row fits the door at 375 px. */
+:is(#logic-overhaul-1, html) .logic-safe-drums[data-dials="5"] { gap: 4px; }
+:is(#logic-overhaul-1, html) .logic-safe-drums[data-dials="5"] .logic-drum-live { width: 50px !important; }
+:is(#logic-overhaul-1, html) .logic-safe-drums[data-dials="5"] .logic-drum-live .logic-drum-digit { font-size: 0.86em; }

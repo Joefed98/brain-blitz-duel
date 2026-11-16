@@ -1020,6 +1020,12 @@ export interface SudokuPuzzleData {
   givens: number[];
   /** Generation revision: 1 = 13–15 givens (14 Oct 2026); absent = 14–16. Grading reads only the givens, so it is the same either way. */
   sudokuRev?: 1;
+  /** A level's own clock (the Logic overhaul's levels; Expert 120 s). Absent = the definition's 90 s. */
+  timeLimitMs?: number;
+  /** Expert: clashes show only when Check is pressed (display only; the grade is the same). Absent = shown live. */
+  clashes?: "check";
+  /** Easy: digits already placed six times are hidden from the keypad (display only). */
+  hideUsed?: boolean;
   /** Server-side only: the one grid the givens allow. */
   solution?: number[];
 }
@@ -1472,6 +1478,12 @@ export interface SafePuzzleData {
   type: "safe";
   /** The four clues printed on the card — public from the start. */
   clues: import("./safe").SafeClue[];
+  /** A level's card (the Logic overhaul's levels): dials, the highest number a dial shows, tries, the clock. Absent =
+   *  today's four dials of 0–9, three tries, 75 s (safe.ts safeShapeOf). */
+  dialCount?: number;
+  dialMax?: number;
+  tries?: number;
+  timeLimitMs?: number;
   /** Server-side only: the digits that open the safe. */
   combination?: number[];
 }

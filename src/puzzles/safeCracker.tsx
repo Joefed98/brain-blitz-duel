@@ -3,10 +3,10 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import { useSwipe } from "@/components/puzzles/GridDrag";
 import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
-import { brokenClues, clueHolds, dialsCorrect, decodeSafeTries, encodeSafeDraft, encodeSafeTries } from "@/lib/duel/safe";
+import { brokenClues, clueHolds, dialsCorrect, decodeSafeTries, encodeSafeDraft, encodeSafeTries, safeShapeOf } from "@/lib/duel/safe";
 import { puzzleScoreRevOf } from "@/lib/duel/puzzleScoreRev";
 import { useStageState } from "@/lib/duel/stageState";
-import { SAFE_DIALS, SAFE_TIME_MS, SAFE_TRIES, type SafePuzzleData } from "@/lib/duel/types";
+import { SAFE_TIME_MS, type SafePuzzleData } from "@/lib/duel/types";
 import { directionOf, useGameKeys } from "@/lib/desktop";
 import { playWrong } from "@/lib/sound";
 
@@ -30,6 +30,7 @@ export function Dial({
   gold,
   compact,
   order = 0,
+  max = 9,
 }: {
   digit: number;
   onStep?: (delta: number) => void;
@@ -39,11 +40,13 @@ export function Dial({
   compact?: boolean;
   /** Which drum this is (the completion clicks them in turn). */
   order?: number;
+  /** The highest number the drum shows (a level's card; 9 today). */
+  max?: number;
 }) {
   const repeat = useRef<ReturnType<typeof setInterval> | null>(null);
   const previous = usePrevious(digit);
   // The drum rolls the way it turned: up for +1, down for -1.
-  const roll = previous === undefined || previous === digit ? "" : (digit - previous + 10) % 10 === 1 ? "logic-roll-up" : "logic-roll-down";
+  const roll = previous === undefined || previous === digit ? "" : (digit - previous + max + 1) % (max + 1) === 1 ? "logic-roll-up" : "logic-roll-down";
   const swipe = useSwipe((dir) => onStep?.(dir === "U" ? 1 : -1), {
     disabled: disabled || !onStep,
   });
@@ -85,9 +88,9 @@ export function Dial({
           "--logic-i": order,
         } as CSSProperties}
       >
-        <span aria-hidden="true" className="logic-drum-ghost logic-drum-ghost-top">{(digit + 1) % 10}</span>
+        <span aria-hidden="true" className="logic-drum-ghost logic-drum-ghost-top">{(digit + 1) % (max + 1)}</span>
         <span key={digit} className={`logic-drum-digit ${roll}`}>{digit}</span>
-        <span aria-hidden="true" className="logic-drum-ghost logic-drum-ghost-bottom">{(digit + 9) % 10}</span>
+        <span aria-hidden="true" className="logic-drum-ghost logic-drum-ghost-bottom">{(digit + max) % (max + 1)}</span>
       </div>
       {onStep && arrow("▼", -1)}
     </div>
@@ -112,23 +115,27 @@ function IntroExample() {
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: PuzzleStageProps) {
   const isSafe = puzzle.type === "safe";
+  // A level's card has its own dials, range and tries (safe.ts safeShapeOf; today's four of 0–9 and three otherwise).
+  const shape = safeShapeOf(isSafe ? puzzle : null);
   const [dials, setDials] = useStageState<number[]>(stateKey, "safeDials", () =>
-    new Array(SAFE_DIALS).fill(0),
+    new Array(shape.dials).fill(0),
   );
   const [tries, setTries] = useStageState<number[][]>(stateKey, "safeTries", () => []);
   const [shake, setShake] = useStageState<boolean>(stateKey, "safeShake", () => false);
   const submitted = useRef(false);
 
-  const triesLeft = Math.max(0, SAFE_TRIES - tries.length);
+  const triesLeft = Math.max(0, shape.tries - tries.length);
   // Presentation only: the public clues all hold for the last try (the same test that submits).
   const lastTry = tries[tries.length - 1];
   const opened = isSafe && lastTry !== undefined && puzzle.clues.every((clue) => clueHolds(clue, lastTry));
   const solving = useSolveFx("safe", opened);
 
   // puzzleScoreRev 2: the draft also carries the dials as they stand, so a time-out keeps their right dials as progress.
-  const pendingDraft = puzzleScoreRevOf(puzzle) >= 2 && tries.length < SAFE_TRIES;
+  const pendingDraft = puzzleScoreRevOf(puzzle) >= 2 && tries.length < shape.tries;
   useEffect(() => {
-    onDraftAnswer?.(pendingDraft ? encodeSafeDraft(tries, dials) : encodeSafeTries(tries));
+    onDraftAnswer?.(pendingDraft ? encodeSafeDraft(tries, dials, shape) : encodeSafeTries(tries, shape));
+    // The shape is the stored puzzle's (fixed for the round).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tries, dials, pendingDraft, onDraftAnswer]);
 
   // Logic overhaul 1: after a wrong try, the clues that try broke (only after a Try, never live while turning).
@@ -144,7 +151,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
       soundCue("safe.click");
     }
     setDials((current) =>
-      current.map((digit, index) => (index === dial ? (digit + delta + 10) % 10 : digit)),
+      current.map((digit, index) => (index === dial ? (digit + delta + shape.max + 1) % (shape.max + 1) : digit)),
     );
   };
 
@@ -158,16 +165,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
       submitted.current = true;
       // The opening's one sound is `safe.solve` (useSolveFx, this same render): its slot plays pz_safe_open and stands in
       // for the generic lock / correct of that moment (sound.ts ownMomentReplaces; 15 Nov 2026, Joe).
-      onSubmit(encodeSafeTries(next));
+      onSubmit(encodeSafeTries(next, shape));
       return;
     }
     playWrong();
     soundCue("safe.wrongTry");
     // The door jolts against its bolts (the kit's "wrong"); the broken clues flash on the card.
     gameFx("wrong", doorRef.current, { silent: true });
-    if (next.length >= SAFE_TRIES) {
+    if (next.length >= shape.tries) {
       submitted.current = true;
-      onSubmit(encodeSafeTries(next));
+      onSubmit(encodeSafeTries(next, shape));
     }
   };
 
@@ -223,12 +230,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
             <span aria-hidden="true" className="logic-rivet" data-corner="tr" />
             <span aria-hidden="true" className="logic-rivet" data-corner="bl" />
             <span aria-hidden="true" className="logic-rivet" data-corner="br" />
-            <div className="flex gap-2" data-key-dial={shownDial ?? undefined}>
+            <div className="logic-safe-drums flex gap-2" data-dials={shape.dials} data-key-dial={shownDial ?? undefined}>
               {dials.map((digit, dial) => (
                 <Dial
                   key={dial}
                   digit={digit}
                   order={dial}
+                  max={shape.max}
                   disabled={locked || triesLeft === 0}
                   onStep={(delta) => step(dial, delta)}
                 />
@@ -238,7 +246,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
               tries left <span className="text-primary">{triesLeft}</span>
               {/* depthRev 1: opening with a try to spare is a clean crack (the top 50 by speed: all of it on try 1, half on try 2). */}
               {/* The scoring standard (depthRev 3): the clean crack is full only with no wrong try (2.5 off each). */}
-              {isSafe && usesDepth(puzzle) && (usesStandard(puzzle) ? triesLeft === SAFE_TRIES : triesLeft > 1) ? (
+              {isSafe && usesDepth(puzzle) && (usesStandard(puzzle) ? triesLeft === shape.tries : triesLeft > 1) ? (
                 <span className="d6-clean" data-clean-crack="on"> · clean crack if this try opens it</span>
               ) : isSafe && usesDepth(puzzle) && usesStandard(puzzle) && tries.length > 0 ? (
                 <span className="d6-clean" data-clean-crack="off"> · clean crack is first try only</span>
@@ -267,19 +275,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
  */
 function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
   if (puzzle.type !== "safe") return null;
-  const combination = puzzle.combination ?? new Array(SAFE_DIALS).fill(0);
-  const tries = decodeSafeTries(myAnswer ?? "");
+  const shape = safeShapeOf(puzzle);
+  const combination = puzzle.combination ?? new Array(shape.dials).fill(0);
+  const tries = decodeSafeTries(myAnswer ?? "", shape);
   const last = tries[tries.length - 1];
   const broken = new Set(brokenClues(puzzle.clues, last));
   const best = tries.reduce((most, t) => Math.max(most, dialsCorrect(t, combination)), 0);
-  const clean = myCorrect && usesDepth(puzzle) && (usesStandard(puzzle) ? tries.length === 1 : tries.length < SAFE_TRIES);
+  const clean = myCorrect && usesDepth(puzzle) && (usesStandard(puzzle) ? tries.length === 1 : tries.length < shape.tries);
 
   return (
     <div className="logic-reveal">
       <div className="logic-reveal-board flex-col gap-3">
         <div data-safe-code="" className={`flex gap-2 ${myCorrect ? "safe-metal-panel logic-safe-door solve-safe-door rounded-lg border border-border p-2" : ""}`}>
           {combination.map((digit, dial) => (
-            <Dial key={dial} digit={digit} gold order={dial} />
+            <Dial key={dial} digit={digit} gold order={dial} max={shape.max} />
           ))}
         </div>
         {tries.length ? (
@@ -306,8 +315,8 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
       </div>
       <RevealFacts
         items={[
-          { label: `Tries of ${SAFE_TRIES}`, value: tries.length },
-          { label: `Best dials of ${SAFE_DIALS}`, value: myCorrect ? SAFE_DIALS : best, tone: myCorrect ? "good" : undefined },
+          { label: `Tries of ${shape.tries}`, value: tries.length },
+          { label: `Best dials of ${shape.dials}`, value: myCorrect ? shape.dials : best, tone: myCorrect ? "good" : undefined },
           myCorrect && { label: "Clean crack", value: clean ? "Yes" : "No", tone: clean ? "gold" : undefined },
         ]}
       />

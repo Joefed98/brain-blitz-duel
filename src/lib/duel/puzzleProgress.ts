@@ -56,7 +56,7 @@ import { decodeActionLog } from "./actionLog";
 import { replayLaserActions } from "./laserLog";
 import { verifyLaser } from "./laser";
 import { decodePairFlips, replayPairs } from "./pairmatch";
-import { clueHolds, decodeSafePending, decodeSafeTries, dialsCorrect } from "./safe";
+import { clueHolds, decodeSafePending, decodeSafeTries, dialsCorrect, safeShapeOf } from "./safe";
 import { decodeFloodMoves, replayFlood } from "./flood";
 import { floodMoveLimit } from "./moveLimits";
 import { DEPTH_REV_TOPUP, depthRevOf } from "./logicDepth";
@@ -178,8 +178,9 @@ export function rev3Progress(input: ProgressInput): number | null {
     case "safe": {
       const combination = puzzle.combination ?? [];
       if (!combination.length) return 0;
-      const tries = decodeSafeTries(answer);
-      const pending = tries.length >= SAFE_TRIES ? [] : [decodeSafePending(answer) ?? []];
+      const shape = safeShapeOf(puzzle);
+      const tries = decodeSafeTries(answer, shape);
+      const pending = tries.length >= shape.tries ? [] : [decodeSafePending(answer, shape) ?? []];
       const right = Math.max(0, ...[...tries, ...pending].map((t) => dialsCorrect(t, combination)));
       const share = Math.max(0, right - SAFE_FREE_DIALS) / Math.max(1, combination.length - SAFE_FREE_DIALS);
       const dials = Math.pow(share, SAFE_CURVE);
@@ -232,7 +233,6 @@ export const PAIR_FREE_MISSES = 14;
 export const PAIR_MISSES_PER_PAIR = 3;
 /** Progress = share ^ PAIR_CURVE (below 1: the first pairs count a little more). */
 export const PAIR_CURVE = 0.75;
-const SAFE_TRIES = 3;
 /** Progress = share ^ SAFE_CURVE (below 1: the second dial right counts a little more than an even share). */
 export const SAFE_CURVE = 0.85;
 /** Progress = share ^ LASER_CURVE (above 1: the last gems, the hard ones, count a little more). */

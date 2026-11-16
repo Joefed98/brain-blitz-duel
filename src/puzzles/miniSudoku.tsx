@@ -156,6 +156,9 @@ function IntroExample() {
   );
 }
 
+/** How long Check shows Expert's clashes. */
+export const CHECK_SHOW_MS = 2_000;
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const givens = puzzle.type === "sudoku" ? puzzle.givens : [];
   const [entries, setEntries] = useState<number[]>(() => new Array(SUDOKU_CELLS).fill(0));
@@ -181,8 +184,20 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   // The player's own cells only ("1 / 22 filled"), never the givens (Logic review, 15 Nov 2026).
   const filled = sudokuEntryCount(givens, grid);
   const inFrame = useFrameProgress(filled.done, filled.total, "filled");
-  // Logic overhaul 1: clashes are shown while playing (the clean bonus still counts every wrong digit typed).
-  const clashes = useMemo(() => sudokuClashes(grid), [grid]);
+  // Logic overhaul 1: clashes are shown while playing (the clean bonus still counts every wrong digit typed). Expert
+  // (`clashes: "check"`, the levels) shows them only for a moment after Check is pressed.
+  const onCheck = puzzle.type === "sudoku" && puzzle.clashes === "check";
+  const [checkedAt, setCheckedAt] = useState<number | null>(null);
+  const liveClashes = useMemo(() => sudokuClashes(grid), [grid]);
+  const clashes = useMemo(() => (onCheck && checkedAt === null ? new Set<number>() : liveClashes), [onCheck, checkedAt, liveClashes]);
+  useEffect(() => {
+    if (checkedAt === null) return;
+    const t = setTimeout(() => setCheckedAt(null), CHECK_SHOW_MS);
+    return () => clearTimeout(t);
+  }, [checkedAt]);
+  // Easy (`hideUsed`): a digit already placed six times leaves the keypad.
+  const hideUsed = puzzle.type === "sudoku" && puzzle.hideUsed === true;
+  const usedUp = useMemo(() => new Set(DIGITS.filter((d) => grid.filter((v) => v === d).length >= SUDOKU_COLS)), [grid]);
   const clashCount = clashes.size;
   const lastClashes = useRef(0);
   useEffect(() => {
@@ -262,7 +277,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (fresh.length > 1) gameFx("combo", root?.querySelector(`[data-cell="${at}"]`), { count: fresh.length, silent: true });
         soundCue("sudoku.line", 1 + (fresh.length - 1) * 0.12);
       }
-      if (sudokuClashes(nextGrid).has(selected)) {
+      if (!onCheck && sudokuClashes(nextGrid).has(selected)) {
         gameFx("wrong", gridRef.current?.querySelector(`[data-cell="${selected}"] .logic-sudoku-digit`), { silent: true });
       }
     }
@@ -300,14 +315,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               key={digit}
               type="button"
               onClick={() => tapDigit(digit)}
-              disabled={locked}
+              disabled={locked || (hideUsed && usedUp.has(digit))}
+              data-used-up={hideUsed && usedUp.has(digit) ? "" : undefined}
+              aria-hidden={hideUsed && usedUp.has(digit) ? true : undefined}
               className={`logic-sudoku-key press tap-target rounded-lg py-2 font-display text-lg font-bold text-foreground disabled:opacity-40 ${inFrame ? "gf-glass" : "border border-border bg-card"}`}
             >
               {digit}
             </button>
           ))}
         </div>
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className={`grid gap-1.5 ${onCheck ? "grid-cols-3" : "grid-cols-2"}`}>
           <button
             type="button"
             onClick={() => setPencilMode((current) => !current)}
@@ -320,6 +337,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           >
             Pencil
           </button>
+          {onCheck ? (
+            <button
+              type="button"
+              data-sudoku-check=""
+              onClick={() => {
+                if (locked) return;
+                setCheckedAt(Date.now());
+                // The clash sound plays as the clashes appear (the clash count's effect above).
+                if (liveClashes.size) gameFx("wrong", gridRef.current, { silent: true });
+              }}
+              disabled={locked}
+              className="press tap-target rounded-lg border border-border bg-card py-2 font-mono text-xs uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+            >
+              Check
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={clearCell}

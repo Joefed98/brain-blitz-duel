@@ -13,7 +13,7 @@ import { gradeSudokuGrid } from "../logic.server";
 import { decodeTowerMoves, replayTower } from "../tower";
 import { decodeTubeLog, decodeTubeMoves, replayTubeLog, replayTubes, sortedTubeCount } from "../tubes";
 import { tubesPourLimit, tubesRefundsUndo, tubesSendsUndo, floodMoveLimit } from "../moveLimits";
-import { decodeSafePending, decodeSafeTries, dialsCorrect, safeOpenedOn } from "../safe";
+import { decodeSafePending, decodeSafeTries, dialsCorrect, safeOpenedOn, safeShapeOf } from "../safe";
 import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "../bomb";
 import { decodeNonoCells, nonoSizeOf, replayNonogram } from "../nonogram";
 import { decodeFloodMoves, replayFlood } from "../flood";
@@ -198,8 +198,9 @@ const SAFE_FREE_DIAL = 1;
 
 function safeDials(p: Of<"safe">, answer: string): number {
   const combination = p.combination ?? [];
-  const tries = decodeSafeTries(answer);
-  const pending = tries.length >= 3 ? [] : [decodeSafePending(answer) ?? []];
+  const shape = safeShapeOf(p);
+  const tries = decodeSafeTries(answer, shape);
+  const pending = tries.length >= shape.tries ? [] : [decodeSafePending(answer, shape) ?? []];
   return Math.max(0, ...[...tries, ...pending].map((t) => dialsCorrect(t, combination)));
 }
 
@@ -209,7 +210,7 @@ const safe: StandardGame = {
     const p = input.puzzle as Of<"safe">;
     const combination = p.combination ?? [];
     if (input.graded.isCorrect) {
-      const openedOn = safeOpenedOn(decodeSafeTries(input.answer), combination);
+      const openedOn = safeOpenedOn(decodeSafeTries(input.answer, safeShapeOf(p)), combination);
       // Today's finish cuts the speed points by the try (1st all, 2nd about half, 3rd none); each wrong try also costs
       // the clean crack 2.5.
       return cleanFinish("safe", input, Math.max(0, openedOn - 1), tryEfficiency(openedOn) / PUZZLE_EFFICIENCY_POINTS, { openedOn });

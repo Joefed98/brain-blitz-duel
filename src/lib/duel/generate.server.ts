@@ -42,16 +42,16 @@ import { generateWordsmith } from "./wordsmith.server";
 import { generateTileGrid } from "./tileGrid.server";
 import { generateWordSlide } from "./wordSlide.server";
 import { generateBalance } from "./numberRounds.server";
-import { generateLightsOut, generatePipes, generateSudoku } from "./logic.server";
+import { generateLightsOut, generatePipes, generateSudoku, generateSudokuLevel } from "./logic.server";
 import { generateFlow } from "./flow.server";
 import { generateIceSlide } from "./slide.server";
 import { generatePush } from "./push.server";
 import { generateLaser } from "./laser.server";
 import { generateTower } from "./tower.server";
-import { towerSettingsFor } from "./logicLevels";
+import { levelSettings, towerSettingsFor, type SudokuLevel, type SafeLevel } from "./logicLevels";
 import { generateMaze } from "./maze.server";
 import { generateTubes } from "./tubes.server";
-import { generateSafe } from "./safe.server";
+import { generateSafe, generateSafeLevel } from "./safe.server";
 import { generateBomb } from "./bomb.server";
 import { generateGravity } from "./gravity.server";
 import { generateTiles } from "./tiles.server";
@@ -245,7 +245,10 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "balance") return generateBalance();
   if (type === "lightsout") return generateLightsOut();
   if (type === "pipes") return generatePipes();
-  if (type === "sudoku") return generateSudoku();
+  if (type === "sudoku") {
+    const lv = levelSettings<SudokuLevel>("sudoku", context.level);
+    return lv ? generateSudokuLevel(lv) : generateSudoku();
+  }
   if (type === "flow") return generateFlow();
   if (type === "iceslide") return generateIceSlide();
   if (type === "push") return generatePush();
@@ -253,7 +256,10 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "tower") return generateTower(towerSettingsFor(context.level));
   if (type === "maze") return generateMaze();
   if (type === "tubes") return generateTubes();
-  if (type === "safe") return generateSafe();
+  if (type === "safe") {
+    const lv = levelSettings<SafeLevel>("safe", context.level);
+    return lv ? generateSafeLevel(lv) : generateSafe();
+  }
   if (type === "bomb") return generateBomb();
   if (type === "gravity") return generateGravity();
   if (type === "chain") return generateChain();

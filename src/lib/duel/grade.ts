@@ -32,7 +32,7 @@ import { decodeTowerMoves, replayTower } from "./tower";
 import { decodeMazePath, mazeColsOf, verifyMazePath } from "./maze";
 import { decodeMazeTrail, mazeStarsTaken, mazeTrailBacktracks, mazeTrailRoute, mazeTrailWalk, usesMazeDepth } from "./depth/labyrinth";
 import { decodeTubeLog, decodeTubeMoves, replayTubeLog, replayTubes } from "./tubes";
-import { dialsCorrect, decodeSafePending, decodeSafeTries, safeOpenedOn } from "./safe";
+import { dialsCorrect, decodeSafePending, decodeSafeTries, safeOpenedOn, safeShapeOf } from "./safe";
 import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "./bomb";
 import { decodeGravityTilts, replayGravity } from "./gravity";
 import { blockingCars } from "./unblock.server";
@@ -964,12 +964,14 @@ function gradeUnderRev(
     case "safe": {
       // Each try is checked here against the stored combination.
       const combination = puzzle.combination ?? [];
-      const tries = decodeSafeTries(answer);
+      // A level's card has its own dials, range and tries (safe.ts safeShapeOf; today's otherwise).
+      const shape = safeShapeOf(puzzle);
+      const tries = decodeSafeTries(answer, shape);
       const openedOn = safeOpenedOn(tries, combination);
       const last = tries[tries.length - 1] ?? [];
       // puzzleScoreRev 2 (score bands): an unopened safe keeps its best try's dials, not only the last try's.
       const right = !combination.length ? 0
-        : puzzleScoreRevOf(puzzle) >= 2 ? Math.max(0, ...[...tries, ...(openedOn > 0 || tries.length >= 3 ? [] : [decodeSafePending(answer) ?? []])].map((t) => dialsCorrect(t, combination)))
+        : puzzleScoreRevOf(puzzle) >= 2 ? Math.max(0, ...[...tries, ...(openedOn > 0 || tries.length >= shape.tries ? [] : [decodeSafePending(answer, shape) ?? []])].map((t) => dialsCorrect(t, combination)))
         : dialsCorrect(last, combination);
       isCorrect = openedOn > 0;
       correctCount = openedOn > 0 ? combination.length : right;
