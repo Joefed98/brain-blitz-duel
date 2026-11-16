@@ -1,3 +1,4 @@
+import { useAppMoment } from "@/components/fx/useMomentEnter";
 import { useEffect, useState } from "react";
 
 import { Toast } from "@/design/components";
@@ -25,6 +26,8 @@ export function PassLevelNotice({ onOpen }: { onOpen: () => void }) {
     const timer = window.setTimeout(() => setShown(null), SHOW_MS);
     return () => window.clearTimeout(timer);
   }, [shown]);
+  // The level-up's moment (15 Nov 2026, the effects pass): the kit's new-best drop.
+  useAppMoment("newBest", "[data-pass-level-notice]", shown);
   if (shown === null) return null;
   const waiting = pass.state === "open" ? pass.view.claimable : 0;
   return (
