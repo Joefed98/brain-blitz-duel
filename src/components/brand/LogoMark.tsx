@@ -133,7 +133,8 @@ export function LogoMark({
           <g data-logo-depth="">
             <path d={LOGO_PATHS.bolt} fill={`url(#${id}-metal)`} />
             <path d={LOGO_PATHS.bolt} fill={`url(#${id}-shine)`} />
-            <path d={LOGO_PATHS.bolt} fill="none" style={{ stroke: "var(--jz-art-gold-deep)" }} strokeWidth={2} strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+            {/* The edge scales with the bolt (about 2 px at Prepare to Duel's size); only the speed lines are hairlines. */}
+            <path d={LOGO_PATHS.bolt} fill="none" style={{ stroke: "var(--jz-art-gold-deep)" }} strokeWidth={0.13} strokeLinejoin="round" />
           </g>
         ) : (
           <path d={LOGO_PATHS.bolt} fill={look.upper[0]} />

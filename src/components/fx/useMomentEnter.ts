@@ -37,8 +37,14 @@ export function useAppMoment(kind: GameFxKind, selector: string, key: string | n
   useEffect(() => {
     if (!on || key === null || key === undefined || key === last.current) return;
     last.current = key;
-    // After the element has painted (it is usually mounted by the same render).
-    const frame = requestAnimationFrame(() => gameFx(kind, document.querySelector(selector), { inGame: false, ...options }));
+    // After the element has painted (it is usually mounted by the same render); a timer where there are no frames
+    // (a test DOM, some embedded views).
+    const run = () => gameFx(kind, document.querySelector(selector), { inGame: false, ...options });
+    if (typeof requestAnimationFrame !== "function") {
+      const timer = setTimeout(run, 0);
+      return () => clearTimeout(timer);
+    }
+    const frame = requestAnimationFrame(run);
     return () => cancelAnimationFrame(frame);
   }, [on, key]); // eslint-disable-line react-hooks/exhaustive-deps
 }
