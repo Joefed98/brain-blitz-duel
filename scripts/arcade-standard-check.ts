@@ -83,8 +83,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // Home Run deals homerunRev 4 since 3 Nov 2026 (pick your spot: a spot, a tap, fielders; four parts).
   // Since 15 Nov 2026 (routine consequence of the Home Run and Top Bins overhaul): homerunRev 5 (the innings) and
   // freekickRev 5 (the layered kick), each on four parts summing to 200.
+  // Changed with Joe's approval, 16 Nov 2026 (Top Bins Normal eased): Top Bins deals freekickRev 6 (rev 5's parts).
   { type: "homerun", field: "homerunRev", rev: 5, batch: "Sports" },
-  { type: "freekick", field: "freekickRev", rev: 5, batch: "Sports" },
+  { type: "freekick", field: "freekickRev", rev: 6, batch: "Sports" },
   // Apex (racing) deals racingRev 3 since 3 Nov 2026 (pace and clean sectors; racingRev 2 from 31 Oct 2026).
   { type: "racing", field: "racingRev", rev: 3, batch: "Sports" },
   // Cards & Board (30 Oct 2026): born on the standard at revision 1.

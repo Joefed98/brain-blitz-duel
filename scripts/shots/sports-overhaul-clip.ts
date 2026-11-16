@@ -5,17 +5,19 @@
  *
  *   bun scripts/shots/sports-overhaul-clip.ts --game=homerun|freekick --from=<tick> --to=<tick> [--step=3] [--out=dir]
  *     [--moment=hit|homer|goal] (picks the range round that moment instead of from / to)
+ *     [--level=easy|normal|hard|expert] [--skill=great|elite…] [--limits] (16 Nov 2026: the dealt stamps on a level's
+ *     proved deal, the bot under human limits with --limits)
  */
 import { createCanvas, Path2D as NapiPath2D } from "@napi-rs/canvas";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { homerunGameFor, homerunViewHFor, HOMERUN_REV_5, HOMERUN_WORLD_W } from "../../src/lib/arcade/homerun";
 import { drawHomerunArt } from "../../src/lib/arcade/homerun.renderer";
-import { freekickGameFor, FK_FLIGHT, FREEKICK_REV_5, FREEKICK_WORLD_H, FREEKICK_WORLD_W } from "../../src/lib/arcade/freekick";
+import { freekickGameFor, FK_FLIGHT, FREEKICK_REV_DEALT, FREEKICK_WORLD_H, FREEKICK_WORLD_W } from "../../src/lib/arcade/freekick";
 import { freekickArtGameFor } from "../../src/lib/arcade/freekick.renderer";
 import { homerunDealSeedV5 } from "../../src/lib/duel/homerunDealV5.server";
-import { freekickDealSeedV5 } from "../../src/lib/duel/freekickDealV5.server";
+import { freekickDealSeedV6 } from "../../src/lib/duel/freekickDealV6.server";
 import { HR5_DOUBLE, HR5_HOMER, HR5_SINGLE } from "../../src/lib/arcade/homerunInnings";
-import { Human } from "../arcade-skill-bands/human";
+import { Human, HUMAN_LIMITS } from "../arcade-skill-bands/human";
 import { botV5 as hrBot } from "../arcade-skill-bands/bots/homerun";
 import { botV5 as fkBot } from "../arcade-skill-bands/bots/freekick";
 
@@ -29,6 +31,9 @@ import { botV5 as fkBot } from "../arcade-skill-bands/bots/freekick";
 const opt = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.split("=")[1];
 const gameId = opt("game") ?? "homerun";
 const step = Number(opt("step") ?? 3);
+const level = (opt("level") ?? "normal") as "easy" | "normal" | "hard" | "expert";
+const skill = (opt("skill") ?? "great") as never;
+const limits = process.argv.includes("--limits") ? HUMAN_LIMITS : null;
 const out = opt("out") ?? `.shots/clip-${gameId}`;
 mkdirSync(out, { recursive: true });
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -38,20 +43,20 @@ let seed: number;
 let W: number;
 let H: number;
 if (gameId === "homerun") {
-  seed = homerunDealSeedV5(Number(opt("n") ?? 0));
-  game = homerunGameFor(HOMERUN_REV_5);
+  seed = homerunDealSeedV5(Number(opt("n") ?? 0), level);
+  game = homerunGameFor(HOMERUN_REV_5, level);
   draw = drawHomerunArt as any;
   W = HOMERUN_WORLD_W;
   H = homerunViewHFor(HOMERUN_REV_5);
 } else {
-  seed = freekickDealSeedV5(Number(opt("n") ?? 0));
-  game = freekickGameFor(FREEKICK_REV_5);
-  draw = freekickArtGameFor(FREEKICK_REV_5).draw as any;
+  seed = freekickDealSeedV6(Number(opt("n") ?? 0), level);
+  game = freekickGameFor(FREEKICK_REV_DEALT, level);
+  draw = freekickArtGameFor(FREEKICK_REV_DEALT, undefined, level).draw as any;
   W = FREEKICK_WORLD_W;
   H = FREEKICK_WORLD_H;
 }
-const human = new Human(gameId, seed, "great");
-const events = new Map((gameId === "homerun" ? hrBot : fkBot)({ game, seed, rev: 5, human }).events.map((e) => [e.t, e]));
+const human = new Human(gameId, seed, skill, limits);
+const events = new Map((gameId === "homerun" ? hrBot : fkBot)({ game, seed, rev: gameId === "homerun" ? 5 : FREEKICK_REV_DEALT, human }).events.map((e) => [e.t, e]));
 let from = Number(opt("from") ?? 0);
 let to = Number(opt("to") ?? 300);
 const moment = opt("moment");

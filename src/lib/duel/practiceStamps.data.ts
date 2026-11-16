@@ -31,7 +31,7 @@ export const PRACTICE_STAMPS = {
   "flood": "depthRev=4 floodRev=3 puzzleScoreRev=3 speedPar=1",
   "flow": "flowRev=2 puzzleScoreRev=3 speedPar=1",
   "freecell": "freecellRev=5 puzzleScoreRev=3 speedPar=1",
-  "freekick": "freekickRev=5 puzzleScoreRev=3 speedPar=1",
+  "freekick": "freekickRev=6 puzzleScoreRev=3 speedPar=1",
   "golfsol": "golfSolRev=1 puzzleScoreRev=3 speedPar=1",
   "gravity": "gravityRev=7 puzzleScoreRev=3 speedPar=1",
   "homerun": "homerunRev=5 puzzleScoreRev=3 speedPar=1",

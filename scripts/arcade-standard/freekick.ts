@@ -20,23 +20,26 @@ import {
   FREEKICK_V5_CORE_FULL,
   FREEKICK_V5_CORE_MAX,
   FREEKICK_V5_STD_SPEC,
+  FREEKICK_V6_STD_SPEC,
+  FREEKICK_REV_6,
   type FkLevel,
   type FreekickState,
 } from "../../src/lib/arcade/freekick";
-import { FREEKICK_DEAL_V5 } from "../../src/lib/duel/freekickDealV5.server";
+import { FREEKICK_DEAL_V6 } from "../../src/lib/duel/freekickDealV6.server";
 import { oracleRunV5 } from "../freekick-oracle";
 import { storedScoreFkV5 } from "../freekick-layered-deal";
 import type { StdEntry, StdRun } from "./entry";
 
 const FULL = process.env["CHECKS_FULL"] === "1";
-const normal = FREEKICK_DEAL_V5.normal;
+// Changed with Joe's approval, 16 Nov 2026 (Top Bins Normal eased): the entry follows the dealt stamp, freekickRev 6, on its own proved deal (rev 5's parts are the same).
+const normal = FREEKICK_DEAL_V6.normal;
 const seeds = FULL ? [...normal] : normal.filter((_, i) => i % 5 === 0);
-const game = freekickGameFor(FREEKICK_REV_5);
+const game = freekickGameFor(FREEKICK_REV_6);
 
 function replayed(seed: number, events: ArcadeInputEvent[], label: string, level: FkLevel = "normal"): StdRun {
   // The stored score through the server's replay (with the phone's checkpoints); the parts from the same play.
-  const score = storedScoreFkV5(seed, events, level);
-  const g = freekickGameFor(FREEKICK_REV_5, level);
+  const score = storedScoreFkV5(seed, events, level, FREEKICK_REV_6);
+  const g = freekickGameFor(FREEKICK_REV_6, level);
   const at = new Map(events.map((e) => [e.t, e]));
   let s = g.init(seed);
   while (!g.isOver(s)) s = g.step(s, at.get(s.tick + 1) ?? null);
@@ -49,14 +52,14 @@ const base = (over: Partial<FreekickState>): FreekickState => ({ ...game.init(no
 export const entry: StdEntry = {
   type: "freekick",
   field: "freekickRev",
-  rev: FREEKICK_REV_5,
-  before: FREEKICK_REV_4,
-  parts: FREEKICK_V5_STD_SPEC.parts,
+  rev: FREEKICK_REV_6,
+  before: FREEKICK_REV_5,
+  parts: FREEKICK_V6_STD_SPEC.parts,
   spec: ARCADE_STANDARD.freekick.spec!,
   liveSpec: true,
   perfect: () => [
-    ...seeds.map((seed) => replayed(seed, oracleRunV5(seed, "normal"), `the oracle on freekickRev 5 Normal deal seed ${seed}`)),
-    ...(FULL ? FK_LEVELS.filter((l) => l !== "normal").flatMap((l) => FREEKICK_DEAL_V5[l].map((seed) => replayed(seed, oracleRunV5(seed, l), `the oracle on freekickRev 5 ${l} seed ${seed}`, l))) : []),
+    ...seeds.map((seed) => replayed(seed, oracleRunV5(seed, "normal", FREEKICK_REV_6), `the oracle on freekickRev 6 Normal deal seed ${seed}`)),
+    ...(FULL ? FK_LEVELS.filter((l) => l !== "normal").flatMap((l) => FREEKICK_DEAL_V6[l].map((seed) => replayed(seed, oracleRunV5(seed, l, FREEKICK_REV_6), `the oracle on freekickRev 6 ${l} seed ${seed}`, l))) : []),
   ],
   played: () => {
     const events: ArcadeInputEvent[] = [];
@@ -73,7 +76,8 @@ export const entry: StdEntry = {
     for (let t = 0; t <= 4; t++) ok(p(base({ targets: t }), "targets") === 10 * t, `${t} targets → ${10 * t}`);
     for (let c = 0; c <= 11; c++) ok(p(base({ skill: c }), "skill") === Math.min(30, 3 * c), `${c} skill shots → ${Math.min(30, 3 * c)}`);
     ok(p(base({ best: 4 }), "streak") === 0 && p(base({ best: 5 }), "streak") === 10 && p(base({ best: 10 }), "streak") === 10, "five in a row: 10 once, from five");
-    ok(base({}).freekickRev === FREEKICK_REV_5 && FREEKICK_V5_STD_SPEC.parts.map((x) => `${x.key}:${x.max}`).join() === "core:120,targets:40,skill:30,streak:10", "freekickRev 5's parts (120 + 40 + 30 + 10)");
+    // Changed with Joe's approval, 16 Nov 2026 (Top Bins Normal eased): the dealt stamp is 6, its parts rev 5's exactly.
+    ok(base({}).freekickRev === FREEKICK_REV_6 && FREEKICK_V6_STD_SPEC.parts.map((x) => `${x.key}:${x.max}`).join() === FREEKICK_V5_STD_SPEC.parts.map((x) => `${x.key}:${x.max}`).join() && FREEKICK_V6_STD_SPEC.parts.map((x) => `${x.key}:${x.max}`).join() === "core:120,targets:40,skill:30,streak:10", "freekickRev 6's parts are rev 5's (120 + 40 + 30 + 10)");
     ok(p(base({ goals: 10, units: 1300 }), "core") === FREEKICK_V5_CORE_MAX && p(base({ goals: 9, units: FREEKICK_V5_CORE_FULL }), "core") === FREEKICK_V5_CORE_MAX, `the core is full at ${FREEKICK_V5_CORE_FULL} units`);
     ok(p(base({ goals: 6, units: 700, skill: 6, targets: 3, best: 6 }), "core") === p(base({ goals: 6, units: 700 }), "core"), "the features never cost core");
   },

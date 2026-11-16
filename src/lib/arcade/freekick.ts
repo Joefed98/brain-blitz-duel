@@ -63,7 +63,13 @@ export const FREEKICK_REV_4 = 4;
  * levels (FK_LEVEL_SETTINGS; Normal the rated one). Rooms deal rev 5; rev 1–4 replay exactly as before.
  */
 export const FREEKICK_REV_5 = 5;
-export const FREEKICK_REV_DEALT = FREEKICK_REV_5;
+/**
+ * freekickRev 6 (16 Nov 2026, Joe: Top Bins Normal eased): rev 5's game exactly, with Normal's scoring eased (and Easy's,
+ * so Easy never scores below Normal): the corner hoop counted (and drawn) larger and the keeper's open side a wider
+ * skill-shot window (FK_V6_EASE). Hard and Expert score as rev 5; rev 5 rounds replay and grade exactly as before.
+ */
+export const FREEKICK_REV_6 = 6;
+export const FREEKICK_REV_DEALT = FREEKICK_REV_6;
 
 /** The four levels (the difficulty framework's ids). */
 export type FkLevel = "easy" | "normal" | "hard" | "expert";
@@ -94,6 +100,40 @@ export const FK_LEVEL_SETTINGS: Readonly<Record<FkLevel, FkLevelSettings>> = {
   hard: { zoneLo: 735, zoneHi: 790, react: 8, speed: 1120, wall: [4, 5], wind: 4, hoopLast: 600, jumps: 5 },
   expert: { zoneLo: 745, zoneHi: 780, react: 7, speed: 1200, wall: [5, 5], wind: 5, hoopLast: 500, jumps: 6 },
 };
+/**
+ * freekickRev 6's level table (16 Nov 2026, Joe: Hard and Expert a clear step up, tuned on the elite bot under human
+ * limits): Easy and Normal as rev 5; Hard and Expert harder. Rev 5 keeps FK_LEVEL_SETTINGS exactly.
+ */
+export const FK_LEVEL_SETTINGS_V6: Readonly<Record<FkLevel, FkLevelSettings>> = {
+  easy: FK_LEVEL_SETTINGS.easy,
+  normal: FK_LEVEL_SETTINGS.normal,
+  hard: { zoneLo: 735, zoneHi: 790, react: 6, speed: 1300, wall: [4, 5], wind: 6, hoopLast: 600, jumps: 5 },
+  expert: { zoneLo: 745, zoneHi: 780, react: 5, speed: 1400, wall: [5, 5], wind: 7, hoopLast: 500, jumps: 6 },
+};
+/** A stamp's level settings: rev 6's table from rev 6, else rev 5's. */
+export function fkLevelSettings(rev: number, level?: string | null): FkLevelSettings {
+  return (rev >= FREEKICK_REV_6 ? FK_LEVEL_SETTINGS_V6 : FK_LEVEL_SETTINGS)[fkLevelOf(level)];
+}
+/**
+ * freekickRev 6's Goals line by level: the units at which Goals is full (rev 5: FREEKICK_V5_CORE_FULL for every level).
+ * Hard and Expert ask for better-placed goals (10 perfectly placed goals are 1,300 units).
+ */
+export const FK_V6_CORE_FULL: Readonly<Record<FkLevel, number>> = { easy: 800, normal: 800, hard: 1200, expert: 1250 };
+
+/**
+ * freekickRev 6's scoring ease by level (null: scored as rev 5): the corner hoop's first size (per mille of
+ * FK_HOOP_R, shrinking to the level's hoopLast share of it kick by kick, as rev 5) and how far from the middle a goal
+ * into the keeper's open side must cross to count as a skill shot (cm; rev 5's 120).
+ */
+export const FK_V6_EASE: Readonly<Record<FkLevel, { hoopPermille: number; openCm: number } | null>> = {
+  easy: { hoopPermille: 1350, openCm: 60 },
+  normal: { hoopPermille: 1350, openCm: 60 },
+  hard: null,
+  expert: null,
+};
+/** Rev 5's open-side line (cm from the middle). */
+export const FK_V5_OPEN_CM = 120;
+
 /** Strike types (the SHOT's d): curl, drive, dip. */
 export const FK_STRIKE_CURL = 0;
 export const FK_STRIKE_DRIVE = 1;
@@ -366,15 +406,20 @@ export const FREEKICK_V5_STD_SPEC: StdSpec = {
     { key: "streak", label: "Five in a row", max: FREEKICK_STREAK_MAX, of: 1, how: "for five goals in a row" },
   ],
 };
+/** freekickRev 6's parts: rev 5's exactly (the ease is in what counts as a target and a skill shot). */
+export const FREEKICK_V6_STD_SPEC: StdSpec = { ...FREEKICK_V5_STD_SPEC, rev: FREEKICK_REV_6 };
 export const FREEKICK_V5_BAND_CURVE = bandCurve([0, FREEKICK_V5_CORE_FULL], [0, FREEKICK_V5_CORE_MAX]);
 
 /** A corner hoop's radius (world units) on kick `k` (0…9): rev 1–3 the full FK_HOOP_R; rev 4 down to 70 % by the last. */
 export function fkHoopRFor(rev: number, k: number, level?: string | null): number {
   if (rev < FREEKICK_REV_4) return FK_HOOP_R;
   const kk = Math.max(0, Math.min(FREEKICK_KICKS - 1, k));
-  const last = rev >= FREEKICK_REV_5 ? FK_LEVEL_SETTINGS[fkLevelOf(level)].hoopLast : FK_V4_HOOP_LAST_PERMILLE;
+  const last = rev >= FREEKICK_REV_5 ? fkLevelSettings(rev, level).hoopLast : FK_V4_HOOP_LAST_PERMILLE;
   const permille = 1000 - Math.trunc(((1000 - last) * kk) / (FREEKICK_KICKS - 1));
-  return Math.trunc((FK_HOOP_R * permille) / 1000);
+  // freekickRev 6: Easy's and Normal's hoop starts larger (FK_V6_EASE), shrinking by the same share.
+  const ease = rev >= FREEKICK_REV_6 ? FK_V6_EASE[fkLevelOf(level)] : null;
+  const first = ease ? Math.trunc((FK_HOOP_R * ease.hoopPermille) / 1000) : FK_HOOP_R;
+  return Math.trunc((first * permille) / 1000);
 }
 
 /* ================================ The deal ================================ */
@@ -508,7 +553,7 @@ const planCache = new Map<number, FkPlan>();
 
 /** The run's schedule from the seed (and the revision): identical for every player and the server. */
 export function fkSeedPlan(seed: number, rev: number = FREEKICK_REV_STD, level?: string | null): FkPlan {
-  if (rev >= FREEKICK_REV_5) return fkSeedPlanV5(seed, fkLevelOf(level));
+  if (rev >= FREEKICK_REV_5) return fkSeedPlanV5(seed, fkLevelOf(level), rev >= FREEKICK_REV_6 ? FREEKICK_REV_6 : FREEKICK_REV_5);
   if (rev >= FREEKICK_REV_2) return fkSeedPlanV2(seed);
   const key = seed | 0;
   const hit = planCache.get(key);
@@ -567,11 +612,11 @@ const planCacheV5 = new Map<string, FkPlan>();
  * size (the level's range), the wind (the level's strength, either way, never calm past Easy), the keeper's lean (his
  * start shifted that way) and whether the wall jumps (a fixed count of kicks, seeded).
  */
-export function fkSeedPlanV5(seed: number, level: FkLevel = "normal"): FkPlan {
-  const key = `${seed | 0}:${level}`;
+export function fkSeedPlanV5(seed: number, level: FkLevel = "normal", rev: number = FREEKICK_REV_5): FkPlan {
+  const key = `${seed | 0}:${level}:${rev}`;
   const hit = planCacheV5.get(key);
   if (hit) return hit;
-  const L = FK_LEVEL_SETTINGS[level];
+  const L = fkLevelSettings(rev, level);
   const base = fkSeedPlanV2(seed);
   const rng = { s: ((seed | 0) ^ 0x6e1d_4b33) | 0 };
   const order = Array.from({ length: FREEKICK_KICKS }, (_, i) => i);
@@ -1020,16 +1065,16 @@ export function fkCalm(k: FkKick): FkKick {
 }
 
 /** How far a meter value is past a level's gold zone (+ too much, − too little, 0 clean). */
-export function fkV5MeterError(meter: number, level?: string | null): number {
-  const L = FK_LEVEL_SETTINGS[fkLevelOf(level)];
+export function fkV5MeterError(meter: number, level?: string | null, rev: number = FREEKICK_REV_5): number {
+  const L = fkLevelSettings(rev, level);
   return meter > L.zoneHi ? meter - L.zoneHi : meter < L.zoneLo ? meter - L.zoneLo : 0;
 }
 
 /** freekickRev 5's launch: the drawn target solved in calm air for the strike type, the meter's error, then the real kick's wind. */
-export function fkV5Launch(k: FkKick, xCm: number, yCm: number, b: number, st: number, meter: number, level?: string | null): FkFlight {
+export function fkV5Launch(k: FkKick, xCm: number, yCm: number, b: number, st: number, meter: number, level?: string | null, rev: number = FREEKICK_REV_5): FkFlight {
   const sol = fkV3Solve(fkCalm(k), xCm, yCm, b, st);
   const f = fkV5Strike(k, sol.a, b, sol.c, st);
-  const e = fkV5MeterError(meter, level);
+  const e = fkV5MeterError(meter, level, rev);
   if (e > 0) f.vy += e * FK_V3_OVER_VY;
   else if (e < 0) {
     const keep = Math.max(250, 1000 + e * FK_V3_UNDER_PERMILLE);
@@ -1041,9 +1086,11 @@ export function fkV5Launch(k: FkKick, xCm: number, yCm: number, b: number, st: n
 }
 
 /** Whether a freekickRev 5 goal was a skill shot: under a jumping wall, a dip over the wall, curled round it, or into the open side. */
-export function fkV5Skill(k: FkKick, f: FkFlight, curled: boolean): boolean {
+export function fkV5Skill(k: FkKick, f: FkFlight, curled: boolean, rev: number = FREEKICK_REV_5, level?: string | null): boolean {
   if (!k.v5 || f.out !== FK_OUT_GOAL) return false;
-  const openSide = Math.sign(f.crossX) === -k.v5.lean && Math.abs(f.crossX) > m(1.2);
+  // freekickRev 6: Easy's and Normal's open side counts from nearer the middle (FK_V6_EASE).
+  const ease = rev >= FREEKICK_REV_6 ? FK_V6_EASE[fkLevelOf(level)] : null;
+  const openSide = Math.sign(f.crossX) === -k.v5.lean && Math.abs(f.crossX) > m((ease?.openCm ?? FK_V5_OPEN_CM) / 100);
   return f.under === 1 || (f.st === FK_STRIKE_DIP && f.wallSide === 2) || curled || openSide;
 }
 
@@ -1166,7 +1213,7 @@ function resolve(s: FreekickState, kick: FkKick, out: number, f: FkFlight | null
     s.flags = flags;
     if (bent) s.bent = (s.bent ?? 0) + 1;
     // freekickRev 5: bit 8 a skill shot (rev 5 has no Curl bonus: its bent bit is never set).
-    if (s.freekickRev >= FREEKICK_REV_5 && fkV5Skill(kick, f, j.curled)) {
+    if (s.freekickRev >= FREEKICK_REV_5 && fkV5Skill(kick, f, j.curled, s.freekickRev, s.level)) {
       flags[s.k] = (flags[s.k] ?? 0) | 8;
       s.skill = (s.skill ?? 0) + 1;
     }
@@ -1210,7 +1257,7 @@ function step(state: FreekickState, input: ArcadeInputEvent | null): FreekickSta
     } else if (input && input.k === FREEKICK_INPUT_STRIKE && metering) {
       const meter = fkV3Meter(s.tick - (s.meterAt ?? 0));
       s.strikeM = meter;
-      s.fl = s.freekickRev >= FREEKICK_REV_5 ? fkV5Launch(kick, s.aimX ?? 0, s.aimY ?? 0, s.curl ?? 0, s.strike ?? 0, meter, s.level) : fkV3Launch(kick, s.aimX ?? 0, s.aimY ?? 0, s.curl ?? 0, meter);
+      s.fl = s.freekickRev >= FREEKICK_REV_5 ? fkV5Launch(kick, s.aimX ?? 0, s.aimY ?? 0, s.curl ?? 0, s.strike ?? 0, meter, s.level, s.freekickRev) : fkV3Launch(kick, s.aimX ?? 0, s.aimY ?? 0, s.curl ?? 0, meter);
       s.kickTick = s.tick;
       s.acted += 1;
       s.phase = FK_FLIGHT;
@@ -1261,11 +1308,11 @@ function isOver(state: FreekickState): boolean {
  */
 export function freekickStdParts(state: FreekickState): StdPart[] | null {
   const r = state.freekickRev;
-  if (r === FREEKICK_REV_5) {
+  if (r === FREEKICK_REV_5 || r === FREEKICK_REV_6) {
     const placed = state.units - state.goals * FREEKICK_GOAL_UNITS;
-    const spec = FREEKICK_V5_STD_SPEC;
+    const spec = r === FREEKICK_REV_6 ? FREEKICK_V6_STD_SPEC : FREEKICK_V5_STD_SPEC;
     return [
-      stdPart(spec, "core", stdLine(FREEKICK_V5_CORE_MAX, state.units, FREEKICK_V5_CORE_FULL), `${state.goals} of ${FREEKICK_KICKS} scored · placement ${placed} of ${state.goals * FREEKICK_PLACE_UNITS}`),
+      stdPart(spec, "core", stdLine(FREEKICK_V5_CORE_MAX, state.units, r === FREEKICK_REV_6 ? FK_V6_CORE_FULL[fkLevelOf(state.level)] : FREEKICK_V5_CORE_FULL), `${state.goals} of ${FREEKICK_KICKS} scored · placement ${placed} of ${state.goals * FREEKICK_PLACE_UNITS}`),
       stdPart(spec, "targets", stdEach(state.targets, 10, FREEKICK_TARGETS_MAX), `${state.targets} of ${FREEKICK_TARGETS} targets`),
       stdPart(spec, "skill", stdEach(state.skill ?? 0, FREEKICK_V5_SKILL_EACH, FREEKICK_V5_SKILL_MAX), `${state.skill ?? 0} skill shots`),
       stdPart(spec, "streak", state.best >= FREEKICK_STREAK_RUN ? FREEKICK_STREAK_MAX : 0, `best ${state.best} in a row`),
@@ -1354,17 +1401,25 @@ export const freekickGameV4: ArcadeGame<FreekickState, ArcadeInputEvent | null> 
 /** freekickRev 5's input kinds: rev 4's, the SHOT carrying the strike type in d. */
 export const FREEKICK_INPUT_RANGES_V5: readonly InputRange[] = FREEKICK_INPUT_RANGES_V4.map((r) => (r.k === FREEKICK_INPUT_SHOT ? { ...r, d: [FK_STRIKE_CURL, FK_STRIKE_DIP] as const } : r));
 
-const gamesV5 = new Map<FkLevel, ArcadeGame<FreekickState, ArcadeInputEvent | null>>();
-/** freekickRev 5's game at a level. */
-export function freekickGameV5(level?: string | null): ArcadeGame<FreekickState, ArcadeInputEvent | null> {
+const gamesV5 = new Map<string, ArcadeGame<FreekickState, ArcadeInputEvent | null>>();
+/** freekickRev 5's game at a level (or rev 6's, the same game scored with the ease). */
+export function freekickGameV5(level?: string | null, rev: number = FREEKICK_REV_5): ArcadeGame<FreekickState, ArcadeInputEvent | null> {
   const l = fkLevelOf(level);
-  let g = gamesV5.get(l);
+  const r = rev >= FREEKICK_REV_6 ? FREEKICK_REV_6 : FREEKICK_REV_5;
+  const key = `${r}:${l}`;
+  let g = gamesV5.get(key);
   if (!g) {
-    g = { ...freekickGameV3, init: initFor(FREEKICK_REV_5, l), inputRanges: FREEKICK_INPUT_RANGES_V5 };
-    gamesV5.set(l, g);
+    g = { ...freekickGameV3, init: initFor(r, l), inputRanges: FREEKICK_INPUT_RANGES_V5 };
+    gamesV5.set(key, g);
     levelOfGame.set(g, l);
+    revOfGame.set(g, r);
   }
   return g;
+}
+const revOfGame = new WeakMap<object, number>();
+/** The stamp a freekickRev 5 or 6 game object plays (5 for any other). */
+export function freekickGameRev(game: object): number {
+  return revOfGame.get(game) ?? FREEKICK_REV_5;
 }
 const levelOfGame = new WeakMap<object, FkLevel>();
 /** The level a freekickRev 5 game object plays (Normal for any other). */
@@ -1375,7 +1430,7 @@ export function freekickGameLevel(game: object): FkLevel {
 /** The game for a stored stamp: rev 5 at its level, rev 4 on 4, 3 on 3, 2 on 2, else rev 1 (unstamped rounds included). */
 export function freekickGameFor(rev?: number | null, level?: string | null): ArcadeGame<FreekickState, ArcadeInputEvent | null> {
   const r = rev ?? FREEKICK_REV_STD;
-  if (r >= FREEKICK_REV_5) return freekickGameV5(level);
+  if (r >= FREEKICK_REV_5) return freekickGameV5(level, r);
   return r >= FREEKICK_REV_4 ? freekickGameV4 : r >= FREEKICK_REV_3 ? freekickGameV3 : r >= FREEKICK_REV_2 ? freekickGameV2 : freekickGame;
 }
 

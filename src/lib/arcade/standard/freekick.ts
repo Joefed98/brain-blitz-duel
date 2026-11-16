@@ -4,4 +4,4 @@
  * and the parts, re-exported from the sim. `parts` returns rev 1's, 2's, 3's or 4's parts for a state on any of them and
  * null for any other revision.
  */
-export { FREEKICK_V5_STD_SPEC as spec, freekickStdParts as parts } from "../freekick";
+export { FREEKICK_V6_STD_SPEC as spec, freekickStdParts as parts } from "../freekick";

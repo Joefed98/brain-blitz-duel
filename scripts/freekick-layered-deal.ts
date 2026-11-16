@@ -6,9 +6,10 @@
  *
  *   bun scripts/freekick-layered-deal.ts           # rebuild the file (~1 min)
  *   bun scripts/freekick-layered-deal.ts --check   # prove the file is what this script builds, without writing
+ *   bun scripts/freekick-layered-deal.ts --rev=6 [--check]   # freekickRev 6's deal (16 Nov 2026), freekickDealV6.server.ts
  */
 import { readFileSync, writeFileSync } from "node:fs";
-import { freekickCheckpoint, freekickGameFor, FK_LEVELS, FREEKICK_REV_5, type FkLevel } from "../src/lib/arcade/freekick";
+import { freekickCheckpoint, freekickGameFor, FK_LEVELS, FREEKICK_REV_5, FREEKICK_REV_6, type FkLevel } from "../src/lib/arcade/freekick";
 import { encodeFreekickRun, replayFreekickRun } from "../src/lib/duel/freekick";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { oracleRunV5 } from "./freekick-oracle";
@@ -18,8 +19,8 @@ export const FK5_DEAL_SIZE = 60;
 const SALT: Record<FkLevel, number> = { easy: 50_000, normal: 0, hard: 100_000, expert: 150_000 };
 
 /** A log's stored score at a level through the server's replay (the phone's checkpoints claimed). */
-export function storedScoreFkV5(seed: number, events: ArcadeInputEvent[], level: FkLevel): number {
-  const game = freekickGameFor(FREEKICK_REV_5, level);
+export function storedScoreFkV5(seed: number, events: ArcadeInputEvent[], level: FkLevel, rev: number = FREEKICK_REV_5): number {
+  const game = freekickGameFor(rev, level);
   const at = new Map(events.map((e) => [e.t, e]));
   const checkpoints = [];
   let s = game.init(seed);
@@ -28,42 +29,45 @@ export function storedScoreFkV5(seed: number, events: ArcadeInputEvent[], level:
     if (s.tick % 60 === 0) checkpoints.push(freekickCheckpoint(s));
   }
   const raw = encodeFreekickRun({ seed, claimedScore: game.score(s), events, endTick: s.tick, checkpoints });
-  const res = replayFreekickRun(seed, raw, FREEKICK_REV_5, level);
+  const res = replayFreekickRun(seed, raw, rev, level);
   return res.flagged ? -1 : res.score;
 }
 
-export function buildDeal(level: FkLevel): { seeds: number[]; dropped: number } {
+export function buildDeal(level: FkLevel, rev: number = FREEKICK_REV_5): { seeds: number[]; dropped: number } {
   const seeds: number[] = [];
   let dropped = 0;
   for (let n = 0; seeds.length < FK5_DEAL_SIZE; n++) {
     const seed = hashSeed(SALT[level] + n);
-    if (storedScoreFkV5(seed, oracleRunV5(seed, level), level) === 200) seeds.push(seed);
+    if (storedScoreFkV5(seed, oracleRunV5(seed, level, rev), level, rev) === 200) seeds.push(seed);
     else dropped++;
   }
   return { seeds, dropped };
 }
 
 if (import.meta.main) {
-  const built = FK_LEVELS.map((l) => ({ l, ...buildDeal(l) }));
+  const rev6 = process.argv.includes("--rev=6");
+  const rev = rev6 ? FREEKICK_REV_6 : FREEKICK_REV_5;
+  const V = rev6 ? "V6" : "V5";
+  const built = FK_LEVELS.map((l) => ({ l, ...buildDeal(l, rev) }));
   const file = `/**
- * Top Bins' layered deal (freekickRev 5, 15 Nov 2026): ${FK5_DEAL_SIZE} seeds a level, each proved by the oracle
+ * Top Bins' layered deal (${rev6 ? "freekickRev 6, 16 Nov 2026" : "freekickRev 5, 15 Nov 2026"}): ${FK5_DEAL_SIZE} seeds a level, each proved by the oracle
  * (scripts/freekick-oracle.ts oracleRunV5) to score exactly 200 at that level through the server replay. Built by
- * \`bun scripts/freekick-layered-deal.ts\` (dropped: ${built.map((b) => `${b.l} ${b.dropped}`).join(", ")}); freekick-layered-check
- * re-proves them. Rooms deal FREEKICK_DEAL_V5[level][room seed % length].
+ * \`bun scripts/freekick-layered-deal.ts${rev6 ? " --rev=6" : ""}\` (dropped: ${built.map((b) => `${b.l} ${b.dropped}`).join(", ")}); freekick-layered-check
+ * re-proves them. Rooms deal FREEKICK_DEAL_${V}[level][room seed % length].
  */
 import type { FkLevel } from "@/lib/arcade/freekick";
 
-export const FREEKICK_DEAL_V5: Readonly<Record<FkLevel, readonly number[]>> = {
+export const FREEKICK_DEAL_${V}: Readonly<Record<FkLevel, readonly number[]>> = {
 ${built.map((b) => `  ${b.l}: [${b.seeds.join(", ")}],`).join("\n")}
 };
 
 /** The deal for room seed \`n\` at a level (Normal unless given). */
-export function freekickDealSeedV5(n: number, level: FkLevel = "normal"): number {
-  const list = FREEKICK_DEAL_V5[level];
+export function freekickDealSeed${V}(n: number, level: FkLevel = "normal"): number {
+  const list = FREEKICK_DEAL_${V}[level];
   return list[((n % list.length) + list.length) % list.length]!;
 }
 `;
-  const path = "src/lib/duel/freekickDealV5.server.ts";
+  const path = `src/lib/duel/freekickDeal${V}.server.ts`;
   if (process.argv.includes("--check")) {
     if (readFileSync(path, "utf8") !== file) {
       console.log(`FAIL ${path} is not what freekick-layered-deal.ts builds`);

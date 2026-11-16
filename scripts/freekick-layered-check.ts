@@ -34,6 +34,13 @@ import {
   FK_KEEPER_VMAX,
   FK_LEVELS,
   FK_LEVEL_SETTINGS,
+  FK_LEVEL_SETTINGS_V6,
+  FK_V6_EASE,
+  FK_V6_CORE_FULL,
+  FK_V5_OPEN_CM,
+  fkLevelSettings,
+  fkV5Skill,
+  FREEKICK_REV_6,
   FK_M,
   FK_OUT_NONE,
   FK_OUT_WALL,
@@ -237,12 +244,14 @@ const fly = (k: FkKick, shot: { x: number; y: number; b: number; st: number }, g
   ok(JSON.stringify(levelsOf("freekick")) === JSON.stringify(["easy", "normal", "hard", "expert"]), `freekick offers every level (${levelsOf("freekick").join(", ")})`);
   for (const level of ["easy", "hard", "expert"] as const) {
     const mirror = gameLevelSettings<Record<string, unknown>>("freekick", level)!;
-    const own = FK_LEVEL_SETTINGS[level] as unknown as Record<string, unknown>;
+    // Changed with Joe's approval, 16 Nov 2026 (Top Bins Normal eased): the registry mirrors the dealt stamp's (freekickRev 6's) table.
+    const own = FK_LEVEL_SETTINGS_V6[level] as unknown as Record<string, unknown>;
     for (const key of Object.keys(mirror)) ok(JSON.stringify(mirror[key]) === JSON.stringify(own[key]), `freekick ${level}: the registry's ${key} matches the sim's`);
   }
   ok(FK_LEVEL_SETTINGS.normal.speed === FK_LEVEL_SETTINGS.easy.speed && FK_LEVEL_SETTINGS.normal.react === FK_LEVEL_SETTINGS.easy.react, "Normal's keeper is Easy's (the one-step ease)");
   const dealt = generatePuzzle("freekick", { bankSeed: 7, level: "expert" });
-  ok(puzzleLevel(dealt) === "expert" && (dealt as { freekickRev?: number }).freekickRev === FREEKICK_REV_5, "the deal at Expert is stamped expert on rev 5");
+  // Changed with Joe's approval, 16 Nov 2026 (Top Bins Normal eased): rooms deal freekickRev 6.
+  ok(puzzleLevel(dealt) === "expert" && (dealt as { freekickRev?: number }).freekickRev === FREEKICK_REV_6, "the deal at Expert is stamped expert on rev 6");
   ok(!("level" in (generatePuzzle("freekick", { bankSeed: 7 }) as object)), "the deal at Normal carries no level");
 }
 

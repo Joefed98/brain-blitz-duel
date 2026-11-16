@@ -14,7 +14,7 @@ import { homerunDealSeedV5 } from "./homerunDealV5.server";
 import { homerunDealSeedV4 } from "./homerunDealV4.server";
 import { freekickDealSeedV4 } from "./freekickDealV4.server";
 import { dealPinned } from "./dealEra";
-import { freekickDealSeedV5 } from "./freekickDealV5.server";
+import { freekickDealSeedV6 } from "./freekickDealV6.server";
 import { hrLevelOf } from "@/lib/arcade/homerunInnings";
 import { fkLevelOf } from "@/lib/arcade/freekick";
 import { racingDealSeedV3 } from "./racingDealV3.server";
@@ -39,11 +39,11 @@ export function generateHomerun(level?: string | null): HomerunPuzzleData {
   return { type: "homerun", seed: homerunDealSeedV5(arcadeSeed(), l), homerunRev: HOMERUN_REV_DEALT, ...(l !== "normal" ? { level: l } : {}) };
 }
 
-/** Top Bins deals freekickRev 5 (15 Nov 2026, the layered kick) from the level's proved deal; rev 1–4 rounds replay on their own. */
+/** Top Bins deals freekickRev 6 (16 Nov 2026: rev 5 with Easy and Normal eased, Hard and Expert harder) from the level’s proved deal; rev 1–5 rounds replay on their own. */
 export function generateFreekick(level?: string | null): FreekickPuzzleData {
   if (dealPinned("sportsPreOverhaul")) return { type: "freekick", seed: freekickDealSeedV4(arcadeSeed()), freekickRev: 4 };
   const l = fkLevelOf(level);
-  return { type: "freekick", seed: freekickDealSeedV5(arcadeSeed(), l), freekickRev: FREEKICK_REV_DEALT, ...(l !== "normal" ? { level: l } : {}) };
+  return { type: "freekick", seed: freekickDealSeedV6(arcadeSeed(), l), freekickRev: FREEKICK_REV_DEALT, ...(l !== "normal" ? { level: l } : {}) };
 }
 
 export function generateRacing(): RacingPuzzleData {

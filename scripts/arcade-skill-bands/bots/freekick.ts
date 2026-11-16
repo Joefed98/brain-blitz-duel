@@ -32,8 +32,8 @@
  *   - the meter and the slips as rev 3.
  */
 import { FK_AIM, FREEKICK_AIM_MAX, FREEKICK_CURL_MAX, FREEKICK_POWER_MAX, FREEKICK_REV_STD, fkSeedPlan, type FreekickState } from "../../../src/lib/arcade/freekick";
-import { FK_M, FREEKICK_FOCAL, FREEKICK_CAM_BACK, FREEKICK_REV_3, FREEKICK_REV_4, FREEKICK_REV_5, freekickGameLevel } from "../../../src/lib/arcade/freekick";
-import { fkPlanKickV5, fkV5CleanTicks, oracleRunV5, playShotsV5, type FkShot5 } from "../../freekick-oracle";
+import { FK_M, FREEKICK_FOCAL, FREEKICK_CAM_BACK, FREEKICK_REV_3, FREEKICK_REV_4, FREEKICK_REV_5, freekickGameLevel, freekickGameRev } from "../../../src/lib/arcade/freekick";
+import { fkPlanKickV5, fkRobustFullV5, fkV5CleanTicks, oracleRunV5, playShotsV5, type FkShot5 } from "../../freekick-oracle";
 import { fkPlanKick, fkPlanKickV3, fkPlanKickV4, FK_V3_CLEAN_TICKS, oracleRun, oracleShots, playShots, playShotsV3, playShotsV4, type FkPlans, type FkPlans3, type FkPlans4, type FkShot, type FkShot3, type FkTiming3, type FkTiming4 } from "../../freekick-oracle";
 import type { SkillLevel } from "../human";
 import type { SkillBot } from "../bot";
@@ -229,18 +229,26 @@ const plan5Cache = new Map<string, ReturnType<typeof fkPlanKickV5>[]>();
 export const botV5: SkillBot = (ctx) => {
   const h = ctx.human;
   const level = freekickGameLevel(ctx.game);
-  if (h.level === "perfect") return { events: oracleRunV5(ctx.seed, level) };
-  const key = `${ctx.seed}:${level}`;
-  const kicks = fkSeedPlan(ctx.seed, FREEKICK_REV_5, level).kicks;
+  // The stamp the game plays (5, or 6 with Easy's and Normal's scoring ease): the bot plans and plays on it.
+  const rev = freekickGameRev(ctx.game);
+  if (h.level === "perfect") return { events: oracleRunV5(ctx.seed, level, rev) };
+  const key = `${ctx.seed}:${level}:${rev}:${h.level === "near" || h.level === "elite" ? "careful" : "plain"}`;
+  const kicks = fkSeedPlan(ctx.seed, rev, level).kicks;
   let plans = plan5Cache.get(key);
   if (!plans) {
-    plans = kicks.map((k, i) => fkPlanKickV5(k, i, level, true));
+    // Near-perfect and elite players aim with a margin (fkRobustFullV5): the full shot that survives small mistakes.
+    const careful = h.level === "near" || h.level === "elite";
+    plans = kicks.map((k, i) => {
+      const p = fkPlanKickV5(k, i, level, true, rev);
+      if (!careful || !p.full) return p;
+      return { ...p, full: fkRobustFullV5(k, i, level, rev) ?? p.full };
+    });
     if (plan5Cache.size > 200) plan5Cache.clear();
     plan5Cache.set(key, plans);
   }
   const shots: (FkShot5 | null)[] = [];
   const timing: FkTiming4[] = [];
-  const clean = fkV5CleanTicks(level);
+  const clean = fkV5CleanTicks(level, rev);
   kicks.forEach((k, i) => {
     const p = plans![i]!;
     const safe = [...p.goals].sort((a, b) => b.place - a.place)[0];
@@ -262,7 +270,7 @@ export const botV5: SkillBot = (ctx) => {
     shots.push({ x: Math.round(x), y: Math.round(y), b: Math.round(Math.max(-FREEKICK_CURL_MAX, Math.min(FREEKICK_CURL_MAX, b))), st });
     timing.push({ think: Math.min(150, h.thinkTicks(1800)), powerGap: Math.min(60, h.thinkTicks(600)), strike: Math.max(1, strike) });
   });
-  return { events: playShotsV5(ctx.seed, shots, level, timing).events };
+  return { events: playShotsV5(ctx.seed, shots, level, timing, rev).events };
 };
 
 /** freekickRev 5's random strokes. */
@@ -271,5 +279,5 @@ export const randomBotV5: SkillBot = (ctx) => {
   const level = freekickGameLevel(ctx.game);
   const shots = Array.from({ length: 10 }, () => ({ x: h.int(-372, 372), y: h.int(11, 250), b: h.int(-100, 100), st: h.int(0, 2) }));
   const timing = shots.map(() => ({ strike: h.int(1, 96) }));
-  return { events: playShotsV5(ctx.seed, shots, level, timing).events };
+  return { events: playShotsV5(ctx.seed, shots, level, timing, freekickGameRev(ctx.game)).events };
 };

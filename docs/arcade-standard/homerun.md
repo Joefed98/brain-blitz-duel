@@ -33,12 +33,14 @@ seed of the proved deal (`homerunDealV5.server.ts`, 120 a level, `bun scripts/ho
 
 | | Easy | Normal | Hard | Expert |
 |---|---|---|---|---|
-| Fastball flight (ticks) | 42–47 | 36–41 | 32–36 | 29–32 |
+| Fastball flight (ticks) | 42–47 | 36–41 | 28–31 | 27–29 |
 | Balls in the first 24 | 6 | 7 | 8 | 9 |
 | Contact / Power window | ±7 / ±5 | ±5 / ±3 | ±4 / ±3 | ±4 / ±2 |
 | PERFECT | ±2 | ±1 | exact | exact |
 | Movement | 45 % | 100 % | 130 % | 160 % |
 | Catch areas | 80 % | 100 % | 110 % | 120 % |
+| Balls finish outside the zone by (px) | 14–34 | 14–34 | 8–24 | 5–17 |
+| Curveball / changeup flight (ticks) | 54–60 / 66–74 | 48–54 / 62–70 | 40–44 / 54–59 | 37–40 / 51–55 |
 
 **Measured** (`bun scripts/homerun-innings-bands.ts --seeds=30`, 16 Nov 2026 on the difficulty framework, medians, average in brackets):
 

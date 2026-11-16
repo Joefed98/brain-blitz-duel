@@ -37,6 +37,7 @@ import {
   FREEKICK_SETUP_TICKS,
   fkLevelOf,
   fkV5MeterError,
+  fkLevelSettings,
   FK_BALL_R,
   FK_FLIGHT,
   FK_GOAL_H,
@@ -1122,7 +1123,7 @@ function paintV3Bar(ctx: Ctx, state: FreekickState): void {
   let label = aiming ? v3Prompt(state) : "";
   let gold = false;
   if (struck && !aiming) {
-    const e = state.freekickRev >= FREEKICK_REV_5 ? fkV5MeterError(state.strikeM ?? 0, state.level) : fkV3MeterError(state.strikeM ?? 0);
+    const e = state.freekickRev >= FREEKICK_REV_5 ? fkV5MeterError(state.strikeM ?? 0, state.level, state.freekickRev) : fkV3MeterError(state.strikeM ?? 0);
     label = e === 0 ? "CLEAN STRIKE" : e > 0 ? "TOO MUCH" : "TOO LITTLE";
     gold = e === 0;
   }
@@ -1148,7 +1149,7 @@ function paintV3Bar(ctx: Ctx, state: FreekickState): void {
   ctx.fillStyle = "rgba(255,255,255,0.2)";
   ctx.fillRect(x + 4, y + 5, at(value) - x - 4, h - 10);
   ctx.fillStyle = "rgba(242,199,92,0.85)";
-  const zone = state.freekickRev >= FREEKICK_REV_5 ? FK_LEVEL_SETTINGS[fkLevelOf(state.level)] : { zoneLo: FK_V3_ZONE_LO, zoneHi: FK_V3_ZONE_HI };
+  const zone = state.freekickRev >= FREEKICK_REV_5 ? fkLevelSettings(state.freekickRev, state.level) : { zoneLo: FK_V3_ZONE_LO, zoneHi: FK_V3_ZONE_HI };
   ctx.fillRect(at(zone.zoneLo), y + 3, at(zone.zoneHi) - at(zone.zoneLo), h - 6);
   if (metering || struck) {
     ctx.fillStyle = "#FFFFFF";

@@ -856,7 +856,8 @@ function stepInputs4(seed: number, inputs: { k: number; a?: number; b?: number; 
   // Rooms deal it: generateFreekick stamps 4 on a proved rev-4 seed.
   // Since 15 Nov 2026 rooms deal freekickRev 5 (freekick-layered-check proves its deal); rev 4's file is kept whole.
   const dealt = generateFreekick();
-  ok(dealt.freekickRev === 5 && FREEKICK_DEAL_V4.length === 300, "rooms deal freekickRev 5; rev 4's proved deal is kept whole");
+  // Changed with Joe's approval, 16 Nov 2026 (Top Bins Normal eased): rooms deal freekickRev 6.
+  ok(dealt.freekickRev === 6 && FREEKICK_DEAL_V4.length === 300, "rooms deal freekickRev 6; rev 4's proved deal is kept whole");
 }
 
 if (failures.length) {

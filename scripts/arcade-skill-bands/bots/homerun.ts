@@ -280,7 +280,10 @@ export const botV5: SkillBot = ({ game, seed, human }) => {
       // Decide on the pitch as it comes: swing or take, the aim and the moment.
       const edge = p.zone ? Math.min(p.plateX - 212, 304 - p.plateX, p.plateY - 446, 566 - p.plateY) : 0;
       const near = p.zone ? edge < 14 : true;
-      const misread = human.chance(V5_MISREAD[lv] * (near ? 2 : 1) * (p.kind === PITCH_CURVE ? 1.5 : 1));
+      // A pitch that moves more is harder to read (the level's bend, 16 Nov 2026): Normal's curve reads as before.
+      const moves = Math.abs(p.breakX) + Math.abs(p.breakY);
+      const bendRead = human.limits ? Math.max(1, moves / 45) : 1;
+      const misread = human.chance(V5_MISREAD[lv] * (near ? 2 : 1) * (p.kind === PITCH_CURVE ? 1.5 : 1) * bendRead);
       const readZone = misread ? !p.zone : p.zone;
       // On two strikes a hitter swings at anything close (protecting the plate).
       const swing = readZone || (inn.strikes >= 2 && human.chance(0.5));
@@ -297,7 +300,9 @@ export const botV5: SkillBot = ({ game, seed, human }) => {
         }
         let st = inn.release + p.flight - HOMERUN_SWING_TICKS + human.timingTicks(V5_READ[p.kind] ?? 1);
         if (human.slip()) st += (human.chance(0.5) ? -1 : 1) * human.int(6, 10);
-        st = Math.max(st, inn.release + human.reactTicks() - 8, t + 1);
+        // Under human limits (Joe, 16 Nov 2026) the read needs the ball in flight: the swipe lands no sooner than the
+        // release plus a reaction (0.25 s at least) plus the swipe's own movement (0.15 s). Without limits, as before.
+        st = human.limits ? Math.max(st, inn.release + human.reactTicks() + human.moveTicks(), t + 1) : Math.max(st, inn.release + human.reactTicks() - 8, t + 1);
         planned = { i: inn.i, t: st, aim: Math.round(best + human.aim(9, 1)) };
       } else planned = null;
     }

@@ -40,7 +40,7 @@ import { PIN_REV_STD, PIN_STD_SPEC, PIN_V6_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
 import { BASTION_REV_DEALT, BASTION_STD_SPEC_V3, BASTION_V3_BAND_CURVE } from "./bastionTank";
 import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V5_BAND_CURVE } from "./homerun";
-import { FREEKICK_REV_DEALT, FREEKICK_V5_STD_SPEC, FREEKICK_V5_BAND_CURVE } from "./freekick";
+import { FREEKICK_REV_DEALT, FREEKICK_V6_STD_SPEC, FREEKICK_V5_BAND_CURVE } from "./freekick";
 import { RACING_REV_DEALT, RACING_V3_BAND_CURVE, RACING_V3_STD_SPEC } from "./racing";
 import { FC_REV, FC_STD_SPEC, FC_V5_BAND_CURVE } from "./cards/freecell";
 import { TP_REV, TP_STD_SPEC, TP_V3_BAND_CURVE } from "./cards/tripeaks";
@@ -150,7 +150,7 @@ export const LIVE_BANDS = {
   // Home Run deals homerunRev 3 since 1 Nov 2026 (the swing choice and the pitcher's tell; core full at 460 ft a pitch).
   // homerunRev 5 / freekickRev 5 since 15 Nov 2026 (the innings; the layered kick): runs 100 (straight to 18) and goals 120.
   homerun: { field: "homerunRev", rev: HOMERUN_REV_DEALT, curve: HOMERUN_V5_BAND_CURVE, std: HOMERUN_STD_SPEC_DEALT, born: true },
-  freekick: { field: "freekickRev", rev: FREEKICK_REV_DEALT, curve: FREEKICK_V5_BAND_CURVE, std: FREEKICK_V5_STD_SPEC, born: true },
+  freekick: { field: "freekickRev", rev: FREEKICK_REV_DEALT, curve: FREEKICK_V5_BAND_CURVE, std: FREEKICK_V6_STD_SPEC, born: true },
   racing: { field: "racingRev", rev: RACING_REV_DEALT, curve: RACING_V3_BAND_CURVE, std: RACING_V3_STD_SPEC, born: true },
   // Cards & Board (30 Oct 2026): born on the arcade scoring standard at revision 1.
   // freecellRev 4 (3 Nov 2026): the 40-card deal (Ace to 10), cards 60 + par 50 + speed 90.

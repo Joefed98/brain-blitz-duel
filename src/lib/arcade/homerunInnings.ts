@@ -45,13 +45,18 @@ export interface HrLevelSettings {
   bend: number;
   /** Fielder catch areas, per mille of Normal's. */
   reach: number;
+  /** How far outside the zone a ball finishes (px, [lo, hi]): nearer the edge is a closer call to take or swing at. */
+  ballOff: readonly [number, number];
 }
 
 export const HR_LEVEL_SETTINGS: Readonly<Record<HrLevel, HrLevelSettings>> = {
-  easy: { flight: { 0: [42, 47], 1: [54, 60], 3: [66, 74] }, balls: 6, winContact: 7, winPower: 5, perfect: 2, bend: 450, reach: 800 },
-  normal: { flight: { 0: [36, 41], 1: [48, 54], 3: [62, 70] }, balls: 7, winContact: 5, winPower: 3, perfect: 1, bend: 1000, reach: 1000 },
-  hard: { flight: { 0: [32, 36], 1: [44, 49], 3: [58, 64] }, balls: 8, winContact: 4, winPower: 3, perfect: 0, bend: 1300, reach: 1100 },
-  expert: { flight: { 0: [29, 32], 1: [40, 44], 3: [54, 59] }, balls: 9, winContact: 4, winPower: 2, perfect: 0, bend: 1600, reach: 1200 },
+  easy: { flight: { 0: [42, 47], 1: [54, 60], 3: [66, 74] }, balls: 6, winContact: 7, winPower: 5, perfect: 2, bend: 450, reach: 800, ballOff: [14, 34] },
+  normal: { flight: { 0: [36, 41], 1: [48, 54], 3: [62, 70] }, balls: 7, winContact: 5, winPower: 3, perfect: 1, bend: 1000, reach: 1000, ballOff: [14, 34] },
+  // Hard and Expert retuned (16 Nov 2026, Joe: a clear step up, measured on the elite bot under human limits): the
+  // fastball near a person's limit (0.25 s to see it, 0.15 s to move: no swing lands before about 30 ticks), balls
+  // finishing nearer the zone's edge.
+  hard: { flight: { 0: [28, 31], 1: [40, 44], 3: [54, 59] }, balls: 8, winContact: 4, winPower: 3, perfect: 0, bend: 1300, reach: 1100, ballOff: [8, 24] },
+  expert: { flight: { 0: [27, 29], 1: [37, 40], 3: [51, 55] }, balls: 9, winContact: 4, winPower: 2, perfect: 0, bend: 1600, reach: 1200, ballOff: [5, 17] },
 };
 
 export function hrLevelOf(value: unknown): HrLevel {
@@ -200,7 +205,7 @@ export function homerunInningsPlan(seed: number, level: HrLevel = "normal"): Hr5
     if (ballAt[i]) {
       // Outside: off one side, or high, or low (by 14–34 px).
       const side = draw(4);
-      const by = 14 + draw(21);
+      const by = L.ballOff[0] + draw(L.ballOff[1] - L.ballOff[0] + 1);
       if (side === 0) plateX = ZONE_X0 - by;
       else if (side === 1) plateX = ZONE_X1 + by;
       else if (side === 2) plateY = ZONE_Y0 - by;
