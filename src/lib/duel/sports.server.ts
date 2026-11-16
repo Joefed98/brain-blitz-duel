@@ -8,7 +8,9 @@
  */
 import { HOMERUN_REV_DEALT } from "@/lib/arcade/homerun";
 import { FREEKICK_REV_DEALT } from "@/lib/arcade/freekick";
-import { RACING_REV_DEALT } from "@/lib/arcade/racing";
+import { RACING_REV_3, RACING_REV_DEALT } from "@/lib/arcade/racing";
+import { checkOverride } from "@/lib/checkOverride";
+import { racingDealSeedV3 } from "./racingDealV3.server";
 import { arcadeSeed } from "./arcade.server";
 import { homerunDealSeedV4 } from "./homerunDealV4.server";
 import { freekickDealSeedV4 } from "./freekickDealV4.server";
@@ -36,6 +38,9 @@ export function generateFreekick(): FreekickPuzzleData {
 export function generateRacing(): RacingPuzzleData {
   // Apex deals racingRev 4 (15 Nov 2026, the Sports overhaul: three named circuits) from its own proved deal;
   // racingRev 3, 2 and 1 rounds replay on theirs (racingDealV3.server.ts, racingDealV2.server.ts, racingDeal.server.ts).
+  // Checks written for racingRev 3 pin racingPreCircuits, a check-only switch read through checkOverride (as Minefield's
+  // minesPreLogic): a production build never deals rev 3.
+  if (checkOverride<boolean>("__DUELZ_RACING_PRE_CIRCUITS__") === true) return { type: "racing", seed: racingDealSeedV3(arcadeSeed()), racingRev: RACING_REV_3 };
   return { type: "racing", seed: racingDealSeedV4(arcadeSeed()), racingRev: RACING_REV_DEALT };
 }
 
