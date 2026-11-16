@@ -43,7 +43,7 @@ import { useReducedMotion } from "@/lib/motion";
 /* Game code arrives with the game (speed fix 1, Nov 2026): these build a deal or load a game's art while the intro
    is up, fetching that game's sim or art chunk on first use, never with the room screen. */
 const prepareSwingCourse = (seed: number, rev?: number) => void import("@/lib/arcade/swing").then((m) => m.prepareSwingCourse(seed, rev)).catch(() => undefined);
-const prepareInkLevels = (seed: number, rev?: number | null) => void import("@/lib/arcade/inkBridge").then((m) => m.prepareInkLevels(seed, rev)).catch(() => undefined);
+const prepareInkLevels = (seed: number, rev?: number | null, level?: unknown) => void import("@/lib/arcade/inkBridge").then((m) => m.prepareInkLevels(seed, rev, level)).catch(() => undefined);
 const mgDeal = (seed: number) => void import("@/lib/arcade/cards/muggins").then((m) => m.mgDeal(seed)).catch(() => undefined);
 const pyDeal = (seed: number) => void import("@/lib/arcade/cards/pyramid").then((m) => m.pyDeal(seed)).catch(() => undefined);
 const preloadGameArt = (type: string) => import("@/lib/arcade/gameArt.renderer").then((m) => m.preloadGameArt(type)).catch(() => undefined);
@@ -218,7 +218,7 @@ export function RoundIntro({
   useEffect(() => {
     if (puzzle?.type !== "inkbridge") return;
     const { seed, inkRev } = puzzle;
-    const timer = window.setTimeout(() => prepareInkLevels(seed, inkRev), 120);
+    const timer = window.setTimeout(() => prepareInkLevels(seed, inkRev, (puzzle as { level?: unknown }).level), 120);
     return () => window.clearTimeout(timer);
   }, [puzzle]);
 

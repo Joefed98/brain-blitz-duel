@@ -1,5 +1,94 @@
 # Rainbow Bridge on the arcade scoring standard (inkRev 12, 29 Oct 2026; inkRev 13, Nov 2026; inkRev 14, 3 Nov 2026)
 
+## Levels (stage 3)
+
+The Strategy overhaul's stage 3 (16 Nov 2026) gives Rainbow Bridge Easy, Hard and Expert on the live stamp, inkRev 15,
+with the level read from the stored puzzle (`level`, `puzzleLevel`). **Normal is inkRev 15 exactly**: a Normal deal has no
+`level` field and builds byte for byte as before (`scripts/fixtures/ink-levels-normal.json`, recorded on 6987d8bb).
+Rated play and the Daily always deal Normal (the framework's `modeLevel`). Scoring is inkRev 15's parts (levels 120 +
+ink par 30 + trick shots 20 + clovers 10 + speed 20 = 200) at every level; the 120 s run is unchanged.
+
+Joe's levels: "Easy 1.5× ink, about half the birds, no moving levels, 25 % par margin; Normal 1.25×, today's birds,
+moving from level 9, 10 %; Hard 1.1×, more birds, from level 8, 10 %; Expert 1.0×, more birds some moving, from level 7,
+5 %." "Moving levels" are read as the **live levels** (the coin falls while you draw): today's Normal is exactly that
+(live from level 9). Today's pot also slides from level 5 on Normal; Easy's "no moving levels" is read as nothing moves,
+so Easy's pot stands still on every level as well (a decision for Joe).
+
+| | Easy | Normal (today) | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Ink (× inkRev 10's; live levels × 1.5 more) | 1.5 | 1.25 | 1.1 | 1.0 |
+| Birds a level | half today's (rounded up) | today's | +2 (levels 2–10) | +2 on level 2, +3 on 3–10 |
+| Swaying birds | none | none | none | up to 3 on levels 5–6 (moving-pot levels) |
+| Live levels | none | 9–10 | 8–10 | 7–10 |
+| Moving pot | none | 5–10 | 5–10 | 5–10 |
+| Ink par margin | 25 % | 10 % | 10 % | 5 % |
+
+Code: `INK_LEVEL_SETS` / `InkLevelSet` / `INK_LEVEL_NORMAL` in `src/lib/arcade/inkBridge.ts` (the rules; mirrored as plain
+data in `GAME_LEVELS.inkbridge`, `src/lib/levels/gameLevels.ts`), `inkBridgeGameFor(rev, level)`,
+`replayInkBridgeRun(seed, raw, rev, level)`. A level's run carries `diff` on its state; the build and every step run under
+the level's rules (`withLevelDiff`), so the server replay builds the identical world from the stored puzzle. Helpers for
+the stage, art, sounds and bots: `inkLiveNow(state)`, `inkBudgetNow(state)`, `inkBirdDx(lvl, bird, tick)`.
+
+**Swaying birds** (Expert): a bird sways sideways `18–35 px` (seeded) on its level's pot period with its own seeded phase
+(`InkBlock.sway`, `inkBirdDx`), only on a moving pot's level that isn't live, its whole swept box on screen and clear of the
+other birds and the pot's mouth. Collision, art (`drawBirds` on the moved box, stage 2's flap effect keyed by the bird's
+place), the failed-on-a-bird flash and the near-bird sound all read the bird where it is on the tick. Because the birds
+share the pot's period, every proof's release search over one period (landingRelease, steadyRelease) covers them; the
+generation shortcuts that assumed "the pot is the only thing that moves" (stillPrefix, movingRelease) play such a level's
+drops whole.
+
+**The deals.** Each level deals from its own proved list (`src/lib/duel/inkHillsDeal{Easy,Hard,Expert}.server.ts`
+through `inkLevelDeals.server.ts`), built by `bun scripts/ink-big-deal.ts --rev=15 --level=<level> [--check]`: 60 seeds a
+level, each with every level's proof passing under the level's rules (drawable within its ink, the bonus lines, two
+clovers, the level's live levels, every ink par at least its proved line's ink) and the oracle's perfect run exactly 200
+through the server replay of the level (witnesses `scripts/fixtures/ink-hills-<level>-deal-witness.json.gz`).
+0 of the first 60 candidates dropped on each level (Easy, Hard and Expert all kept the first 60); every entry re-proved by
+`--check`. The witnesses are the oracle's (the flawless planner), so **200 is reachable on every dealt seed at every level**.
+
+**Checks**: ink-levels-check (the registry, Normal identical, each level's rules on dealt runs, every deal entry at 200
+through the server replay (sampled; all with `CHECKS_FULL=1`), swaying birds deterministic, periodic, in the world and
+collided where drawn, the clock, rated and the Daily Normal).
+
+**Measured** (`bun scripts/ink-levels-bands.ts [levels] --seeds=N --human`: the skill-band bot at every skill on each
+level's dealt seeds, every run through the server replay of the level; "elite (human limits)" holds the elite's reactions
+at 250 ms and its finger moves at 150 ms or more, Joe's human floor; the shared Human model's elite reacts in 145 ms):
+
+Main's shared tool, `bun scripts/level-tune.ts inkbridge --level=all --seeds=20` (each level's real deals, the bot's
+log graded by the server; inkbridge's checkpoints are every 300 ticks, the tool's own spacing):
+
+| Level | Near-perfect avg (median) | Elite avg (median) | Finished |
+| --- | --- | --- | --- |
+| Easy | 188.5 (189) | 194.5 (195) | 100 % / 100 % |
+| Normal | 180.5 (180) | 188.6 (188) | 100 % / 100 % |
+| Hard | 182.5 (180) | 190.3 (193) | 100 % / 100 % |
+| Expert | 173.8 (178) | 185.4 (183) | 85 % / 100 % |
+
+Every skill, `bun scripts/ink-levels-bands.ts --seeds=16 --human` (the first 16 seeds of each level's deal; average,
+then runs at 175+ and at 200 of 16):
+
+| Skill | Easy | Normal | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Weak | 60.8 | 56.3 | 61.3 | 58.8 |
+| Average | 108.8 (0 at 175+) | 90.8 | 92.5 | 81.1 |
+| Good | 154.4 | 131.8 | 123.8 | 127.2 |
+| Great | 175.9 (10 at 175+) | 155.6 (1) | 163.1 (2) | 151.6 (1) |
+| Near-perfect | 185.9 (14; 2 at 200) | 180.9 (13; 1) | 179.4 (12) | 180.1 (11) |
+| Elite | 195.6 (16; 7 at 200) | 190.8 (16) | 190.3 (15; 1) | 191.9 (16) |
+| Elite, human limits | 195.6 (7 at 200) | 190.0 | 189.8 (1 at 200) | 192.3 (1 at 200) |
+| Oracle | 200 on every entry | 200 | 200 on every entry | 200 on every entry |
+
+Reading it: **Easy is a clear step down** (Good +23, Great +20 and 10 of 16 Great runs at a star, the elite at 200 on 7 of
+16). **Hard and Expert are not a clear step up for these bots**: the skill-band bot plans every line on the noise-free sim
+with the level in hand, so more birds, swaying birds, less ink and a tighter par barely cost it; the Average and Expert
+rows fall a little (Average 91 → 81, Near-perfect finishing 85 % on Expert in level-tune) but the elite stays at ~190.
+Also tried and dropped (no measured step): Expert +4 birds; Hard's and Expert's pots sliding 20 % / 35 % faster and
+8 / 16 px further. Expert is humanly possible to score well on: the elite held to 250 ms reactions averages 192 and
+reaches 200 on seed 1858517429. Decisions for Joe are in the PR notes (a stronger Hard / Expert lever, and Easy's star
+share for an average player: 0 of 16).
+
+Expert seeds to play (the deal's entry index, the seed, the human-limited elite's score): #8 1858517429 (200), #0
+1655421732 (198), #2 1095647772 (198), #7 1552316070 (198), #4 735923524 (183, the hardest of the 16).
+
 ## inkRev 15 (15 Nov 2026): the pot moves, fewer and bigger birds, a sunset
 
 Rooms deal `inkRev 15` (`INK_REV_HILLS`, `inkBridgeHillsGame`), the Strategy overhaul's stamp, from its own proved deal

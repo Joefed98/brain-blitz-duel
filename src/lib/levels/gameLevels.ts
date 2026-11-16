@@ -46,7 +46,19 @@ export interface GameLevels<S = Record<string, unknown>> {
  * Every game's levels beyond Normal. Empty until the family sessions add theirs (15 Nov 2026): every game offers
  * Normal only.
  */
-export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {};
+export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
+  // Rainbow Bridge (the Strategy overhaul's stage 3, 15 Nov 2026; docs/arcade-standard/inkbridge.md "Levels (stage 3)"):
+  // inkRev 15 at each level, the sim's INK_LEVEL_SETS (ink percent of inkRev 10's, birds kept percent and added per
+  // level, the first live level 0-based, the ink par margin, the levels whose birds sway); Normal is 125 %, today's
+  // birds, live from 8 (level 9), 10 %. Each level deals from its own proved deal (ink-levels-check).
+  inkbridge: {
+    levels: {
+      easy: { settings: { inkPct: 150, birdsPct: 50, extraBirds: [], liveFrom: 10, parMarginPct: 25, swayLevels: [], swayBirds: 0, stillPot: true } },
+      hard: { settings: { inkPct: 110, birdsPct: 100, extraBirds: [0, 2, 2, 2, 2, 2, 2, 2, 2, 2], liveFrom: 7, parMarginPct: 10, swayLevels: [], swayBirds: 0 } },
+      expert: { settings: { inkPct: 100, birdsPct: 100, extraBirds: [0, 2, 3, 3, 3, 3, 3, 3, 3, 3], liveFrom: 6, parMarginPct: 5, swayLevels: [4, 5], swayBirds: 3 } },
+    },
+  },
+};
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */
 let registry: Partial<Record<string, GameLevels>> = GAME_LEVELS;

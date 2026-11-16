@@ -7,9 +7,10 @@ import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_LINE, sliceFoodSeedOk } f
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL } from "@/lib/arcade/flip";
 import { flipDealSeed } from "./flipDeal.server";
 import { CROSS_REV_KEEP } from "@/lib/arcade/cross";
-import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_HILLS, INK_REV_STD } from "@/lib/arcade/inkBridge";
+import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_HILLS, INK_REV_STD, isInkDiff } from "@/lib/arcade/inkBridge";
 import { inkBigDealSeed } from "./inkBigDeal.server";
 import { inkHillsDealSeed } from "./inkHillsDeal.server";
+import { inkLevelDealSeed } from "./inkLevelDeals.server";
 import { SNAKE_REV_TARGET, SNAKE_REV_12 } from "@/lib/arcade/snake";
 import { BUB_REV_FAST, BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
@@ -372,7 +373,12 @@ export function pinBubblePreFast(on: boolean): boolean {
   return setDealPin("bubblePreFast", on);
 }
 
-export function generateInkBridge(): InkBridgePuzzleData {
+/**
+ * Rainbow Bridge's deal. `level` (the Strategy overhaul's stage 3; the deal's GenerateContext level, already resolved
+ * against gameLevels.ts) deals inkRev 15 at that level from the level's own proved deal (inkLevelDeals.server.ts); the
+ * deal then stamps `level` on the puzzle. Normal (no level) deals exactly as before.
+ */
+export function generateInkBridge(level?: string): InkBridgePuzzleData {
   // inkRev 11 (phone notes, 27 Oct 2026): no wind zones, fewer silver coins, the pickups spread out.
   // inkRev 12 (the arcade scoring standard, 29 Oct 2026): inkRev 11's play scored on straight lines and fixed shares.
   // inkRev 13 (Nov 2026, docs/arcade-standard/inkbridge.md): clovers, ink par and more birds; no stars or silver coins.
@@ -383,6 +389,7 @@ export function generateInkBridge(): InkBridgePuzzleData {
   // inkRev 15 (the Strategy overhaul, 15 Nov 2026): inkRev 14 with the pot and hill placed level by level, from its own
   // proved deal (inkHillsDeal.server.ts: every level proved and the perfect run 200 through the server replay).
   if (dealPinned("inkPreHills")) return { type: "inkbridge", seed: inkBigDealSeed(arcadeSeed()), inkRev: INK_REV_BIG };
+  if (isInkDiff(level)) return { type: "inkbridge", seed: inkLevelDealSeed(level, arcadeSeed()), inkRev: INK_REV_HILLS };
   return { type: "inkbridge", seed: inkHillsDealSeed(arcadeSeed()), inkRev: INK_REV_HILLS };
 }
 

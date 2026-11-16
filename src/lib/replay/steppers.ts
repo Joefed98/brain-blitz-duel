@@ -234,7 +234,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   wavefront: (p) => ({ game: wavefrontGameFor(rev(p, "wavRev")) as AnyGame }),
   flip: (p) => ({ game: flipGameFor(rev(p, "flipRev")) as AnyGame }),
   junction: (p) => ({ game: junctionGameFor(rev(p, "junctionRev")) as AnyGame }),
-  inkbridge: (p) => ({ game: inkBridgeGameFor(rev(p, "inkRev")) as AnyGame }),
+  inkbridge: (p) => ({ game: inkBridgeGameFor(rev(p, "inkRev"), (p as { level?: unknown }).level) as AnyGame }),
   burst: (p) => ({ game: burstGameFor(rev(p, "burstRev")) as AnyGame }),
   orbit: orbitSource,
   swing: (p) => ({ game: swingGameFor(rev(p, "swingRev")) as AnyGame }),

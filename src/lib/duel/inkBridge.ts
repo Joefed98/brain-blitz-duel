@@ -10,6 +10,8 @@ import {
   INK_REV_TUNEC,
   INK_REV_TARGET, INK_REV_STRICT, INK_REV_EXPAND, INK_REV_SPREAD, INK_REV_STD, INK_REV_CLOVER, INK_REV_BIG, INK_REV_HILLS, inkClover,
   inkBridgeGameFor,
+  isInkDiff,
+  type InkDiff,
   INK_REV3,
   INK_REV4,
   inkCheckpoint,
@@ -164,9 +166,23 @@ export interface InkBridgeResult extends FlatReplay<InkState, InkCheckpoint> {
 export const encodeInkBridgeRun = run.encode;
 export const decodeInkBridgeRun = run.decode;
 
-/** The single place an Ink Bridge score is worked out. */
-export function replayInkBridgeRun(seed: number, raw: string, rev?: number | null): InkBridgeResult {
-  const picked = rev === INK_REV_HILLS ? hillsRun : rev === INK_REV_BIG ? bigRun : rev === INK_REV_CLOVER ? cloverRun : rev === INK_REV_STD ? stdRun : rev === INK_REV_SPREAD ? spreadRun : rev === INK_REV_EXPAND ? expandRun : rev === INK_REV_STRICT ? strictRun : rev === INK_REV_TARGET ? targetRun : rev === INK_REV_TUNEC ? tunecRun : rev === INK_REV_BAND ? bandRun : rev === INK_REV4 ? rev4Run : rev === INK_REV3 ? rev3Run : rev === INK_REV ? birdsRun : run;
+/** Stage 3: inkRev 15 at a level other than Normal, one run plumbing a level (made on first use). */
+const levelRuns = new Map<InkDiff, ReturnType<typeof makeArcadeRun<InkState, InkCheckpoint>>>();
+function levelRun(diff: InkDiff) {
+  let r = levelRuns.get(diff);
+  if (!r) {
+    r = makeArcadeRun<InkState, InkCheckpoint>({ tag: "inkbridge", game: inkBridgeGameFor(INK_REV_HILLS, diff), checkpoint: inkCheckpoint, keys: INK_CHECKPOINT_KEYS, interval: INK_CHECKPOINT_INTERVAL });
+    levelRuns.set(diff, r);
+  }
+  return r;
+}
+
+/**
+ * The single place an Ink Bridge score is worked out. `level` is the stored puzzle's level (puzzleLevel): on inkRev 15 a
+ * level other than Normal replays that level's run; anything else (every round before levels) replays as before.
+ */
+export function replayInkBridgeRun(seed: number, raw: string, rev?: number | null, level?: unknown): InkBridgeResult {
+  const picked = rev === INK_REV_HILLS && isInkDiff(level) ? levelRun(level) : rev === INK_REV_HILLS ? hillsRun : rev === INK_REV_BIG ? bigRun : rev === INK_REV_CLOVER ? cloverRun : rev === INK_REV_STD ? stdRun : rev === INK_REV_SPREAD ? spreadRun : rev === INK_REV_EXPAND ? expandRun : rev === INK_REV_STRICT ? strictRun : rev === INK_REV_TARGET ? targetRun : rev === INK_REV_TUNEC ? tunecRun : rev === INK_REV_BAND ? bandRun : rev === INK_REV4 ? rev4Run : rev === INK_REV3 ? rev3Run : rev === INK_REV ? birdsRun : run;
   const result = picked.replay(seed, raw);
   const s = result.state;
   return {

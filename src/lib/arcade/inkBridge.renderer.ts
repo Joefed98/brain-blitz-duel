@@ -7,7 +7,7 @@ import { inkBridgeFxFor } from "./arcadeFxGames.renderer";
 import { reducedMotion } from "./art.renderer";
 /** Rainbow Ink Bridge. Presentation only; all geometry comes from the unchanged sim. */
 import type { CanvasSize } from './engine';
-import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkBudgetFor, inkIsLive, inkWorldH, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_CLOUD_HW, INK_CLOUD_R, INK_FAILS, INK_LEVELS, inkClover, inkNoDrawZone, INK_LIVE_PRE_CAP, INK_SHAMROCK_R, INK_SILVER_R, INK_STAR_R, INK_REV_HILLS, INK_WORLD_H, INK_WORLD_W, type InkCloud, type InkState, type InkWind } from './inkBridge';
+import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkBudgetFor, inkBudgetNow, inkBirdDx, inkIsLive, inkLiveNow, inkWorldH, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_CLOUD_HW, INK_CLOUD_R, INK_FAILS, INK_LEVELS, inkClover, inkNoDrawZone, INK_LIVE_PRE_CAP, INK_SHAMROCK_R, INK_SILVER_R, INK_STAR_R, INK_REV_HILLS, INK_WORLD_H, INK_WORLD_W, type InkCloud, type InkState, type InkWind } from './inkBridge';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { sceneBelow, sceneBlades, sceneFill, sceneSides, type ArenaSceneView } from './arenaScene.renderer';
 import { artHash } from './art.renderer';
@@ -197,7 +197,8 @@ export function inkFailedOnBlock(state: InkState): boolean {
   if (state.flashKind !== 2 || !b || !lvl) return false;
   const x=b.x/FP,y=b.y/FP;
   return lvl.blocks.some(block => {
-    const dx=x-Math.max(block.x0,Math.min(block.x1,x));
+    const sx=inkBirdDx(lvl,block,state.flashTick);
+    const dx=x-Math.max(block.x0+sx,Math.min(block.x1+sx,x));
     const dy=y-Math.max(block.y,Math.min(block.y+inkBlockH(block),y));
     const r=lvl.ballR??BALL_R;
     return dx*dx+dy*dy<=r*r;
@@ -569,7 +570,9 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   for(const b of lvl.blocks) {
     if(b.h){
       const bh=inkBlockH(b);
-      drawBirds(c,b,bh,state.tick,birdFx==="reduced"?undefined:(i,cx,cy,w)=>{
+      // Stage 3 (Expert): a swaying bird drawn where it is on this tick (its box exactly; the effect keyed by its place).
+      const dx=inkBirdDx(lvl,b,state.tick);
+      drawBirds(c,dx?{...b,x0:b.x0+dx,x1:b.x1+dx}:b,bh,state.tick,birdFx==="reduced"?undefined:(i,cx,cy,w)=>{
         const key=`${b.x0},${b.y},${i}`;
         if(state.dropping&&Math.hypot(state.ball.x/FP-cx,state.ball.y/FP-cy)<w/2+26)fxm.passes.set(key,state.tick);
         const at=fxm.passes.get(key);const age=at===undefined?99:state.tick-at;
@@ -621,9 +624,9 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   }
   // Live levels while dropping: faded, non-solid draft strokes (clipped off any birds) and a
   // no-draw ring where the next draft point would be rejected.
-  if (inkIsLive(state.level,state.rev)&&state.dropping) {
+  if (inkLiveNow(state)&&state.dropping) {
     c.save();c.beginPath();c.rect(0,0,INK_WORLD_W,H);
-    for(const b of lvl.blocks) if(b.h) c.rect(b.x0,b.y,b.x1-b.x0,inkBlockH(b));
+    for(const b of lvl.blocks) if(b.h) c.rect(b.x0+inkBirdDx(lvl,b,state.tick),b.y,b.x1-b.x0,inkBlockH(b));
     c.clip('evenodd');
     c.strokeStyle=GOLD;c.lineCap='round';c.setLineDash([6,6]);c.globalAlpha=0.35;c.lineWidth=4;
     for(const seg of state.draftSegs){c.beginPath();c.moveTo(seg.x0,seg.y0);c.lineTo(seg.x1,seg.y1);c.stroke();}
@@ -649,7 +652,7 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
  * only on live levels: LIVE, and LINE LIMIT once the first line reaches its cap.
  */
 function drawInkHud(c: CanvasRenderingContext2D, state: InkState, lvl: InkState['list'][number]): void {
-  const X = 6, Y = 6, budget = inkBudgetFor(state.level, state.rev);
+  const X = 6, Y = 6, budget = inkBudgetNow(state);
   const remaining = Math.max(0, Math.min(1, state.ink / (budget * FP)));
   const levelValue = `${Math.min(state.level + 1, INK_LEVELS)} / ${INK_LEVELS}`;
   const levelW = hudPillWidth(c, 'Level', levelValue);
@@ -676,7 +679,7 @@ function drawInkHud(c: CanvasRenderingContext2D, state: InkState, lvl: InkState[
   if (meter) c.drawImage(meter, MX, MY, MW, 8);
   c.restore();
   // Live levels before release: mark how far the capped first line can drain the meter, and flag the cap once reached.
-  const live = inkIsLive(state.level, state.rev);
+  const live = inkLiveNow(state);
   const Y2 = Y + h + HUD_PILL_GAP;
   if (live) drawHudPill(c, X, Y2, '', 'LIVE', { gold: true });
   if (live && !state.dropping) {
@@ -710,7 +713,7 @@ export function drawInkRainbowExample(c:CanvasRenderingContext2D):void {
   c.save();c.translate(96,40);c.scale(0.8,0.8);stamp(c,'shamrock',INK_SHAMROCK_R*2,INK_SHAMROCK_R*2,-INK_SHAMROCK_R,-INK_SHAMROCK_R,shamrock);c.restore();
 }
 export const inkBridgeArtGame={...inkBridgeGame,draw:drawInkBridgeArt};
-export const inkBridgeArtGameFor=(rev?:number|null)=>({...inkBridgeGameFor(rev),draw:drawInkBridgeArt});
+export const inkBridgeArtGameFor=(rev?:number|null,level?:unknown)=>({...inkBridgeGameFor(rev,level),draw:drawInkBridgeArt});
 
 /**
  * Arena scene (15 Oct 2026, display only; arenaScene.renderer.ts): more grass and hillside
