@@ -59,7 +59,9 @@ Average score (finished = the base still standing at the end; star = runs at 175
 | Elite | 198 | 197 | 162 (58/60 finish) | 146 (51/60 finish) |
 | Flawless (oracle) | 200 | 200 | 200 | 200 |
 
-`bun scripts/level-tune.ts bastion --level=all --seeds=30` (the shared tool, graded by the server on real deals):
+`bun scripts/level-tune.ts bastion --level=all --seeds=30` (the shared tool as on main at de3bec96, checkpoints every
+300 ticks, which is Iron Wall's own `BT2_CHECKPOINT_INTERVAL`; no `--human-limits` option: the limits are the bastion
+bot's own, above, applied through `fixes`; graded by the server on real deals):
 Easy elite 197.8, Normal 197.6, Hard 161.4, Expert 144.3 (finished 100 / 100 / 100 / 77 %). The steps show most below
 the top: an average player moves from 89 (Expert) to 104 (Hard), 153 (Normal) and 172 (Easy, a star in 43 % of runs).
 "Well" on Expert: the human-limited elite player averages 146, finishes (base standing) in 85 % of runs and scores
