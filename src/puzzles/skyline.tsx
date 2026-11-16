@@ -7,7 +7,9 @@ import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordTap, tapAt } from "@/lib/arcade/engine";
 import { auditTapAt } from "@/lib/arcade/auditInput";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ArtStill } from "@/components/puzzles/ArtStill";
+import type { ArcadeGame } from "@/lib/arcade/engine";
 
 import {
   MAX_CATCH_UP_TICKS,
@@ -18,58 +20,55 @@ import {
 import {
   skylineCheckpoint,
   skylineGameFor,
-  SKYLINE_BG,
   SKYLINE_CHECKPOINT_INTERVAL,
-  SKYLINE_COLOURS,
-  SKYLINE_FLASH,
-  SKYLINE_REV_COUNT,
+  SKYLINE_REV_LIVES,
   skylineWorldHFor,
   SKYLINE_RUN_TICKS,
   type SkylineState,
   SKYLINE_WORLD_W,
 } from "@/lib/arcade/skyline";
-import { decodeSkylineRun, encodeSkylineRun, replaySkylineRun } from "@/lib/duel/skyline";
+import { encodeSkylineRun } from "@/lib/duel/skyline";
+import { skylineRunSummary } from "@/lib/duel/skylineSummary";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { ARCADE_CRASH_FREEZE_MS, type SkylinePuzzleData } from "@/lib/duel/types";
-import { drawSkylineArt, SKYLINE_ART_BG, skylineRiverFill } from "@/lib/arcade/skyline.renderer";
+import { drawSkylineArt, drawSkylineRunPicture, SKYLINE_ART_BG, SKYLINE_END_HOLD_MS, SKYLINE_RUN_COLOURS, SKYLINE_NIGHT_STEPS, skylineNightStep, skylineSceneFill } from "@/lib/arcade/skyline.renderer";
 import { skylineSounds } from "@/lib/fx/gameSounds";
 
-import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps, RunPictureProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
-/** Fixed intro still: a three-block tower with one overhang. */
+/**
+ * The intro still (the Action overhaul, 15 Nov 2026): the dealt stamp's own art, a fixed seed's tower a few floors up
+ * at dusk, built by a steady drop (tap when the block lines up). Display only: the sim runs here only for the picture.
+ */
+const stillGame = (() => {
+  const g = skylineGameFor(SKYLINE_REV_LIVES);
+  return {
+    ...g,
+    step: (s: SkylineState) => g.step(s, Math.abs(s.x - s.blocks[s.blocks.length - 1]!.x) <= 1_400),
+    draw: drawSkylineArt,
+  } as unknown as ArcadeGame<SkylineState, null>;
+})();
+
 function IntroExample() {
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg
-        viewBox="0 0 195 110"
-        width={195}
-        height={110}
-        aria-hidden="true"
-        style={{ background: SKYLINE_BG, borderRadius: 10 }}
-      >
-        <rect x="55" y="86" width="85" height="20" fill={SKYLINE_COLOURS[0]} />
-        <rect x="62" y="64" width="78" height="20" fill={SKYLINE_COLOURS[1]} />
-        <rect x="76" y="42" width="78" height="20" fill={SKYLINE_COLOURS[2]} />
-        <rect x="140" y="42" width="14" height="20" fill={SKYLINE_FLASH} opacity="0.35" />
-        <rect x="30" y="14" width="64" height="20" fill={SKYLINE_COLOURS[3]} opacity="0.8" />
-        {/* skylineRev 7: the next-block preview, showing a gold block coming. */}
-        <rect x="140" y="6" width="50" height="18" rx="9" fill="#060A1C" opacity="0.85" />
-        <text x="146" y="18" fontSize="7" fontWeight="700" fill="#E5EDFF" fontFamily="ui-monospace, monospace">NEXT</text>
-        <rect x="167" y="10" width="18" height="10" fill="#FFD24A" />
-        <rect x="167" y="10" width="18" height="2" fill="#FFF1B8" />
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">
-        The overhang is cut away. Line blocks up for perfect drops; the preview shows the next block: gold, narrow or wide.
-      </p>
-    </div>
+    <ArtStill
+      game={stillGame}
+      worldW={SKYLINE_WORLD_W}
+      worldH={skylineWorldHFor(SKYLINE_REV_LIVES)}
+      ticks={330}
+      input={null}
+      caption="Tap to drop each floor. Line it up for a perfect drop. A miss costs one of your 3 lives."
+    />
   );
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: SkylinePuzzleData | null = puzzle.type === "skyline" ? puzzle : null;
   const seed = data?.seed ?? 1;
-  const skylineGame = skylineGameFor(data?.skylineRev);
+  // Levels (15 Nov 2026): the stored puzzle's level picks the level's slide, tolerance, wind and lives (Normal: none).
+  const skylineGame = skylineGameFor(data?.skylineRev, puzzleLevel(data));
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -81,6 +80,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const submitted = useRef(false);
   const missedAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
+  // Edge to edge: the night step the screen's fill is painted at (it changes a few times a round).
+  const nightRef = useRef(0);
+  const [nightKey, setNightKey] = useState(0);
 
   const lockedRef = useRef(locked);
   const submitRef = useRef(onSubmit);
@@ -168,6 +170,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         }
       }
 
+      // Edge to edge: the screen's fill follows the night's step (repainted only when the step changes).
+      const step = Math.round(skylineNightStep(state.current.placed) * SKYLINE_NIGHT_STEPS);
+      if (step !== nightRef.current) {
+        nightRef.current = step;
+        setNightKey(step);
+      }
+
       reportArcadeTick(state.current.tick, skylineGame.isOver(state.current));
       feedback(state.current, skylineGame.isOver(state.current));
       sounds.frame(state.current, !skylineGame.isOver(state.current) && !lockedRef.current);
@@ -193,16 +202,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         draftRef.current?.(encode());
       }
 
+      // Stage 2 (15 Nov 2026): the end's pull-back and floor count are held SKYLINE_END_HOLD_MS before the submit (the
+      // drafts already carry the finished run, so a reveal that arrives first submits the same answer).
       if (skylineGame.isOver(state.current) && !submitted.current) {
-        if (state.current.missed) {
-          if (missedAt.current === null) {
-            missedAt.current = time;
-          } else if (time - missedAt.current >= ARCADE_CRASH_FREEZE_MS) {
-            finish();
-          }
-        } else {
-          finish();
-        }
+        if (missedAt.current === null) missedAt.current = time;
+        else if (time - missedAt.current >= Math.max(SKYLINE_END_HOLD_MS, state.current.missed ? ARCADE_CRASH_FREEZE_MS : 0)) finish();
       }
       frameTiming.end();
     };
@@ -237,7 +241,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   if (!data) return null;
 
   return (
-    <ArcadeArenaSlot width={SKYLINE_WORLD_W} height={skylineWorldHFor(data.skylineRev)} scene={skylineRiverFill}>
+    <ArcadeArenaSlot width={SKYLINE_WORLD_W} height={skylineWorldHFor(data.skylineRev)} scene={skylineSceneFill(nightKey / SKYLINE_NIGHT_STEPS)} sceneKey={nightKey}>
       <div ref={wrap} data-game-arena="canvas" className="min-h-0 w-full flex-1 overflow-hidden rounded-xl">
         <canvas role="img"
           ref={canvas}
@@ -255,34 +259,94 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
-  if (puzzle.type !== "skyline") return null;
-  const result = replaySkylineRun(puzzle.seed, myAnswer ?? "", puzzle.skylineRev);
+/** The run picture's canvas height (CSS px): room for 70 floors at 3 px and a sparse tower at 14 px a floor. */
+const SKYLINE_PICTURE_H = 240;
 
+/** One big number with its short label. */
+function RunStat({ value, label, name }: { value: number; label: string; name: string }) {
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
-      <div className="flex w-full max-w-[200px] shrink-0 flex-col-reverse items-center gap-[2px]">
-        {result.state.blocks.slice(-14).map((block, index) => (
-          <span
-            key={index}
-            className="h-2 rounded-sm"
-            style={{
-              width: `${Math.max(6, Math.round((block.w / 51_200) * 160))}px`,
-              background: SKYLINE_COLOURS[index % SKYLINE_COLOURS.length],
-            }}
-          />
-        ))}
-      </div>
-      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.blocks} blocks · {result.perfects} perfect
-        {puzzle.skylineRev ? ` · best streak ${result.bestStreak}` : ""} ·{" "}
-        {result.survived ? "survived" : `missed at ${result.endedSeconds.toFixed(1)}s`}
-      </p>
-      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">
-        Same tower for everyone
-      </p>
+    <div data-skyline-stat={name} className="flex min-w-0 flex-1 flex-col items-center">
+      <span className="text-4xl font-extrabold leading-none tabular-nums text-foreground">{value}</span>
+      <span className="mt-1 text-sm font-semibold text-muted-foreground">{label}</span>
     </div>
   );
+}
+
+/** A legend entry: the floor colour's swatch, a short plain label and its count. */
+function LegendChip({ colour, label, count, name, ring = false }: { colour: string; label: string; count: number; name: string; ring?: boolean }) {
+  return (
+    <span data-skyline-legend={name} className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
+      <span aria-hidden="true" className="inline-block h-3 w-4 rounded-sm" style={ring ? { border: `2px solid ${colour}` } : { background: colour }} />
+      <span className="whitespace-nowrap">
+        {label} <span className="tabular-nums">{count}</span>
+      </span>
+    </span>
+  );
+}
+
+/**
+ * The answer reveal's picture of the run (the Action overhaul, stage 2, 15 Nov 2026; display only): the stored log
+ * replayed through the real sim (skylineRunSummary), drawn as the tower as built (drawSkylineRunPicture), with the three
+ * numbers that explain the score big above it and a legend under it. Never a grade: the score is the stored one.
+ */
+function RunPicture({ puzzle, myAnswer }: RunPictureProps) {
+  const canvas = useRef<HTMLCanvasElement | null>(null);
+  const wrap = useRef<HTMLDivElement | null>(null);
+  const summary = useMemo(
+    () => (puzzle.type === "skyline" ? skylineRunSummary(puzzle.seed, myAnswer, puzzle.skylineRev, puzzleLevel(puzzle)) : null),
+    [puzzle, myAnswer],
+  );
+  useEffect(() => {
+    const node = canvas.current;
+    const box = wrap.current?.getBoundingClientRect();
+    if (!node || !summary) return;
+    const width = Math.max(200, Math.round(box?.width || 320));
+    const ratio = arcadeCanvasRatio();
+    node.width = Math.round(width * ratio);
+    node.height = Math.round(SKYLINE_PICTURE_H * ratio);
+    node.style.width = `${width}px`;
+    node.style.height = `${SKYLINE_PICTURE_H}px`;
+    const ctx = node.getContext("2d");
+    if (!ctx) return;
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    drawSkylineRunPicture(ctx, summary, { width, height: SKYLINE_PICTURE_H });
+  }, [summary]);
+  if (!summary) return null;
+  const trims = summary.floors.filter((f) => f.kind === "trim").length;
+  const wides = summary.floors.filter((f) => f.kind === "wide").length;
+  const golds = summary.floors.filter((f) => f.kind === "gold").length;
+  const perfects = summary.floors.filter((f) => f.kind === "perfect").length;
+  return (
+    <div data-skyline-run-picture className="flex w-full shrink-0 flex-col items-center gap-3">
+      <div className="flex w-full items-start justify-center gap-2">
+        <RunStat name="floors" value={summary.placed} label={summary.placed === 1 ? "Floor" : "Floors"} />
+        <RunStat name="perfects" value={summary.perfects} label={summary.perfects === 1 ? "Perfect drop" : "Perfect drops"} />
+        <RunStat name="streak" value={summary.bestStreak} label="Best streak" />
+      </div>
+      <div ref={wrap} className="w-full">
+        <canvas
+          ref={canvas}
+          role="img"
+          data-skyline-tower
+          className="block w-full"
+          style={{ height: SKYLINE_PICTURE_H }}
+          aria-label={`Your tower: ${summary.placed} floors, ${summary.perfects} perfect, ${summary.livesLost} ${summary.livesLost === 1 ? "life" : "lives"} lost`}
+        />
+      </div>
+      <div className="flex w-full flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
+        <LegendChip name="perfect" colour={SKYLINE_RUN_COLOURS.perfect} label="Perfect" count={perfects} />
+        <LegendChip name="trim" colour={SKYLINE_RUN_COLOURS.trim} label="Trimmed" count={trims} />
+        {wides > 0 ? <LegendChip name="wide" colour={SKYLINE_RUN_COLOURS.wide} label="Wide block" count={wides} /> : null}
+        {golds > 0 ? <LegendChip name="gold" colour={SKYLINE_RUN_COLOURS.gold} label="Gold block" count={golds} /> : null}
+        {summary.livesLost > 0 ? <LegendChip name="lost" colour={SKYLINE_RUN_COLOURS.lost} label="Life lost" count={summary.livesLost} ring /> : null}
+      </div>
+    </div>
+  );
+}
+
+function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+  if (puzzle.type !== "skyline" || !myAnswer) return null;
+  return <RunPicture puzzle={puzzle} myAnswer={myAnswer} />;
 }
 
 /** The seed is generated on the server; every run is replayed there for scoring. */
@@ -292,10 +356,11 @@ export const skylinePuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (SKYLINE_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "skyline", seed: 1, skylineRev: SKYLINE_REV_COUNT }) satisfies SkylinePuzzleData,
+  generate: () => ({ type: "skyline", seed: 1, skylineRev: SKYLINE_REV_LIVES }) satisfies SkylinePuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,
   Stage,
   Reveal,
+  RunPicture,
 };

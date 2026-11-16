@@ -39,7 +39,7 @@ import {
 } from "../src/lib/arcade/blockfall";
 import { encodeBlockfallRun, replayBlockfallRun } from "../src/lib/duel/blockfall";
 import { BLOCKFALL_DEAL_V2 } from "../src/lib/duel/blockfallDealV2.server";
-import { generateBlockfall, generateRicochet } from "../src/lib/duel/arcade.server";
+import { generateBlockfall, generateRicochet, pinRicoPreBig } from "../src/lib/duel/arcade.server";
 import { blockfallOracleRun } from "./blockfall-oracle";
 import { ALL_LEVELS, Human } from "./arcade-skill-bands/human";
 import { bot as ricoBot } from "./arcade-skill-bands/bots/ricochet";
@@ -230,7 +230,11 @@ function bzRaw(seed: number, events: ArcadeInputEvent[]): string {
   }
   const dealt = generateBlockfall();
   ok(dealt.blockfallRev === BLOCKFALL_REV_ZONE && BLOCKFALL_DEAL_V2.includes(dealt.seed), "zone deal: rooms deal blockfallRev 2 from its deal");
-  ok(generateRicochet().ricoRev === MOON_REV, "moon deal: rooms deal ricoRev 3");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul: rooms now deal ricoRev 4, the
+  // bigger ninja; ricochet-overhaul-check proves that deal): ricoRev 3 is dealt under its ricoPreBig pin.
+  const was = pinRicoPreBig(true);
+  ok(generateRicochet().ricoRev === MOON_REV, "moon deal: rooms deal ricoRev 3 (under its pin)");
+  pinRicoPreBig(was);
   ok(ROUND_MAX.ricochet === 200 && ROUND_MAX.blockfall === 200, "round max: both 200");
 }
 

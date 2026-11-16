@@ -4,6 +4,7 @@
  * with the game's own renderer, and (where known) where the run ended. This is
  * visual only — the score, lines, tiles and axis come from round_results.
  */
+import { puzzleLevel } from "@/lib/levels/levels";
 import { bastionGame, BAS_WORLD_H, BAS_WORLD_W } from "./bastion";
 import { BT2_WORLD_H, BT2_WORLD_W } from "./bastionTank";
 import { bastionTankArtGame } from "./bastionTank.renderer";
@@ -211,7 +212,7 @@ const BASTION_REVEAL: ArcadeRevealRenderer = {
   worldH: BT2_WORLD_H,
   heightFor: (p) => (bastionTankRound(p) ? BT2_WORLD_H : BAS_WORLD_H),
   drawFinal: (ctx, puzzle, answer) => {
-    if (bastionTankRound(puzzle)) bastionTankArtGame.draw(ctx, replayBastionTankRun(seedOf(puzzle), answer, puzzle.type === "bastion" ? puzzle.bastionRev : undefined).state, { width: BT2_WORLD_W, height: BT2_WORLD_H });
+    if (bastionTankRound(puzzle)) bastionTankArtGame.draw(ctx, replayBastionTankRun(seedOf(puzzle), answer, puzzle.type === "bastion" ? puzzle.bastionRev : undefined, (puzzle as { level?: unknown }).level).state, { width: BT2_WORLD_W, height: BT2_WORLD_H });
     else bastionGame.draw(ctx, replayBastionRun(seedOf(puzzle), answer).state, { width: BAS_WORLD_W, height: BAS_WORLD_H });
     return null;
   },
@@ -235,7 +236,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     heightFor: (p) => (p.type === "ricochet" && isNinjaRev(p.ricoRev) ? NINJA_WORLD_H : RICO_WORLD_H),
     drawFinal: (ctx, puzzle, answer) => {
       if (puzzle.type === "ricochet" && isMoonRev(puzzle.ricoRev)) {
-        const { state } = replayMoonRun(seedOf(puzzle), answer);
+        const { state } = replayMoonRun(seedOf(puzzle), answer, puzzle.ricoRev, puzzleLevel(puzzle));
         moonArtGame.draw(ctx, state, { width: NINJA_WORLD_W, height: NINJA_WORLD_H });
         return ninjaDrawPoint(state);
       }
@@ -256,7 +257,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   blockfall: simple(GOLD, BF_WORLD_W, BF_WORLD_H, blockfallArt, (p, a) => replayBlockfallRun(seedOf(p), a, p.type === "blockfall" ? p.blockfallRev : undefined)),
   alleyroll: simple(GOLD, AR_WORLD_W, AR_WORLD_H, alleyRollArt, (p, a) => replayAlleyRollRun(seedOf(p), a, p.type === "alleyroll" ? p.alleyRollRev : undefined)),
   hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a, p.type === "hover" ? p.hoverRev : undefined), undefined, hoverRevealGame, (p) => hoverWorldHFor(p.type === "hover" ? p.hoverRev : undefined)),
-  skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a, p.type === "skyline" ? p.skylineRev : undefined), undefined, skylineRevealGame, (p) => skylineWorldHFor(p.type === "skyline" ? p.skylineRev : undefined)),
+  skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a, p.type === "skyline" ? p.skylineRev : undefined, puzzleLevel(p)), undefined, skylineRevealGame, (p) => skylineWorldHFor(p.type === "skyline" ? p.skylineRev : undefined)),
   // binRev 7: the wider fairground (430 × 728) drawn at 390 wide, so 660 tall.
   bintoss: simple("#2ED3B7", 390, 560, binTossGame, (p, a) => replayBinTossRun(seedOf(p), a, p.type === "bintoss" ? p.binRev : undefined), undefined, undefined,
     (p) => (p.type === "bintoss" && binTossIsExpand(p.binRev) ? Math.round((390 * BINTOSS_V7_WORLD_H) / BINTOSS_V7_WORLD_W) : 560)),
@@ -304,7 +305,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     (p) => wavefrontWorldHFor(p.type === "wavefront" ? p.wavRev : undefined),
   ),
   // flipRev 8 (the expansion): the 730 px cave.
-  flip: simple("#FF4D5E", 390, 620, flipGame, (p, a) => replayFlipRun(seedOf(p), a, p.type === "flip" ? p.flipRev : undefined), undefined, undefined, (p) => flipWorldHFor(p.type === "flip" ? p.flipRev : undefined)),
+  flip: simple("#FF4D5E", 390, 620, flipGame, (p, a) => replayFlipRun(seedOf(p), a, p.type === "flip" ? p.flipRev : undefined, puzzleLevel(p)), undefined, undefined, (p) => flipWorldHFor(p.type === "flip" ? p.flipRev : undefined)),
   junction: simple("#22C55E", 390, 620, junctionGame, (p, a) => replayJunctionRun(seedOf(p), a, p.type === "junction" ? p.junctionRev : undefined), undefined, junctionRevealGame),
   inkbridge: simple("#2ED3B7", 390, 620, inkBridgeGame, (p, a) => replayInkBridgeRun(seedOf(p), a, p.type === "inkbridge" ? p.inkRev : undefined), undefined, inkBridgeGame, (p) => inkWorldHFor(p.type === "inkbridge" ? p.inkRev : undefined)),
   burst: {
@@ -329,7 +330,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
       return in390(orbitWorldWFor(rev), orbitDrawHFor(rev));
     },
     drawFinal: (ctx, puzzle, answer) => {
-      const { state } = replayOrbitRun(seedOf(puzzle), answer, puzzle.type === "orbit" ? puzzle.orbitRev : undefined, puzzle.type === "orbit" ? puzzle.planets : undefined, puzzle.type === "orbit" ? puzzle.holes : undefined, puzzle.type === "orbit" ? puzzle.extras : undefined);
+      const { state } = replayOrbitRun(seedOf(puzzle), answer, puzzle.type === "orbit" ? puzzle.orbitRev : undefined, puzzle.type === "orbit" ? puzzle.planets : undefined, puzzle.type === "orbit" ? puzzle.holes : undefined, puzzle.type === "orbit" ? puzzle.extras : undefined, undefined, puzzle.type === "orbit" ? puzzle.level : undefined);
       const xpStart = puzzle.type === "orbit" && orbitXpRev(puzzle.orbitRev) ? orbitStartForPuzzle(puzzle) : null;
       if (xpStart) {
         // Visual reconstruction through the art sim (camera and effects observe every tick), as below.
@@ -371,7 +372,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
       return (state as { rev?: number }).rev === 3 ? null : { x: state.x / FP, y: (state.y - state.camY) / FP };
     },
   },
-  swing: simple(GOLD, 390, 620, swingGame, (p, a) => replaySwingRun(seedOf(p), a, p.type === "swing" ? p.swingRev : undefined), undefined, undefined, (p) => swingRevealHFor(p.type === "swing" ? p.swingRev : undefined)),
+  swing: simple(GOLD, 390, 620, swingGame, (p, a) => replaySwingRun(seedOf(p), a, p.type === "swing" ? p.swingRev : undefined, undefined, puzzleLevel(p)), undefined, undefined, (p) => swingRevealHFor(p.type === "swing" ? p.swingRev : undefined)),
   snip: {
     accent: "#E84A7F",
     worldW: SNIP_CONFIG.viewW,

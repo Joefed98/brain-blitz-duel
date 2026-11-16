@@ -194,6 +194,9 @@ Already sounded: shots (`wavefront.fire`), pierce pickup (`wavefront.pierce`), s
 | `orbit.allPlanets` | All 40 planets | FULL CLEAR banner, stars burst, shake | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `orbit.blackHole` | Through a black hole (orbitRev 4+) | The hole's rim turns gold and the rocket jumps ahead; CLEAR banner | `pz_gravity_pull` (shared recording) · own file `orbit.blackHole.mp3` (sound batch 4, volume 0.8) | 0–5 | 1080 ms |
 | `orbit.newHazard` | The planet before the first figure-eight (21) or the first asteroid belt is reached | The new orbit shape or belt comes into view ahead | `alert.newHazard.mp3` | 0–2 | 600 ms |
+| `orbit.thrust` | The rocket flies (orbitRev 14+, the Action overhaul) | The flame; the loop's rate falls with the fuel left | silent until its own file is set (loop) | loop | loop |
+| `orbit.stardust` | A stardust mote is taken (orbitRev 12+) | The mote's glitter | own file once set; until then `shared.celebrate.countTick` (0.8) as before | 0–30 | 120 ms |
+| `orbit.sunBloom` | The sun is reached (orbitRev 14+) | The sun's bloom (stage 2 of the Action overhaul) | silent until its own file is set | 0–1 | 2.5 s |
 
 Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`), respawn and crash (`orbit.crash`), ambience loop, and (orbitRev 12+) a stardust mote taken (`shared.celebrate.countTick` from `gameSounds.ts`; since Nov 2026 its glitter flash and sparkle trail streaming after the rocket, display only, play on that same tick).
 
@@ -228,6 +231,13 @@ Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`),
 | `swing.assaultStar` | A star taken on a tighter swing (swingRev 14; a miss puts it back) | STAR! burst in gold | `sfx_spark_chime.mp3` (shared recording, volume 0.8) | 0–4 | 600 ms |
 | `swing.assaultClear` | A section's landing ledge reached (swingRev 14) | CLEAR! (or "−0.4 s UNDER PAR") pop above the hero | `sfx_count_ding.mp3` (shared recording, volume 0.6) | 0–36 | 487 ms |
 | `swing.assaultCourse` | The last section cleared (swingRev 14) | COURSE CLEARED! banner | `banner.fullClear.mp3` (shared recording) | 0–1 | 1200 ms |
+| `swing.ropeSnap` | Action overhaul: every grab, on top of `swing.vineCreak` (swingRev 17) | The vine pulled taut at the grab point | none yet (silent until it has a file) | 20–60 | 200 ms |
+| `swing.speedWhoosh` | Action overhaul: a release fast enough to light a speed gate (swingRev 17) | The hero flying off the vine | none yet (silent until it has a file) | 0–20 | 450 ms |
+| `swing.courseCleared` | Action overhaul: the whole course cleared (swingRev 17) | COURSE CLEARED! banner | none yet (silent until it has a file) | 0–1 | 1600 ms |
+| `swing.streakMeter` | Action overhaul stage 2: each clean grab (swingRev 17+), a pentatonic step higher up the block of eight | A segment of the arc meter under STREAK lighting gold | none yet (silent until it has a file) | 0–60 | 120 ms |
+| `swing.outOfReach` | Action overhaul stage 2: a press that grabbed nothing, the nearest vine ahead just out of reach (swingRev 17+, live play only) | That vine and its ring tinted red for half a second | none yet (silent until it has a file) | 0–20 | 300 ms |
+| `swing.pteroShadow` | Action overhaul stage 2: the pterodactyl starting the chase (swingRev 17+); its screech and wingbeats follow 1.2 s later | Its shadow sweeping across the canopy | none yet (silent until it has a file) | 0–1 | 1200 ms |
+| `swing.stretchTally` | Action overhaul stage 2: the end banner counting the stretches cleared up, one tick a stretch, rising | "COURSE CLEARED!" (or "TIME") and "n / 51 stretches" | none yet (silent until it has a file) | 0–51 | 90 ms |
 
 Already sounded: rope catch and anchor flash (`swing.grapple`), star (`swing.starTaken`), dragon (`swing.dragon`), stalactite shake (`swing.rockShake`), stalactite lands and the replays' "dodged" pop (`swing.rockLand`), crash (`swing.crash`).
 
@@ -266,6 +276,14 @@ Already sounded: crossing and its banner (`cross.crossed`), hops (`cross.hop`), 
 | `flip.speedZone` | Into a speed zone (flipRev 8) | SPEED ZONE! banner; warm air and streaks between the zone's gates | `hover.zone.mp3` (volume 0.8) | 0–2 | 528 ms |
 | `flip.sweetLanding` | A flip landed with the runner's centre on a roof's sweet spot (flipRev 8) | a small molten PERFECT at the runner (neon orange, dripping, ~0.6 s; no burst; since 3 Nov 2026, every flipRev 8+ round); the strip glows orange and cools | `sfx_spark_chime.mp3` (shared recording, volume 0.6) | 0–8 | 600 ms |
 | `flip.speedUp` | Every third speed step (9, 18, 27, 36 and 45 s; the tunnel still speeds up every 3 s, sound batch 4) | The scroll speeds up | `speed.up.mp3` · own file `flip.tunnelRush.mp3` (sound batch 4, volume 0.6) | 5 | 390 ms |
+| `flip.respawn` | After a crash the runner blinks back and runs on (flipRev 13's grace, the Action overhaul) | A short white flash at the runner (8 ticks), then it blinks for its second of shield; a "−10 s" pop | none yet (silent until it has a file) | 0–5 | 450 ms |
+| `flip.land` | A landing on the stone lip (flipRev 11–13, at most one a 60 ms) | A dust puff at the landing spot, drifting back with the cave (stage 2; gold on a sweet spot) | none yet (silent until it has a file) | 20–60 | 180 ms |
+| `flip.flowTick` | A clean landing adds to the flow streak (flipRev 11–13; pitched up along the streak) | The flow counter riding over the runner's head ("×12") pops up a step (stage 2); the FLOW chip ticks up | none yet (silent until it has a file) | 20–60 | 160 ms |
+| `flip.flowTen` | Every 10th clean landing in a row (flipRev 11–13) | The counter turns gold for the step, bigger, with two small glints (stage 2) | none yet (silent until it has a file) | 0–6 | 300 ms |
+| `flip.flowBreak` | A crash breaks a flow streak of 3 or more (flipRev 11–13) | The counter cracks in two, dulls and falls away (stage 2); the FLOW chip drops to 0 | none yet (silent until it has a file) | 0–5 | 350 ms |
+| `flip.nearMiss` | The runner flips off just before a spike or lands just past one, within 24 px of its box (flipRev 11–13, stage 2 of the Action overhaul) | A white glint on the spike's nearest blade tip | none yet (silent until it has a file) | 0–10 | 250 ms |
+| `flip.sweetGold` | A sweet-spot landing's gold dust puff (flipRev 11–13, stage 2; the chime stays `flip.sweetLanding`) | A gold puff at the landing spot | none yet (silent until it has a file) | 0–8 | 350 ms |
+| `flip.flowCount` | The end card's flow best counting up (flipRev 11–13, stage 2) | SURVIVED! with BEST FLOW counting up under it (800 ms) | none yet (silent until it has a file) | 0–1 | 800 ms |
 
 Already sounded: gravity flip (`flip.flip`), crash into the pool (`flip.crash`).
 
@@ -365,11 +383,34 @@ Already sounded: rope cut (`snip.cut`), springy branch (`snip.springBounce`), pi
 
 Already sounded: gate (`tilt.gate`), maze done (`tilt.mazeDone`), cup (`tilt.cup`, also the first marble home), star (`tilt.starTaken`), caught (`tilt.caught`), knocks and roll.
 
+## Moon Climb
+
+The Action overhaul (15 Nov 2026; `docs/sound-cues/action-elevenlabs.md` has the brief for each recording).
+
+| Cue | When | Looks like | File | Per run | Length |
+| --- | --- | --- | --- | --- | --- |
+| `ricochet.fallWhistle` | ricoRev 3: a hit (with `ricochet.hit`), the ninja tumbling down 3 m | The ninja stunned and falling, a red wash | none yet (silent until it has a file) | 0–20 | 900 ms |
+| `ricochet.flowBreak` | ricoRev 3: a Flow streak of 3 or more broken by a slide, never on a hit | FLOW ×n drops to ×0 in the HUD | none yet (silent until it has a file) | 0–20 | 350 ms |
+| `ricochet.scuff` | ricoRev 3: while the ninja slides down moss or ice (a loop, faded out when the slide stops) | The ninja sliding down a green or icy patch | none yet (silent until it has a file) | loop | loop |
+| `ricochet.scrollTally` | Stage 2 (15 Nov 2026): a taken scroll lands on the HUD's SCROLLS count, 24 ticks after it was taken | The scroll flies up into the count, the chip flashing | none yet (silent until it has a file) | 0–3 | 400 ms |
+| `ricochet.lanternSway` | Stage 2 (15 Nov 2026): a sky lantern grabbed (with `ricochet.lanternGrab`) | The lantern brightens and sways under the ninja's hands, settling over the ride | none yet (silent until it has a file) | 0–6 | 500 ms |
+
 ## Iron Wall
 
 | Cue | When | Looks like | File | Per run | Length |
 | --- | --- | --- | --- | --- | --- |
 | `bastion.drone` | bastionRev 3: while a drone is in the sky and not yet downed (faded out when it is downed, flies off or the run ends) | A small dark drone with a blinking red light crosses the sky | none yet (silent until it has a file) | loop | loop |
+| `bastion.weakTing` | Action overhaul: a shell hits an open weak spot (on top of `bastion.weak`; also a weak-spot kill) | The weak spot flashing gold (a disc, then a ring opening out), every time | none yet (silent until it has a file) | 0–36 | 260 ms |
+| `bastion.shellIn` | Action overhaul stage 2: after a fast reload ends, each shell snapping in, one click a shell every 4 ticks (a step higher each) | The five shell slots lighting one by one beside the green needle | none yet (silent until it has a file) | 0–50 | 90 ms |
+| `bastion.jamGrind` | Action overhaul: the gun jams (on top of `bastion.jam`) | The needle turns red and shakes | none yet (silent until it has a file) | 0–10 | 700 ms |
+| `bastion.debris` | Action overhaul: a tank is destroyed (after `bastion.kill`) | The burst, armour debris flung out and falling, "+n" rising off it, then the smoke | none yet (silent until it has a file) | 0–30 | 600 ms |
+| `bastion.nearMiss` | Action overhaul: a shell lands on open ground within a tank-length of a tank's hull | A bigger, dustier puff where it landed and CLOSE rising off it | none yet (silent until it has a file) | 0–40 | 350 ms |
+| `bastion.panelCrack` | Action overhaul: the base is hit (after `bastion.baseHit`) | The red edge flash and a crack splitting across the bottom panel where the tank came through (it stays) | none yet (silent until it has a file) | 0–3 | 500 ms |
+| `bastion.wallHeld` | Action overhaul stage 2: the end card's stamp, after the five wave rows, when the run ended with the base standing (the clock out or every tank gone) | WALL HELD stamped under the tally | none yet (silent until it has a file) | 0–1 | 1800 ms |
+| `bastion.tally` | Action overhaul stage 2: each wave's row landing on the end card (150 ms apart, a step higher each) | WAVE n with its tank pips and "4 / 5" | none yet (silent until it has a file) | 0–5 | 150 ms |
+| `bastion.tip` | Action overhaul: the one-time reload tip appears (the first time the magazine runs dry) | "Tip: swipe down to reload early" on the panel | none yet (silent until it has a file) | 0–1 | 300 ms |
+| `bastion.dustWind` | Action overhaul: waves 3–4, the dusty desert setting (an ambience bed under the music) | Amber haze and sand hills | none yet (silent until it has a file) | loop | loop |
+| `bastion.stormFire` | Action overhaul: wave 5, the battle-smoke storm (an ambience bed under the music) | Smoke columns and fires on the skyline | none yet (silent until it has a file) | loop | loop |
 
 Already sounded: the drone shot down (`bastion.droneDown`, arcade.md), every shell, hit, reload and wave (arcade.md).
 
@@ -397,8 +438,12 @@ Already sounded: switch and tube turn (`balltrack.switch`), marble home and cup 
 | `skyline.windPerfect` | A perfect drop in the wind | PERFECT pop at the seam in a gust | `skyline.floors.mp3` (volume 0.8; Joe's phone notes, 27 Oct 2026: the old every-10-floors sound on every perfect drop; `skyline.perfectFit.mp3` retired) | 0–5 | 483 ms |
 | `skyline.gust` | A gust starts blowing | Gust streaks cross the sky | `sky.gust.mp3` | 2–8 | 600 ms |
 | `skyline.gustWarn` | The flag streams a second before a gust blows | The flag streams and ripples | `ui.warn.mp3` | 2–8 | 500 ms |
+| `skyline.lifeLost` | A block misses and costs a life; the run carries on (skylineRev 11, the Action overhaul) | The block falls away, "−1 LIFE", the LIVES chip rings | none yet (silent until it has a file; `arc_lose_life` plays meanwhile) | 0–2 | 600 ms |
+| `skyline.wideBlock` | The wide-block rescue arrives after five trims in a row (skylineRev 11) | The NEXT panel shows WIDE | none yet (silent until it has a file; `arc_pickup` plays meanwhile) | 0–3 | 400 ms |
+| `skyline.trim` | A drop cuts an overhang off (the Action overhaul) | The overhang falls away spinning and the cut edge crumbles (stage 2) | none yet (silent until it has a file; `arc_wood_knock` plays meanwhile) | 10–40 | 700 ms |
+| `skyline.sliver` | A drop lands with under a quarter of the block on the tower (the Action overhaul) | A thin floor on the tower wobbles on its foot (stage 2) | none yet (silent until it has a file; `arc_clank` plays meanwhile) | 0–5 | 700 ms |
 
-Already sounded: block lands, chunk and windows (`skyline.drop`), perfect drop (`skyline.perfect`), streak drop (`skyline.streakDrop`), miss (`skyline.miss`).
+Already sounded: block lands, chunk and windows (`skyline.drop`), perfect drop (`skyline.perfect`; since stage 2, 15 Nov 2026, a semitone higher for each drop in the streak, up to seven, as the gold ring spreads from the join), streak drop (`skyline.streakDrop`), miss (`skyline.miss`).
 
 ## Gemstone
 

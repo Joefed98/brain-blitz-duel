@@ -121,6 +121,8 @@ const text = walk("src")
   .join("\n");
 const solveTemplate = new Set([...text.matchAll(/useSolveFx\(\s*"([a-z0-9]+)"/g)].map((m) => `${m[1]}.solve`));
 const played = (id: string) => text.includes(`"${id}"`) || text.includes(`'${id}'`) || solveTemplate.has(id);
+/** The Action overhaul's slots waiting for Joe's recordings: listed one a line in docs/sound-cues/action-elevenlabs.md. */
+const ACTION_ELEVENLABS = "waits for Joe's ElevenLabs recording (docs/sound-cues/action-elevenlabs.md); silent until its file is set";
 /** Played keys with no file of their own that keep it so, and why. */
 const EXEMPT: Record<string, string> = {
   "laser.gem": "Lightbender's gem plays its own pz_laser_gem recording on the same beam step",
@@ -175,6 +177,56 @@ const EXEMPT: Record<string, string> = {
   "blockfall.hardDrop": "awaiting Joe's ElevenLabs recording (the Retro overhaul, 15 Nov 2026; docs/sound-cues/retro-elevenlabs.md): silent until the file drops in by name",
   "blockfall.sweep": "awaiting Joe's ElevenLabs recording (the Retro overhaul, 15 Nov 2026; docs/sound-cues/retro-elevenlabs.md): silent until the file drops in by name",
   "blockfall.heartbeat": "awaiting Joe's ElevenLabs recording (the Retro overhaul, 15 Nov 2026; docs/sound-cues/retro-elevenlabs.md): silent until the file drops in by name",
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): Iron Wall's new slots wait
+  // for Joe's ElevenLabs files (each entry fails here once its url is set, so it is removed with the file).
+  "bastion.weakTing": ACTION_ELEVENLABS,
+  "bastion.shellIn": ACTION_ELEVENLABS,
+  "bastion.jamGrind": ACTION_ELEVENLABS,
+  "bastion.debris": ACTION_ELEVENLABS,
+  "bastion.nearMiss": ACTION_ELEVENLABS,
+  "bastion.panelCrack": ACTION_ELEVENLABS,
+  "bastion.wallHeld": ACTION_ELEVENLABS,
+  "bastion.tip": ACTION_ELEVENLABS,
+  "bastion.dustWind": ACTION_ELEVENLABS,
+  "bastion.stormFire": ACTION_ELEVENLABS,
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): stage 2's end-card tally
+  // slot, listed in action-elevenlabs.md, waits for its file the same way.
+  "bastion.tally": ACTION_ELEVENLABS,  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the other five Action games'
+  // new slots wait for Joe's ElevenLabs files the same way (docs/sound-cues/action-elevenlabs.md).
+  "skyline.lifeLost": ACTION_ELEVENLABS,
+  "skyline.wideBlock": ACTION_ELEVENLABS,
+  "skyline.trim": ACTION_ELEVENLABS,
+  "skyline.sliver": ACTION_ELEVENLABS,
+  "orbit.thrust": ACTION_ELEVENLABS,
+  "orbit.lowFuel": ACTION_ELEVENLABS,
+  "orbit.outOfFuel": ACTION_ELEVENLABS,
+  "orbit.respawnReady": ACTION_ELEVENLABS,
+  "orbit.stardust": ACTION_ELEVENLABS,
+  "orbit.sunBloom": ACTION_ELEVENLABS,
+  "flip.flipUp": ACTION_ELEVENLABS,
+  "flip.flipDown": ACTION_ELEVENLABS,
+  "flip.respawn": ACTION_ELEVENLABS,
+  "flip.land": ACTION_ELEVENLABS,
+  "flip.flowTick": ACTION_ELEVENLABS,
+  "flip.flowTen": ACTION_ELEVENLABS,
+  "flip.flowBreak": ACTION_ELEVENLABS,
+  "ricochet.fallWhistle": ACTION_ELEVENLABS,
+  "ricochet.flowBreak": ACTION_ELEVENLABS,
+  "ricochet.scuff": ACTION_ELEVENLABS,
+  "swing.ropeSnap": ACTION_ELEVENLABS,
+  "swing.speedWhoosh": ACTION_ELEVENLABS,
+  "swing.courseCleared": ACTION_ELEVENLABS,
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the stage-2 effects' slots,
+  // now fired, wait for Joe's files the same way.
+  "flip.nearMiss": ACTION_ELEVENLABS,
+  "flip.sweetGold": ACTION_ELEVENLABS,
+  "flip.flowCount": ACTION_ELEVENLABS,
+  "ricochet.scrollTally": ACTION_ELEVENLABS,
+  "ricochet.lanternSway": ACTION_ELEVENLABS,
+  "swing.outOfReach": ACTION_ELEVENLABS,
+  "swing.pteroShadow": ACTION_ELEVENLABS,
+  "swing.streakMeter": ACTION_ELEVENLABS,
+  "swing.stretchTally": ACTION_ELEVENLABS,
 };
 const needed: string[] = [];
 for (const [id, e] of Object.entries(manifest)) {

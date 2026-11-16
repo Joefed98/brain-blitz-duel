@@ -184,3 +184,209 @@ sounds (`shared.celebrate.countTick`, `gameSounds.ts`); no new cue or recording.
 Review frames: `bun scripts/shots/orbit-camera-shots.ts` (`screenshots/arcade-batch-nov-2026/orbit-before-catch.png`, a
 long flight just before its catch with the view where it was at the release; `orbit-after-catch.png`, the pan settled on
 the new planet; `orbit-stardust.png`, a mote's sparkle trail and the clusters ahead), 414 × 896 at 2×.
+
+## orbitRev 15: grace (the Action overhaul, 15 Nov 2026)
+
+Rooms deal **orbitRev 15** (`ORBIT_REV_GRACE`) since the Action overhaul (phase 2, step 4; `docs/design/game-reviews/action.md`):
+orbitRev 14's fuel-bank courses, fuel, features, view and parts, with one rule changed. The review's capture showed a blind
+first try catching one planet, running dry and ending the 90 s round at 5 s with 3 points. Joe's grace rule: no run ends on
+the first slip.
+
+- **A slip no longer ends the run.** A crash (a belt, a rock, a moon, a tap on a planet's inner lobe) or an empty tank,
+  with no checkpoint armed, respawns the rocket at the planet the flight left (the last planet caught), with a full tank,
+  held in orbit for `ORBIT_GRACE_HOLD_TICKS` (180 ticks, 3 s). A tap during the hold does nothing; the screen shows
+  "OUT OF FUEL" or "CRASHED" over "BACK IN 3, 2, 1". The hold is the whole cost: the clock runs on and the planets already
+  reached stay reached. The run ends only at the sun or the buzzer.
+- **SET CHECKPOINT stays, as the bonus.** Its one respawn is instant (no hold) at the checkpoint planet, as on orbitRev 14.
+  Once it is used, later slips fall to grace.
+- **No slip, no change.** A run with no slip plays orbitRev 14 tick for tick (every fuel-bank witness replays to the same
+  200 on both). The state adds `grace`, `hold` and `autoRespawns`, folded into the checkpoint checksum last, so orbitRev
+  14 and earlier checksums are unchanged.
+- **Proof.** Every one of the 96 fuel-bank witnesses replays through the server on orbitRev 15 to exactly 200 with every
+  feature (orbit-overhaul-check). The bank is unchanged: grace only adds a way back, so every course's proof holds.
+
+Display and input, every revision of the expansion's view (no stamp):
+
+- **The planets** (concept A, made in canvas, `orbitPlanets.renderer.ts`): each planet a sphere-shaded disc whose surface
+  (banded gas, cratered rock or streaked ice, in its seeded colour) turns slowly under a fixed light, a thin lit limb on
+  the sunward side, all inside the collision circle. Clean black space, no nebula. The turn follows the round tick and
+  stands still under reduced motion.
+- **The setting: towards the sun.** The sun's warmth grows from the top of the view as the run climbs the course (0 at the
+  start, full by planet 39), a low dome that is 0 along the world's sides and bottom, so the screen's fill (black space and
+  the same stars, `orbitFill`) meets the world with no seam at any point of the course (edge to edge).
+- **The HUD:** fewer and bigger counters: PLANETS (and the checkpoint, once armed) in 32 px pills, then STARDUST and
+  SLING in 28 px pills. Asteroid fields and perfect orbits show as their pops and in the reveal.
+- **SET CHECKPOINT is held, not tapped** (`ORBIT_CHECKPOINT_HOLD_MS`, 450 ms, a gold fill sweeping across it), so a
+  release aimed near the corner can't spend the checkpoint by accident. The keyboard's C stays a single press.
+- **The capture chain** of the success layer now resets on every slip (it read the respawns left, which fall).
+
+### Skill bands (30 room seeds a level, the same human on both, server replay; `bun scripts/orbit-grace-bands.ts`)
+
+| Level | orbitRev 14 median (p10–p90), run ends at | orbitRev 15 median (p10–p90), respawns |
+|---|---|---|
+| Weak | 17 (6–67), 17 s | 78 (37–98), 4 |
+| Average | 57 (18–115), 39 s | 94 (79–142), 4 |
+| Good | 84 (13–146), 43 s | 131 (111–153), 3 |
+| Great | 151 (65–178), 75 s | 161 (140–178), 1 |
+| Near-perfect | 184 (175–191), 90 s | 184 (175–191), 0 |
+| Elite | 188 (173–197), 90 s | 188 (182–197), 0 |
+| Flawless | 195 (187–199), 90 s | 195 (187–199), 0 |
+
+Brilliant > great > good still holds; the levels that never slip are unchanged, and the ones that did now play the whole
+90 s. The skill-band bot (`scripts/arcade-skill-bands/bots/orbit.ts`) plays orbitRev 14 and 15 (its replan key carries the
+automatic respawns).
+
+### Stage 2 look pass: Blender-rendered planets (15 Nov 2026, display only, no stamp)
+
+The planets of the expansion's view (orbitRev 12–15) are drawn from nine surface maps baked in Blender
+(`scripts/orbit-planets-blender.py`: procedural materials on a UV sphere, a Cycles EMIT bake, fixed seeds, `--check`
+rebuilds byte for byte; run it with Blender as a Python module in a venv outside the project). Two gas giants, a marbled
+world and a cratered moon are grey tone maps tinted with the seeded colour; a desert, a volcanic world, an ocean world and
+two icy worlds keep their own colours; rocks and ice add a height map. 363 KB in `public/orbit/planets/`, loaded on the
+first draw (the stage-1 strip look shows until they arrive). `orbitPlanets.renderer.ts` projects a map onto the sphere at
+the canvas's device scale (up to `SPHERE_MAX_PX` 192), lights it from one sun (terminator, deep night side, relief from the
+height map, highlight on water and ice, a thin rim inside the disc in the seeded colour), 240 frames a turn (120 under
+reduced effects), the turn still under reduced motion. Which map a planet wears follows its type and seeded colour
+(`orbitPlanetMapFor`); icy worlds take only a cold cast (`orbitIceCast`), never a warm colour. Rings are three ringlets
+inside 0.88 r (`drawPlanetRing`). Nothing is drawn past the collision circle + 2 px and there is no glow halo
+(orbit-overhaul-check). The planets' size is the sim's: radius 19–28 world px, so 17–26 CSS px on a phone and up to 40 on
+the desktop column; drawing them larger would need a new stamp (the collision circle): orbitRev 16 below.
+
+### Stage 2: effects and the answer reveal (15 Nov 2026, display only, no stamp)
+
+`orbitEffects.renderer.ts` (drawn by Orbit's renderer on the expansion's view): the launch puff, low fuel (the gauge
+pulsing red, the flame stuttering, the beep every 30 ticks from `ORBIT_LOW_FUEL` 40), a lock ring on every catch, the
+hold's draining arc and GO, the sun's bloom with ALL 40 PLANETS! and the count-up; the out-of-fuel sputter now coughs,
+fizzles and drifts (`sputterPose`, still `ORBIT_SPUTTER_MS` 600). Orbit is edgeless: `ORBIT3_FX_XP.moment` draws a ring
+where a moment happened, and its final banner is the bloom's. Every effect observes the sim, ends within 900 ms and is
+still under reduced motion. The reveal's run picture (`PuzzleDefinition.RunPicture`, `OrbitRunPicture`):
+`traceOrbitRun` (src/lib/duel/orbitRunTrace.ts) replays the stored log through the server's own replay
+(`replayOrbitRun`'s new `observe`, which changes nothing) and `drawOrbitRunMap` (orbitReveal.renderer.ts) draws the
+course folded into four columns; the planets, stardust, slingshots and slips are big numbers above it. The planet maps
+load with the game's chunk (`preloadOrbitPlanetMaps`).
+
+### orbitRev 16: bigger planets (stage 3 of the overhaul, 15 Nov 2026)
+
+Joe asked for bigger planets that read clearly on a phone. `ORBIT_REV_BIG` 16 (`initBigFrom`, the state's `big`, outside
+the checksum) is orbitRev 15's play exactly: the same 96 fuel-bank courses, rings, catches, black holes, belts, features,
+fuel, grace and parts. Only each planet's body circle (`r`, the bounds its art is held to) changes, in
+`orbitBigPlanets` (orbit.ts):
+
+- the body is `ORBIT_BIG_PCT` 140 % of orbitRev 15's, **capped** so the drawn body (a figure-eight's two bodies at 80 %)
+  keeps `ORBIT_BIG_AIR` (the rocket's 10 px radius and 3 px) from the planet's own orbit path (`orbitPathClearance`,
+  1,024 phases, integer), and never smaller than before; the sun is 140 % (40 → 56 px).
+- Why a cap and not bigger orbits: the body is collided with by nothing (a catch is the orbit's region, a crash a belt,
+  rock, moon or the figure-eight's crossing), so growing the bodies inside the paths keeps every catch, hole and course
+  exactly fair, and the bank needs no new courses. Growing the rings too would change every catch region and the course
+  layout, and need a new bank and new bands.
+- What that gives on the bank's 3,840 planets: every circle orbit 140 % (63 %), ellipses ×1.17 (median), figure-eights
+  unchanged (their bodies already sit close to the crossing). By stretch of the course: planets 1–10 140 %, 11–20 140 %
+  (79 % of them), 21–30 ×1.22, 31–39 ×1.00 (43 % at 140 %). Largest body 39.2 px (was 28).
+- No grown body reaches a neighbour's path or belt, a mote, moon, rock or black hole (orbit-overhaul-check section 9).
+- The Blender maps fill the bigger discs from the same files (640 × 320, no new bytes: 363,486 in all);
+  `SPHERE_MAX_PX` 224 so a radius-39 planet on the desktop column at 2× (222 px) is baked at full size. Rings stay inside
+  the circle + 2 px.
+
+Proof: all 96 bank witnesses replay to 200 with every feature on orbitRev 16 through the server, tick for tick and checksum
+for checksum as on 15 (`bun scripts/orbit-fuel-bank.ts --rev=16`, orbit-overhaul-check section 9); 120 runs on orbitRev
+12–15 recorded on 329286de before the change (`scripts/fixtures/orbit-big-legacy.json`, `scripts/orbit-big-record.ts`)
+replay exactly, and the 30 orbitRev 15 logs among them (bots, a random tapper with slips, a checkpoint) play the same on
+16. Rooms deal 16; `pinOrbitPreBig(true)` (deal pin `orbitPreBig`) deals 15. Stargazer is met on 16. Self-replay entry
+`orbit/big`.
+
+Skill bands (30 room seeds a level, the same human on both, server replay;
+`bun scripts/orbit-grace-bands.ts --from=15 --to=16`): identical at every level, as the play is.
+
+| Level | orbitRev 15 median (p10–p90) | orbitRev 16 median (p10–p90) |
+|---|---|---|
+| Weak | 78 (37–98) | 78 (37–98) |
+| Average | 94 (79–142) | 94 (79–142) |
+| Good | 131 (111–153) | 131 (111–153) |
+| Great | 161 (140–178) | 161 (140–178) |
+| Near-perfect | 184 (175–191) | 184 (175–191) |
+| Elite | 188 (182–197) | 188 (182–197) |
+| Flawless | 195 (187–199) | 195 (187–199) |
+
+**The answer reveal** (Joe, 15 Nov 2026): the run picture (big numbers and the course map) sits straight under the score,
+with the stored breakdown in the shared layout below it, as Roofbound, Moon Climb and Iron Wall read (the shared
+ArcadeReveal order, `data-reveal-run-picture` before `RevealBreakdown`, from the stage-3 reveal fix); Orbit's own `Reveal` (results-screen replays) on
+the expansion's view is the same picture, never the old lines.
+
+**The sun's end hold** (Joe, 15 Nov 2026, display only): a finished run on the expansion's view holds its submit
+`ORBIT_SUN_HOLD_MS` 1,500 ms (`orbitEndHoldMs`), so the bloom, ALL 40 PLANETS! and the count-up show in practice too;
+the finished run is the draft meanwhile. A dry end still holds 600 ms for the sputter.
+
+### Levels (stage 3 of the overhaul, 16 Nov 2026)
+
+Easy, Hard and Expert through the difficulty framework (`GAME_LEVELS.orbit` in `src/lib/levels/gameLevels.ts`,
+docs/design/difficulty/README.md). Normal is exactly today's game: the same deal byte for byte (the Normal fuel bank is
+untouched, no `level` field), and rated matches and the Daily stay Normal. Each level is orbitRev 16 on a course from
+**its own proved bank** (`src/lib/duel/orbitFuelBank{Easy,Hard,Expert}.server.ts`, 32 / 32 / 31 courses, about 80 KB
+each, server only), picked by the seed as Normal's (`orbitFuelCourseForSeed(seed, level)`); the deal stamps `level` and
+the sim reads its rules from the stored level (`orbitLevelFields`, `initLevelFrom` in `orbitRev3.ts`; the state's
+`tank`, `cpAuto` / `cpNone`, `cpUsed`, folded into the checkpoint checksum last, only when present). Grace, the 90 s run,
+the features (30 motes, 4 slingshots, 3 fields) and the six parts (200) are orbitRev 16's at every level.
+
+| Lever | Easy | Normal (today) | Hard | Expert |
+|---|---|---|---|---|
+| Tank (ticks of free flight) | 240 | 160 | 140 | 120 |
+| Longest proved hop (ticks) | 120 | 120 | 105 | 90 |
+| Zigzag: sideways step | 30–150 px | 60–220 px | 110–270 px | 140–300 px |
+| Zigzag: lift (× 1.15) | 130–200 px | 150–230 px | 170–250 px | 190–270 px |
+| Narrowest release window a hop is built with | 4 ticks | 4 ticks | 3 ticks | 2 ticks |
+| Black holes beside planets | 25 | 10, 20, 29 | 15, 25, 34 | 11, 21, 30 |
+| Belts from planet | 25 | 31 | 25 | 21 |
+| Checkpoints | automatic on planets 10, 20, 30 | one (SET CHECKPOINT) | one (SET CHECKPOINT) | none (grace only) |
+
+- **Today's Normal values, confirmed**: belts from planet 31 (`ORBIT_HAZARD_FROM`), black holes beside planets 10, 20 and
+  29 (`HOLE_FROM` 9, 19, 28, 0-based). The earlier draft of this table said "21 / 31"; 21 is where figure-eights start
+  (`ORBIT_EIGHT_FROM`), not black holes. Joe's "from N" is read as the first hole beside planet N, the others 10 and 19
+  on (as Normal's), while a hole's target stays short of the sun.
+- **Easy's automatic checkpoints.** With grace a slip already respawns at the planet the flight left, so a checkpoint
+  that sent the rocket *back* to planet 10 would cost more than it saves. On Easy the checkpoint arms itself whenever a
+  catch takes the furthest planet past 10, 20 or 30; a slip then respawns **at once at the planet it left, with no hold**,
+  spending it until the next tenth planet; with none armed, grace's 3 s hold. SET CHECKPOINT is not offered on Easy or
+  Expert (`orbitCanSetCheckpoint` / `orbitRev3CanSetCheckpoint`, so the button hides).
+- **Easy's belts from 25** are Joe's words; they are earlier than Normal's 31 (decision for Joe).
+- **The banks.** `bun scripts/orbit-fuel-bank.ts --level=easy|hard|expert` builds a level's bank from its settings in
+  `GAME_LEVELS` (`levelCourse`), `--check [n] --level=…` rebuilds the first n byte for byte, `--rev=16 --level=…`
+  re-proves every witness through the server replay. A level course is proved on its own rules only: the holes are
+  placed on a walk with the level's tank (`buildHoles`' `HoleWalk`, `windowHopDelay`) and the old-rule bot is skipped
+  (it asks for four-tick windows and rev-3 flight ends); the witness (`scripts/orbit-xp-lib.ts`) then takes every
+  feature and the sun with half the run left, 200, its flights landing with a quarter of the tank to spare. Without
+  `--level` the script builds the Normal bank exactly as before.
+- **Stargazer** ("Collect all the stardust on Hard") is met by every Hard witness as the server grades it.
+
+#### Measured (16 Nov 2026)
+
+`bun scripts/orbit-level-bands.ts --seeds=16` (16 real deals a level, `generatePuzzle("orbit", { bankSeed, level })`,
+the skill-band bot, every run graded by the server's replay on the dealt puzzle; checkpoints every 300 ticks, Orbit's
+`ORBIT_CHECKPOINT_INTERVAL`). **Human limits on the elite bot** (this tool's own constraint, `ORBIT_HUMAN_LIMITS`): a
+reaction of 250 ± 30 ms (elite's 145 ± 15) and a thinkScale of 0.43, so the bot's 350 ms read of each new orbit takes
+about 150 ms more before it can move (elite's 0.32); timing (9 ms) and aim are elite's. The other levels are the shared
+profiles. Mean, median (p10–p90), share of runs reaching the sun:
+
+| Bot | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Average | 116, 118 (98–125), 0 % | 107, 98 (84–130), 0 % | 79, 75 (47–110), 0 % | 82, 87 (66–97), 0 % |
+| Good | 141, 139 (113–163), 6 % | 143, 145 (125–154), 6 % | 104, 102 (73–129), 0 % | 104, 104 (82–120), 0 % |
+| Great | 173, 172 (167–179), 88 % | 160, 159 (145–169), 19 % | 120, 122 (97–138), 0 % | 124, 122 (103–139), 0 % |
+| Near-perfect | 186, 187 (178–191), 100 % | 184, 183 (173–193), 100 % | 157, 160 (129–176), 50 % | 154, 152 (125–168), 25 % |
+| Elite (human limits) | 185, 185 (180–187), 100 % | 184, 188 (172–193), 94 % | 170, 175 (146–185), 75 % | 160, 161 (147–172), 44 % |
+
+The shared tool, `bun scripts/level-tune.ts orbit --level=all --seeds=20` (main's version, raw profiles, checkpoints
+every 300 ticks): see the table below it.
+
+| Bot (20 deals a level) | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Near-perfect | avg 184.7, median 185, sun 100 % | 183.2, 181, 100 % | 157.1, 155, 45 % | 154.3, 154, 30 % |
+| Elite (raw profile) | 190.3, 192, 100 % | 186.6, 191, 95 % | 173.2, 176, 80 % | 162.7, 162, 45 % |
+
+Reading it: a clear step at the top (elite 185 → 184 → 170 → 160, near-perfect 186 → 184 → 157 → 154); Hard and Expert
+cut the middle levels hard (great 173 → 160 → 120 → 124). Easy lifts great to 173 and average to 116, but no average
+run reaches the sun in 90 s, so the 175 star is out of an average player's reach (great reaches it on about half the
+runs): giving the average player a shot needs a longer Easy round (up to 120 s), a run-length change across the stage,
+replay and speed part (decision for Joe). Expert "scored well" means 150+ (elite: 13 of 16 deals, 180 the best, the sun
+on 7): Expert courses to try (elite with human limits): bank #7 (bank seed 833130779; 172, 180 and 179 on three deals, the
+sun each time), #5 (bank seed −1004237067; 170, the sun), #11 (bank seed −1530903713; 165, the sun), and the hardest seen,
+#13 (bank seed 307522173; 135) and #22 (bank seed 1120914580; 147). A deal takes bank entry `seed mod 31`.

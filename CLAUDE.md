@@ -2587,6 +2587,81 @@ outside the repo.
   `public/tournaments-art/` (`TournamentArt`, `KIND_ART`). Styles `src/polish-layout/tournaments-pages.css`. Screens:
   `scripts/screens/tournaments.ts` (`TOURNAMENT_PAGES_SCREENS`, dark and light at every size; harness modes
   `tournament`, `tournamentrules`, `dailyarchive`); theme-check in sixths and no-wrap-check in elevenths.
+- **The Action overhaul, stage 1** (15 Nov 2026, phase 2 step 4; `docs/design/game-reviews/action.md`, gallery
+  `docs/design/pages-review/action/GALLERY.md`, sounds for Joe `docs/sound-cues/action-elevenlabs.md`, which the cue sheet
+  skips; slots nothing fires yet are in `docs/sound-cues/action-overhaul-stage2.md`; screens `scripts/screens/action.ts`).
+  Every game is edge to edge (its fill continues its own scenery beside and below the fixed world, repainted by
+  `sceneKey` only when the setting's step changes) and its setting evolves through the round (display only, from the sim,
+  the same for everyone). Three new stamps for grace (no run ends on the first slip at Normal):
+  - *Roofbound* `flipRev 13` (`FLIP_REV_GRACE`): a crash with no save respawns on the spot, every crash costs 10 s of clean
+    time; clean time full at 55 s, perfect landings at 5 of 8 (`FLIP_V13`); deal `flipDealV13.server.ts`
+    (`bun scripts/flip-deal.ts --rev=13`), `pinFlipPreGrace(true)` deals 12; basalt, lava rivers, heat rising (`flipCaveHeat`);
+    no "Bonuses" reveal tile. "Sweet spot" challenge now five sweet spots. flip-overhaul-check.
+  - *High Rise* `skylineRev 11`: 3 lives (`SKYLINE_V11_LIVES`, a miss costs one, 30 ticks of ignored taps after), a wide
+    block after 5 trims in a row (`SKYLINE_V11_TRIM_RUN`); rev 10's parts; dusk to night by floors (`skylineNightStep`),
+    concept A's city, a plaza, the LIVES chip. skyline-overhaul-check.
+  - *Orbit* `orbitRev 15` (`ORBIT_REV_GRACE`): a crash or empty tank with no checkpoint respawns at the planet left after
+    `ORBIT_GRACE_HOLD_TICKS` (180); the same 96-course bank re-proved; `pinOrbitPreGrace(true)` deals 14; shaded turning
+    planets (`orbitPlanets.renderer.ts`), the sun's warmth up the course, two rows of big pills, SET CHECKPOINT held 450 ms
+    (`CheckpointHoldButton`), the capture chain counting `orbitSlips`. Bands `bun scripts/orbit-grace-bands.ts`.
+    orbit-overhaul-check.
+  - Display only, no stamp: *Grappler* (the jungle deepening by `swingJungleDepth`, moving river, 12 px grab loops, a
+    1.35× held vine, HUD 1.3×; one stretch count, 51 a course; swing-overhaul-check), *Moon Climb* (a moonrise by height,
+    `moonNight`, slate walls, sharper blades, RIDES n/6 and SCROLLS n/3 in the HUD, a hits line on the reveal from the
+    stored Hits stat; ricochet-overhaul-check), *Iron Wall* (clear, dusty desert, battle smoke by wave in
+    `bastionLook.ts`, S/M/H badges and outlines on far tanks past `BT_FAR_MARK_Z`, a one-time reload-swipe tip, a navy and
+    gold panel; bastion-overhaul-check). Intros are `ArtStill`s from each renderer on its live stamp. The materials pass
+  (Joe, 15 Nov 2026: real light on materials, no glare over panels or numbers, never flat) is drawn in code and cached per
+  size, except Orbit's planets (stage 2): nine surface maps baked in Blender by `scripts/orbit-planets-blender.py`
+  (procedural materials, fixed seeds, `--check` rebuilds byte for byte; Blender as a Python module from a venv outside the
+  project), 363 KB in `public/orbit/planets/` (`orbitPlanetMaps.data.ts`), projected and lit by `orbitPlanets.renderer.ts`
+  inside each collision circle, icy worlds taking only a cold cast (`orbitIceCast`). **Re-run the Blender script after
+  changing a material.** `pinSkylinePreLives(true)` deals skylineRev 10 (deal pin `skylinePreLives`).
+- **The Action overhaul, stage 2** (15 Nov 2026; display, sound and reveal only except two stamps; each game's page in
+  `docs/arcade-standard/` has a stage-2 section, gallery "Stage 2" subsections). Two bigger-hero stamps with re-proved
+  deals: *Grappler* `swingRev 18` (`SWING_REV_BIG`, a 14 px body set only inside `withBody`, `SWING_BIG_DEAL` from
+  `bun scripts/swing-slide-deal.ts --rev=18`, `pinSwingPreBig(true)` deals 17, hero `GRAPPLER_V18_SCALE` 1.4×) and *Moon
+  Climb* `ricoRev 4` (`MOON_BIG_REV`, a 34 × 68 body, `ninjaBodyFor`, towers proved in the sim, `pinRicoPreBig(true)` deals
+  3); art-check holds each new figure in its own entry (Joe's approval), the old stamps exactly as main. Every game's effects
+  from Joe's list are drawn by its own renderer from the sim (flipFx.ts, swingEffects.renderer.ts, orbitEffects.renderer.ts,
+  bastionLook.ts, skyline.renderer.ts, ricochetNinja.renderer.ts); the six Action games draw no edge glow
+  (`ACTION_EDGELESS_GAMES` in success.renderer.ts, `arcadeFxEdgeless`; a spec's optional `moment` hook draws the
+  replacement); High Rise, Iron Wall, Roofbound and Grappler hold their submit briefly for the end card. The arcade reveal
+  draws a game's `PuzzleDefinition.RunPicture` (`GameRunPicture`) in place of the stat tiles: each Action game's run replayed
+  from the stored log through the real sim (`replaySwingRun` / `replayOrbitRun` take a no-op `observe`) and drawn as one
+  picture with big numbers.
+- **The Action overhaul, stage 3: Orbit's bigger planets** (15 Nov 2026; `docs/arcade-standard/orbit.md` "orbitRev 16"):
+  `orbitRev 16` (`ORBIT_REV_BIG`, `initBigFrom`, the state's `big` outside the checksum) is orbitRev 15's play exactly on
+  the same fuel bank; each body (`r`, collided with by nothing: a catch is the orbit ring) is 140 % where its own path
+  leaves the rocket 13 px (`orbitBigPlanets`, `orbitPathClearance`), never smaller, the sun 140 %. All 96 witnesses
+  re-proved at 200 (`bun scripts/orbit-fuel-bank.ts --rev=16`); orbitRev 12–15 replay exactly
+  (`scripts/fixtures/orbit-big-legacy.json`, recorded on 329286de by `scripts/orbit-big-record.ts`). `pinOrbitPreBig(true)`
+  deals 15 (deal pin `orbitPreBig`); `SPHERE_MAX_PX` 224. A finished run on orbitRev 12+ holds its submit
+  `ORBIT_SUN_HOLD_MS` (1.5 s) for the sun moment (`orbitEndHoldMs`). Orbit's own Reveal on orbitRev 12+ is the run
+  picture. Intro demos for the six Action games: `scripts/fixtures/action-demos.json` (`action-demos-record.ts`, proved by
+  action-demos-check, saved by `bun scripts/action-demos-save.ts [--dry]` from `DEMOS_URL` / `INTRO_DEMO_KEY` against a dev
+  server, never from a session), stop rules `ACTION_DEMO_REVS` in introDemo.functions.ts.
+- **The Action overhaul, stage 3: levels** (15–16 Nov 2026; each game's `docs/arcade-standard/<game>.md` "Levels", with
+  its levers, measured tables and Expert seeds for Joe; the levels framework `docs/design/difficulty/README.md`). All six
+  Action games offer Easy, Normal, Hard and Expert (`GAME_LEVELS`), max 120 s and grace at every level, 200 proved at
+  every level. Normal is today's game for five of them (the deal stamps `level` only off Normal; the sims read it into a
+  state field folded into the checksum only when present). **Iron Wall** is Joe's approved exception (too-hard games:
+  today's becomes Expert): rooms, rated and the Daily deal `bastionRev 4` Normal; Easy / Normal / Hard are rev 4
+  (`BT4_LEVELS`: slower waves, wider green zone, longer and bigger weak spots, 5 / 4 / 3 base hits, fewer heavies, slower
+  and bigger drones), Expert deals `bastionRev 3` stamped `level: "expert"`; `pinBastionPreLevels(true)` deals rev 3;
+  bastion-levels-check. **Roofbound** (`FLIP_LEVEL_RULES`: speed, moving spikes from none / 8 s / 5 s, sweet spots,
+  perfect landings full at 5 / 7 / 9, 5 / 20 / 25 s a crash; per-level proved deals `flipLevelDeals.server.ts`,
+  `bun scripts/flip-level-deal.ts`; the course is built during the intro, `prepareFlipCourse`) and **High Rise**
+  (`SKYLINE_LEVEL_RULES`: slide, 5 / 3 / 2 px, wind from 30 / 15 / 10, 3 lives at every level, Hard and Expert from 16 Nov 2026; oracle `scripts/skyline-oracle.ts`,
+  Skyscraper possible): flip-levels-check, skyline-levels-check, bands `bun scripts/flip-skyline-levels-bands.ts`.
+  **Grappler** (`SWING_LEVELS`, `withLevel`: reach, sliding vines, stall limit, pterodactyl, dark runs; per-level proved
+  deals `swingLevelDeal.server.ts`, `bun scripts/swing-slide-deal.ts --rev=18 --level=…`) and **Moon Climb**
+  (`MOON_LEVELS`: blades, shurikens, ice, lanterns, knock-down, full height 200 / 245 / 260 m; towers proved in the sim):
+  swing-levels-check, ricochet-levels-check, bands `bun scripts/action-levels-bands.ts`. **Orbit** (`ORBIT_LEVEL_RULES`:
+  tank 240 / 140 / 120, Easy's armed auto checkpoints, Expert respawn only; per-level proved banks
+  `orbitFuelBank{Easy,Hard,Expert}.server.ts`, `bun scripts/orbit-fuel-bank.ts --level=…`): orbit-levels-check, bands
+  `bun scripts/orbit-level-bands.ts`. Human limits in the tuning are each game's own bot constraint (documented per
+  game), measured with main's `scripts/level-tune.ts` (checkpoints every 300 ticks), not #444's.
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
   `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
   `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,

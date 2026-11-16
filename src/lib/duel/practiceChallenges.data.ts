@@ -347,7 +347,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("bastion", "Weak at the knees", "Land 30 hits on glowing weak spots.", "C", "maxout", true, part("Weak spots", 30)),
   // Roofbound (flip): clean time 100 + perfect landings 60 + double flips 20 + flow streak 20.
   ch("flip", "Double or nothing", "Land eight double flips.", "C", "combo", false, all(full("Double flips", 20))),
-  ch("flip", "Sweet spot", "Land every sweet spot.", "C", "fullset", false, all(full("Perfect landings", 60))),
+  ch("flip", "Sweet spot", "Land five sweet spots.", "C", "fullset", false, all(full("Perfect landings", 60))),
   ch("flip", "Flow rider", "Make 50 clean jumps in a row.", "C", "streak", true, all(full("Flow streak", 20))),
   // Grappler (swing): course 110 + pars 40 + gates 10 + clean-swing streak 40.
   ch("swing", "Gatecrasher", "Fly through every gate.", "C", "fullset", false, all(full("Gates", 10))),

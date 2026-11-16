@@ -1,7 +1,8 @@
 import { orbitFill } from "@/lib/arcade/arenaFills.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { orbitDevPlanet } from "@/lib/arcade/orbitDevJump";
+import { ORBIT_CHECKPOINT_HOLD_MS } from "@/lib/arcade/orbitCheckpointHold";
 import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 import {
   orbitBeltPlanets,
@@ -22,35 +23,88 @@ import { ORBIT_TIME_MS, type OrbitPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { orbitArtGame, orbitDrawHFor, orbitEndHoldMs, orbitRev3ArtGame } from "@/lib/arcade/orbit.renderer";
 import { initBandFrom, initRev3From, initRev4From, initSweptFrom, initTallFrom, initTargetFrom, initStrictFrom, initTunedFrom, decodeOrbitHoles, decodeRev3Planets, orbitStartForPuzzle, orbitWorldWFor, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "@/lib/arcade/orbitRev3";
-import { ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED, orbitXpRev } from "@/lib/arcade/orbit";
+import { ArtStill } from "@/components/puzzles/ArtStill";
+import { ORBIT_INTRO_COURSE } from "./orbitIntroCourse.data";
+import { ORBIT_REV_BIG, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_TUNED, orbitXpRev } from "@/lib/arcade/orbit";
 import { orbitSounds } from "@/lib/fx/gameSounds";
+import { FxCountUp } from "@/components/fx/GameFx";
+import { preloadOrbitPlanetMaps } from "@/lib/arcade/orbitPlanets.renderer";
+import { canvasRatio } from "@/lib/battery";
+import { drawOrbitRunMap, ORBIT_MAP_COLOURS } from "@/lib/arcade/orbitReveal.renderer";
+import { traceOrbitRun, type OrbitRunTrace } from "@/lib/duel/orbitRunTrace";
+import { ORBIT_TOTAL } from "@/lib/arcade/orbit";
 
-import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps, RunPictureProps } from "./types";
 
-/** Fixed intro still: the ship leaving one orbit toward the next planet. */
+// Stage 2: the planet maps load with the game's chunk (rooms and practice preload it for the intro), so the first frame of
+// play draws the Blender planets rather than the fallback.
+preloadOrbitPlanetMaps();
+
+/**
+ * The intro still (the Action overhaul, 15 Nov 2026): the live renderer on the dealt revision (orbitRev 16), on the fixed
+ * intro example's course (ORBIT_INTRO_COURSE), two seconds in: the rendered planets, their orbits, the stardust ahead,
+ * the HUD and the fuel meter, as a round opens.
+ */
+const introGame = (() => {
+  const start = orbitStartForPuzzle({ orbitRev: ORBIT_REV_BIG, ...(ORBIT_INTRO_COURSE as unknown as Pick<OrbitPuzzleData, "planets" | "holes" | "extras">) });
+  return { ...orbitRev3ArtGame, init: () => start!() } as unknown as typeof orbitRev3ArtGame;
+})();
+
 function IntroExample() {
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg viewBox="0 0 168 150" width={168} height={150} aria-hidden="true" style={{ background: ORBIT_BG, borderRadius: 10 }}>
-        <circle cx={50} cy={110} r={30} fill="none" stroke={ORBIT_COLOURS[0]} strokeOpacity={0.25} />
-        <circle cx={50} cy={110} r={12} fill="none" stroke={ORBIT_COLOURS[0]} strokeWidth={4} />
-        <circle cx={120} cy={42} r={28} fill="none" stroke={ORBIT_COLOURS[1]} strokeOpacity={0.25} />
-        <circle cx={120} cy={42} r={11} fill="none" stroke={ORBIT_COLOURS[1]} strokeWidth={4} />
-        <path d="M 120 14 A 28 28 0 0 1 148 42" fill="none" stroke={ORBIT_RED} strokeWidth={4} />
-        <line x1={50} y1={80} x2={104} y2={64} stroke={ORBIT_GOLD} strokeOpacity={0.4} strokeDasharray="3 4" />
-        {/* orbitRev 12: stardust on the line, a slingshot moon's ring beside it, an asteroid pair either side of a gap. */}
-        {[[60, 77], [70, 74], [88, 69]].map(([x, y]) => (
-          <circle key={x} cx={x} cy={y} r={2} fill="#FFE9A8" />
-        ))}
-        <circle cx={92} cy={86} r={12} fill="none" stroke="#5CE1E6" strokeOpacity={0.6} strokeDasharray="3 3" />
-        <circle cx={92} cy={86} r={3.5} fill="#A7A2C2" />
-        <circle cx={30} cy={56} r={3} fill="#A29989" />
-        <circle cx={44} cy={44} r={3} fill="#8E8476" />
-        <path d="M 50 110 m -19 -11 A 22 22 0 0 1 50 88" fill="none" stroke={ORBIT_GOLD} strokeWidth={2.5} strokeOpacity={0.7} />
-        <polygon points="80,71 68,70 72,80" fill={ORBIT_GOLD} />
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">Let go on the first lap; collect stardust, sling past moons, thread the rocks.</p>
-    </div>
+    <ArtStill
+      game={introGame as never}
+      worldW={orbitWorldWFor(ORBIT_REV_BIG)}
+      worldH={orbitDrawHFor(ORBIT_REV_BIG)}
+      ticks={120}
+      input={null as never}
+      shownW={180}
+      caption="Let go on the first lap; collect stardust, sling past moons, thread the rocks."
+    />
+  );
+}
+
+/**
+ * SET CHECKPOINT, guarded (the Action overhaul, 15 Nov 2026; input mapping only, every revision): the press must be held
+ * ORBIT_CHECKPOINT_HOLD_MS, a gold fill sweeping across the button meanwhile, before its one input is sent, so a tap that
+ * lands on the corner by accident can't spend the checkpoint. Let go early and nothing is sent.
+ */
+function CheckpointHoldButton({ onSet, className }: { onSet: () => void; className?: string }) {
+  const [holding, setHolding] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stop = () => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = null;
+  };
+  useEffect(() => stop, []);
+  return (
+    <ArcadeControlButton
+      type="button"
+      aria-label="Hold to set checkpoint"
+      data-orbit-checkpoint-hold={ORBIT_CHECKPOINT_HOLD_MS}
+      className={`relative h-11 overflow-hidden px-3 font-bold ${className ?? ""}`}
+      style={{ fontSize: 11 }}
+      onPressStart={() => {
+        stop();
+        setHolding(true);
+        timer.current = setTimeout(() => {
+          timer.current = null;
+          setHolding(false);
+          onSet();
+        }, ORBIT_CHECKPOINT_HOLD_MS);
+      }}
+      onPressEnd={() => {
+        stop();
+        setHolding(false);
+      }}
+    >
+      <span
+        data-orbit-checkpoint-fill=""
+        className="absolute inset-y-0 left-0 opacity-40"
+        style={{ background: "var(--jz-gold)", width: holding ? "100%" : "0%", transition: holding ? `width ${ORBIT_CHECKPOINT_HOLD_MS}ms linear` : "none" }}
+      />
+      <span className="relative">SET CHECKPOINT</span>
+    </ArcadeControlButton>
   );
 }
 
@@ -122,12 +176,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       overlay={xp ? (send) => (
         <div data-game-controls="checkpoint" data-orbit-zone="" className="pointer-events-none absolute right-1 top-1 flex h-11 items-start justify-end">
           {canSet && !locked && (
-            <ArcadeControlButton
-              type="button"
-              aria-label="Set checkpoint"
-              className="pointer-events-auto h-11 px-3 text-[11px] font-bold before:content-['SET_CHECKPOINT']"
-              onPressStart={() => send({ k: ORBIT_INPUT_CHECKPOINT, a: 0, b: 0, c: 0 })}
-            />
+            <CheckpointHoldButton className="pointer-events-auto" onSet={() => send({ k: ORBIT_INPUT_CHECKPOINT, a: 0, b: 0, c: 0 })} />
           )}
         </div>
       ) : undefined}
@@ -136,12 +185,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         // button is 44 px tall with 11 px text and 12 px sides, narrower than before (15 Oct 2026, display only).
         <div data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">
           {canSet && !locked && (
-            <ArcadeControlButton
-              type="button"
-              aria-label="Set checkpoint"
-              className="h-11 px-3 text-[11px] font-bold before:content-['SET_CHECKPOINT']"
-              onPressStart={() => send({ k: ORBIT_INPUT_CHECKPOINT, a: 0, b: 0, c: 0 })}
-            />
+            <CheckpointHoldButton onSet={() => send({ k: ORBIT_INPUT_CHECKPOINT, a: 0, b: 0, c: 0 })} />
           )}
         </div>
       )}
@@ -179,9 +223,126 @@ export function orbitXpLine(x: { dust: number; dustTotal: number; slings: number
   return `Stardust ${x.dust}/${x.dustTotal} · slingshots ${x.slings}/${x.slingsTotal} · fields ${x.threads}/${x.threadsTotal} · ${x.perfect} perfect orbits`;
 }
 
+/** The course map's drawing size (CSS px; the canvas scales to the reveal's width, keeping this shape). */
+const MAP_W = 360;
+const MAP_H = 300;
+
+/**
+ * The course map canvas (stage 2): drawn once per size at the device's pixel ratio from the trace (no frame loop).
+ */
+function RunMap({ trace }: { trace: OrbitRunTrace }) {
+  const ref = useRef<HTMLCanvasElement | null>(null);
+  const [width, setWidth] = useState(MAP_W);
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    const measure = () => setWidth(Math.max(240, Math.min(420, Math.round(c.parentElement?.clientWidth ?? MAP_W))));
+    measure();
+    if (typeof ResizeObserver === "undefined" || !c.parentElement) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(c.parentElement);
+    return () => ro.disconnect();
+  }, []);
+  const height = Math.round((width * MAP_H) / MAP_W);
+  useEffect(() => {
+    const c = ref.current;
+    const ctx = c?.getContext("2d");
+    if (!c || !ctx) return;
+    const ratio = canvasRatio();
+    c.width = Math.round(width * ratio);
+    c.height = Math.round(height * ratio);
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    drawOrbitRunMap(ctx, trace, width, height);
+  }, [trace, width, height]);
+  return (
+    <canvas
+      ref={ref}
+      data-orbit-run-map=""
+      role="img"
+      aria-label={`Course map: ${trace.finished ? "the sun reached" : `${trace.best} of ${ORBIT_TOTAL} planets reached`}, ${trace.slips.length} slip${trace.slips.length === 1 ? "" : "s"}`}
+      style={{ width, height }}
+    />
+  );
+}
+
+/** A big number with its short label (the reveal's key numbers). */
+function BigStat({ label, value, of, countUp = false }: { label: string; value: number; of?: number; countUp?: boolean }) {
+  return (
+    <div data-orbit-stat={label} className="flex min-w-0 flex-col items-center rounded-xl bg-white/5 px-2 py-2">
+      <span className="text-2xl font-extrabold leading-tight tabular-nums text-foreground">
+        {countUp ? <FxCountUp value={value} silent /> : value}
+        {of !== undefined ? <span className="text-base font-bold text-muted-foreground">/{of}</span> : null}
+      </span>
+      <span className="text-sm font-semibold text-muted-foreground">{label}</span>
+    </div>
+  );
+}
+
+function LegendMark({ kind }: { kind: "flight" | "fuel" | "crash" | "dust" | "moon" }) {
+  const colour = ORBIT_MAP_COLOURS[kind];
+  const text = { flight: "Flights", fuel: "Out of fuel", crash: "Crash", dust: "Stardust", moon: "Slingshot" }[kind];
+  const mark =
+    kind === "flight" ? (
+      <span aria-hidden className="inline-block h-0.5 w-4 rounded" style={{ background: colour }} />
+    ) : kind === "fuel" || kind === "crash" ? (
+      <span aria-hidden className="text-base font-black leading-none" style={{ color: colour }}>
+        {kind === "fuel" ? "✕" : "✶"}
+      </span>
+    ) : kind === "dust" ? (
+      <span aria-hidden className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: colour }} />
+    ) : (
+      <span aria-hidden className="inline-block h-2.5 w-2.5 rounded-full border-2" style={{ borderColor: colour }} />
+    );
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+      {mark}
+      {text}
+    </span>
+  );
+}
+
+/**
+ * Stage 2's reveal (15 Nov 2026): the run as a picture, a course map of the replayed run (folded into four columns, start
+ * bottom left, the sun top right), with its key numbers big above it: planets (counting up), stardust, slingshots and
+ * slips. The score's parts are the reveal's breakdown just above. Older stamps (no features) draw nothing here.
+ */
+function RunView({ trace }: { trace: OrbitRunTrace }) {
+  const fuel = trace.slips.filter((s) => s.kind === "fuel").length;
+  const crashes = trace.slips.length - fuel;
+  return (
+    <div data-orbit-run-summary="" className="flex w-full shrink-0 flex-col items-center gap-3">
+      {trace.finished ? <p data-orbit-all-planets="" className="text-xl font-extrabold text-foreground">All {ORBIT_TOTAL} planets!</p> : null}
+      <div className="grid w-full max-w-sm grid-cols-4 gap-2">
+        <BigStat label="Planets" value={trace.best} of={ORBIT_TOTAL} countUp />
+        <BigStat label="Stardust" value={trace.counts.dust} of={trace.counts.dustTotal} />
+        <BigStat label="Slings" value={trace.counts.slings} of={trace.counts.slingsTotal} />
+        <BigStat label={trace.slips.length === 1 ? "Slip" : "Slips"} value={trace.slips.length} />
+      </div>
+      <RunMap trace={trace} />
+      <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs font-semibold text-muted-foreground">
+        <LegendMark kind="flight" />
+        {fuel ? <LegendMark kind="fuel" /> : null}
+        {crashes ? <LegendMark kind="crash" /> : null}
+        <LegendMark kind="dust" />
+        <LegendMark kind="moon" />
+      </div>
+    </div>
+  );
+}
+
+/** The arcade reveal's run picture (PuzzleDefinition.RunPicture): the expansion's view only (orbitRev 12+). */
+export function OrbitRunPicture({ puzzle, myAnswer }: RunPictureProps) {
+  const trace = useMemo(() => (puzzle.type === "orbit" && orbitXpRev(puzzle.orbitRev) && myAnswer ? traceOrbitRun(puzzle, myAnswer) : null), [puzzle, myAnswer]);
+  return trace ? <RunView trace={trace} /> : null;
+}
+
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "orbit") return null;
-  const result = replayOrbitRun(puzzle.seed, myAnswer ?? "", puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras);
+  // The expansion's view (orbitRev 12+): the run's picture (stage 2), the same the arcade reveal draws, never the old
+  // block of text lines (15 Nov 2026). Earlier revisions keep their lines.
+  if (orbitXpRev(puzzle.orbitRev)) return myAnswer ? <OrbitRunPicture puzzle={puzzle} myAnswer={myAnswer} /> : null;
+  const result = replayOrbitRun(puzzle.seed, myAnswer ?? "", puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras, undefined, puzzle.level);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
@@ -210,4 +371,5 @@ export const orbitPuzzle: PuzzleDefinition = {
   IntroExample,
   Stage,
   Reveal,
+  RunPicture: OrbitRunPicture,
 };

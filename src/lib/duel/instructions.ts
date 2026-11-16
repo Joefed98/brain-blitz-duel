@@ -58,6 +58,9 @@ import {
   SKYLINE_V2_BLOCK_POINTS,
   SKYLINE_V2_PERFECT_POINTS,
   SKYLINE_WIND_FROM,
+  SKYLINE_LEVEL_RULES,
+  SKYLINE_PERFECT_TOL,
+  SKYLINE_V11_LIVES,
 } from "@/lib/arcade/skyline";
 import { JUNC_V2_BUS_POINTS, JUNC_V2_CAR_POINTS, JUNC_V2_SURVIVE_BONUS } from "@/lib/arcade/junction";
 import {
@@ -256,6 +259,7 @@ import {
   ORBIT_STD,
   ORBIT_STD_PERFECT_OF,
   ORBIT_FUEL_MAX,
+  ORBIT_GRACE_HOLD_TICKS,
 } from "@/lib/arcade/orbitRev3";
 import {
   CROSS_V9_SKILL_PAY,
@@ -329,9 +333,12 @@ import {
   FLIP_V8_TRAILS,
   FLIP_V8_TRAIL_POINTS,
   FLIP_V8_ZONE_POINTS,
-  FLIP_V11,
   FLIP_V11_STREAK_FULL,
-  FLIP_V11_SAVE_COST,
+  FLIP_V13,
+  FLIP_V13_CORE_FULL,
+  FLIP_V13_CRASH_COST,
+  FLIP_V13_SWEETS_FULL,
+  FLIP_LEVEL_RULES,
 } from "@/lib/arcade/flip";
 import { bandCurve, type BandCurve } from "@/lib/arcade/scoreBands";
 import { SNIP_X_FEATURE_MAX, SNIP_X_FEED_UNITS, SNIP_X_GOLD_RAW, SNIP_X_LEVELS, SNIP_X_PAR_MARGIN, SNIP_X_PAR_RAW, SNIP_X_PERFECT_RAW, SNIP_X_QUICK_RAW, SNIP_X_RAW_TOP, SNIP_X_SKILL_PAY, SNIP_X_STAR2_RAW, SNIP_X_STAR_UNITS } from "@/lib/arcade/snip";
@@ -850,14 +857,24 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap to drop", detail: "the sliding block on the tower." },
         { action: "Perfect drops", detail: "in a row build a streak." },
-        { action: "Next block:", detail: "gold, narrow or wide." },
+        { action: "Next block:", detail: "gold, narrow or wide.", helpOnly: true },
+        { action: "3 lives:", detail: "a miss costs one; the run goes on." },
+        { action: "Lives:", detail: "you have 3 at every level. A block that misses the tower falls away and costs a life; the same block comes again and your streak starts over. Losing the last life ends the run. A tap just after a lost life is ignored, so a double tap can’t cost two.", helpOnly: true },
+        { action: "A wide block helps:", detail: "after five drops in a row that aren’t perfect, the next block is a wide one. Centre it and the tower widens again.", helpOnly: true },
+        { action: "Dusk to night:", detail: "the city lights come on as your tower climbs.", helpOnly: true },
         { action: "Next-block preview:", detail: "five gold blocks come in every run, at the same places for everyone; land one perfectly to score it. Narrow is harder and wide easier; both count as a floor like any other.", helpOnly: true },
         { action: "Every 10 floors", detail: "the camera pulls back to show the city.", helpOnly: true },
-        { action: "From block 20", detail: "a waving flag warns of wind.", helpOnly: true },
+        { action: `From block ${SKYLINE_WIND_FROM}`, detail: `a waving flag warns of wind (from block ${SKYLINE_LEVEL_RULES.easy.windFrom} on Easy, ${SKYLINE_LEVEL_RULES.hard.windFrom} on Hard, ${SKYLINE_LEVEL_RULES.expert.windFrom} on Expert).`, helpOnly: true },
+        // Levels (15 Nov 2026, docs/arcade-standard/skyline.md "Levels"): what each level changes, from the sim's own table.
+        {
+          action: "Levels:",
+          detail: `Easy slides slower, a drop within ${SKYLINE_LEVEL_RULES.easy.tol / 256} px is perfect and the wind comes later. Hard slides faster with wind from block ${SKYLINE_LEVEL_RULES.hard.windFrom}. Expert slides fastest, a drop must be within ${SKYLINE_LEVEL_RULES.expert.tol / 256} px to be perfect, and the wind blows from block ${SKYLINE_LEVEL_RULES.expert.windFrom}. Normal: within ${SKYLINE_PERFECT_TOL / 256} px. ${SKYLINE_V11_LIVES} lives at every level.`,
+          helpOnly: true,
+        },
         { action: "Overhang is cut", detail: "so the next block is narrower. Line it up exactly (a perfect drop) and the block grows back a little.", helpOnly: true },
         { action: "Perfect streak:", detail: "your longest run of perfect drops in a row counts, up to 10. A drop that isn’t perfect resets it.", helpOnly: true },
         { action: "Narrow and wide blocks", detail: "are perfect when centred on the top. A centred wide block stays whole, so the tower widens; off-centre, the overhang is cut as usual.", helpOnly: true },
-        { action: "Wind:", detail: `once ${SKYLINE_WIND_FROM} blocks are placed, a flag flies from the top block. Still flag: no wind. It starts waving about a second before a gust and streams the way the gust blows. Every gust is the same strength and nudges the sliding block that way while it blows.`, helpOnly: true },
+        { action: "Wind:", detail: `once ${SKYLINE_WIND_FROM} blocks are placed (on Normal), a flag flies from the top block. Still flag: no wind. It starts waving about a second before a gust and streams the way the gust blows. Every gust is the same strength and nudges the sliding block that way while it blows.`, helpOnly: true },
         { action: "Taller view, more sky:", detail: "the tower climbs higher before the camera pulls back.", helpOnly: true },
         { action: "Everyone", detail: "gets the same gusts at the same moments.", helpOnly: true },
       ],
@@ -1450,10 +1467,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap", detail: "to leap to the other wall." },
         { action: "Tap again in the air", detail: "for one double jump: extra lift and a short hang, to clear a blade or reach a scroll." },
         { action: "Touch a sky lantern", detail: "in a leap to ride it up; tap the side of the screen to leap off towards that wall." },
+        { action: "At the top:", detail: "your height and flow, then lantern rides out of 6 and scrolls out of 3." },
         { action: "Mid-ledges", detail: "hang in the shaft: cling to either side and hop back for quick climbs.", helpOnly: true },
         { action: "Flow:", detail: "leap again before you slide and dodge every hit; each 7 clean leaps in a row scores.", helpOnly: true },
         { action: "Clinging slides you down;", detail: "moss slides fast, ice gives no grip: leap off at once.", helpOnly: true },
-        { action: "Katanas and shurikens", detail: "knock you down a few metres and stun you for a second. No game over.", helpOnly: true },
+        { action: "Katanas and shurikens", detail: "knock you down 3 m and stun you for a second. No game over; your hits are shown on the result.", helpOnly: true },
         { action: "Scrolls", detail: "are rare: three, at the top of double-jump lines.", helpOnly: true },
         { action: "Everyone in a room", detail: "climbs the same tower.", helpOnly: true },
       ],
@@ -1552,25 +1570,27 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       }, [`Each life lost costs ${WAV_STD_LIFE_COST}, but losing the last just ends the run`, "Lives never take more than half your ships, hits and waves points", "Power-ups score nothing"]),
     },
     // Iron Wall (id bastion; bastionRev 3, 3 Nov 2026; docs/arcade-standard/bastion.md): the tank-defence shooter.
+    // bastionRev 4 (15 Nov 2026, the levels): the text describes Normal, the level rooms, rated play and the Daily deal.
     bastion: {
-      goal: "Hold the wall against five waves of tanks, and shoot down the drones.",
+      goal: "Hold the wall against five waves of tanks as the battlefield turns to smoke.",
       how: [
         { action: "Drag anywhere to aim;", detail: "the crosshair floats above your thumb. Lift to fire." },
         { action: "Shells take a moment to land:", detail: "lead a moving tank.", helpOnly: true },
-        { action: "Hit the glowing weak spot", detail: "for double damage, while it is open." },
+        { action: "Hit the glowing weak spot", detail: "for double damage, while it is open. Far tanks wear a badge: S Scout, M Medium, H Heavy." },
         { action: "Five shells.", detail: "Swipe down to reload early; tap while the needle is in the green for a fast reload." },
-        { action: "Three drones cross the sky:", detail: "small and fast. Lead one well ahead to shoot it down for a bonus." },
-        { action: "Scouts take 1 hit, Mediums 2 and Heavies 4;", detail: "the pips above each tank show what is left.", helpOnly: true },
-        { action: "Weak spots open and close:", detail: "each glows orange for about a second, then shuts for half a second. A shell on a shut one is a plain hull hit.", helpOnly: true },
+        { action: "Three drones drift across the sky:", detail: "lead one a little ahead to shoot it down for a bonus." },
+        { action: "Scouts take 1 hit, Mediums 2 and Heavies 4;", detail: "the pips above each tank show what is left, and far off a tank wears its letter badge (S, M or H) above its pips.", helpOnly: true },
+        { action: "The battlefield changes as you fight:", detail: "a clear evening for waves 1 and 2, a dusty desert for 3 and 4, then a storm of battle smoke for the last wave. The tanks and the road look the same throughout.", helpOnly: true },
+        { action: "Weak spots open and close:", detail: "each glows orange for well over a second, then shuts briefly. A shell on a shut one is a plain hull hit.", helpOnly: true },
         { action: "The last two waves", detail: "are bigger and press harder, and every tank speeds up or slows down once on its way in.", helpOnly: true },
-        { action: "A drone", detail: "flies straight across in under two seconds; a shell into the sky takes half a second to get there. Drones never hit the base.", helpOnly: true },
+        { action: "A drone", detail: "drifts straight across in about seven seconds; a shell into the sky takes half a second to get there. Drones never hit the base.", helpOnly: true },
         { action: "Small, slow drags", detail: "move the crosshair less than your thumb, for fine aim.", helpOnly: true },
-        { action: "Empty, the gun reloads by itself in 2 seconds.", detail: "A tap in the green finishes it in half the time; a tap outside jams it for half a second more.", helpOnly: true },
-        { action: "A tank that reaches the wall hits the base.", detail: "Three hits and the run ends early (you keep your score).", helpOnly: true },
+        { action: "Empty, the gun reloads by itself in 2 seconds.", detail: "A tap in the green finishes it in half the time; a tap outside jams it for half a second more. The first time you run dry, the panel reminds you once: swipe down to reload early.", helpOnly: true },
+        { action: "A tank that reaches the wall hits the base.", detail: "Four hits and the run ends early (you keep your score).", helpOnly: true },
         { action: "On a computer:", detail: "the mouse aims, click fires, R reloads and Space is the fast-reload tap.", helpOnly: true },
         { action: "Everyone", detail: "faces the same tanks in the same waves, and the same drones.", helpOnly: true },
       ],
-      score: liveStdHelp("bastion", "Three hits on the base end the run."),
+      score: liveStdHelp("bastion", "Four hits on the base end the run."),
     },
     rooftop: {
       goal: "Survive the rooftops as long as you can.",
@@ -1585,22 +1605,31 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap to flip sides;", detail: "dodge the spikes (some slide). Flip again right after landing for a double flip." },
         { action: "Land on a roof’s faint sweet spot", detail: "for a PERFECT landing. Clean jumps in a row build your flow streak." },
-        { action: "Checkpoints save one crash,", detail: "but it costs 20 s of clean time and your streak." },
+        { action: "Crash and you blink back and run on,", detail: `but it costs clean time (${FLIP_V13_CRASH_COST / 2} s on Normal) and your streak.` },
         { action: "Spikes or lava on one side?", detail: "Run on the other. Cracked tiles break less than half a second after you touch them: flip off fast.", helpOnly: true },
         { action: "Moving spikes", detail: "slide to and fro along the groove under them; time your flip to their slide.", helpOnly: true },
         { action: "The cave changes height:", detail: "in a tall stretch a flip takes longer to cross, in a tight one it is quicker. From 10 seconds the cave bends too, and hazards ride the bends with you.", helpOnly: true },
         { action: "Speed zones", detail: "rush you on for a few seconds: the cave flies past faster.", helpOnly: true },
         { action: "Double flips:", detail: "flip again within about an eighth of a second of landing with a hazard close by. Each one counts, chained or not.", helpOnly: true },
         { action: "Sweet spots:", detail: `${FLIP_V8_SWEETS} roofs carry a short, faint pale strip. Time a flip so you touch down with your feet inside it for a sweet landing: PERFECT glows where you land. Each counts once.`, helpOnly: true },
-        { action: "Flow streak:", detail: "a clean jump is a flip that lands with no crash saved on the way. Clean jumps in a row make your streak; a saved crash starts it again from 0, and your longest streak counts.", helpOnly: true },
+        { action: "Flow streak:", detail: "a clean jump is a flip that lands with no crash on the way. Clean jumps in a row make your streak; a crash starts it again from 0, and your longest streak counts.", helpOnly: true },
         { action: "Star trails:", detail: `the ${FLIP_V8_TRAILS} faint arcs of small stars are only a guide, a good line through the air: nothing to collect.`, helpOnly: true },
-        { action: "Checkpoints (15, 30 and 45 s):", detail: `pass one and your next crash is saved – a second of shield, and you run on, but ${FLIP_V11_SAVE_COST / 2} s comes off your clean time.`, helpOnly: true },
+        { action: "No checkpoints needed: crashes never end the run.", detail: `You blink back with a second of shield and run on to the end of the minute, but ${FLIP_V13_CRASH_COST / 2} s comes off your clean time each time on Normal.`, helpOnly: true },
+        // Levels (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): what each level changes, from the sim's own table.
+        {
+          action: "Levels:",
+          detail: `Easy runs slower (it speeds up every 4 s), with no moving spikes, wider sweet spots and ${FLIP_LEVEL_RULES.easy.crashCost / 2} s a crash. Hard is a little faster, with moving spikes from 8 s, ${FLIP_LEVEL_RULES.hard.crashCost / 2} s a crash and ${FLIP_LEVEL_RULES.hard.sweetsFull} perfect landings for all of that part. Expert is fastest (it speeds up every 2.5 s), with moving spikes from 5 s, ${FLIP_LEVEL_RULES.expert.sweetSeconds.length} sweet spots, ${FLIP_LEVEL_RULES.expert.crashCost / 2} s a crash and ${FLIP_LEVEL_RULES.expert.sweetsFull} perfect landings for all of that part.`,
+          helpOnly: true,
+        },
       ],
       // flipRev 11 (3 Nov 2026, the arcade scoring standard): clean time on a straight line, then the features' fixed shares.
       // The core tops out at 100, so the help reads "up to 100" and ends on the round's 200 (as Meteor's).
-      score: listFromSpec(FLIP_V11, {
-        core: `every half second you last counts, less ${FLIP_V11_SAVE_COST / 2} s for each crash a checkpoint saves; the whole minute with no crash for all of it`,
-        sweets: `${60 / FLIP_V8_SWEETS} for each landing on one of the ${FLIP_V8_SWEETS} sweet spots`,
+      // flipRev 13 (15 Nov 2026, the Action overhaul): grace; every crash costs 10 s, clean time full at 55 s, perfect
+      // landings full at 5 of the 8 sweet spots.
+      score: listFromSpec(FLIP_V13, {
+        // Levels (15 Nov 2026): these are Normal's figures; the "Levels:" line above says what Easy, Hard and Expert change.
+        core: `every half second you run counts, less ${FLIP_V13_CRASH_COST / 2} s for each crash; ${FLIP_V13_CORE_FULL / 2} s clean for all of it`,
+        sweets: `${60 / FLIP_V13_SWEETS_FULL} for each landing on one of the ${FLIP_V8_SWEETS} sweet spots (${FLIP_V13_SWEETS_FULL} for all of it)`,
         doubles: "2.5 for each double flip",
         flow: `your longest run of clean jumps (${FLIP_V11_STREAK_FULL} in a row for all of it)`,
       }),
@@ -1675,12 +1704,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap to let go;", detail: "any orbit catches you." },
         { action: "Grab stardust;", detail: "sling through moon halos." },
         { action: "Thread rock gaps;", detail: "let go on the first lap.", helpOnly: true },
-        { action: "Fuel:", detail: "drains in flight, refills in orbit." },
-        { action: "Checkpoint:", detail: "a crash returns you there.", helpOnly: true },
+        { action: "Fuel:", detail: "run dry and you’re back in 3 s." },
+        { action: "Checkpoint:", detail: "hold it; a crash returns you there.", helpOnly: true },
         { action: "Black hole:", detail: "fly in, skip 5–6 planets.", helpOnly: true },
+        { action: "Top left:", detail: "planets and your checkpoint, then stardust and slingshots.", helpOnly: true },
         { action: "You orbit automatically.", detail: "Tap to let go – you fly straight until an orbit catches you: any planet’s orbit you reach, even one you skip ahead to (the planets you pass count as reached).", helpOnly: true },
-        { action: "Fuel (bottom right):", detail: `it drains only while you fly between orbits and fills up again the moment an orbit catches you. A jump at any planet in reach lands with fuel to spare; fly off into empty space and it runs out after about ${Math.round(ORBIT_FUEL_MAX / 6) / 10} s, and the run ends (or you go back to your checkpoint).`, helpOnly: true },
-        { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring – it turns once every 12 seconds.", helpOnly: true },
+        { action: "Fuel (bottom right):", detail: `it drains only while you fly between orbits and fills up again the moment an orbit catches you. A jump at any planet in reach lands with fuel to spare; fly off into empty space and it runs out after about ${Math.round(ORBIT_FUEL_MAX / 6) / 10} s: you go back to your checkpoint, or else to the planet you left, ready again after ${ORBIT_GRACE_HOLD_TICKS / 60} s.`, helpOnly: true },
+        { action: "Hold Set Checkpoint once while orbiting.", detail: "Your next crash returns you there at once. Without it, or after using it, a crash sends you back to the planet you left, ready again after a few seconds: the run never ends early. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring – it turns once every 12 seconds.", helpOnly: true },
         { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops – never at the crossing.", helpOnly: true },
         { action: "Black holes:", detail: "about every ten planets a small black hole sits beside one planet. Let go at just the right moment to fly into it and you come out beside a planet 5 or 6 further on and fly into its orbit over about a second; the planets you skip count as reached. A checkpoint you set before the jump still works.", helpOnly: true },
         { action: "Any black hole ahead counts:", detail: "touch one with any part of the rocket on any flight, even from the planet before, and it swallows you; one you have already passed fades out.", helpOnly: true },
@@ -1734,7 +1764,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: `${SWING_V16_RUNS.length} short platform runs`, detail: `are a start platform, one or two vines and a landing platform at a time, ${SWING_V16_SQUEEZES} of them with a squeeze (roof and floor close to a gap).`, helpOnly: true },
         { action: "Platform runs are in deep shade:", detail: "as one comes up, everything past its next platform is lost in the canopy’s shade, vines and all. Land on a platform to light the next part, up to the next platform (or the first vine after the run). Vines in the shade can’t be grabbed, swinging ones included.", helpOnly: true },
         { action: "Miss (into the river, or a squeeze’s trunk or rock)", detail: "and you are back hanging from the last vine you held (on a platform run, back on its start platform). The clock keeps running; gates lit since then are put back.", helpOnly: true },
+        { action: "The course is 51 stretches:", detail: "the counter at the top left shows the one you’re on (“Stretch 23 / 51”), and the result says how many you cleared.", helpOnly: true },
         { action: "Par times:", detail: "each stretch has one, shown under the stretch count. Finish it under par for points: the further under, the more.", helpOnly: true },
+        { action: "The jungle gets deeper and darker", detail: "the further you swing. The vines, platforms and gates stay just as easy to see.", helpOnly: true },
         { action: "Speed gates", detail: `(${SWING_V17_GATES}) sit on the line between two vines, all in the first two thirds of the course: a well-timed, fast release flies through and lights them.`, helpOnly: true },
         { action: "Over the last quarter a pterodactyl swoops in behind you.", detail: "If it catches you, it is a miss. A marker at the left edge shows how far back it is.", helpOnly: true },
         { action: `The run lasts ${SWING_V16_RUN_TICKS / 60} seconds.`, detail: "Only the fastest reach the end of the course.", helpOnly: true },

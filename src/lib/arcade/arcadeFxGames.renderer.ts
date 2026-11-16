@@ -11,7 +11,7 @@
  * shared red edge pulse and, where a point is given, the puff at the miss.
  */
 import { CURLING_FX_V4, MINIGOLF_FX, POOL_FX } from "./sportsFx.renderer";
-import type { ArcadeFxMiss, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
+import type { ArcadeFxMiss, ArcadeFxMoment, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
 import { minesCellX, minesCellY, minesCleared, MINES_CELL, MINES_WORLD_H, MINES_WORLD_W, type MinesState } from "./minesweeper";
 import { mahjongCleared, mahjongSlotRect, MAHJONG_WORLD_H, MAHJONG_WORLD_W, type MahjongState } from "./mahjong";
 import { FREEKICK_FX, HOMERUN_FX, RACING_FX } from "./sportsFx.renderer";
@@ -91,7 +91,7 @@ import {
   type SnakeState,
 } from "./snake";
 import { burstFloorY, burstGoldenCount, BURST_FLOOR_Y, BURST_LIVES, burstLivesOf, BURST_TALL_H, BURST_WORLD_W, type BurstState } from "./burst";
-import { SKYLINE_STREAK_FROM, SKYLINE_TALL_H, SKYLINE_WIND_FROM, SKYLINE_WORLD_H, SKYLINE_WORLD_W, skylineWorldH, type SkylineState } from "./skyline";
+import { SKYLINE_STREAK_FROM, SKYLINE_TALL_H, SKYLINE_WORLD_H, SKYLINE_WORLD_W, skylineWindFrom, skylineWorldH, type SkylineState } from "./skyline";
 import {
   crossColumnCentreFp,
   crossGeomOf,
@@ -892,7 +892,7 @@ export const SKYLINE_FX: ArcadeFxSpec<SkylineState> = {
     { kind: "combo", count: (s) => (s.streakPoints ? s.streak ?? 0 : 0), min: SKYLINE_STREAK_FROM, label: (_s, n) => `STREAK ×${n}` },
     {
       kind: "pop",
-      count: (s) => (s.rev && s.placed >= SKYLINE_WIND_FROM ? 1 : 0),
+      count: (s) => (s.rev && s.placed >= skylineWindFrom(s) ? 1 : 0),
       at: (s) => ({ x: SKYLINE_WORLD_W / 2, y: skylineWorldH(s) * 0.3 }),
       label: () => "FLAG UP: WATCH THE WIND!",
     },
@@ -1237,7 +1237,51 @@ export const BUBBLE_FX: ArcadeFxSpec<BubState> = {
 /** Where a perfect landing's PERFECT shows: just off the runner's head, into the cave (below it on the roof above). */
 function flipPerfectAt(s: FlipState): { x: number; y: number } {
   const p = flipRunnerPoint(s);
+  // The flow revisions (flipRev 11–13, stage 2 of the Action overhaul): at the landing spot, just ahead of the runner's
+  // feet (the pop draws 10 px above its spot), clear of the flow counter riding over the runner's head (flipFlowChipAt)
+  // and of a double flip's pop as the runner leaves the surface.
+  if (s.flow) return { x: p.x + 58, y: s.side === 0 ? p.y + 22 : p.y - 2 };
   return { x: p.x + 16, y: s.side === 0 ? p.y - 24 : p.y + 38 };
+}
+
+/**
+ * Roofbound's edge-glow replacement (the Action overhaul stage 2, 15 Nov 2026; Joe: no glowing edges). A banner moment
+ * (10 SECONDS, CHECKPOINT, SPEED ZONE, SURVIVED!) gets a gold rule that draws out from under its words, crisp, with a
+ * bright bead at each end; a perfect moment at a point (STAR TRAIL, ALL 10 STARS) a gold ring opening there. A double
+ * flip draws nothing here: the renderer's ring follows the runner (flipRev 11–13). The banners take no `at`, so the
+ * moment's point is the world's centre: a streak banner sits at 0.24 of the height (0.48 of that y), the final at 0.4.
+ */
+export function flipMoment(ctx: CanvasRenderingContext2D, m: ArcadeFxMoment): void {
+  if (m.kind === "combo") return;
+  const fade = 1 - m.p * m.p;
+  ctx.save();
+  ctx.strokeStyle = "#F5B82E";
+  ctx.fillStyle = "#FFE4A1";
+  if (m.kind === "perfect") {
+    ctx.globalAlpha = 0.9 * fade;
+    ctx.lineWidth = 3 * (1 - m.p) + 1;
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, m.still ? 26 : 14 + 30 * (1 - (1 - m.p) * (1 - m.p)), 0, Math.PI * 2);
+    ctx.stroke();
+  } else {
+    const y = m.y * (m.kind === "final" ? 0.8 : 0.48) + (m.kind === "final" ? 24 : 18);
+    const half = (m.kind === "final" ? 110 : 80) * (m.still ? 1 : Math.min(1, m.p * 2.5));
+    ctx.globalAlpha = fade;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(m.x - half, y);
+    ctx.lineTo(m.x + half, y);
+    ctx.stroke();
+    if (!m.lite) {
+      for (const dx of [-half, half]) {
+        ctx.beginPath();
+        ctx.arc(m.x + dx, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  ctx.restore();
 }
 
 export const FLIP_FX: ArcadeFxSpec<FlipState> = {
@@ -1269,8 +1313,9 @@ export const FLIP_FX: ArcadeFxSpec<FlipState> = {
       at: (s) => flipRunnerPoint(s),
       label: (s) => ((s.chain ?? 0) <= 1 ? "DOUBLE FLIP!" : (s.chain ?? 0) === 2 ? "TRIPLE FLIP!" : `FLIP ×${(s.chain ?? 0) + 1}`),
     },
-    { kind: "streak", count: (s) => s.cpPassed ?? 0, label: () => "CHECKPOINT" },
-    { kind: "pop", count: (s) => s.saves ?? 0, at: (s) => flipRunnerPoint(s), label: () => "SAVED!" },
+    // flipRev 13 (grace, 15 Nov 2026): every crash is caught, so no checkpoint banner; a crash shows its cost.
+    { kind: "streak", count: (s) => (s.grace ? 0 : s.cpPassed ?? 0), label: () => "CHECKPOINT" },
+    { kind: "pop", count: (s) => s.saves ?? 0, at: (s) => flipRunnerPoint(s), label: (s) => (s.grace ? "−10 s" : "SAVED!") },
     { kind: "streak", count: flipZonesEntered, label: () => "SPEED ZONE!" },
     // flipRev 8's sweet spots: a perfect landing. Since 3 Nov 2026 (display only, every revision with sweet spots: flipRev
     // 8–11) a small molten "PERFECT" at the runner's feet, neon orange and dripping, gone in about 0.6 s; no burst
@@ -1278,6 +1323,7 @@ export const FLIP_FX: ArcadeFxSpec<FlipState> = {
     { kind: "pop", count: flipSweetsTaken, at: flipPerfectAt, label: () => "PERFECT", textOnly: true, molten: true, textScale: 1.2 },
   ],
   misses: [{ count: (s) => (s.ended === 2 ? 1 : 0) }],
+  moment: flipMoment,
 };
 /** flipRev 8's taller cave draws its effects on the 730 px world. */
 export const flipFxFor = (s: FlipState): ArcadeFxSpec<FlipState> => (s.exp ? fxSpecAt(FLIP_FX, FLIP_V8_WORLD_H) : FLIP_FX);
@@ -1758,7 +1804,28 @@ const ORBIT_FX_XP_VIEW: ArcadeFxSpec<OrbitState> = { ...ORBIT_FX, width: 450, he
  * orbitRev 12 (the expansion to 200): the same events in the wider 450 × 782 view, drawn 862 tall since 27 Oct 2026
  * (ORBIT_XP_DRAW_H in orbit.renderer.ts, rows above the camera's frame: the world reaches the screen's bottom), so the layer maps as the world does.
  */
-export const ORBIT3_FX_XP: ArcadeFxSpec<OrbitRev3State> = { ...ORBIT3_FX, width: 450, height: ORBIT_XP_DRAW_H_FX };
+export const ORBIT3_FX_XP: ArcadeFxSpec<OrbitRev3State> = {
+  ...ORBIT3_FX,
+  width: 450,
+  height: ORBIT_XP_DRAW_H_FX,
+  // Stage 2 (the Action overhaul, 15 Nov 2026, display only): the sun's own bloom and banner (orbitEffects.renderer.ts
+  // drawSunBloom, with the planets counting up) say "ALL 40 PLANETS!", so the layer's final pop isn't said twice.
+  events: ORBIT3_FX.events.filter((e) => e.kind !== "final"),
+  // The edge glow's replacement (Orbit is edgeless): a crisp ring opening from where the moment happened (every tenth
+  // planet's banner, a black hole's jump), gold or violet, no glow; still under reduced motion.
+  moment: (ctx, m) => drawOrbitMomentRing(ctx, m),
+};
+function drawOrbitMomentRing(ctx: CanvasRenderingContext2D, m: ArcadeFxMoment): void {
+  const open = m.still ? 0.6 : 1 - (1 - m.p) * (1 - m.p);
+  ctx.save();
+  ctx.globalAlpha = (m.still ? 0.6 : 0.85) * (1 - m.p);
+  ctx.strokeStyle = m.kind === "clear" ? "#B98CFF" : "#F5B82E";
+  ctx.lineWidth = m.lite ? 1.5 : 2.5;
+  ctx.beginPath();
+  ctx.arc(m.x, m.y, 18 + 70 * open, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
 export const orbit3FxFor = (s: OrbitRev3State): ArcadeFxSpec<OrbitRev3State> => (s.viewW ? ORBIT3_FX_XP : fxSpecAt(ORBIT3_FX, orbitViewH(s)));
 export const ORBIT3_FX_TALL = fxSpecAt(ORBIT3_FX, ORBIT_TALL_VIEW_H);
 export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => fxSpecAt(BALLTRACK_FX, btWorldH(s));

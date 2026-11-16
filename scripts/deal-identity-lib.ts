@@ -106,8 +106,16 @@ export function digest(value: unknown): string {
  * preGameReviewNov15.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of notesRev 1, notesFree.ts): preNotesFree.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): preRetro (Tempo beatRev 12).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreGrace (orbitRev 15),
+ * flipPreGrace (Roofbound flipRev 13), skylinePreLives (High Rise skylineRev 11).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): ricoPreBig (Moon Climb ricoRev 4).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): swingPreBig (Grappler swingRev 18).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreBig (Orbit orbitRev 16).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): bastionPreLevels (Iron Wall
+ * bastionRev 4, the levels).
+ * Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine).
  */
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preRetro"];
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preRetro", "orbitPreGrace", "flipPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels"];
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {
@@ -168,7 +176,12 @@ export function roomDigests(seeds: readonly number[]): Record<string, string> {
   // Whole rooms pin only the switches newer than the recording that reach a room's puzzle deals (Minefield's is an
   // arcade deal, unpinned here as before).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): preRetro, Tempo's room deal.
-  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preRetro"]);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action
+  // overhaul): the new arcade stamps that reach a room's deals, orbitPreGrace and skylinePreLives, beside flipPreGrace;
+  // ricoPreBig (Moon Climb ricoRev 4) and swingPreBig (Grappler swingRev 18), the same approval; orbitPreBig (Orbit
+  // orbitRev 16), the same approval; bastionPreLevels (Iron Wall bastionRev 4), the same approval.
+  // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine).
+  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preRetro", "flipPreGrace", "orbitPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels"]);
 }
 
 function roomDigestsNow(seeds: readonly number[]): Record<string, string> {

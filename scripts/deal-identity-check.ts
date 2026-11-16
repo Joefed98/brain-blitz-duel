@@ -119,7 +119,15 @@ tasks.push({
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the 15 Nov 2026 era switches preNotesFree and
     // preGameReviewNov15): 26.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): preRetro, 27.
-    ok(names.size === 27, `27 era switches (${names.size})`);
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreGrace (orbitRev 15), 27.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): flipPreGrace (flipRev 13) and
+    // skylinePreLives (skylineRev 11), 29.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): ricoPreBig (ricoRev 4), 30.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): swingPreBig (swingRev 18), 31.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreBig (orbitRev 16), 32.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): bastionPreLevels (bastionRev 4), 33.
+    // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): preRetro with the Action overhaul's seven, 34.
+    ok(names.size === 34, `34 era switches (${names.size})`);
   },
 });
 

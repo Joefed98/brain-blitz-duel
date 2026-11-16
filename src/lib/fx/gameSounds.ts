@@ -6,17 +6,22 @@
  * once that slot has a file, else the shared sound it always played, unchanged.
  */
 import { pinBallsOf } from "@/lib/arcade/pinball4";
-import { bastionDronePos, bastionDrones, bastionWave, BASTION_REV_IRON, BT2_WAVE_START, type BastionTankState } from "@/lib/arcade/bastionTank";
+import { bastionDronePos, bastionDronesOf, bastionWave, BASTION_REV_IRON, BT2_MAG, BT2_WAVE_START, type BastionTankState } from "@/lib/arcade/bastionTank";
+import { bastionNearMiss, bastionSettingNow, bastionSwipeHint, bastionTallyRows, BT_HELD_AT_MS, BT_SNAP_STEP } from "@/lib/arcade/bastionLook";
 import { cueHasFile, ensureCueLoop, ensureSlotLoop, isMusicMuted, musicVolume, playCueSlot, playSlotOr, setCueLoopRate, stopCueLoop, stopSlotLoop } from "@/lib/sound";
 import { liveCue, momentFrame } from "@/lib/fx/momentCues";
 import { haptic, type HapticPattern } from "@/lib/haptics";
 import type { SoundId } from "@/lib/fx/manifest";
 import { ORBIT_EIGHT, type OrbitState } from "@/lib/arcade/orbit";
 import { CLASH_LANE_EXPAND_TICK, type ClashState } from "@/lib/arcade/colourClash";
-import { SWING_CHASE_REACH, SWING_REV, SWING_ROCK_WARN, SWING_ROCK_WARN_V6, SWING_WORLD_W, swingAnchorAt, swingJetAt, type SwingState } from "@/lib/arcade/swing";
+import { observeSwingPress } from "@/lib/arcade/swingPress";
+import { PTERO_SHADOW_TICKS, swingChaseAge, swingEndAt, swingEndTally } from "@/lib/arcade/swingEffects.renderer";
+import { reducedMotion as swingStill } from "@/lib/arcade/art.renderer";
+import { SWING_CHASE_REACH, SWING_REV, SWING_ROCK_WARN, SWING_ROCK_WARN_V6, SWING_WORLD_W, SWING_V15_GATE_SPEED, swingAnchorAt, swingJetAt, type SwingState } from "@/lib/arcade/swing";
 import { WAV_CELL, WAV_COLS, WAV_SHIP_H, wavDropPx, wavForm, wavShipY, wavStreakMult, type WavState } from "@/lib/arcade/wavefront";
 import { CROSS_CYCLE_FROM, CROSS_CYCLE_TWO_FROM, CROSS_KIND_BUS, CROSS_REV2, CROSS_ROADWORKS_FROM, CROSS_ROADWORKS_TWO_FROM, CROSS_X_BUS_FROM, CROSS_X_BUS_TWO_FROM, crossKindCrossed, type CrossState } from "@/lib/arcade/cross";
 import { FLIP_CRUMBLE_TICKS, flipCrackTick, flipSpeed, type FlipState } from "@/lib/arcade/flip";
+import { flipNearMiss } from "@/lib/arcade/flipFx";
 import { HOVER_IMPULSE, HOVER_WORLD_W, hoverSurvived, type HoverPillar, type HoverState } from "@/lib/arcade/hover";
 import { bfHardDropped, bfNearTop, burstOverhead, hoverScrape, rallyEdgeSave, snakeRockGraze, snakeWrapped, wavBoltNearMiss } from "@/lib/arcade/retroMoments";
 import { snakeStepTicksOf, type SnakeState } from "@/lib/arcade/snake";
@@ -51,7 +56,7 @@ import { fcHomeCount, type FcState } from "@/lib/arcade/cards/freecell";
 import type { TpState } from "@/lib/arcade/cards/tripeaks";
 import { PS_LINES, psHand, psLineHand, psTotals, type PsState } from "@/lib/arcade/cards/pokerSquares";
 import { fhTotals, type FhState } from "@/lib/arcade/cards/fiveHands";
-import { MODE_CLING, MODE_FLIGHT, MODE_RIDE, MOON_REV, ninjaSurface, SURF_STONE, type MoonState, type NinjaState } from "@/lib/arcade/ricochetNinja";
+import { isMoonState, MODE_CLING, MODE_FLIGHT, MODE_RIDE, ninjaSurface, SURF_STONE, type MoonState, type NinjaState } from "@/lib/arcade/ricochetNinja";
 import type { PyState } from "@/lib/arcade/cards/pyramid";
 import type { GsState } from "@/lib/arcade/cards/golfSol";
 import { MG_BIG_AT, type MgState } from "@/lib/arcade/cards/muggins";
@@ -128,7 +133,28 @@ export function orbitSounds(): GameSounds<OrbitState> {
       if (prev && state.tick > prev.tick) {
         if (state.releaseTick !== prev.releaseTick && state.flying > 0) sfx("orbit.launch", "arc_thruster");
         if (prev.checkpoint < 0 && state.checkpoint >= 0) sfx("orbit.checkpoint", "arc_pickup");
-        if (state.respawnTick !== prev.respawnTick || (state.ended === 2 && prev.ended !== 2)) { sfx("orbit.crash", "arc_crash"); feel("impact"); }
+        // The Action overhaul (15 Nov 2026): an empty tank has its own sputter (orbitRev 14+), a crash keeps the crash.
+        const fuelState = state as OrbitState & { fuel?: number; dry?: number; hold?: number; finished?: number };
+        const fuelPrev = prev as typeof fuelState;
+        if (state.respawnTick !== prev.respawnTick || (state.ended === 2 && prev.ended !== 2)) {
+          if (fuelState.dry !== undefined && fuelState.dry === state.tick) sfx("orbit.outOfFuel", "arc_lose_life");
+          else sfx("orbit.crash", "arc_crash");
+          feel("impact");
+        }
+        // orbitRev 14+: a quarter of the tank left in flight starts the low-fuel beep (once a flight); the thruster's
+        // hiss runs in flight, its pitch falling with the fuel left (silent until its recording is set).
+        if (fuelState.fuel !== undefined) {
+          const flyingNow = state.flying > 0 && state.ended === 0;
+          // Stage 2 (15 Nov 2026): the beep repeats every half second while the tank keeps falling (the gauge pulsing with it).
+          const lowStep = fuelState.fuel <= ORBIT_LOW_FUEL && fuelState.fuel !== fuelPrev.fuel && (ORBIT_LOW_FUEL - fuelState.fuel) % ORBIT_LOW_FUEL_BEEP === 0;
+          if (flyingNow && fuelState.fuel > 0 && lowStep) sfx("orbit.lowFuel", "warning_tick");
+          loopCue("orbit.thrust", flyingNow);
+          if (flyingNow) setCueLoopRate("orbit.thrust", 0.75 + 0.35 * Math.min(1, fuelState.fuel / ORBIT_LOW_FUEL / 4));
+          // orbitRev 15 (grace): the respawn's hold ends with a ready blip.
+          if ((fuelPrev.hold ?? 0) > 0 && (fuelState.hold ?? 0) === 0) sfx("orbit.respawnReady", "countdown_step");
+          // Reaching the sun: the bloom's swell (silent until its recording is set; the banner keeps its cue).
+          if (fuelState.finished === 1 && fuelPrev.finished !== 1) effectCue("orbit.sunBloom");
+        }
         // A planet caught: the bloom and ring; every tenth also sends a shooting star across the sky.
         if (state.captured > prev.captured) {
           if (Math.trunc(state.captured / 10) > Math.trunc(prev.captured / 10)) effectCue("orbit.shootingStar");
@@ -139,7 +165,11 @@ export function orbitSounds(): GameSounds<OrbitState> {
         const xp = state as OrbitState & { xp?: number; dustGot?: number; slung?: number; threaded?: number; perfect?: number };
         const was = prev as typeof xp;
         if (xp.xp) {
-          if ((xp.dustGot ?? 0) !== (was.dustGot ?? 0)) sfx("shared.celebrate.countTick", "tick", 0.8);
+          // The Action overhaul: Orbit's own stardust tick once its recording is set; the shared tick until then.
+          if ((xp.dustGot ?? 0) !== (was.dustGot ?? 0)) {
+            if (cueHasFile("orbit.stardust")) effectCue("orbit.stardust");
+            else sfx("shared.celebrate.countTick", "tick", 0.8);
+          }
           if ((xp.slung ?? 0) !== (was.slung ?? 0)) sfx("shared.celebrate.zap", "arc_pickup");
           if ((xp.threaded ?? 0) !== (was.threaded ?? 0)) sfx("shared.celebrate.chime", "arc_pickup");
           if ((xp.perfect ?? 0) > (was.perfect ?? 0)) sfx("shared.celebrate.countDing", "tick", 0.55);
@@ -154,9 +184,16 @@ export function orbitSounds(): GameSounds<OrbitState> {
       } else if (prev && state.tick < prev.tick) announced.clear();
       prev = state;
     },
-    stop: () => stopSlotLoop("orbit.ambience", "arc_space_ambience"),
+    stop: () => {
+      stopSlotLoop("orbit.ambience", "arc_space_ambience");
+      loopCue("orbit.thrust", false);
+    },
   };
 }
+/** Orbit's low-fuel line (sound only): a quarter of the 160-tick tank. */
+const ORBIT_LOW_FUEL = 40;
+/** Ticks between low-fuel beeps (stage 2: half a second). */
+const ORBIT_LOW_FUEL_BEEP = 30;
 
 /** swingRev 4+: the dragon is off the left edge and its arrow has turned red (under 4 m behind), as the renderer draws it. */
 function swingDragonNear(s: SwingState): boolean {
@@ -175,11 +212,29 @@ function swingVineSliding(s: SwingState): boolean {
   });
 }
 
+/** The streak meter's notes (semitones above the slot's own pitch): a rising pentatonic arpeggio over the block of eight. */
+const SWING_STREAK_STEPS = [0, 2, 4, 7, 9, 12, 14, 16] as const;
+
 export function swingSounds(): GameSounds<SwingState> {
   let prev: SwingState | null = null;
+  // Stage 2: the end's tally (the count last sounded) and the pterodactyl's screech held for its shadow to cross.
+  let tallied = -1;
+  let screechDue = -1;
   return {
     frame(state, running) {
       beginFrame("swing", state);
+      // Stage 2 (15 Nov 2026): a press that grabbed nothing (swingPress.ts judges it a few ticks on).
+      if (running && observeSwingPress(state)) effectCue("swing.outOfReach");
+      // The end: one tick of the tally for each stretch counted up (the renderer's count, swingEndTally).
+      if (state.slide && state.ended !== 0) {
+        const at = swingEndAt(state);
+        const n = swingEndTally(state, (typeof performance === "undefined" ? 0 : performance.now()) - at, swingStill());
+        if (tallied < 0) tallied = 0;
+        if (n > tallied) {
+          effectCue("swing.stretchTally", 0, 0.9 + 0.3 * Math.min(1, n / Math.max(1, state.sections?.length ?? 1)));
+          tallied = n;
+        }
+      } else tallied = -1;
       // swingRev 17 is the jungle canopy (3 Nov 2026): no lava bed; the jungle's own bed (silent until recorded), a vine
       // creak on a grab, a splash on a miss (the pterodactyl's screech when it caught you) and its screech as it swoops in.
       const jungle = Boolean(state.slide);
@@ -188,7 +243,8 @@ export function swingSounds(): GameSounds<SwingState> {
       ambienceCue("swing.jungle", live && jungle);
       // Joe's jungle recordings (6 Nov 2026): the pterodactyl's wingbeats while it chases, the sliding vines' rails
       // while one still slides on screen.
-      loopCue("swing.wings", live && jungle && (state.chaseX ?? 0) !== 0);
+      // Stage 2: the wingbeats start once the pterodactyl's shadow has crossed (PTERO_SHADOW_TICKS after the chase starts).
+      loopCue("swing.wings", live && jungle && (state.chaseX ?? 0) !== 0 && !(swingChaseAge(state) >= 0 && swingChaseAge(state) < PTERO_SHADOW_TICKS));
       loopCue("swing.slideVine", live && jungle && swingVineSliding(state));
       if (prev && state.tick > prev.tick) {
         const caught = (state.caught ?? 0) > (prev.caught ?? 0);
@@ -200,17 +256,43 @@ export function swingSounds(): GameSounds<SwingState> {
           else sfx("swing.splash", "arc_crash");
           feel("impact");
         } else if (prev.rope < 0 && state.rope >= 0) {
-          if (jungle) sfx("swing.vineCreak", "arc_grapple");
-          else sfx("swing.grapple", "arc_grapple");
-        } else if (jungle && prev.rope >= 0 && state.rope < 0 && state.ended === 0) effectCue("swing.release");
+          if (jungle) {
+            sfx("swing.vineCreak", "arc_grapple");
+            // The Action overhaul (15 Nov 2026): the rope snapping taut over the creak (silent until Joe's file).
+            effectCue("swing.ropeSnap");
+          } else sfx("swing.grapple", "arc_grapple");
+        } else if (jungle && prev.rope >= 0 && state.rope < 0 && state.ended === 0) {
+          // Pitched by the release speed (the overhaul): 0.85× slow to 1.25× at twice the gate speed.
+          const fly = Math.hypot(state.vx, state.vy) / 256;
+          effectCue("swing.release", 0, 0.85 + 0.4 * Math.min(1, fly / (2 * SWING_V15_GATE_SPEED)));
+          // A release fast enough to light a gate (rev 15+'s 3.5 px a tick): the speed whoosh on top (silent until Joe's file).
+          if (Math.hypot(state.vx, state.vy) >= SWING_V15_GATE_SPEED * 256) effectCue("swing.speedWhoosh");
+        }
+        // The whole course cleared (the overhaul's "COURSE CLEARED!"; silent until Joe's file).
+        if (jungle) {
+          const total = state.sections?.length ?? 0;
+          if (total > 0 && (state.sec ?? 0) >= total && (prev.sec ?? 0) < total) effectCue("swing.courseCleared");
+          // Stage 2: each clean grab fills a segment of the streak meter, a note a step higher up the block of eight.
+          if ((state.bestHook ?? -1) > (prev.bestHook ?? -1) && (state.streak ?? 0) > 0) {
+            const step = SWING_STREAK_STEPS[((state.streak ?? 1) - 1) % SWING_STREAK_STEPS.length]!;
+            effectCue("swing.streakMeter", 0, Math.pow(2, step / 12));
+          }
+          // The pterodactyl's shadow crosses first; its screech once the shadow has gone (PTERO_SHADOW_TICKS).
+          if (screechDue >= 0 && state.tick >= screechDue) {
+            sfx("swing.pterodactyl", "arc_siren", 0.6);
+            screechDue = -1;
+          }
+        }
         // The jungle: landing on a tree platform (never the restart's placing), and each block of the clean-swing streak.
         if (jungle && (state.restarts ?? 0) === (prev.restarts ?? 0) && (prev.ledgeOn ?? -1) < 0 && (state.ledgeOn ?? -1) >= 0) effectCue("swing.land");
         if (jungle && (state.streakPaid ?? 0) > (prev.streakPaid ?? 0)) effectCue("swing.streak");
         // swingRev 4: a star taken, the dragon appearing, a stalactite starting to shake, a jet erupting.
         if ((state.stars ?? 0) > (prev.stars ?? 0)) sfx("swing.starTaken", "arc_pickup", 0.9);
         if ((state.chaseX ?? 0) !== 0 && (prev.chaseX ?? 0) === 0) {
-          if (jungle) sfx("swing.pterodactyl", "arc_siren", 0.6);
-          else sfx("swing.dragon", "arc_siren", 0.6);
+          if (jungle) {
+            effectCue("swing.pteroShadow");
+            screechDue = state.tick + PTERO_SHADOW_TICKS;
+          } else sfx("swing.dragon", "arc_siren", 0.6);
         }
         if ((state.rocks ?? []).some((r, i) => r.phase === 1 && prev!.rocks?.[i]?.phase === 0)) sfx("swing.rockShake", "arc_clank", 0.5);
         if ((state.rocks ?? []).some((r, i) => r.phase === 3 && prev!.rocks?.[i]?.phase === 2)) sfx("swing.rockLand", "arc_wood_knock", 0.5);
@@ -357,8 +439,34 @@ export function flipSounds(): GameSounds<FlipState> {
       beginFrame("flip", state);
       void running;
       if (prev && state.tick > prev.tick) {
-        if (state.ended === 2 && prev.ended !== 2) { sfx("flip.crash", "arc_crash"); feel("impact"); }
-        else if (state.flipT > prev.flipT) sfx("flip.flip", "arc_gravity_flip", 0.7);
+        // flipRev 13 (grace): a crash respawns the runner instead of ending the run; the same crash sound and haptic, then
+        // the rewind of the blink back (silent until its file).
+        const respawned = Boolean(state.grace) && (state.saves ?? 0) > (prev.saves ?? 0);
+        if ((state.ended === 2 && prev.ended !== 2) || respawned) { sfx("flip.crash", "arc_crash"); feel("impact"); if (respawned) effectCue("flip.respawn"); }
+        // The Action overhaul (flipRev 11–13): the flip's whoosh rises to the roof or falls to the floor (the library
+        // flip until Joe's files); older revisions keep the one flip.
+        else if (state.flipT > prev.flipT) {
+          if (state.flow && state.side === 1) sfx("flip.flipUp", "arc_gravity_flip", 0.7);
+          else if (state.flow) sfx("flip.flipDown", "arc_gravity_flip", 0.7);
+          else sfx("flip.flip", "arc_gravity_flip", 0.7);
+        }
+        // flipRev 11–13: a landing's thud, each clean landing's rising flow note (a brighter one every 10th) and the
+        // streak's break (all silent until their files).
+        if (state.flow && state.ended === 0) {
+          if (prev.flipT === 1 && state.flipT === 0) effectCue("flip.land", 60);
+          const streak = state.streak ?? 0;
+          const was = prev.streak ?? 0;
+          if (streak > was && streak % 10 === 0) effectCue("flip.flowTen");
+          else if (streak > was) effectCue("flip.flowTick", 0, 1 + (streak % 10) * 0.06);
+          else if (streak === 0 && was >= 3) effectCue("flip.flowBreak");
+          // Stage 2 (15 Nov 2026): a near miss on a spike (its glint's short "tsss") and a sweet landing's gold puff (the
+          // chime stays flip.sweetLanding's moment); silent until their files, as the other renderer cues.
+          const miss = flipNearMiss(state);
+          if (miss && miss.tick > prev.tick && miss.tick <= state.tick) effectCue("flip.nearMiss");
+          if ((state.sweetT ?? 0) > (prev.sweetT ?? 0)) effectCue("flip.sweetGold");
+        }
+        // Stage 2: SURVIVED! with the flow best counting up under it (silent until its file).
+        if (state.flow && state.ended === 1 && prev.ended !== 1 && (state.bestStreak ?? 0) > 0) effectCue("flip.flowCount");
         if (state.ended === 0) {
           // The tunnel speeds up a step (every 3 s); only every third step is sounded (9, 18, 27, 36, 45 s).
           if (flipSpeed(state.tick) > flipSpeed(prev.tick) && Math.trunc(state.tick / FLIP_STEP_TICKS) % 3 === 0) effectCue("flip.speedUp");
@@ -954,6 +1062,11 @@ export function junctionSounds(): GameSounds<JuncState> {
   };
 }
 
+/** High Rise's perfect-drop tock (stage 2, 15 Nov 2026): a semitone higher for each perfect drop in a row after the first, up to seven. */
+export function skylinePerfectRate(streak: number): number {
+  return 2 ** (Math.max(0, Math.min(7, streak - 1)) / 12);
+}
+
 export function skylineSounds(): GameSounds<SkylineState> {
   let prev: SkylineState | null = null;
   return {
@@ -962,7 +1075,14 @@ export function skylineSounds(): GameSounds<SkylineState> {
       if (prev && state.tick > prev.tick) {
         if (state.blocks.length > prev.blocks.length) {
           sfx("skyline.drop", "arc_clank", 0.8, 1, true);
-          if (state.perfectTick === state.tick) sfx("skyline.perfect", "correct");
+          // Stage 2: the tock rises with the perfect streak (streak is absent on unstamped rounds: the base pitch).
+          if (state.perfectTick === state.tick) sfx("skyline.perfect", "correct", 1, skylinePerfectRate(state.streak ?? 1), false, true);
+          else {
+            // The Action overhaul (15 Nov 2026): a trim crumbles; a sliver (under a quarter of the block on the tower) creaks.
+            const top = state.blocks[state.blocks.length - 1]!;
+            if (top.w * 4 < prev.w) ownCue("skyline.sliver", "arc_clank", 0.6);
+            else if (top.w < prev.w) ownCue("skyline.trim", "arc_wood_knock", 0.5);
+          }
           // skylineRev 2: a streak bonus drop (3rd perfect in a row or later).
           if ((state.streakPoints ?? 0) > (prev.streakPoints ?? 0)) sfx("skyline.streakDrop", "arc_retro_coin", 0.7);
           // skylineRev 7+ (the expansion, existing sounds only): a new streak multiplier tier dings, a gold block
@@ -976,6 +1096,9 @@ export function skylineSounds(): GameSounds<SkylineState> {
           }
         }
         if (state.missed && !prev.missed) { sfx("skyline.miss", "arc_crash"); feel("impact"); }
+        // skylineRev 11 (lives): a miss that costs a life and the run carries on; the wide-block rescue arriving.
+        else if ((state.livesLost ?? 0) > (prev.livesLost ?? 0)) ownCue("skyline.lifeLost", "arc_lose_life");
+        else if ((state.rescues ?? 0) > (prev.rescues ?? 0)) ownCue("skyline.wideBlock", "arc_pickup", 0.8);
         else if (skylineGustAt(state, state.tick) !== 0 && skylineGustAt(prev, prev.tick) === 0) effectCue("skyline.gust");
         // The flag streams a second before a gust blows.
         else if (skylineFlagAt(state, state.tick) !== 0 && skylineFlagAt(prev, prev.tick) === 0) effectCue("skyline.gustWarn");
@@ -1322,7 +1445,7 @@ export function curlingSounds(): GameSounds<CurlingState> {
 /** Iron Wall (bastionRev 3): is a drone in the sky (not yet downed)? */
 function bastionDroneUp(s: BastionTankState): boolean {
   if (s.rev < BASTION_REV_IRON) return false;
-  return bastionDrones(s.seed).some((d, n) => !(s.droneMask & (1 << n)) && bastionDronePos(d, s.tick) !== null);
+  return bastionDronesOf(s).some((d, n) => !(s.droneMask & (1 << n)) && bastionDronePos(d, s.tick) !== null);
 }
 
 /**
@@ -1334,6 +1457,10 @@ function bastionDroneUp(s: BastionTankState): boolean {
  */
 export function bastionTankSounds(): GameSounds<BastionTankState> {
   let prev: BastionTankState | null = null;
+  // The end card (stage 2): when the run ended on this phone's clock, the wave rows already ticked, and the stamp.
+  let endAt: number | null = null;
+  let tallied = 0;
+  let stamped = false;
   return {
     frame(state, running) {
       beginFrame("bastion", state);
@@ -1343,28 +1470,72 @@ export function bastionTankSounds(): GameSounds<BastionTankState> {
         if (state.dry > prev.dry) sfx("bastion.dry", "tick", 0.5);
         if (state.reloads > prev.reloads) sfx("bastion.reload", "arc_latch", 0.7);
         if (state.fast > prev.fast) sfx("bastion.fastReload", "arc_retro_coin", 0.8);
-        if (state.jams > prev.jams) sfx("bastion.jam", "arc_clank", 0.9);
+        if (state.jams > prev.jams) {
+          sfx("bastion.jam", "arc_clank", 0.9);
+          effectCue("bastion.jamGrind");
+        }
+        // The one-time reload tip (Action overhaul): a soft cue as it appears.
+        if (bastionSwipeHint(state) && !bastionSwipeHint(prev)) effectCue("bastion.tip");
+        // A fast reload's shells snapping in one by one as it ends (stage 2): a click for each, as the slots light.
+        if (state.reloadAt < 0 && state.reloadTap === 1)
+          for (let n = 0; n < BT2_MAG; n++) {
+            const at = state.reloadEnd + BT_SNAP_STEP * n;
+            if (prev.tick < at && state.tick >= at) effectCue("bastion.shellIn", 0, 1 + 0.04 * n);
+          }
         if (prev.reloadAt >= 0 && state.reloadAt < 0) sfx("bastion.loaded", "arc_latch", 0.5, 1.3);
         const fresh = state.impacts.filter((m) => m.t > prev!.tick);
         for (const m of fresh) {
           if (m.r === 5) sfx("bastion.droneDown", "arc_retro_explode", 0.85);
-          else if (m.r >= 3) sfx("bastion.kill", "arc_big_explode", 0.9);
-          else if (m.r === 2) sfx("bastion.weak", "arc_pickup", 0.8);
+          else if (m.r >= 3) {
+            sfx("bastion.kill", "arc_big_explode", 0.9);
+            effectCue("bastion.debris");
+            if (m.r === 4) effectCue("bastion.weakTing");
+          } else if (m.r === 2) {
+            sfx("bastion.weak", "arc_pickup", 0.8);
+            effectCue("bastion.weakTing");
+          }
           else if (m.r === 1) sfx("bastion.hit", "arc_retro_hit", 0.8);
-          else sfx("bastion.miss", "arc_fair_thud", 0.5);
+          else {
+            sfx("bastion.miss", "arc_fair_thud", 0.5);
+            if (bastionNearMiss(state, m)) effectCue("bastion.nearMiss");
+          }
         }
         if (state.breached > prev.breached) {
           sfx("bastion.baseHit", "arc_crash", 1);
+          effectCue("bastion.panelCrack");
           feel("impact");
         }
         if (bastionWave(state) !== bastionWave(prev) || (prev.tick < BT2_WAVE_START[0] && state.tick >= BT2_WAVE_START[0])) sfx("bastion.wave", "arc_horn", 0.6);
+        if (prev.ended === 0 && state.ended !== 0) {
+          endAt = typeof performance !== "undefined" ? performance.now() : 0;
+          tallied = 0;
+          stamped = false;
+        }
+      }
+      // The end card (stage 2, on the art's timing, bastionLook.ts): a tick a step higher as each wave's row lands,
+      // then, the wall held (the clock ran out or every tank is gone with the base standing), its sting.
+      if (endAt !== null && state.ended !== 0) {
+        const ms = (typeof performance !== "undefined" ? performance.now() : 0) - endAt;
+        const rows = bastionTallyRows(ms);
+        while (tallied < rows) effectCue("bastion.tally", 0, 1 + 0.06 * tallied++);
+        if (!stamped && ms >= BT_HELD_AT_MS) {
+          stamped = true;
+          if (state.ended === 1 || state.ended === 3) effectCue("bastion.wallHeld");
+        }
       }
       loopCue("bastion.drone", running && state.ended === 0 && bastionDroneUp(state));
+      // The setting's ambience (Action overhaul): desert wind in waves 3–4, the storm's fires in wave 5.
+      const setting = bastionSettingNow(state);
+      ambienceCue("bastion.dustWind", running && state.ended === 0 && setting === 1);
+      ambienceCue("bastion.stormFire", running && state.ended === 0 && setting === 2);
       prev = state;
     },
     stop() {
       loopCue("bastion.drone", false);
+      loopCue("bastion.dustWind", false);
+      loopCue("bastion.stormFire", false);
       prev = null;
+      endAt = null;
     },
   };
 }
@@ -1697,17 +1868,29 @@ export function fiveHandsSounds(): GameSounds<FhState> {
  * lantern (library sounds; their slots were retired with Moon Climb). Rev 3: a sky lantern grabbed, its ride (a quiet
  * loop) and each Flow step. Every slot plays a library sound until Joe's file is set.
  */
+/** A scroll's flight to the HUD (ticks): MOON_FX_SCROLL_TICKS in ricochetNinja.renderer.ts (ricochet-overhaul-check holds them equal). */
+export const MOON_SCROLL_TALLY_TICKS = 24;
 export function ninjaSounds(): GameSounds<NinjaState> {
   let prev: NinjaState | null = null;
   return {
     frame(state, running) {
       beginFrame("ricochet", state);
-      const moon = state.rev === MOON_REV ? (state as MoonState) : null;
+      const moon = isMoonState(state) ? (state as MoonState) : null;
       loopCue("ricochet.lanternRide", running && moon !== null && moon.mode === MODE_RIDE && moon.ended === 0);
+      // The Action overhaul (15 Nov 2026): a scuff loop while sliding on moss or ice (silent until its file is set).
+      const sliding =
+        running && moon !== null && prev !== null && moon.ended === 0 && moon.mode === MODE_CLING && moon.ledge < 0 && state.y < prev.y &&
+        ninjaSurface(state.tower.patches, state.wall, state.y >> 8) !== SURF_STONE;
+      loopCue("ricochet.scuff", sliding);
       if (prev && state.tick > prev.tick) {
         const was = prev as MoonState;
-        if (state.hits > prev.hits) { sfx("ricochet.hit", "arc_crash"); feel("impact"); }
-        else {
+        if (state.hits > prev.hits) {
+          sfx("ricochet.hit", "arc_crash");
+          feel("impact");
+          if (moon) effectCue("ricochet.fallWhistle");
+        } else {
+          // A Flow streak of 3 or more broken by a slide (silent until its file is set).
+          if (moon && (was.streak ?? 0) >= 3 && moon.streak === 0) effectCue("ricochet.flowBreak", 300);
           if (state.leaps > prev.leaps) sfx("ricochet.leap", "arc_gravity_flip", 0.5);
           if (state.djs > prev.djs) sfx("ricochet.doubleJump", "arc_gravity_flip", 0.6, 1.25);
           if (prev.mode === MODE_FLIGHT && state.mode === MODE_CLING) {
@@ -1715,16 +1898,25 @@ export function ninjaSounds(): GameSounds<NinjaState> {
             else if (ninjaSurface(state.tower.patches, state.wall, state.y >> 8) !== SURF_STONE) sfx("ricochet.slip", "arc_retro_blip", 0.35, 0.8);
             else sfx("ricochet.land", "arc_retro_hit", 0.3);
           }
-          if (moon && moon.rides > (was.rides ?? 0)) sfx("ricochet.lanternGrab", "arc_pickup", 0.8);
+          if (moon && moon.rides > (was.rides ?? 0)) {
+            sfx("ricochet.lanternGrab", "arc_pickup", 0.8);
+            // Stage 2's effects: the grabbed lantern brightens and sways (silent until its file is set).
+            effectCue("ricochet.lanternSway");
+          }
           if (moon && moon.flow > (was.flow ?? 0)) sfx("ricochet.flow", "combo", 0.75);
         }
+        // Stage 2's effects: a taken scroll lands on the HUD's SCROLLS count MOON_SCROLL_TALLY_TICKS later (silent until its file is set).
+        if (moon && moon.scrolls > 0 && prev.tick - moon.pickTick < MOON_SCROLL_TALLY_TICKS && state.tick - moon.pickTick >= MOON_SCROLL_TALLY_TICKS) effectCue("ricochet.scrollTally");
         if (state.scrolls > prev.scrolls) sfx("ricochet.scroll", "correct", 0.9);
         else if (state.lanterns > prev.lanterns) sfx("combo", "combo", 0.85);
         else if (state.coins > prev.coins) sfx("arc_pickup", "arc_pickup", 0.8);
       }
       prev = state;
     },
-    stop: () => loopCue("ricochet.lanternRide", false),
+    stop: () => {
+      loopCue("ricochet.lanternRide", false);
+      loopCue("ricochet.scuff", false);
+    },
   };
 }
 

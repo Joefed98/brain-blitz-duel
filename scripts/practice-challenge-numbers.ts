@@ -17,7 +17,7 @@ import { readFileSync } from "node:fs";
 
 import { ARCADE_STANDARD } from "../src/lib/arcade/standard";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
-import { FLIP_V11 } from "../src/lib/arcade/flip";
+import { FLIP_V13 } from "../src/lib/arcade/flip";
 import { BT_STD } from "../src/lib/arcade/ballTrack";
 import { ORBIT_STD } from "../src/lib/arcade/orbitRev3";
 import { inkStdSpecFor } from "../src/lib/arcade/inkBridge";
@@ -84,7 +84,8 @@ function helpCount(type: string, noun: string): number {
 /** A live arcade spec's part (ARCADE_STANDARD, LIVE_BANDS std, or the reveal's own specs). */
 function specPart(type: string, label: string): { max: number; of?: number; how?: string } | null {
   const specs: any[] = [ARCADE_STANDARD[type]?.spec, (LIVE_BANDS as any)[type]?.std];
-  if (type === "flip") specs.push(FLIP_V11);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the live spec is flipRev 13's.
+  if (type === "flip") specs.push(FLIP_V13);
   if (type === "balltrack") specs.push(BT_STD);
   if (type === "orbit") specs.push(ORBIT_STD);
   if (type === "inkbridge") specs.push(inkStdSpecFor(14));
@@ -200,6 +201,8 @@ function expectations(): Record<string, Expect> {
     "bastion.weak-at-the-knees": { say: [[30, of("bastion", "Weak spots")]] },
     "flip.double-or-nothing": { say: [[8, of("flip", "Double flips")]] },
     "flip.flow-rider": { say: [[50, of("flip", "Flow streak")]] },
+    // The Action overhaul (15 Nov 2026): flipRev 13's perfect landings are full at five of the eight sweet spots.
+    "flip.sweet-spot": { say: [[5, of("flip", "Perfect landings")]] },
     "swing.vine-time": { say: [[10, 20 / SWING_V17_STREAK_EACH], [8, SWING_V17_STREAK_BLOCK]], th: [[20, 10 * SWING_V17_STREAK_EACH]] },
     "swing.king-of-the-swingers": { say: [[70, SWING_V17_FULL / 10]] },
     "ricochet.scroll-keeper": { say: [[3, of("ricochet", "Scrolls")]] },

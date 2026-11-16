@@ -592,6 +592,20 @@ const ENTRIES = {
   // Iron Wall bastionRev 3 (3 Nov 2026): the drone's quiet loop while one is in the sky, and its fall.
   "bastion.drone": { channel: "effects", frequency: 0, ms: 2000, url: "/sounds/bastion.drone.mp3", loop: true },
   "bastion.droneDown": { channel: "effects", frequency: 0, ms: 800, url: "/sounds/bastion.droneDown.mp3" },
+  // Iron Wall's Action overhaul (15 Nov 2026; docs/sound-cues/action-elevenlabs.md): slots waiting for Joe's files,
+  // each silent (or on its fallback) until its url is set to /sounds/<slot>.mp3.
+  "bastion.weakTing": { channel: "effects", frequency: 0, ms: 260, url: null, fallback: "arc_retro_coin" },
+  "bastion.shellIn": { channel: "effects", frequency: 0, ms: 90, url: null, fallback: "arc_latch" },
+  "bastion.jamGrind": { channel: "effects", frequency: 0, ms: 700, url: null, fallback: "arc_clank" },
+  "bastion.debris": { channel: "effects", frequency: 0, ms: 600, url: null, fallback: "arc_retro_hit" },
+  "bastion.nearMiss": { channel: "effects", frequency: 0, ms: 350, url: null, fallback: "arc_fair_thud" },
+  "bastion.panelCrack": { channel: "effects", frequency: 0, ms: 500, url: null, fallback: "arc_crash" },
+  "bastion.wallHeld": { channel: "effects", frequency: 0, ms: 1800, url: null, fallback: "arc_fair_sting" },
+  "bastion.tip": { channel: "effects", frequency: 0, ms: 300, url: null, fallback: "arc_hover_tap" },
+  // Stage 2 (15 Nov 2026): each wave's row landing on the end card (the slot action-elevenlabs.md said comes with the tally).
+  "bastion.tally": { channel: "effects", frequency: 0, ms: 150, url: null, fallback: "tick" },
+  "bastion.dustWind": { channel: "effects", frequency: 0, ms: 6000, url: null, loop: true },
+  "bastion.stormFire": { channel: "effects", frequency: 0, ms: 6000, url: null, loop: true },
   "music_dual": { channel: "music", frequency: 0, ms: 0, url: null },
   "music_hotfloor": { channel: "music", frequency: 0, ms: 0, url: null },
   // Moon Climb's own bed (Joe's sounds-nov-2026 file, docs/sound-cues/mapping-nov-2026.csv).
@@ -718,6 +732,12 @@ const ENTRIES = {
   "racing.grass": { channel: "effects", frequency: 0, ms: 150, url: null },
   "racing.finish": { channel: "effects", frequency: 0, ms: 1357, url: "/sounds/racing_flag.mp3" },
   "skyline.miss": { channel: "effects", frequency: 0, ms: 200, url: null },
+  // The Action overhaul (15 Nov 2026, docs/sound-cues/action-elevenlabs.md): High Rise's new moments, wired with a library
+  // stand-in until Joe's files arrive (drop each in as public/sounds/<slot>.mp3 and set its url).
+  "skyline.lifeLost": { channel: "effects", frequency: 0, ms: 600, url: null, fallback: "arc_lose_life" },
+  "skyline.wideBlock": { channel: "effects", frequency: 0, ms: 400, url: null, fallback: "arc_pickup" },
+  "skyline.trim": { channel: "effects", frequency: 0, ms: 700, url: null, fallback: "arc_wood_knock" },
+  "skyline.sliver": { channel: "effects", frequency: 0, ms: 700, url: null, fallback: "arc_clank" },
   "hover.start": { channel: "effects", frequency: 0, ms: 120, url: null },
   "hover.crash": { channel: "effects", frequency: 0, ms: 260, url: null },
   "hover.gate": { channel: "effects", frequency: 0, ms: 90, url: null },
@@ -780,6 +800,14 @@ const ENTRIES = {
   "orbit.launch": { channel: "effects", frequency: 0, ms: 160, url: null },
   "orbit.checkpoint": { channel: "effects", frequency: 0, ms: 100, url: null },
   "orbit.crash": { channel: "effects", frequency: 0, ms: 200, url: null },
+  // The Action overhaul (15 Nov 2026; docs/sound-cues/action-elevenlabs.md): slots for Joe's ElevenLabs files, each
+  // playing its library stand-in (or nothing, for the loop and the bloom) until its url is set.
+  "orbit.thrust": { channel: "effects", frequency: 0, ms: 0, url: null, loop: true },
+  "orbit.lowFuel": { channel: "effects", frequency: 0, ms: 600, url: null },
+  "orbit.outOfFuel": { channel: "effects", frequency: 0, ms: 900, url: null },
+  "orbit.respawnReady": { channel: "effects", frequency: 0, ms: 250, url: null },
+  "orbit.stardust": { channel: "effects", frequency: 0, ms: 120, url: null, gapMs: 40 },
+  "orbit.sunBloom": { channel: "effects", frequency: 0, ms: 2500, url: null },
   "pinball.start": { channel: "effects", frequency: 0, ms: 486, url: "/sounds/pinball.start.mp3", volume: 0.78 },
   "pinball.ballLost": { channel: "effects", frequency: 0, ms: 587, url: "/sounds/pinball.ballLost.mp3", volume: 0.87 },
   "pinball.launch": { channel: "effects", frequency: 0, ms: 428, url: "/sounds/pinball.launch.mp3", volume: 0.77 },
@@ -807,11 +835,24 @@ const ENTRIES = {
   "rally.spinShot": { channel: "effects", frequency: 0, ms: 360, url: null },
   "flip.crash": { channel: "effects", frequency: 0, ms: 200, url: null },
   "flip.flip": { channel: "effects", frequency: 0, ms: 330, url: null },
+  // Roofbound, the Action overhaul (15 Nov 2026; docs/sound-cues/action-elevenlabs.md): Joe's ElevenLabs files to come.
+  // The two flip whooshes play the library flip until set; the rest are silent until their file (effectCue).
+  "flip.flipUp": { channel: "effects", frequency: 0, ms: 300, url: null },
+  "flip.flipDown": { channel: "effects", frequency: 0, ms: 300, url: null },
+  "flip.respawn": { channel: "effects", frequency: 0, ms: 450, url: null },
+  "flip.land": { channel: "effects", frequency: 0, ms: 180, url: null },
+  "flip.flowTick": { channel: "effects", frequency: 0, ms: 160, url: null },
+  "flip.flowTen": { channel: "effects", frequency: 0, ms: 300, url: null },
+  "flip.flowBreak": { channel: "effects", frequency: 0, ms: 350, url: null },
+  // Stage 2 of the Action overhaul (docs/sound-cues/action-overhaul-stage2.md): named now, fired with the effects kit.
+  "flip.nearMiss": { channel: "effects", frequency: 0, ms: 250, url: null, fallback: "arc_pickup" },
+  "flip.sweetGold": { channel: "effects", frequency: 0, ms: 350, url: null, fallback: "flip.sweetLanding" },
+  "flip.flowCount": { channel: "effects", frequency: 0, ms: 800, url: null, fallback: "reveal_score" },
   "ricochet.leap": { channel: "effects", frequency: 0, ms: 416, url: "/sounds/ricochet.leap.mp3" },
   "ricochet.doubleJump": { channel: "effects", frequency: 0, ms: 473, url: "/sounds/ricochet.doubleJump.mp3" },
   "ricochet.hit": { channel: "effects", frequency: 0, ms: 476, url: "/sounds/ricochet.hit.mp3" },
   "ricochet.scroll": { channel: "effects", frequency: 0, ms: 592, url: "/sounds/ricochet.scroll.mp3" },
-  // Moon Climb (ricoRev 3, 3 Nov 2026): Joe's recordings to come; each plays a library sound until its file is set.
+  // Moon Climb (ricoRev 3, 3 Nov 2026): Joe's recordings since 3 Nov 2026 (docs/sound-cues/mapping-nov-2026.csv).
   "ricochet.lanternGrab": { channel: "effects", frequency: 0, ms: 429, url: "/sounds/ricochet.lanternGrab.mp3" },
   "ricochet.lanternRide": { channel: "effects", frequency: 0, ms: 2000, url: "/sounds/ricochet.lanternRide.mp3", loop: true, volume: 0.6 },
   "ricochet.ledge": { channel: "effects", frequency: 0, ms: 479, url: "/sounds/ricochet.ledge.mp3", gapMs: 80 },
@@ -820,6 +861,13 @@ const ENTRIES = {
   "ricochet.slip": { channel: "effects", frequency: 0, ms: 593, url: "/sounds/ricochet.slip.mp3" },
   "ricochet.heightStreak": { channel: "effects", frequency: 0, ms: 480, url: "/sounds/banner.streak.mp3", volume: 0.8 },
   "ricochet.fullHeight": { channel: "effects", frequency: 0, ms: 840, url: "/sounds/banner.fullClear.mp3" },
+  // The Action overhaul (15 Nov 2026, docs/sound-cues/action-elevenlabs.md): silent until Joe's files are set.
+  "ricochet.fallWhistle": { channel: "effects", frequency: 0, ms: 900, url: null },
+  "ricochet.flowBreak": { channel: "effects", frequency: 0, ms: 350, url: null },
+  "ricochet.scuff": { channel: "effects", frequency: 0, ms: 2000, url: null, loop: true },
+  // Stage 2's effects (docs/sound-cues/action-overhaul-stage2.md): nothing fires them yet.
+  "ricochet.scrollTally": { channel: "effects", frequency: 0, ms: 400, url: null },
+  "ricochet.lanternSway": { channel: "effects", frequency: 0, ms: 500, url: null },
   "snip.cut": { channel: "effects", frequency: 0, ms: 230, url: null },
   "snip.springBounce": { channel: "effects", frequency: 0, ms: 80, url: null },
   "snip.hook": { channel: "effects", frequency: 0, ms: 110, url: null },
@@ -1223,6 +1271,16 @@ const ENTRIES = {
   "swing.streak": { channel: "effects", frequency: 0, ms: 600, url: "/sounds/swing.streak.mp3" },
   "swing.slideVine": { channel: "effects", frequency: 0, ms: 2000, url: "/sounds/swing.slideVine.mp3", loop: true },
   "swing.wings": { channel: "effects", frequency: 0, ms: 2000, url: "/sounds/swing.wings.mp3", loop: true },
+  // The Action overhaul (15 Nov 2026; docs/sound-cues/action-elevenlabs.md): Grappler's new slots, silent until Joe's
+  // ElevenLabs files arrive (save as public/sounds/<slot>.mp3 and set the url). ropeSnap, speedWhoosh and courseCleared
+  // play at their moments already; outOfReach, pteroShadow, streakMeter and stretchTally come with stage 2's effects.
+  "swing.ropeSnap": { channel: "effects", frequency: 0, ms: 220, url: null },
+  "swing.speedWhoosh": { channel: "effects", frequency: 0, ms: 450, url: null, gapMs: 120 },
+  "swing.courseCleared": { channel: "effects", frequency: 0, ms: 1600, url: null },
+  "swing.outOfReach": { channel: "effects", frequency: 0, ms: 300, url: null, gapMs: 250 },
+  "swing.pteroShadow": { channel: "effects", frequency: 0, ms: 1200, url: null },
+  "swing.streakMeter": { channel: "effects", frequency: 0, ms: 120, url: null, gapMs: 60 },
+  "swing.stretchTally": { channel: "effects", frequency: 0, ms: 90, url: null, gapMs: 40 },
   "slice.chilli": { channel: "effects", frequency: 0, ms: 485, url: "/sounds/slice.chilli.mp3" },
   "symscan.eagle": { channel: "effects", frequency: 0, ms: 807, url: "/sounds/symscan.eagle.mp3" },
   "bintoss.wind": { channel: "effects", frequency: 0, ms: 800, url: "/sounds/bintoss.wind.mp3" },

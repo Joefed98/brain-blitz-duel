@@ -1,5 +1,8 @@
 /**
- * Roofbound on the arcade scoring standard (docs/arcade-standard/flip.md). Rooms deal flipRev 11 since 3 Nov 2026
+ * Roofbound on the arcade scoring standard (docs/arcade-standard/flip.md). Rooms deal flipRev 13 since 15 Nov 2026 (the
+ * Action overhaul, "flipRev 13": grace, no crash ends the run and each costs 10 s of clean time; clean time full at 55 s,
+ * perfect landings full at 5 of the 8); its perfect runs below are the witness routes taking every flipRev 13 part's
+ * maximum. Before that, flipRev 11 since 3 Nov 2026
  * ("flipRev 11": no star pickups, the flow streak): clean time 100 (the half seconds survived less 20 s for each crash a
  * checkpoint saved, full at the minute), perfect landings 60 (7.5 each of the 8 sweet spots), double flips 20 (2.5 each,
  * full at 8) and the flow streak 20 (the longest run of clean jumps, 0.4 each, full at 50). flipRev 10 (29 Oct 2026: time
@@ -14,7 +17,8 @@
  */
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
-import { flipGameFor, flipSweetsTaken, FLIP_REV_DEAL, FLIP_REV_FLOW, FLIP_REV_STD, FLIP_V11, FLIP_V11_DOUBLES, FLIP_V11_STREAK_FULL, FLIP_V8_SWEETS, type FlipState } from "../../src/lib/arcade/flip";
+import { flipGameFor, flipSweetsTaken, FLIP_REV_DEAL, FLIP_REV_GRACE, FLIP_V11_DOUBLES, FLIP_V11_STREAK_FULL, FLIP_V13, FLIP_V8_SWEETS, type FlipState } from "../../src/lib/arcade/flip";
+import { flipTakesAllV13 } from "../flip-deal";
 import { replayFlipRun } from "../../src/lib/duel/flip";
 import { encodeFlipLog, FLIP_WITNESS_FIXTURE, type FlipWitness } from "../flip-x200-record";
 import { flipTap } from "../flip-x200-plan";
@@ -25,37 +29,38 @@ const witnesses = (): FlipWitness[] => JSON.parse(gunzipSync(readFileSync(FLIP_W
 export const flipTakesAll = (s: FlipState) =>
   s.ended === 1 && !(s.saves ?? 0) && flipSweetsTaken(s) === FLIP_V8_SWEETS && (s.combos ?? 0) >= FLIP_V11_DOUBLES && (s.bestStreak ?? 0) >= FLIP_V11_STREAK_FULL;
 
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal flipRev 13 (grace: no
+// crash ends the run, each costs 10 s of clean time; clean time full at 55 s, perfect landings at 5 of 8), so the entry
+// names flipRev 13 after flipRev 12, and its perfect runs are the witness routes taking every flipRev 13 part's maximum.
 export const entry: StdEntry = {
   type: "flip",
   field: "flipRev",
-  // flipRev 12 (3 Nov 2026): flipRev 11's game dealt from its proved courses (flip-deal-check); scored as flipRev 11.
-  rev: FLIP_REV_DEAL,
-  before: FLIP_REV_FLOW,
-  parts: FLIP_V11.parts,
-  // flipRev 12 keeps flipRev 11's spec (the same parts); only the stamp it is dealt under differs.
-  spec: { ...FLIP_V11, rev: FLIP_REV_DEAL },
+  rev: FLIP_REV_GRACE,
+  before: FLIP_REV_DEAL,
+  parts: FLIP_V13.parts,
+  spec: FLIP_V13,
   perfect() {
     const out: StdRun[] = [];
     let every = 0;
     for (const w of witnesses()) {
-      const { raw, state } = encodeFlipLog(FLIP_REV_FLOW, w.seed, w.taps.map(flipTap));
-      if (!flipTakesAll(state)) continue;
+      const { raw, state } = encodeFlipLog(FLIP_REV_GRACE, w.seed, w.taps.map(flipTap));
+      if (!flipTakesAllV13(state)) continue;
       every++;
-      const r = replayFlipRun(w.seed, raw, FLIP_REV_FLOW);
+      const r = replayFlipRun(w.seed, raw, FLIP_REV_GRACE);
       out.push({ label: `witness seed ${w.seed} (server replay${r.flagged ? ", FLAGGED" : ""})`, score: r.flagged ? -1 : r.score });
-      if (out.length === 1) out.push({ label: `witness seed ${w.seed}'s end state (the sim's score)`, score: flipGameFor(FLIP_REV_FLOW).score(state) });
+      if (out.length === 1) out.push({ label: `witness seed ${w.seed}'s end state (the sim's score)`, score: flipGameFor(FLIP_REV_GRACE).score(state) });
     }
-    console.log(`  flip: ${every} of ${witnesses().length} witness routes take every part's maximum on flipRev 11`);
+    console.log(`  flip: ${every} of ${witnesses().length} witness routes take every part's maximum on flipRev 13`);
     if (every < 200) out.push({ label: `at least 200 witnesses take every part's maximum (${every})`, score: 0 });
     return out;
   },
   played() {
     const seed = witnesses()[0]!.seed;
     // One flip at the start, then nothing: the runner rides the ceiling into the first hazard there.
-    const one = encodeFlipLog(FLIP_REV_FLOW, seed, [flipTap(1)]);
-    const r = replayFlipRun(seed, one.raw, FLIP_REV_FLOW);
+    const one = encodeFlipLog(FLIP_REV_GRACE, seed, [flipTap(1)]);
+    const r = replayFlipRun(seed, one.raw, FLIP_REV_GRACE);
     // A state that has acted and earned nothing at all (tick 0): stdTotal's floor of 1.
-    const game = flipGameFor(FLIP_REV_FLOW);
+    const game = flipGameFor(FLIP_REV_GRACE);
     const bare = { ...game.init(seed), acted: 1 };
     return [
       { label: `one flip at tick 1 (seed ${seed}, ${r.survivedSeconds.toFixed(1)} s)`, score: r.flagged ? 0 : r.score },
@@ -64,8 +69,8 @@ export const entry: StdEntry = {
   },
   idle() {
     const seed = witnesses()[0]!.seed;
-    const r = replayFlipRun(seed, encodeFlipLog(FLIP_REV_FLOW, seed, []).raw, FLIP_REV_FLOW);
+    const r = replayFlipRun(seed, encodeFlipLog(FLIP_REV_GRACE, seed, []).raw, FLIP_REV_GRACE);
     return [{ label: `no input (seed ${seed}, ${r.survivedSeconds.toFixed(1)} s)`, score: r.flagged ? -1 : r.score }];
   },
-  help: { terms: ["Clean time", "half second", "up to 100", "the whole minute with no crash", "Perfect landings", "Flow streak"] },
+  help: { terms: ["Clean time", "half second", "up to 100", "10 s for each crash", "Perfect landings", "Flow streak"] },
 };

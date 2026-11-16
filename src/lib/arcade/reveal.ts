@@ -188,7 +188,7 @@ const BUILDERS: Record<string, Builder> = {
     lines: [`${n(r, "metres")} m climbed · ${n(r, "rides")} lantern rides · ${n(r, "scrolls")} scrolls → ${s}`],
     tiles: [
       { label: "Height", value: `${n(r, "metres")} m` },
-      { label: "Lantern rides", value: `${n(r, "rides")} / ${MOON_SKY}` },
+      { label: "Lantern rides", value: `${n(r, "rides")} / ${"rideTotal" in r ? n(r, "rideTotal") : MOON_SKY}` },
       { label: "Scrolls", value: `${n(r, "scrolls")} / ${MOON_SCROLLS}` },
       { label: "Best flow", value: String(n(r, "bestFlow")) },
       { label: "Hits", value: String(n(r, "hits")) },
@@ -313,6 +313,8 @@ const BUILDERS: Record<string, Builder> = {
         : n(r, "skylineRev") >= 7
           ? [{ label: "Gold blocks", value: String(n(r, "golds")) }]
           : []),
+      // skylineRev 11 (15 Nov 2026, lives): the lives lost (the replay's state carries `lives`).
+      ...((r["state"] as { lives?: number } | undefined)?.lives !== undefined ? [{ label: "Lives lost", value: `${n(r, "livesLost")} / 3` }] : []),
     ],
     outcome: ended(r, false),
   }),
@@ -622,12 +624,17 @@ const BUILDERS: Record<string, Builder> = {
   flip: (r, s) => b(r, "flow") ? {
     // flipRev 11 (3 Nov 2026): no stars; clean time, perfect landings, double flips and the longest flow streak.
     axis: { value: Math.round(n(r, "survivedSeconds") * 10) / 10, max: 60, label: "Seconds survived" },
-    lines: [`${sec(n(r, "survivedSeconds"))} survived${n(r, "saves") > 0 ? ` · ${n(r, "saves")} saved` : ""} · best streak ${n(r, "streak")} → ${s}`],
+    // flipRev 13 (grace): no crash ends the run, so the line counts crashes (each costs clean time) and the first tile
+    // is always the minute. The Action overhaul (15 Nov 2026) dropped the "Bonuses" tile: the parts above add up already.
+    lines: [b(r, "grace")
+      ? `${sec(n(r, "survivedSeconds"))} run${n(r, "saves") > 0 ? ` · ${n(r, "saves")} crash${n(r, "saves") === 1 ? "" : "es"}` : " · no crashes"} · best streak ${n(r, "streak")} → ${s}`
+      : `${sec(n(r, "survivedSeconds"))} survived${n(r, "saves") > 0 ? ` · ${n(r, "saves")} saved` : ""} · best streak ${n(r, "streak")} → ${s}`],
     tiles: [
-      { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "survivedSeconds")) },
+      b(r, "grace")
+        ? { label: "Crashes", value: String(n(r, "saves")) }
+        : { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "survivedSeconds")) },
       { label: "Perfect landings", value: `${n(r, "sweets")} / ${n(r, "sweetsTotal")}` },
       { label: "Best streak", value: String(n(r, "streak")) },
-      { label: "Bonuses", value: `+${n(r, "skill")}` },
     ],
     outcome: b(r, "survived") ? "finish" : "crash",
   } : ({

@@ -191,18 +191,18 @@ yet" means the game has never had a demo (its intro shows the still).
 | Home Run (`homerun`) | `homerunRev 4` | None yet ("pick your spot" since 3 Nov) |
 | Cue Ball (`pool`) | `poolRev 4` | None yet (spots or stripes, 90 s since 3 Nov) |
 | Ringer (`alleyroll`) | `alleyRollRev 2` | None yet (the funfair alley since 3 Nov) |
-| Iron Wall (`bastion`) | `bastionRev 3` | Stopped (`BASTION_REV_DEALT`); none yet |
+| Iron Wall (`bastion`) | `bastionRev 3` | Stopped (`BASTION_REV_DEALT`); **recorded run ready** (Action demos below): run the save once |
 | Wavefront (`wavefront`) | `wavRev 12` | Stopped (`WAV_REV_STD`); the 3 Nov ships are display only, so a `wavRev 12` demo draws them |
-| Moon Climb (`ricochet`) | `ricoRev 3` | None yet (`MOON_REV`; no demo was ever recorded on `ricoRev 2` either) |
+| Moon Climb (`ricochet`) | `ricoRev 4` | Stopped (`MOON_BIG_REV`, the bigger ninja, 15 Nov 2026; never recorded before); **recorded run ready** (Action demos below) |
 | Blockzone (`blockfall`) | `blockfallRev 2` | None yet (gestures only, 90 s since 3 Nov) |
 | Spacewalk (`cross`) | `crossRev 11` | Stopped (`CROSS_REV_FLOW`) |
 | Tilt (`tilt`) | `tiltRev 11` | Stopped (`TILT_REV_PAR`) |
-| Roofbound (`flip`) | `flipRev 11` or `12` | Stopped (`FLIP_REV_FLOW`, `FLIP_REV_DEAL`: flipRev 12 is flipRev 11's game, so a demo on either plays) |
+| Roofbound (`flip`) | `flipRev 13` | Stopped (`FLIP_REV_GRACE` only since 15 Nov 2026: grace and its parts; 11 and 12 no longer play); **recorded run ready** (Action demos below) |
 | Curl Champ (`curling`) | `curlRev 4` | None yet (the power bar since 3 Nov) |
 | Top Bins (`freekick`) | `freekickRev 4` | None yet (the drawn shot since 3 Nov) |
-| Grappler (`swing`) | `swingRev 17` | Stopped (`SWING_REV_SLIDE`) |
+| Grappler (`swing`) | `swingRev 18` | Stopped (`SWING_REV_BIG`, the bigger hero); **recorded run ready** (Action demos below) |
 | Rainbow Bridge (`inkbridge`) | `inkRev 13` | Stopped (`INK_REV_CLOVER`) |
-| Orbit (`orbit`) | `orbitRev 14` | Stopped (`ORBIT_REV_FUEL`) |
+| Orbit (`orbit`) | `orbitRev 16` | Stopped (`ORBIT_REV_BIG` since stage 3, 15 Nov 2026; `ORBIT_REV_GRACE` before); **recorded run ready** on 16 (Action demos below); a later stamp: re-record with `--rev` |
 | Meteor (`snake`) | `snakeRev 12` | Stopped (`SNAKE_REV_12`) |
 | Gemstone (`matchup`) | `matchupRev 12` | Stopped (`MATCHUP_REV_SIX`) |
 | Fission (`burst`) | `burstRev 10` | Stopped (`BURST_REV_STD`) |
@@ -213,7 +213,7 @@ yet" means the game has never had a demo (its intro shows the still).
 | Flightpath (`bullseye`) | `bullRev 9` | Stopped (`BULLSEYE_REV_STD`) |
 | Tempo (`beat`) | `beatRev 11` | Stopped (`BEAT_REV_STD`) |
 | Coral Pop (`bubble`) | `bubbleRev 11` | Stopped (`BUB_REV_STD`) |
-| High Rise (`skyline`) | `skylineRev 9` | Stopped (`SKYLINE_REV_STD`) |
+| High Rise (`skyline`) | `skylineRev 11` (10 also plays) | Stopped unless on 10 or 11 (`SAME_PLAY_DEMO_REVS`: 11 is 10's play until a miss); **recorded run ready** on 11 (Action demos below) |
 | Swish (`bintoss`) | `binRev 9` | Stopped (`BINTOSS_REV_STD`) |
 | Pinball (`pinball`) | `pinRev 6` | Stopped (`PIN_REV_STD`) |
 | Ball Tracker (`balltrack`) | `btRev 8` (7 also plays) | Stopped unless on `btRev` 7 or 8 |
@@ -233,6 +233,47 @@ yet" means the game has never had a demo (its intro shows the still).
 Each "stopped" row's stamp is the rule's constant, read from the code on 3 Nov 2026 (every one equals the stamp rooms deal
 today except Mixed Signals and Strikeout). Whether a matching demo is already saved is in the database, not the repo: the
 query in "Recorded demos" above answers it for any row.
+
+## Action demos (15 Nov 2026, the Action overhaul, stage 3)
+
+The six Action games' intro demos are recorded in the repo, not by hand: `scripts/fixtures/action-demos.json` holds one
+run per game on the stamp rooms deal (`ACTION_DEMO_REVS` in `src/lib/duel/introDemo.functions.ts`), each on the game's
+intro example (dealt exactly as `practiceGenerateFn` with `example: true` deals it, so the dev server deals the same
+puzzle), played by the game's skill-band bot at a strong level and replayed by the server's own replay.
+
+| Game | Stamp | Bot level | Whole run | The 8 s window (ticks 1–480) |
+|---|---|---|---|---|
+| Roofbound (`flip`) | `flipRev 13` | elite | 200 | 12 gravity flips, the flow streak to 11, no crash |
+| Grappler (`swing`) | `swingRev 18` | perfect | 200 | stretches 1–4, streak ×15, 3 gates, no miss |
+| Moon Climb (`ricochet`) | `ricoRev 4` | perfect | 200 | 36 m, flow ×12, a lantern ride, no hit |
+| Iron Wall (`bastion`) | `bastionRev 3` | perfect | 200 | wave 1's first tanks, weak spots and fast reloads, base 3/3 |
+| High Rise (`skyline`) | `skylineRev 11` | elite | 184 | 15 floors, 11 perfect drops, a gold block, lives 3/3 |
+| Orbit (`orbit`) | `orbitRev 16` | perfect | 196 | 4 planets caught, a checkpoint set, no crash |
+
+**To put them live (Joe, once):** start a dev server whose environment points at the live project with the
+service-role key and `INTRO_DEMO_KEY` (as for a recording from the practice reveal), then
+
+    bun scripts/action-demos-save.ts --url=http://localhost:8080 --key=<INTRO_DEMO_KEY>
+
+(the port is the one `bun run dev` prints; add game ids to save only those, `--dry` to deal and compare without saving).
+It never prompts, so a GitHub workflow can run it after the final deploy (Joe, 15 Nov 2026) from the environment
+instead of flags (flags win): `ACTION_DEMOS_URL` (the dev server's origin), `INTRO_DEMO_KEY`, optionally
+`ACTION_DEMOS_GAMES=flip,orbit` and `ACTION_DEMOS_DRY=1` (or the shared `DEMOS_URL`, `DEMOS_GAMES`, `DEMOS_DRY=1` every
+`*-demos-save.ts` takes; an `ACTION_` one wins). Start the dev server for a save with
+`NODE_OPTIONS=--max-old-space-size=6144` (the practice deal path runs out of memory on the default heap). Exit 0 when every game is OK, 1 when any failed, 2 when the URL
+or key is missing.
+For each game it asks the dev server for the sealed intro example through `practiceGenerateFn`, refuses if the server
+deals another stamp or another example than the run was recorded on, saves through `saveIntroDemoFn` (the same call as
+the reveal's Save demo button; it never writes the database itself), and reads the demo back through `getIntroDemoFn`, so
+"plays" means the stop rules accepted it. It prints OK or FAIL per game.
+
+**After a new stamp for one of the six** (Orbit's `orbitRev 16` next): move its `ACTION_DEMO_REVS` entry and its stop
+rule together, re-record with `bun scripts/action-demos-record.ts orbit --rev=16` (`--rev` refuses unless the intro
+example deals that stamp; `--pin=<DEAL_PINS name>` deals an older era on purpose), and save again.
+`scripts/action-demos-check.ts` fails until the stored run is on the stamp rooms deal and today's example; it also
+proves each run's score through the server replay, a clean window with the game's moments, every frame drawn through
+the demo player's own `drawFinal(…, "demo")`, the stop rules (older stamps stay stopped), and the whole save end to end
+through the real handlers on a local PostgreSQL. `--shots=<dir>` writes each game's five-frame strip.
 
 ## Demos still needed (23 Oct 2026; superseded by the re-record list above)
 

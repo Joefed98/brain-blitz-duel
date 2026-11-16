@@ -174,7 +174,8 @@ section("New rounds carry the Tuning E stamps; one world per stored revision");
   // started with skylineRev 4, which stored rounds still play and score on the bands.
   // The arcade scoring standard (29 Oct 2026) moved it on to skylineRev 9 (rev 8's play; skyline-standard-check covers it).
   // The scoring audit (Nov 2026): skylineRev 10, skylineRev 9's play with perfect drops counted (scoring-audit-arcade-check).
-  ok(generateSkyline().skylineRev === SKYLINE_REV_STD + 1, `skyline: rooms deal skylineRev ${SKYLINE_REV_STD + 1} (skylineRev ${SKYLINE_REV_STD}'s play, the arcade scoring standard, after skylineRev ${SKYLINE_REV_LIFT} and ${SKYLINE_REV_TALL})`);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal skylineRev 11 (lives).
+  ok(generateSkyline().skylineRev === SKYLINE_REV_STD + 2, `skyline: rooms deal skylineRev ${SKYLINE_REV_STD + 2} (skylineRev ${SKYLINE_REV_STD}'s play, the arcade scoring standard, after skylineRev ${SKYLINE_REV_LIFT} and ${SKYLINE_REV_TALL})`);
   ok(puzzleUsesBands({ type: "skyline", skylineRev: SKYLINE_REV_TALL } as never), `skyline ${SKYLINE_REV_TALL} scores on the bands`);
   for (const [type, field, got, rev] of stamps) {
     ok(got === rev, `${type}: new rounds stamped ${rev} (got ${got})`);

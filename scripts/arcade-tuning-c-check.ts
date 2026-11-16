@@ -87,7 +87,7 @@ import {
   type TiltState,
 } from "../src/lib/arcade/tilt";
 import { SLICE_REV_BIG, SLICE_REV_EXPAND, sliceGameFor, SLICE_BLADE_V4, SLICE_INPUT_BEGIN, SLICE_INPUT_SWIPE, SLICE_R, SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TUNEC, sliceObjectAt, type SliceState } from "../src/lib/arcade/slice";
-import { generateBeat, generateFlip, generateInkBridge, pinInkPreClover, generateMatchup, generateSlice, generateSwing, generateTilt, generateWavefront, pinPreRetro } from "../src/lib/duel/arcade.server";
+import { generateBeat, generateFlip, pinFlipPreGrace, generateInkBridge, pinInkPreClover, generateMatchup, generateSlice, generateSwing, generateTilt, generateWavefront, pinPreRetro } from "../src/lib/duel/arcade.server";
 import { generateHover } from "../src/lib/duel/hover.server";
 import { isRetired, puzzleDef, PUZZLE_TYPES, typesInCategory } from "../src/lib/duel/registry";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
@@ -190,7 +190,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // The assault course (27 Oct 2026) moved it on to swingRev 14 (swing-assault-check), the swinging course (29 Oct 2026)
     // to swingRev 15 (swing-rework-check).
     // The sliding hooks and the streak (3 Nov 2026) moved it on to swingRev 17; swing-slide-check covers it.
-    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 10],
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero; swing-overhaul-check).
+    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 11],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
     // The 200 expansion (26 Oct 2026) then moved Hover on to hoverRev 9; hover-x200-check covers it.
     ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL + 4],
@@ -199,7 +200,9 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // more birds; ink-v13-check) moved it on again: pinned, the deal before it (inkRev 12, inkRev 11's play).
     ["inkbridge", pinnedInk(() => playRevOf("inkbridge", generateInkBridge().inkRev)) === INK_REV_SPREAD ? playRevOf("inkbridge", INK_REV_STRICT) : -1, INK_REV_TUNEC],
     // Expansion E7 (docs/expansions/x200-flip.md) then moved Roofbound on to flipRev 8; flip-x200-check covers it.
-    ["flip", playRevOf("flip", generateFlip().flipRev), FLIP_REV_TUNEC + 4],
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): flipRev 13 (grace) moved it on
+    // again (flip-overhaul-check): pinned, the deal before it (flipRev 12, flipRev 8's play).
+    ["flip", (() => { const was = pinFlipPreGrace(true); try { return playRevOf("flip", generateFlip().flipRev); } finally { pinFlipPreGrace(was); } })(), FLIP_REV_TUNEC + 4],
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
     // Taller worlds batch 2 (16 Oct 2026) moved Tempo and Slice on to their taller worlds (beatRev 6, sliceRev 6); arcade-tuning-g2-check covers them.
     // Expansion E2 (25 Oct 2026) then moved Tempo on to its five-lane song with fever (beatRev 9); expansion-e2-check covers it.

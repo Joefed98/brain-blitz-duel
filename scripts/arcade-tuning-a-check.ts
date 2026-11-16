@@ -127,7 +127,8 @@ if (want("skyline")) {
   // stored rounds play, keeps the band play and curve (Tuning E's taller view only).
   // The arcade scoring standard (29 Oct 2026) moved them on to skylineRev 9 (skyline-standard-check covers it).
   // The scoring audit (Nov 2026): skylineRev 10, skylineRev 9's play with perfect drops counted (scoring-audit-arcade-check).
-  ok(generateSkyline().skylineRev === SKYLINE_REV_STD + 1, "new High Rise rounds are dealt skylineRev 10 (skylineRev 9's play, the arcade scoring standard)");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal skylineRev 11 (lives).
+  ok(generateSkyline().skylineRev === SKYLINE_REV_STD + 2, "new High Rise rounds are dealt skylineRev 11 (skylineRev 9's play with lives, the arcade scoring standard)");
   ok(skylineGameFor(SKYLINE_REV_TALL).score === skylineGameFor(BAND_STAMPS.skyline![1]).score, "High Rise skylineRev 4 keeps the band play and curve (Tuning E's taller view only)");
   // Prompt R (23 Oct 2026): the manifest holds the new icon in three files (192, 512, maskable); the flag draws its
   // 512 px "any" icon (APP_FLAG_LOGO_URL), so the PWA icon and the flag are still one logo file.
@@ -349,7 +350,9 @@ if (want("orbit")) {
   // Superseded 15 Oct 2026 (arcade play screen): the 44 px row ends 16 px above the visible bottom, as every arcade control row.
   // (orbitRev 12 since 27 Oct 2026, Joe's phone notes: the button sits in the world's reserved corner instead;
   // play-control-clearance-check proves it. This revision and the others before 12 keep the row.)
-  ok(/data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">/.test(footer) && /className="h-11 px-3 text-\[11px\] /.test(footer), "SET CHECKPOINT: a 44 px row ending 16 px above the bottom, still 44 px tall, narrower since 15 Oct 2026");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the button is the hold-to-set
+  // CheckpointHoldButton, the same 44 px tall, 12 px sides and 11 px text (its class and inline font size).
+  ok(/data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">/.test(footer) && /<CheckpointHoldButton onSet=/.test(footer) && /className=\{`relative h-11 overflow-hidden px-3 font-bold \$\{className \?\? ""\}`\}\s*style=\{\{ fontSize: 11 \}\}/.test(footer), "SET CHECKPOINT: a 44 px row ending 16 px above the bottom, still 44 px tall, narrower since 15 Oct 2026");
 }
 
 /* =============================== 2d. Grappler =============================== */
@@ -358,7 +361,8 @@ if (want("swing")) {
   // Tuning F (Oct 2026) moved new Grappler rounds on to swingRev 8 (evenly spread stars); swing-rev8-check covers it.
   // Taller worlds batch 3 (16 Oct 2026) moved rooms on to swingRev 9 (the taller cavern); arcade-tuning-g3-check covers it.
   // Grappler's 200 expansion (26 Oct 2026) moved rooms on to swingRev 13 (swing-x200-check).
-  ok(playRevOf("swing", generateSwing().swingRev) === SWING_REV_TUNED + 11, "new Grappler rounds are stamped swingRev 17 (the sliding hooks, after swingRev 6, 7, 8, 9, 13, 14, 15 and 16)");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero; swing-overhaul-check).
+  ok(playRevOf("swing", generateSwing().swingRev) === SWING_REV_TUNED + 12, "new Grappler rounds are stamped swingRev 18 (the bigger hero, after swingRev 6, 7, 8, 9, 13, 14, 15, 16 and 17)");
   ok(puzzleUsesBands({ type: "swing", swingRev: SWING_REV_TUNED }) && puzzleUsesBands({ type: "swing", swingRev: SWING_REV_BAND }), "swingRev 5 and 6 both score on the band curve");
   ok(SWING_CHASE_PACE === 4 * FP, "the chasing dragon keeps its pace (4 px a tick)");
   ok(SWING_ROCK_WARN === 60 && SWING_ROCK_WARN_V6 === 120, "stalactites crumble for 2 s on rev 6 (1 s before)");

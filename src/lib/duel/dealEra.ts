@@ -56,6 +56,10 @@ export const DEAL_PINS = {
   inkPreBig: { texts: false },
   /** arcade.server.ts: Orbit orbitRev 13, before the fuel meter. */
   orbitPreFuel: { texts: false },
+  /** arcade.server.ts: Orbit orbitRev 14, before grace (the Action overhaul, 15 Nov 2026). */
+  orbitPreGrace: { texts: false },
+  /** arcade.server.ts: High Rise skylineRev 10, before lives (the Action overhaul, 15 Nov 2026). */
+  skylinePreLives: { texts: false },
   /** arcade.server.ts: Grappler's bank courses, before the assault course. */
   swingPreAssault: { texts: false },
   /** arcade.server.ts: Grappler swingRev 14. */
@@ -64,6 +68,8 @@ export const DEAL_PINS = {
   swingPreDark: { texts: false },
   /** arcade.server.ts: Grappler swingRev 16. */
   swingPreSlide: { texts: false },
+  /** arcade.server.ts: Grappler swingRev 17, before the bigger hero (the Action overhaul's stage 2, 15 Nov 2026). */
+  swingPreBig: { texts: false },
   /** arcade.server.ts: Minefield minesRev 1 (25 mines), before it moved to Logic (13 Nov 2026). */
   minesPreLogic: { texts: false },
   /** notesFree.ts: Mosaic, Tents, Lamplighter, Loopline and Island Link before notes stopped counting (15 Nov 2026). */
@@ -72,6 +78,14 @@ export const DEAL_PINS = {
   preGameReviewNov15: { texts: false },
   /** arcade.server.ts: the Retro games' stamps before the Retro overhaul (15 Nov 2026): Tempo beatRev 11, Rally rallyRev 12, Fission burstRev 11, Pinball pinRev 6, Meteor snakeRev 12, Breaker brkRev 11, Wavefront wavRev 13. */
   preRetro: { texts: false },
+  /** arcade.server.ts: Roofbound flipRev 12, before the Action overhaul's grace (15 Nov 2026). */
+  flipPreGrace: { texts: false },
+  /** arcade.server.ts: Moon Climb ricoRev 3, before the bigger ninja (the Action overhaul's stage 2, 15 Nov 2026). */
+  ricoPreBig: { texts: false },
+  /** arcade.server.ts: Orbit orbitRev 15, before the bigger planets (the Action overhaul's stage 3, 15 Nov 2026). */
+  orbitPreBig: { texts: false },
+  /** arcade.server.ts: Iron Wall bastionRev 3, before the levels (the Action overhaul, 15 Nov 2026). */
+  bastionPreLevels: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

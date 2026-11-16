@@ -99,6 +99,12 @@ function windows(kinds: Kind[], want: (k: Kind) => boolean): [number, number][] 
   return out;
 }
 
+/** The narrowest hop window (release ticks in a row) the witness takes: 4, or a level's own (scripts/orbit-fuel-lib.ts setFuelCourse). */
+let HOP_WINDOW = 4;
+export function setXpHopWindow(n: number): void {
+  HOP_WINDOW = n;
+}
+
 /** The witness release from an orbiting state: a delay and what it does, or null. */
 export function witnessDelay(s: OrbitRev3State, earliest = false): { d: number; kinds: Kind[] } | null {
   const lap = lapPhases(s.planets[s.cur]!).length;
@@ -107,7 +113,7 @@ export function witnessDelay(s: OrbitRev3State, earliest = false): { d: number; 
     const kinds: Kind[] = [];
     for (let d = 0; d <= scanLimit(s, long); d++) kinds.push(xpFork(s, d).kind);
     const want = wantHole ? (k: Kind) => k === "hole" : (k: Kind) => k !== "die";
-    const min = wantHole ? 2 : 4;
+    const min = wantHole ? 2 : HOP_WINDOW;
     const ws = windows(kinds, want).filter(([, len]) => len >= min);
     if (!ws.length) continue;
     // A window whose middle comes in the first lap (a perfect orbit): the longest, or the earliest (the quickest route).

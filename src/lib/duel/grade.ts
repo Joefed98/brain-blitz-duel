@@ -46,7 +46,7 @@ import { decodeRingTaps, replayRings } from "./rings";
 import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
-import { SKYLINE_REV_COUNT, SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
+import { SKYLINE_REV_COUNT, SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_LIVES, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { pinIsExpanded, PIN_REV_JOULZ, PIN_REV_SAVE, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { snakeStdParts } from "@/lib/arcade/snake";
@@ -122,7 +122,7 @@ import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwGrade, lwTallyLog, lwUsesLog, 
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
 import { decodeMoonRun, decodeNinjaRun, decodeRicoRun, isMoonRev, isNinjaRev, replayMoonRun, replayNinjaRun, replayRicoRun } from "./ricochet";
-import { MOON_CORE_FULL_M, NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
+import { moonFullM, moonSkyCount, NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
 import { decodeBinTossRun, replayBinTossRun } from "./binToss";
 import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
 import { bullseyeDeadPoints, bullseyeStreakPoints } from "@/lib/arcade/bullseye";
@@ -1230,7 +1230,7 @@ function gradeUnderRev(
     }
     case "skyline": {
       const replayStart = performance.now();
-      const run = replaySkylineRun(puzzle.seed, answer, puzzle.skylineRev);
+      const run = replaySkylineRun(puzzle.seed, answer, puzzle.skylineRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1246,7 +1246,9 @@ function gradeUnderRev(
         ...(puzzle.skylineRev === SKYLINE_REV_EXPAND || puzzle.skylineRev === SKYLINE_REV_LIFT ? { golds: run.golds, bestMult: run.bestMult, milestones: run.milestones } : {}),
         // skylineRev 9 (the arcade scoring standard): gold blocks landed perfectly (of 5) and height milestones (no multiplier).
         // skylineRev 10 (the scoring audit): the same fields (rev 9's play; perfect drops counted, not shared).
-        ...(puzzle.skylineRev === SKYLINE_REV_STD || puzzle.skylineRev === SKYLINE_REV_COUNT ? { golds: run.golds, milestones: run.milestones } : {}),
+        ...(puzzle.skylineRev === SKYLINE_REV_STD || puzzle.skylineRev === SKYLINE_REV_COUNT || puzzle.skylineRev === SKYLINE_REV_LIVES ? { golds: run.golds, milestones: run.milestones } : {}),
+        // skylineRev 11 (lives): lives lost (display only; the score never reads it).
+        ...(puzzle.skylineRev === SKYLINE_REV_LIVES ? { livesLost: run.livesLost } : {}),
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -1348,12 +1350,13 @@ function gradeUnderRev(
     }
     case "ricochet": {
       if (isMoonRev(puzzle.ricoRev)) {
-        // ricoRev 3, Moon Climb: the tower dealt from the stored seed, the move log replayed; only that scores.
+        // ricoRev 3 and 4, Moon Climb: the tower dealt from the stored seed and stamp, the move log replayed; only that scores.
         const replayStart = performance.now();
-        const run = replayMoonRun(puzzle.seed, answer);
+        // (ricoRev 4's levels: the stored level's tower, rules and full height; Normal exactly as before.)
+        const run = replayMoonRun(puzzle.seed, answer, puzzle.ricoRev, puzzleLevel(puzzle));
         revealRun = run;
         arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-        isCorrect = run.metres >= MOON_CORE_FULL_M;
+        isCorrect = run.metres >= moonFullM(run.state);
         correctCount = run.metres;
         score = run.score;
         extraDetail = {
@@ -1374,6 +1377,8 @@ function gradeUnderRev(
           inputs: decodeMoonRun(answer).events.length,
           claimedScore: decodeMoonRun(answer).claimedScore,
           ...(run.reason ? { reason: run.reason } : {}),
+          // A level's own lantern count and full height (display only; absent at Normal, so Normal's extra is unchanged).
+          ...(run.state.lvl ? { rideTotal: moonSkyCount(run.state), fullM: moonFullM(run.state) } : {}),
         };
         break;
       }
@@ -2296,7 +2301,7 @@ function gradeUnderRev(
         // bastionRev 2 (1 Nov 2026): the tank-defence shooter on the arcade scoring standard; the server's replay alone
         // scores, and the stored extra carries each part's points (numbers only) for the reveal.
         const replayStart = performance.now();
-        const run = replayBastionTankRun(puzzle.seed, answer, puzzle.bastionRev);
+        const run = replayBastionTankRun(puzzle.seed, answer, puzzle.bastionRev, puzzleLevel(puzzle));
         const decoded = decodeBastionTankRun(answer);
         revealRun = run as unknown as typeof revealRun;
         arcadeDiag = buildArcadeDiag(puzzle.type, run as unknown as Parameters<typeof buildArcadeDiag>[1], answer, performance.now() - replayStart);
@@ -2380,7 +2385,7 @@ function gradeUnderRev(
     }
     case "flip": {
       const replayStart = performance.now();
-      const run = replayFlipRun(puzzle.seed, answer, puzzle.flipRev);
+      const run = replayFlipRun(puzzle.seed, answer, puzzle.flipRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2502,7 +2507,7 @@ function gradeUnderRev(
     }
     case "orbit": {
       const replayStart = performance.now();
-      const run = replayOrbitRun(puzzle.seed, answer, puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras);
+      const run = replayOrbitRun(puzzle.seed, answer, puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras, undefined, puzzle.level);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2578,7 +2583,8 @@ function gradeUnderRev(
     }
     case "swing": {
       const replayStart = performance.now();
-      const run = replaySwingRun(puzzle.seed, answer, puzzle.swingRev);
+      // (swingRev 18's levels: the stored level's course and rules; Normal exactly as before.)
+      const run = replaySwingRun(puzzle.seed, answer, puzzle.swingRev, undefined, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)

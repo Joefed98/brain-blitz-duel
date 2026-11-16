@@ -66,15 +66,21 @@ const kit = await auditKit(new URL("..", import.meta.url).pathname.replace(/\/$/
 
 /* 1. Wiring. */
 section("1. rooms deal the new stamps; each keeps the previous stamp's play");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): High Rise moved on to skylineRev 11
+// (lives, skyline-overhaul-check), so rooms and LIVE_BANDS now carry the stamp after the audit's; the audit's stamp still
+// replays and scores as proved below.
+const LATER_DEALT: Partial<Record<string, number>> = { skyline: 11 };
 for (const g of AUDIT_GAMES) {
+  const want = LATER_DEALT[g.type] ?? g.rev;
   for (let k = 0; k < 5; k++) {
     const dealt = (generatePuzzle(g.type) as unknown as Record<string, unknown>)[g.field];
-    ok(dealt === g.rev, `${g.type}: rooms deal ${g.field} ${g.rev} (got ${String(dealt)})`);
+    ok(dealt === want, `${g.type}: rooms deal ${g.field} ${want} (got ${String(dealt)})`);
   }
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the "?" help reads the stamp
   // rooms deal live, which for Wavefront and Fission is now the Retro overhaul's (wavRev 14, burstRev 13); every other
-  // audit game's live stamp is still the audit's own. The comparison stays exact.
-  const liveStamp = RETRO_LIVE_STAMPS[g.type] ?? g.rev;
+  // audit game's live stamp is still the audit's own (or, for High Rise, the Action overhaul's skylineRev 11, `want`).
+  // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine). The comparison stays exact.
+  const liveStamp = RETRO_LIVE_STAMPS[g.type] ?? want;
   ok((LIVE_BANDS as any)[g.type].rev === liveStamp, `${g.type}: LIVE_BANDS reads ${g.field} ${liveStamp} (got ${String((LIVE_BANDS as any)[g.type].rev)})`);
   ok(playRevOf(g.type, g.rev) === playRevOf(g.type, g.old), `${g.type}: ${g.field} ${g.rev} keeps ${g.field} ${g.old}'s play (playRevOf ${String(playRevOf(g.type, g.rev))})`);
   // The intro demo's gate names the stamp the demo was recorded on (the old one): the same play, so it still plays.

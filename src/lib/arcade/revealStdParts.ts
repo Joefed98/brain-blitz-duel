@@ -10,7 +10,7 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { stdPart, type StdPart, type StdSpec } from "./arcadeStandard";
-import { flipFlowScore, flipFlowUnits, flipSweetsTaken, FLIP_V11, FLIP_V8_SWEETS, type FlipState } from "./flip";
+import { flipFlowScore, flipFlowUnits, flipGraceScore, flipGraceSpecOf, flipGraceUnits, flipSweetsTaken, FLIP_V11, FLIP_V8_SWEETS, type FlipState } from "./flip";
 import {
   swingAssaultCounts,
   swingReworkParts,
@@ -54,19 +54,22 @@ const of = (got: number, total: number, many: string) => `${got} of ${total} ${m
 /** Ticks as seconds, one decimal, "45.2 s". */
 const secs = (ticks: number) => `${(Math.max(0, ticks) / 60).toFixed(1)} s`;
 
-/* ---- Roofbound: flipRev 11 and 12 (states carry `flow`) ---- */
+/* ---- Roofbound: flipRev 11, 12 and 13 (states carry `flow`; 13 also `grace`) ---- */
 
 function flipParts(s: FlipState): StdPart[] | null {
   if (!s.flow) return null;
-  const b = flipFlowScore(s);
-  const clean = flipFlowUnits(s) / 2;
+  // flipRev 13 (grace): every crash costs 10 s of clean time and none ends the run.
+  // Levels (15 Nov 2026): a level's spec (perfect landings full at its count) and its own number of sweet spots.
+  const spec = s.grace ? flipGraceSpecOf(s) : FLIP_V11;
+  const b = s.grace ? flipGraceScore(s) : flipFlowScore(s);
+  const clean = (s.grace ? flipGraceUnits(s) : flipFlowUnits(s)) / 2;
   const saves = s.saves ?? 0;
   const sweets = flipSweetsTaken(s);
   return [
-    stdPart(FLIP_V11, "core", b.core, `${clean % 1 ? clean.toFixed(1) : clean} s clean${saves ? ` · ${n(saves, "crash", "crashes")} saved` : ""}`),
-    stdPart(FLIP_V11, "sweets", b.features["sweets"] ?? 0, of(sweets, FLIP_V8_SWEETS, "perfect landings")),
-    stdPart(FLIP_V11, "doubles", b.features["doubles"] ?? 0, n(s.combos ?? 0, "double flip")),
-    stdPart(FLIP_V11, "flow", b.features["flow"] ?? 0, n(s.bestStreak ?? 0, "clean jump", "clean jumps") + " in a row"),
+    stdPart(spec, "core", b.core, `${clean % 1 ? clean.toFixed(1) : clean} s clean${saves ? ` · ${n(saves, "crash", "crashes")}${s.grace ? "" : " saved"}` : ""}`),
+    stdPart(spec, "sweets", b.features["sweets"] ?? 0, of(sweets, s.v8?.sweets.length ?? FLIP_V8_SWEETS, "perfect landings")),
+    stdPart(spec, "doubles", b.features["doubles"] ?? 0, n(s.combos ?? 0, "double flip")),
+    stdPart(spec, "flow", b.features["flow"] ?? 0, n(s.bestStreak ?? 0, "clean jump", "clean jumps") + " in a row"),
   ];
 }
 
@@ -100,7 +103,8 @@ function swingParts(s: SwingState): StdPart[] | null {
     const p = swingSlideParts(s);
     const paid = s.streakPaid ?? 0;
     return [
-      stdPart(SWING_V17_SPEC, "core", p.core, `${Math.trunc(p.permille / 10)} % of the course`),
+      // The Action overhaul (15 Nov 2026): one plain line, the course share and the stretches cleared (the HUD's count).
+      stdPart(SWING_V17_SPEC, "core", p.core, `${Math.trunc(p.permille / 10)} % of the course, ${c.sections} of ${c.sectionTotal} stretches cleared`),
       stdPart(SWING_V17_SPEC, "par", p.par, pars),
       stdPart(SWING_V17_SPEC, "gates", p.gates, of(c.gates, SWING_V17_GATES, "gates")),
       stdPart(SWING_V17_SPEC, "streak", p.streak, `${n(paid, "run", "runs")} of ${SWING_V17_STREAK_BLOCK} clean grabs`),

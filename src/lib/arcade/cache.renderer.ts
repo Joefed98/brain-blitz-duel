@@ -29,13 +29,35 @@ const deviceLayers = new WeakMap<object, Map<string, DeviceLayer>>();
  * paints straight onto `ctx`, so it too looks exactly as before; the layer is rebuilt only if that
  * translation lasts. Clips already set on `ctx` still apply. Where no offscreen canvas exists (SSR,
  * Node checks) or the context has no transform, it paints straight onto `ctx`. At most four
- * layers are kept per canvas. Paint with the context's default alpha and compositing.
+ * layers are kept per canvas. Paint with the context's default alpha and compositing. `alpha` (default 1) draws the
+ * whole layer at that opacity (Iron Wall's setting cross-fades one backdrop into the next).
  */
-export function deviceLayer(ctx: CanvasRenderingContext2D, key: string, paint: (c: CanvasRenderingContext2D) => void): void {
+export function deviceLayer(ctx: CanvasRenderingContext2D, key: string, paint: (c: CanvasRenderingContext2D) => void, alpha = 1): void {
+  if (alpha <= 0) return;
+  if (alpha < 1) {
+    // The same layer, drawn at the given opacity (painted straight through a group alpha where there is no layer).
+    const direct = (c: CanvasRenderingContext2D) => {
+      c.save();
+      c.globalAlpha = alpha;
+      paint(c);
+      c.restore();
+    };
+    return deviceLayerAt(ctx, key, paint, alpha, direct);
+  }
+  return deviceLayerAt(ctx, key, paint, 1, paint);
+}
+
+function deviceLayerAt(
+  ctx: CanvasRenderingContext2D,
+  key: string,
+  paint: (c: CanvasRenderingContext2D) => void,
+  alpha: number,
+  direct: (c: CanvasRenderingContext2D) => void,
+): void {
   const canvas = (ctx as { canvas?: { width: number; height: number } }).canvas;
   const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
   if (!canvas || !t || !(canvas.width > 0) || !(canvas.height > 0)) {
-    paint(ctx);
+    direct(ctx);
     return;
   }
   let layers = deviceLayers.get(ctx);
@@ -44,7 +66,7 @@ export function deviceLayer(ctx: CanvasRenderingContext2D, key: string, paint: (
   let entry = layers.get(id);
   if (entry && (entry.e !== t.e || entry.f !== t.f)) {
     if (++entry.misses < 30) {
-      paint(ctx);
+      direct(ctx);
       return;
     }
     entry = undefined;
@@ -62,12 +84,12 @@ export function deviceLayer(ctx: CanvasRenderingContext2D, key: string, paint: (
   }
   entry.misses = 0;
   if (!entry.layer) {
-    paint(ctx);
+    direct(ctx);
     return;
   }
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.globalAlpha = 1;
+  ctx.globalAlpha = alpha;
   ctx.globalCompositeOperation = "source-over";
   ctx.drawImage(entry.layer as CanvasImageSource, 0, 0);
   ctx.restore();

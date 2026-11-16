@@ -8,6 +8,14 @@ export interface SuccessPoint{x:number;y:number;shape?:SuccessShape;label?:strin
 interface Reward extends SuccessPoint{at:number;milestone:boolean}
 interface Memory{tick:number;count:number;misses:number;chain:number;edge:number;rewards:Reward[];event:number}
 const memories=new WeakMap<CanvasRenderingContext2D,Map<string,Memory>>();
+/**
+ * The Action overhaul, stage 2 (15 Nov 2026, Joe: no glowing edges): the six Action games draw no edge glow on a
+ * success moment, neither this layer's milestone frame nor the shared arcade layer's (arcadeFx.renderer.ts); each draws
+ * its effect on the thing that happened instead (its own renderer, or the spec's `moment` hook). Ids are game ids;
+ * revision ids (orbit3) share their game's entry. Every other game keeps its edge glow exactly.
+ */
+export const ACTION_EDGELESS_GAMES:ReadonlySet<string>=new Set(['flip','swing','ricochet','bastion','skyline','orbit']);
+export function edgelessGame(id:string):boolean{return ACTION_EDGELESS_GAMES.has(id)||ACTION_EDGELESS_GAMES.has(id.replace(/\d+$/,''))}
 export interface SuccessOptions{id:string;tick:number;count:number;misses?:number;every?:number;colour:string;width:number;height:number;point:SuccessPoint;eventTick?:number|undefined;enabled?:boolean;hud?:{x:number;y:number;text:string}}
 export function successFrame(c:CanvasRenderingContext2D,o:SuccessOptions):{chain:number;age:number;milestoneAge:number}{
  let map=memories.get(c);if(!map){map=new Map();memories.set(c,map)}
@@ -23,7 +31,7 @@ export function successFrame(c:CanvasRenderingContext2D,o:SuccessOptions):{chain
  c.save();c.beginPath();c.rect(0,0,o.width,o.height);c.clip();c.shadowBlur=0;let budget=SUCCESS_PARTICLES;
  for(const r of m.rewards){const count=Math.min(budget,still?2:r.milestone?8:4);budget-=count;paint(c,r,(o.tick-r.at)/duration,o.colour,count,still)}
  const milestoneAge=o.tick-m.edge;
- if(!still&&milestoneAge>=0&&milestoneAge<SUCCESS_TICKS){const p=milestoneAge/SUCCESS_TICKS;c.strokeStyle=o.colour;for(let i=0;i<3;i++){c.globalAlpha=Math.sin(Math.PI*p)*.13*(1-i/3);c.lineWidth=2+i*3;c.strokeRect(5,5,o.width-10,o.height-10)}
+ if(!still&&!edgelessGame(o.id)&&milestoneAge>=0&&milestoneAge<SUCCESS_TICKS){const p=milestoneAge/SUCCESS_TICKS;c.strokeStyle=o.colour;for(let i=0;i<3;i++){c.globalAlpha=Math.sin(Math.PI*p)*.13*(1-i/3);c.lineWidth=2+i*3;c.strokeRect(5,5,o.width-10,o.height-10)}
 }
 
  c.restore();return{chain:m.chain,age:m.rewards.length?o.tick-(m.rewards.at(-1)?.at??o.tick):Infinity,milestoneAge};

@@ -18,7 +18,7 @@ import {
   skylineKindAt,
   SKYLINE_KIND_NARROW,
   SKYLINE_KIND_WIDE,
-  skylineSpeed,
+  skylineSpeedOf,
   type SkylineState,
 } from "../../../src/lib/arcade/skyline";
 import { driveTaps, type SkillBot } from "../bot";
@@ -31,7 +31,7 @@ function alignTick(seen: SkylineState, from: number): number | null {
   // skylineRev 7: a narrow or wide block is perfect centred on the top (the preview showed it coming).
   const kind = skylineKindAt(seen, seen.placed);
   const target = kind === SKYLINE_KIND_NARROW || kind === SKYLINE_KIND_WIDE ? below.x + (below.w >> 1) - (seen.w >> 1) : below.x;
-  const v0 = skylineSpeed(seen.placed);
+  const v0 = skylineSpeedOf(seen);
   const gust = skylineGustAt(seen, seen.tick) * SKYLINE_GUST_SPEED;
   let x = seen.x;
   let dir = seen.dir;
@@ -82,7 +82,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
         if (at !== null && at - t <= commitLead) {
           // Seen moving for how long before committing; too short means a rushed (or skipped) drop.
           const watched = t - spawnTick;
-          const scale = Math.sqrt(skylineSpeed(s.placed) / SKYLINE_SPEED_START);
+          const scale = Math.sqrt(skylineSpeedOf(s) / SKYLINE_SPEED_START);
           if (watched >= lag + commitLead / 2 || skipBefore > 0) {
             const rushed = watched < lag + commitLead;
             let err = human.timingMs(scale * (rushed ? 1.4 : 1)) / TICK_MS;

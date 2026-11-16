@@ -16,7 +16,7 @@
  *   bun scripts/arcade-self-replay-check.ts [runsPerGame] [keys,…] [--part=k/n]
  */
 
-import { bastionIronGame, bastionTankCheckpoint, bastionTankGame, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
+import { bastionIronGame, bastionTankCheckpoint, bastionTankGame, bastionTankGameFor, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
 import { encodeBastionTankRun, replayBastionTankRun } from "../src/lib/duel/bastion";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_3, HOMERUN_REV_4, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
@@ -79,7 +79,7 @@ import { encodeHoverRun, replayHoverRun } from "@/lib/duel/hover";
 import { encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
 import { encodeRallyRun, replayRallyRun } from "@/lib/duel/rally";
 import { encodeMoonRun, encodeNinjaRun, encodeRicoRun, replayMoonRun, replayNinjaRun, replayRicoRun } from "@/lib/duel/ricochet";
-import { moonCheckpoint, moonGame, ninjaCheckpoint, ninjaGame, NINJA_CHECKPOINT_INTERVAL } from "@/lib/arcade/ricochetNinja";
+import { moonCheckpoint, moonGame, moonGameFor, ninjaCheckpoint, ninjaGame, NINJA_CHECKPOINT_INTERVAL } from "@/lib/arcade/ricochetNinja";
 import { encodeSkylineRun, replaySkylineRun } from "@/lib/duel/skyline";
 import { encodeSliceRun, replaySliceRun } from "@/lib/duel/slice";
 import { FLIP_DEAL } from "@/lib/duel/flipDeal.server";
@@ -195,14 +195,19 @@ import { CURLING_BANK_V3 } from "@/lib/duel/curlingBankV3.server";
 import { CURLING_BANK_V4 } from "@/lib/duel/curlingBankV4.server";
 import { MINIGOLF_BANK_V2 } from "@/lib/duel/minigolfBankV2.server";
 import { TILT_REV_BAND, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_PAR, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
-import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL } from "@/lib/arcade/orbit";
-import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom } from "@/lib/arcade/orbitRev3";
+import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG } from "@/lib/arcade/orbit";
+import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom, initGraceFrom, initBigFrom, initLevelFrom } from "@/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "@/lib/duel/orbitXpBank.server";
 import { ORBIT_FUEL_BANK } from "@/lib/duel/orbitFuelBank.server";
+import { ORBIT_FUEL_BANK_EASY } from "@/lib/duel/orbitFuelBankEasy.server";
+import { ORBIT_FUEL_BANK_HARD } from "@/lib/duel/orbitFuelBankHard.server";
+import { ORBIT_FUEL_BANK_EXPERT } from "@/lib/duel/orbitFuelBankExpert.server";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
-import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE } from "@/lib/arcade/swing";
+import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG } from "@/lib/arcade/swing";
+import { SWING_BIG_DEAL } from "@/lib/duel/swingBigDeal.server";
+import { SWING_LEVEL_DEAL } from "@/lib/duel/swingLevelDeal.server";
 import { SWING_V13_BANK } from "@/lib/duel/swingBankV13.server";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
@@ -1051,6 +1056,119 @@ const GAMES: Game[] = [
   // Hover hoverRev 11 (16 Nov 2026, the Retro overhaul stage 3: starting shielded), appended so every earlier entry keeps its stream.
   { key: "hover/shield", game: hoverGameFor(11), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, 11) },
   { key: "snake/grace", game: snakeGameFor(15), checkpoint: snakeCheckpoint, mode: "events", rate: 60, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, 15) },
+  // Orbit orbitRev 15 (the Action overhaul, 15 Nov 2026: grace, a slip respawns after a 3 s hold), appended so every
+  // earlier entry keeps its stream: random taps and checkpoints on the fuel-bank courses.
+  {
+    key: "orbit/grace",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_FUEL_BANK.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initGraceFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras)) };
+    },
+    seedFor: (n: number) => ORBIT_FUEL_BANK[n % ORBIT_FUEL_BANK.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_FUEL_BANK.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_GRACE, e.planets, e.holes, e.extras);
+    },
+  },
+  // High Rise skylineRev 11 (15 Nov 2026, the Action overhaul: lives and the wide-block rescue), appended so every earlier
+  // entry keeps its stream.
+  { key: "skyline/lives", game: skylineGameFor(11), checkpoint: skylineCheckpoint, mode: "taps", rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, 11) },
+  // Roofbound flipRev 13 (15 Nov 2026, the Action overhaul: grace), appended so every earlier entry keeps its stream.
+  { key: "flip/grace", game: flipGameFor(13), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, 13), seedFor: (n: number) => FLIP_DEAL[n % FLIP_DEAL.length]! },
+  // Moon Climb ricoRev 4 (15 Nov 2026, the Action overhaul's stage 2: the bigger ninja), appended so every earlier entry
+  // keeps its stream.
+  { key: "ricochet/big", interval: NINJA_CHECKPOINT_INTERVAL, game: moonGameFor(4), checkpoint: moonCheckpoint, mode: "events", rate: 30, encode: encodeMoonRun, replay: (seed: number, raw: string) => replayMoonRun(seed, raw, 4) },
+  // Grappler swingRev 18 (15 Nov 2026, the Action overhaul's stage 2: the bigger hero), appended so every earlier entry
+  // keeps its stream: on its proved deal's courses.
+  { key: "swing/big", game: swingGameFor(SWING_REV_BIG), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_BIG), seedFor: (n: number) => SWING_BIG_DEAL[n % SWING_BIG_DEAL.length]! },
+  // Orbit orbitRev 16 (15 Nov 2026, the Action overhaul's stage 3: bigger planets on grace's play), appended so every
+  // earlier entry keeps its stream: random taps and checkpoints on the fuel-bank courses.
+  {
+    key: "orbit/big",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_FUEL_BANK.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initBigFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras)) };
+    },
+    seedFor: (n: number) => ORBIT_FUEL_BANK[n % ORBIT_FUEL_BANK.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_FUEL_BANK.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_BIG, e.planets, e.holes, e.extras);
+    },
+  },
+  // Iron Wall bastionRev 4 (15 Nov 2026, the levels: Normal, Easy and Hard; Expert is bastionRev 3's entry), appended so
+  // every earlier entry keeps its stream.
+  ...(["normal", "easy", "hard"] as const).map((level) => ({ key: `bastion/v4-${level}`, interval: BT2_CHECKPOINT_INTERVAL, game: bastionTankGameFor(4, level), checkpoint: bastionTankCheckpoint, mode: "events" as const, rate: 30, encode: encodeBastionTankRun, replay: (seed: number, raw: string) => replayBastionTankRun(seed, raw, 4, level) })),
+  // Moon Climb ricoRev 4's and Grappler swingRev 18's difficulty levels (15 Nov 2026, the Action overhaul), appended so
+  // every earlier entry keeps its stream: each level's own towers and courses (Grappler's from the level's proved deal).
+  ...(["easy", "hard", "expert"] as const).map((lv) => ({ key: `ricochet/${lv}`, interval: NINJA_CHECKPOINT_INTERVAL, game: moonGameFor(4, lv), checkpoint: moonCheckpoint, mode: "events" as const, rate: 30, encode: encodeMoonRun, replay: (seed: number, raw: string) => replayMoonRun(seed, raw, 4, lv) })),
+  ...(["easy", "hard", "expert"] as const).map((lv) => ({ key: `swing/${lv}`, game: swingGameFor(SWING_REV_BIG, lv), checkpoint: swingCheckpoint, mode: "events" as const, rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_BIG, undefined, lv), seedFor: (n: number) => SWING_LEVEL_DEAL[lv][n % SWING_LEVEL_DEAL[lv].length]! })),
+  // Orbit's easy level (the Action overhaul, stage 3, 16 Nov 2026; docs/arcade-standard/orbit.md "Levels"): random taps and
+  // checkpoints on the easy bank's courses with the level's rules, appended last so every earlier entry keeps its stream.
+  {
+    key: "orbit/easy",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_FUEL_BANK_EASY.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initLevelFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras), "easy") };
+    },
+    seedFor: (n: number) => ORBIT_FUEL_BANK_EASY[n % ORBIT_FUEL_BANK_EASY.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_FUEL_BANK_EASY.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_BIG, e.planets, e.holes, e.extras, undefined, "easy");
+    },
+  },
+  // Orbit's hard level (the Action overhaul, stage 3, 16 Nov 2026; docs/arcade-standard/orbit.md "Levels"): random taps and
+  // checkpoints on the hard bank's courses with the level's rules, appended last so every earlier entry keeps its stream.
+  {
+    key: "orbit/hard",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_FUEL_BANK_HARD.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initLevelFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras), "hard") };
+    },
+    seedFor: (n: number) => ORBIT_FUEL_BANK_HARD[n % ORBIT_FUEL_BANK_HARD.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_FUEL_BANK_HARD.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_BIG, e.planets, e.holes, e.extras, undefined, "hard");
+    },
+  },
+  // Orbit's expert level (the Action overhaul, stage 3, 16 Nov 2026; docs/arcade-standard/orbit.md "Levels"): random taps and
+  // checkpoints on the expert bank's courses with the level's rules, appended last so every earlier entry keeps its stream.
+  {
+    key: "orbit/expert",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_FUEL_BANK_EXPERT.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initLevelFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras), "expert") };
+    },
+    seedFor: (n: number) => ORBIT_FUEL_BANK_EXPERT[n % ORBIT_FUEL_BANK_EXPERT.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_FUEL_BANK_EXPERT.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_BIG, e.planets, e.holes, e.extras, undefined, "expert");
+    },
+  },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
