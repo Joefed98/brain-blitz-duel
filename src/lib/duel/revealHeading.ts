@@ -73,6 +73,8 @@ const BOTH = new Set([
   "symscan",
   // The Attention overhaul's step track: the right action beside the player's on every row.
   "bomb",
+  // The Number overhaul (15 Nov 2026): Integer Pyramid's reveal draws its own Yours / Solution switch (RevealParts.tsx).
+  "numpyramid",
 ]);
 
 /** What the reveal's board draws for this round. */
