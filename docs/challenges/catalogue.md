@@ -326,7 +326,7 @@ challenges never count. How the checks read a run:
 | Gold digger | Find a word through the gold tile. | Classic | Target | `goldWords` count ≥ 1 |  | `wordhunt.gold-digger` |
 | Long haul | Find three words of six letters or more. | Classic | Target | `longWords` ≥ 3 |  | `wordhunt.long-haul` |
 | Clean forage | Find 10 words without a single miss. | Classic | Clean | `words` count ≥ 10, `misses` = 0 |  | `wordhunt.clean-forage` |
-| Forager supreme | Score 170 or more on Hard. | Hard | Big score | `score` ≥ 170 | ● | `wordhunt.forager-supreme` |
+| Forager supreme | Score 160 or more on Hard. | Hard | Big score | `score` ≥ 160 | ● | `wordhunt.forager-supreme` |
 
 #### Interlock (`tilegrid`)
 
@@ -348,7 +348,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Hidden gem | Find the unlisted seventh word. | Classic | Full set | finish, `parts.efficiency` ≥ 30 |  | `wordsearch.hidden-gem` |
 | Eagle-eyed | Find all six within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 20 (by 40 s) |  | `wordsearch.eagle-eyed` |
-| Crow’s nest | Score 200 on Hard. | Hard | Perfect | `score` ≥ 200 | ● | `wordsearch.crows-nest` |
+| Crow’s nest | Score 195 or more on Hard. | Hard | Big score | `score` ≥ 195 | ● | `wordsearch.crows-nest` |
 
 #### Roundabout (`letterwheel`)
 

@@ -368,15 +368,46 @@ well on; the bot numbers are a guide, not a band.
 |---|---|---|---|---|
 | Nucleus | 9–10 letters, 45–85 everyday words, 120 s | 8–9 letters, 16–24 words, 65 s | 8 letters, 10–14 words, 50 s | open (a word find) |
 | Interlock | down words start on the across word, 120 s | 7-letter across word, crossed mid-word, 60 s | as Hard, never on its ends, 50 s | open (any real-word grid) |
-| Slider | 2–3 slides from the words, 100 s | 8 slides, 60 s | 8 slides, 45 s | open (any five real words) |
+| Slider | 2–3 slides from the words, 100 s | 7 slides, 60 s | 8 slides, 50 s | open (any five real words) |
 | Forage | 320–700 words on the 6×6, 120 s | 100–140 words, 80 s | 50–80 words, 70 s | open (a word find) |
 | Lookout | 8×8, five words, across and down only, 120 s | 10 × 11, seven words any way, 90 s | 10 × 12, eight words and four false starts, 90 s | proved: each word hidden once |
 | Roundabout | 6-letter wheel, 7–9 words, 120 s | 12–15 words, up to 9 × 11, 75 s | 16–19 words, up to 9 × 12, 80 s | open (fills aren't unique) |
 | Strikeout | 3/2 starting letters on every word, 4 vowels, 14 strikes, 120 s | one starting letter, 2 vowels, 10 strikes, 90 s | none, 2 vowels, 12 strikes, 85 s | proved: one word per pattern; Expert solved by a person-like guesser |
-| Cryptogrid | 8 letters start decoded, 120 s | 5, 75 s | 4, 65 s, on the 666 boards a person-like solver cracks from them | proved (full-dictionary solver) |
+| Cryptogrid | 8 letters start decoded, 120 s | 5, 75 s | 4, 70 s, on the 666 boards a person-like solver cracks from them | proved (full-dictionary solver) |
 | Swapword | 5–7 swaps from the answer, 16 spare, 120 s | 13–15 swaps, 6 spare, 55 s | 15–17 swaps, 4 spare, 60 s | proved: one arrangement keeping the start's green tiles |
 
 Taller grids, not smaller squares: Lookout's Hard and Expert keep ten columns and grow to 11 and 12 rows; Roundabout's
 are at most nine columns and grow down. Each level has its check (`scripts/<game>-levels-check.ts`): clocks, Normal byte
 for byte, the same deal for every player, the boards' rules, the one-answer proof or the open reason, the tuning bands.
 Cryptogrid also deals `codewordRev 7`: a full grid that isn't cracked flashes the words on it that aren't real words.
+
+**Slider's step (Joe, 16 Nov 2026).** The kit's players slide along the stored solver line, so they score about 200 at
+every level and can't show a step. Slider is measured instead by a person-like solver (`scripts/slider-human.ts`) that
+never reads the stored words or line: it looks at the rows, judges how close each reads to an everyday word (letters in
+place, a row a slide or two round, a word's letters held), plans two slides ahead (strong) or three (elite) and makes
+them, with thinking time for each plan (2.4 s / 2.0 s) and a hand's time for each slide (0.45 s / 0.35 s). Its runs on 24
+boards a level are graded by the server and recorded (`scripts/fixtures/slider-human-levels.json`,
+`bun scripts/slider-human-record.ts`); wordslide-levels-check replays a sample and holds the step. Hard is 7 slides in
+60 s and Expert deeper, 8 slides in 50 s; Normal is unchanged (5–8 slides, 100 s).
+
+| Level | Strong player: average (finished) | Elite player: average (finished, best) |
+|---|---|---|
+| Easy (2–3 slides, 100 s) | 114.0 (13 of 24) | 200.0 (24 of 24) |
+| Normal (5–8 slides, 100 s) | 76.3 (4 of 24) | 140.4 (15 of 24, median 182) |
+| Hard (7 slides, 60 s) | 57.7 (2 of 24) | 108.9 (9 of 24, best 200) |
+| Expert (8 slides, 50 s) | 41.0 (0 of 24) | 89.0 (4 of 24, best 189) |
+
+Slider's boards are open, not proven unique: any five real words in the rows finish, and the board's 25 letters can be
+arranged into five dictionary words in thousands of ways (often more), so a proof that no other five-word board is
+reachable is beyond what a deal (or an offline bank build) can do in reasonable time; a trial of the exact proof on par-8
+boards did not finish one board in five minutes. What is proven on every board is its par: the fewest slides back to the
+dealt words (a bidirectional search), stored on the puzzle.
+
+**For Joe's scoring review (16 Nov 2026): Nucleus, Forage and Roundabout.** Normal is unchanged, as asked. In the level
+measurements (30 seeds a level) the kit's great and near-perfect players rarely reach a star (175+) on Normal: Nucleus
+0 % (great) and 33 % (near-perfect), Forage 0 % and 27 %, Roundabout 0 % and 63 %; above Easy a star is out of reach for
+Nucleus and Forage (Hard 0 / 3 % and 0 / 7 %, Expert 0 / 0) and nearly so for Roundabout (Hard 0 / 10 %, Expert 0 / 0).
+Their near-perfect averages on Normal are 162 (Nucleus), 165 (Forage) and 175 (Roundabout), so Normal is tough for a
+strong player in all three: the open word finds score on how much of a large word list is found, and the curves were
+fitted before the levels existed. Worth a look in the scoring review: the star line for these three, or their curves.
+

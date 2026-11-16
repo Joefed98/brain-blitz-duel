@@ -2640,8 +2640,10 @@ outside the repo.
   `codewordExpert.data.ts` (`bun scripts/codeword-expert-bank.ts [--check]`), each rebuilt byte for byte with `--check`.
   One check a game, `scripts/<game>-levels-check.ts` (helpers `word-levels-lib.ts` / `word-levels-shared.ts`): clocks,
   Normal byte for byte, the same deal for all, the rules, the proof or open reason, tuning bands and the step up.
-  Cryptogrid: Easy 8 starting letters / 120 s, Hard 5 / 75 s, Expert 4 / 65 s on the 666 bank boards the person-like
-  solver cracks from four letters alone. Shots `bun scripts/shots/word-levels-shots.ts --url=<origin> [games…]`. Cryptogrid `codewordRev 7`
+  Cryptogrid: Easy 8 starting letters / 120 s, Hard 5 / 75 s, Expert 4 / 70 s on the 666 bank boards the person-like
+  solver cracks from four letters alone. Slider: Hard 7 slides / 60 s, Expert 8 / 50 s, its step measured by a person-like
+  solver that searches for the slides itself (`scripts/slider-human.ts`, runs in `scripts/fixtures/slider-human-levels.json`
+  by `bun scripts/slider-human-record.ts`; the kit reads the stored line, so it scores ~200 everywhere). Shots `bun scripts/shots/word-levels-shots.ts --url=<origin> [games…]`. Cryptogrid `codewordRev 7`
   (`CODEWORD_REV_NAMES`): a full grid that isn't cracked is answered with the words on it that aren't real words
   (`CwView.nonWords`), which flash red on the live board.
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery

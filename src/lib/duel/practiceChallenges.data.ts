@@ -277,7 +277,8 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("wordhunt", "Gold digger", "Find a word through the gold tile.", "C", "target", false, all(len("goldWords", "gte", 1))),
   ch("wordhunt", "Long haul", "Find three words of six letters or more.", "C", "target", false, all(f("longWords", "gte", 3))),
   ch("wordhunt", "Clean forage", "Find 10 words without a single miss.", "C", "clean", false, all(len("words", "gte", 10), f("misses", "eq", 0))),
-  ch("wordhunt", "Forager supreme", "Score 170 or more on Hard.", "H", "bigscore", true, score(170)),
+  // Changed with Joe's approval, 16 Nov 2026 (level challenge thresholds): 170 → 160.
+  ch("wordhunt", "Forager supreme", "Score 160 or more on Hard.", "H", "bigscore", true, score(160)),
   // Interlock (tilegrid): 150 + speed 20 (33 s) + big words 30.
   ch("tilegrid", "Locked in", "Place all 15 tiles.", "C", "finish", false, all(FIN)),
   ch("tilegrid", "Big words", "Finish with 5+ letter words scoring at least the solution’s.", "C", "maxout", false, all(FIN, f("bigWordPoints", "gte", 30))),
@@ -287,7 +288,8 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Lookout (wordsearch): 150 + speed 20 (40 s) + bonus word 30.
   ch("wordsearch", "Hidden gem", "Find the unlisted seventh word.", "C", "fullset", false, bonus(30)),
   ch("wordsearch", "Eagle-eyed", "Find all six within 40 s.", "C", "speed", false, speed(20, 40)),
-  ch("wordsearch", "Crow’s nest", "Score 200 on Hard.", "H", "perfect", true, score(200)),
+  // Changed with Joe's approval, 16 Nov 2026 (level challenge thresholds): 200 → 195.
+  ch("wordsearch", "Crow’s nest", "Score 195 or more on Hard.", "H", "bigscore", true, score(195)),
   // Roundabout (letterwheel): 150 + speed 20 (40 s) + bonus jar 30.
   ch("letterwheel", "Jar of five", "Drop five bonus words in the jar.", "C", "target", false, all(f("bonusWords", "gte", 5))),
   ch("letterwheel", "Jar full", "Finish with the jar full; a bonus word adds 1 to 4 drops.", "C", "maxout", false, all(FIN, f("jarPoints", "gte", 30))),

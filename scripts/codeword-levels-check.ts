@@ -118,6 +118,7 @@ const BANDS: Record<Level, { near: [number, number]; great: [number, number] }> 
 };
 const kit = KITS.codeword!;
 const greatAvg: Partial<Record<Level, number>> = {};
+const nearAvg: Partial<Record<Level, number>> = {};
 for (const level of ["easy", "normal", "hard", "expert"] as Level[]) {
   const scores = { near: [] as number[], great: [] as number[] };
   for (const seed of SEEDS.slice(0, 20)) {
@@ -132,8 +133,9 @@ for (const level of ["easy", "normal", "hard", "expert"] as Level[]) {
     const [lo, hi] = BANDS[level][who];
     ok(avg >= lo && avg <= hi, `${level}: the ${who} player averages ${avg.toFixed(1)} (tuned ${lo}–${hi})`);
     if (who === "great") greatAvg[level] = avg;
+    else nearAvg[level] = avg;
   }
 }
 ok(greatAvg.normal! > greatAvg.hard! && greatAvg.hard! > greatAvg.expert! + 10, `a clear step up: great ${greatAvg.normal!.toFixed(1)} → ${greatAvg.hard!.toFixed(1)} → ${greatAvg.expert!.toFixed(1)}`);
 
-console.log(`PASS codeword-levels-check: ${checks} checks (Easy 8 letters 120 s, Hard 5 letters 75 s, Expert 4 letters 65 s on ${list.length} reasoning-only boards)`);
+console.log(`PASS codeword-levels-check: ${checks} checks (Easy 8 letters 120 s, Hard 5 letters 75 s, Expert 4 letters 70 s on ${list.length} reasoning-only boards; great / near-perfect: ${(["easy", "normal", "hard", "expert"] as Level[]).map((l) => `${l} ${greatAvg[l]!.toFixed(1)} / ${nearAvg[l]!.toFixed(1)}`).join(", ")})`);

@@ -9,6 +9,10 @@
  *     keeps that par.
  *  3. The server's cost: a level deal and the grade of an unfinished level board each stay well under a second.
  *  4. The tuning numbers: the kit's near-perfect and great play, graded by the server, on fixed seeds per level.
+ *  5. The step (Joe, 16 Nov 2026): a person-like solver that searches for the slides itself, never reading the stored
+ *     words (scripts/slider-human.ts), under human limits, recorded on 24 boards a level
+ *     (scripts/fixtures/slider-human-levels.json, `bun scripts/slider-human-record.ts`): a sample replays exactly, and
+ *     Hard and Expert step clearly below Normal with Expert still possible to score well on.
  *
  *   bun scripts/wordslide-levels-check.ts
  */
@@ -17,6 +21,9 @@ import type { WordSlidePuzzleData } from "../src/lib/duel/types";
 import { WORDSLIDE_LEVEL_SETTINGS } from "../src/lib/levels/word/wordslide";
 import { wordSlideLevelRuleBreak } from "../src/lib/duel/levels/wordslide.server";
 import { WS_TIME_MS, shiftToken } from "../src/lib/duel/wordSlide";
+import { readFileSync } from "node:fs";
+import { SLIDER_HUMAN_FIXTURE, SLIDER_HUMAN_SEEDS, type SliderHumanFixture } from "./slider-human-record";
+import { SLIDER_HUMANS, sliderHumanScore } from "./slider-human";
 import { BEYOND, checkCount, commonLevelChecks, kitScore, ok, roomDeal } from "./word-levels-shared";
 
 const t0 = Date.now();
@@ -30,7 +37,9 @@ for (const level of BEYOND) {
   }
 }
 ok((deals.get("easy")! as WordSlidePuzzleData[]).every((d) => d.par <= 3), "wordslide easy: 3 slides or fewer");
-ok((deals.get("hard")! as WordSlidePuzzleData[]).every((d) => d.par === 8), "wordslide hard: 8 slides");
+ok((deals.get("hard")! as WordSlidePuzzleData[]).every((d) => d.par === 7), "wordslide hard: 7 slides");
+ok((deals.get("expert")! as WordSlidePuzzleData[]).every((d) => d.par === 8), "wordslide expert: 8 slides, deeper than Hard");
+ok(WORDSLIDE_LEVEL_SETTINGS.expert.timeLimitMs! < WORDSLIDE_LEVEL_SETTINGS.hard.timeLimitMs!, "wordslide expert: a shorter clock than Hard");
 
 // 3. The server's cost on the deepest level.
 for (const seed of [77, 78, 79]) {
@@ -65,4 +74,31 @@ for (const level of ["easy", "normal", "hard", "expert"] as const) {
   ok(bands[level]!.great >= 185, `wordslide ${level}: great averages ${bands[level]!.great.toFixed(1)} (at least 185)`);
 }
 
-console.log(`PASS: wordslide levels — ${checkCount()} checks in ${((Date.now() - t0) / 1000).toFixed(1)} s (near-perfect ${["easy", "normal", "hard", "expert"].map((l) => `${l} ${bands[l]!.near.toFixed(0)}`).join(", ")})`);
+// 5. The step, measured by the person-like solver.
+const fixture = JSON.parse(readFileSync(SLIDER_HUMAN_FIXTURE, "utf8")) as SliderHumanFixture;
+const LEVELS = ["easy", "normal", "hard", "expert"] as const;
+for (const level of LEVELS) {
+  for (const skill of ["strong", "elite"] as const) {
+    const rows = fixture[level]?.[skill] ?? [];
+    ok(rows.length === SLIDER_HUMAN_SEEDS.length && rows.every((r, i) => r.seed === SLIDER_HUMAN_SEEDS[i]), `wordslide ${level} ${skill}: the fixture holds the 24 recorded boards`);
+  }
+  // A sample replays exactly: the first board for each player (the solver is deterministic and graded by the server).
+  for (const skill of ["strong", "elite"] as const) {
+    const rec = fixture[level]![skill]![0]!;
+    const d = roomDeal("wordslide", rec.seed, level === "normal" ? undefined : level) as WordSlidePuzzleData;
+    const again = sliderHumanScore(d, SLIDER_HUMANS[skill], 1);
+    ok(again.score === rec.score && again.finished === rec.finished && again.slides === rec.slides, `wordslide ${level} ${skill}: board ${rec.seed} replays to its recorded ${rec.score} (${again.score})`);
+  }
+}
+const human = (level: string, skill: string) => {
+  const rows = fixture[level]![skill]!;
+  return { avg: avg(rows.map((r) => r.score)), done: rows.filter((r) => r.finished).length, best: Math.max(...rows.map((r) => r.score)) };
+};
+const e = Object.fromEntries(LEVELS.map((l) => [l, human(l, "elite")]));
+const st = Object.fromEntries(LEVELS.map((l) => [l, human(l, "strong")]));
+ok(e.easy!.avg > e.normal!.avg + 10 && e.normal!.avg > e.hard!.avg + 10 && e.hard!.avg > e.expert!.avg + 10, `wordslide: a clear step for the elite player, ${LEVELS.map((l) => e[l]!.avg.toFixed(1)).join(" → ")}`);
+ok(st.easy!.avg > st.normal!.avg && st.normal!.avg > st.hard!.avg && st.hard!.avg > st.expert!.avg, `wordslide: and for the strong player, ${LEVELS.map((l) => st[l]!.avg.toFixed(1)).join(" → ")}`);
+ok(e.expert!.done >= 2 && e.expert!.best >= 180, `wordslide expert: possible to score well on (the elite player finishes ${e.expert!.done} of 24, best ${e.expert!.best})`);
+ok(e.normal!.done > e.hard!.done && e.hard!.done > e.expert!.done, `wordslide: fewer finishes each level up (${LEVELS.map((l) => e[l]!.done).join(", ")} of 24)`);
+
+console.log(`PASS: wordslide levels — ${checkCount()} checks in ${((Date.now() - t0) / 1000).toFixed(1)} s (person-like elite ${LEVELS.map((l) => `${l} ${e[l]!.avg.toFixed(1)} (${e[l]!.done}/24 finished)`).join(", ")}; strong ${LEVELS.map((l) => `${l} ${st[l]!.avg.toFixed(1)}`).join(", ")})`);

@@ -19,7 +19,7 @@ export const CODEWORD_LEVELS: GameLevels<CodewordLevelSettings> = {
   levels: {
     easy: { settings: { givens: 8, clockMs: 120_000 }, oneSolution: PROOF },
     hard: { settings: { givens: 5, clockMs: 75_000 }, oneSolution: PROOF },
-    expert: { settings: { givens: 4, clockMs: 65_000 }, oneSolution: PROOF },
+    expert: { settings: { givens: 4, clockMs: 70_000 }, oneSolution: PROOF },
   },
 };
 
@@ -27,5 +27,5 @@ export const CODEWORD_LEVELS: GameLevels<CodewordLevelSettings> = {
 export const CODEWORD_LEVEL_ABOUT: Partial<Record<Exclude<Level, "normal">, string>> = {
   easy: "Eight letters start decoded.",
   hard: "Five letters start decoded, and you have 75 seconds.",
-  expert: "Four letters start decoded and you have 65 seconds; every board cracks by reasoning alone.",
+  expert: "Four letters start decoded and you have 70 seconds; every board cracks by reasoning alone.",
 };
