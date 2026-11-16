@@ -21,6 +21,11 @@
  *   bun scripts/crazy-golf-v3-check.ts      (CHECKS_FULL=1 also rebuilds the bank and compares it byte for byte, ~20 min)
  */
 import { readFileSync } from "node:fs";
+import { createElement } from "react";
+import { renderToStaticMarkup } from "react-dom/server";
+import { PuzzleInstructions, scoreParts } from "../src/components/duel/PuzzleInstructions";
+import { INTRO_SCORE } from "../src/lib/duel/introScore";
+import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { fp } from "../src/lib/arcade/engine";
 import {
   mgChipLaunch,
@@ -437,6 +442,28 @@ ok(minigolfGameFor([3, 3, 3, 3, 3], 3).init(1).rev === 2, "a golfRev 3 stamp wit
   ok(tr.holes.every((h, i) => h.strokes.length === state.taken[i]), "the trace has each hole's strokes");
   ok(tr.holes.every((h) => h.strokes[h.strokes.length - 1]?.holed && h.strokes.slice(0, -1).every((s) => !s.holed)), "each hole's last stroke drops, the others don't");
   ok(tr.holes.every((h) => h.strokes.every((s) => s.path.length >= 2)), "every stroke has a path");
+}
+
+/* ------------------------------------------------------------------ 9. the round intro */
+
+// Changed with Joe's approval, 16 Nov 2026 (round intros aren't page-skinned): the intro left the page-screen lists
+// (theme-check and no-wrap-check judge only page-skinned screens), so its text is proved here, rendered by the
+// intro's own component; demo-intro-check opens it in Chromium (title, GOAL, HOW, the demo box, SCORE, Ready).
+{
+  const html = renderToStaticMarkup(createElement(PuzzleInstructions, { type: "minigolf" }));
+  const text = html
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&#x27;/g, "'")
+    .replace(/&quot;/g, '"')
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ");
+  const intro = PUZZLE_INSTRUCTIONS.minigolf;
+  ok(/aria-label="Crazy Golf instructions"/.test(html), "the round intro draws Crazy Golf's instructions");
+  ok(text.includes("Goal") && text.includes(intro.goal), "the intro shows its goal");
+  const how = intro.how.filter((line) => !line.helpOnly);
+  ok(how.length > 0 && how.every((line) => text.includes(`${line.action} ${line.detail}`)), "the intro shows every how-to line");
+  const score = scoreParts(INTRO_SCORE.minigolf);
+  ok(score.length > 0 && score.every((part) => text.includes(part)) && !/\{max\}/.test(text), "the intro shows its score lines, the maximum filled in");
 }
 
 if (process.env["CHECKS_FULL"] === "1") {
