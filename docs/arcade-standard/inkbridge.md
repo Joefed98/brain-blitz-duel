@@ -50,7 +50,7 @@ through `inkLevelDeals.server.ts`), built by `bun scripts/ink-big-deal.ts --rev=
 level, each with every level's proof passing under the level's rules (drawable within its ink, the bonus lines, two
 clovers, the level's live levels, every ink par at least its proved line's ink) and the oracle's perfect run exactly 200
 through the server replay of the level (witnesses `scripts/fixtures/ink-hills-<level>-deal-witness.json.gz`).
-0 of the first 60 candidates dropped on each level (Easy, Hard and Expert all kept the first 60); every entry re-proved by
+Easy and Hard kept the first 60 candidates, Expert dropped 7 of its first 67 (after the second pass); every entry re-proved by
 `--check`. The witnesses are the oracle's (the flawless planner), so **200 is reachable on every dealt seed at every level**.
 
 **Checks**: ink-levels-check (the registry, Normal identical, each level's rules on dealt runs, every deal entry at 200
@@ -62,40 +62,37 @@ level's dealt seeds, every run through the server replay of the level; "elite (h
 at 250 ms and its finger moves at 150 ms or more, Joe's human floor; the shared Human model's elite reacts in 145 ms):
 
 Main's shared tool, `bun scripts/level-tune.ts inkbridge --level=all --seeds=20` (each level's real deals, the bot's
-log graded by the server; inkbridge's checkpoints are every 300 ticks, the tool's own spacing):
+log graded by the server; inkbridge's checkpoints are every 300 ticks, the tool's own spacing), after the second pass:
 
-| Level | Near-perfect avg (median) | Elite avg (median) | Finished |
+| Level | Near-perfect avg (median) | Elite avg (median) | Finished (near / elite) |
 | --- | --- | --- | --- |
-| Easy | 188.5 (189) | 194.5 (195) | 100 % / 100 % |
+| Easy | 190.0 (190) | 197.2 (199) | 100 % / 100 % |
 | Normal | 180.5 (180) | 188.6 (188) | 100 % / 100 % |
-| Hard | 182.5 (180) | 190.3 (193) | 100 % / 100 % |
-| Expert | 173.8 (178) | 185.4 (183) | 85 % / 100 % |
+| Hard | 169.8 (169) | 181.4 (181) | 100 % / 100 % |
+| Expert | 153.4 (153) | 164.7 (168) | 70 % / 90 % |
 
 Every skill, `bun scripts/ink-levels-bands.ts --seeds=16 --human` (the first 16 seeds of each level's deal; average,
-then runs at 175+ and at 200 of 16):
+runs at 175+ and at 200 of 16 in brackets; Normal's from the first pass, its game unchanged):
 
 | Skill | Easy | Normal | Hard | Expert |
 | --- | --- | --- | --- | --- |
-| Weak | 60.8 | 56.3 | 61.3 | 58.8 |
-| Average | 108.8 (0 at 175+) | 90.8 | 92.5 | 81.1 |
-| Good | 154.4 | 131.8 | 123.8 | 127.2 |
-| Great | 175.9 (10 at 175+) | 155.6 (1) | 163.1 (2) | 151.6 (1) |
-| Near-perfect | 185.9 (14; 2 at 200) | 180.9 (13; 1) | 179.4 (12) | 180.1 (11) |
-| Elite | 195.6 (16; 7 at 200) | 190.8 (16) | 190.3 (15; 1) | 191.9 (16) |
-| Elite, human limits | 195.6 (7 at 200) | 190.0 | 189.8 (1 at 200) | 192.3 (1 at 200) |
+| Weak | 83.6 | 56.3 | 46.2 | 36.6 |
+| Average | 126.7 (0) | 90.8 (0) | 75.4 (0) | 68.6 (0) |
+| Good | 162.4 (2) | 131.8 (0) | 103.3 (0) | 92.9 (0) |
+| Great | 181.8 (14) | 155.6 (1) | 129.5 (0) | 122.1 (0) |
+| Near-perfect | 193.5 (16; 5 at 200) | 180.9 (13; 1) | 172.3 (8) | 155.2 (1) |
+| Elite | 196.9 (16; 8 at 200) | 190.8 (16) | 181.8 (12) | 166.9 (3) |
+| Elite, human limits | 196.9 (8 at 200) | 190.0 | 182.9 (15) | 166.3 (3) |
 | Oracle | 200 on every entry | 200 | 200 on every entry | 200 on every entry |
 
-Reading it: **Easy is a clear step down** (Good +23, Great +20 and 10 of 16 Great runs at a star, the elite at 200 on 7 of
-16). **Hard and Expert are not a clear step up for these bots**: the skill-band bot plans every line on the noise-free sim
-with the level in hand, so more birds, swaying birds, less ink and a tighter par barely cost it; the Average and Expert
-rows fall a little (Average 91 → 81, Near-perfect finishing 85 % on Expert in level-tune) but the elite stays at ~190.
-Also tried and dropped (no measured step): Expert +4 birds; Hard's and Expert's pots sliding 20 % / 35 % faster and
-8 / 16 px further. Expert is humanly possible to score well on: the elite held to 250 ms reactions averages 192 and
-reaches 200 on seed 1858517429. Decisions for Joe are in the PR notes (a stronger Hard / Expert lever, and Easy's star
-share for an average player: 0 of 16).
+A clear step at every skill: Easy above Normal, then Hard, then Expert. Expert stays humanly possible to score well on:
+the elite held to 250 ms reactions averages 166 and reaches 193 on its best seed; every Expert entry is proved to 200 by
+the oracle. The first pass (Joe's figures alone: ink, birds, swaying birds, live levels, par margins) moved the bots
+little (elite 191 / 190 / 192 on Normal / Hard / Expert); Expert +4 birds and faster, wider pot slides were also tried
+and dropped. The average player's Easy star share is still 0 of 16 (its average 127, Good 162): a decision for Joe.
 
-Expert seeds to play (the deal's entry index, the seed, the human-limited elite's score): #8 1858517429 (200), #0
-1655421732 (198), #2 1095647772 (198), #7 1552316070 (198), #4 735923524 (183, the hardest of the 16).
+Expert seeds to play (deal index, seed, the human-limited elite's score): #10 1339482591 (193), #0 1655421732 (186), #11
+830227958 (182), #3 1911792321 (170), #4 735923524 (152, among the hardest).
 
 ## inkRev 15 (15 Nov 2026): the pot moves, fewer and bigger birds, a sunset
 
