@@ -149,6 +149,39 @@ export const RACING_V2_WHEEL_RATE = 8;
 export const RACING_V3_OFF_KEEP = 65;
 export const RACING_V3_RECOVER_MUL = 2;
 
+/**
+ * Apex's difficulty levels (racingRev 4, stage 3, 16 Nov 2026; docs/arcade-standard/racing.md "Levels"): a level's play
+ * settings, stamped on the dealt puzzle (`racingLevel`) and carried in the sim's state (`lv`), so a replay never reads
+ * the level registry. Normal has none: its state and checksum are racingRev 4's exactly.
+ *  - keep: the gravel floor's share of the speed the car left the tarmac at (Normal RACING_V3_OFF_KEEP, 65).
+ *  - road / kerb / wall: the tarmac's half width, the kerb's edge and the tyre wall's face (lateral units; Normal
+ *    RACING_ROAD_X, RACING_KERB_X, RACING_WALL_X). Only the kerb and the wall are play; the road is drawn.
+ *  - tight: added to every hairpin's peak curvature (0 keeps the circuit's own corners).
+ *  - aids: display only: 2 corner signs, braking boards and braking points on the road; 1 signs and boards (Normal's);
+ *    0 the signs alone, no boards and no racing line or skid marks.
+ *  - pace: the full pace per circuit (tenths of a km/h; absent: RACING_V4_PACE's).
+ *  - spread: how far below the full pace the pace part reaches nothing (tenths of a km/h; absent: RACING_V4_PACE's
+ *    695). A narrower spread makes every km/h short of the par pace cost more (the step up for strong drivers).
+ */
+export interface RacingLevelSettings {
+  keep: number;
+  road: number;
+  kerb: number;
+  wall: number;
+  tight: number;
+  aids: number;
+  pace?: readonly number[];
+  spread?: number;
+}
+
+/** The car-centre limits of a state: the clean edge (a wheel past the kerb) and the wall stop. */
+export function racingCleanX(state: { lv?: RacingLevelSettings }): number {
+  return state.lv ? state.lv.kerb - RACING_CAR_HALF : RACING_CLEAN_X;
+}
+export function racingWallLimit(state: { lv?: RacingLevelSettings }): number {
+  return state.lv ? state.lv.wall - RACING_CAR_HALF : RACING_WALL_LIMIT;
+}
+
 /** racingRev 2: the steer the wheels head for from a stick value (dead zone, then expo; integer, odd-symmetric). */
 export function racingV2SteerTarget(a: number): number {
   const m = Math.abs(a);
@@ -201,7 +234,7 @@ function makeDraw(seed: number) {
 }
 
 /** Builds a seed's circuit (pure; cached by racingTrack). */
-export function buildRacingTrack(seed: number): RacingTrack {
+export function buildRacingTrack(seed: number, tight = 0): RacingTrack {
   const draw = makeDraw(seed);
     // The same set every lap (so every circuit takes about as long): two hairpins, a chicane, three corners, two sweepers.
   const kinds: number[] = [RACING_SEC_HAIRPIN, RACING_SEC_HAIRPIN, RACING_SEC_CHICANE, RACING_SEC_CORNER, RACING_SEC_CORNER, RACING_SEC_CORNER, RACING_SEC_SWEEPER, RACING_SEC_SWEEPER];
@@ -244,11 +277,13 @@ export function buildRacingTrack(seed: number): RacingTrack {
     straightLen.push(minLen(i) + extra);
   }
 
-  return assembleRacingTrack(seed, curved, straightLen, draw);
+  return assembleRacingTrack(seed, curved, straightLen, draw, 1200, tight);
 }
 
 /** A circuit from its curved sections and straights (one before each curve and a closing one), hills from `draw`. */
-function assembleRacingTrack(seed: number, curved: readonly { kind: number; len: number; dir: number; peak: number }[], straightLen: readonly number[], draw: (bound: number) => number, hillAmp = 1200): RacingTrack {
+function assembleRacingTrack(seed: number, given: readonly { kind: number; len: number; dir: number; peak: number }[], straightLen: readonly number[], draw: (bound: number) => number, hillAmp = 1200, tight = 0): RacingTrack {
+  // A level's tighter hairpins (racingLevel.tight): each hairpin's peak raised; nothing drawn from the stream changes.
+  const curved = tight ? given.map((c) => (c.kind === RACING_SEC_HAIRPIN ? { ...c, peak: c.peak + tight } : c)) : given;
   const nStraights = straightLen.length;
   const curve = new Int8Array(RACING_LAP_SEGS);
   const sections: RacingSection[] = [];
@@ -353,28 +388,45 @@ const CIRCUIT_PLANS: readonly { curved: readonly Curved[]; straights: readonly n
 ];
 
 const circuitCache: RacingTrack[] = [];
-/** A racingRev 4 circuit by its index (cached, the same object for the sim, the renderer and the bots). */
-export function racingCircuit(index: number): RacingTrack {
+const tightCache = new Map<string, RacingTrack>();
+/**
+ * A racingRev 4 circuit by its index (cached, the same object for the sim, the renderer and the bots); `tight` raises
+ * every hairpin's peak (a level's tighter hairpins; 0 is the circuit itself).
+ */
+export function racingCircuit(index: number, tight = 0): RacingTrack {
+  if (tight) {
+    const key = `${index}:${tight}`;
+    let tt = tightCache.get(key);
+    if (!tt) {
+      tt = index === 0 ? buildRacingTrack(RACING_SUNSET_SEED, tight) : assembleCircuit(index, tight);
+      tightCache.set(key, tt);
+    }
+    return tt;
+  }
   let t = circuitCache[index];
   if (!t) {
-    if (index === 0) t = buildRacingTrack(RACING_SUNSET_SEED);
-    else {
-      const plan = CIRCUIT_PLANS[index - 1]!;
-      t = assembleRacingTrack(RACING_SUNSET_SEED + index, plan.curved, plan.straights, makeDraw(plan.hillSeed), plan.hillAmp);
-    }
+    t = index === 0 ? buildRacingTrack(RACING_SUNSET_SEED) : assembleCircuit(index, 0);
     circuitCache[index] = t;
   }
   return t;
 }
 
-/** The circuit a run races on: racingRev 4's named circuit for its seed, else the seed's own layout (racingRev 1–3). */
-export function racingTrackFor(seed: number, rev: number | null | undefined): RacingTrack {
-  return (rev ?? 1) >= RACING_REV_4 ? racingCircuit(racingCircuitOf(seed)) : racingTrack(seed);
+function assembleCircuit(index: number, tight: number): RacingTrack {
+  const plan = CIRCUIT_PLANS[index - 1]!;
+  return assembleRacingTrack(RACING_SUNSET_SEED + index, plan.curved, plan.straights, makeDraw(plan.hillSeed), plan.hillAmp, tight);
+}
+
+/**
+ * The circuit a run races on: racingRev 4's named circuit for its seed (a level's tighter hairpins when its settings
+ * say so), else the seed's own layout (racingRev 1–3).
+ */
+export function racingTrackFor(seed: number, rev: number | null | undefined, lv?: RacingLevelSettings | null): RacingTrack {
+  return (rev ?? 1) >= RACING_REV_4 ? racingCircuit(racingCircuitOf(seed), lv?.tight ?? 0) : racingTrack(seed);
 }
 
 /** The circuit of a state (the sim, renderer, sounds and bots all ask this). */
-export function racingTrackOf(state: Pick<RacingState, "seed" | "rev">): RacingTrack {
-  return racingTrackFor(state.seed, state.rev);
+export function racingTrackOf(state: Pick<RacingState, "seed" | "rev"> & { lv?: RacingLevelSettings }): RacingTrack {
+  return racingTrackFor(state.seed, state.rev, state.lv);
 }
 
 /** The seeded plan (the brief's `pSeedPlan`): the circuit itself. */
@@ -403,7 +455,7 @@ export const RACING_SIGN_SEGS = 34;
  * Whether a car held at speed v from the centre line stays on the track (no wheel past the kerb) through a corner,
  * steering just enough to hold its line, at most full lock (the sim's own push and steering, integer).
  */
-function racingCornerHolds(track: RacingTrack, sec: RacingSection, v: number): boolean {
+function racingCornerHolds(track: RacingTrack, sec: RacingSection, v: number, clean = RACING_CLEAN_X): boolean {
   let s = (sec.start - 2) * RACING_SEG;
   const end = (sec.start + sec.len + 2) * RACING_SEG;
   let x = 0;
@@ -412,19 +464,19 @@ function racingCornerHolds(track: RacingTrack, sec: RacingSection, v: number): b
     const push = racingPush(c, v);
     const want = v > 0 ? Math.round((push * RACING_STICK_MAX * RACING_VMAX) / (RACING_STEER_K * v)) : 0;
     x += racingSteerMove(clampInt(want, -RACING_STICK_MAX, RACING_STICK_MAX), v) - push;
-    if (Math.abs(x) > RACING_CLEAN_X) return false;
+    if (Math.abs(x) > clean) return false;
     s += Math.max(1, v);
   }
   return true;
 }
 
 /** The fastest speed (sim units) a full-lock line from the centre takes a corner at without leaving the track. */
-export function racingCornerLimit(track: RacingTrack, sec: RacingSection): number {
+export function racingCornerLimit(track: RacingTrack, sec: RacingSection, clean = RACING_CLEAN_X): number {
   let lo = 0;
   let hi = RACING_VMAX;
   while (lo < hi) {
     const mid = (lo + hi + 1) >> 1;
-    if (racingCornerHolds(track, sec, mid)) lo = mid;
+    if (racingCornerHolds(track, sec, mid, clean)) lo = mid;
     else hi = mid - 1;
   }
   return lo;
@@ -443,19 +495,40 @@ export function racingSignKmh(limit: number): number {
 }
 
 const adviceCache = new WeakMap<RacingTrack, RacingCornerSign[]>();
-/** A circuit's corner speed signs, in lap order (pure, cached per circuit; display and the bots' notes only). */
-export function racingCornerAdvice(track: RacingTrack): RacingCornerSign[] {
+const wideAdviceCache = new WeakMap<RacingTrack, Map<number, RacingCornerSign[]>>();
+/**
+ * A circuit's corner speed signs, in lap order (pure, cached per circuit; display and the bots' notes only). `clean` is
+ * the car-centre clean edge the limit is judged against (a level's own kerb, racingCleanX; Normal's by default).
+ */
+export function racingCornerAdvice(track: RacingTrack, clean = RACING_CLEAN_X): RacingCornerSign[] {
+  if (clean !== RACING_CLEAN_X) {
+    let byClean = wideAdviceCache.get(track);
+    if (!byClean) wideAdviceCache.set(track, (byClean = new Map()));
+    let wide = byClean.get(clean);
+    if (!wide) byClean.set(clean, (wide = buildAdvice(track, clean)));
+    return wide;
+  }
   let list = adviceCache.get(track);
   if (!list) {
-    list = [];
-    for (const corner of track.corners) {
-      const limit = racingCornerLimit(track, corner);
-      const kmh = racingSignKmh(limit);
-      if (kmh < RACING_SIGN_BELOW_KMH) list.push({ corner, limit, kmh });
-    }
+    list = buildAdvice(track, clean);
     adviceCache.set(track, list);
   }
   return list;
+}
+
+function buildAdvice(track: RacingTrack, clean: number): RacingCornerSign[] {
+  const list: RacingCornerSign[] = [];
+  for (const corner of track.corners) {
+    const limit = racingCornerLimit(track, corner, clean);
+    const kmh = racingSignKmh(limit);
+    if (kmh < RACING_SIGN_BELOW_KMH) list.push({ corner, limit, kmh });
+  }
+  return list;
+}
+
+/** A state's corner signs (its level's kerb and hairpins). */
+export function racingCornerAdviceOf(state: Pick<RacingState, "seed" | "rev"> & { lv?: RacingLevelSettings }): RacingCornerSign[] {
+  return racingCornerAdvice(racingTrackOf(state), racingCleanX(state));
 }
 
 /* ================================ The state ================================ */
@@ -494,6 +567,8 @@ export interface RacingState {
   /** racingRev 3: the speed the car left the tarmac at (0 while on it), and the speed the recovery pulls back to (0 when none). */
   offFrom?: number;
   rec?: number;
+  /** A difficulty level's play settings (racingRev 4; absent at Normal: see RacingLevelSettings). */
+  lv?: RacingLevelSettings;
 }
 
 export function racingInit(seed: number): RacingState {
@@ -534,8 +609,8 @@ export function racingSteerMove(steer: number, v: number): number {
 }
 
 /** racingRev 3's gravel floor for a speed the car left the tarmac at: two thirds of it, never below racingRev 1's cap. */
-export function racingV3OffFloor(offFrom: number): number {
-  return Math.max(Math.floor((offFrom * RACING_V3_OFF_KEEP) / 100), Math.min(offFrom, RACING_OFF_CAP));
+export function racingV3OffFloor(offFrom: number, keep = RACING_V3_OFF_KEEP): number {
+  return Math.max(Math.floor((offFrom * keep) / 100), Math.min(offFrom, RACING_OFF_CAP));
 }
 
 /**
@@ -546,7 +621,7 @@ export function racingV3OffFloor(offFrom: number): number {
 function racingV3Speed(s0: RacingState, v0: number, offBefore: boolean): number {
   let v = v0;
   // (A state already off with no speed noted, never reached in play, keeps its own speed as the floor.)
-  const floor = offBefore ? racingV3OffFloor(s0.offFrom || v0) : RACING_VMAX;
+  const floor = offBefore ? racingV3OffFloor(s0.offFrom || v0, s0.lv ? s0.lv.keep : RACING_V3_OFF_KEEP) : RACING_VMAX;
   const gain = (mul: number) => Math.floor((mul * RACING_ACCEL * s0.pedal * (RACING_VMAX - v)) / (RACING_STICK_MAX * RACING_VMAX));
   if (s0.pedal > 0) {
     if (!offBefore) v += gain((s0.rec ?? 0) > v ? RACING_V3_RECOVER_MUL : 1);
@@ -581,7 +656,9 @@ export function racingStep(prev: RacingState, input: ArcadeInputEvent | null): R
 
   // Speed.
   let v = s0.v;
-  const offBefore = Math.abs(s0.x) > RACING_CLEAN_X;
+  const cleanX = s0.lv ? s0.lv.kerb - RACING_CAR_HALF : RACING_CLEAN_X;
+  const wallLimit = s0.lv ? s0.lv.wall - RACING_CAR_HALF : RACING_WALL_LIMIT;
+  const offBefore = Math.abs(s0.x) > cleanX;
   if (s0.rev >= RACING_REV_3) v = racingV3Speed(s0, v, offBefore);
   else {
     if (s0.pedal > 0) {
@@ -598,15 +675,15 @@ export function racingStep(prev: RacingState, input: ArcadeInputEvent | null): R
   // Sideways: the steer, and the curve pushing outwards (a right-hander pushes left).
   let x = s0.x + racingSteerMove(v2 ? s0.wheel : s0.steer, v) - racingPush(c, v);
   let wall = 0;
-  if (x > RACING_WALL_LIMIT || x < -RACING_WALL_LIMIT) {
-    x = x > 0 ? RACING_WALL_LIMIT : -RACING_WALL_LIMIT;
+  if (x > wallLimit || x < -wallLimit) {
+    x = x > 0 ? wallLimit : -wallLimit;
     wall = 1;
     if (!s0.wall) {
       v = Math.floor((v * 3) / 4);
       s0.wallHits += 1;
     } else v -= v >> 5;
   }
-  const off = Math.abs(x) > RACING_CLEAN_X ? 1 : 0;
+  const off = Math.abs(x) > cleanX ? 1 : 0;
   if ((off || wall) && !s0.off && !s0.wall) s0.contacts += 1;
   if (s0.rev >= RACING_REV_3) {
     // The speed the car leaves the tarmac at (its gravel floor and its recovery target), kept while it is off.
@@ -750,8 +827,13 @@ export const RACING_V4_PACE: readonly { zero: number; full: number }[] = [
 ];
 
 /** The pace range a run is scored on (racingRev 4: its circuit's; racingRev 3: the fixed one). */
-export function racingPaceRange(state: Pick<RacingState, "rev" | "seed">): { zero: number; full: number } {
-  return state.rev >= RACING_REV_4 ? RACING_V4_PACE[racingCircuitOf(state.seed)]! : { zero: RACING_V3_PACE_ZERO, full: RACING_V3_PACE_FULL };
+export function racingPaceRange(state: Pick<RacingState, "rev" | "seed"> & { lv?: RacingLevelSettings }): { zero: number; full: number } {
+  if (state.rev < RACING_REV_4) return { zero: RACING_V3_PACE_ZERO, full: RACING_V3_PACE_FULL };
+  const base = RACING_V4_PACE[racingCircuitOf(state.seed)]!;
+  // A level's own full pace (racingLevel.pace) and spread (racingLevel.spread; Normal's otherwise).
+  if (!state.lv) return base;
+  const full = state.lv.pace?.[racingCircuitOf(state.seed)] ?? base.full;
+  return { zero: full - (state.lv.spread ?? base.full - base.zero), full };
 }
 
 export const RACING_V4_STD_SPEC: StdSpec = {
@@ -867,6 +949,15 @@ export function racingChecksum(s: RacingState): number {
     mix(s.offFrom ?? 0);
     mix(s.rec ?? 0);
   }
+  // A level's play settings (Normal has none and checksums exactly as racingRev 4).
+  if (s.lv) {
+    mix(s.lv.keep);
+    mix(s.lv.kerb);
+    mix(s.lv.wall);
+    mix(s.lv.tight);
+    for (const p of s.lv.pace ?? []) mix(p);
+    mix(s.lv.spread ?? 0);
+  }
   return h >>> 0;
 }
 
@@ -938,7 +1029,39 @@ export const racingGameV4: ArcadeGame<RacingState, ArcadeInputEvent | null> = {
 };
 
 /** The game for a stored stamp (unstamped and 1: racingRev 1; 2: the lights start and the softer joystick; 3: the softer gravel and the pace score). */
-export function racingGameFor(rev?: number | null): ArcadeGame<RacingState, ArcadeInputEvent | null> {
+export function racingGameFor(rev?: number | null, lv?: RacingLevelSettings | null): ArcadeGame<RacingState, ArcadeInputEvent | null> {
   const r = rev ?? 1;
+  if (lv && r >= RACING_REV_4) return racingLevelGame(lv);
   return r >= RACING_REV_4 ? racingGameV4 : r >= RACING_REV_3 ? racingGameV3 : r >= RACING_REV_2 ? racingGameV2 : racingGame;
+}
+
+/** A stored level's settings, whole numbers only (a malformed stamp plays as Normal). */
+export function racingLevelOf(raw: unknown): RacingLevelSettings | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const n = (k: string) => (typeof o[k] === "number" && Number.isFinite(o[k]) ? Math.trunc(o[k] as number) : null);
+  const keep = n("keep");
+  const road = n("road");
+  const kerb = n("kerb");
+  const wall = n("wall");
+  const tight = n("tight");
+  const aids = n("aids");
+  if (keep === null || road === null || kerb === null || wall === null || tight === null || aids === null) return null;
+  const pace = Array.isArray(o["pace"]) && o["pace"].length === RACING_CIRCUITS.length && o["pace"].every((p) => typeof p === "number" && Number.isFinite(p)) ? (o["pace"] as number[]).map((p) => Math.trunc(p)) : null;
+  const spread = n("spread");
+  return { keep, road, kerb, wall, tight, aids, ...(pace ? { pace } : {}), ...(spread !== null && spread > 0 ? { spread } : {}) };
+}
+
+const levelGames = new Map<string, ArcadeGame<RacingState, ArcadeInputEvent | null>>();
+/** racingRev 4 at a level: the same game with the level's settings in its state (cached per settings). */
+function racingLevelGame(lv: RacingLevelSettings): ArcadeGame<RacingState, ArcadeInputEvent | null> {
+  const own = racingLevelOf(lv);
+  if (!own) return racingGameV4;
+  const key = JSON.stringify(own);
+  let game = levelGames.get(key);
+  if (!game) {
+    game = { ...racingGameV4, init: (seed: number) => ({ ...racingInitV4(seed), lv: own }) };
+    levelGames.set(key, game);
+  }
+  return game;
 }

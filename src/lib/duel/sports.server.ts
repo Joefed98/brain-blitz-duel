@@ -8,11 +8,18 @@
  */
 import { HOMERUN_REV_DEALT } from "@/lib/arcade/homerun";
 import { FREEKICK_REV_DEALT } from "@/lib/arcade/freekick";
-import { RACING_REV_DEALT } from "@/lib/arcade/racing";
+import { RACING_REV_3, RACING_REV_DEALT, type RacingLevelSettings } from "@/lib/arcade/racing";
+import { checkOverride } from "@/lib/checkOverride";
+import { gameLevelSettings } from "@/lib/levels/gameLevels";
+import { NORMAL, type Level } from "@/lib/levels/levels";
+import { racingDealSeedV3 } from "./racingDealV3.server";
 import { arcadeSeed } from "./arcade.server";
 import { homerunDealSeedV4 } from "./homerunDealV4.server";
 import { freekickDealSeedV4 } from "./freekickDealV4.server";
 import { racingDealSeedV4 } from "./racingDealV4.server";
+import { racingDealSeedV4Easy } from "./racingDealV4Easy.server";
+import { racingDealSeedV4Hard } from "./racingDealV4Hard.server";
+import { racingDealSeedV4Expert } from "./racingDealV4Expert.server";
 import { MINIGOLF_REV } from "@/lib/arcade/minigolf";
 import { POOL_REV } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
@@ -34,10 +41,28 @@ export function generateFreekick(): FreekickPuzzleData {
   return { type: "freekick", seed: freekickDealSeedV4(arcadeSeed()), freekickRev: FREEKICK_REV_DEALT };
 }
 
-export function generateRacing(): RacingPuzzleData {
+export function generateRacing(level: Level = NORMAL): RacingPuzzleData {
   // Apex deals racingRev 4 (15 Nov 2026, the Sports overhaul: three named circuits) from its own proved deal;
   // racingRev 3, 2 and 1 rounds replay on theirs (racingDealV3.server.ts, racingDealV2.server.ts, racingDeal.server.ts).
-  return { type: "racing", seed: racingDealSeedV4(arcadeSeed()), racingRev: RACING_REV_DEALT };
+  // Checks written for racingRev 3 pin racingPreCircuits, a check-only switch read through checkOverride (as Minefield's
+  // minesPreLogic): a production build never deals rev 3.
+  if (checkOverride<boolean>("__DUELZ_RACING_PRE_CIRCUITS__") === true) return { type: "racing", seed: racingDealSeedV3(arcadeSeed()), racingRev: RACING_REV_3 };
+  // Difficulty levels (stage 3, 16 Nov 2026): Easy, Hard and Expert deal from their own proved deals and stamp the
+  // level's settings (racingLevel) for the sim; Normal deals exactly as before (no field, the same draw).
+  const settings = level === NORMAL ? null : gameLevelSettings<RacingLevelSettings>("racing", level);
+  if (!settings) return { type: "racing", seed: racingDealSeedV4(arcadeSeed()), racingRev: RACING_REV_DEALT };
+  const deal = level === "easy" ? racingDealSeedV4Easy : level === "hard" ? racingDealSeedV4Hard : racingDealSeedV4Expert;
+  return { type: "racing", seed: deal(arcadeSeed()), racingRev: RACING_REV_DEALT, racingLevel: {
+      keep: settings.keep,
+      road: settings.road,
+      kerb: settings.kerb,
+      wall: settings.wall,
+      tight: settings.tight,
+      aids: settings.aids,
+      ...(settings.pace ? { pace: [...settings.pace] } : {}),
+      ...(settings.spread ? { spread: settings.spread } : {}),
+    },
+  };
 }
 
 export function generateMinigolf(): MinigolfPuzzleData {

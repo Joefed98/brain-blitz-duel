@@ -1509,7 +1509,7 @@ function gradeUnderRev(
           ...common(run),
         };
       } else if (puzzle.type === "pool") {
-        const run = replayPoolRun(puzzle.seed, answer, puzzle.poolRev);
+        const run = replayPoolRun(puzzle.seed, answer, puzzle.poolRev, (puzzle as { level?: unknown }).level);
         revealRun = run;
         arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
         const parts = poolStdParts(run.state);
@@ -1568,7 +1568,7 @@ function gradeUnderRev(
           ? replayHomerunRun(puzzle.seed, answer, rev)
           : puzzle.type === "freekick"
             ? replayFreekickRun(puzzle.seed, answer, rev)
-            : replayRacingRun(puzzle.seed, answer, rev);
+            : replayRacingRun(puzzle.seed, answer, rev, (puzzle as { racingLevel?: unknown }).racingLevel);
       const decoded = puzzle.type === "homerun" ? decodeHomerunRun(answer) : puzzle.type === "freekick" ? decodeFreekickRun(answer) : decodeRacingRun(answer);
       revealRun = run as unknown as typeof revealRun;
       arcadeDiag = buildArcadeDiag(puzzle.type, run as unknown as Parameters<typeof buildArcadeDiag>[1], answer, performance.now() - replayStart);

@@ -83,7 +83,11 @@ import {
   racingRaceTicks,
   racingSegAt,
   racingTrackOf,
+  RACING_BRAKE,
   RACING_CAR_HALF,
+  RACING_CLEAN_X,
+  RACING_VMAX,
+  type RacingLevelSettings,
   RACING_KERB_X,
   RACING_LAP_SEGS,
   RACING_LAPS,
@@ -159,6 +163,8 @@ const K_ANG = Math.PI / 300;
 const SUN_BEARING = 0.18;
 const PX_PER_RAD = F;
 
+/** Easy's painted braking point (aids 2): a warm white stripe across the road. */
+const BRAKE_POINT_COL = "rgba(255,236,196,0.78)";
 const lat = (x: number) => (x / RACING_ROAD_X) * RW;
 const KERB_W = lat(RACING_KERB_X);
 const WALL_W = lat(RACING_WALL_X);
@@ -641,13 +647,8 @@ export function paintRacingCar(ctx: Ctx2D, cx: number, bottom: number, w: number
 
 /** The asphalt grain's tile (world px). */
 const GRAIN = 48;
-let grainTile: { pattern: CanvasPattern; ctx: Ctx2D } | null = null;
-/** A fine aggregate grain (light and dark specks, hashed, so every frame and device draws the same), as a pattern. */
-function asphaltGrain(ctx: Ctx2D): CanvasPattern | null {
-  if (grainTile && grainTile.ctx === ctx) return grainTile.pattern;
-  const s = makeSurface(GRAIN, GRAIN);
-  if (!s) return null;
-  const g = s.getContext("2d") as unknown as Ctx2D;
+/** Paints the grain's specks (light and dark, hashed, so every frame and device draws the same) on a GRAIN tile. */
+function paintGrainSpecks(g: Ctx2D): void {
   for (let i = 0; i < 260; i++) {
     const x = hash(i * 3 + 1) * GRAIN;
     const y = hash(i * 3 + 2) * GRAIN;
@@ -655,10 +656,67 @@ function asphaltGrain(ctx: Ctx2D): CanvasPattern | null {
     g.fillStyle = light ? "rgba(255,240,225,0.10)" : "rgba(0,0,0,0.16)";
     g.fillRect(x, y, light ? 1 : 1.5, light ? 1 : 1);
   }
+}
+/**
+ * A tarmac surface's fill with its grain baked in (performance pass, 15 Nov 2026): the surface's colour with the specks
+ * over it, as one repeating pattern, cached per canvas, device-pixel ratio and colour. The road, the second road shade
+ * and the run-off fill with it directly, so the grain costs no clip and no second full-screen fill (it used to be
+ * painted over the three surfaces afterwards, clipped to each). The tile is drawn at the canvas's own device pixels and
+ * mapped onto them 1:1 (its transform undoes the canvas's scale, its offset whole device pixels), so the fill copies
+ * pixels instead of resampling the tile for every pixel of road.
+ */
+const surfaceTiles = new Map<string, { pattern: CanvasPattern; ctx: Ctx2D }>();
+function surfacePattern(ctx: Ctx2D, colour: string, k: number): CanvasPattern | null {
+  const id = `${colour}|${k}`;
+  const known = surfaceTiles.get(id);
+  if (known && known.ctx === ctx) return known.pattern;
+  const s = makeSurface(GRAIN * k, GRAIN * k);
+  if (!s) return null;
+  const g = s.getContext("2d") as unknown as Ctx2D;
+  g.scale(k, k);
+  g.fillStyle = colour;
+  g.fillRect(0, 0, GRAIN, GRAIN);
+  paintGrainSpecks(g);
   const pattern = ctx.createPattern(s as unknown as CanvasImageSource, "repeat");
   if (!pattern) return null;
-  grainTile = { pattern, ctx };
+  surfaceTiles.set(id, { pattern, ctx });
   return pattern;
+}
+
+/**
+ * The low sun's warm light across the ground (the Sports overhaul; performance pass, 15 Nov 2026): a soft radial glow
+ * from the sun's place on the horizon, drawn once into a layer at the canvas's own device pixels and kept while the sun
+ * stays within a world pixel of where it was drawn (the sun moves only with the heading, so straights and steady corners
+ * reuse it frame after frame), then copied 1:1 over the ground: one image copy a frame in place of a full-screen radial
+ * gradient. The glow has no edge, so a sun at most a pixel from its drawn place is indistinguishable.
+ */
+let warmLayer: { surface: Surface; key: string } | null = null;
+function paintWarmLight(ctx: Ctx2D, lx: number, x0: number, y0: number, x1: number, y1: number): void {
+  const w = x1 - x0;
+  const h = y1 - y0;
+  if (w <= 0 || h <= 0) return;
+  const m = ctx.getTransform();
+  const k = Math.max(1, Math.round(Math.hypot(m.a, m.b) * 4) / 4);
+  const sun = Math.round(lx / 2) * 2;
+  const key = `${sun}|${x0}|${y0}|${x1}|${y1}|${k}`;
+  if (!warmLayer || warmLayer.key !== key) {
+    const s = warmLayer && warmLayer.surface.width === Math.ceil(w * k) && warmLayer.surface.height === Math.ceil(h * k) ? warmLayer.surface : makeSurface(w * k, h * k);
+    if (!s) return;
+    const g = s.getContext("2d") as unknown as Ctx2D;
+    g.setTransform(k, 0, 0, k, -x0 * k, -y0 * k);
+    g.clearRect(x0, y0, w, h);
+    const warm = g.createRadialGradient(sun, HORIZON, 0, sun, HORIZON, RACING_WORLD_W * 1.5);
+    warm.addColorStop(0, "rgba(255,150,80,0.26)");
+    warm.addColorStop(0.45, "rgba(255,120,70,0.1)");
+    warm.addColorStop(1, "rgba(255,120,70,0)");
+    g.fillStyle = warm;
+    g.fillRect(x0, y0, w, h);
+    warmLayer = { surface: s, key };
+  }
+  const smoothing = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(warmLayer.surface as unknown as CanvasImageSource, x0, y0, w, h);
+  ctx.imageSmoothingEnabled = smoothing;
 }
 
 /* ================================ The track's look ================================ */
@@ -677,6 +735,18 @@ interface Look {
   sprites: { kind: number; x: number; v: number }[][];
   /** The heading smoothed over a long window (the sun's frame). */
   smooth: Float32Array;
+  /**
+   * A difficulty level's widths and aids (racingRev 4; display): the tarmac's half width as a share of Normal's (`rf`,
+   * 1 at Normal), the kerb's and the tyre wall's edges (world units), and the aids (2 signs, boards and braking
+   * points; 1 Normal's signs and boards; 0 signs only, no boards, racing line or skid marks).
+   */
+  key: string;
+  rf: number;
+  kerbW: number;
+  wallW: number;
+  aids: number;
+  /** Aids 2: the braking point painted across the road, per segment (1 = a stripe). */
+  brake: Uint8Array | null;
 }
 const SPR_TREE = 0;
 const SPR_STAND = 1;
@@ -688,8 +758,17 @@ const SPR_SIGN = 4;
 const SPR_MARSHAL = 5;
 let look: Look | null = null;
 
-function lookFor(track: RacingTrack): Look {
-  if (look && look.track === track) return look;
+/** A level's display widths and aids (Normal: the constants, aids 1). */
+function laneOf(lv: RacingLevelSettings | null | undefined): { key: string; rf: number; kerbW: number; wallW: number; aids: number; clean: number } {
+  if (!lv) return { key: "", rf: 1, kerbW: KERB_W, wallW: WALL_W, aids: 1, clean: RACING_CLEAN_X };
+  return { key: `${lv.road}:${lv.kerb}:${lv.wall}:${lv.aids}`, rf: lv.road / RACING_ROAD_X, kerbW: lat(lv.kerb), wallW: lat(lv.wall), aids: lv.aids, clean: lv.kerb - RACING_CAR_HALF };
+}
+
+function lookFor(track: RacingTrack, lv?: RacingLevelSettings | null): Look {
+  const lane = laneOf(lv);
+  if (look && look.track === track && look.key === lane.key) return look;
+  const { kerbW: KERB_W, wallW: WALL_W, aids } = lane;
+  const brake = aids >= 2 ? new Uint8Array(RACING_LAP_SEGS) : null;
   const n = RACING_LAP_SEGS;
   const kerb = new Uint8Array(n);
   const gravel = new Uint8Array(n);
@@ -710,19 +789,29 @@ function lookFor(track: RacingTrack): Look {
       gravel[g] = gravel[g]! | (c.kind === RACING_SEC_CHICANE ? 3 : outside);
     }
     const zone = c.kind === RACING_SEC_HAIRPIN ? 30 : 22;
-    for (let k = -zone; k < 0; k++) skid[at(c.start + k)] = 1;
+    // Expert (aids 0): no skid marks or braking boards, the signs alone.
+    if (aids > 0) for (let k = -zone; k < 0; k++) skid[at(c.start + k)] = 1;
     // Braking boards on the outside: 150, 100, 50.
     const side = c.dir > 0 ? -1 : 1;
-    [24, 16, 8].forEach((d, j) => sprites[at(c.start - d)]!.push({ kind: SPR_BOARD, x: side * (KERB_W + 260), v: j }));
+    if (aids > 0) [24, 16, 8].forEach((d, j) => sprites[at(c.start - d)]!.push({ kind: SPR_BOARD, x: side * (KERB_W + 260), v: j }));
     // racingRev 3: the corner's advisory speed on the same side, before the boards (drawn on racingRev 3 only).
-    const sign = racingCornerAdvice(track).find((a) => a.corner === c);
+    const sign = racingCornerAdvice(track, lane.clean).find((a) => a.corner === c);
     if (sign) sprites[at(c.start - RACING_SIGN_SEGS)]!.push({ kind: SPR_SIGN, x: side * (KERB_W + 420), v: sign.kmh });
+    // Easy (aids 2): the braking point painted across the road, where full braking from top speed reaches the sign's
+    // speed by the turn-in (display only; two segments wide).
+    if (brake && sign) {
+      const segs = Math.round((RACING_VMAX * RACING_VMAX - sign.limit * sign.limit) / (2 * RACING_BRAKE * RACING_SEG));
+      const d = Math.max(4, Math.min(RACING_SIGN_SEGS - 2, segs));
+      brake[at(c.start - d)] = 1;
+      brake[at(c.start - d + 1)] = 1;
+    }
     // Trackside (stage 2): a marshal post behind the wall at the entry, a catch fence along the outside, and at a
     // hairpin a grandstand piece looking down on it.
     sprites[at(c.start - 3)]!.push({ kind: SPR_MARSHAL, x: side * (WALL_W + 260), v: 0 });
     for (let k = -6; k < c.len + 6; k++) sprites[at(c.start + k)]!.push({ kind: SPR_FENCE, x: side * WALL_W, v: 0 });
     if (c.kind === RACING_SEC_HAIRPIN) for (let k = -12; k < c.len; k += 6) sprites[at(c.start + k)]!.push({ kind: SPR_STAND, x: side * (WALL_W + 700), v: 0 });
-    // The racing line: outside on the approach, the apex inside, out again on the exit.
+    // The racing line: outside on the approach, the apex inside, out again on the exit (none on Expert, aids 0).
+    if (aids === 0) continue;
     const out = -c.dir * RW * 0.5;
     for (let k = -30; k < c.len + 30; k++) {
       let v: number;
@@ -763,7 +852,7 @@ function lookFor(track: RacingTrack): Look {
     smooth[i] = acc / (2 * SMOOTH + 1);
     acc += H(i + SMOOTH + 1) - H(i - SMOOTH);
   }
-  look = { track, kerb, gravel, skid, line, heading, smooth, sprites };
+  look = { track, kerb, gravel, skid, line, heading, smooth, sprites, key: lane.key, rf: lane.rf, kerbW: KERB_W, wallW: WALL_W, aids, brake };
   return look;
 }
 
@@ -771,11 +860,11 @@ function lookFor(track: RacingTrack): Look {
  * The trackside a circuit draws (checks only; stage 2): which segments carry kerbs and, per corner, what stands at it
  * (the marshal post, the catch fence on the outside, the braking boards and the speed sign).
  */
-export function racingTrackDetail(track: RacingTrack): {
+export function racingTrackDetail(track: RacingTrack, lv?: RacingLevelSettings | null): {
   kerb: Uint8Array;
-  corners: { start: number; len: number; marshal: boolean; fenceOutside: boolean; boards: number; sign: boolean }[];
+  corners: { start: number; len: number; marshal: boolean; fenceOutside: boolean; boards: number; sign: boolean; brake: boolean; line: boolean }[];
 } {
-  const lk = lookFor(track);
+  const lk = lookFor(track, lv);
   const n = RACING_LAP_SEGS;
   const at = (i: number) => ((i % n) + n) % n;
   return {
@@ -794,6 +883,8 @@ export function racingTrackDetail(track: RacingTrack): {
         fenceOutside: near(0, c.len, SPR_FENCE) >= c.len,
         boards: near(-30, 0, SPR_BOARD),
         sign: near(-RACING_SIGN_SEGS - 1, 0, SPR_SIGN) > 0,
+        brake: lk.brake ? Array.from({ length: RACING_SIGN_SEGS }, (_, k) => lk.brake![at(c.start - 1 - k)]!).some(Boolean) : false,
+        line: lk.line[at(c.start)] !== 0,
       };
     }),
   };
@@ -881,7 +972,7 @@ const WORLD_BOUNDS: Bounds = { x0: 0, x1: RACING_WORLD_W, y1: RACING_WORLD_H, be
 function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_BOUNDS): void {
   const W = RACING_WORLD_W;
   const track = racingTrackOf(state);
-  const lk = lookFor(track);
+  const lk = lookFor(track, state.lv);
   const n = RACING_LAP_SEGS;
   const carZ = (state.s / RACING_SEG) * SL;
   const camZ = carZ - ZC;
@@ -940,7 +1031,14 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   haze.addColorStop(0, SK.world ? NEON_NIGHT_HAZE : SCENE_HAZE[scene]!);
   haze.addColorStop(1, COL.grassA);
   ctx.fillStyle = haze;
-  ctx.fillRect(B.x0, HORIZON + 3, B.x1 - B.x0, B.y1 - HORIZON - 3);
+  // The gradient only down to its end; below it the haze is the grass's own colour, filled flat (the same colour as the
+  // gradient's pad, without a gradient evaluated for every pixel of the lower screen: performance pass, 15 Nov 2026).
+  const hazeEnd = Math.min(B.y1, HAZE_END);
+  ctx.fillRect(B.x0, HORIZON + 3, B.x1 - B.x0, hazeEnd - HORIZON - 3);
+  if (B.y1 > hazeEnd) {
+    ctx.fillStyle = COL.grassA;
+    ctx.fillRect(B.x0, hazeEnd, B.x1 - B.x0, B.y1 - hazeEnd);
+  }
   // Harbour Run: the water on the horizon with the low sun's path on it, above where the haze reaches the grass (the
   // road's far end draws over it).
   const harbour = !SK.world && scene === RACING_SCENE_HARBOUR;
@@ -995,8 +1093,11 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   const clipY = new Float64Array(edges).fill(B.y1);
   let maxY = B.y1;
   const visible = new Uint8Array(edges);
-  const kw = KERB_W / RW;
-  const ww = WALL_W / RW;
+  // The tarmac's half width (1 at Normal: every road quad below is exactly as before), the kerb and the wall.
+  const rf = lk.rf;
+  const kw = lk.kerbW / RW;
+  const ww = lk.wallW / RW;
+  const brakePath = lk.brake ? new Path2D() : null;
   // The Neon Night's kerbs chase (0 by default, and at rest under Reduce Motion).
   const chase = SK.world ? neonNightChase(skinTime()) : 0;
   for (let i = 0; i < DRAW_SEGS; i++) {
@@ -1039,31 +1140,33 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
     const kerbHere = lk.kerb[seg]!;
     if (kerbHere) {
       const kp = Math.floor((k + chase) / 2) % 2 === 0 ? P.kerbR : P.kerbW;
-      quad(kp, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -kw, -1, -kw, -1);
-      quad(kp, p1.x, y1, p1.w, p2.x, p2.y, p2.w, 1, kw, 1, kw);
+      quad(kp, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -kw, -rf, -kw, -rf);
+      quad(kp, p1.x, y1, p1.w, p2.x, p2.y, p2.w, rf, kw, rf, kw);
     } else {
-      quad(P.runoff, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -kw, -1, -kw, -1);
-      quad(P.runoff, p1.x, y1, p1.w, p2.x, p2.y, p2.w, 1, kw, 1, kw);
+      quad(P.runoff, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -kw, -rf, -kw, -rf);
+      quad(P.runoff, p1.x, y1, p1.w, p2.x, p2.y, p2.w, rf, kw, rf, kw);
     }
-    quad(alt ? P.roadA : P.roadB, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -1, 1, -1, 1);
+    quad(alt ? P.roadA : P.roadB, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -rf, rf, -rf, rf);
     // White track-limit lines on the straights, and (stage 2) the dashed centre marking between them.
     if (!kerbHere) {
-      quad(P.edge, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -1, -0.97, -1, -0.97);
-      quad(P.edge, p1.x, y1, p1.w, p2.x, p2.y, p2.w, 0.97, 1, 0.97, 1);
+      quad(P.edge, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -rf, -0.97 * rf, -rf, -0.97 * rf);
+      quad(P.edge, p1.x, y1, p1.w, p2.x, p2.y, p2.w, 0.97 * rf, rf, 0.97 * rf, rf);
       if (k % 3 === 0) quad(P.dash, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -0.012, 0.012, -0.012, 0.012);
     }
-    // The darker racing line.
+    // Easy's braking point: a bright stripe across the tarmac.
+    if (brakePath && lk.brake![seg]) quad(brakePath, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -0.92 * rf, 0.92 * rf, -0.92 * rf, 0.92 * rf);
+    // The darker racing line (none on Expert, aids 0).
     const l1 = lk.line[seg]! / RW;
     const l2 = lk.line[segOf(k + 1)]! / RW;
-    quad(P.line, p1.x, y1, p1.w, p2.x, p2.y, p2.w, l1 - 0.28, l1 + 0.28, l2 - 0.28, l2 + 0.28);
+    if (lk.aids > 0) quad(P.line, p1.x, y1, p1.w, p2.x, p2.y, p2.w, l1 - 0.28, l1 + 0.28, l2 - 0.28, l2 + 0.28);
     if (lk.skid[seg] && (k * 7) % 5 !== 0) {
       for (const o of [-0.42, -0.3, 0.3, 0.42]) quad(P.skid, p1.x, y1, p1.w, p2.x, p2.y, p2.w, l1 + o - 0.035, l1 + o + 0.035, l2 + o - 0.035, l2 + o + 0.035);
     }
     if (seg === 0) {
       // The start / finish line: a chequered band.
       for (let c = 0; c < 16; c++) {
-        const a = -1 + c / 8;
-        quad(c % 2 ? P.start : P.startW, p1.x, y1, p1.w, p2.x, p2.y, p2.w, a, a + 1 / 8, a, a + 1 / 8);
+        const a = -rf + (c / 8) * rf;
+        quad(c % 2 ? P.start : P.startW, p1.x, y1, p1.w, p2.x, p2.y, p2.w, a, a + rf / 8, a, a + rf / 8);
       }
     }
     maxY = p2.y;
@@ -1076,33 +1179,42 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   fill(P.grassB, COL.grassB);
   fill(P.gravelA, COL.gravelA);
   fill(P.gravelB, COL.gravelB);
-  fill(P.runoff, COL.runoff);
-  fill(P.roadA, COL.roadA);
-  fill(P.roadB, COL.roadB);
+  // The tarmac with its grain baked in (the default look only; the Neon Night's road is plain): the grain flows past
+  // with the car, its offset following the distance driven.
+  // Reduced effects (a slow phone, lib/fx/lowEnd.ts; performance pass, 15 Nov 2026): the ground's decorative passes, the
+  // tarmac's grain, the sheen towards the sun and the sun's warm light, are left out, so a stepped-down phone draws the
+  // ground as cheaply as before the overhaul. Checks pin full effects.
+  const reduced = arcadeReducedEffects();
+  const grainOff = ((state.s / RACING_SEG) * 9) % GRAIN;
+  // The canvas's device pixels per world px (its scale, unrotated), rounded to the quarter so the tile is cached.
+  const m = ctx.getTransform();
+  const k = Math.max(1, Math.round(Math.hypot(m.a, m.b) * 4) / 4);
+  const tarmac = (p: Path2D, c: string) => {
+    const pattern = SK.world || reduced ? null : surfacePattern(ctx, c, k);
+    if (!pattern) return fill(p, c);
+    pattern.setTransform({ a: 1 / k, b: 0, c: 0, d: 1 / k, e: 0, f: Math.round(grainOff * k) / k });
+    ctx.fillStyle = pattern;
+    const smoothing = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+    ctx.fill(p);
+    ctx.imageSmoothingEnabled = smoothing;
+  };
+  tarmac(P.runoff, COL.runoff);
+  tarmac(P.roadA, COL.roadA);
+  tarmac(P.roadB, COL.roadB);
   fill(P.line, COL.lineDark);
   fill(P.skid, COL.skid);
   fill(P.kerbR, COL.kerbR);
   fill(P.kerbW, COL.kerbW);
   fill(P.edge, COL.edge);
   fill(P.dash, SK.world ? COL.edge : "rgba(238,233,223,0.55)");
+  if (brakePath) fill(brakePath, BRAKE_POINT_COL);
   fill(P.start, "#18181C");
   fill(P.startW, "#F1EEE8");
-  if (!SK.world) {
-    // The Sports overhaul (15 Nov 2026, display only): the asphalt's grain, flowing past with the car (its offset follows
-    // the distance), and the low sun's warm light across the ground from its side of the sky (no glare: under the
-    // roadside, the car and every number).
-    const grain = asphaltGrain(ctx);
-    if (grain) {
-      const off = ((state.s / RACING_SEG) * 9) % GRAIN;
-      for (const road of [P.roadA, P.roadB, P.runoff]) {
-        ctx.save();
-        ctx.clip(road);
-        ctx.translate(0, off);
-        ctx.fillStyle = grain;
-        ctx.fillRect(B.x0, HORIZON - GRAIN, B.x1 - B.x0, B.y1 - HORIZON + 2 * GRAIN);
-        ctx.restore();
-      }
-    }
+  if (!SK.world && !reduced) {
+    // The Sports overhaul (15 Nov 2026, display only): the asphalt's grain (baked into the tarmac's own fills above),
+    // and the low sun's warm light across the ground from its side of the sky (no glare: under the roadside, the car and
+    // every number).
     const lx = Math.max(-W, Math.min(2 * W, sunX));
     // The asphalt's sheen towards the low sun: a warm band from the sun's place on the horizon fanning down the road,
     // brightest far ahead, gone before the car (on the tarmac only: the paths it clips to are the road's).
@@ -1112,7 +1224,10 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
       sheen.addColorStop(0, "rgba(255,196,140,0.42)");
       sheen.addColorStop(0.35, "rgba(255,170,115,0.2)");
       sheen.addColorStop(1, "rgba(255,150,100,0)");
-      for (const road of [P.roadA, P.roadB]) {
+      // One clip to both road shades (they never overlap), so the sheen is filled once.
+      const road = new Path2D(P.roadA);
+      road.addPath(P.roadB);
+      {
         ctx.save();
         ctx.clip(road);
         ctx.fillStyle = sheen;
@@ -1126,12 +1241,7 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
         ctx.restore();
       }
     }
-    const warm = ctx.createRadialGradient(lx, HORIZON, 0, lx, HORIZON, W * 1.5);
-    warm.addColorStop(0, "rgba(255,150,80,0.26)");
-    warm.addColorStop(0.45, "rgba(255,120,70,0.1)");
-    warm.addColorStop(1, "rgba(255,120,70,0)");
-    ctx.fillStyle = warm;
-    ctx.fillRect(B.x0, HORIZON + 3, B.x1 - B.x0, B.y1 - HORIZON - 3);
+    paintWarmLight(ctx, lx, B.x0, HORIZON + 3, B.x1, B.y1);
   }
 
   // Roadside, back to front: per segment its sprites, then its tyre walls (the trees stand behind them).

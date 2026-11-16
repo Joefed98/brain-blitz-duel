@@ -1,4 +1,6 @@
 import { withArcadeFx } from "@/lib/arcade/arcadeFx.renderer";
+import { puzzleLevel } from "@/lib/levels/levels";
+import { levelNote } from "@/lib/levels/levelNotes";
 import { useGameLookRef } from "@/lib/skins/equipped";
 import { lookKey } from "@/lib/arcade/skins/look";
 import { curlingFxFor } from "@/lib/arcade/sportsFx.renderer";
@@ -501,6 +503,8 @@ export const curlingPuzzle: PuzzleDefinition = {
   generate: () => ({ type: "curling", seed: 1, curlRev: CURLING_REV }) satisfies CurlingPuzzleData,
   check: () => false,
   revealHeading: "Your stones",
+  // A level other than Normal says what it changes on the intro (levelNotes.ts; the "?" help shows the same line).
+  introLine: (puzzle) => levelNote("curling", puzzleLevel(puzzle)),
   IntroExample,
   Stage,
   Reveal,

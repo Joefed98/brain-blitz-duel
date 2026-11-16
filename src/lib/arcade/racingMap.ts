@@ -11,6 +11,7 @@
 import type { ArcadeInputEvent } from "./engine";
 import {
   racingGameFor,
+  racingLevelOf,
   racingGoTick,
   racingPace10,
   racingSegAt,
@@ -106,8 +107,8 @@ export interface RacingRunMoments {
 }
 
 /** Steps a run's log through the sim on its revision and notes its moments. */
-export function racingRunMoments(seed: number, rev: number | null | undefined, events: readonly ArcadeInputEvent[]): RacingRunMoments {
-  const game = racingGameFor(rev);
+export function racingRunMoments(seed: number, rev: number | null | undefined, events: readonly ArcadeInputEvent[], level?: unknown): RacingRunMoments {
+  const game = racingGameFor(rev, racingLevelOf(level));
   const byTick = new Map(events.map((e) => [e.t, e]));
   let st = game.init(seed);
   const offs: number[] = [];
