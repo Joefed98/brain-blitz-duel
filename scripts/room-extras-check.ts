@@ -143,6 +143,8 @@ function geometry() {
   const region = document.querySelector("[data-game-region]");
   if (region) keep.push(box(region, "play area"));
   for (const el of document.querySelectorAll("[role='timer'], [data-arcade-timer]")) keep.push(box(el, "timer"));
+  // The timer bar (Joe, 15 Nov 2026: the strip never over it) runs along the header's foot, outside the timer's own box.
+  for (const el of document.querySelectorAll(".game-timer-bar")) keep.push(box(el, "timer bar"));
   for (const el of document.querySelectorAll("button, [role='button'], [data-sound-controls]"))
     if (!ping?.contains(el)) keep.push(box(el, (el.getAttribute("aria-label") ?? el.textContent ?? el.tagName).trim().slice(0, 20) || "control"));
   const stage = document.querySelector("[data-game-stage]");

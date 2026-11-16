@@ -187,7 +187,7 @@ interface Pill {
  * pills (moves, par, mistakes, lives…), read from the board's own (hidden in the arena, game-fx.css), so each number is
  * on screen once. Shown only when the game has them.
  */
-function BoardStatus() {
+export function BoardStatus({ className = "arena-game-status", pills: withPills = true }: { className?: string; pills?: boolean } = {}) {
   const [state, setState] = useState<{ progress: string | null; pills: Pill[] }>({ progress: null, pills: [] });
   useEffect(() => {
     const layout = document.querySelector("[data-round-layout]");
@@ -196,7 +196,7 @@ function BoardStatus() {
     const read = () => {
       frame = 0;
       const progress = layout.querySelector("[data-goal-progress]")?.textContent?.trim() || null;
-      const pills = [...layout.querySelectorAll("[data-game-stage] [data-hud-pills] .hud-pill")].map((el, i) => ({
+      const pills = [...(withPills ? layout.querySelectorAll("[data-game-stage] [data-hud-pills] .hud-pill") : [])].map((el, i) => ({
         id: el.getAttribute("data-hud-pill") || String(i),
         label: el.querySelector(".hud-pill-label")?.textContent?.trim() ?? "",
         value: el.querySelector(".hud-pill-value")?.textContent?.trim() ?? "",
@@ -214,10 +214,10 @@ function BoardStatus() {
       observer.disconnect();
       cancelAnimationFrame(frame);
     };
-  }, []);
+  }, [withPills]);
   if (!state.progress && !state.pills.length) return null;
   return (
-    <dl data-arena-status className="arena-game-status">
+    <dl data-arena-status className={className}>
       {state.progress ? (
         <div className="arena-status-row" data-arena-progress>
           <dt>Progress</dt>
@@ -252,5 +252,77 @@ function NextChallenges({ type }: { type: PuzzleType }) {
         ))}
       </ul>
     </section>
+  );
+}
+
+/**
+ * The phone's status panel (15 Nov 2026, Joe: the phone equivalent of the side panel, so nothing above the board is left
+ * empty): in the space above a puzzle's board (the board and its controls sit at the bottom, phone-gap-check), the goal
+ * and the board's live progress and status (moves, par, filled count, mistakes…) in larger type, read from the board's
+ * own and hidden there while the panel shows (so each number is on screen once). Laid over that space only: it never
+ * moves the board, and it shows only where there is room (PHONE_STATUS_MIN_PX).
+ */
+export const PHONE_STATUS_MIN_PX = 72;
+export function PhoneStatus({ type, tray }: { type: PuzzleType; tray: { current: HTMLElement | null } }) {
+  const [room, setRoom] = useState(0);
+  // The status pills are mirrored (and hidden on the board) only when they sit above the board; pills under it stay put.
+  const [mirrored, setMirrored] = useState(false);
+  useEffect(() => {
+    const plate = tray.current;
+    const region = plate?.parentElement;
+    if (!plate || !region) return;
+    let frame = 0;
+    // The free space: from the region's top down to the first thing the stage draws (its board's tray, or anything
+    // above it: a key strip, a status line, a control), less 8 px. The status pills it carries don't count.
+    const read = () => {
+      frame = 0;
+      if (!plate.hasAttribute("data-placed") || plate.closest("[data-arena]")) return setRoom(0);
+      const top0 = region.getBoundingClientRect().top;
+      let top = Number.parseFloat(plate.style.top) || 0;
+      const column = region.querySelector("[data-game-stage] [data-stage-column]") ?? region.querySelector("[data-game-stage]");
+      // What the stage draws, not its wrappers (an arena or a column that stretches and centres its content): the top
+      // of the highest visible leaf (or canvas, button, image or drawing), the status pills mirrored here aside.
+      const pills = region.querySelector<HTMLElement>("[data-game-stage] [data-hud-pills]");
+      const mirror = Boolean(pills && pills.getBoundingClientRect().bottom <= (Number.parseFloat(plate.style.top) || 0) + top0 + 0.5);
+      if (pills) pills.toggleAttribute("data-phone-mirrored", mirror);
+      setMirrored(mirror);
+      const drawnTop = (el: Element): number => {
+        if ((mirror && el === pills) || getComputedStyle(el).display === "none") return Infinity;
+        const r = el.getBoundingClientRect();
+        if (r.width <= 0 || r.height <= 0) return Infinity;
+        const leaf = el.children.length === 0 || el.matches("canvas, button, img, svg, [role='button']");
+        if (!leaf) return Math.min(...Array.from(el.children).map(drawnTop));
+        return getComputedStyle(el).visibility === "hidden" ? Infinity : r.top - top0;
+      };
+      for (const el of column ? Array.from(column.children) : []) top = Math.min(top, drawnTop(el));
+      setRoom(Math.max(0, Math.floor(top) - 8));
+    };
+    read();
+    const again = () => {
+      if (!frame) frame = requestAnimationFrame(read);
+    };
+    const watch = new MutationObserver(again);
+    watch.observe(plate, { attributes: true, attributeFilter: ["style", "data-placed"] });
+    const resize = new ResizeObserver(again);
+    resize.observe(region);
+    return () => {
+      watch.disconnect();
+      resize.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, [tray]);
+  const shown = room >= PHONE_STATUS_MIN_PX;
+  useEffect(() => {
+    const layout = tray.current?.closest("[data-round-layout]");
+    if (!layout) return;
+    layout.toggleAttribute("data-phone-status", shown);
+    return () => layout.removeAttribute("data-phone-status");
+  }, [shown, tray]);
+  if (!shown) return null;
+  return (
+    <div data-phone-status-panel className="phone-status" style={{ height: room }}>
+      <p className="phone-status-goal">{frameGoal(type)}</p>
+      <BoardStatus className="phone-status-figures" pills={mirrored} />
+    </div>
   );
 }
