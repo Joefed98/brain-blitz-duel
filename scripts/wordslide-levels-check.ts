@@ -24,6 +24,8 @@ import { WS_TIME_MS, shiftToken } from "../src/lib/duel/wordSlide";
 import { readFileSync } from "node:fs";
 import { SLIDER_HUMAN_FIXTURE, SLIDER_HUMAN_SEEDS, type SliderHumanFixture } from "./slider-human-record";
 import { SLIDER_HUMANS, sliderHumanScore } from "./slider-human";
+import { solveSlide } from "./puzzle-fairness/kits-word";
+import { asPhoneSends, gradeSteps } from "./standard-lib";
 import { BEYOND, checkCount, commonLevelChecks, kitScore, ok, roomDeal } from "./word-levels-shared";
 
 const t0 = Date.now();
@@ -72,6 +74,15 @@ for (const level of ["easy", "normal", "hard", "expert"] as const) {
 for (const level of ["easy", "normal", "hard", "expert"] as const) {
   ok(bands[level]!.near >= 190, `wordslide ${level}: near-perfect averages ${bands[level]!.near.toFixed(1)} (at least 190)`);
   ok(bands[level]!.great >= 185, `wordslide ${level}: great averages ${bands[level]!.great.toFixed(1)} (at least 185)`);
+}
+
+// 4b. Expert is possible: a perfect run (the proven fewest slides, made briskly) scores 200 on every Expert board.
+for (const d of deals.get("expert")! as WordSlidePuzzleData[]) {
+  const line = solveSlide([...d.grid], [...d.words!.join("")]);
+  ok(line.length === d.par, `wordslide expert: the solver's line is the par (${line.length} = ${d.par})`);
+  const steps = line.map((s, i) => ({ answer: line.slice(0, i + 1).map(shiftToken).join(","), atMs: 2000 + i * 400 }));
+  const graded = gradeSteps(d, asPhoneSends(d, steps), false);
+  ok(graded.isCorrect && graded.score === 200, `wordslide expert: a perfect run scores 200 (${graded.score})`);
 }
 
 // 5. The step, measured by the person-like solver.

@@ -341,7 +341,7 @@ const inverse = (s: SlideShift): SlideShift => ({ ...s, dir: (s.dir === 1 ? -1 :
 const slideCache = new Map<string, SlideShift[]>();
 
 /** Bidirectional BFS from the scramble to the stored word grid (scrambles are 5–8 shifts deep). */
-function solveSlide(start: string[], goal: string[]): SlideShift[] {
+export function solveSlide(start: string[], goal: string[]): SlideShift[] {
   const key = start.join("") + goal.join("");
   const hit = slideCache.get(key);
   if (hit) return hit;
