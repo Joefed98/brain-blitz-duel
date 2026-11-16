@@ -154,6 +154,8 @@ export interface WordsmithPuzzleData {
   source?: string;
   /** Scoring targets (18 Oct 2026): 1 = word points on WORDSMITH_V1_CURVE; absent = 2.5 × points. */
   wordsmithRev?: number;
+  /** Levels (the Word overhaul, stage 3): the level's own clock; absent = WORDSMITH_TIME_MS (Normal and every older round). */
+  timeLimitMs?: number;
 }
 
 /** One combining step: two values and an operator, giving a new value. */
@@ -856,6 +858,8 @@ export interface WordHuntPuzzleData {
   wordHuntRev?: number;
   /** wordHuntRev 3: the golden tile's index (public; a word traced through it scores double). */
   golden?: number;
+  /** Levels (the Word overhaul, stage 3): the level's own clock; absent = WORDHUNT_TIME_MS (Normal and every older round). */
+  timeLimitMs?: number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -2675,6 +2679,8 @@ export interface LetterWheelPuzzleData {
   wheelRev?: number;
   /** wheelRev 2: the jar's size in drops (public; LW_JAR_DROPS unless the board's bonus words hold fewer). */
   jarSize?: number;
+  /** Levels (the Word overhaul, stage 3): the level's own clock; absent = LETTERWHEEL_TIME_MS (Normal and every older round). */
+  timeLimitMs?: number;
 }
 
 /** Strikeout: reveal five hidden five-letter words a letter at a time; five strikes end it. */

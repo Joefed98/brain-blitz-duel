@@ -129,6 +129,52 @@ function fill(grid: (string | null)[]): string[] {
 export const WORDHUNT_DEPTH_MIN_WORDS = 120;
 
 /**
+ * The levels' Forage board (the Word overhaul, stage 3; src/lib/duel/levels/wordhunt.server.ts): a 6×6 board built as
+ * Normal's is (`seeds` seed words of 6–9 letters, then filler, the golden tile from the six busiest tiles), kept only
+ * when it holds between `min` and `max` everyday words (the closest board after 400 tries otherwise). Normal deals
+ * through generateWordHuntDepth, unchanged.
+ */
+export function generateWordHuntDepthBand(min: number, max: number, seeds: readonly [number, number]): WordHuntPuzzleData {
+  const cols = WORDHUNT_COLS_DEPTH;
+  const pool = commonWords().filter((word) => word.length >= 6 && word.length <= 9);
+  let best: { letters: string[]; words: WordHuntWord[]; gap: number } | null = null;
+  for (let attempt = 0; attempt < 400; attempt++) {
+    const grid: (string | null)[] = Array.from({ length: cols * cols }, () => null);
+    const wanted = randInt(seeds[0], seeds[1]);
+    let placed = 0;
+    for (let i = 0; i < wanted * 4 && placed < wanted; i++) {
+      if (placeWord(grid, pick(pool), cols)) placed += 1;
+    }
+    if (placed < Math.min(seeds[0], 1)) continue;
+    const letters = fill(grid);
+    const words = solveBoard(letters);
+    const n = words.length;
+    const gap = n < min ? min - n : n > max ? n - max : 0;
+    if (!best || gap < best.gap) best = { letters, words, gap };
+    if (gap === 0) break;
+  }
+  const letters = best!.letters;
+  const through = letters.map(() => 0);
+  for (const entry of best!.words) for (const cell of new Set(entry.path)) through[cell]! += 1;
+  const ranked = letters
+    .map((letter, cell) => ({ cell, n: through[cell]!, qu: letter === "QU" }))
+    .filter((t) => !t.qu)
+    .sort((a, b) => b.n - a.n || a.cell - b.cell);
+  const golden = pick(ranked.slice(0, 6)).cell;
+  const words = solveBoard(letters, golden);
+  const totalPoints = words.reduce((sum, entry) => sum + entry.points, 0);
+  return {
+    type: "wordhunt",
+    grid: letters,
+    words,
+    totalPoints,
+    par: Math.max(1, Math.round(totalPoints * WORDHUNT_PAR_SHARE)),
+    golden,
+    wordHuntRev: dealtTopupRev(WORDHUNT_REV_TOPUP, WORDHUNT_REV_DEPTH),
+  };
+}
+
+/**
  * wordHuntRev 3: a 6×6 board (three or four 6–9 letter seed words, then filler) with at least
  * WORDHUNT_DEPTH_MIN_WORDS words, and a golden tile: drawn from the six tiles (no Qu) that sit on the most words.
  */
