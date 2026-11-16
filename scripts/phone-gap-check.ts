@@ -9,7 +9,10 @@
  *  - the lowest control ends within 40 px of the screen's bottom (in thumb reach; bottom-clearance-check keeps its
  *    12 px floor), or, in a game with no controls below its board, the board (or a status row under it) does;
  *  - the empty band above the board is the one that takes the spare height: the band under the board is never the
- *    larger one by more than 24 px.
+ *    larger one by more than 24 px;
+ *  - (15 Nov 2026, Joe: the phone equivalent of the side panel) the status panel shows in that space wherever 72 px or
+ *    more is free above the first thing the stage draws, covers nothing the stage draws, and shows exactly the board's
+ *    own figures (its goal progress and status pills, hidden on the board while it shows).
  *
  *   bun scripts/phone-gap-check.ts [game ids…]
  */
@@ -64,12 +67,56 @@ interface Seen {
   dockBottom: number | null;
   /** The foot of the lowest thing drawn in the stage (a status row under a board with no controls). */
   stageFoot: number | null;
+  /** The phone's status panel (15 Nov 2026): its box, what in the stage it covers, its figures and the board's own. */
+  panel: { top: number; bottom: number; left: number; right: number } | null;
+  panelCovers: string[];
+  panelFigures: string[];
+  boardFigures: string[];
+  /** The free height above the first thing the stage draws (the status pills aside), from the region's top. */
+  free: number;
   /** The largest empty band between the board's foot and the dock. */
   band: number;
   inner: number;
 }
 
 function probe(): Seen {
+  const panelProbe = () => {
+    const region = document.querySelector("[data-game-region]");
+    const regionTop = region ? region.getBoundingClientRect().top : 0;
+    const panelEl = document.querySelector("[data-phone-status-panel]");
+    const p = panelEl ? panelEl.getBoundingClientRect() : null;
+    const leaves = [...document.querySelectorAll<HTMLElement>("[data-game-stage] *")].filter((el) => {
+      if (el.closest("[data-hud-pills]")) return false;
+      const s = getComputedStyle(el);
+      if (s.visibility === "hidden" || s.display === "none" || Number(s.opacity) === 0) return false;
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && (el.children.length === 0 || el instanceof HTMLCanvasElement || el instanceof HTMLButtonElement);
+    });
+    // The board's tray (its plate) counts as drawn: a board that fills the column from the top leaves no space above.
+    const plate = document.querySelector("[data-game-tray][data-placed]");
+    const plateTop = plate ? plate.getBoundingClientRect().top - regionTop : Infinity;
+    const free = Math.min(plateTop, ...leaves.map((el) => el.getBoundingClientRect().top - regionTop)) - 8;
+    const covers = p
+      ? leaves
+          .filter((el) => {
+            const r = el.getBoundingClientRect();
+            return r.left < p.right - 0.5 && p.left < r.right - 0.5 && r.top < p.bottom - 0.5 && p.top < r.bottom - 0.5;
+          })
+          .map((el) => (el.getAttribute("aria-label") ?? el.textContent ?? el.tagName).trim().slice(0, 24) || el.tagName)
+      : [];
+    const values = (root: Element | null, sel: string) => (root ? [...root.querySelectorAll(sel)].map((e) => (e.textContent ?? "").trim()) : []);
+    const progress = (document.querySelector("[data-goal-progress]")?.textContent ?? "").trim();
+    return {
+      panel: p ? { top: p.top, bottom: p.bottom, left: p.left, right: p.right } : null,
+      panelCovers: covers,
+      panelFigures: values(panelEl, "dd"),
+      // The board's figures the panel carries: the goal's progress, and the status pills when they sit above the board
+    // (mirrored, hidden there); pills under the board stay visible on it and are not repeated.
+    boardFigures: [...(progress ? [progress] : []), ...values(document.querySelector("[data-game-stage] [data-hud-pills][data-phone-mirrored]"), ".hud-pill-value")],
+      free: Number.isFinite(free) ? free : 0,
+    };
+  };
+
   const rect = (el: Element | null) => (el ? el.getBoundingClientRect() : null);
   const region = rect(document.querySelector("[data-game-region]"));
   const tray = rect(document.querySelector("[data-game-tray][data-placed]"));
@@ -118,6 +165,7 @@ function probe(): Seen {
     dockTop,
     dockBottom,
     stageFoot,
+    ...panelProbe(),
     band,
     inner: innerHeight,
   };
@@ -218,6 +266,13 @@ try {
             `${where}: above ${above.toFixed(0)}, no controls below, foot ${foot.toFixed(0)}`,
           );
         }
+        // The phone's status panel (Joe, 15 Nov 2026): in the space above the board wherever there is room, covering
+        // nothing the stage draws, its figures exactly the board's own (each number once).
+        const shouldShow = s.free >= 72;
+        if (shouldShow !== Boolean(s.panel)) failures.push(`${where}: the status panel ${s.panel ? "shows" : "is missing"} with ${s.free.toFixed(0)} px free above the board`);
+        if (s.panel && s.panelCovers.length) failures.push(`${where}: the status panel covers ${s.panelCovers.slice(0, 3).join(", ")}`);
+        if (s.panel && s.panelFigures.join("|") !== s.boardFigures.join("|")) failures.push(`${where}: the panel shows ${s.panelFigures.join(", ") || "nothing"}, the board ${s.boardFigures.join(", ") || "nothing"}`);
+        if (s.panel) rows.push(`${where}: panel ${(s.panel.bottom - s.panel.top).toFixed(0)} px, ${s.panelFigures.length} figure(s)`);
         proofs++;
       } catch (e) {
         failures.push(`${where}: harness: ${String((e as Error).message ?? e).split("\n")[0]}`);
