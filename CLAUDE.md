@@ -2645,6 +2645,17 @@ outside the repo.
   `bun scripts/retro-demos-record.ts`), retro-demos-check, and `scripts/retro-demos-save.ts` (DEMOS_URL, INTRO_DEMO_KEY,
   DEMOS_GAMES, DEMOS_DRY; through saveIntroDemoFn from a page of a dev server; never run against the live database by a
   session). Measure levels with `bun scripts/level-tune.ts <game> --level=all`. Shots `bun scripts/shots/retro-stage3-frames.ts`.
+- **The effects pass** (15 Nov 2026, `docs/design/effects-pass/README.md`, gallery
+  `docs/design/pages-review/effects/GALLERY.md`; presentation only, no stamps, RoundIntro's behaviour and timing unchanged):
+  Prepare to Duel's players' mini cards arriving (`DuelLineup`) and a richer build-up; five round-title backdrops in turn
+  (`ROUND_BACKDROPS`) with the round's numeral behind the title and a bigger final round; a small, freshly built strike on
+  each of 3-2-1 (`countdownStrike`, every strike varied); one entrance for the reveal and results screens
+  (`useMomentEnter`) and a page fade; the kit's moments on badges, pass level-ups and claims, season rewards, challenges,
+  tournament results, new trophies and the rating count-up (`useAppMoment`). New overlay parts are `rich` (celebrations on,
+  full effects) and listed in reduced-motion-end-check. Also: the phone status panel above a puzzle's board (`PhoneStatus`,
+  phone-gap-check), the room's finished strip below the timer bar, the reveal heading from `revealHeading.ts` ("Your
+  answer" / "The solution" / "Answer and solution") and compact shared reveal rows on short phones (`SHORT_REVEAL_QUERY`).
+  app-moments-check (~1 s).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
