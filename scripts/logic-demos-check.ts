@@ -8,7 +8,11 @@
  *  3. something to see in the demo's eight seconds (squares opened beyond the opening, no mine hit);
  *  4. the demo rule (logicDemoRules.ts, which getIntroDemoFn asks) plays it, and stops a demo of minesRev 2 (the old
  *     Normal, today's Hard), one dealt on another level, and for the six puzzle games one off Normal;
- *  5. the six puzzle games' coordinate demos are held to the new presentation (an older log is refused).
+ *  5. the six puzzle games' coordinate demos are held to the new presentation (an older log is refused);
+ *  6. the six bundled demos (src/lib/duel/bundledDemos/logic1.ts, recorded by real play on Normal): each is exactly
+ *     today's intro example (public half, nothing private), on today's presentation and layout, at most 30 KB, real
+ *     touches from the start, and getIntroDemoFn's choice: bundled with no live row or an older one, a live row
+ *     recorded on today's presentation wins.
  *
  *   bun scripts/logic-demos-check.ts
  */
@@ -52,8 +56,36 @@ for (const type of ["sudoku", "tubes", "tower", "safe", "nonogram", "flood"]) {
   ok(puzzleInputDemoCompatible(type, { presentation: LOGIC_OVERHAUL1_PRESENTATION }), `${type}: a demo on the new presentation plays`);
   ok(!logicDemoPlays(type, { type, level: "expert" } as unknown as PuzzleData) && logicDemoPlays(type, { type } as unknown as PuzzleData), `${type}: only a Normal demo plays`);
 }
+// The six puzzle demos bundled with the app (Joe, 16 Nov 2026: recorded by real play on Normal, a live row still wins).
+{
+  const { LOGIC_1_BUNDLED_DEMOS, pickLogicDemo } = await import("../src/lib/duel/bundledDemos/logic1");
+  const { exampleFor } = await import("./shots/examples");
+  const { splitPuzzle } = await import("../src/lib/duel/secrets");
+  const { GAME_COLUMN_LAYOUT, INTRO_EXAMPLE_ID, isPuzzleDemoLog } = await import("../src/lib/duel/puzzleDemo");
+  for (const type of ["sudoku", "tubes", "tower", "safe", "nonogram", "flood"] as const) {
+    const row = LOGIC_1_BUNDLED_DEMOS[type];
+    ok(Boolean(row), `${type}: a demo is bundled`);
+    if (!row) continue;
+    const text = JSON.stringify(row);
+    ok(text.length <= 30 * 1024, `${type}: the bundled demo is at most 30 KB (${Math.round(text.length / 1024)} KB)`);
+    ok(row.game_type === type && row.example_id === INTRO_EXAMPLE_ID && isPuzzleDemoLog(row.input_log), `${type}: an intro_demos row on the fixed intro example`);
+    const today = splitPuzzle(exampleFor(type)).pub;
+    ok(JSON.stringify(row.puzzle) === JSON.stringify(today), `${type}: the puzzle is exactly today's intro example deal (public half)`);
+    ok(!("solution" in (row.puzzle as object)) && !("pattern" in (row.puzzle as object)) && !("combination" in (row.puzzle as object)), `${type}: no private field in the bundled puzzle`);
+    ok(puzzleInputDemoCompatible(type, row.input_log) && row.input_log.layout === GAME_COLUMN_LAYOUT, `${type}: on today's presentation and layout`);
+    const actions = row.input_log.actions ?? [];
+    ok(actions.length >= 5 && (actions[0]?.t ?? 0) <= 1000 && row.length_ticks === Math.max(...actions.map((a) => a.t)), `${type}: real touches from the start (${actions.length}, first at ${actions[0]?.t} ms)`);
+    ok(logicDemoPlays(type, row.puzzle), `${type}: the bundled demo is on Normal`);
+    ok(pickLogicDemo(type, null) === row, `${type}: with no live row the bundled demo plays`);
+    const old = { ...row, input_log: { ...row.input_log, presentation: "oct13-logic-polish" } };
+    ok(pickLogicDemo(type, old as never) === row, `${type}: a live row on an older presentation gives way to the bundled demo`);
+    const fresh = { ...row, length_ticks: row.length_ticks + 1 };
+    ok(pickLogicDemo(type, fresh as never) === fresh, `${type}: a live row recorded on today's presentation wins`);
+  }
+}
 const src = readFileSync(new URL("../src/lib/duel/introDemo.functions.ts", import.meta.url), "utf8");
 ok(/!logicDemoPlays\(data\.type, demo\.puzzle\)\) return null/.test(src), "introDemo.functions.ts asks the demo rule before serving a demo");
+ok(/if \(bundledLogicDemo\(data\.type\)\) return pickLogicDemo\(data\.type, demo\);/.test(src), "introDemo.functions.ts serves the bundled demo when the live row would not play");
 
 if (failures.length) {
   for (const f of failures) console.log(`FAIL ${f}`);
