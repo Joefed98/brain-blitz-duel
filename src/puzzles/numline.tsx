@@ -591,7 +591,7 @@ function Stage({
   };
   const shareAt = (clientX: number) => Math.max(0, Math.min(1, (localX(clientX) - SIDE) / Math.max(1, span)));
   const bumpAt = (clientX: number) => {
-    const side = numlineEdgeOf(localX(clientX), 0, span);
+    const side = numlineEdgeOf(clientX, clientX - localX(clientX), span);
     if (side && side !== edge?.side) {
       setEdge({ side, id: Date.now() });
       soundCue("numline.edge");
