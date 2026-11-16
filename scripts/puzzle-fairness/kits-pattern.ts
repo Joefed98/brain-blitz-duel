@@ -9,7 +9,7 @@ import { BLOCK_COLS, LASER_CELLS, LASER_MAX_FIRES, unblockCols } from "../../src
 import { applyMove, decodeMoves, encodeMoves, isSolved as unblockSolved, position, slideRange, type UnblockMove } from "../../src/lib/duel/unblock";
 import { tilesLayout, tilesMovable, tilesSlide, tilesSolved, TILES_UNDO } from "../../src/lib/duel/tiles";
 import { RING_TAPS, RING_UNDO, freshOffsets, ringsApply, ringsSolved } from "../../src/lib/duel/rings";
-import { SLIDE_DIRS, slideBoard, slideOutcome, slideSearch, type SlideState } from "../../src/lib/duel/slide";
+import { SLIDE_DIRS, slideBoard, slideDims, slideOutcome, slideSearch, type SlideState } from "../../src/lib/duel/slide";
 import { GRAVITY_DIRS, gravitySolved, tilt } from "../../src/lib/duel/gravity";
 import { gravityMinimum } from "../../src/lib/duel/gravity.server";
 import { isTopsy, topsyCleared, topsyGivesTiltsBack, topsyStart, topsyTilt, type TopsyBoard, type TopsyState } from "../../src/lib/duel/topsy";
@@ -274,7 +274,16 @@ function slideGame(p: PuzzleData): MoveGame<SlideState, Dir> {
   };
 }
 // BASE 3.5 s per slide: tracing where the ball stops past holes, arrows and portals.
-const iceslideKit = moveKit("iceslide", slideGame, 3.5);
+// Difficulty levels (16 Nov 2026): the trace takes longer on a bigger rink, in proportion to its squares (Normal's and
+// Hard's 12 × 12 exactly 3.5 s; Easy's 8 × 8 1.56 s; Expert's 12 × 14 4.08 s).
+const iceslideKitNormal = moveKit("iceslide", slideGame, 3.5);
+const iceslideKit: PuzzleKit = {
+  ...iceslideKitNormal,
+  play: (p, rng, skill, limitMs) => {
+    const { cells } = slideDims(p as Of<"iceslide">);
+    return cells === 144 ? iceslideKitNormal.play(p, rng, skill, limitMs) : playMoves(slideGame(p), rng, skill, (3.5 * cells) / 144);
+  },
+};
 
 /* ------------------------------------------------------------------------ */
 /*  Topsy-Turvy (gravity)                                                    */

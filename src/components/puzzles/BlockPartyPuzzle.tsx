@@ -39,7 +39,7 @@ import {
 } from "@/lib/duel/types";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
-import { Button } from "@/design/components";
+import { Button } from "@/design/components/Button";
 import { useGameKeys } from "@/lib/desktop";
 import { usesPatternNov15 } from "@/lib/duel/patternNov15";
 

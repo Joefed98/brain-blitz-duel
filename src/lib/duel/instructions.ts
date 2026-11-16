@@ -19,7 +19,7 @@ import { PAR_MOVES_MAZE_HELP, STANDARD_ATTENTION_HELP } from "./standard/attenti
 import { parMovesDealt, parStrictDealt } from "./parMoves";
 import { operatorGapsDealt } from "./operatorGaps";
 import { prePatternNov15Pinned } from "./patternNov15";
-import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
+import { PARTIAL_PATTERN_HELP, PATTERN_STD_HELP, flowRev3Help, parMovesPatternHelp, pipesPatternHelp } from "./standard/patternText";
 import { partialCreditDealt } from "./partialCredit";
 import { blockPatternHelp } from "./standard/patternText"; // tessellate (Pattern overhaul)
 import { standardNumberHelp } from "./standard/numberText";
@@ -650,7 +650,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
             { action: "Fill every square", detail: "with a path." },
             { action: "Drag from a loose end", detail: "to carry on; tap a dot to clear its path.", helpOnly: true },
           ],
-      score: PATTERN_STD_HELP.flow,
+      // flowRev 3 (the Pattern overhaul): its own speed time and the levels’ times; older stamps keep the standard’s.
+      score: prePatternNov15Pinned() ? PATTERN_STD_HELP.flow : flowRev3Help(),
     },
     iceslide: {
       goal: "Slide the ball to the gold exit.",
@@ -675,6 +676,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
           : [
               { action: "Undo and Reset", detail: "give the slide back: only the slides left standing count.", helpOnly: true },
               { action: "Arrow pad or swipe:", detail: "choose in the game menu (⋮) or Settings → Game controls.", helpOnly: true },
+              // Difficulty levels (16 Nov 2026, iceslide.levels.ts): the speed bonus's time differs by level.
+              { action: "Speed by level:", detail: "full within 20 s on Easy, 40 s on Hard (100 s clock) and 45 s on Expert (120 s clock).", helpOnly: true },
             ]),
       ],
       score: parMovesDealt() ? parMovesPatternHelp("iceslide") : PATTERN_STD_HELP.iceslide,

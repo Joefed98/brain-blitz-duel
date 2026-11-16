@@ -6,7 +6,7 @@ import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { ArrowPad, useGridMetrics } from "@/components/puzzles/GridDrag";
 import { GravityBoard, type GravityBoardProps } from "@/components/puzzles/pattern/gravityBoard";
 import { TopsyIntroExample, TopsyReveal, TopsyStage } from "@/components/puzzles/pattern/topsyBoard";
-import { TOPSY_TIME_MS, isTopsy } from "@/lib/duel/topsy";
+import { isTopsy } from "@/lib/duel/topsy";
 import { Button } from "@/components/ui/button";
 import {
   decodeGravityTilts,
@@ -223,9 +223,10 @@ export const gravityMazePuzzle: PuzzleDefinition = {
   key: "gravity",
   name: gameDisplayName("gravity"),
   category: "pattern",
-  // The 120 s every deal since gravityRev 3 stores on the puzzle (the Pattern overhaul, 15 Nov 2026: the catalogue said
-  // 90 s). Stored four-ball rounds without a clock of their own keep 90 s (catalogue.ts STORED_CLOCK_MS).
-  timeLimitMs: TOPSY_TIME_MS,
+  // 90 s: the clock of stored four-ball rounds (gravityRev 0–2) that carry none of their own. Every deal since
+  // gravityRev 3 stores its own 120 s (TOPSY_TIME_MS), which wins; screens that describe the game before it is dealt
+  // read catalogue.ts DEALT_CLOCK_MS (the Pattern overhaul, 15 Nov 2026).
+  timeLimitMs: 90_000,
   revealMs: 8_000,
   generate: () =>
     ({ type: "gravity", walls: [], starts: [0, 8, 72, 80], targets: [40, 41, 39, 31] }) satisfies GravityPuzzleData,
