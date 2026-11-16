@@ -5,19 +5,29 @@
  * the runner grades it through gradeAnswer.
  */
 import type { PuzzleData, BlockPlacement, MirrorPlacement, MirrorKind } from "../../src/lib/duel/types";
-import { BLOCK_COLS, LASER_CELLS, LASER_MAX_FIRES } from "../../src/lib/duel/types";
+import { BLOCK_COLS, LASER_CELLS, LASER_MAX_FIRES, unblockCols } from "../../src/lib/duel/types";
 import { applyMove, decodeMoves, encodeMoves, isSolved as unblockSolved, position, slideRange, type UnblockMove } from "../../src/lib/duel/unblock";
 import { tilesLayout, tilesMovable, tilesSlide, tilesSolved, TILES_UNDO } from "../../src/lib/duel/tiles";
 import { RING_TAPS, RING_UNDO, freshOffsets, ringsApply, ringsSolved } from "../../src/lib/duel/rings";
-import { SLIDE_DIRS, slideBoard, slideOutcome, slideSearch, type SlideState } from "../../src/lib/duel/slide";
+import { SLIDE_DIRS, slideBoard, slideDims, slideOutcome, slideSearch, type SlideState } from "../../src/lib/duel/slide";
 import { GRAVITY_DIRS, gravitySolved, tilt } from "../../src/lib/duel/gravity";
 import { gravityMinimum } from "../../src/lib/duel/gravity.server";
-import { BLOCK_ORIENTATIONS, BLOCK_PIECES, absoluteCells, encodePlacements, fitsOn } from "../../src/lib/duel/blockParty";
-import { encodeLaserAnswer } from "../../src/lib/duel/laser";
+import { isTopsy, topsyCleared, topsyGivesTiltsBack, topsyStart, topsyTilt, type TopsyBoard, type TopsyState } from "../../src/lib/duel/topsy";
+import { topsySearch } from "../../src/lib/duel/topsy.server";
+import type { GravityDir } from "../../src/lib/duel/types";
+import { TOPSY_READ_S, TOPSY_SKILLS, TOPSY_TILT_S } from "../d5-remodels/bots";
+import { BLOCK_ORIENTATIONS, BLOCK_PIECES, absoluteCells, blockGeometry, encodePlacements, fitsOn, orientationsFor, type BlockGeometry } from "../../src/lib/duel/blockParty";
+import { solveBlockBoard } from "../../src/lib/duel/blockPartyLevels.server";
+import { encodeLaserAnswer, laserShotsOf } from "../../src/lib/duel/laser";
 import { appendAction, encodeActionLog, usesActionLog, type LoggedAction } from "../../src/lib/duel/actionLog";
 import { laserAction } from "../../src/lib/duel/laserLog";
-import { encodeFlowPaths, flowNeighbours } from "../../src/lib/duel/flow";
-import { PIPE_BITS, pipeNeighbour, rotateMask, tileOpenings } from "../../src/lib/duel/logic";
+import { encodeFlowPaths, flowGrid, flowNeighbours } from "../../src/lib/duel/flow";
+import { solveFlowLikeAPerson } from "../../src/lib/duel/flowHuman.server";
+import { solveLaserLikeAPerson } from "../../src/lib/duel/laserSolve.server";
+import { gameLevelSettings } from "../../src/lib/levels/gameLevels";
+import type { LaserLevelSettings } from "../../src/lib/levels/pattern/laser.levels";
+import { puzzleLevel } from "../../src/lib/levels/levels";
+import { PIPE_BITS, pipeNeighbour, pipesDims, rotateMask, tileOpenings } from "../../src/lib/duel/logic";
 import { thinkMs, type Play, type PuzzleKit, type Rng, type Skill, type Step } from "./kit";
 
 type Of<T extends PuzzleData["type"]> = Extract<PuzzleData, { type: T }>;
@@ -162,19 +172,21 @@ function moveKit<S, M>(
 type Vehicles = Of<"unblock">["vehicles"];
 function unblockGame(p: PuzzleData): MoveGame<Vehicles, UnblockMove> {
   const q = p as Of<"unblock">;
+  // The lot's size (the difficulty levels: Easy's 6×6; absent = 7).
+  const n = unblockCols(q);
   return {
     start: q.vehicles.map((v) => ({ ...v })),
     solution: decodeMoves(q.solution ?? ""),
     legal: (s) => {
       const out: UnblockMove[] = [];
       for (const v of s) {
-        const { min, max } = slideRange(s, v.id);
+        const { min, max } = slideRange(s, v.id, n);
         for (let to = min; to <= max; to++) if (to !== position(v)) out.push({ id: v.id, to });
       }
       return out;
     },
-    apply: (s, m) => applyMove(s, m) ?? s,
-    solved: unblockSolved,
+    apply: (s, m) => applyMove(s, m, n) ?? s,
+    solved: (s) => unblockSolved(s, n),
     same: (a, b) => a.id === b.id && a.to === b.to,
     token: (m) => encodeMoves([m]),
     sep: ",",
@@ -265,7 +277,16 @@ function slideGame(p: PuzzleData): MoveGame<SlideState, Dir> {
   };
 }
 // BASE 3.5 s per slide: tracing where the ball stops past holes, arrows and portals.
-const iceslideKit = moveKit("iceslide", slideGame, 3.5);
+// Difficulty levels (16 Nov 2026): the trace takes longer on a bigger rink, in proportion to its squares (Normal's and
+// Hard's 12 × 12 exactly 3.5 s; Easy's 8 × 8 1.56 s; Expert's 11 × 13 3.48 s).
+const iceslideKitNormal = moveKit("iceslide", slideGame, 3.5);
+const iceslideKit: PuzzleKit = {
+  ...iceslideKitNormal,
+  play: (p, rng, skill, limitMs) => {
+    const { cells } = slideDims(p as Of<"iceslide">);
+    return cells === 144 ? iceslideKitNormal.play(p, rng, skill, limitMs) : playMoves(slideGame(p), rng, skill, (3.5 * cells) / 144);
+  },
+};
 
 /* ------------------------------------------------------------------------ */
 /*  Topsy-Turvy (gravity)                                                    */
@@ -291,7 +312,70 @@ function gravityGame(p: PuzzleData): MoveGame<number[], Dir> {
   };
 }
 // BASE 5 s per tilt: four balls move at once, so every tilt is planned for all of them.
-const gravityKit = moveKit("gravity", gravityGame, 5);
+const gravityOldKit = moveKit("gravity", gravityGame, 5);
+
+/**
+ * Topsy-Turvy's player (gravityRev 3+, the boards of topsy.ts; added with the difficulty levels, 16 Nov 2026): the
+ * kit above models the old one-board game, so on a Topsy-Turvy round it plays this instead (spam stays the old kit's).
+ * The D5 bots' model (scripts/d5-remodels/bots.ts playTopsy, TOPSY_SKILLS: pace and mistake rate a level): a good tilt
+ * is the next of a shortest route from where the balls stand; a mistake is a random tilt that moves something. With
+ * gravityRev 8's Undo giving the tilt back, a mistake noticed on the next action is undone 60 % of the time (else the
+ * player plays on from there). More balls are more to plan: a board of n balls takes √(n / 6) of a six-ball board's
+ * thinking a tilt, n / 6 of its reading time and n / 6 of its mistake rate (Normal's six balls: exactly the D5 model).
+ */
+const TOPSY_UNDO_SHARE = 0.6;
+function playTopsyKit(p: PuzzleData, rng: Rng, skill: Skill, limitMs: number): Play {
+  const q = p as Of<"gravity"> & { boards: TopsyBoard[] };
+  const ts = TOPSY_SKILLS[skill.level];
+  const limits = q.tiltLimits ?? [];
+  const tokens: GravityDir[] = [];
+  const steps: Step[] = [];
+  const think = (s: number) => Math.round(s * ts.pace * (0.65 + 0.7 * rng.next()) * 1000);
+  let at = 0;
+  const push = (t: GravityDir) => {
+    tokens.push(t);
+    steps.push({ answer: tokens.join(""), atMs: at });
+  };
+  const route = (board: TopsyBoard, state: TopsyState) => topsySearch({ ...board, starts: state.balls, stars: [] }, false, 14, 400_000)?.solution ?? null;
+  outer: for (const [b, board] of q.boards.entries()) {
+    const walls = new Set(board.walls);
+    const load = board.starts.length / 6;
+    at += think(TOPSY_READ_S * load);
+    const history: TopsyState[] = [topsyStart(board)];
+    let used = 0;
+    while (used < (limits[b] ?? Infinity)) {
+      if (at >= limitMs) break outer;
+      const state = history[history.length - 1]!;
+      if (topsyCleared(state)) break;
+      let dir: GravityDir | null = null;
+      const mistake = rng.next() < ts.err * load;
+      if (!mistake) dir = route(board, state)?.[0] ?? null;
+      const options = TOPSY_DIRS.filter((d) => topsyTilt(board, walls, state, d).moved);
+      if (!dir) dir = options[rng.below(options.length)]!;
+      at += think(TOPSY_TILT_S * Math.sqrt(load));
+      if (at >= limitMs) break outer;
+      push(dir);
+      const next = topsyTilt(board, walls, state, dir).state;
+      history.push(next);
+      used++;
+      if (!mistake || topsyCleared(next) || used >= (limits[b] ?? Infinity)) continue;
+      // Noticed on the next action: Undo gives the tilt back (gravityRev 8), or the player plays on from here.
+      if (rng.next() < TOPSY_UNDO_SHARE) {
+        at += think(TOPSY_TILT_S * 0.6 * Math.sqrt(load));
+        if (at >= limitMs) break outer;
+        push("X");
+        history.pop();
+        used--;
+      }
+    }
+  }
+  return { steps };
+}
+const TOPSY_DIRS: GravityDir[] = ["U", "D", "L", "R"];
+const gravityKit: PuzzleKit = {
+  ...gravityOldKit,
+  play: (p, rng, skill, limitMs) => (isTopsy(p as never) && topsyGivesTiltsBack(p) ? playTopsyKit(p, rng, skill, limitMs) : gravityOldKit.play(p, rng, skill, limitMs)),
+};
 
 /* ------------------------------------------------------------------------ */
 /*  Tessellate (blockparty)                                                  */
@@ -320,7 +404,7 @@ const sameCells = (a: number[], b: number[]) => a.length === b.length && [...a].
 
 // BASE 5.5 s per piece: pick it, turn it (taps) and drag it into place.
 const BLOCK_BASE = 5.5;
-const blockpartyKit: PuzzleKit = {
+const blockpartyNormalKit: PuzzleKit = {
   type: "blockparty",
   nothing: () => "",
   spam: (p, rng, limitMs) => {
@@ -412,6 +496,153 @@ const blockpartyKit: PuzzleKit = {
   },
 };
 
+/*
+ * Tessellate's levels (the Pattern overhaul, stage 3, 16 Nov 2026). A puzzle dealt at a level (it carries `level`)
+ * plays on its level's board (blockGeometry) and the player takes longer over a piece the fewer of its legal places
+ * still lead to a full board: per piece BLOCK_BASE × (1 + BLOCK_NEEDLE × log2(legal places ÷ working places)), the
+ * working places being that piece's spots in every packing still open. The kit knows a solution, so without this it
+ * would fill a 2-solution board as fast as a 60-solution one. Normal puzzles (no `level`) keep the kit above exactly
+ * (`__levelModel` asks for the model on a Normal board, for the level report only).
+ */
+const BLOCK_NEEDLE = 0.2;
+
+function levelled(p: PuzzleData): boolean {
+  return (p as { level?: unknown }).level !== undefined || (p as { __levelModel?: unknown }).__levelModel === true;
+}
+
+function geoPlacements(geo: BlockGeometry, piece: number, taken: Set<number>): number[][] {
+  const out: number[][] = [];
+  for (const offsets of orientationsFor(geo)[piece]!)
+    for (let r = 0; r < geo.cols; r++)
+      for (let c = 0; c < geo.cols; c++) {
+        const cells = absoluteCells(offsets, r, c, geo.cols);
+        if (cells && fitsOn(cells, taken, geo.cells)) out.push(cells);
+      }
+  return out;
+}
+
+const SOLUTIONS = new WeakMap<object, BlockPlacement[][]>();
+function allSolutions(q: Of<"blockparty">, geo: BlockGeometry): BlockPlacement[][] {
+  let known = SOLUTIONS.get(q);
+  if (!known) {
+    known = [];
+    solveBlockBoard(geo, q.blockers, 5000, 50_000_000, known);
+    SOLUTIONS.set(q, known);
+  }
+  return known;
+}
+
+/** The think-time factor for placing `piece` next, with `right` the pieces already on their solution spots. */
+export function blockNeedle(q: Of<"blockparty">, piece: number, right: readonly BlockPlacement[]): number {
+  const geo = blockGeometry(q);
+  const legal = geoPlacements(geo, piece, takenBy(q.blockers, [...right])).length;
+  const working = new Set<string>();
+  for (const s of allSolutions(q, geo)) {
+    if (!right.every((r) => s.some((x) => x.piece === r.piece && sameCells(x.cells, r.cells)))) continue;
+    const mine = s.find((x) => x.piece === piece);
+    if (mine) working.add([...mine.cells].sort((a, b) => a - b).join());
+  }
+  return 1 + BLOCK_NEEDLE * Math.log2(Math.max(1, legal) / Math.max(1, working.size));
+}
+
+const blockpartyLevelKit: PuzzleKit = {
+  type: "blockparty",
+  nothing: () => "",
+  spam: (p, rng, limitMs) => {
+    const q = p as Of<"blockparty">;
+    const geo = blockGeometry(q);
+    const ids = geo.pieces.map((_, i) => i);
+    const once: BlockPlacement[] = [];
+    for (const piece of rng.shuffle(ids)) {
+      const options = geoPlacements(geo, piece, takenBy(q.blockers, once));
+      if (options.length) once.push({ piece, cells: rng.pick(options) });
+    }
+    const mash: BlockPlacement[] = [];
+    for (let i = 0; i < Math.floor(limitMs / 1000); i++) {
+      if (mash.reduce((s, e) => s + e.cells.length, 0) >= geo.free) break;
+      const fits = ids
+        .filter((k) => !mash.some((e) => e.piece === k))
+        .map((piece) => ({ piece, options: geoPlacements(geo, piece, takenBy(q.blockers, mash)) }))
+        .filter((x) => x.options.length);
+      if (fits.length && rng.chance(0.85)) {
+        const pick = rng.pick(fits);
+        mash.push({ piece: pick.piece, cells: rng.pick(pick.options) });
+      } else if (mash.length) {
+        mash.splice(rng.below(mash.length), 1);
+      }
+    }
+    const scan: BlockPlacement[] = [];
+    for (const piece of ids) {
+      const options = geoPlacements(geo, piece, takenBy(q.blockers, scan));
+      if (options.length) scan.push({ piece, cells: options.sort((a, b) => Math.min(...a) - Math.min(...b))[0]! });
+    }
+    return [
+      { label: "drop-all-random", answer: encodePlacements(once) },
+      { label: "mash-1/s", answer: encodePlacements(mash) },
+      { label: "first-fit", answer: encodePlacements(scan) },
+    ];
+  },
+  // The Normal kit's play (the same order, mistakes and fixes) on the level's board, each piece's time by blockNeedle.
+  play: (p, rng, skill) => {
+    const q = p as Of<"blockparty">;
+    const geo = blockGeometry(q);
+    const solution = q.solution ?? [];
+    const target = new Map(solution.map((s) => [s.piece, s.cells]));
+    let placed: BlockPlacement[] = [];
+    const todo = solution.map((s) => s.piece);
+    const wrong = new Set<number>();
+    const steps: Step[] = [];
+    let at = 0;
+    const put = (piece: number, cells: number[]) => {
+      placed = [...placed.filter((e) => e.piece !== piece), { piece, cells }];
+    };
+    const right = () => placed.filter((e) => !wrong.has(e.piece));
+    const blocking = (cells: number[]) => placed.find((e) => wrong.has(e.piece) && e.cells.some((c) => cells.includes(c)));
+    for (let guard = 0; guard < 200 && (todo.length || wrong.size); guard++) {
+      const next = todo[0];
+      const nextBlock = next !== undefined ? blocking(target.get(next)!) : undefined;
+      if (wrong.size && (next === undefined || nextBlock || rng.chance(0.4))) {
+        const w = nextBlock?.piece ?? [...wrong][0]!;
+        at += thinkMs(rng, BLOCK_BASE * 0.6, skill);
+        const goal = target.get(w)!;
+        const other = placed.find((e) => e.piece !== w && wrong.has(e.piece) && e.cells.some((c) => goal.includes(c)));
+        if (other) {
+          placed = placed.filter((e) => e.piece !== other.piece);
+          wrong.delete(other.piece);
+          todo.push(other.piece);
+        } else {
+          put(w, goal);
+          wrong.delete(w);
+        }
+        steps.push({ answer: encodePlacements(placed), atMs: at });
+        continue;
+      }
+      todo.shift();
+      at += thinkMs(rng, BLOCK_BASE * blockNeedle(q, next!, right()), skill);
+      const goal = target.get(next!)!;
+      if (rng.chance(skill.err)) {
+        const options = geoPlacements(geo, next!, takenBy(q.blockers, placed, next)).filter((c) => !sameCells(c, goal));
+        if (options.length) {
+          put(next!, rng.pick(options));
+          wrong.add(next!);
+          steps.push({ answer: encodePlacements(placed), atMs: at });
+          continue;
+        }
+      }
+      put(next!, goal);
+      steps.push({ answer: encodePlacements(placed), atMs: at });
+    }
+    return { steps };
+  },
+};
+
+const blockpartyKit: PuzzleKit = {
+  type: "blockparty",
+  nothing: () => "",
+  spam: (p, rng, limitMs) => (levelled(p) ? blockpartyLevelKit : blockpartyNormalKit).spam(p, rng, limitMs),
+  play: (p, rng, skill, limitMs) => (levelled(p) ? blockpartyLevelKit : blockpartyNormalKit).play(p, rng, skill, limitMs),
+};
+
 /* ------------------------------------------------------------------------ */
 /*  Lightbender (laser)                                                      */
 /* ------------------------------------------------------------------------ */
@@ -433,6 +664,23 @@ function randomLayout(q: Of<"laser">, rng: Rng): MirrorPlacement[] {
 
 // BASE 5 s per piece: trace the beam, choose the piece and its facing, drag it on.
 const LASER_BASE = 5;
+/**
+ * Levels (16 Nov 2026): a level's board is timed by what it asks of a player, not a flat 5 s a piece: LASER_PER_PIECE a
+ * piece set down and turned, plus LASER_PER_WHAT_IF for each piece the person-like solver tries before it finds the
+ * beam (laserSolve.server.ts; most are dismissed at a glance), shared over the pieces. Calibrated so a typical Normal
+ * board (8.5 pieces, 155 tries, the median) costs the same 42.5 s as the flat rate; Normal itself keeps the flat 5 s,
+ * so its plays are unchanged.
+ */
+const LASER_PER_PIECE = 4.09;
+const LASER_PER_WHAT_IF = 0.05;
+function laserPieceBase(q: Of<"laser">): number {
+  const level = puzzleLevel(q);
+  if (level === "normal") return LASER_BASE;
+  const settings = gameLevelSettings<LaserLevelSettings>("laser", level);
+  const turns = solveLaserLikeAPerson(q, settings?.humanTurns ?? 1000).turns;
+  const pieces = Math.max(1, (q.solution ?? []).length);
+  return LASER_PER_PIECE + (LASER_PER_WHAT_IF * turns) / pieces;
+}
 /**
  * Puzzles stamped alogRev 1 (13 Oct 2026, #40) take the phone's action log (every placement,
  * removal and FIRE on the round clock); older ones the "fires|layout" answer. The play below
@@ -456,10 +704,10 @@ const laserKit: PuzzleKit = {
     const q = p as Of<"laser">;
     if (usesActionLog(p)) {
       const empty = new LaserLog(true);
-      for (let shot = 0; shot < LASER_MAX_FIRES; shot++) empty.fire(1000 + shot * 2500);
+      for (let shot = 0; shot < laserShotsOf(q); shot++) empty.fire(1000 + shot * 2500);
       const random = new LaserLog(true);
       let t = 500;
-      for (let shot = 0; shot < LASER_MAX_FIRES; shot++) {
+      for (let shot = 0; shot < laserShotsOf(q); shot++) {
         random.add(laserAction.reset(), (t += 400));
         for (const m of randomLayout(q, rng)) random.place(m, (t += 600));
         random.fire((t += 800));
@@ -504,8 +752,9 @@ const laserKit: PuzzleKit = {
       const options = free.filter((c) => !used.has(c));
       return { cell: rng.pick(options), kind: good.kind };
     };
+    const pieceBase = laserPieceBase(q);
     solution.forEach((good, i) => {
-      at += thinkMs(rng, LASER_BASE, skill);
+      at += thinkMs(rng, pieceBase, skill);
       if (rng.chance(skill.err)) {
         placed.push(wrongPiece(good));
         wrongIdx.add(i);
@@ -513,7 +762,7 @@ const laserKit: PuzzleKit = {
       log.place(placed[placed.length - 1]!, at);
       draft();
     });
-    while (fires < LASER_MAX_FIRES) {
+    while (fires < laserShotsOf(q)) {
       at += thinkMs(rng, 1, skill); // tap Fire
       fires += 1;
       log.fire(at);
@@ -523,11 +772,11 @@ const laserKit: PuzzleKit = {
         break;
       }
       steps.push({ answer: log.answer(placed, fires), atMs: at });
-      if (fires >= LASER_MAX_FIRES) break;
+      if (fires >= laserShotsOf(q)) break;
       // Read the miss, then fix what the beam showed (and maybe slip again).
       at += thinkMs(rng, 3, skill);
       for (const i of [...wrongIdx]) {
-        at += thinkMs(rng, LASER_BASE * 0.7, skill);
+        at += thinkMs(rng, pieceBase * 0.7, skill);
         log.remove(placed[i]!.cell, at);
         if (rng.chance(skill.err / 2)) placed[i] = wrongPiece(solution[i]!);
         else {
@@ -555,7 +804,7 @@ function flowRoute(q: Of<"flow">, pair: number, blocked: Set<number>, rng: Rng):
   for (let i = 0; i < queue.length; i++) {
     const cell = queue[i]!;
     if (cell === b) break;
-    for (const n of rng.shuffle(flowNeighbours(cell))) {
+    for (const n of rng.shuffle(flowNeighbours(cell, flowGrid(q)))) {
       if (prev.has(n) || (blocked.has(n) && n !== b)) continue;
       prev.set(n, cell);
       queue.push(n);
@@ -583,6 +832,20 @@ function flowBlocked(q: Of<"flow">, paths: number[][], pair: number): Set<number
 
 // BASE 5 s per pair: find the route, then drag it out cell by cell.
 const FLOW_BASE = 5;
+/**
+ * Levels (16 Nov 2026): a level's board is timed by what it asks of a player, not a flat 5 s a pair: FLOW_PER_CELL a
+ * square of the line dragged out, plus FLOW_PER_WHAT_IF for each one-step "what if" the human-style solver needs
+ * (flowHuman.server.ts), shared over the pairs. Calibrated so a typical Normal board (11 pairs of about 7.1 squares,
+ * 2.5 "what ifs") costs the same 55 s as the flat rate; Normal itself keeps the flat 5 s, so its plays are unchanged.
+ */
+const FLOW_PER_CELL = 0.577;
+const FLOW_PER_WHAT_IF = 4;
+function flowPairBase(q: Of<"flow">): (pair: number) => number {
+  if (puzzleLevel(q) === "normal") return () => FLOW_BASE;
+  const whatIfs = solveFlowLikeAPerson(q.pairs, q.walls ?? [], flowGrid(q)).whatIfs;
+  const share = (FLOW_PER_WHAT_IF * whatIfs) / Math.max(1, q.pairs.length);
+  return (pair) => FLOW_PER_CELL * (q.solution?.[pair]?.length ?? 7) + share;
+}
 const flowKit: PuzzleKit = {
   type: "flow",
   nothing: (p) => encodeFlowPaths((p as Of<"flow">).pairs.map(() => [])),
@@ -604,7 +867,7 @@ const flowKit: PuzzleKit = {
       for (let s = 0; s < 8 && used < budget; s++, used++) {
         const here = path[path.length - 1]!;
         if (here === q.pairs[i]!.b) break;
-        const options = flowNeighbours(here).filter((n) => !path.includes(n) && (!blocked.has(n) || n === q.pairs[i]!.b));
+        const options = flowNeighbours(here, flowGrid(q)).filter((n) => !path.includes(n) && (!blocked.has(n) || n === q.pairs[i]!.b));
         if (!options.length) break;
         path.push(rng.pick(options));
       }
@@ -623,6 +886,7 @@ const flowKit: PuzzleKit = {
     const wrong = new Set<number>();
     const steps: Step[] = [];
     let at = 0;
+    const base = flowPairBase(q);
     const draw = (i: number, path: number[]) => {
       // Drawing over another line cuts it away; that pair must be drawn again.
       const cells = new Set(path);
@@ -639,13 +903,13 @@ const flowKit: PuzzleKit = {
     for (let guard = 0; guard < 200 && (order.length || wrong.size); guard++) {
       if (wrong.size && (!order.length || rng.chance(0.4))) {
         const w = [...wrong][0]!;
-        at += thinkMs(rng, FLOW_BASE * 0.8, skill);
+        at += thinkMs(rng, base(w) * 0.8, skill);
         wrong.delete(w);
         draw(w, solution[w]!);
         continue;
       }
       const i = order.shift()!;
-      at += thinkMs(rng, FLOW_BASE, skill);
+      at += thinkMs(rng, base(i), skill);
       if (rng.chance(skill.err)) {
         const route = flowRoute(q, i, flowBlocked(q, paths, i), rng);
         if (route && route.join() !== solution[i]!.join() && route.reverse().join() !== solution[i]!.join()) {
@@ -701,7 +965,7 @@ const pipesKit: PuzzleKit = {
     for (let i = 0; i < order.length; i++) {
       for (const bit of PIPE_BITS) {
         if (!(goal[order[i]!]! & bit)) continue;
-        const n = pipeNeighbour(order[i]!, bit);
+        const n = pipeNeighbour(order[i]!, bit, pipesDims(q).cols, pipesDims(q).rows);
         if (n !== null && !seen.has(n)) {
           seen.add(n);
           order.push(n);

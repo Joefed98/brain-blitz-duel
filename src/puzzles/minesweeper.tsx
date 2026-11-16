@@ -5,6 +5,8 @@ import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 import { minesweeperFill } from "@/lib/arcade/arenaFills.renderer";
 import {
   minesCellAt,
+  minesNeighbours,
+  MINES_OPEN,
   minesCheckpoint,
   MINES_CELL,
   MINES_CHECKPOINT_INTERVAL,
@@ -18,8 +20,11 @@ import {
   minesSafeFor,
   MINES_WORLD_H,
   MINES_WORLD_W,
+  minesGeoFor,
   type MinesState,
 } from "@/lib/arcade/minesweeper";
+import { setMinesNudge } from "@/lib/arcade/minesweeper.renderer";
+import { minesTapNumberSound } from "@/lib/fx/gameSounds";
 import { MINES_ART, minesweeperArtGameFor, paintMinesCover, paintMinesFlag, paintMinesNumber, paintMinesOpen } from "@/lib/arcade/minesweeper.renderer";
 import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
 import { encodeMinesweeperRun, replayMinesweeperRun } from "@/lib/duel/minesweeper";
@@ -27,6 +32,8 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import type { MinesweeperPuzzleData } from "@/lib/duel/types";
 import { minesweeperSounds } from "@/lib/fx/cardSounds";
 
+import { RevealFacts } from "./logicReveal";
+import { ArcadeRunSummary } from "@/components/duel/ArcadeRunSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { canvasRatio } from "@/lib/battery";
 
@@ -85,11 +92,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: MinesweeperPuzzleData | null = puzzle.type === "minesweeper" ? puzzle : null;
   /** The squares as last drawn (the sound observer sees every frame), for minesSendsTap. */
   const openRef = useRef<readonly number[] | null>(null);
+  const stateRef = useRef<MinesState | null>(null);
   const [sounds] = useState(() => () => {
     const inner = minesweeperSounds();
     return {
       frame: (s: MinesState, running: boolean) => {
         openRef.current = s.open;
+        stateRef.current = s;
         inner.frame(s, running);
       },
       stop: () => inner.stop(),
@@ -102,6 +111,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const press = useRef<{ cell: number; timer: ReturnType<typeof setTimeout> | null; flagged: boolean } | null>(null);
   const sendRef = useRef<((payload: PointerPayload) => void) | null>(null);
   const game = minesweeperArtGameFor(data?.minesRev);
+  // The level's board (minesRev 3–5 each its own size; minesweeper.ts minesGeoFor).
+  const geo = minesGeoFor(data?.minesRev);
 
   const clearPress = () => {
     if (press.current?.timer) clearTimeout(press.current.timer);
@@ -111,7 +122,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
     if (kind === "down") {
       clearPress();
-      const cell = minesCellAt(x, y);
+      const cell = minesCellAt(x, y, geo);
       if (cell < 0) return null;
       const held = { cell, timer: null as ReturnType<typeof setTimeout> | null, flagged: false };
       held.timer = setTimeout(() => {
@@ -125,12 +136,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     }
     if (kind === "move") {
       // Sliding off the square cancels the press.
-      if (press.current && minesCellAt(x, y) !== press.current.cell) clearPress();
+      if (press.current && minesCellAt(x, y, geo) !== press.current.cell) clearPress();
       return null;
     }
     const held = press.current;
     clearPress();
-    if (!held || held.flagged || minesCellAt(x, y) !== held.cell) return null;
+    if (!held || held.flagged || minesCellAt(x, y, geo) !== held.cell) return null;
+    // A number tapped before its flags add up: it shakes a little, with a dull knock (the tap is still sent; the
+    // sim opens nothing, as before).
+    const now = stateRef.current;
+    if (now && now.open[held.cell] === MINES_OPEN && (now.nums[held.cell] ?? 0) > 0) {
+      const flagged = minesNeighbours(held.cell, geo).filter((n) => now.open[n] === MINES_FLAG).length;
+      if (flagged !== now.nums[held.cell]) {
+        setMinesNudge(held.cell, now.tick);
+        minesTapNumberSound();
+      }
+    }
     if (!minesSendsTap(openRef.current, held.cell, modeRef.current)) return null;
     return { k: MINES_INPUT_TAP, a: held.cell, b: modeRef.current, c: 0 };
   };
@@ -163,8 +184,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         seed={data?.seed ?? 1}
         enabled={data !== null}
         locked={locked}
-        worldW={MINES_WORLD_W}
-        worldH={MINES_WORLD_H}
+        worldW={geo.worldW}
+        worldH={geo.worldH}
         game={game}
         sounds={sounds}
         checkpoint={minesCheckpoint}
@@ -203,13 +224,28 @@ export function minesweeperLine(r: { revealed: number; opening: number; hits: nu
   return r.cleared ? `${head} · cleared in ${r.clearedSeconds.toFixed(1)}s · ${hits}` : `${head} · ${hits}`;
 }
 
+/**
+ * The reveal (Logic overhaul 1, 15 Nov 2026): the board as your run left it, drawn large by the game's own art
+ * (ArcadeRunSummary: mines hit in red, flags on mines ringed gold, wrong flags struck through), and the numbers behind
+ * the score: safe squares found beyond the opening, mines hit, flags right.
+ */
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "minesweeper") return null;
   const result = replayMinesweeperRun(puzzle.seed, myAnswer ?? "", puzzle.minesRev);
+  const state = (result as { state?: MinesState }).state;
+  const flagsRight = state ? state.open.filter((v, cell) => v === MINES_FLAG && state.mines[cell]).length : 0;
+  const ofSafe = minesSafeFor(puzzle.minesRev) - result.opening;
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
-      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{minesweeperLine(result)}</p>
-      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same board for everyone · {result.flags} flags</p>
+    <div className="logic-reveal">
+      <ArcadeRunSummary puzzle={puzzle} answer={myAnswer ?? ""} />
+      <RevealFacts
+        items={[
+          { label: `Safe found of ${ofSafe}`, value: result.revealed - result.opening, tone: result.cleared ? "good" : undefined },
+          { label: "Mines hit", value: result.hits, tone: result.hits ? "bad" : undefined },
+          result.flags > 0 && { label: `Flags right of ${result.flags}`, value: flagsRight },
+          result.cleared && { label: "Cleared in", value: `${result.clearedSeconds.toFixed(1)}s`, tone: "gold" },
+        ]}
+      />
     </div>
   );
 }

@@ -1,0 +1,6 @@
+/*
+ * Forage's look (the Word overhaul, 15 Nov 2026): concept A. Glazed tiles (word-look.css), the traced path in
+ * sapphire glaze joined by a plain sapphire line (no glow), the golden tile in enamel gold. Display only.
+ */
+[data-polish="wordhunt"] [data-wordhunt-board] svg { filter: none; }
+[data-polish="wordhunt"] .hud-pills { margin-inline: 0; }

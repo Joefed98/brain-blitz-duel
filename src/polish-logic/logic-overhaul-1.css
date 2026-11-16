@@ -1,0 +1,690 @@
+/*
+ * Logic overhaul, session 1 (phase 2 step 4, 15 Nov 2026): the new look for Box Six, Polypotions, Hanoi, Safe Cracker,
+ * Mosaic, Colour Flood and Minefield's DOM parts. Pieces and surfaces are rendered in Blender
+ * (scripts/logic-art/render.py → public/logic-art/*.webp) and laid out and animated here; numerals stay crisp app text,
+ * bigger and bold, never inside a reflection. Darker surrounds, minimal glow; controls in champagne gold and navy (the
+ * style guide), never teal or bright yellow. Joe, 15 Nov 2026: minimal glow and no glare (no reflections across
+ * panels, tiles or numerals, no glowing edges; clean, even studio light). Each game keeps its own background gradient. Display only: no tap target
+ * changes size, nothing here touches answers, grading or timing. Imported last (styles.css), and every rule is scoped
+ * under `:is(#logic-overhaul-1, html)` (an id's weight, matched by html), so it wins over the older polish layers.
+ */
+
+/* ------------------------------------------------------------------ Box Six: lacquered tiles, gold numerals, silver lines */
+:is(#logic-overhaul-1, html) .logic-sudoku-frame {
+  padding: 3px;
+  border-radius: 10px;
+  background: linear-gradient(160deg, #d9dde3, #8b929b 45%, #5d636c 70%, #c3c8cf);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.6);
+}
+:is(#logic-overhaul-1, html) .logic-sudoku.logic-sudoku {
+  gap: 2px;
+  background: linear-gradient(160deg, #c9ced5, #7b828b 50%, #b7bcc4);
+  border-radius: 8px;
+  overflow: hidden;
+}
+:is(#logic-overhaul-1, html) .logic-sudoku > .logic-sudoku-cell.logic-sudoku-cell {
+  border: 0;
+  background-color: #08090c;
+  background-image: url("/logic-art/box-tile.webp");
+  background-size: 100% 100%;
+}
+:is(#logic-overhaul-1, html) .logic-sudoku > .logic-sudoku-cell.logic-sudoku-cell[data-tone="given"] {
+  background-image: url("/logic-art/box-tile-given.webp");
+}
+/* The 2 × 3 boxes: a thicker silver strip between them (the gap shows the frame's silver). */
+.logic-sudoku > .logic-sudoku-cell.sudoku-box-top:not(:nth-child(-n + 6)) { margin-top: 2px; }
+.logic-sudoku > .logic-sudoku-cell.sudoku-box-left:not(:nth-child(6n + 1)) { margin-left: 2px; }
+:is(#logic-overhaul-1, html) .logic-sudoku > .logic-sudoku-cell.bg-muted\/40 {
+  background-image: linear-gradient(rgb(226 192 122 / 0.1), rgb(226 192 122 / 0.1)), url("/logic-art/box-tile.webp");
+}
+:is(#logic-overhaul-1, html) .logic-sudoku > .logic-sudoku-cell.bg-primary\/20 {
+  outline-color: var(--jz-gold);
+  background-image: linear-gradient(rgb(226 192 122 / 0.2), rgb(226 192 122 / 0.2)), url("/logic-art/box-tile.webp");
+}
+:is(#logic-overhaul-1, html) .logic-sudoku-cell .logic-sudoku-digit {
+  font-family: var(--jz-font, inherit);
+  font-weight: 800;
+  font-size: 1.12em;
+}
+:is(#logic-overhaul-1, html) .logic-sudoku-cell[data-tone="given"] .logic-sudoku-digit {
+  /* Concept A / B: glowing gold numerals on the lacquer (a soft glow, never a glare across the digit). */
+  color: #f2c14e;
+  text-shadow: 0 0 8px rgb(242 193 78 / 0.45), 0 1px 0 rgb(0 0 0 / 0.8);
+}
+:is(#logic-overhaul-1, html) .logic-sudoku-cell.text-primary .logic-sudoku-digit {
+  /* The player's own digits: pale champagne, so they read apart from the given gold. */
+  color: #fff0c8;
+  text-shadow: 0 0 6px rgb(255 240 200 / 0.3), 0 1px 0 rgb(0 0 0 / 0.8);
+}
+:is(#logic-overhaul-1, html) .logic-sudoku-cell[data-tone="missed"] {
+  /* The reveal's solution: a cell you missed or got wrong, ringed so it stands out. */
+  /* !important: styles.css drops every sudoku cell's shadow with !important. */
+  box-shadow: inset 0 0 0 3px rgb(226 192 122 / 0.95) !important;
+}
+:is(#logic-overhaul-1, html) .logic-sudoku-cell[data-tone="missed"] .logic-sudoku-digit {
+  color: var(--jz-gold);
+  text-shadow: 0 1px 0 rgb(0 0 0 / 0.8);
+}
+/* Live clashes: the clashing digits pulse red once, then stay red-ringed while they clash. */
+:is(#logic-overhaul-1, html) .logic-sudoku-cell[data-clash] {
+  box-shadow: inset 0 0 0 2px rgb(255 90 110 / 0.75) !important;
+}
+:is(#logic-overhaul-1, html) .logic-sudoku-cell[data-clash] .logic-sudoku-digit {
+  color: var(--jz-loss-text, #ff5a6e);
+  text-shadow: none;
+  animation: logic-clash-pulse 360ms ease-out 1;
+}
+@keyframes logic-clash-pulse {
+  40% { transform: scale(1.12); }
+}
+:is(#logic-overhaul-1, html) .logic-sudoku-key.logic-sudoku-key {
+  background: var(--jz-surface-2, #1a2140);
+  border: 1px solid rgb(226 192 122 / 0.35);
+  color: var(--jz-gold);
+  font-weight: 800;
+}
+
+/* ------------------------------------------------------------------ Polypotions: A's glass, B's liquid, C's cork */
+/* Wide, clear tubes: no outline, the glass a rendered highlight layer over the liquid; each liquid layer a rendered
+   slab of B's potion (round-bottomed for the first), one clean highlight down its curve; a meniscus on the top layer. */
+:is(#logic-overhaul-1, html) .logic-potions.logic-potions { column-gap: 6px; }
+:is(#logic-overhaul-1, html) [data-logic-stage="tubes"] .logic-flask.flask,
+:is(#logic-overhaul-1, html) .logic-potions .logic-flask.flask {
+  /* Concept A's proportions (a 25-point-radius tube 300 points long, 72 apart): a wide, rounded test tube with real
+     space round it; the flask button (the tap target) keeps its full width. */
+  width: auto;
+  height: 100%;
+  aspect-ratio: 66 / 316;
+  max-width: 82%;
+  margin: 0 auto;
+  border-color: transparent;
+  padding: 2px 3px 3px;
+  border-radius: 0 0 999px 999px;
+  /* Concept A's tube interior: smoked by the dark rack behind it, so the glass's highlights and the liquid stand out. */
+  background: linear-gradient(90deg, rgb(0 0 0 / 0.5), rgb(0 0 0 / 0.28) 45%, rgb(0 0 0 / 0.5));
+  /* The glass wall: a faint lit edge either side, so the tube's outline reads as glass (never a black outline). */
+  box-shadow: inset 1.5px 0 0 rgb(220 240 255 / 0.18), inset -1.5px 0 0 rgb(220 240 255 / 0.12), 0 6px 12px rgb(0 0 0 / 0.35);
+}
+/* The flask buttons draw no box of their own (the shared puzzle surface rings every cell): only the tube shows. */
+:is(#logic-overhaul-1, html) .logic-potions > button[data-puzzle-cell] {
+  box-shadow: none !important;
+  background: transparent !important;
+}
+:is(#logic-overhaul-1, html) .logic-potions .logic-flask.flask.border-primary {
+  box-shadow: 0 0 0 2px var(--jz-gold), 0 6px 12px rgb(0 0 0 / 0.35);
+}
+:is(#logic-overhaul-1, html) .logic-potions .logic-liquid { border-radius: 0 0 999px 999px; }
+:is(#logic-overhaul-1, html) .logic-potions .logic-liquid::before { display: none; }
+:is(#logic-overhaul-1, html) .logic-potions .logic-flask-shine {
+  inset: 0;
+  top: -3px;
+  bottom: 0;
+  left: 0;
+  width: auto;
+  max-width: none;
+  border-radius: 0;
+  background: url("/logic-art/flask-glass.webp") center / 100% 100% no-repeat;
+  mix-blend-mode: normal;
+  z-index: 4;
+}
+:is(#logic-overhaul-1, html) .logic-potions .logic-flask-rim { display: none; }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion.potion-layer {
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  box-shadow: none;
+}
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="red"] { background-image: url("/logic-art/potion-red.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="red"][data-bottom] { background-image: url("/logic-art/potion-red-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="blue"] { background-image: url("/logic-art/potion-blue.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="blue"][data-bottom] { background-image: url("/logic-art/potion-blue-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="green"] { background-image: url("/logic-art/potion-green.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="green"][data-bottom] { background-image: url("/logic-art/potion-green-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="purple"] { background-image: url("/logic-art/potion-purple.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="purple"][data-bottom] { background-image: url("/logic-art/potion-purple-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="pink"] { background-image: url("/logic-art/potion-pink.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="pink"][data-bottom] { background-image: url("/logic-art/potion-pink-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="orange"] { background-image: url("/logic-art/potion-orange.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="orange"][data-bottom] { background-image: url("/logic-art/potion-orange-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="brown"] { background-image: url("/logic-art/potion-brown.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="brown"][data-bottom] { background-image: url("/logic-art/potion-brown-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="yellow"] { background-image: url("/logic-art/potion-yellow.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="yellow"][data-bottom] { background-image: url("/logic-art/potion-yellow-bottom.webp"); }
+/* The levels' Expert colours (ten), and its hidden layers: dark, unlit liquid marked "?". */
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="teal"] { background-image: url("/logic-art/potion-teal.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="teal"][data-bottom] { background-image: url("/logic-art/potion-teal-bottom.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="pearl"] { background-image: url("/logic-art/potion-pearl.webp"); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="pearl"][data-bottom] { background-image: url("/logic-art/potion-pearl-bottom.webp"); }
+/* Joe, 16 Nov 2026: a hidden layer is a light grey (relative luminance about 0.45: above every darker liquid, red, blue,
+   purple, brown, pink, teal and orange at 0.13–0.40, and below green, pearl and yellow at 0.54–0.78), frosted in fine
+   stripes with a dark "?", so it never reads as a liquid colour. logic-1-levels-check measures the gaps. */
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-hidden-layer] {
+  background-image: none !important;
+  background: repeating-linear-gradient(135deg, #b8babf 0 6px, #b0b2b7 6px 12px) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18) !important;
+}
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-hidden-layer] .logic-potion-glyph {
+  color: #1b1d22;
+  opacity: 1;
+  font-weight: 900;
+}
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion-surface {
+  top: -4px;
+  height: 9px;
+  border-radius: 50%;
+  background: url("/logic-art/potion-meniscus.webp") center / 100% 100% no-repeat;
+  box-shadow: none;
+}
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion-glyph {
+  font-size: 15px;
+  color: #ffffff;
+  opacity: 0.6;
+  text-shadow: 0 1px 1px rgb(0 0 0 / 0.35);
+}
+:is(#logic-overhaul-1, html) .logic-potions .logic-cork,
+:is(#logic-overhaul-1, html) .logic-potions .potion-cork {
+  background: url("/logic-art/cork.webp") center / 100% 100% no-repeat !important;
+  height: 14px;
+  border-radius: 2px;
+  animation: logic-cork-in 260ms cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+@keyframes logic-cork-in {
+  from { transform: translateY(-10px) scale(1.1); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+:is(#logic-overhaul-1, html) .logic-out-banner {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 10px 22px;
+  border-radius: 12px;
+  background: var(--jz-surface-2, #1a2140);
+  border: 1px solid rgb(226 192 122 / 0.55);
+  color: var(--jz-gold);
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 0.6);
+  z-index: 30;
+  animation: logic-out-in 220ms ease-out both;
+}
+@keyframes logic-out-in {
+  from { opacity: 0; transform: translate(-50%, -40%) scale(0.92); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
+}
+:is(#logic-overhaul-1, html) [data-logic-stage="tubes"] .tubes-actions > button {
+  background: var(--jz-surface-2, #1a2140);
+  border-color: rgb(226 192 122 / 0.35);
+  color: var(--jz-gold);
+}
+
+/* ------------------------------------------------------------------ Hanoi: turned oak posts, gold plate, candy-glass rings */
+:is(#logic-overhaul-1, html) .logic-hanoi-post.logic-hanoi-post {
+  /* Turned oak with its grain, thicker than before. */
+  width: clamp(12px, calc(var(--hanoi-ring) * 0.8), 18px);
+  background: url("/logic-art/hanoi-post.webp") center / 100% 100% no-repeat;
+  box-shadow: 2px 0 4px rgb(0 0 0 / 0.45);
+}
+:is(#logic-overhaul-1, html) .logic-hanoi[style] .logic-hanoi-post.logic-hanoi-post {
+  width: clamp(12px, calc(var(--hanoi-ring) * 0.8), 18px);
+}
+:is(#logic-overhaul-1, html) .logic-hanoi-base.logic-hanoi-base {
+  background: url("/logic-art/hanoi-plate.webp") center / 100% 100% no-repeat;
+  box-shadow: 0 4px 6px rgb(0 0 0 / 0.55);
+}
+:is(#logic-overhaul-1, html) .logic-hanoi-base.logic-hanoi-base-gold {
+  background: url("/logic-art/hanoi-plate-gold.webp") center / 100% 100% no-repeat;
+  box-shadow: 0 4px 6px rgb(0 0 0 / 0.55);
+}
+/* B's candy-glass rings: one rendered ring per shade, its rounded ends kept whole at any width (border-image slices). */
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring.logic-hanoi-ring {
+  background: transparent !important;
+  border-style: solid;
+  border-width: 0;
+  border-image-slice: 0 48 fill;
+  border-image-width: 0 calc(var(--hanoi-ring) * 0.5);
+  border-image-repeat: stretch;
+  box-shadow: 0 3px 4px rgb(0 0 0 / 0.35);
+  border-radius: 999px;
+}
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="1"] { border-image-source: url("/logic-art/hanoi-ring-1.webp"); }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="2"] { border-image-source: url("/logic-art/hanoi-ring-2.webp"); }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="3"] { border-image-source: url("/logic-art/hanoi-ring-3.webp"); }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="4"] { border-image-source: url("/logic-art/hanoi-ring-4.webp"); }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="5"] { border-image-source: url("/logic-art/hanoi-ring-5.webp"); }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="6"] { border-image-source: url("/logic-art/hanoi-ring-6.webp"); }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="7"] { border-image-source: url("/logic-art/hanoi-ring-7.webp"); }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="8"] { border-image-source: url("/logic-art/hanoi-ring-8.webp"); }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring[data-shade="9"] { border-image-source: url("/logic-art/hanoi-ring-9.webp"); }
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring.hanoi-lifted {
+  box-shadow: 0 0 0 2px var(--jz-gold), 0 8px 8px rgb(0 0 0 / 0.4);
+}
+
+/* ------------------------------------------------------------------ Safe Cracker: brushed steel, brass drums, inked numerals */
+:is(#logic-overhaul-1, html) .logic-safe-door.safe-metal-panel.safe-metal-panel {
+  background: url("/logic-art/safe-door.webp") center / cover no-repeat;
+  border-color: #3b4048;
+}
+.logic-safe-door .logic-rivet { display: none; }
+:is(#logic-overhaul-1, html) .logic-drum.safe-dial-drum.safe-dial-drum {
+  background: url("/logic-art/safe-drum.webp") center / 100% 100% no-repeat;
+  border-color: #4d3a14;
+  color: #120d04;
+  text-shadow: 0 1px 0 rgb(255 240 205 / 0.55);
+  font-weight: 900;
+}
+.logic-drum-live.logic-drum-live { font-size: clamp(32px, 7cqh, 42px); }
+.logic-drum.logic-drum-wrong { border-color: var(--jz-loss-text, #ff5a6e); color: #4a0e0e; }
+:is(#logic-overhaul-1, html) .logic-safe-clue[data-broken] {
+  color: var(--jz-loss-text, #ff5a6e);
+  animation: logic-broken-flash 520ms ease-out 1;
+}
+.logic-safe-broken-mark { font-weight: 900; }
+@keyframes logic-broken-flash {
+  0%, 60% { background: rgb(255 90 110 / 0.18); }
+  100% { background: transparent; }
+}
+:is(#logic-overhaul-1, html) [data-logic-stage="safe"] > button[data-game-controls="actions"] {
+  background: var(--jz-gold);
+  color: var(--jz-on-gold, #06080f);
+  box-shadow: 0 4px 0 var(--jz-gold-ledge, #a8843e);
+}
+:is(#logic-overhaul-1, html) [data-logic-stage="safe"] .logic-safe-door button[aria-label="Up"],
+:is(#logic-overhaul-1, html) [data-logic-stage="safe"] .logic-safe-door button[aria-label="Down"] {
+  /* !important: the shared puzzle surface paints its controls in the category accent (teal) with !important. */
+  background: var(--jz-surface-2, #1a2140) !important;
+  border-color: rgb(226 192 122 / 0.4) !important;
+  color: var(--jz-gold) !important;
+}
+:is(#logic-overhaul-1, html) .logic-drum-live .logic-drum-ghost {
+  /* The next and last digit stay small and faint, never over the numeral. */
+  font-size: 0.42em;
+  opacity: 0.22;
+}
+
+/* ------------------------------------------------------------------ Mosaic: glazed ceramic tiles in slate wells */
+[data-nono-paint] { touch-action: none; }
+:is(#logic-overhaul-1, html) .logic-nono .logic-nono-cell.logic-nono-cell {
+  border-color: transparent;
+  /* !important: batch-p's Mosaic surface sets these with !important (matched here, Mosaic cells only). */
+  background: url("/logic-art/mosaic-well.webp") center / 100% 100% no-repeat !important;
+  box-shadow: none !important;
+  color: rgb(242 239 232 / 0.6);
+}
+:is(#logic-overhaul-1, html) .logic-nono .logic-nono-cell.logic-nono-cell.bg-primary {
+  background: url("/logic-art/mosaic-tile.webp") center / 100% 100% no-repeat, #1b2229 !important;
+  box-shadow: none !important;
+  transform: scale(0.94);
+  transition: transform 90ms ease-out;
+}
+:is(#logic-overhaul-1, html) .logic-nono .nono-clue-col,
+:is(#logic-overhaul-1, html) .logic-nono .nono-clue-row {
+  font-family: var(--jz-font, inherit);
+  font-weight: 800;
+}
+
+/* ------------------------------------------------------------------ Colour Flood: glossy enamel, glass paint pots */
+:is(#logic-overhaul-1, html) .logic-flood-frame {
+  border-radius: 12px;
+  box-shadow: 0 10px 26px rgb(0 0 0 / 0.55);
+}
+:is(#logic-overhaul-1, html) .logic-flood-sheen.logic-flood-sheen {
+  /* One rendered enamel glaze over the whole board (its ripple and soft gloss), tinting nothing: hard-light keeps each
+     region's colour and lays the glaze's light and shade on it. */
+  opacity: 0.85;
+  background: url("/logic-art/flood-enamel.webp") center / 100% 100% no-repeat;
+  mix-blend-mode: hard-light;
+}
+:is(#logic-overhaul-1, html) .logic-paint-pot.logic-paint-pot {
+  border-radius: 50%;
+  background-color: transparent !important;
+  background-size: 100% 100% !important;
+  background-repeat: no-repeat !important;
+  border: 0;
+  box-shadow: none;
+}
+:is(#logic-overhaul-1, html) .logic-paint-pot[aria-label="Magenta"] { background-image: url("/logic-art/flood-pot-1.webp") !important; }
+:is(#logic-overhaul-1, html) .logic-paint-pot[aria-label="Blue"] { background-image: url("/logic-art/flood-pot-2.webp") !important; }
+:is(#logic-overhaul-1, html) .logic-paint-pot[aria-label="Mint"] { background-image: url("/logic-art/flood-pot-3.webp") !important; }
+:is(#logic-overhaul-1, html) .logic-paint-pot[aria-label="Yellow"] { background-image: url("/logic-art/flood-pot-4.webp") !important; }
+:is(#logic-overhaul-1, html) .logic-paint-pot[aria-label="Orange"] { background-image: url("/logic-art/flood-pot-5.webp") !important; }
+:is(#logic-overhaul-1, html) .logic-paint-pot.logic-paint-pot-current {
+  box-shadow: 0 0 0 3px var(--jz-gold);
+}
+:is(#logic-overhaul-1, html) .logic-flood-reveal-board {
+  width: min(100%, 300px);
+  max-width: none;
+}
+
+/* ------------------------------------------------------------------ Shared controls: navy faces, champagne gold text */
+:is(#logic-overhaul-1, html) [data-logic-stage="sudoku"] [data-game-controls="numbers"] .grid-cols-2 > button {
+  background: var(--jz-surface-2, #1a2140);
+  border-color: rgb(226 192 122 / 0.35);
+  color: var(--jz-gold);
+}
+:is(#logic-overhaul-1, html) [data-logic-stage="tower"] [data-game-controls] button,
+:is(#logic-overhaul-1, html) [data-logic-stage="tubes"] [data-game-controls] button {
+  /* !important: the shared puzzle surface paints actions in the category accent with !important. */
+  background: var(--jz-surface-2, #1a2140) !important;
+  border-color: rgb(226 192 122 / 0.35) !important;
+  color: var(--jz-gold) !important;
+}
+:is(#logic-overhaul-1, html) [data-logic-stage="sudoku"] [data-game-controls="numbers"] .grid-cols-2 > button.border-primary {
+  background: var(--jz-gold);
+  color: var(--jz-on-gold, #06080f);
+}
+/* The shared surface's action ring and drawn icon (styles.css [data-puzzle-action], [data-puzzle-icon]) in gold. */
+:is(#logic-overhaul-1, html) :is([data-logic-stage="tower"], [data-logic-stage="tubes"]) [data-puzzle-action] {
+  box-shadow: inset 0 0 0 1px rgb(226 192 122 / 0.45);
+}
+:is(#logic-overhaul-1, html) :is([data-logic-stage="tower"], [data-logic-stage="tubes"]) [data-puzzle-icon]::before {
+  -webkit-text-fill-color: var(--jz-gold);
+}
+
+/* ------------------------------------------------------------------ The reveals (15 Nov 2026: clear, big, legible) */
+:is(#logic-overhaul-1, html) .logic-reveal-pair {
+  display: flex;
+  width: min(100cqw, 100cqh, 420px);
+  justify-content: center;
+  gap: 12px;
+}
+:is(#logic-overhaul-1, html) .logic-reveal-col {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+:is(#logic-overhaul-1, html) .logic-reveal-col > .logic-sudoku-frame { width: 100%; }
+:is(#logic-overhaul-1, html) .logic-reveal-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(242 239 232 / 0.7);
+}
+:is(#logic-overhaul-1, html) .logic-reveal-facts {
+  display: grid;
+  width: 100%;
+  max-width: 420px;
+  flex: none;
+  gap: 8px;
+  margin: 0 auto;
+}
+:is(#logic-overhaul-1, html) .logic-reveal-fact {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  background: rgb(6 8 15 / 0.55);
+  border: 1px solid rgb(255 255 255 / 0.08);
+}
+:is(#logic-overhaul-1, html) .logic-reveal-fact dd {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: #f2efe8;
+}
+:is(#logic-overhaul-1, html) .logic-reveal-fact dt {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  color: rgb(242 239 232 / 0.72);
+}
+:is(#logic-overhaul-1, html) .logic-reveal-fact[data-tone="good"] dd { color: #6fdc9a; }
+:is(#logic-overhaul-1, html) .logic-reveal-fact[data-tone="bad"] dd { color: var(--jz-loss-text, #ff5a6e); }
+:is(#logic-overhaul-1, html) .logic-reveal-fact[data-tone="gold"] dd { color: var(--jz-gold); }
+:is(#logic-overhaul-1, html) .logic-move-strip {
+  display: flex;
+  width: 100%;
+  max-width: 420px;
+  flex: none;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 auto;
+}
+:is(#logic-overhaul-1, html) .logic-move-strip-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(242 239 232 / 0.7);
+}
+:is(#logic-overhaul-1, html) .logic-move-strip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+:is(#logic-overhaul-1, html) .logic-move-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 7px 0 5px;
+  border-radius: 7px;
+  background: rgb(6 8 15 / 0.6);
+  border: 1px solid rgb(255 255 255 / 0.1);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #f2efe8;
+}
+:is(#logic-overhaul-1, html) .logic-move-piece {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.35);
+}
+:is(#logic-overhaul-1, html) .logic-move-more { padding: 0 8px; color: rgb(242 239 232 / 0.7); }
+:is(#logic-overhaul-1, html) .flood-reveal-strip { display: flex; flex-wrap: wrap; gap: 4px; }
+:is(#logic-overhaul-1, html) .flood-reveal-strip > .flood-reveal-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.3);
+}
+:is(#logic-overhaul-1, html) .flood-reveal-strip > .flood-reveal-swatch[data-over-par] {
+  outline: 2px solid var(--jz-loss-text, #ff5a6e);
+  outline-offset: 1px;
+}
+/* Mosaic: the picture's squares you left empty, outlined on your board. */
+:is(#logic-overhaul-1, html) .logic-nono .logic-nono-cell[data-missed] {
+  box-shadow: inset 0 0 0 2px rgb(226 192 122 / 0.85) !important;
+}
+:is(#logic-overhaul-1, html) .logic-nono .logic-nono-cell.border-warn {
+  background: rgb(255 90 110 / 0.55) !important;
+}
+/* Safe Cracker: your tries as rows of small drums (right dials green) and the clue list for your last try. */
+:is(#logic-overhaul-1, html) .logic-safe-tries { display: flex; flex-direction: column; gap: 6px; }
+:is(#logic-overhaul-1, html) .logic-safe-try { display: flex; align-items: center; gap: 6px; }
+:is(#logic-overhaul-1, html) .logic-safe-try-label {
+  width: 46px;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgb(242 239 232 / 0.72);
+}
+:is(#logic-overhaul-1, html) .logic-safe-try-dial {
+  display: inline-flex;
+  width: 30px;
+  height: 34px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 20px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: #f2efe8;
+  background: rgb(255 90 110 / 0.3);
+  border: 1px solid rgb(255 90 110 / 0.7);
+}
+:is(#logic-overhaul-1, html) .logic-safe-try-dial[data-right] {
+  background: rgb(111 220 154 / 0.25);
+  border-color: rgb(111 220 154 / 0.8);
+}
+:is(#logic-overhaul-1, html) .logic-safe-clue-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 15px;
+  line-height: 1.45;
+  text-align: center;
+  color: #f2efe8;
+}
+:is(#logic-overhaul-1, html) .logic-safe-clue-list > li > span { color: #6fdc9a; font-weight: 900; }
+:is(#logic-overhaul-1, html) .logic-safe-clue-list > li[data-broken] { color: var(--jz-loss-text, #ff5a6e); }
+:is(#logic-overhaul-1, html) .logic-safe-clue-list > li[data-broken] > span { color: inherit; }
+/* Hanoi and Polypotions: the board grows into the reveal's room. */
+:is(#logic-overhaul-1, html) .logic-hanoi-reveal { width: min(100cqw, 380px); height: min(100cqh, 260px); }
+:is(#logic-overhaul-1, html) .logic-potions-reveal { width: min(100cqw, 340px); height: min(100cqh, 280px); }
+/* The arcade reveal's picture of the run (ArcadeRunSummary): the board as large as the column allows, never cropped. */
+:is(#logic-overhaul-1, html) .arcade-run-summary {
+  width: min(100%, 340px);
+  flex: none;
+  margin: 0 auto;
+  transition: opacity 200ms ease-out;
+}
+:is(#logic-overhaul-1, html) .arcade-run-summary > canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+}
+
+/* ------------------------------------------------------------------ Stage 2: the effects (logicMotion.ts, the kit) */
+/* Polypotions: the pour's stream (drawn in the board, under no control), the cork's ring, the fill timed to the pour. */
+:is(#logic-overhaul-1, html) .logic-pour-stream {
+  position: absolute;
+  width: 5px;
+  border-radius: 3px;
+  transform-origin: 50% 0;
+  pointer-events: none;
+  z-index: 25;
+}
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion-fill {
+  animation-duration: 320ms;
+}
+:is(#logic-overhaul-1, html) .logic-potions .logic-flask[data-just-corked]::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -6px;
+  width: 140%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 2px solid rgb(255 236 180 / 0.9);
+  transform: translate(-50%, -50%) scale(0.2);
+  opacity: 0;
+  pointer-events: none;
+  animation: logic-cork-ring 560ms ease-out 1 both;
+}
+@keyframes logic-cork-ring {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0.95; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+}
+/* Box Six and Mosaic: a completed line's glow (one pass per cell, logicMotion.ts lightCells). */
+:is(#logic-overhaul-1, html) .logic-line-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle, rgb(242 193 78 / 0.42), rgb(242 193 78 / 0.08) 70%);
+  pointer-events: none;
+}
+/* Box Six's solve: the silver lines turn gold, running out from the last cell placed. */
+:is(#logic-overhaul-1, html) [data-logic-solved] .logic-sudoku-cell::after {
+  background: none;
+  box-shadow: inset 0 0 0 2px rgb(242 193 78 / 0.95);
+  animation: logic-sudoku-gold 520ms ease-out calc(var(--logic-dist, 0) * 85ms) 1 both;
+}
+@keyframes logic-sudoku-gold {
+  0% { opacity: 0; }
+  40% { opacity: 1; }
+  100% { opacity: 0.85; }
+}
+/* Hanoi: a ring landing on the gold post in order glints. */
+:is(#logic-overhaul-1, html) .logic-hanoi .logic-hanoi-ring.logic-hanoi-glint {
+  animation: logic-hanoi-glint 520ms ease-out 1 both;
+}
+@keyframes logic-hanoi-glint {
+  0% { filter: brightness(1); }
+  35% { filter: brightness(1.6) saturate(1.2); }
+  100% { filter: brightness(1); }
+}
+/* Safe Cracker: three bolts on the door's opening edge slide back one by one before the door swings. */
+:is(#logic-overhaul-1, html) .logic-safe-bolts {
+  position: absolute;
+  right: 6px;
+  top: 18%;
+  bottom: 18%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+:is(#logic-overhaul-1, html) .logic-safe-bolts > i {
+  display: block;
+  width: 14px;
+  height: 7px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #e9ecef, #8d949c 55%, #5c626a);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.5);
+}
+:is(#logic-overhaul-1, html) [data-logic-solved] .logic-safe-bolts > i {
+  animation: logic-safe-bolt 180ms ease-in calc(var(--bolt, 0) * 110ms) 1 both;
+}
+:is(#logic-overhaul-1, html) .logic-safe-bolts > i:nth-child(2) { --bolt: 1; }
+:is(#logic-overhaul-1, html) .logic-safe-bolts > i:nth-child(3) { --bolt: 2; }
+@keyframes logic-safe-bolt {
+  from { transform: none; }
+  to { transform: translateX(-10px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(#logic-overhaul-1, html) .logic-potions .logic-flask[data-just-corked]::after,
+  :is(#logic-overhaul-1, html) .logic-line-glow { display: none; }
+  :is(#logic-overhaul-1, html) [data-logic-solved] .logic-sudoku-cell::after { animation: none; opacity: 0.85; }
+}
+
+/* Levels (stage 3): Easy's used-up digits leave the keypad (their place is kept, so nothing moves). */
+:is(#logic-overhaul-1, html) .logic-sudoku-key[data-used-up] { visibility: hidden; }
+/* Expert's five drums (levels): a little narrower, so the row fits the door at 375 px. */
+:is(#logic-overhaul-1, html) .logic-safe-drums[data-dials="5"] { gap: 4px; }
+:is(#logic-overhaul-1, html) .logic-safe-drums[data-dials="5"] .logic-drum-live { width: 50px !important; }
+:is(#logic-overhaul-1, html) .logic-safe-drums[data-dials="5"] .logic-drum-live .logic-drum-digit { font-size: 0.86em; }
+
+/* Levels (stage 3): Colour Flood's sixth colour and Expert's blocked stones; the tall boards keep their own aspect. */
+:root { --flood-f: #9C5BFF; }
+:is(#logic-overhaul-1, html) .logic-paint-pot[aria-label="Violet"] { background-image: url("/logic-art/flood-pot-6.webp") !important; }
+:is(#logic-overhaul-1, html) .logic-flood-stone {
+  background: radial-gradient(circle at 35% 30%, #4a4f58, #23262c 70%) !important;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+}
+:is(#logic-overhaul-1, html) .logic-flood[data-flood-tall] { aspect-ratio: auto; }
+
+/* Levels (stage 3): a layer's height follows the board's flasks and layers (today's 5 layers in 2 rows of 5 give the
+   same height as polish-logic/logic.css's rule). */
+:is(#logic-overhaul-1, html) [data-logic-stage="tubes"] .logic-potions[data-capacity]:not([data-capacity="5"]) .tubes-play-layer,
+:is(#logic-overhaul-1, html) [data-logic-stage="tubes"] .logic-potions[data-flasks]:not([data-flasks="10"]) .tubes-play-layer {
+  height: calc(min(calc((min(calc(100cqh - 28px), 620px) / var(--tube-rows) - 36px) / (var(--tube-cap) + 1)), calc((100cqw - 32px) / var(--tube-across) - 16px)) + 4px);
+}
+
+/* Levels (stage 3): Mosaic's tall boards (9 × 11, 9 × 14) fit the height by their own shape (columns plus the clue
+   column across, rows plus about three clue rows down), never wider than the column. */
+:is(#logic-overhaul-1, html) [data-puzzle-play] .logic-nono-fit[data-nono-tall],
+:is(#logic-overhaul-1, html) .logic-nono-fit[data-nono-tall] {
+  width: min(100cqw, calc((100cqh - 80px) * (var(--nono-w) + 1.15) / (var(--nono-h) + 3))) !important;
+}
+/* Colour Flood's tall level boards (12 × 17, 14 × 24): the frame takes the board's own shape, as tall as the column
+   lets it, so no row is cut off. */
+:is(#logic-overhaul-1, html) .logic-square-bare.logic-flood-frame[data-flood-tall] {
+  aspect-ratio: var(--flood-aspect) !important;
+  width: min(100cqw, calc(100cqh * var(--flood-aspect))) !important;
+}

@@ -13,7 +13,7 @@ import {
 import type { TileGridPuzzleData } from "./types";
 
 let pool: string[] | null = null;
-function wordPool(): string[] {
+export function wordPool(): string[] {
   if (pool) return pool;
   pool = [
     ...new Set(
@@ -33,7 +33,7 @@ export function tileGridValid(cells: string[]): boolean {
 
 export type Placement = { word: string; row: number; col: number; horizontal: boolean };
 
-function layout(parts: Placement[]): string[] | null {
+export function layout(parts: Placement[]): string[] | null {
   const cells = Array.from({ length: TG_CELLS }, () => "");
   let minR = 99, minC = 99, maxR = -99, maxC = -99;
   for (const p of parts) {

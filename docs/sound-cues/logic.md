@@ -34,6 +34,8 @@ shared screens.
 | `safe.solve` | A try satisfies every clue (the same test that submits) | `pz_safe_open.mp3` (2.2 s); placeholder `safe.solve.mp3` with NEW_GAME_SOUNDS on |
 | `bomb.cut` | A wire is cut | 220 ms recoil, 300 ms sparks |
 | `bomb.press` | Button A or B is pressed | 200 ms press |
+| `bomb.step` | Each step fills a pip in the step counter (the Attention overhaul, 15 Nov 2026) | 50 ms |
+| `bomb.instant` | Expert: a wrong step sets the bomb off at once (the Attention overhaul's levels) | 800 ms |
 | `bomb.defuse` | DEFUSE is tapped (the submission; not a verdict) | LED timer freezes and blinks (640 ms), fuse spark dies (360 ms) |
 | `bomb.solve` | The reveal shows a verified defuse | 700 ms status lamp turns red to green |
 | `nonogram.fill` | A cell is filled | 170 ms tile pop |
@@ -46,13 +48,40 @@ shared screens.
 | `tents.grass` | A cell is marked as grass | — |
 | `tents.clear` | A cell is cleared | — |
 | `tents.solve` | The layout is valid | ~1.15 s: tents bounce in turn (55 ms apart), lanterns glow and fade |
+| `tents.touch` | A tent is pitched touching another (15 Nov 2026, the Logic overhaul) | Both tents wobble (the kit's wrong) |
+| `tents.lonely` | A tent is pitched with no tree beside it | A red ring on the square |
+| `tents.signMet` | A row's or column's count is met | The sign turns gold and pops (the kit's tap) |
 | `shikaku.place` | A rectangle is accepted | 180 ms pane set |
 | `shikaku.remove` | A rectangle is tapped away | — |
 | `shikaku.solve` | Every square is covered by a valid rectangle | ≤1.2 s: panes flash stained-glass colours (28 ms apart, 700 ms each) |
+| `shikaku.dragStart` | A drag starts on the board (15 Nov 2026, the Logic overhaul) | The outline appears |
+| `shikaku.snap` | The drag's outline grows or shrinks by a square | The outline snaps; green when its area matches |
+| `shikaku.invalid` | A rectangle is refused | The outline flashes red and shakes alone (420 ms) |
 | `lightup.lamp` | A lamp is placed | Light spreads along its beams, 40 ms per square, 320 ms each |
 | `lightup.dot` | A square is marked with a dot | — |
 | `lightup.clear` | A square is cleared | — |
 | `lightup.solve` | Every square is lit with no clash and every number met | ~1.17 s: warm wave from the top-left, lamps swell |
+| `lightup.clash` | A lamp is placed where it sees another (15 Nov 2026, the Logic overhaul) | Both lamps ring red and wobble |
+| `lightup.wallMet` | A wall's number is newly satisfied | The gold ✓ appears and the wall pops |
+| `lightup.dark` | Six or fewer squares are left dark, the first time | The "N squares dark" line shows |
+
+## Logic overhaul, session 1 (15 Nov 2026)
+
+Placeholder slots (no file yet: silent until Joe's ElevenLabs recordings, `logic-elevenlabs.md`, drop in by name).
+
+| Cue | Trigger | Visual length |
+|---|---|---|
+| `sudoku.clash` | A digit makes a row, column or box repeat (the clashing digits turn red) | 360 ms red pulse |
+| `sudoku.pencil` | A pencil mark is added or removed | — |
+| `tubes.undo` | Undo is tapped (tubesRev 3 gives the pour back) | — |
+| `tubes.outOfPours` | The last allowed pour leaves the board unsorted | 1.1 s "Out of pours" banner |
+| `safe.wrongTry` | A try that breaks a clue (the broken clues flash red) | 520 ms clue flash |
+| `nonogram.paint` | A drag paints one more square (fill) | 90 ms press-in |
+| `sudoku.line` | A digit completes a row, column or box (pitched up when it completes several) | 420 ms glow along the line |
+| `nonogram.line` | A line now matches its numbers (pitched up for several at once) | 420 ms glow on its clue |
+| `sudoku.check` | Box Six Expert: Check pressed with no clash (a clash plays `sudoku.clash` as it shows) | the Check button |
+| `tubes.uncover` | Polypotions Expert: a hidden layer uncovered | its veil lifts |
+| `nonogram.autoCross` | Mosaic Easy: a line matching its numbers crosses its empty squares | the ×s appear |
 
 With `prefers-reduced-motion: reduce`, move animations snap and each completion effect is replaced by one still,
 soft glow over the play area (opacity only, 1.0 s). The cues fire either way.

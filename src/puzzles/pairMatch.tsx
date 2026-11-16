@@ -1,7 +1,7 @@
-import { rightMoveFlash, wrongMoveFlash } from "@/lib/fx/gameToolkit";
-import { useGoalProgress } from "@/components/duel/GameFrame";
+import { wrongMoveFlash } from "@/lib/fx/gameToolkit";
+import { useGoalProgress, useLevelGoal } from "@/components/duel/GameFrame";
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { firePairWave } from "@/components/puzzles/pairMatchFx";
@@ -9,15 +9,11 @@ import { registerFxPreview } from "@/components/puzzles/speedFx";
 import { decodePairFlips, encodePairFlips, replayPairs, sameCard } from "@/lib/duel/pairmatch";
 import { useStageState } from "@/lib/duel/stageState";
 import {
-  PAIR_CARDS,
-  PAIR_FLIP_BACK_MS,
   PAIR_FLIP_MS,
-  PAIR_PAIRS,
   PAIR_TIME_MS,
   type PairCard,
   type PairPuzzleData,
 } from "@/lib/duel/types";
-import { playCorrect, playCueSlot, playTone, playWrong } from "@/lib/sound";
 import { PAIR_GOLD_WINDOW_MS, isGoldCard, joinPairGoldTime, pairDepthReplay, pairGoldTimed, pairUsesDepth, splitPairGoldTime } from "@/lib/duel/depth/matchmaker";
 import { serverNow } from "@/lib/duel/clock";
 import { pairGoldPoints, pairStandard } from "@/lib/duel/standard/attention";
@@ -25,8 +21,25 @@ import { pairGoldPoints, pairStandard } from "@/lib/duel/standard/attention";
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/polish-nov3-speedatt.css";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { pairSprite } from "@/components/puzzles/attention/attentionArt";
+import { pairClear } from "@/lib/duel/attentionOverhaul";
+import { leveled, pairCardsOf, pairFlipBackMs, pairLevelCols, pairsOf } from "@/lib/duel/attentionLevels";
+import { puzzleTimeLimitMs } from "@/lib/duel/catalogue";
+import { RevealLegend, RevealStats } from "@/components/puzzles/attention/RevealParts";
+import { attnSound } from "@/components/puzzles/attention/attentionFx";
+import { gameFx } from "@/lib/fx/kit";
+import { FxCountUp } from "@/components/fx/GameFx";
 
-export function CardFace({ card, size }: { card: PairCard; size: number }) {
+/**
+ * pairRev 4 (the Attention overhaul): the card's symbol is a Blender-rendered enamel inlay with a champagne-gold rim,
+ * in one of five colours a full step of lightness apart. Older boards keep their drawn symbols.
+ */
+function ClearFace({ card, size }: { card: PairCard; size: number }) {
+  return <img src={pairSprite(card.shape, card.colour)} alt="" draggable={false} className="pairmatch-symbol pointer-events-none select-none" style={{ width: size, height: size }} />;
+}
+
+export function CardFace({ card, size, clear = false }: { card: PairCard; size: number; clear?: boolean }) {
+  if (clear) return <ClearFace card={card} size={size} />;
   const fill = GLYPH_COLOURS[card.colour];
   const stroke = "var(--card-foreground, #0a0a0f)";
   return (
@@ -53,6 +66,9 @@ export function CardFace({ card, size }: { card: PairCard; size: number }) {
   );
 }
 
+/** pairRev 4's board: five columns (30 cards in six rows). */
+export const PAIR_CLEAR_COLS = 5;
+
 /** A 6×5 board (or a small example board) of face-down cards. */
 export function Board({
   cards,
@@ -63,6 +79,7 @@ export function Board({
   onCard,
   compact = false,
   gold,
+  clear = false,
 }: {
   cards: PairCard[];
   faceUp: Set<number>;
@@ -73,6 +90,8 @@ export function Board({
   compact?: boolean;
   /** pairRev 1: the gold pair's face; its cards show gold foil once turned over. */
   gold?: PairCard | undefined;
+  /** pairRev 4: the rendered symbols on the clear palette. */
+  clear?: boolean;
 }) {
   return (
     <div
@@ -104,7 +123,7 @@ export function Board({
                   matched.has(index) ? "is-matched border-primary bg-primary/10" : "border-border bg-card"
                 }${golden && open ? " is-gold" : ""}`}
               >
-                {open ? <CardFace card={card} size={glyph} /> : null}
+                {open ? <CardFace card={card} size={glyph} clear={clear} /> : null}
                 {golden && open ? <span className="pairmatch-gold-tag" aria-hidden="true">★</span> : null}
               </span>
             </span>
@@ -132,12 +151,13 @@ function IntroExample() {
           faceUp={new Set()}
           matched={new Set([0, 2])}
           cols={2}
-          glyph={26}
+          glyph={40}
           compact
+          clear
           gold={EXAMPLE_CARDS[0]}
         />
       </div>
-      <p className="text-center text-xs text-muted-foreground">Match all fifteen pairs.</p>
+      <p className="text-center text-xs text-muted-foreground">Match all fifteen pairs. Tap another card to skip a miss’s wait.</p>
     </div>
   );
 }
@@ -159,9 +179,11 @@ function Stage({
   const submitted = useRef(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const boardRef = useRef<HTMLDivElement>(null);
+  // Matches in a row since the last miss (the climbing tone; display only, the server walks its own streak).
+  const streak = useRef(0);
   useEffect(() => registerFxPreview("pairmatch", () => firePairWave(boardRef.current, 6)), []);
 
-  const replay = data ? replayPairs(data.cards, flips) : null;
+  const replay = data ? replayPairs(data.cards, flips, pairsOf(data)) : null;
   const matched = new Set(replay?.matched ?? []);
   // pairRev 1 (Depth to 200): the streak multiplier and the gold pair, walked from the same flips as the server.
   const depth = data && pairUsesDepth(data) ? pairDepthReplay(data, flips, goldMs) : null;
@@ -178,44 +200,61 @@ function Stage({
 
   useEffect(() => {
     if (!data || locked || submitted.current) return;
-    if (now < phaseStartedAt + PAIR_TIME_MS - 400) return;
+    if (now < phaseStartedAt + puzzleTimeLimitMs(data) - 400) return;
     submitted.current = true;
     onSubmit(timedGold ? joinPairGoldTime(encodePairFlips(flips), goldMs) : encodePairFlips(flips));
   }, [now, phaseStartedAt, locked, data, flips, goldMs, timedGold, onSubmit]);
 
   // Polish batch S: the pairs count goes to the frame's goal line on a live round; the line above the
   // dock keeps the flips (display only).
-  const framed = useGoalProgress({ done: replay?.pairs ?? 0, total: PAIR_PAIRS, text: `${replay?.pairs ?? 0} of ${PAIR_PAIRS} pairs` });
+  const total = pairsOf(data);
+  // A level's board (stage 3): the goal line says its own count of pairs.
+  useLevelGoal("pairmatch", data && leveled(data) ? `Find all ${total} pairs` : null);
+  const framed = useGoalProgress({ done: replay?.pairs ?? 0, total, text: `${replay?.pairs ?? 0} of ${total} pairs` });
 
   if (!data || !replay) return null;
 
+  const clear = pairClear(data);
+  const levelCols = pairLevelCols(data);
+  const cols = levelCols ?? (clear ? PAIR_CLEAR_COLS : 6);
   const tap = (index: number, card?: Element | null) => {
     if (locked || submitted.current) return;
-    if (matched.has(index) || open.includes(index)) return;
-    if (open.length >= 2) return;
+    if (matched.has(index)) return;
+    // pairRev 4: a third card while a miss shows turns the miss back at once and starts a new try with this card.
+    const showing = open.length >= 2 && clear ? [] : open;
+    if (showing !== open && timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    if (showing.includes(index)) return;
+    if (showing.length >= 2) return;
     const nextFlips = [...flips, index];
-    const nextOpen = [...open, index];
+    const nextOpen = [...showing, index];
     setFlips(nextFlips);
     setOpen(nextOpen);
+    // The Attention overhaul (stage 2): every turn a quiet card flick.
+    attnSound("pairmatch.flip", { volume: 0.45 });
     if (nextOpen.length < 2) return;
 
     const [first, second] = nextOpen as [number, number];
+    const cardEl = (i: number) => boardRef.current?.querySelectorAll("[data-pair-card]")[i] ?? null;
     let nextGoldMs = goldMs;
     if (sameCard(data.cards[first], data.cards[second])) {
-      playCorrect();
-      rightMoveFlash(card);
       if (timedGold && nextGoldMs === null && isGoldCard(data, data.cards[second])) {
         nextGoldMs = Math.max(0, Math.round(serverNow() - phaseStartedAt));
         setGoldMs(nextGoldMs);
       }
-      if (pairUsesDepth(data)) {
-        const after = pairDepthReplay(data, nextFlips, nextGoldMs);
-        // The streak's pip climbs with the multiplier; the gold pair plays the board's own wave.
-        if (after.streak >= 2) playTone(523 * Math.pow(2, (2 * (Math.min(after.streak, 5) - 2)) / 12), 90, "triangle", 0.16);
-        if (isGoldCard(data, data.cards[second])) playCueSlot("pairmatch.cardWave", 0.6);
-      }
+      // A match: both cards lift and lock face up with a chime; from the second match in a row the kit's combo tone
+      // climbs a step with each; the gold pair has its own shimmer.
+      streak.current += 1;
+      const gold = pairUsesDepth(data) && !!data.gold && isGoldCard(data, data.cards[second]);
+      if (gold) attnSound("pairmatch.gold");
+      else if (streak.current < 2) attnSound("pairmatch.match");
+      gameFx("combo", cardEl(first), { count: 1, silent: true });
+      gameFx("combo", cardEl(second), { count: Math.max(1, streak.current - 1), silent: gold || streak.current < 2 });
+      if (gold) gameFx("win", cardEl(second), { silent: true, noHaptic: true });
       setOpen([]);
-      if (replayPairs(data.cards, nextFlips).solved) {
+      if (replayPairs(data.cards, nextFlips, pairsOf(data)).solved) {
         submitted.current = true;
         // Finish effect fires synchronously, then the flips are submitted exactly as before.
         firePairWave(boardRef.current, 6);
@@ -223,11 +262,12 @@ function Stage({
       }
       return;
     }
-    playWrong();
-    // The shared wrong-move shake and red outline on the card just turned; no reject cue (attention review fixes,
-    // 15 Nov 2026): playWrong above is the miss's one sound.
+    // A miss: one soft wrong on the card just turned, then both flip back (a third card skips the wait on pairRev 4).
+    streak.current = 0;
+    attnSound("pairmatch.miss", { volume: 0.5 });
+    // The shared wrong-move shake and red outline on that card only, silent (pairmatch.miss above is the one sound).
     wrongMoveFlash(card ?? null, false);
-    timer.current = setTimeout(() => setOpen([]), PAIR_FLIP_BACK_MS);
+    timer.current = setTimeout(() => setOpen([]), pairFlipBackMs(data));
   };
 
   return (
@@ -237,7 +277,7 @@ function Stage({
       <HudPills
         testId="pairmatch"
         items={[
-          !framed && { id: "pairs", label: "Pairs", value: `${replay.pairs} / ${PAIR_PAIRS}`, tone: "gold" },
+          !framed && { id: "pairs", label: "Pairs", value: `${replay.pairs} / ${total}`, tone: "gold" },
           { id: "flips", label: "Flips", value: replay.flips },
           depth && {
             id: "streak",
@@ -264,15 +304,26 @@ function Stage({
         ]}
       />
       </div>
-      <div ref={boardRef} data-game-arena="fixed" className="w-full max-w-[340px]">
+      {/* pairRev 4: five columns, so each card is a third bigger and the board grows downwards into the free space. */}
+      {/* A level's board (stage 3): its own columns, growing downwards; it narrows so every row fits a short phone. */}
+      <div
+        ref={boardRef}
+        data-game-arena="fixed"
+        data-pair-clear={clear ? "" : undefined}
+        data-pair-cols={cols}
+        className={clear ? "pairmatch-board-clear w-full" : "w-full max-w-[340px]"}
+        style={levelCols ? ({ "--pair-shape": `${cols} / ${Math.ceil(data.cards.length / cols)}` } as CSSProperties) : undefined}
+      >
         <Board
           cards={data.cards}
           faceUp={new Set(open)}
           matched={matched}
-          glyph={36}
+          cols={cols}
+          glyph={clear ? 50 : 36}
           compact
+          clear={clear}
           gold={depth ? data.gold : undefined}
-          onCard={open.length >= 2 ? undefined : tap}
+          onCard={open.length >= 2 && !clear ? undefined : tap}
         />
       </div>
     </div>
@@ -281,30 +332,45 @@ function Stage({
 
 function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "pairmatch") return null;
-  const replay = replayPairs(puzzle.cards, decodePairFlips(myAnswer ?? ""));
-  const depth = pairUsesDepth(puzzle) ? pairDepthReplay(puzzle, decodePairFlips(myAnswer ?? ""), splitPairGoldTime(myAnswer).goldMs) : null;
+  const replay = replayPairs(puzzle.cards, decodePairFlips(myAnswer ?? "", pairCardsOf(puzzle)), pairsOf(puzzle));
+  const depth = pairUsesDepth(puzzle) ? pairDepthReplay(puzzle, decodePairFlips(myAnswer ?? "", pairCardsOf(puzzle)), splitPairGoldTime(myAnswer).goldMs) : null;
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
   // The scoring standard (pairRev 3): the streak and gold points as the server stored them (none shown before they arrive).
   const stored = (key: string) => (typeof myExtra?.[key] === "number" ? `, +${myExtra[key] as number}` : "");
-  const everything = new Set(Array.from({ length: PAIR_CARDS }, (_, index) => index));
+  const everything = new Set(Array.from({ length: puzzle.cards.length }, (_, index) => index));
 
+  const matched = new Set(replay.matched);
+  const clear = pairClear(puzzle);
+  const goldText = depth ? (depth.goldTry !== null && depth.goldMs !== null ? `${(depth.goldMs / 1000).toFixed(1)} s` : depth.goldTry !== null ? `Try ${depth.goldTry}` : "–") : null;
+  // The Attention overhaul's reveal (15 Nov 2026): the whole board face up and large, the pairs you matched bright with a
+  // gold edge and the ones you didn't dimmed, then the numbers that explain the score as tiles.
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
-      <div className="w-full max-w-[288px] shrink-0">
-        <Board cards={puzzle.cards} faceUp={everything} matched={new Set()} glyph={22} compact gold={depth ? puzzle.gold : undefined} />
+    <div className="attn-rv min-h-0 flex-1" data-attn-reveal="pairmatch">
+      <div className={`pairmatch-reveal-board w-full shrink-0 ${clear ? "max-w-[360px]" : "max-w-[320px]"}`} data-pair-reveal-board="">
+        <Board cards={puzzle.cards} faceUp={everything} matched={matched} glyph={clear ? 40 : 28} cols={pairLevelCols(puzzle) ?? (clear ? PAIR_CLEAR_COLS : 6)} clear={clear} compact gold={depth ? puzzle.gold : undefined} />
       </div>
-      <p
-        className={`whitespace-normal break-words text-center font-mono text-base font-bold ${myCorrect ? "text-primary" : "text-foreground"}`}
-      >
-        {replay.pairs} / {PAIR_PAIRS} · {replay.flips} flips
-        {elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
-      </p>
+      <RevealLegend
+        items={[
+          { mark: "found", label: "You matched" },
+          { mark: "dim", label: "Not matched" },
+        ]}
+      />
+      <RevealStats
+        game="pairmatch"
+        items={[
+          { id: "pairs", label: "Pairs", value: <><FxCountUp value={replay.pairs} silent /> of {pairsOf(puzzle)}</>, tone: replay.solved ? "good" : undefined },
+          { id: "flips", label: "Flips", value: replay.flips },
+          depth ? { id: "streak", label: "Best streak", value: <FxCountUp value={depth.bestStreak} /> } : null,
+          depth ? { id: "gold", label: "Gold", value: goldText, tone: depth.goldTry !== null ? "good" : undefined } : null,
+        ]}
+      />
       {depth ? (
-        <p data-pair-reveal-bonus="" className="text-center font-mono text-xs text-muted-foreground">
+        <p data-pair-reveal-bonus="" className="text-center text-sm font-semibold text-muted-foreground">
           {pairStandard(puzzle)
-            ? `Best streak ${depth.bestStreak}${stored("streakPoints")} · gold ${depth.goldTry !== null && depth.goldMs !== null ? `${(depth.goldMs / 1000).toFixed(1)}s${stored("goldPoints")}` : "not found"}`
-            : `Best streak ${depth.bestStreak} · streak +${depth.streakBonus} · gold ${depth.goldTry !== null ? (depth.goldMs !== null ? `${(depth.goldMs / 1000).toFixed(1)}s, +${depth.goldBonus}` : `try ${depth.goldTry}, +${depth.goldBonus}`) : "not found"}`}
+            ? `Gold pair ${depth.goldTry !== null && depth.goldMs !== null ? `matched at ${(depth.goldMs / 1000).toFixed(1)} s${stored("goldPoints")}` : "not found"}${typeof myExtra?.["streakPoints"] === "number" && (myExtra["streakPoints"] as number) > 0 ? ` · streak +${myExtra["streakPoints"] as number}` : ""}`
+            : `Streak bonus +${depth.streakBonus} · gold ${depth.goldTry !== null ? `+${depth.goldBonus}` : "not found"}`}
+          {elapsed !== null && myCorrect ? ` · finished in ${elapsed.toFixed(1)} s` : ""}
         </p>
       ) : null}
     </div>

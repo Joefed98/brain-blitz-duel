@@ -10,7 +10,10 @@ import { preStandardPinned } from "./standard/stamps";
 import { PAR_MOVES_MAZE_INTRO, STANDARD_ATTENTION_INTRO } from "./standard/attentionTexts";
 import { parMovesDealt } from "./parMoves";
 import { BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
-import { PAR_MOVES_PATTERN_INTRO, PARTIAL_PATTERN_INTRO, PATTERN_STD_INTRO } from "./standard/patternText";
+import { PAR_MOVES_PATTERN_INTRO, PARTIAL_PATTERN_INTRO, PATTERN_STD_INTRO, PIPES_TWO_WAY_INTRO } from "./standard/patternText";
+import { preNov7Pinned } from "./speedPipesNov7";
+import { prePatternNov15Pinned } from "./patternNov15";
+import { blockPatternIntro } from "./standard/patternText"; // tessellate (Pattern overhaul)
 import { partialCreditDealt } from "./partialCredit";
 import { standardNumberIntro } from "./standard/numberText";
 import { fillMax, liveRecord } from "./roundMax";
@@ -76,7 +79,8 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // Logic and pattern
     unblock: partialCreditDealt() ? PARTIAL_PATTERN_INTRO.unblock : PATTERN_STD_INTRO.unblock,
     lightsout: logicStandardIntro("lightsout"),
-    pipes: PATTERN_STD_INTRO.pipes,
+    // Pipeline pipesRev 5 (the Pattern overhaul, patternNov15.ts): turns both ways, par in turns.
+    pipes: preNov7Pinned() || prePatternNov15Pinned() ? PATTERN_STD_INTRO.pipes : PIPES_TWO_WAY_INTRO,
     sudoku: logicStandardIntro("sudoku"),
     flow: PATTERN_STD_INTRO.flow,
     iceslide: parMovesDealt() ? PAR_MOVES_PATTERN_INTRO.iceslide : PATTERN_STD_INTRO.iceslide,
@@ -91,7 +95,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     flood: logicStandardIntro("flood"),
     tiles: partialCreditDealt() ? PARTIAL_PATTERN_INTRO.tiles : PATTERN_STD_INTRO.tiles,
     rings: partialCreditDealt() ? PARTIAL_PATTERN_INTRO.rings : PATTERN_STD_INTRO.rings,
-    blockparty: PATTERN_STD_INTRO.blockparty,
+    blockparty: blockPatternIntro(),
     shikaku: logicStandardIntro("shikaku"),
     fences: gridStandardIntro("fences"),
     fillomino: gridStandardIntro("fillomino"),

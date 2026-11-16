@@ -17,25 +17,25 @@ import {
 import { seededRng, type SeededRng } from "./seededRng";
 import type { NumlinePuzzleData, NumlineStageData, NumlineValue } from "./types";
 
-interface Item {
+export interface Item {
   text: string;
   value: NumlineValue;
 }
 
-const MINUS = "−";
+export const MINUS = "−";
 const SUPERSCRIPT = ["⁰", "¹", "²", "³", "⁴", "⁵", "⁶", "⁷", "⁸", "⁹"];
-const sup = (n: number) =>
+export const sup = (n: number) =>
   String(n)
     .split("")
     .map((d) => SUPERSCRIPT[Number(d)])
     .join("");
 const signed = (n: number) => (n < 0 ? `${MINUS}${-n}` : String(n));
 
-function gcd(a: number, b: number): number {
+export function gcd(a: number, b: number): number {
   return b === 0 ? Math.abs(a) : gcd(b, a % b);
 }
 
-const rational = (num: number, den = 1): NumlineValue => {
+export const rational = (num: number, den = 1): NumlineValue => {
   const g = gcd(num, den) || 1;
   return { num: num / g, den: den / g, rootCoef: 0, root: 0 };
 };
@@ -44,7 +44,7 @@ const isSquare = (n: number) => Number.isInteger(Math.sqrt(n));
 
 /* --------------------------- Stage 1: 0 to 1 --------------------------- */
 
-function fractionItem(rng: SeededRng): Item {
+export function fractionItem(rng: SeededRng): Item {
   for (;;) {
     const den = rng.int(2, 12);
     const num = rng.int(1, den - 1);
@@ -53,19 +53,19 @@ function fractionItem(rng: SeededRng): Item {
   }
 }
 
-function decimalItem(rng: SeededRng): Item {
+export function decimalItem(rng: SeededRng): Item {
   const hundredths = rng.int(3, 97);
   return { text: `0.${String(hundredths).padStart(2, "0")}`, value: rational(hundredths, 100) };
 }
 
-function percentItem(rng: SeededRng): Item {
+export function percentItem(rng: SeededRng): Item {
   const percent = rng.int(3, 97);
   return { text: `${percent}%`, value: rational(percent, 100) };
 }
 
 /* -------------------------- Stage 2: 0 to 100 -------------------------- */
 
-function productItem(rng: SeededRng): Item {
+export function productItem(rng: SeededRng): Item {
   const a = rng.int(3, 12);
   const b = rng.int(3, 12);
   const c = rng.int(1, 19);
@@ -76,13 +76,13 @@ function productItem(rng: SeededRng): Item {
   };
 }
 
-function percentOfItem(rng: SeededRng): Item {
+export function percentOfItem(rng: SeededRng): Item {
   const percent = rng.pick([5, 10, 15, 20, 25, 30, 35, 40, 45, 55, 60, 65, 70, 75, 80, 85, 90]);
   const of = 20 * rng.int(2, 10);
   return { text: `${percent}% of ${of}`, value: rational(percent * of, 100) };
 }
 
-function squareItem(rng: SeededRng): Item {
+export function squareItem(rng: SeededRng): Item {
   const base = rng.int(2, 9);
   const shift = rng.int(0, 2) === 0 ? 0 : rng.int(1, 15);
   const plus = rng.below(2) === 0;
@@ -90,7 +90,7 @@ function squareItem(rng: SeededRng): Item {
   return { text, value: rational(base * base + (plus ? shift : -shift)) };
 }
 
-function divisionItem(rng: SeededRng): Item {
+export function divisionItem(rng: SeededRng): Item {
   const d = rng.int(3, 12);
   const r = rng.int(3, 97);
   return { text: `${d * r} ÷ ${d}`, value: rational(r) };
@@ -98,7 +98,7 @@ function divisionItem(rng: SeededRng): Item {
 
 /* ---------------------- Stage 3: −50 to 50 or 0 to 1,000 ---------------------- */
 
-function negativeItem(rng: SeededRng): Item {
+export function negativeItem(rng: SeededRng): Item {
   switch (rng.below(4)) {
     case 0: {
       const a = rng.int(2, 9);
@@ -137,7 +137,7 @@ function negativeItem(rng: SeededRng): Item {
   }
 }
 
-function rootItem(rng: SeededRng, symmetric: boolean): Item {
+export function rootItem(rng: SeededRng, symmetric: boolean): Item {
   if (symmetric) {
     for (;;) {
       const n = rng.int(10, 2000);
@@ -156,13 +156,13 @@ function rootItem(rng: SeededRng, symmetric: boolean): Item {
   }
 }
 
-function mixedSymmetricItem(rng: SeededRng): Item {
+export function mixedSymmetricItem(rng: SeededRng): Item {
   const base = rng.int(3, 7);
   const shift = rng.int(10, 60);
   return { text: `${base}${sup(2)} ${MINUS} ${shift}`, value: rational(base * base - shift) };
 }
 
-function powerItem(rng: SeededRng): Item {
+export function powerItem(rng: SeededRng): Item {
   const [base, exp] = rng.pick([
     [2, 8],
     [2, 9],
@@ -179,13 +179,13 @@ function powerItem(rng: SeededRng): Item {
   return { text: `${base}${sup(exp)}`, value: rational(base ** exp) };
 }
 
-function bigProductItem(rng: SeededRng): Item {
+export function bigProductItem(rng: SeededRng): Item {
   const a = rng.int(11, 39);
   const b = rng.int(11, 39);
   return { text: `${a} × ${b}`, value: rational(a * b) };
 }
 
-function mixedLargeItem(rng: SeededRng): Item {
+export function mixedLargeItem(rng: SeededRng): Item {
   if (rng.below(2) === 0) {
     const den = rng.pick([3, 6, 7, 8, 9, 12]);
     let num = rng.int(1, den - 1);
@@ -199,9 +199,9 @@ function mixedLargeItem(rng: SeededRng): Item {
 
 /* ------------------------------- Assembly ------------------------------ */
 
-type Maker = (rng: SeededRng) => Item;
+export type Maker = (rng: SeededRng) => Item;
 
-function fill(
+export function fill(
   rng: SeededRng,
   stage: Pick<NumlineStageData, "lo" | "hi">,
   makers: readonly Maker[],

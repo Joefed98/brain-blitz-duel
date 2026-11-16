@@ -258,7 +258,13 @@ choice.resetLevelChoiceCache();
 check(choice.levelChoiceNow().catalogue === "normal" && choice.chosenLevel("tents") === "normal", "with nothing stored, every game is Normal");
 choice.setCatalogueLevel("hard");
 check(choice.chosenLevel("tents") === "hard" && choice.chosenLevel("tilt") === "hard", "the catalogue's switch sets the level for every game");
-check(choice.playLevel("tents") === "normal", "a game without that level plays Normal");
+// Tents and Trees has levels since the Logic overhaul (16 Nov 2026), so a game with none stands in. Changed with Joe's
+// approval, 15 Nov 2026 (routine consequence of the Logic overhaul).
+// Changed with Joe's approval, 16 Nov 2026 (follows approved overhaul): every real game may get levels (Polypotions
+// since the Logic overhaul, Tilt in the arcade train), so a synthetic test-only id that is no game and can never be
+// dealt stands in.
+const NO_LEVELS_TEST_ID = "__difficulty_check_no_levels__";
+check(!(NO_LEVELS_TEST_ID in GAME_LEVELS) && choice.playLevel(NO_LEVELS_TEST_ID) === "normal", "a game without that level plays Normal");
 choice.setGameLevel("tents", "easy");
 check(choice.chosenLevel("tents") === "easy" && choice.chosenLevel("tilt") === "hard", "a game page's choice is that game's own");
 choice.resetLevelChoiceCache();

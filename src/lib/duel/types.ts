@@ -154,6 +154,8 @@ export interface WordsmithPuzzleData {
   source?: string;
   /** Scoring targets (18 Oct 2026): 1 = word points on WORDSMITH_V1_CURVE; absent = 2.5 × points. */
   wordsmithRev?: number;
+  /** Levels (the Word overhaul, stage 3): the level's own clock; absent = WORDSMITH_TIME_MS (Normal and every older round). */
+  timeLimitMs?: number;
 }
 
 /** One combining step: two values and an operator, giving a new value. */
@@ -238,6 +240,14 @@ export interface ReactionPuzzleData {
   decoys: { at: number; color: ReactionDecoyColour }[];
   /** Tap-log answers (tapLog.ts TAP_REV); unstamped rounds keep per-flash summaries. */
   tapRev?: number;
+  /** Expert (the Speed overhaul's levels, 15 Nov 2026): how long each gold flash stays up, in ms; absent = REACTION_FLASH_MS. */
+  flashMs?: number;
+}
+
+/** How long a puzzle's gold flashes stay up: its own `flashMs` (Expert), else the 1.5 s every older round used. */
+export function flashWindowMs(puzzle: unknown): number {
+  const own = puzzle && typeof puzzle === "object" ? (puzzle as { flashMs?: unknown }).flashMs : undefined;
+  return typeof own === "number" && own > 0 ? own : REACTION_FLASH_MS;
 }
 
 export type Operator = "+" | "-" | "×" | "÷";
@@ -268,6 +278,10 @@ export interface EquationPuzzleData {
   gapsRev?: number;
   /** gapsRev 1, server-side only until reveal: one fill per stage that makes it true (any true fill counts). */
   gapAnswers?: string[];
+  /** Operator level clocks (16 Nov 2026): a Hard or Expert deal's own clock; absent = the type's 90 s. */
+  timeLimitMs?: number;
+  /** With timeLimitMs: full speed points when finished within this many seconds; absent = 60. */
+  speedFullByS?: number;
 }
 
 export const EQUATION_TIME_MS = 90_000;
@@ -323,6 +337,8 @@ export interface SymbolScanPuzzleData {
   targets?: number[][];
   /** Two-direction revision (14 Oct 2026): 1 = grid 3 has two target directions, rebalanced stage scores. */
   scanRev?: number;
+  /** scanRev 5 (the Attention overhaul's levels): the 60 s clock; absent before (30 s). */
+  timeLimitMs?: number;
 }
 
 export interface HuntSpot {
@@ -340,6 +356,16 @@ export interface NumberHuntPuzzleData {
   layouts: HuntSpot[][];
   /** Tap-log answers (tapLog.ts TAP_REV); unstamped rounds keep "reached,errors" summaries. */
   tapRev?: number;
+  /**
+   * The Speed overhaul's levels (15 Nov 2026): the board reshuffles every `moveMs` (0 = never; absent = every 15 s
+   * over four layouts, every older round), on the level's own clock (`timeLimitMs`). On Expert the spots are stored
+   * highest first (`descending`), so "next" is still the next spot in the list.
+   */
+  moveMs?: number;
+  timeLimitMs?: number;
+  descending?: boolean;
+  /** A level's full-speed time in seconds (absent: the standard's 40 s). */
+  fullByS?: number;
 }
 
 export type PuzzleData =
@@ -776,6 +802,8 @@ export interface CountUpStage {
    * shapes?"). Absent: the colour and the shape together, as every tray before.
    */
   ask?: "shape" | "colour";
+  /** Expert (the Attention overhaul's levels): the shape in either targetColour or this colour counts. */
+  alsoColour?: GlyphColour;
 }
 
 export interface CountUpPuzzleData {
@@ -856,6 +884,8 @@ export interface WordHuntPuzzleData {
   wordHuntRev?: number;
   /** wordHuntRev 3: the golden tile's index (public; a word traced through it scores double). */
   golden?: number;
+  /** Levels (the Word overhaul, stage 3): the level's own clock; absent = WORDHUNT_TIME_MS (Normal and every older round). */
+  timeLimitMs?: number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -892,6 +922,19 @@ export interface UnblockPuzzleData {
   minMoves?: number;
   /** Server-side only: one minimum-length solution, as encoded moves. */
   solution?: string;
+  /**
+   * The lot's size, columns and rows (the difficulty levels, 15 Nov 2026: Easy's 6×6 lot). Absent = UNBLOCK_COLS (7),
+   * every deal before levels and every Normal, Hard and Expert deal. Public.
+   */
+  cols?: number;
+  /** The level's own clock (Expert's 75 s); absent = UNBLOCK_TIME_MS. */
+  timeLimitMs?: number;
+}
+
+/** A Gridlock puzzle's lot size: its own `cols`, else 7 (every deal before levels). */
+export function unblockCols(puzzle: { cols?: number } | null | undefined): number {
+  const n = puzzle?.cols;
+  return typeof n === "number" && Number.isInteger(n) && n >= 5 && n <= 8 ? n : UNBLOCK_COLS;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -927,10 +970,14 @@ export interface BlockPartyPuzzleData {
   solution?: BlockPlacement[];
   /** Server-side only: how many solutions the layout has (capped). */
   solutions?: number;
+  /** Levels (the Pattern overhaul, stage 3): the level dealt at (none = Normal); its board is the level's (blockParty.ts blockLevelGeometry). */
+  level?: "easy" | "hard" | "expert";
+  /** Levels: the level's own clock where it isn't 60 s (Expert's 90 s). */
+  timeLimitMs?: number;
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Lights Out                                                                 */
+/*  Lights Out                                                               */
 /* -------------------------------------------------------------------------- */
 
 export const LIGHTS_COLS = 6;
@@ -992,6 +1039,11 @@ export interface PipesPuzzleData {
   par?: number;
   /** Server-side only: the solved open sides of every tile. */
   solution?: number[];
+  /** Difficulty levels (15 Nov 2026): a level board's width and height; absent = today's 7 × 7 (Normal, older rounds). */
+  cols?: number;
+  rows?: number;
+  /** Expert: no live spill marks at the network's open ends during play (the reveal still shows them). */
+  hideLeaks?: boolean;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1020,6 +1072,12 @@ export interface SudokuPuzzleData {
   givens: number[];
   /** Generation revision: 1 = 13–15 givens (14 Oct 2026); absent = 14–16. Grading reads only the givens, so it is the same either way. */
   sudokuRev?: 1;
+  /** A level's own clock (the Logic overhaul's levels; Expert 120 s). Absent = the definition's 90 s. */
+  timeLimitMs?: number;
+  /** Expert: clashes show only when Check is pressed (display only; the grade is the same). Absent = shown live. */
+  clashes?: "check";
+  /** Easy: digits already placed six times are hidden from the keypad (display only). */
+  hideUsed?: boolean;
   /** Server-side only: the one grid the givens allow. */
   solution?: number[];
 }
@@ -1053,7 +1111,10 @@ export type FlowColour =
   | "TEAL"
   | "WHITE"
   | "LIME"
-  | "SILVER";
+  | "SILVER"
+  // Levels (15 Nov 2026): Expert deals up to 14 pairs, so two more colours (only Expert deals them).
+  | "CYAN"
+  | "TAN";
 
 export interface FlowPair {
   colour: FlowColour;
@@ -1072,6 +1133,14 @@ export interface FlowPuzzleData {
   walls?: number[];
   /** Depth batch 4: 1 = scored to 200 (the stretch); absent = scored to 150. The board is unchanged. */
   flowRev?: number;
+  /**
+   * Levels (15 Nov 2026, flow.levels.ts): the grid's columns and rows when it isn't 9 × 9 (Easy 6 × 6, Expert 9 × 12).
+   * Absent = 9 × 9, every Normal and Hard deal and every round before levels (`flowGrid`).
+   */
+  cols?: number;
+  rows?: number;
+  /** The level's own clock (Expert 90 s); absent = the game's 75 s. */
+  timeLimitMs?: number;
   /** Server-side only: the cell path of each pair, in pair order. */
   solution?: number[][];
 }
@@ -1136,6 +1205,14 @@ export interface SlidePuzzleData {
   /** Puzzle score shape stamp (puzzleScoreRev.ts; set by generatePuzzle, kept on the banked intro example). */
   puzzleScoreRev?: number;
   type: "iceslide";
+  /**
+   * Difficulty levels (16 Nov 2026, src/lib/levels/pattern/iceslide.levels.ts): a level board's own width and height in
+   * squares (Easy 8 × 8, Expert 11 × 13). Absent on every 12 × 12 board (Normal and Hard).
+   */
+  cols?: number;
+  rows?: number;
+  /** A level's own clock (Expert 120 s); absent: the game's 90 s. */
+  timeLimitMs?: number;
   /** Wall cells the ball stops against. */
   walls: number[];
   /** Holes: sliding over one drops the ball back on the start. */
@@ -1210,6 +1287,8 @@ export interface PushPuzzleData {
   minPushes?: number;
   /** Server-side only: one minimum solution, as "cell:dir" pushes. */
   solution?: string;
+  /** Levels (the Pattern overhaul, stage 3): the level dealt at (none = Normal); its board comes from the level bank. */
+  level?: "easy" | "hard" | "expert";
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1316,6 +1395,13 @@ export interface LaserPuzzleData {
   laserRev?: number;
   /** laserRev 1: the mirrors the stored solution uses (an elegant beam lights every gem with no more). */
   par?: number;
+  /**
+   * The shots the round gives (the Pattern overhaul's levels, 16 Nov 2026: Easy 5, Expert 2; laser.levels.ts).
+   * Absent = LASER_MAX_FIRES (3), every Normal and every older round. Read through `laserShotsOf`.
+   */
+  shots?: number;
+  /** The round's clock when it isn't LASER_TIME_MS (Hard 75 s, Expert 90 s). */
+  timeLimitMs?: number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1325,6 +1411,9 @@ export interface LaserPuzzleData {
 export const TOWER_TIME_MS = 90_000;
 /** Eight discs across four pegs. */
 export const TOWER_DISCS = 9;
+/** Hanoi's level stamp (the Logic overhaul's levels, 15 Nov 2026): a fixed post count per level, and the timed-out
+ *  reveal's "N moves from done". Absent = 3 or 4 posts at random. */
+export const TOWER_REV_LEVELS = 1;
 export const TOWER_PEGS = 4;
 /** A starting spread is only used when it needs at least this many moves. */
 export const TOWER_MIN_MINIMUM = 20;
@@ -1356,6 +1445,8 @@ export interface TowerPuzzleData {
   minMoves: number;
   /** This puzzle's own clock. */
   timeLimitMs: number;
+  /** Level stamp (TOWER_REV_LEVELS): 1 = dealt on the levels' settings. Absent = today's deal. */
+  towerRev?: number;
   /** Generator figures for the dev readout. */
   stats?: TowerStats;
   /** Server-side only: one shortest sequence of moves. */
@@ -1407,6 +1498,8 @@ export interface MazePuzzleData {
   cols?: number;
   rows?: number;
   stars?: number[];
+  /** A level's own clock (attentionLevels.data.ts); absent at Normal (60 s). */
+  timeLimitMs?: number;
 }
 
 /* ============================ Sort the Tubes ============================ */
@@ -1431,6 +1524,10 @@ export const TUBES_TUBE_POINTS = 22;
 export const TUBES_PARTIAL_POINTS = 60;
 
 export interface TubesPuzzleData {
+  /** A level's own clock (the Logic overhaul's levels). Absent = the definition's 90 s. */
+  timeLimitMs?: number;
+  /** Expert: only each flask's top colour shows until the layers under it are uncovered (display only). */
+  hidden?: boolean;
   /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
   depthRev?: number;
   /** The depth revision's public par: the stored minimum, shown on the board (logicDepthStamp.server.ts). */
@@ -1467,6 +1564,12 @@ export interface SafePuzzleData {
   type: "safe";
   /** The four clues printed on the card — public from the start. */
   clues: import("./safe").SafeClue[];
+  /** A level's card (the Logic overhaul's levels): dials, the highest number a dial shows, tries, the clock. Absent =
+   *  today's four dials of 0–9, three tries, 75 s (safe.ts safeShapeOf). */
+  dialCount?: number;
+  dialMax?: number;
+  tries?: number;
+  timeLimitMs?: number;
   /** Server-side only: the digits that open the safe. */
   combination?: number[];
 }
@@ -1540,6 +1643,11 @@ export interface BombPuzzleData {
   bombVersion?: 2 | 3;
   /** Version 2 carries its own clock; version 1 uses BOMB_TIME_MS. */
   timeLimitMs?: number;
+  /**
+   * Expert (the Attention overhaul's levels): 1 = the first wrong step sets the bomb off at once, checked live on the
+   * server (checkMoves), with no Reset; the answer is every step made. Absent: judged only at DEFUSE.
+   */
+  bombInstant?: 1;
   /** Server-side only: the required actions, as `bA,w2`. */
   required?: string;
   /** Server-side only: the ordering the rules impose, as `bA<w2;last:w6`. */
@@ -1684,6 +1792,13 @@ export interface ChainPuzzleData {
   rulesVersion?: number;
   /** CHAIN_TIME_REV: the finish bonus is capped by the replayed last tap; absent = the claimed time. */
   chainTimeRev?: number;
+  /**
+   * The Speed overhaul's levels (15 Nov 2026): the level's chain length, windows (`upTo` 1-based links) and reversed
+   * runs (1-based, inclusive), on its own clock (`timeLimitMs`); the cycles stored on the boards carry its cycle length.
+   * Absent: today's 40 links, windows and the one reversed board (every round dealt before the levels, and Normal).
+   */
+  chainLevel?: { links: number; bands: { upTo: number; ms: number }[]; reverse: [number, number][] };
+  timeLimitMs?: number;
   /** CHAIN_CYCLE_REV: five-symbol cycles and the reversed board from link 20; absent = three-symbol cycles. */
   chainCycleRev?: number;
   /** Depth to 200 (25 Oct 2026, depth/chain.ts CHAIN_DEPTH_REV): milestones at 10 / 20 / 30 links and the stretched finish, up to 200; absent = 150. */
@@ -1721,6 +1836,10 @@ export interface NonoPuzzleData {
   cols: number[][];
   /** Server-side only: the one picture these clues describe. */
   pattern?: boolean[];
+  /** A level's own clock (the Logic overhaul's levels). Absent = the definition's 120 s. */
+  timeLimitMs?: number;
+  /** Easy: a row or column whose filled squares match its numbers locks (display and input only). */
+  lockLines?: boolean;
 }
 
 /* ============================== Pair Match ============================== */
@@ -1739,8 +1858,10 @@ export const PAIR_PAIR_POINTS = 8;
 
 /** The four card shapes. */
 export const PAIR_SHAPES = ["circle", "square", "triangle", "star"] as const;
+/** Matchmaker pairRev 4 (attentionOverhaul.ts) adds the hexagon and the diamond; older boards never hold them. */
+export const PAIR_SHAPES_CLEAR = ["circle", "square", "triangle", "star", "hexagon", "diamond"] as const;
 
-export type PairShape = (typeof PAIR_SHAPES)[number];
+export type PairShape = (typeof PAIR_SHAPES_CLEAR)[number];
 
 export interface PairCard {
   shape: PairShape;
@@ -1755,6 +1876,8 @@ export interface PairPuzzleData {
   pairRev?: number;
   /** pairRev 1: the gold pair's face (one of the fifteen), dealt on the server. */
   gold?: PairCard;
+  /** A level's own clock (attentionLevels.data.ts); absent at Normal (the game's 90 s). */
+  timeLimitMs?: number;
 }
 
 /* ============================= Colour Flood ============================= */
@@ -1783,6 +1906,13 @@ export interface FloodPuzzleData {
   floodRev?: number;
   /** Taps allowed (floodRev 1). */
   moveLimit?: number;
+  /** A level's board (the Logic overhaul's levels): its width (rows = grid ÷ cols), its colours and its clock. Absent =
+   *  today's 14 × 14 in five colours, 60 s. Expert's blocked squares are FLOOD_BLOCKED in the grid. */
+  cols?: number;
+  /** A level's move allowance over par (floodSpareMoves; absent = par + 6, or par + 10 on depthRev 3). */
+  moveSpare?: number;
+  colours?: number;
+  timeLimitMs?: number;
 }
 
 /* ============================= Sliding Tiles ============================= */
@@ -2022,8 +2152,11 @@ export interface MinesweeperPuzzleData {
   type: "minesweeper";
   /** Deals the board (mines and the opening) in the sim, identical for everyone; solvable by logic alone. */
   seed: number;
-  /** Rules revision (1 = the first board, on the arcade scoring standard). */
+  /** Rules revision (1 = the first board, on the arcade scoring standard; 2 = 20 mines, today's Hard; 3 = Normal's 16
+   *  mines; 4 = Easy's 8 × 12; 5 = Expert's 12 × 18 on 120 s). */
   minesRev?: number;
+  /** Expert's own clock (the run plus 3 s); every other revision runs on the definition's. */
+  timeLimitMs?: number;
 }
 
 /** Mahjong Solitaire: a 120 s run on a 123 s clock. */
@@ -2229,6 +2362,29 @@ export interface TenDropPuzzleData {
    * tiles and a finish to 200, docs/depth/d2-number-tenfall.md). Absent = 13 per target.
    */
   tenRev?: number;
+  /**
+   * The Speed overhaul's levels (15 Nov 2026): the level's stages as dealt (tenDrop.ts `tdLevelStages`; stored whole, so
+   * a later change to the level never changes a stored round). Absent: today's ten targets.
+   */
+  tenLevel?: { stages: TenDropLevelStage[] };
+}
+
+/** One Tenfall stage as a level stores it (tenDrop.ts TenDropStage). */
+export interface TenDropLevelStage {
+  lo: number;
+  hi: number;
+  speed: number;
+  gap: number;
+  len: number;
+  digitLo: number;
+  digitHi: number;
+  mul2: number;
+  div2: number;
+  div3: number;
+  minus: number;
+  minusLo: number;
+  minusHi: number;
+  needOp: boolean;
 }
 
 /** Letterfall: a fixed 90-second run on the arcade engine, plus clock slack. */
@@ -2245,6 +2401,8 @@ export interface WordfallPuzzleData {
 }
 
 export interface ClayShootPuzzleData {
+  /** The Speed overhaul's levels (15 Nov 2026): the level's clays (clayShoot.ts ClayLevel); absent = today's 25. */
+  pullLevel?: { clays: number; singles: number; groups: number[]; golds: number; birds: number; speedPct: number; overlap: boolean };
   type: "clayshoot";
   /** Draws the whole launch schedule — identical for everyone. */
   seed: number;
@@ -2258,9 +2416,13 @@ export interface WhackPuzzleData {
   seed: number;
   /** Scoring targets (18 Oct 2026): 1 = the score lifted through WHACK_TARGET_LIFT; 2 score bands; 3 depth to 200 (the gold combo and diamonds); absent = the original score. */
   whackRev?: number;
+  /** The Speed overhaul's levels (15 Nov 2026): the level's schedule (whack.ts WhackLevel); absent = today's schedule. */
+  bonkLevel?: { lifeStart: number; lifeEnd: number; maxUp: number; flips: [number, number]; hedgehogPct: number; gapPct?: number };
 }
 
 export interface TentsPuzzleData {
+  /** A level's own clock (src/lib/duel/logicLevels.ts); absent = the game's clock (Normal). */
+  timeLimitMs?: number;
   /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
   depthRev?: number;
   /** Rows when taller than wide (the depth revision's bigger board, 25 Oct 2026); absent = `size` rows. */
@@ -2308,6 +2470,8 @@ export interface TileGridPuzzleData {
   solution?: string[];
   /** Word depth (25 Oct 2026): 1 = scored to 200 by the stretch curve (depth/tilegrid.server.ts). Absent on older rounds. */
   tileGridRev?: number;
+  /** The level's own clock (the Word overhaul's levels, 15 Nov 2026); absent: the game's 100 s. */
+  timeLimitMs?: number;
 }
 
 /* ============================== Word Slide ============================== */
@@ -2322,6 +2486,8 @@ export interface WordSlidePuzzleData {
   words?: string[];
   /** Par moves (25 Oct 2026, word depth d1): 1 = a finish within par adds the par bonus, up to 200. Absent on older rounds. */
   wordSlideRev?: number;
+  /** The level's own clock (the Word overhaul's levels, 15 Nov 2026); absent: the game's 100 s. */
+  timeLimitMs?: number;
 }
 
 /* ================================ Balance =============================== */
@@ -2348,6 +2514,8 @@ export interface BalancePuzzleData {
   placeLimits?: number[];
   /** balanceRev 2: the round clock (120,000 ms). Absent on stored rounds, which keep the registry's 90 s. */
   timeLimitMs?: number;
+  /** balanceRev 5 at Expert (balanceLevels.ts): the balance readout under the beam is not shown. */
+  hideBalance?: boolean;
 }
 
 /* ========================== Wavefront / Bastion ========================== */
@@ -2504,7 +2672,7 @@ export const WORDSEARCH_TIME_MS = 120_000;
 export const NUMPYRAMID_TIME_MS = 120_000;
 
 export interface NumberPyramidBoardData {
-  rows: 4 | 5;
+  rows: 4 | 5 | 6;
   givens: (number | null)[];
   tray: number[];
 }
@@ -2522,6 +2690,8 @@ export interface NumberPyramidPuzzleData {
 export const TRAIL_TIME_MS = 120_000;
 
 export interface TrailPuzzleData {
+  /** A level's own clock (src/lib/duel/logicLevels.ts); absent = the game's clock (Normal). */
+  timeLimitMs?: number;
   type: "trail";
   /** Number depth to 200 (numberDepth.ts, 25 Oct 2026): 1 = scored to 200; absent on rounds dealt before. */
   depthRev?: number;
@@ -2578,6 +2748,11 @@ export interface CheckoutStageData {
   exactDarts?: boolean;
   /** Ring the last dart must land in: 2 = double, 3 = treble. */
   finish: 2 | 3;
+  /**
+   * checkoutRev 4 (levels, numberLevels.ts): Easy's boards check out on any dart (any ring, the Bull too); `finish` stays
+   * 2 for the big finish's rule. Absent on every board dealt before.
+   */
+  anyRing?: boolean;
   /** True when the board has a thin x4 ring. */
   quad?: boolean;
   /**
@@ -2617,6 +2792,11 @@ export interface NumlineStageData {
   hi: number;
   /** What each item shows, in play order. */
   items: string[];
+  /**
+   * Expert (numlineLevels.ts, 15 Nov 2026): the line's top end label is hidden ("?") until half its numbers are
+   * placed. Display only; absent on every other line.
+   */
+  hideEnd?: "hi";
 }
 
 export interface NumlinePuzzleData {
@@ -2698,6 +2878,8 @@ export interface LetterWheelPuzzleData {
   wheelRev?: number;
   /** wheelRev 2: the jar's size in drops (public; LW_JAR_DROPS unless the board's bonus words hold fewer). */
   jarSize?: number;
+  /** Levels (the Word overhaul, stage 3): the level's own clock; absent = LETTERWHEEL_TIME_MS (Normal and every older round). */
+  timeLimitMs?: number;
 }
 
 /** Strikeout: reveal five hidden five-letter words a letter at a time; five strikes end it. */
@@ -2719,6 +2901,14 @@ export interface StrikeoutPuzzleData {
   givens?: string[];
   /** The five hidden words, upper case — private until the reveal. */
   words?: string[];
+  /**
+   * Levels (the Word overhaul, stage 3, 15 Nov 2026): a puzzle dealt at a level beyond Normal carries its own strikes and
+   * vowel guesses per word (so2RulesFor); without them a puzzle plays its revision's rules, as every Normal deal does.
+   */
+  maxStrikes?: number;
+  maxVowels?: number;
+  /** A level's own clock (puzzleTimeLimitMs reads it); absent: the game's 100 s. */
+  timeLimitMs?: number;
 }
 
 /** Cryptogrid: a filled 7 × 7 crossword with a number in every white cell. */
@@ -2737,6 +2927,8 @@ export interface CodewordPuzzleData {
   givens: { n: number; letter: string }[];
   /** Letter of each number (index n − 1), upper case — private until the reveal. */
   solution?: string;
+  /** The round's clock when a level deals one (the Word overhaul's levels; absent: the game's own 120 s). */
+  timeLimitMs?: number;
 }
 
 /** Swapword: swap tiles until six crossing words read correctly. */
@@ -2754,6 +2946,8 @@ export interface SwapwordPuzzleData {
   maxSwaps: number;
   /** Solved letters in tile order — private until the reveal. */
   solution?: string;
+  /** The level's own clock (the Word overhaul's levels, 15 Nov 2026); absent: the game's 120 s. */
+  timeLimitMs?: number;
 }
 
 export interface WordSearchPlacement {
@@ -2776,9 +2970,17 @@ export interface WordSearchPuzzleData {
   placements?: WordSearchPlacement[];
   /** Rev 3 (25 Oct 2026, word depth): the unlisted on-theme bonus word and where it lies — private until the reveal. */
   bonus?: WordSearchPlacement;
+  /**
+   * Levels (the Word overhaul, stage 3, 15 Nov 2026): a taller board's rows (`size` is then its width; absent = `size`
+   * rows, every board before levels) and a level's own clock (puzzleTimeLimitMs reads it; absent = the game's 120 s).
+   */
+  rows?: number;
+  timeLimitMs?: number;
 }
 
 export interface ShikakuPuzzleData {
+  /** A level's own clock (src/lib/duel/logicLevels.ts); absent = the game's clock (Normal). */
+  timeLimitMs?: number;
   /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
   depthRev?: number;
   /** Rows when taller than wide (the depth revision's bigger board, 25 Oct 2026); absent = `size` rows. */
@@ -2791,6 +2993,8 @@ export interface ShikakuPuzzleData {
 }
 
 export interface LightUpPuzzleData {
+  /** A level's own clock (src/lib/duel/logicLevels.ts); absent = the game's clock (Normal). */
+  timeLimitMs?: number;
   /** Depth revision (logicDepth.ts, 25 Oct 2026): 1 = scored to 200. Absent = the old scoring. */
   depthRev?: number;
   /** Rows when taller than wide (the depth revision's bigger board, 25 Oct 2026); absent = `size` rows. */
@@ -2871,6 +3075,8 @@ export const FENCES_TIME_MS = 90_000;
 export const FENCES_SIZE = 6;
 
 export interface FencesPuzzleData {
+  /** A level's own clock (src/lib/duel/logicLevels.ts); absent = the game's clock (Normal). */
+  timeLimitMs?: number;
   type: "fences";
   /** 1: the first rules, on the scoring standard. */
   fencesRev?: number;
@@ -2888,6 +3094,8 @@ export const FILLOMINO_TIME_MS = 90_000;
 export const FILLOMINO_SIZE = 7;
 
 export interface FillominoPuzzleData {
+  /** A level's own clock (src/lib/duel/logicLevels.ts); absent = the game's clock (Normal). */
+  timeLimitMs?: number;
   type: "fillomino";
   /** 1: the first rules, on the scoring standard. */
   fillominoRev?: number;
@@ -2909,6 +3117,8 @@ export interface BridgesIsland {
 }
 
 export interface BridgesPuzzleData {
+  /** A level's own clock (src/lib/duel/logicLevels.ts); absent = the game's clock (Normal). */
+  timeLimitMs?: number;
   type: "bridges";
   /** 1: the first rules, on the scoring standard. */
   bridgesRev?: number;

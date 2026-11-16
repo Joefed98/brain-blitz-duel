@@ -20,10 +20,9 @@
  * are ignored and counted; nothing after the solving FIRE counts.
  */
 import { decodeActionLog, noteRepair, type ActionLogDiag, type LoggedAction } from "./actionLog";
-import { flipMirror, isSplitter, verifyLaser } from "./laser";
+import { flipMirror, isSplitter, laserShotsOf, verifyLaser } from "./laser";
 import {
   LASER_CELLS,
-  LASER_MAX_FIRES,
   type LaserPuzzleData,
   type MirrorKind,
   type MirrorPlacement,
@@ -52,6 +51,7 @@ type LaserBoard = Pick<
   | "directionalGems"
   | "mirrors"
   | "splitterPieces"
+  | "shots"
 >;
 
 export interface LaserShot {
@@ -115,8 +115,9 @@ export function replayLaserActions(
     const verb = a[0];
     const rest = a.slice(1);
     if (verb === "f" && rest === "") {
-      if (shotLog.length >= LASER_MAX_FIRES) {
-        refuse("fire beyond the third shot");
+      // The round's shots: 3, or a level's own (laser.levels.ts: Easy 5, Expert 2).
+      if (shotLog.length >= laserShotsOf(puzzle)) {
+        refuse("fire beyond the last shot");
         continue;
       }
       const verdict = verifyLaser(puzzle, placed, shotLog.length + 1);

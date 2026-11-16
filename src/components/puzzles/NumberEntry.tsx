@@ -13,6 +13,8 @@ interface NumberEntryProps {
   keypad?: boolean;
   compactKeypad?: boolean;
   onSubmit: (value: string) => void;
+  /** An on-screen key pressed (the game's own key sound and press; the Attention overhaul's Tally). */
+  onKey?: ((key: string, el: Element) => void) | undefined;
   children: ReactNode;
 }
 
@@ -29,6 +31,7 @@ export function NumberEntry({
   keypad = false,
   compactKeypad = false,
   onSubmit,
+  onKey,
   children,
 }: NumberEntryProps) {
   const [value, setValue] = useState("");
@@ -101,6 +104,7 @@ export function NumberEntry({
                   onPointerDown={(event) => {
                     event.preventDefault();
                     if (locked) return;
+                    onKey?.(key, event.currentTarget);
                     if (key === "⌫") {
                       setValue((prev) => prev.slice(0, -1));
                       return;

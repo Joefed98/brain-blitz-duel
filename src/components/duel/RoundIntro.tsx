@@ -1,3 +1,4 @@
+import { puzzleLevel } from "@/lib/levels/levels";
 import { puzzleDef, puzzleName, typeTimeLimitMs, usesArcadeClock } from "@/lib/duel/catalogue";
 import { levelOfPuzzle } from "@/lib/levels/levels";
 import { preloadStrategyArt } from "@/lib/arcade/strategyArt";
@@ -369,7 +370,8 @@ export function RoundIntro({
           >
             <PuzzleInstructions
               type={type}
-              level={puzzle ? levelOfPuzzle(puzzle) : null}
+              level={puzzleLevel(puzzle)}
+              puzzle={puzzle}
               beforeScore={
                 <IntroStage
                   key={type}

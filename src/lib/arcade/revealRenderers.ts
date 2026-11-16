@@ -401,7 +401,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
       return null;
     },
   },
-  whack: simple(GOLD, 390, 560, whackGame, (p, a) => replayWhackRun(seedOf(p), a, p.type === "whack" ? p.whackRev : undefined)),
+  whack: simple(GOLD, 390, 560, whackGame, (p, a) => replayWhackRun(seedOf(p), a, p.type === "whack" ? p.whackRev : undefined, p.type === "whack" ? p.bonkLevel : undefined)),
   clayshoot: {
     accent: "#E8762C",
     worldW: CLAY_W,
@@ -410,14 +410,14 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     heightFor: (puzzle) => clayWorldHFor(puzzle.type === "clayshoot" ? puzzle.clayRev : undefined),
     drawFinal: (ctx, puzzle, answer) => {
       if (puzzle.type !== "clayshoot") return null;
-      const state = replayClayRun(puzzle.seed, answer, puzzle.clayRev).state;
-      clayArtGameFor(puzzle.clayRev).draw(ctx, state, { width: CLAY_W, height: clayWorldHFor(puzzle.clayRev) });
+      const state = replayClayRun(puzzle.seed, answer, puzzle.clayRev, puzzle.pullLevel).state;
+      clayArtGameFor(puzzle.clayRev, puzzle.pullLevel).draw(ctx, state, { width: CLAY_W, height: clayWorldHFor(puzzle.clayRev) });
       return null;
     },
   },
   // Tenfall's polished board (tenDrop.renderer.ts), as in play; it draws in device px from the context's scale.
   // tenRev 4 (gold tiles) rides in the start state, so the final board shows its gold tiles.
-  tendrop: simple(GOLD, TD_W, TD_H, { draw: drawTenDropArt }, (p, a) => replayTenDropRun(seedOf(p), a, p.type === "tendrop" ? p.tenRev : undefined)),
+  tendrop: simple(GOLD, TD_W, TD_H, { draw: drawTenDropArt }, (p, a) => replayTenDropRun(seedOf(p), a, p.type === "tendrop" ? p.tenRev : undefined, p.type === "tendrop" ? p.tenLevel?.stages : undefined)),
   wordfall: {
     accent: "#D4A84A",
     worldW: WF_W,

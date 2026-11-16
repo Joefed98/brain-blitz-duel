@@ -20,6 +20,7 @@
 import { seededRng, type SeededRng } from "./seededRng";
 import { FILLOMINO_MAX_N, fillominoGroups, fillominoNeighbours, fillominoSolvedGrid } from "./fillomino";
 import { FILLOMINO_SIZE, type FillominoPuzzleData } from "./types";
+import type { FillominoLevel } from "./logicLevels";
 
 /** The largest region the generator builds (the solver still allows up to FILLOMINO_MAX_N). */
 export const FILLOMINO_GEN_MAX = 7;
@@ -56,12 +57,14 @@ export interface FillominoSolveResult {
   exhausted: boolean;
 }
 
-/** Counts solutions up to `limit`. `givens`: one per square, 0 = blank. */
-export function solveFillomino(size: number, givens: readonly number[], limit = 2, budget = Infinity): FillominoSolveResult {
+/**
+ * The solver's deductions as a person-style model (logicHuman.server.ts): each blank's possible numbers (a region may
+ * not touch an equal full region and must have room to grow), forced numbers, and a region with one way to grow taking
+ * it. State: the numbers set (0 blank) and, per square, the numbers ruled out.
+ */
+export function fillominoDeductions(size: number) {
   const n = size * size;
   const nbs: number[][] = Array.from({ length: n }, (_, c) => fillominoNeighbours(size, c));
-  const res: FillominoSolveResult = { count: 0, solution: null, solutions: [], nodes: 0, branches: 0, exhausted: false };
-  const ALL = (1 << (FILLOMINO_MAX_N + 1)) - 2; // bits 1…9
 
   /** Groups of equal set numbers: id per square (−1 blank), each group's size and number. */
   const groupsOf = (vals: number[]) => {
@@ -183,6 +186,14 @@ export function solveFillomino(size: number, givens: readonly number[], limit = 
     return null;
   };
 
+  return { n, nbs, groupsOf, propagate };
+}
+
+/** Counts solutions up to `limit`. `givens`: one per square, 0 = blank. */
+export function solveFillomino(size: number, givens: readonly number[], limit = 2, budget = Infinity): FillominoSolveResult {
+  const { n, nbs, propagate } = fillominoDeductions(size);
+  const res: FillominoSolveResult = { count: 0, solution: null, solutions: [], nodes: 0, branches: 0, exhausted: false };
+  const ALL = (1 << (FILLOMINO_MAX_N + 1)) - 2; // bits 1…9
   const walk = (vals: number[], excl: Int32Array): void => {
     if (res.count >= limit || res.exhausted) return;
     res.nodes++;
@@ -296,7 +307,7 @@ export function fillominoPartition(rng: SeededRng, size = FILLOMINO_SIZE): numbe
  * square of a seeded difference is given too; finally givens are taken away in a seeded order while the solver still
  * proves one solution. Null when the board cannot be settled inside the budgets.
  */
-function chooseGivens(rng: SeededRng, size: number, solution: readonly number[]): number[] | null {
+function chooseGivens(rng: SeededRng, size: number, solution: readonly number[], givensBand: readonly [number, number] = FILLOMINO_GIVENS_BAND): number[] | null {
   const n = size * size;
   const givens = new Array<number>(n).fill(0);
   for (const members of fillominoGroups(size, solution).cells) {
@@ -321,7 +332,7 @@ function chooseGivens(rng: SeededRng, size: number, solution: readonly number[])
   const groups = fillominoGroups(size, solution);
   const cluesIn = (c: number) => groups.cells[groups.group[c]!]!.filter((x) => givens[x]).length;
   for (const c of rng.shuffle(Array.from({ length: n }, (_, i) => i))) {
-    if (!givens[c] || givens.filter(Boolean).length <= FILLOMINO_GIVENS_BAND[0]) continue;
+    if (!givens[c] || givens.filter(Boolean).length <= givensBand[0]) continue;
     if (solution[c]! >= FILLOMINO_UNCLUED_MAX + 1 && cluesIn(c) <= 1) continue;
     const keep = givens[c]!;
     givens[c] = 0;
@@ -347,33 +358,36 @@ const FALLBACK_SOLUTION = [
 ];
 
 /** Builds the board for a seed: identical everywhere for the same seed. */
-export function generateFillomino(seed: number): FillominoPuzzleData {
-  const size = FILLOMINO_SIZE;
+export function generateFillomino(seed: number, level: FillominoLevel | null = null): FillominoPuzzleData {
+  const size = level?.size ?? FILLOMINO_SIZE;
+  const gradeBand = level?.grade ?? FILLOMINO_GRADE_BAND;
+  const givensBand = level?.givens ?? FILLOMINO_GIVENS_BAND;
   const rng = seededRng(seed);
   let best: { givens: number[]; solution: number[]; grade: number } | null = null;
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+  for (let attempt = 0; attempt < (level ? MAX_ATTEMPTS * 4 : MAX_ATTEMPTS); attempt++) {
     // A partition attempt fails about four times in five (a region with no size left that fits); each is cheap.
     let solution: number[] | null = null;
     for (let tries = 0; tries < 200 && !solution; tries++) solution = fillominoPartition(rng, size);
     if (!solution) continue;
-    const givens = chooseGivens(rng, size, solution);
+    const givens = level ? chooseGivens(rng, size, solution, givensBand) : chooseGivens(rng, size, solution);
     if (!givens) continue;
-    const proof = solveFillomino(size, givens, 2, FINAL_BUDGET);
+    const proof = solveFillomino(size, givens, 2, level ? FINAL_BUDGET * 10 : FINAL_BUDGET);
     if (proof.exhausted || proof.count !== 1) continue;
     const grade = proof.branches;
     const candidate = { givens, solution, grade };
-    if (inBand(grade, FILLOMINO_GRADE_BAND) && inBand(givens.filter(Boolean).length, FILLOMINO_GIVENS_BAND)) {
+    if (inBand(grade, gradeBand) && inBand(givens.filter(Boolean).length, givensBand)) {
       best = candidate;
       break;
     }
     best ??= candidate;
   }
+  if (!best && level) throw new Error("Regions generation failed");
   if (!best) {
     const solution = [...FALLBACK_SOLUTION];
     const givens = chooseGivens(seededRng(seed ^ 0x5bd1e995), size, solution) ?? [...solution];
     best = { givens, solution, grade: gradeFillomino(size, givens) };
   }
-  return { type: "fillomino", fillominoRev: 1, size, givens: best.givens, grade: best.grade, solution: best.solution };
+  return { type: "fillomino", fillominoRev: 1, size, givens: best.givens, grade: best.grade, solution: best.solution, ...(level ? { timeLimitMs: level.timeLimitMs } : {}) };
 }
 
 /** True when no two regions of the same size touch (every touching group of equal numbers is one region). */

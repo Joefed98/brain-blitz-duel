@@ -4,8 +4,10 @@ import { useDesktop } from "@/lib/desktop";
 import { createPortal } from "react-dom";
 
 import { VolumeSliders } from "@/components/app/VolumeSliders";
-import { Icon, Panel, Row, Sheet, SwitchKnob, type IconName } from "@/design/components";
+import { Icon, Panel, Row, Segmented, Sheet, SwitchKnob, type IconName } from "@/design/components";
+import { ARROW_PAD_GAMES, setArrowControl, useArrowControl } from "@/lib/arrowControl";
 import type { PuzzleType } from "@/lib/duel/types";
+import { MENU_DIRECTION_GAMES, useDirectionControls } from "@/lib/directionControls";
 import { isMuted, isMusicMuted, onSoundSettingsChange, setMusicMuted, setMuted } from "@/lib/sound";
 
 // The help copy (instructions.ts) is game code: loaded when the menu's own help first opens, never with the shell.
@@ -28,6 +30,8 @@ export const GameMenu = memo(function GameMenu({ type, onHelp }: { type?: Puzzle
   const sound = useSoundSwitches();
   const desktop = useDesktop();
   const showHelp = onHelp ?? (type ? () => setOwnHelp(true) : undefined);
+  // The Attention overhaul: Labyrinth's arrows / joystick switch lives here (and in Settings), not beside the pad.
+  const [direction, setDirection] = useDirectionControls();
   return (
     <div data-game-menu data-sound-controls="menu" className="game-frame-sound">
       <button
@@ -67,6 +71,19 @@ export const GameMenu = memo(function GameMenu({ type, onHelp }: { type?: Puzzle
                 onChange={(on) => setMusicMuted(!on)}
               />
               <VolumeSliders />
+              {/* Pattern overhaul (15 Nov 2026): the arrows / joystick choice for the games played with the arrow pad,
+                  the same setting as Settings → Game controls (lib/arrowControl.ts); the pad has no switch of its own. */}
+              {type && !desktop && ARROW_PAD_GAMES.has(type) ? <DirectionRow /> : null}
+              {/* The Attention overhaul's switch (directionControls.ts, the same store) for a menu-switch game the arrow-pad
+                  row above doesn't already cover (puzzle train combine: Labyrinth is in both lists, so it draws the row). */}
+              {type && MENU_DIRECTION_GAMES.includes(type) && !ARROW_PAD_GAMES.has(type) ? (
+                <SwitchRow
+                  label="Joystick"
+                  icon="settings"
+                  on={direction === "joystick"}
+                  onChange={(on) => setDirection(on ? "joystick" : "arrows")}
+                />
+              ) : null}
               {/* Game controls on a computer (lib/gameControls.ts): where the game offers a choice. */}
               {type && desktop ? (
                 <div data-game-menu-controls className="px-4 py-3">
@@ -104,6 +121,27 @@ export const GameMenu = memo(function GameMenu({ type, onHelp }: { type?: Puzzle
     </div>
   );
 });
+
+/** Direction controls: Arrows or Joystick, applied to the pad at once. */
+function DirectionRow() {
+  const value = useArrowControl();
+  return (
+    <div className="jz-row st-seg-row" data-game-menu-direction>
+      <Icon name="expand" size={20} tone="text-2" />
+      <span className="jz-row-title flex-1">Direction controls</span>
+      <Segmented
+        label="Direction controls"
+        radio
+        value={value}
+        onChange={(v) => setArrowControl(v)}
+        options={[
+          { value: "arrows", label: "Arrows" },
+          { value: "joystick", label: "Joystick" },
+        ]}
+      />
+    </div>
+  );
+}
 
 /** One switch row (role="switch"), as the settings sheet's: the label left, the switch right; the whole row toggles. */
 function SwitchRow({

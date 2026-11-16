@@ -48,6 +48,8 @@ export const DEAL_PINS = {
   prePartialCredit: { texts: true },
   /** wordNov7.ts: Interlock, Slider and Lookout before the Word scoring fix (7 Nov 2026). */
   preWordNov7: { texts: true },
+  /** logicOverhaul2.ts: Trail depthRev 2 and Regions fillominoRev 1, before the Logic overhaul (15 Nov 2026). */
+  preLogic2: { texts: true },
   /** arcade.server.ts: Free Cell 4, Summit 2, Thirteen 1, before the card games' share fix. */
   cardsPreShare: { texts: false },
   /** arcade.server.ts: Rainbow Bridge inkRev 12. */
@@ -76,6 +78,27 @@ export const DEAL_PINS = {
   preNotesFree: { texts: false },
   /** gameReviewNov15.ts: Brimful measureRev 3, before the game review fixes (15 Nov 2026). */
   preGameReviewNov15: { texts: false },
+  /** logicOverhaul1.ts: Polypotions tubesRev 2, before the Logic overhaul's refunding Undo (15 Nov 2026). */
+  preLogicOverhaul1: { texts: true },
+  /** numberOverhaul.ts: Counterweight balanceRev 3, Operator gapsRev 1, Checkout checkoutRev 2 and Kakuro kakuroRev 1,
+   * before the Number overhaul (15 Nov 2026). */
+  preNumberOverhaul: { texts: true },
+  /** balanceLevels.ts: Counterweight's Normal as today's game (balanceRev 4), before its levels (15 Nov 2026). */
+  preBalanceLevels: { texts: false },
+  /** measureLevels.ts: Brimful's Normal as today's game (measureRev 4), before its levels (15 Nov 2026). */
+  preMeasureLevels: { texts: false },
+  /** numberLevels.ts: Checkout's Normal as today's game (checkoutRev 3), before its levels (15 Nov 2026). */
+  preCheckoutLevels: { texts: false },
+  /** numberLevels.ts: Kakuro's Normal as today's game (kakuroRev 2), before its levels (15 Nov 2026). */
+  preKakuroLevels: { texts: false },
+  /** patternNov15.ts: the eight Pattern games before the Pattern overhaul (15 Nov 2026). */
+  prePatternNov15: { texts: true },
+  /** wordOverhaul.ts: Nucleus, Slider, Lookout, Roundabout and Cryptogrid before the Word overhaul (15 Nov 2026). */
+  preWordOverhaul: { texts: true },
+  /** attentionOverhaul.ts: Double Take spotRev 3, Tally countRev 6, Matchmaker pairRev 3, before the Attention overhaul. */
+  preAttentionOverhaul: { texts: true },
+  /** speedOverhaul.ts: Tenfall tenRev 5 and Pull! clayRev 9, before the Speed overhaul (15 Nov 2026). */
+  preSpeedOverhaul: { texts: true },
   /** arcade.server.ts: the Retro games' stamps before the Retro overhaul (15 Nov 2026): Tempo beatRev 11, Rally rallyRev 12, Fission burstRev 11, Pinball pinRev 6, Meteor snakeRev 12, Breaker brkRev 11, Wavefront wavRev 13. */
   preRetro: { texts: false },
   /** arcade.server.ts: Roofbound flipRev 12, before the Action overhaul's grace (15 Nov 2026). */

@@ -12,8 +12,8 @@ import "@/polish-layout/batch-w-equation.css";
 import { equationVerdict, operatorGapsDealt, usesOperatorGaps } from "@/lib/duel/operatorGaps";
 import { GapsIntroExample, GapsReveal, GapsStage } from "./equationGaps";
 
-import { playSound } from "@/lib/sound";
 import { StageProgress } from "@/components/puzzles/StageProgress";
+import { stageSkipCue } from "@/components/puzzles/number/overhaul";
 import { StageCorrect, useStageCorrectHold } from "@/components/puzzles/StageCorrect";
 import { randInt, shuffled } from "@/lib/duel/random";
 import { useStageState } from "@/lib/duel/stageState";
@@ -273,9 +273,10 @@ function SignsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "equat
     setEntered(true);
     setDropped(null);
     soundCue("equation.advance");
-    // Game review fix (15 Nov 2026): a skip (Next on an unsolved equation) gets the neutral move tick, never a
-    // solve's sound; StageProgress stays quiet for it.
-    if (!equationStageCorrect(data.stages[stage]!.numbers, data.stages[stage]!.target, next[stage] ?? "")) playSound("move");
+    // Game review fix (15 Nov 2026): a skip (Next on an unsolved equation) never plays a solve's sound; StageProgress
+    // stays quiet for it. The Number overhaul (Joe's approval, 15 Nov 2026): it plays its own flat swish, the shared
+    // skip moment's `equation.skip`.
+    if (!equationStageCorrect(data.stages[stage]!.numbers, data.stages[stage]!.target, next[stage] ?? "")) soundCue(stageSkipCue("equation"));
     const nextNumbers = data.stages[nextStage]?.numbers;
     if (nextNumbers) setSlots(Array(nextNumbers.length - 1).fill(null));
   };

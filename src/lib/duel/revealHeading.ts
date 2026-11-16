@@ -71,6 +71,10 @@ const BOTH = new Set([
   "target",
   "countup",
   "symscan",
+  // The Attention overhaul's step track: the right action beside the player's on every row.
+  "bomb",
+  // The Number overhaul (15 Nov 2026): Integer Pyramid's reveal draws its own Yours / Solution switch (RevealParts.tsx).
+  "numpyramid",
 ]);
 
 /** What the reveal's board draws for this round. */
@@ -97,6 +101,16 @@ export function revealShows(puzzle: PuzzleData, correct: boolean | null, switchS
     // Interlock without its switch (no stored solution): only the player's grid.
     case "tilegrid":
       return "yours";
+    // The Logic overhaul's seven (logic2Reveal.tsx): solved, the player's own board; otherwise it opens on the
+    // player's answer marked against the solution (wrong ones ringed, missed ones ghosted), with its own switch.
+    case "tents":
+    case "shikaku":
+    case "lightup":
+    case "trail":
+    case "fences":
+    case "fillomino":
+    case "bridges":
+      return correct ? "yours" : "both";
     default:
       // A switch game whose columns weren't found yet, or a game not audited: say both rather than claim one side.
       return "both";

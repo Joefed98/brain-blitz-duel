@@ -1343,9 +1343,9 @@ export const checkWordFn = createServerFn({ method: "POST" })
       const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
       const puzzle = mergePuzzle(pub, priv);
       if (puzzle.type !== "wordsearch") return { valid: false as const, points: 0, word: "" };
-      const { checkWordSearchPath } = await import("./wordSearch");
+      const { checkWordSearchPath, wsRowsOf } = await import("./wordSearch");
       const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
-      return checkWordSearchPath(puzzle.placements ?? [], puzzle.size, path, found, puzzle.bonus);
+      return checkWordSearchPath(puzzle.placements ?? [], puzzle.size, path, found, puzzle.bonus, wsRowsOf(puzzle));
     }
     if (pub?.type === "wordhunt") {
       const { checkWordHuntPath } = await import("./wordHunt.server");
@@ -1365,7 +1365,7 @@ export const checkWordFn = createServerFn({ method: "POST" })
     }
 
     const { checkWordsmithWord } = await import("./wordsmith.server");
-    return checkWordsmithWord(pub.letters, String(data.word ?? ""), found);
+    return checkWordsmithWord(pub.letters, String(data.word ?? ""), found, pub.wordsmithRev);
   });
 
 /**
@@ -1395,7 +1395,7 @@ export const checkMovesFn = createServerFn({ method: "POST" })
     )
       return null;
     const pub = room.puzzles_public[data.roundNumber - 1];
-    if (!pub || (pub.type !== "strikeout" && pub.type !== "codeword" && pub.type !== "swapword")) return null;
+    if (!pub || (pub.type !== "strikeout" && pub.type !== "codeword" && pub.type !== "swapword" && !(pub.type === "bomb" && pub.bombInstant))) return null;
     const priv = (await privatePuzzles(client, room.id))[data.roundNumber - 1];
     const { checkPuzzleMoves } = await import("./moves.server");
     return checkPuzzleMoves(mergePuzzle(pub, priv), data.moves);

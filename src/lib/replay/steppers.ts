@@ -249,12 +249,12 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
       rev(p, "btRev"),
     ) as AnyGame,
   }),
-  whack: (p) => ({ game: whackGameFor(rev(p, "whackRev")) as AnyGame }),
-  clayshoot: (p) => ({ game: clayGameFor(rev(p, "clayRev")) as AnyGame }),
+  whack: (p) => ({ game: whackGameFor(rev(p, "whackRev"), p.type === "whack" ? p.bonkLevel : undefined) as AnyGame }),
+  clayshoot: (p) => ({ game: clayGameFor(rev(p, "clayRev"), p.type === "clayshoot" ? p.pullLevel : undefined) as AnyGame }),
   // tenRev 1 (puzzle score shape) rides in the start state, as replayTenDropRun's tenDropInit puts it.
   tendrop: (p) => ({
     game: tenDropGame as AnyGame,
-    init: () => tenDropInit(seedOf(p), rev(p, "tenRev")),
+    init: () => tenDropInit(seedOf(p), rev(p, "tenRev"), p.type === "tendrop" ? p.tenLevel?.stages : undefined),
     endAlwaysStops: true,
   }),
   wordfall: (p) => ({ game: wordfallGameFor(rev(p, "wordfallRev")) as AnyGame, needsDict: true }),

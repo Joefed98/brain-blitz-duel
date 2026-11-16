@@ -7,7 +7,7 @@
   box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05);
   isolation: isolate;
 }
-.bp-board-art, .bp-pieces-art, .bp-solve-fx {
+.bp-board-art, .bp-pieces-art, .bp-drop-flash {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -15,24 +15,25 @@
   pointer-events: none;
   overflow: visible;
 }
+/* The Pattern overhaul (15 Nov 2026, look A): the slab under the cell sprites, and every sprite as its own cell. */
+.bp-slab { fill: var(--jz-bg-raised); }
+.bp-board-art image, .bp-pieces-art image { image-rendering: auto; }
 .bp-ghost {
   border-radius: 12%;
   background: color-mix(in oklab, currentColor 18%, transparent);
 }
 .bp-ghost.bp-ghost--blocked { background: color-mix(in oklab, var(--warn, #f59e0b) 12%, transparent); }
 
-/* A placed piece clicks into its wells. */
+/* The pieces' own movement (pick-up, drop, a refused move) is the effects kit's (stage 2, BlockPartyPuzzle): these
+   only set where a placed piece scales from. */
 .bp-piece, .bp-piece-lock { transform-box: fill-box; transform-origin: 50% 50%; }
-.bp-piece--snap { animation: bp-snap 260ms cubic-bezier(0.25, 0.9, 0.3, 1.2) both; }
-@keyframes bp-snap {
-  0% { transform: scale(1.1); opacity: 0.75; }
-  55% { transform: scale(0.97); opacity: 1; }
-  100% { transform: scale(1); }
-}
-.bp-snap-ring { opacity: 0; animation: bp-snap-ring 320ms ease-out both; }
+/* The drop's flash: the squares just covered light once (opacity only, on the piece itself). */
+.bp-drop-flash path { fill: #fff8e0; }
+.bp-drop-flash { opacity: 0; mix-blend-mode: screen; animation: bp-snap-ring 300ms ease-out both; }
 @keyframes bp-snap-ring {
-  0% { opacity: 0.85; stroke-width: 9px; }
-  100% { opacity: 0; stroke-width: 1px; }
+  0% { opacity: 0; }
+  25% { opacity: 0.6; }
+  100% { opacity: 0; }
 }
 
 /* ---- Tray ------------------------------------------------------------------ */
@@ -42,29 +43,65 @@
     linear-gradient(180deg, #1c1d26, #15161d);
   box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
+/* Undo and Reset (blockRev 4): navy buttons with champagne-gold labels. */
+.bp-actions { display: flex; gap: 8px; }
+.bp-actions .jz-btn { flex: 1 1 0; color: var(--jz-gold); }
+.bp-actions .jz-btn:disabled { color: var(--jz-text-3); }
+/* The shared puzzle surface draws them as icons in the category colour; here the icons are champagne gold on navy. */
+[data-puzzle-surface] .bp-actions [data-puzzle-action] {
+  background-color: var(--jz-surface-2) !important;
+  color: var(--jz-gold) !important;
+  box-shadow: inset 0 0 0 1px var(--jz-gold-ledge);
+}
+[data-puzzle-surface] .bp-actions [data-puzzle-icon]::before { -webkit-text-fill-color: var(--jz-gold); }
+[data-puzzle-surface] .bp-actions [data-puzzle-action]:disabled { box-shadow: inset 0 0 0 1px var(--jz-line); }
+[data-puzzle-surface] .bp-actions [data-puzzle-action]:disabled::before { -webkit-text-fill-color: var(--jz-text-3); }
 .bp-glyph-turn { animation: bp-turn 180ms cubic-bezier(0.25, 0.9, 0.3, 1.15) both; }
 .bp-glyph-flip { animation: bp-flip 180ms ease-out both; }
 @keyframes bp-turn { from { transform: rotate(-90deg) scale(0.9); } to { transform: none; } }
 @keyframes bp-flip { from { transform: scaleX(-0.2); } to { transform: none; } }
 
-/* ---- Completion: shine from the pegs outwards as the pieces lock tight ----- */
-.bp-peg-ring {
-  fill: none;
-  stroke: #fff3c2;
-  stroke-width: 6px;
-  transform-box: fill-box;
-  transform-origin: 50% 50%;
-  animation: bp-peg-ring 560ms ease-out both;
+/* ---- Completion: a shine across the board as the pieces lock tight (stage 2) ----
+   One soft diagonal band of light sweeps left to right, clipped to the board (transform and opacity only); each piece
+   pulses as the light passes it (sweepDelay). */
+.bp-sweep {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+}
+.bp-sweep-band {
+  position: absolute;
+  top: -20%;
+  bottom: -20%;
+  left: -45%;
+  width: 45%;
+  background: linear-gradient(105deg, transparent 0%, rgba(255, 246, 214, 0) 18%, rgba(255, 246, 214, 0.55) 50%, rgba(255, 246, 214, 0) 82%, transparent 100%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: bp-shine 480ms cubic-bezier(0.45, 0.05, 0.4, 1) both;
+}
+/* From just left of the board to just past its right edge: the band's own width is 45 % of the board. */
+@keyframes bp-shine {
+  0% { opacity: 0; transform: translateX(0); }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(325%); }
+}
+/* As the light passes a stud, the brass catches it: one soft glint on the stud (transform and opacity). */
+.bp-peg-glint {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 249, 226, 0.95) 0%, rgba(255, 236, 170, 0.4) 40%, rgba(255, 236, 170, 0) 70%);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: bp-peg-ring 420ms ease-out both;
 }
 @keyframes bp-peg-ring {
-  0% { opacity: 0.95; transform: scale(0.8); }
-  100% { opacity: 0; transform: scale(2.4); }
-}
-.bp-shine-cell { opacity: 0; mix-blend-mode: screen; animation: bp-shine 420ms ease-out both; }
-@keyframes bp-shine {
-  0% { opacity: 0; }
-  35% { opacity: 0.85; }
-  100% { opacity: 0; }
+  0% { opacity: 0; transform: scale(0.6); }
+  35% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.35); }
 }
 .bp-piece-lock { animation: bp-lock 380ms cubic-bezier(0.3, 0.7, 0.3, 1) both; }
 @keyframes bp-lock {
@@ -72,18 +109,14 @@
   40% { transform: scale(1.045); }
   100% { transform: scale(1); }
 }
-.bp-board[data-celebrate="on"] { animation: bp-board-glow 1100ms ease-out both; }
-@keyframes bp-board-glow {
-  0%, 100% { box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.05); }
-  45% { box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45), 0 0 0 2px color-mix(in oklab, var(--primary) 80%, transparent), 0 0 22px color-mix(in oklab, var(--primary) 45%, transparent); }
-}
 
 @media (prefers-reduced-motion: reduce) {
-  .bp-piece--snap, .bp-snap-ring, .bp-glyph-turn, .bp-glyph-flip, .bp-peg-ring, .bp-piece-lock, .bp-board[data-celebrate="on"] { animation: none; }
-  .bp-peg-ring, .bp-snap-ring { display: none; }
-  /* A short, still fade of gold over the board instead of the travelling shine. */
-  .bp-shine-cell { animation: bp-shine-still 600ms ease-out both !important; animation-delay: 0ms !important; }
-  @keyframes bp-shine-still { 0% { opacity: 0.5; } 100% { opacity: 0; } }
+  .bp-glyph-turn, .bp-glyph-flip, .bp-piece-lock, .bp-drop-flash, .bp-peg-glint { animation: none; }
+  /* No flash or glints (the kit's 120 ms crossfade on the piece shows the drop). */
+  .bp-drop-flash, .bp-peg-glint { display: none; }
+  /* A short, still glow over the board instead of the travelling shine. */
+  .bp-sweep-band { left: 0; width: 100%; background: rgba(255, 246, 214, 0.22); animation: bp-shine-still 600ms ease-out both !important; animation-delay: 0ms !important; }
+  @keyframes bp-shine-still { 0% { opacity: 1; } 100% { opacity: 0; } }
 }
 
 /* ---- Reveal: both boards as large as the space allows ---------------------- */
@@ -94,3 +127,19 @@
 /* One board at a time under the reveal's Solution / Yours switch (6 Nov 2026): the whole row, not half of it. */
 [data-solution-view] .bp-reveal-board { width: min(100cqw, 360px); }
 .bp-reveal > p { flex-shrink: 0; }
+
+/* The Pattern overhaul's reveal (15 Nov 2026). Each board is the reveal fit's own target (data-reveal-board), so the
+   fit scales the board itself, never a column whose size the switch's hidden labels decide (the half-size solution). */
+.bp-reveal-col { min-width: 0; }
+.bp-reveal-caption { font-size: 14px; color: var(--jz-text-2); }
+.bp-reveal-label { font-size: 13px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--jz-text-2); }
+.hud-pills.bp-reveal-pills { justify-content: center; flex-wrap: wrap; height: auto; row-gap: 6px; overflow: visible; }
+.hud-pills.bp-reveal-pills .hud-pill { flex: 0 0 auto; }
+.bp-reveal-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px; font-size: 13px; color: var(--jz-text-2); }
+.bp-key::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 6px; vertical-align: -1px; border-radius: 3px; }
+.bp-key--wrong::before { border: 2px solid var(--jz-loss); }
+.bp-key--gap::before { border: 2px dashed var(--jz-text-2); }
+/* Marks on the player's board: a piece off every solution spot outlined red; a square left empty dashed. */
+.bp-mark { position: absolute; pointer-events: none; box-sizing: border-box; }
+.bp-mark--wrong { border: 3px solid var(--jz-loss); border-radius: 12%; }
+.bp-mark--gap { border: 2px dashed var(--jz-text-2); border-radius: 14%; transform: scale(0.78); }

@@ -245,6 +245,8 @@ export const DEALT_CLOCK_MS: Partial<Record<PuzzleType, number>> = {
   spotdiff: 60_000,
   countup: 60_000,
   bomb: 90_000,
+  // Eagle Eye's scanRev 5 (the Attention overhaul, 15 Nov 2026) deals every level on a 60 s clock.
+  symscan: 60_000,
 };
 
 /** The clock a game is described with before it is dealt: today's dealt clock, else the definition's. */
@@ -262,6 +264,7 @@ export function puzzleTimeLimitMs(puzzle: PuzzleData | undefined): number {
   if (typeof own === "number" && own > 0) return own;
   return typeTimeLimitMs(puzzle.type);
 }
+
 
 export function puzzleRevealMs(puzzle: PuzzleData | undefined): number {
   if (!puzzle) return REVEAL_MS;
@@ -291,10 +294,8 @@ export function puzzleRunMs(puzzle: PuzzleData | undefined): number | null {
   if (!puzzle) return null;
   const info = puzzleInfo(puzzle.type);
   if (!usesArcadeClock(puzzle.type)) return null;
-  // A dealt clock of its own (the difficulty levels' Five Hands, 15 Nov 2026; no other arcade deal carries one).
-  const own = (puzzle as { timeLimitMs?: number }).timeLimitMs;
-  if (typeof own === "number" && own > 0) return own - ARCADE_PHASE_SLACK_MS;
-  return info.timeLimitMs - ARCADE_PHASE_SLACK_MS;
+  // A run dealt its own clock (Minefield's Expert level, 120 s) carries it; every other run is the definition's.
+  return puzzleTimeLimitMs(puzzle) - ARCADE_PHASE_SLACK_MS;
 }
 
 export function puzzleShowsTimer(puzzle: PuzzleData | undefined): boolean {

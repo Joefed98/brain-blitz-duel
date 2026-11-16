@@ -126,7 +126,7 @@ const SIMPLE: Record<string, (p: PuzzleData, look: GameLook) => Draw> = {
   swing: () => swingArtGame.draw as Draw,
   tilt: () => tiltArtGame.draw as Draw,
   whack: () => whackArtGame.draw as Draw,
-  clayshoot: (p) => clayArtGameFor(rev(p, "clayRev")).draw as Draw,
+  clayshoot: (p) => clayArtGameFor(rev(p, "clayRev"), p.type === "clayshoot" ? p.pullLevel : undefined).draw as Draw,
   // Number polish (#47): the live Tenfall board draws through drawTenDrop on the presentation clock.
   tendrop: () =>
     ((ctx, state, size) =>

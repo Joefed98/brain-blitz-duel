@@ -266,3 +266,19 @@ export function scoreMeasure(
     all && timeLimitMs > 0 ? speedBonusCurve(MEASURE_SPEED_POINTS, msRemaining, timeLimitMs) : 0;
   return Math.max(0, Math.min(150, base + bonus));
 }
+
+/**
+ * The Number overhaul's reveal (15 Nov 2026, display only): the jugs after each move of a stored line (the board's
+ * best line), the start first. Each state follows `measureApply`; a move the board refuses ends the list there.
+ */
+export function measureLineStates(board: MeasureBoardData, raw: string): { action: MeasureAction | null; amounts: number[] }[] {
+  const out: { action: MeasureAction | null; amounts: number[] }[] = [{ action: null, amounts: [...board.start] }];
+  let amounts = [...board.start];
+  for (const action of decodeMeasureActions(raw, board.caps.length)) {
+    const next = measureApply(board, amounts, action);
+    if (!next) break;
+    amounts = next;
+    out.push({ action, amounts: [...next] });
+  }
+  return out;
+}

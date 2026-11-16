@@ -24,8 +24,19 @@
  */
 import { checkOverride } from "@/lib/checkOverride";
 import type { PuzzleType } from "@/lib/duel/types";
+import { LOGIC_GAME_LEVELS } from "@/lib/duel/logicOverhaul2Levels";
 
 import { LEVELS, NORMAL, type Level } from "./levels";
+import { PATTERN_LEVELS } from "./pattern";
+
+/** The Logic overhaul's level proof (session 1): every level board of its seven games. */
+const LOGIC1_PROOF = "scripts/logic-1-levels-check.tsx";
+import { WORD_LEVELS } from "./word";
+import { BOMB_LEVELS, MAZE_LEVELS, PAIR_LEVELS, SCAN_LEVELS, SPOT_LEVELS, TALLY_LEVELS } from "./attentionLevels.data";
+
+/** The check proving every Attention level (one answer, legibility, clocks, the human-like Expert solver). */
+const ATTENTION_PROOF = "scripts/attention-levels-check.ts";
+import { ASCEND_LEVELS, BONK_LEVELS, CHAIN_LEVELS, FLASH_LEVELS, PULL_LEVELS, TENFALL_LEVELS } from "./speedLevels";
 import { BEAT_LEVELS, BLOCKFALL_LEVELS, BREAKER_LEVELS, BURST_LEVELS, CROSS_LEVELS, HOVER_LEVELS, PINBALL_LEVELS, RALLY_LEVELS, SNAKE_LEVELS, WAVEFRONT_LEVELS } from "@/lib/arcade/retroLevels";
 
 /** How a level's boards are proven to have exactly one solution. */
@@ -44,9 +55,441 @@ export interface GameLevels<S = Record<string, unknown>> {
 }
 
 /**
- * Every game's levels beyond Normal (a game with no entry offers Normal only).
+ * Every game's levels beyond Normal. A game with no entry offers Normal only. The Word games' entries (the Word
+ * overhaul, stage 3, 15 Nov 2026) live one file a game in ./word.
  */
 export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
+  /*
+   * The Logic overhaul, session 1 (15 Nov 2026; docs/design/game-reviews/logic.md, the levels Joe agreed). Every
+   * level's boards are proven by scripts/logic-1-levels-check.ts (exactly one solution, or for the move games the
+   * exact minimum by search); the levers are listed beside each game's settings. Every clock is at most 120 s.
+   */
+  // Box Six. Levers: givens (fewer = harder), the deduction a board needs (`steps`: "singles" = naked and hidden
+  // singles only; "advanced" = needs a pair, pointing or box-line step, at least `minAdvanced` times), clashes shown live or on Check,
+  // used-up digits hidden from the keypad (Easy), the clock.
+  sudoku: {
+    levels: {
+      easy: { settings: { givens: [19, 21], steps: "singles", clashes: "live", hideUsed: true, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      hard: { settings: { givens: [10, 12], steps: "advanced", minAdvanced: 1, clashes: "live", hideUsed: false, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { givens: [9, 10], steps: "advanced", minAdvanced: 2, clashes: "check", hideUsed: false, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+    },
+  },
+  // Polypotions. Levers: flasks, colours, layers a flask holds, empty flasks, the exact minimum's band, hidden layers
+  // (only the top colour of each flask shows until it is uncovered), the clock; the pour allowance stays min + 6.
+  tubes: {
+    levels: {
+      easy: { settings: { flasks: 6, colours: 4, capacity: 4, minMoves: [8, 12], hidden: false, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      hard: { settings: { flasks: 10, colours: 8, capacity: 7, minMoves: [26, 34], hidden: false, timeMs: 120_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { flasks: 12, colours: 10, capacity: 6, minMoves: [28, 38], hidden: true, timeMs: 120_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+    },
+  },
+  // Hanoi. Levers: posts (fixed per level), rings, the exact minimum's band, the clock.
+  tower: {
+    levels: {
+      easy: { settings: { pegs: 4, discs: 7, minMoves: [10, 18], timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      hard: { settings: { pegs: 3, discs: 9, minMoves: [34, 45], timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { pegs: 3, discs: 10, minMoves: [45, 60], timeMs: 105_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+    },
+  },
+  // Safe Cracker. Levers: dials, the dial range, clues on the card, the clue kinds and their weights, tries, the clock.
+  safe: {
+    levels: {
+      easy: { settings: { dials: 3, max: 9, clues: 5, kinds: "simple", tries: 3, timeMs: 75_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      hard: { settings: { dials: 4, max: 15, clues: 6, kinds: "number", tries: 3, timeMs: 75_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { dials: 5, max: 20, clues: 7, kinds: "number", tries: 2, timeMs: 105_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+    },
+  },
+  // Mosaic. Levers: columns × rows (grown downwards, so squares stay tappable at 375 px), how full the picture is,
+  // the reasoning a board needs ("line" = each line solvable from its own clue and what is already known; "two" =
+  // needs two lines together at least once), lines locking once right (Easy), the clock.
+  nonogram: {
+    levels: {
+      easy: { settings: { cols: 6, rows: 6, fill: [0.5, 0.7], logic: "line", lockLines: true, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      hard: { settings: { cols: 9, rows: 11, fill: [0.5, 0.65], logic: "line", lockLines: false, timeMs: 120_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { cols: 9, rows: 14, fill: [0.5, 0.6], logic: "two", lockLines: false, timeMs: 120_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+    },
+  },
+  // Colour Flood. Levers: blob smoothing, columns × rows (grown downwards past 14 wide), colours, the exact minimum (par) band,
+  // blocked squares (never flooded, never counted), the clock; the move allowance stays par + 6.
+  flood: {
+    levels: {
+      easy: { settings: { smooth: 2, cols: 10, rows: 10, colours: 4, par: [6, 8], blocked: 0, spare: 8, timeMs: 60_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      hard: { settings: { smooth: 1, cols: 12, rows: 17, colours: 6, par: [14, 18], blocked: 0, spare: 4, timeMs: 60_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { smooth: 2, cols: 14, rows: 24, colours: 6, par: [18, 22], blocked: 14, spare: 3, timeMs: 75_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+    },
+  },
+  // Minefield (an arcade-run Logic game). Levers: columns × rows (grown downwards past 10 wide), mines, the opening's
+  // size band, the solver steps a board needs (never a guess), the run's length. Hard is today's game exactly
+  // (minesRev 2: 20 mines); Normal is the gentler minesRev 3 (Joe, 15 Nov 2026, "too-hard games: today's becomes Hard").
+  minesweeper: {
+    levels: {
+      easy: { settings: { cols: 8, rows: 12, mines: 9, opening: [25, 40], seconds: 90 }, oneSolution: { proof: LOGIC1_PROOF } },
+      hard: { settings: { cols: 10, rows: 16, mines: 20, opening: [20, 60], seconds: 90 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { cols: 12, rows: 18, mines: 34, opening: [8, 16], seconds: 120 }, oneSolution: { proof: LOGIC1_PROOF } },
+    },
+  },
+  // Logic overhaul 2 (15–16 Nov 2026): Tents and Trees, Shikaku, Lamplighter, Trail, Loopline, Regions, Island Link.
+  ...(LOGIC_GAME_LEVELS as unknown as Partial<Record<PuzzleType, GameLevels>>),
+  // Operator (operatorGaps.server.ts generateOperatorLevel): four equations per level, any true fill counts; every
+  // line has a true fill the person-like search finds (scripts/number-levels-equation-pyramid-check.ts). Normal is today's.
+  // Hard and Expert have shorter clocks (Joe, 16 Nov 2026): 85 s and 78 s, full speed points within 40 s.
+  equation: {
+    levels: {
+      easy: {
+        settings: {
+          tries: 3,
+          lines: [
+            { count: 3, lo: 2, hi: 9, numberGaps: 0, signGaps: 1, decoys: 0, signs: "+-×", maxAnswers: 1 },
+            { count: 3, lo: 2, hi: 9, numberGaps: 1, signGaps: 0, decoys: 2, signs: "+-×", maxAnswers: 2 },
+            { count: 4, lo: 2, hi: 9, numberGaps: 1, signGaps: 1, decoys: 2, signs: "+-×", distinct: 2, maxAnswers: 3 },
+            { count: 4, lo: 2, hi: 9, numberGaps: 1, signGaps: 1, decoys: 2, signs: "+-×", need: "×", distinct: 2, maxAnswers: 3 },
+          ],
+        },
+        oneSolution: { open: "any true fill counts; every equation is proved to have one by scripts/number-levels-equation-pyramid-check.ts" },
+      },
+      hard: {
+        settings: {
+          tries: 3,
+          clockS: 85,
+          fullByS: 40,
+          lines: [
+            { count: 4, lo: 2, hi: 25, numberGaps: 0, signGaps: 3, decoys: 0, signs: "+-×", distinct: 2, maxAnswers: 1 },
+            { count: 4, lo: 2, hi: 25, numberGaps: 4, signGaps: 0, decoys: 2, signs: "+-×", distinct: 2, maxAnswers: 3 },
+            { count: 5, lo: 2, hi: 25, numberGaps: 3, signGaps: 2, decoys: 2, signs: "+-×÷", distinct: 2, maxAnswers: 3 },
+            { count: 5, lo: 2, hi: 25, numberGaps: 2, signGaps: 4, decoys: 2, signs: "+-×÷", need: "×÷", distinct: 3, maxAnswers: 3 },
+          ],
+        },
+        oneSolution: { open: "any true fill counts; every equation is proved to have one by scripts/number-levels-equation-pyramid-check.ts" },
+      },
+      expert: {
+        settings: {
+          tries: 2,
+          clockS: 78,
+          fullByS: 40,
+          lines: [
+            { count: 4, lo: 2, hi: 30, numberGaps: 1, signGaps: 2, decoys: 2, signs: "+-×÷", distinct: 2, maxAnswers: 2 },
+            { count: 5, lo: 2, hi: 30, numberGaps: 2, signGaps: 2, decoys: 2, signs: "+-×÷", distinct: 2, maxAnswers: 3 },
+            { count: 5, lo: 2, hi: 30, numberGaps: 2, signGaps: 3, decoys: 2, signs: "+-×÷", need: "÷", distinct: 3, maxAnswers: 3 },
+            { count: 5, lo: 2, hi: 30, numberGaps: 3, signGaps: 3, decoys: 2, signs: "+-×÷", need: "×÷", distinct: 3, maxAnswers: 3 },
+          ],
+        },
+        oneSolution: { open: "any true fill counts; every equation is proved to have one by scripts/number-levels-equation-pyramid-check.ts" },
+      },
+    },
+  },
+  // Integer Pyramid (numberPyramidLevels.ts): each level's four rising boards from its own bank, every board proved to
+  // have exactly one tray assignment (decoys included) and completed by the person-like solver. Normal is today's bank.
+  numpyramid: {
+    levels: {
+      easy: {
+        settings: {
+          stages: [
+            { rows: 4, minEmpty: 4, maxEmpty: 4, bottomLo: 1, bottomHi: 9 },
+            { rows: 4, minEmpty: 4, maxEmpty: 5, bottomLo: 1, bottomHi: 9 },
+            { rows: 4, minEmpty: 5, maxEmpty: 6, bottomLo: 1, bottomHi: 9 },
+            { rows: 4, minEmpty: 6, maxEmpty: 6, bottomLo: 1, bottomHi: 9 },
+          ],
+          decoys: 1,
+        },
+        oneSolution: { proof: "scripts/number-levels-equation-pyramid-check.ts" },
+      },
+      hard: {
+        settings: {
+          stages: [
+            { rows: 5, minEmpty: 11, maxEmpty: 12, bottomLo: 4, bottomHi: 20 },
+            { rows: 5, minEmpty: 12, maxEmpty: 12, bottomLo: 4, bottomHi: 20 },
+            { rows: 5, minEmpty: 12, maxEmpty: 13, bottomLo: 4, bottomHi: 20 },
+            { rows: 5, minEmpty: 13, maxEmpty: 13, bottomLo: 4, bottomHi: 20 },
+          ],
+          decoys: 3,
+        },
+        oneSolution: { proof: "scripts/number-levels-equation-pyramid-check.ts" },
+      },
+      expert: {
+        settings: {
+          stages: [
+            { rows: 6, minEmpty: 12, maxEmpty: 13, bottomLo: 4, bottomHi: 25 },
+            { rows: 6, minEmpty: 13, maxEmpty: 13, bottomLo: 4, bottomHi: 25 },
+            { rows: 6, minEmpty: 13, maxEmpty: 13, bottomLo: 4, bottomHi: 25 },
+            { rows: 6, minEmpty: 13, maxEmpty: 14, bottomLo: 4, bottomHi: 25 },
+          ],
+          decoys: 3,
+        },
+        oneSolution: { proof: "scripts/number-levels-equation-pyramid-check.ts" },
+      },
+    },
+  },
+  // Counterweight (balanceLevels.ts): Joe's decision of 15 Nov 2026, today's game is Hard; Normal (balanceRev 5,
+  // BALANCE_NORMAL there) is gentler, Easy gentler still, Expert harder with the balance readout hidden.
+  balance: {
+    levels: {
+      easy: {
+        settings: {
+          scales: [
+            { loose: 2, fixed: 1, pegs: 6, unique: true, maxW: 6 },
+            { loose: 2, fixed: 1, pegs: 6, unique: true },
+            { loose: 3, fixed: 2, pegs: 6, unique: true },
+          ],
+          spare: [8, 8, 10],
+        },
+        oneSolution: { open: "any balanced arrangement counts; every board is proved solvable by scripts/number-levels-balance-target-check.ts" },
+      },
+      hard: {
+        settings: { today: true },
+        oneSolution: { open: "any balanced arrangement counts; today's game, proved solvable by its generator" },
+      },
+      expert: {
+        settings: {
+          scales: [
+            { loose: 3, fixed: 1, pegs: 10, unique: true },
+            { loose: 4, fixed: 2, pegs: 10, unique: false },
+            { loose: 5, fixed: 2, pegs: 10, unique: false },
+            { loose: 6, fixed: 2, pegs: 10, unique: false },
+          ],
+          spare: [5, 6, 6, 7],
+          hide: true,
+        },
+        oneSolution: { open: "any balanced arrangement counts; every board is proved solvable, and solved by a person-like solver, by scripts/number-levels-balance-target-check.ts" },
+      },
+    },
+  },
+  // Exact (targetLevels.server.ts): any route counts; each level's target is proved by exhaustive search.
+  target: {
+    levels: {
+      easy: {
+        settings: { large: [1, 2], target: [101, 300], tiles: [3, 4] },
+        oneSolution: { open: "any route counts; every target is proved reachable with 3 or 4 numbers by scripts/number-levels-balance-target-check.ts" },
+      },
+      hard: {
+        settings: { large: [1, 1], target: [300, 999], tiles: [6, 6] },
+        oneSolution: { open: "any route counts; every target is proved to need all six numbers by scripts/number-levels-balance-target-check.ts" },
+      },
+      expert: {
+        settings: { large: [0, 0], target: [500, 999], tiles: [6, 6], person: true },
+        oneSolution: { open: "any route counts; every target is proved to need all six numbers by scripts/number-levels-balance-target-check.ts" },
+      },
+    },
+  },
+  // Brimful (measureLevels.ts): Joe's decision of 15 Nov 2026, today's game is Hard; Normal (measureRev 5,
+  // MEASURE_NORMAL there) is gentler, Easy gentler still, Expert harder. Each board's minimum is proven by BFS.
+  measure: {
+    levels: {
+      easy: {
+        settings: {
+          boards: [
+            { goal: "amount", jugs: 2, tap: true, band: [2, 4] },
+            { goal: "amount", jugs: 2, tap: true, band: [3, 4] },
+            { goal: "amount", jugs: 2, tap: true, band: [4, 6] },
+          ],
+          limitFactor: 5,
+        },
+        oneSolution: { open: "any sequence reaching the target counts; the minimum is proven by BFS" },
+      },
+      hard: {
+        settings: { today: true },
+        oneSolution: { open: "any sequence reaching the target counts; the minimum is proven by BFS" },
+      },
+      expert: {
+        settings: {
+          boards: [
+            { goal: "amount", jugs: 2, tap: true, band: [14, 16] },
+            { goal: "amount", jugs: 3, tap: true, band: [12, 15] },
+            { goal: "amount", jugs: 3, tap: false, band: [11, 15] },
+            { goal: "split", jugs: 3, tap: false, band: [13, 16] },
+          ],
+          limitFactor: 1.5,
+        },
+        oneSolution: { open: "any sequence reaching the target counts; the minimum is proven by BFS" },
+      },
+    },
+  },
+  // Checkout (numberLevels.ts): Joe's decision of 15 Nov 2026, today's game is Hard; Normal (checkoutRev 4,
+  // CHECKOUT_NORMAL there) is three standard boards and two shuffled, Easy three standard boards checking out on any
+  // dart, Expert five strange boards with exact dart counts. Every board is proved by the exhaustive search (a route in
+  // an order that never busts); Easy and Expert boards are also found by the person-like solver.
+  checkout: {
+    levels: {
+      easy: {
+        settings: {
+          boards: [
+            { wedges: "standard", finish: 2, anyRing: true, maxDarts: 3, target: [30, 70], minRoutes: 50 },
+            { wedges: "standard", finish: 2, anyRing: true, maxDarts: 3, target: [50, 100], minRoutes: 50 },
+            { wedges: "standard", finish: 2, anyRing: true, maxDarts: 3, target: [100, 150], minRoutes: 50 },
+          ],
+          person: true,
+        },
+        oneSolution: { open: "any dart sequence reaching the target on the finishing ring counts; every level board is proved to have a checkout by scripts/number-levels-checkout-kakuro-check.ts" },
+      },
+      hard: {
+        settings: { today: true },
+        oneSolution: { open: "any dart sequence reaching the target on the finishing ring counts; every level board is proved to have a checkout by scripts/number-levels-checkout-kakuro-check.ts" },
+      },
+      expert: {
+        settings: {
+          boards: [
+            { wedges: "uneven", finish: 2, maxDarts: 3, exact: true, target: [80, 170], notGreedy: true },
+            { wedges: "uneven", finish: 3, quad: true, maxDarts: 3, exact: true, target: [150, 320], notGreedy: true },
+            { wedges: "shuffled", negatives: true, finish: 2, maxDarts: 4, exact: true, target: [80, 170], notGreedy: true },
+            { wedges: "uneven", negatives: true, quad: true, finish: 2, maxDarts: 4, exact: true, target: [120, 280], notGreedy: true },
+            { wedges: "uneven", negatives: true, quad: true, finish: 3, maxDarts: 3, exact: true, target: [150, 320], notGreedy: true },
+          ],
+          person: true,
+        },
+        oneSolution: { open: "any dart sequence reaching the target on the finishing ring counts; every level board is proved to have a checkout by scripts/number-levels-checkout-kakuro-check.ts" },
+      },
+    },
+  },
+  // Kakuro (numberLevels.ts): Joe's decision of 15 Nov 2026, today's 6 × 6 game is Hard; Normal (kakuroRev 3,
+  // KAKURO_NORMAL there) is 6 × 6 with 16–19 white squares, grade 0–4, Easy 5 × 5, Expert 7 × 7. Every board has
+  // exactly one solution (the solver's search) and, at every new level, the person-like solver completes it.
+  kakuro: {
+    levels: {
+      easy: {
+        settings: { size: 5, whiteMin: 12, whiteMax: 14, gradeMin: 0, gradeMax: 0, maxBlocks: 9, person: true },
+        oneSolution: { proof: "scripts/number-levels-checkout-kakuro-check.ts" },
+      },
+      hard: {
+        settings: { today: true },
+        oneSolution: { proof: "scripts/number-levels-checkout-kakuro-check.ts" },
+      },
+      expert: {
+        settings: { size: 7, whiteMin: 26, whiteMax: 28, gradeMin: 4, gradeMax: 12, maxBlocks: 12, person: true },
+        oneSolution: { proof: "scripts/number-levels-checkout-kakuro-check.ts" },
+      },
+    },
+  },
+  // Ballpark (numlineLevels.server.ts): Normal is today's game; three lines of five numbers at every level.
+  numline: {
+    levels: {
+      easy: {
+        settings: { lines: ["easy-10", "easy-100", "easy-1"] },
+        oneSolution: { open: "estimation: every placement scores by distance" },
+      },
+      hard: {
+        settings: { lines: ["hard-1", "hard-sym-100", "hard-1000"] },
+        oneSolution: { open: "estimation: every placement scores by distance" },
+      },
+      expert: {
+        settings: { lines: ["today-100", "today-third", "expert-10000"], hideEnd: true },
+        oneSolution: { open: "estimation: every placement scores by distance" },
+      },
+    },
+  },
+  // The Pattern overhaul (15 Nov 2026): one data file per game in ./pattern/.
+  ...PATTERN_LEVELS,
+  // The Word overhaul (15 Nov 2026, stage 3): one data file a game in ./word.
+  ...WORD_LEVELS,
+  // The Attention overhaul (stage 3, 15 Nov 2026): every lever per level in attentionLevels.data.ts, proved by
+  // attention-levels-check (each level's boards: one answer, legibility, the clock, a human-like solver finishing Expert).
+  // Matchmaker: pairs, columns (the board grows downwards), the miss's flip-back, the clock, the shapes drawn from
+  // (fewer shapes: more cards share a shape), speed's full-by and the free misses.
+  pairmatch: {
+    levels: {
+      easy: { settings: { ...PAIR_LEVELS.easy }, oneSolution: { proof: ATTENTION_PROOF } },
+      hard: { settings: { ...PAIR_LEVELS.hard }, oneSolution: { proof: ATTENTION_PROOF } },
+      expert: { settings: { ...PAIR_LEVELS.expert }, oneSolution: { proof: ATTENTION_PROOF } },
+    },
+  },
+  // Eagle Eye: each grid's size (a bigger grid grows downwards), the eagles facing the target, the first grid with two
+  // facings and how many of each, the share of look-alikes (always exactly 45° off a target) and speed's full-by.
+  // Every level, Normal included, plays scanRev 5's 60 s clock.
+  symscan: {
+    levels: {
+      easy: { settings: { ...SCAN_LEVELS.easy }, oneSolution: { proof: ATTENTION_PROOF } },
+      hard: { settings: { ...SCAN_LEVELS.hard }, oneSolution: { proof: ATTENTION_PROOF } },
+      expert: { settings: { ...SCAN_LEVELS.expert }, oneSolution: { proof: ATTENTION_PROOF } },
+    },
+  },
+  // Double Take: each picture's grid (Expert's 8 × 8 grows downwards), its differences, their kinds (Easy colour and
+  // shape only; Expert's turns weighted up), the hidden seventh, Hard's subtler (still legible) colours, the clock and
+  // speed's full-by. Each picture is kept only when its panels differ in exactly the dealt ways.
+  spotdiff: {
+    levels: {
+      easy: { settings: { ...SPOT_LEVELS.easy }, oneSolution: { proof: ATTENTION_PROOF } },
+      hard: { settings: { ...SPOT_LEVELS.hard }, oneSolution: { proof: ATTENTION_PROOF } },
+      expert: { settings: { ...SPOT_LEVELS.expert }, oneSolution: { proof: ATTENTION_PROOF } },
+    },
+  },
+  // Tally: the trays' shapes (none above 110; Easy three trays), each tray's answer range, the near-miss groups, the
+  // comparison tray's closeness (Hard and Expert: bigger counts, smaller gaps), Expert's two-colour questions and no
+  // marks, the clock and speed's full-by. Every answer is counted from the dealt tray itself, so there is one.
+  countup: {
+    levels: {
+      easy: { settings: { ...TALLY_LEVELS.easy }, oneSolution: { proof: ATTENTION_PROOF } },
+      hard: { settings: { ...TALLY_LEVELS.hard }, oneSolution: { proof: ATTENTION_PROOF } },
+      expert: { settings: { ...TALLY_LEVELS.expert }, oneSolution: { proof: ATTENTION_PROOF } },
+    },
+  },
+  // Bomb Defusal: the wires on the panel, the steps of the one answer, the card's clues (every one needed), Expert's
+  // instant explosion on the first wrong step (checked live on the server, no Reset), the clock, the bank's size and
+  // speed's full-by. Every banked card is proved by search to have exactly one answer.
+  bomb: {
+    levels: {
+      easy: { settings: { ...BOMB_LEVELS.easy }, oneSolution: { proof: ATTENTION_PROOF } },
+      hard: { settings: { ...BOMB_LEVELS.hard }, oneSolution: { proof: ATTENTION_PROOF } },
+      expert: { settings: { ...BOMB_LEVELS.expert }, oneSolution: { proof: ATTENTION_PROOF } },
+    },
+  },
+  // Labyrinth: the board's columns and rows (a bigger maze grows downwards), the route's length, the false trails (and
+  // the long ones), turns and junctions on the route, the carving's branch share, Expert's hidden exit, the clock and
+  // speed's full-by. Every carved maze is perfect: exactly one route joins the start and the exit.
+  maze: {
+    levels: {
+      easy: { settings: { ...MAZE_LEVELS.easy }, oneSolution: { proof: ATTENTION_PROOF } },
+      hard: { settings: { ...MAZE_LEVELS.hard }, oneSolution: { proof: ATTENTION_PROOF } },
+      expert: { settings: { ...MAZE_LEVELS.expert }, oneSolution: { proof: ATTENTION_PROOF } },
+    },
+  },
+  // The Speed overhaul (stage 3, 15 Nov 2026; speedLevels.ts has each lever). Answers are timed taps, not a board with
+  // one solution, so each level's uniqueness rule is open by design.
+  // Flash: flashes, decoys a flash, the gold-like share of decoys, how long the gold stays up (Expert 1 s); 60 s.
+  reaction: {
+    levels: {
+      easy: { settings: { ...FLASH_LEVELS.easy }, oneSolution: { open: "a reaction game: every tap is timed, nothing to solve" } },
+      hard: { settings: { ...FLASH_LEVELS.hard }, oneSolution: { open: "a reaction game: every tap is timed, nothing to solve" } },
+      expert: { settings: { ...FLASH_LEVELS.expert }, oneSolution: { open: "a reaction game: every tap is timed, nothing to solve" } },
+    },
+  },
+  // Ascend: how many numbers and their range, the reshuffle interval, the clock and the order (Expert highest first).
+  numhunt: {
+    levels: {
+      easy: { settings: { ...ASCEND_LEVELS.easy }, oneSolution: { open: "a speed game: the order is fixed, only taps are timed" } },
+      hard: { settings: { ...ASCEND_LEVELS.hard }, oneSolution: { open: "a speed game: the order is fixed, only taps are timed" } },
+      expert: { settings: { ...ASCEND_LEVELS.expert }, oneSolution: { open: "a speed game: the order is fixed, only taps are timed" } },
+    },
+  },
+  // Don't Break the Chain: the chain's length, the tap windows, the reversed runs, the cycle's length and the clock.
+  chain: {
+    levels: {
+      easy: { settings: { ...CHAIN_LEVELS.easy }, oneSolution: { open: "a speed game: each link's charm is fixed, only taps are timed" } },
+      hard: { settings: { ...CHAIN_LEVELS.hard }, oneSolution: { open: "a speed game: each link's charm is fixed, only taps are timed" } },
+      expert: { settings: { ...CHAIN_LEVELS.expert }, oneSolution: { open: "a speed game: each link's charm is fixed, only taps are timed" } },
+    },
+  },
+  // Bonk: how long a target stays up (start and end of the run), the most up at once, the rule flips, the hedgehogs.
+  whack: {
+    levels: {
+      easy: { settings: { ...BONK_LEVELS.easy }, oneSolution: { open: "a reaction game: every pop is timed, nothing to solve" } },
+      hard: { settings: { ...BONK_LEVELS.hard }, oneSolution: { open: "a reaction game: every pop is timed, nothing to solve" } },
+      expert: { settings: { ...BONK_LEVELS.expert }, oneSolution: { open: "a reaction game: every pop is timed, nothing to solve" } },
+    },
+  },
+  // Tenfall: how many targets and the biggest, the operators dealt and the tiles' speed.
+  tendrop: {
+    levels: {
+      easy: { settings: { ...TENFALL_LEVELS.easy }, oneSolution: { open: "a speed game: any taps that reach each target count" } },
+      hard: { settings: { ...TENFALL_LEVELS.hard }, oneSolution: { open: "a speed game: any taps that reach each target count" } },
+      expert: { settings: { ...TENFALL_LEVELS.expert }, oneSolution: { open: "a speed game: any taps that reach each target count" } },
+    },
+  },
+  // Pull!: how many clays, how many fly as pairs (and triples), how many birds and the clays' speed.
+  clayshoot: {
+    levels: {
+      easy: { settings: { ...PULL_LEVELS.easy }, oneSolution: { open: "a shooting game: every shot is timed, nothing to solve" } },
+      hard: { settings: { ...PULL_LEVELS.hard }, oneSolution: { open: "a shooting game: every shot is timed, nothing to solve" } },
+      expert: { settings: { ...PULL_LEVELS.expert }, oneSolution: { open: "a shooting game: every shot is timed, nothing to solve" } },
+    },
+  },
   // The Retro overhaul, stage 3 (16 Nov 2026): the Retro games' levels, plain data from retroLevels.ts.
   breaker: retroGameLevels(BREAKER_LEVELS),
   hover: retroGameLevels(HOVER_LEVELS),

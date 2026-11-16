@@ -1,0 +1,232 @@
+# Save intro demos (15 Nov 2026, Joe): a manual workflow that saves the recorded intro demos (each area's
+# scripts/<area>-demos-save.ts and its fixture) to the live project through the app's own Save demo path:
+# saveIntroDemoFn for arcade runs and savePuzzleDemoFn for puzzle touch logs, called from a page on a dev server this
+# job starts. Nothing here writes the database directly.
+#
+# - Run by hand only (Actions → Save intro demos → Run workflow). No schedule, push or pull-request trigger.
+# - `dry_run` (default on): each script deals the fixed intro example and checks it equals its fixture, but saves
+#   nothing. Untick it to save.
+# - `categories`: a comma list of script areas (the <area> in scripts/<area>-demos-save.ts, e.g. "speed,action");
+#   empty runs every script.
+# - A dev build always takes demo saves (src/lib/duel/demoSaves.server.ts: demoSavesOpen(prod, flag) is true when
+#   !prod); the production INTRO_DEMO_SAVES switch is not read here and is not set.
+# - Each script prints OK or FAIL a game; the job summary has one row a script. The run fails if any script exits
+#   1 (a game failed or the key was refused) or 2 (URL or key missing, or nothing tried).
+#
+# Secrets go in through `env:` only and are never printed: no `set -x`, the environment is never dumped, and the dev
+# server's log is kept in the runner's temp dir (shown only as its last lines, with every secret value masked).
+name: Save intro demos
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run: check every deal against its fixture, save nothing"
+        type: boolean
+        default: true
+      categories:
+        description: "Only these script areas, comma separated (e.g. speed,action); empty for all"
+        type: string
+        required: false
+        default: ""
+
+concurrency:
+  group: save-intro-demos
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  BUN_VERSION: "1.4.2"
+  DEMOS_PORT: "5199"
+
+jobs:
+  save:
+    name: save intro demos (${{ inputs.dry_run && 'dry run' || 'save' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Find the save scripts
+        id: scripts
+        env:
+          CATEGORIES: ${{ inputs.categories }}
+        run: |
+          want=" $(printf '%s' "$CATEGORIES" | tr ',' ' ' | tr -s '[:space:]' ' ') "
+          list=""
+          for f in scripts/*-demos-save.ts; do
+            [ -e "$f" ] || continue
+            area="$(basename "$f" -demos-save.ts)"
+            if [ -n "${CATEGORIES//[[:space:],]/}" ] && [[ "$want" != *" $area "* ]]; then continue; fi
+            list="$list $f"
+          done
+          list="${list# }"
+          echo "list=$list" >> "$GITHUB_OUTPUT"
+          if [ -z "$list" ]; then
+            echo "no demos-save scripts found${CATEGORIES:+ for: $CATEGORIES}"
+            echo "> No demos-save scripts found${CATEGORIES:+ for \`$CATEGORIES\`}. Nothing to do." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "scripts: $list"
+          fi
+
+      - name: Required secrets are set
+        if: steps.scripts.outputs.list != ''
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          INTRO_DEMO_KEY: ${{ secrets.INTRO_DEMO_KEY }}
+        run: |
+          missing=""
+          for n in SUPABASE_URL SUPABASE_PUBLISHABLE_KEY SUPABASE_SERVICE_ROLE_KEY INTRO_DEMO_KEY; do
+            [ -n "${!n}" ] || missing="$missing $n"
+          done
+          # Names only, never values. A missing secret is reported here; the scripts then exit 2 on their own check.
+          [ -z "$missing" ] || echo "::warning::Missing GitHub secret(s):$missing"
+          case "$SUPABASE_URL" in ""|https://*.supabase.co) ;; *) echo "::error::SUPABASE_URL is not an https://<ref>.supabase.co address"; exit 1;; esac
+
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        if: steps.scripts.outputs.list != ''
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ env.BUN_VERSION }}-${{ hashFiles('bun.lock') }}
+          restore-keys: bun-${{ runner.os }}-${{ env.BUN_VERSION }}-
+
+      # Same rewrite as checks.yml: bun.lock pins some packages to Lovable's private npm cache (403 outside
+      # Lovable). Public registry for the install only, then the lockfile restored exactly.
+      - name: Install dependencies
+        if: steps.scripts.outputs.list != ''
+        run: |
+          cp bun.lock "$RUNNER_TEMP/bun.lock.orig"
+          sed -i -E 's#https://europe-west[0-9]+-npm\.pkg\.dev/lovable-core-prod/[^/]+/#https://registry.npmjs.org/#g' bun.lock
+          bun install --frozen-lockfile
+          cp "$RUNNER_TEMP/bun.lock.orig" bun.lock
+          git diff --exit-code -- bun.lock
+
+      - name: Playwright version
+        if: steps.scripts.outputs.list != ''
+        id: pw
+        run: |
+          echo "version=$(bun -e 'console.log(require("playwright-core/package.json").version)')" >> "$GITHUB_OUTPUT"
+          echo "image=${ImageOS:-unknown}-${ImageVersion:-unknown}" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        if: steps.scripts.outputs.list != ''
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-chromium-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        if: steps.scripts.outputs.list != ''
+        with:
+          path: ~/.cache/pw-debs
+          key: pw-debs-${{ runner.os }}-${{ steps.pw.outputs.image }}-${{ steps.pw.outputs.version }}
+
+      # The browser and its system libraries, as the Full suite installs them; sets PLAYWRIGHT_CHROMIUM.
+      - name: Install Chromium
+        if: steps.scripts.outputs.list != ''
+        run: bash .github/ci/install-chromium.sh
+
+      # The dev server on the live project's settings. VITE_* win over .env (Lovable's old values) in Vite's loadEnv,
+      # so the page talks to the same project as the server. PRACTICE_SEAL_KEY is not needed: the server seals and
+      # opens its own deals in this one process (practiceSeal.server.ts falls back to the service-role key's digest).
+      - name: Start the dev server
+        if: steps.scripts.outputs.list != ''
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          INTRO_DEMO_KEY: ${{ secrets.INTRO_DEMO_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: |
+          set +x
+          # The project ref is derived from a secret, so it is masked too.
+          ref="${SUPABASE_URL#https://}"; ref="${ref%%.*}"
+          [ -z "$ref" ] || echo "::add-mask::$ref"
+          export VITE_SUPABASE_PROJECT_ID="$ref"
+          log="$RUNNER_TEMP/dev-server.log"
+          nohup bun run dev --port "$DEMOS_PORT" --host 127.0.0.1 --strictPort > "$log" 2>&1 &
+          echo "$!" > "$RUNNER_TEMP/dev-server.pid"
+          origin="http://127.0.0.1:$DEMOS_PORT"
+          for i in $(seq 1 180); do
+            if curl -s -o /dev/null -m 10 "$origin/"; then echo "dev server answering at $origin after ${i}s"; exit 0; fi
+            if ! kill -0 "$(cat "$RUNNER_TEMP/dev-server.pid")" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          echo "::error::the dev server did not answer at $origin"
+          tail -n 40 "$log"
+          exit 1
+
+      - name: Save the demos
+        if: steps.scripts.outputs.list != ''
+        env:
+          SCRIPTS: ${{ steps.scripts.outputs.list }}
+          INTRO_DEMO_KEY: ${{ secrets.INTRO_DEMO_KEY }}
+          DRY: ${{ inputs.dry_run && '1' || '' }}
+        run: |
+          set +x
+          export DEMOS_URL="http://127.0.0.1:$DEMOS_PORT"
+          if [ "$DRY" = 1 ]; then export DEMOS_DRY=1; mode="dry run"; else unset DEMOS_DRY; mode="save"; fi
+          {
+            echo "### Save intro demos ($mode)"
+            echo ""
+            echo "| Script | Exit | OK | FAIL | Result |"
+            echo "| --- | --- | --- | --- | --- |"
+          } >> "$GITHUB_STEP_SUMMARY"
+          bad=0
+          for f in $SCRIPTS; do
+            echo "::group::$f"
+            out="$RUNNER_TEMP/$(basename "$f").log"
+            set +e
+            bun "$f" 2>&1 | tee "$out"
+            code=${PIPESTATUS[0]}
+            set -e
+            echo "::endgroup::"
+            ok=$(grep -c '^OK' "$out" || true)
+            fail=$(grep -c '^FAIL' "$out" || true)
+            case "$code" in
+              0) result="passed" ;;
+              1) result="failed (a game failed or the key was refused)"; bad=1 ;;
+              2) result="not run (URL or key missing, or nothing tried)"; bad=1 ;;
+              *) result="error (exit $code)"; bad=1 ;;
+            esac
+            echo "$f: exit $code, $ok OK, $fail FAIL"
+            echo "| \`$f\` | $code | $ok | $fail | $result |" >> "$GITHUB_STEP_SUMMARY"
+            if [ "$fail" -gt 0 ]; then
+              {
+                echo ""
+                echo "<details><summary>FAIL lines in $f</summary>"
+                echo ""
+                echo '```'
+                grep '^FAIL' "$out"
+                echo '```'
+                echo "</details>"
+                echo ""
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          done
+          exit "$bad"
+
+      - name: Stop the dev server
+        if: always() && steps.scripts.outputs.list != ''
+        run: |
+          pidfile="$RUNNER_TEMP/dev-server.pid"
+          if [ -f "$pidfile" ]; then
+            pid="$(cat "$pidfile")"
+            pkill -TERM -P "$pid" 2>/dev/null || true
+            kill -TERM "$pid" 2>/dev/null || true
+            sleep 2
+            pkill -KILL -P "$pid" 2>/dev/null || true
+            kill -KILL "$pid" 2>/dev/null || true
+          fi
+          # Any vite left on the port.
+          pkill -f "vite.*--port $DEMOS_PORT" 2>/dev/null || true
+          echo "dev server stopped"

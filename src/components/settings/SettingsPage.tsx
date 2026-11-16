@@ -27,6 +27,7 @@ import { Button, Icon, Panel, Row, Segmented, SwitchKnob } from "@/design/compon
 import { useAccount } from "@/lib/account/accountApi";
 import { APP_BUILD_ID, buildLabel } from "@/lib/appVersion";
 import { APPEARANCE_OPTIONS, setAppearance, useAppearance } from "@/lib/appearance";
+import { setArrowControl, useArrowControl } from "@/lib/arrowControl";
 import { GAME_TIMERS, GAME_TIMER_LABEL } from "@/config/gameFrameConfig";
 import { setGameTimer, useGameTimer } from "@/lib/gameFrame/headerStyle";
 import { setBatterySaver, useBatterySaver } from "@/lib/battery";
@@ -37,17 +38,6 @@ import { betaValue } from "@/lib/beta/betaValues";
 import { feedbackBase, feedbackUrl } from "@/lib/beta/feedback";
 import { setHapticsOn, useHapticsOn, useHapticsSupported } from "@/lib/haptics";
 import { isMuted, isMusicMuted, onSoundSettingsChange, setMusicMuted, setMuted } from "@/lib/sound";
-
-/** The direction-controls choice GridDrag keeps on the device (arrows or joystick). */
-const ARROW_KEY = "duelz-arrow-control";
-
-function readArrows(): "arrows" | "joystick" {
-  try {
-    return window.localStorage.getItem(ARROW_KEY) === "joystick" ? "joystick" : "arrows";
-  } catch {
-    return "arrows";
-  }
-}
 
 export interface SettingsActions {
   /** Back to the page before (More, Profile, wherever Settings was opened from). */
@@ -85,17 +75,10 @@ export function SettingsBody({ onHowItWorks, onTerms, onSignIn, onSignedOut, onD
   const desktop = useDesktop();
   const preferred = usePreferredScheme();
   const account = useAccount();
-  const [arrows, setArrows] = useState<"arrows" | "joystick">("arrows");
+  // The direction-controls choice (lib/arrowControl.ts), shared with the game menu and the arrow pad.
+  const arrows = useArrowControl();
   const fissionThumb = useFissionThumb();
-  useEffect(() => setArrows(readArrows()), []);
-  const choose = (value: "arrows" | "joystick") => {
-    setArrows(value);
-    try {
-      window.localStorage.setItem(ARROW_KEY, value);
-    } catch {
-      /* storage is a nicety */
-    }
-  };
+  const choose = (value: "arrows" | "joystick") => setArrowControl(value);
   const sound = useSoundSettings();
   const appearance = useAppearance();
   const gameTimer = useGameTimer();

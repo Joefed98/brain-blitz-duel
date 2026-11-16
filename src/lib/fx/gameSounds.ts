@@ -56,8 +56,9 @@ import { poolBlackOpen, POOL_AIM, POOL_CUE, POOL_MAX_V, POOL_MIN_V, POOL_ROLL, P
 import { poolJawContact, POOL_FX_DROP_TICKS, POOL_FX_FLIGHT_TICKS } from "@/lib/arcade/poolFx";
 import { curlShotTeam, curlTakeouts, TEAM_MINE, type CurlingState } from "@/lib/arcade/curling";
 import { curlShortBy, NEAR_MISS_CM } from "@/lib/arcade/curlingFx";
-import type { MinesState } from "@/lib/arcade/minesweeper";
-import { type MahjongState } from "@/lib/arcade/mahjong";
+import { MINES_BOOM, type MinesState } from "@/lib/arcade/minesweeper";
+import { MINES_DEFUSE_TICKS } from "@/lib/arcade/minesweeperFx";
+import type { MahjongState } from "@/lib/arcade/mahjong";
 import { fcHomeCount, fcNoMoves, type FcState } from "@/lib/arcade/cards/freecell";
 import { tpFree, type TpState } from "@/lib/arcade/cards/tripeaks";
 import { PS_LINES, psHand, psLineHand, psTotals, type PsState } from "@/lib/arcade/cards/pokerSquares";
@@ -1918,25 +1919,46 @@ export function racingSounds(): GameSounds<RacingState> {
 /* ============================ Cards & Board (30 Oct 2026) ============================ */
 
 /** Minefield (minesweeper): a square opened (an area opening is the cascade), flags placed and lifted, a mine and the clear. */
+/** Minefield: a number tapped before its flags add up (the stage calls it; a dull knock). */
+export function minesTapNumberSound(): void {
+  effectCue("minesweeper.tapNumber", 60);
+}
+
 export function minesweeperSounds(): GameSounds<MinesState> {
   let prev: MinesState | null = null;
+  let defused = 0;
   return {
     frame(state) {
       beginFrame("minesweeper", state);
       if (prev && state.tick > prev.tick) {
         if (state.reveals + state.chords > prev.reveals + prev.chords) {
-          if (state.revealed - prev.revealed >= MINES_CASCADE_AT) sfx("minesweeper.cascade", "tick", 0.6);
-          else sfx("minesweeper.reveal", "tick", 0.6);
+          const opened = state.revealed - prev.revealed;
+          if (opened >= MINES_CASCADE_AT) {
+            sfx("minesweeper.cascade", "tick", 0.6);
+            // The ripple's ticks, rising in pitch with the count (Logic overhaul 1): one per few squares, 45 ms apart.
+            const ticks = Math.min(8, Math.ceil(opened / 5));
+            for (let i = 0; i < ticks; i++) window.setTimeout(() => effectCue("minesweeper.cascadeTick", 0, 1 + i * 0.07), i * 45);
+          } else sfx("minesweeper.reveal", "tick", 0.6);
         }
         if (state.hits > prev.hits) ownCue("minesweeper.hit", "shared.celebrate.zap");
         if (state.flags > prev.flags) sfx("minesweeper.flag", "tick", 0.35);
         else if (state.flags < prev.flags) effectCue("minesweeper.unflag");
         if (state.clearedTick > 0 && prev.clearedTick === 0) ownCue("minesweeper.clear", "shared.celebrate.chime");
+        // The clear's defuse (the renderer shows one mine every MINES_DEFUSE_TICKS): one soft click each.
+        if (state.clearedTick > 0) {
+          const hidden = state.mines.reduce((n: number, m: number, cell: number) => n + (m && state.open[cell] !== MINES_BOOM ? 1 : 0), 0);
+          const due = Math.min(hidden, Math.floor((state.tick - state.clearedTick) / MINES_DEFUSE_TICKS) + 1);
+          while (defused < due) {
+            defused++;
+            effectCue("minesweeper.defuse", 0, 1 + defused * 0.02);
+          }
+        }
       }
       prev = state;
     },
     stop() {
       prev = null;
+      defused = 0;
     },
   };
 }

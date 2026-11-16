@@ -17,10 +17,16 @@ import {
 import { scoreWordHuntDepth, wordHuntDepth, wordHuntValue } from "@/lib/duel/wordHunt";
 import type { CheckWord } from "@/puzzles/types";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
+import { effectCue, flyFrom, stepCue, wordFx } from "./wordFx";
+
+/** Stage 2 effects: one soft note a letter while tracing, rising up the scale. */
+const TRACE_CUES = ["wordhunt.trace1", "wordhunt.trace2", "wordhunt.trace3", "wordhunt.trace4", "wordhunt.trace5", "wordhunt.trace6", "wordhunt.trace7", "wordhunt.trace8", "wordhunt.trace9"] as const;
 import { useStageState } from "@/lib/duel/stageState";
 import { scoreWordHunt, WORDHUNT_MAX_MISSES, WORDHUNT_MISS_MARK, WORDHUNT_REV_MISSES } from "@/lib/duel/scoring";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
-import "@/polish-layout/batch-w-wordhunt.css";
+import "@/polish-word/word-look.css";
+import "@/polish-word/forage.css";
+import { WORDHUNT_FREE_MISSES, WORDHUNT_FREE_MISSES_PER_WORD } from "@/lib/duel/scoring";
 import { goldPulse, playFinish, rippleDelay, useWordFinish, wordCue, WORD_FINISH_SCORE, type FinishStep } from "./wordFinish";
 
 interface Found {
@@ -93,7 +99,7 @@ export function WordHuntBoard({
             strokeWidth={2.6}
             strokeLinecap="round"
             strokeLinejoin="round"
-            opacity={0.5}
+            opacity={0.8}
           />
         )}
         {path.length > 0 && pointer && (
@@ -105,7 +111,7 @@ export function WordHuntBoard({
             stroke="var(--category-accent)"
             strokeWidth={2.6}
             strokeLinecap="round"
-            opacity={0.5}
+            opacity={0.8}
           />
         )}
       </svg>
@@ -119,6 +125,8 @@ export function WordHuntBoard({
               data-cell={cell}
               data-bw-lit={lit ? "" : undefined}
               data-golden={cell === golden ? "" : undefined}
+              data-wa="tile"
+              data-wa-tone={lit ? "sapphire" : cell === golden ? "gold" : "black"}
               onPointerDown={
                 interactive && onPathStart ? (event) => onPathStart(cell, event) : undefined
               }
@@ -172,6 +180,16 @@ export function WordHuntPuzzle({
   const depth = wordHuntDepth(puzzle);
   const golden = depth ? puzzle.golden : undefined;
   const [path, setPath] = useState<number[]>([]);
+  // Stage 2: a soft note for each letter the trace takes, rising; crossing the golden tile sparkles.
+  const tracedLength = useRef(0);
+  useEffect(() => {
+    const grew = path.length > tracedLength.current;
+    tracedLength.current = path.length;
+    if (!grew || path.length === 0) return;
+    const cell = path[path.length - 1]!;
+    effectCue(stepCue(TRACE_CUES, path.length - 1));
+    if (golden !== undefined && cell === golden) wordFx("combo", gridRef.current?.querySelector(`[data-cell="${cell}"]`), "wordhunt.golden", { count: 1, silent: true });
+  }, [path, golden]);
   const [found, setFound] = useStageState<Found[]>(stateKey, "wordHuntFound", () => []);
   // wordHuntRev 2: traces of 4+ letters the check rejected; the server judges which are misses.
   const [misses, setMisses] = useStageState<number[][]>(stateKey, "wordHuntMisses", () => []);
@@ -230,9 +248,10 @@ export function WordHuntPuzzle({
   // The round runs the full minute; the traced words go in just before it ends.
   useEffect(() => {
     if (locked) return;
-    const remaining = phaseStartedAt + WORDHUNT_TIME_MS - now;
+    // Levels (the Word overhaul, stage 3): a level's own clock rides on the puzzle; Normal's is WORDHUNT_TIME_MS.
+    const remaining = phaseStartedAt + (puzzle.timeLimitMs ?? WORDHUNT_TIME_MS) - now;
     if (remaining <= 600) lockIn();
-  }, [locked, now, phaseStartedAt, lockIn]);
+  }, [locked, now, phaseStartedAt, lockIn, puzzle.timeLimitMs]);
 
   const wordOf = useCallback(
     (cells: number[]) =>
@@ -276,6 +295,15 @@ export function WordHuntPuzzle({
         setAcceptedWord(`${verdict.word}${v.extra > 0 ? ` ${multLabel(v.base, v.value)}` : ""}${v.gold ? " ★" : ""} · ${v.value}`);
       } else setAcceptedWord(verdict.word);
       cells.forEach((cell) => rightMoveFlash(gridRef.current?.querySelector(`[data-cell="${cell}"]`)));
+      // Stage 2: the path flashes, the word flies up to the list from its last letter and its points pop; 7+ letters
+      // a bigger chord.
+      const from = gridRef.current?.querySelector(`[data-cell="${cells[cells.length - 1]}"]`)?.getBoundingClientRect();
+      effectCue(verdict.word.length >= 7 ? "wordhunt.long" : "wordhunt.word");
+      requestAnimationFrame(() => {
+        const chip = gridRef.current?.closest("[data-stage-column]")?.querySelector(".accepted-word-chip");
+        flyFrom(chip, from);
+        window.setTimeout(() => wordFx("countUp", chip, "wordhunt.points", { silent: true }), 260);
+      });
     } else {
       setFlash("bad");
       // Game review fix (15 Nov 2026): one error sound for one invalid word. The check already plays `wrong`
@@ -407,6 +435,7 @@ export function WordHuntPuzzle({
     };
   }, [finish, tapCell, N]);
 
+  const freeMisses = WORDHUNT_FREE_MISSES + WORDHUNT_FREE_MISSES_PER_WORD * found.length;
   // Batch W live summary (display only): what the status line shows when no message is up.
   const best = found.reduce<Found | null>((top, entry) => (!top || valueOf(entry) > valueOf(top) || (valueOf(entry) === valueOf(top) && entry.word.length > top.word.length) ? entry : top), null);
   // Puzzle polish (3 Nov 2026): separate pills, never one line with dots in it.
@@ -427,10 +456,17 @@ export function WordHuntPuzzle({
 
   return (
     <div data-polish="wordhunt" data-stage-column="2" className="flex min-h-0 flex-1 flex-col gap-2">
-      <div className="grid grid-cols-2 items-center font-mono text-base font-semibold uppercase text-foreground">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-1 font-mono text-base font-semibold uppercase text-foreground">
         <span>
           points <span className="text-primary">{shownPoints}</span>
         </span>
+        {/* The Word overhaul: the miss allowance on screen (it was invisible): "Misses 3 / 14 free", red once past it. */}
+        {sendsMisses ? (
+          <HudPills
+            testId="wordhunt-misses"
+            items={[{ id: "misses", label: "Misses", value: `${misses.length} / ${freeMisses} free`, tone: misses.length > freeMisses ? "warn" : undefined }]}
+          />
+        ) : <span />}
         <span className="text-right">words: {found.length}</span>
       </div>
 
@@ -467,7 +503,7 @@ export function WordHuntPuzzle({
         type="button"
         onClick={() => void finish()}
         disabled={locked || path.length === 0}
-        data-game-controls="actions" className="press tap-target rounded-xl border border-border bg-card font-display text-xs font-semibold uppercase tracking-widest text-muted-foreground disabled:opacity-40"
+        data-game-controls="actions" data-wa-btn="gold" className="press tap-target h-11 rounded-xl font-display text-sm font-semibold uppercase tracking-widest disabled:opacity-40"
       >
         Submit
       </button>

@@ -9,18 +9,23 @@ import { GameIntroExample } from "@/components/duel/GameParts";
 import { INTRO_SCORE } from "@/lib/duel/introScore";
 import { scoreSentences } from "@/lib/duel/scoreList";
 import { soundCue } from "@/lib/fx/soundCues";
-import type { PuzzleType } from "@/lib/duel/types";
+import type { PuzzleData, PuzzleType } from "@/lib/duel/types";
+import { levelAbout, levelAbouts } from "@/lib/levels/levelAbout";
+import { speedLevelInstructions } from "@/lib/levels/speedLevels";
 import { CARD_LEVEL_TEXT } from "@/lib/levels/cardLevelText.data";
-import { NORMAL, type Level } from "@/lib/levels/levels";
+import { LEVEL_LABEL, NORMAL, puzzleLevel, type Level } from "@/lib/levels/levels";
 import { levelNote } from "@/lib/levels/levelNotes";
 
 const LEVEL_NAME = { easy: "Easy", hard: "Hard", expert: "Expert" } as const;
 
 interface PuzzleInstructionsProps {
   type: PuzzleType;
+  /** The round's puzzle: a Speed level's own goal and lines (the Speed overhaul's levels; absent or Normal: the game's). */
+  puzzle?: PuzzleData | null;
   /**
-   * The round's dealt level. The Cards & Board levels: its own goal, lines and score in place of Normal's. Any other
-   * game: a level other than Normal adds its line (levelNotes.ts) to HOW. Absent, null or Normal: Normal's text.
+   * The round's dealt level. The Cards & Board levels: its own goal, lines and score in place of Normal's. A Sports
+   * game: a level other than Normal adds its line (levelNotes.ts) to HOW. The Word games: the intro states the level's
+   * one line (levelAbout.ts). Absent, null or Normal: Normal's text.
    */
   level?: Level | null;
   overlay?: boolean;
@@ -28,8 +33,10 @@ interface PuzzleInstructionsProps {
   beforeScore?: ReactNode;
 }
 
-export function PuzzleInstructions({ type, overlay = false, beforeScore, level = null }: PuzzleInstructionsProps) {
-  const instructions = PUZZLE_INSTRUCTIONS[type] ?? removedDefinition(type).instructions;
+export function PuzzleInstructions({ type, overlay = false, beforeScore, level = null, puzzle = null }: PuzzleInstructionsProps) {
+  const base = PUZZLE_INSTRUCTIONS[type] ?? removedDefinition(type).instructions;
+  // A Speed level's own goal and lines (the Speed overhaul), from the round's puzzle.
+  const instructions = puzzle ? speedLevelInstructions(type, puzzleLevel(puzzle), base) : base;
   const cardLevel: Exclude<Level, "normal"> | null = level && level !== "normal" ? level : null;
   const levelText = cardLevel ? (CARD_LEVEL_TEXT[type]?.[cardLevel] ?? null) : null;
   // A level's own lines first (marked), then Normal's lines that hold at every level; the intro keeps at most four.
@@ -38,6 +45,10 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore, level =
     ...instructions.how.filter((line) => (overlay || !line.helpOnly) && !(levelText && line.normalOnly)),
   ].slice(0, overlay ? undefined : 4);
   const note = levelNote(type, level ?? NORMAL);
+  // Levels (stage 3): the intro states this round's level; the help lists every level the game has.
+  const shownLevel: Level = level ?? NORMAL;
+  const about = overlay ? "" : levelAbout(type, shownLevel);
+  const abouts = overlay ? levelAbouts(type) : [];
 
   return (
     <section
@@ -72,6 +83,24 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore, level =
           {note && overlay ? <p data-help-level-note="">{note}</p> : null}
         </div>
       </div>
+      {about ? (
+        <p data-intro-level={shownLevel} className="intro-how-text shrink-0 leading-snug">
+          <strong className="intro-how-action">{LEVEL_LABEL[shownLevel]}:</strong> {about}
+        </p>
+      ) : null}
+      {abouts.length > 0 ? (
+        <div data-help-levels="" className="intro-how shrink-0">
+          <p className="intro-label">Levels</p>
+          <div className="flex flex-col gap-0.5 text-sm leading-snug text-muted-foreground">
+            <p><strong className="intro-how-action">Normal:</strong> the game as above.</p>
+            {abouts.map((row) => (
+              <p key={row.level}>
+                <strong className="intro-how-action">{row.label}:</strong> {row.about}
+              </p>
+            ))}
+          </div>
+        </div>
+      ) : null}
       <div className="intro-score shrink-0">
         <p className="intro-label">Score</p>
         {overlay ? (

@@ -7,19 +7,55 @@ import {
   useDragSnap,
   usePrefersReducedMotion,
 } from "@/components/puzzles/GridDrag";
-import { UnblockCarArt, UnblockExitFx, UnblockLot } from "@/components/puzzles/pattern/unblockArt";
+import { UnblockCarArt, UnblockExitFx, UnblockLot, useUnblockCols } from "@/components/puzzles/pattern/unblockArt";
 import { useInFrame } from "@/components/puzzles/batchP/LiveSummary";
 import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
-import { clampSlide, encodeMoves, isSolved, position, type UnblockMove } from "@/lib/duel/unblock";
+import { gameFx } from "@/lib/fx/kit";
+import { clampSlide, encodeMoves, isSolved, occupancy, position, type UnblockMove } from "@/lib/duel/unblock";
+import { usesPatternNov15 } from "@/lib/duel/patternNov15";
 import {
-  UNBLOCK_COLS as N,
+  UNBLOCK_COLS,
   UNBLOCK_TIME_MS,
+  unblockCols,
   type UnblockPuzzleData,
   type UnblockVehicle,
 } from "@/lib/duel/types";
 
-const pct = (value: number) => `${(value * 100) / N}%`;
+/** A position in bays as a % of the lot's grid (`N` bays a side: 7, or Easy's 6). */
+const pct = (value: number, N: number) => `${(value * 100) / N}%`;
+
+/** True when nothing stands between the gold car's nose and the exit (sound only: the lane-cleared glint). */
+export function goldLaneClear(vehicles: UnblockVehicle[], N: number = UNBLOCK_COLS): boolean {
+  const gold = vehicles.find((v) => v.id === 0);
+  if (!gold || gold.axis !== "h") return false;
+  const taken = occupancy(vehicles, 0, N);
+  for (let col = gold.col + gold.len; col < N; col++) if (taken.has(gold.row * N + col)) return false;
+  return true;
+}
+
+/**
+ * The car standing in a refused drag's way (stage 2, display only): the vehicle on the first cell past the dragged
+ * car's nose (or tail) in the way it was pushed; null when it was the kerb. Never used by grading.
+ */
+export function blockingCar(vehicles: UnblockVehicle[], vehicle: UnblockVehicle, forward: boolean, N: number = UNBLOCK_COLS): number | null {
+  const at = forward ? position(vehicle) + vehicle.len : position(vehicle) - 1;
+  if (at < 0 || at >= N) return null;
+  const cell = vehicle.axis === "h" ? vehicle.row * N + at : at * N + vehicle.col;
+  for (const other of vehicles) {
+    if (other.id === vehicle.id) continue;
+    for (let i = 0; i < other.len; i++) {
+      const c = other.axis === "h" ? other.row * N + other.col + i : (other.row + i) * N + other.col;
+      if (c === cell) return other.id;
+    }
+  }
+  return null;
+}
+
+/** A car's drawn art (its sprite), never the vehicle box the drag reads: the kit animates only this. */
+export function carArt(board: HTMLElement | null, id: number): HTMLElement | null {
+  return (board?.querySelector(`[data-unblock-car="${id}"] .unblock-car-sprite`) as HTMLElement | null) ?? null;
+}
 
 /** A slide just released by a drag: where the car was drawn when the finger let go. */
 interface Release {
@@ -34,19 +70,26 @@ function Vehicle({
   style,
   onPointerDown,
   shaking,
+  quietShake,
   escaping,
   lifted,
   release,
+  settle,
 }: {
   vehicle: UnblockVehicle;
   style?: React.CSSProperties;
   onPointerDown?: (event: React.PointerEvent) => void;
   shaking?: boolean;
+  /** A blocked drag's shake: it plays its own knock (`unblock.blocked`), so the shared shake observer stays silent. */
+  quietShake?: boolean;
   escaping?: boolean;
   lifted?: boolean;
   release?: Release | null;
+  /** The live stage (stage 2): a soft bump on the car's art as its glide ends (the kit's `tap`, silent). */
+  settle?: boolean;
 }) {
   const gold = vehicle.id === 0;
+  const N = useUnblockCols();
   const ref = useRef<HTMLDivElement>(null);
   const last = useRef({ col: vehicle.col, row: vehicle.row });
   const reduced = usePrefersReducedMotion();
@@ -56,7 +99,12 @@ function Vehicle({
     const from = last.current;
     last.current = { col: vehicle.col, row: vehicle.row };
     const node = ref.current;
-    if (!node || reduced || (from.col === vehicle.col && from.row === vehicle.row)) return;
+    if (!node || (from.col === vehicle.col && from.row === vehicle.row)) return;
+    const glideMs = release && release.id === vehicle.id ? 170 : 210;
+    // The bump as the car stops: the kit's settle on the car's own art (never the box the drag reads), started where
+    // the glide ends; silent, the slide's own scrape ends in the bump. Reduced motion: no glide, the kit's crossfade.
+    if (settle) gameFx("tap", node.querySelector(".unblock-car-sprite"), { silent: true, delayMs: reduced ? 0 : glideMs });
+    if (reduced) return;
     const cell = (node.parentElement?.clientWidth ?? 0) / N;
     if (!cell) return;
     let x = (from.col - vehicle.col) * cell;
@@ -68,28 +116,30 @@ function Vehicle({
       lift = " scale(1.06)";
     }
     node.animate([{ transform: `translate(${x}px, ${y}px)${lift}` }, { transform: "none" }], {
-      duration: lift ? 170 : 210,
+      duration: glideMs,
       easing: "cubic-bezier(0.2, 0.8, 0.25, 1)",
     });
-  }, [vehicle.col, vehicle.row, release, reduced, vehicle.axis, vehicle.id]);
+  }, [vehicle.col, vehicle.row, release, reduced, vehicle.axis, vehicle.id, settle, N]);
 
   return (
     <div
       ref={ref}
       onPointerDown={onPointerDown}
+      data-unblock-car={vehicle.id}
+      data-quiet-shake={quietShake ? "" : undefined}
       className={`unblock-car absolute ${gold ? "unblock-car--gold" : ""} ${
         lifted ? "is-lifted" : ""
       } ${escaping ? "unblock-car--escape" : ""} ${shaking ? "animate-shake" : ""}`}
       style={{
-        left: pct(vehicle.col),
-        top: pct(vehicle.row),
-        width: pct(vehicle.axis === "h" ? vehicle.len : 1),
-        height: pct(vehicle.axis === "v" ? vehicle.len : 1),
+        left: pct(vehicle.col, N),
+        top: pct(vehicle.row, N),
+        width: pct(vehicle.axis === "h" ? vehicle.len : 1, N),
+        height: pct(vehicle.axis === "v" ? vehicle.len : 1, N),
         touchAction: "none",
         ["--escape" as string]: `${((vehicle.len + 0.6) / vehicle.len) * 100}%`,
         ...style,
       }}
-      aria-label={gold ? "Gold block" : `${vehicle.len === 3 ? "Long block" : "Block"} ${vehicle.id}`}
+      aria-label={gold ? "Gold car" : `${vehicle.len === 3 ? "Van" : "Car"} ${vehicle.id}`}
     >
       <UnblockCarArt id={vehicle.id} axis={vehicle.axis} len={vehicle.len} />
     </div>
@@ -101,13 +151,16 @@ export function UnblockBoard({
   vehicles,
   children,
   size,
+  cols,
 }: {
   vehicles: UnblockVehicle[];
   children?: React.ReactNode;
   size?: number;
+  /** The lot's size (`unblockCols(puzzle)`); 7 by default. */
+  cols?: number;
 }) {
   return (
-    <UnblockLot size={size}>
+    <UnblockLot size={size} cols={cols}>
       {vehicles.map((vehicle) => (
         <Vehicle key={vehicle.id} vehicle={vehicle} />
       ))}
@@ -136,6 +189,9 @@ export function UnblockPuzzle({
 }: UnblockPuzzleProps) {
   const reduced = usePrefersReducedMotion();
   const inFrame = useInFrame();
+  // The lot's size and the clock (the difficulty levels: Easy's 6×6 lot, Expert's 90 s; absent = 7 and 60 s).
+  const N = unblockCols(puzzle);
+  const clockMs = puzzle.timeLimitMs ?? UNBLOCK_TIME_MS;
   const boardRef = useRef<HTMLDivElement>(null);
   const [vehicles, setVehicles] = useState<UnblockVehicle[]>(() =>
     puzzle.vehicles.map((v) => ({ ...v })),
@@ -145,6 +201,9 @@ export function UnblockPuzzle({
   const [escaping, setEscaping] = useState(false);
   const [ghost, setGhost] = useState<{ vehicle: UnblockVehicle; to: number } | null>(null);
   const [release, setRelease] = useState<Release | null>(null);
+  const [knocked, setKnocked] = useState<number | null>(null);
+  /** The lane-cleared glint (stage 2): bumps each time a move opens the gold car's lane short of the solve. */
+  const [glint, setGlint] = useState(0);
   const celebrating = useSolveMoment(escaping, "unblock.solve");
   const gold = vehicles.find((vehicle) => vehicle.id === 0);
   const submitted = useRef(false);
@@ -168,9 +227,9 @@ export function UnblockPuzzle({
 
   useEffect(() => {
     if (locked) return;
-    const remaining = phaseStartedAt + UNBLOCK_TIME_MS - now;
+    const remaining = phaseStartedAt + clockMs - now;
     if (remaining <= 600) lockIn(movesRef.current);
-  }, [locked, now, phaseStartedAt, lockIn]);
+  }, [locked, now, phaseStartedAt, lockIn, clockMs]);
 
   const wantedPosition = useCallback((vehicle: UnblockVehicle, dx: number, dy: number) => {
     // Measured live, so a resized or scaled board still steps by whole cells.
@@ -178,22 +237,36 @@ export function UnblockPuzzle({
     const cellPx = vehicle.axis === "h" ? (size?.cellW ?? 52) : (size?.cellH ?? 52);
     const delta = Math.round((vehicle.axis === "h" ? dx : dy) / (cellPx || 52));
     return position(vehicle) + delta;
-  }, []);
+  }, [N]);
 
   const drag = useDragSnap<number>({
     disabled: locked || escaping,
     onMove: (info) => {
       const vehicle = vehicles.find((v) => v.id === info.item);
       if (!vehicle) return;
-      const to = clampSlide(vehicles, vehicle.id, wantedPosition(vehicle, info.dx, info.dy));
+      const to = clampSlide(vehicles, vehicle.id, wantedPosition(vehicle, info.dx, info.dy), N);
       setGhost({ vehicle, to });
     },
     onDrop: (info) => {
       setGhost(null);
       const vehicle = vehicles.find((v) => v.id === info.item);
       if (!vehicle) return false;
-      const to = clampSlide(vehicles, vehicle.id, wantedPosition(vehicle, info.dx, info.dy));
-      if (to === position(vehicle)) return false;
+      const wanted = wantedPosition(vehicle, info.dx, info.dy);
+      const to = clampSlide(vehicles, vehicle.id, wanted, N);
+      if (to === position(vehicle)) {
+        // Sound only: a drag pushed into the car (or wall) in the way knocks against it; a plain tap keeps the shake's
+        // quiet `wrong`.
+        const blocked = wanted !== position(vehicle);
+        setKnocked(blocked ? vehicle.id : null);
+        if (blocked) soundCue("unblock.blocked");
+        if (blocked) {
+          // The kit's wrong shake on the car in the way too (its art only; silent: the knock is the sound; no haptic:
+          // refused moves give none). The kerb has no car to shake.
+          const other = blockingCar(vehicles, vehicle, wanted > position(vehicle), N);
+          if (other !== null) gameFx("wrong", carArt(boardRef.current, other), { silent: true, noHaptic: true });
+        }
+        return false;
+      }
       const next = vehicles.map((entry) =>
         entry.id === vehicle.id
           ? entry.axis === "h"
@@ -206,8 +279,13 @@ export function UnblockPuzzle({
       setRelease({ id: vehicle.id, dx: info.dx, dy: info.dy });
       setVehicles(next);
       setMoves(nextMoves);
-      soundCue("unblock.slide");
-      if (isSolved(next)) {
+      // Sound only: a short scrape for one or two bays, a longer one for three or more, each ending in a soft bump.
+      soundCue(Math.abs(to - position(vehicle)) >= 3 ? "unblock.slideLong" : "unblock.slide");
+      if (!isSolved(next, N) && goldLaneClear(next, N) && !goldLaneClear(vehicles, N)) {
+        soundCue("unblock.laneClear");
+        setGlint((n) => n + 1);
+      }
+      if (isSolved(next, N)) {
         setEscaping(true);
         // The drive-out's one sound is `unblock.solve` (useSolveMoment, the next render): its slot plays pz_car_escape
         // and stands in for the generic sounds of that moment (15 Nov 2026, Joe).
@@ -246,7 +324,9 @@ export function UnblockPuzzle({
     return true;
   });
 
-  const moveCount = moves.filter((move) => move.id >= 0).length;
+  // unblockRev 4 (the Pattern overhaul): Undo and Reset give the move back, so the count is the slides on the board,
+  // as the server counts them; older stamps count every slide played.
+  const moveCount = usesPatternNov15(puzzle, "unblock") ? history.length : moves.filter((move) => move.id >= 0).length;
 
   return (
     <div data-stage-column="3" data-polish="unblock" className="flex min-h-0 flex-1 flex-col gap-3">
@@ -255,12 +335,12 @@ export function UnblockPuzzle({
           <span>
             moves <span className="text-primary">{moveCount}</span>
           </span>
-          <span>get the gold block out</span>
+          <span>get the gold car out</span>
         </div>
       )}
 
       <div data-game-arena="board" className="unblock-arena flex min-h-0 flex-1 items-center justify-center">
-        <UnblockLot gridRef={boardRef} celebrate={celebrating}>
+        <UnblockLot cols={N} gridRef={boardRef} celebrate={celebrating} glint={glint > 0 && gold ? { key: glint, fromCol: gold.col + gold.len } : null}>
           {ghost && (
             <div
               aria-hidden="true"
@@ -268,10 +348,10 @@ export function UnblockPuzzle({
                 ghost.vehicle.id === 0 ? "unblock-ghost--gold" : ""
               }`}
               style={{
-                left: pct(ghost.vehicle.axis === "h" ? ghost.to : ghost.vehicle.col),
-                top: pct(ghost.vehicle.axis === "v" ? ghost.to : ghost.vehicle.row),
-                width: pct(ghost.vehicle.axis === "h" ? ghost.vehicle.len : 1),
-                height: pct(ghost.vehicle.axis === "v" ? ghost.vehicle.len : 1),
+                left: pct(ghost.vehicle.axis === "h" ? ghost.to : ghost.vehicle.col, N),
+                top: pct(ghost.vehicle.axis === "v" ? ghost.to : ghost.vehicle.row, N),
+                width: pct(ghost.vehicle.axis === "h" ? ghost.vehicle.len : 1, N),
+                height: pct(ghost.vehicle.axis === "v" ? ghost.vehicle.len : 1, N),
               }}
             />
           )}
@@ -286,9 +366,11 @@ export function UnblockPuzzle({
                 vehicle={vehicle}
                 onPointerDown={drag.start(vehicle.id)}
                 shaking={drag.rejected === vehicle.id}
+                quietShake={drag.rejected === vehicle.id && knocked === vehicle.id}
                 escaping={escaping && vehicle.id === 0 && !reduced}
                 lifted={dragging}
                 release={release}
+                settle
                 {...(dragging ? { style: { ...liftStyle(dx, dy, reduced), boxShadow: undefined } } : {})}
               />
             );

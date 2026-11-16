@@ -5,28 +5,7 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useStageState } from "@/lib/duel/stageState";
 import { usesStandard } from "@/lib/duel/standard/stamps";
 import { STD_STRIKEOUT, strikeoutEarlySolvePoints } from "@/lib/duel/standard/word";
-import {
-  SO2_VOWELS,
-  SO2_WORDS,
-  SO_LEN,
-  SO_MAX_STRIKES,
-  SO_ROWS,
-  SO4_RULES,
-  STRIKEOUT_REV2,
-  STRIKEOUT_REV5,
-  decodeStrikeout,
-  decodeStrikeout2,
-  encodeStrikeout,
-  encodeStrikeout2,
-  replayStrikeout,
-  replayStrikeout2,
-  so2GivenLetters,
-  so2Rules,
-  strikeoutRevOf,
-  type So2Action,
-  type SoAction,
-  type SoView,
-} from "@/lib/duel/strikeout";
+import { SO2_VOWELS, SO2_WORDS, SO_LEN, SO_MAX_STRIKES, SO_ROWS, SO4_RULES, STRIKEOUT_REV2, STRIKEOUT_REV5, decodeStrikeout, decodeStrikeout2, encodeStrikeout, encodeStrikeout2, replayStrikeout, replayStrikeout2, so2GivenLetters, so2Rules, strikeoutRevOf, type So2Action, type SoAction, type SoView, so2RulesFor } from "@/lib/duel/strikeout";
 import { STRIKEOUT_TIME_MS, type StrikeoutPuzzleData } from "@/lib/duel/types";
 import { completeFx, fx } from "@/lib/fx";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
@@ -36,24 +15,33 @@ import { KeypadAction, LetterKeypad, type KeyTone } from "@/components/puzzles/L
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
 import { goldFlip, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
+import { effectCue, wordFx } from "@/components/puzzles/wordFx";
 
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/batch-w-strikeout.css";
+import "@/polish-word/word-look.css";
+import "@/polish-word/strikeout.css";
+import { RevealNumbers, TileRow, type TileTone } from "@/components/puzzles/WordReveal";
+import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 import "@/polish-layout/polish-nov3-word.css";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 /** One strike marker per strike allowed (five, ten from rev 3 or twelve from rev 4, drawn smaller); used ones are filled red. */
-export function Strikes({ used, max = SO_MAX_STRIKES, markerRef }: { used: number; max?: number; markerRef?: React.RefObject<HTMLDivElement | null> }) {
+export function Strikes({ used, max = SO_MAX_STRIKES, markerRef, art = false }: { used: number; max?: number; markerRef?: React.RefObject<HTMLDivElement | null>; /** The live stage's rendered pips (reveals keep their markup; strikeout.css styles them). */ art?: boolean }) {
   const many = max > SO_MAX_STRIKES;
   // Rev 4's twelve markers sit a little closer (12 × 20 px + 11 × 4 px = 284 px) so the row fits a 320 px phone.
   const gap = max > 10 ? "gap-1" : many ? "gap-1.5" : "gap-2";
+  // Easy's fourteen markers (the Word overhaul's levels) are 16 px (14 × 16 + 13 × 4 = 276 px) so the row still fits.
+  const size = max > 12 ? "h-4 w-4" : many ? "h-5 w-5" : "h-6 w-6";
   return (
     <div ref={markerRef} className={`flex items-center justify-center ${gap}`} aria-label={`${used} of ${max} strikes`}>
       {Array.from({ length: max }, (_, i) => (
         <span
           key={i}
-          className={`flex ${many ? "h-5 w-5" : "h-6 w-6"} items-center justify-center rounded-full border-2 font-display ${many ? "text-xs" : "text-sm"} font-bold leading-none ${
+          data-wa={art ? "pip" : undefined}
+          data-wa-tone={art ? (i < used ? "red" : "gold") : undefined}
+          className={`flex ${size} items-center justify-center rounded-full border-2 font-display ${many ? "text-xs" : "text-sm"} font-bold leading-none ${
             i < used ? "border-destructive bg-destructive text-destructive-foreground" : "border-border text-transparent"
           }`}
         >
@@ -76,6 +64,16 @@ const TILE: Record<TileLook, string> = {
   missed: "border-2 border-destructive bg-card text-muted-foreground",
 };
 
+/** The Word overhaul: each look's rendered piece and material (word-look.css). */
+const WA_LOOK: Record<TileLook, [string, string | undefined]> = {
+  hidden: ["well", undefined],
+  shown: ["tile", undefined],
+  given: ["tile", "dim"],
+  solved: ["tile", "gold"],
+  typed: ["tile", "sapphire"],
+  missed: ["tile", "red"],
+};
+
 export function Row({
   letters,
   looks,
@@ -84,7 +82,11 @@ export function Row({
   tile,
   tileH,
   rowIndex,
+  art = false,
+  fontScale,
 }: {
+  /** The live stage's rendered tiles (reveals keep their markup; strikeout.css styles them by their look). */
+  art?: boolean;
   letters: string[];
   looks: TileLook[];
   selected?: boolean | undefined;
@@ -94,6 +96,8 @@ export function Row({
   /** Tile height when it differs from its width (batch W: Strikeout's live row is a little taller than wide). */
   tileH?: string | undefined;
   rowIndex: number;
+  /** Letter size as a share of the tile's width (0.55 unless a taller live tile asks for more). */
+  fontScale?: number | undefined;
 }) {
   const side = typeof tile === "number" ? `${tile}px` : tile;
   const height = tileH ?? side;
@@ -109,8 +113,10 @@ export function Row({
           key={i}
           data-so-tile={`${rowIndex}-${i}`}
           data-so-look={looks[i] ?? "hidden"}
+          data-wa={art ? WA_LOOK[looks[i] ?? "hidden"][0] : undefined}
+          data-wa-tone={art ? WA_LOOK[looks[i] ?? "hidden"][1] : undefined}
           className={`so-tile flex items-center justify-center rounded-md font-display font-bold ${TILE[looks[i] ?? "hidden"]}`}
-          style={{ width: side, height, fontSize: `calc(${side} * 0.55)` }}
+          style={{ width: side, height, fontSize: `calc(${side} * ${fontScale ?? 0.55})` }}
         >
           {ch || "\u00a0"}
         </span>
@@ -275,7 +281,7 @@ function StageRev1({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateK
       style={{ ...NO_SCROLL_STYLE, touchAction: "manipulation" }}
     >
       <div className="flex h-8 w-full shrink-0 items-center justify-center">
-        <Strikes used={strikes} markerRef={strikeRef} />
+        <Strikes used={strikes} markerRef={strikeRef} art />
       </div>
       <div data-game-arena="strikeout" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
         <div ref={board} className="flex flex-col items-center gap-1" style={{ ["--so-tile" as string]: tileSize }}>
@@ -284,7 +290,7 @@ function StageRev1({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateK
             const solved = !r.includes("_");
             const letters = [...r].map((ch, i) => (isSel && typed[i] ? typed[i]! : ch === "_" ? "" : ch));
             const looks = [...r].map((ch, i): TileLook => (isSel && typed[i] ? "typed" : solved ? "solved" : ch === "_" ? "hidden" : "shown"));
-            return <Row key={ri} letters={letters} looks={looks} selected={isSel} rowIndex={ri} tile="var(--so-tile)" onTap={done || solved ? undefined : () => tapRow(ri)} />;
+            return <Row key={ri} letters={letters} looks={looks} selected={isSel} rowIndex={ri} tile="var(--so-tile)" onTap={done || solved ? undefined : () => tapRow(ri)} art />;
           })}
         </div>
       </div>
@@ -303,17 +309,18 @@ function StageRev1({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateK
         </div>
       </div>
       <LetterKeypad
+        keyCue="strikeout.key"
         onLetter={pressLetter}
         tone={tone}
         disabled={(letter) => !solving && guessed.has(letter)}
         locked={done}
         left={
-          <KeypadAction label="Delete" disabled={!solving || typed.length === 0} onPress={() => setTyped((t) => t.slice(0, -1))}>
+          <KeypadAction keyCue="strikeout.key" label="Delete" disabled={!solving || typed.length === 0} onPress={() => setTyped((t) => t.slice(0, -1))}>
             <Delete className="h-5 w-5" />
           </KeypadAction>
         }
         right={
-          <KeypadAction label="Solve" emphasis disabled={!solving || typed.length !== SO_LEN} onPress={solve}>
+          <KeypadAction keyCue="strikeout.key" label="Solve" emphasis disabled={!solving || typed.length !== SO_LEN} onPress={solve}>
             Solve
           </KeypadAction>
         }
@@ -445,7 +452,7 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
   const data: StrikeoutPuzzleData | null = puzzle.type === "strikeout" ? puzzle : null;
   const key = stateKey ?? "strikeout";
   const rev = data ? strikeoutRevOf(data) : STRIKEOUT_REV2;
-  const rules = so2Rules(rev);
+  const rules = data ? so2RulesFor(data) : so2Rules(rev);
   // The scoring standard (strikeoutRev 7, standard/word.ts): the early pill shows the early-solve points.
   const standard = !!data && usesStandard(data);
   const [actions, setActions] = useStageState<So2Action[]>(key, "so2Actions", () => []);
@@ -499,6 +506,9 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
       puzzleReject(strikeRef.current, false);
       fx.onWrong();
       flash(next.last === "wrong" ? "Wrong word: strike" : "Not in the word: strike");
+      // Stage 2: the strike slams onto its pip; with one strike left, the strike row pulses.
+      wordFx("drop", strikeRef.current?.children[next.strikes - 1], "strikeout.strike", { silent: true });
+      if (next.strikes === rules.maxStrikes - 1) window.setTimeout(() => wordFx("nearMiss", strikeRef.current, "strikeout.lastStrike"), 380);
     } else if ((next.word ?? 0) > (before?.word ?? 0)) {
       const solvedWord = next.rows[before?.word ?? 0] ?? "";
       if (rev >= STRIKEOUT_REV5 && next.last === "right") {
@@ -513,12 +523,17 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
             return out;
           });
           if (counts) popEarly(earlyRef.current);
+          // Stage 2: an early solve with 3+ letters still hidden is a combo (they all flip at once).
+          if (hidden >= 3) wordFx("combo", earlyRef.current, "strikeout.combo", { count: hidden });
         }
       }
       setAccepted((a) => ({ word: solvedWord, points: 30, serial: (a?.serial ?? 0) + 1 }));
       fx.onCorrect();
+      effectCue("strikeout.solve");
     } else if (next.last === "hit") {
       fx.onPlace();
+      // Stage 2: each matching tile flips with a clack, one after another (the flip is the layout effect below).
+      effectCue("strikeout.flip");
     }
   });
 
@@ -634,8 +649,11 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
   // than wide, 72–80px where the arena has the height, never smaller than before (the old height,
   // min(1.2 × width, (arena − 56) / 1.6), is always within the new limits).
   const tileCount = Math.max(1, pattern.length || 8);
-  const tileSize = `min(64px, calc((100cqw - ${8 + (tileCount - 1) * 4}px) / ${tileCount}), calc((100cqh - 56px) / 1.6))`;
-  const tileHeight = "min(max(calc(var(--so-tile) * 1.45), 72px), 80px, calc((100cqh - 40px) / 1.25))";
+  // The Word overhaul: the keyboard sits at the bottom and the tiles take the room it left (up to 72 × 96 px).
+  const tileSize = `min(72px, calc((100cqw - ${8 + (tileCount - 1) * 4}px) / ${tileCount}), calc((100cqh - 56px) / 1.6))`;
+  // Joe (15 Nov 2026): the band the keyboard left is the word's: tall tiles (up to 128 px) and the solved words with
+  // the clue held just above them as one group, centred in the arena (never a clue floating alone).
+  const tileHeight = "min(max(calc(var(--so-tile) * 2), 72px), 128px, calc((100cqh - 96px) * 0.8))";
   let k = 0;
   const letters = [...shown].map((ch) => (ch === "_" ? (isSolving ? (typed[k++] ?? "") : "") : ch));
   k = 0;
@@ -656,7 +674,7 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
       style={{ ...NO_SCROLL_STYLE, touchAction: "manipulation" }}
     >
       <div className="flex h-8 w-full shrink-0 items-center justify-center">
-        <Strikes used={strikes} max={rules.maxStrikes} markerRef={strikeRef} />
+        <Strikes used={strikes} max={rules.maxStrikes} markerRef={strikeRef} art />
       </div>
       <div className="relative flex h-6 w-full shrink-0 items-center justify-between px-2">
         <WordDots solved={solvedCount} current={view?.word ?? 0} />
@@ -670,18 +688,15 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
         <VowelsLeft left={vowelsLeft} max={rules.maxVowels} />
       </div>
       <div data-game-arena="strikeout" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
-        <div ref={board} className="flex h-full w-full flex-col items-center" style={{ ["--so-tile" as string]: tileSize }}>
-          {/* The words already solved (Joe's phone notes, 27 Oct 2026; display only) sit centred in the space between
-              the top bar and the tiles (his notes of 28 Oct 2026). The tiles keep their place: this space takes what
-              the arena leaves above them, and the words float in it (absolute), so the board tray still hugs the tiles. */}
-          <div data-so-solved-space="" className="relative w-full min-h-0 flex-1">
-            <div className="absolute inset-x-2 top-1/2 flex -translate-y-1/2 flex-wrap justify-center gap-1" aria-label="Solved words">
-              {solvedWords.map((w, i) => (
-                <span key={i} data-so-solved={i} className="bw-lift rounded bg-primary/90 px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-wider text-primary-foreground">
-                  {w}
-                </span>
-              ))}
-            </div>
+        <div ref={board} className="flex h-full w-full flex-col items-center justify-center gap-3" style={{ ["--so-tile" as string]: tileSize }}>
+          {/* The words already solved (Joe's phone notes, 27 Oct 2026; display only) sit just above the tiles, the two
+              centred together in the arena (Joe, 15 Nov 2026: no clue floating alone in the space the keyboard left). */}
+          <div data-so-solved-space="" className="flex w-full shrink-0 flex-wrap justify-center gap-1 px-2 pt-2" aria-label="Solved words">
+            {solvedWords.map((w, i) => (
+              <span key={i} data-so-solved={i} className="bw-lift rounded bg-primary/90 px-2 py-0.5 font-mono text-[13px] font-bold tracking-wider text-primary-foreground">
+                {w}
+              </span>
+            ))}
           </div>
           <Row
             letters={letters}
@@ -690,7 +705,9 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
             rowIndex={cur}
             tile="var(--so-tile)"
             tileH={tileHeight}
+            fontScale={0.68}
             onTap={done ? undefined : toggleSolve}
+            art
           />
         </div>
       </div>
@@ -719,21 +736,25 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
         </div>
       </div>
       <LetterKeypad
+        keyCue="strikeout.key"
         onLetter={pressLetter}
         tone={tone}
         disabled={keyOff}
         locked={done}
         left={
+          // The Word overhaul: the delete key keeps one label (it read "Back" with nothing typed); with nothing typed
+          // it still leaves solving.
           <KeypadAction
-            label={isSolving && typed.length === 0 ? "Back" : "Delete"}
+            keyCue="strikeout.key"
+            label="Delete"
             disabled={!isSolving}
             onPress={() => (typed.length === 0 ? setSolving(false) : setTyped((t) => t.slice(0, -1)))}
           >
-            {isSolving && typed.length === 0 ? "Back" : <Delete className="h-5 w-5" />}
+            <Delete className="h-5 w-5" />
           </KeypadAction>
         }
         right={
-          <KeypadAction label="Solve" emphasis disabled={done || holes.length === 0 || (isSolving && typed.length !== holes.length)} onPress={solve}>
+          <KeypadAction keyCue="strikeout.key" label="Solve" emphasis disabled={done || holes.length === 0 || (isSolving && typed.length !== holes.length)} onPress={solve}>
             Solve
           </KeypadAction>
         }
@@ -747,7 +768,7 @@ function Reveal2({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealP
   const words = (puzzle.words ?? []).map((w) => w.toUpperCase());
   const givens = puzzle.givens ?? [];
   const rev = strikeoutRevOf(puzzle);
-  const rules = so2Rules(rev);
+  const rules = so2RulesFor(puzzle);
   // The stored answer is the canonical list: every solve in it already passed the dictionary.
   const state = replayStrikeout2(words, givens, decodeStrikeout2(myAnswer ?? ""), () => true, rules);
   const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
@@ -782,7 +803,43 @@ function Stage(props: PuzzleStageProps) {
   return props.puzzle.type === "strikeout" && strikeoutRevOf(props.puzzle) >= STRIKEOUT_REV2 ? <Stage2 {...props} /> : <StageRev1 {...props} />;
 }
 
+/**
+ * The Word overhaul's reveal (strikeoutRev 7+): the five words as big tile rows, solved ones gold, an unsolved word's
+ * letters you revealed on dark tiles and the ones never found dimmed in red; the strike pips; and the numbers the score
+ * is made of: words solved, strikes used and the early-solve points.
+ */
+function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
+  if (puzzle.type !== "strikeout") return null;
+  const words = (puzzle.words ?? []).map((w) => w.toUpperCase());
+  const rules = so2RulesFor(puzzle);
+  const state = replayStrikeout2(words, puzzle.givens ?? [], decodeStrikeout2(myAnswer ?? ""), () => true, rules);
+  const early = typeof myExtra?.["earlySolvePoints"] === "number" ? (myExtra["earlySolvePoints"] as number) : null;
+  const longest = Math.max(1, ...words.map((w) => w.length));
+  const size = Math.max(26, Math.min(40, Math.floor((330 - (longest - 1) * 4) / longest)));
+  return (
+    <div data-word-reveal="strikeout" data-strikeout-rev={strikeoutRevOf(puzzle)} data-wr-version="overhaul" className="wr">
+      <RevealNumbers
+        countAfterMs={200}
+        items={[
+          { id: "solved", label: "Words solved", value: `${state.solvedWords}/${words.length}`, tone: state.solvedWords === words.length ? "gold" : undefined },
+          { id: "strikes", label: "Strikes used", value: `${state.strikes}/${rules.maxStrikes}`, tone: state.strikes >= rules.maxStrikes ? "warn" : undefined },
+          early !== null ? { id: "early", label: "Early-solve points", value: early, tone: early > 0 ? "gold" : undefined } : null,
+        ]}
+      />
+      <Strikes used={state.strikes} max={rules.maxStrikes} art />
+      <div className="flex flex-col items-center gap-1.5">
+        {words.map((w, wi) => {
+          const solved = wi < state.solvedWords;
+          const tones: TileTone[] = [...w].map((_, i) => (solved ? "gold" : wi === state.word && state.revealed[wi]?.[i] ? "black" : "dim"));
+          return <TileRow key={wi} id={`word-${wi}`} letters={[...w]} tones={tones} size={size} />;
+        })}
+      </div>
+    </div>
+  );
+}
+
 function Reveal(props: PuzzleRevealProps) {
+  if (overhaulReveal(props.puzzle)) return <RevealOverhaul {...props} />;
   return props.puzzle.type === "strikeout" && strikeoutRevOf(props.puzzle) >= STRIKEOUT_REV2 ? <Reveal2 {...props} /> : <RevealRev1 {...props} />;
 }
 
@@ -796,7 +853,7 @@ export const strikeoutPuzzle: PuzzleDefinition = {
     ({ type: "strikeout", strikeoutRev: 1, rows: SO_ROWS, length: SO_LEN }) satisfies StrikeoutPuzzleData,
   check: (answer, puzzle) => {
     if (puzzle.type !== "strikeout") return false;
-    if (strikeoutRevOf(puzzle) >= STRIKEOUT_REV2) return replayStrikeout2(puzzle.words ?? [], puzzle.givens ?? [], decodeStrikeout2(answer), () => true, so2Rules(strikeoutRevOf(puzzle))).done;
+    if (strikeoutRevOf(puzzle) >= STRIKEOUT_REV2) return replayStrikeout2(puzzle.words ?? [], puzzle.givens ?? [], decodeStrikeout2(answer), () => true, so2RulesFor(puzzle)).done;
     return replayStrikeout(puzzle.words ?? [], decodeStrikeout(answer), () => true).done;
   },
   revealHeading: "The five words",

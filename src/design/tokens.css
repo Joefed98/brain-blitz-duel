@@ -61,6 +61,9 @@
   --jz-red: #FF3B5C;
   /* The gold button's ledge: a solid 4 px darker band under the metal face (design foundation F2). */
   --jz-gold-ledge: #A8843E;
+  /* Navy: the second control colour beside the champagne gold (the game overhauls, 15 Nov 2026). */
+  --jz-navy: #1B2644;
+  --jz-navy-edge: #2E3B63;
   --jz-silver: #C9D3EA;
   --jz-bronze: #D9A066;
   /* Medal metals (gradients only on metal, hard rule 5; the gold medal takes --jz-gold-metal). */

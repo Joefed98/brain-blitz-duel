@@ -284,6 +284,23 @@ export function so2Rules(rev: number): So2Rules {
   return rev >= STRIKEOUT_REV4 ? SO4_RULES : rev >= STRIKEOUT_REV3 ? SO3_RULES : SO2_RULES;
 }
 
+/**
+ * The rules a stored puzzle plays under: its revision's (so2Rules), with a level's own strikes and vowel guesses when the
+ * puzzle carries them (the Word overhaul's levels, 15 Nov 2026). Every Normal deal and every older puzzle carries neither,
+ * so it plays exactly as before.
+ */
+export function so2RulesFor(puzzle: { strikeoutRev?: number; maxStrikes?: number; maxVowels?: number } | null | undefined): So2Rules {
+  const base = so2Rules(strikeoutRevOf(puzzle));
+  const strikes = puzzle?.maxStrikes;
+  const vowels = puzzle?.maxVowels;
+  if (typeof strikes !== "number" && typeof vowels !== "number") return base;
+  return {
+    ...base,
+    ...(typeof strikes === "number" && Number.isInteger(strikes) && strikes > 0 ? { maxStrikes: strikes } : {}),
+    ...(typeof vowels === "number" && Number.isInteger(vowels) && vowels >= 0 ? { maxVowels: vowels } : {}),
+  };
+}
+
 /** Rev 3: extra starting letters on word w (one on words 1–3, none after). */
 export function so3ExtraGivens(w: number): number {
   return w < SO3_EXTRA_GIVEN_WORDS ? 1 : 0;

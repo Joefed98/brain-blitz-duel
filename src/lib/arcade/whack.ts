@@ -76,9 +76,26 @@ export const WHACK_INPUT_RANGES: readonly InputRange[] = [
 ];
 
 /** Up-window for a pop starting on `tick`. */
-export function whackLife(tick: number): number {
+export function whackLife(tick: number, level?: WhackLevel): number {
   const t = clampInt(tick, 0, WHACK_RUN_TICKS);
-  return WHACK_LIFE_START_TICKS - Math.floor(((WHACK_LIFE_START_TICKS - WHACK_LIFE_END_TICKS) * t) / WHACK_RUN_TICKS);
+  const start = level?.lifeStart ?? WHACK_LIFE_START_TICKS;
+  const end = level?.lifeEnd ?? WHACK_LIFE_END_TICKS;
+  return start - Math.floor(((start - end) * t) / WHACK_RUN_TICKS);
+}
+
+/**
+ * A level's schedule (the Speed overhaul, stage 3, 15 Nov 2026; levels/speedLevels.ts): how long a target stays up at
+ * the start and the end (ticks), the most up at once, the rule flips' range and the hedgehogs' share. Stamped on the
+ * puzzle as `bonkLevel`; absent, the schedule is today's exactly (every older round and Normal).
+ */
+export interface WhackLevel {
+  lifeStart: number;
+  lifeEnd: number;
+  maxUp: number;
+  flips: readonly [number, number];
+  hedgehogPct: number;
+  /** The gap between pops, in per cent of today's (smaller = busier; absent = 100). */
+  gapPct?: number;
 }
 
 /** Which colour to tap on a tick, given the seeded flip ticks (starts on gold). */
@@ -101,20 +118,24 @@ export interface WhackSchedule {
   total: number;
 }
 
-function buildSchedule(seed: number): { rng: number; schedule: WhackSchedule } {
+function buildSchedule(seed: number, level?: WhackLevel): { rng: number; schedule: WhackSchedule } {
   let rng = seed | 0;
   const draw = (bound: number) => {
     const r = rngBelow(rng, bound);
     rng = r.state;
     return r.value;
   };
-  const flipCount = WHACK_MIN_FLIPS + draw(WHACK_MAX_FLIPS - WHACK_MIN_FLIPS + 1);
+  const minFlips = level?.flips[0] ?? WHACK_MIN_FLIPS;
+  const maxFlips = level?.flips[1] ?? WHACK_MAX_FLIPS;
+  const flipCount = minFlips + draw(maxFlips - minFlips + 1);
   const lastFlip = WHACK_RUN_TICKS - WHACK_NO_FLIP_TAIL_TICKS;
-  const slack = lastFlip - WHACK_MIN_PERIOD_TICKS * flipCount;
+  // A level with more flips (up to 9) spaces them at least 5 s apart (today's 6 s fits only 5 or fewer).
+  const period = level ? Math.min(WHACK_MIN_PERIOD_TICKS, Math.floor(lastFlip / (flipCount + 1))) : WHACK_MIN_PERIOD_TICKS;
+  const slack = lastFlip - period * flipCount;
   const offsets: number[] = [];
   for (let i = 0; i < flipCount; i++) offsets.push(draw(slack + 1));
   offsets.sort((a, b) => a - b);
-  const flips = offsets.map((off, i) => WHACK_MIN_PERIOD_TICKS * (i + 1) + off);
+  const flips = offsets.map((off, i) => period * (i + 1) + off);
 
   const at: number[] = [];
   const hole: number[] = [];
@@ -124,26 +145,27 @@ function buildSchedule(seed: number): { rng: number; schedule: WhackSchedule } {
   let tick = FIRST_POP_TICK;
   let prevHole = -1;
   while (tick < WHACK_RUN_TICKS) {
-    const l = whackLife(tick);
+    const l = whackLife(tick, level);
     // A pop must not straddle a flip, so its role never changes while up.
     const crossing = flips.find((f) => tick < f && tick + l > f);
     if (crossing !== undefined) { tick = crossing; continue; }
     const busy = new Set<number>();
     for (let i = 0; i < at.length; i++) if (at[i]! + life[i]! > tick) busy.add(hole[i]!);
-    if (busy.size >= WHACK_MAX_UP) { tick += 1; continue; }
+    if (busy.size >= (level?.maxUp ?? WHACK_MAX_UP)) { tick += 1; continue; }
     const free: number[] = [];
     for (let h = 0; h < WHACK_HOLES; h++) if (!busy.has(h) && h !== prevHole) free.push(h);
     const h = free[draw(free.length)]!;
     const rule = whackRule(flips, tick);
     let k: number;
-    if (tick >= WHACK_NO_BOMB_TICKS && draw(100) < WHACK_BOMB_PERCENT) k = WHACK_BOMB;
+    if (tick >= WHACK_NO_BOMB_TICKS && draw(100) < (level?.hedgehogPct ?? WHACK_BOMB_PERCENT)) k = WHACK_BOMB;
     else k = draw(100) < 65 ? rule : rule ^ 1;
     if (k === rule && tick >= WHACK_RUN_TICKS - WHACK_NO_TARGET_TAIL_TICKS) k = rule ^ 1;
     if (k === rule) total += 1;
     at.push(tick); hole.push(h); kind.push(k); life.push(l);
     prevHole = h;
     const progress = Math.floor(((POP_GAP_START - POP_GAP_END) * tick) / WHACK_RUN_TICKS);
-    tick += POP_GAP_START - progress + draw(POP_GAP_JITTER);
+    const gap = POP_GAP_START - progress + draw(POP_GAP_JITTER);
+    tick += level?.gapPct !== undefined ? Math.max(1, Math.floor((gap * level.gapPct) / 100)) : gap;
   }
   return { rng, schedule: { flips, at, hole, kind, life, total } };
 }
@@ -175,8 +197,8 @@ export interface WhackState {
   next: number;
 }
 
-function init(seed: number): WhackState {
-  const built = buildSchedule(seed);
+function init(seed: number, level?: WhackLevel): WhackState {
+  const built = buildSchedule(seed, level);
   const n = built.schedule.at.length;
   return {
     tick: 0,
@@ -454,8 +476,9 @@ export const whackGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = {
 /** whackRev 1: the same game, its score lifted (WHACK_TARGET_LIFT). */
 export const whackTargetGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = { ...whackGame, init: (seed) => ({ ...init(seed), tgt: 1 }) };
 
-/** The game for a stored whackRev (absent = the original score). */
-export function whackGameFor(rev?: number | null): ArcadeGame<WhackState, ArcadeInputEvent | null> {
+/** The game for a stored whackRev (absent = the original score), and a level's schedule (whackRev 4 rounds only). */
+export function whackGameFor(rev?: number | null, level?: WhackLevel | null): ArcadeGame<WhackState, ArcadeInputEvent | null> {
+  if (rev === WHACK_REV_NOTES && level) return whackLevelGame(level);
   if (rev === WHACK_REV_NOTES) return whackNotesGame;
   if (rev === WHACK_REV_DEPTH) return whackDepthGame;
   if (rev === WHACK_REV_BANDS) return whackBandsGame;
@@ -590,8 +613,8 @@ function buildDiamonds(rngStart: number, schedule: WhackSchedule, life = WHACK_D
   return { rng, at, hole };
 }
 
-function initDepthWith(seed: number, life?: number): WhackState {
-  const base = init(seed);
+function initDepthWith(seed: number, life?: number, level?: WhackLevel): WhackState {
+  const base = init(seed, level);
   const d = buildDiamonds(base.rng, base.schedule, life);
   return {
     ...base,
@@ -653,3 +676,15 @@ function whackDepthChecksumValues(dp: WhackDepth): number[] {
 export const whackDepthGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = { ...whackGame, init: initDepth };
 /** whackRev 4: whackRev 3 with the longer diamond. */
 export const whackNotesGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = { ...whackGame, init: (seed) => initDepthWith(seed, WHACK_DIAMOND_LIFE_TICKS_NOTES) };
+
+const levelGames = new Map<string, ArcadeGame<WhackState, ArcadeInputEvent | null>>();
+/** whackRev 4 at a level: the same game, its schedule built from the level's settings (the puzzle's `bonkLevel`). */
+function whackLevelGame(level: WhackLevel): ArcadeGame<WhackState, ArcadeInputEvent | null> {
+  const key = `${level.lifeStart}:${level.lifeEnd}:${level.maxUp}:${level.flips[0]}:${level.flips[1]}:${level.hedgehogPct}:${level.gapPct ?? 100}`;
+  let game = levelGames.get(key);
+  if (!game) {
+    game = { ...whackNotesGame, init: (seed) => initDepthWith(seed, WHACK_DIAMOND_LIFE_TICKS_NOTES, level) };
+    levelGames.set(key, game);
+  }
+  return game;
+}

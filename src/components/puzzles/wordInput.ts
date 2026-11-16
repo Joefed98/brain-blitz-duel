@@ -14,6 +14,14 @@ export const WORD_POLISH_PRESENTATION = "oct13-word-polish";
 /** Logic polish (13 Oct 2026) centred and resized these boards; older coordinate demos are rejected. */
 export const LOGIC_POLISH_DEMOS = new Set(["lightsout", "sudoku", "tower", "tubes", "safe", "bomb", "nonogram", "flood", "tents", "shikaku", "lightup"]);
 export const LOGIC_POLISH_PRESENTATION = "oct13-logic-polish";
+/**
+ * Logic overhaul 2 (15 Nov 2026): Tents and Trees, Shikaku, Lamplighter, Trail, Loopline, Regions and Island Link have
+ * new boards (taller Trail cells, Island Link's tap-to-cycle, Regions' number pad and strokes), so older coordinate demos
+ * would touch the wrong squares; they are rejected (the intro shows its still) until re-recorded
+ * (scripts/fixtures/logic2-demos.json, saved by the "Save intro demos" workflow).
+ */
+export const LOGIC2_DEMOS = new Set(["tents", "shikaku", "lightup", "trail", "fences", "fillomino", "bridges"]);
+export const LOGIC2_PRESENTATION = "nov15-logic-overhaul-2";
 /** Number polish (13 Oct 2026) moved these boards and controls; older coordinate demos are rejected. */
 export const NUMBER_POLISH_DEMOS = new Set(["target", "equation", "balance", "numpyramid", "trail", "measure", "checkout", "numline"]);
 export const NUMBER_POLISH_PRESENTATION = "oct13-number-polish";
@@ -102,7 +110,41 @@ export const DEPTH_D3_ATTENTION_PRESENTATION = "oct25-depth-d3-attention";
  */
 export const DEPTH_D3_SPEED_DEMOS = new Set(["reaction", "stopwatch", "numhunt"]);
 export const DEPTH_D3_SPEED_PRESENTATION = "oct25-depth-d3-speed";
+/**
+ * The Logic overhaul, session 1 (15 Nov 2026): Box Six, Polypotions, Hanoi, Safe Cracker, Mosaic and Colour Flood have
+ * their new look (rendered pieces, wider tubes, the clue card and drums moved) and their levels, so every board moved;
+ * older coordinate demos are rejected (the intro shows its still) until re-recorded on Normal.
+ */
+export const LOGIC_OVERHAUL1_DEMOS = new Set(["sudoku", "tubes", "tower", "safe", "nonogram", "flood"]);
+export const LOGIC_OVERHAUL1_PRESENTATION = "nov15-logic-overhaul-1";
+/**
+ * Tessellate in the Pattern overhaul (15 Nov 2026, blockRev 4): a tap's turn waits out the double-tap window, the tray
+ * fits each piece to its column and Undo / Reset take a row under it, so older coordinate demos would miss and replay
+ * the old taps; they are rejected until re-recorded on blockRev 4 (the intro shows its still).
+ */
+export const BLOCKPARTY_NOV15_PRESENTATION = "nov15-tessellate-overhaul";
+/**
+ * The Word overhaul (15 Nov 2026, docs/design/game-reviews/word.md): every Word game's board, keyboard and controls moved
+ * (the rendered pieces, 52 px keys at the bottom, Roundabout's bigger wheel, Strikeout's taller tiles) and most deal new
+ * stamps, so every older Word demo stays stopped (the intro shows its still) until one is recorded on this revision and on
+ * the stamps rooms deal (introDemo.functions.ts, wordDemoStamps.ts). The runs to record are
+ * scripts/fixtures/word-demos.json (word-demos-check); the manual "Save intro demos" workflow saves them.
+ */
+export const WORD_OVERHAUL_DEMOS = new Set(["wordsmith", "tilegrid", "wordslide", "wordhunt", "wordsearch", "letterwheel", "strikeout", "codeword", "swapword"]);
+export const WORD_OVERHAUL_PRESENTATION = "nov15-word-overhaul";
+/**
+ * The Attention overhaul (15 Nov 2026, docs/design/attention-overhaul.md): all six Attention games have a new board
+ * layout (rendered pieces, moved controls, Double Take's Next, Tally's marks, Matchmaker's clear faces), so every older
+ * coordinate demo is stopped (the intro shows its still) until one is recorded on this presentation.
+ */
+export const ATTENTION_OVERHAUL_DEMOS = new Set(["symscan", "spotdiff", "countup", "maze", "bomb", "pairmatch"]);
+export const ATTENTION_OVERHAUL_PRESENTATION = "nov15-attention-overhaul";
 export function puzzlePresentation(type: string): string {
+  if (LOGIC_OVERHAUL1_DEMOS.has(type)) return LOGIC_OVERHAUL1_PRESENTATION;
+  if (LOGIC2_DEMOS.has(type)) return LOGIC2_PRESENTATION;
+  if (type === "blockparty") return BLOCKPARTY_NOV15_PRESENTATION; // tessellate (Pattern overhaul)
+  if (WORD_OVERHAUL_DEMOS.has(type)) return WORD_OVERHAUL_PRESENTATION;
+  if (ATTENTION_OVERHAUL_DEMOS.has(type)) return ATTENTION_OVERHAUL_PRESENTATION;
   if (ROUNDABOUT_DEPTH_DEMOS.has(type)) return ROUNDABOUT_DEPTH_PRESENTATION;
   if (FORAGE_DEPTH_DEMOS.has(type)) return FORAGE_DEPTH_PRESENTATION;
   if (LOOKOUT_DEPTH_DEMOS.has(type)) return LOOKOUT_DEPTH_PRESENTATION;
@@ -122,7 +164,7 @@ export function puzzlePresentation(type: string): string {
   if (NUMBER_POLISH_DEMOS.has(type)) return NUMBER_POLISH_PRESENTATION;
   return type === "letterwheel" ? ROUNDABOUT_PRESENTATION : POLISH_B_DEMOS.has(type) ? POLISH_B_PRESENTATION : POLISH_A_DEMOS.has(type) ? POLISH_A_PRESENTATION : type === "wordsmith" ? WORDSMITH_PRESENTATION : type === "balance" ? BALANCE_PRESENTATION : PUZZLE_INPUT_PRESENTATION;
 }
-export const REVISED_PUZZLE_DEMOS = new Set([...NUMBER_DEPTH_DEMOS, ...DEPTH_D3_SPEED_DEMOS, ...DEPTH_D3_ATTENTION_DEMOS, ...ROUNDABOUT_DEPTH_DEMOS, ...FORAGE_DEPTH_DEMOS, ...LOOKOUT_DEPTH_DEMOS, ...OCT14_BATCH_DEMOS, ...WORD_BATCH_DEMOS, ...ATTENTION_REWORK_DEMOS, ...SPEED_TUNING_DEMOS, ...NUMBER_TUNING_DEMOS, ...MOVE_LIMIT_DEMOS, ...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...WORD_POLISH_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, ...PATTERN_POLISH_DEMOS, ...SPEED_POLISH_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
+export const REVISED_PUZZLE_DEMOS = new Set([...ATTENTION_OVERHAUL_DEMOS, ...LOGIC_OVERHAUL1_DEMOS, ...LOGIC2_DEMOS, ...NUMBER_DEPTH_DEMOS, ...DEPTH_D3_SPEED_DEMOS, ...DEPTH_D3_ATTENTION_DEMOS, ...ROUNDABOUT_DEPTH_DEMOS, ...FORAGE_DEPTH_DEMOS, ...LOOKOUT_DEPTH_DEMOS, ...OCT14_BATCH_DEMOS, ...WORD_BATCH_DEMOS, ...ATTENTION_REWORK_DEMOS, ...SPEED_TUNING_DEMOS, ...NUMBER_TUNING_DEMOS, ...MOVE_LIMIT_DEMOS, ...POLISH_A_DEMOS, ...POLISH_B_DEMOS, ...WORD_POLISH_DEMOS, ...LOGIC_POLISH_DEMOS, ...NUMBER_POLISH_DEMOS, ...PATTERN_POLISH_DEMOS, ...SPEED_POLISH_DEMOS, ...WORD_OVERHAUL_DEMOS, "wordsmith", "wordhunt", "target", "lightsout", "maze", "rings", "flood", "balance"]);
 export const BALANCE_PRESENTATION = "oct9b-tall-beam";
 export const PUZZLE_INPUT_PRESENTATION = "oct6-ring-controls";
 export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {
@@ -130,7 +172,8 @@ export function puzzleInputDemoCompatible(type: string, log: unknown): boolean {
   if (typeof log !== "object" || log === null || !("presentation" in log)) return false;
   return log.presentation === puzzlePresentation(type);
 }
-export const WORDSMITH_PRESENTATION = WORD_POLISH_PRESENTATION;
+/** The presentation Nucleus demos carry (the Word overhaul's since 15 Nov 2026; the word polish's before). */
+export const WORDSMITH_PRESENTATION = WORD_OVERHAUL_PRESENTATION;
 
 /** A tile can be used once; re-tapping removes only that occurrence. */
 export function toggleWordsmithTile(selected: readonly number[], index: number): number[] {

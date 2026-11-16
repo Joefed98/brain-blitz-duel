@@ -5,6 +5,7 @@
  */
 import { equationVerdict } from "../operatorGaps";
 import { gradeCheckoutStages, splitCheckoutRound, decodeCheckoutDarts, checkoutBigFinish } from "../checkout";
+import { checkoutBust } from "../numberOverhaul";
 import { decodeBalance, balanceScalesSolved } from "../balance";
 import { gradeMeasureBoards } from "../measure";
 import { measureBoardOut } from "../gameReviewNov15";
@@ -14,6 +15,7 @@ import { npComplete, npCorrectCells, npDecode, npDecodeRound } from "../numberPy
 import { decodeNumline, gradeNumlineItems } from "../numline";
 import { equationStageCorrect, splitStages } from "../stagedRounds";
 import { decodeSteps, hasSolutionWithAtMostFourTiles, replayTargetSteps, solveTarget } from "../target";
+import { TRAIL_UNDO_COST, trailUndoEach } from "../logicOverhaul2";
 import { trCorrectPrefix, trCorrectTiles, trDecode } from "../trail";
 import type {
   BalancePuzzleData,
@@ -54,9 +56,15 @@ import {
 } from "./number";
 import { STANDARD_FINISH, cleanPoints, earlyPoints, parPoints, speedPoints } from "./shape";
 
-function speedFor(type: keyof typeof NUMBER_STANDARD, msLeft: number, limitMs: number): number {
+function speedFor(type: keyof typeof NUMBER_STANDARD, msLeft: number, limitMs: number, fullByS?: number): number {
   const g = NUMBER_STANDARD[type]!;
-  return speedPoints(g.speed, msLeft, limitMs, g.fullByS * 1000);
+  return speedPoints(g.speed, msLeft, limitMs, (fullByS ?? g.fullByS) * 1000);
+}
+
+/** A level's own "full by" time, stamped on the deal (Operator's Hard and Expert, 16 Nov 2026); none on Normal. */
+function storedFullByS(puzzle: unknown): number | undefined {
+  const v = (puzzle as { speedFullByS?: unknown }).speedFullByS;
+  return typeof v === "number" && v > 0 ? v : undefined;
 }
 
 /* ------------------------------------------------------------------ Exact */
@@ -185,7 +193,7 @@ const operator: StandardGame = {
     const clean = correct.filter((ok, i) => ok && (tries[i] ?? 0) <= 1).length;
     const cleanPts = Math.min(NUMBER_STANDARD.equation!.bonus, NUMBER_CLEAN_EACH * clean);
     const facts = { equationsRight: right, cleanEquations: clean };
-    if (graded.isCorrect) return { finished: true, speed: speedFor("equation", msLeft, limitMs), bonus: cleanPts, measure: "clean", facts };
+    if (graded.isCorrect) return { finished: true, speed: speedFor("equation", msLeft, limitMs, storedFullByS(puzzle)), bonus: cleanPts, measure: "clean", facts };
     return { finished: false, credit: NUMBER_PART_POINTS * right + ctx.early(NUMBER_PART_EARLY, right) + cleanPts, facts };
   },
 };
@@ -291,6 +299,27 @@ function trailEverUndone(puzzle: TrailPuzzleData, drafts: readonly { draft: stri
   return false;
 }
 
+/**
+ * Trail depthRev 3 (the Logic overhaul, 15 Nov 2026): how many changes took a placed tile back (an Undo, a step back,
+ * a drag back over several tiles in one change, a Reset: each one undo).
+ */
+function trailUndos(puzzle: TrailPuzzleData, drafts: readonly { draft: string }[]): number {
+  let prev: number[] = [];
+  let undos = 0;
+  for (const { draft } of drafts) {
+    const path = trailPath(puzzle, draft);
+    for (let i = 0; i < prev.length; i++) {
+      const cell = prev[i]!;
+      if (cell >= 0 && puzzle.givens[cell] === null && path[i] !== cell) {
+        undos++;
+        break;
+      }
+    }
+    prev = path;
+  }
+  return undos;
+}
+
 const trail: StandardGame = {
   parts: (puzzle, draft) => {
     const p = puzzle as TrailPuzzleData;
@@ -301,6 +330,12 @@ const trail: StandardGame = {
     const path = trailPath(p, answer);
     const solution = p.solution ?? [];
     const right = trCorrectTiles(p.givens, path, solution);
+    if (graded.isCorrect && trailUndoEach(p)) {
+      // depthRev 3: 2.5 off the clean bonus an undo (no timeline, no clean bonus, as before).
+      const undos = drafts ? trailUndos(p, drafts) : null;
+      const bonus = undos === null ? 0 : cleanPoints(NUMBER_STANDARD.trail!.bonus, TRAIL_UNDO_COST, undos);
+      return { finished: true, speed: speedFor("trail", msLeft, limitMs), bonus, measure: "clean", facts: { cleanPath: undos === 0, undos } };
+    }
     if (graded.isCorrect) {
       const undone = drafts ? trailEverUndone(p, drafts) : true;
       return { finished: true, speed: speedFor("trail", msLeft, limitMs), bonus: undone ? 0 : NUMBER_STANDARD.trail!.bonus, measure: "clean", facts: { cleanPath: !undone } };
@@ -358,11 +393,11 @@ export function checkoutBigPoints(puzzle: CheckoutPuzzleData, answer: string, so
 const checkout: StandardGame = {
   parts: (puzzle, draft) => {
     const p = puzzle as CheckoutPuzzleData;
-    return gradeCheckoutStages(p.stages, p.minDarts ?? [], draft).filter((r) => r.solved).length;
+    return gradeCheckoutStages(p.stages, p.minDarts ?? [], draft, checkoutBust(p)).filter((r) => r.solved).length;
   },
   grade({ puzzle, answer, graded, msLeft, limitMs }, ctx) {
     const p = puzzle as CheckoutPuzzleData;
-    const results = gradeCheckoutStages(p.stages, p.minDarts ?? [], answer);
+    const results = gradeCheckoutStages(p.stages, p.minDarts ?? [], answer, checkoutBust(p));
     const solved = results.map((r) => r.solved);
     const count = solved.filter(Boolean).length;
     // A big finish is earned board by board, so it counts towards an unfinished score too.
