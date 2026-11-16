@@ -1,3 +1,4 @@
+import { useAppMoment } from "@/components/fx/useMomentEnter";
 /**
  * The badge-earned moment (wave 2, train C, session C2): a small toast with the badge, its name and, for a
  * Legendary, its 250 coins. Drawn only by PhoneShell on the tab pages (Play, Practice, Tournaments, Shop, Profile),
@@ -34,6 +35,8 @@ export function BadgeMoment() {
     void markBadgesShown([slug]);
   };
 
+  // The badge's moment (15 Nov 2026, the effects pass): the kit's new-best drop and its card sound.
+  useAppMoment("newBest", "[data-badge-moment]", shown);
   const def = shown ? BADGE_BY_SLUG.get(shown) : undefined;
   if (!shown || !def) return null;
   return (

@@ -190,6 +190,14 @@ export function CelebrationLayer() {
           scene.strike(width, height, now);
           request();
           return;
+        case "countStrike":
+          if (canvas.style.display === "none") {
+            canvas.style.display = "";
+            size();
+          }
+          scene.strike(width, height, now, true);
+          request();
+          return;
         case "clear":
           if (scene.podium?.scope === request_.scope && anchor) {
             watch?.unobserve(anchor);
