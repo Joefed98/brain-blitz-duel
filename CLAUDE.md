@@ -2630,10 +2630,18 @@ outside the repo.
   *Stage 3, levels* (15–16 Nov 2026, on #432's framework): each Word game's entry is its own file
   (`src/lib/levels/word/<game>.ts`: settings and one plain `ABOUT` line a level, read by `levelAbout` for the round
   intro, the "?" help's Levels block and the game page) and its level deal `src/lib/duel/levels/<game>.server.ts`
-  (`dealWordLevel` in wordLevels.server.ts, hooked in generateUnstamped, never reached at Normal). Cryptogrid: Easy 8
-  starting letters / 120 s, Hard 5 / 60 s, Expert 4 / 50 s on the 666 bank boards a human-like solver cracks from four
-  letters alone (`codewordHuman.server.ts`, `codewordExpert.data.ts` by `bun scripts/codeword-expert-bank.ts
-  [--check]`); codeword-levels-check proves the clocks, deals, one solution and the tuning. Cryptogrid `codewordRev 7`
+  (`dealWordLevel` in wordLevels.server.ts, hooked in generateUnstamped, never reached at Normal); the table of every
+  game's levels is in `docs/design/game-reviews/word.md` "Stage 3". A level's clock is the puzzle's own `timeLimitMs`;
+  boards that grow do so in rows (Lookout 10 × 11 / 10 × 12, Roundabout up to 9 × 12). Proofs: Strikeout, Lookout,
+  Cryptogrid and Swapword prove one answer (Strikeout's and Cryptogrid's Expert by a person-like solver,
+  `strikeoutSolver.server.ts`, `codewordHuman.server.ts`); Nucleus, Forage, Interlock, Slider and Roundabout are open
+  by design. Banks: Roundabout `letterWheelBank{Easy,Hard,Expert}.server.ts` (`scripts/letter-wheel-bank.ts`), Lookout
+  `wordSearchLevelBank.server.ts` (`scripts/word-search-level-bank.ts`), Cryptogrid's Expert list
+  `codewordExpert.data.ts` (`bun scripts/codeword-expert-bank.ts [--check]`), each rebuilt byte for byte with `--check`.
+  One check a game, `scripts/<game>-levels-check.ts` (helpers `word-levels-lib.ts` / `word-levels-shared.ts`): clocks,
+  Normal byte for byte, the same deal for all, the rules, the proof or open reason, tuning bands and the step up.
+  Cryptogrid: Easy 8 starting letters / 120 s, Hard 5 / 75 s, Expert 4 / 65 s on the 666 bank boards the person-like
+  solver cracks from four letters alone. Shots `bun scripts/shots/word-levels-shots.ts --url=<origin> [games…]`. Cryptogrid `codewordRev 7`
   (`CODEWORD_REV_NAMES`): a full grid that isn't cracked is answered with the words on it that aren't real words
   (`CwView.nonWords`), which flash red on the live board.
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery

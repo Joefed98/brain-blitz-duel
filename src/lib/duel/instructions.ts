@@ -1931,15 +1931,15 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       }),
     },
     wordsearch: {
-      goal: "Find the six hidden words in the category.",
+      goal: "Find the hidden words in the category (six on Normal).",
       how: [
         { action: "Drag in a straight line", detail: "through the letters." },
-        { action: "Words run", detail: "any way, backwards too." },
+        { action: "Words run", detail: "any way, backwards too (Easy: across and down only)." },
         { action: "A seventh theme word hides unlisted:", detail: "find it for a bonus." },
         { action: "A found word", detail: "turns gold on the grid, with a line along it.", helpOnly: true },
         { action: "Each chip shows", detail: "a hidden word’s letter count until you find it; the word then fills it.", helpOnly: true },
         wordOverhaulDealt("wordsearch")
-          ? { action: "The bonus word", detail: "fills the gold star chip. After the sixth word the round goes on: find the bonus, or tap Done.", helpOnly: true }
+          ? { action: "The bonus word", detail: "fills the gold star chip. After the last listed word the round goes on: find the bonus, or tap Done.", helpOnly: true }
           : { action: "The bonus word", detail: "fills the gold star chip. Find it before the sixth word: the sixth ends the round.", helpOnly: true },
       ],
       score: preStandardPinned() ? wordSearchBonusHelp() : wordOverhaulDealt("wordsearch") ? LOOKOUT_OVERHAUL_HELP : wordNov7Dealt("wordsearch") ? WORD_NOV7_HELP.wordsearch : WORD_STANDARD_HELP.wordsearch,
@@ -1965,14 +1965,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       score: preStandardPinned() ? letterWheelJarHelp() : WORD_STANDARD_HELP.letterwheel,
     },
     strikeout: {
-      goal: "Reveal five long words, one at a time, before twelve strikes.",
+      goal: "Reveal five long words, one at a time, before you run out of strikes (twelve on Normal).",
       how: [
         { action: "Tap a letter", detail: "to fill every matching tile in the word." },
-        { action: "Three vowel guesses", detail: "per word (the dots)." },
+        { action: "Vowel guesses", detail: "are limited per word (the dots; three on Normal)." },
         { action: "Vowels are A E I O U;", detail: "the keypad resets for each word.", helpOnly: true },
         { action: "Tap Solve", detail: "to guess the word; early earns more, wrong is a strike." },
         { action: "Early solves:", detail: preStandardPinned() ? "the more letters still hidden when you Solve a word, the bigger its bonus." : `Solve a word with ${STD_STRIKEOUT.earlyHidden}+ letters still hidden for ${STD_STRIKEOUT.earlySolve} more points (up to ${STD_STRIKEOUT.earlySolveMax}).`, helpOnly: true },
-        { action: "Starting letters", detail: "show from the start (every copy; one more on words 1–3) and earn nothing.", helpOnly: true },
+        { action: "Starting letters", detail: "show from the start (every copy; on Normal one more on words 1–3) and earn nothing.", helpOnly: true },
         { action: "Solve:", detail: "type the missing letters, then Solve. It must be a real word (others are refused for free).", helpOnly: true },
         { action: "A word is solved", detail: "once all its letters show; the next word starts.", helpOnly: true },
         { action: "Twelve strikes", detail: "in total (misses and wrong solves, over all five words) end the round.", helpOnly: true },
@@ -2000,7 +2000,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Gold", detail: "is in place; teal belongs elsewhere." },
         { action: "Finish in par swaps", detail: "for a bonus. Swaps are limited." },
         { action: "Par", detail: "is the fewest swaps that solve the board, shown beside your swaps (gold while you are within it).", helpOnly: true },
-        { action: "The budget", detail: `is ${SW6_SPARE_SWAPS} more than par; running out ends the round.`, helpOnly: true },
+        { action: "The budget", detail: `is ${SW6_SPARE_SWAPS} more than par on Normal (the level says); running out ends the round.`, helpOnly: true },
         { action: "Or tap one tile", detail: "then the other.", helpOnly: true },
         { action: "Teal tiles", detail: "belong elsewhere in a word through them; grey tiles fit neither word. A letter shows teal only as often as it is still needed.", helpOnly: true },
       ],

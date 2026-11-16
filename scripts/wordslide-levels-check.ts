@@ -3,7 +3,7 @@
  * Hard and Expert.
  *
  *  1. The registry (open by design: any five real words finish), the level lines, the clocks (at most 120 s), Normal byte
- *     for byte the plain deal, every level the same deal for every player (word-levels-lib.ts).
+ *     for byte the plain deal, every level the same deal for every player (word-levels-shared.ts).
  *  2. Every level board meets its rules: five different common words, no row a word at the start, the stored par the
  *     proven fewest slides back (a fresh search) and inside the level's range, the clock as set; the deal's later layer
  *     keeps that par.

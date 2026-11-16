@@ -135,3 +135,27 @@ shown two-thirds size: a timed-out round, then the capture tool's driven run (a 
 | Strikeout | <img src="img/strikeout-answer-timeout.webp" width="400"> | <img src="img/strikeout-answer-full.webp" width="400"> |
 | Cryptogrid | <img src="img/codeword-answer-timeout.webp" width="400"> | <img src="img/codeword-answer-full.webp" width="400"> |
 | Swapword | <img src="img/swapword-answer-timeout.webp" width="400"> | <img src="img/swapword-answer-full.webp" width="400"> |
+
+## Stage 3: levels
+
+Each game at Easy, Normal, Hard and Expert, a moment into the round at 375 × 667 (the smallest phone), the level chosen
+on the device as a player would (`bun scripts/shots/word-levels-shots.ts --url=<origin>`; the 390 × 844 sheets and the
+intros with their level line are in `.shots/word-levels/`). Normal is today's game exactly.
+
+| Game | Sheet |
+| --- | --- |
+| Nucleus | ![Nucleus levels](img/levels/wordsmith-375x667-play.webp) |
+| Interlock | ![Interlock levels](img/levels/tilegrid-375x667-play.webp) |
+| Slider | ![Slider levels](img/levels/wordslide-375x667-play.webp) |
+| Forage | ![Forage levels](img/levels/wordhunt-375x667-play.webp) |
+| Lookout (taller grids: 10 × 11 Hard, 10 × 12 Expert) | ![Lookout levels](img/levels/wordsearch-375x667-play.webp) |
+| Lookout at 390 × 844 | ![Lookout levels, 390 × 844](img/levels/wordsearch-390x844-play.webp) |
+| Roundabout (grids up to 9 × 12 on Expert) | ![Roundabout levels](img/levels/letterwheel-375x667-play.webp) |
+| Strikeout | ![Strikeout levels](img/levels/strikeout-375x667-play.webp) |
+| Cryptogrid | ![Cryptogrid levels](img/levels/codeword-375x667-play.webp) |
+| Cryptogrid's intros (the level's line under the goal) | ![Cryptogrid intros](img/levels/codeword-375x667-intro.webp) |
+| Swapword | ![Swapword levels](img/levels/swapword-375x667-play.webp) |
+
+Cryptogrid `codewordRev 7`: a full grid that isn't cracked flashes the words on it that aren't real words red for
+1.6 s (`data-cw-notword`, the red tile art and the shared wrong effect); not captured here, since it needs a wrong full
+grid played by hand.

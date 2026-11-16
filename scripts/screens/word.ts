@@ -1,11 +1,19 @@
 /**
  * The Word overhaul's screens (phase 2 step 4, 15 Nov 2026; docs/design/pages-review/word/GALLERY.md) for theme-check
  * and no-wrap-check: every Word game's answer reveal in a room (its round-end list or board in the new look, with a
- * stored answer), at every size. (Round intros are game screens, never skinned: the gallery shows Swapword's.) Drawn after the core list (scripts/area-screens.ts finds this file).
+ * stored answer), at every size, and (stage 3) a game's page with a level picked. (Round intros are game screens, never skinned: the gallery shows Swapword's.) Drawn after the core list (scripts/area-screens.ts finds this file).
  */
 import { generatePuzzle } from "../../src/lib/duel/generate.server";
 import { withSeededRandom } from "../../src/lib/duel/random";
+import type { Page } from "playwright";
+
 import { ALL_SIZES, room, type ThemeScreen } from "../theme-screens";
+
+/** A game's page with a level picked (stage 3): the level switch, then the level's one line under it. */
+const pickLevel = (level: string) => async (page: Page) => {
+  await page.locator(`[data-level-option="${level}"]`).first().click();
+  await page.locator("[data-game-page-level-about]").first().waitFor({ timeout: 15_000 });
+};
 
 /** Nucleus's fixture board (the room fixture's seed): three of its words, the longest last, for the round-end list. */
 function nucleusAnswer(): string {
@@ -29,6 +37,9 @@ const REVEALS: readonly { type: string; name: string; answer: string }[] = [
 
 export default function wordScreens(): ThemeScreen[] {
   return [
+    // Stage 3 (levels): a game's page with a level picked shows that level's line under the switch.
+    { name: "word: game page, Cryptogrid Hard", mode: "practice", plain: true, search: { page: "codeword" }, sizes: ALL_SIZES, waitMs: 900, go: pickLevel("hard") },
+    { name: "word: game page, Lookout Expert", mode: "practice", plain: true, search: { page: "wordsearch" }, sizes: ALL_SIZES, waitMs: 900, go: pickLevel("expert") },
     ...REVEALS.map(
       (g): ThemeScreen => ({
         name: `word: ${g.name} answer reveal`,

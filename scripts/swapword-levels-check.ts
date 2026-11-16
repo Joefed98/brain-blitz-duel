@@ -3,7 +3,7 @@
  * Hard and Expert.
  *
  *  1. The registry, the level lines, the clocks (at most 120 s), Normal byte for byte the plain deal, every level the
- *     same deal for every player (word-levels-lib.ts).
+ *     same deal for every player (word-levels-shared.ts).
  *  2. Every level board meets its rules: the proven fewest swaps, tiles in place, the budget and clock as set.
  *  3. One answer: no other arrangement of the tiles makes six common answer words while keeping the start board's
  *     green tiles (the board's mirror across its diagonal always makes six words, so the green tiles are what the

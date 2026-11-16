@@ -3,7 +3,7 @@
  * Hard and Expert.
  *
  *  1. The registry (open by design: any grid of real words using every tile finishes), the level lines, the clocks (at
- *     most 120 s), Normal byte for byte the plain deal, every level the same deal for every player (word-levels-lib.ts).
+ *     most 120 s), Normal byte for byte the plain deal, every level the same deal for every player (word-levels-shared.ts).
  *  2. Every level board is an H of three common words, fifteen tiles, every run a real word, its tray the solution's
  *     letters, and the H read back from the solution keeps the level's crossing rules (Easy: each down word starts on
  *     the across word; Hard: a 7-letter across word, each down word crossed away from both its ends; Expert: that, and

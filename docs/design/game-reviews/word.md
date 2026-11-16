@@ -355,3 +355,28 @@ a rising scale.
 | Normal | 9–12 | +12 (today) | Gold, teal, grey |
 | Hard | 11–14 | +8 | Gold and grey only |
 | Expert | 12–15 | +5 | Gold only |
+
+## Stage 3: levels (15–16 Nov 2026)
+
+On #432's framework (`docs/design/difficulty/README.md`). Normal is today's game at every point; each game's levels
+live in `src/lib/levels/word/<game>.ts` (settings and one plain line a level, shown on the game page, in the round
+intro and in the "?" help's Levels block) and its level deal in `src/lib/duel/levels/<game>.server.ts`. Joe's guide (16
+Nov 2026): a clear step up from Easy to Expert, Normal comfortable for a strong player, Expert humanly possible to score
+well on; the bot numbers are a guide, not a band.
+
+| Game | Easy | Hard | Expert | One answer |
+|---|---|---|---|---|
+| Nucleus | 9–10 letters, 45–85 everyday words, 120 s | 8–9 letters, 16–24 words, 65 s | 8 letters, 10–14 words, 50 s | open (a word find) |
+| Interlock | down words start on the across word, 120 s | 7-letter across word, crossed mid-word, 60 s | as Hard, never on its ends, 50 s | open (any real-word grid) |
+| Slider | 2–3 slides from the words, 100 s | 8 slides, 60 s | 8 slides, 45 s | open (any five real words) |
+| Forage | 320–700 words on the 6×6, 120 s | 100–140 words, 80 s | 50–80 words, 70 s | open (a word find) |
+| Lookout | 8×8, five words, across and down only, 120 s | 10 × 11, seven words any way, 90 s | 10 × 12, eight words and four false starts, 90 s | proved: each word hidden once |
+| Roundabout | 6-letter wheel, 7–9 words, 120 s | 12–15 words, up to 9 × 11, 75 s | 16–19 words, up to 9 × 12, 80 s | open (fills aren't unique) |
+| Strikeout | 3/2 starting letters on every word, 4 vowels, 14 strikes, 120 s | one starting letter, 2 vowels, 10 strikes, 90 s | none, 2 vowels, 12 strikes, 85 s | proved: one word per pattern; Expert solved by a person-like guesser |
+| Cryptogrid | 8 letters start decoded, 120 s | 5, 75 s | 4, 65 s, on the 666 boards a person-like solver cracks from them | proved (full-dictionary solver) |
+| Swapword | 5–7 swaps from the answer, 16 spare, 120 s | 13–15 swaps, 6 spare, 55 s | 15–17 swaps, 4 spare, 60 s | proved: one arrangement keeping the start's green tiles |
+
+Taller grids, not smaller squares: Lookout's Hard and Expert keep ten columns and grow to 11 and 12 rows; Roundabout's
+are at most nine columns and grow down. Each level has its check (`scripts/<game>-levels-check.ts`): clocks, Normal byte
+for byte, the same deal for every player, the boards' rules, the one-answer proof or the open reason, the tuning bands.
+Cryptogrid also deals `codewordRev 7`: a full grid that isn't cracked flashes the words on it that aren't real words.
