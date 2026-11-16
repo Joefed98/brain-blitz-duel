@@ -11,7 +11,7 @@ import {
   flipSweetsTaken,
   FLIP_RUN_TICKS,
   FLIP_V11_SAVE_COST,
-  FLIP_V13_CRASH_COST,
+  flipCrashCost,
   type FlipState,
 } from "@/lib/arcade/flip";
 import { decodeFlipRun } from "./flip";
@@ -33,8 +33,8 @@ export interface FlipTimeline {
 }
 
 /** The stored run's moments, or null for a run on an earlier revision (no flow streak) or one that does not decode. */
-export function flipRunTimeline(seed: number, raw: string, rev?: number | null): FlipTimeline | null {
-  const game = flipGameFor(rev);
+export function flipRunTimeline(seed: number, raw: string, rev?: number | null, level?: string | null): FlipTimeline | null {
+  const game = flipGameFor(rev, level);
   let run: ReturnType<typeof decodeFlipRun>;
   try {
     run = decodeFlipRun(raw);
@@ -79,6 +79,6 @@ export function flipRunTimeline(seed: number, raw: string, rev?: number | null):
     doubles,
     best,
     cleanSeconds: Math.floor((grace ? flipGraceUnits(s) : flipFlowUnits(s)) / 2),
-    crashCostSeconds: (grace ? FLIP_V13_CRASH_COST : FLIP_V11_SAVE_COST) / 2,
+    crashCostSeconds: (grace ? flipCrashCost(s) : FLIP_V11_SAVE_COST) / 2,
   };
 }

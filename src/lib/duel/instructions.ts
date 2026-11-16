@@ -58,6 +58,9 @@ import {
   SKYLINE_V2_BLOCK_POINTS,
   SKYLINE_V2_PERFECT_POINTS,
   SKYLINE_WIND_FROM,
+  SKYLINE_LEVEL_RULES,
+  SKYLINE_PERFECT_TOL,
+  SKYLINE_V11_LIVES,
 } from "@/lib/arcade/skyline";
 import { JUNC_V2_BUS_POINTS, JUNC_V2_CAR_POINTS, JUNC_V2_SURVIVE_BONUS } from "@/lib/arcade/junction";
 import {
@@ -334,6 +337,7 @@ import {
   FLIP_V13_CORE_FULL,
   FLIP_V13_CRASH_COST,
   FLIP_V13_SWEETS_FULL,
+  FLIP_LEVEL_RULES,
 } from "@/lib/arcade/flip";
 import { bandCurve, type BandCurve } from "@/lib/arcade/scoreBands";
 import { SNIP_X_FEATURE_MAX, SNIP_X_FEED_UNITS, SNIP_X_GOLD_RAW, SNIP_X_LEVELS, SNIP_X_PAR_MARGIN, SNIP_X_PAR_RAW, SNIP_X_PERFECT_RAW, SNIP_X_QUICK_RAW, SNIP_X_RAW_TOP, SNIP_X_SKILL_PAY, SNIP_X_STAR2_RAW, SNIP_X_STAR_UNITS } from "@/lib/arcade/snip";
@@ -853,17 +857,23 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap to drop", detail: "the sliding block on the tower." },
         { action: "Perfect drops", detail: "in a row build a streak." },
         { action: "Next block:", detail: "gold, narrow or wide." },
-        { action: "3 lives:", detail: "a miss costs one; the run goes on." },
-        { action: "Lives:", detail: "you have 3. A block that misses the tower falls away and costs a life; the same block comes again and your streak starts over. Losing the last life ends the run. A tap just after a lost life is ignored, so a double tap can’t cost two.", helpOnly: true },
+        { action: "3 lives:", detail: "a miss costs one; the run goes on (2 lives on Hard and Expert)." },
+        { action: "Lives:", detail: "you have 3 (2 on Hard and Expert). A block that misses the tower falls away and costs a life; the same block comes again and your streak starts over. Losing the last life ends the run. A tap just after a lost life is ignored, so a double tap can’t cost two.", helpOnly: true },
         { action: "A wide block helps:", detail: "after five drops in a row that aren’t perfect, the next block is a wide one. Centre it and the tower widens again.", helpOnly: true },
         { action: "Dusk to night:", detail: "the city lights come on as your tower climbs.", helpOnly: true },
         { action: "Next-block preview:", detail: "five gold blocks come in every run, at the same places for everyone; land one perfectly to score it. Narrow is harder and wide easier; both count as a floor like any other.", helpOnly: true },
         { action: "Every 10 floors", detail: "the camera pulls back to show the city.", helpOnly: true },
-        { action: "From block 20", detail: "a waving flag warns of wind.", helpOnly: true },
+        { action: `From block ${SKYLINE_WIND_FROM}`, detail: `a waving flag warns of wind (from block ${SKYLINE_LEVEL_RULES.easy.windFrom} on Easy, ${SKYLINE_LEVEL_RULES.hard.windFrom} on Hard, ${SKYLINE_LEVEL_RULES.expert.windFrom} on Expert).`, helpOnly: true },
+        // Levels (15 Nov 2026, docs/arcade-standard/skyline.md "Levels"): what each level changes, from the sim's own table.
+        {
+          action: "Levels:",
+          detail: `Easy slides slower, a drop within ${SKYLINE_LEVEL_RULES.easy.tol / 256} px is perfect and the wind comes later. Hard slides faster with ${SKYLINE_LEVEL_RULES.hard.lives} lives and wind from block ${SKYLINE_LEVEL_RULES.hard.windFrom}. Expert slides fastest, a drop must be within ${SKYLINE_LEVEL_RULES.expert.tol / 256} px to be perfect, with ${SKYLINE_LEVEL_RULES.expert.lives} lives and wind from block ${SKYLINE_LEVEL_RULES.expert.windFrom}. Normal: within ${SKYLINE_PERFECT_TOL / 256} px, ${SKYLINE_V11_LIVES} lives.`,
+          helpOnly: true,
+        },
         { action: "Overhang is cut", detail: "so the next block is narrower. Line it up exactly (a perfect drop) and the block grows back a little.", helpOnly: true },
         { action: "Perfect streak:", detail: "your longest run of perfect drops in a row counts, up to 10. A drop that isn’t perfect resets it.", helpOnly: true },
         { action: "Narrow and wide blocks", detail: "are perfect when centred on the top. A centred wide block stays whole, so the tower widens; off-centre, the overhang is cut as usual.", helpOnly: true },
-        { action: "Wind:", detail: `once ${SKYLINE_WIND_FROM} blocks are placed, a flag flies from the top block. Still flag: no wind. It starts waving about a second before a gust and streams the way the gust blows. Every gust is the same strength and nudges the sliding block that way while it blows.`, helpOnly: true },
+        { action: "Wind:", detail: `once ${SKYLINE_WIND_FROM} blocks are placed (on Normal), a flag flies from the top block. Still flag: no wind. It starts waving about a second before a gust and streams the way the gust blows. Every gust is the same strength and nudges the sliding block that way while it blows.`, helpOnly: true },
         { action: "Taller view, more sky:", detail: "the tower climbs higher before the camera pulls back.", helpOnly: true },
         { action: "Everyone", detail: "gets the same gusts at the same moments.", helpOnly: true },
       ],
@@ -1588,7 +1598,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap to flip sides;", detail: "dodge the spikes (some slide). Flip again right after landing for a double flip." },
         { action: "Land on a roof’s faint sweet spot", detail: "for a PERFECT landing. Clean jumps in a row build your flow streak." },
-        { action: "Crash and you blink back and run on,", detail: `but it costs ${FLIP_V13_CRASH_COST / 2} s of clean time and your streak.` },
+        { action: "Crash and you blink back and run on,", detail: `but it costs clean time (${FLIP_V13_CRASH_COST / 2} s on Normal) and your streak.` },
         { action: "Spikes or lava on one side?", detail: "Run on the other. Cracked tiles break less than half a second after you touch them: flip off fast.", helpOnly: true },
         { action: "Moving spikes", detail: "slide to and fro along the groove under them; time your flip to their slide.", helpOnly: true },
         { action: "The cave changes height:", detail: "in a tall stretch a flip takes longer to cross, in a tight one it is quicker. From 10 seconds the cave bends too, and hazards ride the bends with you.", helpOnly: true },
@@ -1597,15 +1607,21 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Sweet spots:", detail: `${FLIP_V8_SWEETS} roofs carry a short, faint pale strip. Time a flip so you touch down with your feet inside it for a sweet landing: PERFECT glows where you land. Each counts once.`, helpOnly: true },
         { action: "Flow streak:", detail: "a clean jump is a flip that lands with no crash on the way. Clean jumps in a row make your streak; a crash starts it again from 0, and your longest streak counts.", helpOnly: true },
         { action: "Star trails:", detail: `the ${FLIP_V8_TRAILS} faint arcs of small stars are only a guide, a good line through the air: nothing to collect.`, helpOnly: true },
-        { action: "No checkpoints needed: crashes never end the run.", detail: `You blink back with a second of shield and run on to the end of the minute, but ${FLIP_V13_CRASH_COST / 2} s comes off your clean time each time.`, helpOnly: true },
+        { action: "No checkpoints needed: crashes never end the run.", detail: `You blink back with a second of shield and run on to the end of the minute, but ${FLIP_V13_CRASH_COST / 2} s comes off your clean time each time on Normal.`, helpOnly: true },
+        // Levels (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): what each level changes, from the sim's own table.
+        {
+          action: "Levels:",
+          detail: `Easy runs slower (it speeds up every 4 s), with no moving spikes, wider sweet spots and ${FLIP_LEVEL_RULES.easy.crashCost / 2} s a crash. Hard is a little faster, with moving spikes from 8 s, ${FLIP_LEVEL_RULES.hard.crashCost / 2} s a crash and ${FLIP_LEVEL_RULES.hard.sweetsFull} perfect landings for all of that part. Expert is fastest (it speeds up every 2.5 s), with moving spikes from 5 s, ${FLIP_LEVEL_RULES.expert.sweetSeconds.length} sweet spots, ${FLIP_LEVEL_RULES.expert.crashCost / 2} s a crash and ${FLIP_LEVEL_RULES.expert.sweetsFull} perfect landings for all of that part.`,
+          helpOnly: true,
+        },
       ],
       // flipRev 11 (3 Nov 2026, the arcade scoring standard): clean time on a straight line, then the features' fixed shares.
       // The core tops out at 100, so the help reads "up to 100" and ends on the round's 200 (as Meteor's).
       // flipRev 13 (15 Nov 2026, the Action overhaul): grace; every crash costs 10 s, clean time full at 55 s, perfect
       // landings full at 5 of the 8 sweet spots.
       score: listFromSpec(FLIP_V13, {
-        core: `every half second you run counts, less ${FLIP_V13_CRASH_COST / 2} s for each crash; ${FLIP_V13_CORE_FULL / 2} s clean for all of it`,
-        sweets: `${60 / FLIP_V13_SWEETS_FULL} for each landing on one of the ${FLIP_V8_SWEETS} sweet spots (${FLIP_V13_SWEETS_FULL} for all of it)`,
+        core: `every half second you run counts, less ${FLIP_V13_CRASH_COST / 2} s for each crash on Normal (more on Hard and Expert); ${FLIP_V13_CORE_FULL / 2} s clean for all of it`,
+        sweets: `${60 / FLIP_V13_SWEETS_FULL} for each landing on one of the ${FLIP_V8_SWEETS} sweet spots (${FLIP_V13_SWEETS_FULL} for all of it; more on Hard and Expert)`,
         doubles: "2.5 for each double flip",
         flow: `your longest run of clean jumps (${FLIP_V11_STREAK_FULL} in a row for all of it)`,
       }),

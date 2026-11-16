@@ -75,22 +75,68 @@ crashes as red marks, then clean time, perfect landings, double flips and best f
 log with the real sim (`flipRunTimeline`, the server replay's validated inputs); flip-overhaul-check section 9 proves its
 moments are the server replay's. Earlier revisions keep their lines.
 
-### Levels (stage 3, documented now; levels arrive with the difficulty framework)
+### Levels (15 Nov 2026, the difficulty framework: built)
 
-Normal is flipRev 13 above. Levers, from Joe's table (Grace holds at every level: a crash never ends the run):
+Normal is flipRev 13 exactly (above). Easy, Hard and Expert are flipRev 13 with the puzzle's `level` (the deal stamps it;
+the stamp stays 13): each deals from its own proved deal and builds its courses on its own rules
+(`FLIP_LEVEL_RULES`, frozen with the sim; `GAME_LEVELS.flip` mirrors it for the phone). States carry `lvl` (1 / 3 / 4),
+folded into the checkpoint checksum last. Grace holds at every level: no crash ends the run (a run with no input crashes
+again and again and still lasts the minute, flip-levels-check). The parts are flipRev 13's (clean time 100, perfect
+landings 60, double flips 20, flow streak 20 = 200); only perfect landings' "full at" count moves with the level.
 
 | | Easy | Normal | Hard | Expert |
 |---|---|---|---|---|
-| Speed cap (`V8_SPEED_CAP`) | lower (2048) | today (2560) | a little faster (2816) | fastest (3072) |
+| Speed (1/256 px a tick: start, + 90 a step) | 1,024 | 1,024 | 1,280 | 1,408 |
 | Speed step | every 4 s | every 3 s | every 3 s | every 2.5 s |
+| Top speed | 2,048 | 2,560 | 3,072 | 3,328 |
 | Moving spikes from | none | 12 s | 8 s | 5 s |
-| Sweet spot width | 2 ticks (wider) | 1 tick | 1 tick | 1 tick, 10 spots |
-| Crash cost (respawn) | 5 s (see note) | 10 s | 20 s | more than Hard (respawn only) |
+| Sweet spots | 8, 6 ticks wide | 8, 1 tick | 8, 1 tick | 10, 1 tick (between the old star seconds) |
+| Perfect landings full at | 5 | 5 | 7 | 9 |
+| Clean time a crash costs | 5 s | 10 s | 20 s | 25 s |
 
-Joe's table gives Easy's checkpoint cost as 10 s and Normal's as 20 s; flipRev 13's Normal charges 10 s a crash (its
-retune), so Easy should charge less (5 s) to stay kinder. Each level that changes play gets its own proved deal
-(`scripts/flip-deal.ts`), tuned so the elite bot under human limits averages about 198 / 160 / 140 on Normal / Hard /
-Expert and Easy gives an average player a real shot at a star (175).
+Code: `flipGameFor(rev, level)` / `flipGraceGameAt`, `flipCourseV8(seed, level)` (its own cache), `flipCrashCost`,
+`flipGraceSpecOf`; every replay site passes `puzzleLevel(puzzle)` (grade.ts, the stage's `flipArtGameFor`, the reveal's
+`replayFlipRun` and run picture `flipRunTimeline`, round replays). The help's "Levels:" line and the crash and sweet-spot
+lines say what changes (instructions.ts).
+
+**Proved deals** (`src/lib/duel/flipLevelDeals.server.ts`, `bun scripts/flip-level-deal.ts [--check]`; witnesses
+`scripts/fixtures/flip-levels-witness.json.gz` planned on each level's course by `scripts/flip-x200-plan.ts`,
+`--witness [--level=x] [--part=k/n] [--out=f]` then `--merge`): every candidate (flipRev 13's 260 tuning and fresh seeds)
+whose witness takes every part's maximum on the level and scores exactly 200 through the server replay.
+Kept: Easy 258, Hard 257, Expert 254 of the 260 (the rest: witnesses at 195–197, three Expert ones at 140).
+
+**Measured** (`bun scripts/action-levels-bands.ts flip --seeds=24`; real level deals graded by the server replay; mean /
+median; every run finishes, grace). `limited` is the elite held to Joe's human limits
+(`scripts/arcade-skill-bands/humanLimits.ts`: 250 ± 30 ms reactions, 150 ms finger lag, 15 ms timing, 2.5 px aim):
+
+| Bot | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| weak | 111 / 110 | 57 / 46 | 25 / 12 | 9 / 7 |
+| average | 137 / 133 | 107 / 109 | 62 / 53 | 47 / 28 |
+| good | 171 / 164 | 145 / 146 | 133 / 139 | 119 / 132 |
+| great | 188 / 200 | 165 / 164 | 152 / 152 | 142 / 153 |
+| near-perfect | 196 / 200 | 184 / 188 | 171 / 173 | 164 / 166 |
+| elite (145 ms) | 200 / 200 | 198 / 200 | 186 / 182 | 184 / 186 |
+| **limited elite** | 200 / 200 | 183 / 188 | 163 / 165 | 159 / 160 |
+| witness (planner) | 200 | 200 | 200 | 200 |
+
+The shared tool, `bun scripts/level-tune.ts flip --level=all` (near-perfect / elite): Easy 196.5 / 200.0, Normal 181.1 / 197.1, Hard 170.9 / 187.1, Expert 160.8 / 184.5 (20 deals, every run finished).
+
+Every step is harder for every bot. The human-limited elite never crashes on a planned course (it plans the windows
+exactly), so above Normal its losses are perfect landings: that is why Hard and Expert ask for more of them (7 of 8, 9
+of 10; a decision for Joe). Normal under human limits: 183 mean, 188 median, short of Joe's ~198 guide by its perfect
+landings (3–4 of the 5); Normal is not changed here (Joe approved a Normal change for Iron Wall only). Expert boards for
+Joe to play (the limited elite's best of the first 24 Expert deals; "well" on Expert here means 160+: clean time full,
+double flips and flow full, 6+ of the 9 perfect landings): room seed n=1 (course 640114144) 173 (elite 186), n=10 (1208933397) 173 (200), n=12 (573075131) 173 (193), n=22 (596575428) 173 (180), n=7 (1271176014) 166 (186), n=8 (1276757712) 166 (200); its Expert mean is 159.
+
+Build time (a course is built from the seed at round start and in the server replay): median about 110 ms on Normal,
+about 50 ms Easy, 200–250 ms Hard, 300–450 ms Expert on this machine, with a tail to several seconds where the builder
+re-rolls a course (most Hard and Expert seeds re-roll at least once); a decision for Joe whether to prebuild during the
+intro as Grappler does (`prepareSwingCourse`).
+
+flip-levels-check (~2 min quick, `CHECKS_FULL=1` every dealt course and the deal file rebuilt byte for byte) proves
+Normal's deals byte for byte and flipRev 10–13 runs recorded on de3bec96 (`scripts/fixtures/levels-action-legacy.json.gz`),
+each level's rules and stamped settings, the 120 s rule, grace, 200 on every level's witnesses, and identical worlds.
 
 ## flipRev 12 (3 Nov 2026, the Action polish): the proved deal, a taller cave
 

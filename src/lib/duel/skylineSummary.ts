@@ -41,8 +41,8 @@ export interface SkylineSummary {
   bestRun: { from: number; to: number } | null;
 }
 
-export function skylineRunSummary(seed: number, raw: string, rev?: number | null): SkylineSummary {
-  const game = skylineGameFor(rev);
+export function skylineRunSummary(seed: number, raw: string, rev?: number | null, level?: string | null): SkylineSummary {
+  const game = skylineGameFor(rev, level);
   const run = decodeSkylineRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, SKYLINE_RUN_TICKS) : 0;
   const lastTick = endTick > 0 && endTick < SKYLINE_RUN_TICKS ? endTick : SKYLINE_RUN_TICKS;

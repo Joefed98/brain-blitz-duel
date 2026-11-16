@@ -91,7 +91,7 @@ import {
   type SnakeState,
 } from "./snake";
 import { burstFloorY, burstGoldenCount, BURST_FLOOR_Y, BURST_LIVES, BURST_TALL_H, BURST_WORLD_W, type BurstState } from "./burst";
-import { SKYLINE_STREAK_FROM, SKYLINE_TALL_H, SKYLINE_WIND_FROM, SKYLINE_WORLD_H, SKYLINE_WORLD_W, skylineWorldH, type SkylineState } from "./skyline";
+import { SKYLINE_STREAK_FROM, SKYLINE_TALL_H, SKYLINE_WORLD_H, SKYLINE_WORLD_W, skylineWindFrom, skylineWorldH, type SkylineState } from "./skyline";
 import {
   crossColumnCentreFp,
   crossGeomOf,
@@ -892,7 +892,7 @@ export const SKYLINE_FX: ArcadeFxSpec<SkylineState> = {
     { kind: "combo", count: (s) => (s.streakPoints ? s.streak ?? 0 : 0), min: SKYLINE_STREAK_FROM, label: (_s, n) => `STREAK ×${n}` },
     {
       kind: "pop",
-      count: (s) => (s.rev && s.placed >= SKYLINE_WIND_FROM ? 1 : 0),
+      count: (s) => (s.rev && s.placed >= skylineWindFrom(s) ? 1 : 0),
       at: (s) => ({ x: SKYLINE_WORLD_W / 2, y: skylineWorldH(s) * 0.3 }),
       label: () => "FLAG UP: WATCH THE WIND!",
     },

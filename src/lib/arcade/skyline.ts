@@ -170,7 +170,7 @@ function step(state: SkylineState, tapped: boolean): SkylineState {
     return next;
   }
 
-  const speed = skylineSpeed(state.placed);
+  const speed = skylineSpeedOf(state);
   let x = state.x + state.dir * speed;
   if (state.rev === SKYLINE_REV) x += skylineGustAt(state, tick) * SKYLINE_GUST_SPEED;
   let dir = state.dir;
@@ -220,7 +220,7 @@ export function skylineCheckpointState(state: SkylineState): SkylineCheckpointSt
     dir: state.dir,
     placed: state.placed,
     perfects: state.perfects,
-    speed: skylineSpeed(state.placed),
+    speed: skylineSpeedOf(state),
     topX: top.x,
     topW: top.w,
   };
@@ -239,6 +239,8 @@ export function skylineCheckpoint(state: SkylineState): SkylineCheckpoint {
   if (state.expandRev) values.push(state.expandRev, state.golds ?? 0, state.narrows ?? 0, state.wides ?? 0, state.specialPerfects ?? 0, state.milestones ?? 0, state.perfectUnits ?? 0);
   // skylineRev 11: lives, the trim count and rescues, last.
   if (state.lives !== undefined) values.push(state.lives, state.livesLost ?? 0, state.trimRun ?? 0, state.rescues ?? 0);
+  // Levels (15 Nov 2026): a level's code last (absent at Normal), so every Normal checksum is unchanged.
+  if (state.lvl) values.push(state.lvl);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -419,7 +421,7 @@ export function skylineGusts(seed: number): number[] {
 
 /** The gust direction blowing on `tick` (0 when calm or before the flag is up). */
 export function skylineGustAt(state: SkylineState, tick: number): number {
-  if (state.rev !== SKYLINE_REV || state.placed < SKYLINE_WIND_FROM) return 0;
+  if (state.rev !== SKYLINE_REV || state.placed < skylineWindFrom(state)) return 0;
   const g = state.gusts ?? [];
   for (let k = 0; k < g.length; k += 3) if (tick >= g[k]! && tick < g[k + 1]!) return g[k + 2]!;
   return 0;
@@ -427,7 +429,7 @@ export function skylineGustAt(state: SkylineState, tick: number): number {
 
 /** Render only: the flag's state on `tick` — 0 hanging still, ±1 streaming that way (warning or blowing). */
 export function skylineFlagAt(state: SkylineState, tick: number): number {
-  if (state.rev !== SKYLINE_REV || state.placed < SKYLINE_WIND_FROM) return 0;
+  if (state.rev !== SKYLINE_REV || state.placed < skylineWindFrom(state)) return 0;
   const g = state.gusts ?? [];
   for (let k = 0; k < g.length; k += 3) if (tick >= g[k]! - SKYLINE_GUST_WARN_TICKS && tick < g[k + 1]!) return g[k + 2]!;
   return 0;
@@ -445,7 +447,9 @@ function initRev2(seed: number): SkylineState {
 }
 
 export const skylineRev2Game: ArcadeGame<SkylineState> = { ...skylineGame, init: initRev2 };
-export function skylineGameFor(rev?: number | null): ArcadeGame<SkylineState> {
+export function skylineGameFor(rev?: number | null, level?: string | null): ArcadeGame<SkylineState> {
+  // Levels (15 Nov 2026): skylineRev 11 at Easy, Hard or Expert (the puzzle's `level`); Normal and older stamps as before.
+  if (rev === SKYLINE_REV_LIVES && isSkylineLevel(level)) return skylineLivesGameAt(level);
   if (rev === SKYLINE_REV_LIVES) return skylineLivesGame;
   if (rev === SKYLINE_REV_COUNT) return skylineCountGame;
   if (rev === SKYLINE_REV_STD) return skylineStdGame;
@@ -649,6 +653,12 @@ export interface SkylineExpandFields {
   rescues?: number;
   /** skylineRev 11, render only: the tick a block was lost and where it was (it falls away). */
   lostTick?: number;
+  /**
+   * Levels (15 Nov 2026, docs/arcade-standard/skyline.md "Levels"; absent at Normal and on every older round): the level
+   * the run is played at (SKYLINE_LEVEL_CODE: 1 Easy, 3 Hard, 4 Expert): its slide speed, perfect tolerance, wind start
+   * and lives (SKYLINE_LEVEL_RULES). Folded into the checkpoint checksum last.
+   */
+  lvl?: number;
   lostX?: number;
   lostW?: number;
 }
@@ -700,12 +710,12 @@ function stepExpand(state: SkylineState, tapped: boolean): SkylineState {
   let width: number;
   if (special) {
     const centre = below.x + (below.w >> 1);
-    perfect = Math.abs(state.x + (state.w >> 1) - centre) <= SKYLINE_PERFECT_TOL;
+    perfect = Math.abs(state.x + (state.w >> 1) - centre) <= skylineTolOf(state);
     // A centred narrow or wide block stays whole (a wide one widens the tower); otherwise the overhang is cut.
     x = perfect ? centre - (state.w >> 1) : left;
     width = perfect ? state.w : right - left;
   } else {
-    perfect = Math.abs(state.x - below.x) <= SKYLINE_PERFECT_TOL;
+    perfect = Math.abs(state.x - below.x) <= skylineTolOf(state);
     width = perfect ? Math.min(SKYLINE_START_W, below.w + SKYLINE_PERFECT_GROW) : right - left;
     x = perfect ? below.x : left;
   }
@@ -1050,4 +1060,83 @@ export const skylineLivesGame: ArcadeGame<SkylineState> = {
 /** Lives left to show (null on revisions without lives). */
 export function skylineLivesLeft(state: SkylineState): number | null {
   return state.lives === undefined ? null : Math.max(0, state.lives);
+}
+
+/* ================= Levels (15 Nov 2026, the difficulty framework) ================= */
+
+/**
+ * High Rise's levels (docs/arcade-standard/skyline.md "Levels", docs/design/difficulty/README.md): skylineRev 11 with the
+ * puzzle's `level` ("easy" | "hard" | "expert"; Normal has no field and is skylineRev 11 exactly: slide 768 → 1,536, a
+ * 3 px perfect tolerance, wind from block 20, 3 lives). Each level changes only these four levers; the parts, gold
+ * blocks, rescue and the 60 s run are skylineRev 11's. Lives stay at 2 or more at every level (a miss never ends the
+ * run on its own while a life is left). Frozen here with the sim; gameLevels.ts carries the same figures for the phone
+ * (skyline-levels-check).
+ */
+export type SkylineLevel = "easy" | "hard" | "expert";
+export interface SkylineLevelRules {
+  /** The slide: speed with no block placed, its rise per block placed, and its top (1/256 px a tick). */
+  speedStart: number;
+  speedStep: number;
+  speedMax: number;
+  /** A perfect drop's tolerance (1/256 px; 256 = 1 px). */
+  tol: number;
+  /** Gusts blow once this many blocks are placed. */
+  windFrom: number;
+  /** Lives at the start. */
+  lives: number;
+}
+
+export const SKYLINE_LEVEL_RULES: Readonly<Record<SkylineLevel, SkylineLevelRules>> = {
+  easy: { speedStart: 448, speedStep: 12, speedMax: 896, tol: 1_280, windFrom: 30, lives: 3 },
+  hard: { speedStart: 896, speedStep: 30, speedMax: 1_792, tol: 768, windFrom: 15, lives: 2 },
+  expert: { speedStart: 960, speedStep: 32, speedMax: 1_920, tol: 512, windFrom: 10, lives: 2 },
+};
+
+/** The level's code in a state (`lvl`). */
+export const SKYLINE_LEVEL_CODE: Readonly<Record<SkylineLevel, number>> = { easy: 1, hard: 3, expert: 4 };
+
+export function isSkylineLevel(level: unknown): level is SkylineLevel {
+  return level === "easy" || level === "hard" || level === "expert";
+}
+
+/** A state's level (null at Normal and on every older round). */
+export function skylineStateLevel(state: Pick<SkylineState, "lvl">): SkylineLevel | null {
+  return state.lvl === 1 ? "easy" : state.lvl === 3 ? "hard" : state.lvl === 4 ? "expert" : null;
+}
+
+function levelRulesOf(state: Pick<SkylineState, "lvl">): SkylineLevelRules | null {
+  const level = skylineStateLevel(state);
+  return level ? SKYLINE_LEVEL_RULES[level] : null;
+}
+
+/** The slide speed on this state: its level's table, else skylineSpeed (every Normal and older round). */
+export function skylineSpeedOf(state: Pick<SkylineState, "placed" | "lvl">): number {
+  const r = levelRulesOf(state);
+  return r ? Math.min(r.speedMax, r.speedStart + r.speedStep * state.placed) : skylineSpeed(state.placed);
+}
+
+/** A perfect drop's tolerance on this state (SKYLINE_PERFECT_TOL at Normal). */
+export function skylineTolOf(state: Pick<SkylineState, "lvl">): number {
+  return levelRulesOf(state)?.tol ?? SKYLINE_PERFECT_TOL;
+}
+
+/** The blocks placed before gusts blow on this state (SKYLINE_WIND_FROM at Normal). */
+export function skylineWindFrom(state: Pick<SkylineState, "lvl">): number {
+  return levelRulesOf(state)?.windFrom ?? SKYLINE_WIND_FROM;
+}
+
+/** The lives a run on this state started with (SKYLINE_V11_LIVES at Normal). */
+export function skylineStartLives(state: Pick<SkylineState, "lvl">): number {
+  return levelRulesOf(state)?.lives ?? SKYLINE_V11_LIVES;
+}
+
+const skylineLevelGames = new Map<SkylineLevel, ArcadeGame<SkylineState>>();
+/** skylineRev 11 at a level: its init stamps `lvl` and the level's lives; step, score and end are skylineRev 11's. */
+export function skylineLivesGameAt(level: SkylineLevel): ArcadeGame<SkylineState> {
+  let game = skylineLevelGames.get(level);
+  if (!game) {
+    game = { ...skylineLivesGame, init: (seed: number) => ({ ...initLives(seed), lives: SKYLINE_LEVEL_RULES[level].lives, lvl: SKYLINE_LEVEL_CODE[level] }) };
+    skylineLevelGames.set(level, game);
+  }
+  return game;
 }

@@ -109,9 +109,9 @@ export interface SkylineResult {
   state: SkylineState;
 }
 
-/** The single place a Skyline score is worked out. */
-export function replaySkylineRun(seed: number, raw: string, rev?: number | null): SkylineResult {
-  const skylineGame = skylineGameFor(rev);
+/** The single place a Skyline score is worked out. `level` is the stored puzzle's (puzzleLevel): skylineRev 11 at Easy, Hard or Expert replays on that level's rules. */
+export function replaySkylineRun(seed: number, raw: string, rev?: number | null, level?: string | null): SkylineResult {
+  const skylineGame = skylineGameFor(rev, level);
   const run = decodeSkylineRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, SKYLINE_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < SKYLINE_RUN_TICKS;

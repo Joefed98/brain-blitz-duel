@@ -173,19 +173,60 @@ heights), a LIVES chip in the HUD, a lost block falling away with "−1 LIFE". E
 below it, and the world blends its side edges into that same still scene (`drawEdgeRamps`) and settles its bottom rows to
 the quay's colour, so no seam shows at its edges however the camera has moved.
 
-### Levels (stage 3, from Joe's table; not built yet)
+### Levels (15 Nov 2026, the difficulty framework: built)
+
+Normal is skylineRev 11 exactly (checked: a 3 px perfect tolerance, `SKYLINE_PERFECT_TOL` 768; wind from block 20; 3
+lives; the slide 768 + 26 a floor up to 1,536). Easy, Hard and Expert are skylineRev 11 with the puzzle's `level` (the
+deal stamps it; the stamp stays 11, the seed is Normal's for the room seed, no proved deal is needed: every seed is
+proved at every level). The sim reads the level from the state (`lvl`: 1 / 3 / 4, folded into the checkpoint checksum
+last) and `SKYLINE_LEVEL_RULES` (frozen with the sim; `GAME_LEVELS.skyline` mirrors it for the phone). The parts (Floors
+140, Perfect drops 30, Perfect streak 10, Gold blocks 20), the gold blocks, the wide-block rescue and the 60 s run are
+skylineRev 11's at every level.
 
 | | Easy | Normal | Hard | Expert |
 | --- | --- | --- | --- | --- |
-| Slide speed | slower | today's (768 → 1536) | faster | fastest |
+| Slide (1/256 px a tick: start + a floor, top) | 448 + 12, 896 | 768 + 26, 1,536 | 896 + 30, 1,792 | 960 + 32, 1,920 |
 | Perfect tolerance | 5 px | 3 px | 3 px | 2 px |
 | Wind from block | 30 | 20 | 15 | 10 |
-| Lives | 3 | 3 | 2 | 2 |
+| Lives (grace: never fewer than 2) | 3 | 3 | 2 | 2 |
 
-Levers in the sim: `skylineSpeed` (`SKYLINE_SPEED_START`, `SKYLINE_SPEED_STEP`, `SKYLINE_SPEED_MAX`),
-`SKYLINE_PERFECT_TOL`, `SKYLINE_WIND_FROM`, `SKYLINE_V11_LIVES`; each level a stamp of its own, rated rooms on Normal.
-"Skyscraper" (61 floors on Expert) must stay possible: the run stays 60 s with no time lost for a life, and today a
-perfect-drop player builds 61 floors on 21 of 24 seeds (13 of 24 after losing two lives early).
+Code: `skylineGameFor(rev, level)`, `skylineLivesGameAt`, `skylineSpeedOf` / `skylineTolOf` / `skylineWindFrom` /
+`skylineStartLives` (the HUD's "LIVES n / 2", the flag and the success layer's wind pop read them); every replay site
+passes `puzzleLevel(puzzle)` (grade.ts, the stage, the reveal, the run picture, round replays). Help: one "Levels:" line
+and the lives and wind lines say what changes (instructions.ts).
+
+**Measured** (`bun scripts/action-levels-bands.ts skyline --seeds=40 --bots=weak,…,limited`; real deals graded by the
+server replay; mean / median, finish = the run not ended by the last life). `limited` is the elite held to Joe's human
+limits (`scripts/arcade-skill-bands/humanLimits.ts`: 250 ± 30 ms reactions, 150 ms finger lag, 15 ms timing, 2.5 px aim):
+
+| Bot | Easy | Normal | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| weak | 86 / 85 | 43 / 44 | 34 / 35 | 30 / 30 |
+| average | 116 / 113 (p90 144) | 53 / 52 | 44 / 44 | 41 / 39 |
+| good | 166 / 168 (p90 187) | 72 / 70 | 60 / 57 | 53 / 51 |
+| great | 183 / 188 | 105 / 101 | 84 / 83 | 71 / 70 |
+| near-perfect | 194 / 196 | 156 / 164 | 137 / 129 | 111 / 111 |
+| elite (145 ms) | 196 / 200, 100 % | 176 / 178, 80 % | 167 / 172, 38 % | 141 / 153, 13 % |
+| **limited elite** | 167 / 168, 100 % | 123 / 122, 73 % | 112 / 106, 33 % | 96 / 94, 5 % (p90 131) |
+| oracle (`scripts/skyline-oracle.ts`) | 200 | 200 | 200 | 200 |
+
+`bun scripts/level-tune.ts skyline --level=all --seeds=40` (the shared tool, near-perfect / elite averages): Easy 193.5 /
+196.1, Normal 155.8 / 176.3, Hard 136.8 / 167.1, Expert 110.7 / 140.9.
+
+Every step is a clear step down for every bot. Normal under human limits is 123, well short of Joe's ~198 guide (the
+limited bot, reacting in a quarter second, often lets a fast pass go and takes the return pass, so it builds fewer floors
+in the minute: none of its 40 runs reaches 61); Normal is not changed here (a decision for Joe). Expert, scored well
+under human limits: the limited elite's best Expert boards (room seed n → course seed): n=29 (1530145177) 146, n=39
+(1523294388) 139, n=34 (989469536) 136, n=14 (30710843) 132, n=25 (870299109) 131 (the 145 ms elite scores 155, 162,
+166, 156, 156 on them). "Well" on Expert here means 130+ (the Floors part nearly full and most of the perfect drops).
+Easy gives a good player a star most runs (median 168, p90 187) and an average one a run in the 140s at best.
+
+Skyscraper ("Build 61 floors on Expert", switched off until levels go live for challenges): the oracle builds 61+ floors
+on Expert on every seed checked (fewest 103 floors; skyline-levels-check), the 145 ms elite on 19 of 40.
+skyline-levels-check (~40 s) proves Normal's deals byte for byte and skylineRev 9–11 runs recorded on de3bec96
+(`scripts/fixtures/levels-action-legacy.json.gz`), each level's rules, the 120 s rule, grace, the oracle at 200 through the
+server replay on every level (tuning 0–29 and fresh 10000–10019; `CHECKS_FULL=1` 0–59 and 10000–10199), identical worlds
+and the Skyscraper.
 
 ## Stage 2: effects and the reveal (15 Nov 2026, the Action overhaul; display only, no stamp)
 

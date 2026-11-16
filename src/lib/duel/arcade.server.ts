@@ -4,7 +4,9 @@ import { MOON_BIG_REV, MOON_REV } from "@/lib/arcade/ricochetNinja";
 import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_LINE, sliceFoodSeedOk } from "@/lib/arcade/slice";
-import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL, FLIP_REV_GRACE } from "@/lib/arcade/flip";
+import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL, FLIP_REV_GRACE, isFlipLevel } from "@/lib/arcade/flip";
+import type { Level } from "@/lib/levels/levels";
+import { flipLevelDealSeed } from "./flipLevelDeals.server";
 import { flipDealSeed } from "./flipDeal.server";
 import { flipDealSeedV13 } from "./flipDealV13.server";
 import { CROSS_REV_KEEP } from "@/lib/arcade/cross";
@@ -169,7 +171,10 @@ export function generateSwerve(): SwervePuzzleData {
   return { type: "swerve", seed: arcadeSeed() };
 }
 
-export function generateSkyline(): SkylinePuzzleData {
+export function generateSkyline(_level?: Level): SkylinePuzzleData {
+  // Levels (15 Nov 2026, docs/arcade-standard/skyline.md "Levels"): the same seed and stamp at every level; the deal
+  // stamps `level` and the sim reads it (skylineGameFor). No proved deal: every seed is proved at every level
+  // (skyline-levels-check).
   // skylineRev 9: skylineRev 8's play on the arcade scoring standard (29 Oct 2026, docs/arcade-standard/skyline.md).
   // skylineRev 10 (Nov 2026, the scoring audit): skylineRev 9's play; perfect drops counted up to 61, so more floors never score less.
   // skylineRev 11 (15 Nov 2026, the Action overhaul): three lives (a miss costs one, the run carries on) and the wide-block
@@ -342,7 +347,7 @@ export function generateColourClash(): StroopPuzzleData {
   return { type: "stroop", seed: arcadeSeed(), queue: CLASH_QUEUE, clashRev: dealtTopupRev(CLASH_REV_TOPUP, CLASH_REV_DEPTH) };
 }
 
-export function generateFlip(): FlipPuzzleData {
+export function generateFlip(level?: Level): FlipPuzzleData {
   // flipRev 9: flipRev 8's taller cave, features and sweet spots (expansion E7, docs/expansions/x200-flip.md), scored to 200
   // on the lifted curves (Joe's phone notes, 27 Oct 2026). flipRev 10 (29 Oct 2026): the same play on the arcade scoring
   // standard (time survived 150, gold stars 15, star trails 15, sweet landings 10, double flips 10; docs/arcade-standard/flip.md).
@@ -352,6 +357,9 @@ export function generateFlip(): FlipPuzzleData {
   // flipRev 13 (15 Nov 2026, the Action overhaul): grace, dealt from its own proved courses (flipDealV13.server.ts).
   // Checks written for flipRev 12 pin it (pinFlipPreGrace).
   if (dealPinned("flipPreGrace")) return { type: "flip", seed: flipDealSeed(arcadeSeed()), flipRev: FLIP_REV_DEAL };
+  // Levels (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): Easy, Hard and Expert deal flipRev 13 from their own
+  // proved deals (flipLevelDeals.server.ts; the deal stamps `level`); Normal exactly as before.
+  if (isFlipLevel(level)) return { type: "flip", seed: flipLevelDealSeed(level, arcadeSeed()), flipRev: FLIP_REV_GRACE };
   return { type: "flip", seed: flipDealSeedV13(arcadeSeed()), flipRev: FLIP_REV_GRACE };
 }
 

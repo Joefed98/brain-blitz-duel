@@ -29,6 +29,7 @@ import {
 } from "@/lib/arcade/skyline";
 import { encodeSkylineRun } from "@/lib/duel/skyline";
 import { skylineRunSummary } from "@/lib/duel/skylineSummary";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { ARCADE_CRASH_FREEZE_MS, type SkylinePuzzleData } from "@/lib/duel/types";
 import { drawSkylineArt, drawSkylineRunPicture, SKYLINE_ART_BG, SKYLINE_END_HOLD_MS, SKYLINE_RUN_COLOURS, SKYLINE_NIGHT_STEPS, skylineNightStep, skylineSceneFill } from "@/lib/arcade/skyline.renderer";
 import { skylineSounds } from "@/lib/fx/gameSounds";
@@ -66,7 +67,8 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: SkylinePuzzleData | null = puzzle.type === "skyline" ? puzzle : null;
   const seed = data?.seed ?? 1;
-  const skylineGame = skylineGameFor(data?.skylineRev);
+  // Levels (15 Nov 2026): the stored puzzle's level picks the level's slide, tolerance, wind and lives (Normal: none).
+  const skylineGame = skylineGameFor(data?.skylineRev, puzzleLevel(data));
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -291,7 +293,7 @@ function RunPicture({ puzzle, myAnswer }: RunPictureProps) {
   const canvas = useRef<HTMLCanvasElement | null>(null);
   const wrap = useRef<HTMLDivElement | null>(null);
   const summary = useMemo(
-    () => (puzzle.type === "skyline" ? skylineRunSummary(puzzle.seed, myAnswer, puzzle.skylineRev) : null),
+    () => (puzzle.type === "skyline" ? skylineRunSummary(puzzle.seed, myAnswer, puzzle.skylineRev, puzzleLevel(puzzle)) : null),
     [puzzle, myAnswer],
   );
   useEffect(() => {
