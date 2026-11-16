@@ -99,6 +99,16 @@ export function revealShows(puzzle: PuzzleData, correct: boolean | null, switchS
     // Interlock without its switch (no stored solution): only the player's grid.
     case "tilegrid":
       return "yours";
+    // The Logic overhaul's seven (logic2Reveal.tsx): solved, the player's own board; otherwise it opens on the
+    // player's answer marked against the solution (wrong ones ringed, missed ones ghosted), with its own switch.
+    case "tents":
+    case "shikaku":
+    case "lightup":
+    case "trail":
+    case "fences":
+    case "fillomino":
+    case "bridges":
+      return correct ? "yours" : "both";
     default:
       // A switch game whose columns weren't found yet, or a game not audited: say both rather than claim one side.
       return "both";
