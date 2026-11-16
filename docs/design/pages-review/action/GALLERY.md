@@ -86,6 +86,16 @@ practice at 390 × 844, a Weak run and the flawless one:
 <img src="flip/reveal-s2.webp" width="720">
 
 
+### Stage 3: Expert
+
+An Expert run (flipRev 13, `level: "expert"`), room seed n=10 (course 1208933397), played by the human-limited elite bot
+the level tuning used and graded by the server replay: **173**. The last 4 s, the steepest zigzags with spikes riding the
+rails at speed, then SURVIVED! with the HUD at the final 173 (the game's own renderer, 5 frames a second;
+`bun scripts/shots/action-expert-clip.ts flip 10 --from=56 --secs=4 --width=170 --q=15 --max=78000`):
+
+<img src="flip/expert-clip.webp" width="170">
+
+
 ## Grappler
 
 <!-- grappler -->
@@ -278,6 +288,16 @@ full height dashed, a ruler every 50 m. The hits line from stage 1 stays in the 
 the real picture and the component's numbers; the stat tiles give way to it in the shared reveal.)
 
 <img src="ricochet/reveal-s2.webp" width="560">
+
+
+### Stage 3: Expert
+
+An Expert tower (ricoRev 4, `level: "expert"`), dealt seed 1636024891, played by the elite bot under the levels' human
+limits and graded by the server replay: **161**. 43–48 s: more blades and ice on the walls, shurikens, a knock-down
+(−4 m) and the climb past 200 m (the game's own renderer, 5 frames a second; the caption carries the server's final
+score; `bun scripts/shots/action-expert-clip.ts ricochet 1636024891 --from=43 --secs=5 --max=70000`):
+
+<img src="ricochet/expert-clip.webp" width="180">
 
 
 ## Iron Wall
@@ -584,3 +604,9 @@ Today is main 36ea8022 (orbitRev 14's look), Concept A is `orbit-A`, New is orbi
 - **The sun's end hold:** a finished run waits 1.5 s before the reveal, so the bloom, ALL 40 PLANETS! and the count-up
   (the effects strip's last frame above) show in practice too.
 
+- **Expert:** bank entry #7 (bank seed 833130779; room seed n=1, orbitRev 16 `level: "expert"`), played by the elite bot
+  under `ORBIT_HUMAN_LIMITS` and graded by the server replay: **172**, the sun reached. The last 7 s: long zigzags on Expert's
+  120-tick tank and no checkpoints, the gauge running to orange and red between catches, then the sun and ALL 40 PLANETS! (the game's own
+  renderer, 6 frames a second; `bun scripts/shots/action-expert-clip.ts orbit 7 --from=83 --secs=7 --fps=6 --max=70000`):
+
+<img src="orbit/expert-clip.webp" width="180">
