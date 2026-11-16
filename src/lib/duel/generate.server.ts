@@ -42,17 +42,17 @@ import { generateWordsmith } from "./wordsmith.server";
 import { generateTileGrid } from "./tileGrid.server";
 import { generateWordSlide } from "./wordSlide.server";
 import { generateBalance } from "./numberRounds.server";
-import { generateLightsOut, generatePipes, generateSudoku, generateSudokuLevel } from "./logic.server";
+import { generateLightsOut, generatePipes, generateSudoku } from "./logic.server";
 import { generateFlow } from "./flow.server";
 import { generateIceSlide } from "./slide.server";
 import { generatePush } from "./push.server";
 import { generateLaser } from "./laser.server";
 import { generateTower } from "./tower.server";
 import { levelSettings, towerSettingsFor, type SudokuLevel, type SafeLevel, type NonoLevel, type FloodLevel, type TubesLevel } from "./logicLevels";
-import { dealFloodLevel, dealTubesLevel } from "./logicLevelBanks.server";
+import { dealFloodLevel, dealSafeLevel, dealSudokuLevel, dealTubesLevel } from "./logicLevelBanks.server";
 import { generateMaze } from "./maze.server";
 import { generateTubes } from "./tubes.server";
-import { generateSafe, generateSafeLevel } from "./safe.server";
+import { generateSafe } from "./safe.server";
 import { generateBomb } from "./bomb.server";
 import { generateGravity } from "./gravity.server";
 import { generateTiles } from "./tiles.server";
@@ -253,7 +253,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "pipes") return generatePipes();
   if (type === "sudoku") {
     const lv = levelSettings<SudokuLevel>("sudoku", context.level);
-    return lv ? generateSudokuLevel(lv) : generateSudoku();
+    return lv ? dealSudokuLevel(lv, context.level!, context.bankSeed) : generateSudoku();
   }
   if (type === "flow") return generateFlow();
   if (type === "iceslide") return generateIceSlide();
@@ -264,7 +264,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "tubes") return generateTubes();
   if (type === "safe") {
     const lv = levelSettings<SafeLevel>("safe", context.level);
-    return lv ? generateSafeLevel(lv) : generateSafe();
+    return lv ? dealSafeLevel(lv, context.level!, context.bankSeed) : generateSafe();
   }
   if (type === "bomb") return generateBomb();
   if (type === "gravity") return generateGravity();

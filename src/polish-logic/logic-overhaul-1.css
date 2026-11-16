@@ -154,11 +154,19 @@
 :is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="teal"][data-bottom] { background-image: url("/logic-art/potion-teal-bottom.webp"); }
 :is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="pearl"] { background-image: url("/logic-art/potion-pearl.webp"); }
 :is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-potion="pearl"][data-bottom] { background-image: url("/logic-art/potion-pearl-bottom.webp"); }
+/* Joe, 16 Nov 2026: a hidden layer is a light grey (relative luminance about 0.45: above every darker liquid, red, blue,
+   purple, brown, pink, teal and orange at 0.13–0.40, and below green, pearl and yellow at 0.54–0.78), frosted in fine
+   stripes with a dark "?", so it never reads as a liquid colour. logic-1-levels-check measures the gaps. */
 :is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-hidden-layer] {
   background-image: none !important;
-  background: linear-gradient(90deg, #1c1922, #2f2a38 45%, #1c1922) !important;
+  background: repeating-linear-gradient(135deg, #b8babf 0 6px, #b0b2b7 6px 12px) !important;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18) !important;
 }
-:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-hidden-layer] .logic-potion-glyph { color: rgba(255, 255, 255, 0.55); }
+:is(#logic-overhaul-1, html) .logic-potions .logic-potion[data-hidden-layer] .logic-potion-glyph {
+  color: #1b1d22;
+  opacity: 1;
+  font-weight: 900;
+}
 :is(#logic-overhaul-1, html) .logic-potions .logic-potion-surface {
   top: -4px;
   height: 9px;

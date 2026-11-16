@@ -111,16 +111,16 @@ function geo(rev: number, cols: number, rows: number, count: number, openMin: nu
 }
 
 /** "Full by" times for the levels' speed parts: the near-perfect bots' median clear (docs/arcade-standard/minesweeper.md). */
-export const MINES_SPEED_FULL_S_V3 = 29;
-export const MINES_SPEED_FULL_S_EASY = 18;
-export const MINES_SPEED_FULL_S_EXPERT = 61;
+export const MINES_SPEED_FULL_S_V3 = 37;
+export const MINES_SPEED_FULL_S_EASY = 22;
+export const MINES_SPEED_FULL_S_EXPERT = 50;
 
 const GEOS: Readonly<Record<number, MinesGeo>> = {
   1: geo(1, 10, 16, 25, 20, 60, 90, 50),
   2: geo(2, 10, 16, 20, 20, 60, 90, 37),
   3: geo(3, 10, 16, 16, 20, 60, 90, MINES_SPEED_FULL_S_V3),
   4: geo(4, 8, 12, 9, 25, 40, 90, MINES_SPEED_FULL_S_EASY),
-  5: geo(5, 12, 18, 30, 10, 20, 120, MINES_SPEED_FULL_S_EXPERT),
+  5: geo(5, 12, 18, 34, 8, 16, 120, MINES_SPEED_FULL_S_EXPERT),
 };
 
 /** A revision's board (a stamp no server dealt reads as rev 1's). */

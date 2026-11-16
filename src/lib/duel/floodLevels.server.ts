@@ -252,7 +252,7 @@ export function floodLevelCandidate(level: FloodLevel): FloodPuzzleData | null {
   if (!solved || solved.par < lo || solved.par > hi) return null;
   const replay = replayFlood(grid, solved.solution, level.cols, null, level.colours);
   if (!replay.solved || replay.moves !== solved.par) return null;
-  return { type: "flood", grid, par: solved.par, solution: solved.solution, cols: level.cols, colours: level.colours, timeLimitMs: level.timeMs };
+  return { type: "flood", grid, par: solved.par, solution: solved.solution, cols: level.cols, colours: level.colours, timeLimitMs: level.timeMs, moveSpare: level.spare };
 }
 
 /** A level's board (logicLevels.ts FloodLevel), proved as above (live: Easy; Hard and Expert deal from the bank). */

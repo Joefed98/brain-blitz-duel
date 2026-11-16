@@ -4,6 +4,7 @@
  * Colour Flood, Tents and Trees, Shikaku, Lamplighter. Answers are built with
  * the same encoders the phone Stages use; nothing here scores.
  */
+import { sudokuLogicSolve } from "../../src/lib/duel/sudokuLogic";
 import type {
   BombPuzzleData,
   FloodPuzzleData,
@@ -211,6 +212,8 @@ const lightsKit: PuzzleKit = {
 
 // BASE 3.5 s per cell: a good player fills a 6×6 mini sudoku (~20 blanks) in about 70 s.
 const SUDOKU_BASE = 3.5;
+/** One advanced deduction (a pair, pointing or box-line), in seconds of looking. */
+const SUDOKU_ADVANCED = 9;
 
 const sudokuGrid = (givens: number[], state: Map<number, number>) => givens.map((g, c) => (g ? g : (state.get(c) ?? 0)));
 
@@ -238,6 +241,9 @@ const sudokuKit: PuzzleKit = {
   play(p, rng, skill) {
     const { givens, solution = [] } = p as SudokuPuzzleData;
     const targets = [...givens.keys()].filter((c) => !givens[c]).map((c) => [c, solution[c]!] as [number, number]);
+    // The Logic overhaul's levels (16 Nov 2026): each advanced step the board needs (a pair, pointing, box-line) is a
+    // longer look, SUDOKU_ADVANCED s spread over the blanks. Today's boards need none (singles), so they time as before.
+    const advanced = sudokuLogicSolve(givens).advanced;
     return placePlay<number>(
       {
         targets,
@@ -251,7 +257,7 @@ const sudokuKit: PuzzleKit = {
       },
       rng,
       skill,
-      SUDOKU_BASE,
+      SUDOKU_BASE + (advanced * SUDOKU_ADVANCED) / Math.max(1, targets.length),
     );
   },
 };

@@ -119,6 +119,24 @@ for (let n = 0; n < 6; n++) {
   ok(!("clashes" in p) && !("hideUsed" in p) && !("timeLimitMs" in p), `sudoku normal ${n}: no level fields`);
 }
 
+// The banks (Joe, 16 Nov 2026: Hard needs an advanced step, Expert two): every banked board re-proved.
+{
+  const { SUDOKU_LEVEL_BANK } = await import("../src/lib/duel/logicLevelBanks.server");
+  const { sudokuLogicSolve } = await import("../src/lib/duel/sudokuLogic");
+  for (const level of ["hard", "expert"] as const) {
+    const lv = settings<{ givens: [number, number]; minAdvanced: number }>("sudoku", level);
+    const bank = SUDOKU_LEVEL_BANK[level];
+    ok(bank.length === 200 && new Set(bank.map((b) => b.givens.join(""))).size === 200, `sudoku ${level}: 200 distinct banked boards`);
+    let bad = 0;
+    for (const b of bank) {
+      const count = b.givens.filter(Boolean).length;
+      const solve = sudokuLogicSolve(b.givens);
+      if (count < lv.givens[0] || count > lv.givens[1] || countSudokuSolutions(b.givens) !== 1 || sudokuLogicGrade(b.givens) !== "advanced" || solve.advanced < lv.minAdvanced || solve.grid.join() !== (b.solution ?? []).join()) bad++;
+    }
+    ok(bad === 0, `sudoku ${level}: every banked board has ${lv.givens.join("–")} givens, one solution and needs ${lv.minAdvanced}+ advanced steps (${bad} not)`);
+  }
+}
+
 /* ------------------------------------------------------------------ 3. Polypotions */
 for (const level of LEVELS) {
   const lv = settings<{ flasks: number; colours: number; capacity: number; minMoves: [number, number]; hidden: boolean; timeMs: number }>("tubes", level);
@@ -208,6 +226,22 @@ for (const level of LEVELS) {
   }
 }
 
+{
+  const { SAFE_LEVEL_BANK } = await import("../src/lib/duel/logicLevelBanks.server");
+  const lv = settings<{ dials: number; max: number; clues: number; tries: number }>("safe", "expert");
+  const bank = SAFE_LEVEL_BANK.expert;
+  ok(bank.length === 200, `safe expert: 200 banked cards`);
+  let bad = 0;
+  for (const card of bank) {
+    const shape = safeShapeOf(card);
+    const found = safeSolutions(card.clues, 2, shape);
+    if (shape.dials !== lv.dials || shape.max !== lv.max || shape.tries !== lv.tries || card.clues.length !== lv.clues) bad++;
+    else if (found.length !== 1 || found[0]!.join() !== (card.combination ?? []).join()) bad++;
+    else if (!card.clues.every((_, i) => safeSolutions(card.clues.filter((__, j) => j !== i), 2, shape).length > 1)) bad++;
+  }
+  ok(bad === 0, `safe expert: every banked card has one code and needs every clue (${bad} not)`);
+}
+
 /* ------------------------------------------------------------------ 6. Mosaic */
 for (const level of LEVELS) {
   const lv = settings<{ cols: number; rows: number; logic: "line" | "two"; timeMs: number }>("nonogram", level);
@@ -249,7 +283,9 @@ for (const level of LEVELS) {
     });
     const prove = FULL ? bank.length : level === "hard" ? 2 : 1;
     for (let i = 0; i < prove; i++) ok(floodLevelMinimum(bank[i]!.grid, lv.cols, lv.par[1])?.par === bank[i]!.par, `flood ${level} bank ${i}: par re-proved the minimum`);
-    const p = deal("flood", level, 240) as Loose & { grid: number[] };
+    const p = deal("flood", level, 240) as Loose & { grid: number[]; par: number };
+    const spare = settings<{ spare: number }>("flood", level).spare;
+    ok(p["moveSpare"] === spare && p["moveLimit"] === p.par + spare, `flood ${level}: the move allowance is par + ${spare} (${String(p["moveLimit"])})`);
     ok(bank.some((b) => b.grid.join() === p.grid.join()) && p["timeLimitMs"] === lv.timeMs, `flood ${level}: rooms deal a bank board on the level's clock`);
     ok(deal("flood", level, 240)["grid"]!.toString() === p.grid.toString(), `flood ${level}: the same room seed deals the same board`);
   }
@@ -281,6 +317,35 @@ for (const level of LEVELS) {
   }
   ok(minesGeoFor(MINES_REV_NORMAL).count === 16 && minesGeoFor(MINES_REV_LOGIC).count === 20, "minesweeper: Normal has 16 mines, Hard today's 20");
   ok(minesGeoFor(MINES_REV_EXPERT).runTicks === 120 * 60, "minesweeper: Expert runs 120 s");
+  // The registry's settings describe each revision's board exactly (Joe, 16 Nov 2026: Expert 34 mines, opening 8–16).
+  for (const [level, rev] of [["easy", MINES_REV_EASY], ["hard", MINES_REV_LOGIC], ["expert", MINES_REV_EXPERT]] as const) {
+    const lv = settings<{ cols: number; rows: number; mines: number; opening: [number, number]; seconds: number }>("minesweeper", level);
+    const gg = minesGeoFor(rev);
+    ok(lv.cols === gg.cols && lv.rows === gg.rows && lv.mines === gg.count && lv.opening[0] === gg.openMin && lv.opening[1] === gg.openMax && lv.seconds * 60 === gg.runTicks, `minesweeper ${level}: the registry matches minesRev ${rev}'s board`);
+  }
+  ok(minesGeoFor(MINES_REV_EXPERT).count / minesGeoFor(MINES_REV_EXPERT).cells > minesGeoFor(MINES_REV_LOGIC).count / minesGeoFor(MINES_REV_LOGIC).cells, "minesweeper: Expert is denser than Hard");
+}
+
+/* ------------------------------------------------------------------ the hidden layer's grey (Joe, 16 Nov 2026) */
+{
+  const { readFileSync } = await import("node:fs");
+  const css = readFileSync("src/polish-logic/logic-overhaul-1.css", "utf8");
+  const block = css.slice(css.indexOf('.logic-potion[data-hidden-layer] {'), css.indexOf('.logic-potion[data-hidden-layer] {') + 300);
+  const greys = [...block.matchAll(/#([0-9a-f]{6})/gi)].map((m) => m[1]!);
+  const lum = (hex: string) => {
+    const [r, g2, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * r! + 0.7152 * g2! + 0.0722 * b!;
+  };
+  const LIQUIDS = { red: "FF4D4D", blue: "4D8CFF", green: "3DDC84", purple: "B26BFF", pink: "FF6BD6", orange: "FF8A3D", brown: "8B5A2B", yellow: "FFE600", teal: "19B5AD", pearl: "E6DFD2" };
+  ok(greys.length >= 2, "tubes: the hidden layer is drawn in its own greys");
+  for (const grey of greys) {
+    const gap = Math.min(...Object.values(LIQUIDS).map((h) => Math.abs(lum(h) - lum(grey))));
+    ok(gap >= 0.04, `tubes: the hidden grey #${grey} is at least 0.04 in luminance from every liquid (closest ${gap.toFixed(3)})`);
+    ok(lum(grey) > 0.4, `tubes: the hidden grey #${grey} is light (luminance ${lum(grey).toFixed(2)}), never near-black`);
+  }
+  ok(/data-hidden-layer[^}]*\.logic-potion-glyph|\.logic-potion\[data-hidden-layer\] \.logic-potion-glyph/.test(css), "tubes: the hidden layer shows its \"?\"");
+}
+{
 }
 
 /* ------------------------------------------------------------------ 9. the stages */

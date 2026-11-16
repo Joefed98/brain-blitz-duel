@@ -264,8 +264,9 @@ function expectations(): Record<string, Expect> {
     "freecell.card-sharp": { say: [[32, withinS("freecell", "Speed")]] },
     "mahjong.tile-rush": { say: [[65, withinS("mahjong", "Speed")]] },
     // Changed with Joe's approval, 13 Nov 2026: Minefield's minesRev 2 is full by 37 s (the near-perfect median clear on 20 mines).
-    // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): Normal is minesRev 3, full by 29 s.
-    "minesweeper.sweep": { say: [[29, withinS("minesweeper", "Speed")]] },
+    // Changed with Joe's approval, 13 Nov 2026: Minefield's minesRev 2 is full by 37 s (the near-perfect median clear on 20 mines).
+    // Joe, 16 Nov 2026: Normal (minesRev 3) keeps 37 s too, so the number is unchanged.
+    "minesweeper.sweep": { say: [[37, withinS("minesweeper", "Speed")]] },
     "pyramid.paired-up": { say: [[10, of("pyramid", "Pyramid pairs")], [2, 2]] },
     "pyramid.unlucky-for-some": { say: [[20, withinS("pyramid", "Speed")]] },
     "tripeaks.peak-bagger": { say: [[3, of("tripeaks", "Peak tops")]] },

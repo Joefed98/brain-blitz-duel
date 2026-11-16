@@ -464,10 +464,10 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Mahjong Solitaire (mahjong): pairs 150 + no shuffles 20 + speed 30 (65 s).
   ch("mahjong", "No shuffle", "Clear the stack without a Shuffle.", "C", "clean", false, all(full("Pairs", 150), full("No shuffles", 20))),
   ch("mahjong", "Tile rush", "Clear a Hard stack within 65 s.", "H", "speed", false, part("Speed", 30)),
-  // Minefield (minesweeper): safe squares 150 + no mines hit 20 + speed 30 (29 s on minesRev 3, today's Normal, 15 Nov
-  // 2026, the near-perfect median; 37 s on minesRev 2, now Hard; 50 s on rev 1).
+  // Minefield (minesweeper): safe squares 150 + no mines hit 20 + speed 30 (37 s on minesRev 3, today's Normal, as on
+  // minesRev 2, now Hard; 50 s on rev 1). Joe, 16 Nov 2026: Normal keeps 37 s so it stays a clear step below Hard.
   ch("minesweeper", "Light feet", "Clear the board without hitting a mine.", "C", "clean", false, all(full("Safe squares", 150), full("No mines hit", 20))),
-  ch("minesweeper", "Sweep", "Clear the board within 29 s.", "C", "speed", false, part("Speed", 30)),
+  ch("minesweeper", "Sweep", "Clear the board within 37 s.", "C", "speed", false, part("Speed", 30)),
   ch("minesweeper", "Bomb disposal", "Clear an Expert field.", "E", "finish", true, part("Safe squares", 150)),
   // Thirteen (pyramid): pyramid cards 140 + cleared 15 + speed 25 (20 s) + pyramid pairs 20.
   ch("pyramid", "Lucky thirteen", "Clear the pyramid.", "C", "finish", false, part("Cleared", 15)),

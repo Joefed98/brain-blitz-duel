@@ -12,6 +12,8 @@ import { puzzleLevel, type Level, NORMAL } from "@/lib/levels/levels";
 export interface SudokuLevel {
   givens: readonly [number, number];
   steps: "singles" | "advanced";
+  /** Advanced steps a board must need at least (Hard 1, Expert 2). */
+  minAdvanced?: number;
   clashes: "live" | "check";
   hideUsed: boolean;
   timeMs: number;
@@ -54,6 +56,8 @@ export interface FloodLevel {
   colours: number;
   par: readonly [number, number];
   blocked: number;
+  /** Moves allowed over par (the par bonus reaches 0 there and the board ends). */
+  spare: number;
   timeMs: number;
 }
 export interface MinesLevel {

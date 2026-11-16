@@ -51,7 +51,9 @@ export const FLOOD_REV3_SPARE_MOVES = 10;
 export const FLOOD_REV_TIGHT = 4;
 
 /** The spare moves a Colour Flood puzzle on the standard plays with, by its stamp. */
-export function floodSpareMoves(puzzle: { depthRev?: number }): number {
+export function floodSpareMoves(puzzle: { depthRev?: number; moveSpare?: number }): number {
+  // A level's own allowance (the Logic overhaul's levels: Hard and Expert tighter); every other board as before.
+  if (typeof puzzle.moveSpare === "number" && puzzle.moveSpare > 0) return puzzle.moveSpare;
   return (puzzle.depthRev ?? 0) >= FLOOD_REV_TIGHT ? FLOOD_STANDARD_SPARE_MOVES : FLOOD_REV3_SPARE_MOVES;
 }
 

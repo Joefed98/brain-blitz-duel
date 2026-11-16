@@ -20,7 +20,7 @@ import {
 } from "./logic";
 import { pick, shuffled } from "./random";
 import type { SudokuLevel } from "./logicLevels";
-import { sudokuLogicGrade } from "./sudokuLogic";
+import { sudokuLogicGrade, sudokuLogicSolve } from "./sudokuLogic";
 import {
   LIGHTS_CELLS,
   LIGHTS_MAX_BUILD,
@@ -343,6 +343,7 @@ export function generateSudokuLevel(level: SudokuLevel): SudokuPuzzleData {
     if (remaining < lo || remaining > hi) continue;
     const grade = sudokuLogicGrade(givens);
     if (grade !== level.steps) continue;
+    if ((level.minAdvanced ?? 0) > 0 && sudokuLogicSolve(givens).advanced < level.minAdvanced!) continue;
     return {
       type: "sudoku",
       givens,

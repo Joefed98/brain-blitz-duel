@@ -152,7 +152,7 @@ export function Tubes({
                     data-bottom={ball === 0 ? "" : undefined}
                     style={{
                       ...(compact ? { height: layerHeight ?? ballSize + 3 } : {}),
-                      backgroundColor: veiled ? "var(--potion-hidden, #2a2632)" : ballColour(colour),
+                      backgroundColor: veiled ? "var(--potion-hidden, #b0b2b7)" : ballColour(colour),
                       transform: rising ? "translateY(-4px)" : "none",
                       transition: "transform 150ms ease",
                       boxShadow: rising ? "0 0 0 2px var(--primary)" : undefined,

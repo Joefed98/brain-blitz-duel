@@ -1811,6 +1811,8 @@ export interface FloodPuzzleData {
   /** A level's board (the Logic overhaul's levels): its width (rows = grid ÷ cols), its colours and its clock. Absent =
    *  today's 14 × 14 in five colours, 60 s. Expert's blocked squares are FLOOD_BLOCKED in the grid. */
   cols?: number;
+  /** A level's move allowance over par (floodSpareMoves; absent = par + 6, or par + 10 on depthRev 3). */
+  moveSpare?: number;
   colours?: number;
   timeLimitMs?: number;
 }
