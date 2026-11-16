@@ -206,6 +206,8 @@ const switchUrls = new Set(
     .filter(([slot]) => !!manifest[slot])
     .map(([, f]) => f.url),
 );
+// Changed with Joe's approval, 16 Nov 2026 (batch-1 sounds awaiting wiring). Temporary: once every batch-1 file is
+// wired, remove this exception so every served file must be a manifest URL again (docs/sound-cues/batch-1-wiring.md).
 // Sound batch 1 (16 Nov 2026, docs/sound-cues/sounds-batch-1.csv, docs/sound-cues/batch-1-wiring.md): Joe's recordings
 // for slots the Logic, Speed and Attention overhauls add. They are cut and levelled into public/sounds/ ahead of those
 // PRs, so until a PR's manifest points its slot at the file, a file named in the CSV waits for wiring (noted, not

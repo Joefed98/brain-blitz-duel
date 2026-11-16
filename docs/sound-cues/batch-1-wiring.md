@@ -18,6 +18,12 @@ that PR is on main, its manifest entry (`src/lib/fx/manifest.ts`) sets `url: "/s
 below. Until then sound-manifest-check notes these files as awaiting wiring (it still checks each is in
 `public/sounds/` as a tagged mono 44.1 kHz MP3).
 
+Joe's fixes of 16 Nov 2026: `tower.drop`, `chain.heartbeat`, `clayshoot.shot` and `clayshoot.goldShatter` keep
+their first event only (the second hit cut at the quietest point between them); `tower.illegal`, `tubes.glint`,
+`nonogram.paint`, `lightup.clash`, `trail.undo`, `spotdiff.pictureOut`, `maze.deadEnd`, `reaction.wrong`,
+`numhunt.shuffle`, `tendrop.count` and `tendrop.tap` ring out to their natural decay, never past 1.5x `target_ms`,
+then the fade (`FIRST_EVENT_ONLY`, `RING_OUT` in process.py). Faded reverb tails are kept unless the fade is audible.
+
 Two special cases:
 
 - **`bomb.defuse.mp3` is held back.** main already plays `public/sounds/bomb.defuse.mp3` for the live slot
@@ -35,50 +41,15 @@ The first column of each table is the file's manifest `url` (and keeps sound-cue
 
 ## Retakes
 
-By measurement only (Joe judges by ear). Every file below is processed and usable; these are the ones to redo.
+The sounds still to re-record are in [batch-1-retakes.md](batch-1-retakes.md) (marked “retake” below).
 
-| File (`url`) | Slot | PR | Why |
-|---|---|---|---|
-| /sounds/sudoku.pencil.mp3 | `sudoku.pencil` | #430 | obvious tail: rings 360 ms before falling 30 dB, against 100 ms asked (reverb-like; cut with a fade) |
-| /sounds/tower.drop.mp3 | `tower.drop` | #430 | two sounds: one clunk asked; two separate hits (a bounce) |
-| /sounds/tower.illegal.mp3 | `tower.illegal` | #430 | cut while still sounding: 487 ms generated, 250 ms asked, still -3.0 dB under its peak at the cut (an audible chop even with the fade) |
-| /sounds/nonogram.paint.mp3 | `nonogram.paint` | #430 | cut while still sounding: 487 ms generated, 80 ms asked, still -3.3 dB under its peak at the cut (an audible chop even with the fade) |
-| /sounds/minesweeper.defuse.mp3 | `minesweeper.defuse` | #430 | much quieter than its family: 6.1 dB under the house level for its length (a sharp spike over a quiet body; more would need audible limiting) |
-| /sounds/sudoku.clear.mp3 | `sudoku.clear` | #430 | mostly silence: one short spike, then 79 % of it more than 30 dB down |
-| /sounds/tubes.reset.mp3 | `tubes.reset` | #430 | much quieter than its family: 6.0 dB under the house level for its length (a sharp spike over a quiet body; more would need audible limiting) |
-| /sounds/tower.lower.mp3 | `tower.lower` | #430 | obvious tail: rings 480 ms before falling 30 dB, against 150 ms asked (reverb-like; cut with a fade) |
-| /sounds/tubes.glint.mp3 | `tubes.glint` | #430 | cut while still sounding: 487 ms generated, 200 ms asked, still -2.5 dB under its peak at the cut (an audible chop even with the fade) |
-| /sounds/tower.solve.mp3 | `tower.solve` | #430 | hot upload: decodes to +0.7 dBFS (not flat-topped; fine after levelling, redo only if it sounds harsh) |
-| /sounds/nonogram.solve.mp3 | `nonogram.solve` | #430 | much quieter than its family: 9.8 dB under the house level for its length (a sharp spike over a quiet body; more would need audible limiting) |
-| /sounds/shikaku.snap.mp3 | `shikaku.snap` | #435 | much quieter than its family: 8.6 dB under the house level for its length (a sharp spike over a quiet body; more would need audible limiting) |
-| /sounds/shikaku.invalid.mp3 | `shikaku.invalid` | #435 | near-silent upload (-67.1 LUFS; lifted 44.4 dB, its noise with it); obvious tail: rings 450 ms before falling 30 dB, against 150 ms asked (reverb-like; cut with a fade) |
-| /sounds/lightup.clash.mp3 | `lightup.clash` | #435 | cut while still sounding: 487 ms generated, 300 ms asked, still -4.2 dB under its peak at the cut (an audible chop even with the fade) |
-| /sounds/lightup.wallMet.mp3 | `lightup.wallMet` | #435 | obvious tail: rings 445 ms before falling 30 dB, against 150 ms asked (reverb-like; cut with a fade) |
-| /sounds/trail.undo.mp3 | `trail.undo` | #435 | cut while still sounding: 487 ms generated, 150 ms asked, still -4.1 dB under its peak at the cut (an audible chop even with the fade) |
-| /sounds/fences.over.mp3 | `fences.over` | #435 | obvious tail: rings 465 ms before falling 30 dB, against 150 ms asked (reverb-like; cut with a fade) |
-| /sounds/fences.solve.mp3 | `fences.solve` | #435 | mostly silence: one short spike, then 81 % of it more than 30 dB down; much quieter than its family: 6.4 dB under the house level for its length (a sharp spike over a quiet body; more would need audible limiting) |
-| /sounds/fillomino.over.mp3 | `fillomino.over` | #435 | near-silent upload (-66.7 LUFS; lifted 44.0 dB, its noise with it); obvious tail: rings 355 ms before falling 30 dB, against 150 ms asked (reverb-like; cut with a fade) |
-| /sounds/bridges.double.mp3 | `bridges.double` | #435 | mostly silence: one short spike, then 80 % of it more than 30 dB down; much quieter than its family: 8.6 dB under the house level for its length (a sharp spike over a quiet body; more would need audible limiting) |
-| /sounds/symscan.gridClear.mp3 | `symscan.gridClear` | #438 | much quieter than its family: 9.3 dB under the house level for its length (a sharp spike over a quiet body; more would need audible limiting) |
-| /sounds/spotdiff.pictureOut.mp3 | `spotdiff.pictureOut` | #438 | cut while still sounding: 487 ms generated, 350 ms asked, still -3.7 dB under its peak at the cut (an audible chop even with the fade) |
-| /sounds/countup.revealTick.mp3 | `countup.revealTick` | #438 | near-silent upload (-68.0 LUFS; lifted 45.3 dB, its noise with it); obvious tail: rings 425 ms before falling 30 dB, against 40 ms asked (reverb-like; cut with a fade) |
-| /sounds/maze.bump.mp3 | `maze.bump` | #438 | obvious tail: rings 415 ms before falling 30 dB, against 120 ms asked (reverb-like; cut with a fade) |
-| /sounds/maze.deadEnd.mp3 | `maze.deadEnd` | #438 | cut while still sounding: 487 ms generated, 300 ms asked, still -3.7 dB under its peak at the cut (an audible chop even with the fade) |
-| /sounds/reaction.wrong.mp3 | `reaction.wrong` | #439 | cut while still sounding: 487 ms generated, 140 ms asked, still -4.5 dB under its peak at the cut (an audible chop even with the fade) |
-| /sounds/reaction.done.mp3 | `reaction.done` | #439 | mostly silence: one short spike, then 88 % of it more than 30 dB down |
-| /sounds/numhunt.shuffle.mp3 | `numhunt.shuffle` | #439 | cut while still sounding: 487 ms generated, 320 ms asked, still -4.0 dB under its peak at the cut (an audible chop even with the fade) |
-| /sounds/chain.heartbeat.mp3 | `chain.heartbeat` | #439 | two sounds: one heartbeat asked; two beats |
-| /sounds/whack.bonk.mp3 | `whack.bonk` | #439 | near-silent upload (-59.9 LUFS; lifted 37.2 dB, its noise with it) |
-| /sounds/whack.whistle.mp3 | `whack.whistle` | #439 | hot upload: decodes to +0.4 dBFS (not flat-topped; fine after levelling, redo only if it sounds harsh) |
-| /sounds/tendrop.count.mp3 | `tendrop.count` | #439 | cut while still sounding: 487 ms generated, 30 ms asked, still -3.2 dB under its peak at the cut (an audible chop even with the fade) |
-| /sounds/tendrop.tenBurst.mp3 | `tendrop.tenBurst` | #439 | mostly silence: one short spike, then 87 % of it more than 30 dB down; much quieter than its family: 9.1 dB under the house level for its length (a sharp spike over a quiet body; more would need audible limiting) |
-| /sounds/tendrop.tap.mp3 | `tendrop.tap` | #439 | cut while still sounding: 487 ms generated, 50 ms asked, still -4.0 dB under its peak at the cut (an audible chop even with the fade) |
-| /sounds/clayshoot.shot.mp3 | `clayshoot.shot` | #439 | two sounds: shot and shatter asked “in the same instant”; two separate events |
-| /sounds/clayshoot.goldShatter.mp3 | `clayshoot.goldShatter` | #439 | two sounds: shot and shatter asked “in the same instant”; two separate events |
-| /sounds/clayshoot.birdWrong.mp3 | `clayshoot.birdWrong` | #439 | much quieter than its family: 7.7 dB under the house level for its length (a sharp spike over a quiet body; more would need audible limiting) |
+## sound-manifest-check
 
-37 files. Not flagged: the long lead silences ElevenLabs adds (up to 369 ms, trimmed), and the uploads'
-own loudness spread (-7.6 to -68 LUFS before levelling; levelling evens it out).
+Changed with Joe's approval, 16 Nov 2026 (batch-1 sounds awaiting wiring): a file named in
+[sounds-batch-1.csv](sounds-batch-1.csv) that no manifest slot plays yet is noted as awaiting wiring instead of
+failing. **This is temporary: once every batch-1 file is wired, take the exception out of
+`scripts/sound-manifest-check.ts` so the check is strict again.** Until a file is wired it is also left out of the
+offline download (`awaitingWiringPaths` in `src/lib/offline/swPlugin.ts`), so phones don't fetch sounds nothing plays.
 
 ## Every file
 
@@ -98,13 +69,13 @@ slot and its entry together.
 | /sounds/tubes.undo.mp3 | `tubes.undo` | #430 | yes | 200 | 200 | -23.9 (-22.7) | -2.5 |  |
 | /sounds/tubes.wrong.mp3 | `tubes.wrong` | #430 | to add | 350 | 350 | -19.8 (-17.5) | -2.6 |  |
 | /sounds/tubes.outOfPours.mp3 | `tubes.outOfPours` | #430 | yes | 600 | 600 | -17.1 (-17.1) | -4.7 |  |
-| /sounds/tower.drop.mp3 | `tower.drop` | #430 | yes | 250 | 250 | -21.8 (-17.5) | -2.5 | † replaces the placeholder, retake, limited past transparent (-12.9 dB) to stay within 4.5 dB |
-| /sounds/tower.illegal.mp3 | `tower.illegal` | #430 | to add | 250 | 250 | -17.4 (-17.5) | -2.9 | retake |
+| /sounds/tower.drop.mp3 | `tower.drop` | #430 | yes | 250 | 180 | -22.7 (-22.7) | -4.5 | † replaces the placeholder |
+| /sounds/tower.illegal.mp3 | `tower.illegal` | #430 | to add | 250 | 375 | -17.5 (-17.5) | -4.2 |  |
 | /sounds/tower.glint.mp3 | `tower.glint` | #430 | to add | 400 | 400 | -17.5 (-17.5) | -1.2 |  |
 | /sounds/safe.wrongTry.mp3 | `safe.wrongTry` | #430 | yes | 400 | 400 | -22.0 (-17.5) | -2.1 |  |
 | /sounds/safe.solve.mp3 | `safe.solve` | #430 | yes | 1200 | 1161 | -17.9 (-16.5) | -1.6 | † replaces the placeholder, tail shortened to stay under 15,000 bytes |
 | /sounds/nonogram.fill.mp3 | `nonogram.fill` | #430 | yes | 150 | 150 | -24.1 (-22.7) | -2.7 | † replaces the placeholder |
-| /sounds/nonogram.paint.mp3 | `nonogram.paint` | #430 | yes | 80 | 80 | -26.7 (-22.7) | -2.1 | retake |
+| /sounds/nonogram.paint.mp3 | `nonogram.paint` | #430 | yes | 80 | 120 | -23.9 (-22.7) | -2.0 |  |
 | /sounds/nonogram.mark.mp3 | `nonogram.mark` | #430 | yes | 120 | 120 | -22.7 (-22.7) | -4.4 | † replaces the placeholder |
 | /sounds/nonogram.line.mp3 | `nonogram.line` | #430 | yes | 400 | 400 | -17.5 (-17.5) | -3.2 |  |
 | /sounds/flood.spread.mp3 | `flood.spread` | #430 | yes | 300 | 300 | -17.5 (-17.5) | -1.7 | † replaces the placeholder |
@@ -117,15 +88,15 @@ slot and its entry together.
 | /sounds/tubes.combo.mp3 | `tubes.combo` | #430 | to add | 600 | 600 | -18.9 (-17.1) | -2.5 |  |
 | /sounds/tubes.reset.mp3 | `tubes.reset` | #430 | to add | 500 | 480 | -23.5 (-17.5) | -2.6 | retake |
 | /sounds/tower.lift.mp3 | `tower.lift` | #430 | yes | 250 | 250 | -17.5 (-17.5) | -2.9 |  |
-| /sounds/tower.lower.mp3 | `tower.lower` | #430 | to add | 150 | 150 | -22.7 (-22.7) | -4.5 | retake |
+| /sounds/tower.lower.mp3 | `tower.lower` | #430 | to add | 150 | 150 | -22.7 (-22.7) | -4.5 |  |
 | /sounds/tower.undo.mp3 | `tower.undo` | #430 | to add | 250 | 250 | -17.5 (-17.5) | -1.3 |  |
 | /sounds/tower.reset.mp3 | `tower.reset` | #430 | to add | 500 | 480 | -17.7 (-17.5) | -2.2 |  |
 | /sounds/safe.drumLock.mp3 | `safe.drumLock` | #430 | to add | 150 | 150 | -24.1 (-22.7) | -2.6 |  |
 | /sounds/flood.nearPar.mp3 | `flood.nearPar` | #430 | to add | 400 | 400 | -17.6 (-17.5) | -2.6 |  |
 | /sounds/flood.outOfMoves.mp3 | `flood.outOfMoves` | #430 | to add | 600 | 599 | -17.1 (-17.1) | -3.5 |  |
 | /sounds/minesweeper.clear.mp3 | `minesweeper.clear` | #430 | yes | 1200 | 1200 | -16.6 (-16.5) | -1.5 |  |
-| /sounds/tubes.glint.mp3 | `tubes.glint` | #430 | to add | 200 | 200 | -22.7 (-22.7) | -9.7 | retake |
-| /sounds/tower.solve.mp3 | `tower.solve` | #430 | yes | 1000 | 975 | -18.3 (-16.5) | -2.1 | retake |
+| /sounds/tubes.glint.mp3 | `tubes.glint` | #430 | to add | 200 | 300 | -17.5 (-17.5) | -5.9 |  |
+| /sounds/tower.solve.mp3 | `tower.solve` | #430 | yes | 1000 | 975 | -18.3 (-16.5) | -2.1 |  |
 | /sounds/tower.near.mp3 | `tower.near` | #430 | to add | 400 | 400 | -17.7 (-17.5) | -2.4 |  |
 | /sounds/nonogram.combo.mp3 | `nonogram.combo` | #430 | to add | 600 | 600 | -17.1 (-17.1) | -3.2 |  |
 | /sounds/nonogram.solve.mp3 | `nonogram.solve` | #430 | yes | 1000 | 970 | -26.3 (-16.5) | -2.6 | retake |
@@ -145,15 +116,15 @@ slot and its entry together.
 | /sounds/shikaku.solve.mp3 | `shikaku.solve` | #435 | yes | 1000 | 1000 | -16.5 (-16.5) | -4.6 |  |
 | /sounds/shikaku.dragStart.mp3 | `shikaku.dragStart` | #435 | yes | 80 | 80 | -26.2 (-22.7) | -1.8 |  |
 | /sounds/lightup.lamp.mp3 | `lightup.lamp` | #435 | yes | 300 | 300 | -21.9 (-17.5) | -1.1 | † replaces the placeholder, limited past transparent (-12.0 dB) to stay within 4.5 dB |
-| /sounds/lightup.clash.mp3 | `lightup.clash` | #435 | yes | 300 | 300 | -17.5 (-17.5) | -4.8 | retake |
-| /sounds/lightup.wallMet.mp3 | `lightup.wallMet` | #435 | yes | 150 | 150 | -22.7 (-22.7) | -5.2 | retake |
+| /sounds/lightup.clash.mp3 | `lightup.clash` | #435 | yes | 300 | 450 | -17.6 (-17.5) | -5.3 | retake |
+| /sounds/lightup.wallMet.mp3 | `lightup.wallMet` | #435 | yes | 150 | 150 | -22.7 (-22.7) | -5.2 |  |
 | /sounds/lightup.dot.mp3 | `lightup.dot` | #435 | yes | 100 | 100 | -26.7 (-22.7) | -2.6 | † replaces the placeholder |
 | /sounds/lightup.dark.mp3 | `lightup.dark` | #435 | yes | 400 | 400 | -17.5 (-17.5) | -5.8 |  |
 | /sounds/lightup.solve.mp3 | `lightup.solve` | #435 | yes | 1000 | 1000 | -16.5 (-16.5) | -3.0 |  |
 | /sounds/trail.step.mp3 | `trail.step` | #435 | yes | 300 | 300 | -17.5 (-17.5) | -3.8 | † replaces the placeholder |
 | /sounds/trail.fixed.mp3 | `trail.fixed` | #435 | yes | 500 | 480 | -17.5 (-17.5) | -1.3 |  |
 | /sounds/trail.refused.mp3 | `trail.refused` | #435 | yes | 150 | 150 | -22.8 (-22.7) | -2.7 |  |
-| /sounds/trail.undo.mp3 | `trail.undo` | #435 | yes | 150 | 150 | -22.5 (-22.7) | -6.6 | retake |
+| /sounds/trail.undo.mp3 | `trail.undo` | #435 | yes | 150 | 225 | -22.7 (-22.7) | -4.4 | retake |
 | /sounds/trail.reset.mp3 | `trail.reset` | #435 | yes | 400 | 400 | -17.7 (-17.5) | -2.6 |  |
 | /sounds/trail.solve.mp3 | `trail.solve` | #435 | yes | 1100 | 1080 | -16.5 (-16.5) | -2.8 |  |
 | /sounds/fences.cross.mp3 | `fences.cross` | #435 | yes | 150 | 150 | -22.7 (-22.7) | -4.8 |  |
@@ -188,7 +159,7 @@ slot and its entry together.
 | /sounds/spotdiff.found.mp3 | `spotdiff.found` | #438 | yes | 350 | 350 | -20.9 (-17.5) | -1.7 | † replaces the placeholder |
 | /sounds/spotdiff.miss.mp3 | `spotdiff.miss` | #438 | yes | 150 | 150 | -22.9 (-22.7) | -2.6 |  |
 | /sounds/spotdiff.hidden.mp3 | `spotdiff.hidden` | #438 | yes | 600 | 600 | -17.1 (-17.1) | -3.3 |  |
-| /sounds/spotdiff.pictureOut.mp3 | `spotdiff.pictureOut` | #438 | yes | 350 | 350 | -17.4 (-17.5) | -4.3 | retake |
+| /sounds/spotdiff.pictureOut.mp3 | `spotdiff.pictureOut` | #438 | yes | 350 | 486 | -17.4 (-17.5) | -4.5 |  |
 | /sounds/countup.key.mp3 | `countup.key` | #438 | yes | 60 | 60 | -23.4 (-22.7) | -2.6 |  |
 | /sounds/countup.mark.mp3 | `countup.mark` | #438 | yes | 80 | 80 | -25.6 (-22.7) | -1.8 |  |
 | /sounds/countup.unmark.mp3 | `countup.unmark` | #438 | yes | 60 | 60 | -27.2 (-22.7) | -2.1 |  |
@@ -198,7 +169,7 @@ slot and its entry together.
 | /sounds/maze.step.mp3 | `maze.step` | #438 | yes | 50 | 50 | -22.8 (-22.7) | -2.6 |  |
 | /sounds/maze.bump.mp3 | `maze.bump` | #438 | yes | 120 | 120 | -22.7 (-22.7) | -5.8 | retake |
 | /sounds/maze.back.mp3 | `maze.back` | #438 | yes | 40 | 40 | -22.6 (-22.7) | -1.4 |  |
-| /sounds/maze.deadEnd.mp3 | `maze.deadEnd` | #438 | yes | 300 | 300 | -17.5 (-17.5) | -7.2 | retake |
+| /sounds/maze.deadEnd.mp3 | `maze.deadEnd` | #438 | yes | 300 | 450 | -17.5 (-17.5) | -7.6 |  |
 | /sounds/maze.trace.mp3 | `maze.trace` | #438 | yes | 1000 | 1000 | -16.5 (-16.5) | -3.3 |  |
 | /sounds/bomb.press.mp3 | `bomb.press` | #438 | yes | 120 | 120 | -22.8 (-22.7) | -3.3 | † replaces the placeholder |
 | /sounds/bomb.step.mp3 | `bomb.step` | #438 | yes | 50 | 50 | -26.4 (-22.7) | -2.2 |  |
@@ -211,7 +182,7 @@ slot and its entry together.
 | /sounds/pairmatch.cardWave.mp3 | `pairmatch.cardWave` | #438 | yes | 1000 | 1000 | -16.5 (-16.5) | -1.8 |  |
 | /sounds/reaction.hit.mp3 | `reaction.hit` | #439 | yes | 90 | 90 | -24.4 (-22.7) | -2.6 |  |
 | /sounds/reaction.combo.mp3 | `reaction.combo` | #439 | yes | 250 | 250 | -17.5 (-17.5) | -2.5 |  |
-| /sounds/reaction.wrong.mp3 | `reaction.wrong` | #439 | yes | 140 | 140 | -22.7 (-22.7) | -9.1 | retake |
+| /sounds/reaction.wrong.mp3 | `reaction.wrong` | #439 | yes | 140 | 210 | -22.7 (-22.7) | -9.6 | retake |
 | /sounds/reaction.done.mp3 | `reaction.done` | #439 | yes | 600 | 600 | -17.4 (-17.1) | -2.0 | retake |
 | /sounds/reaction.bar.mp3 | `reaction.bar` | #439 | yes | 70 | 70 | -22.7 (-22.7) | -3.9 |  |
 | /sounds/numhunt.note-low.mp3 | `numhunt.note-low` | #439 | yes | 300 | 300 | -17.5 (-17.5) | -3.9 |  |
@@ -220,24 +191,24 @@ slot and its entry together.
 | /sounds/numhunt.combo.mp3 | `numhunt.combo` | #439 | yes | 400 | 400 | -17.5 (-17.5) | -2.7 |  |
 | /sounds/numhunt.wrong.mp3 | `numhunt.wrong` | #439 | yes | 150 | 150 | -22.8 (-22.7) | -2.6 |  |
 | /sounds/numhunt.warn.mp3 | `numhunt.warn` | #439 | yes | 900 | 869 | -17.1 (-17.1) | -4.4 |  |
-| /sounds/numhunt.shuffle.mp3 | `numhunt.shuffle` | #439 | yes | 320 | 320 | -17.6 (-17.5) | -2.6 | retake |
+| /sounds/numhunt.shuffle.mp3 | `numhunt.shuffle` | #439 | yes | 320 | 480 | -17.5 (-17.5) | -2.2 |  |
 | /sounds/chain.reshuffle.mp3 | `chain.reshuffle` | #439 | yes | 300 | 300 | -17.5 (-17.5) | -1.2 |  |
-| /sounds/chain.heartbeat.mp3 | `chain.heartbeat` | #439 | yes | 500 | 487 | -22.9 (-17.5) | -2.6 | retake |
+| /sounds/chain.heartbeat.mp3 | `chain.heartbeat` | #439 | yes | 500 | 135 | -22.8 (-22.7) | -1.1 |  |
 | /sounds/whack.bonk.mp3 | `whack.bonk` | #439 | yes | 180 | 180 | -22.7 (-22.7) | -7.2 | retake |
-| /sounds/whack.whistle.mp3 | `whack.whistle` | #439 | yes | 450 | 450 | -17.5 (-17.5) | -6.8 | retake |
+| /sounds/whack.whistle.mp3 | `whack.whistle` | #439 | yes | 450 | 450 | -17.5 (-17.5) | -6.8 |  |
 | /sounds/whack.slam.mp3 | `whack.slam` | #439 | yes | 260 | 260 | -17.6 (-17.5) | -2.6 |  |
 | /sounds/whack.hedgehog.mp3 | `whack.hedgehog` | #439 | yes | 320 | 320 | -17.6 (-17.5) | -2.6 |  |
 | /sounds/whack.wrongHat.mp3 | `whack.wrongHat` | #439 | yes | 150 | 150 | -22.6 (-22.7) | -5.6 |  |
 | /sounds/whack.diamond.mp3 | `whack.diamond` | #439 | yes | 420 | 420 | -17.5 (-17.5) | -4.0 |  |
 | /sounds/whack.emptyTap.mp3 | `whack.emptyTap` | #439 | yes | 80 | 80 | -22.7 (-22.7) | -1.4 |  |
 | /sounds/tendrop.apply.mp3 | `tendrop.apply` | #439 | yes | 70 | 70 | -22.7 (-22.7) | -3.1 |  |
-| /sounds/tendrop.count.mp3 | `tendrop.count` | #439 | yes | 30 | 30 | -22.8 (-22.7) | -3.2 | retake |
+| /sounds/tendrop.count.mp3 | `tendrop.count` | #439 | yes | 30 | 45 | -22.8 (-22.7) | -3.9 | retake |
 | /sounds/tendrop.near.mp3 | `tendrop.near` | #439 | yes | 300 | 300 | -17.5 (-17.5) | -3.5 |  |
 | /sounds/tendrop.tenBurst.mp3 | `tendrop.tenBurst` | #439 | yes | 500 | 417 | -26.6 (-17.5) | -2.5 | retake |
 | /sounds/tendrop.shatter.mp3 | `tendrop.shatter` | #439 | yes | 420 | 396 | -21.0 (-17.5) | -2.3 |  |
-| /sounds/tendrop.tap.mp3 | `tendrop.tap` | #439 | yes | 50 | 50 | -22.9 (-22.7) | -2.5 | retake |
-| /sounds/clayshoot.shot.mp3 | `clayshoot.shot` | #439 | yes | 450 | 450 | -17.6 (-17.5) | -1.5 | retake |
-| /sounds/clayshoot.goldShatter.mp3 | `clayshoot.goldShatter` | #439 | yes | 450 | 450 | -18.0 (-17.5) | -1.1 | retake |
+| /sounds/tendrop.tap.mp3 | `tendrop.tap` | #439 | yes | 50 | 75 | -22.7 (-22.7) | -1.5 | retake |
+| /sounds/clayshoot.shot.mp3 | `clayshoot.shot` | #439 | yes | 450 | 210 | -22.8 (-22.7) | -2.0 |  |
+| /sounds/clayshoot.goldShatter.mp3 | `clayshoot.goldShatter` | #439 | yes | 450 | 274 | -18.9 (-17.5) | -1.3 |  |
 | /sounds/clayshoot.goldChime.mp3 | `clayshoot.goldChime` | #439 | yes | 500 | 486 | -17.5 (-17.5) | -5.1 |  |
 | /sounds/clayshoot.escape.mp3 | `clayshoot.escape` | #439 | yes | 400 | 400 | -17.5 (-17.5) | -7.9 |  |
 | /sounds/clayshoot.birdWrong.mp3 | `clayshoot.birdWrong` | #439 | yes | 250 | 250 | -25.2 (-17.5) | -1.1 | retake |

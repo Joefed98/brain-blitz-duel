@@ -34,6 +34,14 @@ SR = 44100
 TP_MAX = fix.TP_MAX
 SILENCE = 10 ** (-60 / 20)
 FRAME = 1152
+# Joe's fixes of 16 Nov 2026 (docs/sound-cues/batch-1-retakes.md):
+# two sounds where one was asked: keep the first event only, with the 10 ms fade;
+FIRST_EVENT_ONLY = {"tower.drop.mp3", "chain.heartbeat.mp3", "clayshoot.shot.mp3", "clayshoot.goldShatter.mp3"}
+# an audible chop at target_ms: ring out to the natural decay, at most 1.5 x target_ms, then the fade.
+RING_OUT = {"tower.illegal.mp3", "tubes.glint.mp3", "nonogram.paint.mp3", "lightup.clash.mp3", "trail.undo.mp3",
+            "spotdiff.pictureOut.mp3", "maze.deadEnd.mp3", "reaction.wrong.mp3", "numhunt.shuffle.mp3",
+            "tendrop.count.mp3", "tendrop.tap.mp3"}
+RING_OUT_MAX = 1.5
 # The files that replace the November placeholders (src/lib/fx/newGameSounds.data.ts) keep that data's limits
 # (scripts/sound-review-fixes-check.ts): at most 4.5 dB under the target, at most 15,000 bytes for a one-shot.
 PLACEHOLDER_MAX_SHORT, PLACEHOLDER_MAX_BYTES = 4.5, 15_000
@@ -79,6 +87,29 @@ def onsets(m):
             in_event = False
             low_run += 1
     return events
+
+
+def first_event_end(x):
+    """Where the first event ends: the quietest 5 ms window between the first event's peak and the second event's
+    onset (onsets()' rule), or None with one event."""
+    e = env_db(x)
+    top = e.max()
+    n = max(1, int(0.005 * SR))
+    in_event, seen, low_run, low_from = False, 0, 0, None
+    for i, v in enumerate(e):
+        if v > top - 8:
+            if not in_event and seen and low_run >= 12:
+                lo = int(np.argmin(e[low_from:i])) + low_from
+                return (lo + 1) * n
+            if not in_event:
+                seen += 1
+            in_event, low_run = True, 0
+        elif v < top - 25:
+            if in_event:
+                low_from = i
+            in_event = False
+            low_run += 1
+    return None
 
 
 def target_lufs(secs, loop):
@@ -179,6 +210,15 @@ def process(row, src, outdir):
         end = np.nonzero(np.abs(m) > tail_floor)[0][-1] + 1
         x = m[start:end].copy()
         r["sound_ms"] = round(len(x) / SR * 1000)
+        if name in FIRST_EVENT_ONLY:
+            valley = first_event_end(x)
+            if valley is not None:
+                x = x[:valley].copy()
+                r["first_event_ms"] = round(len(x) / SR * 1000)
+        if name in RING_OUT:
+            # Let it ring out to its natural decay (the tail floor above), never past 1.5 x target_ms.
+            target_ms = min(round(len(x) / SR * 1000), int(target_ms * RING_OUT_MAX))
+            r["ring_out_ms"] = target_ms
         # How much of the sound the target cuts off, and how loud it still was there (a long tail, often reverb).
         cut_at = int(target_ms / 1000 * SR)
         if len(x) > cut_at:

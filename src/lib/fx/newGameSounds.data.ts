@@ -4,7 +4,7 @@
 // through), its length's library target and its true peak (dBFS).
 export const NEW_GAME_SOUND_RECORDINGS = [
   { file: "sudoku.place.mp3", slots: ["sudoku.place"], ms: 150, bytes: 2507, lufs: -26.9, target: -22.7, truePeak: -2.6, loop: false, what: "a soft wooden tap, a digit set on a board" },
-  { file: "tower.drop.mp3", slots: ["tower.drop"], ms: 250, bytes: 3761, lufs: -21.8, target: -17.5, truePeak: -2.5, loop: false, what: "a ring dropping onto its post: a mid wooden clunk with a low knock" },
+  { file: "tower.drop.mp3", slots: ["tower.drop"], ms: 180, bytes: 2821, lufs: -22.7, target: -22.7, truePeak: -4.5, loop: false, what: "a ring dropping onto its post: a mid wooden clunk with a low knock" },
   { file: "tubes.pour.mp3", slots: ["tubes.pour"], ms: 450, bytes: 6269, lufs: -17.6, target: -17.5, truePeak: -2.5, loop: false, what: "a glassy pour: bubbles rising in pitch inside a glass tube" },
   { file: "nonogram.fill.mp3", slots: ["nonogram.fill"], ms: 150, bytes: 2507, lufs: -24.1, target: -22.7, truePeak: -2.7, loop: false, what: "a felt stamp: a soft, dense press into the square" },
   { file: "nonogram.mark.mp3", slots: ["nonogram.mark"], ms: 120, bytes: 2194, lufs: -22.7, target: -22.7, truePeak: -4.4, loop: false, what: "a pencil tick: a light, dry scratch" },
