@@ -369,6 +369,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
   // rallyRev 13: a lost blue ball waits at the serve spot, blinking, with the serve countdown over it.
   const serveLeft = (state.relaunch ?? 0) > state.tick ? (state.relaunch ?? 0) - state.tick : 0;
   if (serveLeft > 0) {
+    // The trail is fed the serve spot while the ball waits, so the relaunch carries no pixels from where it was missed.
+    retroTrail(key, state.tick, "main", bx, by, 1);
     if (Math.floor(serveLeft / 8) % 2 === 0) retroBall(ctx, bx, by, RALLY_BALL_R, "#7AAAFF");
     retroText(ctx, String(Math.ceil((serveLeft * 3) / RALLY_V13_RELAUNCH)), bx, by - 30, 14, RETRO_WHITE, "center", 3);
   } else if (!state.dead) {
