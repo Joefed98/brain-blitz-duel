@@ -164,8 +164,8 @@ export const LEVEL_THINK: Readonly<Record<string, number>> = { easy: 0.8, normal
  * Regions' moves are quick strokes, so a harder map shows in the thinking before each, not in more of them.
  */
 export const LEVEL_THINK_GAME: Readonly<Record<string, Readonly<Record<string, number>>>> = {
-  trail: { hard: 2.6, expert: 2.85 },
-  fillomino: { hard: 2.9, expert: 3.25 },
+  trail: { hard: 2.6, expert: 2.7 },
+  fillomino: { hard: 2.5, expert: 3.05 },
 };
 
 /** `skill` at the puzzle's level (puzzleLevel): unchanged at Normal. */
