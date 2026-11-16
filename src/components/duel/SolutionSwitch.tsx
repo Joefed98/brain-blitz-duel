@@ -57,10 +57,22 @@ function findPair(root: HTMLElement): { solution: HTMLElement; yours: HTMLElemen
   return { solution, yours, labels: [sol, mine] };
 }
 
-export function SolutionSwitch({ type, root }: { type: string; root: { current: HTMLElement | null } }) {
+export function SolutionSwitch({
+  type,
+  root,
+  onChange,
+}: {
+  type: string;
+  root: { current: HTMLElement | null };
+  /** The reveal's heading follows the board shown (revealHeading.ts): told the view and whether both columns were found. */
+  onChange?: (state: { found: boolean; view: View }) => void;
+}) {
   const [view, setView] = useState<View>("solution");
   const [found, setFound] = useState(false);
   const on = SOLUTION_SWITCH_TYPES.has(type);
+  useEffect(() => {
+    if (on) onChange?.({ found, view });
+  }, [on, found, view, onChange]);
   useEffect(() => {
     const node = root.current;
     if (!on || !node) return;

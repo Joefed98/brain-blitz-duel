@@ -1,3 +1,4 @@
+import { useAppMoment } from "@/components/fx/useMomentEnter";
 import { useEffect, useMemo, useState } from "react";
 
 import { Coin } from "@/components/app/CoinCounter";
@@ -183,6 +184,8 @@ export function ChallengeMoments() {
     setQueue(takeChallengeMoments().filter((m) => challengeById(m.id)));
   }, []);
   const head = queue[0];
+  // A challenge completed (15 Nov 2026, the effects pass): the kit's match flourish on its card, once each.
+  useAppMoment("match", "[data-challenge-moment]", head?.id ?? null, { silent: true });
   useEffect(() => {
     if (!head) return;
     const t = window.setTimeout(() => setQueue((q) => q.slice(1)), CHALLENGE_MOMENT_MS);
