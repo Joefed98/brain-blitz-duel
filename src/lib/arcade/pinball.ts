@@ -373,7 +373,8 @@ export function pinIsOver(state: PinState): boolean {
 
 /** Balls left to play, including the one in play or waiting. */
 export function pinBallsLeft(state: PinState): number {
-  return Math.max(0, PIN_BALLS - state.lost);
+  // A level's run (stage 3 of the Retro overhaul) plays its own number of balls.
+  return Math.max(0, ((state as PinState & { lv?: { balls: number } }).lv?.balls ?? PIN_BALLS) - state.lost);
 }
 
 /* ============================== Collisions ============================= */
@@ -1009,15 +1010,17 @@ export const PIN_V5_RUN_TICKS = PIN_V5_RUN_SECONDS * TICKS_PER_SECOND;
 export const PIN_REV_STD = 6;
 /** pinRev 7 (the Retro overhaul, 15 Nov 2026): pinRev 6's table and play; one J-O-U-L-Z set fills its part (20). */
 export const PIN_REV_JOULZ = 7;
+/** pinRev 8 (the Retro overhaul, stage 3, 16 Nov 2026): pinRev 7's table and play with the outlane saves counted. */
+export const PIN_REV_SAVE = 8;
 
 /** The taller table (pinball4.ts) plays on pinRev 4 and every later revision. */
 export function pinIsExpanded(rev?: number | null): boolean {
-  return rev === PIN_REV_EXPAND || rev === PIN_REV_LONG || rev === PIN_REV_STD || rev === PIN_REV_JOULZ;
+  return rev === PIN_REV_EXPAND || rev === PIN_REV_LONG || rev === PIN_REV_STD || rev === PIN_REV_JOULZ || rev === PIN_REV_SAVE;
 }
 
 /** The run length of a stored pinRev: 90 s on pinRev 5 and 6, 60 s on every older revision. */
 export function pinRunTicksFor(rev?: number | null): number {
-  return rev === PIN_REV_LONG || rev === PIN_REV_STD || rev === PIN_REV_JOULZ ? PIN_V5_RUN_TICKS : PIN_RUN_TICKS;
+  return rev === PIN_REV_LONG || rev === PIN_REV_STD || rev === PIN_REV_JOULZ || rev === PIN_REV_SAVE ? PIN_V5_RUN_TICKS : PIN_RUN_TICKS;
 }
 
 /** The run length of a live state (pinRev 5's and 6's states carry `rev5`). */

@@ -1,4 +1,6 @@
 import { useGameKeys } from "@/lib/desktop";
+import { puzzleLevel } from "@/lib/levels/levels";
+import { RETRO_PAYOFF_MS } from "@/lib/arcade/retroFx.renderer";
 import { ArtStill } from "@/components/puzzles/ArtStill";
 import { hoverGapTop, hoverWorldH } from "@/lib/arcade/hover";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
@@ -9,7 +11,7 @@ import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordTap, tapAt } from "@/lib/arcade/engine";
 import { auditTapAt } from "@/lib/arcade/auditInput";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 
 import {
   MAX_CATCH_UP_TICKS,
@@ -27,7 +29,7 @@ import {
   HOVER_CHECKPOINT_INTERVAL,
   HOVER_DISC_COLOUR,
   HOVER_PILLAR_COLOUR,
-  HOVER_REV_STANDARD,
+  HOVER_REV_SHIELD,
   hoverWorldHFor,
   HOVER_RUN_TICKS,
   type HoverState,
@@ -49,12 +51,12 @@ import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
  * stamp's own renderer a few seconds into a fixed seed's run, flown by a small autopilot that taps whenever the saucer drops below the next gap's centre.
  */
 function IntroExample() {
-  const game = { ...hoverGameFor(HOVER_REV_STANDARD), draw: hoverArtGame.draw };
+  const game = { ...hoverGameFor(HOVER_REV_SHIELD), draw: hoverArtGame.draw };
   return (
     <ArtStill
       game={game}
       worldW={HOVER_WORLD_W}
-      worldH={hoverWorldHFor(HOVER_REV_STANDARD)}
+      worldH={hoverWorldHFor(HOVER_REV_SHIELD)}
       ticks={250}
       input={hoverStillPilot}
       caption="Tap to rise. Thread each gap; gold stars, tight gates and chains score more."
@@ -70,7 +72,9 @@ function hoverStillPilot(s: HoverState): boolean {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: HoverPuzzleData | null = puzzle.type === "hover" ? puzzle : null;
   const seed = data?.seed ?? 1;
-  const hoverGame = hoverGameFor(data?.hoverRev);
+  // One game object per stamp and level (stage 3 of the Retro overhaul: a level wraps init).
+  const level = puzzleLevel(data);
+  const hoverGame = useMemo(() => hoverGameFor(data?.hoverRev, level), [data?.hoverRev, level]);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -214,8 +218,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             finish();
           }
         } else {
-          // The sim reached tick 3600: submit at once, whatever the clock says.
-          finish();
+          // The sim reached the end of the run: the answer is fixed now (sent as the draft at once), and submitted once
+          // the fly-off has played (stage 3 of the Retro overhaul, RETRO_PAYOFF_MS; display only).
+          if (crashedAt.current === null) {
+            crashedAt.current = time;
+            draftRef.current?.(encode());
+          } else if (time - crashedAt.current >= RETRO_PAYOFF_MS) {
+            finish();
+          }
         }
       }
       frameTiming.end();
@@ -275,7 +285,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "hover") return null;
-  const result = replayHoverRun(puzzle.seed, myAnswer ?? "", puzzle.hoverRev);
+  const result = replayHoverRun(puzzle.seed, myAnswer ?? "", puzzle.hoverRev, puzzleLevel(puzzle));
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
@@ -307,7 +317,7 @@ export const hoverPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (HOVER_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "hover", seed: 1, hoverRev: HOVER_REV_STANDARD }) satisfies HoverPuzzleData,
+  generate: () => ({ type: "hover", seed: 1, hoverRev: HOVER_REV_SHIELD }) satisfies HoverPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

@@ -46,7 +46,7 @@ import {
   type Pin4State,
 } from "../src/lib/arcade/pinball4";
 import { playRevOf } from "./scoring-targets-revs";
-import { PIN_STD_SPEC_V7 } from "../src/lib/arcade/pinball4";
+import { PIN_STD_SPEC_V7, PIN_STD_SPEC_V8 } from "../src/lib/arcade/pinball4";
 
 const RECORD = process.argv.includes("--record");
 const FIXTURE = "scripts/fixtures/pinball-standard-runs.json.gz";
@@ -190,7 +190,9 @@ section("Rooms deal pinRev 6; the help, intro line, band, maximum and run length
   ok(pinIsExpanded(PIN_REV_STD) && pinRunTicksFor(PIN_REV_STD) === PIN_V5_RUN_TICKS && pinball6Game.runTicks === PIN_V5_RUN_TICKS, "pinRev 6 plays the taller table for 90 s");
   ok(roundMaxFor("pinball") === 200, "the round maximum is 200");
   const live: any = LIVE_BANDS.pinball;
-  ok(playRevOf("pinball", live.rev) === PIN_REV_STD && live.std === PIN_STD_SPEC_V7 && PIN_STD_SPEC_V7.parts.length === PIN_STD_SPEC.parts.length && live.curve === PIN_V6_BAND_CURVE, "LIVE_BANDS lists pinRev 6 and its spec");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): pinRev 8's spec since stage 3, the
+  // same parts as pinRev 7's.
+  ok(playRevOf("pinball", live.rev) === PIN_REV_STD && live.std === PIN_STD_SPEC_V8 && PIN_STD_SPEC_V8.parts === PIN_STD_SPEC_V7.parts && PIN_STD_SPEC_V7.parts.length === PIN_STD_SPEC.parts.length && live.curve === PIN_V6_BAND_CURVE, "LIVE_BANDS lists pinRev 6 and its spec");
   ok(PIN_V6_BAND_CURVE.units.join() === `0,${PIN_V6_FULL_AT}` && PIN_V6_BAND_CURVE.points.join() === "0,130", "the core's straight line to 130");
   const help = PUZZLE_INSTRUCTIONS.pinball;
   ok(help.score.includes(stdHelpLines(PIN_STD_SPEC_V7)), `the help states the parts: ${help.score}`);

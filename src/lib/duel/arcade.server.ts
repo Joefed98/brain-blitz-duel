@@ -6,10 +6,10 @@ import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_LINE, sliceFoodSeedOk } from "@/lib/arcade/slice";
 import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL } from "@/lib/arcade/flip";
 import { flipDealSeed } from "./flipDeal.server";
-import { CROSS_REV_KEEP } from "@/lib/arcade/cross";
+import { CROSS_REV_KEEP, CROSS_REV_LIGHT } from "@/lib/arcade/cross";
 import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_STD } from "@/lib/arcade/inkBridge";
 import { inkBigDealSeed } from "./inkBigDeal.server";
-import { SNAKE_REV_TARGET, SNAKE_REV_12, SNAKE_REV_SIZES } from "@/lib/arcade/snake";
+import { SNAKE_REV_TARGET, SNAKE_REV_12, SNAKE_REV_GRACE } from "@/lib/arcade/snake";
 import { BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
 import { minesBoard, minesCountFor, minesSolve, MINES_REV_LOGIC, MINES_REV_STD } from "@/lib/arcade/minesweeper";
@@ -23,10 +23,10 @@ import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/a
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_AIM, BURST_REV_BIG } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD, BRK_REV_CLEAR } from "@/lib/arcade/breaker";
-import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_JOULZ } from "@/lib/arcade/pinball";
+import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_SAVE } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
-import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_KEEP, WAV_REV_CHARGE } from "@/lib/arcade/wavefront";
+import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_KEEP, WAV_REV_BIG } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD, ORBIT_REV_FUEL } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD, RALLY_REV_LIVES } from "@/lib/arcade/rally";
 import { BEAT_REV_TARGET, BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
@@ -197,14 +197,15 @@ export function generateSnake(): SnakePuzzleData {
   // snakeRev 11 (the arcade scoring standard, 29 Oct 2026): snakeRev 10's play, scored in straight-line parts to 200.
   // snakeRev 12 (1 Nov 2026): snakeRev 11 with gold stars counting 2 towards the core, full at 20.
   // snakeRev 14 (the Retro overhaul, 15 Nov 2026): snakeRev 13's wrapping edges and core full at 36, with rocks in three
-  // sizes (preRetro: snakeRev 12).
-  return { type: "snake", seed: arcadeSeed(), snakeRev: dealPinned("preRetro") ? SNAKE_REV_12 : SNAKE_REV_SIZES };
+  // sizes (preRetro: snakeRev 12). snakeRev 15 (stage 3, 16 Nov 2026): snakeRev 14 with the first crash forgiven.
+  return { type: "snake", seed: arcadeSeed(), snakeRev: dealPinned("preRetro") ? SNAKE_REV_12 : SNAKE_REV_GRACE };
 }
 
 export function generateCross(): CrossPuzzleData {
   // crossRev 11 (3 Nov 2026): crossRev 10's courses without coins, scored with the no-stop streak and a cost a hit.
   // crossRev 12 (Nov 2026, the scoring audit): crossRev 11's play; the hit that ends the run is free, hits capped at half the core.
-  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV_KEEP };
+  // crossRev 13 (the Retro overhaul, stage 3, 16 Nov 2026): crossRev 12's rules on lighter traffic (preRetro: crossRev 12).
+  return { type: "cross", seed: arcadeSeed(), crossRev: dealPinned("preRetro") ? CROSS_REV_KEEP : CROSS_REV_LIGHT };
 }
 
 export function generateDual(): DualPuzzleData {
@@ -228,7 +229,8 @@ export function generatePinball(): PinballPuzzleData {
   // pinRev 5 (27 Oct 2026, Joe's phone notes): pinRev 4's table for 90 s (PIN_REV_LONG).
   // pinRev 6 (29 Oct 2026): pinRev 5's play on the arcade scoring standard (docs/arcade-standard/pinball.md).
   // pinRev 7 (the Retro overhaul, 15 Nov 2026): pinRev 6's play; one J-O-U-L-Z set fills its part (preRetro: pinRev 6).
-  return { type: "pinball", seed: arcadeSeed(), pinRev: dealPinned("preRetro") ? PIN_REV_STD : PIN_REV_JOULZ };
+  // pinRev 8 (stage 3, 16 Nov 2026): pinRev 7's play with the outlane saves counted.
+  return { type: "pinball", seed: arcadeSeed(), pinRev: dealPinned("preRetro") ? PIN_REV_STD : PIN_REV_SAVE };
 }
 
 /**
@@ -328,7 +330,7 @@ export function generateWavefront(): WavefrontPuzzleData {
   // wavRev 12 (the arcade scoring standard, 29 Oct 2026): wavRev 11 play scored in fixed parts that total 200.
   // wavRev 13 (Nov 2026, the scoring audit): wavRev 12's play; the life that ends the run is free, lives capped at half the core.
   // wavRev 14 (the Retro overhaul, 15 Nov 2026): the charged shot (preRetro: wavRev 13).
-  return { type: "wavefront", seed: arcadeSeed(), wavRev: dealPinned("preRetro") ? WAV_REV_KEEP : WAV_REV_CHARGE };
+  return { type: "wavefront", seed: arcadeSeed(), wavRev: dealPinned("preRetro") ? WAV_REV_KEEP : WAV_REV_BIG };
 }
 
 export function generateBastion(): BastionPuzzleData {

@@ -1,4 +1,5 @@
 import { successFrame, SUCCESS_ACCENTS, SUCCESS_PARTICLES, SUCCESS_TICKS } from "./success.renderer";
+import type { Level } from "@/lib/levels/levels";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { burstFxFor } from "./arcadeFxGames.renderer";
 /** Burst in the Retro Arcade world. Render only; the sim and its bounds are untouched. */
@@ -25,7 +26,7 @@ import {
   BURST_V8_GOLDEN_PTS,
   BURST_ICON_DOUBLE,
   BURST_GOLD_R,
-  BURST_LIVES,
+  BURST_LIVES, burstLivesOf,
   burstRadius,
   BURST_SHORT_LEN,
   BURST_WORLD_W,
@@ -275,7 +276,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
   for (const ball of state.balls) {
     const r = burstRadius(state, ball.size);
     const colour = retroNeon(BURST_COLOURS[ball.size] ?? RETRO_WHITE);
-    const stamp = cachedArt(`atom:${ball.size}`, r * 2, r * 2, colour, 0,
+    const stamp = cachedArt(`atom:${ball.size}:${r}`, r * 2, r * 2, colour, 0,
       c => paintAtom(c, r, colour, ball.size));
     const x = ball.x / FP, y = ball.y / FP;
     // Polish A1: a soft glow in the atom's colour, at most 3 px past its disc.
@@ -379,7 +380,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BurstState, lifeFlash: 
   const waveW = typeof ctx.measureText === "function" ? ctx.measureText(waveText)?.width ?? 0 : 0;
   const livesX = slim ? 12 + Math.ceil(Number.isFinite(waveW) && waveW > 0 ? waveW : waveText.length * 11) + 10 : 12;
   const livesY = slim ? 3 : 26;
-  for (let i = 0; i < BURST_LIVES; i++) sprite(ctx, SHIP_ROWS, livesX + i * 14, livesY, 0.75, i < state.lives ? SHIP : "rgba(255,216,74,0.2)");
+  for (let i = 0; i < burstLivesOf(state); i++) sprite(ctx, SHIP_ROWS, livesX + i * 14, livesY, 0.75, i < state.lives ? SHIP : "rgba(255,216,74,0.2)");
 }
 
 /**
@@ -459,7 +460,9 @@ const burstArtGameV11: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...bu
 const burstArtGameV12: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_WIDE), draw };
 /** burstRev 13: burstRev 12 with bigger atoms (drawn from the state, burstRadius). */
 const burstArtGameV13: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGameFor(BURST_REV_BIG), draw };
-export function burstArtGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+export function burstArtGameFor(rev?: number | null, level?: Level | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  // Stage 3 of the Retro overhaul: a level's burstRev 13 (its own init), drawn as Normal's.
+  if (rev === BURST_REV_BIG && level && level !== "normal") return { ...burstGameFor(BURST_REV_BIG, level), draw };
   if (rev === BURST_REV_BIG) return burstArtGameV13;
   if (rev === BURST_REV_WIDE) return burstArtGameV12;
   if (rev === BURST_REV_AIM) return burstArtGameV11;

@@ -1,4 +1,4 @@
-import { fxPuff, fxRing, fxSparks, retroFx } from "./retroFx.renderer";
+import { fxPuff, fxRing, fxSparks, retroFx, retroPayoffBanner } from "./retroFx.renderer";
 import { snakeRockGraze } from "./retroMoments";
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
@@ -8,7 +8,7 @@ import {
   snakeGame, snakeCol, snakeRow, SNAKE_BOARD_W,
   SNAKE_BOARD_X, SNAKE_BOARD_Y, SNAKE_CELL, SNAKE_COLS,
   SNAKE_WORLD_W, SNAKE_ROCK_WARN_TICKS, snakeRowsOf, snakeWorldHFor, type SnakeState,
-  snakeBoardXOf, snakeColsOf, snakeWorldWOf, snakeV9Bonus, snakeCoreStars, SNAKE_GOLD_LIFE, snakeRockBig, snakeRockShape, snakeRockSpan, SNAKE_STD_COMBO_TICKS,
+  snakeBoardXOf, snakeColsOf, snakeWorldWOf, snakeV9Bonus, snakeCoreStars, SNAKE_GOLD_LIFE, snakeRockBig, snakeRockShape, snakeRockSpan, SNAKE_STD_COMBO_TICKS, snakeStunned,
 } from "./snake";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { reducedMotion } from "./art.renderer";
@@ -396,6 +396,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
   if (headCell !== undefined) {
     const head = point(headCell);
     const tail = cometTail(state.eaten);
+    // snakeRev 15: a forgiven crash holds the comet still, blinking on the sim's tick.
+    const stunned = snakeStunned(state);
     drawCometGlow(ctx, state, tail, point);
     for (let i = state.body.length - 1; i >= 0; i--) {
       const cell = state.body[i];
@@ -403,7 +405,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
       const p = point(cell);
       // The segments shrink, fade and darken from the head to the tip (no line between them).
       const level = Math.max(0, Math.min(COMET_LEVELS - 1, Math.round(((i - 1) / Math.max(1, state.body.length - 2)) * (COMET_LEVELS - 1))));
-      ctx.globalAlpha = state.dead && motion ? 1 - 0.35 * Math.min(1, deathAge / DEATH_MS) : 1;
+      ctx.globalAlpha = state.dead && motion ? 1 - 0.35 * Math.min(1, deathAge / DEATH_MS) : stunned ? (Math.floor(state.tick / 8) % 2 === 0 ? 0.35 : 1) : 1;
       if (i === 0) glow(ctx, COMET_HEAD.halo, p.x, p.y, 18, 18, state.dead ? 0.3 : 0.65);
       blit(ctx, stamp(i === 0 ? "head" : "bead", i === 0 ? 0 : level, state.dir, i === 0 ? 0 : tail), p.x, p.y);
     }
@@ -453,6 +455,11 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: SnakeState, key: Canvas
       text: shower ? "METEOR SHOWER!" : falling ? "ROCK INCOMING" : `ROCKS ${rocks}`,
       colour: (falling || shower) && on ? RETRO_RED : "rgba(255,255,255,0.7)",
     };
+  }
+  // snakeRev 15: the forgiven crash's banner while the comet holds still.
+  if (snakeStunned(state)) {
+    const left = Math.ceil(((state.stunTo ?? 0) - state.tick) / 30);
+    retroPayoffBanner(ctx, W, SNAKE_WORLD_H * 0.42, "SAVED!", `GO IN ${left}`, 1600, GOLD);
   }
   retroHud(ctx, W, { text: `STARS ${snakeCoreStars(state)}` }, [first, second], {
     // No per-frame text blur on Meteor (snake-renderer-check).
@@ -534,26 +541,46 @@ function drawMidRock(ctx: CanvasRenderingContext2D, state: SnakeState, rock: num
   ctx.restore();
 }
 
-/** A wormhole as a pixel spiral galaxy (concept A): two arms of 2 px blocks fading outwards from a bright core. */
+/**
+ * A wormhole as concept A's glowing ring (stage 3 of the Retro overhaul, 16 Nov 2026, Joe: "clear glowing rings,
+ * readable at phone size"): a bright 2 px rim in the pair's colour at the cell's edge (lit white-hot on its top left), a
+ * dark mouth, and six curved vanes of 2 px blocks swirling into a dark centre, turning slowly. Inside its 24 px cell (the
+ * rim's outer edge at r); display only.
+ */
 function drawSpiral(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string, turn: number, flash: number): void {
   ctx.save();
+  const hot = rgbHex(mixRgb(colour, "#FFFFFF", 0.75));
+  const pale = rgbHex(mixRgb(colour, "#FFFFFF", 0.35));
+  // The mouth: near-black, so the rim and vanes read against it.
   ctx.fillStyle = "#05030C";
   ctx.beginPath();
   ctx.arc(x, y, r - 1, 0, Math.PI * 2);
   ctx.fill();
-  const hot = mixRgb(colour, "#FFFFFF", 0.65);
-  for (let arm = 0; arm < 2; arm++) {
-    for (let k = 0; k < 22; k++) {
-      const t = k / 21;
-      const a = turn + arm * Math.PI + t * Math.PI * 2.4;
-      const d = 2 + t * (r - 3);
-      ctx.globalAlpha = (1 - 0.65 * t) * (0.8 + 0.2 * flash);
-      ctx.fillStyle = t < 0.25 ? rgbHex(hot) : colour;
+  // The vanes: six arms of 2 px blocks curving in from the rim to the centre, brightest outside.
+  for (let arm = 0; arm < 6; arm++) {
+    for (let k = 0; k < 6; k++) {
+      const t = k / 5;
+      const d = 2.5 + t * (r - 5);
+      const a = turn + (arm / 6) * Math.PI * 2 + (1 - t) * 1.4;
+      ctx.globalAlpha = (0.55 + 0.45 * t) * (0.9 + 0.1 * flash);
+      ctx.fillStyle = t > 0.3 ? pale : colour;
       ctx.fillRect(Math.round(x + Math.cos(a) * d) - 1, Math.round(y + Math.sin(a) * d) - 1, 2, 2);
     }
   }
+  // The rim: a bright 2 px ring, white-hot on the top left fading to the pair's colour on the bottom right.
   ctx.globalAlpha = 1;
-  ctx.fillStyle = "#FFFFFF";
+  const rim = ctx.createLinearGradient(x - r, y - r, x + r, y + r);
+  // (A mock canvas in the checks may hand back no gradient: the flat tint stands in.)
+  rim?.addColorStop(0, hot);
+  rim?.addColorStop(0.5, pale);
+  rim?.addColorStop(1, colour);
+  ctx.strokeStyle = rim ?? pale;
+  ctx.lineWidth = 2 + flash;
+  ctx.beginPath();
+  ctx.arc(x, y, r - 1.5, 0, Math.PI * 2);
+  ctx.stroke();
+  // The dark centre the vanes fall into.
+  ctx.fillStyle = "#05030C";
   ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2);
   ctx.restore();
 }
@@ -859,7 +886,8 @@ function drawFeatures(ctx: CanvasRenderingContext2D, state: SnakeState, motion: 
     // 3 Nov 2026 (Joe's audit; display only): a larger mouth and rings, to the cell's edge (2 px past it at most).
     // Stage 2 of the Retro overhaul (concept A): a spiral galaxy, two pixel arms in the pair's colour wound round a
     // white-hot core, turning slowly (opposite ways for the two mouths of a pair); a trip flares it. Inside the cell.
-    glow(ctx, colour, p.x, p.y, 14, 14, 0.45 + 0.4 * flash);
+    // Stage 3 (concept A's glowing rings): a stronger halo, still within 2 px of the cell.
+    glow(ctx, colour, p.x, p.y, 14, 14, 0.5 + 0.3 * flash);
     const turn = motion ? state.tick * 0.05 * (i % 2 ? -1 : 1) : 0;
     drawSpiral(ctx, p.x, p.y, 12, colour, turn, flash);
   });

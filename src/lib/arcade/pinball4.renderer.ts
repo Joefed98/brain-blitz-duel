@@ -12,6 +12,7 @@
  * frame: lights, flashes, the balls, the power meter and the HUD. Glows are skipped under reduced effects;
  * reduced motion holds every blink and pulse still.
  */
+import type { Level } from "@/lib/levels/levels";
 import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import { PINBALL_BULBS } from "./arcadeFxGames.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
@@ -92,13 +93,16 @@ import {
   PIN_REV_LONG,
   PIN_REV_STD,
   PIN_REV_JOULZ,
+  PIN_REV_SAVE,
+  pinball8For,
+  pinBallsOf,
   pinball7Game,
   type P4Ball,
   type Pin4State,
 } from "./pinball4";
-import { retroBloom, retroClock, retroHud, retroScreen, retroText, retroTrail, type RetroHudItem } from "./retro.renderer";
+import { retroBloom, retroClock, retroHud, retroScreen, retroText, retroTextFloor, retroTrail, type RetroHudItem } from "./retro.renderer";
 import { reducedMotion } from "./art.renderer";
-import { fxRing, fxSparks, retroFx } from "./retroFx.renderer";
+import { fxRing, fxSparks, retroEndAge, retroFx } from "./retroFx.renderer";
 import { flipperPath } from "./pinball.renderer";
 import { PIN_FLIP_LEN, PIN_FLIP_PIVOTS, PIN_FLIP_R, pinFlipAngle } from "./pinball";
 import { arcadeReducedEffects } from "../fx/lowEnd";
@@ -743,16 +747,16 @@ function drawMeter(ctx: Ctx, s: Pin4State, t: number): void {
 /** The HUD above the arch: points left; ball, locks and the multiball clock right. */
 function drawHud(ctx: Ctx, s: Pin4State): void {
   // One Retro HUD (3 Nov 2026): points top left; the ball and the lock / multiball state top right.
-  const ball = Math.min(PIN_BALLS, s.lost + 1);
+  const ball = Math.min(pinBallsOf(s), s.lost + 1);
   let status: RetroHudItem | null = null;
   if (p4JackpotLit(s)) status = { text: `MULTIBALL ${Math.ceil((s.mbUntil - s.tick) / 60)}`, colour: "#FF9BFF" };
   else if (s.locks > 0) status = { text: s.lockLit && s.locks === 2 ? "MULTIBALL LIT" : `${s.locks} LOCKED`, colour: LOCK_GOLD };
   else if (s.lockLit) status = { text: "LOCK LIT", colour: LOCK_GOLD };
   retroHud(ctx, P4_WORLD_W, { text: s.points.toLocaleString("en-GB"), colour: PIN_COLOURS.hud }, [
-    { text: `BALL ${ball}/${PIN_BALLS}`, colour: PIN_COLOURS.hud },
+    { text: `BALL ${ball}/${pinBallsOf(s)}`, colour: PIN_COLOURS.hud },
     status,
   ]);
-  if (s.lost >= PIN_BALLS && s.tick < pinRunTicksOf(s)) retroText(ctx, "GAME OVER", P4_WORLD_W / 2 - 12, 420 + S, 16, "#FF3B5C", "center", 6);
+  if (s.lost >= pinBallsOf(s) && s.tick < pinRunTicksOf(s)) retroText(ctx, "GAME OVER", P4_WORLD_W / 2 - 12, 420 + S, 16, "#FF3B5C", "center", 6);
 }
 
 function drawWorld(ctx: Ctx, s: Pin4State, key: Ctx): void {
@@ -784,7 +788,7 @@ function drawWorld(ctx: Ctx, s: Pin4State, key: Ctx): void {
   for (const { b, id } of balls) drawBallAt(ctx, key, s.tick, id, ballPoint(s, b));
   drawLocked(ctx, s, t);
   // The waiting ball on the plunger, its meter above it.
-  if (!s.live && s.lost < PIN_BALLS) {
+  if (!s.live && s.lost < pinBallsOf(s)) {
     drawBall(ctx, s.x / 256, s.y / 256);
     drawMeter(ctx, s, t);
   }
@@ -793,6 +797,40 @@ function drawWorld(ctx: Ctx, s: Pin4State, key: Ctx): void {
     retroText(ctx, side === 0 ? "< HOLD" : "HOLD >", side === 0 ? 20 : P4_LANE_INNER - 10, P4_WORLD_H - 24, 10, held ? PIN_COLOURS.flipper : "rgba(255,226,120,0.85)", side === 0 ? "left" : "right");
   }
   drawHud(ctx, s);
+  // Stage 3 of the Retro overhaul: at the run's end the table's points roll up like a mechanical counter (the round-end
+  // payoff, on the presentation clock while the stage holds the submit; display only).
+  const over = s.tick >= pinRunTicksOf(s) || s.lost >= pinBallsOf(s);
+  const rollAge = retroEndAge(key, "pinball-roll", over, s.tick);
+  if (rollAge !== null) drawCounterRoll(ctx, s.points, rollAge);
+}
+
+/** The mechanical counter: the total's digits each spinning up through 0–9 and settling left to right. */
+function drawCounterRoll(ctx: Ctx, points: number, age: number): void {
+  const digits = String(Math.max(0, Math.round(points))).padStart(6, "0");
+  const w = 26;
+  const h = 36;
+  const x0 = P4_WORLD_W / 2 - 12 - (digits.length * w) / 2;
+  const y0 = 300 + S;
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, age / 200);
+  ctx.fillStyle = "rgba(10,4,24,0.86)";
+  ctx.fillRect(x0 - 10, y0 - 34, digits.length * w + 20, h + 46);
+  ctx.strokeStyle = LOCK_GOLD;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x0 - 10, y0 - 34, digits.length * w + 20, h + 46);
+  retroText(ctx, "TABLE TOTAL", P4_WORLD_W / 2 - 12, y0 - 26, retroTextFloor(), LOCK_GOLD, "center");
+  for (let i = 0; i < digits.length; i++) {
+    const settle = 300 + i * 160;
+    const final = Number(digits[i]);
+    const spinning = age < settle;
+    const shown = spinning ? Math.floor(age / 45 + i * 3) % 10 : final;
+    ctx.fillStyle = "#1C1030";
+    ctx.fillRect(x0 + i * w + 2, y0, w - 4, h);
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    ctx.fillRect(x0 + i * w + 2, y0, w - 4, 4);
+    retroText(ctx, String(shown), x0 + i * w + w / 2, y0 + 8, 20, spinning ? "rgba(255,255,255,0.6)" : "#FFFFFF", "center");
+  }
+  ctx.restore();
 }
 
 /* ============================== The success layer ============================== */
@@ -899,7 +937,17 @@ export const pinball6ArtGame: ArcadeGame<Pin4State, ArcadeInputEvent | null> = {
 /** pinRev 7 (the Retro overhaul): pinRev 6's run, one J-O-U-L-Z set filling its part. */
 export const pinball7ArtGame: ArcadeGame<Pin4State, ArcadeInputEvent | null> = { ...pinball7Game, draw: (ctx, state, size) => draw(ctx, state, size) };
 
-export function pinballArtGameForAny(rev?: number | null): ArcadeGame<PinState, ArcadeInputEvent | null> {
+const pinball8ArtGames = new Map<string, ArcadeGame<Pin4State, ArcadeInputEvent | null>>();
+export function pinballArtGameForAny(rev?: number | null, level?: Level | null): ArcadeGame<PinState, ArcadeInputEvent | null> {
+  if (rev === PIN_REV_SAVE) {
+    const key = level ?? "normal";
+    let game = pinball8ArtGames.get(key);
+    if (!game) {
+      game = { ...pinball8For(level), draw: (ctx, state, size) => draw(ctx, state, size) };
+      pinball8ArtGames.set(key, game);
+    }
+    return game as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
+  }
   if (rev === PIN_REV_JOULZ) return pinball7ArtGame as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   if (rev === PIN_REV_STD) return pinball6ArtGame as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   if (rev === PIN_REV_LONG) return pinball5ArtGame as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
@@ -995,6 +1043,16 @@ function pinballEffects(ctx: Ctx, s: Pin4State): void {
       ctx.fillRect(Math.round(p.x) - 2, Math.round(p.y) - 2, 4, 4);
       ctx.restore();
     }
+  }
+  // pinRev 8 (stage 3): an outlane save sparks gold at the post the ball climbed back out past, with "SAVED!" over it.
+  fx.rise("save", s.outSaves ?? 0, () => ({ x: s.x / 256, y: s.y / 256, n: 0 }));
+  fx.each("save", 36, (e, age) => fxSparks(fx, ctx, e.x, e.y, age, LOCK_GOLD, { n: 10, spread: 22, seed: e.tick }));
+  const save = fx.latest("save", 50);
+  if (save) {
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, 3 * (1 - save.age));
+    retroText(ctx, "SAVED!", Math.max(40, Math.min(P4_WORLD_W - 52, save.e.x)), save.e.y - 26, 12, LOCK_GOLD, "center", 4);
+    ctx.restore();
   }
   fx.rise("multi", s.multiballs ?? 0, () => ({ x: P4_LOCK_X, y: P4_LOCK_Y, n: 0 }));
   fx.each("multi", 30, (e, age) => fxSparks(fx, ctx, e.x, e.y, age, "#FFFFFF", { n: 12, spread: 30, seed: e.tick }));

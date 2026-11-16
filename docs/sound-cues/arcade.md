@@ -73,6 +73,7 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `snake.start` | Meteor | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `snake.dead` | Meteor | The snake dies | `arc_retro_explode` | 0–1 | 260 ms |
 | `snake.eat` | Meteor | A star is eaten | `arc_retro_blip` | 10–40 | 50 ms |
+| `snake.saved` | Meteor | A crash forgiven (snakeRev 15, the comet holds still) | `arc_retro_explode` (softer, faster; Joe's file to come) | 0–2 | 400 ms |
 | `snake.rockLand` | Meteor | A rock lands clear of the head (snakeRev 2+) | `arc_retro_hit` (0.7) | 5–20 | 120 ms |
 | `snake.rockWarn` | Meteor | A rock's shadow appears | `arc_retro_note` (0.5, slowed ×0.7) | 5–20 | 90 ms |
 | `snake.showerAlarm` | Meteor | A meteor shower's three shadows appear (snakeRev 3+) | `arc_retro_note` (0.7, slowed ×0.5) | 1–3 | 180 ms |

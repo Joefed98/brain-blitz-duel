@@ -1,4 +1,30 @@
-# Retro overhaul gallery (stage 2)
+# Retro overhaul gallery (stages 2 and 3)
+
+## Stage 3 (16 Nov 2026)
+
+Drawn by each game's own renderer in Node from skill-band bot runs on the dealt stamps (`bun scripts/shots/retro-stage3-frames.ts`,
+`RETRO_PIXEL_FONT` set to Press Start 2P). The round-end payoffs are drawn 0.9 s into their own clock.
+
+**Meteor's wormholes** as concept A's glowing rings: today (stage 2, approved head 1155779c) | concept A | new, close up at
+the same square, then the whole boards.
+
+<img src="stage3/snake-wormholes.webp" width="720">
+
+<img src="stage3/snake-wormholes-full.webp" width="560">
+
+**The carried payoffs and the new moments**
+
+| Hover: fly-off | Breaker: TIME BONUS | Wavefront: SECTOR CLEAR | Pinball: counter roll |
+|---|---|---|---|
+| <img src="stage3/hover-flyoff.webp" width="170"> | <img src="stage3/breaker-wall-cleared.webp" width="170"> | <img src="stage3/wavefront-boss-down.webp" width="170"> | <img src="stage3/pinball-counter-roll.webp" width="170"> |
+
+| Pinball: outlane save (pinRev 8) | Meteor: SAVED! (snakeRev 15) |
+|---|---|
+| <img src="stage3/pinball-outlane-save.webp" width="170"> | <img src="stage3/snake-saved.webp" width="170"> |
+
+The stage-2 gallery follows (unchanged).
+
+# Stage 2
 
 Every frame is drawn by the game's own renderer in Node from the same run (the skill-band bot's Near-perfect log on room
 seed 0, the dealt stamp, a fixed point in the run; `bun scripts/shots/retro-frames.ts`, with `RETRO_PIXEL_FONT` set to

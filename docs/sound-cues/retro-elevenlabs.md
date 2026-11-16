@@ -57,7 +57,7 @@ Kept as they are (checked, already good, Joe's earlier recordings or the batch f
 | Hover | `hover.deadCentre` | A gate passed dead centre ("DEAD CENTRE!") | "Bright 8-bit bullseye ding, crisp bell with a sparkle" | 250 ms | wired (stage 2 begun) |
 | Hover | `hover.scrape` | A near scrape past a barrier (within 3 px) | "Quick metallic 8-bit zing, short bright scrape" | 150 ms | wired (stage 2 begun) |
 | Hover | `hover.shieldShatter` | A shield breaks and saves a crash | "Glassy chiptune shatter, bright crystal break into falling blips" | 450 ms | wired (stage 2 begun) |
-| Hover | `hover.flyOff` | The end: the saucer flies off the top | "Retro whoosh up, rising square-wave sweep fading out" | 700 ms | stage 2 |
+| Hover | `hover.flyOff` | The end: the saucer flies off the top | "Retro whoosh up, rising square-wave sweep fading out" | 700 ms | wired (stage 3) |
 | Breaker | `breaker.start` | The run starts | "Short 8-bit start jingle, bright square-wave fanfare, three notes" | 400 ms | wired |
 | Breaker | `breaker.powerUp` | A power-up capsule is caught | "Chiptune power-up, quick rising arpeggio, bright and happy" | 400 ms | wired |
 | Breaker | `breaker.fireballLit` | The fireball starts | "Retro fire whoosh, noisy rising burst with a crackle" | 400 ms | wired |
@@ -66,7 +66,7 @@ Kept as they are (checked, already good, Joe's earlier recordings or the batch f
 | Breaker | `breaker.goldTang` | Each of a gold brick's 4 hits | "Metallic 8-bit tang, bright ringing square-wave ping, coin-like" | 200 ms | wired (stage 2) |
 | Breaker | `breaker.capsuleIcon` | A caught power-up shows its icon over the paddle | "Tiny chiptune pop-up blip, quick two-note confirm" | 120 ms | wired (stage 2) |
 | Breaker | `breaker.wallCleared` | The whole wall is cleared | "Triumphant chiptune fanfare, short rising arpeggio and a held major chord" | 1.5 s | stage 2 (replaces `banner.fullClear`) |
-| Breaker | `breaker.timeToPoints` | Remaining time ticks into speed points | "Fast 8-bit counter ticks, rapid square-wave clicks rising in pitch" | 1.2 s | stage 2 |
+| Breaker | `breaker.timeToPoints` | Remaining time ticks into speed points | "Fast 8-bit counter ticks, rapid square-wave clicks rising in pitch" | 1.2 s | wired (stage 3) |
 | Rally | `rally.start` | The run starts | "Short 8-bit serve jingle, two bright square-wave notes" | 300 ms | wired |
 | Rally | `rally.fwip` | A spin swipe at contact | "Quick chiptune swish, short noise sweep with a curling pitch bend" | 150 ms | wired (stage 2) |
 | Rally | `rally.edgeSave` | A ball caught on the paddle's last 4 px | "Tiny 8-bit spark crackle, bright and short" | 100 ms | wired (stage 2) |
@@ -75,7 +75,7 @@ Kept as they are (checked, already good, Joe's earlier recordings or the batch f
 | Wavefront | `wavefront.plateOff` | An armoured ship loses a plate | "Metallic 8-bit clunk, a plate knocked off, short clatter" | 200 ms | wired (stage 2) |
 | Wavefront | `wavefront.powerChirp` | A power-up is caught | "Chiptune power-up chirp, quick rising three-note arpeggio" | 300 ms | wired (stage 2) |
 | Wavefront | `wavefront.boltZip` | An enemy bolt passes within 4 px | "Very short 8-bit zip, quick pitch-down whistle" | 100 ms | wired (stage 2) |
-| Wavefront | `wavefront.bossStages` | The boss explodes in stages | "Chain of chiptune explosions, three rumbling bursts then a big final boom" | 2 s | stage 2 |
+| Wavefront | `wavefront.bossStages` | The boss explodes in stages | "Chain of chiptune explosions, three rumbling bursts then a big final boom" | 2 s | wired (stage 3) |
 | Fission | `burst.start` | The run starts | "Short 8-bit start jingle, bubbly rising notes" | 400 ms | wired |
 | Fission | `burst.gameOver` | The last life is lost | "Retro game-over, slow falling square-wave notes" | 900 ms | wired |
 | Fission | `burst.powerUp` | A power-up is caught | "Chiptune power-up, bright rising arpeggio" | 400 ms | wired |
@@ -103,9 +103,9 @@ Kept as they are (checked, already good, Joe's earlier recordings or the batch f
 | Spacewalk | `cross.land` | The astronaut lands (a squash) | "Soft 8-bit landing tap, tiny low click" | 50 ms | wired (stage 2) |
 | Spacewalk | `cross.tally` | The end: the crossings tally | "Fast 8-bit counter ticks, rising square-wave clicks" | 1 s | stage 2 |
 | Pinball | `pinball.rampChase` | The ramp light chases the ball up | "Quick rising chiptune arpeggio, lights chasing upward" | 500 ms | stage 2 |
-| Pinball | `pinball.outlaneSave` | A save off the outlane post | "Tiny bright 8-bit spark, quick metallic ping" | 150 ms | stage 2 |
+| Pinball | `pinball.outlaneSave` | A save off the outlane post | "Tiny bright 8-bit spark, quick metallic ping" | 150 ms | wired (stage 3) |
 | Pinball | `pinball.ballLocked` | A ball is locked ("BALL LOCKED") | "Mechanical chiptune lock clunk with a bright confirm chime" | 500 ms | wired (stage 2) |
-| Pinball | `pinball.counterRoll` | The end: points roll up like a mechanical counter | "Fast mechanical 8-bit counter roll, rapid ticking clicks with a final ding" | 1.5 s | stage 2 |
+| Pinball | `pinball.counterRoll` | The end: points roll up like a mechanical counter | "Fast mechanical 8-bit counter roll, rapid ticking clicks with a final ding" | 1.5 s | wired (stage 3) |
 | Blockzone | `blockfall.start` | The run starts (Blockzone had no opening sound) | "Short 8-bit start jingle, three bright rising notes" | 400 ms | wired |
 | Blockzone | `blockfall.speedUp` | Gravity steps up | "Quick 8-bit speed-up, two fast rising square notes" | 250 ms | wired |
 | Blockzone | `blockfall.turnRefused` | A turn against a wall is refused | "Dull 8-bit dunk, short low square bump" | 80 ms | wired (stage 2) |
@@ -113,6 +113,7 @@ Kept as they are (checked, already good, Joe's earlier recordings or the batch f
 | Blockzone | `blockfall.sweep` | A line-clear sweep crosses the row | "Bright chiptune sweep, quick rising noise glide" | 300 ms | wired (stage 2) |
 | Blockzone | `blockfall.heartbeat` | The stack is near the top (loop while it stays) | "Low chiptune heartbeat, two soft square thumps, loopable" | 800 ms loop | wired (stage 2) |
 | Blockzone | `blockfall.linesCount` | The end: the lines count up | "Fast 8-bit counter ticks, rising square-wave clicks" | 1 s | stage 2 |
+| Meteor | `snake.saved` | A forgiven crash (snakeRev 15): the comet holds still, "SAVED!" | "Short chiptune shield ping, a bright two-note rise with a soft buzz" | 400 ms | wired (stage 3; the crash sound, softer, until the file) |
 | Meteor | `snake.rockGraze` | The head grazes a rock beside it | "Short gritty 8-bit scrape, a quick noise rasp" | 180 ms | wired (stage 2) |
 | Pinball | `pinball.multiballStart` | Multiball starts | "Big chiptune multiball fanfare, fast rising arpeggio and a bright chord" | 1.2 s | wired (stage 2) |
 | Pinball | `pinball.multiballEnd` | Multiball ends (back to one ball) | "Short falling chiptune two-note, calm down-step" | 600 ms | wired (stage 2) |

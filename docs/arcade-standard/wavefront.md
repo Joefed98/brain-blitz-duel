@@ -1,5 +1,14 @@
 # Wavefront on the arcade scoring standard (wavRev 12, 29 Oct 2026)
 
+## wavRev 15 (the Retro overhaul, stage 3, 16 Nov 2026): larger hit cells
+
+wavRev 14's world, waves, bosses, charged shot, parts and scoring exactly, with each ship's hit box reaching
+`WAV_V15_HIT_PAD` (3 px) further on every side (34 px where the cell is 28), formation and divers; the hull is drawn 4 px
+past the cell (`WAV_V15_HULL_BLEED`), inside the bounds rule. The flawless bot still reaches 200 (4 recorded runs,
+scripts/fixtures/wavefront-big-runs.json.gz, `bun scripts/wavefront-big-record.ts`), but on fewer seeds than wavRev 14:
+its bolts now meet ships first more often, so a saucer can pass unhit. Levels: lives, enemy bolts' speed, the final
+boss's hit points and the kill time. States add `big: 1` (checksum, last). Rooms deal it (preRetro: wavRev 13).
+
 Rooms and practice deal **wavRev 12**. Play is wavRev 11's exactly (Joe's phone notes: carriers, saucer lasers, no
 streak, the mothership only after wave 5): a wavRev 11 log steps tick for tick on wavRev 12 with every checkpoint the
 same (wavefront-phone-check). Only the scoring changed. States add `std: 1` and `coresHit` (which bosses' open cores

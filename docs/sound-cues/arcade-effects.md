@@ -176,6 +176,11 @@ Already sounded: atom split (`burst.hit`), shield / burst power-up (`burst.power
 | `wavefront.powerChirp` | A power-up caught (the Retro overhaul) | A ring opens round the fighter | silent until Joe's file (retro-elevenlabs.md) | 0–8 | 220 ms |
 | `wavefront.boltZip` | An enemy bolt passes within 4 px of the fighter (`wavBoltNearMiss`; at most one per 330 ms) | A white streak beside the fighter | silent until Joe's file (retro-elevenlabs.md) | 0–20 | 140 ms |
 | `wavefront.plateOff` | An armoured ship loses a plate without dying (beside `wavefront.armourHit`) | The warship flashes white | silent until Joe's file (retro-elevenlabs.md) | 0–12 | 200 ms |
+| `hover.flyOff` | The run lasted the minute (stage 3 of the Retro overhaul) | The saucer lifts away with streaks; COURSE COMPLETE and the barriers counting up | silent until Joe's file (retro-elevenlabs.md) | 0–1 | 700 ms |
+| `breaker.timeToPoints` | The wall cleared (stage 3) | WALL CLEARED! and SPEED +n counting up, sparks | silent until Joe's file (retro-elevenlabs.md) | 0–1 | 1200 ms |
+| `wavefront.bossStages` | The final boss destroyed (stage 3) | Three bursts across the hull, then the big one; BOSS DOWN! and the waves counting up | silent until Joe's file (retro-elevenlabs.md) | 0–1 | 2000 ms |
+| `pinball.counterRoll` | The run ends (stage 3) | TABLE TOTAL rolls up digit by digit like a mechanical counter | silent until Joe's file (retro-elevenlabs.md) | 0–1 | 1500 ms |
+| `pinball.outlaneSave` | A ball that fell into an outlane's mouth climbs back out (pinRev 8, the sim's `outSaves`) | Gold sparks at the post, SAVED! | silent until Joe's file (retro-elevenlabs.md) | 0–1 | 400 ms |
 
 Already sounded: shots (`wavefront.fire`), pierce pickup (`wavefront.pierce`), ship bursts (`wavefront.bigExplode` / `wavefront.shapePop`), boss hit (`wavefront.bossHit`), formation arriving (`wavefront.formation`), dive (`wavefront.dive`), life lost (`wavefront.lifeLost`).
 

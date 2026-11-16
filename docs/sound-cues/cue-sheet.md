@@ -19,7 +19,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 59 | 0 | 495 | 554 |
+| game event | 64 | 0 | 496 | 560 |
 | room moment | 1 | 0 | 41 | 42 |
 | music | 10 | 0 | 105 | 115 |
 | UI tap | 10 | 0 | 30 | 40 |
@@ -27,7 +27,7 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 | success sting | 1 | 0 | 75 | 76 |
 | ambience | 1 | 1 | 22 | 24 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 87 | 1 | 993 | 1081 |
+| **all** | 92 | 1 | 994 | 1087 |
 
 ## Silent and placeholder cues
 
@@ -255,7 +255,13 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `blockfall.turnRefused` | A move or turn refused (the state's rejects; at most one per 120 ms) [arcade-effects.md] | The piece outlined red | 0–30 | silent | none | 120 | game event | `blockfall.turnRefused` |
 | `blockfall.hardDrop` | A piece locks after a drop of three rows or more (bfHardDropped) [arcade-effects.md] | A streak down each of the piece's columns | 10–60 | silent | none | 250 | game event | `blockfall.hardDrop` |
 | `blockfall.sweep` | A line clear (beside blockfall.clear / blockfall.bigClear) [arcade-effects.md] | Sparks off both walls along the rows | 5–30 | silent | none | 300 | game event | `blockfall.sweep` |
-| `blockfall.heartbeat` | The stack within four rows of the top (bfNearTop; a loop while it stays) [arcade-effects.md] | The well's rim beats red | loop | silent | none | loop | ambience | `blockfall.heartbeat` |
+| `blockfall.heartbeat` | The stack within three rows of the top (bfNearTop; a loop while it stays) [arcade-effects.md] | The well's rim beats red | loop | silent | none | loop | ambience | `blockfall.heartbeat` |
+
+### Breaker
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `breaker.timeToPoints` | The wall cleared (stage 3) [arcade-effects.md] | WALL CLEARED! and SPEED +n counting up, sparks | 0–1 | silent | none | 1200 | game event | `breaker.timeToPoints` |
 
 ### Dual
 
@@ -277,6 +283,12 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `music.hotfloor` | Hot Floor (retired, practice): none |  | loop | silent | none | 60000 | music | `music_hotfloor` |
 
+### Hover
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `hover.flyOff` | The run lasted the minute (stage 3 of the Retro overhaul) [arcade-effects.md] | The saucer lifts away with streaks; COURSE COMPLETE and the barriers counting up | 0–1 | silent | none | 700 | game event | `hover.flyOff` |
+
 ### Meteor
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
@@ -295,6 +307,8 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `pinball.ballLocked` | A ball locked (pinRev 4+) [arcade-effects.md] | The lock flares gold, "BALL n LOCKED" over it | 0–6 | silent | none | 500 | game event | `pinball.ballLocked` |
 | `pinball.multiballStart` | Multiball starts (pinRev 4+) [arcade-effects.md] | Bright sparks from the lock | 0–3 | silent | none | 1200 | game event | `pinball.multiballStart` |
 | `pinball.multiballEnd` | Multiball ends: the last extra ball drains with the main ball still in play (pinRev 4+) [arcade-effects.md] | The lock's lights settle | 0–3 | silent | none | 600 | game event | `pinball.multiballEnd` |
+| `pinball.counterRoll` | The run ends (stage 3) [arcade-effects.md] | TABLE TOTAL rolls up digit by digit like a mechanical counter | 0–1 | silent | none | 1500 | game event | `pinball.counterRoll` |
+| `pinball.outlaneSave` | A ball that fell into an outlane's mouth climbs back out (pinRev 8, the sim's outSaves) [arcade-effects.md] | Gold sparks at the post, SAVED! | 0–1 | silent | none | 400 | game event | `pinball.outlaneSave` |
 
 ### Rally
 
@@ -350,6 +364,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `wavefront.powerChirp` | A power-up caught (the Retro overhaul) [arcade-effects.md] | A ring opens round the fighter | 0–8 | silent | none | 220 | game event | `wavefront.powerChirp` |
 | `wavefront.boltZip` | An enemy bolt passes within 4 px of the fighter (wavBoltNearMiss; at most one per 330 ms) [arcade-effects.md] | A white streak beside the fighter | 0–20 | silent | none | 140 | game event | `wavefront.boltZip` |
 | `wavefront.plateOff` | An armoured ship loses a plate without dying (beside wavefront.armourHit) [arcade-effects.md] | The warship flashes white | 0–12 | silent | none | 200 | game event | `wavefront.plateOff` |
+| `wavefront.bossStages` | The final boss destroyed (stage 3) [arcade-effects.md] | Three bursts across the hull, then the big one; BOSS DOWN! and the waves counting up | 0–1 | silent | none | 2000 | game event | `wavefront.bossStages` |
 
 ## Music by screen and game
 
@@ -1668,6 +1683,7 @@ Grouped by game or screen.
 | `snake.start` | Meteor: The run starts [arcade.md] |  | 1 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `snake.start` |
 | `snake.dead` | Meteor: The snake dies [arcade.md] |  | 0–1 | recorded sound | `arc_retro_explode` (shared) | 260 | fail sting | `snake.dead` |
 | `snake.eat` | Meteor: A star is eaten [arcade.md] |  | 10–40 | recorded sound | `arc_retro_blip` (shared) | 50 | game event | `snake.eat` |
+| `snake.saved` | Meteor: A crash forgiven (snakeRev 15, the comet holds still) [arcade.md] |  | 0–2 | recorded sound | `arc_retro_explode` (shared) | 400 | game event | `snake.saved` |
 | `snake.rockLand` | Meteor: A rock lands clear of the head (snakeRev 2+) [arcade.md] |  | 5–20 | recorded sound | `arc_retro_hit` (shared) | 120 | game event | `snake.rockLand` |
 | `snake.rockWarn` | Meteor: A rock's shadow appears [arcade.md] |  | 5–20 | recorded sound | `arc_retro_note` (shared) | 90 | game event | `snake.rockWarn` |
 | `snake.showerAlarm` | Meteor: A meteor shower's three shadows appear (snakeRev 3+) [arcade.md] |  | 1–3 | recorded sound | `arc_retro_note` (shared) | 180 | game event | `snake.showerAlarm` |
@@ -2026,7 +2042,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `arc_retro_pickup` | effects | `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
 | `arc_retro_blip` | effects | `breaker.relaunch`, `breaker.capsuleIcon`, `breaker.paddle`, `burst.shot`, `hover.thrust`, `hover.scrape`, `snake.eat`, `rally.fwip`, `rally.hit`, `wavefront.dive` | 50 |
 | `arc_retro_coin` | effects | `racing.sector`, `blockfall.start`, `breaker.goldTang`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `hover.deadCentre`, `snake.start`, `rally.start`, `beat.start` | 120 |
-| `arc_retro_explode` | effects | `whack.bomb`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `rally.dead`, `rally.lifeLost` | 260 |
+| `arc_retro_explode` | effects | `whack.bomb`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `snake.saved`, `rally.dead`, `rally.lifeLost` | 260 |
 | `arc_retro_hit` | effects | `breaker.brickHit`, `burst.hit`, `hover.shieldShatter`, `snake.rockLand`, `rally.edgeSave`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
 | `arc_fair_thud` | effects | `bullseye.thud` | 160 |
 | `arc_fair_bell` | effects | `bullseye.bull`, `bintoss.allBaskets` | 400 |

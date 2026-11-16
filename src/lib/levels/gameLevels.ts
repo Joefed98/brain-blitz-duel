@@ -26,6 +26,7 @@ import { checkOverride } from "@/lib/checkOverride";
 import type { PuzzleType } from "@/lib/duel/types";
 
 import { LEVELS, NORMAL, type Level } from "./levels";
+import { BEAT_LEVELS, BLOCKFALL_LEVELS, BREAKER_LEVELS, BURST_LEVELS, CROSS_LEVELS, HOVER_LEVELS, PINBALL_LEVELS, RALLY_LEVELS, SNAKE_LEVELS, WAVEFRONT_LEVELS } from "@/lib/arcade/retroLevels";
 
 /** How a level's boards are proven to have exactly one solution. */
 export type OneSolutionProof = { proof: string } | { open: string };
@@ -46,7 +47,25 @@ export interface GameLevels<S = Record<string, unknown>> {
  * Every game's levels beyond Normal. Empty until the family sessions add theirs (15 Nov 2026): every game offers
  * Normal only.
  */
-export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {};
+export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
+  // The Retro overhaul, stage 3 (16 Nov 2026): the Retro games' levels, plain data from retroLevels.ts.
+  breaker: retroGameLevels(BREAKER_LEVELS),
+  hover: retroGameLevels(HOVER_LEVELS),
+  pinball: retroGameLevels(PINBALL_LEVELS),
+  wavefront: retroGameLevels(WAVEFRONT_LEVELS),
+  cross: retroGameLevels(CROSS_LEVELS),
+  snake: retroGameLevels(SNAKE_LEVELS),
+  blockfall: retroGameLevels(BLOCKFALL_LEVELS),
+  beat: retroGameLevels(BEAT_LEVELS),
+  burst: retroGameLevels(BURST_LEVELS),
+  rally: retroGameLevels(RALLY_LEVELS),
+};
+
+/** A Retro game's entry: its table's three levels as settings (arcade games give no one-solution proof). */
+function retroGameLevels<S extends object>(table: Readonly<Record<"easy" | "hard" | "expert", S>>): GameLevels {
+  const plain = (s: S): Record<string, unknown> => ({ ...(s as Record<string, unknown>) });
+  return { levels: { easy: { settings: plain(table.easy) }, hard: { settings: plain(table.hard) }, expert: { settings: plain(table.expert) } } };
+}
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */
 let registry: Partial<Record<string, GameLevels>> = GAME_LEVELS;

@@ -1,5 +1,14 @@
 # Meteor (`snake`): the arcade scoring standard, snakeRev 11 and 12
 
+## snakeRev 15 (the Retro overhaul, stage 3, 16 Nov 2026): the first crash forgiven
+
+snakeRev 14's world, rocks, wrap, parts and scoring exactly, with one grace at Normal (`SNAKE_V15_GRACE`): a crash that
+would end the run instead leaves the comet where it was before the step (a rock landing on the head leaves the rock and
+the comet under it) and holds it still for `SNAKE_V15_STUN_TICKS` (90; a turn chosen then is kept), with "SAVED!" over
+the board and `snake.saved`. The second crash ends the run as before. Levels (retroLevels.ts): Easy 3 lives, Hard 2 with
+walls, Expert 1 with walls; each sets its pace and the stars the core is full at. States add `grace`, `graceUsed`,
+`stunTo`, folded into the checkpoint checksum last. Rooms deal it (preRetro: snakeRev 12).
+
 29 Oct 2026. Rooms and practice dealt **snakeRev 11** (was 10) until 1 Nov 2026, when snakeRev 12 replaced it (gold stars count 2 towards the core, full at 28; see "snakeRev 12" below). snakeRev 11 plays exactly as snakeRev 10: the same
 19 × 34 field, stars, rocks (2 × 2 ones too), meteor shower, lanes, three wormhole pairs and gold-star schedule, all
 drawn the same way from the room seed. Only the scoring is new. Every older stamp (unstamped, 1–10) replays and scores

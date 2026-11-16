@@ -3,7 +3,7 @@
  * (snakeRev 11's parts, the core counting a gold star as 2 stars and full at 28).
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the entry moved to the dealt
  * stamp, snakeRev 13 (the edges wrap, the core full at 36 core stars), then snakeRev 14 (rocks in three sizes; the same
- * parts).
+ * parts), then snakeRev 15 (stage 3, 16 Nov 2026: the first crash forgiven; the same parts).
  *
  * perfect(): a true perfect run would eat each of the 7 gold stars on the first tick it can be eaten, which the board
  * cannot be planned (each appears on its own square, wherever the meteor is), so the run's final state is built the way the sim
@@ -16,7 +16,7 @@ import { roomSeed } from "../arcade-skill-bands/games";
 import {
   snakeGameFor,
   snakeStdParts,
-  SNAKE_REV_SIZES,
+  SNAKE_REV_GRACE,
   SNAKE_RUN_TICKS,
   SNAKE_STD_CAPS,
   SNAKE_STD_CORE_MAX,
@@ -30,7 +30,7 @@ import type { StdEntry, StdRun } from "./entry";
 export const entry: StdEntry = {
   type: "snake",
   field: "snakeRev",
-  rev: SNAKE_REV_SIZES,
+  rev: SNAKE_REV_GRACE,
   parts: [
     { key: "core", label: `Stars eaten, a gold star counting 2 (straight line, full at ${SNAKE_V13_CORE_STARS})`, max: SNAKE_STD_CORE_MAX },
     { key: "gold", label: "Gold stars (7 dealt, each up to 40 ÷ 7, falling to 0 as it fades)", max: SNAKE_STD_CAPS.gold },
@@ -39,7 +39,7 @@ export const entry: StdEntry = {
     { key: "warp", label: "Warp stars (+2 a star within 2 s of a wormhole trip)", max: SNAKE_STD_CAPS.warp },
   ],
   perfect(): StdRun[] {
-    const game = snakeGameFor(SNAKE_REV_SIZES);
+    const game = snakeGameFor(SNAKE_REV_GRACE);
     const start = game.init(roomSeed(0)) as SnakeState;
     const life = start.goldLife!;
     const golds = start.golds!.length;

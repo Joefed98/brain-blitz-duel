@@ -13,6 +13,7 @@
  * effects (a slow phone, the battery saver) halve the particles.
  */
 import { reducedMotion } from "./art.renderer";
+import { retroText, retroTextFloor } from "./retro.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 
 export interface RetroFxEvent {
@@ -287,6 +288,51 @@ export function fxShards(
     const d = fx.still ? r : r + 18 * age * (0.6 + 0.4 * scatter((opts.seed ?? 0) + 3, i));
     const fall = fx.still ? 0 : 22 * age * age;
     block(ctx, x + Math.cos(a) * d, y + Math.sin(a) * d + fall, size);
+  }
+  ctx.restore();
+}
+
+/** How long the Retro round-end payoffs play (stage 3 of the Retro overhaul): the stage holds the submit this long. */
+export const RETRO_PAYOFF_MS = 1600;
+const endMemos = new WeakMap<object, Map<string, { tick: number; at: number }>>();
+
+/**
+ * The round-end payoff's clock (stage 3 of the Retro overhaul; display only): milliseconds since this canvas first drew
+ * the run ended (`ended`), or null while it runs. The sim's clock has stopped by then, so the payoff is timed on the
+ * presentation clock while the stage holds the submit (`ArcadeCanvasStage` `endHoldMs`, RETRO_PAYOFF_MS). Under reduced
+ * motion it answers the payoff's end at once, so the still final frame shows.
+ */
+export function retroEndAge(ctx: object, game: string, ended: boolean, tick: number): number | null {
+  let games = endMemos.get(ctx);
+  if (!games) endMemos.set(ctx, (games = new Map()));
+  if (!ended) {
+    games.delete(game);
+    return null;
+  }
+  let m = games.get(game);
+  const now = typeof performance === "undefined" ? 0 : performance.now();
+  if (!m || tick < m.tick) games.set(game, (m = { tick, at: now }));
+  return reducedMotion() ? RETRO_PAYOFF_MS : now - m.at;
+}
+
+/** A count rising to `target` over the payoff's first second (the round-end tallies). */
+export function countUp(target: number, age: number): number {
+  return Math.round(target * Math.min(1, Math.max(0, age) / 1000));
+}
+
+/**
+ * The round-end payoff's banner (stage 3 of the Retro overhaul): a title in the pixel font, gold with a dark outline,
+ * and a line under it at the world's on-screen floor, faded in over the payoff's first 200 ms.
+ */
+export function retroPayoffBanner(ctx: CanvasRenderingContext2D, width: number, y: number, title: string, line: string, age: number, colour = "#FFD84A"): void {
+  ctx.save();
+  ctx.globalAlpha = Math.min(1, Math.max(0, age) / 200);
+  const size = Math.max(retroTextFloor(), Math.min(24, Math.floor((width - 24) / (title.length * 1.05))));
+  for (const [dx, dy] of [[-2, 0], [2, 0], [0, -2], [0, 2]] as const) retroText(ctx, title, width / 2 + dx, y + dy, size, "#140A26", "center");
+  retroText(ctx, title, width / 2, y, size, colour, "center", 4);
+  if (line) {
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as const) retroText(ctx, line, width / 2 + dx, y + size + 12 + dy, retroTextFloor() + 2, "#140A26", "center");
+    retroText(ctx, line, width / 2, y + size + 12, retroTextFloor() + 2, "#FFFFFF", "center");
   }
   ctx.restore();
 }

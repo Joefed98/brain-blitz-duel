@@ -7,6 +7,8 @@
  * generator carried in the state; all positions are integers in 1/256 px.
  */
 
+import { retroLevelSettings, withRetroLevel, type WavefrontLv } from "./retroLevels";
+import type { Level } from "@/lib/levels/levels";
 import {
   clampInt,
   inputRange,
@@ -272,6 +274,10 @@ export interface WavBoss {
 }
 
 export interface WavState extends BandFields {
+  /** wavRev 15 only (the Retro overhaul, stage 3): 1 = the larger hit cells (WAV_V15_HIT_PAD on every side). */
+  big?: number;
+  /** Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. */
+  lv?: WavefrontLv;
   /** wavRev 2 only (absent on original rounds). */
   rev?: number;
   /** wavRev 2: fly-in ticks left (formation or boss), the formation's resting fy, divers, the dive timer. */
@@ -1090,6 +1096,8 @@ export function wavCheckpoint(state: WavState): WavCheckpoint {
       extra.push(state.charge, state.chargeAt ?? 0, state.heavies ?? 0);
       for (const b of state.bolts) extra.push(b.hv ?? 0);
     }
+    // wavRev 15 (the Retro overhaul, stage 3): the larger hit cells' marker, last.
+    if (state.big) extra.push(state.big);
     for (const value of extra) {
       checksum ^= value | 0;
       checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1315,7 +1323,8 @@ const wavefrontGameV2: ArcadeGame<WavState, ArcadeInputEvent | null> = {
 };
 
 /** The game for a stored wavRev (absent = the original 60 s rules). */
-export function wavefrontGameFor(rev?: number | null): ArcadeGame<WavState, ArcadeInputEvent | null> {
+export function wavefrontGameFor(rev?: number | null, level?: Level | null): ArcadeGame<WavState, ArcadeInputEvent | null> {
+  if (rev === WAV_REV_BIG) return wavefrontBigFor(level);
   if (rev === WAV_REV_CHARGE) return wavefrontChargeGame;
   if (rev === WAV_REV_KEEP) return wavefrontKeepGame;
   if (rev === WAV_REV_STD) return wavefrontStdGame;
@@ -1500,7 +1509,7 @@ export const wavefrontTallGame: ArcadeGame<WavState, ArcadeInputEvent | null> = 
 
 /** The world height (px) a stored round's wavRev plays in. */
 export function wavefrontWorldHFor(rev?: number | null): number {
-  if (rev === WAV_REV_EXPAND || rev === WAV_REV_PHONE || rev === WAV_REV_STD || rev === WAV_REV_KEEP || rev === WAV_REV_CHARGE) return WAV_X_H;
+  if (rev === WAV_REV_EXPAND || rev === WAV_REV_PHONE || rev === WAV_REV_STD || rev === WAV_REV_KEEP || rev === WAV_REV_CHARGE || rev === WAV_REV_BIG) return WAV_X_H;
   return rev === WAV_REV_TALL || rev === WAV_REV_TARGET || rev === WAV_REV_STRICT ? WAV_TALL_H : WAV_WORLD_H;
 }
 
@@ -1958,6 +1967,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
 
   // Bolts up, and what they hit (the formation's boxes are fixed for the rest of the tick).
   const boxes = s.shapes.map((_, i) => wavShapeBox(s, i));
+  const pad = s.big ? WAV_V15_HIT_PAD : 0;
   const kept: WavBolt[] = [];
   for (const bolt of s.bolts) {
     bolt.y -= boltSpeed;
@@ -1973,7 +1983,8 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
       if (code === 0 || away.has(i)) continue;
       if (code === WAV_ARMOUR_CODE && bolt.a) continue;
       const box = boxes[i]!;
-      if (bolt.x + 2 * FP > box.x * FP && bolt.x - 2 * FP < (box.x + WAV_CELL) * FP && bolt.y < (box.y + WAV_CELL) * FP && bolt.y + WAV_BOLT_H * FP > box.y * FP) {
+      // wavRev 15: each ship's hit box reaches WAV_V15_HIT_PAD further on every side (the larger hit cells).
+      if (bolt.x + 2 * FP > (box.x - pad) * FP && bolt.x - 2 * FP < (box.x + WAV_CELL + pad) * FP && bolt.y < (box.y + WAV_CELL + pad) * FP && bolt.y + WAV_BOLT_H * FP > (box.y - pad) * FP) {
         if (bolt.p) {
           bolt.p -= 1;
           if (bolt.p <= 0) hit = true;
@@ -2007,7 +2018,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
       for (const d of s.divers ?? []) {
         if (s.shapes[d.cell] === 0) continue;
         const c = wavDiverCentre(d);
-        if (bolt.x + 2 * FP > (c.x - WAV_CELL / 2) * FP && bolt.x - 2 * FP < (c.x + WAV_CELL / 2) * FP && bolt.y < (c.y + WAV_CELL / 2) * FP && bolt.y + WAV_BOLT_H * FP > (c.y - WAV_CELL / 2) * FP) {
+        if (bolt.x + 2 * FP > (c.x - WAV_CELL / 2 - pad) * FP && bolt.x - 2 * FP < (c.x + WAV_CELL / 2 + pad) * FP && bolt.y < (c.y + WAV_CELL / 2 + pad) * FP && bolt.y + WAV_BOLT_H * FP > (c.y - WAV_CELL / 2 - pad) * FP) {
           hit = true;
           const code = s.shapes[d.cell]!;
           s.shapes[d.cell] = 0;
@@ -2168,7 +2179,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
       s.wave += 1;
       s.waveBase = Math.max(WAV_STEP_MIN, Math.trunc((s.waveBase * 85) / 100));
       s.redBase = Math.max(RED_MIN, Math.trunc((s.redBase * 80) / 100));
-      s.redSpeed = Math.min(WAV_X_RED_CAP, Math.trunc((s.redSpeed * 115) / 100));
+      s.redSpeed = Math.min(s.lv ? Math.trunc((WAV_X_RED_CAP * s.lv.boltPct) / 100) : WAV_X_RED_CAP, Math.trunc((s.redSpeed * 115) / 100));
     }
     s.divers = [];
     s.diveIn = wavDiveEvery(s.wave);
@@ -2183,7 +2194,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
       s.boss = bossX(true, WAV_X_MID_HP, tick);
     } else if (s.wave > wavWaves(s)) {
       s.shapes = s.shapes.map(() => 0);
-      s.boss = bossX(false, WAV_X_BOSS_HP, tick);
+      s.boss = bossX(false, s.lv ? Math.trunc((WAV_X_BOSS_HP * s.lv.bossPct) / 100) : WAV_X_BOSS_HP, tick);
       s.bossAt = tick;
     } else {
       // The wave's ships from its own seeded stream (the same for every player, whenever it arrives).
@@ -2211,7 +2222,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
     s.wave = wavWaves(s) + 1;
     s.enter = WAV_BREATHER_TICKS;
     s.redIn = s.redBase;
-    s.boss = bossX(false, WAV_X_BOSS_HP, tick);
+    s.boss = bossX(false, s.lv ? Math.trunc((WAV_X_BOSS_HP * s.lv.bossPct) / 100) : WAV_X_BOSS_HP, tick);
     s.bossAt = tick;
   }
 
@@ -2476,12 +2487,12 @@ export function wavStdScore(s: WavState): StdBreakdown {
   const killed = (s.bossKilled ?? 0) > 0;
   const fight = s.tick - (s.bossAt ?? 0);
   const core = stdLine(WAV_STD_CORE_MAX, wavStdUnits(s), WAV_STD_CORE_FULL);
-  const lost = Math.max(0, WAV_LIVES - Math.max(0, s.lives));
+  const lost = Math.max(0, wavLivesOf(s) - Math.max(0, s.lives));
   return {
     core,
     features: {
       boss: killed ? 10 : 0,
-      speed: killed ? stdSpeed(10, fight, WAV_STD_KILL_FULL, WAV_STD_KILL_ZERO) : 0,
+      speed: killed ? stdSpeed(10, fight, s.lv ? s.lv.killS * TICKS_PER_SECOND : WAV_STD_KILL_FULL, WAV_STD_KILL_ZERO) : 0,
       saucers: stdLine(20, wavStdSaucers(s), WAV_X_SAUCERS),
       weak: stdLine(10, wavStdWeakPoints(s), WAV_STD_WEAK_POINTS),
     },
@@ -2491,7 +2502,7 @@ export function wavStdScore(s: WavState): StdBreakdown {
 }
 /** wavRev 12's reveal and band breakdown. */
 export function wavefrontStdParts(state: WavState): BandParts {
-  const lost = Math.max(0, WAV_LIVES - Math.max(0, state.lives));
+  const lost = Math.max(0, wavLivesOf(state) - Math.max(0, state.lives));
   const score = wavStdScore(state);
   const charged = stdLivesCharged(lost, state.lives <= 0);
   return stdBandParts(
@@ -2559,3 +2570,40 @@ export const wavefrontChargeGame: ArcadeGame<WavState, ArcadeInputEvent | null> 
   init: (seed: number) => ({ ...wavefrontKeepGame.init(seed), charge: 1, chargeAt: 0, heavies: 0 }),
   inputRanges: WAV_V14_INPUT_RANGES,
 };
+
+/* ================= The Retro overhaul, stage 3: larger hit cells (wavRev 15, 16 Nov 2026) ================= */
+
+/**
+ * wavRev 15 (the Retro overhaul, stage 3, Joe, 16 Nov 2026: "Wavefront's larger hit cells"; docs/arcade-standard/wavefront.md
+ * "wavRev 15"): wavRev 14's world, waves, bosses, charged shot, parts and scoring exactly, with each ship's hit box (in the
+ * formation and diving) reaching WAV_V15_HIT_PAD further on every side: 34 px where the cell is 28. The hull is drawn to
+ * match (WAV_V15_HULL_BLEED past the cell, inside the bounds rule). Where two boxes overlap the formation's first ship in
+ * reading order takes the bolt, as one ship always did. A level (retroLevels.ts) sets the lives and the enemy bolts'
+ * top speed. States add `big: 1`, folded into the checkpoint checksum last.
+ */
+export const WAV_REV_BIG = 15;
+export const WAV_V15_HIT_PAD = 3;
+export const WAVEFRONT_STD_BIG: StdSpec = { ...WAVEFRONT_STD_KEEP, rev: WAV_REV_BIG };
+
+/** Lives a state starts with: its level's, else WAV_LIVES. */
+export function wavLivesOf(state: { lv?: WavefrontLv | undefined }): number {
+  return state.lv?.lives ?? WAV_LIVES;
+}
+
+export const wavefrontBigGame: ArcadeGame<WavState, ArcadeInputEvent | null> = {
+  ...wavefrontChargeGame,
+  init: (seed: number) => ({ ...wavefrontChargeGame.init(seed), big: 1 }),
+};
+
+const wavefrontBigByLevel = new Map<string, ArcadeGame<WavState, ArcadeInputEvent | null>>();
+/** wavRev 15 at a level: lives and the enemy bolts' speed (start and top, per cent of Normal's). */
+function wavefrontBigFor(level?: Level | null): ArcadeGame<WavState, ArcadeInputEvent | null> {
+  const lv = retroLevelSettings("wavefront", level);
+  if (!lv) return wavefrontBigGame;
+  let game = wavefrontBigByLevel.get(level!);
+  if (!game) {
+    game = withRetroLevel<WavState, WavefrontLv, typeof wavefrontBigGame>(wavefrontBigGame, lv, (state, l) => ({ ...state, lives: l.lives, redSpeed: Math.trunc((state.redSpeed * l.boltPct) / 100) }));
+    wavefrontBigByLevel.set(level!, game);
+  }
+  return game;
+}

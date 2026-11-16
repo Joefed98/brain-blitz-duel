@@ -150,7 +150,7 @@ import { HOVER_REV_BAND, HOVER_REV_EXPAND, HOVER_REV_STANDARD, HOVER_REV_TALL, H
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BRK_REV_BAND, BRK_REV_CLEAR, BRK_REV_STD, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
 import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
-import { pin4Checkpoint, pinball5Game, pinball6Game, pinball7Game, PIN_REV_LONG } from "@/lib/arcade/pinball4";
+import { pin4Checkpoint, pinball5Game, pinball6Game, pinball7Game, pinball8Game, PIN_REV_LONG } from "@/lib/arcade/pinball4";
 // The arcade scoring standard, batch B (29 Oct 2026): each game's standard stamp.
 import { SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
@@ -1041,6 +1041,16 @@ const GAMES: Game[] = [
   { key: "snake/sizes", game: snakeGameFor(14), checkpoint: snakeCheckpoint, mode: "events", rate: 60, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, 14) },
   // Fission burstRev 13 (15 Nov 2026, the Retro overhaul: bigger atoms), appended so every earlier entry keeps its stream.
   { key: "burst/big", game: burstGameFor(13), checkpoint: burstCheckpoint, mode: "events", rate: 120, encode: encodeBurstRun, replay: (seed: number, raw: string) => replayBurstRun(seed, raw, 13) },
+  // Meteor snakeRev 15 (16 Nov 2026, the Retro overhaul stage 3: the first crash forgiven), appended so every earlier entry keeps its stream.
+  // Spacewalk crossRev 13 (16 Nov 2026, the Retro overhaul stage 3: lighter traffic), appended so every earlier entry keeps its stream.
+  { key: "cross/light", game: crossGameFor(13), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, 13) },
+  // Wavefront wavRev 15 (16 Nov 2026, the Retro overhaul stage 3: larger hit cells), appended so every earlier entry keeps its stream.
+  { key: "wavefront/big", game: wavefrontGameFor(15), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, 15) },
+  // Pinball pinRev 8 (16 Nov 2026, the Retro overhaul stage 3: outlane saves counted), appended so every earlier entry keeps its stream.
+  { key: "pinball/save", game: pinball8Game, checkpoint: pin4Checkpoint, mode: "events", rate: 120, encode: encodePinballRun, replay: (seed: number, raw: string) => replayPinballRun(seed, raw, 8) },
+  // Hover hoverRev 11 (16 Nov 2026, the Retro overhaul stage 3: starting shielded), appended so every earlier entry keeps its stream.
+  { key: "hover/shield", game: hoverGameFor(11), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, 11) },
+  { key: "snake/grace", game: snakeGameFor(15), checkpoint: snakeCheckpoint, mode: "events", rate: 60, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, 15) },
 ];
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */

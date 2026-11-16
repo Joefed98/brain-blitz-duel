@@ -1,5 +1,14 @@
 # Pinball on the arcade scoring standard (pinRev 6, 29 Oct 2026)
 
+## pinRev 8 (the Retro overhaul, stage 3, 16 Nov 2026): outlane saves counted
+
+pinRev 7's table, play, timings and parts exactly (playRevOf maps 8 to 7's play), with the outlane saves counted: the
+main ball falling into an outlane's mouth (within `P4_POST_R` of a guide's lower post, on its outer side) and climbing
+back out without draining (`outSaves`, `outSaveTick`); the art sparks gold at the post with "SAVED!" and
+`pinball.outlaneSave` plays. A save is rare (none to one a run for the bots). Levels: balls, a ball save after each
+launch (Easy 10 s), gravity, the multiball's length and the table points the core is full at. States add `rev8` and the
+counters (checksum, last). Rooms deal it (preRetro: pinRev 6).
+
 Joe's row: "Pinball: core up to 130 = table points, full at the near-flawless total. J-O-U-L-Z completed 20 (10 each,
 up to 2). Multiball started 20. Jackpots 15 (5 each, up to 3). Ramp combos 15 (5 each, up to 3). Replaces the
 266,000-point scale."

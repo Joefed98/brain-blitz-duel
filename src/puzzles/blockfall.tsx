@@ -1,10 +1,11 @@
 import { useMemo, useRef } from "react";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { ArtStill } from "@/components/puzzles/ArtStill";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import {
   BF_CHECKPOINT_INTERVAL, BF_INPUT_DOWN, BF_INPUT_DROP, BF_INPUT_HOLD, BF_INPUT_MOVE, BF_INPUT_SOFT, BF_INPUT_TURN, BLOCKFALL_REV_ZONE, bfApply, bfCheckpoint,
-  bfCoreFullFor, bzInit, type BfState,
+  bfCoreFullFor, bfCoreFullOf, bzInit, type BfState,
 } from "@/lib/arcade/blockfall";
 import { BF_BG, BF_WORLD_H, BF_WORLD_W, bfLayout, bfNewView, bfPadAt, blockfallArtGame, blockfallScene, drawBlockfall, type BfPadId } from "@/lib/arcade/blockfall.renderer";
 import { encodeBlockfallRun, replayBlockfallRun } from "@/lib/duel/blockfall";
@@ -72,7 +73,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const zone = rev >= BLOCKFALL_REV_ZONE;
   const cell = bfLayout(zone ? BLOCKFALL_REV_ZONE : 1).cell;
   const view = useMemo(() => bfNewView(), []);
-  const game = useMemo(() => blockfallArtGame(view, zone ? BLOCKFALL_REV_ZONE : 1), [view, zone]);
+  const level = puzzleLevel(data);
+  const game = useMemo(() => blockfallArtGame(view, zone ? BLOCKFALL_REV_ZONE : 1, level), [view, zone, level]);
   const g = useRef<Gesture | null>(null);
   // Blockzone's soft drop (blockfallSoftDrop.ts): on only while a drag down (or ↓) holds it for its piece.
   const soft = useMemo(() => createSoftDrop(), []);
@@ -208,14 +210,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function blockfallLine(r: { lines: number; doubles: number; triples: number; quads: number; pieces?: number }, rev?: number | null): string {
+export function blockfallLine(r: { lines: number; doubles: number; triples: number; quads: number; pieces?: number; state?: BfState }, rev?: number | null): string {
   const pieces = (rev ?? 1) >= BLOCKFALL_REV_ZONE ? ` · ${r.pieces ?? 0} pieces` : "";
-  return `${r.lines} lines (full at ${bfCoreFullFor(rev)})${pieces} · ${r.doubles + r.triples + r.quads} multi-line clears`;
+  return `${r.lines} lines (full at ${r.state ? bfCoreFullOf(r.state) : bfCoreFullFor(rev)})${pieces} · ${r.doubles + r.triples + r.quads} multi-line clears`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "blockfall") return null;
-  const result = replayBlockfallRun(puzzle.seed, myAnswer ?? "", puzzle.blockfallRev);
+  const result = replayBlockfallRun(puzzle.seed, myAnswer ?? "", puzzle.blockfallRev, puzzleLevel(puzzle));
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{blockfallLine(result, puzzle.blockfallRev)}</p>

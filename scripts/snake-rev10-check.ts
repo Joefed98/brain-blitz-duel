@@ -34,7 +34,7 @@ import {
   snakeWorldHForRev, snakeWorldWForRev,
   SNAKE_REV_200, SNAKE_REV_10, SNAKE_REV_12, SNAKE_V12_BAND_CURVE, SNAKE_V9_BAND_CURVE, SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS, SNAKE_V9_H, SNAKE_V9_WORLD_W,
   SNAKE_GOLD_LIFE, SNAKE_V10_GOLD_LIFE, SNAKE_V10_BIG_ROCKS, SNAKE_INPUT_TURN, SNAKE_RUN_TICKS, SNAKE_GOLD_MIN, SNAKE_GOLD_SPAN,
-  type SnakeState, SNAKE_REV_SIZES, SNAKE_V13_BAND_CURVE } from "../src/lib/arcade/snake";
+  type SnakeState, SNAKE_REV_GRACE, SNAKE_V13_BAND_CURVE } from "../src/lib/arcade/snake";
 import { clampInt } from "../src/lib/arcade/engine";
 
 const RECORD = process.argv.includes("--record");
@@ -60,8 +60,8 @@ const touching = (a: number, b: number) => Math.abs(r(a) - r(b)) <= 1 && Math.ab
 // snakeRev 10 itself stays proved below.
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 13 (the edges
 // wrap, the core full at 36), one above snakeRev 12; the help reads its core line.
-ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_SIZES && SNAKE_REV_SIZES === SNAKE_REV_12 + 2 /* Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 14 (13's wrap, rocks in three sizes) */, "rooms deal snakeRev 12 (snakeRev 11 before 1 Nov 2026, snakeRev 10 before the arcade scoring standard)");
-ok(LIVE_BANDS.snake.rev === SNAKE_REV_SIZES && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE, "the help reads snakeRev 12 on SNAKE_V12_BAND_CURVE (snakeRev 10: SNAKE_V9_BAND_CURVE)");
+ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_GRACE && SNAKE_REV_GRACE === SNAKE_REV_12 + 3 /* Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 15 (14's rocks in three sizes, the first crash forgiven) */, "rooms deal snakeRev 12 (snakeRev 11 before 1 Nov 2026, snakeRev 10 before the arcade scoring standard)");
+ok(LIVE_BANDS.snake.rev === SNAKE_REV_GRACE && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE, "the help reads snakeRev 12 on SNAKE_V12_BAND_CURVE (snakeRev 10: SNAKE_V9_BAND_CURVE)");
 ok(ROUND_MAX.snake === 200, "ROUND_MAX: Meteor is 200");
 ok(snakeWorldWForRev(SNAKE_REV_10) === SNAKE_V9_WORLD_W && snakeWorldHForRev(SNAKE_REV_10) === SNAKE_V9_H, "snakeRev 10 plays in snakeRev 9's world");
 

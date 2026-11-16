@@ -7,6 +7,8 @@
  * apart per tap — until a life is lost.
  */
 
+import { retroLevelSettings, withRetroLevel, type BurstLv } from "./retroLevels";
+import type { Level } from "@/lib/levels/levels";
 import {
   clampInt,
   inputRange,
@@ -89,8 +91,15 @@ export const BURST_RADIUS = [32, 22, 14, 8] as const;
 /** burstRev 13 (the Retro overhaul, 15 Nov 2026): bigger, bolder atoms (the smallest grow the most). */
 export const BURST_RADIUS_BIG = [38, 26, 17, 10] as const;
 /** An atom's radius (px) on this state's revision: burstRev 13's bigger atoms, or the original table. */
-export function burstRadius(state: { big?: number | undefined }, size: number): number {
-  return (state.big ? BURST_RADIUS_BIG : BURST_RADIUS)[size] ?? 8;
+export function burstRadius(state: { big?: number | undefined; lv?: BurstLv | undefined }, size: number): number {
+  const r = (state.big ? BURST_RADIUS_BIG : BURST_RADIUS)[size] ?? 8;
+  // A level (stage 3 of the Retro overhaul) scales the atoms (Easy's larger).
+  return state.lv && state.lv.sizePct !== 100 ? Math.trunc((r * state.lv.sizePct) / 100) : r;
+}
+
+/** The lives a run starts with: its level's (stage 3 of the Retro overhaul), else BURST_LIVES. */
+export function burstLivesOf(state: { lv?: BurstLv | undefined }): number {
+  return state.lv?.lives ?? BURST_LIVES;
 }
 const APEX_PCT = [75, 60, 45, 30] as const;
 const SPEED_X = [410, 495, 580, 666] as const; // 1.6 → 2.6 px a tick
@@ -238,6 +247,8 @@ export interface BurstIcon {
 }
 
 export interface BurstState extends BandFields {
+  /** Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. */
+  lv?: BurstLv;
   /** burstRev 2 only (absent on original rounds). */
   rev?: number;
   /** burstRev 2: ticks of freeze left (every atom stopped) and FREEZE icons caught. */
@@ -645,8 +656,8 @@ export function burstScoreV2(hits: number, livesLost: number, cleared: number, e
 }
 
 function score(state: BurstState): number {
-  if (state.rev === BURST_REV) return burstScoreV2(state.hits, BURST_LIVES - state.lives, state.cleared, state.ended !== 0);
-  return burstScoreOf(state.hits, BURST_LIVES - state.lives, state.cleared, state.ended !== 0);
+  if (state.rev === BURST_REV) return burstScoreV2(state.hits, burstLivesOf(state) - state.lives, state.cleared, state.ended !== 0);
+  return burstScoreOf(state.hits, burstLivesOf(state) - state.lives, state.cleared, state.ended !== 0);
 }
 
 /* ============================= Checkpoints ============================= */
@@ -868,8 +879,9 @@ export const burstGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = {
 const burstGameV2: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstGame, init: initV2 };
 
 /** The game for a stored burstRev (absent = the original drops). */
-export function burstGameFor(rev?: number | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
-  if (rev === BURST_REV_BIG) return burstBigGame;
+export function burstGameFor(rev?: number | null, level?: Level | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  // Stage 3 of the Retro overhaul: burstRev 13 at a level (retroLevels.ts: lives, atom size, quick time, free misses).
+  if (rev === BURST_REV_BIG) return withRetroLevel(burstBigGame, retroLevelSettings("burst", level), (st, lv) => ({ ...st, lives: lv.lives }));
   if (rev === BURST_REV_WIDE) return burstWideGame;
   if (rev === BURST_REV_AIM) return burstAimGame;
   if (rev === BURST_REV_STD) return burstStdGame;
@@ -892,9 +904,9 @@ export function burstBandParts(state: BurstState): BandParts {
   if (state.std) return burstStdBandParts(state);
   if (state.carry) return burstCarryParts(state);
   if (state.exp) return burstCleanParts(state);
-  const units = Math.max(0, state.hits - 5 * (BURST_LIVES - state.lives));
+  const units = Math.max(0, state.hits - 5 * (burstLivesOf(state) - state.lives));
   const finished = state.ended === 1;
-  return { units, points: bandPoints(bandCurveOf(state, state.worldH ? BURST_V4_BAND_CURVE : BURST_BAND_CURVE), units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.hits} atoms · ${BURST_LIVES - state.lives} lives lost`, bonusText: "Lasted the 90 s" };
+  return { units, points: bandPoints(bandCurveOf(state, state.worldH ? BURST_V4_BAND_CURVE : BURST_BAND_CURVE), units), bonus: finished ? BAND_FINISH_BONUS : 0, penalty: 0, finished, text: `${state.hits} atoms · ${burstLivesOf(state) - state.lives} lives lost`, bonusText: "Lasted the 90 s" };
 }
 
 function scoreBand(state: BurstState): number {
@@ -1229,8 +1241,8 @@ export function burstCleanBonus(state: BurstState): { gold: number; clear: numbe
 export const BURST_V8_BAND_CURVE = bandCurve([0, 15, 45, 70, 80, 90, 100, 140], [0, 38, 64, 106, 114, 122, 128, 136]);
 
 /** burstRev 8's units: atoms hit less 5 a life lost, never below a quarter of the atoms hit (rounded up). */
-export function burstCleanUnits(state: Pick<BurstState, "hits" | "lives">): number {
-  return Math.max(Math.ceil(state.hits / 4), state.hits - 5 * (BURST_LIVES - state.lives));
+export function burstCleanUnits(state: Pick<BurstState, "hits" | "lives" | "lv">): number {
+  return Math.max(Math.ceil(state.hits / 4), state.hits - 5 * (burstLivesOf(state) - state.lives));
 }
 
 export function burstCleanParts(state: BurstState): BandParts {
@@ -1244,7 +1256,7 @@ export function burstCleanParts(state: BurstState): BandParts {
     bonus: (finished ? BAND_FINISH_BONUS : 0) + b.total,
     penalty: 0,
     finished,
-    text: `${state.hits} atoms · ${BURST_LIVES - state.lives} lives lost`,
+    text: `${state.hits} atoms · ${burstLivesOf(state) - state.lives} lives lost`,
     bonusText: `${finished ? "Lasted the 90 s +10 · " : ""}skill bonus (${bits.join(" · ") || "none"})`,
   };
 }
@@ -1313,6 +1325,11 @@ export function burstAtomsOf(size: number): number {
 }
 
 /** The quick time (ticks) of a wave: 1 s plus 0.6 s for every atom it holds. */
+/** A wave's quick time on a state's level (stage 3 of the Retro overhaul): Normal's, scaled by the level's. */
+export function burstQuickOf(state: { lv?: BurstLv | undefined }, quick: number): number {
+  return state.lv ? Math.trunc((quick * state.lv.quickPct) / 100) : quick;
+}
+
 export function burstV9QuickTicks(wave: readonly BurstSpawn[]): number {
   return BURST_V9_QUICK_BASE + BURST_V9_QUICK_PER_ATOM * wave.reduce((n, spawn) => n + burstAtomsOf(spawn.size), 0);
 }
@@ -1516,7 +1533,7 @@ export function burstCarryParts(state: BurstState): BandParts {
     bonus: (finished ? BAND_FINISH_BONUS : 0) + b.total,
     penalty: 0,
     finished,
-    text: `${state.hits} atoms · ${BURST_LIVES - state.lives} lives lost`,
+    text: `${state.hits} atoms · ${burstLivesOf(state) - state.lives} lives lost`,
     bonusText: `${finished ? "Lasted the 90 s +10 · " : ""}skill bonus (${bits.join(" · ") || "none"})`,
   };
 }
@@ -1658,7 +1675,7 @@ function burstGoldenTouchesV10(s: BurstState, floor: number): boolean {
 
 /** burstRev 10: a wave cleared pays its time bonus. */
 function burstWaveClearV10(s: BurstState, tick: number): void {
-  const pts = burstV10ClearPoints(tick - (s.waveAt ?? tick), burstV9QuickTicks(s.waves[s.wave - 1] ?? []), Boolean(s.wide));
+  const pts = burstV10ClearPoints(tick - (s.waveAt ?? tick), burstQuickOf(s, burstV9QuickTicks(s.waves[s.wave - 1] ?? [])), Boolean(s.wide));
   s.clearPts = (s.clearPts ?? 0) + pts;
   s.lastClear = pts;
   if (pts > 0) s.quickWaves = (s.quickWaves ?? 0) + 1;
@@ -1672,7 +1689,7 @@ function burstCompleteV10(s: BurstState): boolean {
 /** burstRev 10: the wave-clear bonus the wave on screen would pay if cleared now (the HUD's "CLEAR +n"); 0 between waves. */
 export function burstV10ClearNow(state: BurstState): number {
   if (state.balls.length === 0 || state.wave === 0) return 0;
-  return burstV10ClearPoints(state.tick - (state.waveAt ?? state.tick), burstV9QuickTicks(state.waves[state.wave - 1] ?? []), Boolean(state.wide));
+  return burstV10ClearPoints(state.tick - (state.waveAt ?? state.tick), burstQuickOf(state, burstV9QuickTicks(state.waves[state.wave - 1] ?? [])), Boolean(state.wide));
 }
 
 /** burstRev 9 and 10: the tick the golden atom in play fades (-1 none). */
@@ -1717,13 +1734,13 @@ export function burstStdParts(state: BurstState): { core: number; clear: number;
   if (state.aim) {
     // burstRev 11: the life that ends the run is not charged, wasted beams cost, and the two together never take
     // more than half the core (each part's own share first: lives, then wasted beams).
-    const lost = BURST_LIVES - state.lives;
-    const cap = stdCappedPenalty(BURST_V10_LIFE_COST * stdLivesCharged(lost, state.lives <= 0) + burstV11MissCost(state.whiffs ?? 0, state.hits), core);
+    const lost = burstLivesOf(state) - state.lives;
+    const cap = stdCappedPenalty(BURST_V10_LIFE_COST * stdLivesCharged(lost, state.lives <= 0) + burstV11MissCost(state.whiffs ?? 0, state.hits, state.lv?.freeWhiffs), core);
     const lives = Math.min(cap, BURST_V10_LIFE_COST * stdLivesCharged(lost, state.lives <= 0));
     const misses = cap - lives;
     return { core, clear, gold, lives, misses, atoms, total: core + clear + gold - lives - misses };
   }
-  const lives = BURST_V10_LIFE_COST * (BURST_LIVES - state.lives);
+  const lives = BURST_V10_LIFE_COST * (burstLivesOf(state) - state.lives);
   return { core, clear, gold, lives, misses: 0, atoms, total: core + clear + gold - lives };
 }
 
@@ -1735,7 +1752,7 @@ export function burstStdScore(state: BurstState): number {
 /** burstRev 10's breakdown for the reveal (bandLines): core, the features as the bonus, the lives as the penalty. */
 export function burstStdBandParts(state: BurstState): BandParts {
   const p = burstStdParts(state);
-  const lost = BURST_LIVES - state.lives;
+  const lost = burstLivesOf(state) - state.lives;
   return {
     units: state.hits,
     points: p.core,
@@ -1776,22 +1793,22 @@ export const BURST_V11_FREE_MISSES = 20;
 export const BURST_V11_MISS_COST = 2;
 
 /** burstRev 11: the wasted beams a run is charged for (beyond one for each atom popped, at least BURST_V11_FREE_MISSES). */
-export function burstV11Charged(whiffs: number, hits: number): number {
-  return Math.max(0, whiffs - Math.max(BURST_V11_FREE_MISSES, hits));
+export function burstV11Charged(whiffs: number, hits: number, free: number = BURST_V11_FREE_MISSES): number {
+  return Math.max(0, whiffs - Math.max(free, hits));
 }
 /** burstRev 11: the points wasted beams cost (before the half-the-core cap). */
-export function burstV11MissCost(whiffs: number, hits: number): number {
-  return BURST_V11_MISS_COST * burstV11Charged(whiffs, hits);
+export function burstV11MissCost(whiffs: number, hits: number, free: number = BURST_V11_FREE_MISSES): number {
+  return BURST_V11_MISS_COST * burstV11Charged(whiffs, hits, free);
 }
 
 function burstV11PenaltyText(state: BurstState, p: { core: number; lives: number; misses: number }): string {
-  const lost = BURST_LIVES - state.lives;
+  const lost = burstLivesOf(state) - state.lives;
   const charged = stdLivesCharged(lost, state.lives <= 0);
-  const extra = burstV11Charged(state.whiffs ?? 0, state.hits);
+  const extra = burstV11Charged(state.whiffs ?? 0, state.hits, state.lv?.freeWhiffs);
   const bits: string[] = [];
   if (charged > 0) bits.push(`${charged} ${charged === 1 ? "life" : "lives"} lost before the last`);
   if (extra > 0) bits.push(`${extra} wasted ${extra === 1 ? "beam" : "beams"} beyond one an atom`);
-  const capped = p.lives + p.misses < BURST_V10_LIFE_COST * charged + burstV11MissCost(state.whiffs ?? 0, state.hits);
+  const capped = p.lives + p.misses < BURST_V10_LIFE_COST * charged + burstV11MissCost(state.whiffs ?? 0, state.hits, state.lv?.freeWhiffs);
   return bits.join(" · ") + (capped ? " (at most half the atom points)" : "");
 }
 

@@ -42,7 +42,7 @@ import {
   CROSS_BOARD_X,
   CROSS_HOP_TICKS,
   CROSS_HUD_H,
-  CROSS_LIVES,
+  CROSS_LIVES, crossLivesOf,
   CROSS_PAUSE_TICKS,
   CROSS_PLAYER,
   crossPlayerR,
@@ -1177,8 +1177,8 @@ function drawCrossArtWorld(ctx: CanvasRenderingContext2D, state: CrossState, siz
     top: 6,
     wrapMain: (draw) => successHud(ctx, "cross", state.tick, 12, 6, draw),
   });
-  for (let i = 0; i < CROSS_LIVES; i++) drawHelmetIcon(ctx, 18 + i * 14, 28, i < state.lives);
-  successFrame(ctx,{id:'cross',tick:state.tick,count:state.crossings,misses:CROSS_LIVES-state.lives,colour:CROSS_PLAYER,width:CROSS_WORLD_W,height:worldH,point:{x:cx,y:CROSS_HUD_H+g.goalH/2,shape:'line',radius:24,label:'+1'},hud:{x:14,y:10,text:`Crossings ${state.crossings}`}});
+  for (let i = 0; i < crossLivesOf(state); i++) drawHelmetIcon(ctx, 18 + i * 14, 28, i < state.lives);
+  successFrame(ctx,{id:'cross',tick:state.tick,count:state.crossings,misses:crossLivesOf(state)-state.lives,colour:CROSS_PLAYER,width:CROSS_WORLD_W,height:worldH,point:{x:cx,y:CROSS_HUD_H+g.goalH/2,shape:'line',radius:24,label:'+1'},hud:{x:14,y:10,text:`Crossings ${state.crossings}`}});
   if (hitAge < 20 && !state.dead && crashIndicator) {
     ctx.fillStyle = `rgba(255, 77, 77, ${0.25 * (1 - hitAge / 20)})`;
     ctx.fillRect(0, 0, CROSS_WORLD_W, worldH);

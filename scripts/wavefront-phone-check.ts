@@ -104,8 +104,10 @@ section("Rooms deal wavRev 11's play (since 29 Oct 2026 as wavRev 12), scored to
 ok(WAV_REV_PHONE === 11 && WAV_REV_STD === 12 && generateWavefront().wavRev === WAV_REV_STD + 1 && playRevOf("wavefront", WAV_REV_STD) === WAV_REV_PHONE, "rooms deal wavRev 13 (wavRev 12's scoring parts), wavRev 11's play");
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the practice deal and the help read
 // wavRev 14 (wavRev 13 plus the charged shot).
-ok((wavefrontPuzzle.generate() as { wavRev?: number }).wavRev === WAV_REV_STD + 2, "practice's definition deals wavRev 14 (wavRev 13 plus the charged shot)");
-ok(LIVE_BANDS.wavefront.rev === WAV_REV_STD + 2 && LIVE_BANDS.wavefront.curve === WAV_V12_BAND_CURVE && LIVE_BANDS.wavefront.strictRev === WAV_REV_STRICT, "LIVE_BANDS: wavRev 13 on WAV_V12_BAND_CURVE, wavRev 8 its strictRev");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): wavRev 15 since stage 3 (wavRev 14 with
+// larger hit cells).
+ok((wavefrontPuzzle.generate() as { wavRev?: number }).wavRev === WAV_REV_STD + 3, "practice's definition deals wavRev 15 (wavRev 14 with larger hit cells)");
+ok(LIVE_BANDS.wavefront.rev === WAV_REV_STD + 3 && LIVE_BANDS.wavefront.curve === WAV_V12_BAND_CURVE && LIVE_BANDS.wavefront.strictRev === WAV_REV_STRICT, "LIVE_BANDS: wavRev 13 on WAV_V12_BAND_CURVE, wavRev 8 its strictRev");
 ok(wavefrontWorldHFor(WAV_REV_STD) === WAV_X_H && wavefrontGameFor(WAV_REV_STD).runTicks === game.runTicks, "wavRev 12 plays in the same 390 × 800 world for the same 90 s");
 for (const rev of [...LEGACY_REVS, WAV_REV_EXPAND, WAV_REV_PHONE]) ok(!("std" in (wavefrontGameFor(rev).init(1) as object)) && !("coresHit" in (wavefrontGameFor(rev).init(1) as object)), `wavRev ${rev ?? "-"} starts with no wavRev 12 field`);
 ok(roundMaxFor("wavefront") === 200, "Wavefront's round maximum is 200");

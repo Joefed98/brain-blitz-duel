@@ -1,4 +1,5 @@
 import { equationVerdict } from "./operatorGaps";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { buildArcadeReveal } from "@/lib/arcade/reveal";
 import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
 import { puzzleUsesTieRev } from "./tieBreak";
@@ -46,7 +47,7 @@ import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
 import { SKYLINE_REV_COUNT, SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
-import { pinIsExpanded, PIN_REV_JOULZ, PIN_REV_STD } from "@/lib/arcade/pinball";
+import { pinIsExpanded, PIN_REV_JOULZ, PIN_REV_SAVE, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { snakeStdParts } from "@/lib/arcade/snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
@@ -1173,7 +1174,7 @@ function gradeUnderRev(
       // The run is replayed from the stored seed; the phone's own score is
       // never trusted, only recorded as a claim on the stored result.
       const replayStart = performance.now();
-      const run = replayHoverRun(puzzle.seed, answer, puzzle.hoverRev);
+      const run = replayHoverRun(puzzle.seed, answer, puzzle.hoverRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1261,7 +1262,7 @@ function gradeUnderRev(
     case "snake": {
       // As with every arcade game, only the server's own replay scores.
       const replayStart = performance.now();
-      const run = replaySnakeRun(puzzle.seed, answer, puzzle.snakeRev);
+      const run = replaySnakeRun(puzzle.seed, answer, puzzle.snakeRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1291,7 +1292,7 @@ function gradeUnderRev(
     }
     case "cross": {
       const replayStart = performance.now();
-      const run = replayCrossRun(puzzle.seed, answer, puzzle.crossRev);
+      const run = replayCrossRun(puzzle.seed, answer, puzzle.crossRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1433,7 +1434,7 @@ function gradeUnderRev(
     case "breaker": {
       // As with every arcade game, only the server's own replay scores.
       const replayStart = performance.now();
-      const run = replayBreakerRun(puzzle.seed, answer, puzzle.brkRev);
+      const run = replayBreakerRun(puzzle.seed, answer, puzzle.brkRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1594,7 +1595,7 @@ function gradeUnderRev(
     case "pinball": {
       // As with every arcade game, only the server's own replay scores.
       const replayStart = performance.now();
-      const run = replayPinballRun(puzzle.seed, answer, puzzle.pinRev);
+      const run = replayPinballRun(puzzle.seed, answer, puzzle.pinRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1614,7 +1615,7 @@ function gradeUnderRev(
         // pinRev 4 (the expansion): ramps, the best combo, multiballs, jackpots and skill shots.
         ...(pinIsExpanded(puzzle.pinRev) ? { ramps: run.ramps, bestCombo: run.bestCombo, multiballs: run.multiballs, jackpots: run.jackpots, skills: run.skills } : {}),
         // pinRev 6 (the arcade scoring standard): back-to-back ramp shots, one of its features.
-        ...(puzzle.pinRev === PIN_REV_STD || puzzle.pinRev === PIN_REV_JOULZ ? { combos: run.combos } : {}),
+        ...(puzzle.pinRev === PIN_REV_STD || puzzle.pinRev === PIN_REV_JOULZ || puzzle.pinRev === PIN_REV_SAVE ? { combos: run.combos } : {}),
         lost: run.lost,
         ballsLeft: run.ballsLeft,
         endedSeconds: run.endedSeconds,
@@ -1718,7 +1719,7 @@ function gradeUnderRev(
     // Blockfall (1 Nov 2026): the piece order comes from the stored seed and the run is replayed; only that scores.
     case "blockfall": {
       const replayStart = performance.now();
-      const run = replayBlockfallRun(puzzle.seed, answer, puzzle.blockfallRev);
+      const run = replayBlockfallRun(puzzle.seed, answer, puzzle.blockfallRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       isCorrect = !run.toppedOut && run.state.ended === 1;
@@ -1957,7 +1958,7 @@ function gradeUnderRev(
     }
     case "rally": {
       const replayStart = performance.now();
-      const run = replayRallyRun(puzzle.seed, answer, puzzle.rallyRev);
+      const run = replayRallyRun(puzzle.seed, answer, puzzle.rallyRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2080,7 +2081,7 @@ function gradeUnderRev(
     }
     case "beat": {
       const replayStart = performance.now();
-      const run = replayBeatRun(puzzle.seed, answer, puzzle.beatRev);
+      const run = replayBeatRun(puzzle.seed, answer, puzzle.beatRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2262,7 +2263,7 @@ function gradeUnderRev(
     }
     case "wavefront": {
       const replayStart = performance.now();
-      const run = replayWavefrontRun(puzzle.seed, answer, puzzle.wavRev);
+      const run = replayWavefrontRun(puzzle.seed, answer, puzzle.wavRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2467,7 +2468,7 @@ function gradeUnderRev(
     }
     case "burst": {
       const replayStart = performance.now();
-      const run = replayBurstRun(puzzle.seed, answer, puzzle.burstRev);
+      const run = replayBurstRun(puzzle.seed, answer, puzzle.burstRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)

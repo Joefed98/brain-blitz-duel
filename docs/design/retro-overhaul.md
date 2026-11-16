@@ -100,21 +100,21 @@ plays its stand-in (or nothing) until Joe's ElevenLabs recording drops in by nam
 | Game | Item | Status |
 |---|---|---|
 | All ten | Intro stills from a real frame of today's game | done (stage 1, `ArtStill`) |
-| All ten | Intro demos recorded on the new stamps, none left as a still | Joe (the rules accept the new stamps; recording is the app's keyed Save demo, see "For Joe") |
+| All ten | Intro demos recorded on the new stamps, none left as a still | fixture done (stage 3: scripts/retro-demos.json, retro-demos-check); saved by the manual "Save intro demos" workflow after the final merge (scripts/retro-demos-save.ts) |
 | All ten | The core moments recorded (the most-heard sounds) | Joe's files (prompts in retro-elevenlabs.md) |
 | All ten | No text below 11 px on a 390 × 844 phone, counters and labels | done (measured on screen by retro-overhaul-check) |
 | All ten | "Physical" feedback on the thing that moved (squash, puff, flash) | done (`retroFx.renderer.ts`, every game below) |
 | All ten | Retro, but visibly premium: lit pixel materials, no glare | done (looks in the gallery; Joe to approve) |
 | All ten | Each game's own answer reveal with a visual run summary | done (`RetroRunSummary`: key numbers, the run's timeline, the final board for Breaker, Meteor and Blockzone) |
-| All ten | Round-end payoffs in the world (fly-off, WALL CLEARED!, the boss's staged explosion, counter roll) | not done in stage 2: carried to stage 3 (the reveal's count-up and run summary stand in) |
-| All ten | Easy, Normal, Hard, Expert | stage 3 |
+| All ten | Round-end payoffs in the world (fly-off, WALL CLEARED!, the boss's staged explosion, counter roll) | done (stage 3: Hover's fly-off, Breaker's TIME BONUS under the shared WALL CLEARED!, Wavefront's staged explosion and SECTOR CLEAR, Pinball's counter roll) |
+| All ten | Easy, Normal, Hard, Expert | done (stage 3, "Stage 3: the levels" below) |
 | Hover | Tap: thrust flame, puff, tilt | done |
 | Hover | Gate chime rising along a run of clean gates | done |
 | Hover | DEAD CENTRE! flashes the gate's rim | done |
 | Hover | Near-miss scrape (3 px): sparks and a zing | done |
 | Hover | Shield shatters visibly | done |
 | Hover | The HUD names the reveal's count ("GOLD STARS n/m") | done |
-| Hover | A crash no longer ends the run on Normal (shields) | stage 3 |
+| Hover | A crash no longer ends the run on Normal (shields) | done (hoverRev 11: starts shielded) |
 | Hover | A richer nebula, close to concept B, dark space between clouds | done (stage 2) |
 | Breaker | The wall fits the clock (9 rows, quicker ball) | done (brkRev 12) |
 | Breaker | Special bricks each with their own icon, the Fireball its own | done (stage 1) |
@@ -139,14 +139,14 @@ plays its stand-in (or nothing) until Joe's ElevenLabs recording drops in by nam
 | Wavefront | Power-up: a ring round the fighter and a chirp | done |
 | Wavefront | Enemy bolt near-miss (4 px): a streak and a zip | done |
 | Wavefront | A richer space scene with depth (nebula, planet, moon, drifting stars) | done (stage 2) |
-| Wavefront | Larger hit cells, a wider formation | stage 3 (a stamp, bands and a re-proved 200) |
+| Wavefront | Larger hit cells, a wider formation | larger hit cells done (wavRev 15, 200 re-proved); the wider formation not done (a deal change of its own) |
 | Fission | Bigger atoms | done (burstRev 13) |
 | Fission | Kinder wave clears | done (burstRev 12) |
 | Fission | Split pop pitched by the atom's size | done |
 | Fission | Wasted beam: a fizzle at the ceiling and a tsk | done |
 | Fission | Overhead near-miss: a shimmer and a hum | done |
 | Fission | Life lost: the ship breaks, the icon's own sound | done |
-| Fission | One-thumb controls | stage 3 (a decision with the levels) |
+| Fission | One-thumb controls | done (Settings → Game controls → Fission: one thumb; input mapping only) |
 | Tempo | A missed note scores 0, not less | done (beatRev 12) |
 | Tempo | Lane buttons, the taller FEVER bar | done (stage 1) |
 | Tempo | Hit burst sized by the judgement | done (Perfect's rays, a Good's smaller sparks) |
@@ -154,11 +154,11 @@ plays its stand-in (or nothing) until Joe's ElevenLabs recording drops in by nam
 | Tempo | Swipe: a streak along the line in its direction | done |
 | Tempo | Miss: the note drops grey with a thud | done |
 | Tempo | Fever: a riser | done (the warm lanes were there) |
-| Tempo | Computer keys (D F J K) | stage 3 (an open decision for Joe) |
-| Meteor | The wrap (Easy and Normal) | done (snakeRev 13; Hard and Expert walls in stage 3) |
+| Tempo | Computer keys (D F J K) | done (D F J K, D F Space J K on five lanes, ← → flick, Enter fever) |
+| Meteor | The wrap (Easy and Normal) | done (snakeRev 13; Hard and Expert walls, stage 3) |
 | Meteor | Rocks in three sizes | done (snakeRev 14) |
 | Meteor | The glowing tail | done (stage 1) |
-| Meteor | The background and wormholes towards concept A | done (stage 2) |
+| Meteor | The background and wormholes towards concept A | done (stage 2; the wormholes redrawn as concept A's glowing rings in stage 3) |
 | Meteor | Turn: a flare and a tick | done |
 | Meteor | Eat: a crunch rising inside the combo window | done |
 | Meteor | Gold star: a ring and its own chime | done |
@@ -170,7 +170,7 @@ plays its stand-in (or nothing) until Joe's ElevenLabs recording drops in by nam
 | Spacewalk | Crossing: the deck lights gold | done |
 | Spacewalk | The streak's count above the astronaut | done |
 | Spacewalk | A clear lift: lit station decks, shaded hulls, drifting stars | done (stage 2) |
-| Spacewalk | Normal lighter than today | stage 3 |
+| Spacewalk | Normal lighter than today | done (crossRev 13) |
 | Pinball | One J-O-U-L-Z set fills its part | done (pinRev 7) |
 | Pinball | Flipper face flashes white for 80 ms | done |
 | Pinball | Bumper cap swells 2 px | done |
@@ -179,7 +179,7 @@ plays its stand-in (or nothing) until Joe's ElevenLabs recording drops in by nam
 | Pinball | The help says any press plunges | done |
 | Pinball | A clear lift: sunburst rays, pools, a gold pinstripe | done (stage 2) |
 | Pinball | Ramp light chase (gold lamps ahead of a riding ball) | done |
-| Pinball | Outlane save spark | stage 3 (no stored moment tells a save from a bounce; a sim counter needs a stamp) |
+| Pinball | Outlane save spark | done (pinRev 8 counts the saves; a gold spark and SAVED!) |
 | Blockzone | The glow emphasised (a neon halo round the stack) | done (stage 2) |
 | Blockzone | A clear lift: glass well, chrome bevel, cabinet scene | done (stage 2) |
 | Blockzone | Turn outline flash; a refused move outlined red | done |
@@ -188,12 +188,12 @@ plays its stand-in (or nothing) until Joe's ElevenLabs recording drops in by nam
 | Blockzone | Near the top (3 rows): the rim beats red, a heartbeat | done |
 | Blockzone | Top-out haptic; the opening sound | done (stage 1) |
 | Blockzone | Rows above dropping visibly after a clear | done |
-| All ten | Grace (no run ends on the first miss at Normal) | stage 3 (Rally done in rallyRev 13) |
-| All ten | Settings that evolve through a run at each level | stage 3 |
+| All ten | Grace (no run ends on the first miss at Normal) | done where a miss ends a run: Rally (rallyRev 13), Meteor (snakeRev 15), Hover (hoverRev 11); the others already carry lives or balls |
+| All ten | Settings that evolve through a run at each level | done (each level keeps its game's own build-up and sets its pace; table below) |
 
 ## Levers for the levels (stage 3)
 
-What each level will turn, from the brief (Normal is today's game unless the brief says otherwise; every level's
+The brief's table, kept as the plan; what was built is "Stage 3: the levels" below. What each level will turn, from the brief (Normal is today's game unless the brief says otherwise; every level's
 lever goes on a new stamp, dealt by the level registry):
 
 | Game | Levers |
@@ -213,7 +213,81 @@ Targets: the elite bot (under human limits: about 0.25 s to react, 0.15 s to mov
 about 198 at Normal, 160 at Hard and 140 at Expert; Easy gives an average player a real shot at a star (175+); 200 stays
 reachable at every level; Expert must be humanly possible under its actual settings.
 
-## Measured on this branch
+## Stage 3: the levels (16 Nov 2026)
+
+Built on the difficulty framework (#432): each game's Easy, Hard and Expert are plain data in
+`src/lib/arcade/retroLevels.ts`, listed in `GAME_LEVELS` (`src/lib/levels/gameLevels.ts`); a level's run carries them
+on its state (`lv`) from the first tick, and every place that builds a Retro game from a stored puzzle passes
+`puzzleLevel(puzzle)` (the stage, the server replay, the phone's replay steppers, the bots). **Normal is the stamp rooms
+deal**, with no `lv`: rated play and the Daily stay on it. Five games needed a new stamp because Normal itself changed
+(Joe's list); the other five keep their stamp and gate the levels on the deal's `level`.
+
+| Game (Normal's stamp) | What Normal changed | Easy | Hard | Expert |
+|---|---|---|---|---|
+| Hover (hoverRev 11) | starts shielded: the first crash is forgiven | shield, gaps 115 % | no shield, scroll 106 % | no shield, scroll 112 % |
+| Breaker (brkRev 12) | nothing | ball 108 %, paddle 100 px, bricks at most 2 hits | ball 104 %, paddle 76 px, top 4 rows +1 hit | ball 108 %, paddle 68 px, every row +1 hit |
+| Rally (rallyRev 13) | nothing (lives since stage 1) | 3 lives, paddle 140 → 60, cap 86 %, bumpers 45 / 60 s, full at 20 | 2 lives, 104 → 36, cap 115 %, 20 / 35 s, full at 26 | 1 life, 96 → 32, cap 125 %, 10 / 25 s, full at 29 |
+| Tempo (beatRev 12) | nothing | windows 5 / 10 / 16, fall 110 | 3 / 6 / 11, fall 75, chart 170 % off-beats, 160 % chords | 2 / 5 / 10, fall 60, 240 % / 220 % |
+| Meteor (snakeRev 15) | the first crash forgiven (the comet holds 1.5 s, SAVED!) | 3 lives, pace 9 → 5, full at 27 | 2 lives, 8 → 4, walls, full at 50 | 1 life, 8 → 3, walls, full at 48 |
+| Fission (burstRev 13) | nothing | 4 lives, atoms 125 %, quick 150 %, 40 free beams | 3 lives, quick 75 %, 12 free | 2 lives, quick 60 %, 8 free |
+| Wavefront (wavRev 15) | larger hit cells (3 px each side, hull drawn to match) | 4 lives, bolts 80 %, boss 80 %, kill by 24 s | 3 lives, bolts 120 %, boss 130 %, 16 s | 2 lives, bolts 140 %, boss 160 %, 12 s |
+| Spacewalk (crossRev 13) | lighter traffic (half on the first crossing, full at the seventh) | thinner still, 4 lives, hits 10, full at 70 | crossRev 12's traffic, 3 lives | densest, 2 lives, hits 20, full at 80 |
+| Pinball (pinRev 8) | counts outlane saves (play unchanged) | 4 balls, 10 s ball save, gravity 85 %, multiball 25 s, full at 50,000 | gravity 110 %, multiball 18 s | 2 balls, gravity 120 %, multiball 15 s, full at 66,000 |
+| Blockzone (blockfallRev 2) | nothing | gravity 125 % (slower), lock 40, full at 40 | 80 %, lock 24, 2 previews, full at 57 | 60 %, lock 18, 1 preview, full at 62 |
+
+**Settings that change through a run.** Every level keeps its game's own build-up and sets how hard it starts or how far
+it goes: Hover's scroll speeds up barrier by barrier (a level scales it), Rally's paddle narrows and its bumpers arrive
+(earlier on Hard and Expert), Meteor quickens a step every few stars (from the level's start to its fastest), Wavefront's
+bolts quicken each wave (to the level's top), Spacewalk's traffic builds crossing by crossing (the level's table),
+Tempo's chart builds through its sections (the level's share), Blockzone's gravity steps up every 15 s (scaled).
+
+**Measured** (`bun scripts/level-tune.ts <game> --level=all`, the shared tool: the game's skill-band bots at Elite, under
+human limits, graded by the server's replay; averages, 20 room seeds unless noted):
+
+| Game | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Hover | 174.0 | 172.8 | 140.2 | 141.1 |
+| Breaker (seeds 20–30) | 189.9 | 184.5 | 177.3 | 142.7 |
+| Rally (seeds 20–30) | 175.2 | 158.6 | 155.7 | 141.7 |
+| Tempo | 190.4 | 190.5 | 187.5 | 179.9 |
+| Meteor | 177.4 | 175.4 | 167.3 | 160.8 |
+| Fission (seeds 20–30) | 191.4 | 179.2 | 171.8 | 158.0 |
+| Wavefront (12 seeds) | 192.9 | 194.0 | 195.2 | 196.1 |
+| Spacewalk | 197.4 | 193.0 | 164.4 | 138.9 |
+| Pinball (12 seeds) | 195.8 | 188.3 | 187.6 | 163.7 |
+| Blockzone | 178.4 | 171.8 | 166.0 | 154.5 |
+
+Where the bots can't show the step: Wavefront's bots dodge every bolt and kill every boss at every level (no hit in any
+run), and Tempo's elite timing sits inside even Expert's windows, so their numbers stay flat though each level's settings
+are harder for a person. Hover's Hard and Expert sit level (the bots crash early on both).
+
+**Expert boards to play** (room seeds n = 0, 1, 2 of the shared tool, the deal's seed, the elite bot's score):
+
+| Game | n = 0 | n = 1 | n = 2 |
+|---|---|---|---|
+| Hover | 1289888465 (153) | 566791452 (149) | 1579423756 (71) |
+| Breaker | 1289888465 (120) | 566791452 (173) | 1579423756 (51) |
+| Rally | 1289888465 (150) | 566791452 (178) | 1579423756 (165) |
+| Tempo | 1289888465 (173) | 566791452 (187) | 1579423756 (175) |
+| Meteor | 1289888465 (112) | 566791452 (174) | 1579423756 (181) |
+| Fission | 1289888465 (173) | 566791452 (104) | 1579423756 (157) |
+| Wavefront | 1289888465 (197) | 566791452 (190) | 1579423756 (192) |
+| Pinball | 1289888465 (97) | 566791452 (200) | 1579423756 (185) |
+| Spacewalk | 1289888465 (127) | 566791452 (125) | 1579423756 (180) |
+| Blockzone | 1301310243 (184) | 466777893 (128) | 932566149 (157) |
+
+**Fission: one thumb** (Settings → Game controls): the arrow row goes and a thumb on the arena plays: touching fires
+and heads for the thumb's x, dragging follows, lifting stops. The same inputs the arrows and the fire tap send.
+**Tempo's keys** on a computer: D F J K (D F Space J K on five lanes), held for holds, ← → flick the lane last pressed,
+Enter starts fever.
+
+**Intro demos**: `scripts/retro-demos.json` holds a Near-perfect bot run for each game on its intro example deal (the
+deal `practiceGenerateFn` seals with `example: true`) and dealt stamp; retro-demos-check proves the deal, the stamp, the
+stop rules and that each run scores what the server's replay says. `scripts/retro-demos-save.ts` saves them through
+`saveIntroDemoFn` from a page of a dev server of main (DEMOS_URL, INTRO_DEMO_KEY, optional DEMOS_GAMES and DEMOS_DRY;
+never prompts; exits 0, 1 or 2); nothing here writes to the live database.
+
+## Measured on this branch (stage 1)
 
 Skill-band medians (p10–p90) on 20 room seeds, `bun scripts/arcade-skill-bands.ts rally beat burst --rev=now
 --seeds=20 --levels=all` (the skill-band bots, not yet the human-limit tuning of stage 3):

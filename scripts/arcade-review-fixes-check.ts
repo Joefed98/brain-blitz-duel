@@ -213,7 +213,9 @@ check(!/W\/S the power/.test(read("src/puzzles/minigolf.tsx")), "Crazy Golf: the
     // changes the play (bigger atoms), so its list is exactly the dealt stamp; every other game's is exactly the dealt
     // stamp and the one before it (whose play it keeps).
     // Blockzone's blockfallRev 2 is a new game on the old id (no hold, no pads), so its list is exactly the dealt stamp too.
-    const want = game === "burst" || game === "blockfall" ? [rev] : [(rev ?? 0) - 1, rev];
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): stage 3's Spacewalk crossRev 13 (lighter traffic) and Wavefront wavRev 15 (larger hit cells) change
+    // the play too, so theirs are exactly the dealt stamp as well.
+    const want = game === "burst" || game === "blockfall" || game === "cross" || game === "wavefront" ? [rev] : [(rev ?? 0) - 1, rev];
     check(pair.length === want.length && want.every((r, i) => pair[i] === r), `${game}: the accepted stamps are exactly ${want.join(" and ")} (${pair})`);
     check(!demoRevAccepted(game, (rev ?? 0) - 2) && !demoRevAccepted(game, undefined) && !demoRevAccepted(game, (rev ?? 0) + 1), `${game}: an older (or unstamped) demo stays stopped`);
   }

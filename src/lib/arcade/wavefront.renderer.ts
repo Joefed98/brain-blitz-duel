@@ -1,7 +1,8 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import type { Level } from "@/lib/levels/levels";
 import { drawStarLayers, paintPixelNebula, paintPixelPlanet } from "./retroSpace.renderer";
 import { retroText, retroTextFloor, withRetroTextFloor } from "./retro.renderer";
-import { fxFlash, fxRing, fxSparks, fxStreak, retroFx } from "./retroFx.renderer";
+import { countUp, fxFlash, fxRing, fxShards, fxSparks, fxStreak, retroEndAge, retroFx, retroPayoffBanner } from "./retroFx.renderer";
 import { wavBoltNearMiss } from "./retroMoments";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
@@ -39,7 +40,7 @@ import {
   WAV_DROP_R,
   WAV_FIRE_EVERY,
   WAV_GOLD,
-  WAV_LIVES,
+  WAV_LIVES, wavLivesOf,
   WAV_PURPLE,
   WAV_RED,
   WAV_SAUCER_R,
@@ -48,7 +49,7 @@ import {
   wavShipY,
   wavWorldH,
   WAV_REV_TALL,
-  WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND, WAV_REV_PHONE, WAV_REV_STD, WAV_REV_KEEP, WAV_REV_CHARGE,
+  WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_EXPAND, WAV_REV_PHONE, WAV_REV_STD, WAV_REV_KEEP, WAV_REV_CHARGE, WAV_REV_BIG,
   wavBossW,
   wavCannonX,
   wavCoreOpen,
@@ -352,6 +353,8 @@ const HULL_SCALE = 3;
  * Drawing them larger still, or spacing the formation wider, changes the hit boxes and needs a new wavRev.
  */
 export const WAV_HULL_BLEED = 2;
+/** wavRev 15: the hull 4 px past the cell, 1 px inside the 3 px larger hit box. */
+export const WAV_V15_HULL_BLEED = 4;
 const hullSprites = new Map<string, ArtCanvas | null>();
 
 /** One enemy hull filling the cell box (x, y, s × s): a cached sprite plus the live exhaust in the cell's top fifth. */
@@ -1104,7 +1107,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
   drawSpace(ctx, t, WAV_WORLD_H);
 
   const latest=state.bursts.at(-1);
-  successFrame(ctx,{id:'wavefront-hit',tick:state.tick,count:state.shapesDown+state.armourHits,eventTick:latest?.t,misses:WAV_LIVES-state.lives,colour:WAV_GOLD,width:WAV_WORLD_W,height:WAV_WORLD_H,point:{x:latest?.x??state.shipX,y:latest?.y??WAV_SHIP_Y,shape:'pixel'},hud:{x:14,y:14,text:`Wave ${state.wave}`}});
+  successFrame(ctx,{id:'wavefront-hit',tick:state.tick,count:state.shapesDown+state.armourHits,eventTick:latest?.t,misses:wavLivesOf(state)-state.lives,colour:WAV_GOLD,width:WAV_WORLD_W,height:WAV_WORLD_H,point:{x:latest?.x??state.shipX,y:latest?.y??WAV_SHIP_Y,shape:'pixel'},hud:{x:14,y:14,text:`Wave ${state.wave}`}});
   const clear=successFrame(ctx,{id:'wavefront-clear',tick:state.tick,count:state.wavesCleared,colour:WAV_PURPLE,width:WAV_WORLD_W,height:WAV_WORLD_H,point:{x:WAV_WORLD_W/2,y:80,shape:'spark'}});
   if(!still&&clear.age<24){ctx.save();ctx.globalAlpha=.35*(1-clear.age/24);ctx.strokeStyle=SUCCESS_ACCENTS.white;ctx.lineWidth=1;ctx.beginPath();for(let i=0;i<12;i++){const x=15+(i*73)%360,y=60+(i*47)%450;ctx.moveTo(x,y);ctx.lineTo(x+(x-195)*.08,y+10+clear.age*.7);}ctx.stroke();ctx.restore();}
   const away = new Set((state.divers ?? []).map((d) => d.cell));
@@ -1113,7 +1116,9 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     const box = wavShapeBox(state, i);
     const kind = Math.trunc((code - 1) / 3);
     const colour = wavHullTint(i, state.wave) ?? WAV_COLOURS[(code - 1) % 3] ?? WAV_GOLD;
-    drawHull(ctx, kind, colour, box.x - WAV_HULL_BLEED, box.y - WAV_HULL_BLEED, WAV_CELL + 2 * WAV_HULL_BLEED, t);
+    // wavRev 15: the larger hit cells, the hull drawn to match (inside the bounds rule's 2 px).
+    const bleed = state.big ? WAV_V15_HULL_BLEED : WAV_HULL_BLEED;
+    drawHull(ctx, kind, colour, box.x - bleed, box.y - bleed, WAV_CELL + 2 * bleed, t);
     if (state.r11 && (state.carry?.[i] ?? -1) >= 0) drawCarrierMark(ctx, box.x + WAV_CELL / 2, box.y + WAV_CELL / 2, state.carry![i]!, t);
   });
   if (state.armour) drawArmourHull(ctx, state, state.armour);
@@ -1127,7 +1132,8 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     ctx.fillStyle = "#C9CED6";
     ctx.fillRect(c.x - 2, c.y - WAV_CELL / 2 - 10, 4, 10);
     ctx.globalAlpha = 1;
-    drawHull(ctx, Math.trunc((code - 1) / 3), colour, c.x - WAV_CELL / 2 - WAV_HULL_BLEED, c.y - WAV_CELL / 2 - WAV_HULL_BLEED, WAV_CELL + 2 * WAV_HULL_BLEED, t);
+    const diveBleed = state.big ? WAV_V15_HULL_BLEED : WAV_HULL_BLEED;
+    drawHull(ctx, Math.trunc((code - 1) / 3), colour, c.x - WAV_CELL / 2 - diveBleed, c.y - WAV_CELL / 2 - diveBleed, WAV_CELL + 2 * diveBleed, t);
     if (state.r11 && (state.carry?.[d.cell] ?? -1) >= 0) drawCarrierMark(ctx, c.x, c.y, state.carry![d.cell]!, t);
   }
   if (state.boss) {
@@ -1237,7 +1243,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
   }
-  for (let i = 0; i < WAV_LIVES; i++) {
+  for (let i = 0; i < wavLivesOf(state); i++) {
     ctx.globalAlpha = i < state.lives ? 1 : 0.2;
     drawFighter(ctx, 21 + i * 24, 34, 16, 10, false, 0, 0);
   }
@@ -1280,7 +1286,18 @@ const wavefrontArtGameStd = { ...wavefrontGameFor(WAV_REV_STD), draw: drawWavefr
 const wavefrontArtGameKeep = { ...wavefrontGameFor(WAV_REV_KEEP), draw: drawWavefrontArt };
 /** wavRev 14 (the Retro overhaul): the charged shot, drawn by the same art. */
 const wavefrontArtGameCharge = { ...wavefrontGameFor(WAV_REV_CHARGE), draw: drawWavefrontArt };
-export function wavefrontArtGameFor(rev?: number | null): typeof wavefrontArtGame {
+/** wavRev 15 (the Retro overhaul, stage 3): the larger hit cells; one object per level. */
+const wavefrontArtGameBig = new Map<string, typeof wavefrontArtGame>();
+export function wavefrontArtGameFor(rev?: number | null, level?: Level | null): typeof wavefrontArtGame {
+  if (rev === WAV_REV_BIG) {
+    const key = level ?? "normal";
+    let game = wavefrontArtGameBig.get(key);
+    if (!game) {
+      game = { ...wavefrontGameFor(WAV_REV_BIG, level), draw: drawWavefrontArt };
+      wavefrontArtGameBig.set(key, game);
+    }
+    return game;
+  }
   if (rev === WAV_REV_CHARGE) return wavefrontArtGameCharge;
   if (rev === WAV_REV_KEEP) return wavefrontArtGameKeep;
   if (rev === WAV_REV_STD) return wavefrontArtGameStd;
@@ -1324,4 +1341,31 @@ function wavefrontEffects(ctx: CanvasRenderingContext2D, state: WavState, shipY:
   const near = wavBoltNearMiss(state);
   if (near && !fx.latest("near", 20)) fx.log("near", { x: near.x, y: near.y, n: 0 });
   fx.each("near", 14, (e, age) => fxStreak(fx, ctx, e.x, e.y - 18, e.x, e.y + 14, age, "#FFFFFF", 2));
+  // Stage 3: the boss explodes in stages (three bursts across its hull, then the big one) with "BOSS DOWN!", on the
+  // presentation clock (the run may end on the kill, while the stage holds the submit).
+  if (boss && boss.hp > 0) {
+    fx.set("bossX", boss.x);
+    fx.set("bossW", state.x10 ? wavBossW(boss) : WAV_BOSS_W);
+  }
+  const downAge = retroEndAge(ctx, "wavefront-boss", Boolean(state.bossKilled), state.tick);
+  if (downAge !== null) {
+    const bx = fx.get("bossX", WAV_WORLD_W / 2 - WAV_BOSS_W / 2);
+    const bw = fx.get("bossW", WAV_BOSS_W);
+    const cy = WAV_BOSS_Y + WAV_BOSS_H / 2;
+    const stages = [[0.2, 0], [0.8, 220], [0.5, 440]] as const;
+    stages.forEach(([u, at], i) => {
+      const age = (downAge - at) / 420;
+      if (age >= 0 && age < 1) {
+        fxRing(fx, ctx, bx + bw * u, cy, 4, 26, age, WAV_FURNACE, 3);
+        fxSparks(fx, ctx, bx + bw * u, cy, age, "#FFE08A", { n: 10, spread: 26, seed: 31 + i });
+      }
+    });
+    const big = (downAge - 700) / 800;
+    if (big >= 0 && big < 1) {
+      fxFlash(ctx, 0, 0, WAV_WORLD_W, wavWorldH(state), big, "#FFFFFF", 0.35);
+      fxRing(fx, ctx, bx + bw / 2, cy, 10, 120, big, WAV_GOLD, 4);
+      fxShards(fx, ctx, bx + bw / 2, cy, big, "#9AA3B2", { n: 18, r: 18, seed: 77, size: 4 });
+    }
+    if (downAge >= 700) retroPayoffBanner(ctx, WAV_WORLD_W, 420, "SECTOR CLEAR", `SHIPS ${countUp(state.shapesDown, downAge - 700)}`, downAge - 700);
+  }
 }

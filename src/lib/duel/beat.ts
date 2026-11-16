@@ -4,6 +4,7 @@
  * server replays with the STORED seed and keeps its own score.
  */
 
+import type { Level } from "@/lib/levels/levels";
 import type { InputDiag } from "@/lib/arcade/engine";
 
 import {
@@ -122,8 +123,8 @@ export interface BeatResult {
 }
 
 /** The single place a Beat score is worked out. */
-export function replayBeatRun(seed: number, raw: string, rev?: number | null): BeatResult {
-  const beatGame = beatGameFor(rev);
+export function replayBeatRun(seed: number, raw: string, rev?: number | null, level?: Level | null): BeatResult {
+  const beatGame = beatGameFor(rev, level);
   // beatRev 9's longer song (75 s); every older revision runs BEAT_RUN_TICKS.
   const RUN_TICKS = beatGame.runTicks;
   const run = decodeBeatRun(raw);

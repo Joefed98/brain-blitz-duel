@@ -1,8 +1,10 @@
 import { heldHorizontal } from "@/lib/desktop";
+import { useFissionThumb } from "@/lib/arcade/fissionThumb";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { ArtStill } from "@/components/puzzles/ArtStill";
 import { burstAmbient, burstFill } from "@/lib/arcade/arenaFills.renderer";
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 
 import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 
@@ -74,8 +76,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   /** Arrow press/release waiting to be sent: −1/1 = head for a wall, 0 = stop here. */
   const arrowEdge = useRef<number | null>(null);
   const keyMove = useRef(heldHorizontal());
+  const thumb = useFissionThumb();
+  const thumbX = useRef<number | null>(null);
 
   const tickInput = (state: BurstState): PointerPayload | null => {
+    // One thumb: the move towards the touch follows the fire on the next tick.
+    if (thumbX.current !== null) {
+      const a = thumbX.current;
+      thumbX.current = null;
+      return { k: BURST_INPUT_MOVE, a, b: 0, c: 0 };
+    }
     const edge = arrowEdge.current;
     if (edge === null) return null;
     arrowEdge.current = null;
@@ -95,6 +105,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   // pointer-down below), sending the same BURST_INPUT_FIRE event the button
   // did, so the input log format and every replay are unchanged.
 
+  // One game object per stamp and level (stage 3 of the Retro overhaul: a level wraps init).
+  const game = useMemo(() => burstArtGameFor(data?.burstRev, puzzleLevel(data)), [data?.burstRev, puzzleLevel(data)]);
   return (
     <div data-stage-column="2" className="flex min-h-0 w-full flex-1 flex-col gap-2">
     <ArcadeCanvasStage
@@ -109,13 +121,25 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       locked={locked}
       worldW={BURST_WORLD_W}
       worldH={burstWorldHFor(data?.burstRev)}
-      game={burstArtGameFor(data?.burstRev)}
+      game={game}
       sounds={burstAllSounds}
       checkpoint={burstCheckpoint}
       interval={BURST_CHECKPOINT_INTERVAL}
       encodeRun={encodeBurstRun}
       tickInput={tickInput}
-      pointer={(kind) => kind === "down" ? fire() : null}
+      pointer={(kind, x) => {
+        // One thumb (fissionThumb.ts): touching fires and heads for the thumb's x; dragging follows; lifting stops.
+        if (thumb) {
+          if (kind === "down") {
+            thumbX.current = Math.round(x);
+            return fire();
+          }
+          if (kind === "move") return { k: BURST_INPUT_MOVE, a: Math.round(x), b: 0, c: 0 };
+          arrowEdge.current = 0;
+          return null;
+        }
+        return kind === "down" ? fire() : null;
+      }}
       keys={(kind, key, send, _state, event) => {
         // Space fires (a tap); ←/→ (A/D) are the two arrow buttons, held.
         if (key === " ") {
@@ -134,10 +158,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     {/* Two large arrows (76 px tall, half the width each); the arcade play screen puts their bottom 16 px above the visible bottom (15 Oct 2026). */}
     {/* 3 Nov 2026 (Joe's audit; look only): the same 76 px row and tap boxes, drawn slim and translucent in the game's Retro cyan (a thin
         neon frame, a faint fill, the pixel font's arrows) in place of the chunky orange-outlined buttons. */}
-    <div data-home-bar-clear="32" data-game-controls="pad" className="grid h-[76px] shrink-0 touch-none select-none grid-cols-2 items-start gap-4">
+    {thumb ? null : <div data-home-bar-clear="32" data-game-controls="pad" className="grid h-[76px] shrink-0 touch-none select-none grid-cols-2 items-start gap-4">
       <ArcadeControlButton type="button" data-home-bar-fill="" aria-label="Move left" disabled={locked} className="h-[76px] w-full rounded-[10px] border border-[rgba(61,255,224,0.45)] bg-[rgba(61,255,224,0.06)] p-0 font-['Press_Start_2P',ui-monospace,monospace] text-[30px] leading-none text-[#3DFFE0] [text-shadow:0_0_8px_rgba(61,255,224,0.6)] active:border-[rgba(61,255,224,0.85)] active:bg-[rgba(61,255,224,0.18)] before:content-['◀']" onPressStart={holdStart(-1)} onPressEnd={holdEnd} />
       <ArcadeControlButton type="button" data-home-bar-fill="" aria-label="Move right" disabled={locked} className="h-[76px] w-full rounded-[10px] border border-[rgba(61,255,224,0.45)] bg-[rgba(61,255,224,0.06)] p-0 font-['Press_Start_2P',ui-monospace,monospace] text-[30px] leading-none text-[#3DFFE0] [text-shadow:0_0_8px_rgba(61,255,224,0.6)] active:border-[rgba(61,255,224,0.85)] active:bg-[rgba(61,255,224,0.18)] before:content-['▶']" onPressStart={holdStart(1)} onPressEnd={holdEnd} />
-    </div>
+    </div>}
     </div>
   );
 }

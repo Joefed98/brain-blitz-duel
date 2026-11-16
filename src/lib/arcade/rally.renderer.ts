@@ -36,8 +36,7 @@ import {
   rallyBonusNow,
   rallyWorldW,
   RALLY_V11_EXP,
-  type RallyState,
-} from "./rally";
+  type RallyState, rallyPaddleWOf } from "./rally";
 import { px, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
 import type { BandFields } from "./scoreBands";
 import {
@@ -344,7 +343,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: RallyState, key: Canvas
     });
   }
 
-  const width = rallyPaddleW(rallyTotalHits(state));
+  const width = rallyPaddleWOf(state);
   // Tuning D: the paddle lights up on every hit (presentation clock, never sim state).
   const hitAge = retroEventAge(key, "rally-hit", false);
   if (!reducedMotion() && hitAge < 260) {

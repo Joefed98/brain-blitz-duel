@@ -11,6 +11,7 @@
  * colours are our own (ice, aqua, sky, mint, violet-blue, cobalt, pale lilac), not the classic set.
  * `blockfallScene` carries the cabinet's dark glow out to the screen's edges (painted per size, never per frame).
  */
+import type { Level } from "@/lib/levels/levels";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { fxFlash, fxSparks, fxStreak, retroFx } from "./retroFx.renderer";
 import { reducedMotion } from "./art.renderer";
@@ -22,7 +23,7 @@ import type { ArenaSceneView } from "./arenaScene.renderer";
 import { fillAbove, fillBelow, fillGradient, fillSides } from "./arenaFills.renderer";
 import { retroHud, retroMix, retroTextFloor, RETRO_FONT, RETRO_WHITE, withRetroTextFloor } from "./retro.renderer";
 import {
-  BF_H, BF_HIDDEN, BF_PREVIEW, BF_W, BF_ZONE_MULTI_MAX, BF_ZONE_PIECES_MAX, BLOCKFALL_REV_ZONE, bfCells, bfCoreFullFor, bfGhostY, bfGravityFor, bfLevelFor,
+  BF_H, BF_HIDDEN, BF_PREVIEW, BF_W, BF_ZONE_MULTI_MAX, BF_ZONE_PIECES_MAX, BLOCKFALL_REV_ZONE, bfCells, bfCoreFullFor, bfCoreFullOf, bfPreviewsOf, bfGhostY, bfGravityFor, bfLevelFor,
   bfMultiPoints, blockfallGame, blockfallGameFor, type BfState,
 } from "./blockfall";
 
@@ -265,7 +266,7 @@ export const BLOCKFALL_FX: ArcadeFxSpec<BfState> = {
       textScale: 1,
     },
     { kind: "combo", count: (s) => s.triples + s.quads, label: (s) => (s.cleared.length >= 4 ? "FOUR AT ONCE!" : "THREE AT ONCE!"), neon: true },
-    { kind: "final", count: (s) => (s.lines >= bfCoreFullFor(s.rev) ? 1 : 0), label: () => "FULL LINES!" },
+    { kind: "final", count: (s) => (s.lines >= bfCoreFullOf(s) ? 1 : 0), label: () => "FULL LINES!" },
   ],
   misses: [{ count: (s) => (s.ended === 2 ? 1 : 0), at: (s) => ({ x: bfLayout(s.rev).bx + bfLayout(s.rev).bw / 2, y: bfLayout(s.rev).by + 30 }) }],
 };
@@ -292,7 +293,7 @@ function drawBlockfallWorld(ctx: CanvasRenderingContext2D, state: BfState, size:
   const L = bfLayout(state.rev);
   const zone = state.rev === BLOCKFALL_REV_ZONE;
   const level = bfLevelFor(state.tick, state.rev);
-  const full = bfCoreFullFor(state.rev);
+  const full = bfCoreFullOf(state);
   const multiMax = zone ? BF_ZONE_MULTI_MAX : 40;
   // One Retro HUD (3 Nov 2026): lines top left, pieces (or the speed, blockfallRev 1) and multi-clears top
   // right, in place of the three chips; "MULTI" is now "MULTI-CLEARS" (the count of 2-, 3- and 4-line clears).
@@ -438,7 +439,7 @@ function drawBlockfallWorld(ctx: CanvasRenderingContext2D, state: BfState, size:
   ctx.textBaseline = "middle";
   ctx.fillStyle = RETRO_WHITE;
   ctx.fillText("NEXT", L.nextX + L.sideW / 2, by + 8);
-  for (let i = 0; i < BF_PREVIEW; i++) {
+  for (let i = 0; i < bfPreviewsOf(state); i++) {
     const cy = by + 44 + i * 60;
     // Brighter since 3 Nov 2026: a lit box (the first framed in its piece's colour) and full-strength pieces.
     ctx.fillStyle = "rgba(20,44,64,0.9)";
@@ -489,8 +490,8 @@ export function blockfallScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
   if (below) fillGradient(ctx, below, below.y, below.y + below.h, [[0, BF_BG], [0.5, "#06101E"], [1, "#040912"]]);
 }
 
-export function blockfallArtGame(view?: BfView, rev?: number | null): ArcadeGame<BfState, ArcadeInputEvent | null> {
-  return { ...(rev === undefined ? blockfallGame : blockfallGameFor(rev)), draw: (ctx, state, size) => drawBlockfall(ctx, state, size, view) };
+export function blockfallArtGame(view?: BfView, rev?: number | null, level?: Level | null): ArcadeGame<BfState, ArcadeInputEvent | null> {
+  return { ...(rev === undefined ? blockfallGame : blockfallGameFor(rev, level)), draw: (ctx, state, size) => drawBlockfall(ctx, state, size, view) };
 }
 
 export const blockfallArt = blockfallArtGame();

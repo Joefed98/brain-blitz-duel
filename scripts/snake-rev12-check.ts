@@ -43,7 +43,7 @@ import {
   snakeGameFor, snakeStdParts, snakeCoreStars, snakeV12Core, snakeStdCore, snakeRow, snakeWorldHForRev, snakeWorldWForRev,
   SNAKE_REV_STD, SNAKE_REV_12, SNAKE_V12_BAND_CURVE, SNAKE_V12_CORE_STARS, SNAKE_V12_GOLD_CORE, SNAKE_V9_COLS, SNAKE_V9_ROWS,
   SNAKE_STD_CAPS, SNAKE_STD_CORE_MAX, SNAKE_INPUT_TURN,
-  type SnakeState, SNAKE_REV_SIZES, SNAKE_V13_BAND_CURVE, SNAKE_V13_CORE_STARS } from "../src/lib/arcade/snake";
+  type SnakeState, SNAKE_REV_GRACE, SNAKE_V13_BAND_CURVE, SNAKE_V13_CORE_STARS } from "../src/lib/arcade/snake";
 
 const RECORD = process.argv.includes("--record");
 const LEGACY = "scripts/fixtures/snake-rev12-legacy.json.gz";
@@ -84,8 +84,8 @@ const without = (s: SnakeState) => {
 /* 1. Wiring. */
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 13 (the edges
 // wrap, the core full at 36), one above snakeRev 12; the help reads its core line.
-ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_SIZES && SNAKE_REV_SIZES === SNAKE_REV_12 + 2 /* Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 14 (13's wrap, rocks in three sizes) */ && SNAKE_REV_12 === SNAKE_REV_STD + 1, "rooms deal snakeRev 12 (snakeRev 11 before 1 Nov 2026)");
-ok(LIVE_BANDS.snake.rev === SNAKE_REV_SIZES && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE && SNAKE_V12_BAND_CURVE.points.at(-1) === SNAKE_V13_BAND_CURVE.points.at(-1), "the help reads snakeRev 12's core line");
+ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_GRACE && SNAKE_REV_GRACE === SNAKE_REV_12 + 3 /* Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 15 (14's rocks in three sizes, the first crash forgiven) */ && SNAKE_REV_12 === SNAKE_REV_STD + 1, "rooms deal snakeRev 12 (snakeRev 11 before 1 Nov 2026)");
+ok(LIVE_BANDS.snake.rev === SNAKE_REV_GRACE && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE && SNAKE_V12_BAND_CURVE.points.at(-1) === SNAKE_V13_BAND_CURVE.points.at(-1), "the help reads snakeRev 12's core line");
 ok(JSON.stringify(SNAKE_V12_BAND_CURVE.units) === JSON.stringify([0, 28]) && JSON.stringify(SNAKE_V12_BAND_CURVE.points) === JSON.stringify([0, 120]), "the help's curve is the straight line 0 → 0, 20 → 120");
 ok(SNAKE_V12_CORE_STARS === 28 && SNAKE_V12_GOLD_CORE === 2, "the core is full at 28 core stars; a gold star counts 2");
 ok(ROUND_MAX.snake === 200, "ROUND_MAX: Meteor is 200");
@@ -104,15 +104,15 @@ ok(playRevOf("snake", SNAKE_REV_12) === 10 && playRevOf("snake", SNAKE_REV_STD) 
   ok(intro.length <= 90 && /stars/.test(intro) && intro.includes("gold stars") && intro.endsWith("Up to 200."), `the intro states the stars, the gold stars and the top: ${intro}`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the rule names the dealt snakeRev 13.
-  ok(demo.includes('demo.puzzle.snakeRev !== SNAKE_REV_SIZES) return null;'), "the intro demo plays only when recorded on the dealt stamp (snakeRev 14)");
+  ok(demo.includes('demo.puzzle.snakeRev !== SNAKE_REV_GRACE) return null;'), "the intro demo plays only when recorded on the dealt stamp (snakeRev 15)");
   const renderer = readFileSync("src/lib/arcade/snake.renderer.ts", "utf8");
   ok(renderer.includes("`STARS ${snakeCoreStars(state)}`") && !renderer.includes("`STARS ${state.eaten}`"), "the HUD counts the core's stars");
 }
 {
   const perfect = (entry.perfect() as StdRun[])[0]!;
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the standard entry follows the
-  // stamp rooms deal (arcade-standard-check proves an entry for it), so it names snakeRev 14.
-  ok(entry.type === "snake" && entry.field === "snakeRev" && entry.rev === SNAKE_REV_SIZES, "the standard module names snakeRev 14, the dealt stamp (snakeRev 12 before the Retro overhaul)");
+  // stamp rooms deal (arcade-standard-check proves an entry for it), so it names snakeRev 15 (Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul)).
+  ok(entry.type === "snake" && entry.field === "snakeRev" && entry.rev === SNAKE_REV_GRACE, "the standard module names snakeRev 15, the dealt stamp (snakeRev 12 before the Retro overhaul)");
   ok(entry.parts.reduce((a, p) => a + p.max, 0) === 200, "the parts' maxima add up to 200");
   ok(JSON.stringify(entry.parts.map((p) => [p.key, p.max])) === JSON.stringify([["core", 120], ["gold", 40], ["combo", 20], ["lane", 10], ["warp", 10]]), "parts: core 120, gold 40, combo 20, lane 10, warp 10 (unchanged)");
   ok(perfect.score === 200, `the perfect run scores 200 (got ${perfect.score})`);

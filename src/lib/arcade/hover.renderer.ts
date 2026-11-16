@@ -27,6 +27,7 @@ import {
   hoverFeatureTotals,
   hoverWorldH,
   HOVER_CENTRE_TOL,
+  hoverSurvived,
   type HoverState,
 } from "./hover";
 import type { ArcadeGame, CanvasSize } from "./engine";
@@ -45,7 +46,7 @@ import {
   RETRO_RED,
   RETRO_WHITE,
 } from "./retro.renderer";
-import { fxFlash, fxShards, fxSparks, retroFx } from "./retroFx.renderer";
+import { RETRO_PAYOFF_MS, countUp, fxFlash, fxShards, fxSparks, retroEndAge, retroFx, retroPayoffBanner } from "./retroFx.renderer";
 import { hoverScrape } from "./retroMoments";
 
 const FP = 256;
@@ -371,10 +372,32 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndica
   if (!(state.crashed && crashIndicator)) drawShipLight(ctx, state);
   // hoverRev 9: the saucer blinks while a broken shield keeps it untouchable.
   if ((state.invuln ?? 0) > 0 && !state.crashed) ctx.globalAlpha = reducedMotion() ? 0.7 : Math.floor(state.tick / 4) % 2 ? 0.4 : 0.9;
+  // Stage 3 of the Retro overhaul: a run flown to the end lifts the saucer off the top of the screen with a streak
+  // under it (the round-end payoff, on the presentation clock while the stage holds the submit; display only).
+  const flyAge = retroEndAge(ctx, "hover-fly", hoverSurvived(state), state.tick);
+  const lift = flyAge === null ? 0 : Math.min(1, flyAge / 900) ** 2 * (px(state.y) + 60);
+  if (lift > 0) {
+    ctx.save();
+    ctx.globalAlpha = 0.7 * Math.max(0, 1 - (flyAge ?? 0) / RETRO_PAYOFF_MS);
+    for (let k = 0; k < 4; k++) {
+      const x = px(HOVER_DISC_X) - 6 + k * 4;
+      const top = px(state.y) - lift + 10;
+      const g = ctx.createLinearGradient(0, top, 0, top + Math.min(160, lift));
+      g?.addColorStop(0, "rgba(255,226,140,0.9)");
+      g?.addColorStop(1, "rgba(255,226,140,0)");
+      ctx.fillStyle = g ?? "rgba(255,226,140,0.5)";
+      ctx.fillRect(x, top, 2, Math.min(160, lift));
+    }
+    ctx.restore();
+  }
+  ctx.save();
+  ctx.translate(0, -lift);
   drawSaucer(ctx, state, crashIndicator);
+  ctx.restore();
   ctx.globalAlpha = 1;
   if (state.xp) drawShield(ctx, state);
   hoverEffects(ctx, state);
+  if (flyAge !== null) retroPayoffBanner(ctx, HOVER_WORLD_W, HOVER_WORLD_H * 0.6, "COURSE COMPLETE", `BARRIERS ${countUp(state.gates, flyAge)}`, flyAge);
   // One Retro HUD (3 Nov 2026): barriers top left, stars and chains top right, two rows at most.
   const totals = state.xp ? hoverFeatureTotals(state) : null;
   retroHud(

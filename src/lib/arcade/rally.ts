@@ -9,6 +9,8 @@
  * rally plays out identically on the phone and on the server.
  */
 
+import { retroLevelSettings, withRetroLevel, type RallyLv } from "./retroLevels";
+import type { Level } from "@/lib/levels/levels";
 import {
   clampInt,
   inputRange,
@@ -115,6 +117,13 @@ export function rallyTargetLeft(spots: readonly number[], index: number): number
   return spots[index % spots.length] ?? RALLY_WALL;
 }
 
+/** The paddle's width a state plays with after `extra` more hits: its level's (stage 3 of the Retro overhaul), else Normal's. */
+export function rallyPaddleWOf(state: Pick<RallyState, "hits" | "goldHits"> & { lv?: RallyLv }, extra = 0): number {
+  const hits = rallyTotalHits(state as RallyState) + extra;
+  const lv = state.lv;
+  return lv ? Math.max(lv.paddleMin, lv.paddleStart - RALLY_PADDLE_SHRINK * hits) : rallyPaddleW(hits);
+}
+
 export function rallyPaddleW(hits: number): number {
   return Math.max(RALLY_PADDLE_MIN_W, RALLY_PADDLE_START_W - RALLY_PADDLE_SHRINK * hits);
 }
@@ -197,6 +206,8 @@ export interface RallyState extends BandFields {
    * latest life lost and spin score (render only).
    */
   lives?: number;
+  /** Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. */
+  lv?: RallyLv;
   relaunch?: number;
   spinScores?: number;
   lostAt?: number;
@@ -288,7 +299,7 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
 
   let aimX = state.aimX;
   if (input && input.k === ARCADE_INPUT_DRAG) aimX = clampInt(input.a, 0, RALLY_WORLD_W);
-  const width = rallyPaddleW(rallyTotalHits(state));
+  const width = rallyPaddleWOf(state);
   const half = Math.trunc(width / 2);
   const paddleX = clampInt(aimX, RALLY_WALL + half, RALLY_WORLD_W - RALLY_WALL - half);
 
@@ -492,7 +503,7 @@ export function rallyCheckpointState(state: RallyState): RallyCheckpointState {
     hits: state.hits,
     goldHits: state.goldHits,
     golds: state.golds.length,
-    width: rallyPaddleW(rallyTotalHits(state)),
+    width: rallyPaddleWOf(state),
   };
 }
 
@@ -546,7 +557,7 @@ function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize
   ctx.lineTo(RALLY_WORLD_W - RALLY_WALL, worldH);
   ctx.stroke();
 
-  const width = rallyPaddleW(rallyTotalHits(state));
+  const width = rallyPaddleWOf(state);
   ctx.fillStyle = RALLY_GOLD;
   ctx.fillRect(state.paddleX - width / 2, rallyPaddleY(state), width, RALLY_PADDLE_H);
 
@@ -626,8 +637,9 @@ function initRev2(seed: number): RallyState {
 export const rallyRev2Game: ArcadeGame<RallyState, ArcadeInputEvent | null> = { ...rallyGame, init: initRev2 };
 
 /** Takes puzzle.rallyRev; anything else is the original game. */
-export function rallyGameFor(rev?: number | null): ArcadeGame<RallyState, ArcadeInputEvent | null> {
-  if (rev === RALLY_REV_LIVES) return rallyLivesGame;
+export function rallyGameFor(rev?: number | null, level?: Level | null): ArcadeGame<RallyState, ArcadeInputEvent | null> {
+  // Stage 3 of the Retro overhaul: rallyRev 13 at a level (retroLevels.ts: lives, paddle, ball cap, bumpers).
+  if (rev === RALLY_REV_LIVES) return withRetroLevel(rallyLivesGame, retroLevelSettings("rally", level), (s, lv) => ({ ...s, lives: lv.lives }));
   if (rev === RALLY_REV_STD) return rallyStdGame;
   if (rev === RALLY_REV_CURVE) return rallyCurveGame;
   if (rev === RALLY_REV_BONUS) return rallyBonusGame;
@@ -1016,7 +1028,7 @@ function stepBonus(state: RallyState, input: ArcadeInputEvent | null): RallyStat
 
   let aimX = state.aimX;
   if (input && input.k === ARCADE_INPUT_DRAG) aimX = clampInt(input.a, 0, W);
-  const width = rallyPaddleW(rallyTotalHits(state));
+  const width = rallyPaddleWOf(state);
   const half = Math.trunc(width / 2);
   const paddleX = clampInt(aimX, RALLY_WALL + half, W - RALLY_WALL - half);
   // Smoothed paddle speed (1/256 px a tick): what a return's spin is made of.
@@ -1042,8 +1054,9 @@ function stepBonus(state: RallyState, input: ArcadeInputEvent | null): RallyStat
   const up = rallyBonusNow(state, tick);
   const target = up >= 0 ? state.bonus![up]! : null;
   const bumpers: { x: number; y: number }[] = [];
-  if (tick >= RALLY_BUMPER_FROM && state.bumper) bumpers.push(state.bumper);
-  if (tick >= RALLY_BUMPER2_FROM && state.bumper2) bumpers.push(state.bumper2);
+  // A level (stage 3 of the Retro overhaul) brings the bumpers in at its own times.
+  if (tick >= (state.lv ? state.lv.bumper1S * TICKS_PER_SECOND : RALLY_BUMPER_FROM) && state.bumper) bumpers.push(state.bumper);
+  if (tick >= (state.lv ? state.lv.bumper2S * TICKS_PER_SECOND : RALLY_BUMPER2_FROM) && state.bumper2) bumpers.push(state.bumper2);
   const top = (RALLY_HUD_H + RALLY_WALL) * 256;
   const leftWall = RALLY_WALL * 256;
   const rightWall = (W - RALLY_WALL) * 256;
@@ -1176,7 +1189,7 @@ function stepBonus(state: RallyState, input: ArcadeInputEvent | null): RallyStat
         if (offset >= -RALLY_BALL_R && offset <= width + RALLY_BALL_R) {
           if (gold) goldHits += 1;
           else hits += 1;
-          speed = Math.min(RALLY_SPEED_CAP, Math.trunc((speed * 103) / 100));
+          speed = Math.min(state.lv ? Math.trunc((RALLY_SPEED_CAP * state.lv.capPct) / 100) : RALLY_SPEED_CAP, Math.trunc((speed * 103) / 100));
           const fromCentre = Math.round(offset - half);
           const steered = setLength(Math.trunc((fromCentre * 256) / Math.max(1, half)) + Math.trunc(vx / 4), -Math.max(RALLY_MIN_VY, Math.abs(vy)), speed);
           vx = steered.vx;
@@ -1455,7 +1468,8 @@ export function rallyV13Parts(state: RallyState): StdPart[] | null {
   const targets = rallyBonusCount(state);
   const spins = state.spinScores ?? 0;
   return [
-    stdPart(RALLY_STD_SPEC_V13, "core", stdLine(RALLY_V13_CORE_MAX, gold, RALLY_V12_FULL_AT), `${gold} gold-ball hit${gold === 1 ? "" : "s"}`),
+    // A level (stage 3 of the Retro overhaul) asks for its own count of gold-ball hits.
+    stdPart(RALLY_STD_SPEC_V13, "core", stdLine(RALLY_V13_CORE_MAX, gold, state.lv?.fullAt ?? RALLY_V12_FULL_AT), `${gold} gold-ball hit${gold === 1 ? "" : "s"}`),
     stdPart(RALLY_STD_SPEC_V13, "pads", stdEach(pads, RALLY_V12_PAD_PTS, RALLY_V12_PADS_MAX), `${pads} pink pad${pads === 1 ? "" : "s"}`),
     stdPart(RALLY_STD_SPEC_V13, "targets", stdEach(targets, RALLY_V12_TARGET_PTS, RALLY_V12_TARGETS_MAX), `${targets} of ${RALLY_V10_BONUS_COUNT}`),
     stdPart(RALLY_STD_SPEC_V13, "spin", stdEach(spins, RALLY_V13_SPIN_PTS, RALLY_V13_SPIN_MAX), `${spins} spin shot${spins === 1 ? "" : "s"}`),

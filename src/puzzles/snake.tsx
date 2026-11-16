@@ -1,6 +1,7 @@
 import { useGameKeys, directionOf } from "@/lib/desktop";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { ArtStill } from "@/components/puzzles/ArtStill";
-import { SNAKE_REV_SIZES } from "@/lib/arcade/snake";
+import { SNAKE_REV_GRACE } from "@/lib/arcade/snake";
 import { auditEventAt } from "@/lib/arcade/auditInput";
 import { snakeAmbient, snakeFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
@@ -10,7 +11,7 @@ import { arcadeFeedback } from "@/lib/fx/arcade";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 
 import {
   MAX_CATCH_UP_TICKS,
@@ -51,12 +52,12 @@ import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
  * stamp's own renderer a few seconds into a fixed seed's run, with no input, the comet heading off.
  */
 function IntroExample() {
-  const game = { ...snakeGameFor(SNAKE_REV_SIZES), draw: snakeArtGame.draw };
+  const game = { ...snakeGameFor(SNAKE_REV_GRACE), draw: snakeArtGame.draw };
   return (
     <ArtStill
       game={game}
-      worldW={snakeWorldWForRev(SNAKE_REV_SIZES)}
-      worldH={snakeWorldHForRev(SNAKE_REV_SIZES)}
+      worldW={snakeWorldWForRev(SNAKE_REV_GRACE)}
+      worldH={snakeWorldHForRev(SNAKE_REV_GRACE)}
       ticks={140}
       input={null}
       caption="Swipe to turn. Eat the stars; the edges wrap, but rocks and your own tail don't."
@@ -67,7 +68,9 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: SnakePuzzleData | null = puzzle.type === "snake" ? puzzle : null;
   const seed = data?.seed ?? 1;
-  const snakeGame = snakeGameFor(data?.snakeRev);
+  // One game object per stamp and level (stage 3 of the Retro overhaul: a level wraps init; a new object each render
+  // would restart the run).
+  const snakeGame = useMemo(() => snakeGameFor(data?.snakeRev, puzzleLevel(data)), [data?.snakeRev, puzzleLevel(data)]);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);

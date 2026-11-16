@@ -84,7 +84,7 @@ import { pinballGameForAny } from "../src/lib/arcade/pinball4";
 import { PIN_REV_JOULZ, PIN_REV_STD } from "../src/lib/arcade/pinball";
 import { bot as snakeBot } from "./arcade-skill-bands/bots/snake";
 import { replaySnakeRun } from "../src/lib/duel/snake";
-import { snakeCol, snakeColsOf, snakeGameFor, snakeRockShape, snakeRockSpan, snakeRow, snakeRowsOf, snakeTarget, SNAKE_REV_12, SNAKE_REV_SIZES, SNAKE_REV_WRAP, SNAKE_V13_BAND_CURVE, SNAKE_V13_CORE_STARS, SNAKE_V14_MID_ROCKS, type SnakeState } from "../src/lib/arcade/snake";
+import { snakeCol, snakeColsOf, snakeGameFor, snakeRockShape, snakeRockSpan, snakeRow, snakeRowsOf, snakeTarget, SNAKE_REV_12, SNAKE_REV_GRACE, SNAKE_REV_SIZES, SNAKE_REV_WRAP, SNAKE_V13_BAND_CURVE, SNAKE_V13_CORE_STARS, SNAKE_V14_MID_ROCKS, type SnakeState } from "../src/lib/arcade/snake";
 import { bot as breakerBot } from "./arcade-skill-bands/bots/breaker";
 import { replayBreakerRun } from "../src/lib/duel/breaker";
 import { breakerGameFor, breakerWorldHFor, breakerWorldWFor, brkGoldDealt, BRK_REV_CLEAR, BRK_REV_STD, type BrkState } from "../src/lib/arcade/breaker";
@@ -323,11 +323,12 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 
 /* ============================ Pinball pinRev 7 ============================ */
 {
-  ok((generatePuzzle("pinball") as any).pinRev === PIN_REV_JOULZ && PIN_REV_JOULZ === PIN_REV_STD + 1, "pinball: rooms deal pinRev 7");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal pinRev 8 (pinRev 7's play, the outlane saves counted) since stage 3.
+  ok((generatePuzzle("pinball") as any).pinRev === PIN_REV_JOULZ + 1 && PIN_REV_JOULZ === PIN_REV_STD + 1, "pinball: rooms deal pinRev 8 (pinRev 7 below it)");
   pinPreRetro(true);
   ok((generatePuzzle("pinball") as any).pinRev === PIN_REV_STD, "pinball: preRetro deals pinRev 6");
   pinPreRetro(false);
-  ok(LIVE_BANDS.pinball.rev === PIN_REV_JOULZ && ARCADE_STANDARD.pinball.spec?.rev === PIN_REV_JOULZ && playRevOf("pinball", PIN_REV_JOULZ) === playRevOf("pinball", PIN_REV_STD), "pinball: the help reads pinRev 7, pinRev 6's play");
+  ok(LIVE_BANDS.pinball.rev === PIN_REV_JOULZ + 1 && ARCADE_STANDARD.pinball.spec?.rev === PIN_REV_JOULZ + 1 && playRevOf("pinball", PIN_REV_JOULZ + 1) === playRevOf("pinball", PIN_REV_STD), "pinball: the help reads pinRev 8, pinRev 6's play");
   ok(pinballGameForAny(PIN_REV_JOULZ).runTicks <= 120 * TICKS_PER_SECOND, "pinball: the run is at most 120 s");
   const spec = GAME_BY_TYPE.get("pinball" as never)!;
   const play = (rev: number, seed: number, events: any[]) => {
@@ -370,12 +371,13 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 
 /* ============================ Meteor snakeRev 13 ============================ */
 {
-  // Rooms deal snakeRev 14 (rocks in three sizes, its own section below); snakeRev 13's wrap stays proved here on its own stamp.
-  ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_SIZES && SNAKE_REV_SIZES === SNAKE_REV_WRAP + 1 && SNAKE_REV_WRAP === SNAKE_REV_12 + 1, "snake: rooms deal snakeRev 14 (snakeRev 13 one below it)");
+  // Rooms deal snakeRev 15 (stage 3: 14's rocks in three sizes with the first crash forgiven; Changed with Joe's approval, 15 Nov
+  // 2026, routine consequence of the Retro overhaul); snakeRev 13's wrap and 14's rocks stay proved here on their own stamps.
+  ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_GRACE && SNAKE_REV_GRACE === SNAKE_REV_SIZES + 1 && SNAKE_REV_SIZES === SNAKE_REV_WRAP + 1 && SNAKE_REV_WRAP === SNAKE_REV_12 + 1, "snake: rooms deal snakeRev 15 (snakeRev 14 and 13 below it)");
   pinPreRetro(true);
   ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_12, "snake: preRetro deals snakeRev 12");
   pinPreRetro(false);
-  ok(LIVE_BANDS.snake.rev === SNAKE_REV_SIZES && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE, "snake: the help reads snakeRev 14, on snakeRev 13's core line");
+  ok(LIVE_BANDS.snake.rev === SNAKE_REV_GRACE && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE, "snake: the help reads snakeRev 15, on snakeRev 13's core line");
   ok(/edges wrap/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.snake)) && !/Hit a wall/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.snake)), "snake: the help says the edges wrap, not that a wall ends the run");
   const g12 = snakeGameFor(SNAKE_REV_12);
   const g13 = snakeGameFor(SNAKE_REV_WRAP);
@@ -620,11 +622,12 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 
 /* ============================ Wavefront wavRev 14 ============================ */
 {
-  ok((generatePuzzle("wavefront") as any).wavRev === WAV_REV_CHARGE && WAV_REV_CHARGE === WAV_REV_KEEP + 1, "wavefront: rooms deal wavRev 14");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal wavRev 15 (wavRev 14 with larger hit cells) since stage 3; 14 stays proved here on its own stamp.
+  ok((generatePuzzle("wavefront") as any).wavRev === WAV_REV_CHARGE + 1 && WAV_REV_CHARGE === WAV_REV_KEEP + 1, "wavefront: rooms deal wavRev 15 (wavRev 14 one below it)");
   pinPreRetro(true);
   ok((generatePuzzle("wavefront") as any).wavRev === WAV_REV_KEEP, "wavefront: preRetro deals wavRev 13");
   pinPreRetro(false);
-  ok(LIVE_BANDS.wavefront.rev === WAV_REV_CHARGE, "wavefront: the help reads wavRev 14");
+  ok(LIVE_BANDS.wavefront.rev === WAV_REV_CHARGE + 1, "wavefront: the help reads wavRev 15");
   ok(/heavy blast/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.wavefront)), "wavefront: the intro and help teach the charged shot");
   const g13 = wavefrontGameFor(WAV_REV_KEEP);
   const g14 = wavefrontGameFor(WAV_REV_CHARGE);

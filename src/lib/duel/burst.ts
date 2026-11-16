@@ -1,5 +1,6 @@
 /** Burst round plumbing: the server replays with the STORED seed and keeps its own score. */
 
+import type { Level } from "@/lib/levels/levels";
 import {
   burstCheckpoint,
   burstGame,
@@ -10,7 +11,7 @@ import {
   BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN, BURST_REV_CARRY, BURST_REV_STD, BURST_REV_AIM, BURST_REV_WIDE, BURST_REV_BIG,
   BURST_CHECKPOINT_INTERVAL,
   BURST_CHECKPOINT_KEYS,
-  BURST_LIVES,
+  BURST_LIVES, burstLivesOf,
   type BurstCheckpoint,
   type BurstState,
 } from "@/lib/arcade/burst";
@@ -118,6 +119,18 @@ const runV13 = makeArcadeRun<BurstState, BurstCheckpoint>({
   interval: BURST_CHECKPOINT_INTERVAL,
 });
 
+/** burstRev 13's runner at a level (stage 3 of the Retro overhaul): Normal's own, else one built on the level's game. */
+const runV13ByLevel = new Map<string, typeof runV13>();
+function runV13For(level?: Level | null): typeof runV13 {
+  if (!level || level === "normal") return runV13;
+  let r = runV13ByLevel.get(level);
+  if (!r) {
+    r = makeArcadeRun<BurstState, BurstCheckpoint>({ tag: "burst", game: burstGameFor(BURST_REV_BIG, level), checkpoint: burstCheckpoint, keys: BURST_CHECKPOINT_KEYS, interval: BURST_CHECKPOINT_INTERVAL });
+    runV13ByLevel.set(level, r);
+  }
+  return r;
+}
+
 export interface BurstResult extends FlatReplay<BurstState, BurstCheckpoint> {
   wave: number;
   hits: number;
@@ -134,8 +147,8 @@ export const encodeBurstRun = run.encode;
 export const decodeBurstRun = run.decode;
 
 /** The single place a Burst score is worked out. */
-export function replayBurstRun(seed: number, raw: string, rev?: number | null): BurstResult {
-  const result = (rev === BURST_REV_BIG ? runV13 : rev === BURST_REV_WIDE ? runV12 : rev === BURST_REV_AIM ? runV11 : rev === BURST_REV_STD ? runV10 : rev === BURST_REV_CARRY ? runV9 : rev === BURST_REV_CLEAN ? runV8 : rev === BURST_REV_STRICT ? runStrict : rev === BURST_REV_TARGET ? runTarget : rev === BURST_REV_TALL ? runTall : rev === BURST_REV_BAND ? runBand : rev === BURST_REV ? runV2 : run).replay(seed, raw);
+export function replayBurstRun(seed: number, raw: string, rev?: number | null, level?: Level | null): BurstResult {
+  const result = (rev === BURST_REV_BIG ? runV13For(level) : rev === BURST_REV_WIDE ? runV12 : rev === BURST_REV_AIM ? runV11 : rev === BURST_REV_STD ? runV10 : rev === BURST_REV_CARRY ? runV9 : rev === BURST_REV_CLEAN ? runV8 : rev === BURST_REV_STRICT ? runStrict : rev === BURST_REV_TARGET ? runTarget : rev === BURST_REV_TALL ? runTall : rev === BURST_REV_BAND ? runBand : rev === BURST_REV ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return {
     ...result,
@@ -143,7 +156,7 @@ export function replayBurstRun(seed: number, raw: string, rev?: number | null): 
     hits: s.hits,
     cleared: s.cleared,
     lives: s.lives,
-    livesLost: BURST_LIVES - s.lives,
+    livesLost: burstLivesOf(s) - s.lives,
     survived: s.ended !== 2,
     survivedSeconds: s.tick / 60,
     freezes: s.freezes ?? 0,

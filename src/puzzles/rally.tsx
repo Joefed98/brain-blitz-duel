@@ -1,4 +1,5 @@
 import { heldHorizontal, useGameKeys } from "@/lib/desktop";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { ArtStill } from "@/components/puzzles/ArtStill";
 import { RALLY_REV_LIVES } from "@/lib/arcade/rally";
 import { auditEventAt } from "@/lib/arcade/auditInput";
@@ -12,7 +13,7 @@ import { rallySounds } from "@/lib/fx/gameSounds";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 
 import {
   ARCADE_INPUT_DRAG,
@@ -70,7 +71,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: RallyPuzzleData | null = puzzle.type === "rally" ? puzzle : null;
   const seed = data?.seed ?? 1;
   // The stored revision's game (rallyRev 10 has its own step and its 420-wide court; every earlier one shares rallyGame's).
-  const rallyGame = rallyGameFor(data?.rallyRev);
+  // One game object per stamp and level (stage 3 of the Retro overhaul: a level wraps init; a new object each render
+  // would restart the run).
+  const rallyGame = useMemo(() => rallyGameFor(data?.rallyRev, puzzleLevel(data)), [data?.rallyRev, puzzleLevel(data)]);
   const RALLY_WORLD_W = rallyWorldWFor(data?.rallyRev);
 
   const wrap = useRef<HTMLDivElement | null>(null);

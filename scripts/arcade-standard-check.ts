@@ -56,14 +56,17 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // snakeRev 12 (1 Nov 2026): snakeRev 11's parts, the core counting a gold star as 2 and full at 28 (snake-rev12-check).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): snakeRev 13, wrap-around edges;
   // then snakeRev 14, rocks in three sizes.
-  { type: "snake", field: "snakeRev", rev: 14, batch: "A" },
-  { type: "hover", field: "hoverRev", rev: 10, batch: "A" },
+  // then snakeRev 15 (stage 3, 16 Nov 2026), the first crash forgiven. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
+  { type: "snake", field: "snakeRev", rev: 15, batch: "A" },
+  // hoverRev 11 (16 Nov 2026, the Retro overhaul stage 3): hoverRev 10 starting shielded. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
+  { type: "hover", field: "hoverRev", rev: 11, batch: "A" },
   // skylineRev 10 (Nov 2026, the scoring audit): skylineRev 9's play; perfect drops counted, so more floors never score less.
   { type: "skyline", field: "skylineRev", rev: 10, batch: "B" },
   { type: "bintoss", field: "binRev", rev: 9, batch: "B" },
   { type: "bullseye", field: "bullRev", rev: 9, batch: "B" },
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): pinRev 7, one J-O-U-L-Z set.
-  { type: "pinball", field: "pinRev", rev: 7, batch: "B" },
+  // pinRev 8 (16 Nov 2026, the Retro overhaul stage 3): pinRev 7's play with the outlane saves counted. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
+  { type: "pinball", field: "pinRev", rev: 8, batch: "B" },
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rallyRev 13, two lives and spin
   // shots.
   { type: "rally", field: "rallyRev", rev: 13, batch: "B" },
@@ -73,10 +76,12 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "beat", field: "beatRev", rev: 12, batch: "B" },
   // crossRev 11 (3 Nov 2026): no coins, the no-stop streak, a hit costs 15 (cross-rev11-check).
   // crossRev 12 (Nov 2026, the scoring audit): crossRev 11's play and parts; the hit that ends the run is free.
-  { type: "cross", field: "crossRev", rev: 12, batch: "C" },
+  // crossRev 13 (16 Nov 2026, the Retro overhaul stage 3): crossRev 12's rules on lighter traffic. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
+  { type: "cross", field: "crossRev", rev: 13, batch: "C" },
   // wavRev 13 (Nov 2026, the scoring audit): wavRev 12's play and parts; the life that ends the run is free.
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): wavRev 14, the charged shot.
-  { type: "wavefront", field: "wavRev", rev: 14, batch: "C" },
+  // wavRev 15 (16 Nov 2026, the Retro overhaul stage 3): larger hit cells. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
+  { type: "wavefront", field: "wavRev", rev: 15, batch: "C" },
   // flipRev 11 (3 Nov 2026): no star pickups; clean time 100, perfect landings 60, double flips 20, flow streak 20 (flip-rev11-check).
   // flipRev 12 (3 Nov 2026): flipRev 11's game dealt only on its proved courses (flip-deal-check).
   { type: "flip", field: "flipRev", rev: 12, batch: "C" },

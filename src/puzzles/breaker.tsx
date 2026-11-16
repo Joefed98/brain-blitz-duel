@@ -1,4 +1,6 @@
 import { heldHorizontal, useGameKeys } from "@/lib/desktop";
+import { puzzleLevel } from "@/lib/levels/levels";
+import { RETRO_PAYOFF_MS } from "@/lib/arcade/retroFx.renderer";
 import { ArtStill } from "@/components/puzzles/ArtStill";
 import { brkWorldH, brkWorldW } from "@/lib/arcade/breaker";
 import { auditEventAt } from "@/lib/arcade/auditInput";
@@ -12,7 +14,7 @@ import { breakerSounds } from "@/lib/fx/gameSounds";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   ARCADE_INPUT_BUTTON,
@@ -70,7 +72,8 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BreakerPuzzleData | null = puzzle.type === "breaker" ? puzzle : null;
   const seed = data?.seed ?? 1;
-  const game = breakerGameFor(data?.brkRev);
+  // One game object per stamp and level (a level wraps init; a new object each render would restart the run).
+  const game = useMemo(() => breakerGameFor(data?.brkRev, puzzleLevel(data)), [data?.brkRev, puzzleLevel(data)]);
   const art = breakerArtGameFor(data?.brkRev);
   // brkRev 6: the taller court; every phone draws the stored revision's world.
   const BRK_WORLD_H = breakerWorldHFor(data?.brkRev);
@@ -148,6 +151,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const feedback = arcadeFeedback({ game: "breaker" });
     const sounds = breakerSounds();
 
+    let endedAt: number | null = null;
     const finish = () => {
       if (submitted.current) return;
       submitted.current = true;
@@ -232,7 +236,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         draftRef.current?.(encode());
       }
 
-      if (game.isOver(state.current)) finish();
+      // Stage 3 of the Retro overhaul: the round-end payoff plays before the run is sent (its answer is fixed now and
+      // sent as the draft at once; display only).
+      if (game.isOver(state.current)) {
+        if (endedAt === null) {
+          endedAt = time;
+          if (!submitted.current) draftRef.current?.(encode());
+        }
+        if (time - endedAt >= (state.current.cleared ? RETRO_PAYOFF_MS : 0)) finish();
+      }
       frameTiming.end();
     };
 

@@ -148,7 +148,8 @@ section("Rooms deal wavRev 11 (after wavRev 10), scored to 200");
 ok(playRevOf("wavefront", generateWavefront().wavRev) === WAV_REV_PHONE && WAV_REV_EXPAND === 10 && WAV_REV_PHONE === 11, "rooms deal wavRev 11's play (wavRev 12 since 29 Oct 2026), the revision after wavRev 10");
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the practice deal and the help read
 // wavRev 14 (wavRev 13 plus the charged shot).
-ok((wavefrontPuzzle.generate() as { wavRev?: number }).wavRev === WAV_REV_CHARGE, "practice's definition deals wavRev 14 (wavRev 11's play on the standard, plus the charged shot)");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): wavRev 15 since stage 3.
+ok((wavefrontPuzzle.generate() as { wavRev?: number }).wavRev === WAV_REV_CHARGE + 1, "practice's definition deals wavRev 15 (wavRev 11's play on the standard, plus the charged shot and larger hit cells)");
 ok(LIVE_BANDS.wavefront.strictRev === WAV_REV_STRICT && WAV_V10_BAND_CURVE.points.at(-1) === 140, "LIVE_BANDS: wavRev 8 is still the strictRev; wavRev 10's base curve still tops at 140");
 ok(roundMaxFor("wavefront") === 200, "Wavefront's round maximum is 200");
 ok(wavefrontWorldHFor(WAV_REV_EXPAND) === WAV_X_H && WAV_X_H === 800, "wavRev 10 plays in the 390 × 800 world");

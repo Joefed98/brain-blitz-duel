@@ -7,6 +7,8 @@
  * server always agree on the accuracy.
  */
 
+import { retroLevelSettings, type BeatLv } from "./retroLevels";
+import type { Level } from "@/lib/levels/levels";
 import {
   clampInt,
   inputRange,
@@ -205,6 +207,8 @@ function buildChart(seed: number): { rng: number; chart: BeatChart } {
 /* ================================ State ================================ */
 
 export interface BeatState extends BandFields {
+  /** Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. */
+  lv?: BeatLv;
   /** Rev 2 only: the stamp, and swipe notes judged so far (hit, and missed or wrong way). */
   rev?: number;
   swipesHit?: number;
@@ -308,8 +312,15 @@ export interface BeatWindows {
 export const BEAT_WINDOWS: BeatWindows = { perfect: BEAT_PERFECT_TICKS, good: BEAT_GOOD_TICKS, ok: BEAT_OK_TICKS };
 
 /** The windows a state judges with: beatRev 10's wider ones, or the original. */
-export function beatWindows(state: { ease?: number }): BeatWindows {
+export function beatWindows(state: { ease?: number; lv?: BeatLv | undefined }): BeatWindows {
+  // A level (stage 3 of the Retro overhaul) judges with its own windows.
+  if (state.lv) return { perfect: state.lv.perfect, good: state.lv.good, ok: state.lv.ok };
   return state.ease ? BEAT_V10_WINDOWS : BEAT_WINDOWS;
+}
+
+/** The notes' fall time on screen (ticks) a state draws with: its level's, else BEAT_FALL_TICKS. Display only. */
+export function beatFallOf(state: { lv?: BeatLv | undefined }): number {
+  return state.lv?.fall ?? BEAT_FALL_TICKS;
 }
 
 /** Judgement for a tick distance, or a miss when it is outside every window. */
@@ -633,7 +644,8 @@ function draw(ctx: CanvasRenderingContext2D, state: BeatState, size: CanvasSize)
   ctx.stroke();
 
   const travel = BEAT_HIT_LINE_Y - BEAT_HUD_H;
-  const yAt = (remaining: number) => BEAT_HUD_H + (travel * (BEAT_FALL_TICKS - remaining)) / BEAT_FALL_TICKS;
+  const FALL = beatFallOf(state);
+  const yAt = (remaining: number) => BEAT_HUD_H + (travel * (FALL - remaining)) / FALL;
   for (let index = 0; index < state.chart.ticks.length; index++) {
     const lane = state.chart.lanes[index]!;
     const hold = state.chart.holds[index]!;
@@ -641,7 +653,7 @@ function draw(ctx: CanvasRenderingContext2D, state: BeatState, size: CanvasSize)
     if (state.judged[index] !== BEAT_JUDGE_NONE && !held) continue;
     const hitTick = state.chart.ticks[index]!;
     const remaining = hitTick - state.tick;
-    if (remaining > BEAT_FALL_TICKS || remaining + hold < -BEAT_OK_TICKS) continue;
+    if (remaining > FALL || remaining + hold < -beatWindows(state).ok) continue;
     const colour = BEAT_LANE_COLOURS[lane % BEAT_LANE_COLOURS.length]!;
     if (hold > 0) {
       // The tail, from the head (pinned to the line while held) up to its end.
@@ -728,8 +740,9 @@ function initRev2(seed: number): BeatState {
 export const beatRev2Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = { ...beatGame, init: initRev2, inputRanges: BEAT_V2_INPUT_RANGES };
 
 /** Takes puzzle.beatRev; anything else is the original game. */
-export function beatGameFor(rev?: number | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
-  if (rev === BEAT_REV_FLOOR) return beatV12Game;
+export function beatGameFor(rev?: number | null, level?: Level | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
+  // Stage 3 of the Retro overhaul: beatRev 12 at a level (retroLevels.ts: the hit windows; the fall time is drawn).
+  if (rev === BEAT_REV_FLOOR) return beatV12LevelGame(level);
   if (rev === BEAT_REV_STD) return beatV11Game;
   if (rev === BEAT_REV_EASE) return beatV10Game;
   if (rev === BEAT_REV_200) return beatV9Game;
@@ -1369,3 +1382,28 @@ export const beatV12Game: ArcadeGame<BeatState, ArcadeInputEvent | null> = {
   ...beatV11Game,
   init: (seed) => ({ ...beatV11Game.init(seed), floor: 1 }),
 };
+
+/** beatRev 12's plan at a level (stage 3 of the Retro overhaul): Normal's sections with the off-beat and chord shares
+ * scaled (capped at 95 %), and the OK window the last note must fit inside. */
+function beatLevelPlan(lv: BeatLv): BeatChartPlan {
+  const scale = (v: number, pct: number) => (v > 0 ? Math.min(95, Math.round((v * pct) / 100)) : 0);
+  return {
+    ...V10_PLAN,
+    sections: V10_PLAN.sections.map(([from, eighth, chord]) => [from, scale(eighth, lv.eighthPct), scale(chord, lv.chordPct)] as const),
+    ok: Math.max(V10_PLAN.ok, lv.ok),
+  };
+}
+
+const beatV12ByLevel = new Map<string, ArcadeGame<BeatState, ArcadeInputEvent | null>>();
+/** beatRev 12 at a level: the chart built on the level's plan, its windows and fall time on the state (`lv`). */
+function beatV12LevelGame(level?: Level | null): ArcadeGame<BeatState, ArcadeInputEvent | null> {
+  const lv = retroLevelSettings("beat", level);
+  if (!lv) return beatV12Game;
+  let game = beatV12ByLevel.get(level!);
+  if (!game) {
+    const plan = beatLevelPlan(lv);
+    game = { ...beatV12Game, init: (seed) => ({ ...initV9(seed, plan), ease: 1, std: 1, floor: 1, lv }) };
+    beatV12ByLevel.set(level!, game);
+  }
+  return game;
+}

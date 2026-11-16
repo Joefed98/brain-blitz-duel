@@ -5,6 +5,7 @@
  * Each moment plays its own slot (`<gameId>.<event>`, docs/sound-cues/arcade.md)
  * once that slot has a file, else the shared sound it always played, unchanged.
  */
+import { pinBallsOf } from "@/lib/arcade/pinball4";
 import { bastionDronePos, bastionDrones, bastionWave, BASTION_REV_IRON, BT2_WAVE_START, type BastionTankState } from "@/lib/arcade/bastionTank";
 import { cueHasFile, ensureCueLoop, ensureSlotLoop, isMusicMuted, musicVolume, playCueSlot, playSlotOr, setCueLoopRate, stopCueLoop, stopSlotLoop } from "@/lib/sound";
 import { liveCue, momentFrame } from "@/lib/fx/momentCues";
@@ -16,15 +17,15 @@ import { SWING_CHASE_REACH, SWING_REV, SWING_ROCK_WARN, SWING_ROCK_WARN_V6, SWIN
 import { WAV_CELL, WAV_COLS, WAV_SHIP_H, wavDropPx, wavForm, wavShipY, wavStreakMult, type WavState } from "@/lib/arcade/wavefront";
 import { CROSS_CYCLE_FROM, CROSS_CYCLE_TWO_FROM, CROSS_KIND_BUS, CROSS_REV2, CROSS_ROADWORKS_FROM, CROSS_ROADWORKS_TWO_FROM, CROSS_X_BUS_FROM, CROSS_X_BUS_TWO_FROM, crossKindCrossed, type CrossState } from "@/lib/arcade/cross";
 import { FLIP_CRUMBLE_TICKS, flipCrackTick, flipSpeed, type FlipState } from "@/lib/arcade/flip";
-import { HOVER_IMPULSE, HOVER_WORLD_W, type HoverPillar, type HoverState } from "@/lib/arcade/hover";
+import { HOVER_IMPULSE, HOVER_WORLD_W, hoverSurvived, type HoverPillar, type HoverState } from "@/lib/arcade/hover";
 import { bfHardDropped, bfNearTop, burstOverhead, hoverScrape, rallyEdgeSave, snakeRockGraze, snakeWrapped, wavBoltNearMiss } from "@/lib/arcade/retroMoments";
-import { snakeStepTicks, type SnakeState } from "@/lib/arcade/snake";
-import { BRK_PADDLE_W, BRK_SLIDE_STARTS, brkDestroyed, brkIsGold, brkPaddleY, type BrkState } from "@/lib/arcade/breaker";
-import { RALLY_BUMPER2_FROM, RALLY_BUMPER_FROM, rallyPaddleW, rallyTotalHits, type RallyState } from "@/lib/arcade/rally";
+import { snakeStepTicksOf, type SnakeState } from "@/lib/arcade/snake";
+import { brkPaddleWOf, BRK_SLIDE_STARTS, brkDestroyed, brkIsGold, brkPaddleY, type BrkState } from "@/lib/arcade/breaker";
+import { RALLY_BUMPER2_FROM, RALLY_BUMPER_FROM, rallyPaddleW, rallyPaddleWOf, rallyTotalHits, type RallyState } from "@/lib/arcade/rally";
 import { PIN_BALLS, pinRunTicksOf, type PinState } from "@/lib/arcade/pinball";
 import type { Pin4State } from "@/lib/arcade/pinball4";
 import { burstRadius, burstCeiling, burstFloorY, type BurstState } from "@/lib/arcade/burst";
-import { BEAT_COMBO_TIERS, BEAT_FALL_TICKS, BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
+import { BEAT_COMBO_TIERS, beatFallOf, BEAT_JUDGE_PENDING, type BeatState } from "@/lib/arcade/beat";
 import { BINTOSS_AIM, BINTOSS_FLY, BINTOSS_NARROW_FROM, BINTOSS_THROWS, BINTOSS_WAIT, type BinTossState } from "@/lib/arcade/binToss";
 import type { TiltState } from "@/lib/arcade/tilt";
 import { homerunFence, homerunPlan, OUT_CAUGHT, OUT_FAIR, OUT_FOUL, OUT_HOMER, OUT_TAKEN, OUT_WHIFF, type HomerunState } from "@/lib/arcade/homerun";
@@ -281,6 +282,8 @@ export function wavefrontSounds(): GameSounds<WavState> {
         if (state.lives < prev.lives) { sfx("wavefront.lifeLost", "arc_lose_life"); feel("impact"); }
         // wavRev 2: a boss hit, the next formation (or the boss) arriving, a ship peeling off to dive.
         if ((state.bossHits ?? 0) > (prev.bossHits ?? 0) && !state.bossKilled) sfx("wavefront.bossHit", "arc_retro_hit", 0.7, 1, true);
+        // Stage 3: the boss explodes in stages (the round-end payoff).
+        if (state.bossKilled && !prev.bossKilled) effectCue("wavefront.bossStages");
         if ((state.enter ?? 0) > 0 && (prev.enter ?? 0) === 0) sfx("wavefront.formation", "stage_complete", 0.8);
         if ((state.divers ?? []).length > (prev.divers ?? []).length) sfx("wavefront.dive", "arc_retro_blip", 0.5, 1, true);
         if (state.saucerDir !== 0 && prev.saucerDir === 0) effectCue("wavefront.saucerEnter");
@@ -402,6 +405,8 @@ export function hoverSounds(): GameSounds<HoverState> {
       beginFrame("hover", state);
       start(running);
       if (prev && state.tick < prev.tick) { clean = 0; scraped = -1; }
+      // Stage 3 of the Retro overhaul: a run flown to the end flies off the top (the round-end payoff).
+      if (prev && hoverSurvived(state) && !hoverSurvived(prev)) effectCue("hover.flyOff");
       if (prev && state.tick > prev.tick) {
         if (state.crashed && !prev.crashed) { sfx("hover.crash", "arc_retro_explode"); feel("impact"); }
         else {
@@ -455,6 +460,8 @@ export function snakeSounds(): GameSounds<SnakeState> {
       start(running);
       if (prev && state.tick > prev.tick) {
         if (state.dead && !prev.dead) { sfx("snake.dead", "arc_retro_explode"); feel("impact"); }
+        // snakeRev 15: a forgiven crash (the comet holds still; its stand-in the crash's own sound, softer).
+        if ((state.graceUsed ?? 0) > (prev.graceUsed ?? 0)) sfx("snake.saved", "arc_retro_explode", 0.6, 1.4);
         // The Retro overhaul, stage 2: the crunch climbs a semitone a star inside the combo window (an octave at most).
         else if (state.eaten > prev.eaten) sfx("snake.eat", "arc_retro_blip", 1, 2 ** (Math.min(12, Math.max(0, (state.combo ?? 1) - 1)) / 12), true);
         // snakeRev 2: a rock's shadow appears, then it lands clear of the head.
@@ -466,7 +473,7 @@ export function snakeSounds(): GameSounds<SnakeState> {
         const landings = [(state.rockWarn ?? -1) >= 0 ? state.rockLandTick : undefined, (state.showerWarn?.length ?? 0) > 0 ? state.showerLandTick : undefined];
         if (!state.dead && landings.some((at) => at !== undefined && at - prev!.tick > SNAKE_ROCK_FALL_TICKS && at - state.tick <= SNAKE_ROCK_FALL_TICKS && at > state.tick)) effectCue("snake.rockFalling", 300);
         // A speed step on the 5th, 15th, 25th star (the 10th and 20th have the STREAK banner).
-        if (!state.dead && snakeStepTicks(state.eaten) < snakeStepTicks(prev.eaten) && state.eaten % 10 !== 0) effectCue("snake.speedUp");
+        if (!state.dead && snakeStepTicksOf(state) < snakeStepTicksOf(prev) && state.eaten % 10 !== 0) effectCue("snake.speedUp");
         // Stage 2: a turn ticks, the wrap (snakeRev 13) vwoops, a rock grazed beside the head scrapes.
         if (!state.dead && state.dir !== prev.dir) effectCue("snake.turn", 60);
         if ((state.goldsEaten ?? 0) > (prev.goldsEaten ?? 0)) effectCue("snake.goldStar");
@@ -502,7 +509,7 @@ export function beatSounds(): GameSounds<BeatState> {
         if (state.misses > prev.misses && !(broke && cueHasFile("beat.comboLost"))) sfx("beat.miss", "arc_retro_hit");
         // beatRev 2+: the first swipe notes come into the lanes.
         const firstSwipe = state.chart.swipes?.findIndex((d) => d !== 0) ?? -1;
-        const swipeAt = firstSwipe >= 0 ? state.chart.ticks[firstSwipe]! - BEAT_FALL_TICKS : -1;
+        const swipeAt = firstSwipe >= 0 ? state.chart.ticks[firstSwipe]! - beatFallOf(state) : -1;
         if (swipeAt >= 0 && prev.tick < swipeAt && state.tick >= swipeAt) effectCue("beat.swipeArrive");
         const hits = state.perfect + state.good + state.ok - (prev.perfect + prev.good + prev.ok);
         const heldNew = state.lastJudge === BEAT_JUDGE_PENDING && state.judgeAge === 0;
@@ -535,6 +542,8 @@ export function breakerSounds(): GameSounds<BrkState> {
       beginFrame("breaker", state);
       start(running);
       if (prev && state.tick < prev.tick) { volley = 0; lastBreak = -999; }
+      // Stage 3: the wall cleared, the time left ticking into speed points (the round-end payoff).
+      if (prev && state.cleared && !prev.cleared) effectCue("breaker.timeToPoints");
       if (prev && state.tick > prev.tick) {
         if (state.losses > prev.losses) { sfx("breaker.ballLost", "arc_retro_explode"); feel("impact"); }
         if (state.powerUps > prev.powerUps) sfx("breaker.powerUp", "arc_retro_pickup");
@@ -569,7 +578,7 @@ export function breakerSounds(): GameSounds<BrkState> {
           const before = prev!.balls[i];
           return !!before && before.vy > 0 && ball.vy < 0 && ball.y > (brkPaddleY(state) - 40) * 256;
         });
-        const off = struck ? Math.min(1, Math.abs(struck.x / 256 - state.paddleX) / (BRK_PADDLE_W / 2)) : 0;
+        const off = struck ? Math.min(1, Math.abs(struck.x / 256 - state.paddleX) / (brkPaddleWOf(state) / 2)) : 0;
         if (paddleHit) sfx("breaker.paddle", "arc_retro_blip", 0.8, 0.9 + 0.25 * off, true, true);
         // A ball off a side wall or the ceiling: turned back with no brick hit and no paddle return.
         else if (state.hits === prev.hits && state.balls.length === prev.balls.length && state.balls.some((ball, i) => turnedBack(prev!.balls[i], ball))) effectCue("breaker.wallBounce");
@@ -585,6 +594,11 @@ export function breakerSounds(): GameSounds<BrkState> {
   };
 }
 
+/** The pinball run is over (the time, or every ball drained). */
+function pinOver(state: PinState): boolean {
+  return state.tick >= pinRunTicksOf(state) || state.lost >= pinBallsOf(state as never);
+}
+
 export function pinballSounds(): GameSounds<PinState> {
   let prev: PinState | null = null;
   const start = retroStart("pinball.start");
@@ -592,12 +606,16 @@ export function pinballSounds(): GameSounds<PinState> {
     frame(state, running) {
       beginFrame("pinball", state);
       start(running);
+      // Stage 3: at the run's end the table's points roll up on the counter (the round-end payoff).
+      if (prev && pinOver(state) && !pinOver(prev)) effectCue("pinball.counterRoll");
+      // pinRev 8 (stage 3): an outlane save (the counter the sim keeps).
+      if (prev && ((state as { outSaves?: number }).outSaves ?? 0) > ((prev as { outSaves?: number }).outSaves ?? 0)) effectCue("pinball.outlaneSave");
       if (prev && state.tick > prev.tick) {
         // The last ball launched (BALL 3/3); every ball drained before time (its own file stands in for the drain).
         // pinRev 4 plunges a new ball for each lock, so its last ball is the one after the second drain.
         const p4 = state as Partial<Pin4State>;
         const q4 = prev as Partial<Pin4State>;
-        if (p4.rev4 ? state.lost === PIN_BALLS - 1 && prev.lost < PIN_BALLS - 1 : state.launched >= PIN_BALLS && prev.launched < PIN_BALLS) effectCue("pinball.lastBall");
+        if (p4.rev4 ? state.lost === pinBallsOf(state as never) - 1 && prev.lost < pinBallsOf(state as never) - 1 : state.launched >= PIN_BALLS && prev.launched < PIN_BALLS) effectCue("pinball.lastBall");
         // pinRev 4 (the expansion; existing sounds only): a ramp zaps, a combo crackles, a lock dings,
         // multiball zaps, a jackpot or a skill shot chimes.
         if (p4.rev4) {
@@ -619,7 +637,7 @@ export function pinballSounds(): GameSounds<PinState> {
           if ((q4.extras?.length ?? 0) > 0 && (p4.extras?.length ?? 0) === 0 && state.live) effectCue("pinball.multiballEnd");
           if ((p4.jackpots ?? 0) > (q4.jackpots ?? 0) || (p4.skills ?? 0) > (q4.skills ?? 0)) sfx("shared.celebrate.chime", "correct", 0.9);
         }
-        const over = state.lost >= PIN_BALLS && prev.lost < PIN_BALLS && state.tick < pinRunTicksOf(state);
+        const over = state.lost >= pinBallsOf(state as never) && prev.lost < pinBallsOf(state as never) && state.tick < pinRunTicksOf(state);
         if (over) effectCue("pinball.gameOver");
         if (state.lost > prev.lost) feel("impact");
         if (state.lost > prev.lost && !(over && cueHasFile("pinball.gameOver"))) sfx("pinball.ballLost", "arc_retro_explode");
@@ -663,7 +681,7 @@ export function rallySounds(): GameSounds<RallyState> {
       if (prev && state.tick > prev.tick) {
         if ((state.lostAt ?? 0) > (prev.lostAt ?? 0)) rally = 0;
         if ((state.spun ?? 0) > (prev.spun ?? 0)) sfx("rally.fwip", "arc_retro_blip", 0.4, 1.8, true);
-        if (state.hits + state.goldHits > prev.hits + prev.goldHits && rallyEdgeSave(state, rallyPaddleW(rallyTotalHits(state)))) sfx("rally.edgeSave", "arc_retro_hit", 0.45, 1.7, true);
+        if (state.hits + state.goldHits > prev.hits + prev.goldHits && rallyEdgeSave(state, rallyPaddleWOf(state))) sfx("rally.edgeSave", "arc_retro_hit", 0.45, 1.7, true);
         if (state.dead && !prev.dead) { sfx("rally.dead", "arc_retro_explode"); feel("impact"); }
         // rallyRev 13: a life lost (the run goes on), the serve after it and a spin shot.
         if (!state.dead && (state.lostAt ?? 0) > (prev.lostAt ?? 0)) { sfx("rally.lifeLost", "arc_retro_explode", 0.7); feel("impact"); }

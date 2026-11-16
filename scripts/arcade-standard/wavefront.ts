@@ -15,6 +15,8 @@ import {
   wavefrontGameFor,
   WAVEFRONT_STD_KEEP,
   WAV_REV_CHARGE,
+  WAV_REV_BIG,
+  WAVEFRONT_STD_BIG,
   WAV_REV_KEEP,
   WAVEFRONT_STD_CHARGE,
   WAV_REV_STD,
@@ -31,7 +33,7 @@ import { roomSeed } from "../arcade-skill-bands/games";
 import { randomLog } from "../room-identity/wavefront";
 import type { StdEntry, StdRun } from "./entry";
 
-const game = wavefrontGameFor(WAV_REV_CHARGE);
+const game = wavefrontGameFor(WAV_REV_BIG);
 
 /** A log played on wavRev 12, checkpointed as the phone does, through the server's encode + replay. */
 function serverRun(seed: number, events: ArcadeInputEvent[]): number {
@@ -43,7 +45,7 @@ function serverRun(seed: number, events: ArcadeInputEvent[]): number {
     if (s.tick % 300 === 0) checkpoints.push(wavCheckpoint(s));
   }
   const raw = encodeWavefrontRun({ seed, claimedScore: game.score(s), events, inputs: [], taps: [], endTick: s.tick, checkpoints } as never);
-  const r = replayWavefrontRun(seed, raw, WAV_REV_CHARGE);
+  const r = replayWavefrontRun(seed, raw, WAV_REV_BIG);
   if (r.flagged) throw new Error(`seed ${seed}: the server replay flagged the run (${r.reason})`);
   return r.score;
 }
@@ -53,15 +55,18 @@ export const entry: StdEntry = {
   field: "wavRev",
   // wavRev 13 since Nov 2026 (the scoring audit): wavRev 12's play and parts; the life that ends the run is free.
   // wavRev 14 since 15 Nov 2026 (the Retro overhaul): wavRev 13 and its parts plus the charged shot.
-  rev: WAV_REV_CHARGE,
-  before: WAV_REV_KEEP,
-  parts: WAVEFRONT_STD_CHARGE.parts,
-  spec: WAVEFRONT_STD_CHARGE,
+  // wavRev 15 since 16 Nov 2026 (the Retro overhaul, stage 3): wavRev 14 and its parts with larger hit cells.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
+  rev: WAV_REV_BIG,
+  before: WAV_REV_CHARGE,
+  parts: WAVEFRONT_STD_BIG.parts,
+  spec: WAVEFRONT_STD_BIG,
   perfect: (): StdRun[] => {
-    const data = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/wavefront-std-runs.json.gz")).toString()) as { runs: { n: number; seed: number; raw: string }[] };
+    const data = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/wavefront-big-runs.json.gz")).toString()) as { runs: { n: number; seed: number; raw: string }[] };
     const runs: StdRun[] = data.runs.map((r) => {
-      // The recorded runs were checkpointed on wavRev 12; their inputs (which never charge) are checkpointed again on
-      // wavRev 14, whose checksum also folds in the charged shot's state, and sent through the server replay.
+      // The flawless runs recorded on wavRev 15 (scripts/wavefront-big-record.ts; the wavRev 12 ones in
+      // wavefront-std-runs.json.gz stay for wavefront-phone-check, but the larger cells change which ship a bolt meets),
+      // checkpointed again and sent through the server replay.
       const events = (decodeWavefrontRun(r.raw) as unknown as { events: ArcadeInputEvent[] }).events;
       const byTick = new Map(events.map((e) => [e.t, e]));
       let st = game.init(r.seed) as WavState;
@@ -71,7 +76,7 @@ export const entry: StdEntry = {
         if (st.tick % 300 === 0) checkpoints.push(wavCheckpoint(st));
       }
       const raw = encodeWavefrontRun({ seed: r.seed, claimedScore: game.score(st), events, inputs: [], taps: [], endTick: st.tick, checkpoints } as never);
-      const res = replayWavefrontRun(r.seed, raw, WAV_REV_CHARGE);
+      const res = replayWavefrontRun(r.seed, raw, WAV_REV_BIG);
       const s = res.state as WavState;
       // A clean replay of a run that took everything: no life lost, all five saucers, all four cannons and both cores.
       const clean = !res.flagged && s.lives === 3 && (s.bossKilled ?? 0) === 1 && s.tick - (s.bossAt ?? 0) <= WAV_STD_KILL_FULL && (s.cannonsDown ?? 0) === 4 && s.coresHit === 3;

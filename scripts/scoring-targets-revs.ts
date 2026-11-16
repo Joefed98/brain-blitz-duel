@@ -110,7 +110,12 @@ export const RETRO_REVS: Partial<Record<LiveBandGame, readonly [rev: number, pla
   pinball: [7, 6],
 };
 
+/** Stage 3 of the Retro overhaul (16 Nov 2026): Pinball pinRev 8 keeps pinRev 7's play tick for tick (it counts outlane saves). */
+export const RETRO_STAGE3_REVS: Partial<Record<LiveBandGame, readonly [rev: number, play: number]>> = { pinball: [8, 7] };
+
 export function playRevOf(type: string, rev: number | undefined | null): number | undefined | null {
+  const stage3 = RETRO_STAGE3_REVS[type as LiveBandGame];
+  if (stage3 && rev === stage3[0]) return playRevOf(type, stage3[1]);
   const retro = RETRO_REVS[type as LiveBandGame];
   if (retro && rev === retro[0]) return playRevOf(type, retro[1]);
   const audit = AUDIT_REVS[type as LiveBandGame];

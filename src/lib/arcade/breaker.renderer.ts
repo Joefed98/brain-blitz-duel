@@ -1,5 +1,5 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
-import { fxCrack, fxFlash, fxSparks, retroFx, type RetroFx } from "./retroFx.renderer";
+import { countUp, fxCrack, fxFlash, fxSparks, retroEndAge, retroFx, retroPayoffBanner, type RetroFx } from "./retroFx.renderer";
 import { drawArtSprite } from "./sprites.renderer";
 import { reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
@@ -54,6 +54,8 @@ import {
   brkWallXOf,
   brkWorldW,
   type BrkState,
+  breakerStdParts,
+  brkPaddleWOf,
 } from "./breaker";
 import { px, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
@@ -390,15 +392,15 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
   const changed=state.bricks.findIndex((hp,i)=>hp<(m.bricks[i]??hp));
   const hitPoint=changed>=0?brickXY(changed,state,false):brickXY(m.deaths.at(-1)?.index??0,state,false);
   const reward=successFrame(ctx,{id:'breaker',tick:state.tick,count:state.hits,misses:state.losses,colour:PADDLE,width:BRK_WORLD_W,height:BRK_WORLD_H,point:{x:hitPoint.x+BRK_BRICK_W/2,y:hitPoint.y+BRK_BRICK_H/2,shape:'pixel'},hud:{x:14,y:26,text:brkHudBricks(state)}});
-  if(reward.chain>=10){ctx.save();ctx.globalAlpha=.3;ctx.strokeStyle=PADDLE;ctx.lineWidth=3;ctx.strokeRect(state.paddleX-BRK_PADDLE_W/2-2,BRK_PADDLE_Y-2,BRK_PADDLE_W+4,BRK_PADDLE_H+4);ctx.restore();}
+  if(reward.chain>=10){ctx.save();ctx.globalAlpha=.3;ctx.strokeStyle=PADDLE;ctx.lineWidth=3;ctx.strokeRect(state.paddleX-brkPaddleWOf(state)/2-2,BRK_PADDLE_Y-2,brkPaddleWOf(state)+4,BRK_PADDLE_H+4);ctx.restore();}
   // Polish A1: the paddle's gold light.
-  glow(ctx, PADDLE, state.paddleX, BRK_PADDLE_Y + BRK_PADDLE_H / 2, BRK_PADDLE_W / 2 + 18, 16, 0.42);
+  glow(ctx, PADDLE, state.paddleX, BRK_PADDLE_Y + BRK_PADDLE_H / 2, brkPaddleWOf(state) / 2 + 18, 16, 0.42);
   // Art pilot (Retro): the paddle sprite fills the collision rectangle; code art when absent.
   // Stage 2: the paddle dips 2 px as a ball comes off it (breakerEffects logs the hit), back over 6 ticks.
   const fx = breakerEffects(ctx, state, m.bricks, BRK_PADDLE_Y);
   const dipped = fx.latest("paddle", 6);
   const dip = dipped && !fx.still ? Math.round(2 * (1 - dipped.age)) : 0;
-  if (!drawArtSprite(ctx, "retro", "paddle", state.paddleX - BRK_PADDLE_W / 2, BRK_PADDLE_Y + dip, BRK_PADDLE_W, BRK_PADDLE_H)) retroPaddle(ctx, state.paddleX - BRK_PADDLE_W / 2, BRK_PADDLE_Y + dip, BRK_PADDLE_W, BRK_PADDLE_H, PADDLE, "#5A4510", bloom);
+  if (!drawArtSprite(ctx, "retro", "paddle", state.paddleX - brkPaddleWOf(state) / 2, BRK_PADDLE_Y + dip, brkPaddleWOf(state), BRK_PADDLE_H)) retroPaddle(ctx, state.paddleX - brkPaddleWOf(state) / 2, BRK_PADDLE_Y + dip, brkPaddleWOf(state), BRK_PADDLE_H, PADDLE, "#5A4510", bloom);
   drawBreakerEffects(ctx, fx, state, BRK_PADDLE_Y);
 
   state.balls.forEach((ball, i) => {
@@ -442,6 +444,18 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     retroText(ctx, String(Math.max(1, Math.ceil(state.pause / 60))), state.paddleX, BRK_PADDLE_Y - 36, 24, RETRO_WHITE, "center", 4);
   }
   if (state.deep) drawDeepHud(ctx, state, key);
+  // Stage 3 of the Retro overhaul: the wall cleared (the shared layer says WALL CLEARED!), TIME BONUS and the time left turning into speed points (the
+  // round-end payoff, on the presentation clock while the stage holds the submit; display only). brkRev 11+ only (the
+  // standard's speed part); older clears show the banner alone.
+  const clearAge = retroEndAge(key, "breaker-clear", state.cleared, state.tick);
+  if (clearAge !== null) {
+    const speed = state.std ? breakerStdParts(state).speed : 0;
+    retroPayoffBanner(ctx, brkWorldW(state), BRK_PADDLE_Y * 0.56, "TIME BONUS", speed > 0 ? `SPEED +${countUp(speed, clearAge)}` : "", clearAge);
+    if (!reducedMotion()) {
+      const fx = retroFx(ctx, "breaker-clear", state.tick);
+      fxSparks(fx, ctx, brkWorldW(state) / 2, BRK_PADDLE_Y * 0.42, Math.min(0.99, clearAge / 900), GOLD, { n: 16, spread: 90, seed: 7 });
+    }
+  }
 }
 
 /**
