@@ -6,7 +6,8 @@
  * the Save button replaces a bundled demo without a code change. Stored rows are never touched.
  *
  * Recorded on: Tessellate blockRev 4, Pipeline pipesRev 5, Chroma Lines flowRev 3, Skid slideRev 5, Topsy-Turvy
- * gravityRev 8 (pattern-overhaul-demos-check proves each against today's deal and rules).
+ * gravityRev 8, Gridlock unblockRev 4, Lightbender laserRev 4 (pattern-overhaul-demos-check proves each against today's
+ * deal and rules; pattern-demos-check grades each run through practice's grader, scripts/fixtures/pattern-demos.json).
  */
 import type { IntroDemoRow } from "../introDemo.functions";
 
@@ -14,14 +15,18 @@ import blockparty from "./blockparty.json";
 import flow from "./flow.json";
 import gravity from "./gravity.json";
 import iceslide from "./iceslide.json";
+import laser from "./laser.json";
 import pipes from "./pipes.json";
+import unblock from "./unblock.json";
 
 export const BUNDLED_INTRO_DEMOS: Readonly<Record<string, IntroDemoRow>> = {
   blockparty: blockparty as unknown as IntroDemoRow,
   flow: flow as unknown as IntroDemoRow,
   gravity: gravity as unknown as IntroDemoRow,
   iceslide: iceslide as unknown as IntroDemoRow,
+  laser: laser as unknown as IntroDemoRow,
   pipes: pipes as unknown as IntroDemoRow,
+  unblock: unblock as unknown as IntroDemoRow,
 };
 
 /** The bundled demo for `type`, or null. */
