@@ -10,9 +10,9 @@ import { judgeTileGrid } from "../tileGrid.server";
 import { decodeSlideTokens, markedRowWord, WS_MARKED_ROWS } from "../wordSlide";
 import { checkWordSlideRow, replayWordSlideFor } from "../wordSlide.server";
 import { swapwordCounts, wordSlideMadeRows } from "../progressFigures";
-import { wsDecode, wsGrade, wsSplitBonus } from "../wordSearch";
+import { wsDecode, wsGrade, wsRowsOf, wsSplitBonus } from "../wordSearch";
 import { LW_JAR_DROPS, lwDecodeLog, lwJarKept, lwJarTally, lwMissPenalty, lwTallyLog } from "../letterWheel";
-import { decodeStrikeout2, replayStrikeout2, so2EarlySolves, so2Rules, so2Tally, strikeoutRevOf } from "../strikeout";
+import { decodeStrikeout2, replayStrikeout2, so2EarlySolves, so2Rules, so2Tally, strikeoutRevOf, so2RulesFor } from "../strikeout";
 import { codewordRuns, codewordTally, decodeCodeword, replayCodeword } from "../codeword";
 import { cryptogridVisibleWrong, usesWordOverhaul } from "../wordOverhaul";
 import { decodeSwapword, replaySwapword } from "../swapword";
@@ -21,6 +21,7 @@ import type { PuzzleData, PuzzleType } from "../types";
 import type { StandardGame, StandardInput } from "./grade.server";
 import { cleanPoints, parPoints, speedPoints } from "./shape";
 import { usesWordNov7 } from "../wordNov7";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { wordSlideDistance, wordSlideStartDistance } from "../wordSlideDistance.server";
 import { TG_CELLS, TG_SIZE } from "../tileGrid";
 import {
@@ -175,8 +176,17 @@ const slider: StandardGame = {
 /* ------------------------------------------------------------------------------------------------ Lookout */
 
 function lookoutFound(puzzle: Extract<PuzzleData, { type: "wordsearch" }>, answer: string): number {
-  const split = wsSplitBonus(puzzle.bonus, wsDecode(answer, puzzle.size));
+  const split = wsSplitBonus(puzzle.bonus, wsDecode(answer, puzzle.size, wsRowsOf(puzzle)));
   return wsGrade(puzzle.placements ?? [], split.rest).found.length;
+}
+
+/**
+ * When Lookout's speed points are full: Normal's 40 s; a level board's (the Word overhaul's levels, 15 Nov 2026) the same
+ * share of its own clock (40 s of 120), so a shorter clock asks for a quicker finish.
+ */
+function lookoutFullByMs(input: StandardInput): number {
+  if (puzzleLevel(input.puzzle) === "normal") return STD_LOOKOUT.fullByS * 1000;
+  return Math.round((STD_LOOKOUT.fullByS * 1000 * input.limitMs) / 120_000);
 }
 
 const lookout: StandardGame = {
@@ -191,15 +201,18 @@ const lookout: StandardGame = {
         const total = num(extra["total"]);
         const doneAt = input.drafts?.find((d) => total > 0 && lookoutFound(input.puzzle as Extract<PuzzleData, { type: "wordsearch" }>, d.draft) >= total)?.t;
         const msLeft = doneAt === undefined ? input.msLeft : Math.max(input.msLeft, input.limitMs - doneAt);
-        const speed = speedPoints(STD_LOOKOUT.speed, msLeft, input.limitMs, STD_LOOKOUT.fullByS * 1000);
+        const speed = speedPoints(STD_LOOKOUT.speed, msLeft, input.limitMs, lookoutFullByMs(input));
         return { finished: true, speed, bonus, measure: "bonus word", facts: { allFoundAtMs: doneAt ?? null } };
       }
-      return { finished: true, speed: speedOf(input, STD_LOOKOUT.speed, STD_LOOKOUT.fullByS), bonus, measure: "bonus word" };
+      return { finished: true, speed: speedPoints(STD_LOOKOUT.speed, input.msLeft, input.limitMs, lookoutFullByMs(input)), bonus, measure: "bonus word" };
     }
     const found = num(extra["found"]);
     const wrong = num(extra["wrong"]);
     const penalty = STD_LOOKOUT.wrongCost * Math.max(0, wrong - STD_LOOKOUT.freeWrong);
-    const words = STD_LOOKOUT.word * found + ctx.early(STD_LOOKOUT.early, found);
+    // Levels (the Word overhaul, 15 Nov 2026): a level board's words share Normal's six words' credit (120), so five or
+    // eight words are worth what six are; Normal (no level) is unchanged.
+    const perWord = puzzleLevel(input.puzzle) === "normal" ? STD_LOOKOUT.word : (STD_LOOKOUT.word * 6) / Math.max(1, num(extra["total"], 6));
+    const words = perWord * found + ctx.early(STD_LOOKOUT.early, found);
     // wordSearchRev 5 (wordNov7.ts): the penalty comes off the bonus word too, so drags at random never keep it.
     if (usesWordNov7(input.puzzle)) return { finished: false, credit: Math.max(0, words + bonus - penalty) };
     return { finished: false, credit: Math.max(0, words - penalty) + bonus };
@@ -240,7 +253,7 @@ const roundabout: StandardGame = {
 /* ------------------------------------------------------------------------------------------------ Strikeout */
 
 function strikeoutSolved(puzzle: Extract<PuzzleData, { type: "strikeout" }>, answer: string): number {
-  const state = replayStrikeout2(puzzle.words ?? [], puzzle.givens ?? [], decodeStrikeout2(answer), isWord, so2Rules(strikeoutRevOf(puzzle)));
+  const state = replayStrikeout2(puzzle.words ?? [], puzzle.givens ?? [], decodeStrikeout2(answer), isWord, so2RulesFor(puzzle));
   return state.solvedWords;
 }
 
@@ -249,7 +262,7 @@ const strikeout: StandardGame = {
   grade(input, ctx) {
     const p = input.puzzle;
     if (p.type !== "strikeout") return { finished: false, credit: 0 };
-    const rules = so2Rules(strikeoutRevOf(p));
+    const rules = so2RulesFor(p);
     const actions = decodeStrikeout2(input.answer);
     const state = replayStrikeout2(p.words ?? [], p.givens ?? [], actions, isWord, rules);
     const tally = so2Tally(state);

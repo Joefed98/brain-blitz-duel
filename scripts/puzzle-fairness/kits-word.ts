@@ -14,8 +14,10 @@ import { judgeTileGrid } from "../../src/lib/duel/tileGrid.server";
 import { decodeTileGrid } from "../../src/lib/duel/tileGrid";
 import { encodeTileGrid, TG_CELLS, TG_SIZE } from "../../src/lib/duel/tileGrid";
 import { applyShift, markedRowWord, shiftToken, WS_SIZE as SL_SIZE, type SlideShift } from "../../src/lib/duel/wordSlide";
-import { wsEncode, wsLine, wsMatch } from "../../src/lib/duel/wordSearch";
-import { encodeStrikeout, replayStrikeout, soRowSolved, SO_LEN, type SoAction, type SoState } from "../../src/lib/duel/strikeout";
+import { wsEncode, wsLine, wsMatch, wsRowsOf } from "../../src/lib/duel/wordSearch";
+import { puzzleLevel } from "../../src/lib/levels/levels";
+import { WORDSEARCH_LEVEL_SETTINGS } from "../../src/lib/levels/word/wordsearch";
+import { encodeStrikeout, replayStrikeout, soRowSolved, SO_LEN, type SoAction, type SoState, so2RulesFor } from "../../src/lib/duel/strikeout";
 import {
   encodeStrikeout2,
   replayStrikeout2,
@@ -440,12 +442,24 @@ const slider: PuzzleKit = {
 
 const DIRS = [[0, 1], [1, 0], [1, 1], [-1, 1], [0, -1], [-1, 0], [-1, -1], [1, -1]] as const;
 
-function randomLine(rng: Rng, size: number, len: number): number[] | null {
-  const start = rng.below(size * size);
+function randomLine(rng: Rng, size: number, len: number, rows: number = size): number[] | null {
+  const start = rng.below(size * rows);
   const [dr, dc] = rng.pick(DIRS);
   const r = Math.floor(start / size) + dr * (len - 1), c = (start % size) + dc * (len - 1);
-  if (r < 0 || r >= size || c < 0 || c >= size) return null;
-  return wsLine(start, r * size + c, size);
+  if (r < 0 || r >= rows || c < 0 || c >= size) return null;
+  return wsLine(start, r * size + c, size, rows);
+}
+
+/**
+ * The Word overhaul's levels (15 Nov 2026): a level board's scan time a word, against Normal's 10 × 10 board of six
+ * words in any direction (1): by the grid's area, 0.8 where every word reads across or down (Easy), 1.15 with false
+ * starts (Expert). Normal's boards (no level) keep 1, so the kit plays them exactly as before.
+ */
+function lookoutScanFactor(d: WordSearchPuzzleData): number {
+  const level = puzzleLevel(d);
+  if (level === "normal") return 1;
+  const s = WORDSEARCH_LEVEL_SETTINGS[level];
+  return ((s.cols * s.rows) / 100) * (s.dirs.length <= 2 ? 0.8 : 1) * (s.decoys > 0 ? 1.15 : 1);
 }
 
 const lookout: PuzzleKit = {
@@ -456,17 +470,18 @@ const lookout: PuzzleKit = {
     const cap = Math.min(300, Math.floor(limitMs / 900));
     const randomDrags: number[][] = [];
     while (randomDrags.length < cap) {
-      const line = randomLine(rng, d.size, rng.int(4, 8));
+      const line = randomLine(rng, d.size, rng.int(4, 8), wsRowsOf(d));
       if (line) randomDrags.push(line);
     }
     // Drags starting on letters the hidden words don't start with are pointless; a masher drags from every cell.
     const sweep: number[][] = [];
-    for (let cell = 0; cell < d.size * d.size && sweep.length < cap; cell += 1) {
+    const rows = wsRowsOf(d);
+    for (let cell = 0; cell < d.size * rows && sweep.length < cap; cell += 1) {
       const len = rng.int(4, 7);
       const [dr, dc] = rng.pick(DIRS);
       const r = Math.floor(cell / d.size) + dr * (len - 1), c = (cell % d.size) + dc * (len - 1);
-      if (r < 0 || r >= d.size || c < 0 || c >= d.size) continue;
-      sweep.push(wsLine(cell, r * d.size + c, d.size)!);
+      if (r < 0 || r >= rows || c < 0 || c >= d.size) continue;
+      sweep.push(wsLine(cell, r * d.size + c, d.size, rows)!);
     }
     return [
       { label: "random-drags", answer: wsEncode(randomDrags) },
@@ -476,7 +491,7 @@ const lookout: PuzzleKit = {
   play(p, rng, skill) {
     const d = p as WordSearchPuzzleData;
     // BASE 9 s per word: scan the grid for one of the category's words, then drag it.
-    const BASE = 9;
+    const BASE = 9 * lookoutScanFactor(d);
     const sels: number[][] = [];
     const steps: Step[] = [];
     let at = 0;
@@ -484,7 +499,8 @@ const lookout: PuzzleKit = {
     // the quickest (0.85 at the elite's pace, about 0.47 near-perfect, 0.19 great, 0.06 good); it costs a little
     // extra scanning and is dragged before the last listed word (the six found end the round).
     const placements = rng.shuffle(d.placements ?? []);
-    const bonusAt = d.bonus && rng.chance(Math.min(0.9, 0.85 * Math.exp(-4 * (skill.pace - 0.35)))) ? rng.below(placements.length) : -1;
+    // Levels: a smaller board's bonus is easier to spot, a bigger one's harder (lookoutScanFactor; 1 on Normal).
+    const bonusAt = d.bonus && rng.chance(Math.min(0.9, (0.85 * Math.exp(-4 * (skill.pace - 0.35))) / lookoutScanFactor(d))) ? rng.below(placements.length) : -1;
     for (const [n, pl] of placements.entries()) {
       if (n === bonusAt && d.bonus) {
         at += thinkMs(rng, BASE * 0.6, skill);
@@ -495,7 +511,7 @@ const lookout: PuzzleKit = {
         // A mis-drag: the right start but one cell short or long (counts as a wrong selection).
         at += thinkMs(rng, BASE * 0.5, skill);
         const a = pl.cells[0]!, b = pl.cells[pl.cells.length - 2]!;
-        const line = wsLine(a, b, d.size);
+        const line = wsLine(a, b, d.size, wsRowsOf(d));
         if (line && line.length >= 2 && wsMatch(d.placements ?? [], line) < 0) sels.push(line);
         steps.push({ answer: wsEncode(sels), atMs: at });
       }
@@ -631,12 +647,12 @@ function soCandidates(p: StrikeoutPuzzleData, state: SoState, row: number): stri
 }
 
 // Rev 2 / 3 (strikeoutRev 2, 3): one 7–8 letter word at a time, two / three vowel guesses per word, five / ten strikes shared.
-const so2Replay = (p: StrikeoutPuzzleData, actions: So2Action[]) => replayStrikeout2(p.words ?? [], p.givens ?? [], actions, isWord, so2Rules(strikeoutRevOf(p)));
+const so2Replay = (p: StrikeoutPuzzleData, actions: So2Action[]) => replayStrikeout2(p.words ?? [], p.givens ?? [], actions, isWord, so2RulesFor(p));
 
 /** Letters the phone lets the player press on the current word (not guessed, not showing, vowels while allowed). */
 function so2Open(p: StrikeoutPuzzleData, state: So2State): string[] {
   const shown = so2GivenLetters(p.givens ?? [], state.word);
-  return [...ALPHA].filter((l) => !state.guessed.includes(l) && !shown.has(l) && !(SO2_VOWELS.includes(l) && state.vowelsUsed >= so2Rules(strikeoutRevOf(p)).maxVowels));
+  return [...ALPHA].filter((l) => !state.guessed.includes(l) && !shown.has(l) && !(SO2_VOWELS.includes(l) && state.vowelsUsed >= so2RulesFor(p).maxVowels));
 }
 
 /** Words still possible for the current word given what it shows. */
@@ -693,7 +709,7 @@ function so2Play(d: StrikeoutPuzzleData, rng: Rng, skill: Skill): Play {
     const hidden = state.revealed[state.word]!.filter((on) => !on).length;
     const sees = strikeoutRevOf(d) < 5 || hidden <= so5SeesHidden(skill);
     // A person solves once the word is certain; a strong player will also gamble on two options with three or more strikes to spare.
-    if (sees && (c.length === 1 || (c.length === 2 && so2Rules(strikeoutRevOf(d)).maxStrikes - state.strikes >= 3 && rng.chance(0.3)))) {
+    if (sees && (c.length === 1 || (c.length === 2 && so2RulesFor(d).maxStrikes - state.strikes >= 3 && rng.chance(0.3)))) {
       at += thinkMs(rng, BASE * 1.6, skill);
       actions.push({ kind: "solve", word: state.word, guess: rng.pick(c) });
       steps.push({ answer: encodeStrikeout2(actions), atMs: at });

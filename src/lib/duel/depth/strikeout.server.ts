@@ -10,7 +10,7 @@
 import type { DepthGrader } from "../wordDepth.server";
 import type { PuzzleData } from "../types";
 import { isWord } from "../dictionary.server";
-import { decodeStrikeout2, so2EarlySolves, so2Rules, strikeoutRevOf, STRIKEOUT_REV5, STRIKEOUT_REV_TOPUP } from "../strikeout";
+import { decodeStrikeout2, so2EarlySolves, so2Rules, strikeoutRevOf, STRIKEOUT_REV5, STRIKEOUT_REV_TOPUP, so2RulesFor } from "../strikeout";
 import { rev3Game } from "../puzzleScoreRev3";
 import { addFinishBonus, finishFigures, stretchPoints } from "./stretch.server";
 import {
@@ -41,7 +41,7 @@ export const strikeoutDepth: DepthGrader = {
     const f = finishFigures(ctx.today);
     if (!f || ctx.puzzle.type !== "strikeout") return ctx.today;
     const p = ctx.puzzle;
-    const early = so2EarlySolves(p.words ?? [], p.givens ?? [], decodeStrikeout2(ctx.answer), isWord, so2Rules(strikeoutRevOf(p)));
+    const early = so2EarlySolves(p.words ?? [], p.givens ?? [], decodeStrikeout2(ctx.answer), isWord, so2RulesFor(p));
     const rev = strikeoutRevOf(p);
     const pace = stretchPoints(stretchCurveFor("strikeout", rev >= STRIKEOUT_REV_TOPUP ? STRIKEOUT_TOPUP_PACE : STRIKEOUT_STRETCH), f.time, f.efficiency, STRIKEOUT_PACE_POINTS);
     const earlyPts = strikeoutEarlyPoints(early.share, f.time, rev);

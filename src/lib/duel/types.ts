@@ -2696,6 +2696,14 @@ export interface StrikeoutPuzzleData {
   givens?: string[];
   /** The five hidden words, upper case — private until the reveal. */
   words?: string[];
+  /**
+   * Levels (the Word overhaul, stage 3, 15 Nov 2026): a puzzle dealt at a level beyond Normal carries its own strikes and
+   * vowel guesses per word (so2RulesFor); without them a puzzle plays its revision's rules, as every Normal deal does.
+   */
+  maxStrikes?: number;
+  maxVowels?: number;
+  /** A level's own clock (puzzleTimeLimitMs reads it); absent: the game's 100 s. */
+  timeLimitMs?: number;
 }
 
 /** Cryptogrid: a filled 7 × 7 crossword with a number in every white cell. */
@@ -2755,6 +2763,12 @@ export interface WordSearchPuzzleData {
   placements?: WordSearchPlacement[];
   /** Rev 3 (25 Oct 2026, word depth): the unlisted on-theme bonus word and where it lies — private until the reveal. */
   bonus?: WordSearchPlacement;
+  /**
+   * Levels (the Word overhaul, stage 3, 15 Nov 2026): a taller board's rows (`size` is then its width; absent = `size`
+   * rows, every board before levels) and a level's own clock (puzzleTimeLimitMs reads it; absent = the game's 120 s).
+   */
+  rows?: number;
+  timeLimitMs?: number;
 }
 
 export interface ShikakuPuzzleData {

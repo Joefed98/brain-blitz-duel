@@ -5,28 +5,7 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useStageState } from "@/lib/duel/stageState";
 import { usesStandard } from "@/lib/duel/standard/stamps";
 import { STD_STRIKEOUT, strikeoutEarlySolvePoints } from "@/lib/duel/standard/word";
-import {
-  SO2_VOWELS,
-  SO2_WORDS,
-  SO_LEN,
-  SO_MAX_STRIKES,
-  SO_ROWS,
-  SO4_RULES,
-  STRIKEOUT_REV2,
-  STRIKEOUT_REV5,
-  decodeStrikeout,
-  decodeStrikeout2,
-  encodeStrikeout,
-  encodeStrikeout2,
-  replayStrikeout,
-  replayStrikeout2,
-  so2GivenLetters,
-  so2Rules,
-  strikeoutRevOf,
-  type So2Action,
-  type SoAction,
-  type SoView,
-} from "@/lib/duel/strikeout";
+import { SO2_VOWELS, SO2_WORDS, SO_LEN, SO_MAX_STRIKES, SO_ROWS, SO4_RULES, STRIKEOUT_REV2, STRIKEOUT_REV5, decodeStrikeout, decodeStrikeout2, encodeStrikeout, encodeStrikeout2, replayStrikeout, replayStrikeout2, so2GivenLetters, so2Rules, strikeoutRevOf, type So2Action, type SoAction, type SoView, so2RulesFor } from "@/lib/duel/strikeout";
 import { STRIKEOUT_TIME_MS, type StrikeoutPuzzleData } from "@/lib/duel/types";
 import { completeFx, fx } from "@/lib/fx";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
@@ -53,6 +32,8 @@ export function Strikes({ used, max = SO_MAX_STRIKES, markerRef, art = false }: 
   const many = max > SO_MAX_STRIKES;
   // Rev 4's twelve markers sit a little closer (12 × 20 px + 11 × 4 px = 284 px) so the row fits a 320 px phone.
   const gap = max > 10 ? "gap-1" : many ? "gap-1.5" : "gap-2";
+  // Easy's fourteen markers (the Word overhaul's levels) are 16 px (14 × 16 + 13 × 4 = 276 px) so the row still fits.
+  const size = max > 12 ? "h-4 w-4" : many ? "h-5 w-5" : "h-6 w-6";
   return (
     <div ref={markerRef} className={`flex items-center justify-center ${gap}`} aria-label={`${used} of ${max} strikes`}>
       {Array.from({ length: max }, (_, i) => (
@@ -60,7 +41,7 @@ export function Strikes({ used, max = SO_MAX_STRIKES, markerRef, art = false }: 
           key={i}
           data-wa={art ? "pip" : undefined}
           data-wa-tone={art ? (i < used ? "red" : "gold") : undefined}
-          className={`flex ${many ? "h-5 w-5" : "h-6 w-6"} items-center justify-center rounded-full border-2 font-display ${many ? "text-xs" : "text-sm"} font-bold leading-none ${
+          className={`flex ${size} items-center justify-center rounded-full border-2 font-display ${many ? "text-xs" : "text-sm"} font-bold leading-none ${
             i < used ? "border-destructive bg-destructive text-destructive-foreground" : "border-border text-transparent"
           }`}
         >
@@ -471,7 +452,7 @@ function Stage2({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey 
   const data: StrikeoutPuzzleData | null = puzzle.type === "strikeout" ? puzzle : null;
   const key = stateKey ?? "strikeout";
   const rev = data ? strikeoutRevOf(data) : STRIKEOUT_REV2;
-  const rules = so2Rules(rev);
+  const rules = data ? so2RulesFor(data) : so2Rules(rev);
   // The scoring standard (strikeoutRev 7, standard/word.ts): the early pill shows the early-solve points.
   const standard = !!data && usesStandard(data);
   const [actions, setActions] = useStageState<So2Action[]>(key, "so2Actions", () => []);
@@ -787,7 +768,7 @@ function Reveal2({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealP
   const words = (puzzle.words ?? []).map((w) => w.toUpperCase());
   const givens = puzzle.givens ?? [];
   const rev = strikeoutRevOf(puzzle);
-  const rules = so2Rules(rev);
+  const rules = so2RulesFor(puzzle);
   // The stored answer is the canonical list: every solve in it already passed the dictionary.
   const state = replayStrikeout2(words, givens, decodeStrikeout2(myAnswer ?? ""), () => true, rules);
   const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
@@ -830,7 +811,7 @@ function Stage(props: PuzzleStageProps) {
 function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "strikeout") return null;
   const words = (puzzle.words ?? []).map((w) => w.toUpperCase());
-  const rules = so2Rules(strikeoutRevOf(puzzle));
+  const rules = so2RulesFor(puzzle);
   const state = replayStrikeout2(words, puzzle.givens ?? [], decodeStrikeout2(myAnswer ?? ""), () => true, rules);
   const early = typeof myExtra?.["earlySolvePoints"] === "number" ? (myExtra["earlySolvePoints"] as number) : null;
   const longest = Math.max(1, ...words.map((w) => w.length));
@@ -872,7 +853,7 @@ export const strikeoutPuzzle: PuzzleDefinition = {
     ({ type: "strikeout", strikeoutRev: 1, rows: SO_ROWS, length: SO_LEN }) satisfies StrikeoutPuzzleData,
   check: (answer, puzzle) => {
     if (puzzle.type !== "strikeout") return false;
-    if (strikeoutRevOf(puzzle) >= STRIKEOUT_REV2) return replayStrikeout2(puzzle.words ?? [], puzzle.givens ?? [], decodeStrikeout2(answer), () => true, so2Rules(strikeoutRevOf(puzzle))).done;
+    if (strikeoutRevOf(puzzle) >= STRIKEOUT_REV2) return replayStrikeout2(puzzle.words ?? [], puzzle.givens ?? [], decodeStrikeout2(answer), () => true, so2RulesFor(puzzle)).done;
     return replayStrikeout(puzzle.words ?? [], decodeStrikeout(answer), () => true).done;
   },
   revealHeading: "The five words",

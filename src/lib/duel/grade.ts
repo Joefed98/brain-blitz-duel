@@ -116,7 +116,7 @@ import { measureBoardOut } from "./gameReviewNov15";
 import { gradeCheckoutStages, scoreCheckout } from "./checkout";
 import { gradeNumlineItems, numlineAccuracy, numlineFullError, scoreNumline } from "./numline";
 import { digCleanCollected, digDecode, digReplay, scoreDig } from "./dig";
-import { scoreWordSearch, wsDecode, wsGrade, wsSplitBonus } from "./wordSearch";
+import { scoreWordSearch, wsDecode, wsGrade, wsRowsOf, wsSplitBonus } from "./wordSearch";
 import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
@@ -169,21 +169,7 @@ import { isJumbledGradient, replayGradientAnswer, scoreJumbled } from "./jumbled
 import { sortedTubeCount } from "./tubes";
 import { madeDistance } from "./target";
 import { isWord } from "./dictionary.server";
-import {
-  STRIKEOUT_REV2,
-  decodeStrikeout,
-  decodeStrikeout2,
-  encodeStrikeout,
-  encodeStrikeout2,
-  replayStrikeout,
-  replayStrikeout2,
-  scoreStrikeout,
-  scoreStrikeout2,
-  so2Rules,
-  so2Tally,
-  soTally,
-  strikeoutRevOf,
-} from "./strikeout";
+import { STRIKEOUT_REV2, decodeStrikeout, decodeStrikeout2, encodeStrikeout, encodeStrikeout2, replayStrikeout, replayStrikeout2, scoreStrikeout, scoreStrikeout2, so2Rules, so2Tally, soTally, strikeoutRevOf, so2RulesFor } from "./strikeout";
 import { codewordTally, decodeCodeword, replayCodeword, scoreCodeword } from "./codeword";
 import { decodeSwapword, replaySwapword, scoreSwapword } from "./swapword";
 import {
@@ -2821,7 +2807,7 @@ function gradeUnderRev(
     case "wordsearch": {
       // Selections are matched against the stored placements; the client's word list is never read.
       // wordSearchRev 3: drags on the private bonus word are set aside (never a wrong pick); the depth grader adds its points.
-      const split = wsSplitBonus(puzzle.bonus, wsDecode(answer, puzzle.size));
+      const split = wsSplitBonus(puzzle.bonus, wsDecode(answer, puzzle.size, wsRowsOf(puzzle)));
       const selections = split.rest;
       const verdict = wsGrade(puzzle.placements ?? [], selections);
       const total = puzzle.placements?.length ?? puzzle.wordCount;
@@ -2869,7 +2855,7 @@ function gradeUnderRev(
       if (strikeoutRevOf(puzzle) >= STRIKEOUT_REV2) {
         // Rev 2: one word at a time, givens public, two vowel guesses per word, five strikes shared.
         // Rev 3: the same with three vowel guesses, ten strikes and 1.5 per strike left (so2Rules).
-        const rules2 = so2Rules(strikeoutRevOf(puzzle));
+        const rules2 = so2RulesFor(puzzle);
         const state2 = replayStrikeout2(
           puzzle.words ?? [],
           puzzle.givens ?? [],

@@ -5,7 +5,7 @@ import { useGridPointer } from "@/components/puzzles/GridDrag";
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 import { useStageState } from "@/lib/duel/stageState";
 import { WORDSEARCH_TIME_MS, type WordSearchPlacement, type WordSearchPuzzleData } from "@/lib/duel/types";
-import { wsChipSlots, wsDecode, wsEncode, wsGrade, wsHasBonus, wsSnapLine, wsSplitBonus, WS_SIZE, WS_WORDS } from "@/lib/duel/wordSearch";
+import { wsChipSlots, wsDecode, wsEncode, wsGrade, wsHasBonus, wsRowsOf, wsSnapLine, wsSplitBonus, WS_SIZE, WS_WORDS } from "@/lib/duel/wordSearch";
 import { fx } from "@/lib/fx";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
@@ -33,6 +33,7 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 export function Grid({
   grid,
   size,
+  rows = size,
   gold,
   live,
   bad,
@@ -47,6 +48,8 @@ export function Grid({
   missedPaths?: readonly (readonly number[])[];
   grid: string;
   size: number;
+  /** A taller level board's rows (the Word overhaul's levels, 15 Nov 2026); absent: a square board, drawn as before. */
+  rows?: number;
   gold: ReadonlySet<number>;
   live?: ReadonlySet<number>;
   bad?: ReadonlySet<number>;
@@ -66,7 +69,7 @@ export function Grid({
       className="relative grid h-full w-full select-none"
       style={{ ...(pointer?.handlers.style ?? {}), gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gap: small ? 1 : 2 }}
     >
-      {Array.from({ length: size * size }, (_, cell) => {
+      {Array.from({ length: size * rows }, (_, cell) => {
         const missedOnly = (missedPath?.has(cell) ?? false) && !gold.has(cell);
         // Unfound reveal path: red letters on a faint red fill; crossings with found words stay gold.
         const fill = bad?.has(cell)
@@ -90,13 +93,13 @@ export function Grid({
             data-wa-tone={bad?.has(cell) ? "red" : live?.has(cell) ? "sapphire" : gold.has(cell) ? "black" : missedOnly ? "dim" : "black"}
             data-ws-found={gold.has(cell) && !bad?.has(cell) && !live?.has(cell) ? "" : undefined}
             className={`word-letter-tile flex aspect-square items-center justify-center rounded-sm font-mono font-bold ${fill} ${missedOutline}`}
-            style={{ fontSize: small ? "max(9px, 5.6cqw)" : `clamp(16px, calc(min(100cqw, 100cqh) * ${(0.6 / size).toFixed(4)}), 28px)` }}
+            style={{ fontSize: small ? "max(9px, 5.6cqw)" : rows === size ? `clamp(16px, calc(min(100cqw, 100cqh) * ${(0.6 / size).toFixed(4)}), 28px)` : `clamp(16px, calc(min(100cqw / ${size}, 100cqh / ${rows}) * 0.6), 28px)` }}
           >
             {grid[cell]}
           </div>
         );
       })}
-      <svg viewBox={`0 0 ${size} ${size}`} className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+      <svg viewBox={`0 0 ${size} ${rows}`} className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
         {foundPaths.map((path, i) => {
           const a = path[0], b = path.at(-1);
           if (a === undefined || b === undefined) return null;
@@ -165,6 +168,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   const submitted = useRef(false);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const size = data?.size ?? WS_SIZE;
+  // A taller level board (the Word overhaul's levels): `size` columns, `rows` rows; Normal's board is square.
+  const rows = data ? wsRowsOf(data) : size;
   const total = data?.wordCount ?? WS_WORDS;
   const encoded = wsEncode(selections);
 
@@ -193,12 +198,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   const inFrame = useGoalProgress({ done: found.length, total, text: `${found.length} of ${total} found` });
   const pointer = useGridPointer({
     cols: size,
-    rows: size,
+    rows,
     onCell: done
       ? undefined
       : (cell) => {
           if (start.current === null) start.current = cell;
-          const next = wsSnapLine(start.current, cell, size);
+          const next = wsSnapLine(start.current, cell, size, rows);
           if (next.join(".") !== current.current.join(".")) {
             // Stage 2: the marker squeaks as the loop grows (one short squeak a letter).
             if (next.length > current.current.length && next.length > 1) effectCue("wordsearch.drag");
@@ -297,8 +302,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         )}
       </div>
       <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
-        <div style={{ width: "min(100cqw, 100cqh)", aspectRatio: "1 / 1" }}>
-          <Grid grid={data.grid} size={size} gold={gold} foundPaths={[...found.map((f) => f.cells), ...(bonus ? [bonus.cells] : [])]} live={new Set(line)} bad={new Set(bad)} pointer={pointer} />
+        <div style={rows === size ? { width: "min(100cqw, 100cqh)", aspectRatio: "1 / 1" } : { width: `min(100cqw, calc(100cqh * ${size} / ${rows}))`, aspectRatio: `${size} / ${rows}` }}>
+          <Grid grid={data.grid} size={size} {...(rows === size ? {} : { rows })} gold={gold} foundPaths={[...found.map((f) => f.cells), ...(bonus ? [bonus.cells] : [])]} live={new Set(line)} bad={new Set(bad)} pointer={pointer} />
         </div>
       </div>
       <div data-game-controls="words" className="lookout-words flex w-full shrink-0 flex-wrap justify-center gap-1.5" aria-label={`${found.length} found, ${Math.max(0, total - found.length)} still to find`}>
@@ -356,7 +361,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
 function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "wordsearch") return null;
   const placements = puzzle.placements ?? [];
-  const split = wsSplitBonus(puzzle.bonus, wsDecode(myAnswer ?? "", puzzle.size));
+  const split = wsSplitBonus(puzzle.bonus, wsDecode(myAnswer ?? "", puzzle.size, wsRowsOf(puzzle)));
   const verdict = wsGrade(placements, split.rest);
   const foundSet = new Set(verdict.found);
   const bonusCells = puzzle.bonus?.cells ?? [];
@@ -378,7 +383,7 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
         ]}
       />
       <div style={{ width: "min(84vw, 340px)", containerType: "inline-size" }}>
-        <Grid grid={puzzle.grid} size={puzzle.size} gold={gold} foundPaths={[...verdict.found.map((i) => placements[i]?.cells ?? []), ...(split.bonusFound ? [bonusCells] : [])]} missedPaths={missedPaths} />
+        <Grid grid={puzzle.grid} size={puzzle.size} {...(wsRowsOf(puzzle) === puzzle.size ? {} : { rows: wsRowsOf(puzzle) })} gold={gold} foundPaths={[...verdict.found.map((i) => placements[i]?.cells ?? []), ...(split.bonusFound ? [bonusCells] : [])]} missedPaths={missedPaths} />
       </div>
       <RevealChips id="words" items={chips} drop />
     </div>
@@ -396,7 +401,7 @@ function RevealOlder({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRev
   if (puzzle.type !== "wordsearch") return null;
   const placements = puzzle.placements ?? [];
   // Rev 3: the bonus word's drags are set aside as the grader does.
-  const split = wsSplitBonus(puzzle.bonus, wsDecode(myAnswer ?? "", puzzle.size));
+  const split = wsSplitBonus(puzzle.bonus, wsDecode(myAnswer ?? "", puzzle.size, wsRowsOf(puzzle)));
   const verdict = wsGrade(placements, split.rest);
   const bonusCells = puzzle.bonus?.cells ?? [];
   const foundSet = new Set(verdict.found);
@@ -407,7 +412,7 @@ function RevealOlder({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRev
   return (
     <div data-word-reveal="wordsearch" className="flex w-full flex-col items-center gap-2">
       <div style={{ width: "min(100%, 256px)", containerType: "inline-size" }}>
-        <Grid grid={puzzle.grid} size={puzzle.size} gold={gold} foundPaths={[...verdict.found.map((i) => placements[i]?.cells ?? []), ...(split.bonusFound ? [bonusCells] : [])]} missedPath={missed} bonusHint={new Set(bonusCells)} small />
+        <Grid grid={puzzle.grid} size={puzzle.size} {...(wsRowsOf(puzzle) === puzzle.size ? {} : { rows: wsRowsOf(puzzle) })} gold={gold} foundPaths={[...verdict.found.map((i) => placements[i]?.cells ?? []), ...(split.bonusFound ? [bonusCells] : [])]} missedPath={missed} bonusHint={new Set(bonusCells)} small />
       </div>
       <div className="flex flex-wrap justify-center gap-x-3 gap-y-0.5 font-mono text-sm uppercase tracking-wider">
         {placements.map((p, i) => (
@@ -452,7 +457,7 @@ export const wordSearchPuzzle: PuzzleDefinition = {
     ({ type: "wordsearch", size: WS_SIZE, grid: "E".repeat(WS_SIZE * WS_SIZE), category: "Animals", wordCount: WS_WORDS }) satisfies WordSearchPuzzleData,
   check: (answer, puzzle) =>
     puzzle.type === "wordsearch" &&
-    wsGrade(puzzle.placements ?? [], wsDecode(answer, puzzle.size)).found.length === (puzzle.placements?.length ?? -1),
+    wsGrade(puzzle.placements ?? [], wsDecode(answer, puzzle.size, wsRowsOf(puzzle))).found.length === (puzzle.placements?.length ?? -1),
   revealHeading: "The hidden words",
   IntroExample,
   Stage,
