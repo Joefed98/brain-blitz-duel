@@ -212,7 +212,11 @@ function Stage({
     <div data-logic-stage="flood" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 w-full flex-1 flex-col items-center gap-2">
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic" className="px-3">
-        <div className="logic-square-bare logic-flood-frame">
+        <div
+          className="logic-square-bare logic-flood-frame"
+          data-flood-tall={data.grid.length !== cols * cols ? "" : undefined}
+          style={data.grid.length !== cols * cols ? ({ "--flood-aspect": cols / (data.grid.length / cols) } as CSSProperties) : undefined}
+        >
           <Board grid={replay.grid} size={cols} fluid ripple={ripple} />
         </div>
       </div>
@@ -309,7 +313,12 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   return (
     <div className="logic-reveal">
       <div className="logic-reveal-board flex flex-col items-center gap-3">
-        <div className="logic-square-bare logic-flood-frame logic-flood-reveal-board" data-flood-reveal-board="">
+        <div
+          className="logic-square-bare logic-flood-frame logic-flood-reveal-board"
+          data-flood-reveal-board=""
+          data-flood-tall={puzzle.grid.length !== cols * cols ? "" : undefined}
+          style={puzzle.grid.length !== cols * cols ? ({ "--flood-aspect": cols / (puzzle.grid.length / cols) } as CSSProperties) : undefined}
+        >
           <Board grid={replay.grid} size={cols} fluid />
         </div>
       </div>

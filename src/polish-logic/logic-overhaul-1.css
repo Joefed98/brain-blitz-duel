@@ -674,3 +674,9 @@
 :is(#logic-overhaul-1, html) .logic-nono-fit[data-nono-tall] {
   width: min(100cqw, calc((100cqh - 80px) * (var(--nono-w) + 1.15) / (var(--nono-h) + 3))) !important;
 }
+/* Colour Flood's tall level boards (12 × 17, 14 × 24): the frame takes the board's own shape, as tall as the column
+   lets it, so no row is cut off. */
+:is(#logic-overhaul-1, html) .logic-square-bare.logic-flood-frame[data-flood-tall] {
+  aspect-ratio: var(--flood-aspect) !important;
+  width: min(100cqw, calc(100cqh * var(--flood-aspect))) !important;
+}
