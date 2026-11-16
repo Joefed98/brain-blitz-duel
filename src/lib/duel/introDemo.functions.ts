@@ -138,6 +138,11 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   // The Pattern overhaul (15 Nov 2026): Tessellate's blockRev 4 (its presentation already refuses older coordinate demos,
   // wordInput.ts); the stamp too, as the other overhaul games, so only a demo recorded on blockRev 4 plays.
   if (data.type === "blockparty" && demo?.puzzle.type === "blockparty" && (demo.puzzle.blockRev ?? 0) < 4) return null;
+  // The Pattern overhaul (15 Nov 2026): Gridlock's unblockRev 4 gives an undone slide back (a demo recorded before it
+  // counts the Undo as a move) and Lightbender's laserRev 4 undoes turns and moves too, so only a demo recorded on each
+  // new stamp plays; until a live one is saved, the bundled demo plays (bundledDemos/).
+  if (data.type === "unblock" && demo?.puzzle.type === "unblock" && (demo.puzzle.unblockRev ?? 0) < 4) return null;
+  if (data.type === "laser" && demo?.puzzle.type === "laser" && (demo.puzzle.laserRev ?? 0) < 4) return null;
   if (data.type === "tiles" && demo?.puzzle.type === "tiles" && (demo.puzzle.tilesRev ?? 0) < 4) return null;
   // Operator's gaps (puzzle polish, 3 Nov 2026, gapsRev 1): number and mixed gaps on a new screen, so a signs-only demo
   // stays stopped (the intro shows its still) until one is recorded on gapsRev 1.

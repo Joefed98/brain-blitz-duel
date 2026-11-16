@@ -268,11 +268,19 @@ const REPLAY: Record<Game, (row: IntroDemoRow) => void> = {
 
 /* ------------------------------------------------------------------ the checks */
 
+// Gridlock (unblockRev 4) and Lightbender (laserRev 4) are bundled too since the demo packaging (15 Nov 2026): their
+// rows, deals, stamp rules and runs are proved by pattern-demos-check (scripts/fixtures/pattern-demos.json), which also
+// proves these five's against the fixture; the touch replays below stay for these five.
+const ALSO_BUNDLED = ["unblock", "laser"] as const;
 ok(
-  Object.keys(BUNDLED_INTRO_DEMOS).sort().join() === [...GAMES].sort().join(),
-  `the bundled demos are exactly ${GAMES.join(", ")} (have ${Object.keys(BUNDLED_INTRO_DEMOS).join(", ")})`,
+  Object.keys(BUNDLED_INTRO_DEMOS).sort().join() === [...GAMES, ...ALSO_BUNDLED].sort().join(),
+  `the bundled demos are exactly ${[...GAMES, ...ALSO_BUNDLED].join(", ")} (have ${Object.keys(BUNDLED_INTRO_DEMOS).join(", ")})`,
 );
-ok(bundledIntroDemo("unblock") === null && bundledIntroDemo("toString") === null, "no bundled demo for other games (Gridlock's live demo plays)");
+ok(bundledIntroDemo("push") === null && bundledIntroDemo("toString") === null, "no bundled demo for other games (Heave's live demo plays)");
+for (const game of ALSO_BUNDLED) {
+  const row = bundledIntroDemo(game);
+  ok(row !== null && acceptIntroDemo(game, row) === row && pickIntroDemo(game, null, row) === row, `${game}: bundled, accepted on today's stamp and chosen with no live row`);
+}
 
 for (const game of GAMES) {
   const row = bundledIntroDemo(game);
