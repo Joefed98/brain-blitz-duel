@@ -15,7 +15,9 @@ const args = process.argv.slice(2);
 const opt = (n: string) => args.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3);
 const OUT = opt("out") ?? "/tmp/claude-0/level-shots";
 const URL_ = opt("url") ?? "http://127.0.0.1:5191";
-const GAMES = ["sudoku", "tubes", "tower", "safe", "nonogram", "flood", "minesweeper"] as const;
+const ALL_GAMES = ["sudoku", "tubes", "tower", "safe", "nonogram", "flood", "minesweeper"] as const;
+const named = args.filter((a) => !a.startsWith("--")) as (typeof ALL_GAMES)[number][];
+const GAMES = named.length ? named : ALL_GAMES;
 const LEVELS = ["easy", "normal", "hard", "expert"] as const;
 mkdirSync(OUT, { recursive: true });
 

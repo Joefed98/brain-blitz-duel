@@ -14,15 +14,47 @@ clock is over 120 s.
 
 | Game | Easy | Hard | Expert |
 |---|---|---|---|
-| Box Six | 19–21 givens, singles only, digits leave the keypad once placed six times | 10–12 givens, needs a pair / pointing / box-line step | 9–10 givens, an advanced step, clashes only on Check, 120 s |
-| Polypotions | 6 flasks, 4 colours, 4 layers | 10 flasks, 8 colours, 7 layers, min 26–34, 120 s | 12 flasks, 10 colours (teal and pearl added), 6 layers, min 28–38, hidden layers, 120 s |
-| Hanoi | 4 posts, 7 rings, 10–18 moves | 3 posts, 9 rings, 30–45, 120 s | 3 posts, 10 rings, 45–60, 120 s |
-| Safe Cracker | 3 dials of 0–9, 5 simple clues | 4 dials of 0–15, primes / squares / differences, 90 s | 5 dials of 0–20, 6 clues, 2 tries, 120 s |
+| Box Six | 19–21 givens, singles only, digits leave the keypad once placed six times | 10–12 givens, needs an advanced step (pair / pointing / box-line), bank of 200 | 9–10 givens, needs two advanced steps, clashes only on Check, 90 s, bank of 200 |
+| Polypotions | 6 flasks, 4 colours, 4 layers | 10 flasks, 8 colours, 7 layers, min 26–34, 120 s | 12 flasks (two empty), 10 colours, 6 layers, min 28–38, hidden layers in light grey with a ?, 120 s |
+| Hanoi | 4 posts, 7 rings, 10–18 moves | 3 posts, 9 rings, 34–45, 90 s | 3 posts, 10 rings, 45–60, 105 s |
+| Safe Cracker | 3 dials of 0–9, 5 simple clues | 4 dials of 0–15, 6 clues, primes / squares / differences, 75 s | 5 dials of 0–20, 7 clues, 2 tries, 105 s, bank of 200 |
 | Mosaic | 6 × 6, single-line logic, a matched line crosses its gaps, 90 s | 9 × 11 (grown downwards), single-line logic | 9 × 14, needs two lines together, 120 s |
-| Colour Flood | 10 × 10, 4 colours, par 7–9 | 12 × 17, 6 colours (violet added), par 14–18, 75 s | 14 × 24, 6 colours, 14 stones, par 18–20, 90 s |
-| Minefield | 8 × 12, 9 mines, opening 25–40 | today's 10 × 16, 20 mines (minesRev 2) | 12 × 18, 30 mines, opening 10–20, 120 s |
+| Colour Flood | 10 × 10, 4 colours, par 6–8, par + 8 moves | 12 × 17, 6 colours (violet added), par 14–18, par + 4, 60 s | 14 × 24, 6 colours, 14 stones, par 18–20, par + 3, 75 s |
+| Minefield | 8 × 12, 9 mines, opening 25–40, full speed by 22 s | today's 10 × 16, 20 mines (minesRev 2) | 12 × 18, 34 mines, opening 8–16, 120 s, full speed by 50 s |
 
-The level boards at 390 × 844 (practice, a real deal at each level):
+Normal on every game is today's game, except Minefield's gentler 16-mine minesRev 3 (full speed by 37 s, as Hard).
+
+**Measured under human limits** (16 Nov 2026; `bun scripts/logic-1-tune.ts`: the shared tool's bots on 20 real deals a
+level, every step at least 0.25 s to react plus 0.15 s to move after the one before, #444's model; graded by the
+server). Great bot average (finished) / near-perfect average (finished), and Expert's best tenth:
+
+| Game | Easy | Normal | Hard | Expert | Expert best tenth (great / near) |
+|---|---|---|---|---|---|
+| Box Six | 197.0 / 198.9 | 184.5 / 199.1 | 159.7 (85 %) / 193.1 | 129.6 (35 %) / 184.7 | 164 / 193 |
+| Polypotions | 200 / 200 | 195.0 / 200 | 185.6 / 197.3 | 129.1 (25 %) / 181.9 | 171 / 188 |
+| Hanoi | 199.3 / 200 | 195.3 / 199.8 | 181.2 / 199.3 | 169.2 (95 %) / 192.1 | 179.5 / 198 |
+| Safe Cracker | 200 / 200 | 193.9 / 200 | 182.0 (95 %) / 194.5 | 173.6 (95 %) / 186.8 | 185.5 / 196 |
+| Mosaic | 197.4 / 199.7 | 193.4 / 198.8 | 158.4 (90 %) / 189.9 | 126.0 (30 %) / 182.1 | 159 / 191.5 |
+| Colour Flood | 198.8 / 199.0 | 197.4 / 198.3 | 188.3 / 196.7 | 166.3 (75 %) / 192.1 | 193 / 198 |
+| Minefield | 199.1 / 200 | 194.6 (90 %) / 200 | 188.9 (95 %) / 196.4 | 174.2 (85 %) / 191.0 | 187 / 194 |
+
+`scripts/logic-1-steps-check.ts` replays this on the same deals and fails unless every level is clearly below the one
+before for the great bot (Easy at least 1 above Normal, which is today's game near the ceiling; Normal → Hard and Hard →
+Expert at least 5 each), the near-perfect bot never rises, and Expert stays scoreable (the near-perfect bot finishes 75 %
+or more and its best tenth is 185 or more).
+
+**Polypotions' hidden layers** (Joe, 16 Nov 2026) are a light frosted grey with a dark "?", its luminance between the
+darker liquids and green / pearl / yellow, so it never reads as a liquid:
+
+<img src="img/tubes-hidden-grey.webp" width="300" alt="Polypotions Expert: hidden layers in light grey">
+
+**Intro demos**: the six puzzle games' demos were recorded by real play of each fixed intro example on Normal (the
+practice page's "Intro examples" mode, the real stage, the touches captured as the Save button sends them) and bundled
+with the app (`src/lib/duel/bundledDemos/logic1.ts`); a live saved demo on today's presentation still wins. Minefield's
+demo is its run on the intro example deal (`scripts/fixtures/logic-demos.json`), saved after the merge by
+`scripts/logic-demos-save.ts`.
+
+The level boards at 390 × 844 (a real deal at each level, drawn by the game's own stage; columns Easy, Normal, Hard, Expert):
 
 <img src="img/levels-sheet.webp" width="700" alt="Every game at Easy, Hard and Expert">
 
