@@ -8,21 +8,22 @@
  *     lot of the level's size (gold car on the exit row, no overlaps, inside the lot), its car count and stored
  *     minimum inside the level's range, the stored solution playing out legally in exactly that many moves to a solve,
  *     and (proof) breadth-first search over the board's whole reachable lot giving its start exactly that distance
- *     from solved (no shorter route). Quick depth: 15 boards a level; CHECKS_FULL=1 every board.
+ *     from solved (no shorter route). Every board, every run (about 25 s).
  *  3. Rebuilt byte for byte from the seed stream (scripts/unblock-levels-bank.ts): quick depth the first Easy boards
- *     and one Hard board; CHECKS_FULL=1 the whole file (`--check`).
+ *     and one Hard board (every run); `--rebuild` the whole file (about two hours on one core, as the bank script's `--check`).
  *  4. Deals: each level dealt through generatePuzzle (rooms and practice), stamped `level`, unblockRev 4, par = the
  *     bank's minimum, the board one of the level's bank; `cols` only on Easy (6), `timeLimitMs` only on Expert (75 s);
  *     the same bank seed deals every player the same board; a pre-drawn Normal row never reaches another level.
  *  5. Normal is today's deal: `level: "normal"` deals exactly what no level deals, with no level, size or clock field.
  *  6. The grid fits: every level's bays are at least 40 px on a 375 px phone (a 351 px board), with the lot's box
  *     unchanged (the lot is the same square at every level).
- *  7. Grading reads the stored puzzle: a flawless solve (the stored line, inside the full-speed time) scores 200 at
- *     every level; Easy's line solves only on its own 6 × 6 lot (read as 7 × 7 it doesn't); the solver's unfinished
+ *  7. Grading reads the stored puzzle: each level's full-speed time (Easy 40 s, Hard 28 s, Expert 30 s; Normal and
+ *     every older puzzle 40 s); a flawless solve (the stored line, inside it) scores 200 at every level, a later one
+ *     less; Easy's line solves only on its own 6 × 6 lot (read as 7 × 7 it doesn't); the solver's unfinished
  *     credit reads the lot's size; the stage-1 legacy fixture (unblockRev 2 and 3) still regrades exactly.
  *  8. The stage, the reveal and the lot art follow the lot's size (lot-6.webp, bays of 100/6 %, the clock's lock-in).
  *
- *   bun scripts/pattern-overhaul-unblock-levels-check.ts        (CHECKS_FULL=1 for full depth)
+ *   bun scripts/pattern-overhaul-unblock-levels-check.ts        (--rebuild: the whole bank rebuilt too)
  */
 import { existsSync, readFileSync, statSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
@@ -51,6 +52,7 @@ const { UNBLOCK_LEVEL_BANK } = await import("../src/lib/duel/unblockLevelsBank.s
 const { parseLayout, decodeMoves, replayUnblock, vehicleCells } = await import("../src/lib/duel/unblock");
 const { unblockCols, UNBLOCK_EXIT_ROW, UNBLOCK_TIME_MS } = await import("../src/lib/duel/types");
 const bankTool = await import("./unblock-levels-bank");
+const { patternFullByS } = await import("../src/lib/duel/standard/patternRules");
 const { UnblockPuzzle } = await import("../src/components/puzzles/UnblockPuzzle");
 const { unblockPuzzle } = await import("../src/puzzles/unblock");
 const { UNBLOCK_WALL, UNBLOCK_LOT6_SPRITE } = await import("../src/components/puzzles/pattern/unblockArt");
@@ -58,7 +60,6 @@ type UnblockPuzzleData = import("../src/lib/duel/types").UnblockPuzzleData;
 type Level = import("../src/lib/levels/levels").Level;
 type UnblockLevelSettings = import("../src/lib/levels/pattern/unblock.levels").UnblockLevelSettings;
 
-const FULL = process.env["CHECKS_FULL"] === "1" || process.argv.includes("--full");
 const failures: string[] = [];
 let passes = 0;
 const check = (ok: boolean, message: string) => {
@@ -73,9 +74,9 @@ const settingsOf = (level: (typeof BANKED)[number]) => gameLevelSettings<Unblock
 {
   check(same(levelsOf("unblock"), ["easy", "normal", "hard", "expert"]), `unblock offers ${levelsOf("unblock").join(", ")}`);
   const spec: Record<(typeof BANKED)[number], UnblockLevelSettings> = {
-    easy: { cols: 6, minMoves: [6, 12], cars: [8, 10], timeLimitMs: 60_000 },
-    hard: { cols: 7, minMoves: [22, 30], cars: [12, 14], timeLimitMs: 60_000 },
-    expert: { cols: 7, minMoves: [30, 40], cars: [13, 15], timeLimitMs: 75_000 },
+    easy: { cols: 6, minMoves: [6, 12], cars: [8, 10], timeLimitMs: 60_000, speedFullByS: 40 },
+    hard: { cols: 7, minMoves: [22, 30], cars: [12, 14], timeLimitMs: 60_000, speedFullByS: 28 },
+    expert: { cols: 7, minMoves: [30, 40], cars: [13, 15], timeLimitMs: 75_000, speedFullByS: 30 },
   };
   for (const level of BANKED) {
     check(same(settingsOf(level), spec[level]), `${level}: settings ${JSON.stringify(settingsOf(level))}`);
@@ -94,7 +95,7 @@ const settingsOf = (level: (typeof BANKED)[number]) => gameLevelSettings<Unblock
     const bank = UNBLOCK_LEVEL_BANK[level];
     check(bank.length === bankTool.BANK_SIZE, `${level}: ${bank.length} boards, not ${bankTool.BANK_SIZE}`);
     check(new Set(bank.map((e) => e.split("|")[0])).size === bank.length, `${level}: a layout appears twice`);
-    const sample = FULL ? bank.map((_, i) => i) : Array.from({ length: Math.min(15, bank.length) }, (_, k) => Math.floor((k * bank.length) / 15));
+    const sample = bank.map((_, i) => i);
     let proved = 0;
     for (let i = 0; i < bank.length; i++) {
       const [layout, min, solution] = bank[i]!.split("|");
@@ -136,7 +137,7 @@ const settingsOf = (level: (typeof BANKED)[number]) => gameLevelSettings<Unblock
 
 /* ---------------------------------------------------------------- 3. rebuilt byte for byte */
 {
-  if (FULL) {
+  if (process.argv.includes("--rebuild")) {
     const rebuilt = bankTool.bankSource(Object.fromEntries(BANKED.map((l) => [l, bankTool.buildLevel(l, bankTool.BANK_SIZE)])) as Record<(typeof BANKED)[number], string[]>);
     check(rebuilt === readFileSync(new URL(`../${bankTool.BANK_FILE}`, import.meta.url), "utf8"), "the level banks don't rebuild byte for byte");
   } else {
@@ -199,8 +200,12 @@ const dealt: Partial<Record<Level, UnblockPuzzleData>> = {};
   for (const level of BANKED) {
     const p = dealt[level]!;
     const limit = puzzleTimeLimitMs(p);
-    const flawless = gradeAnswer(p, p.solution ?? "", limit - 20_000);
-    check(flawless.isCorrect && flawless.score === 200, `${level}: a flawless solve scores ${flawless.score} (${flawless.isCorrect})`);
+    const fullBy = settingsOf(level).speedFullByS;
+    check(patternFullByS("unblock", p) === fullBy, `${level}: graded full speed by ${patternFullByS("unblock", p)} s, not ${fullBy} s`);
+    const flawless = gradeAnswer(p, p.solution ?? "", limit - (fullBy - 1) * 1000);
+    check(flawless.isCorrect && flawless.score === 200, `${level}: a flawless solve inside ${fullBy} s scores ${flawless.score} (${flawless.isCorrect})`);
+    const later = gradeAnswer(p, p.solution ?? "", limit - (fullBy + 10) * 1000);
+    check(later.isCorrect && later.score < 200 && later.score > 150, `${level}: a flawless solve 10 s after full speed scores ${later.score}`);
     const nothing = gradeAnswer(p, "", 0);
     check(!nothing.isCorrect && nothing.score === 0, `${level}: an empty answer scores ${nothing.score}`);
     const half = decodeMoves(p.solution ?? "").slice(0, Math.floor((p.minMoves ?? 0) / 2));
@@ -211,6 +216,8 @@ const dealt: Partial<Record<Level, UnblockPuzzleData>> = {};
   const asSeven = { ...easy } as UnblockPuzzleData;
   delete asSeven.cols;
   check(!gradeAnswer(asSeven, easy.solution ?? "", 40_000).isCorrect, "Easy's line also solves read as a 7×7 lot (the grader isn't reading the size)");
+  // Normal (no level field) keeps 40 s.
+  check(patternFullByS("unblock", { ...dealt.hard!, level: undefined } as never) === 40, "a puzzle without a level isn't graded full speed by 40 s");
   // Older stamps: the stage-1 legacy fixture regrades exactly.
   const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/pattern-overhaul-unblock-legacy.json.gz", import.meta.url))).toString()) as {
     puzzles: { era: string; seed: number; puzzle: UnblockPuzzleData }[];
@@ -256,4 +263,4 @@ if (failures.length) {
   console.log(`\npattern-overhaul-unblock-levels-check: FAIL (${failures.length} of ${total})`);
   process.exit(1);
 }
-console.log(`pattern-overhaul-unblock-levels-check: ${passes} passed${FULL ? " (full depth)" : ""}`);
+console.log(`pattern-overhaul-unblock-levels-check: ${passes} passed`);

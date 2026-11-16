@@ -20,7 +20,6 @@ import { dealtPuzzleScoreRev } from "../puzzleScoreRev";
 import { PUZZLE_SCORE_REV_HELPER } from "../puzzleScoreRev3";
 import { drawBankedPuzzle } from "../puzzleBank.server";
 import { generateUnblock, type UnblockBankRow } from "../unblock.server";
-import type { Level } from "@/lib/levels/levels";
 import { generateRings, RINGS_TWO_RULE_PATTERNS } from "../rings.server";
 import { generatePipes, generatePipesLevel } from "../logic.server";
 import { gameLevelSettings } from "@/lib/levels/gameLevels";
@@ -45,12 +44,10 @@ const ICE_GEM_SEED = 0x1ce9e35;
 
 export interface D4DealContext {
   unblockRow?: UnblockBankRow | null;
-  /** The level (src/lib/levels/; Normal when left out): Gridlock's boards come from the level's bank. */
-  level?: Level | undefined;
   bankSeed?: number;
   recentBankKeys?: ReadonlySet<string> | undefined;
-  /** The level the deal is made at (generate.server.ts; absent at Normal). Pipeline, Tessellate and Chroma Lines
-   * deal their level boards from it. */
+  /** The level the deal is made at (generate.server.ts; absent at Normal). Gridlock, Pipeline, Tessellate and Chroma
+   * Lines deal their level boards from it. */
   level?: Level | undefined;
 }
 

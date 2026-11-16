@@ -69,6 +69,21 @@ an unfinished third of the line):
 - Every effect is on a car's art or the lot (never a car's box, which the drag reads), transform and opacity only, and
   the next drag is taken at once. Reduced motion: no glide; the settle and the shake are the kit's 120–160 ms
   crossfades, the glint a still glow along the lane fading in and out (240 ms).
+**Stage 3: the levels** (390 × 844, a practice deal at each level, before the first move):
+
+| Easy | Normal | Hard | Expert |
+|---|---|---|---|
+| <img src="unblock-level-easy.webp" width="180"> | <img src="unblock-level-normal.webp" width="180"> | <img src="unblock-level-hard.webp" width="180"> | <img src="unblock-level-expert.webp" width="180"> |
+
+- **Easy:** a 6 × 6 lot (its own render, `lot-6.webp`; bays about 53 px on a 375 px phone), 8–10 cars, 6–12 moves at
+  the minimum, 60 s, full speed by 40 s. **Normal:** today's game exactly (7 × 7, 15–22 moves, 60 s). **Hard:** 7 × 7,
+  12–14 cars, 22–30 moves, 60 s, full speed by 28 s. **Expert:** 7 × 7, 13–15 cars, 30–40 moves, 75 s, full speed by
+  30 s. The lot is the same square at every level; the cars, the ghost, the glint and the drive-out size from the lot.
+- Each level deals from its own seeded bank of 120 boards (`scripts/unblock-levels-bank.ts`, rebuilt byte for byte),
+  every board's minimum (the par) proved by breadth-first search over its whole lot
+  (`pattern-overhaul-unblock-levels-check`). Any route out counts.
+- Elite bots (level-tune, 40 deals): near-perfect 199.9 / 199.8 / 195.9 / 192.1, great 199.2 / 198.5 / 178.7 / 176.0
+  (Easy / Normal / Hard / Expert).
 <!-- gridlock:end -->
 
 <!-- tessellate:start -->

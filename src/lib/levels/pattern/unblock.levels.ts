@@ -22,17 +22,22 @@ export type UnblockLevelSettings = {
   cars: readonly [number, number];
   /** The round's clock. */
   timeLimitMs: number;
+  /** Speed points are full when the board is solved within this many seconds (Normal: 40). */
+  speedFullByS: number;
 };
 
 const OPEN = { open: "any route out counts; the minimum is proved by BFS" } as const;
 
 export const LEVELS_UNBLOCK: GameLevels<UnblockLevelSettings> = {
   levels: {
-    // Easy: a 6×6 lot (squares about 58 px on a 375 px phone), 6–12 moves at the minimum, 8–10 cars, 60 s.
-    easy: { settings: { cols: 6, minMoves: [6, 12], cars: [8, 10], timeLimitMs: 60_000 }, oneSolution: OPEN },
-    // Hard: Normal's 7×7 lot, 22–30 moves at the minimum, 12–14 cars, 60 s.
-    hard: { settings: { cols: 7, minMoves: [22, 30], cars: [12, 14], timeLimitMs: 60_000 }, oneSolution: OPEN },
-    // Expert: 7×7, 30–40 moves at the minimum, 13–15 cars, 75 s.
-    expert: { settings: { cols: 7, minMoves: [30, 40], cars: [13, 15], timeLimitMs: 75_000 }, oneSolution: OPEN },
+    // Easy: a 6×6 lot (squares about 53 px on a 375 px phone), 6–12 moves at the minimum, 8–10 cars, 60 s; full speed
+    // by Normal's 40 s.
+    easy: { settings: { cols: 6, minMoves: [6, 12], cars: [8, 10], timeLimitMs: 60_000, speedFullByS: 40 }, oneSolution: OPEN },
+    // Hard: Normal's 7×7 lot, 22–30 moves at the minimum, 12–14 cars, 60 s; full speed by 28 s (about a second a
+    // move along the line: the step up from Normal is seeing the longer line, then playing it briskly).
+    hard: { settings: { cols: 7, minMoves: [22, 30], cars: [12, 14], timeLimitMs: 60_000, speedFullByS: 28 }, oneSolution: OPEN },
+    // Expert: 7×7, 30–40 moves at the minimum, 13–15 cars, 75 s; full speed by 30 s (so the longer clock never scores
+    // Expert above Hard: elite bots 192 Expert against 196 Hard, level-tune.ts, 16 Nov 2026).
+    expert: { settings: { cols: 7, minMoves: [30, 40], cars: [13, 15], timeLimitMs: 75_000, speedFullByS: 30 }, oneSolution: OPEN },
   },
 };
