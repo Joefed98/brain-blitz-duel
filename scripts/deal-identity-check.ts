@@ -120,7 +120,9 @@ tasks.push({
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the 15 Nov 2026 era switches preNotesFree and
     // preGameReviewNov15): 26.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul): preNumberOverhaul is the 27th.
-    ok(names.size === 27, `27 era switches (${names.size})`);
+    // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): the levels' check-only pins
+    // preBalanceLevels, preMeasureLevels, preCheckoutLevels and preKakuroLevels make 31.
+    ok(names.size === 31, `31 era switches (${names.size})`);
   },
 });
 

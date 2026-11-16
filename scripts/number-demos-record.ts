@@ -24,6 +24,7 @@ import type { Page, Request } from "playwright";
 import { puzzlePresentation, REVISED_PUZZLE_DEMOS } from "../src/components/puzzles/wordInput";
 import { gradeAnswer } from "../src/lib/duel/gradeAnswer.server";
 import { NUMBER_DEMO_GAMES, NUMBER_DEMO_REV } from "../src/lib/duel/introDemo.functions";
+import { decodeCheckoutDarts, CHECKOUT_BULL } from "../src/lib/duel/checkout";
 import { numlineShare, numlineValue } from "../src/lib/duel/numline";
 import type { PuzzleDemoLog } from "../src/lib/duel/puzzleDemo";
 import { splitPuzzle } from "../src/lib/duel/secrets";
@@ -176,11 +177,110 @@ async function ballparkBot(page: Page, puzzle: Full) {
   }
 }
 
+/** A tap inside an element's own shape (an SVG wedge's box centre can lie in its neighbour): the drawn point nearest
+ * the box's centre that the element itself receives. */
+async function tapInside(page: Page, loc: ReturnType<Page["locator"]>, after = 380) {
+  const point = await loc.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    let best: { x: number; y: number; d: number } | null = null;
+    for (let i = 1; i < 24; i++)
+      for (let j = 1; j < 24; j++) {
+        const x = r.left + (r.width * i) / 24;
+        const y = r.top + (r.height * j) / 24;
+        const hit = document.elementFromPoint(x, y);
+        if (hit !== el) continue;
+        const d = Math.hypot(x - (r.left + r.width / 2), y - (r.top + r.height / 2));
+        if (!best || d < best.d) best = { x, y, d };
+      }
+    return best;
+  });
+  if (!point) throw new Error("no visible point to tap");
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.down();
+  await pause(page, 70);
+  await page.mouse.up();
+  await pause(page, after);
+}
+
+/** Counterweight: each tray weight, then the notch of its solution peg. */
+async function balanceBot(page: Page, puzzle: Full) {
+  const total = puzzle.scales.length;
+  for (let s = 0; s < total; s++) {
+    if (s > 0) {
+      await page.locator("[data-game-stage], [data-goal-line]").getByText(new RegExp(`scale ${s + 1} (/|of) ${total}`, "i")).first().waitFor({ timeout: 10_000 });
+      await pause(page, 500);
+    }
+    const scale = puzzle.scales[s] as { tray: number[]; pegs?: number };
+    const half = (scale.pegs ?? 8) / 2;
+    for (const [i, w] of scale.tray.entries()) {
+      const peg = puzzle.solutions[s][i] as number;
+      const name = peg < half ? `Place at distance ${half - peg} on the left` : `Place at distance ${peg - half + 1} on the right`;
+      await tap(page, stage(page).locator(`button[aria-label="Select weight ${w}"]:not(.balance-instrument button)`).first(), 300);
+      await tap(page, stage(page).getByRole("button", { name, exact: true }), 450);
+    }
+  }
+}
+
+/** Brimful: each board's shortest solution, F<i> fill, E<i> empty, P<i>-<j> pour (tap a jug, then the action or jug). */
+async function brimfulBot(page: Page, puzzle: Full) {
+  const jug = (i: number) => stage(page).getByRole("button", { name: new RegExp(`^Jug ${i + 1}:`) }).first();
+  const boards = puzzle.solutions as string[];
+  for (const [b, line] of boards.entries()) {
+    if (b > 0) {
+      await page.getByText(new RegExp(`(Stage|Puzzle) ${b + 1} of`)).first().waitFor({ timeout: 10_000 });
+      await pause(page, 500);
+    }
+    for (const token of line.split(",")) {
+      let m: RegExpExecArray | null;
+      if ((m = /^([FE])(\d)$/.exec(token))) {
+        await tap(page, jug(Number(m[2])), 260);
+        await tap(page, stage(page).getByRole("button", { name: m[1] === "F" ? "Fill" : "Empty", exact: true }), 520);
+      } else if ((m = /^P(\d)-(\d)$/.exec(token))) {
+        await tap(page, jug(Number(m[1])), 260);
+        await tap(page, jug(Number(m[2])), 620);
+      } else throw new Error(`Brimful: unknown move ${token}`);
+    }
+  }
+}
+
+/** Checkout: each board's stored fewest-darts route: the wedge (unless still picked), the ring, then Throw. */
+async function checkoutBot(page: Page, puzzle: Full) {
+  const ringLabel = (wedge: number, ring: number) => (wedge === CHECKOUT_BULL ? (ring === 2 ? "Bull 50" : "25") : ["", "Single", "Double", "Treble", "×4"][ring] ?? `×${ring}`);
+  for (const [i, st] of (puzzle.stages as { maxDarts: number }[]).entries()) {
+    if (i > 0) await pause(page, 1300);
+    const tab = stage(page).getByRole("tab").nth(i);
+    if ((await tab.count()) && (await tab.getAttribute("aria-selected")) !== "true") await tap(page, tab, 300);
+    let held: number | null = null;
+    for (const d of decodeCheckoutDarts(puzzle.routes[i], st.maxDarts)) {
+      if (held !== d.wedge) await tapInside(page, stage(page).locator(`[data-checkout-hits] [data-puzzle-cell="${d.wedge === CHECKOUT_BULL ? "bull" : `w${d.wedge}`}"]`), 300);
+      held = d.wedge;
+      await tap(page, stage(page).locator('[data-game-controls="rings"] button', { hasText: ringLabel(d.wedge, d.ring) }).first(), 420);
+    }
+    await tap(page, stage(page).getByRole("button", { name: "Throw", exact: true }), 400);
+  }
+}
+
+/** Kakuro: run by run (across first, top to bottom), each empty square then its digit. */
+async function kakuroBot(page: Page, puzzle: Full) {
+  const white = [...(puzzle.white as number[])].sort((a, b) => a - b);
+  for (const cell of white) {
+    const box = stage(page).locator(`[data-kakuro-cell="${cell}"]`).first();
+    if (!/empty/.test((await box.getAttribute("aria-label")) ?? "")) continue;
+    if (!/kakuro-selected/.test((await box.getAttribute("class")) ?? "")) await tap(page, box, 220);
+    const digit = puzzle.solution[cell] as number;
+    await tapText(page, stage(page).locator('[data-game-controls="numbers"] button'), digit, 360);
+  }
+}
+
 export const BOTS: Record<string, (page: Page, puzzle: Full) => Promise<void>> = {
   target: exactBot,
   equation: operatorBot,
   numpyramid: pyramidBot,
   numline: ballparkBot,
+  balance: balanceBot,
+  measure: brimfulBot,
+  checkout: checkoutBot,
+  kakuro: kakuroBot,
 };
 
 /* ----------------------------------------------------------------- the run */

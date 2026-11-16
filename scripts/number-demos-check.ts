@@ -110,6 +110,10 @@ if (BROWSER && present.length) {
       for (const game of present) {
         const demo: NumberDemo = demos[game]!;
         const context = await browser.newContext({ viewport: { width: demo.log.w + 20, height: demo.log.h + 20 }, hasTouch: true });
+        // The harness page reads its stand-in state from window.__harness (as demo-intro-check sets it).
+        await context.addInitScript(() => {
+          (window as unknown as { __harness: unknown }).__harness = { puzzles: {}, verdict: { isCorrect: true, score: 0 }, latencyMs: 0, submissions: [], verdictAt: null, room: null };
+        });
         const page = await context.newPage();
         const errors: string[] = [];
         page.on("pageerror", (e) => errors.push(String(e.message).split("\n")[0]!));
@@ -126,7 +130,10 @@ if (BROWSER && present.length) {
             },
             { puzzle: demo.puzzle, log: demo.log, timeoutMs: last + 15_000 },
           )) as { answer: string | null; ms: number };
-          if (played.answer === null) fail(game, "the demo played over the real Stage never submitted");
+          if (played.answer === null) {
+            fail(game, "the demo played over the real Stage never submitted");
+            if (VERBOSE) await page.screenshot({ path: `/tmp/number-demos-check-${game}.png` });
+          }
           else {
             const body = splitTimeline(played.answer).body;
             if (body !== splitTimeline(demo.answer).body) fail(game, `the demo submits ${JSON.stringify(body)}, the fixture ${JSON.stringify(splitTimeline(demo.answer).body)}`);

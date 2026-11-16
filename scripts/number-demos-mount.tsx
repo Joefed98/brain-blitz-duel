@@ -4,7 +4,9 @@
  * definition, its feedback wrapper included) the way the intro's PuzzleDemoPlayer does (src/components/duel/PuzzleDemo.tsx:
  * the same expanded events, touch pointer events at elementFromPoint with pointer capture emulated, a click on each
  * tap's release, the same column layout classes and providers), at scale 1, and resolves with the answer the Stage
- * submits.
+ * submits. The stage sits inside the play screen's scope (PhoneShell's surface attributes: the game screen class,
+ * data-category, data-puzzle-surface, data-puzzle-screen and data-puzzle-play), since the Number games' play layout is
+ * styled under it, as on the practice screen the demos are recorded on.
  */
 import { useEffect, useRef, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -79,6 +81,7 @@ function Player({ Stage, puzzle, log, done }: { Stage: ComponentType<PuzzleStage
   }, [log, start]);
   const layout = log.layout ?? 0;
   return (
+    <div className="game-screen relative bg-background" data-category="number" data-puzzle-surface={puzzle.type} data-puzzle-screen="" data-puzzle-play="" style={{ width: log.w, height: log.h }}>
     <div
       ref={stageRef}
       className={`flex flex-col overflow-hidden ${layout >= 1 ? "game-column" : ""} ${layout >= 2 ? "game-column-centred" : ""} ${layout >= GAME_COLUMN_LAYOUT ? "game-column-lifted" : ""}`}
@@ -92,6 +95,7 @@ function Player({ Stage, puzzle, log, done }: { Stage: ComponentType<PuzzleStage
         </ArrowModeOverride.Provider>
       </GameColumnLayout.Provider>
     </div>
+    </div>
   );
 }
 
@@ -100,6 +104,8 @@ export async function playDemo(puzzle: PuzzleData, log: PuzzleDemoLog, timeoutMs
   const def = await loadGameDef(puzzle.type);
   root?.unmount();
   document.getElementById("number-demo-host")?.remove();
+  const app = document.getElementById("root");
+  if (app) app.style.display = "none";
   const host = document.createElement("div");
   host.id = "number-demo-host";
   host.style.cssText = "position:fixed;left:0;top:0;z-index:99999;background:#0b0b0f";

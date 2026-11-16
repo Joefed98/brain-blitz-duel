@@ -68,9 +68,9 @@ export const NUMBER_DEMO_REV = 1;
 export const NUMBER_DEMO_MIN_STAMPS: Partial<Record<(typeof NUMBER_DEMO_GAMES)[number], { field: string; min: number }>> = {
   balance: { field: "balanceRev", min: 5 },
   equation: { field: "gapsRev", min: 2 },
-  measure: { field: "measureRev", min: 4 },
-  checkout: { field: "checkoutRev", min: 3 },
-  kakuro: { field: "kakuroRev", min: 2 },
+  measure: { field: "measureRev", min: 5 },
+  checkout: { field: "checkoutRev", min: 4 },
+  kakuro: { field: "kakuroRev", min: 3 },
 };
 
 /** Whether a saved demo of `type` may play under the Number overhaul's rule (other games: always). */
