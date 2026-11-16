@@ -733,9 +733,9 @@ Round row on one line (Joe's stage-2 answer).
 
 - **Easy:** two boards of three balls, 2–4 tilts at the fewest, a limit of the fewest + 12, full speed by 20 s.
 - **Normal:** today's game exactly (three boards of six, 4–7 tilts, the fewest + 8, full speed by 32 s).
-- **Hard:** three boards of six, 6–9 tilts, the fewest + 6, full speed by 45 s.
+- **Hard:** three boards of six, 6–9 tilts, the fewest + 6, full speed by 30 s (45 s until 16 Nov 2026).
 - **Expert:** three boards of eight (lime green with a heart, pearl white with a crescent, rendered in Blender beside
-  the six), 7–10 tilts, the fewest + 5, full speed by 50 s; every board one the person-like solver clears.
+  the six), 7–10 tilts, the fewest + 5, full speed by 30 s (Hard 30 s too, since 16 Nov 2026); every board one the person-like solver clears.
 - **Round row:** "ROUND" sits on the divider and the pills ("Boards 3/3", "Home 24/24", "Tilts", "Par", "Left 94 s")
   stay on one line at 375 and 390 px (labels 11 px, figures 12 px); long par routes (8–10 tilts) use smaller chips so
   they stay on one line too. Boards to play: `levels/gravity-expert-boards.tsv`.

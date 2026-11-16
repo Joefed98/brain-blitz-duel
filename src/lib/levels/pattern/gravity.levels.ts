@@ -51,8 +51,8 @@ export const LEVELS_GRAVITY: GameLevels<TopsyLevelSettings> = {
     // this time, so a lower time is the harder one).
     hard: { settings: { balls: 6, boards: 3, minTilts: [6, 9], walls: [14, 22], spare: 6, timeLimitMs: 120_000, speedFullByS: 30 }, oneSolution: OPEN },
     // Expert: three boards of eight balls (two more colours: lime green with a heart, pearl white with a crescent),
-    // 7–10 tilts at the fewest, a limit of the fewest + 5, full speed by 50 s; every board one the person-like solver
+    // 7–10 tilts at the fewest, a limit of the fewest + 5, full speed by 30 s (50 s until 16 Nov 2026: with Hard at 30 s, Expert must not score easier); every board one the person-like solver
     // clears inside its limit.
-    expert: { settings: { balls: 8, boards: 3, minTilts: [7, 10], walls: [14, 22], spare: 5, timeLimitMs: 120_000, speedFullByS: 50, personSolvable: true }, oneSolution: OPEN },
+    expert: { settings: { balls: 8, boards: 3, minTilts: [7, 10], walls: [14, 22], spare: 5, timeLimitMs: 120_000, speedFullByS: 30, personSolvable: true }, oneSolution: OPEN },
   },
 };

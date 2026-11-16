@@ -21,7 +21,7 @@
  *     grades match the ones recorded before the levels (scripts/fixtures/pattern-overhaul-gravity-levels-normal.json.gz).
  *  6. The board and the art: every level keeps the 10 × 10 board (squares as Normal's); eight ball colours, each with
  *     its own mark (eight distinct drawings), marble and cup sprites as WebP with alpha, each within 25 KB.
- *  7. Grading reads the stored puzzle: each level's full-speed time (Easy 20 s, Hard 30 s since 16 Nov 2026 (was 45), Expert 50 s; Normal and every
+ *  7. Grading reads the stored puzzle: each level's full-speed time (Easy 20 s, Hard 30 s since 16 Nov 2026 (was 45), Expert 30 s since 16 Nov 2026 (was 50); Normal and every
  *     puzzle without a level 32 s); a flawless solve inside it scores 200 at every level, a later one less; an empty
  *     answer 0; the level's spare limits a board (a board played to its limit without clearing is out of tilts there,
  *     and its par shown is the fewest); a level's tilts read the board's own balls (Easy's six balls in all).
@@ -88,7 +88,7 @@ const DIRS: GravityDir[] = ["U", "D", "L", "R"];
   const spec: Record<Banked, TopsyLevelSettings> = {
     easy: { balls: 3, boards: 2, minTilts: [2, 4], walls: [14, 22], spare: 12, timeLimitMs: 120_000, speedFullByS: 20 },
     hard: { balls: 6, boards: 3, minTilts: [6, 9], walls: [14, 22], spare: 6, timeLimitMs: 120_000, speedFullByS: 30 },
-    expert: { balls: 8, boards: 3, minTilts: [7, 10], walls: [14, 22], spare: 5, timeLimitMs: 120_000, speedFullByS: 50, personSolvable: true },
+    expert: { balls: 8, boards: 3, minTilts: [7, 10], walls: [14, 22], spare: 5, timeLimitMs: 120_000, speedFullByS: 30, personSolvable: true },
   };
   for (const level of BANKED) {
     check(same(settingsOf(level), spec[level]), `${level}: settings ${JSON.stringify(settingsOf(level))}`);
