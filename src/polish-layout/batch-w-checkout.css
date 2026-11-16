@@ -1,76 +1,123 @@
-/* Polish batch W (25 Oct 2026, display only): Checkout. Imported only from src/puzzles/checkout.tsx.
-   The fairground palette stays; tabs, ring buttons and Undo / Throw are lit from above (a light top edge,
-   a body about a fifth lighter at the top, a drop shadow), the aimed wedge glows and the stall stands off
-   the tray. Live play area only ([data-play-area]). */
+/* Checkout's controls (polish batch W, 25 Oct 2026; the Number overhaul, 15 Nov 2026), display only. Imported only
+   from src/puzzles/checkout.tsx. The purple cabinet stays; the tabs, ring buttons and Undo are navy (the style
+   guide's surface 2) with bold Archivo labels, Throw the one champagne-gold button, and nothing glows. Live play area
+   only ([data-play-area]). */
 
-[data-checkout-root][data-play-area] :is(.co-tabs, [data-game-controls="rings"]) > button {
-  position: relative;
-  isolation: isolate;
+[data-checkout-root][data-play-area] :is(.co-tabs, [data-game-controls="rings"], [data-game-controls="actions"]) > button {
+  box-shadow: 0 3px 0 var(--jz-ledge-2);
 }
-[data-checkout-root][data-play-area] :is(.co-tabs, [data-game-controls="rings"]) > button::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 48%, rgba(0, 0, 0, 0.22));
+[data-checkout-root][data-play-area] [data-game-controls="actions"] > .co-throw {
+  box-shadow: 0 4px 0 var(--jz-gold-ledge);
 }
-
-[data-checkout-root][data-play-area] .co-tabs > button {
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.2),
-    0 6px 12px rgba(0, 0, 0, 0.55);
-}
-/* The board being played: its gold label, with a clear glow in the category colour. */
 [data-checkout-root][data-play-area] .co-tabs > button[aria-selected="true"]:not([data-solved="true"]) {
-  border-color: var(--category-accent);
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.2),
-    0 0 0 1px var(--category-accent),
-    0 0 14px 3px color-mix(in srgb, var(--category-accent) 60%, transparent);
+  box-shadow: inset 0 0 0 1px var(--jz-gold), 0 3px 0 var(--jz-ledge-2);
 }
-[data-checkout-root][data-play-area] .co-tabs > button[data-solved="true"] {
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.5),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.22),
-    0 6px 12px rgba(0, 0, 0, 0.55);
-}
-[data-checkout-root][data-play-area] .co-ring:not(:disabled) {
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.34),
-    inset 0 -3px 0 rgba(0, 0, 0, 0.28),
-    0 6px 12px rgba(0, 0, 0, 0.55);
-}
-/* Undo / Throw: the same light as a background layer (no ::before: the shared stylesheet draws Undo's
-   arrow with it). */
-[data-checkout-root][data-play-area] [data-game-controls="actions"] > button {
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0) 48%, rgba(0, 0, 0, 0.22));
-  box-shadow:
-    inset 0 2px 0 rgba(255, 255, 255, 0.26),
-    inset 0 -3px 0 rgba(0, 0, 0, 0.22),
-    0 6px 12px rgba(0, 0, 0, 0.55);
-}
-
-/* The aimed wedge's gold outline glows in the category colour. */
-[data-checkout-root][data-play-area] .co-sel {
-  filter: drop-shadow(0 0 5px var(--category-accent)) drop-shadow(0 0 10px color-mix(in srgb, var(--category-accent) 60%, transparent));
-}
-
-/* The stall stands off the tray; the chalk scoreboard is sunk into its wooden frame. */
 [data-checkout-root][data-play-area] .co-arena {
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-    inset 0 2px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -18px 30px -18px rgba(0, 0, 0, 0.55),
-    0 14px 28px rgba(0, 0, 0, 0.55);
-}
-[data-checkout-root][data-play-area] .co-score {
-  box-shadow:
-    inset 0 0 0 1px #3d2414,
-    inset 0 4px 10px rgba(0, 0, 0, 0.6),
-    0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 0 0 1px var(--jz-surface-2);
 }
 [data-checkout-root] .co-darts {
-  opacity: 0.72;
+  color: var(--jz-text-2);
 }
+
+/* The shared puzzle surface dyes Undo in the category colour (styles.css [data-puzzle-action], its ↶ icon): Checkout's
+   Undo stays navy with a light arrow. */
+[data-puzzle-surface] [data-checkout-root] .co-undo[data-puzzle-action] {
+  background-color: var(--jz-surface-2) !important;
+  color: var(--jz-text-2) !important;
+  box-shadow: 0 3px 0 var(--jz-ledge-2);
+}
+[data-puzzle-surface] [data-checkout-root] .co-undo[data-puzzle-icon]::before {
+  -webkit-text-fill-color: var(--jz-text);
+}
+
+/* ---- The reveal (the Number overhaul, 15 Nov 2026): one board at a time, large, the darts as chips. */
+[data-checkout-reveal] .co-rv-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: 10px;
+  font-family: var(--jz-font);
+}
+[data-checkout-reveal] .co-rv-target {
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--jz-text);
+  font-variant-numeric: tabular-nums;
+}
+[data-checkout-reveal] .co-rv-rule {
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--jz-text-2);
+}
+/* The compact reveal on a short screen: the target beside the Yours | Solution switch, the rule under them. */
+[data-checkout-reveal][data-short] .co-rv-head {
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 12px;
+}
+[data-checkout-reveal][data-short] .co-rv-head .nrv-view {
+  width: 200px;
+}
+[data-checkout-reveal][data-short] .co-rv-target {
+  font-size: 30px;
+}
+[data-checkout-reveal][data-short] .co-rv-rule {
+  font-size: 13px;
+}
+[data-checkout-reveal] .co-rv-board {
+  display: flex;
+  width: 100%;
+  max-width: 320px;
+  justify-content: center;
+}
+[data-checkout-reveal] .co-rv-darts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+[data-checkout-reveal] .co-rv-dart {
+  display: inline-flex;
+  min-width: 58px;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 10px;
+  background: var(--jz-surface-2);
+  padding: 4px 10px;
+  font-family: var(--jz-font);
+  font-variant-numeric: tabular-nums;
+}
+[data-checkout-reveal] .co-rv-dart > b {
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--jz-text);
+}
+[data-checkout-reveal] .co-rv-dart > span {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--jz-text-2);
+}
+[data-checkout-reveal] .co-rv-dart[data-finish] {
+  background: var(--jz-gold);
+}
+[data-checkout-reveal] .co-rv-dart[data-finish] > b,
+[data-checkout-reveal] .co-rv-dart[data-finish] > span {
+  color: var(--jz-on-gold);
+}
+[data-checkout-reveal] .co-rv-none,
+[data-checkout-reveal] .co-rv-verdict {
+  margin: 0;
+  font-family: var(--jz-font);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--jz-text-2);
+}
+[data-checkout-reveal] .co-rv-verdict[data-mark="right"] { color: var(--jz-gold); }
+[data-checkout-reveal] .co-rv-verdict[data-mark="wrong"] { color: var(--jz-loss); }

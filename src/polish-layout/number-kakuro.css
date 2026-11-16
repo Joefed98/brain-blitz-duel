@@ -1,0 +1,195 @@
+/*
+ * Kakuro, the Number overhaul (15 Nov 2026, display only): the Blender-rendered squares (public/number/kakuro/,
+ * docs/design/number-overhaul/source/kakuro.py) under every cell, bigger bold clue numbers in Archivo, champagne-gold
+ * digits, and a broken run shown as a red clue with a thin red outline on its squares (never a red fill). No glows.
+ * Every drawn cell is still exactly the element the stage counts as the tap.
+ */
+.kakuro-board[data-number-kakuro] {
+  border-radius: 6px;
+}
+[data-number-kakuro] .kakuro-black {
+  background: var(--kakuro-block-art) center / 100% 100% no-repeat;
+  box-shadow: none;
+  border-radius: 4px;
+}
+[data-number-kakuro] .kakuro-black.kakuro-clue {
+  background-image: var(--kakuro-clue-art);
+}
+/* The rendered clue tile carries its own champagne diagonal. */
+[data-number-kakuro] .kakuro-diag {
+  display: none;
+}
+[data-number-kakuro] .kakuro-sum {
+  font-family: var(--jz-font);
+  font-weight: 800;
+  color: var(--jz-text);
+  font-size: max(12px, calc(100cqw / var(--kakuro-n, 6) * 0.36));
+  letter-spacing: -0.01em;
+}
+[data-number-kakuro].kakuro-small .kakuro-sum {
+  font-size: max(8px, calc(100cqw / var(--kakuro-n, 6) * 0.36));
+}
+[data-number-kakuro] .kakuro-sum-right { top: 9%; right: 10%; }
+[data-number-kakuro] .kakuro-sum-down { bottom: 9%; left: 10%; }
+[data-number-kakuro] .kakuro-sum-lit { color: var(--jz-gold); }
+[data-number-kakuro] .kakuro-sum-done { color: var(--jz-gold); }
+[data-number-kakuro] .kakuro-sum-bad { color: var(--jz-loss); }
+
+[data-number-kakuro] .kakuro-cell {
+  border-radius: 4px;
+  background: var(--kakuro-cell-art) center / 100% 100% no-repeat;
+  box-shadow: none;
+  font-family: var(--jz-font);
+}
+/* The selected square and its runs: a champagne ring, and a quiet navy wash on the runs. */
+[data-number-kakuro] .kakuro-cell.kakuro-lit {
+  background-color: transparent;
+  box-shadow: inset 0 0 0 100vmax color-mix(in srgb, var(--jz-surface-2) 38%, transparent);
+}
+[data-number-kakuro] .kakuro-cell.kakuro-selected {
+  background-color: transparent;
+  box-shadow: inset 0 0 0 2px var(--jz-gold);
+}
+/* A run right and full: a thin champagne line round its squares. */
+[data-number-kakuro] .kakuro-cell.kakuro-done {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--jz-gold) 55%, transparent);
+}
+/* A broken run: a thin red outline, never a red fill. */
+[data-number-kakuro] .kakuro-cell.kakuro-bad {
+  background-color: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--jz-loss);
+}
+[data-number-kakuro] .kakuro-cell.kakuro-selected.kakuro-done,
+[data-number-kakuro] .kakuro-cell.kakuro-selected.kakuro-bad {
+  box-shadow: inset 0 0 0 2px var(--jz-gold);
+}
+[data-number-kakuro] .kakuro-digit {
+  font-family: var(--jz-font);
+  font-weight: 800;
+  color: var(--jz-gold);
+  font-size: max(17px, calc(100cqw / var(--kakuro-n, 6) * 0.54));
+}
+[data-number-kakuro].kakuro-small .kakuro-digit { font-size: max(9px, calc(100cqw / var(--kakuro-n, 6) * 0.54)); }
+[data-number-kakuro] .kakuro-tone-entry .kakuro-digit { color: var(--jz-gold); }
+[data-number-kakuro] .kakuro-tone-wrong .kakuro-digit { color: var(--jz-loss); }
+[data-number-kakuro] .kakuro-tone-missing .kakuro-digit { color: var(--jz-text-2); opacity: 1; }
+/* Pencil marks readable: never under 11 px. */
+[data-number-kakuro] .kakuro-marks {
+  font-family: var(--jz-font);
+  font-weight: 700;
+  font-size: max(11px, calc(100cqw / var(--kakuro-n, 6) * 0.2));
+  line-height: 1.05;
+  color: var(--jz-text-2);
+  padding: 0 4%;
+}
+[data-number-kakuro].kakuro-small .kakuro-marks { font-size: 11px; }
+
+/* The board's tray and the pad: navy keys with bold numbers; Pencil on is champagne. */
+[data-logic-stage="kakuro"] .kakuro-frame {
+  background: var(--jz-surface);
+  box-shadow: none;
+}
+[data-logic-stage="kakuro"] .kakuro-key {
+  font-family: var(--jz-font);
+  font-weight: 800;
+  font-size: 20px;
+  color: var(--jz-text);
+  background: var(--jz-surface-2);
+  border: 0;
+}
+[data-logic-stage="kakuro"] .kakuro-tool {
+  font-family: var(--jz-font);
+  font-weight: 700;
+  color: var(--jz-text-2);
+  background: var(--jz-surface-2);
+  border-color: transparent;
+}
+[data-logic-stage="kakuro"] .kakuro-pencil[aria-pressed="true"] {
+  background: var(--jz-gold);
+  color: var(--jz-on-gold);
+  border-color: var(--jz-gold);
+}
+[data-logic-stage="kakuro"] .logic-calm-glow { display: none; }
+
+/* The shared puzzle surface dyes action buttons in the category colour (styles.css [data-puzzle-action]); Kakuro's
+   Pencil and Clear stay navy, Pencil champagne while it is on. */
+[data-puzzle-surface] [data-logic-stage="kakuro"] .kakuro-tool[data-puzzle-action] {
+  background-color: var(--jz-surface-2) !important;
+  color: var(--jz-text-2) !important;
+  box-shadow: none;
+}
+[data-puzzle-surface] [data-logic-stage="kakuro"] .kakuro-pencil[data-puzzle-action][aria-pressed="true"] {
+  background-color: var(--jz-gold) !important;
+  color: var(--jz-on-gold) !important;
+}
+
+/* ---- The reveal (the Number overhaul): a wrong digit red with a red outline, a missed square dashed, its digit faint. */
+[data-kakuro-reveal] [data-number-kakuro] .kakuro-tone-wrong {
+  box-shadow: inset 0 0 0 2px var(--jz-loss);
+}
+[data-kakuro-reveal] [data-number-kakuro] .kakuro-tone-wrong .kakuro-digit {
+  color: var(--jz-loss);
+  text-decoration: none;
+}
+[data-kakuro-reveal] [data-number-kakuro] .kakuro-tone-missed {
+  outline: 1.5px dashed var(--jz-text-3);
+  outline-offset: -4px;
+}
+[data-kakuro-reveal] [data-number-kakuro] .kakuro-tone-missed .kakuro-digit {
+  color: var(--jz-text-3);
+  opacity: 0.85;
+  font-weight: 700;
+}
+[data-kakuro-reveal] {
+  gap: 10px;
+}
+.kakuro-legend {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  font-family: var(--jz-font);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--jz-text-2);
+}
+.kakuro-legend:empty { display: none; }
+.kakuro-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.kakuro-legend-item > i {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+.kakuro-key-wrong { box-shadow: inset 0 0 0 2px var(--jz-loss); }
+.kakuro-key-missed { outline: 1.5px dashed var(--jz-text-3); outline-offset: -1.5px; }
+
+/*
+ * The solve sweep (the Number overhaul, stage 2; src/puzzles/kakuroFx.ts): over the rendered squares a soft gold light
+ * passes along the runs across, then down: each square lights on its across run's turn and again on its down run's,
+ * the last ending by 1 s. Opacity only (composited); decorative, so it rests unlit.
+ */
+[data-number-kakuro] .kakuro-cell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--jz-gold) 34%, transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+[data-logic-solved] [data-number-kakuro] .kakuro-cell::after {
+  animation:
+    kakuro-run-light 320ms ease-out calc(var(--kakuro-a, 0) * var(--kakuro-step, 60ms)) 1 both,
+    kakuro-run-light 320ms ease-out calc(var(--kakuro-d, 0) * var(--kakuro-step, 60ms)) 1 both;
+}
+@keyframes kakuro-run-light {
+  0%, 100% { opacity: 0; }
+  40% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-logic-solved] [data-number-kakuro] .kakuro-cell::after { animation: none; }
+}

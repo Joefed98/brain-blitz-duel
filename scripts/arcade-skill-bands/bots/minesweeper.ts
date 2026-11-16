@@ -17,9 +17,8 @@ import { driveEvents, type BotResult, type SkillBot } from "../bot";
 import {
   minesNeighbours,
   MINES_BOOM,
-  MINES_CELLS,
-  MINES_COLS,
   minesCountFor,
+  minesGeoFor,
   MINES_FLAG,
   MINES_HIDDEN,
   MINES_INPUT_TAP,
@@ -55,10 +54,14 @@ interface Reading {
 
 /** What the visible board proves, by the cheapest rule that proves anything. */
 export function readBoard(s: MinesState, opts: { pairs: boolean; count: boolean }): Reading {
+  // The level's board (minesweeper.ts minesGeoFor: minesRev 3–5 have their own sizes).
+  const g = minesGeoFor(s.rev);
+  const MINES_CELLS = g.cells;
+  const MINES_COLS = g.cols;
   const view = s.open;
   const known = (c: number) => (view[c] === MINES_OPEN ? 1 : view[c] === MINES_FLAG || view[c] === MINES_BOOM ? 2 : 0);
-  const hidden = (c: number) => minesNeighbours(c).filter((n) => known(n) === 0);
-  const left = (c: number) => s.nums[c]! - minesNeighbours(c).filter((n) => known(n) === 2).length;
+  const hidden = (c: number) => minesNeighbours(c, g).filter((n) => known(n) === 0);
+  const left = (c: number) => s.nums[c]! - minesNeighbours(c, g).filter((n) => known(n) === 2).length;
   const front: { cell: number; hidden: number[]; left: number }[] = [];
   for (let c = 0; c < MINES_CELLS; c++) {
     if (view[c] !== MINES_OPEN || s.nums[c] === 0) continue;
@@ -129,7 +132,7 @@ export const bot: SkillBot = ({ game, seed, human }): BotResult => {
           if (fruitless > PATIENCE[lvl]) {
             // A guess: a hidden square next to the opened area (or anywhere hidden).
             const hiddenAll: number[] = [];
-            for (let c = 0; c < MINES_CELLS; c++) if (s.open[c] === MINES_HIDDEN) hiddenAll.push(c);
+            for (let c = 0; c < minesGeoFor(s.rev).cells; c++) if (s.open[c] === MINES_HIDDEN) hiddenAll.push(c);
             if (!hiddenAll.length) return null;
             queue = [{ cell: hiddenAll[human.int(0, hiddenAll.length - 1)]!, mode: MINES_MODE_REVEAL }];
             fruitless = 0;
@@ -144,7 +147,7 @@ export const bot: SkillBot = ({ game, seed, human }): BotResult => {
           const chording = reading.kind === "single" && reading.chord >= 0 && human.chance(CHORD[lvl]);
           if (chording) {
             const n = reading.chord;
-            const flags = minesNeighbours(n).filter((c) => s.open[c] === MINES_HIDDEN && reading.mines.includes(c));
+            const flags = minesNeighbours(n, minesGeoFor(s.rev)).filter((c) => s.open[c] === MINES_HIDDEN && reading.mines.includes(c));
             queue = [...flags.map((cell) => ({ cell, mode: MINES_MODE_FLAG })), { cell: n, mode: MINES_MODE_REVEAL, chord: true }];
           } else if (reading.safe.length) {
             // Tap the safe squares (a few at a time: the board changes as they open).
@@ -160,7 +163,7 @@ export const bot: SkillBot = ({ game, seed, human }): BotResult => {
       let cell = next.cell;
       // A slip lands on a neighbouring square.
       if (human.slip(0.5)) {
-        const ns = minesNeighbours(cell);
+        const ns = minesNeighbours(cell, minesGeoFor(s.rev));
         cell = ns[human.int(0, ns.length - 1)]!;
       }
       nextAt = t + (next.mode === MINES_MODE_FLAG ? msToTicks(FLAG_MS) + tap() : tap());

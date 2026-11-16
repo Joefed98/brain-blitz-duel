@@ -28,6 +28,10 @@ import type { PuzzleData } from "../src/lib/duel/types";
 import { KITS } from "./puzzle-fairness/kits";
 import { SKILLS, hashText, makeRng } from "./puzzle-fairness/kit";
 import { bandsTable, engineBands } from "./depth-engine-bands";
+import { pinPreSpeedOverhaul } from "../src/lib/duel/speedOverhaul";
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul): this check proves the stamps
+// before it (Tenfall tenRev 5, Pull! clayRev 9), so it deals them (speedOverhaul.ts).
+pinPreSpeedOverhaul(true);
 
 let checks = 0;
 const failures: string[] = [];

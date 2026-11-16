@@ -23,7 +23,7 @@ import { watchLifeMs, watchStop } from "./stopWatch";
 import {
   NUMHUNT_MOVE_MS,
   REACTION_DECOY_MS,
-  REACTION_FLASH_MS,
+  flashWindowMs,
   REACTION_MISS_MS,
   STOPWATCH_GAP_MS,
   STOPWATCH_LEAD_IN_MS,
@@ -209,8 +209,19 @@ export function decodeTapTimes(
 
 /** The layout on screen at round-clock `t`: the seeded positions move every 15 s. */
 export function ascendLayoutAt(puzzle: NumberHuntPuzzleData, t: number): HuntSpot[] {
-  const index = Math.min(3, Math.floor(Math.max(0, t) / NUMHUNT_MOVE_MS));
-  return puzzle.layouts?.[index] ?? puzzle.spots;
+  return puzzle.layouts?.[ascendLayoutIndex(puzzle, t)] ?? puzzle.spots;
+}
+
+/** How often a puzzle's board reshuffles, in ms: its level's `moveMs` (0 = never), else every 15 s (every older round). */
+export function ascendMoveMs(puzzle: Pick<NumberHuntPuzzleData, "moveMs">): number {
+  return typeof puzzle.moveMs === "number" && puzzle.moveMs >= 0 ? puzzle.moveMs : NUMHUNT_MOVE_MS;
+}
+
+/** The index of the layout on screen at round-clock `t` (older rounds: every 15 s over their four layouts). */
+export function ascendLayoutIndex(puzzle: Pick<NumberHuntPuzzleData, "moveMs" | "layouts">, t: number): number {
+  if (typeof puzzle.moveMs !== "number") return Math.min(3, Math.floor(Math.max(0, t) / NUMHUNT_MOVE_MS));
+  if (puzzle.moveMs <= 0) return 0;
+  return Math.min(Math.max(0, (puzzle.layouts?.length ?? 1) - 1), Math.floor(Math.max(0, t) / puzzle.moveMs));
 }
 
 /** Ascend logs: "log1:n@t,n@t". Each number is checked against the layout shown at its time. */
@@ -285,11 +296,13 @@ export function flashDecoyCut(tapped: number, shown: number): number {
  * last flash is settled are ignored.
  */
 export function replayFlash(
-  puzzle: Pick<ReactionPuzzleData, "flashes"> & Partial<Pick<ReactionPuzzleData, "decoys" | "tapRev">>,
+  puzzle: Pick<ReactionPuzzleData, "flashes"> & Partial<Pick<ReactionPuzzleData, "decoys" | "tapRev" | "flashMs">>,
   times: readonly number[],
   upTo = Number.POSITIVE_INFINITY,
 ): FlashReplay {
   const flashes = puzzle.flashes;
+  // Expert's shorter gold (the Speed overhaul's levels): every older round has no flashMs and keeps the 1.5 s window.
+  const windowMs = flashWindowMs(puzzle);
   const result: (number | null)[] = flashes.map(() => null);
   const missed = flashes.map(() => false);
   const outcomes: FlashOutcome[] = [];
@@ -297,7 +310,7 @@ export function replayFlash(
   let lastFalse = -1_000;
   const settleMisses = (now: number) => {
     flashes.forEach((f, i) => {
-      if (result[i] === null && now >= f + REACTION_FLASH_MS) {
+      if (result[i] === null && now >= f + windowMs) {
         result[i] = REACTION_MISS_MS;
         missed[i] = true;
       }
@@ -311,7 +324,7 @@ export function replayFlash(
       continue;
     }
     const index = flashes.findIndex(
-      (f, i) => result[i] === null && t >= f + FLASH_FASTEST_MS && t < f + REACTION_FLASH_MS,
+      (f, i) => result[i] === null && t >= f + FLASH_FASTEST_MS && t < f + windowMs,
     );
     if (index >= 0) {
       result[index] = Math.max(1, t - flashes[index]!);

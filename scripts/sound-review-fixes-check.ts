@@ -122,18 +122,46 @@ const text = walk("src")
 const solveTemplate = new Set([...text.matchAll(/useSolveFx\(\s*"([a-z0-9]+)"/g)].map((m) => `${m[1]}.solve`));
 const played = (id: string) => text.includes(`"${id}"`) || text.includes(`'${id}'`) || solveTemplate.has(id);
 /** Played keys with no file of their own that keep it so, and why. */
+const ATTENTION_ELEVENLABS = "waits for Joe's recording (docs/sound-cues/attention-elevenlabs.md); plays its library stand-in until then";
 const EXEMPT: Record<string, string> = {
   "laser.gem": "Lightbender's gem plays its own pz_laser_gem recording on the same beam step",
-  "gravity.tilt": "Topsy-Turvy's tilt plays its own pz_gravity_pull recording",
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): gravity.tilt now has a
+  // file of its own (the library's marble roll, looped while the balls move), so it no longer needs an exemption.
   "clayshoot.shatter": "Pull!'s clay plays its own pz_clay_hit recording",
-  "clayshoot.goldShatter": "Pull!'s gold clay plays its own pz_clay_hit recording",
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul): clayshoot.goldShatter has its
+  // own file now (docs/sound-cues/speed-overhaul.md), so it is no longer a played slot without one.
   "clayshoot.goldSparkle": "the tail of clayshoot.finalBurst is still sounding (silent by design)",
   "checkout.tick": "Checkout's dart already lands on its own checkout.thud recording",
   "spotdiff.miss": "a wrong-move shake: the quiet wrong (job 2's rule)",
   "measure.reject": "a wrong-move shake: the quiet wrong (job 2's rule)",
   "tendrop.refused": "a wrong-move shake: the quiet wrong (job 2's rule; it played the tap tick)",
   "equation.advance": "a stage moment: keeps the shared stage_complete (one sound for every stage game, a decision for Joe)",
-  "numline.line": "a stage moment: keeps the shared stage_complete (one sound for every stage game, a decision for Joe)",
+  // Changed with Joe's approval, 16 Nov 2026 (follows approved overhaul): numline.line is no longer
+  // played; Ballpark's stage moment plays its own numline.stageClear (NumberStage), so its exemption is retired.
+
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): the overhaul's new slots
+  // play their library stand-in (attentionFx.ts) until Joe's ElevenLabs files land.
+  "countup.mark": ATTENTION_ELEVENLABS,
+  "countup.unmark": ATTENTION_ELEVENLABS,
+  "countup.key": ATTENTION_ELEVENLABS,
+  "countup.trayOut": ATTENTION_ELEVENLABS,
+  "countup.revealTick": ATTENTION_ELEVENLABS,
+  "countup.soClose": ATTENTION_ELEVENLABS,
+  "symscan.gridClear": ATTENTION_ELEVENLABS,
+  "symscan.cleanGrid": ATTENTION_ELEVENLABS,
+  "symscan.missed": ATTENTION_ELEVENLABS,
+  "spotdiff.hidden": ATTENTION_ELEVENLABS,
+  "spotdiff.pictureOut": ATTENTION_ELEVENLABS,
+  "maze.step": ATTENTION_ELEVENLABS,
+  "maze.bump": ATTENTION_ELEVENLABS,
+  "maze.back": ATTENTION_ELEVENLABS,
+  "maze.deadEnd": ATTENTION_ELEVENLABS,
+  "bomb.step": ATTENTION_ELEVENLABS,
+  "bomb.instant": ATTENTION_ELEVENLABS,
+  "pairmatch.flip": ATTENTION_ELEVENLABS,
+  "pairmatch.match": ATTENTION_ELEVENLABS,
+  "pairmatch.miss": ATTENTION_ELEVENLABS,
+  "pairmatch.gold": ATTENTION_ELEVENLABS,
 };
 const needed: string[] = [];
 for (const [id, e] of Object.entries(manifest)) {

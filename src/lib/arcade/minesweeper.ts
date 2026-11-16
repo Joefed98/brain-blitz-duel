@@ -44,12 +44,92 @@ export const MINES_REV_LOGIC = 2;
 /** Mines per revision (rev 1's 25, rev 2's 20). */
 export const MINES_COUNT_V2 = 20;
 export function minesCountFor(rev: number | null | undefined): number {
-  return (rev ?? MINES_REV_STD) >= MINES_REV_LOGIC ? MINES_COUNT_V2 : MINES_COUNT;
+  return minesGeoFor(rev).count;
 }
 /** Safe squares on a revision's board. */
 export function minesSafeFor(rev: number | null | undefined): number {
-  return MINES_CELLS - minesCountFor(rev);
+  const g = minesGeoFor(rev);
+  return g.cells - g.count;
 }
+
+/**
+ * The Logic overhaul's levels (15 Nov 2026; docs/arcade-standard/minesweeper.md "Levels"; Joe: "too-hard games: today's
+ * becomes Hard"). minesRev 2, today's 20-mine board, is Hard exactly (dealt with the deal's `level: "hard"`); each other
+ * level is its own revision, so the board's geometry and clock follow the stamp alone:
+ *
+ *   minesRev 3, Normal: 10 × 16, 16 mines (10 %), opening 20–60, 90 s.
+ *   minesRev 4, Easy: 8 × 12, 9 mines, opening 25–40, 90 s.
+ *   minesRev 5, Expert: 12 × 18, 30 mines, opening 10–20, 120 s (12 wide, not 10 × 22: the board is height-bound on a
+ *   phone, so twelve columns keep the squares larger).
+ *
+ * Every board is dealt by the same rule as rev 2 (the logic solver clears it from the opening, never a guess).
+ */
+export const MINES_REV_NORMAL = 3;
+export const MINES_REV_EASY = 4;
+export const MINES_REV_EXPERT = 5;
+
+export interface MinesGeo {
+  rev: number;
+  cols: number;
+  rows: number;
+  cells: number;
+  count: number;
+  openMin: number;
+  openMax: number;
+  runTicks: number;
+  speedFullTicks: number;
+  worldW: number;
+  worldH: number;
+  boardX: number;
+  boardY: number;
+  boardW: number;
+  boardH: number;
+}
+
+function geo(rev: number, cols: number, rows: number, count: number, openMin: number, openMax: number, seconds: number, fullS: number): MinesGeo {
+  const boardW = cols * 36;
+  const boardH = rows * 36;
+  const worldW = Math.max(380, boardW + 20);
+  const boardY = 44 + 8;
+  return {
+    rev,
+    cols,
+    rows,
+    cells: cols * rows,
+    count,
+    openMin,
+    openMax,
+    runTicks: seconds * TICKS_PER_SECOND,
+    speedFullTicks: fullS * TICKS_PER_SECOND,
+    worldW,
+    worldH: boardY + boardH + 8 + 8,
+    boardX: Math.round((worldW - boardW) / 2),
+    boardY,
+    boardW,
+    boardH,
+  };
+}
+
+/** "Full by" times for the levels' speed parts: the near-perfect bots' median clear (docs/arcade-standard/minesweeper.md). */
+export const MINES_SPEED_FULL_S_V3 = 37;
+export const MINES_SPEED_FULL_S_EASY = 22;
+export const MINES_SPEED_FULL_S_EXPERT = 50;
+
+const GEOS: Readonly<Record<number, MinesGeo>> = {
+  1: geo(1, 10, 16, 25, 20, 60, 90, 50),
+  2: geo(2, 10, 16, 20, 20, 60, 90, 37),
+  3: geo(3, 10, 16, 16, 20, 60, 90, MINES_SPEED_FULL_S_V3),
+  4: geo(4, 8, 12, 9, 25, 40, 90, MINES_SPEED_FULL_S_EASY),
+  5: geo(5, 12, 18, 34, 8, 16, 120, MINES_SPEED_FULL_S_EXPERT),
+};
+
+/** A revision's board (a stamp no server dealt reads as rev 1's). */
+export function minesGeoFor(rev: number | null | undefined): MinesGeo {
+  return GEOS[rev ?? MINES_REV_STD] ?? GEOS[MINES_REV_STD]!;
+}
+
+/** Every revision whose rules this file knows (the reveal's parts and the checks walk them). */
+export const MINES_REVS: readonly number[] = [1, 2, 3, 4, 5];
 
 /* ================================ World ================================ */
 
@@ -70,20 +150,20 @@ export const MINES_BOARD_Y = MINES_HUD_H + MINES_FRAME;
 /** The world ends 8 px below the frame (the hex background runs on), so the frame never lines the world's edge. */
 export const MINES_WORLD_H = MINES_BOARD_Y + MINES_BOARD_H + MINES_FRAME + 8;
 
-/** The square under a world point, or −1 off the board. */
-export function minesCellAt(x: number, y: number): number {
-  const col = Math.floor((x - MINES_BOARD_X) / MINES_CELL);
-  const row = Math.floor((y - MINES_BOARD_Y) / MINES_CELL);
-  if (col < 0 || col >= MINES_COLS || row < 0 || row >= MINES_ROWS) return -1;
-  return row * MINES_COLS + col;
+/** The square under a world point, or −1 off the board (`g`: the revision's board; rev 1's when left out). */
+export function minesCellAt(x: number, y: number, g: MinesGeo = minesGeoFor(1)): number {
+  const col = Math.floor((x - g.boardX) / MINES_CELL);
+  const row = Math.floor((y - g.boardY) / MINES_CELL);
+  if (col < 0 || col >= g.cols || row < 0 || row >= g.rows) return -1;
+  return row * g.cols + col;
 }
 
-export function minesCellX(cell: number): number {
-  return MINES_BOARD_X + (cell % MINES_COLS) * MINES_CELL;
+export function minesCellX(cell: number, g: MinesGeo = minesGeoFor(1)): number {
+  return g.boardX + (cell % g.cols) * MINES_CELL;
 }
 
-export function minesCellY(cell: number): number {
-  return MINES_BOARD_Y + Math.floor(cell / MINES_COLS) * MINES_CELL;
+export function minesCellY(cell: number, g: MinesGeo = minesGeoFor(1)): number {
+  return g.boardY + Math.floor(cell / g.cols) * MINES_CELL;
 }
 
 /* ================================ Inputs ================================ */
@@ -92,38 +172,56 @@ export const MINES_INPUT_TAP = 1;
 export const MINES_MODE_REVEAL = 0;
 export const MINES_MODE_FLAG = 1;
 export const MINES_INPUT_RANGES: readonly InputRange[] = [inputRange(MINES_INPUT_TAP, [0, MINES_CELLS - 1], [0, 1])];
+/** A revision's input ranges (its own square count). */
+export function minesInputRangesFor(rev: number | null | undefined): readonly InputRange[] {
+  const g = minesGeoFor(rev);
+  return g.cells === MINES_CELLS ? MINES_INPUT_RANGES : [inputRange(MINES_INPUT_TAP, [0, g.cells - 1], [0, 1])];
+}
 
 /* ================================ Neighbours ================================ */
 
-const NEIGHBOURS: readonly (readonly number[])[] = Array.from({ length: MINES_CELLS }, (_, cell) => {
-  const row = Math.floor(cell / MINES_COLS);
-  const col = cell % MINES_COLS;
-  const out: number[] = [];
-  for (let dr = -1; dr <= 1; dr++) {
-    for (let dc = -1; dc <= 1; dc++) {
-      if (dr === 0 && dc === 0) continue;
-      const r = row + dr;
-      const c = col + dc;
-      if (r >= 0 && r < MINES_ROWS && c >= 0 && c < MINES_COLS) out.push(r * MINES_COLS + c);
+type Nbrs = readonly (readonly number[])[];
+const NBR_TABLES = new Map<string, Nbrs>();
+/** Each square's neighbours on a cols × rows board (cached per size). */
+function nbrsOf(cols: number, rows: number): Nbrs {
+  const id = `${cols}x${rows}`;
+  const hit = NBR_TABLES.get(id);
+  if (hit) return hit;
+  const table = Array.from({ length: cols * rows }, (_, cell) => {
+    const row = Math.floor(cell / cols);
+    const col = cell % cols;
+    const out: number[] = [];
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        if (dr === 0 && dc === 0) continue;
+        const r = row + dr;
+        const c = col + dc;
+        if (r >= 0 && r < rows && c >= 0 && c < cols) out.push(r * cols + c);
+      }
     }
-  }
-  return out;
-});
+    return out;
+  });
+  NBR_TABLES.set(id, table);
+  return table;
+}
+const NEIGHBOURS: Nbrs = nbrsOf(MINES_COLS, MINES_ROWS);
+const nbrsFor = (g: MinesGeo): Nbrs => (g.cols === MINES_COLS && g.rows === MINES_ROWS ? NEIGHBOURS : nbrsOf(g.cols, g.rows));
 
-export function minesNeighbours(cell: number): readonly number[] {
-  return NEIGHBOURS[cell] ?? [];
+export function minesNeighbours(cell: number, g: MinesGeo = minesGeoFor(1)): readonly number[] {
+  return nbrsFor(g)[cell] ?? [];
 }
 
 /** Each square's count of neighbouring mines (9 on a mine itself). */
-export function minesNumbers(mines: readonly number[]): number[] {
-  const nums = new Array<number>(MINES_CELLS).fill(0);
-  for (let cell = 0; cell < MINES_CELLS; cell++) {
+export function minesNumbers(mines: readonly number[], g: MinesGeo = minesGeoFor(1)): number[] {
+  const nb = nbrsFor(g);
+  const nums = new Array<number>(g.cells).fill(0);
+  for (let cell = 0; cell < g.cells; cell++) {
     if (mines[cell]) {
       nums[cell] = 9;
       continue;
     }
     let n = 0;
-    for (const nb of NEIGHBOURS[cell]!) n += mines[nb] ? 1 : 0;
+    for (const x of nb[cell]!) n += mines[x] ? 1 : 0;
     nums[cell] = n;
   }
   return nums;
@@ -132,14 +230,14 @@ export function minesNumbers(mines: readonly number[]): number[] {
 /* ================================ Logic solver ================================ */
 
 /** The squares a reveal of `cell` opens: the square, and the cascade through every 0 it reaches. */
-function floodFrom(cell: number, nums: readonly number[], known: Uint8Array, out: number[]): void {
+function floodFrom(cell: number, nums: readonly number[], known: Uint8Array, out: number[], nbrs: Nbrs = NEIGHBOURS): void {
   const stack = [cell];
   while (stack.length > 0) {
     const c = stack.pop()!;
     if (known[c] !== 0) continue;
     known[c] = 1;
     out.push(c);
-    if (nums[c] === 0) for (const nb of NEIGHBOURS[c]!) if (known[nb] === 0) stack.push(nb);
+    if (nums[c] === 0) for (const nb of nbrs[c]!) if (known[nb] === 0) stack.push(nb);
   }
 }
 
@@ -162,9 +260,12 @@ export interface MinesSolve {
  * those are mines and the other's own squares safe) and (3) the mine total (none left → all safe; as many hidden as
  * left → all mines). Never a guess. Deterministic (fixed scan order).
  */
-export function minesSolve(mines: readonly number[], start: number, count: number = MINES_COUNT): MinesSolve {
+export function minesSolve(mines: readonly number[], start: number, count: number = MINES_COUNT, g: MinesGeo = minesGeoFor(1)): MinesSolve {
+  const NEIGHBOURS = nbrsFor(g);
+  const MINES_CELLS = g.cells;
+  const MINES_COLS = g.cols;
   const safe = MINES_CELLS - count;
-  const nums = minesNumbers(mines);
+  const nums = minesNumbers(mines, g);
   const known = new Uint8Array(MINES_CELLS); // 0 hidden, 1 safe (revealed), 2 mine (proved)
   const steps: number[][] = [];
   let revealed = 0;
@@ -172,7 +273,7 @@ export function minesSolve(mines: readonly number[], start: number, count: numbe
   const reveal = (cell: number) => {
     if (known[cell] !== 0 || mines[cell]) return;
     const opened: number[] = [];
-    floodFrom(cell, nums, known, opened);
+    floodFrom(cell, nums, known, opened, NEIGHBOURS);
     revealed += opened.length;
     steps.push(opened);
   };
@@ -271,16 +372,17 @@ function mixSeed(seed: number): number {
   return (x ^ (x >>> 16)) | 0;
 }
 
-function tryBoard(rng: number, count: number = MINES_COUNT): { rng: number; mines: number[]; start: number } {
-  let r = rngBelow(rng, MINES_ROWS - 10);
+function tryBoard(rng: number, count: number = MINES_COUNT, g: MinesGeo = minesGeoFor(1)): { rng: number; mines: number[]; start: number } {
+  // The start square sits in the middle of the board: rows 5 … rows − 6, columns 2 … cols − 3 (rev 1's rule, per size).
+  let r = rngBelow(rng, g.rows - 10);
   const row = 5 + r.value;
-  r = rngBelow(r.state, MINES_COLS - 4);
+  r = rngBelow(r.state, g.cols - 4);
   const col = 2 + r.value;
-  const start = row * MINES_COLS + col;
-  const banned = new Set<number>([start, ...NEIGHBOURS[start]!]);
+  const start = row * g.cols + col;
+  const banned = new Set<number>([start, ...nbrsFor(g)[start]!]);
   const pool: number[] = [];
-  for (let cell = 0; cell < MINES_CELLS; cell++) if (!banned.has(cell)) pool.push(cell);
-  const mines = new Array<number>(MINES_CELLS).fill(0);
+  for (let cell = 0; cell < g.cells; cell++) if (!banned.has(cell)) pool.push(cell);
+  const mines = new Array<number>(g.cells).fill(0);
   let state = r.state;
   for (let i = 0; i < count; i++) {
     const pick = rngBelow(state, pool.length - i);
@@ -301,24 +403,25 @@ const BOARD_CACHE = new Map<number | string, MinesBoard>();
  * picks the mine count (rev 1's boards are exactly as before; rev 2 runs the same tries with 20 mines).
  */
 export function minesBoard(seed: number, rev: number = MINES_REV_STD): MinesBoard {
-  const count = minesCountFor(rev);
+  const g = minesGeoFor(rev);
+  const count = g.count;
   const cacheKey = count === MINES_COUNT ? seed : `${rev}:${seed}`;
   const hit = BOARD_CACHE.get(cacheKey);
   if (hit) return hit;
   let rng = mixSeed(seed);
   let found: MinesBoard | null = null;
   for (let tries = 0; tries < MINES_MAX_TRIES; tries++) {
-    const t = tryBoard(rng, count);
+    const t = tryBoard(rng, count, g);
     rng = rngStep(t.rng ^ rngValue(t.rng));
-    const proof = minesSolve(t.mines, t.start, count);
+    const proof = minesSolve(t.mines, t.start, count, g);
     const opening = proof.steps[0]?.length ?? 0;
-    if (proof.solved && opening >= MINES_OPENING_MIN && opening <= MINES_OPENING_MAX) {
+    if (proof.solved && opening >= g.openMin && opening <= g.openMax) {
       found = { mines: t.mines, start: t.start, tries };
       break;
     }
   }
   if (!found)
-    found = seed === MINES_FALLBACK_SEED ? { ...tryBoard(mixSeed(seed), count), tries: -1 } : { ...minesBoard(MINES_FALLBACK_SEED, rev), tries: -1 };
+    found = seed === MINES_FALLBACK_SEED ? { ...tryBoard(mixSeed(seed), count, g), tries: -1 } : { ...minesBoard(MINES_FALLBACK_SEED, rev), tries: -1 };
   if (BOARD_CACHE.size > 64) BOARD_CACHE.clear();
   BOARD_CACHE.set(cacheKey, found);
   return found;
@@ -363,11 +466,12 @@ export interface MinesState {
 
 function initFor(seed: number, rev: number): MinesState {
   const board = minesBoard(seed, rev);
-  const nums = minesNumbers(board.mines);
-  const known = new Uint8Array(MINES_CELLS);
+  const g = minesGeoFor(rev);
+  const nums = minesNumbers(board.mines, g);
+  const known = new Uint8Array(g.cells);
   const opened: number[] = [];
-  floodFrom(board.start, nums, known, opened);
-  const open = new Array<number>(MINES_CELLS).fill(MINES_HIDDEN);
+  floodFrom(board.start, nums, known, opened, nbrsFor(g));
+  const open = new Array<number>(g.cells).fill(MINES_HIDDEN);
   for (const c of opened) open[c] = MINES_OPEN;
   return {
     rev,
@@ -409,16 +513,16 @@ function openSquare(s: MinesState, open: number[], cell: number, tick: number, o
     open[c] = MINES_OPEN;
     count += 1;
     out.last = c;
-    if (s.nums[c] === 0) for (const nb of NEIGHBOURS[c]!) if (open[nb] === MINES_HIDDEN) stack.push(nb);
+    if (s.nums[c] === 0) for (const nb of nbrsFor(minesGeoFor(s.rev))[c]!) if (open[nb] === MINES_HIDDEN) stack.push(nb);
   }
   void tick;
   return count;
 }
 
 /** Flags and revealed mines round a square (what a chord counts). */
-export function minesMarkedAround(open: readonly number[], cell: number): number {
+export function minesMarkedAround(open: readonly number[], cell: number, g: MinesGeo = minesGeoFor(1)): number {
   let n = 0;
-  for (const nb of NEIGHBOURS[cell]!) if (open[nb] === MINES_FLAG || open[nb] === MINES_BOOM) n += 1;
+  for (const nb of nbrsFor(g)[cell]!) if (open[nb] === MINES_FLAG || open[nb] === MINES_BOOM) n += 1;
   return n;
 }
 
@@ -427,8 +531,9 @@ function applyTap(s: MinesState, cell: number, mode: number, tick: number): Mine
   if (state === MINES_OPEN) {
     // A chord: a revealed number whose flags (and revealed mines) are all placed opens its other neighbours.
     const n = s.nums[cell]!;
-    if (n === 0 || minesMarkedAround(s.open, cell) !== n) return s;
-    const hidden = NEIGHBOURS[cell]!.filter((nb) => s.open[nb] === MINES_HIDDEN);
+    const g = minesGeoFor(s.rev);
+    if (n === 0 || minesMarkedAround(s.open, cell, g) !== n) return s;
+    const hidden = nbrsFor(g)[cell]!.filter((nb) => s.open[nb] === MINES_HIDDEN);
     if (hidden.length === 0) return s;
     const open = s.open.slice();
     const out = { hits: 0, last: -1, hit: -1 };
@@ -474,7 +579,7 @@ function step(s: MinesState, input: ArcadeInputEvent | null): MinesState {
   let next: MinesState = s;
   if (input && input.k === MINES_INPUT_TAP) {
     const cell = input.a;
-    if (cell >= 0 && cell < MINES_CELLS) next = applyTap(s, cell, input.b === MINES_MODE_FLAG ? MINES_MODE_FLAG : MINES_MODE_REVEAL, tick);
+    if (cell >= 0 && cell < minesGeoFor(s.rev).cells) next = applyTap(s, cell, input.b === MINES_MODE_FLAG ? MINES_MODE_FLAG : MINES_MODE_REVEAL, tick);
     if (!next.acted) next = { ...next, acted: 1 };
   }
   return next === s ? { ...s, tick } : { ...next, tick };
@@ -485,7 +590,7 @@ export function minesCleared(s: Pick<MinesState, "revealed"> & { rev?: number })
 }
 
 function isOver(s: MinesState): boolean {
-  return minesCleared(s) || s.tick >= MINES_RUN_TICKS;
+  return minesCleared(s) || s.tick >= minesGeoFor(s.rev).runTicks;
 }
 
 /* ================================ Score ================================ */
@@ -504,7 +609,7 @@ export const MINES_SPEED_FULL_TICKS = MINES_SPEED_FULL_S * TICKS_PER_SECOND;
 export const MINES_SPEED_FULL_S_V2 = 37;
 export const MINES_SPEED_FULL_TICKS_V2 = MINES_SPEED_FULL_S_V2 * TICKS_PER_SECOND;
 export function minesSpeedFullTicksFor(rev: number | null | undefined): number {
-  return (rev ?? MINES_REV_STD) >= MINES_REV_LOGIC ? MINES_SPEED_FULL_TICKS_V2 : MINES_SPEED_FULL_TICKS;
+  return minesGeoFor(rev).speedFullTicks;
 }
 
 /** The core's straight line for the help and LIVE_BANDS, in per mille of the safe squares beyond the opening (150 at all). */
@@ -530,8 +635,35 @@ export const MINES_STD_SPEC_V2: StdSpec = {
     { key: "speed", label: "Speed", max: MINES_SPEED_MAX, how: `clear the board within ${MINES_SPEED_FULL_S_V2} s for all of it, falling to 0 at the buzzer` },
   ],
 };
+/** The levels' specs (minesRev 3–5): rev 1's parts, each its own revision and "full by" time. */
+function levelSpec(rev: number): StdSpec {
+  const g = minesGeoFor(rev);
+  return {
+    field: "minesRev",
+    rev,
+    parts: [
+      MINES_STD_SPEC.parts[0]!,
+      MINES_STD_SPEC.parts[1]!,
+      { key: "speed", label: "Speed", max: MINES_SPEED_MAX, how: `clear the board within ${g.speedFullTicks / TICKS_PER_SECOND} s for all of it, falling to 0 at the buzzer` },
+    ],
+  };
+}
+export const MINES_STD_SPEC_V3 = levelSpec(MINES_REV_NORMAL);
+export const MINES_STD_SPEC_EASY = levelSpec(MINES_REV_EASY);
+export const MINES_STD_SPEC_EXPERT = levelSpec(MINES_REV_EXPERT);
 export function minesStdSpecFor(rev: number | null | undefined): StdSpec {
-  return (rev ?? MINES_REV_STD) >= MINES_REV_LOGIC ? MINES_STD_SPEC_V2 : MINES_STD_SPEC;
+  switch (minesGeoFor(rev).rev) {
+    case MINES_REV_LOGIC:
+      return MINES_STD_SPEC_V2;
+    case MINES_REV_NORMAL:
+      return MINES_STD_SPEC_V3;
+    case MINES_REV_EASY:
+      return MINES_STD_SPEC_EASY;
+    case MINES_REV_EXPERT:
+      return MINES_STD_SPEC_EXPERT;
+    default:
+      return MINES_STD_SPEC;
+  }
 }
 
 /** The safe squares the player must reveal (beyond the opening), and how many they have. */
@@ -543,7 +675,7 @@ export function minesParts(s: MinesState): { core: number; clean: number; speed:
   const { got, of } = minesProgress(s);
   const core = stdLine(MINES_CORE_MAX, got, of);
   const clean = s.hits === 0 ? stdLine(MINES_CLEAN_MAX, got, of) : 0;
-  const speed = minesCleared(s) && s.clearedTick > 0 ? stdSpeed(MINES_SPEED_MAX, s.clearedTick, minesSpeedFullTicksFor(s.rev), MINES_RUN_TICKS) : 0;
+  const speed = minesCleared(s) && s.clearedTick > 0 ? stdSpeed(MINES_SPEED_MAX, s.clearedTick, minesSpeedFullTicksFor(s.rev), minesGeoFor(s.rev).runTicks) : 0;
   const penalty = MINES_HIT_COST * s.hits;
   return { core, clean, speed, penalty, total: core + clean + speed - penalty };
 }
@@ -557,7 +689,7 @@ const secs = (ticks: number) => `${(ticks / TICKS_PER_SECOND).toFixed(1)} s`;
 /** The standard's parts list (the reveal's lines and arcade-standard-check). */
 export function minesStdParts(state: unknown): StdPart[] | null {
   const s = state as Partial<MinesState> | null;
-  if (!s || (s.rev !== MINES_REV_STD && s.rev !== MINES_REV_LOGIC) || !Array.isArray(s.open)) return null;
+  if (!s || typeof s.rev !== "number" || !MINES_REVS.includes(s.rev) || !Array.isArray(s.open)) return null;
   const st = s as MinesState;
   const p = minesParts(st);
   const { got, of } = minesProgress(st);
@@ -590,7 +722,8 @@ export interface MinesCheckpoint {
 
 export function minesCheckpoint(s: MinesState): MinesCheckpoint {
   let h = 0x811c9dc5 | 0;
-  for (let i = 0; i < MINES_CELLS; i++) h = Math.imul(h ^ (s.open[i]! + 1), 0x01000193);
+  const cells = minesGeoFor(s.rev).cells;
+  for (let i = 0; i < cells; i++) h = Math.imul(h ^ (s.open[i]! + 1), 0x01000193);
   h = Math.imul(h ^ s.revealed, 0x01000193);
   h = Math.imul(h ^ s.hits, 0x01000193);
   h = Math.imul(h ^ s.tick, 0x01000193);
@@ -617,6 +750,21 @@ export const minesweeperGameV2: ArcadeGame<MinesState, ArcadeInputEvent | null> 
   init: (seed: number) => initFor(seed, MINES_REV_LOGIC),
 };
 
+/** The levels' games (minesRev 3–5): rev 2's rules on each level's board and clock. */
+const LEVEL_GAMES = new Map<number, ArcadeGame<MinesState, ArcadeInputEvent | null>>();
+function levelGame(rev: number): ArcadeGame<MinesState, ArcadeInputEvent | null> {
+  let game = LEVEL_GAMES.get(rev);
+  if (!game) {
+    const g = minesGeoFor(rev);
+    game = { ...minesweeperGame, runTicks: g.runTicks, init: (seed: number) => initFor(seed, rev), inputRanges: minesInputRangesFor(rev) };
+    LEVEL_GAMES.set(rev, game);
+  }
+  return game;
+}
+
 export function minesweeperGameFor(rev?: number | null): ArcadeGame<MinesState, ArcadeInputEvent | null> {
-  return (rev ?? MINES_REV_STD) >= MINES_REV_LOGIC ? minesweeperGameV2 : minesweeperGame;
+  const r = minesGeoFor(rev).rev;
+  if (r === MINES_REV_STD) return minesweeperGame;
+  if (r === MINES_REV_LOGIC) return minesweeperGameV2;
+  return levelGame(r);
 }

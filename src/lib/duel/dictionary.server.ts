@@ -166,6 +166,13 @@ export function commonWords(): string[] {
   return dictionary().common;
 }
 
+let everydaySet: Set<string> | null = null;
+/** True for a word on the everyday list (the list boards are built from), any case. */
+export function isEverydayWord(word: string): boolean {
+  everydaySet ??= new Set(dictionary().common);
+  return everydaySet.has(word.trim().toLowerCase());
+}
+
 let prefixes: Set<string> | null = null;
 
 /** Prefix set of the everyday list, so a grid search can stop early. */

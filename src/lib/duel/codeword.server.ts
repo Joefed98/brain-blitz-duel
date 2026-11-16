@@ -15,6 +15,7 @@
  */
 
 import { dealtDepthRev } from "./wordDepth";
+import { CODEWORD_REV_NAMES } from "./wordOverhaul";
 import { CODEWORD_BANK } from "./codewordBank.server";
 import {
   CODEWORD_REV,
@@ -30,7 +31,7 @@ import {
   replayCodeword,
   type CwView,
 } from "./codeword";
-import { answerWords, dictionaryWords } from "./dictionary.server";
+import { answerWords, dictionaryWords, isWord } from "./dictionary.server";
 import type { CodewordPuzzleData } from "./types";
 import { fmix32, rngBelow, rngShuffle, saltOf, seededRng } from "./wordSeed.server";
 
@@ -437,5 +438,15 @@ export function checkCodewordMoves(puzzle: CodewordPuzzleData, moves: string): C
   const actions = decodeCodeword(moves, puzzle.numbers);
   const letters = replayCodeword(puzzle.numbers, puzzle.givens, actions);
   const tally = codewordTally(letters, puzzle.solution ?? "", puzzle.givens);
-  return { complete: tally.complete, solved: tally.complete && tally.solved, count: actions.length };
+  const solved = tally.complete && tally.solved;
+  const view: CwView = { complete: tally.complete, solved, count: actions.length };
+  // codewordRev 7: a full grid that isn't cracked names the words on it that aren't real words (the board's own
+  // letters only; nothing about the solution).
+  if (tally.complete && !solved && (puzzle.codewordRev ?? 0) >= CODEWORD_REV_NAMES) {
+    view.nonWords = codewordRuns(puzzle.cells, N)
+      .map((run, i) => ({ i, word: run.cells.map((c) => letters[puzzle.cells[c]! - 1] ?? "").join("") }))
+      .filter((r) => !isWord(r.word))
+      .map((r) => r.i);
+  }
+  return view;
 }

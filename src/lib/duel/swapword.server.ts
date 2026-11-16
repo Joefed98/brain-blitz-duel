@@ -121,7 +121,7 @@ export function witnessSwaps(start: string, solution: string): SwSwap[] {
 }
 
 /** Fills the six slots with different common words (letters in tile order). */
-function fillWords(rng: () => number): string | null {
+export function fillWords(rng: () => number): string | null {
   const letters: (string | undefined)[] = Array.from({ length: SW_TILES }, () => undefined);
   const used: string[] = [];
   // Long crossing words first, then the four short ones.
@@ -171,15 +171,20 @@ export function swapwordRuleBreak(p: SwapwordPuzzleData): string | null {
 }
 
 /** Six crossing common words, scrambled to a proven 9–12-swap minimum (rev 3: budget minimum + 8; rev 2's boards). */
-export function generateSwapword(seed: number): SwapwordPuzzleData {
+/** The stamp a new board is generated on before the deal's layers (the levels build on the same one). */
+export function swapwordGenerateRev(): number {
   // Word depth d1: rev 4 (par swaps) deals rev 3's boards and budget; a check pinning the pre-depth stamps gets rev 3.
   // The puzzle top-up (26 Oct 2026): rev 5 deals rev 4's boards (the stamp only changes the par bonus).
   // Joe's phone notes (27 Oct 2026): rev 6 deals rev 5's boards with 4 more swaps.
-  const rev = dealtNotesRev(
+  return dealtNotesRev(
     SWAPWORD_REV_NOTES,
     SWAPWORD_REV_TOPUP,
     dealtDepthRev(dealtTopupRev(SWAPWORD_REV_TOPUP, SWAPWORD_REV), SWAPWORD_REV3),
   );
+}
+
+export function generateSwapword(seed: number): SwapwordPuzzleData {
+  const rev = swapwordGenerateRev();
   const rng = seededRng(seed);
   for (let attempt = 0; attempt < 200; attempt++) {
     const solution = fillWords(rng);

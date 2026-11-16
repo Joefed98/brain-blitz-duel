@@ -35,16 +35,22 @@ import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/F
 import { prefersReducedMotion } from "@/lib/motion";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
+import { effectCue, wordFx } from "@/components/puzzles/wordFx";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
-import "@/polish-layout/batch-w-wordslide.css";
+import "@/polish-word/word-look.css";
+import "@/polish-word/slider.css";
+import { BoardPair, RevealKey, RevealNumbers } from "@/components/puzzles/WordReveal";
+import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 import "@/polish-layout/polish-nov3-word.css";
 import { HudPills } from "@/components/puzzles/HudPills";
 
-const CELL = 56;
+// The Word overhaul: tiles as large as the width allows down to 44 px, so the board and its padlock column fit a
+// 375 px phone (a 56 px floor ran past its edge).
+const CELL = 44;
 /** Wider phones grow the tiles (lock column 56, board frame and gaps 36 take the rest). */
 const MAX_CELL = 72;
-const cellFor = (width: number) => Math.max(CELL, Math.min(MAX_CELL, Math.floor((width - 92) / WS_SIZE)));
+const cellFor = (width: number) => Math.max(CELL, Math.min(MAX_CELL, Math.floor((width - 84) / WS_SIZE)));
 const GAP = 4;
 
 export function Board({
@@ -87,12 +93,15 @@ export function Board({
           ? "border-primary bg-opponent/15"
           : good.has(row) ? "border-opponent bg-opponent/15" : "border-transparent bg-background/40";
         const swappable = swapRow === row;
+        const waTone = swappable && picked === i % WS_SIZE ? "sapphire" : locked?.has(row) || shut ? "gold" : good.has(row) ? "teal" : "black";
         return (
           <span
             key={i}
             data-cell={i}
             data-valid-row={good.has(row) ? "true" : undefined}
             data-slide-swap={swappable ? (picked === i % WS_SIZE ? "picked" : "open") : undefined}
+            data-wa="tile"
+            data-wa-tone={waTone}
              className={`word-letter-tile flex items-center justify-center rounded-lg border-2 font-display font-bold text-foreground ${tone}`}
             style={{ height: cell, fontSize: Math.round(cell * 0.5) }}
           >
@@ -106,7 +115,7 @@ export function Board({
   return (
     <div data-game-arena="fixed" data-word-first="" className="flex shrink-0 items-start gap-1">
       {board}
-      <div className="flex flex-col p-1.5" style={{ gap: GAP }}>
+      <div className="flex flex-col py-1.5" style={{ gap: GAP }}>
         {Array.from({ length: WS_SIZE }, (_, row) => {
           const isLocked = locked?.has(row) ?? false;
           const can = isLocked || good.has(row);
@@ -119,10 +128,13 @@ export function Board({
               aria-label={isLocked ? `Unlock row ${row + 1}` : `Lock row ${row + 1}`}
               disabled={!can}
               onClick={() => onLock(row)}
-              className={`slide-lock flex w-11 shrink-0 items-center justify-center rounded-lg ${drawnShut ? "bg-primary/20 text-primary" : "text-foreground"} disabled:opacity-60`}
+              data-slide-lock-shut={drawnShut ? "" : undefined}
+              className={`slide-lock flex w-11 shrink-0 items-center justify-center rounded-lg ${drawnShut ? "text-primary" : "text-foreground"} disabled:opacity-60`}
               style={{ height: cell }}
             >
-              {drawnShut ? <Lock className="h-7 w-7" /> : <LockOpen className="h-7 w-7" />}
+              {/* The padlocks are rendered pieces (public/word-art), the icon only for assistive tech's sake. */}
+              <span aria-hidden="true" className="slide-lock-art" />
+              {drawnShut ? <Lock className="sr-only" /> : <LockOpen className="sr-only" />}
             </button>
           );
         })}
@@ -174,6 +186,17 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const lastSwap = useRef<[number, number, number] | null>(null);
   // wordSlideRev 4: the tile picked in the last row, waiting for the tile to swap with (display state only).
   const [picked, setPicked] = useState<number | null>(null);
+  // The Word overhaul: Reset asks first. The first tap arms it ("Reset?") for 3 s; a second tap resets.
+  const [resetArmed, setResetArmed] = useState(false);
+  const resetArmedRef = useRef(false);
+  useEffect(() => {
+    if (!resetArmed) return;
+    const timer = window.setTimeout(() => {
+      resetArmedRef.current = false;
+      setResetArmed(false);
+    }, 3000);
+    return () => window.clearTimeout(timer);
+  }, [resetArmed]);
   useNoTouchScroll(root);
 
   useBeforePaint(() => {
@@ -226,6 +249,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
           // A row the player made into a word: the shared "correct" and its small burst, like the other word games.
           if (v.valid && !lockedNow.current && !openingWords.current?.has(word)) {
             fx.onCorrect();
+            // Stage 2: a row becoming a word brightens with its own two-note.
+            effectCue("wordslide.word");
             // Batch W (display only): the row that became a word gets the toolkit's right-move glow.
             rowWords.forEach((w, i) => {
               if (w !== word) return;
@@ -280,6 +305,17 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     }
   }, [tokens]);
 
+  // Stage 2: at par with three rows already words, a nudge on the moves counter (once each time it happens).
+  const goodNow = rowWords.filter((w) => verdicts[w] === true).length;
+  const nudgeAt = useRef(-1);
+  useEffect(() => {
+    if (!data || !replay || !parOn || locked || submitted.current) return;
+    if (replay.moves !== data.par || goodNow < 3 || nudgeAt.current === replay.moves) return;
+    nudgeAt.current = replay.moves;
+    wordFx("nearMiss", root.current?.querySelector('[data-hud-pill="moves"]'), "wordslide.nudge");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [replay?.moves, goodNow]);
+
   // All five rows are words: the padlocks click shut down the rows in a cascade (display only).
   useWordFinish(finished, () => {
     wordCue("wordslide.finish");
@@ -318,14 +354,30 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const canUndo = tokens.reduce((depth, token) => token.startsWith("L") ? depth : token === "X" ? 0 : token === "U" ? Math.max(0, depth - 1) : depth + 1, 0) > 0;
 
   const push = (token: string) => {
+    // The Word overhaul: Reset (the button or R) asks first; the first press only arms it, any other move disarms it.
+    if (token === "X" && !resetArmedRef.current) {
+      resetArmedRef.current = true;
+      setResetArmed(true);
+      wordFx("tap", null, "wordslide.resetArm");
+      return;
+    }
+    resetArmedRef.current = false;
+    setResetArmed(false);
     if (frozen) return;
     const parsed = parseToken(token);
     if (parsed && typeof parsed === "object" && "swap" in parsed) {
       if (swapRow === null) return puzzleReject(board.current);
       lastSwap.current = [swapRow, parsed.swap[0], parsed.swap[1]];
+      effectCue("wordslide.swap");
     } else if (parsed && typeof parsed === "object" && !("lock" in parsed)) {
       if (parsed.axis === "r" && lockedRows.has(parsed.index)) return puzzleReject(board.current);
       lastShift.current = parsed;
+      // Stage 2: the swipe slides its line with a tile rattle (the line's own slide is the layout effect above).
+      effectCue("wordslide.slide");
+    } else if (parsed && typeof parsed === "object" && "lock" in parsed) {
+      // Stage 2: the padlock snaps shut (or opens again) on its own art.
+      const row = parsed.lock;
+      wordFx("drop", root.current?.querySelector(`[data-slide-lock="${row}"] .slide-lock-art`), lockedRows.has(row) ? "wordslide.unlock" : "wordslide.lock", { silent: true });
     }
     setTokens([...tokens, token]);
   };
@@ -394,7 +446,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
           title="Undo last move"
           disabled={frozen || !canUndo}
           onClick={() => push("U")}
-          className="h-11 w-28 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
+          data-wa-btn="navy"
+          className="h-11 w-28 rounded-xl font-display text-sm font-bold uppercase tracking-widest disabled:opacity-40"
         >
           <Undo2 className="h-4 w-4" aria-hidden="true" />
           Undo
@@ -402,21 +455,63 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         <Button
           type="button"
           data-slide-action="reset"
-          aria-label="Reset the board"
+          data-slide-reset-armed={resetArmed ? "" : undefined}
+          aria-label={resetArmed ? "Tap again to reset the board" : "Reset the board"}
           title="Reset the board"
           disabled={frozen || !canUndo}
           onClick={() => push("X")}
-          className="h-11 w-28 rounded-xl border border-border bg-card font-display text-sm font-bold uppercase tracking-widest text-foreground disabled:opacity-40"
+          data-wa-btn={resetArmed ? "gold" : "navy"}
+          className="h-11 w-28 rounded-xl font-display text-sm font-bold uppercase tracking-widest disabled:opacity-40"
         >
           <RotateCcw className="h-4 w-4" aria-hidden="true" />
-          Reset
+          {resetArmed ? "Reset?" : "Reset"}
         </Button>
       </div>
     </div>
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, validRows }: PuzzleRevealProps) {
+/**
+ * The Word overhaul's reveal (wordSlideRev 6+): the five dealt words as a solved grid (gold) and your final grid, one at
+ * a time and large (the shared Solution / Yours switch), your rows that read as words in teal; the numbers the score is
+ * made of: rows made, moves used and par (the proven fewest).
+ */
+function RevealOverhaul({ puzzle, myAnswer, myCorrect, validRows }: PuzzleRevealProps) {
+  if (puzzle.type !== "wordslide") return null;
+  const replay = replayWordSlide(puzzle.grid, decodeSlideTokens(myAnswer ?? ""), { swaps: slideSwapsOn(puzzle) });
+  const words = puzzle.words ?? [];
+  const good = new Set<number>(WS_MARKED_ROWS.filter((r) => myCorrect || validRows?.includes(r)));
+  const cell = 52;
+  return (
+    <div data-word-reveal="wordslide" data-wr-version="overhaul" className="wr">
+      <RevealNumbers
+        countAfterMs={200}
+        items={[
+          { id: "rows", label: "Rows made", value: `${good.size}/${WS_MARKED_ROWS.length}`, tone: myCorrect ? "gold" : undefined },
+          { id: "moves", label: "Moves used", value: replay.moves, tone: myCorrect && replay.moves <= puzzle.par ? "gold" : undefined },
+          { id: "par", label: "Par (fewest)", value: puzzle.par },
+        ]}
+      />
+      <BoardPair
+        solution={<Board grid={[...words.join("")]} cell={cell} good={new Set()} shut />}
+        // Joe (15 Nov 2026): the key belongs to Yours only (the solution is all locked gold).
+        yours={
+          <>
+            <Board grid={replay.grid} cell={cell} good={good} />
+            <RevealKey items={[{ tone: "teal", label: "A real word" }, { tone: "black", label: "Not a word" }]} />
+          </>
+        }
+      />
+    </div>
+  );
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  if (overhaulReveal(props.puzzle)) return <RevealOverhaul {...props} />;
+  return <RevealOlder {...props} />;
+}
+
+function RevealOlder({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, validRows }: PuzzleRevealProps) {
   if (puzzle.type !== "wordslide") return null;
   const replay = replayWordSlide(puzzle.grid, decodeSlideTokens(myAnswer ?? ""), { swaps: slideSwapsOn(puzzle) });
   const words = puzzle.words ?? [];

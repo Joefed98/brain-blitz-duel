@@ -12,8 +12,16 @@ import { shuffleLetterOrder } from "@/components/puzzles/letterShuffle";
 import { FoundWordMoment, type AcceptedWordMoment } from "@/components/puzzles/FoundWordMoment";
 import { fx } from "@/lib/fx";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
+import { effectCue, flyFrom, stagger, stepCue, wordFx } from "@/components/puzzles/wordFx";
+
+/** Stage 2 effects: a note a letter while tracing, rising. */
+const LW_TRACE_CUES = ["letterwheel.trace1", "letterwheel.trace2", "letterwheel.trace3", "letterwheel.trace4", "letterwheel.trace5", "letterwheel.trace6", "letterwheel.trace7", "letterwheel.trace8"] as const;
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-layout/batch-w-letterwheel.css";
+import "@/polish-word/word-look.css";
+import "@/polish-word/roundabout.css";
+import { overhaulReveal, usesWordOverhaul } from "@/lib/duel/wordOverhaul";
+import { RevealKey, RevealNumbers } from "@/components/puzzles/WordReveal";
 import "@/polish-layout/polish-nov3-word.css";
 import { HudPills } from "@/components/puzzles/HudPills";
 
@@ -27,7 +35,10 @@ export function Crossword({
   letters,
   missed,
   cellPx,
+  art = false,
 }: {
+  /** The Word overhaul's rendered wells and tiles (the live stage, the intro and wheelRev 5's reveal; older reveals as before). */
+  art?: boolean;
   cols: number;
   rows: number;
   slots: readonly LetterWheelSlot[];
@@ -51,6 +62,9 @@ export function Crossword({
           <div
             key={cell}
             data-lw-cell={cell}
+            // Empty squares are low slate tiles (Joe, 15 Nov 2026: as readable as today's, never near-black wells).
+            data-wa={art ? "tile" : undefined}
+            data-wa-tone={art ? (ch ? "black" : miss ? "dim" : "slate") : undefined}
             className={`word-letter-tile flex items-center justify-center rounded-sm font-mono font-bold ${
               ch ? "bg-primary text-primary-foreground" : miss ? "bg-card text-muted-foreground ring-1 ring-inset ring-destructive" : "bg-card"
             }`}
@@ -90,7 +104,10 @@ export function Wheel({
   shake,
   quietShake,
   order,
+  missed = false,
 }: {
+  /** The Word overhaul: a miss (not a word) tints the discs red for a moment; a harmless repeat never does. */
+  missed?: boolean;
   letters: string;
   path: readonly number[];
   onPath?: (path: number[]) => void;
@@ -203,6 +220,8 @@ export function Wheel({
         return (
           <div
             key={i}
+            data-wa="disc"
+            data-wa-tone={on ? "gold" : missed ? "red" : "black"}
             className={`word-letter-tile letter-shuffle-tile pointer-events-none absolute flex items-center justify-center rounded-full font-display font-bold ${
               on ? "bg-primary text-primary-foreground" : "text-foreground"
             }`}
@@ -237,8 +256,6 @@ function jarPulse(el: HTMLElement | null): void {
 export function BonusJar({ drops, size, words }: { drops: number; size: number; words: number }) {
   const share = Math.max(0, Math.min(1, drops / Math.max(1, size)));
   const full = share >= 1;
-  // The jar's inside runs from y 9 to y 30 (21 units).
-  const h = 21 * share;
   return (
     <div
       data-lw-jar={drops}
@@ -248,23 +265,12 @@ export function BonusJar({ drops, size, words }: { drops: number; size: number; 
       data-lw-jar-full={full ? "" : undefined}
       className="flex h-8 items-center gap-1.5 font-mono text-xs font-bold tabular-nums"
     >
-      {/* 3 Nov 2026: a larger jar (26 × 35, was 22 × 30) and its count in a bright pill (polish-nov3-word.css). */}
-      <svg viewBox="0 0 24 32" width={26} height={35} aria-hidden="true">
-        <defs>
-          <clipPath id="lw-jar-inside">
-            <path d="M5 9 h14 a2 2 0 0 1 2 2 v17 a3 3 0 0 1 -3 3 h-12 a3 3 0 0 1 -3 -3 v-17 a2 2 0 0 1 2 -2z" />
-          </clipPath>
-          <linearGradient id="lw-jar-fill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#ffe08a" />
-            <stop offset="1" stopColor="#d99a1e" />
-          </linearGradient>
-        </defs>
-        <path d="M5 9 h14 a2 2 0 0 1 2 2 v17 a3 3 0 0 1 -3 3 h-12 a3 3 0 0 1 -3 -3 v-17 a2 2 0 0 1 2 -2z" fill="rgba(255,255,255,0.07)" />
-        <rect x="3" y={30 - h} width="18" height={h + 1} fill="url(#lw-jar-fill)" clipPath="url(#lw-jar-inside)" style={{ transition: "y 300ms ease-out, height 300ms ease-out" }} />
-        <path d="M5 9 h14 a2 2 0 0 1 2 2 v17 a3 3 0 0 1 -3 3 h-12 a3 3 0 0 1 -3 -3 v-17 a2 2 0 0 1 2 -2z" fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1.2" />
-        <rect x="6" y="4" width="12" height="4" rx="1.2" fill={full ? "#f2c75c" : "#5a5a66"} stroke="rgba(255,255,255,0.35)" strokeWidth="0.8" />
-        <path d="M8 12 v14" stroke="rgba(255,255,255,0.28)" strokeWidth="1.4" strokeLinecap="round" />
-      </svg>
+      {/* The Word overhaul: a rendered glass jar (public/word-art/jar.webp) that visibly fills with gold coins: the coin
+          pile (jar-coins.webp) is shown up to the jar's level. 28 × 35, the size the 3 Nov 2026 jar took. */}
+      <span aria-hidden="true" className="lw-jar-art" data-lw-jar-level={Math.round(share * 100)}>
+        <span className="lw-jar-coins" style={{ clipPath: `inset(${share > 0 ? (12 + 82 * (1 - share)).toFixed(1) : 100}% 0 0 0)` }} />
+        <span className="lw-jar-glass" />
+      </span>
       <span className="lw-jar-count">{words}</span>
     </div>
   );
@@ -279,7 +285,7 @@ function IntroExample() {
   return (
     <div className="flex flex-col items-center gap-2">
       <div style={{ width: 96, height: 72 }}>
-        <Crossword cols={4} rows={3} slots={EX_SLOTS} letters={letterMap(4, EX_SLOTS, [undefined, "TEA"])} cellPx={22} />
+        <Crossword cols={4} rows={3} slots={EX_SLOTS} letters={letterMap(4, EX_SLOTS, [undefined, "TEA"])} cellPx={22} art />
       </div>
       <p className="font-mono text-sm font-bold tracking-widest text-primary">TEA</p>
       <div style={{ width: 110, height: 110, containerType: "size" }}>
@@ -324,6 +330,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   const [shake, setShake] = useState(false);
   const [quietShake, setQuietShake] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
+  // The Word overhaul: a miss and a harmless repeat look different (a red tint and "Not a word" for a miss; a quiet
+  // shake and a grey note for a repeat).
+  const [missFlash, setMissFlash] = useState(false);
   const [accepted, setAccepted] = useState<AcceptedWordMoment | null>(null);
   const [order, setOrder] = useState(() => Array.from({ length: data?.letters.length ?? 0 }, (_, i) => i));
   const submitted = useRef(false);
@@ -351,9 +360,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filledCount, locked]);
 
+  // Stage 2: a note for each letter the trace takes, rising.
+  const tracedLength = useRef(0);
+  useEffect(() => {
+    const grew = path.length > tracedLength.current;
+    tracedLength.current = path.length;
+    if (grew) effectCue(stepCue(LW_TRACE_CUES, path.length - 1));
+  }, [path]);
+
   // Crossword complete: the wheel spins once, then the crossword lights corner to corner (display only).
   useWordFinish(slotCount > 0 && filledCount >= slotCount, () => {
     wordCue("letterwheel.finish");
+    effectCue("letterwheel.spin");
     const root = stageRef.current;
     const cols = data?.cols ?? 1;
     const rows = data?.rows ?? 1;
@@ -440,6 +458,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         // Batch W: the toolkit's right-move glow on the slot's cells as the word lands (display only).
         const slot = data.slots[i];
         if (slot) for (const cell of lwSlotCells(slot, data.cols)) rightMoveFlash(stageRef.current?.querySelector(`[data-lw-cell="${cell}"]`));
+        // Stage 2: the word's letters fly from the wheel into their squares, one after another.
+        if (slot && !lockedNow.current) {
+          const from = stageRef.current?.querySelector("[data-lw-wheel]")?.getBoundingClientRect();
+          const cells = lwSlotCells(slot, data.cols);
+          effectCue("letterwheel.fly");
+          requestAnimationFrame(() => stagger(cells.length, 60, (k) => flyFrom(stageRef.current?.querySelector(`[data-lw-cell="${cells[k]}"]`), from)));
+        }
       } else if (v.reason === "Not in this puzzle" && usesJar && !bonus.includes(v.word.toUpperCase())) {
         // wheelRev 2: a real word not in the crossword drops into the bonus jar.
         const word = v.word.toUpperCase();
@@ -447,12 +472,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         setFlash(`Bonus · ${word}`);
         setTimeout(() => setFlash(null), 900);
         jarPulse(jarRef.current);
+        // Stage 2: the bonus word drops into the jar with a coin plink.
+        if (!lockedNow.current) wordFx("drop", null, "letterwheel.jar", { silent: true });
       } else if (v.reason === "Not in this puzzle") {
         // Game review fix (15 Nov 2026): a word already in the jar is a harmless repeat: the wheel's own silent shake,
         // never the reject sound (wheelRev 1's word not in the puzzle plays its one `wrong` above).
         // The shared shake observer plays the quiet `wrong` on every shake; this one is marked quiet (data-quiet-shake).
         setQuietShake(true);
         setShake(true);
+        // Stage 2: a harmless repeat is a gentle bump with a soft tick, never an error.
+        if (!lockedNow.current) wordFx("nearMiss", null, "letterwheel.repeat", { noHaptic: true });
         setTimeout(() => {
           setShake(false);
           setQuietShake(false);
@@ -463,6 +492,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         if (usesLog && v.reason === "Not a word") setMisses((m) => m + 1);
         setShake(true);
         setTimeout(() => setShake(false), 350);
+        if (v.reason === "Not a word") {
+          if (!lockedNow.current) effectCue("letterwheel.miss");
+          setMissFlash(true);
+          setTimeout(() => setMissFlash(false), 450);
+          setFlash("Not a word");
+          setTimeout(() => setFlash(null), 900);
+        } else if (v.reason) {
+          setFlash("Already found");
+          setTimeout(() => setFlash(null), 900);
+        }
       }
     });
   };
@@ -482,7 +521,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
       // 3 Nov 2026 (Joe's audit: tiny crossword cells under a large wheel): the wheel gives the crossword about 80 px,
       // 172–220 px plus growth up to 280 px only past a 380 px crossword (100cqh - 460 px); the crossword's cap is
       // 380 px tall (polish-nov3-word.css) and 400 px wide.
-      style={{ "--lw-wheel": "max(clamp(172px, calc(100cqh - 410px), 220px), min(280px, calc(100cqw - 24px), calc(100cqh - 460px)))" } as CSSProperties}
+      // The Word overhaul (Joe, 15 Nov 2026): a bigger wheel than today's (180–224 px, up to 290 px on tall screens).
+      style={{ "--lw-wheel": "max(clamp(180px, calc(100cqh - 400px), 224px), min(290px, calc(100cqw - 24px), calc(100cqh - 450px)))" } as CSSProperties}
     >
       <div data-arena-part="letterwheel-board" data-word-first="" className="flex min-h-0 w-full flex-[7] items-center justify-center" style={{ containerType: "size" }}>
         <div
@@ -492,11 +532,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
             containerType: "size",
           }}
         >
-          <Crossword cols={data.cols} rows={data.rows} slots={data.slots} letters={letterMap(data.cols, data.slots, filled)} />
+          <Crossword cols={data.cols} rows={data.rows} slots={data.slots} letters={letterMap(data.cols, data.slots, filled)} art />
         </div>
       </div>
       <div data-arena-part="letterwheel-word" className="relative flex h-8 w-full shrink-0 items-center justify-center px-2 font-mono text-lg font-bold tracking-widest text-primary" aria-live="polite">
-        <span>{current || flash || ""}</span>
+        <span data-lw-flash={!current && flash ? (flash === "Not a word" ? "miss" : flash.startsWith("Bonus") ? "bonus" : "repeat") : undefined}>{current || flash || ""}</span>
         {usesJar ? (
           <div ref={jarRef} className="absolute inset-y-0 right-2 flex items-center">
             <BonusJar drops={jarDrops} size={jarSize} words={bonus.length} />
@@ -508,7 +548,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         </div>
       </div>
       <div data-game-arena="letterwheel-wheel" className="flex min-h-[142px] w-full flex-[4] -translate-y-1 items-center justify-center" style={{ containerType: "size" }}>
-        <Wheel letters={wheel} order={order} path={path} onPath={setPath} onRelease={release} onCancel={clear} onTap={tapLetter} disabled={done} shake={shake} quietShake={quietShake} />
+        <Wheel letters={wheel} order={order} path={path} onPath={setPath} onRelease={release} onCancel={clear} onTap={tapLetter} disabled={done} shake={shake} quietShake={quietShake} missed={missFlash} />
       </div>
       {/* Raised inside the Stage (pb-3) so the buttons sit clear of the screen's bottom edge. */}
       <div data-game-controls="actions" data-word-controls-first="" className="grid w-full shrink-0 grid-cols-[1fr_auto_1fr] items-center gap-3 px-2 pb-3 pt-2">
@@ -525,20 +565,64 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
           type="button"
           onClick={release}
           disabled={done || current.length < 3}
+          data-wa-btn="gold"
           className="h-11 min-w-28 px-6 font-mono text-base uppercase tracking-widest"
         >
           Submit
         </Button>
         <div className="flex items-center gap-2 justify-self-end">
-          <Button type="button" variant="outline" className="h-11 w-11 p-0" title="Clear letters" aria-label="Clear letters" data-lw-clear="" disabled={done || path.length === 0} onClick={clear}><X className="h-5 w-5" /></Button>
-          <Button type="button" variant="outline" className="h-11 w-11 p-0" title="Shuffle letters" aria-label="Shuffle letters" disabled={done} onClick={() => setOrder(previous => shuffleLetterOrder(previous))}><Shuffle className="h-5 w-5" /></Button>
+          <Button type="button" variant="outline" data-wa-btn="navy" className="h-11 w-11 p-0" title="Clear letters" aria-label="Clear letters" data-lw-clear="" disabled={done || path.length === 0} onClick={clear}><X className="h-5 w-5" /></Button>
+          <Button type="button" variant="outline" data-wa-btn="navy" className="h-11 w-11 p-0" title="Shuffle letters" aria-label="Shuffle letters" disabled={done} onClick={() => setOrder(previous => shuffleLetterOrder(previous))}><Shuffle className="h-5 w-5" /></Button>
         </div>
       </div>
     </div>
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining, myExtra }: PuzzleRevealProps) {
+/**
+ * The Word overhaul's reveal (wheelRev 5+): the crossword large, the words you found gold and the letters of the words
+ * you missed dimmed in red; the bonus jar as it filled; the numbers the score is made of: words found, bonus words and
+ * misses (the first five free).
+ */
+function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
+  if (puzzle.type !== "letterwheel") return null;
+  const words = puzzle.words ?? [];
+  const v = lwGrade(words, puzzle.slots, puzzle.cols, lwDecodeLog(myAnswer ?? "").filter((t) => words.includes(t)));
+  const got = new Set(v.slots);
+  const mine = letterMap(puzzle.cols, puzzle.slots, words.map((w, i) => (got.has(i) ? w : undefined)));
+  const all = letterMap(puzzle.cols, puzzle.slots, words);
+  const missed = new Map([...all].filter(([c]) => !mine.has(c)));
+  const num = (k: string) => (typeof myExtra?.[k] === "number" ? (myExtra[k] as number) : Number(myExtra?.[k] ?? 0));
+  const misses = num("misses");
+  const bonusWords = num("bonusWords");
+  const px = Math.floor(Math.min(340 / puzzle.cols, 300 / puzzle.rows, 40));
+  return (
+    <div data-word-reveal="letterwheel" data-wr-version="overhaul" className="wr">
+      <RevealNumbers
+        countAfterMs={200}
+        items={[
+          { id: "words", label: "Words found", value: `${v.slots.length}/${words.length}`, tone: v.slots.length === words.length ? "gold" : undefined },
+          { id: "bonus", label: "Bonus words", value: bonusWords, tone: bonusWords > 0 ? "gold" : undefined },
+          { id: "misses", label: `Misses (${LW_FREE_MISSES} free)`, value: misses, tone: misses > LW_FREE_MISSES ? "warn" : undefined },
+        ]}
+      />
+      <div style={{ width: px * puzzle.cols, height: px * puzzle.rows }}>
+        <Crossword cols={puzzle.cols} rows={puzzle.rows} slots={puzzle.slots} letters={mine} missed={missed} cellPx={px} art />
+      </div>
+      <div className="flex items-center gap-3">
+        <BonusJar drops={Math.min(num("jarDrops"), num("jarSize") || 1)} size={num("jarSize") || 1} words={bonusWords} />
+        <RevealKey items={[{ tone: "gold", label: "Found" }, { tone: "dim", label: "Missed" }]} />
+      </div>
+    </div>
+  );
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  if (overhaulReveal(props.puzzle)) return <RevealOverhaul {...props} />;
+  return <RevealOlder {...props} />;
+}
+
+function RevealOlder({ timeLimitMs, puzzle, myAnswer, myMsRemaining, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "letterwheel") return null;
   const words = puzzle.words ?? [];
   // wheelRev 1: the answer is the attempt log; its slot words are the ones the server counted.
@@ -556,7 +640,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining, myExtra }: Puzzl
   return (
     <div data-word-reveal="letterwheel" className="flex w-full flex-col items-center gap-2">
       <div style={{ width: px * puzzle.cols, height: px * puzzle.rows }}>
-        <Crossword cols={puzzle.cols} rows={puzzle.rows} slots={puzzle.slots} letters={mine} missed={missed} cellPx={px} />
+        <Crossword cols={puzzle.cols} rows={puzzle.rows} slots={puzzle.slots} letters={mine} missed={missed} cellPx={px} art={usesWordOverhaul(puzzle, "letterwheel")} />
       </div>
       <p className="font-mono text-base text-primary">
         {complete

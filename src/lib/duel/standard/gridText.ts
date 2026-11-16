@@ -3,6 +3,7 @@
  * intro's SCORE line, from the numbers the server grades with, written with the game's maximum (roundMax.ts). The intro
  * stays within two phone lines with no scoring terms (intro-score-text-check). Shared and pure.
  */
+import { preLogic2Pinned } from "../logicOverhaul2";
 import { roundMaxFor } from "../roundMax";
 import { GRID_STANDARD, type GridStandardType } from "./gridRules";
 import { puzzleScoreList } from "../scoreList";
@@ -22,8 +23,14 @@ const MISTAKE: Record<GridStandardType, string> = {
   fences: "no line ever drawn off the loop",
   fillomino: "no wrong number ever entered (erased ones too)",
   bridges: "no wrong bridge ever built",
-  kakuro: "no wrong digit ever entered (erased ones too)",
+  kakuro: "no digit ever entered that broke a rule (erased ones too)",
 };
+
+/** Regions fillominoRev 2 (the Logic overhaul, 15 Nov 2026): one stroke over wrong squares is one mistake. */
+function mistakeText(type: GridStandardType): string {
+  if (type === "fillomino" && !preLogic2Pinned()) return "no wrong number ever entered (one stroke or tap counts once, erased ones too)";
+  return MISTAKE[type];
+}
 
 const FINISH: Record<GridStandardType, string> = {
   fences: "draw the whole loop",
@@ -39,7 +46,7 @@ export function gridStandardHelp(type: GridStandardType): string {
   return puzzleScoreList({
     finish: FINISH[type],
     speed: { max: r.speed, fullByS: r.fullByS },
-    bonuses: [{ label: word, how: `${MISTAKE[type]}, ${fmt(r.per)} less for each`, max: r.bonus }],
+    bonuses: [{ label: word, how: `${mistakeText(type)}, ${fmt(r.per)} less for each`, max: r.bonus }],
     unfinished: UNFINISHED[type],
     total: roundMaxFor(type),
   });
@@ -50,7 +57,7 @@ const INTRO: Record<GridStandardType, string> = {
   fences: "Draw the whole loop; bonuses for speed and no wrong lines.",
   fillomino: "Fill every region; bonuses for speed and no wrong numbers.",
   bridges: "Link every island; bonuses for speed and no wrong bridges.",
-  kakuro: "Fill the grid; bonuses for speed and no wrong digits.",
+  kakuro: "Fill the grid; bonuses for speed and no rule broken.",
 };
 
 export function gridStandardIntro(type: GridStandardType): string {

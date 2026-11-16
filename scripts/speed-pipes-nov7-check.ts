@@ -22,6 +22,7 @@ import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { PIPES_REV_PLACED, TAP_REV_PER_ITEM, pinPreNov7 } from "../src/lib/duel/speedPipesNov7";
+import { pinPrePatternNov15 } from "../src/lib/duel/patternNov15";
 import { FLASH_REV6_CURVE, scoreFlashDepth } from "../src/lib/duel/depth/flash";
 import { scoreBangOnDepth } from "../src/lib/duel/depth/bangOn";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
@@ -32,6 +33,10 @@ import { asPhoneSends, gradeSteps, median } from "./standard-lib";
 import { SPEED_PIPES_NOV7_FIXTURE, type Nov7Fixture } from "./speed-pipes-nov7-record";
 import { bangOnRun, flashRun, pipesIndexOrder } from "./speed-pipes-nov7-bands";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): this check is written for
+// pipesRev 4, so it deals the stamps before patternNov15.ts (pipesRev 5 is pattern-overhaul-pipes-check's).
+pinPrePatternNov15(true);
 
 let checks = 0;
 const failures: string[] = [];

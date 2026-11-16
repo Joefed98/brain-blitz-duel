@@ -9,9 +9,11 @@
 import type { PuzzleData, PuzzleType } from "../types";
 import { FENCES_CROSS, FENCES_LINE, decodeFences, fencesProgress, fencesWrongKeys } from "../fences";
 import { fillominoProgress, fillominoWrongKeys } from "../fillomino";
+import { fillominoStrokes } from "../logicOverhaul2";
 import { bridgePairs, bridgesProgress, bridgesWrongKeys, decodeBridges } from "../bridges";
 import { leftWrongKeys, usesNotesFree } from "../notesFree";
-import { kakuroProgress, kakuroWrongKeys } from "../kakuro";
+import { kakuroProgress, kakuroRuleMistakeKeys, kakuroWrongKeys } from "../kakuro";
+import { kakuroRuleMistakes } from "../numberOverhaul";
 import { cleanPoints, speedPoints } from "./shape";
 import type { StandardGame, StandardInput } from "./grade.server";
 import { GRID_EARLY_POINTS, GRID_SHARE_POINTS, GRID_STANDARD, gridNetPlaced, type GridStandardType } from "./gridRules";
@@ -30,6 +32,11 @@ interface GridGame {
    * cycle (Loopline's line to ✕, Island Link's double to none) and nothing else changed.
    */
   cycledOn?(puzzle: PuzzleData, cur: string, next: string, key: string): boolean;
+  /**
+   * Distinct mistakes read from the drafts in order, in place of wrongKeys, where the game's stamp says so (Kakuro
+   * kakuroRev 2: only a digit that breaks a rule as it goes in); null to use wrongKeys.
+   */
+  mistakesFrom?(puzzle: PuzzleData, drafts: readonly string[]): number | null;
 }
 
 const GAMES: Record<GridStandardType, GridGame> = {
@@ -63,6 +70,7 @@ const GAMES: Record<GridStandardType, GridGame> = {
   kakuro: {
     progress: (p, a) => (p.type === "kakuro" ? kakuroProgress(p, a) : EMPTY),
     wrongKeys: (p, a) => (p.type === "kakuro" ? kakuroWrongKeys(p, a) : []),
+    mistakesFrom: (p, drafts) => (p.type === "kakuro" && kakuroRuleMistakes(p) ? kakuroRuleMistakeKeys(p, drafts).length : null),
   },
 };
 
@@ -71,6 +79,8 @@ const EMPTY: GridProgress = { right: 0, wrong: 0, total: 0 };
 /** Distinct wrong items across every draft of the timeline (null without one: history unknown). */
 function everWrong(game: GridGame, input: StandardInput): number | null {
   if (!input.drafts) return null;
+  const ruled = game.mistakesFrom?.(input.puzzle, input.drafts.map((d) => d.draft));
+  if (ruled !== undefined && ruled !== null) return ruled;
   if (game.cycledOn && usesNotesFree(input.puzzle)) {
     const cycledOn = game.cycledOn;
     return leftWrongKeys(input.drafts, (d) => game.wrongKeys(input.puzzle, d), (cur, next, key) => cycledOn(input.puzzle, cur, next, key));
@@ -78,6 +88,27 @@ function everWrong(game: GridGame, input: StandardInput): number | null {
   const seen = new Set<string>();
   for (const d of input.drafts) for (const k of game.wrongKeys(input.puzzle, d.draft)) seen.add(k);
   return seen.size;
+}
+
+/**
+ * Regions fillominoRev 2 (the Logic overhaul, 15 Nov 2026): the drafts that brought in a wrong item not seen before.
+ * The stage reports one draft a stroke (or tap), so a stroke over several wrong squares is one mistake.
+ */
+function wrongChanges(game: GridGame, input: StandardInput): number | null {
+  if (!input.drafts) return null;
+  const seen = new Set<string>();
+  let changes = 0;
+  for (const d of input.drafts) {
+    let fresh = false;
+    for (const k of game.wrongKeys(input.puzzle, d.draft)) {
+      if (!seen.has(k)) {
+        seen.add(k);
+        fresh = true;
+      }
+    }
+    if (fresh) changes++;
+  }
+  return changes;
 }
 
 function gridGame(type: GridStandardType): StandardGame {
@@ -90,7 +121,7 @@ function gridGame(type: GridStandardType): StandardGame {
     },
     grade(input, ctx) {
       if (input.graded.isCorrect) {
-        const mistakes = everWrong(game, input);
+        const mistakes = fillominoStrokes(input.puzzle) ? wrongChanges(game, input) : everWrong(game, input);
         const speed = speedPoints(rule.speed, input.msLeft, input.limitMs, rule.fullByS * 1000);
         const bonus = mistakes === null ? 0 : cleanPoints(rule.bonus, rule.per, mistakes);
         return { finished: true, speed, bonus, measure: "clean", facts: { mistakes } };

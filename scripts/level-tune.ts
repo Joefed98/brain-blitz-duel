@@ -23,7 +23,8 @@
 import { existsSync } from "node:fs";
 
 import { gradeAnswer, generatePuzzle } from "../src/lib/duel/generate.server";
-import { puzzleDef, puzzleTimeLimitMs } from "../src/lib/duel/registry";
+import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
+import { usesArcadeClock } from "../src/lib/duel/catalogue";
 import { withSeededRandom } from "../src/lib/duel/random";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { levelsOf } from "../src/lib/levels/gameLevels";
@@ -151,7 +152,8 @@ async function tuneArcade(type: PuzzleType, level: Level, ns: readonly number[])
 /** Plays one game at one level on `seeds` samples from `from`. */
 export async function tune(type: PuzzleType, level: Level, seeds = 20, from = 0): Promise<TuneRow[]> {
   const ns = Array.from({ length: seeds }, (_, i) => from + i);
-  return puzzleDef(type).category === "arcade" ? tuneArcade(type, level, ns) : tunePuzzle(type, level, ns);
+  // An arcade-engine game in a puzzle category (Minefield, Logic) plays its skill-band bot, like the arcade games.
+  return usesArcadeClock(type) ? tuneArcade(type, level, ns) : tunePuzzle(type, level, ns);
 }
 
 export function tuneLine(r: TuneRow): string {

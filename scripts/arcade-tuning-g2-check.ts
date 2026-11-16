@@ -543,7 +543,8 @@ section("Intro demos stay stopped until re-recorded on the taller revision");
   // Expansion E6: Coral Pop's demo now plays only on bubbleRev 8 (e6-check).
   ok(/data\.type === "bubble" && demo\?\.puzzle\.type === "bubble" && demo\.puzzle\.bubbleRev !== (BUB_REV_REEF|BUB_REV_BLAST|BUB_REV_STD)\) return null/.test(src), "Coral Pop's demo plays only on bubbleRev 8 (bubbleRev 10 since the phone notes, 11 since the arcade scoring standard)");
   ok(/data\.type === "stroop" && demo\?\.puzzle\.type === "stroop" && demo\.puzzle\.clashRev !== CLASH_REV_DEPTH\) return null/.test(src), "Mixed Signals' demo plays only on clashRev 8 (depth to 200)");
-  ok(/data\.type === "clayshoot" && demo\?\.puzzle\.type === "clayshoot" && demo\.puzzle\.clayRev !== CLAY_REV_DEPTH\) return null/.test(src) && CLAY_REV === CLAY_REV_TALL, "Pull!'s demo plays only on clayRev 9 (depth to 200)");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul): the demo rule follows the dealt clayRev 10.
+  ok(/data\.type === "clayshoot" && demo\?\.puzzle\.type === "clayshoot" && demo\.puzzle\.clayRev !== CLAY_REV_WIDE\) return null/.test(src) && CLAY_REV === CLAY_REV_TALL, "Pull!'s demo plays only on clayRev 10 (the Speed overhaul; clayRev 9 before it)");
 }
 
 if (failures.length) {

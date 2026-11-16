@@ -16,6 +16,7 @@ import {
   type ShikakuRect,
 } from "./shikaku";
 import type { ShikakuPuzzleData } from "./types";
+import type { ShikakuLevel } from "./logicLevels";
 
 const MAX_AREA = 12;
 
@@ -33,7 +34,7 @@ export function shikakuEqualAdjacentPairs(rects: readonly ShikakuRect[]): number
   return pairs;
 }
 
-function tryPartition(height = SHIKAKU_SIZE): ShikakuRect[] | null {
+function tryPartition(height = SHIKAKU_SIZE, maxArea = MAX_AREA): ShikakuRect[] | null {
   const size = SHIKAKU_SIZE;
   const used = new Array<boolean>(size * height).fill(false);
   const rects: ShikakuRect[] = [];
@@ -54,7 +55,7 @@ function tryPartition(height = SHIKAKU_SIZE): ShikakuRect[] | null {
         }
         const rect = { r0, c0, r1, c1 };
         const area = rectArea(rect);
-        if (area > MAX_AREA) continue;
+        if (area > maxArea) continue;
         if (area === 1 && ones >= 1) continue;
         if (area === 2 && twos >= 2) continue;
         options.push(rect);
@@ -91,7 +92,13 @@ function clueCell(rect: ShikakuRect): number {
  * (one fewer at most, a little larger on average, so the round's clock still fits a good solve), the same mix rules, and still exactly
  * one partition.
  */
-export function generateShikaku(): ShikakuPuzzleData {
+export function generateShikaku(level: ShikakuLevel | null = null): ShikakuPuzzleData {
+  if (level) {
+    // A level (logicLevels.ts): 10 wide, its own height, rectangle count and largest area, still exactly one partition.
+    const board = buildShikaku(level.height, level.rects[0], level.rects[1], level);
+    if (!board) throw new Error("Shikaku generation failed");
+    return { ...board, timeLimitMs: level.timeLimitMs };
+  }
   return buildShikaku(SHIKAKU_DEPTH_HEIGHT, 17, 21) ?? generateLegacyShikaku();
 }
 
@@ -102,13 +109,13 @@ export function generateLegacyShikaku(): ShikakuPuzzleData {
   return board;
 }
 
-function buildShikaku(height: number, minRects: number, maxRects: number): ShikakuPuzzleData | null {
+function buildShikaku(height: number, minRects: number, maxRects: number, level?: ShikakuLevel): ShikakuPuzzleData | null {
   const tall = height !== SHIKAKU_SIZE;
   for (let attempt = 0; attempt < 50000; attempt++) {
-    const rects = tryPartition(height);
+    const rects = level ? tryPartition(height, level.maxArea) : tryPartition(height);
     if (!rects || rects.length < minRects || rects.length > maxRects) continue;
-    if (rects.filter((rect) => rectArea(rect) >= 6).length < 4) continue;
-    if (shikakuEqualAdjacentPairs(rects) < 3) continue;
+    if (rects.filter((rect) => rectArea(rect) >= 6).length < (level?.minBig ?? 4)) continue;
+    if (shikakuEqualAdjacentPairs(rects) < (level?.minEqualPairs ?? 3)) continue;
     const clues: ShikakuClue[] = rects.map((rect) => ({ cell: clueCell(rect), n: rectArea(rect) }));
     if (countShikakuSolutions(clues, 2, SHIKAKU_SIZE, height) !== 1) continue;
     return {

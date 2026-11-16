@@ -12,6 +12,7 @@
 import { bridgePairs, bridgesProgressCounts, crossingTable, encodeBridges, islandDegrees, type BridgePair } from "./bridges";
 import { seededRng, type SeededRng } from "./seededRng";
 import { BRIDGES_SIZE, type BridgesIsland, type BridgesPuzzleData } from "./types";
+import type { BridgesLevel } from "./logicLevels";
 
 export const BRIDGES_MIN_ISLANDS = 10;
 export const BRIDGES_MAX_ISLANDS = 14;
@@ -38,11 +39,10 @@ const MAX_OF = [-1, 0, 1, 1, 2, 2, 2, 2];
 const BITS = [0, 1, 1, 2, 1, 2, 2, 3];
 
 /**
- * Counts the solutions of a board up to `limit` (default 2: enough to prove uniqueness). Backtracking over the
- * candidate pairs with propagation: crossing pairs exclude each other, each island's sum bounds every pair at it, and a
- * group of islands joined by bridges whose numbers are all used up must be every island.
+ * The solver's deductions (counts on each island, crossings and connectivity) as a person-style model
+ * (logicHuman.server.ts): a domain bitmask per pair (bit v = v bridges possible), propagated to a fixed point.
  */
-export function solveBridges(size: number, islands: readonly BridgesIsland[], limit = 2): BridgesSolveResult {
+export function bridgesDeductions(size: number, islands: readonly BridgesIsland[]) {
   const pairs = bridgePairs(islands, size);
   const crosses = crossingTable(pairs);
   const at: number[][] = islands.map(() => []);
@@ -50,11 +50,6 @@ export function solveBridges(size: number, islands: readonly BridgesIsland[], li
     at[p.a]!.push(i);
     at[p.b]!.push(i);
   });
-  const result: BridgesSolveResult = { count: 0, first: null, branches: 0 };
-  if (islands.length === 0) return result;
-  // A lone island can never be connected to the rest.
-  if (islands.length > 1 && at.some((list) => list.length === 0)) return result;
-
   const propagate = (dom: number[]): boolean => {
     let changed = true;
     while (changed) {
@@ -118,6 +113,21 @@ export function solveBridges(size: number, islands: readonly BridgesIsland[], li
     for (const [g, n] of groupSize) if (!open.has(g) && n < islands.length) return false;
     return true;
   };
+
+  return { pairs, at, propagate };
+}
+
+/**
+ * Counts the solutions of a board up to `limit` (default 2: enough to prove uniqueness). Backtracking over the
+ * candidate pairs with propagation: crossing pairs exclude each other, each island's sum bounds every pair at it, and a
+ * group of islands joined by bridges whose numbers are all used up must be every island.
+ */
+export function solveBridges(size: number, islands: readonly BridgesIsland[], limit = 2): BridgesSolveResult {
+  const { pairs, at, propagate } = bridgesDeductions(size, islands);
+  const result: BridgesSolveResult = { count: 0, first: null, branches: 0 };
+  if (islands.length === 0) return result;
+  // A lone island can never be connected to the rest.
+  if (islands.length > 1 && at.some((list) => list.length === 0)) return result;
 
   const search = (dom: number[]): void => {
     if (result.count >= limit) return;
@@ -303,11 +313,12 @@ const FALLBACK: { islands: BridgesIsland[]; solution: number[] } = (() => {
   return { islands, solution: solveBridges(BRIDGES_SIZE, islands, 1).first ?? [] };
 })();
 
-export function generateBridges(seed: number): BridgesPuzzleData {
+export function generateBridges(seed: number, level: BridgesLevel | null = null): BridgesPuzzleData {
   const rng = seededRng(seed);
-  const size = BRIDGES_SIZE;
-  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const target = rng.int(BRIDGES_MIN_ISLANDS, BRIDGES_MAX_ISLANDS);
+  const size = level?.size ?? BRIDGES_SIZE;
+  const [gradeMin, gradeMax] = level?.grade ?? [BRIDGES_GRADE_MIN, BRIDGES_GRADE_MAX];
+  for (let attempt = 0; attempt < (level ? MAX_ATTEMPTS * 5 : MAX_ATTEMPTS); attempt++) {
+    const target = level ? rng.int(level.islands[0], level.islands[1]) : rng.int(BRIDGES_MIN_ISLANDS, BRIDGES_MAX_ISLANDS);
     const built = grow(rng, size, target);
     if (!built) continue;
     if (built.islands.some((isl) => isl.n < 1 || isl.n > 8)) continue;
@@ -315,9 +326,10 @@ export function generateBridges(seed: number): BridgesPuzzleData {
     if (bridgesRandomShare(built.solution) > BRIDGES_RANDOM_SHARE_MAX) continue;
     const solved = solveBridges(size, built.islands, 2);
     if (solved.count !== 1) continue;
-    if (solved.branches < BRIDGES_GRADE_MIN || solved.branches > BRIDGES_GRADE_MAX) continue;
-    return { type: "bridges", bridgesRev: 1, size, islands: built.islands, grade: solved.branches, solution: built.solution };
+    if (solved.branches < gradeMin || solved.branches > gradeMax) continue;
+    return { type: "bridges", bridgesRev: 1, size, islands: built.islands, grade: solved.branches, solution: built.solution, ...(level ? { timeLimitMs: level.timeLimitMs } : {}) };
   }
+  if (level) throw new Error("Island Link generation failed");
   return { type: "bridges", bridgesRev: 1, size, islands: FALLBACK.islands.map((i) => ({ ...i })), grade: 0, solution: [...FALLBACK.solution] };
 }
 

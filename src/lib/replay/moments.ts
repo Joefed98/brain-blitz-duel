@@ -18,7 +18,7 @@ import type { ArcadeFxEvent, ArcadeFxKind } from "@/lib/arcade/arcadeFx.renderer
 import { ARCADE_FX_SPECS, ENGINE_FX_SPECS, ORBIT3_FX } from "@/lib/arcade/arcadeFxGames.renderer";
 import type { PuzzleData } from "@/lib/duel/types";
 import { ORBIT_REV3 } from "@/lib/arcade/orbit";
-import { TD_TARGETS } from "@/lib/arcade/tenDrop";
+import { tdTargetsOf } from "@/lib/arcade/tenDrop";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export type MomentCategory = "success" | "finish" | "near-miss" | "save";
@@ -406,7 +406,7 @@ function ownCounters(game: string, rows: readonly MomentRow[]): Counter[] {
         { row: row("ten"), count: (s) => s.cleared, label: () => "TEN!" },
         {
           row: row("all-cleared"),
-          count: (s) => (s.cleared >= TD_TARGETS ? 1 : 0),
+          count: (s) => (s.cleared >= tdTargetsOf(s) ? 1 : 0),
           label: () => "ALL CLEARED!",
         },
       ];

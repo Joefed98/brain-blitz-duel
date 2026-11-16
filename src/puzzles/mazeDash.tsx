@@ -2,7 +2,6 @@ import { shownPar, usesParMoves } from "@/lib/duel/parMoves";
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/polish-nov3-speedatt.css";
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { memo, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { GoalLineContext } from "@/components/duel/GameFrame";
 import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
@@ -10,6 +9,10 @@ import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { registerFxPreview } from "@/components/puzzles/speedFx";
 
 import { ArrowPad, gridCellAt } from "@/components/puzzles/GridDrag";
+import { attentionArt } from "@/components/puzzles/attention/attentionArt";
+import { RevealLegend, RevealStats } from "@/components/puzzles/attention/RevealParts";
+import { attnSound } from "@/components/puzzles/attention/attentionFx";
+import { gameFx } from "@/lib/fx/kit";
 
 import {
   MAZE_E,
@@ -34,6 +37,7 @@ import {
   usesMazeDepth,
 } from "@/lib/duel/depth/labyrinth";
 import { mazeColsOf, mazeStraightFill } from "@/lib/duel/maze";
+import { mazeExitShown } from "@/lib/duel/attentionLevels";
 import { MAZE_CELLS, MAZE_COLS, MAZE_TIME_MS, type MazePuzzleData } from "@/lib/duel/types";
 import { playCorrect, playSound } from "@/lib/sound";
 import { mazeStandard } from "@/lib/duel/standard/attention";
@@ -88,11 +92,16 @@ const MazeWalls = memo(function MazeWalls({ cells, cols, rows, k = 1 }: { cells:
         </pattern>
       </defs>
       <rect width={cols} height={rows * k} fill={`url(#maze-floor-${id})`} />
+      {/* The Attention overhaul (15 Nov 2026): a Blender-rendered dark flagstone floor over the drawn one. */}
+      <image href={attentionArt("maze", "floor")} x={0} y={0} width={cols} height={rows * k} preserveAspectRatio="xMidYMid slice" data-maze-floor="" />
       {/* Polish batch S: a wide, faint ambient shadow under every wall for depth (display only). */}
       <path d={d} transform="translate(0.09 0.13)" stroke="rgba(0,0,0,0.28)" strokeWidth={0.3} strokeLinecap="round" fill="none" />
-      <path d={d} transform="translate(0.05 0.07)" stroke="var(--maze-wall-shadow)" strokeWidth={0.17} strokeLinecap="square" fill="none" />
-      <path d={d} stroke="var(--maze-wall)" strokeWidth={0.13} strokeLinecap="square" fill="none" />
-      <path d={d} transform="translate(-0.018 -0.025)" stroke="var(--maze-wall-top)" strokeWidth={0.04} strokeLinecap="square" fill="none" opacity={0.85} />
+      <path d={d} transform="translate(0.05 0.07)" stroke="var(--maze-wall-shadow)" strokeWidth={0.2} strokeLinecap="square" fill="none" />
+      {/* The Attention overhaul (15 Nov 2026, concept A): raised satin-metal walls: a darker metal body, a sheen down
+          its middle and a crisp lit edge on the top-left side (light, never a glow). */}
+      <path d={d} stroke="var(--maze-wall)" strokeWidth={0.17} strokeLinecap="square" fill="none" />
+      <path d={d} stroke="var(--maze-wall-sheen, var(--maze-wall))" strokeWidth={0.07} strokeLinecap="square" fill="none" />
+      <path d={d} transform="translate(-0.03 -0.035)" stroke="var(--maze-wall-top)" strokeWidth={0.035} strokeLinecap="square" fill="none" />
     </g>
   );
 });
@@ -110,7 +119,10 @@ export function MazeBoard({
   k = 1,
   stars,
   taken,
+  exitShown = true,
 }: {
+  /** Expert (stage 3 of the Attention overhaul): false until the trail's head is near the exit (display only). */
+  exitShown?: boolean;
   /** mazeRev 1: the detour stars' cells, and those the ball has taken (drawn as a faint outline). */
   stars?: readonly number[] | undefined;
   taken?: readonly number[] | undefined;
@@ -188,7 +200,7 @@ export function MazeBoard({
         <MazeWalls cells={cells} cols={cols} rows={rows} k={k} />
         {/* Start pad and exit tile: clear ends, drawn on the floor under the route. */}
         <rect x={(start % cols) + 0.08} y={Math.floor(start / cols) * k + 0.08} width={0.84} height={k - 0.16} rx={0.16} fill="var(--maze-start-floor)" stroke="var(--maze-start)" strokeWidth={0.05} />
-        <rect className="maze-exit-glow" x={(exit % cols) + 0.08} y={Math.floor(exit / cols) * k + 0.08} width={0.84} height={k - 0.16} rx={0.16} fill="var(--maze-exit-floor)" stroke={GOLD} strokeWidth={0.05} />
+        {exitShown && <rect className="maze-exit-glow" x={(exit % cols) + 0.08} y={Math.floor(exit / cols) * k + 0.08} width={0.84} height={k - 0.16} rx={0.16} fill="var(--maze-exit-floor)" stroke={GOLD} strokeWidth={0.05} />}
         {ghost && ghost.length > 1 && (
           <polyline
             points={ghost.map(centre).join(" ")}
@@ -202,14 +214,12 @@ export function MazeBoard({
           />
         )}
         {path.length > 1 && (
-          <polyline
-            points={path.map(centre).join(" ")}
-            fill="none"
-            stroke={GOLD}
-            strokeWidth={0.26}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
+          // The trail as a polished gold thread: a darker gold edge, the gold, and a bright core along its crown.
+          <g data-maze-trail="">
+            <polyline points={path.map(centre).join(" ")} fill="none" stroke="var(--maze-trail-edge, #7A5410)" strokeWidth={0.34} strokeLinecap="round" strokeLinejoin="round" />
+            <polyline points={path.map(centre).join(" ")} fill="none" stroke={GOLD} strokeWidth={0.26} strokeLinecap="round" strokeLinejoin="round" />
+            <polyline points={path.map(centre).join(" ")} fill="none" stroke="var(--maze-trail-core, #FFF0C2)" strokeWidth={0.07} strokeLinecap="round" strokeLinejoin="round" transform="translate(-0.025 -0.035)" opacity={0.85} />
+          </g>
         )}
         <circle
           cx={cx(start)}
@@ -245,6 +255,7 @@ export function MazeBoard({
           );
         })}
         {/* Goal: a gold star flag marking the exit cell, lit by a soft halo inside its cell. */}
+        {exitShown && <g data-maze-exit="">
         <circle
           className="maze-exit-glow"
           cx={cx(exit)}
@@ -260,6 +271,7 @@ export function MazeBoard({
           strokeLinejoin="round"
           style={{ filter: "drop-shadow(0 0 0.12px var(--primary))" }}
         />
+        </g>}
         {/* Player: current route head, a larger glowing gold dot. */}
         {(() => {
           const head = path.length ? path[path.length - 1]! : start;
@@ -307,7 +319,7 @@ function IntroExample() {
         <MazeBoard cells={cells} cols={3} start={0} exit={8} path={[0, 3, 4]} />
       </div>
       <p className="text-xs text-muted-foreground">
-        Wrong turns cost you time and steps. Finish in the fewest steps for a bonus.
+        Every step counts, back steps too. Finish close to par for a bonus.
       </p>
     </div>
   );
@@ -377,6 +389,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
     [par, depth, cells, start, exit, trail, cols],
   );
 
+  // The Attention overhaul (stage 2): each step a soft tick, a little higher for every junction passed; a step back a
+  // lighter tick as the trail retracts; the tip of a dead end a short falling note (a cue to turn back).
+  const stepsSeen = useRef(path.length);
+  useEffect(() => {
+    const before = stepsSeen.current;
+    stepsSeen.current = path.length;
+    if (path.length === before || before === 0) return;
+    if (path.length < before) {
+      attnSound("maze.back", { volume: 0.4 });
+      return;
+    }
+    const open = (cell: number) => [MAZE_N, MAZE_E, MAZE_S, MAZE_W].filter((side) => ((cells[cell] ?? 0) & side) !== 0).length;
+    const junctions = path.filter((cell) => open(cell) >= 3).length;
+    attnSound("maze.step", { volume: 0.4, rate: 1 + Math.min(junctions, 12) * 0.025 });
+    const head = path[path.length - 1]!;
+    if (head !== exit && head !== start && open(head) === 1) attnSound("maze.deadEnd", { volume: 0.55 });
+  }, [path.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const answerNow = depth ? encodeMazeTrail(trail, cols) : encodeMazePath(path);
   useEffect(() => {
     onDraftAnswer?.(answerNow);
@@ -400,6 +430,19 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
   }, [solved, path, locked, onSubmit, answerNow]);
 
   /**
+   * The Attention overhaul (stage 2): a wall stops the route with a dull bump and the trail's end flashes; the board
+   * never shakes. Throttled so a held arrow against a wall stays quiet.
+   */
+  const lastBump = useRef(0);
+  const bump = () => {
+    const now = performance.now();
+    if (now - lastBump.current < 300) return;
+    lastBump.current = now;
+    attnSound("maze.bump", { volume: 0.55 });
+    gameFx("wrong", arenaRef.current?.querySelector("[data-maze-ball] circle:nth-of-type(2)"), { silent: true });
+  };
+
+  /**
    * One cell touched by the finger: the route grows only into a cell next to its
    * end with no wall between, and retraces when the finger goes back. Anything
    * else is ignored — the route is never reset by a stray touch.
@@ -418,7 +461,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
           const last = lastOf(mazeTrailRoute(next));
           if (target === last || next.length > LAB_TRAIL_MAX) break;
           if (!mazeOpen(cells, last, target, cols)) {
-            puzzleReject();
+            bump();
             break;
           }
           next = [...next, target];
@@ -435,7 +478,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
         if (target === last) break;
         // Retracing one step backwards undoes a wrong turn.
         if (next.length > 1 && target === next[next.length - 2]) { next = next.slice(0, -1); continue; }
-        if (!mazeOpen(cells, last, target)) { puzzleReject(); break; }
+        if (!mazeOpen(cells, last, target)) { bump(); break; }
         next = [...next, target];
       }
       return next;
@@ -447,10 +490,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
     const last = path[path.length - 1] ?? start;
     const col = last % cols;
     const row = Math.floor(last / cols);
-    if (dir === "U" && row === 0) return puzzleReject();
-    if (dir === "D" && row >= Math.floor((cells.length - 1) / cols)) return puzzleReject();
-    if (dir === "L" && col === 0) return puzzleReject();
-    if (dir === "R" && col === cols - 1) return puzzleReject();
+    if (dir === "U" && row === 0) return bump();
+    if (dir === "D" && row >= Math.floor((cells.length - 1) / cols)) return bump();
+    if (dir === "L" && col === 0) return bump();
+    if (dir === "R" && col === cols - 1) return bump();
     const next =
       dir === "U"
         ? last - cols
@@ -484,7 +527,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
 
       <div ref={arenaRef} data-game-arena="board" className="flex min-h-0 flex-1 items-center justify-center">
         {/* mazeRev 1: the same board box as before (taller-than-square by k), split into 23 rows. */}
-        <MazeBoard cells={cells} cols={cols} start={start} exit={exit} path={path} onCell={touch} k={(k * cols) / rows} stars={stars} taken={taken} />
+        <MazeBoard cells={cells} cols={cols} start={start} exit={exit} path={path} onCell={touch} k={(k * cols) / rows} stars={stars} taken={taken} exitShown={!isMaze || solved || mazeExitShown(puzzle, path[path.length - 1] ?? start, cols)} />
       </div>
 
        <div data-game-controls="pad" data-maze-pad="" className="flex shrink-0 flex-col items-center justify-center">
@@ -493,6 +536,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "maze" }: P
           disabled={locked || solved}
           repeatMs={240}
           expanded
+          menuSwitch
         />
       </div>
     </div>
@@ -522,8 +566,12 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
   const elapsed =
     myMsRemaining === undefined ? null : Math.round((timeLimitMs - myMsRemaining) / 100) / 10;
 
+  const walked = walk ? Math.max(0, walk.length - 1) : Math.max(0, mine.length - 1);
+  const shortest = Math.max(0, (puzzle.solution ?? []).length - 1);
+  // The Attention overhaul's reveal (15 Nov 2026): the maze large, your trail in gold over the shortest route (dashed),
+  // and the numbers that explain the score as tiles: how far you got, the steps you walked (backtracks count) and par.
   return (
-    <div className="flex w-full flex-col items-center gap-3">
+    <div className="attn-rv" data-attn-reveal="maze">
       <div className="maze-reveal-board">
         <MazeBoard
           cells={puzzle.cells}
@@ -537,18 +585,24 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
           taken={taken}
         />
       </div>
-      <p className="font-mono text-base uppercase tracking-widest text-muted-foreground">
-        {/* Solved: the verdict row above says it (4 Nov 2026); this line keeps only the extra detail. */}
-        {[
-          myCorrect ? "" : `${Math.round(verdict.progress * 100)}% of the way`,
-          // mazeRev 4: the steps taken against par (the stored figures, a finish only).
-          parMoves && myCorrect && typeof myExtra?.["steps"] === "number" ? `${myExtra["steps"]} steps, par ${Number(myExtra["parSteps"] ?? 0)}` : "",
+      <RevealLegend
+        items={[
+          { mark: "trail", label: "Your trail" },
+          { mark: "route", label: "Shortest route" },
+        ]}
+      />
+      <RevealStats
+        game="maze"
+        items={[
+          { id: "far", label: myCorrect ? "Reached" : "How far", value: myCorrect ? "Exit" : `${Math.round(verdict.progress * 100)} %`, tone: myCorrect ? "good" : undefined },
+          // mazeRev 4: the steps taken against par (the stored figures on a finish).
+          { id: "steps", label: "Steps walked", value: parMoves && myCorrect && typeof myExtra?.["steps"] === "number" ? (myExtra["steps"] as number) : walked },
+          { id: "par", label: parMoves ? "Par" : "Shortest", value: parMoves && myCorrect && typeof myExtra?.["parSteps"] === "number" ? (myExtra["parSteps"] as number) : shortest },
           // The scoring standard (mazeRev 3): stars count finished or not.
-          taken ? `★ ${taken.length}/${LAB_STARS}${(myCorrect || mazeStandard(puzzle)) && starBonus > 0 ? ` +${starBonus}` : ""}` : "",
-        ]
-          .filter(Boolean)
-          .join(" · ")}
-      </p>
+          taken ? { id: "stars", label: "Stars", value: `${taken.length} of ${LAB_STARS}${(myCorrect || mazeStandard(puzzle)) && starBonus > 0 ? ` +${starBonus}` : ""}` } : null,
+        ]}
+      />
+      {myCorrect && elapsed !== null ? <p className="text-center text-sm font-semibold text-muted-foreground">Finished in {elapsed.toFixed(1)} s</p> : null}
     </div>
   );
 }

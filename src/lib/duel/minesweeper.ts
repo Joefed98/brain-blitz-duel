@@ -9,8 +9,8 @@ import {
   minesCleared,
   minesweeperGameFor,
   MINES_CHECKPOINT_INTERVAL,
-  MINES_INPUT_RANGES,
   MINES_RUN_TICKS,
+  minesInputRangesFor,
   type MinesCheckpoint,
   type MinesState,
 } from "@/lib/arcade/minesweeper";
@@ -31,12 +31,12 @@ export function encodeMinesweeperRun(run: MinesweeperRun): string {
   return [run.seed, run.claimedScore, encodeInputEvents(run.events), run.endTick ?? 0, checkpoints].join("|");
 }
 
-export function decodeMinesweeperRun(raw: string): MinesweeperRun {
+export function decodeMinesweeperRun(raw: string, runTicks: number = MINES_RUN_TICKS): MinesweeperRun {
   const [seedPart = "", scorePart = "", eventPart = "", tickPart = "", checkpointPart = ""] = (String(raw ?? "").split("~")[0] ?? "").split("|");
   const checkpoints = checkpointPart
     .split(",")
     .filter(Boolean)
-    .slice(0, Math.ceil(MINES_RUN_TICKS / MINES_CHECKPOINT_INTERVAL))
+    .slice(0, Math.ceil(runTicks / MINES_CHECKPOINT_INTERVAL))
     .map((e) => e.split(":").map((p) => Number.parseInt(p, 10)))
     .filter((v) => v.length === FIELDS.length && v.every(Number.isInteger))
     .map(([tick, revealed, hits, flags, sum]) => ({ tick: tick ?? 0, revealed: revealed ?? 0, hits: hits ?? 0, flags: flags ?? 0, checksum: (sum ?? 0) >>> 0 }));
@@ -74,10 +74,10 @@ export interface MinesweeperResult {
 /** The single place a Minesweeper score is worked out. */
 export function replayMinesweeperRun(seed: number, raw: string, rev?: number | null): MinesweeperResult {
   const game = minesweeperGameFor(rev);
-  const run = decodeMinesweeperRun(raw);
+  const run = decodeMinesweeperRun(raw, game.runTicks);
   const runTicks = game.runTicks;
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, runTicks) : 0;
-  const check = checkInputEvents(run.events, runTicks, MINES_INPUT_RANGES);
+  const check = checkInputEvents(run.events, runTicks, minesInputRangesFor(rev));
   const events = new Map<number, ArcadeInputEvent>();
   for (const event of check.events) events.set(event.t, event);
   let state = game.init(seed);

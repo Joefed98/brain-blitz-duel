@@ -31,6 +31,11 @@ import { FILLOMINO_SHADES, fillominoShades } from "../src/puzzles/fillomino";
 import { usesStandard } from "../src/lib/duel/standard/stamps";
 import { FILLOMINO_SIZE, FILLOMINO_TIME_MS, type FillominoPuzzleData } from "../src/lib/duel/types";
 import { sentAnswer } from "./standard-lib";
+import { pinPreLogic2 } from "../src/lib/duel/logicOverhaul2";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): written for fillominoRev 1, so
+// new deals keep it (logic-overhaul-2-check proves fillominoRev 2's stroke rule).
+pinPreLogic2(true);
 
 const args = process.argv.slice(2);
 const SEEDS = Number(args.find((a) => a.startsWith("--seeds="))?.slice(8) ?? 140);

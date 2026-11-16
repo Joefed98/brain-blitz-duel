@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import {
   decodeTowerMoves,
@@ -17,6 +17,9 @@ import { TOWER_DISCS, TOWER_PEGS, TOWER_TIME_MS, type TowerPuzzleData } from "@/
 import { playCorrect, playWrong } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { animateArc } from "./logicMotion";
+import { gameFx } from "@/lib/fx/kit";
+import { MovePicture, MoveStrip, RevealFacts } from "./logicReveal";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { ParMeter } from "@/components/puzzles/depth/ParMeter";
 import { usesDepth } from "@/lib/duel/logicDepth";
@@ -25,9 +28,13 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 /** Graduated by size, smallest (light yellow) to largest (sky blue); equal sizes share a colour. */
 const HANOI_SHADES = 9;
 
-function discColour(size: number, discs = TOWER_DISCS): string {
+function discShade(size: number, discs = TOWER_DISCS): number {
   const step = discs <= 1 ? 1 : Math.round(((size - 1) * (HANOI_SHADES - 1)) / (discs - 1)) + 1;
-  return `var(--hanoi-${Math.max(1, Math.min(HANOI_SHADES, step))})`;
+  return Math.max(1, Math.min(HANOI_SHADES, step));
+}
+
+function discColour(size: number, discs = TOWER_DISCS): string {
+  return `var(--hanoi-${discShade(size, discs)})`;
 }
 
 /** Three or four wooden posts; the target post stands on a gold plate. */
@@ -51,8 +58,8 @@ export function Pegs({
   compact?: boolean;
   /** CSS length for one ring's thickness (live and reveal boards size it from their box). */
   discHeight?: string;
-  /** The post whose top ring just landed (it settles with a small bounce). */
-  dropped?: { peg: number; key: number } | null;
+  /** The post whose top ring just landed (it settles with a small bounce); `glint`: it landed on the gold post in order. */
+  dropped?: { peg: number; key: number; glint?: boolean } | null | undefined;
 }) {
   const liftedDisc =
     lifted === null || lifted === undefined ? null : (pegs[lifted]?.at(-1) ?? null);
@@ -89,6 +96,7 @@ export function Pegs({
                 {isLifted && liftedDisc !== null && (
                   <div
                     className="hanoi-disc hanoi-lifted logic-hanoi-ring logic-hanoi-hover"
+                    data-shade={discShade(liftedDisc, discs)}
                     style={{
                       height: "var(--hanoi-ring)",
                       width: `${30 + (liftedDisc / discs) * 65}%`,
@@ -108,7 +116,8 @@ export function Pegs({
                   return (
                     <div
                       key={landed ? `${size}-${dropped?.key}` : size}
-                      className={`hanoi-disc logic-hanoi-ring relative z-10 shrink-0 ${shake === peg ? "animate-shake" : ""} ${landed ? "logic-hanoi-drop" : ""}`}
+                      className={`hanoi-disc logic-hanoi-ring relative z-10 shrink-0 ${shake === peg ? "animate-shake" : ""} ${landed ? "logic-hanoi-drop" : ""} ${landed && dropped?.glint ? "logic-hanoi-glint" : ""}`}
+                      data-shade={discShade(size, discs)}
                       style={{
                         height: "var(--hanoi-ring)",
                         width: `${30 + (size / discs) * 65}%`,
@@ -160,7 +169,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
   const [moves, setMoves] = useStageState<TowerMove[]>(stateKey, "towerMoves", () => []);
   const [lifted, setLifted] = useStageState<number | null>(stateKey, "towerLifted", () => null);
   const [shake, setShake] = useStageState<number | null>(stateKey, "towerShake", () => null);
-  const [dropped, setDropped] = useState<{ peg: number; key: number } | null>(null);
+  const [dropped, setDropped] = useState<{ peg: number; key: number; glint?: boolean } | null>(null);
+  // Hanoi's moves (logicMotion.ts): where the lifted ring hovered, so the landing can arc from there.
+  const liftedFrom = useRef<DOMRect | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => {
+    if (!dropped) return;
+    animateArc(stageRef.current?.querySelector<HTMLElement>(".logic-hanoi-drop") ?? null, liftedFrom.current);
+    liftedFrom.current = null;
+  }, [dropped]);
   const submitted = useRef(false);
 
   const replay = useMemo(
@@ -181,10 +198,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
     onSubmit(encodeTowerMoves(moves));
   }, [replay.solved, moves, locked, onSubmit]);
 
-  const reject = (peg: number) => {
-    setShake(peg);
+  const reject = (_peg: number) => {
+    // The lifted ring bounces back up (the kit's "wrong" on the ring itself) and stays lifted.
+    gameFx("wrong", stageRef.current?.querySelector(".hanoi-lifted"), { silent: true });
     playWrong();
-    setTimeout(() => setShake(null), 320);
   };
 
   const tapPeg = (peg: number) => {
@@ -200,12 +217,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
       return;
     }
     if (!towerCanMove(replay.pegs, lifted, peg)) {
+      // Logic overhaul 1: the ring bounces back and stays lifted, so the player can pick another post.
       reject(peg);
-      setLifted(null);
       return;
     }
-    soundCue("tower.drop");
-    setDropped({ peg, key: moves.length + 1 });
+    // The clunk is pitched by the ring's size: a big ring low, a small one high.
+    const ring = replay.pegs[lifted]?.[replay.pegs[lifted]!.length - 1] ?? 1;
+    soundCue("tower.drop", 1.25 - (ring / discs) * 0.45);
+    liftedFrom.current = stageRef.current?.querySelector(".hanoi-lifted")?.getBoundingClientRect() ?? null;
+    // On the gold post in final order (every ring below it the next size up, from the largest): it glints.
+    const target = [...(replay.pegs[peg] ?? []), ring];
+    const glint = peg === targetPeg && target.every((size, i) => size === discs - i);
+    setDropped({ peg, key: moves.length + 1, glint });
     setMoves((current) => [...current, { from: lifted, to: peg }]);
     setLifted(null);
   };
@@ -241,7 +264,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
   if (!isTower) return null;
 
   return (
-    <div data-logic-stage="tower" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col gap-2">
+    <div ref={stageRef} data-logic-stage="tower" data-logic-solved={solving ? "" : undefined} data-stage-column="2" className="relative flex min-h-0 flex-1 flex-col gap-2">
       <span aria-hidden="true" className="logic-calm-glow" />
       <div data-game-arena="logic">
         {inFrame ? null : (
@@ -303,13 +326,26 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+/**
+ * The reveal (Logic overhaul 1, 15 Nov 2026): your posts large, the numbers behind the score (moves, the fewest
+ * possible, rings on the gold post), and the shortest route as small pictures of each move (the ring, post to post).
+ */
+function Reveal({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "tower") return null;
+  // The levels' stamp (towerRev 1): the grade stores how far from done the board was left.
+  const left = typeof myExtra?.["movesLeft"] === "number" ? (myExtra["movesLeft"] as number) : null;
   const start = puzzle.start ?? [];
   const mine = replayTower(start, puzzle.targetPeg, puzzle.discs, decodeTowerMoves(myAnswer ?? ""));
-  const limit = timeLimitMs;
-  const elapsed =
-    myMsRemaining === undefined ? null : Math.round((limit - myMsRemaining) / 100) / 10;
+  const route: ReactNode[] = [];
+  const steps = decodeTowerMoves(puzzle.solution ?? "");
+  for (let i = 0; i < steps.length; i++) {
+    const pegs = replayTower(start, puzzle.targetPeg, puzzle.discs, steps.slice(0, i)).pegs;
+    const from = pegs[steps[i]!.from] ?? [];
+    const ring = from[from.length - 1];
+    if (ring === undefined) break;
+    route.push(<MovePicture colour={discColour(ring, puzzle.discs)} from={steps[i]!.from + 1} to={steps[i]!.to + 1} />);
+  }
+  const onGold = (mine.moves ? mine.pegs : towerPegsFrom(start))[puzzle.targetPeg]?.length ?? 0;
 
   return (
     <div className="logic-reveal">
@@ -320,23 +356,23 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
             discs={puzzle.discs}
             targetPeg={puzzle.targetPeg}
             compact
-            discHeight={`clamp(5px, calc(((100cqh - 40px) / ${puzzle.discs + 1} - 2px) * 0.6), 9px)`}
+            discHeight={`clamp(7px, calc(((100cqh - 40px) / ${puzzle.discs + 1} - 2px) * 0.7), 14px)`}
           />
         </div>
       </div>
-      <p className="shrink-0 text-center font-display text-2xl font-bold">
-        <span className={myCorrect ? "text-primary" : "text-warn"}>
-          {/* Review fixes (15 Nov 2026): no ✓ / ✗ between the count and its unit ("17 ✗ moves" read as a typo); the colour and the verdict row say it. */}
-          {mine.moves}
-        </span>
-        <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
-          moves · {usesDepth(puzzle) ? (mine.moves <= puzzle.minMoves && myCorrect ? "perfect solve, par" : "par") : "min"} {puzzle.minMoves}
-          {myCorrect && elapsed !== null ? `, ${elapsed.toFixed(1)} s` : ""}
-        </span>
-      </p>
-      <p className="logic-reveal-text text-center text-muted-foreground">
-        Park the big rings where they won’t block you.
-      </p>
+      {!myCorrect && left !== null && left > 0 ? (
+        <p className="logic-reveal-left" data-tower-left={left}>
+          {left === 1 ? "1 move from done" : `${left} moves from done`}
+        </p>
+      ) : null}
+      <RevealFacts
+        items={[
+          { label: "Moves", value: mine.moves, tone: myCorrect && mine.moves <= puzzle.minMoves ? "gold" : undefined },
+          { label: "Fewest possible", value: puzzle.minMoves },
+          { label: `On gold of ${puzzle.discs}`, value: onGold, tone: myCorrect ? "good" : undefined },
+        ]}
+      />
+      <MoveStrip testId="tower" title="Shortest route" moves={route} />
     </div>
   );
 }

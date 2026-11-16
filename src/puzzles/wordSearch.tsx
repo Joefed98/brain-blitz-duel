@@ -5,19 +5,35 @@ import { useGridPointer } from "@/components/puzzles/GridDrag";
 import { devDiagnosticsOn } from "@/lib/arcade/diagnostics";
 import { useStageState } from "@/lib/duel/stageState";
 import { WORDSEARCH_TIME_MS, type WordSearchPlacement, type WordSearchPuzzleData } from "@/lib/duel/types";
-import { wsChipSlots, wsDecode, wsEncode, wsGrade, wsHasBonus, wsSnapLine, wsSplitBonus, WS_SIZE, WS_WORDS } from "@/lib/duel/wordSearch";
+import { wsChipSlots, wsDecode, wsEncode, wsGrade, wsHasBonus, wsRowsOf, wsSnapLine, wsSplitBonus, WS_SIZE, WS_WORDS } from "@/lib/duel/wordSearch";
 import { fx } from "@/lib/fx";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
+import { effectCue, stagger, stepCue, wordFx } from "@/components/puzzles/wordFx";
+
+/** Stage 2 effects: a found word's chime, pitched by its length (4 letters to 9+). */
+const FOUND_CUES = ["wordsearch.found4", "wordsearch.found5", "wordsearch.found6", "wordsearch.found7", "wordsearch.found8", "wordsearch.found9"] as const;
+
+/** Inks a loop in: its stroke drawn along its length (an SVG path's own dash; display only). */
+function inkLoop(path: Element | null | undefined, delay = 0): void {
+  if (!(path instanceof SVGPathElement) || typeof path.getTotalLength !== "function") return;
+  const length = path.getTotalLength();
+  path.animate([{ strokeDasharray: `${length}`, strokeDashoffset: `${length}` }, { strokeDasharray: `${length}`, strokeDashoffset: "0" }], { duration: 360, delay, easing: "ease-out" });
+}
 
 import { useGoalProgress } from "@/components/duel/GameFrame";
-import "@/polish-layout/batch-w-wordsearch.css";
+import "@/polish-word/word-look.css";
+import "@/polish-word/lookout.css";
+import { Button } from "@/components/ui/button";
+import { overhaulReveal, usesWordOverhaul } from "@/lib/duel/wordOverhaul";
+import { RevealChips, RevealNumbers, type RevealChip, dropEndsMs } from "@/components/puzzles/WordReveal";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
 export function Grid({
   grid,
   size,
+  rows = size,
   gold,
   live,
   bad,
@@ -26,9 +42,14 @@ export function Grid({
   pointer,
   small = false,
   foundPaths = [],
+  missedPaths = [],
 }: {
+  /** The overhaul's reveal: loops round the words not found (red). */
+  missedPaths?: readonly (readonly number[])[];
   grid: string;
   size: number;
+  /** A taller level board's rows (the Word overhaul's levels, 15 Nov 2026); absent: a square board, drawn as before. */
+  rows?: number;
   gold: ReadonlySet<number>;
   live?: ReadonlySet<number>;
   bad?: ReadonlySet<number>;
@@ -48,7 +69,7 @@ export function Grid({
       className="relative grid h-full w-full select-none"
       style={{ ...(pointer?.handlers.style ?? {}), gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gap: small ? 1 : 2 }}
     >
-      {Array.from({ length: size * size }, (_, cell) => {
+      {Array.from({ length: size * rows }, (_, cell) => {
         const missedOnly = (missedPath?.has(cell) ?? false) && !gold.has(cell);
         // Unfound reveal path: red letters on a faint red fill; crossings with found words stay gold.
         const fill = bad?.has(cell)
@@ -66,22 +87,42 @@ export function Grid({
             key={cell}
             data-ws-cell={cell}
             data-bw-live={live?.has(cell) && !bad?.has(cell) ? "" : undefined}
+            data-wa="tile-sm"
+            // Joe (15 Nov 2026): a found word keeps its glazed tiles and is circled by the gold capsule loop, like a pen
+            // ring round it (concept A); its tiles are no longer filled gold.
+            data-wa-tone={bad?.has(cell) ? "red" : live?.has(cell) ? "sapphire" : gold.has(cell) ? "black" : missedOnly ? "dim" : "black"}
+            data-ws-found={gold.has(cell) && !bad?.has(cell) && !live?.has(cell) ? "" : undefined}
             className={`word-letter-tile flex aspect-square items-center justify-center rounded-sm font-mono font-bold ${fill} ${missedOutline}`}
-            style={{ fontSize: small ? "max(9px, 5.6cqw)" : `clamp(16px, calc(min(100cqw, 100cqh) * ${(0.6 / size).toFixed(4)}), 28px)` }}
+            style={{ fontSize: small ? "max(9px, 5.6cqw)" : rows === size ? `clamp(16px, calc(min(100cqw, 100cqh) * ${(0.6 / size).toFixed(4)}), 28px)` : `clamp(16px, calc(min(100cqw / ${size}, 100cqh / ${rows}) * 0.6), 28px)` }}
           >
             {grid[cell]}
           </div>
         );
       })}
-      <svg viewBox={`0 0 ${size} ${size}`} className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+      <svg viewBox={`0 0 ${size} ${rows}`} className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
         {foundPaths.map((path, i) => {
           const a = path[0], b = path.at(-1);
           if (a === undefined || b === undefined) return null;
-          return <line key={i} data-ws-line="" x1={a % size + 0.5} y1={Math.floor(a / size) + 0.5} x2={b % size + 0.5} y2={Math.floor(b / size) + 0.5} stroke="var(--primary-foreground)" strokeWidth={0.06} strokeLinecap="round" opacity={0.7} />;
+          // The Word overhaul: a found word is circled by a gold capsule loop (the letters stay readable inside it).
+          return <path key={i} data-ws-line="" className="lookout-loop" d={capsule(a % size + 0.5, Math.floor(a / size) + 0.5, b % size + 0.5, Math.floor(b / size) + 0.5, 0.42)} />;
+        })}
+        {missedPaths.map((path, i) => {
+          const a = path[0], b = path.at(-1);
+          if (a === undefined || b === undefined) return null;
+          return <path key={`m${i}`} data-ws-missed-line="" className="lookout-loop lookout-loop-missed" d={capsule(a % size + 0.5, Math.floor(a / size) + 0.5, b % size + 0.5, Math.floor(b / size) + 0.5, 0.42)} />;
         })}
       </svg>
     </div>
   );
+}
+
+/** A capsule round the segment (x1, y1)–(x2, y2), radius r, as an SVG path (Lookout's found-word loop). */
+export function capsule(x1: number, y1: number, x2: number, y2: number, r: number): string {
+  const len = Math.hypot(x2 - x1, y2 - y1) || 1;
+  const nx = (-(y2 - y1) / len) * r;
+  const ny = ((x2 - x1) / len) * r;
+  const f = (v: number) => Number(v.toFixed(3));
+  return `M${f(x1 + nx)} ${f(y1 + ny)}L${f(x2 + nx)} ${f(y2 + ny)}A${r} ${r} 0 0 0 ${f(x2 - nx)} ${f(y2 - ny)}L${f(x1 - nx)} ${f(y1 - ny)}A${r} ${r} 0 0 0 ${f(x1 + nx)} ${f(y1 + ny)}Z`;
 }
 
 /** Fixed 5×5 example: LION found on a diagonal, read backwards. */
@@ -127,6 +168,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   const submitted = useRef(false);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const size = data?.size ?? WS_SIZE;
+  // A taller level board (the Word overhaul's levels): `size` columns, `rows` rows; Normal's board is square.
+  const rows = data ? wsRowsOf(data) : size;
   const total = data?.wordCount ?? WS_WORDS;
   const encoded = wsEncode(selections);
 
@@ -134,25 +177,36 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
     onDraftAnswer?.(encoded);
   }, [encoded, onDraftAnswer]);
 
-  useEffect(() => {
-    if (submitted.current || locked || found.length < total) return;
+  // wordSearchRev 6 (the Word overhaul): finding the last listed word no longer ends the round; the bonus can still
+  // be found, and Done ends it (or the clock). With the bonus found too there is nothing left, so it ends at once.
+  const runsOn = usesWordOverhaul(data, "wordsearch") && !!data && wsHasBonus(data);
+  const allFound = found.length >= total;
+  const finish = () => {
+    if (submitted.current || locked) return;
     submitted.current = true;
     onSubmit(encoded);
+  };
+  useEffect(() => {
+    if (submitted.current || locked || !allFound) return;
+    if (runsOn && !bonus) return;
+    finish();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [found.length, locked]);
+  }, [found.length, locked, bonus]);
 
-  const done = locked || found.length >= total;
+  const done = locked || submitted.current || (allFound && !runsOn);
   // Batch W (display only): the found count moves to the frame's goal line in a live round; intros keep theirs.
   const inFrame = useGoalProgress({ done: found.length, total, text: `${found.length} of ${total} found` });
   const pointer = useGridPointer({
     cols: size,
-    rows: size,
+    rows,
     onCell: done
       ? undefined
       : (cell) => {
           if (start.current === null) start.current = cell;
-          const next = wsSnapLine(start.current, cell, size);
+          const next = wsSnapLine(start.current, cell, size, rows);
           if (next.join(".") !== current.current.join(".")) {
+            // Stage 2: the marker squeaks as the loop grows (one short squeak a letter).
+            if (next.length > current.current.length && next.length > 1) effectCue("wordsearch.drag");
             current.current = next;
             setLine(next);
           }
@@ -175,8 +229,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         if (verdict.valid && (verdict as { bonus?: boolean }).bonus) {
           setBonus((b) => b ?? { word: verdict.word, cells: path });
           rightMoveFlash(bonusChip.current);
+          // Stage 2: the bonus has its own sparkle and brighter chime.
+          if (!lockedNow.current) wordFx("combo", bonusChip.current, "wordsearch.bonus", { count: 2, silent: true });
+          inkNext.current = true;
         } else if (verdict.valid) {
           setFound((f) => (f.some((x) => x.word === verdict.word) ? f : [...f, { word: verdict.word, cells: path }]));
+          // Stage 2: the loop inks in, the chip ticks with a pen stroke; the chime is pitched by the word's length.
+          if (!lockedNow.current) effectCue(stepCue(FOUND_CUES, verdict.word.length - 4));
+          inkNext.current = true;
+        } else if (verdict.reason === "Already found") {
+          // Stage 2: re-dragging a found word is a gentle bump on its chip, never an error.
+          if (!lockedNow.current) wordFx("nearMiss", stageRef.current?.querySelector('[data-ws-chip="found"]'), "wordsearch.already", { noHaptic: true, silent: true });
         } else if (verdict.reason !== "Already found") {
           setBad(path);
           setTimeout(() => setBad([]), 350);
@@ -185,9 +248,25 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
     },
   });
 
+  // Stage 2: the newest loop inks in and its chip ticks (after the found word or the bonus lands on screen).
+  const inkNext = useRef(false);
+  const loopCount = found.length + (bonus ? 1 : 0);
+  useEffect(() => {
+    if (!inkNext.current) return;
+    inkNext.current = false;
+    const lines = stageRef.current?.querySelectorAll("[data-ws-line]");
+    inkLoop(lines?.[lines.length - 1]);
+    const chips = stageRef.current?.querySelectorAll('[data-ws-chip="found"]');
+    wordFx("drop", chips?.[found.length - 1], null, { silent: true });
+  }, [loopCount, found.length]);
+
   // All six found: every found word glows in the grid together (display only).
   useWordFinish(total > 0 && found.length >= total, () => {
     wordCue("wordsearch.finish");
+    // Stage 2: the last word redraws every loop in order.
+    effectCue("wordsearch.redraw");
+    const lines = stageRef.current?.querySelectorAll("[data-ws-line]") ?? [];
+    stagger(lines.length, 90, (i) => inkLoop(lines[i]));
     const root = stageRef.current;
     const cells = new Set(found.flatMap((f) => f.cells));
     const steps: FinishStep[] = [...cells].map((cell) => ({
@@ -223,8 +302,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         )}
       </div>
       <div data-game-arena="board" className="flex min-h-0 w-full flex-1 items-center justify-center" style={{ containerType: "size" }}>
-        <div style={{ width: "min(100cqw, 100cqh)", aspectRatio: "1 / 1" }}>
-          <Grid grid={data.grid} size={size} gold={gold} foundPaths={[...found.map((f) => f.cells), ...(bonus ? [bonus.cells] : [])]} live={new Set(line)} bad={new Set(bad)} pointer={pointer} />
+        <div style={rows === size ? { width: "min(100cqw, 100cqh)", aspectRatio: "1 / 1" } : { width: `min(100cqw, calc(100cqh * ${size} / ${rows}))`, aspectRatio: `${size} / ${rows}` }}>
+          <Grid grid={data.grid} size={size} {...(rows === size ? {} : { rows })} gold={gold} foundPaths={[...found.map((f) => f.cells), ...(bonus ? [bonus.cells] : [])]} live={new Set(line)} bad={new Set(bad)} pointer={pointer} />
         </div>
       </div>
       <div data-game-controls="words" className="lookout-words flex w-full shrink-0 flex-wrap justify-center gap-1.5" aria-label={`${found.length} found, ${Math.max(0, total - found.length)} still to find`}>
@@ -258,17 +337,71 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
           </span>
         ) : null}
       </div>
+      {runsOn ? (
+        <div data-game-controls="actions" className="flex h-11 w-full shrink-0 items-center justify-center gap-3">
+          {allFound ? (
+            <>
+              <span className="text-sm font-semibold text-muted-foreground">All {total} found · bonus still hidden</span>
+              <Button type="button" data-ws-done="" data-wa-btn="gold" className="h-11 w-28 font-bold uppercase tracking-widest" disabled={done} onClick={finish}>
+                Done
+              </Button>
+            </>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
+/**
+ * The Word overhaul's reveal (wordSearchRev 6+): the grid large, your found words gold in their loops and the words you
+ * missed in red loops; every hidden word as a chip (found, missed, the bonus); the numbers the score is made of: words
+ * found, the bonus word and wrong drags.
+ */
+function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
+  if (puzzle.type !== "wordsearch") return null;
+  const placements = puzzle.placements ?? [];
+  const split = wsSplitBonus(puzzle.bonus, wsDecode(myAnswer ?? "", puzzle.size, wsRowsOf(puzzle)));
+  const verdict = wsGrade(placements, split.rest);
+  const foundSet = new Set(verdict.found);
+  const bonusCells = puzzle.bonus?.cells ?? [];
+  const gold = new Set([...verdict.found.flatMap((i) => placements[i]?.cells ?? []), ...(split.bonusFound ? bonusCells : [])]);
+  const missedPaths = placements.filter((_, i) => !foundSet.has(i)).map((p) => p.cells);
+  const wrong = typeof myExtra?.["wrong"] === "number" ? (myExtra["wrong"] as number) : null;
+  const chips: RevealChip[] = [
+    ...placements.map((p, i): RevealChip => ({ text: p.word, kind: foundSet.has(i) ? "found" : "missed" })),
+    ...(puzzle.bonus ? [{ text: `★ ${puzzle.bonus.word}`, kind: split.bonusFound ? ("longest" as const) : ("missed" as const) }] : []),
+  ];
+  return (
+    <div data-word-reveal="wordsearch" data-wr-version="overhaul" className="wr">
+      <RevealNumbers
+        countAfterMs={dropEndsMs(chips.length)}
+        items={[
+          { id: "found", label: "Words found", value: `${verdict.found.length}/${placements.length}`, tone: verdict.found.length === placements.length ? "gold" : undefined },
+          puzzle.bonus ? { id: "bonus", label: "Bonus word", value: split.bonusFound ? "Found" : "Missed", tone: split.bonusFound ? "gold" : undefined } : null,
+          wrong !== null ? { id: "wrong", label: "Wrong drags", value: wrong, tone: wrong > 0 ? "warn" : undefined } : null,
+        ]}
+      />
+      <div style={{ width: "min(84vw, 340px)", containerType: "inline-size" }}>
+        <Grid grid={puzzle.grid} size={puzzle.size} {...(wsRowsOf(puzzle) === puzzle.size ? {} : { rows: wsRowsOf(puzzle) })} gold={gold} foundPaths={[...verdict.found.map((i) => placements[i]?.cells ?? []), ...(split.bonusFound ? [bonusCells] : [])]} missedPaths={missedPaths} />
+      </div>
+      <RevealChips id="words" items={chips} drop />
+    </div>
+  );
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  if (overhaulReveal(props.puzzle)) return <RevealOverhaul {...props} />;
+  return <RevealOlder {...props} />;
+}
+
+function RevealOlder({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealProps) {
   const [dev, setDev] = useState(false);
   useEffect(() => setDev(devDiagnosticsOn()), []);
   if (puzzle.type !== "wordsearch") return null;
   const placements = puzzle.placements ?? [];
   // Rev 3: the bonus word's drags are set aside as the grader does.
-  const split = wsSplitBonus(puzzle.bonus, wsDecode(myAnswer ?? "", puzzle.size));
+  const split = wsSplitBonus(puzzle.bonus, wsDecode(myAnswer ?? "", puzzle.size, wsRowsOf(puzzle)));
   const verdict = wsGrade(placements, split.rest);
   const bonusCells = puzzle.bonus?.cells ?? [];
   const foundSet = new Set(verdict.found);
@@ -279,7 +412,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
   return (
     <div data-word-reveal="wordsearch" className="flex w-full flex-col items-center gap-2">
       <div style={{ width: "min(100%, 256px)", containerType: "inline-size" }}>
-        <Grid grid={puzzle.grid} size={puzzle.size} gold={gold} foundPaths={[...verdict.found.map((i) => placements[i]?.cells ?? []), ...(split.bonusFound ? [bonusCells] : [])]} missedPath={missed} bonusHint={new Set(bonusCells)} small />
+        <Grid grid={puzzle.grid} size={puzzle.size} {...(wsRowsOf(puzzle) === puzzle.size ? {} : { rows: wsRowsOf(puzzle) })} gold={gold} foundPaths={[...verdict.found.map((i) => placements[i]?.cells ?? []), ...(split.bonusFound ? [bonusCells] : [])]} missedPath={missed} bonusHint={new Set(bonusCells)} small />
       </div>
       <div className="flex flex-wrap justify-center gap-x-3 gap-y-0.5 font-mono text-sm uppercase tracking-wider">
         {placements.map((p, i) => (
@@ -324,7 +457,7 @@ export const wordSearchPuzzle: PuzzleDefinition = {
     ({ type: "wordsearch", size: WS_SIZE, grid: "E".repeat(WS_SIZE * WS_SIZE), category: "Animals", wordCount: WS_WORDS }) satisfies WordSearchPuzzleData,
   check: (answer, puzzle) =>
     puzzle.type === "wordsearch" &&
-    wsGrade(puzzle.placements ?? [], wsDecode(answer, puzzle.size)).found.length === (puzzle.placements?.length ?? -1),
+    wsGrade(puzzle.placements ?? [], wsDecode(answer, puzzle.size, wsRowsOf(puzzle))).found.length === (puzzle.placements?.length ?? -1),
   revealHeading: "The hidden words",
   IntroExample,
   Stage,
