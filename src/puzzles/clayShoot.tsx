@@ -61,7 +61,7 @@ import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
-import { preloadSpeedArt, speedArtFor } from "@/lib/fx/speedArt";
+import { onSpeedArtLoad, preloadSpeedArt, speedArtFor } from "@/lib/fx/speedArt";
 
 // The Speed overhaul's Blender sprites start loading with the game's chunk (during the round intro).
 preloadSpeedArt(speedArtFor("pull"));
@@ -200,6 +200,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const [hud, setHud] = useState({ hits: 0, orangeHits: 0, goldHits: 0, birdHits: 0, status: new Array<number>(clayTotal).fill(0), streak: 1, doubles: 0 });
   const [dev, setDev] = useState<string | null>(null);
   useNoTouchScroll(wrap);
+  // The scene beside the sky is painted once per size; it repaints when the rendered sky arrives (display only).
+  const [skyReady, setSkyReady] = useState(false);
+  useEffect(() => onSpeedArtLoad("pull-sky", () => setSkyReady(true)), []);
 
   const lockedRef = useRef(locked);
   const submitRef = useRef(onSubmit);
@@ -386,23 +389,27 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <div ref={wrap} data-stage-column="1" data-polish="clayshoot" className="flex min-h-0 w-full flex-1 flex-col gap-1 select-none" style={GAME_ROOT_STYLE}>
       {data.clayRev === CLAY_REV_DEPTH || data.clayRev === CLAY_REV_WIDE ? (
         // The Speed overhaul (15 Nov 2026): the two numbers that matter mid-shot as pills (clays hit, the hit
-        // streak); gold, birds and doubles are on the reveal. clayRev 9 and 10 alike (display only).
-        <HudPills
-          testId="clayshoot"
-          className="clay-hud-pills"
-          items={[
-            { id: "clays", label: "Clays", value: `${hud.hits}/${clayTotal}`, tone: "gold" },
-            { id: "streak", label: "Streak", value: `×${hud.streak}`, ...(hud.streak > 1 ? { tone: "gold" as const } : {}) },
-          ]}
-        />
+        // streak) with the clay pips between them, all on one 22 px row (the height the old line and pips took,
+        // so the sky keeps its box); gold, birds and doubles are on the reveal. clayRev 9 and 10 alike (display only).
+        <div className="clay-hud-row">
+          <HudPills testId="clayshoot" className="clay-hud-pills" items={[{ id: "clays", label: "Clays", value: `${hud.hits}/${clayTotal}`, tone: "gold" }]} />
+          <div className="clay-hud-pips"><Pips status={hud.status} kind={state.current.schedule.kind} /></div>
+          <HudPills
+            testId="clayshoot-streak"
+            className="clay-hud-pills"
+            items={[{ id: "streak", label: "Streak", value: `×${hud.streak}`, ...(hud.streak > 1 ? { tone: "gold" as const } : {}) }]}
+          />
+        </div>
       ) : (
-        <p className="shrink-0 text-center font-mono text-xs font-semibold leading-none text-foreground">
-          <span className="text-primary">{hud.hits}</span> / {clayTotal} · {hud.orangeHits} orange · {hud.goldHits} gold · {hud.birdHits} birds
-        </p>
+        <>
+          <p className="shrink-0 text-center font-mono text-xs font-semibold leading-none text-foreground">
+            <span className="text-primary">{hud.hits}</span> / {clayTotal} · {hud.orangeHits} orange · {hud.goldHits} gold · {hud.birdHits} birds
+          </p>
+          <div className="shrink-0"><Pips status={hud.status} kind={state.current.schedule.kind} /></div>
+        </>
       )}
-      <div className="shrink-0"><Pips status={hud.status} kind={state.current.schedule.kind} /></div>
       {/* The sky at its own aspect, largest fit, top-anchored (15 Oct 2026, display only; clayTapWorld maps through this box). */}
-      <ArcadeArenaSlot width={CLAY_W} height={clayWorldHFor(data?.clayRev)} scene={clayArenaScene}>
+      <ArcadeArenaSlot width={CLAY_W} height={clayWorldHFor(data?.clayRev)} scene={clayArenaScene} sceneKey={skyReady ? "sky" : "drawn"}>
       <div
         ref={board}
         data-play-area
