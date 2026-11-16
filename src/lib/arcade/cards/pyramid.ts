@@ -404,12 +404,13 @@ export function pyGreedyClears(deal: PyDeal, mode: number): boolean {
     else if (moves.length) {
       if (mode === 0) move = moves[0]!;
       else if (mode === 2) move = moves.find((m) => m.includes(PY_WASTE_PILE)) ?? moves[0]!;
-      else if (mode === 3 || mode === 4) {
-        // 3: the best two-removal line in view; 4 (the difficulty levels' Expert filter): the best three-removal line.
+      else if (mode >= 3) {
+        // 3: the best two-removal line in view; 4 and 5 (the difficulty levels' filters): the best three- and
+        // four-removal lines.
         let best = -1;
         for (const m of moves) {
           const t = afterMove(s, m);
-          const v = t ? m.length + lookAhead(t, mode === 4 ? 2 : 1) : -1;
+          const v = t ? m.length + lookAhead(t, mode - 2) : -1;
           if (v > best) {
             best = v;
             move = m;
@@ -671,9 +672,13 @@ export function pyramidGameFor(rev?: number | null): ArcadeGame<PyState, ArcadeI
  * rev 3's play and parts, its deal built in the sim the same way (a witness line proved through the sim, kept only when
  * quick players with no plan don't clear it) with the level's Kings and filters, plus hints:
  *
- *   Easy    3 passes through the stock, 3–4 Kings, the partner glow, hints free (Normal's filter).
- *   Hard    1 pass, 2–3 Kings, no glow, a harder deal (Normal's filter and the waste-first player), a hint costs 5.
- *   Expert  1 pass, 2 Kings, no glow, the hardest (also a player looking three removals ahead fails), one hint.
+ *   Easy    3 passes through the stock, 3–4 Kings, the partner glow, hints free; any proved deal (no quick-player filter,
+ *           16 Nov 2026: the average player's step up to Normal).
+ *   Hard    1 pass, 2–3 Kings, no glow, a harder deal (Normal's filter, the waste-first player and a player looking
+ *           three removals ahead all fail it), a hint costs 5.
+ *   Expert  1 pass, 3 Kings (so one pair must come off the waste in time), no glow, the hardest deal (a player looking
+ *           four removals ahead fails it too), one hint. (16 Nov 2026, Joe: the steps must be clearly felt. Two Kings
+ *           measured easier than Hard: 26 cards then pair among themselves and the waste never matters.)
  *
  * Each level's deal draws from its own stream of the seed, so it never repeats Normal's.
  */
@@ -697,9 +702,9 @@ export interface PyLevelRules {
 }
 
 export const PY_LEVEL_RULES: Readonly<Record<PyLevelName, PyLevelRules>> = {
-  easy: { lv: PY_LV_EASY, passes: 3, kingsMin: 3, kingsSpan: 2, filters: [0, 1, 3], glow: true, hintCost: 0, hintLimit: -1 },
-  hard: { lv: PY_LV_HARD, passes: 1, kingsMin: 2, kingsSpan: 2, filters: [0, 1, 2, 3], glow: false, hintCost: PY_HINT_COST, hintLimit: -1 },
-  expert: { lv: PY_LV_EXPERT, passes: 1, kingsMin: 2, kingsSpan: 1, filters: [0, 1, 2, 3, 4], glow: false, hintCost: 0, hintLimit: 1 },
+  easy: { lv: PY_LV_EASY, passes: 3, kingsMin: 3, kingsSpan: 2, filters: [], glow: true, hintCost: 0, hintLimit: -1 },
+  hard: { lv: PY_LV_HARD, passes: 1, kingsMin: 2, kingsSpan: 2, filters: [0, 1, 2, 3, 4], glow: false, hintCost: PY_HINT_COST, hintLimit: -1 },
+  expert: { lv: PY_LV_EXPERT, passes: 1, kingsMin: 3, kingsSpan: 1, filters: [0, 1, 2, 3, 4, 5], glow: false, hintCost: 0, hintLimit: 1 },
 };
 
 function pyLevelName(lv: number | undefined): PyLevelName | null {

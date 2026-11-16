@@ -330,7 +330,7 @@ export function RoundIntro({
               beforeScore={
                 <IntroStage
                   key={type}
-                  still={<GameIntroExample type={type} />}
+                  still={<GameIntroExample type={type} level={puzzle ? levelOfPuzzle(puzzle) : null} />}
                   aspect={arcadeDemo ? introDemoAspect(type, arcadeDemo) : puzzleDemo ? puzzleDemo.log.w / puzzleDemo.log.h : null}
                   // Reduce Motion (7 Nov 2026, accessibility audit #11): a demo loops until Ready with no pause, so
                   // it isn't played; the game's still holds the same box (IntroStage sizes it by the text alone).

@@ -12,7 +12,7 @@ import { stdHelp } from "../src/lib/arcade/arcadeStandard";
 import { FC_LEVEL_RULES, fcLevelSpec } from "../src/lib/arcade/cards/freecell";
 import { MAHJONG_LEVEL_RULES, mahjongLevelSpec } from "../src/lib/arcade/mahjong";
 import { TP_LEVEL_RULES, tpLevelSpec } from "../src/lib/arcade/cards/tripeaks";
-import { FH_LEVEL_RULES, FH_V3_TABLE_TEXT, fhLevelSpec } from "../src/lib/arcade/cards/fiveHands";
+import { FH_LEVEL_RULES, FH_REV, FH_V3_TABLE_TEXT, fhLevelSpec, fhTableText } from "../src/lib/arcade/cards/fiveHands";
 import { PY_LEVEL_RULES, pyLevelSpec } from "../src/lib/arcade/cards/pyramid";
 
 const OUT = "src/lib/levels/cardLevelText.data.ts";
@@ -52,7 +52,7 @@ for (const l of LV) {
   text.tripeaks[l] = {
     goal: "Clear the three peaks, one up or down from the discard.",
     how: [
-      `${tp.glow ? "Playable cards glow" : "No glow: find the playable cards yourself"}; ${tp.wrap ? "Ace and King wrap" : "no wrap: an Ace never goes on a King or a King on an Ace"}.`,
+      `${tp.glow ? "Playable cards glow" : "No glow: find the playable cards yourself"}; ${tp.wrap ? "Ace and King wrap" : "no wrap: an Ace never goes on a King or a King on an Ace"}${l === "easy" ? "; the easiest deals" : l === "hard" ? "; deals proved to clear without it" : "; the hardest of those"}.`,
       tp.undoLimit ? `${tp.undoLimit} undos, back one play or stock card each.` : "No undo.",
       hintLine(tp.hintCost, tp.hintLimit, l === "easy"),
     ],
@@ -64,7 +64,7 @@ for (const l of LV) {
   text.fivehands[l] = {
     goal: `Build five poker hands, then pick a column. ×${mult}, ${fh.seconds} s.`,
     how: [
-      `Your hand points × ${mult}; ${fh.seconds} seconds.`,
+      `Your hand points × ${mult}; ${fh.seconds} seconds${fh.tableRev === FH_REV ? "" : `; ${fhTableText(fh.tableRev).split(", ").slice(0, 2).join(", ")} (bigger hands pay as Normal)`}.`,
       ...(fh.preview ? [`The next ${fh.preview} cards show beside yours, and each column's value shows while you pick.`] : []),
       hintLine(fh.hintCost, fh.hintLimit, l === "easy"),
     ],

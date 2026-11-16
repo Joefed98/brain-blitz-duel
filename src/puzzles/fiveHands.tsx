@@ -12,23 +12,23 @@ import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/Arc
 import { CardStill } from "@/components/puzzles/CardStill";
 import { fiveHandsSounds } from "@/lib/fx/cardSounds";
 
-import { levelOfPuzzle } from "@/lib/levels/levels";
+import { levelOfPuzzle, type Level } from "@/lib/levels/levels";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { preloadRealArt } from "@/lib/arcade/cards/realArt.renderer";
 
 // The Cards & Board overhaul's real art starts loading with the game's chunk (display only).
 if (typeof window !== "undefined") preloadRealArt(["cards", "felt"]);
 
-/** The intro still: seed 0's deal seven turns in, placed as its witness places them. */
-function introState(): FhState {
-  let s = fiveHandsArtGame(undefined, FH_REV).init(0);
+/** The intro still: seed 0's deal seven turns in, placed as its witness places them (at a level, on its hand table). */
+function introState(level: Level | null = null): FhState {
+  let s = fiveHandsArtGame(undefined, FH_REV, level).init(0);
   const taps = fhDeal(0, FH_REV).witnessTaps;
   for (let t = 0; t < 7; t++) s = fhApply({ ...s, tick: s.tick + 20 }, taps[t]!) ?? s;
   return { ...s, lastTick: 0 };
 }
 
-function IntroExample() {
-  return <CardStill width={FH_WORLD_W} height={FH_WORLD_H} draw={(ctx, size) => drawFiveHands(ctx, introState(), size)} caption="Tap a row to place your card. Every row takes one before any row takes the next." />;
+function IntroExample({ level = null }: { level?: Level | null }) {
+  return <CardStill width={FH_WORLD_W} height={FH_WORLD_H} draw={(ctx, size) => drawFiveHands(ctx, introState(level), size)} caption="Tap a row to place your card. Every row takes one before any row takes the next." />;
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {

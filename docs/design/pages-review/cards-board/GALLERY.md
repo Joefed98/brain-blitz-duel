@@ -134,7 +134,34 @@ lines and score. Frames from a practice round at 390 × 844 with the device's le
   solved deals; Expert 52 with three cells and three undos (the Undo button counts them down).
 - **Mahjong Solitaire:** Easy 56 tiles in three layers; Hard the 72 with ten look-alike faces; Expert 88 tiles in five
   layers. On a level the thumb row holds Hint, Undo, Reset and the Shuffle's cost.
-- **Summit:** Hard and Expert lose the playable glow; Expert also loses the Ace–King wrap. Easy has three undos.
-- **Five Hands:** Easy shows the next two cards ("Coming up") and each column's value while picking.
-- **Thirteen:** Easy has three passes through the stock; Hard and Expert lose the partner glow and deal fewer Kings.
+- **Summit:** Hard and Expert lose the playable glow and the Ace–King wrap, and deal from the no-wrap bank: Hard its
+  easier deals (stock par 8–18), Expert its 100 hardest (18–23). Easy has three undos.
+- **Five Hands:** Easy shows the next two cards ("Coming up") and each column's value while picking; Hard and Expert pay
+  less for a pair (10) and Expert less for two pair (15), so bigger hands matter. The intro's still shows the level's table.
+- **Thirteen:** Easy has three passes through the stock; Hard and Expert lose the partner glow, Hard keeps only deals a
+  three-removal look-ahead can't clear, Expert deals exactly three Kings and needs a four-removal look.
 - Intros on a level show the game's still, not Normal's saved demo.
+
+## Measured (16 Nov 2026)
+
+Average score on the same 40 deals per level (`bun scripts/cards-levels-tune.ts --seeds=40 --bots=average,elite,human`),
+for the shared skill-band tool's average and elite players and a player held to human limits
+(`scripts/cards-human-limits.ts`: 0.25 s to react and 0.15 s to move, deciding only from cards in view). Expert's best
+tenth in brackets. cards-levels-order-check fails if any level isn't clearly below the one before (on its 24 deals: at
+least one player 5 points lower, none more than 3 higher).
+
+| Game | Player | Easy | Normal | Hard | Expert (best tenth) |
+|---|---|---|---|---|---|
+| Free Cell | elite | 192.8 | 184.1 | 156.2 | 145.5 (180.5) |
+| | human limits | 193.0 | 185.1 | 166.7 | 163.5 (189.8) |
+| Mahjong | elite | 200.0 | 197.5 | 183.1 | 171.4 (187.5) |
+| | human limits | 199.5 | 197.5 | 195.1 | 193.3 (200.0) |
+| Summit | elite | 183.3 | 181.3 | 173.6 | 171.3 (188.5) |
+| | human limits | 164.9 | 159.1 | 144.9 | 128.5 (197.5) |
+| Five Hands | elite | 171.6 | 153.8 | 130.6 | 114.9 (176.5) |
+| | human limits | 154.4 | 136.0 | 115.2 | 101.3 (149.3) |
+| Thirteen | elite | 195.5 | 180.3 | 159.1 | 139.6 (197.0) |
+| | human limits | 196.2 | 176.6 | 143.2 | 133.8 (200.0) |
+
+The Summit elite bot plans with the face-down cards in view, so its steps are small; the human-limits player, who can't
+see them, shows the step. Mahjong's human-limits player picks the pair that frees the most tiles, which the stacks reward.

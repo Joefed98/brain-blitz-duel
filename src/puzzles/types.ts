@@ -1,5 +1,6 @@
 import type { ScoreParts } from "@/lib/duel/puzzleScoreRev";
 import type { ComponentType } from "react";
+import type { Level } from "@/lib/levels/levels";
 
 import type {
   PlayerRoundDetail,
@@ -112,8 +113,8 @@ export interface PuzzleDefinition {
   retired?: boolean;
   /** Shared GOAL / HOW / SCORE copy used by the intro and in-round help. */
   instructions?: PuzzleInstructions;
-  /** Fixed intro example — identical every single time. */
-  IntroExample: ComponentType;
+  /** Fixed intro example — identical every single time (at a difficulty level, `level` names it; most games ignore it). */
+  IntroExample: ComponentType<{ level?: Level | null }>;
   /** Optional puzzle-specific intro line (e.g. "4 pegs"), same for every player. */
   introLine?: (puzzle: PuzzleData) => string | null;
   Stage: ComponentType<PuzzleStageProps>;

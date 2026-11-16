@@ -2629,7 +2629,14 @@ outside the repo.
   Summit and Thirteen bots model the missing glow as longer search (`NO_GLOW_SCAN`). Intro demos:
   `scripts/fixtures/cards-demos.json` (elite runs on each example deal, `bun scripts/cards-demos-record.ts`), saved by
   `scripts/cards-demos-save.ts` (DEMOS_URL, INTRO_DEMO_KEY), played only on today's stamps (`cardsDemoRules.ts`).
-  cards-levels-check (~50 s) and cards-demos-check (~2 s).
+  cards-levels-check (~50 s) and cards-demos-check (~2 s). Second pass (16 Nov 2026, Joe): Summit's Hard and Expert deal
+  from the no-wrap bank (Hard its easier deals, `TP_HARD_NOWRAP_DEALS`; Expert its 100 hardest by stock par), Five Hands'
+  Hard and Expert stricter hand tables (`FH_TABLE_HARD` / `FH_TABLE_EXPERT`, a pair 10; the intro still takes the level,
+  `IntroExample`'s `level` prop), Thirteen's Hard filter adds a three-removal look and Expert deals exactly three Kings
+  with a four-removal filter. Measured two ways: the skill-band bots and a player held to human limits
+  (`scripts/cards-human-limits.ts`, 0.25 s to react and 0.15 s to move, visible cards only; `cards-levels-tune.ts
+  --bots=human`, best tenth reported); cards-levels-order-check (one game a part, `--part=k/5`, ~2–25 s each) fails unless
+  every level is clearly below the one before.
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
   `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
   `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,

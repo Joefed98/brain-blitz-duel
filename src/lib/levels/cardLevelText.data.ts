@@ -79,7 +79,7 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
     "easy": {
       "goal": "Clear the three peaks, one up or down from the discard.",
       "how": [
-        "Playable cards glow; Ace and King wrap.",
+        "Playable cards glow; Ace and King wrap; the easiest deals.",
         "3 undos, back one play or stock card each.",
         "Hints are free: the Hint button lights one good move, and it lights by itself after 8 s without a move."
       ],
@@ -89,7 +89,7 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
     "hard": {
       "goal": "Clear the three peaks, one up or down from the discard.",
       "how": [
-        "No glow: find the playable cards yourself; Ace and King wrap.",
+        "No glow: find the playable cards yourself; no wrap: an Ace never goes on a King or a King on an Ace; deals proved to clear without it.",
         "No undo.",
         "Hints: the Hint button lights one good move, 5 points each."
       ],
@@ -99,7 +99,7 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
     "expert": {
       "goal": "Clear the three peaks, one up or down from the discard.",
       "how": [
-        "No glow: find the playable cards yourself; no wrap: an Ace never goes on a King or a King on an Ace.",
+        "No glow: find the playable cards yourself; no wrap: an Ace never goes on a King or a King on an Ace; the hardest of those.",
         "No undo.",
         "One hint this round: the Hint button lights one good move."
       ],
@@ -121,20 +121,20 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
     "hard": {
       "goal": "Build five poker hands, then pick a column. ×1.4, 50 s.",
       "how": [
-        "Your hand points × 1.4; 50 seconds.",
+        "Your hand points × 1.4; 50 seconds; pair 10, two pair 20 (bigger hands pay as Normal).",
         "Hints: the Hint button lights one good move, 5 points each."
       ],
       "intro": "Make poker hands in five rows, then pick a column; × 1.4. Up to 200.",
-      "score": "Hand points: your five rows’ hands plus the column you pick, times 1.4 (pair 15, two pair 20, three of a kind 25, straight 30, flush 35, full house 40, four of a kind 45, straight flush 50); each hint costs 5, up to 200. Total 200."
+      "score": "Hand points: your five rows’ hands plus the column you pick, times 1.4 (pair 10, two pair 20, three of a kind 25, straight 30, flush 35, full house 40, four of a kind 45, straight flush 50); each hint costs 5, up to 200. Total 200."
     },
     "expert": {
       "goal": "Build five poker hands, then pick a column. ×1.3, 45 s.",
       "how": [
-        "Your hand points × 1.3; 45 seconds.",
+        "Your hand points × 1.3; 45 seconds; pair 10, two pair 15 (bigger hands pay as Normal).",
         "One hint this round: the Hint button lights one good move."
       ],
       "intro": "Make poker hands in five rows, then pick a column; × 1.3. Up to 200.",
-      "score": "Hand points: your five rows’ hands plus the column you pick, times 1.3 (pair 15, two pair 20, three of a kind 25, straight 30, flush 35, full house 40, four of a kind 45, straight flush 50), up to 200. Total 200."
+      "score": "Hand points: your five rows’ hands plus the column you pick, times 1.3 (pair 10, two pair 15, three of a kind 25, straight 30, flush 35, full house 40, four of a kind 45, straight flush 50), up to 200. Total 200."
     }
   },
   "pyramid": {
@@ -161,7 +161,7 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
     "expert": {
       "goal": "Clear the pyramid in pairs that add to 13.",
       "how": [
-        "One pass through the stock; 2 Kings in the pyramid; the hardest deals.",
+        "One pass through the stock; 3 Kings in the pyramid; the hardest deals.",
         "No glow: find each card's partner yourself.",
         "One hint this round: the Hint button lights one good move."
       ],

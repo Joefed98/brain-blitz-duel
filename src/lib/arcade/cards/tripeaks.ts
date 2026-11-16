@@ -30,7 +30,7 @@ import { bandCurve, type BandParts } from "../scoreBands";
 import { hashInts, rankOf, shuffledDeck } from "./cards";
 import { TP_DEALS } from "./tripeaksDeals.data";
 import { TP_STOCK_PARS } from "./tripeaksStockPar.data";
-import { TP_EXPERT_DEALS } from "./tripeaksExpert.data";
+import { TP_EXPERT_DEALS, TP_HARD_NOWRAP_DEALS } from "./tripeaksExpert.data";
 
 /** The dealt revision (rev 3: more of the 200 on the cards); rev 2 runs replay on tripeaksGameV2, rev 1 on V1. */
 export const TP_REV = 3;
@@ -378,7 +378,9 @@ export function tripeaksGameFor(rev?: number | null): ArcadeGame<TpState, Arcade
  *
  *   Easy    playable cards glow, Ace and King wrap, 3 undos (TP_INPUT_UNDO), speed full by 25 s, hints free (and the
  *           hint's glow shows by itself after 8 s without a play).
- *   Hard    no glow (display), wrap, speed full by 20 s, a hint costs TP_HINT_COST from the cards part.
+ *   Hard    no glow (display), no Ace–King wrap, speed full by 20 s, a hint costs TP_HINT_COST from the cards part;
+ *           dealt from the easier deals that clear without the wrap (16 Nov 2026, Joe: Hard and Expert need real steps,
+ *           the deal itself harder; tripeaksExpert.data.ts's TP_HARD_NOWRAP_DEALS, each with its no-wrap stock par).
  *   Expert  no glow, no wrap, speed full by 16 s, one hint; dealt only from the bank deals the solver clears without
  *           the wrap with a run of ten, each with its own stock par (tripeaksExpert.data.ts, scripts/tripeaks-expert-bank.ts).
  *
@@ -405,7 +407,7 @@ export interface TpLevelRules {
 
 export const TP_LEVEL_RULES: Readonly<Record<TpLevelName, TpLevelRules>> = {
   easy: { lv: TP_LV_EASY, glow: true, wrap: true, undoLimit: 3, speedFullS: 25, hintCost: 0, hintLimit: -1 },
-  hard: { lv: TP_LV_HARD, glow: false, wrap: true, undoLimit: 0, speedFullS: 20, hintCost: TP_HINT_COST, hintLimit: -1 },
+  hard: { lv: TP_LV_HARD, glow: false, wrap: false, undoLimit: 0, speedFullS: 20, hintCost: TP_HINT_COST, hintLimit: -1 },
   expert: { lv: TP_LV_EXPERT, glow: false, wrap: false, undoLimit: 0, speedFullS: 16, hintCost: 0, hintLimit: 1 },
 };
 
@@ -439,11 +441,19 @@ export function tpUndosLeft(state: TpState): number {
 export const TP_EASY_MAX_PAR = 12;
 export const TP_EASY_DEALS: readonly number[] = TP_STOCK_PARS.flatMap((par, i) => (par <= TP_EASY_MAX_PAR ? [i] : []));
 
+
 /** A level deal: the bank entry its seed names (Easy: the easiest deals; Expert: the no-wrap bank, its own pars). */
 export function tpLevelDealOf(seed: number, level: TpLevelName): { index: number; dealSeed: number; stockPar: number } {
+  if (level === "hard") {
+    const n = TP_HARD_NOWRAP_DEALS.length;
+    const index = ((Math.trunc(seed) % n) + n) % n;
+    const [dealSeed, stockPar] = TP_HARD_NOWRAP_DEALS[index]!;
+    return { index, dealSeed, stockPar };
+  }
   if (level === "easy") {
-    const n = TP_EASY_DEALS.length;
-    const index = TP_EASY_DEALS[((Math.trunc(seed) % n) + n) % n]!;
+    const list = TP_EASY_DEALS;
+    const n = list.length;
+    const index = list[((Math.trunc(seed) % n) + n) % n]!;
     return { index, dealSeed: TP_DEALS[index]!, stockPar: TP_STOCK_PARS[index]! };
   }
   if (level === "expert") {

@@ -31,7 +31,7 @@ import { fcHintMove } from "../src/lib/arcade/cards/freecellSolver";
 import * as TP from "../src/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "../src/lib/arcade/cards/tripeaksDeals.data";
 import { TP_STOCK_PARS } from "../src/lib/arcade/cards/tripeaksStockPar.data";
-import { TP_EXPERT_DEALS } from "../src/lib/arcade/cards/tripeaksExpert.data";
+import { TP_EXPERT_DEALS, TP_HARD_NOWRAP_DEALS } from "../src/lib/arcade/cards/tripeaksExpert.data";
 import { tpHintMove } from "../src/lib/arcade/cards/tripeaksSolver";
 import * as PY from "../src/lib/arcade/cards/pyramid";
 import * as FH from "../src/lib/arcade/cards/fiveHands";
@@ -90,7 +90,10 @@ function dealAt(type: PuzzleType, level: Level, n: number): PuzzleData {
 const mv = (k: number, a = 0, b = 0, c = 0): Ev => ({ k, a, b, c, d: 0 });
 const fcLines = JSON.parse(readFileSync(new URL("./fixtures/freecell-solutions-levels.json", import.meta.url), "utf8")) as Record<L, string[]>;
 const fcLine = (level: L, i: number) => fcLines[level][i]!.split(",").filter(Boolean).map((m) => m.split(":").map(Number) as [number, number, number]);
-const tpxLines = (JSON.parse(readFileSync(new URL("./fixtures/tripeaks-expert-lines.json", import.meta.url), "utf8")) as string[]).map((s) => s.split(",").filter(Boolean).map(Number));
+const tpxAll = JSON.parse(readFileSync(new URL("./fixtures/tripeaks-expert-lines.json", import.meta.url), "utf8")) as { expert: string[]; hard: string[] };
+const toTaps = (s: string) => s.split(",").filter(Boolean).map(Number);
+const tpxLines = tpxAll.expert.map(toTaps);
+const tphLines = tpxAll.hard.map(toTaps);
 
 /* ---------------------------------------------------------------- 1. Registry and clocks */
 console.log("1. The registry mirrors the sims; every level's clock is at most 120 s");
@@ -106,6 +109,8 @@ console.log("1. The registry mirrors the sims; every level's clock is at most 12
     check(ms.tiles === mj.layout.tiles && ms.layers === mj.layout.layers && ms.quads === mj.quads && ms.shuffleCost === mj.shuffleCost, `mahjong ${l}: registry tiles, layers, faces dealt four times and shuffle cost match the sim`);
     const tp = TP.TP_LEVEL_RULES[l];
     const ts = reg.tripeaks!.levels[l]!.settings;
+    const fhTable = reg.fivehands!.levels[l]!.settings;
+    if (l !== "easy") check(fhTable.pair === FH.fhRowHand([0, 13, 1, 2, 3], FH.FH_LEVEL_RULES[l].tableRev).points, `fivehands ${l}: registry pair value matches the level's table`);
     check(ts.glow === tp.glow && ts.wrap === tp.wrap && ts.undos === tp.undoLimit && ts.speedFullS === tp.speedFullS, `tripeaks ${l}: registry glow, wrap, undos and speed match the sim`);
     const fh = FH.FH_LEVEL_RULES[l];
     const hs = reg.fivehands!.levels[l]!.settings;
@@ -118,8 +123,10 @@ console.log("1. The registry mirrors the sims; every level's clock is at most 12
   check(MJ.MAHJONG_LEVEL_RULES.easy.layout.tiles === 56 && MJ.MAHJONG_LEVEL_RULES.easy.layout.layers === 3 && MJ.MAHJONG_LEVEL_RULES.hard.layout.tiles === 72 && MJ.MAHJONG_LEVEL_RULES.expert.layout.tiles === 88 && MJ.MAHJONG_LEVEL_RULES.expert.layout.layers === 5, "mahjong: 56 tiles in 3 layers, 72, 88 in 5 layers");
   check([MJ.MAHJONG_LEVEL_RULES.easy, MJ.MAHJONG_LEVEL_RULES.hard, MJ.MAHJONG_LEVEL_RULES.expert].map((r) => `${r.quads}/${r.shuffleCost}`).join(" ") === "2/2 10/8 12/10", "mahjong: look-alike faces and shuffle costs 2/2, 10/8, 12/10");
   check([FH.FH_LEVEL_RULES.easy, FH.FH_LEVEL_RULES.hard, FH.FH_LEVEL_RULES.expert].map((r) => `${r.num / r.den}×${r.seconds}`).join(" ") === "1.6×75 1.4×50 1.3×45", "fivehands: ×1.6 75 s, ×1.4 50 s, ×1.3 45 s");
-  check(TP.TP_LEVEL_RULES.easy.speedFullS === 25 && TP.TP_LEVEL_RULES.hard.speedFullS === 20 && TP.TP_LEVEL_RULES.expert.speedFullS === 16 && !TP.TP_LEVEL_RULES.expert.wrap && TP.TP_LEVEL_RULES.easy.undoLimit === 3, "tripeaks: speed by 25 / 20 / 16 s, Expert no wrap, Easy 3 undos");
-  check(PY.PY_LEVEL_RULES.easy.passes === 3 && PY.PY_LEVEL_RULES.hard.passes === 1 && PY.PY_LEVEL_RULES.expert.passes === 1 && PY.PY_LEVEL_RULES.expert.kingsSpan === 1 && PY.PY_LEVEL_RULES.expert.kingsMin === 2, "pyramid: 3 / 1 / 1 passes, Expert 2 Kings");
+  check(TP.TP_LEVEL_RULES.easy.speedFullS === 25 && TP.TP_LEVEL_RULES.hard.speedFullS === 20 && TP.TP_LEVEL_RULES.expert.speedFullS === 16 && !TP.TP_LEVEL_RULES.expert.wrap && !TP.TP_LEVEL_RULES.hard.wrap && TP.TP_LEVEL_RULES.easy.undoLimit === 3, "tripeaks: speed by 25 / 20 / 16 s, no wrap on Hard and Expert, Easy 3 undos");
+  check(FH.fhRowHand([0, 13, 1, 2, 3], FH.FH_TABLE_HARD).points === 10 && FH.fhRowHand([0, 13, 1, 14, 3], FH.FH_TABLE_EXPERT).points === 15 && FH.fhRowHand([0, 13, 1, 2, 3], FH.FH_REV).points === 15, "fivehands: a pair is 10 on Hard and Expert (15 on Normal), two pair 15 on Expert");
+  check(PY.PY_LEVEL_RULES.easy.passes === 3 && PY.PY_LEVEL_RULES.hard.passes === 1 && PY.PY_LEVEL_RULES.expert.passes === 1 && PY.PY_LEVEL_RULES.expert.kingsSpan === 1 && PY.PY_LEVEL_RULES.expert.kingsMin === 3, "pyramid: 3 / 1 / 1 passes, Expert exactly 3 Kings");
+  check(PY.PY_LEVEL_RULES.hard.filters.includes(4) && PY.PY_LEVEL_RULES.expert.filters.includes(5) && PY.PY_LEVEL_RULES.easy.filters.length === 0, "pyramid: Hard's deals beat a three-removal look-ahead, Expert's a four-removal one, Easy any proved deal");
   check(FC.FC_LEVEL_RULES.easy.cells === 5 && FC.FC_LEVEL_RULES.easy.topRank === 8 && FC.FC_LEVEL_RULES.expert.cells === 3 && FC.FC_LEVEL_RULES.expert.undoLimit === 3, "freecell: Easy 32 cards 5 cells, Expert 3 cells 3 undos");
   for (const g of GAMES) {
     for (const l of [...LEVELS, "normal" as const]) {
@@ -179,11 +186,18 @@ console.log("2–3. Every deal at every level proved; 200 reachable through the 
       if (s.clearedCount === 28 && s.bestRun >= 10 && s.turns === TP_EXPERT_DEALS[i]![1] && s.noWrap === 1) ok++;
     }
     check(TP_EXPERT_DEALS.length >= 100 && ok === TP_EXPERT_DEALS.length, `tripeaks expert: all ${TP_EXPERT_DEALS.length} deals clear without the wrap with a run of ten at their stock par (${ok})`);
+    let okHard = 0;
+    for (let i = 0; i < TP_HARD_NOWRAP_DEALS.length; i++) {
+      const s = run(TP.tripeaksLevelGame("hard"), i, tphLines[i]!.map((a) => mv(TP.TP_INPUT_TAP, a)));
+      if (s.clearedCount === 28 && s.bestRun >= 10 && s.turns === TP_HARD_NOWRAP_DEALS[i]![1] && s.noWrap === 1) okHard++;
+    }
+    check(TP_HARD_NOWRAP_DEALS.length >= 100 && okHard === TP_HARD_NOWRAP_DEALS.length, `tripeaks hard: all ${TP_HARD_NOWRAP_DEALS.length} deals clear without the wrap with a run of ten at their stock par (${okHard})`);
+    check(Math.min(...TP_EXPERT_DEALS.map(([, p]) => p)) >= Math.max(...TP_HARD_NOWRAP_DEALS.map(([, p]) => p)), "tripeaks: Expert's deals need at least as many stock cards as any of Hard's");
   }
   for (const l of LEVELS) {
     const seed = 0;
     const d = TP.tpLevelDealOf(seed, l);
-    const line = l === "expert" ? tpxLines[0]! : tripeaksParSolution(d.index);
+    const line = l === "expert" ? tpxLines[0]! : l === "hard" ? tphLines[0]! : tripeaksParSolution(d.index);
     const flawless = play(TP.tripeaksLevelGame(l), seed, line.map((a) => mv(TP.TP_INPUT_TAP, a)), 15, TP.tpCheckpoint as never, encodeTripeaksRun as never);
     const p = { type: "tripeaks", seed, tripeaksRev: TP.TP_REV, level: l } as unknown as PuzzleData;
     const g = gradeAnswer(p, flawless.raw, 0);
@@ -241,7 +255,7 @@ console.log("2–3. Every deal at every level proved; 200 reachable through the 
     let checked = 0;
     for (let seed = 1; seed <= Math.min(SEEDS, 40); seed++) {
       checked++;
-      const best = fhBest(seed, FH.FH_REV);
+      const best = fhBest(seed, r.tableRev);
       if (Math.floor((best.total * r.num) / r.den) >= 200) reach++;
       if (seed <= 3) {
         check(FH.fiveHandsLevelGame(l).init(seed).deck.join(",") === FH.fiveHandsGameFor(FH.FH_REV).init(seed).deck.join(","), `fivehands ${l}: seed ${seed} deals today's deck`);
@@ -250,8 +264,8 @@ console.log("2–3. Every deal at every level proved; 200 reachable through the 
     check(reach > 0, `fivehands ${l}: 200 reachable (the best arrangement reaches it on ${reach} of ${checked} decks)`);
     // A deck that allows it, played through the grade.
     let seed = 1;
-    while (Math.floor((fhBest(seed, FH.FH_REV).total * r.num) / r.den) < 200) seed++;
-    const best = fhBest(seed, FH.FH_REV);
+    while (Math.floor((fhBest(seed, r.tableRev).total * r.num) / r.den) < 200) seed++;
+    const best = fhBest(seed, r.tableRev);
     const taps = [...best.taps.map((row) => mv(FH.FH_INPUT_PLACE, row)), mv(FH.FH_INPUT_PICK, best.column)];
     const flawless = play(FH.fiveHandsLevelGame(l), seed, taps, 20, FH.fhCheckpoint as never, encodeFiveHandsRun as never);
     const p = { type: "fivehands", seed, fiveHandsRev: FH.FH_REV, level: l, timeLimitMs: r.seconds * 1000 + 3000 } as unknown as PuzzleData;

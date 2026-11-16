@@ -100,6 +100,40 @@ export const FH_HANDS_V3 = [
   ["Two pair", 20],
   ["Pair", 15],
 ] as const;
+/**
+ * The difficulty levels' stricter tables (16 Nov 2026, Joe: Hard must change the challenge, not just the clock): a level
+ * state's `rev` is its table number (FH_TABLE_*), still fiveHandsRev 3's play and deck (dealRev maps it to 3). Hard: a
+ * pair is worth 10 (Normal 15), so the points are in three of a kind and better; Expert: a pair 10 and two pair 15
+ * (Normal 20), and × 1.3.
+ */
+export const FH_TABLE_HARD = 31;
+export const FH_TABLE_EXPERT = 32;
+export const FH_HANDS_HARD = [
+  ["Straight flush", 50],
+  ["Four of a kind", 45],
+  ["Full house", 40],
+  ["Flush", 35],
+  ["Straight", 30],
+  ["Three of a kind", 25],
+  ["Two pair", 20],
+  ["Pair", 10],
+] as const;
+export const FH_HANDS_EXPERT = [
+  ["Straight flush", 50],
+  ["Four of a kind", 45],
+  ["Full house", 40],
+  ["Flush", 35],
+  ["Straight", 30],
+  ["Three of a kind", 25],
+  ["Two pair", 15],
+  ["Pair", 10],
+] as const;
+/** A table's words for the help ("straight flush 50, … pair 5"). */
+export function fhTableText(tableRev: number): string {
+  const t = tableRev === FH_TABLE_HARD ? FH_HANDS_HARD : tableRev === FH_TABLE_EXPERT ? FH_HANDS_EXPERT : FH_HANDS_V3;
+  return [...t].reverse().map(([name, p]) => `${name.toLowerCase()} ${p}`).join(", ");
+}
+
 /** fiveHandsRev 3's single part: the hand points (rows plus the picked column) × 1.4, capped at 200. */
 export const FH_CORE_MAX_V3 = 200;
 /** The ×1.4 as an integer ratio (7 ÷ 5, floored). */
@@ -188,7 +222,8 @@ export function fhRowHand(row: readonly number[], rev: number | null = 1): { poi
   const h = psHand(row);
   const r = rev ?? 1;
   if (r < FH_REV_STEEP || !h.name) return h;
-  const table: readonly (readonly [string, number])[] = r >= FH_REV_FLAT ? FH_HANDS_V3 : FH_HANDS_V2;
+  // The difficulty levels' stricter tables ride on their own table numbers (fiveHandsRev 3's play and deck).
+  const table: readonly (readonly [string, number])[] = r === FH_TABLE_HARD ? FH_HANDS_HARD : r === FH_TABLE_EXPERT ? FH_HANDS_EXPERT : r >= FH_REV_FLAT ? FH_HANDS_V3 : FH_HANDS_V2;
   const v = table.find(([name]) => name === h.name);
   return { points: v ? v[1] : 0, name: h.name };
 }
@@ -508,12 +543,14 @@ export interface FhLevelRules {
   columnValues: boolean;
   hintCost: number;
   hintLimit: number;
+  /** The hand table (FH_REV_FLAT: today's; FH_TABLE_HARD / FH_TABLE_EXPERT the stricter ones). */
+  tableRev: number;
 }
 
 export const FH_LEVEL_RULES: Readonly<Record<FhLevelName, FhLevelRules>> = {
-  easy: { lv: FH_LV_EASY, num: 8, den: 5, seconds: 75, preview: 2, columnValues: true, hintCost: 0, hintLimit: -1 },
-  hard: { lv: FH_LV_HARD, num: 7, den: 5, seconds: 50, preview: 0, columnValues: false, hintCost: FH_HINT_COST, hintLimit: -1 },
-  expert: { lv: FH_LV_EXPERT, num: 13, den: 10, seconds: 45, preview: 0, columnValues: false, hintCost: 0, hintLimit: 1 },
+  easy: { lv: FH_LV_EASY, num: 8, den: 5, seconds: 75, preview: 2, columnValues: true, hintCost: 0, hintLimit: -1, tableRev: FH_REV_FLAT },
+  hard: { lv: FH_LV_HARD, num: 7, den: 5, seconds: 50, preview: 0, columnValues: false, hintCost: FH_HINT_COST, hintLimit: -1, tableRev: FH_TABLE_HARD },
+  expert: { lv: FH_LV_EXPERT, num: 13, den: 10, seconds: 45, preview: 0, columnValues: false, hintCost: 0, hintLimit: 1, tableRev: FH_TABLE_EXPERT },
 };
 
 function fhLevelName(lv: number | undefined): FhLevelName | null {
@@ -549,7 +586,7 @@ export function fhLevelSpec(level: FhLevelName): StdSpec {
     parts: [
       {
         key: "core", label: "Hand points", max: FH_CORE_MAX_V3,
-        how: `your five rows’ hands plus the column you pick, times ${r.num / r.den} (${FH_V3_TABLE_TEXT})${r.hintCost ? `; each hint costs ${r.hintCost}` : ""}`,
+        how: `your five rows’ hands plus the column you pick, times ${r.num / r.den} (${fhTableText(r.tableRev)})${r.hintCost ? `; each hint costs ${r.hintCost}` : ""}`,
       },
     ],
   };
@@ -634,7 +671,7 @@ export function fiveHandsLevelGame(level: FhLevelName): ArcadeGame<FhState, Arca
     g = {
       ...fiveHandsGameV3,
       runTicks,
-      init: (seed) => ({ ...fhInit(seed, FH_REV_FLAT), lv: r.lv, runTicks, hints: 0, hintTick: 0 }),
+      init: (seed) => ({ ...fhInit(seed, r.tableRev), lv: r.lv, runTicks, hints: 0, hintTick: 0 }),
       step: stepLevel,
       inputRanges: [inputRange(FH_INPUT_PLACE, [0, FH_ROWS - 1]), inputRange(FH_INPUT_PICK, [0, FH_SLOTS - 1]), inputRange(FH_INPUT_HINT)],
     };

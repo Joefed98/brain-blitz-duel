@@ -68,22 +68,22 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   tripeaks: {
     levels: {
       easy: { settings: { glow: true, wrap: true, undos: 3, speedFullS: 25, hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      hard: { settings: { glow: false, wrap: true, undos: 0, speedFullS: 20, hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      hard: { settings: { glow: false, wrap: false, undos: 0, speedFullS: 20, hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
       expert: { settings: { glow: false, wrap: false, undos: 0, speedFullS: 16, hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
     },
   },
   fivehands: {
     levels: {
       easy: { settings: { multiplier: 1.6, seconds: 75, preview: 2, columnValues: true, hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      hard: { settings: { multiplier: 1.4, seconds: 50, preview: 0, columnValues: false, hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      expert: { settings: { multiplier: 1.3, seconds: 45, preview: 0, columnValues: false, hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      hard: { settings: { multiplier: 1.4, seconds: 50, preview: 0, columnValues: false, pair: 10, twoPair: 20, hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      expert: { settings: { multiplier: 1.3, seconds: 45, preview: 0, columnValues: false, pair: 10, twoPair: 15, hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
     },
   },
   pyramid: {
     levels: {
-      easy: { settings: { passes: 3, glow: true, kings: "3–4", hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      easy: { settings: { passes: 3, glow: true, kings: "3–4", deals: "any proved", hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
       hard: { settings: { passes: 1, glow: false, kings: "2–3", deals: "harder", hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      expert: { settings: { passes: 1, glow: false, kings: "2", deals: "hardest", hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      expert: { settings: { passes: 1, glow: false, kings: "3", deals: "hardest", hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
     },
   },
 };

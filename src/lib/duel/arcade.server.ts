@@ -48,7 +48,7 @@ import { CLASH_QUEUE, CLASH_REV_TALL, CLASH_REV_DEPTH, CLASH_REV_TOPUP } from "@
 import { randomBelow } from "./random";
 import { FC_REV, FC_REV_SHORT, fcLevelBank } from "@/lib/arcade/cards/freecell";
 import type { Level } from "@/lib/levels/levels";
-import { TP_EXPERT_DEALS } from "@/lib/arcade/cards/tripeaksExpert.data";
+import { TP_EXPERT_DEALS, TP_HARD_NOWRAP_DEALS } from "@/lib/arcade/cards/tripeaksExpert.data";
 import { TP_EASY_DEALS } from "@/lib/arcade/cards/tripeaks";
 import { FC_DEALS } from "@/lib/arcade/cards/freecellDeals.data";
 import { TP_REV, TP_REV_PAR } from "@/lib/arcade/cards/tripeaks";
@@ -132,7 +132,7 @@ export function generateTripeaks(level?: Level): TripeaksPuzzleData {
   // The difficulty levels (15 Nov 2026): Expert deals from its own no-wrap bank; Easy and Hard the Normal bank.
   if (level === "expert") return { type: "tripeaks", seed: randomBelow(TP_EXPERT_DEALS.length), tripeaksRev: TP_REV };
   if (level === "easy") return { type: "tripeaks", seed: randomBelow(TP_EASY_DEALS.length), tripeaksRev: TP_REV };
-  if (level === "hard") return { type: "tripeaks", seed: randomBelow(TP_DEALS.length), tripeaksRev: TP_REV };
+  if (level === "hard") return { type: "tripeaks", seed: randomBelow(TP_HARD_NOWRAP_DEALS.length), tripeaksRev: TP_REV };
   // tripeaksRev 3 (7 Nov 2026): rev 2's deals and pars, half the speed moved onto the cards.
   return { type: "tripeaks", seed: randomBelow(TP_DEALS.length), tripeaksRev: dealPinned("cardsPreShare") ? TP_REV_PAR : TP_REV };
 }

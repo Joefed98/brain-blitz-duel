@@ -142,9 +142,11 @@ All 90 s.
 
 | Level | Stock passes | Kings | Glow | Deals kept when these quick players fail | Hints |
 |---|---|---|---|---|---|
-| Easy | 3 | 3–4 | on | first pair, most uncovered, two-removal line | free; the glow shows by itself after 8 s idle |
-| Normal | 1 | 2–4 | on | the same (today) | none |
-| Hard | 1 | 2–3 | off | those and the waste-first player | −5 each |
-| Expert | 1 | 2 | off | those and a three-removal look-ahead | one |
+| Easy | 3 | 3–4 | on | none: any proved deal | free; the glow shows by itself after 8 s idle |
+| Normal | 1 | 2–4 | on | first pair, most uncovered, two-removal line (today) | none |
+| Hard | 1 | 2–3 | off | those, the waste-first player and a three-removal line | −5 each |
+| Expert | 1 | exactly 3 | off | those and a four-removal line | one |
+
+Expert keeps three Kings (16 Nov 2026): with two, the waste rarely matters and Expert measured easier than Hard.
 
 The glow (partners and Kings) is display only; the bots model its absence as 1.4 × the search time.
