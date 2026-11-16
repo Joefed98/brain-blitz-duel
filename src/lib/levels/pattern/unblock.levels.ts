@@ -36,8 +36,11 @@ export const LEVELS_UNBLOCK: GameLevels<UnblockLevelSettings> = {
     // Hard: Normal's 7×7 lot, 22–30 moves at the minimum, 12–14 cars, 60 s; full speed by 28 s (about a second a
     // move along the line: the step up from Normal is seeing the longer line, then playing it briskly).
     hard: { settings: { cols: 7, minMoves: [22, 30], cars: [12, 14], timeLimitMs: 60_000, speedFullByS: 28 }, oneSolution: OPEN },
-    // Expert: 7×7, 30–40 moves at the minimum, 13–15 cars, 75 s; full speed by 30 s (so the longer clock never scores
-    // Expert above Hard: elite bots 192 Expert against 196 Hard, level-tune.ts, 16 Nov 2026).
-    expert: { settings: { cols: 7, minMoves: [30, 40], cars: [13, 15], timeLimitMs: 75_000, speedFullByS: 30 }, oneSolution: OPEN },
+    // Expert (deeper boards, Joe 16 Nov 2026): 7×7, 40–48 moves at the minimum (Hard 22–30, the old Expert 30–40), 13–15
+    // cars, 90 s; full speed by 30 s, as before (about 0.7 s a move: only a player who reads the whole line at once).
+    // The step up is the line's length, about 16 moves more than Hard's on average, so the clock grows to fit them (a
+    // person-like solver's finishes take 42–90 s). The bank climbs each lot to 40 and takes the drawn depth or the
+    // lot's hardest, whichever is less (scripts/unblock-levels-bank.ts).
+    expert: { settings: { cols: 7, minMoves: [40, 48], cars: [13, 15], timeLimitMs: 90_000, speedFullByS: 30 }, oneSolution: OPEN },
   },
 };

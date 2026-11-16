@@ -189,7 +189,7 @@ export function UnblockPuzzle({
 }: UnblockPuzzleProps) {
   const reduced = usePrefersReducedMotion();
   const inFrame = useInFrame();
-  // The lot's size and the clock (the difficulty levels: Easy's 6×6 lot, Expert's 75 s; absent = 7 and 60 s).
+  // The lot's size and the clock (the difficulty levels: Easy's 6×6 lot, Expert's 90 s; absent = 7 and 60 s).
   const N = unblockCols(puzzle);
   const clockMs = puzzle.timeLimitMs ?? UNBLOCK_TIME_MS;
   const boardRef = useRef<HTMLDivElement>(null);
