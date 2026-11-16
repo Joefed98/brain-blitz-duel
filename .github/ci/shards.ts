@@ -38,7 +38,9 @@
 export const PAGE_CHECK_SPLITS: Record<string, { parts: number; jobs: number; prefix: string; ceiling: number }> = {
   // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): re-picked on main's merged screens (the step-3
   // train: 890 theme-check and 1,130 no-wrap-check draws), back to about 30 draws a part; were 24 parts / 4 jobs and 30 / 6.
-  "theme-check.tsx": { parts: 30, jobs: 5, prefix: "play-theme", ceiling: 40 },
+  // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): the arcade train (16 Nov 2026) took theme-check
+  // to 1,328 draws (44–45 a part); 42 parts in 7 jobs, about 32 a part.
+  "theme-check.tsx": { parts: 42, jobs: 7, prefix: "play-theme", ceiling: 40 },
   // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): the Retro overhaul's ten reveal screens took
   // no-wrap-check to 1,446 draws (41 a part); 42 parts in 7 jobs, about 35 a part.
   "no-wrap-check.tsx": { parts: 42, jobs: 7, prefix: "play-nowrap", ceiling: 40 },
