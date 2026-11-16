@@ -231,7 +231,8 @@ export const GAMES: GameSpec[] = [
   { ...simple("flip", FLIP_REV, FLIP_REV_BAND, flipGameFor, flipCheckpoint, encodeFlipRun, replayFlipRun), tunec: FLIP_REV_TUNEC },
   { ...simple("inkbridge", INK_REV4, INK_REV_BAND, inkBridgeGameFor, inkCheckpoint, encodeInkBridgeRun, replayInkBridgeRun), tunec: INK_REV_TUNEC },
   { ...simple("matchup", MATCHUP_REV, MATCHUP_REV_BAND, matchupGameFor, matchupCheckpoint, encodeMatchupRun, replayMatchupRun), tunec: MATCHUP_REV_WAIT, tunef: MATCHUP_REV_PAR },
-  { ...simple("bubble", BUB_REV, BUB_REV_BAND, bubbleGameFor, bubCheckpoint, encodeBubbleRun, replayBubbleRun), tunef: BUB_REV_TORPEDO, tuneg2: BUB_REV_TALL },
+  // Levels (stage 3): the dealt puzzle's level picks bubbleRev 12's reef (Normal and older stamps as before).
+  { ...simple("bubble", BUB_REV, BUB_REV_BAND, bubbleGameFor, bubCheckpoint, encodeBubbleRun, replayBubbleRun), tunef: BUB_REV_TORPEDO, tuneg2: BUB_REV_TALL, gameForPuzzle: (p) => bubbleGameFor(p?.bubbleRev, p?.level) },
   { ...simple("cross", CROSS_REV, CROSS_REV_BAND, crossGameFor, crossCheckpoint, encodeCrossRun, replayCrossRun), tunef: CROSS_REV_SMALL },
   { ...simple("rally", RALLY_REV, RALLY_REV_BAND, rallyGameFor, rallyCheckpoint, encodeRallyRun, replayRallyRun), current: RALLY_REV_TUNED, tunef: RALLY_REV_TUNEF, tuneg: RALLY_REV_TALL },
   { ...simple("snake", SNAKE_REV, SNAKE_REV_BAND, snakeGameFor, snakeCheckpoint, encodeSnakeRun, replaySnakeRun), tunee: SNAKE_REV_TALL, tunef: SNAKE_REV_ROCKS },

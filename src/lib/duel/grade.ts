@@ -2048,7 +2048,7 @@ function gradeUnderRev(
     }
     case "bubble": {
       const replayStart = performance.now();
-      const run = replayBubbleRun(puzzle.seed, answer, puzzle.bubbleRev);
+      const run = replayBubbleRun(puzzle.seed, answer, puzzle.bubbleRev, (puzzle as { level?: unknown }).level);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)

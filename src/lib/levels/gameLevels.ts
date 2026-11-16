@@ -8,8 +8,8 @@
  *
  *   tents: {
  *     levels: {
- *       easy: { settings: { size: 6 }, oneSolution: { proof: "scripts/tents-levels-check.ts" } },
- *       hard: { settings: { size: 9 }, oneSolution: { proof: "scripts/tents-levels-check.ts" } },
+ *       easy: { settings: { colours: 4, reef: 75, every: 10, trail: 2, banksFull: 10, coreFull: 60, speedFullLeft: 1800 } },
+ *       hard: { settings: { colours: 5, reef: 110, every: 5, trail: 1, banksFull: 20, coreFull: 110, speedFullLeft: 1800 } },
  *     },
  *   },
  *
@@ -46,7 +46,18 @@ export interface GameLevels<S = Record<string, unknown>> {
  * Every game's levels beyond Normal. Empty until the family sessions add theirs (15 Nov 2026): every game offers
  * Normal only.
  */
-export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {};
+export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
+  // Coral Pop (the Strategy overhaul, stage 3): colours, reef bubbles (chests included), shots between descents and
+  // the aim trail's reach (2 two bounces, 1 one bounce, 0 short). Played on bubbleRev 12; the sim keeps the same
+  // numbers frozen with the stamp (BUB_LEVELS in src/lib/arcade/bubble.ts; bubble-levels-check proves they agree).
+  bubble: {
+    levels: {
+      easy: { settings: { colours: 4, reef: 75, every: 10, trail: 2, banksFull: 10, coreFull: 60, speedFullLeft: 1800 } },
+      hard: { settings: { colours: 5, reef: 110, every: 5, trail: 1, banksFull: 20, coreFull: 110, speedFullLeft: 1800 } },
+      expert: { settings: { colours: 6, reef: 110, every: 7, trail: 0, banksFull: 10, coreFull: 110, speedFullLeft: 1800 } },
+    },
+  },
+};
 
 /** The registry a caller reads (a check may stand in its own through `withGameLevels`). */
 let registry: Partial<Record<string, GameLevels>> = GAME_LEVELS;

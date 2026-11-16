@@ -227,7 +227,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   minigolf: (p) => ({ game: minigolfGameFor(p.type === "minigolf" ? p.pars : undefined, p.type === "minigolf" ? p.golfRev : undefined) as AnyGame }),
   rally: (p) => ({ game: rallyGameFor(rev(p, "rallyRev")) as AnyGame }),
   slice: (p) => ({ game: sliceGameFor(rev(p, "sliceRev")) as AnyGame }),
-  bubble: (p) => ({ game: bubbleGameFor(rev(p, "bubbleRev")) as AnyGame }),
+  bubble: (p) => ({ game: bubbleGameFor(rev(p, "bubbleRev"), (p as { level?: unknown }).level) as AnyGame }),
   beat: (p) => ({ game: beatGameFor(rev(p, "beatRev")) as AnyGame }),
   snake: (p) => ({ game: snakeGameFor(rev(p, "snakeRev")) as AnyGame }),
   cross: (p) => ({ game: crossGameFor(rev(p, "crossRev")) as AnyGame }),
