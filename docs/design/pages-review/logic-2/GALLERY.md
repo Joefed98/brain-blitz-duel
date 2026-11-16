@@ -122,3 +122,23 @@ each, built the same way (`bun scripts/logic-level-bank.ts`). Each picture is **
 
 ### Island Link
 ![Island Link levels](img/levels-bridges.webp)
+
+### How hard each level is
+
+The elite player's numbers per level from the shared tuning tool (main's `scripts/level-tune.ts` at 8589b571, the
+puzzle kits' near-perfect player, 20 boards a level, graded by the server's own code; puzzles have no checkpoint
+interval). The kits' thinking time per move scales with the level (`LEVEL_THINK` Easy 0.8, Hard 1.9, Expert 2.35;
+Trail 2.6 / 2.7 and Regions 2.5 / 3.05 by `LEVEL_THINK_GAME`): a modelling assumption, since a harder board makes each
+move slower to find, not only more of them. Joe's Expert play is the real test.
+
+| Game | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Tents and Trees | 199.8, 100 % | 199.7, 100 % | 177.8, 100 % | 163.2, 95 % |
+| Shikaku | 199.5, 100 % | 198.9, 100 % | 176.6, 100 % | 171.2, 100 % |
+| Lamplighter | 199.3, 100 % | 199.7, 100 % | 178.7, 100 % | 158.9, 80 % |
+| Trail | 199.9, 100 % | 199.2, 100 % | 166.4, 95 % | 154.0, 75 % |
+| Loopline | 199.0, 100 % | 199.2, 100 % | 183.6, 100 % | 171.1, 100 % |
+| Regions | 200.0, 100 % | 199.5, 100 % | 169.1, 95 % | 154.7, 80 % |
+| Island Link | 199.6, 100 % | 199.9, 100 % | 180.3, 100 % | 155.5, 85 % |
+
+Each cell is the average score and the share of boards finished.
