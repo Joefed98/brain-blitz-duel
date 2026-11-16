@@ -128,9 +128,10 @@ export function WordsmithPuzzle({
   // the clock stops so nothing is lost to the timeout.
   useEffect(() => {
     if (locked) return;
-    const remaining = phaseStartedAt + WORDSMITH_TIME_MS - now;
+    // Levels (the Word overhaul, stage 3): a level's own clock rides on the puzzle; Normal's is WORDSMITH_TIME_MS.
+    const remaining = phaseStartedAt + (puzzle.timeLimitMs ?? WORDSMITH_TIME_MS) - now;
     if (remaining <= 600) lockIn();
-  }, [locked, now, phaseStartedAt, lockIn]);
+  }, [locked, now, phaseStartedAt, lockIn, puzzle.timeLimitMs]);
 
   const trySubmit = async (indices = selectedRef.current) => {
     if (locked || busy) return;

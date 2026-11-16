@@ -248,9 +248,10 @@ export function WordHuntPuzzle({
   // The round runs the full minute; the traced words go in just before it ends.
   useEffect(() => {
     if (locked) return;
-    const remaining = phaseStartedAt + WORDHUNT_TIME_MS - now;
+    // Levels (the Word overhaul, stage 3): a level's own clock rides on the puzzle; Normal's is WORDHUNT_TIME_MS.
+    const remaining = phaseStartedAt + (puzzle.timeLimitMs ?? WORDHUNT_TIME_MS) - now;
     if (remaining <= 600) lockIn();
-  }, [locked, now, phaseStartedAt, lockIn]);
+  }, [locked, now, phaseStartedAt, lockIn, puzzle.timeLimitMs]);
 
   const wordOf = useCallback(
     (cells: number[]) =>

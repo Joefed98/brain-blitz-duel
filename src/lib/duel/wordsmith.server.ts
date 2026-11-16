@@ -106,6 +106,14 @@ export function generateWordsmithExample(): WordsmithPuzzleData {
   return preDepthPinned() ? made : { ...made, wordsmithRev: dealtTopupRev(WORDSMITH_REV_TOPUP, WORDSMITH_REV_DEPTH) };
 }
 
+/**
+ * A board of `size` letters whose centre allows between `range.min` and `range.max` words (the levels' deal, src/lib/duel/
+ * levels/wordsmith.server.ts; Normal deals through generateWordsmith, unchanged).
+ */
+export function generateWordsmithBand(size: number, range: { readonly min: number; readonly max: number }): WordsmithPuzzleData {
+  return generateWithinRange(size, range);
+}
+
 function generateWithinRange(size: number, range: { readonly min: number; readonly max: number }): WordsmithPuzzleData {
   const bank = sourceWords(size);
   for (let attempt = 0; attempt < 200 && bank.length; attempt++) {
