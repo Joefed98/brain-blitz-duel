@@ -1171,7 +1171,7 @@ export interface SlidePuzzleData {
   type: "iceslide";
   /**
    * Difficulty levels (16 Nov 2026, src/lib/levels/pattern/iceslide.levels.ts): a level board's own width and height in
-   * squares (Easy 8 × 8, Expert 12 × 14). Absent on every 12 × 12 board (Normal and Hard).
+   * squares (Easy 8 × 8, Expert 11 × 13). Absent on every 12 × 12 board (Normal and Hard).
    */
   cols?: number;
   rows?: number;

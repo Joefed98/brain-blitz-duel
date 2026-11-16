@@ -18,7 +18,7 @@ export const SLIDE_DIRS: SlideDir[] = ["U", "D", "L", "R"];
 
 /**
  * One square on in `dir`, or null at the edge. A board is 12 × 12 unless a level gives it its own `cols` × `rows`
- * (difficulty levels, 16 Nov 2026: Easy 8 × 8, Expert 12 × 14); the defaults are today's board exactly.
+ * (difficulty levels, 16 Nov 2026: Easy 8 × 8, Expert 11 × 13); the defaults are today's board exactly.
  */
 export function slideStep(cell: number, dir: SlideDir, cols = N, rows = N): number | null {
   if (dir === "X" || dir === "Y") return null;

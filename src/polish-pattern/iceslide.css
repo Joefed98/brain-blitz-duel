@@ -11,7 +11,7 @@
   height: min(100cqw, calc(100cqh - 156px));
   flex: 0 0 auto;
 }
-/* Difficulty levels (16 Nov 2026): Expert's 12 × 14 rink grows downwards (`--ice-ar` is its width over its height), as
+/* Difficulty levels (16 Nov 2026): Expert's 11 × 13 rink grows downwards (`--ice-ar` is its width over its height), as
    large as fits above the same controls; square levels (Easy's 8 × 8, Hard's 12 × 12) use the rules above unchanged. */
 .game-column [data-polish="iceslide"][data-ice-tall] > [data-game-arena="board"] {
   flex: 1 1 auto;
