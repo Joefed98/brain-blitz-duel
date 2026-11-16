@@ -147,8 +147,8 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
   const grids = [...root.querySelectorAll<HTMLElement>(".shikaku-board")];
   // Changed with Joe's approval, 16 Nov 2026 (routine: the check follows Shikaku's approved one-board reveal): the
   // reveal draws one large board at a time (logic2Reveal.tsx) in place of two half-width boards, so one grid, its
-  // clues in the full-size type (the small-board 100cqw clamp is now only the intro's mini board), and the fit worked
-  // out for the single board's width.
+  // clues in the full-size type, and the fit worked out for the single board's width; the small-board 100cqw clamp
+  // is checked on the intro's mini board below, where it still applies.
   assert.equal(grids.length, 1);
   // Test the grid itself: clipping belongs to the board, not its parent.
   for (const grid of grids) {
@@ -162,6 +162,21 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
     }
     checks++;
   }
+  // The small-board clue type still applies where the small board is drawn: the intro's mini board (Joe, 16 Nov 2026).
+  root.innerHTML = renderToStaticMarkup(<shikakuPuzzle.IntroExample />);
+  const miniGrids = [...root.querySelectorAll<HTMLElement>(".shikaku-board")];
+  assert.equal(miniGrids.length, 1);
+  for (const grid of miniGrids) {
+    const labels = [...grid.querySelectorAll<HTMLElement>(".shikaku-clue")];
+    assert.ok(labels.length > 0, "the intro's mini board has clues");
+    for (const label of labels) {
+      assert.ok(label.classList.contains("min-h-0") && label.classList.contains("overflow-hidden"));
+      // Happy DOM does not parse container-query units in clamp; inspect the emitted declaration.
+      assert.ok(label.getAttribute("style")?.includes("100cqw"));
+      assert.ok(label.querySelector(".leading-none"));
+    }
+    checks++;
+  }
   const boardWidth = width - 8 - 12;
   const cell = (boardWidth - 9) / 10;
   const font = 20; // text-xl
@@ -170,7 +185,7 @@ for (const [width, height] of [[390, 700], [375, 667]]) {
   rows.push(`| ArcadeReveal | ${width}x${height} | PASS source: crash marker absent; finish circles/fallback unchanged |`);
   rows.push(`| Wordsmith | ${width}x${height} | PASS shared markup + geometry: circular nucleus, faint 37%-radius orbit and round controls; all 7–10 outer layouts fit without overlap; 50.4px targets at conservative 280px board; fixed chip/action slots unchanged |`);
   rows.push(`| Mini Sudoku | ${width}x${height} | PASS live/intro/reveal: 36 equal-track cells; heavy strokes are borders of those exact cells, no overlay |`);
-  rows.push(`| Shikaku | ${width}x${height} | PASS the single board: clipped board/labels, equal tracks; ${boardWidth}px grid, ${cell.toFixed(2)}px cells, ${font.toFixed(2)}px labels |`);
+  rows.push(`| Shikaku | ${width}x${height} | PASS the single board and the intro's mini board (100cqw clues): clipped board/labels, equal tracks; ${boardWidth}px grid, ${cell.toFixed(2)}px cells, ${font.toFixed(2)}px labels |`);
 }
 // Arcade play screens (15 Oct 2026, display only; polish-layout/bottom.css "Arcade play screen"), CSS
 // arithmetic. The live round of every arcade game and every engine game on the arcade stage has one
