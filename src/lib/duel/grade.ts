@@ -165,7 +165,7 @@ import { scanCorrections, usesScanDepth } from "./depth/eagleEye";
 import { spotBonusFound, usesSpotDepth } from "./depth/doubleTake";
 import { puzzleTimeLimitMs } from "./catalogue";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf, recordParts, scoreRev1, takeScoreParts, wasteFactor, withPuzzleScoreRev } from "./puzzleScoreRev";
-import { isTopsy, replayTopsyPuzzle, scoreTopsy } from "./topsy";
+import { isTopsy, replayTopsyPuzzle, scoreTopsy, topsyTotalBalls } from "./topsy";
 import { isJumbledGradient, replayGradientAnswer, scoreJumbled } from "./jumbled";
 import { sortedTubeCount } from "./tubes";
 import { madeDistance } from "./target";
@@ -1027,7 +1027,7 @@ function gradeUnderRev(
       if (isTopsy(puzzle)) {
         const replay = replayTopsyPuzzle(puzzle, decodeGravityTilts(answer));
         // The elite stretch's efficiency: the boards' all-stars minimums ÷ the tilts made (server-only minimums).
-        const graded = scoreTopsy(replay, ms, timeLimitMs, undefined, (puzzle.boardStarMins ?? []).reduce((n, m) => n + m, 0) || undefined);
+        const graded = scoreTopsy(replay, ms, timeLimitMs, topsyTotalBalls(puzzle), (puzzle.boardStarMins ?? []).reduce((n, m) => n + m, 0) || undefined);
         isCorrect = replay.solved;
         correctCount = replay.home;
         score = graded.score;

@@ -17,8 +17,6 @@ import { useGameKeys } from "@/lib/desktop";
 import { decodeGravityTilts, encodeGravityTilts } from "@/lib/duel/gravity";
 import { useStageState } from "@/lib/duel/stageState";
 import {
-  TOPSY_BALLS,
-  TOPSY_BOARDS,
   TOPSY_HOME,
   TOPSY_SIZE,
   TOPSY_STARS,
@@ -28,6 +26,7 @@ import {
   topsyHomeCount,
   topsyStart,
   topsyTilt,
+  topsyTotalBalls,
   type TopsyBoard as TopsyBoardData,
   type TopsyReplay,
   type TopsyState,
@@ -42,10 +41,11 @@ import type { PuzzleRevealProps, PuzzleStageProps } from "@/puzzles/types";
 import "@/polish-pattern/topsy.css";
 
 /**
- * Six ball colours, each with its own mark (dot, triangle, square, diamond, cross, bar) drawn on the ball and in
- * its hole, so a colour is never the only way to tell two balls apart.
+ * Ball colours, each with its own mark (dot, triangle, square, diamond, cross, bar; Expert's seventh and eighth balls,
+ * the difficulty levels of 16 Nov 2026: lime green with a heart, pearl white with a crescent) drawn on the ball and in
+ * its hole, so a colour is never the only way to tell two balls apart. Normal's six use the first six.
  */
-export const TOPSY_COLOURS = ["#F5C542", "#2FD4C4", "#A97BFF", "#FF5FA2", "#4F8BFF", "#FF8A3D"] as const;
+export const TOPSY_COLOURS = ["#F5C542", "#2FD4C4", "#A97BFF", "#FF5FA2", "#4F8BFF", "#FF8A3D", "#8BE04A", "#E8ECF2"] as const; // design-lint-ignore (ball art colours, as the sprites)
 const MARKS = [
   <circle key="m" cx="12" cy="12" r="4.2" />,
   <path key="m" d="M12 6.5 L17.5 16.5 H6.5 Z" />,
@@ -53,6 +53,8 @@ const MARKS = [
   <path key="m" d="M12 5.5 L18.5 12 L12 18.5 L5.5 12 Z" />,
   <path key="m" d="M10.2 6h3.6v4.2H18v3.6h-4.2V18h-3.6v-4.2H6v-3.6h4.2z" />,
   <rect key="m" x="5.5" y="10" width="13" height="4" rx="1" />,
+  <path key="m" d="M12 18 C5 13.5 5.5 7.5 9.2 7.5 C10.7 7.5 11.6 8.4 12 9.3 C12.4 8.4 13.3 7.5 14.8 7.5 C18.5 7.5 19 13.5 12 18 Z" />,
+  <path key="m" d="M15.5 5.8 A6.6 6.6 0 1 0 15.5 18.2 A7.5 7.5 0 0 1 15.5 5.8 Z" />,
 ];
 
 export function BallMark({ index }: { index: number }) {
@@ -301,7 +303,7 @@ export function TopsyBoardView({ board, state, size, live = false, cleared = fal
 /** One ring per ball, in its colour; filled once that ball is home. */
 export function TopsyRings({ state, label }: { state: TopsyState; label?: string }) {
   return (
-    <div className="topsy-rings" data-topsy-rings="" aria-label={label ?? `${state.balls.filter((b) => b === TOPSY_HOME).length} of ${TOPSY_BALLS} balls home`}>
+    <div className="topsy-rings" data-topsy-rings="" aria-label={label ?? `${state.balls.filter((b) => b === TOPSY_HOME).length} of ${state.balls.length} balls home`}>
       {state.balls.map((cell, index) => (
         <span key={index} data-topsy-ring={index} className={`topsy-ring${cell === TOPSY_HOME ? " is-home" : ""}`} style={{ ["--ball" as string]: TOPSY_COLOURS[index] }}>
           <BallMark index={index} />
@@ -396,17 +398,20 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
 
   const replay = useMemo(() => replayTopsyPuzzle(data, tilts), [data, tilts]);
   const limits = data.tiltLimits ?? [];
+  // The difficulty levels (16 Nov 2026): the round's own board and ball counts (Easy: two boards of three balls).
+  const boardCount = data.boards.length;
+  const totalBalls = topsyTotalBalls(data);
 
   // A finished board stays up for a moment (display only): the board shown lags the replay's current one.
-  const [shown, setShown] = useState(() => Math.min(replay.current, TOPSY_BOARDS - 1));
-  const holding = shown < Math.min(replay.current, TOPSY_BOARDS - 1);
+  const [shown, setShown] = useState(() => Math.min(replay.current, boardCount - 1));
+  const holding = shown < Math.min(replay.current, boardCount - 1);
   const current = replay.current;
   // A cleared board's tray flips away at the end of its hold and the next one turns in (display only: the hold, and
   // the input it blocks, are the same with or without the flip; flipTopsyTrayAway / flipTopsyTrayIn).
   const flipIn = useRef(false);
   const clearedShown = Boolean(replay.boards[shown]?.cleared);
   useEffect(() => {
-    const target = Math.min(current, TOPSY_BOARDS - 1);
+    const target = Math.min(current, boardCount - 1);
     if (shown >= target) return;
     const hold = reduced ? BOARD_HOLD_REDUCED_MS : BOARD_HOLD_MS;
     const away = clearedShown ? setTimeout(() => flipTopsyTrayAway(boardSpaceRef.current?.querySelector("[data-topsy-flip]")), hold - TOPSY_FLIP_OUT_MS) : null;
@@ -468,7 +473,7 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
   }, [now, phaseStartedAt, locked, data.timeLimitMs, tilts, onSubmit]);
 
   const solving = useSolveMoment(replay.solved, "gravity.solve");
-  const inFrame = useFrameProgress(Math.min(shown + 1, TOPSY_BOARDS), TOPSY_BOARDS, "", `Board ${Math.min(shown + 1, TOPSY_BOARDS)} of ${TOPSY_BOARDS}`);
+  const inFrame = useFrameProgress(Math.min(shown + 1, boardCount), boardCount, "", `Board ${Math.min(shown + 1, boardCount)} of ${boardCount}`);
 
   const blocked = locked || submitted.current || over || holding || boardDone;
   const undo = () => !blocked && tiltsHere > 0 && setTilts((current) => [...current, "X"]);
@@ -527,7 +532,7 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
           <TopsyRings state={state} />
           {inFrame ? null : (
             <span className="topsy-head-count">
-              Board {Math.min(shown + 1, TOPSY_BOARDS)}/{TOPSY_BOARDS} · tilts {tiltText}
+              Board {Math.min(shown + 1, boardCount)}/{boardCount} · tilts {tiltText}
             </span>
           )}
         </div>
@@ -552,20 +557,20 @@ export function TopsyStage({ puzzle, locked, onSubmit, onDraftAnswer, phaseStart
           ? [
               // gravityRev 8 (the Pattern overhaul): the board's own tilts (undone ones given back) against its par.
               ...parPills("Tilts", tiltsHere, boardPar),
-              { id: "home", label: "Home", value: `${replay.home} / ${TOPSY_BALLS * TOPSY_BOARDS}` },
+              { id: "home", label: "Home", value: `${replay.home} / ${totalBalls}` },
               limitHere ? { id: "left", label: "Left", value: Math.max(0, limitHere - tiltsHere), limit: limitHere, ...(limitHere - tiltsHere <= 3 ? { tone: "warn" as const } : {}) } : null,
             ]
           : par !== null
           ? [
               ...parPills("Tilts", replay.tilts, par),
-              { id: "home", label: "Home", value: `${replay.home} / ${TOPSY_BALLS * TOPSY_BOARDS}` },
+              { id: "home", label: "Home", value: `${replay.home} / ${totalBalls}` },
               limitHere ? { id: "left", label: "Left", value: Math.max(0, limitHere - tiltsHere), limit: limitHere, ...(limitHere - tiltsHere <= 5 ? { tone: "warn" as const } : {}) } : null,
             ]
           : [
               { id: "tilts", label: "Tilts", value: tiltText, ...(limitHere ? { limit: limitHere } : {}), ...(outOfTilts ? { tone: "warn" as const } : {}) },
               // gravityRev 6 (the puzzle batch of 3 Nov 2026, parMoves.ts): no stars, so no star count.
               noStars ? null : { id: "stars", label: "Stars", value: `${starsHere} / ${TOPSY_STARS}` },
-              { id: "home", label: "Home", value: `${replay.home} / ${TOPSY_BALLS * TOPSY_BOARDS}` },
+              { id: "home", label: "Home", value: `${replay.home} / ${totalBalls}` },
             ]}
       />
       <div data-game-controls="pad" className="flex shrink-0 flex-col items-center gap-3">
@@ -648,7 +653,7 @@ const OUTCOME_TEXT: Record<TopsyBoardOutcome, string> = {
 export function TopsyRouteChips({ route }: { route: string }) {
   if (!route) return null;
   return (
-    <div className="topsy-route-chips" data-topsy-route="" aria-label={`Par route: ${route.length} tilts`}>
+    <div className="topsy-route-chips" data-topsy-route="" data-long={route.length > 7 ? "" : undefined} aria-label={`Par route: ${route.length} tilts`}>
       <span className="topsy-route-label">Par route</span>
       {route.split("").map((d, i) => (
         <span key={i} className="topsy-chip" data-dir={d}>
@@ -719,14 +724,18 @@ export function TopsyReveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtr
         </div>
       </div>
       <TopsyRouteChips route={b.route} />
-      {/* The round's totals, the player's own, from the stored grade: under their own "Round" label. */}
+      {/* The round's totals, the player's own, from the stored grade, under their own "Round" label. Joe's stage-2 answer
+          (16 Nov 2026): the label above and the pills on one line at 375 and 390 px, with shorter labels ("Boards 3/3",
+          "Left 50 s"), never under 11 px. */}
       <div className="topsy-round" data-own-count="" data-topsy-keys="">
         <span className="topsy-round-label">Round</span>
-        <span className="topsy-key" data-key="boards"><span>Boards</span> <b>{cleared} of {data.boards.length}</b></span>
-        <span className="topsy-key" data-key="home"><span>Home</span> <b>{home} of {total}</b></span>
-        <span className="topsy-key" data-key="tilts"><span>Tilts</span> <b>{tilts}</b></span>
-        {par !== null ? <span className="topsy-key" data-key="par"><span>Par</span> <b>{par}</b></span> : null}
-        {secondsLeft !== null ? <span className="topsy-key" data-key="time"><span>Time left</span> <b>{secondsLeft} s</b></span> : null}
+        <div className="topsy-round-pills" data-topsy-round-pills="">
+          <span className="topsy-key" data-key="boards" aria-label={`Boards cleared: ${cleared} of ${data.boards.length}`}><span>Boards</span> <b>{cleared}/{data.boards.length}</b></span>
+          <span className="topsy-key" data-key="home" aria-label={`Balls home: ${home} of ${total}`}><span>Home</span> <b>{home}/{total}</b></span>
+          <span className="topsy-key" data-key="tilts"><span>Tilts</span> <b>{tilts}</b></span>
+          {par !== null ? <span className="topsy-key" data-key="par"><span>Par</span> <b>{par}</b></span> : null}
+          {secondsLeft !== null ? <span className="topsy-key" data-key="time" aria-label={`Time left: ${secondsLeft} seconds`}><span>Left</span> <b>{secondsLeft} s</b></span> : null}
+        </div>
       </div>
     </div>
   );

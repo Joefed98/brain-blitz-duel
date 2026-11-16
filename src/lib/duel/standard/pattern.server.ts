@@ -19,7 +19,7 @@ import { blockPartyCounts, flowRouteCounts } from "../progressFigures";
 import { decodeSlideMoves, replaySlide, slideBoard, slideDistance, type SlideBoard, type SlideState } from "../slide";
 import { replayGems } from "../depth4/iceGems";
 import { decodeGravityTilts } from "../gravity";
-import { isTopsy, replayTopsyPuzzle } from "../topsy";
+import { isTopsy, replayTopsyPuzzle, topsyLevelSettings } from "../topsy";
 import { JUMBLED_MOVABLE, jumbledInPlace, replayGradientAnswer } from "../jumbled";
 import { decodeRingTaps, freshOffsets, replayRings, ringColour, ringsApply } from "../rings";
 import { decodeFlowPaths, flowCellCount, flowGrid, verifyFlow } from "../flow";
@@ -50,6 +50,10 @@ function speed(type: PatternStdType, input: StandardInput): number {
 /** Speed points on the par-moves stamps (parMoves.ts): up to 30, full by the game's own "full by" time. */
 function parMovesSpeed(type: PatternStdType, input: StandardInput): number {
   // slideRev 4 / gravityRev 7 (puzzle polish, 3 Nov 2026): full a little earlier.
+  // Topsy-Turvy's difficulty levels (16 Nov 2026): a round dealt at a level is full speed by its level's time
+  // (gravity.levels.ts `speedFullByS`); Normal and every round dealt before levels keep the stamp's.
+  const level = type === "gravity" ? topsyLevelSettings(input.puzzle) : null;
+  if (level && usesParStrict(input.puzzle)) return speedPoints(PAR_MOVES_STD.speed, input.msLeft, input.limitMs, level.speedFullByS * 1000);
   const fullByS = usesParStrict(input.puzzle) && (type === "iceslide" || type === "gravity") ? PAR_STRICT_FULL_BY_S[type] : patternFullByS(type, input.puzzle as { tilesRev?: number });
   return speedPoints(PAR_MOVES_STD.speed, input.msLeft, input.limitMs, fullByS * 1000);
 }
