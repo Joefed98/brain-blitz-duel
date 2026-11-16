@@ -8,10 +8,12 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { GOOGLE_FONTS_CSS, MEDIA_DIRS, OFFLINE_PAGES, keepPublicFile } from "./assets";
 import { SOUND_MANIFEST } from "../fx/manifest";
 import { NEW_GAME_SOUND_FILES } from "../fx/newGameSounds";
+import { soundBatchRows } from "./soundBatches";
 
 interface BundleLike {
   [fileName: string]: unknown;
@@ -112,23 +114,17 @@ export function lazyMediaPaths(
 }
 
 /**
- * Sound batch 1 (16 Nov 2026, docs/sound-cues/sounds-batch-1.csv): Joe's recordings are in public/sounds/ before the
- * overhaul PRs wire them. A batch-1 file no manifest slot plays yet (with NEW_GAME_SOUNDS on or off) is left out of
- * the offline worker altogether, so phones don't fetch sounds nothing plays; each joins the download once wired.
+ * Joe's sound batches (16 Nov 2026, docs/sound-cues/sounds-batch-*.csv, soundBatches.ts): his recordings are in
+ * public/sounds/ before the overhaul PRs wire them. A batch file no manifest slot plays yet (with NEW_GAME_SOUNDS on
+ * or off) is left out of the offline worker altogether, so phones don't fetch sounds nothing plays; each joins the
+ * download once wired.
  */
-export function awaitingWiringPaths(
-  csvFile: string | URL = new URL("../../../docs/sound-cues/sounds-batch-1.csv", import.meta.url),
-): string[] {
-  if (!existsSync(csvFile)) return [];
+export function awaitingWiringPaths(root: string = fileURLToPath(new URL("../../../", import.meta.url))): string[] {
   const wired = new Set<string>([
     ...Object.values(SOUND_MANIFEST as Record<string, { url: string | null }>).flatMap((e) => (e.url ? [e.url] : [])),
     ...Object.values(NEW_GAME_SOUND_FILES).map((f) => f.url),
   ]);
-  return readFileSync(csvFile, "utf8")
-    .trim()
-    .split("\n")
-    .slice(1)
-    .map((line) => `/sounds/${line.split(",")[0]}`)
+  return [...new Set(soundBatchRows(root).filter((r) => !r.toRecord).map((r) => `/sounds/${r.file}`))]
     .filter((url) => !wired.has(url))
     .sort();
 }
