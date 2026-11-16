@@ -196,7 +196,9 @@ not a reaction, and keeps the level's own timing error; Flawless plays the witne
 | Elite | 190.2 | 172.8 | 158.6 | 134.8 |
 | Flawless | 200 | 200 | 200 | 200 |
 
-Without the limits the elite bot averages 190 on Normal. Every level steps down from the one before at every bot
+Without the limits the elite bot averages 190 on Normal; the shared tool (`bun scripts/level-tune.ts ricochet
+--level=all --seeds=12`, no limits) gives near-perfect / elite 190.3 / 194.3 Easy, 178.8 / 188.9 Normal, 157.8 / 161.9
+Hard, 120.3 / 127.3 Expert. Every level steps down from the one before at every bot
 level. **Expert played well**: the elite bot scores 113–161 (average 135, every run past 110) on the 12 Expert towers;
 the best boards to try (dealt seeds, elite score): 1636024891 (161), 1579423756 (153), 1650178925 (150), 623742088
 (145), 355978649 (143).
