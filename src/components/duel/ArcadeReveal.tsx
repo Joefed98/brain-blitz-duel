@@ -364,8 +364,13 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
           {myScore !== null && nearMissLine ? <FitLine text={nearMissLine} className="text-foreground" /> : null}
         </div>
 
-        {/* The Strategy games' picture of the run (the Strategy overhaul, stage 2): large pieces under the score. */}
-        {myScore !== null ? <StrategyRunSummary puzzle={puzzle} myAnswer={myAnswer} reveal={myReveal} /> : null}
+        {/* The Strategy games' picture of the run (the Strategy overhaul, stage 2): large pieces under the score. In a room
+            it folds with the breakdown (one tap away under "See breakdown"), so the folded reveal still fits its screen. */}
+        {myScore !== null ? (
+          <div data-strategy-summary-fold="" className={folds && !open ? "hidden" : "contents"}>
+            <StrategyRunSummary puzzle={puzzle} myAnswer={myAnswer} reveal={myReveal} />
+          </div>
+        ) : null}
 
         {/* The full breakdown: open in practice, one tap away in a room (always in the markup). */}
         {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}
