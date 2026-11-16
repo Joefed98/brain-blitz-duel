@@ -23,6 +23,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { SOUND_MANIFEST } from "../src/lib/fx/manifest";
 import { SOUND_CUE_EVENT } from "../src/lib/fx/soundCues";
+import { readMp3Gapless } from "../src/lib/mp3Gapless";
 import { buildRows, parseCsv, readDocRows, sortRows } from "./sound-cue-sheet";
 
 const failures: string[] = [];
@@ -205,8 +206,34 @@ const switchUrls = new Set(
     .filter(([slot]) => !!manifest[slot])
     .map(([, f]) => f.url),
 );
+// Changed with Joe's approval, 16 Nov 2026 (batch-1 sounds awaiting wiring). Temporary: once every batch-1 file is
+// wired, remove this exception so every served file must be a manifest URL again (docs/sound-cues/batch-1-wiring.md).
+// Sound batch 1 (16 Nov 2026, docs/sound-cues/sounds-batch-1.csv, docs/sound-cues/batch-1-wiring.md): Joe's recordings
+// for slots the Logic, Speed and Attention overhauls add. They are cut and levelled into public/sounds/ ahead of those
+// PRs, so until a PR's manifest points its slot at the file, a file named in the CSV waits for wiring (noted, not
+// failed). Each one must be in public/sounds/, a mono 44.1 kHz tagged MP3, and its row must name its slot and PR.
+const BATCH1_CSV = "docs/sound-cues/sounds-batch-1.csv";
+const batch1Rows = readFileSync(BATCH1_CSV, "utf8").trim().split("\n").slice(1).map((line) => {
+  const [file, slot, , pr] = line.split(",");
+  return { file: file!, slot: slot!, pr: pr! };
+});
+const awaitingWiring = new Set<string>();
+for (const r of batch1Rows) {
+  const path = `public/sounds/${r.file}`;
+  check(/^#\d+$/.test(r.pr) && r.file === `${r.slot}.mp3`, `${BATCH1_CSV}: ${r.file} must name its slot and PR`);
+  check(audioFiles.includes(path), `${path}: in ${BATCH1_CSV} but not in public/sounds/`);
+  if (!audioFiles.includes(path)) continue;
+  const bytes = new Uint8Array(readFileSync(path));
+  const tag = readMp3Gapless(bytes);
+  let at = 0;
+  while (at < bytes.length - 4 && !(bytes[at] === 0xff && (bytes[at + 1]! & 0xe0) === 0xe0)) at++;
+  check(!!tag && tag.sampleRate === 44100 && bytes[at + 3]! >> 6 === 3, `${path}: must be a tagged mono 44.1 kHz MP3`);
+  if (!urls.has(`/sounds/${r.file}`) && !switchUrls.has(`/sounds/${r.file}`)) awaitingWiring.add(path);
+}
+if (awaitingWiring.size) notes.push(`NOTE ${awaitingWiring.size} sound batch 1 files await wiring by their overhaul PR (${BATCH1_CSV})`);
 for (const file of audioFiles) {
   const url = file.startsWith("public/") ? `/${file.slice("public/".length)}` : null;
+  if (awaitingWiring.has(file)) continue;
   check(
     !!url && (urls.has(url) || switchUrls.has(url)),
     `${file}: audio file not used by any manifest slot${url ? "" : " (only public/ is served)"}`,

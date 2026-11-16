@@ -10,6 +10,8 @@ import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "
 import { join, relative, sep } from "node:path";
 
 import { GOOGLE_FONTS_CSS, MEDIA_DIRS, OFFLINE_PAGES, keepPublicFile } from "./assets";
+import { SOUND_MANIFEST } from "../fx/manifest";
+import { NEW_GAME_SOUND_FILES } from "../fx/newGameSounds";
 
 interface BundleLike {
   [fileName: string]: unknown;
@@ -109,6 +111,28 @@ export function lazyMediaPaths(
     .sort();
 }
 
+/**
+ * Sound batch 1 (16 Nov 2026, docs/sound-cues/sounds-batch-1.csv): Joe's recordings are in public/sounds/ before the
+ * overhaul PRs wire them. A batch-1 file no manifest slot plays yet (with NEW_GAME_SOUNDS on or off) is left out of
+ * the offline worker altogether, so phones don't fetch sounds nothing plays; each joins the download once wired.
+ */
+export function awaitingWiringPaths(
+  csvFile: string | URL = new URL("../../../docs/sound-cues/sounds-batch-1.csv", import.meta.url),
+): string[] {
+  if (!existsSync(csvFile)) return [];
+  const wired = new Set<string>([
+    ...Object.values(SOUND_MANIFEST as Record<string, { url: string | null }>).flatMap((e) => (e.url ? [e.url] : [])),
+    ...Object.values(NEW_GAME_SOUND_FILES).map((f) => f.url),
+  ]);
+  return readFileSync(csvFile, "utf8")
+    .trim()
+    .split("\n")
+    .slice(1)
+    .map((line) => `/sounds/${line.split(",")[0]}`)
+    .filter((url) => !wired.has(url))
+    .sort();
+}
+
 export function offlineWorkerPlugin(version: string): PluginLike {
   let publicDir = "public";
   let workerInput: Omit<Parameters<typeof offlineWorkerSource>[0], "bundleFiles"> | null = null;
@@ -122,7 +146,10 @@ export function offlineWorkerPlugin(version: string): PluginLike {
       // Only the phone's bundle: the server build has no worker.
       const env = this.environment?.name;
       if (env && env !== "client") return;
-      const files = walk(publicDir).map((full) => ({ full, path: `/${relative(publicDir, full).split(sep).join("/")}` }));
+      const unwired = new Set(awaitingWiringPaths());
+      const files = walk(publicDir)
+        .map((full) => ({ full, path: `/${relative(publicDir, full).split(sep).join("/")}` }))
+        .filter((f) => !unwired.has(f.path));
       const publicFiles = files.map((f) => f.path);
       // Media keeps its name from build to build, so its bytes' hash is what tells a changed file (a
       // redrawn tile, a new recording) from the one a phone already keeps (3 Nov 2026).

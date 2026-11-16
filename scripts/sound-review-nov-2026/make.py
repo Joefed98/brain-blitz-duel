@@ -15,6 +15,9 @@ tick.
 
 Nothing here is wired by default: the files play only with NEW_GAME_SOUNDS on (src/config/soundConfig.ts), through
 src/lib/fx/newGameSounds.data.ts, which this script writes from the report.
+
+A recipe whose file Joe has since recorded (sound batch 1, docs/sound-cues/sounds-batch-1.csv) is not synthesised: its
+file is his recording (scripts/sound-batch-1/process.py), only measured here for the data file.
 """
 import json, os, sys, zlib
 
@@ -1100,16 +1103,38 @@ def build(name, outdir):
             "limited": limited}
 
 
+def recorded_files(root):
+    """The slots Joe has since recorded (sound batch 1, docs/sound-cues/sounds-batch-1.csv, cut and levelled by
+    scripts/sound-batch-1/process.py): their files are his recordings, so this script never overwrites them and only
+    measures them for the data file."""
+    import csv
+    path = os.path.join(root, "docs", "sound-cues", "sounds-batch-1.csv")
+    return {r["file"] for r in csv.DictReader(open(path))} if os.path.exists(path) else set()
+
+
+def measured(name, outdir):
+    """A recorded file's row, measured as build() measures its own."""
+    _, loop, slots, what = RECIPES[name]
+    path = os.path.join(outdir, f"{name}.mp3")
+    dec = fix.load(path)[0]
+    lufs_out, tp = fix.ebur(np.tile(dec, (2, 1)) if loop else dec, SR)
+    secs = len(dec) / SR
+    return {"file": f"{name}.mp3", "slots": slots, "what": what.removeprefix("placeholder: "), "loop": loop,
+            "ms": round(secs * 1000), "bytes": os.path.getsize(path), "lufs": round(lufs_out, 1),
+            "target": target_lufs(secs, loop), "truePeak": round(tp, 1), "limited": None}
+
+
 def main():
     root = os.path.abspath(os.path.join(HERE, "..", ".."))
     outdir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(root, "public", "sounds")
     report = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] != "-" else None
     only = set(sys.argv[3].split(",")) if len(sys.argv) > 3 else None
     rows = []
+    recorded = recorded_files(root)
     for name in RECIPES:
         if only and name not in only:
             continue
-        row = build(name, outdir)
+        row = measured(name, outdir) if f"{name}.mp3" in recorded else build(name, outdir)
         rows.append(row)
         print(f"{row['file']:34} {row['ms']:5} ms {row['bytes']:6} B {row['lufs']:6} LUFS (target {row['target']}) tp {row['truePeak']}")
     if report:
