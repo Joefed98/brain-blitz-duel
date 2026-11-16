@@ -86,18 +86,20 @@ function ok(cond: unknown, label: string): void {
 
 /* 2. The rev-2 deal */
 {
+  // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): minesRev 2 is the Hard level's
+  // deal; Normal deals the gentler minesRev 3 (logic-1-levels-check proves the levels).
   const dealt = new Set<number>();
-  for (let i = 0; i < 40; i++) dealt.add(generateMinesweeper().minesRev ?? 0);
-  ok(dealt.size === 1 && dealt.has(MINES_REV_LOGIC), `rooms and Practice deal minesRev ${MINES_REV_LOGIC} (${[...dealt].join(", ")})`);
+  for (let i = 0; i < 40; i++) dealt.add(generateMinesweeper("hard").minesRev ?? 0);
+  ok(dealt.size === 1 && dealt.has(MINES_REV_LOGIC), `the Hard level deals minesRev ${MINES_REV_LOGIC} (${[...dealt].join(", ")})`);
   const before = pinMinesPreLogic(true);
   ok(generateMinesweeper().minesRev === MINES_REV_STD, "minesPreLogic deals minesRev 1");
   pinMinesPreLogic(before);
-  ok(generateMinesweeper().minesRev === MINES_REV_LOGIC, "unpinned, the deal is minesRev 2 again");
+  ok(generateMinesweeper("hard").minesRev === MINES_REV_LOGIC, "unpinned, the Hard deal is minesRev 2 again");
   // The rev-1 deal is check-only: the generator reads it only through checkOverride, which a production build turns
   // off before reading any stand-in (Vite's literal replacement, done here as security-hardening-check does).
   const gen = readFileSync("src/lib/duel/arcade.server.ts", "utf8");
   const body = gen.slice(gen.indexOf("export function generateMinesweeper"), gen.indexOf("export function pinMinesPreLogic"));
-  ok(/checkOverride<boolean>\("__DUELZ_MINES_PRE_LOGIC__"\) === true \? MINES_REV_STD : MINES_REV_LOGIC/.test(body) && !/dealPinned/.test(body), "the rev-1 deal is read only through checkOverride");
+  ok(/const pre = checkOverride<boolean>\("__DUELZ_MINES_PRE_LOGIC__"\) === true;/.test(body) && /pre\s*\? MINES_REV_STD/.test(body) && !/dealPinned/.test(body), "the rev-1 deal is read only through checkOverride");
   const helper = readFileSync("src/lib/checkOverride.ts", "utf8");
   const asBuilt = (prod: string) =>
     new Bun.Transpiler({ loader: "ts" }).transformSync(helper.replaceAll("import.meta.env.PROD", prod)).replace(/export\s+function/g, "function").replace(/export\s+type[^;]+;/g, "") + "\nreturn { checkOverride, setCheckOverride };";

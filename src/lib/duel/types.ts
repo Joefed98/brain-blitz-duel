@@ -1325,6 +1325,9 @@ export interface LaserPuzzleData {
 export const TOWER_TIME_MS = 90_000;
 /** Eight discs across four pegs. */
 export const TOWER_DISCS = 9;
+/** Hanoi's level stamp (the Logic overhaul's levels, 15 Nov 2026): a fixed post count per level, and the timed-out
+ *  reveal's "N moves from done". Absent = 3 or 4 posts at random. */
+export const TOWER_REV_LEVELS = 1;
 export const TOWER_PEGS = 4;
 /** A starting spread is only used when it needs at least this many moves. */
 export const TOWER_MIN_MINIMUM = 20;
@@ -1356,6 +1359,8 @@ export interface TowerPuzzleData {
   minMoves: number;
   /** This puzzle's own clock. */
   timeLimitMs: number;
+  /** Level stamp (TOWER_REV_LEVELS): 1 = dealt on the levels' settings. Absent = today's deal. */
+  towerRev?: number;
   /** Generator figures for the dev readout. */
   stats?: TowerStats;
   /** Server-side only: one shortest sequence of moves. */
@@ -2022,8 +2027,11 @@ export interface MinesweeperPuzzleData {
   type: "minesweeper";
   /** Deals the board (mines and the opening) in the sim, identical for everyone; solvable by logic alone. */
   seed: number;
-  /** Rules revision (1 = the first board, on the arcade scoring standard). */
+  /** Rules revision (1 = the first board, on the arcade scoring standard; 2 = 20 mines, today's Hard; 3 = Normal's 16
+   *  mines; 4 = Easy's 8 × 12; 5 = Expert's 12 × 18 on 120 s). */
   minesRev?: number;
+  /** Expert's own clock (the run plus 3 s); every other revision runs on the definition's. */
+  timeLimitMs?: number;
 }
 
 /** Mahjong Solitaire: a 120 s run on a 123 s clock. */

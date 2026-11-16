@@ -943,6 +943,29 @@ function towerTable(pegs: number, target: number, discs: number): Uint8Array {
   return dist;
 }
 
+/**
+ * Hanoi's moves still needed from where a played move list leaves the board (the Logic overhaul's levels: the
+ * timed-out reveal's "N moves from done"); null on a board no server dealt.
+ */
+export function towerMovesLeft(start: number[][], targetPeg: number, discs: number, moves: { from: number; to: number }[]): number | null {
+  let pegs: TowerPegs = towerPegsFrom(start);
+  const n = pegs.length;
+  if (!towerBoardLegal(n, targetPeg, discs)) return null;
+  const table = towerTable(n, targetPeg, discs);
+  for (const m of moves) {
+    if (!towerCanMove(pegs, m.from, m.to)) break;
+    pegs = pegs.map((peg) => [...peg]);
+    pegs[m.to]!.push(pegs[m.from]!.pop()!);
+    if ((pegs[targetPeg] ?? []).length === discs) break;
+  }
+  const at = new Array<number>(discs + 1).fill(0);
+  pegs.forEach((peg, i) => peg.forEach((d) => { at[d] = i; }));
+  let c = 0;
+  for (let d = discs; d >= 1; d--) c = c * n + at[d]!;
+  const d = table[c]!;
+  return d === 255 ? null : d;
+}
+
 function towerProgress(start: number[][], targetPeg: number, discs: number, moves: { from: number; to: number }[], minMoves: number): number {
   let pegs: TowerPegs = towerPegsFrom(start);
   const n = pegs.length;

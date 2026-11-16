@@ -198,6 +198,7 @@ import {
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
 import { balancePlaceLimits, equationTryLimit, floodMoveLimit, gravityTiltLimit, measureMoveLimits, splitCountSuffix, tubesPourLimit, tubesRefundsUndo, tubesSendsUndo, GRAVITY_PROGRESS_REV, TUBES_PROGRESS_REV } from "./moveLimits";
 import { gravitySolverProgress, tubesSolverProgress } from "./solverProgress.server";
+import { towerMovesLeft } from "./puzzleProgress";
 import {
   scoreWordSlide,
   wordSpeedBonus,
@@ -897,6 +898,8 @@ function gradeUnderRev(
         minMoves: puzzle.minMoves,
         discs: puzzle.discs,
         discsHome: replay.correctFromBottom,
+        // The Logic overhaul's levels (towerRev 1): how far from done the board was left (display data only).
+        ...(puzzle.towerRev ? { movesLeft: replay.solved ? 0 : (towerMovesLeft(puzzle.start ?? [], puzzle.targetPeg, puzzle.discs, moves) ?? undefined) } : {}),
       };
       break;
     }

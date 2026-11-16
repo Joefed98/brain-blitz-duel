@@ -48,6 +48,7 @@ import { generateIceSlide } from "./slide.server";
 import { generatePush } from "./push.server";
 import { generateLaser } from "./laser.server";
 import { generateTower } from "./tower.server";
+import { towerSettingsFor } from "./logicLevels";
 import { generateMaze } from "./maze.server";
 import { generateTubes } from "./tubes.server";
 import { generateSafe } from "./safe.server";
@@ -249,7 +250,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "iceslide") return generateIceSlide();
   if (type === "push") return generatePush();
   if (type === "laser") return generateLaser();
-  if (type === "tower") return generateTower();
+  if (type === "tower") return generateTower(towerSettingsFor(context.level));
   if (type === "maze") return generateMaze();
   if (type === "tubes") return generateTubes();
   if (type === "safe") return generateSafe();
@@ -273,7 +274,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "ricochet") return generateRicochet();
   if (type === "breaker") return generateBreaker();
   if (type === "pinball") return generatePinball();
-  if (type === "minesweeper") return generateMinesweeper();
+  if (type === "minesweeper") return generateMinesweeper(context.level);
   if (type === "mahjong") return generateMahjong();
   if (type === "homerun") return generateHomerun();
   if (type === "freekick") return generateFreekick();

@@ -20,6 +20,7 @@ import {
   minesSafeFor,
   MINES_WORLD_H,
   MINES_WORLD_W,
+  minesGeoFor,
   type MinesState,
 } from "@/lib/arcade/minesweeper";
 import { setMinesNudge } from "@/lib/arcade/minesweeper.renderer";
@@ -110,6 +111,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const press = useRef<{ cell: number; timer: ReturnType<typeof setTimeout> | null; flagged: boolean } | null>(null);
   const sendRef = useRef<((payload: PointerPayload) => void) | null>(null);
   const game = minesweeperArtGameFor(data?.minesRev);
+  // The level's board (minesRev 3–5 each its own size; minesweeper.ts minesGeoFor).
+  const geo = minesGeoFor(data?.minesRev);
 
   const clearPress = () => {
     if (press.current?.timer) clearTimeout(press.current.timer);
@@ -119,7 +122,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
     if (kind === "down") {
       clearPress();
-      const cell = minesCellAt(x, y);
+      const cell = minesCellAt(x, y, geo);
       if (cell < 0) return null;
       const held = { cell, timer: null as ReturnType<typeof setTimeout> | null, flagged: false };
       held.timer = setTimeout(() => {
@@ -133,17 +136,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     }
     if (kind === "move") {
       // Sliding off the square cancels the press.
-      if (press.current && minesCellAt(x, y) !== press.current.cell) clearPress();
+      if (press.current && minesCellAt(x, y, geo) !== press.current.cell) clearPress();
       return null;
     }
     const held = press.current;
     clearPress();
-    if (!held || held.flagged || minesCellAt(x, y) !== held.cell) return null;
+    if (!held || held.flagged || minesCellAt(x, y, geo) !== held.cell) return null;
     // A number tapped before its flags add up: it shakes a little, with a dull knock (the tap is still sent; the
     // sim opens nothing, as before).
     const now = stateRef.current;
     if (now && now.open[held.cell] === MINES_OPEN && (now.nums[held.cell] ?? 0) > 0) {
-      const flagged = minesNeighbours(held.cell).filter((n) => now.open[n] === MINES_FLAG).length;
+      const flagged = minesNeighbours(held.cell, geo).filter((n) => now.open[n] === MINES_FLAG).length;
       if (flagged !== now.nums[held.cell]) {
         setMinesNudge(held.cell, now.tick);
         minesTapNumberSound();
@@ -181,8 +184,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         seed={data?.seed ?? 1}
         enabled={data !== null}
         locked={locked}
-        worldW={MINES_WORLD_W}
-        worldH={MINES_WORLD_H}
+        worldW={geo.worldW}
+        worldH={geo.worldH}
         game={game}
         sounds={sounds}
         checkpoint={minesCheckpoint}

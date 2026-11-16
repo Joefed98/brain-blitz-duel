@@ -330,8 +330,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
  * The reveal (Logic overhaul 1, 15 Nov 2026): your posts large, the numbers behind the score (moves, the fewest
  * possible, rings on the gold post), and the shortest route as small pictures of each move (the ring, post to post).
  */
-function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "tower") return null;
+  // The levels' stamp (towerRev 1): the grade stores how far from done the board was left.
+  const left = typeof myExtra?.["movesLeft"] === "number" ? (myExtra["movesLeft"] as number) : null;
   const start = puzzle.start ?? [];
   const mine = replayTower(start, puzzle.targetPeg, puzzle.discs, decodeTowerMoves(myAnswer ?? ""));
   const route: ReactNode[] = [];
@@ -358,6 +360,11 @@ function Reveal({ puzzle, myAnswer, myCorrect }: PuzzleRevealProps) {
           />
         </div>
       </div>
+      {!myCorrect && left !== null && left > 0 ? (
+        <p className="logic-reveal-left" data-tower-left={left}>
+          {left === 1 ? "1 move from done" : `${left} moves from done`}
+        </p>
+      ) : null}
       <RevealFacts
         items={[
           { label: "Moves", value: mine.moves, tone: myCorrect && mine.moves <= puzzle.minMoves ? "gold" : undefined },
