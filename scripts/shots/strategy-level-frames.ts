@@ -57,7 +57,7 @@ async function play(type: string, ticks: number, level = "near", difficulty: "ea
   const seed = Number(puzzle.seed);
   const field = (LIVE_BANDS as Record<string, { field: string } | undefined>)[type]!.field;
   const rev = typeof puzzle[field] === "number" ? (puzzle[field] as number) : null;
-  const game: any = type === "balltrack" && puzzle.course ? makeBallTrackGame(puzzle.course as any, rev) : spec.gameFor(rev, seed);
+  const game: any = type === "balltrack" && puzzle.course ? makeBallTrackGame(puzzle.course as any, rev) : spec.gameForPuzzle ? spec.gameForPuzzle(puzzle as any) : spec.gameFor(rev, seed);
   const res = bot({ game, seed, rev, human: new Human(type, seed, level as any), fixes: true });
   const byTick = new Map<number, unknown>((res.events ?? []).map((e: { t: number }) => [e.t, e]));
   const taps = new Set<number>(res.taps ?? []);
