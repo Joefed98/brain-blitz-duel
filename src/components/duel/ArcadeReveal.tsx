@@ -1,3 +1,5 @@
+import { GameReveal } from "@/components/duel/GameParts";
+import { RUN_SUMMARY_TYPES } from "@/lib/duel/runSummary";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/design/components";
 import { usePerfectBurst } from "@/lib/fx/useSignature";
@@ -386,6 +388,12 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
         {CARDS_REVEAL_TYPES.has(puzzle.type) && myScore !== null ? <CardsRevealPicture puzzle={puzzle} answer={myAnswer ?? null} /> : null}
         {/* The Strategy games' picture of the run (the Strategy overhaul, stage 2): large pieces under the score. */}
         {myScore !== null ? <StrategyRunSummary puzzle={puzzle} myAnswer={myAnswer} reveal={myReveal} /> : null}
+        {/* The run's own visual summary (a game's Reveal, src/lib/duel/runSummary.ts): Crazy Golf's scorecard and hole map, first under the score. */}
+        {RUN_SUMMARY_TYPES.has(puzzle.type) && myAnswer !== null && myAnswer !== undefined ? (
+          <div data-run-summary={puzzle.type} className="w-full shrink-0">
+            <GameReveal puzzle={puzzle} myAnswer={myAnswer} myCorrect={false} myReactionAvgMs={null} timeLimitMs={0} />
+          </div>
+        ) : null}
 
         {/* The full breakdown: open in practice, one tap away in a room (always in the markup). */}
         {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}

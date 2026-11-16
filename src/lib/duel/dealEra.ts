@@ -92,6 +92,8 @@ export const DEAL_PINS = {
   inkPreHills: { texts: false },
   /** arcade.server.ts: Gemstone matchupRev 12, before two-hit ice and the levels (15 Nov 2026). */
   matchupPreIce2: { texts: false },
+  /** sports.server.ts: Crazy Golf golfRev 2's bank courses, before the overhaul's hole bank (15 Nov 2026). */
+  minigolfPreCourse: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

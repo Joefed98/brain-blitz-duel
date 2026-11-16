@@ -198,6 +198,10 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       expert: { settings: { inkPct: 100, birdsPct: 100, extraBirds: [0, 2, 3, 3, 3, 3, 3, 3, 3, 3], liveFrom: 6, parMarginPct: 0, swayLevels: [4, 5], swayBirds: 3, potW: 42, speedFullLeftS: 85 } },
     },
   },
+  // Crazy Golf (golfRev 3, the Crazy Golf overhaul; docs/arcade-standard/minigolf.md "Levels"): each level's rules live
+  // in the sim (MG_LEVELS: par, the stroke limit, the sails, the extra hazards, the slopes, the Speed time) and every
+  // level's pars are proven on the hole bank; the deal reads `context.level` (sports.server.ts generateMinigolf).
+  minigolf: { levels: { easy: { settings: {} }, hard: { settings: {} }, expert: { settings: {} } } },
 };
 
 /** A Retro game's entry: its table's three levels as settings (arcade games give no one-solution proof). */

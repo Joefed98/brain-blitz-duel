@@ -55,7 +55,7 @@ export const TILE_SCENES: Partial<Record<PuzzleType, string>> = {
   maze: "227c6b2885",
   measure: "cd9b4454da",
   minesweeper: "4e56924438",
-  minigolf: "dff17dedde",
+  minigolf: "f79db6861b",
   muggins: "88dc46fc5e",
   nonogram: "cfbe72c6d1",
   numhunt: "7110e0cf8b",

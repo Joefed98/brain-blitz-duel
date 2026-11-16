@@ -113,12 +113,13 @@ export function digest(value: unknown): string {
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreBig (Orbit orbitRev 16).
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): bastionPreLevels (Iron Wall
  * bastionRev 4, the levels).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): bubblePreFast and inkPreHills,
+ * and matchupPreIce2 (Gemstone matchupRev 13).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Crazy Golf overhaul, golfRev 3's hole bank):
+ * minigolfPreCourse.
  * Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine).
  */
-// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): bubblePreFast and inkPreHills,
-// and matchupPreIce2 (Gemstone matchupRev 13).
-// Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine).
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preRetro", "orbitPreGrace", "flipPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "matchupPreIce2"];
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preRetro", "orbitPreGrace", "flipPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "matchupPreIce2", "minigolfPreCourse"];
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {
@@ -185,8 +186,10 @@ export function roomDigests(seeds: readonly number[]): Record<string, string> {
   // orbitRev 16), the same approval; bastionPreLevels (Iron Wall bastionRev 4), the same approval.
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy
   // overhaul): Coral Pop's bubbleRev 12 and Rainbow Bridge's inkRev 15 stamp the room's puzzles, so their pins join.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Crazy
+  // Golf overhaul): rooms deal Crazy Golf's hole bank, so minigolfPreCourse is pinned for the rooms too.
   // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine).
-  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preRetro", "flipPreGrace", "orbitPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills"]);
+  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preRetro", "flipPreGrace", "orbitPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "minigolfPreCourse"]);
 }
 
 function roomDigestsNow(seeds: readonly number[]): Record<string, string> {

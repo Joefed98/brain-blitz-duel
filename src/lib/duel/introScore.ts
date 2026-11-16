@@ -118,7 +118,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // Cards & Board (30 Oct 2026), on the arcade scoring standard.
     minesweeper: "Uncover safe squares; bonuses for no mines hit and a fast clear. Up to {max}.",
     mahjong: "Clear pairs; bonuses for no shuffles and a fast clear. Up to {max}.",
-    minigolf: "Sink each hole; bonuses for few strokes, birdies and a fast finish. Up to {max}.",
+    minigolf: "Hole all five; bonuses for few strokes, birdies and a fast finish. Up to {max}.",
     pool: "Pot your balls; bonuses for the black, pots in a row and speed; fouls cost. Up to {max}.",
     curling: "Stop near the button; bonuses for takeouts, the red ring and holding shot. Up to {max}.",
     pinball: "Score table points; bonuses for J-O-U-L-Z, multiball, jackpots, ramp combos. Up to {max}.",

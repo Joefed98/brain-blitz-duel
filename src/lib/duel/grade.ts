@@ -61,7 +61,7 @@ import { decodeHomerunRun, replayHomerunRun } from "./homerun";
 import { decodeFreekickRun, replayFreekickRun } from "./freekick";
 import { decodeRacingRun, replayRacingRun } from "./racing";
 import type { StdPart } from "@/lib/arcade/arcadeStandard";
-import { replayMinigolfRun } from "./minigolf";
+import { replayMinigolfPuzzle } from "./minigolf";
 import { replayPoolRun } from "./pool";
 import { replayCurlingRun } from "./curling";
 import { minigolfStdParts } from "@/lib/arcade/minigolf";
@@ -1498,7 +1498,7 @@ function gradeUnderRev(
       });
       const pts = (parts: { key: string; points: number }[] | null, key: string) => parts?.find((p) => p.key === key)?.points ?? 0;
       if (puzzle.type === "minigolf") {
-        const run = replayMinigolfRun(puzzle.seed, answer, puzzle.pars, puzzle.golfRev);
+        const run = replayMinigolfPuzzle(puzzle, answer);
         revealRun = run;
         arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
         const parts = minigolfStdParts(run.state);
@@ -1507,6 +1507,7 @@ function gradeUnderRev(
         score = run.score;
         extraDetail = {
           golfRev: puzzle.golfRev ?? 1,
+          ...(puzzle.golfRev === 3 ? { chips: run.state.chips, lips: run.state.lips, level: run.state.level } : {}),
           holed: run.holed,
           strokes: run.strokes,
           atPar: run.pars,

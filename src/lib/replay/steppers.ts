@@ -47,6 +47,7 @@ import { pyramidGameAt } from "@/lib/arcade/cards/pyramid";
 import { golfSolGameFor } from "@/lib/arcade/cards/golfSol";
 import { mugginsGameFor } from "@/lib/arcade/cards/muggins";
 import { minigolfGameFor } from "@/lib/arcade/minigolf";
+import { minigolfCourseOf } from "@/lib/duel/minigolf";
 import { poolGameFor } from "@/lib/arcade/pool";
 import { curlingGameFor } from "@/lib/arcade/curling";
 import { blockfallGameFor } from "@/lib/arcade/blockfall";
@@ -226,7 +227,7 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
   blockfall: (p) => ({ game: blockfallGameFor(rev(p, "blockfallRev"), puzzleLevel(p)) as AnyGame }),
   alleyroll: (p) => ({ game: alleyRollGameFor(rev(p, "alleyRollRev")) as AnyGame }),
   pool: (p) => ({ game: poolGameFor(rev(p, "poolRev")) as AnyGame }),
-  minigolf: (p) => ({ game: minigolfGameFor(p.type === "minigolf" ? p.pars : undefined, p.type === "minigolf" ? p.golfRev : undefined) as AnyGame }),
+  minigolf: (p) => ({ game: minigolfGameFor(p.type === "minigolf" ? p.pars : undefined, p.type === "minigolf" ? p.golfRev : undefined, p.type === "minigolf" ? minigolfCourseOf(p) : {}) as AnyGame }),
   rally: (p) => ({ game: rallyGameFor(rev(p, "rallyRev"), puzzleLevel(p)) as AnyGame }),
   slice: (p) => ({ game: sliceGameFor(rev(p, "sliceRev")) as AnyGame }),
   bubble: (p) => ({ game: bubbleGameFor(rev(p, "bubbleRev"), (p as { level?: unknown }).level) as AnyGame }),

@@ -128,9 +128,10 @@ tasks.push({
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): bastionPreLevels (bastionRev 4), 33.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul: bubblePreFast, inkPreHills and
     // Gemstone's matchupPreIce2): 29.
-    // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): preRetro, the Action overhaul's seven and
-    // the Strategy overhaul's three, 37.
-    ok(names.size === 37, `37 era switches (${names.size})`);
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Crazy Golf overhaul's minigolfPreCourse): 27.
+    // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): preRetro, the Action overhaul's seven,
+    // the Strategy overhaul's three and Crazy Golf's minigolfPreCourse, 38.
+    ok(names.size === 38, `38 era switches (${names.size})`);
   },
 });
 

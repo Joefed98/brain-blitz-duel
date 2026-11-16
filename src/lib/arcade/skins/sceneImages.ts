@@ -33,6 +33,23 @@ export function sceneImage(name: string): HTMLImageElement | null {
   return null;
 }
 
+/** Asks for each image and resolves once every one has arrived or failed (a round's art before its first frame). */
+export function preloadSceneImages(names: readonly string[]): Promise<void> {
+  if (typeof Image === "undefined") return Promise.resolve();
+  return Promise.all(
+    names.map(
+      (name) =>
+        new Promise<void>((done) => {
+          if (sceneImage(name)) return done();
+          const img = images.get(name);
+          if (!img) return done();
+          img.addEventListener("load", () => done(), { once: true });
+          img.addEventListener("error", () => done(), { once: true });
+        }),
+    ),
+  ).then(() => undefined);
+}
+
 /** Changes each time a scene image arrives (a layer cache keyed on it repaints once with the image). */
 export function sceneImagesVersion(): number {
   return version;

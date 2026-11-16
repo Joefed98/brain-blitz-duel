@@ -20,6 +20,8 @@ import { bastionIronGame, bastionTankCheckpoint, bastionTankGame, bastionTankGam
 import { BT_EASY_DEAL } from "../src/lib/duel/ballTrackDealEasy.server";
 import { BT_HARD_DEAL } from "../src/lib/duel/ballTrackDealHard.server";
 import { BT_EXPERT_DEAL } from "../src/lib/duel/ballTrackDealExpert.server";
+import { MINIGOLF_HOLES_BANK } from "../src/lib/duel/minigolfHolesBank.server";
+import { MG_LEVEL_NAMES } from "../src/lib/arcade/minigolf";
 import { bastionIronGame, bastionTankCheckpoint, bastionTankGame, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
 import { encodeBastionTankRun, replayBastionTankRun } from "../src/lib/duel/bastion";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_3, HOMERUN_REV_4, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
@@ -1214,7 +1216,28 @@ const GAMES: Game[] = [
   { key: "matchup/ice2-expert", game: matchupGameFor(MATCHUP_REV_ICE2, "expert"), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_ICE2, "expert") },
   // Tilt's Expert level (stage 3, 15 Nov 2026: tiltRev 12 at expert), appended so every earlier entry keeps its stream.
   { key: "tilt/expert", game: tiltLevelGame("expert"), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_BIG, "expert") },
+  // Crazy Golf golfRev 3 (15 Nov 2026, the overhaul: the proven hole bank, chips, swells, levels), appended so every
+  // earlier entry keeps its stream: seed n is course n (each slot's hole by a spread of n) at level n mod 4. The random
+  // events include chips (kind 2).
+  {
+    key: "minigolf/v3",
+    game: minigolfGameFor(...mgV3(0)),
+    gameFor: (seed: number) => minigolfGameFor(...mgV3(seed)),
+    seedFor: (n: number) => n,
+    checkpoint: minigolfCheckpoint,
+    mode: "events",
+    rate: 40,
+    encode: encodeMinigolfRun,
+    replay: (seed: number, raw: string) => replayMinigolfRun(seed, raw, ...mgV3(seed)),
+  },
 ];
+
+/** golfRev 3's course for a self-replay seed: each slot's hole by a spread of the seed, the level seed mod 4. */
+function mgV3(seed: number): [number[], number, { holes: number[]; level: (typeof MG_LEVEL_NAMES)[number] }] {
+  const level = MG_LEVEL_NAMES[Math.abs(seed) % 4]!;
+  const picks = MINIGOLF_HOLES_BANK.map((slot, i) => slot[(Math.abs(seed) * 7 + i * 31) % slot.length]!);
+  return [picks.map((e) => e.pars[MG_LEVEL_NAMES.indexOf(level)]!), 3, { holes: picks.map((e) => e.id), level }];
+}
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
 function candidate(ranges: readonly InputRange[], t: number): ArcadeInputEvent {

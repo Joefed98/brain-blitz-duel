@@ -2,6 +2,10 @@
  * Preloads a game's world art by puzzle type. Presentation only: never
  * imported by a sim or the server.
  */
+import { preloadSceneImages } from "./skins/sceneImages";
+import { COURSE_IMAGES } from "./skins/minigolfCourse";
+/** Captain Joulz on the Crazy Golf course (minigolf.renderer.ts drawCaptain). */
+const CAPTAIN_IMAGES = ["mg.captain-address", "mg.captain-back", "mg.captain-putt", "mg.captain-chipback", "mg.captain-chip"] as const;
 import { arcadeWorldOf } from "./arcadeFxGames.renderer";
 import { isArtWorld, preloadArtWorld } from "./sprites.renderer";
 
@@ -12,7 +16,10 @@ import { isArtWorld, preloadArtWorld } from "./sprites.renderer";
 export function preloadGameArt(type: string): Promise<void> {
   loadGameArtFonts();
   const world = arcadeWorldOf(type);
-  return isArtWorld(world) ? preloadArtWorld(world) : Promise.resolve();
+  const art = isArtWorld(world) ? preloadArtWorld(world) : Promise.resolve();
+  // Crazy Golf's rendered course and Captain Joulz's sprites (Blender WebPs, ~100 KB in all).
+  if (type === "minigolf") return Promise.all([art, preloadSceneImages([...COURSE_IMAGES, ...CAPTAIN_IMAGES])]).then(() => undefined);
+  return art;
 }
 
 /** The face several games' canvas art names (gameArtFonts.css); asked for once, so it is ready before the round. */

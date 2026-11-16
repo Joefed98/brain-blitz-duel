@@ -2805,6 +2805,13 @@ export interface MinigolfPuzzleData {
   golfRev?: number;
   /** Each hole's par (its best proven route + 1), stored with the round. */
   pars: number[];
+  /**
+   * golfRev 3 (the Crazy Golf overhaul, 15 Nov 2026): the five holes' catalogue ids, one per slot, drawn from the proven
+   * hole bank (minigolfHolesBank.server.ts); the seed then lays out nothing (it salts the art only).
+   */
+  holes?: number[];
+  /** golfRev 3: the level the round was dealt at (absent: Normal; the difficulty framework's stored form). */
+  level?: "easy" | "hard" | "expert";
 }
 
 export interface PoolPuzzleData {

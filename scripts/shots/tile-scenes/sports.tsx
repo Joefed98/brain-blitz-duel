@@ -6,7 +6,7 @@
 import { paintHomerunTile } from "@/lib/arcade/homerun.renderer";
 import { paintFreekickTile } from "@/lib/arcade/freekick.renderer";
 import { paintRacingTile } from "@/lib/arcade/racing.renderer";
-import { paintMinigolfTile } from "@/lib/arcade/minigolf.renderer";
+import { paintMinigolfTileV3 } from "@/lib/arcade/minigolf.renderer";
 import { poolGameFor, POOL_H } from "@/lib/arcade/pool";
 import { drawPool } from "@/lib/arcade/pool.renderer";
 import { curlingGameFor, CU, TEAM_MINE, TEAM_THEIRS } from "@/lib/arcade/curling";
@@ -38,8 +38,9 @@ export const SPORTS_SCENES: SceneSet = {
     noText(c, () => paintRacingTile(c, TILE));
     fade(c, 0.35);
   }),
-  // Minigolf: a corner of a hole at night, the ball lined up on the cup past a boulder.
-  minigolf: canvasScene((c) => paintMinigolfTile(c, TILE)),
+  // Crazy Golf (the overhaul's look, 15 Nov 2026): a pond under a plank bridge, a loop-the-loop, the cup in its bowl,
+  // the ball with Captain Joulz addressing it.
+  minigolf: canvasScene((c) => paintMinigolfTileV3(c, TILE)),
   // Speed Pool: the bottom-left corner pocket, a spot ball on the lip, a stripe and the cue ball lined up behind.
   pool: canvasScene((c) => {
     const s = poolGameFor(1).init(1);

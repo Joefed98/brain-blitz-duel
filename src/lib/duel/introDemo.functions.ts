@@ -89,6 +89,7 @@ export const ACTION_DEMO_REVS = {
 } as const;
 import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG } from "@/lib/arcade/orbit";
 import { BT_BALLS, BT_V7_BALLS, btIsV7Play } from "@/lib/arcade/ballTrack";
+import { minigolfDemoPlays } from "./minigolfDemoRule";
 import { clashPlays3, CLASH_REV_DEPTH } from "@/lib/arcade/colourClash";
 
 export interface IntroDemoRow {
@@ -137,6 +138,8 @@ export function introDemoFor(data: { type: string }, demo: IntroDemoRow | null):
   // The Strategy overhaul, stage 3 (16 Nov 2026): the intro shows Normal, today's game; a Strategy demo dealt at another
   // level (Easy, Hard, Expert) never plays as the intro.
   if (STRATEGY_DEMO_GAMES.has(data.type) && demo && puzzleLevel(demo.puzzle) !== NORMAL) return null;
+  // Crazy Golf golfRev 3 (the overhaul, 15 Nov 2026): only a demo recorded on golfRev 3, on Normal, plays.
+  if (demo && !minigolfDemoPlays(data.type, demo.puzzle)) return null;
   if (data.type === "orbit" && (demo?.input_log.orbitBeltPeriodTicks !== ORBIT_BELT_PERIOD_TICKS || demo?.input_log.orbitBeltRevision !== ORBIT_BELT_REVISION)) return null;
   // Rev3 (scrolling-camera, wider zig-zag world) demos cannot replay as the legacy fixed-camera course, and vice versa.
   if (data.type === "orbit" && demo?.puzzle.type === "orbit" && (demo.puzzle.orbitRev ?? 0) !== ORBIT_REV3 && demo.puzzle.orbitRev !== ORBIT_REV4 && demo.puzzle.orbitRev !== ORBIT_REV_BAND && demo.puzzle.orbitRev !== ORBIT_REV_TUNED && demo.puzzle.orbitRev !== ORBIT_REV_XP && demo.puzzle.orbitRev !== ORBIT_REV_STD && demo.puzzle.orbitRev !== ORBIT_REV_FUEL && demo.puzzle.orbitRev !== ORBIT_REV_BIG) return null;

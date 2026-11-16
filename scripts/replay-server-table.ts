@@ -42,7 +42,7 @@ import { replayClayRun } from "../src/lib/duel/clayShoot";
 import { replayTenDropRun } from "../src/lib/duel/tenDrop";
 import { replayWordfallRun } from "../src/lib/duel/wordfall";
 import { replayColourClashRun } from "../src/lib/duel/colourClash";
-import { replayMinigolfRun } from "../src/lib/duel/minigolf";
+import { minigolfCourseOf, replayMinigolfRun } from "../src/lib/duel/minigolf";
 import { replayPoolRun } from "../src/lib/duel/pool";
 import { replayCurlingRun } from "../src/lib/duel/curling";
 import { replayBlockfallRun } from "../src/lib/duel/blockfall";
@@ -100,7 +100,7 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   wordfall: (p, a) => replayWordfallRun(p.seed, a, p.wordfallRev),
   stroop: (p, a) => replayColourClashRun(p.seed, a, clashVariantOf(p)),
   // The Sports group (30 Oct 2026).
-  minigolf: (p, a) => replayMinigolfRun(p.seed, a, p.pars, p.golfRev),
+  minigolf: (p, a) => replayMinigolfRun(p.seed, a, p.pars, p.golfRev, minigolfCourseOf(p)),
   pool: (p, a) => replayPoolRun(p.seed, a, p.poolRev),
   curling: (p, a) => replayCurlingRun(p.seed, a, p.curlRev),
   blockfall: (p, a) => replayBlockfallRun(p.seed, a, p.blockfallRev),
