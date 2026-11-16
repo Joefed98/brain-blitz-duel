@@ -265,7 +265,13 @@ function measureReveal() {
         el.scrollHeight > el.clientHeight + 1,
     )
     .map((el) => String((el as HTMLElement).className || el.tagName).slice(0, 60));
+  // The reveal's fit (AnswerReveal useRevealFit): the smallest scale it drew a board at (1 = the game's full size).
+  const scales = Array.from(root.querySelectorAll<HTMLElement>("*"))
+    .map((el) => /scale\(([\d.]+)\)/.exec(el.style.transform)?.[1])
+    .filter((v): v is string => Boolean(v))
+    .map(Number);
   return {
+    boardScale: scales.length ? Math.round(Math.min(...scales) * 1000) / 1000 : 1,
     fits: scrolls.length === 0,
     scrolls,
     overflow: Math.max(0, root.scrollHeight - root.clientHeight),

@@ -62,6 +62,7 @@ export function LogoMark({
   viewBox = "0 0 26 34",
   lineWidth,
   charge = false,
+  depth = false,
 }: {
   variant?: "gold" | "inverted";
   width?: number;
@@ -73,6 +74,11 @@ export function LogoMark({
   lineWidth?: number;
   /** Celebrations' charge-in (see above). */
   charge?: boolean;
+  /**
+   * Prepare to Duel's large bolt (the effects pass, 15 Nov 2026, Joe: no flat icon at that size): the bolt in the
+   * metal gold with a highlight and a darker edge, all from tokens. Off everywhere else (the mark exactly as before).
+   */
+  depth?: boolean;
 }) {
   const id = useId().replace(/:/g, "");
   const look = LOGO_COLOURS[variant];
@@ -98,6 +104,20 @@ export function LogoMark({
       <defs>
         {line("t", LOGO_TRAIL.from, LOGO_TRAIL.to)}
         {line("l", LOGO_LEAD.from, LOGO_LEAD.to)}
+        {depth ? (
+          <>
+            <linearGradient id={`${id}-metal`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" style={{ stopColor: "var(--jz-metal-gold-1)" }} />
+              <stop offset="0.38" style={{ stopColor: "var(--jz-metal-gold-2)" }} />
+              <stop offset="0.72" style={{ stopColor: "var(--jz-metal-gold-3)" }} />
+              <stop offset="1" style={{ stopColor: "var(--jz-art-gold-deep)" }} />
+            </linearGradient>
+            <linearGradient id={`${id}-shine`} x1="0" y1="0" x2="0.7" y2="0.55">
+              <stop offset="0" style={{ stopColor: "var(--jz-metal-gold-1)", stopOpacity: 0.8 }} />
+              <stop offset="0.45" style={{ stopColor: "var(--jz-metal-gold-1)", stopOpacity: 0 }} />
+            </linearGradient>
+          </>
+        ) : null}
         {charge ? (
           <>
             <ChargeClip id={`${id}-cf`} x={-2} y={0} w={30} h={34} axis="down" begin={0} dur={CHARGE_FILL_S} />
@@ -109,7 +129,16 @@ export function LogoMark({
       {clipped(
         charge,
         `${id}-cf`,
-        <path d={LOGO_PATHS.bolt} fill={look.upper[0]} />,
+        depth ? (
+          <g data-logo-depth="">
+            <path d={LOGO_PATHS.bolt} fill={`url(#${id}-metal)`} />
+            <path d={LOGO_PATHS.bolt} fill={`url(#${id}-shine)`} />
+            {/* The edge scales with the bolt (about 2 px at Prepare to Duel's size); only the speed lines are hairlines. */}
+            <path d={LOGO_PATHS.bolt} fill="none" style={{ stroke: "var(--jz-art-gold-deep)" }} strokeWidth={0.13} strokeLinejoin="round" />
+          </g>
+        ) : (
+          <path d={LOGO_PATHS.bolt} fill={look.upper[0]} />
+        ),
       )}
       {clipped(
         charge,

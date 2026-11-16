@@ -43,6 +43,11 @@ export interface MomentPart {
   over?: boolean;
   /** Hidden under prefers-reduced-motion (it only reads as movement). */
   motionOnly?: boolean;
+  /**
+   * The effects pass's richer layer (15 Nov 2026): drawn only with the celebrations on and full effects (not under
+   * reduced effects or the battery saver; RoomMomentFx), so with the switch off every screen is exactly as before.
+   */
+  rich?: boolean;
 }
 
 export interface MomentCue {
@@ -94,6 +99,12 @@ export const PREPARE_SPEC: MomentSpec = {
       over: true,
       motionOnly: true,
     },
+    // The richer build-up: a floor of light running in, embers rising, a sweep on the voice, a charge closing in
+    // before the flash.
+    { part: "floor", delayMs: 0, durationMs: DUEL_START_MS, rich: true },
+    { part: "ember", delayMs: 300, durationMs: 2_400, count: 18, staggerMs: 170, motionOnly: true, rich: true },
+    { part: "sweep", delayMs: 1_900, durationMs: 1_100, motionOnly: true, rich: true },
+    { part: "charge", delayMs: 4_300, durationMs: 1_250, count: 2, staggerMs: 220, motionOnly: true, rich: true },
   ],
   cues: [
     { cue: "room.prepare", atMs: 0 },
@@ -153,6 +164,10 @@ export const FINAL_SPEC: MomentSpec = {
     { part: "ring", delayMs: 120, durationMs: 1_300, count: 2, staggerMs: 380, motionOnly: true },
     { part: "rail-a", delayMs: 80, durationMs: 2_780 },
     { part: "rail-b", delayMs: 160, durationMs: 2_700 },
+    // The bigger final moment: gold rays turning behind the title, a burst of sparks on the punch, a third shock ring.
+    { part: "bd-rays", delayMs: 0, durationMs: 2_950, marks: 18, rich: true },
+    { part: "spark", delayMs: 140, durationMs: 1_100, count: 20, staggerMs: 12, motionOnly: true, rich: true },
+    { part: "shock", delayMs: 900, durationMs: 1_400, motionOnly: true, rich: true },
   ],
   cues: [{ cue: "room.finalRound", atMs: 0 }],
 };
@@ -179,16 +194,34 @@ export const WINNER_SPEC: MomentSpec = {
   ],
 };
 
-/** The title moment for a round: Final Round on the last round, else that round's effect. */
+/**
+ * The rounds' backdrops (15 Nov 2026, the effects pass): a richer layer behind each round title in its category colour,
+ * cycling on its own count (five), beside the six title looks, so the pairs don't repeat for thirty rounds.
+ */
+export const ROUND_BACKDROPS: readonly (readonly MomentPart[])[] = [
+  // Rays: soft light turning slowly behind the title.
+  [{ part: "bd-rays", delayMs: 0, durationMs: 2_950, marks: 12, rich: true }],
+  // Grid: a dotted field drifting up.
+  [{ part: "bd-grid", delayMs: 0, durationMs: 2_950, rich: true }],
+  // Orbs: a few soft lights rising.
+  [{ part: "bd-orb", delayMs: 0, durationMs: 2_600, count: 5, staggerMs: 70, motionOnly: true, rich: true }],
+  // Stripes: the cut-stripe texture sliding across.
+  [{ part: "bd-stripes", delayMs: 0, durationMs: 2_950, rich: true }],
+  // Pulse: rings breathing out from the centre.
+  [{ part: "bd-pulse", delayMs: 0, durationMs: 1_500, count: 3, staggerMs: 450, motionOnly: true, rich: true }],
+];
+
+/** The title moment for a round: Final Round on the last round, else that round's effect over its backdrop. */
 export function roundMomentSpec(round: number, totalRounds: number): MomentSpec {
   if (round >= totalRounds) return FINAL_SPEC;
   const index = Math.max(0, round - 1) % ROUND_EFFECTS.length;
   const look = ROUND_EFFECTS[index]!;
+  const backdrop = ROUND_BACKDROPS[Math.max(0, round - 1) % ROUND_BACKDROPS.length]!;
   return {
     moment: "round",
     effect: look.effect,
     phaseMs: ROUND_TITLE_MS,
-    parts: look.parts,
+    parts: [...backdrop, ...look.parts],
     cues: [{ cue: `room.round.${round}`, atMs: 0 }],
   };
 }

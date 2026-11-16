@@ -33,6 +33,8 @@
  *    Changed with Joe's approval, 15 Nov 2026 (routine consequence of the game frame restyle): only "reveal150"
  *    re-recorded (the reveal's verdict row is the shared result card, `reveal-result`); every other entry
  *    byte-identical.
+ *    Changed with Joe's approval, 15 Nov 2026 (reveal heading follows what's shown): only "reveal150" re-recorded,
+ *    its heading alone ("The finished grid" → "Your answer", revealHeading.ts); every other entry byte-identical.
  *
  * Every screen is drawn on a fixed clock (scripts/fixed-clock.ts: Mon 26 Oct 2026, the recording's day),
  * so a re-recording on any day draws the same dates; a failed markup comparison prints where they part.
