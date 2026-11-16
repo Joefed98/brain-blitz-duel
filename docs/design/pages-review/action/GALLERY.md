@@ -91,7 +91,7 @@ practice at 390 × 844, a Weak run and the flawless one:
 An Expert run (flipRev 13, `level: "expert"`), room seed n=10 (course 1208933397), played by the human-limited elite bot
 the level tuning used and graded by the server replay: **173**. The last 4 s, the steepest zigzags with spikes riding the
 rails at speed, then SURVIVED! with the HUD at the final 173 (the game's own renderer, 5 frames a second;
-`bun scripts/shots/action-expert-clip.ts flip 10 --from=56 --secs=4 --width=170 --q=15 --max=78000`):
+`bun scripts/shots/action-expert-clip.ts flip 10 --from=56 --secs=4 --width=170 --q=40 --max=78000 --encoder=pillow`):
 
 <img src="flip/expert-clip.webp" width="170">
 
@@ -396,7 +396,7 @@ changed-rectangle frames break Iron Wall's shifting smoke and sky into blocks):
 The bigger weak spots of Easy, Normal and Hard drawn inside the tank (Joe, 16 Nov 2026; the hit area, blue, unchanged;
 each pair before | after, Expert's unchanged):
 
-<img src="bastion/weak-spots-before-after.png" width="640">
+<img src="bastion/weak-spots-before-after.webp" width="640">
 
 
 ## High Rise

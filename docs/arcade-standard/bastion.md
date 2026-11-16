@@ -45,7 +45,7 @@ Hard are new, gentler games", an exception to the framework's "Normal stays toda
   and Easy the scout's fills its hull, the medium's and heavy's (radius 11.4 to 12.25 px at the wall) are smaller than their
   33 to 36 px hit squares (half-side 16.5 to 18) and sit a few px inward, the rest of the square still hitting round them. This is an exception to
   the arcade bounds rule (art within 2 px of the collision bounds) asked for by Joe. Expert (rev 3) and rev 2 draw pixel
-  for pixel as before. Before / after sheet: `docs/design/pages-review/action/bastion/weak-spots-before-after.png`.
+  for pixel as before. Before / after sheet: `docs/design/pages-review/action/bastion/weak-spots-before-after.webp`.
 
 ### Measured (15 Nov 2026; 60 room seeds a level, the skill-band bots under human limits)
 
