@@ -1,3 +1,4 @@
+import { fxShards, fxSparks, fxStreak, retroFx } from "./retroFx.renderer";
 import { reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
@@ -8,6 +9,7 @@ import {
   beatGame,
   BEAT_COMBO_TIERS,
   BEAT_FALL_TICKS,
+  beatFallOf,
   BEAT_HUD_H,
   BEAT_JUDGE_MISS,
   BEAT_JUDGE_NONE,
@@ -34,7 +36,8 @@ import {
 } from "./beat";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import { blob, glow, linear } from "./polishA1.renderer";
-import { pixelRect, retroBloom, retroNeon, retroHud, retroScreen, retroText, RETRO_RED, RETRO_WHITE } from "./retro.renderer";
+import { pixelRect, pixelShape, retroBloom, retroMix, retroNeon, retroHud, retroScreen, retroText, RETRO_HUD_MIN_PX, RETRO_RED, RETRO_WHITE } from "./retro.renderer";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 
 /** beatRev 9's fifth lane takes a hot pink (the four lanes keep their colours). */
 const NEON = [...BEAT_LANE_COLOURS, "#FF6FAE"].map(retroNeon);
@@ -86,24 +89,25 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
     // Tuning C: no highlight box at the hit line while a hold note is held (the brighter beam shows it).
   }
 
-  pixelRect(ctx, 0, BEAT_HIT_LINE_Y - 2, BEAT_WORLD_W, 4, RETRO_WHITE, bloom);
-  // Polish A1: each lane's marker on the hit line, in its colour, with a soft glow.
+  pixelRect(ctx, 0, BEAT_HIT_LINE_Y - 1, BEAT_WORLD_W, 2, "rgba(244,255,248,0.75)");
+  // The Retro overhaul (15 Nov 2026, concept A): each lane's round glass button on the hit line, lit in the lane's
+  // colour as its note is struck (today's warm glow kept round the lit one).
   for (let lane = 0; lane < LANES; lane++) {
-    const cx = laneX(lane), colour = NEON[lane]!;
-    glow(ctx, colour, cx, BEAT_HIT_LINE_Y, 30, 9, 0.55);
-    pixelRect(ctx, cx - 14, BEAT_HIT_LINE_Y - 3, 28, 6, colour);
-    pixelRect(ctx, cx - 10, BEAT_HIT_LINE_Y - 1, 20, 2, RETRO_WHITE);
+    const lit = !reducedMotion() && state.lastLane === lane && state.judgeAge < 12 && (state.lastJudge === 1 || state.lastJudge === 2);
+    drawLaneButton(ctx, laneX(lane), BEAT_HIT_LINE_Y, Math.min(19, laneW * 0.24), NEON[lane]!, lit ? 1 - state.judgeAge / 12 : 0, state.holding[lane] !== undefined && state.holding[lane]! >= 0);
   }
 
   const travel = BEAT_HIT_LINE_Y - BEAT_HUD_H;
-  const yAt = (remaining: number) => BEAT_HUD_H + (travel * (BEAT_FALL_TICKS - remaining)) / BEAT_FALL_TICKS;
+  // A level's own fall time (stage 3 of the Retro overhaul; display only: the judging is by tick).
+  const FALL = beatFallOf(state);
+  const yAt = (remaining: number) => BEAT_HUD_H + (travel * (FALL - remaining)) / FALL;
   for (let index = 0; index < state.chart.ticks.length; index++) {
     const lane = state.chart.lanes[index]!;
     const hold = state.chart.holds[index]!;
     const held = state.holding[lane] === index;
     if (state.judged[index] !== BEAT_JUDGE_NONE && !held) continue;
     const remaining = state.chart.ticks[index]! - state.tick;
-    if (remaining > BEAT_FALL_TICKS || remaining + hold < -beatWindows(state).ok) continue;
+    if (remaining > FALL || remaining + hold < -beatWindows(state).ok) continue;
     const colour = NEON[lane % NEON.length]!;
     // beatRev 9: a note sits in its own section's lanes (five from the fifth-lane section).
     const laneW = BEAT_WORLD_W / noteLanes(state.chart.ticks[index]!);
@@ -143,7 +147,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
   if (state.combo > 0) {
     const sizePx = Math.min(22, 14 + tier * 3 + Math.floor(Math.min(state.combo, 40) / 10));
     const colour = tier >= 3 ? GOLD : tier === 2 ? NEON[2]! : tier === 1 ? NEON[0]! : RETRO_WHITE;
-    retroText(ctx, `${state.combo}x`, BEAT_WORLD_W - 8, BEAT_HIT_LINE_Y + 10, sizePx, colour, "right", bloom);
+    // Under the lane buttons (the Retro overhaul, 15 Nov 2026), clear of the fourth button.
+    retroText(ctx, `${state.combo}x`, BEAT_WORLD_W - 8, BEAT_HIT_LINE_Y + Math.min(19, laneW * 0.24) + 8, sizePx, colour, "right", bloom);
   }
 
   // Polish A1: a PERFECT bursts in its lane's colour at the hit line (pixel rays and a flash, kept
@@ -164,6 +169,8 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BeatState): void {
     }
     ctx.restore();
   }
+
+  beatEffects(ctx, state, laneX, laneW, BEAT_HIT_LINE_Y, LANES);
 
   // Judgement word pops at the hit line.
   if (state.lastJudge !== BEAT_JUDGE_NONE && state.lastJudge !== BEAT_JUDGE_PENDING && state.judgeAge < 24) {
@@ -322,23 +329,11 @@ function paintStage(c: CanvasRenderingContext2D, BEAT_WORLD_H: number, BEAT_LANE
       c.fillStyle = linear(c, x - 8, 0, x + 8, 0, [[0, `${NEON[lane - 1]!}00`], [0.5, `${NEON[lane - 1]!}2A`], [0.5, `${colour}2A`], [1, `${colour}00`]]);
       c.fillRect(x - 8, BEAT_HUD_H, 16, h);
     }
-    c.fillStyle = `${colour}A0`;
-    c.fillRect(Math.round(x + 2), BEAT_HUD_H, 2, h);
-    c.fillRect(Math.round(x + laneW - 4), BEAT_HUD_H, 2, h);
-    c.fillStyle = `${colour}30`;
-    c.fillRect(Math.round(x + 6), BEAT_HUD_H, 1, h);
-    c.fillRect(Math.round(x + laneW - 7), BEAT_HUD_H, 1, h);
-    // Target pad where this lane's notes meet the hit line: outline and corner pixels.
-    const px = Math.round(x + 10), pw = Math.round(laneW - 20), py = BEAT_HIT_LINE_Y - BEAT_NOTE_H / 2;
-    c.fillStyle = `${colour}22`;
-    c.fillRect(px, py, pw, BEAT_NOTE_H);
-    c.fillStyle = `${colour}80`;
-    c.fillRect(px, py, pw, 1);
-    c.fillRect(px, py + BEAT_NOTE_H - 1, pw, 1);
-    c.fillRect(px, py, 1, BEAT_NOTE_H);
-    c.fillRect(px + pw - 1, py, 1, BEAT_NOTE_H);
-    c.fillStyle = colour;
-    for (const [cx, cy] of [[px, py], [px + pw - 3, py], [px, py + BEAT_NOTE_H - 3], [px + pw - 3, py + BEAT_NOTE_H - 3]] as const) c.fillRect(cx, cy, 3, 3);
+    // The Retro overhaul (15 Nov 2026, concept A): one crisp 1 px rail a lane edge, in its colour (were two rails and
+    // two hairlines); the lane's round button on the hit line marks where its notes land (drawn live, drawLaneButton).
+    c.fillStyle = `${colour}8C`;
+    c.fillRect(Math.round(x + 1), BEAT_HUD_H, 1, h);
+    c.fillRect(Math.round(x + laneW - 2), BEAT_HUD_H, 1, h);
   }
   // Retro floor grid: rows closing up towards the top of the lanes.
   c.fillStyle = "rgba(200,140,255,0.08)";
@@ -348,19 +343,11 @@ function paintStage(c: CanvasRenderingContext2D, BEAT_WORLD_H: number, BEAT_LANE
   }
   c.fillStyle = "rgba(0,0,0,0.35)";
   c.fillRect(0, BEAT_HIT_LINE_Y + 2, BEAT_WORLD_W, BEAT_WORLD_H - BEAT_HIT_LINE_Y - 2);
-  // Soft tap zones under the line: a lane-coloured pad fading down, its top edge lit.
-  const zoneTop = BEAT_HIT_LINE_Y + 12;
-  const zoneH = Math.max(0, BEAT_WORLD_H - zoneTop - 14);
-  for (let lane = 0; lane < BEAT_LANES && zoneH > 8; lane++) {
+  // Under the line, a dark glass floor with each lane's colour reflected faintly just below its button.
+  for (let lane = 0; lane < BEAT_LANES; lane++) {
     const colour = NEON[lane]!;
-    const x = Math.round(lane * laneW + 12), w = Math.round(laneW - 24);
-    c.fillStyle = linear(c, 0, zoneTop, 0, zoneTop + zoneH, [[0, `${colour}2E`], [0.55, `${colour}10`], [1, `${colour}00`]]);
-    c.fillRect(x, zoneTop, w, zoneH);
-    c.fillStyle = `${colour}55`;
-    c.fillRect(x + 2, zoneTop, w - 4, 1);
-    c.fillStyle = `${colour}22`;
-    c.fillRect(x, zoneTop + 1, 1, Math.round(zoneH * 0.5));
-    c.fillRect(x + w - 1, zoneTop + 1, 1, Math.round(zoneH * 0.5));
+    c.fillStyle = linear(c, 0, BEAT_HIT_LINE_Y + 2, 0, BEAT_HIT_LINE_Y + 70, [[0, `${colour}26`], [1, `${colour}00`]]);
+    c.fillRect(Math.round(lane * laneW + 8), BEAT_HIT_LINE_Y + 2, Math.round(laneW - 16), 68);
   }
 }
 
@@ -448,7 +435,8 @@ const v9Memos = new WeakMap<CanvasRenderingContext2D, V9Memo>();
 function drawMeter(ctx: CanvasRenderingContext2D, state: BeatState): void {
   // 3 Nov 2026 (Joe's audit, display only): the bar is the HUD strip's whole second row, a bright pink frame
   // round a dark well, filling cyan → gold, pink while fever drains, glowing once full; the label sits inside.
-  const x = 12, y = 23, w = BEAT_WORLD_W - 24, h = 15;
+  // The Retro overhaul (15 Nov 2026): 20 px tall (was 15), so its label reads at the 11 px floor; still inside the HUD strip.
+  const x = 12, y = 22, w = BEAT_WORLD_W - 24, h = 20;
   const fever = state.fever ?? 0;
   const full = (state.meter ?? 0) >= BEAT_FEVER_FULL;
   const share = fever > 0 ? fever / BEAT_FEVER_TICKS : (state.meter ?? 0) / BEAT_FEVER_FULL;
@@ -466,7 +454,10 @@ function drawMeter(ctx: CanvasRenderingContext2D, state: BeatState): void {
   pixelRect(ctx, x, y, 2, h, frame);
   pixelRect(ctx, x + w - 2, y, 2, h, frame);
   const label = fever > 0 ? (state.std ? "FEVER!" : "FEVER x2") : full ? "TAP FEVER!" : "FEVER";
-  retroText(ctx, label, x + w / 2, y + 4, 8, full && !fever && !blink ? "#000000" : RETRO_WHITE, "center");
+  // A dark outline under the label keeps it legible over the fill (white on pink or gold).
+  const labelColour = full && !fever && !blink ? "#000000" : RETRO_WHITE;
+  if (labelColour === RETRO_WHITE) for (const [dx, dy] of [[-1, 0], [1, 0], [0, 1]] as const) retroText(ctx, label, x + w / 2 + dx, y + 5 + dy, RETRO_HUD_MIN_PX, "#1A0614", "center");
+  retroText(ctx, label, x + w / 2, y + 5, RETRO_HUD_MIN_PX, labelColour, "center");
   let memo = v9Memos.get(ctx);
   const now = { tick: state.tick, gold: state.goldsHit ?? 0, fevers: state.fevers ?? 0, doubles: state.doublesDone ?? 0 };
   if (!memo || state.tick < memo.tick) memo = { ...now, at: -99, text: "", colour: GOLD };
@@ -484,4 +475,67 @@ function drawMeter(ctx: CanvasRenderingContext2D, state: BeatState): void {
   // The fifth lane's banner in the break before it.
   const toFive = BEAT_V9_FIVE_FROM - state.tick;
   if (toFive > 0 && toFive <= BEAT_V9_BREAK + 30) retroText(ctx, "5 LANES!", BEAT_WORLD_W / 2, BEAT_HUD_H + 60, 16, NEON[4]!, "center");
+}
+
+/**
+ * A lane's button on the hit line (the Retro overhaul, 15 Nov 2026, concept A, kept retro): a round button in 2 px
+ * blocks, dark glass in a ring of the lane's colour with a crisp highlight on its upper curve; struck (`lit` 1 → 0) it
+ * fills with the lane's colour and a white-hot centre, a short ring of rays round it; held, it stays half lit. Display
+ * only: taps are taken by lane, so the button marks the lane's spot and never changes what a tap does.
+ */
+function drawLaneButton(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, colour: string, lit: number, held: boolean): void {
+  const fill = held ? Math.max(lit, 0.5) : lit;
+  if (!arcadeReducedEffects()) glow(ctx, colour, cx, cy, r * 2.2, r * 1.2, 0.35 + 0.45 * fill);
+  const face = retroMix("#0E0A18", colour, 0.18 + 0.7 * fill);
+  const core = retroMix(colour, "#FFFFFF", 0.65);
+  pixelShape(ctx, cx, cy, r, 2, (dx, dy) => {
+    const d2 = dx * dx + dy * dy;
+    if (d2 > r * r) return null;
+    if (d2 > (r - 3) * (r - 3)) return colour;
+    // The highlight on the upper curve of the glass.
+    if (dy < -r * 0.35 && dx > -r * 0.6 && dx < r * 0.1 && d2 > (r * 0.45) ** 2) return "rgba(255,255,255,0.55)";
+    if (fill > 0.35 && d2 < (r * 0.35) ** 2) return core;
+    return face;
+  });
+  if (lit > 0 && !reducedMotion()) {
+    ctx.save();
+    ctx.globalAlpha = lit;
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const d = r + 3 + (1 - lit) * 8;
+      pixelRect(ctx, cx + Math.cos(a) * d - 1, cy + Math.sin(a) * d - 1, 2, i % 2 ? 2 : 4, i % 3 === 0 ? RETRO_WHITE : colour);
+    }
+    ctx.restore();
+  }
+}
+
+/**
+ * Tempo's in-world moments (the Retro overhaul, stage 2; display only, read from the state): a missed note drops a grey
+ * block out of its lane, a held note crackles small sparks at its button for as long as it is held, and a Good throws a
+ * smaller spark burst than a Perfect's (which keeps its own rays above).
+ */
+function beatEffects(ctx: CanvasRenderingContext2D, state: BeatState, laneX: (lane: number) => number, laneW: number, hitY: number, lanes: number): void {
+  const fx = retroFx(ctx, "beat", state.tick);
+  const lane = Math.max(0, state.lastLane);
+  fx.rise("miss", state.misses, () => ({ x: laneX(lane), y: hitY, n: lane }));
+  fx.each("miss", 26, (e, age) => fxShards(fx, ctx, e.x, e.y, age, "#6B7080", { n: 6, r: 4, seed: e.tick, size: 4 }));
+  fx.rise("good", state.good, () => ({ x: laneX(lane), y: hitY, n: lane }));
+  // A swipe struck: an arrow streak along the hit line in the swipe's direction.
+  fx.rise("swipe", state.swipesHit ?? 0, () => {
+    const swipes = state.chart.swipes ?? [];
+    let dir = 0;
+    for (let i = state.chart.ticks.length - 1; i >= 0; i--) {
+      if (swipes[i] && state.chart.ticks[i]! <= state.tick + 12) { dir = swipes[i]!; break; }
+    }
+    return dir ? { x: laneX(lane), y: hitY, n: dir } : null;
+  });
+  fx.each("swipe", 14, (e, age) => fxStreak(fx, ctx, e.x - e.n * laneW * 0.6, e.y, e.x + e.n * laneW * 0.6, e.y, age, "#FFFFFF", 3));
+  fx.each("good", 12, (e, age) => fxSparks(fx, ctx, e.x, e.y, age, NEON[e.n % NEON.length]!, { n: 5, spread: Math.min(14, laneW * 0.2), seed: e.tick, up: true }));
+  if (fx.still) return;
+  for (let l = 0; l < lanes; l++) {
+    const held = state.holding[l];
+    if (held === undefined || held < 0) continue;
+    const phase = state.tick % 8;
+    fxSparks(fx, ctx, laneX(l), hitY, phase / 8, "#FFFFFF", { n: 3, spread: 9, seed: Math.floor(state.tick / 8) * 7 + l, size: 2, up: true });
+  }
 }

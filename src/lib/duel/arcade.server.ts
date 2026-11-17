@@ -1,40 +1,51 @@
 import { checkOverride } from "@/lib/checkOverride";
 import { dealPinned, setDealPin } from "./dealEra";
-import { MOON_REV } from "@/lib/arcade/ricochetNinja";
-import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
+import { MOON_BIG_REV, MOON_REV } from "@/lib/arcade/ricochetNinja";
+import { BASTION_REV_DEALT, BASTION_REV_IRON } from "@/lib/arcade/bastionTank";
+import type { Level } from "@/lib/levels/levels";
+import { gameLevelSettings } from "@/lib/levels/gameLevels";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_LINE, sliceFoodSeedOk } from "@/lib/arcade/slice";
-import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL } from "@/lib/arcade/flip";
+import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL, FLIP_REV_GRACE, isFlipLevel } from "@/lib/arcade/flip";
+import { flipLevelDealSeed } from "./flipLevelDeals.server";
 import { flipDealSeed } from "./flipDeal.server";
-import { CROSS_REV_KEEP } from "@/lib/arcade/cross";
-import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_STD } from "@/lib/arcade/inkBridge";
+import { wavDealSeed } from "./wavefrontDeal.server";
+import { flipDealSeedV13 } from "./flipDealV13.server";
+import { CROSS_REV_KEEP, CROSS_REV_LIGHT } from "@/lib/arcade/cross";
+import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_HILLS, INK_REV_STD, isInkDiff } from "@/lib/arcade/inkBridge";
 import { inkBigDealSeed } from "./inkBigDeal.server";
-import { SNAKE_REV_TARGET, SNAKE_REV_12 } from "@/lib/arcade/snake";
-import { BUB_REV_STD } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
-import { minesBoard, minesCountFor, minesSolve, MINES_REV_LOGIC, MINES_REV_STD } from "@/lib/arcade/minesweeper";
+import { inkHillsDealSeed } from "./inkHillsDeal.server";
+import { inkLevelDealSeed } from "./inkLevelDeals.server";
+import { SNAKE_REV_TARGET, SNAKE_REV_12, SNAKE_REV_GRACE } from "@/lib/arcade/snake";
+import { BUB_REV_FAST, BUB_REV_STD } from "@/lib/arcade/bubble";
+import { MATCHUP_REV_ICE2, MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
+import { minesBoard, minesGeoFor, minesSolve, MINES_REV_EASY, MINES_REV_EXPERT, MINES_REV_LOGIC, MINES_REV_NORMAL, MINES_REV_STD, MINES_RUN_TICKS } from "@/lib/arcade/minesweeper";
+import { logicOverhaul1Dealt } from "./logicOverhaul1";
 import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
-import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_COUNT } from "@/lib/arcade/skyline";
-import { TILT_REV_BIG } from "@/lib/arcade/tilt";
+import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_LIVES, SKYLINE_REV_COUNT } from "@/lib/arcade/skyline";
+import { TILT_REV_BIG, isTiltLevel } from "@/lib/arcade/tilt";
 import { TILT_DEAL_V12 } from "./tiltDealV12.server";
+import { TILT_DEAL_LEVELS } from "./tiltDealLevels.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
-import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE } from "@/lib/arcade/swing";
-import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_AIM } from "@/lib/arcade/burst";
-import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD } from "@/lib/arcade/breaker";
-import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD } from "@/lib/arcade/pinball";
+import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG } from "@/lib/arcade/swing";
+import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_AIM, BURST_REV_BIG } from "@/lib/arcade/burst";
+import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD, BRK_REV_CLEAR } from "@/lib/arcade/breaker";
+import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_SAVE } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
-import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_KEEP } from "@/lib/arcade/wavefront";
-import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD, ORBIT_REV_FUEL } from "@/lib/arcade/orbit";
-import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD } from "@/lib/arcade/rally";
-import { BEAT_REV_TARGET, BEAT_REV_STD } from "@/lib/arcade/beat";
+import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_KEEP, WAV_REV_BIG } from "@/lib/arcade/wavefront";
+import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG } from "@/lib/arcade/orbit";
+import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD, RALLY_REV_LIVES } from "@/lib/arcade/rally";
+import { BEAT_REV_TARGET, BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
 import { orbitFuelCourseForSeed, orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
 import { SWING_V13_BANK } from "./swingBankV13.server";
 import { swingSlideDealSeed } from "./swingSlideDeal.server";
+import { swingBigDealSeed } from "./swingBigDeal.server";
+import { swingLevelDealSeed } from "./swingLevelDeal.server";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV_BANDS } from "@/lib/arcade/wordfall";
 import { dealtTopupRev } from "./depthTopup";
@@ -46,12 +57,15 @@ import { CLASH_QUEUE, CLASH_REV_TALL, CLASH_REV_DEPTH, CLASH_REV_TOPUP } from "@
  */
 
 import { randomBelow } from "./random";
-import { FC_REV, FC_REV_SHORT } from "@/lib/arcade/cards/freecell";
+import { FC_REV, FC_REV_SHORT, fcLevelBank } from "@/lib/arcade/cards/freecell";
+import { TP_EXPERT_DEALS, TP_HARD_NOWRAP_DEALS } from "@/lib/arcade/cards/tripeaksExpert.data";
+import { TP_EASY_DEALS } from "@/lib/arcade/cards/tripeaks";
 import { FC_DEALS } from "@/lib/arcade/cards/freecellDeals.data";
 import { TP_REV, TP_REV_PAR } from "@/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
-import { FH_REV } from "@/lib/arcade/cards/fiveHands";
+import { FH_LEVEL_RULES, FH_REV } from "@/lib/arcade/cards/fiveHands";
+import { ARCADE_PHASE_SLACK_MS } from "./catalogue";
 import { PY_REV, PY_REV_SHARE } from "@/lib/arcade/cards/pyramid";
 import { GS_REV } from "@/lib/arcade/cards/golfSol";
 import { GS_DEALS } from "@/lib/arcade/cards/golfSolDeals.data";
@@ -115,14 +129,20 @@ export function pinCardsPreShare(on: boolean): boolean {
   return setDealPin("cardsPreShare", on);
 }
 
-/** FreeCell: a bank deal (its index), proved solvable with a known par. */
-export function generateFreecell(): FreecellPuzzleData {
+/** FreeCell: a bank deal (its index), proved solvable with a known par; a level deal from its level's own bank. */
+export function generateFreecell(level?: Level): FreecellPuzzleData {
+  // The difficulty levels (15 Nov 2026): the seed indexes the level's bank (the deal stamps `level` itself).
+  if (level === "easy" || level === "hard" || level === "expert") return { type: "freecell", seed: randomBelow(fcLevelBank(level).length), freecellRev: FC_REV };
   // freecellRev 5 (7 Nov 2026): rev 4's deal and bank, the core rising to all 40 home.
   return { type: "freecell", seed: randomBelow(FC_DEALS.length), freecellRev: dealPinned("cardsPreShare") ? FC_REV_SHORT : FC_REV };
 }
 
 /** TriPeaks: a bank deal (its index), proved clearable with a run of ten. */
-export function generateTripeaks(): TripeaksPuzzleData {
+export function generateTripeaks(level?: Level): TripeaksPuzzleData {
+  // The difficulty levels (15 Nov 2026): Expert deals from its own no-wrap bank; Easy and Hard the Normal bank.
+  if (level === "expert") return { type: "tripeaks", seed: randomBelow(TP_EXPERT_DEALS.length), tripeaksRev: TP_REV };
+  if (level === "easy") return { type: "tripeaks", seed: randomBelow(TP_EASY_DEALS.length), tripeaksRev: TP_REV };
+  if (level === "hard") return { type: "tripeaks", seed: randomBelow(TP_HARD_NOWRAP_DEALS.length), tripeaksRev: TP_REV };
   // tripeaksRev 3 (7 Nov 2026): rev 2's deals and pars, half the speed moved onto the cards.
   return { type: "tripeaks", seed: randomBelow(TP_DEALS.length), tripeaksRev: dealPinned("cardsPreShare") ? TP_REV_PAR : TP_REV };
 }
@@ -133,7 +153,9 @@ export function generatePokerSquares(): PokerSquaresPuzzleData {
 }
 
 /** Five Hands: any seed; the sim shuffles the deck and proves its witness (perfect play reaches 200). */
-export function generateFiveHands(): FiveHandsPuzzleData {
+export function generateFiveHands(level?: Level): FiveHandsPuzzleData {
+  // The difficulty levels (15 Nov 2026): a level's own clock (its run plus the arcade phase's slack) on the puzzle.
+  if (level === "easy" || level === "hard" || level === "expert") return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV, timeLimitMs: FH_LEVEL_RULES[level].seconds * 1000 + ARCADE_PHASE_SLACK_MS } as FiveHandsPuzzleData;
   return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV };
 }
 
@@ -167,10 +189,15 @@ export function generateSwerve(): SwervePuzzleData {
   return { type: "swerve", seed: arcadeSeed() };
 }
 
-export function generateSkyline(): SkylinePuzzleData {
+export function generateSkyline(_level?: Level): SkylinePuzzleData {
+  // Levels (15 Nov 2026, docs/arcade-standard/skyline.md "Levels"): the same seed and stamp at every level; the deal
+  // stamps `level` and the sim reads it (skylineGameFor). No proved deal: every seed is proved at every level
+  // (skyline-levels-check).
   // skylineRev 9: skylineRev 8's play on the arcade scoring standard (29 Oct 2026, docs/arcade-standard/skyline.md).
   // skylineRev 10 (Nov 2026, the scoring audit): skylineRev 9's play; perfect drops counted up to 61, so more floors never score less.
-  return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_COUNT };
+  // skylineRev 11 (15 Nov 2026, the Action overhaul): three lives (a miss costs one, the run carries on) and the wide-block
+  // rescue after five trims in a row; skylineRev 10's parts and gold blocks.
+  return { type: "skyline", seed: arcadeSeed(), skylineRev: dealPinned("skylinePreLives") ? SKYLINE_REV_COUNT : SKYLINE_REV_LIVES };
 }
 
 export function generateBinToss(): BinTossPuzzleData {
@@ -189,41 +216,65 @@ export function generateMatchup(): MatchupPuzzleData {
   // docs/arcade-standard/matchup.md): four treasures that may swap with a gem that then makes a line, four goal
   // levels, and the score as fixed parts to 200. matchupRev 12 (Nov 2026): six goals shown at once and six treasures,
   // the parts re-weighted (core 108, treasure 36, goals 36, ice 10, big lines 10).
-  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_SIX };
+  // matchupRev 13 (the Strategy overhaul stage 3, 15 Nov 2026): two-hit ice at every level, and the levels (the deal
+  // stamps `level`; the sim reads it at init). Checks written for matchupRev 12 pin it (pinMatchupPreIce2).
+  if (dealPinned("matchupPreIce2")) return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_SIX };
+  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_ICE2 };
+}
+
+/** Checks written for Gemstone matchupRev 12: deal it as rooms did before two-hit ice (returns the previous setting). */
+export function pinMatchupPreIce2(on: boolean): boolean {
+  return setDealPin("matchupPreIce2", on);
 }
 
 export function generateSnake(): SnakePuzzleData {
   // snakeRev 10 (Joe's phone notes, 27 Oct 2026): longer gold stars, a third wormhole pair, a second vertical lane, 2 × 2 rocks.
   // snakeRev 11 (the arcade scoring standard, 29 Oct 2026): snakeRev 10's play, scored in straight-line parts to 200.
   // snakeRev 12 (1 Nov 2026): snakeRev 11 with gold stars counting 2 towards the core, full at 20.
-  return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_12 };
+  // snakeRev 14 (the Retro overhaul, 15 Nov 2026): snakeRev 13's wrapping edges and core full at 36, with rocks in three
+  // sizes (preRetro: snakeRev 12). snakeRev 15 (stage 3, 16 Nov 2026): snakeRev 14 with the first crash forgiven.
+  return { type: "snake", seed: arcadeSeed(), snakeRev: dealPinned("preRetro") ? SNAKE_REV_12 : SNAKE_REV_GRACE };
 }
 
 export function generateCross(): CrossPuzzleData {
   // crossRev 11 (3 Nov 2026): crossRev 10's courses without coins, scored with the no-stop streak and a cost a hit.
   // crossRev 12 (Nov 2026, the scoring audit): crossRev 11's play; the hit that ends the run is free, hits capped at half the core.
-  return { type: "cross", seed: arcadeSeed(), crossRev: CROSS_REV_KEEP };
+  // crossRev 13 (the Retro overhaul, stage 3, 16 Nov 2026): crossRev 12's rules on lighter traffic (preRetro: crossRev 12).
+  return { type: "cross", seed: arcadeSeed(), crossRev: dealPinned("preRetro") ? CROSS_REV_KEEP : CROSS_REV_LIGHT };
 }
 
 export function generateDual(): DualPuzzleData {
   return { type: "dual", seed: arcadeSeed() };
 }
 
-/** Ricochet deals Moon Climb (ricoRev 3, 3 Nov 2026); ricoRev 2 rounds keep the ninja wall-climb, unstamped ones the old shaft. */
+/**
+ * Ricochet deals Moon Climb's bigger ninja (ricoRev 4, 15 Nov 2026; ricoRev 3 under the `ricoPreBig` pin); ricoRev 3
+ * rounds keep the smaller ninja, ricoRev 2 the ninja wall-climb, unstamped ones the old shaft. Any seed: the sim deals
+ * the tower and proves its witness.
+ */
 export function generateRicochet(): RicoPuzzleData {
-  return { type: "ricochet", seed: arcadeSeed(), ricoRev: MOON_REV };
+  return { type: "ricochet", seed: arcadeSeed(), ricoRev: dealPinned("ricoPreBig") ? MOON_REV : MOON_BIG_REV };
+}
+
+/** Checks written for ricoRev 3: deal Moon Climb as rooms did before the bigger ninja (15 Nov 2026; returns the previous setting). */
+export function pinRicoPreBig(on: boolean): boolean {
+  return setDealPin("ricoPreBig", on);
 }
 
 export function generateBreaker(): BreakerPuzzleData {
   // brkRev 10 (phone notes, 27 Oct 2026): brkRev 9 with gold bricks broken by any 4 hits and a second double-ball brick.
   // brkRev 11 (the arcade scoring standard, 29 Oct 2026): brkRev 10's play scored in fixed parts to 200.
-  return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_STD };
+  // brkRev 12 (the Retro overhaul, 15 Nov 2026): a clearable 9-row wall, a quicker ball, a stronger multi-ball
+  // (preRetro: brkRev 11).
+  return { type: "breaker", seed: arcadeSeed(), brkRev: dealPinned("preRetro") ? BRK_REV_STD : BRK_REV_CLEAR };
 }
 
 export function generatePinball(): PinballPuzzleData {
   // pinRev 5 (27 Oct 2026, Joe's phone notes): pinRev 4's table for 90 s (PIN_REV_LONG).
   // pinRev 6 (29 Oct 2026): pinRev 5's play on the arcade scoring standard (docs/arcade-standard/pinball.md).
-  return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV_STD };
+  // pinRev 7 (the Retro overhaul, 15 Nov 2026): pinRev 6's play; one J-O-U-L-Z set fills its part (preRetro: pinRev 6).
+  // pinRev 8 (stage 3, 16 Nov 2026): pinRev 7's play with the outlane saves counted.
+  return { type: "pinball", seed: arcadeSeed(), pinRev: dealPinned("preRetro") ? PIN_REV_STD : PIN_REV_SAVE };
 }
 
 /**
@@ -231,14 +282,31 @@ export function generatePinball(): PinballPuzzleData {
  * from its opening; a seed whose tries all failed (it would fall back to MINES_FALLBACK_SEED's board) is dropped here,
  * so every dealt seed is proved by its own solve (minesweeper-check plays each proof to 200).
  */
-export function generateMinesweeper(): MinesweeperPuzzleData {
+export function generateMinesweeper(level?: Level): MinesweeperPuzzleData {
   // minesRev 2 (13 Nov 2026): Minefield as a Logic game with 20 mines. Checks written for rev 1 pin minesPreLogic, a
   // check-only switch read through checkOverride: a production build never deals rev 1.
-  const rev = checkOverride<boolean>("__DUELZ_MINES_PRE_LOGIC__") === true ? MINES_REV_STD : MINES_REV_LOGIC;
+  // The Logic overhaul's levels (15 Nov 2026; Joe, "too-hard games: today's becomes Hard"): rev 2 is Hard; Normal deals
+  // the gentler minesRev 3 (unless a check pins the world before, pinPreLogicOverhaul1); Easy and Expert their own.
+  const pre = checkOverride<boolean>("__DUELZ_MINES_PRE_LOGIC__") === true;
+  const rev = pre
+    ? MINES_REV_STD
+    : level === "hard"
+      ? MINES_REV_LOGIC
+      : level === "easy"
+        ? MINES_REV_EASY
+        : level === "expert"
+          ? MINES_REV_EXPERT
+          : logicOverhaul1Dealt()
+            ? MINES_REV_NORMAL
+            : MINES_REV_LOGIC;
+  const g = minesGeoFor(rev);
   for (;;) {
     const seed = arcadeSeed();
     const board = minesBoard(seed, rev);
-    if (board.tries >= 0 && minesSolve(board.mines, board.start, minesCountFor(rev)).solved) return { type: "minesweeper", seed, minesRev: rev };
+    if (board.tries >= 0 && minesSolve(board.mines, board.start, g.count, g).solved) {
+      const own = g.runTicks !== MINES_RUN_TICKS ? { timeLimitMs: (g.runTicks / 60) * 1000 + 3000 } : {};
+      return { type: "minesweeper", seed, minesRev: rev, ...own };
+    }
   }
 }
 
@@ -251,15 +319,19 @@ export function pinMinesPreLogic(on: boolean): boolean {
  * Mahjong Solitaire deals its faces in the sim by building the stack backwards; the build's own order is the proof it
  * clears, checked here before the seed is dealt (mahjong-check plays it to 200).
  */
-export function generateMahjong(): MahjongPuzzleData {
+export function generateMahjong(level?: Level): MahjongPuzzleData {
+  // The difficulty levels (15 Nov 2026): a level deal is built and proved on the level's layout and faces.
+  const lv = level === "easy" || level === "hard" || level === "expert" ? level : null;
   for (;;) {
     const seed = arcadeSeed();
-    if (mahjongBuildClears(seed)) return { type: "mahjong", seed, mahjongRev: MAHJONG_REV_DEALT };
+    if (mahjongBuildClears(seed, lv)) return { type: "mahjong", seed, mahjongRev: MAHJONG_REV_DEALT };
   }
 }
 
 export function generateRally(): RallyPuzzleData {
-  return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_STD };
+  // rallyRev 13 (the Retro overhaul, 15 Nov 2026): two blue-ball lives and spin scores (checks written for rallyRev 12
+  // pin preRetro).
+  return { type: "rally", seed: arcadeSeed(), rallyRev: dealPinned("preRetro") ? RALLY_REV_STD : RALLY_REV_LIVES };
 }
 
 export function generateSteady(): SteadyPuzzleData {
@@ -282,13 +354,22 @@ export function generateBubble(): BubblePuzzleData {
   // bubbleRev 9: bubbleRev 8's deeper reef (expansion E6) with credit for bubbles burst (no zero for a played run).
   // bubbleRev 10 (phone notes, 27 Oct 2026): bubbleRev 9 with the mine's bigger blast (two rings).
   // bubbleRev 11 (the arcade scoring standard, 29 Oct 2026): the mine pops the 4 nearest bubbles; scored on the standard.
-  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_STD };
+  // bubbleRev 12 (the Strategy overhaul, 15 Nov 2026): an 86-bubble reef and the fast shot (drag further, same path).
+  if (dealPinned("bubblePreFast")) return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_STD };
+  return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_FAST };
 }
 
 export function generateBeat(): BeatPuzzleData {
   // beatRev 10 (phone notes, 27 Oct 2026): beatRev 9's song with wider windows and a lighter chart, easiest from the fifth lane.
   // beatRev 11 (the arcade scoring standard, 29 Oct 2026): beatRev 10's play scored on the standard (docs/arcade-standard/beat.md).
-  return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_STD };
+  // beatRev 12 (the Retro overhaul, 15 Nov 2026): beatRev 11's play; a missed note scores 0 rather than −2. Checks
+  // written for beatRev 11 pin preRetro.
+  return { type: "beat", seed: arcadeSeed(), beatRev: dealPinned("preRetro") ? BEAT_REV_STD : BEAT_REV_FLOOR };
+}
+
+/** Checks written before the Retro overhaul (15 Nov 2026): deal Tempo beatRev 11 as rooms did before it. */
+export function pinPreRetro(on: boolean): boolean {
+  return setDealPin("preRetro", on);
 }
 
 export function generateTenDrop(): TenDropPuzzleData {
@@ -313,12 +394,29 @@ export function generateWavefront(): WavefrontPuzzleData {
   // wavRev 11 (Joe's phone notes, 27 Oct 2026): power-ups from carrier ships and saucers, no streak, the mothership after wave 5.
   // wavRev 12 (the arcade scoring standard, 29 Oct 2026): wavRev 11 play scored in fixed parts that total 200.
   // wavRev 13 (Nov 2026, the scoring audit): wavRev 12's play; the life that ends the run is free, lives capped at half the core.
-  return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_KEEP };
+  // wavRev 14 (the Retro overhaul, 15 Nov 2026): the charged shot (preRetro: wavRev 13).
+  // wavRev 15 (stage 3, 16 Nov 2026): larger hit cells, dealt only on the seeds proved to reach 200 at every level
+  // (wavefrontDeal.server.ts).
+  if (dealPinned("preRetro")) return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_KEEP };
+  return { type: "wavefront", seed: wavDealSeed(arcadeSeed()), wavRev: WAV_REV_BIG };
 }
 
-export function generateBastion(): BastionPuzzleData {
+export function generateBastion(level?: Level): BastionPuzzleData {
   // bastionRev 2 (1 Nov 2026): the tank-defence shooter; any seed deals its five waves (the oracle proves 200 on each).
-  return { type: "bastion", seed: arcadeSeed(), bastionRev: BASTION_REV_DEALT };
+  // bastionRev 4 (15 Nov 2026, the difficulty levels; docs/arcade-standard/bastion.md "bastionRev 4: levels"): Normal,
+  // Easy and Hard deal rev 4 (the deal stamps `level`, the sim reads it); Expert deals bastionRev 3's game exactly, the
+  // game every room dealt before the levels. Checks written for rev 3 pin `bastionPreLevels`: rev 3 at every level.
+  const asked = level ? gameLevelSettings<{ bastionRev: number }>("bastion", level)?.bastionRev : undefined;
+  const rev = dealPinned("bastionPreLevels") ? BASTION_REV_IRON : asked === BASTION_REV_IRON ? BASTION_REV_IRON : BASTION_REV_DEALT;
+  return { type: "bastion", seed: arcadeSeed(), bastionRev: rev };
+}
+
+/**
+ * Checks written for bastionRev 3: deal Iron Wall on bastionRev 3 as rooms did before the levels (the Action overhaul,
+ * 15 Nov 2026; returns the previous setting).
+ */
+export function pinBastionPreLevels(on: boolean): boolean {
+  return setDealPin("bastionPreLevels", on);
 }
 
 export function generateRooftop(): RooftopPuzzleData {
@@ -329,14 +427,25 @@ export function generateColourClash(): StroopPuzzleData {
   return { type: "stroop", seed: arcadeSeed(), queue: CLASH_QUEUE, clashRev: dealtTopupRev(CLASH_REV_TOPUP, CLASH_REV_DEPTH) };
 }
 
-export function generateFlip(): FlipPuzzleData {
+export function generateFlip(level?: Level): FlipPuzzleData {
   // flipRev 9: flipRev 8's taller cave, features and sweet spots (expansion E7, docs/expansions/x200-flip.md), scored to 200
   // on the lifted curves (Joe's phone notes, 27 Oct 2026). flipRev 10 (29 Oct 2026): the same play on the arcade scoring
   // standard (time survived 150, gold stars 15, star trails 15, sweet landings 10, double flips 10; docs/arcade-standard/flip.md).
   // flipRev 11 (3 Nov 2026): no star pickups and the flow streak; clean time 100, perfect landings 60, double flips 20,
   // flow streak 20 (docs/arcade-standard/flip.md "flipRev 11").
   // flipRev 12 (3 Nov 2026): flipRev 11's game, dealt only on the courses proved to reach 200 (flipDeal.server.ts).
-  return { type: "flip", seed: flipDealSeed(arcadeSeed()), flipRev: FLIP_REV_DEAL };
+  // flipRev 13 (15 Nov 2026, the Action overhaul): grace, dealt from its own proved courses (flipDealV13.server.ts).
+  // Checks written for flipRev 12 pin it (pinFlipPreGrace).
+  if (dealPinned("flipPreGrace")) return { type: "flip", seed: flipDealSeed(arcadeSeed()), flipRev: FLIP_REV_DEAL };
+  // Levels (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): Easy, Hard and Expert deal flipRev 13 from their own
+  // proved deals (flipLevelDeals.server.ts; the deal stamps `level`); Normal exactly as before.
+  if (isFlipLevel(level)) return { type: "flip", seed: flipLevelDealSeed(level, arcadeSeed()), flipRev: FLIP_REV_GRACE };
+  return { type: "flip", seed: flipDealSeedV13(arcadeSeed()), flipRev: FLIP_REV_GRACE };
+}
+
+/** Checks written for flipRev 12 (before the Action overhaul's grace, 15 Nov 2026) pin it; returns the previous setting. */
+export function pinFlipPreGrace(on: boolean): boolean {
+  return setDealPin("flipPreGrace", on);
 }
 
 export function generateJunction(): JunctionPuzzleData {
@@ -359,7 +468,22 @@ export function pinInkPreBig(on: boolean): boolean {
   return setDealPin("inkPreBig", on);
 }
 
-export function generateInkBridge(): InkBridgePuzzleData {
+/** Checks written for inkRev 14: deal it from its own deal as rooms did before inkRev 15 (returns the previous setting). */
+export function pinInkPreHills(on: boolean): boolean {
+  return setDealPin("inkPreHills", on);
+}
+
+/** Checks written for Coral Pop bubbleRev 11: deal it as rooms did before bubbleRev 12 (returns the previous setting). */
+export function pinBubblePreFast(on: boolean): boolean {
+  return setDealPin("bubblePreFast", on);
+}
+
+/**
+ * Rainbow Bridge's deal. `level` (the Strategy overhaul's stage 3; the deal's GenerateContext level, already resolved
+ * against gameLevels.ts) deals inkRev 15 at that level from the level's own proved deal (inkLevelDeals.server.ts); the
+ * deal then stamps `level` on the puzzle. Normal (no level) deals exactly as before.
+ */
+export function generateInkBridge(level?: string): InkBridgePuzzleData {
   // inkRev 11 (phone notes, 27 Oct 2026): no wind zones, fewer silver coins, the pickups spread out.
   // inkRev 12 (the arcade scoring standard, 29 Oct 2026): inkRev 11's play scored on straight lines and fixed shares.
   // inkRev 13 (Nov 2026, docs/arcade-standard/inkbridge.md): clovers, ink par and more birds; no stars or silver coins.
@@ -367,14 +491,20 @@ export function generateInkBridge(): InkBridgePuzzleData {
   // proved deal (every level proved and the perfect run 200 through the server replay on each seed; inkBigDeal.server.ts).
   if (dealPinned("inkPreClover")) return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_STD };
   if (dealPinned("inkPreBig")) return { type: "inkbridge", seed: arcadeSeed(), inkRev: INK_REV_CLOVER };
-  return { type: "inkbridge", seed: inkBigDealSeed(arcadeSeed()), inkRev: INK_REV_BIG };
+  // inkRev 15 (the Strategy overhaul, 15 Nov 2026): inkRev 14 with the pot and hill placed level by level, from its own
+  // proved deal (inkHillsDeal.server.ts: every level proved and the perfect run 200 through the server replay).
+  if (dealPinned("inkPreHills")) return { type: "inkbridge", seed: inkBigDealSeed(arcadeSeed()), inkRev: INK_REV_BIG };
+  if (isInkDiff(level)) return { type: "inkbridge", seed: inkLevelDealSeed(level, arcadeSeed()), inkRev: INK_REV_HILLS };
+  return { type: "inkbridge", seed: inkHillsDealSeed(arcadeSeed()), inkRev: INK_REV_HILLS };
 }
 
 export function generateBurst(): BurstPuzzleData {
   // burstRev 9 (phone-test notes, docs/phone-notes-oct-2026/fission.md): power-ups carried by seeded atoms, a bouncing golden atom, BURST shots, the wave-clear bonus.
   // burstRev 10 (the arcade scoring standard, docs/arcade-standard/burst.md): five waves, the golden atom hurts, straight-line parts to 200.
   // burstRev 11 (the scoring audit, Nov 2026): burstRev 10's play; the last life not charged, wasted beams beyond one an atom cost.
-  return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_AIM };
+  // burstRev 12 (the Retro overhaul, 15 Nov 2026): burstRev 11's play; the wave-clear bonus runs out at three times the
+  // quick time; burstRev 13 adds bigger atoms (checks written for burstRev 11 pin preRetro).
+  return { type: "burst", seed: arcadeSeed(), burstRev: dealPinned("preRetro") ? BURST_REV_AIM : BURST_REV_BIG };
 }
 
 /**
@@ -385,12 +515,46 @@ export function pinOrbitPreFuel(on: boolean): boolean {
   return setDealPin("orbitPreFuel", on);
 }
 
-export function generateOrbit(): OrbitPuzzleData {
+/**
+ * Checks written for skylineRev 10: deal High Rise on skylineRev 10 as rooms did before lives (the Action overhaul,
+ * 15 Nov 2026; returns the previous setting).
+ */
+export function pinSkylinePreLives(on: boolean): boolean {
+  return setDealPin("skylinePreLives", on);
+}
+
+/**
+ * Checks written for orbitRev 14 (the fuel meter): deal the fuel-bank course on orbitRev 14 as rooms did before grace
+ * (the Action overhaul, 15 Nov 2026; returns the previous setting).
+ */
+export function pinOrbitPreGrace(on: boolean): boolean {
+  return setDealPin("orbitPreGrace", on);
+}
+
+/**
+ * Checks written for orbitRev 15 (grace): deal the fuel-bank course on orbitRev 15 as rooms did before the bigger planets
+ * (the Action overhaul's stage 3, 15 Nov 2026; returns the previous setting).
+ */
+export function pinOrbitPreBig(on: boolean): boolean {
+  return setDealPin("orbitPreBig", on);
+}
+
+export function generateOrbit(level?: Level): OrbitPuzzleData {
   const seed = arcadeSeed();
+  // Levels (docs/arcade-standard/orbit.md "Levels"): Easy, Hard and Expert deal orbitRev 16 on a course from the
+  // level's own proved bank, picked by the seed as Normal's; the deal stamps `level` and the sim reads its rules.
+  // Normal (no level) deals exactly as before.
+  const levelName = level === "easy" || level === "hard" || level === "expert" ? level : null;
+  if (levelName && !dealPinned("orbitPreFuel") && !dealPinned("orbitPreGrace") && !dealPinned("orbitPreBig")) {
+    const course = orbitFuelCourseForSeed(seed, levelName);
+    if (course) return { type: "orbit", seed, orbitRev: ORBIT_REV_BIG, planets: course.planets, holes: course.holes, extras: course.extras };
+  }
   // Rev 14 (the fuel meter, 1 Nov 2026, docs/arcade-standard/orbit.md): a course from the fuel bank (zigzag,
   // proved on rev 14's rules: scripts/orbit-fuel-bank.ts), picked by the seed, with its holes and features.
   const fuel = dealPinned("orbitPreFuel") ? null : orbitFuelCourseForSeed(seed);
-  if (fuel) return { type: "orbit", seed, orbitRev: ORBIT_REV_FUEL, planets: fuel.planets, holes: fuel.holes, extras: fuel.extras };
+  // Rev 15 (grace, the Action overhaul, 15 Nov 2026): the same fuel-bank course; a slip respawns instead of ending the run.
+  // Rev 16 (bigger planets, stage 3, 15 Nov 2026): rev 15's play on the same course, the planets drawn bigger.
+  if (fuel) return { type: "orbit", seed, orbitRev: dealPinned("orbitPreGrace") ? ORBIT_REV_FUEL : dealPinned("orbitPreBig") ? ORBIT_REV_GRACE : ORBIT_REV_BIG, planets: fuel.planets, holes: fuel.holes, extras: fuel.extras };
   // Rev 12 (the expansion to 200, 26 Oct 2026): one of the bank courses with proved holes and features
   // (scripts/orbit-xp-bank.ts), picked by the seed, in the bigger view. Every room deals it while the bank has courses.
   const xp = orbitXpCourseForSeed(seed);
@@ -450,8 +614,22 @@ export function pinSwingPreSlide(on: boolean): boolean {
   return setDealPin("swingPreSlide", on);
 }
 
-export function generateSwing(): SwingPuzzleData {
+/**
+ * Checks written for swingRev 17 (the sliding hooks): deal it as rooms did before the bigger hero (swingRev 18, the
+ * Action overhaul's stage 2, 15 Nov 2026; returns the previous setting), so they keep proving what they were written for.
+ */
+export function pinSwingPreBig(on: boolean): boolean {
+  return setDealPin("swingPreBig", on);
+}
+
+export function generateSwing(level?: Level): SwingPuzzleData {
   const roomSeed = arcadeSeed();
+  // swingRev 18's difficulty levels (15 Nov 2026): a course from the level's own proved deal (swingLevelDeal.server.ts;
+  // the deal stamps `level`). Normal (no level) deals exactly as before.
+  if (level && level !== "normal" && !dealPinned("swingPreAssault") && !dealPinned("swingPreRework") && !dealPinned("swingPreDark") && !dealPinned("swingPreSlide") && !dealPinned("swingPreBig")) return { type: "swing", seed: swingLevelDealSeed(level, roomSeed), swingRev: SWING_REV_BIG };
+  // swingRev 18 (the bigger hero, 15 Nov 2026): from its own deal, courses built on the 14 px body whose oracle run
+  // replays to exactly 200 (scripts/swing-slide-deal.ts --rev=18).
+  if (!dealPinned("swingPreAssault") && !dealPinned("swingPreRework") && !dealPinned("swingPreDark") && !dealPinned("swingPreSlide") && !dealPinned("swingPreBig")) return { type: "swing", seed: swingBigDealSeed(roomSeed), swingRev: SWING_REV_BIG };
   // swingRev 17 (the sliding hooks and the streak): from its deal, courses whose oracle run replays to exactly 200
   // (scripts/swing-slide-deal.ts, as Apex's). 16 (the dark ledge runs, 90 s), 15 (the swinging course) and 14 (the
   // assault course): any seed; the course is built and proved from it in the sim.
@@ -476,7 +654,15 @@ export function generateSwing(): SwingPuzzleData {
   throw new Error("Couldn’t build the course. Try again.");
 }
 
-export function generateTilt(): TiltPuzzleData {
+export function generateTilt(level?: Level): TiltPuzzleData {
+  // Levels (stage 3, 15 Nov 2026): easy, hard and expert deal tiltRev 12 from their own proved deals
+  // (tiltDealLevels.server.ts, scripts/tilt-deal.ts --level: seeds the oracle played to exactly 200 through the server's
+  // replay at that level); the deal stamps the level itself. Normal (no level) deals below exactly as before.
+  if (level && isTiltLevel(level)) {
+    const list = TILT_DEAL_LEVELS[level];
+    const at = arcadeSeed();
+    return { type: "tilt", seed: list[((at % list.length) + list.length) % list.length]!, tiltRev: TILT_REV_BIG };
+  }
   // tiltRev 9: tiltRev 8's play (the expansion) on the lifted curves (Joe's phone notes, 27 Oct 2026). A seed from the
   // bank (TILT_BANK, scripts/tilt-bank.ts): every maze fully dealt (tiltDealableX) and played to 200 by the oracle
   // through the server's replay (tilt-expand-check replays each).

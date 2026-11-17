@@ -13,20 +13,25 @@ export const SOLUTION_SWITCH_TYPES: ReadonlySet<string> = new Set([
   "flow",
   "blockparty",
   "nonogram",
-  "tents",
-  "shikaku",
-  "lightup",
-  "fillomino",
-  "fences",
-  "bridges",
   "tilegrid",
   // Gridlock (3 Nov 2026, puzzle polish): the shortest solution playing back, and a solved player's own board.
   "unblock",
-  // 4 Nov 2026 (Joe's review): the three that still drew "Solution" / "Yours" headings without the switch.
-  "numpyramid",
-  "bomb",
-  "trail",
+  // 4 Nov 2026 (Joe's review): the three that still drew "Solution" / "Yours" headings without the switch. Integer
+  // Pyramid left on 15 Nov 2026: its reveal draws its own Yours / Solution switch (the Number overhaul, RevealParts.tsx).
+  // Bomb Defusal left 15 Nov 2026 (the Attention overhaul): its reveal draws the right order and yours on one step track.
+  // The Logic overhaul, session 1 (15 Nov 2026): Box Six's solution and your grid, one at a time.
+  "sudoku",
+  // Skid (15 Nov 2026, the Pattern overhaul, slideRev 5): the shortest route, and the player's own final board.
+  "iceslide",
+  // Heave (15 Nov 2026, the Pattern overhaul): the minimum solution playing back, and the player's own final warehouse.
+  "push",
+  // The Word overhaul's reveals (15 Nov 2026, WordReveal.tsx BoardPair): Slider, Cryptogrid and Swapword (live stamps).
+  "wordslide",
+  "codeword",
+  "swapword",
 ]);
+// The Logic overhaul (15 Nov 2026): Tents and Trees, Shikaku, Lamplighter, Trail, Loopline, Regions and Island Link draw
+// their own switch (src/puzzles/logic2Reveal.tsx: your answer marked against the solution), so they left this list.
 
 const SOLUTION_LABEL = /^(solution|solved|one solution|the solution|answer|one valid plan)$/i;
 const YOURS_LABEL = /^(yours|your board|your grid|you)$/i;
@@ -55,10 +60,22 @@ function findPair(root: HTMLElement): { solution: HTMLElement; yours: HTMLElemen
   return { solution, yours, labels: [sol, mine] };
 }
 
-export function SolutionSwitch({ type, root }: { type: string; root: { current: HTMLElement | null } }) {
+export function SolutionSwitch({
+  type,
+  root,
+  onChange,
+}: {
+  type: string;
+  root: { current: HTMLElement | null };
+  /** The reveal's heading follows the board shown (revealHeading.ts): told the view and whether both columns were found. */
+  onChange?: (state: { found: boolean; view: View }) => void;
+}) {
   const [view, setView] = useState<View>("solution");
   const [found, setFound] = useState(false);
   const on = SOLUTION_SWITCH_TYPES.has(type);
+  useEffect(() => {
+    if (on) onChange?.({ found, view });
+  }, [on, found, view, onChange]);
   useEffect(() => {
     const node = root.current;
     if (!on || !node) return;
@@ -78,6 +95,10 @@ export function SolutionSwitch({ type, root }: { type: string; root: { current: 
       // In a two-column grid (Bomb Defusal) the column shown takes the whole row.
       show.style.gridColumn = "1 / -1";
       show.dataset["solutionView"] = view;
+      // Pattern overhaul (15 Nov 2026): a line about the player's own board (their count, "You: 0 / 9") is marked
+      // `data-yours-only` and shown only under Yours, so nothing below the Solution reads as the solution's.
+      for (const line of Array.from(node.querySelectorAll<HTMLElement>("[data-yours-only]")))
+        line.style.display = view === "solution" ? "none" : "";
     };
     apply();
     const watch = new MutationObserver(() => {

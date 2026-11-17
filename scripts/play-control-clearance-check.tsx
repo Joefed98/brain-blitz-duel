@@ -55,7 +55,8 @@ const arcadeRows = [
   { file: "inkBridge", row: /data-game-controls="tools" className="flex h-12 shrink-0 gap-1\.5"/, button: /className="h-12 min-w-0 flex-1/g, count: 1, width: (w: number) => (w - 8 - 3 * 6) / 4, tall: 48 },
   // Orbit's 44 px row holds its 44 px button (it was a 76 px row with the button 28 px up from its bottom);
   // since 15 Oct 2026 the button is narrower: 11 px text, 12 px sides.
-  { file: "orbit", row: /data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">/, button: /className="h-11 px-3 text-\[11px\]/g, count: 1, width: () => 44, tall: 44 },
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the button is CheckpointHoldButton (44 px, 11 px text, 12 px sides).
+  { file: "orbit", row: /data-game-controls="checkpoint" className="flex h-11 shrink-0 items-center justify-center">/, button: /relative h-11 overflow-hidden px-3 font-bold/g, count: 1, width: () => 44, tall: 44 },
 ];
 const bottomCss = readFileSync("src/polish-layout/bottom.css", "utf8");
 assert.match(bottomCss, /\[data-arcade-play\] \[data-game-stage\] :is\(\[data-game-controls="pad"\], \[data-game-controls="tools"\]\) \{\s*padding-inline: 4px;\s*\}/, "pad and tools rows keep 4px side margins");
@@ -82,9 +83,14 @@ for (const { file, row, button, count, width, tall } of arcadeRows) {
   const orbit = readFileSync("src/puzzles/orbit.tsx", "utf8");
   assert.match(orbit, /const xp = orbitXpRev\(data\?\.orbitRev\);/, "orbit: orbitRev 12, 13 and 14 pick the corner");
   // orbitRev 14 (the fuel meter, 1 Nov 2026) keeps the expansion's view and corner.
-  assert.ok(orbitXpRev(12) && orbitXpRev(13) && orbitXpRev(14) && !orbitXpRev(10) && !orbitXpRev(11) && !orbitXpRev(15) && !orbitXpRev(undefined), "orbit: orbitXpRev is orbitRev 12, 13 and 14 only");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitRev 15 (grace) keeps the
+  // expansion's view and corner too, and SET CHECKPOINT is a hold-to-set button (CheckpointHoldButton) of the same size.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitRev 16 (bigger planets on
+  // orbitRev 15's play) keeps the expansion's view and corner too.
+  assert.ok(orbitXpRev(12) && orbitXpRev(13) && orbitXpRev(14) && orbitXpRev(15) && orbitXpRev(16) && !orbitXpRev(10) && !orbitXpRev(11) && !orbitXpRev(17) && !orbitXpRev(undefined), "orbit: orbitXpRev is orbitRev 12 to 16 only");
   assert.match(orbit, /overlay=\{xp \? \(send\) => \(\s*<div data-game-controls="checkpoint" data-orbit-zone="" className="pointer-events-none absolute right-1 top-1 flex h-11 items-start justify-end">/, "orbit: the button 4px in from the world's top and right");
-  assert.match(orbit, /className="pointer-events-auto h-11 px-3 text-\[11px\] font-bold before:content-\['SET_CHECKPOINT'\]"/, "orbit: the corner button is 44px tall, 11px text, 12px sides");
+  assert.match(orbit, /<CheckpointHoldButton className="pointer-events-auto" onSet=/, "orbit: the corner holds the guarded checkpoint button");
+  assert.match(orbit, /className=\{`relative h-11 overflow-hidden px-3 font-bold \$\{className \?\? ""\}`\}\s*style=\{\{ fontSize: 11 \}\}/, "orbit: the corner button is 44px tall, 11px text, 12px sides");
   assert.match(orbit, /footer=\{xp \? undefined : \(send\) => \(/, "orbit: no row below the world on orbitRev 12");
   const renderer = readFileSync("src/lib/arcade/orbit.renderer.ts", "utf8");
   const world = renderer.split("function drawOrbitRev3ArtWorld")[1]?.split("\n}\n")[0] ?? "";

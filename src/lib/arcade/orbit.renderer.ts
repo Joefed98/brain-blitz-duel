@@ -107,6 +107,11 @@ function planetLook(p: Planet, i: number, lobe: number) {
   };
 }
 
+/** A planet's seeded colour (its orbit line's and rim's), for the reveal's course map. */
+export function orbitPlanetColour(p: Planet, i: number): string {
+  return planetLook(p, i, 0).colour;
+}
+
 /** Mix a #RRGGBB colour towards white (amt > 0) or black (amt < 0). */
 function tint(hex: string, amt: number): string {
   const n = Number.parseInt(hex.slice(1), 16);
@@ -777,7 +782,7 @@ function drawOrbitArtWorld(ctx: CanvasRenderingContext2D, state: OrbitState, siz
   if (rocket) ctx.drawImage(rocket, -rocket.width / 2, -rocket.height / 2);
   ctx.restore();
 
-  if(capturePlanet)successFrame(ctx,{id:'orbit',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:state.respawns,colour:ORBIT_GOLD,width:ORBIT_WORLD_W,height:ORBIT_WORLD_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
+  if(capturePlanet)successFrame(ctx,{id:'orbit',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:orbitSlips(state),colour:ORBIT_GOLD,width:ORBIT_WORLD_W,height:ORBIT_WORLD_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
   // Action's pill HUD (3 Nov 2026, Orbit moved to Action): the planets, then the checkpoint, on one row.
   successHud(ctx, "orbit", state.tick, 14, 12, () =>
     drawHudTextPillRow(ctx, [{ text: `Planets ${state.best} / ${ORBIT_TOTAL}` }, ...orbitCheckpointPill(state)], 12, 10, ORBIT_WORLD_W - 12),
@@ -815,7 +820,7 @@ import {
   orbitViewW,
   type OrbitCamOffset,
 } from "./orbitCamera";
-import { orbitHoleLive, orbitRev3Game, orbitWorldHFor, orbitXpCounts, ORBIT_FUEL_MAX, ORBIT_DUST_R, ORBIT_HOLE_R, ORBIT_MOON_ASSIST, ORBIT_MOON_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
+import { orbitHoleLive, orbitRev3Game, orbitWorldHFor, orbitXpCounts, orbitTankOf, ORBIT_DUST_R, ORBIT_HOLE_R, ORBIT_MOON_ASSIST, ORBIT_MOON_R, ORBIT_REV3_BG, ORBIT_REV3_RED, type OrbitRev3State } from "./orbitRev3";
 import { devDisplayAllowed } from "@/lib/devDisplay";
 import { drawHudTextPillRow, HUD_TEXT_PILL_H, type HudTextPill } from "./hudPill.renderer";
 
@@ -825,6 +830,70 @@ function orbitCheckpointPill(state: { checkpoint: number; respawns: number }): H
   return [state.respawns > 0 ? { text: `Checkpoint ${state.checkpoint}`, colour: ORBIT_GOLD } : { text: "Checkpoint used", colour: "rgba(255,255,255,0.5)" }];
 }
 import { orbitRewardObserve, drawOrbitShootingStar } from './orbitRewards.renderer';
+import { drawPlanetRing, drawRenderedPlanet, drawSunWarmth, orbitPlanetTurn } from "./orbitPlanets.renderer";
+import { drawHudPill, hudPillWidth, HUD_PILL_GAP } from "./hudPill.renderer";
+import { ORBIT_GRACE_HOLD_TICKS } from "./orbitRev3";
+import { drawCatchLock, drawHoldRing, drawLaunchPuff, drawSunBloom, orbitFlameOn, orbitLowFuel, orbitLowFuelWash, ORBIT_SUN_HOLD_MS } from "./orbitEffects.renderer";
+
+/** The run's slips so far (display only): checkpoint respawns used plus orbitRev 15's automatic respawns; never falls. */
+export function orbitSlips(state: { respawns: number; autoRespawns?: number; cpAuto?: number; cpUsed?: number }): number {
+  // Easy's automatic checkpoints re-arm the respawn, so they count their uses (cpUsed) instead.
+  return (state.cpAuto ? (state.cpUsed ?? 0) : Math.max(0, 1 - state.respawns)) + (state.autoRespawns ?? 0);
+}
+
+/** The Action overhaul's HUD labels and values on the expansion's view (display only): at most two rows. */
+export function orbitXpHudRows(state: OrbitRev3State): { label: string; value: string; gold?: boolean; faded?: boolean }[][] {
+  const c = orbitXpCounts(state);
+  const first: { label: string; value: string; gold?: boolean; faded?: boolean }[] = [{ label: "PLANETS", value: `${state.best}/${ORBIT_TOTAL}` }];
+  if (state.checkpoint >= 0) first.push(state.respawns > 0 ? { label: "CP", value: `${state.checkpoint}`, gold: true } : { label: "CP", value: "used", faded: true });
+  return [first, [{ label: "DUST", value: `${c.dust}/${c.dustTotal}` }, { label: "SLING", value: `${c.slings}/${c.slingsTotal}` }]];
+}
+
+/** The pill heights: the planets' row 32 px (17 px value), the features' 28 px (15 px value), in world px. */
+export const ORBIT_XP_HUD_H = [32, 28] as const;
+
+function drawOrbitXpHud(ctx: CanvasRenderingContext2D, state: OrbitRev3State, right: number): void {
+  const rows = orbitXpHudRows(state);
+  let y = 10;
+  rows.forEach((row, r) => {
+    const h = ORBIT_XP_HUD_H[r]!;
+    let x = 12;
+    for (const p of row) {
+      if (x + hudPillWidth(ctx, p.label, p.value, h) > right && x > 12) break;
+      x += drawHudPill(ctx, x, y, p.label, p.value, { h, gold: Boolean(p.gold), ...(p.faded ? { alpha: 0.55 } : {}) }) + HUD_PILL_GAP;
+    }
+    y += h + HUD_PILL_GAP;
+  });
+}
+
+/** orbitRev 15: the hold after an automatic respawn: what happened, then a whole-second countdown, over the view. */
+function drawGraceHold(ctx: CanvasRenderingContext2D, state: OrbitRev3State, w: number, h: number): void {
+  const left = state.hold ?? 0;
+  const secs = Math.ceil(left / 60);
+  const dry = state.dry === state.respawnTick;
+  const fade = Math.min(1, (ORBIT_GRACE_HOLD_TICKS - left) / 10, left / 10);
+  ctx.save();
+  ctx.globalAlpha = fade;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillStyle = "rgba(6,8,16,0.72)";
+  const bw = 228, bh = 78;
+  const bx = w / 2 - bw / 2, by = h * 0.42 - bh / 2;
+  ctx.beginPath();
+  if (typeof ctx.roundRect === "function") ctx.roundRect(bx, by, bw, bh, 14);
+  else ctx.rect(bx, by, bw, bh);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(245,184,46,0.55)";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = dry ? "#FF9A8A" : "#FFFFFF";
+  ctx.font = "800 18px 'Archivo', system-ui, sans-serif";
+  ctx.fillText(dry ? "OUT OF FUEL" : "CRASHED", w / 2, by + 26);
+  ctx.fillStyle = ORBIT_GOLD;
+  ctx.font = "800 24px 'Archivo', system-ui, sans-serif";
+  ctx.fillText(`BACK IN ${secs}`, w / 2, by + 54);
+  ctx.restore();
+}
 
 /** One baked sprite per (planet index, lobe, radius) — drawPlanet has no time dependence. */
 const rev3SpriteCaches = new WeakMap<Planet[], Map<string, HTMLCanvasElement>>();
@@ -908,9 +977,10 @@ function rev3GlowLayer(ctx: CanvasRenderingContext2D, state: OrbitRev3State, vis
       // Polish A4: every planet's soft atmosphere in its own colour.
       const eight = p.kind === ORBIT_EIGHT;
       const bodies = eight ? [-orbitLobes(p) / FP, orbitLobes(p) / FP] : [0];
-      bodies.forEach((bx, lobe) => drawAtmosphere(ctx, px + bx, py, (eight ? p.r * 0.8 : p.r) / FP, planetLook(p, i, lobe).colour, orbitGlowStrength(p, i)));
+      // The materials pass (15 Nov 2026): the expansion's view draws a lit rim inside each planet instead of a glow round it.
+      if (!state.xp) bodies.forEach((bx, lobe) => drawAtmosphere(ctx, px + bx, py, (eight ? p.r * 0.8 : p.r) / FP, planetLook(p, i, lobe).colour, orbitGlowStrength(p, i)));
     }
-    if (!sun && i === state.cur) {
+    if (!sun && i === state.cur && !state.xp) {
       const glow = ctx.createRadialGradient(px, py, r * 0.8, px, py, r * 1.6);
       glow.addColorStop(0, "rgba(255,255,255,0.18)");
       glow.addColorStop(1, "rgba(255,255,255,0)");
@@ -1029,6 +1099,8 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
 
   const capturePlanet=state.planets[state.cur];
   rev3Starfield(ctx, cam, t, still, ORBIT_CAM_VIEW_H, ORBIT_CAM_VIEW_W);
+  // The Action overhaul (display only): on the expansion's view the sun's warmth grows from the top as the course climbs.
+  if (state.xp) drawSunWarmth(ctx, state.best, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
   // The play layers, drawn under SET CHECKPOINT's overlay too (no clip since 1 Nov 2026), to the matching restore.
   ctx.save();
   if (!still && !arcadeReducedEffects()) drawAmbientShootingStar(ctx, state.tick, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
@@ -1055,9 +1127,17 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
       const bodies = eight ? [-orbitLobes(p) / FP, orbitLobes(p) / FP] : [0];
       bodies.forEach((bx, lobe) => {
         const r = (eight ? p.r * 0.8 : p.r) / FP;
+        // The Action overhaul (15 Nov 2026, display only): the expansion's view (orbitRev 12–16) draws each planet with
+        // its rendered look, its surface turning slowly (orbitPlanets.renderer.ts); earlier views keep the baked sprite.
+        const look = planetLook(p, i, lobe);
+        if (state.xp && drawRenderedPlanet(ctx, px + bx, py, r, look, orbitPlanetTurn(look, t))) {
+          // Stage 2 (15 Nov 2026): the ring is three ringlets with a shadow on the globe, inside the circle.
+          if (look.ring) drawPlanetRing(ctx, px + bx, py, r, look);
+          return;
+        }
         const sprite = rev3PlanetSprite(state.planets, p, i, lobe, r);
         if (sprite) ctx.drawImage(sprite, px + bx - sprite.width / 2, py - sprite.height / 2);
-        else drawPlanet(ctx, px + bx, py, r, planetLook(p, i, lobe));
+        else drawPlanet(ctx, px + bx, py, r, look);
       });
     }
     if (i === state.checkpoint && state.respawns > 0) {
@@ -1115,7 +1195,14 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   const sx = state.x / FP - cam.x;
   const sy = state.y / FP - cam.y;
   const ship = observeShip(ctx, state);
-  drawCaptureGlow(ctx, ship, here.x / FP - cam.x, here.y / FP - cam.y, here.r / FP, state.cur === ORBIT_TOTAL ? ORBIT_GOLD : planetLook(here, state.cur, 0).colour, still);
+  const hereColour = state.cur === ORBIT_TOTAL ? ORBIT_GOLD : planetLook(here, state.cur, 0).colour;
+  // Stage 2 (15 Nov 2026, display only): on the expansion's view every catch is a lock ring closing with four clamps (no
+  // glow), the launch leaves a thruster puff, and a respawn's hold drains a gold arc round its planet, then GO.
+  if (state.xp) {
+    drawCatchLock(ctx, state, cam, hereColour, still);
+    drawLaunchPuff(ctx, state, cam, still);
+    drawHoldRing(ctx, state, cam, still);
+  } else drawCaptureGlow(ctx, ship, here.x / FP - cam.x, here.y / FP - cam.y, here.r / FP, hereColour, still);
   drawShipTrail(ctx, ship, cam.x, cam.y, state.ended === 2);
   // orbitRev 14: a run that ran dry draws its rocket in the sputter instead (dropping away, no exhaust streak),
   // unless motion is reduced.
@@ -1142,35 +1229,29 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
     ctx.save();
     ctx.translate(sx, sy);
     ctx.rotate(Math.atan2(uy, ux));
-    if (!dead) drawRocketFlame(ctx, state.flying, since, state.tick, still, Boolean(state.boost && state.flying > 0));
-    drawRev3RocketBody(ctx, dead);
+    // Stage 2: on low fuel the flame stutters (a seeded skip on the round tick; steady under reduced motion).
+    const flameOn = !state.xp || orbitFlameOn(state.tick, orbitLowFuel(state), still);
+    if (!dead && flameOn) drawRocketFlame(ctx, state.flying, since, state.tick, still, Boolean(state.boost && state.flying > 0));
+    drawRev3RocketBody(ctx, dead, Boolean(state.xp));
     ctx.restore();
   }
   if (sputter && !still) drawSputter(ctx, sputter, cam);
 
-  // The end of the play layers: the HUD and the success layer's HUD burst are top left.
+  // The end of the play layers: the HUD and the success layer's HUD burst are top left. The success layer's capture chain
+  // resets on a slip: misses count the slips so far, which only rise (the Action overhaul: it read the respawns left).
   ctx.restore();
-  if(capturePlanet)successFrame(ctx,{id:'orbit3',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:state.respawns,colour:ORBIT_GOLD,width:ORBIT_CAM_VIEW_W,height:ORBIT_CAM_VIEW_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
+  if(capturePlanet)successFrame(ctx,{id:'orbit3',tick:state.tick,count:state.captured,enabled:state.captured%5===0,misses:orbitSlips(state),colour:ORBIT_GOLD,width:ORBIT_CAM_VIEW_W,height:ORBIT_CAM_VIEW_H,point:{x:110,y:26,shape:'spark'},hud:{x:14,y:12,text:`Planets ${state.best} / ${ORBIT_TOTAL}`}});
   // Action's pill HUD (3 Nov 2026, Orbit moved to Action): at most two rows, top left, clear of SET CHECKPOINT's
   // corner (ORBIT_XP_ZONE, orbitRev 12+): the planets and the checkpoint, then what the run has taken of the features.
   const hudRight = state.xp ? ORBIT_CAM_VIEW_W - ORBIT_XP_ZONE.w - 8 : ORBIT_CAM_VIEW_W - 12;
-  successHud(ctx, "orbit3", state.tick, 14, 12, () =>
-    drawHudTextPillRow(ctx, [{ text: `Planets ${state.best} / ${ORBIT_TOTAL}` }, ...orbitCheckpointPill(state)], 12, 10, hudRight),
-  );
   if (state.xp) {
-    const c = orbitXpCounts(state);
-    drawHudTextPillRow(
-      ctx,
-      [
-        { text: `Dust ${c.dust}/${c.dustTotal}`, colour: "#FFE9A8" },
-        { text: `Sling ${c.slings}/${c.slingsTotal}`, colour: "#FFE9A8" },
-        { text: `Thread ${c.threads}/${c.threadsTotal}`, colour: "#FFE9A8" },
-        { text: `Perfect ${c.perfect}`, colour: "#FFE9A8" },
-      ],
-      12,
-      10 + HUD_TEXT_PILL_H + 6,
-      hudRight,
-      13,
+    // The Action overhaul (15 Nov 2026, display only): fewer and bigger counters on the expansion's view: the planets
+    // (and the checkpoint, once set) in 32 px pills, then stardust and slingshots in 28 px ones (asteroid fields and
+    // perfect orbits show as their pops, and in the reveal).
+    successHud(ctx, "orbit3", state.tick, 14, 12, () => drawOrbitXpHud(ctx, state, hudRight));
+  } else {
+    successHud(ctx, "orbit3", state.tick, 14, 12, () =>
+      drawHudTextPillRow(ctx, [{ text: `Planets ${state.best} / ${ORBIT_TOTAL}` }, ...orbitCheckpointPill(state)], 12, 10, hudRight),
     );
   }
   if (xpMemory) {
@@ -1178,7 +1259,12 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
   }
   // orbitRev 14: the fuel meter, bottom right, and the sputter when the tank runs dry.
   if (state.fuel !== undefined) drawFuelMeter(ctx, state, sputter, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H, still);
-  if (state.tick - state.respawnTick < 45) {
+  // Stage 2: the sun reached: a bloom of light, ALL 40 PLANETS! and the planets counting up.
+  if (state.xp) drawSunBloom(ctx, state, cam, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H, still);
+  if ((state.hold ?? 0) > 0) {
+    // orbitRev 15 (grace): an automatic respawn's hold, counted down over the planet ("BACK IN 3"), the run carrying on.
+    drawGraceHold(ctx, state, ORBIT_CAM_VIEW_W, ORBIT_CAM_VIEW_H);
+  } else if (state.tick - state.respawnTick < 45) {
     ctx.globalAlpha = 1 - (state.tick - state.respawnTick) / 45;
     ctx.fillStyle = ORBIT_GOLD;
     ctx.font = "700 22px 'JetBrains Mono', ui-monospace, monospace";
@@ -1198,7 +1284,103 @@ function drawOrbitRev3ArtWorld(ctx: CanvasRenderingContext2D, state: OrbitRev3St
 }
 
 /** The rev3 rocket's fins, body, nose and window, pointing along +x at the origin. */
-function drawRev3RocketBody(ctx: CanvasRenderingContext2D, dead: boolean): void {
+/**
+ * The materials pass (15 Nov 2026, display only, the expansion's view): the rocket in brushed metal, the same silhouette
+ * as before (nose at +10, fins to −9, ±6 across): a lit-to-shadow hull across its width, panel seams, gold fins with a
+ * bright leading edge, a gold nose cone with a crisp specular, a glass porthole with a highlight, and a dark nozzle bell.
+ */
+function drawMetalRocket(ctx: CanvasRenderingContext2D): void {
+  // Fins: gold, lit on their upper edge.
+  const fin = ctx.createLinearGradient(0, -6, 0, 6);
+  fin.addColorStop(0, "#F7D27A");
+  fin.addColorStop(0.5, "#B87A22");
+  fin.addColorStop(1, "#6E4410");
+  ctx.fillStyle = fin;
+  ctx.beginPath();
+  ctx.moveTo(-6, -2);
+  ctx.lineTo(-9, -6);
+  ctx.lineTo(-2, -3);
+  ctx.closePath();
+  ctx.moveTo(-6, 2);
+  ctx.lineTo(-9, 6);
+  ctx.lineTo(-2, 3);
+  ctx.closePath();
+  ctx.fill();
+  // The nozzle bell.
+  ctx.fillStyle = "#2A2D36";
+  ctx.beginPath();
+  ctx.moveTo(-6, -2.2);
+  ctx.lineTo(-8, -2.8);
+  ctx.lineTo(-8, 2.8);
+  ctx.lineTo(-6, 2.2);
+  ctx.closePath();
+  ctx.fill();
+  // The hull: brushed steel, lit from above.
+  const hull = ctx.createLinearGradient(0, -4.5, 0, 4.5);
+  hull.addColorStop(0, "#FFFFFF");
+  hull.addColorStop(0.28, "#DADDE6");
+  hull.addColorStop(0.62, "#8B90A0");
+  hull.addColorStop(1, "#3E4250");
+  ctx.fillStyle = hull;
+  ctx.beginPath();
+  ctx.moveTo(10, 0);
+  ctx.quadraticCurveTo(4, -4.5, -6, -3);
+  ctx.lineTo(-6, 3);
+  ctx.quadraticCurveTo(4, 4.5, 10, 0);
+  ctx.closePath();
+  ctx.fill();
+  // Panel seams.
+  ctx.strokeStyle = "rgba(30,33,44,0.55)";
+  ctx.lineWidth = 0.4;
+  ctx.beginPath();
+  ctx.moveTo(-2, -3.6);
+  ctx.lineTo(-2, 3.6);
+  ctx.moveTo(-4.5, -3.2);
+  ctx.lineTo(-4.5, 3.2);
+  ctx.stroke();
+  // The gold nose cone.
+  const nose = ctx.createLinearGradient(0, -2.6, 0, 2.6);
+  nose.addColorStop(0, "#FFE7A3");
+  nose.addColorStop(0.5, "#E0A43A");
+  nose.addColorStop(1, "#8A5A14");
+  ctx.fillStyle = nose;
+  ctx.beginPath();
+  ctx.moveTo(10, 0);
+  ctx.quadraticCurveTo(7, -2.6, 5, -2.6);
+  ctx.lineTo(5, 2.6);
+  ctx.quadraticCurveTo(7, 2.6, 10, 0);
+  ctx.fill();
+  // The hull's specular: a crisp thin highlight along its lit curve.
+  ctx.strokeStyle = "rgba(255,255,255,0.9)";
+  ctx.lineWidth = 0.6;
+  ctx.beginPath();
+  ctx.moveTo(7.5, -1.6);
+  ctx.quadraticCurveTo(2, -3.4, -5, -2.4);
+  ctx.stroke();
+  // The porthole: blue glass in a steel ring, a white glint on its upper left.
+  ctx.fillStyle = "#2B3140";
+  ctx.beginPath();
+  ctx.arc(1, 0, 1.9, 0, Math.PI * 2);
+  ctx.fill();
+  const glass = ctx.createRadialGradient(0.4, -0.6, 0.2, 1, 0, 1.5);
+  glass.addColorStop(0, "#BFE0FF");
+  glass.addColorStop(0.5, "#3F7FE0");
+  glass.addColorStop(1, "#173A80");
+  ctx.fillStyle = glass;
+  ctx.beginPath();
+  ctx.arc(1, 0, 1.45, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#FFFFFF";
+  ctx.beginPath();
+  ctx.arc(0.5, -0.6, 0.45, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawRev3RocketBody(ctx: CanvasRenderingContext2D, dead: boolean, metal = false): void {
+  if (metal && !dead) {
+    drawMetalRocket(ctx);
+    return;
+  }
   ctx.fillStyle = dead ? "#8A2B33" : "#C8862A";
   ctx.beginPath();
   ctx.moveTo(-6, -2);
@@ -1642,9 +1824,12 @@ export function setOrbitSputterClock(clock: (() => number) | null): void {
   sputterClock = clock ?? presentationNow;
 }
 const endedDry = (state: OrbitRev3State) => state.fuel !== undefined && state.ended === 2 && state.dry === state.endedTick;
-/** The stage's submit hold for a run that ended dry, so the sputter plays before the reveal (display only). */
+/** The stage's submit hold (display only): a run that ended dry holds for the sputter, a finished run on the expansion's
+ * view (orbitRev 12+, where the sun's bloom is drawn) for the sun moment (ORBIT_SUN_HOLD_MS), so each plays before the
+ * reveal; the finished run is the draft meanwhile. */
 export function orbitEndHoldMs(state: OrbitRev3State): number {
-  return endedDry(state) ? ORBIT_SPUTTER_MS : 0;
+  if (endedDry(state)) return ORBIT_SPUTTER_MS;
+  return state.xp && state.finished ? ORBIT_SUN_HOLD_MS : 0;
 }
 
 function observeSputter(ctx: object, state: OrbitRev3State): OrbitSputter | null {
@@ -1691,7 +1876,10 @@ function observeSputter(ctx: object, state: OrbitRev3State): OrbitSputter | null
 
 /** Where the falling rocket is at share p (0–1) of the sputter, world px, and its turn. */
 function sputterPose(sp: OrbitSputter, p: number): { x: number; y: number; turn: number } {
-  return { x: sp.x + sp.ux * 16 * p, y: sp.y + sp.uy * 16 * p + 78 * p * p, turn: 2.8 * p * p };
+  // Stage 2 (15 Nov 2026): the engine dies and the rocket drifts on along its heading, slowing, sinking a little and
+  // turning slowly (it fell away before).
+  const glide = p * (2 - p);
+  return { x: sp.x + sp.ux * 34 * glide, y: sp.y + sp.uy * 34 * glide + 12 * p * p, turn: 1.1 * p * p };
 }
 
 /** The smoke and the rocket dropping away (not under reduced motion). */
@@ -1732,6 +1920,17 @@ function drawSputter(ctx: CanvasRenderingContext2D, sp: OrbitSputter, cam: { x: 
       ctx.closePath();
       ctx.fill();
     }
+    // Stage 2: the fizzle, a few dying sparks at the nozzle after the cough (a third to two thirds of the way).
+    if (p >= 0.33 && p < 0.7) {
+      ctx.fillStyle = "rgba(255,200,120,0.9)";
+      for (let k = 0; k < 3; k++) {
+        const flick = Math.floor(sp.age / 40 + k * 7) % 3;
+        if (flick === 0) continue;
+        ctx.beginPath();
+        ctx.arc(-9 - k * 2.5, (k - 1) * 2.2, 0.9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
     drawRev3RocketBody(ctx, true);
   }
   ctx.restore();
@@ -1739,8 +1938,10 @@ function drawSputter(ctx: CanvasRenderingContext2D, sp: OrbitSputter, cam: { x: 
 
 function drawFuelMeter(ctx: CanvasRenderingContext2D, state: OrbitRev3State, sputter: OrbitSputter | null, W: number, H: number, still: boolean): void {
   const m = ORBIT_FUEL_METER;
-  const fuel = Math.max(0, Math.min(ORBIT_FUEL_MAX, state.fuel ?? 0));
-  const share = fuel / ORBIT_FUEL_MAX;
+  // Levels: the gauge is the level's own tank (orbitTankOf: ORBIT_FUEL_MAX on Normal and every older round).
+  const tank = orbitTankOf(state);
+  const fuel = Math.max(0, Math.min(tank, state.fuel ?? 0));
+  const share = fuel / tank;
   const draining = state.flying > 0;
   const x = W - m.right - m.w;
   const y = H - m.bottom - m.h;
@@ -1760,6 +1961,16 @@ function drawFuelMeter(ctx: CanvasRenderingContext2D, state: OrbitRev3State, spu
   // Flashing red through the sputter (on and off every 100 ms), then steady red on a run that ended dry.
   const flashing = sputter !== null && !still && sputter.age < ORBIT_SPUTTER_MS;
   const red = sputter !== null && (flashing ? Math.floor(sputter.age / 100) % 2 === 0 : sputter.ended || still);
+  if (state.xp) {
+    // Stage 2: a quarter of the tank or less in flight pulses the gauge red (steady under reduced motion).
+    const low = !sputter && orbitLowFuel(state) ? orbitLowFuelWash(state.tick, still) : 0;
+    drawGlassGauge(ctx, x, y, m.w, m.h, share, red ? (flashing ? 0.5 : 0.3) : low, draining, state.tick, still);
+    ctx.restore();
+    // Stage 2: during orbitRev 15's hold its card already says OUT OF FUEL, so the words show only when the run ended dry
+    // or a checkpoint caught it (no hold).
+    if (sputter && !((state.hold ?? 0) > 0)) drawSputterWords(ctx, sputter, W, H, still);
+    return;
+  }
   ctx.strokeStyle = red || sputter?.ended ? ORBIT_REV3_RED : draining ? "rgba(255,255,255,0.85)" : "rgba(255,255,255,0.45)";
   ctx.lineWidth = 1.5;
   fuelRoundRect(ctx, x - 0.75, y - 0.75, m.w + 1.5, m.h + 1.5, 4);
@@ -1782,6 +1993,83 @@ function drawFuelMeter(ctx: CanvasRenderingContext2D, state: OrbitRev3State, spu
   }
   ctx.restore();
   if (!sputter) return;
+  drawSputterWords(ctx, sputter, W, H, still);
+}
+
+/**
+ * The materials pass (15 Nov 2026, display only, the expansion's view): the fuel gauge as a glass tube in its frame,
+ * the fuel a glossy liquid column (green, amber below half, red below a quarter) with a curved meniscus and a moving
+ * surface glint, tick marks at quarters, and a crisp highlight down the glass's lit curve; the warning wash over it
+ * while the tank sputters.
+ */
+function drawGlassGauge(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, share: number, warn: number, draining: boolean, tick: number, still: boolean): void {
+  const r = w / 2;
+  // The tube's dark inside.
+  ctx.fillStyle = "rgba(10,14,26,0.95)";
+  fuelRoundRect(ctx, x, y, w, h, r);
+  ctx.fill();
+  // The liquid.
+  const level = Math.max(0, Math.min(1, share)) * (h - 4);
+  if (level > 0.5) {
+    const top = y + h - 2 - level;
+    const c = share > 0.5 ? ["#9BF5A8", "#2FC260", "#156B33"] : share > 0.25 ? ["#FFE08A", "#F2A93B", "#8A5410"] : ["#FFB0A8", "#E5484D", "#7A1418"];
+    const liquid = ctx.createLinearGradient(x, 0, x + w, 0);
+    liquid.addColorStop(0, c[2]!);
+    liquid.addColorStop(0.35, c[1]!);
+    liquid.addColorStop(0.62, c[0]!);
+    liquid.addColorStop(1, c[2]!);
+    ctx.save();
+    fuelRoundRect(ctx, x + 2, y + 2, w - 4, h - 4, r - 2);
+    ctx.clip();
+    ctx.fillStyle = liquid;
+    ctx.fillRect(x + 2, top, w - 4, level + 2);
+    // The meniscus: a curved, glossy top surface.
+    ctx.fillStyle = c[0]!;
+    ctx.beginPath();
+    ctx.ellipse(x + w / 2, top, (w - 4) / 2, 1.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    const glint = still ? 0.3 : 0.3 + 0.2 * Math.sin(tick / (draining ? 4 : 18));
+    ctx.beginPath();
+    ctx.ellipse(x + w * glint + 2, top - 0.2, 1.6, 0.6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+  // Quarter tick marks on the glass.
+  ctx.strokeStyle = "rgba(255,255,255,0.35)";
+  ctx.lineWidth = 1;
+  for (let q = 1; q < 4; q++) {
+    const ty = Math.round(y + h - (h * q) / 4) + 0.5;
+    ctx.beginPath();
+    ctx.moveTo(x + w - 5, ty);
+    ctx.lineTo(x + w - 1, ty);
+    ctx.stroke();
+  }
+  // The glass: a thin bright edge and a crisp highlight down its lit side.
+  ctx.strokeStyle = draining ? "rgba(235,240,255,0.85)" : "rgba(235,240,255,0.55)";
+  ctx.lineWidth = 1.2;
+  fuelRoundRect(ctx, x, y, w, h, r);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.85)";
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(x + 3.5, y + r + 1);
+  ctx.lineTo(x + 3.5, y + h - r - 1);
+  ctx.stroke();
+  ctx.strokeStyle = "rgba(255,255,255,0.3)";
+  ctx.lineWidth = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(x + 5.5, y + r + 3);
+  ctx.lineTo(x + 5.5, y + h * 0.45);
+  ctx.stroke();
+  if (warn > 0) {
+    ctx.fillStyle = `rgba(248,113,113,${warn})`;
+    fuelRoundRect(ctx, x, y, w, h, r);
+    ctx.fill();
+  }
+}
+
+function drawSputterWords(ctx: CanvasRenderingContext2D, sputter: OrbitSputter, W: number, H: number, still: boolean): void {
   // The words: held on a run that ended dry; after a respawn they fade over the second half of a second.
   ctx.save();
   ctx.globalAlpha = still || sputter.ended ? 1 : Math.max(0, 1 - Math.max(0, sputter.age - SPUTTER_WORDS_MS / 2) / (SPUTTER_WORDS_MS / 2));

@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { levelOfPuzzle } from "@/lib/levels/levels";
 import { useCrashContext } from "@/lib/useCrashContext";
 import { firstOwnResultMs } from "@/lib/pass/passApi";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
@@ -942,7 +943,15 @@ function DuelScreen() {
     phaseStart !== null &&
     now < phaseStart + DUEL_START_MS
   ) {
-    return <DuelStart startedAt={phaseStart} type={roundType} />;
+    return (
+      <DuelStart
+        startedAt={phaseStart}
+        type={roundType}
+        players={players
+          .filter((p) => p.status !== "left")
+          .map((p) => ({ slot: p.player_slot, name: p.display_name, look: looks.get(p.player_slot) }))}
+      />
+    );
   }
 
   // While the guarded server write catches up, render the next shared frame,
@@ -1483,7 +1492,7 @@ function DuelScreen() {
         overlay={
           <>
             {puzzle && (
-              <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} />
+              <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} level={levelOfPuzzle(puzzle)} />
             )}
             {myResult && !boardHeld && (
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">

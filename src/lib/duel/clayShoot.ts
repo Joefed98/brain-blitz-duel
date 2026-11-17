@@ -8,6 +8,8 @@ import {
   clayCheckpoint,
   clayDepthScore,
   clayDoublesHit,
+  clayCountOf,
+  type ClayLevel,
   CLAY_DOUBLES,
   CLAY_CHECKPOINT_FIELDS,
   CLAY_CHECKPOINT_FIELDS_V2,
@@ -97,8 +99,8 @@ export interface ClayResult {
 }
 
 /** The single place a Clay Shoot score is worked out. */
-export function replayClayRun(seed: number, raw: string, rev?: number | null): ClayResult {
-  const game = clayGameFor(rev);
+export function replayClayRun(seed: number, raw: string, rev?: number | null, level?: ClayLevel | null): ClayResult {
+  const game = clayGameFor(rev, level);
   const run = decodeClayRun(raw, rev);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, CLAY_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < CLAY_RUN_TICKS;
@@ -137,8 +139,8 @@ export function replayClayRun(seed: number, raw: string, rev?: number | null): C
     birdTotal: state.birds?.launch.length ?? 0,
     missed: state.missed,
     shots: state.shots,
-    total: CLAY_COUNT,
-    perfect: state.hits >= CLAY_COUNT && (!clayHasBirds(rev) || (state.birdHits ?? 0) === 0),
+    total: clayCountOf(state),
+    perfect: state.hits >= clayCountOf(state) && (!clayHasBirds(rev) || (state.birdHits ?? 0) === 0),
     finished: state.tick >= CLAY_RUN_TICKS,
     endedSeconds: Math.round((reached / TICKS_PER_SECOND) * 10) / 10,
     score: replayScore,
@@ -164,7 +166,7 @@ export function clayDepthDetail(state: ClayState) {
     doubles: parts.doubles,
     streak: parts.streak,
     doublesHit: clayDoublesHit(state),
-    doublesTotal: CLAY_DOUBLES,
+    doublesTotal: state.lv ? state.lv.groups.length : CLAY_DOUBLES,
     streakBest: state.dp?.best ?? 0,
   };
 }

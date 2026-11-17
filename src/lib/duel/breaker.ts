@@ -5,6 +5,7 @@
  * validates every payload, and keeps its own score.
  */
 
+import type { Level } from "@/lib/levels/levels";
 import type { InputDiag } from "@/lib/arcade/engine";
 
 import {
@@ -150,8 +151,8 @@ export interface BreakerResult {
 }
 
 /** The single place a Breaker score is worked out. */
-export function replayBreakerRun(seed: number, raw: string, rev?: number | null): BreakerResult {
-  const breakerGame = breakerGameFor(rev);
+export function replayBreakerRun(seed: number, raw: string, rev?: number | null, level?: Level | null): BreakerResult {
+  const breakerGame = breakerGameFor(rev, level);
   const run = decodeBreakerRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, BRK_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < BRK_RUN_TICKS;

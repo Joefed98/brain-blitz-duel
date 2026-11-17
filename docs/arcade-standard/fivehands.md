@@ -172,3 +172,25 @@ even-filling rule). Flawless taps the witness.
 - The weak level (3.1 s a card) runs out of time on most seeds; its rows score as they stand.
 - The made-hands part pays 8 a row (40 for five), so a run that makes five pairs and little else still scores well
   (about 120); the spread is in the core.
+
+## Levels (the Cards & Board overhaul, stage 3, 15 Nov 2026)
+
+Normal is fiveHandsRev 3 exactly. A level deal carries `level`, fiveHandsRev 3 and its own `timeLimitMs` (the run plus
+the arcade phase's 3 s); its game is `fiveHandsLevelGame(level)` (`FH_LEVEL_RULES`), the same deck from the seed.
+
+| Level | Multiplier | Clock | Hand table | Shown | Hints |
+|---|---|---|---|---|---|
+| Easy | × 1.6 | 75 s | today's | the next two cards; each column's value while picking | free; the glow shows by itself after 8 s idle |
+| Normal | × 1.4 | 60 s | today's | today | none |
+| Hard | × 1.4 | 50 s | stricter: a pair 10 (`FH_TABLE_HARD`) | — | −5 each |
+| Expert | × 1.3 | 45 s | strictest: a pair 10, two pair 15 (`FH_TABLE_EXPERT`) | — | one |
+
+Score: floor(hand points × the multiplier) less the hints' cost, capped at 200. Still the standard's named exception:
+not every deck reaches 200.
+
+Today's table pays a pair 15 and two pair 20; Hard's and Expert's stricter tables (16 Nov 2026, Joe: Hard must be a real
+step from Normal) make the rows' made hands matter, not just pairs. The deck is the same at every level.
+
+**For Joe's scoring review:** Normal is unchanged (fiveHandsRev 3). On 40 deals the elite bot averages about 154–161 on
+Normal and 172–177 on Easy, and a player held to human limits 136 and 154; Normal is the hardest Normal of the five card
+games for a strong player, left as it is on purpose (Joe, 16 Nov 2026).

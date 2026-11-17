@@ -1,25 +1,26 @@
 /**
- * Gemstone under the arcade scoring standard (matchupRev 12, six goals and six treasures, docs/arcade-standard/matchup.md;
- * matchupRev 11 before it, still proved by gemstone-standard-check).
- * `perfect()` replays a recorded flawless skill-band bot run (scripts/fixtures/gemstone-rev12-runs.json, written by
- * scripts/gemstone-rev12-record.ts) through the server's own replay (replayMatchupRun) and scores its final state
- * with the sim's own parts.
+ * Gemstone under the arcade scoring standard (matchupRev 13, two-hit ice and levels, at Normal; docs/arcade-standard/matchup.md;
+ * matchupRev 12 before it, still proved by gemstone-rev12-check, and matchupRev 11 by gemstone-standard-check).
+ * `perfect()` replays a recorded flawless skill-band bot run at Normal (the first Normal witness in
+ * scripts/fixtures/gemstone-levels-runs.json, written by scripts/gemstone-levels-record.ts) through the server's own
+ * replay (replayMatchupRun) and scores its final state with the sim's own parts. Every level's witness is proved by
+ * gemstone-levels-check.
  */
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fileURLToPath } from "node:url";
-import { matchupStdParts, MATCHUP_REV_SIX, MATCHUP_V12_BIG_MAX, MATCHUP_V12_CORE_MAX, MATCHUP_V12_GOALS_MAX, MATCHUP_V12_ICE_MAX, MATCHUP_V12_TREASURE_MAX, type MatchupState } from "../../src/lib/arcade/matchup";
+import { matchupStdParts, MATCHUP_REV_ICE2, MATCHUP_V12_BIG_MAX, MATCHUP_V12_CORE_MAX, MATCHUP_V12_GOALS_MAX, MATCHUP_V12_ICE_MAX, MATCHUP_V12_TREASURE_MAX, type MatchupState } from "../../src/lib/arcade/matchup";
 import { replayMatchupRun } from "../../src/lib/duel/matchup";
 import type { StdEntry, StdRun } from "./entry";
 
-const FIXTURE = fileURLToPath(new URL("../fixtures/gemstone-rev12-runs.json", import.meta.url));
+const FIXTURE = fileURLToPath(new URL("../fixtures/gemstone-levels-runs.json", import.meta.url));
 
 export const entry: StdEntry = {
   type: "matchup",
   field: "matchupRev",
-  rev: MATCHUP_REV_SIX,
-  /** matchupRev 11 (the first standard stamp) was dealt before it. */
-  before: 11,
+  rev: MATCHUP_REV_ICE2,
+  /** matchupRev 12 was dealt before it. */
+  before: 12,
   parts: [
     { key: "core", label: "Gems cleared", max: MATCHUP_V12_CORE_MAX },
     { key: "treasure", label: "Treasure brought down", max: MATCHUP_V12_TREASURE_MAX },
@@ -29,8 +30,10 @@ export const entry: StdEntry = {
   ],
   /** A flawless bot run, replayed by the server: its score and per-part points. */
   perfect(): StdRun[] {
-    const { perfect } = JSON.parse(readFileSync(FIXTURE, "utf8")) as { perfect: { seed: number; raw: string } };
-    const run = replayMatchupRun(perfect.seed, gunzipSync(Buffer.from(perfect.raw, "base64")).toString(), MATCHUP_REV_SIX);
+    const { witness } = JSON.parse(readFileSync(FIXTURE, "utf8")) as { witness: { level: string; skill: string; seed: number; raw: string }[] };
+    const perfect = witness.find((w) => w.level === "normal" && w.skill === "perfect");
+    if (!perfect) throw new Error("no recorded Normal flawless run");
+    const run = replayMatchupRun(perfect.seed, gunzipSync(Buffer.from(perfect.raw, "base64")).toString(), MATCHUP_REV_ICE2);
     if (run.flagged) throw new Error("the recorded perfect run is flagged by the server replay");
     return [{ label: "the stored flawless bot run, server replay", score: run.score, parts: { ...matchupStdParts(run.state as MatchupState) } }];
   },

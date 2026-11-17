@@ -1,85 +1,139 @@
-/* Pattern polish: pipes (Pipeline). Metal pipework, water and the solve rush; presentation only. */
+/* Pipeline (pipes). The Pattern overhaul (15 Nov 2026): the Blender sprites (public/pattern-art/pipes/, drawn by
+   pipesArt.tsx) on dark tiles, water in the connected network, spills at its open ends; presentation only. */
 
-/* Arena: the counter stays on top; the board sits centred in the space below it,
-   with the same gap above (from the counter) and below (to the region bottom). */
-.game-column [data-polish="pipes"][data-stage-column] > [data-game-arena] { flex: 1 1 auto; max-height: none; padding-bottom: 12px; }
+/* Arena: the board and its Turns / Par pills sit together, centred in the space under the goal line. */
+.game-column [data-polish="pipes"][data-stage-column] > [data-game-arena] { flex: 1 1 auto; max-height: none; gap: 10px; }
 .game-column [data-polish="pipes"] .pipes-play-board { width: min(100cqw, 100cqh); }
+.game-column [data-polish="pipes"] .pipes-play-board[data-with-pills] { width: min(100cqw, calc(100cqh - 34px)); }
 
-/* The board: a recessed steel panel that shows through the gaps between tiles. */
+/* The board: a dark recess that shows through the gaps between tiles (darker since stage 2, so the water stands out). */
 .pipes-board {
   border-radius: 8px;
-  background:
-    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.05), transparent 70%),
-    linear-gradient(160deg, #1a1f26, #0e1116);
+  background: linear-gradient(160deg, #0d0b11, #060508); /* design-lint-ignore: Pipeline's board art (game art) */
 }
-.pipes-play-board { border-radius: 8px; transition: box-shadow 300ms ease-out; }
-.pipes-play-board[data-solve-fx] { box-shadow: 0 0 0 1px rgba(124, 216, 251, 0.75), 0 0 18px rgba(76, 198, 247, 0.45) inset; }
+.pipes-play-board { border-radius: 8px; }
 
-/* Each tile is a brushed steel plate; tiles in the network get a cool rim. */
+/* Each tile is the rendered dark tile; the pipe sprite is laid over it, turned by a transform. */
 .pipe-tile {
-  overflow: hidden;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.07), transparent 45%),
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 3px),
-    linear-gradient(180deg, #2a3038, #1d2229);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px #303741;
-  transition: box-shadow 160ms ease-out;
+  background: #0c0b0f url("/pattern-art/pipes/tile.webp") center / 100% 100% no-repeat; /* design-lint-ignore: tile art */
+  -webkit-touch-callout: none;
+  user-select: none;
 }
-.pipe-tile[data-lit] {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(76, 198, 247, 0.55);
-}
-.pipe-tile:not(:disabled):active { filter: brightness(1.15); }
+.pipe-tile[data-two-way] { touch-action: none; }
+.pipe-tile:not(:disabled):active { filter: brightness(1.12); }
 .pipe-tile:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 
-.pipe-art { display: block; overflow: visible; }
-.pipe-turn { transform-box: view-box; transform-origin: 50px 50px; }
-.pipe-channel { fill: #161c24; }
-.pipe-rivet { fill: #dfe5ec; stroke: #2a3039; stroke-width: 0.9; }
-.pipe-spoke { fill: #f6d6cf; stroke: #6d1a15; stroke-width: 0.8; }
-.pipe-hub-eye { fill: #0d1218; stroke: #262c34; stroke-width: 1.2; }
-.pipe-hub-eye-wet { fill: #4cc6f7; }
-.pipe-water-eye { fill: #7bd8fb; }
+.pipe-art { position: absolute; inset: 0; display: block; pointer-events: none; }
+/* The tube runs to half the board gap past the tile (the sprite is drawn 12 % past each edge, pipesArt.tsx
+   PIPE_BLEED, and cropped here), so it meets its neighbour's tube in the middle of the gap with no seam. The tile
+   button, and so the hit area, is unchanged (pointer-events none). */
+.pipe-turn {
+  position: absolute;
+  inset: calc(var(--pipe-gap, 6px) / -2);
+  display: block;
+  overflow: hidden;
+  transform-origin: 50% 50%;
+}
+.pipe-frame { position: absolute; inset: calc(var(--pipe-gap, 6px) / 2); display: block; }
+.pipe-sprite { position: absolute; left: -12%; top: -12%; width: 124%; height: 124%; max-width: none; display: block; }
+/* The water: the wet set in its own clipping box over the dry one. Water reaching a pipe runs in from the side it
+   enters by, and drains back out of it (pipesFx.ts: the box slides, its content holds still; transform only). */
+.pipe-wet { position: absolute; inset: 0; display: block; overflow: hidden; opacity: 0; }
+.pipe-wet[data-wet] { opacity: 1; }
+.pipe-wet-in { position: absolute; inset: 0; display: block; }
+/* The solve: bubbles welling up out of the source valve (pipesFx.ts sourceBubbles; none under reduced motion). */
+.pipe-bubble {
+  position: absolute;
+  left: var(--bubble-x, 50%);
+  top: 34%;
+  width: var(--bubble-size, 18%);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / 0.95) 0 14%, rgb(170 220 255 / 0.5) 26%, rgb(40 130 240 / 0.28) 62%, rgb(210 240 255 / 0.8) 74%, transparent 78%); /* design-lint-ignore: water bubble art */
+}
+.pipe-source { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
-/* Water: present in every connected pipe, rippling away from the source. */
-.pipe-water-off { opacity: 0; }
-.pipe-ripple-dot { fill: rgba(225, 248, 255, 0.75); }
-.pipe-ripple { animation: pipe-ripple 900ms linear infinite; }
-.pipe-ripple-in { animation-direction: reverse; }
-.pipe-water-off .pipe-ripple { animation: none; }
-@keyframes pipe-ripple { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+/* A leak: the spill sprite at an open end of the network (north in the sprite, turned to its side). */
+.pipe-spill { position: absolute; inset: 0; display: block; }
+/* The spray fans from the pipe's mouth at the tile edge back along the pipe end (the sprite flipped). */
+.pipe-spill img { position: absolute; left: 14%; top: 0; width: 72%; height: 44%; display: block; transform: scaleY(-1); }
 
-/* Solve rush: a bright front runs from the source through every pipe by 0.9 s, then fades by 1.2 s. */
+/* Solve rush: a bright water front runs from the source through every pipe by 0.9 s, then fades by 1.2 s. */
 .pipe-surge { overflow: visible; animation: pipe-surge-fade 1200ms linear both; }
 .pipe-surge-line {
-  stroke: #effbff;
-  stroke-width: 12;
-  stroke-linecap: butt;
-  stroke-dashoffset: 1;
+  fill: #d7f1ff; /* design-lint-ignore: water rush art */
+  transform-box: fill-box;
   animation: pipe-surge-run var(--surge-ms) linear var(--surge-delay) both;
 }
-.pipe-surge-hub { fill: #f2fcff; opacity: 0; animation: pipe-surge-hub 260ms ease-out var(--surge-delay) both; }
-@keyframes pipe-surge-run { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
-@keyframes pipe-surge-hub { from { opacity: 0; transform: scale(0.4); } 40% { opacity: 1; } to { opacity: 0.85; transform: scale(1); } }
+.pipe-surge-hub { fill: #e6f7ff; opacity: 0; animation: pipe-surge-hub 260ms ease-out var(--surge-delay) both; }
+@keyframes pipe-surge-run { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes pipe-surge-hub { from { opacity: 0; transform: scale(0.4); } 40% { opacity: 0.9; } to { opacity: 0.6; transform: scale(1); } }
 .pipe-surge-hub { transform-box: fill-box; transform-origin: center; }
-@keyframes pipe-surge-fade { 0%, 74% { opacity: 0.95; } 100% { opacity: 0; } }
-
-/* Leak (intro and reveal): a red drip in the tile corner. */
-.pipe-leak {
-  border-radius: 50% 0 50% 50%;
-  transform: rotate(-45deg);
-  background: radial-gradient(circle at 35% 35%, #ff9a8f, var(--destructive) 60%);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
-}
+@keyframes pipe-surge-fade { 0%, 74% { opacity: 0.85; } 100% { opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .pipe-ripple { animation: none; }
   /* A static glow over the network for the moment, then it is removed. */
   .pipe-surge { animation: none; opacity: 0.55; }
-  .pipe-surge-line, .pipe-surge-hub { animation: none; stroke-dashoffset: 0; opacity: 1; transform: none; }
-  .pipes-play-board { transition: none; }
+  .pipe-surge-line, .pipe-surge-hub { animation: none; opacity: 1; transform: none; }
+  .pipe-bubble { display: none; }
 }
 
-/* Reveal: the two boards side by side, as large as the room above the result line allows. */
-.pipes-reveal-space { container-type: size; }
-.pipes-reveal-board { width: min(calc(50cqw - 6px), calc(100cqh - 76px), 220px); }
+/* Reveal (the Pattern overhaul, 15 Nov 2026): Solution and Yours one at a time at full size (the shared switch), the
+   board as large as the space above its lines allows; the player's numbers, a turns-against-par bar and a short key. */
+.answer-reveal-content .reveal-card > .pipes-reveal {
+  flex: 1 1 0;
+  min-height: 0;
+  container-type: size;
+  justify-content: flex-start;
+}
+.pipes-reveal > .pipes-reveal-boards { flex: 1 1 auto; min-height: 0; }
+.pipes-reveal-board { width: min(100%, calc(100cqh - 132px)); }
 .pipes-reveal-board > .pipes-board { height: auto; aspect-ratio: 1; }
+.pipes-reveal-label {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--jz-text-2);
+}
+.pipes-reveal-caption {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  color: var(--jz-text-2);
+}
+.pipes-reveal .hud-pills.pipes-reveal-pills { overflow: visible; justify-content: center; flex-wrap: wrap; height: auto; row-gap: 4px; }
+.pipes-reveal-key {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2px 10px;
+  font-size: 12px;
+  color: var(--jz-text-3);
+}
+/* A tile not as in the solution: a red outline inside its box. */
+.pipe-tile[data-wrong] { box-shadow: inset 0 0 0 2px var(--destructive); }
+/* A tile left as dealt that still needed turning: dimmed. */
+.pipe-tile[data-untouched] .pipe-art { opacity: 0.45; }
+/* Turns against par: the bar fills to the turns, the gold tick is par, red past it. */
+.pipes-turns-bar {
+  position: relative;
+  display: block;
+  width: min(220px, 70%);
+  height: 6px;
+  border-radius: 3px;
+  background: var(--jz-surface-3);
+}
+.pipes-turns-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 3px; background: var(--jz-text-2); }
+.pipes-turns-fill[data-over] { background: var(--destructive); }
+.pipes-turns-par { position: absolute; top: -3px; bottom: -3px; width: 2px; margin-left: -1px; background: var(--jz-gold); }
+
+/* Difficulty levels (15 Nov 2026): Expert's 8 × 11 board grows downwards (8 across keeps ~44 px tiles on a 375 px
+   phone); `--pipes-ar` is its width over its height. Square levels (5 × 5, 8 × 8) use the rules above unchanged. */
+.game-column [data-polish="pipes"] .pipes-play-board[data-pipes-tall] { aspect-ratio: var(--pipes-ar); width: min(100cqw, calc(100cqh * var(--pipes-ar))); }
+.game-column [data-polish="pipes"] .pipes-play-board[data-pipes-tall][data-with-pills] { width: min(100cqw, calc((100cqh - 34px) * var(--pipes-ar))); }
+.pipes-reveal-board[data-pipes-tall] { aspect-ratio: var(--pipes-ar); width: min(100%, calc((100cqh - 132px) * var(--pipes-ar))); }
+.pipes-reveal-board[data-pipes-tall] > .pipes-board { aspect-ratio: var(--pipes-ar); }

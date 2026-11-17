@@ -1,0 +1,35 @@
+/**
+ * The Strategy games' rendered materials (built by `bun scripts/strategy-art-data.ts`, do not edit): each image in
+ * public/strategy/ and its content hash.
+ */
+export const STRATEGY_ART = {
+  "bt-board": "f33afccdc3",
+  "bt-marble-blue": "c3e63cc0f7",
+  "bt-marble-green": "f128740afc",
+  "bt-marble-red": "90b494099e",
+  "bt-marble-yellow": "69c1cf0293",
+  "bt-walnut": "5e016b91af",
+  "bubble-blue": "3c25ffa17e",
+  "bubble-gloss": "8f1bd119c1",
+  "bubble-green": "c1f65777ab",
+  "bubble-orange": "841834cc6a",
+  "bubble-purple": "a9a2a8b006",
+  "bubble-red": "97d8f880b8",
+  "bubble-yellow": "82fe456ae6",
+  "gem-circle": "0330d4fd3e",
+  "gem-diamond": "5b76678237",
+  "gem-heart": "d61ebaccad",
+  "gem-hexagon": "7980b2ebb7",
+  "gem-square": "f52b866123",
+  "gem-star": "28414769aa",
+  "gem-triangle": "1be64756ac",
+  "inkbridge-captain-ready": "b6902f784a",
+  "inkbridge-captain-win": "ad3f3c4518",
+  "inkbridge-coin": "cce25bdda3",
+  "marble-gloss": "916fecda4f",
+  "matchup-chest": "df8685849d",
+  "tilt-disc-gloss": "65817e75ac",
+  "tilt-disc": "1779f34767",
+  "tilt-marble-amber": "e2839ad96c",
+  "tilt-marble-blue": "0bed510efb",
+} as const;

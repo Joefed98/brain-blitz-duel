@@ -83,6 +83,11 @@ interface Room {
 interface Harness {
   /** The puzzle practice "generates" for each type. */
   puzzles: Record<string, PuzzleData>;
+  /**
+   * Every practice deal request the page sent (its `type`, and its `level` off Normal), recorded for checks that prove
+   * which level a round is dealt at (practice-switch-check; added with Joe's approval, 16 Nov 2026, games now have levels).
+   */
+  generated?: { type: string; level?: string }[];
   /** What the stubbed server grades the next submission as. */
   verdict: Verdict;
   /** Server latency for grading / storing a result (ms). */
@@ -257,7 +262,8 @@ function submitAnswer(params: { msRemaining: number; answer: string }) {
   return Promise.resolve();
 }
 
-async function practiceGenerateFn({ data }: { data: { type: string } }) {
+async function practiceGenerateFn({ data }: { data: { type: string; level?: string } }) {
+  (H.generated ??= []).push({ type: data.type, ...(data.level !== undefined ? { level: data.level } : {}) });
   return { puzzle: H.puzzles[data.type], sealed: "sealed" };
 }
 

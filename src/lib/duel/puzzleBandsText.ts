@@ -32,7 +32,7 @@ export const PROGRESS_MEASURE: Partial<Record<PuzzleType, string>> = {
   countup: "trays counted right (one off still counts a little)",
   maze: "how far along the route you got (wandering costs)",
   pairmatch: "pairs found, the first ones a little more (lots of mismatched tries cost)",
-  unblock: "how much nearer the gold block is to getting out (wasted moves cost)",
+  unblock: "how much nearer the gold car is to getting out (wasted moves cost)",
   blockparty: "pieces in their solution spot (pieces elsewhere cost)",
   iceslide: "the distance to the exit you closed (wasted moves cost)",
   gravity: "how much closer your balls are to all parked (tilts that don’t help cost)",

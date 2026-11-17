@@ -218,6 +218,7 @@ const batch1Rows = readFileSync(BATCH1_CSV, "utf8").trim().split("\n").slice(1).
   return { file: file!, slot: slot!, pr: pr! };
 });
 const awaitingWiring = new Set<string>();
+const heldBack = new Set<string>();
 for (const r of batch1Rows) {
   const path = `public/sounds/${r.file}`;
   check(/^#\d+$/.test(r.pr) && r.file === `${r.slot}.mp3`, `${BATCH1_CSV}: ${r.file} must name its slot and PR`);
@@ -227,9 +228,16 @@ for (const r of batch1Rows) {
   const tag = readMp3Gapless(bytes);
   let at = 0;
   while (at < bytes.length - 4 && !(bytes[at] === 0xff && (bytes[at + 1]! & 0xe0) === 0xe0)) at++;
+  // A file a live slot already plays is held back (main's own file kept, not the batch's): it is that slot's file,
+  // checked as every live file is above, not as batch output (17 Nov 2026, the overhaul trains on main).
+  if (urls.has(`/sounds/${r.file}`)) {
+    heldBack.add(path);
+    continue;
+  }
   check(!!tag && tag.sampleRate === 44100 && bytes[at + 3]! >> 6 === 3, `${path}: must be a tagged mono 44.1 kHz MP3`);
-  if (!urls.has(`/sounds/${r.file}`) && !switchUrls.has(`/sounds/${r.file}`)) awaitingWiring.add(path);
+  if (!switchUrls.has(`/sounds/${r.file}`)) awaitingWiring.add(path);
 }
+if (heldBack.size) notes.push(`NOTE ${heldBack.size} sound batch 1 files held back: a live slot plays main's file of that name`);
 if (awaitingWiring.size) notes.push(`NOTE ${awaitingWiring.size} sound batch 1 files await wiring by their overhaul PR (${BATCH1_CSV})`);
 for (const file of audioFiles) {
   const url = file.startsWith("public/") ? `/${file.slice("public/".length)}` : null;

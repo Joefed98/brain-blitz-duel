@@ -58,6 +58,9 @@ export function nearMissInfo(
     // its Planets row says exactly how far the run got).
     case "swing": {
       // swingRev 15+ (the swinging course, ~790 m) scores by stretches, not metres.
+      // swingRev 17: none (the Action overhaul, 15 Nov 2026): the course line already says "44 of 51 stretches", the
+      // one count the HUD shows; a second "7 stretches left to clear" beside "85 % of the course" read as two counts.
+      if ((number("swingRev") ?? 0) >= 17) return null;
       if ((number("swingRev") ?? 0) >= 15) {
         const sections = number("sections"),
           total = number("sectionTotal");

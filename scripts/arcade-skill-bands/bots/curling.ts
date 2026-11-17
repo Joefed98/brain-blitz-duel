@@ -28,6 +28,13 @@
  * bar's 300 world px for 1000 weights at the phone's scale) plus reading the right weight (the level's judgement ×
  * WEIGHT_READ weights; a draw's mark is shown, so a draw reads at a third of it). The ideal throw knows the reds: the
  * search counts a stone that ends behind a red in the house as a miss. Line reading, slips and brushing as curlRev 3.
+ * The levels (the Sports overhaul, 16 Nov 2026; docs/arcade-standard/curling.md "Levels"): the bot plays the dealt
+ * level's sheet (its reds, from the state's `lvl`, through the game it is given) and its aids are perception only.
+ * Without the HOUSE zone (Expert) every weight is read as a takeout's, with no mark (× NO_ZONE_READ), and even the best
+ * player's feel for a weight with no gauge is off by NO_ZONE_W weights (sd, combined with the read); without the aim line
+ * (Expert) the line is read at NO_LINE × LINE_CM with a NO_LINE_CM floor and the turn slips at the full rate; with the
+ * whole path shown (Easy: it ends where the stone stops) every weight reads as a draw's (a third) and the line at
+ * FULL_PATH × LINE_CM. Normal (no `lvl`) is exactly as before: the same error and the same random draws.
  * Flawless plays the bank's proven plan (scripts/fixtures/curling-witness.json, curlRev 2's curling-witness-v2.json)
  * where the seed has one, else the oracle's: every stone on the button.
  */
@@ -36,7 +43,8 @@ import type { ArcadeInputEvent } from "../../../src/lib/arcade/engine";
 import { curlingGameFor, CURL_AIM, CURL_INPUT_SWEEP, CURL_INPUT_THROW, CURL_START_MAX, CURL_TRAVEL, CU, type CurlingState } from "../../../src/lib/arcade/curling";
 import { perfectPlan, planEvents, searchThrows, sheetOf, theirsIn, throwEvent, type Throw } from "../../curling-oracle";
 import { driveEvents, idle, type SkillBot } from "../bot";
-import { curlWeightFromSwipeV3, swipeForWeightV3 } from "../../../src/lib/arcade/curling";
+import { curlAidsFor, type CurlAids, curlWeightFromSwipeV3, swipeForWeightV3 } from "../../../src/lib/arcade/curling";
+const normalGame = curlingGameFor(4);
 
 const WITNESS = {
   1: new URL("../../fixtures/curling-witness.json", import.meta.url),
@@ -45,6 +53,23 @@ const WITNESS = {
   4: new URL("../../fixtures/curling-witness-v4.json", import.meta.url),
 } as const;
 const witnesses: Record<number, Map<number, Throw[]>> = {};
+/** The level banks' witnesses (curling-bank.ts --level), by level. */
+const LEVEL_WITNESS = new URL("../../fixtures/curling-witness-levels.json", import.meta.url);
+let levelWitnesses: Map<string, Throw[]> | null = null;
+function levelWitnessFor(level: string, seed: number): Throw[] | null {
+  if (!levelWitnesses) {
+    levelWitnesses = new Map();
+    if (existsSync(LEVEL_WITNESS)) {
+      const all = JSON.parse(readFileSync(LEVEL_WITNESS, "utf8")) as Record<string, { seed: number; throws: number[][] }[]>;
+      for (const lv of ["easy", "hard", "expert"]) {
+        for (const w of all[lv] ?? []) {
+          levelWitnesses.set(`${lv}:${w.seed}`, w.throws.map((t) => ({ sx: t[0]!, bx: t[1]!, by: t[2]!, weight: t[3]!, turn: t[4]! })));
+        }
+      }
+    }
+  }
+  return levelWitnesses.get(`${level}:${seed}`) ?? null;
+}
 function witnessFor(seed: number, rev: 1 | 2 | 3 | 4): Throw[] | null {
   if (!witnesses[rev]) {
     const map = new Map<number, Throw[]>();
@@ -78,10 +103,25 @@ export const LINE_CM = 25;
 export const BAR_W_PER_PX = 3.1;
 /** curlRev 4: reading the weight a shot needs, weights per unit of the level's judgement (a draw a third of it). */
 export const WEIGHT_READ = 280;
+/** The levels: no HOUSE zone (Expert) reads every weight this much harder than a takeout's. */
+export const NO_ZONE_READ = 1.35;
+/** The levels: no HOUSE zone, the weight feel's floor (weights sd) for any player. */
+export const NO_ZONE_W = 30;
+/** The levels: no aim line, the line's floor (cm sd) for any player. */
+export const NO_LINE_CM = 10;
+/** The levels: no aim line (Expert) reads the line at this × LINE_CM. */
+export const NO_LINE = 1.6;
+/** The levels: the whole path shown (Easy) reads the line at this × LINE_CM. */
+export const FULL_PATH = 0.6;
+/** The levels: the whole path shown (Easy) reads every weight at this share of a takeout's read. */
+export const FULL_PATH_READ = 1 / 3;
 
 /** curlRev 4's weight through the power bar: the ideal weight, off by the tap and the read. */
-function barWeight(ideal: number, draw: boolean, human: { aim: (k?: number, s?: number) => number; normal: () => number; p: { judgement: number } }): number {
-  const read = human.p.judgement * WEIGHT_READ * (draw ? 1 / 3 : 1) * human.normal();
+function barWeight(ideal: number, draw: boolean, human: { aim: (k?: number, s?: number) => number; normal: () => number; p: { judgement: number } }, aids: CurlAids | null = null): number {
+  // Normal (no aids given): as before. A level: the whole path reads every weight as a draw; no zone, as a takeout's.
+  const k = !aids ? (draw ? 1 / 3 : 1) : aids.aimPart === 1 ? FULL_PATH_READ : !aids.houseZone ? NO_ZONE_READ : draw ? 1 / 3 : 1;
+  const j = human.p.judgement * WEIGHT_READ * k;
+  const read = (aids && !aids.houseZone ? Math.hypot(j, NO_ZONE_W) : j) * human.normal();
   return Math.max(1, Math.min(1000, Math.round(ideal + human.aim(BAR_W_PER_PX) + read)));
 }
 
@@ -91,12 +131,16 @@ function swipedWeight(ideal: number, human: { power: (scale?: number) => number 
   return curlWeightFromSwipeV3(v * human.power(SWIPE_SD_SCALE));
 }
 
-export const bot: SkillBot = ({ seed, human, rev }) => {
+export const bot: SkillBot = ({ seed, human, rev, game: given }) => {
   const r: 1 | 2 | 3 | 4 = rev === 4 ? 4 : rev === 3 ? 3 : rev === 2 ? 2 : 1;
-  const game = curlingGameFor(r);
+  // A level's game (its reds in the state's `lvl`) is played as given; Normal builds its own as it always has.
+  const lvl = r >= 4 && given ? (given.init(seed) as CurlingState).lvl : undefined;
+  const game = lvl ? (given as typeof normalGame) : curlingGameFor(r);
+  const aids = curlAidsFor(lvl ?? null);
+  const lineK = aids.aimPart === 0 ? NO_LINE : aids.aimPart === 1 ? FULL_PATH : 1;
   if (human.level === "perfect") {
-    const plan = witnessFor(seed, r) ?? perfectPlan(seed, 3, 30, r);
-    if (plan) return { events: planEvents(seed, plan, 0, r).events };
+    const plan = (lvl ? levelWitnessFor(lvl, seed) : witnessFor(seed, r)) ?? perfectPlan(seed, 3, 30, r, lvl);
+    if (plan) return { events: planEvents(seed, plan, 0, r, lvl).events };
   }
   let throwAt = -1;
   let planned: { t: Throw; targetX: number; targetY: number } | null = null;
@@ -115,11 +159,12 @@ export const bot: SkillBot = ({ seed, human, rev }) => {
           // The stones have settled: react, look at the house, think, then throw.
           throwAt = t + human.reactTicks() + human.thinkTicks(2400);
           const ideal = searchThrows(sheetOf(s), { refine: 6, xStep: 6, wStep: r >= 3 ? 20 : 12, rev: r })[0]!;
-          const turn = human.slip(r >= 3 ? 0.5 : 1) ? 1 - ideal.t.turn : ideal.t.turn;
-          const bx = Math.round(ideal.t.bx + human.aim(CM_PER_PX) + (r >= 3 ? human.p.judgement * LINE_CM * human.normal() : 0));
+          const turn = human.slip(r >= 3 && aids.aimPart > 0 ? 0.5 : 1) ? 1 - ideal.t.turn : ideal.t.turn;
+          const lineSd = human.p.judgement * LINE_CM * (lvl ? lineK : 1);
+          const bx = Math.round(ideal.t.bx + human.aim(CM_PER_PX) + (r >= 3 ? (lvl && aids.aimPart === 0 ? Math.hypot(lineSd, NO_LINE_CM) : lineSd) * human.normal() : 0));
           const weight =
             r >= 4
-              ? barWeight(ideal.t.weight, ideal.theirs === theirsIn(sheetOf(s)) && ideal.t.weight < 420, human)
+              ? barWeight(ideal.t.weight, ideal.theirs === theirsIn(sheetOf(s)) && ideal.t.weight < 420, human, lvl ? aids : null)
               : r >= 3
                 ? swipedWeight(ideal.t.weight, human)
                 : Math.max(1, Math.min(1000, Math.round(ideal.t.weight * human.power(1.5))));

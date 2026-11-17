@@ -7,6 +7,7 @@ import { caseEntry, type StdCase } from "./entry";
 import {
   skylineGameFor,
   skylineKinds,
+  skylineLivesGame,
   skylineKindsV9,
   skylineStdGame,
   skylineStdParts,
@@ -26,14 +27,23 @@ function run(over: Partial<SkylineState>): SkylineState {
   return { ...skylineStdGame.init(SEED), acted: 1, ...over };
 }
 
+/**
+ * skylineRev 11 (15 Nov 2026, the Action overhaul; changed with Joe's approval, 15 Nov 2026, routine consequence of the
+ * Action overhaul): the dealt stamp's perfect, played and core states are built from its own init (lives, the same
+ * parts); the rev-9 assertions in `extra` keep their rev-9 states.
+ */
+function runLives(over: Partial<SkylineState>): SkylineState {
+  return { ...skylineLivesGame.init(SEED), acted: 1, ...over };
+}
+
 const points = (s: SkylineState, key: string) => skylineStdParts(s)!.find((p) => p.key === key)!.points;
 
 export const stdCase: StdCase = {
-  game: skylineStdGame,
+  game: skylineLivesGame,
   fullAt: SKYLINE_V9_FULL_AT,
-  perfect: () => run({ placed: 80, perfects: 80, bestStreak: 80, golds: SKYLINE_V9_GOLD_COUNT }),
-  idle: () => run({}),
-  core: (value) => run({ placed: value }),
+  perfect: () => runLives({ placed: 80, perfects: 80, bestStreak: 80, golds: SKYLINE_V9_GOLD_COUNT }),
+  idle: () => runLives({}),
+  core: (value) => runLives({ placed: value }),
   older: () => skylineGameFor(SKYLINE_REV_LIFT).init(SEED),
   extra(ok) {
     ok(skylineGameFor(SKYLINE_REV_STD) === skylineStdGame, "skylineGameFor(9) is the standard game");

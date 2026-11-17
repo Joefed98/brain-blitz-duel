@@ -47,6 +47,7 @@ import {
   SWING_REV_REWORK,
   SWING_REV_DARK,
   SWING_REV_SLIDE,
+  SWING_REV_BIG,
   swingAnchorAt,
   swingStreakNow,
   SWING_V17_STREAK_BLOCK,
@@ -59,12 +60,16 @@ import {
   swingAssaultCounts,
   swingAssaultLedges,
   type SwingState,
+  swingLevelGame,
+  swingPuzzleLevel,
 } from "./swing";
 import { artHash, reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
-import { GRAPPLER_HERO_GROW, drawHero, heroGrow, heroPose } from "./hero.renderer";
+import { GRAPPLER_HERO_GROW, GRAPPLER_V18_SCALE, drawHero, heroGrow, heroPose } from "./hero.renderer";
 import { ANG_PER_RAD } from "./trig";
-import { drawActionHud, type ActionChip } from "./actionHud.renderer";
+import { ACTION_HUD_EDGE, ACTION_HUD_TOP, ACTION_ROW_STEP, ACTION_CHIP_H, actionChipWidth, drawActionHud, type ActionChip } from "./actionHud.renderer";
+import { drawPteroShadow, drawSpeedStreak, drawStreakMeter, drawSwingEnd, swingGrabFlex } from "./swingEffects.renderer";
+import { swingOutOfReach } from "./swingPress";
 import {
   JUNGLE,
   drawJungleBackdrop,
@@ -78,6 +83,8 @@ import {
   drawJungleSqueeze,
   drawJungleVinePaths,
   drawPterodactyl,
+  swingJungleDepthStep,
+  SWING_DEPTH_STEPS,
 } from "./swingJungle.renderer";
 
 /** Grappler's hero pose (stick figure joints, 3.4 px head, 2.4 px stick), refilled every frame. */
@@ -1049,7 +1056,18 @@ const assaultArtGameV14 = { ...swingGameFor(SWING_REV_ASSAULT), draw: drawSwingA
 const reworkArtGameV15 = { ...swingGameFor(SWING_REV_REWORK), draw: drawSwingArt };
 const darkArtGameV16 = { ...swingGameFor(SWING_REV_DARK), draw: drawSwingArt };
 const slideArtGameV17 = { ...swingGameFor(SWING_REV_SLIDE), draw: drawSwingArt };
-export function swingArtGameFor(rev?: number): typeof swingArtGame {
+/** swingRev 18 (the bigger hero): the jungle with the hero and the held vine drawn 1.4× (display reads the state's `big`). */
+const bigArtGameV18 = { ...swingGameFor(SWING_REV_BIG), draw: drawSwingArt };
+const levelArtGames = new Map<string, typeof swingArtGame>();
+export function swingArtGameFor(rev?: number, level?: unknown): typeof swingArtGame {
+  // (swingRev 18's levels: the puzzle's stored level's course and rules, drawn by the same art.)
+  const lvl = swingPuzzleLevel(rev, level);
+  if (lvl) {
+    let g = levelArtGames.get(lvl);
+    if (!g) levelArtGames.set(lvl, (g = { ...swingLevelGame(lvl), draw: drawSwingArt }));
+    return g;
+  }
+  if (rev === SWING_REV_BIG) return bigArtGameV18;
   if (rev === SWING_REV_SLIDE) return slideArtGameV17;
   if (rev === SWING_REV_DARK) return darkArtGameV16;
   if (rev === SWING_REV_REWORK) return reworkArtGameV15;
@@ -1623,6 +1641,36 @@ function drawLedgeDim(ctx: CanvasRenderingContext2D, state: SwingState, width: n
 const jungleHero = heroGrow(Object.assign(heroPose(), { headR: 4.2, stick: 3 }), GRAPPLER_HERO_GROW);
 /** The "PTERODACTYL N m" label's full size (world px); its scale is swingDragonLabelScale's. */
 export const SWING_PTERO_LABEL_PX = 15;
+/**
+ * The Action overhaul (15 Nov 2026; display only): the held vine 1.35× as thick, the HUD chips 1.3× (their 10 px label
+ * was about 8.7 px on a 390-wide phone; now about 11.3, the values about 17), the platform's PAR label 14 px (was 11).
+ */
+export const SWING_JUNGLE_ROPE_W = 1.35;
+/** swingRev 18 (the bigger hero, 15 Nov 2026): the held vine 1.85× (the figure 1.4×), so the rope reads at speed. */
+export const SWING_V18_ROPE_W = 1.85;
+export const SWING_HUD_SCALE = 1.3;
+export const SWING_PAR_LABEL_PX = 14;
+
+/**
+ * What the screen fill beside and below the world must match (edge to edge, 15 Nov 2026; display only): the depth step,
+ * whether the deep shade of a platform run covers the world's right edge, and whether the platform-run dim is on (at
+ * half or more). The stage's sceneKey turns it into a key, so the static fill is repainted only when one of them changes.
+ */
+export interface SwingJungleScene {
+  step: number;
+  darkRight: boolean;
+  dim: boolean;
+}
+export function swingJungleScene(state: SwingState): SwingJungleScene {
+  const W = swingWorldW(state);
+  const from = state.dark ? swingDarkFrom(state) : SWING_NO_DARK;
+  const darkRight = from !== SWING_NO_DARK && (from - state.camX) / FP + DARK_EDGE <= W;
+  return { step: swingJungleDepthStep(state, W), darkRight, dim: swingLedgeDim(state) >= 0.5 };
+}
+/** The scene's key (ArcadeArenaSlot sceneKey). */
+export function swingJungleSceneKey(scene: SwingJungleScene): number {
+  return scene.step + (scene.darkRight ? 100 : 0) + (scene.dim ? 1000 : 0);
+}
 
 /**
  * Grappler on swingRev 17 (3 Nov 2026; display only): the jungle canopy of swingJungle.renderer.ts on the sim's own
@@ -1648,9 +1696,13 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
   const first = Math.max(0, Math.min(state.ceil.length - 2, Math.trunc(state.camX / COL) - 1));
   const last = Math.min(state.ceil.length - 1, first + Math.ceil(W / 40) + 2);
 
-  drawJungleBackdrop(ctx, cam, W, H, t, lite);
-  drawJungleCanopy(ctx, state, first, last, sx, W, t, lite);
-  drawJungleRiver(ctx, state, cam, W, H, t, still, lite);
+  // The setting deepens through the course (the Action overhaul, 15 Nov 2026): from the camera, the same for everyone.
+  const depth = swingJungleDepthStep(state, W) / SWING_DEPTH_STEPS;
+  drawJungleBackdrop(ctx, cam, W, H, t, lite, depth);
+  drawJungleCanopy(ctx, state, first, last, sx, W, t, lite, depth);
+  drawJungleRiver(ctx, state, cam, W, H, t, still, lite, depth);
+  // Stage 2: the pterodactyl's shadow sweeping across as the chase starts (behind everything that collides).
+  drawPteroShadow(ctx, state, W, H, still);
 
   // Squeezes: a hanging trunk over the roof rectangle and a boulder stack over the floor one.
   for (const sq of state.squeezes ?? []) {
@@ -1681,7 +1733,7 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
     if (kind === 0) {
       const par = swingSectionPar(state, l.section);
       if (par.par > 0 && par.flag <= 0) {
-        ctx.font = `700 11px ${ARCADE_FX_DISPLAY_FONT}`;
+        ctx.font = `700 ${SWING_PAR_LABEL_PX}px ${ARCADE_FX_DISPLAY_FONT}`;
         ctx.textAlign = "center";
         ctx.fillStyle = "rgba(255,236,160,0.8)";
         ctx.fillText(`PAR ${(par.par / 60).toFixed(1)} s`, x, l.top / FP - 8);
@@ -1692,7 +1744,7 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
   if (state.dark) drawDark(ctx, state, sx, W, H, still, JUNGLE.shade);
   // Swinging vines' paths under their loops, then every grab point where the sim has it this tick.
   if (state.slide) drawJungleVinePaths(ctx, state, sx, W);
-  drawJungleGrabPoints(ctx, state, sx, W, t, still, lite);
+  drawJungleGrabPoints(ctx, state, sx, W, t, still, lite, swingOutOfReach(state));
 
   const anchor = state.anchors[state.rope];
   if (anchor) successFrame(ctx, { id: "swing", tick: state.tick, count: Math.max(0, state.rope), eventTick: state.grabTick, colour: SWING_GOLD, width: W, height: H, point: { x: sx(swingAnchorAt(state, state.rope, state.tick).x), y: anchor.y / FP, shape: "spark" } });
@@ -1705,13 +1757,16 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
 
   const fx = sx(state.x);
   const fy = state.y / FP;
+  // swingRev 18: the figure drawn 1.4× about the body's centre (its body is 14 px; 10 on every earlier revision).
+  const heroK = state.big ? GRAPPLER_V18_SCALE : 1;
   let armX = -0.6;
   let armY = 0.8;
   if (state.rope >= 0) {
     const a = swingAnchorAt(state, state.rope, state.tick);
     const ax = sx(a.x);
     const ay = a.y / FP;
-    drawJungleRope(ctx, ax, ay, fx, fy - 4);
+    // swingRev 18: the hands 1.4× further from the body's centre, the vine thicker.
+    drawJungleRope(ctx, ax, ay, fx, fy - 4 * heroK, state.big ? SWING_V18_ROPE_W : SWING_JUNGLE_ROPE_W, swingGrabFlex(state.tick - state.grabTick, still));
     const d = Math.hypot(ax - fx, ay - fy) || 1;
     armX = (ax - fx) / d;
     armY = (ay - fy) / d;
@@ -1720,16 +1775,18 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
     armX = -state.vx / d;
     armY = -state.vy / d;
   }
-  // The hero, larger than the cave's: head at -7.5 (top -11.7), feet at +11, inside the 10 px radius plus 2 px.
+  // The hero, larger than the cave's: head at -7.5 (top -11.7), feet at +11, inside the 10 px radius plus 2 px; the
+  // joints are set about the body's centre and drawn under heroK (swingRev 18's larger body).
   const hero = jungleHero;
-  hero.headX = fx; hero.headY = fy - 7.5;
-  hero.neckX = fx; hero.neckY = fy - 3.2;
-  hero.hipX = fx; hero.hipY = fy + 3.6;
-  hero.shoulderX = fx; hero.shoulderY = fy - 3.2;
-  hero.handAX = fx + armX * 9.5; hero.handAY = fy - 3.2 + armY * 9.5;
-  hero.handBX = fx + armX * 8.5 + armY * 2.4; hero.handBY = fy - 3.2 + armY * 8.5 - armX * 2.4;
-  hero.footAX = fx - 3.6; hero.footAY = fy + 11;
-  hero.footBX = fx + 3.6; hero.footBY = fy + 11;
+  hero.headX = 0; hero.headY = -7.5;
+  hero.neckX = 0; hero.neckY = -3.2;
+  hero.hipX = 0; hero.hipY = 3.6;
+  hero.shoulderX = 0; hero.shoulderY = -3.2;
+  hero.handAX = armX * 9.5; hero.handAY = -3.2 + armY * 9.5;
+  hero.handBX = armX * 8.5 + armY * 2.4; hero.handBY = -3.2 + armY * 8.5 - armX * 2.4;
+  hero.footAX = -3.6; hero.footAY = 11;
+  hero.footBX = 3.6; hero.footBY = 11;
+  hero.detailScale = heroK;
   let vx = state.vx / FP;
   let vy = state.vy / FP;
   if (state.rope >= 0) {
@@ -1745,11 +1802,19 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
   hero.face = speed > 0 ? vx / speed : 0;
   hero.core = state.ended === 2 ? "#FF4D5E" : null;
   hero.gentle = still;
-  // A soft light round the hero so it reads against the leaves.
-  if (!lite) drawJungleGlow(ctx, fx, fy, 24, "rgba(255,230,150,0.36)", "rgba(255,230,150,0.12)");
+  // A soft light round the hero so it reads against the leaves, then (the Action overhaul, 15 Nov 2026) a dark pool
+  // under the figure itself, so its gold and black read at once against leaves, trunks, water or the deep shade: a
+  // backlit silhouette. The figure is already as large as its 10 px hit circle allows (art-check's Grappler allowance).
+  drawSpeedStreak(ctx, state, fx, fy, heroK, still, lite);
+  if (!lite) drawJungleGlow(ctx, fx, fy, 30 * heroK, "rgba(255,230,150,0.3)", "rgba(255,230,150,0.1)");
+  drawJungleGlow(ctx, fx, fy - 2 * heroK, 20 * heroK, "rgba(3,10,6,0.62)", "rgba(3,10,6,0.36)");
   const blink = (state.respawn ?? 0) > 0 && !still && Math.floor(state.tick / 4) % 2 === 1;
   if (blink) ctx.globalAlpha = 0.35;
+  ctx.save();
+  ctx.translate(fx, fy);
+  if (heroK !== 1) ctx.scale(heroK, heroK);
   drawHero(ctx, hero);
+  ctx.restore();
   ctx.globalAlpha = 1;
 
   ctx.restore();
@@ -1789,7 +1854,9 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
       }
     }
   }
-  drawSwingActionHud(ctx, state, W);
+  drawSwingActionHud(ctx, state, W, still, lite);
+  // Stage 2: the end, "COURSE CLEARED!" (or "TIME") and the stretches tallying.
+  if (state.ended !== 0) drawSwingEnd(ctx, state, W, H, still);
   ctx.restore();
 }
 
@@ -1797,7 +1864,7 @@ function drawSwingJungleWorld(ctx: CanvasRenderingContext2D, state: SwingState, 
  * Grappler's Action HUD (swingRev 17): STRETCH x / y (the main count) and STREAK ×n on the first row, the stretch's
  * par clock and GATES n / y on the second.
  */
-function drawSwingActionHud(ctx: CanvasRenderingContext2D, state: SwingState, W: number): void {
+function drawSwingActionHud(ctx: CanvasRenderingContext2D, state: SwingState, W: number, still = false, lite = false): void {
   const c = swingAssaultCounts(state);
   const shown = Math.min(c.sectionTotal, c.sections + (c.sections < c.sectionTotal ? 1 : 0));
   const streak = swingStreakNow(state);
@@ -1807,8 +1874,18 @@ function drawSwingActionHud(ctx: CanvasRenderingContext2D, state: SwingState, W:
     const under = clock.elapsed < clock.par;
     row2.push({ label: "PAR", value: `${(clock.elapsed / 60).toFixed(1)} / ${(clock.par / 60).toFixed(1)} s`, tone: under ? "gold" : "dim", meter: Math.min(1, clock.elapsed / clock.par) });
   }
-  drawActionHud(ctx, W, [
-    { left: [{ label: "STRETCH", value: `${shown} / ${c.sectionTotal}`, pulse: { id: "swing", tick: state.tick } }], right: [{ label: "STREAK", value: `×${streak}`, tone: streak >= SWING_V17_STREAK_BLOCK ? "gold" : "plain" }] },
-    { left: row2, right: [{ label: "GATES", value: `${c.gates} / ${c.gateTotal}`, tone: c.gates > 0 ? "gold" : "plain" }] },
+  // 1.3× (the Action overhaul): the helper's chips drawn larger, laid out on the narrower width that scale leaves.
+  ctx.save();
+  ctx.scale(SWING_HUD_SCALE, SWING_HUD_SCALE);
+  // Stage 2 (15 Nov 2026): GATES moves beside PAR so the streak's arc meter sits under STREAK.
+  const streakChip: ActionChip = { label: "STREAK", value: `×${streak}`, tone: streak >= SWING_V17_STREAK_BLOCK ? "gold" : "plain" };
+  drawActionHud(ctx, W / SWING_HUD_SCALE, [
+    { left: [{ label: "STRETCH", value: `${shown} / ${c.sectionTotal}`, pulse: { id: "swing", tick: state.tick } }], right: [streakChip] },
+    { left: [...row2, { label: "GATES", value: `${c.gates} / ${c.gateTotal}`, tone: c.gates > 0 ? "gold" : "plain" }] },
   ]);
+  // The streak meter: eight segments in an arc under the STREAK chip, one per clean grab of the block of eight.
+  const sw = actionChipWidth(ctx, streakChip);
+  const cx = W / SWING_HUD_SCALE - ACTION_HUD_EDGE - sw / 2;
+  drawStreakMeter(ctx, state, cx, ACTION_HUD_TOP + ACTION_ROW_STEP + ACTION_CHIP_H + 4, 22, still, lite);
+  ctx.restore();
 }

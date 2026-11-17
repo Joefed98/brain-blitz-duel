@@ -36,3 +36,4 @@ dist-ssr
 
 # Python bytecode caches (the sound scripts)
 __pycache__/
+.logic-level-bank/

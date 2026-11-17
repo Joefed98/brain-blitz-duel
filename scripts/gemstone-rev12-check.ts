@@ -33,6 +33,7 @@ import { bandPoints } from "../src/lib/arcade/scoreBands";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
+import { pinMatchupPreIce2 } from "../src/lib/duel/arcade.server";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
@@ -52,6 +53,8 @@ import {
   matchupV12GoalNeed,
   matchupWorldHFor,
   MATCHUP_REV_SIX,
+  MATCHUP_REV_ICE2,
+  MATCHUP_V13_BAND_CURVE,
   MATCHUP_REV_STD,
   MATCHUP_SIZE,
   MATCHUP_TREASURE,
@@ -111,15 +114,19 @@ section("Older stamps (matchupRev 10 and 11) replay and score exactly as before"
 
 /* 2. Stamps and text */
 section("Rooms deal matchupRev 12; help, intro, demo, reveal and the standard entry follow it");
-for (let k = 0; k < 5; k++) ok((generatePuzzle("matchup") as any).matchupRev === MATCHUP_REV_SIX && MATCHUP_REV_SIX === 12, "rooms deal matchupRev 12");
-ok(LIVE_BANDS.matchup.rev === MATCHUP_REV_SIX && LIVE_BANDS.matchup.curve === MATCHUP_V12_BAND_CURVE, "the help reads matchupRev 12's core line");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): matchupRev 13 (two-hit ice
+// and levels) is the dealt stamp's successor; the help, demo gate and standard entry follow it.
+pinMatchupPreIce2(true);
+for (let k = 0; k < 5; k++) ok((generatePuzzle("matchup") as any).matchupRev === MATCHUP_REV_SIX && MATCHUP_REV_SIX === 12, "rooms dealt matchupRev 12 (pinned: the deal before matchupRev 13)");
+pinMatchupPreIce2(false);
+ok(LIVE_BANDS.matchup.rev === MATCHUP_REV_ICE2 && MATCHUP_REV_ICE2 === MATCHUP_REV_SIX + 1 && JSON.stringify(MATCHUP_V13_BAND_CURVE) === JSON.stringify(MATCHUP_V12_BAND_CURVE) && LIVE_BANDS.matchup.curve === MATCHUP_V13_BAND_CURVE, "the help reads matchupRev 12's successor's core line, matchupRev 12's line at Normal");
 ok(MATCHUP_V12_BAND_CURVE.units.length === 2 && MATCHUP_V12_BAND_CURVE.units[1] === MATCHUP_V12_CORE_GEMS && MATCHUP_V12_BAND_CURVE.points[1] === MATCHUP_V12_CORE_MAX, "the core is one straight line (two knots), 0 → 108");
 ok(game.runTicks === 5400 && matchupWorldHFor(MATCHUP_REV_SIX) === MATCHUP_V9_WORLD_H && matchupRowsFor(MATCHUP_REV_SIX) === MATCHUP_V9_ROWS, "90 s on the 7 × 10 board in the 390 × 720 world");
 ok(roundMaxFor("matchup") === 200, "the round maximum stays 200");
-ok(entry.rev === MATCHUP_REV_SIX && entry.field === "matchupRev" && entry.parts.map((p) => `${p.key} ${p.max}`).join(", ") === "core 108, treasure 36, goals 36, ice 10, big 10", `the arcade-standard entry: ${entry.parts.map((p) => `${p.key} ${p.max}`).join(", ")}`);
+ok(entry.rev === MATCHUP_REV_ICE2 && entry.field === "matchupRev" && entry.parts.map((p) => `${p.key} ${p.max}`).join(", ") === "core 108, treasure 36, goals 36, ice 10, big 10", `the arcade-standard entry: ${entry.parts.map((p) => `${p.key} ${p.max}`).join(", ")}`);
 {
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/matchupRev !== MATCHUP_REV_SIX\) return null/.test(demo), "the intro demo stays stopped until recorded on matchupRev 12");
+  ok(/matchupRev !== MATCHUP_REV_ICE2\) return null/.test(demo), "the intro demo stays stopped until recorded on matchupRev 12's successor");
   const help = PUZZLE_INSTRUCTIONS.matchup.score;
   for (const text of [`Treasure: ${MATCHUP_V12_TREASURE_PTS} for each treasure brought down, up to ${MATCHUP_V12_TREASURE_MAX}.`, `Goals: ${MATCHUP_V12_GOAL_PTS} for each of the ${MATCHUP_V12_GOALS} colour goals met, up to ${MATCHUP_V12_GOALS_MAX}.`, `Ice: ${MATCHUP_V12_ICE_PTS} for each frozen cell broken, up to ${MATCHUP_V12_ICE_MAX}.`, `Big lines: ${MATCHUP_V12_BIG_PTS} for each line of 4 or 5, up to ${MATCHUP_V12_BIG_MAX}.`, "Total 200."])
     ok(help.includes(text), `the help says "${text}": ${help}`);
@@ -272,7 +279,12 @@ section("Recorded matchupRev 12 runs replay unchanged; the flawless run is 200")
     ok(!result.flagged && result.score === r.score && fnv(JSON.stringify(result.state)) === r.stateHash, `rev 12 ${r.level} seed ${r.seed}: ${r.score} (got ${result.score})`);
   }
   ok(rec.runs.length === 14, `${rec.runs.length} recorded runs`);
-  const perfect = (entry.perfect() as StdRun[])[0]!;
+  // The arcade-standard entry moved on to matchupRev 13 (gemstone-levels-check proves its witnesses); matchupRev 12's own
+  // flawless run is replayed here directly, on matchupRev 12, with the same assertions.
+  const own = (rec as unknown as { perfect: { seed: number; raw: string } }).perfect;
+  const ownRun = replayMatchupRun(own.seed, unzip(own.raw), MATCHUP_REV_SIX);
+  ok(!ownRun.flagged, "the recorded matchupRev 12 flawless run is not flagged");
+  const perfect: StdRun = { label: "matchupRev 12's flawless run", score: ownRun.score, parts: { ...matchupStdParts(ownRun.state as MatchupState) } };
   ok(perfect.score === 200, `the recorded flawless run replays to 200 (${perfect.score})`);
   for (const part of entry.parts) ok(perfect.parts?.[part.key] === part.max, `the flawless run's ${part.key} is at its max ${part.max} (${perfect.parts?.[part.key]})`);
 }

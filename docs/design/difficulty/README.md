@@ -13,7 +13,7 @@ family session adds a game's levels, the game offers **Normal only, and Normal i
 | Where levels apply | `src/lib/levels/modes.ts` | `modeLevel(mode, requested)`: rated and the Daily are always Normal |
 | The player's choice | `src/lib/levels/levelChoice.ts` | the catalogue's level and each game's own, on the device |
 | The level switch | `src/components/levels/LevelSwitch.tsx` | the segmented control (style guide's Segmented) the catalogue, a game's page and room settings use |
-| The tuning tool | `scripts/level-tune.ts` | bots on a game and level: average score and finish rate |
+| The tuning tool | `scripts/level-tune.ts` | bots on a game and level: average score and finish rate (`--human-limits`: the bots under about 0.25 s to react and 0.15 s to move, `HUMAN_LIMITS`; checkpoints at each game's own interval) |
 | The check | `scripts/difficulty-check.ts` | the rules below |
 
 ## How a game adds levels (family sessions)

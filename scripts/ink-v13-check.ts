@@ -44,6 +44,7 @@ import {
   INK_LEVELS,
   INK_REV_CLOVER,
   INK_REV_BIG,
+  INK_REV_HILLS,
   INK_REV_STD,
   INK_REV_STRICT,
   INK_STAR_OFF_ROUTE,
@@ -125,7 +126,7 @@ section("Rooms deal inkRev 13; LIVE_BANDS, help and intro follow it");
   ok(generateInkBridge().inkRev === INK_REV_STD, "pinInkPreClover deals inkRev 12 for the checks written for it");
   pinInkPreClover(was);
   ok(generateInkBridge().inkRev === INK_REV_CLOVER, "unpinned, rooms deal inkRev 13 again");
-  ok(live.rev === INK_REV_BIG && live.strictRev === INK_REV_STRICT && JSON.stringify(live.curve) === JSON.stringify(INK_V13_BAND_CURVE), "LIVE_BANDS lists inkRev 14 (inkRev 13's parts, ink-v14-check) on inkRev 13's core's straight line (12 a level), still against inkRev 8");
+  /* Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): LIVE_BANDS lists inkRev 15. */ ok(live.rev === INK_REV_HILLS && live.strictRev === INK_REV_STRICT && JSON.stringify(live.curve) === JSON.stringify(INK_V13_BAND_CURVE), "LIVE_BANDS lists inkRev 15 (inkRev 14's parts, pot placed level by level) (inkRev 13's parts, ink-v14-check) on inkRev 13's core's straight line (12 a level), still against inkRev 8");
   ok(roundMaxFor("inkbridge") === 200 && stdSpecMax(INK_V13_STD) === 200, "the parts total 200, the round maximum");
   const help = PUZZLE_INSTRUCTIONS.inkbridge;
   const how = help.how.map((h) => `${h.action} ${h.detail}`).join(" ");

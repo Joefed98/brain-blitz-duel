@@ -51,6 +51,16 @@ const EFFECTS: Record<string, string> = {
   "rfx-settle": "room moment overlay part (rfx-calm under reduced motion)",
   "rfx-sheen": "round title sheen (rfx-calm under reduced motion)",
   "rfx-streak-in": "Prepare to Duel streaks (rfx-calm under reduced motion)",
+  "rfx-floor": "Prepare to Duel floor glow (effects pass, 15 Nov 2026; rfx-calm under reduced motion)",
+  "rfx-ember": "Prepare to Duel embers (movement only: hidden under reduced motion) (effects pass, 15 Nov 2026; rfx-calm under reduced motion)",
+  "rfx-sweep": "Prepare to Duel light sweep (effects pass, 15 Nov 2026; rfx-calm under reduced motion)",
+  "rfx-charge": "Prepare to Duel charge rings (effects pass, 15 Nov 2026; rfx-calm under reduced motion)",
+  "rfx-rays": "round title backdrop rays (effects pass, 15 Nov 2026; rfx-calm under reduced motion)",
+  "rfx-grid": "round title backdrop grid (effects pass, 15 Nov 2026; rfx-calm under reduced motion)",
+  "rfx-orb": "round title backdrop orbs (effects pass, 15 Nov 2026; rfx-calm under reduced motion)",
+  "rfx-stripes": "round title backdrop stripes (effects pass, 15 Nov 2026; rfx-calm under reduced motion)",
+  "rfx-pulse": "round title backdrop pulse rings (effects pass, 15 Nov 2026; rfx-calm under reduced motion)",
+  "rfx-spark": "final round sparks (effects pass, 15 Nov 2026; rfx-calm under reduced motion)",
   // Shared feedback effects.
   "ink-reject": "Rainbow Bridge's red reject flash (only drawn with motion: inkBridge.tsx checks reduced motion)",
   "lock-collapse": "a locked piece collapsing away (no current user)",
@@ -59,19 +69,25 @@ const EFFECTS: Record<string, string> = {
   sparkle: "Polypotions' and Hanoi's solve sparkles",
   "potion-rise": "Polypotions' rising bubbles",
   // Pattern puzzles (src/polish-pattern).
-  "bp-peg-ring": "Block Party peg ring flash",
+  // Changed with Joe's approval, 15 Nov 2026 (description only): the Pattern overhaul's Tessellate effects reuse these
+  // two names for the stud glint and the covered cells' flash.
+  "bp-peg-ring": "Tessellate stud glint as the solve shine passes",
   "bp-shine": "Block Party solve shine (bp-shine-still under reduced motion)",
   "bp-shine-still": "Block Party solve shine, reduced-motion version",
-  "bp-snap-ring": "Block Party snap ring",
-  "flow-board-glow": "Pipeline/Flow solve glow",
-  "flow-pulse": "Flow endpoint pulse",
+  "bp-snap-ring": "Tessellate covered cells' one-time flash on a drop",
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): Chroma Lines' CSS solve glow
+  // (flow-board-glow) and line pulse (flow-pulse) are gone (Joe's no-glow fix); its effects are the kit's, whose reduced
+  // variants pattern-overhaul-flow-check proves. The check's own rule (a stale entry fails) removed the two entries.
   "grav-lock-ring": "Topsy-Turvy socket lock ring",
   "ice-fade-out": "Skid: a ball falling through a hole / the solve frost, reduced-motion version (the piece has left the board)",
-  "ice-fall": "Skid: a ball falling through a hole (the piece has left the board)",
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): Skid's CSS fall (ice-fall)
+  // is gone; the fall is iceSlideFx.ts's Web Animation, whose reduced variant pattern-overhaul-iceslide-check proves. The
+  // check's own rule (a stale entry fails) removed the entry.
   "ice-frost-over": "Skid solve frost sweep",
   "ice-shatter-glint": "Skid ice shatter glint",
   "ice-solve-ring": "Skid solve ring",
-  "ice-twinkle": "Skid ice twinkle",
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): Skid's ice twinkle was
+  // removed with the CSS sheet's glints (the rendered ice), so its allowance goes too.
   "laser-burst": "Lightbender gem burst",
   "laser-flare": "Lightbender solve flare",
   "pipe-surge-fade": "Pipeline solve surge",

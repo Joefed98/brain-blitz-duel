@@ -2,12 +2,14 @@ import { successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { flipFxFor } from "./arcadeFxGames.renderer";
+import { ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
+import { FLIP_CRASH_FLASH_TICKS, FLIP_FLOW_BREAK_MIN, FLIP_FLOW_BREAK_TICKS, FLIP_FLOW_POP_TICKS, FLIP_NEAR_GLINT_TICKS, FLIP_PUFF_TICKS, FLIP_RING_TICKS, flipCrashTick, flipFlowCountShown, flipFlowPopAge, flipIsDouble, flipLandingPuff, flipNearMissShown, flipTakeoffTick } from "./flipFx";
 /** Lava-tube artwork only. Never mutates the simulation or changes its geometry. */
 import type { CanvasSize } from "./engine";
 import {
   flipCrackTick, flipGame, flipSpeed, flipGameFor, flipWarpAt, FLIP_ARC_TICKS, FLIP_CEIL_Y, FLIP_CRUMBLE, FLIP_CRUMBLE_TICKS,
   FLIP_FLOOR_Y, FLIP_GAP, FLIP_RED, FLIP_REV, FLIP_RUNNER_H_PX, FLIP_RUNNER_H_PX_V2, FLIP_RUNNER_HALF_PX,
-  FLIP_RUNNER_HALF_PX_V2, FLIP_SPIKE, FLIP_STAR_R, FLIP_WORLD_H, FLIP_WORLD_W,
+  FLIP_RUNNER_HALF_PX_V2, FLIP_RUN_TICKS, FLIP_SPIKE, FLIP_STAR_R, FLIP_WORLD_H, FLIP_WORLD_W,
   FLIP_V8_CHECKPOINTS, FLIP_V8_TRAIL_STARS, flipRunnerX, FLIP_V8_WORLD_H, flipWorldHFor, flipRunnerBaseY, flipSegShift, flipSurfaceBase, flipV8InZone, flipWorldH,
   type FlipSeg, type FlipState,
 } from "./flip";
@@ -24,7 +26,7 @@ let RUNNER_X = 90;
 const SPIKE_HEIGHT = 22;
 const OVERHANG_DEPTH = 34;
 /** flipRev 11/12's taller hazards (display only, the taller cave): their heights; their x-spans are the sim's. */
-const FLIP_FLOW_SPIKE_H = 30;
+const FLIP_FLOW_SPIKE_H = 38;
 const FLIP_FLOW_OVERHANG_H = 46;
 /** Canvas-only material tokens shared by every part of this renderer. */
 export const MATERIAL = {
@@ -214,7 +216,359 @@ function rockTile(ctx: CanvasRenderingContext2D): ArtCanvas | null {
   return tile && c ? tile : null;
 }
 
+/* ============ The Action overhaul's cave (15 Nov 2026; flipRev 11–13, display only) ============ */
+
+/**
+ * How deep into the cave the run is, 0 at the start to 1 at the minute (display only: from the sim's tick, so the same
+ * for every player and every replay). The rock darkens and warms, the lava runs hotter and brighter and the tunnel air
+ * takes more of its glow as it rises. Nothing here collides.
+ */
+export function flipCaveHeat(state: Pick<FlipState, "tick" | "ended">): number {
+  return Math.max(0, Math.min(1, state.tick / FLIP_RUN_TICKS));
+}
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+/** A lava colour at a heat (0 deep red-orange → 1 yellow-white), alpha `a`. */
+function lavaRgb(heat: number, hot: number, a = 1): string {
+  // hot: 0 = the river's body, 1 = its core.
+  const r = 255;
+  const g = Math.round(lerp(lerp(70, 120, heat), lerp(170, 236, heat), hot));
+  const b = Math.round(lerp(lerp(26, 40, heat), lerp(80, 170, heat), hot));
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+/** A cave side's path offset `d` px into the rock from the tunnel surface. */
+function insetPath(ctx: CanvasRenderingContext2D, at: Surface, outward: number, d: (x: number) => number): void {
+  ctx.beginPath();
+  for (let x = -6; x <= FLIP_WORLD_W + 6; x += 6) {
+    const y = at(x) + outward * d(x);
+    if (x === -6) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+}
+
+/**
+ * The rock of the taller cave on flipRev 11–13: basalt columns lit from the tunnel, fading into deep rock with no seam,
+ * and rivers of lava flowing through it (bright beads running along each channel); the heat rises with the run.
+ */
+/**
+ * The materials pass (15 Nov 2026, concept A): faceted basalt, painted once per device scale into a cached tile that
+ * wraps both ways. A jittered grid of quads, each split into two triangles along a seeded diagonal; every facet is lit
+ * from the upper left by its own tilt (lit planes and shadowed planes), with a crisp pale edge on its lit sides and a
+ * dark seam on the others, a fine grain and a few hairline cracks. No glow: the light is on the rock's planes.
+ */
+const FACET_TILE = 384;
+const FACET_STEP = 32;
+function paintFacetTile(c: CanvasRenderingContext2D): void {
+  const N = FACET_TILE / FACET_STEP;
+  const pt = (i: number, j: number): [number, number] => {
+    const ii = ((i % N) + N) % N;
+    const jj = ((j % N) + N) % N;
+    const h = artHash(ii * 131 + jj, 4211);
+    return [i * FACET_STEP + ((h % 21) - 10), j * FACET_STEP + (((h >>> 8) % 21) - 10)];
+  };
+  c.fillStyle = "#26232B";
+  c.fillRect(0, 0, FACET_TILE, FACET_TILE);
+  // Light from the upper left (x −0.55, y −0.65, out of the rock 0.52).
+  const L = [-0.55, -0.65, 0.52];
+  const tri = (p: [number, number][], h: number) => {
+    // A seeded tilt for the facet: its normal leans by up to ~40° in a seeded direction.
+    const a = ((h % 360) * Math.PI) / 180;
+    const lean = 0.25 + ((h >>> 9) % 50) / 100;
+    const n = [Math.cos(a) * lean, Math.sin(a) * lean, 1];
+    const len = Math.hypot(n[0]!, n[1]!, n[2]!);
+    const lit = Math.max(0, (n[0]! * L[0]! + n[1]! * L[1]! + n[2]! * L[2]!) / len);
+    const v = Math.round(20 + lit * 46 + ((h >>> 17) % 8));
+    c.fillStyle = `rgb(${v + 6},${v + 1},${v + 2})`;
+    c.beginPath();
+    c.moveTo(p[0]![0], p[0]![1]);
+    c.lineTo(p[1]![0], p[1]![1]);
+    c.lineTo(p[2]![0], p[2]![1]);
+    c.closePath();
+    c.fill();
+    // Crisp edges: pale on the sides facing the light, dark seams on the rest.
+    for (let e = 0; e < 3; e++) {
+      const [x0, y0] = p[e]!;
+      const [x1, y1] = p[(e + 1) % 3]!;
+      const nx = y1 - y0;
+      const ny = -(x1 - x0);
+      const facing = (nx * L[0]! + ny * L[1]!) / (Math.hypot(nx, ny) || 1);
+      c.strokeStyle = facing < -0.2 ? `rgba(236,224,214,${(0.1 + lit * 0.22).toFixed(3)})` : "rgba(4,3,6,0.55)";
+      c.lineWidth = facing < -0.2 ? 0.9 : 1.1;
+      c.beginPath();
+      c.moveTo(x0, y0);
+      c.lineTo(x1, y1);
+      c.stroke();
+    }
+  };
+  for (let dx = -FACET_TILE; dx <= FACET_TILE; dx += FACET_TILE)
+    for (let dy = -FACET_TILE; dy <= FACET_TILE; dy += FACET_TILE) {
+      c.save();
+      c.translate(dx, dy);
+      for (let i = 0; i < N; i++)
+        for (let j = 0; j < N; j++) {
+          const h = artHash(i * 977 + j, 4219);
+          const p00 = pt(i, j), p10 = pt(i + 1, j), p01 = pt(i, j + 1), p11 = pt(i + 1, j + 1);
+          if (h % 2) {
+            tri([p00, p10, p11], h);
+            tri([p00, p11, p01], h >>> 3);
+          } else {
+            tri([p00, p10, p01], h);
+            tri([p10, p11, p01], h >>> 3);
+          }
+        }
+      c.restore();
+    }
+  // Grain and a few hairline cracks.
+  for (let k = 0; k < 900; k++) {
+    const h = artHash(k, 4231);
+    c.fillStyle = h % 3 ? "rgba(0,0,0,0.22)" : "rgba(255,240,228,0.07)";
+    c.fillRect(h % FACET_TILE, (h >>> 9) % FACET_TILE, 1, 1);
+  }
+}
+const facetTiles = new WeakMap<CanvasRenderingContext2D, { key: string; tile: ArtCanvas | null }>();
+function facetTile(ctx: CanvasRenderingContext2D): ArtCanvas | null {
+  const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
+  const scale = Math.min(2, Math.max(1, t ? Math.hypot(t.a, t.b) : 1));
+  const key = scale.toFixed(3);
+  const old = facetTiles.get(ctx);
+  if (old && old.key === key) return old.tile;
+  const tile = artCanvas(Math.ceil(FACET_TILE * scale), Math.ceil(FACET_TILE * scale));
+  const c = tile && artContext(tile);
+  if (tile && c) {
+    c.scale(scale, scale);
+    paintFacetTile(c as CanvasRenderingContext2D);
+  }
+  facetTiles.set(ctx, { key, tile: tile && c ? tile : null });
+  return tile && c ? tile : null;
+}
+
+/**
+ * The rock of the taller cave on flipRev 11–13 (the materials pass): faceted basalt lit from the upper left at the rock's
+ * slow parallax, darkening into the deep, warming with the heat; two channels of glossy molten lava cut through it (a
+ * charred crust, a molten body, a bright core and a specular streak along the top of the flow that slides as it runs).
+ */
+function drawRichRock(ctx: CanvasRenderingContext2D, state: FlipState, side: number, at: Surface, still: boolean): void {
+  const cam = state.x / FP;
+  const heat = flipCaveHeat(state);
+  const outward = side === 0 ? 1 : -1;
+  const lite = arcadeReducedEffects();
+  ctx.fillStyle = "#24212A";
+  ctx.fillRect(0, 0, FLIP_WORLD_W, worldH);
+  const tile = facetTile(ctx);
+  const par = still ? 0 : (cam * 0.4) % FACET_TILE;
+  if (tile) {
+    for (let x = -par; x < FLIP_WORLD_W; x += FACET_TILE)
+      for (let y = 0; y < worldH; y += FACET_TILE) ctx.drawImage(tile as CanvasImageSource, x, side === 0 ? y : y - (FACET_TILE - (worldH % FACET_TILE)), FACET_TILE, FACET_TILE);
+  }
+  // Depth: the rock darkens away from the tunnel (its lit edge), and warms with the heat.
+  const edgeY = at(RUNNER_X);
+  const deep = ctx.createLinearGradient(0, edgeY, 0, edgeY + outward * 380);
+  deep.addColorStop(0, "rgba(18,18,22,0)");
+  deep.addColorStop(0.45, "rgba(18,18,22,0.35)");
+  deep.addColorStop(1, "rgba(18,18,22,0.82)");
+  ctx.fillStyle = deep;
+  ctx.fillRect(0, 0, FLIP_WORLD_W, worldH);
+  if (heat > 0) {
+    ctx.fillStyle = `rgba(150,46,18,${(0.16 * heat).toFixed(3)})`;
+    ctx.fillRect(0, 0, FLIP_WORLD_W, worldH);
+  }
+  // Two glossy lava channels a side (one under reduced effects).
+  const rivers = lite ? 1 : 2;
+  for (let r = 0; r < rivers; r++) {
+    const rh = artHash(r, 1301 + side * 17);
+    const depth = 92 + r * 120 + (rh % 20);
+    const amp = 24 + (rh % 14);
+    const wave = 60 + ((rh >>> 5) % 50);
+    const phase = ((rh >>> 11) % 100) / 16;
+    const rpar = still ? 0 : cam * (0.4 - r * 0.06);
+    const d = (x: number) => depth + Math.sin((x + rpar) / wave + phase) * amp + Math.sin((x + rpar) / (wave * 0.43) + phase * 2.3) * amp * 0.45 + Math.sin((x + rpar) / (wave * 2.7) + phase * 0.7) * amp * 0.8;
+    const width = (6 + r * 1.5) * (1 + heat * 0.35);
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    insetPath(ctx, at, outward, d);
+    // The charred crust the channel is cut into.
+    ctx.strokeStyle = "rgba(12,6,6,0.92)";
+    ctx.lineWidth = width + 6;
+    ctx.stroke();
+    ctx.strokeStyle = `rgb(${Math.round(lerp(150, 190, heat))},${Math.round(lerp(34, 52, heat))},14)`;
+    ctx.lineWidth = width;
+    ctx.stroke();
+    ctx.strokeStyle = lavaRgb(heat, 0.35, 1);
+    ctx.lineWidth = width * 0.6;
+    ctx.stroke();
+    ctx.strokeStyle = lavaRgb(heat, 1, 1);
+    ctx.lineWidth = Math.max(1, width * 0.22);
+    ctx.stroke();
+    // The specular streak: the liquid's gloss along the channel's lit side, sliding as the lava runs.
+    ctx.save();
+    ctx.translate(-0.6, -outward * width * 0.22);
+    insetPath(ctx, at, outward, d);
+    ctx.setLineDash([14 + r * 4, 9 + r * 3]);
+    ctx.lineDashOffset = still ? 0 : -(state.tick * (0.9 + r * 0.25)) - cam * 0.4;
+    ctx.strokeStyle = "rgba(255,250,236,0.88)";
+    ctx.lineWidth = Math.max(0.9, width * 0.14);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+  ctx.lineCap = "butt";
+  // Edge to edge (Joe, 15 Nov 2026): the rock reaches the world's top and bottom edges as the deep bedrock colour the
+  // arena scene paints beyond them (FLIP_DEEP), so the world meets the fill with no step or line.
+  const fade = ctx.createLinearGradient(0, side === 0 ? worldH - FLIP_EDGE_FADE : 0, 0, side === 0 ? worldH : FLIP_EDGE_FADE);
+  fade.addColorStop(0, side === 0 ? "rgba(18,18,22,0)" : FLIP_DEEP);
+  fade.addColorStop(1, side === 0 ? FLIP_DEEP : "rgba(18,18,22,0)");
+  ctx.fillStyle = fade;
+  if (side === 0) ctx.fillRect(0, worldH - FLIP_EDGE_FADE, FLIP_WORLD_W, FLIP_EDGE_FADE);
+  else ctx.fillRect(0, 0, FLIP_WORLD_W, FLIP_EDGE_FADE);
+}
+
+/** The deep bedrock colour shared by the world's outer edges and the arena scene beyond them (flipRev 11–13). */
+export const FLIP_DEEP = "#121216";
+/** How far in from the world's edges the rock fades to FLIP_DEEP (px). */
+export const FLIP_EDGE_FADE = 48;
+/** How far in from the world's left and right edges everything fades to FLIP_DEEP (px), meeting the side scene. */
+export const FLIP_SIDE_FADE = 14;
+/** The arena scene keeps this far clear of the world's sides (world px) before its veins start. */
+const SCENE_EDGE_CLEAR = 16;
+
+/** The world's left and right edges fade to the bedrock, so a wide screen's side scene continues it with no seam. */
+function drawSideFade(ctx: CanvasRenderingContext2D): void {
+  for (const [x0, x1] of [[0, FLIP_SIDE_FADE], [FLIP_WORLD_W, FLIP_WORLD_W - FLIP_SIDE_FADE]] as const) {
+    const g = ctx.createLinearGradient(x0, 0, x1, 0);
+    g.addColorStop(0, FLIP_DEEP);
+    g.addColorStop(0.4, "rgba(18,18,22,0.72)");
+    g.addColorStop(1, "rgba(18,18,22,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(Math.min(x0, x1), 0, FLIP_SIDE_FADE, worldH);
+  }
+}
+
+/**
+ * The surface the Captain runs on (flipRev 11–13): a solid stone lip 8 px deep along every open stretch of the rail,
+ * crisp lit top edge, dark joints every few blocks, and the lava seam glowing in the rock just under it. `rail` traces
+ * the rail (gaps and broken crumbles left open); drawn clipped to the rock, so the lip never reaches into the tunnel.
+ */
+function drawStoneLip(ctx: CanvasRenderingContext2D, state: FlipState, side: number, at: Surface, rail: () => void): void {
+  const heat = flipCaveHeat(state);
+  ctx.save();
+  rockPath(ctx, side, at);
+  ctx.clip();
+  rail();
+  // The lava seam under the lip: a molten line between the lip and the rock (no halo).
+  ctx.strokeStyle = lavaRgb(heat, 0.3, 1);
+  ctx.lineWidth = 21;
+  ctx.stroke();
+  ctx.strokeStyle = lavaRgb(heat, 1, 1);
+  ctx.lineWidth = 19;
+  ctx.stroke();
+  // The lip: dressed basalt with a lit top face, a mid face and a shadowed underside (a bevel in three bands).
+  ctx.strokeStyle = "#1E1B22";
+  ctx.lineWidth = 17;
+  ctx.stroke();
+  ctx.strokeStyle = "#3E3946";
+  ctx.lineWidth = 13;
+  ctx.stroke();
+  ctx.strokeStyle = "#5E5867";
+  ctx.lineWidth = 7;
+  ctx.stroke();
+  ctx.strokeStyle = "#8A8392";
+  ctx.lineWidth = 2.6;
+  ctx.stroke();
+  // Block joints across the lip, scrolling with the world, each with a lit chamfer.
+  ctx.setLineDash([1.6, 24.8]);
+  ctx.lineDashOffset = (state.x / FP) % 26.4;
+  ctx.strokeStyle = "rgba(8,6,10,0.95)";
+  ctx.lineWidth = 17;
+  ctx.stroke();
+  ctx.lineDashOffset = (state.x / FP) % 26.4 - 1.6;
+  ctx.setLineDash([1, 25.4]);
+  ctx.strokeStyle = "rgba(200,190,205,0.35)";
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+  // The crisp top edge the runner stands on.
+  rail();
+  ctx.strokeStyle = "rgba(246,238,228,0.95)";
+  ctx.lineWidth = 1.3;
+  ctx.stroke();
+}
+
+/**
+ * A spike row on flipRev 11–13: sharp single blades of obsidian heating to a bright orange edge and a white-hot tip,
+ * outlined dark so they read at speed. Inside the hazard's exact x-span (the sim's), standing `maxH` off the surface.
+ */
+function drawSpikeBlades(ctx: CanvasRenderingContext2D, a: number, b: number, inward: number, at: Surface,
+  maxH: number, seed: number, pulse: number, heat: number): void {
+  if (b - a <= 1) return;
+  void pulse;
+  const count = Math.max(2, Math.round((b - a) / 17));
+  const slot = (b - a) / count;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(a, -10, b - a, worldH + 20);
+  ctx.clip();
+  for (let k = 0; k < count; k++) {
+    const h = artHash(seed, k);
+    const x0 = a + slot * k;
+    const x1 = x0 + slot;
+    const tipX = x0 + slot * (0.44 + (h % 12) / 100);
+    const height = maxH * (0.86 + ((h >>> 6) % 15) / 100);
+    const base0 = at(x0) - inward * 3;
+    const base1 = at(x1) - inward * 3;
+    const baseM = at(tipX) - inward * 3;
+    const tipY = at(tipX) + inward * height;
+    // Two faces of glassy obsidian heated from the root: the lit face (left) hot orange to gold, the far face deep red.
+    const lit = ctx.createLinearGradient(0, baseM, 0, tipY);
+    lit.addColorStop(0, "#2A0B07");
+    lit.addColorStop(0.25, "#DC4620");
+    lit.addColorStop(0.7, lavaRgb(heat, 0.45, 1));
+    lit.addColorStop(1, "#FFE9B8");
+    ctx.fillStyle = lit;
+    ctx.beginPath();
+    ctx.moveTo(x0, base0);
+    ctx.lineTo(tipX, tipY);
+    ctx.lineTo(tipX, baseM);
+    ctx.closePath();
+    ctx.fill();
+    const far = ctx.createLinearGradient(0, baseM, 0, tipY);
+    far.addColorStop(0, "#140504");
+    far.addColorStop(0.35, "#6E140E");
+    far.addColorStop(1, "#D9542A");
+    ctx.fillStyle = far;
+    ctx.beginPath();
+    ctx.moveTo(tipX, baseM);
+    ctx.lineTo(tipX, tipY);
+    ctx.lineTo(x1, base1);
+    ctx.closePath();
+    ctx.fill();
+    // Crisp outline, then the ridge's glassy highlight and a specular glint near the tip.
+    ctx.strokeStyle = "rgba(10,3,2,0.95)";
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    ctx.moveTo(x0, base0);
+    ctx.lineTo(tipX, tipY);
+    ctx.lineTo(x1, base1);
+    ctx.stroke();
+    // The glassy highlight: a thin pale streak inside the lit face, along its outer edge near the tip.
+    ctx.strokeStyle = "rgba(255,246,226,0.8)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x0 + (tipX - x0) * 0.5 + 1.2, base0 + (tipY - base0) * 0.5);
+    ctx.lineTo(x0 + (tipX - x0) * 0.9 + 0.4, base0 + (tipY - base0) * 0.9);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawCave(ctx: CanvasRenderingContext2D, state: FlipState, side: number, at: Surface, still: boolean): void {
+  if (state.flow) {
+    ctx.save();
+    rockPath(ctx, side, at);
+    ctx.clip();
+    drawRichRock(ctx, state, side, at, still);
+    ctx.restore();
+    return;
+  }
   const cam = state.x / FP;
   const time = still ? 0 : state.tick / 60;
   const outward = side === 0 ? 1 : -1;
@@ -713,6 +1067,62 @@ function drawCaveDepths(ctx: CanvasRenderingContext2D, run: number, tick: number
   }
 }
 
+/**
+ * The materials pass (concept A's layered backdrop, flipRev 11–13): far angular rock shards in two parallax layers
+ * behind the tunnel, each a lit face and a shadowed face with a crisp pale edge, and a warm smoky haze rising with the
+ * heat. Clipped to the tunnel by the caller; nothing collides.
+ */
+function drawTunnelShards(ctx: CanvasRenderingContext2D, run: number, still: boolean, heat: number,
+  floorY: (x: number) => number, ceilY: (x: number) => number): void {
+  for (let row = 1; row >= 0; row--) {
+    const par = still ? 0 : run / (row ? 9 : 5);
+    const stride = row ? 70 : 54;
+    const k0 = Math.floor(par / stride) - 1;
+    for (let k = k0; k < k0 + Math.ceil(FLIP_WORLD_W / stride) + 3; k++) {
+      for (const down of [true, false]) {
+        const h = artHash(k * 3 + row * 7919 + (down ? 1 : 0), 2741);
+        if (h % 3 === 0) continue;
+        const x = k * stride - par + (h % 20);
+        const w = 26 + (h % 30) + row * 14;
+        const gap = floorY(x + w / 2) - ceilY(x + w / 2);
+        const len = gap * (0.22 + ((h >>> 6) % 30) / 100);
+        const base = down ? ceilY(x + w / 2) - 20 : floorY(x + w / 2) + 20;
+        const tipX = x + w * (0.3 + ((h >>> 11) % 40) / 100);
+        const tipY = down ? base + 20 + len : base - 20 - len;
+        const a = row ? 0.32 : 0.5;
+        ctx.fillStyle = `rgba(${row ? 46 : 58},${row ? 42 : 52},${row ? 50 : 58},${a})`;
+        ctx.beginPath();
+        ctx.moveTo(x, base);
+        ctx.lineTo(tipX, tipY);
+        ctx.lineTo(tipX, base);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = `rgba(${row ? 22 : 26},${row ? 20 : 22},${row ? 26 : 28},${a + 0.1})`;
+        ctx.beginPath();
+        ctx.moveTo(tipX, base);
+        ctx.lineTo(tipX, tipY);
+        ctx.lineTo(x + w, base);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = `rgba(230,214,200,${row ? 0.1 : 0.18})`;
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.moveTo(x, base);
+        ctx.lineTo(tipX, tipY);
+        ctx.stroke();
+      }
+    }
+  }
+  // Warm smoke drifting in the tunnel's middle, thicker deeper in.
+  const mid = (floorY(FLIP_WORLD_W / 2) + ceilY(FLIP_WORLD_W / 2)) / 2;
+  const haze = ctx.createLinearGradient(0, mid - 160, 0, mid + 160);
+  haze.addColorStop(0, "rgba(70,40,30,0)");
+  haze.addColorStop(0.5, `rgba(${Math.round(lerp(70, 110, heat))},${Math.round(lerp(42, 46, heat))},34,${(0.14 + heat * 0.12).toFixed(3)})`);
+  haze.addColorStop(1, "rgba(70,40,30,0)");
+  ctx.fillStyle = haze;
+  ctx.fillRect(0, mid - 160, FLIP_WORLD_W, 320);
+}
+
 /** Polish A4: spores (were embers) drifting slowly up through the tunnel, each with a faint glow; still under reduced motion. */
 function drawTunnelEmbers(ctx: CanvasRenderingContext2D, tick: number, still: boolean,
   floorY: (x: number) => number = () => FLIP_FLOOR_Y, ceilY: (x: number) => number = () => FLIP_CEIL_Y): void {
@@ -778,11 +1188,14 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
     ? ctx.createLinearGradient(0, ceilAt(RUNNER_X) - 30, 0, floorAt(RUNNER_X) + 30)
     : ctx.createLinearGradient(0, ceilBase(RUNNER_X) - 30, 0, floorBase(RUNNER_X) + 30);
   // Darker and colder since 27 Oct 2026 (the eerie cave), with only a hint of the lava's warmth at the rails.
-  air.addColorStop(0, "#1E1412");
-  air.addColorStop(0.16, "#0E1113");
+  // The Action overhaul (flipRev 11–13): the rails' warmth reaches further into the air as the run goes deeper.
+  const heat = state.flow ? flipCaveHeat(state) : 0;
+  const rim = state.flow ? lavaRgb(heat, 0, 0.14 + heat * 0.1) : "#1E1412";
+  air.addColorStop(0, rim);
+  air.addColorStop(0.16 + heat * 0.04, state.flow ? `rgb(${Math.round(lerp(16, 30, heat))},${Math.round(lerp(16, 16, heat))},${Math.round(lerp(20, 16, heat))})` : "#0E1113");
   air.addColorStop(0.5, "#080A0C");
-  air.addColorStop(0.84, "#0E1113");
-  air.addColorStop(1, "#1E1412");
+  air.addColorStop(0.84 - heat * 0.04, state.flow ? `rgb(${Math.round(lerp(16, 30, heat))},${Math.round(lerp(16, 16, heat))},${Math.round(lerp(20, 16, heat))})` : "#0E1113");
+  air.addColorStop(1, rim);
   ctx.fillStyle = air;
   ctx.fill();
   // Display only: the cave's depths (stalactites, stalagmites, cold crystals, mist; until 27 Oct 2026 a far city)
@@ -792,7 +1205,9 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
     bandPath(ctx, ceilAt, floorAt);
     ctx.clip();
     // Rev 8: two layers on the bent rails; earlier revisions keep one on the fixed lines.
-    drawCaveDepths(ctx, still ? 0 : state.x / FP, state.tick, still, state.exp ? floorAt : floorBase, state.exp ? ceilAt : ceilBase, state.exp ? 2 : 1);
+    // flipRev 11–13 (the materials pass): concept A's lit rock shards and smoky haze in place of the thin depths.
+    if (state.flow) drawTunnelShards(ctx, state.x / FP, still, heat, floorAt, ceilAt);
+    else drawCaveDepths(ctx, still ? 0 : state.x / FP, state.tick, still, state.exp ? floorAt : floorBase, state.exp ? ceilAt : ceilBase, state.exp ? 2 : 1);
     drawTunnelEmbers(ctx, state.tick, still, floorBase, ceilBase);
     ctx.restore();
   }
@@ -815,6 +1230,11 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
       }
       flipSurfaceLine(ctx, at, from, FLIP_WORLD_W);
     };
+    // The Action overhaul (flipRev 11–13): a solid stone lip the Captain runs on, the lava seam under it.
+    if (state.flow) {
+      drawStoneLip(ctx, state, side, at, rail);
+      continue;
+    }
     // Reduced effects: the soft glow strokes into the rock are skipped (the rail lines stay).
     if (!arcadeReducedEffects()) {
       ctx.save();
@@ -897,11 +1317,13 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
       // Rev 8 moving spike: its groove (the stretch it slides along) under the rock, then the spike where the sim has it.
       const shift = flipSegShift(seg, state.tick) / FP;
       drawSlideGroove(ctx, a - seg.amp / FP, b + seg.amp / FP, inward, at, pulse);
-      drawRockObstacle(ctx, a + shift, b + shift, inward, at, spikeH, seg.x0 ^ state.warpFloor, pulse);
+      if (state.flow) drawSpikeBlades(ctx, a + shift, b + shift, inward, at, spikeH, seg.x0 ^ state.warpFloor, pulse, heat);
+      else drawRockObstacle(ctx, a + shift, b + shift, inward, at, spikeH, seg.x0 ^ state.warpFloor, pulse);
       continue;
     }
     if (seg.kind === FLIP_CRUMBLE) drawCrumble(ctx, state, i, seg, a, b, inward, at, still);
     else if (seg.kind === FLIP_GAP) drawFlipPool(ctx, a, b, inward, at, still ? 0 : state.tick / 60, seg.x0);
+    else if (state.flow && seg.kind === FLIP_SPIKE) drawSpikeBlades(ctx, a, b, inward, at, spikeH, seg.x0 ^ state.warpFloor, pulse, heat);
     else drawRockObstacle(ctx, a, b, inward, at, seg.kind === FLIP_SPIKE ? spikeH : overH, seg.x0 ^ state.warpFloor, pulse);
   }
   // Rev 2 stars not yet taken, at the runner's standing height on their surface.
@@ -917,12 +1339,17 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
   }
   // Rev 8: checkpoint gates and the star trails (light and pickups only; nothing here collides).
   if (state.exp) {
-    drawCheckpoints(ctx, state, toScreen, ceilAt, floorAt, pulse, still);
+    // flipRev 13 (grace): every crash is caught, so no checkpoint gates or save badge are drawn.
+    if (!state.grace) drawCheckpoints(ctx, state, toScreen, ceilAt, floorAt, pulse, still);
     drawTrails(ctx, state, toScreen, ceilAt, floorAt, still);
     // The save a checkpoint gives, while it is ready: a small gold shield at the tunnel's left edge, mid-height
     // (hazards stand on the surfaces, so the middle of the tunnel is always clear there).
-    drawSaveBadge(ctx, state, 8, (ceilAt(15) + floorAt(15)) / 2 - 8);
+    if (!state.grace) drawSaveBadge(ctx, state, 8, (ceilAt(15) + floorAt(15)) / 2 - 8);
   }
+  // Stage 2 (display only, flipRev 11–13): a near miss's glint on its spike and the landing's dust (gold on a sweet spot).
+  if (state.flow) drawFlowGroundFx(ctx, state, toScreen, floorAt, ceilAt, still);
+  // Edge to edge (flipRev 11–13): the sides fade to the bedrock the side scene paints.
+  if (state.flow) drawSideFade(ctx);
   // flipRev 11: the flow streak in the rock above the cave (no star counts on this revision).
   if (state.flow) drawFlowHud(ctx, state);
   ctx.save();
@@ -940,7 +1367,24 @@ function drawFlipArtWorld(ctx: CanvasRenderingContext2D, state: FlipState, size:
     ctx.arc(RUNNER_X, y, 34, 0, Math.PI * 2);
     ctx.fill();
   }
+  // flipRev 13 (grace): after a crash the runner blinks while its second of shield lasts (held steady under reduced motion).
+  const blink = state.grace && (state.inv ?? 0) > 0 && state.ended === 0 && !still && Math.floor(state.tick / 4) % 2 === 0;
+  // Stage 2 (display only, flipRev 11–13): the flip's two-frame motion trail behind the runner.
+  if (state.flow && !blink) drawFlipTrail(ctx, state, still, sink);
+  if (blink) ctx.globalAlpha = 0.35;
+  // Stage 2: the flip's slight stretch along its arc (inside the clip, at most 1.3 px past the box: the bounds rule's 2).
+  const stretch = state.flow && !still ? flipStretch(state) : 0;
+  if (stretch > 0) {
+    ctx.save();
+    ctx.translate(RUNNER_X, y);
+    ctx.scale(1 - FLIP_STRETCH_X * stretch, 1 + FLIP_STRETCH_Y * stretch);
+    ctx.translate(-RUNNER_X, -y);
+  }
   drawRunnerHero(ctx, state, y, still, sink);
+  if (stretch > 0) ctx.restore();
+  ctx.globalAlpha = 1;
+  // Stage 2: the crash's flash, the double flip's ring, the flow counter beside the runner and the end card's flow best.
+  if (state.flow) drawFlowRunnerFx(ctx, state, y, still);
   if (state.exp && (state.inv ?? 0) > 0 && state.ended === 0) drawShield(ctx, state, y, still);
   successFrame(ctx,{id:'flip',tick:state.tick,count:0,eventTick:state.flipT>0?state.tick-((state.exp?state.arcN||FLIP_ARC_TICKS:FLIP_ARC_TICKS)-state.flipT):0,enabled:state.ended===0,colour:MATERIAL.hot,width:FLIP_WORLD_W,height:FLIP_WORLD_H,point:{x:RUNNER_X,y:y+(state.side===0?-1:1)*runnerBox(state).h/2,shape:'pixel'}});
   ctx.restore();
@@ -1278,18 +1722,328 @@ function drawSaveBadge(ctx: CanvasRenderingContext2D, state: FlipState, x: numbe
   ctx.restore();
 }
 
+/* ===================== Stage 2 effects (flipRev 11–13, display only) ===================== */
+// The Action overhaul stage 2 (15 Nov 2026; docs/arcade-standard/flip.md "Stage 2: effects and reveal"). Every moment is
+// read from the state (flipFx.ts); only the flow counter's break and the end card's count keep a per-canvas memory (the
+// streak before the break, the moment the run ended), reset when the run is seeked back. Nothing here is read by the sim.
+
+/** The flip's stretch: across and along its arc at its peak (the clip grows ≤ 1.3 px a side, inside the bounds rule's 2). */
+export const FLIP_STRETCH_X = 0.035;
+export const FLIP_STRETCH_Y = 0.07;
+/** How far into its arc the motion trail lasts (share of the arc). */
+const TRAIL_UNTIL = 0.85;
+const GOLD = "#F5B82E";
+const GOLD_LIGHT = "#FFE4A1";
+
+/** 0 on the ground, rising to 1 at the arc's middle and back to 0 on landing (sin of the arc's share). */
+export function flipStretch(state: FlipState): number {
+  if (state.flipT <= 0 || state.ended !== 0) return 0;
+  const n = state.arcN || FLIP_ARC_TICKS;
+  return Math.sin(Math.PI * (1 - Math.min(n, state.flipT) / n));
+}
+
+/** The two-frame motion trail: the runner where it was 2 and 4 ticks ago, faint (one ghost on reduced effects). */
+function drawFlipTrail(ctx: CanvasRenderingContext2D, state: FlipState, still: boolean, sink: number | null): void {
+  if (still || state.flipT <= 0 || state.ended !== 0) return;
+  const n = state.arcN || FLIP_ARC_TICKS;
+  if (1 - state.flipT / n > TRAIL_UNTIL) return;
+  const lift = runnerBox(state).h / 2;
+  const ghosts: [number, number][] = arcadeReducedEffects() ? [[2, 0.2]] : [[4, 0.1], [2, 0.22]];
+  for (const [k, alpha] of ghosts) {
+    const flipT = Math.min(n, state.flipT + k);
+    if (flipT === state.flipT) continue;
+    const ghost = { ...state, flipT };
+    const gy = runnerY(ghost, state.side, flipT, lift) + state.warpY;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    drawRunnerHero(ctx, ghost, gy, still, sink);
+    ctx.restore();
+  }
+}
+
+/** A spike blade's tip, exactly as drawSpikeBlades draws it (blade k of the span a..b; -1 the last). */
+function bladeTip(a: number, b: number, inward: number, at: Surface, maxH: number, seed: number, k: number): { x: number; y: number } {
+  const count = Math.max(2, Math.round((b - a) / 17));
+  const slot = (b - a) / count;
+  const kk = Math.max(0, Math.min(count - 1, k < 0 ? count - 1 : k));
+  const h = artHash(seed, kk);
+  const x = a + slot * kk + slot * (0.44 + (h % 12) / 100);
+  return { x, y: at(x) + inward * maxH * (0.86 + ((h >>> 6) % 15) / 100) };
+}
+
+/** A four-point white glint: crisp, no blur. */
+function glint(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, alpha: number): void {
+  ctx.save();
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+  ctx.fillStyle = "#FFFFFF";
+  ctx.beginPath();
+  ctx.moveTo(x, y - r);
+  ctx.quadraticCurveTo(x, y, x + r * 0.62, y);
+  ctx.quadraticCurveTo(x, y, x, y + r);
+  ctx.quadraticCurveTo(x, y, x - r * 0.62, y);
+  ctx.quadraticCurveTo(x, y, x, y - r);
+  ctx.fill();
+  ctx.fillRect(x - 0.8, y - 0.8, 1.6, 1.6);
+  ctx.restore();
+}
+
+/** The near miss's glint on its spike, and the landing's puff (dust, or gold on a sweet spot) at the landing spot. */
+function drawFlowGroundFx(ctx: CanvasRenderingContext2D, state: FlipState, toScreen: (wx: number) => number, floorAt: Surface, ceilAt: Surface, still: boolean): void {
+  const lite = arcadeReducedEffects();
+  const miss = flipNearMissShown(state);
+  const seg = miss ? state.segs[miss.seg] : undefined;
+  if (miss && seg) {
+    const shift = flipSegShift(seg, state.tick) / FP;
+    const inward = seg.side === 0 ? -1 : 1;
+    const tip = bladeTip(toScreen(seg.x0) + shift, toScreen(seg.x1) + shift, inward, seg.side === 0 ? floorAt : ceilAt, FLIP_FLOW_SPIKE_H, seg.x0 ^ state.warpFloor, miss.kind === "off" ? 0 : -1);
+    const t = (state.tick - miss.tick) / FLIP_NEAR_GLINT_TICKS;
+    // The glint flares and shrinks (still under reduced motion), a thin white catch-light down the blade's lit face.
+    const r = still ? 8 : 11 * (1 - 0.55 * t) * Math.min(1, 0.4 + t * 4);
+    glint(ctx, tip.x, tip.y, r, 1 - t * t);
+    ctx.save();
+    ctx.globalAlpha = 0.75 * (1 - t);
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(tip.x - 1, tip.y - inward * 3);
+    ctx.lineTo(tip.x - 5, tip.y - inward * 16);
+    ctx.stroke();
+    ctx.restore();
+  }
+  const puff = flipLandingPuff(state);
+  if (puff) {
+    const x = toScreen(puff.x);
+    const at = puff.side === 0 ? floorAt : ceilAt;
+    const inward = puff.side === 0 ? -1 : 1;
+    const t = puff.age / FLIP_PUFF_TICKS;
+    const e = 1 - (1 - t) * (1 - t);
+    const n = (puff.sweet ? 10 : 6) / (lite ? 2 : 1);
+    ctx.save();
+    for (let i = 0; i < n; i++) {
+      const h = artHash(puff.x | 0, i);
+      const dir = i % 2 === 0 ? -1 : 1;
+      const reach = (10 + (h % 14)) * (puff.sweet ? 1.5 : 1);
+      const px = still ? x + dir * (6 + (i >> 1) * 4) : x + dir * (3 + reach * e);
+      const py = at(px) + inward * (2 + (((h >>> 5) % 6) + 3) * (still ? 0.6 : e));
+      const r = (2.2 + ((h >>> 9) % 10) / 4) * (still ? 1 : 1 - 0.35 * t) + (puff.sweet ? 1.4 : 0);
+      const a = (1 - t) * (puff.sweet ? 0.95 : 0.55);
+      if (puff.sweet) {
+        // Gold dust with a lit top: a warm body and a pale highlight where the cave light catches it.
+        ctx.globalAlpha = a;
+        ctx.fillStyle = i % 3 === 0 ? GOLD_LIGHT : GOLD;
+        ctx.beginPath();
+        ctx.arc(px, py, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = a * 0.9;
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(px - r * 0.45, py - r * 0.55, r * 0.5, r * 0.4);
+      } else {
+        ctx.globalAlpha = a;
+        ctx.fillStyle = i % 2 === 0 ? "#9E948C" : "#7C736C";
+        ctx.beginPath();
+        ctx.arc(px, py, r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
+  }
+}
+
+interface FlowMemory {
+  tick: number;
+  streak: number;
+  breakTick: number;
+  breakValue: number;
+  endTick: number;
+  endAt: number;
+}
+const flowMemories = new WeakMap<object, FlowMemory>();
+
+function flowMemory(ctx: object, state: FlipState): FlowMemory {
+  let m = flowMemories.get(ctx);
+  if (!m || state.tick < m.tick) {
+    m = { tick: state.tick, streak: state.streak ?? 0, breakTick: -1000, breakValue: 0, endTick: -1, endAt: 0 };
+    flowMemories.set(ctx, m);
+  }
+  const streak = state.streak ?? 0;
+  if (state.tick > m.tick) {
+    if (streak === 0 && m.streak >= FLIP_FLOW_BREAK_MIN) {
+      m.breakTick = flipCrashTick(state) ?? state.tick;
+      m.breakValue = m.streak;
+    }
+    m.tick = state.tick;
+    m.streak = streak;
+  }
+  return m;
+}
+
+/** The streak counter's chip: a dark enamel pill, the count in gold (all gold with dark text on every 10th). */
+function flowChip(ctx: CanvasRenderingContext2D, text: string, cx: number, cy: number, ten: boolean, dull = false): void {
+  ctx.font = `800 15px ${ARCADE_FX_DISPLAY_FONT}`;
+  const w = Math.ceil(ctx.measureText(text).width) + 14;
+  const h = 22;
+  const body = ctx.createLinearGradient(0, cy - h / 2, 0, cy + h / 2);
+  if (dull) {
+    body.addColorStop(0, "#3A3634");
+    body.addColorStop(1, "#262322");
+  } else if (ten) {
+    body.addColorStop(0, "#FFE08A");
+    body.addColorStop(0.5, GOLD);
+    body.addColorStop(1, "#C98A16");
+  } else {
+    body.addColorStop(0, "#2C2622");
+    body.addColorStop(1, "#141112");
+  }
+  ctx.fillStyle = body;
+  ctx.beginPath();
+  ctx.roundRect(cx - w / 2, cy - h / 2, w, h, h / 2);
+  ctx.fill();
+  // The enamel's crisp highlight along its top curve (no glow).
+  ctx.strokeStyle = dull ? "rgba(255,255,255,0.08)" : ten ? "rgba(255,255,255,0.55)" : "rgba(255,228,161,0.22)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(cx - w / 2 + h / 2, cy - h / 2 + 1.5);
+  ctx.lineTo(cx + w / 2 - h / 2, cy - h / 2 + 1.5);
+  ctx.stroke();
+  ctx.fillStyle = dull ? "#8F8984" : ten ? "#2A1A04" : "#FFD27A";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(text, cx, cy + 1);
+}
+
+/**
+ * Where the flow counter rides: over the runner's head, on the cave side (PERFECT shows ahead of it, flipPerfectAt). In a
+ * flip it turns with the runner, swinging round behind it (never ahead, where the hazards come from) to the other side.
+ */
+export function flipFlowChipAt(state: FlipState, y: number, still = false): { x: number; y: number } {
+  const upright = state.side === 0 ? 0 : Math.PI;
+  const n = state.arcN || FLIP_ARC_TICKS;
+  const angle = !still && state.flipT > 0 ? upright + (state.side === 0 ? -1 : 1) * Math.PI * (Math.min(n, state.flipT) / n) : upright;
+  const x = flipRunnerX(state) + 4 * Math.cos(angle) + 44 * Math.sin(angle);
+  return { x: Math.max(24, x), y: y + 4 * Math.sin(angle) - 44 * Math.cos(angle) };
+}
+
+/** The crash's flash, the double flip's ring, the flow counter beside the runner and the end card's flow best. */
+function drawFlowRunnerFx(ctx: CanvasRenderingContext2D, state: FlipState, y: number, still: boolean): void {
+  const mem = flowMemory(ctx, state);
+  const inward = state.side === 0 ? -1 : 1;
+  ctx.save();
+  // A crash: a short white flash at the runner, then the respawn blink (drawn by the runner's own pass).
+  const crash = flipCrashTick(state);
+  if (crash !== null && state.ended === 0 && state.tick - crash < FLIP_CRASH_FLASH_TICKS) {
+    const t = (state.tick - crash) / FLIP_CRASH_FLASH_TICKS;
+    const r = still ? 24 : 18 + 14 * t;
+    const flash = ctx.createRadialGradient(RUNNER_X, y, 2, RUNNER_X, y, r);
+    flash.addColorStop(0, `rgba(255,255,255,${(still ? 0.35 : 0.7) * (1 - t)})`);
+    flash.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.fillStyle = flash;
+    ctx.beginPath();
+    ctx.arc(RUNNER_X, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // A double flip: a gold ring opening round the runner (a second on a triple).
+  const off = flipTakeoffTick(state);
+  if (flipIsDouble(state) && off !== null) {
+    const rings = Math.min(2, state.chain ?? 1);
+    for (let k = 0; k < rings; k++) {
+      const age = state.tick - off - k * 4;
+      if (age < 0 || age >= FLIP_RING_TICKS) continue;
+      const t = age / FLIP_RING_TICKS;
+      const e = 1 - (1 - t) * (1 - t);
+      ctx.strokeStyle = GOLD;
+      ctx.globalAlpha = 0.95 * (1 - t);
+      ctx.lineWidth = 3.2 * (1 - t) + 0.8;
+      ctx.beginPath();
+      ctx.arc(RUNNER_X, y, still ? 26 : 18 + 24 * e, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+  // The flow streak's counter, riding beside the runner on the cave side of its head.
+  const streak = state.streak ?? 0;
+  const { x: cx, y: cy } = flipFlowChipAt(state, y, still);
+  if (streak > 0 && state.ended === 0) {
+    const age = flipFlowPopAge(state);
+    const ten = streak % 10 === 0;
+    const p = age === null || still ? 0 : 1 - age / FLIP_FLOW_POP_TICKS;
+    const s = 1 + (ten ? 0.45 : 0.3) * p * p;
+    ctx.save();
+    ctx.translate(cx, cy - 3 * p);
+    ctx.scale(s, s);
+    flowChip(ctx, `×${streak}`, 0, 0, ten);
+    ctx.restore();
+    if (ten && p > 0) {
+      // Every 10th: a brighter step, two small glints off the chip.
+      glint(ctx, cx + 20, cy - 10, 6 * p + 2, p);
+      glint(ctx, cx - 18, cy + 9, 4 * p + 2, p * 0.8);
+    }
+  } else if (state.ended === 0 && state.tick - mem.breakTick < FLIP_FLOW_BREAK_TICKS) {
+    // A break: the chip cracks in two and falls away, dulled (fades in place under reduced motion).
+    const t = (state.tick - mem.breakTick) / FLIP_FLOW_BREAK_TICKS;
+    const text = `×${mem.breakValue}`;
+    ctx.font = `800 15px ${ARCADE_FX_DISPLAY_FONT}`;
+    const w = Math.ceil(ctx.measureText(text).width) + 14;
+    for (const half of [-1, 1]) {
+      ctx.save();
+      ctx.globalAlpha = 1 - t * t;
+      const fall = still ? 0 : 140 * t * t;
+      ctx.translate(cx + (still ? 0 : half * 10 * t), cy - inward * fall);
+      ctx.rotate(still ? 0 : half * 0.9 * t);
+      ctx.beginPath();
+      // The crack: a zigzag down the chip's middle; each half keeps its side.
+      ctx.moveTo(0, -12);
+      ctx.lineTo(half * -2, -4);
+      ctx.lineTo(half * 2, 2);
+      ctx.lineTo(0, 12);
+      ctx.lineTo(half * (w / 2 + 2), 12);
+      ctx.lineTo(half * (w / 2 + 2), -12);
+      ctx.closePath();
+      ctx.clip();
+      flowChip(ctx, text, 0, 0, false, true);
+      ctx.restore();
+    }
+  }
+  // The end card: under SURVIVED!, the run's best flow streak counting up.
+  const best = state.bestStreak ?? 0;
+  if (state.ended === 1 && best > 0) {
+    const now = typeof performance === "undefined" ? 0 : performance.now();
+    if (mem.endTick !== state.endedTick) {
+      mem.endTick = state.endedTick;
+      mem.endAt = now;
+    }
+    const shown = flipFlowCountShown(best, now - mem.endAt, still);
+    const midY = flipWorldH(state) * 0.4 + 62;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.lineJoin = "round";
+    ctx.font = `800 16px ${ARCADE_FX_DISPLAY_FONT}`;
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = "rgba(10,8,8,0.85)";
+    ctx.strokeText("BEST FLOW", FLIP_WORLD_W / 2, midY);
+    ctx.fillStyle = GOLD_LIGHT;
+    ctx.fillText("BEST FLOW", FLIP_WORLD_W / 2, midY);
+    ctx.font = `900 44px ${ARCADE_FX_DISPLAY_FONT}`;
+    ctx.lineWidth = 6;
+    ctx.strokeText(String(shown), FLIP_WORLD_W / 2, midY + 36);
+    ctx.fillStyle = GOLD;
+    ctx.fillText(String(shown), FLIP_WORLD_W / 2, midY + 36);
+  }
+  ctx.restore();
+}
+
 /** Play, intro demo and stored-run reveal share this renderer. */
 export const flipArtGame = { ...flipGame, draw: drawFlipArt };
 /** The art game for a stored puzzle.flipRev (play, demos and reveals). */
-const flipArtGames = new Map<number, typeof flipArtGame>();
+const flipArtGames = new Map<string, typeof flipArtGame>();
 /**
  * One cached object per revision: stages reset the run whenever their `game` prop
  * changes identity, so a fresh object per render would restart the sim every frame.
  */
-export function flipArtGameFor(rev?: number | null): typeof flipArtGame {
-  const key = rev ?? 0;
+export function flipArtGameFor(rev?: number | null, level?: string | null): typeof flipArtGame {
+  // Levels (15 Nov 2026): one cached object per revision and level (Normal keyed as before, by the revision alone).
+  const key = `${rev ?? 0}${level && level !== "normal" ? `:${level}` : ""}`;
   let game = flipArtGames.get(key);
-  if (!game) flipArtGames.set(key, (game = { ...flipGameFor(rev), draw: drawFlipArt }));
+  if (!game) flipArtGames.set(key, (game = { ...flipGameFor(rev, level), draw: drawFlipArt }));
   return game;
 }
 
@@ -1360,7 +2114,95 @@ export function flipArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
 export function flipArenaSceneTall(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   flipArenaScene(ctx, view, FLIP_V8_WORLD_H);
 }
+
+/**
+ * flipRev 11–13's cave (the Action overhaul, edge to edge): the bedrock beyond the world is FLIP_DEEP, the colour the
+ * world's rock fades to at its edges, with faint basalt joints and specks, so the world continues into it seamlessly;
+ * painted once per size (never per frame), its lava streaks are the ambient layer's.
+ */
+export function flipArenaSceneRich(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
+  const H = FLIP_V8_WORLD_H;
+  const paint = (r: { x: number; y: number; w: number; h: number }, seed: number, from: number, joints: boolean) => {
+    ctx.save();
+    ctx.fillStyle = FLIP_DEEP;
+    ctx.fillRect(r.x, r.y, r.w, r.h);
+    ctx.beginPath();
+    ctx.rect(r.x, r.y, r.w, r.h);
+    ctx.clip();
+    // Joints and specks start a little way out from the world, so its edge meets plain bedrock.
+    if (joints) for (let x = r.x - 20, k = 0; x < r.x + r.w; k++) {
+      const h = artHash(k, seed);
+      const w = 26 + (h % 20);
+      const lean = ((h >>> 5) % 9) - 4;
+      ctx.strokeStyle = "rgba(0,0,0,0.28)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x, r.y + from);
+      ctx.lineTo(x + lean * (r.h / 260), r.y + r.h);
+      ctx.stroke();
+      x += w;
+    }
+    const specks = Math.round((r.w * r.h) / 340);
+    for (let k = 0; k < specks; k++) {
+      const h = artHash(k, seed + 1);
+      const y = r.y + from + (((h >>> 15) % 9973) / 9973) * Math.max(0, r.h - from);
+      ctx.fillStyle = h % 5 === 0 ? "rgba(255,170,120,0.05)" : "rgba(0,0,0,0.25)";
+      ctx.fillRect(r.x + (((h >>> 3) % 10007) / 10007) * r.w, y, 1 + ((h >>> 28) & 1), 1);
+    }
+    ctx.restore();
+  };
+  // Beside the world only specks (a joint there could run along its edge) and faint lava veins running off into the
+  // rock, kept 16 px clear of the world so its edge meets plain bedrock; below it joints and specks.
+  for (const side of sceneSides(view)) {
+    paint(side, 911, 0, false);
+    const awayLeft = side.x < 0;
+    const near = awayLeft ? side.x + side.w - SCENE_EDGE_CLEAR : side.x + SCENE_EDGE_CLEAR;
+    const far = awayLeft ? side.x : side.x + side.w;
+    if (Math.abs(far - near) < 20) continue;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(Math.min(near, far), side.y, Math.abs(far - near), side.h);
+    ctx.clip();
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    for (let v = 0; v < 7; v++) {
+      const h = artHash(v, awayLeft ? 1931 : 1933);
+      const y0 = side.y + 40 + (((h >>> 6) % 1000) / 1000) * Math.max(10, side.h - 80);
+      const amp = 10 + (h % 22);
+      const wave = 40 + ((h >>> 12) % 40);
+      ctx.beginPath();
+      const steps = Math.max(24, Math.ceil(Math.abs(far - near) / 6));
+      for (let k = 0; k <= steps; k++) {
+        const x = near + ((far - near) * k) / steps;
+        const u = k / steps;
+        const y = y0 + Math.sin((u * Math.abs(far - near)) / wave + v) * amp * u + ((h >>> 20) % 2 ? 1 : -1) * u * 50;
+        if (k === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      // Fading out as the vein runs away from the world (alpha by stroke, the near end brightest).
+      const g = ctx.createLinearGradient(near, 0, far, 0);
+      g.addColorStop(0, "rgba(255,96,36,0)");
+      g.addColorStop(0.12, "rgba(255,96,36,0.16)");
+      g.addColorStop(1, "rgba(255,96,36,0)");
+      ctx.strokeStyle = g;
+      ctx.lineWidth = 2.4 + (h % 3) * 0.6;
+      ctx.stroke();
+      const c = ctx.createLinearGradient(near, 0, far, 0);
+      c.addColorStop(0, "rgba(255,206,130,0)");
+      c.addColorStop(0.12, "rgba(255,206,130,0.22)");
+      c.addColorStop(1, "rgba(255,206,130,0)");
+      ctx.strokeStyle = c;
+      ctx.lineWidth = 0.9;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+  const below = sceneBelow(view);
+  if (below) paint(below, 907, 24, true);
+}
 /** The arena scene for a stored puzzle.flipRev (one function per world height, so the stage keeps its identity). */
 export function flipArenaSceneFor(rev?: number | null): (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void {
+  // flipRev 11–13 (the Action overhaul, edge to edge): the plain bedrock their world fades to.
+  if (rev === 11 || rev === 12 || rev === 13) return flipArenaSceneRich;
   return flipWorldHFor(rev) === FLIP_V8_WORLD_H ? flipArenaSceneTall : flipArenaScene;
 }

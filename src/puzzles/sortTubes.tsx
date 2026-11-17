@@ -1,5 +1,5 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
 import { Button } from "@/components/ui/button";
@@ -11,19 +11,26 @@ import {
   decodeTubeMoves,
   encodeTubeLog,
   encodeTubeMoves,
+  pour,
   replayTubeLog,
   replayTubes,
   topGroup,
   tubeSorted,
+  tubeSortedCap,
+  tubesCapacity,
+  tubesColourCount,
   type TubeMove,
   type TubeState,
   type TubeToken,
 } from "@/lib/duel/tubes";
-import { limitText, tubesPourLimit, tubesSendsUndo } from "@/lib/duel/moveLimits";
+import { limitText, tubesPourLimit, tubesRefundsUndo, tubesSendsUndo } from "@/lib/duel/moveLimits";
 import { TUBES_COLOURS, TUBES_COUNT, TUBES_TIME_MS, type TubesPuzzleData } from "@/lib/duel/types";
 import { playCorrect, playWrong } from "@/lib/sound";
 
 import { soundCue, useSolveFx } from "./logicFx";
+import { animatePour, animateRefusedPour, POUR_MS } from "./logicMotion";
+import { gameFx } from "@/lib/fx/kit";
+import { MovePicture, MoveStrip, RevealFacts } from "./logicReveal";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { ParMeter } from "@/components/puzzles/depth/ParMeter";
 import { usesDepth } from "@/lib/duel/logicDepth";
@@ -39,10 +46,15 @@ const BALL_COLOURS = [
   "ORANGE",
   "BROWN",
   "YELLOW",
+  // The levels' Expert board (ten colours, 15 Nov 2026).
+  "TEAL",
+  "PEARL",
 ] as const;
+const EXTRA_COLOURS: Record<string, string> = { TEAL: "#19B5AD", PEARL: "#E6DFD2" };
 
 function ballColour(index: number): string {
-  return GLYPH_COLOURS[BALL_COLOURS[index % BALL_COLOURS.length]!];
+  const name = BALL_COLOURS[index % BALL_COLOURS.length]!;
+  return EXTRA_COLOURS[name] ?? GLYPH_COLOURS[name as keyof typeof GLYPH_COLOURS];
 }
 
 /** A flask's contents in words, bottom to top (7 Nov 2026, accessibility audit #16: the label was "Flask N" alone). */
@@ -53,7 +65,7 @@ function flaskLabel(index: number, tube: readonly number[], sorted: boolean): st
 }
 
 /** A faint symbol per liquid colour, as a second cue beside the colour itself. */
-const POTION_SYMBOLS = ["●", "▲", "■", "◆", "★", "✚", "♥", "✦"] as const;
+const POTION_SYMBOLS = ["●", "▲", "■", "◆", "★", "✚", "♥", "✦", "✿", "☾"] as const;
 
 /** Ten glass flasks in two rows of five; each ball is one countable liquid layer. */
 export function Tubes({
@@ -64,7 +76,11 @@ export function Tubes({
   compact,
   layerHeight,
   poured,
+  justCorked,
+  hiddenLayers,
 }: {
+  /** Flasks corked by the pour just made (they ring once). */
+  justCorked?: readonly number[] | undefined;
   tubes: TubeState;
   lifted?: number | null;
   shake?: number | null;
@@ -74,16 +90,27 @@ export function Tubes({
   layerHeight?: string;
   /** The flask that was just poured into, and how many layers arrived. */
   poured?: { tube: number; count: number; key: number } | null;
+  /** Expert (`hidden`): layers not yet uncovered, as "flask:layer" (shown dark with a ?). */
+  hiddenLayers?: ReadonlySet<string> | undefined;
 }) {
   const ballSize = compact ? 9 : 11;
+  // A level's board (the Logic overhaul's levels): 6, 10 or 12 flasks of 4–7 layers; today's 10 of 5 in two rows of five.
+  const capacity = tubesCapacity(tubes);
+  const across = tubes.length <= 6 ? 3 : tubes.length <= 10 ? 5 : 6;
+  const rows = Math.ceil(tubes.length / across);
   let corkOrder = 0;
   return (
-    <div className={`logic-potions grid w-full grid-cols-5 grid-rows-2 justify-center ${compact ? "gap-2 h-full place-items-end" : "gap-3 px-2 tubes-play-board shrink-0 place-items-center"}`}>
+    <div
+      data-flasks={tubes.length}
+      data-capacity={capacity}
+      className={`logic-potions grid w-full justify-center ${compact ? "gap-2 h-full place-items-end" : "gap-3 px-2 tubes-play-board shrink-0 place-items-center"}`}
+      style={{ gridTemplateColumns: `repeat(${across}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`, "--tube-cap": capacity, "--tube-rows": rows, "--tube-across": across } as CSSProperties}
+    >
       {tubes.map((tube, index) => {
         const isLifted = lifted === index;
         const group = topGroup(tube);
         const liftCount = isLifted && group ? group.count : 0;
-        const sorted = tubeSorted(tube);
+        const sorted = tubeSortedCap(tube, capacity);
         const order = sorted ? corkOrder++ : 0;
         return (
           <Button
@@ -95,7 +122,7 @@ export function Tubes({
             aria-label={flaskLabel(index, tube, sorted)}
             className={`flex h-full w-full min-w-0 items-end justify-center rounded-none border-0 p-0 hover:bg-transparent disabled:opacity-100 ${compact ? "" : "min-h-11 min-w-11"}`}
           >
-            <span className={`flask logic-flask relative flex h-full w-full shrink-0 flex-col items-center justify-end rounded-b-[14px] rounded-t-md border-2 p-[3px] ${shake === index ? "animate-shake" : ""} ${
+            <span data-flask={index} data-just-corked={justCorked?.includes(index) ? "" : undefined} className={`flask logic-flask relative flex h-full w-full shrink-0 flex-col items-center justify-end rounded-b-[14px] rounded-t-md border-2 p-[3px] ${shake === index ? "animate-shake" : ""} ${
               isLifted ? "border-primary" : sorted ? "border-primary/60" : ""
             }`}
               style={{ ...(compact ? { maxWidth: layerHeight ? 36 : 26 } : {}), "--logic-i": order, "--logic-wobble": `${(index * 0.53) % 2.4}s` } as CSSProperties}
@@ -112,22 +139,27 @@ export function Tubes({
                 const rising = isLifted && ball >= tube.length - liftCount;
                 const topLayer = ball === tube.length - 1;
                 const arriving = poured?.tube === index && ball >= tube.length - poured.count;
+                const veiled = hiddenLayers?.has(`${index}:${ball}`) ?? false;
                 return (
                   <span
                     key={arriving ? `${ball}-${poured?.key}` : ball}
                     className={`potion-layer logic-potion flex w-full shrink-0 items-center justify-center ${compact ? "" : "tubes-play-layer"} ${arriving ? "logic-potion-fill" : ""}`}
                     // Presentation only: a same-colour layer above joins this one with a faint line, so one colour reads as one body of liquid.
                     data-same-above={tube[ball + 1] === colour ? "" : undefined}
+                    // The rendered liquid (public/logic-art/potion-<colour>[-bottom].webp; display only).
+                    data-potion={veiled ? "hidden" : BALL_COLOURS[colour % BALL_COLOURS.length]!.toLowerCase()}
+                    data-hidden-layer={veiled ? "" : undefined}
+                    data-bottom={ball === 0 ? "" : undefined}
                     style={{
                       ...(compact ? { height: layerHeight ?? ballSize + 3 } : {}),
-                      backgroundColor: ballColour(colour),
+                      backgroundColor: veiled ? "var(--potion-hidden, #b0b2b7)" : ballColour(colour),
                       transform: rising ? "translateY(-4px)" : "none",
                       transition: "transform 150ms ease",
                       boxShadow: rising ? "0 0 0 2px var(--primary)" : undefined,
-                      ...(arriving ? { animationDelay: `${(ball - (tube.length - (poured?.count ?? 0))) * 60}ms` } : {}),
+                      ...(arriving ? { animationDelay: `calc(var(--pour-delay, 0ms) + ${(ball - (tube.length - (poured?.count ?? 0))) * 90}ms)` } : {}),
                     }}
                   >
-                    {!compact && <span aria-hidden="true" className="logic-potion-glyph">{POTION_SYMBOLS[colour % POTION_SYMBOLS.length]}</span>}
+                    {!compact && <span aria-hidden="true" className="logic-potion-glyph">{veiled ? "?" : POTION_SYMBOLS[colour % POTION_SYMBOLS.length]}</span>}
                     {topLayer && !compact && <span aria-hidden="true" className={`logic-potion-surface ${arriving ? "logic-potion-surface-pour" : ""}`} />}
                     {!compact && topLayer && !sorted && (
                       <>
@@ -157,11 +189,17 @@ function IntroExample() {
         <Tubes tubes={tubes} lifted={2} compact />
       </div>
       <p className="text-xs text-muted-foreground">
-        Flask 3’s top layer is lifted – pour it into the empty flask or onto a matching colour. Each flask holds five layers; a full one-colour flask gets a cork. You have 90 seconds.
+        Flask 3’s top layer is lifted – pour it into the empty flask or onto a matching colour. Each flask holds five layers; a full one-colour flask gets a cork. Undo gives its pour back. You have 90 seconds.
       </p>
     </div>
   );
 }
+
+/** Two flasks corked within this long are a combo (the kit's "combo"). */
+const CORK_COMBO_MS = 4_000;
+
+/** How long the "Out of pours" moment shows before the unfinished board goes in. */
+export const OUT_OF_POURS_MS = 1_100;
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: PuzzleStageProps) {
   const isTubes = puzzle.type === "tubes";
@@ -174,6 +212,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   // tubesRev 1 (moveLimits.ts): the log keeps Undo and Reset, every pour counts and the last allowed pour ends the board.
   const logged = isTubes && tubesSendsUndo(puzzle);
   const pourLimit = isTubes ? tubesPourLimit(puzzle) : null;
+  // tubesRev 3 (Logic overhaul 1): Undo gives its pour back, Reset gives them all back.
+  const refund = isTubes && tubesRefundsUndo(puzzle);
+  const [outShown, setOutShown] = useState(false);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const lastCork = useRef(0);
+  const [justCorked, setJustCorked] = useState<number[]>([]);
+  const [pourDelay, setPourDelay] = useState(0);
   const [moves, setMoves] = useStageState<TubeToken[]>(stateKey, "tubeMoves", () => []);
   const [lifted, setLifted] = useStageState<number | null>(stateKey, "tubeLifted", () => null);
   const [shake, setShake] = useStageState<number | null>(stateKey, "tubeShake", () => null);
@@ -181,12 +226,50 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   const submitted = useRef(false);
 
   const play = (log: TubeToken[]) =>
-    logged ? replayTubeLog(start, log, pourLimit) : { ...replayTubes(start, log as TubeMove[]), outOfPours: false, depth: log.length };
+    logged ? replayTubeLog(start, log, pourLimit, undefined, refund) : { ...replayTubes(start, log as TubeMove[]), outOfPours: false, depth: log.length };
   const encode = (log: TubeToken[]) => (logged ? encodeTubeLog(log) : encodeTubeMoves(log as TubeMove[]));
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const replay = useMemo(() => play(moves), [start, moves, logged, pourLimit]);
   const solving = useSolveFx("tubes", isTubes && replay.solved);
-  const inFrame = useFrameProgress(replay.sorted, TUBES_COLOURS, "corked");
+  const inFrame = useFrameProgress(replay.sorted, isTubes ? tubesColourCount(start) : TUBES_COLOURS, "corked");
+  // Expert (`hidden`, the levels): a starting layer stays hidden until it has been the top of its flask (or moved).
+  // Display only: the lowest each flask has been emptied to over the boards played (undone boards included: seen is
+  // seen), and every layer at or above that height has shown.
+  const hiddenLayers = useMemo(() => {
+    if (!isTubes || !puzzle.hidden) return undefined;
+    const low = start.map((tube) => tube.length);
+    const boards: TubeState[] = [start];
+    let state: TubeState = start.map((t) => [...t]);
+    const history: TubeState[] = [state];
+    for (const token of moves) {
+      if (token === "undo") { if (history.length > 1) history.pop(); state = history[history.length - 1]!; boards.push(state); continue; }
+      if (token === "reset") { history.length = 1; state = history[0]!; boards.push(state); continue; }
+      if (!canPour(state, token.from, token.to)) continue;
+      state = pour(state, token.from, token.to);
+      history.push(state);
+      boards.push(state);
+    }
+    // A flask's starting layers still in place at its bottom (`keep`) only fall when a pour takes them off the top,
+    // so the layer at keep − 1 was the top at that moment: every layer from the lowest keep − 1 up has shown.
+    for (const b of boards) b.forEach((tube, i) => {
+      let keep = 0;
+      while (keep < tube.length && keep < start[i]!.length && tube[keep] === start[i]![keep]) keep++;
+      low[i] = Math.min(low[i]!, keep);
+    });
+    const out = new Set<string>();
+    start.forEach((tube, i) => {
+      for (let ball = 0; ball < Math.min(low[i]!, tube.length) - 1; ball++) out.add(`${i}:${ball}`);
+    });
+    return out;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isTubes, start, moves, replay]);
+  // A layer uncovered (Expert): a soft glassy shimmer as the veil lifts.
+  const veiledCount = hiddenLayers?.size ?? 0;
+  const lastVeiled = useRef(veiledCount);
+  useEffect(() => {
+    if (veiledCount < lastVeiled.current) soundCue("tubes.uncover");
+    lastVeiled.current = veiledCount;
+  }, [veiledCount]);
 
   useEffect(() => {
     onDraftAnswer?.(encode(moves));
@@ -196,9 +279,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   useEffect(() => {
     if (locked || submitted.current || !(replay.solved || replay.outOfPours)) return;
     submitted.current = true;
-    if (replay.solved) playCorrect();
-    // Out of pours: the board ends unfinished and goes in now.
-    onSubmit(encode(moves));
+    if (replay.solved) {
+      playCorrect();
+      onSubmit(encode(moves));
+      return;
+    }
+    // Out of pours: a clear moment (a banner and its own sound), then the board goes in unfinished. The draft is
+    // already sent, so a buzzer during the moment loses nothing.
+    setOutShown(true);
+    soundCue("tubes.outOfPours");
+    const answer = encode(moves);
+    window.setTimeout(() => onSubmit(answer), OUT_OF_POURS_MS);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [replay.solved, replay.outOfPours, moves, locked, onSubmit]);
 
@@ -215,16 +306,34 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
       return;
     }
     if (!canPour(replay.tubes, lifted, tube)) {
-      // An invalid destination shakes and keeps the lift.
-      setShake(tube);
+      // An invalid destination: the lifted flask tips toward it, nothing pours, it rights itself; the lift is kept.
+      animateRefusedPour(boardRef.current, lifted, tube);
       playWrong();
-      setTimeout(() => setShake(null), 320);
       return;
     }
     const after = play([...moves, { from: lifted, to: tube }]).tubes[tube] ?? [];
-    soundCue("tubes.pour");
-    if (tubeSorted(after)) soundCue("tubes.cork");
-    setPoured({ tube, count: after.length - (replay.tubes[tube] ?? []).length, key: moves.length + 1 });
+    const count = after.length - (replay.tubes[tube] ?? []).length;
+    const colour = ballColour(after[after.length - 1] ?? 0);
+    // The pour (logicMotion.ts): lift, fly over, tilt, the stream, the target rising, back. The glug's pitch rises with
+    // the level the liquid reaches.
+    const total = animatePour(boardRef.current, lifted, tube, colour, count);
+    soundCue("tubes.pour", 0.85 + after.length * 0.07);
+    if (tubeSortedCap(after, tubesCapacity(start))) {
+      // The cork pops in as the pour settles; two within a few seconds are a combo.
+      const now = Date.now();
+      const combo = now - lastCork.current < CORK_COMBO_MS;
+      lastCork.current = now;
+      window.setTimeout(() => {
+        soundCue("tubes.cork");
+        setJustCorked([tube]);
+        const flask = boardRef.current?.querySelector(`[data-flask="${tube}"]`);
+        if (combo) gameFx("combo", flask, { count: 2, silent: true });
+        window.setTimeout(() => setJustCorked([]), 700);
+      }, Math.max(0, total - POUR_MS.back - POUR_MS.settle));
+    }
+    // The target's layers rise while the stream falls (the fill's delay, logic-potion-fill).
+    setPourDelay(total ? POUR_MS.lift + POUR_MS.tilt : 0);
+    setPoured({ tube, count, key: moves.length + 1 });
     setMoves((current) => [...current, { from: lifted, to: tube }]);
     setLifted(null);
   };
@@ -232,7 +341,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   const undo = () => {
     setLifted(null);
     setPoured(null);
-    // Undo never gives a pour back on a limited board: it is logged, not removed.
+    // Undo is logged, not removed; from tubesRev 3 the server gives its pour back (replayTubeLog's refund).
+    soundCue("tubes.undo");
     setMoves((current) => (logged ? [...current, "undo"] : current.slice(0, -1)));
   };
 
@@ -269,7 +379,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
               : <>moves <span className="text-primary">{replay.moves}</span></>}
           </p>
         )}
-        <Tubes tubes={replay.tubes} lifted={lifted} shake={shake} onTube={tapTube} poured={poured} />
+        <div ref={boardRef} className="relative" style={{ "--pour-delay": `${pourDelay}ms` } as CSSProperties}>
+          <Tubes tubes={replay.tubes} lifted={lifted} shake={shake} onTube={tapTube} poured={poured} justCorked={justCorked} hiddenLayers={hiddenLayers} />
+          {outShown ? (
+            <div role="status" data-out-of-pours="" className="logic-out-banner">
+              Out of pours
+            </div>
+          ) : null}
+        </div>
         <LiveSummary
           inArena
           className="logic-status"
@@ -309,15 +426,25 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+/**
+ * The reveal (Logic overhaul 1, 15 Nov 2026): your flasks large, the numbers behind the score (pours used, par, flasks
+ * sorted), and the shortest route as small pictures of each pour (the colour poured, flask to flask).
+ */
+function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "tubes") return null;
   const pourLimit = tubesPourLimit(puzzle);
   const mine = tubesSendsUndo(puzzle)
-    ? replayTubeLog(puzzle.tubes, decodeTubeLog(myAnswer ?? ""), pourLimit)
-    : replayTubes(puzzle.tubes, decodeTubeMoves(myAnswer ?? ""));
-  const limit = timeLimitMs;
-  const elapsed =
-    myMsRemaining === undefined ? null : Math.round((limit - myMsRemaining) / 100) / 10;
+    ? replayTubeLog(puzzle.tubes, decodeTubeLog(myAnswer ?? "", puzzle.tubes.length), pourLimit, undefined, tubesRefundsUndo(puzzle))
+    : replayTubes(puzzle.tubes, decodeTubeMoves(myAnswer ?? "", puzzle.tubes.length));
+  const par = puzzle.par ?? puzzle.minMoves ?? 0;
+  const route: ReactNode[] = [];
+  let state = puzzle.tubes.map((tube) => [...tube]);
+  for (const move of decodeTubeMoves(puzzle.solution ?? "", puzzle.tubes.length)) {
+    if (!canPour(state, move.from, move.to)) break;
+    const top = state[move.from]![state[move.from]!.length - 1]!;
+    route.push(<MovePicture colour={ballColour(top)} from={move.from + 1} to={move.to + 1} />);
+    state = pour(state, move.from, move.to);
+  }
 
   return (
     <div className="logic-reveal">
@@ -326,21 +453,14 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: Puz
           <Tubes tubes={mine.tubes} compact layerHeight="clamp(10px, calc((100cqh - 56px) / 12), 18px)" />
         </div>
       </div>
-      <p className="shrink-0 text-center font-display text-2xl font-bold">
-        <span className={myCorrect ? "text-primary" : "text-warn"}>
-          {/* Review fixes (15 Nov 2026): no ✓ / ✗ between the count and its unit ("17 ✗ moves" read as a typo); the colour and the verdict row say it. */}
-          {mine.moves}
-        </span>
-        <span className="ml-2 font-mono text-base uppercase tracking-widest text-muted-foreground">
-          {pourLimit !== null ? `of ${pourLimit} pours used` : "moves"}{puzzle.minMoves ? ` · ${usesDepth(puzzle) ? "par" : "min"} ${puzzle.minMoves}` : ""}
-          {myCorrect && elapsed !== null ? ` · ${elapsed.toFixed(1)}s` : ""}
-        </span>
-      </p>
-      <p className="logic-reveal-text text-center text-muted-foreground">
-        {myCorrect
-          ? "Keep one flask empty for as long as you can."
-          : `${mine.sorted} of ${TUBES_COLOURS} flasks corked${"outOfPours" in mine && mine.outOfPours ? " · out of pours" : ""}.`}
-      </p>
+      <RevealFacts
+        items={[
+          { label: pourLimit !== null ? `Pours used of ${pourLimit}` : "Pours", value: mine.moves, tone: mine.solved && par && mine.moves <= par ? "gold" : undefined },
+          par > 0 && { label: "Par", value: par },
+          { label: `Sorted of ${tubesColourCount(puzzle.tubes)}`, value: mine.sorted, tone: mine.solved ? "good" : undefined },
+        ]}
+      />
+      <MoveStrip testId="tubes" title="Shortest route" moves={route} />
     </div>
   );
 }

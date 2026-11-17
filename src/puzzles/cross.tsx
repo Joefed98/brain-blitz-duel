@@ -1,4 +1,5 @@
 import { useGameKeys, directionOf } from "@/lib/desktop";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { auditEventAt } from "@/lib/arcade/auditInput";
 import { crossAmbient } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
@@ -11,7 +12,7 @@ import { crossLine } from "@/lib/duel/crossLine";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 
 import {
   MAX_CATCH_UP_TICKS,
@@ -34,7 +35,7 @@ import {
   CROSS_SWIPE_PX,
   type CrossState,
   crossWorldHFor,
-  CROSS_REV_KEEP,
+  CROSS_REV_LIGHT,
   CROSS_WORLD_W,
 } from "@/lib/arcade/cross";
 import { decodeCrossRun, encodeCrossRun, replayCrossRun } from "@/lib/duel/cross";
@@ -50,9 +51,9 @@ import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 function IntroExample() {
   return (
     <ArtStill
-      game={crossArtGameFor(CROSS_REV_KEEP)}
+      game={crossArtGameFor(CROSS_REV_LIGHT)}
       worldW={CROSS_WORLD_W}
-      worldH={crossWorldHFor(CROSS_REV_KEEP)}
+      worldH={crossWorldHFor(CROSS_REV_LIGHT)}
       ticks={60}
       input={null}
       caption="Hop up through the gaps and keep moving. Mind the bikes, buses and cones."
@@ -63,7 +64,9 @@ function IntroExample() {
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: CrossPuzzleData | null = puzzle.type === "cross" ? puzzle : null;
   const seed = data?.seed ?? 1;
-  const crossGame = crossGameFor(data?.crossRev);
+  // One game object per stamp and level (stage 3 of the Retro overhaul: a level wraps init; a new object each render
+  // would restart the run).
+  const crossGame = useMemo(() => crossGameFor(data?.crossRev, puzzleLevel(data)), [data?.crossRev, puzzleLevel(data)]);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -272,7 +275,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "cross") return null;
-  const result = replayCrossRun(puzzle.seed, myAnswer ?? "", puzzle.crossRev);
+  const result = replayCrossRun(puzzle.seed, myAnswer ?? "", puzzle.crossRev, puzzleLevel(puzzle));
   const moves = decodeCrossRun(myAnswer ?? "").events.length;
 
   return (
@@ -300,7 +303,7 @@ export const crossPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (CROSS_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "cross", seed: 1, crossRev: CROSS_REV_KEEP }) satisfies CrossPuzzleData,
+  generate: () => ({ type: "cross", seed: 1, crossRev: CROSS_REV_LIGHT }) satisfies CrossPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

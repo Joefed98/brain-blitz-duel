@@ -4,19 +4,19 @@
  */
 import { makeArcadeRun, type FlatReplay } from "./arcadeRun";
 import {
-  fcCheckpoint, fcHomeCount, fcSortedCards, freecellGameFor, FC_CHECKPOINT_INTERVAL, FC_CHECKPOINT_KEYS, type FcCheckpoint, type FcState,
+  fcCheckpoint, fcHomeCount, fcSortedCards, freecellGameFor, freecellLevelGame, FC_CHECKPOINT_INTERVAL, FC_CHECKPOINT_KEYS, type FcCheckpoint, type FcLevelName, type FcState,
 } from "@/lib/arcade/cards/freecell";
 import {
-  tpCheckpoint, tripeaksGameFor, TP_CHECKPOINT_INTERVAL, TP_CHECKPOINT_KEYS, type TpCheckpoint, type TpState,
+  tpCheckpoint, tripeaksGameFor, tripeaksLevelGame, TP_CHECKPOINT_INTERVAL, TP_CHECKPOINT_KEYS, type TpCheckpoint, type TpState,
 } from "@/lib/arcade/cards/tripeaks";
 import {
   psCheckpoint, psTotals, pokerSquaresGameFor, PS_CHECKPOINT_INTERVAL, PS_CHECKPOINT_KEYS, type PsCheckpoint, type PsState,
 } from "@/lib/arcade/cards/pokerSquares";
 import {
-  fhCheckpoint, fhColumn, fhPickedHand, fhRowHand, fhTotals, FH_ROWS, FH_SLOTS, fiveHandsGameFor, FH_CHECKPOINT_INTERVAL, FH_CHECKPOINT_KEYS, type FhCheckpoint, type FhState,
+  fhCheckpoint, fhColumn, fhPickedHand, fhRowHand, fhTotals, FH_ROWS, FH_SLOTS, fiveHandsGameFor, fiveHandsLevelGame, FH_CHECKPOINT_INTERVAL, FH_CHECKPOINT_KEYS, type FhCheckpoint, type FhState,
 } from "@/lib/arcade/cards/fiveHands";
 import {
-  pyCheckpoint, pyramidGameFor, PY_CHECKPOINT_INTERVAL, PY_CHECKPOINT_KEYS, type PyCheckpoint, type PyState,
+  pyCheckpoint, pyramidGameFor, pyramidLevelGame, PY_CHECKPOINT_INTERVAL, PY_CHECKPOINT_KEYS, type PyCheckpoint, type PyState,
 } from "@/lib/arcade/cards/pyramid";
 import {
   gsCheckpoint, golfSolGameFor, GS_CHECKPOINT_INTERVAL, GS_CHECKPOINT_KEYS, type GsCheckpoint, type GsState,
@@ -72,6 +72,18 @@ export const decodePokerSquaresRun = psRun.decode;
 export const encodeFiveHandsRun = fhRun.encode;
 export const decodeFiveHandsRun = fhRun.decode;
 
+/** The difficulty levels (15 Nov 2026): a level's run on its own game, built once (the wire format is the game's own). */
+type LevelName = "easy" | "hard" | "expert";
+function isLevelName(level: string | null | undefined): level is LevelName {
+  return level === "easy" || level === "hard" || level === "expert";
+}
+const fcLevelRuns = new Map<LevelName, ReturnType<typeof makeArcadeRun<FcState, FcCheckpoint>>>();
+function fcLevelRun(level: FcLevelName) {
+  let r = fcLevelRuns.get(level);
+  if (!r) fcLevelRuns.set(level, (r = makeArcadeRun<FcState, FcCheckpoint>({ tag: "freecell", game: freecellLevelGame(level), checkpoint: fcCheckpoint, keys: FC_CHECKPOINT_KEYS, interval: FC_CHECKPOINT_INTERVAL })));
+  return r;
+}
+
 export interface FreecellResult extends FlatReplay<FcState, FcCheckpoint> {
   home: number;
   sorted: number;
@@ -82,16 +94,18 @@ export interface FreecellResult extends FlatReplay<FcState, FcCheckpoint> {
   /** freecellRev 2: undos and resets made (0 on rev 1). */
   undos: number;
   resets: number;
+  /** The difficulty levels: hints asked for (0 at Normal). */
+  hints: number;
 }
 
-/** The single place a FreeCell score is worked out (no stamp: freecellRev 1). */
-export function replayFreecellRun(seed: number, raw: string, rev?: number | null): FreecellResult {
+/** The single place a FreeCell score is worked out (no stamp: freecellRev 1; a level deal on its level's game). */
+export function replayFreecellRun(seed: number, raw: string, rev?: number | null, level?: string | null): FreecellResult {
   const v = rev ?? 1;
-  const r = (v >= 5 ? fcRun5 : v >= 4 ? fcRun4 : v >= 3 ? fcRun3 : v >= 2 ? fcRun2 : fcRun).replay(seed, raw);
+  const r = (isLevelName(level) ? fcLevelRun(level) : v >= 5 ? fcRun5 : v >= 4 ? fcRun4 : v >= 3 ? fcRun3 : v >= 2 ? fcRun2 : fcRun).replay(seed, raw);
   const s = r.state;
   return {
     ...r, home: fcHomeCount(s), sorted: fcSortedCards(s.cols), moves: s.moves, par: s.par, finished: s.ended === 1, finishSeconds: s.finishTick / 60,
-    undos: s.undos ?? 0, resets: s.resets ?? 0,
+    undos: s.undos ?? 0, resets: s.resets ?? 0, hints: s.hints ?? 0,
   };
 }
 
@@ -105,15 +119,25 @@ export interface TripeaksResult extends FlatReplay<TpState, TpCheckpoint> {
   /** Stock cards turned and (tripeaksRev 2) the deal's stock par (0 on rev 1). */
   stockTurns: number;
   stockPar: number;
+  /** The difficulty levels: hints asked for and undos made (0 at Normal). */
+  hints: number;
+  undos: number;
 }
 
-/** The single place a Summit score is worked out (no stamp: tripeaksRev 1). */
-export function replayTripeaksRun(seed: number, raw: string, rev?: number | null): TripeaksResult {
-  const r = ((rev ?? 1) >= 3 ? tpRun3 : (rev ?? 1) >= 2 ? tpRun2 : tpRun).replay(seed, raw);
+const tpLevelRuns = new Map<LevelName, ReturnType<typeof makeArcadeRun<TpState, TpCheckpoint>>>();
+function tpLevelRun(level: LevelName) {
+  let r = tpLevelRuns.get(level);
+  if (!r) tpLevelRuns.set(level, (r = makeArcadeRun<TpState, TpCheckpoint>({ tag: "tripeaks", game: tripeaksLevelGame(level), checkpoint: tpCheckpoint, keys: TP_CHECKPOINT_KEYS, interval: TP_CHECKPOINT_INTERVAL })));
+  return r;
+}
+
+/** The single place a Summit score is worked out (no stamp: tripeaksRev 1; a level deal on its level's game). */
+export function replayTripeaksRun(seed: number, raw: string, rev?: number | null, level?: string | null): TripeaksResult {
+  const r = (isLevelName(level) ? tpLevelRun(level) : (rev ?? 1) >= 3 ? tpRun3 : (rev ?? 1) >= 2 ? tpRun2 : tpRun).replay(seed, raw);
   const s = r.state;
   return {
     ...r, cleared: s.clearedCount, peaks: s.peaks, bestRun: s.bestRun, finished: s.ended === 1, finishSeconds: s.finishTick / 60, stockLeft: s.stock.length - s.stockPos,
-    stockTurns: s.turns, stockPar: s.stockPar ?? 0,
+    stockTurns: s.turns, stockPar: s.stockPar ?? 0, hints: s.hints ?? 0, undos: s.undos ?? 0,
   };
 }
 
@@ -144,9 +168,16 @@ export interface FiveHandsResult extends FlatReplay<FhState, FhCheckpoint> {
   columnHand: string;
 }
 
-/** The single place a Five Hands score is worked out (no stamp: fiveHandsRev 1). */
-export function replayFiveHandsRun(seed: number, raw: string, rev?: number | null): FiveHandsResult {
-  const r = ((rev ?? 1) >= 3 ? fhRun3 : (rev ?? 1) >= 2 ? fhRun2 : fhRun).replay(seed, raw);
+const fhLevelRuns = new Map<LevelName, ReturnType<typeof makeArcadeRun<FhState, FhCheckpoint>>>();
+function fhLevelRun(level: LevelName) {
+  let r = fhLevelRuns.get(level);
+  if (!r) fhLevelRuns.set(level, (r = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsLevelGame(level), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL })));
+  return r;
+}
+
+/** The single place a Five Hands score is worked out (no stamp: fiveHandsRev 1; a level deal on its level's game). */
+export function replayFiveHandsRun(seed: number, raw: string, rev?: number | null, level?: string | null): FiveHandsResult {
+  const r = (isLevelName(level) ? fhLevelRun(level) : (rev ?? 1) >= 3 ? fhRun3 : (rev ?? 1) >= 2 ? fhRun2 : fhRun).replay(seed, raw);
   const s = r.state;
   const t = fhTotals(s.rows, s.rev);
   const col = fhPickedHand(s);
@@ -175,9 +206,16 @@ export interface PyramidResult extends FlatReplay<PyState, PyCheckpoint> {
   resets: number;
 }
 
-/** The single place a Pyramid score is worked out. */
-export function replayPyramidRun(seed: number, raw: string, rev?: number | null): PyramidResult {
-  const r = ((rev ?? 1) >= 3 ? pyRun3 : (rev ?? 1) >= 2 ? pyRun2 : pyRun).replay(seed, raw);
+const pyLevelRuns = new Map<LevelName, ReturnType<typeof makeArcadeRun<PyState, PyCheckpoint>>>();
+function pyLevelRun(level: LevelName) {
+  let r = pyLevelRuns.get(level);
+  if (!r) pyLevelRuns.set(level, (r = makeArcadeRun<PyState, PyCheckpoint>({ tag: "pyramid", game: pyramidLevelGame(level), checkpoint: pyCheckpoint, keys: PY_CHECKPOINT_KEYS, interval: PY_CHECKPOINT_INTERVAL })));
+  return r;
+}
+
+/** The single place a Pyramid score is worked out (a level deal on its level's game). */
+export function replayPyramidRun(seed: number, raw: string, rev?: number | null, level?: string | null): PyramidResult {
+  const r = (isLevelName(level) ? pyLevelRun(level) : (rev ?? 1) >= 3 ? pyRun3 : (rev ?? 1) >= 2 ? pyRun2 : pyRun).replay(seed, raw);
   const s = r.state;
   return { ...r, removed: s.removed, ppPairs: s.ppPairs, kings: s.kings, finished: s.ended === 1, finishSeconds: s.finishTick / 60, undos: s.undos, resets: s.resets };
 }

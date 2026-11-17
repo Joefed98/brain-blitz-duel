@@ -59,6 +59,38 @@ export const BUB_COLS = 10;
 export const BUB_MAX_ROWS = 18;
 export const BUB_START_ROWS = 7;
 export const BUB_COLOUR_COUNT = 5;
+/**
+ * The sixth colour's value (bubbleRev 12's Expert level only): 6, 7 and 8 are the specials and 9 the chest, so the
+ * sixth colour is 10. Every other reef holds colours 1…5 only.
+ */
+export const BUB_SIXTH = 10;
+/** Every colour value, in order (the sixth last). */
+export const BUB_ALL_COLOURS: readonly number[] = [1, 2, 3, 4, 5, BUB_SIXTH];
+/** The colour value for colour index i (0…5): 1…5, then BUB_SIXTH. */
+export function bubColourValue(i: number): number {
+  return i < BUB_COLOUR_COUNT ? i + 1 : BUB_SIXTH;
+}
+/** Whether a grid or queue value is a colour (not empty, a special or a chest). */
+export function bubIsColour(v: number): boolean {
+  return (v >= 1 && v <= BUB_COLOUR_COUNT) || v === BUB_SIXTH;
+}
+/** A level's reef (bubbleRev 12, stage 3): its colour count and exact bubble count (chests included). */
+export interface BubReefLook {
+  colours: number;
+  count: number;
+}
+/** Rows a reef of `count` bubbles spans (rows of 10 and 9 alternating, the last part-filled). */
+export function bubReefRows(count: number): number {
+  let rows = 0;
+  for (let left = count; left > 0; rows++) left -= rows % 2 === 0 ? BUB_COLS : BUB_COLS - 1;
+  return rows;
+}
+/** Full rows in a reef of `count` bubbles. */
+export function bubReefFullRows(count: number): number {
+  let rows = 0;
+  for (let left = count; left >= (rows % 2 === 0 ? BUB_COLS : BUB_COLS - 1); rows++) left -= rows % 2 === 0 ? BUB_COLS : BUB_COLS - 1;
+  return rows;
+}
 
 /** Rows are packed hex-style: 29 px apart, odd rows shifted half a bubble. */
 export const BUB_ROW_H = 29;
@@ -187,33 +219,59 @@ export interface BubState extends BandFields {
   bestStreak?: number;
   bounce?: number;
   shotBase?: number;
+  /** bubbleRev 12 only (absent otherwise): the fast-shot rule's mark, and the shot in flight's extra flight steps a tick (0–2). */
+  fast?: number;
+  /**
+   * bubbleRev 12's levels only (stage 3; absent at Normal, which is today's game exactly): the level's code
+   * (BUB_LEVEL_CODE), the shots between descents, the colour count (3–6), and the aim trail's reach (display only,
+   * outside the checksum: 2 two bounces, 1 one bounce, 0 a short trail).
+   */
+  lv?: number;
+  every?: number;
+  colours?: number;
+  trail?: number;
+  /** A level's bank shots for the full bank-shot part (scoring only; Normal: 30, BUB_V11_BANK_PER × BUB_V11_BANK_MAX). */
+  banksFull?: number;
+  /** A level's bubbles cleared for the full core (scoring only; Normal: the whole reef). */
+  coreFull?: number;
+  /** A level's ticks left at the clear for the full speed part (scoring only; Normal: half the clock). */
+  speedFullLeft?: number;
+  boost?: number;
 }
 
 function cellIndex(row: number, col: number): number {
   return row * BUB_COLS + col;
 }
 
-function init(seed: number, startRows = BUB_START_ROWS, maxRows = BUB_MAX_ROWS): BubState {
+function init(seed: number, startRows = BUB_START_ROWS, maxRows = BUB_MAX_ROWS, look?: BubReefLook): BubState {
   let rng = seed | 0;
   const grid = new Array<number>(maxRows * BUB_COLS).fill(0);
+  // Levels (bubbleRev 12, stage 3): `look` sets the colour count and the reef's exact bubble count (the last row
+  // part-filled, centred). Without it (every revision and Normal) the draws are exactly as before.
+  const colours = look?.colours ?? BUB_COLOUR_COUNT;
+  let placedSoFar = 0;
   for (let row = 0; row < startRows; row++) {
-    for (let col = 0; col < bubRowCols(row); col++) {
-      const draw = rngBelow(rng, BUB_COLOUR_COUNT);
+    const cols = bubRowCols(row);
+    const placed = look ? Math.max(0, Math.min(cols, look.count - placedSoFar)) : cols;
+    const from = look ? Math.floor((cols - placed) / 2) : 0;
+    placedSoFar += placed;
+    for (let col = from; col < from + placed; col++) {
+      const draw = rngBelow(rng, colours);
       rng = draw.state;
       const index = cellIndex(row, col);
       // Try every colour deterministically; accepting only groups of at most five
       // also catches a new bubble joining several previously separate groups.
-      for (let offset = 0; offset < BUB_COLOUR_COUNT; offset++) {
-        grid[index] = 1 + (draw.value + offset) % BUB_COLOUR_COUNT;
+      for (let offset = 0; offset < colours; offset++) {
+        grid[index] = bubColourValue((draw.value + offset) % colours);
         if (colourGroup(grid, index).length <= 5) break;
       }
     }
   }
   const queue: number[] = [];
   for (let index = 0; index < BUB_QUEUE; index++) {
-    const draw = rngBelow(rng, BUB_COLOUR_COUNT);
+    const draw = rngBelow(rng, colours);
     rng = draw.state;
-    queue.push(draw.value + 1);
+    queue.push(bubColourValue(draw.value));
   }
   return {
     tick: 0,
@@ -244,9 +302,10 @@ function init(seed: number, startRows = BUB_START_ROWS, maxRows = BUB_MAX_ROWS):
  * in each block of BUB_V3_JOKER_BLOCK shots and a single mine or torpedo (its
  * kind drawn too) in the first BUB_SPECIAL_BLOCK shots.
  */
-function initRev2(seed: number, v3 = false, reef = false): BubState {
+function initRev2(seed: number, v3 = false, reef = false, look?: BubReefLook): BubState {
   // bubbleRev 8: the deeper reef starts with BUB_V8_START_ROWS rows in a BUB_V8_ROWS-row field.
-  const base = reef ? init(seed, BUB_V8_START_ROWS, BUB_V8_ROWS) : init(seed);
+  // A level's reef (bubbleRev 12, stage 3) fills the rows its bubble count needs.
+  const base = reef ? (look ? init(seed, bubReefRows(look.count), BUB_V8_ROWS, look) : init(seed, BUB_V8_START_ROWS, BUB_V8_ROWS)) : init(seed);
   let rng = base.rng;
   const queue = [...base.queue];
   const used = new Set<number>();
@@ -334,12 +393,13 @@ function resolveSpecial(grid: number[], landed: number, kind: number, bombRadius
   for (const [nr, nc] of neighbours(row, landed % BUB_COLS)) {
     if (!inGrid(nr, nc, bubRowsOf(grid))) continue;
     const v = grid[cellIndex(nr, nc)]!;
-    if (v > 0 && v <= BUB_COLOUR_COUNT) touching.add(v);
+    if (bubIsColour(v)) touching.add(v);
   }
   const popped = new Set<number>();
   let keep = 0;
   let keepSize = 0;
-  for (let colour = 1; colour <= BUB_COLOUR_COUNT; colour++) {
+  // In colour order; the sixth colour (BUB_SIXTH, Expert only) last, so a five-colour reef resolves exactly as before.
+  for (const colour of BUB_ALL_COLOURS) {
     if (!touching.has(colour)) continue;
     grid[landed] = colour;
     const group = colourGroup(grid, landed);
@@ -600,7 +660,7 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
       next.lastSpecialCell = landed;
       next.lastSpecialCleared = cleared.length;
       dropLoose(next, grid);
-      if (next.shots % BUB_DESCEND_EVERY === 0) next.descents = next.descents + 1;
+      if (next.shots % (next.every ?? BUB_DESCEND_EVERY) === 0) next.descents = next.descents + 1;
       next.grid = grid;
       if (bubOccupied(grid) === 0) next.cleared = true;
       else if (reachedShooter(grid, next.descents, bubDangerLine(next))) next.dead = true;
@@ -617,7 +677,7 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
         dropLoose(next, grid);
       }
 
-      if (next.shots % BUB_DESCEND_EVERY === 0) next.descents = next.descents + 1;
+      if (next.shots % (next.every ?? BUB_DESCEND_EVERY) === 0) next.descents = next.descents + 1;
       next.grid = grid;
 
       if (bubOccupied(grid) === 0) next.cleared = true;
@@ -626,7 +686,7 @@ function step(state: BubState, input: ArcadeInputEvent | null): BubState {
       // Nothing to stick to: the shot is simply spent.
       next.flightColour = 0;
       next.shots = next.shots + 1;
-      if (next.shots % BUB_DESCEND_EVERY === 0) next.descents = next.descents + 1;
+      if (next.shots % (next.every ?? BUB_DESCEND_EVERY) === 0) next.descents = next.descents + 1;
       if (reachedShooter(next.grid, next.descents, bubDangerLine(next))) next.dead = true;
     }
   }
@@ -738,7 +798,7 @@ function torpedoFlight(next: BubState): void {
   next.lastSpecialCleared = drilled;
   next.drilled = 0;
   dropLoose(next, grid);
-  if (next.shots % BUB_DESCEND_EVERY === 0) next.descents = next.descents + 1;
+  if (next.shots % (next.every ?? BUB_DESCEND_EVERY) === 0) next.descents = next.descents + 1;
   next.grid = grid;
   if (bubOccupied(grid) === 0) next.cleared = true;
   else if (reachedShooter(grid, next.descents, bubDangerLine(next))) next.dead = true;
@@ -814,6 +874,10 @@ export function bubCheckpoint(state: BubState): BubCheckpoint {
   if (state.bombR) extra.push(state.bombR);
   // bubbleRev 11 (the arcade scoring standard): the mine's pop count, last.
   if (state.minePops) extra.push(state.minePops);
+  // bubbleRev 12 (the Strategy overhaul): the fast-shot mark and the shot in flight's level, last.
+  if (state.fast) extra.push(state.fast, state.boost ?? 0);
+  // bubbleRev 12's levels (stage 3): the level, its descent cadence and its colour count, last (Normal carries none).
+  if (state.lv) extra.push(state.lv, state.every ?? 0, state.colours ?? 0);
   for (const value of [...Object.values(snapshot), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -828,16 +892,23 @@ export const BUB_GOLD = "#F5B82E";
 /** Five clearly distinct colours, each with its own inner symbol. */
 export const BUB_PALETTE = ["#FF4D4D", "#FFE600", "#3DDC84", "#4D8CFF", "#B26BFF"];
 export const BUB_SYMBOLS = ["dot", "ring", "square", "triangle", "star"] as const;
+/**
+ * The sixth colour (Expert only, BUB_SIXTH): a warm orange, told apart without colour by its own creature (a seahorse)
+ * and symbol (a cross). Kept out of BUB_PALETTE, so every five-colour drawing (the Joker's rim) is unchanged.
+ */
+export const BUB_SIXTH_COLOUR = "#FF9A3C";
 
 export function bubColour(value: number): string {
   // bubbleRev 2 specials: pearl Joker, black Bomb, teal Torpedo.
   if (value === BUB_JOKER) return "#F4F1FF";
   if (value === BUB_BOMB) return "#1C1F26";
   if (value === BUB_LINE) return "#1FB5C9";
+  if (value === BUB_SIXTH) return BUB_SIXTH_COLOUR;
   return BUB_PALETTE[(value - 1) % BUB_PALETTE.length] ?? BUB_GOLD;
 }
 
-export function bubSymbol(value: number): (typeof BUB_SYMBOLS)[number] {
+export function bubSymbol(value: number): (typeof BUB_SYMBOLS)[number] | "cross" {
+  if (value === BUB_SIXTH) return "cross";
   return BUB_SYMBOLS[(value - 1) % BUB_SYMBOLS.length] ?? "dot";
 }
 
@@ -889,6 +960,10 @@ export function bubDrawSymbol(
       }
       ctx.closePath();
       ctx.fill();
+      break;
+    case "cross":
+      ctx.fillRect(cx - r * 0.8, cy - r * 0.25, r * 1.6, r * 0.5);
+      ctx.fillRect(cx - r * 0.25, cy - r * 0.8, r * 0.5, r * 1.6);
       break;
   }
   ctx.restore();
@@ -997,7 +1072,9 @@ export const bubbleGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
 export const bubbleRev2Game: ArcadeGame<BubState, ArcadeInputEvent | null> = { ...bubbleGame, init: (seed) => initRev2(seed) };
 
 /** The game for a stored round: its bubbleRev picks the rules (absent = original). */
-export function bubbleGameFor(rev?: number | null): ArcadeGame<BubState, ArcadeInputEvent | null> {
+export function bubbleGameFor(rev?: number | null, level?: unknown): ArcadeGame<BubState, ArcadeInputEvent | null> {
+  // Levels (stage 3) exist on bubbleRev 12 only; Normal, a missing level and every older stamp play as before.
+  if (rev === BUB_REV_FAST) return isBubLevel(level) ? bubbleLevelGame(level) : bubbleFastGame;
   if (rev === BUB_REV_STD) return bubbleStdGame;
   if (rev === BUB_REV_BLAST) return bubbleBlastGame;
   if (rev === BUB_REV_CREDIT) return bubbleCreditGame;
@@ -1119,7 +1196,7 @@ export const bubbleTallGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
 
 /** The tank height (px) a stored round's bubbleRev plays in. */
 export function bubbleWorldHFor(rev?: number | null): number {
-  return rev === BUB_REV_STD || rev === BUB_REV_TALL || rev === BUB_REV_TARGET || rev === BUB_REV_STRICT || rev === BUB_REV_REEF || rev === BUB_REV_CREDIT || rev === BUB_REV_BLAST ? BUB_TALL_H : BUB_WORLD_H;
+  return rev === BUB_REV_STD + 1 /* bubbleRev 12 (BUB_REV_FAST) */ || rev === BUB_REV_STD || rev === BUB_REV_TALL || rev === BUB_REV_TARGET || rev === BUB_REV_STRICT || rev === BUB_REV_REEF || rev === BUB_REV_CREDIT || rev === BUB_REV_BLAST ? BUB_TALL_H : BUB_WORLD_H;
 }
 
 /* ================= Scoring targets (bubbleRev 6, 18 Oct 2026) ================= */
@@ -1206,14 +1283,17 @@ export function bubV8FeatureBonus(state: BubState): number {
   return clampInt(bandPoints(BUB_V8_FEATURE_CURVE, bubV8FeaturePoints(state)), 0, BUB_V8_FEATURE_MAX);
 }
 
-function initReef(seed: number): BubState {
-  const base = initRev2(seed, true, true);
+function initReef(seed: number, reefRows = BUB_V8_START_ROWS, look?: BubReefLook): BubState {
+  const base = initRev2(seed, true, true, look);
   // Chests from the PRNG after the specials: rows 3–9, never two touching.
+  // bubbleRev 12 (reefRows 9): the tenth row is left empty first and the chests are drawn on rows 3–8.
   let rng = base.rng;
   const grid = [...base.grid];
+  for (let row = reefRows; row < BUB_V8_START_ROWS; row++) for (let col = 0; col < bubRowCols(row); col++) grid[cellIndex(row, col)] = 0;
   const chestAt: number[] = [];
   for (let guard = 0; chestAt.length < BUB_V8_CHESTS && guard < 400; guard++) {
-    const rowDraw = rngBelow(rng, BUB_V8_START_ROWS - 3);
+    // A level's reef draws its chests on its full rows only (never in the part-filled last row's gaps).
+    const rowDraw = rngBelow(rng, (look ? bubReefFullRows(look.count) : reefRows) - 3);
     rng = rowDraw.state;
     const row = 3 + rowDraw.value;
     const colDraw = rngBelow(rng, bubRowCols(row));
@@ -1226,6 +1306,7 @@ function initReef(seed: number): BubState {
   }
   return {
     ...bandInit(base),
+    ...(reefRows === BUB_V8_START_ROWS && !look ? {} : { startCount: grid.filter((cell) => cell !== 0).length }),
     rng,
     grid,
     lineRev: BUB_REV_TORPEDO,
@@ -1401,7 +1482,7 @@ export function bubStdCleared(state: BubState): number {
 /** bubbleRev 11's standard parts (null for any other revision's state). */
 export function bubbleStdParts(state: BubState): StdPart[] | null {
   if (!state?.std) return null;
-  const spec = BUB_V11_STD_SPEC;
+  const spec = state.fast ? BUB_V12_STD_SPEC : BUB_V11_STD_SPEC;
   const start = Math.max(1, state.startCount);
   const cleared = bubStdCleared(state);
   const left = state.cleared ? BUB_RUN_TICKS - clampInt(state.endedTick, 0, BUB_RUN_TICKS) : 0;
@@ -1410,11 +1491,11 @@ export function bubbleStdParts(state: BubState): StdPart[] | null {
   const combos = state.combos ?? 0;
   const plural = (k: number, one: string, many: string) => `${k} ${k === 1 ? one : many}`;
   return [
-    stdPart(spec, "core", stdLine(BUB_V11_CORE_MAX, cleared, start), `${cleared} of ${start} bubbles`),
+    stdPart(spec, "core", stdLine(BUB_V11_CORE_MAX, cleared, Math.min(start, state.coreFull ?? start)), `${cleared} of ${start} bubbles`),
     stdPart(spec, "clear", state.cleared ? BUB_V11_CLEAR : 0, state.cleared ? "reef cleared" : "not cleared"),
-    stdPart(spec, "speed", state.cleared ? stdLine(BUB_V11_SPEED_MAX, left, BUB_V11_SPEED_FULL_LEFT) : 0, state.cleared ? `${Math.floor(left / TICKS_PER_SECOND)} s left` : "not cleared"),
+    stdPart(spec, "speed", state.cleared ? stdLine(BUB_V11_SPEED_MAX, left, state.speedFullLeft ?? BUB_V11_SPEED_FULL_LEFT) : 0, state.cleared ? `${Math.floor(left / TICKS_PER_SECOND)} s left` : "not cleared"),
     stdPart(spec, "chests", stdEach(chests, BUB_V11_CHEST_EACH, BUB_V11_CHESTS_MAX), `${chests} of ${BUB_V8_CHESTS} fell`),
-    stdPart(spec, "banks", stdLine(BUB_V11_BANK_MAX, banks, BUB_V11_BANK_PER * BUB_V11_BANK_MAX), plural(banks, "bank shot", "bank shots")),
+    stdPart(spec, "banks", stdLine(BUB_V11_BANK_MAX, banks, state.banksFull ?? BUB_V11_BANK_PER * BUB_V11_BANK_MAX), plural(banks, "bank shot", "bank shots")),
     stdPart(spec, "combos", stdEach(combos, BUB_V11_COMBO_EACH, BUB_V11_COMBO_MAX), plural(combos, "combo", "combos")),
   ];
 }
@@ -1423,7 +1504,7 @@ export function bubbleStdParts(state: BubState): StdPart[] | null {
 export function bubStdFeaturePoints(state: BubState): number {
   return (
     stdEach(state.chests ?? 0, BUB_V11_CHEST_EACH, BUB_V11_CHESTS_MAX) +
-    stdLine(BUB_V11_BANK_MAX, state.banks ?? 0, BUB_V11_BANK_PER * BUB_V11_BANK_MAX) +
+    stdLine(BUB_V11_BANK_MAX, state.banks ?? 0, state.banksFull ?? BUB_V11_BANK_PER * BUB_V11_BANK_MAX) +
     stdEach(state.combos ?? 0, BUB_V11_COMBO_EACH, BUB_V11_COMBO_MAX)
   );
 }
@@ -1457,3 +1538,153 @@ export const bubbleStdGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
   init: (seed) => ({ ...initReef(seed), credit: 1, minePops: BUB_V11_MINE_POPS, std: 1 }),
   score: (state) => (state.std ? stdScore(bubbleStdParts(state) ?? [], Boolean(state.acted)) : bubbleCreditGame.score(state)),
 };
+
+/* ================= The Strategy overhaul (bubbleRev 12, 15 Nov 2026) ================= */
+
+/**
+ * bubbleRev 12 (the Strategy overhaul, docs/arcade-standard/bubble.md "bubbleRev 12"): bubbleRev 11's game and parts
+ * with two changes, both from the seed or the input log only.
+ *  - **A smaller reef**: nine rows (86 bubbles) instead of ten, the chests drawn on rows 3–8, so a strong player
+ *    clears it in the 90 s (Near-perfect play left about 20 of 95 on bubbleRev 11).
+ *  - **The fast shot**: the release's `c` (0, 1 or 2, set by how far down the aim line the finger was dragged) runs the
+ *    shot's flight 1, 2 or 3 times a tick. Each run is the same flight step every older revision uses, so the bubble
+ *    follows exactly the same path (the same sub-steps, wall bounces and landing cell) and only arrives sooner.
+ * Older stamps never read `c` (their input range clamps it to 0) and play exactly as before.
+ */
+export const BUB_REV_FAST = 12;
+export const BUB_V12_REEF_ROWS = 9;
+/** Reef bubbles on every bubbleRev 12 seed (rows of 10 and 9 alternating: 5 × 10 + 4 × 9). */
+export const BUB_V12_REEF = 86;
+/** The highest fast-shot level a release may carry; the flight runs `level + 1` steps a tick. */
+export const BUB_V12_FAST_MAX = 2;
+/** Drag length (world px from the finger's start) at which each fast level begins, on the phone. */
+export const BUB_V12_FAST_DRAG: readonly number[] = [0, 110, 190];
+
+export const BUB_INPUT_RANGES_V12: readonly InputRange[] = [
+  inputRange(BUB_INPUT_SHOT, [-BUB_V_MAX, BUB_V_MAX], [-BUB_V_MAX, 0], [0, BUB_V12_FAST_MAX]),
+];
+
+/** The input ranges a stored round's bubbleRev replays with (only bubbleRev 12 reads `c`). */
+export function bubbleInputRangesFor(rev?: number | null): readonly InputRange[] {
+  return rev === BUB_REV_FAST ? BUB_INPUT_RANGES_V12 : BUB_INPUT_RANGES;
+}
+
+/** The fast-shot level for a drag of `dragPx` world px (the phone's mapping; the sim only reads the level sent). */
+export function bubFastLevel(dragPx: number): number {
+  let level = 0;
+  for (let k = 1; k < BUB_V12_FAST_DRAG.length; k++) if (dragPx >= BUB_V12_FAST_DRAG[k]!) level = k;
+  return Math.min(level, BUB_V12_FAST_MAX);
+}
+
+export const BUB_V12_STD_SPEC: StdSpec = {
+  ...BUB_V11_STD_SPEC,
+  rev: BUB_REV_FAST,
+  parts: BUB_V11_STD_SPEC.parts.map((part) =>
+    part.key === "core" ? { ...part, how: `pop or drop the ${BUB_V12_REEF} reef bubbles, each worth the same` } : part,
+  ),
+};
+
+/** bubbleRev 12's core line (0 → 120 at the whole 86-bubble reef). */
+export const BUB_V12_BAND_CURVE = bandCurve([0, BUB_V12_REEF], [0, BUB_V11_CORE_MAX]);
+
+function fastStep(state: BubState, input: ArcadeInputEvent | null): BubState {
+  const firing = Boolean(input && input.k === BUB_INPUT_SHOT && state.flightColour === 0 && input.b < 0 && state.queueAt < state.queue.length);
+  let next = bubbleStdGame.step(state, input);
+  if (next === state) return next;
+  if (firing && next.flightColour !== 0) next = { ...next, boost: clampInt(input!.c | 0, 0, BUB_V12_FAST_MAX) };
+  const extra = next.flightColour !== 0 ? (next.boost ?? 0) : 0;
+  for (let k = 0; k < extra && next.flightColour !== 0 && !isOver(next); k++) {
+    // The same flight step, on the same tick: the shot covers its path sooner, never a different one.
+    const again = bubbleStdGame.step({ ...next, tick: next.tick - 1 }, null);
+    next = again;
+  }
+  if (next.flightColour === 0 && next.boost) next = { ...next, boost: 0 };
+  return next;
+}
+
+export const bubbleFastGame: ArcadeGame<BubState, ArcadeInputEvent | null> = {
+  ...bubbleStdGame,
+  init: (seed) => ({ ...initReef(seed, BUB_V12_REEF_ROWS), credit: 1, minePops: BUB_V11_MINE_POPS, std: 1, fast: 1, boost: 0 }),
+  step: fastStep,
+  inputRanges: BUB_INPUT_RANGES_V12,
+};
+
+/* ================= Difficulty levels on bubbleRev 12 (the Strategy overhaul, stage 3, 15 Nov 2026) ================= */
+
+/**
+ * Coral Pop's levels (docs/arcade-standard/bubble.md "Levels (stage 3)", docs/design/difficulty/README.md): played on
+ * the live stamp, bubbleRev 12, with the level read from the stored puzzle (`level`, puzzleLevel). Normal has no entry
+ * and is today's game exactly (no field on the puzzle or the state). Each level sets, from the seed alone:
+ *  - `colours`: the reef's and the queue's colour count (3 on Easy, 4, or 6 with the sixth colour BUB_SIXTH);
+ *  - `reef`: the reef's exact bubble count, chests included (the last row part-filled and centred);
+ *  - `every`: the shots between descents (Normal 8);
+ *  - `trail`: the aim trail's reach, display only (2 two bounces, 1 one bounce, 0 a short trail);
+ *  - the parts' "full at" figures (the same six parts and maximums, 200 in all): `banksFull` bank shots for the 15
+ *    bank-shot points, `coreFull` bubbles cleared for the 120 core points, `speedFullLeft` ticks left at the clear for
+ *    the 10 speed points (Normal: 30, the whole reef, 2,700), so a flawless run can fill every part on a level.
+ * These numbers are frozen with the stamp (a retune is a new stamp); GAME_LEVELS.bubble in src/lib/levels/gameLevels.ts
+ * repeats them for the selectors and the tuning tool, and bubble-levels-check proves the two agree.
+ */
+export type BubLevel = "easy" | "hard" | "expert";
+export interface BubLevelSettings {
+  colours: number;
+  reef: number;
+  every: number;
+  trail: number;
+  /** Bank shots that fill the 15-point bank-shot part (Normal: 30). */
+  banksFull: number;
+  /** Bubbles cleared that fill the 120-point core (Normal: the whole reef). */
+  coreFull: number;
+  /** Ticks left at the clear that fill the 10-point speed part (Normal: half the clock, 2,700). */
+  speedFullLeft: number;
+}
+export const BUB_LEVELS: Readonly<Record<BubLevel, BubLevelSettings>> = {
+  easy: { colours: 3, reef: 75, every: 10, trail: 2, banksFull: 8, coreFull: 50, speedFullLeft: 1800 },
+  hard: { colours: 5, reef: 110, every: 5, trail: 1, banksFull: 20, coreFull: 110, speedFullLeft: 1800 },
+  expert: { colours: 6, reef: 110, every: 7, trail: 0, banksFull: 10, coreFull: 110, speedFullLeft: 1800 },
+};
+/** The level's code in the state and the checkpoint checksum. */
+export const BUB_LEVEL_CODE: Readonly<Record<BubLevel, number>> = { easy: 1, hard: 3, expert: 4 };
+/** The short trail's reach (Expert), world px from the gun. */
+export const BUB_SHORT_TRAIL_PX = 120;
+
+export function isBubLevel(level: unknown): level is BubLevel {
+  return level === "easy" || level === "hard" || level === "expert";
+}
+
+function initLevel(seed: number, level: BubLevel): BubState {
+  const set = BUB_LEVELS[level];
+  const base = initReef(seed, bubReefRows(set.reef), { colours: set.colours, count: set.reef });
+  return {
+    ...base,
+    credit: 1,
+    minePops: BUB_V11_MINE_POPS,
+    std: 1,
+    fast: 1,
+    boost: 0,
+    lv: BUB_LEVEL_CODE[level],
+    every: set.every,
+    colours: set.colours,
+    trail: set.trail,
+    banksFull: set.banksFull,
+    coreFull: set.coreFull,
+    speedFullLeft: set.speedFullLeft,
+  };
+}
+
+const levelGames = new Map<BubLevel, ArcadeGame<BubState, ArcadeInputEvent | null>>();
+/** bubbleRev 12 at a level (Normal is bubbleFastGame itself). */
+export function bubbleLevelGame(level: BubLevel): ArcadeGame<BubState, ArcadeInputEvent | null> {
+  let game = levelGames.get(level);
+  if (!game) {
+    game = { ...bubbleFastGame, init: (seed) => initLevel(seed, level) };
+    levelGames.set(level, game);
+  }
+  return game;
+}
+
+/** The colour values a state's reef and queue use (1…5 on every revision and at Normal). */
+export function bubColoursOf(state: { colours?: number }): number[] {
+  const n = state.colours ?? BUB_COLOUR_COUNT;
+  return Array.from({ length: n }, (_, i) => bubColourValue(i));
+}

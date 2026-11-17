@@ -15,7 +15,8 @@ import type { PuzzleType } from "@/lib/duel/types";
 
 export type OfflineStatus = "provisional" | "pending" | "online";
 
-/** The games that ask the server during play: Nucleus, Forage, Interlock, Slider, Roundabout, Lookout, Strikeout, Cryptogrid, Swapword. */
+/** The games that ask the server during play: Nucleus, Forage, Interlock, Slider, Roundabout, Lookout, Strikeout, Cryptogrid, Swapword,
+ * and Bomb Defusal (its stage checks each step live on the server on Expert, the Attention overhaul, 15 Nov 2026). */
 export const ONLINE_ONLY_TYPES: ReadonlySet<PuzzleType> = new Set<PuzzleType>([
   "wordsmith",
   "wordhunt",
@@ -26,6 +27,7 @@ export const ONLINE_ONLY_TYPES: ReadonlySet<PuzzleType> = new Set<PuzzleType>([
   "strikeout",
   "codeword",
   "swapword",
+  "bomb",
 ]);
 
 /** At most this many deals a game in one pack (the pack's full size), and this many games in one server call. */

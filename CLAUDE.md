@@ -2587,6 +2587,262 @@ outside the repo.
   `public/tournaments-art/` (`TournamentArt`, `KIND_ART`). Styles `src/polish-layout/tournaments-pages.css`. Screens:
   `scripts/screens/tournaments.ts` (`TOURNAMENT_PAGES_SCREENS`, dark and light at every size; harness modes
   `tournament`, `tournamentrules`, `dailyarchive`); theme-check in sixths and no-wrap-check in elevenths.
+- **The Word overhaul, stage 1** (phase 2 step 4, 15 Nov 2026; `docs/design/game-reviews/word.md`, gallery
+  `docs/design/pages-review/word/GALLERY.md`). *Look* (display only): every Word piece is a Blender render
+  (`scripts/word-art/word_art.py`, bpy from PyPI, run from a venv outside the repo; deterministic) in
+  `public/word-art/` (`manifest.json`), laid under live letters through attributes: `data-wa` = tile / tile-sm / disc /
+  well / key / pip with `data-wa-tone` (gold, teal, grey, red, dim, sapphire), `data-wa-btn` = gold / navy (nine-sliced),
+  in `src/polish-word/word-look.css` (four attributes deep: it outranks the older tile rules) and one file a game in
+  `src/polish-word/`. No glows. **Re-run word_art.py after changing a piece's material and keep its sizes under 20 KB.**
+  Reveals whose markup a legacy check compares keep it: Strikeout's reveal is styled by its existing attributes, and
+  Roundabout's crossword takes the art only live and on wheelRev 5 (`Crossword art`). The keyboards (`LetterKeypad`)
+  are 52 px keys with a pop-up letter preview and a key cue (`strikeout.key` / `codeword.key`, `word.key.mp3` behind
+  NEW_GAME_SOUNDS) and sit at the bottom. The round-end list is `WordDropList` (words drop in, the longest gold).
+  *Game changes* (`src/lib/duel/wordOverhaul.ts`, layer `dealWordOverhaul` in `wordOverhaul.server.ts`, last in
+  DEAL_LAYERS; `pinPreWordOverhaul(true)` deals the stamps before): Nucleus `wordsmithRev 5` (counted words and the
+  missed list everyday only; obscure words score as bonus words, the verdict's `bonus`), Slider `wordSlideRev 6` (par =
+  the proven fewest slides; Reset asks first), Lookout `wordSearchRev 6` (the round goes on after the sixth word, Done;
+  speed measured at the sixth word), Roundabout `wheelRev 5` (`letterWheelBankRev5.server.ts`,
+  `bun scripts/letter-wheel-bank.ts --rev5 [--check]`: common-answer slot words, at most two of three letters),
+  Cryptogrid `codewordRev 6` (only letters shown wrong cost the clean crack; the selection jumps on). Display: Interlock
+  live red runs and drag back to the tray, Forage's miss pill, Roundabout's miss vs repeat, Swapword's intro swap.
+  ElevenLabs list: `docs/sound-cues/word-elevenlabs.md`. Checks: word-overhaul-check; screens `scripts/screens/word.ts`.
+  Reveals (Joe's reveal brief): on the new stamps only (`overhaulReveal(puzzle)`, `REVEAL_FROM` in wordOverhaul.ts; older
+  stamps draw their reveal exactly as before) each game's reveal is built from `src/components/puzzles/WordReveal.tsx`
+  (the score's numbers as tiles, the board large, Solution / Yours through the shared switch, words as chips; styles
+  `src/polish-word/word-reveal.css`).
+  *Stage 2, the effects* (15 Nov 2026, on #422's kit): every moment through `wordFx` (`src/components/puzzles/wordFx.ts`:
+  the kit's effect on the piece's own element plus the game's cue), 81 cues named in `word-elevenlabs.md`, each with a
+  placeholder in `scripts/sound-review-nov-2026/make.py` behind NEW_GAME_SOUNDS and a NEW_GAME_SOUND_REPLACES entry (the
+  kit or game sound it stands in for); the round end in each reveal (`RevealChips drop`: words drop in with
+  `shared.wordDrop` ticks, the longest `shared.wordLongest`; `RevealNumbers countAfterMs` counts the numbers up after).
+  Clips in the gallery; `bun scripts/shots/capture.ts … --video=<dir>` records a run. Stage 3 (levels) follows.
+  *Intro demos* (15 Nov 2026, the merge captain's plan): every older Word demo is stopped (`WORD_OVERHAUL_PRESENTATION`
+  in wordInput.ts, and `wordDemoStampOk` in `src/lib/duel/wordDemoStamps.ts`: a demo plays only on the game's own stamp as
+  rooms deal it, read from the dealt signature; Strikeout's rev-4-only rule is gone); the runs to record are
+  `scripts/fixtures/word-demos.json` (`bun scripts/word-demos-record.ts`: the near-perfect kit on today's intro example),
+  proved by word-demos-check (each run scores exactly the server's grade). Nothing saves a demo; the manual "Save intro
+  demos" workflow does after the final merge. Effect moments' own cues go through `effectCue` (wordFx.ts), the finish
+  cues through `wordCue`. The workflow runs `scripts/word-demos-save.ts` (DEMOS_URL, INTRO_DEMO_KEY, DEMOS_GAMES,
+  DEMOS_DRY / `--dry`; flags win; exit 0 / 1 / 2): headless Chromium plays each fixture run on the real stage in
+  practice's dev mode (one step player a game, `scripts/word-demos-players.ts`), refuses unless the served deal's public
+  half and the sent answer are the fixture's, then presses Save as intro demo.
+  *Stage 3, levels* (15–16 Nov 2026, on #432's framework): each Word game's entry is its own file
+  (`src/lib/levels/word/<game>.ts`: settings and one plain `ABOUT` line a level, read by `levelAbout` for the round
+  intro, the "?" help's Levels block and the game page) and its level deal `src/lib/duel/levels/<game>.server.ts`
+  (`dealWordLevel` in wordLevels.server.ts, hooked in generateUnstamped, never reached at Normal); the table of every
+  game's levels is in `docs/design/game-reviews/word.md` "Stage 3". A level's clock is the puzzle's own `timeLimitMs`;
+  boards that grow do so in rows (Lookout 10 × 11 / 10 × 12, Roundabout up to 9 × 12). Proofs: Strikeout, Lookout,
+  Cryptogrid and Swapword prove one answer (Strikeout's and Cryptogrid's Expert by a person-like solver,
+  `strikeoutSolver.server.ts`, `codewordHuman.server.ts`); Nucleus, Forage, Interlock, Slider and Roundabout are open
+  by design. Banks: Roundabout `letterWheelBank{Easy,Hard,Expert}.server.ts` (`scripts/letter-wheel-bank.ts`), Lookout
+  `wordSearchLevelBank.server.ts` (`scripts/word-search-level-bank.ts`), Cryptogrid's Expert list
+  `codewordExpert.data.ts` (`bun scripts/codeword-expert-bank.ts [--check]`), each rebuilt byte for byte with `--check`.
+  One check a game, `scripts/<game>-levels-check.ts` (helpers `word-levels-lib.ts` / `word-levels-shared.ts`): clocks,
+  Normal byte for byte, the same deal for all, the rules, the proof or open reason, tuning bands and the step up.
+  Cryptogrid: Easy 8 starting letters / 120 s, Hard 5 / 75 s, Expert 4 / 70 s on the 666 bank boards the person-like
+  solver cracks from four letters alone. Slider: Hard 7 slides / 60 s, Expert 8 / 50 s, its step measured by a person-like
+  solver that searches for the slides itself (`scripts/slider-human.ts`, runs in `scripts/fixtures/slider-human-levels.json`
+  by `bun scripts/slider-human-record.ts`; the kit reads the stored line, so it scores ~200 everywhere). Shots `bun scripts/shots/word-levels-shots.ts --url=<origin> [games…]`. Cryptogrid `codewordRev 7`
+  (`CODEWORD_REV_NAMES`): a full grid that isn't cracked is answered with the words on it that aren't real words
+  (`CwView.nonWords`), which flash red on the live board.
+- **The Action overhaul, stage 1** (15 Nov 2026, phase 2 step 4; `docs/design/game-reviews/action.md`, gallery
+  `docs/design/pages-review/action/GALLERY.md`, sounds for Joe `docs/sound-cues/action-elevenlabs.md`, which the cue sheet
+  skips; slots nothing fires yet are in `docs/sound-cues/action-overhaul-stage2.md`; screens `scripts/screens/action.ts`).
+  Every game is edge to edge (its fill continues its own scenery beside and below the fixed world, repainted by
+  `sceneKey` only when the setting's step changes) and its setting evolves through the round (display only, from the sim,
+  the same for everyone). Three new stamps for grace (no run ends on the first slip at Normal):
+  - *Roofbound* `flipRev 13` (`FLIP_REV_GRACE`): a crash with no save respawns on the spot, every crash costs 10 s of clean
+    time; clean time full at 55 s, perfect landings at 5 of 8 (`FLIP_V13`); deal `flipDealV13.server.ts`
+    (`bun scripts/flip-deal.ts --rev=13`), `pinFlipPreGrace(true)` deals 12; basalt, lava rivers, heat rising (`flipCaveHeat`);
+    no "Bonuses" reveal tile. "Sweet spot" challenge now five sweet spots. flip-overhaul-check.
+  - *High Rise* `skylineRev 11`: 3 lives (`SKYLINE_V11_LIVES`, a miss costs one, 30 ticks of ignored taps after), a wide
+    block after 5 trims in a row (`SKYLINE_V11_TRIM_RUN`); rev 10's parts; dusk to night by floors (`skylineNightStep`),
+    concept A's city, a plaza, the LIVES chip. skyline-overhaul-check.
+  - *Orbit* `orbitRev 15` (`ORBIT_REV_GRACE`): a crash or empty tank with no checkpoint respawns at the planet left after
+    `ORBIT_GRACE_HOLD_TICKS` (180); the same 96-course bank re-proved; `pinOrbitPreGrace(true)` deals 14; shaded turning
+    planets (`orbitPlanets.renderer.ts`), the sun's warmth up the course, two rows of big pills, SET CHECKPOINT held 450 ms
+    (`CheckpointHoldButton`), the capture chain counting `orbitSlips`. Bands `bun scripts/orbit-grace-bands.ts`.
+    orbit-overhaul-check.
+  - Display only, no stamp: *Grappler* (the jungle deepening by `swingJungleDepth`, moving river, 12 px grab loops, a
+    1.35× held vine, HUD 1.3×; one stretch count, 51 a course; swing-overhaul-check), *Moon Climb* (a moonrise by height,
+    `moonNight`, slate walls, sharper blades, RIDES n/6 and SCROLLS n/3 in the HUD, a hits line on the reveal from the
+    stored Hits stat; ricochet-overhaul-check), *Iron Wall* (clear, dusty desert, battle smoke by wave in
+    `bastionLook.ts`, S/M/H badges and outlines on far tanks past `BT_FAR_MARK_Z`, a one-time reload-swipe tip, a navy and
+    gold panel; bastion-overhaul-check). Intros are `ArtStill`s from each renderer on its live stamp. The materials pass
+  (Joe, 15 Nov 2026: real light on materials, no glare over panels or numbers, never flat) is drawn in code and cached per
+  size, except Orbit's planets (stage 2): nine surface maps baked in Blender by `scripts/orbit-planets-blender.py`
+  (procedural materials, fixed seeds, `--check` rebuilds byte for byte; Blender as a Python module from a venv outside the
+  project), 363 KB in `public/orbit/planets/` (`orbitPlanetMaps.data.ts`), projected and lit by `orbitPlanets.renderer.ts`
+  inside each collision circle, icy worlds taking only a cold cast (`orbitIceCast`). **Re-run the Blender script after
+  changing a material.** `pinSkylinePreLives(true)` deals skylineRev 10 (deal pin `skylinePreLives`).
+- **The Action overhaul, stage 2** (15 Nov 2026; display, sound and reveal only except two stamps; each game's page in
+  `docs/arcade-standard/` has a stage-2 section, gallery "Stage 2" subsections). Two bigger-hero stamps with re-proved
+  deals: *Grappler* `swingRev 18` (`SWING_REV_BIG`, a 14 px body set only inside `withBody`, `SWING_BIG_DEAL` from
+  `bun scripts/swing-slide-deal.ts --rev=18`, `pinSwingPreBig(true)` deals 17, hero `GRAPPLER_V18_SCALE` 1.4×) and *Moon
+  Climb* `ricoRev 4` (`MOON_BIG_REV`, a 34 × 68 body, `ninjaBodyFor`, towers proved in the sim, `pinRicoPreBig(true)` deals
+  3); art-check holds each new figure in its own entry (Joe's approval), the old stamps exactly as main. Every game's effects
+  from Joe's list are drawn by its own renderer from the sim (flipFx.ts, swingEffects.renderer.ts, orbitEffects.renderer.ts,
+  bastionLook.ts, skyline.renderer.ts, ricochetNinja.renderer.ts); the six Action games draw no edge glow
+  (`ACTION_EDGELESS_GAMES` in success.renderer.ts, `arcadeFxEdgeless`; a spec's optional `moment` hook draws the
+  replacement); High Rise, Iron Wall, Roofbound and Grappler hold their submit briefly for the end card. The arcade reveal
+  draws a game's `PuzzleDefinition.RunPicture` (`GameRunPicture`) in place of the stat tiles: each Action game's run replayed
+  from the stored log through the real sim (`replaySwingRun` / `replayOrbitRun` take a no-op `observe`) and drawn as one
+  picture with big numbers.
+- **The Action overhaul, stage 3: Orbit's bigger planets** (15 Nov 2026; `docs/arcade-standard/orbit.md` "orbitRev 16"):
+  `orbitRev 16` (`ORBIT_REV_BIG`, `initBigFrom`, the state's `big` outside the checksum) is orbitRev 15's play exactly on
+  the same fuel bank; each body (`r`, collided with by nothing: a catch is the orbit ring) is 140 % where its own path
+  leaves the rocket 13 px (`orbitBigPlanets`, `orbitPathClearance`), never smaller, the sun 140 %. All 96 witnesses
+  re-proved at 200 (`bun scripts/orbit-fuel-bank.ts --rev=16`); orbitRev 12–15 replay exactly
+  (`scripts/fixtures/orbit-big-legacy.json`, recorded on 329286de by `scripts/orbit-big-record.ts`). `pinOrbitPreBig(true)`
+  deals 15 (deal pin `orbitPreBig`); `SPHERE_MAX_PX` 224. A finished run on orbitRev 12+ holds its submit
+  `ORBIT_SUN_HOLD_MS` (1.5 s) for the sun moment (`orbitEndHoldMs`). Orbit's own Reveal on orbitRev 12+ is the run
+  picture. Intro demos for the six Action games: `scripts/fixtures/action-demos.json` (`action-demos-record.ts`, proved by
+  action-demos-check, saved by `bun scripts/action-demos-save.ts [--dry]` from `DEMOS_URL` / `INTRO_DEMO_KEY` against a dev
+  server, never from a session), stop rules `ACTION_DEMO_REVS` in introDemo.functions.ts.
+- **The Action overhaul, stage 3: levels** (15–16 Nov 2026; each game's `docs/arcade-standard/<game>.md` "Levels", with
+  its levers, measured tables and Expert seeds for Joe; the levels framework `docs/design/difficulty/README.md`). All six
+  Action games offer Easy, Normal, Hard and Expert (`GAME_LEVELS`), max 120 s and grace at every level, 200 proved at
+  every level. Normal is today's game for five of them (the deal stamps `level` only off Normal; the sims read it into a
+  state field folded into the checksum only when present). **Iron Wall** is Joe's approved exception (too-hard games:
+  today's becomes Expert): rooms, rated and the Daily deal `bastionRev 4` Normal; Easy / Normal / Hard are rev 4
+  (`BT4_LEVELS`: slower waves, wider green zone, longer and bigger weak spots, 5 / 4 / 3 base hits, fewer heavies, slower
+  and bigger drones), Expert deals `bastionRev 3` stamped `level: "expert"`; `pinBastionPreLevels(true)` deals rev 3;
+  bastion-levels-check. **Roofbound** (`FLIP_LEVEL_RULES`: speed, moving spikes from none / 8 s / 5 s, sweet spots,
+  perfect landings full at 5 / 7 / 9, 5 / 20 / 25 s a crash; per-level proved deals `flipLevelDeals.server.ts`,
+  `bun scripts/flip-level-deal.ts`; the course is built during the intro, `prepareFlipCourse`) and **High Rise**
+  (`SKYLINE_LEVEL_RULES`: slide, 5 / 3 / 2 px, wind from 30 / 15 / 10, 3 lives at every level, Hard and Expert from 16 Nov 2026; oracle `scripts/skyline-oracle.ts`,
+  Skyscraper possible): flip-levels-check, skyline-levels-check, bands `bun scripts/flip-skyline-levels-bands.ts`.
+  **Grappler** (`SWING_LEVELS`, `withLevel`: reach, sliding vines, stall limit, pterodactyl, dark runs; per-level proved
+  deals `swingLevelDeal.server.ts`, `bun scripts/swing-slide-deal.ts --rev=18 --level=…`) and **Moon Climb**
+  (`MOON_LEVELS`: blades, shurikens, ice, lanterns, knock-down, full height 200 / 245 / 260 m; towers proved in the sim):
+  swing-levels-check, ricochet-levels-check, bands `bun scripts/action-levels-bands.ts`. **Orbit** (`ORBIT_LEVEL_RULES`:
+  tank 240 / 140 / 120, Easy's armed auto checkpoints, Expert respawn only; per-level proved banks
+  `orbitFuelBank{Easy,Hard,Expert}.server.ts`, `bun scripts/orbit-fuel-bank.ts --level=…`): orbit-levels-check, bands
+  `bun scripts/orbit-level-bands.ts`. Human limits in the tuning are each game's own bot constraint (documented per
+  game), measured with main's `scripts/level-tune.ts` (checkpoints every 300 ticks), not #444's.
+- **Cards & Board overhaul, stage 1** (15 Nov 2026, phase 2 step 4; `docs/design/pages-review/cards-board/GALLERY.md`;
+  display, input mapping, sound and haptics only, no stamps): Free Cell, Summit, Five Hands and Thirteen draw real
+  cards and Mahjong real tiles, Blender renders (`scripts/cards-board-art/`: `textures.ts` paints the faces,
+  `render.py` renders them with the pip `bpy` module, `pack.py` writes `public/cards-board/*.webp`; **re-run all three
+  after changing `cardFace.renderer.ts` or Mahjong's faces**), drawn by `src/lib/arcade/cards/realArt.renderer.ts`
+  (`drawRealCard`, `drawRealFelt`, `drawRealTile`; the flat faces until the images load and in node). On the live stage
+  cards slide and flip (`CardMotion` / `CardLayer`, held by each game's view; reveals and replays draw still; reduced
+  motion places at once). Reset asks first (`confirmBoxes`, Mahjong's footer question); Free Cell's Undo and Reset are
+  labelled buttons under the columns; Five Hands' POINTS is the score; a light `cardFeel()` touch on pick up, place and
+  match (haptics-check counts it). The arcade reveal draws `CardsRevealPicture` for the five (final table, three key
+  numbers, a run summary). The shared `drawCard` (Full House and the retired games) is unchanged.
+  cards-board-overhaul-check (~1 s); skins-default-check pins the four redesigned card games to
+  `scripts/fixtures/skins-default-frames-cards.json`; sound slots for Joe's recordings in
+  `docs/sound-cues/cards-board-elevenlabs.md`. Stages 2 (effects, with the kit) and 3 (levels and hints) follow.
+- **Cards & Board overhaul, stage 2** (15 Nov 2026; the effects, `docs/design/pages-review/cards-board/GALLERY.md`
+  "Stage 2"; display and sound only, no stamps): each game's renderer starts its effects from what changed in the sim's
+  state (`src/lib/arcade/cards/cardsFx.renderer.ts`: `FxTimeline` on the wall clock, held by the live stage's view, so
+  reveals, replays and stills draw none; nothing starts under reduced motion). Mahjong's stage now holds a view
+  (`mahjongNewView`, `mahjongArtGameFor(rev, view)`, one game object per revision and view); `mahjongBlockers` (mahjong.ts)
+  names the tiles keeping a place blocked. 24 new sound slots (`overCue` in gameSounds.ts: a slot's own file once set,
+  the sound that played there before until then; listed in `docs/sound-cues/cards-board-elevenlabs.md`); Free Cell's
+  home chime climbs a major scale per rank (`fcHomeRate`). Clips: `bun scripts/shots/cards-board-fx-clips.ts` (the
+  flawless lines through the real renderers on a virtual clock; `CardMotion.clock`). cards-board-overhaul-check section 9.
+- **Cards & Board overhaul, stage 3** (16 Nov 2026; the levels, `docs/design/pages-review/cards-board/GALLERY.md`
+  "Stage 3", each game's page in `docs/arcade-standard/` "Levels"): Easy, Hard and Expert for Free Cell, Mahjong, Summit,
+  Five Hands and Thirteen in `GAME_LEVELS`; Normal is today's game exactly (a Normal deal carries no `level` and never
+  reaches the level code). Each sim holds its rules (`FC_LEVEL_RULES`, `MAHJONG_LEVEL_RULES`, `TP_LEVEL_RULES`,
+  `FH_LEVEL_RULES`, `PY_LEVEL_RULES`) and a level game (`<game>LevelGame`, `<game>GameAt(rev, level)`, read by the stage,
+  the replay `replay<Game>Run(seed, raw, rev, level)`, grade.ts, the reveals and the replay steppers). Deals: Free Cell's
+  level banks (`freecellDealsLevels.data.ts`, `bun scripts/freecell-level-bank.ts`), Summit's Easy subset (`TP_EASY_DEALS`)
+  and Expert bank (`tripeaksExpert.data.ts`, `bun scripts/tripeaks-expert-bank.ts`), Mahjong's 56/88 layouts
+  (`mahjongLayoutOf`: a board's layout is told by its length) and Thirteen's level deals (`pyBuildLevelDeal`), all built or
+  proved. Hints: an input the sim counts (free on Easy, 5 points on Hard, one on Expert; none on Normal), the move shown
+  display only (`fcHintMove`, `mahjongHintPair`, `tpHintMove`, `fhHintRow`, `pyHintMove`; the solvers moved into
+  `src/lib/arcade/cards/`), Easy's glow by itself after 8 s idle. Five Hands' levels carry their own `timeLimitMs`
+  (`puzzleRunMs` honours it). The intro and "?" help take the level (`PuzzleInstructions` / `PuzzleHelp` `level`, words in
+  `src/lib/levels/cardLevelText.data.ts` from `bun scripts/cards-level-text.ts`; Normal lines that state today's numbers
+  carry `normalOnly`); a level's intro shows the still, not Normal's demo. Sounds `cards.hint`, `cards.hintIdle`,
+  `cards.deadEnd` (silent until set). Tuning: `bun scripts/cards-levels-tune.ts` (each part's average per level); the
+  Summit and Thirteen bots model the missing glow as longer search (`NO_GLOW_SCAN`). Intro demos:
+  `scripts/fixtures/cards-demos.json` (elite runs on each example deal, `bun scripts/cards-demos-record.ts`), saved by
+  `scripts/cards-demos-save.ts` (DEMOS_URL, INTRO_DEMO_KEY), played only on today's stamps (`cardsDemoRules.ts`).
+  cards-levels-check (~50 s) and cards-demos-check (~2 s). Second pass (16 Nov 2026, Joe): Summit's Hard and Expert deal
+  from the no-wrap bank (Hard its easier deals, `TP_HARD_NOWRAP_DEALS`; Expert its 100 hardest by stock par), Five Hands'
+  Hard and Expert stricter hand tables (`FH_TABLE_HARD` / `FH_TABLE_EXPERT`, a pair 10; the intro still takes the level,
+  `IntroExample`'s `level` prop), Thirteen's Hard filter adds a three-removal look and Expert deals exactly three Kings
+  with a four-removal filter. Measured two ways: the skill-band bots and a player held to human limits
+  (`scripts/cards-human-limits.ts`, 0.25 s to react and 0.15 s to move, visible cards only; `cards-levels-tune.ts
+  --bots=human`, best tenth reported); cards-levels-order-check (one game a part, `--part=k/5`, ~2–25 s each) fails unless
+  every level is clearly below the one before.
+- **The Strategy overhaul, stage 1: look and game changes** (phase 2 step 4, 15 Nov 2026;
+  `docs/design/game-reviews/strategy.md`, concepts in PR #426; gallery `docs/design/pages-review/strategy/GALLERY.md`).
+  **Coral Pop** `bubbleRev 12` (`BUB_REV_FAST`, `docs/arcade-standard/bubble.md`): an 86-bubble reef (9 rows) and the
+  fast shot: the release's `c` (0–2, from the drag's length, `bubFastLevel`) runs the shot's flight `c + 1` times a tick,
+  the same path only sooner; only bubbleRev 12's input range carries `c` (`bubbleInputRangesFor`); `pinBubblePreFast`.
+  **Rainbow Bridge** `inkRev 15` (`INK_REV_HILLS`, `docs/arcade-standard/inkbridge.md`): the pot and hill placed level by
+  level (`inkV15PotPlan`: lower, higher, further, closer), 14 px birds and no extra birds, from its own proved deal
+  (`inkHillsDeal.server.ts`, `bun scripts/ink-big-deal.ts --rev=15 [--check]`); the sky turns to sunset over the ten
+  levels (`inkSunset`, display); `pinInkPreHills`. Display only on every revision: Tilt's disc fills the width on
+  tiltRev 12 (`tiltFixedZoom(R, big)`) on a darker shaded table whose edge colour the scene continues
+  (`WALNUT_TABLE_EDGE`), champagne-gold walls; Gemstone's treasure is a bronze-banded chest with a fall trail and a
+  "↓ n" chip (`drawTreasureTrail`); Ball Tracker's marbles drawn 27 px (`MARBLE_DRAW_R`) and bigger cup symbols; Coral
+  Pop's candy-glass depth; a rendered cast-iron pot of gold. **No words over the boards**: `ArcadeFxSpec.textBand` /
+  `textX` put every pop and banner in a strip off the board (`STRATEGY_TEXT_BAND`, `TILT_X_TEXT_Y`); Coral Pop's own
+  BANK / COMBO / TREASURE beside the gun. Light success haptics (marble in Tilt's cup, a Gemstone cascade through
+  `matchupCascadeFeel`, Coral Pop's reef cleared, a coin in the pot, a Ball Tracker marble home). Intro stills are real
+  frames (`FrameStill`, `public/intro/<type>.webp` from `bun scripts/shots/strategy-stills.ts [--check]`, ~20–43 KB
+  each; **re-run it after changing one of these games' look**). Sounds for Joe to record:
+  `docs/sound-cues/strategy-elevenlabs.md`. strategy-overhaul-check (~1 min); screens `scripts/screens/strategy.ts`;
+  shots `bun scripts/shots/strategy-shots.ts --url=<origin> [--reveal]`. Effects (PR #422) and difficulty levels come in
+  stages 2 and 3.
+- **The Strategy overhaul, stage 2: rendered materials, effects, reveals** (15 Nov 2026; display only, no stamps;
+  gallery `docs/design/pages-review/strategy/GALLERY.md`). Cycles renders (`docs/design/cosmetics-redraws/blender/
+  strategy_art.py`, bpy 5.3) in `public/strategy/` (25 WebPs, ~170 KB; hashes in `strategyArt.data.ts` from
+  `bun scripts/strategy-art-data.ts [--check]`; **re-run it after re-rendering**): Gemstone's gems, Coral Pop's bubbles,
+  Tilt's and Ball Tracker's marbles, Tilt's walnut disc and its lacquer reflection, Captain Joulz by Rainbow Bridge's pot
+  (`inkbridge-captain-ready` / `-win`, cheering `INK_CAPTAIN_CHEER_TICKS` after a pot), and the reveal's coin and chest.
+  `strategyImage(name)` (`src/lib/arcade/strategyArt.ts`) answers null until loaded and always in Bun, so the code art is
+  drawn there and every pixel digest is unchanged; caches key on `strategyArtVersion()`; RoundIntro preloads a game's
+  images. Effects (renderers, display only): Tilt's filled cup ringed in its colour, Coral Pop's shot trail, Rainbow
+  Bridge's pot coin burst, Ball Tracker's red wrong cup and the cups' pulse before they move. Reveals:
+  `StrategyRunSummary` under the score in ArcadeReveal (the stored reveal's axis and tiles; Tilt's times and Gemstone's
+  goals from the player's own run replayed on the phone, loaded on demand), styles `polish-layout/strategy-reveal.css`.
+  Tiles and intro stills redrawn with the renders (`tile-scenes` waits for them). strategy-overhaul-check sections 5c–5f.
+  *Follow-up (Joe, 15 Nov 2026)*: gems re-cut (alternate light and dark facets, softbox glints), bubbles re-lit (a big
+  window of light and a rim light), Tilt's walnut face painted calm (numpy, not Cycles), Ball Tracker's oak board and
+  walnut grooves (tileable textures `bt-board` / `bt-walnut`, pattern fills in its board layer, keyed on the art
+  version), Captain Joulz 70 px (`INK_CAPTAIN_H`, beside the pot, left of it near the right edge). Every agreed effect
+  is drawn by its renderer in the #422 kit's variant (`src/lib/arcade/strategyFx.ts`: `strategyFx(kind)` →
+  full / lite / reduced, `fxAmount`, `fxMemory` per canvas; pure helpers `tiltPitLip` in `tiltLip.ts` and
+  `bubbleNearLine`, shared by renderers and sound observers): Tilt's rim dial, knock nudge, pit-lip wobble and maze
+  spin-away; Gemstone's goal sparks and two-step ice crack; Coral Pop's stick squash, reef rumble and flashing warning
+  line; Rainbow Bridge's coin wobble, birds flapping away and a miss falling away; Ball Tracker's carry arc, booster
+  flash and combo beside the cups. Their 13 sound slots are in the manifest (`url: null`, silent until recorded; the
+  ice crack falls back to today's crackle), on the cue sheet through `docs/sound-cues/strategy-elevenlabs.md`'s
+  "Wired in stage 2" table. Ball Tracker says "Wrong cup" everywhere (a stored "Wrong tray" is shown the same).
+  Effect clips: `bun scripts/shots/strategy-fx-clips.ts` (frames from the real renderer round each moment), joined by
+  `python3 -I scripts/shots/strategy-gallery.py <shots dir> <fx dir>`.
+- **The Strategy overhaul, stage 3: levels and intro demos** (16 Nov 2026; on #432's framework, `GAME_LEVELS` blocks
+  mirroring each sim's own level table; rated play and the Daily stay Normal; Normal is each game's live stamp exactly).
+  **Tilt** (`TILT_LEVELS`, `tiltDealLevels.server.ts`): Easy 3 smaller mazes, few pits, no ice; Hard and Expert tighter par
+  and more pits and ice; tilt-levels-check. **Gemstone** `matchupRev 13` (`MATCHUP_REV_ICE2`): two-hit ice (2 whole, 1
+  cracked, 0 broken; `iceCracked` / `iceBroken`) and `MATCHUP_V13_LEVELS` (Easy 5 colours, small goals, 5 ice, hint at
+  3 s; Hard 14 ice, hint at 8 s; Expert 7 colours with a cyan heart, 18 ice, no hint); `pinMatchupPreIce2(true)` deals 12;
+  gemstone-levels-check. **Coral Pop** (`BUB_LEVELS` on bubbleRev 12): colours 4 / 5 / 5 / 6 (an orange seahorse drawn
+  in code), reef, shots between descents and the aim trail's reach; bubble-levels-check. **Rainbow Bridge**
+  (`INK_LEVEL_SETS` on inkRev 15): ink, birds, live levels, par margin, swaying birds on Expert and the pot's width,
+  each level from its own proved deal (`inkHillsDeal{Easy,Hard,Expert}.server.ts`); ink-levels-check. **Ball Tracker**
+  (btRev 8): marbles, release, cup moves, gold and boosters per level from proved lists
+  (`ballTrackDeal{Easy,Hard,Expert}.server.ts`); balltrack-levels-check. Each level reaches 200 through the server
+  replay. Intro demos: `scripts/fixtures/strategy-demos.json` (the Elite bot on each game's intro example deal,
+  `bun scripts/strategy-demos-record.ts [games…]`), strategy-demos-check (each run scores what the server's replay says,
+  the deal is the example deal), `scripts/strategy-demos-save.ts` (`DEMOS_URL`, `INTRO_DEMO_KEY`, `DEMOS_GAMES`,
+  `DEMOS_DRY` / `--dry`; refuses a deal that differs from the fixture; exits 0 / 1 / 2; never prints the key), and a
+  version rule in `getIntroDemoFn`: a Strategy demo dealt at another level than Normal never plays. Frames:
+  `bun scripts/shots/strategy-level-frames.ts`.
+  Final pass (16 Nov 2026): Easy made easier (the average bot stars on about a third to a half of runs) on Coral Pop (3
+  colours, core full at 50), Rainbow Bridge (a quarter of the birds, a 110 px pot, a clover on the easy line,
+  `tricksFullAt` / `cloversFullAt`, speed full with 10 s left) and Ball Tracker (16 marbles every 3.2 s, the course's
+  `combo` full at 10); Gemstone's cyan heart (`gem-heart`) and Coral Pop's orange bubble (`bubble-orange`) are rendered
+  (`strategy_art.py gem7 bubble6`); each game's "?" help has a help-only "Levels:" line (strategy-overhaul-check).
+  Tilt's Normal (elite ~144 under human limits) is noted for Joe's scoring review in docs/arcade-standard/tilt.md.
 - **The games foundation** (phase 2 step 4, 15 Nov 2026; `docs/design/game-fx/README.md`, gallery
   `docs/design/pages-review/game-frame/GALLERY.md`; presentation and input mapping only, no stamps). *Effects kit*:
   `gameFx(kind, element, options)` in `src/lib/fx/kit.ts` (tap, pickUp, drop, slide, pour, match, wrong, combo, countUp,
@@ -2603,6 +2859,129 @@ outside the repo.
   `src/lib/gameControls.ts` (schemes per game, chosen from the game menu, the Controls tab and Settings; input mapping
   only; game-controls-check). The reveal's verdict row is the shared result card (`reveal-result`) with practice's
   stars and new best (`RevealPayoff`).
+- **The Retro overhaul** (phase 2 step 4, 15 Nov 2026, `docs/design/retro-overhaul.md`; stage 1 of 3: look and game
+  changes, then the effects kit, then levels): Tempo `beatRev 12` (a missed note scores 0, not −2; beatRev 11's play),
+  Rally `rallyRev 13` (two blue-ball lives, a missed ball serving again after 1.5 s; spin shots 2 each up to 10, core
+  130), Fission `burstRev 12` (wave clears run out at three times the quick time; burstRev 11's play) and `burstRev 13`
+  (bigger atoms, `burstRadius`), Pinball `pinRev 7` (one J-O-U-L-Z set fills its part), Meteor `snakeRev 13` (the edges
+  wrap, core full at 36) and `snakeRev 14` (rocks in three sizes, `snakeRockShape`), Breaker `brkRev 12` (a 9-row
+  clearable wall), Wavefront `wavRev 14` (hold and lift for a charged shot). **No Retro text below 11 px**, labels and
+  pops included (`retroText`, polishA1's pops and the success layer's Retro pops floor at `RETRO_HUD_MIN_PX`;
+  retro-overhaul-check renders every game's run in Node, `scripts/retro-render-lib.ts`, and fails on a smaller draw).
+  Looks: lit pixel materials (balls, paddles, enamel bricks with one icon a power, glass atoms and domes, lacquered
+  blocks), Hover's pixel nebula, Tempo's lane buttons, Rally's two-tone dithered court, Meteor's glowing tail,
+  Spacewalk's nebula, lit ships and bigger astronaut; intro stills are real frames (`ArtStill`, which may take an
+  autopilot). In-world effects go through `retroFx.renderer.ts` (an event log per canvas, aged by sim ticks) and
+  `retroMoments.ts` (near-misses read from positions, shared by the renderer and the sound observer). Checks written for
+  the stamps before pin `preRetro` (`pinPreRetro`); `RETRO_REVS` in `scripts/scoring-targets-revs.ts` maps the score-only
+  stamps to their play; `ARCADE_STANDARD` entries may carry `specFor(rev)` (Rally's rev-12 rounds keep their three part
+  names). retro-overhaul-check proves it; `scripts/screens/retro.ts` draws the ten Retro game pages;
+  `bun scripts/shots/retro-frames.ts` draws the gallery's frames; Joe's sound list is
+  `docs/sound-cues/retro-elevenlabs.md`. **Stage 2** (15 Nov 2026; display, sound and the reveal only, no stamps): the
+  text floor is on screen (`src/lib/arcade/retroScale.ts`: no Retro text under 11 px on a 390 × 844 phone, each world's
+  floor in its own pixels, `withRetroTextFloor`; retro-overhaul-check measures it at that phone's scale); every Retro
+  game's in-world effects go through `retroFx.renderer.ts` and `retroMoments.ts` (near-misses shared with the sound
+  observers), 32 new sound slots silent or on their old stand-in until Joe's files (arcade.md / arcade-effects.md,
+  retro-elevenlabs.md); the answer reveal shows `RetroRunSummary` (key numbers, the run's timeline, the final board for
+  Breaker, Meteor and Blockzone), worked out by replaying the stored run on the phone after the first paint
+  (`src/lib/replay/retroSummary.ts`; retro-summary-check); the demo rules accept the new stamps (`SAME_PLAY_DEMO_REVS`
+  rally, beat, blockfall); the reveals are `retro: reveal, <game>` screens in theme-check and no-wrap-check (the room
+  harness's `arcadeRun`), drawn for review by `bun scripts/shots/retro-reveal-shots.ts`.
+- **The Retro overhaul, stage 3: levels, payoffs, demos** (16 Nov 2026, `docs/design/retro-overhaul.md` "Stage 3: the
+  levels"): every Retro game has Easy, Hard and Expert as plain data in `src/lib/arcade/retroLevels.ts` (listed in
+  `GAME_LEVELS`; Normal is the dealt stamp, no `lv`, so rated play and the Daily are unchanged), carried on the run's state
+  (`lv`, set at init by `withRetroLevel` or the game's own `…For(level)`); **every place that builds a Retro game from a
+  stored puzzle passes `puzzleLevel(puzzle)`** (stage, `replay…Run(seed, raw, rev, level)`, grade.ts, steppers.ts, the
+  bots' `RETRO_LEVEL_GAMES` in games.ts). New Normal stamps: Hover `hoverRev 11` (starts shielded), Meteor `snakeRev 15`
+  (the first crash forgiven), Spacewalk `crossRev 13` (lighter traffic), Wavefront `wavRev 15` (hit boxes 3 px larger,
+  `WAV_V15_HIT_PAD`; dealt only from `WAV_DEAL`, seeds with a witness at 200 through the server replay at every level,
+`bun scripts/wavefront-big-deal.ts [--check]`, wavefront-deal-check), Pinball `pinRev 8` (outlane saves counted; pinRev
+7's play), each pinned off by `preRetro`. Round-end
+  payoffs on the presentation clock (`retroEndAge`, `retroPayoffBanner`, the stage holds the submit `RETRO_PAYOFF_MS`).
+  Fission's one-thumb option (`src/lib/arcade/fissionThumb.ts`, Settings → Game controls) and Tempo's D F J K keys are input
+  mapping only. Intro demos: `scripts/retro-demos.json` (bot runs on each game's intro example deal and dealt stamp,
+  `bun scripts/retro-demos-record.ts`), retro-demos-check, and `scripts/retro-demos-save.ts` (DEMOS_URL, INTRO_DEMO_KEY,
+  DEMOS_GAMES, DEMOS_DRY; through saveIntroDemoFn from a page of a dev server; never run against the live database by a
+  session). Measure levels with `bun scripts/level-tune.ts <game> --level=all`. Shots `bun scripts/shots/retro-stage3-frames.ts`.
+- **Home Run and Top Bins overhaul** (phase 2 step 4, 15 Nov 2026; `docs/arcade-standard/homerun.md` "homerunRev 5",
+  `freekick.md` "freekickRev 5", gallery `docs/design/pages-review/home-run-top-bins/`): **Home Run** `homerunRev 5`
+  (`src/lib/arcade/homerunInnings.ts`, its state `inn` on HomerunState): one innings, 117 s, three outs; read the pitch
+  (a fixed count outside the zone), swing or take, Contact or Power (kind 2), swipe to aim (kind 5), runners and runs;
+  runs 100 + home runs 40 + perfect streak 40 + good eye 20. **Top Bins** `freekickRev 5`: wind (the target solved in
+  still air, `fkCalm`), three strikes from the stroke's shape (`freekickStroke.ts`, the SHOT's `d`: curler, driven,
+  dipping), the keeper's lean, a jumping wall on some kicks (`fkV5WallLift`); goals 120 + targets 40 + skill shots 30 +
+  five in a row 10. Both have four levels (`HR_LEVEL_SETTINGS`, `FK_LEVEL_SETTINGS`; the stored `level` field, absent for
+  Normal, the difficulty framework's form; `generateHomerun(level)` / `generateFreekick(level)`), each dealt from its own
+  proved deal (`homerunDealV5.server.ts`, `freekickDealV5.server.ts`, `bun scripts/homerun-innings-deal.ts` /
+  `freekick-layered-deal.ts [--check]`); bands `bun scripts/homerun-innings-bands.ts` / `freekick-layered-bands.ts`.
+  Captain Joulz bats (the batter in his kit) and kicks (`sportsCaptain.renderer.ts`). Reveals: each draws its own run
+  picture (the field with every batted ball, the goal frame with the ten kicks) through ArcadeReveal's `summaryVisual`
+  (`hasArcadeSummary`, `src/lib/duel/arcadeSummary.ts`). Sound slots wait for `docs/sound-cues/home-run-top-bins-elevenlabs.md`.
+  Effects (stage 2, on #422's kit): in-game moments stay in the renderers and sound observers (the kit's rule for canvas
+  games); the DOM pieces use the kit: Contact / Power presses `tap`, the reveals' marks land in turn (`useLandInTurn` in
+  `SportsRevealParts.tsx`, the kit's `drop`, silent) and their stats count up (`FxCountUp`, silent); sports-overhaul-fx-check. Intro demos: bot runs on each game's intro example deal (dealt stamp, Normal) in
+  `scripts/fixtures/home-run-top-bins-demos.json` (`bun scripts/home-run-top-bins-demos-record.ts`), saved by the manual
+  "Save intro demos" workflow after the final merge (`scripts/home-run-top-bins-demos-save.ts`: DEMOS_URL,
+  INTRO_DEMO_KEY, DEMOS_GAMES, DEMOS_DRY / --dry; the intro example deal, so the Save demo function takes it; exits 0 /
+  1 / 2); only rev-5 Normal demos play (`sportsDemoRules.ts`); home-run-top-bins-demos-check.
+  Levels (16 Nov 2026, Joe: a clear step up, Normal comfortable, Expert humanly possible to score well on, measured on
+  the elite bot under human limits, `HUMAN_LIMITS` in `scripts/arcade-skill-bands/human.ts`, `level-tune.ts
+  --human-limits`): Top Bins deals **freekickRev 6** (`FK_V6_EASE`: Easy and Normal count the hoop 1.35× and the open
+  side from 0.6 m; `FK_LEVEL_SETTINGS_V6` / `fkLevelSettings(rev, level)`: Hard and Expert a quicker keeper and more
+  wind; `FK_V6_CORE_FULL`: Goals full at 1,200 / 1,250 units on Hard / Expert; its own proved deal
+  `freekickDealV6.server.ts`, `freekick-layered-deal.ts --rev=6`; rev 5 untouched); Home Run's Hard and Expert retuned in
+  place on rev 5 (never dealt outside the branch; faster pitches, `ballOff` balls nearer the edge; Easy and Normal
+  unchanged). Expert proof `bun scripts/home-run-top-bins-expert-proof.ts`.
+  Checks: homerun-innings-check, freekick-layered-check; frames `bun scripts/shots/homerun-innings-frames.ts`,
+  `freekick-layered-frames.ts`. Rev 1–4 of both replay and score exactly as before.
+- **The effects pass** (15 Nov 2026, `docs/design/effects-pass/README.md`, gallery
+  `docs/design/pages-review/effects/GALLERY.md`; presentation only, no stamps, RoundIntro's behaviour and timing unchanged):
+  Prepare to Duel's players' mini cards arriving (`DuelLineup`) and a richer build-up; five round-title backdrops in turn
+  (`ROUND_BACKDROPS`) with the round's numeral behind the title and a bigger final round; a small, freshly built strike on
+  each of 3-2-1 (`countdownStrike`, every strike varied); one entrance for the reveal and results screens
+  (`useMomentEnter`) and a page fade; the kit's moments on badges, pass level-ups and claims, season rewards, challenges,
+  tournament results, new trophies and the rating count-up (`useAppMoment`). New overlay parts are `rich` (celebrations on,
+  full effects) and listed in reduced-motion-end-check. Also: the phone status panel above a puzzle's board (`PhoneStatus`,
+  phone-gap-check), the room's finished strip below the timer bar, the reveal heading from `revealHeading.ts` ("Your
+  answer" / "The solution" / "Answer and solution") and compact shared reveal rows on short phones (`SHORT_REVEAL_QUERY`).
+  app-moments-check (~1 s).
+- **Logic overhaul 2** (15–16 Nov 2026, phase 2 step 4; gallery `docs/design/pages-review/logic-2/GALLERY.md`): Tents
+  and Trees, Shikaku, Lamplighter, Trail, Loopline, Regions, Island Link. *Look*: Blender-rendered pieces
+  (`scripts/logic-art/render2.py`, cut by `bun scripts/logic-art.ts [--check]` to `public/logic-art/`,
+  `src/puzzles/logicArt.data.ts`), styles `src/polish-logic/logic-2.css`. *Game changes* (`logicOverhaul2.ts`, pin
+  `preLogic2`): Trail `depthRev 3` (2.5 a undo), Regions `fillominoRev 2` (a stroke one mistake). *Reveals*
+  `src/puzzles/logic2Reveal.tsx`. *Effects* on #422's kit, sound slots in `docs/sound-cues/logic-elevenlabs-2.md`
+  (library stand-ins). *Intro demos*: `scripts/fixtures/logic2-demos.json` (`bun scripts/logic2-demos-record.ts`, which
+  plays each intro example on the practice screen for the server's grade and measures every touch in the intro's own
+  demo player), logic2-demos-check, `scripts/logic2-demos-save.ts` for the Save intro demos workflow; older demos stop
+  (`LOGIC2_PRESENTATION`, and Trail / Regions before their stamps). *Levels* (stage 3; `src/lib/duel/logicOverhaul2Levels.ts`, re-exported by `logicLevels.ts`,
+  spread into GAME_LEVELS): every level keeps Normal's width and grows downwards; each Easy / Hard / Expert board must
+  be finished by a person-style solver (`logicHuman.server.ts`: deduction plus one-step trials, never guessing) inside
+  the level's band of trials (`logicLevelDeal.server.ts`); Trail Hard / Expert and Regions Expert come from banks
+  (`logicLevelBank.server.ts`, `bun scripts/logic-level-bank.ts [--part=k/n | --merge=n | --check]`). The kits'
+  thinking time per move scales by level (`LEVEL_THINK`, `LEVEL_THINK_GAME` in `scripts/puzzle-fairness/kit.ts`).
+  Checks: logic-overhaul-2-check, logic2-demos-check, logic-levels-check (quarters on shards a, c, f and g, `--part=k/4`, by game; `CHECKS_FULL=1`: every bank entry).
+- **The Speed levels** (the Speed overhaul, stage 3, 15–16 Nov 2026; `docs/design/speed-art/README.md` "Levels"): Flash,
+  Ascend, Don't Break the Chain, Bonk, Tenfall and Pull! offer Easy, Hard and Expert, each level's settings in ONE place,
+  `src/lib/levels/speedLevels.ts` (listed in `GAME_LEVELS`; dealt by `src/lib/duel/speedLevels.server.ts`), each deal
+  stamping what its grader reads (`flashMs`; `moveMs` / `timeLimitMs` / `descending`; `chainLevel`; `bonkLevel`; `tenLevel`
+  with its stages; `pullLevel`), so a retune never changes a stored round and Normal is byte for byte today's. Level lines,
+  goals and how-to lines follow the level (`speedLevelLine`, `speedLevelInstructions`, `speedLevelGoal` through
+  `useGoalText`). Tuning `bun scripts/speed-levels-tune.ts` (the elite player under Joe's human limits, and the 140 ms elite);
+  speed-levels-check (~13 s). Intro demos: `scripts/fixtures/speed-demos.json` (Normal), speed-demos-check,
+  `scripts/speed-demos-save.ts` for the Save intro demos workflow.
+- **Apex's levels** (stage 3, 16 Nov 2026, `docs/arcade-standard/racing.md` "Levels"; no stamp: Normal is racingRev 4
+  byte for byte): Easy, Hard and Expert in `GAME_LEVELS.racing`, stamped on the deal as `racingLevel` (gravel keep, kerb,
+  wall, Expert's tighter hairpins, a per-level par pace and spread, display aids) and carried in the sim's state (`lv`,
+  in the checksum); the replay reads the stored copy (`replayRacingRun(seed, raw, rev, racingLevel)`). Each level deals
+  from its own proved deal (`racingDealV4Easy/Hard/Expert.server.ts`, `bun scripts/racing-deal.ts --rev=4 --level=…`).
+  Level lines for the intro and help: `src/lib/levels/levelNotes.ts`. racing-levels-check (~3 s);
+  `bun scripts/racing-levels-bands.ts` measures the bots per level.
+- **Curl Champ's levels** (stage 3, 16 Nov 2026, `docs/arcade-standard/curling.md` "Levels"; no stamp: Normal is curlRev 4
+  byte for byte, a Normal deal carries no `level`): Easy 2 reds 60–130 cm with the whole aim path, Hard 4 reds 30–90 cm,
+  Expert 5 reds 20–70 cm with no HOUSE zone or aim line, all 120 s; Easy's Stones part full at 60. Each level deals from
+  its own proved bank (`curlingLevelBanks.server.ts`, witnesses `scripts/fixtures/curling-witness-levels.json`, 30 a
+  level at 200 through the server replay). curling-levels-check (~10 s).
 - `src/components/duel/` — room/round screens (PhoneShell, RoundIntro, TimerBar,
   AnswerReveal, ArcadeReveal, WinnerReveal…); `src/components/puzzles/` — shared puzzle
   widgets; `src/lib/fx/` — sound and visual feedback (presentation only).
@@ -2866,7 +3245,7 @@ outside the repo.
    timing or scoring is gated on a stamp in the stored puzzle (e.g. `speedPar`,
    `clashRev`, `inkRev`, `snipRev`, `binRev`, `orbitRev`, `crossRev`, `flipRev`, `btRev`,
    `sliceRev`, `tapRev`, `chainTimeRev`, `chainCycleRev`, `bombVersion`, `rulesVersion`, `puzzleScoreRev`, `tenRev`, `pinRev`, `scanRev`, `spotRev`, and the move-limit stamps
-   `floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev` 2, `countRev` 2; and Tuning F's `crossRev` 5, `sliceRev` 5, `bubbleRev` 4, `swingRev` 8, `matchupRev` 6, `snipRev` 7; and the Pattern / Logic batch's `tilesRev`, `sudokuRev`, `floodRev` 2, `bombVersion` 3; and taller worlds batch 1's `brkRev` 6, `rallyRev` 6, `wavRev` 6, `burstRev` 4; and batch 2's `beatRev` 6, `sliceRev` 6, `bubbleRev` 5, `clashRev` 5, `clayRev` 6; and batch 3's `swingRev` 9, `orbitRev` 8, `btRev` 4; and the scoring targets' (18 Oct 2026) `btRev` 5, `wavRev` 7, `flipRev` 5, `inkRev` 7, `matchupRev` 7, `bubbleRev` 6, `crossRev` 6, `rallyRev` 7, `snakeRev` 7, `binRev` 5, `snipRev` 8, `hoverRev` 6, `skylineRev` 5, `brkRev` 7, `tiltRev` 5, `orbitRev` 9, `beatRev` 7, `sliceRev` 7, `burstRev` 5, `swingRev` 10, `bullRev` 5, `pinRev` 2, `wordsmithRev` 1, `wordHuntRev` 1, `whackRev` 1; and the score bands' (19 Oct 2026) `puzzleScoreRev` 2, `btRev` 6, `wavRev` 8, `flipRev` 6, `inkRev` 8, `matchupRev` 8, `bubbleRev` 7, `crossRev` 7, `rallyRev` 8, `snakeRev` 8, `binRev` 6, `snipRev` 9, `hoverRev` 7, `skylineRev` 6, `brkRev` 8, `tiltRev` 6, `orbitRev` 10, `beatRev` 8, `sliceRev` 8, `burstRev` 6, `swingRev` 11, `bullRev` 6, `pinRev` 3, `tenRev` 2, `clashRev` 6, `whackRev` 2, `clayRev` 7, `wordfallRev` 3; and batch 1 of the scoring report's (20 Oct 2026) `puzzleScoreRev` 3, `floodRev` 3, `strikeoutRev` 4, `codewordRev` 3, `swapwordRev` 3, `wordSearchRev` 2; and the Number depth's (25 Oct 2026, `docs/depth/d2-number.md`) `depthRev` 1, `checkoutRev` 2, `tenRev` 4, with Exact, Brimful and Checkout on `depthRev` 2's gentler feature curve; and the puzzle top-up's (26 Oct 2026) `tapRev` 6, `chainDepthRev` 2, `clashRev` 9, `scanRev` 3, `countRev` 4, `wordsmithRev` 4, `tileGridRev` 2, `wordSlideRev` 2, `wordHuntRev` 4, `strikeoutRev` 6, `swapwordRev` 5, `wheelRev` 3, Logic `depthRev` 2, `blockRev` / `pipesRev` / `laserRev` / `ringsRev` / `pushRev` 2; and the x200 expansions' (26 Oct 2026) `wavRev` 10, `tiltRev` 8, `crossRev` 9, `inkRev` 10, `orbitRev` 12; and expansion E9's (26 Oct 2026) `rallyRev` 10, `burstRev` 8, `bullRev` 8; and the arcade re-measure's (26 Oct 2026) `bubbleRev` 9; and Joe's phone notes' (27 Oct 2026) `swapwordRev` 6, `balanceRev` 3, `measureRev` 3, `gravityRev` 4, `whackRev` 4, `mazeRev` 2, `pairRev` 2, `tilesRev` 4; and the arcade phone notes' (27 Oct 2026) `brkRev` 10, `rallyRev` 11, `beatRev` 10, `snakeRev` 10, `skylineRev` 8, `bubbleRev` 10, `sliceRev` 10, `binRev` 8; and Grappler's assault course (27 Oct 2026) `swingRev` 14; and the scoring standard's (27 Oct 2026, `STANDARD_STAMPS`) Word stamps `tileGridRev` 3, `wordSlideRev` 3, `wordSearchRev` 4, `wheelRev` 4, `strikeoutRev` 7, `codewordRev` 5, `swapwordRev` 7, and Speed and Attention's `tapRev` 6 (Ascend only), `chainDepthRev` 3, `clashRev` 10, `scanRev` 4, `spotRev` 3, `countRev` 5, `mazeRev` 3, `pairRev` 3, and Pattern and Logic's `unblockRev` 2, `blockRev` 3, `slideRev` 2, `gravityRev` 5, `tilesRev` 5, `ringsRev` 3, `laserRev` 3, `flowRev` 2, `pipesRev` 3, `pushRev` 3, `depthRev` 2 for Blackout, Hanoi, Polypotions, Bomb Defusal, Mosaic, Tents and Trees and Lamplighter, `depthRev` 3 for Box Six, Safe Cracker, Colour Flood (move limit par + 10) and Shikaku, and Number's `depthRev` 3 for Exact, Brimful and Checkout, `depthRev` 2 for Operator, Counterweight, Integer Pyramid, Trail and Ballpark, `tenRev` 5; and the six-game phone notes' (27 Oct 2026) `burstRev` 9, `wavRev` 11, `inkRev` 11, `matchupRev` 10, `pinRev` 5; and the six-game arcade phone notes' (27 Oct 2026) `flipRev` 9, `tiltRev` 9; and the standard's follow-up (28 Oct 2026, `StandardStamp.dealt`) Gradient `tilesRev` 6 (full speed within 30 s) and Colour Flood `depthRev` 4 (move limit par + 6); and Joe's puzzle notes' (28 Oct 2026) `wordSlideRev` 4, `countRev` 6; and the arcade scoring standard's batch A (29 Oct 2026) `sliceRev` 11, `brkRev` 11, `tiltRev` 10, `burstRev` 10, `matchupRev` 11, `snakeRev` 11, `hoverRev` 10; and batch B's `skylineRev` 9, `binRev` 9, `bullRev` 9, `pinRev` 6, `rallyRev` 12, `bubbleRev` 11, `beatRev` 11; and batch C's `crossRev` 10, `wavRev` 12, `flipRev` 10, `inkRev` 12, `orbitRev` 13, `btRev` 8; and Grappler's swinging course (29 Oct 2026) `swingRev` 15; and Cards & Board's (30 Oct 2026) `minesRev` 1, `mahjongRev` 1, `freecellRev` 1, `tripeaksRev` 1, `pokerSquaresRev` 1; and the Sports group's (30 Oct 2026) `homerunRev` 1, `freekickRev` 1, `racingRev` 1, `golfRev` 1, `poolRev` 1, `curlRev` 1; and the small tuning batch's (31 Oct 2026) `mahjongRev` 2; and the cards tuning's (31 Oct 2026) `freecellRev` 2, `pokerSquaresRev` 2, `fiveHandsRev` 1; and the Sports tuning's (31 Oct 2026) `homerunRev` 2, `freekickRev` 2, `racingRev` 2, `golfRev` 2, `poolRev` 2, `curlRev` 2; and the new grid puzzles' (1 Nov 2026) `fencesRev` 1, `fillominoRev` 1, `bridgesRev` 1, `kakuroRev` 1; and Blockfall's and Alley Roll's (1 Nov 2026) `blockfallRev` 1, `alleyRollRev` 1; and the 1 Nov 2026 tuning's `poolRev` 3, `freecellRev` 3, `fiveHandsRev` 2; and Ricochet's (1 Nov 2026) `ricoRev` 2; and the prepared shot's (1 Nov 2026) `homerunRev` 3, `freekickRev` 3, `curlRev` 3; and Bastion's (1 Nov 2026) `bastionRev` 2; and the arcade tuning's (1 Nov 2026) `orbitRev` 14, `snakeRev` 12, `swingRev` 16, `matchupRev` 12; and Cards & Board's (1 Nov 2026) `pyramidRev` 1, `golfSolRev` 1, `mugginsRev` 1; and the puzzle batch's (3 Nov 2026) `mazeRev` 4, `gravityRev` 6, `slideRev` 3; and Ringer's (3 Nov 2026) `alleyRollRev` 2; and Apex's cornering (3 Nov 2026) `racingRev` 3; and the Sports batch's (3 Nov 2026) `homerunRev` 4, `poolRev` 4; and Iron Wall's (3 Nov 2026) `bastionRev` 3; and Moon Climb's and Blockzone's (3 Nov 2026) `ricoRev` 3, `blockfallRev` 2; and the arcade batch's (3 Nov 2026) `crossRev` 11, `tiltRev` 11, `flipRev` 11; and the Grappler / Rainbow Bridge batch's (3 Nov 2026) `swingRev` 17, `inkRev` 13; and Curl Champ's and Top Bins' (3 Nov 2026) `curlRev` 4, `freekickRev` 4); and the Cards & Board batch's (3 Nov 2026) `fiveHandsRev` 3, `freecellRev` 4, `tripeaksRev` 2; and the Strategy polish's (3 Nov 2026) `tiltRev` 12, `inkRev` 14; and the Action polish's (3 Nov 2026) `sliceRev` 12, `flipRev` 12; and the puzzle polish's (3 Nov 2026) `gapsRev` 1, `mazeRev` 5, `gravityRev` 7, `slideRev` 4; and the scoring audit's arcade fixes (Nov 2026) `crossRev` 12, `wavRev` 13, `burstRev` 11, `skylineRev` 10, `sliceRev` 13; and the partial-credit fixes' (7 Nov 2026) `depthRev` 3 for Blackout, Hanoi and Polypotions, `unblockRev` 3, `ringsRev` 4, `depthRev` 4 for Exact, `tilesRev` 7; and the Word scoring fix's (7 Nov 2026) `tileGridRev` 4, `wordSlideRev` 5, `wordSearchRev` 5; and the Speed / Pipeline fix's (7 Nov 2026) `tapRev` 7 (Flash and Bang On), `pipesRev` 4; and the card games' share fix (7 Nov 2026) `pyramidRev` 2, `tripeaksRev` 3, `freecellRev` 5. Unstamped/older rounds must replay and score exactly as before.   Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
+   `floodRev`, `tubesRev`, `gravityRev`, `balanceRev`, `equationRev`, `measureRev` 2, `countRev` 2; and Tuning F's `crossRev` 5, `sliceRev` 5, `bubbleRev` 4, `swingRev` 8, `matchupRev` 6, `snipRev` 7; and the Pattern / Logic batch's `tilesRev`, `sudokuRev`, `floodRev` 2, `bombVersion` 3; and taller worlds batch 1's `brkRev` 6, `rallyRev` 6, `wavRev` 6, `burstRev` 4; and batch 2's `beatRev` 6, `sliceRev` 6, `bubbleRev` 5, `clashRev` 5, `clayRev` 6; and batch 3's `swingRev` 9, `orbitRev` 8, `btRev` 4; and the scoring targets' (18 Oct 2026) `btRev` 5, `wavRev` 7, `flipRev` 5, `inkRev` 7, `matchupRev` 7, `bubbleRev` 6, `crossRev` 6, `rallyRev` 7, `snakeRev` 7, `binRev` 5, `snipRev` 8, `hoverRev` 6, `skylineRev` 5, `brkRev` 7, `tiltRev` 5, `orbitRev` 9, `beatRev` 7, `sliceRev` 7, `burstRev` 5, `swingRev` 10, `bullRev` 5, `pinRev` 2, `wordsmithRev` 1, `wordHuntRev` 1, `whackRev` 1; and the score bands' (19 Oct 2026) `puzzleScoreRev` 2, `btRev` 6, `wavRev` 8, `flipRev` 6, `inkRev` 8, `matchupRev` 8, `bubbleRev` 7, `crossRev` 7, `rallyRev` 8, `snakeRev` 8, `binRev` 6, `snipRev` 9, `hoverRev` 7, `skylineRev` 6, `brkRev` 8, `tiltRev` 6, `orbitRev` 10, `beatRev` 8, `sliceRev` 8, `burstRev` 6, `swingRev` 11, `bullRev` 6, `pinRev` 3, `tenRev` 2, `clashRev` 6, `whackRev` 2, `clayRev` 7, `wordfallRev` 3; and batch 1 of the scoring report's (20 Oct 2026) `puzzleScoreRev` 3, `floodRev` 3, `strikeoutRev` 4, `codewordRev` 3, `swapwordRev` 3, `wordSearchRev` 2; and the Number depth's (25 Oct 2026, `docs/depth/d2-number.md`) `depthRev` 1, `checkoutRev` 2, `tenRev` 4, with Exact, Brimful and Checkout on `depthRev` 2's gentler feature curve; and the puzzle top-up's (26 Oct 2026) `tapRev` 6, `chainDepthRev` 2, `clashRev` 9, `scanRev` 3, `countRev` 4, `wordsmithRev` 4, `tileGridRev` 2, `wordSlideRev` 2, `wordHuntRev` 4, `strikeoutRev` 6, `swapwordRev` 5, `wheelRev` 3, Logic `depthRev` 2, `blockRev` / `pipesRev` / `laserRev` / `ringsRev` / `pushRev` 2; and the x200 expansions' (26 Oct 2026) `wavRev` 10, `tiltRev` 8, `crossRev` 9, `inkRev` 10, `orbitRev` 12; and expansion E9's (26 Oct 2026) `rallyRev` 10, `burstRev` 8, `bullRev` 8; and the arcade re-measure's (26 Oct 2026) `bubbleRev` 9; and Joe's phone notes' (27 Oct 2026) `swapwordRev` 6, `balanceRev` 3, `measureRev` 3, `gravityRev` 4, `whackRev` 4, `mazeRev` 2, `pairRev` 2, `tilesRev` 4; and the arcade phone notes' (27 Oct 2026) `brkRev` 10, `rallyRev` 11, `beatRev` 10, `snakeRev` 10, `skylineRev` 8, `bubbleRev` 10, `sliceRev` 10, `binRev` 8; and Grappler's assault course (27 Oct 2026) `swingRev` 14; and the scoring standard's (27 Oct 2026, `STANDARD_STAMPS`) Word stamps `tileGridRev` 3, `wordSlideRev` 3, `wordSearchRev` 4, `wheelRev` 4, `strikeoutRev` 7, `codewordRev` 5, `swapwordRev` 7, and Speed and Attention's `tapRev` 6 (Ascend only), `chainDepthRev` 3, `clashRev` 10, `scanRev` 4, `spotRev` 3, `countRev` 5, `mazeRev` 3, `pairRev` 3, and Pattern and Logic's `unblockRev` 2, `blockRev` 3, `slideRev` 2, `gravityRev` 5, `tilesRev` 5, `ringsRev` 3, `laserRev` 3, `flowRev` 2, `pipesRev` 3, `pushRev` 3, `depthRev` 2 for Blackout, Hanoi, Polypotions, Bomb Defusal, Mosaic, Tents and Trees and Lamplighter, `depthRev` 3 for Box Six, Safe Cracker, Colour Flood (move limit par + 10) and Shikaku, and Number's `depthRev` 3 for Exact, Brimful and Checkout, `depthRev` 2 for Operator, Counterweight, Integer Pyramid, Trail and Ballpark, `tenRev` 5; and the six-game phone notes' (27 Oct 2026) `burstRev` 9, `wavRev` 11, `inkRev` 11, `matchupRev` 10, `pinRev` 5; and the six-game arcade phone notes' (27 Oct 2026) `flipRev` 9, `tiltRev` 9; and the standard's follow-up (28 Oct 2026, `StandardStamp.dealt`) Gradient `tilesRev` 6 (full speed within 30 s) and Colour Flood `depthRev` 4 (move limit par + 6); and Joe's puzzle notes' (28 Oct 2026) `wordSlideRev` 4, `countRev` 6; and the arcade scoring standard's batch A (29 Oct 2026) `sliceRev` 11, `brkRev` 11, `tiltRev` 10, `burstRev` 10, `matchupRev` 11, `snakeRev` 11, `hoverRev` 10; and batch B's `skylineRev` 9, `binRev` 9, `bullRev` 9, `pinRev` 6, `rallyRev` 12, `bubbleRev` 11, `beatRev` 11; and batch C's `crossRev` 10, `wavRev` 12, `flipRev` 10, `inkRev` 12, `orbitRev` 13, `btRev` 8; and Grappler's swinging course (29 Oct 2026) `swingRev` 15; and Cards & Board's (30 Oct 2026) `minesRev` 1, `mahjongRev` 1, `freecellRev` 1, `tripeaksRev` 1, `pokerSquaresRev` 1; and the Sports group's (30 Oct 2026) `homerunRev` 1, `freekickRev` 1, `racingRev` 1, `golfRev` 1, `poolRev` 1, `curlRev` 1; and the small tuning batch's (31 Oct 2026) `mahjongRev` 2; and the cards tuning's (31 Oct 2026) `freecellRev` 2, `pokerSquaresRev` 2, `fiveHandsRev` 1; and the Sports tuning's (31 Oct 2026) `homerunRev` 2, `freekickRev` 2, `racingRev` 2, `golfRev` 2, `poolRev` 2, `curlRev` 2; and the new grid puzzles' (1 Nov 2026) `fencesRev` 1, `fillominoRev` 1, `bridgesRev` 1, `kakuroRev` 1; and Blockfall's and Alley Roll's (1 Nov 2026) `blockfallRev` 1, `alleyRollRev` 1; and the 1 Nov 2026 tuning's `poolRev` 3, `freecellRev` 3, `fiveHandsRev` 2; and Ricochet's (1 Nov 2026) `ricoRev` 2; and the prepared shot's (1 Nov 2026) `homerunRev` 3, `freekickRev` 3, `curlRev` 3; and Bastion's (1 Nov 2026) `bastionRev` 2; and the arcade tuning's (1 Nov 2026) `orbitRev` 14, `snakeRev` 12, `swingRev` 16, `matchupRev` 12; and Cards & Board's (1 Nov 2026) `pyramidRev` 1, `golfSolRev` 1, `mugginsRev` 1; and the puzzle batch's (3 Nov 2026) `mazeRev` 4, `gravityRev` 6, `slideRev` 3; and Ringer's (3 Nov 2026) `alleyRollRev` 2; and Apex's cornering (3 Nov 2026) `racingRev` 3; and the Sports batch's (3 Nov 2026) `homerunRev` 4, `poolRev` 4; and Iron Wall's (3 Nov 2026) `bastionRev` 3; and Moon Climb's and Blockzone's (3 Nov 2026) `ricoRev` 3, `blockfallRev` 2; and the arcade batch's (3 Nov 2026) `crossRev` 11, `tiltRev` 11, `flipRev` 11; and the Grappler / Rainbow Bridge batch's (3 Nov 2026) `swingRev` 17, `inkRev` 13; and Curl Champ's and Top Bins' (3 Nov 2026) `curlRev` 4, `freekickRev` 4); and the Cards & Board batch's (3 Nov 2026) `fiveHandsRev` 3, `freecellRev` 4, `tripeaksRev` 2; and the Strategy polish's (3 Nov 2026) `tiltRev` 12, `inkRev` 14; and the Action polish's (3 Nov 2026) `sliceRev` 12, `flipRev` 12; and the puzzle polish's (3 Nov 2026) `gapsRev` 1, `mazeRev` 5, `gravityRev` 7, `slideRev` 4; and the scoring audit's arcade fixes (Nov 2026) `crossRev` 12, `wavRev` 13, `burstRev` 11, `skylineRev` 10, `sliceRev` 13; and the partial-credit fixes' (7 Nov 2026) `depthRev` 3 for Blackout, Hanoi and Polypotions, `unblockRev` 3, `ringsRev` 4, `depthRev` 4 for Exact, `tilesRev` 7; and the Word scoring fix's (7 Nov 2026) `tileGridRev` 4, `wordSlideRev` 5, `wordSearchRev` 5; and the Speed / Pipeline fix's (7 Nov 2026) `tapRev` 7 (Flash and Bang On), `pipesRev` 4; and the card games' share fix (7 Nov 2026) `pyramidRev` 2, `tripeaksRev` 3, `freecellRev` 5; and the Retro overhaul's (15 Nov 2026) `beatRev` 12, `rallyRev` 13, `burstRev` 12 and 13, `pinRev` 7, `snakeRev` 13 and 14, `brkRev` 12, `wavRev` 14; and its stage 3's (16 Nov 2026) `hoverRev` 11, `snakeRev` 15, `crossRev` 13, `wavRev` 15, `pinRev` 8 (and the Retro levels, gated on the deal's `level`); and the Strategy overhaul's (15 Nov 2026) `bubbleRev` 12, `inkRev` 15, and its stage 3's (16 Nov 2026) `matchupRev` 13; and the Home Run and Top Bins overhaul's (15 Nov 2026) `homerunRev` 5, `freekickRev` 5; and Top Bins' levels (16 Nov 2026) `freekickRev` 6. Unstamped/older rounds must replay and score exactly as before.   Arcade scoring follows the Oct 2026 score bands (`docs/arcade-score-bands-oct-2026.md`): change a curve only with a
    new band revision, re-measure with `scripts/arcade-skill-bands.ts`, and keep `arcade-score-bands-check` green.
    Prove it with the game's legacy-replay/identity check.
 3. **Arcade bounds rule.** Drawn art must sit within 2 px of the sim's collision bounds,

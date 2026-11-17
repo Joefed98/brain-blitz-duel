@@ -74,6 +74,9 @@ Already sounded: power-up caught (`breaker.powerUp`), Fireball lit (`breaker.fir
 | `pinball.lastBall` | The last ball is launched | BALL 3/3 in the HUD | `pinball.lastBall.mp3` | 0–1 | 800 ms |
 | `pinball.gameOver` | Every ball drained before time (its file stands in for `pinball.ballLost` on that drain) | GAME OVER, the table lights go out | `pinball.gameOver.mp3` | 0–1 | 1500 ms |
 | `pinball.joulz` | J-O-U-L-Z completed (pinRev 4+; its file stands in for `pinball.bankComplete` on that frame; 1 Nov 2026) | JOULZ in gold, large and centred, and the border flashing gold three times (0.15 s on, 0.15 s off) | `sfx_streak_flourish.mp3` (the celebrations library's streak flourish) | 0–4 | 1200 ms |
+| `pinball.ballLocked` | A ball locked (pinRev 4+) | The lock flares gold, "BALL n LOCKED" over it | `sfx_count_ding.mp3` (`shared.celebrate.countDing`) until Joe's file (retro-elevenlabs.md), then only the file | 0–6 | 500 ms |
+| `pinball.multiballStart` | Multiball starts (pinRev 4+) | Bright sparks from the lock | `sfx_joulz_zap.mp3` (`shared.celebrate.zap`) until Joe's file (retro-elevenlabs.md), then only the file | 0–3 | 1.2 s |
+| `pinball.multiballEnd` | Multiball ends: the last extra ball drains with the main ball still in play (pinRev 4+) | The lock's lights settle | silent until Joe's file (retro-elevenlabs.md) | 0–3 | 600 ms |
 
 Already sounded: bumper glow and ripple (`pinball.bumperHit`), drop target (`pinball.dropTarget`), bank down and the multiplier lanes (`pinball.bankComplete`; J-O-U-L-Z has `pinball.joulz` on pinRev 4+), lane lit (`pinball.laneLight`), spinner turn (`pinball.spinner`), flippers and lane rotation (`pinball.flipper`), sling (`pinball.sling`), drain and lights out (`pinball.ballLost`).
 
@@ -87,6 +90,8 @@ Already sounded: bumper glow and ripple (`pinball.bumperHit`), drop target (`pin
 | `rally.goldEnter` | A gold ball enters the court | The gold ball flies in with a trail | `retro.appear.mp3` · own file `rally.goldServe.mp3` (sound batch 4, volume 0.7) | 3–10 | 350 ms |
 | `rally.bumperWarn` | 2 s before a bumper appears (rallyRev 2+, again for rev 5's second) | BUMPER blinks where the post will stand | `ui.warn.mp3` | 1–2 | 500 ms |
 | `rally.bumperIn` | A bumper appears (30 s; rev 5's second at 45 s) | The round post appears in the court | `retro.appear.mp3` | 1–2 | 300 ms |
+| `rally.serve` | The lost blue ball serves again after its 1.5 s wait (rallyRev 13) | The waiting ball stops blinking and flies up | silent until Joe's file (retro-elevenlabs.md) | 0–1 | 160 ms |
+| `rally.spinShot` | A ball still curving from a swiped return strikes a pink pad or a gold target (rallyRev 13) | The pad's or target's own burst | silent until Joe's file (retro-elevenlabs.md) | 0–8 | 360 ms |
 | `rally.wallBounce` | A ball turns back off a side or the far wall (no return, bumper or pad; at most one per 120 ms, volume 0.4) | The ball changes direction at the wall | `retro.wallBounce.mp3` · own file `arcade.wallThock.mp3` (sound batch 4, volume 0.4) | 60–150 | 60 ms |
 
 Already sounded: paddle light-up (`rally.hit`), gold ball returned (`rally.goldHit`), rally over (`rally.dead`).
@@ -101,6 +106,9 @@ Already sounded: paddle light-up (`rally.hit`), gold ball returned (`rally.goldH
 | `beat.fullCombo` | Every note hit (full combo) | FULL CLEAR banner and confetti pixels | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `beat.comboLost` | A combo of 10 or more broken (its file stands in for `beat.miss` on that note) | The combo glow bands vanish | `combo.lost.mp3` | 0–6 | 500 ms |
 | `beat.swipeArrive` | The first swipe notes come into the lanes (beatRev 2+, about 30 s) | Swipe arrows appear at the top of the lanes | `alert.newHazard.mp3` | 0–1 | 600 ms |
+| `beat.feverRiser` | Fever starts (beatRev 9+) | The fever bar's own flash | silent until Joe's file (retro-elevenlabs.md) | 0–4 | 700 ms |
+| `beat.holdCrackle` | A hold note released cleanly (at most one per 80 ms) | Sparks crackle at its button while it is held | silent until Joe's file (retro-elevenlabs.md) | 0–20 | 200 ms |
+| `beat.missThud` | A note missed (beside `beat.miss`) | A grey block drops out of its lane | silent until Joe's file (retro-elevenlabs.md) | 0–40 | 120 ms |
 
 Already sounded: lane flash, judgement word and perfect ring (`beat.note` / `beat.miss`). The combo glow's 10 and 50 tiers start with `beat.comboTen`.
 
@@ -117,6 +125,12 @@ first, a Perfect or a Good) is left out. The combo pop, the PERFECT word and bur
 | `snake.allEaten` | Every star on the course eaten | FULL CLEAR banner, confetti pixels | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `snake.rockFalling` | A rock (or a meteor shower) enters its last 0.8 s before impact (at most one per 300 ms) | The rock sprite drops in, growing, and the crosshair blinks faster | `snake.rockFalling.mp3` | 5–20 | 800 ms |
 | `snake.speedUp` | A speed step on the 5th, 15th and 25th star (the 10th and 20th have the STREAK banner) | The snake steps faster | `speed.up.mp3` · own file `snake.cometRush.mp3` (sound batch 4, volume 0.7) | 0–3 | 400 ms |
+| `snake.turn` | The comet turns (at most one per 60 ms) | A few sparks flare off the head | silent until Joe's file (retro-elevenlabs.md) | 20–80 | 60 ms |
+| `snake.wrap` | The head comes in through an edge (snakeRev 13; at most one per 150 ms) | A cyan ring where it arrives | silent until Joe's file (retro-elevenlabs.md) | 0–20 | 250 ms |
+| `snake.rockGraze` | The head passes a rock square beside it (`snakeRockGraze`; at most one per 200 ms) | Dust puffs off the rock | silent until Joe's file (retro-elevenlabs.md) | 0–20 | 180 ms |
+| `snake.goldStar` | A gold star eaten (snakeRev 9+) | A gold ring where it was eaten | silent until Joe's file (retro-elevenlabs.md) | 0–8 | 300 ms |
+| `snake.warp` | Through a wormhole (snakeRev 9+; at most one per 150 ms) | The wormhole's own flash | silent until Joe's file (retro-elevenlabs.md) | 0–10 | 300 ms |
+| `snake.laneWhoosh` | A speed-lane ride counted (snakeRev 11+) | The lane's own glow | silent until Joe's file (retro-elevenlabs.md) | 0–10 | 400 ms |
 
 Already sounded: star eaten (`snake.eat`), rock shadow (`snake.rockWarn`), rock lands clear, the replays' "rock dodged" pop (`snake.rockLand`), shower alarm and the "meteor shower incoming" banner (`snake.showerAlarm`), death (`snake.dead`). The falling rock's sprite and the crosshair blink are the rest of the warning `snake.rockWarn` starts.
 
@@ -137,6 +151,9 @@ No cue, by design: the board border's colour step and glow pulse every 4 s (16 O
 | `burst.ceilingTouch` | An atom touches the ceiling (at most one per 120 ms, volume 0.4) | The ceiling flashes white | `retro.wallBounce.mp3` | 5–30 | 60 ms |
 | `burst.atomBounce` | An atom bounces off the floor, pitched by its size, the biggest that bounced (at most one per 100 ms, volume 0.35) | The atom rebounds off the floor | `retro.atomBounce.mp3` | hundreds | 120 ms |
 | `burst.lastLife` | Down to the last life | The two spare ship icons dim | `ui.warn.mp3` | 0–1 | 500 ms |
+| `burst.fizzle` | A wasted beam reaches the ceiling with no hit (burstRev 11's whiffs; at most one per 120 ms) | A grey puff and sparks at the ceiling | silent until Joe's file (retro-elevenlabs.md) | 0–30 | 160 ms |
+| `burst.overheadHum` | An atom skims within 6 px over the ship (`burstOverhead`; at most one per 400 ms) | A white ring shimmers over the ship | silent until Joe's file (retro-elevenlabs.md) | 0–20 | 300 ms |
+| `burst.lifeIconBreak` | A life is lost (beside `burst.lifeLost`) | The ship breaks into red shards | silent until Joe's file (retro-elevenlabs.md) | 0–3 | 200 ms |
 
 Already sounded: atom split (`burst.hit`), shield / burst power-up (`burst.powerUp`), freeze glaze (`burst.freezeCaught`), shots (`burst.shot`), life lost (`burst.lifeLost`). The ceiling's white flash is worked out in the renderer from atom positions, not from a sim event, so it has no cue.
 
@@ -156,6 +173,14 @@ Already sounded: atom split (`burst.hit`), shield / burst power-up (`burst.power
 | `wavefront.march` | The formation marches a step (at most one per 100 ms, volume 0.3) | The ships shuffle one step sideways | `wavefront.march.mp3` | 150–400 | 120 ms |
 | `wavefront.rowDrop` | The formation drops a row at a wall (at most one per 100 ms) | The ships step down a row | `wavefront.march.mp3` | 5–20 | 120 ms |
 | `wavefront.danger` | While the formation's lowest ship is within two drops of the ship line (it ends the run on reaching it) | The formation closes on the ship | `wavefront.danger.mp3` | loop | loop |
+| `wavefront.powerChirp` | A power-up caught (the Retro overhaul) | A ring opens round the fighter | silent until Joe's file (retro-elevenlabs.md) | 0–8 | 220 ms |
+| `wavefront.boltZip` | An enemy bolt passes within 4 px of the fighter (`wavBoltNearMiss`; at most one per 330 ms) | A white streak beside the fighter | silent until Joe's file (retro-elevenlabs.md) | 0–20 | 140 ms |
+| `wavefront.plateOff` | An armoured ship loses a plate without dying (beside `wavefront.armourHit`) | The warship flashes white | silent until Joe's file (retro-elevenlabs.md) | 0–12 | 200 ms |
+| `hover.flyOff` | The run lasted the minute (stage 3 of the Retro overhaul) | The saucer lifts away with streaks; COURSE COMPLETE and the barriers counting up | silent until Joe's file (retro-elevenlabs.md) | 0–1 | 700 ms |
+| `breaker.timeToPoints` | The wall cleared (stage 3) | WALL CLEARED! and SPEED +n counting up, sparks | silent until Joe's file (retro-elevenlabs.md) | 0–1 | 1200 ms |
+| `wavefront.bossStages` | The final boss destroyed (stage 3) | Three bursts across the hull, then the big one; BOSS DOWN! and the waves counting up | silent until Joe's file (retro-elevenlabs.md) | 0–1 | 2000 ms |
+| `pinball.counterRoll` | The run ends (stage 3) | TABLE TOTAL rolls up digit by digit like a mechanical counter | silent until Joe's file (retro-elevenlabs.md) | 0–1 | 1500 ms |
+| `pinball.outlaneSave` | A ball that fell into an outlane's mouth climbs back out (pinRev 8, the sim's `outSaves`) | Gold sparks at the post, SAVED! | silent until Joe's file (retro-elevenlabs.md) | 0–1 | 400 ms |
 
 Already sounded: shots (`wavefront.fire`), pierce pickup (`wavefront.pierce`), ship bursts (`wavefront.bigExplode` / `wavefront.shapePop`), boss hit (`wavefront.bossHit`), formation arriving (`wavefront.formation`), dive (`wavefront.dive`), life lost (`wavefront.lifeLost`).
 
@@ -169,6 +194,9 @@ Already sounded: shots (`wavefront.fire`), pierce pickup (`wavefront.pierce`), s
 | `orbit.allPlanets` | All 40 planets | FULL CLEAR banner, stars burst, shake | `banner.fullClear.mp3` | 0–1 | 1200 ms |
 | `orbit.blackHole` | Through a black hole (orbitRev 4+) | The hole's rim turns gold and the rocket jumps ahead; CLEAR banner | `pz_gravity_pull` (shared recording) · own file `orbit.blackHole.mp3` (sound batch 4, volume 0.8) | 0–5 | 1080 ms |
 | `orbit.newHazard` | The planet before the first figure-eight (21) or the first asteroid belt is reached | The new orbit shape or belt comes into view ahead | `alert.newHazard.mp3` | 0–2 | 600 ms |
+| `orbit.thrust` | The rocket flies (orbitRev 14+, the Action overhaul) | The flame; the loop's rate falls with the fuel left | silent until its own file is set (loop) | loop | loop |
+| `orbit.stardust` | A stardust mote is taken (orbitRev 12+) | The mote's glitter | own file once set; until then `shared.celebrate.countTick` (0.8) as before | 0–30 | 120 ms |
+| `orbit.sunBloom` | The sun is reached (orbitRev 14+) | The sun's bloom (stage 2 of the Action overhaul) | silent until its own file is set | 0–1 | 2.5 s |
 
 Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`), respawn and crash (`orbit.crash`), ambience loop, and (orbitRev 12+) a stardust mote taken (`shared.celebrate.countTick` from `gameSounds.ts`; since Nov 2026 its glitter flash and sparkle trail streaming after the rocket, display only, play on that same tick).
 
@@ -203,6 +231,13 @@ Already sounded: launch (`orbit.launch`), first checkpoint (`orbit.checkpoint`),
 | `swing.assaultStar` | A star taken on a tighter swing (swingRev 14; a miss puts it back) | STAR! burst in gold | `sfx_spark_chime.mp3` (shared recording, volume 0.8) | 0–4 | 600 ms |
 | `swing.assaultClear` | A section's landing ledge reached (swingRev 14) | CLEAR! (or "−0.4 s UNDER PAR") pop above the hero | `sfx_count_ding.mp3` (shared recording, volume 0.6) | 0–36 | 487 ms |
 | `swing.assaultCourse` | The last section cleared (swingRev 14) | COURSE CLEARED! banner | `banner.fullClear.mp3` (shared recording) | 0–1 | 1200 ms |
+| `swing.ropeSnap` | Action overhaul: every grab, on top of `swing.vineCreak` (swingRev 17) | The vine pulled taut at the grab point | none yet (silent until it has a file) | 20–60 | 200 ms |
+| `swing.speedWhoosh` | Action overhaul: a release fast enough to light a speed gate (swingRev 17) | The hero flying off the vine | none yet (silent until it has a file) | 0–20 | 450 ms |
+| `swing.courseCleared` | Action overhaul: the whole course cleared (swingRev 17) | COURSE CLEARED! banner | none yet (silent until it has a file) | 0–1 | 1600 ms |
+| `swing.streakMeter` | Action overhaul stage 2: each clean grab (swingRev 17+), a pentatonic step higher up the block of eight | A segment of the arc meter under STREAK lighting gold | none yet (silent until it has a file) | 0–60 | 120 ms |
+| `swing.outOfReach` | Action overhaul stage 2: a press that grabbed nothing, the nearest vine ahead just out of reach (swingRev 17+, live play only) | That vine and its ring tinted red for half a second | none yet (silent until it has a file) | 0–20 | 300 ms |
+| `swing.pteroShadow` | Action overhaul stage 2: the pterodactyl starting the chase (swingRev 17+); its screech and wingbeats follow 1.2 s later | Its shadow sweeping across the canopy | none yet (silent until it has a file) | 0–1 | 1200 ms |
+| `swing.stretchTally` | Action overhaul stage 2: the end banner counting the stretches cleared up, one tick a stretch, rising | "COURSE CLEARED!" (or "TIME") and "n / 51 stretches" | none yet (silent until it has a file) | 0–51 | 90 ms |
 
 Already sounded: rope catch and anchor flash (`swing.grapple`), star (`swing.starTaken`), dragon (`swing.dragon`), stalactite shake (`swing.rockShake`), stalactite lands and the replays' "dodged" pop (`swing.rockLand`), crash (`swing.crash`).
 
@@ -215,6 +250,8 @@ Already sounded: rope catch and anchor flash (`swing.grapple`), star (`swing.sta
 | `cross.freighter` | A freighter lane crossed (crossRev 9+; at most one per 600 ms) | The long cargo freighter going by | `cross.freighter.mp3` (Joe's, 6 Nov 2026) | 0–15 | 1350 ms |
 | `cross.newHazard` | A new layout's crossing begins (its kerb pause ends): the first cycle lane (crossing 3), roadworks (4) and the chicane (7), crossRev 2+ | Cyclists, cones or a chicane on the road ahead | `alert.newHazard.mp3` | 0–3 | 600 ms |
 | `cross.traffic` | While the run is live | Space traffic streaming both ways (Spacewalk) | `bastion.drone.mp3` from the library since 3 Nov 2026 (was `cross.traffic.mp3`) | loop | loop |
+| `cross.jetPuff` | Each hop starts (at most one per 60 ms) | A jet puff under the astronaut | silent until Joe's file (retro-elevenlabs.md) | every hop | 80 ms |
+| `cross.land` | A hop lands with no hit (at most one per 80 ms) | A dust ring at the astronaut's feet | silent until Joe's file (retro-elevenlabs.md) | every hop | 90 ms |
 
 Already sounded: crossing and its banner (`cross.crossed`), hops (`cross.hop`), hit and tumble (`cross.lifeLost`).
 
@@ -239,6 +276,14 @@ Already sounded: crossing and its banner (`cross.crossed`), hops (`cross.hop`), 
 | `flip.speedZone` | Into a speed zone (flipRev 8) | SPEED ZONE! banner; warm air and streaks between the zone's gates | `hover.zone.mp3` (volume 0.8) | 0–2 | 528 ms |
 | `flip.sweetLanding` | A flip landed with the runner's centre on a roof's sweet spot (flipRev 8) | a small molten PERFECT at the runner (neon orange, dripping, ~0.6 s; no burst; since 3 Nov 2026, every flipRev 8+ round); the strip glows orange and cools | `sfx_spark_chime.mp3` (shared recording, volume 0.6) | 0–8 | 600 ms |
 | `flip.speedUp` | Every third speed step (9, 18, 27, 36 and 45 s; the tunnel still speeds up every 3 s, sound batch 4) | The scroll speeds up | `speed.up.mp3` · own file `flip.tunnelRush.mp3` (sound batch 4, volume 0.6) | 5 | 390 ms |
+| `flip.respawn` | After a crash the runner blinks back and runs on (flipRev 13's grace, the Action overhaul) | A short white flash at the runner (8 ticks), then it blinks for its second of shield; a "−10 s" pop | none yet (silent until it has a file) | 0–5 | 450 ms |
+| `flip.land` | A landing on the stone lip (flipRev 11–13, at most one a 60 ms) | A dust puff at the landing spot, drifting back with the cave (stage 2; gold on a sweet spot) | none yet (silent until it has a file) | 20–60 | 180 ms |
+| `flip.flowTick` | A clean landing adds to the flow streak (flipRev 11–13; pitched up along the streak) | The flow counter riding over the runner's head ("×12") pops up a step (stage 2); the FLOW chip ticks up | none yet (silent until it has a file) | 20–60 | 160 ms |
+| `flip.flowTen` | Every 10th clean landing in a row (flipRev 11–13) | The counter turns gold for the step, bigger, with two small glints (stage 2) | none yet (silent until it has a file) | 0–6 | 300 ms |
+| `flip.flowBreak` | A crash breaks a flow streak of 3 or more (flipRev 11–13) | The counter cracks in two, dulls and falls away (stage 2); the FLOW chip drops to 0 | none yet (silent until it has a file) | 0–5 | 350 ms |
+| `flip.nearMiss` | The runner flips off just before a spike or lands just past one, within 24 px of its box (flipRev 11–13, stage 2 of the Action overhaul) | A white glint on the spike's nearest blade tip | none yet (silent until it has a file) | 0–10 | 250 ms |
+| `flip.sweetGold` | A sweet-spot landing's gold dust puff (flipRev 11–13, stage 2; the chime stays `flip.sweetLanding`) | A gold puff at the landing spot | none yet (silent until it has a file) | 0–8 | 350 ms |
+| `flip.flowCount` | The end card's flow best counting up (flipRev 11–13, stage 2) | SURVIVED! with BEST FLOW counting up under it (800 ms) | none yet (silent until it has a file) | 0–1 | 800 ms |
 
 Already sounded: gravity flip (`flip.flip`), crash into the pool (`flip.crash`).
 
@@ -338,11 +383,34 @@ Already sounded: rope cut (`snip.cut`), springy branch (`snip.springBounce`), pi
 
 Already sounded: gate (`tilt.gate`), maze done (`tilt.mazeDone`), cup (`tilt.cup`, also the first marble home), star (`tilt.starTaken`), caught (`tilt.caught`), knocks and roll.
 
+## Moon Climb
+
+The Action overhaul (15 Nov 2026; `docs/sound-cues/action-elevenlabs.md` has the brief for each recording).
+
+| Cue | When | Looks like | File | Per run | Length |
+| --- | --- | --- | --- | --- | --- |
+| `ricochet.fallWhistle` | ricoRev 3: a hit (with `ricochet.hit`), the ninja tumbling down 3 m | The ninja stunned and falling, a red wash | none yet (silent until it has a file) | 0–20 | 900 ms |
+| `ricochet.flowBreak` | ricoRev 3: a Flow streak of 3 or more broken by a slide, never on a hit | FLOW ×n drops to ×0 in the HUD | none yet (silent until it has a file) | 0–20 | 350 ms |
+| `ricochet.scuff` | ricoRev 3: while the ninja slides down moss or ice (a loop, faded out when the slide stops) | The ninja sliding down a green or icy patch | none yet (silent until it has a file) | loop | loop |
+| `ricochet.scrollTally` | Stage 2 (15 Nov 2026): a taken scroll lands on the HUD's SCROLLS count, 24 ticks after it was taken | The scroll flies up into the count, the chip flashing | none yet (silent until it has a file) | 0–3 | 400 ms |
+| `ricochet.lanternSway` | Stage 2 (15 Nov 2026): a sky lantern grabbed (with `ricochet.lanternGrab`) | The lantern brightens and sways under the ninja's hands, settling over the ride | none yet (silent until it has a file) | 0–6 | 500 ms |
+
 ## Iron Wall
 
 | Cue | When | Looks like | File | Per run | Length |
 | --- | --- | --- | --- | --- | --- |
 | `bastion.drone` | bastionRev 3: while a drone is in the sky and not yet downed (faded out when it is downed, flies off or the run ends) | A small dark drone with a blinking red light crosses the sky | none yet (silent until it has a file) | loop | loop |
+| `bastion.weakTing` | Action overhaul: a shell hits an open weak spot (on top of `bastion.weak`; also a weak-spot kill) | The weak spot flashing gold (a disc, then a ring opening out), every time | none yet (silent until it has a file) | 0–36 | 260 ms |
+| `bastion.shellIn` | Action overhaul stage 2: after a fast reload ends, each shell snapping in, one click a shell every 4 ticks (a step higher each) | The five shell slots lighting one by one beside the green needle | none yet (silent until it has a file) | 0–50 | 90 ms |
+| `bastion.jamGrind` | Action overhaul: the gun jams (on top of `bastion.jam`) | The needle turns red and shakes | none yet (silent until it has a file) | 0–10 | 700 ms |
+| `bastion.debris` | Action overhaul: a tank is destroyed (after `bastion.kill`) | The burst, armour debris flung out and falling, "+n" rising off it, then the smoke | none yet (silent until it has a file) | 0–30 | 600 ms |
+| `bastion.nearMiss` | Action overhaul: a shell lands on open ground within a tank-length of a tank's hull | A bigger, dustier puff where it landed and CLOSE rising off it | none yet (silent until it has a file) | 0–40 | 350 ms |
+| `bastion.panelCrack` | Action overhaul: the base is hit (after `bastion.baseHit`) | The red edge flash and a crack splitting across the bottom panel where the tank came through (it stays) | none yet (silent until it has a file) | 0–3 | 500 ms |
+| `bastion.wallHeld` | Action overhaul stage 2: the end card's stamp, after the five wave rows, when the run ended with the base standing (the clock out or every tank gone) | WALL HELD stamped under the tally | none yet (silent until it has a file) | 0–1 | 1800 ms |
+| `bastion.tally` | Action overhaul stage 2: each wave's row landing on the end card (150 ms apart, a step higher each) | WAVE n with its tank pips and "4 / 5" | none yet (silent until it has a file) | 0–5 | 150 ms |
+| `bastion.tip` | Action overhaul: the one-time reload tip appears (the first time the magazine runs dry) | "Tip: swipe down to reload early" on the panel | none yet (silent until it has a file) | 0–1 | 300 ms |
+| `bastion.dustWind` | Action overhaul: waves 3–4, the dusty desert setting (an ambience bed under the music) | Amber haze and sand hills | none yet (silent until it has a file) | loop | loop |
+| `bastion.stormFire` | Action overhaul: wave 5, the battle-smoke storm (an ambience bed under the music) | Smoke columns and fires on the skyline | none yet (silent until it has a file) | loop | loop |
 
 Already sounded: the drone shot down (`bastion.droneDown`, arcade.md), every shell, hit, reload and wave (arcade.md).
 
@@ -370,8 +438,12 @@ Already sounded: switch and tube turn (`balltrack.switch`), marble home and cup 
 | `skyline.windPerfect` | A perfect drop in the wind | PERFECT pop at the seam in a gust | `skyline.floors.mp3` (volume 0.8; Joe's phone notes, 27 Oct 2026: the old every-10-floors sound on every perfect drop; `skyline.perfectFit.mp3` retired) | 0–5 | 483 ms |
 | `skyline.gust` | A gust starts blowing | Gust streaks cross the sky | `sky.gust.mp3` | 2–8 | 600 ms |
 | `skyline.gustWarn` | The flag streams a second before a gust blows | The flag streams and ripples | `ui.warn.mp3` | 2–8 | 500 ms |
+| `skyline.lifeLost` | A block misses and costs a life; the run carries on (skylineRev 11, the Action overhaul) | The block falls away, "−1 LIFE", the LIVES chip rings | none yet (silent until it has a file; `arc_lose_life` plays meanwhile) | 0–2 | 600 ms |
+| `skyline.wideBlock` | The wide-block rescue arrives after five trims in a row (skylineRev 11) | The NEXT panel shows WIDE | none yet (silent until it has a file; `arc_pickup` plays meanwhile) | 0–3 | 400 ms |
+| `skyline.trim` | A drop cuts an overhang off (the Action overhaul) | The overhang falls away spinning and the cut edge crumbles (stage 2) | none yet (silent until it has a file; `arc_wood_knock` plays meanwhile) | 10–40 | 700 ms |
+| `skyline.sliver` | A drop lands with under a quarter of the block on the tower (the Action overhaul) | A thin floor on the tower wobbles on its foot (stage 2) | none yet (silent until it has a file; `arc_clank` plays meanwhile) | 0–5 | 700 ms |
 
-Already sounded: block lands, chunk and windows (`skyline.drop`), perfect drop (`skyline.perfect`), streak drop (`skyline.streakDrop`), miss (`skyline.miss`).
+Already sounded: block lands, chunk and windows (`skyline.drop`), perfect drop (`skyline.perfect`; since stage 2, 15 Nov 2026, a semitone higher for each drop in the streak, up to seven, as the gold ring spreads from the join), streak drop (`skyline.streakDrop`), miss (`skyline.miss`).
 
 ## Gemstone
 
@@ -386,6 +458,18 @@ Already sounded: block lands, chunk and windows (`skyline.drop`), perfect drop (
 | `matchup.select` | A gem is picked | The gem is highlighted | `ui.select.mp3` · own file `gem.pick.mp3` (sound batch 4, volume 0.6) | 20–60 | 80 ms |
 
 Already sounded: gem shatters (`arc_gem_match`, pitched by depth, `gem.shatter.mp3` since sound batch 4), specials (`arc_gem_bomb`, `arc_gem_star`, `arc_gem_zap`), jackpot set off (`matchup.jackpotBlast`, `gem.jackpot.mp3`; `arc_rainbow` until sound batch 4). Since sound batch 4 the generic combo is left out (`arcadeFeedback({ combo: false })`): the chime climbs with the cascade on its own. Gems falling into place follow the shatter chimes, step by step, and have no cue of their own.
+
+## Blockzone
+
+The Retro overhaul, stage 2 (15 Nov 2026): Blockzone's in-world moments, each silent until Joe's recording drops in
+by name (retro-elevenlabs.md).
+
+| Cue | Trigger | Looks like | Plays today | Per round | Length |
+|---|---|---|---|---|---|
+| `blockfall.turnRefused` | A move or turn refused (the state's `rejects`; at most one per 120 ms) | The piece outlined red | silent until Joe's file (retro-elevenlabs.md) | 0–30 | 120 ms |
+| `blockfall.hardDrop` | A piece locks after a drop of three rows or more (`bfHardDropped`) | A streak down each of the piece's columns | silent until Joe's file (retro-elevenlabs.md) | 10–60 | 250 ms |
+| `blockfall.sweep` | A line clear (beside `blockfall.clear` / `blockfall.bigClear`) | Sparks off both walls along the rows | silent until Joe's file (retro-elevenlabs.md) | 5–30 | 300 ms |
+| `blockfall.heartbeat` | The stack within three rows of the top (`bfNearTop`; a loop while it stays) | The well's rim beats red | silent until Joe's file (retro-elevenlabs.md) | loop | loop |
 
 ## Letterfall
 
@@ -442,3 +526,13 @@ Already sounded: shatter (`pz_clay_hit` + `clayshoot.shatter` / `clayshoot.goldS
 | `stroop.drop` | The word is dropped | The word falls fast to its gate | `signals.whoosh.mp3` | 15–40 | 100 ms |
 
 Already sounded: lane change (`stroop.lane`), right / wrong gate (`stroop.right`, `stroop.wrong`, `stroop.gatePulse`), finish and its all-sorted / flawless moments (`stroop.gatesFlash`).
+
+## Apex (the Sports overhaul, stage 2)
+
+| Cue | When | Looks like | File | Per run | Length |
+| --- | --- | --- | --- | --- | --- |
+| `racing.speedRush` | While driving above 200 km/h (0.2) | Speed lines at the screen's edges, stronger with speed | none yet (silent until it has a file) | loop | loop |
+| `racing.scrape` | Against the tyre wall and still moving (at least an eighth of top speed), after the first impact; at most one per 0.8 s | Sparks off the car's touching side | none yet (silent until it has a file) | 0–10 | 800 ms |
+| `racing.chequer` | The finish line after lap 2, with `racing.finish` and `racing.roar` | The chequered flag waves in, then the lap times and average speed count up | none yet (silent until it has a file) | 0–1 | 2500 ms |
+
+Already sounded: a clean sector (`racing.sector`, its bar flashing on the timing bar), the kerb (`racing.kerb`, the view's rumble), the grass (`racing.grass` / `racing.grassLoop`, the dust and the speedo's red drop). The corner sign's green or red verdict is silent (it would fall on every corner). The prompts for all six are in `sports-elevenlabs.md`.

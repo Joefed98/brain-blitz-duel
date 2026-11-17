@@ -1,5 +1,149 @@
 # Roofbound on the arcade scoring standard
 
+## flipRev 13 (15 Nov 2026, the Action overhaul): grace, a richer cave
+
+Rooms deal **flipRev 13** (`FLIP_REV_GRACE`): flipRev 12's courses, hazards, sweet spots, double flips and flow streak
+exactly, with two changes Joe asked for in the Action review (`docs/design/game-reviews/action.md`):
+
+- **Grace: no crash ends the run.** A crash with a checkpoint's save in hand is saved as before; a crash with none
+  respawns the runner on the spot (a second of shield, the runner blinking; the flow streak broken) and the run goes on to
+  the clock. Every crash costs `FLIP_V13_CRASH_COST` (20 half seconds, 10 s) of clean time. Checkpoints are no longer
+  drawn on flipRev 13 (every crash is caught, so they would mean nothing); the sim still passes them (its state and
+  checksum keep flipRev 12's counters). States add `grace: 1` and `respawns`, folded into the checkpoint checksum last.
+- **Normal retuned** (Joe found flipRev 12 too hard): clean time 100 is full at 55 s (`FLIP_V13_CORE_FULL` 110 half
+  seconds; was the whole minute), perfect landings 60 are full at 5 of the 8 sweet spots (12 each, `FLIP_V13_SWEETS_FULL`;
+  was all 8, 7.5 each); double flips 20 (full at 8) and the flow streak 20 (full at 50) are unchanged. The sweet spots
+  stay (Joe: the scoring structure is reviewed with him after the overhauls).
+
+Dealt from its own proved deal (`src/lib/duel/flipDealV13.server.ts`, `bun scripts/flip-deal.ts --rev=13 [--check]`):
+all 260 stored witness routes take every flipRev 13 part's maximum and score exactly 200 through the server replay
+(flipRev 12 left four out: they land 7 of the 8 sweet spots, which now is past the 5 needed). flipRev 1–12 replay and
+score exactly as before; checks written for flipRev 12 pin it with `pinFlipPreGrace(true)` (deal pin `flipPreGrace`).
+
+Medians (p10–p90) and means, paired on the first 40 dealt courses, server replay (`bun scripts/flip-rev13-bands.ts
+--seeds=40`; the skill-band bots, whose elite level reacts in 145 ms, faster than the brief's 0.25 s human limit: the
+difficulty framework's human-limited bot re-measures these in stage 3):
+
+| Level | flipRev 12 median, mean | flipRev 13 median, mean | Crashes (13) |
+|---|---|---|---|
+| weak | 43.5, 39 | 60, 59.6 | 3.5 |
+| average | 85.5, 86.4 | 110, 110.1 | 1 |
+| good | 139.5, 130.1 | 140, 140.8 | 0 |
+| great | 153, 139.6 | 163, 162.4 | 0 |
+| near | 164, 166.2 | 180, 180.8 | 0 |
+| elite | 185, 182.1 | 200, 198.1 | 0 |
+| perfect | 200, 198.9 | 200, 199.8 | 0 |
+
+**Display (flipRev 11–13, no stamp; the sim is untouched and collision stays along x; the materials pass of 15 Nov
+2026, concept A):** the rock is faceted basalt from a cached tile (`paintFacetTile`, painted once per scale: each facet
+lit from the upper left by its own tilt, crisp pale edges on its lit sides, dark seams on the rest), darkening into the
+deep, with two channels of glossy molten lava (a charred crust, the molten body, a bright core and a sliding specular
+streak; no halo); the surface the Captain runs on is a dressed basalt lip in three bevelled bands with chamfered block
+joints, a crisp top edge and a molten seam under it; spikes are chunky two-faced obsidian (a hot lit face, a deep red
+far face, a dark outline and a glassy streak), drawn 38 px tall inside the sim's exact x-span, with no glow; behind the
+tunnel, angular rock shards in two parallax layers and a warm smoky haze (`drawTunnelShards`). The
+setting evolves with the run (`flipCaveHeat`, from the tick, the same for everyone): deeper in, the rock warms, the lava
+runs hotter, wider and brighter and the tunnel air takes more of its glow. Edge to edge (Joe, 15 Nov 2026): the rock
+fades to the bedrock colour `FLIP_DEEP` at the world's top and bottom (48 px) and everything at its sides (14 px), and
+the arena scene for flipRev 11–13 (`flipArenaSceneRich`, painted once per size) is that bedrock with faint joints and
+specks, so the world meets the fill with no step or line. The intro still is the game's own art (ArtStill on flipRev 13).
+The reveal no longer shows a "Bonuses" tile (the parts above it add up already); on flipRev 13 its first tile counts the
+crashes.
+
+### Stage 2: effects and reveal (15 Nov 2026, display only, no stamp)
+
+Every effect on flipRev 11–13 is read from the sim's own state (`src/lib/arcade/flipFx.ts`: the take-off tick from the
+arc timer, the landing tick from `land`, the crash from the shield), so a replay or a seek back draws what the live run
+drew; the renderer draws them, `flipSounds` sounds them, nothing writes a state. A flip: a slight stretch along the arc
+(`FLIP_STRETCH_Y` 0.07: at most 1.3 px past the runner's 32 × 36 box, inside the bounds rule's 2) and a two-frame trail.
+A double flip: a gold ring at the runner (two on a triple). A landing: a dust puff at the landing spot, gold on a sweet
+spot, with the PERFECT pop just ahead of the feet (`flipPerfectAt` on the flow revisions; earlier ones unchanged). The
+flow counter rides over the runner's head ("×12"), swings round behind it in a flip, pops on each clean landing, turns
+gold on every 10th and cracks and falls away when a streak of 3 or more breaks (the one per-canvas memory, the streak
+before the break). A near miss (`flipNearMiss`): a flip off a surface with a spike's leading edge within 24 px of the box
+ahead, or a landing with one's trailing edge within 24 px behind; never a crash; 0–7 a run on the bands' bots. A crash:
+a white flash for 8 ticks, then the respawn blink. The end: BEST FLOW counting up under SURVIVED! over 800 ms; the stage
+holds a survived run's answer 1.2 s (`flipEndHoldMs`). Sound slots: `flip.flipUp` / `flipDown`, `land`, `sweetGold`,
+`flowTick`, `flowTen`, `flowBreak`, `nearMiss`, `respawn`, `flowCount` (docs/sound-cues/arcade-effects.md). flipRev 13's
+world box is the 730 px cave (`flipWorldHFor`; until now the stage and replay boxed it at 620, shrinking the cave). No edge
+glow (`ACTION_EDGELESS_GAMES`): the spec's `moment` hook `flipMoment` draws a gold rule under a banner moment and a ring at a
+point one (a double flip's ring is the renderer's).
+
+The answer reveal draws the run as a picture (`FlipRunPicture`, the definition's `RunPicture`, which ArcadeReveal draws through `GameRunPicture` in place of the stat tiles): the minute as
+one strip of the cave with the best flow streak lit gold, perfect landings as gold diamonds, double flips as rings and
+crashes as red marks, then clean time, perfect landings, double flips and best flow in big type. It replays the stored
+log with the real sim (`flipRunTimeline`, the server replay's validated inputs); flip-overhaul-check section 9 proves its
+moments are the server replay's. Earlier revisions keep their lines.
+
+### Levels (15 Nov 2026, the difficulty framework: built)
+
+Normal is flipRev 13 exactly (above). Easy, Hard and Expert are flipRev 13 with the puzzle's `level` (the deal stamps it;
+the stamp stays 13): each deals from its own proved deal and builds its courses on its own rules
+(`FLIP_LEVEL_RULES`, frozen with the sim; `GAME_LEVELS.flip` mirrors it for the phone). States carry `lvl` (1 / 3 / 4),
+folded into the checkpoint checksum last. Grace holds at every level: no crash ends the run (a run with no input crashes
+again and again and still lasts the minute, flip-levels-check). The parts are flipRev 13's (clean time 100, perfect
+landings 60, double flips 20, flow streak 20 = 200); only perfect landings' "full at" count moves with the level.
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Speed (1/256 px a tick: start, + 90 a step) | 1,024 | 1,024 | 1,280 | 1,408 |
+| Speed step | every 4 s | every 3 s | every 3 s | every 2.5 s |
+| Top speed | 2,048 | 2,560 | 3,072 | 3,328 |
+| Moving spikes from | none | 12 s | 8 s | 5 s |
+| Sweet spots | 8, 6 ticks wide | 8, 1 tick | 8, 1 tick | 10, 1 tick (between the old star seconds) |
+| Perfect landings full at | 5 | 5 | 7 | 9 |
+| Clean time a crash costs | 5 s | 10 s | 20 s | 25 s |
+
+Code: `flipGameFor(rev, level)` / `flipGraceGameAt`, `flipCourseV8(seed, level)` (its own cache), `flipCrashCost`,
+`flipGraceSpecOf`; every replay site passes `puzzleLevel(puzzle)` (grade.ts, the stage's `flipArtGameFor`, the reveal's
+`replayFlipRun` and run picture `flipRunTimeline`, round replays). The help's "Levels:" line and the crash and sweet-spot
+lines say what changes (instructions.ts).
+
+**Proved deals** (`src/lib/duel/flipLevelDeals.server.ts`, `bun scripts/flip-level-deal.ts [--check]`; witnesses
+`scripts/fixtures/flip-levels-witness.json.gz` planned on each level's course by `scripts/flip-x200-plan.ts`,
+`--witness [--level=x] [--part=k/n] [--out=f]` then `--merge`): every candidate (flipRev 13's 260 tuning and fresh seeds)
+whose witness takes every part's maximum on the level and scores exactly 200 through the server replay.
+Kept: Easy 258, Hard 257, Expert 254 of the 260 (the rest: witnesses at 195–197, three Expert ones at 140).
+
+**Measured** (`bun scripts/flip-skyline-levels-bands.ts flip --seeds=24`; real level deals graded by the server replay; mean /
+median; every run finishes, grace). `limited` is the elite held to Joe's human limits
+(`scripts/arcade-skill-bands/humanLimits.ts`: 250 ± 30 ms reactions, 150 ms finger lag, 15 ms timing, 2.5 px aim):
+
+| Bot | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| weak | 111 / 110 | 57 / 46 | 25 / 12 | 9 / 7 |
+| average | 137 / 133 | 107 / 109 | 62 / 53 | 47 / 28 |
+| good | 171 / 164 | 145 / 146 | 133 / 139 | 119 / 132 |
+| great | 188 / 200 | 165 / 164 | 152 / 152 | 142 / 153 |
+| near-perfect | 196 / 200 | 184 / 188 | 171 / 173 | 164 / 166 |
+| elite (145 ms) | 200 / 200 | 198 / 200 | 186 / 182 | 184 / 186 |
+| **limited elite** | 200 / 200 | 183 / 188 | 163 / 165 | 159 / 160 |
+| witness (planner) | 200 | 200 | 200 | 200 |
+
+The shared tool, `bun scripts/level-tune.ts flip --level=all` (near-perfect / elite): Easy 196.5 / 200.0, Normal 181.1 / 197.1, Hard 170.9 / 187.1, Expert 160.8 / 184.5 (20 deals, every run finished).
+
+Every step is harder for every bot. The human-limited elite never crashes on a planned course (it plans the windows
+exactly), so above Normal its losses are perfect landings: that is why Hard and Expert ask for more of them (7 of 8, 9
+of 10; a decision for Joe). Normal under human limits: 183 mean, 188 median, short of Joe's ~198 guide by its perfect
+landings (3–4 of the 5); Normal is not changed here (Joe approved a Normal change for Iron Wall only). Expert boards for
+Joe to play (the limited elite's best of the first 24 Expert deals; "well" on Expert here means 160+: clean time full,
+double flips and flow full, 6+ of the 9 perfect landings): room seed n=1 (course 640114144) 173 (elite 186), n=10 (1208933397) 173 (200), n=12 (573075131) 173 (193), n=22 (596575428) 173 (180), n=7 (1271176014) 166 (186), n=8 (1276757712) 166 (200); its Expert mean is 159.
+
+**For Joe's scoring review** (16 Nov 2026): Roofbound's Normal under human limits (the limited elite) scores 183 mean,
+188 median, short of the ~198 guide; Normal is unchanged (High Rise's Normal, 123, is noted in skyline.md).
+
+Build time (a course is built from the seed and proved in the sim): median about 110 ms on Normal, about 50 ms Easy,
+200–250 ms Hard, 300–450 ms Expert on this machine, with a tail to several seconds where the builder re-rolls a course.
+So RoundIntro builds the round's course while the intro is up (`prepareFlipCourse(seed, rev, level)`, every flipRev 13
+level, rooms and practice; an async round's seed only arrives at its start, so it builds then, as Grappler's does), and
+the round's own init is a cache hit. Display timing only: flip-levels-check proves the prepared course is the cached one
+the init uses, that it equals a fresh build (a cache miss builds the same course and start state), that it builds
+nothing for older stamps, and that the server's grade is the same warm or cold.
+
+flip-levels-check (~50 s quick, `CHECKS_FULL=1` every dealt course and the deal file rebuilt byte for byte) proves
+Normal's deals byte for byte and flipRev 10–13 runs recorded on de3bec96 (`scripts/fixtures/levels-action-legacy.json.gz`),
+each level's rules and stamped settings, the 120 s rule, grace, 200 on every level's witnesses, and identical worlds.
+
 ## flipRev 12 (3 Nov 2026, the Action polish): the proved deal, a taller cave
 
 Rooms deal **flipRev 12** (`FLIP_REV_DEAL`): flipRev 11's game exactly (the same sim, states, scoring and checksum;

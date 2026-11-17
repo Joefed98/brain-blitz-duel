@@ -103,7 +103,7 @@ reason given. "Practice" marks games retired to practice.
 | Scrumper (`snip`) | Drag across a rope to cut | None: cutting is an aimed stroke, and a key cut would be aim assist |
 | Slice (`slice`) | Drag across the discs | None: a slice is an aimed freehand stroke |
 | Swish (`bintoss`) | Drag to aim, release to throw (release on the bottom strip cancels) | Arrows / WASD aim (Shift: fine); Space or Enter throws; Esc hides the aim |
-| Tempo (`beat`) | Click a lane (hold for hold notes; flick sideways on swipe notes) | None: a decision for Joe (below) |
+| Tempo (`beat`) | Click a lane (hold for hold notes; flick sideways on swipe notes) | D F J K the lanes (D F Space J K on five; hold a key for a hold note), ← → flick the lane last pressed, Enter fever (Joe, 16 Nov 2026) |
 | Tilt (`tilt`) | Drag sideways to tilt | ← → / A D tilt (a virtual drag, 4 px a tick) |
 | Top Bins (`freekick`, freekickRev 4) | Drag from the ball with the mouse to draw the shot (where it ends is the target, its bend the curl), hold the power bar and let go to strike | ← → ↑ ↓ nudge the drawn shot's target (20 cm, Shift 5 cm; with nothing drawn the first press aims at the goal's centre); A D its curl left / right (10 a press); hold Space for the power meter, let go to strike. freekickRev 3: click the goal to aim, drag sideways to curl, the same keys. Revisions 1–2 (a drawn stroke): mouse only |
 | Wavefront (`wavefront`) | Drag in the bottom quarter to move | ← → / A D move (6 px a tick) |

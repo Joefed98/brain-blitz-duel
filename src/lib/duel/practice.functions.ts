@@ -152,17 +152,21 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
       return { puzzle: pub, sealed: await sealDeal(pub, priv, { __dealtAt: Date.now() }) };
     }
     const { withSeededRandom } = await import("./random");
-    const { INTRO_EXAMPLE_ID, INTRO_EXAMPLE_SEED } = await import("./puzzleDemo");
+    const { INTRO_EXAMPLE_ID, INTRO_EXAMPLE_SEED, LIVE_INTRO_EXAMPLE_TYPES } = await import("./puzzleDemo");
     const { generateWordsmithExample } = await import("./wordsmith.server");
+    // The Word overhaul (15 Nov 2026): Nucleus's example takes today's stamp too (its letters unchanged), as every other
+    // game's example does through generatePuzzle's layers.
+    const { dealWordOverhaul } = await import("./wordOverhaul.server");
     // The six banked types store their example, so it needs no live solve.
     const { bankedIntroExample } = await import("./puzzleBank.server");
     // Skid, Chroma Lines and Tessellate (puzzle polish, 3 Nov 2026): their live boards come from the depth banks, which
     // deal only from a bank seed, so the stored example (the bank's first board) carried none of the live stamps and
     // graded on the older 120 + 30 shape (the audit's "150 at par"). Their example is the live deal at the example seed.
-    const liveFromBank = type === "iceslide" || type === "flow" || type === "blockparty";
+    // Lamplighter too (15 Nov 2026): its bank board carried no notesRev, so its intro demo would play older rules.
+    const liveFromBank = LIVE_INTRO_EXAMPLE_TYPES.has(type);
     const made = liveFromBank
       ? withSeededRandom(INTRO_EXAMPLE_SEED, () => generatePuzzle(type, { bankSeed: INTRO_EXAMPLE_SEED }))
-      : bankedIntroExample(type) ?? withSeededRandom(INTRO_EXAMPLE_SEED, () => type === "wordsmith" ? generateWordsmithExample() : generatePuzzle(type, { unblockRow }));
+      : bankedIntroExample(type) ?? withSeededRandom(INTRO_EXAMPLE_SEED, () => type === "wordsmith" ? dealWordOverhaul(generateWordsmithExample()) : generatePuzzle(type, { unblockRow }));
     const { pub, priv } = splitPuzzle(made);
     return { puzzle: pub as PuzzleData, sealed: await sealDeal(pub as PuzzleData, priv as Loose, { __example: INTRO_EXAMPLE_ID, __dealtAt: Date.now() }) };
   });
@@ -491,9 +495,9 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
       if (priv["type"] !== "wordsearch") throw new Error("That puzzle didn’t load. Try another.");
       const puzzle = mergePuzzle(pub, priv);
       if (puzzle.type !== "wordsearch") return { valid: false as const, points: 0, word: "" };
-      const { checkWordSearchPath } = await import("./wordSearch");
+      const { checkWordSearchPath, wsRowsOf } = await import("./wordSearch");
       const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
-      return checkWordSearchPath(puzzle.placements ?? [], puzzle.size, path, found, puzzle.bonus);
+      return checkWordSearchPath(puzzle.placements ?? [], puzzle.size, path, found, puzzle.bonus, wsRowsOf(puzzle));
     }
     if (data.puzzle.type === "wordhunt") {
       const { checkWordHuntPath } = await import("./wordHunt.server");
@@ -512,7 +516,7 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
       return { valid: false as const, points: 0, word: "", reason: "Not this round." };
     }
     const { checkWordsmithWord } = await import("./wordsmith.server");
-    return checkWordsmithWord(data.puzzle.letters, String(data.word ?? ""), found);
+    return checkWordsmithWord(data.puzzle.letters, String(data.word ?? ""), found, data.puzzle.wordsmithRev);
   });
 
 /** Strikeout, Cryptogrid and Swapword practice: replays the moves against the sealed answer half. */
@@ -523,7 +527,7 @@ export const practiceCheckMovesFn = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }) => {
     const type = data.puzzle?.type;
-    if (type !== "strikeout" && type !== "codeword" && type !== "swapword") return null;
+    if (type !== "strikeout" && type !== "codeword" && type !== "swapword" && !(type === "bomb" && data.puzzle.bombInstant)) return null;
     if (!(await practiceLimit("check"))) return null;
     const { priv, pub } = await openDealOrThrow(data.sealed, data.puzzle);
     const { checkPuzzleMoves } = await import("./moves.server");

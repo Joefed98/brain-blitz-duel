@@ -10,7 +10,10 @@ import { preStandardPinned } from "./standard/stamps";
 import { PAR_MOVES_MAZE_INTRO, STANDARD_ATTENTION_INTRO } from "./standard/attentionTexts";
 import { parMovesDealt } from "./parMoves";
 import { BANGON_DEPTH_INTRO, FLASH_DEPTH_INTRO } from "./depth/speedTexts";
-import { PAR_MOVES_PATTERN_INTRO, PARTIAL_PATTERN_INTRO, PATTERN_STD_INTRO } from "./standard/patternText";
+import { PAR_MOVES_PATTERN_INTRO, PARTIAL_PATTERN_INTRO, PATTERN_STD_INTRO, PIPES_TWO_WAY_INTRO } from "./standard/patternText";
+import { preNov7Pinned } from "./speedPipesNov7";
+import { prePatternNov15Pinned } from "./patternNov15";
+import { blockPatternIntro } from "./standard/patternText"; // tessellate (Pattern overhaul)
 import { partialCreditDealt } from "./partialCredit";
 import { standardNumberIntro } from "./standard/numberText";
 import { fillMax, liveRecord } from "./roundMax";
@@ -76,7 +79,8 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // Logic and pattern
     unblock: partialCreditDealt() ? PARTIAL_PATTERN_INTRO.unblock : PATTERN_STD_INTRO.unblock,
     lightsout: logicStandardIntro("lightsout"),
-    pipes: PATTERN_STD_INTRO.pipes,
+    // Pipeline pipesRev 5 (the Pattern overhaul, patternNov15.ts): turns both ways, par in turns.
+    pipes: preNov7Pinned() || prePatternNov15Pinned() ? PATTERN_STD_INTRO.pipes : PIPES_TWO_WAY_INTRO,
     sudoku: logicStandardIntro("sudoku"),
     flow: PATTERN_STD_INTRO.flow,
     iceslide: parMovesDealt() ? PAR_MOVES_PATTERN_INTRO.iceslide : PATTERN_STD_INTRO.iceslide,
@@ -91,7 +95,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     flood: logicStandardIntro("flood"),
     tiles: partialCreditDealt() ? PARTIAL_PATTERN_INTRO.tiles : PATTERN_STD_INTRO.tiles,
     rings: partialCreditDealt() ? PARTIAL_PATTERN_INTRO.rings : PATTERN_STD_INTRO.rings,
-    blockparty: PATTERN_STD_INTRO.blockparty,
+    blockparty: blockPatternIntro(),
     shikaku: logicStandardIntro("shikaku"),
     fences: gridStandardIntro("fences"),
     fillomino: gridStandardIntro("fillomino"),
@@ -114,16 +118,16 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     // crossRev 12 (Nov 2026): the hit that ends the run is free; hits take at most half the rows' points.
     cross: "Cross again and again; bonuses for no-stop streaks and close calls; hits cost. Up to {max}.",
     breaker: "Break bricks; gold bricks 10 each (30 for all three); a fast clear adds more. Up to {max}.",
-    rally: "Hit gold balls back; bonuses for pink pads and gold targets. Up to {max}.",
+    rally: "Hit gold balls back; bonuses for pink pads, gold targets and spin shots. Up to {max}.",
     // Cards & Board (30 Oct 2026), on the arcade scoring standard.
     minesweeper: "Uncover safe squares; bonuses for no mines hit and a fast clear. Up to {max}.",
     mahjong: "Clear pairs; bonuses for no shuffles and a fast clear. Up to {max}.",
-    minigolf: "Sink each hole; bonuses for few strokes, birdies and a fast finish. Up to {max}.",
+    minigolf: "Hole all five; bonuses for few strokes, birdies and a fast finish. Up to {max}.",
     pool: "Pot your balls; bonuses for the black, pots in a row and speed; fouls cost. Up to {max}.",
     curling: "Stop near the button; bonuses for takeouts, the red ring and holding shot. Up to {max}.",
     pinball: "Score table points; bonuses for J-O-U-L-Z, multiball, jackpots, ramp combos. Up to {max}.",
-    homerun: "Hit it far; bonuses for home runs, lit signs and a perfect streak. Up to {max}.",
-    freekick: "Score goals; bonuses for targets, bent shots and five in a row. Up to {max}.",
+    homerun: "Score runs; bonuses for home runs, a perfect streak and a good eye. Up to {max}.",
+    freekick: "Score goals; bonuses for targets, skill shots and five in a row. Up to {max}.",
     racing: "Keep your average speed high; a bonus for each clean sector. Up to {max}.",
     // Cards & Board (the arcade scoring standard from their first revision).
     freecell: "Move cards home, every one counts; bonuses for few moves and speed. Up to {max}.",
@@ -139,7 +143,7 @@ function introScoreTemplates(): Record<PuzzleType, string> {
     slice: "Slice food; bonuses for combos, gold fruit, bread and dodges; chillies cost. Up to {max}.",
     beat: "Hit notes on the beat; bonuses for fevers, golden notes, double taps, streaks. Up to {max}.",
     wavefront: "Shoot ships, clear waves; bonuses for a fast boss kill, saucers and cannons. Up to {max}.",
-    flip: "Last without crashing; bonuses for landing on sweet spots, double flips, flow. Up to {max}.",
+    flip: "Run clean: crashes cost time. Bonuses for sweet spots, double flips, flow. Up to {max}.",
     junction: "Points for each car and bus through, ± for ambulances. Last the minute for 10 more.",
     inkbridge: "Pot every level; bonuses for little ink, trick shots, clovers and speed. Up to {max}.",
     burst: "Pop atoms; fast wave clears and golden atoms pay; lives cost, wasted shots too. Up to {max}.",

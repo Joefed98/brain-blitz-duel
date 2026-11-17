@@ -7,7 +7,7 @@ import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { INTRO_EXAMPLE_SEED } from "../src/lib/duel/puzzleDemo";
-import { extendWordHuntPath, wordHuntInnerCell, toggleWordsmithTile, puzzleInputDemoCompatible, PUZZLE_INPUT_PRESENTATION, WORDSMITH_PRESENTATION, POLISH_B_PRESENTATION, LOGIC_POLISH_PRESENTATION } from "../src/components/puzzles/wordInput";
+import { extendWordHuntPath, wordHuntInnerCell, toggleWordsmithTile, puzzleInputDemoCompatible, PUZZLE_INPUT_PRESENTATION, WORDSMITH_PRESENTATION, POLISH_B_PRESENTATION, LOGIC_POLISH_PRESENTATION, LOGIC_OVERHAUL1_PRESENTATION } from "../src/components/puzzles/wordInput";
 import { shuffleLetterOrder } from "../src/components/puzzles/letterShuffle";
 import { applyPuzzleSurfaces } from "../src/components/puzzles/usePuzzleSurfaces";
 import { WORDSMITH_SIZES, type PuzzleType } from "../src/lib/duel/types";
@@ -47,7 +47,10 @@ assert.equal(puzzleInputDemoCompatible("wordsmith", { presentation: WORDSMITH_PR
 assert.equal(puzzleInputDemoCompatible("sudoku", {}), false);
 // Logic polish (13 Oct 2026) moved Sudoku's board again: Polish B recordings no longer replay.
 assert.equal(puzzleInputDemoCompatible("sudoku", { presentation: POLISH_B_PRESENTATION }), false);
-assert.equal(puzzleInputDemoCompatible("sudoku", { presentation: LOGIC_POLISH_PRESENTATION }), true);
+// The Logic overhaul (15 Nov 2026) moved it once more: Logic polish recordings no longer replay.
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul).
+assert.equal(puzzleInputDemoCompatible("sudoku", { presentation: LOGIC_POLISH_PRESENTATION }), false);
+assert.equal(puzzleInputDemoCompatible("sudoku", { presentation: LOGIC_OVERHAUL1_PRESENTATION }), true);
 
 const css = readFileSync("src/styles.css", "utf8");
 assert.match(css, /\.game-screen,[\s\S]*?canvas,\s*button,[\s\S]*?-webkit-tap-highlight-color: transparent !important/);
@@ -114,10 +117,16 @@ for (const key of keys) {
         }
       }
       if (key === "sudoku") {
-        assert.equal(root.querySelectorAll('.sudoku-box-top').length, 18);
-        assert.equal(root.querySelectorAll('.sudoku-box-left').length, 12);
-        assert.equal(root.querySelectorAll('.sudoku-box-bottom').length, 6);
-        assert.equal(root.querySelectorAll('.sudoku-box-right').length, 6);
+        // The reveal shows two boards, Solution and Yours (the Logic overhaul's reveal, 15 Nov 2026): every board
+        // keeps the box edges. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul).
+        const grids = [...root.querySelectorAll(".sudoku-grid")];
+        assert.equal(grids.length, phase === "reveal" ? 2 : 1);
+        for (const grid of grids) {
+          assert.equal(grid.querySelectorAll('.sudoku-box-top').length, 18);
+          assert.equal(grid.querySelectorAll('.sudoku-box-left').length, 12);
+          assert.equal(grid.querySelectorAll('.sudoku-box-bottom').length, 6);
+          assert.equal(grid.querySelectorAll('.sudoku-box-right').length, 6);
+        }
         assert.equal(root.querySelectorAll('.sudoku-box-outline').length, 0);
       }
       if (key === "shikaku") for (const grid of root.querySelectorAll(".grid")) {

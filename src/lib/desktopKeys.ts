@@ -12,13 +12,15 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   balltrack: [["← → ↑ ↓", "move"], ["Space", "turn tile"]],
   bintoss: [["← → ↑ ↓", "aim"], ["Space", "throw"]],
   breaker: [["← →", "paddle"], ["Space", "power-up"]],
+  // Crazy Golf golfRev 3 (15 Nov 2026): the stage's keys (C switches putt and chip).
+  minigolf: [["← →", "aim"], ["↑ ↓", "power"], ["C", "putt / chip"], ["Space", "play the shot"]],
   bubble: [["← → ↑ ↓", "aim"], ["Space", "shoot"]],
   bullseye: [["← → ↑ ↓", "aim"], ["Space", "shoot"]],
   burst: [["← →", "move"], ["Space", "fire"]],
   cross: [["← → ↑ ↓", "step"]],
   flip: [["Space", "flip"]],
   hover: [["Space", "flap"]],
-  homerun: [["Click", "pick your spot"], ["Space or click", "swing"]],
+  homerun: [["C / P", "Contact or Power"], ["Mouse swipe, or Space", "swing (hold ← / → to aim)"]],
   inkbridge: [["Mouse", "draw"], ["Enter", "release"], ["Z", "undo"], ["R", "reset"], ["D", "drop again"]],
   matchup: [["← → ↑ ↓", "move"], ["Space", "pick"], ["Arrow", "swap picked gem"]],
   orbit: [["Space", "release"], ["C", "checkpoint"]],
@@ -36,7 +38,7 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   blockfall: [["← →", "move"], ["↑", "turn"], ["↓", "soft drop"], ["Space", "drop"]],
   alleyroll: [["Mouse drag", "swipe up the lane to roll"], ["← →", "line up"], ["Hold Space", "roll straight"]],
   // Sports
-  freekick: [["Drag", "draw the shot (bend it to curl)"], ["← → ↑ ↓ / A D", "nudge the aim / curl"], ["Space (hold)", "power, release to strike"]],
+  freekick: [["Drag", "draw the shot (bend to curl, flick to dip)"], ["← → ↑ ↓ / A D / S", "nudge the aim / curl / strike"], ["Space (hold)", "power, release to strike"]],
   rally: [["← →", "paddle"]],
   ricochet: [["Click / Space", "leap, again in the air to double jump"], ["← →", "leap off a lantern that way"]],
   racing: [["← → / A D", "steer"], ["↑ / W", "accelerate"], ["↓ / S", "brake"]],
@@ -47,6 +49,7 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   tilt: [["← →", "tilt"]],
   wavefront: [["← →", "move"]],
   // Arcade, practice only
+  beat: [["D F J K", "lanes (D F Space J K on five)"], ["← →", "flick"], ["Enter", "fever"]],
   bastion: [["Mouse", "aim"], ["Click", "fire"], ["R", "reload"], ["Space", "fast reload"]],
   dual: [["← / F", "left jump"], ["→ / J", "right jump"]],
   hotfloor: [["Mouse", "tiles"], ["Enter", "go"], ["Z", "undo"], ["C", "clear"]],

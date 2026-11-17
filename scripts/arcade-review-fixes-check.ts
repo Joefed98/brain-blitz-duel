@@ -35,7 +35,7 @@ import { hoverGoldHudText } from "../src/lib/arcade/hover.renderer";
 import { swingGameFor, SWING_V17_PAR_STRETCHES } from "../src/lib/arcade/swing";
 import { SWING_SLIDE_DEAL } from "../src/lib/duel/swingSlideDeal.server";
 import { replayPyramidRun } from "../src/lib/duel/cards";
-import { generateBurst, generateCross, generatePyramid, generateSkyline, generateWavefront } from "../src/lib/duel/arcade.server";
+import { generateBeat, generateBlockfall, generateBurst, generateCross, generatePyramid, generateRally, generateSkyline, generateWavefront } from "../src/lib/duel/arcade.server";
 import { demoRevAccepted, SAME_PLAY_DEMO_REVS } from "../src/lib/duel/introDemo.functions";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { setDealPin } from "../src/lib/duel/dealEra";
@@ -56,7 +56,14 @@ const read = (p: string) => readFileSync(p, "utf8");
 /* Orbit */
 {
   const src = read("src/lib/arcade/orbit.renderer.ts");
-  check(!src.includes("misses:1-state.respawns") && (src.match(/misses:state\.respawns/g) ?? []).length === 2, "Orbit: both success layers count misses up with the respawns");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitRev 15's automatic
+  // respawns are misses too, so both layers read orbitSlips (the checkpoint respawns plus the automatic ones).
+  check(
+    !src.includes("misses:1-state.respawns") &&
+      (src.match(/misses:orbitSlips\(state\)/g) ?? []).length === 2 &&
+      /export function orbitSlips\([^)]*\)[^{]*\{[^}]*state\.respawns/.test(src),
+    "Orbit: both success layers count misses up with the respawns",
+  );
   // The success layer resets its chain only when misses rise: a crash (respawns + 1) must reset it.
   const ctx = createCanvas(100, 100).getContext("2d") as unknown as CanvasRenderingContext2D;
   const opts = (tick: number, count: number, respawns: number) => ({ id: "orbit-check", tick, count, misses: respawns, colour: "#fff", width: 100, height: 100, point: { x: 1, y: 1 } });
@@ -203,15 +210,24 @@ check(!/W\/S the power/.test(read("src/puzzles/minigolf.tsx")), "Crazy Golf: the
 
 /* Intro demos */
 {
-  const dealt = { wavefront: generateWavefront().wavRev, burst: generateBurst().burstRev, cross: generateCross().crossRev, skyline: generateSkyline().skylineRev } as const;
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): Rally (rallyRev 13), Tempo (beatRev 12) and Blockzone (blockfallRev 2) join
+  // the same rule.
+  const dealt = { wavefront: generateWavefront().wavRev, burst: generateBurst().burstRev, cross: generateCross().crossRev, skyline: generateSkyline().skylineRev, rally: generateRally().rallyRev, beat: generateBeat().beatRev, blockfall: generateBlockfall().blockfallRev } as const;
   for (const [game, rev] of Object.entries(dealt) as [keyof typeof SAME_PLAY_DEMO_REVS, number | undefined][]) {
     const pair = SAME_PLAY_DEMO_REVS[game] as readonly number[];
     check(demoRevAccepted(game, rev), `${game}: a demo recorded on the dealt stamp (${rev}) plays`);
-    check(pair.length === 2 && pair[1] === rev && pair[0] === (rev ?? 0) - 1, `${game}: the accepted pair is the dealt stamp and the one before it (${pair})`);
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): Fission's dealt burstRev 13
+    // changes the play (bigger atoms), so its list is exactly the dealt stamp; every other game's is exactly the dealt
+    // stamp and the one before it (whose play it keeps).
+    // Blockzone's blockfallRev 2 is a new game on the old id (no hold, no pads), so its list is exactly the dealt stamp too.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): stage 3's Spacewalk crossRev 13 (lighter traffic) and Wavefront wavRev 15 (larger hit cells) change
+    // the play too, so theirs are exactly the dealt stamp as well.
+    const want = game === "burst" || game === "blockfall" || game === "cross" || game === "wavefront" ? [rev] : [(rev ?? 0) - 1, rev];
+    check(pair.length === want.length && want.every((r, i) => pair[i] === r), `${game}: the accepted stamps are exactly ${want.join(" and ")} (${pair})`);
     check(!demoRevAccepted(game, (rev ?? 0) - 2) && !demoRevAccepted(game, undefined) && !demoRevAccepted(game, (rev ?? 0) + 1), `${game}: an older (or unstamped) demo stays stopped`);
   }
   const src = read("src/lib/duel/introDemo.functions.ts");
-  for (const [game, field] of [["wavefront", "wavRev"], ["burst", "burstRev"], ["cross", "crossRev"], ["skyline", "skylineRev"]] as const)
+  for (const [game, field] of [["wavefront", "wavRev"], ["burst", "burstRev"], ["cross", "crossRev"], ["skyline", "skylineRev"], ["rally", "rallyRev"], ["beat", "beatRev"], ["blockfall", "blockfallRev"]] as const)
     check(src.includes(`!demoRevAccepted("${game}", demo.puzzle.${field})) return null`), `${game}: the stop rule reads demoRevAccepted`);
 }
 

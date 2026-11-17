@@ -16,7 +16,15 @@
  *   bun scripts/arcade-self-replay-check.ts [runsPerGame] [keys,…] [--part=k/n]
  */
 
-import { bastionIronGame, bastionTankCheckpoint, bastionTankGame, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
+import { bastionIronGame, bastionTankCheckpoint, bastionTankGame, bastionTankGameFor, BT2_CHECKPOINT_INTERVAL } from "../src/lib/arcade/bastionTank";
+import { BT_EASY_DEAL } from "../src/lib/duel/ballTrackDealEasy.server";
+import { BT_HARD_DEAL } from "../src/lib/duel/ballTrackDealHard.server";
+import { BT_EXPERT_DEAL } from "../src/lib/duel/ballTrackDealExpert.server";
+import { MINIGOLF_HOLES_BANK } from "../src/lib/duel/minigolfHolesBank.server";
+import { MG_LEVEL_NAMES } from "../src/lib/arcade/minigolf";
+import { homerunDealSeedV5 } from "../src/lib/duel/homerunDealV5.server";
+import { freekickDealSeedV5 } from "../src/lib/duel/freekickDealV5.server";
+import { freekickDealSeedV6 } from "../src/lib/duel/freekickDealV6.server";
 import { encodeBastionTankRun, replayBastionTankRun } from "../src/lib/duel/bastion";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_3, HOMERUN_REV_4, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
@@ -29,12 +37,13 @@ import { encodeFreekickRun, replayFreekickRun } from "../src/lib/duel/freekick";
 import { FREEKICK_DEAL } from "../src/lib/duel/freekickDeal.server";
 import { FREEKICK_DEAL_V2 } from "../src/lib/duel/freekickDealV2.server";
 import { FREEKICK_DEAL_V3 } from "../src/lib/duel/freekickDealV3.server";
-import { racingCheckpoint, racingGameFor, RACING_CHECKPOINT_INTERVAL, RACING_REV_2, RACING_REV_3, RACING_REV_STD } from "../src/lib/arcade/racing";
+import { racingCheckpoint, racingGameFor, RACING_CHECKPOINT_INTERVAL, RACING_REV_2, RACING_REV_3, RACING_REV_4, RACING_REV_STD } from "../src/lib/arcade/racing";
 import { FREEKICK_DEAL_V4 } from "../src/lib/duel/freekickDealV4.server";
 import { encodeRacingRun, replayRacingRun } from "../src/lib/duel/racing";
 import { RACING_DEAL } from "../src/lib/duel/racingDeal.server";
 import { RACING_DEAL_V2 } from "../src/lib/duel/racingDealV2.server";
 import { RACING_DEAL_V3 } from "../src/lib/duel/racingDealV3.server";
+import { RACING_DEAL_V4 } from "../src/lib/duel/racingDealV4.server";
 import {
   inputAt,
   recordInput,
@@ -79,7 +88,7 @@ import { encodeHoverRun, replayHoverRun } from "@/lib/duel/hover";
 import { encodeMatchupRun, replayMatchupRun } from "@/lib/duel/matchup";
 import { encodeRallyRun, replayRallyRun } from "@/lib/duel/rally";
 import { encodeMoonRun, encodeNinjaRun, encodeRicoRun, replayMoonRun, replayNinjaRun, replayRicoRun } from "@/lib/duel/ricochet";
-import { moonCheckpoint, moonGame, ninjaCheckpoint, ninjaGame, NINJA_CHECKPOINT_INTERVAL } from "@/lib/arcade/ricochetNinja";
+import { moonCheckpoint, moonGame, moonGameFor, ninjaCheckpoint, ninjaGame, NINJA_CHECKPOINT_INTERVAL } from "@/lib/arcade/ricochetNinja";
 import { encodeSkylineRun, replaySkylineRun } from "@/lib/duel/skyline";
 import { encodeSliceRun, replaySliceRun } from "@/lib/duel/slice";
 import { FLIP_DEAL } from "@/lib/duel/flipDeal.server";
@@ -103,7 +112,7 @@ import { encodeBurstRun, replayBurstRun } from "@/lib/duel/burst";
 import { orbitCheckpoint, orbitGame } from "@/lib/arcade/orbit";
 import { encodeOrbitRun, replayOrbitRun } from "@/lib/duel/orbit";
 import { swingCheckpoint, swingGame } from "@/lib/arcade/swing";
-import { tiltCheckpoint, tiltGame, tiltGameFor, TILT_REV } from "@/lib/arcade/tilt";
+import { tiltCheckpoint, tiltGame, tiltGameFor, tiltLevelGame, TILT_REV } from "@/lib/arcade/tilt";
 import { encodeTiltRun, replayTiltRun } from "@/lib/duel/tilt";
 import { hotfloorCheckpoint, hotFloorGame } from "@/lib/arcade/hotFloor";
 import { encodeHotFloorRun, replayHotFloorRun } from "@/lib/duel/hotFloor";
@@ -138,27 +147,27 @@ import { FLIP_REV_BAND, FLIP_REV_EXPAND, FLIP_REV_FLOW, FLIP_REV_LIFT, FLIP_REV_
 import { WAV_REV_BAND, WAV_REV_PHONE, WAV_REV_SHAPES, WAV_REV_STD, WAV_REV_TALL, WAV_REV_TUNEC } from "@/lib/arcade/wavefront";
 import { FLIP_REV_BAND, FLIP_REV_EXPAND, FLIP_REV_LIFT, FLIP_REV_TUNEC } from "@/lib/arcade/flip";
 import { INK_REV_BAND, INK_REV_TUNEC } from "@/lib/arcade/inkBridge";
-import { MATCHUP_REV_BAND, MATCHUP_REV_PAR, MATCHUP_REV_SIX, MATCHUP_REV_STD, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_BAND, MATCHUP_REV_ICE2, MATCHUP_REV_PAR, MATCHUP_REV_SIX, MATCHUP_REV_STD, MATCHUP_REV_WAIT } from "@/lib/arcade/matchup";
 import { BUB_REV_BAND, BUB_REV_TALL, BUB_REV_TORPEDO } from "@/lib/arcade/bubble";
 import { CROSS_REV_BAND, CROSS_REV_EXPAND, CROSS_REV_FLOW, CROSS_REV_SMALL, CROSS_REV_STD } from "@/lib/arcade/cross";
 import { RALLY_REV_BAND, RALLY_REV_TALL, RALLY_REV_TUNED, RALLY_REV_TUNEF } from "@/lib/arcade/rally";
-import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL, SNAKE_REV_10, SNAKE_REV_STD, SNAKE_REV_12 } from "@/lib/arcade/snake";
+import { SNAKE_REV_BAND, SNAKE_REV_ROCKS, SNAKE_REV_TALL, SNAKE_REV_10, SNAKE_REV_STD, SNAKE_REV_12, SNAKE_REV_WRAP } from "@/lib/arcade/snake";
 import { BINTOSS_REV_BAND } from "@/lib/arcade/binToss";
 import { SNIP_REV_BAND, SNIP_REV_BANK6, SNIP_REV_EXPAND, SNIP_REV_PROVEN, SNIP_REV_TALL } from "@/lib/arcade/snip";
 import { SKYLINE_REV_BAND, SKYLINE_REV_TALL } from "@/lib/arcade/skyline";
 import { HOVER_REV_BAND, HOVER_REV_EXPAND, HOVER_REV_STANDARD, HOVER_REV_TALL, HOVER_REV_TUNEC } from "@/lib/arcade/hover";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
-import { BRK_REV_BAND, BRK_REV_STD, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
+import { BRK_REV_BAND, BRK_REV_CLEAR, BRK_REV_STD, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "@/lib/arcade/breaker";
 import { pinballGameFor, pinCheckpoint, PIN_REV } from "@/lib/arcade/pinball";
-import { pin4Checkpoint, pinball5Game, pinball6Game, PIN_REV_LONG } from "@/lib/arcade/pinball4";
+import { pin4Checkpoint, pinball5Game, pinball6Game, pinball7Game, pinball8Game, PIN_REV_LONG } from "@/lib/arcade/pinball4";
 // The arcade scoring standard, batch B (29 Oct 2026): each game's standard stamp.
 import { SKYLINE_REV_STD } from "@/lib/arcade/skyline";
 import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
-import { PIN_REV_STD } from "@/lib/arcade/pinball";
-import { RALLY_REV_STD } from "@/lib/arcade/rally";
-import { BUB_REV_STD } from "@/lib/arcade/bubble";
-import { BEAT_REV_STD } from "@/lib/arcade/beat";
+import { PIN_REV_JOULZ, PIN_REV_STD } from "@/lib/arcade/pinball";
+import { RALLY_REV_LIVES, RALLY_REV_STD } from "@/lib/arcade/rally";
+import { BUB_REV_FAST, BUB_REV_STD } from "@/lib/arcade/bubble";
+import { BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
 import { minesCheckpoint, minesweeperGameFor, MINES_REV_LOGIC, MINES_REV_STD } from "@/lib/arcade/minesweeper";
 import { encodeMinesweeperRun, replayMinesweeperRun } from "@/lib/duel/minesweeper";
@@ -195,14 +204,19 @@ import { CURLING_BANK_V3 } from "@/lib/duel/curlingBankV3.server";
 import { CURLING_BANK_V4 } from "@/lib/duel/curlingBankV4.server";
 import { MINIGOLF_BANK_V2 } from "@/lib/duel/minigolfBankV2.server";
 import { TILT_REV_BAND, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_PAR, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
-import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL } from "@/lib/arcade/orbit";
-import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom } from "@/lib/arcade/orbitRev3";
+import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG } from "@/lib/arcade/orbit";
+import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom, initGraceFrom, initBigFrom, initLevelFrom } from "@/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "@/lib/duel/orbitXpBank.server";
 import { ORBIT_FUEL_BANK } from "@/lib/duel/orbitFuelBank.server";
+import { ORBIT_FUEL_BANK_EASY } from "@/lib/duel/orbitFuelBankEasy.server";
+import { ORBIT_FUEL_BANK_HARD } from "@/lib/duel/orbitFuelBankHard.server";
+import { ORBIT_FUEL_BANK_EXPERT } from "@/lib/duel/orbitFuelBankExpert.server";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
-import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE } from "@/lib/arcade/swing";
+import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG } from "@/lib/arcade/swing";
+import { SWING_BIG_DEAL } from "@/lib/duel/swingBigDeal.server";
+import { SWING_LEVEL_DEAL } from "@/lib/duel/swingLevelDeal.server";
 import { SWING_V13_BANK } from "@/lib/duel/swingBankV13.server";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
 
@@ -1025,7 +1039,219 @@ const GAMES: Game[] = [
   // Minefield minesRev 2 (13 Nov 2026: a Logic game with 20 mines), appended so every earlier entry keeps its stream.
   { key: "minesweeper/v2", game: minesweeperGameFor(MINES_REV_LOGIC), checkpoint: minesCheckpoint, mode: "events", rate: 60, encode: encodeMinesweeperRun, replay: (seed: number, raw: string) => replayMinesweeperRun(seed, raw, MINES_REV_LOGIC) },  // Thirteen pyramidRev 3 (15 Nov 2026: a dead end waits for Undo), appended so every earlier entry keeps its stream.
   { key: "pyramid/v3", game: pyramidGameFor(3), checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 3) },
+  // Tempo beatRev 12 (15 Nov 2026, the Retro overhaul: a missed note scores 0), appended so every earlier entry keeps its stream.
+  { key: "beat/floor", game: beatGameFor(BEAT_REV_FLOOR), checkpoint: beatCheckpoint, mode: "events", rate: 200, encode: encodeBeatRun, replay: (seed: number, raw: string) => replayBeatRun(seed, raw, BEAT_REV_FLOOR) },
+  // Rally rallyRev 13 (15 Nov 2026, the Retro overhaul: two lives, spin shots), appended so every earlier entry keeps its stream.
+  { key: "rally/lives", game: rallyGameFor(RALLY_REV_LIVES), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, RALLY_REV_LIVES) },
+  // Pinball pinRev 7 (15 Nov 2026, the Retro overhaul: one J-O-U-L-Z set), appended so every earlier entry keeps its stream.
+  { key: "pinball/joulz", game: pinball7Game, checkpoint: pin4Checkpoint, mode: "events", rate: 120, encode: encodePinballRun, replay: (seed: number, raw: string) => replayPinballRun(seed, raw, PIN_REV_JOULZ) },
+  // Meteor snakeRev 13 (15 Nov 2026, the Retro overhaul: wrap-around edges), appended so every earlier entry keeps its stream.
+  { key: "snake/wrap", game: snakeGameFor(SNAKE_REV_WRAP), checkpoint: snakeCheckpoint, mode: "events", rate: 60, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, SNAKE_REV_WRAP) },
+  // Breaker brkRev 12 (15 Nov 2026, the Retro overhaul: the clearable wall), appended so every earlier entry keeps its stream.
+  { key: "breaker/clear", game: breakerGameFor(BRK_REV_CLEAR), checkpoint: brkCheckpoint, mode: "events", rate: 950, encode: encodeBreakerRun, replay: (seed: number, raw: string) => replayBreakerRun(seed, raw, BRK_REV_CLEAR) },
+  // Wavefront wavRev 14 (15 Nov 2026, the Retro overhaul: the charged shot), appended so every earlier entry keeps its stream.
+  { key: "wavefront/charge", game: wavefrontGameFor(14), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, 14) },
+  // Meteor snakeRev 14 (15 Nov 2026, the Retro overhaul: rocks in three sizes), appended so every earlier entry keeps its stream.
+  { key: "snake/sizes", game: snakeGameFor(14), checkpoint: snakeCheckpoint, mode: "events", rate: 60, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, 14) },
+  // Fission burstRev 13 (15 Nov 2026, the Retro overhaul: bigger atoms), appended so every earlier entry keeps its stream.
+  { key: "burst/big", game: burstGameFor(13), checkpoint: burstCheckpoint, mode: "events", rate: 120, encode: encodeBurstRun, replay: (seed: number, raw: string) => replayBurstRun(seed, raw, 13) },
+  // Meteor snakeRev 15 (16 Nov 2026, the Retro overhaul stage 3: the first crash forgiven), appended so every earlier entry keeps its stream.
+  // Spacewalk crossRev 13 (16 Nov 2026, the Retro overhaul stage 3: lighter traffic), appended so every earlier entry keeps its stream.
+  { key: "cross/light", game: crossGameFor(13), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, 13) },
+  // Wavefront wavRev 15 (16 Nov 2026, the Retro overhaul stage 3: larger hit cells), appended so every earlier entry keeps its stream.
+  { key: "wavefront/big", game: wavefrontGameFor(15), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, 15) },
+  // Pinball pinRev 8 (16 Nov 2026, the Retro overhaul stage 3: outlane saves counted), appended so every earlier entry keeps its stream.
+  { key: "pinball/save", game: pinball8Game, checkpoint: pin4Checkpoint, mode: "events", rate: 120, encode: encodePinballRun, replay: (seed: number, raw: string) => replayPinballRun(seed, raw, 8) },
+  // Hover hoverRev 11 (16 Nov 2026, the Retro overhaul stage 3: starting shielded), appended so every earlier entry keeps its stream.
+  { key: "hover/shield", game: hoverGameFor(11), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, 11) },
+  { key: "snake/grace", game: snakeGameFor(15), checkpoint: snakeCheckpoint, mode: "events", rate: 60, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, 15) },
+  // Orbit orbitRev 15 (the Action overhaul, 15 Nov 2026: grace, a slip respawns after a 3 s hold), appended so every
+  // earlier entry keeps its stream: random taps and checkpoints on the fuel-bank courses.
+  {
+    key: "orbit/grace",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_FUEL_BANK.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initGraceFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras)) };
+    },
+    seedFor: (n: number) => ORBIT_FUEL_BANK[n % ORBIT_FUEL_BANK.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_FUEL_BANK.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_GRACE, e.planets, e.holes, e.extras);
+    },
+  },
+  // High Rise skylineRev 11 (15 Nov 2026, the Action overhaul: lives and the wide-block rescue), appended so every earlier
+  // entry keeps its stream.
+  { key: "skyline/lives", game: skylineGameFor(11), checkpoint: skylineCheckpoint, mode: "taps", rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, 11) },
+  // Roofbound flipRev 13 (15 Nov 2026, the Action overhaul: grace), appended so every earlier entry keeps its stream.
+  { key: "flip/grace", game: flipGameFor(13), checkpoint: flipCheckpoint, mode: "events", rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, 13), seedFor: (n: number) => FLIP_DEAL[n % FLIP_DEAL.length]! },
+  // Moon Climb ricoRev 4 (15 Nov 2026, the Action overhaul's stage 2: the bigger ninja), appended so every earlier entry
+  // keeps its stream.
+  { key: "ricochet/big", interval: NINJA_CHECKPOINT_INTERVAL, game: moonGameFor(4), checkpoint: moonCheckpoint, mode: "events", rate: 30, encode: encodeMoonRun, replay: (seed: number, raw: string) => replayMoonRun(seed, raw, 4) },
+  // Grappler swingRev 18 (15 Nov 2026, the Action overhaul's stage 2: the bigger hero), appended so every earlier entry
+  // keeps its stream: on its proved deal's courses.
+  { key: "swing/big", game: swingGameFor(SWING_REV_BIG), checkpoint: swingCheckpoint, mode: "events", rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_BIG), seedFor: (n: number) => SWING_BIG_DEAL[n % SWING_BIG_DEAL.length]! },
+  // Orbit orbitRev 16 (15 Nov 2026, the Action overhaul's stage 3: bigger planets on grace's play), appended so every
+  // earlier entry keeps its stream: random taps and checkpoints on the fuel-bank courses.
+  {
+    key: "orbit/big",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_FUEL_BANK.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initBigFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras)) };
+    },
+    seedFor: (n: number) => ORBIT_FUEL_BANK[n % ORBIT_FUEL_BANK.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_FUEL_BANK.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_BIG, e.planets, e.holes, e.extras);
+    },
+  },
+  // Iron Wall bastionRev 4 (15 Nov 2026, the levels: Normal, Easy and Hard; Expert is bastionRev 3's entry), appended so
+  // every earlier entry keeps its stream.
+  ...(["normal", "easy", "hard"] as const).map((level) => ({ key: `bastion/v4-${level}`, interval: BT2_CHECKPOINT_INTERVAL, game: bastionTankGameFor(4, level), checkpoint: bastionTankCheckpoint, mode: "events" as const, rate: 30, encode: encodeBastionTankRun, replay: (seed: number, raw: string) => replayBastionTankRun(seed, raw, 4, level) })),
+  // Moon Climb ricoRev 4's and Grappler swingRev 18's difficulty levels (15 Nov 2026, the Action overhaul), appended so
+  // every earlier entry keeps its stream: each level's own towers and courses (Grappler's from the level's proved deal).
+  ...(["easy", "hard", "expert"] as const).map((lv) => ({ key: `ricochet/${lv}`, interval: NINJA_CHECKPOINT_INTERVAL, game: moonGameFor(4, lv), checkpoint: moonCheckpoint, mode: "events" as const, rate: 30, encode: encodeMoonRun, replay: (seed: number, raw: string) => replayMoonRun(seed, raw, 4, lv) })),
+  ...(["easy", "hard", "expert"] as const).map((lv) => ({ key: `swing/${lv}`, game: swingGameFor(SWING_REV_BIG, lv), checkpoint: swingCheckpoint, mode: "events" as const, rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_BIG, undefined, lv), seedFor: (n: number) => SWING_LEVEL_DEAL[lv][n % SWING_LEVEL_DEAL[lv].length]! })),
+  // Orbit's easy level (the Action overhaul, stage 3, 16 Nov 2026; docs/arcade-standard/orbit.md "Levels"): random taps and
+  // checkpoints on the easy bank's courses with the level's rules, appended last so every earlier entry keeps its stream.
+  {
+    key: "orbit/easy",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_FUEL_BANK_EASY.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initLevelFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras), "easy") };
+    },
+    seedFor: (n: number) => ORBIT_FUEL_BANK_EASY[n % ORBIT_FUEL_BANK_EASY.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_FUEL_BANK_EASY.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_BIG, e.planets, e.holes, e.extras, undefined, "easy");
+    },
+  },
+  // Orbit's hard level (the Action overhaul, stage 3, 16 Nov 2026; docs/arcade-standard/orbit.md "Levels"): random taps and
+  // checkpoints on the hard bank's courses with the level's rules, appended last so every earlier entry keeps its stream.
+  {
+    key: "orbit/hard",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_FUEL_BANK_HARD.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initLevelFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras), "hard") };
+    },
+    seedFor: (n: number) => ORBIT_FUEL_BANK_HARD[n % ORBIT_FUEL_BANK_HARD.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_FUEL_BANK_HARD.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_BIG, e.planets, e.holes, e.extras, undefined, "hard");
+    },
+  },
+  // Orbit's expert level (the Action overhaul, stage 3, 16 Nov 2026; docs/arcade-standard/orbit.md "Levels"): random taps and
+  // checkpoints on the expert bank's courses with the level's rules, appended last so every earlier entry keeps its stream.
+  {
+    key: "orbit/expert",
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_FUEL_BANK_EXPERT.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initLevelFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras), "expert") };
+    },
+    seedFor: (n: number) => ORBIT_FUEL_BANK_EXPERT[n % ORBIT_FUEL_BANK_EXPERT.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events",
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_FUEL_BANK_EXPERT.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_BIG, e.planets, e.holes, e.extras, undefined, "expert");
+    },
+  },
+  // Coral Pop bubbleRev 12 (the Strategy overhaul, 15 Nov 2026: the fast shot), appended so every earlier entry keeps its stream.
+  { key: "bubble/fast", game: bubbleGameFor(BUB_REV_FAST), checkpoint: bubCheckpoint, mode: "events", rate: 15, encode: encodeBubbleRun, replay: (seed: number, raw: string) => replayBubbleRun(seed, raw, BUB_REV_FAST) },
+  // Ball Tracker's levels (the Strategy overhaul stage 3, 15 Nov 2026: Easy, Hard and Expert courses from their own proved
+  // lists, btRev 8), appended so every earlier entry keeps its stream.
+  {
+    key: "balltrack/easy",
+    game: makeBallTrackGame(BT_EASY_DEAL[0]!, BT_REV_STD),
+    gameFor: (seed: number) => makeBallTrackGame(BT_EASY_DEAL[seed % BT_EASY_DEAL.length]!, BT_REV_STD),
+    checkpoint: btCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: (run: any) => encodeBallTrackRun(BT_EASY_DEAL[run.seed % BT_EASY_DEAL.length]!, run, BT_REV_STD),
+    replay: (seed: number, raw: string) => replayBallTrackRun(BT_EASY_DEAL[seed % BT_EASY_DEAL.length]!, seed, raw, BT_REV_STD),
+  },
+  {
+    key: "balltrack/hard",
+    game: makeBallTrackGame(BT_HARD_DEAL[0]!, BT_REV_STD),
+    gameFor: (seed: number) => makeBallTrackGame(BT_HARD_DEAL[seed % BT_HARD_DEAL.length]!, BT_REV_STD),
+    checkpoint: btCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: (run: any) => encodeBallTrackRun(BT_HARD_DEAL[run.seed % BT_HARD_DEAL.length]!, run, BT_REV_STD),
+    replay: (seed: number, raw: string) => replayBallTrackRun(BT_HARD_DEAL[seed % BT_HARD_DEAL.length]!, seed, raw, BT_REV_STD),
+  },
+  {
+    key: "balltrack/expert",
+    game: makeBallTrackGame(BT_EXPERT_DEAL[0]!, BT_REV_STD),
+    gameFor: (seed: number) => makeBallTrackGame(BT_EXPERT_DEAL[seed % BT_EXPERT_DEAL.length]!, BT_REV_STD),
+    checkpoint: btCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: (run: any) => encodeBallTrackRun(BT_EXPERT_DEAL[run.seed % BT_EXPERT_DEAL.length]!, run, BT_REV_STD),
+    replay: (seed: number, raw: string) => replayBallTrackRun(BT_EXPERT_DEAL[seed % BT_EXPERT_DEAL.length]!, seed, raw, BT_REV_STD),
+  },
+  // Gemstone matchupRev 13 (the Strategy overhaul stage 3, 15 Nov 2026: two-hit ice and levels), appended so every
+  // earlier entry keeps its stream: Normal, Easy (five colours) and Expert (seven, the heart).
+  { key: "matchup/ice2", game: matchupGameFor(MATCHUP_REV_ICE2), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_ICE2) },
+  { key: "matchup/ice2-easy", game: matchupGameFor(MATCHUP_REV_ICE2, "easy"), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_ICE2, "easy") },
+  { key: "matchup/ice2-expert", game: matchupGameFor(MATCHUP_REV_ICE2, "expert"), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_ICE2, "expert") },
+  // Tilt's Expert level (stage 3, 15 Nov 2026: tiltRev 12 at expert), appended so every earlier entry keeps its stream.
+  { key: "tilt/expert", game: tiltLevelGame("expert"), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_BIG, "expert") },
+  // Crazy Golf golfRev 3 (15 Nov 2026, the overhaul: the proven hole bank, chips, swells, levels), appended so every
+  // earlier entry keeps its stream: seed n is course n (each slot's hole by a spread of n) at level n mod 4. The random
+  // events include chips (kind 2).
+  {
+    key: "minigolf/v3",
+    game: minigolfGameFor(...mgV3(0)),
+    gameFor: (seed: number) => minigolfGameFor(...mgV3(seed)),
+    seedFor: (n: number) => n,
+    checkpoint: minigolfCheckpoint,
+    mode: "events",
+    rate: 40,
+    encode: encodeMinigolfRun,
+    replay: (seed: number, raw: string) => replayMinigolfRun(seed, raw, ...mgV3(seed)),
+  },
+  // Home Run homerunRev 5 (the innings) and Top Bins freekickRev 5 (the layered kick), 15 Nov 2026, at Normal on their
+  // proved deals; appended so every earlier entry keeps its stream.
+  { key: "homerun/v5", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(5), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, 5), seedFor: (n: number) => homerunDealSeedV5(n) },
+  { key: "freekick/v5", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(5), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, 5), seedFor: (n: number) => freekickDealSeedV5(n) },
+  // freekickRev 6 (16 Nov 2026: Easy and Normal eased, Hard and Expert harder) and both games' Expert (appended, never mid-list).
+  { key: "freekick/v6", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(6), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, 6), seedFor: (n: number) => freekickDealSeedV6(n) },
+  { key: "freekick/v6-expert", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(6, "expert"), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, 6, "expert"), seedFor: (n: number) => freekickDealSeedV6(n, "expert") },
+  { key: "homerun/v5-expert", interval: HOMERUN_CHECKPOINT_INTERVAL, game: homerunGameFor(5, "expert"), checkpoint: homerunCheckpoint, mode: "events", rate: 20, encode: encodeHomerunRun, replay: (seed: number, raw: string) => replayHomerunRun(seed, raw, 5, "expert"), seedFor: (n: number) => homerunDealSeedV5(n, "expert") },
+  // Apex racingRev 4 (15 Nov 2026, the Sports overhaul: three named circuits), appended at the end so every earlier
+  // entry keeps its index and stream.
+  { key: "racing/v4", interval: RACING_CHECKPOINT_INTERVAL, game: racingGameFor(RACING_REV_4), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, RACING_REV_4), seedFor: (n: number) => RACING_DEAL_V4[n % RACING_DEAL_V4.length]! },
 ];
+
+/** golfRev 3's course for a self-replay seed: each slot's hole by a spread of the seed, the level seed mod 4. */
+function mgV3(seed: number): [number[], number, { holes: number[]; level: (typeof MG_LEVEL_NAMES)[number] }] {
+  const level = MG_LEVEL_NAMES[Math.abs(seed) % 4]!;
+  const picks = MINIGOLF_HOLES_BANK.map((slot, i) => slot[(Math.abs(seed) * 7 + i * 31) % slot.length]!);
+  return [picks.map((e) => e.pars[MG_LEVEL_NAMES.indexOf(level)]!), 3, { holes: picks.map((e) => e.id), level }];
+}
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
 function candidate(ranges: readonly InputRange[], t: number): ArcadeInputEvent {

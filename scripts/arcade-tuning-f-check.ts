@@ -62,6 +62,7 @@ import {
   type RallyState,
   RALLY_STD_SPEC,
   RALLY_V12_PAD_PTS,
+  RALLY_STD_SPEC_V13,
 } from "../src/lib/arcade/rally";
 import { stdHelp, stdHelpLines } from "../src/lib/arcade/arcadeStandard";
 import { beatGameFor, beatThinned, BEAT_LANE_GAP, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_STD_SPEC, BEAT_V5_BAND_CURVE, type BeatState } from "../src/lib/arcade/beat";
@@ -81,9 +82,13 @@ import {
 } from "../src/lib/arcade/orbitRev3";
 import { ORBIT_HOLE_BANK } from "../src/lib/duel/orbitHoleBank.server";
 import { ORBIT_REV3_BANK } from "../src/lib/duel/orbitRev3Bank.server";
-import { generateBeat, generateBreaker, generateOrbit, pinOrbitPreFuel, generateRally, generateSnake } from "../src/lib/duel/arcade.server";
+import { generateBeat, generateBreaker, generateOrbit, pinOrbitPreFuel, generateRally, generateSnake, pinPreRetro } from "../src/lib/duel/arcade.server";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { playRevOf } from "./scoring-targets-revs";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal rallyRev 13 (lives,
+// retro-overhaul-check); this check was written for the deal before it, so it pins preRetro (rallyRev 12, beatRev 11).
+pinPreRetro(true);
 
 /** A flawless player for best-score proofs: quick, never lapses, no timing, aim or judgement error. */
 const PERFECT: SkillProfile = { reactionMs: [120, 0], lapse: 0, timingSdMs: 0, aimSdPx: 0, powerSd: 0, mistake: 0, thinkScale: 0.3, judgement: 0, trackLagMs: 30 };
@@ -527,7 +532,9 @@ section("Intro and \"?\" help");
   if (want("breaker")) ok(help("breaker").includes("2.5 seconds") && !help("breaker").includes("3.5 seconds"), "Breaker: the Fireball lasts 2.5 seconds");
   // Expansion E9 (docs/expansions/e9.md) moved Rally on to rallyRev 10, and the arcade scoring standard (29 Oct 2026) to
   // rallyRev 12: its help states the standard's parts (rally-standard-check) and one value for a pink pad (3).
-  if (want("rally")) ok(/second bumper/.test(help("rally")) && /45 s/.test(help("rally")) && PUZZLE_INSTRUCTIONS.rally.score.includes(stdHelpLines(RALLY_STD_SPEC)) && help("rally").includes(`scores ${RALLY_V12_PAD_PTS}, and the pad`) && !/counts 6|5 a hit/.test(help("rally")), "Rally: the second bumper from 45 s, the standard's parts new rooms score on (rallyRev 12 since the arcade scoring standard) and one value for a pink pad (3)");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the help reads the dealt stamp,
+  // rallyRev 13 (four parts with spin shots).
+  if (want("rally")) ok(/second bumper/.test(help("rally")) && /45 s/.test(help("rally")) && PUZZLE_INSTRUCTIONS.rally.score.includes(stdHelpLines(RALLY_STD_SPEC_V13)) && help("rally").includes(`scores ${RALLY_V12_PAD_PTS}, and the pad`) && !/counts 6|5 a hit/.test(help("rally")), "Rally: the second bumper from 45 s, the standard's parts new rooms score on (rallyRev 12 since the arcade scoring standard) and one value for a pink pad (3)");
   // The arcade scoring standard (29 Oct 2026): Tempo's beatRev 11 help states its standard parts (beat-standard-check).
   if (want("snake")) ok(/length 9/.test(help("snake")) && /every 4 stars, up to 11/.test(help("snake")) && /at most 14 rocks/.test(help("snake")) && PUZZLE_INSTRUCTIONS.snake.score.includes("up to 120"), "Meteor: rocks from length 9, every 4 stars, up to 11 (14 with the shower), and the top rooms deal (snakeRev 11's core since the arcade scoring standard, snakeRev 12's since 1 Nov 2026)");
   if (want("orbit")) ok(/Any black hole ahead/.test(help("orbit")) && /any part of the rocket/.test(help("orbit")), "Orbit: any black hole ahead swallows any part of the rocket");

@@ -37,6 +37,8 @@ function cond(c: ChallengeCond): string {
       return `line “${c.label}” = ${c.max} of ${c.max}`;
     case "tile":
       return `tile “${c.label}” ${OP[c.op]} ${c.v}`;
+    case "since":
+      return `from \`${c.path}\` ${c.from}: ${cond(c.then)}; before: ${cond(c.before)}`;
   }
 }
 function check(c: PracticeChallenge): string {

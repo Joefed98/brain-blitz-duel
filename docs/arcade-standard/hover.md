@@ -1,5 +1,12 @@
 # Hover under the arcade scoring standard: hoverRev 10
 
+## hoverRev 11 (the Retro overhaul, stage 3, 16 Nov 2026): starting shielded
+
+hoverRev 10's course, rules, parts and scoring exactly, with the saucer starting shielded (hoverRev 9's shield): the first
+crash breaks it and the saucer flies on, untouchable for a moment, instead of ending the run. Levels: Easy keeps the
+shield and widens the gaps 15 % about their centres; Hard and Expert start without one and scroll 6 % and 12 % faster.
+States add `grace: 1`. Rooms deal it (preRetro: hoverRev 10).
+
 29 Oct 2026. Rooms, practice, the daily and challenges deal **`hoverRev 10`** (`HOVER_REV_STANDARD`). The play is
 hoverRev 9's exactly: the same course, features, shields, physics and checkpoints. A hoverRev 9 log replays tick for
 tick on hoverRev 10 and its checkpoints verify there. Only the scoring changes: five fixed parts that add up to 200,

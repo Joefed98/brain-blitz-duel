@@ -99,9 +99,12 @@
 }
 .kakuro-key { font-size: 18px; }
 
-/* Completion: the runs light up one after another (≤ 1.2 s, opacity and colour only). */
+/* Completion: the runs light across, then down (the Number overhaul, stage 2; src/puzzles/kakuroFx.ts): each square
+   lights on its across run's turn and again on its down run's, the last ending by 1 s (≤ 1.2 s, colour only). */
 [data-logic-solved] .kakuro-cell {
-  animation: kakuro-solve 700ms ease-out calc(var(--kakuro-i, 0) * 20ms + 100ms) 1 both;
+  animation:
+    kakuro-solve 320ms ease-out calc(var(--kakuro-a, 0) * var(--kakuro-step, 60ms)) 1 both,
+    kakuro-solve 320ms ease-out calc(var(--kakuro-d, 0) * var(--kakuro-step, 60ms)) 1 both;
 }
 @keyframes kakuro-solve {
   0%, 100% { background-color: #2B2D36; }

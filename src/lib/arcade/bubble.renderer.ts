@@ -6,6 +6,7 @@
  * only): the HUD on the rock is the shared pills ("Popped n", "Treasure n/6", "Combo ×n").
  */
 import type { CanvasSize } from "./engine";
+import { strategyArtVersion, strategyImage, type StrategyArtName } from "./strategyArt";
 import { artReady, drawArtSprite } from "./sprites.renderer";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { bubbleFxFor } from "./arcadeFxGames.renderer";
@@ -36,12 +37,18 @@ import {
   bubDangerLine,
   bubRowsOf,
   BUB_V8_CHESTS,
+  BUB_SIXTH,
+  BUB_SHORT_TRAIL_PX,
   type BubState,
   bubBombRadius,
   bubMineNearest,
 } from "./bubble";
 import { reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
+import { bubbleNearLine, fxAmount, fxMemory, strategyFx } from "./strategyFx";
+
+/** The shot trail's memory per canvas (display only; the Strategy overhaul, stage 2). */
+const shotTrails = new WeakMap<object, { shots: number; tick: number; pts: { x: number; y: number }[] }>();
 import {
   seaClock,
   seaCoral,
@@ -57,10 +64,12 @@ import {
   SEA_TEXT,
 } from "./seas.renderer";
 
-export type BubCreature = "crab" | "starfish" | "fish" | "jellyfish" | "shell";
+export type BubCreature = "crab" | "starfish" | "fish" | "jellyfish" | "shell" | "seahorse";
 /** Colour value 1…5 → creature, one-to-one. */
 export const BUB_CREATURES: readonly BubCreature[] = ["crab", "starfish", "fish", "jellyfish", "shell"];
 export function bubCreature(value: number): BubCreature {
+  // The sixth colour (Expert only): a seahorse, a shape no other creature shares (drawn in code, as all five are).
+  if (value === BUB_SIXTH) return "seahorse";
   return BUB_CREATURES[(value - 1) % BUB_CREATURES.length] ?? "fish";
 }
 
@@ -73,7 +82,7 @@ function creatureArtReady(): boolean {
 export function drawCreature(c: CanvasRenderingContext2D, kind: BubCreature, cx: number, cy: number, r: number): void {
   // Art pilot (Underwater): creature sprites inside the bubble (the bubble circle stays the drawn bound),
   // only once all five are ready so art and drawn symbols never mix.
-  if (creatureArtReady() && drawArtSprite(c, "underwater", kind, cx - r * 0.62, cy - r * 0.62, r * 1.24, r * 1.24)) return;
+  if (kind !== "seahorse" && creatureArtReady() && drawArtSprite(c, "underwater", kind, cx - r * 0.62, cy - r * 0.62, r * 1.24, r * 1.24)) return;
   c.save();
   c.fillStyle = "rgba(8,20,36,0.82)";
   c.strokeStyle = "rgba(8,20,36,0.82)";
@@ -149,6 +158,32 @@ export function drawCreature(c: CanvasRenderingContext2D, kind: BubCreature, cx:
         c.quadraticCurveTo(cx + (dx - 0.12) * r, cy + r * 0.32, cx + dx * r, cy + r * 0.62);
       }
       c.stroke();
+      break;
+    case "seahorse":
+      // Expert's sixth colour: head and snout up top, a curved body and a curled tail (an S no other creature has).
+      c.beginPath();
+      c.ellipse(cx + r * 0.05, cy - r * 0.42, r * 0.22, r * 0.18, 0, 0, Math.PI * 2);
+      c.fill();
+      c.beginPath();
+      c.moveTo(cx + r * 0.2, cy - r * 0.48);
+      c.lineTo(cx + r * 0.58, cy - r * 0.4);
+      c.lineTo(cx + r * 0.22, cy - r * 0.32);
+      c.closePath();
+      c.fill();
+      c.lineWidth = Math.max(1.2, r * 0.26);
+      c.beginPath();
+      c.moveTo(cx, cy - r * 0.28);
+      c.quadraticCurveTo(cx - r * 0.34, cy + r * 0.05, cx, cy + r * 0.3);
+      c.quadraticCurveTo(cx + r * 0.3, cy + r * 0.56, cx + r * 0.02, cy + r * 0.66);
+      c.stroke();
+      c.lineWidth = Math.max(1, r * 0.14);
+      c.beginPath();
+      c.arc(cx - r * 0.12, cy + r * 0.6, r * 0.13, 0, Math.PI * 1.6);
+      c.stroke();
+      c.fillStyle = "rgba(255,255,255,0.9)";
+      c.beginPath();
+      c.arc(cx + r * 0.08, cy - r * 0.46, r * 0.07, 0, Math.PI * 2);
+      c.fill();
       break;
   }
   c.restore();
@@ -351,6 +386,25 @@ function paintSpecial(value: number, directional: boolean) {
  * outer rim, a soft specular sheen high on the lit side and a thin bright line just inside the rim.
  */
 function bubbleGloss(c: CanvasRenderingContext2D, r: number): void {
+  // The Strategy overhaul (15 Nov 2026, display only): candy glass with depth: a shade low on the far side and the
+  // light that passes through the glass glowing softly near the bottom (no glare), under the shared sheen.
+  c.save();
+  const depth = c.createRadialGradient(r * 0.75, r * 0.7, r * 0.2, r, r, r);
+  depth.addColorStop(0, "rgba(0,0,0,0)");
+  depth.addColorStop(0.75, "rgba(0,0,0,0)");
+  depth.addColorStop(1, "rgba(2,10,30,0.32)");
+  c.fillStyle = depth;
+  c.beginPath();
+  c.arc(r, r, r - 0.5, 0, Math.PI * 2);
+  c.fill();
+  const through = c.createRadialGradient(r * 1.22, r * 1.42, 0, r * 1.22, r * 1.42, r * 0.5);
+  through.addColorStop(0, "rgba(255,255,255,0.28)");
+  through.addColorStop(1, "rgba(255,255,255,0)");
+  c.fillStyle = through;
+  c.beginPath();
+  c.arc(r, r, r - 0.5, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
   c.save();
   const fine = Math.max(0.8, r * 0.06);
   c.strokeStyle = "rgba(3,12,28,0.7)";
@@ -452,6 +506,21 @@ export function paintBubble(value: number) {
   if (bubIsSpecial(value)) return paintSpecial(value, false);
   return (c: CanvasRenderingContext2D, size: number) => {
     const r = size / 2;
+    // The Strategy overhaul (stage 2, display only): the rendered candy-glass bubble (strategy_art.py) at the bubble's
+    // own radius, its creature printed in it, then the rendered gloss over the top; the code bubble until both load.
+    // Expert's sixth colour (BUB_SIXTH) has its own rendered orange bubble (16 Nov 2026), the seahorse printed in it.
+    const sixth = value === BUB_SIXTH;
+    const body = strategyImage(sixth ? "bubble-orange" : (BUBBLE_ART[value - 1] ?? "bubble-red"));
+    const gloss = strategyImage("bubble-gloss");
+    if (body && gloss && (sixth || (value >= 1 && value <= BUBBLE_ART.length))) {
+      c.drawImage(body, 0, 0, size, size);
+      c.save();
+      c.globalAlpha = 0.92;
+      drawCreature(c, bubCreature(value), r, r + r * 0.03, r * BUB_CREATURE_FIT);
+      c.restore();
+      c.drawImage(gloss, 0, 0, size, size);
+      return;
+    }
     const colour = bubColour(value);
     const g = c.createRadialGradient(r * 0.75, r * 0.7, r * 0.1, r, r, r);
     g.addColorStop(0, colour + "B0");
@@ -497,6 +566,9 @@ export function paintBubble(value: number) {
     bubbleGloss(c, r);
   };
 }
+
+/** The rendered body for each colour value 1…5 (BUB_PALETTE's order: red, yellow, green, blue, purple). */
+const BUBBLE_ART: readonly StrategyArtName[] = ["bubble-red", "bubble-yellow", "bubble-green", "bubble-blue", "bubble-purple"];
 
 /** The creature's fitting radius as a share of the bubble's (0.75 until the phone notes of 27 Oct 2026; 82 % of it). */
 const BUB_CREATURE_FIT = 0.615;
@@ -692,7 +764,7 @@ function bubbleDrift(ctx: CanvasRenderingContext2D, w: number, h: number, t: num
  */
 function blitBubble(ctx: CanvasRenderingContext2D, value: number, x: number, y: number, radius: number, dpr: number, alpha = 1, heading?: number): void {
   const directional = heading !== undefined && value === BUB_LINE;
-  const key = directional ? `bub-special4-${value}` : bubIsSpecial(value) ? `bub-special2-${value}` : `bub2-${value}${creatureArtReady() ? "-art" : ""}`;
+  const key = directional ? `bub-special4-${value}` : bubIsSpecial(value) ? `bub-special2-${value}` : `bub2-${value}${creatureArtReady() ? "-art" : ""}-v${strategyArtVersion()}`;
   const sprite = seaSprite(key, radius * 2 * dpr, directional ? paintSpecial(value, true) : paintBubble(value));
   if (!sprite) return;
   if (alpha !== 1) ctx.globalAlpha = alpha;
@@ -742,7 +814,7 @@ interface Memo {
   combos: number;
 }
 /** bubbleRev 8: a floating word (world px), coloured gold for treasure, sea glass for bank and combo shots. */
-interface Note { text: string; x: number; y: number; born: number; gold: boolean }
+interface Note { text: string; x: number; y: number; born: number; gold: boolean; held?: boolean }
 const NOTE_CAP = 4;
 const memos = new WeakMap<object, Memo>();
 const FX_CAP = 4;
@@ -803,7 +875,7 @@ function trackRemovals(m: Memo, state: BubState, colour: number): void {
         const was = m.grid[i]!;
         if (!was || state.grid[i]) continue;
         // bubbleRev 8: a chest that fell with a cluster pays (one destroyed by a mine or torpedo is in `fx` only).
-        if (was === BUB_CHEST && state.reef && (state.chests ?? 0) > 0 && colour !== -1) note(m, "TREASURE", bubCellX(row, col), bubCellY(row, m.descents), now, true);
+        if (was === BUB_CHEST && state.reef && (state.chests ?? 0) > 0 && colour !== -1) note(m, "TREASURE", bubCellX(row, col), bubCellY(row, m.descents), now, true, state);
         if (m.fx.length >= FX_CAP) m.fx.shift();
         m.fx.push({
           kind: was === colour || colour === -1 ? 0 : 1,
@@ -821,8 +893,8 @@ function trackRemovals(m: Memo, state: BubState, colour: number): void {
     const at = m.fx[m.fx.length - 1];
     const x = at?.x ?? state.x / 256;
     const y = at?.y ?? state.y / 256;
-    if ((state.banks ?? 0) > m.banks) note(m, "BANK", x, y + 18, now, false);
-    if ((state.combos ?? 0) > m.combos && (state.streak ?? 0) >= 2) note(m, `COMBO ×${state.streak}`, x, y - 4, now, false);
+    if ((state.banks ?? 0) > m.banks) note(m, "BANK", x, y + 18, now, false, state);
+    if ((state.combos ?? 0) > m.combos && (state.streak ?? 0) >= 2) note(m, `COMBO ×${state.streak}`, x, y - 4, now, false, state);
     m.banks = state.banks ?? 0;
     m.combos = state.combos ?? 0;
   }
@@ -831,8 +903,16 @@ function trackRemovals(m: Memo, state: BubState, colour: number): void {
   m.descents = state.descents;
 }
 
-function note(m: Memo, text: string, x: number, y: number, born: number, gold: boolean): void {
+function note(m: Memo, text: string, x: number, y: number, born: number, gold: boolean, state?: BubState): void {
   if (m.notes.length >= NOTE_CAP) m.notes.shift();
+  // The Strategy overhaul (bubbleRev 12, display only): words sit beside the gun, never over the reef: the shot's
+  // words to its left, the treasure's to its right, one of each at a time.
+  if (state?.fast) {
+    const side = gold ? 1 : -1;
+    m.notes = m.notes.filter((n) => n.gold !== gold);
+    m.notes.push({ text, x: BUB_SHOOTER_X + side * 104, y: bubShooterY(state) + 4, born, gold, held: true });
+    return;
+  }
   m.notes.push({ text, x: Math.max(70, Math.min(BUB_WORLD_W - 70, x)), y, born, gold });
 }
 
@@ -973,8 +1053,31 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
   lip.forEach(([x, y], i) => (i ? ctx.lineTo(x, y - 1) : ctx.moveTo(x, y - 1)));
   ctx.stroke();
 
-  // Shooter line, faint.
-  ctx.strokeStyle = "rgba(245,197,66,0.28)";
+  // The Strategy overhaul, stage 2 (display only; the kit's variants): a shot that sticks without popping squashes for a
+  // moment; the reef rumbles as it shifts down; the warning line flashes once the reef's lowest row is near it.
+  const fxm = fxMemory(ctx, "bubble-strategy", state.tick, () => ({ tick: -1, grid: [] as number[], flight: 0, descents: state.descents, stuck: -1, stuckTick: -1000, rumbleTick: -1000 }));
+  if (state.tick !== fxm.tick) {
+    if (fxm.flight && !state.flightColour && fxm.grid.length) {
+      const fresh = state.grid.findIndex((v, i) => v && !fxm.grid[i]);
+      if (fresh >= 0) {
+        fxm.stuck = fresh;
+        fxm.stuckTick = state.tick;
+      }
+    }
+    if (state.descents > fxm.descents) fxm.rumbleTick = state.tick;
+    fxm.descents = state.descents;
+    fxm.grid = state.grid.slice();
+    fxm.flight = state.flightColour;
+    fxm.tick = state.tick;
+  }
+  const rumble = fxAmount(strategyFx("drop"));
+  const rumbleAge = state.tick - fxm.rumbleTick;
+  const shakeX = rumble && rumbleAge < 16 ? Math.sin(rumbleAge * 2.4) * 1.5 * rumble * (1 - rumbleAge / 16) * rs : 0;
+  const near = bubbleNearLine(state);
+  const warnOn = near && (strategyFx("nearMiss") === "reduced" || Math.floor(state.tick / 15) % 2 === 0);
+
+  // Shooter line, faint (red, flashing, while the reef is close).
+  ctx.strokeStyle = warnOn ? "rgba(255,92,80,0.85)" : "rgba(245,197,66,0.28)";
   ctx.setLineDash([6 * rs, 6 * rs]);
   ctx.lineWidth = Math.max(1, 1.5 * rs);
   ctx.beginPath();
@@ -986,11 +1089,25 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
 
   // Field.
   const radius = (BUB_R - 1) * rs;
+  const squash = fxAmount(strategyFx("drop"));
   for (let row = 0; row < bubRowsOf(state.grid); row++) {
     for (let col = 0; col < bubRowCols(row); col++) {
-      const value = state.grid[row * BUB_COLS + col]!;
+      const index = row * BUB_COLS + col;
+      const value = state.grid[index]!;
       if (!value) continue;
-      blitBubble(ctx, value, X(bubCellX(row, col)), Y(bubCellY(row, state.descents)), radius, dpr);
+      const age = state.tick - fxm.stuckTick;
+      if (index === fxm.stuck && squash && age < 10) {
+        // Squashed flat against what it hit, springing back: at most 10 % wider (inside the arcade bounds rule).
+        const k = 0.1 * squash * (1 - age / 10);
+        const cx = X(bubCellX(row, col)) + shakeX, cy = Y(bubCellY(row, state.descents));
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(1 + k, 1 - k);
+        blitBubble(ctx, value, 0, 0, radius, dpr);
+        ctx.restore();
+        continue;
+      }
+      blitBubble(ctx, value, X(bubCellX(row, col)) + shakeX, Y(bubCellY(row, state.descents)), radius, dpr);
     }
   }
 
@@ -1138,7 +1255,7 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
     ctx.lineJoin = "round";
     for (const n of m.notes) {
       const k = (now - n.born) / (life * 1000);
-      const y = Y(n.y) - (still ? 0 : k * 26 * rs);
+      const y = Y(n.y) - (still || n.held ? 0 : k * 26 * rs);
       ctx.globalAlpha = Math.min(1, (1 - k) * 2.5);
       ctx.strokeStyle = "rgba(4,16,34,0.85)";
       ctx.lineWidth = Math.max(2, 4 * rs);
@@ -1234,6 +1351,30 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
     ctx.restore();
   }
   if (state.flightColour) {
+    // The Strategy overhaul, stage 2 (display only): a faint trail behind the shot in flight, from this canvas's own
+    // memory of where the sim's shot has been (reset each shot), so a bank shot's bounce reads.
+    if (!reducedMotion() && !arcadeReducedEffects()) {
+      const key = ctx.canvas as object;
+      let t = shotTrails.get(key);
+      if (!t || t.shots !== state.shots || state.tick < t.tick) t = { shots: state.shots, tick: -1, pts: [] };
+      if (state.tick !== t.tick) {
+        t.pts.push({ x: state.x / 256, y: state.y / 256 });
+        if (t.pts.length > 14) t.pts.shift();
+        t.tick = state.tick;
+      }
+      shotTrails.set(key, t);
+      ctx.save();
+      ctx.fillStyle = "#FFFFFF";
+      for (let i = 0; i < t.pts.length - 1; i++) {
+        const p = t.pts[i]!;
+        const k = (i + 1) / t.pts.length;
+        ctx.globalAlpha = 0.22 * k;
+        ctx.beginPath();
+        ctx.arc(X(p.x), Y(p.y), Math.max(1, radius * 0.32 * k), 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
     const heading = drillingNow ? Math.atan2(state.vy * sy, state.vx * sx) : undefined;
     blitBubble(ctx, state.flightColour, X(state.x / 256), Y(state.y / 256), radius, dpr, 1, heading);
   }
@@ -1257,10 +1398,12 @@ function drawBubbleArtWorld(ctx: CanvasRenderingContext2D, state: BubState, size
 export function drawBubbleAimTrail(
   ctx: CanvasRenderingContext2D,
   size: CanvasSize,
-  shot: { vx: number; vy: number } | null,
+  shot: { vx: number; vy: number; fast?: number } | null,
   state: BubState,
 ): void {
   if (!shot || state.flightColour !== 0) return;
+  // bubbleRev 12: the fast-shot level (0–2) the drag would send, shown as chevrons over the gun and a warmer trail.
+  const fast = Math.max(0, Math.min(2, shot.fast ?? 0));
   const BUB_WORLD_H = bubWorldH(state);
   const BUB_SHOOTER_Y = bubShooterY(state);
   const sx = size.width / BUB_WORLD_W;
@@ -1275,20 +1418,29 @@ export function drawBubbleAimTrail(
   let travelled = 0;
   let next = 10;
   ctx.save();
-  ctx.fillStyle = "rgba(225,242,255,0.5)";
+  ctx.fillStyle = fast === 0 ? "rgba(225,242,255,0.5)" : fast === 1 ? "rgba(255,226,160,0.6)" : "rgba(255,196,110,0.72)";
   ctx.strokeStyle = "rgba(255,255,255,0.7)";
   ctx.lineWidth = Math.max(0.8, rs);
   const stepLen = Math.hypot(vx, vy);
+  if (fast > 0) drawFastChevrons(ctx, BUB_SHOOTER_X * sx, (BUB_SHOOTER_Y - BUB_R - 12) * sy, rs, fast);
+  // Levels (stage 3, display only): the trail's reach. Normal (no `trail`) draws it as before; Easy shows two bounces,
+  // Hard one (each ends where the shot next meets a wall), Expert a short trail from the gun.
+  const reach = state.trail;
+  let bounces = 0;
   for (let i = 0; i < 160 && y > 0; i++) {
     x += vx;
     y += vy;
     if (x < left) {
       x = left + (left - x);
       vx = -vx;
+      bounces++;
     } else if (x > right) {
       x = right - (x - right);
       vx = -vx;
+      bounces++;
     }
+    if (reach !== undefined && reach > 0 && bounces > reach) break;
+    if (reach === 0 && travelled >= BUB_SHORT_TRAIL_PX) break;
     travelled += stepLen;
     if (travelled >= next) {
       next += 11;
@@ -1298,6 +1450,24 @@ export function drawBubbleAimTrail(
       ctx.fill();
       ctx.stroke();
     }
+  }
+  ctx.restore();
+}
+
+/** bubbleRev 12: one champagne-gold chevron per fast-shot level, stacked over the gun (display only). */
+function drawFastChevrons(ctx: CanvasRenderingContext2D, cx: number, cy: number, rs: number, level: number): void {
+  ctx.save();
+  ctx.strokeStyle = "#F2D48A";
+  ctx.lineWidth = Math.max(2, 3 * rs);
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  for (let k = 0; k < level; k++) {
+    const y = cy - k * 9 * rs;
+    ctx.beginPath();
+    ctx.moveTo(cx - 9 * rs, y + 5 * rs);
+    ctx.lineTo(cx, y - 2 * rs);
+    ctx.lineTo(cx + 9 * rs, y + 5 * rs);
+    ctx.stroke();
   }
   ctx.restore();
 }

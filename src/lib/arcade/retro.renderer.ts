@@ -5,6 +5,7 @@
  * original draw used, then draw in world coordinates with the pixel helpers.
  */
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
+import { RETRO_SCREEN_MIN_PX, retroTextFloorFor } from "./retroScale";
 import { reducedMotion } from "./art.renderer";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
 
@@ -93,6 +94,27 @@ export function retroScreen(
    * scanlines must never shade (Meteor's board border, whose blink was the bottom-edge flash).
    */
   overlay?: (ctx: CanvasRenderingContext2D) => void,
+): RetroFrame {
+  // Everything the world draws holds to its own on-screen text floor (retroScale.ts), restored when it is done.
+  const floorBefore = worldTextFloor;
+  worldTextFloor = retroTextFloorFor(worldW, worldH);
+  try {
+    return retroScreenDraw(ctx, size, worldW, worldH, mode, drawWorld, bezelFlash, corner, overlay);
+  } finally {
+    worldTextFloor = floorBefore;
+  }
+}
+
+function retroScreenDraw(
+  ctx: CanvasRenderingContext2D,
+  size: { width: number; height: number },
+  worldW: number,
+  worldH: number,
+  mode: "fit" | "stretch",
+  drawWorld: (ctx: CanvasRenderingContext2D) => void,
+  bezelFlash: number,
+  corner: number,
+  overlay: ((ctx: CanvasRenderingContext2D) => void) | undefined,
 ): RetroFrame {
   let scaleX: number;
   let scaleY: number;
@@ -236,7 +258,9 @@ export function retroText(
   align: CanvasTextAlign = "left",
   glow = 0,
 ): void {
-  ctx.font = `${Math.round(px)}px ${RETRO_FONT}`;
+  // The Retro overhaul (Joe, 15 Nov 2026): no Retro text below 11 px on a 390 × 844 phone's screen, labels included
+  // (the floor in this world's pixels, retroTextFloor).
+  ctx.font = `${retroHudFloorPx(Math.round(px))}px ${RETRO_FONT}`;
   ctx.textAlign = align;
   ctx.textBaseline = "top";
   ctx.fillStyle = colour;
@@ -274,15 +298,62 @@ export function retroPaddle(
       pixelRect(ctx, left + w - inset - 2, top + r * 2, 2, 2, colour);
     }
   }
+  // Polished metal (the Retro overhaul, 15 Nov 2026): a lit band across the face just under the top edge, a crisp
+  // highlight a third of the way along it, and the lower body shaded, all inside the paddle's rect.
+  if (rows >= 3 && /^#[0-9a-f]{6}$/i.test(colour)) {
+    const inset1 = (rows - 2) * step;
+    pixelRect(ctx, left + inset1 + 2, top + 2, w - inset1 * 2 - 4, 2, retroMix(colour, "#FFFFFF", 0.35));
+    pixelRect(ctx, left + inset1 + 2 + Math.round((w - inset1 * 2) * 0.22), top + 2, Math.max(4, Math.round(w * 0.14)), 2, "#FFFFFF");
+    if (rows >= 4) pixelRect(ctx, left + 2, top + (rows - 2) * 2, w - 4, 2, "rgba(0,0,0,0.28)");
+  }
 }
 
-/** A bright pixel ball inside the sim's circle. */
+/** A hex colour mixed towards another by t (0…1); cached, so a frame's balls cost no string work after the first. */
+const mixCache = new Map<string, string>();
+export function retroMix(a: string, b: string, t: number): string {
+  const key = `${a}|${b}|${t}`;
+  const hit = mixCache.get(key);
+  if (hit) return hit;
+  const parse = (h: string) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(h.trim());
+    const n = m ? parseInt(m[1]!, 16) : 0xffffff;
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  };
+  const [ar, ag, ab] = parse(a);
+  const [br, bg, bb] = parse(b);
+  const c = (x: number, y: number) => Math.round(x + (y - x) * t).toString(16).padStart(2, "0");
+  const out = `#${c(ar!, br!)}${c(ag!, bg!)}${c(ab!, bb!)}`;
+  if (mixCache.size > 512) mixCache.clear();
+  mixCache.set(key, out);
+  return out;
+}
+
+/**
+ * A ball inside the sim's circle, drawn as a lit pixel sphere (the Retro overhaul, 15 Nov 2026: a material with light on
+ * it, never a flat disc): the colour shaded from a lighter top-left to a darker rim at the bottom-right, a crisp white
+ * highlight on the curve at the top-left, and `core` (when it differs from the colour) as a hot inner light. Every block
+ * stays inside the circle (the bounds rule).
+ */
 export function retroBall(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string, core = RETRO_WHITE): void {
   const block = r >= 6 ? 2 : 1;
+  const lit = /^#[0-9a-f]{6}$/i.test(colour);
+  const hot = core !== colour && /^#[0-9a-f]{6}$/i.test(core);
   pixelShape(ctx, x, y, r, block, (dx, dy) => {
     const d = dx * dx + dy * dy;
     if (d > r * r) return null;
-    return d < (r * 0.45) ** 2 ? core : colour;
+    if (!lit) return d < (r * 0.45) ** 2 ? core : colour;
+    // The light comes from the top-left: n·l on the sphere's surface, -1 (rim, away) … 1 (facing the light).
+    const nz = Math.sqrt(Math.max(0, 1 - d / (r * r)));
+    const shade = (-dx * 0.55 - dy * 0.65) / r + nz * 0.5;
+    // The crisp highlight: a small spot up and left of the centre.
+    const hx = dx + r * 0.38;
+    const hy = dy + r * 0.38;
+    if (hx * hx + hy * hy < (r * 0.26) ** 2) return RETRO_WHITE;
+    if (hot && d < (r * 0.42) ** 2) return retroMix(core, colour, 0.25);
+    if (shade > 0.55) return retroMix(colour, "#FFFFFF", 0.38);
+    if (shade > 0.15) return colour;
+    if (shade > -0.25) return retroMix(colour, "#000000", 0.25);
+    return retroMix(colour, "#000000", 0.45);
   });
 }
 
@@ -350,9 +421,35 @@ export function retroEventAge(ctx: CanvasRenderingContext2D, name: string, trigg
 /**
  * One Retro HUD (3 Nov 2026, Joe's audit; display only): every Retro game's counts in the pixel arcade font,
  * the main count top left (14 px, glowing) and one or two secondary counts top right (10 px), at most two
- * rows, never a "·" chain and never a "1UP". Sizes step down (to 8 px on the right, then 10 px on the left)
- * until the left and right columns stay 10 px apart. `wrapMain` lets a game pulse its main count (successHud).
+ * rows, never a "·" chain and never a "1UP". Sizes step down until the left and right columns stay 10 px apart,
+ * never below RETRO_HUD_MIN_PX (the Retro overhaul, 15 Nov 2026: 11 px, was 8 on the right and 10 on the left);
+ * a row that still can't fit moves the side counts a row down, under the main count's row.
+ * `wrapMain` lets a game pulse its main count (successHud).
  */
+/** The smallest size any Retro HUD count is drawn at (the Retro overhaul, 15 Nov 2026). */
+export const RETRO_HUD_MIN_PX = RETRO_SCREEN_MIN_PX;
+/**
+ * The text floor (world px) for the world being drawn now (Joe, 15 Nov 2026: 11 px on a 390 × 844 phone's screen):
+ * retroScreen and withRetroTextFloor set it from the world's size (retroScale.ts), 11 outside any world.
+ */
+let worldTextFloor = RETRO_HUD_MIN_PX;
+export function retroTextFloor(): number {
+  return worldTextFloor;
+}
+/** Draws `draw` with the text floor of a world of this size (for the Retro games that don't draw through retroScreen). */
+export function withRetroTextFloor<T>(worldW: number, worldH: number, draw: () => T): T {
+  const before = worldTextFloor;
+  worldTextFloor = retroTextFloorFor(worldW, worldH);
+  try {
+    return draw();
+  } finally {
+    worldTextFloor = before;
+  }
+}
+/** A requested HUD size held to the floor. */
+export function retroHudFloorPx(px: number): number {
+  return Math.max(worldTextFloor, Math.round(px));
+}
 export interface RetroHudItem {
   text: string;
   colour?: string;
@@ -383,22 +480,25 @@ export function retroHudLayout(
   main: RetroHudItem,
   side: readonly (RetroHudItem | null | undefined)[],
   opts: RetroHudOptions = {},
-): { mainPx: number; sidePx: number; mainW: number; sideW: number } {
+): { mainPx: number; sidePx: number; mainW: number; sideW: number; drop: boolean } {
   const inset = opts.inset ?? 12;
   const items = side.filter((s): s is RetroHudItem => Boolean(s && s.text)).slice(0, 2);
-  let mainPx = opts.mainPx ?? 14;
-  let sidePx = opts.sidePx ?? 10;
+  let mainPx = retroHudFloorPx(opts.mainPx ?? 14);
+  let sidePx = retroHudFloorPx(opts.sidePx ?? 11);
   const widths = () => ({
     mainW: measure(main.text, mainPx),
     sideW: Math.max(0, ...items.map((s) => measure(s.text, sidePx))),
   });
   let w = widths();
-  while (inset * 2 + w.mainW + w.sideW + 10 > worldW && (sidePx > 8 || mainPx > 10)) {
-    if (sidePx > 8) sidePx -= 1;
-    else mainPx -= 1;
+  const fits = () => inset * 2 + w.mainW + w.sideW + 10 <= worldW;
+  const floor = worldTextFloor;
+  while (!fits() && (sidePx > floor || mainPx > floor)) {
+    if (sidePx > floor && sidePx >= mainPx - 3) sidePx -= 1;
+    else if (mainPx > floor) mainPx -= 1;
+    else sidePx -= 1;
     w = widths();
   }
-  return { mainPx, sidePx, ...w };
+  return { mainPx, sidePx, ...w, drop: !fits() };
 }
 
 export function retroHud(
@@ -424,7 +524,8 @@ export function retroHud(
   const items = side.filter((s): s is RetroHudItem => Boolean(s && s.text)).slice(0, 2);
   items.forEach((s, i) => {
     // Each side row sits on the main row's baseline band: the first level with it, the second a row below.
-    const y = top + Math.round((lay.mainPx - lay.sidePx) / 2) + i * pitch;
+    // A side column too wide to share the main count's row starts a row lower (never under 11 px).
+    const y = top + Math.round((lay.mainPx - lay.sidePx) / 2) + (i + (lay.drop ? 1 : 0)) * Math.max(pitch, lay.sidePx + 2);
     retroText(ctx, s.text, worldW - inset, y, lay.sidePx, s.colour ?? RETRO_WHITE, "right");
   });
 }

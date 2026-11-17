@@ -1,3 +1,4 @@
+import { useAppMoment } from "@/components/fx/useMomentEnter";
 /**
  * The Tournaments hub (wave 4, W4b; restyled in phase 2 step 3, 14 Nov 2026, after the style guide's list mockup,
  * docs/design/style-guide/phone/list.png): two views on a segmented control, Upcoming (what's live, then the week's
@@ -7,7 +8,7 @@
  * (useTournamentHub). Tokens and shared components only; one gold button at most (the first live event's way in).
  * The Category Cup and the Joulz Championship stay hidden while their switches are off.
  */
-import { Fragment, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useState, type ReactNode } from "react";
 
 import { Button, EmptyState, Icon, LiveTag, Panel, Row, SectionHeader, Segmented } from "@/design/components";
 import { Trophy } from "@/design/art";
@@ -330,6 +331,11 @@ const TROPHY_KIND = { gold: "gold", silver: "silver", bronze: "bronze" } as cons
 export function TrophyCabinet({ trophies, seasons }: { trophies: readonly TrophyView[]; seasons?: readonly SeasonHistoryEntry[] }) {
   const mine = useMySeasons();
   const emblems = seasons ?? (mine.live && mine.seasons?.account ? mine.seasons.history : []);
+  // A trophy earned since this device last showed the cabinet (15 Nov 2026, the effects pass): the kit's new-best drop
+  // on it, once (the newest trophy's event remembered on the device; a first visit marks without playing).
+  const newest = trophies[0]?.eventId ?? null;
+  const fresh = useFreshTrophy(newest);
+  useAppMoment("newBest", `[data-trophy-event="${fresh ?? ""}"]`, fresh);
   if (!trophies.length && !emblems.length) return null;
   return (
     <section aria-label="Trophy cabinet" className="ap-section" data-trophy-cabinet>
@@ -344,7 +350,7 @@ export function TrophyCabinet({ trophies, seasons }: { trophies: readonly Trophy
             </li>
           ))}
           {trophies.map((t) => (
-            <li key={t.eventId} className="tn-trophy" data-trophy={t.medal}>
+            <li key={t.eventId} className="tn-trophy" data-trophy={t.medal} data-trophy-event={t.eventId}>
               <Trophy kind={TROPHY_KIND[t.medal]} size={56} label={`${t.medal} trophy`} />
               <span className="tn-trophy-title">{t.title.replace(/, [0-9]+(st|nd|rd|th)$/, "")}</span>
               <span className="tn-meta">{placeLabel(t.place, t.place)}</span>
@@ -354,4 +360,22 @@ export function TrophyCabinet({ trophies, seasons }: { trophies: readonly Trophy
       </Panel>
     </section>
   );
+}
+
+const TROPHY_SEEN_KEY = "duelz-trophy-seen:v1";
+/** The newest trophy when this device hasn't shown it before (then remembered); null on a first visit or once seen. */
+function useFreshTrophy(newest: string | null): string | null {
+  const [fresh, setFresh] = useState<string | null>(null);
+  useEffect(() => {
+    if (!newest) return;
+    let seen: string | null = null;
+    try {
+      seen = window.localStorage.getItem(TROPHY_SEEN_KEY);
+      window.localStorage.setItem(TROPHY_SEEN_KEY, newest);
+    } catch {
+      return;
+    }
+    if (seen !== null && seen !== newest) setFresh(newest);
+  }, [newest]);
+  return fresh;
 }

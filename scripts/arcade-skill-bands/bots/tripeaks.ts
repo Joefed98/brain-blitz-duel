@@ -5,13 +5,15 @@
  * uncovers, blurred by the level's judgement; near-perfect and elite players also search the whole deal when it is
  * small enough to see through. Slips: now and then a hasty pick, or turning the stock with a play still showing.
  */
-import { TP_CARDS, TP_INPUT_TAP, TP_STOCK_PILE, tpApply, tpFree, tpPlayable, type TpState } from "../../../src/lib/arcade/cards/tripeaks";
+import { TP_CARDS, TP_INPUT_TAP, TP_STOCK_PILE, tpApply, tpFree, tpGlows, tpPlayable, type TpState } from "../../../src/lib/arcade/cards/tripeaks";
 import { driveEvents, type SkillBot } from "../bot";
 import { tripeaksParSolution, tripeaksSolution } from "../../cards/solutions";
 import { tpSolve } from "../../cards/tripeaksSolver";
 
 /** Average thinking time per tap (ms), before the level's thinkScale. */
 const THINK_MS = 1300;
+/** Search time without the playable glow (see the bot's loop). */
+export const NO_GLOW_SCAN = 1.6;
 
 /** The longest chain of plays from a state without turning the stock (a short look ahead). */
 function chain(s: TpState, depth: number): number {
@@ -43,7 +45,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   let nextAt = human.thinkTicks(THINK_MS * 1.5);
   const { events } = driveEvents<TpState>(game, (s, t) => {
     if (t < nextAt) return null;
-    nextAt = t + human.thinkTicks(THINK_MS);
+    // The difficulty levels (15 Nov 2026): without the playable glow (Hard, Expert) a player finds a card one away by
+    // reading the ranks: NO_GLOW_SCAN times as long (human limits, not the rules: the sim never sees the glow).
+    nextAt = t + human.thinkTicks(THINK_MS * (tpGlows(s) ? 1 : NO_GLOW_SCAN));
     let tap = -1;
     if (plan && plan.length) tap = plan.shift()!;
     else if ((level === "near" || level === "elite") && !plan) {

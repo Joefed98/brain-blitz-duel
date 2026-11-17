@@ -1,5 +1,5 @@
 /** Pull! art game: the polished scenery/clay/bird art (clayShootArt.renderer.ts) plus gold-clay rewards; presentation only. */
-import { clayGameFor, clayView, clayWorldH, CLAY_W, CLAY_HIT, CLAY_KIND_GOLD, CLAY_MISSED, type ClayState } from './clayShoot';
+import { clayGameFor, clayView, clayWorldH, CLAY_W, CLAY_HIT, CLAY_KIND_GOLD, CLAY_MISSED, type ClayLevel, type ClayState } from './clayShoot';
 import { arcadeFx, type ArcadeFxSpec } from './arcadeFx.renderer';
 import type { CanvasSize } from './engine';
 import { drawClayArt } from './clayShootArt.renderer';
@@ -43,9 +43,10 @@ function claySpec(worldH:number):ArcadeFxSpec<ClayState>{
 export function drawClayWithFx(ctx:CanvasRenderingContext2D,state:ClayState,size:CanvasSize):void {
   arcadeFx(ctx,claySpec(clayWorldH(state)),state,()=>drawClaySuccess(ctx,state,size),size);
 }
-const games=new Map<number,ReturnType<typeof clayGameFor>>();
-export function clayArtGameFor(rev?:number|null):ReturnType<typeof clayGameFor>{
-  const key=rev??0;let game=games.get(key);
-  if(!game){game={...clayGameFor(rev),draw:drawClayWithFx};games.set(key,game)}
+const games=new Map<string,ReturnType<typeof clayGameFor>>();
+/** The art game for a stored clayRev, and a level's clays (the puzzle's `pullLevel`; absent: today's). */
+export function clayArtGameFor(rev?:number|null,level?:ClayLevel|null):ReturnType<typeof clayGameFor>{
+  const key=`${rev??0}:${level?JSON.stringify(level):""}`;let game=games.get(key);
+  if(!game){game={...clayGameFor(rev,level),draw:drawClayWithFx};games.set(key,game)}
   return game;
 }

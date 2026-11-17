@@ -1,26 +1,29 @@
-/** Apex (racing) round plumbing: the server replays with the STORED seed and stamp and keeps its own score (racingRev 1, 2 and 3). */
+/** Apex (racing) round plumbing: the server replays with the STORED seed and stamp and keeps its own score (racingRev 1 to 4). */
 
 import {
   racingCheckpoint,
   racingGameFor,
+  racingLevelOf,
   racingGoTick,
   racingStdParts,
   RACING_CHECKPOINT_INTERVAL,
   RACING_REV_2,
   RACING_REV_3,
+  RACING_REV_4,
   RACING_CHECKPOINT_KEYS,
   RACING_SECTORS,
   RACING_TOTAL,
   type RacingCheckpoint,
+  type RacingLevelSettings,
   type RacingState,
 } from "@/lib/arcade/racing";
 import type { StdPart } from "@/lib/arcade/arcadeStandard";
 import { makeArcadeRun, type FlatReplay } from "./arcadeRun";
 
-const runFor = (rev: number) =>
+const runFor = (rev: number, lv?: RacingLevelSettings | null) =>
   makeArcadeRun<RacingState, RacingCheckpoint>({
     tag: "racing",
-    game: racingGameFor(rev),
+    game: racingGameFor(rev, lv),
     checkpoint: racingCheckpoint,
     keys: RACING_CHECKPOINT_KEYS,
     interval: RACING_CHECKPOINT_INTERVAL,
@@ -31,6 +34,8 @@ const run = runFor(1);
 const runV2 = runFor(RACING_REV_2);
 /** racingRev 3: racingRev 2's run length, the softer gravel and the pace score. */
 const runV3 = runFor(RACING_REV_3);
+/** racingRev 4: racingRev 3's car on the three named circuits. */
+const runV4 = runFor(RACING_REV_4);
 
 export interface RacingResult extends FlatReplay<RacingState, RacingCheckpoint> {
   /** Both laps completed, and on which tick (0 when not). */
@@ -53,10 +58,23 @@ export interface RacingResult extends FlatReplay<RacingState, RacingCheckpoint> 
 export const encodeRacingRun = run.encode;
 export const decodeRacingRun = run.decode;
 
-/** The single place an Apex score is worked out (unstamped = racingRev 1). */
-export function replayRacingRun(seed: number, raw: string, rev?: number | null): RacingResult {
+/** racingRev 4 at a difficulty level: one run per stored settings (cached). */
+const levelRuns = new Map<string, ReturnType<typeof runFor>>();
+function levelRun(lv: RacingLevelSettings): ReturnType<typeof runFor> {
+  const key = JSON.stringify(lv);
+  let r = levelRuns.get(key);
+  if (!r) levelRuns.set(key, (r = runFor(RACING_REV_4, lv)));
+  return r;
+}
+
+/**
+ * The single place an Apex score is worked out (unstamped = racingRev 1). `level` is the stored puzzle's racingLevel
+ * (racingRev 4 only; absent at Normal): its settings play in the sim, never the registry's.
+ */
+export function replayRacingRun(seed: number, raw: string, rev?: number | null, level?: unknown): RacingResult {
   const r = rev ?? 1;
-  const result = (r >= RACING_REV_3 ? runV3 : r >= RACING_REV_2 ? runV2 : run).replay(seed, raw);
+  const lv = r >= RACING_REV_4 ? racingLevelOf(level) : null;
+  const result = (lv ? levelRun(lv) : r >= RACING_REV_4 ? runV4 : r >= RACING_REV_3 ? runV3 : r >= RACING_REV_2 ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return {
     ...result,

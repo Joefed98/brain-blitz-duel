@@ -117,7 +117,8 @@ section("New rounds are swingRev 8 on rev 7's curve");
 {
   // Taller worlds batch 3 (16 Oct 2026) moved rooms on to swingRev 9 (rev 8 in a taller cavern); arcade-tuning-g3-check covers it.
   // Grappler's 200 expansion (26 Oct 2026) moved rooms on to swingRev 13 (swing-x200-check).
-  ok(playRevOf("swing", generateSwing().swingRev) === SWING_REV_SPREAD + 9 && SWING_REV_SPREAD === 8, "new Grappler rounds are stamped swingRev 17 (the sliding hooks, after rev 8, the taller cavern, the 200 expansion, the assault course, the swinging course and its dark ledge runs)");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero; swing-overhaul-check).
+  ok(playRevOf("swing", generateSwing().swingRev) === SWING_REV_SPREAD + 10 && SWING_REV_SPREAD === 8, "new Grappler rounds are stamped swingRev 18 (the bigger hero after the sliding hooks, after rev 8, the taller cavern, the 200 expansion, the assault course, the swinging course and its dark ledge runs)");
   ok(puzzleUsesBands({ type: "swing", swingRev: SWING_REV_SPREAD }), "swingRev 8 scores on the bands");
   ok(v8 === swingSpreadGame && swingGameFor(SWING_REV_TUNEC) !== v8, "swingGameFor(8) is the spread game; rev 7 keeps its own");
   const seed = SWING_V4_BANK[0]!.seed;

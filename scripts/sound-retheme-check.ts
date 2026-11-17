@@ -283,6 +283,7 @@ const settle = async () => {
 const { GAME_BY_TYPE } = await import("./arcade-skill-bands/games");
 const { Human } = await import("./arcade-skill-bands/human");
 const gs = await import("../src/lib/fx/gameSounds");
+const { swingChaseAge, PTERO_SHADOW_TICKS } = await import("../src/lib/arcade/swingEffects.renderer");
 const bits = (n: number) => {
   let c = 0;
   for (let b = n; b; b &= b - 1) c++;
@@ -340,11 +341,14 @@ const GAME_RUNS: GameRun[] = [
       "swing.gate.mp3": (p, s) => bits(s.gatesLit ?? 0) - bits(p.gatesLit ?? 0) > 0 ? 1 : 0,
       "swing.streak.mp3": (p, s) => ((s.streakPaid ?? 0) > (p.streakPaid ?? 0) ? 1 : 0),
       "swing.splash.mp3": (p, s) => (s.ended !== 2 && (s.restarts ?? 0) > (p.restarts ?? 0) && !((s.caught ?? 0) > (p.caught ?? 0)) ? 1 : 0),
-      "swing.pterodactyl.mp3": (p, s) => ((s.chaseX ?? 0) !== 0 && (p.chaseX ?? 0) === 0 ? 1 : 0),
+      // Changed with Joe's approval, 16 Nov 2026 (follows approved overhaul): stage 2 sends the
+      // pterodactyl's shadow across first, so its screech comes once the shadow has gone (PTERO_SHADOW_TICKS).
+      "swing.pterodactyl.mp3": (p, s) => (swingChaseAge(s) >= PTERO_SHADOW_TICKS && swingChaseAge(p) < PTERO_SHADOW_TICKS ? 1 : 0),
     },
     loops: {
       "swing.jungle.mp3": null,
-      "swing.wings.mp3": (s) => (s.chaseX ?? 0) !== 0,
+      // (Changed with Joe's approval, 16 Nov 2026 (follows approved overhaul): the wingbeats start once the shadow has crossed.)
+      "swing.wings.mp3": (s) => (s.chaseX ?? 0) !== 0 && !(swingChaseAge(s) >= 0 && swingChaseAge(s) < PTERO_SHADOW_TICKS),
       "swing.slideVine.mp3": "seen",
     },
   },

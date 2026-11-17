@@ -8,6 +8,8 @@
  * 1/256-pixel units and no randomness is drawn during play.
  */
 
+import { retroLevelSettings, type CrossLv } from "./retroLevels";
+import type { Level } from "@/lib/levels/levels";
 import {
   clampInt,
   inputRange,
@@ -219,7 +221,7 @@ export function crossRowsOf(state: { wide?: number }): number {
 }
 /** The world height for a stored crossRev (reveals, intros and the arena slot). */
 export function crossWorldHFor(rev?: number | null): number {
-  return rev === CROSS_REV_EXPAND || rev === CROSS_REV_STD || rev === CROSS_REV_FLOW || rev === CROSS_REV_KEEP ? CROSS_X_WORLD_H : CROSS_WORLD_H;
+  return rev === CROSS_REV_EXPAND || rev === CROSS_REV_STD || rev === CROSS_REV_FLOW || rev === CROSS_REV_KEEP || rev === CROSS_REV_LIGHT ? CROSS_X_WORLD_H : CROSS_WORLD_H;
 }
 /** The streak multiplier a crossing completed as the `streak`-th in a row without a hit pays. */
 export function crossMultiplierFor(streak: number): number {
@@ -731,6 +733,8 @@ function rollCourseV9(rng: number, index: number): { rng: number; course: CrossC
 /* ================================ State ================================ */
 
 export interface CrossState extends BandFields {
+  /** Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. */
+  lv?: CrossLv;
   /** crossRev 2 only; absent on stored original rounds. */
   rev?: number;
   tick: number;
@@ -794,6 +798,8 @@ export interface CrossState extends BandFields {
   stopped?: number;
   /** crossRev 12 (the scoring audit): 1 = the hit that ends the run is not charged and hits never take more than half the core. Outside the checksum. */
   keep?: number;
+  /** crossRev 13 only (the Retro overhaul, stage 3): 1 = the lighter traffic (outside the checkpoint checksum). */
+  light?: number;
 }
 
 function init(seed: number): CrossState {
@@ -1320,7 +1326,8 @@ const crossRev3Game: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
 };
 
 /** Takes puzzle.crossRev (2 or 3); anything else is the original traffic. */
-export function crossGameFor(rev?: number | null): ArcadeGame<CrossState, ArcadeInputEvent | null> {
+export function crossGameFor(rev?: number | null, level?: Level | null): ArcadeGame<CrossState, ArcadeInputEvent | null> {
+  if (rev === CROSS_REV_LIGHT) return crossLightFor(level);
   if (rev === CROSS_REV_KEEP) return crossKeepGame;
   if (rev === CROSS_REV_FLOW) return crossFlowGame;
   if (rev === CROSS_REV_STD) return crossStdGame;
@@ -1653,10 +1660,11 @@ export const CROSS_FLOW_STD: StdSpec = {
 export const CROSS_V11_BAND_CURVE = bandCurve([0, CROSS_V11_CORE_FULL], [0, CROSS_V11_CORE_MAX]);
 
 /** crossRev 11's breakdown on the standard. */
-export function crossFlowScore(state: Pick<CrossState, "crossings" | "reached" | "wide" | "streakPts" | "closeCalls" | "lives" | "keep">): StdBreakdown {
+export function crossFlowScore(state: Pick<CrossState, "crossings" | "reached" | "wide" | "streakPts" | "closeCalls" | "lives" | "keep" | "lv">): StdBreakdown {
   const units = crossTotalLanes(state) + 2 * state.crossings;
-  const core = stdLine(CROSS_V11_CORE_MAX, units, CROSS_V11_CORE_FULL);
-  const lost = clampInt(CROSS_LIVES - state.lives, 0, CROSS_LIVES);
+  const core = stdLine(CROSS_V11_CORE_MAX, units, state.lv?.fullAt ?? CROSS_V11_CORE_FULL);
+  const lives = crossLivesOf(state);
+  const lost = clampInt(lives - state.lives, 0, lives);
   return {
     core,
     features: {
@@ -1664,7 +1672,7 @@ export function crossFlowScore(state: Pick<CrossState, "crossings" | "reached" |
       close: stdLine(CROSS_V11_CLOSE_MAX, state.closeCalls ?? 0, CROSS_V11_CLOSE_MAX),
     },
     // crossRev 12: the hit that ends the run is not charged, and hits never take more than half the core.
-    penalty: state.keep ? stdCappedPenalty(CROSS_V11_HIT_COST * stdLivesCharged(lost, state.lives <= 0), core) : CROSS_V11_HIT_COST * lost,
+    penalty: state.keep ? stdCappedPenalty(crossHitCostOf(state) * stdLivesCharged(lost, state.lives <= 0), core) : CROSS_V11_HIT_COST * lost,
   };
 }
 
@@ -1672,10 +1680,10 @@ function crossFlowParts(state: CrossState): BandParts {
   const lanes = crossTotalLanes(state);
   const units = lanes + 2 * state.crossings;
   const close = state.closeCalls ?? 0;
-  const lost = clampInt(CROSS_LIVES - state.lives, 0, CROSS_LIVES);
+  const lost = clampInt(crossLivesOf(state) - state.lives, 0, crossLivesOf(state));
   const score = crossFlowScore(state);
   const charged = state.keep ? stdLivesCharged(lost, state.lives <= 0) : lost;
-  const hitText = !lost ? undefined : !state.keep ? `${lost} hit${lost === 1 ? "" : "s"}` : `${charged} hit${charged === 1 ? "" : "s"} before the last${score.penalty < CROSS_V11_HIT_COST * charged ? " (at most half the rows and crossings points)" : ""}`;
+  const hitText = !lost ? undefined : !state.keep ? `${lost} hit${lost === 1 ? "" : "s"}` : `${charged} hit${charged === 1 ? "" : "s"} before the last${score.penalty < crossHitCostOf(state) * charged ? " (at most half the rows and crossings points)" : ""}`;
   const parts = stdBandParts(state.keep ? CROSS_KEEP_STD : CROSS_FLOW_STD, score, units, `${lanes} rows · ${state.crossings} crossings`, false, hitText);
   const named: string[] = [];
   const pStreak = score.features["streak"] ?? 0;
@@ -1735,3 +1743,71 @@ export const crossKeepGame: ArcadeGame<CrossState, ArcadeInputEvent | null> = {
   ...crossFlowGame,
   init: (seed: number) => ({ ...crossFlowGame.init(seed), keep: 1 }),
 };
+
+/* ================= The Retro overhaul, stage 3: a lighter Normal (crossRev 13, 16 Nov 2026) ================= */
+
+/**
+ * crossRev 13 (the Retro overhaul, stage 3, Joe, 16 Nov 2026: "Spacewalk's lighter Normal"; docs/arcade-standard/cross.md
+ * "crossRev 13"): crossRev 12's walker, lanes, streak, close calls, parts and hit rules exactly, on lighter traffic. Each
+ * crossing is crossRev 9's own course for the seed (as crossRev 10 deals it) with every traffic lane's period scaled to
+ * CROSS_V13_DENSITY_12[k] twelfths of crossRev 9's density: half on the first crossing, building a twelfth a crossing to
+ * crossRev 9's full density from the eighth (crossRev 10–12 reached it at the fourth and went on to fifteen twelfths).
+ * The traffic still builds through the run. Every crossing passes crossRev 10's proofs (a scaled crossing that fails
+ * steps a twelfth toward 12, crossRev 9's proved course). A level (retroLevels.ts) brings its own density table, lives,
+ * hit cost and the rows-and-crossings figure the core is full at. States add `light: 1`, outside the checkpoint checksum
+ * (the courses differ, and so does every crossRev 12 checksum after the first lane).
+ */
+export const CROSS_REV_LIGHT = 13;
+/** Normal's density per crossing on crossRev 13 (twelfths of crossRev 9's; the last entry holds on). */
+export const CROSS_V13_DENSITY_12: readonly number[] = [6, 7, 8, 9, 10, 11, 12, 12, 12, 12];
+
+/** Lives a state starts with: its level's, else CROSS_LIVES. */
+export function crossLivesOf(state: { lv?: CrossLv | undefined }): number {
+  return state.lv?.lives ?? CROSS_LIVES;
+}
+/** The cost of a hit before the last on crossRev 11+: its level's, else CROSS_V11_HIT_COST. */
+export function crossHitCostOf(state: { lv?: CrossLv | undefined }): number {
+  return state.lv?.hitCost ?? CROSS_V11_HIT_COST;
+}
+
+function rollCourseV13(table: readonly number[]): (rng: number, index: number) => { rng: number; course: CrossCourse } {
+  return (rng, index) => {
+    const base = rollCourseV9(rng, index);
+    const target = table[Math.min(index, table.length - 1)]!;
+    for (let d = target; d !== 12; d += d < 12 ? 1 : -1) {
+      const course: CrossCourse = { lanes: base.course.lanes.map((l) => crossDensityLane(l, d)) };
+      const fair = index >= CROSS_FAIR_COURSES || crossFairPassable(course, CROSS_X_SEARCH_TICKS);
+      if (fair && crossPassable(course, CROSS_X_SEARCH_TICKS)) return { rng: base.rng, course };
+    }
+    return { rng: base.rng, course: { lanes: base.course.lanes } };
+  };
+}
+
+export const CROSS_LIGHT_STD: StdSpec = { ...CROSS_FLOW_STD, rev: CROSS_REV_LIGHT };
+
+function crossLightGameOf(table: readonly number[], key: string, lv: CrossLv | null): ArcadeGame<CrossState, ArcadeInputEvent | null> {
+  const roll = rollCourseV13(table);
+  return {
+    ...crossKeepGame,
+    init: (seed: number) => {
+      const keep = crossKeepGame.init(seed);
+      const built = initFor(seed, roll, key);
+      const state: CrossState = { ...keep, rng: built.rng, courses: built.courses, rev: CROSS_REV_LIGHT, light: 1 };
+      return lv ? { ...state, lv, lives: lv.lives } : state;
+    },
+  };
+}
+
+export const crossLightGame = crossLightGameOf(CROSS_V13_DENSITY_12, "13", null);
+const crossLightByLevel = new Map<string, ArcadeGame<CrossState, ArcadeInputEvent | null>>();
+/** crossRev 13 at a level: the level's density table, lives, hit cost and core figure (retroLevels.ts). */
+function crossLightFor(level?: Level | null): ArcadeGame<CrossState, ArcadeInputEvent | null> {
+  const lv = retroLevelSettings("cross", level);
+  if (!lv) return crossLightGame;
+  let game = crossLightByLevel.get(level!);
+  if (!game) {
+    game = crossLightGameOf(lv.density, `13:${level}`, lv);
+    crossLightByLevel.set(level!, game);
+  }
+  return game;
+}

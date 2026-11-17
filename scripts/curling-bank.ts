@@ -19,7 +19,12 @@
  * (scripts/fixtures/curling-witness-v4.json): three red stones a sheet (curlingOpponentsV4) and curling's count in the
  * core, every plan scoring 200 through replayCurlingRun(…, 4).
  *
- *   bun scripts/curling-bank.ts [--rev=2|3|4] [--jobs=4] [--want=…] [--candidates=…] [--cache=<file>]   build (children
+ * The levels (the Sports overhaul, 15 Nov 2026; curlRev 4 only): Easy, Hard and Expert each deal from their own bank
+ * (src/lib/duel/curlingLevelBanks.server.ts, one file for the three) and proofs (scripts/fixtures/curling-witness-levels.json,
+ * { easy, hard, expert }): the level's reds (CURL_LEVEL_REDS, curlingOpponentsAt), every plan scoring 200 through
+ * replayCurlingRun(…, 4, level). `--level=` builds one level (the other levels' entries are kept as they are).
+ *
+ *   bun scripts/curling-bank.ts [--rev=2|3|4] [--level=easy|hard|expert] [--jobs=4] [--want=…] [--candidates=…] [--cache=<file>]   build (children
  *                                                         search in parallel; --cache makes it resumable)
  *   bun scripts/curling-bank.ts --check                   every revision: every stored witness scores 200 and each
  *                                                         bank file is exactly the text its witnesses build
@@ -32,7 +37,8 @@ import { SPORTS_CHECKPOINT_INTERVAL } from "../src/lib/arcade/sportsKit";
 
 const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
-const REV = Number(opt("rev") ?? 1);
+const LEVEL = opt("level") as "easy" | "hard" | "expert" | undefined;
+const REV = LEVEL ? 4 : Number(opt("rev") ?? 1);
 const WANT = Number(opt("want") ?? (REV >= 2 ? 80 : 60));
 const JOBS = Number(opt("jobs") ?? 2);
 const CANDIDATE_COUNT = Number(opt("candidates") ?? (REV >= 4 ? 140 : REV >= 3 ? 85 : REV >= 2 ? 120 : 110));
@@ -45,8 +51,10 @@ const FILES = {
   4: { bank: new URL("../src/lib/duel/curlingBankV4.server.ts", import.meta.url), witness: new URL("./fixtures/curling-witness-v4.json", import.meta.url) },
 } as const;
 const fileRev = (rev: number): 1 | 2 | 3 | 4 => (rev >= 4 ? 4 : rev >= 3 ? 3 : rev >= 2 ? 2 : 1);
-const BANK = FILES[fileRev(REV)].bank;
-const WITNESS = FILES[fileRev(REV)].witness;
+const LEVEL_FILES = { bank: new URL("../src/lib/duel/curlingLevelBanks.server.ts", import.meta.url), witness: new URL("./fixtures/curling-witness-levels.json", import.meta.url) };
+const BANK = LEVEL ? LEVEL_FILES.bank : FILES[fileRev(REV)].bank;
+const WITNESS = LEVEL ? LEVEL_FILES.witness : FILES[fileRev(REV)].witness;
+type LevelWitnesses = { easy: WitnessV2[]; hard: WitnessV2[]; expert: WitnessV2[]; candidates: { easy: number; hard: number; expert: number } };
 
 /** A spread of 31-bit seeds (fixed, so the bank rebuilds the same). */
 function candidate(n: number): number {
@@ -75,10 +83,10 @@ export function witnessPlan(w: Witness | WitnessV2): Throw[] {
 }
 
 /** The plan's run as the phone would submit it (events and checkpoints), for the server's replay (curlRev 1 by default). */
-export function witnessRaw(w: Witness | WitnessV2, rev = 1): string {
+export function witnessRaw(w: Witness | WitnessV2, rev = 1, level?: unknown): string {
   const plan = witnessPlan(w);
-  const { events } = planEvents(w.seed, plan, 0, rev);
-  const game = curlingGameFor(rev);
+  const { events } = planEvents(w.seed, plan, 0, rev, level);
+  const game = curlingGameFor(rev, level);
   const byTick = new Map(events.map((e) => [e.t, e]));
   let s = game.init(w.seed);
   const checkpoints = [];
@@ -90,19 +98,19 @@ export function witnessRaw(w: Witness | WitnessV2, rev = 1): string {
 }
 
 /** The witness's score through the server's replay (and whether the replay flagged it). */
-export function witnessScore(w: Witness | WitnessV2, rev = 1): number {
-  const r = replayCurlingRun(w.seed, witnessRaw(w, rev), rev);
+export function witnessScore(w: Witness | WitnessV2, rev = 1, level?: unknown): number {
+  const r = replayCurlingRun(w.seed, witnessRaw(w, rev, level), rev, level);
   return r.flagged ? -1 : r.score;
 }
 
 function proveOne(seed: number): Witness | WitnessV2 | null {
   // curlRev 4: a smaller search budget (14 throw searches): a sheet with three reds that has a plan finds it within a
   // few searches, and one that has none would spend the full budget for nothing.
-  const plan = perfectPlan(seed, 3, REV >= 4 ? 14 : 30, REV);
+  const plan = perfectPlan(seed, 3, REV >= 4 ? (LEVEL ? Number(opt("budget") ?? 18) : 14) : 30, REV, LEVEL);
   if (!plan) return null;
   const w: Witness | WitnessV2 =
     REV >= 2 ? { seed, throws: plan.map((t) => [t.sx ?? 0, t.bx, t.by, t.weight, t.turn]) } : { seed, throws: plan.map((t) => [t.bx, t.by, t.weight, t.turn]) };
-  return witnessScore(w, REV) === 200 ? w : null;
+  return witnessScore(w, REV, LEVEL) === 200 ? w : null;
 }
 
 /** A bank file's text from its kept witnesses (and the candidates searched). */
@@ -184,6 +192,38 @@ export function curlingBankSeedFor(n: number): number {
 `;
 }
 
+/** The levels' bank file's text from every level's kept witnesses (curlRev 4). */
+export function levelBankText(all: LevelWitnesses): string {
+  const line = (l: "easy" | "hard" | "expert") => `  ${l}: [${all[l].map((w) => w.seed).join(",")}],`;
+  return `/**
+ * Curl Champ's level banks (the Sports overhaul, 15 Nov 2026; curlRev 4): for Easy (${all.easy.length} of ${all.candidates.easy} candidates),
+ * Hard (${all.hard.length} of ${all.candidates.hard}) and Expert (${all.expert.length} of ${all.candidates.expert}), the seeds whose level's red stones
+ * (CURL_LEVEL_REDS, curlingOpponentsAt) the oracle (scripts/curling-oracle.ts) played out of the house with every one of
+ * eight stones coming to rest on the button and counting, scoring 200 through the server's replay on curlRev 4 at that
+ * level. Normal deals from curlingBankV4.server.ts, as before. Built by \`bun scripts/curling-bank.ts --level=<level>\`;
+ * \`--check\` and curling-levels-check replay the proofs (scripts/fixtures/curling-witness-levels.json).
+ * Server-only.
+ */
+export const CURLING_LEVEL_BANKS: Readonly<Record<"easy" | "hard" | "expert", readonly number[]>> = {
+${line("easy")}
+${line("hard")}
+${line("expert")}
+};
+
+/** The skill-band tool's seed index n → a level's bank seed (as curlingBankV4SeedFor: tuning 0–29 from the start, fresh from the 31st). */
+export function curlingLevelSeedFor(level: "easy" | "hard" | "expert", n: number): number {
+  const bank = CURLING_LEVEL_BANKS[level];
+  const len = bank.length;
+  return n < 10000 ? bank[n % len]! : bank[Math.min(30, len - 1) + ((n - 10000) % Math.max(1, len - Math.min(30, len - 1)))]!;
+}
+`;
+}
+
+function readLevelWitnesses(): LevelWitnesses {
+  if (!existsSync(LEVEL_FILES.witness)) return { easy: [], hard: [], expert: [], candidates: { easy: 0, hard: 0, expert: 0 } };
+  return JSON.parse(readFileSync(LEVEL_FILES.witness, "utf8")) as LevelWitnesses;
+}
+
 /** The candidate count a bank file names ("of N candidates"). */
 function candidatesNamed(text: string): number {
   return Number(/\(of (\d+) candidates\)/.exec(text.replace(/\s+\*\s+/g, " "))?.[1] ?? NaN);
@@ -200,6 +240,17 @@ if (!import.meta.main) {
   }
 } else if (args.includes("--check")) {
   let failed = false;
+  {
+    const all = readLevelWitnesses();
+    for (const l of ["easy", "hard", "expert"] as const) {
+      const bad = all[l].filter((w) => witnessScore(w, 4, l) !== 200);
+      console.log(`level ${l}: ${all[l].length - bad.length} of ${all[l].length} witnesses score 200${bad.length ? `; failing: ${bad.map((w) => w.seed).join(", ")}` : ""}`);
+      if (bad.length) failed = true;
+    }
+    const same = existsSync(LEVEL_FILES.bank) && levelBankText(all) === readFileSync(LEVEL_FILES.bank, "utf8");
+    console.log(`the level banks' file ${same ? "is" : "is NOT"} exactly its witnesses' text`);
+    if (!same) failed = true;
+  }
   for (const rev of opt("rev") ? [REV] : [1, 2, 3, 4]) {
     const files = FILES[fileRev(rev)];
     const all = JSON.parse(readFileSync(files.witness, "utf8")) as (Witness | WitnessV2)[];
@@ -211,7 +262,9 @@ if (!import.meta.main) {
   }
   if (failed) process.exit(1);
 } else {
-  const seeds = Array.from({ length: CANDIDATE_COUNT }, (_, n) => candidate(n));
+  // A level's candidates are a separate stretch of the same seed list (so levels never share Normal's first seeds).
+  const offset = LEVEL ? { easy: 1000, hard: 2000, expert: 3000 }[LEVEL] : 0;
+  const seeds = Array.from({ length: CANDIDATE_COUNT }, (_, n) => candidate(n + offset));
   const found = new Map<number, Witness | WitnessV2 | null>();
   if (CACHE && existsSync(CACHE))
     for (const line of readFileSync(CACHE, "utf8").split("\n").filter(Boolean)) {
@@ -226,7 +279,7 @@ if (!import.meta.main) {
       (g) =>
         new Promise<string>((resolve) => {
           if (!g.length) return resolve("");
-          const r = Bun.spawn(["bun", new URL(import.meta.url).pathname, "--child", `--rev=${REV}`, `--list=${g.join(",")}`, ...(CACHE ? [`--cache=${CACHE}`] : [])], { stdout: "pipe", stderr: "inherit" });
+          const r = Bun.spawn(["bun", new URL(import.meta.url).pathname, "--child", `--rev=${REV}`, ...(LEVEL ? [`--level=${LEVEL}`] : []), ...(opt("budget") ? [`--budget=${opt("budget")}`] : []), `--list=${g.join(",")}`, ...(CACHE ? [`--cache=${CACHE}`] : [])], { stdout: "pipe", stderr: "inherit" });
           new Response(r.stdout).text().then(resolve);
         }),
     ),
@@ -238,7 +291,15 @@ if (!import.meta.main) {
     }
   const proved = seeds.map((s) => found.get(s)).filter((w): w is Witness | WitnessV2 => !!w);
   const kept = proved.slice(0, WANT);
-  console.log(`curlRev ${REV}: ${proved.length} of ${seeds.length} candidates proved, ${kept.length} kept (want ${WANT}) in ${Math.round((Date.now() - started) / 1000)} s`);
-  writeFileSync(WITNESS, JSON.stringify(kept) + "\n");
-  writeFileSync(BANK, bankText(REV, kept, seeds.length));
+  console.log(`curlRev ${REV}${LEVEL ? ` ${LEVEL}` : ""}: ${proved.length} of ${seeds.length} candidates proved, ${kept.length} kept (want ${WANT}) in ${Math.round((Date.now() - started) / 1000)} s`);
+  if (LEVEL) {
+    const all = readLevelWitnesses();
+    all[LEVEL] = kept as WitnessV2[];
+    all.candidates[LEVEL] = seeds.length;
+    writeFileSync(WITNESS, JSON.stringify(all) + "\n");
+    writeFileSync(BANK, levelBankText(all));
+  } else {
+    writeFileSync(WITNESS, JSON.stringify(kept) + "\n");
+    writeFileSync(BANK, bankText(REV, kept, seeds.length));
+  }
 }

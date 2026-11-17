@@ -16,6 +16,8 @@
  * reaction later and re-plans it from where it is. Switch points are not used.
  */
 import {
+  btDropTicksOf,
+  btMovesOf,
   btNext,
   btLayout,
   btRotatable,
@@ -28,7 +30,6 @@ import {
   BT_TILE,
   BT_V7_BOOST_STEPS,
   BT_V7_BOOST_TICKS,
-  BT_V7_DROP_TICKS,
   BT_W,
   type BtCourse,
   type BtState,
@@ -53,6 +54,14 @@ const AVOID_X: Record<SkillLevel, number> = { weak: 0, average: 0.15, good: 0.45
 /** How many steps ahead of a marble the player sets a tube (just-in-time, not last-instant). */
 const LEAD_STEPS = 4;
 const WARN_TICKS = 5 * 60;
+/**
+ * Joe's human limits (difficulty levels, 15 Nov 2026: about 0.25 s to react, 0.15 s to move), off by default so every
+ * existing measurement plays as before. On (the level tools: scripts/balltrack-level-bands.ts --limits), no tap comes
+ * sooner than 9 ticks after the last, a marble off its route is noticed no sooner than 15 ticks on, and a new marble's
+ * route is worked out no sooner than 15 ticks after it is seen. The shared elite profile reacts in 145 ms and this bot
+ * taps every 6–9 ticks, so without the limits the elite player is a little past them.
+ */
+export const BT_HUMAN_LIMITS = { on: false, tapTicks: 9, reactTicks: 15 };
 const SLOT = 100;
 
 type Step = { cell: number; vert: number };
@@ -128,7 +137,7 @@ const BOOST_SEEK: Record<SkillLevel, number> = { weak: 0, average: 0.1, good: 0.
  */
 function landTick(course: BtCourse, route: Step[], ball: { cell: number; at: number; bst?: number } | undefined, id: number): number {
   const boost = new Set(course.boost ?? []);
-  let at = ball ? ball.at : 1 + id * BT_V7_DROP_TICKS + BT_STEP_TICKS;
+  let at = ball ? ball.at : 1 + id * btDropTicksOf(course, true) + BT_STEP_TICKS;
   let bst = ball?.bst ?? 0;
   const move = (into: number | undefined) => {
     if (into !== undefined && boost.has(into)) bst = BT_V7_BOOST_STEPS;
@@ -177,11 +186,11 @@ export const bot: SkillBot = ({ game, human, fixes }) => {
     if (fixes) {
       // Oct 2026 fix: a warned change (countdown on screen) is allowed for by when this marble will really
       // land on its route, re-read once for the route to the tray it will then need.
-      const heeds = [course.relay, course.shuffle].map((ev) => ev.tick > t && ev.tick - t <= WARN_TICKS + 60 && human.chance(HEED[level]));
+      const heeds = btMovesOf(course).map((ev) => ev.tick > t && ev.tick - t <= WARN_TICKS + 60 && human.chance(HEED[level]));
       const landAt = (r: Step[] | null) => (r ? landTick(course, r, ball, id) : eta);
       trayAt = (tick: number) => {
         let k = t;
-        [course.relay, course.shuffle].forEach((ev, i) => {
+        btMovesOf(course).forEach((ev, i) => {
           if (heeds[i] && tick >= ev.tick) k = Math.max(k, ev.tick);
         });
         return k;
@@ -190,7 +199,7 @@ export const bot: SkillBot = ({ game, human, fixes }) => {
       const again = routeFrom(course, rot, start, above, btTraysAt(course, at).indexOf(colour), at);
       at = trayAt(landAt(again));
     } else
-      for (const ev of [course.relay, course.shuffle]) {
+      for (const ev of btMovesOf(course)) {
         if (ev.tick > t && ev.tick <= eta && ev.tick - t <= WARN_TICKS + 60 && human.chance(HEED[level])) at = ev.tick;
       }
     const trays = btTraysAt(course, at);
@@ -240,7 +249,7 @@ export const bot: SkillBot = ({ game, human, fixes }) => {
       // time they land; only a changed route costs think time. Before, a route planned before the warning
       // kept its old tray, so even the flawless player sent two marbles a run to the wrong cup.
       if (fixes) {
-        for (const ev of [course.relay, course.shuffle]) {
+        for (const ev of btMovesOf(course)) {
           if (rechecked.has(ev.tick) || seen.tick < ev.tick - WARN_TICKS || seen.tick >= ev.tick) continue;
           rechecked.add(ev.tick);
           let think = 0;
@@ -265,7 +274,7 @@ export const bot: SkillBot = ({ game, human, fixes }) => {
         const b = seen.balls.find((x) => x.id === id);
         if (!r || !b || b.cell < 0) continue;
         if (!r.some((st) => st.cell === b.cell)) {
-          if (!offNoticed.has(id)) offNoticed.set(id, t + human.reactTicks());
+          if (!offNoticed.has(id)) offNoticed.set(id, t + (BT_HUMAN_LIMITS.on ? Math.max(BT_HUMAN_LIMITS.reactTicks, human.reactTicks()) : human.reactTicks()));
           else if (t >= offNoticed.get(id)!) {
             offNoticed.delete(id);
             plan(seen, id, t);
@@ -279,7 +288,8 @@ export const bot: SkillBot = ({ game, human, fixes }) => {
       for (const id of mind) {
         if (routes.has(id)) continue;
         plan(seen, id, t);
-        busyUntil = t + human.thinkTicks(id < 3 ? 1000 : 650);
+        const think = human.thinkTicks(id < 3 ? 1000 : 650);
+        busyUntil = t + (BT_HUMAN_LIMITS.on ? Math.max(BT_HUMAN_LIMITS.reactTicks, think) : think);
         return null;
       }
 
@@ -307,7 +317,8 @@ export const bot: SkillBot = ({ game, human, fixes }) => {
         if (b && b.cell >= 0 && b.cell < SLOT) claimed.set(b.cell, seen.vert[b.cell]!);
       }
       if (!best) return null;
-      busyUntil = t + TAP_GAP[level] + human.int(0, 3);
+      const gap = TAP_GAP[level] + human.int(0, 3);
+      busyUntil = t + (BT_HUMAN_LIMITS.on ? Math.max(BT_HUMAN_LIMITS.tapTicks, gap) : gap);
       // Pointing: aim at the tile centre; a big enough miss lands on the neighbour.
       const cx = (best.cell % BT_COLS) * BT_TILE + BT_TILE / 2 + human.aim(WORLD_PER_PX);
       const cy = BT_HOPPER_H + Math.floor(best.cell / BT_COLS) * BT_TILE + BT_TILE / 2 + human.aim(WORLD_PER_PX);

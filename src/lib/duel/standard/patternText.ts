@@ -3,16 +3,19 @@
  * (docs/scoring-standard.md). Written from patternRules.ts's numbers (the grader's own), with {max} for the game's
  * maximum (roundMax.ts, 200), so the texts always state what the standard's stamp deals. Shared, pure.
  */
-import { BLOCK_STD, FLOW_STD, ICE_STD, LASER_STD, PATTERN_STD, PUSH_STD, TOPSY_STD, type PatternStdType } from "./patternRules";
+import { BLOCK_STD, FLOW_REV3_FULL_BY_S, FLOW_STD, ICE_STD, LASER_REV4_FULL_BY_S, LASER_STD, PATTERN_STD, PUSH_STD, TOPSY_STD, type PatternStdType } from "./patternRules";
+import { gameLevelSettings } from "@/lib/levels/gameLevels";
+import { LEVEL_LABEL } from "@/lib/levels/levels";
 import { puzzleScoreList, type ScoreLine } from "../scoreList";
 import { fillMax } from "../roundMax";
 import { preNov7Pinned } from "../speedPipesNov7";
+import { prePatternNov15Pinned } from "../patternNov15";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, parMovesDealt, parStrictDealt } from "../parMoves";
 import { GRADIENT_LIMIT_PER_PAR, partialCreditDealt } from "../partialCredit";
 
 /** The intro line (two phone lines at most, no scoring terms). */
 export const PATTERN_STD_INTRO: Record<PatternStdType, string> = {
-  unblock: "Free the gold block; bonuses for speed and the fewest moves. Up to {max}.",
+  unblock: "Free the gold car; bonuses for speed and the fewest moves. Up to {max}.",
   blockparty: "Fill the board; bonuses for speed and pieces right first time. Up to {max}.",
   iceslide: "Reach the exit; bonuses for speed and every ice gem. Up to {max}.",
   gravity: "Clear all three boards; bonuses for speed and the stars. Up to {max}.",
@@ -39,7 +42,7 @@ const P = (t: PatternStdType) => PATTERN_STD[t].par ?? 0;
 
 /** The "?" help SCORE text: one line a part (scoreList.ts). */
 export const PATTERN_STD_HELP: Record<PatternStdType, string> = {
-  unblock: help("unblock", "free the gold block", [parLine("unblock", "Moves", "solve it in the fewest moves (par)", P("unblock"))], "the share of the blocks in the gold block’s way you clear, more for doing it early; wasted moves take it down"),
+  unblock: help("unblock", "free the gold car", [parLine("unblock", "Moves", "solve it in the fewest moves (par)", P("unblock"))], "the share of the cars in the gold car’s way you clear, more for doing it early; wasted moves take it down"),
   blockparty: help("blockparty", "fill the board", [{ label: "First time", how: "pieces placed right first time and never moved again", max: BLOCK_STD.firstTime }], `${BLOCK_STD.perPiece} for each piece on its spot in the solution, more for placing it early`),
   iceslide: help("iceslide", "reach the exit", [{ label: "Ice gems", how: "collect the ice gems off the direct route", max: ICE_STD.gems }], "how much closer you got to the exit, plus the gems so far; wasted slides take it down"),
   gravity: help("gravity", "clear all three boards", [{ label: "Stars", how: "collect the stars", max: TOPSY_STD.stars }, parLine("gravity", "Tilts", "clear each board in the fewest tilts (par)", P("gravity"))], "the share of the balls home, more for doing it early; wasted tilts take it down"),
@@ -53,8 +56,8 @@ export const PATTERN_STD_HELP: Record<PatternStdType, string> = {
   pipes: help("pipes", "join every pipe to the source", [parLine("pipes", "Taps", "finish in the fewest taps (par)", P("pipes"))], "the share of the pipes joined to the source, more for doing it early"),
   push: help("push", "push every crate onto a mark", [
     { label: "Gold crate", how: "the gold crate on the gold mark", max: PUSH_STD.gold },
-    // Pattern review fixes (15 Nov 2026): Heave shows no par during play, so the help no longer names one.
-    parLine("push", "Pushes", "finish in the fewest pushes the warehouse allows", P("push")),
+    // The Pattern overhaul (15 Nov 2026): Heave shows Pushes and Par during play, so the help names par again.
+    parLine("push", "Pushes", "finish in the fewest pushes (par, shown)", P("push")),
   ], `${PUSH_STD.perCrate} for each crate on a mark, more for getting it there early, plus the gold crate; wasted pushes take it down`),
 };
 
@@ -97,13 +100,13 @@ export const parMovesPatternHelp = (type: "iceslide" | "gravity"): string => (pa
  * (tilesRev 7, with its swap limit) count how close the best board got to solved, in proportion.
  */
 export const PARTIAL_PATTERN_INTRO: Record<"unblock" | "rings" | "tiles", string> = {
-  unblock: "Free the gold block; partway counts. Bonuses for speed and fewest moves. Up to {max}.",
+  unblock: "Free the gold car; partway counts. Bonuses for speed and fewest moves. Up to {max}.",
   rings: "Line up every spoke; partway counts. Bonuses for speed and fewest turns. Up to {max}.",
   tiles: "Place every tile before the swaps run out; bonuses for speed and few swaps. Up to {max}.",
 };
 
 export const PARTIAL_PATTERN_HELP: Record<"unblock" | "rings" | "tiles", string> = {
-  unblock: help("unblock", "free the gold block", [parLine("unblock", "Moves", "solve it in the fewest moves (par)", P("unblock"))], "how close your best board got to freeing the gold block, in proportion (the moves still needed); moves that brought it no closer take it down"),
+  unblock: help("unblock", "free the gold car", [parLine("unblock", "Moves", "solve it in the fewest moves (par)", P("unblock"))], "how close your best board got to freeing the gold car, in proportion (the moves still needed); moves that brought it no closer take it down"),
   rings: help("rings", "line up every spoke", [parLine("rings", "Turns", "finish in the fewest turns (par)", P("rings"))], "how close your best board got to every spoke lined up, in proportion (the turns still needed); turns that brought it no closer take it down a little"),
   tiles: help("tiles", `put every tile in place within the swap limit (${fmt(GRADIENT_LIMIT_PER_PAR)} times par, shown)`, [parLine("tiles", "Swaps", "finish in the fewest swaps (par, shown)", P("tiles"))], "how close your best board got to solved, in proportion (the swaps still needed); each swap that brought it no closer takes off half a swap’s worth"),
 };
@@ -115,11 +118,102 @@ const isPartialPatternType = (type: PatternStdType): type is "unblock" | "rings"
  * wherever they are, in place of the tiles joined to the source.
  */
 export const PIPES_PLACED_HELP = help("pipes", "join every pipe to the source", [parLine("pipes", "Taps", "finish in the fewest taps (par)", P("pipes"))], "the share of the tiles you turn to fit, more for doing it early; turning a tile wrong takes it down");
+/**
+ * Pipeline on pipesRev 5 (the Pattern overhaul, 15 Nov 2026, patternNov15.ts): tiles turn both ways, so par counts the
+ * fewest turns either way; scoring otherwise pipesRev 4's.
+ */
+export const PIPES_TWO_WAY_HELP = help("pipes", "join every pipe to the source", [parLine("pipes", "Turns", "finish in the fewest turns, either way (par)", P("pipes"))], "the share of the tiles you turn to fit, more for doing it early; turning a tile wrong takes it down");
+export const PIPES_TWO_WAY_INTRO = "Join every pipe to the source; bonuses for speed and the fewest turns. Up to {max}.";
+/**
+ * Pipeline's levels (16 Nov 2026, pipes.levels.ts): a level that sets its own full-speed time (Expert 90 s) is named in
+ * the speed line, as Chroma Lines' and Lightbender's are.
+ */
+function pipesLevelTimes(): string {
+  const parts = (["easy", "hard", "expert"] as const).flatMap((level) => {
+    const s = gameLevelSettings<{ speedFullByS?: number }>("pipes", level);
+    return s?.speedFullByS ? [`${LEVEL_LABEL[level]} ${s.speedFullByS} s`] : [];
+  });
+  return parts.join(", ");
+}
+function pipesTwoWayLevelsHelp(): string {
+  return puzzleScoreList({
+    finish: "join every pipe to the source",
+    speed: { max: PATTERN_STD.pipes.speed, fullByS: PATTERN_STD.pipes.fullByS, note: pipesLevelTimes() || undefined },
+    bonuses: [parLine("pipes", "Turns", "finish in the fewest turns, either way (par)", P("pipes"))],
+    unfinished: "the share of the tiles you turn to fit, more for doing it early; turning a tile wrong takes it down",
+    total: "{max}" as unknown as number,
+  });
+}
 /** Pipeline's help for the stamp dealt now. */
-export const pipesPatternHelp = (): string => (preNov7Pinned() ? PATTERN_STD_HELP.pipes : PIPES_PLACED_HELP);
+export const pipesPatternHelp = (): string =>
+  preNov7Pinned() ? PATTERN_STD_HELP.pipes : prePatternNov15Pinned() ? PIPES_PLACED_HELP : pipesTwoWayLevelsHelp();
+
+// ---- tessellate:start (the Pattern overhaul, 15 Nov 2026; patternNov15.ts)
+/**
+ * Tessellate on blockRev 4: the bonus counts clean drops (moving a placed piece costs nothing; a drop where a piece
+ * won't fit costs one piece's share).
+ */
+export const BLOCK_NOV15_INTRO = "Fill the board; bonuses for speed and clean drops. Up to {max}.";
+export const BLOCK_NOV15_HELP = help("blockparty", "fill the board", [{ label: "Clean drops", how: "every piece placed with no drop where it won’t fit (moving a placed piece costs nothing)", max: BLOCK_STD.firstTime }], `${BLOCK_STD.perPiece} for each piece on its spot in the solution, more for placing it early`);
+/** Tessellate's help and intro for the stamp dealt now. */
+export const blockPatternHelp = (): string => (prePatternNov15Pinned() ? PATTERN_STD_HELP.blockparty : BLOCK_NOV15_HELP);
+export const blockPatternIntro = (): string => (prePatternNov15Pinned() ? PATTERN_STD_INTRO.blockparty : BLOCK_NOV15_INTRO);
+// ---- tessellate:end
+
+// ---- chroma:start (the Pattern overhaul, levels, 16 Nov 2026)
+/**
+ * Chroma Lines on flowRev 3: full speed by FLOW_REV3_FULL_BY_S on Normal and by each level's own time (flow.levels.ts),
+ * so the help names them all.
+ */
+function flowLevelTimes(): string {
+  const parts = (["easy", "hard", "expert"] as const).flatMap((level) => {
+    const s = gameLevelSettings<{ fullByS?: number }>("flow", level);
+    return s?.fullByS ? [`${LEVEL_LABEL[level]} ${s.fullByS} s`] : [];
+  });
+  return parts.length ? `on Normal; ${parts.join(", ")}` : "";
+}
+export function flowRev3Help(): string {
+  return puzzleScoreList({
+    finish: "join every pair",
+    speed: { max: PATTERN_STD.flow.speed, fullByS: FLOW_REV3_FULL_BY_S, note: flowLevelTimes() || undefined },
+    bonuses: [{ label: "Clean lines", how: `never redraw a finished line, ${fmt(FLOW_STD.perRedraw)} less for each you change`, max: FLOW_STD.clean }],
+    unfinished: "the share of the pairs joined along their own route, more for doing it early",
+    total: "{max}" as unknown as number,
+  });
+}
+// ---- chroma:end
+
+// ---- lightbender:start (the Pattern overhaul, levels, 16 Nov 2026)
+/**
+ * Lightbender on laserRev 4: full speed by LASER_REV4_FULL_BY_S on Normal and by each level's own time
+ * (laser.levels.ts), so the help names them all.
+ */
+function laserLevelTimes(): string {
+  const parts = (["easy", "hard", "expert"] as const).flatMap((level) => {
+    const s = gameLevelSettings<{ fullByS?: number }>("laser", level);
+    return s?.fullByS ? [`${LEVEL_LABEL[level]} ${s.fullByS} s`] : [];
+  });
+  return parts.length ? `on Normal; ${parts.join(", ")}` : "";
+}
+export function laserRev4Help(): string {
+  return puzzleScoreList({
+    finish: "light all six gems",
+    speed: { max: PATTERN_STD.laser.speed, fullByS: LASER_REV4_FULL_BY_S, note: laserLevelTimes() || undefined },
+    bonuses: [
+      { label: "Mirrors", how: "use no more mirrors than the solution needs for all of it, nothing at twice that", max: LASER_STD.mirrors },
+      { label: "First shot", how: "solve it with your first shot", max: LASER_STD.firstShot },
+    ],
+    unfinished: `${LASER_STD.perGem} for each gem your best shot lit without a bomb, more for lighting it early`,
+    total: "{max}" as unknown as number,
+  });
+}
+// ---- lightbender:end
 
 /** The help as shown ({max} filled in: the game's maximum, 200). */
 export function patternStdHelp(type: PatternStdType): string {
+  if (type === "flow" && !prePatternNov15Pinned()) return fillMax(flowRev3Help(), type);
+  if (type === "laser" && !prePatternNov15Pinned()) return fillMax(laserRev4Help(), type);
+  if (type === "blockparty") return fillMax(blockPatternHelp(), type);
   if (isPartialPatternType(type) && partialCreditDealt()) return fillMax(PARTIAL_PATTERN_HELP[type], type);
   if (type === "pipes") return fillMax(pipesPatternHelp(), type);
   // Skid and Topsy-Turvy state the puzzle batch's stamps while rooms deal them (parMoves.ts).
@@ -129,7 +223,10 @@ export function patternStdHelp(type: PatternStdType): string {
 
 /** The intro line as shown ({max} filled in). */
 export function patternStdIntro(type: PatternStdType): string {
+  if (type === "blockparty") return fillMax(blockPatternIntro(), type);
   if (isPartialPatternType(type) && partialCreditDealt()) return fillMax(PARTIAL_PATTERN_INTRO[type], type);
   if ((type === "iceslide" || type === "gravity") && parMovesDealt()) return fillMax(PAR_MOVES_PATTERN_INTRO[type], type);
+  // Pipeline pipesRev 5 (patternNov15.ts): turns both ways.
+  if (type === "pipes" && !preNov7Pinned() && !prePatternNov15Pinned()) return fillMax(PIPES_TWO_WAY_INTRO, type);
   return fillMax(PATTERN_STD_INTRO[type], type);
 }

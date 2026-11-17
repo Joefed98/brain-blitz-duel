@@ -1,0 +1,50 @@
+import { useEffect, useRef } from "react";
+import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
+import { gameFx, type GameFxKind, type GameFxOptions } from "@/lib/fx/kit";
+import { useCelebrationsOn } from "./useCelebration";
+
+/**
+ * The in-match screens' shared entrance (15 Nov 2026, the effects pass): the screen's sections arrive one after another
+ * (polish-layout/moments.css, `[data-moment-enter]`), the same on round results, standings, the podium, the final screen
+ * and the answer reveal, so moving between them reads as one language. `rise` lifts each section in; `fade` (screens
+ * that measure their rows to slide them: standings, the podium, the final screen) only fades, so no measurement moves.
+ * Nothing with the celebrations off (every screen exactly as before), under reduced effects or the battery saver; reduced
+ * motion jumps it to its end (every section in place and visible).
+ */
+export function useMomentEnter(kind: "rise" | "fade" = "rise"): { "data-moment-enter"?: "rise" | "fade" } {
+  const on = useCelebrationsOn();
+  return on && !arcadeReducedEffects() ? { "data-moment-enter": kind } : {};
+}
+
+/**
+ * The room moments' richer layer (15 Nov 2026, the effects pass): Prepare to Duel's lineup and build-up, the round
+ * titles' backdrops and numeral, the final round's sparks. On only with the celebrations on and full effects (reduced
+ * effects and the battery saver keep the moments as they were). One switch for every part, so they come and go together.
+ */
+export function useRichMoments(): boolean {
+  const on = useCelebrationsOn();
+  return on && !arcadeReducedEffects();
+}
+
+/**
+ * An app moment (15 Nov 2026, the effects pass): the kit's effect on the element `selector` finds, once each time `key`
+ * changes to a new non-null value (a badge earned, a level reached, a reward claimed…). The same kit and look as the
+ * games' and results' moments; nothing with the celebrations off; never a haptic (outside a live board, the kit's rule).
+ */
+export function useAppMoment(kind: GameFxKind, selector: string, key: string | number | null | undefined, options: GameFxOptions = {}): void {
+  const on = useCelebrationsOn();
+  const last = useRef<string | number | null>(null);
+  useEffect(() => {
+    if (!on || key === null || key === undefined || key === last.current) return;
+    last.current = key;
+    // After the element has painted (it is usually mounted by the same render); a timer where there are no frames
+    // (a test DOM, some embedded views).
+    const run = () => gameFx(kind, document.querySelector(selector), { inGame: false, ...options });
+    if (typeof requestAnimationFrame !== "function") {
+      const timer = setTimeout(run, 0);
+      return () => clearTimeout(timer);
+    }
+    const frame = requestAnimationFrame(run);
+    return () => cancelAnimationFrame(frame);
+  }, [on, key]); // eslint-disable-line react-hooks/exhaustive-deps
+}

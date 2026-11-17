@@ -81,7 +81,7 @@ const PARS = [3, 4, 4, 3, 5];
 const GAMES: Game[] = [
   { name: "homerun", revs: [1, 2, 3, 4], replay: replayHomerunRun, game: homerunGameFor as never, checkpoint: homerunCheckpoint as never, interval: HOMERUN_CHECKPOINT_INTERVAL, encode: encodeHomerunRun as never },
   { name: "freekick", revs: [1, 2, 3, 4], replay: replayFreekickRun, game: freekickGameFor as never, checkpoint: freekickCheckpoint as never, interval: FREEKICK_CHECKPOINT_INTERVAL, encode: encodeFreekickRun as never },
-  { name: "racing", revs: [1, 2, 3], replay: replayRacingRun, game: racingGameFor as never, checkpoint: racingCheckpoint as never, interval: RACING_CHECKPOINT_INTERVAL, encode: encodeRacingRun as never },
+  { name: "racing", revs: [1, 2, 3, 4], replay: replayRacingRun, game: racingGameFor as never, checkpoint: racingCheckpoint as never, interval: RACING_CHECKPOINT_INTERVAL, encode: encodeRacingRun as never },
   { name: "minigolf", revs: [1, 2], replay: (s, r, rev) => replayMinigolfRun(s, r, PARS, rev), game: ((rev: number) => minigolfGameFor(PARS, rev)) as never, checkpoint: minigolfCheckpoint as never, interval: SPORTS_CHECKPOINT_INTERVAL, encode: encodeMinigolfRun as never },
   { name: "pool", revs: [1, 2, 3, 4], replay: replayPoolRun, game: poolGameFor as never, checkpoint: poolCheckpoint as never, interval: SPORTS_CHECKPOINT_INTERVAL, encode: encodePoolRun as never },
   { name: "curling", revs: [1, 2, 3, 4], replay: replayCurlingRun, game: curlingGameFor as never, checkpoint: curlingCheckpoint as never, interval: SPORTS_CHECKPOINT_INTERVAL, encode: encodeCurlingRun as never },

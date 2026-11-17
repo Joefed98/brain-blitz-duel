@@ -15,6 +15,9 @@ import { wasteFactor } from "../puzzleScoreRev";
 import { decodePairFlips, replayPairs } from "../pairmatch";
 import { pairDepthReplay, splitPairGoldTime } from "../depth/matchmaker";
 import { spotBonusFound } from "../depth/doubleTake";
+import { scanMinute } from "../attentionOverhaul";
+import { leveled, scanLevel, tallyLevel, tallyTrays, mazeLevel, spotLevel, spotPerPicture, pairCardsOf, pairExtrasShare, pairLevel, pairsOf } from "../attentionLevels";
+import { PAIR_PAIRS } from "../types";
 import type { CountUpPuzzleData, MazePuzzleData, SymbolScanPuzzleData, PuzzleType } from "../types";
 import { earlyPoints, parPoints, speedPoints } from "./shape";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, PAR_STRICT_ZERO_AT, usesParMoves, usesParStrict } from "../parMoves";
@@ -38,7 +41,9 @@ const ascend: StandardGame = {
     if (graded.isCorrect) {
       // Today's finish: each wrong tap took 5 off the 30 speed points; the same share comes off the standard's 40.
       const efficiency = Math.max(0, 1 - (ASCEND_STD.wrongCost * replay.errors) / ASCEND_STD.wrongSpeedOf);
-      return { finished: true, speed: speedFor(ASCEND_STD.speed, ASCEND_STD.fullByS, msLeft, limitMs) * efficiency, bonus: flow, measure: "flow", facts };
+      // A level's own full-speed time (the Speed overhaul's levels: Hard and Expert ask for a faster finish).
+      const fullByS = typeof puzzle.fullByS === "number" && puzzle.fullByS > 0 ? puzzle.fullByS : ASCEND_STD.fullByS;
+      return { finished: true, speed: speedFor(ASCEND_STD.speed, fullByS, msLeft, limitMs) * efficiency, bonus: flow, measure: "flow", facts };
     }
     // Each number's own tap time (the log's), not a draft timeline.
     const times = taps.filter((_, i) => replay.outcomes[i] === "correct").map((t) => t.t);
@@ -99,7 +104,9 @@ const eagleEye: StandardGame = {
     const facts = { gridsComplete: complete, cleanGrids, wrongTaps: wrong };
     const finished = grids.length === 3 && grids.every((g) => gridComplete(g) && g.wrong <= SCAN_STD.finishWrongPerGrid);
     if (finished) {
-      return { finished: true, speed: speedFor(SCAN_STD.speed, SCAN_STD.fullByS, msLeft, limitMs), bonus: (SCAN_STD.clean * cleanGrids) / 3, measure: "clean", facts };
+      // scanRev 5 (the overhaul's levels): the 60 s clock, speed full by the level's time.
+      const fullBy = scanMinute(puzzle) ? scanLevel(puzzle).fullByS : SCAN_STD.fullByS;
+      return { finished: true, speed: speedFor(SCAN_STD.speed, fullBy, msLeft, limitMs), bonus: (SCAN_STD.clean * cleanGrids) / 3, measure: "clean", facts };
     }
     const share = grids.reduce((a, g) => a + (SCAN_STD.perGrid * g.found) / Math.max(1, g.targets), 0);
     return { finished: false, credit: share + ctx.early(SCAN_STD.early, complete) - SCAN_STD.wrongCost * wrong, facts };
@@ -117,12 +124,20 @@ const doubleTake: StandardGame = {
     const wrong = r.wrong.reduce((a, b) => a + b, 0);
     const hidden = spotBonusFound(puzzle, parseSpotTaps(answer, SPOT_REV1_SCENES)) ? SPOT_STD.hidden : 0;
     const facts = { found, wrongTaps: wrong, hiddenPoints: hidden };
+    // A level's pictures (stage 3 of the Attention overhaul) share today's 120 and 9.6 over their own differences, with
+    // their own speed full-by; Normal's figures are today's (10 and 0.8 a difference over twelve, full by 40 s).
+    const all = 2 * spotPerPicture(puzzle);
+    const perDiff = (SPOT_STD.perDiff * 12) / all;
+    const early = (SPOT_STD.early * 12) / all;
+    const spotFullBy = leveled(puzzle) ? spotLevel(puzzle).fullByS : SPOT_STD.fullByS;
     // Today's finish: all twelve, at most 5 wrong taps in each picture.
     if (graded.isCorrect) {
-      const clean = wrong === 0 ? SPOT_STD.clean : 0;
-      return { finished: true, speed: speedFor(SPOT_STD.speed, SPOT_STD.fullByS, msLeft, limitMs), bonus: hidden + clean, measure: "bonus", facts };
+      // A level with no hidden seventh (Easy) puts its 20 into the clean-taps bonus, so a flawless run is still 200.
+      const noHidden = leveled(puzzle) && !spotLevel(puzzle).hidden;
+      const clean = wrong === 0 ? SPOT_STD.clean + (noHidden ? SPOT_STD.hidden : 0) : 0;
+      return { finished: true, speed: speedFor(SPOT_STD.speed, spotFullBy, msLeft, limitMs), bonus: hidden + clean, measure: "bonus", facts };
     }
-    return { finished: false, credit: SPOT_STD.perDiff * found + ctx.early(SPOT_STD.early, found) - SPOT_STD.wrongCost * wrong + hidden, facts };
+    return { finished: false, credit: perDiff * found + ctx.early(early, found) - SPOT_STD.wrongCost * wrong + hidden, facts };
   },
 };
 
@@ -148,8 +163,13 @@ const tally: StandardGame = {
     if (puzzle.type !== "countup") return { finished: false, credit: 0 };
     const { exact, near } = tallyCounts(puzzle, answer);
     const facts = { exactTrays: exact, nearTrays: near };
-    if (graded.isCorrect) return { finished: true, speed: speedFor(COUNT_STD.speed, COUNT_STD.fullByS, msLeft, limitMs), bonus: 0, measure: "bonus", facts };
-    return { finished: false, credit: COUNT_STD.perTray * (exact + COUNT_STD.near * near) + ctx.early(COUNT_STD.early, exact), facts };
+    // A level's trays (stage 3 of the Attention overhaul) share today's 120 and 10 over their own count, with their own
+    // speed full-by; Normal's figures are today's (30 and 2.5 a tray over four, full by 30 s).
+    const trays = tallyTrays(puzzle);
+    const perTray = (COUNT_STD.perTray * 4) / trays;
+    const countFullBy = leveled(puzzle) ? tallyLevel(puzzle).fullByS : COUNT_STD.fullByS;
+    if (graded.isCorrect) return { finished: true, speed: speedFor(COUNT_STD.speed, countFullBy, msLeft, limitMs), bonus: 0, measure: "bonus", facts };
+    return { finished: false, credit: perTray * (exact + COUNT_STD.near * near) + ctx.early((COUNT_STD.early * 4) / trays, exact), facts };
   },
 };
 
@@ -192,8 +212,9 @@ const labyrinth: StandardGame = {
       if (graded.isCorrect) {
         // mazeRev 5 (puzzle polish, 3 Nov 2026): speed full a little earlier, par points 0 at 1.5× par.
         const strict = usesParStrict(puzzle);
-        const fullBy = strict ? PAR_STRICT_FULL_BY_S.maze : MAZE_STD.fullByS;
-        const zeroAt = strict ? PAR_STRICT_ZERO_AT * run.routeSteps : 2 * run.routeSteps;
+        // A level's maze (stage 3 of the Attention overhaul): its own full-by time (attentionLevels.data.ts).
+        const fullBy = leveled(puzzle) ? mazeLevel(puzzle).fullByS : strict ? PAR_STRICT_FULL_BY_S.maze : MAZE_STD.fullByS;
+        const zeroAt = (leveled(puzzle) ? mazeLevel(puzzle).parZeroAt : strict ? PAR_STRICT_ZERO_AT : 2) * run.routeSteps;
         return { finished: true, speed: speedFor(PAR_MOVES_STD.speed, fullBy, msLeft, limitMs), bonus: parPoints(PAR_MOVES_STD.par, run.walked, run.routeSteps, zeroAt), measure: "par", facts };
       }
       const early = ctx.early(MAZE_STD.early / Math.max(1, run.routeSteps), run.steps) * run.waste;
@@ -211,11 +232,19 @@ const labyrinth: StandardGame = {
 /* ------------------------------------------------------------------ Matchmaker */
 
 const matchmaker: StandardGame = {
-  parts: (puzzle, draft) => (puzzle.type === "pairmatch" ? replayPairs(puzzle.cards, decodePairFlips(draft)).pairs : 0),
+  parts: (puzzle, draft) => (puzzle.type === "pairmatch" ? replayPairs(puzzle.cards, decodePairFlips(draft, pairCardsOf(puzzle)), pairsOf(puzzle)).pairs : 0),
   grade({ puzzle, answer, graded, limitMs, msLeft, latestMs }, ctx) {
     if (puzzle.type !== "pairmatch") return { finished: false, credit: 0 };
-    const flips = decodePairFlips(answer);
-    const replay = replayPairs(puzzle.cards, flips);
+    const flips = decodePairFlips(answer, pairCardsOf(puzzle));
+    const replay = replayPairs(puzzle.cards, flips, pairsOf(puzzle));
+    // Levels (stage 3 of the Attention overhaul): a level's board shares the same 120 and 9 over its own pairs, with
+    // its own free misses and speed; Normal's figures are today's (8 and 0.6 a pair over 15, 14 free, full by 60 s).
+    const lv = pairLevel(puzzle);
+    const pairs = pairsOf(puzzle);
+    const perPair = (PAIR_STD.perPair * PAIR_PAIRS) / pairs;
+    const early = (PAIR_STD.early * PAIR_PAIRS) / pairs;
+    const freeMisses = leveled(puzzle) ? lv.freeMisses : PAIR_STD.freeMisses;
+    const fullByS = leveled(puzzle) ? lv.fullByS : PAIR_STD.fullByS;
     // The gold match's time is the phone's word, held to the answer's receipt on the round clock.
     const sent = splitPairGoldTime(answer).goldMs;
     const goldMs = sent === null ? null : Math.min(sent, latestMs);
@@ -223,10 +252,15 @@ const matchmaker: StandardGame = {
     const streak = pairStreakPoints(d.bestStreak);
     const gold = pairGoldPoints(d.goldTry, goldMs);
     const facts = { bestStreak: d.bestStreak, streakPoints: streak, goldPoints: gold, ...(d.goldTry !== null && goldMs !== null ? { goldMs } : {}) };
-    if (graded.isCorrect) return { finished: true, speed: speedFor(PAIR_STD.speed, PAIR_STD.fullByS, msLeft, limitMs), bonus: streak + gold, measure: "bonus", facts };
+    if (graded.isCorrect) {
+      // Hard and Expert: the extras fall with the misses made (pairExtrasShare; 1 everywhere else).
+      const keep = pairExtrasShare(puzzle, Math.max(0, replay.tries - replay.pairs));
+      const levelFacts = keep < 1 ? { ...facts, missesMade: Math.max(0, replay.tries - replay.pairs), extrasKept: Math.round(keep * 100) } : facts;
+      return { finished: true, speed: speedFor(PAIR_STD.speed, fullByS, msLeft, limitMs) * keep, bonus: (streak + gold) * keep, measure: "bonus", facts: levelFacts };
+    }
     const misses = Math.max(0, replay.tries - replay.pairs);
-    const missCost = (PAIR_STD.perPair * Math.max(0, misses - PAIR_STD.freeMisses)) / PAIR_STD.missesPerPair;
-    return { finished: false, credit: Math.max(0, PAIR_STD.perPair * replay.pairs - missCost) + ctx.early(PAIR_STD.early, replay.pairs) + streak + gold, facts };
+    const missCost = (perPair * Math.max(0, misses - freeMisses)) / PAIR_STD.missesPerPair;
+    return { finished: false, credit: Math.max(0, perPair * replay.pairs - missCost) + ctx.early(early, replay.pairs) + streak + gold, facts };
   },
 };
 

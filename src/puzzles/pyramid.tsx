@@ -1,7 +1,8 @@
 import { useMemo, useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
-import { PY_CHECKPOINT_INTERVAL, PY_INPUT_TAP, PY_PAIR_FULL, PY_REV, pyApply, pyCheckpoint, pyDeal, type PyState } from "@/lib/arcade/cards/pyramid";
+import { confirmHit } from "@/lib/arcade/cards/cardButtons.renderer";
+import { PY_CHECKPOINT_INTERVAL, PY_INPUT_RESET, PY_INPUT_TAP, PY_PAIR_FULL, PY_REV, pyApply, pyCheckpoint, pyDeal, type PyState } from "@/lib/arcade/cards/pyramid";
 import { drawPyramid, pyButtonHit, pyHit, pyNewView, pyramidArtGame, PY_BG, PY_WORLD_H, PY_WORLD_W } from "@/lib/arcade/cards/pyramid.renderer";
 import { cardsFill } from "@/lib/arcade/cards/cardsFill.renderer";
 import { withCardsLook } from "@/lib/arcade/cards/cards.renderer";
@@ -10,9 +11,14 @@ import { encodePyramidRun, replayPyramidRun } from "@/lib/duel/cards";
 import { PYRAMID_TIME_MS, type PyramidPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { CardStill } from "@/components/puzzles/CardStill";
-import { pyramidSounds } from "@/lib/fx/gameSounds";
+import { cardConfirmCue, pyramidSounds } from "@/lib/fx/gameSounds";
 
+import { levelOfPuzzle } from "@/lib/levels/levels";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { preloadRealArt } from "@/lib/arcade/cards/realArt.renderer";
+
+// The Cards & Board overhaul's real art starts loading with the game's chunk (display only).
+if (typeof window !== "undefined") preloadRealArt(["cards", "felt"]);
 
 /** The intro still: seed 0's deal a few removals into its witness line, a card selected. */
 function introState(): PyState {
@@ -32,19 +38,34 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const latest = useRef<PyState | null>(null);
   const start = useRef<number>(-1);
   const rev = data?.pyramidRev ?? 1;
+  const level = data ? levelOfPuzzle(data) : null;
   // The account's card back on the face-down cards only (13 Nov 2026, Joe; display only, src/lib/skins/equipped.ts).
   const [, lookRef] = useGameLookRef("pyramid");
   const game = useMemo(() => {
-    const art = pyramidArtGame(view, rev);
+    const art = pyramidArtGame(view, rev, level);
     return { ...art, draw: (ctx: CanvasRenderingContext2D, state: PyState, size: { width: number; height: number }) => { latest.current = state; withCardsLook(lookRef.current, () => art.draw(ctx, state, size)); } };
-  }, [view, rev, lookRef]);
+  }, [view, rev, level, lookRef]);
 
   // A tap on a card or pile; Undo and Reset are a press and release on the same button.
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
     const state = latest.current;
     if (!state) return null;
+    // Reset's confirmation (the overhaul): while it is open a tap answers it and nothing else is touched.
+    if (view.confirm) {
+      const hit = confirmHit(PY_WORLD_W, PY_WORLD_H, x, y);
+      if (kind === "down") view.confirmHeld = hit;
+      else if (kind === "up") {
+        const was = view.confirmHeld;
+        view.confirmHeld = null;
+        if (was && was === hit) {
+          view.confirm = false;
+          if (hit === "ok") return { k: PY_INPUT_RESET, a: 0, b: 0, c: 0 };
+        }
+      }
+      return null;
+    }
     if (kind === "down") {
-      const button = pyButtonHit(x, y);
+      const button = pyButtonHit(x, y, state);
       view.button = button;
       start.current = button ? -1 : pyHit(state, x, y);
       view.pressed = start.current;
@@ -56,8 +77,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     view.button = 0;
     view.pressed = -1;
     start.current = -1;
-    if (held) return pyButtonHit(x, y) === held ? { k: held, a: 0, b: 0, c: 0 } : null;
+    if (held) {
+      if (pyButtonHit(x, y, state) !== held) return null;
+      if (held === PY_INPUT_RESET) {
+        view.confirm = true;
+          cardConfirmCue();
+        return null;
+      }
+      return { k: held, a: 0, b: 0, c: 0 };
+    }
     if (hit < 0 || pyHit(state, x, y) !== hit) return null;
+    // The card tapped (stage 2: a refused pair shakes it; display only).
+    view.lastTry = hit;
     return { k: PY_INPUT_TAP, a: hit, b: 0, c: 0 };
   };
 
@@ -93,7 +124,7 @@ export function pyramidLine(r: { removed: number; finished: boolean; finishSecon
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "pyramid") return null;
-  const result = replayPyramidRun(puzzle.seed, myAnswer ?? "", puzzle.pyramidRev);
+  const result = replayPyramidRun(puzzle.seed, myAnswer ?? "", puzzle.pyramidRev, levelOfPuzzle(puzzle));
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{pyramidLine(result)}</p>

@@ -17,6 +17,7 @@
 import { seededRng, type SeededRng } from "./seededRng";
 import { kakuroRuns, kakuroSolvedGrid, type KakuroRun } from "./kakuro";
 import { KAKURO_SIZE, type KakuroClue, type KakuroPuzzleData } from "./types";
+import type { KakuroLevelSettings } from "./numberLevels";
 
 export const KAKURO_WHITE_MIN = 19;
 export const KAKURO_WHITE_MAX = 21;
@@ -351,4 +352,170 @@ export function generateKakuro(seed: number): KakuroPuzzleData {
     const solution = values.map((v, cell) => (white.includes(cell) ? v : 0));
     return { type: "kakuro", kakuroRev: 1, size, white: [...white], clues: board.clues, grade: proof.branches, solution };
   }
+}
+
+/* ------------------------------------------------------------------ levels (stage 3, 15 Nov 2026) */
+
+/** kakuroLayoutWhite with the level's own white band. */
+function levelLayoutWhite(size: number, black: ReadonlySet<number>, min: number, max: number): number[] | null {
+  const isWhite = (r: number, c: number) => r > 0 && c > 0 && r < size && c < size && !black.has(r * size + c);
+  const white: number[] = [];
+  for (let r = 1; r < size; r++)
+    for (let c = 1; c < size; c++) {
+      if (!isWhite(r, c)) continue;
+      const across = (isWhite(r, c - 1) ? 1 : 0) + (isWhite(r, c + 1) ? 1 : 0);
+      const down = (isWhite(r - 1, c) ? 1 : 0) + (isWhite(r + 1, c) ? 1 : 0);
+      if (!across || !down) return null;
+      white.push(r * size + c);
+    }
+  if (white.length < min || white.length > max) return null;
+  const set = new Set(white);
+  const seen = new Set([white[0]!]);
+  const stack = [white[0]!];
+  while (stack.length) {
+    const c = stack.pop()!;
+    for (const n of [c - 1, c + 1, c - size, c + size])
+      if (set.has(n) && !seen.has(n) && (Math.abs(n - c) === size || Math.floor(n / size) === Math.floor(c / size))) {
+        seen.add(n);
+        stack.push(n);
+      }
+  }
+  return seen.size === white.length ? white : null;
+}
+
+/** A random layout in the level's band: interior black cells drawn from the seed until the white rules hold. */
+type FullKakuroLevel = Required<Omit<KakuroLevelSettings, "today" | "maxPasses">> & { maxPasses: number | null };
+
+function levelLayout(rng: SeededRng, settings: FullKakuroLevel): number[] {
+  const { size } = settings;
+  const interior: number[] = [];
+  for (let r = 1; r < size; r++) for (let c = 1; c < size; c++) interior.push(r * size + c);
+  for (let tries = 0; tries < 200_000; tries++) {
+    const blacks = interior.length - rng.int(settings.whiteMin, settings.whiteMax);
+    const black = new Set(rng.shuffle(interior).slice(0, blacks));
+    const white = levelLayoutWhite(size, black, settings.whiteMin, settings.whiteMax);
+    if (white && kakuroBlocks(size, white) <= settings.maxBlocks) return white;
+  }
+  throw new Error(`Kakuro: no ${size} × ${size} layout found`);
+}
+
+/**
+ * The person-like solver (Joe's rule: Expert must be humanly possible): no guessing, only what a person reads off the
+ * board, run by run. For each run it lists the ways the run's open squares can still be filled with distinct digits
+ * adding to what is left (each square within its own candidates), keeps in each square only the digits some way uses
+ * (a unique combination, a digit only one square can take, a single candidate), and places a square left with one
+ * digit; it repeats until nothing changes. `round` is the pass each square was placed in (1 = straight off the clues),
+ * which the fairness kit reads as how long a person takes to see it.
+ */
+export function kakuroPersonSolve(puzzle: Pick<KakuroPuzzleData, "size" | "white" | "clues">): { solved: boolean; values: number[]; round: number[] } {
+  const s = solverOf(puzzle);
+  const values = new Array<number>(puzzle.size * puzzle.size).fill(0);
+  const round = new Array<number>(puzzle.size * puzzle.size).fill(0);
+  const masks = new Map<number, number>(s.white.map((c) => [c, FULL]));
+  for (let pass = 1; pass <= 200; pass++) {
+    let changed = false;
+    const placedThisPass: number[] = [];
+    for (const run of s.runs) {
+      const open = run.cells.filter((c) => !values[c]);
+      if (!open.length) continue;
+      let used = 0;
+      let rest = run.sum;
+      for (const c of run.cells) if (values[c]) {
+        used |= 1 << values[c]!;
+        rest -= values[c]!;
+      }
+      const seen = open.map(() => 0);
+      const pick = new Array<number>(open.length).fill(0);
+      const walk = (i: number, left: number, usedNow: number): boolean => {
+        if (i === open.length) {
+          if (left !== 0) return false;
+          for (let k = 0; k < open.length; k++) seen[k]! |= 1 << pick[k]!;
+          return true;
+        }
+        const m = masks.get(open[i]!)! & ~usedNow;
+        let any = false;
+        for (let d = 1; d <= 9 && d <= left; d++) {
+          if (!(m & (1 << d))) continue;
+          pick[i] = d;
+          if (walk(i + 1, left - d, usedNow | (1 << d))) any = true;
+        }
+        return any;
+      };
+      walk(0, rest, used);
+      open.forEach((c, k) => {
+        const m = masks.get(c)! & seen[k]!;
+        if (m !== masks.get(c)) {
+          masks.set(c, m);
+          changed = true;
+        }
+      });
+    }
+    for (const c of s.white) {
+      if (values[c]) continue;
+      const m = masks.get(c)!;
+      if (m && popcount(m) === 1) placedThisPass.push(c);
+    }
+    for (const c of placedThisPass) {
+      values[c] = 31 - Math.clz32(masks.get(c)!);
+      round[c] = pass;
+      changed = true;
+    }
+    if (!changed) break;
+  }
+  const solved = s.white.every((c) => values[c]) && kakuroSolvedGrid(puzzle, values);
+  return { solved, values, round };
+}
+
+/**
+ * A level's board from the seed (kakuroRev 3): a random layout in the level's band, a leaning fill and the same
+ * single-digit climb as generateKakuro, kept only with exactly one solution, the grade in band and, where the level
+ * asks, the person-like solver completing it. Deterministic from the seed.
+ */
+export function generateKakuroLevel(seed: number, level: KakuroLevelSettings, rev: number): KakuroPuzzleData {
+  const settings: FullKakuroLevel = {
+    size: level.size ?? KAKURO_SIZE,
+    whiteMin: level.whiteMin ?? KAKURO_WHITE_MIN,
+    whiteMax: level.whiteMax ?? KAKURO_WHITE_MAX,
+    gradeMin: level.gradeMin ?? 0,
+    gradeMax: level.gradeMax ?? KAKURO_GRADE_MAX,
+    maxBlocks: level.maxBlocks ?? KAKURO_MAX_BLOCKS,
+    person: level.person ?? false,
+    maxPasses: level.maxPasses ?? null,
+  };
+  const { size } = settings;
+  const rng = seededRng((seed ^ 0x6b6c7631) >>> 0);
+  for (let attempt = 0; attempt < 20_000; attempt++) {
+    const white = levelLayout(rng, settings);
+    const s = solverOf(layoutPuzzle(size, white));
+    const values = leaningFill(rng, s, size);
+    if (!values) continue;
+    const boardOf = () => ({ size, white, clues: kakuroClueCells(size, white, values) });
+    let search = searchKakuro(boardOf(), CLIMB_LIMIT);
+    for (let step = 0; search.count > 1 && step < CLIMB_STEPS; step++) {
+      const a = search.first!;
+      const b = search.second!;
+      const differ = white.filter((c) => a[c] !== b[c]);
+      const cell = differ.length ? differ[rng.below(differ.length)]! : white[rng.below(white.length)]!;
+      const used = usedAround(s, values, cell);
+      const options = DIGITS.filter((d) => d !== values[cell] && !(used & (1 << d)));
+      if (!options.length) continue;
+      const old = values[cell]!;
+      values[cell] = options[rng.below(options.length)]!;
+      const next = searchKakuro(boardOf(), CLIMB_LIMIT);
+      if (next.count <= search.count) search = next;
+      else values[cell] = old;
+    }
+    if (search.count !== 1) continue;
+    const board = boardOf();
+    const proof = searchKakuro(board, 2);
+    if (proof.count !== 1 || proof.branches < settings.gradeMin || proof.branches > settings.gradeMax) continue;
+    if (settings.person || settings.maxPasses !== null) {
+      const person = kakuroPersonSolve(board);
+      if (!person.solved) continue;
+      if (settings.maxPasses !== null && Math.max(...white.map((c) => person.round[c]!)) > settings.maxPasses) continue;
+    }
+    const solution = values.map((v, cell) => (white.includes(cell) ? v : 0));
+    return { type: "kakuro", kakuroRev: rev, size, white: [...white], clues: board.clues, grade: proof.branches, solution };
+  }
+  throw new Error(`Kakuro: no ${size} × ${size} board found for the level`);
 }

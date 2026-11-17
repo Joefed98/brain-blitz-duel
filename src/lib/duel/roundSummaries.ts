@@ -1,6 +1,10 @@
+import { floodPlayable } from "./flood";
+import { flowCellCount, flowGrid } from "./flow";
 import { equationVerdict, gapStageText, usesOperatorGaps } from "./operatorGaps";
 import { usesParMoves } from "./parMoves";
-import { bastionStdSpecFor } from "@/lib/arcade/bastionTank";
+import { pipesDims } from "./logic";
+import { pairsOf } from "./attentionLevels";
+import { bastionBaseMax, bastionStdSpecFor } from "@/lib/arcade/bastionTank";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { ARCADE_STANDARD } from "@/lib/arcade/standard";
 import { homerunStdSpecFor } from "@/lib/arcade/homerun";
@@ -22,7 +26,7 @@ import {
 } from "./attentionRev";
 import { chainRules } from "./chain";
 import { tilesLayout } from "./tiles";
-import { isTopsy, TOPSY_BALLS, TOPSY_BOARDS, TOPSY_STARS } from "./topsy";
+import { isTopsy, topsyTotalBalls, TOPSY_STARS } from "./topsy";
 import { isJumbledGradient, JUMBLED_MOVABLE } from "./jumbled";
 import { equationTryLimit, splitCountSuffix } from "./moveLimits";
 import { WORDHUNT_REV_CURVE, WORDSMITH_REV_CURVE } from "./scoring";
@@ -48,7 +52,6 @@ import {
   wordsmithPoints,
   LIGHTS_TIME_MS,
   PIPES_CELLS,
-  FLOW_CELLS,
   PIPES_TIME_MS,
   SUDOKU_TIME_MS,
   FLOW_TIME_MS,
@@ -438,11 +441,13 @@ function numberHuntSummary(result: RoundResultRow, puzzle: PuzzleData): BuiltDet
   if (typeof result.extra?.["reached"] === "number") {
     const reached = result.extra["reached"] as number;
     const at = result.extra["finishedAtMs"];
-    if (result.is_correct || reached >= NUMHUNT_COUNT) {
+    // The board's own count (the Speed overhaul's levels deal 16 or 30; every older round 24).
+    const total = puzzle.type === "numhunt" && puzzle.spots.length ? puzzle.spots.length : NUMHUNT_COUNT;
+    if (result.is_correct || reached >= total) {
       const time = typeof at === "number" ? at : elapsedMs(result, puzzle);
       return { summary: `Finished, ${result.errors ?? 0} errors, ${seconds(time)}`, detail: [] };
     }
-    return { summary: `Reached ${reached} of ${NUMHUNT_COUNT}`, detail: [] };
+    return { summary: `Reached ${reached} of ${total}`, detail: [] };
   }
   const [rawReached, , rawElapsed] = (result.answer ?? "").split(",");
   const reached = Math.max(0, Number.parseInt(rawReached ?? "0", 10) || 0);
@@ -623,9 +628,11 @@ const pipesSummary: SummaryBuilder = (result, puzzle) => {
       detail: ["Every pipe connected, no leaks"],
     };
   }
+  // Difficulty levels: a level board's own tile count (pipesDims); every board before levels counts 49.
+  const cells = pipesDims(puzzle).cells;
   return {
-    summary: `${connected} / ${PIPES_CELLS} connected`,
-    detail: [`${PIPES_CELLS - connected} tiles left off the network`],
+    summary: `${connected} / ${cells} connected`,
+    detail: [`${cells - connected} tiles left off the network`],
   };
 };
 
@@ -659,7 +666,7 @@ const flowSummary: SummaryBuilder = (result, puzzle) => {
   if (progress) return progress;
   return {
     summary: `${joined} / ${puzzle.pairs.length || FLOW_PAIRS} pairs`,
-    detail: [`${filled} / ${FLOW_CELLS - (puzzle.walls?.length ?? 0)} squares filled`],
+    detail: [`${filled} / ${flowCellCount(flowGrid(puzzle)) - (puzzle.walls?.length ?? 0)} squares filled`],
   };
 };
 
@@ -805,7 +812,7 @@ const tubesSummary: SummaryBuilder = (result, puzzle) => {
     };
   }
   return {
-    summary: `${sorted} / ${TUBES_COLOURS} tubes`,
+    summary: `${sorted} / ${puzzle.type === "tubes" ? new Set(puzzle.tubes.flat()).size || TUBES_COLOURS : TUBES_COLOURS} tubes`,
     detail: [`${moves} pour${moves === 1 ? "" : "s"} made`],
   };
 };
@@ -821,7 +828,7 @@ const safeSummary: SummaryBuilder = (result, puzzle) => {
     };
   }
   return {
-    summary: `Locked, ${right} / ${SAFE_DIALS} dials`,
+    summary: `Locked, ${right} / ${puzzle.dialCount ?? SAFE_DIALS} dials`,
     detail: [`${Number(result.extra?.["tries"] ?? 0)} tries used`],
   };
 };
@@ -866,6 +873,8 @@ const gravitySummary: SummaryBuilder = (result, puzzle) => {
     const home = Number(result.extra?.["home"] ?? 0);
     const stars = Number(result.extra?.["stars"] ?? 0);
     const out = Number(result.extra?.["outOfTilts"] ?? 0);
+    // The round's own board count (the difficulty levels: Easy deals two).
+    const boards = puzzle.boards.length;
     // gravityRev 6 (the puzzle batch of 3 Nov 2026, parMoves.ts): no stars; a finish shows its tilts against par.
     if (usesParMoves(puzzle) && result.is_correct) {
       const par = Number(result.extra?.["parTilts"] ?? 0);
@@ -876,8 +885,8 @@ const gravitySummary: SummaryBuilder = (result, puzzle) => {
     }
     return {
       summary: result.is_correct
-        ? `Cleared, ${stars} / ${TOPSY_BOARDS * TOPSY_STARS} stars, ${seconds(elapsedMs(result, puzzle))}`
-        : `${cleared} / ${TOPSY_BOARDS} boards, ${home} / ${TOPSY_BOARDS * TOPSY_BALLS} home`,
+        ? `Cleared, ${stars} / ${boards * TOPSY_STARS} stars, ${seconds(elapsedMs(result, puzzle))}`
+        : `${cleared} / ${boards} boards, ${home} / ${topsyTotalBalls(puzzle)} home`,
       detail: [`${tilts} tilts made${out ? `, out of tilts on ${out} board${out === 1 ? "" : "s"}` : ""}`],
     };
   }
@@ -938,7 +947,7 @@ const pairMatchSummary: SummaryBuilder = (result, puzzle) => {
   const pairs = Number(result.extra?.["pairs"] ?? 0);
   const flips = Number(result.extra?.["flips"] ?? 0);
   return {
-    summary: `${pairs} / ${PAIR_PAIRS}, ${flips} flips, ${seconds(elapsedMs(result, puzzle))}`,
+    summary: `${pairs} / ${pairsOf(puzzle)}, ${flips} flips, ${seconds(elapsedMs(result, puzzle))}`,
     detail: [result.is_correct ? "Every pair found" : "Board unfinished"],
   };
 };
@@ -951,7 +960,7 @@ const floodSummary: SummaryBuilder = (result, puzzle) => {
   return {
     summary: result.is_correct
       ? `Solved, ${moves} moves (par ${par}), ${seconds(elapsedMs(result, puzzle))}`
-      : `${region} / ${FLOOD_CELLS} cells`,
+      : `${region} / ${floodPlayable(puzzle.grid) || FLOOD_CELLS} cells`,
     detail: [result.is_correct && moves <= par ? "Flooded in par" : `${moves} moves made`],
   };
 };
@@ -1028,18 +1037,22 @@ const skylineSummary: SummaryBuilder = (result) => {
   return {
     summary: survived
       ? `${blocks} blocks, ${perfects} perfect, survived`
-      : `${blocks} blocks, missed at ${ended.toFixed(1)}s`,
+      : Number(result.extra?.["skylineRev"] ?? 0) === 11
+        ? `${blocks} blocks, out of lives at ${ended.toFixed(1)}s`
+        : `${blocks} blocks, missed at ${ended.toFixed(1)}s`,
     detail: [
       `${perfects} perfect drop${perfects === 1 ? "" : "s"}`,
       ...(result.extra?.["skylineRev"] ? [`Best streak ${Number(result.extra?.["bestStreak"] ?? 0)} in a row`] : []),
       // skylineRev 7: the expansion's gold blocks and height milestones.
       // skylineRev 9 (the arcade scoring standard): five gold blocks a run; milestones no longer score.
       // skylineRev 10 (the scoring audit): rev 9's play and gold blocks.
-      ...(Number(result.extra?.["skylineRev"] ?? 0) === 9 || Number(result.extra?.["skylineRev"] ?? 0) === 10
+      // skylineRev 11 (15 Nov 2026, lives): rev 10's gold blocks, and the lives lost.
+      ...(Number(result.extra?.["skylineRev"] ?? 0) === 9 || Number(result.extra?.["skylineRev"] ?? 0) === 10 || Number(result.extra?.["skylineRev"] ?? 0) === 11
         ? [`${Number(result.extra?.["golds"] ?? 0)} of 5 gold blocks`]
         : Number(result.extra?.["skylineRev"] ?? 0) >= 7
           ? [`${Number(result.extra?.["golds"] ?? 0)} gold, ${Number(result.extra?.["milestones"] ?? 0)} milestones`]
           : []),
+      ...(Number(result.extra?.["skylineRev"] ?? 0) === 11 ? [`${Number(result.extra?.["livesLost"] ?? 0)} of 3 lives lost`] : []),
     ],
   };
 };
@@ -1523,11 +1536,12 @@ const bastionSummary: SummaryBuilder = (result, puzzle) => {
     const base = Number(result.extra?.["base"] ?? 0);
     const fell = result.extra?.["fell"] === true;
     const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-    // Each stamp's own parts (rev 3 adds Drones).
-    const spec = bastionStdSpecFor(puzzle.bastionRev);
+    // Each stamp's own parts (rev 3 adds Drones; rev 4's are its level's, with the level's base).
+    const level = (puzzle as { level?: unknown }).level;
+    const spec = bastionStdSpecFor(puzzle.bastionRev, level);
     const parts = (spec?.parts ?? []).map((p) => `${p.label} ${Number(result.extra?.[`part_${p.key}`] ?? 0)}/${p.max}`);
     return {
-      summary: fell ? `${kills} tanks, base fell at ${ended.toFixed(1)}s` : `${kills} tanks, base ${base} / 3`,
+      summary: fell ? `${kills} tanks, base fell at ${ended.toFixed(1)}s` : `${kills} tanks, base ${base} / ${bastionBaseMax(puzzle.bastionRev ?? 2, level)}`,
       detail: parts,
     };
   }
@@ -1670,7 +1684,8 @@ const tiltSummary: SummaryBuilder = (result) => {
   const head = `${mazes} ${mazes === 1 ? "maze" : "mazes"} completed`;
   // tiltRev 8 and 9 (the expansion): three mazes, quick stars, and falls that cost time instead of the run; tiltRev 10 four mazes.
   const rev = Number(result.extra?.["tiltRev"] ?? 0);
-  const all = rev === 8 || rev === 9 ? 3 : 4;
+  // Levels (stage 3): a level's run stores its own maze count (Easy three).
+  const all = Number(result.extra?.["totalMazes"] ?? 0) > 0 ? Number(result.extra?.["totalMazes"]) : rev === 8 || rev === 9 ? 3 : 4;
   const quick = Number(result.extra?.["totalQuick"] ?? 0);
   return {
     summary:
@@ -2010,7 +2025,7 @@ export const CORRECT_ANSWERS: Record<PuzzleType, AnswerBuilder> = {
   gravity: (p) => (p.type === "gravity" && p.minMoves ? `${p.minMoves} tilts` : null),
   chain: () => null,
   nonogram: () => "The picture",
-  pairmatch: (p) => (p.type === "pairmatch" ? `${PAIR_PAIRS} pairs` : null),
+  pairmatch: (p) => (p.type === "pairmatch" ? `${pairsOf(p)} pairs` : null),
   flood: (p) => (p.type === "flood" ? `par ${p.par}` : null),
   tiles: (p) => (p.type === "tiles" && p.minMoves ? `${p.minMoves} moves` : null),
   hover: () => null,

@@ -96,7 +96,11 @@ export function makeArcadeRun<S, C extends { tick: number; checksum: number }>(o
     };
   };
 
-  const replay = (seed: number, raw: string): FlatReplay<S, C> => {
+  /**
+   * `observe` (display only, the reveals' run summaries): called with each state the replay steps to, in order. It never
+   * changes the replay: the same states, score and flags with or without it.
+   */
+  const replay = (seed: number, raw: string, observe?: (state: S) => void): FlatReplay<S, C> => {
     const run = decode(raw);
     const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, runTicks) : 0;
     const clientLag = endTick > 0 && endTick < runTicks;
@@ -113,6 +117,7 @@ export function makeArcadeRun<S, C extends { tick: number; checksum: number }>(o
     const serverCheckpoints: C[] = [];
     for (let tick = 1; tick <= lastTick; tick++) {
       state = game.step(state, events.get(tick) ?? null);
+      observe?.(state);
       reached = tick;
       if (tick % interval === 0) {
         const serverState = checkpoint(state);

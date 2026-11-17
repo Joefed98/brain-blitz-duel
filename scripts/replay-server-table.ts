@@ -42,7 +42,7 @@ import { replayClayRun } from "../src/lib/duel/clayShoot";
 import { replayTenDropRun } from "../src/lib/duel/tenDrop";
 import { replayWordfallRun } from "../src/lib/duel/wordfall";
 import { replayColourClashRun } from "../src/lib/duel/colourClash";
-import { replayMinigolfRun } from "../src/lib/duel/minigolf";
+import { minigolfCourseOf, replayMinigolfRun } from "../src/lib/duel/minigolf";
 import { replayPoolRun } from "../src/lib/duel/pool";
 import { replayCurlingRun } from "../src/lib/duel/curling";
 import { replayBlockfallRun } from "../src/lib/duel/blockfall";
@@ -72,7 +72,7 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   pokersquares: (p, a) => replayPokerSquaresRun(p.seed, a, p.pokerSquaresRev),
   fivehands: (p, a) => replayFiveHandsRun(p.seed, a, p.fiveHandsRev),
   // Ricochet: the ninja wall-climb on ricoRev 2, else the original shaft.
-  ricochet: (p, a) => (isMoonRev(p.ricoRev) ? replayMoonRun(p.seed, a) : isNinjaRev(p.ricoRev) ? replayNinjaRun(p.seed, a) : replayRicoRun(p.seed, a)),
+  ricochet: (p, a) => (isMoonRev(p.ricoRev) ? replayMoonRun(p.seed, a, p.ricoRev) : isNinjaRev(p.ricoRev) ? replayNinjaRun(p.seed, a) : replayRicoRun(p.seed, a)),
   // Bastion: bastionRev 2's tank game; the original turret for unstamped rounds.
   bastion: (p, a) => (isBastionTank(p.bastionRev) ? replayBastionTankRun(p.seed, a, p.bastionRev) : replayBastionRun(p.seed, a)),
   pyramid: (p, a) => replayPyramidRun(p.seed, a, p.pyramidRev),
@@ -80,7 +80,7 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   muggins: (p, a) => replayMugginsRun(p.seed, a, p.mugginsRev),
   rally: (p, a) => replayRallyRun(p.seed, a, p.rallyRev),
   slice: (p, a) => replaySliceRun(p.seed, a, p.sliceRev),
-  bubble: (p, a) => replayBubbleRun(p.seed, a, p.bubbleRev),
+  bubble: (p, a) => replayBubbleRun(p.seed, a, p.bubbleRev, (p as { level?: unknown }).level),
   beat: (p, a) => replayBeatRun(p.seed, a, p.beatRev),
   snake: (p, a) => replaySnakeRun(p.seed, a, p.snakeRev),
   cross: (p, a) => replayCrossRun(p.seed, a, p.crossRev),
@@ -92,7 +92,7 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   orbit: (p, a) => replayOrbitRun(p.seed, a, p.orbitRev, p.planets, p.holes, p.extras),
   swing: (p, a) => replaySwingRun(p.seed, a, p.swingRev),
   snip: (p, a) => replaySnipRun(p.seed, a, p.snipRev),
-  tilt: (p, a) => replayTiltRun(p.seed, a, p.tiltRev),
+  tilt: (p, a) => replayTiltRun(p.seed, a, p.tiltRev, p.level),
   balltrack: (p, a) => replayBallTrackRun(p.course, p.seed, a, p.btRev),
   whack: (p, a) => replayWhackRun(p.seed, a, p.whackRev),
   clayshoot: (p, a) => replayClayRun(p.seed, a, p.clayRev),
@@ -100,7 +100,7 @@ const TABLE: Record<string, (p: any, a: string) => ServerReplay> = {
   wordfall: (p, a) => replayWordfallRun(p.seed, a, p.wordfallRev),
   stroop: (p, a) => replayColourClashRun(p.seed, a, clashVariantOf(p)),
   // The Sports group (30 Oct 2026).
-  minigolf: (p, a) => replayMinigolfRun(p.seed, a, p.pars, p.golfRev),
+  minigolf: (p, a) => replayMinigolfRun(p.seed, a, p.pars, p.golfRev, minigolfCourseOf(p)),
   pool: (p, a) => replayPoolRun(p.seed, a, p.poolRev),
   curling: (p, a) => replayCurlingRun(p.seed, a, p.curlRev),
   blockfall: (p, a) => replayBlockfallRun(p.seed, a, p.blockfallRev),

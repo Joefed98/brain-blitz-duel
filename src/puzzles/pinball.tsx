@@ -1,4 +1,7 @@
 import { pinball4Ambient, pinballAmbient } from "@/lib/arcade/arenaFills.renderer";
+import { puzzleLevel } from "@/lib/levels/levels";
+import { RETRO_PAYOFF_MS } from "@/lib/arcade/retroFx.renderer";
+import { ArtStill } from "@/components/puzzles/ArtStill";
 import { auditEventAt } from "@/lib/arcade/auditInput";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
@@ -6,12 +9,12 @@ import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming"
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { pinballGlowFill, PIN_COLOURS } from "@/lib/arcade/pinball.renderer";
 import { pinball4GlowFill, pinballArtGameForAny, pinballWorldHFor } from "@/lib/arcade/pinball4.renderer";
-import { pinballGameForAny, pinCheckpointAny, PIN_REV_STD, type Pin4State } from "@/lib/arcade/pinball4";
+import { pinballGameForAny, pinCheckpointAny, PIN_REV_SAVE, type Pin4State } from "@/lib/arcade/pinball4";
 import { pinballSounds } from "@/lib/fx/gameSounds";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { inputAt, recordInput } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 
 import { MAX_CATCH_UP_TICKS, TICK_MS, TICKS_PER_SECOND, type ArcadeInputEvent, type CanvasSize } from "@/lib/arcade/engine";
 import {
@@ -33,30 +36,30 @@ import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 /** Fixed intro still: two flippers under a bumper, a drop target row and a ball. */
+/**
+ * The intro still (the Retro overhaul, 15 Nov 2026: a real frame of today's game, not an old drawing): the dealt
+ * stamp's own renderer a few seconds into a fixed seed's run, the table before the launch.
+ */
 function IntroExample() {
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg viewBox="0 0 168 120" width={168} height={120} aria-hidden="true" style={{ background: "#000000", borderRadius: 10 }}>
-        <circle cx={84} cy={30} r={13} fill={PIN_COLOURS.bumperCap} stroke={PIN_COLOURS.bumper} strokeWidth={3} />
-        {[58, 74, 90, 106].map((x) => (
-          <rect key={x} x={x - 6} y={55} width={12} height={5} rx={2.5} fill={PIN_COLOURS.target} />
-        ))}
-        <line x1={44} y1={96} x2={74} y2={88} stroke={PIN_COLOURS.flipper} strokeWidth={6} strokeLinecap="round" />
-        <line x1={124} y1={96} x2={94} y2={106} stroke={PIN_COLOURS.flipper} strokeWidth={6} strokeLinecap="round" />
-        <line x1={12} y1={70} x2={40} y2={92} stroke={PIN_COLOURS.wall} strokeWidth={3} strokeLinecap="round" />
-        <line x1={156} y1={70} x2={128} y2={92} stroke={PIN_COLOURS.wall} strokeWidth={3} strokeLinecap="round" />
-        <circle cx={70} cy={78} r={5} fill={PIN_COLOURS.ball} />
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">Hold the left or right half of the screen to flip. Tap to plunge.</p>
-    </div>
+    <ArtStill
+      game={pinballArtGameForAny(PIN_REV_SAVE)}
+      worldW={PIN_WORLD_W}
+      worldH={pinballWorldHFor(PIN_REV_SAVE)}
+      ticks={30}
+      input={null}
+      caption="Hold either side to flip. Light J-O-U-L-Z, lock balls on the ramps, start multiball."
+    />
   );
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: PinballPuzzleData | null = puzzle.type === "pinball" ? puzzle : null;
   const seed = data?.seed ?? 1;
-  const game = pinballGameForAny(data?.pinRev);
-  const art = pinballArtGameForAny(data?.pinRev);
+  // One game object per stamp and level (stage 3 of the Retro overhaul: a level wraps init).
+  const level = puzzleLevel(data);
+  const game = useMemo(() => pinballGameForAny(data?.pinRev, level), [data?.pinRev, level]);
+  const art = useMemo(() => pinballArtGameForAny(data?.pinRev, level), [data?.pinRev, level]);
 
   const wrap = useRef<HTMLDivElement | null>(null);
   const canvas = useRef<HTMLCanvasElement | null>(null);
@@ -109,6 +112,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const feedback = arcadeFeedback({ game: "pinball" });
     const sounds = pinballSounds();
 
+    let endedAt: number | null = null;
     const finish = () => {
       if (submitted.current) return;
       submitted.current = true;
@@ -155,7 +159,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         draftAt = time;
         draftRef.current?.(encode());
       }
-      if (game.isOver(state.current)) finish();
+      // Stage 3 of the Retro overhaul: the round-end payoff plays before the run is sent (its answer is fixed now and
+      // sent as the draft at once; display only).
+      if (game.isOver(state.current)) {
+        if (endedAt === null) {
+          endedAt = time;
+          if (!submitted.current) draftRef.current?.(encode());
+        }
+        if (time - endedAt >= RETRO_PAYOFF_MS) finish();
+      }
       frameTiming.end();
     };
 
@@ -238,7 +250,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "pinball") return null;
-  const result = replayPinballRun(puzzle.seed, myAnswer ?? "", puzzle.pinRev);
+  const result = replayPinballRun(puzzle.seed, myAnswer ?? "", puzzle.pinRev, puzzleLevel(puzzle));
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
@@ -267,7 +279,7 @@ export const pinballPuzzle: PuzzleDefinition = {
   // pinRev 5's 90 s run (older rounds run 60 s and end there; their clock shows the extra 30 s unused, as Tempo's beatRev 9).
   timeLimitMs: (PIN_V5_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "pinball", seed: 1, pinRev: PIN_REV_STD }) satisfies PinballPuzzleData,
+  generate: () => ({ type: "pinball", seed: 1, pinRev: PIN_REV_SAVE }) satisfies PinballPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

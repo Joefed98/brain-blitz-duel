@@ -17,5 +17,12 @@ export async function checkPuzzleMoves(puzzle: PuzzleData, rawMoves: unknown): P
     const { checkSwapwordMoves } = await import("./swapword.server");
     return { type: "swapword", ...checkSwapwordMoves(puzzle, moves) };
   }
+  if (puzzle.type === "bomb" && puzzle.bombInstant) {
+    const { checkBombPlan, decodeBombActions, decodeBombConstraints } = await import("./bomb");
+    const required = decodeBombActions(puzzle.required ?? puzzle.sequence ?? "");
+    const actions = decodeBombActions(moves);
+    const replay = checkBombPlan(required, decodeBombConstraints(puzzle.constraints ?? ""), actions);
+    return { type: "bomb", live: replay.correctPrefix === actions.length, steps: replay.correctPrefix };
+  }
   return null;
 }

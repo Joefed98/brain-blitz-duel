@@ -138,12 +138,12 @@ export const CLAY_BIRD_OVERLAP_OFFSET_SPAN = 60;
 export const CLAY_BIRD_VARIETY_ROLL = 5;
 
 export function clayHasBirds(rev?: number | null): boolean {
-  return rev === CLAY_REV2 || rev === CLAY_REV3 || rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH;
+  return rev === CLAY_REV2 || rev === CLAY_REV3 || rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH || rev === CLAY_REV_WIDE;
 }
 
 /** rev 4 and later: shots that hit nothing cost points beyond the free allowance. */
 export function clayChargesEmptyShots(rev?: number | null): boolean {
-  return rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH;
+  return rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH || rev === CLAY_REV_WIDE;
 }
 
 /** rev 4: shots that hit nothing (no clay, no bird). Every shot hits one clay, one bird or nothing. */
@@ -347,7 +347,7 @@ function buildBirdSchedule(rngStart: number): { rng: number; schedule: ClayBirdS
   return { rng, schedule: { launch, side, launchY, vx, vy } };
 }
 
-function buildBirdScheduleV3(rngStart: number, minBirds = CLAY_BIRD_MIN_V3, maxBirds = CLAY_BIRD_MAX_V3): { rng: number; schedule: ClayBirdSchedule } {
+function buildBirdScheduleV3(rngStart: number, minBirds = CLAY_BIRD_MIN_V3, maxBirds = CLAY_BIRD_MAX_V3, overlapAlways = false): { rng: number; schedule: ClayBirdSchedule } {
   const c = CLAY_CONFIG;
   let rng = rngStart | 0;
   const draw = (bound: number) => {
@@ -386,8 +386,9 @@ function buildBirdScheduleV3(rngStart: number, minBirds = CLAY_BIRD_MIN_V3, maxB
     vy.push(draw(121) - 60);
   }
   // Occasionally two birds overlap on screen: ~1/3 of games, at most twice.
-  if (count > 2 && draw(CLAY_BIRD_OVERLAP_GAME_CHANCE) === 0) {
-    const overlaps = 1 + draw(CLAY_BIRD_OVERLAP_MAX);
+  // A level's overlapping birds (Hard and Expert): every round, up to a third of the birds pulled in.
+  if (count > 2 && (overlapAlways || draw(CLAY_BIRD_OVERLAP_GAME_CHANCE) === 0)) {
+    const overlaps = overlapAlways ? 1 + draw(Math.max(1, Math.floor(count / 3))) : 1 + draw(CLAY_BIRD_OVERLAP_MAX);
     const used = new Set<number>();
     for (let n = 0; n < overlaps; n++) {
       const i = draw(count - 1);
@@ -408,12 +409,36 @@ function buildBirdScheduleV3(rngStart: number, minBirds = CLAY_BIRD_MIN_V3, maxB
 
 /* ================================ State ================================ */
 
+/**
+ * A level's clays (the Speed overhaul, stage 3, 15 Nov 2026; levels/speedLevels.ts), stored on the puzzle as `pullLevel`
+ * and carried in the state as `lv`: how many clays, how many fly alone first, then the groups (2 = a double, 3 = a
+ * triple) in launch order, how many are gold, how many birds and the clays' speed (per cent of today's). Absent: today's
+ * 25 clays (11 singles, 7 pairs, 3 gold) exactly.
+ */
+export interface ClayLevel {
+  clays: number;
+  singles: number;
+  groups: number[];
+  golds: number;
+  birds: number;
+  speedPct: number;
+  /** Two birds up together in more of the round (Hard and Expert). */
+  overlap: boolean;
+}
+
 export interface ClayState {
+  /** The Speed overhaul's levels: the level's clays (absent: today's 25). */
+  lv?: ClayLevel;
   /**
    * clayRev 7 (score bands): 1 = the score mapped through CLAY_BANDS_MAP. clayRev 8: CLAY_SB_QUICK = the hit
    * score on CLAY_QUICK_HIT_MAP plus the quick-shot part (`qk`). Absent on older rounds.
    */
   sb?: number;
+  /**
+   * clayRev 10 only (absent before): 1 = the wider quick window (clayWideQuickCredit). Outside the checkpoint checksum,
+   * as `qk` and `sb` are.
+   */
+  qw?: 1;
   /** clayRev 8 only: the hits' quick credit, CLAY_QUICK_STEPS for a clay hit within CLAY_QUICK_FULL_TICKS of its launch. */
   qk?: number;
   /** clayRev 9 only (depth to 200): the hit streak (ClayDepth); doubles are read from the clays' status. Absent on older rounds. */
@@ -552,7 +577,8 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
   };
   const { launch, side, vx } = state.schedule;
 
-  while (next.next < c.clays && launch[next.next]! <= tick) {
+  const clayN = clayCountOf(state);
+  while (next.next < clayN && launch[next.next]! <= tick) {
     const i = next.next;
     status[i] = CLAY_FLYING;
     x[i] = (side[i] === 0 ? -c.launchInset : c.worldW + c.launchInset) * 256;
@@ -562,7 +588,7 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
   }
 
   const gravity = clayGravity(state);
-  for (let i = 0; i < c.clays; i++) {
+  for (let i = 0; i < clayN; i++) {
     if (status[i] !== CLAY_FLYING) continue;
     x[i] = x[i]! + vx[i]!;
     vy[i] = vy[i]! + gravity;
@@ -600,7 +626,7 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
     next.shotTick = tick;
     let best = -1;
     let bestD = Number.MAX_SAFE_INTEGER;
-    for (let i = 0; i < c.clays; i++) {
+    for (let i = 0; i < clayN; i++) {
       if (status[i] !== CLAY_FLYING) continue;
       const radius = (state.schedule.kind[i] === CLAY_KIND_GOLD ? c.goldHitRadius : c.orangeHitRadius) * 256;
       const dx = x[i]! - sx;
@@ -619,7 +645,7 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
       else next.orangeHits += 1;
       next.shotHit = 1;
       next.log = pushLog(next.log, tick, CLAY_LOG_HIT, best);
-      if (state.sb === CLAY_SB_QUICK) next.qk = (state.qk ?? 0) + clayQuickCredit(tick - state.schedule.launch[best]!);
+      if (state.sb === CLAY_SB_QUICK) next.qk = (state.qk ?? 0) + (state.qw ? clayWideQuickCredit : clayQuickCredit)(tick - state.schedule.launch[best]!);
       if (state.dp) next.dp = clayStreakHit(next.dp ?? state.dp);
     } else {
       next.shotHit = 0;
@@ -653,7 +679,7 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
 
   const m = c.exitMargin * 256;
   const skyH = clayWorldH(state) * 256;
-  for (let i = 0; i < c.clays; i++) {
+  for (let i = 0; i < clayN; i++) {
     if (status[i] !== CLAY_FLYING) continue;
     const gone =
       (vx[i]! > 0 && x[i]! > c.worldW * 256 + m) ||
@@ -678,6 +704,42 @@ function step(state: ClayState, input: ArcadeInputEvent | null): ClayState {
     }
   }
   return next;
+}
+
+/** A run's clay count: its level's, else today's 25. */
+export function clayCountOf(state: { lv?: ClayLevel | undefined }): number {
+  return state.lv?.clays ?? CLAY_CONFIG.clays;
+}
+
+/**
+ * The clays flown together, in launch order (each a double or a triple): today's seven pairs after the eleven singles,
+ * or a level's groups.
+ */
+export function clayGroupsOf(state: { lv?: ClayLevel | undefined }): number[][] {
+  const singles = state.lv?.singles ?? CLAY_CONFIG.singles;
+  const sizes = state.lv?.groups ?? Array.from({ length: CLAY_DOUBLES }, () => 2);
+  const out: number[][] = [];
+  let at = singles;
+  for (const size of sizes) {
+    out.push(Array.from({ length: size }, (_, k) => at + k));
+    at += size;
+  }
+  return out;
+}
+
+/**
+ * A level's clayRev 6 total (0–150): today's points (orange 5, gold 10, every clay 10 more) scaled to the level's own
+ * clays so all of them is 150, then birds and empty shots cost as today. Every run without a level scores clayScore.
+ */
+export function clayLevelTotal(state: ClayState): number {
+  const lv = state.lv!;
+  const birdHits = state.birdHits ?? 0;
+  const orange = lv.clays - lv.golds;
+  const all = state.orangeHits === orange && state.goldHits === lv.golds && birdHits === 0;
+  const max = orange * CLAY_CONFIG.orangePoints + lv.golds * CLAY_CONFIG.goldPoints + CLAY_CONFIG.perfectBonus;
+  const made = state.orangeHits * CLAY_CONFIG.orangePoints + state.goldHits * CLAY_CONFIG.goldPoints + (all ? CLAY_CONFIG.perfectBonus : 0);
+  const scaled = Math.floor((made * 150) / max);
+  return clampInt(scaled - birdHits * CLAY_CONFIG.birdPenalty - clayEmptyShotCost(clayEmptyShots(state.shots, state.hits, birdHits), state.rev), 0, 150);
 }
 
 export function clayScore(orangeHits: number, goldHits: number, birdHits = 0, rev?: number, emptyShots = 0): number {
@@ -879,7 +941,9 @@ export const clayRev4Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ..
 
 export const clayRev5Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayGame, init: (seed) => initRev3(seed, CLAY_REV5) };
 
-export function clayGameFor(rev?: number | null): ArcadeGame<ClayState, ArcadeInputEvent | null> {
+export function clayGameFor(rev?: number | null, level?: ClayLevel | null): ArcadeGame<ClayState, ArcadeInputEvent | null> {
+  if (rev === CLAY_REV_WIDE && level) return clayLevelGame(level);
+  if (rev === CLAY_REV_WIDE) return clayWideGame;
   if (rev === CLAY_REV_DEPTH) return clayDepthGame;
   if (rev === CLAY_REV_QUICK) return clayQuickGame;
   if (rev === CLAY_REV_BANDS) return clayBandsGame;
@@ -938,7 +1002,7 @@ export const clayTallGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {
 
 /** The sky's height (px) a stored round's clayRev plays in. */
 export function clayWorldHFor(rev?: number | null): number {
-  return rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH ? CLAY_TALL_H : CLAY_H;
+  return rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH || rev === CLAY_REV_WIDE ? CLAY_TALL_H : CLAY_H;
 }
 
 /* ================= Score bands (clayRev 7, 19 Oct 2026) ================= */
@@ -1046,7 +1110,9 @@ export function clayPairOf(clay: number): number {
 }
 
 /** Pairs whose two clays were both hit. */
-export function clayDoublesHit(state: { status: readonly number[] }): number {
+export function clayDoublesHit(state: { status: readonly number[]; lv?: ClayLevel | undefined }): number {
+  // A level's groups: a double (or triple) counts when every clay in it was hit.
+  if (state.lv) return clayGroupsOf(state).filter((group) => group.every((i) => state.status[i] === CLAY_HIT)).length;
   let n = 0;
   for (let p = 0; p < CLAY_DOUBLES; p++) {
     const a = CLAY_CONFIG.singles + 2 * p;
@@ -1064,6 +1130,7 @@ export interface ClayDepthScore {
 
 /** clayRev 9's score: the clayRev 8 base, the doubles and the streak part, 0–200. */
 export function clayDepthScore(state: ClayState): ClayDepthScore {
+  if (state.lv) return clayLevelDepthScore(state);
   const birdHits = state.birdHits ?? 0;
   const base = clayQuickScore(clayScore(state.orangeHits, state.goldHits, birdHits, state.rev, clayEmptyShots(state.shots, state.hits, birdHits)), state.qk ?? 0);
   // Both features are paid in proportion to the run's quick credit (clayRev 8's measure), so quick, clean
@@ -1081,7 +1148,177 @@ export function clayDepthScore(state: ClayState): ClayDepthScore {
   return { base, doubles, streak, score: clampInt(base + doubles + streak, 0, 200) };
 }
 
+/**
+ * A level's clayRev 10 score: the same three parts and maximums (base 150, doubles 14, streak 36), measured on the
+ * level's own clays: the base from clayLevelTotal and its quick part over the level's clays, the doubles' 14 shared by
+ * its groups, the streak over one unbroken run through its clays.
+ */
+function clayLevelDepthScore(state: ClayState): ClayDepthScore {
+  const lv = state.lv!;
+  const total = clayLevelTotal(state);
+  const qkMax = CLAY_QUICK_STEPS * lv.clays;
+  const qk = clampInt(state.qk ?? 0, 0, qkMax);
+  const quick = Math.floor((CLAY_QUICK_POINTS * qk * total) / (qkMax * 150));
+  const base = clampInt(bandMapTotal(CLAY_QUICK_HIT_MAP, total) + quick, 0, 150);
+  const q2 = qk * qk * total;
+  const Q2 = qkMax * qkMax * 150;
+  const groups = Math.max(1, lv.groups.length);
+  const doubles = Math.floor((CLAY_DOUBLE_POINTS * CLAY_DOUBLES * clayDoublesHit(state) * q2) / (groups * Q2));
+  let maxPips = 0;
+  for (let n = 1; n <= lv.clays; n++) maxPips += clayStreakMultiplier(n) - 1;
+  const pips = Math.min(state.dp?.pips ?? 0, maxPips);
+  const streak = Math.floor((CLAY_STREAK_POINTS * pips * pips * q2) / (maxPips * maxPips * Q2));
+  return { base, doubles, streak, score: clampInt(base + doubles + streak, 0, 200) };
+}
+
 export const clayDepthGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {
   ...clayTallGame,
   init: (seed) => ({ ...clayQuickGame.init(seed), dp: { streak: 0, best: 0, pips: 0 } }),
 };
+
+/* ============== The wider quick window (clayRev 10, 15 Nov 2026) ============== */
+
+/**
+ * clayRev 10 (the Speed overhaul, docs/design/game-reviews/speed.md "Pull!"): clayRev 9's play, schedule, doubles,
+ * streak and every number, except the quick-hit window: full credit for a clay hit within CLAY_WIDE_FULL_TICKS
+ * (0.4 s) of its launch, falling evenly to none at CLAY_WIDE_NONE_TICKS (0.6 s). clayRev 8 and 9 asked for 0.25 s,
+ * which meant a hit near the screen's edge. The credit keeps CLAY_QUICK_STEPS steps, so every part's maximum is
+ * clayRev 9's; the state adds `qw: 1` (outside the checksum).
+ */
+export const CLAY_REV_WIDE = 10;
+export const CLAY_WIDE_FULL_TICKS = 24;
+export const CLAY_WIDE_NONE_TICKS = 36;
+
+/** clayRev 10: one hit's quick credit (0–CLAY_QUICK_STEPS) on the wider window. */
+export function clayWideQuickCredit(ticksSinceLaunch: number): number {
+  const span = CLAY_WIDE_NONE_TICKS - CLAY_WIDE_FULL_TICKS;
+  return clampInt(Math.floor(((CLAY_WIDE_NONE_TICKS - ticksSinceLaunch) * CLAY_QUICK_STEPS) / span), 0, CLAY_QUICK_STEPS);
+}
+
+export const clayWideGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {
+  ...clayDepthGame,
+  init: (seed) => ({ ...clayDepthGame.init(seed), qw: 1 }),
+};
+
+/** A level's clay schedule: the level's singles then groups across the minute, its golds spread through the run. */
+function buildLevelSchedule(seed: number, lv: ClayLevel): { rng: number; schedule: ClaySchedule } {
+  const c = CLAY_CONFIG;
+  let rng = seed | 0;
+  const draw = (bound: number): number => {
+    const r = rngBelow(rng, bound);
+    rng = r.state;
+    return r.value;
+  };
+  const launch: number[] = [];
+  const side: number[] = [];
+  const sideStart = draw(2);
+  const lastGroupAt = CLAY_RUN_TICKS - 200;
+  const singleGap = lv.groups.length ? Math.min(c.singleGapTicks, Math.floor(1500 / Math.max(1, lv.singles))) : Math.floor((lastGroupAt - c.firstLaunchTick) / Math.max(1, lv.singles));
+  for (let i = 0; i < lv.singles; i++) {
+    launch.push(c.firstLaunchTick + i * singleGap + draw(c.singleJitterTicks));
+    side.push((sideStart + i) & 1);
+  }
+  const firstGroup = c.firstLaunchTick + lv.singles * singleGap + 145;
+  const groupGap = lv.groups.length ? Math.floor((lastGroupAt - firstGroup) / lv.groups.length) : 0;
+  lv.groups.forEach((size, g) => {
+    const t = firstGroup + g * groupGap + draw(c.pairJitterTicks);
+    const s0 = draw(2);
+    for (let k = 0; k < size; k++) {
+      launch.push(k === 0 ? t : launch[launch.length - 1]! + c.pairOffsetMin + draw(c.pairOffsetSpan));
+      side.push(k % 2 === 0 ? s0 : 1 - s0);
+    }
+  });
+  const n = lv.clays;
+  const kind = new Array<number>(n).fill(CLAY_KIND_ORANGE);
+  // Golds: one in each of `golds` even bands of the run (never the first two clays).
+  for (let g = 0; g < lv.golds; g++) {
+    const lo = Math.max(2, Math.floor((g * n) / lv.golds));
+    const hi = Math.max(lo, Math.floor(((g + 1) * n) / lv.golds) - 1);
+    kind[lo + draw(hi - lo + 1)] = CLAY_KIND_GOLD;
+  }
+  const middle = new Array<boolean>(n).fill(false);
+  const orange: number[] = [];
+  for (let i = 0; i < n; i++) {
+    if (kind[i] === CLAY_KIND_GOLD) middle[i] = true;
+    else orange.push(i);
+  }
+  const middleCount = Math.round((c.middleClays * n) / c.clays);
+  for (let k = lv.golds; k < middleCount && orange.length; k++) middle[orange.splice(draw(orange.length), 1)[0]!] = true;
+  const launchY: number[] = [];
+  const vx: number[] = [];
+  const vy: number[] = [];
+  const pct = lv.speedPct;
+  for (let i = 0; i < n; i++) {
+    const gold = kind[i] === CLAY_KIND_GOLD;
+    const hardFlat = gold && draw(2) === 0;
+    const y0 = middle[i] ? c.middleYMin + draw(c.middleYSpan) : c.lowerYMin + draw(c.lowerYSpan);
+    launchY.push(y0);
+    const fits = (speed: number, angle: number): [number, number] | null => {
+      const h = (speed * icos(angle)) >> 14;
+      const hx = side[i] === 0 ? h : -h;
+      const hy = -((speed * isin(angle)) >> 14);
+      const f = clayFlight(side[i]!, y0, hx, hy);
+      return f.coverage >= c.minCoverage && f.ticks >= c.minOnScreenTicks ? [hx, hy] : null;
+    };
+    let found: [number, number] | null = null;
+    for (let tries = 0; tries < c.rerollTries && !found; tries++) {
+      const speed = Math.floor(((gold ? c.goldSpeedMin + draw(c.goldSpeedSpan) : c.orangeSpeedMin + draw(c.orangeSpeedSpan)) * pct) / 100);
+      const angle = hardFlat
+        ? c.goldFlatAngleMin + draw(c.goldFlatAngleSpan)
+        : gold
+          ? c.goldSteepAngleMin + draw(c.goldSteepAngleSpan)
+          : c.orangeAngleMin + draw(c.orangeAngleSpan);
+      found = fits(speed, angle);
+    }
+    const top = Math.floor(((gold ? c.goldSpeedMin + c.goldSpeedSpan : c.orangeSpeedMin + c.orangeSpeedSpan) * pct) / 100);
+    const offset = draw(c.scanAngleCount);
+    for (let speed = top; speed >= c.rerollSpeedFloor && !found; speed -= c.rerollSpeedStep) {
+      for (let k = 0; k < c.scanAngleCount && !found; k++) {
+        found = fits(speed, c.scanAngleMin + ((offset + k) % c.scanAngleCount) * c.rerollAngleStep);
+      }
+    }
+    const [hx, hy] = found ?? fits(c.rerollSpeedFloor, 8192) ?? [side[i] === 0 ? 900 : -900, -900];
+    vx.push(hx);
+    vy.push(hy);
+  }
+  return { rng, schedule: { launch, side, kind, launchY, vx, vy } };
+}
+
+function initLevel(seed: number, lv: ClayLevel): ClayState {
+  // clayRev 10's start (the wider quick window, the depth parts, the tall sky) on the level's clays and birds.
+  const wide = clayWideGame.init(seed);
+  const built = buildLevelSchedule(seed, lv);
+  const n = lv.clays;
+  const birds = buildBirdScheduleV3(built.rng, lv.birds, lv.birds, lv.overlap);
+  const count = birds.schedule.launch.length;
+  return {
+    ...wide,
+    lv: { ...lv, groups: [...lv.groups] },
+    rng: birds.rng,
+    schedule: built.schedule,
+    x: new Array(n).fill(0),
+    y: new Array(n).fill(0),
+    vy: new Array(n).fill(0),
+    status: new Array(n).fill(CLAY_WAITING),
+    doneTick: new Array(n).fill(0),
+    birds: birds.schedule,
+    birdX: new Array(count).fill(0),
+    birdY: new Array(count).fill(0),
+    birdStatus: new Array(count).fill(CLAY_BIRD_WAITING),
+    birdDoneTick: new Array(count).fill(0),
+    birdNext: 0,
+    birdHits: 0,
+  };
+}
+
+const levelGames = new Map<string, ArcadeGame<ClayState, ArcadeInputEvent | null>>();
+/** clayRev 10 at a level (the puzzle's `pullLevel`). */
+export function clayLevelGame(lv: ClayLevel): ArcadeGame<ClayState, ArcadeInputEvent | null> {
+  const key = JSON.stringify(lv);
+  let game = levelGames.get(key);
+  if (!game) {
+    game = { ...clayWideGame, init: (seed) => initLevel(seed, lv) };
+    levelGames.set(key, game);
+  }
+  return game;
+}

@@ -78,6 +78,19 @@ export const PROFILES: Record<SkillLevel, SkillProfile> = {
  */
 export const ELITE_BY_GAME: Record<string, Partial<SkillProfile>> = {};
 
+/**
+ * Human limits (Joe, 16 Nov 2026, for tuning difficulty levels): a person needs about 0.25 s to react to what they
+ * see and about 0.15 s to move a finger once they have decided. A Human made with these (`new Human(game, seed, level,
+ * HUMAN_LIMITS)`) never reacts faster than `reactMs` on average (the level's spread and lapses kept) and tracks no
+ * tighter than `moveMs`; bots that model a gesture's own time add `moveTicks()` after the decision. Without limits a
+ * Human is exactly as before (moveTicks() is 0), so every check and band table that doesn't ask is unchanged.
+ */
+export interface HumanLimits {
+  reactMs: number;
+  moveMs: number;
+}
+export const HUMAN_LIMITS: HumanLimits = { reactMs: 250, moveMs: 150 };
+
 const TICK_MS = 1000 / 60;
 
 /** mulberry32 over a 32-bit state; a stable stream per (game, seed, level). */
@@ -104,10 +117,22 @@ export class Human {
   private rand: () => number;
   private spare: number | null = null;
 
-  constructor(game: string, seed: number, level: SkillLevel) {
+  /** The human limits in force (null: none, every older use). */
+  readonly limits: HumanLimits | null;
+
+  constructor(game: string, seed: number, level: SkillLevel, limits: HumanLimits | null = null) {
     this.level = level;
-    this.p = level === "elite" ? { ...PROFILES.elite, ...ELITE_BY_GAME[game] } : PROFILES[level];
+    const base = level === "elite" ? { ...PROFILES.elite, ...ELITE_BY_GAME[game] } : PROFILES[level];
+    this.limits = limits;
+    this.p = limits
+      ? { ...base, reactionMs: [Math.max(base.reactionMs[0], limits.reactMs), base.reactionMs[1]] as const, trackLagMs: Math.max(base.trackLagMs, limits.moveMs) }
+      : base;
     this.rand = mulberry(hash(`${game}:${seed}:${level}`));
+  }
+
+  /** Ticks a decided gesture takes to land under human limits (0 without limits, every older use). */
+  moveTicks(): number {
+    return this.limits ? Math.round(this.limits.moveMs / TICK_MS) : 0;
   }
 
   /** The level (an alias the x200 expansion bots used before the band tool's levels landed). */

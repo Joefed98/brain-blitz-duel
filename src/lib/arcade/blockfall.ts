@@ -18,6 +18,8 @@
  * three, 12 for four); a low stack at the buzzer up to 20 (full with the highest block in the bottom 4 rows, 0 from
  * row 10 up, a straight line between). Any run that played scores at least 1; no input scores 0.
  */
+import { retroLevelSettings, withRetroLevel, type BlockfallLv } from "./retroLevels";
+import type { Level } from "@/lib/levels/levels";
 import { clampInt, inputRange, rngBelow, type ArcadeGame, type ArcadeInputEvent } from "./engine";
 import { stdEach, stdLine, stdPart, stdScore, stdSum, type StdPart, type StdSpec } from "./arcadeStandard";
 import { bandCurve, type BandParts } from "./scoreBands";
@@ -121,6 +123,8 @@ export interface BfPiece {
 }
 
 export interface BfState {
+  /** Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. */
+  lv?: BlockfallLv;
   tick: number;
   rev: number;
   /** The well, row by row from the top (BF_ROWS × BF_W): 0 empty, else shape + 1. */
@@ -334,7 +338,7 @@ function step(state: BfState, input: ArcadeInputEvent | null): BfState {
   const resting = !bfFits(s.board, p.shape, p.turn, p.x, p.y + 1);
   if (resting) {
     const lock = s.lock + 1;
-    if (lock >= BF_LOCK_TICKS) s = lockPiece({ ...s, lock });
+    if (lock >= (s.lv?.lockDelay ?? BF_LOCK_TICKS)) s = lockPiece({ ...s, lock });
     else s = { ...s, lock, fall: 0 };
   } else {
     const fall = s.fall + 1;
@@ -406,8 +410,9 @@ export const blockfallGame: ArcadeGame<BfState, ArcadeInputEvent | null> = {
   ],
 };
 
-export function blockfallGameFor(rev?: number | null): ArcadeGame<BfState, ArcadeInputEvent | null> {
-  return (rev ?? 1) >= BLOCKFALL_REV_ZONE ? blockzoneGame : blockfallGame;
+export function blockfallGameFor(rev?: number | null, level?: Level | null): ArcadeGame<BfState, ArcadeInputEvent | null> {
+  // Stage 3 of the Retro overhaul: Blockzone at a level (retroLevels.ts: gravity, lock delay, previews, the core's full).
+  return (rev ?? 1) >= BLOCKFALL_REV_ZONE ? withRetroLevel(blockzoneGame, retroLevelSettings("blockfall", level)) : blockfallGame;
 }
 
 /* ======================= blockfallRev 2: Blockzone (3 Nov 2026) ======================= */
@@ -461,6 +466,19 @@ export function bfRunTicksFor(rev: number | null | undefined): number {
 export function bfCoreFullFor(rev: number | null | undefined): number {
   return rev === BLOCKFALL_REV_ZONE ? BF_ZONE_CORE_FULL : BF_CORE_FULL;
 }
+/** The lines a state's core is full at: its level's (stage 3 of the Retro overhaul), else its stamp's. */
+export function bfCoreFullOf(state: { rev?: number | null; lv?: BlockfallLv | undefined }): number {
+  return state.lv?.fullAt ?? bfCoreFullFor(state.rev);
+}
+/** The previews a state shows: its level's, else BF_PREVIEW. */
+export function bfPreviewsOf(state: { lv?: BlockfallLv | undefined }): number {
+  return state.lv?.previews ?? BF_PREVIEW;
+}
+/** Blockzone's ticks a row at a gravity step: Normal's BF_ZONE_GRAVITY, scaled by a level's gravityPct (higher is slower). */
+export function bfZoneGravityOf(state: { lv?: BlockfallLv | undefined }, level: number): number {
+  const g = BF_ZONE_GRAVITY[level]!;
+  return state.lv ? Math.max(1, Math.round((g * state.lv.gravityPct) / 100)) : g;
+}
 
 function isResting(s: BfState): boolean {
   const p = s.piece;
@@ -493,11 +511,11 @@ function stepZone(state: BfState, input: ArcadeInputEvent | null): BfState {
   const p = s.piece;
   if (isResting(s)) {
     const lock = s.lock + 1;
-    if (lock >= BF_LOCK_TICKS) s = lockPiece({ ...s, lock });
+    if (lock >= (s.lv?.lockDelay ?? BF_LOCK_TICKS)) s = lockPiece({ ...s, lock });
     else s = { ...s, lock, fall: 0 };
   } else {
     const fall = s.fall + 1;
-    const g = BF_ZONE_GRAVITY[bfLevelFor(s.tick, BLOCKFALL_REV_ZONE)]!;
+    const g = bfZoneGravityOf(s, bfLevelFor(s.tick, BLOCKFALL_REV_ZONE));
     const every = s.soft ? Math.min(g, BF_ZONE_SOFT_TICKS) : g;
     if (fall >= every) s = { ...s, piece: { ...p, y: p.y + 1 }, fall: 0, lock: 0 };
     else s = { ...s, fall, lock: 0 };
@@ -511,7 +529,7 @@ function zoneStdParts(state: BfState): StdPart[] {
   const clears = state.doubles + state.triples + state.quads;
   const height = state.ended === 2 ? BF_ROWS : bfStackHeight(state.board);
   return [
-    stdPart(BF_ZONE_STD_SPEC, "core", stdLine(BF_ZONE_CORE_MAX, state.lines, BF_ZONE_CORE_FULL), `${state.lines} lines`),
+    stdPart(BF_ZONE_STD_SPEC, "core", stdLine(BF_ZONE_CORE_MAX, state.lines, state.lv?.fullAt ?? BF_ZONE_CORE_FULL), `${state.lines} lines`),
     stdPart(BF_ZONE_STD_SPEC, "pieces", stdEach(state.pieces, 1, BF_ZONE_PIECES_MAX), `${state.pieces} pieces`),
     stdPart(BF_ZONE_STD_SPEC, "multi", stdEach(multi, 1, BF_ZONE_MULTI_MAX), `${clears} multi-line clear${clears === 1 ? "" : "s"}`),
     stdPart(BF_ZONE_STD_SPEC, "low", stdLine(BF_ZONE_LOW_MAX, BF_LOW_ZERO - height, BF_LOW_ZERO - BF_LOW_FULL), state.ended === 2 ? "topped out" : `stack ${height} high`),

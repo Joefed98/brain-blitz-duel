@@ -213,3 +213,44 @@ slot and its entry together.
 | /sounds/clayshoot.escape.mp3 | `clayshoot.escape` | #439 | yes | 400 | 400 | -17.5 (-17.5) | -7.9 |  |
 | /sounds/clayshoot.birdWrong.mp3 | `clayshoot.birdWrong` | #439 | yes | 250 | 250 | -25.2 (-17.5) | -1.1 | retake |
 
+## Main's overhaul trains (17 Nov 2026)
+
+The puzzle and arcade trains (#449, #450) brought the overhauls to main with their own placeholder files under many of
+batch 1's names. Merging main into this branch:
+
+- **33 files are held back**, `bomb.defuse` and 32 the Speed overhaul (#439) now plays live with its own recordings:
+  `chain.heartbeat`, `chain.reshuffle`, `clayshoot.birdWrong`, `clayshoot.escape`, `clayshoot.goldChime`, `clayshoot.goldShatter`, `clayshoot.shot`, `numhunt.combo`, `numhunt.note-high`, `numhunt.note-low`, `numhunt.note-mid`, `numhunt.shuffle`, `numhunt.warn`, `numhunt.wrong`, `reaction.bar`, `reaction.combo`, `reaction.done`, `reaction.hit`, `reaction.wrong`, `tendrop.apply`, `tendrop.count`, `tendrop.near`, `tendrop.shatter`, `tendrop.tap`, `tendrop.tenBurst`, `whack.bonk`, `whack.diamond`, `whack.emptyTap`, `whack.hedgehog`, `whack.slam`, `whack.whistle`, `whack.wrongHat`. Main's files are kept; wiring Joe's
+  in their place is a choice for Joe (re-make any with
+  `ONLY=<file> python3 -I scripts/sound-batch-1/process.py <originals> public/sounds <report>`).
+- **11 more names are November-style placeholders on main** (behind `NEW_GAME_SOUNDS`): Joe's files are kept, and
+  `src/lib/fx/newGameSounds.data.ts` (main's) measures them (make.py's recorded rows).
+
+## Retakes from batch 3
+
+Each new take was processed on batch 1's method with the two fixes (ring out up to 1.5x where a cut would chop; first
+event only where one was asked) and scored against the batch-1 file by the retake measures (a near-silent upload counting
+twice, then the distance under the house level, then how much of it sounds); the better one is kept.
+
+- `bridges.double.mp3` (#435): **kept new**, fewer or lighter problems. Old: a click then nothing; 8.6 dB quieter than its family (a spike over a quiet body). New: 8.2 dB quieter than its family (a spike over a quiet body).
+- `clayshoot.birdWrong.mp3` (#439): **kept new**, no problems left. Old: 7.7 dB quieter than its family (a spike over a quiet body). New: none. Live on main (the Speed overhaul's own file plays there), so not written: the winner is re-made by retakes.py without HELD when Joe wires it.
+- `countup.revealTick.mp3` (#438): **kept new**, fewer or lighter problems. Old: near-silent upload (-68.0 LUFS); reverb tail: the fade starts 1.8 dB under the peak. New: 6.0 dB quieter than its family (a spike over a quiet body); still sounding at 1.5x its length (-4.4 dB under its peak at the fade).
+- `fences.over.mp3` (#435): **kept new**, no problems left. Old: reverb tail: the fade starts 6.6 dB under the peak. New: none.
+- `fillomino.over.mp3` (#435): **kept new**, no problems left. Old: near-silent upload (-66.7 LUFS). New: none.
+- `lightup.clash.mp3` (#435): **kept new**, no problems left. Old: still sounding at 1.5x its length (-3.1 dB under its peak at the fade). New: none.
+- `maze.bump.mp3` (#438): **kept new**, no problems left. Old: reverb tail: the fade starts 8.5 dB under the peak. New: none.
+- `minesweeper.defuse.mp3` (#430): **kept new**, no problems left. Old: 6.1 dB quieter than its family (a spike over a quiet body). New: none.
+- `reaction.wrong.mp3` (#439): **kept new**, no problems left. Old: still sounding at 1.5x its length (-5.1 dB under its peak at the fade). New: none. Live on main (the Speed overhaul's own file plays there), so not written: the winner is re-made by retakes.py without HELD when Joe wires it.
+- `shikaku.invalid.mp3` (#435): **kept new**, no problems left. Old: near-silent upload (-67.1 LUFS); reverb tail: the fade starts 4.5 dB under the peak. New: none.
+- `shikaku.snap.mp3` (#435): **kept new**, no problems left. Old: 8.6 dB quieter than its family (a spike over a quiet body). New: none.
+- `sudoku.clear.mp3` (#430): **kept new**, no problems left. Old: a click then nothing. New: none.
+- `sudoku.pencil.mp3` (#430): **kept new**, no problems left. Old: reverb tail: the fade starts 9.1 dB under the peak. New: none.
+- `tendrop.count.mp3` (#439): **kept new**, no problems left. Old: still sounding at 1.5x its length (-9.0 dB under its peak at the fade). New: none. Live on main (the Speed overhaul's own file plays there), so not written: the winner is re-made by retakes.py without HELD when Joe wires it.
+- `tendrop.tap.mp3` (#439): **kept new**, no problems left. Old: still sounding at 1.5x its length (-5.5 dB under its peak at the fade). New: none. Live on main (the Speed overhaul's own file plays there), so not written: the winner is re-made by retakes.py without HELD when Joe wires it.
+- `tendrop.tenBurst.mp3` (#439): **kept new**, no problems left. Old: a click then nothing; 9.1 dB quieter than its family (a spike over a quiet body). New: none. Live on main (the Speed overhaul's own file plays there), so not written: the winner is re-made by retakes.py without HELD when Joe wires it.
+- `trail.undo.mp3` (#435): **kept old**, the same problems, and the old take sits closer to the house level. Old: still sounding at 1.5x its length (-2.5 dB under its peak at the fade). New: still sounding at 1.5x its length (-3.5 dB under its peak at the fade).
+- `tubes.reset.mp3` (#430): **kept old**, the same problems, and the old take sits closer to the house level. Old: 6.0 dB quieter than its family (a spike over a quiet body). New: 6.8 dB quieter than its family (a spike over a quiet body).
+- `whack.bonk.mp3` (#439): **kept new**, no problems left. Old: near-silent upload (-59.9 LUFS). New: none. Live on main (the Speed overhaul's own file plays there), so not written: the winner is re-made by retakes.py without HELD when Joe wires it.
+- `fences.solve.mp3` (#435): **kept new**, fewer or lighter problems. Old: a click then nothing; 6.4 dB quieter than its family (a spike over a quiet body). New: 13.7 dB quieter than its family (a spike over a quiet body).
+- `reaction.done.mp3` (#439): **kept new**, no problems left. Old: a click then nothing. New: none. Live on main (the Speed overhaul's own file plays there), so not written: the winner is re-made by retakes.py without HELD when Joe wires it.
+- `symscan.gridClear.mp3` (#438): **kept new**, the same problems, closer to the house level. Old: 9.3 dB quieter than its family (a spike over a quiet body). New: 7.4 dB quieter than its family (a spike over a quiet body).
+- `nonogram.solve.mp3` (#430): **kept old**, Joe kept batch 1's take (the new upload is measured but not used). Old: 9.8 dB quieter than its family (a spike over a quiet body). New: none.

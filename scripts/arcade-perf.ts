@@ -35,7 +35,7 @@ import { ACTIVE_ARCADE_GAMES, ENGINE_GAME_WORLDS } from "../src/lib/arcade/arcad
 import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { gotoRetried, warmUp } from "./browser-load";
 import { SETTLE_MS, SLOW_WORK_MS, STALL_MS, WINDOW_MS } from "../src/lib/fx/lowEnd";
-import { showPracticeSide } from "./practice-side-lib";
+import { practiceGameUrl, showPracticeSide } from "./practice-side-lib";
 
 export const ARCADE_STAGE_GAMES = [...ACTIVE_ARCADE_GAMES, ...Object.keys(ENGINE_GAME_WORLDS), "tendrop", "stroop", "whack", "clayshoot"] as string[];
 
@@ -232,7 +232,13 @@ function seeded(seed: number) {
 
 export async function startServer(url: string | undefined, port: number): Promise<{ origin: string; proc: ChildProcess | null }> {
   if (url) return { origin: url.replace(/\/$/, ""), proc: null };
-  const proc = spawn("npx", ["vite", "dev", "--port", String(port), "--host", "127.0.0.1", "--strictPort"], { stdio: "ignore", detached: true });
+  // A 4 GB heap, as arcade-play-check's dev server (15 Nov 2026, the Sports overhaul): with Node's default heap the
+  // first practice deal's compile ran out of memory here, so the page sat on "Making a puzzle" and never reached a game.
+  const proc = spawn("npx", ["vite", "dev", "--port", String(port), "--host", "127.0.0.1", "--strictPort"], {
+    stdio: "ignore",
+    detached: true,
+    env: { ...process.env, NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --max-old-space-size=4096`.trim() },
+  });
   const origin = `http://127.0.0.1:${port}`;
   for (let i = 0; i < 120; i++) {
     try {
@@ -355,17 +361,14 @@ export async function measure(browser: import("playwright").Browser, origin: str
   try {
     while (gaps.reduce((a, b) => a + b, 0) < wantMs && runs < 12) {
       runs++;
-      await gotoRetried(page, `${origin}/practice`, game, { waitUntil: "domcontentloaded" });
-      await showPracticeSide(page, game);
-      const button = page.getByRole("button", { name: gameDisplayName(game as never), exact: true }).first();
-      await button.waitFor({ timeout: 90_000 });
+      // Changed 15 Nov 2026 (the Sports overhaul, Joe's request to fix this tool in #445): the round's full intro is
+      // opened by its ?game= link and started with Ready, as arcade-play-check does (practiceGameUrl). The catalogue's
+      // tile → page → Play route never reached the stage here.
+      await gotoRetried(page, practiceGameUrl(origin, game), game, { waitUntil: "domcontentloaded" });
+      const ready = page.getByRole("button", { name: /^Ready/ }).first();
+      await ready.waitFor({ timeout: 90_000 });
       await page.waitForTimeout(1500);
-      await button.click();
-      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: check steps following the moved entry point): the tile opens the game's page and its Play starts the round (the intro counts down, no Ready).
-      // It waits for the stage, where Ready's press used to start it at once, so the measuring below starts on the round.
-      const play = page.locator(`[data-game-page-play="${game}"]`).first();
-      await play.waitFor({ timeout: 90_000 });
-      await play.click();
+      await ready.click();
       await page.locator("[data-game-stage]").first().waitFor({ timeout: 90_000 });
       if (o.stallMs && runs === 1)
         await page.evaluate((ms) => {

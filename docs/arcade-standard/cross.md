@@ -1,5 +1,12 @@
 # Jaywalk on the arcade scoring standard (crossRev 10, 29 Oct 2026; crossRev 11, 3 Nov 2026)
 
+## crossRev 13 (the Retro overhaul, stage 3, 16 Nov 2026): a lighter Normal
+
+crossRev 12's walker, streak, close calls, parts and hit rules exactly, on lighter traffic: each crossing is crossRev 9's
+course for the seed with its lanes at `CROSS_V13_DENSITY_12` twelfths of crossRev 9's density (6, 7, 8, 9, 10, 11, then
+12: half on the first crossing, full from the seventh; crossRev 10–12 went on to 15). Every crossing passes crossRev 10's
+proofs. Levels bring their own density table, lives, hit cost and core figure. Rooms deal it (preRetro: crossRev 12).
+
 Rooms deal **`crossRev 11`** since 3 Nov 2026 (no coins, the no-stop streak: [below](#crossrev-11-no-coins-the-no-stop-streak-3-nov-2026)); crossRev 10 (was `crossRev 9`, the x200 expansion) before it. Every earlier revision replays and scores
 exactly as before (cross-x200-check, arcade-batch1-check, arcade-tuning-f2-check).
 

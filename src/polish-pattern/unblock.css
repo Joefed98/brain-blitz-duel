@@ -11,6 +11,8 @@
   isolation: isolate;
 }
 .unblock-lot-art { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+/* The Pattern overhaul (15 Nov 2026): the rendered lot (kerb, asphalt, bay lines) under the exit's gold markings. */
+.unblock-lot-sprite { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; user-select: none; }
 /* The grid box is exactly the 7 × 7 bays (the drag maths measures it). */
 .unblock-grid { position: absolute; inset: 4.5%; }
 
@@ -18,8 +20,9 @@
 .unblock-car { z-index: 1; }
 .unblock-car--gold { z-index: 2; }
 .unblock-car-art { display: block; width: 100%; height: 100%; overflow: visible; }
-.unblock-car-lift { opacity: 0; transition: opacity 120ms ease-out; }
-.unblock-car.is-lifted .unblock-car-lift { opacity: 0.4; }
+/* The rendered car fills its vehicle box exactly (its shadow is in the image); lifted, a deeper shadow under it. */
+.unblock-car-sprite { object-fit: fill; pointer-events: none; user-select: none; -webkit-user-drag: none; transition: filter 120ms ease-out; }
+.unblock-car.is-lifted .unblock-car-sprite { filter: drop-shadow(0 8px 7px rgba(0, 0, 0, 0.55)); }
 .unblock-car.is-lifted { z-index: 40; }
 
 .unblock-ghost {
@@ -110,3 +113,88 @@
    too, so the board shown fills it as the unsolved reveal's does (6 Nov 2026). */
 .answer-reveal-content .reveal-card .unblock-reveal-pair { flex: 1 1 0; min-height: 0; align-items: stretch; }
 .answer-reveal-content .reveal-card .unblock-reveal-pair > div { min-height: 0; }
+
+/* ---- The Pattern overhaul (15 Nov 2026): Undo and Reset in champagne gold on navy ------------------------ */
+[data-puzzle-surface] [data-polish="unblock"] > [data-game-controls] [data-puzzle-action] {
+  background-color: var(--jz-surface-2) !important;
+  box-shadow: inset 0 0 0 1px var(--jz-gold);
+}
+[data-puzzle-surface] [data-polish="unblock"] > [data-game-controls] [data-puzzle-icon]::before {
+  -webkit-text-fill-color: var(--jz-gold-ink);
+}
+[data-puzzle-surface] [data-polish="unblock"] > [data-game-controls] [data-puzzle-action]:disabled {
+  box-shadow: inset 0 0 0 1px var(--jz-surface-3);
+}
+[data-puzzle-surface] [data-polish="unblock"] > [data-game-controls] [data-puzzle-action]:disabled [data-puzzle-icon]::before,
+[data-puzzle-surface] [data-polish="unblock"] > [data-game-controls] [data-puzzle-action][data-puzzle-icon]:disabled::before {
+  -webkit-text-fill-color: var(--jz-text-3);
+}
+
+/* ---- The answer reveal (the Pattern overhaul, 15 Nov 2026) ---------------------------------------------- */
+.unblock-reveal-label { font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--jz-text-2); }
+.unblock-reveal-note { font-size: 14px; line-height: 1.35; color: var(--jz-text-2); text-align: center; }
+/* An unfinished board's blockers: a red outline on each car still in the gold car's lane. */
+.unblock-blocker {
+  z-index: 3;
+  border-radius: 14%;
+  box-shadow: inset 0 0 0 3px var(--destructive), 0 0 0 1px var(--jz-bg);
+}
+/* The par route: one chip a move (the car's sprite, the way and the bays), the move just played lit gold. */
+.unblock-route {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px;
+  max-width: 380px;
+  width: 100%;
+  flex-shrink: 0;
+}
+.unblock-route-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 26px;
+  padding: 0 6px 0 4px;
+  border-radius: 7px;
+  background: var(--jz-surface-2);
+  box-shadow: inset 0 0 0 1px var(--jz-surface-3);
+  color: var(--jz-text-2);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.unblock-route-chip[data-done] { color: var(--foreground); }
+.unblock-route-chip[data-active] { box-shadow: inset 0 0 0 2px var(--jz-gold); color: var(--jz-gold-ink); }
+.unblock-route-car { display: block; pointer-events: none; }
+.unblock-route-car--h { width: 22px; height: 11px; }
+.unblock-route-car--v { width: 9px; height: 18px; }
+.unblock-route-move { line-height: 1; }
+/* The key numbers: pills, the value bold. */
+.unblock-reveal-keys { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; flex-shrink: 0; }
+.unblock-key {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--jz-surface-2);
+  font-size: 14px;
+  color: var(--jz-text-2);
+}
+.unblock-key::first-letter { text-transform: uppercase; }
+.unblock-key-value { font-weight: 800; color: var(--foreground); font-variant-numeric: tabular-nums; }
+.unblock-reveal-pair > div > .unblock-reveal-note { flex-shrink: 0; }
+
+/* ---- Stage 2 (15 Nov 2026): the lane-cleared glint, on the lot's art layer under the cars ---------------- */
+/* A light band run along the exit lane by UnblockLaneGlint (Web Animations: transform and opacity only); at rest it is
+   invisible, so it never covers anything; the lane it runs along is clear by definition. */
+.unblock-lane-glint { position: absolute; right: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.unblock-lane-glint-band {
+  position: absolute;
+  top: 12%;
+  bottom: 12%;
+  left: 0;
+  width: 40%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--jz-gold) 85%, transparent) 40%, var(--jz-white) 58%, color-mix(in oklab, var(--jz-gold) 70%, transparent) 72%, transparent);
+  opacity: 0;
+  will-change: transform, opacity;
+}

@@ -5,6 +5,7 @@
  * STORED seed and keeps its own score, flagging any disagreement.
  */
 
+import type { Level } from "@/lib/levels/levels";
 import type { InputDiag } from "@/lib/arcade/engine";
 
 import {
@@ -108,8 +109,8 @@ export interface HoverResult {
 }
 
 /** The single place a Hover score is worked out. */
-export function replayHoverRun(seed: number, raw: string, rev?: number | null): HoverResult {
-  const hoverGame = hoverGameFor(rev);
+export function replayHoverRun(seed: number, raw: string, rev?: number | null, level?: Level | null): HoverResult {
+  const hoverGame = hoverGameFor(rev, level);
   const run = decodeHoverRun(raw);
   // A phone that never reached tick 3600 has its run ended where it stopped: no
   // crash is invented after its last tap, and no survival bonus is given.

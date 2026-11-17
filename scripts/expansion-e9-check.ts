@@ -126,10 +126,14 @@ import {
   type BullseyeState,
 } from "../src/lib/arcade/bullseye";
 import { bandPoints } from "../src/lib/arcade/scoreBands";
-import { generateBullseye, generateBurst, generateRally } from "../src/lib/duel/arcade.server";
+import { generateBullseye, generateBurst, generateRally, pinPreRetro } from "../src/lib/duel/arcade.server";
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { playRevOf } from "./scoring-targets-revs";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal rallyRev 13 (lives,
+// retro-overhaul-check); this check was written for the deal before it, so it pins preRetro (rallyRev 12, beatRev 11).
+pinPreRetro(true);
 
 let checks = 0;
 const failures: string[] = [];

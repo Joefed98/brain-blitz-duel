@@ -10,6 +10,8 @@ import { speedBonusCurve } from "../duel/speedPar";
  * the seeded generator carried in the state.
  */
 
+import { retroLevelSettings, withRetroLevel, type BreakerLv } from "./retroLevels";
+import type { Level } from "@/lib/levels/levels";
 import {
   clampInt,
   finishScore,
@@ -240,6 +242,10 @@ export interface BrkState extends BandFields {
   /** brkRev 11 only (the arcade scoring standard, 29 Oct 2026): the marker; brkRev 10's play scored in fixed parts
    * (breakerStdParts). Absent on every earlier round. */
   std?: number;
+  /** brkRev 12 only (the Retro overhaul, 15 Nov 2026): 1 = the clearable wall (9 rows, a faster ball, a stronger multi-ball). */
+  clear9?: number;
+  /** Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. */
+  lv?: BreakerLv;
   tick: number;
   rng: number;
   /** Hits left in each brick: 0 gone, otherwise 1–3. */
@@ -749,6 +755,8 @@ export function brkCheckpoint(state: BrkState): BrkCheckpoint {
   if (state.phone) values.push(state.phone);
   // brkRev 11 (the scoring standard): its marker, last.
   if (state.std) values.push(state.std);
+  // brkRev 12 (the Retro overhaul): its marker, last.
+  if (state.clear9) values.push(state.clear9);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -927,7 +935,9 @@ export { isqrt };
 const breakerGameV2: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGame, init: initV2 };
 
 /** The game for a stored brkRev (absent = the original board and power-ups). */
-export function breakerGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+export function breakerGameFor(rev?: number | null, level?: Level | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  // Stage 3 of the Retro overhaul: brkRev 12 at a level (retroLevels.ts); Normal is the game itself.
+  if (rev === BRK_REV_CLEAR) return withRetroLevel(breakerClearGame, retroLevelSettings("breaker", level), applyBreakerLv);
   if (rev === BRK_REV_STD) return breakerStdGame;
   if (rev === BRK_REV_PHONE) return breakerPhoneGame;
   if (rev === BRK_REV_DEEP) return breakerDeepGame;
@@ -1020,13 +1030,13 @@ export const breakerTallGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's brkRev plays in. */
 export function breakerWorldHFor(rev?: number | null): number {
-  if (rev === BRK_REV_DEEP || rev === BRK_REV_PHONE || rev === BRK_REV_STD) return BRK_V9_H;
+  if (rev === BRK_REV_DEEP || rev === BRK_REV_PHONE || rev === BRK_REV_STD || rev === BRK_REV_CLEAR) return BRK_V9_H;
   return rev === BRK_REV_TALL || rev === BRK_REV_TARGET || rev === BRK_REV_STRICT ? BRK_TALL_H : BRK_WORLD_H;
 }
 
 /** The court width (px) a stored round's brkRev plays in. */
 export function breakerWorldWFor(rev?: number | null): number {
-  return rev === BRK_REV_DEEP || rev === BRK_REV_PHONE || rev === BRK_REV_STD ? BRK_V9_W : BRK_WORLD_W;
+  return rev === BRK_REV_DEEP || rev === BRK_REV_PHONE || rev === BRK_REV_STD || rev === BRK_REV_CLEAR ? BRK_V9_W : BRK_WORLD_W;
 }
 
 /* ================= Scoring targets (brkRev 7, 18 Oct 2026) ================= */
@@ -1112,7 +1122,10 @@ export const BRK_V9_INPUT_RANGES: readonly InputRange[] = [
  */
 export const BRK_V9_SPEED_START = 1178;
 export const BRK_V9_SPEED_CAP = 2208;
-export function brkDeepSpeedFp(hits: number, tick: number): number {
+export function brkDeepSpeedFp(hits: number, tick: number, fast = false, pct = 100): number {
+  // brkRev 12: about 10 % quicker from the start, with a higher cap. A level (stage 3) scales the start and the cap.
+  if (fast && pct !== 100) return Math.min(Math.trunc((BRK_V12_SPEED_CAP * pct) / 100), Math.trunc((BRK_V12_SPEED_START * pct) / 100) + BRK_SPEED_STEP * hits + BRK_SPEED_TIME_STEP * Math.trunc(tick / BRK_SPEED_TIME_TICKS));
+  if (fast) return Math.min(BRK_V12_SPEED_CAP, BRK_V12_SPEED_START + BRK_SPEED_STEP * hits + BRK_SPEED_TIME_STEP * Math.trunc(tick / BRK_SPEED_TIME_TICKS));
   return Math.min(BRK_V9_SPEED_CAP, BRK_V9_SPEED_START + BRK_SPEED_STEP * hits + BRK_SPEED_TIME_STEP * Math.trunc(tick / BRK_SPEED_TIME_TICKS));
 }
 
@@ -1189,10 +1202,12 @@ export function brkDeepBrickXY(state: BrkState, index: number, tick = state.tick
 }
 
 /** brkRev 9: the brick under a point, sliding rows shifted by their offset at `tick`. */
-export function brkBrickAtDeep(state: { slide?: number[] }, xPx: number, yPx: number, tick: number): number {
+export function brkBrickAtDeep(state: { slide?: number[]; bricks?: number[]; cols?: number }, xPx: number, yPx: number, tick: number): number {
   if (yPx < BRK_WALL_Y) return -1;
   const row = Math.trunc((yPx - BRK_WALL_Y) / BRK_ROW_PITCH);
-  if (row < 0 || row >= BRK_V9_ROWS) return -1;
+  // brkRev 12's wall is 9 rows; every earlier deep wall is BRK_V9_ROWS (its bricks say so too).
+  const rows = state.bricks ? Math.trunc(state.bricks.length / BRK_V9_COLS) : BRK_V9_ROWS;
+  if (row < 0 || row >= rows) return -1;
   const withinRow = yPx - (BRK_WALL_Y + row * BRK_ROW_PITCH);
   if (withinRow < 0 || withinRow > BRK_BRICK_H) return -1;
   const local = xPx - BRK_V9_WALL_X - brkRowOffset(state, row, tick);
@@ -1316,7 +1331,7 @@ function stepDeep(state: BrkState, input: ArcadeInputEvent | null): BrkState {
     if (input.k === ARCADE_INPUT_DRAG) aimX = clampInt(input.a, 0, W);
     else if (input.k === ARCADE_INPUT_BUTTON) press = clampInt(input.a, 0, 1);
   }
-  const paddleX = clampInt(aimX, BRK_WALL + BRK_PADDLE_W / 2, W - BRK_WALL - BRK_PADDLE_W / 2);
+  const paddleX = clampInt(aimX, BRK_WALL + brkPaddleWOf(state) / 2, W - BRK_WALL - brkPaddleWOf(state) / 2);
 
   const next: BrkState = { ...state, tick, aimX, paddleX };
   const bricks = state.bricks.slice();
@@ -1332,7 +1347,10 @@ function stepDeep(state: BrkState, input: ArcadeInputEvent | null): BrkState {
   let bestChain = state.bestChain ?? 0;
   let comboPts = state.comboPts ?? 0;
   let comboUps = state.comboUps ?? 0;
-  let speed = brkDeepSpeedFp(hits, tick);
+  const fast = Boolean(state.clear9);
+  const speedPct = state.lv?.speedPct ?? 100;
+  const PW = brkPaddleWOf(state);
+  let speed = brkDeepSpeedFp(hits, tick, fast, speedPct);
   const worldHFp = BRK_V9_H * 256;
   const paddleYFp = (BRK_V9_H - BRK_PADDLE_LIFT - BRK_PADDLE_H) * 256;
 
@@ -1342,7 +1360,7 @@ function stepDeep(state: BrkState, input: ArcadeInputEvent | null): BrkState {
     if (left <= 0 || brkIsGold(state, index)) return;
     bricks[index] = left - 1;
     hits += 1;
-    speed = brkDeepSpeedFp(hits, tick);
+    speed = brkDeepSpeedFp(hits, tick, fast, speedPct);
     if (bricks[index] === 0) {
       if (combo) {
         chain += 1;
@@ -1378,7 +1396,7 @@ function stepDeep(state: BrkState, input: ArcadeInputEvent | null): BrkState {
     // The beam rises from the paddle centre, stops after four bricks, or at a gold brick it cannot break.
     let struck = 0;
     let top = BRK_HUD_H + BRK_WALL;
-    for (let row = BRK_V9_ROWS - 1; row >= 0 && struck < BRK_V2_LASER_BRICKS; row--) {
+    for (let row = Math.trunc(bricks.length / BRK_V9_COLS) - 1; row >= 0 && struck < BRK_V2_LASER_BRICKS; row--) {
       const index = brkBrickAtDeep(state, paddleX, BRK_WALL_Y + row * BRK_ROW_PITCH + Math.trunc(BRK_BRICK_H / 2), tick);
       if (index < 0 || (bricks[index] ?? 0) <= 0) continue;
       if (brkIsGold(state, index)) {
@@ -1478,9 +1496,9 @@ function stepDeep(state: BrkState, input: ArcadeInputEvent | null): BrkState {
         }
 
         if (vy > 0 && y + BRK_BALL_R_FP >= paddleYFp && y < paddleYFp + 4 * 256) {
-          const offset = px(x) - paddleLeftOf(paddleX);
-          if (offset >= -BRK_BALL_R && offset <= BRK_PADDLE_W + BRK_BALL_R) {
-            const zone = clampInt(Math.trunc((clampInt(Math.round(offset), 0, BRK_PADDLE_W - 1) * 5) / BRK_PADDLE_W), 0, 4);
+          const offset = px(x) - (paddleX - PW / 2);
+          if (offset >= -BRK_BALL_R && offset <= PW + BRK_BALL_R) {
+            const zone = clampInt(Math.trunc((clampInt(Math.round(offset), 0, PW - 1) * 5) / PW), 0, 4);
             const dir = BRK_ZONES[zone] ?? BRK_ZONES[2]!;
             const launched = setLength(dir[0], dir[1], speed);
             vx = launched.vx;
@@ -1514,7 +1532,7 @@ function stepDeep(state: BrkState, input: ArcadeInputEvent | null): BrkState {
     const caught =
       y + (BRK_CAPSULE_H / 2) * 256 >= paddleYFp &&
       y <= paddleYFp + BRK_PADDLE_H * 256 &&
-      Math.abs(px(capsule.x) - paddleX) <= BRK_PADDLE_W / 2 + BRK_CAPSULE_W / 2;
+      Math.abs(px(capsule.x) - paddleX) <= PW / 2 + BRK_CAPSULE_W / 2;
     if (caught) {
       powerUps += 1;
       if (capsule.kind === BRK_POWER_MULTI) {
@@ -1522,6 +1540,11 @@ function stepDeep(state: BrkState, input: ArcadeInputEvent | null): BrkState {
         for (const ball of balls) {
           if (balls.length + extra.length >= BRK_MAX_BALLS) break;
           extra.push({ x: ball.x, y: ball.y, vx: -ball.vx, vy: ball.vy, spam: ball.spam, d: 0 });
+          // brkRev 12: a stronger multi-ball, a third ball on a steeper line from each ball (at the same speed).
+          if (fast && balls.length + extra.length < BRK_MAX_BALLS) {
+            const steep = setLength(Math.trunc(ball.vx / 3), -Math.max(Math.abs(ball.vy), 256), speed);
+            extra.push({ x: ball.x, y: ball.y, vx: steep.vx, vy: steep.vy, spam: ball.spam, d: 0 });
+          }
         }
         balls = balls.concat(extra);
       } else if (capsule.kind === BRK_POWER_SPAM) {
@@ -1773,3 +1796,116 @@ export const breakerStdGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
   init: initStd,
   score: brkStdScore,
 };
+
+/* ================= The Retro overhaul: a clearable wall (brkRev 12, 15 Nov 2026) ================= */
+
+/**
+ * brkRev 12 (the Retro overhaul, docs/design/game-reviews/retro.md "Breaker", docs/arcade-standard/breaker.md "brkRev
+ * 12"): the Near-perfect bot lost no ball in 90 s and still broke only 72 of brkRev 11's 108 bricks, so the wall is made
+ * clearable by a strong player, the same for everyone:
+ *
+ *  - 9 rows (81 bricks, 3 of them gold): brkRev 11's board from the seed with its middle three rows (3–5) taken out, so
+ *    the gold bricks and their armour stay at the top and the lower rows (and their power bricks) move up; any power
+ *    brick that sat in rows 3–5 is placed again on a plain brick in the new rows 3–8 (lower in the wall), from a stream
+ *    of the seed's own; the two sliding rows map to their new rows.
+ *  - The ball about 10 % quicker (BRK_V12_SPEED_START, cap BRK_V12_SPEED_CAP).
+ *  - A stronger multi-ball: each ball adds two (its mirror and a steeper line), up to BRK_MAX_BALLS.
+ *
+ * Scored on brkRev 11's parts exactly (bricks on a straight line of the board's own count, clear, speed, gold). States
+ * add `clear9: 1`, folded into the checkpoint checksum last.
+ */
+export const BRK_REV_CLEAR = 12;
+export const BRK_V12_ROWS = 9;
+/** The rows brkRev 11's board loses (taken out of the middle). */
+export const BRK_V12_DROP_ROWS: readonly number[] = [3, 4, 5];
+export const BRK_V12_SPEED_START = 1296;
+export const BRK_V12_SPEED_CAP = 2380;
+
+function initClear(seed: number): BrkState {
+  const base = initStd(seed);
+  const C = BRK_V9_COLS;
+  const keep: number[] = [];
+  for (let row = 0; row < BRK_V9_ROWS; row++) if (!BRK_V12_DROP_ROWS.includes(row)) keep.push(row);
+  const pick = <T,>(list: readonly T[]): T[] => keep.flatMap((row) => list.slice(row * C, row * C + C));
+  const bricks = pick(base.bricks);
+  const maxHp = pick(base.maxHp);
+  const gold = pick(base.gold);
+  const gild = pick(base.gild ?? []);
+  // Power bricks lost with the dropped rows go back in lower, on plain one-hit bricks.
+  const lost: number[] = [];
+  for (const row of BRK_V12_DROP_ROWS) for (let c = 0; c < C; c++) {
+    const g = base.gold[row * C + c] ?? 0;
+    if (g > 0) lost.push(g);
+  }
+  let rng = (seed ^ 0x42524b12) | 0;
+  const draw = (bound: number): number => {
+    const d = rngBelow(rng, bound);
+    rng = d.state;
+    return d.value;
+  };
+  const lowFrom = 3 * C;
+  for (const g of lost) {
+    for (let guard = 0; guard < 400; guard++) {
+      const index = lowFrom + draw(bricks.length - lowFrom);
+      if (gold[index] === 0 && gild[index] !== 1 && bricks[index] === 1 && gild[index - C] !== 1) {
+        gold[index] = g;
+        break;
+      }
+    }
+  }
+  // The sliding rows: a kept row moves up with the wall; a dropped one becomes the new row 3 (the next distinct row after).
+  const mapRow = (row: number) => (row <= 2 ? row : BRK_V12_DROP_ROWS.includes(row) ? 3 : row - BRK_V12_DROP_ROWS.length);
+  const slide = (base.slide ?? []).map(mapRow);
+  if (slide.length === 2 && slide[0] === slide[1]) slide[1] = Math.min(BRK_V12_ROWS - 1, slide[0]! + 1);
+  const balls = base.balls.map((b) => {
+    const v = setLength(b.vx, b.vy, BRK_V12_SPEED_START);
+    return { ...b, vx: v.vx, vy: v.vy };
+  });
+  return { ...base, bricks, maxHp, gold, gild, slide, balls, speed: BRK_V12_SPEED_START, clear9: 1 };
+}
+
+export const breakerClearGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerStdGame, init: initClear };
+
+/** brkRev 12's core line (the help reads it): 0 to BRK_V11_CORE_MAX on the 81-brick wall. */
+export const BRK_V12_BAND_CURVE = bandCurve([0, BRK_V9_COLS * BRK_V12_ROWS], [0, BRK_V11_CORE_MAX]);
+
+/** The paddle's width (px) a state plays with: its level's, else Normal's BRK_PADDLE_W. */
+export function brkPaddleWOf(state: { lv?: BreakerLv }): number {
+  return state.lv?.paddle ?? BRK_PADDLE_W;
+}
+
+/**
+ * A level's first state (stage 3 of the Retro overhaul): the ball's start speed scaled; at Easy the wall's two middle
+ * rows (4 and 5) left out and every brick but gold at most two hits; at Hard and Expert the top `toughRows` plain rows
+ * one hit tougher (at most three). Gold bricks, their armour and the sliding rows keep their places.
+ */
+function applyBreakerLv(state: BrkState, lv: BreakerLv): BrkState {
+  const C = BRK_V9_COLS;
+  const speed = Math.trunc((BRK_V12_SPEED_START * lv.speedPct) / 100);
+  const balls = state.balls.map((b) => {
+    const v = setLength(b.vx, b.vy, speed);
+    return { ...b, vx: v.vx, vy: v.vy };
+  });
+  const rows = Math.trunc(state.bricks.length / C);
+  const drop = lv.rows < rows ? [4, 5].slice(0, rows - lv.rows) : [];
+  const keep = (i: number) => !drop.includes(Math.trunc(i / C));
+  const gold = state.gold.filter((_, i) => keep(i));
+  const gild = (state.gild ?? []).filter((_, i) => keep(i));
+  // Gold bricks (gild) and power bricks (gold: the power-up a brick holds) keep their hits.
+  const isGold = (i: number) => (gold[i] ?? 0) > 0 || gild[i] === 1;
+  const shape = (hp: number, i: number): number => {
+    if (hp <= 0 || isGold(i)) return hp;
+    if (lv.cap2) return Math.min(2, hp);
+    return Math.trunc(i / C) < lv.toughRows ? Math.min(3, hp + 1) : hp;
+  };
+  const bricks = state.bricks.filter((_, i) => keep(i)).map(shape);
+  const maxHp = state.maxHp.filter((_, i) => keep(i)).map(shape);
+  const mapRow = (row: number) => row - drop.filter((d) => d < row).length - (drop.includes(row) ? 1 : 0);
+  const next: BrkState = { ...state, balls, speed, bricks, maxHp, gold, gild };
+  if (drop.length && state.slide) {
+    const slide = state.slide.map((row) => Math.max(3, mapRow(row)));
+    if (slide.length === 2 && slide[0] === slide[1]) slide[1] = Math.min(lv.rows - 1, slide[0]! + 1);
+    next.slide = slide;
+  }
+  return next;
+}

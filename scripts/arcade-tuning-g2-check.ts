@@ -31,6 +31,7 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { BEAT_REV_STD } from "../src/lib/arcade/beat";
+import { SAME_PLAY_DEMO_REVS } from "../src/lib/duel/introDemo.functions";
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { fnv } from "./arcade-tuning-a-legacy";
@@ -217,7 +218,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
   // Expansion E6 (25 Oct 2026) moved Coral Pop on to its deeper reef (bubbleRev 8, the same tank); e6-check covers it.
   // Phone notes (27 Oct 2026): bubbleRev 10 (bubbleRev 9 with the mine's bigger blast); e6-check covers it.
   // The arcade scoring standard (29 Oct 2026): bubbleRev 11 (the mine pops its 4 nearest); bubble-standard-check covers it.
-  ok(generateBubble().bubbleRev === BUB_REV_TALL + 6, "rooms deal bubbleRev 11 (the arcade scoring standard, after bubbleRev 5)");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): rooms deal bubbleRev 12.
+ok(generateBubble().bubbleRev === BUB_REV_TALL + 7, "rooms deal bubbleRev 12 (the Strategy overhaul, after bubbleRev 5)");
   // Rooms deal the score-bands stamps after these (clashRev 6, clayRev 7: the same play, scoring-bands-check), and since
   // 20 Oct 2026 scoring report batch 2's (clashRev 7, clayRev 8: the same play again, scoring-batch2-check).
   // Depth to 200 (25 Oct 2026): clashRev 8 (clashRev 5 play on the taller board plus the streak, "don't sort" and gold
@@ -538,12 +540,19 @@ section("Mixed Signals clashRev 5: the gentler unfinished credit");
 section("Intro demos stay stopped until re-recorded on the taller revision");
 {
   const src = read("src/lib/duel/introDemo.functions.ts");
-  ok(/data\.type === "beat" && demo\?\.puzzle\.type === "beat" && demo\.puzzle\.beatRev !== BEAT_REV_STD\) return null/.test(src), "Tempo's demo plays only on beatRev 11 (the scoring standard; beatRev 10, 9 and 6 before it)");
+  // Changed with Joe's approval, 16 Nov 2026 (follows approved overhaul): beatRev 12 plays beatRev 11 exactly,
+  // so the rule names both through SAME_PLAY_DEMO_REVS; the list must be exactly those two.
+  ok(
+    /data\.type === "beat" && demo\?\.puzzle\.type === "beat" && !demoRevAccepted\("beat", demo\.puzzle\.beatRev\)\) return null/.test(src) &&
+      [...SAME_PLAY_DEMO_REVS.beat].sort((a, b) => a - b).join() === [BEAT_REV_STD, BEAT_REV_STD + 1].join(),
+    "Tempo's demo plays only on beatRev 11 and 12 (12 plays 11 exactly; the scoring standard; beatRev 10, 9 and 6 before it)",
+  );
   ok(/data\.type === "slice" && demo\?\.puzzle\.type === "slice" && demo\.puzzle\.sliceRev !== SLICE_REV_TALL\) return null/.test(src), "Slice's demo plays only on sliceRev 6");
   // Expansion E6: Coral Pop's demo now plays only on bubbleRev 8 (e6-check).
-  ok(/data\.type === "bubble" && demo\?\.puzzle\.type === "bubble" && demo\.puzzle\.bubbleRev !== (BUB_REV_REEF|BUB_REV_BLAST|BUB_REV_STD)\) return null/.test(src), "Coral Pop's demo plays only on bubbleRev 8 (bubbleRev 10 since the phone notes, 11 since the arcade scoring standard)");
+  ok(/data\.type === "bubble" && demo\?\.puzzle\.type === "bubble" && demo\.puzzle\.bubbleRev !== (BUB_REV_REEF|BUB_REV_BLAST|BUB_REV_STD|BUB_REV_FAST)\) return null/.test(src), "Coral Pop's demo plays only on bubbleRev 8 (bubbleRev 10 since the phone notes, 11 since the arcade scoring standard, 12 since the Strategy overhaul)");
   ok(/data\.type === "stroop" && demo\?\.puzzle\.type === "stroop" && demo\.puzzle\.clashRev !== CLASH_REV_DEPTH\) return null/.test(src), "Mixed Signals' demo plays only on clashRev 8 (depth to 200)");
-  ok(/data\.type === "clayshoot" && demo\?\.puzzle\.type === "clayshoot" && demo\.puzzle\.clayRev !== CLAY_REV_DEPTH\) return null/.test(src) && CLAY_REV === CLAY_REV_TALL, "Pull!'s demo plays only on clayRev 9 (depth to 200)");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul): the demo rule follows the dealt clayRev 10.
+  ok(/data\.type === "clayshoot" && demo\?\.puzzle\.type === "clayshoot" && demo\.puzzle\.clayRev !== CLAY_REV_WIDE\) return null/.test(src) && CLAY_REV === CLAY_REV_TALL, "Pull!'s demo plays only on clayRev 10 (the Speed overhaul; clayRev 9 before it)");
 }
 
 if (failures.length) {

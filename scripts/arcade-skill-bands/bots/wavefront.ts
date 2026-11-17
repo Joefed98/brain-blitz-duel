@@ -56,6 +56,12 @@ const BOUNCE_READ: Record<SkillLevel, number> = { weak: 0, average: 0.2, good: 0
 /** Fixes: levels that take a saucer only when it passes within SAUCER_NEAR px of the ship (elite policy). */
 const CHEAP_SAUCER: Record<SkillLevel, boolean> = { weak: false, average: false, good: false, great: false, near: false, elite: true, perfect: true };
 const SAUCER_NEAR = 60;
+/**
+ * Witness search only (scripts/wavefront-big-deal.ts, the Retro overhaul's stage 3): `chaseSaucers` lets the flawless
+ * player go for every saucer it can reach (the elite's near-only policy off); `reactJitter` shifts its reaction ticks so
+ * a seed gets other tries. Off by default: every check and the band tool play the bot as before.
+ */
+export const wavefrontBotOptions = { chaseSaucers: false, reactJitter: 0 };
 /** wavRev 10: chance of aiming at a boss's open core, and at a cannon still firing, when deciding. */
 const CORE: Record<SkillLevel, number> = { weak: 0.05, average: 0.15, good: 0.4, great: 0.7, near: 0.9, elite: 1, perfect: 1 };
 const CANNON: Record<SkillLevel, number> = { weak: 0.05, average: 0.1, good: 0.3, great: 0.55, near: 0.8, elite: 1, perfect: 1 };
@@ -178,7 +184,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       if (key !== saucerKey) {
         saucerKey = key;
         saucerGo = human.chance(SAUCER[level]!);
-        saucerAt = t + human.reactTicks();
+        saucerAt = t + human.reactTicks() + wavefrontBotOptions.reactJitter;
         saucerErr = human.normal();
       }
       if (saucerGo && t >= saucerAt) {
@@ -190,7 +196,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
         // Worth it only while it can still be caught up with.
         // Elite and flawless (fixes): a saucer is one ship's worth; go for it only when it passes close by, so no
         // shot at the formation or the boss is lost to the chase.
-        const reach = fixes && CHEAP_SAUCER[level] && !seen.x10 ? Math.min(speed * flight, SAUCER_NEAR) : speed * flight;
+        const reach = fixes && CHEAP_SAUCER[level] && !seen.x10 && !wavefrontBotOptions.chaseSaucers ? Math.min(speed * flight, SAUCER_NEAR) : speed * flight;
         if (aim > MIN_X - 10 && aim < MAX_X + 10 && Math.abs(aim - finger) < reach) {
           want = aim;
           chasing = true;

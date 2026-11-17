@@ -53,6 +53,15 @@ import {
   FK_V3_ZONE_LO,
   fkV3Launch,
   fkV3Meter,
+  fkV5Launch,
+  fkV5Skill,
+  fkLevelOf,
+  FK_LEVEL_SETTINGS,
+  fkLevelSettings,
+  FK_STRIKE_CURL,
+  FK_STRIKE_DIP,
+  FK_STRIKE_DRIVE,
+  FREEKICK_REV_5,
   type FkFlight,
   type FkKick,
   type FreekickState,
@@ -569,4 +578,160 @@ if (import.meta.main) {
     });
   }
   void FK_OUT_GOAL;
+}
+
+/* ================================ freekickRev 5: the layered kick ================================ */
+
+/** Ticks from POWER to STRIKE that land the meter in the middle of a level's gold zone. */
+export function fkV5CleanTicks(level?: string | null, rev: number = FREEKICK_REV_5): number {
+  const L = fkLevelSettings(rev, level);
+  return Math.round(((L.zoneLo + L.zoneHi) / 2 / 1000) * (FK_V3_METER_PERIOD / 2));
+}
+
+/** A freekickRev 5 drawn shot: the target (cm), the curl and the strike type. */
+export interface FkShot5 extends FkShot3 {
+  st: number;
+}
+
+/** A rev-5 shot's flight at a level (the real kick, wind on), struck at `meter`. */
+export function fkFly5(k: FkKick, shot: FkShot5, level: string, meter?: number, rev: number = FREEKICK_REV_5): FkFlight {
+  const f = fkV5Launch(k, shot.x, shot.y, shot.b, shot.st, meter ?? fkV3Meter(fkV5CleanTicks(level, rev)), level, rev);
+  while (f.out === FK_OUT_NONE) fkFlightStep(k, f);
+  return f;
+}
+
+function judgeShot5(k: FkKick, i: number, shot: FkShot5, level: string, meter?: number, rev: number = FREEKICK_REV_5) {
+  const f = fkFly5(k, shot, level, meter, rev);
+  const j = fkJudge(k, f, fkHoopRFor(rev, i, level));
+  const skill = fkV5Skill(k, f, j.curled, rev, level);
+  const full = j.goal && j.place >= FREEKICK_PLACE_UNITS && skill && (k.target === FK_TARGET_NONE || j.target);
+  return { ...j, skill, full, f };
+}
+
+export interface FkCandidate5 {
+  shot: FkShot5;
+  full: boolean;
+  goal: boolean;
+  place: number;
+  target: boolean;
+  skill: boolean;
+}
+const rank5 = (c: FkCandidate5) => (c.goal ? 1000 : 0) + (c.target ? 200 : 0) + (c.skill ? 120 : 0) + c.place;
+
+/**
+ * Searches kick `i`'s drawn shots on freekickRev 5 at a level: rev 4's goal-plane points (the corner search on the
+ * level's shrunk hoop), for each strike type and curl, the target nudged against the wind until the real flight crosses
+ * where the point is (twice at most: what a player does reading the flag), struck clean. `quick` stops at the first full shot.
+ */
+export function fkPlanKickV5(k: FkKick, i: number, level: string, quick = true, rev: number = FREEKICK_REV_5, fulls?: FkCandidate5[]): { full: FkCandidate5 | null; best: FkCandidate5 | null; goals: FkCandidate5[] } {
+  let best: FkCandidate5 | null = null;
+  const goals: FkCandidate5[] = [];
+  const corner = k.target === FK_TARGET_LEFT || k.target === FK_TARGET_RIGHT;
+  const pts = aimPoints(k, corner ? fkHoopRFor(rev, i, level) : undefined);
+  // A jumping wall first invites the low drive under it, then the dip over it; otherwise the curler first.
+  const types = k.v5?.jump ? [FK_STRIKE_DRIVE, FK_STRIKE_DIP, FK_STRIKE_CURL] : [FK_STRIKE_CURL, FK_STRIKE_DIP, FK_STRIKE_DRIVE];
+  const lowPts: [number, number][] = [];
+  if (k.v5?.jump) for (const x of [2.9, 2.5, 3.2, 2.0]) for (const sx of [-k.v5.lean, k.v5.lean]) for (const y of [0.2, 0.3, 0.15]) lowPts.push([sx * x, y]);
+  for (const st of types) {
+    const curls = st === FK_STRIKE_CURL ? [75, 60, 90, 45, 100] : st === FK_STRIKE_DRIVE ? [0, 40, -40] : [0];
+    for (const [tx, ty] of st === FK_STRIKE_DRIVE ? [...lowPts, ...pts] : pts) {
+      for (const mag of curls) {
+        for (const sign of mag === 0 ? [1] : [1, -1]) {
+          let shot: FkShot5 = { ...clampShot3({ x: tx * 100, y: ty * 100, b: sign * mag }), st };
+          for (let round = 0; round < 3; round++) {
+            const j = judgeShot5(k, i, shot, level, undefined, rev);
+            const cand: FkCandidate5 = { shot, full: j.full, goal: j.goal, place: j.place, target: j.target, skill: j.skill };
+            if (!best || rank5(cand) > rank5(best)) best = cand;
+            // With `fulls` (the robust planner below), every full shot is collected (up to 40) instead of the first.
+            if (j.full && fulls) {
+              fulls.push(cand);
+              if (fulls.length >= 40) return { full: fulls[0]!, best: fulls[0]!, goals };
+              break;
+            }
+            if (j.full) return { full: cand, best: cand, goals };
+            if (j.goal) goals.push(cand);
+            // Nudge against the wind by the miss across (the flight's crossing against the point wanted).
+            const f = j.f;
+            if (!f.crossX && !f.crossY) break;
+            const dx = tx * 100 - (f.crossX * 100) / FK_M;
+            if (Math.abs(dx) < 6) break;
+            shot = { ...clampShot3({ x: shot.x + dx, y: shot.y, b: shot.b }), st };
+          }
+        }
+      }
+    }
+  }
+  return { full: null, best, goals };
+}
+
+/**
+ * The full shot a careful player picks (16 Nov 2026): of every full shot the search finds, the one that still scores the
+ * most under small mistakes (the stroke's end 25 cm off either way across and 20 cm up or down, the curl 12 off),
+ * rather than the first found, which often aims at the post and needs the curl exactly. Null when there is none.
+ */
+export function fkRobustFullV5(k: FkKick, i: number, level: string, rev: number = FREEKICK_REV_5): FkCandidate5 | null {
+  const fulls: FkCandidate5[] = [];
+  const plan = fkPlanKickV5(k, i, level, false, rev, fulls);
+  if (!fulls.length) return plan.full;
+  const jitters: [number, number, number][] = [[-25, 0, 0], [25, 0, 0], [0, -20, 0], [0, 20, 0], [0, 0, -12], [0, 0, 12]];
+  let bestC: FkCandidate5 | null = null;
+  let bestV = -1;
+  for (const c of fulls) {
+    let v = 0;
+    for (const [dx, dy, db] of jitters) {
+      const j = judgeShot5(k, i, { ...clampShot3({ x: c.shot.x + dx, y: c.shot.y + dy, b: c.shot.b + db }), st: c.shot.st }, level, undefined, rev);
+      v += (j.goal ? 1000 : 0) + (j.target ? 200 : 0) + (j.skill ? 120 : 0);
+    }
+    if (v > bestV) {
+      bestV = v;
+      bestC = c;
+    }
+  }
+  return bestC;
+}
+
+const solved5 = new Map<string, FkShot5[]>();
+/** The oracle's drawn shot for each kick of a seed at a level (freekickRev 5; cached). */
+export function oracleShotsV5(seed: number, level?: string | null, rev: number = FREEKICK_REV_5): FkShot5[] {
+  const l = fkLevelOf(level);
+  const key = `${seed}:${l}:${rev}`;
+  const hit = solved5.get(key);
+  if (hit) return hit;
+  const shots = fkSeedPlan(seed, rev, l).kicks.map((k, i) => fkPlanKickV5(k, i, l, true, rev).best?.shot ?? { x: 0, y: 120, b: 0, st: 0 });
+  if (solved5.size > 400) solved5.clear();
+  solved5.set(key, shots);
+  return shots;
+}
+
+/** Plays rev-5 drawn shots through the real game at a level (rev 4's timing; the strike type rides the SHOT's d). */
+export function playShotsV5(seed: number, shots: (FkShot5 | null)[], level?: string | null, timing: FkTiming4[] = [], rev: number = FREEKICK_REV_5): { events: ArcadeInputEvent[]; state: FreekickState } {
+  const game = freekickGameFor(rev, level);
+  const ranges = game.inputRanges ?? [];
+  const clean = fkV5CleanTicks(level, rev);
+  let state = game.init(seed);
+  const events: ArcadeInputEvent[] = [];
+  let aimFrom = -1;
+  while (!game.isOver(state)) {
+    const t = state.tick + 1;
+    if (state.phase === FK_AIM) {
+      if (aimFrom < 0) aimFrom = state.tick;
+      const shot = shots[state.k];
+      const tm = timing[state.k] ?? {};
+      const t0 = aimFrom + (tm.think ?? 0) + 1;
+      const t2 = t0 + Math.max(1, tm.powerGap ?? 1);
+      const t3 = t2 + Math.max(1, tm.strike ?? clean);
+      if (shot) {
+        if (t === t0) recordInput(events, { t, k: FREEKICK_INPUT_SHOT, a: shot.x, b: shot.y, c: shot.b, d: shot.st }, ranges);
+        else if (t === t2) recordInput(events, { t, k: FREEKICK_INPUT_POWER, a: 0, b: 0, c: 0, d: 0 }, ranges);
+        else if (t === t3) recordInput(events, { t, k: FREEKICK_INPUT_STRIKE, a: 0, b: 0, c: 0, d: 0 }, ranges);
+      }
+    } else aimFrom = -1;
+    state = game.step(state, inputAt(events, t));
+  }
+  return { events, state };
+}
+
+/** The rev-5 oracle's log at a level. */
+export function oracleRunV5(seed: number, level?: string | null, rev: number = FREEKICK_REV_5): ArcadeInputEvent[] {
+  return playShotsV5(seed, oracleShotsV5(seed, level, rev), level, [], rev).events;
 }

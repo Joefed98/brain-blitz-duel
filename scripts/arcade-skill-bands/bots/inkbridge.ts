@@ -43,7 +43,7 @@ import {
   INK_WORLD_W,
   inkX,
   inkClover,
-  inkIsLive,
+  inkLiveNow,
   inkPhoneLine,
   inkFeatureRaw,
   inkWorldH,
@@ -362,13 +362,13 @@ export function simulate(game: Game, from: InkState, strokes: number[][], rel: n
 
 /** The line (and release phase / live ramp) an experienced player would use on this level. */
 export function inkIdeal(game: Game, seed: number, s: InkState, wantStar: boolean): Ideal {
-  const key = `${seed}:${s.level}:${wantStar ? 1 : 0}:${s.rev}`;
+  const key = `${seed}:${s.level}:${wantStar ? 1 : 0}:${s.rev}${s.diff ? `:${s.diff}` : ""}`;
   // inkRev 10: a cloud level's bonus line must also bounce (its star sits at the top of the bounce).
   const bounce = inkX(s.rev) && Boolean(s.list[s.level]!.clouds?.length);
   const hit = idealCache.get(key);
   if (hit) return hit;
   const lvl: InkLevel = s.list[s.level]!;
-  const live = inkIsLive(s.level, s.rev);
+  const live = inkLiveNow(s);
   const moving = lvl.slideAmp > 0;
   let sims = 0;
   let budget = SIM_BUDGET;
@@ -589,11 +589,11 @@ function inkLen(strokes: number[][]): number {
  * (pots through the gold star) or, on branches that have them, "trick".
  */
 export function inkPlan(game: Game, seed: number, s: InkState, need: "pot" | "star"): PlanLine[] {
-  const key = `${seed}:${s.level}:${need}:${s.rev}`;
+  const key = `${seed}:${s.level}:${need}:${s.rev}${s.diff ? `:${s.diff}` : ""}`;
   const hit = planCache.get(key);
   if (hit) return hit;
   const lvl: InkLevel = s.list[s.level]!;
-  const live = inkIsLive(s.level, s.rev);
+  const live = inkLiveNow(s);
   const moving = lvl.slideAmp > 0;
   let sims = 0;
   // inkRev 10: a cloud level's bonus line must also bounce.
@@ -1037,7 +1037,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const planAttemptFixed = (s: InkState, t: number) => {
     plan.clear();
     const lvl = s.list[s.level]!;
-    const live = inkIsLive(s.level, s.rev);
+    const live = inkLiveNow(s);
     const first = attempt === 0;
     let at = t + (first ? human.thinkTicks(2800 + 250 * s.level + (live ? 1500 : 0)) : human.thinkTicks(1300));
     let line: PlanLine | null = null;
@@ -1132,7 +1132,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const planAttempt = (s: InkState, t: number) => {
     plan.clear();
     const lvl = s.list[s.level]!;
-    const live = inkIsLive(s.level, s.rev);
+    const live = inkLiveNow(s);
     const first = attempt === 0;
     // Look at the level (a fresh level takes longer than a retry).
     let at = t + (first ? human.thinkTicks(2800 + 250 * s.level + (live ? 1500 : 0)) : human.thinkTicks(1300));

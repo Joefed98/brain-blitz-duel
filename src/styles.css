@@ -12,6 +12,7 @@
 @import "./polish-logic/fillomino.css";
 @import "./polish-logic/bridges.css";
 @import "./polish-logic/kakuro.css";
+@import "./polish-logic/logic-2.css";
 @import "./polish-b/a.css";
 @import "./polish-b/b.css";
 @import "./polish-b/c.css";
@@ -41,6 +42,7 @@
 @import "./polish-layout/pass.css";
 @import "./polish-layout/seasons.css";
 @import "./polish-layout/tournaments.css";
+@import "./polish-layout/strategy-reveal.css";
 @import "./polish-layout/badges.css";
 @import "./polish-layout/rated-multi.css";
 @import "./polish-layout/rated.css";
@@ -55,7 +57,11 @@
 @import "./polish-layout/tournaments-pages.css";
 @import "./polish-layout/home-play.css";
 @import "./polish-layout/settings.css";
+@import "./polish-layout/minigolf-reveal.css";
 @import "./polish-layout/game-fx.css";
+@import "./polish-layout/moments.css";
+/* The Logic overhaul, session 1 (15 Nov 2026): last, so the rendered pieces win the cascade. */
+@import "./polish-logic/logic-overhaul-1.css";
 
 /*
  * Duelz design system — dark competitive esports feel.
@@ -145,8 +151,9 @@
 }
 
 .duel-start-bolt {
-  width: 96%;
-  height: 96%;
+  /* The bolt lands at about two thirds of the screen (it filled it), drawn with depth (LogoMark `depth`). */
+  width: 68%;
+  height: 68%;
   color: var(--primary);
   transform: scale(0.04);
   transform-origin: center;
@@ -238,10 +245,12 @@
   animation-iteration-count: 1;
 }
 
-/* Prepare to Duel */
+/* Prepare to Duel (its rings, streaks, floor, embers, sweep and charge in the champagne gold, never the bright yellow;
+   the effects pass, 15 Nov 2026, Joe) */
+.room-fx[data-moment="prepare"] { --primary: var(--jz-gold); }
 [data-moment="prepare"] [data-part="glow"] {
   inset: 0;
-  background: radial-gradient(circle at 50% 50%, rgba(245, 184, 46, 0.3) 0%, rgba(245, 184, 46, 0.08) 34%, transparent 62%);
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--jz-gold) 30%, transparent) 0%, color-mix(in srgb, var(--jz-gold) 8%, transparent) 34%, transparent 62%);
   animation-name: rfx-prepare-glow;
   animation-timing-function: linear;
 }
@@ -265,9 +274,11 @@
   animation-name: rfx-streak-in;
   animation-timing-function: cubic-bezier(0.4, 0, 0.75, 0.6);
 }
+/* The landing flash (the effects pass, 15 Nov 2026, Joe: no glare, no bright yellow): a brief champagne bloom round the
+   bolt, fading out well before the screen's edges, never a full-screen wash. */
 [data-moment="prepare"] [data-part="flash"] {
   inset: 0;
-  background: var(--primary);
+  background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--jz-gold) 42%, transparent) 0%, color-mix(in srgb, var(--jz-gold) 14%, transparent) 26%, transparent 48%);
   animation-name: rfx-flash;
 }
 @keyframes rfx-prepare-glow { 0% { opacity: 0; } 30% { opacity: 0.35; } 88% { opacity: 0.75; } 100% { opacity: 0; } }
@@ -404,6 +415,13 @@
   100% { opacity: 0; transform: rotate(0deg) scale(1); }
 }
 
+/* Rounds 2–6 (the effects pass, 15 Nov 2026, Joe): every part of a round's look and backdrop in the app's champagne
+   gold over a still navy wash, like the Final round; the category's colour stays on its word under the title. */
+.room-fx[data-moment="round"] { --category-accent: var(--jz-gold); }
+.room-fx[data-moment="round"]:not([data-over]) {
+  background: radial-gradient(ellipse 70% 55% at 50% 50%, color-mix(in srgb, var(--jz-surface) 92%, transparent) 0%, transparent 100%);
+}
+
 /* Final Round: gold edges, shock rings, gold rails, a punch on the title */
 [data-moment="final"] { --category-accent: var(--primary); }
 [data-moment="final"] [data-part^="rail-"] { height: 2px; }
@@ -485,6 +503,189 @@
   100% { opacity: 1; transform: rotate(calc(var(--swing) * -20deg)); }
 }
 @keyframes rfx-build { 0% { opacity: 0; } 70% { opacity: 0.55; } 90% { opacity: 1; } 100% { opacity: 1; } }
+
+/* The effects pass (15 Nov 2026): the richer layer (MomentPart `rich`), drawn only with the celebrations on and full
+   effects. Prepare to Duel: a floor of light running in, embers, a sweep on the voice, a charge closing in. */
+.room-fx[data-moment="prepare"] [data-part="floor"] {
+  left: -20vw;
+  right: -20vw;
+  bottom: -6vh;
+  height: 46vh;
+  background:
+    repeating-linear-gradient(90deg, color-mix(in srgb, var(--primary) 22%, transparent) 0 1px, transparent 1px 9vw),
+    repeating-linear-gradient(0deg, color-mix(in srgb, var(--primary) 16%, transparent) 0 1px, transparent 1px 5vh);
+  -webkit-mask-image: linear-gradient(0deg, black, transparent 92%);
+  mask-image: linear-gradient(0deg, black, transparent 92%);
+  transform-origin: 50% 100%;
+  animation-name: rfx-floor;
+  animation-timing-function: linear;
+}
+.room-fx[data-moment="prepare"] [data-part="ember"] {
+  left: calc(8% + var(--i) * 84% / var(--n));
+  bottom: -2vh;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--primary);
+  animation-name: rfx-ember;
+  animation-timing-function: cubic-bezier(0.3, 0.6, 0.4, 1);
+}
+.room-fx[data-moment="prepare"] [data-part="ember"]:nth-child(3n) { --drift: -6vw; width: 3px; height: 3px; }
+.room-fx[data-moment="prepare"] [data-part="ember"]:nth-child(3n + 1) { --drift: 5vw; }
+.room-fx[data-moment="prepare"] [data-part="ember"]:nth-child(3n + 2) { --drift: -2vw; width: 2px; height: 2px; }
+.room-fx[data-moment="prepare"] [data-part="sweep"] {
+  top: -20vh;
+  left: -60vw;
+  width: 40vw;
+  height: 140vh;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--primary) 22%, transparent), transparent);
+  transform: rotate(18deg);
+  animation-name: rfx-sweep;
+  animation-timing-function: cubic-bezier(0.5, 0, 0.3, 1);
+}
+.room-fx[data-moment="prepare"] [data-part="charge"] {
+  left: calc(50% - 45vmin);
+  top: calc(50% - 45vmin);
+  width: 90vmin;
+  height: 90vmin;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, var(--primary) 70%, transparent);
+  animation-name: rfx-charge;
+  animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.6);
+}
+@keyframes rfx-floor {
+  0% { opacity: 0; transform: perspective(40vh) rotateX(62deg) translateY(0); }
+  20% { opacity: 0.55; }
+  90% { opacity: 0.8; }
+  100% { opacity: 0; transform: perspective(40vh) rotateX(62deg) translateY(10vh); }
+}
+@keyframes rfx-ember {
+  0% { opacity: 0; transform: translate(0, 0); }
+  15% { opacity: 0.9; }
+  100% { opacity: 0; transform: translate(var(--drift, 0), -70vh); }
+}
+@keyframes rfx-sweep {
+  0% { opacity: 0; transform: translateX(0) rotate(18deg); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(200vw) rotate(18deg); }
+}
+@keyframes rfx-charge {
+  0% { opacity: 0; transform: scale(1.4); }
+  30% { opacity: 0.8; }
+  100% { opacity: 0; transform: scale(0.05); }
+}
+
+/* Round titles' backdrops (ROUND_BACKDROPS), in the category colour; Final Round's in gold. */
+.room-fx [data-part="bd-rays"] {
+  left: calc(50% - 70vmax);
+  top: calc(50% - 70vmax);
+  width: 140vmax;
+  height: 140vmax;
+  animation-name: rfx-rays;
+  animation-timing-function: linear;
+}
+.room-fx [data-part="bd-rays"] > i {
+  position: absolute;
+  left: calc(50% - 3vmax);
+  top: 0;
+  width: 6vmax;
+  height: 50%;
+  background: linear-gradient(180deg, transparent 20%, color-mix(in srgb, var(--category-accent) 16%, transparent) 75%, transparent);
+  clip-path: polygon(40% 0, 60% 0, 52% 100%, 48% 100%);
+  transform-origin: 50% 100%;
+  transform: rotate(calc(var(--i) * 360deg / var(--n)));
+}
+.room-fx [data-part="bd-grid"] {
+  inset: -10vh -10vw;
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--category-accent) 40%, transparent) 1.2px, transparent 1.6px);
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, black 10%, transparent 70%);
+  mask-image: radial-gradient(ellipse at 50% 50%, black 10%, transparent 70%);
+  animation-name: rfx-grid;
+  animation-timing-function: linear;
+}
+.room-fx [data-part="bd-orb"] {
+  left: calc(10% + var(--i) * 80% / var(--n));
+  top: 70%;
+  width: 22vmin;
+  height: 22vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--category-accent) 30%, transparent), transparent 68%);
+  animation-name: rfx-orb;
+  animation-timing-function: cubic-bezier(0.3, 0.5, 0.4, 1);
+}
+.room-fx [data-part="bd-orb"]:nth-child(2n) { top: 58%; width: 14vmin; height: 14vmin; }
+.room-fx [data-part="bd-stripes"] {
+  inset: -20vh -40vw;
+  background: repeating-linear-gradient(-45deg, color-mix(in srgb, var(--category-accent) 10%, transparent) 0 14px, transparent 14px 34px);
+  -webkit-mask-image: radial-gradient(ellipse at 50% 50%, black 15%, transparent 65%);
+  mask-image: radial-gradient(ellipse at 50% 50%, black 15%, transparent 65%);
+  animation-name: rfx-stripes;
+  animation-timing-function: linear;
+}
+.room-fx [data-part="bd-pulse"] {
+  left: calc(50% - 30vmin);
+  top: calc(50% - 30vmin);
+  width: 60vmin;
+  height: 60vmin;
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 55%, color-mix(in srgb, var(--category-accent) 26%, transparent) 64%, transparent 72%);
+  animation-name: rfx-pulse;
+}
+@keyframes rfx-rays {
+  0% { opacity: 0; transform: rotate(-8deg); }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(14deg); }
+}
+@keyframes rfx-grid {
+  0% { opacity: 0; transform: translateY(4vh); }
+  25% { opacity: 0.7; }
+  80% { opacity: 0.7; }
+  100% { opacity: 0; transform: translateY(-4vh); }
+}
+@keyframes rfx-orb {
+  0% { opacity: 0; transform: translateY(0) scale(0.7); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-40vh) scale(1.1); }
+}
+@keyframes rfx-stripes {
+  0% { opacity: 0; transform: translateX(-34px); }
+  25% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(34px); }
+}
+@keyframes rfx-pulse {
+  0% { opacity: 0; transform: scale(0.4); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: scale(1.9); }
+}
+
+/* Final Round's bigger moment: sparks bursting on the punch and a third, wider shock ring. */
+.room-fx[data-moment="final"] [data-part="spark"] {
+  left: calc(50% - 2px);
+  top: calc(50% - 2px);
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--primary);
+  animation-name: rfx-spark;
+  animation-timing-function: cubic-bezier(0.1, 0.7, 0.3, 1);
+}
+.room-fx[data-moment="final"] [data-part="shock"] {
+  left: calc(50% - 40vmin);
+  top: calc(50% - 40vmin);
+  width: 80vmin;
+  height: 80vmin;
+  border-radius: 50%;
+  border: 3px solid var(--primary);
+  animation-name: rfx-ring-out;
+}
+@keyframes rfx-spark {
+  0% { opacity: 0; transform: rotate(calc(var(--i) * 360deg / var(--n))) translateY(0) scaleY(0.4); }
+  12% { opacity: 1; }
+  100% { opacity: 0; transform: rotate(calc(var(--i) * 360deg / var(--n))) translateY(-38vmin) scaleY(1); }
+}
 
 /* Reduced motion: every part a calm fade in place; movement-only parts hidden. */
 @keyframes rfx-calm { 0% { opacity: 0; } 20% { opacity: 0.5; } 80% { opacity: 0.5; } 100% { opacity: 0; } }

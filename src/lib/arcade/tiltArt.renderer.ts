@@ -4,10 +4,13 @@
  * half-size cs/4) and reads state without writing it.
  */
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
+import { strategyArtVersion, strategyImage } from "./strategyArt";
+import { fxAmount, fxMemory, strategyFx } from "./strategyFx";
+import { tiltPitLip } from "./tiltLip";
 import { drawArtSprite } from "./sprites.renderer";
 import { arcadeFx, type ArcadeFxSpec } from "./arcadeFx.renderer";
 import { TILT_FX } from "./arcadeFxGames.renderer";
-import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltBandGame, tiltGame, tiltRev2Game, tiltStarPoint, tiltTotalStars, tiltTunecGame, tiltTargetGame, tiltStrictGame, tiltExpandGame, tiltLiftGame, tiltStdGame, tiltParGame, tiltBigGame, tiltParLeftX, tiltOverParT, tiltIsExpand, TILT_REV, TILT_REV_PAR, TILT_REV_BIG, TILT_B_CUP, TILT_REV_BAND, TILT_REV_TUNEC, TILT_REV_TARGET, TILT_REV_STRICT, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_X_W, TILT_X_H, TILT_X_QUICK_TAIL, TILT_X_FALL_HOLD, tiltCellCentre, tiltQuickLeftX, tiltQuickFullLeftX, type Maze, type TiltState } from "./tilt";
+import { TILT_DISC_R, TILT_MAX_MAZES, TILT_WORLD_H, TILT_WORLD_W, tiltBandGame, tiltGame, tiltRev2Game, tiltStarPoint, tiltTotalStars, tiltTunecGame, tiltTargetGame, tiltStrictGame, tiltExpandGame, tiltLiftGame, tiltStdGame, tiltParGame, tiltBigGame, tiltParLeftX, tiltOverParT, tiltIsExpand, TILT_REV, TILT_REV_PAR, TILT_REV_BIG, TILT_B_CUP, TILT_REV_BAND, TILT_REV_TUNEC, TILT_REV_TARGET, TILT_REV_STRICT, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_STD, TILT_X_W, TILT_X_H, TILT_X_QUICK_TAIL, TILT_X_FALL_HOLD, tiltCellCentre, tiltQuickLeftX, tiltQuickFullLeftX, tiltLevelGame, isTiltLevel, type TiltLevel, type Maze, type TiltState } from "./tilt";
 import {
   TOY_BRASS, TOY_BRASS_DARK, TOY_INK, TOY_OAK_LIGHT, TOY_TABLE, TOY_TABLE_LIT, TOY_WOOD_DARK,
   toyBoard, toyChangeAge, toyGrain, toyMarble,
@@ -113,6 +116,15 @@ export function drawBigCup(ctx: CanvasRenderingContext2D, cup: { x: number; y: n
   ctx.beginPath();
   ctx.arc(cup.x, cup.y, cup.r + 1.8, Math.PI * 0.95, Math.PI * 1.6);
   ctx.stroke();
+  // The Strategy overhaul, stage 2 (display only): a filled cup lights in its marble's colour, a crisp ring on the
+  // brass (no glow), so a marble home reads at a glance.
+  if (filled) {
+    ctx.strokeStyle = colour;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(cup.x, cup.y, cup.r + 1.2, 0, Math.PI * 2);
+    ctx.stroke();
+  }
 }
 
 /**
@@ -655,15 +667,15 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
     // Rev 2: each marble that was still rolling when the maze ended (the last one home) sinks into its own cup.
     const u = finish.age / 400;
     ctx.globalAlpha = 1 - u;
-    if (!prev2.aHome) toyMarble(ctx, prev2.blue.x, prev2.blue.y, prev2.r * (1 - 0.6 * u), TILT_MARBLE_BLUE, -rot);
-    if (prev2.amber && !prev2.bHome) toyMarble(ctx, prev2.amber.x, prev2.amber.y, prev2.r * (1 - 0.6 * u), TILT_MARBLE_AMBER, -rot, 3);
+    if (!prev2.aHome) tiltMarbleArt(ctx, prev2.blue.x, prev2.blue.y, prev2.r * (1 - 0.6 * u), TILT_MARBLE_BLUE, -rot);
+    if (prev2.amber && !prev2.bHome) tiltMarbleArt(ctx, prev2.amber.x, prev2.amber.y, prev2.r * (1 - 0.6 * u), TILT_MARBLE_AMBER, -rot, 3);
     ctx.globalAlpha = 1;
   }
   const prevCup = state.rev ? undefined : (finish.before as Cup | undefined);
   if (prevCup && finish.age < 400 && !reducedMotion()) {
     const u = finish.age / 400;
     ctx.globalAlpha = 1 - u;
-    toyMarble(ctx, prevCup.x, prevCup.y, prevCup.r * (1 - 0.6 * u), TILT_MARBLE_BLUE, -rot);
+    tiltMarbleArt(ctx, prevCup.x, prevCup.y, prevCup.r * (1 - 0.6 * u), TILT_MARBLE_BLUE, -rot);
     ctx.globalAlpha = 1;
   }
   if (state.rev) {
@@ -674,19 +686,19 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
       const at = state.bHome ? cup : { x: state.b.x / FP - o, y: state.b.y / FP - o };
       if (!(state.ended === 1 && state.mazes >= TILT_MAX_MAZES)) {
         if (!state.bHome) marbleShadow(ctx, at.x, at.y, mr, rot);
-        toyMarble(ctx, at.x, at.y, mr, TILT_MARBLE_AMBER, -rot, 3);
+        tiltMarbleArt(ctx, at.x, at.y, mr, TILT_MARBLE_AMBER, -rot, 3);
       }
     }
     if (state.aHome) {
       const cup = cupOf(m, o, m.exit, m.exitDir, true);
-      toyMarble(ctx, cup.x, cup.y, mr, TILT_MARBLE_BLUE, -rot);
+      tiltMarbleArt(ctx, cup.x, cup.y, mr, TILT_MARBLE_BLUE, -rot);
     }
   }
   if (!(state.ended === 1 && state.mazes >= TILT_MAX_MAZES) && !state.aHome) {
     // Art pilot (Toybox): marble sprite fills the marble's collision circle; code art when absent.
     const mx = state.x / FP - o, my = state.y / FP - o, mr = m.br / FP;
     marbleShadow(ctx, mx, my, mr, rot);
-    if (!drawArtSprite(ctx, "toybox", "marble", mx - mr, my - mr, mr * 2, mr * 2, { angle: -rot })) toyMarble(ctx, mx, my, mr, TILT_MARBLE_BLUE, -rot);
+    if (!tiltRenderedMarble(ctx, mx, my, mr, TILT_MARBLE_BLUE, -rot) && !drawArtSprite(ctx, "toybox", "marble", mx - mr, my - mr, mr * 2, mr * 2, { angle: -rot })) tiltMarbleArt(ctx, mx, my, mr, TILT_MARBLE_BLUE, -rot);
     marbleGloss(ctx, mx, my, mr, rot);
     // The marbles roll through each other, and pressed into the same corner they sit exactly on top of
     // each other (and then move as one). The blue one is drawn last, so it used to hide the amber one
@@ -700,7 +712,7 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: TiltState, size: Canvas
         ctx.arc(bx, by, mr, -Math.PI / 2, Math.PI / 2);
         ctx.closePath();
         ctx.clip();
-        toyMarble(ctx, bx, by, mr, TILT_MARBLE_AMBER, -rot, 3);
+        tiltMarbleArt(ctx, bx, by, mr, TILT_MARBLE_AMBER, -rot, 3);
         ctx.restore();
       }
     }
@@ -716,7 +728,9 @@ const tiltBandArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...til
 const tiltTunecArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltTunecGame, draw };
 const tiltTargetArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltTargetGame, draw };
 const tiltStrictArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltStrictGame, draw };
-export function tiltArtGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+export function tiltArtGameFor(rev?: number | null, level?: unknown): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  // Levels (stage 3): a tiltRev 12 round dealt at easy, hard or expert draws its level's game (tiltRev 12's art).
+  if (rev === TILT_REV_BIG && isTiltLevel(level)) return tiltLevelArtGame(level);
   if (rev === TILT_REV_BIG) return tiltBigArtGame;
   if (rev === TILT_REV_PAR) return tiltParArtGame;
   if (rev === TILT_REV_STD) return tiltStdArtGame;
@@ -789,6 +803,15 @@ let lastView = { rot: 0, zoom: 1 };
  */
 function tiltFixedZoom(R: number): number {
   return Math.min(1, (TILT_X_W / 2 - 4) / (R + 10));
+}
+
+/**
+ * The Strategy overhaul (15 Nov 2026, display only; tiltRev 12): every maze's disc, rim included, fills the width
+ * (smaller mazes drawn larger, the largest no longer shrunk), so maze 4's paths read on a phone. Older revisions keep
+ * tiltFixedZoom.
+ */
+function tiltFillZoom(R: number): number {
+  return (TILT_X_W / 2 - 3) / (R + 9);
 }
 
 /** The disc face for a radius (cached sprite per radius). */
@@ -879,7 +902,7 @@ function drawIce(ctx: CanvasRenderingContext2D, m: Maze, o: number): void {
 const mazeSpritesX = new WeakMap<Maze, { k: number; sprite: ArtCanvas | null }>();
 function mazeSpriteX(ctx: CanvasRenderingContext2D, m: Maze, lite: boolean, big = false): ArtCanvas | null {
   const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
-  const k = Math.round(Math.max(0.25, Math.min(2.5, t ? Math.hypot(t.a, t.b) : 1)) * 100) / 100 + (lite ? 1000 : 0) + (big ? 10000 : 0);
+  const k = Math.round(Math.max(0.25, Math.min(2.5, t ? Math.hypot(t.a, t.b) : 1)) * 100) / 100 + (lite ? 1000 : 0) + (big ? 10000 + 100000 * strategyArtVersion() : 0);
   const old = mazeSpritesX.get(m);
   if (old && old.k === k) return old.sprite;
   const R = discRadiusX(m, big);
@@ -1123,11 +1146,29 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
 
   // The camera stays on the disc's centre (display only): screen = centre + zoom · rotate(angle) · maze point.
   const cam = { x: 0, y: 0 };
-  const zoom = tiltFixedZoom(R);
+  const zoom = big ? tiltFillZoom(R) : tiltFixedZoom(R);
   lastView = { rot, zoom };
   ctx.translate(W / 2, H / 2);
   ctx.scale(zoom, zoom);
   ctx.rotate(rot);
+  // The Strategy overhaul, stage 2 (tiltRev 12; display only; the kit's variants, strategyFx.ts): a knock on a wall nudges
+  // the disc a pixel and a half the way the marble was going; a finished maze spins away as the next one drops in.
+  const fxm = fxMemory(ctx, "tilt-strategy", state.tick, () => ({ tick: -1, vx: 0, vy: 0, level: state.level, knock: -1000, kx: 0, ky: 0 }));
+  if (state.tick !== fxm.tick) {
+    if (state.level === fxm.level) {
+      const hitX = Math.abs(fxm.vx) > 100 && state.vx === 0, hitY = Math.abs(fxm.vy) > 100 && state.vy === 0;
+      if (hitX || hitY) { fxm.knock = state.tick; fxm.kx = hitX ? Math.sign(fxm.vx) : 0; fxm.ky = hitY ? Math.sign(fxm.vy) : 0; }
+    }
+    fxm.vx = state.vx; fxm.vy = state.vy; fxm.level = state.level; fxm.tick = state.tick;
+  }
+  const prevFinish = finish.before as { level: number } | undefined;
+  const swapU = big && prevFinish && prevFinish.level !== state.level && finish.age < 500 ? finish.age / 500 : 1;
+  const swapFx = fxAmount(strategyFx("slide"));
+  if (big) {
+    const nudge = fxAmount(strategyFx("tap")), age = state.tick - fxm.knock;
+    if (nudge && age >= 0 && age < 6) ctx.translate(fxm.kx * 1.5 * nudge * (1 - age / 6), fxm.ky * 1.5 * nudge * (1 - age / 6));
+    if (swapU < 1 && swapFx) { const e = swapU * swapU * (3 - 2 * swapU); ctx.scale(0.86 + 0.14 * e, 0.86 + 0.14 * e); }
+  }
 
   // The groove and rim, turned with the disc (their light stays screen-fixed: drawn unrotated about the centre).
   ctx.save();
@@ -1135,6 +1176,34 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
   if (big) blitX(ctx, `bed-brass:${R}`, R + 26, (c) => drawBrassBed(c, R));
   else blitX(ctx, `bed:${R}`, R + 26, (c) => drawDiscBed(c, R));
   ctx.restore();
+  if (big) {
+    // The rim ticks like a dial (stage 2): 48 brass notches turning with the disc past a fixed pointer at the top.
+    blitX(ctx, `dial:${R}`, R + 26, (c) => {
+      c.lineCap = "round";
+      for (let k = 0; k < 48; k++) {
+        const a = (k / 48) * Math.PI * 2, long = k % 4 === 0;
+        c.strokeStyle = long ? "rgba(255,226,150,0.75)" : "rgba(255,226,150,0.42)";
+        c.lineWidth = long ? 2 : 1.3;
+        c.beginPath();
+        c.moveTo(Math.cos(a) * (R + 6), Math.sin(a) * (R + 6));
+        c.lineTo(Math.cos(a) * (R + (long ? 15 : 11)), Math.sin(a) * (R + (long ? 15 : 11)));
+        c.stroke();
+      }
+    });
+    ctx.save();
+    ctx.rotate(-rot);
+    ctx.fillStyle = "#F2C75C";
+    ctx.strokeStyle = "rgba(40,20,4,0.8)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-6, -R - 24);
+    ctx.lineTo(6, -R - 24);
+    ctx.lineTo(0, -R - 13);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
   ctx.save();
   ctx.beginPath();
   ctx.arc(0, 0, R + 2, 0, Math.PI * 2);
@@ -1153,7 +1222,11 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
     // The lamp's gloss over the disc, screen-fixed.
     ctx.save();
     ctx.rotate(-rot);
-    blitX(ctx, `gloss:${R}`, R + 1, (c) => {
+    // The Strategy overhaul (stage 2): on tiltRev 12 the lacquer's rendered reflection of the lamp (a small, soft spot
+    // upper left, screen-fixed; strategy_art.py), in place of the code gloss once it has loaded.
+    const lacquer = big ? strategyImage("tilt-disc-gloss") : null;
+    if (lacquer) ctx.drawImage(lacquer, -R, -R, R * 2, R * 2);
+    else blitX(ctx, `gloss:${R}`, R + 1, (c) => {
       const gloss = c.createRadialGradient(-R * 0.45, -R * 0.5, 10, 0, 0, R);
       gloss.addColorStop(0, "rgba(255,236,196,0.4)");
       gloss.addColorStop(0.6, "rgba(255,246,220,0)");
@@ -1166,6 +1239,24 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
     ctx.restore();
   }
 
+  if (big && swapU < 1 && prevFinish && swapFx) {
+    // The maze just finished, spinning away and shrinking as it fades, over the new one dropping in.
+    const old = state.list[prevFinish.level];
+    const sprite = old ? mazeSpriteX(ctx, old, lite, big) : null;
+    const oldR = old ? discRadiusX(old, big) : R;
+    if (sprite) {
+      ctx.save();
+      ctx.globalAlpha = 1 - swapU;
+      ctx.rotate(swapU * 1.6 * swapFx);
+      const k = 1 - 0.55 * swapU;
+      ctx.scale(k, k);
+      ctx.beginPath();
+      ctx.arc(0, 0, oldR + 2, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.drawImage(sprite as CanvasImageSource, -oldR - 1, -oldR - 1, oldR * 2 + 2, oldR * 2 + 2);
+      ctx.restore();
+    }
+  }
   drawBigCup(ctx, cupAt(m.exit, m.exitDir), TILT_MARBLE_BLUE, CUP_GLASS, !!state.aHome);
   if ((m.exit2 ?? -1) >= 0) drawBigCup(ctx, cupAt(m.exit2!, m.exitDir2!), TILT_MARBLE_AMBER, CUP_AMBER_GLASS, !!state.bHome);
   (m.stars ?? []).forEach((_c, k) => {
@@ -1211,7 +1302,7 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
     const u = finish.age / 400;
     ctx.save();
     ctx.globalAlpha = 1 - u;
-    toyMarble(ctx, cam.x, cam.y, prev.r * (1 - 0.6 * u), TILT_MARBLE_BLUE, -rot);
+    tiltMarbleArt(ctx, cam.x, cam.y, prev.r * (1 - 0.6 * u), TILT_MARBLE_BLUE, -rot);
     ctx.restore();
   }
   // A marble back at its start after a black hole fades in over its hold (still: no fade).
@@ -1226,19 +1317,25 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
       ctx.save();
       if (!state.bHome) ctx.globalAlpha = holdAlpha(state.holdB);
       if (!state.bHome) marbleShadow(ctx, at.x, at.y, mr, rot);
-      toyMarble(ctx, at.x, at.y, mr, TILT_MARBLE_AMBER, -rot, 3);
+      tiltMarbleArt(ctx, at.x, at.y, mr, TILT_MARBLE_AMBER, -rot, 3);
       ctx.restore();
     }
   }
   if (state.aHome) {
     const cup = cupAt(m.exit, m.exitDir);
-    toyMarble(ctx, cup.x, cup.y, mr, TILT_MARBLE_BLUE, -rot);
+    tiltMarbleArt(ctx, cup.x, cup.y, mr, TILT_MARBLE_BLUE, -rot);
   } else if (!done) {
-    const mx = state.x / FP - o, my = state.y / FP - o;
+    let mx = state.x / FP - o, my = state.y / FP - o;
+    // On a black hole's lip (stage 2): the marble wobbles a pixel either way (inside the arcade bounds rule).
+    const wobble = big ? fxAmount(strategyFx("nearMiss")) : 0;
+    if (wobble && tiltPitLip(m, mx, my, mr) >= 0) {
+      mx += Math.sin(state.tick * 1.3) * 1.2 * wobble;
+      my += Math.cos(state.tick * 1.7) * 0.6 * wobble;
+    }
     ctx.save();
     ctx.globalAlpha = holdAlpha(state.holdA);
     marbleShadow(ctx, mx, my, mr, rot);
-    if (!drawArtSprite(ctx, "toybox", "marble", mx - mr, my - mr, mr * 2, mr * 2, { angle: -rot })) toyMarble(ctx, mx, my, mr, TILT_MARBLE_BLUE, -rot);
+    if (!tiltRenderedMarble(ctx, mx, my, mr, TILT_MARBLE_BLUE, -rot) && !drawArtSprite(ctx, "toybox", "marble", mx - mr, my - mr, mr * 2, mr * 2, { angle: -rot })) tiltMarbleArt(ctx, mx, my, mr, TILT_MARBLE_BLUE, -rot);
     marbleGloss(ctx, mx, my, mr, rot);
     ctx.restore();
     if (state.b && !state.bHome) {
@@ -1249,7 +1346,7 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
         ctx.arc(bx, by, mr, -Math.PI / 2, Math.PI / 2);
         ctx.closePath();
         ctx.clip();
-        toyMarble(ctx, bx, by, mr, TILT_MARBLE_AMBER, -rot, 3);
+        tiltMarbleArt(ctx, bx, by, mr, TILT_MARBLE_AMBER, -rot, 3);
         ctx.restore();
       }
     }
@@ -1305,11 +1402,17 @@ function drawWorldX(ctx: CanvasRenderingContext2D, state: TiltState, size: Canva
   ctx.restore();
 }
 
+/** The world y of Tilt's text strip: between the HUD pills and the top of the disc (which fills the width). */
+export const TILT_X_TEXT_Y = 140;
+
 /** tiltRev 8's success layer: the old one's moments for three mazes, plus quick stars and keys. */
 export const TILT_X_FX: ArcadeFxSpec<TiltState> = {
   ...TILT_FX,
   width: TILT_X_W,
   height: TILT_X_H,
+  // The Strategy overhaul (15 Nov 2026, display only): "MAZE 3 DONE!" and every other word above the disc, under the
+  // counters, never on the maze.
+  textBand: TILT_X_TEXT_Y,
   // The old moments first, in their order (the replay moments read them by index), then the new ones.
   events: [
     // Each state lists its own mazes (3 on tiltRev 8 and 9, 4 on tiltRev 10).
@@ -1348,6 +1451,15 @@ const tiltLiftArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...til
 const tiltStdArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltStdGame, draw: drawX };
 const tiltParArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltParGame, draw: drawX };
 const tiltBigArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltBigGame, draw: drawX };
+const levelArtGames = new Map<TiltLevel, ArcadeGame<TiltState, ArcadeInputEvent | null>>();
+function tiltLevelArtGame(level: TiltLevel): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  let g = levelArtGames.get(level);
+  if (!g) {
+    g = { ...tiltLevelGame(level), draw: drawX };
+    levelArtGames.set(level, g);
+  }
+  return g;
+}
 
 /* ================= tiltRev 12 (3 Nov 2026): walnut and brass, bigger pieces, the HUD in pills ================= */
 
@@ -1357,13 +1469,18 @@ const tiltBigArtGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tilt
  * are drawn at their (bigger) collision radius, the keys to their pickup reach and the cups TILT_B_CUP % of the marble;
  * the HUD is the shared pills ("Maze 1 / 4" first, then the par countdown, "Over par" only once the par has passed).
  */
-export const WALNUT_TABLE = "#2B1A10";
-const WALNUT_DISC = "#5A3721";
-const WALNUT_DISC_LIT = "#6E4529";
+export const WALNUT_TABLE = "#140C07";
+/** The table's shade beyond the lamp pool (the world's edges): its colour there is WALNUT_TABLE_EDGE. */
+export const TILT_TABLE_SHADE = 0.5;
+/** WALNUT_TABLE under TILT_TABLE_SHADE: the edge colour the arena fill continues. */
+export const WALNUT_TABLE_EDGE = "#0A0603";
+const WALNUT_DISC = "#4E2C18";
+const WALNUT_DISC_LIT = "#7A4A2B";
 const WALNUT_GRAIN = "#3A2213";
-const BRASS = "#C99A3E";
-const BRASS_LIT = "#F3D383";
-const BRASS_DARK = "#6E4C17";
+// The Strategy overhaul (15 Nov 2026): the walls stay gold, a brighter champagne gold that reads on the dark wood.
+const BRASS = "#D8B25A";
+const BRASS_LIT = "#F8E6AE";
+const BRASS_DARK = "#7A561C";
 /** The rim's margin round a tiltRev 12 grid (px; 16 before), so the bigger cups sit on the disc. */
 const TILT_B_RIM = 26;
 /** The key's drawn size (× a cell): its outline reaches about TILT_B_KEY_REACH % of a cell from the key's centre. */
@@ -1393,17 +1510,36 @@ function drawWalnutTable(c: CanvasRenderingContext2D, W: number, H: number): voi
     c.bezierCurveTo(W * 0.3, y + ((h >>> 5) % 9) - 4, W * 0.7, y - ((h >>> 9) % 7) + 3, W, y + 1);
     c.stroke();
   }
-  const pool = c.createRadialGradient(W / 2 - 20, H / 2 - 50, 20, W / 2 - 20, H / 2 - 50, Math.max(W, H) * 0.6);
-  pool.addColorStop(0, "rgba(255,190,120,0.22)");
-  pool.addColorStop(0.5, "rgba(255,170,100,0.08)");
-  pool.addColorStop(1, "rgba(0,0,0,0)");
+  // The Strategy overhaul (15 Nov 2026, display only): concept B's dark, shadowed table: one warm pool of light under
+  // the disc, falling to a shade that is the same at every edge of the world (so the fill outside it, which starts
+  // from that shade, meets it with no seam).
+  const pool = c.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, W / 2 - 10);
+  pool.addColorStop(0, "rgba(255,190,120,0.16)");
+  pool.addColorStop(1, "rgba(255,170,100,0)");
   c.fillStyle = pool;
+  c.fillRect(0, 0, W, H);
+  const shade = c.createRadialGradient(W / 2, H / 2, W * 0.3, W / 2, H / 2, W / 2);
+  shade.addColorStop(0, "rgba(0,0,0,0)");
+  shade.addColorStop(1, `rgba(0,0,0,${TILT_TABLE_SHADE})`);
+  c.fillStyle = shade;
   c.fillRect(0, 0, W, H);
   c.restore();
 }
 
 /** The walnut disc face (grain and growth rings), in the disc's turning frame. */
 function paintWalnutDisc(c: CanvasRenderingContext2D, r: number): void {
+  // The Strategy overhaul (stage 2, display only): concept A's lacquered walnut, a Cycles render (strategy_art.py)
+  // filling the disc; the code walnut until it has loaded (and in checks, where there is no Image).
+  const rendered = strategyImage("tilt-disc");
+  if (rendered) {
+    c.save();
+    c.beginPath();
+    c.arc(0, 0, r, 0, Math.PI * 2);
+    c.clip();
+    c.drawImage(rendered, -r, -r, r * 2, r * 2);
+    c.restore();
+    return;
+  }
   const face = c.createRadialGradient(-r * 0.3, -r * 0.35, r * 0.1, 0, 0, r);
   face.addColorStop(0, WALNUT_DISC_LIT);
   face.addColorStop(1, WALNUT_DISC);
@@ -1507,4 +1643,28 @@ function drawBigHud(ctx: CanvasRenderingContext2D, state: TiltState, all: number
   const row = drawHudPillRow(ctx, 12, 12, pills, TILT_X_W - 12);
   let x = 12;
   for (const p of row.rest) x += drawHudPill(ctx, x, 12 + HUD_PILL_H + HUD_PILL_GAP, p.label, p.value, p.opts) + HUD_PILL_GAP;
+}
+
+/**
+ * The Strategy overhaul (stage 2, display only): Tilt's glass marbles as Cycles renders (strategy_art.py) at the
+ * marble's own radius, drawn turned by `angle` (the maze's turn undone, so the light's highlight stays where the lamp
+ * is). False when the image isn't there (not loaded yet, or a check with no Image), so the code marble is drawn.
+ */
+function tiltRenderedMarble(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string, angle: number): boolean {
+  const name = colour === TILT_MARBLE_BLUE ? "tilt-marble-blue" : colour === TILT_MARBLE_AMBER ? "tilt-marble-amber" : null;
+  const body = name ? strategyImage(name) : null;
+  const shine = body ? strategyImage("marble-gloss") : null;
+  if (!body || !shine) return false;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.drawImage(body, -r, -r, r * 2, r * 2);
+  ctx.drawImage(shine, -r, -r, r * 2, r * 2);
+  ctx.restore();
+  return true;
+}
+
+/** A blue or amber marble: the rendered one when loaded, else the code marble (toyMarble) exactly as before. */
+function tiltMarbleArt(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string, angle: number, seed = 0): void {
+  if (!tiltRenderedMarble(ctx, x, y, r, colour, angle)) toyMarble(ctx, x, y, r, colour, angle, seed);
 }

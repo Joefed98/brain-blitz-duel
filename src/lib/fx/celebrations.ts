@@ -22,6 +22,7 @@ import { FX_CELEBRATIONS, HERO_DANCE_SCORE, HERO_GRAND_SCORE, HERO_RUN_SCORE } f
 import { MAX_PLAYERS } from "@/lib/duel/types";
 import type { Standing } from "@/lib/duel/scoring";
 import { prefersReducedMotion } from "@/lib/motion";
+import { arcadeReducedEffects } from "./lowEnd";
 import { playCueSlot, soundUnlocked } from "@/lib/sound";
 import { checkOverride } from "@/lib/checkOverride";
 
@@ -42,9 +43,14 @@ export const HERO_STILL_MS = 1400;
 /** The results count-up (ms), and the rows' slide into their new order. */
 export const COUNT_UP_MS = 1200;
 export const COUNT_UP_SLIDE_MS = 500;
-/** The GO strike: in (under 300 ms), held, out; one strike per GO, so at most one a second. */
+/** The GO strike: in (under 300 ms), held, out; one strike per GO, so at most one a second. Each strike's own timing
+ * varies inside these (celebrationCanvas.ts: in STRIKE_IN_MIN_MS–STRIKE_IN_MS, the whole STRIKE_MIN_MS–STRIKE_MS). */
 export const STRIKE_IN_MS = 110;
 export const STRIKE_MS = 620;
+export const STRIKE_IN_MIN_MS = 60;
+export const STRIKE_MIN_MS = 460;
+/** The 3, 2, 1 strikes (15 Nov 2026): smaller, behind the number, never during play (the countdown is the intro). */
+export const COUNT_STRIKE_MS = 420;
 /** The logo's charge-in on the app's first screen (ms). */
 export const LOGO_CHARGE_MS = 600;
 /** Milestone streaks (days) that get a banner on the daily results. */
@@ -134,7 +140,7 @@ let logoCharged = false;
  * The first charge-in belongs to the screen the app opened on: a header first drawn after a route
  * change (a room link opened first, then Play) is drawn finished.
  */
-const openPath = typeof window === "undefined" ? null : window.location.pathname;
+const openPath = typeof window === "undefined" || !window.location ? null : window.location.pathname;
 /** Back from at least this long in the background counts as reopening the app (an iOS home-screen app resumed). */
 export const APP_REOPEN_HIDDEN_MS = 30_000;
 /**
@@ -199,6 +205,7 @@ export type CelebrationRequest =
   | { kind: "skip"; scope: number }
   | { kind: "podiumHero"; scope: number; anchor: Element; calm: boolean }
   | { kind: "strike" }
+  | { kind: "countStrike"; step: number }
   | { kind: "clear"; scope: number };
 
 export type CelebrationSink = (request: CelebrationRequest) => void;
@@ -397,6 +404,16 @@ export function skipCelebration(scope: number): void {
 export function podiumHero(scope: number, anchor: Element): void {
   if (!celebrationsOn()) return;
   send({ kind: "podiumHero", scope, anchor, calm: celebrationCalm() });
+}
+
+/**
+ * 3, 2, 1 (15 Nov 2026, Joe: the countdown's lightning varies every time): a smaller strike behind each number, a new
+ * bolt each time (its shape, branches, origin and timing drawn fresh). Silent (the countdown's own tick plays); none
+ * under reduced motion, reduced effects or the battery saver, nor with the celebrations off.
+ */
+export function countdownStrike(step: number): void {
+  if (!celebrationsOn() || celebrationCalm() || arcadeReducedEffects()) return;
+  send({ kind: "countStrike", step });
 }
 
 /** GO: one lightning strike across the screen, its thunder and the zap (the sounds alone under reduced motion). */

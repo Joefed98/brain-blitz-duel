@@ -5,8 +5,10 @@
  * Oct 2026 score-band pass; `next` (when set) is the revision stamped after it.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { puzzleLevel, type Level } from "../../src/lib/levels/levels";
 import type { ArcadeGame } from "../../src/lib/arcade/engine";
 import type { PuzzleType } from "../../src/lib/duel/types";
+import { puzzleLevel } from "../../src/lib/levels/levels";
 import { btCheckpoint, btIsV7Play, makeBallTrackGame, BT_REV, BT_REV_BAND, BT_REV_TALL, BT_REV_TARGET, BT_REV_STRICT, BT_REV_STD } from "../../src/lib/arcade/ballTrack";
 import { encodeBallTrackRun, replayBallTrackRun } from "../../src/lib/duel/ballTrack";
 import { BALL_TRACK_BANK } from "../../src/lib/duel/ballTrackBank.server";
@@ -43,11 +45,11 @@ import { juncCheckpoint, junctionGameFor, JUNC_REV, JUNC_REV_BAND } from "../../
 import { encodeJunctionRun, replayJunctionRun } from "../../src/lib/duel/junction";
 import { brkCheckpoint, breakerGameFor, BRK_REV, BRK_REV_BAND, BRK_REV_TALL, BRK_REV_TUNED, BRK_REV_TUNEF } from "../../src/lib/arcade/breaker";
 import { encodeBreakerRun, replayBreakerRun } from "../../src/lib/duel/breaker";
-import { tiltCheckpoint, tiltGameFor, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC } from "../../src/lib/arcade/tilt";
+import { tiltCheckpoint, tiltGameFor, tiltGameForLevel, TILT_REV, TILT_REV_BAND, TILT_REV_TUNEC } from "../../src/lib/arcade/tilt";
 import { encodeTiltRun, replayTiltRun } from "../../src/lib/duel/tilt";
 import { tiltBankSeedFor } from "../../src/lib/duel/tiltBank.server";
-import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_STD, ORBIT_REV_FUEL, orbitXpRev } from "../../src/lib/arcade/orbit";
-import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initRev4From, orbitRev3Game, orbitRev3StartFor, ORBIT_REV3_WORLD_W } from "../../src/lib/arcade/orbitRev3";
+import { orbitCheckpoint, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, orbitXpRev } from "../../src/lib/arcade/orbit";
+import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, encodeRev3Planets, initRev4From, orbitRev3Game, orbitRev3StartFor, orbitStartForPuzzle, ORBIT_REV3_WORLD_W } from "../../src/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "../../src/lib/duel/orbitXpBank.server";
 import { ORBIT_FUEL_BANK } from "../../src/lib/duel/orbitFuelBank.server";
 import { encodeOrbitRun, replayOrbitRun } from "../../src/lib/duel/orbit";
@@ -59,12 +61,13 @@ import { sliceCheckpoint, sliceGameFor, SLICE_REV, SLICE_REV_BAND, SLICE_REV_LON
 import { encodeSliceRun, replaySliceRun } from "../../src/lib/duel/slice";
 import { burstCheckpoint, burstGameFor, BURST_REV, BURST_REV_BAND, BURST_REV_TALL } from "../../src/lib/arcade/burst";
 import { encodeBurstRun, replayBurstRun } from "../../src/lib/duel/burst";
-import { swingCheckpoint, swingGameFor, SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE } from "../../src/lib/arcade/swing";
+import { swingCheckpoint, swingGameFor, SWING_REV, SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG } from "../../src/lib/arcade/swing";
 import { encodeSwingRun, replaySwingRun } from "../../src/lib/duel/swing";
 import { SWING_V4_BANK } from "../../src/lib/duel/swingBankV4.server";
 import { SWING_V9_BANK } from "../../src/lib/duel/swingBankV9.server";
 import { SWING_V13_BANK } from "../../src/lib/duel/swingBankV13.server";
 import { swingSlideDealSeed } from "../../src/lib/duel/swingSlideDeal.server";
+import { swingBigDealSeed } from "../../src/lib/duel/swingBigDeal.server";
 import { bullseyeCheckpoint, bullseyeGameFor, bullseyeInitFor, bullseyeWinds, BULLSEYE_REV, BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED } from "../../src/lib/arcade/bullseye";
 import { encodeBullseyeRun, replayBullseyeRun } from "../../src/lib/duel/bullseye";
 import { PIN_REV } from "../../src/lib/arcade/pinball";
@@ -72,25 +75,29 @@ import { pinballGameForAny, pinCheckpointAny } from "../../src/lib/arcade/pinbal
 import { encodePinballRun, replayPinballRun } from "../../src/lib/duel/pinball";
 import { minesCheckpoint, minesweeperGameFor, MINES_REV_LOGIC } from "../../src/lib/arcade/minesweeper";
 import { encodeMinesweeperRun, replayMinesweeperRun } from "../../src/lib/duel/minesweeper";
-import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD } from "../../src/lib/arcade/mahjong";
+import { mahjongCheckpoint, mahjongGameAt, mahjongGameFor, MAHJONG_REV_STD } from "../../src/lib/arcade/mahjong";
 import { encodeMahjongRun, replayMahjongRun } from "../../src/lib/duel/mahjong";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_REV_DEALT } from "../../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../../src/lib/duel/homerun";
 import { homerunDealSeedV3 } from "../../src/lib/duel/homerunDealV3.server";
 import { homerunDealSeedV4 } from "../../src/lib/duel/homerunDealV4.server";
+import { homerunDealSeedV5 } from "../../src/lib/duel/homerunDealV5.server";
 import { freekickCheckpoint, freekickGameFor, FREEKICK_REV_DEALT } from "../../src/lib/arcade/freekick";
 import { encodeFreekickRun, replayFreekickRun } from "../../src/lib/duel/freekick";
 import { freekickDealSeedV2 } from "../../src/lib/duel/freekickDealV2.server";
-import { racingCheckpoint, racingGameFor, RACING_REV_DEALT } from "../../src/lib/arcade/racing";
+import { freekickDealSeedV5 } from "../../src/lib/duel/freekickDealV5.server";
+import { freekickDealSeedV6 } from "../../src/lib/duel/freekickDealV6.server";
+import { racingCheckpoint, racingGameFor, racingLevelOf, RACING_REV_DEALT } from "../../src/lib/arcade/racing";
 import { encodeRacingRun, replayRacingRun } from "../../src/lib/duel/racing";
 import { racingDealSeedV3 } from "../../src/lib/duel/racingDealV3.server";
-import { fcCheckpoint, freecellGameFor, FC_REV } from "../../src/lib/arcade/cards/freecell";
+import { fcCheckpoint, freecellGameAt, freecellGameFor, FC_REV } from "../../src/lib/arcade/cards/freecell";
+import { levelOfPuzzle } from "../../src/lib/levels/levels";
 import { FC_DEALS_V4 } from "../../src/lib/arcade/cards/freecellDealsV4.data";
-import { tpCheckpoint, tripeaksGameFor, TP_REV } from "../../src/lib/arcade/cards/tripeaks";
+import { tpCheckpoint, tripeaksGameAt, tripeaksGameFor, TP_REV } from "../../src/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "../../src/lib/arcade/cards/tripeaksDeals.data";
 import { psCheckpoint, pokerSquaresGameFor, PS_REV } from "../../src/lib/arcade/cards/pokerSquares";
-import { fhCheckpoint, fiveHandsGameFor, FH_REV } from "../../src/lib/arcade/cards/fiveHands";
-import { pyCheckpoint, pyramidGameFor, PY_REV } from "../../src/lib/arcade/cards/pyramid";
+import { fhCheckpoint, fiveHandsGameAt, fiveHandsGameFor, FH_REV } from "../../src/lib/arcade/cards/fiveHands";
+import { pyCheckpoint, pyramidGameAt, pyramidGameFor, PY_REV } from "../../src/lib/arcade/cards/pyramid";
 import { gsCheckpoint, golfSolGameFor, GS_REV } from "../../src/lib/arcade/cards/golfSol";
 import { GS_DEALS } from "../../src/lib/arcade/cards/golfSolDeals.data";
 import { mgCheckpoint, mugginsGameFor, MG_REV } from "../../src/lib/arcade/cards/muggins";
@@ -107,7 +114,7 @@ import { minigolfCheckpoint, minigolfGameFor, MINIGOLF_REV, MINIGOLF_REV_CLASSIC
 import { encodeMinigolfRun, replayMinigolfRun } from "../../src/lib/duel/minigolf";
 import { MINIGOLF_BANK, minigolfBankEntryFor } from "../../src/lib/duel/minigolfBank.server";
 import { MINIGOLF_BANK_V2, minigolfBankV2EntryFor } from "../../src/lib/duel/minigolfBankV2.server";
-import { poolCheckpoint, poolGameFor, POOL_REV } from "../../src/lib/arcade/pool";
+import { poolCheckpoint, poolGameFor, poolGameForPuzzle, POOL_REV } from "../../src/lib/arcade/pool";
 import { encodePoolRun, replayPoolRun } from "../../src/lib/duel/pool";
 import { poolBankV2SeedFor } from "../../src/lib/duel/poolBankV2.server";
 import { poolBankV3SeedFor } from "../../src/lib/duel/poolBankV3.server";
@@ -165,6 +172,8 @@ export interface GameSpec {
    * checks keep reading `gameFor`.
    */
   gameForPuzzle?: (puzzle: any) => ArcadeGame<any, any>;
+  /** The game's checkpoint interval in ticks, as the phone records them (default 300; level-tune.ts reads it). */
+  checkpointEvery?: number;
   checkpoint: (state: any) => unknown;
   encode: (run: any, rev: number | null, seed: number) => string;
   replay: (seed: number, raw: string, rev: number | null) => any;
@@ -223,27 +232,39 @@ export const GAMES: GameSpec[] = [
     // Rooms deal a bank course; the stored seed picks it.
     seedFor: (n) => roomSeed(n) % BALL_TRACK_BANK.length,
     gameFor: (rev, seed) => makeBallTrackGame(btCourseFor(rev, seed), rev),
+    // Levels (Strategy overhaul stage 3): the dealt puzzle's own course (a level's proved list, or the bank's on Normal).
+    gameForPuzzle: (puzzle) => makeBallTrackGame(puzzle.course, puzzle.btRev),
     checkpoint: btCheckpoint,
     encode: (run, rev, seed) => encodeBallTrackRun(btCourseFor(rev, seed), run, rev),
     replay: (seed, raw, rev) => replayBallTrackRun(btCourseFor(rev, seed), seed, raw, rev),
   },
   { ...simple("wavefront", WAV_REV, WAV_REV_BAND, wavefrontGameFor, wavCheckpoint, encodeWavefrontRun, replayWavefrontRun), tuned: WAV_REV_SHAPES, tunec: WAV_REV_TUNEC, tuneg: WAV_REV_TALL },
-  { ...simple("flip", FLIP_REV, FLIP_REV_BAND, flipGameFor, flipCheckpoint, encodeFlipRun, replayFlipRun), tunec: FLIP_REV_TUNEC },
-  { ...simple("inkbridge", INK_REV4, INK_REV_BAND, inkBridgeGameFor, inkCheckpoint, encodeInkBridgeRun, replayInkBridgeRun), tunec: INK_REV_TUNEC },
-  { ...simple("matchup", MATCHUP_REV, MATCHUP_REV_BAND, matchupGameFor, matchupCheckpoint, encodeMatchupRun, replayMatchupRun), tunec: MATCHUP_REV_WAIT, tunef: MATCHUP_REV_PAR },
-  { ...simple("bubble", BUB_REV, BUB_REV_BAND, bubbleGameFor, bubCheckpoint, encodeBubbleRun, replayBubbleRun), tunef: BUB_REV_TORPEDO, tuneg2: BUB_REV_TALL },
+  // Levels (15 Nov 2026): the dealt puzzle's level picks the level's course and crash cost.
+  { ...simple("flip", FLIP_REV, FLIP_REV_BAND, flipGameFor, flipCheckpoint, encodeFlipRun, replayFlipRun), tunec: FLIP_REV_TUNEC, gameForPuzzle: (p) => flipGameFor(p.flipRev, puzzleLevel(p)) },
+  {
+    ...simple("inkbridge", INK_REV4, INK_REV_BAND, inkBridgeGameFor, inkCheckpoint, encodeInkBridgeRun, replayInkBridgeRun),
+    tunec: INK_REV_TUNEC,
+    // Stage 3: the dealt puzzle's level (inkRev 15's INK_LEVEL_SETS), so the tuning tool's bots play the level's world.
+    gameForPuzzle: (p: { inkRev?: number; level?: unknown }) => inkBridgeGameFor(p.inkRev, p.level),
+  },
+  // matchupRev 13's levels change the sim (colours, goals, ice, the hint): the level tool plays the dealt level's world.
+  { ...simple("matchup", MATCHUP_REV, MATCHUP_REV_BAND, matchupGameFor, matchupCheckpoint, encodeMatchupRun, replayMatchupRun), tunec: MATCHUP_REV_WAIT, tunef: MATCHUP_REV_PAR, gameForPuzzle: (p) => matchupGameFor(p.matchupRev, p.level) },
+  // Levels (stage 3): the dealt puzzle's level picks bubbleRev 12's reef (Normal and older stamps as before).
+  { ...simple("bubble", BUB_REV, BUB_REV_BAND, bubbleGameFor, bubCheckpoint, encodeBubbleRun, replayBubbleRun), tunef: BUB_REV_TORPEDO, tuneg2: BUB_REV_TALL, gameForPuzzle: (p) => bubbleGameFor(p?.bubbleRev, p?.level) },
   { ...simple("cross", CROSS_REV, CROSS_REV_BAND, crossGameFor, crossCheckpoint, encodeCrossRun, replayCrossRun), tunef: CROSS_REV_SMALL },
   { ...simple("rally", RALLY_REV, RALLY_REV_BAND, rallyGameFor, rallyCheckpoint, encodeRallyRun, replayRallyRun), current: RALLY_REV_TUNED, tunef: RALLY_REV_TUNEF, tuneg: RALLY_REV_TALL },
   { ...simple("snake", SNAKE_REV, SNAKE_REV_BAND, snakeGameFor, snakeCheckpoint, encodeSnakeRun, replaySnakeRun), tunee: SNAKE_REV_TALL, tunef: SNAKE_REV_ROCKS },
   simple("bintoss", BINTOSS_REV3, BINTOSS_REV_BAND, binTossGameFor, binTossCheckpoint, encodeBinTossRun, replayBinTossRun),
   { ...simple("snip", SNIP_REV3, SNIP_REV_BAND, snipGameFor, snipCheckpoint, encodeSnipRun, replaySnipRun), tunee: SNIP_REV_TALL, bank: SNIP_REV_BANK6, tunef: SNIP_REV_PROVEN },
   { ...simple("hover", HOVER_REV, HOVER_REV_BAND, hoverGameFor, hoverCheckpoint, encodeHoverRun, replayHoverRun, true), tunec: HOVER_REV_TUNEC, tunee: HOVER_REV_TALL },
-  { ...simple("skyline", SKYLINE_REV, SKYLINE_REV_BAND, skylineGameFor, skylineCheckpoint, encodeSkylineRun, replaySkylineRun, true), tunee: SKYLINE_REV_TALL },
+  // Levels (15 Nov 2026): the dealt puzzle's level picks the level's slide, tolerance, wind and lives.
+  { ...simple("skyline", SKYLINE_REV, SKYLINE_REV_BAND, skylineGameFor, skylineCheckpoint, encodeSkylineRun, replaySkylineRun, true), tunee: SKYLINE_REV_TALL, gameForPuzzle: (p) => skylineGameFor(p.skylineRev, puzzleLevel(p)) },
   simple("junction", JUNC_REV, JUNC_REV_BAND, junctionGameFor, juncCheckpoint, encodeJunctionRun, replayJunctionRun),
   { ...simple("breaker", BRK_REV, BRK_REV_BAND, breakerGameFor, brkCheckpoint, encodeBreakerRun, replayBreakerRun), current: BRK_REV_TUNED, tunef: BRK_REV_TUNEF, tuneg: BRK_REV_TALL },
   // Rooms deal tiltRev 8's bank (seeds the oracle played to 200), so every revision is measured on those (paired). The
   // tuning seeds 0–59 are the bank's first 60; the fresh seeds 10000– start at its 61st, so the two sets never share one.
-  { ...simple("tilt", TILT_REV, TILT_REV_BAND, tiltGameFor, tiltCheckpoint, encodeTiltRun, replayTiltRun), tunec: TILT_REV_TUNEC, seedFor: tiltBankSeedFor, fixtureSeedFor: plain },
+  // Levels (stage 3): level-tune plays the dealt puzzle's level (tiltRev 12 with easy, hard or expert); Normal its stamp's.
+  { ...simple("tilt", TILT_REV, TILT_REV_BAND, tiltGameFor, tiltCheckpoint, encodeTiltRun, replayTiltRun), tunec: TILT_REV_TUNEC, seedFor: tiltBankSeedFor, fixtureSeedFor: plain, gameForPuzzle: (p) => tiltGameForLevel(p?.tiltRev, p?.level) },
   {
     type: "orbit",
     live: ORBIT_REV4,
@@ -259,9 +280,11 @@ export const GAMES: GameSpec[] = [
     // orbitRev 13 (the arcade scoring standard): measured on the feature-bank course rooms deal for the n-th room seed,
     // whatever the mode (--rev=now included); every earlier revision keeps its seeds.
     // orbitRev 14 (the fuel meter): the fuel-bank course rooms deal for the n-th room seed.
-    seedForRev: (n, rev) => (rev === ORBIT_REV_FUEL ? ORBIT_FUEL_BANK[roomSeed(n) % ORBIT_FUEL_BANK.length]!.seed : rev === ORBIT_REV_STD ? ORBIT_XP_BANK[roomSeed(n) % ORBIT_XP_BANK.length]!.seed : undefined),
+    // orbitRev 15 (grace, the Action overhaul): the same fuel-bank course as orbitRev 14 for the same room seed.
+    // orbitRev 16 (bigger planets, stage 3): the same course again.
+    seedForRev: (n, rev) => ((rev === ORBIT_REV_FUEL || rev === ORBIT_REV_GRACE || rev === ORBIT_REV_BIG) ? ORBIT_FUEL_BANK[roomSeed(n) % ORBIT_FUEL_BANK.length]!.seed : rev === ORBIT_REV_STD ? ORBIT_XP_BANK[roomSeed(n) % ORBIT_XP_BANK.length]!.seed : undefined),
     gameFor: (rev, seed) => {
-      if (rev === ORBIT_REV_FUEL) {
+      if ((rev === ORBIT_REV_FUEL || rev === ORBIT_REV_GRACE || rev === ORBIT_REV_BIG)) {
         const e = orbitFuelEntry(seed);
         const start = orbitRev3StartFor(rev, decodeOrbitExtras(e.extras))!;
         return { ...orbitRev3Game, init: () => start(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes)) };
@@ -269,10 +292,16 @@ export const GAMES: GameSpec[] = [
       const start = orbitRev3StartFor(rev, orbitXpRev(rev) ? decodeOrbitExtras(orbitXpExtras(seed)) : null) ?? initRev4From;
       return { ...orbitRev3Game, init: () => start(orbitPlanets(seed), ORBIT_REV3_WORLD_W, decodeOrbitHoles(orbitEntry(seed).holes)) };
     },
+    // Levels (docs/arcade-standard/orbit.md "Levels"): the dealt puzzle's own course and level rules (the level's bank
+    // course, its tank and checkpoints), as the stage plays it; a puzzle without a level is the stamp's world.
+    gameForPuzzle: (puzzle) => {
+      const start = orbitStartForPuzzle(puzzle);
+      return start ? { ...orbitRev3Game, init: start } : orbitRev3Game;
+    },
     checkpoint: orbitCheckpoint,
     encode: (run) => encodeOrbitRun(run),
     replay: (seed, raw, rev) =>
-      rev === ORBIT_REV_FUEL
+      (rev === ORBIT_REV_FUEL || rev === ORBIT_REV_GRACE || rev === ORBIT_REV_BIG)
         ? replayOrbitRun(seed, raw, rev, orbitFuelEntry(seed).planets, orbitFuelEntry(seed).holes, orbitFuelEntry(seed).extras)
         : replayOrbitRun(seed, raw, rev ?? undefined, encodeRev3Planets(orbitPlanets(seed)), orbitEntry(seed).holes, orbitXpRev(rev) ? orbitXpExtras(seed) : undefined),
   },
@@ -293,8 +322,10 @@ export const GAMES: GameSpec[] = [
     // swingRev 13 (the 200 expansion) rooms deal from SWING_V13_BANK; --rev=x plays swingRev 11 on the same courses
     // (all of them in SWING_V9_BANK, which swingRev 11 rooms dealt), so the two revisions are paired.
     // swingRev 14 (the assault course), 15 (the swinging course), 16 (its dark ledge runs) and 17 (its sliding hooks) rooms deal any seed (generateSwing): the room seed itself.
-    seedForRev: (n, rev) => (rev === SWING_REV_SLIDE ? swingSlideDealSeed(roomSeed(n)) : rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK ? roomSeed(n) : rev === SWING_REV_EXPAND || rev === SWING_REV_STRICT ? SWING_V13_BANK[roomSeed(n) % SWING_V13_BANK.length]!.seed : undefined),
+    seedForRev: (n, rev) => (rev === SWING_REV_BIG ? swingBigDealSeed(roomSeed(n)) : rev === SWING_REV_SLIDE ? swingSlideDealSeed(roomSeed(n)) : rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK ? roomSeed(n) : rev === SWING_REV_EXPAND || rev === SWING_REV_STRICT ? SWING_V13_BANK[roomSeed(n) % SWING_V13_BANK.length]!.seed : undefined),
     gameFor: (rev) => swingGameFor(rev ?? undefined),
+    // The difficulty levels (15 Nov 2026): the dealt puzzle's stamp and stored level.
+    gameForPuzzle: (p) => swingGameFor(p.swingRev ?? undefined, p.level),
     checkpoint: swingCheckpoint,
     encode: (run) => encodeSwingRun(run),
     replay: (seed, raw, rev) => replaySwingRun(seed, raw, rev ?? undefined),
@@ -316,23 +347,24 @@ export const GAMES: GameSpec[] = [
   // Cards & Board (30 Oct 2026): born on the arcade scoring standard (one revision each, measured with --rev=now).
   // minesRev 2 (13 Nov 2026): Minefield in Logic with 20 mines.
   simple("minesweeper", MINES_REV_LOGIC, MINES_REV_LOGIC, minesweeperGameFor, minesCheckpoint, encodeMinesweeperRun, replayMinesweeperRun),
-  simple("mahjong", MAHJONG_REV_STD, MAHJONG_REV_STD, mahjongGameFor, mahjongCheckpoint, encodeMahjongRun, replayMahjongRun),
+  { ...simple("mahjong", MAHJONG_REV_STD, MAHJONG_REV_STD, mahjongGameFor, mahjongCheckpoint, encodeMahjongRun, replayMahjongRun), gameForPuzzle: (p) => mahjongGameAt(p.mahjongRev, levelOfPuzzle(p)) },
   // The Sports group (30 Oct 2026): born on the arcade scoring standard (rev 1 is live and next); rooms deal a seed from
   // each game's proved deal (the oracle took it to 200 through the server replay), picked by the room seed.
   // homerunRev 3 (1 Nov 2026): the swing choice and the pitcher's tell, on rev 3's own proved deal.
-  { ...simple("homerun", HOMERUN_REV_DEALT, HOMERUN_REV_DEALT, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), seedFor: (n) => homerunDealSeedV4(roomSeed(n)), seedForRev: (n, rev) => (rev === 3 ? homerunDealSeedV3(roomSeed(n)) : undefined) },
-  { ...simple("freekick", FREEKICK_REV_DEALT, FREEKICK_REV_DEALT, freekickGameFor, freekickCheckpoint, encodeFreekickRun, replayFreekickRun), seedFor: (n) => freekickDealSeedV2(roomSeed(n)) },
+  { ...simple("homerun", HOMERUN_REV_DEALT, HOMERUN_REV_DEALT, homerunGameFor, homerunCheckpoint, encodeHomerunRun, replayHomerunRun), checkpointEvery: 60, gameForPuzzle: (p) => homerunGameFor(p.homerunRev ?? null, p.level), seedFor: (n) => homerunDealSeedV5(roomSeed(n)), seedForRev: (n, rev) => (rev === 4 ? homerunDealSeedV4(roomSeed(n)) : rev === 3 ? homerunDealSeedV3(roomSeed(n)) : undefined) },
+  { ...simple("freekick", FREEKICK_REV_DEALT, FREEKICK_REV_DEALT, freekickGameFor, freekickCheckpoint, encodeFreekickRun, replayFreekickRun), checkpointEvery: 60, gameForPuzzle: (p) => freekickGameFor(p.freekickRev ?? null, p.level), seedFor: (n) => freekickDealSeedV6(roomSeed(n)), seedForRev: (n, rev) => (rev !== null && rev < 5 ? freekickDealSeedV2(roomSeed(n)) : rev === 5 ? freekickDealSeedV5(roomSeed(n)) : undefined) },
   // Apex (racing) deals racingRev 3 from its own proved deal since 3 Nov 2026 (racingRev 2 from 31 Oct 2026).
-  { ...simple("racing", RACING_REV_DEALT, RACING_REV_DEALT, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), seedFor: (n) => racingDealSeedV3(roomSeed(n)) },
+  { ...simple("racing", RACING_REV_DEALT, RACING_REV_DEALT, racingGameFor, racingCheckpoint, encodeRacingRun, replayRacingRun), checkpointEvery: 120, seedFor: (n) => racingDealSeedV3(roomSeed(n)), gameForPuzzle: (p) => racingGameFor(p.racingRev, racingLevelOf(p.racingLevel)) },
   // Cards & Board (30 Oct 2026): born on the arcade standard, one revision each. FreeCell and TriPeaks deal a bank
   // index (the room seed modulo the bank); Poker Squares any seed.
-  { ...simple("freecell", FC_REV, FC_REV, freecellGameFor, fcCheckpoint, encodeFreecellRun, replayFreecellRun), seedFor: (n) => roomSeed(n) % FC_DEALS_V4.length },
-  { ...simple("tripeaks", TP_REV, TP_REV, tripeaksGameFor, tpCheckpoint, encodeTripeaksRun, replayTripeaksRun), seedFor: (n) => roomSeed(n) % TP_DEALS.length },
+  // The difficulty levels (15 Nov 2026): a level deal plays its level's game (level-tune.ts reads gameForPuzzle).
+  { ...simple("freecell", FC_REV, FC_REV, freecellGameFor, fcCheckpoint, encodeFreecellRun, replayFreecellRun), seedFor: (n) => roomSeed(n) % FC_DEALS_V4.length, gameForPuzzle: (p) => freecellGameAt(p.freecellRev, levelOfPuzzle(p)) },
+  { ...simple("tripeaks", TP_REV, TP_REV, tripeaksGameFor, tpCheckpoint, encodeTripeaksRun, replayTripeaksRun), seedFor: (n) => roomSeed(n) % TP_DEALS.length, gameForPuzzle: (p) => tripeaksGameAt(p.tripeaksRev, levelOfPuzzle(p)) },
   simple("pokersquares", PS_REV, PS_REV, pokerSquaresGameFor, psCheckpoint, encodePokerSquaresRun, replayPokerSquaresRun),
   // Five Hands (31 Oct 2026): born on the arcade standard; any seed (the sim deals the deck and proves its witness).
-  simple("fivehands", FH_REV, FH_REV, fiveHandsGameFor, fhCheckpoint, encodeFiveHandsRun, replayFiveHandsRun),
+  { ...simple("fivehands", FH_REV, FH_REV, fiveHandsGameFor, fhCheckpoint, encodeFiveHandsRun, replayFiveHandsRun), gameForPuzzle: (p) => fiveHandsGameAt(p.fiveHandsRev, levelOfPuzzle(p)) },
   // Pyramid and Muggins (1 Nov 2026): any seed (the sim builds and proves the deal); Golf Solitaire a bank index.
-  simple("pyramid", PY_REV, PY_REV, pyramidGameFor, pyCheckpoint, encodePyramidRun, replayPyramidRun),
+  { ...simple("pyramid", PY_REV, PY_REV, pyramidGameFor, pyCheckpoint, encodePyramidRun, replayPyramidRun), gameForPuzzle: (p) => pyramidGameAt(p.pyramidRev, levelOfPuzzle(p)) },
   { ...simple("golfsol", GS_REV, GS_REV, golfSolGameFor, gsCheckpoint, encodeGolfSolRun, replayGolfSolRun), seedFor: (n) => roomSeed(n) % GS_DEALS.length },
   simple("muggins", MG_REV, MG_REV, mugginsGameFor, mgCheckpoint, encodeMugginsRun, replayMugginsRun),
   // Blockfall (Retro, 1 Nov 2026): born on the arcade standard; rooms deal a seed from its proved deal. Blockzone
@@ -349,15 +381,21 @@ export const GAMES: GameSpec[] = [
       MOON_REV,
       NINJA_REV,
       ninjaGameFor,
-      (s: NinjaState) => (s.rev === MOON_REV ? moonCheckpoint(s as never) : ninjaCheckpoint(s)),
+      (s: NinjaState) => (s.rev >= MOON_REV ? moonCheckpoint(s as never) : ninjaCheckpoint(s)),
       encodeMoonRun,
-      (seed, raw, rev) => ((rev ?? 2) >= MOON_REV ? replayMoonRun(seed, raw) : replayNinjaRun(seed, raw)),
+      (seed, raw, rev) => ((rev ?? 2) >= MOON_REV ? replayMoonRun(seed, raw, rev) : replayNinjaRun(seed, raw)),
     ),
     encode: (run, rev) => ((rev ?? 2) >= MOON_REV ? encodeMoonRun(run) : encodeNinjaRun(run)),
+    // The difficulty levels (15 Nov 2026): the dealt puzzle's stamp and stored level (ricoRev 4).
+    gameForPuzzle: (p) => ninjaGameFor(p.ricoRev, p.level),
   },
   // Iron Wall (id bastion): the tank-defence shooter, born on the arcade scoring standard at bastionRev 2 (1 Nov 2026);
   // bastionRev 3 (3 Nov 2026) eases waves 4–5 and adds the drones; any seed. "live" is rev 2, "next" rev 3.
-  simple("bastion", BASTION_REV_TANK, BASTION_REV_IRON, (rev) => bastionTankGameFor(rev), bastionTankCheckpoint, encodeBastionTankRun, (seed, raw, rev) => replayBastionTankRun(seed, raw, rev)),
+  // bastionRev 4 (15 Nov 2026, the levels): the level tuning plays each level's own game from the dealt puzzle.
+  {
+    ...simple("bastion", BASTION_REV_TANK, BASTION_REV_IRON, (rev) => bastionTankGameFor(rev), bastionTankCheckpoint, encodeBastionTankRun, (seed, raw, rev) => replayBastionTankRun(seed, raw, rev)),
+    gameForPuzzle: (puzzle: { bastionRev?: number; level?: unknown }) => bastionTankGameFor(puzzle.bastionRev, puzzle.level),
+  },
   // The Sports group (30 Oct 2026): Minigolf deals a bank course (seed and pars); golfRev 2 (crazy golf, 31 Oct 2026)
   // from its own bank, golfRev 1 (`seedForRev`) from the first.
   {
@@ -366,6 +404,8 @@ export const GAMES: GameSpec[] = [
     seedFor: (n) => minigolfBankV2EntryFor(n).seed,
     seedForRev: (n, rev) => (rev === MINIGOLF_REV_CLASSIC ? minigolfBankEntryFor(n).seed : minigolfBankV2EntryFor(n).seed),
     gameFor: (rev, seed) => minigolfGameFor(minigolfParsOf(seed), minigolfRevOf(rev, seed)),
+    // golfRev 3 (the Crazy Golf overhaul): the dealt holes, pars and level (the level tool, scripts/level-tune.ts).
+    gameForPuzzle: (p) => (p.golfRev === 3 ? minigolfGameFor(p.pars, 3, { holes: p.holes, level: p.level ?? "normal" }) : minigolfGameFor(p.pars ?? minigolfParsOf(p.seed), minigolfRevOf(p.golfRev ?? null, p.seed))),
     checkpoint: minigolfCheckpoint,
     encode: (run) => encodeMinigolfRun(run),
     replay: (seed, raw, rev) => replayMinigolfRun(seed, raw, minigolfParsOf(seed), minigolfRevOf(rev ?? null, seed)),
@@ -378,6 +418,8 @@ export const GAMES: GameSpec[] = [
     // poolRev 2 and 3 measure on their own banks' layouts.
     seedForRev: (n, rev) => (rev === 2 ? poolBankV2SeedFor(n) : rev === 3 ? poolBankV3SeedFor(n) : undefined),
     gameFor: (rev) => poolGameFor(rev),
+    // The level (stage 3): the dealt puzzle's level rides on the state, so the bot sees its preview and fouls cost its level's.
+    gameForPuzzle: (puzzle) => poolGameForPuzzle(puzzle),
     checkpoint: poolCheckpoint,
     encode: (run) => encodePoolRun(run),
     replay: (seed, raw, rev) => replayPoolRun(seed, raw, rev),
@@ -391,10 +433,33 @@ export const GAMES: GameSpec[] = [
     // curlRev 1, 2 and 3 measure on their own banks' sheets.
     seedForRev: (n, rev) => (rev === 1 ? curlingBankSeedFor(n) : rev === 2 ? curlingBankV2SeedFor(n) : rev === 3 ? curlingBankV3SeedFor(n) : undefined),
     gameFor: (rev) => curlingGameFor(rev ?? 1),
+    // The levels (16 Nov 2026): a dealt puzzle's level plays its own reds (Normal: the stamp's game as above).
+    gameForPuzzle: (p) => curlingGameFor(p.curlRev ?? 1, p.level),
     checkpoint: curlingCheckpoint,
     encode: (run) => encodeCurlingRun(run),
     replay: (seed, raw, rev) => replayCurlingRun(seed, raw, rev),
   },
 ];
+
+/**
+ * Stage 3 of the Retro overhaul (16 Nov 2026): the Retro games' levels change their sims, so the level tuning tool
+ * (scripts/level-tune.ts) builds each from the dealt puzzle's stamp and level through its `…GameFor(rev, level)`.
+ */
+const RETRO_LEVEL_GAMES: Record<string, [string, (rev: number | null, level: Level) => ArcadeGame<any, any>]> = {
+  breaker: ["brkRev", (rev, level) => breakerGameFor(rev, level)],
+  cross: ["crossRev", (rev, level) => crossGameFor(rev, level)],
+  snake: ["snakeRev", (rev, level) => snakeGameFor(rev, level)],
+  beat: ["beatRev", (rev, level) => beatGameFor(rev, level)],
+  burst: ["burstRev", (rev, level) => burstGameFor(rev, level)],
+  rally: ["rallyRev", (rev, level) => rallyGameFor(rev, level)],
+  hover: ["hoverRev", (rev, level) => hoverGameFor(rev, level)],
+  pinball: ["pinRev", (rev, level) => pinballGameForAny(rev, level)],
+  wavefront: ["wavRev", (rev, level) => wavefrontGameFor(rev, level)],
+  blockfall: ["blockfallRev", (rev, level) => blockfallGameFor(rev, level)],
+};
+for (const g of GAMES) {
+  const own = RETRO_LEVEL_GAMES[g.type];
+  if (own) g.gameForPuzzle = (puzzle) => own[1](puzzle[own[0]] ?? null, puzzleLevel(puzzle));
+}
 
 export const GAME_BY_TYPE = new Map(GAMES.map((g) => [g.type, g]));

@@ -22,8 +22,12 @@ import { completeFx, fx } from "@/lib/fx";
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
 import { useMoveSync } from "@/components/puzzles/useMoveSync";
 import { goldPulse, playFinish, useWordFinish, wordCue, type FinishStep } from "@/components/puzzles/wordFinish";
+import { effectCue, flyFrom, wordFx } from "@/components/puzzles/wordFx";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
-import "@/polish-layout/batch-w-swapword.css";
+import "@/polish-word/word-look.css";
+import "@/polish-word/swapword.css";
+import { BoardPair, RevealKey, RevealNumbers } from "@/components/puzzles/WordReveal";
+import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -49,6 +53,9 @@ function tileStyle(look: TileLook): React.CSSProperties {
       return { background: "var(--puzzle-given)", color: "var(--foreground)", borderColor: "var(--puzzle-edge)" };
   }
 }
+
+/** The Word overhaul: each look's rendered glaze (gold, teal and grey are the game's clue colours and stay). */
+const WA_LOOK: Record<string, string> = { "2": "gold", "1": "teal", "0": "grey", pending: "dim", missed: "red" };
 
 /** The figure-eight board: 6 × 6 cells, 21 of them tiles. */
 export function Board({
@@ -94,6 +101,8 @@ export function Board({
           <div
             key={cell}
             data-sw-tile={tile}
+            data-wa="tile"
+            data-wa-tone={WA_LOOK[String(look)]}
             className={`flex items-center justify-center rounded-[22%] border-b-4 font-display font-bold transition-transform ${
               selected === tile ? "-translate-y-0.5 ring-2 ring-foreground" : ""
             } ${lifted === tile ? "opacity-30" : ""}`}
@@ -115,24 +124,37 @@ const FIGURE_EIGHT: readonly (readonly number[])[] = [
   [18], [19], [20], [21], [22], [23, 17], [29], [35], [34], [33, 32], [27], [15], [9], [3], [2], [1], [0], [6], [12],
 ];
 
-/** Fixed example: one word row, two tiles to swap. */
+/**
+ * Fixed example: one word row, one swap (the Word overhaul, 15 Nov 2026: the intro shows a swap turning two tiles gold).
+ * N and L slide past each other in the top row (a looping demo, still under reduced motion), and the row below shows
+ * the result: both tiles gold, LEMON done.
+ */
 function IntroExample() {
-  const row = (letters: string, looks: TileLook[]) => (
+  const row = (letters: string, looks: TileLook[], swap?: readonly number[]) => (
     <div className="flex shrink-0 gap-1">
       {[...letters].map((ch, i) => (
-        <span key={i} className="flex h-8 w-8 items-center justify-center rounded-[22%] border-b-4 font-display text-base font-bold" style={tileStyle(looks[i] ?? 0)}>
+        <span
+          key={i}
+          data-wa="tile"
+          data-wa-tone={WA_LOOK[String(looks[i] ?? 0)]}
+          data-sw-demo-swap={swap?.includes(i) ? (i === swap[0] ? "a" : "b") : undefined}
+          className="flex h-8 w-8 items-center justify-center rounded-[22%] font-display text-base font-bold"
+          style={tileStyle(looks[i] ?? 0)}
+        >
           {ch}
         </span>
       ))}
     </div>
   );
   return (
-    <div className="flex flex-col items-center gap-2">
-      {row("NEMOL", [1, 2, 2, 2, 1])}
-      <ArrowLeftRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+    <div className="flex flex-col items-center gap-2" data-sw-intro-swap="">
+      {row("NEMOL", [1, 2, 2, 2, 1], [0, 4])}
+      <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+        <ArrowLeftRight className="h-4 w-4 shrink-0" /> Swap N and L: both turn gold
+      </p>
       {row("LEMON", [2, 2, 2, 2, 2])}
       <p className="max-w-[260px] text-center text-xs text-muted-foreground">
-        Gold is in place; teal belongs elsewhere in its word. Swap N and L to finish LEMON.
+        Gold is in place; teal belongs elsewhere in its word; grey fits neither.
       </p>
     </div>
   );
@@ -166,6 +188,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
       const newlyPlaced = view.marks.filter((m, t) => m === 2 && prev?.[t] !== 2).length;
       if (newlyPlaced > 0 && !view.solved) {
         fx.onPlace();
+        // Stage 2: a tile turning gold is a bright plink; two in one swap a combo.
+        if (prev) {
+          effectCue("swapword.gold");
+          if (newlyPlaced >= 2) wordFx("combo", boardRef.current?.querySelector(`[data-sw-tile="${view.marks.findIndex((m, t) => m === 2 && prev[t] !== 2)}"]`), "swapword.combo", { count: newlyPlaced });
+        }
         // Batch W: the toolkit's right-move glow on each tile that just turned gold (display only; prev
         // is null only for the starting board's first marks, which are not a move).
         if (prev) {
@@ -184,6 +211,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const counterRef = useRef<HTMLSpanElement | null>(null);
   const maxSwaps = data?.maxSwaps ?? 0;
   const left = Math.max(0, maxSwaps - swaps.length);
   const parOn = (data?.swapwordRev ?? 0) >= SWAPWORD_REV_PAR;
@@ -210,9 +238,18 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [result, locked, left]);
 
+  // Stage 2: three swaps left pulses the counter; out of swaps, a closing clunk as the board greys.
+  useEffect(() => {
+    if (!data || locked || result.solved || swaps.length === 0) return;
+    if (left === 3) wordFx("nearMiss", counterRef.current, "swapword.low", { noHaptic: true });
+    if (left === 0) wordFx("drop", null, "swapword.out");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [left]);
+
   // Solved: a gold wave runs once round the figure-eight (display only).
   useWordFinish(result.solved, () => {
     wordCue("swapword.finish");
+    effectCue("swapword.scale");
     const steps: FinishStep[] = FIGURE_EIGHT.flatMap((cells, i) =>
       cells.map((cell) => ({
         el: boardRef.current?.querySelector(`[data-sw-tile="${SW_TILE_CELLS.indexOf(cell)}"]`),
@@ -243,6 +280,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
     setSelected(null);
     fx.onMove();
     sync(encodeSwapword(next));
+    // Stage 2: the two tiles pass each other with a wooden clack (each slides in from the other's place).
+    const tileEl = (t: number) => boardRef.current?.querySelector(`[data-sw-tile="${t}"]`);
+    const ra = tileEl(a)?.getBoundingClientRect();
+    const rb = tileEl(b)?.getBoundingClientRect();
+    effectCue("swapword.swap");
+    requestAnimationFrame(() => {
+      flyFrom(tileEl(a), rb);
+      flyFrom(tileEl(b), ra);
+    });
   };
 
   const tileAt = (x: number, y: number): number | null => {
@@ -259,7 +305,11 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   const onPointerDown = (event: React.PointerEvent) => {
     if (done) return;
     const tile = tileAt(event.clientX, event.clientY);
-    if (!movable(tile)) return;
+    if (!movable(tile)) {
+      // Stage 2: a locked gold tile gives a small wiggle, never an error.
+      if (tile !== null) wordFx("wrong", boardRef.current?.querySelector(`[data-sw-tile="${tile}"]`), "swapword.locked", { noHaptic: true });
+      return;
+    }
     event.currentTarget.setPointerCapture(event.pointerId);
     press.current = { tile, x: event.clientX, y: event.clientY, moved: false };
   };
@@ -286,13 +336,15 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   };
 
   // As large as the arena allows (to 400px on big phones).
-  const boardSide = "min(100cqw, 100cqh, 400px)";
+  // The Word overhaul: the figure-eight uses more of the screen (up to 460 px; was 400).
+  const boardSide = "min(100cqw, 100cqh, 460px)";
   const ghostLook = drag ? looks[drag.tile] ?? 0 : 0;
 
   return (
-    <div ref={root} data-stage-column="2" data-word-polish="swapword" className="flex min-h-0 flex-1 flex-col items-center gap-2 py-1" style={NO_SCROLL_STYLE}>
+    <div ref={root} data-stage-column="2" data-word-polish="swapword" data-sw-out={left === 0 && !result.solved ? "" : undefined} className="flex min-h-0 flex-1 flex-col items-center gap-2 py-1" style={NO_SCROLL_STYLE}>
       <div className="flex h-10 shrink-0 items-center gap-2" aria-live="polite">
         <span
+          ref={counterRef}
           className={`flex items-center gap-2 rounded-full border-2 px-4 py-1 font-display text-lg font-bold ${left <= 3 ? "border-destructive text-destructive" : "border-primary text-primary"}`}
           aria-label={`${left} swaps left`}
         >
@@ -353,7 +405,43 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   );
 }
 
-function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealProps) {
+/**
+ * The Word overhaul's reveal (swapwordRev 7+): the solved figure-eight and your final board, one at a time and large
+ * (the shared Solution / Yours switch), your board in the clue colours (gold in place, teal in its word, grey neither),
+ * and the numbers the score is made of: tiles in place, swaps used and the fewest that solve it.
+ */
+function RevealOverhaul({ puzzle, myAnswer }: PuzzleRevealProps) {
+  if (puzzle.type !== "swapword") return null;
+  const solution = puzzle.solution ?? "";
+  const run = replaySwapword(puzzle.start, decodeSwapword(myAnswer ?? ""), puzzle.maxSwaps, solution);
+  const marks = swapwordMarks(run.board, solution);
+  const inPlace = marks.filter((m) => m === 2).length;
+  const side = "min(84vw, 340px)";
+  return (
+    <div data-word-reveal="swapword" data-wr-version="overhaul" className="wr">
+      <RevealNumbers
+        countAfterMs={200}
+        items={[
+          { id: "in-place", label: "Tiles in place", value: `${inPlace}/${SW_TILES}`, tone: run.solved ? "gold" : undefined },
+          { id: "swaps", label: run.swaps === 1 ? "Swap used" : "Swaps used", value: run.swaps },
+          { id: "fewest", label: "Fewest possible", value: puzzle.minSwaps },
+        ]}
+      />
+      <BoardPair
+        solution={<Board letters={solution} looks={marks.map(() => 2)} side={side} />}
+        yours={<Board letters={run.board} looks={marks} side={side} />}
+      />
+      <RevealKey items={[{ tone: "gold", label: "In place" }, { tone: "teal", label: "In its word" }, { tone: "grey", label: "Neither" }]} />
+    </div>
+  );
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  if (overhaulReveal(props.puzzle)) return <RevealOverhaul {...props} />;
+  return <RevealOlder {...props} />;
+}
+
+function RevealOlder({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealProps) {
   if (puzzle.type !== "swapword") return null;
   const solution = puzzle.solution ?? "";
   const run = replaySwapword(puzzle.start, decodeSwapword(myAnswer ?? ""), puzzle.maxSwaps, solution);

@@ -301,3 +301,47 @@ export function generateMazeClassic(): MazePuzzleData {
   }
   throw new Error("Maze generator could not build a long enough route");
 }
+
+/** The levers a level maze is built to (attentionLevels.data.ts MazeLevel; plain numbers so this file needs nothing else). */
+export interface MazeLevers {
+  cols: number;
+  rows: number;
+  routeMin: number;
+  routeMax: number;
+  deadEnds: number;
+  longDeadEnds: number;
+  turns: number;
+  junctions: number;
+  branchPick: number;
+  exitHidden: boolean;
+}
+
+/**
+ * A level's maze (the Attention overhaul, stage 3): the same carving and tests at the level's size and counts, no stars.
+ * With `exitHidden` the exit is a seeded cell on the bottom row's right half or the right column's lower half (never the
+ * corner a player would head for anyway), so it has to be found. A carved maze is perfect: one route between any two cells.
+ */
+export function generateMazeLevel(l: MazeLevers): MazePuzzleData {
+  const { cols, rows } = l;
+  const start = 0;
+  for (let attempt = 0; attempt < 60_000; attempt++) {
+    const cells = carve(cols, rows, l.branchPick);
+    let exit = cols * rows - 1;
+    if (l.exitHidden) {
+      const edge: number[] = [];
+      for (let c = Math.ceil(cols / 2); c < cols - 1; c++) edge.push((rows - 1) * cols + c);
+      for (let r = Math.ceil(rows / 2); r < rows - 1; r++) edge.push(r * cols + cols - 1);
+      exit = edge[Math.floor(Math.random() * edge.length)]!;
+    }
+    const route = mazeRoute(cells, start, exit, cols);
+    if (route.length < l.routeMin || route.length > l.routeMax) continue;
+    if (mazeTurns(route) < l.turns) continue;
+    if (mazeJunctions(cells, route, cols) < l.junctions) continue;
+    const trails = mazeFalseTrailLengths(cells, route, cols);
+    if (trails.filter((length) => length >= MAZE_DEAD_END_LENGTH).length < l.deadEnds) continue;
+    if (trails.filter((length) => length >= MAZE_LONG_DEAD_END_LENGTH).length < l.longDeadEnds) continue;
+    if (mazeExitInSight(cells, route, exit, cols)) continue;
+    return { type: "maze", cells, start, exit, solution: route, cols, rows };
+  }
+  throw new Error("Maze generator could not build a level maze");
+}

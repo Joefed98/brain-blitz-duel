@@ -8,6 +8,7 @@
  * human-like time per action. Kits never score anything themselves: every
  * answer goes through gradeAnswer. Script-only: floats and Math are fine.
  */
+import { puzzleLevel } from "../../src/lib/levels/levels";
 import type { PuzzleData, PuzzleType } from "../../src/lib/duel/types";
 
 /** mulberry32: a stable stream per (game, seed, level). */
@@ -148,6 +149,31 @@ export interface PuzzleKit {
    * limit; the runner cuts it.
    */
   play(p: PuzzleData, rng: Rng, skill: Skill, limitMs: number): Play;
+}
+
+/**
+ * Thinking time per move at a level (difficulty framework, 16 Nov 2026; the Logic overhaul's seven games): a harder
+ * level's boards need more thought per move than Normal's, so the kits' pace is scaled by it. A modelling assumption
+ * stated for Joe; Normal is 1, so every Normal play is exactly as before.
+ */
+export const LEVEL_THINK: Readonly<Record<string, number>> = { easy: 0.8, normal: 1, hard: 1.9, expert: 2.35 };
+
+/**
+ * Per-game factors where a level changes how hard each move is rather than how many there are: Trail keeps 26 moves and
+ * its 120 s clock at every level (a path is never unique with fewer numbers), so its harder boards are harder moves;
+ * Regions' moves are quick strokes, so a harder map shows in the thinking before each, not in more of them.
+ */
+export const LEVEL_THINK_GAME: Readonly<Record<string, Readonly<Record<string, number>>>> = {
+  trail: { hard: 2.6, expert: 2.7 },
+  fillomino: { hard: 2.5, expert: 3.05 },
+};
+
+/** `skill` at the puzzle's level (puzzleLevel): unchanged at Normal. */
+export function atLevel(skill: Skill, puzzle: unknown): Skill {
+  const level = puzzleLevel(puzzle);
+  const type = (puzzle as { type?: string } | null)?.type ?? "";
+  const factor = LEVEL_THINK_GAME[type]?.[level] ?? LEVEL_THINK[level] ?? 1;
+  return factor === 1 ? skill : { ...skill, pace: skill.pace * factor };
 }
 
 /** Seconds → ms with a log-normal-ish spread so no two actions take the same time. */

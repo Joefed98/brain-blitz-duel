@@ -22,6 +22,10 @@ import { backCacheTag, cardBackOf, feltCacheTag, feltOf, paintSkinBack, paintSki
  * default otherwise. A card-back skin paints every face-down card, a felt skin the table.
  */
 let CL: GameLook = NO_LOOK;
+/** The look being drawn in (the overhauled games' real-art draw reads it for skins). */
+export function cardsLookNow(): GameLook {
+  return CL;
+}
 export function withCardsLook<T>(look: GameLook, fn: () => T): T {
   CL = look;
   try {

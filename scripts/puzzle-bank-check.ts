@@ -74,6 +74,7 @@ import type { PuzzleData } from "../src/lib/duel/types";
 import { pinPreParMoves } from "../src/lib/duel/parMoves";
 import { pinPrePartialCredit } from "../src/lib/duel/partialCredit";
 import { pinPreNotesFree } from "../src/lib/duel/notesFree";
+import { pinPrePatternNov15 } from "../src/lib/duel/patternNov15";
 
 // Written for the standard's stamps: the puzzle batch of 3 Nov 2026 (parMoves.ts) deals Skid one stamp above (no ice
 // gems), so banked deals here keep the standard's (puzzle-batch-nov-check proves Skid's banked deals on the new stamp).
@@ -84,6 +85,10 @@ pinPrePartialCredit(true);
 // Likewise notes never count as mistakes (notesRev 1, notesFree.ts, 15 Nov 2026) deals Lamplighter one stamp above;
 // banked deals here keep the stamps before it (logic-review-fixes-check and standard-logic-check prove notesRev 1).
 pinPreNotesFree(true);
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Pattern overhaul): patternNov15.ts deals Chroma
+// Lines and Tessellate one stamp above; banked deals here keep the stamps before it (pattern-overhaul-flow-check and
+// pattern-overhaul-blockparty-check prove the new stamps).
+pinPrePatternNov15(true);
 
 const self = fileURLToPath(import.meta.url);
 

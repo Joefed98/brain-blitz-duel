@@ -9,9 +9,11 @@ import { useEffect, useRef, useState } from "react";
 export const LOGIC_SOLVE_FX_MS = 1200;
 
 /** Dispatches a named sound cue ("<gameId>.<event>"); no audio is attached yet. */
-export function soundCue(cue: string): void {
+export function soundCue(cue: string, rate?: number): void {
   if (typeof window === "undefined") return;
-  window.dispatchEvent(new CustomEvent("duelz-sound", { detail: { cue } }));
+  // `rate` (optional, Logic overhaul 1): the slot plays faster and higher (a glug by the liquid's height, a ring by its
+  // size, a cascade tick rising); playCueSlot reads it.
+  window.dispatchEvent(new CustomEvent("duelz-sound", { detail: rate ? { cue, rate } : { cue } }));
 }
 
 /**

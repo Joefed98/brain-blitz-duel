@@ -17,6 +17,7 @@ import {
   type LightUpBoard,
 } from "./lightUp";
 import type { LightUpPuzzleData } from "./types";
+import type { LightUpLevel } from "./logicLevels";
 
 export const LIGHTUP_MIN_WALLS = 18;
 export const LIGHTUP_MAX_WALLS = 23;
@@ -34,7 +35,8 @@ export const LIGHTUP_MAX_ATTEMPTS = 100_000;
  * The live generator: the depth revision's 9 × 10 grid (depthRev 1, 25 Oct 2026) unless `height` asks for the 9 × 9
  * board rooms dealt before it (the calibration and checks).
  */
-export function generateLightUp(maxAttempts = LIGHTUP_MAX_ATTEMPTS, height = LIGHTUP_DEPTH_HEIGHT): LightUpPuzzleData {
+export function generateLightUp(maxAttempts = LIGHTUP_MAX_ATTEMPTS, height = LIGHTUP_DEPTH_HEIGHT, level: LightUpLevel | null = null): LightUpPuzzleData {
+  if (level) return generateLightUpLevel(level);
   const size = LIGHTUP_SIZE;
   const tall = height !== size;
   const [minWalls, maxWalls] = wallBand(height);
@@ -68,6 +70,50 @@ export function generateLightUp(maxAttempts = LIGHTUP_MAX_ATTEMPTS, height = LIG
       walls: sorted.map((w) => w.wall),
       wallNumbers: sorted.map((w) => w.n),
       solution: [...bulbs].sort((a, b) => a - b),
+    };
+  }
+  throw new Error(`${gameDisplayName("lightup")} generation failed`);
+}
+
+/**
+ * A level's board (logicLevels.ts): 9 wide, the level's height and wall count; every wall starts numbered and numbers
+ * are taken away in random order while the solver still finds exactly one layout, down to the level's share of walls
+ * (a board that can't get that low is re-drawn).
+ */
+function generateLightUpLevel(level: LightUpLevel): LightUpPuzzleData {
+  const size = LIGHTUP_SIZE;
+  const height = level.height;
+  const tall = height !== size;
+  for (let attempt = 0; attempt < 4000; attempt++) {
+    const walls = shuffled([...Array(size * height).keys()]).slice(0, randInt(level.walls[0], level.walls[1])).sort((a, b) => a - b);
+    const wallSet = new Set(walls);
+    const lit = new Set<number>();
+    const bulbs: number[] = [];
+    for (const cell of shuffled([...Array(size * height).keys()])) {
+      if (wallSet.has(cell) || lit.has(cell)) continue;
+      bulbs.push(cell);
+      for (const other of sightLine(cell, size, wallSet, height)) lit.add(other);
+    }
+    const bulbSet = new Set(bulbs);
+    const numbers = walls.map((wall) => orth(wall, size, height).filter((cell) => bulbSet.has(cell)).length);
+    const board = (wallNumbers: number[]): LightUpBoard => ({ size, ...(tall ? { height } : {}), walls, wallNumbers });
+    if (countLightUpSolutions(board(numbers), 2) !== 1) continue;
+    const target = Math.round(walls.length * level.numbered);
+    for (const i of shuffled([...walls.keys()])) {
+      if (numbers.filter((n) => n >= 0).length <= target) break;
+      const keep = numbers[i]!;
+      numbers[i] = -1;
+      if (countLightUpSolutions(board(numbers), 2) !== 1) numbers[i] = keep;
+    }
+    if (numbers.filter((n) => n >= 0).length > target) continue;
+    return {
+      type: "lightup",
+      size,
+      ...(tall ? { height } : {}),
+      walls,
+      wallNumbers: numbers,
+      solution: [...bulbs].sort((a, b) => a - b),
+      timeLimitMs: level.timeLimitMs,
     };
   }
   throw new Error(`${gameDisplayName("lightup")} generation failed`);

@@ -534,8 +534,25 @@ const CALL_SITES: Record<string, Record<string, number>> = {
  * gold cup, buzzer); error: foul; impact: lives and crashes, Ricochet's hit and Bastion's base hit since 1 Nov 2026,
  * Blockzone's top-out since 15 Nov 2026).
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of Blockzone's top-out haptic): impact 19 → 20.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): Rally's life lost (rallyRev 13),
+ * impact 20 → 21.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Cards and Board overhaul): tick 0 → 1, the
+ * light pick up / place / match touch in the five card and tile games (cardFeel).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): success 7 → 12 (a marble in
+ * Tilt's cup, a Gemstone cascade, Coral Pop's reef cleared, Rainbow Bridge's coin in the pot, a Ball Tracker marble home).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Crazy Golf overhaul: haptics on putts, chips,
+ * holes and water, the brief's list): tick 0 → 1 (the strike), success 7 → 8 (holed), impact 20 → 21 (water).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Home Run and Top Bins overhaul: haptics on the
+ * key moments): homerunRev 5's home run (success 7 → 8), strikeout (impact 20 → 21) and a run scoring (tick, new).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Sports overhaul): Apex's lights out (go), grass
+ * (error), kerb rumble (tick, every 10 ticks on the kerb), clean sector (success) and finish (celebrate); Cue Ball's black
+ * potted legally (celebrate) and the black too soon (error); Curl Champ's release (tick), stone on stone (impact) and a
+ * stone coming to rest counting or after a takeout (success): success 7 → 9, error 1 → 3, impact 20 → 21, tick 2, go 1,
+ * celebrate 2.
+ * Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): success 16, error 3, impact 24, tick 5, go 1
+ * and celebrate 2 together.
  */
-const FEEL = { success: 7, error: 1, impact: 20 };
+const FEEL = { success: 16, error: 3, impact: 24, tick: 5, go: 1, celebrate: 2 };
 const found: Record<string, Record<string, number>> = {};
 for (const file of files) {
   const rel = file.slice(SRC.length + 1);
