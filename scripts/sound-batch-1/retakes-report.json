@@ -748,8 +748,6 @@
   "slot": "nonogram.solve",
   "pr": "#430",
   "note": "RETAKE: Last time it was a sharp spike over a very quiet body.",
-  "kept": "old",
-  "why": "Joe kept batch 1's take (the new upload is measured but not used)",
   "old": {
    "ms": 970,
    "lufs": -26.3,
@@ -774,6 +772,8 @@
    "forced_distortion_db": null
   },
   "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
   "held": false
  }
 ]

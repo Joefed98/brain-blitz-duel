@@ -99,7 +99,7 @@ slot and its entry together.
 | /sounds/tower.solve.mp3 | `tower.solve` | #430 | yes | 1000 | 975 | -18.3 (-16.5) | -2.1 |  |
 | /sounds/tower.near.mp3 | `tower.near` | #430 | to add | 400 | 400 | -17.7 (-17.5) | -2.4 |  |
 | /sounds/nonogram.combo.mp3 | `nonogram.combo` | #430 | to add | 600 | 600 | -17.1 (-17.1) | -3.2 |  |
-| /sounds/nonogram.solve.mp3 | `nonogram.solve` | #430 | yes | 1000 | 970 | -26.3 (-16.5) | -2.6 | retake |
+| /sounds/nonogram.solve.mp3 | `nonogram.solve` | #430 | yes | 1000 | 739 | -19.7 (-17.1) | -2.1 | batch 3's take (the upload is 739 ms) |
 | /sounds/flood.reject.mp3 | `flood.reject` | #430 | to add | 150 | 150 | -22.8 (-22.7) | -3.2 |  |
 | /sounds/flood.solve.mp3 | `flood.solve` | #430 | yes | 1000 | 1000 | -16.6 (-16.5) | -2.6 |  |
 | /sounds/minesweeper.cascadeTick.mp3 | `minesweeper.cascadeTick` | #430 | to add | 50 | 50 | -22.9 (-22.7) | -2.4 |  |
@@ -253,4 +253,4 @@ twice, then the distance under the house level, then how much of it sounds); the
 - `fences.solve.mp3` (#435): **kept new**, fewer or lighter problems. Old: a click then nothing; 6.4 dB quieter than its family (a spike over a quiet body). New: 13.7 dB quieter than its family (a spike over a quiet body).
 - `reaction.done.mp3` (#439): **kept new**, no problems left. Old: a click then nothing. New: none. Live on main (the Speed overhaul's own file plays there), so not written: the winner is re-made by retakes.py without HELD when Joe wires it.
 - `symscan.gridClear.mp3` (#438): **kept new**, the same problems, closer to the house level. Old: 9.3 dB quieter than its family (a spike over a quiet body). New: 7.4 dB quieter than its family (a spike over a quiet body).
-- `nonogram.solve.mp3` (#430): **kept old**, Joe kept batch 1's take (the new upload is measured but not used). Old: 9.8 dB quieter than its family (a spike over a quiet body). New: none.
+- `nonogram.solve.mp3` (#430): **kept new** (compared on 17 Nov 2026 at Joe's request: batch 3's "Tiles flipping row by row" take), no problems left. Old: 9.8 dB quieter than its family (a spike over a quiet body), -26.3 LUFS against -16.5, 39 % of it sounding. New: -19.7 LUFS against -17.1 (2.6 dB under, inside the family), 64 % sounding, true peak -2.1 dB, 739 ms (the upload's own length; nothing stretched).

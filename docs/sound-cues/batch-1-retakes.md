@@ -11,6 +11,5 @@ from batch 3"). The sounds below still need a retake, judged by the same measure
 - `tubes.reset.mp3` (#430): 6.0 dB quieter than its family (a spike over a quiet body); batch 1's take kept, the new one was no better.
 - `fences.solve.mp3` (#435): 13.7 dB quieter than its family (a spike over a quiet body); the new take, kept.
 - `symscan.gridClear.mp3` (#438): 7.4 dB quieter than its family (a spike over a quiet body); the new take, kept.
-- `nonogram.solve.mp3` (#430): 9.8 dB quieter than its family (a spike over a quiet body). Joe kept batch 1's take; the new upload (sounds-batch-3) measures clean, so it can replace this if Joe prefers.
 
-7 files.
+6 files.

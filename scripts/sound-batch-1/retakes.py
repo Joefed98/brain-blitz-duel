@@ -7,7 +7,7 @@ Then it is compared with the batch-1 file by the retake list's own measures and 
 
 Usage: python3 -I scripts/sound-batch-1/retakes.py <new takes dir> <csv with the retake rows> <out report.json>
        [--write]   (without it, the new takes are written to a scratch dir only and nothing in public/sounds changes)
-Env SKIP=<file,...>: rows left out (nonogram.solve: Joe kept batch 1's), HELD=<file,...>: files a live slot plays on
+Env SKIP=<file,...>: rows left out (none now: nonogram.solve was compared on 17 Nov 2026 and its new take won), HELD=<file,...>: files a live slot plays on
 main, compared but never written.
 """
 import csv, json, os, shutil, subprocess, sys, tempfile
