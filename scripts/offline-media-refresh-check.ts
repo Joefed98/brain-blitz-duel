@@ -13,11 +13,11 @@
  * install download as they were on /__l5e/: kept once played, across builds, dropped when their bytes change.
  */
 import { createHash } from "node:crypto";
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 
 import { MEDIA_DIRS } from "../src/lib/offline/assets";
-import { lazyMediaPaths, offlineWorkerSource } from "../src/lib/offline/swPlugin";
+import { awaitingWiringPaths, lazyMediaPaths, offlineWorkerSource } from "../src/lib/offline/swPlugin";
 
 const failures: string[] = [];
 let passes = 0;
@@ -38,7 +38,11 @@ function walk(dir: string): string[] {
   }
   return out;
 }
-const files = walk("public").map((full) => ({ full, path: `/${relative("public", full).split(sep).join("/")}` }));
+// As offlineWorkerPlugin walks it: sound batch 1's files no slot plays yet are left out (16 Nov 2026).
+const unwired = new Set(awaitingWiringPaths());
+const files = walk("public")
+  .map((full) => ({ full, path: `/${relative("public", full).split(sep).join("/")}` }))
+  .filter((f) => !unwired.has(f.path));
 const isMedia = (p: string) => MEDIA_DIRS.some((d) => p.startsWith(`/${d}/`));
 const realHashes = Object.fromEntries(files.filter((f) => isMedia(f.path)).map((f) => [f.path, sha(readFileSync(f.full))]));
 // As offlineWorkerPlugin builds it (lazyMedia from lazyMediaPaths()).
@@ -223,6 +227,25 @@ check(!fetched.includes("/sounds/lazy.mp3"), "a changed lazy sound is not fetche
 check(!(await mediaC.match("/sounds/lazy.mp3")), "a changed lazy sound's old copy is dropped");
 const res3 = (await b3("fetch", { request: req })) as Response;
 check((await res3.text()) === "re-levelled bytes", "the next play gets the changed lazy sound");
+
+// 4. Sound batches 1 and 2 (16 Nov 2026, Joe): a recording no manifest slot plays yet stays out of the offline worker (not
+// downloaded, not lazy, no hash), and joins it once wired.
+check(
+  /const unwired = new Set\(awaitingWiringPaths\(\)\);[\s\S]*?\.filter\(\(f\) => !unwired\.has\(f\.path\)\)/.test(
+    readFileSync("src/lib/offline/swPlugin.ts", "utf8"),
+  ),
+  "offlineWorkerPlugin leaves awaitingWiringPaths() out of the public files",
+);
+check(unwired.size > 0 && [...unwired].every((p) => p.startsWith("/sounds/") && existsSync(join("public", p))), "every unwired batch file is in public/sounds");
+check(
+  [...unwired].every((p) => !realConfig.media.includes(p) && !realConfig.lazyMedia.includes(p) && !(p in realConfig.mediaHash)),
+  "no unwired batch file is in the offline download, the lazy list or the hashes",
+);
+// Wired batch-1 names stay in: a placeholder slot's file (behind NEW_GAME_SOUNDS) and the live bomb.defuse.
+for (const p of ["/sounds/tubes.pour.mp3", "/sounds/breaker.paddle.mp3", "/sounds/bomb.defuse.mp3"]) {
+  check(!unwired.has(p) && realConfig.media.includes(p), `${p}: wired, so still downloaded`);
+}
+console.log(`NOTE ${unwired.size} sound batch files left out of the offline worker until wired`);
 
 if (failures.length) {
   for (const f of failures) console.log(`FAIL ${f}`);
