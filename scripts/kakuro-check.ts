@@ -27,6 +27,7 @@ import { encodeKakuro, kakuroRuns, kakuroSolvedGrid } from "../src/lib/duel/kaku
 import { usesStandard } from "../src/lib/duel/standard/stamps";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import { encodeTimeline } from "../src/lib/duel/standard/timeline";
+import { pinPreNumberOverhaul } from "../src/lib/duel/numberOverhaul";
 import type { KakuroPuzzleData } from "../src/lib/duel/types";
 
 const failures: string[] = [];
@@ -82,6 +83,9 @@ console.log(`generation: median ${med.toFixed(1)} ms, max ${max.toFixed(1)} ms; 
 /* ------------------------------------------------------------------ grading */
 
 const LIMIT = 120_000;
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul): this section is written for
+// kakuroRev 1; kakuroRev 2 (only digits that break a rule are mistakes) is proved by number-overhaul-checkout-kakuro-check.
+pinPreNumberOverhaul(true);
 for (const seed of [11, 4242, 90210, 31337, 777]) {
   const p = generatePuzzle("kakuro", { bankSeed: seed }) as KakuroPuzzleData;
   ok(p.kakuroRev === 1 && usesStandard(p), `room ${seed}: kakuroRev 1 on the standard`);

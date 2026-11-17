@@ -52,6 +52,67 @@ export function npBrokenCells(givens: readonly (number | null)[], values: readon
   return [...out].sort((x, y) => x - y);
 }
 
+/** Display only (the Number overhaul, 15 Nov 2026): one sum's state, the stone over the two under it. */
+export type NpSumState = "right" | "wrong" | "unknown";
+
+/** A stone and the two under it: "unknown" until all three hold a number, then right or wrong. Never graded. */
+export function npSumState(values: readonly (number | null)[], top: number, left: number, right: number): NpSumState {
+  const a = values[top], b = values[left], c = values[right];
+  if (a == null || b == null || c == null) return "unknown";
+  return a === b + c ? "right" : "wrong";
+}
+
+/** One judged sum on the board: the top stone's row and column, and its state. */
+export interface NpSeam {
+  row: number;
+  col: number;
+  state: "right" | "wrong";
+}
+
+/**
+ * Display only (the Number overhaul): every sum the player has had a hand in (at least one of its three stones
+ * placed, not given) whose three stones are all filled: a faint gold seam if right, a red crack if wrong.
+ */
+export function npSeams(givens: readonly (number | null)[], values: readonly (number | null)[], rows: number): NpSeam[] {
+  const out: NpSeam[] = [];
+  for (let r = 0; r < rows - 1; r++)
+    for (let c = 0; c <= r; c++) {
+      const top = npIndex(r, c), left = npIndex(r + 1, c), right = npIndex(r + 1, c + 1);
+      if (givens[top] != null && givens[left] != null && givens[right] != null) continue;
+      const state = npSumState(values, top, left, right);
+      if (state !== "unknown") out.push({ row: r, col: c, state });
+    }
+  return out;
+}
+
+/** The pyramid's move-on button: Skip, and Finish on the last pyramid (it ends the round). */
+export function npSkipLabel(stage: number): "Skip" | "Finish" {
+  return stage >= NP_SET_SIZE - 1 ? "Finish" : "Skip";
+}
+
+/** The tray's tiles a row: the tray in two even rows on a phone (at most `max` a row). */
+export function npTrayPerRow(count: number, max = 8): number {
+  return Math.max(1, Math.min(max, Math.ceil(count / 2)));
+}
+
+/** The tray's narrowest tile (a 44 px target) and the gap between tiles. */
+export const NP_TRAY_MIN_W = 44;
+export const NP_TRAY_GAP = 6;
+
+/**
+ * The tray's rows for `count` tiles in `width` px (the Number overhaul's layout pass, Joe 15 Nov 2026): as few rows as
+ * fit at least a 44 px tile each (at most eight a row), the tiles shared out so rows differ by at most one tile, the
+ * longer rows first: never a single tile alone on a row (unless there is only one). Display only.
+ */
+export function npTrayRows(count: number, width: number, max = 8): number[] {
+  if (count <= 0) return [];
+  const fit = Math.max(1, Math.min(max, Math.floor((width + NP_TRAY_GAP) / (NP_TRAY_MIN_W + NP_TRAY_GAP))));
+  const rows = Math.ceil(count / fit);
+  const base = Math.floor(count / rows);
+  const extra = count - base * rows;
+  return Array.from({ length: rows }, (_, i) => base + (i < extra ? 1 : 0));
+}
+
 export function npCountSolutions(givens: readonly (number | null)[], tray: readonly number[], rows: number, cap = 2): number {
   const empties: number[] = [];
   for (let r = rows - 1; r >= 0; r--) for (let c = 0; c <= r; c++) if (givens[npIndex(r, c)] == null) empties.push(npIndex(r, c));

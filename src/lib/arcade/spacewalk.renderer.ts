@@ -14,7 +14,8 @@
  * Render only: never imported by the sim or the server.
  */
 import { artHash, reducedMotion } from "./art.renderer";
-import { pixelRect } from "./retro.renderer";
+import { pixelRect, retroMix } from "./retro.renderer";
+import { drawStarLayers, paintPixelNebula, paintPixelPlanet } from "./retroSpace.renderer";
 
 export const SPACE_VOID = "#04051A";
 export const SPACE_VOID_DEEP = "#020310";
@@ -57,7 +58,31 @@ export function paintSpaceVoid(c: CanvasRenderingContext2D, x: number, y: number
     c.fillStyle = tier === 0 ? "#FFFFFF" : tier < 3 ? "rgba(200,220,255,0.7)" : "rgba(160,180,255,0.35)";
     c.fillRect(sx, sy, tier === 0 ? 2 : 1, tier === 0 ? 2 : 1);
   }
+  paintSpaceNebula(c, x, y, w, h, seed);
   c.restore();
+}
+
+/**
+ * The Retro overhaul (stage 2, Joe: "a clear lift that stays pixel and retro"): a strong pixel nebula in violet and
+ * teal behind the station (retroSpace.renderer.ts: dithered pixel blocks, never a soft photo) and one large lit planet
+ * with a ring, seeded by the rectangle's seed so every phone and the reveal paint the same sky. The lanes over it are
+ * translucent, so it shows between the traffic; ships and the astronaut stay brighter than it.
+ */
+function paintSpaceNebula(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, seed: number): void {
+  paintPixelNebula(c, {
+    x,
+    y,
+    w,
+    h,
+    seed,
+    steps: ["rgba(36,18,80,0.5)", "rgba(58,30,120,0.58)", "rgba(88,50,160,0.62)", "rgba(126,86,198,0.6)", "rgba(176,140,232,0.55)"],
+    steps2: ["rgba(10,40,66,0.48)", "rgba(14,64,92,0.55)", "rgba(22,98,122,0.58)", "rgba(52,146,160,0.55)", "rgba(120,206,214,0.5)"],
+    threshold: 0.26,
+    gain: 9,
+  });
+  if (w < 200 || h < 300) return;
+  const r = artHash(seed, 77);
+  paintPixelPlanet(c, Math.round(x + w * (0.74 + ((r >>> 8) % 12) / 100)), Math.round(y + h * (0.2 + ((r >>> 16) % 24) / 100)), 34 + (r % 8), ["#161A3C", "#2C3570", "#4C5CA8", "#8094DA"], "rgba(170,190,255,0.45)");
 }
 
 /**
@@ -66,23 +91,50 @@ export function paintSpaceVoid(c: CanvasRenderingContext2D, x: number, y: number
  */
 export function paintStationDeck(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, edge: "top" | "bottom" | "none", plate = 26): void {
   if (w <= 0 || h <= 0) return;
-  c.fillStyle = SPACE_DECK;
-  c.fillRect(x, y, w, h);
-  c.fillStyle = SPACE_DECK_SEAM;
-  for (let sx = x + plate; sx < x + w; sx += plate) c.fillRect(Math.round(sx), y, 2, h);
-  for (let sy = y + 16; sy < y + h; sy += 16) c.fillRect(x, Math.round(sy), w, 2);
-  c.fillStyle = "rgba(255,255,255,0.07)";
-  for (let sx = x; sx < x + w; sx += plate) c.fillRect(Math.round(sx) + 2, y, plate - 4, 2);
-  c.fillStyle = "#5A657E";
-  for (let sx = x + 5; sx < x + w; sx += plate) {
-    for (let sy = y + 5; sy < y + h - 3; sy += 16) c.fillRect(Math.round(sx), Math.round(sy), 2, 2);
+  // Stage 2 (Joe: a clear lift): lit, bevelled metal plates. Each plate lighter at its top, a bright bevel on its top and
+  // left edges and a shadow on its right and bottom, rivets in its corners; a row of cyan window lights along the deck;
+  // a glossy hazard band on the lane side.
+  for (let sx = x, i = 0; sx < x + w; sx += plate, i++) {
+    for (let sy = y, j = 0; sy < y + h; sy += 16, j++) {
+      const pw = Math.min(plate, x + w - sx);
+      const ph = Math.min(16, y + h - sy);
+      const g = c.createLinearGradient(0, sy, 0, sy + ph);
+      g.addColorStop(0, (i + j) % 2 ? "#3A4458" : "#36404F");
+      g.addColorStop(1, (i + j) % 2 ? "#232A38" : "#202633");
+      c.fillStyle = g;
+      c.fillRect(Math.round(sx), Math.round(sy), pw, ph);
+      c.fillStyle = "rgba(255,255,255,0.16)";
+      c.fillRect(Math.round(sx), Math.round(sy), pw, 1);
+      c.fillRect(Math.round(sx), Math.round(sy), 1, ph);
+      c.fillStyle = "rgba(0,0,0,0.45)";
+      c.fillRect(Math.round(sx + pw - 1), Math.round(sy), 1, ph);
+      c.fillRect(Math.round(sx), Math.round(sy + ph - 1), pw, 1);
+      c.fillStyle = "#7C88A2";
+      if (pw > 8 && ph > 8) {
+        c.fillRect(Math.round(sx) + 3, Math.round(sy) + 3, 1, 1);
+        c.fillRect(Math.round(sx + pw) - 4, Math.round(sy) + 3, 1, 1);
+      }
+    }
+  }
+  // Window lights along the deck's middle (a lit station).
+  const wy = Math.round(y + h / 2) - 1;
+  for (let sx = x + 9; sx < x + w - 4; sx += 13) {
+    c.fillStyle = "rgba(61,255,224,0.18)";
+    c.fillRect(Math.round(sx) - 1, wy - 1, 5, 4);
+    c.fillStyle = (Math.round(sx) / 13) % 5 < 1 ? "#FFE08A" : "#9FF8EC";
+    c.fillRect(Math.round(sx), wy, 3, 2);
   }
   if (edge === "none") return;
-  // The hazard band: amber and black blocks, 4 px deep, then a cyan light strip on the lane side.
+  // The hazard band: amber and black blocks, 4 px deep, a highlight on each amber block, then a cyan light strip.
   const band = edge === "top" ? y : y + h - 6;
   for (let sx = x, k = 0; sx < x + w; sx += 8, k++) {
+    const by = edge === "top" ? band + 2 : band;
     c.fillStyle = k % 2 ? SPACE_DECK_SEAM : SPACE_HAZARD;
-    c.fillRect(sx, edge === "top" ? band + 2 : band, Math.min(8, x + w - sx), 4);
+    c.fillRect(sx, by, Math.min(8, x + w - sx), 4);
+    if (!(k % 2)) {
+      c.fillStyle = "rgba(255,255,255,0.45)";
+      c.fillRect(sx, by, Math.min(8, x + w - sx), 1);
+    }
   }
   c.fillStyle = SPACE_CYAN;
   c.fillRect(x, edge === "top" ? band : band + 4, w, 2);
@@ -90,7 +142,8 @@ export function paintStationDeck(c: CanvasRenderingContext2D, x: number, y: numb
 
 /** One traffic lane of open space: a dark band with a row of beacon dots along its upper edge. */
 export function paintSpaceLane(c: CanvasRenderingContext2D, x: number, top: number, w: number, laneH: number, lane: number, beacons: boolean): void {
-  c.fillStyle = SPACE_LANE;
+  // Translucent since the Retro overhaul (15 Nov 2026), so the nebula behind shows faintly.
+  c.fillStyle = "rgba(10,14,42,0.34)";
   c.fillRect(x, top, w, laneH);
   c.save();
   c.beginPath();
@@ -202,6 +255,17 @@ export function drawSpaceShip(ctx: CanvasRenderingContext2D, x: number, y: numbe
   // Hull shading and a light stripe.
   pixelRect(ctx, X(engine, w - engine - nose), y + h - 8, w - engine - nose, 2, "rgba(0,0,0,0.35)");
   pixelRect(ctx, X(engine, w - engine - nose), y + 4, w - engine - nose, 2, "rgba(255,255,255,0.45)");
+  // The Retro overhaul (15 Nov 2026): lit metal. Stage 2: the hull shaded in three pixel bands (a lit top, the base
+  // colour, a shaded keel), panel seams across it and a specular glint where the nose catches the light (all inside the
+  // box).
+  const body = w - engine - nose;
+  const bandH = Math.max(2, Math.round((h - 8) / 3));
+  pixelRect(ctx, X(engine, body), y + 4, body, bandH, retroMix(hull, "#FFFFFF", 0.28));
+  pixelRect(ctx, X(engine, body), y + h - 4 - bandH, body, bandH, retroMix(hull, "#0A0E2A", 0.34));
+  for (let k = 10; k < body - 4; k += 11) pixelRect(ctx, X(engine + k, 1), y + 6, 1, h - 14, "rgba(0,0,0,0.22)");
+  pixelRect(ctx, X(engine, body), y + h - 6, body, 2, "rgba(0,0,0,0.28)");
+  pixelRect(ctx, X(w - nose - 4, 4), y + 5, 4, 1, "#FFFFFF");
+  pixelRect(ctx, X(w - nose + 1, 2), y + 8, 2, 1, "rgba(255,255,255,0.8)");
   // Cockpit.
   const cockW = Math.max(6, Math.round(w * 0.18));
   pixelRect(ctx, X(w - nose - cockW, cockW), mid - 4, cockW, 8, "#0B1230");
@@ -294,35 +358,55 @@ export function drawAstronaut(ctx: CanvasRenderingContext2D, x: number, y: numbe
     ctx.fillStyle = g;
     ctx.fillRect(-13, -20, 26, 40);
   }
+  // The Retro overhaul (15 Nov 2026, Joe: "a bigger astronaut"): a bulkier, lit suit filling the hit box's full width
+  // (arms out to ±13 px, crossPlayerR on crossRev 5+) and 42 px of the 44 px lane (was ±12 by 37 px). Lit from the top
+  // left: a bright edge on every panel, its shade on the right; the gold visor carries a crisp reflection.
   const legA = Math.round(stride * 3);
+  const lit = (bx: number, by: number, bw: number, bh: number, base: string, hi: string, lo: string) => {
+    B(bx, by, bw, bh, base);
+    B(bx, by, bw, 1, hi);
+    B(bx, by, 1, bh, hi);
+    B(bx + bw - 2, by + 1, 2, bh - 1, lo);
+  };
   // Legs and boots.
-  B(-6, 6 + Math.max(0, legA), 5, 9 - Math.max(0, legA), SUIT_SHADE);
-  B(1, 6 + Math.max(0, -legA), 5, 9 - Math.max(0, -legA), SUIT_SHADE);
-  B(-7, 14, 6, 3, "#5A657E");
-  B(1, 14, 6, 3, "#5A657E");
-  // Backpack (behind the torso; shows either side when seen from the back).
-  B(-9, -5, 18, 11, back ? "#C9D1E2" : "#8C96AA");
-  // Torso and belt.
-  B(-7, -6, 14, 13, SUIT);
-  B(-7, 4, 14, 2, SUIT_SHADE);
-  if (!back) {
-    B(-3, -3, 6, 4, "#5CD0FF");
-    B(-2, -2, 2, 2, "#FF3B5C");
+  lit(-7, 6 + Math.max(0, legA), 6, 11 - Math.max(0, legA), SUIT_SHADE, "#D7DDEA", "#8C96AA");
+  lit(1, 6 + Math.max(0, -legA), 6, 11 - Math.max(0, -legA), SUIT_SHADE, "#D7DDEA", "#8C96AA");
+  B(-8, 17, 7, 3, "#4A536A");
+  B(1, 17, 7, 3, "#4A536A");
+  B(-8, 17, 7, 1, "#7C86A0");
+  B(1, 17, 7, 1, "#7C86A0");
+  // Backpack behind the torso (both sides show; from the back, its panel and status light).
+  lit(-11, -7, 22, 13, back ? "#C9D1E2" : "#7C86A0", back ? "#FFFFFF" : "#A3ADC4", "#4A536A");
+  if (back) {
+    B(-6, -4, 12, 6, "#AEB7CC");
+    B(-1, -3, 2, 2, "#3DFFE0");
   }
-  // Arms.
-  B(-12, -5 - legA, 5, 9, SUIT);
-  B(7, -5 + legA, 5, 9, SUIT);
-  B(-12, 3 - legA, 5, 3, "#5A657E");
-  B(7, 3 + legA, 5, 3, "#5A657E");
-  // Helmet with its visor (gold, sliding to the side faced; none from the back).
-  B(-7, -18, 14, 12, SUIT);
-  B(-5, -20, 10, 2, SUIT);
-  B(-7, -8, 14, 2, SUIT_SHADE);
+  // Torso, belt and chest panel.
+  lit(-8, -8, 16, 15, SUIT, "#FFFFFF", SUIT_SHADE);
+  B(-8, 4, 16, 2, SUIT_SHADE);
   if (!back) {
-    B(-5 + side * 2, -16, 10, 7, VISOR);
-    B(-4 + side * 2, -15, 3, 2, "#FFF6D0");
+    B(-4, -4, 8, 5, "#22304F");
+    B(-3, -3, 3, 2, "#5CD0FF");
+    B(1, -3, 2, 2, "#FF3B5C");
+  }
+  // Arms and gloves, out to the hit box's edge.
+  lit(-13, -7 - legA, 5, 10, SUIT, "#FFFFFF", SUIT_SHADE);
+  lit(8, -7 + legA, 5, 10, SUIT, "#FFFFFF", SUIT_SHADE);
+  B(-13, 3 - legA, 5, 3, "#4A536A");
+  B(8, 3 + legA, 5, 3, "#4A536A");
+  // The helmet: a rounded dome (corner blocks left off), its neck ring, the visor sliding to the side faced.
+  lit(-8, -21, 16, 13, SUIT, "#FFFFFF", SUIT_SHADE);
+  B(-6, -22, 12, 1, SUIT);
+  B(-8, -9, 16, 2, SUIT_SHADE);
+  if (!back) {
+    B(-6 + side * 2, -19, 12, 8, "#B8860B");
+    B(-5 + side * 2, -18, 10, 6, VISOR);
+    // The reflection: a bright pane at the top left and a fine glint beside it.
+    B(-4 + side * 2, -17, 4, 2, "#FFF6D0");
+    B(1 + side * 2, -17, 1, 1, "#FFF6D0");
+    B(-5 + side * 2, -13, 10, 1, "rgba(120,70,0,0.45)");
   } else {
-    B(-3, -16, 6, 6, "#DDE3EF");
+    B(-4, -18, 8, 6, "#DDE3EF");
   }
   ctx.restore();
 }

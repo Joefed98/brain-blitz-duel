@@ -84,10 +84,12 @@ export function simShot(start: readonly PoolBall[], shot: Shot, rev = 1): ShotEn
 export const spotsLeft = (balls: readonly PoolBall[]) => balls.filter((b) => !b.down && poolIsSpot(b.id)).length;
 
 /** True when the shot was clean and potted the target group's ball(s) only. */
-export function legalPot(before: readonly PoolBall[], end: ShotEnd): boolean {
+export function legalPot(before: readonly PoolBall[], end: ShotEnd, blackAt = 0): boolean {
   const left = spotsLeft(before);
   if (end.dropped.includes(POOL_CUE)) return false;
   if (end.dropped.some((id) => id >= 9)) return false;
+  // Easy's open black (POOL_LEVEL_BLACK_AT): with at most `blackAt` left, a clean black pot ends the rack too.
+  if (left > 0 && left <= blackAt && end.firstHit === POOL_BLACK) return end.dropped.includes(POOL_BLACK);
   if (left > 0) {
     if (end.firstHit < 0 || !poolIsSpot(end.firstHit)) return false;
     if (end.dropped.includes(POOL_BLACK)) return false;
@@ -119,11 +121,11 @@ function segDist(px: number, py: number, ax: number, ay: number, bx: number, by:
 }
 
 /** Every ghost-ball aim with clear lines, easiest first (`maxCut` in degrees). */
-export function candidates(balls: readonly PoolBall[], maxCut = 78): Candidate[] {
+export function candidates(balls: readonly PoolBall[], maxCut = 78, blackAt = 0): Candidate[] {
   const cue = balls.find((b) => b.id === POOL_CUE && !b.down);
   if (!cue) return [];
   const left = spotsLeft(balls);
-  const targets = balls.filter((b) => !b.down && (left > 0 ? poolIsSpot(b.id) : b.id === POOL_BLACK));
+  const targets = balls.filter((b) => !b.down && (left > 0 ? poolIsSpot(b.id) || (left <= blackAt && b.id === POOL_BLACK) : b.id === POOL_BLACK));
   const D = 2 * POOL_BALL_R * 256;
   const out: Candidate[] = [];
   for (const t of targets) {
@@ -198,11 +200,11 @@ export function leaveQuality(balls: readonly PoolBall[]): number {
 }
 
 /** Clean pots from a still table, with each one's leave (best first); `limit` caps the candidates tried. */
-export function goodShots(balls: readonly PoolBall[], opts: { limit?: number; want?: number; rev?: number } = {}): Good[] {
+export function goodShots(balls: readonly PoolBall[], opts: { limit?: number; want?: number; rev?: number; blackAt?: number } = {}): Good[] {
   const out: Good[] = [];
   const rev = opts.rev ?? 1;
   const SPINS = rev >= 2 ? SPINS_V2 : SPINS_V1;
-  const cands = candidates(balls).slice(0, opts.limit ?? 8);
+  const cands = candidates(balls, 78, opts.blackAt ?? 0).slice(0, opts.limit ?? 8);
   for (const cand of cands) {
     // poolRev 3's harder top speed: the same roll needs about 16/20 of the pull.
     const base = rev >= 3 ? Math.max(60, Math.round((powerFor(cand.cueDist, cand.objDist, cand.cut) * 16) / 20)) : powerFor(cand.cueDist, cand.objDist, cand.cut);
@@ -213,7 +215,7 @@ export function goodShots(balls: readonly PoolBall[], opts: { limit?: number; wa
         for (const spin of SPINS) {
           const shot = shotFor(cand.angle + (nudge * Math.PI) / 180, power, spin, rev);
           const end = simShot(balls, shot, rev);
-          if (!legalPot(balls, end)) {
+          if (!legalPot(balls, end, opts.blackAt ?? 0)) {
             if (spin === SPINS[0] && !end.dropped.includes(cand.target)) break; // this power misses: spins won't help much
             continue;
           }

@@ -1,3 +1,6 @@
+import { speedLevelInstructions } from "@/lib/levels/speedLevels";
+import { gameLevelSettings } from "@/lib/levels/gameLevels";
+import type { Level } from "@/lib/levels/levels";
 import { CATEGORY_NAMES } from "@/components/duel/GameFrame";
 import { PUZZLE_INSTRUCTIONS } from "@/lib/duel/instructions";
 import {
@@ -101,14 +104,18 @@ export function gameTag(type: PuzzleType): { id: string; label: string } {
 }
 
 /** The round's length in seconds, as the round intro says it (an arcade clock's 3 s of slack left out). */
-export function gameSeconds(type: PuzzleType): number {
-  return Math.round((shownTimeLimitMs(type) - (usesArcadeClock(type) ? 3000 : 0)) / 1000);
+export function gameSeconds(type: PuzzleType, level: Level = "normal"): number {
+  // A level with its own clock (Ascend's 75 and 90 s, the Chain's 60 s on Expert).
+  const own = level === "normal" ? null : (gameLevelSettings<{ timeLimitMs?: number }>(type, level)?.timeLimitMs ?? null);
+  return Math.round(((own ?? shownTimeLimitMs(type)) - (usesArcadeClock(type) ? 3000 : 0)) / 1000);
 }
 
 /** The goal and the intro's how-to lines (never the help-only ones), at most three. */
-export function gameGuide(type: PuzzleType): { goal: string; how: string[] } {
-  const instructions = PUZZLE_INSTRUCTIONS[type];
-  if (!instructions) return { goal: "", how: [] };
+export function gameGuide(type: PuzzleType, level: Level = "normal"): { goal: string; how: string[] } {
+  const base = PUZZLE_INSTRUCTIONS[type];
+  if (!base) return { goal: "", how: [] };
+  // A Speed level's own goal and lines (the Speed overhaul's levels; every other game and level: the game's own).
+  const instructions = speedLevelInstructions(type, level, base);
   return {
     goal: instructions.goal,
     how: instructions.how

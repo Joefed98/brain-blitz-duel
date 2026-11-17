@@ -1,4 +1,5 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { countUp, fxCrack, fxFlash, fxSparks, retroEndAge, retroFx, retroPayoffBanner, type RetroFx } from "./retroFx.renderer";
 import { drawArtSprite } from "./sprites.renderer";
 import { reducedMotion } from "./art.renderer";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
@@ -42,6 +43,7 @@ import {
   BRK_REV_DEEP,
   BRK_REV_PHONE,
   BRK_REV_STD,
+  BRK_REV_CLEAR,
   brkAllDestroyed,
   brkGoldDealt,
   BRK_V9_SKILL_MAX,
@@ -52,6 +54,8 @@ import {
   brkWallXOf,
   brkWorldW,
   type BrkState,
+  breakerStdParts,
+  brkPaddleWOf,
 } from "./breaker";
 import { px, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
 import { artCanvas, artContext, type ArtCanvas } from "./cache.renderer";
@@ -60,6 +64,7 @@ import {
   pixelRect,
   pixelShape,
   retroBall,
+  retroMix,
   retroBloom,
   retroBurst,
   retroPaddle,
@@ -87,19 +92,6 @@ export const RAINBOW = [
 const FIRE = "#FF6A2B";
 const powerColour = (power: number): string =>
   power === BRK_POWER_LASER ? LASER : power === BRK_POWER_FIRE ? FIRE : BRK_POWER_COLOURS[power] ?? PADDLE;
-/** Capsule text says what it holds: ×2 balls, ×5 (×3 on brkRev 2) shots, L laser; the Fireball draws a flame. */
-function capsuleLabel(state: BrkState, kind: number): string {
-  if (kind === BRK_POWER_MULTI) return "x2";
-  if (kind === BRK_POWER_SPAM) return state.rev === BRK_REV ? "x3" : "x5";
-  return "L";
-}
-/** A small pixel flame centred on (cx, cy), inside a 10 × 10 box. */
-function pixelFlame(ctx: CanvasRenderingContext2D, cx: number, cy: number, colour: string): void {
-  const rows = ["..X..", ".XX..", ".XXX.", "XXXX.", "XX.XX", ".XXX."];
-  rows.forEach((row, y) => {
-    for (let x = 0; x < row.length; x++) if (row[x] === "X") pixelRect(ctx, cx - 5 + x * 2, cy - 6 + y * 2, 2, 2, colour);
-  });
-}
 const BURST_MS = 320;
 
 /** Draws a 2 px pixel-art pattern (X white, o the brick's colour) centred on the 44 × 20 brick. */
@@ -113,6 +105,8 @@ function pixelPattern(ctx: CanvasRenderingContext2D, rows: readonly string[], co
       const ch = row[x];
       if (ch === "X") pixelRect(ctx, x0 + x * 2, y0 + y * 2, 2, 2, "#FFFFFF");
       else if (ch === "o") pixelRect(ctx, x0 + x * 2, y0 + y * 2, 2, 2, colour);
+      else if (ch === "f") pixelRect(ctx, x0 + x * 2, y0 + y * 2, 2, 2, FIRE);
+      else if (ch === "y") pixelRect(ctx, x0 + x * 2, y0 + y * 2, 2, 2, "#FFD84A");
     }
   });
 }
@@ -146,13 +140,53 @@ const SYMBOL_LASER = [
   "..XXXXX..",
   ".XXXXXXX.",
 ] as const;
-/** The symbol for a power-up brick; false (the star stays) for the Fireball, which draws its flame over it. */
+/**
+ * A burning ball streaking left, its flames trailing behind (white-hot core, gold, then fire): the Fireball brick's own
+ * symbol (the Retro overhaul, 15 Nov 2026, Joe: "the Fireball needs its own"; it used to keep the plain star with a
+ * flame over it).
+ */
+const SYMBOL_FIRE = [
+  "........ff.yy....",
+  "....ff.fyyyXXX...",
+  "..ffffyyyXXXXXX..",
+  "ffffyyyyXXXXXXX..",
+  "..ffffyyyXXXXXX..",
+  "....ff.fyyyXXX...",
+  "........ff.yy....",
+] as const;
+/** The symbol for a power-up brick (every power has one since the Retro overhaul). */
 function powerSymbol(ctx: CanvasRenderingContext2D, power: number, colour: string): boolean {
   if (power === BRK_POWER_MULTI) pixelPattern(ctx, SYMBOL_MULTI, colour);
   else if (power === BRK_POWER_SPAM) pixelPattern(ctx, SYMBOL_SPAM, colour);
   else if (power === BRK_POWER_LASER) pixelPattern(ctx, SYMBOL_LASER, colour);
+  else if (power === BRK_POWER_FIRE) pixelPattern(ctx, SYMBOL_FIRE, colour);
   else return false;
   return true;
+}
+
+/**
+ * A falling capsule's icon (the Retro overhaul, 15 Nov 2026): the brick's symbol in 1 px blocks, dark on the capsule's
+ * colour, inside its 16 × 10 pill (it used to print 7 px letters, under the Retro 11 px text floor).
+ */
+const CAPSULE_ICONS: Record<number, readonly string[]> = {
+  [BRK_POWER_MULTI]: ["..XX....XX..", ".XXXX..XXXX.", ".XXXX..XXXX.", "..XX....XX.."],
+  [BRK_POWER_SPAM]: [".XX..XX..XX.", ".XX..XX..XX.", "............", ".X...X...X..", ".X...X...X.."],
+  [BRK_POWER_LASER]: [".....XX.....", ".....XX.....", ".....XX.....", "...XXXXXX...", "..XXXXXXXX.."],
+  [BRK_POWER_FIRE]: ["......yXX...", "..f.yyXXXX..", "ffyyyXXXXX..", "..f.yyXXXX..", "......yXX..."],
+};
+function drawCapsuleIcon(ctx: CanvasRenderingContext2D, kind: number, cx: number, cy: number): void {
+  const rows = CAPSULE_ICONS[kind];
+  if (!rows) return;
+  const x0 = Math.round(cx - rows[0]!.length / 2);
+  const y0 = Math.round(cy - rows.length / 2);
+  rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      const ch = row[x];
+      if (ch === ".") continue;
+      ctx.fillStyle = ch === "X" ? (kind === BRK_POWER_FIRE ? "#FFFFFF" : "#0A0A12") : ch === "y" ? "#FFD84A" : "#FF6A2A";
+      ctx.fillRect(x0 + x, y0 + y, 1, 1);
+    }
+  });
 }
 
 const memo = new WeakMap<CanvasRenderingContext2D, { tick: number; bricks: number[]; deaths: { index: number; at: number }[] }>();
@@ -179,12 +213,17 @@ export function getBrickSprite(colour: string, power: number, taken: number, blo
  */
 export function paintBrick(ctx: CanvasRenderingContext2D, colour: string, power: number, taken: number, bloom: number, symbol = false): void {
   if (power >= 0) {
-    // Dark brick, metal outline, white pixel star.
+    // Dark brick, metal outline, white pixel star. The Retro overhaul (15 Nov 2026): a smoked-glass plate in a polished
+    // gold frame, so a power brick reads as special at a glance: the face lifted towards its power's colour, a lit
+    // gold top edge with a crisp glint, a darker gold bottom edge, and the symbol over it.
     pixelRect(ctx, 1, 0, BRK_BRICK_W - 2, BRK_BRICK_H, "#101018");
-    pixelRect(ctx, 1, 0, BRK_BRICK_W - 2, 2, colour, bloom);
-    pixelRect(ctx, 1, BRK_BRICK_H - 2, BRK_BRICK_W - 2, 2, colour);
-    pixelRect(ctx, 1, 0, 2, BRK_BRICK_H, colour);
-    pixelRect(ctx, BRK_BRICK_W - 3, 0, 2, BRK_BRICK_H, colour);
+    pixelRect(ctx, 3, 2, BRK_BRICK_W - 6, BRK_BRICK_H - 4, /^#[0-9a-f]{6}$/i.test(colour) ? retroMix("#101018", colour, 0.22) : "#1A1A26");
+    pixelRect(ctx, 3, 2, BRK_BRICK_W - 6, 2, "rgba(255,255,255,0.12)");
+    pixelRect(ctx, 1, 0, BRK_BRICK_W - 2, 2, "#FFE08A", bloom);
+    pixelRect(ctx, 1, BRK_BRICK_H - 2, BRK_BRICK_W - 2, 2, "#9A6A12");
+    pixelRect(ctx, 1, 0, 2, BRK_BRICK_H, "#E8B83A");
+    pixelRect(ctx, BRK_BRICK_W - 3, 0, 2, BRK_BRICK_H, "#B07E1C");
+    pixelRect(ctx, 7, 0, 6, 2, "#FFFFFF");
     if (!symbol || !powerSymbol(ctx, power, colour)) pixelStar(ctx, BRK_BRICK_W / 2, BRK_BRICK_H / 2);
   } else {
     // Neon brick with bevel highlights.
@@ -199,7 +238,11 @@ export function paintBrick(ctx: CanvasRenderingContext2D, colour: string, power:
     pixelRect(ctx, 1, 0, 2, BRK_BRICK_H, "rgba(255,255,255,0.35)");
     pixelRect(ctx, 1, BRK_BRICK_H - 2, BRK_BRICK_W - 2, 2, "rgba(0,0,0,0.45)");
     pixelRect(ctx, BRK_BRICK_W - 3, 0, 2, BRK_BRICK_H, "rgba(0,0,0,0.35)");
+    // Enamel (the Retro overhaul, 15 Nov 2026): a crisp glossy streak along the upper face and a hot glint at its left,
+    // light on a lacquered surface rather than a flat fill.
+    pixelRect(ctx, 5, 4, BRK_BRICK_W - 14, 2, "rgba(255,255,255,0.32)");
     pixelRect(ctx, 5, 2, 6, 2, "rgba(255,255,255,0.7)");
+    pixelRect(ctx, 5, 4, 2, 2, "#FFFFFF");
     // Pixel cracks per hit taken.
     for (let c = 0; c < taken; c++) {
       const cx = 10 + c * 16;
@@ -299,14 +342,16 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     const taken = (state.maxHp[index] ?? 1) - left;
     const b = power >= 0 ? bloom : (left === 1 ? bloom * 0.6 : 0);
     if (brkIsGold(state, index)) {
-      drawGoldBrick(ctx, x, y, glint, bloom, state.phone ? taken : 0);
+      // Stage 2 of the Retro overhaul: every revision's gold brick shows its cracks deepening hit by hit.
+      drawGoldBrick(ctx, x, y, glint, bloom, taken);
       return;
     }
     const sprite = getBrickSprite(colour, power, taken, b, true);
     if (sprite) {
       ctx.drawImage(sprite, x, y);
     }
-    if (power === BRK_POWER_FIRE) pixelFlame(ctx, x + BRK_BRICK_W / 2, y + BRK_BRICK_H / 2 + 1, FIRE);
+    // Stage 2: a tough brick hit but not broken shows a crack, deeper for each hit taken (its state at a glance).
+    if (taken > 0 && power < 0) fxCrack(ctx, x + 2, y + 2, BRK_BRICK_W - 4, BRK_BRICK_H - 4, taken, index * 7 + 3, "rgba(0,0,0,0.55)");
   });
   ctx.restore();
 
@@ -336,22 +381,27 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     const cy = px(capsule.y);
     pixelRect(ctx, cx - BRK_CAPSULE_W / 2, cy - BRK_CAPSULE_H / 2, BRK_CAPSULE_W, BRK_CAPSULE_H, colour, bloom);
     if (capsule.kind === BRK_POWER_FIRE) {
-      // Fireball capsule: dark-red body, flame on it, pulsing rim.
+      // Fireball capsule: a dark-red body under the burning ball.
       pixelRect(ctx, cx - BRK_CAPSULE_W / 2 + 2, cy - BRK_CAPSULE_H / 2 + 2, BRK_CAPSULE_W - 4, BRK_CAPSULE_H - 4, "#5A1206");
-      pixelFlame(ctx, cx, cy + 1, "#FFD84A");
-      continue;
     }
-    retroText(ctx, capsuleLabel(state, capsule.kind), cx, cy - 3, 7, "#000000", "center");
+    // A highlight along the pill's top edge (the lit-material pass), then its icon.
+    pixelRect(ctx, cx - BRK_CAPSULE_W / 2 + 2, cy - BRK_CAPSULE_H / 2, BRK_CAPSULE_W - 4, 1, "rgba(255,255,255,0.55)");
+    drawCapsuleIcon(ctx, capsule.kind, cx, cy);
   }
 
   const changed=state.bricks.findIndex((hp,i)=>hp<(m.bricks[i]??hp));
   const hitPoint=changed>=0?brickXY(changed,state,false):brickXY(m.deaths.at(-1)?.index??0,state,false);
   const reward=successFrame(ctx,{id:'breaker',tick:state.tick,count:state.hits,misses:state.losses,colour:PADDLE,width:BRK_WORLD_W,height:BRK_WORLD_H,point:{x:hitPoint.x+BRK_BRICK_W/2,y:hitPoint.y+BRK_BRICK_H/2,shape:'pixel'},hud:{x:14,y:26,text:brkHudBricks(state)}});
-  if(reward.chain>=10){ctx.save();ctx.globalAlpha=.3;ctx.strokeStyle=PADDLE;ctx.lineWidth=3;ctx.strokeRect(state.paddleX-BRK_PADDLE_W/2-2,BRK_PADDLE_Y-2,BRK_PADDLE_W+4,BRK_PADDLE_H+4);ctx.restore();}
+  if(reward.chain>=10){ctx.save();ctx.globalAlpha=.3;ctx.strokeStyle=PADDLE;ctx.lineWidth=3;ctx.strokeRect(state.paddleX-brkPaddleWOf(state)/2-2,BRK_PADDLE_Y-2,brkPaddleWOf(state)+4,BRK_PADDLE_H+4);ctx.restore();}
   // Polish A1: the paddle's gold light.
-  glow(ctx, PADDLE, state.paddleX, BRK_PADDLE_Y + BRK_PADDLE_H / 2, BRK_PADDLE_W / 2 + 18, 16, 0.42);
+  glow(ctx, PADDLE, state.paddleX, BRK_PADDLE_Y + BRK_PADDLE_H / 2, brkPaddleWOf(state) / 2 + 18, 16, 0.42);
   // Art pilot (Retro): the paddle sprite fills the collision rectangle; code art when absent.
-  if (!drawArtSprite(ctx, "retro", "paddle", state.paddleX - BRK_PADDLE_W / 2, BRK_PADDLE_Y, BRK_PADDLE_W, BRK_PADDLE_H)) retroPaddle(ctx, state.paddleX - BRK_PADDLE_W / 2, BRK_PADDLE_Y, BRK_PADDLE_W, BRK_PADDLE_H, PADDLE, "#5A4510", bloom);
+  // Stage 2: the paddle dips 2 px as a ball comes off it (breakerEffects logs the hit), back over 6 ticks.
+  const fx = breakerEffects(ctx, state, m.bricks, BRK_PADDLE_Y);
+  const dipped = fx.latest("paddle", 6);
+  const dip = dipped && !fx.still ? Math.round(2 * (1 - dipped.age)) : 0;
+  if (!drawArtSprite(ctx, "retro", "paddle", state.paddleX - brkPaddleWOf(state) / 2, BRK_PADDLE_Y + dip, brkPaddleWOf(state), BRK_PADDLE_H)) retroPaddle(ctx, state.paddleX - brkPaddleWOf(state) / 2, BRK_PADDLE_Y + dip, brkPaddleWOf(state), BRK_PADDLE_H, PADDLE, "#5A4510", bloom);
+  drawBreakerEffects(ctx, fx, state, BRK_PADDLE_Y);
 
   state.balls.forEach((ball, i) => {
     const bx = px(ball.x);
@@ -388,8 +438,24 @@ function drawWorld(ctx: CanvasRenderingContext2D, state: BrkState, key: CanvasRe
     [state.deep ? brkDeepHudItem(state) : null, fire > 0 ? { text: `FIREBALL ${Math.ceil(fire / 60)}`, colour: FIRE } : null],
     { wrapMain: (draw) => successHud(ctx, "breaker", state.tick, 12, 8, draw) },
   );
-  if (state.pause > 0) retroText(ctx, "RELAUNCHING", BRK_WORLD_W / 2, BRK_PADDLE_Y - 40, 16, PADDLE, "center");
+  // Stage 2: the relaunch counts down on the paddle (3, 2, 1).
+  if (state.pause > 0) {
+    retroText(ctx, "RELAUNCH", BRK_WORLD_W / 2, BRK_PADDLE_Y - 64, 14, PADDLE, "center");
+    retroText(ctx, String(Math.max(1, Math.ceil(state.pause / 60))), state.paddleX, BRK_PADDLE_Y - 36, 24, RETRO_WHITE, "center", 4);
+  }
   if (state.deep) drawDeepHud(ctx, state, key);
+  // Stage 3 of the Retro overhaul: the wall cleared (the shared layer says WALL CLEARED!), TIME BONUS and the time left turning into speed points (the
+  // round-end payoff, on the presentation clock while the stage holds the submit; display only). brkRev 11+ only (the
+  // standard's speed part); older clears show the banner alone.
+  const clearAge = retroEndAge(key, "breaker-clear", state.cleared, state.tick);
+  if (clearAge !== null) {
+    const speed = state.std ? breakerStdParts(state).speed : 0;
+    retroPayoffBanner(ctx, brkWorldW(state), BRK_PADDLE_Y * 0.56, "TIME BONUS", speed > 0 ? `SPEED +${countUp(speed, clearAge)}` : "", clearAge);
+    if (!reducedMotion()) {
+      const fx = retroFx(ctx, "breaker-clear", state.tick);
+      fxSparks(fx, ctx, brkWorldW(state) / 2, BRK_PADDLE_Y * 0.42, Math.min(0.99, clearAge / 900), GOLD, { n: 16, spread: 90, seed: 7 });
+    }
+  }
 }
 
 /**
@@ -534,8 +600,11 @@ const breakerArtGameStrict: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ..
 const breakerArtGameDeep: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_DEEP), draw };
 const breakerArtGamePhone: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_PHONE), draw };
 const breakerArtGameStd: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_STD), draw };
+/** brkRev 12 (the Retro overhaul): the 9-row wall, drawn by the same art. */
+const breakerArtGameClear: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breakerGameFor(BRK_REV_CLEAR), draw };
 /** The art game for a stored brkRev; one cached object per revision. */
 export function breakerArtGameFor(rev?: number | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  if (rev === BRK_REV_CLEAR) return breakerArtGameClear;
   if (rev === BRK_REV_STD) return breakerArtGameStd;
   if (rev === BRK_REV_PHONE) return breakerArtGamePhone;
   if (rev === BRK_REV_DEEP) return breakerArtGameDeep;
@@ -546,4 +615,58 @@ export function breakerArtGameFor(rev?: number | null): ArcadeGame<BrkState, Arc
   if (rev === BRK_REV_TUNED) return breakerArtGameTuned;
   if (rev === BRK_REV_BAND) return breakerArtGameBand;
   return rev === BRK_REV ? breakerArtGameV2 : breakerArtGame;
+}
+
+/**
+ * Breaker's in-world moments (the Retro overhaul, stage 2; display only, retroFx.renderer.ts): logs a paddle hit (a ball
+ * near the paddle turning from falling to rising), each brick hit that didn't break it, and a caught power-up (with the
+ * kind of the capsule that was lowest a frame before). Read before the frame's brick memory moves on.
+ */
+function breakerEffects(ctx: CanvasRenderingContext2D, state: BrkState, before: readonly number[], paddleY: number) {
+  const fx = retroFx(ctx, "breaker", state.tick);
+  state.balls.forEach((ball, i) => {
+    const vy = fx.get(`vy${i}`, ball.vy);
+    if (vy > 0 && ball.vy < 0 && ball.y > (paddleY - 40) * 256) fx.log("paddle", { x: ball.x / 256, y: paddleY, n: i });
+    fx.set(`vy${i}`, ball.vy);
+  });
+  for (let i = 0; i < state.bricks.length; i++) {
+    const was = before[i] ?? 0;
+    const now = state.bricks[i] ?? 0;
+    if (now > 0 && now < was) {
+      const { x, y } = brickXY(i, state);
+      fx.log(brkIsGold(state, i) ? "gold" : "hit", { x, y, n: i });
+    }
+  }
+  fx.rise("caught", state.powerUps, () => ({ x: state.paddleX, y: paddleY, n: fx.get("lowKind", BRK_POWER_MULTI) }));
+  let lowest = -1;
+  let lowY = -Infinity;
+  for (const c of state.capsules) if (c.y > lowY) { lowY = c.y; lowest = c.kind; }
+  if (lowest >= 0) fx.set("lowKind", lowest);
+  return fx;
+}
+
+function drawBreakerEffects(ctx: CanvasRenderingContext2D, fx: RetroFx, state: BrkState, paddleY: number): void {
+  // A tough brick's white flash and a gold brick's brighter one with sparks.
+  fx.each("hit", 8, (e, age) => {
+    const { x, y } = brickXY(e.n, state);
+    fxFlash(ctx, x + 1, y, BRK_BRICK_W - 2, BRK_BRICK_H, age, "#FFFFFF", 0.7);
+  });
+  fx.each("gold", 14, (e, age) => {
+    const { x, y } = brickXY(e.n, state);
+    fxFlash(ctx, x + 1, y, BRK_BRICK_W - 2, BRK_BRICK_H, age, "#FFF4C2", 0.8);
+    fxSparks(fx, ctx, x + BRK_BRICK_W / 2, y + BRK_BRICK_H, age, GOLD, { n: 6, spread: 12, seed: e.n });
+  });
+  // A paddle hit: a short spark where the ball struck.
+  fx.each("paddle", 10, (e, age) => fxSparks(fx, ctx, e.x, paddleY, age, PADDLE, { n: 5, spread: 9, seed: e.tick, up: true }));
+  // A caught power-up pops up over the paddle as its icon, twice size, rising and fading.
+  fx.each("caught", 40, (e, age) => {
+    const lift = fx.still ? 20 : 14 + 26 * age;
+    ctx.save();
+    ctx.globalAlpha = age < 0.7 ? 1 : 1 - (age - 0.7) / 0.3;
+    ctx.translate(Math.round(state.paddleX), Math.round(paddleY - lift));
+    ctx.scale(2, 2);
+    pixelRect(ctx, -BRK_CAPSULE_W / 2, -BRK_CAPSULE_H / 2, BRK_CAPSULE_W, BRK_CAPSULE_H, powerColour(e.n));
+    drawCapsuleIcon(ctx, e.n, 0, 0);
+    ctx.restore();
+  });
 }

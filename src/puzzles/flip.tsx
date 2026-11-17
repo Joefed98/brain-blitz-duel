@@ -4,42 +4,51 @@ import {
   flipCheckpoint,
   FLIP_BG,
   FLIP_CHECKPOINT_INTERVAL,
-  FLIP_GOLD,
   FLIP_INPUT_TAP,
-  FLIP_RED,
+  FLIP_REV_GRACE,
   FLIP_WORLD_W,
   flipWorldHFor,
+  type FlipState,
 } from "@/lib/arcade/flip";
 import { encodeFlipRun, replayFlipRun } from "@/lib/duel/flip";
 import { FLIP_TIME_MS, type FlipPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
+import { ArtStill } from "@/components/puzzles/ArtStill";
 import { flipArenaSceneFor, flipArtGameFor } from "@/lib/arcade/flipArt.renderer";
 import { flipSounds } from "@/lib/fx/gameSounds";
+import { flipEndHoldMs } from "@/lib/arcade/flipFx";
+import { flipRunTimeline } from "@/lib/duel/flipTimeline";
+import { FlipRunPicture } from "@/components/puzzles/FlipRunPicture";
+import { useMemo } from "react";
+import { puzzleLevel } from "@/lib/levels/levels";
 
-import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps, RunPictureProps } from "./types";
 
-/** Fixed intro still: floor spikes ahead, the runner arcing to the ceiling. */
+/**
+ * The intro still (the Action overhaul, 15 Nov 2026; was a flat drawing that looked nothing like the cave): the live
+ * stamp's own art (flipRev 13, the lava cave) on a fixed course 1.5 s in, drawn by the game's renderer (ArtStill).
+ */
 function IntroExample() {
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg viewBox="0 0 168 130" width={168} height={130} aria-hidden="true" style={{ background: FLIP_BG, borderRadius: 10 }}>
-        <line x1={0} y1={24} x2={168} y2={24} stroke={FLIP_GOLD} strokeWidth={2} />
-        <line x1={0} y1={106} x2={168} y2={106} stroke={FLIP_GOLD} strokeWidth={2} />
-        <polygon points="96,106 104,92 112,106 120,92 128,106" fill={FLIP_RED} />
-        <path d="M40 96 Q60 64 80 34" fill="none" stroke={FLIP_GOLD} strokeOpacity={0.4} strokeDasharray="3 4" />
-        <rect x={18} y={106} width={34} height={6} fill="#7C726A" />
-        <path d="M26 106 l2 4 M38 106 l-1 5 M46 106 l2 3" stroke="#FF8C3C" strokeWidth={1.2} />
-        <polygon points="132,34 134.4,39 140,39.6 135.8,43.2 137,48.6 132,46 127,48.6 128.2,43.2 124,39.6 129.6,39" fill="#FFE84A" />
-        <rect x={72} y={26} width={18} height={22} rx={8} fill={FLIP_GOLD} />
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">Spikes below? Flip up. Grab the stars; cracked tiles give way.</p>
-    </div>
+    <ArtStill
+      game={flipArtGameFor(FLIP_REV_GRACE)}
+      worldW={FLIP_WORLD_W}
+      worldH={flipWorldHFor(FLIP_REV_GRACE)}
+      seed={FLIP_STILL_SEED}
+      ticks={90}
+      input={null}
+      caption="Tap to flip between floor and roof; dodge the spikes and run clean."
+    />
   );
 }
 
+/** A dealt course whose first seconds show a spike row ahead of the runner. */
+const FLIP_STILL_SEED = 301794028;
+
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: FlipPuzzleData | null = puzzle.type === "flip" ? puzzle : null;
-  const game = flipArtGameFor(data?.flipRev);
+  // Levels (15 Nov 2026): the stored puzzle's level picks the level's course (Normal: none, as before).
+  const game = flipArtGameFor(data?.flipRev, puzzleLevel(data));
   return (
     <ArcadeCanvasStage
       diagKey="flip"
@@ -55,6 +64,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       worldH={flipWorldHFor(data?.flipRev)}
       game={game}
       sounds={flipSounds}
+      endHoldMs={(state) => flipEndHoldMs(state as FlipState)}
       checkpoint={flipCheckpoint}
       interval={FLIP_CHECKPOINT_INTERVAL}
       encodeRun={encodeFlipRun}
@@ -76,9 +86,33 @@ export function flipLine(r: { survived: boolean; survivedSeconds: number }): str
   return r.survived ? "Survived the minute" : `Survived ${r.survivedSeconds.toFixed(1)}s`;
 }
 
+/**
+ * The arcade reveal's run picture (stage 2 of the Action overhaul, ArcadeReveal's GameRunPicture): the stored run replayed
+ * with the real sim (flipRunTimeline) and drawn as one strip of the cave with the four numbers the score is made of.
+ * Earlier revisions (no flow streak) draw nothing here and keep the reveal's tiles.
+ */
+function RunPicture({ puzzle, myAnswer }: RunPictureProps) {
+  const flip = puzzle.type === "flip" ? puzzle : null;
+  const timeline = useMemo(() => (flip ? flipRunTimeline(flip.seed, myAnswer, flip.flipRev, puzzleLevel(flip)) : null), [flip, myAnswer]);
+  if (!timeline) return null;
+  return (
+    <div data-run-picture="flip" className="flex w-full shrink-0 justify-center animate-fade-in">
+      <FlipRunPicture timeline={timeline} />
+    </div>
+  );
+}
+
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
-  if (puzzle.type !== "flip") return null;
-  const result = replayFlipRun(puzzle.seed, myAnswer ?? "", puzzle.flipRev);
+  const flip = puzzle.type === "flip" ? puzzle : null;
+  // Stage 2 of the Action overhaul (15 Nov 2026): the flow revisions (flipRev 11–13) draw the run as a picture, replayed
+  // from the stored log with the real sim; earlier revisions keep their lines.
+  const timeline = useMemo(
+    () => (flip && myAnswer ? flipRunTimeline(flip.seed, myAnswer, flip.flipRev, puzzleLevel(flip)) : null),
+    [flip, myAnswer],
+  );
+  if (!flip) return null;
+  if (timeline) return <FlipRunPicture timeline={timeline} />;
+  const result = replayFlipRun(flip.seed, myAnswer ?? "", flip.flipRev, puzzleLevel(flip));
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
@@ -107,4 +141,5 @@ export const flipPuzzle: PuzzleDefinition = {
   IntroExample,
   Stage,
   Reveal,
+  RunPicture,
 };

@@ -6,7 +6,7 @@
  */
 
 import { CROSS_LANE_POINTS, CROSS_CROSSING_POINTS } from "./cross";
-import { BT_BALLS, BT_V7_BALLS } from "./ballTrack";
+import { btStateBalls } from "./ballTrack";
 import { whackDepthScore, type WhackState } from "./whack";
 import { CLAY_DOUBLES, clayDepthScore, clayDoublesHit, type ClayState } from "./clayShoot";
 import { MATCHUP_PAR_RAW, matchupCoreGemsOf, matchupGoalsMet, matchupGoalsOf, matchupTreasuresOf, type MatchupState } from "./matchup";
@@ -188,7 +188,7 @@ const BUILDERS: Record<string, Builder> = {
     lines: [`${n(r, "metres")} m climbed · ${n(r, "rides")} lantern rides · ${n(r, "scrolls")} scrolls → ${s}`],
     tiles: [
       { label: "Height", value: `${n(r, "metres")} m` },
-      { label: "Lantern rides", value: `${n(r, "rides")} / ${MOON_SKY}` },
+      { label: "Lantern rides", value: `${n(r, "rides")} / ${"rideTotal" in r ? n(r, "rideTotal") : MOON_SKY}` },
       { label: "Scrolls", value: `${n(r, "scrolls")} / ${MOON_SCROLLS}` },
       { label: "Best flow", value: String(n(r, "bestFlow")) },
       { label: "Hits", value: String(n(r, "hits")) },
@@ -313,6 +313,8 @@ const BUILDERS: Record<string, Builder> = {
         : n(r, "skylineRev") >= 7
           ? [{ label: "Gold blocks", value: String(n(r, "golds")) }]
           : []),
+      // skylineRev 11 (15 Nov 2026, lives): the lives lost (the replay's state carries `lives`).
+      ...((r["state"] as { lives?: number } | undefined)?.lives !== undefined ? [{ label: "Lives lost", value: `${n(r, "livesLost")} / 3` }] : []),
     ],
     outcome: ended(r, false),
   }),
@@ -622,12 +624,17 @@ const BUILDERS: Record<string, Builder> = {
   flip: (r, s) => b(r, "flow") ? {
     // flipRev 11 (3 Nov 2026): no stars; clean time, perfect landings, double flips and the longest flow streak.
     axis: { value: Math.round(n(r, "survivedSeconds") * 10) / 10, max: 60, label: "Seconds survived" },
-    lines: [`${sec(n(r, "survivedSeconds"))} survived${n(r, "saves") > 0 ? ` · ${n(r, "saves")} saved` : ""} · best streak ${n(r, "streak")} → ${s}`],
+    // flipRev 13 (grace): no crash ends the run, so the line counts crashes (each costs clean time) and the first tile
+    // is always the minute. The Action overhaul (15 Nov 2026) dropped the "Bonuses" tile: the parts above add up already.
+    lines: [b(r, "grace")
+      ? `${sec(n(r, "survivedSeconds"))} run${n(r, "saves") > 0 ? ` · ${n(r, "saves")} crash${n(r, "saves") === 1 ? "" : "es"}` : " · no crashes"} · best streak ${n(r, "streak")} → ${s}`
+      : `${sec(n(r, "survivedSeconds"))} survived${n(r, "saves") > 0 ? ` · ${n(r, "saves")} saved` : ""} · best streak ${n(r, "streak")} → ${s}`],
     tiles: [
-      { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "survivedSeconds")) },
+      b(r, "grace")
+        ? { label: "Crashes", value: String(n(r, "saves")) }
+        : { label: b(r, "survived") ? "Survived" : "Crashed at", value: b(r, "survived") ? "60 s" : sec(n(r, "survivedSeconds")) },
       { label: "Perfect landings", value: `${n(r, "sweets")} / ${n(r, "sweetsTotal")}` },
       { label: "Best streak", value: String(n(r, "streak")) },
-      { label: "Bonuses", value: `+${n(r, "skill")}` },
     ],
     outcome: b(r, "survived") ? "finish" : "crash",
   } : ({
@@ -881,7 +888,8 @@ const BUILDERS: Record<string, Builder> = {
   },
   tilt: (r, s) => {
     // tiltRev 8 (the expansion, docs/expansions/x200-tilt.md): three mazes and quick stars; tiltRev 10 four mazes again.
-    const all = n(r, "tiltRev") === 8 || n(r, "tiltRev") === 9 ? 3 : 4;
+    // Levels (stage 3): a level's run stores its own maze count (Easy three).
+    const all = n(r, "totalMazes") > 0 ? n(r, "totalMazes") : n(r, "tiltRev") === 8 || n(r, "tiltRev") === 9 ? 3 : 4;
     const done = n(r, "mazes") >= all;
     const quick = n(r, "totalQuick") > 0;
     // tiltRev 11: no gold stars; mazes within par and a clean run instead.
@@ -911,14 +919,16 @@ const BUILDERS: Record<string, Builder> = {
   },
   balltrack: (r, s) => {
     // btRev 7 drops 36 marbles (every earlier course 30): the replay's own state says which.
-    const all = (r["state"] as { r7?: number } | undefined)?.r7 ? BT_V7_BALLS : BT_BALLS;
+    // A level course (Easy 28, Hard and Expert 42) carries its own count on the state (`nb`).
+    const all = btStateBalls((r["state"] as { r7?: number; nb?: number } | undefined) ?? {});
     const done = n(r, "home") >= all;
     return {
       axis: { value: n(r, "home"), max: all, label: "Marbles home" },
       lines: [head(`${n(r, "home")} / ${all} home`, s, done)],
       tiles: [
         { label: "Marbles home", value: `${n(r, "home")} / ${all}` },
-        { label: "Wrong tray", value: String(n(r, "wrong")) },
+        // One wording for Ball Tracker (Joe, 15 Nov 2026): the cups are "cups" everywhere.
+        { label: "Wrong cup", value: String(n(r, "wrong")) },
         { label: "Lost", value: String(n(r, "lost")) },
       ],
       outcome: done ? "finish" : "time",

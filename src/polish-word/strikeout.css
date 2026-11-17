@@ -1,0 +1,34 @@
+/*
+ * Strikeout's look (the Word overhaul, 15 Nov 2026): concept A. Hidden letters are recessed wells, found letters
+ * glazed tiles, starting letters dimmed, solved words enamel gold, typed letters sapphire; the strikes a row of gold
+ * pips that turn to red studs as they are used; the gold Solve key. Display only.
+ */
+[data-word-polish="strikeout"] [aria-label^="Word "][role="button"].ring-1 {
+  box-shadow: 0 0 0 1.5px color-mix(in srgb, var(--jz-gold) 70%, transparent);
+  background: transparent;
+}
+[data-wa="pip"][data-wa][data-wa][data-wa] { color: transparent !important; }
+[data-wa="pip"][data-wa-tone="red"][data-wa][data-wa][data-wa] { color: var(--jz-text) !important; }
+[data-word-polish="strikeout"] .so-early-pill {
+  color: var(--jz-on-gold);
+  background: var(--jz-gold);
+  border: 0;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 0.4);
+}
+[data-word-polish="strikeout"] [data-so-solved] { background: var(--jz-gold); color: var(--jz-on-gold); }
+
+/* The answer reveal keeps its markup (stored rounds render exactly as before; strikeout-check), so its tiles and pips
+   take the rendered pieces by their existing look attributes. */
+[data-word-reveal="strikeout"] .so-tile.so-tile.so-tile {
+  background: url(/word-art/tile-black.webp) center / 100% 100% no-repeat !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+  color: var(--jz-text) !important;
+  font-family: var(--jz-font);
+  font-weight: 800;
+}
+[data-word-reveal="strikeout"] .so-tile.so-tile.so-tile[data-so-look="solved"] { background-image: url(/word-art/tile-gold.webp) !important; color: var(--jz-ink-gold) !important; }
+[data-word-reveal="strikeout"] .so-tile.so-tile.so-tile[data-so-look="given"] { background-image: url(/word-art/tile-dim.webp) !important; color: var(--jz-text-3) !important; }
+[data-word-reveal="strikeout"] .so-tile.so-tile.so-tile[data-so-look="missed"] { background-image: url(/word-art/tile-dim.webp) !important; color: var(--jz-red) !important; }
+[data-word-reveal="strikeout"] [aria-label$=" strikes"] > span { border: 0 !important; background: url(/word-art/pip-gold.webp) center / 100% 100% no-repeat !important; color: transparent !important; }
+[data-word-reveal="strikeout"] [aria-label$=" strikes"] > span.bg-destructive { background-image: url(/word-art/pip-red.webp) !important; color: var(--jz-text) !important; }

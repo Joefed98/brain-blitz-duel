@@ -213,9 +213,12 @@ const switchUrls = new Set(
 // Joe's sound batches (docs/sound-cues/sounds-batch-*.csv, src/lib/offline/soundBatches.ts): recordings for slots the
 // overhaul PRs add, cut and levelled into public/sounds/ ahead of those PRs. Until a PR's manifest points its slot at
 // the file, a file named in a batch CSV waits for wiring (noted, not failed). Each one must be in public/sounds/, a
-// tagged 44.1 kHz MP3, mono (a music_ bed stereo, as the library's beds), and its row must name its slot and PR; a
-// row marked "TO RECORD" has no file yet and must have none.
+// tagged 44.1 kHz MP3, mono (a music_ bed or ambience bed stereo, as the library's beds), and its row must name its slot
+// and PR; a row marked "TO RECORD" has no file yet and must have none. A file a live slot already plays is held back
+// (main's own file kept, not the batch's): it is that slot's file, checked as every live file is above, not as batch
+// output (17 Nov 2026, the overhaul trains on main).
 const awaitingWiring = new Set<string>();
+const heldBack = new Set<string>();
 const batchRows = soundBatchRows();
 for (const r of batchRows) {
   const path = `public/sounds/${r.file}`;
@@ -226,15 +229,21 @@ for (const r of batchRows) {
   }
   check(audioFiles.includes(path), `${path}: in ${r.csv} but not in public/sounds/`);
   if (!audioFiles.includes(path)) continue;
+  if (urls.has(`/sounds/${r.file}`)) {
+    heldBack.add(path);
+    continue;
+  }
   const bytes = new Uint8Array(readFileSync(path));
   const tag = readMp3Gapless(bytes);
   let at = 0;
   while (at < bytes.length - 4 && !(bytes[at] === 0xff && (bytes[at + 1]! & 0xe0) === 0xe0)) at++;
   const mono = bytes[at + 3]! >> 6 === 3;
-  check(!!tag && tag.sampleRate === 44100 && (r.slot.startsWith("music_") ? !mono : mono),
-    `${path}: must be a tagged 44.1 kHz MP3, ${r.slot.startsWith("music_") ? "stereo" : "mono"}`);
-  if (!urls.has(`/sounds/${r.file}`) && !switchUrls.has(`/sounds/${r.file}`)) awaitingWiring.add(path);
+  const stereoBed = r.slot.startsWith("music_") || r.stereo;
+  check(!!tag && tag.sampleRate === 44100 && (stereoBed ? !mono : mono),
+    `${path}: must be a tagged 44.1 kHz MP3, ${stereoBed ? "stereo" : "mono"}`);
+  if (!switchUrls.has(`/sounds/${r.file}`)) awaitingWiring.add(path);
 }
+if (heldBack.size) notes.push(`NOTE ${heldBack.size} sound batch files held back: a live slot plays main's file of that name`);
 if (awaitingWiring.size) notes.push(`NOTE ${awaitingWiring.size} sound batch files await wiring by their overhaul PRs (docs/sound-cues/sounds-batch-*.csv)`);
 for (const file of audioFiles) {
   const url = file.startsWith("public/") ? `/${file.slice("public/".length)}` : null;

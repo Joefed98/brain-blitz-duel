@@ -29,6 +29,7 @@ import { bandPoints } from "../src/lib/arcade/scoreBands";
 import { TICKS_PER_SECOND } from "../src/lib/arcade/engine";
 import { pinballGame, pinIsExpanded, pinRunTicksFor, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_RUN_TICKS, PIN_V5_RUN_TICKS } from "../src/lib/arcade/pinball";
 import { pin4Checkpoint, pinball4Game, pinball5Game, pinballGameForAny, PIN_V4_BAND_CURVE, PIN_V5_BAND_CURVE, type Pin4State } from "../src/lib/arcade/pinball4";
+import { playRevOf } from "./scoring-targets-revs";
 
 const RECORD = process.argv.includes("--record");
 const FIXTURE = "scripts/fixtures/pinball-90-runs.json.gz";
@@ -145,13 +146,15 @@ section("pinRev 5 plays pinRev 4 tick for tick for 60 s, then on to 90 s");
 section("Rooms deal pinRev 5's 90 s play (pinRev 6 since the standard); the round clock, the run length and the help follow it");
 {
   const pin = generatePuzzle("pinball") as any;
-  ok(PIN_REV_LONG === 5 && pin.pinRev === PIN_REV_STD && pinRunTicksFor(pin.pinRev) === pinRunTicksFor(PIN_REV_LONG), `rooms deal pinRev 5's 90 s play: pinRev 6 (${pin.pinRev})`);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal pinRev 7, pinRev 6's
+  // play with one J-O-U-L-Z set filling its part, so the dealt stamp is compared by the play it keeps.
+  ok(PIN_REV_LONG === 5 && playRevOf("pinball", pin.pinRev) === PIN_REV_STD && pinRunTicksFor(pin.pinRev) === pinRunTicksFor(PIN_REV_LONG), `rooms deal pinRev 5's 90 s play: pinRev 6 (${pin.pinRev})`);
   ok(PIN_V5_RUN_TICKS === 90 * TICKS_PER_SECOND && pinRunTicksFor(PIN_REV_LONG) === PIN_V5_RUN_TICKS && pinball5Game.runTicks === PIN_V5_RUN_TICKS, "a 90 s run");
   ok(typeTimeLimitMs("pinball") === 93_000, `the round clock is 93 s (${typeTimeLimitMs("pinball")})`);
   ok(puzzleRunMs(pin) === 90_000, `the arcade header shows a 90 s run (${puzzleRunMs(pin)})`);
   ok(roundMaxFor("pinball") === 200, "the round maximum is 200");
   // pinRev 6's help reads its standard spec (pinball-standard-check); pinRev 5 keeps its own curve for its rounds.
-  ok(LIVE_BANDS.pinball.rev === PIN_REV_STD && pinball5Game.score === pinballGameForAny(PIN_REV_LONG).score, "the help reads pinRev 6 (pinRev 5's rounds keep their curve)");
+  ok(playRevOf("pinball", LIVE_BANDS.pinball.rev) === PIN_REV_STD && pinball5Game.score === pinballGameForAny(PIN_REV_LONG).score, "the help reads pinRev 6 (pinRev 5's rounds keep their curve)");
   const help = PUZZLE_INSTRUCTIONS.pinball.how.map((l) => `${l.action} ${l.detail}`).join(" ");
   ok(/90 seconds/.test(help) && !/one minute/.test(help), "the help says 90 seconds");
 }

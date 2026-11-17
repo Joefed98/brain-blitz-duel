@@ -75,6 +75,7 @@ import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { bot } from "./arcade-skill-bands/bots/pinball";
 import { Human, LEVELS, type SkillLevel } from "./arcade-skill-bands/human";
 import { roomSeed } from "./arcade-skill-bands/games";
+import { playRevOf } from "./scoring-targets-revs";
 
 const failures: string[] = [];
 let checks = 0;
@@ -414,7 +415,9 @@ let replayMs = 0;
   // pinRev 4 (E4, 25 Oct 2026): the taller table's expansion follows the score-bands pinRev 3 (e4-expansion-check); pinRev 5
   // (27 Oct 2026) plays it for 90 s (pinball-90-check); pinRev 6 (29 Oct 2026) scores pinRev 5's play on the arcade
   // scoring standard (pinball-standard-check).
-  ok(puzzle.type === "pinball" && puzzle.pinRev === PIN_REV_TARGET + 4 && Number.isInteger(puzzle.seed), "the generator stamps pinRev 6 (pinRev 5's 90 s table on the arcade scoring standard, after the expansion pinRev 4, after pinRev 1 play on the scoring targets pinRev 2, scoring-targets-check, and on the score bands pinRev 3, scoring-bands-check)");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal pinRev 7, pinRev 6's
+  // play with one J-O-U-L-Z set filling its part, so the dealt stamp is compared by the play it keeps.
+  ok(puzzle.type === "pinball" && playRevOf("pinball", puzzle.pinRev) === PIN_REV_TARGET + 4 && Number.isInteger(puzzle.seed), "the generator stamps pinRev 6 (pinRev 5's 90 s table on the arcade scoring standard, after the expansion pinRev 4, after pinRev 1 play on the scoring targets pinRev 2, scoring-targets-check, and on the score bands pinRev 3, scoring-bands-check)");
 }
 
 /* ------------------------------------------------------------------ 6 */

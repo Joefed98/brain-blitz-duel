@@ -77,6 +77,8 @@ interface RoomOpts {
   colours?: (slot: number) => number;
   /** An arcade round of this game instead of Gemstone (with `arcade`). */
   arcadeType?: string;
+  /** A stored arcade run for this device (slot 1): the round's puzzle and the run's answer (the Retro reveals' summary). */
+  arcadeRun?: { puzzle: PuzzleData; answer: string };
   /** The host's user id (default u1, this device: "u2" draws the lobby as a guest sees it). */
   host?: string;
   /** The room's stored settings (duels.selected_categories; default [], an older room's Standard mix). */
@@ -87,6 +89,26 @@ interface RoomOpts {
   scores?: (slot: number, round: number) => number;
   /** The host's Start has claimed the room: its rounds are being dealt (Security C1a, dealClaim.ts). */
   dealing?: boolean;
+  /**
+   * A puzzle round of this public puzzle instead of Box Six, and my stored answer for it (the Number overhaul's
+   * reveals, scripts/screens/number.ts). Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number
+   * overhaul: a harness addition).
+   */
+  puzzle?: { pub: PuzzleData; answer: string };
+  /**
+   * A puzzle round of this game instead of Box Six (the Word overhaul's screens, scripts/screens/word.ts; added with
+   * Joe's approval, 15 Nov 2026, routine consequence of the Word overhaul: a harness addition), the full puzzle so
+   * the reveal draws its own words.
+   */
+  puzzleType?: string;
+  /**
+   * This device's stored answer (slot 1) for the round: the Word overhaul's puzzle answer, or the Cards & Board
+   * overhaul's stored run for its reveal picture (harness additions, changed with Joe's approval, 15 Nov 2026, routine
+   * consequences of the Word and the Cards and Board overhauls; one field, the arcade train combine, 16 Nov 2026).
+   */
+  answer?: string;
+  /** The arcade round's stored puzzle (with `arcadeType`) instead of a fresh deal. */
+  arcadePuzzle?: PuzzleData;
 }
 
 function roomNow(status: Status, phase: string, opts: RoomOpts) {
@@ -114,7 +136,7 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
     duel_id: "duel-theme",
     player_slot: slot,
     round_number: round,
-    answer: "",
+    answer: slot === 1 ? (opts.puzzle ? opts.puzzle.answer : (opts.answer ?? "")) : "",
     is_correct: slot % 3 !== 0,
     ms_remaining: slot === 2 ? 0 : 20_000 - slot * 900,
     reaction_avg_ms: null,
@@ -124,14 +146,17 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
     score: opts.scores ? opts.scores(slot, round) : 190 - rankOf(slot) * 13 - round,
     submitted_at: iso(now - 5_000),
   });
-  const scored = status === "finished" || ["result", "standings", "winner_reveal"].includes(phase) || !!opts.revealParts;
+  const scored = status === "finished" || ["result", "standings", "winner_reveal"].includes(phase) || !!opts.revealParts || !!opts.arcadeRun || opts.answer !== undefined;
   const players = Array.from({ length: count }, (_, i) => player(i + 1));
   if (opts.join) players[0] = { ...players[0]!, status: "left" };
   const arcadeType = opts.arcadeType ?? "matchup";
-  const arcadePuzzle =
-    arcadeType === "matchup" ? ARCADE : (splitPuzzle(withSeededRandom(41, () => generatePuzzle(arcadeType as never))).pub as PuzzleData);
+  const arcadePuzzle = opts.arcadeRun
+    ? opts.arcadeRun.puzzle
+    : opts.arcadePuzzle ?? (arcadeType === "matchup" ? ARCADE : (splitPuzzle(withSeededRandom(41, () => generatePuzzle(arcadeType as never))).pub as PuzzleData));
+  // Both harness additions (the Number overhaul's `puzzle`, the Word overhaul's `puzzleType`; puzzle train combine).
+  const puzzleRound = opts.puzzle?.pub ?? (opts.puzzleType ? (withSeededRandom(41, () => generatePuzzle(opts.puzzleType as never, { bankSeed: 41 })) as PuzzleData) : PUZZLE);
   const order = Array.from({ length: rounds }, (_, i) =>
-    opts.arcade || i % 2 ? arcadeType : "sudoku",
+    opts.arcade || i % 2 ? arcadeType : puzzleRound.type,
   );
   return {
     duel: {
@@ -147,7 +172,7 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
       round_count: rounds,
       round_order: order,
       no_maths: false,
-      puzzles_public: order.map((t) => (t === arcadeType ? arcadePuzzle : PUZZLE)),
+      puzzles_public: order.map((t) => (t === arcadeType ? arcadePuzzle : puzzleRound)),
       current_round: status === "waiting" ? 0 : rounds,
       phase,
       phase_started_at: iso(now + 500),
@@ -160,7 +185,7 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
     results: scored
       ? players.flatMap((p) =>
           Array.from({ length: rounds }, (_, r) => {
-            const row = result(p.player_slot, r + 1);
+            const row = { ...result(p.player_slot, r + 1), ...(opts.arcadeRun && p.player_slot === 1 ? { answer: opts.arcadeRun.answer } : opts.answer !== undefined && p.player_slot === 1 ? { answer: opts.answer } : {}) };
             return opts.revealParts && p.player_slot === 1 ? { ...row, extra: { reveal: FOUR_PART_REVEAL } } : row;
           }),
         )

@@ -1,7 +1,7 @@
 slot,file,game,event,length_s,loop,cues
 sports_crowd_loop,sports_crowd_loop.mp3,homerun|freekick,stadium ambience,10,yes,homerun.crowd;freekick.crowd
 sports_crowd_roar,sports_crowd_roar.mp3,homerun|freekick|racing,big moment cheer,3.5,no,homerun.roar;freekick.roar;racing.roar
-sports_crowd_groan,sports_crowd_groan.mp3,homerun|freekick,near miss,2,no,homerun.groan;freekick.groan
+sports_crowd_groan,sports_crowd_groan.mp3,homerun|freekick|curling,near miss,2,no,homerun.groan;freekick.groan;curling.aw
 cards_deal,cards_deal.mp3,freecell|tripeaks|pokersquares|pyramid|golfsol,card dealt,0.3,no,tripeaks.deal;pyramid.deal;golfsol.deal
 cards_pick,cards_pick.mp3,freecell|tripeaks|pokersquares|pyramid,card lifted,0.2,no,freecell.pick;pyramid.select
 cards_place,cards_place.mp3,freecell|tripeaks|pokersquares|fivehands,card placed,0.3,no,freecell.place;pokersquares.place;fivehands.place

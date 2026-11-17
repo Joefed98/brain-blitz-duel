@@ -5,16 +5,19 @@
  */
 import { generatePuzzle } from "../../src/lib/duel/generate.server";
 import { bankedIntroExample } from "../../src/lib/duel/puzzleBank.server";
-import { INTRO_EXAMPLE_SEED } from "../../src/lib/duel/puzzleDemo";
+import { INTRO_EXAMPLE_SEED, LIVE_INTRO_EXAMPLE_TYPES } from "../../src/lib/duel/puzzleDemo";
 import { withSeededRandom } from "../../src/lib/duel/random";
 import type { PuzzleData, PuzzleType } from "../../src/lib/duel/types";
 import { generateWordsmithExample } from "../../src/lib/duel/wordsmith.server";
+import { dealWordOverhaul } from "../../src/lib/duel/wordOverhaul.server";
 
 export function exampleFor(type: PuzzleType): PuzzleData {
+  if (LIVE_INTRO_EXAMPLE_TYPES.has(type))
+    return withSeededRandom(INTRO_EXAMPLE_SEED, () => generatePuzzle(type, { bankSeed: INTRO_EXAMPLE_SEED })) as PuzzleData;
   return (bankedIntroExample(type) ??
     withSeededRandom(INTRO_EXAMPLE_SEED, () =>
       type === "wordsmith"
-        ? generateWordsmithExample()
+        ? dealWordOverhaul(generateWordsmithExample())
         : generatePuzzle(type, { unblockRow: null }),
     )) as PuzzleData;
 }

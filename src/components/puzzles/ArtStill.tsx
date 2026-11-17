@@ -22,7 +22,11 @@ export function ArtStill<S, I>({
   seed?: number;
   /** Ticks stepped with the idle input before the picture is drawn. */
   ticks?: number;
-  input: I;
+  /**
+   * The input each tick: a fixed idle input, or (the Retro overhaul, 15 Nov 2026) a small autopilot read from the state, so
+   * a game that ends without input (Hover's saucer falls) shows a frame of real play. Only ever used for the picture.
+   */
+  input: I | ((state: S) => I);
   caption: string;
   shownW?: number;
 }) {
@@ -34,7 +38,7 @@ export function ArtStill<S, I>({
       caption={caption}
       draw={(ctx, size) => {
         let state = game.init(seed);
-        for (let t = 0; t < ticks && !game.isOver(state); t++) state = game.step(state, input);
+        for (let t = 0; t < ticks && !game.isOver(state); t++) state = game.step(state, typeof input === "function" ? (input as (s: S) => I)(state) : input);
         ctx.save();
         ctx.scale(size.width / worldW, size.height / worldH);
         game.draw(ctx, state, { width: worldW, height: worldH });

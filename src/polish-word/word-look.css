@@ -1,0 +1,128 @@
+/*
+ * The Word overhaul's look (15 Nov 2026, phase 2 step 4; docs/design/game-reviews/word.md, concept A of
+ * docs/design/game-concepts/word.md). Display only: every piece is a Blender-rendered surface (public/word-art/,
+ * scripts/word-art/word_art.py) laid under the live letter, so letters stay crisp, big and bold. Real materials with
+ * light on them (glossy glaze and lacquer with depth, enamel gold, shining metal, glass with a crisp line on its
+ * curve), but no glare washing across a face or a letter and no glowing edges or rings. Word's dark navy background
+ * is kept; controls are champagne gold and navy.
+ *
+ * Used through attributes, so every game keeps its own markup and hit areas:
+ *   data-wa="tile" | "tile-sm" | "disc" | "well" | "key" | "pip"   the piece
+ *   data-wa-tone="gold" | "teal" | "grey" | "red" | "dim" | "sapphire" | "amber" | "slate" | "black"   its material (black by default)
+ *   data-wa-ring                                                  picked: a fine gold ring inside the edge
+ *   data-wa-btn="gold" | "navy"                                   a control
+ * Imported once by every Word game's module (and its reveal), after the game's own styles.
+ */
+
+:root {
+  --wa-ink: var(--jz-text);
+  --wa-ink-gold: var(--jz-ink-gold);
+  --wa-champagne: var(--jz-gold);
+  --wa-navy-edge: color-mix(in srgb, var(--jz-gold) 70%, var(--jz-bg));
+  --wa-shadow: 0 2px 3px rgb(0 0 0 / 0.45), 0 6px 10px rgb(0 0 0 / 0.25);
+  --wa-font: var(--jz-font);
+}
+
+/* ---------------------------------------------------------------------------------------------------- pieces */
+
+/* Four attributes deep: the shared puzzle-surface and letter-tile rules carry !important at three classes deep. */
+[data-wa][data-wa][data-wa][data-wa] {
+  background: var(--wa-img) center / 100% 100% no-repeat !important;
+  border-color: transparent !important;
+  box-shadow: var(--wa-shadow) !important;
+  color: var(--wa-ink) !important;
+  font-family: var(--wa-font) !important;
+  font-weight: 800 !important;
+  text-shadow: none !important;
+  filter: none !important;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+[data-wa="tile"] { --wa-img: url(/word-art/tile-black.webp); }
+[data-wa="tile-sm"] { --wa-img: url(/word-art/tile-small-black.webp); }
+[data-wa="disc"] { --wa-img: url(/word-art/disc-pearl.webp); border-radius: 50% !important; }
+[data-wa="well"] { --wa-img: url(/word-art/well.webp); }
+[data-wa="well"][data-wa][data-wa][data-wa] { box-shadow: none !important; }
+[data-wa="key"] { --wa-img: url(/word-art/key.webp); }
+[data-wa="pip"] { --wa-img: url(/word-art/pip-empty.webp); border-radius: 50% !important; }
+
+[data-wa="tile"][data-wa-tone="gold"] { --wa-img: url(/word-art/tile-gold.webp); }
+[data-wa="tile"][data-wa-tone="teal"] { --wa-img: url(/word-art/tile-teal.webp); }
+[data-wa="tile"][data-wa-tone="grey"] { --wa-img: url(/word-art/tile-grey.webp); }
+[data-wa="tile"][data-wa-tone="red"] { --wa-img: url(/word-art/tile-red.webp); }
+[data-wa="tile"][data-wa-tone="dim"] { --wa-img: url(/word-art/tile-dim.webp); }
+[data-wa="tile"][data-wa-tone="sapphire"] { --wa-img: url(/word-art/tile-sapphire.webp); }
+[data-wa="tile"][data-wa-tone="amber"] { --wa-img: url(/word-art/tile-amber.webp); }
+[data-wa="tile"][data-wa-tone="slate"] { --wa-img: url(/word-art/tile-slate.webp); }
+[data-wa="tile-sm"][data-wa-tone="gold"] { --wa-img: url(/word-art/tile-small-gold.webp); }
+[data-wa="tile-sm"][data-wa-tone="dim"] { --wa-img: url(/word-art/tile-small-dim.webp); }
+[data-wa="tile-sm"][data-wa-tone="sapphire"] { --wa-img: url(/word-art/tile-sapphire.webp); }
+[data-wa="tile-sm"][data-wa-tone="amber"] { --wa-img: url(/word-art/tile-amber.webp); }
+/* A piece marked as picked: a fine gold ring just inside its edge (a metal line, never a glow). */
+[data-wa-ring][data-wa][data-wa][data-wa][data-wa] { box-shadow: inset 0 0 0 2px var(--jz-gold), var(--wa-shadow) !important; }
+[data-wa="tile-sm"][data-wa-tone="red"] { --wa-img: url(/word-art/tile-red.webp); }
+[data-wa="disc"][data-wa-tone="gold"] { --wa-img: url(/word-art/disc-gold.webp); }
+[data-wa="disc"][data-wa-tone="sapphire"] { --wa-img: url(/word-art/disc-sapphire.webp); }
+[data-wa="key"][data-wa-tone="dim"] { --wa-img: url(/word-art/key-dim.webp); }
+[data-wa="pip"][data-wa-tone="gold"] { --wa-img: url(/word-art/pip-gold.webp); }
+[data-wa="pip"][data-wa-tone="red"] { --wa-img: url(/word-art/pip-red.webp); }
+
+/* Letters on gold read dark; dim and grey letters stay readable (≥ 4.5:1 on their glaze). */
+[data-wa][data-wa][data-wa][data-wa-tone="gold"] { color: var(--wa-ink-gold) !important; }
+[data-wa][data-wa][data-wa][data-wa-tone="dim"] { color: var(--jz-text-3) !important; }
+[data-wa="well"][data-wa][data-wa][data-wa] { color: var(--jz-text-2) !important; }
+/* Dense grids (Lookout, the big Cryptogrid): no drop shadow between touching tiles. */
+[data-wa="tile-sm"][data-wa][data-wa][data-wa] { box-shadow: 0 1px 1px rgb(0 0 0 / 0.5) !important; }
+
+/* A piece fades between materials instead of flashing. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-wa] { transition: background-image 120ms ease-out, color 120ms ease-out, transform 120ms ease-out; }
+}
+
+/* ------------------------------------------------------------------------------------------------- controls */
+
+/* Buttons are nine-sliced (the rendered bevel keeps its 14 px corners at any width): a zero-width solid border carries
+   the image, so the button's box and padding stay its own. */
+[data-wa-btn][data-wa-btn][data-wa-btn][data-wa-btn] {
+  background: transparent !important;
+  border: 0 solid transparent !important;
+  border-image-source: var(--wa-img) !important;
+  border-image-slice: 42 fill !important;
+  border-image-width: 14px !important;
+  border-image-repeat: stretch !important;
+  border-radius: 14px !important;
+  box-shadow: 0 3px 6px rgb(0 0 0 / 0.35) !important;
+  font-family: var(--wa-font) !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.02em;
+  text-shadow: none !important;
+}
+[data-wa-btn="gold"] { --wa-img: url(/word-art/btn-gold.webp); }
+[data-wa-btn="gold"][data-wa-btn][data-wa-btn][data-wa-btn] { color: var(--wa-ink-gold) !important; }
+[data-wa-btn="navy"] { --wa-img: url(/word-art/btn-navy.webp); }
+[data-wa-btn="navy"][data-wa-btn][data-wa-btn][data-wa-btn] { color: var(--wa-champagne) !important; }
+[data-wa-btn]:disabled { opacity: 0.45; }
+[data-wa-btn]:not(:disabled):active { transform: scale(0.97); }
+
+/* ---------------------------------------------------------------------------------------- the round end list */
+
+/* Found words drop in one by one (the reveal list), the longest on a gold chip. Every item ends visible; under reduced
+   motion nothing moves. */
+[data-word-drop] > li { --wd-i: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  html:not([data-reduced-effects]) [data-word-drop] > li {
+    animation: word-drop-in 260ms cubic-bezier(.2, .9, .3, 1.2) both;
+    animation-delay: calc(var(--wd-i) * 70ms);
+  }
+}
+@keyframes word-drop-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: none; }
+}
+[data-word-drop] > li[data-word-longest] {
+  border-radius: 999px;
+  padding-inline: 8px;
+  background: var(--jz-gold);
+  color: var(--jz-on-gold);
+}
+[data-word-drop] > li[data-word-longest] > span { color: var(--jz-on-gold) !important; }

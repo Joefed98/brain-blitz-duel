@@ -53,7 +53,7 @@ import { swingGameFor, SWING_BAND_CURVE, SWING_REV_TUNED, SWING_REV_TUNEC, SWING
 import { hoverGameFor, HOVER_BAND_CURVE, HOVER_REV_BAND, HOVER_REV_TALL, HOVER_REV_TUNEC, HOVER_V4_BAND_CURVE } from "../src/lib/arcade/hover";
 import { inkBridgeGameFor, INK_BAND_CURVE, INK_REV_BAND, INK_REV_SPREAD, INK_REV_STRICT, INK_REV_TUNEC, INK_V6_BAND_CURVE } from "../src/lib/arcade/inkBridge";
 import { flipGameFor, flipWarpAmp, FLIP_BAND_CURVE, FLIP_REV, FLIP_REV_BAND, FLIP_REV_TUNEC, FLIP_V4_BAND_CURVE, FLIP_WARP_FROM_V4 } from "../src/lib/arcade/flip";
-import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_STD_SPEC, BEAT_V4_BAND_CURVE } from "../src/lib/arcade/beat";
+import { beatGameFor, BEAT_BAND_CURVE, BEAT_REV_BAND, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_STD_SPEC, BEAT_V4_BAND_CURVE, BEAT_STD_SPEC_V12 } from "../src/lib/arcade/beat";
 import { stdHelp } from "../src/lib/arcade/arcadeStandard";
 import {
   wavDropPx,
@@ -87,13 +87,18 @@ import {
   type TiltState,
 } from "../src/lib/arcade/tilt";
 import { SLICE_REV_BIG, SLICE_REV_EXPAND, sliceGameFor, SLICE_BLADE_V4, SLICE_INPUT_BEGIN, SLICE_INPUT_SWIPE, SLICE_R, SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TUNEC, sliceObjectAt, type SliceState } from "../src/lib/arcade/slice";
-import { generateBeat, generateFlip, generateInkBridge, pinInkPreClover, generateMatchup, generateSlice, generateSwing, generateTilt, generateWavefront } from "../src/lib/duel/arcade.server";
+import { generateBeat, generateFlip, pinFlipPreGrace, generateInkBridge, pinInkPreClover, generateMatchup, generateSlice, generateSwing, generateTilt, generateWavefront, pinPreRetro } from "../src/lib/duel/arcade.server";
 import { generateHover } from "../src/lib/duel/hover.server";
 import { isRetired, puzzleDef, PUZZLE_TYPES, typesInCategory } from "../src/lib/duel/registry";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
 import { playTilt } from "./tilt-bot";
 import { playRevOf } from "./scoring-targets-revs";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal the overhaul's stamps
+// (Wavefront wavRev 14's charged shot, Fission burstRev 12…); this check was written for the deal before it, so it pins
+// preRetro.
+pinPreRetro(true);
 
 const ONLY = (process.env.TUNING_C_ONLY ?? "").split(",").filter(Boolean);
 const want = (type: string) => ONLY.length === 0 || ONLY.includes(type);
@@ -179,13 +184,16 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Joe's phone-test notes (27 Oct 2026) moved it on again (matchupRev 10: 90 s, ice swaps); gemstone-rev10-check covers it.
     // The arcade scoring standard (Oct 2026) moved it on to matchupRev 11; gemstone-standard-check covers it.
     // Six goals and six treasures (Nov 2026) moved it on to matchupRev 12; gemstone-rev12-check covers it.
-    ["matchup", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR + 6],
+    // Two-hit ice and levels (the Strategy overhaul stage 3, 15 Nov 2026) moved it on to matchupRev 13; gemstone-levels-check
+    // covers it. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul).
+    ["matchup", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR + 7],
     // Taller worlds batch 3 (16 Oct 2026) then moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
     // Grappler's 200 expansion (26 Oct 2026) moved Grappler on to swingRev 13 (after swingRev 9's taller cavern); swing-x200-check covers it.
     // The assault course (27 Oct 2026) moved it on to swingRev 14 (swing-assault-check), the swinging course (29 Oct 2026)
     // to swingRev 15 (swing-rework-check).
     // The sliding hooks and the streak (3 Nov 2026) moved it on to swingRev 17; swing-slide-check covers it.
-    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 10],
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero; swing-overhaul-check).
+    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 11],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
     // The 200 expansion (26 Oct 2026) then moved Hover on to hoverRev 9; hover-x200-check covers it.
     ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL + 4],
@@ -194,7 +202,9 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // more birds; ink-v13-check) moved it on again: pinned, the deal before it (inkRev 12, inkRev 11's play).
     ["inkbridge", pinnedInk(() => playRevOf("inkbridge", generateInkBridge().inkRev)) === INK_REV_SPREAD ? playRevOf("inkbridge", INK_REV_STRICT) : -1, INK_REV_TUNEC],
     // Expansion E7 (docs/expansions/x200-flip.md) then moved Roofbound on to flipRev 8; flip-x200-check covers it.
-    ["flip", playRevOf("flip", generateFlip().flipRev), FLIP_REV_TUNEC + 4],
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): flipRev 13 (grace) moved it on
+    // again (flip-overhaul-check): pinned, the deal before it (flipRev 12, flipRev 8's play).
+    ["flip", (() => { const was = pinFlipPreGrace(true); try { return playRevOf("flip", generateFlip().flipRev); } finally { pinFlipPreGrace(was); } })(), FLIP_REV_TUNEC + 4],
     // Tuning F (Oct 2026) moved Tempo on to a thinner chart on the same curve (beatRev 5); arcade-tuning-f-check covers it.
     // Taller worlds batch 2 (16 Oct 2026) moved Tempo and Slice on to their taller worlds (beatRev 6, sliceRev 6); arcade-tuning-g2-check covers them.
     // Expansion E2 (25 Oct 2026) then moved Tempo on to its five-lane song with fever (beatRev 9); expansion-e2-check covers it.
@@ -271,7 +281,8 @@ section("Grappler, Hover, Rainbow Bridge and Tempo: same play, new curves");
   // (swingRev 14) on its sections' curve (swing-assault-check); the swinging course (swingRev 15) as a share of the course. Tempo's beatRev 11 (the arcade scoring
   // standard) states its standard parts instead (arcade-help-bands-check, beat-standard-check).
   // Text pass (4 Nov 2026): the help is a list of parts ("A good run (100 points)" was internal wording, now gone).
-  ok(hasScorePart(PUZZLE_INSTRUCTIONS.swing.score, "Course", 110) && hasScorePart(PUZZLE_INSTRUCTIONS.inkbridge.score, "Levels", 120) && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelpLines(BEAT_STD_SPEC)), "the \"?\" help states the parts rooms deal");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): Tempo's help reads beatRev 12's spec.
+  ok(hasScorePart(PUZZLE_INSTRUCTIONS.swing.score, "Course", 110) && hasScorePart(PUZZLE_INSTRUCTIONS.inkbridge.score, "Levels", 120) && PUZZLE_INSTRUCTIONS.beat.score.includes(stdHelpLines(BEAT_STD_SPEC_V12)), "the \"?\" help states the parts rooms deal");
 }
 
 /* ================================ 4a. Gemstone ================================ */

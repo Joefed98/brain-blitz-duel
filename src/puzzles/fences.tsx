@@ -19,12 +19,17 @@ import {
   fencesSolved,
   hEdge,
   isHorizontal,
+  isSingleLoop,
   vEdge,
 } from "@/lib/duel/fences";
 import { FENCES_SIZE, FENCES_TIME_MS, type FencesPuzzleData } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
 
-import { soundCue, useSolveFx } from "./logicFx";
+import { useSolveFx } from "./logicFx";
+import { soundCue } from "@/lib/fx/soundCues";
+import { gameFx } from "@/lib/fx/kit";
+import { logicArt } from "./logicArt";
+import { LogicReveal, extraCount, tallySets } from "./logic2Reveal";
 import { LiveSummary, SummaryItem, useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -81,6 +86,8 @@ export function FencesBoard({
   solved = false,
   handlers,
   svgRef,
+  wrongEdges,
+  missedEdges,
 }: {
   size: number;
   clues: readonly number[];
@@ -94,6 +101,10 @@ export function FencesBoard({
     onPointerCancel: (e: ReactPointerEvent<SVGSVGElement>) => void;
   };
   svgRef?: React.RefObject<SVGSVGElement | null>;
+  /** Reveal: lines the player drew off the loop (red). */
+  wrongEdges?: ReadonlySet<number> | undefined;
+  /** Reveal: the loop's lines the player didn't draw (dashed). */
+  missedEdges?: ReadonlySet<number> | undefined;
 }) {
   const vb = view(size);
   const lines = useMemo(() => new Set(states.flatMap((s, e) => (s === FENCES_LINE ? [e] : []))), [states]);
@@ -105,13 +116,16 @@ export function FencesBoard({
     <svg
       ref={svgRef}
       viewBox={`0 0 ${vb} ${vb}`}
-      className={`fences-board block h-full w-full select-none ${small ? "fences-small" : ""}`}
+      className={`fences-board logic2-fences block h-full w-full select-none ${small ? "fences-small" : ""}`}
+      data-logic2="fences"
       data-fences-solved={solved ? "" : undefined}
       style={handlers ? { touchAction: "none", overscrollBehavior: "none" } : undefined}
       {...(handlers ?? {})}
       role="img"
       aria-label="Loopline board"
     >
+      {/* The Logic overhaul (15 Nov 2026): a black slate board (a Blender render) under everything. */}
+      <image href={logicArt("fences-slate")} x={0} y={0} width={vb} height={vb} preserveAspectRatio="none" className="fences-slate" />
       {/* Cell wells. */}
       {Array.from({ length: size * size }, (_, cell) => (
         <rect
@@ -149,6 +163,7 @@ export function FencesBoard({
           <line
             key={`l${e}`}
             className="fences-line"
+            data-wrong={wrongEdges?.has(e) ? "" : undefined}
             x1={a![0]}
             y1={a![1]}
             x2={b![0]}
@@ -158,10 +173,28 @@ export function FencesBoard({
           />
         );
       })}
+      {/* The Logic overhaul (15 Nov 2026): a narrow highlight along each line, so the loop reads as round gold wire. */}
+      <g className="logic2-wire-hl" aria-hidden="true">
+        {Array.from({ length: edges }, (_, e) => {
+          if (states[e] !== FENCES_LINE || wrongEdges?.has(e)) return null;
+          const [a, b] = edgeDots(size, e).map((d) => dotXY(size, d));
+          const off = -stroke * 0.16;
+          return <line key={`h${e}`} x1={a![0] + off} y1={a![1] + off} x2={b![0] + off} y2={b![1] + off} strokeWidth={stroke * 0.3} />;
+        })}
+      </g>
+      {missedEdges && missedEdges.size > 0 ? (
+        <g className="logic2-fences-missed" data-missed-edges={missedEdges.size}>
+          {[...missedEdges].map((e) => {
+            const [a, b] = edgeDots(size, e).map((d) => dotXY(size, d));
+            return <line key={`m${e}`} x1={a![0]} y1={a![1]} x2={b![0]} y2={b![1]} strokeWidth={stroke} />;
+          })}
+        </g>
+      ) : null}
       {/* Dots. */}
       {Array.from({ length: dots }, (_, d) => {
         const [x, y] = dotXY(size, d);
-        return <circle key={`d${d}`} className="fences-dot" cx={x} cy={y} r={small ? 8 : 7} />;
+        const r = small ? 12 : 11;
+        return <image key={`d${d}`} className="fences-dot logic2-peg" href={logicArt("fences-peg")} x={x - r} y={y - r} width={2 * r} height={2 * r} />;
       })}
       {/* Numbers. */}
       {clues.map((n, cell) => {
@@ -172,12 +205,13 @@ export function FencesBoard({
           <text
             key={`n${cell}`}
             className="fences-clue"
+            data-clue={cell}
             data-tone={tone}
             x={PAD + (cell % size) * U + U / 2}
             y={PAD + Math.floor(cell / size) * U + U / 2}
             textAnchor="middle"
             dominantBaseline="central"
-            fontSize={small ? 58 : 50}
+            fontSize={small ? 66 : 60}
           >
             {n}
           </text>
@@ -277,6 +311,48 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const met = clues.filter((n, cell) => n >= 0 && cellLineCount(size, cell, lineSet) === n).length;
   const numbered = clues.filter((n) => n >= 0).length;
   const inFrame = useFrameProgress(met, numbered, "numbers met");
+
+  // The Logic overhaul's effects (15 Nov 2026, the effects kit), after each change: a number newly met pops gold with a
+  // tick, one newly over shakes red with a low tick, and a loop that closes but isn't the answer flashes once with its
+  // failing numbers lit (the right loop is the solve).
+  const fxSeen = useRef<{ met: Set<number>; over: Set<number>; loop: boolean } | null>(null);
+  const [loopWrong, setLoopWrong] = useState(0);
+  useEffect(() => {
+    const svg = svgRef.current;
+    const metNow = new Set<number>();
+    const overNow = new Set<number>();
+    clues.forEach((n, cell) => {
+      if (n < 0) return;
+      const k = cellLineCount(size, cell, lineSet);
+      if (k === n) metNow.add(cell);
+      else if (k > n) overNow.add(cell);
+    });
+    const lines = [...lineSet];
+    const loop = lines.length > 0 && isSingleLoop(size, lines);
+    const before = fxSeen.current;
+    fxSeen.current = { met: metNow, over: overNow, loop };
+    if (!before || !svg) return;
+    const clueEl = (cell: number) => svg.querySelector(`[data-clue="${cell}"]`);
+    const newMet = [...metNow].filter((c) => !before.met.has(c));
+    const newOver = [...overNow].filter((c) => !before.over.has(c));
+    if (newOver.length) {
+      soundCue("fences.over");
+      for (const c of newOver) gameFx("wrong", clueEl(c), { silent: true, noHaptic: true });
+    } else if (newMet.length) {
+      soundCue("fences.numberMet");
+      for (const c of newMet) gameFx("tap", clueEl(c), { silent: true });
+    }
+    if (loop && !before.loop && !solved) {
+      soundCue("fences.loopWrong");
+      setLoopWrong((n) => n + 1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [encoded]);
+  useEffect(() => {
+    if (!loopWrong) return;
+    const timer = window.setTimeout(() => setLoopWrong(0), 700);
+    return () => window.clearTimeout(timer);
+  }, [loopWrong]);
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
@@ -381,12 +457,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const canReset = active && !submitted.current && marked;
   const undo = () => {
     if (!canUndo) return;
+    soundCue("fences.undo");
     gesture.current = null;
     setStates(history[history.length - 1]!);
     setHistory((h) => h.slice(0, -1));
   };
   const reset = () => {
     if (!canReset) return;
+    soundCue("fences.reset");
     gesture.current = null;
     setHistory((h) => [...h, states]);
     setStates(new Array<number>(fencesEdgeCount(size)).fill(FENCES_EMPTY));
@@ -412,12 +490,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             numbers met <span className="text-primary">{met}</span> / {numbered}
           </p>
         )}
-        <div className="logic-square logic-glass-frame fences-frame">
+        <div className="logic-square logic-glass-frame fences-frame" data-loop-wrong={loopWrong ? "" : undefined}>
           <FencesBoard size={size} clues={clues} states={states} solved={solving} handlers={handlers} svgRef={svgRef} />
         </div>
         <LiveSummary inArena className="logic-status" items={[<SummaryItem key="lines" label="Lines" value={lineCount} />]} />
       </div>
-      <div data-game-controls="actions" className="flex shrink-0 gap-3 px-3">
+      <div data-game-controls="actions" data-logic2-actions="" className="flex shrink-0 gap-3 px-3">
         <Button variant="outline"
           type="button"
           disabled={!canUndo}
@@ -441,40 +519,40 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
 
 /* --------------------------------------------------------------- the reveal */
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining }: PuzzleRevealProps) {
+function Reveal({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "fences") return null;
   const n = fencesEdgeCount(puzzle.size);
+  const hasSolution = Array.isArray(puzzle.solution) && puzzle.solution.length > 0;
+  const solEdges = new Set(puzzle.solution ?? []);
   const solution = new Array<number>(n).fill(FENCES_EMPTY);
-  for (const e of puzzle.solution ?? []) solution[e] = FENCES_LINE;
+  for (const e of solEdges) solution[e] = FENCES_LINE;
   // The player's lines only (their ✕ notes are not shown).
   const mine = decodeFences(myAnswer ?? "", puzzle.size).map((s) => (s === FENCES_LINE ? FENCES_LINE : FENCES_EMPTY));
-  const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
-  const lines = mine.filter((s) => s === FENCES_LINE).length;
-  return (
-    <div className="logic-reveal">
-      <div className="logic-reveal-board">
-        <div className="logic-pair">
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Solution</span>
-            <div className="logic-glass-frame fences-frame w-full" style={{ aspectRatio: "1" }}>
-              <FencesBoard size={puzzle.size} clues={puzzle.clues} states={solution} small />
-            </div>
-          </div>
-          <div className="flex min-w-0 flex-1 flex-col items-center gap-1">
-            <span className="text-xs uppercase tracking-widest text-muted-foreground">Yours</span>
-            <div className="logic-glass-frame fences-frame w-full" style={{ aspectRatio: "1" }}>
-              <FencesBoard size={puzzle.size} clues={puzzle.clues} states={mine} small />
-            </div>
-          </div>
-        </div>
-      </div>
-      {/* Solved: the verdict row above says it (4 Nov 2026: no repeated "Solved · 1.6s"). */}
-      {myCorrect ? null : (
-        <p className="logic-reveal-text text-center font-mono text-primary">
-          {(solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${lines} lines drawn`)}
-        </p>
-      )}
+  const myEdges = mine.flatMap((s, e) => (s === FENCES_LINE ? [e] : []));
+  const mySet = new Set(myEdges);
+  const wrong = new Set(hasSolution ? myEdges.filter((e) => !solEdges.has(e)) : []);
+  const missed = new Set(hasSolution ? [...solEdges].filter((e) => !mySet.has(e)) : []);
+  const met = puzzle.clues.filter((c, cell) => c >= 0 && cellLineCount(puzzle.size, cell, mySet) === c).length;
+  const clues = puzzle.clues.filter((c) => c >= 0).length;
+  const board = (states: number[], compare: boolean) => (
+    <div className="logic-glass-frame fences-frame w-full" style={{ aspectRatio: "1" }}>
+      <FencesBoard size={puzzle.size} clues={puzzle.clues} states={states} wrongEdges={compare ? wrong : undefined} missedEdges={compare ? missed : undefined} />
     </div>
+  );
+  const mistakes = extraCount(myExtra, "mistakes");
+  return (
+    <LogicReveal
+      game="fences"
+      solved={myCorrect}
+      hasSolution={hasSolution}
+      yours={board(mine, true)}
+      solution={board(solution, false)}
+      tally={tallySets(myEdges, solEdges, "lines")}
+      facts={[
+        ...(myCorrect ? [] : [{ label: "Numbers met", value: `${met} of ${clues}` }]),
+        ...(mistakes !== null ? [{ label: "Mistakes", value: String(mistakes) }] : []),
+      ]}
+    />
   );
 }
 

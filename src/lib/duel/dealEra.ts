@@ -48,6 +48,8 @@ export const DEAL_PINS = {
   prePartialCredit: { texts: true },
   /** wordNov7.ts: Interlock, Slider and Lookout before the Word scoring fix (7 Nov 2026). */
   preWordNov7: { texts: true },
+  /** logicOverhaul2.ts: Trail depthRev 2 and Regions fillominoRev 1, before the Logic overhaul (15 Nov 2026). */
+  preLogic2: { texts: true },
   /** arcade.server.ts: Free Cell 4, Summit 2, Thirteen 1, before the card games' share fix. */
   cardsPreShare: { texts: false },
   /** arcade.server.ts: Rainbow Bridge inkRev 12. */
@@ -56,6 +58,10 @@ export const DEAL_PINS = {
   inkPreBig: { texts: false },
   /** arcade.server.ts: Orbit orbitRev 13, before the fuel meter. */
   orbitPreFuel: { texts: false },
+  /** arcade.server.ts: Orbit orbitRev 14, before grace (the Action overhaul, 15 Nov 2026). */
+  orbitPreGrace: { texts: false },
+  /** arcade.server.ts: High Rise skylineRev 10, before lives (the Action overhaul, 15 Nov 2026). */
+  skylinePreLives: { texts: false },
   /** arcade.server.ts: Grappler's bank courses, before the assault course. */
   swingPreAssault: { texts: false },
   /** arcade.server.ts: Grappler swingRev 14. */
@@ -64,12 +70,57 @@ export const DEAL_PINS = {
   swingPreDark: { texts: false },
   /** arcade.server.ts: Grappler swingRev 16. */
   swingPreSlide: { texts: false },
+  /** arcade.server.ts: Grappler swingRev 17, before the bigger hero (the Action overhaul's stage 2, 15 Nov 2026). */
+  swingPreBig: { texts: false },
   /** arcade.server.ts: Minefield minesRev 1 (25 mines), before it moved to Logic (13 Nov 2026). */
   minesPreLogic: { texts: false },
   /** notesFree.ts: Mosaic, Tents, Lamplighter, Loopline and Island Link before notes stopped counting (15 Nov 2026). */
   preNotesFree: { texts: false },
   /** gameReviewNov15.ts: Brimful measureRev 3, before the game review fixes (15 Nov 2026). */
   preGameReviewNov15: { texts: false },
+  /** logicOverhaul1.ts: Polypotions tubesRev 2, before the Logic overhaul's refunding Undo (15 Nov 2026). */
+  preLogicOverhaul1: { texts: true },
+  /** numberOverhaul.ts: Counterweight balanceRev 3, Operator gapsRev 1, Checkout checkoutRev 2 and Kakuro kakuroRev 1,
+   * before the Number overhaul (15 Nov 2026). */
+  preNumberOverhaul: { texts: true },
+  /** balanceLevels.ts: Counterweight's Normal as today's game (balanceRev 4), before its levels (15 Nov 2026). */
+  preBalanceLevels: { texts: false },
+  /** measureLevels.ts: Brimful's Normal as today's game (measureRev 4), before its levels (15 Nov 2026). */
+  preMeasureLevels: { texts: false },
+  /** numberLevels.ts: Checkout's Normal as today's game (checkoutRev 3), before its levels (15 Nov 2026). */
+  preCheckoutLevels: { texts: false },
+  /** numberLevels.ts: Kakuro's Normal as today's game (kakuroRev 2), before its levels (15 Nov 2026). */
+  preKakuroLevels: { texts: false },
+  /** patternNov15.ts: the eight Pattern games before the Pattern overhaul (15 Nov 2026). */
+  prePatternNov15: { texts: true },
+  /** wordOverhaul.ts: Nucleus, Slider, Lookout, Roundabout and Cryptogrid before the Word overhaul (15 Nov 2026). */
+  preWordOverhaul: { texts: true },
+  /** attentionOverhaul.ts: Double Take spotRev 3, Tally countRev 6, Matchmaker pairRev 3, before the Attention overhaul. */
+  preAttentionOverhaul: { texts: true },
+  /** speedOverhaul.ts: Tenfall tenRev 5 and Pull! clayRev 9, before the Speed overhaul (15 Nov 2026). */
+  preSpeedOverhaul: { texts: true },
+  /** arcade.server.ts: the Retro games' stamps before the Retro overhaul (15 Nov 2026): Tempo beatRev 11, Rally rallyRev 12, Fission burstRev 11, Pinball pinRev 6, Meteor snakeRev 12, Breaker brkRev 11, Wavefront wavRev 13. */
+  preRetro: { texts: false },
+  /** arcade.server.ts: Roofbound flipRev 12, before the Action overhaul's grace (15 Nov 2026). */
+  flipPreGrace: { texts: false },
+  /** arcade.server.ts: Moon Climb ricoRev 3, before the bigger ninja (the Action overhaul's stage 2, 15 Nov 2026). */
+  ricoPreBig: { texts: false },
+  /** arcade.server.ts: Orbit orbitRev 15, before the bigger planets (the Action overhaul's stage 3, 15 Nov 2026). */
+  orbitPreBig: { texts: false },
+  /** arcade.server.ts: Iron Wall bastionRev 3, before the levels (the Action overhaul, 15 Nov 2026). */
+  bastionPreLevels: { texts: false },
+  /** arcade.server.ts: Coral Pop bubbleRev 11, before the Strategy overhaul's fast shot (15 Nov 2026). */
+  bubblePreFast: { texts: false },
+  /** arcade.server.ts: Rainbow Bridge inkRev 14 from its deal, before the Strategy overhaul's pot placements (15 Nov 2026). */
+  inkPreHills: { texts: false },
+  /** arcade.server.ts: Gemstone matchupRev 12, before two-hit ice and the levels (15 Nov 2026). */
+  matchupPreIce2: { texts: false },
+  /** sports.server.ts: Crazy Golf golfRev 2's bank courses, before the overhaul's hole bank (15 Nov 2026). */
+  minigolfPreCourse: { texts: false },
+  /** sports.server.ts: Home Run homerunRev 4 and Top Bins freekickRev 4, before their overhaul (15 Nov 2026). */
+  sportsPreOverhaul: { texts: false },
+  /** sports.server.ts: Apex racingRev 3 (one circuit), before the Sports overhaul's three circuits (15 Nov 2026). */
+  racingPreCircuits: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;
@@ -91,6 +142,8 @@ export function setDealPin(pin: DealPin, on: boolean): boolean {
   // Minefield's rev-1 deal is check-only (Joe, 13 Nov 2026): the deal reads it through checkOverride, which a
   // production build turns off, so the live app can never deal minesRev 1 whatever this set holds.
   if (pin === "minesPreLogic") setCheckOverride("__DUELZ_MINES_PRE_LOGIC__", on ? true : undefined);
+  // Apex's rev-3 deal is check-only the same way (the Sports overhaul, 15 Nov 2026).
+  if (pin === "racingPreCircuits") setCheckOverride("__DUELZ_RACING_PRE_CIRCUITS__", on ? true : undefined);
   if (prev !== on && DEAL_PINS[pin].texts) rebuildLiveRecords();
   return prev;
 }

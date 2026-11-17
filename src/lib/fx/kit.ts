@@ -369,6 +369,9 @@ export function gameFx(kind: GameFxKind, target: Element | null | undefined, opt
   } catch {
     return undefined;
   }
+  // A replaced effect is cancelled (above), which rejects its `finished`; nobody need await it, so the rejection is
+  // handled here (browsers already treat it as handled; happy-dom reported it as unhandled in the checks).
+  animation.finished.catch(() => {});
   running.set(el, animation);
   if (plan.particles > 0) {
     const fire = () => sparks(el, plan.particles, kind === "wrong" ? "loss" : "gold");

@@ -5,6 +5,7 @@
  *
  *   bun scripts/shots/capture.ts [games…] [--category=<id>] [--all] [--sizes=375x667,390x844]
  *       [--url=<origin>] [--out=<dir>, default .shots/ (gitignored)] [--tag=after] [--phases=intro,play,solve,reveal]
+ *       [--video=<dir>] (each run also recorded as WebM under <dir>/<game>/)
  *       [--dpr=1] [--hold=2000] [--reduced-motion]
  *   bun scripts/shots/sheets.ts --in=<dir> --out=<dir>      (before/after contact sheets)
  *
@@ -53,12 +54,14 @@ const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const flag = (name: string) => args.includes(`--${name}`);
 const CHROMIUM = process.env.PLAYWRIGHT_CHROMIUM ?? "/opt/pw-browsers/chromium";
-const PORT = 5190;
+const PORT = Number(process.env.CAPTURE_PORT ?? 5190);
 /** Default output: the repo-root .shots/ folder, which .gitignore keeps out of commits. */
 const OUT = opt("out") ?? ".shots";
 const TAG = opt("tag") ?? "after";
 const DPR = Number(opt("dpr") ?? 1);
 const HOLD_MS = Number(opt("hold") ?? 2000);
+/** A difficulty level to deal at (real deals, not the intro example; frames are tagged with it). */
+const LEVEL = opt("level") ?? null;
 const PHASES = new Set((opt("phases") ?? "intro,play,solve,reveal").split(","));
 const SIZES = (opt("sizes") ?? "375x667,390x844").split(",").map((s) => {
   const [w, h] = s.split("x").map(Number);
@@ -307,12 +310,16 @@ async function newRun(
   size: readonly [number, number],
   opts: { clock?: boolean; answer?: string | null; seed?: Record<string, unknown> },
 ): Promise<Run> {
+  // --video=<dir>: each run is also recorded as a video (WebM; the gallery's effect clips, 15 Nov 2026).
+  const videoDir = opt("video");
   const context = await browser.newContext({
     viewport: { width: size[0], height: size[1] },
     deviceScaleFactor: DPR,
     reducedMotion: flag("reduced-motion") ? "reduce" : "no-preference",
+    ...(videoDir ? { recordVideo: { dir: `${videoDir}/${game}`, size: { width: size[0], height: size[1] } } } : {}),
   });
   await context.addInitScript(SEED_RANDOM);
+  if (LEVEL) await context.addInitScript(`try { localStorage.setItem("duelz-levels:v1", JSON.stringify({ catalogue: ${JSON.stringify(LEVEL)}, games: {} })); } catch {}`);
   const page = await context.newPage();
   const run: Run = { page, close: () => context.close(), cues: [], errors: [], holdGrade: false };
   page.on("pageerror", (e) => run.errors.push(String(e.message ?? e).split("\n")[0]!));
@@ -325,6 +332,8 @@ async function newRun(
     const request = route.request();
     const name = serverFnName(request.url());
     const body = request.postData() ?? "";
+    // --level=easy|hard|expert (the difficulty levels): a real deal at that level, not the fixed intro example.
+    if (/practiceGenerate/.test(name) && LEVEL) return route.continue();
     if (/practiceGenerate/.test(name)) {
       // Seroval: {"t":2,"s":3} is false, {"t":2,"s":2} is true.
       return route.continue({
@@ -349,13 +358,11 @@ async function newRun(
     }
     return route.continue();
   });
-  // Current practice routing (the Games pages, 14 Nov 2026): `/practice?game=<id>` opens the game's full intro with
-  // Ready (practiceGameUrl); the catalogue's tiles open the game's page instead, whose Play skips to the 3-2-1.
-  await page.goto(practiceGameUrl(origin, game), { waitUntil: "domcontentloaded" });
-  const readyButton = page.getByRole("button", { name: /^Ready/ }).first();
-  await readyButton.waitFor({ timeout: 90_000 });
-  await page.waitForTimeout(1200); // hydration
+  // The Games pages (14 Nov 2026) have no Puzzles | Arcade switch: a game's full intro opens from its ?game= link
+  // (practiceGameUrl, scripts/practice-side-lib.ts). Seeded stage state is written on /practice first.
   if (opts.seed) {
+    await page.goto(`${origin}/practice`, { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(1500); // hydration
     await page.evaluate(async (values) => {
       const seed = (await import(/* @vite-ignore */ "/scripts/shots/seed.tsx")) as {
         seedStageState: (k: string[], v: Record<string, unknown>) => void;
@@ -363,6 +370,11 @@ async function newRun(
       seed.seedStageState(["practice-1", "practice-2", "practice-3"], values);
     }, opts.seed);
   }
+  await page.goto(practiceGameUrl(origin, game), { waitUntil: "domcontentloaded" });
+  await page
+    .getByRole("button", { name: /^Ready/ })
+    .first()
+    .waitFor({ timeout: 90_000 });
   return run;
 }
 

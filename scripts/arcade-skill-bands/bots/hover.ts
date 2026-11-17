@@ -53,6 +53,7 @@ import {
   hoverCentreY,
   hoverGapTop,
   hoverScroll,
+  hoverScrollOf,
   hoverStarY,
   pillarX,
   type HoverState,
@@ -179,7 +180,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       choice.set(idx, c);
     }
     // Timing of the pass as perceived (lagged view, scrolled on at the speed seen); offsets from now.
-    const speed = hoverScroll(seen.gates);
+    const speed = hoverScrollOf(seen, seen.gates);
     const left = pillarX(p, seen.distance);
     const at = (dx: number) => seen.tick + dx / speed - t;
     const entry = Math.ceil(at(left - (HOVER_DISC_X + HOVER_DISC_R)));
@@ -212,7 +213,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
         ? top + ((hoverStarY(p, seen.tick) ?? 0) - hoverGapTop(p, seen.tick))
         : null;
     const speedFrac =
-      (hoverScroll(s.gates) - HOVER_SCROLL_START) / (HOVER_SCROLL_MAX - HOVER_SCROLL_START);
+      (hoverScrollOf(s, s.gates) - HOVER_SCROLL_START) / (HOVER_SCROLL_MAX - HOVER_SCROLL_START);
     return {
       idx,
       entry,
@@ -256,7 +257,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     // barrier (its pass kept as a hard limit), or once it is past it.
     const active = (after: number) => after === seen.gates - 1 || (tg !== null && tg.idx === after && tg.entry <= GOAL_LEAD);
     const guard = (after: number) => (tg && tg.idx === after ? { from: Math.max(0, tg.entry), to: tg.exit, lo: tg.lo, hi: tg.hi } : null);
-    const at = (x0: number, after: number) => Math.round(seen.tick + (x0 - HOVER_DISC_X - seen.distance) / hoverScroll(after + 1) - t);
+    const at = (x0: number, after: number) => Math.round(seen.tick + (x0 - HOVER_DISC_X - seen.distance) / hoverScrollOf(seen, after + 1) - t);
     const next = (after: number): Goal["next"] => {
       const p = seen.pillars[after + 1];
       if (!p) return null;

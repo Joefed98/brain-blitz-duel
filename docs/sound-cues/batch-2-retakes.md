@@ -61,7 +61,7 @@ usable meanwhile. Re-record at the CSV's prompt, then `ONLY=<file> python3 -I sc
 - `swapword.gold.mp3` (#437): still sounding at 1.5x its length (375 ms, -7.5 dB under its peak): the fade is an audible chop.
 - `wordhunt.word.mp3` (#437): to record: the upload is a byte-for-byte copy of strikeout.solve.mp3.
 - `wordsearch.already.mp3` (#437): Joe to judge by ear: a click then nothing, which may be right for the short sound asked.
-- `wordsearch.found.base.mp3` (#437): 8.3 dB quieter than its family: a sharp spike over a quiet body, more needs audible limiting; its series (wordsearch.found4, wordsearch.found5, wordsearch.found6, wordsearch.found7, wordsearch.found8, wordsearch.found9) is made from it, so a retake re-makes them.
+- `wordsearch.found.base.mp3` (#437): until it is redone, `wordsearch.found4`–`found9` keep main's placeholders; 8.3 dB quieter than its family: a sharp spike over a quiet body, more needs audible limiting; its series (wordsearch.found4, wordsearch.found5, wordsearch.found6, wordsearch.found7, wordsearch.found8, wordsearch.found9) is made from it, so a retake re-makes them.
 - `wordslide.resetArm.mp3` (#437): near-silent upload (-62.7 LUFS): lifted 39.8 dB, its noise with it.
 - `mahjong.reset.mp3` (#441): 6.2 dB quieter than its family: a sharp spike over a quiet body, more needs audible limiting.
 - `pyramid.reset.mp3` (#441): 9.9 dB quieter than its family: a sharp spike over a quiet body, more needs audible limiting.

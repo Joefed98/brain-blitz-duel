@@ -339,3 +339,62 @@ far out) and full at 95 put the upper levels back (weak 53, average 88.5, good 1
 `bun scripts/shots/curling-power-shots.ts --url=<origin>`): 1 the three reds in the house at the end's start, 2 a drag
 on the power bar mid-way, 3 the weight set and Throw lit, 4 the stone sliding after Throw, 5 the reveal. The script
 throws all eight stones at one weight and aim, so its score is not good play.
+
+## Levels (stage 3 of the Sports overhaul, 16 Nov 2026)
+
+On the difficulty framework (`docs/design/difficulty/README.md`; `GAME_LEVELS.curling` in `src/lib/levels/gameLevels.ts`),
+curlRev 4 and its 120 s run at every level (the brief's "all 90 s" is a question for Joe below). Normal is today's game
+byte for byte: no `level` on the puzzle or the state, the same bank and deal (curling-levels-check hashes 60 room deals
+and their starting states against a digest recorded before the levels, `scripts/curling-levels-digest.ts`). Rated play,
+the Daily and challenges stay Normal. A level rides on the stored puzzle (`level`) and in the sim's state (`lvl`, outside
+the checksum, set only off Normal); curlRev 1–3 ignore it.
+
+| Level | Red stones | HOUSE zone | Aim line | Stones part full at |
+| --- | --- | --- | --- | --- |
+| Easy | 2, 60–130 cm from the button | shown | the stone's whole path | 60 closeness points |
+| Normal | 3, 35–110 cm (today) | shown | the first third (today) | 95 (today) |
+| Hard | 4, 30–90 cm | shown | the first third | 95 |
+| Expert | 5, 20–70 cm | hidden | none | 95 |
+
+The reds come from `curlingOpponentsAt(seed, level)` (`CURL_LEVEL_REDS`: the first red at most half way out, the second
+beyond it, the rest anywhere in the range, 40 cm apart; Normal is `curlingOpponentsV4` unchanged), the aids from
+`curlAidsFor(level)` (`CURL_LEVEL_AIDS`, display only: Expert's stage draws neither the zone nor the line, and its
+keyboard weight defaults to the tee's 316 so the zone can't leak), Easy's gentler core from `curlCoreFullFor(level)`.
+The parts and their 200 are unchanged at every level.
+
+**Banks.** Each level deals from its own proved bank (`src/lib/duel/curlingLevelBanks.server.ts`, witnesses
+`scripts/fixtures/curling-witness-levels.json`; `bun scripts/curling-bank.ts --level=easy|hard|expert`): the
+oracle plays all eight stones onto the button with every red out of the house, and a seed is kept only when that
+witness scores exactly 200 through the server's replay at its level. Easy: 61 of 170 candidates proved, the first 30
+kept; Hard: 41 of 80, 30 kept; Expert: 56 of 90, 30 kept (Easy's reds far out are the hardest to clear while every stone
+still finishes on the button). curling-levels-check replays all 90 witnesses at 200.
+
+**Bots** (`scripts/arcade-skill-bands/bots/curling.ts`, perception only, Normal's error and random draws untouched): the
+bot plays the level's sheet through the game it is given (`gameForPuzzle` in `scripts/arcade-skill-bands/games.ts`).
+With the whole path shown (Easy) every weight reads as a draw's (a third) and the line at 0.6 × `LINE_CM`; with no zone
+(Expert) every weight reads at 1.35 × a takeout's read, combined with a 30-weight floor for any player (`NO_ZONE_W`: a
+weight with no gauge); with no aim line the line reads at 1.6 × `LINE_CM` with a 10 cm floor (`NO_LINE_CM`) and the turn
+slips at the full rate.
+
+**Measured** (`bun scripts/curling-levels-bands.ts --reps=2`: every sheet of each level's bank, Normal the first 30 of
+curlRev 4's, each played twice, graded by the server's replay at its level; none flagged):
+
+| Level | Average mean / median / 175+ | Near-perfect | Elite |
+| --- | --- | --- | --- |
+| Easy | 132.2 / 129 / 22 % | 194.8 / 195 / 100 % | 195.7 / 197 / 100 % |
+| Normal | 80.3 / 79 / 0 % | 175.8 / 180 / 57 % | 188.1 / 193 / 88 % |
+| Hard | 75.8 / 82 / 0 % | 168.1 / 169 / 43 % | 183.3 / 192 / 77 % |
+| Expert | 69.9 / 70 / 0 % | 140.8 / 143 / 18 % | 146.0 / 149 / 13 % |
+
+Expert is humanly possible to score well on: the elite bot reached 196–200 on several sheets (seeds 2123852630,
+156865439) and 191–197 on others (1726034549, 280906664, 1797073985, 476333723). Before Easy's core figure moved to 60
+the average player scored 106 on Easy with no stars; the aids alone don't help an average player much (their error is
+the tap on the bar, not reading the shot).
+
+**Decisions for Joe.** The clock stays curlRev 4's 120 s at every level (the brief said "all 90 s"; today's Normal is
+120 s and Normal stays byte for byte, so the levels match it; a 90 s level would need its own banks re-proved inside
+90 s). Easy's Stones part is full at 60 closeness points instead of 95 (a scoring change on Easy only; the aids alone
+left an average player at about 106 with no stars). Hard and Expert are harder by design (more reds, closer in; Expert
+also loses both aids) and were not tuned further (Joe, 16 Nov 2026); Hard's step below Normal is small for the bots
+(elite 183 against 188), and moving its reds closer (25–75 cm) is the obvious lever if Joe wants a bigger one. The cm
+ranges are Joe's, unchanged.

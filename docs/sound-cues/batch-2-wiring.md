@@ -403,3 +403,18 @@ peak (dBFS). “Slot on the PR” says whether the PR's head of 16 Nov 2026 alre
 | /sounds/wordsmith.word8.mp3 | `wordsmith.word8` | #437 | yes | 234 | 234 | -22.7 (-22.7) | -13.4 | from `wordsmith.word.base.mp3`, 7 semitones |
 | /sounds/wordsmith.word9.mp3 | `wordsmith.word9` | #437 | yes | 208 | 208 | -22.7 (-22.7) | -13.1 | from `wordsmith.word.base.mp3`, 9 semitones |
 
+## Main's overhaul trains (17 Nov 2026)
+
+The puzzle and arcade trains (#449, #450) are on main, with their own placeholder files (behind `NEW_GAME_SOUNDS`) under
+81 of batch 2's names; none of batch 2's names is a file a live slot plays, so nothing is held back for that reason.
+This branch merges main through batch 1 (#448, which merged it first) and keeps Joe's recordings over those
+placeholders; main's `newGameSounds.data.ts` measures them (make.py's recorded rows). They keep that data's limits
+(sound-review-fixes-check: at most 4.5 dB under the target, at most 15,000 bytes), so seven takes were processed again
+with the placeholder caps: `word.key`, `codeword.ripple` and `swapword.out` limited past transparent, `wordsmith.pangram`,
+`wordsearch.redraw`, `letterwheel.spin` and `swapword.scale` shortened to about 1.16 s for the size aim.
+
+**`wordsearch.found4`–`found9` keep main's placeholders for now.** Their `.base` take is a sharp spike over a quiet body
+(on [batch-2-retakes.md](batch-2-retakes.md)): two of the six could not come within 4.5 dB of the house level even past
+audible limiting, so the whole series waits for the retake rather than mix Joe's notes and placeholders.
+`wordsearch.found.base.mp3` is kept; re-make the series with
+`ONLY=wordsearch.found.base.mp3 python3 -I scripts/sound-batch-2/process.py <originals> public/sounds <report>`.

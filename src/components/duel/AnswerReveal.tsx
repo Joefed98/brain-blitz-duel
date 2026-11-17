@@ -12,6 +12,7 @@ import { devDiagnosticsOn, type ArcadeDiag } from "@/lib/arcade/diagnostics";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { WaitingLine } from "@/components/duel/Dots";
+import { hasArcadeSummary } from "@/lib/duel/arcadeSummary";
 import { ArcadeReveal, revealShown, storedCostRows, type RevealPlayer } from "@/components/duel/ArcadeReveal";
 import { engineLines, statRepeatsPart } from "@/lib/duel/revealBreakdown";
 import { engineScoreLines } from "@/lib/duel/engineBreakdown";
@@ -529,6 +530,18 @@ export const FINISH_ONLY_TYPES: ReadonlySet<string> = new Set(["reaction", "stop
 export const PUZZLE_REVEAL_ENGINE_TYPES: ReadonlySet<string> = new Set(["tendrop", "whack", "stroop", "clayshoot", "minesweeper"]);
 
 /**
+ * Engine games whose own Reveal stays on screen beside the stored breakdown (Logic overhaul 1, 15 Nov 2026): Minefield's
+ * board as the run left it and its key numbers. Its breakdown keeps only the score lines (the stats it would repeat are
+ * the Reveal's). Display only.
+ */
+export const ENGINE_OWN_REVEAL_TYPES: ReadonlySet<string> = new Set(["minesweeper"]);
+/**
+ * The Speed overhaul (Joe, 15 Nov 2026): Tenfall, Bonk and Pull!'s own reveal is a picture of the run (the targets,
+ * the burrows, every clay) with its key figures, so it shows beside the stored breakdown, not only while it is folded.
+ */
+export const SPEED_VISUAL_REVEAL_TYPES: ReadonlySet<string> = new Set(["tendrop", "whack", "clayshoot"]);
+
+/**
  * Puzzles whose own Reveal writes the stored score parts: none since 4 Nov 2026 (Blackout, Turntable and Colour Flood
  * showed them twice): every puzzle's line is the one above the board; solvedMovesText keeps the moves.
  */
@@ -549,7 +562,7 @@ function verdictLine(correct: boolean, score: number | null, msRemaining: number
 /** Stats the engine rows already state (engineBreakdown.ts): left out under them. */
 const ENGINE_ROW_TILES: ReadonlySet<string> = new Set(["Wrong colour", "Hedgehogs", "Empty taps", "Birds hit", "Correct", "Best streak", "Bonus", "Wrong"]);
 
-function EngineBreakdown({ type, extra, score, practice, costRows, open, setOpen, rev }: { type: string; rev?: number | undefined; extra: Record<string, unknown> | null; score: number | null; practice: boolean; costRows: { label: string; value: string }[]; open: boolean; setOpen: (f: (v: boolean) => boolean) => void }) {
+function EngineBreakdown({ type, extra, score, practice, costRows, open, setOpen, rev, noTiles = false }: { noTiles?: boolean; type: string; rev?: number | undefined; extra: Record<string, unknown> | null; score: number | null; practice: boolean; costRows: { label: string; value: string }[]; open: boolean; setOpen: (f: (v: boolean) => boolean) => void }) {
   const stored = (extra?.["reveal"] as ArcadeRevealData | undefined) ?? null;
   if (!stored || score === null) return null;
   // Each fact once (4 Nov 2026, Joe's review: Tenfall said "9 of 10 targets" three times): the stored lines in plain
@@ -559,7 +572,9 @@ function EngineBreakdown({ type, extra, score, practice, costRows, open, setOpen
   const scored = engineScoreLines(type, extra, stored.lines, score, rev);
   const reveal = { ...stored, lines: scored ?? engineLines(type, stored.lines) };
   const shown = revealShown(reveal, score);
-  const tiles = scored
+  const tiles = noTiles
+    ? []
+    : scored
     ? shown.tiles.filter((t) => !ENGINE_ROW_TILES.has(t.label) && !statRepeatsPart(t.label, shown.lines)).slice(0, 4)
     : [...shown.tiles.filter((t) => !statRepeatsPart(t.label, shown.lines)).slice(0, 4), ...costRows.filter((t) => t.value !== "0")];
   return (
@@ -921,6 +936,7 @@ function LiveAnswerReveal({
 
       {ARCADE_REVEAL_RENDERERS[puzzle.type] && !PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) ? (
         <ArcadeReveal
+          summaryVisual={hasArcadeSummary(puzzle) ? <Reveal puzzle={puzzle} myAnswer={myAnswer} myCorrect={myCorrect} myReactionAvgMs={myReactionAvgMs} myMsRemaining={myMsRemaining} timeLimitMs={puzzleTimeLimitMs(puzzle)} myExtra={myExtra ?? null} /> : undefined}
           practice={practice}
           best={best}
           puzzle={puzzle}
@@ -971,7 +987,7 @@ function LiveAnswerReveal({
         )}
         {/* Engine games on the puzzle reveal: their stored breakdown, open (practice) or one tap away (rooms). */}
         {PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) ? (
-          <EngineBreakdown type={puzzle.type} rev={puzzle.type === "clayshoot" ? puzzle.clayRev : undefined} open={engineOpen} setOpen={setEngineOpen} extra={myExtra ?? null} score={myScore} practice={practice} costRows={storedCostRows(puzzle.type, myExtra, puzzle.type === "clayshoot" ? puzzle.clayRev : undefined)} />
+          <EngineBreakdown type={puzzle.type} rev={puzzle.type === "clayshoot" ? puzzle.clayRev : undefined} open={engineOpen} setOpen={setEngineOpen} extra={myExtra ?? null} score={myScore} practice={practice} costRows={storedCostRows(puzzle.type, myExtra, puzzle.type === "clayshoot" ? puzzle.clayRev : undefined)} noTiles={ENGINE_OWN_REVEAL_TYPES.has(puzzle.type)} />
         ) : null}
         {/* Shared near-miss line; nearMiss() returns null for every puzzle type without one. */}
         {myScore !== null && nearMiss(puzzle.type, myExtra) ? (
@@ -986,7 +1002,7 @@ function LiveAnswerReveal({
           {/* An engine game's own summary line only while its breakdown is folded away (a room's "See breakdown"). */}
           {answersReady && solutionLock ? (
             <SolutionLocked text={solutionLock} />
-          ) : answersReady && !(PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) && myScore !== null && (practice || engineOpen)) ? (
+          ) : answersReady && (ENGINE_OWN_REVEAL_TYPES.has(puzzle.type) || !(PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) && !SPEED_VISUAL_REVEAL_TYPES.has(puzzle.type) && myScore !== null && (practice || engineOpen))) ? (
             <Reveal
               puzzle={puzzle}
               myAnswer={myAnswer}

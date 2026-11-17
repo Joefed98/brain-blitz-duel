@@ -23,7 +23,10 @@ import {
   HOMERUN_WORLD_H,
   HOMERUN_WORLD_W,
 } from "@/lib/arcade/homerun";
-import { drawHomerunArt, homerunScene, homerunSceneV4, homerunV4ViewToWorld } from "@/lib/arcade/homerun.renderer";
+import { drawHomerunArt, homerunScene, homerunSceneV4, homerunV4ViewToWorld, homerunV5Ui } from "@/lib/arcade/homerun.renderer";
+import { hr5Fence, HOMERUN_REV_5, HR5_AIM_MAX, HR5_CHOICE, HR5_FOUL, HR5_HOMER, HR5_INPUT_SWING, HR5_OUT_CAUGHT, HR5_SINGLE, HR5_SWING_EARLY, HR5_WHIFF, type Hr5Inn } from "@/lib/arcade/homerunInnings";
+import { Dot, LAND_SVG_STYLE, RevealLegend, RevealStats, useLandInTurn } from "@/components/puzzles/SportsRevealParts";
+import { gameFx } from "@/lib/fx/kit";
 import { encodeHomerunRun, replayHomerunRun } from "@/lib/duel/homerun";
 import { HOMERUN_TIME_MS, type HomerunPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
@@ -68,15 +71,25 @@ function IntroExample() {
         <rect x="112" y="96" width="30" height="32" fill="none" stroke="#fff" strokeOpacity="0.35" strokeDasharray="3 3" />
         <circle cx="126" cy="106" r="2.6" fill="#F4F3EE" />
         <path d="M120 140 L134 140 L137 146 L127 150 L117 146 Z" fill="#F5F6F2" />
-        <path d="M48 148 L56 120 L52 104 L66 104 L70 120 L74 148 L66 148 L62 124 L58 148 Z" fill="#E7E9EF" />
-        <path d="M50 104 L48 82 Q60 76 72 82 L70 104 Z" fill="#17244A" />
-        <circle cx="61" cy="74" r="7" fill="#2C4282" />
-        <ellipse cx="68" cy="74" rx="4" ry="1.2" fill="#0C1430" />
+        <path d="M48 148 L56 120 L52 104 L66 104 L70 120 L74 148 L66 148 L62 124 L58 148 Z" fill="#1B1B22" />
+        <path d="M50 104 L48 82 Q60 76 72 82 L70 104 Z" fill="#121218" stroke="#F2C75C" strokeWidth="0.8" />
+        <path d="M61 84 l-3 7 h3 l-2 7 l5 -9 h-3 l2 -5 Z" fill="#F2C75C" />
+        <circle cx="61" cy="74" r="7" fill="#1B1B22" stroke="#F2C75C" strokeWidth="0.8" />
+        <ellipse cx="68" cy="74" rx="4" ry="1.2" fill="#6FE3FF" />
         <circle cx="70" cy="84" r="2.6" fill="#F2C75C" />
         <path d="M70 84 L84 44 L87 45 L73 85 Z" fill="#C08A52" />
+        <circle cx="40" cy="70" r="2.4" fill="#E0473E" />
+        <circle cx="104" cy="66" r="2.4" fill="#E0473E" />
+        <circle cx="168" cy="70" r="2.4" fill="#E0473E" />
+        <rect x="150" y="84" width="5" height="5" transform="rotate(45 152.5 86.5)" fill="#FFE7A3" />
+        <circle cx="146" cy="84" r="2.6" fill="#121218" stroke="#F2C75C" strokeWidth="0.7" />
+        <rect x="4" y="4" width="70" height="20" rx="6" fill="rgba(6,9,18,0.85)" />
+        <text x="11" y="18.5" fill="#F2C75C" fontSize="12" fontWeight="900" fontFamily="Archivo, sans-serif">2</text>
+        <text x="22" y="18" fill="#F3F1EC" fontSize="7" fontWeight="800" fontFamily="Archivo, sans-serif">RUNS</text>
+        <text x="46" y="18" fill="#F3F1EC" fontSize="8" fontWeight="800" fontFamily="Archivo, sans-serif">1–2</text>
       </svg>
       <p className="text-center text-xs text-muted-foreground">
-        Tap a spot on the field before the pitch, then tap as the ring closes on the ball: perfect timing sends it to your spot.
+        Read the pitch, then swipe the way you want to hit it as it reaches you: find the gaps and bring your runners home.
       </p>
     </div>
   );
@@ -93,9 +106,13 @@ function homerunObserver(onMode: (mode: number) => void, onLive?: (live: boolean
       frame: (state: HomerunState, running: boolean) => {
         onState?.(state);
         onMode(state.mode);
-        // The pitch is live from its release until it is decided (the sim moves on to the next pitch then).
-        const cur = homerunCurrent(state);
-        onLive?.(cur !== null && state.tick >= cur.release);
+        // The pitch is live from its release until it is decided (the sim moves on to the next pitch then); homerunRev 5
+        // from just before the release (a swipe is a swing from then) until it is decided, and after the innings ends.
+        if (state.inn) onLive?.(state.inn.endAt > 0 || state.tick >= state.inn.release - HR5_SWING_EARLY);
+        else {
+          const cur = homerunCurrent(state);
+          onLive?.(cur !== null && state.tick >= cur.release);
+        }
         inner.frame(state, running);
       },
       stop: () => inner.stop(),
@@ -109,7 +126,8 @@ const MODE_BUTTON =
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: HomerunPuzzleData | null = puzzle.type === "homerun" ? puzzle : null;
   // homerunRev 3: the Contact / Power choice under the field (the sim's own choice lights its button).
-  const choose = (data?.homerunRev ?? 1) === HOMERUN_REV_3;
+  const innings = (data?.homerunRev ?? 1) >= HOMERUN_REV_5;
+  const choose = (data?.homerunRev ?? 1) === HOMERUN_REV_3 || innings;
   const [mode, setMode] = useState(HOMERUN_MODE_CONTACT);
   const shown = useRef(HOMERUN_MODE_CONTACT);
   // The row hides (a quick fade) from the pitch's release until the hit or miss is decided: the choice is locked on
@@ -149,11 +167,52 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     return homerunV4SpotOk(a, b) ? { k: HOMERUN_INPUT_SPOT, a, b, c: 0 } : null;
   };
   // devWarp: development review shots only (scripts/shots/homerun-tuning-shots.ts); production returns the game as is.
-  const game = useMemo(() => ({ ...devWarp("homerun", homerunGameFor(data?.homerunRev)), draw: drawHomerunArt }), [data?.homerunRev]);
+  const game = useMemo(() => ({ ...devWarp("homerun", homerunGameFor(data?.homerunRev, data?.level)), draw: drawHomerunArt }), [data?.homerunRev, data?.level]);
+  // homerunRev 5: the aim held on a computer (← pulls to left field, → pushes to right; none: straightaway).
+  const keyAim = useRef(0);
   // The swipe: where the finger went down, and whether this swipe has already started the swing.
   const start = useRef<{ x: number; y: number; sent: boolean } | null>(null);
   // homerunRev 2 reads the swipe over a longer chord (18 px, rev 1 12 px) so its angle, the aim, is steadier.
   const startPx = homerunSwingStartPx(data?.homerunRev);
+  // The Contact / Power choice for the next pitch; the lit one is the sim's. Only the buttons take a touch.
+  const swingRow = (send: (payload: PointerPayload) => void, below: boolean) => (
+    <div
+      data-game-controls="swing"
+      aria-hidden={live || undefined}
+      className={`${below ? "flex shrink-0 px-1" : "pointer-events-none absolute inset-x-1 flex"} h-[52px] items-center gap-2 transition-opacity duration-150 ${live ? "opacity-0" : "opacity-100"}`}
+      style={below ? undefined : { bottom: "max(0px, calc(env(safe-area-inset-bottom, 0px) - 4px))" }}
+    >
+      {[
+        { m: HOMERUN_MODE_CONTACT, label: "Contact", hint: innings ? "wider timing, shorter hits" : "easier timing" },
+        { m: HOMERUN_MODE_POWER, label: "Power", hint: innings ? "tight timing, goes further" : "goes further" },
+      ].map(({ m, label, hint }) => (
+        <ArcadeControlButton
+          key={m}
+          type="button"
+          aria-label={`${label} swing`}
+          aria-pressed={mode === m}
+          disabled={locked || live}
+          data-swing-mode={m === HOMERUN_MODE_POWER ? "power" : "contact"}
+          className={`${MODE_BUTTON} ${live ? "pointer-events-none" : "pointer-events-auto"} ${
+            mode === m
+              ? "border-primary bg-primary/20 text-primary shadow-[0_0_12px_rgba(245,184,46,0.3)] hover:bg-primary/20 active:bg-primary/30"
+              : "border-foreground/25 bg-background/40 text-foreground/80 active:bg-foreground/15"
+          }`}
+          onPressStart={(event) => {
+            send(pick(m));
+            // The press registering (#422's kit: a sink and spring, its tick; never a haptic).
+            gameFx("tap", event.currentTarget);
+          }}
+        >
+          <span className="flex flex-col items-center leading-tight">
+            <span>{label}</span>
+            <span className="text-[10px] font-semibold opacity-75">{hint}</span>
+          </span>
+        </ArcadeControlButton>
+      ))}
+    </div>
+  );
+
   return (
     <ArcadeCanvasStage
       diagKey="homerun"
@@ -174,6 +233,31 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       discrete
       inputKind={HOMERUN_INPUT_SWING}
       pointer={(kind, x, y) => {
+        if (innings) {
+          // homerunRev 5: one swipe swings. It starts once the finger has moved startPx; its direction is the aim (up is
+          // straightaway, up-left pulls to left field, up-right to right field; more than 45° off the line is foul).
+          if (kind === "down") {
+            start.current = { x, y, sent: false };
+            return null;
+          }
+          const s = start.current;
+          if (kind === "up") {
+            start.current = null;
+            return null;
+          }
+          if (!s || s.sent) return null;
+          const dx = x - s.x;
+          const dy = y - s.y;
+          if (dx * dx + dy * dy < startPx * startPx) return null;
+          s.sent = true;
+          const aim = Math.max(-HR5_AIM_MAX, Math.min(HR5_AIM_MAX, Math.round((Math.atan2(-dx, -dy) * 1800) / Math.PI)));
+          homerunV5Ui.aim = aim;
+          homerunV5Ui.at = typeof performance === "undefined" ? 0 : performance.now();
+          setTimeout(() => {
+            if ((typeof performance === "undefined" ? 0 : performance.now()) - homerunV5Ui.at >= 380) homerunV5Ui.aim = null;
+          }, 400);
+          return { k: HR5_INPUT_SWING, a: aim, b: 0, c: 0 };
+        }
         if (spotGame) return kind === "down" ? tapKind(x, y) : null;
         if (kind === "down") {
           // homerunRev 3's view runs below the world (display only): a touch there starts no swing.
@@ -197,6 +281,22 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         return { k: HOMERUN_INPUT_SWING, a: Math.round(s.y), b: Math.max(-900, Math.min(900, angle)), c: 0 };
       }}
       keys={(kind, key, send) => {
+        // homerunRev 5: C (or 1) Contact, P (or 2) Power, ← / → held aim, Space swings (or a mouse swipe).
+        if (innings) {
+          const k = key.length === 1 ? key.toLowerCase() : key;
+          if (k === "ArrowLeft" || k === "ArrowRight") {
+            keyAim.current = kind === "down" ? (k === "ArrowLeft" ? 250 : -250) : 0;
+            return true;
+          }
+          if (k === " " || k === "Spacebar") {
+            if (kind === "down") send({ k: HR5_INPUT_SWING, a: keyAim.current, b: 0, c: 0 });
+            return true;
+          }
+          const m = k === "c" || k === "1" ? HOMERUN_MODE_CONTACT : k === "p" || k === "2" ? HOMERUN_MODE_POWER : -1;
+          if (m < 0) return false;
+          if (kind === "down") send(pick(m));
+          return true;
+        }
         // homerunRev 4: Space swings (a click does too; a click before the pitch moves the spot).
         if (spotGame) {
           if (key !== " " && key !== "Spacebar") return false;
@@ -214,45 +314,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         return true;
       }}
       overlay={
-        choose
-          ? (send) => (
-              // The swing choice for the next pitch, over the bottom of the field (below the plate); the lit one is the sim's.
-              // Drawn in the arena so the world reaches the bottom, and lifted by the home bar: the row ends at least 12 px
-              // above env(safe-area-inset-bottom) (the arena ends 16 px above the screen's bottom, so the lift is the inset
-              // less 4 px). Only the buttons take a touch; a swipe beside them reaches the canvas.
-              <div
-                data-game-controls="swing"
-                aria-hidden={live || undefined}
-                className={`pointer-events-none absolute inset-x-1 flex h-[52px] items-center gap-2 transition-opacity duration-150 ${live ? "opacity-0" : "opacity-100"}`}
-                style={{ bottom: "max(0px, calc(env(safe-area-inset-bottom, 0px) - 4px))" }}
-              >
-                {[
-                  { m: HOMERUN_MODE_CONTACT, label: "Contact", hint: "easier timing" },
-                  { m: HOMERUN_MODE_POWER, label: "Power", hint: "goes further" },
-                ].map(({ m, label, hint }) => (
-                  <ArcadeControlButton
-                    key={m}
-                    type="button"
-                    aria-label={`${label} swing`}
-                    aria-pressed={mode === m}
-                    disabled={locked || live}
-                    data-swing-mode={m === HOMERUN_MODE_POWER ? "power" : "contact"}
-                    className={`${MODE_BUTTON} ${live ? "pointer-events-none" : "pointer-events-auto"} ${
-                      mode === m
-                        ? "border-primary bg-primary/20 text-primary shadow-[0_0_12px_rgba(245,184,46,0.3)] hover:bg-primary/20 active:bg-primary/30"
-                        : "border-foreground/25 bg-background/40 text-foreground/80 active:bg-foreground/15"
-                    }`}
-                    onPressStart={() => send(pick(m))}
-                  >
-                    <span className="flex flex-col items-center leading-tight">
-                      <span>{label}</span>
-                      <span className="text-[10px] font-semibold opacity-75">{hint}</span>
-                    </span>
-                  </ArcadeControlButton>
-                ))}
-              </div>
-            )
-          : undefined
+        // homerunRev 3: the swing choice over the bottom of the field (below the plate), drawn in the arena so the world
+        // reaches the bottom and lifted by the home bar.
+        choose && !innings ? (send) => swingRow(send, false) : undefined
+      }
+      footer={
+        // homerunRev 5 (Joe, 16 Nov 2026): the same row below the play area, as every other arcade game's controls, in
+        // rooms and Practice alike; it keeps its height while it fades for the pitch, so the field never moves.
+        innings ? (send) => swingRow(send, true) : undefined
       }
       onSubmit={(answer) => onSubmit(answer)}
       onDraftAnswer={onDraftAnswer}
@@ -260,9 +329,90 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
+/** homerunRev 5's reveal picture: the field from above, every batted ball where it came down. */
+function InningsField({ inn }: { inn: Hr5Inn }) {
+  const land = useLandInTurn();
+  const S = 0.55;
+  const PX = 180;
+  const PY = 288;
+  const at = (spray: number, feet: number) => {
+    const a = (spray / 10) * (Math.PI / 180);
+    return { x: PX - Math.sin(a) * feet * S, y: PY - Math.cos(a) * feet * S };
+  };
+  const fence: string[] = [];
+  for (let sp = -450; sp <= 450; sp += 30) {
+    const p = at(sp, hr5Fence(sp));
+    fence.push(`${p.x.toFixed(1)},${p.y.toFixed(1)}`);
+  }
+  const left = at(450, 330);
+  const right = at(-450, 330);
+  const base = (n: number) => at([0, -450, 0, 450][n]!, [0, 90, 127, 90][n]!);
+  const bases = [base(1), base(2), base(3)];
+  const marks = inn.hits.filter((h) => h.st >= 0 && h.out !== HR5_WHIFF && h.out !== HR5_FOUL);
+  return (
+    <svg viewBox="0 18 360 282" className="w-full" style={{ maxWidth: 420, maxHeight: "34vh" }} role="img" aria-label="Where each batted ball landed">
+      <path d={`M${PX},${PY} L${right.x},${right.y} L${fence.join(" L")} L${left.x},${left.y} Z`} fill="var(--jz-surface-2)" stroke="var(--jz-line)" strokeWidth={1.5} />
+      <polyline points={fence.join(" ")} fill="none" stroke="var(--jz-text-3)" strokeWidth={3} />
+      <path d={`M${PX},${PY} L${bases[0]!.x},${bases[0]!.y} L${bases[1]!.x},${bases[1]!.y} L${bases[2]!.x},${bases[2]!.y} Z`} fill="var(--jz-surface-3)" stroke="var(--jz-text-3)" strokeWidth={1.2} />
+      {[...bases, { x: PX, y: PY }].map((b, i) => (
+        <rect key={i} x={b.x - 3.5} y={b.y - 3.5} width={7} height={7} transform={`rotate(45 ${b.x} ${b.y})`} fill="var(--jz-white)" />
+      ))}
+      {marks.map((h, i) => {
+        const p = h.out === HR5_HOMER ? at(h.spray, Math.max(h.feet, hr5Fence(h.spray) + 22)) : at(h.spray, Math.max(25, h.feet));
+        const out = h.out === HR5_OUT_CAUGHT || h.out === HR5_CHOICE;
+        const colour = h.out === HR5_HOMER ? "var(--jz-gold)" : out ? "var(--jz-red)" : "var(--jz-white)";
+        return (
+          <circle
+            key={i}
+            ref={land(i)}
+            data-reveal-mark=""
+            style={LAND_SVG_STYLE}
+            cx={p.x}
+            cy={p.y}
+            r={h.out === HR5_HOMER ? 6.5 : 5.5}
+            fill={out ? "none" : colour}
+            stroke={colour}
+            strokeWidth={2.4}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
+function InningsReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "homerun") return null;
-  const result = replayHomerunRun(puzzle.seed, myAnswer ?? "", puzzle.homerunRev);
+  const result = replayHomerunRun(puzzle.seed, myAnswer ?? "", puzzle.homerunRev, puzzle.level);
+  const inn = result.state.inn;
+  if (!inn) return null;
+  const hits = inn.hits.filter((h) => h.out >= HR5_SINGLE && h.out <= HR5_HOMER).length;
+  const longest = result.longest;
+  return (
+    <div className="flex w-full flex-col items-center justify-start gap-2" data-homerun-reveal>
+      <InningsField inn={inn} />
+      <RevealLegend
+        items={[
+          { mark: <Dot colour="var(--jz-gold)" />, label: "Home run" },
+          { mark: <Dot colour="var(--jz-white)" />, label: "Hit" },
+          { mark: <Dot colour="var(--jz-red)" hollow />, label: "Caught" },
+        ]}
+      />
+      <RevealStats
+        stats={[
+          { label: "Hits", value: hits, gold: true },
+          { label: "Runs", value: inn.runs },
+          { label: "Longest", value: longest, unit: "ft" },
+        ]}
+      />
+    </div>
+  );
+}
+
+function Reveal(props: PuzzleRevealProps) {
+  const { puzzle, myAnswer } = props;
+  if (puzzle.type !== "homerun") return null;
+  if ((puzzle.homerunRev ?? 1) >= HOMERUN_REV_5) return <InningsReveal {...props} />;
+  const result = replayHomerunRun(puzzle.seed, myAnswer ?? "", puzzle.homerunRev, puzzle.level);
   // What the run did, part by part (the points are the stored score's, shown by the arcade reveal above).
   const lines = result.parts.map((part) => `${part.label}: ${part.detail}`);
   return (

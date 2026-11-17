@@ -54,7 +54,121 @@ export const FREEKICK_REV_3 = 3;
  */
 export const FREEKICK_REV_4 = 4;
 /** The revision rooms deal. */
-export const FREEKICK_REV_DEALT = FREEKICK_REV_4;
+/**
+ * freekickRev 5 (15 Nov 2026, the layered free kick; docs/arcade-standard/freekick.md "freekickRev 5"): rev 4's drawn
+ * shot and power bar plus wind (each kick's own, shown by the flag; the drawn target is solved with no wind, so the
+ * player bends or aims against it), three strike types read from the stroke's shape (a curved stroke curls, a straight
+ * one drives low and hard, a flick at its end dips like a knuckleball), a keeper who leans before each kick (quicker to
+ * that side, slower to the other), and a wall that jumps on some kicks (a drive can go under it, a dip over it). Four
+ * levels (FK_LEVEL_SETTINGS; Normal the rated one). Rooms deal rev 5; rev 1–4 replay exactly as before.
+ */
+export const FREEKICK_REV_5 = 5;
+/**
+ * freekickRev 6 (16 Nov 2026, Joe: Top Bins Normal eased): rev 5's game exactly, with Normal's scoring eased (and Easy's,
+ * so Easy never scores below Normal): the corner hoop counted (and drawn) larger and the keeper's open side a wider
+ * skill-shot window (FK_V6_EASE). Hard and Expert score as rev 5; rev 5 rounds replay and grade exactly as before.
+ */
+export const FREEKICK_REV_6 = 6;
+export const FREEKICK_REV_DEALT = FREEKICK_REV_6;
+
+/** The four levels (the difficulty framework's ids). */
+export type FkLevel = "easy" | "normal" | "hard" | "expert";
+export const FK_LEVELS: readonly FkLevel[] = ["easy", "normal", "hard", "expert"];
+export function fkLevelOf(value: unknown): FkLevel {
+  return value === "easy" || value === "hard" || value === "expert" ? value : "normal";
+}
+export interface FkLevelSettings {
+  /** The power bar's gold zone (meter values). */
+  zoneLo: number;
+  zoneHi: number;
+  /** Keeper: ticks after the ball passes the wall before he moves, and his top speed and acceleration (per mille of rev 4's). */
+  react: number;
+  speed: number;
+  /** Wall size range [lo, hi] (players). */
+  wall: readonly [number, number];
+  /** Wind strength at most (units of the sim's wind, either way). */
+  wind: number;
+  /** The corner hoop's last size, per mille of its first. */
+  hoopLast: number;
+  /** Kicks on which the wall jumps (of ten). */
+  jumps: number;
+}
+export const FK_LEVEL_SETTINGS: Readonly<Record<FkLevel, FkLevelSettings>> = {
+  easy: { zoneLo: 680, zoneHi: 820, react: 14, speed: 850, wall: [3, 3], wind: 1, hoopLast: 850, jumps: 3 },
+  // Normal eased one step (Joe, 15 Nov 2026): the keeper as Easy's (react 10 → 14 ticks, speed 1000 → 850 per mille).
+  normal: { zoneLo: 720, zoneHi: 800, react: 14, speed: 850, wall: [3, 5], wind: 2, hoopLast: 800, jumps: 4 },
+  hard: { zoneLo: 735, zoneHi: 790, react: 8, speed: 1120, wall: [4, 5], wind: 4, hoopLast: 600, jumps: 5 },
+  expert: { zoneLo: 745, zoneHi: 780, react: 7, speed: 1200, wall: [5, 5], wind: 5, hoopLast: 500, jumps: 6 },
+};
+/**
+ * freekickRev 6's level table (16 Nov 2026, Joe: Hard and Expert a clear step up, tuned on the elite bot under human
+ * limits): Easy and Normal as rev 5; Hard and Expert harder. Rev 5 keeps FK_LEVEL_SETTINGS exactly.
+ */
+export const FK_LEVEL_SETTINGS_V6: Readonly<Record<FkLevel, FkLevelSettings>> = {
+  easy: FK_LEVEL_SETTINGS.easy,
+  normal: FK_LEVEL_SETTINGS.normal,
+  hard: { zoneLo: 735, zoneHi: 790, react: 6, speed: 1300, wall: [4, 5], wind: 6, hoopLast: 600, jumps: 5 },
+  expert: { zoneLo: 745, zoneHi: 780, react: 5, speed: 1400, wall: [5, 5], wind: 7, hoopLast: 500, jumps: 6 },
+};
+/** A stamp's level settings: rev 6's table from rev 6, else rev 5's. */
+export function fkLevelSettings(rev: number, level?: string | null): FkLevelSettings {
+  return (rev >= FREEKICK_REV_6 ? FK_LEVEL_SETTINGS_V6 : FK_LEVEL_SETTINGS)[fkLevelOf(level)];
+}
+/**
+ * freekickRev 6's Goals line by level: the units at which Goals is full (rev 5: FREEKICK_V5_CORE_FULL for every level).
+ * Hard and Expert ask for better-placed goals (10 perfectly placed goals are 1,300 units).
+ */
+export const FK_V6_CORE_FULL: Readonly<Record<FkLevel, number>> = { easy: 800, normal: 800, hard: 1200, expert: 1250 };
+
+/**
+ * freekickRev 6's scoring ease by level (null: scored as rev 5): the corner hoop's first size (per mille of
+ * FK_HOOP_R, shrinking to the level's hoopLast share of it kick by kick, as rev 5) and how far from the middle a goal
+ * into the keeper's open side must cross to count as a skill shot (cm; rev 5's 120).
+ */
+export const FK_V6_EASE: Readonly<Record<FkLevel, { hoopPermille: number; openCm: number } | null>> = {
+  easy: { hoopPermille: 1350, openCm: 60 },
+  normal: { hoopPermille: 1350, openCm: 60 },
+  hard: null,
+  expert: null,
+};
+/** Rev 5's open-side line (cm from the middle). */
+export const FK_V5_OPEN_CM = 120;
+
+/** Strike types (the SHOT's d): curl, drive, dip. */
+export const FK_STRIKE_CURL = 0;
+export const FK_STRIKE_DRIVE = 1;
+export const FK_STRIKE_DIP = 2;
+export const FK_STRIKE_NAMES = ["Curler", "Driven", "Dipping"] as const;
+/** A drive keeps this much of the drawn curl and leaves the foot this much faster (per mille), lower and on a flatter line. */
+export const FK_DRIVE_CURL = 300;
+export const FK_DRIVE_SPEED = 1180;
+/** A drive's drop (per mille of g): the flat line that keeps a low drive under a jumping wall. */
+export const FK_DRIVE_DROP = 400;
+/** A drive leaves the foot with this much of a struck ball's lift (per mille). */
+export const FK_DRIVE_LIFT = 350;
+/** A dip: extra gravity past the wall's line (per mille of g), a small seeded-free wobble, and the keeper later by this many ticks. */
+export const FK_DIP_DROP = 650;
+export const FK_DIP_READ = 6;
+/**
+ * A jumping wall (freekickRev 5) leaves the ground FK_V5_JUMP_FROM ticks after the kick, its feet highest
+ * (FK_V5_WALL_JUMP) at FK_V5_JUMP_PEAK, as a driven ball reaches it, and lands at FK_V5_JUMP_TO; a ball beneath its feet
+ * goes under.
+ */
+export const FK_V5_WALL_JUMP = Math.round(0.8 * 65536);
+export const FK_V5_JUMP_FROM = 8;
+export const FK_V5_JUMP_PEAK = 22;
+export const FK_V5_JUMP_TO = 36;
+/** A jumping wall's lift `t` ticks after the kick (freekickRev 5; a fixed schedule, the same for everyone). */
+export function fkV5WallLift(t: number): number {
+  if (t < FK_V5_JUMP_FROM || t > FK_V5_JUMP_TO) return 0;
+  const half = FK_V5_JUMP_PEAK - FK_V5_JUMP_FROM;
+  const d = t - FK_V5_JUMP_PEAK;
+  return Math.max(0, FK_V5_WALL_JUMP - Math.trunc((FK_V5_WALL_JUMP * d * d) / (half * half)));
+}
+/** The keeper's lean: his start this far toward the side he leans, quicker that way (per mille) and slower the other. */
+export const FK_V5_LEAN = Math.round(0.3 * 65536);
+export const FK_V5_LEAN_TO = 1200;
+export const FK_V5_LEAN_AWAY = 800;
 export const FREEKICK_RUN_SECONDS = 75;
 export const FREEKICK_RUN_TICKS = FREEKICK_RUN_SECONDS * 60;
 export const FREEKICK_KICKS = 10;
@@ -273,12 +387,39 @@ export const FREEKICK_V4_STD_SPEC: StdSpec = {
 };
 export const FREEKICK_V4_BAND_CURVE = bandCurve([0, FREEKICK_V4_CORE_FULL], [0, FREEKICK_V4_CORE_MAX]);
 
+/**
+ * freekickRev 5's parts: goals 120 (100 a goal plus up to 30 for placement, full at FREEKICK_V5_CORE_FULL), targets 40
+ * (10 each), skill shots 30 (3 for each goal under a jumping wall, dipped over the wall, curled round it or into the
+ * keeper's open side), five in a row 10.
+ */
+export const FREEKICK_V5_CORE_MAX = 120;
+export const FREEKICK_V5_CORE_FULL = 800;
+export const FREEKICK_V5_SKILL_EACH = 3;
+export const FREEKICK_V5_SKILL_MAX = 30;
+export const FREEKICK_V5_STD_SPEC: StdSpec = {
+  field: "freekickRev",
+  rev: FREEKICK_REV_5,
+  parts: [
+    { key: "core", label: "Goals", max: FREEKICK_V5_CORE_MAX, of: FREEKICK_V5_CORE_FULL, how: "100 a goal, more the further it goes from the keeper" },
+    { key: "targets", label: "Targets", max: FREEKICK_TARGETS_MAX, of: FREEKICK_TARGETS, item: "target", how: "10 for each corner hoop or crossbar hit" },
+    { key: "skill", label: "Skill shots", max: FREEKICK_V5_SKILL_MAX, of: FREEKICK_V5_SKILL_MAX / FREEKICK_V5_SKILL_EACH, item: "skill shot", how: `${FREEKICK_V5_SKILL_EACH} for each goal under a jumping wall, dipped over it, curled round it or into the keeper’s open side` },
+    { key: "streak", label: "Five in a row", max: FREEKICK_STREAK_MAX, of: 1, how: "for five goals in a row" },
+  ],
+};
+/** freekickRev 6's parts: rev 5's exactly (the ease is in what counts as a target and a skill shot). */
+export const FREEKICK_V6_STD_SPEC: StdSpec = { ...FREEKICK_V5_STD_SPEC, rev: FREEKICK_REV_6 };
+export const FREEKICK_V5_BAND_CURVE = bandCurve([0, FREEKICK_V5_CORE_FULL], [0, FREEKICK_V5_CORE_MAX]);
+
 /** A corner hoop's radius (world units) on kick `k` (0…9): rev 1–3 the full FK_HOOP_R; rev 4 down to 70 % by the last. */
-export function fkHoopRFor(rev: number, k: number): number {
+export function fkHoopRFor(rev: number, k: number, level?: string | null): number {
   if (rev < FREEKICK_REV_4) return FK_HOOP_R;
   const kk = Math.max(0, Math.min(FREEKICK_KICKS - 1, k));
-  const permille = 1000 - Math.trunc(((1000 - FK_V4_HOOP_LAST_PERMILLE) * kk) / (FREEKICK_KICKS - 1));
-  return Math.trunc((FK_HOOP_R * permille) / 1000);
+  const last = rev >= FREEKICK_REV_5 ? fkLevelSettings(rev, level).hoopLast : FK_V4_HOOP_LAST_PERMILLE;
+  const permille = 1000 - Math.trunc(((1000 - last) * kk) / (FREEKICK_KICKS - 1));
+  // freekickRev 6: Easy's and Normal's hoop starts larger (FK_V6_EASE), shrinking by the same share.
+  const ease = rev >= FREEKICK_REV_6 ? FK_V6_EASE[fkLevelOf(level)] : null;
+  const first = ease ? Math.trunc((FK_HOOP_R * ease.hoopPermille) / 1000) : FK_HOOP_R;
+  return Math.trunc((first * permille) / 1000);
 }
 
 /* ================================ The deal ================================ */
@@ -303,6 +444,8 @@ export interface FkKick {
   /** freekickRev 2 (display): the spot's distance in yards from the goal's centre and its angle in degrees (+ right). */
   yards?: number;
   degrees?: number;
+  /** freekickRev 5 only: the keeper's lean (−1 left, +1 right), whether the wall jumps, and the keeper's numbers. */
+  v5?: { lean: number; jump: number; react: number; vmax: number; acc: number };
 }
 
 export interface FkPlan {
@@ -409,7 +552,8 @@ function makeKickV2(rng: { s: number }, target: number): FkKick {
 const planCache = new Map<number, FkPlan>();
 
 /** The run's schedule from the seed (and the revision): identical for every player and the server. */
-export function fkSeedPlan(seed: number, rev: number = FREEKICK_REV_STD): FkPlan {
+export function fkSeedPlan(seed: number, rev: number = FREEKICK_REV_STD, level?: string | null): FkPlan {
+  if (rev >= FREEKICK_REV_5) return fkSeedPlanV5(seed, fkLevelOf(level), rev >= FREEKICK_REV_6 ? FREEKICK_REV_6 : FREEKICK_REV_5);
   if (rev >= FREEKICK_REV_2) return fkSeedPlanV2(seed);
   const key = seed | 0;
   const hit = planCache.get(key);
@@ -461,6 +605,52 @@ function fkSeedPlanV2(seed: number): FkPlan {
   return plan;
 }
 
+const planCacheV5 = new Map<string, FkPlan>();
+
+/**
+ * freekickRev 5's schedule at a level: rev 2's spots and targets from their own stream, then for each kick its wall
+ * size (the level's range), the wind (the level's strength, either way, never calm past Easy), the keeper's lean (his
+ * start shifted that way) and whether the wall jumps (a fixed count of kicks, seeded).
+ */
+export function fkSeedPlanV5(seed: number, level: FkLevel = "normal", rev: number = FREEKICK_REV_5): FkPlan {
+  const key = `${seed | 0}:${level}:${rev}`;
+  const hit = planCacheV5.get(key);
+  if (hit) return hit;
+  const L = fkLevelSettings(rev, level);
+  const base = fkSeedPlanV2(seed);
+  const rng = { s: ((seed | 0) ^ 0x6e1d_4b33) | 0 };
+  const order = Array.from({ length: FREEKICK_KICKS }, (_, i) => i);
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = draw(rng, i + 1);
+    [order[i], order[j]] = [order[j]!, order[i]!];
+  }
+  const jumps = new Set(order.slice(0, L.jumps));
+  const kicks = base.kicks.map((k0, i) => {
+    const kk: FkKick = { ...k0 };
+    const n = L.wall[0] + draw(rng, L.wall[1] - L.wall[0] + 1);
+    // Re-span the wall from its post end (rev 2's rule) for the level's size.
+    if (kk.side < 0) kk.wallR = kk.wallL + n * FK_WALL_SPACING;
+    else kk.wallL = kk.wallR - n * FK_WALL_SPACING;
+    kk.wallN = n;
+    const strength = L.wind <= 1 ? draw(rng, 2) : 1 + draw(rng, L.wind);
+    kk.wind = (draw(rng, 2) ? 1 : -1) * strength;
+    const lean = draw(rng, 2) ? 1 : -1;
+    kk.keeperX = clampInt(kk.keeperX + lean * FK_V5_LEAN, -FK_V2_KEEPER_START_MAX, FK_V2_KEEPER_START_MAX);
+    kk.v5 = {
+      lean,
+      jump: jumps.has(i) ? 1 : 0,
+      react: L.react,
+      vmax: Math.trunc((FK_KEEPER_VMAX * L.speed) / 1000),
+      acc: Math.trunc((FK_KEEPER_ACC * L.speed) / 1000),
+    };
+    return kk;
+  });
+  const plan = { kicks };
+  if (planCacheV5.size > 64) planCacheV5.clear();
+  planCacheV5.set(key, plan);
+  return plan;
+}
+
 /* ================================ Flight ================================ */
 
 export interface FkFlight {
@@ -493,6 +683,9 @@ export interface FkFlight {
   passK: number;
   bar: number;
   post: number;
+  /** freekickRev 5 only: the strike type, and 1 when the ball went under a jumping wall. */
+  st?: number;
+  under?: number;
 }
 
 /** Integer sine and cosine (4096ths) of an angle in milliradians, |angle| ≤ ~800. */
@@ -594,7 +787,14 @@ export function fkFlightStep(k: FkKick, f: FkFlight, frame = true, ground = true
   const azc = -Math.trunc((f.b * f.vx) / CURL_DIV);
   f.vx += axc + k.wind * WIND_K - Math.trunc(f.vx / DRAG);
   f.vz += azc - Math.trunc(f.vz / DRAG);
-  f.vy += -G - Math.trunc(f.vy / DRAG);
+  // freekickRev 5: a driven strike flies a flat, hard line (struck through the middle, it drops far less), so a low
+  // drive skims under a jumping wall's feet.
+  f.vy += (f.st === FK_STRIKE_DRIVE ? -Math.trunc((G * FK_DRIVE_DROP) / 1000) : -G) - Math.trunc(f.vy / DRAG);
+  // freekickRev 5: a dipping strike drops harder once past the wall's line, with a small wobble across.
+  if (f.st === FK_STRIKE_DIP && fkLocal(k, f.x, f.z).w >= FK_WALL_DIST) {
+    f.vy -= Math.trunc((G * FK_DIP_DROP) / 1000);
+    f.vx += ((f.t * 5) % 7) - 3;
+  }
   f.cuv += Math.trunc((axc * k.fz - azc * k.fx) / 4096);
   f.cu += f.cuv;
   // Move, sub-stepped near the goal frame so the posts and bar never tunnel.
@@ -628,8 +828,12 @@ export function fkFlightStep(k: FkKick, f: FkFlight, frame = true, ground = true
       const span = bl.w - a.w;
       const u = a.u + Math.trunc(((bl.u - a.u) * (FK_WALL_DIST - a.w)) / Math.max(1, span));
       const y = py + Math.trunc(((f.y - py) * (FK_WALL_DIST - a.w)) / Math.max(1, span));
-      const top = FK_WALL_H + fkWallJump(f.t);
-      if (f.out === FK_OUT_NONE && u > k.wallL - FK_BALL_R && u < k.wallR + FK_BALL_R && y < top + FK_BALL_R) {
+      // freekickRev 5: the wall jumps only on its kicks (higher, so a low ball can go under its feet); else it stands.
+      const lift = k.v5 ? (k.v5.jump ? fkV5WallLift(f.t) : 0) : fkWallJump(f.t);
+      const top = FK_WALL_H + lift;
+      const under = k.v5 !== undefined && lift > 0 && y < lift - FK_BALL_R;
+      if (under) f.under = 1;
+      if (f.out === FK_OUT_NONE && !under && u > k.wallL - FK_BALL_R && u < k.wallR + FK_BALL_R && y < top + FK_BALL_R) {
         f.wallSide = 3;
         f.out = FK_OUT_WALL;
         const back = fkWorld(k, u, FK_WALL_DIST - m(0.3));
@@ -644,7 +848,7 @@ export function fkFlightStep(k: FkKick, f: FkFlight, frame = true, ground = true
         f.vy = Math.trunc(f.vy / 2);
       } else {
         f.wallSide = u <= k.wallL - FK_BALL_R ? -1 : u >= k.wallR + FK_BALL_R ? 1 : 2;
-        f.react = f.t + FK_KEEPER_REACT;
+        f.react = f.t + (k.v5 ? k.v5.react + (f.st === FK_STRIKE_DIP ? FK_DIP_READ : 0) : FK_KEEPER_REACT);
       }
     }
   }
@@ -653,8 +857,16 @@ export function fkFlightStep(k: FkKick, f: FkFlight, frame = true, ground = true
     let goal = f.kx;
     if (f.vz > 0 && f.z < FK_KEEPER_Z) goal = f.x + Math.trunc((f.vx * (FK_KEEPER_Z - f.z)) / f.vz);
     goal = clampInt(goal, -FK_KEEPER_LIMIT, FK_KEEPER_LIMIT);
-    const want = clampInt(Math.trunc((goal - f.kx) / 3), -FK_KEEPER_VMAX, FK_KEEPER_VMAX);
-    f.kv += clampInt(want - f.kv, -FK_KEEPER_ACC, FK_KEEPER_ACC);
+    if (k.v5) {
+      // freekickRev 5: the keeper's own speed, quicker toward the side he leans and slower the other way.
+      const toward = Math.sign(goal - f.kx) === k.v5.lean;
+      const vmax = Math.trunc((k.v5.vmax * (toward ? FK_V5_LEAN_TO : FK_V5_LEAN_AWAY)) / 1000);
+      const want = clampInt(Math.trunc((goal - f.kx) / 3), -vmax, vmax);
+      f.kv += clampInt(want - f.kv, -k.v5.acc, k.v5.acc);
+    } else {
+      const want = clampInt(Math.trunc((goal - f.kx) / 3), -FK_KEEPER_VMAX, FK_KEEPER_VMAX);
+      f.kv += clampInt(want - f.kv, -FK_KEEPER_ACC, FK_KEEPER_ACC);
+    }
     f.kx += f.kv;
   }
   if (f.out === FK_OUT_NONE && pz < FK_KEEPER_Z && f.z >= FK_KEEPER_Z && f.vz > 0) {
@@ -737,8 +949,8 @@ const GHOST_KX = 1000 * FK_M;
  * Where a shot with no wall and no keeper (and no woodwork) crosses the goal plane (world units), or null when it never
  * reaches it. The solver's measure (integer, the same everywhere).
  */
-export function fkGhostCross(k: FkKick, a: number, b: number, c: number): { x: number; y: number } | null {
-  const f = fkLaunch(k, a, b, c);
+export function fkGhostCross(k: FkKick, a: number, b: number, c: number, st?: number): { x: number; y: number } | null {
+  const f = st === undefined ? fkLaunch(k, a, b, c) : fkV5Strike(k, a, b, c, st);
   f.wallSide = 2;
   f.kx = GHOST_KX;
   while (f.out === FK_OUT_NONE) fkFlightStep(k, f, false, false);
@@ -753,8 +965,8 @@ const solveCache = new Map<string, { a: number; c: number }>();
  * alternating integer bisections on the ghost flight (power for the height, aim for the side; three rounds). Pure and
  * deterministic (cached); the phone, the server and the art all call it.
  */
-export function fkV3Solve(k: FkKick, xCm: number, yCm: number, b: number): { a: number; c: number } {
-  const key = `${k.bx},${k.bz},${k.wind},${xCm},${yCm},${b}`;
+export function fkV3Solve(k: FkKick, xCm: number, yCm: number, b: number, st?: number): { a: number; c: number } {
+  const key = `${k.bx},${k.bz},${k.wind},${xCm},${yCm},${b}${st === undefined ? "" : `,${st}`}`;
   const hit = solveCache.get(key);
   if (hit) return hit;
   const tx = Math.trunc((xCm * FK_M) / 100);
@@ -766,13 +978,13 @@ export function fkV3Solve(k: FkKick, xCm: number, yCm: number, b: number): { a: 
     let hi = FREEKICK_AIM_MAX;
     while (hi - lo > 1) {
       const mid = (lo + hi) >> 1;
-      const x = fkGhostCross(k, mid, b, c);
+      const x = fkGhostCross(k, mid, b, c, st);
       // A yaw so wide the ball never reaches the goal plane counts as wide on its own side.
       if (x ? x.x < tx : mid < 0) lo = mid;
       else hi = mid;
     }
-    const xl = fkGhostCross(k, lo, b, c);
-    const xh = fkGhostCross(k, hi, b, c);
+    const xl = fkGhostCross(k, lo, b, c, st);
+    const xh = fkGhostCross(k, hi, b, c, st);
     a = !xh || (xl && Math.abs(xl.x - tx) <= Math.abs(xh.x - tx)) ? lo : hi;
   };
   const powerFor = () => {
@@ -780,12 +992,12 @@ export function fkV3Solve(k: FkKick, xCm: number, yCm: number, b: number): { a: 
     let hi = FREEKICK_POWER_MAX;
     while (hi - lo > 1) {
       const mid = (lo + hi) >> 1;
-      const y = fkGhostCross(k, a, b, mid);
+      const y = fkGhostCross(k, a, b, mid, st);
       if (!y || y.y < ty) lo = mid;
       else hi = mid;
     }
-    const yl = fkGhostCross(k, a, b, lo);
-    const yh = fkGhostCross(k, a, b, hi);
+    const yl = fkGhostCross(k, a, b, lo, st);
+    const yh = fkGhostCross(k, a, b, hi, st);
     c = !yh || (yl && Math.abs(yl.y - ty) <= Math.abs(yh.y - ty)) ? lo : hi;
   };
   aimFor();
@@ -793,7 +1005,7 @@ export function fkV3Solve(k: FkKick, xCm: number, yCm: number, b: number): { a: 
   for (let round = 0; round < 8; round++) {
     powerFor();
     aimFor();
-    const at = fkGhostCross(k, a, b, c);
+    const at = fkGhostCross(k, a, b, c, st);
     if (at && Math.abs(at.x - tx) <= near && Math.abs(at.y - ty) <= near) break;
   }
   const out = { a, c };
@@ -827,6 +1039,59 @@ export function fkV3Launch(k: FkKick, xCm: number, yCm: number, b: number, meter
     f.vz = Math.trunc((f.vz * keep) / 1000);
   }
   return f;
+}
+
+/* ================================ freekickRev 5: the layered kick ================================ */
+
+/** A freekickRev 5 launch by strike type: a drive keeps a little curl and leaves faster; a dip carries no curl. */
+export function fkV5Strike(k: FkKick, a: number, b: number, c: number, st: number): FkFlight {
+  const curl = st === FK_STRIKE_DRIVE ? Math.trunc((b * FK_DRIVE_CURL) / 1000) : st === FK_STRIKE_DIP ? 0 : b;
+  const f = fkLaunch(k, a, curl, c);
+  if (st === FK_STRIKE_DRIVE) {
+    f.vx = Math.trunc((f.vx * FK_DRIVE_SPEED) / 1000);
+    f.vy = Math.trunc((f.vy * FK_DRIVE_SPEED) / 1000);
+    f.vz = Math.trunc((f.vz * FK_DRIVE_SPEED) / 1000);
+    // Struck through the middle: it leaves the foot low.
+    f.vy = Math.trunc((f.vy * FK_DRIVE_LIFT) / 1000);
+  }
+  f.st = st;
+  f.under = 0;
+  return f;
+}
+
+/** The kick with no wind (what the drawn target is solved on: the wind is the player's to read). */
+export function fkCalm(k: FkKick): FkKick {
+  return k.wind === 0 ? k : { ...k, wind: 0 };
+}
+
+/** How far a meter value is past a level's gold zone (+ too much, − too little, 0 clean). */
+export function fkV5MeterError(meter: number, level?: string | null, rev: number = FREEKICK_REV_5): number {
+  const L = fkLevelSettings(rev, level);
+  return meter > L.zoneHi ? meter - L.zoneHi : meter < L.zoneLo ? meter - L.zoneLo : 0;
+}
+
+/** freekickRev 5's launch: the drawn target solved in calm air for the strike type, the meter's error, then the real kick's wind. */
+export function fkV5Launch(k: FkKick, xCm: number, yCm: number, b: number, st: number, meter: number, level?: string | null, rev: number = FREEKICK_REV_5): FkFlight {
+  const sol = fkV3Solve(fkCalm(k), xCm, yCm, b, st);
+  const f = fkV5Strike(k, sol.a, b, sol.c, st);
+  const e = fkV5MeterError(meter, level, rev);
+  if (e > 0) f.vy += e * FK_V3_OVER_VY;
+  else if (e < 0) {
+    const keep = Math.max(250, 1000 + e * FK_V3_UNDER_PERMILLE);
+    f.vx = Math.trunc((f.vx * keep) / 1000);
+    f.vy = Math.trunc((f.vy * keep) / 1000);
+    f.vz = Math.trunc((f.vz * keep) / 1000);
+  }
+  return f;
+}
+
+/** Whether a freekickRev 5 goal was a skill shot: under a jumping wall, a dip over the wall, curled round it, or into the open side. */
+export function fkV5Skill(k: FkKick, f: FkFlight, curled: boolean, rev: number = FREEKICK_REV_5, level?: string | null): boolean {
+  if (!k.v5 || f.out !== FK_OUT_GOAL) return false;
+  // freekickRev 6: Easy's and Normal's open side counts from nearer the middle (FK_V6_EASE).
+  const ease = rev >= FREEKICK_REV_6 ? FK_V6_EASE[fkLevelOf(level)] : null;
+  const openSide = Math.sign(f.crossX) === -k.v5.lean && Math.abs(f.crossX) > m((ease?.openCm ?? FK_V5_OPEN_CM) / 100);
+  return f.under === 1 || (f.st === FK_STRIKE_DIP && f.wallSide === 2) || curled || openSide;
 }
 
 /* ================================ The sim ================================ */
@@ -869,6 +1134,10 @@ export interface FreekickState {
   strikeM?: number;
   /** freekickRev 4 only: goals from a strongly bent shot (the Curl bonus). */
   bent?: number;
+  /** freekickRev 5 only: the level, the drawn strike type, and skill-shot goals. */
+  level?: FkLevel;
+  strike?: number;
+  skill?: number;
 }
 
 export function fkDeadline(k: number): number {
@@ -888,12 +1157,12 @@ export function fkRunTicksFor(rev: number): number {
 /** freekickRev 3's fresh shot for a new kick (no target, no curl, meter off). */
 const V3_FRESH = { aimX: 0, aimY: 0, aimed: 0, curl: 0, meterAt: -1, strikeM: -1 } as const;
 
-function initFor(rev: number) {
-  return (seed: number) => init(seed, rev);
+function initFor(rev: number, level?: FkLevel) {
+  return (seed: number) => init(seed, rev, level);
 }
 
-function init(seed: number, rev: number = FREEKICK_REV_STD): FreekickState {
-  fkSeedPlan(seed, rev);
+function init(seed: number, rev: number = FREEKICK_REV_STD, level?: FkLevel): FreekickState {
+  fkSeedPlan(seed, rev, level);
   return {
     tick: 0,
     seed: seed | 0,
@@ -916,12 +1185,13 @@ function init(seed: number, rev: number = FREEKICK_REV_STD): FreekickState {
     best: 0,
     ...(rev >= FREEKICK_REV_3 ? V3_FRESH : {}),
     ...(rev >= FREEKICK_REV_4 ? { bent: 0 } : {}),
+    ...(rev >= FREEKICK_REV_5 ? { level: level ?? "normal", strike: 0, skill: 0 } : {}),
   };
 }
 
 /** The kick being played (or the last one). */
 export function fkKickOf(state: FreekickState): FkKick {
-  const plan = fkSeedPlan(state.seed, state.freekickRev);
+  const plan = fkSeedPlan(state.seed, state.freekickRev, state.level);
   return plan.kicks[Math.min(state.k, FREEKICK_KICKS - 1)]!;
 }
 
@@ -930,7 +1200,7 @@ function resolve(s: FreekickState, kick: FkKick, out: number, f: FkFlight | null
   outs[s.k] = out;
   s.outs = outs;
   if (out === FK_OUT_GOAL && f) {
-    const j = fkJudge(kick, f, fkHoopRFor(s.freekickRev, s.k));
+    const j = fkJudge(kick, f, fkHoopRFor(s.freekickRev, s.k, s.level));
     s.goals += 1;
     s.units += FREEKICK_GOAL_UNITS + j.place;
     const places = s.places.slice();
@@ -938,10 +1208,15 @@ function resolve(s: FreekickState, kick: FkKick, out: number, f: FkFlight | null
     s.places = places;
     const flags = s.flags.slice();
     // freekickRev 4: bit 4 a goal from a strongly bent shot.
-    const bent = s.freekickRev >= FREEKICK_REV_4 && Math.abs(s.curl ?? 0) >= FK_V4_BENT;
+    const bent = s.freekickRev === FREEKICK_REV_4 && Math.abs(s.curl ?? 0) >= FK_V4_BENT;
     flags[s.k] = (j.target ? 1 : 0) | (j.curled ? 2 : 0) | (bent ? 4 : 0);
     s.flags = flags;
     if (bent) s.bent = (s.bent ?? 0) + 1;
+    // freekickRev 5: bit 8 a skill shot (rev 5 has no Curl bonus: its bent bit is never set).
+    if (s.freekickRev >= FREEKICK_REV_5 && fkV5Skill(kick, f, j.curled, s.freekickRev, s.level)) {
+      flags[s.k] = (flags[s.k] ?? 0) | 8;
+      s.skill = (s.skill ?? 0) + 1;
+    }
     if (j.target) s.targets += 1;
     if (j.curled) s.curled += 1;
     s.streak += 1;
@@ -970,6 +1245,7 @@ function step(state: FreekickState, input: ArcadeInputEvent | null): FreekickSta
       s.aimY = clampInt(Math.trunc(input.b), FK_V3_AIM_Y_MIN, FK_V3_AIM_Y_MAX);
       s.curl = clampInt(Math.trunc(input.c), -FREEKICK_CURL_MAX, FREEKICK_CURL_MAX);
       s.aimed = 1;
+      if (s.freekickRev >= FREEKICK_REV_5) s.strike = clampInt(Math.trunc(input.d), FK_STRIKE_CURL, FK_STRIKE_DIP);
     } else if (!v4 && input && input.k === FREEKICK_INPUT_AIM && !metering) {
       s.aimX = clampInt(Math.trunc(input.a), -FK_V3_AIM_X_MAX, FK_V3_AIM_X_MAX);
       s.aimY = clampInt(Math.trunc(input.b), FK_V3_AIM_Y_MIN, FK_V3_AIM_Y_MAX);
@@ -981,7 +1257,7 @@ function step(state: FreekickState, input: ArcadeInputEvent | null): FreekickSta
     } else if (input && input.k === FREEKICK_INPUT_STRIKE && metering) {
       const meter = fkV3Meter(s.tick - (s.meterAt ?? 0));
       s.strikeM = meter;
-      s.fl = fkV3Launch(kick, s.aimX ?? 0, s.aimY ?? 0, s.curl ?? 0, meter);
+      s.fl = s.freekickRev >= FREEKICK_REV_5 ? fkV5Launch(kick, s.aimX ?? 0, s.aimY ?? 0, s.curl ?? 0, s.strike ?? 0, meter, s.level, s.freekickRev) : fkV3Launch(kick, s.aimX ?? 0, s.aimY ?? 0, s.curl ?? 0, meter);
       s.kickTick = s.tick;
       s.acted += 1;
       s.phase = FK_FLIGHT;
@@ -1015,6 +1291,7 @@ function step(state: FreekickState, input: ArcadeInputEvent | null): FreekickSta
         s.phaseTick = s.tick;
         s.deadline = fkDeadlineFor(s.freekickRev, s.k);
         if (s.freekickRev >= FREEKICK_REV_3) Object.assign(s, V3_FRESH);
+        if (s.freekickRev >= FREEKICK_REV_5) s.strike = 0;
       }
     }
   }
@@ -1031,6 +1308,16 @@ function isOver(state: FreekickState): boolean {
  */
 export function freekickStdParts(state: FreekickState): StdPart[] | null {
   const r = state.freekickRev;
+  if (r === FREEKICK_REV_5 || r === FREEKICK_REV_6) {
+    const placed = state.units - state.goals * FREEKICK_GOAL_UNITS;
+    const spec = r === FREEKICK_REV_6 ? FREEKICK_V6_STD_SPEC : FREEKICK_V5_STD_SPEC;
+    return [
+      stdPart(spec, "core", stdLine(FREEKICK_V5_CORE_MAX, state.units, r === FREEKICK_REV_6 ? FK_V6_CORE_FULL[fkLevelOf(state.level)] : FREEKICK_V5_CORE_FULL), `${state.goals} of ${FREEKICK_KICKS} scored · placement ${placed} of ${state.goals * FREEKICK_PLACE_UNITS}`),
+      stdPart(spec, "targets", stdEach(state.targets, 10, FREEKICK_TARGETS_MAX), `${state.targets} of ${FREEKICK_TARGETS} targets`),
+      stdPart(spec, "skill", stdEach(state.skill ?? 0, FREEKICK_V5_SKILL_EACH, FREEKICK_V5_SKILL_MAX), `${state.skill ?? 0} skill shots`),
+      stdPart(spec, "streak", state.best >= FREEKICK_STREAK_RUN ? FREEKICK_STREAK_MAX : 0, `best ${state.best} in a row`),
+    ];
+  }
   if (r === FREEKICK_REV_4) {
     const placed4 = state.units - state.goals * FREEKICK_GOAL_UNITS;
     const spec4 = FREEKICK_V4_STD_SPEC;
@@ -1111,9 +1398,39 @@ export const freekickGameV4: ArcadeGame<FreekickState, ArcadeInputEvent | null> 
   inputRanges: FREEKICK_INPUT_RANGES_V4,
 };
 
-/** The game for a stored stamp: rev 4 on freekickRev 4 and above, 3 on 3, 2 on 2, else rev 1 (unstamped rounds included). */
-export function freekickGameFor(rev?: number | null): ArcadeGame<FreekickState, ArcadeInputEvent | null> {
+/** freekickRev 5's input kinds: rev 4's, the SHOT carrying the strike type in d. */
+export const FREEKICK_INPUT_RANGES_V5: readonly InputRange[] = FREEKICK_INPUT_RANGES_V4.map((r) => (r.k === FREEKICK_INPUT_SHOT ? { ...r, d: [FK_STRIKE_CURL, FK_STRIKE_DIP] as const } : r));
+
+const gamesV5 = new Map<string, ArcadeGame<FreekickState, ArcadeInputEvent | null>>();
+/** freekickRev 5's game at a level (or rev 6's, the same game scored with the ease). */
+export function freekickGameV5(level?: string | null, rev: number = FREEKICK_REV_5): ArcadeGame<FreekickState, ArcadeInputEvent | null> {
+  const l = fkLevelOf(level);
+  const r = rev >= FREEKICK_REV_6 ? FREEKICK_REV_6 : FREEKICK_REV_5;
+  const key = `${r}:${l}`;
+  let g = gamesV5.get(key);
+  if (!g) {
+    g = { ...freekickGameV3, init: initFor(r, l), inputRanges: FREEKICK_INPUT_RANGES_V5 };
+    gamesV5.set(key, g);
+    levelOfGame.set(g, l);
+    revOfGame.set(g, r);
+  }
+  return g;
+}
+const revOfGame = new WeakMap<object, number>();
+/** The stamp a freekickRev 5 or 6 game object plays (5 for any other). */
+export function freekickGameRev(game: object): number {
+  return revOfGame.get(game) ?? FREEKICK_REV_5;
+}
+const levelOfGame = new WeakMap<object, FkLevel>();
+/** The level a freekickRev 5 game object plays (Normal for any other). */
+export function freekickGameLevel(game: object): FkLevel {
+  return levelOfGame.get(game) ?? "normal";
+}
+
+/** The game for a stored stamp: rev 5 at its level, rev 4 on 4, 3 on 3, 2 on 2, else rev 1 (unstamped rounds included). */
+export function freekickGameFor(rev?: number | null, level?: string | null): ArcadeGame<FreekickState, ArcadeInputEvent | null> {
   const r = rev ?? FREEKICK_REV_STD;
+  if (r >= FREEKICK_REV_5) return freekickGameV5(level, r);
   return r >= FREEKICK_REV_4 ? freekickGameV4 : r >= FREEKICK_REV_3 ? freekickGameV3 : r >= FREEKICK_REV_2 ? freekickGameV2 : freekickGame;
 }
 
@@ -1142,6 +1459,8 @@ export function freekickCheckpoint(state: FreekickState): FreekickCheckpoint {
   if (state.freekickRev >= FREEKICK_REV_3) extra.push(state.aimX ?? 0, state.aimY ?? 0, state.aimed ?? 0, state.curl ?? 0, state.meterAt ?? 0, state.strikeM ?? 0);
   // freekickRev 4: the Curl bonus count.
   if (state.freekickRev >= FREEKICK_REV_4) extra.push(state.bent ?? 0);
+  // freekickRev 5: the strike type, skill shots and the flight's type and under flag.
+  if (state.freekickRev >= FREEKICK_REV_5) extra.push(state.strike ?? 0, state.skill ?? 0, f?.st ?? 0, f?.under ?? 0);
   for (const value of [...Object.values(snap), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;

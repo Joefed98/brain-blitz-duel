@@ -31,6 +31,8 @@
  * Integer fixed point (1/256 px), no randomness after init, no floats in the state.
  */
 
+import { retroLevelSettings, withRetroLevel, type PinballLv } from "./retroLevels";
+import type { Level } from "@/lib/levels/levels";
 import { clampInt, TICKS_PER_SECOND, type ArcadeGame, type ArcadeInputEvent, type CanvasSize } from "./engine";
 import { bandCurve, bandInit, bandPoints, bandStep, bandTotal, type BandFields, type BandParts } from "./scoreBands";
 import { stdEach, stdLine, stdPart, stdScore, stdSum, type StdPart, type StdSpec } from "./arcadeStandard";
@@ -68,6 +70,8 @@ import {
   PIN_REV_EXPAND,
   PIN_REV_LONG,
   PIN_REV_STD,
+  PIN_REV_JOULZ,
+  PIN_REV_SAVE,
   PIN_RIGHT,
   PIN_RUN_TICKS,
   PIN_V5_RUN_TICKS,
@@ -91,7 +95,7 @@ import {
   type Seg,
 } from "./pinball";
 
-export { PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD };
+export { PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_JOULZ, PIN_REV_SAVE };
 
 /* ============================== Constants ============================== */
 
@@ -353,6 +357,15 @@ export interface P4Ball {
 }
 
 export interface Pin4State extends PinState, BandFields {
+  /** pinRev 8 (the Retro overhaul, stage 3): its marker, the ball now in an outlane, the outlane saves and the tick of the
+   * latest, and a level's ball saves used. */
+  rev8?: number;
+  outIn?: number;
+  outSaves?: number;
+  outSaveTick?: number;
+  ballSaves?: number;
+  /** Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. */
+  lv?: PinballLv;
   rev4: number;
   /** pinRev 5 (1): the 90-second run (absent on pinRev 4; pinRev 6 carries it too). */
   rev5?: number;
@@ -361,6 +374,8 @@ export interface Pin4State extends PinState, BandFields {
    * combo award, so table points are a straight count of what the ball did; `combos` counts back-to-back ramp shots.
    */
   rev6?: number;
+  /** pinRev 7 only (the Retro overhaul): 1 = one J-O-U-L-Z set fills its part (outside the checksum). */
+  rev7?: number;
   combos?: number;
   seed: number;
   /** The main ball's ramp ride (as P4Ball). */
@@ -716,7 +731,7 @@ function sensors(s: Pin4State, b: P4Ball, y0: number, ev: BallEvents): void {
 
 /** One tick of physics for one ball: gravity, then substeps of swept motion and contact. */
 function simulateBall(s: Pin4State, b: P4Ball, flipsFrom: number[], ev: BallEvents): void {
-  b.vy += P4_GRAVITY;
+  b.vy += s.lv ? Math.trunc((P4_GRAVITY * s.lv.gravityPct) / 100) : P4_GRAVITY;
   capSpeed(b);
   const flipsTo = s.flips;
   const moving = flipsFrom[0] !== flipsTo[0] || flipsFrom[1] !== flipsTo[1];
@@ -859,7 +874,7 @@ function lockBall(s: Pin4State, b: P4Ball, isMain: boolean): boolean {
   s.locks = 0;
   s.lockLit = 0;
   s.multiballs += 1;
-  s.mbUntil = s.tick + P4_MB_TICKS;
+  s.mbUntil = s.tick + (s.lv ? s.lv.multiS * TICKS_PER_SECOND : P4_MB_TICKS);
   s.releases = [s.tick + P4_MB_STAGGER, s.tick + 2 * P4_MB_STAGGER];
   const k = kickOut(0);
   b.x = k.x;
@@ -913,7 +928,7 @@ function step(state: Pin4State, input: ArcadeInputEvent | null): Pin4State {
   }
 
   if (!state.live) {
-    if (next.lost >= PIN_BALLS && next.extras.length === 0) {
+    if (next.lost >= pinBallsOf(next) && next.extras.length === 0) {
       next.endedTick = tick;
       return next;
     }
@@ -976,6 +991,20 @@ function step(state: Pin4State, input: ArcadeInputEvent | null): Pin4State {
       next.still = 0;
       next.ride = 0;
       next.rideT = 0;
+    } else if (next.lv && next.lv.saveS > 0 && tick - next.launchTick <= next.lv.saveS * TICKS_PER_SECOND) {
+      // A level's ball save (stage 3 of the Retro overhaul): a drain this soon after the launch puts the ball back in
+      // the shooter lane at no cost, bonuses kept.
+      next.live = 0;
+      next.vx = 0;
+      next.vy = 0;
+      const lane = p4BallInLane();
+      next.x = lane.x;
+      next.y = lane.y;
+      next.wait = P4_RELAUNCH;
+      next.still = 0;
+      next.ride = 0;
+      next.rideT = 0;
+      next.ballSaves = (next.ballSaves ?? 0) + 1;
     } else {
       next.live = 0;
       next.lost += 1;
@@ -996,9 +1025,24 @@ function step(state: Pin4State, input: ArcadeInputEvent | null): Pin4State {
       next.spinLit = 0;
       next.combo = 0;
       next.mbUntil = Math.min(next.mbUntil, tick);
-      if (next.lost >= PIN_BALLS) next.endedTick = tick;
+      if (next.lost >= pinBallsOf(next)) next.endedTick = tick;
     }
   }
+  // pinRev 8: an outlane save, the main ball down an outlane (outside the apron, below the guides) and back out of it
+  // without draining. Counted only; the play is pinRev 7's.
+  if (next.rev8 && next.live) {
+    const inOut = p4InOutlane(next.x, next.y);
+    if (inOut) {
+      // In the mouth falling: it may drain; leaving it climbing is the save.
+      if (next.vy > 0) next.outIn = 1;
+    } else if (next.outIn) {
+      next.outIn = 0;
+      if (next.vy < 0) {
+        next.outSaves = (next.outSaves ?? 0) + 1;
+        next.outSaveTick = tick;
+      }
+    }
+  } else if (next.rev8 && next.outIn) next.outIn = 0;
   if (tick >= p4RunTicks(next) && next.endedTick === 0) next.endedTick = tick;
   return next;
 }
@@ -1146,6 +1190,8 @@ export function pin4Checkpoint(state: Pin4State) {
     ...(state.rev5 ? [state.rev5] : []),
     // pinRev 6 folds its flag and combo count in after it, so pinRev 5's checksum is unchanged.
     ...(state.rev6 ? [state.rev6, state.combos ?? 0] : []),
+    // pinRev 8 (the Retro overhaul, stage 3) folds its counters in last, so pinRev 7's checksum is unchanged.
+    ...(state.rev8 ? [state.rev8, state.outIn ?? 0, state.outSaves ?? 0, state.ballSaves ?? 0] : []),
   ];
   for (const value of values) {
     checksum ^= value | 0;
@@ -1265,12 +1311,14 @@ export function pinballStdParts(state: Pin4State): StdPart[] | null {
   if (!state || !state.rev6) return null;
   const points = Math.max(0, state.points);
   const combos = state.combos ?? 0;
+  const spec = state.rev8 ? PIN_STD_SPEC_V8 : state.rev7 ? PIN_STD_SPEC_V7 : PIN_STD_SPEC;
+  const joulzEach = state.rev7 ? PIN_V7_JOULZ_EACH : PIN_V6_JOULZ_EACH;
   return [
-    stdPart(PIN_STD_SPEC, "core", stdLine(PIN_V6_CORE_MAX, points, PIN_V6_FULL_AT), `${fmt(points)} table points`),
-    stdPart(PIN_STD_SPEC, "joulz", stdEach(state.laneSets, PIN_V6_JOULZ_EACH, PIN_V6_JOULZ_MAX), plural(state.laneSets, "set", "sets")),
-    stdPart(PIN_STD_SPEC, "multiball", state.multiballs > 0 ? PIN_V6_MULTIBALL : 0, state.multiballs > 0 ? plural(state.multiballs, "multiball", "multiballs") : "not started"),
-    stdPart(PIN_STD_SPEC, "jackpots", stdEach(state.jackpots, PIN_V6_JACKPOT_EACH, PIN_V6_JACKPOT_MAX), plural(state.jackpots, "jackpot", "jackpots")),
-    stdPart(PIN_STD_SPEC, "combos", stdEach(combos, PIN_V6_COMBO_EACH, PIN_V6_COMBO_MAX), plural(combos, "combo", "combos")),
+    stdPart(spec, "core", stdLine(PIN_V6_CORE_MAX, points, state.lv?.fullAt ?? PIN_V6_FULL_AT), `${fmt(points)} table points`),
+    stdPart(spec, "joulz", stdEach(state.laneSets, joulzEach, PIN_V6_JOULZ_MAX), plural(state.laneSets, "set", "sets")),
+    stdPart(spec, "multiball", state.multiballs > 0 ? PIN_V6_MULTIBALL : 0, state.multiballs > 0 ? plural(state.multiballs, "multiball", "multiballs") : "not started"),
+    stdPart(spec, "jackpots", stdEach(state.jackpots, PIN_V6_JACKPOT_EACH, PIN_V6_JACKPOT_MAX), plural(state.jackpots, "jackpot", "jackpots")),
+    stdPart(spec, "combos", stdEach(combos, PIN_V6_COMBO_EACH, PIN_V6_COMBO_MAX), plural(combos, "combo", "combos")),
   ];
 }
 
@@ -1289,13 +1337,85 @@ export const pinball6Game: ArcadeGame<Pin4State, ArcadeInputEvent | null> = {
   score: (state) => stdScore(pinballStdParts(state) ?? [], Boolean(state.acted)),
 };
 
+/* ================= The Retro overhaul: one J-O-U-L-Z set (pinRev 7, 15 Nov 2026) ================= */
+
+/**
+ * pinRev 7 (the Retro overhaul, docs/design/game-reviews/retro.md "Pinball", docs/arcade-standard/pinball.md "pinRev 7"):
+ * pinRev 6's table, play, timings and parts exactly, but one J-O-U-L-Z set fills its part (20; pinRev 6 paid 10 a set and
+ * a second set seldom fits in 90 s, so even the flawless bot's median was 190). States add `rev7: 1`, outside the
+ * checkpoint checksum (playRevOf maps 7 to 6's play).
+ */
+export const PIN_V7_JOULZ_EACH = PIN_V6_JOULZ_MAX;
+
+export const PIN_STD_SPEC_V7: StdSpec = {
+  ...PIN_STD_SPEC,
+  rev: PIN_REV_JOULZ,
+  parts: PIN_STD_SPEC.parts.map((p) => (p.key === "joulz" ? { ...p, how: "light all five letters once" } : p)),
+};
+
+export const pinball7Game: ArcadeGame<Pin4State, ArcadeInputEvent | null> = {
+  ...pinball6Game,
+  init: (seed) => ({ ...pinball6Game.init(seed), rev7: 1 }),
+};
+
+/* ============ The Retro overhaul, stage 3: outlane saves counted (pinRev 8, 16 Nov 2026) ============ */
+
+/**
+ * pinRev 8 (the Retro overhaul, stage 3, 16 Nov 2026; docs/arcade-standard/pinball.md "pinRev 8"): pinRev 7's table, play,
+ * timings and parts exactly, with the outlane saves counted (`outSaves`, the tick of the latest in `outSaveTick`), so the
+ * art can spark a save and the reveal count them: the main ball goes down an outlane (outside the apron's walls, below the
+ * guides, p4InOutlane) and comes back out of it without draining. A level (retroLevels.ts) sets the balls, a ball save
+ * after each launch, the gravity and the multiball's length. States add `rev8: 1` and the counters, folded into the
+ * checkpoint checksum last.
+ */
+/** The outlane posts: each guide's lower end (104, 614 shifted) and its mirror, where a ball bounces off the outlane's
+ * mouth or drops past the flipper. A ball within P4_POST_R of one, on its outer side, is in the outlane's mouth; falling in
+ * and climbing back out is a save. */
+export const P4_POST_R = 18;
+export function p4InOutlane(x: number, y: number): boolean {
+  const py = (614 + P4_SHIFT) * FP;
+  if (y < py - P4_POST_R * FP) return false;
+  for (const [px, outer] of [[104, -1], [2 * P4_MID_X - 104, 1]] as const) {
+    const dx = x - px * FP;
+    // Only on the post's outer side, the outlane's mouth (the inner side is the inlane down to the flipper).
+    if (dx * outer < 0) continue;
+    const dy = y - py;
+    if (dx * dx + dy * dy <= P4_POST_R * FP * P4_POST_R * FP) return true;
+  }
+  return false;
+}
+/** Balls a state plays: its level's, else PIN_BALLS. */
+export function pinBallsOf(state: { lv?: PinballLv | undefined }): number {
+  return state.lv?.balls ?? PIN_BALLS;
+}
+export const PIN_STD_SPEC_V8: StdSpec = { ...PIN_STD_SPEC_V7, rev: PIN_REV_SAVE };
+
+export const pinball8Game: ArcadeGame<Pin4State, ArcadeInputEvent | null> = {
+  ...pinball7Game,
+  init: (seed) => ({ ...pinball7Game.init(seed), rev8: 1, outIn: 0, outSaves: 0, outSaveTick: -1, ballSaves: 0 }),
+};
+const pinball8ByLevel = new Map<string, ArcadeGame<Pin4State, ArcadeInputEvent | null>>();
+/** pinRev 8 at a level (retroLevels.ts). */
+export function pinball8For(level?: Level | null): ArcadeGame<Pin4State, ArcadeInputEvent | null> {
+  const lv = retroLevelSettings("pinball", level);
+  if (!lv) return pinball8Game;
+  let game = pinball8ByLevel.get(level!);
+  if (!game) {
+    game = withRetroLevel(pinball8Game, lv);
+    pinball8ByLevel.set(level!, game);
+  }
+  return game;
+}
+
 /** Max speed note for the reveal and checks: the cap is pinRev 1's. */
 export const P4_MAX_SPEED = PIN_MAX_SPEED;
 
 /* ============================ Any revision ============================ */
 
 /** The game for any stored pinRev: pinRev 6 the standard, pinRev 5 the 90-second table, pinRev 4 this table, anything else pinball.ts's (pinballGameFor). */
-export function pinballGameForAny(rev?: number | null): ArcadeGame<PinState, ArcadeInputEvent | null> {
+export function pinballGameForAny(rev?: number | null, level?: Level | null): ArcadeGame<PinState, ArcadeInputEvent | null> {
+  if (rev === PIN_REV_SAVE) return pinball8For(level) as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
+  if (rev === PIN_REV_JOULZ) return pinball7Game as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   if (rev === PIN_REV_STD) return pinball6Game as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   if (rev === PIN_REV_LONG) return pinball5Game as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
   return rev === PIN_REV_EXPAND ? (pinball4Game as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>) : pinballGameFor(rev);

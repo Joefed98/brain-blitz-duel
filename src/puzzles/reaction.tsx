@@ -1,6 +1,12 @@
+import { speedLevelLine } from "@/lib/levels/speedLevels";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { speedArtCss } from "@/lib/fx/speedArt";
+import { gameFx } from "@/lib/fx/kit";
+import { FxCountUp } from "@/components/fx/GameFx";
+import { playCueSlot } from "@/lib/sound";
 
 import { serverNow } from "@/lib/duel/clock";
 import { pick, randInt, shuffled } from "@/lib/duel/random";
@@ -24,6 +30,7 @@ import {
   REACTION_MAX_FLASHES,
   REACTION_MIN_FLASHES,
   REACTION_FLASH_MS,
+  flashWindowMs,
   REACTION_MISS_MS,
   REACTION_ROUND_MS,
   type ReactionDecoyColour,
@@ -37,40 +44,61 @@ import { knots } from "@/lib/duel/depth200";
 import { FLASH_REV6_CURVE, FLASH_STEADY_LOOSE_MS, FLASH_STEADY_TIGHT_MS, flashSpread, usesFlashDepth } from "@/lib/duel/depth/flash";
 import { roundMaxFor } from "@/lib/duel/roundMax";
 
-import { SpeedRevealList } from "@/components/puzzles/SpeedRevealList";
+import { RevealBars, RevealCaption, RevealNumbers, RevealPanel } from "@/components/puzzles/SpeedRevealKit";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import type { FlashLevel } from "@/lib/levels/speedLevels";
 
 const DECOY_COLOURS = REACTION_PLAIN_DECOYS;
+
+/** A hit faster than this counts towards the fast-hits combo (display and sound only). */
+export const FLASH_FAST_MS = 350;
+const arenaEl = () => (typeof document === "undefined" ? null : document.querySelector(".flash-arena"));
+
+/** The Speed overhaul's Blender art (speedArt.ts), one style object for every render. */
+const FLASH_ART_STYLE = {
+  "--flash-wait-art": speedArtCss("flash-wait"),
+  "--flash-gold-art": speedArtCss("flash-gold"),
+  "--flash-frame-art": speedArtCss("flash-frame"),
+} as CSSProperties;
 
 /**
  * tapRev 3: every gold-like decoy (amber, border, word, half) appears at least
  * once; the rest are a seeded mix of plain and gold-like; the first decoy of the
  * round is always a plain colour.
  */
-function dealDecoyKinds(count: number): ReactionDecoyColour[] {
+function dealDecoyKinds(count: number, level?: FlashLevel): ReactionDecoyColour[] {
+  // Levels (the Speed overhaul, stage 3): Easy deals plain colours only; Hard weights the gold-like kinds up.
+  if (level && level.goldLike <= 0) return Array.from({ length: count }, () => pick(REACTION_PLAIN_DECOYS));
   const kinds: ReactionDecoyColour[] = [...REACTION_GOLD_LIKE_DECOYS].slice(0, Math.max(0, count - 1));
-  while (kinds.length < count - 1) kinds.push(randInt(0, 1) === 0 ? pick(REACTION_PLAIN_DECOYS) : pick(REACTION_GOLD_LIKE_DECOYS));
+  const goldLikePct = level ? Math.round(level.goldLike * 100) : 50;
+  while (kinds.length < count - 1)
+    kinds.push(level ? (randInt(1, 100) <= goldLikePct ? pick(REACTION_GOLD_LIKE_DECOYS) : pick(REACTION_PLAIN_DECOYS)) : randInt(0, 1) === 0 ? pick(REACTION_PLAIN_DECOYS) : pick(REACTION_GOLD_LIKE_DECOYS));
   return count > 0 ? [pick(REACTION_PLAIN_DECOYS), ...shuffled(kinds)] : [];
 }
 
-/** 5–8 gold flashes, each preceded by proportionally spaced seeded decoys. */
-export function buildReaction(): ReactionPuzzleData {
-  const flashCount = randInt(REACTION_MIN_FLASHES, REACTION_MAX_FLASHES);
+/**
+ * 5–8 gold flashes, each preceded by proportionally spaced seeded decoys. At a level other than Normal (the Speed
+ * overhaul, stage 3; levels/speedLevels.ts) the level's flash and decoy counts and decoy kinds, decoys packed closer so
+ * they fit, and on Expert the gold's shorter window stamped as `flashMs`. Normal (no level) deals exactly as before.
+ */
+export function buildReaction(level?: FlashLevel): ReactionPuzzleData {
+  const flashCount = level ? randInt(level.flashes[0], level.flashes[1]) : randInt(REACTION_MIN_FLASHES, REACTION_MAX_FLASHES);
+  const windowMs = level?.flashMs ?? REACTION_FLASH_MS;
   let flashes: number[] = [];
   let decoys: ReactionPuzzleData["decoys"] = [];
   for (let attempt = 0; attempt < 1_000; attempt++) {
     const list = [randInt(4_000, 7_000)];
     while (list.length < flashCount) list.push(list[list.length - 1]! + randInt(5_000, 8_000));
-    if (list[list.length - 1]! + REACTION_FLASH_MS > REACTION_ROUND_MS - 500) continue;
+    if (list[list.length - 1]! + windowMs > REACTION_ROUND_MS - 500) continue;
 
     // Begin at two per flash, then vary to a seeded total of 8–12.
-    const counts = Array.from({ length: flashCount }, () => randInt(1, 3));
+    const counts = Array.from({ length: flashCount }, () => (level ? randInt(level.decoys[0], level.decoys[1]) : randInt(1, 3)));
 
     const proposed: ReactionPuzzleData["decoys"] = [];
     let valid = true;
     for (let flashIndex = 0; flashIndex < list.length; flashIndex++) {
-      const segmentStart = flashIndex === 0 ? 0 : list[flashIndex - 1]! + REACTION_FLASH_MS;
-      let cursor = list[flashIndex]! - randInt(1_000, 5_000);
+      const segmentStart = flashIndex === 0 ? 0 : list[flashIndex - 1]! + windowMs;
+      let cursor = list[flashIndex]! - (level ? randInt(800, 2_000) : randInt(1_000, 5_000));
       const backwards: ReactionPuzzleData["decoys"] = [];
       for (let n = 0; n < counts[flashIndex]!; n++) {
         if (cursor < segmentStart + 250) {
@@ -78,7 +106,7 @@ export function buildReaction(): ReactionPuzzleData {
           break;
         }
         backwards.push({ at: cursor, color: pick(DECOY_COLOURS) });
-        cursor -= randInt(1_500, 4_000);
+        cursor -= level ? randInt(900, 1_600) : randInt(1_500, 4_000);
       }
       proposed.push(...backwards.reverse());
       if (!valid) break;
@@ -93,11 +121,11 @@ export function buildReaction(): ReactionPuzzleData {
     decoys = flashes.flatMap((flash, index) => [
       { at: flash - 4_500, color: DECOY_COLOURS[index % 3]! },
       { at: flash - 2_000, color: DECOY_COLOURS[(index + 1) % 3]! },
-    ]);
+    ].slice(level ? 2 - Math.min(2, level.decoys[0]) : 0));
   }
-  const kinds = dealDecoyKinds(decoys.length);
+  const kinds = dealDecoyKinds(decoys.length, level);
   decoys = decoys.map((decoy, index) => ({ at: decoy.at, color: kinds[index]! }));
-  return { type: "reaction", flashes, decoys, tapRev: dealtTapRev("reaction") };
+  return { type: "reaction", flashes, decoys, tapRev: dealtTapRev("reaction"), ...(level && level.flashMs !== REACTION_FLASH_MS ? { flashMs: level.flashMs } : {}) };
 }
 
 export function reactionAverage(times: number[], falseStarts: number, flashCount = times.length): number {
@@ -179,7 +207,7 @@ function LegacyStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
 
   // A gold flash with no tap in 1.5 s records the miss value.
   useEffect(() => {
-    const missed = flashes.findIndex((f, i) => times[i] === null && t >= f + REACTION_FLASH_MS);
+    const missed = flashes.findIndex((f, i) => times[i] === null && t >= f + flashWindowMs(puzzle));
     if (missed < 0) return;
     setTimes((prev) => {
       if (prev[missed] !== null) return prev;
@@ -204,14 +232,14 @@ function LegacyStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
 
   if (puzzle.type !== "reaction") return null;
 
-  const liveIndex = flashes.findIndex((f, i) => times[i] === null && t >= f && t < f + REACTION_FLASH_MS);
+  const liveIndex = flashes.findIndex((f, i) => times[i] === null && t >= f && t < f + flashWindowMs(puzzle));
   const decoy = decoys.find((d) => t >= d.at && t < d.at + REACTION_DECOY_MS) ?? null;
   const done = times.every((v) => v !== null);
 
   const handleTap = () => {
     if (locked || done) return;
     const stamp = serverNow() - phaseStartedAt;
-    const index = flashes.findIndex((f, i) => times[i] === null && stamp >= f && stamp < f + REACTION_FLASH_MS);
+    const index = flashes.findIndex((f, i) => times[i] === null && stamp >= f && stamp < f + flashWindowMs(puzzle));
     if (index >= 0) {
       const ms = Math.max(1, Math.round(stamp - flashes[index]!));
       setTimes((prev) => {
@@ -317,7 +345,7 @@ function ReactionArena({
 }: {
   surface: string;
   falseStarts: number;
-  lastShown: { text: string; bad: boolean } | null;
+  lastShown: { text: string; bad: boolean; speed?: "gold" | "fast" | "slow" | undefined; combo?: number | undefined } | null;
   live: boolean;
   done: boolean;
   decoy: boolean;
@@ -366,18 +394,28 @@ function ReactionArena({
         data-flash-cue={cue}
         data-flash-decoy-kind={decoy && !live ? (decoyKind ?? undefined) : undefined}
         data-game-arena="tall" className={`flash-arena relative overflow-hidden flex min-h-64 w-full flex-1 items-center justify-center rounded-2xl border border-border ${surface}`}
+        style={FLASH_ART_STYLE}
       >
         <span aria-hidden="true" className="flash-art" />
+        {/* The Speed overhaul (15 Nov 2026): the polished walnut frame round the screen (display only). */}
+        <span aria-hidden="true" className="flash-frame" />
         {overlay && !(overlay === "word" && lastShown) && <DecoyOverlay kind={overlay} />}
         {ripple && <span key={ripple.id} aria-hidden="true" className="reaction-tap-ripple" style={{ left: ripple.x, top: ripple.y }} onAnimationEnd={() => setRipple(null)} />}
         {live ? null : lastShown ? (
           <span
-            className={`flash-readout relative font-mono text-4xl font-bold tabular-nums ${lastShown.bad ? "text-warn" : "text-primary"}`}
+            key={lastShown.text + (lastShown.combo ?? 0)}
+            data-flash-speed={lastShown.bad ? undefined : lastShown.speed}
+            className={`flash-readout relative flex flex-col items-center font-mono text-4xl font-bold tabular-nums ${lastShown.bad ? "text-warn" : lastShown.speed === "slow" ? "text-foreground" : "text-primary"}`}
           >
             {lastShown.text}
+            {lastShown.combo ? <span data-flash-combo={lastShown.combo} className="flash-combo font-display text-lg font-black uppercase tracking-widest">{lastShown.combo} fast in a row</span> : null}
           </span>
         ) : done ? (
-          <span className="relative text-base text-muted-foreground">All flashes done</span>
+          // The Speed overhaul (15 Nov 2026): a clear "Done" moment at the end (the flash count stays hidden till then).
+          <span data-flash-done="" className="flash-done relative flex flex-col items-center gap-1">
+            <span className="font-display text-5xl font-black uppercase tracking-widest text-primary">Done</span>
+            <span className="text-base text-muted-foreground">All flashes done</span>
+          </span>
         ) : decoy ? null : (
           <span className="flash-wait relative px-3 text-center font-display text-3xl font-bold uppercase tracking-widest text-muted-foreground">Wait for gold…</span>
         )}
@@ -396,10 +434,11 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
   const key = `${phaseStartedAt}:${flashes.join(",")}`;
   const taps = useRef<number[]>([]);
   const [logLength, setLogLength] = useState(0);
-  const [lastShown, setLastShown] = useState<{ text: string; until: number; bad: boolean } | null>(null);
+  const [lastShown, setLastShown] = useState<{ text: string; until: number; bad: boolean; speed?: "gold" | "fast" | "slow"; combo?: number } | null>(null);
   const [t, setT] = useState(() => serverNow() - phaseStartedAt);
   const submitted = useRef("");
   const shownMisses = useRef(0);
+  const fastRun = useRef(0);
 
   useEffect(() => {
     taps.current = [];
@@ -437,6 +476,15 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
     if (flashes.length) onDraftAnswer?.(encodeTapTimes(taps.current));
   }, [logLength]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // "Done": the last flash settled (the count is never shown before).
+  const doneKey = useRef("");
+  useEffect(() => {
+    if (!replay.done || doneKey.current === key || flashes.length === 0) return;
+    doneKey.current = key;
+    playCueSlot("reaction.done");
+    gameFx("win", document.querySelector("[data-flash-done]"), { silent: true, noHaptic: true });
+  }, [replay.done, key, flashes.length]);
+
   useEffect(() => {
     if (flashes.length === 0 || locked || submitted.current === key || !replay.done) return;
     submitted.current = key;
@@ -446,7 +494,7 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
 
   if (puzzle.type !== "reaction") return null;
 
-  const liveIndex = flashes.findIndex((f, i) => replay.times[i] === null && t >= f && t < f + REACTION_FLASH_MS);
+  const liveIndex = flashes.findIndex((f, i) => replay.times[i] === null && t >= f && t < f + flashWindowMs(puzzle));
   const decoy = decoys.find((d) => t >= d.at && t < d.at + REACTION_DECOY_MS) ?? null;
   const steadyLine = usesFlashDepth(puzzle) && flashes.length ? flashSteadyLine(replay.times, replay.falseStarts) : null;
 
@@ -465,9 +513,17 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
     const outcome = next.outcomes[next.outcomes.length - 1];
     if (outcome === "hit") {
       const ms = next.times.find((v, i) => v !== null && before.times[i] === null) ?? 0;
-      setLastShown({ text: `${ms} ms`, until: stamp + 1_000, bad: false });
+      // The Speed overhaul (15 Nov 2026): a crisp snap on the tap itself (within the frame), the time popping up
+      // coloured by speed, and three fast hits in a row a climbing combo.
+      playCueSlot("reaction.hit");
+      fastRun.current = ms < FLASH_FAST_MS ? fastRun.current + 1 : 0;
+      if (fastRun.current >= 3) playCueSlot("reaction.combo", 1, Math.pow(2, (2 * Math.min(5, fastRun.current - 3)) / 12));
+      setLastShown({ text: `${ms} ms`, until: stamp + 1_000, bad: false, speed: ms < 250 ? "gold" : ms < FLASH_FAST_MS ? "fast" : "slow", combo: fastRun.current >= 3 ? fastRun.current : 0 });
     } else if (outcome === "false") {
-      puzzleReject();
+      fastRun.current = 0;
+      // A tap on a decoy or the dark screen: a short "wrong" and the shake (no second sound).
+      playCueSlot("reaction.wrong");
+      gameFx("wrong", arenaEl(), { silent: true });
       setLastShown({ text: "False start", until: stamp + 900, bad: true });
     }
   };
@@ -540,33 +596,46 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProp
   const depth = usesFlashDepth(puzzle) ? storedFlashDepth(myExtra) : null;
   const avg = storedAvg ?? (times.length ? reactionAverage(times, falseStarts, puzzle.flashes.length) : null);
 
-  // Puzzle polish (3 Nov 2026): the big average first, then the reactions in two tidy columns and the notes under them.
+  // The Speed overhaul (Joe, 15 Nov 2026; display only): the average big, then one bar per flash (taller is faster,
+  // gold under 250 ms, red a miss) and the figures that explain the score; short notes only where they apply.
+  const hits = times.filter((ms) => ms < REACTION_MISS_MS);
+  const missed = times.length - hits.length;
   return (
     <>
       <div className="flash-reveal-avg flex w-full flex-col items-center gap-1 rounded-2xl bg-card px-4 py-3">
         <p className="text-sm uppercase tracking-[0.2em] text-muted-foreground">Your average</p>
-        <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg ?? "—"} ms</p>
+        <p className="font-mono text-4xl font-bold tabular-nums text-primary">{avg !== null ? <FxCountUp value={avg} /> : "—"} ms</p>
+        {/* The figures in one plain line for a screen reader (the big number counts up in its own span). */}
+        <p className="sr-only" data-flash-reveal-summary="">{`${avg !== null ? `Average ${avg} ms. ` : ""}False starts: ${falseStarts}.`}</p>
       </div>
       {times.length === 0 ? (
         <p className="font-display text-2xl font-bold text-warn">No attempts</p>
       ) : (
-        <SpeedRevealList
-          testId="reaction"
-          label="Your reactions"
-          items={times.map((ms, index) =>
-            ms >= REACTION_MISS_MS
-              ? { value: "Missed", missed: true, label: `Flash ${index + 1} - missed (1,200 ms)` }
-              : { value: `${ms} ms`, label: `Flash ${index + 1} - ${ms} ms` },
-          )}
-        />
+        <RevealPanel title="Each flash" testId="reaction">
+          <RevealBars
+            testId="reaction"
+            label="Your reactions"
+            bars={times.map((ms, index) =>
+              ms >= REACTION_MISS_MS
+                ? { share: 0.06, text: "Miss", tone: "miss" as const, label: `Flash ${index + 1} - missed` }
+                : { share: 1 - Math.min(ms, 800) / 900, text: `${ms}`, tone: ms < 250 ? ("gold" as const) : ms < 400 ? ("good" as const) : ("slow" as const), label: `Flash ${index + 1} - ${ms} ms` },
+            )}
+          />
+          <RevealCaption>Taller is faster · gold under 250 ms</RevealCaption>
+          <BarTicks count={times.length} />
+        </RevealPanel>
       )}
+      <RevealNumbers
+        testId="reaction"
+        items={[
+          { id: "best", label: "Fastest", value: hits.length ? `${Math.min(...hits)} ms` : "—", tone: "gold" },
+          { id: "missed", label: "Missed", value: missed, ...(missed > 0 ? { tone: "warn" as const } : {}) },
+          { id: "false", label: "False starts", value: falseStarts, ...(falseStarts > 0 ? { tone: "warn" as const } : { tone: "good" as const }) },
+        ]}
+      />
       <div className="speed-reveal-notes">
-        <p>
-          {/* The count alone (4 Nov 2026: "(−973 points)" was the cost before the curve, not points off the score). */}
-          False starts: {falseStarts}
-          {/* tapRev 7 (7 Nov 2026): each flash scores on its own, so a miss scores nothing rather than counting as 1,200 ms. */}
-          {times.some((ms) => ms >= REACTION_MISS_MS) ? (tapRevOf(puzzle) >= TAP_REV_PER_ITEM ? " · a missed flash scores 0" : ` · a miss counts ${REACTION_MISS_MS.toLocaleString("en-GB")} ms`) : ""}
-        </p>
+        {/* tapRev 7 (7 Nov 2026): each flash scores on its own, so a miss scores nothing rather than counting as 1,200 ms. */}
+        {missed > 0 ? <p>{tapRevOf(puzzle) >= TAP_REV_PER_ITEM ? "A missed flash scores 0" : `A miss counts ${REACTION_MISS_MS.toLocaleString("en-GB")} ms`}</p> : null}
         {depth ? (
           <p data-flash-steady-reveal="">
             {depth.steady > 0
@@ -586,7 +655,21 @@ function Reveal({ puzzle, myAnswer, myReactionAvgMs, myExtra }: PuzzleRevealProp
   );
 }
 
+/** The bars landing one after another: a soft tick each, a step higher bar by bar (the bars' CSS stagger). */
+export const FLASH_BAR_STAGGER_MS = 90;
+function BarTicks({ count }: { count: number }) {
+  useEffect(() => {
+    const ids = Array.from({ length: count }, (_, i) =>
+      window.setTimeout(() => playCueSlot("reaction.bar", 0.6, Math.pow(2, (2 * i) / 12)), 120 + i * FLASH_BAR_STAGGER_MS),
+    );
+    return () => ids.forEach((id) => window.clearTimeout(id));
+  }, [count]);
+  return null;
+}
+
 export const reactionPuzzle: PuzzleDefinition = {
+  // The Speed overhaul's levels: what the level changes, in one line on the round intro (Normal: none).
+  introLine: (puzzle) => speedLevelLine(puzzle.type, puzzleLevel(puzzle)),
   key: "reaction",
   name: gameDisplayName("reaction"),
   category: "speed",

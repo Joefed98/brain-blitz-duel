@@ -1,5 +1,161 @@
 # Rainbow Bridge on the arcade scoring standard (inkRev 12, 29 Oct 2026; inkRev 13, Nov 2026; inkRev 14, 3 Nov 2026)
 
+## Levels (stage 3)
+
+The Strategy overhaul's stage 3 (16 Nov 2026) gives Rainbow Bridge Easy, Hard and Expert on the live stamp, inkRev 15,
+with the level read from the stored puzzle (`level`, `puzzleLevel`). **Normal is inkRev 15 exactly**: a Normal deal has no
+`level` field and builds byte for byte as before (`scripts/fixtures/ink-levels-normal.json`, recorded on 6987d8bb).
+Rated play and the Daily always deal Normal (the framework's `modeLevel`). Scoring is inkRev 15's parts (levels 120 +
+ink par 30 + trick shots 20 + clovers 10 + speed 20 = 200) at every level; the 120 s run is unchanged.
+
+Joe's levels: "Easy 1.5× ink, about half the birds, no moving levels, 25 % par margin; Normal 1.25×, today's birds,
+moving from level 9, 10 %; Hard 1.1×, more birds, from level 8, 10 %; Expert 1.0×, more birds some moving, from level 7,
+5 %." (Expert's margin is now 0 %: the second pass below.) "Moving levels" are read as the **live levels** (the coin falls while you draw): today's Normal is exactly that
+(live from level 9). Today's pot also slides from level 5 on Normal; Easy's "no moving levels" is read as nothing moves,
+so Easy's pot stands still on every level as well (a decision for Joe).
+
+| | Easy | Normal (today) | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Ink (× inkRev 10's; live levels × 1.5 more) | 1.5 | 1.25 | 1.1 | 1.0 |
+| Birds a level | a quarter of today's (rounded up, at least one) | today's | +2 (levels 2–10) | +2 on level 2, +3 on 3–10 |
+| Swaying birds | none | none | none | up to 3 on levels 5–6 (moving-pot levels) |
+| Live levels | none | 9–10 | 8–10 | 7–10 |
+| Moving pot | none | 5–10 | 5–10 | 5–10 |
+| Ink par margin | 25 % | 10 % | 10 % | 0 % |
+| Pot width (rim cap to rim cap) | 110 px, kept whole on screen | 64 px | 48 px | 42 px |
+| Speed part full with | 10 s left | 50 s left | 70 s left | 85 s left |
+| Clovers | on the easy line's own path | off the route | off the route | off the route |
+| Trick shots / clovers parts full at | 2 trick shots (10 each) / 1 clover (10) | 4 (5 each) / 2 (5 each) | 4 / 2 | 4 / 2 |
+
+**Second pass (16 Nov 2026, for a clear step up):** the first pass (Joe's figures alone) left Hard and Expert scoring like
+Normal for the bots, so three levers that cost a planning player were added on the harder levels: a narrower pot (its
+collision opening, `InkLevel.potW` / `inkPotHalf`, the rim caps and the crossing test; the pot art drawn to the same
+width, `drawPot(…, w)`), Expert's par margin at 0 %, and a stricter speed part (`inkSpeedFullTicks(diff)`). Easy's pot is
+wider (80 px then; 110 px since the Easy pass below). The help's "50 s left" line is the game's, not the level's (a decision for Joe).
+
+Code: `INK_LEVEL_SETS` / `InkLevelSet` / `INK_LEVEL_NORMAL` in `src/lib/arcade/inkBridge.ts` (the rules; mirrored as plain
+data in `GAME_LEVELS.inkbridge`, `src/lib/levels/gameLevels.ts`), `inkBridgeGameFor(rev, level)`,
+`replayInkBridgeRun(seed, raw, rev, level)`. A level's run carries `diff` on its state; the build and every step run under
+the level's rules (`withLevelDiff`), so the server replay builds the identical world from the stored puzzle. Helpers for
+the stage, art, sounds and bots: `inkLiveNow(state)`, `inkBudgetNow(state)`, `inkBirdDx(lvl, bird, tick)`.
+
+**Swaying birds** (Expert): a bird sways sideways `18–35 px` (seeded) on its level's pot period with its own seeded phase
+(`InkBlock.sway`, `inkBirdDx`), only on a moving pot's level that isn't live, its whole swept box on screen and clear of the
+other birds and the pot's mouth. Collision, art (`drawBirds` on the moved box, stage 2's flap effect keyed by the bird's
+place), the failed-on-a-bird flash and the near-bird sound all read the bird where it is on the tick. Because the birds
+share the pot's period, every proof's release search over one period (landingRelease, steadyRelease) covers them; the
+generation shortcuts that assumed "the pot is the only thing that moves" (stillPrefix, movingRelease) play such a level's
+drops whole.
+
+**The deals.** Each level deals from its own proved list (`src/lib/duel/inkHillsDeal{Easy,Hard,Expert}.server.ts`
+through `inkLevelDeals.server.ts`), built by `bun scripts/ink-big-deal.ts --rev=15 --level=<level> [--check]`: 60 seeds a
+level, each with every level's proof passing under the level's rules (drawable within its ink, the bonus lines, two
+clovers, the level's live levels, every ink par at least its proved line's ink) and the oracle's perfect run exactly 200
+through the server replay of the level (witnesses `scripts/fixtures/ink-hills-<level>-deal-witness.json.gz`).
+Easy and Hard kept the first 60 candidates, Expert dropped 7 of its first 67 (after the second pass); every entry re-proved by
+`--check`. The witnesses are the oracle's (the flawless planner), so **200 is reachable on every dealt seed at every level**.
+
+**Checks**: ink-levels-check (the registry, Normal identical, each level's rules on dealt runs, every deal entry at 200
+through the server replay (sampled; all with `CHECKS_FULL=1`), swaying birds deterministic, periodic, in the world and
+collided where drawn, the clock, rated and the Daily Normal).
+
+**Measured** (`bun scripts/ink-levels-bands.ts [levels] --seeds=N --human`: the skill-band bot at every skill on each
+level's dealt seeds, every run through the server replay of the level; "elite (human limits)" holds the elite's reactions
+at 250 ms and its finger moves at 150 ms or more, Joe's human floor; the shared Human model's elite reacts in 145 ms):
+
+Main's shared tool, `bun scripts/level-tune.ts inkbridge --level=all --seeds=20` (each level's real deals, the bot's
+log graded by the server; inkbridge's checkpoints are every 300 ticks, the tool's own spacing), after the second pass:
+
+| Level | Near-perfect avg (median) | Elite avg (median) | Finished (near / elite) |
+| --- | --- | --- | --- |
+| Easy | 190.0 (190) | 197.2 (199) | 100 % / 100 % |
+| Normal | 180.5 (180) | 188.6 (188) | 100 % / 100 % |
+| Hard | 169.8 (169) | 181.4 (181) | 100 % / 100 % |
+| Expert | 153.4 (153) | 164.7 (168) | 70 % / 90 % |
+
+Every skill, `bun scripts/ink-levels-bands.ts --seeds=16 --human` (the first 16 seeds of each level's deal; average,
+runs at 175+ and at 200 of 16 in brackets; Normal's from the first pass, its game unchanged):
+
+| Skill | Easy | Normal | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Weak | 83.6 | 56.3 | 46.2 | 36.6 |
+| Average | 126.7 (0) | 90.8 (0) | 75.4 (0) | 68.6 (0) |
+| Good | 162.4 (2) | 131.8 (0) | 103.3 (0) | 92.9 (0) |
+| Great | 181.8 (14) | 155.6 (1) | 129.5 (0) | 122.1 (0) |
+| Near-perfect | 193.5 (16; 5 at 200) | 180.9 (13; 1) | 172.3 (8) | 155.2 (1) |
+| Elite | 196.9 (16; 8 at 200) | 190.8 (16) | 181.8 (12) | 166.9 (3) |
+| Elite, human limits | 196.9 (8 at 200) | 190.0 | 182.9 (15) | 166.3 (3) |
+| Oracle | 200 on every entry | 200 | 200 on every entry | 200 on every entry |
+
+A clear step at every skill: Easy above Normal, then Hard, then Expert. Expert stays humanly possible to score well on:
+the elite held to 250 ms reactions averages 166 and reaches 193 on its best seed; every Expert entry is proved to 200 by
+the oracle. The first pass (Joe's figures alone: ink, birds, swaying birds, live levels, par margins) moved the bots
+little (elite 191 / 190 / 192 on Normal / Hard / Expert); Expert +4 birds and faster, wider pot slides were also tried
+and dropped. The average player's Easy star share was still 0 of 16 (its average 127, Good 162); the Easy pass below
+fixes that.
+
+**The Easy pass (16 Nov 2026, Joe: an average player should have a real shot at a star, a run of 175+).** On the
+first Easy the average bot reached 175+ on 0 of 16 runs. Its runs showed why: it never goes for the bonus lines (one try
+in ten), so the trick shots and clovers (30 points) were out of its reach and its ceiling was 170 (levels 120 + ink
+par 30 + speed 20), and about ten failed drops a run (birds just under the spout, coins rolling past the pot) left it
+out of time before level 10, so speed rarely paid. More ink alone moved nothing (1.5× → 2.5×: 125 → 127). Easy only
+(Normal, Hard and Expert byte for byte as before, ink-levels-check sections 2 and 5c); no stamp (Easy was never dealt
+live):
+
+- **Fewer birds**: a quarter of today's on each level (`birdsPct` 25, was 50).
+- **A wider pot**: 110 px (`potW`, was 80), kept whole on screen with its rim caps (a pot wider than today's is clamped
+  in from the world’s sides, `layout`; narrower pots never move).
+- **Clovers on the way** (`cloverOnRoute` 60): a plain clover level's clover sits on its easy line's own drop, 60 % of
+  the way along the points a pickup may take (inside the sides, clear of the spout, the pot's mouth and every bird;
+  `routeClover`), and the easy line is its proved line, so a coin that takes the natural route picks it up. A cloud
+  level's clover stays at the top of its trick line's bounce.
+- **The bonus parts full sooner** (`tricksFullAt` 2, `cloversFullAt` 1; the parts' maximums and the 200 unchanged): 10 a
+  trick shot up to 20, and 10 for a clover. Every other level keeps 5 a trick shot (4) and 5 a clover (2).
+- **Speed full with 10 s left** (`speedFullLeftS` 10, was 50 s): finishing all ten levels in time is the speed.
+
+Ink (1.5×), the par margin (25 %), no live levels and the still pot are unchanged. The deal was rebuilt
+(`bun scripts/ink-big-deal.ts --rev=15 --level=easy`: the first 60 candidates kept, none dropped; `--check` re-proves
+every witness at exactly 200 through the server replay of the level).
+
+Before → after on Easy (`bun scripts/ink-levels-bands.ts easy --human`; before on the first 16 dealt seeds, after on the
+first 16 and on all 60):
+
+| Skill | Before (16) | After (16) | After (60) |
+| --- | --- | --- | --- |
+| Weak | 83.6 (0 at 175+) | 111.5 (0) | 103.8 (0) |
+| Average | 126.7 (0 of 16) | 164.0 (7 of 16, 44 %) | 162.9 (29 of 60, 48 %; median 173) |
+| Good | 162.4 (2) | 181.1 (13) | 184.3 (52) |
+| Great | 181.8 (14) | 195.5 (16) | 194.2 (60) |
+| Near-perfect | 193.5 (16; 5 at 200) | 199.3 (16; 14) | 198.7 (60; 47) |
+| Elite | 196.9 (16; 8 at 200) | 199.8 (16; 14) | 199.7 (60; 52) |
+| Elite, human limits | 196.9 | 199.8 | 199.7 |
+
+Easy stays well clear of Normal at every skill (Normal's average 90.8, Good 131.8, elite 190.8). On 40 fresh candidate
+seeds during tuning, the pot's width set the average's star share most: 100 px 28–38 %, 110 px 45 %.
+
+Expert seeds to play (deal index, seed, the human-limited elite's score): #10 1339482591 (193), #0 1655421732 (186), #11
+830227958 (182), #3 1911792321 (170), #4 735923524 (152, among the hardest).
+
+## inkRev 15 (15 Nov 2026): the pot moves, fewer and bigger birds, a sunset
+
+Rooms deal `inkRev 15` (`INK_REV_HILLS`, `inkBridgeHillsGame`), the Strategy overhaul's stamp, from its own proved deal
+(`src/lib/duel/inkHillsDeal.server.ts`, `bun scripts/ink-big-deal.ts --rev=15 [--check]`: 100 seeds, none of the first
+100 candidates dropped; witnesses `scripts/fixtures/ink-hills-deal-witness.json.gz`, each exactly 200 through the
+server replay). inkRev 14's rules, sizes and parts (`INK_V15_STD` is `INK_V13_STD`'s parts) with:
+
+- **The pot and its hill move between levels.** Each run's seed orders four placements (`INK_V15_POT_PLANS`: lower,
+  higher, further from the spout, closer to it; `inkV15PotPlan`) and repeats them, so each is used two or three times
+  and never twice running; the layout puts the pot there (`placePot`) before the level is built, and every level is
+  built and proved exactly as before (drawable within its ink, its bonus line, two clovers, its ink par). The pot's rim
+  now ranges over about 440–620 px (inkRev 14: about 530–600). The hill's crest follows the pot as it always did.
+- **Fewer, bigger birds.** Each bird box is 14 px thick (`INK_V15_BIRD_H_FP`; inkRev 14: 10) and the inkRev 13 extra
+  birds are gone; the art draws a bird every 36 px or so filling its box exactly, each on its own wing beat.
+- **Display (inkRev 15 only):** the sky turns from day to sunset over the ten levels (`inkSunset`, the level alone, so
+  the same for everyone), in the world and in the scene round it; the pot is a rendered cast-iron pot of gold (every
+  revision).
+
+`pinInkPreHills(true)` deals inkRev 14 from its own deal for the checks written for it.
+
 ## inkRev 14 (3 Nov 2026): a bigger coin, clovers and birds
 
 Rooms deal **`inkRev 14`** (`INK_REV_BIG`, one above inkRev 13) since 3 Nov 2026, from a proved deal. Joe's audit on an

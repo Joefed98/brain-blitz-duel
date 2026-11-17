@@ -1,5 +1,7 @@
+import { puzzleLevel } from "@/lib/levels/levels";
 import { equationVerdict } from "./operatorGaps";
 import { buildArcadeReveal } from "@/lib/arcade/reveal";
+import { pairCardsOf, pairsOf, tallyTrays } from "./attentionLevels";
 import { TICKS_PER_SECOND } from "@/lib/arcade/engine";
 import { puzzleUsesTieRev } from "./tieBreak";
 import { isRemovedType } from "./removedGames";
@@ -19,34 +21,35 @@ import {
 } from "./stagedRounds";
 import { blockGeometry, decodePlacements, encodePlacements, verifyPlacements } from "./blockParty";
 import { isDepth4 } from "./depth4/stamps";
-import { decodePipesTaps, pipesAfterTaps } from "./depth4/pipesTaps";
+import { decodePipesTurns, pipesAfterTurns } from "./depth4/pipesTaps";
+import { usesPatternNov15 } from "./patternNov15";
 import { replayGems } from "./depth4/iceGems";
 import { gemMinMoves } from "./depth4/gems.server";
-import { activeLightPresses, decodePresses, decodeSides, lightsAllOff, lightsOnCount, replayLights } from "./logic";
+import { activeLightPresses, decodePresses, decodeSides, lightsAllOff, lightsOnCount, pipesDims, replayLights } from "./logic";
 import { gradePipesBoard, gradeSudokuGrid } from "./logic.server";
-import { decodeFlowPaths, verifyFlow } from "./flow";
-import { decodeSlideMoves, replaySlide, slideBoard, slideDistance } from "./slide";
+import { decodeFlowPaths, flowCellCount, flowGrid, verifyFlow } from "./flow";
+import { countedSlides, decodeSlideMoves, replaySlide, slideBoard, slideDistance } from "./slide";
 import { cratesOnTargets, decodePushMoves, replayPush } from "./push";
 import { decodeLaserAnswer, isSplitter, verifyLaser } from "./laser";
 import { decodeTowerMoves, replayTower } from "./tower";
 import { decodeMazePath, mazeColsOf, verifyMazePath } from "./maze";
 import { decodeMazeTrail, mazeStarsTaken, mazeTrailBacktracks, mazeTrailRoute, mazeTrailWalk, usesMazeDepth } from "./depth/labyrinth";
 import { decodeTubeLog, decodeTubeMoves, replayTubeLog, replayTubes } from "./tubes";
-import { dialsCorrect, decodeSafePending, decodeSafeTries, safeOpenedOn } from "./safe";
+import { dialsCorrect, decodeSafePending, decodeSafeTries, safeOpenedOn, safeShapeOf } from "./safe";
 import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "./bomb";
 import { decodeGravityTilts, replayGravity } from "./gravity";
 import { blockingCars } from "./unblock.server";
-import { decodeChainAnswer, replayChain } from "./chain";
-import { decodeNonoCells, nonoSizeOf, replayNonogram } from "./nonogram";
+import { chainTimeLimitMs, decodeChainAnswer, replayChain } from "./chain";
+import { decodeNonoCells, nonoCellsOf, nonoSizeOf, replayNonogram } from "./nonogram";
 import { decodePairFlips, replayPairs } from "./pairmatch";
-import { decodeFloodMoves, replayFlood } from "./flood";
+import { decodeFloodMoves, floodColoursOf, floodColsOf, replayFlood } from "./flood";
 import { decodeTileMoves, replayTiles, tilesLayout } from "./tiles";
 import { decodeRingTaps, replayRings } from "./rings";
 import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
-import { SKYLINE_REV_COUNT, SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
-import { pinIsExpanded, PIN_REV_STD } from "@/lib/arcade/pinball";
+import { SKYLINE_REV_COUNT, SKYLINE_REV_EXPAND, SKYLINE_REV_LIFT, SKYLINE_REV_LIVES, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
+import { pinIsExpanded, PIN_REV_JOULZ, PIN_REV_SAVE, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { snakeStdParts } from "@/lib/arcade/snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
@@ -59,8 +62,9 @@ import { minesSafeFor } from "@/lib/arcade/minesweeper";
 import { decodeHomerunRun, replayHomerunRun } from "./homerun";
 import { decodeFreekickRun, replayFreekickRun } from "./freekick";
 import { decodeRacingRun, replayRacingRun } from "./racing";
+import { racingPace10, RACING_REV_4, type RacingState } from "@/lib/arcade/racing";
 import type { StdPart } from "@/lib/arcade/arcadeStandard";
-import { replayMinigolfRun } from "./minigolf";
+import { replayMinigolfPuzzle } from "./minigolf";
 import { replayPoolRun } from "./pool";
 import { replayCurlingRun } from "./curling";
 import { minigolfStdParts } from "@/lib/arcade/minigolf";
@@ -114,14 +118,15 @@ import { npComplete, npCorrectCells, npDecode, npDecodeRound, scoreNumberPyramid
 import { gradeMeasureBoards, scoreMeasure } from "./measure";
 import { measureBoardOut } from "./gameReviewNov15";
 import { gradeCheckoutStages, scoreCheckout } from "./checkout";
+import { checkoutBust } from "./numberOverhaul";
 import { gradeNumlineItems, numlineAccuracy, numlineFullError, scoreNumline } from "./numline";
 import { digCleanCollected, digDecode, digReplay, scoreDig } from "./dig";
-import { scoreWordSearch, wsDecode, wsGrade, wsSplitBonus } from "./wordSearch";
+import { scoreWordSearch, wsDecode, wsGrade, wsRowsOf, wsSplitBonus } from "./wordSearch";
 import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
 import { decodeMoonRun, decodeNinjaRun, decodeRicoRun, isMoonRev, isNinjaRev, replayMoonRun, replayNinjaRun, replayRicoRun } from "./ricochet";
-import { MOON_CORE_FULL_M, NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
+import { moonFullM, moonSkyCount, NINJA_CORE_FULL_M } from "@/lib/arcade/ricochetNinja";
 import { decodeBinTossRun, replayBinTossRun } from "./binToss";
 import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
 import { bullseyeDeadPoints, bullseyeStreakPoints } from "@/lib/arcade/bullseye";
@@ -144,7 +149,7 @@ import {
   tapRevOf,
   type TapLogDiag,
 } from "./tapLog";
-import { decodeMoves, replayUnblock } from "./unblock";
+import { countedMoves, decodeMoves, replayUnblock } from "./unblock";
 import {
   COUNT_REV2_TRAYS,
   countUpStageTruth,
@@ -164,26 +169,12 @@ import { scanCorrections, usesScanDepth } from "./depth/eagleEye";
 import { spotBonusFound, usesSpotDepth } from "./depth/doubleTake";
 import { puzzleTimeLimitMs } from "./catalogue";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf, recordParts, scoreRev1, takeScoreParts, wasteFactor, withPuzzleScoreRev } from "./puzzleScoreRev";
-import { isTopsy, replayTopsyPuzzle, scoreTopsy } from "./topsy";
+import { isTopsy, replayTopsyPuzzle, scoreTopsy, topsyTotalBalls } from "./topsy";
 import { isJumbledGradient, replayGradientAnswer, scoreJumbled } from "./jumbled";
 import { sortedTubeCount } from "./tubes";
 import { madeDistance } from "./target";
 import { isWord } from "./dictionary.server";
-import {
-  STRIKEOUT_REV2,
-  decodeStrikeout,
-  decodeStrikeout2,
-  encodeStrikeout,
-  encodeStrikeout2,
-  replayStrikeout,
-  replayStrikeout2,
-  scoreStrikeout,
-  scoreStrikeout2,
-  so2Rules,
-  so2Tally,
-  soTally,
-  strikeoutRevOf,
-} from "./strikeout";
+import { STRIKEOUT_REV2, decodeStrikeout, decodeStrikeout2, encodeStrikeout, encodeStrikeout2, replayStrikeout, replayStrikeout2, scoreStrikeout, scoreStrikeout2, so2Rules, so2Tally, soTally, strikeoutRevOf, so2RulesFor } from "./strikeout";
 import { codewordTally, decodeCodeword, replayCodeword, scoreCodeword } from "./codeword";
 import { decodeSwapword, replaySwapword, scoreSwapword } from "./swapword";
 import {
@@ -196,8 +187,9 @@ import {
   wordSlideMadeRows,
 } from "./progressFigures";
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
-import { balancePlaceLimits, equationTryLimit, floodMoveLimit, gravityTiltLimit, measureMoveLimits, splitCountSuffix, tubesPourLimit, tubesSendsUndo, GRAVITY_PROGRESS_REV, TUBES_PROGRESS_REV } from "./moveLimits";
+import { balancePlaceLimits, equationTryLimit, floodMoveLimit, gravityTiltLimit, measureMoveLimits, splitCountSuffix, tubesPourLimit, tubesRefundsUndo, tubesSendsUndo, GRAVITY_PROGRESS_REV, TUBES_PROGRESS_REV } from "./moveLimits";
 import { gravitySolverProgress, tubesSolverProgress } from "./solverProgress.server";
+import { towerMovesLeft } from "./puzzleProgress";
 import {
   scoreWordSlide,
   wordSpeedBonus,
@@ -244,8 +236,16 @@ import {
   FLOW_PAIRS,
   CHAIN_TIME_MS,
   CHAIN_TIME_REV,
+  unblockCols,
   type PuzzleData,
 } from "./types";
+
+/** The difficulty levels (15 Nov 2026): a level deal's level ("easy" | "hard" | "expert"), or null for Normal (every
+ *  deal before levels), so Normal grades exactly as before. */
+function levelOfDeal(puzzle: PuzzleData): "easy" | "hard" | "expert" | null {
+  const level = puzzleLevel(puzzle);
+  return level === "normal" ? null : level;
+}
 
 export interface SubmitExtra {
   reactionAvgMs?: number | undefined;
@@ -607,16 +607,18 @@ function gradeUnderRev(
         // count reached, the wrong taps and the finish time all come from the log.
         const { taps, diag } = decodeNumberTaps(answer, latestTapMs(timeLimitMs, receivedMsRemaining), puzzle);
         const replay = replayAscend(puzzle, taps);
-        const reached = clamp(replay.reached, 0, NUMHUNT_COUNT);
+        // The board's own count (24 on every round before the levels; 16 or 30 at Easy, Hard and Expert).
+        const total = puzzle.spots.length || NUMHUNT_COUNT;
+        const reached = clamp(replay.reached, 0, total);
         errors = clamp(replay.errors, 0, 99);
-        const finished = reached >= NUMHUNT_COUNT && replay.finishedAt !== null;
+        const finished = reached >= total && replay.finishedAt !== null;
         // Time left is the phone's claim (already held to the receipt check), but
         // never more than the log's own finishing tap allows. An unfinished run
         // has no time left.
         storedMs = finished ? Math.min(ms, clamp(timeLimitMs - replay.finishedAt!, 0, timeLimitMs)) : 0;
         isCorrect = finished;
         correctCount = reached;
-        score = scoreNumberHunt(finished, storedMs, errors, reached, NUMHUNT_COUNT, timeLimitMs);
+        score = scoreNumberHunt(finished, storedMs, errors, reached, total, timeLimitMs);
         extraDetail = {
           reached,
           finishedAtMs: finished ? replay.finishedAt : null,
@@ -652,7 +654,9 @@ function gradeUnderRev(
     case "unblock": {
       // The phone sends its slides; every one is replayed on the stored layout.
       const played = decodeMoves(answer);
-      const replay = replayUnblock(puzzle.vehicles, played);
+      // The lot's size (the difficulty levels: Easy's 6×6; absent = 7, every older deal).
+      const lot = unblockCols(puzzle);
+      const replay = replayUnblock(puzzle.vehicles, played, lot);
       const min = puzzle.minMoves ?? 0;
       isCorrect = replay.solved;
       let progress = 0;
@@ -660,13 +664,16 @@ function gradeUnderRev(
       if (!replay.solved) {
         // Progress is the share of the gold car's blockers cleared from its
         // lane — a cheap count, so no solver ever runs during a room.
-        const before = blockingCars(puzzle.vehicles);
-        const after = blockingCars(replay.vehicles);
+        const before = blockingCars(puzzle.vehicles, lot);
+        const after = blockingCars(replay.vehicles, lot);
         if (before > 0) progress = Math.max(0, (before - after) / before) * (scoreRev1() ? 1 : 0.9);
         fewerBlockers = after < before;
       }
-      score = scoreUnblock(replay.solved, ms, replay.moves, min, progress, fewerBlockers, timeLimitMs);
-      extraDetail = { solved: replay.solved, moves: replay.moves, minMoves: min, ...(isDepth4(puzzle) ? { par: puzzle.par ?? min } : {}) };
+      // unblockRev 4 (the Pattern overhaul, patternNov15.ts): Undo and Reset give the move back, so the moves counted
+      // (the par bonus, the stored figure) are the slides still on the board; older stamps count every slide played.
+      const counted = countedMoves(replay, usesPatternNov15(puzzle, "unblock"));
+      score = scoreUnblock(replay.solved, ms, counted, min, progress, fewerBlockers, timeLimitMs);
+      extraDetail = { solved: replay.solved, moves: counted, minMoves: min, ...(isDepth4(puzzle) ? { par: puzzle.par ?? min } : {}) };
       break;
     }
     case "blockparty": {
@@ -721,19 +728,22 @@ function gradeUnderRev(
     case "pipes": {
       // Connectivity and leaks are worked out here, so any valid layout counts.
       // pipesRev 1 (depth batch 4): the board comes from the tap log alone; the taps up to the solve are counted.
-      const taps = isDepth4(puzzle) ? decodePipesTaps(answer, puzzle.tiles.length) : null;
+      // pipesRev 5 (the Pattern overhaul, patternNov15.ts): "-cell" in the log is an anticlockwise turn.
+      // Difficulty levels: a level board's width from the stored puzzle (pipesDims; 7 on every board before levels).
+      const cols = pipesDims(puzzle).cols;
+      const taps = isDepth4(puzzle) ? decodePipesTurns(answer, puzzle.tiles.length, usesPatternNov15(puzzle, "pipes")) : null;
       let turns = 0;
       if (taps) {
         for (let k = 0; k <= taps.length; k++) {
           turns = k;
-          if (gradePipesBoard(puzzle.source, pipesAfterTaps(puzzle.tiles, taps.slice(0, k))).solved) break;
+          if (gradePipesBoard(puzzle.source, pipesAfterTurns(puzzle.tiles, taps.slice(0, k)), cols).solved) break;
         }
       }
-      const board = taps ? pipesAfterTaps(puzzle.tiles, taps.slice(0, turns)) : decodeSides(puzzle.tiles, answer);
-      const verdict = gradePipesBoard(puzzle.source, board);
+      const board = taps ? pipesAfterTurns(puzzle.tiles, taps.slice(0, turns)) : decodeSides(puzzle.tiles, answer);
+      const verdict = gradePipesBoard(puzzle.source, board, cols);
       isCorrect = verdict.solved;
       correctCount = verdict.connected;
-      const startConnected = scoreRev1() ? gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, "")).connected : 0;
+      const startConnected = scoreRev1() ? gradePipesBoard(puzzle.source, decodeSides(puzzle.tiles, ""), cols).connected : 0;
       score = scorePipes(verdict.solved, verdict.connected, ms, timeLimitMs, startConnected);
       extraDetail = { solved: verdict.solved, connected: verdict.connected, ...(taps ? { turns, par: puzzle.par ?? 0 } : {}) };
       break;
@@ -751,8 +761,10 @@ function gradeUnderRev(
     case "flow": {
       // Every path the phone sends is re-walked here: contiguous, ending on the
       // right dots, and sharing no cell with another colour.
-      const paths = decodeFlowPaths(answer, puzzle.pairs.length || FLOW_PAIRS);
-      const verdict = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? []);
+      // Levels (16 Nov 2026): the board's own grid (9 × 9 for every puzzle without `cols` / `rows`).
+      const grid = flowGrid(puzzle);
+      const paths = decodeFlowPaths(answer, puzzle.pairs.length || FLOW_PAIRS, flowCellCount(grid));
+      const verdict = verifyFlow(puzzle.pairs, paths, puzzle.walls ?? [], grid);
       isCorrect = verdict.solved;
       correctCount = verdict.pairsJoined;
       // Rev 1: an unfinished board earns only pairs joined along their (unique) solution route.
@@ -789,16 +801,22 @@ function gradeUnderRev(
         }
       }
       isCorrect = replay.solved;
-      correctCount = replay.moves;
+      // slideRev 5 (the Pattern overhaul, patternNov15.ts): Undo and Reset give the slide back, so the slides counted
+      // (the par bonus, the stored figure) are the slides still standing; older stamps count every slide played.
+      const overhaul = usesPatternNov15(puzzle, "iceslide");
+      const counted = countedSlides(replay, overhaul);
+      correctCount = counted;
       // slideRev 1 (depth batch 4): the gems collected; the slides they need are not wasted moves, so a finish is
       // measured against the fewest slides that collect those gems (gemRouteLength), not the bare minimum.
       const gems = isDepth4(puzzle) ? (puzzle.gems ?? []) : [];
       const gemReplay = gems.length ? replayGems(board, gems, decodeSlideMoves(answer)) : null;
       const gemMin = gemReplay && replay.solved && gemReplay.collected > 0 ? gemMinMoves(puzzle, gems.filter((_g, i) => gemReplay.mask & (1 << i))) : null;
-      score = scoreIceSlide(replay.solved, replay.moves, gemMin ?? min, ms, progress, timeLimitMs);
+      score = scoreIceSlide(replay.solved, counted, gemMin ?? min, ms, progress, timeLimitMs);
       extraDetail = {
         solved: replay.solved,
-        moves: replay.moves,
+        moves: counted,
+        // slideRev 5: every slide played (undone ones included) stays on record for the unfinished waste rule.
+        ...(overhaul ? { slidesPlayed: replay.moves } : {}),
         minMoves: min,
         movesFromExit: away,
         falls: replay.falls,
@@ -897,6 +915,8 @@ function gradeUnderRev(
         minMoves: puzzle.minMoves,
         discs: puzzle.discs,
         discsHome: replay.correctFromBottom,
+        // The Logic overhaul's levels (towerRev 1): how far from done the board was left (display data only).
+        ...(puzzle.towerRev ? { movesLeft: replay.solved ? 0 : (towerMovesLeft(puzzle.start ?? [], puzzle.targetPeg, puzzle.discs, moves) ?? undefined) } : {}),
       };
       break;
     }
@@ -940,8 +960,8 @@ function gradeUnderRev(
       // The boards the player stood on, start first (tubesRev 2: a dead board keeps the best before it).
       const tubeBoards = [puzzle.tubes];
       const replay = tubesSendsUndo(puzzle)
-        ? replayTubeLog(puzzle.tubes, decodeTubeLog(answer), pourLimit, (b) => tubeBoards.push(b))
-        : replayTubes(puzzle.tubes, decodeTubeMoves(answer));
+        ? replayTubeLog(puzzle.tubes, decodeTubeLog(answer, puzzle.tubes.length), pourLimit, (b) => tubeBoards.push(b), tubesRefundsUndo(puzzle))
+        : replayTubes(puzzle.tubes, decodeTubeMoves(answer, puzzle.tubes.length));
       isCorrect = replay.solved;
       correctCount = replay.moves;
       const colours = new Set(puzzle.tubes.flat()).size;
@@ -961,12 +981,14 @@ function gradeUnderRev(
     case "safe": {
       // Each try is checked here against the stored combination.
       const combination = puzzle.combination ?? [];
-      const tries = decodeSafeTries(answer);
+      // A level's card has its own dials, range and tries (safe.ts safeShapeOf; today's otherwise).
+      const shape = safeShapeOf(puzzle);
+      const tries = decodeSafeTries(answer, shape);
       const openedOn = safeOpenedOn(tries, combination);
       const last = tries[tries.length - 1] ?? [];
       // puzzleScoreRev 2 (score bands): an unopened safe keeps its best try's dials, not only the last try's.
       const right = !combination.length ? 0
-        : puzzleScoreRevOf(puzzle) >= 2 ? Math.max(0, ...[...tries, ...(openedOn > 0 || tries.length >= 3 ? [] : [decodeSafePending(answer) ?? []])].map((t) => dialsCorrect(t, combination)))
+        : puzzleScoreRevOf(puzzle) >= 2 ? Math.max(0, ...[...tries, ...(openedOn > 0 || tries.length >= shape.tries ? [] : [decodeSafePending(answer, shape) ?? []])].map((t) => dialsCorrect(t, combination)))
         : dialsCorrect(last, combination);
       isCorrect = openedOn > 0;
       correctCount = openedOn > 0 ? combination.length : right;
@@ -1009,7 +1031,7 @@ function gradeUnderRev(
       if (isTopsy(puzzle)) {
         const replay = replayTopsyPuzzle(puzzle, decodeGravityTilts(answer));
         // The elite stretch's efficiency: the boards' all-stars minimums ÷ the tilts made (server-only minimums).
-        const graded = scoreTopsy(replay, ms, timeLimitMs, undefined, (puzzle.boardStarMins ?? []).reduce((n, m) => n + m, 0) || undefined);
+        const graded = scoreTopsy(replay, ms, timeLimitMs, topsyTotalBalls(puzzle), (puzzle.boardStarMins ?? []).reduce((n, m) => n + m, 0) || undefined);
         isCorrect = replay.solved;
         correctCount = replay.home;
         score = graded.score;
@@ -1058,7 +1080,7 @@ function gradeUnderRev(
       // chainTimeRev 1: time left is the claim (already held to the receipt
       // check), but never more than the replayed last tap allows.
       if (puzzle.chainTimeRev === CHAIN_TIME_REV && isCorrect && replay.lastT !== null)
-        storedMs = Math.min(ms, clamp(CHAIN_TIME_MS - replay.lastT, 0, CHAIN_TIME_MS));
+        storedMs = Math.min(ms, clamp(chainTimeLimitMs(puzzle) - replay.lastT, 0, chainTimeLimitMs(puzzle)));
       score = scoreChain(replay.links, storedMs, puzzle);
       extraDetail = {
         links: replay.links,
@@ -1069,7 +1091,7 @@ function gradeUnderRev(
     }
     case "nonogram": {
       // The submitted cells are checked against the stored picture, never a client verdict.
-      const replay = replayNonogram(puzzle.pattern ?? [], decodeNonoCells(answer, nonoSizeOf(puzzle)));
+      const replay = replayNonogram(puzzle.pattern ?? [], decodeNonoCells(answer, nonoSizeOf(puzzle), nonoCellsOf(puzzle)));
       isCorrect = replay.solved;
       correctCount = replay.correct;
       errors = replay.wrong;
@@ -1084,7 +1106,7 @@ function gradeUnderRev(
     }
     case "pairmatch": {
       // The flip list is re-walked on the stored board to count the pairs found.
-      const replay = replayPairs(puzzle.cards, decodePairFlips(answer));
+      const replay = replayPairs(puzzle.cards, decodePairFlips(answer, pairCardsOf(puzzle)), pairsOf(puzzle));
       isCorrect = replay.solved;
       correctCount = replay.pairs;
       score = scorePairMatch(replay.solved, replay.pairs, ms, timeLimitMs, replay.tries);
@@ -1100,7 +1122,8 @@ function gradeUnderRev(
       // Every tapped colour is replayed on the stored grid.
       // floodRev 1: taps beyond the stored move limit are ignored, so running out ends the board unfinished.
       const moveLimit = floodMoveLimit(puzzle);
-      const replay = replayFlood(puzzle.grid, decodeFloodMoves(answer), undefined, moveLimit);
+      // A level's board has its own width and colours (flood.ts floodColsOf / floodColoursOf; today's otherwise).
+      const replay = replayFlood(puzzle.grid, decodeFloodMoves(answer, floodColoursOf(puzzle)), floodColsOf(puzzle), moveLimit, floodColoursOf(puzzle));
       isCorrect = replay.solved;
       correctCount = replay.region;
       score = scoreFlood(replay.solved, replay.moves, puzzle.par, replay.region, ms, timeLimitMs, scoreRev1() ? replayFlood(puzzle.grid, []).region : 0, moveLimit);
@@ -1173,7 +1196,7 @@ function gradeUnderRev(
       // The run is replayed from the stored seed; the phone's own score is
       // never trusted, only recorded as a claim on the stored result.
       const replayStart = performance.now();
-      const run = replayHoverRun(puzzle.seed, answer, puzzle.hoverRev);
+      const run = replayHoverRun(puzzle.seed, answer, puzzle.hoverRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1229,7 +1252,7 @@ function gradeUnderRev(
     }
     case "skyline": {
       const replayStart = performance.now();
-      const run = replaySkylineRun(puzzle.seed, answer, puzzle.skylineRev);
+      const run = replaySkylineRun(puzzle.seed, answer, puzzle.skylineRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1245,7 +1268,9 @@ function gradeUnderRev(
         ...(puzzle.skylineRev === SKYLINE_REV_EXPAND || puzzle.skylineRev === SKYLINE_REV_LIFT ? { golds: run.golds, bestMult: run.bestMult, milestones: run.milestones } : {}),
         // skylineRev 9 (the arcade scoring standard): gold blocks landed perfectly (of 5) and height milestones (no multiplier).
         // skylineRev 10 (the scoring audit): the same fields (rev 9's play; perfect drops counted, not shared).
-        ...(puzzle.skylineRev === SKYLINE_REV_STD || puzzle.skylineRev === SKYLINE_REV_COUNT ? { golds: run.golds, milestones: run.milestones } : {}),
+        ...(puzzle.skylineRev === SKYLINE_REV_STD || puzzle.skylineRev === SKYLINE_REV_COUNT || puzzle.skylineRev === SKYLINE_REV_LIVES ? { golds: run.golds, milestones: run.milestones } : {}),
+        // skylineRev 11 (lives): lives lost (display only; the score never reads it).
+        ...(puzzle.skylineRev === SKYLINE_REV_LIVES ? { livesLost: run.livesLost } : {}),
         survived: run.survived,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -1261,7 +1286,7 @@ function gradeUnderRev(
     case "snake": {
       // As with every arcade game, only the server's own replay scores.
       const replayStart = performance.now();
-      const run = replaySnakeRun(puzzle.seed, answer, puzzle.snakeRev);
+      const run = replaySnakeRun(puzzle.seed, answer, puzzle.snakeRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1291,7 +1316,7 @@ function gradeUnderRev(
     }
     case "cross": {
       const replayStart = performance.now();
-      const run = replayCrossRun(puzzle.seed, answer, puzzle.crossRev);
+      const run = replayCrossRun(puzzle.seed, answer, puzzle.crossRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1347,12 +1372,13 @@ function gradeUnderRev(
     }
     case "ricochet": {
       if (isMoonRev(puzzle.ricoRev)) {
-        // ricoRev 3, Moon Climb: the tower dealt from the stored seed, the move log replayed; only that scores.
+        // ricoRev 3 and 4, Moon Climb: the tower dealt from the stored seed and stamp, the move log replayed; only that scores.
         const replayStart = performance.now();
-        const run = replayMoonRun(puzzle.seed, answer);
+        // (ricoRev 4's levels: the stored level's tower, rules and full height; Normal exactly as before.)
+        const run = replayMoonRun(puzzle.seed, answer, puzzle.ricoRev, puzzleLevel(puzzle));
         revealRun = run;
         arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
-        isCorrect = run.metres >= MOON_CORE_FULL_M;
+        isCorrect = run.metres >= moonFullM(run.state);
         correctCount = run.metres;
         score = run.score;
         extraDetail = {
@@ -1373,6 +1399,8 @@ function gradeUnderRev(
           inputs: decodeMoonRun(answer).events.length,
           claimedScore: decodeMoonRun(answer).claimedScore,
           ...(run.reason ? { reason: run.reason } : {}),
+          // A level's own lantern count and full height (display only; absent at Normal, so Normal's extra is unchanged).
+          ...(run.state.lvl ? { rideTotal: moonSkyCount(run.state), fullM: moonFullM(run.state) } : {}),
         };
         break;
       }
@@ -1433,7 +1461,7 @@ function gradeUnderRev(
     case "breaker": {
       // As with every arcade game, only the server's own replay scores.
       const replayStart = performance.now();
-      const run = replayBreakerRun(puzzle.seed, answer, puzzle.brkRev);
+      const run = replayBreakerRun(puzzle.seed, answer, puzzle.brkRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1485,7 +1513,7 @@ function gradeUnderRev(
       });
       const pts = (parts: { key: string; points: number }[] | null, key: string) => parts?.find((p) => p.key === key)?.points ?? 0;
       if (puzzle.type === "minigolf") {
-        const run = replayMinigolfRun(puzzle.seed, answer, puzzle.pars, puzzle.golfRev);
+        const run = replayMinigolfPuzzle(puzzle, answer);
         revealRun = run;
         arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
         const parts = minigolfStdParts(run.state);
@@ -1494,6 +1522,7 @@ function gradeUnderRev(
         score = run.score;
         extraDetail = {
           golfRev: puzzle.golfRev ?? 1,
+          ...(puzzle.golfRev === 3 ? { chips: run.state.chips, lips: run.state.lips, level: run.state.level } : {}),
           holed: run.holed,
           strokes: run.strokes,
           atPar: run.pars,
@@ -1508,7 +1537,7 @@ function gradeUnderRev(
           ...common(run),
         };
       } else if (puzzle.type === "pool") {
-        const run = replayPoolRun(puzzle.seed, answer, puzzle.poolRev);
+        const run = replayPoolRun(puzzle.seed, answer, puzzle.poolRev, (puzzle as { level?: unknown }).level);
         revealRun = run;
         arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
         const parts = poolStdParts(run.state);
@@ -1528,7 +1557,7 @@ function gradeUnderRev(
           ...common(run),
         };
       } else if (puzzle.type === "curling") {
-        const run = replayCurlingRun(puzzle.seed, answer, puzzle.curlRev);
+        const run = replayCurlingRun(puzzle.seed, answer, puzzle.curlRev, puzzle.level);
         revealRun = run;
         arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
         const parts = curlingStdParts(run.state);
@@ -1564,10 +1593,10 @@ function gradeUnderRev(
       const rev = (puzzle as { homerunRev?: number; freekickRev?: number; racingRev?: number })[field] ?? 1;
       const run: { score: number; flagged: boolean; clientLag: boolean; clientTick: number; desyncTick: number | null; endedSeconds: number; reason?: string; parts: StdPart[]; state: { acted?: number } } =
         puzzle.type === "homerun"
-          ? replayHomerunRun(puzzle.seed, answer, rev)
+          ? replayHomerunRun(puzzle.seed, answer, rev, puzzle.level)
           : puzzle.type === "freekick"
-            ? replayFreekickRun(puzzle.seed, answer, rev)
-            : replayRacingRun(puzzle.seed, answer, rev);
+            ? replayFreekickRun(puzzle.seed, answer, rev, puzzle.level)
+            : replayRacingRun(puzzle.seed, answer, rev, (puzzle as { racingLevel?: unknown }).racingLevel);
       const decoded = puzzle.type === "homerun" ? decodeHomerunRun(answer) : puzzle.type === "freekick" ? decodeFreekickRun(answer) : decodeRacingRun(answer);
       revealRun = run as unknown as typeof revealRun;
       arcadeDiag = buildArcadeDiag(puzzle.type, run as unknown as Parameters<typeof buildArcadeDiag>[1], answer, performance.now() - replayStart);
@@ -1588,13 +1617,16 @@ function gradeUnderRev(
         inputs: decoded.events.length,
         claimedScore: decoded.claimedScore,
         ...(run.reason ? { reason: run.reason } : {}),
+        // Apex racingRev 4 (the Sports overhaul, 15 Nov 2026; display data only, nothing scores or ranks from it): the
+        // run's average speed in tenths of a km/h, so "Average 200 km/h" means 200 km/h on all three circuits.
+        ...(puzzle.type === "racing" && rev >= RACING_REV_4 ? { pace10: racingPace10((run as unknown as { state: RacingState }).state) } : {}),
       };
       break;
     }
     case "pinball": {
       // As with every arcade game, only the server's own replay scores.
       const replayStart = performance.now();
-      const run = replayPinballRun(puzzle.seed, answer, puzzle.pinRev);
+      const run = replayPinballRun(puzzle.seed, answer, puzzle.pinRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1614,7 +1646,7 @@ function gradeUnderRev(
         // pinRev 4 (the expansion): ramps, the best combo, multiballs, jackpots and skill shots.
         ...(pinIsExpanded(puzzle.pinRev) ? { ramps: run.ramps, bestCombo: run.bestCombo, multiballs: run.multiballs, jackpots: run.jackpots, skills: run.skills } : {}),
         // pinRev 6 (the arcade scoring standard): back-to-back ramp shots, one of its features.
-        ...(puzzle.pinRev === PIN_REV_STD ? { combos: run.combos } : {}),
+        ...(puzzle.pinRev === PIN_REV_STD || puzzle.pinRev === PIN_REV_JOULZ || puzzle.pinRev === PIN_REV_SAVE ? { combos: run.combos } : {}),
         lost: run.lost,
         ballsLeft: run.ballsLeft,
         endedSeconds: run.endedSeconds,
@@ -1631,7 +1663,8 @@ function gradeUnderRev(
     // Cards & Board (30 Oct 2026): the server's own replay of the move log on the stored deal.
     case "freecell": {
       const replayStart = performance.now();
-      const run = replayFreecellRun(puzzle.seed, answer, puzzle.freecellRev);
+      const level = levelOfDeal(puzzle);
+      const run = replayFreecellRun(puzzle.seed, answer, puzzle.freecellRev, level);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       isCorrect = run.finished;
@@ -1644,6 +1677,7 @@ function gradeUnderRev(
         moves: run.moves,
         par: run.par,
         ...((puzzle.freecellRev ?? 1) >= 2 ? { undos: run.undos, resets: run.resets } : {}),
+        ...(level ? { level, hints: run.hints } : {}),
         finished: run.finished,
         finishSeconds: run.finishSeconds,
         endedSeconds: run.endedSeconds,
@@ -1661,7 +1695,8 @@ function gradeUnderRev(
     }
     case "tripeaks": {
       const replayStart = performance.now();
-      const run = replayTripeaksRun(puzzle.seed, answer, puzzle.tripeaksRev);
+      const tpLevel = levelOfDeal(puzzle);
+      const run = replayTripeaksRun(puzzle.seed, answer, puzzle.tripeaksRev, tpLevel);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       isCorrect = run.finished;
@@ -1675,6 +1710,7 @@ function gradeUnderRev(
         stockLeft: run.stockLeft,
         // tripeaksRev 2: stock cards turned and the deal's stock par (the reveal's Stock par tile).
         ...((puzzle.tripeaksRev ?? 1) >= 2 ? { stockTurns: run.stockTurns, stockPar: run.stockPar } : {}),
+        ...(tpLevel ? { level: tpLevel, hints: run.hints, undos: run.undos } : {}),
         finished: run.finished,
         finishSeconds: run.finishSeconds,
         endedSeconds: run.endedSeconds,
@@ -1718,7 +1754,7 @@ function gradeUnderRev(
     // Blockfall (1 Nov 2026): the piece order comes from the stored seed and the run is replayed; only that scores.
     case "blockfall": {
       const replayStart = performance.now();
-      const run = replayBlockfallRun(puzzle.seed, answer, puzzle.blockfallRev);
+      const run = replayBlockfallRun(puzzle.seed, answer, puzzle.blockfallRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       isCorrect = !run.toppedOut && run.state.ended === 1;
@@ -1777,7 +1813,8 @@ function gradeUnderRev(
     // Five Hands (31 Oct 2026): the deck is shuffled from the stored seed and the run replayed; only that scores.
     case "fivehands": {
       const replayStart = performance.now();
-      const run = replayFiveHandsRun(puzzle.seed, answer, puzzle.fiveHandsRev);
+      const fhLevel = levelOfDeal(puzzle);
+      const run = replayFiveHandsRun(puzzle.seed, answer, puzzle.fiveHandsRev, fhLevel);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       isCorrect = run.finished;
@@ -1792,6 +1829,7 @@ function gradeUnderRev(
         ...((puzzle.fiveHandsRev ?? 1) >= 3 ? { column: run.column, columnPoints: run.columnPoints, columnHand: run.columnHand } : {}),
         // Practice challenges (wave 2 C1b, display data only): the best column on the run's table (null until every row is complete).
         ...((puzzle.fiveHandsRev ?? 1) >= 3 ? { bestColumnPoints: fiveHandsBestColumnPoints(run.state) } : {}),
+        ...(fhLevel ? { level: fhLevel, hints: run.state.hints ?? 0 } : {}),
         finished: run.finished,
         endedSeconds: run.endedSeconds,
         flagged: run.flagged,
@@ -1809,7 +1847,8 @@ function gradeUnderRev(
     // Pyramid (1 Nov 2026): the deal is built from the stored seed and the run replayed; only that scores.
     case "pyramid": {
       const replayStart = performance.now();
-      const run = replayPyramidRun(puzzle.seed, answer, puzzle.pyramidRev);
+      const pyLevel = levelOfDeal(puzzle);
+      const run = replayPyramidRun(puzzle.seed, answer, puzzle.pyramidRev, pyLevel);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       isCorrect = run.finished;
@@ -1818,6 +1857,7 @@ function gradeUnderRev(
       extraDetail = {
         pyramidRev: puzzle.pyramidRev ?? 1,
         removed: run.removed,
+        ...(pyLevel ? { level: pyLevel, hints: run.state.hints ?? 0 } : {}),
         ppPairs: run.ppPairs,
         kings: run.kings,
         finished: run.finished,
@@ -1929,7 +1969,8 @@ function gradeUnderRev(
     }
     case "mahjong": {
       const replayStart = performance.now();
-      const run = replayMahjongRun(puzzle.seed, answer, puzzle.mahjongRev);
+      const mjLevel = levelOfDeal(puzzle);
+      const run = replayMahjongRun(puzzle.seed, answer, puzzle.mahjongRev, mjLevel);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -1940,6 +1981,7 @@ function gradeUnderRev(
       extraDetail = {
         mahjongRev: puzzle.mahjongRev ?? 1,
         pairs: run.pairs,
+        ...(mjLevel ? { level: mjLevel, hints: run.state.hints ?? 0, of: run.state.face.length / 2 } : {}),
         shuffles: run.shuffles,
         misses: run.misses,
         cleared: run.cleared,
@@ -1957,7 +1999,7 @@ function gradeUnderRev(
     }
     case "rally": {
       const replayStart = performance.now();
-      const run = replayRallyRun(puzzle.seed, answer, puzzle.rallyRev);
+      const run = replayRallyRun(puzzle.seed, answer, puzzle.rallyRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2048,7 +2090,7 @@ function gradeUnderRev(
     }
     case "bubble": {
       const replayStart = performance.now();
-      const run = replayBubbleRun(puzzle.seed, answer, puzzle.bubbleRev);
+      const run = replayBubbleRun(puzzle.seed, answer, puzzle.bubbleRev, (puzzle as { level?: unknown }).level);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2080,7 +2122,7 @@ function gradeUnderRev(
     }
     case "beat": {
       const replayStart = performance.now();
-      const run = replayBeatRun(puzzle.seed, answer, puzzle.beatRev);
+      const run = replayBeatRun(puzzle.seed, answer, puzzle.beatRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2118,7 +2160,7 @@ function gradeUnderRev(
     }
     case "whack": {
       const replayStart = performance.now();
-      const run = replayWhackRun(puzzle.seed, answer, puzzle.whackRev);
+      const run = replayWhackRun(puzzle.seed, answer, puzzle.whackRev, puzzle.bonkLevel);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2151,7 +2193,7 @@ function gradeUnderRev(
     }
     case "tendrop": {
       const replayStart = performance.now();
-      const run = replayTenDropRun(puzzle.seed, answer, puzzle.tenRev);
+      const run = replayTenDropRun(puzzle.seed, answer, puzzle.tenRev, puzzle.tenLevel?.stages);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2220,7 +2262,7 @@ function gradeUnderRev(
     }
     case "clayshoot": {
       const replayStart = performance.now();
-      const run = replayClayRun(puzzle.seed, answer, puzzle.clayRev);
+      const run = replayClayRun(puzzle.seed, answer, puzzle.clayRev, puzzle.pullLevel);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2262,7 +2304,7 @@ function gradeUnderRev(
     }
     case "wavefront": {
       const replayStart = performance.now();
-      const run = replayWavefrontRun(puzzle.seed, answer, puzzle.wavRev);
+      const run = replayWavefrontRun(puzzle.seed, answer, puzzle.wavRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2295,7 +2337,7 @@ function gradeUnderRev(
         // bastionRev 2 (1 Nov 2026): the tank-defence shooter on the arcade scoring standard; the server's replay alone
         // scores, and the stored extra carries each part's points (numbers only) for the reveal.
         const replayStart = performance.now();
-        const run = replayBastionTankRun(puzzle.seed, answer, puzzle.bastionRev);
+        const run = replayBastionTankRun(puzzle.seed, answer, puzzle.bastionRev, puzzleLevel(puzzle));
         const decoded = decodeBastionTankRun(answer);
         revealRun = run as unknown as typeof revealRun;
         arcadeDiag = buildArcadeDiag(puzzle.type, run as unknown as Parameters<typeof buildArcadeDiag>[1], answer, performance.now() - replayStart);
@@ -2379,7 +2421,7 @@ function gradeUnderRev(
     }
     case "flip": {
       const replayStart = performance.now();
-      const run = replayFlipRun(puzzle.seed, answer, puzzle.flipRev);
+      const run = replayFlipRun(puzzle.seed, answer, puzzle.flipRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2436,7 +2478,7 @@ function gradeUnderRev(
     }
     case "inkbridge": {
       const replayStart = performance.now();
-      const run = replayInkBridgeRun(puzzle.seed, answer, puzzle.inkRev);
+      const run = replayInkBridgeRun(puzzle.seed, answer, puzzle.inkRev, (puzzle as { level?: unknown }).level);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2467,7 +2509,7 @@ function gradeUnderRev(
     }
     case "burst": {
       const replayStart = performance.now();
-      const run = replayBurstRun(puzzle.seed, answer, puzzle.burstRev);
+      const run = replayBurstRun(puzzle.seed, answer, puzzle.burstRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2501,7 +2543,7 @@ function gradeUnderRev(
     }
     case "orbit": {
       const replayStart = performance.now();
-      const run = replayOrbitRun(puzzle.seed, answer, puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras);
+      const run = replayOrbitRun(puzzle.seed, answer, puzzle.orbitRev, puzzle.planets, puzzle.holes, puzzle.extras, undefined, puzzle.level);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2577,7 +2619,8 @@ function gradeUnderRev(
     }
     case "swing": {
       const replayStart = performance.now();
-      const run = replaySwingRun(puzzle.seed, answer, puzzle.swingRev);
+      // (swingRev 18's levels: the stored level's course and rules; Normal exactly as before.)
+      const run = replaySwingRun(puzzle.seed, answer, puzzle.swingRev, undefined, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2612,7 +2655,7 @@ function gradeUnderRev(
     }
     case "tilt": {
       const replayStart = performance.now();
-      const run = replayTiltRun(puzzle.seed, answer, puzzle.tiltRev);
+      const run = replayTiltRun(puzzle.seed, answer, puzzle.tiltRev, puzzle.level);
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -2627,6 +2670,8 @@ function gradeUnderRev(
         ...(tiltIsExpand(puzzle.tiltRev) ? { quickStars: run.quickStars, totalQuick: run.totalQuick, falls: run.falls, skillPoints: run.skillPoints } : {}),
         // tiltRev 11: mazes within par and mazes finished before the first fall.
         ...(run.parsMet !== undefined ? { parsMet: run.parsMet, cleanMazes: run.cleanMazes } : {}),
+        // Levels (stage 3): a level's run stores its level and maze count (absent on every Normal round).
+        ...(run.state.lvl ? { level: run.state.lvl, totalMazes: run.state.list.length } : {}),
         survived: run.survived,
         survivedSeconds: run.survivedSeconds,
         endedSeconds: run.endedSeconds,
@@ -2730,7 +2775,8 @@ function gradeUnderRev(
     }
     case "checkout": {
       // Every stage's darts are re-added against the stored board, target and finishing ring.
-      const results = gradeCheckoutStages(puzzle.stages, puzzle.minDarts ?? [], answer);
+      // checkoutRev 3 (numberOverhaul.ts): no dart on a board's way to its checkout may bust.
+      const results = gradeCheckoutStages(puzzle.stages, puzzle.minDarts ?? [], answer, checkoutBust(puzzle));
       const solved = results.filter((r) => r.solved).length;
       isCorrect = solved === puzzle.stages.length;
       correctCount = solved;
@@ -2821,7 +2867,7 @@ function gradeUnderRev(
     case "wordsearch": {
       // Selections are matched against the stored placements; the client's word list is never read.
       // wordSearchRev 3: drags on the private bonus word are set aside (never a wrong pick); the depth grader adds its points.
-      const split = wsSplitBonus(puzzle.bonus, wsDecode(answer, puzzle.size));
+      const split = wsSplitBonus(puzzle.bonus, wsDecode(answer, puzzle.size, wsRowsOf(puzzle)));
       const selections = split.rest;
       const verdict = wsGrade(puzzle.placements ?? [], selections);
       const total = puzzle.placements?.length ?? puzzle.wordCount;
@@ -2869,7 +2915,7 @@ function gradeUnderRev(
       if (strikeoutRevOf(puzzle) >= STRIKEOUT_REV2) {
         // Rev 2: one word at a time, givens public, two vowel guesses per word, five strikes shared.
         // Rev 3: the same with three vowel guesses, ten strikes and 1.5 per strike left (so2Rules).
-        const rules2 = so2Rules(strikeoutRevOf(puzzle));
+        const rules2 = so2RulesFor(puzzle);
         const state2 = replayStrikeout2(
           puzzle.words ?? [],
           puzzle.givens ?? [],
@@ -3000,7 +3046,7 @@ function gradeUnderRev(
     case "matchup": {
       // As with every arcade game, only the server's own replay scores.
       const replayStart = performance.now();
-      const run = replayMatchupRun(puzzle.seed, answer, puzzle.matchupRev);
+      const run = replayMatchupRun(puzzle.seed, answer, puzzle.matchupRev, puzzleLevel(puzzle));
       revealRun = run;
       arcadeDiag = buildArcadeDiag(puzzle.type, run, answer, performance.now() - replayStart);
       if (arcadeDiag.replayMs > 500)
@@ -3082,7 +3128,8 @@ function gradeUnderRev(
         const truths = puzzle.stages.map(countUpStageTruth);
         const given = truths.map((_, i) => parseCount(parts[i] ?? ""));
         correctCount = truths.filter((truth, i) => given[i] === truth).length;
-        isCorrect = truths.length === COUNT_REV2_TRAYS && correctCount === COUNT_REV2_TRAYS;
+        // A level's trays (stage 3 of the Attention overhaul): its own count; every other round four.
+        isCorrect = truths.length === tallyTrays(puzzle) && correctCount === tallyTrays(puzzle);
         score = scoreCountRev2(given, truths, ms, timeLimitMs);
         break;
       }

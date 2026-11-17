@@ -22,6 +22,31 @@ import {
   type InputRange,
 } from "./engine";
 import { stdBandParts, stdEach, stdLine, stdPart, stdScore, type StdPart, type StdSpec } from "./arcadeStandard";
+import {
+  hr5EyeCount,
+  hr5InitInn,
+  hr5Step,
+  hrLevelOf,
+  HOMERUN_REV_5,
+  HR5_HOMER_EACH,
+  HR5_HOMERS_MAX,
+  HR5_END_HOLD,
+  HR5_EYE_EACH,
+  HR5_EYE_MAX,
+  HR5_INPUT_MODE,
+  HR5_INPUT_SWING,
+  HR5_AIM_MAX,
+  HR5_RUN_TICKS,
+  HR5_RUNS_FULL,
+  HR5_RUNS_MAX,
+  HR5_STREAK_EACH,
+  HR5_STREAK_MAX,
+  HR5_HOMER,
+  type Hr5Inn,
+  type HrLevel,
+} from "./homerunInnings";
+
+export { HOMERUN_REV_5 } from "./homerunInnings";
 
 /* ------------------------------------------------------------------ world */
 
@@ -51,7 +76,12 @@ export const HOMERUN_REV_3 = 3;
  * Contact / Power choice, no swipe. Rooms deal rev 4; rev 1, 2 and 3 play, score and replay exactly as before.
  */
 export const HOMERUN_REV_4 = 4;
-export const HOMERUN_REV_DEALT = HOMERUN_REV_4;
+/**
+ * homerunRev 5 (15 Nov 2026, the innings; docs/arcade-standard/homerun.md "homerunRev 5", homerunInnings.ts): one
+ * innings of real batting (read the pitch, swing or take, Contact or Power, aim into the gaps, time it; strikes, balls,
+ * outs, runners and runs), 117 s, with four levels (Normal the rated one). Rooms deal rev 5; rev 1–4 replay exactly.
+ */
+export const HOMERUN_REV_DEALT = HOMERUN_REV_5;
 export const HOMERUN_WORLD_W = 390;
 export const HOMERUN_WORLD_H = 720;
 /**
@@ -64,8 +94,10 @@ export const HOMERUN_WORLD_H = 720;
 export const HOMERUN_V3_VIEW_ROWS = 60;
 /** The stage's view height (world px) for a revision: the world, plus homerunRev 3's rows below it. */
 export function homerunViewHFor(rev?: number | null): number {
-  // homerunRev 4 has no buttons over the field: the view is the world again.
-  return (rev ?? 1) === HOMERUN_REV_3 ? HOMERUN_WORLD_H + HOMERUN_V3_VIEW_ROWS : HOMERUN_WORLD_H;
+  // homerunRev 4 has no buttons over the field: the view is the world again. homerunRev 5's Contact / Power row sits
+  // below the play area (Joe, 16 Nov 2026), so its view is the world too (display only).
+  const r = rev ?? 1;
+  return r === HOMERUN_REV_3 ? HOMERUN_WORLD_H + HOMERUN_V3_VIEW_ROWS : HOMERUN_WORLD_H;
 }
 export const HOMERUN_BG = "#05070E";
 export const HOMERUN_RUN_SECONDS = 60;
@@ -409,9 +441,14 @@ export interface HomerunState {
   best?: number;
   perfects?: number;
   bonus?: number;
+  /** homerunRev 5 only: the innings (homerunInnings.ts). */
+  inn?: Hr5Inn;
 }
 
-export function homerunInit(seed: number, rev: number = HOMERUN_REV_STD): HomerunState {
+export function homerunInit(seed: number, rev: number = HOMERUN_REV_STD, level?: HrLevel): HomerunState {
+  if (rev >= HOMERUN_REV_5) {
+    return { tick: 0, seed: seed | 0, rev, acted: 0, pitch: 0, swingTick: -1, swingA: 0, swingB: 0, hits: [], feet: 0, homers: 0, signs: 0, doneAt: 0, mode: 0, pmode: 0, inn: hr5InitInn(hrLevelOf(level)) };
+  }
   homerunPlan(seed, rev);
   if (rev >= HOMERUN_REV_4) {
     const sx = HOMERUN_V4_SPOT_START.x;
@@ -426,6 +463,7 @@ export function homerunInit(seed: number, rev: number = HOMERUN_REV_STD): Homeru
 
 /** The pitch the batter faces now (null after the tenth). */
 export function homerunCurrent(state: HomerunState): HomerunPitch | null {
+  if (state.rev >= HOMERUN_REV_5) return null;
   return homerunPlan(state.seed, state.rev).pitches[state.pitch] ?? null;
 }
 
@@ -445,7 +483,26 @@ function decide(state: HomerunState, hit: HomerunHit): HomerunState {
   };
 }
 
+function stepV5(prev: HomerunState, input: ArcadeInputEvent | null): HomerunState {
+  const tick = prev.tick + 1;
+  const r = hr5Step(prev.inn!, tick, prev.seed, input ? { k: input.k, a: input.a } : null);
+  const inn = r.inn;
+  return {
+    ...prev,
+    tick,
+    acted: prev.acted + (r.acted ? 1 : 0),
+    inn,
+    pitch: inn.i,
+    swingTick: inn.st,
+    mode: inn.mode,
+    pmode: inn.pmode,
+    homers: inn.hits === prev.inn!.hits ? prev.homers : inn.hits.filter((h) => h.out === HR5_HOMER).length,
+    doneAt: inn.endAt,
+  };
+}
+
 export function homerunStep(prev: HomerunState, input: ArcadeInputEvent | null): HomerunState {
+  if (prev.rev >= HOMERUN_REV_5) return stepV5(prev, input);
   if (prev.rev >= HOMERUN_REV_4) return stepV4(prev, input);
   let state: HomerunState = { ...prev, tick: prev.tick + 1 };
   const plan = homerunPlan(state.seed);
@@ -480,6 +537,7 @@ export function homerunStep(prev: HomerunState, input: ArcadeInputEvent | null):
 }
 
 export function homerunIsOver(state: HomerunState): boolean {
+  if (state.rev >= HOMERUN_REV_5) return state.tick >= HR5_RUN_TICKS || (state.doneAt > 0 && state.tick >= state.doneAt + HR5_END_HOLD);
   return state.tick >= HOMERUN_RUN_TICKS || (state.pitch >= HOMERUN_PITCHES && state.tick >= state.doneAt + HOMERUN_END_HOLD);
 }
 
@@ -526,6 +584,7 @@ export const HOMERUN_STD_SPEC_V3: StdSpec = {
 
 /** The spec a revision scores on. */
 export function homerunStdSpecFor(rev?: number | null): StdSpec {
+  if ((rev ?? 1) >= HOMERUN_REV_5) return HOMERUN_STD_SPEC_V5;
   if ((rev ?? 1) >= HOMERUN_REV_4) return HOMERUN_STD_SPEC_V4;
   return (rev ?? 1) >= HOMERUN_REV_3 ? HOMERUN_STD_SPEC_V3 : (rev ?? 1) === HOMERUN_REV_2 ? HOMERUN_STD_SPEC_V2 : HOMERUN_STD_SPEC;
 }
@@ -544,6 +603,7 @@ export function homerunSignCount(state: Pick<HomerunState, "signs">): number {
 
 /** homerunRev 1's, 2's and 3's scored parts (null on any other revision). */
 export function homerunStdParts(state: HomerunState): StdPart[] | null {
+  if (state.rev === HOMERUN_REV_5) return homerunStdPartsV5(state);
   if (state.rev === HOMERUN_REV_4) return homerunStdPartsV4(state);
   if (state.rev !== HOMERUN_REV_STD && state.rev !== HOMERUN_REV_2 && state.rev !== HOMERUN_REV_3) return null;
   const spec = homerunStdSpecFor(state.rev);
@@ -862,10 +922,36 @@ export const HOMERUN_STD_SPEC_V4: StdSpec = {
     { key: "streak", label: "Perfect streak", max: HOMERUN_V4_STREAK_MAX, of: HOMERUN_PITCHES, item: "perfect swing", how: `${HOMERUN_V4_STREAK_EACH} for each swing in your longest run of perfect swings` },
   ],
 };
-/** The dealt revision's spec. */
-export const HOMERUN_STD_SPEC_DEALT = HOMERUN_STD_SPEC_V4;
 /** homerunRev 4's core: a straight line to 120 at 3,000 ft (300 a pitch). */
 export const HOMERUN_V4_BAND_CURVE = bandCurve([0, HOMERUN_V4_FULL_AT], [0, HOMERUN_V4_CORE_MAX]);
+
+/** homerunRev 5's parts: runs 100 (full at HR5_RUNS_FULL), home runs 40, perfect streak 40, good eye 20. */
+export const HOMERUN_STD_SPEC_V5: StdSpec = {
+  field: "homerunRev",
+  rev: HOMERUN_REV_5,
+  parts: [
+    { key: "core", label: "Runs", max: HR5_RUNS_MAX, of: HR5_RUNS_FULL, item: "run", how: `every run counts, ${HR5_RUNS_FULL} runs for all of it` },
+    { key: "homers", label: "Home runs", max: HR5_HOMERS_MAX, of: HR5_HOMERS_MAX / HR5_HOMER_EACH, item: "home run", how: `${HR5_HOMER_EACH} for each home run` },
+    { key: "streak", label: "Perfect streak", max: HR5_STREAK_MAX, of: HR5_STREAK_MAX / HR5_STREAK_EACH, item: "perfect swing", how: `${HR5_STREAK_EACH} for each swing in your longest run of perfect swings` },
+    { key: "eye", label: "Good eye", max: HR5_EYE_MAX, of: HR5_EYE_MAX / HR5_EYE_EACH, item: "ball taken", how: `${HR5_EYE_EACH} for each pitch outside the zone you leave alone, less any you chase` },
+  ],
+};
+/** The dealt revision's spec. */
+export const HOMERUN_STD_SPEC_DEALT = HOMERUN_STD_SPEC_V5;
+/** homerunRev 5's core: a straight line to 100 at HR5_RUNS_FULL runs. */
+export const HOMERUN_V5_BAND_CURVE = bandCurve([0, HR5_RUNS_FULL], [0, HR5_RUNS_MAX]);
+
+function homerunStdPartsV5(state: HomerunState): StdPart[] {
+  const spec = HOMERUN_STD_SPEC_V5;
+  const inn = state.inn!;
+  const homers = inn.hits.filter((h) => h.out === HR5_HOMER).length;
+  return [
+    stdPart(spec, "core", stdLine(HR5_RUNS_MAX, inn.runs, HR5_RUNS_FULL), `${inn.runs} run${inn.runs === 1 ? "" : "s"}, ${inn.outs} out${inn.outs === 1 ? "" : "s"}`),
+    stdPart(spec, "homers", stdEach(homers, HR5_HOMER_EACH, HR5_HOMERS_MAX), `${homers} home run${homers === 1 ? "" : "s"} of ${inn.big} big hit${inn.big === 1 ? "" : "s"}`),
+    stdPart(spec, "streak", stdEach(inn.best, HR5_STREAK_EACH, HR5_STREAK_MAX), `best run ${inn.best} perfect (${inn.perfects} in all)`),
+    stdPart(spec, "eye", stdEach(hr5EyeCount(inn), HR5_EYE_EACH, HR5_EYE_MAX), `${inn.eye} ball${inn.eye === 1 ? "" : "s"} taken, ${inn.chased} chased`),
+  ];
+}
 
 function homerunStdPartsV4(state: HomerunState): StdPart[] {
   const spec = HOMERUN_STD_SPEC_V4;
@@ -906,7 +992,12 @@ export function homerunCheckpoint(state: HomerunState): HomerunCheckpoint {
     state.rev >= HOMERUN_REV_4
       ? [state.spotX ?? 0, state.spotY ?? 0, state.pspotX ?? 0, state.pspotY ?? 0, state.streak ?? 0, state.best ?? 0, state.bonus ?? 0, ...state.hits.flatMap((h) => [h.dt ?? 0, h.c ?? -1, h.a, h.b])]
       : [];
-  for (const value of [...Object.values(snap), state.swingA, state.swingB, ...extra, ...v3, ...v4]) {
+  // homerunRev 5 adds the innings (earlier checksums are unchanged).
+  const i5 = state.inn;
+  const v5 = i5
+    ? [i5.i, i5.release, i5.mode, i5.pmode, i5.st, i5.aim, i5.balls, i5.strikes, i5.outs, i5.bases, i5.runs, i5.big, i5.eye, i5.chased, i5.streak, i5.best, i5.perfects, i5.endAt, ...i5.hits.flatMap((h) => [h.out, h.st, h.aim, h.dt, h.q, h.feet, h.spray, h.at, h.rel, h.c, h.runs, h.bases])]
+    : [];
+  for (const value of [...Object.values(snap), state.swingA, state.swingB, ...extra, ...v3, ...v4, ...v5]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
   }
@@ -959,8 +1050,30 @@ export const homerunGameV4: ArcadeGame<HomerunState, ArcadeInputEvent | null> = 
   inputRanges: HOMERUN_INPUT_RANGES_V4,
 };
 
-export function homerunGameFor(rev?: number | null): ArcadeGame<HomerunState, ArcadeInputEvent | null> {
+/** homerunRev 5's input kinds: the swing choice (kind 2) and the swipe's aim (kind 5). */
+export const HOMERUN_INPUT_RANGES_V5: readonly InputRange[] = [inputRange(HR5_INPUT_MODE, [0, 1]), inputRange(HR5_INPUT_SWING, [-HR5_AIM_MAX, HR5_AIM_MAX])];
+
+const gamesV5 = new Map<HrLevel, ArcadeGame<HomerunState, ArcadeInputEvent | null>>();
+/** homerunRev 5's game at a level (the innings, its own inputs, a 117 s run). */
+export function homerunGameV5(level?: string | null): ArcadeGame<HomerunState, ArcadeInputEvent | null> {
+  const l = hrLevelOf(level);
+  let g = gamesV5.get(l);
+  if (!g) {
+    g = { ...homerunGame, runTicks: HR5_RUN_TICKS, init: (seed: number) => homerunInit(seed, HOMERUN_REV_5, l), inputRanges: HOMERUN_INPUT_RANGES_V5 };
+    gamesV5.set(l, g);
+    levelOfGame.set(g, l);
+  }
+  return g;
+}
+const levelOfGame = new WeakMap<object, HrLevel>();
+/** The level a homerunRev 5 game object plays (Normal for any other). */
+export function homerunGameLevel(game: object): HrLevel {
+  return levelOfGame.get(game) ?? "normal";
+}
+
+export function homerunGameFor(rev?: number | null, level?: string | null): ArcadeGame<HomerunState, ArcadeInputEvent | null> {
   const r = rev ?? 1;
+  if (r >= HOMERUN_REV_5) return homerunGameV5(level);
   return r >= HOMERUN_REV_4 ? homerunGameV4 : r >= HOMERUN_REV_3 ? homerunGameV3 : r >= HOMERUN_REV_2 ? homerunGameV2 : homerunGame;
 }
 

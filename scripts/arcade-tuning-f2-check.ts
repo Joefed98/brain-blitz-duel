@@ -68,7 +68,16 @@ import {
   type MatchupState,
 } from "../src/lib/arcade/matchup";
 import { encodeMatchupRun, replayMatchupRun } from "../src/lib/duel/matchup";
-import { generateBubble, generateCross, generateMatchup, generateSlice, generateSnip, generateSwing } from "../src/lib/duel/arcade.server";
+import { generateBubble, generateCross, generateMatchup, generateSlice, generateSnip, generateSwing, pinPreRetro } from "../src/lib/duel/arcade.server";
+
+function preRetroDeal<T>(deal: () => T): T {
+  pinPreRetro(true);
+  try {
+    return deal();
+  } finally {
+    pinPreRetro(false);
+  }
+}
 import { BUB_REV_TORPEDO } from "../src/lib/arcade/bubble";
 import { SWING_REV_SPREAD } from "../src/lib/arcade/swing";
 import { SNIP_REV_EXPAND, SNIP_REV_PROVEN } from "../src/lib/arcade/snip";
@@ -138,7 +147,10 @@ section("Old rounds replay and score exactly as before");
 section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
 {
   const stamps: [string, string, number | undefined, number][] = [
-    ["cross", "crossRev", playRevOf("cross", generateCross().crossRev), CROSS_REV_SMALL],
+    // Changed with Joe's approval, 16 Nov 2026 (follows approved overhaul): crossRev 13 (stage 3, lighter
+    // traffic) is new play, so the deal is read with the preRetro pin (crossRev 12, crossRev 10's play), as other checks
+    // written for the stamps before the overhaul do; retro-overhaul-check covers crossRev 13.
+    ["cross", "crossRev", playRevOf("cross", preRetroDeal(generateCross).crossRev), CROSS_REV_SMALL],
     // Taller worlds batch 2 (16 Oct 2026) moved Slice and Coral Pop on to their taller worlds (sliceRev 6, bubbleRev 5); arcade-tuning-g2-check covers them.
     ["slice", "sliceRev", playRevOf("slice", generateSlice().sliceRev), SLICE_REV_LONG],
     ["matchup", "matchupRev", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR],
@@ -162,7 +174,9 @@ section("New rounds carry the Tuning F stamps; runs on them replay unchanged");
   // sliceRev 10 (27 Oct 2026, Joe's phone notes) is sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it.
   // The arcade scoring standard (29 Oct 2026) moved Coral Pop on to bubbleRev 11; bubble-standard-check covers it.
   // Six goals and six treasures (Nov 2026) moved Gemstone on from matchupRev 11 to 12; gemstone-rev12-check covers it.
-  const movedOn: Record<string, number> = { slice: SLICE_REV_BIG + 2 /* sliceRev 12 (3 Nov 2026, bigger food; slice-food-check) */, bubble: BUB_REV_TORPEDO + 7, swing: SWING_REV_SPREAD + 9, matchup: 12, snip: SNIP_REV_EXPAND, cross: CROSS_REV_STD };
+  // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): the Action overhaul's swingRev 18 with the
+  // Strategy overhaul's bubbleRev 12 and matchupRev 13.
+  const movedOn: Record<string, number> = { slice: SLICE_REV_BIG + 2 /* sliceRev 12 (3 Nov 2026, bigger food; slice-food-check) */, bubble: BUB_REV_TORPEDO + 8 /* bubbleRev 12, the Strategy overhaul (15 Nov 2026); changed with Joe's approval (routine consequence) */, swing: SWING_REV_SPREAD + 10 /* swingRev 18 (15 Nov 2026, the bigger hero; changed with Joe's approval, routine consequence of the Action overhaul) */, matchup: 13 /* matchupRev 13, the Strategy overhaul stage 3 (two-hit ice and levels, 15 Nov 2026); changed with Joe's approval (routine consequence) */, snip: SNIP_REV_EXPAND, cross: CROSS_REV_STD };
   for (const [type, field, got, rev] of stamps) {
     if (!want(type)) continue;
     ok(got === (movedOn[type] ?? rev), `${type}: new rounds stamped ${movedOn[type] ?? rev} (got ${got})`);

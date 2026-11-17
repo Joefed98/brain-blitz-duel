@@ -24,7 +24,7 @@ import {
   brkRowOffset,
   BRK_BALL_R,
   BRK_BRICK_W,
-  BRK_PADDLE_W,
+  brkPaddleWOf,
   brkPaddleY,
   BRK_POWER_LASER,
   BRK_ROW_PITCH,
@@ -116,7 +116,9 @@ function landing(b: BrkBall): { x: number; t: number } | null {
  * before the player's own blur and execution error.
  */
 function zoneValue(game: { step: (s: BrkState, e: unknown) => BrkState; isOver: (s: BrkState) => boolean }, start: BrkState, landX: number, zone: number): number {
-  const off = ((zone + 0.5) * BRK_PADDLE_W) / 5 - BRK_PADDLE_W / 2;
+  // A level's paddle (stage 3 of the Retro overhaul) through brkPaddleWOf; Normal's BRK_PADDLE_W otherwise.
+  const PW = brkPaddleWOf(start);
+  const off = ((zone + 0.5) * PW) / 5 - PW / 2;
   const park = Math.round(landX - off);
   let s = start;
   let committed = true;
@@ -253,9 +255,10 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       }
       const err = r.err * (READ[level]! * aim.t + human.p.aimSdPx * 0.6);
       // Land the ball on the chosen zone: the paddle centre sits off the ball by the zone's offset.
-      const off = aim.ball ? ((r.zone + 0.5) * BRK_PADDLE_W) / 5 - BRK_PADDLE_W / 2 : 0;
+      const PW = brkPaddleWOf(seen);
+      const off = aim.ball ? ((r.zone + 0.5) * PW) / 5 - PW / 2 : 0;
       target = aim.x - off + err;
-      if (human.slip(0.02)) target += human.normal() * BRK_PADDLE_W;
+      if (human.slip(0.02)) target += human.normal() * PW;
     } else if (seen.balls.length > 0) {
       // Nothing falling: drift under the ball that will come down first.
       const b = seen.balls.find((x) => !x.spam) ?? seen.balls[0]!;

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ElementType, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ElementType, type ReactNode } from "react";
 
 import { AnimatedScore } from "./AnimatedScore";
 import { boardBox } from "@/lib/boardBox";
@@ -43,7 +43,7 @@ const SHORT_GOALS: Partial<Record<PuzzleType, string>> = {
   bridges: "Bridge every island to its number",
   kakuro: "Fill runs to add to their clues",
   lightup: "Light every white square",
-  wordsearch: "Find the six hidden words",
+  wordsearch: "Find the hidden words",
   strikeout: "Reveal five long words",
   codeword: "Each number is one letter",
   swapword: "Swap tiles until every word reads",
@@ -56,7 +56,7 @@ const SHORT_GOALS: Partial<Record<PuzzleType, string>> = {
   equation: "Make each equation true",
   symscan: "Find every matching eagle",
   countup: "Count the shapes asked for",
-  unblock: "Slide the gold block out",
+  unblock: "Slide the gold car out",
   blockparty: "Fit every piece",
   maze: "Draw a path to the exit",
   tower: "Move the tower to the gold post",
@@ -71,6 +71,66 @@ const SHORT_GOALS: Partial<Record<PuzzleType, string>> = {
 
 export function frameGoal(type: PuzzleType): string {
   return SHORT_GOALS[type] ?? puzzleGoal(type).replace(/\.$/, "");
+}
+
+/**
+ * A live round's own goal line, where the dealt puzzle decides it (16 Nov 2026: Counterweight names the scales its level
+ * deals). Set by the stage while it is mounted, read by the goal line, the arena panel and the phone status; display only.
+ */
+const goalOverrides = new Map<PuzzleType, string>();
+const goalListeners = new Set<() => void>();
+function goalChanged(): void {
+  for (const l of goalListeners) l();
+}
+function subscribeGoal(l: () => void): () => void {
+  goalListeners.add(l);
+  return () => goalListeners.delete(l);
+}
+
+/** For a stage: the goal line it deals (cleared when the stage unmounts). */
+export function useStageGoal(type: PuzzleType, goal: string | null): void {
+  useIsoLayoutEffect(() => {
+    if (!goal) return;
+    goalOverrides.set(type, goal);
+    goalChanged();
+    return () => {
+      if (goalOverrides.get(type) === goal) goalOverrides.delete(type);
+      goalChanged();
+    };
+  }, [type, goal]);
+}
+
+/**
+ * A level's own goal (the Attention overhaul's levels: "Find all 21 pairs" on Expert), published by the stage while it is
+ * up and read by the goal line and the computer's side panel in place of the game's fixed goal. Display only.
+ */
+let levelGoal: { type: PuzzleType; text: string } | null = null;
+export function publishLevelGoal(type: PuzzleType, text: string | null): void {
+  const next = text ? { type, text } : null;
+  if (levelGoal?.type === next?.type && levelGoal?.text === next?.text) return;
+  levelGoal = next;
+  // One change event for both kinds of stage goal (puzzle train combine, 16 Nov 2026).
+  goalChanged();
+}
+
+/** A stage's level goal, published while it is mounted (null: the game's own goal). */
+export function useLevelGoal(type: PuzzleType, text: string | null): void {
+  useEffect(() => {
+    publishLevelGoal(type, text);
+    return () => publishLevelGoal(type, null);
+  }, [type, text]);
+}
+
+/** The goal line to draw for a type: the live stage's own when it set one, else a level's own goal, else the game's. */
+export function useFrameGoal(type: PuzzleType): string;
+export function useFrameGoal(type: PuzzleType | undefined): string | null;
+export function useFrameGoal(type: PuzzleType | undefined): string | null {
+  const own = useSyncExternalStore(
+    subscribeGoal,
+    () => (type ? (goalOverrides.get(type) ?? (levelGoal && levelGoal.type === type ? levelGoal.text : null)) : null),
+    () => null,
+  );
+  return type ? (own ?? frameGoal(type)) : null;
 }
 
 /**
@@ -279,15 +339,33 @@ export function useGoalProgress(progress: GoalProgress): boolean {
   return Boolean(publish);
 }
 
+/**
+ * A stage's own goal for the goal line (the Speed overhaul's levels: Ascend's Expert counts down), published as stages
+ * publish their progress; null keeps the game's goal. Display only.
+ */
+const GoalTextContext = createContext<((goal: string | null) => void) | null>(null);
+export function useGoalText(goal: string | null): void {
+  const publish = useContext(GoalTextContext);
+  useIsoLayoutEffect(() => {
+    if (!publish) return;
+    publish(goal);
+    return () => publish(null);
+  }, [publish, goal]);
+}
+
 /** The puzzles' goal line: the goal left, the progress right, a stage bar under both where the game has stages. */
 export function GoalLine({ type, children }: { type: PuzzleType; children: ReactNode }) {
   const [progress, setProgress] = useState<GoalProgress | null>(null);
+  const goalText = useFrameGoal(type);
+  const [goal, setGoal] = useState<string | null>(null);
   const bar = GOAL_BAR_GAMES.has(type);
   return (
+    <GoalTextContext.Provider value={setGoal}>
     <GoalLineContext.Provider value={setProgress}>
       <div data-goal-line data-goal-bar={bar ? "" : undefined} className="game-goal-line">
         <div className="game-goal-row">
-          <span data-goal-text className="game-goal-text">{frameGoal(type)}</span>
+          {/* A stage's own goal text (the Speed overhaul's useGoalText) first, then a stage or level goal, then the game's. */}
+          <span data-goal-text className="game-goal-text">{goal ?? goalText}</span>
           {progress ? <span data-goal-progress className="game-goal-progress">{progress.text}</span> : null}
         </div>
         {bar ? (
@@ -302,6 +380,7 @@ export function GoalLine({ type, children }: { type: PuzzleType; children: React
       </div>
       {children}
     </GoalLineContext.Provider>
+    </GoalTextContext.Provider>
   );
 }
 

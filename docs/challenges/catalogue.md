@@ -137,15 +137,15 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Clear road | Free the gold block in par moves. | Classic | Par | finish, `parts.efficiency` ≥ 20 |  | `unblock.par` |
-| Rush hour | Free the gold block within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 30 (by 40 s) |  | `unblock.speed` |
+| Clear road | Free the gold car in par moves. | Classic | Par | finish, `parts.efficiency` ≥ 20 |  | `unblock.par` |
+| Rush hour | Free the gold car within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 30 (by 40 s) |  | `unblock.speed` |
 | Green wave | Score 200 on an Expert jam. | Expert | Perfect | `score` ≥ 200 | ● | `unblock.green-wave` |
 
 #### Tessellate (`blockparty`)
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| No second thoughts | Fill the board without moving a piece twice. | Classic | Clean | finish, `parts.efficiency` ≥ 10 |  | `blockparty.no-second-thoughts` |
+| No second thoughts | Fill the board without dropping a piece where it won’t fit. | Classic | Clean | finish, `parts.efficiency` ≥ 10 |  | `blockparty.no-second-thoughts` |
 | Snap fit | Fill the board within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 40 s) |  | `blockparty.snap-fit` |
 
 #### Skid (`iceslide`)
@@ -183,14 +183,14 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | One shot | Light all six gems with your first FIRE. | Classic | Clean | finish, `fires` = 1 |  | `laser.one-shot` |
 | Hall of mirrors | Light all six on the first shot with par mirrors. | Classic | Par | finish, `parts.efficiency` ≥ 10 |  | `laser.hall-of-mirrors` |
-| Speed of light | Light all six within 15 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 15 s) | ● | `laser.speed-of-light` |
+| Speed of light | Light all six within 30 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 30 s) | ● | `laser.speed-of-light` |
 
 #### Chroma Lines (`flow`)
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | No redraws | Join every pair without redrawing a line. | Classic | Clean | finish, `redraws` = 0 |  | `flow.no-redraws` |
-| Paint stripper | Join every pair within 20 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 20 s) |  | `flow.paint-stripper` |
+| Paint stripper | Join every pair within 30 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 30 s) |  | `flow.paint-stripper` |
 | Spaghetti junction | Fill a Hard board. | Hard | Finish | finish |  | `flow.spaghetti-junction` |
 
 #### Pipeline (`pipes`)
@@ -256,7 +256,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Bird lover | Hit 15 clays without hitting a bird. | Classic | Clean | `hits` ≥ 15, `birdHits` = 0 |  | `clayshoot.bird-lover` |
 | Double trouble | Hit both clays of every double. | Classic | Full set | `depth.doublesHit` ≥ `depth.doublesTotal`, `depth.doublesTotal` ≥ 1 |  | `clayshoot.double-trouble` |
-| Dead eye | Hit all 25 clays in a row, each within a quarter second. | Classic | Streak | `depth.streak` ≥ 36 | ● | `clayshoot.dead-eye` |
+| Dead eye | Hit all 25 clays in a row, each within 400 ms. | Classic | Streak | `depth.streak` ≥ 36 | ● | `clayshoot.dead-eye` |
 
 #### Mixed Signals (`stroop`)
 
@@ -326,7 +326,7 @@ challenges never count. How the checks read a run:
 | Gold digger | Find a word through the gold tile. | Classic | Target | `goldWords` count ≥ 1 |  | `wordhunt.gold-digger` |
 | Long haul | Find three words of six letters or more. | Classic | Target | `longWords` ≥ 3 |  | `wordhunt.long-haul` |
 | Clean forage | Find 10 words without a single miss. | Classic | Clean | `words` count ≥ 10, `misses` = 0 |  | `wordhunt.clean-forage` |
-| Forager supreme | Score 170 or more on Hard. | Hard | Big score | `score` ≥ 170 | ● | `wordhunt.forager-supreme` |
+| Forager supreme | Score 160 or more on Hard. | Hard | Big score | `score` ≥ 160 | ● | `wordhunt.forager-supreme` |
 
 #### Interlock (`tilegrid`)
 
@@ -348,7 +348,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Hidden gem | Find the unlisted seventh word. | Classic | Full set | finish, `parts.efficiency` ≥ 30 |  | `wordsearch.hidden-gem` |
 | Eagle-eyed | Find all six within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 20 (by 40 s) |  | `wordsearch.eagle-eyed` |
-| Crow’s nest | Score 200 on Hard. | Hard | Perfect | `score` ≥ 200 | ● | `wordsearch.crows-nest` |
+| Crow’s nest | Score 195 or more on Hard. | Hard | Big score | `score` ≥ 195 | ● | `wordsearch.crows-nest` |
 
 #### Roundabout (`letterwheel`)
 
@@ -408,7 +408,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Solid base | Build all four pyramids clean. | Classic | Clean | finish, `cleanPyramids` ≥ 4 |  | `numpyramid.solid-base` |
-| Pharaoh | Score 200 on Expert. | Expert | Perfect | `score` ≥ 200 | ● | `numpyramid.pharaoh` |
+| Pharaoh | Score 180 on Expert. | Expert | Perfect | `score` ≥ 180 | ● | `numpyramid.pharaoh` |
 
 #### Brimful (`measure`)
 
@@ -446,7 +446,7 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Sum total | Fill the grid with no wrong digits. | Classic | Clean | finish, `mistakes` = 0 |  | `kakuro.sum-total` |
+| Sum total | Fill the grid without breaking a rule. | Classic | Clean | finish, `mistakes` = 0 |  | `kakuro.sum-total` |
 | Mental arithmetic | Fill a Hard grid. | Hard | Finish | finish |  | `kakuro.mental-arithmetic` |
 | Human calculator | Fill the grid within 60 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 60 s) |  | `kakuro.human-calculator` |
 
@@ -464,7 +464,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Double or nothing | Land eight double flips. | Classic | Combo | line “Double flips” = 20 of 20 |  | `flip.double-or-nothing` |
-| Sweet spot | Land every sweet spot. | Classic | Full set | line “Perfect landings” = 60 of 60 |  | `flip.sweet-spot` |
+| Sweet spot | Land five sweet spots. | Classic | Full set | line “Perfect landings” = 60 of 60 |  | `flip.sweet-spot` |
 | Flow rider | Make 50 clean jumps in a row. | Classic | Streak | line “Flow streak” = 20 of 20 | ● | `flip.flow-rider` |
 
 #### Grappler (`swing`)
@@ -561,7 +561,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Multiball madness | Start multiball. | Classic | Target | line “Multiball” = 20 of 20 |  | `pinball.multiball` |
-| Spell it out | Spell J-O-U-L-Z twice. | Classic | Max-out | line “J-O-U-L-Z” = 20 of 20 |  | `pinball.joulz` |
+| Spell it out | Spell J-O-U-L-Z in one game. | Classic | Max-out | line “J-O-U-L-Z” = 20 of 20 |  | `pinball.joulz` |
 | Jackpot | Hit three jackpots. | Classic | Full set | line “Jackpots” = 15 of 15 | ● | `pinball.jackpot` |
 
 #### Rally (`rally`)
@@ -570,13 +570,13 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Pink pong | Strike pink pads five times. | Classic | Target | line “Pink pads” ≥ 15 |  | `rally.pink-pong` |
 | Target practice | Hit all six gold targets. | Classic | Full set | line “Gold targets” = 30 of 30 |  | `rally.target-practice` |
-| Rally king | Return 23 gold balls on Hard. | Hard | Max-out | line “Gold-ball hits” = 140 of 140 |  | `rally.rally-king` |
+| Rally king | Return 23 gold balls on Hard. | Hard | Max-out | line “Gold-ball hits” = 130 of 130 |  | `rally.rally-king` |
 
 #### Meteor (`snake`)
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Star eater | Eat 28 stars; a gold star counts as two. | Classic | Target | `meteorParts.core` ≥ 120 |  | `snake.star-eater` |
+| Star eater | Eat 36 stars; a gold star counts as two. | Classic | Target | `meteorParts.core` ≥ 120 |  | `snake.star-eater` |
 | Comet tail | Score 150 or more. | Classic | Big score | `score` ≥ 150 |  | `snake.comet-tail` |
 | Golden comet | Eat all seven gold stars. | Classic | Full set | `goldStars` ≥ `goldStarsDealt`, `goldStarsDealt` ≥ 7 |  | `snake.golden-comet` |
 
@@ -619,7 +619,7 @@ challenges never count. How the checks read a run:
 | Birdie | Hole one under par. | Classic | Par | line “Under par” ≥ 4 |  | `minigolf.birdie` |
 | Par for the course | Hole all five in par or better. | Classic | Par | line “Par” = 40 of 40 |  | `minigolf.par-for-the-course` |
 | Quick round | Hole all five within 53 s. | Classic | Speed | line “Speed” = 20 of 20 |  | `minigolf.quick-round` |
-| Under, under | Hole all five under par on Hard. | Hard | Par | line “Under par” = 20 of 20 | ● | `minigolf.under-under` |
+| Under, under | Hole all five in par on Hard, where par is the best route. | Hard | Par | line “Under par” = 20 of 20 | ● | `minigolf.under-under` |
 
 #### Cue Ball (`pool`)
 
@@ -641,16 +641,16 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Sign here | Hit the lit sign five times. | Classic | Target | line “Bonus signs” ≥ 10 |  | `homerun.sign-here` |
+| Good eye | Leave five more balls alone than you chase. | Classic | Target | line “Good eye” = 20 of 20 |  | `homerun.good-eye` |
 | Out of the park | Hit ten home runs. | Classic | Full set | line “Home runs” = 40 of 40 |  | `homerun.homers` |
-| Perfect ten | Make ten perfect swings in a row. | Classic | Streak | line “Perfect streak” = 20 of 20 | ● | `homerun.streak` |
+| Perfect ten | Make ten perfect swings in a row. | Classic | Streak | line “Perfect streak” = 40 of 40 | ● | `homerun.streak` |
 
 #### Top Bins (`freekick`)
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Five alive | Score five in a row. | Classic | Streak | line “Five in a row” = 10 of 10 |  | `freekick.five-alive` |
-| Bend it | Score five well-bent goals. | Classic | Target | line “Curl bonus” ≥ 10 |  | `freekick.bend-it` |
+| Skill shooter | Score five skill shots. | Classic | Target | line “Skill shots” ≥ 15 |  | `freekick.skill-shooter` |
 | Top bins | Score through all four hoops. | Classic | Full set | line “Targets” = 40 of 40 | ● | `freekick.top-bins` |
 
 #### Apex (`racing`)
@@ -658,7 +658,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Clean half | Drive four sectors clean. | Classic | Clean | line “Clean sectors” ≥ 20 |  | `racing.clean-half` |
-| Two hundred club | Average 200 km/h. | Classic | Speed | line “Pace” ≥ 110 |  | `racing.two-hundred-club` |
+| Two hundred club | Average 200 km/h. | Classic | Speed | from `racingRev` 4: `pace10` ≥ 2000; before: line “Pace” ≥ 110 |  | `racing.two-hundred-club` |
 | Grand slam | Drive all eight sectors clean on Expert. | Expert | Clean | line “Clean sectors” = 40 of 40 |  | `racing.grand-slam` |
 
 #### Five Hands (`fivehands`)
@@ -667,7 +667,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Handsome | Score 150 or more. | Classic | Big score | `score` ≥ 150 |  | `fivehands.handsome` |
 | Pick of the bunch | Pick the best bonus column on the table. | Classic | Par | `column` ≥ 0, `columnPoints` ≥ `bestColumnPoints` |  | `fivehands.pick-of-the-bunch` |
-| High roller | Score 170 or more on Hard. | Hard | Big score | `score` ≥ 170 | ● | `fivehands.high-roller` |
+| High roller | Score 160 or more on Hard. | Hard | Big score | `score` ≥ 160 | ● | `fivehands.high-roller` |
 
 #### Free Cell (`freecell`)
 
@@ -682,7 +682,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | No shuffle | Clear the stack without a Shuffle. | Classic | Clean | line “Pairs” = 150 of 150, line “No shuffles” = 20 of 20 |  | `mahjong.no-shuffle` |
-| Tile rush | Clear a Hard stack within 65 s. | Hard | Speed | line “Speed” = 30 of 30 |  | `mahjong.tile-rush` |
+| Tile rush | Clear a Hard stack within 25 s. | Hard | Speed | line “Speed” = 30 of 30 |  | `mahjong.tile-rush` |
 
 #### Minefield (`minesweeper`)
 

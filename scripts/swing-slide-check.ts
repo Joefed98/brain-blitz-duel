@@ -61,6 +61,7 @@ import {
   SWING_REV_REWORK,
   SWING_REV_DARK,
   SWING_REV_SLIDE,
+  SWING_REV_BIG,
   SWING_V15_PAR_FULL,
   SWING_V16_BLOCKS,
   SWING_V16_RUNS,
@@ -84,7 +85,10 @@ import {
 } from "../src/lib/arcade/swing";
 import { bandPoints } from "../src/lib/arcade/scoreBands";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
-import { generateSwing } from "../src/lib/duel/arcade.server";
+import { generateSwing, pinSwingPreBig } from "../src/lib/duel/arcade.server";
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero): this check deals swingRev 17 through
+// pinSwingPreBig, and its live-revision assertions (LIVE_BANDS, the intro demo's gate) read rev 18's.
+pinSwingPreBig(true);
 import { SWING_SLIDE_DEAL } from "../src/lib/duel/swingSlideDeal.server";
 import { SWING_SLIDE_DEAL_SIZE, SWING_SLIDE_WITNESS, swingSlideVerdict, type SwingWitness } from "./swing-slide-deal";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
@@ -510,7 +514,8 @@ console.log(`witness: ${playSeeds.length} courses cleared by their own planned r
 /* 9. Display and text. */
 {
   ok(swingWorldWFor(SWING_REV_SLIDE) === 450 && swingWorldHFor(SWING_REV_SLIDE) === 844, "rev 17 plays in rev 13's 450 × 844 view");
-  ok(LIVE_BANDS.swing.rev === SWING_REV_SLIDE && LIVE_BANDS.swing.curve === SWING_V17_BAND_CURVE, "the help's numbers come from the revision rooms deal (swingRev 17)");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero): the live revision is 18, on rev 17's curve.
+  ok(LIVE_BANDS.swing.rev === SWING_REV_BIG && LIVE_BANDS.swing.curve === SWING_V17_BAND_CURVE, "the help's numbers come from the revision rooms deal (swingRev 18, rev 17's curve)");
   const help = PUZZLE_INSTRUCTIONS.swing!;
   const text = help.how.map((h) => `${h.action} ${h.detail}`).join(" ");
   // The jungle canopy (3 Nov 2026): sliding hooks are shown as swinging vines on the same paths.
@@ -525,16 +530,21 @@ console.log(`witness: ${playSeeds.length} courses cleared by their own planned r
   ok(hasScorePart(help.score, "Course", SWING_V17_CORE) && hasScorePart(help.score, "Pars", SWING_V17_PAR_POINTS) && hasScorePart(help.score, "Gates", SWING_V17_GATE_POINTS * SWING_V17_GATES) && hasScorePart(help.score, "Clean-swing streak", SWING_V17_STREAK_MAX) && help.score.endsWith("Total 200.") && /clean-swing streak/i.test(help.score), `the help's SCORE text states the parts totalling 200: "${help.score}"`);
   ok(/streak/.test(INTRO_SCORE.swing) && /gates/.test(INTRO_SCORE.swing) && !/gems/.test(INTRO_SCORE.swing) && /Up to (\{max\}|200)/.test(INTRO_SCORE.swing) && INTRO_SCORE.swing.replace("{max}", "200").length <= 90, `the intro score line (90 characters at most): "${INTRO_SCORE.swing}"`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_SLIDE\) return null/.test(demo), "Grappler's intro demo stays stopped until one is recorded on swingRev 17");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero).
+  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_BIG\) return null/.test(demo), "Grappler's intro demo stays stopped until one is recorded on swingRev 18");
   const introSrc = readFileSync("src/components/duel/RoundIntro.tsx", "utf8");
-  ok(/setTimeout\(\(\) => prepareSwingCourse\(seed, swingRev\)/.test(introSrc), "the round's intro builds the course ahead");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the call also passes the
+  // puzzle's level (swingRev 18's difficulty levels).
+  ok(/setTimeout\(\(\) => prepareSwingCourse\(seed, swingRev(, level)?\)/.test(introSrc), "the round's intro builds the course ahead");
   const art = readFileSync("src/lib/arcade/swing.renderer.ts", "utf8");
   ok(/const a = state\.slide \? swingAnchorAt\(state, i, state\.tick\) : home;/.test(art) && /if \(state\.slide\) drawRails\(/.test(art) && /STREAK ×\$\{streak\}/.test(art), "the renderer draws each sliding hook where the sim has it, its rail, and the streak in the HUD");
   // swingRev 17 draws the jungle canopy (3 Nov 2026): the same rules in its own file, and the streak as an Action HUD chip.
   const jungle = readFileSync("src/lib/arcade/swingJungle.renderer.ts", "utf8");
   ok(/if \(state\.slide\) \{\n    drawSwingJungleWorld\(/.test(art) && /const a = state\.slide \? swingAnchorAt\(state, i, state\.tick\) : home;/.test(jungle) && /state\.dark && !swingHookLit\(state, i\)/.test(jungle) && /if \(state\.slide\) drawJungleVinePaths\(/.test(art) && /label: "STREAK", value: `×\$\{streak\}`/.test(art), "the jungle draws each swinging vine where the sim has it (none in the shade), its path, and the streak chip");
   const sim = readFileSync("src/lib/arcade/swing.ts", "utf8");
-  ok(/s\.slide \? rangeTargetAt\(s, lo, hi, s\.x, s\.y, state\.tick, lim\)/.test(sim) && /if \(s\.slide\) return rangeTargetAt\(s, lo, hi, x, y, tick, s\.dark \? swingDarkFrom\(s\) : SWING_NO_DARK\)/.test(sim), "the step and the bots' look-ahead read the same sliding hooks");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the look-ahead may run under
+  // a swingRev 18 level's reach (withLevel), the same as the step.
+  ok(/s\.slide \? rangeTargetAt\(s, lo, hi, s\.x, s\.y, state\.tick, lim\)/.test(sim) && /if \(s\.slide\) return (withLevel\(swingLevelOf\(s\), "play", \(\) => )?rangeTargetAt\(s, lo, hi, x, y, tick, s\.dark \? swingDarkFrom\(s\) : SWING_NO_DARK\)/.test(sim), "the step and the bots' look-ahead read the same sliding hooks");
 }
 
 /* 10. Building a course stays quick. */

@@ -312,6 +312,11 @@ export interface TiltState extends BandFields {
   parClean?: number;
   /** tiltRev 12 only (3 Nov 2026): 1. tiltRev 11's mazes and rules with bigger marbles and keys (TILT_B_*); in the checkpoint checksum. */
   big?: number;
+  /**
+   * Levels (stage 3, 15 Nov 2026; tiltRev 12 only): the level a non-Normal round was dealt at, whose mazes, pars and
+   * speed line (TILT_LEVELS) it plays; absent on every Normal round. In the checkpoint checksum.
+   */
+  lvl?: TiltLevel;
   /** tiltRev 11: mazes finished within their par, and the mazes finished before the run's first fall (absent until a fall). */
   parsMet?: number;
   cleanTo?: number;
@@ -606,6 +611,8 @@ export function tiltCheckpoint(state: TiltState): TiltCheckpoint {
   if (state.parClean) values.push(state.parClean, state.parsMet ?? 0, state.cleanTo ?? -1);
   // tiltRev 12 adds its marker last, so every tiltRev 11 checksum is unchanged.
   if (state.big) values.push(state.big);
+  // A level's run (stage 3) adds its level last, so every Normal checksum is unchanged.
+  if (state.lvl) values.push(TILT_LEVEL_CODE[state.lvl]);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1511,8 +1518,11 @@ const TILT_X_BRANCH = 8;
 export const TILT_X_ROUTE: readonly number[] = [42, 46, 40];
 
 /** One expansion maze: tiltRev 0's depth-first carve at the bigger size, its exit the rim cell whose route is nearest TILT_X_ROUTE. */
-function buildMazeX(level: number, draw: (n: number) => number): Maze {
-  const n = TILT_X_SIZES[level]!;
+function buildMazeX(level: number, draw: (n: number) => number, spec?: TiltMazeShape): Maze {
+  // Levels (stage 3, 15 Nov 2026): a level's maze passes its own size, route and holes; Normal passes none (unchanged).
+  const n = spec ? spec.n : TILT_X_SIZES[level]!;
+  const routeLen = spec ? spec.route : TILT_X_ROUTE[level]!;
+  const pitCount = spec ? spec.pits : TILT_X_PITS[level]!;
   const csPx = TILT_X_CELL;
   const cs = csPx * FP;
   const half = Math.trunc((n * csPx) / 2);
@@ -1566,8 +1576,8 @@ function buildMazeX(level: number, draw: (n: number) => number): Maze {
     if (!inside[c]) continue;
     for (let d = 0; d < 4; d++) {
       if (inCell((c % n) + DX[d]!, Math.trunc(c / n) + DY[d]!)) continue;
-      const off = Math.abs(dist[c]! - TILT_X_ROUTE[level]!);
-      if (far < 0 || off < Math.abs(dist[far]! - TILT_X_ROUTE[level]!)) {
+      const off = Math.abs(dist[c]! - routeLen);
+      if (far < 0 || off < Math.abs(dist[far]! - routeLen)) {
         far = c;
         farDir = d;
       }
@@ -1591,7 +1601,7 @@ function buildMazeX(level: number, draw: (n: number) => number): Maze {
   };
   const deep = ends.filter((c) => offRoute(c) >= 2);
   const pits: number[] = [];
-  for (let k = 0; k < TILT_X_PITS[level]! && deep.length; k++) pits.push(deep.splice(draw(deep.length), 1)[0]!);
+  for (let k = 0; k < pitCount && deep.length; k++) pits.push(deep.splice(draw(deep.length), 1)[0]!);
   return { ...base, pits, exit: far, exitDir: farDir };
 }
 
@@ -1775,7 +1785,10 @@ function parX(m: Maze): { par: number; quickAt: number[] } {
 }
 
 /** Keys and gates, ice, quick stars and par for one expansion maze (after decorateV4's cups and stars). */
-function decorateX(m: Maze, draw: (n: number) => number, level: number): Maze {
+function decorateX(m: Maze, draw: (n: number) => number, level: number, spec?: { patches: number; quick: number }): Maze {
+  // Levels (stage 3): a level passes its own ice patches and quick-star corridors (Normal: none passed, unchanged).
+  const quickCount = spec ? spec.quick : TILT_X_QUICK;
+  const patchCount = spec ? spec.patches : TILT_X_ICE_PATCHES[level]!;
   const out: Maze = { ...m, keys: [], gates: [], ice: new Array<number>(m.n * m.n).fill(0), quick: [] };
   const n = m.n;
   const used = new Set<number>([m.start, m.exit, ...m.pits]);
@@ -1835,7 +1848,7 @@ function decorateX(m: Maze, draw: (n: number) => number, level: number): Maze {
   const [lo, hi] = TILT_X_QUICK_HOPS;
   const pool = branches.filter((e) => !used.has(e.c) && e.hops >= lo && e.hops <= hi && blue.indexOf(e.junction) >= 0 && blue.indexOf(e.junction) < reachCut);
   let lastJunction = 0;
-  for (let k = 0; k < TILT_X_QUICK && pool.length; k++) {
+  for (let k = 0; k < quickCount && pool.length; k++) {
     const e = pool.splice(draw(pool.length), 1)[0]!;
     out.quick!.push(e.c);
     used.add(e.c);
@@ -1897,7 +1910,7 @@ function decorateX(m: Maze, draw: (n: number) => number, level: number): Maze {
   });
   // Ice patches on the routes: a seeded route cell and the open cells round it, up to TILT_X_ICE_CELLS.
   const all = [...onRoute].filter((c) => !used.has(c)).sort((a, b) => a - b);
-  for (let p = 0; p < TILT_X_ICE_PATCHES[level]! && all.length; p++) {
+  for (let p = 0; p < patchCount && all.length; p++) {
     const seed = all.splice(draw(all.length), 1)[0]!;
     const patch = [seed];
     for (let q = 0; q < patch.length && patch.length < TILT_X_ICE_CELLS; q++)
@@ -2568,13 +2581,13 @@ export const TILT_P_PAR_SCALE = 150;
 export const TILT_V11_BAND_CURVE = bandCurve([0, TILT_P_CORE_MAX], [0, TILT_P_CORE_MAX]);
 
 /** A tiltRev 11 maze's par (ticks), from the maze alone: its shortest walk over its key(s) to the blue cup and the amber route. */
-export function tiltParT(m: Maze): number {
+export function tiltParT(m: Maze, scale: number = TILT_P_PAR_SCALE): number {
   const w = tiltParWalksX({ ...m, stars: [], quick: [] });
   const cells = Math.max(0, w.tour.length - 1);
   const amberCells = Math.max(0, w.amber.length - 1);
   const px = Math.trunc(m.cs / FP);
   const t = TILT_P_PAR_T0 + Math.trunc((TILT_P_PAR_CELL_T * cells * px) / 30) + TILT_P_PAR_TURN_T * tiltWalkTurnsX(m, w.tour) + Math.trunc((TILT_P_PAR_AMBER_T * amberCells * px) / 30);
-  return Math.trunc((t * TILT_P_PAR_SCALE) / 100);
+  return Math.trunc((t * scale) / 100);
 }
 
 const cacheP = new Map<number, Maze[]>();
@@ -2625,6 +2638,9 @@ export function tiltParLeftP(s: TiltState): number {
 
 /** tiltRev 11's parts: core (mazes and progress), par, clean run, finish and speed (integer only). */
 export function tiltParParts(state: TiltState): { core: number; par: number; clean: number; speed: number; mazes: number; progress: number; parsMet: number; cleanMazes: number } {
+  // A level's run (stage 3) has its own maze count and speed line; tiltLevelParts reduces to the formula below at four
+  // mazes and 60 s, but Normal keeps its own lines exactly.
+  if (state.lvl) return tiltLevelParts(state);
   const mazes = clampInt(state.mazes, 0, TILT_S_MAZES);
   const finished = mazes >= TILT_S_MAZES;
   const prog = !finished && state.progMaze === mazes ? clampInt(state.prog ?? 0, 0, TILT_S_PROGRESS_SCALE) : 0;
@@ -2641,11 +2657,13 @@ export function tiltParParts(state: TiltState): { core: number; par: number; cle
 
 export function tiltParBandParts(state: TiltState): BandParts {
   const p = tiltParParts(state);
-  const finished = p.mazes >= TILT_S_MAZES;
+  // A level's run counts its own mazes (stage 3); every tiltRev 11 and 12 Normal run has TILT_S_MAZES.
+  const all = state.lvl ? state.list.length : TILT_S_MAZES;
+  const finished = p.mazes >= all;
   const words = [
     `Par ${p.parsMet} / ${p.mazes} mazes +${p.par}`,
-    `clean ${p.cleanMazes} / ${TILT_S_MAZES} +${p.clean}`,
-    finished ? `all ${TILT_S_MAZES} mazes · speed +${p.speed}` : "",
+    `clean ${p.cleanMazes} / ${all} +${p.clean}`,
+    finished ? `all ${all} mazes · speed +${p.speed}` : "",
   ].filter(Boolean);
   return {
     units: p.core,
@@ -2653,7 +2671,9 @@ export function tiltParBandParts(state: TiltState): BandParts {
     bonus: p.par + p.clean + p.speed,
     penalty: 0,
     finished,
-    text: `${p.mazes} / ${TILT_S_MAZES} mazes × ${TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS}${finished ? "" : ` + ${p.progress} for progress in maze ${p.mazes + 1}`}`,
+    text: state.lvl
+      ? `${p.mazes} / ${all} mazes${finished ? "" : ` + ${p.progress} for progress in maze ${p.mazes + 1}`}`
+      : `${p.mazes} / ${TILT_S_MAZES} mazes × ${TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS}${finished ? "" : ` + ${p.progress} for progress in maze ${p.mazes + 1}`}`,
     bonusText: words.join(" · "),
   };
 }
@@ -2741,3 +2761,197 @@ export const tiltBigGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
   ...tiltParGame,
   init: initB,
 };
+
+/* ================= Levels (the Strategy overhaul, stage 3, 15 Nov 2026) on tiltRev 12 ================= */
+
+/**
+ * Tilt's difficulty levels (docs/arcade-standard/tilt.md "Levels (stage 3)"; docs/design/difficulty/README.md). Normal is
+ * tiltRev 12 exactly (no `level` on the puzzle, no `lvl` on the state). Easy, Hard and Expert deal tiltRev 12 with the
+ * level on the puzzle; the sim builds the level's mazes from the seed on its own streams (TILT_LEVELS, salted by level)
+ * with tiltRev 8's carve and decoration (sizes, holes, ice and amber marbles from the level's row), tiltRev 12's pieces
+ * (marbles TILT_B_BALL % of a cell, keys TILT_B_KEY_REACH %) and tiltRev 11's par rule at the level's own scale. Play,
+ * physics and falls are tiltRev 12's. Score: the same four parts summing to 200 (core 140, par 24, clean run 12, speed
+ * 24), each split over the level's own maze count, speed full by the level's own time (tiltLevelParts).
+ *
+ * Joe's brief (15 Nov 2026): Easy 3 smaller mazes, 0–1 holes, no ice, two marbles on maze 3 only, a generous par;
+ * Hard 4 mazes, 3–4 holes, 3–4 ice, two marbles on 2 of mazes 2–4, a stricter par; Expert 4 larger, 4 holes, 5 ice, two
+ * marbles on 2–3 of mazes 2–4, the strictest par. Rooms deal each level from its own proved deal
+ * (src/lib/duel/tiltDealLevels.server.ts, scripts/tilt-deal.ts --level=<l>).
+ *
+ * The GAME_LEVELS entry (src/lib/levels/gameLevels.ts) mirrors these settings as plain data; tilt-levels-check proves
+ * the two the same. The sim reads only this table, so a stored round replays the same whatever the registry says.
+ */
+export type TiltLevel = "easy" | "hard" | "expert";
+export const TILT_LEVEL_NAMES: readonly TiltLevel[] = ["easy", "hard", "expert"];
+/** A level's code in the checkpoint checksum. */
+export const TILT_LEVEL_CODE: Readonly<Record<TiltLevel, number>> = { easy: 1, hard: 3, expert: 4 };
+
+/** One maze's carve: cells across (30 px cells), the blue route length its cup is placed nearest, and its holes. */
+export interface TiltMazeShape {
+  n: number;
+  route: number;
+  pits: number;
+}
+
+export interface TiltLevelSpec {
+  /** Cells across (30 px cells), per maze. */
+  sizes: readonly number[];
+  /** The blue route's length (cells) each maze's cup is placed nearest. */
+  routes: readonly number[];
+  /** Black holes per maze. */
+  pits: readonly number[];
+  /** Ice patches per maze (TILT_X_ICE_CELLS cells each). */
+  ice: readonly number[];
+  /** Icy side passages per maze (tiltRev 8's quick-star corridors, kept as ice; Normal has 2). */
+  icePassages: number;
+  /** The mazes (1-based) the amber marble may join, and how many of them it joins (a seeded pick, the same for everyone). */
+  twoOf: readonly number[];
+  twoCount: readonly [number, number];
+  /** Par: tiltRev 11's walk times × parScale / 100 (Normal 150). */
+  parScale: number;
+  /** Speed: full when every maze is done by this many seconds, falling evenly to 0 at the buzzer (Normal 60). */
+  speedFullS: number;
+}
+
+export const TILT_LEVELS: Readonly<Record<TiltLevel, TiltLevelSpec>> = {
+  easy: { sizes: [11, 13, 13], routes: [28, 34, 30], pits: [0, 1, 1], ice: [0, 0, 0], icePassages: 0, twoOf: [3], twoCount: [1, 1], parScale: 240, speedFullS: 60 },
+  hard: { sizes: [15, 15, 17, 19], routes: [54, 56, 52, 58], pits: [3, 4, 4, 4], ice: [3, 3, 4, 4], icePassages: 2, twoOf: [2, 3, 4], twoCount: [2, 2], parScale: 135, speedFullS: 58 },
+  expert: { sizes: [15, 17, 19, 19], routes: [56, 62, 58, 60], pits: [4, 4, 4, 4], ice: [5, 5, 5, 5], icePassages: 2, twoOf: [2, 3, 4], twoCount: [2, 3], parScale: 115, speedFullS: 70 },
+};
+
+export function isTiltLevel(v: unknown): v is TiltLevel {
+  return v === "easy" || v === "hard" || v === "expert";
+}
+
+/** The salt a level's streams take from the seed (so a level's mazes are never Normal's). */
+const LEVEL_SALT: Readonly<Record<TiltLevel, number>> = { easy: 0x1e5a_0e01, hard: 0x1e5a_0e03, expert: 0x1e5a_0e04 };
+
+/** The mazes (0-based) the amber marble joins in a level's run of a seed: a seeded pick from its own stream. */
+export function tiltLevelTwoMazes(seed: number, level: TiltLevel): number[] {
+  const spec = TILT_LEVELS[level];
+  let rng = (seed ^ LEVEL_SALT[level] ^ 0x0a3b_e200) | 0;
+  const draw = (bound: number) => {
+    const r = rngBelow(rng, bound);
+    rng = r.state;
+    return r.value;
+  };
+  const [lo, hi] = spec.twoCount;
+  const count = lo + draw(hi - lo + 1);
+  const pool = spec.twoOf.map((k) => k - 1);
+  const out: number[] = [];
+  for (let k = 0; k < count && pool.length; k++) out.push(pool.splice(draw(pool.length), 1)[0]!);
+  return out.sort((a, b) => a - b);
+}
+
+const cacheL = new Map<string, Maze[]>();
+
+/** A level's mazes of a seed (cached): carved and decorated on the level's streams, tiltRev 12's pieces, the level's par. */
+function mazesL(seed: number, level: TiltLevel): Maze[] {
+  const key = `${level}:${seed | 0}`;
+  let list = cacheL.get(key);
+  if (!list) {
+    const spec = TILT_LEVELS[level];
+    let rng = (seed ^ LEVEL_SALT[level]) | 0;
+    const draw = (bound: number) => {
+      const r = rngBelow(rng, bound);
+      rng = r.state;
+      return r.value;
+    };
+    const built: Maze[] = spec.sizes.map((n, i) => buildMazeX(i, draw, { n, route: spec.routes[i]!, pits: spec.pits[i]! }));
+    let rng2 = (seed ^ LEVEL_SALT[level] ^ 0x7a11_5eed) | 0;
+    const draw2 = (bound: number) => {
+      const r = rngBelow(rng2, bound);
+      rng2 = r.state;
+      return r.value;
+    };
+    const two = new Set(tiltLevelTwoMazes(seed, level));
+    list = built.map((m, i) => {
+      // decorateV4 adds the amber marble when its index + 1 reaches TILT_TWO_FROM.
+      const d = decorateX(decorateV4(m, two.has(i) ? TILT_TWO_FROM - 1 : 0, draw2), draw2, i, { patches: spec.ice[i]!, quick: spec.icePassages });
+      const bare: Maze = { ...d, stars: [], starXY: [], quick: [], quickAt: [], br: Math.trunc((d.cs * TILT_B_BALL) / 100), keyReach: Math.trunc((d.cs * TILT_B_KEY_REACH) / 100) };
+      return { ...bare, par: tiltParT(bare, spec.parScale) };
+    });
+    if (cacheL.size > 32) cacheL.clear();
+    cacheL.set(key, list);
+  }
+  return list;
+}
+
+/** A level's mazes of a seed (the same for every player; checks and tools read them). */
+export function tiltMazesL(seed: number, level: TiltLevel): readonly Maze[] {
+  return mazesL(seed, level);
+}
+
+/** Ice cells in a maze (tools and checks). */
+export function tiltIceCells(m: Maze): number {
+  return (m.ice ?? []).reduce((t, v) => t + v, 0);
+}
+
+/**
+ * The dealer's rule for a level's seed: every maze fully dealt (its holes and its key, the amber marble where the pick
+ * put it), every key and cup reachable, and the pars leave TILT_X_PAR_RUN's margin of the run. Rooms deal only seeds
+ * the oracle then proved to 200 (scripts/tilt-deal.ts --level).
+ */
+export function tiltLevelDealable(seed: number, level: TiltLevel): boolean {
+  const spec = TILT_LEVELS[level];
+  const list = mazesL(seed, level);
+  const two = new Set(tiltLevelTwoMazes(seed, level));
+  const parSum = list.reduce((t, m) => t + (m.par ?? TILT_RUN_TICKS), 0);
+  if (parSum > TILT_X_PAR_RUN) return false;
+  return list.every((m, i) => m.pits.length === spec.pits[i] && (m.keys?.length ?? 0) === 1 && ((m.start2 ?? -1) >= 0) === two.has(i) && tiltCupReachableX(m, 0) && tiltCupReachableX(m, 1));
+}
+
+function initL(seed: number, level: TiltLevel): TiltState {
+  const base = init(seed);
+  const list = mazesL(seed, level);
+  return bandInit(enterMazeX({ ...base, rev: TILT_REV, list, stars: 0, cupped: 0, starTick: -1000, xp: 1, std: 1, parClean: 1, big: 1, lvl: level, parsMet: 0, mazeTicks: [], quickPts: 0, quickTaken: 0, keysTaken: 0, keyTick: -1000, quickTick: -1000, falls: 0, fallTick: -1000, pace: 0 }, 0));
+}
+
+/** A level's speed part: full by its spec's time (ticks). */
+export function tiltLevelSpeedFull(level: TiltLevel): number {
+  return TILT_LEVELS[level].speedFullS * TICKS_PER_SECOND;
+}
+
+/**
+ * A level's parts (stage 3): tiltRev 11's four parts, each split over the level's own maze count (N), speed full by its
+ * own time; at N = 4 and 60 s every part is tiltParParts' exactly. Core = 140 × (35 a maze, 20 of it progress) ÷ 35N,
+ * par = 24 × mazes within par ÷ N, clean = 12 × clean mazes ÷ N (a straight line), speed as tiltRev 11's. Integer only.
+ */
+export function tiltLevelParts(state: TiltState): { core: number; par: number; clean: number; speed: number; mazes: number; progress: number; parsMet: number; cleanMazes: number } {
+  const level = state.lvl!;
+  const all = state.list.length;
+  const mazes = clampInt(state.mazes, 0, all);
+  const finished = mazes >= all;
+  const prog = !finished && state.progMaze === mazes ? clampInt(state.prog ?? 0, 0, TILT_S_PROGRESS_SCALE) : 0;
+  const per = TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS;
+  const core = Math.trunc((TILT_P_CORE_MAX * (per * TILT_S_PROGRESS_SCALE * mazes + TILT_P_PROGRESS_POINTS * prog)) / (per * TILT_S_PROGRESS_SCALE * all));
+  const progress = Math.trunc((TILT_P_CORE_MAX * TILT_P_PROGRESS_POINTS * prog) / (per * TILT_S_PROGRESS_SCALE * all));
+  const parsMet = clampInt(state.parsMet ?? 0, 0, mazes);
+  const par = Math.trunc((TILT_P_PAR_MAX * parsMet) / all);
+  const cleanMazes = clampInt(state.cleanTo ?? mazes, 0, mazes);
+  const clean = stdLine(TILT_P_CLEAN_POINTS, cleanMazes, all);
+  const end = clampInt(state.endedTick, 0, TILT_RUN_TICKS);
+  const full = tiltLevelSpeedFull(level);
+  const speed = finished ? (end <= full ? TILT_P_SPEED_POINTS : Math.trunc((TILT_P_SPEED_POINTS * (TILT_RUN_TICKS - end)) / (TILT_RUN_TICKS - full))) : 0;
+  return { core, par, clean, speed, mazes, progress, parsMet, cleanMazes };
+}
+
+const levelGames = new Map<TiltLevel, ArcadeGame<TiltState, ArcadeInputEvent | null>>();
+
+/** A level's game on tiltRev 12 (tiltBigGame's step and score; the level's mazes at init). */
+export function tiltLevelGame(level: TiltLevel): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  let g = levelGames.get(level);
+  if (!g) {
+    g = { ...tiltBigGame, init: (seed: number) => initL(seed, level) };
+    levelGames.set(level, g);
+  }
+  return g;
+}
+
+/**
+ * The game a stored round plays: its stamp's (tiltGameFor), or on tiltRev 12 with a level (`puzzle.level`: easy, hard or
+ * expert) that level's. A level on any other stamp is ignored (levels exist only on tiltRev 12).
+ */
+export function tiltGameForLevel(rev?: number | null, level?: unknown): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  return rev === TILT_REV_BIG && isTiltLevel(level) ? tiltLevelGame(level) : tiltGameFor(rev);
+}

@@ -27,26 +27,17 @@ import { Button, Icon, Panel, Row, Segmented, SwitchKnob } from "@/design/compon
 import { useAccount } from "@/lib/account/accountApi";
 import { APP_BUILD_ID, buildLabel } from "@/lib/appVersion";
 import { APPEARANCE_OPTIONS, setAppearance, useAppearance } from "@/lib/appearance";
+import { setArrowControl, useArrowControl } from "@/lib/arrowControl";
 import { GAME_TIMERS, GAME_TIMER_LABEL } from "@/config/gameFrameConfig";
 import { setGameTimer, useGameTimer } from "@/lib/gameFrame/headerStyle";
 import { setBatterySaver, useBatterySaver } from "@/lib/battery";
+import { setFissionThumb, useFissionThumb } from "@/lib/arcade/fissionThumb";
 import { useDesktop } from "@/lib/desktop";
 import { setPreferredScheme, usePreferredScheme } from "@/lib/gameControls";
 import { betaValue } from "@/lib/beta/betaValues";
 import { feedbackBase, feedbackUrl } from "@/lib/beta/feedback";
 import { setHapticsOn, useHapticsOn, useHapticsSupported } from "@/lib/haptics";
 import { isMuted, isMusicMuted, onSoundSettingsChange, setMusicMuted, setMuted } from "@/lib/sound";
-
-/** The direction-controls choice GridDrag keeps on the device (arrows or joystick). */
-const ARROW_KEY = "duelz-arrow-control";
-
-function readArrows(): "arrows" | "joystick" {
-  try {
-    return window.localStorage.getItem(ARROW_KEY) === "joystick" ? "joystick" : "arrows";
-  } catch {
-    return "arrows";
-  }
-}
 
 export interface SettingsActions {
   /** Back to the page before (More, Profile, wherever Settings was opened from). */
@@ -84,16 +75,10 @@ export function SettingsBody({ onHowItWorks, onTerms, onSignIn, onSignedOut, onD
   const desktop = useDesktop();
   const preferred = usePreferredScheme();
   const account = useAccount();
-  const [arrows, setArrows] = useState<"arrows" | "joystick">("arrows");
-  useEffect(() => setArrows(readArrows()), []);
-  const choose = (value: "arrows" | "joystick") => {
-    setArrows(value);
-    try {
-      window.localStorage.setItem(ARROW_KEY, value);
-    } catch {
-      /* storage is a nicety */
-    }
-  };
+  // The direction-controls choice (lib/arrowControl.ts), shared with the game menu and the arrow pad.
+  const arrows = useArrowControl();
+  const fissionThumb = useFissionThumb();
+  const choose = (value: "arrows" | "joystick") => setArrowControl(value);
   const sound = useSoundSettings();
   const appearance = useAppearance();
   const gameTimer = useGameTimer();
@@ -182,6 +167,10 @@ export function SettingsBody({ onHowItWorks, onTerms, onSignIn, onSignedOut, onD
             {hapticsSupported ? <SwitchRow label="Haptics" on={haptics} onChange={setHapticsOn} data="haptics" /> : null}
             {/* Battery saver (off by default): fewer particles and glows, puzzles at 30 fps. */}
             <SwitchRow label="Battery saver" on={saver} onChange={setBatterySaver} data="battery" />
+          </Panel>
+          {/* Fission one thumb (the Retro overhaul, stage 3, lib/arcade/fissionThumb.ts): its own panel, input mapping only. */}
+          <Panel className="mt-3">
+            <SwitchRow label="Fission: one thumb" note="Drag to move, touch to fire" on={fissionThumb} onChange={setFissionThumb} data="fission-thumb" />
           </Panel>
           {/* On a computer (phase 2 step 4 pass 2, lib/gameControls.ts): its own panel under the device's controls. */}
           {desktop ? (

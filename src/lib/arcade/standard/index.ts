@@ -36,6 +36,8 @@ export interface ArcadeStdEntry {
   spec: StdSpec | null;
   /** The first stamp on the standard when the spec names a later one (its parts' labels are the same). */
   from?: number;
+  /** The spec a given stamp was dealt on, where a later stamp changed the parts (else `spec` from `from` on). */
+  specFor?: (rev: number) => StdSpec | null;
   parts: (state: any) => StdPart[] | null;
 }
 

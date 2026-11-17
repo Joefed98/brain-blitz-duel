@@ -1,4 +1,8 @@
 /**
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): the entry follows the dealt
+ * stamp, inkRev 15 (inkRev 14's parts with the pot and hill placed level by level, dealt from
+ * src/lib/duel/inkHillsDeal.server.ts); inkRev 14 is its `before`.
+ *
  * Rainbow Bridge on the arcade scoring standard: inkRev 14 (3 Nov 2026; docs/arcade-standard/inkbridge.md "inkRev 14":
  * inkRev 13's parts with a bigger coin, clovers and birds, dealt from a proved deal), after inkRev 13 (Nov 2026) and
  * inkRev 12 (29 Oct 2026). Perfect runs are the oracle (scripts/ink-x200-oracle.ts) replayed through the server on
@@ -6,14 +10,14 @@
  * clover, else its easy line, with more than 50 s left; plus one built state with every counter full. A played run that
  * earns nothing is one stroke point and no release.
  */
-import { inkBridgeGameFor, inkCheckpoint, inkV13Score, INK_CHECKPOINT_INTERVAL, INK_CLOUD_LEVELS, INK_INPUT_STROKE, INK_LEVELS, INK_REV_BIG, INK_REV_CLOVER, INK_V13_CLOVERS, INK_V14_STD, type InkState } from "../../src/lib/arcade/inkBridge";
-import { INK_BIG_DEAL } from "../../src/lib/duel/inkBigDeal.server";
+import { inkBridgeGameFor, inkCheckpoint, inkV13Score, INK_CHECKPOINT_INTERVAL, INK_CLOUD_LEVELS, INK_INPUT_STROKE, INK_LEVELS, INK_REV_BIG, INK_REV_HILLS, INK_V13_CLOVERS, INK_V15_STD, type InkState } from "../../src/lib/arcade/inkBridge";
+import { INK_HILLS_DEAL } from "../../src/lib/duel/inkHillsDeal.server";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "../../src/lib/duel/inkBridge";
 import { roomSeed } from "../arcade-skill-bands/games";
 import { inkOracleRun } from "../ink-x200-oracle";
 import type { StdEntry, StdRun } from "./entry";
 
-const game = inkBridgeGameFor(INK_REV_BIG);
+const game = inkBridgeGameFor(INK_REV_HILLS);
 
 /** Plays a log on inkRev 14 and scores it through the server's encode + replay. */
 function replayed(seed: number, events: { t: number; k: number; a: number; b: number; c: number; d: number }[]): number {
@@ -25,7 +29,7 @@ function replayed(seed: number, events: { t: number; k: number; a: number; b: nu
     if (s.tick % INK_CHECKPOINT_INTERVAL === 0) checkpoints.push(inkCheckpoint(s));
   }
   const raw = encodeInkBridgeRun({ seed, claimedScore: game.score(s), events, inputs: [], taps: [], endTick: s.tick, checkpoints } as never);
-  return replayInkBridgeRun(seed, raw, INK_REV_BIG).score;
+  return replayInkBridgeRun(seed, raw, INK_REV_HILLS).score;
 }
 
 /** A run's points per part (the core keyed "core"). */
@@ -37,14 +41,14 @@ function partsOf(s: InkState): Record<string, number> {
 export const entry: StdEntry = {
   type: "inkbridge",
   field: "inkRev",
-  rev: INK_REV_BIG,
-  before: INK_REV_CLOVER,
-  parts: INK_V14_STD.parts,
-  spec: INK_V14_STD,
+  rev: INK_REV_HILLS,
+  before: INK_REV_BIG,
+  parts: INK_V15_STD.parts,
+  spec: INK_V15_STD,
   perfect: () => {
     const runs: StdRun[] = [0, 7, 41].map((n) => {
-      const seed = INK_BIG_DEAL[n]!;
-      const o = inkOracleRun(seed, INK_REV_BIG);
+      const seed = INK_HILLS_DEAL[n]!;
+      const o = inkOracleRun(seed, INK_REV_HILLS);
       return { label: `oracle seed ${seed} (${o.levels} levels, ${o.endedSeconds.toFixed(1)} s, server replay)`, score: o.replayed === o.score ? o.replayed : -1, parts: partsOf(o.state) };
     });
     const s = game.init(roomSeed(3)) as InkState;

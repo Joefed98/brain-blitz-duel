@@ -5,13 +5,24 @@
  */
 import type { KakuroPuzzleData } from "../../src/lib/duel/types";
 import { encodeKakuro, kakuroRuns } from "../../src/lib/duel/kakuro";
+import { kakuroPersonSolve } from "../../src/lib/duel/kakuro.server";
+import { kakuroLevelsBoard } from "../../src/lib/duel/numberLevels";
+import { puzzleLevel } from "../../src/lib/levels/levels";
 import { thinkMs, type Play, type PuzzleKit, type Rng, type Skill, type Step } from "./kit";
+
+/**
+ * Levels (kakuroRev 3, numberLevels.ts): a square a person only sees after k passes over the runs
+ * (kakuro.server.ts `kakuroPersonSolve`) takes KAKURO_PASS_COST more of the base per pass after the first, and the
+ * squares are filled in the order a person deduces them. Boards dealt at Hard (today's, stamped `level`) are played
+ * the same way; every board dealt without a level on an earlier stamp plays exactly as before.
+ */
+export const KAKURO_PASS_COST = 0.3;
 
 // BASE 4 s per square: a good player fills a 19–21-square Kakuro (sums, combinations, crossings) in about 80 s.
 const KAKURO_BASE = 4;
 
 /** Places targets in `order`; at skill.err a wrong digit goes in and is fixed 1–5 actions later (or before the end). */
-function placePlay(p: KakuroPuzzleData, order: [number, number][], rng: Rng, skill: Skill): Play {
+function placePlay(p: KakuroPuzzleData, order: [number, number][], rng: Rng, skill: Skill, cost: (cell: number) => number = () => 1): Play {
   const values = new Array<number>(p.size * p.size).fill(0);
   const pending = new Map(order);
   const wrongs: { cell: number; fixAt: number }[] = [];
@@ -39,7 +50,7 @@ function placePlay(p: KakuroPuzzleData, order: [number, number][], rng: Rng, ski
       continue;
     }
     const [cell, digit] = next;
-    t += thinkMs(rng, KAKURO_BASE, skill);
+    t += thinkMs(rng, KAKURO_BASE * cost(cell), skill);
     if (rng.chance(skill.err)) {
       const options = [1, 2, 3, 4, 5, 6, 7, 8, 9].filter((d) => d !== digit);
       values[cell] = rng.pick(options);
@@ -100,6 +111,14 @@ export const kakuroKit: PuzzleKit = {
   },
   play(p, rng, skill) {
     const pz = p as KakuroPuzzleData;
-    return placePlay(pz, humanOrder(pz, rng), rng, skill);
+    // Every board dealt with the levels, Hard (today's board, stamped `level`) included, so the levels compare fairly.
+    if (!kakuroLevelsBoard(pz) && puzzleLevel(pz) === "normal") return placePlay(pz, humanOrder(pz, rng), rng, skill);
+    const person = kakuroPersonSolve(pz);
+    // A square the person-like solver never reaches (some of today's Hard boards) is the slowest of all: two passes
+    // past the last it took.
+    const last = Math.max(1, ...pz.white.map((c) => person.round[c] ?? 0));
+    const round = pz.white.reduce((r, c) => ((r[c] = person.round[c] || last + 2), r), [...person.round]);
+    const order = humanOrder(pz, rng).sort((a, b) => (round[a[0]] ?? 0) - (round[b[0]] ?? 0));
+    return placePlay(pz, order, rng, skill, (cell) => 1 + KAKURO_PASS_COST * Math.max(0, (round[cell] ?? 1) - 1));
   },
 };

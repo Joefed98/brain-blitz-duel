@@ -1,4 +1,103 @@
-# Coral Pop on the arcade scoring standard (`bubbleRev 11`, 29 Oct 2026)
+# Coral Pop (`bubbleRev 12`, 15 Nov 2026: the fast shot and a clearable reef)
+
+Rooms deal `bubbleRev 12` (`BUB_REV_FAST`, `bubbleFastGame` in `src/lib/arcade/bubble.ts`), the Strategy overhaul's
+stamp (phase 2 step 4, `docs/design/game-reviews/strategy.md`). bubbleRev 11's game and parts (below) with two changes,
+both from the seed or the input log only, so every phone and the server play them identically:
+
+- **A smaller reef.** Nine rows (86 bubbles, `BUB_V12_REEF`) instead of ten (95); the chests are drawn on rows 3–8. The
+  review found Near-perfect play left about 20 of 95 in the 90 s. The core is full at the whole 86-bubble reef
+  (`BUB_V12_STD_SPEC`, the same parts and maximums).
+- **The fast shot.** Dragging further down the aim line shoots faster: the release carries `c` = 0, 1 or 2 (the phone's
+  drag length: 110 px and 190 px, `BUB_V12_FAST_DRAG`, `bubFastLevel`), and the shot's flight runs `c + 1` times a tick.
+  Each run is the very flight step every revision uses, so the bubble follows exactly the same path (sub-steps, wall
+  bounces, landing cell) and only arrives sooner. Gold chevrons over the gun show the level while aiming. Only
+  bubbleRev 12's input range carries `c` (`bubbleInputRangesFor`); older stamps clamp it to 0 and never read it.
+
+The checkpoint folds the fast-shot mark and the shot's level in last. `pinBubblePreFast(true)` deals bubbleRev 11 for
+the checks written for it. strategy-overhaul-check proves the reef on 200 seeds, the same landing for 300 shots at each
+level, a fast-shot run through the server replay, and bubbleRev 11 unchanged.
+
+**Measured (skill-band bots, `bun scripts/arcade-skill-bands.ts bubble --rev=now --seeds=12`; the bot drags further at
+higher levels, `FAST_DRAG`):** medians Average 66, Good 99, Near-perfect 171, Elite 178 (bubbleRev 11's Near-perfect
+and Elite sat at about 158). The difficulty levels (Easy, Hard, Expert) come with the difficulty framework.
+
+## Levels (stage 3)
+
+The Strategy overhaul's stage 3 (15–16 Nov 2026, `docs/design/difficulty/README.md`): Easy, Hard and Expert on the live
+stamp, bubbleRev 12, with the level read from the stored puzzle (`level`, `puzzleLevel`; `bubbleGameFor(rev, level)`,
+`replayBubbleRun(seed, raw, rev, level)`; grade, replay steppers, reveal renderers, the stage and the reveal all pass
+it). **Normal is today's game exactly**: no `level` field on the puzzle or the state, and every revision's init states,
+a scripted run and its score digest exactly as recorded on the tree before levels (`scripts/fixtures/bubble-levels-normal.json`).
+A level asked of an older stamp plays that stamp. Rated play and the Daily are always Normal (the framework's
+`modeLevel`). The settings are frozen in the sim with the stamp (`BUB_LEVELS`; a retune is a new stamp) and repeated
+in `GAME_LEVELS.bubble` for the selectors and the tuning tool.
+
+**Today's Normal (bubbleRev 12)**: 5 colours, an 86-bubble reef (9 rows), a descent every 8 shots, the aim trail
+running to the top of the tank through every bounce, a 90 s run; parts full at the whole reef, 30 bank shots and a
+clear with 45 s left.
+
+| | Easy | Normal (today) | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Colours | 3 (the first three) | 5 | 5 | 6 (the sixth: orange, a seahorse, a cross) |
+| Reef bubbles (chests included) | 75 | 86 | 110 | 110 |
+| Shots per descent | 10 | 8 | 5 | 7 |
+| Aim trail (display only) | two bounces | to the top | one bounce | short (120 px) |
+| Core full at (bubbles cleared) | 50 | the reef | the reef | the reef |
+| Bank shots full at | 8 | 30 | 20 | 10 |
+| Speed full at (left at the clear) | 30 s | 45 s | 30 s | 30 s |
+| Clock | 90 s | 90 s | 90 s | 90 s |
+
+- **The reef** is drawn row by row from the seed (`init`'s `look`): the last row part-filled and centred to the exact
+  count, the six chests on full rows only, the queue from the level's colours. Nothing comes from play.
+- **The sixth colour** is grid value 10 (`BUB_SIXTH`; 6–8 are the specials, 9 the chest), drawn as an orange bubble
+  (`BUB_SIXTH_COLOUR`) with its own seahorse and cross symbol, told apart without colour. It is code-drawn: there is
+  no rendered candy-glass sprite for it yet (the other five use `public/strategy/bubble-*.webp`). The Joker matches it.
+- **Scoring** stays the arcade scoring standard: the same six parts and maximums, 200 in all. Only the "full at" figures
+  move (`banksFull`, `coreFull`, `speedFullLeft` on the state), so a flawless run can fill every part on a level
+  (Normal's 30 bank shots are never reached by any bot).
+- **The bots** (`scripts/arcade-skill-bands/bots/bubble.ts`) read the trail's reach (`trail` on the state): a bank shot
+  with more bounces than the trail shows is noticed half as often and aimed less surely; Expert's short trail makes
+  every aim less sure. Normal (no `trail`) plays exactly as before.
+
+**Proofs** (bubble-levels-check): every level's reef on 120 seeds (count, colours, chests, cadence, trail and full-at
+figures), the clock, the server replay reading the stored level (a level's log replayed as Normal does not match), and
+144 recorded witness runs (`scripts/fixtures/bubble-levels-witness.json.gz`, `bun scripts/bubble-levels-record.ts`: the
+skill-band bot under human limits at Average, Elite and Flawless on each level's first 12 room seeds) replaying through
+the server to their recorded scores. Every level is cleared by Elite and by Flawless, and 200 is reached through the
+server replay on every new level (Easy: Elite 2 of 12; Hard: Elite 2, Flawless 5; Expert: Elite 1).
+
+**Measured** (the witness runs, 12 room seeds a level; averages, with the median in brackets):
+
+| | Easy | Normal | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Average | 157 (172) | 64 (67) | 53 (54) | 26 (22) |
+| Elite (human limits) | 195 (197) | 176 (178) | 174 (171) | 159 (171) |
+| Flawless | 196 (196) | 184 (183) | 183 (197) | 171 (175) |
+| Elite clears | 12 of 12 | 8 of 12 | 4 of 12 | 1 of 12 |
+
+Easy's star (175+) for the Average bot: 5 of 12 witness seeds. Expert seeds for Joe to try (Elite's score):
+428011710 (200), 1583049006 (178), 992653281 (174), 855957879 (173), 375698285 (173). The Elite level's reaction is
+145 ms, but with its think time each shot is about 0.5 s after the last lands (above 0.25 s to react plus 0.15 s to
+move). `bun scripts/level-tune.ts bubble --level=all` reports the same game's Near-perfect and Elite on dealt puzzles.
+
+**Easy retuned** (16 Nov 2026, Joe: an average player should have a real shot at a star; Easy had never been dealt
+live, so no new stamp, and only this branch's Easy witness runs were re-recorded). Easy went from 4 colours, core full
+at 60 and bank shots full at 10 to **3 colours, core full at 50 and bank shots full at 8** (the reef of 75, a descent
+every 10 shots, the two-bounce trail and speed full at 30 s left unchanged; Normal, Hard and Expert untouched). Measured
+with the skill-band bot under human limits on room seeds 0–79 (`roomSeed(n)`, the witness runs' seeds):
+
+| Easy | Before (seeds 0–39) | After (seeds 0–79) |
+| --- | --- | --- |
+| Average: mean (median) | 115 (114) | 164 (170) |
+| Average: runs at 175+ (a star) | 2 of 40 (5 %) | 29 of 80 (36 %) |
+| Elite: mean (median) | 192 (194) | 195 (197) |
+| Elite: runs at 175+ | 40 of 40 | 80 of 80 |
+
+Easy stays clearly below Normal (Average 64, Elite 176 there). Fewer colours was the lever that moved the Average
+player (3 colours alone: 27 % stars over 80 seeds); with 4 colours, a smaller reef (64 bubbles) or descents every 16 shots left it at
+5 % or below. The lower full-at figures add the rest without touching Elite's ceiling.
+
+## Coral Pop on the arcade scoring standard (`bubbleRev 11`, 29 Oct 2026)
 
 Rooms deal `bubbleRev 11` (`BUB_REV_STD`, `bubbleStdGame` in `src/lib/arcade/bubble.ts`). Every earlier revision
 replays and scores exactly as before (bubble-standard-check replays 28 bubbleRev 10 runs recorded on the untouched

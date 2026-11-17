@@ -4,30 +4,7 @@
  */
 
 import { answerWords, isWord } from "./dictionary.server";
-import {
-  SO2_MAX_LEN,
-  SO2_MIN_LEN,
-  SO2_VOWELS,
-  SO2_WORDS,
-  SO_LEN,
-  SO_ROWS,
-  STRIKEOUT_REV,
-  STRIKEOUT_REV2,
-  STRIKEOUT_REV3,
-  STRIKEOUT_REV4,
-  STRIKEOUT_REV5,
-  STRIKEOUT_REV_TOPUP,
-  decodeStrikeout,
-  decodeStrikeout2,
-  replayStrikeout,
-  replayStrikeout2,
-  so2Rules,
-  so2View,
-  so3ExtraGivens,
-  soView,
-  strikeoutRevOf,
-  type SoView,
-} from "./strikeout";
+import { SO2_MAX_LEN, SO2_MIN_LEN, SO2_VOWELS, SO2_WORDS, SO_LEN, SO_ROWS, STRIKEOUT_REV, STRIKEOUT_REV2, STRIKEOUT_REV3, STRIKEOUT_REV4, STRIKEOUT_REV5, STRIKEOUT_REV_TOPUP, decodeStrikeout, decodeStrikeout2, replayStrikeout, replayStrikeout2, so2Rules, so2View, so3ExtraGivens, soView, strikeoutRevOf, type SoView, so2RulesFor } from "./strikeout";
 import { STRIKEOUT_WORDS_8_RAW } from "./strikeoutWords.server";
 import type { StrikeoutPuzzleData } from "./types";
 import { rngBelow, rngShuffle, seededRng } from "./wordSeed.server";
@@ -148,14 +125,20 @@ export function strikeoutWordRuleBreak(word: string, pattern: string, extra = 0)
   return null;
 }
 
+/**
+ * Starting letters on word w beyond so2GivenCount: rev 3's one on words 1–3 (so3ExtraGivens), or a level's own
+ * (src/lib/duel/levels/strikeout.server.ts: more on Easy, fewer on Hard and Expert; it may be negative).
+ */
+export type So2ExtraGivens = (w: number, length: number) => number;
+
 /** Null when the five words and patterns meet every generator rule of `rev` (2 or 3), else the rule broken. */
-export function strikeout2RuleBreak(words: readonly string[], givens: readonly string[], rev: number = STRIKEOUT_REV2): string | null {
+export function strikeout2RuleBreak(words: readonly string[], givens: readonly string[], rev: number = STRIKEOUT_REV2, extraFor?: So2ExtraGivens): string | null {
   if (words.length !== SO2_WORDS || givens.length !== SO2_WORDS) return "not five words";
   if (new Set(words).size !== SO2_WORDS) return "repeated word";
   const lengths = words.map((w) => w.length);
   if (!lengths.includes(7) || !lengths.includes(8)) return "no mix of 7 and 8 letters";
   for (let i = 0; i < SO2_WORDS; i++) {
-    const broken = strikeoutWordRuleBreak(words[i]!, givens[i]!, rev >= STRIKEOUT_REV3 ? so3ExtraGivens(i) : 0);
+    const broken = strikeoutWordRuleBreak(words[i]!, givens[i]!, extraFor ? extraFor(i, words[i]!.length) : rev >= STRIKEOUT_REV3 ? so3ExtraGivens(i) : 0);
     if (broken) return broken;
     for (let j = 0; j < i; j++) {
       if (words[i]!.slice(0, 4) === words[j]!.slice(0, 4)) return `${words[j]} and ${words[i]} start alike`;
@@ -182,7 +165,7 @@ export function strikeout2RuleBreak(words: readonly string[], givens: readonly s
  *
  * Rev 5 (25 Oct 2026, word depth to 200): rev 4's draw exactly, stamped 5 (scored to 200 with the early-solve bonus).
  */
-export function generateStrikeout(seed: number, rev: number = STRIKEOUT_REV4): StrikeoutPuzzleData {
+export function generateStrikeout(seed: number, rev: number = STRIKEOUT_REV4, extraFor?: So2ExtraGivens): StrikeoutPuzzleData {
   const rng = seededRng(seed);
   const rev3 = rev >= STRIKEOUT_REV3;
   for (let attempt = 0; attempt < 20_000; attempt++) {
@@ -192,7 +175,7 @@ export function generateStrikeout(seed: number, rev: number = STRIKEOUT_REV4): S
     const givens: string[] = [];
     let ok = true;
     for (const len of lengths) {
-      const extra = rev3 ? so3ExtraGivens(words.length) : 0;
+      const extra = extraFor ? extraFor(words.length, len) : rev3 ? so3ExtraGivens(words.length) : 0;
       let placed = false;
       for (let tries = 0; tries < 200 && !placed; tries++) {
         const pool = strikeoutAnswerWords(len);
@@ -211,7 +194,7 @@ export function generateStrikeout(seed: number, rev: number = STRIKEOUT_REV4): S
       }
       if (!placed) { ok = false; break; }
     }
-    if (ok && strikeout2RuleBreak(words, givens, rev3 ? STRIKEOUT_REV3 : STRIKEOUT_REV2) === null) {
+    if (ok && strikeout2RuleBreak(words, givens, rev3 ? STRIKEOUT_REV3 : STRIKEOUT_REV2, extraFor) === null) {
       const stamp = rev >= STRIKEOUT_REV_TOPUP ? STRIKEOUT_REV_TOPUP : rev >= STRIKEOUT_REV5 ? STRIKEOUT_REV5 : rev >= STRIKEOUT_REV4 ? STRIKEOUT_REV4 : rev3 ? STRIKEOUT_REV3 : STRIKEOUT_REV2;
       return { type: "strikeout", strikeoutRev: stamp, rows: SO2_WORDS, length: SO2_MAX_LEN, givens, words };
     }
@@ -224,7 +207,7 @@ export function checkStrikeoutMoves(puzzle: StrikeoutPuzzleData, moves: string):
   const words = puzzle.words ?? [];
   if (strikeoutRevOf(puzzle) >= STRIKEOUT_REV2) {
     const actions = decodeStrikeout2(moves);
-    const rules = so2Rules(strikeoutRevOf(puzzle));
+    const rules = so2RulesFor(puzzle);
     return so2View(words, replayStrikeout2(words, puzzle.givens ?? [], actions, isWord, rules), actions.length, rules);
   }
   const actions = decodeStrikeout(moves);

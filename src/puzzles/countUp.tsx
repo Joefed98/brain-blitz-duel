@@ -1,6 +1,13 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useContext, useEffect, useRef, useState } from "react";
 import { GLYPH_COLOURS } from "@/components/duel/ShapeGlyph";
+import { tallySprite } from "@/components/puzzles/attention/attentionArt";
+import { tallySpread } from "@/lib/duel/attentionOverhaul";
+import { tallyMarks } from "@/lib/duel/attentionLevels";
+import { RevealLegend, RevealStats, RevealTabs } from "@/components/puzzles/attention/RevealParts";
+import { attnSound } from "@/components/puzzles/attention/attentionFx";
+import { gameFx } from "@/lib/fx/kit";
+import { FxCountUp } from "@/components/fx/GameFx";
 import { fireTallyFinish } from "@/components/puzzles/countUpFx";
 import { NumberEntry } from "@/components/puzzles/NumberEntry";
 import { registerFxPreview, soundCue } from "@/components/puzzles/speedFx";
@@ -65,6 +72,8 @@ export function countUpStageQuestion(stage: CountUpStage): string {
   // countRev 6's second tray: a shape alone or a colour alone.
   if (stage.ask === "shape") return `How many ${PLURAL[stage.targetShape]}?`;
   if (stage.ask === "colour") return `How many ${tallyColourName(stage.targetColour)} shapes?`;
+  // Expert: the shape in either of two colours.
+  if (stage.alsoColour) return `How many ${tallyColourName(stage.targetColour)} or ${tallyColourName(stage.alsoColour)} ${PLURAL[stage.targetShape]}?`;
   return countUpQuestion(stage.targetColour, stage.targetShape);
 }
 
@@ -107,6 +116,76 @@ export function TallyGlyph({ shape, colour, size }: { shape: SceneShape; colour:
       {shape === "star" && <polygon points={STAR_POINTS} {...bevel} />}
       {shape === "hexagon" && <polygon points="12,2.5 20.3,7.3 20.3,16.7 12,21.5 3.7,16.7 3.7,7.3" {...bevel} />}
     </svg>
+  );
+}
+
+/**
+ * countRev 7 (the Attention overhaul): a tray spread on its own grid in a box of the grid's shape (cols : rows), every
+ * shape a Blender-rendered token sized as a share of the box's width, so no two shapes touch at any size. With
+ * `onMark`, a tap marks a shape as counted (a small dot stays on it); marks are a display aid only.
+ */
+export function SpreadField({
+  stage,
+  width,
+  height,
+  marks,
+  onMark,
+  highlight,
+}: {
+  stage: CountUpStage;
+  width: number;
+  height: number;
+  marks?: readonly number[];
+  onMark?: ((index: number) => void) | undefined;
+  highlight?: (item: CountUpShape) => boolean;
+}) {
+  const aspect = stage.cols / stage.rows;
+  const w = Math.max(0, Math.floor(Math.min(width, height * aspect)));
+  const h = Math.floor(w / aspect);
+  return (
+    <div className="tally-tray tally-spread relative shrink-0 overflow-hidden rounded-lg" style={{ width: w, height: h }} data-tally-spread="" data-tally-grid={`${stage.cols}x${stage.rows}`}>
+      {stage.shapes.map((item, index) => {
+        const px = (item.size / 100) * w;
+        const lit = highlight?.(item) ?? false;
+        const marked = marks?.includes(index) ?? false;
+        const style = { left: `${item.x}%`, top: `${item.y}%`, width: px, height: px };
+        const token = (
+          <img
+            src={tallySprite(item.shape, item.colour)}
+            alt=""
+            draggable={false}
+            className="tally-token pointer-events-none h-full w-full select-none"
+            style={{ transform: `rotate(${item.rotation}deg)` }}
+          />
+        );
+        const extras = (
+          <>
+            {marked ? <span aria-hidden="true" className="tally-mark" data-tally-mark="" /> : null}
+            {lit ? <span aria-hidden="true" className="tally-lit" /> : null}
+          </>
+        );
+        return onMark ? (
+          <button
+            key={index}
+            type="button"
+            className="tally-spot absolute -translate-x-1/2 -translate-y-1/2 p-0"
+            style={style}
+            aria-label={`${tallyColourName(item.colour)} ${item.shape}${marked ? ", marked" : ""}`}
+            aria-pressed={marked}
+            data-tally-shape={index}
+            onClick={() => onMark(index)}
+          >
+            {token}
+            {extras}
+          </button>
+        ) : (
+          <span key={index} className="tally-spot absolute -translate-x-1/2 -translate-y-1/2" style={style} data-tally-shape={index} data-tally-lit={lit ? "" : undefined}>
+            {token}
+            {extras}
+          </span>
+        );
+      })}
+    </div>
   );
 }
 
@@ -155,26 +234,33 @@ function Field({
   );
 }
 
-/** Fixed intro example — three pink stars among other shapes, every time (gold is never dealt). */
-const EXAMPLE_SHAPES: CountUpShape[] = [
-  { shape: "star", colour: "PINK", x: 18, y: 24, size: 30, rotation: 5, layer: 1 },
-  { shape: "circle", colour: "BLUE", x: 42, y: 18, size: 38, rotation: 0, layer: 2 },
-  { shape: "star", colour: "PINK", x: 68, y: 34, size: 32, rotation: 20, layer: 3 },
-  { shape: "triangle", colour: "GREEN", x: 84, y: 20, size: 34, rotation: 18, layer: 4 },
-  { shape: "square", colour: "PURPLE", x: 30, y: 58, size: 42, rotation: 32, layer: 5 },
-  { shape: "star", colour: "ORANGE", x: 54, y: 62, size: 28, rotation: 8, layer: 6 },
-  { shape: "star", colour: "PINK", x: 78, y: 74, size: 36, rotation: 28, layer: 7 },
-  { shape: "circle", colour: "RED", x: 16, y: 80, size: 40, rotation: 0, layer: 8 },
-  { shape: "triangle", colour: "BLUE", x: 46, y: 84, size: 32, rotation: 14, layer: 9 },
-];
+
+/** The Attention overhaul's still: a small spread tray (countRev 7) with one pink star already marked as counted. */
+const EXAMPLE_SPREAD: CountUpStage = {
+  cols: 3,
+  rows: 3,
+  targetShape: "star",
+  targetColour: "PINK",
+  shapes: [
+    { shape: "star", colour: "PINK", x: 17, y: 18, size: 22, rotation: 5, layer: 0 },
+    { shape: "circle", colour: "BLUE", x: 50, y: 15, size: 22, rotation: 0, layer: 1 },
+    { shape: "star", colour: "PINK", x: 82, y: 20, size: 21, rotation: 18, layer: 2 },
+    { shape: "triangle", colour: "GREEN", x: 15, y: 50, size: 22, rotation: 12, layer: 3 },
+    { shape: "square", colour: "PURPLE", x: 50, y: 52, size: 21, rotation: -10, layer: 4 },
+    { shape: "star", colour: "BROWN", x: 83, y: 48, size: 22, rotation: 8, layer: 5 },
+    { shape: "circle", colour: "RED", x: 18, y: 84, size: 21, rotation: 0, layer: 6 },
+    { shape: "star", colour: "PINK", x: 50, y: 82, size: 22, rotation: -14, layer: 7 },
+    { shape: "hexagon", colour: "BLUE", x: 82, y: 83, size: 21, rotation: 0, layer: 8 },
+  ],
+};
 
 function IntroExample() {
   return (
     <div className="flex w-full flex-col items-center gap-3">
       <p className="font-display text-base font-bold">How many pink stars?</p>
-      <Field shapes={EXAMPLE_SHAPES} height={140} size={20} cols={8} rows={6} />
-      <p className="font-mono text-sm text-muted-foreground">
-        answer <span className="font-bold text-primary">3</span>
+      <SpreadField stage={EXAMPLE_SPREAD} width={170} height={170} marks={[0]} />
+      <p className="text-center text-sm text-muted-foreground">
+        Tap a shape to mark it counted. Answer <span className="font-bold text-primary">3</span>
       </p>
     </div>
   );
@@ -209,8 +295,24 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
   );
   // The next tray slides onto the shelf (CSS, display only).
   useEffect(() => {
-    if (stage > 0 && stage < trays) soundCue("countup.trayIn");
+    if (stage > 0 && stage < trays) {
+      soundCue("countup.trayIn");
+      // The Attention overhaul: the next tray slides in from the right as the last one goes (the tray, never the arena).
+      const tray = spaceRef.current?.querySelector("[data-tally-spread]");
+      if (tray) gameFx("slide", tray, { from: { x: (tray as HTMLElement).clientWidth, y: 0 }, silent: true });
+    }
   }, [stage, trays]);
+
+  // countRev 7: shapes tapped as counted on this tray (cleared when the next tray comes in; never sent).
+  const [marks, setMarks] = useState<number[]>([]);
+  useEffect(() => setMarks([]), [stage]);
+  const spread = tallySpread(data);
+  const mark = (index: number) => {
+    if (locked || done.current) return;
+    attnSound(marks.includes(index) ? "countup.unmark" : "countup.mark", { volume: 0.5 });
+    gameFx("tap", spaceRef.current?.querySelector(`[data-tally-shape="${index}"]`), { silent: true });
+    setMarks((m) => (m.includes(index) ? m.filter((i) => i !== index) : [...m, index]));
+  };
 
   // Polish batch S: on a live round the goal line shows "Stage n of N", so the question drops its count.
   const framed = useContext(GoalLineContext) !== null;
@@ -225,6 +327,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
 
   const submitStage = (value: string) => {
     if (done.current) return;
+    if (stage < trays - 1) attnSound("countup.trayOut", { volume: 0.5 });
     const next = Array.from({ length: trays }, (_, i) => (i === stage ? value : (answers[i] ?? "")));
     setAnswers(next);
     if (stage >= trays - 1) {
@@ -248,11 +351,17 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
         keypad
         compactKeypad
         onSubmit={submitStage}
+        onKey={(_key, el) => {
+          attnSound("countup.key", { volume: 0.45 });
+          gameFx("tap", el, { silent: true });
+        }}
       >
         <StageProgress stage={stage} total={trays} />
         <div ref={spaceRef} data-tally-space="" className="-mx-1 flex min-h-0 w-[calc(100%+0.5rem)] flex-1 items-center justify-center overflow-hidden">
-          {cellSize > 0 && (
-            <Field key={stage} shapes={current.shapes} cols={cols} rows={rows} size={Math.min(28, cellSize - 8)} cellSize={cellSize} play />
+          {spread ? (
+            space.width > 0 && <SpreadField key={stage} stage={current} width={space.width - 4} height={space.height - 4} marks={marks} onMark={tallyMarks(data) ? mark : undefined} />
+          ) : (
+            cellSize > 0 && <Field key={stage} shapes={current.shapes} cols={cols} rows={rows} size={Math.min(28, cellSize - 8)} cellSize={cellSize} play />
           )}
         </div>
       </NumberEntry>
@@ -261,43 +370,79 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
-  if (puzzle.type !== "countup") return null;
+  const [shown, setShown] = useState<number | null>(null);
+  return puzzle.type === "countup" ? <TallyReveal puzzle={puzzle} myAnswer={myAnswer} shown={shown} setShown={setShown} /> : null;
+}
+
+function TallyReveal({ puzzle, myAnswer, shown, setShown }: { puzzle: CountUpPuzzleData; myAnswer: string | null | undefined; shown: number | null; setShown: (n: number) => void }) {
+  const revealRef = useRef<HTMLDivElement>(null);
   const rev2 = usesCountRev2(puzzle);
   const parts = splitStages(myAnswer, rev2 ? puzzle.stages.length : STAGE_COUNT);
-  // Compact rows (Polish, 13 Oct 2026): a small tray beside each question, so all three
-  // stages fit one phone screen. The answer line renders the same text as before.
+  const trays = puzzle.stages.map((stage, i) => {
+    const truth = rev2 ? countUpStageTruth(stage) : (puzzle.counts?.[i] ?? null);
+    const given = parseCount(parts[i] ?? "");
+    const exact = truth !== null && given === truth;
+    // Near misses that still score: one or two off on stored rounds, only one off on countRev 2.
+    const near = truth !== null && given !== null && !exact && Math.abs(given - truth) <= (rev2 ? 1 : 2);
+    return { stage, truth, given, exact, near };
+  });
+  // The Attention overhaul's reveal (15 Nov 2026): one tray at a time, large, the shapes that count ringed gold; the
+  // right count against yours in big numbers; a tab for each tray. The first tray you got wrong opens first.
+  const open = shown ?? Math.max(0, trays.findIndex((t) => !t.exact));
+  const tray = trays[open]!;
+  const right = trays.filter((t) => t.exact).length;
+  const off = tray.truth !== null && tray.given !== null ? Math.abs(tray.given - tray.truth) : null;
+  const verdict = tray.given === null ? "No answer" : tray.exact ? "Exact" : off === 1 ? `So close: ${tray.truth}, you said ${tray.given}` : `Off by ${off}`;
+  // The Attention overhaul (stage 2): the counted shapes light one by one while the right count ticks up; one off
+  // pulses its verdict softly. Display only, when a tray opens.
+  useEffect(() => {
+    const lit = Array.from(revealRef.current?.querySelectorAll("[data-tally-lit]") ?? []);
+    const step = Math.max(18, Math.min(60, 600 / Math.max(1, lit.length)));
+    const timers = lit.map((el, i) =>
+      window.setTimeout(() => {
+        el.setAttribute("data-lit-on", "");
+        attnSound("countup.revealTick", { volume: 0.35, rate: 1 + Math.min(i, 20) * 0.02 });
+      }, i * step),
+    );
+    const near = off === 1 ? window.setTimeout(() => {
+      attnSound("countup.soClose", { volume: 0.6 });
+      gameFx("nearMiss", revealRef.current?.querySelector('[data-attn-stat="verdict"]'), { inGame: false, silent: true, noHaptic: true });
+    }, lit.length * step + 120) : 0;
+    return () => {
+      timers.forEach((t) => window.clearTimeout(t));
+      window.clearTimeout(near);
+    };
+  }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div data-polish-reveal="countup" className={`flex w-full flex-col ${rev2 ? "gap-1.5" : "gap-2"}`}>
-      {puzzle.stages.map((stage, i) => {
-        const truth = rev2 ? countUpStageTruth(stage) : (puzzle.counts?.[i] ?? null);
-        const given = parseCount(parts[i] ?? "");
-        const exact = truth !== null && given === truth;
-        // Near misses that still score: one or two off on stored rounds, only one off on countRev 2.
-        const near = truth !== null && given !== null && !exact && Math.abs(given - truth) <= (rev2 ? 1 : 2);
-        return (
-          <div key={i} className={`tally-reveal-row flex w-full items-center gap-3 rounded-2xl bg-card px-2.5 ${rev2 ? "py-1" : "py-2"}`}>
-            <div className={`${rev2 ? "w-[80px]" : "w-[112px]"} shrink-0`}>
-              <Field
-                shapes={stage.shapes}
-                cols={stage.cols}
-                rows={stage.rows}
-                highlight={(item) => countUpCounts(stage, item)}
-                height={Math.round((rev2 ? 6.9 : 9.7) * stage.rows)}
-                size={10}
-              />
-            </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-1">
-              <p className="font-display text-sm font-bold leading-snug">{countUpStageQuestion(stage)}</p>
-              <p className="font-mono text-base font-bold leading-snug">
-                <span className="text-primary">Answer {truth ?? "—"}</span>
-                <span className={exact ? "text-primary" : near ? "text-foreground" : "text-warn"}>
-                  {" · "}you {given ?? "—"} {exact ? "✓" : near ? "~" : "✗"}
-                </span>
-              </p>
-            </div>
+    <div ref={revealRef} data-polish-reveal="countup" className="attn-rv" data-attn-reveal="countup">
+      <RevealTabs
+        label="Trays"
+        value={open}
+        onChange={setShown}
+        options={trays.map((t, i) => ({ value: i, label: `Tray ${i + 1}`, tone: t.exact ? "good" : "bad" }))}
+      />
+      <p className="text-center font-display text-base font-bold leading-snug" data-tally-question="">{countUpStageQuestion(tray.stage)}</p>
+      <div className="tally-reveal-tray flex w-full justify-center" data-tally-reveal-tray={open + 1}>
+        {tallySpread(puzzle) ? (
+          <SpreadField stage={tray.stage} width={340} height={300} highlight={(item) => countUpCounts(tray.stage, item)} />
+        ) : (
+          <div className="w-full max-w-[340px]">
+            <Field shapes={tray.stage.shapes} cols={tray.stage.cols} rows={tray.stage.rows} highlight={(item) => countUpCounts(tray.stage, item)} height={260} size={26} />
           </div>
-        );
-      })}
+        )}
+      </div>
+      <RevealLegend items={[{ mark: "found", label: "Counts" }]} />
+      <RevealStats
+        game="countup"
+        items={[
+          { id: "answer", label: "Right count", value: tray.truth === null ? "—" : <FxCountUp key={open} value={tray.truth} silent />, tone: "good" },
+          { id: "you", label: "You said", value: tray.given ?? "—", tone: tray.exact ? "good" : "bad" },
+          { id: "verdict", label: "This tray", value: <span className="text-base">{verdict}</span>, tone: tray.exact ? "good" : tray.near ? undefined : "bad" },
+        ]}
+      />
+      <p className="text-center text-sm font-semibold text-muted-foreground" data-tally-right="">
+        {right} of {trays.length} trays exact
+      </p>
     </div>
   );
 }
@@ -397,36 +542,53 @@ function spacedLayout(slots: Slot[], total: number, counts: (slot: Slot) => bool
   return [...shapes, ...top];
 }
 
-function buildStage(total: number, [min, max]: [number, number], spaced = false): { stage: CountUpStage; count: number } {
+/** A level's counting tray (stage 3 of the Attention overhaul): how many near-miss groups, and Expert's second colour. */
+export interface TallyTrayLevers {
+  groups: number;
+  twoColours: boolean;
+}
+
+function buildStage(total: number, [min, max]: readonly [number, number], spaced = false, levers?: TallyTrayLevers): { stage: CountUpStage; count: number } {
   const targetShape = pick(SHAPES);
   const targetColour = pick(COLOURS);
+  // Expert: the question takes the shape in either of two colours, clearly apart ("How many red or blue squares?").
+  const alsoColour = levers?.twoColours ? pick(COLOURS.filter((c) => c !== targetColour && !tooClose(c, targetColour))) : undefined;
+  const asked = (shape: string, colour: GlyphColour) => shape === targetShape && (colour === targetColour || colour === alsoColour);
   const count = randInt(min, max);
 
   // Two near-miss populations with similar counts, so a rough impression fails.
   const otherShape = pick(SHAPES.filter((s) => s !== targetShape));
-  const otherColour = pick(COLOURS.filter((c) => c !== targetColour && !tooClose(c, targetColour)));
+  const otherColour = pick(COLOURS.filter((c) => c !== targetColour && c !== alsoColour && !tooClose(c, targetColour) && !(alsoColour && tooClose(c, alsoColour))));
   const near = () => Math.max(2, count + pick([-2, -1, 1, 2]));
+  const groups = levers?.groups ?? 2;
   const nearA = near();
-  const nearB = near();
+  const nearB = groups >= 2 ? near() : 0;
 
   const slots: Slot[] = [];
-  for (let i = 0; i < count; i++) slots.push({ shape: targetShape, colour: targetColour });
+  const ownCount = alsoColour ? Math.ceil(count / 2) : count;
+  for (let i = 0; i < ownCount; i++) slots.push({ shape: targetShape, colour: targetColour });
+  if (alsoColour) for (let i = ownCount; i < count; i++) slots.push({ shape: targetShape, colour: alsoColour });
   for (let i = 0; i < nearA; i++) slots.push({ shape: otherShape, colour: targetColour });
   for (let i = 0; i < nearB; i++) slots.push({ shape: targetShape, colour: otherColour });
+  if (groups >= 3) {
+    // A third group: a second shape in the asked colour (two shapes, then, sharing the colour beside the answer).
+    const thirdShape = pick(SHAPES.filter((x) => x !== targetShape && x !== otherShape));
+    for (let i = 0, n = near(); i < n; i++) slots.push({ shape: thirdShape, colour: alsoColour && i % 2 ? alsoColour : targetColour });
+  }
 
   while (slots.length < total) {
     const shape = pick(SHAPES);
     const colour = pick(COLOURS);
-    if (shape === targetShape && colour === targetColour) continue; // never inflate the answer
-    if (shape === targetShape && tooClose(colour, targetColour)) continue;
+    if (asked(shape, colour)) continue; // never inflate the answer
+    if (shape === targetShape && (tooClose(colour, targetColour) || (alsoColour && tooClose(colour, alsoColour)))) continue;
     slots.push({ shape, colour });
   }
 
   if (spaced) {
     // countRev 2's wider counts (up to 19 on a tray) need the spaced layout to keep every target visible.
     for (let attempt = 0; attempt < 200; attempt += 1) {
-      const shapes = spacedLayout(slots, total, (slot) => slot.shape === targetShape && slot.colour === targetColour, 48);
-      const stage = { cols: 10, rows: 10, shapes, targetShape, targetColour } satisfies CountUpStage;
+      const shapes = spacedLayout(slots, total, (slot) => asked(slot.shape, slot.colour), 48);
+      const stage = { cols: 10, rows: 10, shapes, targetShape, targetColour, ...(alsoColour ? { alsoColour } : {}) } satisfies CountUpStage;
       if (countUpSceneValid(stage)) return { stage, count };
     }
   }
@@ -460,11 +622,11 @@ export const COUNTUP_COMPARE_LESS: [number, number] = [3, 6];
 export const COUNTUP_COMPARE_GAP: [number, number] = [1, 13];
 
 /** "How many more red than blue?": every shape of each colour counts, whatever its kind. */
-function buildCompareStage(total: number): { stage: CountUpStage; count: number } {
+function buildCompareStage(total: number, lessRange: readonly [number, number] = COUNTUP_COMPARE_LESS, gapRange: readonly [number, number] = COUNTUP_COMPARE_GAP): { stage: CountUpStage; count: number } {
   const more = pick(COLOURS);
   const less = pick(COLOURS.filter((c) => c !== more && !tooClose(c, more)));
-  const lessCount = randInt(COUNTUP_COMPARE_LESS[0], COUNTUP_COMPARE_LESS[1]);
-  const moreCount = lessCount + randInt(COUNTUP_COMPARE_GAP[0], COUNTUP_COMPARE_GAP[1]);
+  const lessCount = randInt(lessRange[0], lessRange[1]);
+  const moreCount = lessCount + randInt(gapRange[0], gapRange[1]);
   // Fillers never use a colour that could be mistaken for either counted one.
   const fillers = COLOURS.filter((c) => c !== more && c !== less && !tooClose(c, more) && !tooClose(c, less));
   const slots: Slot[] = [];
@@ -531,6 +693,24 @@ export function varyTallyTray(puzzle: CountUpPuzzleData): CountUpPuzzleData {
   const stages = puzzle.stages.map((stage, i) => (i === TALLY_ASK_TRAY ? built.stage : stage));
   const counts = puzzle.counts ? puzzle.counts.map((c, i) => (i === TALLY_ASK_TRAY ? built.count : c)) : puzzle.counts;
   return { ...puzzle, stages, ...(counts ? { counts } : {}) };
+}
+
+/** The levers a level's trays are built to (attentionLevels.data.ts TallyLevel). */
+export interface TallyLevers {
+  trays: readonly number[];
+  counts: readonly (readonly [number, number])[];
+  nearGroups: number;
+  compareLess: readonly [number, number];
+  compareGap: readonly [number, number];
+  twoColours: boolean;
+}
+
+/** A level's trays (stage 3 of the Attention overhaul): today's builders on its levers; a fourth tray is the comparison. */
+export function buildTallyAt(l: TallyLevers): { stages: CountUpStage[]; counts: number[] } {
+  const built = l.trays.map((total, i) =>
+    i === 3 ? buildCompareStage(total, l.compareLess, l.compareGap) : buildStage(total, l.counts[i]!, true, { groups: l.nearGroups, twoColours: l.twoColours }),
+  );
+  return { stages: built.map((b) => b.stage), counts: built.map((b) => b.count) };
 }
 
 export function buildCountUp(): CountUpPuzzleData {

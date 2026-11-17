@@ -5,6 +5,7 @@
  * against the game's declared ranges, and keeps its own score.
  */
 
+import type { Level } from "@/lib/levels/levels";
 import type { InputDiag } from "@/lib/arcade/engine";
 
 import {
@@ -120,8 +121,8 @@ export interface SnakeResult {
 }
 
 /** The single place a Snake score is worked out. */
-export function replaySnakeRun(seed: number, raw: string, rev?: number | null): SnakeResult {
-  const snakeGame = snakeGameFor(rev);
+export function replaySnakeRun(seed: number, raw: string, rev?: number | null, level?: Level | null): SnakeResult {
+  const snakeGame = snakeGameFor(rev, level);
   const run = decodeSnakeRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, SNAKE_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < SNAKE_RUN_TICKS;

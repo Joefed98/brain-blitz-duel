@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
+import { levelOfPuzzle } from "@/lib/levels/levels";
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { Dots, WaitingLine } from "@/components/duel/Dots";
 import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
@@ -595,6 +596,7 @@ export function AsyncRun({
           <>
             <PuzzleHelp
               type={shownPuzzle.type}
+              level={levelOfPuzzle(shownPuzzle)}
               open={helpOpen}
               onClose={() => setHelpOpen(false)}
             />

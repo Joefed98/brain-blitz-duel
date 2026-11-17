@@ -12,7 +12,7 @@
  * 1 Nov 2026; what rooms deal) deals from the fuel bank (orbitFuelCourseForSeed) on its own rules and is checked the same way.
  */
 import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, initXpFrom, orbitRev3Game, orbitRev3StartFor, ORBIT_REV3_WORLD_W, type OrbitRev3State } from "../../src/lib/arcade/orbitRev3";
-import { orbitBeltStart, ORBIT_INPUT_TAP, ORBIT_REV_FUEL, ORBIT_REV_STD, ORBIT_REV_XP, orbitXpRev } from "../../src/lib/arcade/orbit";
+import { orbitBeltStart, ORBIT_INPUT_TAP, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, ORBIT_REV_STD, ORBIT_REV_XP, orbitXpRev } from "../../src/lib/arcade/orbit";
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
 import { orbitFuelCourseForSeed, orbitXpCourseForSeed } from "../../src/lib/duel/orbitRev3Course.server";
 import { Human } from "../arcade-skill-bands/human";
@@ -22,8 +22,8 @@ const FP = 256;
 const px = (v: number) => Math.round(v / FP);
 
 function startFor(seed: number, rev = ORBIT_REV_XP): () => OrbitRev3State {
-  const course = rev === ORBIT_REV_FUEL ? orbitFuelCourseForSeed(seed) : orbitXpCourseForSeed(seed);
-  if (!course) throw new Error(`orbit room identity: the ${rev === ORBIT_REV_FUEL ? "fuel" : "feature"} bank is empty`);
+  const course = rev === ORBIT_REV_FUEL || rev === ORBIT_REV_GRACE || rev === ORBIT_REV_BIG ? orbitFuelCourseForSeed(seed) : orbitXpCourseForSeed(seed);
+  if (!course) throw new Error(`orbit room identity: the ${rev === ORBIT_REV_FUEL || rev === ORBIT_REV_GRACE || rev === ORBIT_REV_BIG ? "fuel" : "feature"} bank is empty`);
   const planets = decodeRev3Planets(course.planets);
   const holes = decodeOrbitHoles(course.holes);
   const extras = decodeOrbitExtras(course.extras);
@@ -83,10 +83,11 @@ function botLog(seed: number, level: "weak" | "elite", rev = ORBIT_REV_XP): Arca
 
 export const roomIdentity = {
   type: "orbit",
-  // What rooms deal: orbitRev 14 (the fuel meter, on the fuel bank); orbit-expand-check checks orbitRev 12.
-  rev: ORBIT_REV_FUEL,
+  // What rooms deal: orbitRev 15 (grace, the Action overhaul; orbitRev 14 before it, on the fuel bank); orbit-expand-check checks orbitRev 12.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal orbitRev 16 (bigger planets).
+  rev: ORBIT_REV_BIG,
   scheduleOf,
-  logs: (seed: number): ArcadeInputEvent[][] => [[], randomTaps(seed), botLog(seed, "weak", ORBIT_REV_FUEL), botLog(seed, "elite", ORBIT_REV_FUEL)],
+  logs: (seed: number): ArcadeInputEvent[][] => [[], randomTaps(seed), botLog(seed, "weak", ORBIT_REV_BIG), botLog(seed, "elite", ORBIT_REV_BIG)],
 };
 
 

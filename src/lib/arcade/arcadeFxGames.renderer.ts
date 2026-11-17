@@ -11,9 +11,9 @@
  * shared red edge pulse and, where a point is given, the puff at the miss.
  */
 import { CURLING_FX_V4, MINIGOLF_FX, POOL_FX } from "./sportsFx.renderer";
-import type { ArcadeFxMiss, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
+import type { ArcadeFxMiss, ArcadeFxMoment, ArcadeFxSpec, ArcadeWorld } from "./arcadeFx.renderer";
 import { minesCellX, minesCellY, minesCleared, MINES_CELL, MINES_WORLD_H, MINES_WORLD_W, type MinesState } from "./minesweeper";
-import { mahjongCleared, mahjongSlotRect, MAHJONG_WORLD_H, MAHJONG_WORLD_W, type MahjongState } from "./mahjong";
+import { mahjongCleared, mahjongLayoutOf, mahjongSlotRect, MAHJONG_WORLD_H, MAHJONG_WORLD_W, type MahjongState } from "./mahjong";
 import { FREEKICK_FX, HOMERUN_FX, RACING_FX } from "./sportsFx.renderer";
 import { FREECELL_FX } from "./cards/freecell.renderer";
 import { TRIPEAKS_FX } from "./cards/tripeaks.renderer";
@@ -90,8 +90,8 @@ import {
   SNAKE_V9_H,
   type SnakeState,
 } from "./snake";
-import { burstFloorY, burstGoldenCount, BURST_FLOOR_Y, BURST_LIVES, BURST_TALL_H, BURST_WORLD_W, type BurstState } from "./burst";
-import { SKYLINE_STREAK_FROM, SKYLINE_TALL_H, SKYLINE_WIND_FROM, SKYLINE_WORLD_H, SKYLINE_WORLD_W, skylineWorldH, type SkylineState } from "./skyline";
+import { burstFloorY, burstGoldenCount, BURST_FLOOR_Y, BURST_LIVES, burstLivesOf, BURST_TALL_H, BURST_WORLD_W, type BurstState } from "./burst";
+import { SKYLINE_STREAK_FROM, SKYLINE_TALL_H, SKYLINE_WORLD_H, SKYLINE_WORLD_W, skylineWindFrom, skylineWorldH, type SkylineState } from "./skyline";
 import {
   crossColumnCentreFp,
   crossGeomOf,
@@ -180,7 +180,7 @@ function bubSpecialPoint(s: BubState): { x: number; y: number } {
 }
 import { SNIP_CONFIG, SNIP_COURSES, SNIP_EATEN, SNIP_H, SNIP_TALL_H, SNIP_X_LEVELS, SNIP_X_VIEW_H, snipCamera, snipWorldH, type SnipState } from "./snip";
 import { TILT_MAX_MAZES, TILT_X_H, TILT_WORLD_H, TILT_WORLD_W, type TiltState } from "./tilt";
-import { btWorldH, BT_BALLS, BT_H, BT_TALL_H, BT_V7_BALLS, BT_V7_H, BT_W, type BtState } from "./ballTrack";
+import { btStateBalls, btWorldH, BT_BALLS, BT_H, BT_HOPPER_H, BT_TALL_H, BT_V7_BALLS, BT_V7_H, BT_W, type BtState } from "./ballTrack";
 import { wfWord, wfWorldH, WF_H, WF_H_V2, WF_PAR, WF_W, WF_WELL_Y, type WordfallState } from "./wordfall";
 import {
   matchupIsJackpot,
@@ -193,6 +193,7 @@ import {
   MATCHUP_V9_WORLD_H,
   MATCHUP_WORLD_W,
   type MatchupState,
+  MATCHUP_V9_PANEL_Y,
 } from "./matchup";
 
 /**
@@ -759,7 +760,7 @@ export const BURST_FX: ArcadeFxSpec<BurstState> = {
     // Mirrors the sim's own top-up condition (burstScoreOf): finished, no life lost, 4+ waves.
     {
       kind: "final",
-      count: (s) => (s.ended === 1 && s.lives === BURST_LIVES && s.cleared >= 4 ? 1 : 0),
+      count: (s) => (s.ended === 1 && s.lives === burstLivesOf(s) && s.cleared >= 4 ? 1 : 0),
       label: () => "FLAWLESS!",
     },
   ],
@@ -892,7 +893,7 @@ export const SKYLINE_FX: ArcadeFxSpec<SkylineState> = {
     { kind: "combo", count: (s) => (s.streakPoints ? s.streak ?? 0 : 0), min: SKYLINE_STREAK_FROM, label: (_s, n) => `STREAK ×${n}` },
     {
       kind: "pop",
-      count: (s) => (s.rev && s.placed >= SKYLINE_WIND_FROM ? 1 : 0),
+      count: (s) => (s.rev && s.placed >= skylineWindFrom(s) ? 1 : 0),
       at: (s) => ({ x: SKYLINE_WORLD_W / 2, y: skylineWorldH(s) * 0.3 }),
       label: () => "FLAG UP: WATCH THE WIND!",
     },
@@ -1237,7 +1238,51 @@ export const BUBBLE_FX: ArcadeFxSpec<BubState> = {
 /** Where a perfect landing's PERFECT shows: just off the runner's head, into the cave (below it on the roof above). */
 function flipPerfectAt(s: FlipState): { x: number; y: number } {
   const p = flipRunnerPoint(s);
+  // The flow revisions (flipRev 11–13, stage 2 of the Action overhaul): at the landing spot, just ahead of the runner's
+  // feet (the pop draws 10 px above its spot), clear of the flow counter riding over the runner's head (flipFlowChipAt)
+  // and of a double flip's pop as the runner leaves the surface.
+  if (s.flow) return { x: p.x + 58, y: s.side === 0 ? p.y + 22 : p.y - 2 };
   return { x: p.x + 16, y: s.side === 0 ? p.y - 24 : p.y + 38 };
+}
+
+/**
+ * Roofbound's edge-glow replacement (the Action overhaul stage 2, 15 Nov 2026; Joe: no glowing edges). A banner moment
+ * (10 SECONDS, CHECKPOINT, SPEED ZONE, SURVIVED!) gets a gold rule that draws out from under its words, crisp, with a
+ * bright bead at each end; a perfect moment at a point (STAR TRAIL, ALL 10 STARS) a gold ring opening there. A double
+ * flip draws nothing here: the renderer's ring follows the runner (flipRev 11–13). The banners take no `at`, so the
+ * moment's point is the world's centre: a streak banner sits at 0.24 of the height (0.48 of that y), the final at 0.4.
+ */
+export function flipMoment(ctx: CanvasRenderingContext2D, m: ArcadeFxMoment): void {
+  if (m.kind === "combo") return;
+  const fade = 1 - m.p * m.p;
+  ctx.save();
+  ctx.strokeStyle = "#F5B82E";
+  ctx.fillStyle = "#FFE4A1";
+  if (m.kind === "perfect") {
+    ctx.globalAlpha = 0.9 * fade;
+    ctx.lineWidth = 3 * (1 - m.p) + 1;
+    ctx.beginPath();
+    ctx.arc(m.x, m.y, m.still ? 26 : 14 + 30 * (1 - (1 - m.p) * (1 - m.p)), 0, Math.PI * 2);
+    ctx.stroke();
+  } else {
+    const y = m.y * (m.kind === "final" ? 0.8 : 0.48) + (m.kind === "final" ? 24 : 18);
+    const half = (m.kind === "final" ? 110 : 80) * (m.still ? 1 : Math.min(1, m.p * 2.5));
+    ctx.globalAlpha = fade;
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(m.x - half, y);
+    ctx.lineTo(m.x + half, y);
+    ctx.stroke();
+    if (!m.lite) {
+      for (const dx of [-half, half]) {
+        ctx.beginPath();
+        ctx.arc(m.x + dx, y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  ctx.restore();
 }
 
 export const FLIP_FX: ArcadeFxSpec<FlipState> = {
@@ -1269,8 +1314,9 @@ export const FLIP_FX: ArcadeFxSpec<FlipState> = {
       at: (s) => flipRunnerPoint(s),
       label: (s) => ((s.chain ?? 0) <= 1 ? "DOUBLE FLIP!" : (s.chain ?? 0) === 2 ? "TRIPLE FLIP!" : `FLIP ×${(s.chain ?? 0) + 1}`),
     },
-    { kind: "streak", count: (s) => s.cpPassed ?? 0, label: () => "CHECKPOINT" },
-    { kind: "pop", count: (s) => s.saves ?? 0, at: (s) => flipRunnerPoint(s), label: () => "SAVED!" },
+    // flipRev 13 (grace, 15 Nov 2026): every crash is caught, so no checkpoint banner; a crash shows its cost.
+    { kind: "streak", count: (s) => (s.grace ? 0 : s.cpPassed ?? 0), label: () => "CHECKPOINT" },
+    { kind: "pop", count: (s) => s.saves ?? 0, at: (s) => flipRunnerPoint(s), label: (s) => (s.grace ? "−10 s" : "SAVED!") },
     { kind: "streak", count: flipZonesEntered, label: () => "SPEED ZONE!" },
     // flipRev 8's sweet spots: a perfect landing. Since 3 Nov 2026 (display only, every revision with sweet spots: flipRev
     // 8–11) a small molten "PERFECT" at the runner's feet, neon orange and dripping, gone in about 0.6 s; no burst
@@ -1278,6 +1324,7 @@ export const FLIP_FX: ArcadeFxSpec<FlipState> = {
     { kind: "pop", count: flipSweetsTaken, at: flipPerfectAt, label: () => "PERFECT", textOnly: true, molten: true, textScale: 1.2 },
   ],
   misses: [{ count: (s) => (s.ended === 2 ? 1 : 0) }],
+  moment: flipMoment,
 };
 /** flipRev 8's taller cave draws its effects on the 730 px world. */
 export const flipFxFor = (s: FlipState): ArcadeFxSpec<FlipState> => (s.exp ? fxSpecAt(FLIP_FX, FLIP_V8_WORLD_H) : FLIP_FX);
@@ -1398,13 +1445,14 @@ export const TILT_FX: ArcadeFxSpec<TiltState> = {
     {
       kind: "clear",
       count: (s) => s.mazes,
-      when: (s) => s.mazes < TILT_MAX_MAZES,
+      // Levels (stage 3): a level's run ends at its own maze count (Easy three).
+      when: (s) => s.mazes < (s.lvl ? s.list.length : TILT_MAX_MAZES),
       label: (_s, n) => `MAZE ${n} DONE!`,
     },
     {
       kind: "final",
-      count: (s) => (s.mazes >= TILT_MAX_MAZES ? 1 : 0),
-      label: () => "ALL 4 MAZES!",
+      count: (s) => (s.mazes >= (s.lvl ? s.list.length : TILT_MAX_MAZES) ? 1 : 0),
+      label: (s) => (s.lvl ? `ALL ${s.list.length} MAZES!` : "ALL 4 MAZES!"),
     },
     // tiltRev 2 (original rounds keep these at 0 / undefined): a bonus star, the first marble in its cup.
     { kind: "pop", count: (s) => s.stars ?? 0, at: (s) => tiltMarbleAt(s), label: () => "BONUS STAR!" },
@@ -1439,7 +1487,8 @@ export const BALLTRACK_FX: ArcadeFxSpec<BtState> = {
   events: [
     { kind: "streak", count: (s) => s.home, every: 5, label: (_s, n) => `${n} HOME` },
     // btRev 7 drops 36 marbles (every earlier course 30).
-    { kind: "final", count: (s) => (s.home >= (s.r7 ? BT_V7_BALLS : BT_BALLS) ? 1 : 0), label: (s) => `ALL ${s.r7 ? BT_V7_BALLS : BT_BALLS} HOME!` },
+    // A level's course (stage 3) carries its own count (`nb`); every Normal and older state the revision's own.
+    { kind: "final", count: (s) => ((s.nb !== undefined ? s.home >= s.nb : s.home >= (s.r7 ? BT_V7_BALLS : BT_BALLS)) ? 1 : 0), label: (s) => `ALL ${btStateBalls(s)} HOME!` },
     // btRev 2 only: a marble home after riding a turned tube, or after passing a switch point.
     { kind: "pop", count: (s) => s.rideHomes ?? 0, label: () => "TURNED HOME!" },
     { kind: "pop", count: (s) => s.switchHomes ?? 0, label: () => "SWITCHED HOME!" },
@@ -1508,14 +1557,14 @@ export const MINESWEEPER_FX: ArcadeFxSpec<MinesState> = {
 
 const mahjongPoint = (s: MahjongState) => {
   if (s.lastA < 0) return null;
-  const a = mahjongSlotRect(s.lastA);
-  const b = mahjongSlotRect(s.lastB);
+  const a = mahjongSlotRect(s.lastA, mahjongLayoutOf(s.face));
+  const b = mahjongSlotRect(s.lastB, mahjongLayoutOf(s.face));
   return { x: (a.x + b.x + a.w) / 2, y: (a.y + b.y + a.h) / 2 };
 };
 
-const mahjongSlotCentre = (slot: number): { x: number; y: number } | null => {
+const mahjongSlotCentre = (s: MahjongState, slot: number): { x: number; y: number } | null => {
   if (slot < 0) return null;
-  const r = mahjongSlotRect(slot);
+  const r = mahjongSlotRect(slot, mahjongLayoutOf(s.face));
   return { x: r.x + r.w / 2, y: r.y + r.h / 2 };
 };
 
@@ -1535,8 +1584,8 @@ export const MAHJONG_FX: ArcadeFxSpec<MahjongState> = {
     { kind: "final", count: (s) => (mahjongCleared(s) ? 1 : 0), label: () => "CLEARED!" },
   ],
   misses: [
-    { count: (s) => s.blocked, at: (s) => mahjongSlotCentre(s.lastBlocked) },
-    { count: (s) => s.misses, at: (s) => mahjongSlotCentre(s.sel) },
+    { count: (s) => s.blocked, at: (s) => mahjongSlotCentre(s, s.lastBlocked) },
+    { count: (s) => s.misses, at: (s) => mahjongSlotCentre(s, s.sel) },
   ],
 };
 
@@ -1691,7 +1740,29 @@ export const sliceFxFor = (s: SliceState): ArcadeFxSpec<SliceState> => fxSpecAt(
 export const SLICE_FX_TALL = fxSpecAt(SLICE_FX, SLICE_TALL_H);
 /** World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Slice sliceRev 9's world (as the renderer's own v9 spec). */
 export const SLICE_FX_V9: ArcadeFxSpec<SliceState> = { ...SLICE_FX, width: SLICE_V9_W, height: SLICE_V9_H };
-export const bubbleFxFor = (s: BubState): ArcadeFxSpec<BubState> => fxSpecAt(BUBBLE_FX, bubWorldH(s));
+/**
+ * The Strategy overhaul (15 Nov 2026, display only): the text strip each Strategy game's words sit in while it runs,
+ * off the board (Coral Pop under the gun, Rainbow Bridge under the counters, Ball Tracker over its waiting row,
+ * Gemstone between the board and its goals). Tilt's is TILT_X_TEXT_Y (tiltArt.renderer.ts).
+ */
+export const STRATEGY_TEXT_BAND = {
+  bubble: (worldH: number) => worldH - 16,
+  inkbridge: 92,
+  balltrack: BT_HOPPER_H / 2,
+  matchup: MATCHUP_V9_PANEL_Y - 9,
+} as const;
+/** Ball Tracker's words sit in the free right half of its waiting row (the queue fills the left half). */
+export const BALLTRACK_TEXT_X = (BT_W * 3) / 4;
+const withBand = <S,>(spec: ArcadeFxSpec<S>, y: number, x?: number): ArcadeFxSpec<S> => {
+  const key = `${spec.game}:${spec.height}:band${y}:${x ?? ""}`;
+  let hit = specAtCache.get(key) as ArcadeFxSpec<S> | undefined;
+  if (!hit) {
+    hit = { ...spec, textBand: y, ...(x !== undefined ? { textX: x } : {}) };
+    specAtCache.set(key, hit as unknown as ArcadeFxSpec<never>);
+  }
+  return hit;
+};
+export const bubbleFxFor = (s: BubState): ArcadeFxSpec<BubState> => (s.fast ? withBand(fxSpecAt(BUBBLE_FX, bubWorldH(s)), STRATEGY_TEXT_BAND.bubble(bubWorldH(s))) : fxSpecAt(BUBBLE_FX, bubWorldH(s)));
 export const BUBBLE_FX_TALL = fxSpecAt(BUBBLE_FX, BUB_TALL_H);
 /** Taller worlds batch 3 (Oct 2026): Grappler swingRev 9, Orbit orbitRev 8 (its view), Ball Tracker btRev 4. */
 export const SWING_FX_TALL = fxSpecAt(SWING_FX, SWING_TALL_H);
@@ -1758,12 +1829,33 @@ const ORBIT_FX_XP_VIEW: ArcadeFxSpec<OrbitState> = { ...ORBIT_FX, width: 450, he
  * orbitRev 12 (the expansion to 200): the same events in the wider 450 × 782 view, drawn 862 tall since 27 Oct 2026
  * (ORBIT_XP_DRAW_H in orbit.renderer.ts, rows above the camera's frame: the world reaches the screen's bottom), so the layer maps as the world does.
  */
-export const ORBIT3_FX_XP: ArcadeFxSpec<OrbitRev3State> = { ...ORBIT3_FX, width: 450, height: ORBIT_XP_DRAW_H_FX };
+export const ORBIT3_FX_XP: ArcadeFxSpec<OrbitRev3State> = {
+  ...ORBIT3_FX,
+  width: 450,
+  height: ORBIT_XP_DRAW_H_FX,
+  // Stage 2 (the Action overhaul, 15 Nov 2026, display only): the sun's own bloom and banner (orbitEffects.renderer.ts
+  // drawSunBloom, with the planets counting up) say "ALL 40 PLANETS!", so the layer's final pop isn't said twice.
+  events: ORBIT3_FX.events.filter((e) => e.kind !== "final"),
+  // The edge glow's replacement (Orbit is edgeless): a crisp ring opening from where the moment happened (every tenth
+  // planet's banner, a black hole's jump), gold or violet, no glow; still under reduced motion.
+  moment: (ctx, m) => drawOrbitMomentRing(ctx, m),
+};
+function drawOrbitMomentRing(ctx: CanvasRenderingContext2D, m: ArcadeFxMoment): void {
+  const open = m.still ? 0.6 : 1 - (1 - m.p) * (1 - m.p);
+  ctx.save();
+  ctx.globalAlpha = (m.still ? 0.6 : 0.85) * (1 - m.p);
+  ctx.strokeStyle = m.kind === "clear" ? "#B98CFF" : "#F5B82E";
+  ctx.lineWidth = m.lite ? 1.5 : 2.5;
+  ctx.beginPath();
+  ctx.arc(m.x, m.y, 18 + 70 * open, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
 export const orbit3FxFor = (s: OrbitRev3State): ArcadeFxSpec<OrbitRev3State> => (s.viewW ? ORBIT3_FX_XP : fxSpecAt(ORBIT3_FX, orbitViewH(s)));
 export const ORBIT3_FX_TALL = fxSpecAt(ORBIT3_FX, ORBIT_TALL_VIEW_H);
-export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => fxSpecAt(BALLTRACK_FX, btWorldH(s));
+export const balltrackFxFor = (s: BtState): ArcadeFxSpec<BtState> => (s.r7 ? withBand(fxSpecAt(BALLTRACK_FX, btWorldH(s)), STRATEGY_TEXT_BAND.balltrack, BALLTRACK_TEXT_X) : fxSpecAt(BALLTRACK_FX, btWorldH(s)));
 /** x200 (Oct 2026): Rainbow Bridge inkRev 10's taller world draws through the spec at its own height. */
-export const inkBridgeFxFor = (s: InkState): ArcadeFxSpec<InkState> => fxSpecAt(INKBRIDGE_FX, inkWorldH(s));
+export const inkBridgeFxFor = (s: InkState): ArcadeFxSpec<InkState> => (inkWorldH(s) === INK_TALL_H ? withBand(fxSpecAt(INKBRIDGE_FX, inkWorldH(s)), STRATEGY_TEXT_BAND.inkbridge) : fxSpecAt(INKBRIDGE_FX, inkWorldH(s)));
 export const INKBRIDGE_FX_TALL = fxSpecAt(INKBRIDGE_FX, INK_TALL_H);
 export const BALLTRACK_FX_TALL = fxSpecAt(BALLTRACK_FX, BT_TALL_H);
 

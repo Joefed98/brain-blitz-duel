@@ -3,6 +3,7 @@
  * plus the streak and gold-pair bonuses walked from the same flips. Older rounds never reach here.
  */
 import { puzzleScoreRevOf } from "../puzzleScoreRev";
+import { pairCardsOf } from "../attentionLevels";
 import { PUZZLE_SCORE_REV_HELPER } from "../puzzleScoreRev3";
 import type { DepthGrader } from "../depth200.server";
 import { depthClamp } from "../depth200";
@@ -32,7 +33,7 @@ export const matchmakerDepth: DepthGrader = {
     // pairRev 2: the gold match's time, never later than the answer's receipt on the round clock.
     const { goldMs: sentGoldMs } = splitPairGoldTime(answer);
     const goldMs = sentGoldMs === null ? null : Math.min(sentGoldMs, latestTapMs(limit, receivedMsRemaining));
-    const d = pairDepthReplay(puzzle, decodePairFlips(answer), goldMs);
+    const d = pairDepthReplay(puzzle, decodePairFlips(answer, pairCardsOf(puzzle)), goldMs);
     const score = depthClamp(base.score + d.streakBonus + d.goldBonus);
     const shares = finished ? { time: base.time, efficiency: base.efficiency } : { progressShare: base.progress };
     return {

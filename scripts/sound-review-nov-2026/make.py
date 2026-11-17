@@ -300,6 +300,107 @@ def _(r):
     return room(mix(b, glass, wash), r, 0.12, 0.14)
 
 
+# The Logic overhaul, session 1 (15 Nov 2026): placeholders for its new slots until Joe's ElevenLabs files
+# (docs/sound-cues/logic-elevenlabs.md).
+
+@sound("sudoku.clash", ["sudoku.clash"], "placeholder: a low, muted wooden knock, slightly off-key")
+def _(r):
+    n = n_of(0.2)
+    x = struck(WOOD, 210, 0, 0.12, n, r, 0.03) + struck(WOOD, 226, 0, 0.1, n, r, 0.03) * 0.6 + thump(140, 90, 0.05, n) * 0.5
+    return room(x, r, 0.08, 0.1)
+
+
+@sound("sudoku.pencil", ["sudoku.pencil"], "placeholder: a pencil tip on paper, a very quiet tick")
+def _(r):
+    n = n_of(0.06)
+    return svf(noise(n, r), 5200, 1.6) * env(n, 0.002, 0.04) * 0.6
+
+
+@sound("tubes.undo", ["tubes.undo"], "placeholder: a glass vial set back in a wooden rack, a light clink")
+def _(r):
+    n = n_of(0.2)
+    x = struck(GLASS, 2100, 0, 0.14, n, r) * 0.5 + struck(WOOD, 620, 0, 0.06, n, r) * 0.4
+    return room(x, r, 0.08, 0.1)
+
+
+@sound("tubes.outOfPours", ["tubes.outOfPours"], "placeholder: an empty glass vial tapped twice, hollow and final")
+def _(r):
+    n = n_of(0.6)
+    one = struck(GLASS, 1180, 0, 0.3, n, r) * 0.7
+    two = at(struck(GLASS, 990, 0, 0.35, n_of(0.45), r) * 0.7, 0.15, n)
+    return room(mix(one, two), r, 0.12, 0.14)
+
+
+@sound("safe.wrongTry", ["safe.wrongTry"], "placeholder: a safe handle jerked against a locked bolt, a dull clunk")
+def _(r):
+    n = n_of(0.38)
+    x = struck(METAL, 180, 0, 0.18, n, r, 0.01) * 0.6 + thump(110, 70, 0.1, n) * 0.8 + click(n, r, 2400) * 0.3
+    return room(x, r, 0.1, 0.12)
+
+
+@sound("sudoku.line", ["sudoku.line"], "placeholder: a gentle rising two-note glass chime, a line completed")
+def _(r):
+    n = n_of(0.5)
+    one = struck(GLASS, 1320, 0, 0.3, n, r) * 0.5
+    two = at(struck(GLASS, 1760, 0, 0.32, n_of(0.38), r) * 0.5, 0.11, n)
+    return room(mix(one, two), r, 0.1, 0.12)
+
+
+@sound("nonogram.line", ["nonogram.line"], "placeholder: a small porcelain chime, one clear note")
+def _(r):
+    n = n_of(0.4)
+    return room(struck(GLASS, 1480, 0, 0.3, n, r) * 0.6 + struck(STONE, 2960, 0, 0.08, n, r) * 0.15, r, 0.1, 0.12)
+
+
+@sound("minesweeper.cascadeTick", ["minesweeper.cascadeTick"], "placeholder: a dry stone tick, very short")
+def _(r):
+    n = n_of(0.05)
+    return struck(STONE, 2200, 0, 0.03, n, r) * 0.6 + click(n, r, 5000, 1.5) * 0.4
+
+
+@sound("minesweeper.defuse", ["minesweeper.defuse"], "placeholder: a soft spring-loaded pin locking, one mine defused")
+def _(r):
+    n = n_of(0.15)
+    x = struck(METAL, 1900, 0, 0.06, n, r) * 0.45 + click(n, r, 3800, 2.0) * 0.5 + thump(320, 220, 0.03, n) * 0.25
+    return room(x, r, 0.06, 0.08)
+
+
+@sound("minesweeper.tapNumber", ["minesweeper.tapNumber"], "placeholder: a tiny dull knock on stone")
+def _(r):
+    n = n_of(0.1)
+    return struck(STONE, 520, 0, 0.06, n, r) * 0.6 + thump(200, 140, 0.04, n) * 0.5
+
+
+@sound("sudoku.check", ["sudoku.check"], "placeholder: Box Six Expert's Check with no clash, a dry wooden double tick")
+def _(r):
+    n = n_of(0.2)
+    a = struck(WOOD, 900, 0, 0.04, n, r) * 0.55
+    b = struck(WOOD, 1200, 0, 0.04, n, r) * 0.45
+    d = int(0.07 * 44100)
+    out = a.copy()
+    out[d:] += b[: n - d]
+    return room(out, r, 0.06, 0.06)
+
+
+@sound("tubes.uncover", ["tubes.uncover"], "placeholder: Polypotions Expert, a hidden layer uncovered, a soft glassy shimmer")
+def _(r):
+    n = n_of(0.3)
+    return room(struck(GLASS, 1980, 0, 0.18, n, r) * 0.32 + struck(GLASS, 2970, 0, 0.12, n, r) * 0.18, r, 0.1, 0.12)
+
+
+@sound("nonogram.autoCross", ["nonogram.autoCross"], "placeholder: Mosaic Easy, a matched line's gaps crossed, a quick soft pencil flick")
+def _(r):
+    n = n_of(0.14)
+    return svf(noise(n, r), 3800, 1.2) * env(n, 0.004, 0.06) * 0.55
+
+
+@sound("nonogram.paint", ["nonogram.paint"], "placeholder: a tiny dry ceramic tick for each square a drag paints")
+def _(r):
+    n = n_of(0.07)
+    x = struck(STONE, 1650, 0, 0.04, n, r) * 0.6 + click(n, r, 6000, 2.0) * 0.4
+    return x
+
+
 @sound("nonogram.fill", ["nonogram.fill"], "a felt stamp: a soft, dense press into the square")
 def _(r):
     n = n_of(0.12)
@@ -1036,6 +1137,716 @@ def _(r):
     a = click(n, r, 3500) * 0.45 + modes(1650, [1, 2.7], [0.06, 0.04], [1, 0.4], n, r) * 0.35
     b = at(click(n_of(0.05), r, 2500) * 0.4, 0.04, n)
     return room(mix(a, b), r, 0.05, 0.08)
+
+
+# The Word overhaul (15 Nov 2026, docs/sound-cues/word-elevenlabs.md): the keyboards' key press, a placeholder until
+# Joe's recording drops in by name.
+@sound("word.key", ["strikeout.key", "codeword.key"], "a soft typewriter key: a short, dry, light mechanical click")
+def _(r):
+    n = n_of(0.09)
+    x = click(n, r, 4200, 2.0) * 0.7 + struck(WOOD, 1650, 0, 0.035, n, r) * 0.35 + thump(320, 220, 0.02, n) * 0.25
+    return room(x, r, 0.06, 0.08)
+
+
+# The Word overhaul's effects, stage 2 (15 Nov 2026, docs/sound-cues/word-elevenlabs.md): placeholders until Joe's
+# recordings drop in by name. A pentatonic run for the rising notes (C5 upwards), chords that grow with a word's length,
+# wooden clacks for tiles, glass for the jar and chimes, a pen squeak for Lookout's loop.
+PENTA = [523.25, 587.33, 659.26, 783.99, 880.0, 1046.5, 1174.66, 1318.51, 1567.98, 1760.0, 2093.0]
+
+
+def _note(f, n, r, kind=None, decay=0.28, amp=1.0):
+    return struck(kind or BELL, f, 0, decay, n, r) * amp
+
+
+def _chord(freqs, n, r, spread=0.0, decay=0.45):
+    return mix(*[at(_note(f, n_of(decay + 0.1), r, decay=decay) * (0.9 ** i), spread * i, n) for i, f in enumerate(freqs)])
+
+
+def _pluck(i, decay=0.16):
+    return lambda r: room(_note(PENTA[i], n_of(decay + 0.05), r, WOOD, decay) * 0.8 + click(n_of(decay + 0.05), r, 5200) * 0.12, r, 0.06, 0.08)
+
+
+def _bell(i, decay=0.22):
+    return lambda r: room(_note(PENTA[i], n_of(decay + 0.08), r, BELL, decay), r, 0.08, 0.1)
+
+
+def _word_chord(k, base=0):
+    """A chord of k notes up the scale, rolled quickly: more notes for a longer word."""
+    def fn(r):
+        n = n_of(0.55 + 0.04 * k)
+        return room(_chord([PENTA[min(len(PENTA) - 1, base + j)] for j in range(k)], n, r, 0.03, 0.42), r, 0.14, 0.14)
+    return fn
+
+
+def _clack(f=820, decay=0.09, low=240):
+    def fn(r):
+        n = n_of(decay + 0.1)
+        return room(struck(WOOD, f, 0, decay, n, r) * 0.8 + click(n, r, 4500) * 0.3 + thump(low, low * 0.7, 0.05, n) * 0.3, r, 0.08, 0.1)
+    return fn
+
+
+def _soft_wrong(r):
+    n = n_of(0.24)
+    return room(sine(glide(330, 247, n), n) * env(n, 0.004, 0.18) * 0.7 + struck(WOOD, 220, 0, 0.08, n, r) * 0.3, r, 0.08, 0.1)
+
+
+def _rise(count, start=0, step=0.07, kind=None):
+    def fn(r):
+        n = n_of(step * count + 0.35)
+        return room(mix(*[at(_note(PENTA[min(len(PENTA) - 1, start + i)], n_of(0.32), r, kind, 0.26), step * i, n) for i in range(count)]), r, 0.12, 0.12)
+    return fn
+
+
+def _sparkle(r):
+    n = n_of(0.5)
+    return room(mix(*[at(_note(f, n_of(0.3), r, GLASS, 0.2) * 0.6, 0.035 * i, n) for i, f in enumerate([1568, 2093, 2349, 2637, 3136])]), r, 0.14, 0.18)
+
+
+def _pop(r):
+    n = n_of(0.14)
+    return room(sine(glide(700, 1300, n), n) * env(n, 0.002, 0.08) * 0.8 + click(n, r, 6000) * 0.2, r, 0.05, 0.08)
+
+
+def _bump(r):
+    n = n_of(0.16)
+    return room(thump(260, 200, 0.07, n) * 0.6 + struck(WOOD, 520, 0, 0.06, n, r) * 0.4, r, 0.06, 0.08)
+
+
+def _whoosh(r):
+    n = n_of(0.26)
+    return room(svf(noise(n, r), glide(900, 2600, n), 1.8) * env(n, 0.03, 0.2) * 0.5 + struck(WOOD, 700, 0, 0.05, n, r) * 0.2, r, 0.08, 0.1)
+
+
+def _squeak(r):
+    n = n_of(0.09)
+    return sine(glide(1900, 2300, n), n) * env(n, 0.005, 0.07) * 0.5 + svf(noise(n, r), 2400, 6) * env(n, 0.003, 0.06) * 0.25
+
+
+def _glass_plink(f=2093):
+    def fn(r):
+        n = n_of(0.4)
+        return room(struck(GLASS, f, 0, 0.3, n, r) * 0.7 + mix(*[at(struck(METAL, 2600 + 300 * i, 0, 0.08, n_of(0.12), r) * 0.25, 0.05 * i, n) for i in range(3)]), r, 0.12, 0.16)
+    return fn
+
+
+def _padlock(shut=True):
+    def fn(r):
+        n = n_of(0.22)
+        a = struck(METAL, 1500 if shut else 1250, 0, 0.06, n, r) * 0.6 + click(n, r, 6500) * 0.4
+        b = at(struck(METAL, 1900 if shut else 1100, 0, 0.08, n_of(0.12), r) * 0.5, 0.05, n)
+        return room(mix(a, b), r, 0.06, 0.08)
+    return fn
+
+
+def _thud(r):
+    n = n_of(0.3)
+    return room(thump(140, 80, 0.16, n) * 0.9 + struck(WOOD, 260, 0, 0.12, n, r) * 0.4, r, 0.1, 0.1)
+
+
+def _pulse(r):
+    n = n_of(0.34)
+    beat = sine(392, n_of(0.12)) * env(n_of(0.12), 0.004, 0.1)
+    return room(mix(at(beat, 0, n), at(beat, 0.17, n)) * 0.6, r, 0.08, 0.1)
+
+
+def _rattle(r):
+    n = n_of(0.24)
+    return room(mix(*[at(struck(WOOD, 900 + 60 * i, 0, 0.04, n_of(0.08), r) * 0.5, 0.03 * i, n) for i in range(4)]), r, 0.06, 0.08)
+
+
+def _flips(r):
+    n = n_of(0.32)
+    return room(mix(*[at(struck(WOOD, 980 + 40 * i, 0, 0.05, n_of(0.09), r) * 0.6 + click(n_of(0.09), r, 5000) * 0.2, 0.05 * i, n) for i in range(3)]), r, 0.06, 0.08)
+
+
+W = "a placeholder for Joe's recording (docs/sound-cues/word-elevenlabs.md): "
+
+# Nucleus
+@sound("wordsmith.letter", ["wordsmith.letter"], W + "a soft key click as a letter rises out of the ring")
+def _(r):
+    return _clack(1400, 0.05, 300)(r)
+
+
+@sound("wordsmith.shuffle", ["wordsmith.shuffle"], W + "the letters sliding round the ring")
+def _(r):
+    return _whoosh(r)
+
+
+@sound("wordsmith.word4", ["wordsmith.word4"], W + "a valid 4-letter word: a note rising with its length")
+def _(r):
+    return _bell(0)(r)
+
+
+@sound("wordsmith.word5", ["wordsmith.word5"], W + "a valid 5-letter word: a note rising with its length")
+def _(r):
+    return _bell(1)(r)
+
+
+@sound("wordsmith.word6", ["wordsmith.word6"], W + "a valid 6-letter word: a note rising with its length")
+def _(r):
+    return _bell(2)(r)
+
+
+@sound("wordsmith.word7", ["wordsmith.word7"], W + "a valid 7-letter word: a note rising with its length")
+def _(r):
+    return _bell(3)(r)
+
+
+@sound("wordsmith.word8", ["wordsmith.word8"], W + "a valid 8-letter word: a note rising with its length")
+def _(r):
+    return _bell(4)(r)
+
+
+@sound("wordsmith.word9", ["wordsmith.word9"], W + "a valid 9-letter word: a note rising with its length")
+def _(r):
+    return _bell(5)(r)
+
+
+@sound("wordsmith.combo", ["wordsmith.combo"], W + "three words inside 10 s: a quick bright run")
+def _(r):
+    return _rise(4, 3)(r)
+
+
+@sound("wordsmith.pangram", ["wordsmith.pangram"], W + "the pangram: the ring spins once in gold and a big rolled chord")
+def _(r):
+    return _word_chord(6, 2)(r)
+
+
+@sound("wordsmith.invalid", ["wordsmith.invalid"], W + "not a word: a soft buzz as the letters shake back")
+def _(r):
+    return _soft_wrong(r)
+
+
+# Interlock
+@sound("tilegrid.pick", ["tilegrid.pick"], W + "a tile lifted from the tray")
+def _(r):
+    return _clack(1100, 0.05, 320)(r)
+
+
+@sound("tilegrid.place", ["tilegrid.place"], W + "a wooden tile clacked onto its square")
+def _(r):
+    return _clack(820, 0.09, 240)(r)
+
+
+@sound("tilegrid.back", ["tilegrid.back"], W + "a tile slid back to the tray")
+def _(r):
+    return _clack(640, 0.07, 200)(r)
+
+
+@sound("tilegrid.word3", ["tilegrid.word3"], W + "a 3-letter run becomes a word: a chord that grows with it")
+def _(r):
+    return _word_chord(2)(r)
+
+
+@sound("tilegrid.word4", ["tilegrid.word4"], W + "a 4-letter run becomes a word: a chord that grows with it")
+def _(r):
+    return _word_chord(3)(r)
+
+
+@sound("tilegrid.word5", ["tilegrid.word5"], W + "a 5-letter run becomes a word: a chord that grows with it")
+def _(r):
+    return _word_chord(4)(r)
+
+
+@sound("tilegrid.word6", ["tilegrid.word6"], W + "a 6-letter run becomes a word: a chord that grows with it")
+def _(r):
+    return _word_chord(5)(r)
+
+
+@sound("tilegrid.word7", ["tilegrid.word7"], W + "a 7-letter run becomes a word: a chord that grows with it")
+def _(r):
+    return _word_chord(6)(r)
+
+
+@sound("tilegrid.combo", ["tilegrid.combo"], W + "two words form at once")
+def _(r):
+    return _rise(4, 4)(r)
+
+
+@sound("tilegrid.notword", ["tilegrid.notword"], W + "a run that is no word turns faint red")
+def _(r):
+    return _soft_wrong(r)
+
+
+@sound("tilegrid.bonus", ["tilegrid.bonus"], W + "the big-word bonus counting up")
+def _(r):
+    return _rise(5, 2, 0.05)(r)
+
+
+# Slider
+@sound("wordslide.slide", ["wordslide.slide"], W + "a row or column slid: a short tile rattle")
+def _(r):
+    return _rattle(r)
+
+
+@sound("wordslide.word", ["wordslide.word"], W + "a row becomes a word: a bright two-note")
+def _(r):
+    return _rise(2, 4, 0.08)(r)
+
+
+@sound("wordslide.lock", ["wordslide.lock"], W + "a padlock snapping shut")
+def _(r):
+    return _padlock(True)(r)
+
+
+@sound("wordslide.unlock", ["wordslide.unlock"], W + "a padlock opened again")
+def _(r):
+    return _padlock(False)(r)
+
+
+@sound("wordslide.swap", ["wordslide.swap"], W + "two tiles of the last row swap")
+def _(r):
+    return _clack(760, 0.07, 220)(r)
+
+
+@sound("wordslide.nudge", ["wordslide.nudge"], W + "at par with three rows done: a small nudge")
+def _(r):
+    return _pop(r)
+
+
+@sound("wordslide.resetArm", ["wordslide.resetArm"], W + "Reset armed: a soft cautious double tick")
+def _(r):
+    return _pulse(r)
+
+
+# Forage
+@sound("wordhunt.trace1", ["wordhunt.trace1"], W + "tracing letter 1: a soft note rising up the scale")
+def _(r):
+    return _pluck(0)(r)
+
+
+@sound("wordhunt.trace2", ["wordhunt.trace2"], W + "tracing letter 2: a soft note rising up the scale")
+def _(r):
+    return _pluck(1)(r)
+
+
+@sound("wordhunt.trace3", ["wordhunt.trace3"], W + "tracing letter 3: a soft note rising up the scale")
+def _(r):
+    return _pluck(2)(r)
+
+
+@sound("wordhunt.trace4", ["wordhunt.trace4"], W + "tracing letter 4: a soft note rising up the scale")
+def _(r):
+    return _pluck(3)(r)
+
+
+@sound("wordhunt.trace5", ["wordhunt.trace5"], W + "tracing letter 5: a soft note rising up the scale")
+def _(r):
+    return _pluck(4)(r)
+
+
+@sound("wordhunt.trace6", ["wordhunt.trace6"], W + "tracing letter 6: a soft note rising up the scale")
+def _(r):
+    return _pluck(5)(r)
+
+
+@sound("wordhunt.trace7", ["wordhunt.trace7"], W + "tracing letter 7: a soft note rising up the scale")
+def _(r):
+    return _pluck(6)(r)
+
+
+@sound("wordhunt.trace8", ["wordhunt.trace8"], W + "tracing letter 8: a soft note rising up the scale")
+def _(r):
+    return _pluck(7)(r)
+
+
+@sound("wordhunt.trace9", ["wordhunt.trace9"], W + "tracing letter 9: a soft note rising up the scale")
+def _(r):
+    return _pluck(8)(r)
+
+
+@sound("wordhunt.golden", ["wordhunt.golden"], W + "the trace crosses the golden tile: a sparkle")
+def _(r):
+    return _sparkle(r)
+
+
+@sound("wordhunt.word", ["wordhunt.word"], W + "a valid word: the path flashes and it flies to the list")
+def _(r):
+    return _word_chord(3, 2)(r)
+
+
+@sound("wordhunt.long", ["wordhunt.long"], W + "a word of 7 or more letters: a bigger chord")
+def _(r):
+    return _word_chord(5, 2)(r)
+
+
+@sound("wordhunt.points", ["wordhunt.points"], W + "the word's points pop beside it")
+def _(r):
+    return _pop(r)
+
+
+# Lookout
+@sound("wordsearch.drag", ["wordsearch.drag"], W + "a marker squeak as the loop grows a letter")
+def _(r):
+    return _squeak(r)
+
+
+@sound("wordsearch.found4", ["wordsearch.found4"], W + "a 4-letter word found: the loop inks in and a chime pitched by length")
+def _(r):
+    return _bell(1, 0.3)(r)
+
+
+@sound("wordsearch.found5", ["wordsearch.found5"], W + "a 5-letter word found: the loop inks in and a chime pitched by length")
+def _(r):
+    return _bell(2, 0.3)(r)
+
+
+@sound("wordsearch.found6", ["wordsearch.found6"], W + "a 6-letter word found: the loop inks in and a chime pitched by length")
+def _(r):
+    return _bell(3, 0.3)(r)
+
+
+@sound("wordsearch.found7", ["wordsearch.found7"], W + "a 7-letter word found: the loop inks in and a chime pitched by length")
+def _(r):
+    return _bell(4, 0.3)(r)
+
+
+@sound("wordsearch.found8", ["wordsearch.found8"], W + "a 8-letter word found: the loop inks in and a chime pitched by length")
+def _(r):
+    return _bell(5, 0.3)(r)
+
+
+@sound("wordsearch.found9", ["wordsearch.found9"], W + "a 9-letter word found: the loop inks in and a chime pitched by length")
+def _(r):
+    return _bell(6, 0.3)(r)
+
+
+@sound("wordsearch.bonus", ["wordsearch.bonus"], W + "the bonus word: a sparkle and a brighter chime")
+def _(r):
+    return _sparkle(r)
+
+
+@sound("wordsearch.already", ["wordsearch.already"], W + "re-dragging a found word: a gentle bump")
+def _(r):
+    return _bump(r)
+
+
+@sound("wordsearch.redraw", ["wordsearch.redraw"], W + "the last word: every loop redrawn in order")
+def _(r):
+    return _rise(6, 1, 0.08)(r)
+
+
+# Roundabout
+@sound("letterwheel.trace1", ["letterwheel.trace1"], W + "tracing letter 1: a note rising")
+def _(r):
+    return _pluck(0, 0.14)(r)
+
+
+@sound("letterwheel.trace2", ["letterwheel.trace2"], W + "tracing letter 2: a note rising")
+def _(r):
+    return _pluck(1, 0.14)(r)
+
+
+@sound("letterwheel.trace3", ["letterwheel.trace3"], W + "tracing letter 3: a note rising")
+def _(r):
+    return _pluck(2, 0.14)(r)
+
+
+@sound("letterwheel.trace4", ["letterwheel.trace4"], W + "tracing letter 4: a note rising")
+def _(r):
+    return _pluck(3, 0.14)(r)
+
+
+@sound("letterwheel.trace5", ["letterwheel.trace5"], W + "tracing letter 5: a note rising")
+def _(r):
+    return _pluck(4, 0.14)(r)
+
+
+@sound("letterwheel.trace6", ["letterwheel.trace6"], W + "tracing letter 6: a note rising")
+def _(r):
+    return _pluck(5, 0.14)(r)
+
+
+@sound("letterwheel.trace7", ["letterwheel.trace7"], W + "tracing letter 7: a note rising")
+def _(r):
+    return _pluck(6, 0.14)(r)
+
+
+@sound("letterwheel.trace8", ["letterwheel.trace8"], W + "tracing letter 8: a note rising")
+def _(r):
+    return _pluck(7, 0.14)(r)
+
+
+@sound("letterwheel.fly", ["letterwheel.fly"], W + "a slot word's letters fly into their squares one by one")
+def _(r):
+    return _rise(5, 2, 0.06, WOOD)(r)
+
+
+@sound("letterwheel.jar", ["letterwheel.jar"], W + "a bonus word drops into the jar: a coin plink on glass")
+def _(r):
+    return _glass_plink()(r)
+
+
+@sound("letterwheel.repeat", ["letterwheel.repeat"], W + "a harmless repeat: a gentle bump")
+def _(r):
+    return _bump(r)
+
+
+@sound("letterwheel.miss", ["letterwheel.miss"], W + "a miss: not a word")
+def _(r):
+    return _soft_wrong(r)
+
+
+@sound("letterwheel.spin", ["letterwheel.spin"], W + "grid done: the wheel spins and the grid lights")
+def _(r):
+    return _rise(7, 0, 0.06)(r)
+
+
+# Strikeout
+@sound("strikeout.flip", ["strikeout.flip"], W + "a hit: matching tiles flip with a clack one after another")
+def _(r):
+    return _flips(r)
+
+
+@sound("strikeout.strike", ["strikeout.strike"], W + "a strike slammed onto the strike row")
+def _(r):
+    return _thud(r)
+
+
+@sound("strikeout.combo", ["strikeout.combo"], W + "an early solve with 3+ letters hidden: they all flip at once")
+def _(r):
+    return _rise(4, 3, 0.05)(r)
+
+
+@sound("strikeout.lastStrike", ["strikeout.lastStrike"], W + "one strike left: the strike row pulses")
+def _(r):
+    return _pulse(r)
+
+
+@sound("strikeout.solve", ["strikeout.solve"], W + "a word solved")
+def _(r):
+    return _word_chord(3, 3)(r)
+
+
+# Cryptogrid
+@sound("codeword.ripple", ["codeword.ripple"], W + "a letter ripples into every matching square with ticks rising")
+def _(r):
+    return _rise(5, 0, 0.05, WOOD)(r)
+
+
+@sound("codeword.word", ["codeword.word"], W + "a word completed by the letter glints")
+def _(r):
+    return _sparkle(r)
+
+
+@sound("codeword.wrong", ["codeword.wrong"], W + "full and wrong: the letters that can't make words flash")
+def _(r):
+    return _soft_wrong(r)
+
+
+@sound("codeword.jump", ["codeword.jump"], W + "the selection jumps to the next unsolved number")
+def _(r):
+    return _pop(r)
+
+
+# Swapword
+@sound("swapword.swap", ["swapword.swap"], W + "two tiles pass each other in a short arc: a wooden clack")
+def _(r):
+    return _clack(700, 0.08, 230)(r)
+
+
+@sound("swapword.gold", ["swapword.gold"], W + "a tile turns gold: a bright plink")
+def _(r):
+    return _bell(6, 0.22)(r)
+
+
+@sound("swapword.combo", ["swapword.combo"], W + "two tiles turn gold in one swap")
+def _(r):
+    return _rise(3, 5, 0.06)(r)
+
+
+@sound("swapword.locked", ["swapword.locked"], W + "a locked gold tile tapped: a small wiggle")
+def _(r):
+    return _bump(r)
+
+
+@sound("swapword.low", ["swapword.low"], W + "three swaps left: the counter pulses")
+def _(r):
+    return _pulse(r)
+
+
+@sound("swapword.out", ["swapword.out"], W + "out of swaps: a closing clunk as the board greys")
+def _(r):
+    return _thud(r)
+
+
+@sound("swapword.scale", ["swapword.scale"], W + "solved: a wave round the figure-eight and a rising scale")
+def _(r):
+    return _rise(8, 0, 0.06)(r)
+
+
+# --- Home Run (homerunRev 5) and Top Bins (freekickRev 5-6): the overhaul's new moments, stand-ins until Joe's
+# recordings (docs/sound-cues/home-run-top-bins-elevenlabs.md) ---------------------------------------------------------
+
+def call(f0, f1, n, r, formants=(800, 1300, 2600), bright=0.5):
+    """An umpire's shout as a sound, not a word: a buzzy glide through three vowel bands, a breathy edge."""
+    src = pulse(glide(f0, f1, n, 1.3), n, 0.3, top=40)
+    v = sum(svf(src, f, 6.0) * a for f, a in zip(formants, (1.0, 0.7, bright)))
+    breath = svf(noise(n, r), formants[1], 2.0) * 0.12
+    return (v + breath) * env(n, 0.02, n / SR * 0.9, hold=n / SR * 0.25)
+
+
+@sound("homerun.umpStrike", ["homerun.umpStrike"], "the umpire's strike call: a sharp, rising-then-falling shout")
+def _(r):
+    n = n_of(0.62)
+    return room(call(210, 165, n, r, (750, 1250, 2700), 0.6), r, 0.16, 0.16)
+
+
+@sound("homerun.umpBall", ["homerun.umpBall"], "the umpire's ball call: a lower, flatter shout")
+def _(r):
+    n = n_of(0.5)
+    return room(call(175, 150, n, r, (650, 1050, 2400), 0.35) * 0.85, r, 0.16, 0.16)
+
+
+@sound("homerun.umpOut", ["homerun.umpOut"], "the umpire's out call: an emphatic falling shout and a glove slap")
+def _(r):
+    n = n_of(0.62)
+    slap = svf(noise(n, r), 1600, 1.2) * env(n, 0.001, 0.05) * 0.6 + thump(180, 110, 0.05, n) * 0.4
+    return room(call(240, 140, n, r, (700, 1150, 2500), 0.55) + slap, r, 0.16, 0.16)
+
+
+@sound("homerun.strikeout", ["homerun.strikeout"], "a strikeout: the crowd's long, sinking groan")
+def _(r):
+    n = n_of(1.05)
+    crowd = sum(svf(noise(n, r), glide(f, f * 0.7, n), 3.0) * a for f, a in ((480, 1.0), (900, 0.6), (1700, 0.25)))
+    return room(crowd * env(n, 0.12, 0.8, hold=0.15), r, 0.2, 0.18)
+
+
+@sound("homerun.walk", ["homerun.walk"], "a walk: two easy ascending chimes")
+def _(r):
+    n = n_of(0.66)
+    a = struck(METAL, 660, 0, 0.35, n_of(0.4), r) * 0.7
+    b = at(struck(METAL, 880, 0, 0.4, n_of(0.45), r) * 0.7, 0.2, n)
+    return room(mix(a, b), r, 0.12, 0.14)
+
+
+@sound("homerun.footsteps", ["homerun.footsteps"], "a runner's spikes on the dirt: four quick crunching steps")
+def _(r):
+    n = n_of(0.8)
+    out = np.zeros(n)
+    for i, t0 in enumerate((0.0, 0.18, 0.36, 0.54)):
+        m = n_of(0.2)
+        crunch = svf(noise(m, r), 1400 + 200 * (i % 2), 0.8) * env(m, 0.006, 0.17, hold=0.04)
+        step = crunch + thump(130, 90, 0.05, m) * 0.25
+        out += at(step, t0, n)
+    return room(out, r, 0.1, 0.1)
+
+
+@sound("homerun.slide", ["homerun.slide"], "a slide into the base: a long scrape of dirt")
+def _(r):
+    n = n_of(0.56)
+    scrape = svf(noise(n, r), glide(1600, 500, n), 0.8) * env(n, 0.03, 0.45, hold=0.1)
+    grit = svf(noise(n, r), 3200, 1.5) * env(n, 0.01, 0.3) * 0.25
+    return room(scrape + grit + thump(110, 70, 0.08, n) * 0.4, r, 0.1, 0.1)
+
+
+@sound("homerun.runScores", ["homerun.runScores"], "a run scores: three rising bells over a crowd's lift")
+def _(r):
+    n = n_of(0.78)
+    bells = mix(*(at(struck(METAL, f, 0, 0.3, n_of(0.35), r) * 0.55, t0, n) for f, t0 in ((523, 0), (659, 0.1), (784, 0.2))))
+    lift = svf(noise(n, r), glide(600, 1100, n), 2.5) * env(n, 0.15, 0.55) * 0.35
+    return room(mix(bells, lift), r, 0.14, 0.16)
+
+
+@sound("homerun.perfect", ["homerun.perfect"], "perfect timing: a crisp crack and a bright sparkle")
+def _(r):
+    n = n_of(0.38)
+    crack = struck(WOOD, 1300, 0, 0.06, n, r) * 0.8 + click(n, r, 7000) * 0.5
+    sparkle = at(struck(GLASS, 2640, 0, 0.25, n_of(0.3), r) * 0.35, 0.04, n)
+    return room(mix(crack, sparkle), r, 0.1, 0.12)
+
+
+@sound("homerun.aimThunk", ["homerun.aimThunk"], "the aim set: a soft, low thunk")
+def _(r):
+    n = n_of(0.22)
+    return room(thump(170, 110, 0.07, n) + struck(WOOD, 520, 0, 0.06, n, r) * 0.3, r, 0.06, 0.08)
+
+
+@sound("homerun.inningsEnd", ["homerun.inningsEnd"], "the innings over: a short ballpark organ phrase")
+def _(r):
+    n = n_of(1.0)
+    out = np.zeros(n)
+    for f, t0, d in ((392, 0.0, 0.14), (523, 0.16, 0.14), (659, 0.32, 0.14), (784, 0.48, 0.38)):
+        m = n_of(d + 0.15)
+        organ = sum(sine(f * k, m) * a for k, a in ((1, 1.0), (2, 0.5), (3, 0.3), (4, 0.15)))
+        organ *= (1 + 0.04 * np.sin(TAU * 6 * tt(m))) * env(m, 0.02, d + 0.1, hold=d * 0.6)
+        out += at(organ * 0.25, t0, n)
+    return room(out, r, 0.2, 0.18)
+
+
+@sound("freekick.bendWhistle", ["freekick.bendWhistle"], "the ball bending in flight: an airy, steady whistle (loop)", loop=True)
+def _(r):
+    body = n_of(1.2 + 0.15)
+    t = tt(body)
+    air = svf(noise(body, r), 2300 + 120 * np.sin(TAU * 5 * t), 7.0) * 0.8
+    tone = sine(2300 * (1 + 0.004 * np.sin(TAU * 5 * t)), body) * 0.12
+    return make_loop(air + tone, 0.15)
+
+
+@sound("freekick.powerTone", ["freekick.powerTone"], "the power bar held: a smooth, humming tone (loop)", loop=True)
+def _(r):
+    body = n_of(1.6 + 0.2)
+    t = tt(body)
+    hum = sine(330, body) + sine(660, body) * 0.35 + sine(990, body) * 0.12
+    return make_loop(hum * (0.85 + 0.15 * np.sin(TAU * 2.5 * t)) * 0.5, 0.2)
+
+
+@sound("freekick.goldTick", ["freekick.goldTick"], "the meter in the gold: a tiny bright tick")
+def _(r):
+    n = n_of(0.11)
+    return struck(GLASS, 3300, 0, 0.06, n, r) * 0.7 + click(n, r, 8000) * 0.3
+
+
+@sound("freekick.dive", ["freekick.dive"], "the keeper diving: a body's rush through the air and a thud on the grass")
+def _(r):
+    n = n_of(0.56)
+    rush = svf(noise(n, r), glide(500, 1500, n, 0.8), 1.5) * env(n, 0.08, 0.3) * 0.6
+    land = at(thump(110, 65, 0.1, n_of(0.25)) + svf(noise(n_of(0.25), r), 700, 0.8, "lp") * env(n_of(0.25), 0.002, 0.12) * 0.5, 0.3, n)
+    return room(mix(rush, land), r, 0.1, 0.1)
+
+
+@sound("freekick.spill", ["freekick.spill"], "the ball spilled off the gloves: a leather slap and a bounce")
+def _(r):
+    n = n_of(0.46)
+    n = n_of(0.5)
+    slap = svf(noise(n, r), 1400, 1.0) * env(n, 0.002, 0.14, hold=0.02) * 0.8 + thump(220, 150, 0.06, n) * 0.35
+    bounce = mix(*(at(svf(noise(n_of(0.14), r), 1100, 1.0) * env(n_of(0.14), 0.003, 0.1) * a, t0, n)
+                   for t0, a in ((0.2, 0.55), (0.33, 0.4), (0.43, 0.28))))
+    return room(mix(slap, bounce), r, 0.1, 0.1)
+
+
+@sound("freekick.wallJump", ["freekick.wallJump"], "the wall jumping: boots scuffing off the grass and a whoosh")
+def _(r):
+    n = n_of(0.46)
+    scuff = svf(noise(n, r), 900, 0.9, "lp") * env(n, 0.003, 0.08) * 0.6
+    whoosh = svf(noise(n, r), glide(600, 1800, n, 0.8), 2.0) * env(n, 0.1, 0.25) * 0.5
+    return room(mix(scuff, whoosh), r, 0.1, 0.1)
+
+
+@sound("freekick.chant", ["freekick.chant"], "the crowd's chant: a swelling, rhythmic roar of voices")
+def _(r):
+    n = n_of(1.0)
+    t = tt(n)
+    beat = 0.55 + 0.45 * (0.5 + 0.5 * np.sin(TAU * 2.6 * t - np.pi / 2)) ** 2
+    voices = sum(svf(noise(n, r), f * (1 + 0.05 * np.sin(TAU * 2.6 * t)), 3.0) * a for f, a in ((450, 1.0), (850, 0.7), (1600, 0.3)))
+    return room(voices * beat * env(n, 0.12, 0.85, hold=0.45), r, 0.16, 0.2)
+
+
+@sound("freekick.hoopShrink", ["freekick.hoopShrink"], "the gold hoop shrinking: a short, falling shimmer")
+def _(r):
+    n = n_of(0.56)
+    shimmer = sum(sine(glide(f, f * 0.75, n), n) * a for f, a in ((1760, 0.5), (2640, 0.3), (3520, 0.15)))
+    return room(shimmer * env(n, 0.01, 0.45) * (0.8 + 0.2 * np.sin(TAU * 22 * tt(n))), r, 0.12, 0.14)
+
+
+@sound("freekick.windFlag", ["freekick.windFlag"], "the corner flag in the wind: a soft, uneven flutter (loop)", loop=True)
+def _(r):
+    body = n_of(2.4 + 0.3)
+    t = tt(body)
+    gust = 0.6 + 0.25 * np.sin(TAU * t / 1.2) + 0.15 * np.sin(TAU * t * 7 / 2.4)
+    flap = 0.7 + 0.3 * np.sign(np.sin(TAU * (9 + 2 * np.sin(TAU * t / 2.4)) * t))
+    cloth = svf(noise(body, r), 1100, 1.0) * gust * flap * 0.6 + svf(noise(body, r), 350, 0.7, "lp") * gust * 0.4
+    return make_loop(cloth, 0.3)
 
 
 # --------------------------------------------------------------------------------------------------- build

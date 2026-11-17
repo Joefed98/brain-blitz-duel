@@ -133,3 +133,20 @@ near-perfect clear in 26 s still earns 45 of the 50.
 
 The bots (`scripts/arcade-skill-bands/bots/pyramid.ts`) cannot see the stock; they pick among the removals open now by a
 look-ahead over the cards in view (0 for weak, the pair spotted first, up to 5 removals for elite), blurred by judgement.
+
+## Levels (the Cards & Board overhaul, stage 3, 15 Nov 2026)
+
+Normal is pyramidRev 3 exactly. A level deal carries `level` and pyramidRev 3; its game is `pyramidLevelGame(level)`
+(`PY_LEVEL_RULES`), its deal built and proved in the sim like Normal's (`pyBuildLevelDeal`, its own stream of the seed).
+All 90 s.
+
+| Level | Stock passes | Kings | Glow | Deals kept when these quick players fail | Hints |
+|---|---|---|---|---|---|
+| Easy | 3 | 3–4 | on | none: any proved deal | free; the glow shows by itself after 8 s idle |
+| Normal | 1 | 2–4 | on | first pair, most uncovered, two-removal line (today) | none |
+| Hard | 1 | 2–3 | off | those, the waste-first player and a three-removal line | −5 each |
+| Expert | 1 | exactly 3 | off | those and a four-removal line | one |
+
+Expert keeps three Kings (16 Nov 2026): with two, the waste rarely matters and Expert measured easier than Hard.
+
+The glow (partners and Kings) is display only; the bots model its absence as 1.4 × the search time.

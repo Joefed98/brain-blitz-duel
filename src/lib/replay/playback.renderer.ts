@@ -96,14 +96,14 @@ const SIMPLE: Record<string, (p: PuzzleData, look: GameLook) => Draw> = {
   minesweeper: () => drawMinesweeper as Draw,
   mahjong: () => drawMahjong as Draw,
   homerun: () => homerunArtGame.draw as Draw,
-  bastion: (p) => (((p as { bastionRev?: number }).bastionRev ?? 1) >= 2 ? bastionTankArtGameFor((p as { bastionRev?: number }).bastionRev).draw : bastionGame.draw) as Draw,
+  bastion: (p) => (((p as { bastionRev?: number }).bastionRev ?? 1) >= 2 ? bastionTankArtGameFor((p as { bastionRev?: number }).bastionRev, (p as { level?: unknown }).level).draw : bastionGame.draw) as Draw,
   freekick: (_p, look) => ((ctx, s, size) => withFreekickLook(look, () => freekickArtGame.draw(ctx, s, size))) as Draw,
   racing: (_p, look) => ((ctx, s, size) => drawRacingArt(ctx, s, size, look)) as Draw,
   freecell: () => freecellArt.draw as Draw,
   tripeaks: (_p, look) => ((ctx, s, size) => withCardsLook(look, () => tripeaksArt.draw(ctx, s, size))) as Draw,
   pokersquares: (_p, look) => ((ctx, s, size) => withCardsLook(look, () => pokerSquaresArt.draw(ctx, s, size))) as Draw,
   fivehands: (_p, look) => ((ctx, s, size) => withCardsLook(look, () => fiveHandsArt.draw(ctx, s, size))) as Draw,
-  ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? ninjaArtGameFor(rev(p, "ricoRev")).draw : ricoGame.draw) as Draw,
+  ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? ninjaArtGameFor(rev(p, "ricoRev"), (p as { level?: unknown }).level).draw : ricoGame.draw) as Draw,
   pyramid: (_p, look) => ((ctx, s, size) => withCardsLook(look, () => pyramidArt.draw(ctx, s, size))) as Draw,
   golfsol: () => golfSolArt.draw as Draw,
   muggins: () => mugginsArt.draw as Draw,
@@ -126,7 +126,7 @@ const SIMPLE: Record<string, (p: PuzzleData, look: GameLook) => Draw> = {
   swing: () => swingArtGame.draw as Draw,
   tilt: () => tiltArtGame.draw as Draw,
   whack: () => whackArtGame.draw as Draw,
-  clayshoot: (p) => clayArtGameFor(rev(p, "clayRev")).draw as Draw,
+  clayshoot: (p) => clayArtGameFor(rev(p, "clayRev"), p.type === "clayshoot" ? p.pullLevel : undefined).draw as Draw,
   // Number polish (#47): the live Tenfall board draws through drawTenDrop on the presentation clock.
   tendrop: () =>
     ((ctx, state, size) =>

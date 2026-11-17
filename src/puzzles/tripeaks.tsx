@@ -2,7 +2,7 @@ import { useMemo, useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { TP_CHECKPOINT_INTERVAL, TP_INPUT_TAP, TP_REV, TP_STOCK_PILE, tpCheckpoint, type TpState } from "@/lib/arcade/cards/tripeaks";
-import { drawTripeaks, tpCardBox, tpHit, tpNewView, tpOverDiscard, TP_BG, TP_WORLD_H, TP_WORLD_W, tripeaksArtGame } from "@/lib/arcade/cards/tripeaks.renderer";
+import { drawTripeaks, tpButtonHit, tpCardBox, tpHit, tpNewView, tpOverDiscard, TP_BG, TP_WORLD_H, TP_WORLD_W, tripeaksArtGame } from "@/lib/arcade/cards/tripeaks.renderer";
 import { cardsFill } from "@/lib/arcade/cards/cardsFill.renderer";
 import { withCardsLook } from "@/lib/arcade/cards/cards.renderer";
 import { useGameLookRef } from "@/lib/skins/equipped";
@@ -12,7 +12,12 @@ import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/Arc
 import { CardStill } from "@/components/puzzles/CardStill";
 import { tripeaksSounds } from "@/lib/fx/cardSounds";
 
+import { levelOfPuzzle } from "@/lib/levels/levels";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import { preloadRealArt } from "@/lib/arcade/cards/realArt.renderer";
+
+// The Cards & Board overhaul's real art starts loading with the game's chunk (display only).
+if (typeof window !== "undefined") preloadRealArt(["cards", "felt"]);
 
 function IntroExample() {
   return <CardStill width={TP_WORLD_W} height={TP_WORLD_H} draw={(ctx, size) => drawTripeaks(ctx, tripeaksArtGame(undefined, TP_REV).init(0), size)} caption="Play a card one higher or lower than the discard; tap the stock when stuck." />;
@@ -28,14 +33,30 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const rev = data?.tripeaksRev ?? 1;
   // The account's card back on the face-down cards only (13 Nov 2026, Joe; display only, src/lib/skins/equipped.ts).
   const [, lookRef] = useGameLookRef("tripeaks");
+  const level = data ? levelOfPuzzle(data) : null;
   const game = useMemo(() => {
-    const art = tripeaksArtGame(view, rev);
+    const art = tripeaksArtGame(view, rev, level);
     return { ...art, draw: (ctx: CanvasRenderingContext2D, state: TpState, size: { width: number; height: number }) => { latest.current = state; withCardsLook(lookRef.current, () => art.draw(ctx, state, size)); } };
-  }, [view, rev, lookRef]);
+  }, [view, rev, level, lookRef]);
 
   const pointer = (kind: "down" | "move" | "up", x: number, y: number): PointerPayload | null => {
     const state = latest.current;
     if (!state) return null;
+    // The difficulty levels' Undo and Hint: a press and release on the same button.
+    if (state.lv && (view.button || kind === "down")) {
+      const button = tpButtonHit(state, x, y);
+      if (kind === "down" && button) {
+        view.button = button;
+        start.current = null;
+        return null;
+      }
+      if (view.button) {
+        if (kind === "move") return null;
+        const held = view.button;
+        view.button = 0;
+        return button === held ? { k: held, a: 0, b: 0, c: 0 } : null;
+      }
+    }
     if (kind === "down") {
       const hit = tpHit(state, x, y);
       start.current = hit >= 0 ? { x, y, hit, moved: false } : null;
@@ -59,6 +80,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     start.current = null;
     view.pressed = -1;
     view.drag = null;
+    // The card tried (stage 2: a refused one leans to the discard and back; display only).
+    view.lastTry = s.hit;
     // A tap plays (or turns the stock); a drag plays only when dropped on the discard.
     if (!s.moved || tpOverDiscard(x, y)) return { k: TP_INPUT_TAP, a: s.hit, b: 0, c: 0 };
     return null;
@@ -106,7 +129,7 @@ export function tripeaksStockLine(r: { stockTurns: number; stockPar: number }): 
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "tripeaks") return null;
-  const result = replayTripeaksRun(puzzle.seed, myAnswer ?? "", puzzle.tripeaksRev);
+  const result = replayTripeaksRun(puzzle.seed, myAnswer ?? "", puzzle.tripeaksRev, levelOfPuzzle(puzzle));
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{tripeaksLine(result)}</p>

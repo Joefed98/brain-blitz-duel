@@ -19,6 +19,8 @@ export interface SoundBatchRow {
   note: string;
   /** No usable upload yet: nothing in public/sounds/ to check. */
   toRecord: boolean;
+  /** An ambience bed (its note says so): stereo, as the library's beds, not mono. */
+  stereo: boolean;
 }
 
 /** One CSV line into its fields (double quotes, "" inside them). */
@@ -64,6 +66,7 @@ export function soundBatchRows(root = "."): SoundBatchRow[] {
         loop: (f[col("loop")] ?? "").trim().toLowerCase() === "yes",
         note,
         toRecord: note.startsWith("TO RECORD"),
+        stereo: /ambience bed/i.test(note),
       });
     }
   }

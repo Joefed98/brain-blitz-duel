@@ -72,9 +72,30 @@ export const ORBIT_REV_STD = 13;
  * orbitRev 13's parts (orbitRev3.ts ORBIT_STD), 200 in all.
  */
 export const ORBIT_REV_FUEL = 14;
-/** The expansion's features and view: orbitRev 12, its score-only successor 13 and the fuel revision 14 (display, layout). */
+/**
+ * orbitRev 15 (the Action overhaul, 15 Nov 2026, docs/arcade-standard/orbit.md "orbitRev 15"): orbitRev 14's course,
+ * fuel, features, view and parts, with grace: a crash or an empty tank with no checkpoint set no longer ends the run.
+ * The rocket respawns at the last planet it caught, with a full tank, held in orbit for ORBIT_GRACE_HOLD_TICKS (taps
+ * ignored), so the slip costs time. The manual SET CHECKPOINT stays: its one respawn is instant (no hold). The run ends
+ * only at the sun or the buzzer.
+ */
+export const ORBIT_REV_GRACE = 15;
+/**
+ * orbitRev 16 (the Action overhaul, stage 3, 15 Nov 2026, docs/arcade-standard/orbit.md "orbitRev 16"): orbitRev 15's
+ * play exactly (the same fuel-bank courses, rings, catches, black holes, features, grace and parts; an orbitRev 15 log
+ * replays tick for tick) with bigger planets: each planet's body circle (`r`, the bounds its art is held to) is
+ * ORBIT_BIG_PCT of orbitRev 15's, as far as the rocket's own path round it leaves ORBIT_BIG_AIR (its radius and 3 px of
+ * space) and never smaller than before (orbitBigPlanets). The body is collided with by nothing (a catch is the orbit's
+ * region, a crash a belt, rock, moon or the figure-eight's crossing), so the course plays as before.
+ */
+export const ORBIT_REV_BIG = 16;
+/** orbitRev 16's body size, % of orbitRev 15's (the sun's too). */
+export const ORBIT_BIG_PCT = 140;
+/** orbitRev 16: the space kept between a body and its own orbit path: the rocket's radius (10 px) and 3 px. */
+export const ORBIT_BIG_AIR = 13 * FP;
+/** The expansion's features and view: orbitRev 12, its score-only successor 13, the fuel revision 14, grace 15 and the bigger planets 16 (display, layout). */
 export function orbitXpRev(rev: number | null | undefined): boolean {
-  return rev === ORBIT_REV_XP || rev === ORBIT_REV_STD || rev === ORBIT_REV_FUEL;
+  return rev === ORBIT_REV_XP || rev === ORBIT_REV_STD || rev === ORBIT_REV_FUEL || rev === ORBIT_REV_GRACE || rev === ORBIT_REV_BIG;
 }
 const FLIGHT_MAX = 150;
 export const ORBIT_FLIGHT_MAX = FLIGHT_MAX;
@@ -258,6 +279,38 @@ export function pathOffset(p: Planet, phase: number): { u: number; v: number } {
 export function orbitPos(p: Planet, phase: number) {
   const o = pathOffset(p, phase);
   return { x: p.x + o.u, y: p.y + o.v };
+}
+
+/**
+ * orbitRev 16: the closest the planet's own orbit path comes to a body centre (each lobe's on a figure-eight), 1/256 px,
+ * over 1,024 phases (integer only).
+ */
+export function orbitPathClearance(p: Planet): number {
+  const centres = p.kind === ORBIT_EIGHT ? [-orbitLobes(p), orbitLobes(p)] : [0];
+  let best = Infinity;
+  for (let phase = 0; phase < 65536; phase += 64) {
+    const o = pathOffset(p, phase);
+    for (const c of centres) {
+      const d2 = (o.u - c) * (o.u - c) + o.v * o.v;
+      if (d2 < best) best = d2;
+    }
+  }
+  return isqrt(best);
+}
+
+/**
+ * orbitRev 16's planets: each body circle ORBIT_BIG_PCT of the stored shape's, capped so the drawn body (a figure-eight's
+ * two at 80 %) keeps ORBIT_BIG_AIR from its own path, never below the old size; the sun ORBIT_BIG_PCT. Positions,
+ * rings, speeds and every other field are unchanged (display bounds only).
+ */
+export function orbitBigPlanets(planets: readonly Planet[]): Planet[] {
+  return planets.map((p, i) => {
+    const grown = Math.trunc((p.r * ORBIT_BIG_PCT) / 100);
+    if (i === ORBIT_TOTAL) return { ...p, r: grown };
+    const room = orbitPathClearance(p) - ORBIT_BIG_AIR;
+    const cap = p.kind === ORBIT_EIGHT ? Math.trunc((room * 100) / 80) : room;
+    return { ...p, r: Math.max(p.r, Math.min(grown, cap)) };
+  });
 }
 
 /** Phase advance this tick: constant, except an ellipse is fastest nearest the planet. */
@@ -570,6 +623,9 @@ function isOver(state: OrbitState): boolean {
 export function orbitCanSetCheckpoint(state: OrbitState): boolean {
   // orbitRev 6: not while flying in from a black hole (rev-3 states only; older states have no warp).
   const warp = (state as { warp?: number }).warp ?? 0;
+  // Levels: Easy sets its checkpoints itself and Expert has none (orbitRev3.ts orbitLevelFields): no SET CHECKPOINT.
+  const lv = state as { cpAuto?: number; cpNone?: number };
+  if (lv.cpAuto || lv.cpNone) return false;
   return state.ended === 0 && state.flying === 0 && warp === 0 && state.checkpoint < 0 && state.respawns > 0;
 }
 
@@ -749,6 +805,12 @@ export function orbitCheckpoint(state: OrbitState): OrbitCheckpoint {
   // orbitRev 12 (world expansion): its feature counters, last.
   const xp = state as { xp?: number; dustGot?: number; slung?: number; threaded?: number; perfect?: number; lapLeft?: number; arm?: number; boost?: number; moonIn?: number; vx?: number; vy?: number; reach?: number };
   if (xp.xp) values.push(xp.xp, xp.dustGot ?? 0, xp.slung ?? 0, xp.threaded ?? 0, xp.perfect ?? 0, xp.lapLeft ?? 0, xp.arm ?? 0, xp.boost ?? 0, xp.moonIn ?? 0, xp.vx ?? 0, xp.vy ?? 0, xp.reach ?? 0);
+  // orbitRev 15 (grace): the fuel, the respawn hold and the automatic respawns, last (earlier states never carry `grace`).
+  const grace = state as { grace?: number; fuel?: number; hold?: number; autoRespawns?: number };
+  if (grace.grace) values.push(grace.grace, grace.fuel ?? 0, grace.hold ?? 0, grace.autoRespawns ?? 0);
+  // Levels (Easy, Hard, Expert on orbitRev 16): the tank and the checkpoint rule, last (Normal states never carry them).
+  const lv = state as { tank?: number; cpAuto?: number; cpNone?: number; cpUsed?: number };
+  if (lv.tank !== undefined) values.push(lv.tank, lv.cpAuto ?? 0, lv.cpNone ?? 0, lv.cpUsed ?? 0);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;

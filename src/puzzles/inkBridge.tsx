@@ -1,10 +1,11 @@
 import { inkBridgeExtras } from "@/lib/arcade/arenaFills.renderer";
+import { FrameStill } from "@/components/puzzles/FrameStill";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState } from "react";
 
 import {
   inkCheckpoint,
-  inkIsLive,
+  inkLiveNow,
   INK_CHECKPOINT_INTERVAL,
   INK_INPUT_RELEASE,
   INK_INPUT_UNDO,
@@ -15,11 +16,13 @@ import {
   INK_WORLD_W,
   inkWorldH,
   inkWorldHFor,
-  INK_REV_BIG,
+  INK_REV_HILLS,
+  INK_LEVEL_SETS,
+  isInkDiff,
 } from "@/lib/arcade/inkBridge";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "@/lib/duel/inkBridge";
 import { INKBRIDGE_TIME_MS, type InkBridgePuzzleData } from "@/lib/duel/types";
-import { drawInkRainbowExample, inkArenaScene, inkBridgeArtGameFor, inkSceneGround, INK_ART_BG } from "@/lib/arcade/inkBridge.renderer";
+import { drawInkRainbowExample, inkArenaScene, inkBridgeArtGameFor, inkSceneGround, inkSunset, INK_ART_BG } from "@/lib/arcade/inkBridge.renderer";
 import { inkBridgeSounds } from "@/lib/fx/gameSounds";
 import { ArcadeCanvasStage } from "@/components/puzzles/ArcadeCanvasStage";
 import { Button } from "@/components/ui/button";
@@ -31,26 +34,16 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 
 /** Fixed intro shares the rainbow sprites without changing demo inputs. */
 function IntroExample() {
-  const canvas = useRef<HTMLCanvasElement | null>(null);
-  useEffect(() => {
-    const ctx = canvas.current?.getContext("2d");
-    if (!ctx) return;
-    ctx.setTransform(2, 0, 0, 2, 0, 0);
-    drawInkRainbowExample(ctx);
-  }, []);
-  return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <canvas ref={canvas} width={336} height={260} className="h-[130px] w-[168px] rounded-lg" aria-hidden="true" />
-      <p className="text-center text-xs text-muted-foreground">Draw lines around the white birds, then RELEASE. Roll through a clover or bounce off a cloud for bonus points.</p>
-    </div>
-  );
+  // The Strategy overhaul (15 Nov 2026): a real frame of today's game (scripts/shots/strategy-stills.ts).
+  return <FrameStill type="inkbridge" ratio={1.7286} caption="Draw a rainbow round the birds so the coin rolls into the pot." />;
 }
 
-const artGames = new Map<number, ReturnType<typeof inkBridgeArtGameFor>>();
-function inkBirdsArt(rev?: number) {
-  const k = rev ?? 0;
+const artGames = new Map<string, ReturnType<typeof inkBridgeArtGameFor>>();
+/** The art game for a stamp and (stage 3) the stored puzzle's level. */
+function inkBirdsArt(rev?: number, level?: unknown) {
+  const k = `${rev ?? 0}:${typeof level === "string" ? level : ""}`;
   let g = artGames.get(k);
-  if (!g) { g = inkBridgeArtGameFor(rev); artGames.set(k, g); }
+  if (!g) { g = inkBridgeArtGameFor(rev, level); artGames.set(k, g); }
   return g;
 }
 
@@ -117,23 +110,23 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         background={INK_ART_BG}
         fitWorld
         scene={(ctx, view, state) => {
-          inkArenaScene(ctx, view, inkSceneGround(state), inkWorldH(state));
+          inkArenaScene(ctx, view, inkSceneGround(state), inkWorldH(state), inkSunset(state));
           inkBridgeExtras(ctx, view);
         }}
-        sceneKey={(state) => inkSceneGround(state) + 10_000 * inkWorldH(state)}
+        sceneKey={(state) => inkSceneGround(state) + 10_000 * inkWorldH(state) + 10_000_000 * Math.round(inkSunset(state) * 9)}
         seed={data?.seed ?? 1}
         enabled={data !== null}
         locked={locked}
         worldW={INK_WORLD_W}
         worldH={inkWorldHFor(data?.inkRev)}
-        game={inkBirdsArt(data?.inkRev)}
+        game={inkBirdsArt(data?.inkRev, (data as { level?: unknown } | null)?.level)}
         sounds={inkBridgeSounds}
         checkpoint={inkCheckpoint}
         interval={INK_CHECKPOINT_INTERVAL}
         encodeRun={encodeInkBridgeRun}
         inputKind={INK_INPUT_STROKE}
         tickInput={(state) => {
-          const live = inkIsLive(state.level, data?.inkRev);
+          const live = inkLiveNow(state);
           liveLevelRef.current = live;
           liveDroppingRef.current = live && state.dropping === 1;
           if (live !== liveLevel) setLiveLevel(live);
@@ -208,7 +201,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   );
 }
 
-export function inkBridgeLine(r: { levels: number; total: number; score: number; stars?: number; starLevels?: number; tricks?: number; cloudLevels?: number; silver?: number; silverTotal?: number; shamrock?: number }, rev?: number): string {
+export function inkBridgeLine(r: { levels: number; total: number; score: number; stars?: number; starLevels?: number; tricks?: number; cloudLevels?: number; silver?: number; silverTotal?: number; shamrock?: number }, rev?: number, liveFrom = 8): string {
   const stars =
     (r.starLevels ? ` · ${r.stars ?? 0} / ${r.starLevels} ${r.silverTotal ? "ink" : "gold"} stars` : "") +
     (r.cloudLevels ? ` · ${r.tricks ?? 0} / ${r.cloudLevels} trick shots` : "") +
@@ -216,21 +209,27 @@ export function inkBridgeLine(r: { levels: number; total: number; score: number;
   if (r.levels >= r.total) return `All ${r.total} levels${stars}`;
   if (rev === undefined || rev < 3) return `Level ${r.levels}${stars}`;
   // Which kind of level the run stopped on, in plain words.
-  const kind = r.levels < 4 ? "the pot stands still" : r.levels < 8 ? "the pot moves" : "live drawing";
+  const kind = r.levels >= liveFrom ? "live drawing" : r.levels < 4 ? "the pot stands still" : "the pot moves";
   return `Stopped on level ${r.levels + 1} (${kind})${stars}`;
 }
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "inkbridge") return null;
-  const result = replayInkBridgeRun(puzzle.seed, myAnswer ?? "", puzzle.inkRev);
+  const result = replayInkBridgeRun(puzzle.seed, myAnswer ?? "", puzzle.inkRev, (puzzle as { level?: unknown }).level);
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {inkBridgeLine(result, puzzle.inkRev)}
+        {inkBridgeLine(result, puzzle.inkRev, inkLiveFromOf(puzzle))}
       </p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same levels for everyone</p>
     </div>
   );
+}
+
+/** Stage 3: the first live level (0-based) of the stored puzzle's level (today's 8 on Normal and every older round). */
+function inkLiveFromOf(puzzle: InkBridgePuzzleData): number {
+  const level = (puzzle as { level?: unknown }).level;
+  return puzzle.inkRev === INK_REV_HILLS && isInkDiff(level) ? INK_LEVEL_SETS[level].liveFrom : 8;
 }
 
 /** The seed is generated on the server; every run is replayed there for scoring. */
@@ -240,7 +239,7 @@ export const inkBridgePuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: INKBRIDGE_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "inkbridge", seed: 1, inkRev: INK_REV_BIG }) satisfies InkBridgePuzzleData,
+  generate: () => ({ type: "inkbridge", seed: 1, inkRev: INK_REV_HILLS }) satisfies InkBridgePuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

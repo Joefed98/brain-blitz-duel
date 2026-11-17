@@ -1,0 +1,158 @@
+/* The Strategy games' redesigned answer reveals (the Strategy overhaul, stage 2, 15 Nov 2026; StrategyRunSummary.tsx):
+   one picture of the run under the score, inside the shared reveal layout. Large pieces, plain labels, tokens only. */
+.srs {
+  width: 100%;
+  flex-shrink: 0;
+  padding: 12px;
+  border-radius: var(--jz-radius);
+  background: color-mix(in srgb, var(--jz-bg) 72%, transparent);
+  box-shadow: inset 0 0 0 1px var(--jz-line);
+  font-family: var(--jz-font);
+  font-variant-numeric: tabular-nums;
+  color: var(--jz-text);
+}
+.srs-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.srs-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 10px 14px;
+}
+.srs-grid {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+}
+.srs-grid-5 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  width: min(100%, 300px);
+}
+.srs-grid-6 {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  width: 100%;
+}
+.srs-grid-6 .srs-cell {
+  min-width: 0;
+}
+.srs-grid-9 {
+  grid-template-columns: repeat(9, minmax(0, 1fr));
+  width: min(100%, 300px);
+}
+.srs-cell {
+  display: flex;
+  min-width: 44px;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.srs-disc {
+  position: relative;
+  display: block;
+  line-height: 0;
+}
+.srs-piece {
+  display: block;
+  user-select: none;
+}
+.srs-piece[data-dim] {
+  opacity: 0.4;
+  filter: grayscale(0.8);
+}
+.srs-tick {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--jz-gold);
+  color: var(--jz-on-gold);
+}
+.srs-caption {
+  font-size: 14px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.srs-cell:not([data-done]) .srs-caption {
+  color: var(--reveal-text-2, var(--jz-text-2));
+  font-weight: var(--jz-weight-medium);
+}
+.srs-sub {
+  font-size: 12px;
+  font-weight: var(--jz-weight-medium);
+  color: var(--jz-gold);
+  white-space: nowrap;
+}
+.srs-cell[data-under-par] .srs-disc {
+  border-radius: 999px;
+  box-shadow: 0 0 0 2px var(--jz-gold);
+}
+.srs-stat {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 56px;
+}
+.srs-stat-value {
+  font-size: 22px;
+  font-weight: var(--jz-weight-black);
+  line-height: 1.1;
+}
+.srs-stat-label {
+  font-size: 13px;
+  color: var(--reveal-text-2, var(--jz-text-2));
+  white-space: nowrap;
+}
+.srs-line {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+}
+.srs-meter {
+  position: relative;
+  height: 14px;
+  flex: 1;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--jz-white) 14%, transparent);
+}
+.srs-meter-fill {
+  position: absolute;
+  inset: 0;
+  transform-origin: left center;
+  border-radius: 999px;
+  background: var(--jz-gold);
+}
+.srs-marble {
+  display: block;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  line-height: 0;
+}
+.srs-marble[data-kind="wrong"] {
+  box-shadow: inset 0 0 0 3px var(--jz-red);
+}
+.srs-marble[data-kind="lost"] {
+  background: color-mix(in srgb, var(--jz-white) 22%, transparent);
+}
+.srs-marble[data-kind="none"] {
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--jz-white) 22%, transparent);
+}
+@media (max-width: 360px) {
+  .srs-grid-9 .srs-marble,
+  .srs-grid-9 .srs-piece {
+    width: 22px;
+    height: 22px;
+  }
+}

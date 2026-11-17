@@ -64,6 +64,7 @@ import {
   SWING_PAR_POINTS,
   SWING_REV_EXPAND,
   SWING_REV_SLIDE,
+  SWING_REV_BIG,
   SWING_REV_STRICT,
   SWING_SECTION_LEDGES,
   SWING_SKILL_PAY,
@@ -338,7 +339,8 @@ ok(best200 !== null, "a stored swingRev 13 run (an elite skill-band run) reaches
   // swingRev 13's lines (gems, gates, ledges, combos, the collapsing ledge, par times, the skill pay) went with it.
   ok(/up to \{max\}|\b200\b/.test(INTRO_SCORE.swing) && /pars/.test(INTRO_SCORE.swing) && /gates/i.test(INTRO_SCORE.swing), `the intro score line states the top and the features: "${INTRO_SCORE.swing}"`);
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_SLIDE\) return null/.test(demo), "Grappler's intro demo stays stopped (a swingRev 13, 14, 15 or 16 one too) until one is recorded on swingRev 17");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero).
+  ok(/data\.type === "swing" && demo\?\.puzzle\.type === "swing" && demo\.puzzle\.swingRev !== SWING_REV_BIG\) return null/.test(demo), "Grappler's intro demo stays stopped (a swingRev 13, 14, 15, 16 or 17 one too) until one is recorded on swingRev 18");
   const art = readFileSync("src/lib/arcade/swing.renderer.ts", "utf8");
   ok(/PAR \$\{/.test(art) && /swingRunningSection/.test(art), "the art shows each section's par and its running clock");
 }

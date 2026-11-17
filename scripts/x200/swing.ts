@@ -11,7 +11,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { generateSwing } from "../../src/lib/duel/arcade.server";
 import { withSeededRandom } from "../../src/lib/duel/random";
-import { swingGameFor, SWING_REV_SLIDE, SWING_V16_BLOCKS, SWING_V16_RUNS, SWING_V16_SQUEEZES, SWING_V17_GATES, SWING_V17_SLIDER_TOTAL, type SwingState } from "../../src/lib/arcade/swing";
+import { swingGameFor, SWING_REV_BIG, SWING_V16_BLOCKS, SWING_V16_RUNS, SWING_V16_SQUEEZES, SWING_V17_GATES, SWING_V17_SLIDER_TOTAL, type SwingState } from "../../src/lib/arcade/swing";
 
 /** Stretches a swingRev 16 or 17 course holds: a swinging stretch a block, the ledge runs' sections. */
 const STRETCHES = SWING_V16_BLOCKS - SWING_V16_RUNS.length + SWING_V16_RUNS.reduce((a, b) => a + b, 0);
@@ -50,17 +50,19 @@ function whole<T>(arr: readonly T[] | undefined, name: string, read: (x: T, i: n
 
 export const x200Room: X200Room = {
   type: "swing",
-  rev: SWING_REV_SLIDE,
+  // Changed with Joe's approval, 16 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the
+  // bigger hero, swingRev 17's course rules) from its own proved deal, so the room proof follows the live deal.
+  rev: SWING_REV_BIG,
   deals: 6,
   deal(n: number): RoomDeal {
     const puzzle = withSeededRandom(0x5917 + n * 7919, () => generateSwing());
-    if (puzzle.swingRev !== SWING_REV_SLIDE) throw new Error(`room deal ${n}: swingRev ${puzzle.swingRev}, not ${SWING_REV_SLIDE}`);
+    if (puzzle.swingRev !== SWING_REV_BIG) throw new Error(`room deal ${n}: swingRev ${puzzle.swingRev}, not ${SWING_REV_BIG}`);
     return { seed: puzzle.seed, game: swingGameFor(puzzle.swingRev) };
   },
   play(deal: RoomDeal, style: RoomStyle) {
     if (style === "idle") return { events: [] };
     const human = new Human("swing", deal.seed, style === "random" ? "weak" : style);
-    const ctx = { game: deal.game, seed: deal.seed, rev: SWING_REV_SLIDE, human };
+    const ctx = { game: deal.game, seed: deal.seed, rev: SWING_REV_BIG, human };
     return style === "random" ? randomBot(ctx) : bot(ctx);
   },
   schedule(state: SwingState) {

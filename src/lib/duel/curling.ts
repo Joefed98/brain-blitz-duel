@@ -40,8 +40,9 @@ export interface CurlingResult extends SportsResult<CurlingState> {
  * runs further and curls less; 2: the start along the hog line and side brushing; 3: the gentler weight line; 4: three
  * reds and curling's count). A round with no stamp is curlRev 1.
  */
-export function replayCurlingRun(seed: number, raw: string, rev?: number | null): CurlingResult {
-  const run = replaySportsRun("curling", curlingGameFor(rev ?? CURLING_REV_V1), curlingCheckpoint, seed, raw);
+/** The server's replay of a run on a stored curlRev and level (the puzzle's `level`, puzzleLevel; none: Normal). */
+export function replayCurlingRun(seed: number, raw: string, rev?: number | null, level?: unknown): CurlingResult {
+  const run = replaySportsRun("curling", curlingGameFor(rev ?? CURLING_REV_V1, level), curlingCheckpoint, seed, raw);
   const s = run.state;
   const parts = curlingStdParts(s) ?? [];
   return {

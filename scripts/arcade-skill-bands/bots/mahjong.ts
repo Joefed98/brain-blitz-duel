@@ -10,15 +10,18 @@
  */
 import { msToTicks, type SkillLevel } from "../human";
 import { driveEvents, type BotResult, type SkillBot } from "../bot";
+
 import {
   mahjongFree,
   mahjongMoves,
   MAHJONG_INPUT_SHUFFLE,
   MAHJONG_INPUT_TAP,
-  MAHJONG_SLOTS,
-  MAHJONG_TILES,
+  mahjongLayoutOf,
   type MahjongState,
 } from "../../../src/lib/arcade/mahjong";
+
+/** A place's layer on the board's own layout (the difficulty levels add 56- and 88-tile boards). */
+const zOf = (face: readonly number[], slot: number) => mahjongLayoutOf(face).slots[slot]!.z;
 
 /** One tap, from finding the tile to the touch (ms). */
 const TAP_MS: Record<SkillLevel, number> = { weak: 760, average: 560, good: 440, great: 370, near: 320, elite: 295, perfect: 150 };
@@ -33,7 +36,7 @@ function freed(face: readonly number[], pair: readonly [number, number]): number
   after[pair[0]] = -1;
   after[pair[1]] = -1;
   let n = 0;
-  for (let i = 0; i < MAHJONG_TILES; i++) if (after[i]! >= 0 && !mahjongFree(face, i) && mahjongFree(after, i)) n += 1;
+  for (let i = 0; i < face.length; i++) if (after[i]! >= 0 && !mahjongFree(face, i) && mahjongFree(after, i)) n += 1;
   return n;
 }
 
@@ -47,7 +50,7 @@ function greedyClears(face: readonly number[], depth = 40): boolean {
     let best = moves[0]!;
     let bestV = -1;
     for (const m of moves) {
-      const v = freed(f, m) * 4 + MAHJONG_SLOTS[m[0]]!.z + MAHJONG_SLOTS[m[1]]!.z;
+      const v = freed(f, m) * 4 + zOf(f, m[0]) + zOf(f, m[1]);
       if (v > bestV) {
         bestV = v;
         best = m;
@@ -79,7 +82,7 @@ export const bot: SkillBot = ({ game, seed, human }): BotResult => {
         let pick: readonly [number, number];
         if (lvl === "perfect") {
           // The ceiling: the pair that frees most among those that keep a clean clearing in reach.
-          const ranked = [...moves].sort((a, b) => freed(s.face, b) - freed(s.face, a) || MAHJONG_SLOTS[b[0]]!.z - MAHJONG_SLOTS[a[0]]!.z);
+          const ranked = [...moves].sort((a, b) => freed(s.face, b) - freed(s.face, a) || zOf(s.face, b[0]) - zOf(s.face, a[0]));
           pick = ranked.find((m) => {
             const f = s.face.slice();
             f[m[0]] = -1;
@@ -90,7 +93,7 @@ export const bot: SkillBot = ({ game, seed, human }): BotResult => {
           const seen = moves.slice(0, Math.max(1, Math.round(1 + FORESIGHT[lvl] * 5 * human.u())));
           const order = seen.map((m) => ({ m, r: human.u() }));
           order.sort((a, b) => a.r - b.r);
-          const values = order.map(({ m }) => FORESIGHT[lvl] * (freed(s.face, m) * 2 + (MAHJONG_SLOTS[m[0]]!.z + MAHJONG_SLOTS[m[1]]!.z) / 2));
+          const values = order.map(({ m }) => FORESIGHT[lvl] * (freed(s.face, m) * 2 + (zOf(s.face, m[0]) + zOf(s.face, m[1])) / 2));
           const i = human.pick(values);
           pick = order[Math.max(0, i)]!.m;
         }
@@ -98,7 +101,7 @@ export const bot: SkillBot = ({ game, seed, human }): BotResult => {
         // A slip: a wrong free tile first (the selection moves on; the right pair follows).
         if (human.slip(0.6)) {
           const free: number[] = [];
-          for (let i = 0; i < MAHJONG_TILES; i++) if (mahjongFree(s.face, i) && s.face[i] !== s.face[pick[0]]) free.push(i);
+          for (let i = 0; i < s.face.length; i++) if (mahjongFree(s.face, i) && s.face[i] !== s.face[pick[0]]) free.push(i);
           if (free.length) queue.unshift({ k: MAHJONG_INPUT_TAP, a: free[human.int(0, free.length - 1)]! });
         }
         return null;

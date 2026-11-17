@@ -5,6 +5,7 @@
  * the logged flippers, validates every payload, and keeps its own score.
  */
 
+import type { Level } from "@/lib/levels/levels";
 import type { InputDiag } from "@/lib/arcade/engine";
 
 import { pinballGameForAny, pinCheckpointAny, type Pin4State } from "@/lib/arcade/pinball4";
@@ -97,8 +98,8 @@ export interface PinballResult {
 }
 
 /** The single place a Pinball score is worked out. */
-export function replayPinballRun(seed: number, raw: string, rev?: number | null): PinballResult {
-  const game = pinballGameForAny(rev);
+export function replayPinballRun(seed: number, raw: string, rev?: number | null, level?: Level | null): PinballResult {
+  const game = pinballGameForAny(rev, level);
   const run = decodePinballRun(raw);
   // The run's own length: 60 s, or 90 s on pinRev 5 (game.runTicks).
   const runTicks = game.runTicks;

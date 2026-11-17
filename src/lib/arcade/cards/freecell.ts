@@ -44,6 +44,7 @@ import { bandCurve, type BandParts } from "../scoreBands";
 import { hashInts, isRed, NO_CARD, rankOf, shuffledDeck, suitOf } from "./cards";
 import { FC_DEALS } from "./freecellDeals.data";
 import { FC_DEALS_V4 } from "./freecellDealsV4.data";
+import { FC_DEALS_EASY, FC_DEALS_EXPERT, FC_DEALS_HARD } from "./freecellDealsLevels.data";
 
 /** The dealt revision (rev 5: the core to all 40 home); rev 4 runs replay on freecellGameV4, rev 3 on V3, rev 2 on V2, rev 1 on V1. */
 export const FC_REV = 5;
@@ -59,6 +60,20 @@ export const FC_CELLS = 4;
 /** Pile ids. */
 export const FC_PILE_CELL = 8;
 export const FC_PILE_HOME = 12;
+/** A fifth free cell (the Easy level's, 15 Nov 2026) takes pile 13, after home, so piles 8–12 keep their meaning. */
+export const FC_PILE_CELL_5 = 13;
+
+/** Free cell `i`'s pile id (0–3: 8–11; the Easy level's fifth: 13). */
+export function fcCellPile(i: number): number {
+  return i < 4 ? FC_PILE_CELL + i : FC_PILE_CELL_5 + (i - 4);
+}
+
+/** The free cell a pile id names when there are `n` cells, or -1 (with four cells: 8–11, exactly as before levels). */
+export function fcCellIndex(pile: number, n: number): number {
+  if (pile >= FC_PILE_CELL && pile < FC_PILE_CELL + Math.min(n, 4)) return pile - FC_PILE_CELL;
+  if (n > 4 && pile >= FC_PILE_CELL_5 && pile < FC_PILE_CELL_5 + (n - 4)) return 4 + (pile - FC_PILE_CELL_5);
+  return -1;
+}
 export const FC_RUN_TICKS = 120 * 60;
 
 /** Input kinds: a tap (best legal spot) and a drag (a named destination). */
@@ -111,9 +126,13 @@ export function fcSpeedFullFor(rev: number | null | undefined): number {
 export function fcCardsFor(rev: number | null | undefined): number {
   return (rev ?? 1) >= FC_REV_SHORT ? FC_SHORT_CARDS : 52;
 }
+/** The cards in a state's deal (a level's own count, else its revision's). */
+export function fcCardsOf(state: Pick<FcState, "rev" | "cards">): number {
+  return state.cards ?? fcCardsFor(state.rev);
+}
 /** Every card of the deal is home. */
-export function fcAllHome(state: Pick<FcState, "home" | "rev">): boolean {
-  return fcHomeCount(state) === fcCardsFor(state.rev);
+export function fcAllHome(state: Pick<FcState, "home" | "rev" | "cards">): boolean {
+  return fcHomeCount(state) === fcCardsOf(state);
 }
 /** The core's straight line (LIVE_BANDS and arcade-help-bands-check read it). */
 export const FC_V1_BAND_CURVE = bandCurve([0, FC_CORE_UNITS], [0, FC_CORE_MAX]);
@@ -216,6 +235,14 @@ export interface FcState {
    */
   fly?: number[];
   flyTick?: number;
+  /**
+   * The difficulty levels (15 Nov 2026; level deals only, outside the checksum but `hints`): the level (FC_LV_*), the
+   * deal's card count, hints asked for and the last one's tick (the art glows its move).
+   */
+  lv?: number;
+  cards?: number;
+  hints?: number;
+  hintTick?: number;
 }
 
 /* ================================ Rules ================================ */
@@ -283,8 +310,9 @@ function moving(state: FcState, from: number, index: number): number[] | null {
     if (index < fcRunStart(col)) return null;
     return col.slice(index);
   }
-  if (from >= FC_PILE_CELL && from < FC_PILE_CELL + FC_CELLS) {
-    const card = state.cells[from - FC_PILE_CELL]!;
+  const cell = fcCellIndex(from, state.cells.length);
+  if (cell >= 0) {
+    const card = state.cells[cell]!;
     return card === NO_CARD ? null : [card];
   }
   return null;
@@ -296,7 +324,8 @@ export function fcLegal(state: FcState, from: number, index: number, to: number)
   if (!cards || from === to) return false;
   const first = cards[0]!;
   if (to === FC_PILE_HOME) return cards.length === 1 && canHome(state.home, first);
-  if (to >= FC_PILE_CELL && to < FC_PILE_CELL + FC_CELLS) return cards.length === 1 && state.cells[to - FC_PILE_CELL] === NO_CARD;
+  const toCell = fcCellIndex(to, state.cells.length);
+  if (toCell >= 0) return cards.length === 1 && state.cells[toCell] === NO_CARD;
   if (to < 0 || to >= FC_COLS) return false;
   const dest = state.cols[to]!;
   if (dest.length === 0) {
@@ -325,7 +354,7 @@ export function fcBestTarget(state: FcState, from: number, index: number): numbe
     if (state.cols[c]!.length === 0 && fcLegal(state, from, index, c)) return c;
   }
   if (from < FC_COLS && cards.length === 1) {
-    for (let i = 0; i < FC_CELLS; i++) if (state.cells[i] === NO_CARD) return FC_PILE_CELL + i;
+    for (let i = 0; i < state.cells.length; i++) if (state.cells[i] === NO_CARD) return fcCellPile(i);
   }
   return -1;
 }
@@ -336,13 +365,13 @@ export function fcBestTarget(state: FcState, from: number, index: number): numbe
  */
 export function fcNoMoves(state: FcState): boolean {
   if (state.ended !== 0) return false;
-  const targets = [FC_PILE_HOME, ...Array.from({ length: FC_CELLS }, (_, i) => FC_PILE_CELL + i), ...Array.from({ length: FC_COLS }, (_, c) => c)];
+  const targets = [FC_PILE_HOME, ...Array.from({ length: state.cells.length }, (_, i) => fcCellPile(i)), ...Array.from({ length: FC_COLS }, (_, c) => c)];
   const sources: [number, number][] = [];
   for (let c = 0; c < FC_COLS; c++) {
     const col = state.cols[c]!;
     for (let i = fcRunStart(col); i < col.length; i++) sources.push([c, i]);
   }
-  for (let i = 0; i < FC_CELLS; i++) if (state.cells[i] !== NO_CARD) sources.push([FC_PILE_CELL + i, 0]);
+  for (let i = 0; i < state.cells.length; i++) if (state.cells[i] !== NO_CARD) sources.push([fcCellPile(i), 0]);
   return !sources.some(([from, index]) => targets.some((to) => fcLegal(state, from, index, to)));
 }
 
@@ -369,10 +398,10 @@ function autoHome(state: FcState): void {
         moved = true;
       }
     }
-    for (let i = 0; i < FC_CELLS; i++) {
+    for (let i = 0; i < state.cells.length; i++) {
       const card = state.cells[i]!;
       if (card !== NO_CARD && safeHome(state.home, card)) {
-        fly?.push(card, FC_PILE_CELL + i, 0);
+        fly?.push(card, fcCellPile(i), 0);
         state.cells[i] = NO_CARD;
         state.home[suitOf(card)] = rankOf(card);
         state.autos++;
@@ -396,21 +425,24 @@ function clone(state: FcState): FcState {
  */
 export function fcApply(state: FcState, from: number, index: number, to: number): FcState | null {
   let dest = to;
-  if (dest >= FC_PILE_CELL && dest < FC_PILE_CELL + FC_CELLS && state.cells[dest - FC_PILE_CELL] !== NO_CARD) {
+  const n = state.cells.length;
+  const destCell = fcCellIndex(dest, n);
+  if (destCell >= 0 && state.cells[destCell] !== NO_CARD) {
     dest = -1;
-    for (let i = 0; i < FC_CELLS; i++) if (state.cells[i] === NO_CARD) { dest = FC_PILE_CELL + i; break; }
+    for (let i = 0; i < n; i++) if (state.cells[i] === NO_CARD) { dest = fcCellPile(i); break; }
   }
   if (dest < 0 || !fcLegal(state, from, index, dest)) return null;
   const next = clone(state);
   let cards: number[];
   if (from < FC_COLS) cards = next.cols[from]!.splice(index);
   else {
-    cards = [next.cells[from - FC_PILE_CELL]!];
-    next.cells[from - FC_PILE_CELL] = NO_CARD;
+    const fromCell = fcCellIndex(from, n);
+    cards = [next.cells[fromCell]!];
+    next.cells[fromCell] = NO_CARD;
   }
   if (dest === FC_PILE_HOME) next.home[suitOf(cards[0]!)] = rankOf(cards[0]!);
-  else if (dest >= FC_PILE_CELL) next.cells[dest - FC_PILE_CELL] = cards[0]!;
-  else next.cols[dest]!.push(...cards);
+  else if (dest < FC_COLS) next.cols[dest]!.push(...cards);
+  else next.cells[fcCellIndex(dest, n)] = cards[0]!;
   next.moves++;
   next.lastFrom = from;
   next.lastTo = dest;
@@ -426,19 +458,20 @@ export function fcApply(state: FcState, from: number, index: number, to: number)
  * The deal for a deal seed: 52 cards dealt across the eight columns (four of seven, four of six); freecellRev 4 the 40
  * cards Ace to 10, in the order the same seeded shuffle puts them, five to a column.
  */
-export function fcDealCols(dealSeed: number, rev = 1): number[][] {
+export function fcDealCols(dealSeed: number, rev = 1, topRank?: number): number[][] {
   let { deck } = shuffledDeck(dealSeed);
-  if (rev >= FC_REV_SHORT) deck = deck.filter((c) => rankOf(c) <= FC_SHORT_TOP_RANK);
+  const top = topRank ?? (rev >= FC_REV_SHORT ? FC_SHORT_TOP_RANK : 13);
+  if (top < 13) deck = deck.filter((c) => rankOf(c) <= top);
   const cols: number[][] = Array.from({ length: FC_COLS }, () => []);
   deck.forEach((card, i) => cols[i % FC_COLS]!.push(card));
   return cols;
 }
 
 /** A state dealt from any deal seed and par (the bank script and the checks use it directly). */
-export function fcInitFrom(dealSeed: number, par: number, deal = 0, rev = 1): FcState {
+export function fcInitFrom(dealSeed: number, par: number, deal = 0, rev = 1, topRank?: number, cells = FC_CELLS): FcState {
   const state: FcState = {
     tick: 0, rev, deal, par,
-    cols: fcDealCols(dealSeed, rev), cells: [NO_CARD, NO_CARD, NO_CARD, NO_CARD], home: [0, 0, 0, 0],
+    cols: fcDealCols(dealSeed, rev, topRank), cells: new Array<number>(cells).fill(NO_CARD), home: [0, 0, 0, 0],
     moves: 0, rejects: 0, autos: 0, acted: 0, ended: 0, finishTick: 0,
     lastFrom: -1, lastTo: -1, lastCount: 0, lastTick: 0, std: 1,
   };
@@ -508,11 +541,11 @@ export function fcPack(state: Pick<FcState, "cols" | "cells" | "home">): number[
   return out;
 }
 
-function unpack(packed: readonly number[]): Pick<FcState, "cols" | "cells" | "home"> {
-  const cells = packed.slice(0, FC_CELLS);
-  const home = packed.slice(FC_CELLS, FC_CELLS + 4);
+function unpack(packed: readonly number[], n = FC_CELLS): Pick<FcState, "cols" | "cells" | "home"> {
+  const cells = packed.slice(0, n);
+  const home = packed.slice(n, n + 4);
   const cols: number[][] = [];
-  let i = FC_CELLS + 4;
+  let i = n + 4;
   for (let c = 0; c < FC_COLS; c++) {
     const n = packed[i++]!;
     cols.push(packed.slice(i, i + n));
@@ -583,7 +616,7 @@ function stepV2(state: FcState, input: ArcadeInputEvent | null): FcState {
     next.acted = 1;
     const hist = state.hist ?? [];
     if (hist.length > 0) {
-      next = { ...next, ...unpack(hist[hist.length - 1]!), hist: hist.slice(0, -1), moves: next.moves + 1, undos: (next.undos ?? 0) + 1 };
+      next = { ...next, ...unpack(hist[hist.length - 1]!, state.cells.length), hist: hist.slice(0, -1), moves: next.moves + 1, undos: (next.undos ?? 0) + 1 };
       if (next.fly) next.fly = [];
       next.lastFrom = -1;
       next.lastTo = -1;
@@ -594,7 +627,7 @@ function stepV2(state: FcState, input: ArcadeInputEvent | null): FcState {
     next.acted = 1;
     const now = fcPack(state);
     if (state.start && !samePacked(now, state.start)) {
-      next = { ...next, ...unpack(state.start), hist: [...(state.hist ?? []), now], moves: next.moves + 1, resets: (next.resets ?? 0) + 1 };
+      next = { ...next, ...unpack(state.start, state.cells.length), hist: [...(state.hist ?? []), now], moves: next.moves + 1, resets: (next.resets ?? 0) + 1 };
       if (next.fly) next.fly = [];
       next.lastFrom = -1;
       next.lastTo = -1;
@@ -618,6 +651,7 @@ export function fcCoreUnits(state: FcState): number {
 /** The parts: the core (full at all 52 home on revs 1–2, FC_CORE_UNITS_V3 on rev 3), par (finished) and speed (finished). */
 export function freecellStdParts(state: FcState): StdPart[] | null {
   if (!state || !state.std) return null;
+  if (state.lv) return fcLevelParts(state);
   const home = fcHomeCount(state);
   const sorted = fcSortedCards(state.cols);
   const units = 2 * home + sorted;
@@ -653,7 +687,7 @@ export function freecellScore(state: FcState): number {
 export function freecellBandParts(state: FcState): BandParts {
   const parts = freecellStdParts(state) ?? [];
   const core = parts[0]?.points ?? 0;
-  return { units: fcCoreUnits(state), points: core, bonus: stdSum(parts) - core, penalty: 0, finished: state.ended === 1, text: `${fcHomeCount(state)} / ${fcCardsFor(state.rev)} home` };
+  return { units: fcCoreUnits(state), points: core, bonus: stdSum(parts) - core, penalty: 0, finished: state.ended === 1, text: `${fcHomeCount(state)} / ${fcCardsOf(state)} home` };
 }
 
 /* ============================== Checkpoints ============================== */
@@ -673,6 +707,8 @@ export function fcCheckpoint(state: FcState): FcCheckpoint {
   for (const col of state.cols) flat.push(100 + col.length, ...col);
   // freecellRev 2: the undo stack's depth too (rev 1 states have none, so their checksums are as before).
   if (state.hist) flat.push(200 + state.hist.length);
+  // The levels: the hints asked for (level states only).
+  if (state.lv) flat.push(300 + (state.hints ?? 0));
   return { tick: state.tick, moves: state.moves, home: fcHomeCount(state), ended: state.ended, checksum: hashInts(flat) };
 }
 
@@ -714,4 +750,194 @@ export const freecellGame = freecellGameV1;
 export function freecellGameFor(rev?: number | null): ArcadeGame<FcState, ArcadeInputEvent | null> {
   const r = rev ?? 1;
   return r >= FC_REV_SHARE ? freecellGameV5 : r >= FC_REV_SHORT ? freecellGameV4 : r >= FC_REV_EASY ? freecellGameV3 : r >= FC_REV_UNDO ? freecellGameV2 : freecellGameV1;
+}
+
+/* ================================ Difficulty levels (15 Nov 2026) ================================ */
+
+/*
+ * The levels (docs/design/difficulty/README.md; docs/arcade-standard/freecell.md "Levels"): Normal is freecellRev 5
+ * exactly (no `level` on the puzzle, none of this code runs). A level deal carries `level` and today's freecellRev; its
+ * game (freecellLevelGame) is rev 5's play with the level's deal, free cells and undo rules, plus hints:
+ *
+ *   Easy    32 cards (Ace to 8), 5 free cells, Undo free (not a move) and unlimited, hints free.
+ *   Hard    52 cards from the deals with the shortest proved solutions, 4 free cells, Undo a move, a hint costs
+ *           FC_HINT_COST from the cards part.
+ *   Expert  52 cards, 3 free cells, only the shortest deals the solver proves with 3 cells, 3 undos, one hint.
+ *
+ * A hint (FC_INPUT_HINT) is counted by the sim (so the server charges it) and its move is worked out for the art only
+ * (fcHintMove: the bank solver's next move from the position, display only, never read by the sim). Each level's deals
+ * come from its own bank, every deal solved by the bank solver with the level's free cells, par the fewest moves found
+ * (freecellDealsLevels.data.ts, scripts/freecell-bank.ts --levels). The parts: cards 105 (all home), par 50 (0 at
+ * 1.5 × par), speed 45 (full by the level's own seconds), in whole-number maths as rev 5.
+ */
+export const FC_INPUT_HINT = 5;
+export const FC_LV_EASY = 1;
+export const FC_LV_HARD = 3;
+export const FC_LV_EXPERT = 4;
+export type FcLevelName = "easy" | "hard" | "expert";
+
+export interface FcLevelRules {
+  lv: number;
+  /** The deal: Ace to `topRank` in each suit. */
+  topRank: number;
+  cells: number;
+  /** Undo counts as a move for par (Normal's rule) unless free; at most `undoLimit` undos (-1 unlimited). */
+  undoFree: boolean;
+  undoLimit: number;
+  /** Hints: points each costs from the cards part, and the most a run may ask for (-1 unlimited). */
+  hintCost: number;
+  hintLimit: number;
+  /** Speed is full by this many seconds. */
+  speedFullS: number;
+  /** Par moves reach 0 at this many quarters of par (Normal: 6, one and a half times par). */
+  parZeroQuarters: number;
+}
+
+export const FC_HINT_COST = 5;
+
+export const FC_LEVEL_RULES: Readonly<Record<FcLevelName, FcLevelRules>> = {
+  easy: { lv: FC_LV_EASY, topRank: 8, cells: 5, undoFree: true, undoLimit: -1, hintCost: 0, hintLimit: -1, speedFullS: 60, parZeroQuarters: 8 },
+  hard: { lv: FC_LV_HARD, topRank: 13, cells: 4, undoFree: false, undoLimit: -1, hintCost: FC_HINT_COST, hintLimit: -1, speedFullS: 25, parZeroQuarters: 5 },
+  expert: { lv: FC_LV_EXPERT, topRank: 13, cells: 3, undoFree: false, undoLimit: 3, hintCost: 0, hintLimit: 1, speedFullS: 25, parZeroQuarters: 5 },
+};
+
+export function fcLevelRulesOf(state: Pick<FcState, "lv">): FcLevelRules | null {
+  switch (state.lv) {
+    case FC_LV_EASY: return FC_LEVEL_RULES.easy;
+    case FC_LV_HARD: return FC_LEVEL_RULES.hard;
+    case FC_LV_EXPERT: return FC_LEVEL_RULES.expert;
+    default: return null;
+  }
+}
+
+/** The deal bank of each level ([deal seed, par]; freecellDealsLevels.data.ts). */
+const FC_LEVEL_BANKS: Readonly<Record<FcLevelName, readonly (readonly [number, number])[]>> = {
+  easy: FC_DEALS_EASY,
+  hard: FC_DEALS_HARD,
+  expert: FC_DEALS_EXPERT,
+};
+
+export function fcLevelBank(level: FcLevelName): readonly (readonly [number, number])[] {
+  return FC_LEVEL_BANKS[level];
+}
+
+/** The bank entry a level deal's seed names (the seed is the index; any integer maps onto the bank). */
+export function fcLevelDealOf(seed: number, level: FcLevelName): { index: number; dealSeed: number; par: number } {
+  const bank = FC_LEVEL_BANKS[level];
+  const n = bank.length;
+  const index = ((Math.trunc(seed) % n) + n) % n;
+  const [dealSeed, par] = bank[index]!;
+  return { index, dealSeed, par };
+}
+
+/** A level state from a deal seed and par (the bank script and the checks use it directly). */
+export function fcLevelInitFrom(level: FcLevelName, dealSeed: number, par: number, deal = 0): FcState {
+  const rules = FC_LEVEL_RULES[level];
+  const base = fcInitFrom(dealSeed, par, deal, FC_REV_SHARE, rules.topRank, rules.cells);
+  const state: FcState = {
+    ...base, hist: [], undos: 0, resets: 0, note: 0, noteNeed: 0, noteCells: 0, noteTick: 0,
+    lv: rules.lv, cards: 4 * rules.topRank, hints: 0, hintTick: 0,
+  };
+  return { ...state, start: fcPack(state) };
+}
+
+function initLevel(seed: number, level: FcLevelName): FcState {
+  const d = fcLevelDealOf(seed, level);
+  return fcLevelInitFrom(level, d.dealSeed, d.par, d.index);
+}
+
+/** Whether a level state may still ask for a hint. */
+export function fcHintsLeft(state: FcState): number {
+  const rules = fcLevelRulesOf(state);
+  if (!rules) return 0;
+  return rules.hintLimit < 0 ? Infinity : Math.max(0, rules.hintLimit - (state.hints ?? 0));
+}
+
+/** Whether a level state may still undo (Expert: three). */
+export function fcUndosLeft(state: FcState): number {
+  const rules = fcLevelRulesOf(state);
+  if (!rules || rules.undoLimit < 0) return Infinity;
+  return Math.max(0, rules.undoLimit - (state.undos ?? 0));
+}
+
+function stepLevel(state: FcState, input: ArcadeInputEvent | null): FcState {
+  if (state.ended) return state;
+  const rules = fcLevelRulesOf(state)!;
+  if (input && input.k === FC_INPUT_HINT) {
+    const next = stepV2(state, null);
+    if (next.ended || fcHintsLeft(state) <= 0) return { ...next, acted: 1 };
+    return { ...next, acted: 1, hints: (state.hints ?? 0) + 1, hintTick: next.tick };
+  }
+  if (input && input.k === FC_INPUT_UNDO && fcUndosLeft(state) <= 0) return { ...stepV2(state, null), acted: 1 };
+  const next = stepV2(state, input);
+  // Easy: an undo is free (not a move for par).
+  if (rules.undoFree && input && input.k === FC_INPUT_UNDO && (next.undos ?? 0) > (state.undos ?? 0)) return { ...next, moves: next.moves - 1 };
+  return next;
+}
+
+/** A level's spec (the help and the reveal; the parts of every level sum to 200). */
+export function fcLevelSpec(level: FcLevelName): StdSpec {
+  const rules = FC_LEVEL_RULES[level];
+  const cards = 4 * rules.topRank;
+  return {
+    field: "freecellRev",
+    rev: FC_REV_SHARE,
+    parts: [
+      {
+        key: "core", label: "Cards", max: FC_CORE_MAX_V5, of: 2 * cards,
+        how: `every card home scores, a card in a sorted run on the columns half as much; all ${cards} home for all of it${rules.hintCost ? `; each hint costs ${rules.hintCost}` : ""}`,
+      },
+      { key: "par", label: "Par moves", max: FC_PAR_MAX_V5, of: 1, how: `finish in the deal’s fewest moves (par) for all of it, nothing at ${rules.parZeroQuarters === 8 ? "twice" : rules.parZeroQuarters === 6 ? "one and a half times" : "one and a quarter times"} par` },
+      { key: "speed", label: "Speed", max: FC_SPEED_MAX_V5, of: 1, how: `finish within ${rules.speedFullS} s for all of it, falling to 0 at the buzzer` },
+    ],
+  };
+}
+
+function fcLevelParts(state: FcState): StdPart[] {
+  const rules = fcLevelRulesOf(state)!;
+  const level: FcLevelName = rules.lv === FC_LV_EASY ? "easy" : rules.lv === FC_LV_HARD ? "hard" : "expert";
+  const spec = fcLevelSpec(level);
+  const cards = fcCardsOf(state);
+  const home = fcHomeCount(state);
+  const sorted = fcSortedCards(state.cols);
+  const done = state.ended === 1;
+  const hints = state.hints ?? 0;
+  const cost = rules.hintCost * hints;
+  const core = Math.max(0, stdLine(FC_CORE_MAX_V5, 2 * home + sorted, 2 * cards) - cost);
+  const par = done ? stdSpeedInt(FC_PAR_MAX_V5, 4 * state.moves, 4 * state.par, rules.parZeroQuarters * state.par) : 0;
+  const speed = done ? stdSpeedInt(FC_SPEED_MAX_V5, state.finishTick, rules.speedFullS * 60, FC_RUN_TICKS) : 0;
+  const hintText = cost ? ` · ${hints} ${hints === 1 ? "hint" : "hints"} (−${cost})` : "";
+  return [
+    stdPart(spec, "core", core, `${home} home · ${sorted} in sorted runs${hintText}`),
+    stdPart(spec, "par", par, done ? `${state.moves} moves, par ${state.par}` : "not finished"),
+    stdPart(spec, "speed", speed, done ? `finished in ${(state.finishTick / 60).toFixed(1)} s` : "not finished"),
+  ];
+}
+
+const LEVEL_GAMES = new Map<FcLevelName, ArcadeGame<FcState, ArcadeInputEvent | null>>();
+
+/** A level's game: rev 5's play on the level's deal, cells, undo and hints. */
+export function freecellLevelGame(level: FcLevelName): ArcadeGame<FcState, ArcadeInputEvent | null> {
+  let g = LEVEL_GAMES.get(level);
+  if (!g) {
+    g = {
+      ...freecellGameV5,
+      init: (seed) => initLevel(seed, level),
+      step: stepLevel,
+      inputRanges: [
+        inputRange(FC_INPUT_TAP, [0, 13], [0, 51]),
+        inputRange(FC_INPUT_MOVE, [0, 13], [0, 51], [0, 13]),
+        inputRange(FC_INPUT_UNDO),
+        inputRange(FC_INPUT_RESET),
+        inputRange(FC_INPUT_HINT),
+      ],
+    };
+    LEVEL_GAMES.set(level, g);
+  }
+  return g;
+}
+
+/** The game a puzzle plays: its level's (a level deal) or its revision's (Normal). */
+export function freecellGameAt(rev: number | null | undefined, level: string | null | undefined): ArcadeGame<FcState, ArcadeInputEvent | null> {
+  return level === "easy" || level === "hard" || level === "expert" ? freecellLevelGame(level) : freecellGameFor(rev);
 }

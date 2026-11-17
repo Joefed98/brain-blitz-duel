@@ -23,13 +23,14 @@ import {
   matchupAnimationDuration,
   matchupConstantPlay,
   matchupHintSwap,
+  matchupHintTicksOf,
+  matchupColourIndex,
   matchupIndex,
   matchupRowsOf,
   MATCHUP_TREASURE,
   matchupIsJackpot,
   MATCHUP_BOMB,
   MATCHUP_CROSS,
-  MATCHUP_HINT_TICKS,
   MATCHUP_INPUT_SWAP,
   MATCHUP_ROWS,
   MATCHUP_SIZE,
@@ -112,8 +113,9 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     const treasure = s.cells.indexOf(MATCHUP_TREASURE);
     let v = 0;
     for (const i of cleared) {
-      const kind = s.cells[i] ?? -1;
-      if (kind >= 0 && kind < 6 && (s.goalLeft?.[kind] ?? 0) > 0) v += 0.8;
+      // matchupRev 13 Expert's seventh colour is colour 6 (every other gem's colour is its kind).
+      const colour = matchupColourIndex(s.cells[i] ?? -1);
+      if (colour >= 0 && (s.goalLeft?.[colour] ?? 0) > 0) v += 0.8;
       if (s.ice?.[i]) v += 2.5;
       if (treasure >= 0 && i % MATCHUP_SIZE === treasure % MATCHUP_SIZE && i > treasure) v += 4 * focus;
     }
@@ -204,9 +206,11 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
     const rest = seen.filter((_, i) => i !== k);
     backup = rest.length ? rest[human.pick(rest.map((f) => f.value))]!.m : null;
     decideAt = t + human.thinkTicks(ORIENT_MS) + Math.round(Math.min(1, stopAt) * full);
-    // The hint shows after five seconds without a scoring swap; a player still looking takes it.
-    const hintSeen = s.lastScoreTick + MATCHUP_HINT_TICKS + human.reactTicks();
-    if (decideAt > hintSeen) {
+    // The hint shows after five seconds without a scoring swap (matchupRev 13: its level's delay, none on Expert); a
+    // player still looking takes it.
+    const hintWait = matchupHintTicksOf(s);
+    const hintSeen = s.lastScoreTick + hintWait + human.reactTicks();
+    if (hintWait > 0 && decideAt > hintSeen) {
       decideAt = Math.max(t + 1, hintSeen);
       chosen = null;
     }

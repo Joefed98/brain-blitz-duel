@@ -65,6 +65,10 @@ pinPreDepth(true);
 import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { pinPreDepthTapRev } from "../src/lib/duel/tapLog";
 import { pinPreTopup } from "../src/lib/duel/depthTopup";
+import { pinPreSpeedOverhaul } from "../src/lib/duel/speedOverhaul";
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul): this check proves the stamps
+// before it (Tenfall tenRev 5, Pull! clayRev 9), so it deals them (speedOverhaul.ts).
+pinPreSpeedOverhaul(true);
 
 // The puzzle top-up (26 Oct 2026, docs/depth/topup-oct-2026.md) deals newer stamps; this check proves the stamps it was
 // written for, so new deals are pinned to them (depth-topup-check proves the top-up's).

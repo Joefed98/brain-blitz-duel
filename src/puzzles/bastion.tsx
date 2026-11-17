@@ -11,7 +11,7 @@ import {
   BAS_WORLD_H,
   BAS_WORLD_W,
 } from "@/lib/arcade/bastion";
-import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 
 import { BAS_TURRET_X, BAS_TURRET_Y, BAS_STEP_DEG_X256, type BasState } from "@/lib/arcade/bastion";
 import { encodeBastionRun, encodeBastionTankRun, isBastionTank, replayBastionRun, replayBastionTankRun } from "@/lib/duel/bastion";
@@ -29,14 +29,19 @@ import {
   BT2_WORLD_W,
   type BastionTankState,
 } from "@/lib/arcade/bastionTank";
-import { bastionScene, bastionTankArtGameFor, BT2_ART_BG } from "@/lib/arcade/bastionTank.renderer";
+import { bastionScene, bastionSceneKey, bastionSummaryHeight, bastionSummaryRows, bastionTankArtGameFor, BT2_ART_BG, BT_SUMMARY_W, paintBastionSummary, type BtSummaryData } from "@/lib/arcade/bastionTank.renderer";
+import { bastionEndHoldMs, bastionWaveTallies } from "@/lib/arcade/bastionLook";
+import { bastionBaseMax, bastionPlanOf, bastionTotalHp, BT2_WAVE_COUNT, BT3_DRONES } from "@/lib/arcade/bastionTank";
+import { bastionTankLedger } from "@/lib/duel/bastionLedger";
+import { canvasRatio } from "@/lib/battery";
+import { ArtStill } from "@/components/puzzles/ArtStill";
 import { bastionTankSounds } from "@/lib/fx/gameSounds";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { BASTION_TIME_MS, type BastionPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
 import { ArcadeControlButton } from "@/components/puzzles/ArcadeControlButton";
 
-import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
+import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps, RunPictureProps } from "./types";
 
 /** The original Bastion's intro still (unstamped rounds): the turret, a circle, a square and the base bar. */
 export function LegacyIntroExample() {
@@ -187,64 +192,22 @@ function LegacyReveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 
 /* ============================== bastionRev 2 ============================== */
 
-/** Fixed intro still (the mockup's look): the road at dusk, a drone in the sky, a scout far off, a heavy close with its orange weak spot under the crosshair, the bottom panel. */
+/**
+ * The intro still (Action overhaul, 15 Nov 2026): Iron Wall's own art (the dealt stamp at Normal: bastionRev 4 since the
+ * levels, 15 Nov 2026) on a fixed seed a few seconds in
+ * with no input, so the intro shows the real road, tanks and panel rather than a drawing of them.
+ */
 function IntroExample() {
   return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg viewBox="0 0 200 150" width={200} height={150} aria-hidden="true" style={{ background: BT2_ART_BG, borderRadius: 10 }}>
-        <defs>
-          <linearGradient id="bt2-sky" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#2A3240" />
-            <stop offset="1" stopColor="#46515F" />
-          </linearGradient>
-        </defs>
-        <rect width="200" height="50" fill="url(#bt2-sky)" />
-        <path d="M0 50 L0 42 L14 34 L28 44 L44 28 L60 42 L76 32 L92 44 L110 26 L126 40 L144 30 L162 44 L178 34 L200 42 L200 50 Z" fill="#262B33" />
-        {/* A drone crossing the sky (Iron Wall, bastionRev 3). */}
-        <g transform="translate(150 20)">
-          <rect x="-6" y="-1.6" width="12" height="1" fill="#1B1E24" />
-          <ellipse cx="-6" cy="-3" rx="2.4" ry="0.8" fill="#D7E1EE" opacity="0.6" />
-          <ellipse cx="6" cy="-3" rx="2.4" ry="0.8" fill="#D7E1EE" opacity="0.6" />
-          <path d="M-5 0 L4 -2.2 L5.5 0 L4 2 Z" fill="#3E4450" stroke="#E1E8F2" strokeWidth="0.5" />
-          <circle cx="-4.5" cy="-0.3" r="1" fill="#FF4A3D" />
-        </g>
-        <rect y="50" width="200" height="66" fill="#665640" />
-        <path d="M97 50 L103 50 L164 116 L36 116 Z" fill="#96806052" />
-        <path d="M99 52 L78 116 M101 52 L122 116" stroke="#E1D2B48C" strokeWidth="1.2" strokeDasharray="5 6" />
-        {/* A scout far off, left lane. */}
-        <rect x="62" y="66" width="18" height="8" fill="#5A6340" />
-        <rect x="62" y="71" width="18" height="3" fill="#1C1E22" />
-        <rect x="67" y="62" width="8" height="4" fill="#66704A" />
-        <circle cx="71" cy="71" r="2" fill="#F29A2E" />
-        <rect x="68" y="58" width="6" height="2" fill="#FF7A3C" />
-        {/* A heavy close in the centre lane, its weak spot under the crosshair. */}
-        <rect x="74" y="92" width="52" height="22" fill="#7A4434" />
-        <rect x="74" y="106" width="52" height="8" fill="#1C1E22" />
-        <rect x="87" y="80" width="26" height="12" fill="#8A5141" />
-        <circle cx="100" cy="86" r="2.6" fill="#121317" />
-        <circle cx="108" cy="89" r="4" fill="#F29A2E" />
-        <circle cx="108" cy="89" r="2.2" fill="#FFD36A" />
-        {[0, 1, 2, 3].map((i) => (
-          <rect key={i} x={87 + i * 7} y={74} width={6} height={2.6} fill={i < 3 ? "#FF7A3C" : "#33373F"} />
-        ))}
-        <circle cx="108" cy="89" r="8" fill="none" stroke="#fff" strokeWidth="1.2" />
-        <path d="M108 77 v5 M108 96 v5 M96 89 h5 M115 89 h5" stroke="#fff" strokeWidth="1.2" />
-        <circle cx="108" cy="89" r="1.6" fill="#FFB547" />
-        <rect y="116" width="200" height="8" fill="#22262E" />
-        <path d="M96 124 L98 104 L104 104 L106 124 Z" fill="#3B4250" />
-        <rect y="124" width="200" height="26" fill="#14171D" />
-        {[0, 1, 2, 3, 4].map((i) => (
-          <rect key={i} x={52 + i * 28} y={128} width={24} height={7} rx={2} fill={i < 3 ? "#FFB547" : "#2A2E36"} />
-        ))}
-        <rect x="52" y="140" width="136" height="4" rx="2" fill="#2A2E36" />
-        <rect x="52" y="140" width="56" height="4" rx="2" fill="#8FD6A0" />
-        <text x="8" y="134" fontSize="6" fill="#BDBDCC" fontWeight="700">SHELLS</text>
-        <text x="8" y="144" fontSize="6" fill="#BDBDCC" fontWeight="700">RELOAD</text>
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">
-        Drag to aim (the crosshair floats above your thumb) and lift to fire. Lead moving tanks, hit the glowing weak spot while it is open for double damage, and shoot down the drones.
-      </p>
-    </div>
+    <ArtStill
+      game={bastionTankArtGameFor(BASTION_REV_DEALT)}
+      worldW={BT2_WORLD_W}
+      worldH={BT2_WORLD_H}
+      seed={7}
+      ticks={640}
+      input={null}
+      caption="Drag to aim and lift to fire. Far tanks wear S, M or H badges; hit the glowing weak spot for double damage. The battlefield turns from a clear evening to dust, then battle smoke."
+    />
   );
 }
 
@@ -272,7 +235,9 @@ interface Gesture {
 function TankStage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BastionPuzzleData | null = puzzle.type === "bastion" ? puzzle : null;
   const rev = data?.bastionRev;
-  const game = useMemo(() => bastionTankArtGameFor(rev), [rev]);
+  // bastionRev 4: the puzzle's stored level picks the game (the deal stamps it; none = Normal).
+  const level = (data as { level?: unknown } | null)?.level;
+  const game = useMemo(() => bastionTankArtGameFor(rev, level), [rev, level]);
   const live = useRef<BastionTankState | null>(null);
   // The crosshair in the view (bastionView.ts: what the player sees); the aim sent is its exact world point.
   const aim = useRef({ x: 195, y: btViewY(470) });
@@ -296,6 +261,7 @@ function TankStage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps
       background={BT2_ART_BG}
       fitWorld
       scene={bastionScene}
+      sceneKey={bastionSceneKey}
       seed={data?.seed ?? 1}
       enabled={data !== null}
       locked={locked}
@@ -306,6 +272,7 @@ function TankStage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps
       checkpoint={bastionTankCheckpoint}
       interval={BT2_CHECKPOINT_INTERVAL}
       encodeRun={encodeBastionTankRun}
+      endHoldMs={bastionEndHoldMs}
       tickInput={(state) => {
         live.current = state;
         return actions.current.shift() ?? null;
@@ -378,20 +345,83 @@ function Reveal(props: PuzzleRevealProps) {
   const { puzzle, myAnswer } = props;
   if (puzzle.type !== "bastion") return null;
   if (!isBastionTank(puzzle.bastionRev)) return <LegacyReveal {...props} />;
-  const result = replayBastionTankRun(puzzle.seed, myAnswer ?? "", puzzle.bastionRev);
-  // What the run did, part by part (the points are the stored score's, shown by the arcade reveal above).
-  const lines = result.parts.map((part) => `${part.label}: ${part.detail}`);
+  return <TankReveal seed={puzzle.seed} answer={myAnswer ?? ""} rev={puzzle.bastionRev} level={(puzzle as { level?: unknown }).level} />;
+}
+
+/** The arcade reveal's run picture (PuzzleDefinition.RunPicture): the tank shooter's only; the original turret has none. */
+function RunPicture({ puzzle, myAnswer }: RunPictureProps) {
+  if (puzzle.type !== "bastion" || !isBastionTank(puzzle.bastionRev)) return null;
+  return <TankReveal seed={puzzle.seed} answer={myAnswer} rev={puzzle.bastionRev} level={(puzzle as { level?: unknown }).level} />;
+}
+
+/** The reveal's picture data from a stored run (the real sim, tick by tick; display only). */
+export function bastionSummaryOf(seed: number, answer: string, rev?: number | null, level?: unknown): { data: BtSummaryData; destroyedHp: number; totalHp: number; weak: number; fast: number; drones: number } {
+  const { ledger, state } = bastionTankLedger(seed, answer, rev, level);
+  const iron = state.rev >= 3;
+  const baseMax = bastionBaseMax(state.rev, state.lvl);
+  return {
+    data: { rev: state.rev, waves: bastionWaveTallies(ledger, bastionPlanOf(state), BT2_WAVE_COUNT), drones: iron ? ledger.drones : [], base: state.base, ...(state.rev >= 4 ? { baseMax } : {}), fell: state.ended === 2 },
+    destroyedHp: state.destroyedHp,
+    totalHp: bastionTotalHp(state.rev, state.lvl),
+    weak: state.weak,
+    fast: state.fast,
+    drones: state.drones ?? 0,
+  };
+}
+
+/**
+ * Iron Wall's own reveal (Action overhaul stage 2, 15 Nov 2026): the numbers the score is made of, big, then the run
+ * in one picture (paintBastionSummary: each wave's tanks and what became of them, the drones and the base), drawn from
+ * the stored log replayed through the real sim. No score or grade is worked out here; the stored score is the reveal's.
+ */
+function TankReveal({ seed, answer, rev, level }: { seed: number; answer: string; rev?: number | null | undefined; level?: unknown }) {
+  const run = useMemo(() => bastionSummaryOf(seed, answer, rev, level), [seed, answer, rev, level]);
+  const box = useRef<HTMLDivElement>(null);
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const [width, setWidth] = useState(BT_SUMMARY_W);
+  const height = bastionSummaryHeight(run.data.rev);
+  useLayoutEffect(() => {
+    const node = box.current;
+    if (!node) return;
+    const measure = () => setWidth(Math.max(240, Math.round(node.clientWidth || BT_SUMMARY_W)));
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const watch = new ResizeObserver(measure);
+    watch.observe(node);
+    return () => watch.disconnect();
+  }, []);
+  const cssH = Math.round((height * width) / BT_SUMMARY_W);
+  useLayoutEffect(() => {
+    const node = canvas.current;
+    const ctx = node?.getContext("2d");
+    if (!node || !ctx) return;
+    const ratio = canvasRatio();
+    node.width = Math.round(width * ratio);
+    node.height = Math.round(cssH * ratio);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, node.width, node.height);
+    const k = (width * ratio) / BT_SUMMARY_W;
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    paintBastionSummary(ctx, run.data);
+  }, [run, width, cssH]);
+  const stats: { value: string; label: string }[] = [
+    { value: `${run.destroyedHp} / ${run.totalHp}`, label: "Armour knocked out" },
+    { value: `${run.weak}`, label: run.weak === 1 ? "Weak-spot hit" : "Weak-spot hits" },
+    { value: `${run.fast}`, label: run.fast === 1 ? "Fast reload" : "Fast reloads" },
+  ];
+  if (run.data.rev >= 3) stats.push({ value: `${run.drones} / ${BT3_DRONES}`, label: "Drones down" });
+  const rows = bastionSummaryRows(run.data);
   return (
-    <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-2 overflow-y-auto">
-      <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">
-        {result.kills} of {BT2_TANKS} tanks · {result.fell ? `base fell at ${result.endedSeconds.toFixed(1)}s` : `base ${result.base} / ${BT2_BASE}`}
-      </p>
-      {lines.map((line) => (
-        <p key={line} className="shrink-0 text-center font-mono text-sm text-foreground">
-          {line}
-        </p>
-      ))}
-      <p className="shrink-0 text-center font-mono text-sm text-muted-foreground">{result.state.rev >= 3 ? "Same five waves and drones for everyone" : "Same five waves for everyone"}</p>
+    <div ref={box} data-bastion-run="" className="reveal-run">
+      <div className="reveal-stats" data-reveal-stats="">
+        {stats.map((stat) => (
+          <div key={stat.label} className="reveal-stat" data-reveal-stat={stat.label}>
+            <span className="reveal-stat-value">{stat.value}</span>
+            <span className="reveal-stat-label">{stat.label}</span>
+          </div>
+        ))}
+      </div>
+      <canvas ref={canvas} className="reveal-run-picture" style={{ height: cssH }} role="img" aria-label={rows.join(", ")} data-bastion-rows={rows.join("|")} />
     </div>
   );
 }
@@ -409,4 +439,5 @@ export const bastionPuzzle: PuzzleDefinition = {
   IntroExample,
   Stage,
   Reveal,
+  RunPicture,
 };

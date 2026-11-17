@@ -38,8 +38,18 @@
 export const PAGE_CHECK_SPLITS: Record<string, { parts: number; jobs: number; prefix: string; ceiling: number }> = {
   // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): re-picked on main's merged screens (the step-3
   // train: 890 theme-check and 1,130 no-wrap-check draws), back to about 30 draws a part; were 24 parts / 4 jobs and 30 / 6.
-  "theme-check.tsx": { parts: 30, jobs: 5, prefix: "play-theme", ceiling: 40 },
-  "no-wrap-check.tsx": { parts: 36, jobs: 6, prefix: "play-nowrap", ceiling: 40 },
+  // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): 30 parts / 5 jobs → 48 / 8 on the puzzle
+  // train's combined screens (1,411 draws: about 29 a part and 176 a job, as on main before).
+  "theme-check.tsx": { parts: 48, jobs: 8, prefix: "play-theme", ceiling: 40 },
+  // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): 36 → 42 parts on the Number overhaul's
+  // reveal screens (1,442 draws, about 34 a part).
+  // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): 36 → 42 parts (the Word overhaul's level
+  // screens took every part to 41 draws; 42 parts give about 35 a part), jobs unchanged.
+  // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): 36 → 38 parts for the Attention levels' Expert pages.
+  // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): 42, the larger.
+  // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): 42 parts / 6 jobs → 54 / 9 on the puzzle
+  // train's combined screens (1,760 draws: about 33 a part and 196 a job, near main's 188).
+  "no-wrap-check.tsx": { parts: 54, jobs: 9, prefix: "play-nowrap", ceiling: 40 },
 };
 
 /** The jobs PAGE_CHECK_SPLITS gives: `<prefix>-<j>` runs parts j, j + jobs, j + 2 × jobs… of its check. */
@@ -125,7 +135,9 @@ export const SHARDS: Record<string, string[]> = {
   play15: ["arcade-room-practice-check.ts@1/3", "fission-repeat-check.ts", "app-shell-check.ts", "demo-intro-check.ts@6/6"],
   // share-check (21 Oct 2026: the podium's Share button, its text, link, clipboard fallback and card in the
   // harness, ~1 min with its dev server) rides here.
-  play17: ["share-check.ts"],
+  // number-demos-check (16 Nov 2026, the Number overhaul's intro demos, ~105 s whole) in halves, one beside share-check
+  // and one beside offline-check.
+  play17: ["share-check.ts", "number-demos-check.ts@1/2"],
   // Prompt D (23 Oct 2026): demo-intro-check (every active game's intro from its first frame to its demo playing,
   // with and without a demo, as an iPhone 11 home-screen app; ~8 s a game) and replay-board-check (46 puzzle replays on
   // the room's results screen, ~2 min). demo-intro-check in sixths since 8 Nov 2026: its thirds took 197–300 s on CI
@@ -138,7 +150,7 @@ export const SHARDS: Record<string, string[]> = {
   // Offline practice (31 Oct 2026): offline-check builds the app for production, installs the service worker, fills
   // every practice pack, plays three games offline, uploads the queue and swaps in a new build's worker (~5 min).
   // arcade-device-bottom-check's fifth layout part (@5/8, 2 Nov 2026) rides here, the lightest play job (~3.5 min).
-  play20: ["offline-check.ts", "arcade-device-bottom-check.ts@5/8"],
+  play20: ["offline-check.ts", "arcade-device-bottom-check.ts@5/8", "number-demos-check.ts@2/2"],
   // Browser checks that used to ride in the fast shards (1 Nov 2026): help-scroll-check (Chromium on a static page,
   // ~110 s, from g), battery-check (~190 s) and practice-switch-check (~60 s), both unlisted in the catch-all
   // before. BROWSER_CATCH_ALL: any browser check no shard lists runs here too.
@@ -160,6 +172,7 @@ export const SHARDS: Record<string, string[]> = {
   // arcade-self-replay-check's entries are split into parts on separate jobs.
   // ~282 s of checks on run 38608375501's times.
   a: [
+    "logic-levels-check.ts@1/4",
     // From g's catch-all (7 Nov 2026 rebalance, docs/audit-nov-2026/build-health.md item 10; ~188 s on Checks run
     // 42372376743): g ran 805 s of checks, a 298.
     "sound-retheme-check.ts",
@@ -253,6 +266,7 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   c: [
+    "logic-levels-check.ts@2/4",
     // seat-key-check (14 Nov 2026, Security C1b, ~2 s, happy-dom): room-mates told apart by public id (me, host, chat,
     // muting, reactions, absent rivals) and stand-in rows by account id.
     "seat-key-check.tsx",
@@ -272,6 +286,8 @@ export const SHARDS: Record<string, string[]> = {
     "ink-v13-check.ts",
     "burst-standard-check.ts",
     "bastion-check.ts",
+    "orbit-levels-check.ts",
+    "flip-levels-check.ts",
     "d5-remodels-check.ts",
     "ink-v11-check.ts",
     "hover-standard-check.ts",
@@ -352,6 +368,9 @@ export const SHARDS: Record<string, string[]> = {
     // server-functions-check (7 Nov 2026, ~5 s): the room, chat, daily, async-room and challenge server functions
     // run against every migration on a local PostgreSQL (scripts/server-fn-harness.ts), beside the other SQL checks.
     "server-functions-check.ts",
+    // pattern-demos-check (15 Nov 2026, ~5 s): the Pattern overhaul's intro demos (scripts/fixtures/pattern-demos.json),
+    // the real example deal, grade and save functions and the save script on a local PostgreSQL, beside the SQL checks.
+    "pattern-demos-check.ts",
     // round-engine-parity-check (9 Nov 2026, B6, ~35 s locally): the round engine against main da93f5d's own code
     // (scripts/round-engine/legacy.ts, temporary until wave 3): deals, receipts, grades, stored rows, windows, rankings.
     "round-engine-parity-check.ts",
@@ -506,9 +525,13 @@ export const SHARDS: Record<string, string[]> = {
     // cards-check re-split into eighths (a quarter took 241 s there); each part well under 200 s on CI.
     "freekick-check.ts@2/4",
     "cards-check.ts@2/8",
+    // action-demos-check (15 Nov 2026, ~6 s): the six Action intro demos, their save end to end on a local PostgreSQL
+    // through the server-function harness (PostgreSQL is installed on this shard), beside server-functions-check.
+    "action-demos-check.ts",
   ],
   // ~282 s of checks on run 38608375501's times.
   f: [
+    "logic-levels-check.ts@3/4",
     // From g's catch-all (7 Nov 2026 rebalance; ~10 s on run 42372376743).
     "pool-check.ts",
     // From g's catch-all (3 Nov 2026 rebalance; ~336 s on PR #253's CI times): g ran ~31 min, d-f 6-10.
@@ -548,6 +571,7 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   g: [
+    "logic-levels-check.ts@4/4",
     // arcade-fx-check in thirds (3 Nov 2026: Curl Champ's, Apex's and Cue Ball's runs took the whole check past 5 min locally).
     "arcade-fx-check.ts@3/3",
     "arcade-check.ts",
