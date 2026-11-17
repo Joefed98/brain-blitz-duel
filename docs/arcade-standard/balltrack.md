@@ -115,3 +115,106 @@ marbles like any other), so no bot was changed. Before (btRev 7, e6 doc): averag
   a row, "Combo ×n" (gold from 3, when it scores), and "Switch up Ns" on the right (gold in the last five seconds; "Left n" after both
   switch-ups). It replaced the 28 px status line under the board, so the arena's slot is as tall as before; the
   combo no longer draws on the queue shelf. Taps, the sim and its inputs are unchanged.
+
+## Levels (stage 3, 15 Nov 2026)
+
+The Strategy overhaul's difficulty levels (`docs/design/difficulty/README.md`): Ball Tracker offers Easy, Normal, Hard
+and Expert, all on **btRev 8** (the stamp, the parts and their 200 unchanged). The level rides on the dealt puzzle
+(`level`, only when it isn't Normal) and, more to the point for the sim, in the stored course: a level course carries
+its release interval (`drop`) and its cup moves (`moves`); its marble count is its `balls`' length. The sim, the server
+replay and every display read those from the stored course, so a room's players and the server build the identical run.
+Normal courses carry neither field and play, score and draw exactly as before.
+
+| Level | Marbles | Release | Cup moves | Gold | Boosters | Crossovers | Clock |
+|---|---|---|---|---|---|---|---|
+| Easy (16 Nov 2026) | 16 | every 190 ticks (3.2 s), last at 47.5 s | none | 7 | 4 | 2 | 60 s |
+| **Normal** (today's btRev 8) | 36 | every 84 ticks (1.4 s), last at 49 s | 2 (a re-lay at 20–30 s, a colour shuffle at 40–45 s) | 6 | 3 | 2 | 60 s |
+| Hard | 42 | every 72 ticks (1.2 s), last at 49.2 s | 8 | 7 | 3 | 2 | 60 s |
+| Expert | 42 | every 66 ticks (1.1 s), last at 45.1 s | 12 | 7 | 2 | 2 | 60 s |
+
+- **Cup moves** alternate a re-lay (four new drop columns, each cup moving with its drop) and a colour shuffle (a
+  derangement over the same columns), one in each equal window between 10 s and 48 s (seeded, fixed in the stored
+  course). Every move keeps the 5 s countdown, the cup pulse in the second before it and the slide; on Easy the cups
+  never move (`relay` and `shuffle` hold a tick no run reaches, `BT_NEVER_TICK`).
+- **Scoring**: the same four parts and maximums (marbles home 140, gold 25, combos 20, boosted 15), shared over the
+  course's own counts (`btStdSpecOf`: the core and boosted parts over its marbles, the gold part over its gold marbles;
+  combos full at 20, except on Easy, below). The state carries the counts as `nb` / `ng` (outside the checkpoint checksum).
+- **Easy's combos** (16 Nov 2026): an Easy course also carries `combo: 10`, the combo landings that fill the combos part
+  (its 16 marbles make at most 14), held in the state as `nc` (outside the checksum) and read by `btStdSpecOf`; the
+  level settings' `comboFull`. Hard and Expert courses carry no `combo` and keep 20, as Normal. The reveal's
+  axis, its part lines, the HUD's "Home n/N", the "ALL N HOME!" banner, the round summary and the Strategy summary's meter
+  all read the course's count; the intro adds a line on the level's courses ("42 marbles, one every 1.1 s · the cups move
+  12 times", `btLevelIntroLine`), and the help names every level's pace.
+- **The deal**: each level draws one course from its own proved list with the same single draw as Normal
+  (`ballTrackLevels.server.ts`: `ballTrackDealEasy.server.ts`, `…Hard…`, `…Expert…`, 60 courses each). Normal deals
+  `BT_V8_DEAL` exactly as before. Rated play and the Daily are always Normal (the framework's `modeLevel`).
+- **Building and proving the lists**: `bun scripts/balltrack-level-deal.ts --level=<l> [--count=N] [--check]` builds
+  candidates on the level's own PRNG stream with the bank's rules (the 13-row board, the seeded fixed straights,
+  crossovers under rotatable tubes, boosters on other upper fixed straights, a balanced marble queue with no three of a
+  colour running, gold marbles one per equal block), re-drawing each cup layout until every cup is reachable with an
+  early route, then keeps a course only when the boosted oracle (`scripts/arcade-standard/balltrack.ts`) scores **200
+  through the server's encode + replay** (every marble home boosted, every gold). The oracle's local search tries, on a
+  level course, the layouts next to the one live at a marble's landing (Normal's bank courses keep trying all three).
+  Each kept course's oracle log is its witness (`scripts/fixtures/balltrack-level-witness-<level>.json`). Build times
+  here: Easy 4 s (60 of 60 shaped, 163 candidates), Hard 14 min (60 of 62 shaped, 384 candidates), Expert 25 min (60 of 72 shaped, 396 candidates). `--check` rebuilds byte
+  for byte.
+
+### Measured (btRev 8, server replay)
+
+`bun scripts/balltrack-level-bands.ts <level> --seeds=30 --limits` (the skill-band bot, fixed bots, under Joe's human
+limits: no tap within 0.15 s of the last, an off-route marble noticed no sooner than 0.25 s, a new marble's route no
+sooner than 0.25 s; `BT_HUMAN_LIMITS` in the bot, off by default). Normal on fresh deal seeds (10000+), each level on the
+first 30 courses of its list (Expert on all 60). Median (average):
+
+| Level | Weak | Average | Good | Great | Near-perfect | Elite | Flawless | Elite at 200 | Average bot 175+ |
+|---|---|---|---|---|---|---|---|---|---|
+| Easy | 96 (93) | 164 (164) | 189 (186) | 196 (194) | 200 (199) | 200 (198) | 200 (200) | 27 of 30 | 13 of 30 |
+| Normal | 46 (46) | 91 (96) | 145 (145) | 177 (173) | 190 (187) | 195 (196) | 200 (197) | 14 of 30 | 0 of 30 |
+| Hard | 40 (41) | 51 (54) | 74 (77) | 115 (116) | 160 (156) | 177 (178) | 188 (188) | 0 of 30 | 0 |
+| Expert | 39 (41) | 50 (49) | 58 (59) | 79 (81) | 120 (120) | 151 (150) | 177 (177) | 0 of 60 | 0 |
+
+The oracle reaches 200 on every listed course (that is the list's rule). Without the limits the numbers barely move (Hard
+elite 180, the stock tool's). The shared tool, `bun scripts/level-tune.ts balltrack --level=all --seeds=60` (stock bots):
+
+| Level | Near-perfect avg (median) | Elite avg (median) |
+|---|---|---|
+| Easy | 198.1 (200) | 198.3 (200) |
+| Normal | 189.5 (191) | 196.3 (199) |
+| Hard | 165.8 (169) | 180.6 (180) |
+| Expert | 124.3 (122) | 158.1 (158) |
+
+A clear step at every level for every player; Normal stays comfortable for a strong player (elite ~196); Expert's elite
+player scores well (p10–p90 132–169 under the limits, best 177 on list entry 21) but never 200 (all-home-and-boosted on 42
+marbles with 12 cup moves asks for no slip at all); 200 there is the oracle's.
+
+**Easy made easier (16 Nov 2026, Joe: an average player should have a real shot at a star).** Before: 28 marbles every
+108 ticks, 8 gold, 4 boosters, combos full at 20; the average bot starred (175+) on 3 of 60 courses (5 %), averaging
+122.8 (elite 198.6). The average bot misroutes a share of its marbles at any pace (misread cups and stray taps, re-planned
+too late), so a slower release alone stalled near 150 (24 every 2.1 s: 144.6, 7 of 60; 20 every 2.5 s: 149.5, 6 of
+60), and a lower combo figure alone moved little (28 marbles: about +6). Fewer, slower marbles with the combos part
+filling at 10 did it: 16 marbles every 3.2 s, 7 gold, 4 boosters, combos full at 10. Under the human limits, on the
+rebuilt list (the course list re-proved at 200 by the oracle, every witness replayed):
+
+| Easy | Average avg (median) | Average 175+ | Good 175+ | Elite avg (median) |
+|---|---|---|---|---|
+| Before, 60 courses | 122.8 (119) | 3 of 60 (5 %) | 28 of 60 | 198.6 (200) |
+| After, 60 courses | 161.0 (165) | 22 of 60 (37 %) | 49 of 60 | 198.4 (200) |
+| After, first 40 courses | 160.6 (164) | 17 of 40 (43 %) | | 198.8 (200) |
+| After, first 30 courses | 163.9 (164) | 13 of 30 (43 %) | 24 of 30 | 198.4 (200) |
+
+Easy stays well clear of Normal (average 161 against 90, under the same limits on 60 courses). Tried and dropped (60 courses, combos at 10 unless
+said): 15 every 3.4 s with 7 gold (55 %, the top of the aim), 14 every 3.6 s with 6 gold (42 %), 16 every 3.2 s with 6
+gold and combos at 8 (37 %).
+
+### Where it lives
+
+- Sim `src/lib/arcade/ballTrack.ts` (`drop`, `moves`, `combo`, `btMovesOf`, `btDropTicksOf`, `btBallsOf`, `btLatestMove`,
+  `btStdSpecOf`, `btStateBalls`, `BT_NEVER_TICK`); deal `src/lib/duel/ballTrack.server.ts` (`generateBallTrack(level)`);
+  registry `GAME_LEVELS.balltrack` (`src/lib/levels/gameLevels.ts`); skill-band spec `gameForPuzzle`.
+- Checks: **balltrack-levels-check** (~70 s: Normal unchanged (the deal, the state, 75 bot runs on every btRev recorded on
+  the code before levels, `scripts/fixtures/balltrack-levels-legacy.json` by `scripts/balltrack-levels-legacy-record.ts`),
+  each list's shape and moves, the deal and its stamp, the clock, every witness at 200 through the server replay, the
+  oracle re-run on 2 courses a level (all at `CHECKS_FULL=1` / `--full`), scoring and display, and the step between levels
+  under the human limits); arcade-self-replay-check's appended `balltrack/easy`, `/hard`, `/expert`.
+- Decisions for Joe: Expert's elite never reaching 200 (the guide asks only to score well);
+  the shared elite profile reacts in 145 ms, a little past the 0.25 s limit (the limits are applied in this bot only).

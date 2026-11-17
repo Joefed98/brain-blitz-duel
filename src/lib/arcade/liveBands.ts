@@ -11,48 +11,48 @@
 import { bandCurve, bandHelp, type BandCurve, type BandHelpWords } from "./scoreBands";
 import { roundMaxFor } from "../duel/roundMax";
 import { BT_REV_STD, BT_REV_STRICT, BT_V8_BAND_CURVE } from "./ballTrack";
-import { WAV_REV_KEEP, WAV_REV_STRICT, WAV_V12_BAND_CURVE } from "./wavefront";
-import { FLIP_REV_DEAL, FLIP_REV_STRICT, FLIP_V11_BAND_CURVE } from "./flip";
-import { INK_REV_BIG, INK_REV_STRICT, INK_V13_BAND_CURVE } from "./inkBridge";
-import { MATCHUP_REV_SIX, MATCHUP_REV_STRICT, MATCHUP_V12_BAND_CURVE } from "./matchup";
-import { BUB_REV_STD, BUB_REV_STRICT, BUB_V11_BAND_CURVE, BUB_V11_STD_SPEC } from "./bubble";
-import { CROSS_REV_KEEP, CROSS_REV_STRICT, CROSS_V11_BAND_CURVE } from "./cross";
+import { WAV_REV_BIG, WAV_REV_STRICT, WAV_V12_BAND_CURVE } from "./wavefront";
+import { FLIP_REV_GRACE, FLIP_REV_STRICT, FLIP_V13_BAND_CURVE } from "./flip";
+import { INK_REV_HILLS, INK_REV_STRICT, INK_V13_BAND_CURVE } from "./inkBridge";
+import { MATCHUP_REV_ICE2, MATCHUP_REV_STRICT, MATCHUP_V13_BAND_CURVE } from "./matchup";
+import { BUB_REV_FAST, BUB_REV_STRICT, BUB_V12_BAND_CURVE, BUB_V12_STD_SPEC } from "./bubble";
+import { CROSS_REV_LIGHT, CROSS_REV_STRICT, CROSS_V11_BAND_CURVE } from "./cross";
 import { MINES_REV_NORMAL, MINES_STD_SPEC_V3, MINES_V1_BAND_CURVE } from "./minesweeper";
 import { MAHJONG_REV_DEALT, MAHJONG_STD_SPEC, MAHJONG_V1_BAND_CURVE } from "./mahjong";
-import { RALLY_REV_STD, RALLY_REV_STRICT, RALLY_STD_SPEC, RALLY_V12_BAND_CURVE } from "./rally";
-import { SNAKE_REV_12, SNAKE_REV_STRICT, SNAKE_V12_BAND_CURVE } from "./snake";
+import { RALLY_REV_LIVES, RALLY_REV_STRICT, RALLY_STD_SPEC_V13, RALLY_V13_BAND_CURVE } from "./rally";
+import { SNAKE_REV_GRACE, SNAKE_REV_STRICT, SNAKE_V13_BAND_CURVE } from "./snake";
 import { BINTOSS_REV_STRICT, BINTOSS_REV_STD, BINTOSS_STD_SPEC, BINTOSS_V9_BAND_CURVE } from "./binToss";
 import { stdHelp, type StdSpec } from "./arcadeStandard";
 import { SNIP_REV_EXPAND, SNIP_REV_STRICT, SNIP_V11_BAND_CURVE } from "./snip";
-import { HOVER_REV_STANDARD, HOVER_REV_STRICT, HOVER_V10_BAND_CURVE } from "./hover";
-import { SKYLINE_REV_COUNT, SKYLINE_REV_STRICT, SKYLINE_STD_SPEC_V10, SKYLINE_V9_BAND_CURVE } from "./skyline";
+import { HOVER_REV_SHIELD, HOVER_REV_STRICT, HOVER_V10_BAND_CURVE } from "./hover";
+import { SKYLINE_REV_LIVES, SKYLINE_REV_STRICT, SKYLINE_STD_SPEC_V11, SKYLINE_V9_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
-import { BRK_REV_STD, BRK_REV_STRICT, BRK_V11_BAND_CURVE } from "./breaker";
+import { BRK_REV_CLEAR, BRK_REV_STRICT, BRK_V12_BAND_CURVE } from "./breaker";
 import { TILT_REV_BIG, TILT_REV_STRICT, TILT_V12_BAND_CURVE } from "./tilt";
-import { ORBIT_REV_STRICT, ORBIT_REV_FUEL } from "./orbit";
+import { ORBIT_REV_STRICT, ORBIT_REV_BIG } from "./orbit";
 import { ORBIT_V14_BAND_CURVE } from "./orbitRev3";
-import { BEAT_REV_STD, BEAT_REV_STRICT, BEAT_STD_SPEC, BEAT_V11_BAND_CURVE } from "./beat";
+import { BEAT_REV_FLOOR, BEAT_REV_STRICT, BEAT_STD_SPEC_V12, BEAT_V11_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_REV_LINE, SLICE_V13_BAND_CURVE } from "./slice";
-import { BURST_REV_AIM, BURST_REV_STRICT, BURST_V10_BAND_CURVE } from "./burst";
-import { SWING_REV_SLIDE, SWING_REV_STRICT, SWING_V17_BAND_CURVE } from "./swing";
+import { BURST_REV_BIG, BURST_REV_STRICT, BURST_V10_BAND_CURVE } from "./burst";
+import { SWING_REV_BIG, SWING_REV_STRICT, SWING_V17_BAND_CURVE } from "./swing";
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
-import { PIN_REV_STD, PIN_STD_SPEC, PIN_V6_BAND_CURVE } from "./pinball4";
+import { PIN_REV_SAVE, PIN_STD_SPEC_V8, PIN_V6_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
-import { BASTION_REV_DEALT, BASTION_STD_SPEC_V3, BASTION_V3_BAND_CURVE } from "./bastionTank";
-import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V4_BAND_CURVE } from "./homerun";
-import { FREEKICK_REV_DEALT, FREEKICK_V4_STD_SPEC, FREEKICK_V4_BAND_CURVE } from "./freekick";
-import { RACING_REV_DEALT, RACING_V3_BAND_CURVE, RACING_V3_STD_SPEC } from "./racing";
+import { BASTION_REV_DEALT, BASTION_STD_SPEC_V4, BASTION_V4_BAND_CURVE } from "./bastionTank";
+import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V5_BAND_CURVE } from "./homerun";
+import { FREEKICK_REV_DEALT, FREEKICK_V6_STD_SPEC, FREEKICK_V5_BAND_CURVE } from "./freekick";
+import { RACING_REV_DEALT, RACING_V3_BAND_CURVE, RACING_V4_STD_SPEC } from "./racing";
 import { FC_REV, FC_STD_SPEC, FC_V5_BAND_CURVE } from "./cards/freecell";
 import { TP_REV, TP_STD_SPEC, TP_V3_BAND_CURVE } from "./cards/tripeaks";
 import { PS_REV, PS_STD_SPEC, PS_V2_BAND_CURVE } from "./cards/pokerSquares";
 import { FH_REV, FH_STD_SPEC, FH_V3_BAND_CURVE } from "./cards/fiveHands";
 import { BLOCKFALL_REV_ZONE, BF_ZONE_STD_SPEC, BF_V2_BAND_CURVE } from "./blockfall";
 import { ALLEYROLL_REV_DEALT, AR2_STD_SPEC, AR_V2_BAND_CURVE } from "./alleyroll";
-import { MOON_REV, MOON_STD_SPEC, MOON_V3_BAND_CURVE } from "./ricochetNinja";
+import { MOON_BIG_REV, MOON_BIG_STD_SPEC, MOON_V4_BAND_CURVE } from "./ricochetNinja";
 import { PY_REV, PY_STD_SPEC, PY_V2_BAND_CURVE } from "./cards/pyramid";
 import { GS_REV, GS_STD_SPEC, GS_V1_BAND_CURVE } from "./cards/golfSol";
 import { MG_REV, MG_STD_SPEC, MG_V1_BAND_CURVE } from "./cards/muggins";
-import { MINIGOLF_REV, MINIGOLF_STD_SPEC } from "./minigolf";
+import { MINIGOLF_REV_COURSE, MINIGOLF_STD_SPEC_V3 } from "./minigolf";
 import { POOL_REV, POOL_STD_SPEC } from "./pool";
 import { CURLING_REV, CURLING_STD_SPEC } from "./curling";
 
@@ -88,36 +88,43 @@ function stdCoreCurve(spec: StdSpec): BandCurve {
 
 export const LIVE_BANDS = {
   balltrack: { field: "btRev", rev: BT_REV_STD, curve: BT_V8_BAND_CURVE, strictRev: BT_REV_STRICT },
-  wavefront: { field: "wavRev", rev: WAV_REV_KEEP, curve: WAV_V12_BAND_CURVE, strictRev: WAV_REV_STRICT },
+  // wavRev 14 (the Retro overhaul, 15 Nov 2026): wavRev 13 plus the charged shot; the same parts.
+  wavefront: { field: "wavRev", rev: WAV_REV_BIG, curve: WAV_V12_BAND_CURVE, strictRev: WAV_REV_STRICT },
   // flipRev 11 (3 Nov 2026): the core's straight line (clean half seconds → 100; a saved crash costs 20 s); perfect landings,
   // double flips and the flow streak up to 100 more. flipRev 10: half seconds survived → 150 (FLIP_V10_BAND_CURVE).
   // flipRev 12 (3 Nov 2026): flipRev 11's game and core line, dealt from the proved courses.
-  flip: { field: "flipRev", rev: FLIP_REV_DEAL, curve: FLIP_V11_BAND_CURVE, strictRev: FLIP_REV_STRICT },
+  // flipRev 13 (15 Nov 2026, the Action overhaul): grace (no crash ends the run, each costs 10 s); the core full at 55 s.
+  flip: { field: "flipRev", rev: FLIP_REV_GRACE, curve: FLIP_V13_BAND_CURVE, strictRev: FLIP_REV_STRICT },
   // inkRev 14 (3 Nov 2026: inkRev 13's rules and parts with a bigger coin, clovers and birds; inkRev 13 before it, clovers,
   // ink par, more birds): levels on a straight line to 120; ink par, trick shots, clovers and speed add up to 80 more.
-  inkbridge: { field: "inkRev", rev: INK_REV_BIG, curve: INK_V13_BAND_CURVE, strictRev: INK_REV_STRICT },
+  inkbridge: { field: "inkRev", rev: INK_REV_HILLS, curve: INK_V13_BAND_CURVE, strictRev: INK_REV_STRICT },
   // matchupRev 12 (the arcade scoring standard, six goals and six treasures): the core's straight line (gems cleared, to
   // 108); treasure, goals, ice and big lines pay fixed amounts on top, to 200 (the help says so). matchupRev 11 before it.
-  matchup: { field: "matchupRev", rev: MATCHUP_REV_SIX, curve: MATCHUP_V12_BAND_CURVE, strictRev: MATCHUP_REV_STRICT },
+  // matchupRev 13 (two-hit ice and levels): Normal's core line, matchupRev 12's (the help states Normal's figures).
+  matchup: { field: "matchupRev", rev: MATCHUP_REV_ICE2, curve: MATCHUP_V13_BAND_CURVE, strictRev: MATCHUP_REV_STRICT },
   // bubbleRev 11 (the arcade scoring standard): the core's straight line; the spec lists every part.
-  bubble: { field: "bubbleRev", rev: BUB_REV_STD, curve: BUB_V11_BAND_CURVE, strictRev: BUB_REV_STRICT, std: BUB_V11_STD_SPEC },
+  bubble: { field: "bubbleRev", rev: BUB_REV_FAST, curve: BUB_V12_BAND_CURVE, strictRev: BUB_REV_STRICT, std: BUB_V12_STD_SPEC },
   // crossRev 11 (3 Nov 2026): no coins; the core 150 on a straight line, full at 76 units; the no-stop streak 40 and close
   // calls 10 (the help says so); a hit costs 15. crossRev 10: 150 at 92 units (CROSS_V10_BAND_CURVE), coins and a clean streak.
-  cross: { field: "crossRev", rev: CROSS_REV_KEEP, curve: CROSS_V11_BAND_CURVE, strictRev: CROSS_REV_STRICT },
+  cross: { field: "crossRev", rev: CROSS_REV_LIGHT, curve: CROSS_V11_BAND_CURVE, strictRev: CROSS_REV_STRICT },
   // rallyRev 12 (the arcade scoring standard): gold-ball hits on a straight line, pads and gold targets fixed.
-  rally: { field: "rallyRev", rev: RALLY_REV_STD, curve: RALLY_V12_BAND_CURVE, strictRev: RALLY_REV_STRICT, std: RALLY_STD_SPEC },
+  // rallyRev 13 (the Retro overhaul, 15 Nov 2026): two lives; gold hits 130 + pads 30 + targets 30 + spin shots 10.
+  rally: { field: "rallyRev", rev: RALLY_REV_LIVES, curve: RALLY_V13_BAND_CURVE, strictRev: RALLY_REV_STRICT, std: RALLY_STD_SPEC_V13 },
   // snakeRev 12 (1 Nov 2026): the core's straight line to 120 at 20 core stars (a gold star counts 2); gold stars, combos, lane rides
   // and warp stars pay up to 80 more (the help says so). snakeRev 11: 120 at 27 stars (SNAKE_V11_BAND_CURVE).
-  snake: { field: "snakeRev", rev: SNAKE_REV_12, curve: SNAKE_V12_BAND_CURVE, strictRev: SNAKE_REV_STRICT },
+  // snakeRev 13 (the Retro overhaul, 15 Nov 2026): wrap-around edges; the core full at 36 core stars.
+  snake: { field: "snakeRev", rev: SNAKE_REV_GRACE, curve: SNAKE_V13_BAND_CURVE, strictRev: SNAKE_REV_STRICT },
   bintoss: { field: "binRev", rev: BINTOSS_REV_STD, curve: BINTOSS_V9_BAND_CURVE, strictRev: BINTOSS_REV_STRICT, std: BINTOSS_STD_SPEC },
   snip: { field: "snipRev", rev: SNIP_REV_EXPAND, curve: SNIP_V11_BAND_CURVE, strictRev: SNIP_REV_STRICT },
   // hoverRev 10 (the arcade scoring standard): the core, barriers on one straight line to 120; the features add 80 (the help says so).
-  hover: { field: "hoverRev", rev: HOVER_REV_STANDARD, curve: HOVER_V10_BAND_CURVE, strictRev: HOVER_REV_STRICT },
+  hover: { field: "hoverRev", rev: HOVER_REV_SHIELD, curve: HOVER_V10_BAND_CURVE, strictRev: HOVER_REV_STRICT },
   // skylineRev 9 (the arcade scoring standard): floors on a straight line to 140, then perfect drops, the streak and gold.
-  skyline: { field: "skylineRev", rev: SKYLINE_REV_COUNT, curve: SKYLINE_V9_BAND_CURVE, strictRev: SKYLINE_REV_STRICT, std: SKYLINE_STD_SPEC_V10 },
+  // skylineRev 11 (15 Nov 2026, the Action overhaul): lives and the wide-block rescue; the same parts.
+  skyline: { field: "skylineRev", rev: SKYLINE_REV_LIVES, curve: SKYLINE_V9_BAND_CURVE, strictRev: SKYLINE_REV_STRICT, std: SKYLINE_STD_SPEC_V11 },
   junction: { field: "junctionRev", rev: JUNC_REV_BAND, curve: JUNC_BAND_CURVE },
   // brkRev 11 (the arcade scoring standard): the bricks' straight line to 140; clear 10, speed 20 and gold 30 on top (the help says so).
-  breaker: { field: "brkRev", rev: BRK_REV_STD, curve: BRK_V11_BAND_CURVE, strictRev: BRK_REV_STRICT },
+  // brkRev 12 (the Retro overhaul, 15 Nov 2026): the 9-row wall, its core on the board's 81 bricks.
+  breaker: { field: "brkRev", rev: BRK_REV_CLEAR, curve: BRK_V12_BAND_CURVE, strictRev: BRK_REV_STRICT },
   // tiltRev 10 (the arcade scoring standard): the core's straight line (35 a maze, to 140); finish, speed and gold stars add up to 60 (the help says so).
   // tiltRev 11 (3 Nov 2026): no gold stars; the core's straight line (35 a maze, to 140, up to 20 of a maze for
   // progress); par 24, a clean run 12 and speed 24 add up to 60 more (the help says so).
@@ -125,22 +132,25 @@ export const LIVE_BANDS = {
   tilt: { field: "tiltRev", rev: TILT_REV_BIG, curve: TILT_V12_BAND_CURVE, strictRev: TILT_REV_STRICT },
   // orbitRev 13 (the arcade scoring standard): planets on a straight line to 130; speed and features pay up to 70 more.
   // orbitRev 14 (the fuel meter): the same parts and straight line on the fuel bank's zigzag courses.
-  orbit: { field: "orbitRev", rev: ORBIT_REV_FUEL, curve: ORBIT_V14_BAND_CURVE, strictRev: ORBIT_REV_STRICT },
+  orbit: { field: "orbitRev", rev: ORBIT_REV_BIG, curve: ORBIT_V14_BAND_CURVE, strictRev: ORBIT_REV_STRICT },
   // beatRev 11 (the arcade scoring standard): beatRev 10's play; accuracy on a straight line to 130, four fixed features.
-  beat: { field: "beatRev", rev: BEAT_REV_STD, curve: BEAT_V11_BAND_CURVE, strictRev: BEAT_REV_STRICT, std: BEAT_STD_SPEC },
+  // beatRev 12 (the Retro overhaul, 15 Nov 2026): beatRev 11 with a missed note scoring 0 rather than −2.
+  beat: { field: "beatRev", rev: BEAT_REV_FLOOR, curve: BEAT_V11_BAND_CURVE, strictRev: BEAT_REV_STRICT, std: BEAT_STD_SPEC_V12 },
   // sliceRev 11 (the arcade scoring standard): the core's straight line to 120; combo, golden fruit, tickets and dodges pay up to 80 more.
   // sliceRev 12 (3 Nov 2026): bigger food; the core's straight line from half the food thrown to 120.
   slice: { field: "sliceRev", rev: SLICE_REV_LINE, curve: SLICE_V13_BAND_CURVE, strictRev: SLICE_REV_STRICT },
   // burstRev 10 (the arcade scoring standard): the core's straight line (140 at all 87 atoms); wave clears, golden atoms and lives on top (the help says so).
-  burst: { field: "burstRev", rev: BURST_REV_AIM, curve: BURST_V10_BAND_CURVE, strictRev: BURST_REV_STRICT },
+  // burstRev 12 (the Retro overhaul, 15 Nov 2026): burstRev 11 with the wave-clear bonus running out at 3× the quick time.
+  burst: { field: "burstRev", rev: BURST_REV_BIG, curve: BURST_V10_BAND_CURVE, strictRev: BURST_REV_STRICT },
   // swingRev 17 (the sliding hooks and the clean-swing streak, 90 s): the course's straight line to 140, full at SWING_V17_FULL
   // per mille; pars, gates and the streak pay up to 60 more (the help says so).
-  swing: { field: "swingRev", rev: SWING_REV_SLIDE, curve: SWING_V17_BAND_CURVE, strictRev: SWING_REV_STRICT },
+  swing: { field: "swingRev", rev: SWING_REV_BIG, curve: SWING_V17_BAND_CURVE, strictRev: SWING_REV_STRICT },
   // bullRev 9 (the arcade scoring standard, docs/arcade-standard/bullseye.md): the dart total on a straight line, plus the
   // bull streak and dead-centre darts.
   bullseye: { field: "bullRev", rev: BULLSEYE_REV_STD, curve: BULLSEYE_V9_BAND_CURVE, strictRev: BULLSEYE_REV_STRICT, std: BULLSEYE_STD_SPEC },
   // pinRev 6 (29 Oct 2026): the arcade scoring standard (table points on a straight line to 130, four features to 70).
-  pinball: { field: "pinRev", rev: PIN_REV_STD, curve: PIN_V6_BAND_CURVE, strictRev: PIN_REV_STRICT, std: PIN_STD_SPEC },
+  // pinRev 7 (the Retro overhaul, 15 Nov 2026): pinRev 6 with one J-O-U-L-Z set filling its part.
+  pinball: { field: "pinRev", rev: PIN_REV_SAVE, curve: PIN_V6_BAND_CURVE, strictRev: PIN_REV_STRICT, std: PIN_STD_SPEC_V8 },
   // Cards & Board (30 Oct 2026), on the arcade scoring standard from their first revision: the core's straight line
   // (Minesweeper in per mille of the safe squares beyond the opening, Mahjong in pairs) and fixed features to 200.
   // minesRev 2 (13 Nov 2026): 20 mines, the same straight core line.
@@ -149,9 +159,11 @@ export const LIVE_BANDS = {
   mahjong: { field: "mahjongRev", rev: MAHJONG_REV_DEALT, curve: MAHJONG_V1_BAND_CURVE, std: MAHJONG_STD_SPEC, born: true },
   // The Sports group (30 Oct 2026), born on the arcade scoring standard (rev 1; no earlier band revision).
   // Home Run deals homerunRev 3 since 1 Nov 2026 (the swing choice and the pitcher's tell; core full at 460 ft a pitch).
-  homerun: { field: "homerunRev", rev: HOMERUN_REV_DEALT, curve: HOMERUN_V4_BAND_CURVE, std: HOMERUN_STD_SPEC_DEALT, born: true },
-  freekick: { field: "freekickRev", rev: FREEKICK_REV_DEALT, curve: FREEKICK_V4_BAND_CURVE, std: FREEKICK_V4_STD_SPEC, born: true },
-  racing: { field: "racingRev", rev: RACING_REV_DEALT, curve: RACING_V3_BAND_CURVE, std: RACING_V3_STD_SPEC, born: true },
+  // homerunRev 5 / freekickRev 5 since 15 Nov 2026 (the innings; the layered kick): runs 100 (straight to 18) and goals 120.
+  homerun: { field: "homerunRev", rev: HOMERUN_REV_DEALT, curve: HOMERUN_V5_BAND_CURVE, std: HOMERUN_STD_SPEC_DEALT, born: true },
+  freekick: { field: "freekickRev", rev: FREEKICK_REV_DEALT, curve: FREEKICK_V5_BAND_CURVE, std: FREEKICK_V6_STD_SPEC, born: true },
+  // Apex deals racingRev 4 since 15 Nov 2026 (three named circuits; pace against each circuit's par).
+  racing: { field: "racingRev", rev: RACING_REV_DEALT, curve: RACING_V3_BAND_CURVE, std: RACING_V4_STD_SPEC, born: true },
   // Cards & Board (30 Oct 2026): born on the arcade scoring standard at revision 1.
   // freecellRev 4 (3 Nov 2026): the 40-card deal (Ace to 10), cards 60 + par 50 + speed 90.
   // freecellRev 5 (7 Nov 2026): cards 105 to all 40 home + par 50 + speed 45.
@@ -165,14 +177,15 @@ export const LIVE_BANDS = {
   // fiveHandsRev 3 (3 Nov 2026): the flat hand table, the hand points summed, capped at 200 (not every deck reaches it).
   fivehands: { field: "fiveHandsRev", rev: FH_REV, curve: FH_V3_BAND_CURVE, std: FH_STD_SPEC, born: true },
   // Ricochet (1 Nov 2026): the ninja wall-climb, born on the arcade scoring standard at ricoRev 2 (the old shaft never had a band revision).
-  // Moon Climb (ricoRev 3, 3 Nov 2026): the live stamp, its own parts (height, flow, lantern rides, scrolls).
-  ricochet: { field: "ricoRev", rev: MOON_REV, curve: MOON_V3_BAND_CURVE, std: MOON_STD_SPEC, born: true },
+  // Moon Climb (ricoRev 3, 3 Nov 2026): its own parts (height, flow, lantern rides, scrolls); ricoRev 4 (15 Nov 2026) the bigger ninja, the same parts.
+  ricochet: { field: "ricoRev", rev: MOON_BIG_REV, curve: MOON_V4_BAND_CURVE, std: MOON_BIG_STD_SPEC, born: true },
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the arcade scoring standard.
   pyramid: { field: "pyramidRev", rev: PY_REV, curve: PY_V2_BAND_CURVE, std: PY_STD_SPEC, born: true },
   golfsol: { field: "golfSolRev", rev: GS_REV, curve: GS_V1_BAND_CURVE, std: GS_STD_SPEC, born: true },
   muggins: { field: "mugginsRev", rev: MG_REV, curve: MG_V1_BAND_CURVE, std: MG_STD_SPEC, born: true },
   // The Sports group (30 Oct 2026): on the arcade scoring standard from their first stamp (the core's straight line, the spec's parts).
-  minigolf: { field: "golfRev", rev: MINIGOLF_REV, curve: stdCoreCurve(MINIGOLF_STD_SPEC), std: MINIGOLF_STD_SPEC, born: true },
+  // golfRev 3 (the Crazy Golf overhaul, 15 Nov 2026): the same four parts on the hole bank.
+  minigolf: { field: "golfRev", rev: MINIGOLF_REV_COURSE, curve: stdCoreCurve(MINIGOLF_STD_SPEC_V3), std: MINIGOLF_STD_SPEC_V3, born: true },
   pool: { field: "poolRev", rev: POOL_REV, curve: stdCoreCurve(POOL_STD_SPEC), std: POOL_STD_SPEC, born: true },
   curling: { field: "curlRev", rev: CURLING_REV, curve: stdCoreCurve(CURLING_STD_SPEC), std: CURLING_STD_SPEC, born: true },
   // Blockfall (Retro) and Alley Roll (Sports), 1 Nov 2026: born on the arcade scoring standard at revision 1.
@@ -182,7 +195,9 @@ export const LIVE_BANDS = {
   alleyroll: { field: "alleyRollRev", rev: ALLEYROLL_REV_DEALT, curve: AR_V2_BAND_CURVE, std: AR2_STD_SPEC, born: true },
   // Iron Wall (id bastion) bastionRev 3 (3 Nov 2026: eased waves 4–5, a 90 ms green zone, the drones); the tank-defence
   // shooter was born on the arcade scoring standard at bastionRev 2 (the original Bastion, unstamped, never had a score band).
-  bastion: { field: "bastionRev", rev: BASTION_REV_DEALT, curve: BASTION_V3_BAND_CURVE, std: BASTION_STD_SPEC_V3, born: true },
+  // bastionRev 4 (15 Nov 2026, the difficulty levels): a gentler game at Easy, Normal and Hard (bastionRev 3's game is
+  // Expert); rooms deal Normal, whose spec this is (Armour of Normal's 57 hit points, base of 4).
+  bastion: { field: "bastionRev", rev: BASTION_REV_DEALT, curve: BASTION_V4_BAND_CURVE, std: BASTION_STD_SPEC_V4.normal, born: true },
 } as const satisfies Record<string, LiveBand>;
 
 export type LiveBandGame = keyof typeof LIVE_BANDS;

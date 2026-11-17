@@ -42,39 +42,65 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // sliceRev 12 (3 Nov 2026, the Action polish): bigger food, the core from half the food (slice-food-check).
   // sliceRev 13 (Nov 2026, the scoring audit): sliceRev 12's food and play; core and combo on straight lines from 0.
   { type: "slice", field: "sliceRev", rev: 13, batch: "A" },
-  { type: "breaker", field: "brkRev", rev: 11, batch: "A" },
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): brkRev 12, the clearable wall.
+  { type: "breaker", field: "brkRev", rev: 12, batch: "A" },
   // tiltRev 11 (3 Nov 2026): tiltRev 10's mazes with no gold stars, scored on par times and a clean run (tilt-rev11-check).
   // tiltRev 12 (3 Nov 2026): tiltRev 11's parts with bigger marbles and keys, from its proved deal (tilt-rev12-check).
   { type: "tilt", field: "tiltRev", rev: 12, batch: "A" },
   // burstRev 11 (Nov 2026, the scoring audit): burstRev 10's play and parts; the last life free, wasted beams cost.
-  { type: "burst", field: "burstRev", rev: 11, batch: "A" },
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): burstRev 12, kinder wave clears;
+  // then burstRev 13, bigger atoms.
+  { type: "burst", field: "burstRev", rev: 13, batch: "A" },
   // Gemstone deals matchupRev 12 since Nov 2026 (six goals shown at once, six treasures; the same five parts re-weighted).
-  { type: "matchup", field: "matchupRev", rev: 12, batch: "A" },
+  // matchupRev 13 (15 Nov 2026, the Strategy overhaul stage 3): two-hit ice and levels, the same five parts.
+  { type: "matchup", field: "matchupRev", rev: 13, batch: "A" },
   // snakeRev 12 (1 Nov 2026): snakeRev 11's parts, the core counting a gold star as 2 and full at 28 (snake-rev12-check).
-  { type: "snake", field: "snakeRev", rev: 12, batch: "A" },
-  { type: "hover", field: "hoverRev", rev: 10, batch: "A" },
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): snakeRev 13, wrap-around edges;
+  // then snakeRev 14, rocks in three sizes.
+  // then snakeRev 15 (stage 3, 16 Nov 2026), the first crash forgiven. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
+  { type: "snake", field: "snakeRev", rev: 15, batch: "A" },
+  // hoverRev 11 (16 Nov 2026, the Retro overhaul stage 3): hoverRev 10 starting shielded. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
+  { type: "hover", field: "hoverRev", rev: 11, batch: "A" },
   // skylineRev 10 (Nov 2026, the scoring audit): skylineRev 9's play; perfect drops counted, so more floors never score less.
-  { type: "skyline", field: "skylineRev", rev: 10, batch: "B" },
+  // skylineRev 11 (15 Nov 2026, the Action overhaul): lives and the wide-block rescue; the same parts.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul).
+  { type: "skyline", field: "skylineRev", rev: 11, batch: "B" },
   { type: "bintoss", field: "binRev", rev: 9, batch: "B" },
   { type: "bullseye", field: "bullRev", rev: 9, batch: "B" },
-  { type: "pinball", field: "pinRev", rev: 6, batch: "B" },
-  { type: "rally", field: "rallyRev", rev: 12, batch: "B" },
-  { type: "bubble", field: "bubbleRev", rev: 11, batch: "B" },
-  { type: "beat", field: "beatRev", rev: 11, batch: "B" },
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): pinRev 7, one J-O-U-L-Z set.
+  // pinRev 8 (16 Nov 2026, the Retro overhaul stage 3): pinRev 7's play with the outlane saves counted. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
+  { type: "pinball", field: "pinRev", rev: 8, batch: "B" },
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rallyRev 13, two lives and spin
+  // shots.
+  { type: "rally", field: "rallyRev", rev: 13, batch: "B" },
+  { type: "bubble", field: "bubbleRev", rev: 12, batch: "B" }, // bubbleRev 12 since the Strategy overhaul (15 Nov 2026), Joe's approval (routine consequence)
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): beatRev 12, beatRev 11 with a
+  // missed note scoring 0.
+  { type: "beat", field: "beatRev", rev: 12, batch: "B" },
   // crossRev 11 (3 Nov 2026): no coins, the no-stop streak, a hit costs 15 (cross-rev11-check).
   // crossRev 12 (Nov 2026, the scoring audit): crossRev 11's play and parts; the hit that ends the run is free.
-  { type: "cross", field: "crossRev", rev: 12, batch: "C" },
+  // crossRev 13 (16 Nov 2026, the Retro overhaul stage 3): crossRev 12's rules on lighter traffic. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
+  { type: "cross", field: "crossRev", rev: 13, batch: "C" },
   // wavRev 13 (Nov 2026, the scoring audit): wavRev 12's play and parts; the life that ends the run is free.
-  { type: "wavefront", field: "wavRev", rev: 13, batch: "C" },
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): wavRev 14, the charged shot.
+  // wavRev 15 (16 Nov 2026, the Retro overhaul stage 3): larger hit cells. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
+  { type: "wavefront", field: "wavRev", rev: 15, batch: "C" },
   // flipRev 11 (3 Nov 2026): no star pickups; clean time 100, perfect landings 60, double flips 20, flow streak 20 (flip-rev11-check).
   // flipRev 12 (3 Nov 2026): flipRev 11's game dealt only on its proved courses (flip-deal-check).
-  { type: "flip", field: "flipRev", rev: 12, batch: "C" },
+  // flipRev 13 (15 Nov 2026, the Action overhaul): grace, the retuned parts, its own proved deal (flip-overhaul-check).
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the roster line follows the stamp.
+  { type: "flip", field: "flipRev", rev: 13, batch: "C" },
   // Rainbow Bridge deals inkRev 14 since 3 Nov 2026 (inkRev 13's clovers, ink par and parts with a bigger coin, clovers and
   // birds, from a proved deal; ink-v14-check).
-  { type: "inkbridge", field: "inkRev", rev: 14, batch: "C" },
-  { type: "orbit", field: "orbitRev", rev: 14, batch: "C" },
+  { type: "inkbridge", field: "inkRev", rev: 15, batch: "C" }, // inkRev 15 since the Strategy overhaul (15 Nov 2026), Joe's approval (routine consequence)
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): Orbit deals orbitRev 15 (grace:
+  // a slip respawns at the last planet caught after a 3 s hold; orbitRev 14's courses and parts; orbit-overhaul-check).
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): Orbit deals orbitRev 16 (bigger
+  // planets on orbitRev 15's play, courses and parts; orbit-overhaul-check section 9).
+  { type: "orbit", field: "orbitRev", rev: 16, batch: "C" },
   { type: "balltrack", field: "btRev", rev: 8, batch: "C" },
-  { type: "swing", field: "swingRev", rev: 17, batch: "D" }, // swingRev 17 (3 Nov 2026): sliding hooks and the clean-swing streak; course 110 + pars 40 + gates 10 + streak 40
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the live stamp is 18.
+  { type: "swing", field: "swingRev", rev: 18, batch: "D" }, // swingRev 18 (15 Nov 2026): rev 17 on a 14 px body; swingRev 17 (3 Nov 2026): sliding hooks and the clean-swing streak; course 110 + pars 40 + gates 10 + streak 40
   // Cards & Board (30 Oct 2026): born on the standard (their first revision).
   // Changed with Joe's approval, 13 Nov 2026: Minefield deals minesRev 2 (a Logic game with 20 mines).
   // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): the live stamp is minesRev 3.
@@ -82,10 +108,14 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "mahjong", field: "mahjongRev", rev: 2, batch: "Cards & Board" },
   // The Sports group (30 Oct 2026): new games born on the standard (rev 1).
   // Home Run deals homerunRev 4 since 3 Nov 2026 (pick your spot: a spot, a tap, fielders; four parts).
-  { type: "homerun", field: "homerunRev", rev: 4, batch: "Sports" },
-  { type: "freekick", field: "freekickRev", rev: 4, batch: "Sports" },
-  // Apex (racing) deals racingRev 3 since 3 Nov 2026 (pace and clean sectors; racingRev 2 from 31 Oct 2026).
-  { type: "racing", field: "racingRev", rev: 3, batch: "Sports" },
+  // Since 15 Nov 2026 (routine consequence of the Home Run and Top Bins overhaul): homerunRev 5 (the innings) and
+  // freekickRev 5 (the layered kick), each on four parts summing to 200.
+  // Changed with Joe's approval, 16 Nov 2026 (Top Bins Normal eased): Top Bins deals freekickRev 6 (rev 5's parts).
+  { type: "homerun", field: "homerunRev", rev: 5, batch: "Sports" },
+  { type: "freekick", field: "freekickRev", rev: 6, batch: "Sports" },
+  // Apex (racing) deals racingRev 4 since 15 Nov 2026 (three named circuits; racingRev 3 from 3 Nov, 2 from 31 Oct 2026).
+  // Changed 15 Nov 2026 (routine consequence of the Sports overhaul): the roster follows the dealt stamp.
+  { type: "racing", field: "racingRev", rev: 4, batch: "Sports" },
   // Cards & Board (30 Oct 2026): born on the standard at revision 1.
   // Free Cell's rev 2 (Undo and Reset) and Full House's rev 2 (full at the elite median), 31 Oct 2026: still on the standard.
   // Free Cell freecellRev 4 and Summit tripeaksRev 2 (3 Nov 2026, the Cards & Board batch): the 40-card deal; the stock par.
@@ -97,7 +127,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "fivehands", field: "fiveHandsRev", rev: 3, batch: "Cards" },
   // Iron Wall (id bastion): the tank-defence shooter, born on the standard at bastionRev 2 (1 Nov 2026; the original was
   // unstamped); bastionRev 3 (3 Nov 2026) adds the drones and eases waves 4–5.
-  { type: "bastion", field: "bastionRev", rev: 3, batch: "Action" },
+  // bastionRev 4 (15 Nov 2026, the levels): a gentler game at Easy, Normal and Hard; bastionRev 3 is Expert.
+  // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Expert): the roster line follows the stamp.
+  { type: "bastion", field: "bastionRev", rev: 4, batch: "Action" },
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the standard.
   // Thirteen pyramidRev 3 (15 Nov 2026): a dead end waits for Undo (rev 2's deals and parts). Changed with Joe's approval,
   // 15 Nov 2026 (routine consequence of pyramidRev 3).
@@ -105,7 +137,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "golfsol", field: "golfSolRev", rev: 1, batch: "Cards" },
   { type: "muggins", field: "mugginsRev", rev: 1, batch: "Cards" },
   // The Sports group (30 Oct 2026): on the standard from their first stamp.
-  { type: "minigolf", field: "golfRev", rev: 2, batch: "Sports" }, // golfRev 2 (crazy golf, 31 Oct 2026); golfRev 1 was on the standard too
+  // golfRev 3 (the Crazy Golf overhaul, 15 Nov 2026; golfRev 1 and 2 were on the standard too). Changed with Joe's
+  // approval, 15 Nov 2026 (routine consequence of the Crazy Golf overhaul).
+  { type: "minigolf", field: "golfRev", rev: 3, batch: "Sports" },
   { type: "pool", field: "poolRev", rev: 4, batch: "Sports" },
   // Curling deals curlRev 2 since 31 Oct 2026 (the start along the hog line, side brushing; the same parts) and
   // curlRev 3 since 1 Nov 2026 (the weight meter's draw zone, the aim line, a gentler weight line, the core re-fitted).
@@ -118,7 +152,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "alleyroll", field: "alleyRollRev", rev: 2, batch: "Sports" },
   // Ricochet (1 Nov 2026): the ninja wall-climb, back from retirement and born on the standard at ricoRev 2; Moon Climb
   // (Ricochet's id) deals ricoRev 3 since 3 Nov 2026 (sky lanterns, mid-ledges, flow; no coins or gold lanterns).
-  { type: "ricochet", field: "ricoRev", rev: 3, batch: "Action" },
+  // ricoRev 4 (15 Nov 2026, the bigger ninja; rev 3's parts). Changed with Joe's approval, 15 Nov 2026 (routine
+  // consequence of the Action overhaul).
+  { type: "ricochet", field: "ricoRev", rev: 4, batch: "Action" },
 ];
 
 /**

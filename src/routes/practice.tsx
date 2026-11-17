@@ -98,7 +98,7 @@ import { syncOffline } from "@/lib/offline/install";
 import { notePracticeRoundFinished } from "@/lib/offline/packGrowth";
 import { takePackDeal } from "@/lib/offline/packs";
 import { playLevel, setCatalogueLevel, setGameLevel, useLevelChoice } from "@/lib/levels/levelChoice";
-import { LEVEL_LABEL, NORMAL, storedLevelKey } from "@/lib/levels/levels";
+import { LEVEL_LABEL, NORMAL, storedLevelKey, levelOfPuzzle } from "@/lib/levels/levels";
 import { readPracticeSide, rememberPracticeSide, type PracticeSide } from "@/lib/duel/practiceSide";
 import { flushQueue, queueRun } from "@/lib/offline/queue";
 
@@ -942,7 +942,7 @@ function PracticeScreen() {
         locked={holding}
         held={holding}
         overlay={
-          <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} />
+          <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} level={levelOfPuzzle(puzzle)} />
         }
       >
         <SteadyOrPlain

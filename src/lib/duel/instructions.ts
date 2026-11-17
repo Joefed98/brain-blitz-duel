@@ -70,6 +70,9 @@ import {
   SKYLINE_V2_BLOCK_POINTS,
   SKYLINE_V2_PERFECT_POINTS,
   SKYLINE_WIND_FROM,
+  SKYLINE_LEVEL_RULES,
+  SKYLINE_PERFECT_TOL,
+  SKYLINE_V11_LIVES,
 } from "@/lib/arcade/skyline";
 import { JUNC_V2_BUS_POINTS, JUNC_V2_CAR_POINTS, JUNC_V2_SURVIVE_BONUS } from "@/lib/arcade/junction";
 import {
@@ -88,7 +91,7 @@ import {
   TILT_S_MAZES,
   TILT_X_TWO_FROM,
 } from "@/lib/arcade/tilt";
-import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX, BUB_V11_MINE_POPS } from "@/lib/arcade/bubble";
+import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX, BUB_V11_MINE_POPS, BUB_V12_REEF } from "@/lib/arcade/bubble";
 import {
   MATCHUP_V3_PAR_RAW,
   MATCHUP_V9_FEATURE_MAX,
@@ -152,8 +155,7 @@ import {
   WAV_STD_CORE_FULL,
   WAV_STD_LIFE_COST,
   WAVEFRONT_STD,
-  WAVEFRONT_STD_KEEP,
-} from "@/lib/arcade/wavefront";
+  WAVEFRONT_STD_KEEP, WAV_V14_HEAVY_HITS } from "@/lib/arcade/wavefront";
 import {
   INK_CLOUD_LEVELS,
   INK_V13_CLOVERS,
@@ -183,6 +185,7 @@ import {
   SNAKE_STD_WARP_TICKS,
   SNAKE_STD_WARP_POINTS,
   SNAKE_V12_CORE_STARS,
+  SNAKE_V13_CORE_STARS,
   SNAKE_V12_GOLD_CORE,
 } from "@/lib/arcade/snake";
 import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
@@ -228,7 +231,7 @@ import {
   BULLSEYE_V8_STREAK_STEP,
   BULLSEYE_V9_DEAD_CAP,
 } from "@/lib/arcade/bullseye";
-import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_TARGET_PTS } from "@/lib/arcade/rally";
+import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_TARGET_PTS, RALLY_V13_LIVES, RALLY_V13_SPIN_MAX, RALLY_V13_SPIN_PTS } from "@/lib/arcade/rally";
 import {
   BURST_V9_CAPS,
   BURST_V9_CLEAR_MAX,
@@ -268,6 +271,7 @@ import {
   ORBIT_STD,
   ORBIT_STD_PERFECT_OF,
   ORBIT_FUEL_MAX,
+  ORBIT_GRACE_HOLD_TICKS,
 } from "@/lib/arcade/orbitRev3";
 import {
   CROSS_V9_SKILL_PAY,
@@ -321,6 +325,7 @@ import {
   BRK_V9_GOLD,
   BRK_V9_GOLD_POINTS,
   BRK_V9_ROWS,
+  BRK_V12_ROWS,
   BRK_V9_SKILL_MAX,
   BRK_V9_SKILL_PAY,
   BRK_V11_BRICKS,
@@ -340,9 +345,12 @@ import {
   FLIP_V8_TRAILS,
   FLIP_V8_TRAIL_POINTS,
   FLIP_V8_ZONE_POINTS,
-  FLIP_V11,
   FLIP_V11_STREAK_FULL,
-  FLIP_V11_SAVE_COST,
+  FLIP_V13,
+  FLIP_V13_CORE_FULL,
+  FLIP_V13_CRASH_COST,
+  FLIP_V13_SWEETS_FULL,
+  FLIP_LEVEL_RULES,
 } from "@/lib/arcade/flip";
 import { bandCurve, type BandCurve } from "@/lib/arcade/scoreBands";
 import { SNIP_X_FEATURE_MAX, SNIP_X_FEED_UNITS, SNIP_X_GOLD_RAW, SNIP_X_LEVELS, SNIP_X_PAR_MARGIN, SNIP_X_PAR_RAW, SNIP_X_PERFECT_RAW, SNIP_X_QUICK_RAW, SNIP_X_RAW_TOP, SNIP_X_SKILL_PAY, SNIP_X_STAR2_RAW, SNIP_X_STAR_UNITS } from "@/lib/arcade/snip";
@@ -361,6 +369,11 @@ export interface PuzzleInstructionLine {
   detail: string;
   /** Shown only in the "?" help, not on the round intro (keeps the intro to three lines). */
   helpOnly?: boolean;
+  /**
+   * States Normal's own numbers (the Cards & Board levels, 15 Nov 2026): hidden at another level, whose own lines
+   * (src/lib/levels/cardLevelText.data.ts) say it instead.
+   */
+  normalOnly?: boolean;
 }
 
 export interface PuzzleInstructions {
@@ -987,14 +1000,24 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap to drop", detail: "the sliding block on the tower." },
         { action: "Perfect drops", detail: "in a row build a streak." },
-        { action: "Next block:", detail: "gold, narrow or wide." },
+        { action: "Next block:", detail: "gold, narrow or wide.", helpOnly: true },
+        { action: "3 lives:", detail: "a miss costs one; the run goes on." },
+        { action: "Lives:", detail: "you have 3 at every level. A block that misses the tower falls away and costs a life; the same block comes again and your streak starts over. Losing the last life ends the run. A tap just after a lost life is ignored, so a double tap can’t cost two.", helpOnly: true },
+        { action: "A wide block helps:", detail: "after five drops in a row that aren’t perfect, the next block is a wide one. Centre it and the tower widens again.", helpOnly: true },
+        { action: "Dusk to night:", detail: "the city lights come on as your tower climbs.", helpOnly: true },
         { action: "Next-block preview:", detail: "five gold blocks come in every run, at the same places for everyone; land one perfectly to score it. Narrow is harder and wide easier; both count as a floor like any other.", helpOnly: true },
         { action: "Every 10 floors", detail: "the camera pulls back to show the city.", helpOnly: true },
-        { action: "From block 20", detail: "a waving flag warns of wind.", helpOnly: true },
+        { action: `From block ${SKYLINE_WIND_FROM}`, detail: `a waving flag warns of wind (from block ${SKYLINE_LEVEL_RULES.easy.windFrom} on Easy, ${SKYLINE_LEVEL_RULES.hard.windFrom} on Hard, ${SKYLINE_LEVEL_RULES.expert.windFrom} on Expert).`, helpOnly: true },
+        // Levels (15 Nov 2026, docs/arcade-standard/skyline.md "Levels"): what each level changes, from the sim's own table.
+        {
+          action: "Levels:",
+          detail: `Easy slides slower, a drop within ${SKYLINE_LEVEL_RULES.easy.tol / 256} px is perfect and the wind comes later. Hard slides faster with wind from block ${SKYLINE_LEVEL_RULES.hard.windFrom}. Expert slides fastest, a drop must be within ${SKYLINE_LEVEL_RULES.expert.tol / 256} px to be perfect, and the wind blows from block ${SKYLINE_LEVEL_RULES.expert.windFrom}. Normal: within ${SKYLINE_PERFECT_TOL / 256} px. ${SKYLINE_V11_LIVES} lives at every level.`,
+          helpOnly: true,
+        },
         { action: "Overhang is cut", detail: "so the next block is narrower. Line it up exactly (a perfect drop) and the block grows back a little.", helpOnly: true },
         { action: "Perfect streak:", detail: "your longest run of perfect drops in a row counts, up to 10. A drop that isn’t perfect resets it.", helpOnly: true },
         { action: "Narrow and wide blocks", detail: "are perfect when centred on the top. A centred wide block stays whole, so the tower widens; off-centre, the overhang is cut as usual.", helpOnly: true },
-        { action: "Wind:", detail: `once ${SKYLINE_WIND_FROM} blocks are placed, a flag flies from the top block. Still flag: no wind. It starts waving about a second before a gust and streams the way the gust blows. Every gust is the same strength and nudges the sliding block that way while it blows.`, helpOnly: true },
+        { action: "Wind:", detail: `once ${SKYLINE_WIND_FROM} blocks are placed (on Normal), a flag flies from the top block. Still flag: no wind. It starts waving about a second before a gust and streams the way the gust blows. Every gust is the same strength and nudges the sliding block that way while it blows.`, helpOnly: true },
         { action: "Taller view, more sky:", detail: "the tower climbs higher before the camera pulls back.", helpOnly: true },
         { action: "Everyone", detail: "gets the same gusts at the same moments.", helpOnly: true },
       ],
@@ -1090,11 +1113,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Swap neighbours;", detail: "collect the goal’s colours." },
         { action: "Match on frozen gems", detail: "to break the ice." },
-        { action: "Clear below treasure", detail: "or swap it down." },
+        { action: "Bring chests down:", detail: "clear below, or swap." },
         { action: "4, 5 or an L / T", detail: "makes a bomb or a star; 5 plus an L / T in one swap makes a jackpot.", helpOnly: true },
         { action: "Six goals,", detail: `one for each colour, are shown under the board from the start: clear that many gems of the colour to meet it. Every gem of the colour counts, in a line, a cascade or a blast.`, helpOnly: true },
-        { action: "A frozen gem", detail: "can be swapped into or out of the ice only when the swap makes a line of three. Clear the gem in the ice (in a line, a cascade or a blast) and the ice breaks; it never comes back.", helpOnly: true },
-        { action: "A treasure gem", detail: `can’t be matched or blasted. It falls as the gems under it clear, and it swaps with a gem that then makes a line of three. It is collected on the bottom row; ${MATCHUP_V12_TREASURES} come a round, one at a time.`, helpOnly: true },
+        { action: "A frozen gem", detail: "can be swapped into or out of the ice only when the swap makes a line of three. Ice takes two hits: clear the gem in it (in a line, a cascade or a blast) and the ice cracks; clear the gem there again and it breaks. It never comes back.", helpOnly: true },
+        { action: "Levels:", detail: "Easy deals five colours, smaller goals, 5 frozen cells and the hint after 3 s; Normal six colours, 10 frozen cells, the hint after 5 s; Hard bigger goals, 14 frozen cells, the hint after 8 s; Expert seven colours (the cyan heart is the seventh), the biggest goals, 18 frozen cells and no hint. The points below are Normal’s; every level’s parts still make 200.", helpOnly: true },
+        { action: "The treasure chest", detail: `(a gold-banded chest, not a gem) can’t be matched or blasted. Two ways bring it down: clear gems in its column below it, so it drops into the gap, or swap it with a neighbour: it swaps with a gem that then makes a line of three. It is collected when it reaches the bottom row; ${MATCHUP_V12_TREASURES} come a round, one at a time.`, helpOnly: true },
+        { action: "Tip:", detail: "work low in the chest’s column. A line under the chest drops it one row for each gem cleared below it, and a glowing trail shows the column it falls down.", helpOnly: true },
         { action: "Drag one gem onto its neighbour", detail: "to swap them. Matched gems clear and new ones fall in; your next swap waits until the board has settled.", helpOnly: true },
         { action: "Line of 4: a bomb", detail: "(clears around it). Line of 5: a white four-point star (its row and column). An L or T: a six-point star (both diagonals).", helpOnly: true },
         { action: "A line of 5 and an L / T in one swap", detail: "makes a jackpot gem: it clears every gem of its colour plus its row and column.", helpOnly: true },
@@ -1102,7 +1127,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Ninety seconds", detail: "on the same board for everyone; new gems drop from the same fixed queues.", helpOnly: true },
       ],
       // matchupRev 12 (the arcade scoring standard, six goals and six treasures): the core on its straight line, then fixed
-      // amounts, to 200.
+      // amounts, to 200. matchupRev 13 (two-hit ice and levels): Normal's figures, the same as matchupRev 12's.
       score: scoreList([
         { label: "Gems", how: "every gem cleared counts the same, in a line, a cascade or a blast", max: MATCHUP_V12_CORE_MAX },
         { label: "Treasure", how: `${MATCHUP_V12_TREASURE_PTS} for each treasure brought down`, max: MATCHUP_V12_TREASURE_MAX },
@@ -1114,7 +1139,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     snake: {
       goal: "Eat the stars; don’t crash.",
       how: [
-        { action: "Swipe to turn.", detail: "Stars grow and speed you up." },
+        { action: "Swipe to turn.", detail: "Off one edge, on at the other." },
         { action: "Red shadow?", detail: "A rock lands there in 2 s." },
         { action: "Gold stars, lanes, wormholes:", detail: "bonus points." },
         { action: "Quick stars build a combo;", detail: "wormholes and violet lanes are quick, risky shortcuts.", helpOnly: true },
@@ -1123,17 +1148,18 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Gold comet stars:", detail: `about every 7 s a gold star appears for 5 s and fades. The ${SNAKE_STD_GOLDS} gold stars share ${SNAKE_STD_CAPS.gold} points: each is worth about ${(SNAKE_STD_CAPS.gold / SNAKE_STD_GOLDS).toFixed(1)} the moment it appears, falling evenly to 0 as it fades. Each also counts as ${SNAKE_V12_GOLD_CORE} stars towards your stars. It doesn’t make you longer.`, helpOnly: true },
         { action: "Violet speed lanes:", detail: `one row and two columns. Travelling along one you move faster; every ride of ${SNAKE_STD_LANE_RIDE} squares in a row along a lane scores ${SNAKE_STD_LANE_POINTS}.`, helpOnly: true },
         { action: "Combo:", detail: `eat stars within ${SNAKE_STD_COMBO_TICKS / 60} s of each other; from the third in a row each star adds 1 bonus point.`, helpOnly: true },
-        { action: "Rocks hit only your head.", detail: "A rock on your tail does nothing, and your tail passes through rocks. A big rock fills a 2 × 2 block: keep your head off all four squares.", helpOnly: true },
+        { action: "Rocks hit only your head.", detail: "A rock on your tail does nothing, and your tail passes through rocks. Rocks come in three sizes: one square, two squares side by side or one above the other, and a big 2 × 2 block. Keep your head off every square a rock covers.", helpOnly: true },
         { action: "Rocks start at length 9:", detail: "one more every 4 stars, up to 11. Stars never appear on a rock.", helpOnly: true },
         { action: "The meteor shower", detail: "comes once, when you reach 20 stars: three red shadows, then three rocks land together 2 s later. With the shower, at most 14 rocks.", helpOnly: true },
-        { action: "Hit a wall, your tail or a rock with your head", detail: "and the run ends.", helpOnly: true },
+        { action: "The edges wrap:", detail: "go out through one side and you come back in on the opposite side, in the same row or column. Stars make you longer and faster.", helpOnly: true },
+        { action: "Hit your tail or a rock with your head", detail: "and the run ends.", helpOnly: true },
         { action: "Field:", detail: `${SNAKE_V9_COLS} squares across and ${SNAKE_V9_ROWS} down, so stars can be further away.`, helpOnly: true },
         { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
       ],
-      // snakeRev 12 (1 Nov 2026): stars on a straight line to 120, full at 28, a big gold star counting 2; then four fixed
-      // feature parts, 200 in all.
+      // snakeRev 12 (1 Nov 2026): stars on a straight line to 120, a big gold star counting 2; then four fixed feature parts,
+      // 200 in all. snakeRev 13 and 14 (the Retro overhaul): the line is full at 36 stars (was 28).
       score: scoreList([
-        { label: "Stars", how: `every star eaten counts, a big gold star counts ${SNAKE_V12_GOLD_CORE}; all of it at ${SNAKE_V12_CORE_STARS} stars`, max: SNAKE_STD_CORE_MAX },
+        { label: "Stars", how: `every star eaten counts, a big gold star counts ${SNAKE_V12_GOLD_CORE}; all of it at ${SNAKE_V13_CORE_STARS} stars`, max: SNAKE_STD_CORE_MAX },
         { label: "Gold stars", how: "eat a gold star soon after it appears for more", max: SNAKE_STD_CAPS.gold },
         { label: "Combos", how: `1 for each star from the third eaten within ${SNAKE_STD_COMBO_TICKS / 60} s of the last`, max: SNAKE_STD_CAPS.combo },
         { label: "Lane rides", how: `${SNAKE_STD_LANE_POINTS} for every ${SNAKE_STD_LANE_RIDE} squares along a violet lane`, max: SNAKE_STD_CAPS.lane },
@@ -1188,7 +1214,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Five power-up bricks drop a capsule; each brick shows its power.", detail: "Tap anywhere to fire a laser or ×3 you’ve caught; any longer touch moves the paddle.", helpOnly: true },
         { action: "Green beam = laser:", detail: "one beam straight up from the paddle that hits the first 4 bricks above it.", helpOnly: true },
         { action: "Silver three arrows = three shots:", detail: "each tap fires an extra ball straight up; it vanishes at the first wall it hits.", helpOnly: true },
-        { action: "Bronze two balls = double balls", detail: "at once. There are two per board, in the lower rows.", helpOnly: true },
+        { action: "Bronze balls = multi-ball:", detail: "every ball in play becomes three. There are two per board, in the lower rows.", helpOnly: true },
+        { action: "The wall:", detail: `${BRK_V12_ROWS} rows of ${BRK_V9_COLS} bricks, three of them gold, the power-up bricks low in the wall. A strong player can clear it inside the 90 seconds.`, helpOnly: true },
         { action: "Orange flame = Fireball:", detail: "for 2.5 seconds your balls smash straight through bricks without bouncing.", helpOnly: true },
         { action: "Sliding rows:", detail: "one row starts at 30 s and another at 60 s, half a brick each way, slowly and always the same.", helpOnly: true },
         { action: `${BRK_V9_GOLD} gold bricks`, detail: `sit near the top, each behind an armoured brick. Any ${BRK_V10_GOLD_HITS} hits break one: balls, Fireball balls, ×3 shots and the laser all count, and each hit cracks it further.`, helpOnly: true },
@@ -1220,45 +1247,52 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap two matching tiles", detail: "to take them away." },
         { action: "Only free tiles:", detail: "nothing on top, and open on the left or right." },
-        { action: "Stuck? Shuffle", detail: `re-deals the tiles that are left (−${MAHJONG_SHUFFLE_COST}).` },
+        { action: "Stuck? Shuffle", detail: `re-deals the tiles that are left (−${MAHJONG_SHUFFLE_COST}).`, normalOnly: true },
         { action: "Undo", detail: "takes back the last pair or Shuffle, free and as often as you like; the clock keeps running." },
-        { action: "Reset", detail: "puts back the original stack; the clock keeps running and Shuffles already used still count.", helpOnly: true },
+        { action: "Reset", detail: "puts back the original stack (it asks first); the clock keeps running and Shuffles already used still count.", helpOnly: true },
+        { action: "Free pairs", detail: "at the top counts the matching pairs you can take right now; at 0 only a Shuffle helps.", helpOnly: true },
         { action: "Every stack can be cleared:", detail: "it is built backwards from an empty board, and a Shuffle keeps it clearable.", helpOnly: true },
         { action: "Faces:", detail: "dots, bamboo and characters 1–9, the four winds and three dragons; a face matches only itself.", helpOnly: true },
-        { action: "One stack for everyone,", detail: "72 tiles in four layers, 2 minutes.", helpOnly: true },
+        { action: "One stack for everyone,", detail: "72 tiles in four layers, 2 minutes.", helpOnly: true, normalOnly: true },
       ],
       score: liveStdHelp("mahjong", `Each Shuffle costs ${MAHJONG_SHUFFLE_COST}.`),
     },
     // The Sports group (30 Oct 2026; docs/arcade-standard/homerun.md, freekick.md, racing.md).
     homerun: {
-      goal: "Hit ten pitches into the gaps, over the fence and onto the lit sign.",
+      goal: "Bat through one innings: score as many runs as you can before three outs.",
       how: [
-        { action: "Tap a spot", detail: "on the field before the pitch: that’s where you want to hit it." },
-        { action: "Tap again as the ring closes", detail: "on the ball: perfect timing sends it to your spot." },
-        { action: "Early pulls it left, late pushes it right,", detail: "and falls short; a fielder catches anything in their circle." },
-        { action: "Hit the lit sign", detail: "for a bonus; keep your perfect swings going." },
-        { action: "Your spot:", detail: "a tap on the grass, the stands or a sign, before the pitch is near; it stays where it is until you tap a new one (straightaway centre to start). A tap once the pitch is coming is your swing, wherever you tap.", helpOnly: true },
-        { action: "The ring:", detail: "a faint ring closes round the ball as it comes in; tap the moment it meets the ball. Perfect is the exact moment; one frame either side still finds your spot; each frame further off moves the ball about 2.5° and takes some distance off. Too far off is a miss.", helpOnly: true },
-        { action: "The pitches:", detail: "fastballs come in quick and straight, curveballs bend the whole way, changeups float in slowly. No tells: watch the ball.", helpOnly: true },
-        { action: "Fielders:", detail: "six of them, each in a pale circle; a ball that comes down in a circle short of the fence is caught and scores nothing. They shift a little between pitches, so look for the gap each time.", helpOnly: true },
-        { action: "The bonus sign:", detail: "one of five signs is lit for each pitch. The fence boards forgive two frames either side, the scoreboard one, the upper-deck banners only the exact moment.", helpOnly: true },
-        { action: "Perfect streak:", detail: "perfectly timed swings in a row; your longest run counts.", helpOnly: true },
-        { action: "Everyone", detail: "faces the same pitches, fielders and lit signs in the same order.", helpOnly: true },
+        { action: "Pick Contact or Power", detail: "before the pitch: Contact is easier to time, Power goes further." },
+        { action: "Swipe to swing", detail: "as the ball reaches you; swipe the way you want to hit it, into a gap." },
+        { action: "Leave balls outside the zone,", detail: "but take a strike or swing and miss three times and you’re out." },
+        { action: "Hits move your runners round:", detail: "singles, doubles, triples and home runs bring them home." },
+        { action: "Read the pitcher:", detail: "his arm and glove in the wind-up show the pitch. A fastball comes in quick and straight, a curveball bends, a changeup floats in slowly. The pitch’s name shows once it’s thrown.", helpOnly: true },
+        { action: "The strike zone:", detail: "the dashed box. A pitch that crosses it is a strike if you leave it; four outside it are a walk. Swing at one outside it and you’ll make weak contact.", helpOnly: true },
+        { action: "Two strikes:", detail: "protect the plate. A strike you leave now is strike three; a foul doesn’t count as the third.", helpOnly: true },
+        { action: "Timing:", detail: "the bat meets the plate a moment after your swipe starts. Perfect timing hits it where you swiped; early pulls it to the left, late pushes it right, and either takes some distance off.", helpOnly: true },
+        { action: "Fielders:", detail: "seven of them, each in a pale circle; a ball that comes down in a circle is caught for an out. They shift between pitches, so look for the gap each time. An outfielder near the ball’s line holds a hit to one base less.", helpOnly: true },
+        { action: "Runners:", detail: "move up by the hit’s bases, and a runner on second scores on a single. A short single with a runner on first can be a fielder’s choice: the runner out at second.", helpOnly: true },
+        { action: "The innings ends", detail: "at three outs or when the clock runs out. Your perfect swings in a row show as a streak.", helpOnly: true },
+        { action: "Levels:", detail: "Easy pitches are slower and straighter, with more time to swing and fewer outside the zone; Hard and Expert pitches are faster and bend more, with tighter timing and fielders who cover more ground.", helpOnly: true },
+        { action: "Everyone", detail: "faces the same pitches and fielders in the same order.", helpOnly: true },
       ],
       score: liveStdHelp("homerun"),
     },
     freekick: {
       goal: "Score ten free kicks past the wall and the keeper.",
       how: [
-        { action: "Draw the shot", detail: "from the ball to where it goes; bend the line to curl it round the wall." },
+        { action: "Draw the shot", detail: "from the ball to where it goes: bend it to curl, keep it straight to drive, flick the end to dip." },
+        { action: "Read the flag:", detail: "the wind carries the ball, so aim off or bend against it." },
         { action: "Hold the bar, release in the gold:", detail: "above the gold flies high, below it comes in low and slow." },
-        { action: "Curl bonus:", detail: "a goal from a strongly bent shot pays extra." },
+        { action: "Beat the wall and the keeper", detail: "for skill shots: under a jumping wall, dipped over it, round it, or to the keeper’s open side." },
+        { action: "Strikes:", detail: "a curler bends round the wall; a driven shot keeps low and fast, with little bend (under a jumping wall’s feet); a dipping shot carries no bend and drops sharply past the wall, and the keeper reads it late.", helpOnly: true },
+        { action: "The keeper", detail: "leans before each kick: he gets across quicker to the side he leans, slower to the other.", helpOnly: true },
+        { action: "The wall", detail: "jumps on some kicks: drive it low underneath, or dip it over.", helpOnly: true },
         { action: "Gold targets:", detail: "top corners or the bar; the corner rings shrink kick by kick.", helpOnly: true },
-        { action: "Redraw the shot", detail: "as often as you like until you press the bar: the marker shows where it goes, dots show the bend. The bar’s needle sweeps up and back, the same speed every time.", helpOnly: true },
-        { action: "Each kick", detail: "has its own spot, 18 to 32 yards out and up to 35° either side (the chip at the top gives the distance), with a wall of 3 to 5 and the keeper set for it. No wind.", helpOnly: true },
+        { action: "Redraw the shot", detail: "as often as you like until you press the bar: the marker shows where it goes in still air, dots show the bend, the chip names the strike. The bar’s needle sweeps up and back, the same speed every time.", helpOnly: true },
+        { action: "Each kick", detail: "has its own spot, 18 to 32 yards out and up to 35° either side, a wall of 3 to 5 and its own wind.", helpOnly: true },
         { action: "Placement:", detail: "a goal further from the keeper is worth a little more.", helpOnly: true },
-        { action: "A bar target", detail: "counts only if the ball goes in off the bar.", helpOnly: true },
-        { action: "The keeper", detail: "reacts the same way to the same shot every time, for everyone.", helpOnly: true },
+        { action: "Levels:", detail: "Easy has a wider gold zone, a slower keeper, a 3-man wall, little wind and bigger rings; Hard and Expert narrow the gold, quicken the keeper, build a bigger wall, strengthen the wind and shrink the rings further.", helpOnly: true },
+        { action: "Everyone", detail: "faces the same kicks, walls, winds and keepers.", helpOnly: true },
       ],
       score: liveStdHelp("freekick"),
     },
@@ -1275,6 +1309,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Braking boards", detail: "(150, 100, 50) count down to the tightest corners. The sign before them is the corner’s speed in km/h: be at it by the turn-in and full lock holds the corner.", helpOnly: true },
         { action: "The gravel", detail: "slows the car to about two thirds of its speed; back on the tarmac it picks up faster.", helpOnly: true },
         { action: "Ghost cars", detail: "show the other players in the room. They can’t touch you and passing them scores nothing.", helpOnly: true },
+        { action: "Three circuits:", detail: "Sunset Park, Harbour Run and Ridge Loop. The round’s circuit is named on the grid; each has its own par pace for full pace points.", helpOnly: true },
         { action: "Everyone", detail: "races the same track.", helpOnly: true },
       ],
       score: liveStdHelp("racing"),
@@ -1282,26 +1317,30 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     // The Sports group (30 Oct 2026; docs/arcade-standard/minigolf.md, pool.md, curling.md): on the arcade scoring
     // standard from their first stamps.
     minigolf: {
-      goal: "Hole all five holes in as few putts as you can.",
+      goal: "Hole all five holes in as few strokes as you can.",
       how: [
-        { action: "Pull back from the ball", detail: "to aim and set the power; let go to putt." },
+        { action: "Pull back from the ball", detail: "to aim and set the power; let go to play the shot." },
+        { action: "Putt or Chip:", detail: "choose under the course. A chip flies over water, sand and low walls, then rolls on." },
         { action: "Par for each hole", detail: "is shown at the top; beat it for a bonus." },
-        { action: "The dotted line", detail: "points where the ball will start; the pill shows the power.", helpOnly: true },
-        { action: "Par + 3 strokes a hole:", detail: "after the last you move on, with points for how close you finished.", helpOnly: true },
-        { action: "Windmills:", detail: "the sails turn across the doorway. Wait for the gap, then putt through; a sail knocks the ball back.", helpOnly: true },
-        { action: "Tunnels:", detail: "roll over a dark hole and the ball pops out of the outlet ringed in the same colour, heading the way its arrows point. Some holes have two, to different places.", helpOnly: true },
-        { action: "Sand traps", detail: "stop the ball fast; hills push it off their top; the striped curved walls carry it round a corner; castle gates have one archway.", helpOnly: true },
+        { action: "The band and the dotted line", detail: "show the aim and the power; a chip's dots arc to where it lands.", helpOnly: true },
+        { action: "Slopes:", detail: "the light and the mowing stripes show the ground. A lit face rises towards the top left; the stripes bend over every bump.", helpOnly: true },
+        { action: "The last two holes", detail: "roll on uneven ground: gentle mounds push the ball away, hollows pull it in.", helpOnly: true },
+        { action: "Windmills:", detail: "the sails turn across the doorway. Wait for the gap, then putt through; a sail knocks the ball back. A chip meets them too.", helpOnly: true },
+        { action: "Tunnels:", detail: "roll over a dark hole and the ball pops out of the outlet ringed in the same colour. Some holes have two, to different places.", helpOnly: true },
+        { action: "Loop-the-loops:", detail: "roll in hard enough and the ball goes round and out of the far end; too slow and it rolls back out.", helpOnly: true },
+        { action: "Bridges", detail: "cross the water; bowls round the cup gather a ball in.", helpOnly: true },
+        { action: "Sand", detail: "slows a rolling ball hard and stops a chip dead; castle gates have one archway; the striped curved walls carry the ball round.", helpOnly: true },
         { action: "Water:", detail: "one stroke added, and the ball goes back where you played it from.", helpOnly: true },
-        { action: "Ramps:", detail: "raised slopes with side rails, lit at the crest, the arrows point uphill. The ball slows going up and speeds up coming down.", helpOnly: true },
-        { action: "Logs, boulders and planters", detail: "bounce the ball; use the timber rails and logs as banks.", helpOnly: true },
-        { action: "Par is the best route we found plus one,", detail: "so a birdie is always possible. The same five holes for everyone.", helpOnly: true },
+        { action: "Levels:", detail: "Easy allows par + 4 strokes, slower sails and an aim line to the first bounce; Normal par + 3; Hard par + 3, extra hazards, stronger slopes and a shorter line; Expert par + 2, faster sails, the steepest slopes and the shortest line.", helpOnly: true },
+        { action: "Par on Easy and Normal is the best route we found plus one,", detail: "so a birdie is always possible. On Hard and Expert par is the best route itself, and holing in par earns the under-par bonus.", helpOnly: true },
+        { action: "Every round is five holes", detail: "from a bank of proven holes, the same five for everyone.", helpOnly: true },
       ],
       score: liveStdHelp("minigolf"),
     },
     pool: {
       goal: "Pot your seven, spots or stripes, then the black, without a miss.",
       how: [
-        { action: "Your set:", detail: "each table deals you spots or stripes; the banner and the top bar show which." },
+        { action: "Your set:", detail: "each table deals you spots or stripes; the banner and the top bar show which. The black stays locked until they’re down." },
         { action: "Drag anywhere on the table", detail: "to turn the cue round the cue ball; drag further from the ball for finer aim." },
         { action: "Pull the cue back", detail: "in the power meter at the bottom and let go to shoot." },
         { action: "Your balls first:", detail: "hitting the other set first, potting one of theirs or touching no ball at all is a foul (−10)." },
@@ -1310,25 +1349,28 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Power:", detail: "the further you pull the cue, the harder the shot; green is soft, red full power.", helpOnly: true },
         { action: "Spin:", detail: "tap the spin ball, bottom right, and place the red dot anywhere on it: high for top spin (follow), low for back spin (draw, which pulls the cue ball back), left or right for side, which bends the bounce off a cushion.", helpOnly: true },
         { action: "Cue ball potted:", detail: "it comes back to its spot and costs you time.", helpOnly: true },
-        { action: "The black too early", detail: "ends your run with no black or speed points.", helpOnly: true },
+        { action: "The black is locked", detail: "(dimmed, with a padlock) until your seven are down; then NOW THE BLACK lights up and a gold ring marks it.", helpOnly: true },
+        { action: "The black too early", detail: "(while it is locked) ends your run with no black or speed points.", helpOnly: true },
         { action: "Every layout is proved clearable", detail: "without a miss. The same table and set for everyone.", helpOnly: true },
+        { action: "Levels:", detail: "Easy runs the object ball's path all the way, opens the black once 5 of your 7 are down and a foul costs 5; Normal is as above; Hard shows less of the object ball's line; Expert shows only the ghost ball and a foul costs 15.", helpOnly: true },
       ],
       score: liveStdHelp("pool", "Each foul costs 10."),
     },
     curling: {
-      goal: "Beat the three red stones to the button with all eight of yours.",
+      goal: "Beat the red stones to the button with all eight of yours.",
       how: [
         { action: "Slide the stone", detail: "along the start line, then drag the gold target to aim." },
         { action: "Tap In or Out;", detail: "the faint line shows the stone’s first third for that aim and turn." },
-        { action: "Tap or drag the power bar", detail: "on the right to set the weight, then tap Throw. In its gold HOUSE zone the stone stops in the house." },
+        { action: "Tap or drag the power bar", detail: "on the right to set the weight, then tap Throw (grey while a stone is still moving). In its gold HOUSE zone the stone stops in the house." },
         { action: "Brush its left or right side", detail: "as it travels to bend it that way." },
         { action: "Only stones nearer the button", detail: "than every red stone in the house score: knock reds out, or draw in closer than them.", helpOnly: true },
         { action: "The power bar", detail: "keeps its marker where you set it, from stone to stone. Its gold zone changes with your start, target and turn; the mark in it stops on the tee line.", helpOnly: true },
         { action: "Above the zone", detail: "is takeout weight: heavy enough to knock a stone out of the house.", helpOnly: true },
         { action: "Brushing", detail: "also carries the stone a little further. Brush anywhere on the screen: left of the stone bends it left, right of it bends it right.", helpOnly: true },
         { action: "The stone curls", detail: "towards the side its turn takes it, more as it slows: the aim line shows only the start of it.", helpOnly: true },
-        { action: "Three red-handled stones", detail: "start in the house, the same for everyone. Every one can be hit with your stone staying on the button.", helpOnly: true },
-        { action: "The inset, top right,", detail: "shows exactly where every stone sits.", helpOnly: true },
+        { action: "Red-handled stones", detail: "start in the house (three on Normal; the level line says how many), the same for everyone. Every one can be hit with your stone staying on the button.", helpOnly: true },
+        { action: "The house view, top right,", detail: "shows exactly where every stone sits, from above. Tap or drag in it to put the target there.", helpOnly: true },
+        { action: "Throw turns grey", detail: "while a stone travels and lights up gold when the next one is ready with a weight set.", helpOnly: true },
         { action: "A stone short of the far hog line,", detail: "or through the back or the sides, is out of play.", helpOnly: true },
       ],
       score: liveStdHelp("curling"),
@@ -1358,12 +1400,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     freecell: {
       goal: "Get all 40 cards home, fast, in two minutes.",
       how: [
-        { action: "Ace to 10", detail: "in each suit: 40 cards, eight columns of five." },
+        { action: "Ace to 10", detail: "in each suit: 40 cards, eight columns of five.", normalOnly: true },
         { action: "Tap a card", detail: "to move it (and the run on it) to its best spot." },
         { action: "Drag a card", detail: "to put it on a particular pile.", helpOnly: true },
         { action: "Build down", detail: "in alternating colours; home piles build up by suit from the Ace." },
-        { action: "Undo and Reset", detail: "are the small buttons at the top: Undo takes back the last move (as often as you like), Reset deals the cards back out. Each counts as a move; the clock runs on." },
-        { action: "Four free cells", detail: "each hold one card. Empty cells and columns let you move longer runs at once.", helpOnly: true },
+        { action: "Undo and Reset", detail: "are the buttons under the columns: Undo takes back the last move (as often as you like), Reset deals the cards back out (it asks first). Each counts as a move; the clock runs on.", normalOnly: true },
+        { action: "Four free cells", detail: "each hold one card. Empty cells and columns let you move longer runs at once.", helpOnly: true, normalOnly: true },
         { action: "Safe cards fly home by themselves:", detail: "aces and twos, and a card whose lower cards of the other colour are home. They are not counted as moves.", helpOnly: true },
         { action: "Par", detail: "is the fewest moves our solver found for this deal.", helpOnly: true },
         { action: "One deal for everyone,", detail: "always solvable.", helpOnly: true },
@@ -1373,11 +1415,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     tripeaks: {
       goal: "Clear the three peaks.",
       how: [
-        { action: "Tap a glowing card", detail: "one higher or lower than the discard; Ace and King wrap." },
+        { action: "Tap a glowing card", detail: "one higher or lower than the discard; Ace and King wrap.", normalOnly: true },
         { action: "Tap the stock", detail: "when you are stuck: it turns a new discard and ends your run of cards." },
         { action: "Uncover the tops", detail: "of all three peaks for the bonus." },
-        { action: "Stock par", detail: "at the top is the fewest stock cards this deal can be cleared with: clear it within par for the full bonus." },
-        { action: "Face-down cards", detail: "turn up when both cards over them are cleared.", helpOnly: true },
+        { action: "Stock · par", detail: "at the top counts the stock cards you’ve turned against the fewest this deal can be cleared with: clear it within par for the full bonus." },
+        { action: "Face-down cards", detail: "flip face up when both cards over them are cleared.", helpOnly: true },
+        { action: "The stock and discard", detail: "sit just under the peaks; with the stock gone and no card to play, the run ends (“No plays left”).", helpOnly: true },
         { action: "Drag works too:", detail: "drop a card on the discard.", helpOnly: true },
         { action: "One deal for everyone,", detail: "always clearable.", helpOnly: true },
       ],
@@ -1406,6 +1449,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Hands:", detail: "high card 0, pair 15, two pair 20, three of a kind 25, straight 30, flush 35, full house 40, four of a kind 45, straight flush 50.", helpOnly: true },
         { action: "20 turns", detail: "after five cards dealt one to each row: 45 of the 52 cards are seen by the end.", helpOnly: true },
         { action: "Rows at the buzzer", detail: "score as they stand.", helpOnly: true },
+        { action: "POINTS", detail: "at the top is your score so far: your hand points × 1.4.", helpOnly: true, normalOnly: true },
         { action: "Some decks", detail: "can’t reach 200 even placed perfectly: everyone in a room has the same deck, so it’s fair.", helpOnly: true },
         { action: "Same deck, same order,", detail: "for everyone.", helpOnly: true },
       ],
@@ -1444,8 +1488,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap two uncovered cards", detail: "that add to 13 to remove them: Q+A, J+2, 10+3, 9+4, 8+5, 7+6." },
         { action: "A King", detail: "is 13 on its own: one tap removes it." },
         { action: "Tap the stock", detail: "to turn a card onto the waste; the waste’s top card pairs too." },
-        { action: "One pass:", detail: "the stock is turned once; a waste card is buried by the next draw, so free its partner in time." },
-        { action: "Undo and Reset", detail: "at the bottom take back the last action or go back to the deal; the clock runs on.", helpOnly: true },
+        { action: "One pass:", detail: "the stock is turned once; a waste card is buried by the next draw, so free its partner in time.", normalOnly: true },
+        { action: "Undo and Reset", detail: "at the bottom take back the last action or go back to the deal (Reset asks first); the clock runs on.", helpOnly: true },
         { action: "Stuck?", detail: "With no move left, Undo or Reset to try another order; the run carries on to the buzzer.", helpOnly: true },
         { action: "Pairs of two pyramid cards", detail: "score extra, 2 each, up to ten.", helpOnly: true },
         { action: "Every deal", detail: "can be cleared with pyramid pairs and Kings alone, but only in the right order: look before you pair.", helpOnly: true },
@@ -1460,7 +1504,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "No wrapping:", detail: "nothing goes between a King and an Ace." },
         { action: "Tap the stock", detail: "when stuck: its card becomes the new foundation." },
         { action: "Runs:", detail: "four or more cards in a row without drawing score extra, 4 each, up to five.", helpOnly: true },
-        { action: "Undo and Reset", detail: "at the bottom take back the last action or go back to the deal; the clock runs on.", helpOnly: true },
+        { action: "Undo and Reset", detail: "at the bottom take back the last action or go back to the deal (Reset asks first); the clock runs on.", helpOnly: true },
         { action: "Every deal", detail: "can be cleared without seeing the stock, and with five runs of four.", helpOnly: true },
         { action: "Same deal", detail: "for everyone.", helpOnly: true },
       ],
@@ -1482,21 +1526,22 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     rally: {
       goal: "Keep the rally going.",
       how: [
-        { action: "Drag the paddle.", detail: "Miss the blue ball: over." },
+        { action: "Drag the paddle.", detail: `A miss costs 1 of ${RALLY_V13_LIVES} lives.` },
         { action: "Gold balls score:", detail: `each hit, +${RALLY_V12_PAD_PTS} a pink pad.` },
-        { action: "Gold target:", detail: `+${RALLY_V12_TARGET_PTS} before its ring runs out.` },
+        { action: "Swipe as you hit", detail: `to curl it: +${RALLY_V13_SPIN_PTS} if it scores.` },
         { action: "Drag to move the paddle", detail: "along the bottom.", helpOnly: true },
         { action: "Every hit", detail: "makes the paddle smaller and the ball faster.", helpOnly: true },
         { action: "A gold ball drops in", detail: "every ten seconds – only gold balls score.", helpOnly: true },
         { action: "Two pink target pads", detail: `sit on the far wall, one in each half. A gold ball that hits one scores ${RALLY_V12_PAD_PTS}, and the pad moves to a new spot in its own half, so the two never overlap. The spots are the same for everyone in the room.`, helpOnly: true },
         { action: `${RALLY_V10_BONUS_COUNT} gold targets a round:`, detail: `each appears at its own moment and spot in the upper court (the same for everyone in the room) and stays about ${RALLY_V11_BONUS_LIFE / 60} seconds, its ring counting down. Any ball that touches it scores ${RALLY_V12_TARGET_PTS}; a miss costs nothing.`, helpOnly: true },
-        { action: "Aim with the paddle:", detail: "where the ball meets it sets the angle; swipe the paddle as you hit to spin the return: the ball sets off the way you swiped, then curves back round the other way (swipe left: it goes left, then bends right). The faster the swipe, the bigger the curve. Spin scores nothing itself.", helpOnly: true },
+        { action: "Aim with the paddle:", detail: `where the ball meets it sets the angle; swipe the paddle as you hit to spin the return: the ball sets off the way you swiped, then curves back round the other way (swipe left: it goes left, then bends right). The faster the swipe, the bigger the curve. A curving ball that strikes a pink pad or a gold target is a spin shot: +${RALLY_V13_SPIN_PTS} each, up to ${RALLY_V13_SPIN_MAX}.`, helpOnly: true },
         { action: "From 30 seconds a bumper", detail: "appears mid-court (it blinks a warning first). Balls bounce off it like a mirror, at the same speed.", helpOnly: true },
         { action: "For the last 15 seconds", detail: "a second bumper joins it (from 45 s, with the same blinking warning), always far enough away for a ball to pass between them.", helpOnly: true },
-        { action: "Miss the blue ball", detail: "and the run is over: you keep what you have scored. Blue returns and lasting the minute score nothing themselves.", helpOnly: true },
+        { action: "Miss the blue ball", detail: `and you lose a life: it serves again from mid-court after a second and a half. Lose all ${RALLY_V13_LIVES} and the run is over: you keep what you have scored. Blue returns and lasting the minute score nothing themselves.`, helpOnly: true },
       ],
       // rallyRev 12 (the arcade scoring standard, docs/arcade-standard/rally.md): gold-ball hits on a straight line, pads and gold targets fixed.
-      score: liveStdHelp("rally", "Losing the blue ball ends the run."),
+      // rallyRev 13 (the Retro overhaul, 15 Nov 2026): two lives and spin shots.
+      score: liveStdHelp("rally", `The second miss ends the run.`),
     },
 
     steady: {
@@ -1541,7 +1586,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
     bubble: {
       goal: "Pop threes and free the treasure.",
       how: [
-        { action: "Drag to aim,", detail: "let go to shoot." },
+        { action: "Drag to aim;", detail: "drag further for a faster shot." },
         { action: "Chests pay", detail: "only when they fall with a cluster." },
         { action: "Bank off walls;", detail: "pop back to back for combos." },
         { action: "Crown Joker", detail: "matches any colour. Mines blast; torpedoes drill where aimed.", helpOnly: true },
@@ -1551,7 +1596,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The Joker (a black bubble with a gold crown and a rainbow rim)", detail: `joins every colour it touches and pops each group that reaches three. A mine pops the ${BUB_V11_MINE_POPS} bubbles nearest where it lands; bubbles left hanging then fall.`, helpOnly: true },
         { action: "A torpedo never sticks:", detail: `it flies where you aim it, bank shots included, and destroys up to ${BUB_TORPEDO_HITS} bubbles it runs into on the way up. Bubbles left hanging then fall.`, helpOnly: true },
         { action: "Specials come in the queue:", detail: `a Joker every ${BUB_V3_JOKER_BLOCK} shots or so, and one mine or torpedo somewhere in the first ${BUB_SPECIAL_BLOCK}.`, helpOnly: true },
+        { action: "Let go to shoot.", detail: "A faster shot comes from dragging further down the aim line: gold chevrons over the gun show its speed. It follows exactly the same path, only quicker.", helpOnly: true },
+        { action: `${BUB_V12_REEF} bubbles`, detail: "make the reef. Clear it all for a bonus, and more for clearing it fast.", helpOnly: true },
         { action: "Ninety seconds", detail: "on the same field and queue for everyone.", helpOnly: true },
+        { action: "Levels:", detail: "Easy deals three colours, a smaller 75-bubble reef, an aim line that shows two bounces and the reef coming down every 10 shots; Normal the five colours and the reef above; Hard a 110-bubble reef that comes down every 5 shots and an aim line to one bounce; Expert six colours (the orange seahorse is the sixth), a 110-bubble reef coming down every 7 shots and a short aim line. The points below are Normal’s; every level’s parts still make 200.", helpOnly: true },
       ],
       // bubbleRev 11 (the arcade scoring standard): every part, its maximum and how it pays, 200 in all.
       score: liveStdHelp("bubble"),
@@ -1585,10 +1633,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap", detail: "to leap to the other wall." },
         { action: "Tap again in the air", detail: "for one double jump: extra lift and a short hang, to clear a blade or reach a scroll." },
         { action: "Touch a sky lantern", detail: "in a leap to ride it up; tap the side of the screen to leap off towards that wall." },
+        { action: "At the top:", detail: "your height and flow, then lantern rides out of 6 and scrolls out of 3." },
         { action: "Mid-ledges", detail: "hang in the shaft: cling to either side and hop back for quick climbs.", helpOnly: true },
         { action: "Flow:", detail: "leap again before you slide and dodge every hit; each 7 clean leaps in a row scores.", helpOnly: true },
         { action: "Clinging slides you down;", detail: "moss slides fast, ice gives no grip: leap off at once.", helpOnly: true },
-        { action: "Katanas and shurikens", detail: "knock you down a few metres and stun you for a second. No game over.", helpOnly: true },
+        { action: "Katanas and shurikens", detail: "knock you down 3 m and stun you for a second. No game over; your hits are shown on the result.", helpOnly: true },
         { action: "Scrolls", detail: "are rare: three, at the top of double-jump lines.", helpOnly: true },
         { action: "Everyone in a room", detail: "climbs the same tower.", helpOnly: true },
       ],
@@ -1667,7 +1716,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag to move;", detail: "you fire on your own." },
         { action: "Shoot glowing carriers;", detail: "catch what they drop." },
-        { action: "Bosses:", detail: "hit the cannons and the open core." },
+        { action: "Hold, then lift:", detail: "a heavy blast." },
+        { action: "Bosses:", detail: "hit the cannons and the open core.", helpOnly: true },
+        { action: "The charged shot:", detail: `keep your finger down at least a second, then lift it: a heavy blast flies up through ${WAV_V14_HEAVY_HITS} ships, cracks ${WAV_V14_HEAVY_HITS} armour plates at once and does double damage to a boss's cannons and open core. Your ship keeps firing on its own all the while.`, helpOnly: true },
         { action: "Red bolts and divers cost a life:", detail: `you have 3. Each life but your last costs ${WAV_STD_LIFE_COST} points; losing the last just ends the run.`, helpOnly: true },
         { action: "The run lasts 90 seconds.", detail: "Each new wave flies in from the top 2 seconds after you clear one. Don’t let a formation reach your line.", helpOnly: true },
         { action: "From wave 3, ships peel off and dive at you,", detail: "then fly back to their place. Shoot them on the way; one that rams you costs a life.", helpOnly: true },
@@ -1689,25 +1740,27 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       }, [`Each life lost costs ${WAV_STD_LIFE_COST}, but losing the last just ends the run`, "Lives never take more than half your ships, hits and waves points", "Power-ups score nothing"]),
     },
     // Iron Wall (id bastion; bastionRev 3, 3 Nov 2026; docs/arcade-standard/bastion.md): the tank-defence shooter.
+    // bastionRev 4 (15 Nov 2026, the levels): the text describes Normal, the level rooms, rated play and the Daily deal.
     bastion: {
-      goal: "Hold the wall against five waves of tanks, and shoot down the drones.",
+      goal: "Hold the wall against five waves of tanks as the battlefield turns to smoke.",
       how: [
         { action: "Drag anywhere to aim;", detail: "the crosshair floats above your thumb. Lift to fire." },
         { action: "Shells take a moment to land:", detail: "lead a moving tank.", helpOnly: true },
-        { action: "Hit the glowing weak spot", detail: "for double damage, while it is open." },
+        { action: "Hit the glowing weak spot", detail: "for double damage, while it is open. Far tanks wear a badge: S Scout, M Medium, H Heavy." },
         { action: "Five shells.", detail: "Swipe down to reload early; tap while the needle is in the green for a fast reload." },
-        { action: "Three drones cross the sky:", detail: "small and fast. Lead one well ahead to shoot it down for a bonus." },
-        { action: "Scouts take 1 hit, Mediums 2 and Heavies 4;", detail: "the pips above each tank show what is left.", helpOnly: true },
-        { action: "Weak spots open and close:", detail: "each glows orange for about a second, then shuts for half a second. A shell on a shut one is a plain hull hit.", helpOnly: true },
+        { action: "Three drones drift across the sky:", detail: "lead one a little ahead to shoot it down for a bonus." },
+        { action: "Scouts take 1 hit, Mediums 2 and Heavies 4;", detail: "the pips above each tank show what is left, and far off a tank wears its letter badge (S, M or H) above its pips.", helpOnly: true },
+        { action: "The battlefield changes as you fight:", detail: "a clear evening for waves 1 and 2, a dusty desert for 3 and 4, then a storm of battle smoke for the last wave. The tanks and the road look the same throughout.", helpOnly: true },
+        { action: "Weak spots open and close:", detail: "each glows orange for well over a second, then shuts briefly. A shell on a shut one is a plain hull hit.", helpOnly: true },
         { action: "The last two waves", detail: "are bigger and press harder, and every tank speeds up or slows down once on its way in.", helpOnly: true },
-        { action: "A drone", detail: "flies straight across in under two seconds; a shell into the sky takes half a second to get there. Drones never hit the base.", helpOnly: true },
+        { action: "A drone", detail: "drifts straight across in about seven seconds; a shell into the sky takes half a second to get there. Drones never hit the base.", helpOnly: true },
         { action: "Small, slow drags", detail: "move the crosshair less than your thumb, for fine aim.", helpOnly: true },
-        { action: "Empty, the gun reloads by itself in 2 seconds.", detail: "A tap in the green finishes it in half the time; a tap outside jams it for half a second more.", helpOnly: true },
-        { action: "A tank that reaches the wall hits the base.", detail: "Three hits and the run ends early (you keep your score).", helpOnly: true },
+        { action: "Empty, the gun reloads by itself in 2 seconds.", detail: "A tap in the green finishes it in half the time; a tap outside jams it for half a second more. The first time you run dry, the panel reminds you once: swipe down to reload early.", helpOnly: true },
+        { action: "A tank that reaches the wall hits the base.", detail: "Four hits and the run ends early (you keep your score).", helpOnly: true },
         { action: "On a computer:", detail: "the mouse aims, click fires, R reloads and Space is the fast-reload tap.", helpOnly: true },
         { action: "Everyone", detail: "faces the same tanks in the same waves, and the same drones.", helpOnly: true },
       ],
-      score: liveStdHelp("bastion", "Three hits on the base end the run."),
+      score: liveStdHelp("bastion", "Four hits on the base end the run."),
     },
     rooftop: {
       goal: "Survive the rooftops as long as you can.",
@@ -1722,22 +1775,31 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Tap to flip sides;", detail: "dodge the spikes (some slide). Flip again right after landing for a double flip." },
         { action: "Land on a roof’s faint sweet spot", detail: "for a PERFECT landing. Clean jumps in a row build your flow streak." },
-        { action: "Checkpoints save one crash,", detail: "but it costs 20 s of clean time and your streak." },
+        { action: "Crash and you blink back and run on,", detail: `but it costs clean time (${FLIP_V13_CRASH_COST / 2} s on Normal) and your streak.` },
         { action: "Spikes or lava on one side?", detail: "Run on the other. Cracked tiles break less than half a second after you touch them: flip off fast.", helpOnly: true },
         { action: "Moving spikes", detail: "slide to and fro along the groove under them; time your flip to their slide.", helpOnly: true },
         { action: "The cave changes height:", detail: "in a tall stretch a flip takes longer to cross, in a tight one it is quicker. From 10 seconds the cave bends too, and hazards ride the bends with you.", helpOnly: true },
         { action: "Speed zones", detail: "rush you on for a few seconds: the cave flies past faster.", helpOnly: true },
         { action: "Double flips:", detail: "flip again within about an eighth of a second of landing with a hazard close by. Each one counts, chained or not.", helpOnly: true },
         { action: "Sweet spots:", detail: `${FLIP_V8_SWEETS} roofs carry a short, faint pale strip. Time a flip so you touch down with your feet inside it for a sweet landing: PERFECT glows where you land. Each counts once.`, helpOnly: true },
-        { action: "Flow streak:", detail: "a clean jump is a flip that lands with no crash saved on the way. Clean jumps in a row make your streak; a saved crash starts it again from 0, and your longest streak counts.", helpOnly: true },
+        { action: "Flow streak:", detail: "a clean jump is a flip that lands with no crash on the way. Clean jumps in a row make your streak; a crash starts it again from 0, and your longest streak counts.", helpOnly: true },
         { action: "Star trails:", detail: `the ${FLIP_V8_TRAILS} faint arcs of small stars are only a guide, a good line through the air: nothing to collect.`, helpOnly: true },
-        { action: "Checkpoints (15, 30 and 45 s):", detail: `pass one and your next crash is saved – a second of shield, and you run on, but ${FLIP_V11_SAVE_COST / 2} s comes off your clean time.`, helpOnly: true },
+        { action: "No checkpoints needed: crashes never end the run.", detail: `You blink back with a second of shield and run on to the end of the minute, but ${FLIP_V13_CRASH_COST / 2} s comes off your clean time each time on Normal.`, helpOnly: true },
+        // Levels (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): what each level changes, from the sim's own table.
+        {
+          action: "Levels:",
+          detail: `Easy runs slower (it speeds up every 4 s), with no moving spikes, wider sweet spots and ${FLIP_LEVEL_RULES.easy.crashCost / 2} s a crash. Hard is a little faster, with moving spikes from 8 s, ${FLIP_LEVEL_RULES.hard.crashCost / 2} s a crash and ${FLIP_LEVEL_RULES.hard.sweetsFull} perfect landings for all of that part. Expert is fastest (it speeds up every 2.5 s), with moving spikes from 5 s, ${FLIP_LEVEL_RULES.expert.sweetSeconds.length} sweet spots, ${FLIP_LEVEL_RULES.expert.crashCost / 2} s a crash and ${FLIP_LEVEL_RULES.expert.sweetsFull} perfect landings for all of that part.`,
+          helpOnly: true,
+        },
       ],
       // flipRev 11 (3 Nov 2026, the arcade scoring standard): clean time on a straight line, then the features' fixed shares.
       // The core tops out at 100, so the help reads "up to 100" and ends on the round's 200 (as Meteor's).
-      score: listFromSpec(FLIP_V11, {
-        core: `every half second you last counts, less ${FLIP_V11_SAVE_COST / 2} s for each crash a checkpoint saves; the whole minute with no crash for all of it`,
-        sweets: `${60 / FLIP_V8_SWEETS} for each landing on one of the ${FLIP_V8_SWEETS} sweet spots`,
+      // flipRev 13 (15 Nov 2026, the Action overhaul): grace; every crash costs 10 s, clean time full at 55 s, perfect
+      // landings full at 5 of the 8 sweet spots.
+      score: listFromSpec(FLIP_V13, {
+        // Levels (15 Nov 2026): these are Normal's figures; the "Levels:" line above says what Easy, Hard and Expert change.
+        core: `every half second you run counts, less ${FLIP_V13_CRASH_COST / 2} s for each crash; ${FLIP_V13_CORE_FULL / 2} s clean for all of it`,
+        sweets: `${60 / FLIP_V13_SWEETS_FULL} for each landing on one of the ${FLIP_V8_SWEETS} sweet spots (${FLIP_V13_SWEETS_FULL} for all of it)`,
         doubles: "2.5 for each double flip",
         flow: `your longest run of clean jumps (${FLIP_V11_STREAK_FULL} in a row for all of it)`,
       }),
@@ -1767,9 +1829,11 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Levels 1–4:", detail: "draw lines around the white birds, then tap RELEASE to drop the coin into a still pot.", helpOnly: true },
         { action: "Levels 5–8:", detail: "the pot moves. Time the release so the coin rolls in.", helpOnly: true },
         { action: "Levels 9–10, live:", detail: "draw one line, RELEASE, then keep drawing as the coin falls. Faded strokes commit when you lift your finger; you can’t draw through birds or near the coin.", helpOnly: true },
+        { action: "Levels:", detail: "Easy gives more ink, a quarter of the birds, a wide pot that never moves, no live levels and a looser ink par, with a clover on the easy line, and pays its bonus shots sooner; Normal the ten levels above; Hard less ink, two more birds a level, a narrower pot, live from level 8 and a stricter par; Expert the least ink, three more birds a level, the narrowest pot, swaying birds on levels 5–6, live from level 7 and no par margin. The points below are Normal’s; every level’s parts still make 200.", helpOnly: true },
         { action: "Ink par:", detail: "the top of the screen shows the ink this level has taken and its par (“Ink 18 · par 54”), and a bar the ink left. Pot the coin using no more ink than the par for the level’s full ink-par points; a little over still pays some, twice the par nothing. Undo gives the ink back.", helpOnly: true },
         { action: "Clovers:", detail: `${INK_V13_CLOVERS} levels in the run have a clover on a harder route, well away from the easy one. Roll the coin through it and into the pot: it counts only once the coin is potted. You never need it to finish a level.`, helpOnly: true },
         { action: "Bounce clouds:", detail: `${INK_CLOUD_LEVELS} levels have a springy cloud that throws the coin back up: pot the coin after a bounce for a trick shot.`, helpOnly: true },
+        { action: "The pot moves between levels:", detail: "each level sets it lower, higher, further from the spout or closer to it, on its own hill. Every layout can be drawn within its ink.", helpOnly: true },
         { action: "Ink is limited:", detail: "each level has a budget, with a larger shared supply for live levels.", helpOnly: true },
         { action: "A failed drop", detail: "clears your lines: try again until the clock runs out.", helpOnly: true },
       ],
@@ -1794,7 +1858,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Hold ◀ or ▶ to walk; tap anywhere on the arena to fire straight up.", detail: `There is no FIRE button: every tap on the arena is a shot. A shot that reaches the top without hitting anything is wasted: you get one free for each atom you pop (at least ${BURST_V11_FREE_MISSES}), then each costs ${BURST_V11_MISS_COST}.`, helpOnly: true },
         { action: "Big atoms split into smaller ones;", detail: "the smallest pop.", helpOnly: true },
         { action: `${BURST_V10_WAVES} waves, ${BURST_V10_ATOMS} atoms:`, detail: `counting every piece the splits make. Clear all ${BURST_V10_WAVES} waves and the run is complete.`, helpOnly: true },
-        { action: "Wave-clear bonus:", detail: `each wave you clear pays up to ${BURST_V10_CLEAR_PER_WAVE}: the full ${BURST_V10_CLEAR_PER_WAVE} within its quick time (1 s plus 0.6 s for every atom it holds, splits included), then evenly less, down to 0 at twice that. The counter (CLEAR +${BURST_V10_CLEAR_PER_WAVE}) shows what the wave on screen still pays.`, helpOnly: true },
+        { action: "Wave-clear bonus:", detail: `each wave you clear pays up to ${BURST_V10_CLEAR_PER_WAVE}: the full ${BURST_V10_CLEAR_PER_WAVE} within its quick time (1 s plus 0.6 s for every atom it holds, splits included), then evenly less, down to 0 at three times that. The counter (CLEAR +${BURST_V10_CLEAR_PER_WAVE}) shows what the wave on screen still pays.`, helpOnly: true },
         { action: `${BURST_V10_GOLDENS} golden atoms:`, detail: `one with each wave, a second or two after it appears, at its own spot (the same for everyone in the room). It bounces like the other atoms and fades after about 5 seconds. A shot that reaches one scores ${BURST_V10_GOLDEN_PTS}. It hurts like any atom: touching it costs a life.`, helpOnly: true },
         { action: "Power-ups ride on atoms:", detail: "an atom showing a small icon drops that power-up when you split it (the same atoms for everyone). Walk under it to catch it. DOUBLE fires two beams a shot for 8 s; BURST fires three quick short shots a tap for 8 s; FREEZE stops every atom for 3 s. Frozen atoms still hurt if you walk into one. They score nothing themselves.", helpOnly: true },
       ],
@@ -1812,12 +1876,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap to let go;", detail: "any orbit catches you." },
         { action: "Grab stardust;", detail: "sling through moon halos." },
         { action: "Thread rock gaps;", detail: "let go on the first lap.", helpOnly: true },
-        { action: "Fuel:", detail: "drains in flight, refills in orbit." },
-        { action: "Checkpoint:", detail: "a crash returns you there.", helpOnly: true },
+        { action: "Fuel:", detail: "run dry and you’re back in 3 s." },
+        { action: "Checkpoint:", detail: "hold it; a crash returns you there.", helpOnly: true },
         { action: "Black hole:", detail: "fly in, skip 5–6 planets.", helpOnly: true },
+        { action: "Top left:", detail: "planets and your checkpoint, then stardust and slingshots.", helpOnly: true },
         { action: "You orbit automatically.", detail: "Tap to let go – you fly straight until an orbit catches you: any planet’s orbit you reach, even one you skip ahead to (the planets you pass count as reached).", helpOnly: true },
-        { action: "Fuel (bottom right):", detail: `it drains only while you fly between orbits and fills up again the moment an orbit catches you. A jump at any planet in reach lands with fuel to spare; fly off into empty space and it runs out after about ${Math.round(ORBIT_FUEL_MAX / 6) / 10} s, and the run ends (or you go back to your checkpoint).`, helpOnly: true },
-        { action: "Set Checkpoint once while orbiting.", detail: "Your next crash returns you there. Without it, or after using it, a crash ends the run. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring – it turns once every 12 seconds.", helpOnly: true },
+        { action: "Fuel (bottom right):", detail: `it drains only while you fly between orbits and fills up again the moment an orbit catches you. A jump at any planet in reach lands with fuel to spare; fly off into empty space and it runs out after about ${Math.round(ORBIT_FUEL_MAX / 6) / 10} s: you go back to your checkpoint, or else to the planet you left, ready again after ${ORBIT_GRACE_HOLD_TICKS / 60} s.`, helpOnly: true },
+        { action: "Hold Set Checkpoint once while orbiting.", detail: "Your next crash returns you there at once. Without it, or after using it, a crash sends you back to the planet you left, ready again after a few seconds: the run never ends early. Orbits are belt-safe. On later planets, time arrival and departure through the opening in the outside asteroid ring – it turns once every 12 seconds.", helpOnly: true },
         { action: "Orbits change shape.", detail: "Ovals speed up near the planet. On a figure-eight, let go only on the outer loops – never at the crossing.", helpOnly: true },
         { action: "Black holes:", detail: "about every ten planets a small black hole sits beside one planet. Let go at just the right moment to fly into it and you come out beside a planet 5 or 6 further on and fly into its orbit over about a second; the planets you skip count as reached. A checkpoint you set before the jump still works.", helpOnly: true },
         { action: "Any black hole ahead counts:", detail: "touch one with any part of the rocket on any flight, even from the planet before, and it swallows you; one you have already passed fades out.", helpOnly: true },
@@ -1871,7 +1936,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: `${SWING_V16_RUNS.length} short platform runs`, detail: `are a start platform, one or two vines and a landing platform at a time, ${SWING_V16_SQUEEZES} of them with a squeeze (roof and floor close to a gap).`, helpOnly: true },
         { action: "Platform runs are in deep shade:", detail: "as one comes up, everything past its next platform is lost in the canopy’s shade, vines and all. Land on a platform to light the next part, up to the next platform (or the first vine after the run). Vines in the shade can’t be grabbed, swinging ones included.", helpOnly: true },
         { action: "Miss (into the river, or a squeeze’s trunk or rock)", detail: "and you are back hanging from the last vine you held (on a platform run, back on its start platform). The clock keeps running; gates lit since then are put back.", helpOnly: true },
+        { action: "The course is 51 stretches:", detail: "the counter at the top left shows the one you’re on (“Stretch 23 / 51”), and the result says how many you cleared.", helpOnly: true },
         { action: "Par times:", detail: "each stretch has one, shown under the stretch count. Finish it under par for points: the further under, the more.", helpOnly: true },
+        { action: "The jungle gets deeper and darker", detail: "the further you swing. The vines, platforms and gates stay just as easy to see.", helpOnly: true },
         { action: "Speed gates", detail: `(${SWING_V17_GATES}) sit on the line between two vines, all in the first two thirds of the course: a well-timed, fast release flies through and lights them.`, helpOnly: true },
         { action: "Over the last quarter a pterodactyl swoops in behind you.", detail: "If it catches you, it is a miss. A marker at the left edge shows how far back it is.", helpOnly: true },
         { action: `The run lasts ${SWING_V16_RUN_TICKS / 60} seconds.`, detail: "Only the fastest reach the end of the course.", helpOnly: true },
@@ -1896,6 +1963,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Cups:", detail: "the blue marble goes in the blue cup, the amber marble in the amber cup, which always starts well away from it. Each marble can only leave through the gap by its own cup, and the maze is done when both are in. The marbles roll through each other.", helpOnly: true },
         { action: "Par:", detail: "every maze has a par time, the same for everyone, set by how long its route is. The seconds left to it show top right; finish the maze (every marble home) before it runs out.", helpOnly: true },
         { action: "Clean run:", detail: "keep both marbles out of the black holes. “Clean” shows top right until the first fall.", helpOnly: true },
+        { action: "Levels:", detail: "Easy deals three smaller mazes with at most one black hole, no ice, two marbles only in the last and a generous par; Normal the four mazes above; Hard three or four holes and ice in every maze, two marbles in two of mazes 2–4 and a stricter par; Expert larger mazes, four holes and the most ice in each, two marbles in up to three mazes and the strictest par. The points below are Normal’s; every level’s parts still make 200.", helpOnly: true },
       ],
       // tiltRev 11 (3 Nov 2026): no gold stars; mazes on a straight line, then par, a clean run, all four and speed, 200 in all.
       score: scoreList([
@@ -2074,6 +2142,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A marble rolling into an upright tube", detail: "drops a row.", helpOnly: true },
         { action: "A closed drop on the bottom row", detail: "sends marbles rolling past it (gold →).", helpOnly: true },
         { action: `${BT_V7_BALLS} marbles drop, one about every 1.4 seconds`, detail: "until 49 seconds; the run lasts a minute.", helpOnly: true },
+        { action: "Levels:", detail: "Easy drops 16 marbles, one every 3.2 seconds, the cups never moving, 7 gold marbles and 4 boosters, the combos full at 10; Normal the 36 above, one every 1.4 seconds, the cups moving twice, 6 gold and 3 boosters; Hard 42 every 1.2 seconds, the cups moving 8 times, 7 gold and 3 boosters; Expert 42 every 1.1 seconds, the cups moving 12 times, 7 gold and 2 boosters. The intro says this round’s. The points below are Normal’s; every level’s parts still make 200.", helpOnly: true },
         { action: "Mid-round the bottom row moves and the cups swap colours;", detail: "the count under the board (“20 to switch up”) gives the seconds to the next switch-up.", helpOnly: true },
       ],
       // btRev 8 (the arcade scoring standard, docs/arcade-standard/balltrack.md): marbles home on one even line, then the

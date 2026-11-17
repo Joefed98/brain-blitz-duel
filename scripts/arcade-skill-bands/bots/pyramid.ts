@@ -6,7 +6,7 @@
  * chances for the waste's next card), searched 0 (weak: the pair it spots first) to 5 removals deep (elite), blurred by
  * the level's judgement. It draws only when nothing pairs, or on a slip.
  */
-import { PY_CARDS, PY_INPUT_TAP, PY_STOCK_PILE, PY_WASTE_PILE, pyApply, pyCanDraw, pyDeal, pyFree, pyMoves, type PyState } from "../../../src/lib/arcade/cards/pyramid";
+import { PY_CARDS, PY_INPUT_TAP, PY_STOCK_PILE, PY_WASTE_PILE, pyApply, pyCanDraw, pyDeal, pyFree, pyMoves, type PyState, pyGlows } from "../../../src/lib/arcade/cards/pyramid";
 import type { SkillLevel } from "../human";
 import { driveEvents, type SkillBot } from "../bot";
 
@@ -17,6 +17,8 @@ import { driveEvents, type SkillBot } from "../bot";
 const THINK_MS = 3200;
 const SECOND_MS = 450;
 const DRAW_MS = 700;
+/** Search time without the partner glow (see the bot's loop). */
+export const NO_GLOW_SCAN = 1.4;
 const DEPTH: Record<SkillLevel, number> = { weak: 0, average: 1, good: 2, great: 3, near: 4, elite: 5, perfect: 5 };
 
 function freeCount(s: PyState): number {
@@ -72,7 +74,10 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       }
     }
     if (tap < 0) return null;
-    nextAt = t + human.thinkTicks(queue.length ? SECOND_MS : tap === PY_STOCK_PILE ? DRAW_MS : THINK_MS);
+    // The difficulty levels (15 Nov 2026): without the partner glow (Hard, Expert) a player spots pairs adding to 13
+    // by reading the ranks, NO_GLOW_SCAN times as long (human limits, not the rules: the sim never sees the glow).
+    const scan = pyGlows(s) ? 1 : NO_GLOW_SCAN;
+    nextAt = t + human.thinkTicks((queue.length ? SECOND_MS : tap === PY_STOCK_PILE ? DRAW_MS : THINK_MS) * scan);
     return { k: PY_INPUT_TAP, a: tap, b: 0, c: 0, d: 0 };
   }, init);
   return { events };

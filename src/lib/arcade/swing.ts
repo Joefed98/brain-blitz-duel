@@ -36,8 +36,45 @@ const PUMP_MIN_V = 102; // 0.4 px/tick
 const MAX_SPEED = 9 * FP;
 const GRAVITY = 77; // 0.3 px/tick²
 const MAX_FALL = 12 * FP;
-const RADIUS = 10 * FP;
-const REACH = 220 * FP;
+/** The hero's body radius on every revision before swingRev 18. */
+const RADIUS_BASE = 10 * FP;
+/**
+ * The body radius the sim is using right now: RADIUS_BASE, or swingRev 18's larger body while one of its courses is
+ * built or stepped (withBody, synchronous, always restored), so every rule below that reads it (roof, river, squeezes,
+ * ledges, the dragon's catch) takes the body the course is played with. Never left changed between calls.
+ */
+let RADIUS = RADIUS_BASE;
+function withBody<T>(r: number, fn: () => T): T {
+  const was = RADIUS;
+  RADIUS = r;
+  try {
+    return fn();
+  } finally {
+    RADIUS = was;
+  }
+}
+const REACH_BASE = 220 * FP;
+/**
+ * The grab reach the sim is using right now: REACH_BASE, or a swingRev 18 level's while one of its courses is built
+ * (its build reach) or stepped (its play reach) (withLevel, synchronous, always restored), as RADIUS is.
+ */
+let REACH = REACH_BASE;
+/** The level being built or stepped (null: Normal and every revision before 18), and its name. */
+let LEVEL: SwingLevelCfg | null = null;
+let LEVEL_NAME: SwingLevel | null = null;
+function withLevel<T>(name: SwingLevel | null, reach: "build" | "play", fn: () => T): T {
+  if (!name) return fn();
+  const was = [REACH, LEVEL, LEVEL_NAME] as const;
+  const cfg = SWING_LEVELS[name];
+  REACH = reach === "build" ? cfg.buildReach : cfg.reach;
+  LEVEL = cfg;
+  LEVEL_NAME = name;
+  try {
+    return fn();
+  } finally {
+    [REACH, LEVEL, LEVEL_NAME] = was;
+  }
+}
 const MIN_ROPE = 24 * FP;
 const START_X = 3000 * FP;
 /** Follow in either direction while showing previously visited anchors. */
@@ -188,7 +225,9 @@ function moveBody(b: Body, c: { ceil: number[]; floor: number[]; spikes: Spike[]
   if (b.rope >= 0) {
     const a = c.anchors[b.rope]!;
     const t = b.th >> 4;
-    b.om -= Math.trunc((GRAVITY * isin(t) * SUB * ANG_PER_RAD) / (TRIG_ONE * b.len));
+    // (A swingRev 18 level may swing the vine faster: its rope gravity, per cent; Normal, Easy and every older revision 100.)
+    const g = LEVEL && LEVEL.swing !== 100 ? Math.trunc((GRAVITY * LEVEL.swing) / 100) : GRAVITY;
+    b.om -= Math.trunc((g * isin(t) * SUB * ANG_PER_RAD) / (TRIG_ONE * b.len));
     if (b.reelLeft > 0) {
       // Conserve angular momentum (len² · ω) while the rope length changes.
       const old = b.len;
@@ -507,6 +546,10 @@ export interface SwingState extends Body, BandFields {
   streakAt?: number;
   streakPaid?: number;
   bestHook?: number;
+  /** swingRev 18 only: the marker (the larger body, SWING_V18_RADIUS; otherwise swingRev 17's rules exactly). */
+  big?: number;
+  /** swingRev 18's difficulty levels: the level (absent: Normal, so every Normal state is exactly today's). */
+  lvl?: SwingLevel;
   tick: number;
   rng: number;
   camX: number;
@@ -681,7 +724,9 @@ function isOver(state: SwingState): boolean {
 function step(state: SwingState, input: ArcadeInputEvent | null): SwingState {
   if (isOver(state)) return state;
   // swingRev 14 and 15: the assault course and the swinging course have their own rules (below); every earlier revision steps on here.
-  if (state.rework) return stepRework(state, input);
+  // swingRev 18: the same rules on the larger body.
+  // (A swingRev 18 level: its play reach for the length of the step.)
+  if (state.rework) return state.big ? withLevel(swingLevelOf(state), "play", () => withBody(SWING_V18_RADIUS, () => stepRework(state, input))) : stepRework(state, input);
   if (state.assault) return stepAssault(state, input);
   const tick = state.tick + 1;
   const s: SwingState = { ...state, tick };
@@ -1076,7 +1121,12 @@ export const swingGame: ArcadeGame<SwingState, ArcadeInputEvent | null> = {
 const dragonGameV2 = { ...swingGame, init: initDragonsV2 };
 const dragonGameV3 = { ...swingGame, init: initDragonsV3 };
 const chaseGameV4 = { ...swingGame, init: initV4 };
-export function swingGameFor(rev?: number): typeof swingGame {
+export function swingGameFor(rev?: number, level?: unknown): typeof swingGame {
+  // (swingRev 18's levels: the puzzle's stored level; absent or Normal, today's game.)
+  if (rev === SWING_REV_BIG) {
+    const lvl = swingPuzzleLevel(rev, level);
+    return lvl ? swingLevelGame(lvl) : swingBigGame;
+  }
   if (rev === SWING_REV_SLIDE) return swingSlideGame;
   if (rev === SWING_REV_DARK) return swingDarkGame;
   if (rev === SWING_REV_REWORK) return swingReworkGame;
@@ -1412,7 +1462,7 @@ export function swingWorldH(state: { worldH?: number }): number {
 }
 /** The world height (px) a stored round's swingRev plays in. */
 export function swingWorldHFor(rev?: number | null): number {
-  if (rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE) return SWING_V13_H;
+  if (rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE || rev === SWING_REV_BIG) return SWING_V13_H;
   return rev === SWING_REV_TALL || rev === SWING_REV_TARGET || rev === SWING_REV_STRICT ? SWING_TALL_H : SWING_WORLD_H;
 }
 
@@ -1792,14 +1842,14 @@ export function swingWorldW(state: { worldW?: number }): number {
 }
 /** The world width (px) a stored round's swingRev plays in. */
 export function swingWorldWFor(rev?: number | null): number {
-  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE ? SWING_V13_W : SWING_WORLD_W;
+  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE || rev === SWING_REV_BIG ? SWING_V13_W : SWING_WORLD_W;
 }
 /**
  * The height (px) a stored round's reveal and demo draw at in the shared 390-wide reveal box: the
  * world's own height, or for swingRev 13's 450-wide view the height that keeps its shape (731).
  */
 export function swingRevealHFor(rev?: number | null): number {
-  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE ? Math.round((SWING_V13_H * SWING_WORLD_W) / SWING_V13_W) : swingWorldHFor(rev);
+  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE || rev === SWING_REV_BIG ? Math.round((SWING_V13_H * SWING_WORLD_W) / SWING_V13_W) : swingWorldHFor(rev);
 }
 
 /** Grabbing from a ledge, the hero kicks off it: SWING_LEDGE_KICK of forward speed along the swing. */
@@ -3301,7 +3351,8 @@ function stepRework(state: SwingState, input: ArcadeInputEvent | null): SwingSta
     s.chaseX = s.x - SWING_CHASE_GAP;
     s.chaseY = s.y;
   } else if ((s.chaseX ?? 0) !== 0 && now < total) {
-    s.chaseX = s.chaseX! + SWING_V14_CHASE_PACE;
+    // (A swingRev 18 level may fly it faster.)
+    s.chaseX = s.chaseX! + (s.lvl ? SWING_LEVELS[s.lvl].chasePace : SWING_V14_CHASE_PACE);
     s.chaseY = s.chaseY! + clampInt(Math.trunc((s.y - s.chaseY!) / 4), -3 * FP, 3 * FP);
     if (s.chaseX! + SWING_CHASE_REACH >= s.x - RADIUS) {
       s.caught = (s.caught ?? 0) + 1;
@@ -3655,6 +3706,10 @@ interface V15Shape {
   plans: Map<number, SwingReworkPlan>;
   /** swingRev 17: the sliding hooks, gates on the planned line, no gems or stars (slideCourse). */
   slide?: boolean;
+  /** swingRev 18: the body radius the course is built and proved with (RADIUS_BASE when absent). */
+  radius?: number;
+  /** swingRev 18's levels: the level the course is built for (its reach, sliding hooks, pterodactyl and dark). */
+  lvl?: SwingLevel;
 }
 /** The most failed blocks one rev-15 build may roll back before it starts the course again. */
 const V15_BLOCK_FAILURES = 40;
@@ -3682,7 +3737,7 @@ function initShape(seed: number, shape: V15Shape): SwingState {
   const draw = (bound: number) => { const r = rngBelow(rng, bound); rng = r.state; return r.value; };
   // A stretch that proves no shape from where the course has got to starts the course again, further along the same stream.
   for (let attempt = 0; attempt < V15_BUILDS; attempt++) {
-    const built = buildV15(draw, shape);
+    const built = shape.radius ? withLevel(shape.lvl ?? null, "build", () => withBody(shape.radius!, () => buildV15(draw, shape))) : buildV15(draw, shape);
     if (!built) continue;
     built.state.rng = rng;
     if (shape.cache.size > 16) {
@@ -4036,6 +4091,8 @@ function reworkCourse(c: V14Course, sections: SwingSection[], ledges: SwingLedge
   const length = sections[sections.length - 1]!.x1! - sections[0]!.x0!;
   let chaseFrom = sections.findIndex((sec) => 1000 * (sec.x0! - sections[0]!.x0!) >= SWING_V15_CHASE_FROM * length);
   if (chaseFrom < 0) chaseFrom = sections.length;
+  // (A swingRev 18 level with no pterodactyl: it never appears.)
+  if (LEVEL && LEVEL.chasePace === 0) chaseFrom = sections.length;
   const body = hangBody(c.anchors[0]!, 0);
   const features: SwingReworkPlan["features"] = [];
   for (const [kind, list] of [["gate", gates], ["gem", gems], ["star", starSpots]] as const) {
@@ -4097,8 +4154,9 @@ function reworkCourse(c: V14Course, sections: SwingSection[], ledges: SwingLedge
  * the course in the sim (swingRev 15: about 100 ms, several hundred on a slow phone), and its cache makes the round's
  * own init at the start instant. Display timing only: the course is the seed's whatever builds it, and when.
  */
-export function prepareSwingCourse(seed: number, rev?: number): void {
-  if (rev === SWING_REV_SLIDE || rev === SWING_REV_DARK || rev === SWING_REV_REWORK || rev === SWING_REV_ASSAULT) swingGameFor(rev).init(seed);
+export function prepareSwingCourse(seed: number, rev?: number, level?: unknown): void {
+  // (A swingRev 18 level builds its own course: the puzzle's stored level.)
+  if (rev === SWING_REV_BIG || rev === SWING_REV_SLIDE || rev === SWING_REV_DARK || rev === SWING_REV_REWORK || rev === SWING_REV_ASSAULT) swingGameFor(rev, level).init(seed);
 }
 
 /** The rope's body (swingRev 15's look-ahead kit below). */
@@ -4109,7 +4167,7 @@ export type SwingBody = Body;
  */
 export const swingBotKit = {
   body: (s: SwingState): Body => ({ x: s.x, y: s.y, vx: s.vx, vy: s.vy, rope: s.rope, len: s.len, th: s.th, om: s.om, grabLen: s.grabLen, reelTo: s.reelTo, reelLeft: s.reelLeft, pumps: s.pumps }),
-  move: (b: Body, s: SwingState): boolean => moveBody(b, s),
+  move: (b: Body, s: SwingState): boolean => (s.big ? withLevel(swingLevelOf(s), "play", () => withBody(SWING_V18_RADIUS, () => moveBody(b, s))) : moveBody(b, s)),
   attach: (b: Body, i: number, s: SwingState): void => attach(b, i, s.anchors[i]!),
   detach: (b: Body, s: SwingState): void => detach(b, s.anchors[b.rope]!),
   reel: (b: Body): void => startReel(b, SWING_REEL_UP),
@@ -4118,7 +4176,8 @@ export const swingBotKit = {
   // motion is drawn, so a player reads it); earlier revisions ignore the tick.
   target: (s: SwingState, k: number, x: number, y: number, tick = s.tick): number => {
     const [lo, hi] = swingReworkRange(s, k);
-    if (s.slide) return rangeTargetAt(s, lo, hi, x, y, tick, s.dark ? swingDarkFrom(s) : SWING_NO_DARK);
+    // (A swingRev 18 level: its play reach.)
+    if (s.slide) return withLevel(swingLevelOf(s), "play", () => rangeTargetAt(s, lo, hi, x, y, tick, s.dark ? swingDarkFrom(s) : SWING_NO_DARK));
     return rangeTarget(s.anchors, lo, hi, x, y, s.dark ? swingDarkFrom(s) : SWING_NO_DARK);
   },
   /** swingRev 17: anchor i where a press at `tick` would grab it, and the course as it is once grabbed there (a sliding hook stops). */
@@ -4129,8 +4188,12 @@ export const swingBotKit = {
     slideStop(v, i, tick);
     return v;
   },
-  radius: RADIUS,
-  reach: REACH,
+  /** The body radius before swingRev 18 (radiusOf gives a state's own). */
+  radius: RADIUS_BASE,
+  radiusOf: (s: Pick<SwingState, "big">): number => (s.big ? SWING_V18_RADIUS : RADIUS_BASE),
+  reach: REACH_BASE,
+  /** A state's own reach (a swingRev 18 level's play reach, else REACH_BASE). */
+  reachOf: (s: Pick<SwingState, "lvl" | "big">): number => (swingLevelOf(s) ? SWING_LEVELS[swingLevelOf(s)!].reach : REACH_BASE),
 };
 
 /** swingRev 15: the swinging course. Band 3 like rev 11, 13 and 14; the score is swingScoreV15. */
@@ -4178,8 +4241,10 @@ const V16_SHAPE: V15Shape = { blocks: SWING_V16_BLOCKS, runs: SWING_V16_RUNS, sq
  *  - any other stretch: no dark.
  * An anchor at or past it is in the dark: not drawn and never grabbed.
  */
-export function swingDarkFrom(s: Pick<SwingState, "dark" | "sections" | "sec" | "ledges" | "anchors" | "hangHook" | "sliders">): number {
+export function swingDarkFrom(s: Pick<SwingState, "dark" | "sections" | "sec" | "ledges" | "anchors" | "hangHook" | "sliders" | "lvl">): number {
   if (!s.dark || !s.sections) return SWING_NO_DARK;
+  // (A swingRev 18 level with every stretch lit: no dark.)
+  if (s.lvl && !SWING_LEVELS[s.lvl].dark) return SWING_NO_DARK;
   const total = s.sections.length;
   const k = s.sec ?? 0;
   if (k >= total) return SWING_NO_DARK;
@@ -4199,7 +4264,7 @@ export function swingDarkFrom(s: Pick<SwingState, "dark" | "sections" | "sec" | 
 }
 
 /** Whether anchor i is lit (drawn, and grabbable as far as the dark goes; swingRev 16). */
-export function swingHookLit(s: Pick<SwingState, "dark" | "sections" | "sec" | "ledges" | "anchors" | "hangHook" | "sliders" | "slideLock" | "tick">, i: number): boolean {
+export function swingHookLit(s: Pick<SwingState, "dark" | "sections" | "sec" | "ledges" | "anchors" | "hangHook" | "sliders" | "slideLock" | "tick" | "lvl">, i: number): boolean {
   // swingRev 17: a sliding hook where it is now (every earlier revision: the hook).
   return (s.sliders ? swingAnchorAt(s, i, s.tick).x : s.anchors[i]!.x) < swingDarkFrom(s);
 }
@@ -4341,14 +4406,19 @@ function slideGrab(s: SwingState, target: number, at: number, tick: number): voi
   slideStop(s, target, at);
   if (target <= (s.bestHook ?? -1)) return;
   s.bestHook = target;
-  s.streak = tick - (s.streakAt ?? 0) <= SWING_V17_STALL ? (s.streak ?? 0) + 1 : 1;
+  s.streak = tick - (s.streakAt ?? 0) <= swingStall(s) ? (s.streak ?? 0) + 1 : 1;
   s.streakAt = tick;
   if (s.streak % SWING_V17_STREAK_BLOCK === 0) s.streakPaid = (s.streakPaid ?? 0) + 1;
 }
 
 /** The streak as it stands at the state's tick (0 once the wait since the last grab or landing passes the stall). */
+/** The streak's stall limit for a state (ticks): a swingRev 18 level's, else SWING_V17_STALL. */
+export function swingStall(s: Pick<SwingState, "lvl">): number {
+  return s.lvl ? SWING_LEVELS[s.lvl].stall : SWING_V17_STALL;
+}
+
 export function swingStreakNow(s: SwingState): number {
-  if (!s.slide || s.tick - (s.streakAt ?? 0) > SWING_V17_STALL) return 0;
+  if (!s.slide || s.tick - (s.streakAt ?? 0) > swingStall(s)) return 0;
   return s.streak ?? 0;
 }
 
@@ -4359,7 +4429,9 @@ export function swingSlideParts(state: SwingState): { core: number; par: number;
     const q = swingAssaultPar(state, k);
     return sum + (q.time >= 0 ? clampInt(q.beat, 0, SWING_V15_PAR_FULL) : 0);
   }, 0);
-  const line = Math.trunc((SWING_V17_CORE * Math.min(p.permille, SWING_V17_FULL)) / SWING_V17_FULL);
+  // (A swingRev 18 level may set the course part's "full at" share: Easy's is nearer.)
+  const full = state.lvl ? SWING_LEVELS[state.lvl].full : SWING_V17_FULL;
+  const line = Math.trunc((SWING_V17_CORE * Math.min(p.permille, full)) / full);
   return {
     core: state.acted ? Math.max(1, line) : line,
     par: Math.min(SWING_V17_PAR_POINTS, Math.trunc((SWING_V17_PAR_POINTS * parTicks) / (SWING_V15_PAR_FULL * SWING_V17_PAR_STRETCHES))),
@@ -4439,6 +4511,8 @@ function slideWitness(s0: SwingState, plan: readonly [number, number][][]): Slid
     const t = s.tick + 1;
     const steps = plan[k];
     if (!steps) return null;
+    // (A swingRev 18 level's route that runs past its plan, as the shorter or longer reach can make it: not proved.)
+    if (LEVEL && mode === "rope" && !steps[j]) return null;
     let a = -1;
     if (mode === "ledge" && (s.ledgeOn ?? -1) >= 0 && s.x === s.ledges![s.ledgeOn!]!.x && (s.respawn ?? 0) === 0) {
       a = 1;
@@ -4529,7 +4603,8 @@ const SLIDE_SWING_NEED = 3;
  * few (the course is built again).
  */
 function slideCourse(built: SwingState, plan: SwingReworkPlan, draw: (n: number) => number): { state: SwingState; plan: SwingReworkPlan } | null {
-  const base: SwingState = { ...built, dark: 1, slide: 1, sliders: [], slideLock: 0, streak: 0, streakAt: 0, streakPaid: 0, bestHook: -1 };
+  // (A swingRev 18 level: its name on the state, so the route is played under its rules: stall, lit stretches, pace.)
+  const base: SwingState = { ...built, dark: 1, slide: 1, sliders: [], slideLock: 0, streak: 0, streakAt: 0, streakPaid: 0, bestHook: -1, ...(LEVEL_NAME ? { lvl: LEVEL_NAME } : {}) };
   const w = slideWitness(base, plan.sections);
   if (!w) return null;
   const secs = base.sections!;
@@ -4597,9 +4672,11 @@ function slideCourse(built: SwingState, plan: SwingReworkPlan, draw: (n: number)
     }
     return true;
   };
-  for (let q = 1; q < 4; q++) {
+  // (A swingRev 18 level: its own count a quarter, the first quarter included; Normal has none there, so it draws nothing.)
+  const perQuarter = LEVEL ? LEVEL.sliders : SWING_V17_SLIDERS;
+  for (let q = LEVEL ? 0 : 1; q < 4; q++) {
     const list = byQuarter[q]!;
-    const want = SWING_V17_SLIDERS[q]!;
+    const want = perQuarter[q]!;
     // Spread over the quarter: one from each of `want` seeded bands of its candidates (the next that proves, on from a
     // seeded start in the band).
     for (let n = 0; n < want; n++) {
@@ -4632,3 +4709,123 @@ function initV17(seed: number): SwingState {
 
 /** swingRev 17: the sliding hooks and the clean-swing streak, on rev 16's 90 s. Band 3; the score is swingScoreV17. */
 export const swingSlideGame: typeof swingGame = { ...swingTunecGame, runTicks: SWING_V16_RUN_TICKS, init: (seed) => ({ ...bandInit(initV17(seed)), band: 3 }) };
+
+/* ================= The bigger hero (swingRev 18, 15 Nov 2026) ================= */
+
+/**
+ * swingRev 18 (the Action overhaul's stage 2, Joe 15 Nov 2026): swingRev 17's game exactly (the sliding hooks, the dark
+ * ledge runs, the streak, the parts and their 200, 90 s) with the hero's body 14 px in radius (was 10), so the figure
+ * and its vine can be drawn 1.4× larger and still fill exactly what collides. Every rule that reads the body reads the
+ * larger one: the roof and the river (4 px sooner), a squeeze's rock, landing on a ledge (standing 4 px higher) and the
+ * pterodactyl's catch line; grabs are by reach and gates by the body's centre line, so neither changes. Each course is
+ * built and proved on the larger body from its own salt (the squeezes keep their 14 px of clearance round it), and
+ * rooms deal only courses whose flawless run replays to exactly 200 (swingBigDeal.server.ts).
+ */
+export const SWING_REV_BIG = 18;
+export const SWING_V18_RADIUS = 14 * FP;
+const V18_SHAPE: V15Shape = { blocks: SWING_V16_BLOCKS, runs: SWING_V16_RUNS, squeezeRuns: SWING_V16_SQUEEZE_RUNS, squeezes: SWING_V16_SQUEEZES, runFirst: 4, runEvery: 6, salt: 0x5be0cd19, failures: 60, cache: new Map(), plans: new Map(), slide: true, radius: SWING_V18_RADIUS };
+
+/** The witness of a seed's swingRev 18 course (building it if need be), as swingSlidePlan. */
+export function swingBigPlan(seed: number): SwingReworkPlan {
+  return shapePlan(seed, V18_SHAPE);
+}
+
+function initV18(seed: number): SwingState {
+  return { ...initShape(seed, V18_SHAPE), dark: 1, slide: 1, big: 1 };
+}
+
+/** The body radius (world px) a state is played with: 14 on swingRev 18, 10 on every earlier revision (display reads it). */
+export function swingBodyRadiusPx(s: Pick<SwingState, "big">): number {
+  return (s.big ? SWING_V18_RADIUS : RADIUS_BASE) / FP;
+}
+
+/** swingRev 18: swingRev 17 on the larger body. Band 3; the score is swingScoreV17. */
+export const swingBigGame: typeof swingGame = { ...swingSlideGame, init: (seed) => ({ ...bandInit(initV18(seed)), band: 3 }) };
+
+/* ================= swingRev 18's difficulty levels (15 Nov 2026) ================= */
+
+/*
+ * The Action overhaul's difficulty levels (docs/arcade-standard/swing.md "Levels"; Joe: "Easy longer reach, few sliding
+ * vines, relaxed stall limit, no pterodactyl, all stretches lit; Normal today; Hard more sliding vines, tighter stall
+ * limit, pterodactyl last quarter faster; Expert slightly shorter reach, a few more sliding vines than Hard, a little
+ * tighter stall limit, pterodactyl last quarter faster, 7 dark stretches"). The deal stamps the puzzle's `level`
+ * (generate.server.ts) and deals a course from that level's own proved deal (swingLevelDeal.server.ts); the sim reads
+ * the level from the state's `lvl`, set only at a level other than Normal on swingRev 18, so a Normal state is exactly
+ * today's. Each level's course is built and proved by swingRev 18's own builder on its own salt with the settings below
+ * (the hops placed and proved within the build reach; the sliding hooks a quarter; the pterodactyl's stretch; seven
+ * ledge runs on Expert) and its route played under the level's rules. The parts and their 200, the 90 s run, the
+ * stretch restarts (no run ends on a slip) and the body are swingRev 18's. A change to a value here needs a new stamp.
+ */
+export type SwingLevel = "easy" | "hard" | "expert";
+export interface SwingLevelCfg {
+  /** The grab reach in play, and the reach the course's hops are placed and proved within (1/256 px). */
+  reach: number;
+  buildReach: number;
+  /** Sliding hooks a course carries in each quarter of its length. */
+  sliders: readonly number[];
+  /** The clean-swing streak's stall limit (ticks; Normal SWING_V17_STALL). */
+  stall: number;
+  /** The pterodactyl's pace over the last quarter (1/256 px a tick; 0: none; Normal SWING_V14_CHASE_PACE). */
+  chasePace: number;
+  /** Whether the ledge runs go dark (Easy: every stretch lit). */
+  dark: boolean;
+  /** The course part is full at this share of the course (per mille; Normal SWING_V17_FULL). */
+  full: number;
+  /** The ledge runs (sections each, in course order), those with a squeeze, and the blocks between them. */
+  runs: readonly number[];
+  squeezeRuns: readonly number[];
+  squeezes: number;
+  runEvery: number;
+  /** The course stream's salt (each level's courses its own). */
+  salt: number;
+  /**
+   * The vine's swing speed: the gravity on a held vine, per cent (100: Normal's; Hard and Expert faster, 16 Nov 2026).
+   * A faster swing moves further each tick, so a release a tick early or late flies a plainly different line: a test of
+   * the player's timing, not of the route (the oracle still hits its exact tick, and the courses are built and proved
+   * on the same swing). Flight is unchanged.
+   */
+  swing: number;
+}
+export const SWING_LEVELS: Readonly<Record<SwingLevel, SwingLevelCfg>> = {
+  easy: { reach: 250 * FP, buildReach: 220 * FP, sliders: [0, 1, 2, 2], stall: 200, chasePace: 0, dark: false, full: 500, runs: SWING_V16_RUNS, squeezeRuns: SWING_V16_SQUEEZE_RUNS, squeezes: SWING_V16_SQUEEZES, runEvery: 6, salt: 0x2a5f8c17, swing: 100 },
+  hard: { reach: 220 * FP, buildReach: 220 * FP, sliders: [2, 6, 8, 10], stall: 55, chasePace: 820, dark: true, full: SWING_V17_FULL, runs: SWING_V16_RUNS, squeezeRuns: SWING_V16_SQUEEZE_RUNS, squeezes: SWING_V16_SQUEEZES, runEvery: 6, salt: 0x4b7e9d23, swing: 125 },
+  expert: { reach: 205 * FP, buildReach: 205 * FP, sliders: [3, 7, 9, 11], stall: 50, chasePace: 870, dark: true, full: SWING_V17_FULL, runs: [3, 2, 2, 3, 2, 3, 2], squeezeRuns: SWING_V16_SQUEEZE_RUNS, squeezes: SWING_V16_SQUEEZES, runEvery: 5, salt: 0x6c1fae39, swing: 145 },
+};
+const LEVEL_SHAPES: Record<SwingLevel, V15Shape> = {
+  easy: levelShape("easy"),
+  hard: levelShape("hard"),
+  expert: levelShape("expert"),
+};
+function levelShape(name: SwingLevel): V15Shape {
+  const c = SWING_LEVELS[name];
+  return { blocks: SWING_V16_BLOCKS, runs: c.runs, squeezeRuns: c.squeezeRuns, squeezes: c.squeezes, runFirst: 4, runEvery: c.runEvery, salt: c.salt, failures: 60, cache: new Map(), plans: new Map(), slide: true, radius: SWING_V18_RADIUS, lvl: name };
+}
+
+/** The level a stored level names on swingRev 18 (null: Normal, or any other revision). */
+export function swingLevelOf(s: { lvl?: SwingLevel | null; big?: number } | null | undefined): SwingLevel | null {
+  return s && s.big && s.lvl ? s.lvl : null;
+}
+/** A puzzle's stamp and stored level read as a swingRev 18 level (null: Normal, or a revision without levels). */
+export function swingPuzzleLevel(rev: number | null | undefined, level: unknown): SwingLevel | null {
+  if (rev !== SWING_REV_BIG) return null;
+  return level === "easy" || level === "hard" || level === "expert" ? level : null;
+}
+
+/** The witness of a seed's swingRev 18 course at a level (building it if need be), as swingBigPlan. */
+export function swingLevelPlan(seed: number, level: SwingLevel): SwingReworkPlan {
+  return shapePlan(seed, LEVEL_SHAPES[level]);
+}
+
+function initV18Level(seed: number, level: SwingLevel): SwingState {
+  return { ...initShape(seed, LEVEL_SHAPES[level]), dark: 1, slide: 1, big: 1, lvl: level };
+}
+
+const SWING_LEVEL_GAMES: Record<SwingLevel, typeof swingGame> = {
+  easy: { ...swingBigGame, init: (seed) => ({ ...bandInit(initV18Level(seed, "easy")), band: 3 }) },
+  hard: { ...swingBigGame, init: (seed) => ({ ...bandInit(initV18Level(seed, "hard")), band: 3 }) },
+  expert: { ...swingBigGame, init: (seed) => ({ ...bandInit(initV18Level(seed, "expert")), band: 3 }) },
+};
+/** swingRev 18 at a level: its course and rules (the step reads the state's `lvl`). */
+export function swingLevelGame(level: SwingLevel): typeof swingGame {
+  return SWING_LEVEL_GAMES[level];
+}

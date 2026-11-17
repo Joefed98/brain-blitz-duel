@@ -20,6 +20,7 @@
  *
  *   bun scripts/minigolf-check.ts
  */
+import { setDealPin } from "../src/lib/duel/dealEra";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { fp, type ArcadeInputEvent } from "../src/lib/arcade/engine";
@@ -84,12 +85,16 @@ for (const e of MINIGOLF_BANK) {
 }
 ok(twoHundred === MINIGOLF_BANK.length, `every bank witness scores 200 through the server replay (${twoHundred} of ${MINIGOLF_BANK.length})`);
 ok(birdied === MINIGOLF_BANK.length, `every witness birdies every hole: par = its best route + 1 (${birdied} of ${MINIGOLF_BANK.length})`);
-// Rooms deal golfRev 2 (crazy golf, 31 Oct 2026) from its own bank; golfRev 1's courses stay replayable (above).
+// Rooms dealt golfRev 2 (crazy golf, 31 Oct 2026) from its own bank; golfRev 1's courses stay replayable (above).
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Crazy Golf overhaul: rooms deal golfRev 3,
+// proved by crazy-golf-v3-check): golfRev 2's deal is asked for through its pin, minigolfPreCourse.
+const wasPinned = setDealPin("minigolfPreCourse", true);
 for (let i = 0; i < 50; i++) {
   const p = generateMinigolf();
   const e = MINIGOLF_BANK_V2.find((x) => x.seed === p.seed);
   ok(!!e && JSON.stringify(e.pars) === JSON.stringify(p.pars) && p.golfRev === 2, `rooms deal a golfRev 2 bank course with its pars (seed ${p.seed})`);
 }
+setDealPin("minigolfPreCourse", wasPinned);
 ok(MINIGOLF_BANK.every((e) => !MINIGOLF_BANK_V2.some((x) => x.seed === e.seed)), "no seed is in both banks");
 // golfRev 1 exactly as dealt and replayed before golfRev 2 (digests recorded on main 9dc6e56).
 {

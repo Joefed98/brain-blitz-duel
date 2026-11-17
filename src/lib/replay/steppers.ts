@@ -11,6 +11,7 @@
  * `inputs` is a tap-tick list for tap games (Hover, High Rise) and t:k:a:b:c:d
  * events for the rest.
  */
+import { puzzleLevel } from "@/lib/levels/levels";
 import {
   checkInputEvents,
   decodeInputEvents,
@@ -28,23 +29,25 @@ import { matchupGameFor } from "@/lib/arcade/matchup";
 import { breakerGameFor } from "@/lib/arcade/breaker";
 import { pinballGameForAny } from "@/lib/arcade/pinball4";
 import { minesweeperGameFor } from "@/lib/arcade/minesweeper";
-import { mahjongGameFor } from "@/lib/arcade/mahjong";
+import { mahjongGameAt } from "@/lib/arcade/mahjong";
 import { homerunGameFor } from "@/lib/arcade/homerun";
 import { bastionGame } from "@/lib/arcade/bastion";
 import { bastionTankGameFor } from "@/lib/arcade/bastionTank";
 import { freekickGameFor } from "@/lib/arcade/freekick";
-import { racingGameFor } from "@/lib/arcade/racing";
-import { freecellGameFor } from "@/lib/arcade/cards/freecell";
-import { tripeaksGameFor } from "@/lib/arcade/cards/tripeaks";
+import { racingGameFor, racingLevelOf } from "@/lib/arcade/racing";
+import { freecellGameAt } from "@/lib/arcade/cards/freecell";
+import { levelOfPuzzle } from "@/lib/levels/levels";
+import { tripeaksGameAt } from "@/lib/arcade/cards/tripeaks";
 import { pokerSquaresGameFor } from "@/lib/arcade/cards/pokerSquares";
-import { fiveHandsGameFor } from "@/lib/arcade/cards/fiveHands";
+import { fiveHandsGameAt } from "@/lib/arcade/cards/fiveHands";
 import { ninjaGameFor } from "@/lib/arcade/ricochetNinja";
 import { ricoGame } from "@/lib/arcade/ricochet";
 import { isNinjaRev } from "@/lib/duel/ricochet";
-import { pyramidGameFor } from "@/lib/arcade/cards/pyramid";
+import { pyramidGameAt } from "@/lib/arcade/cards/pyramid";
 import { golfSolGameFor } from "@/lib/arcade/cards/golfSol";
 import { mugginsGameFor } from "@/lib/arcade/cards/muggins";
 import { minigolfGameFor } from "@/lib/arcade/minigolf";
+import { minigolfCourseOf } from "@/lib/duel/minigolf";
 import { poolGameFor } from "@/lib/arcade/pool";
 import { curlingGameFor } from "@/lib/arcade/curling";
 import { blockfallGameFor } from "@/lib/arcade/blockfall";
@@ -87,7 +90,7 @@ import {
 } from "@/lib/arcade/orbitRev3";
 import { swingGameFor } from "@/lib/arcade/swing";
 import { snipGameFor } from "@/lib/arcade/snip";
-import { tiltGameFor } from "@/lib/arcade/tilt";
+import { tiltGameForLevel } from "@/lib/arcade/tilt";
 import { makeBallTrackGame } from "@/lib/arcade/ballTrack";
 import { whackGameFor } from "@/lib/arcade/whack";
 import { clayGameFor } from "@/lib/arcade/clayShoot";
@@ -189,8 +192,8 @@ function orbitSource(p: PuzzleData): GameSource {
 
 /** One entry per replayable type: the arcade games plus Letterfall, Tenfall, Bonk, Pull! and Mixed Signals. */
 const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
-  hover: (p) => ({ game: hoverGameFor(rev(p, "hoverRev")) as AnyGame, taps: true }),
-  skyline: (p) => ({ game: skylineGameFor(rev(p, "skylineRev")) as AnyGame, taps: true }),
+  hover: (p) => ({ game: hoverGameFor(rev(p, "hoverRev"), puzzleLevel(p)) as AnyGame, taps: true }),
+  skyline: (p) => ({ game: skylineGameFor(rev(p, "skylineRev"), puzzleLevel(p)) as AnyGame, taps: true }),
   bintoss: (p) => ({ game: binTossGameFor(rev(p, "binRev")) as AnyGame }),
   bullseye: (p) => ({
     game: bullseyeGame as AnyGame,
@@ -201,45 +204,45 @@ const SOURCES: Record<string, (p: PuzzleData) => GameSource> = {
         rev(p, "bullRev"),
       ),
   }),
-  matchup: (p) => ({ game: matchupGameFor(rev(p, "matchupRev")) as AnyGame }),
-  breaker: (p) => ({ game: breakerGameFor(rev(p, "brkRev")) as AnyGame }),
-  pinball: (p) => ({ game: pinballGameForAny(rev(p, "pinRev")) as AnyGame }),
+  matchup: (p) => ({ game: matchupGameFor(rev(p, "matchupRev"), puzzleLevel(p)) as AnyGame }),
+  breaker: (p) => ({ game: breakerGameFor(rev(p, "brkRev"), puzzleLevel(p)) as AnyGame }),
+  pinball: (p) => ({ game: pinballGameForAny(rev(p, "pinRev"), puzzleLevel(p)) as AnyGame }),
   minesweeper: (p) => ({ game: minesweeperGameFor(rev(p, "minesRev")) as AnyGame }),
-  mahjong: (p) => ({ game: mahjongGameFor(rev(p, "mahjongRev")) as AnyGame }),
-  homerun: (p) => ({ game: homerunGameFor(rev(p, "homerunRev")) as AnyGame }),
+  mahjong: (p) => ({ game: mahjongGameAt(rev(p, "mahjongRev"), levelOfPuzzle(p)) as AnyGame }),
+  homerun: (p) => ({ game: homerunGameFor(rev(p, "homerunRev"), (p as { level?: string }).level) as AnyGame }),
   // Bastion: bastionRev 2's tank game; the original turret for unstamped rounds.
-  bastion: (p) => ({ game: ((rev(p, "bastionRev") ?? 1) >= 2 ? bastionTankGameFor(rev(p, "bastionRev")) : bastionGame) as AnyGame }),
-  freekick: (p) => ({ game: freekickGameFor(rev(p, "freekickRev")) as AnyGame }),
-  racing: (p) => ({ game: racingGameFor(rev(p, "racingRev")) as AnyGame }),
-  freecell: (p) => ({ game: freecellGameFor(rev(p, "freecellRev")) as AnyGame }),
-  tripeaks: (p) => ({ game: tripeaksGameFor(rev(p, "tripeaksRev")) as AnyGame }),
+  bastion: (p) => ({ game: ((rev(p, "bastionRev") ?? 1) >= 2 ? bastionTankGameFor(rev(p, "bastionRev"), (p as { level?: unknown }).level) : bastionGame) as AnyGame }),
+  freekick: (p) => ({ game: freekickGameFor(rev(p, "freekickRev"), (p as { level?: string }).level) as AnyGame }),
+  racing: (p) => ({ game: racingGameFor(rev(p, "racingRev"), racingLevelOf((p as { racingLevel?: unknown }).racingLevel)) as AnyGame }),
+  freecell: (p) => ({ game: freecellGameAt(rev(p, "freecellRev"), levelOfPuzzle(p)) as AnyGame }),
+  tripeaks: (p) => ({ game: tripeaksGameAt(rev(p, "tripeaksRev"), levelOfPuzzle(p)) as AnyGame }),
   pokersquares: (p) => ({ game: pokerSquaresGameFor(rev(p, "pokerSquaresRev")) as AnyGame }),
-  fivehands: (p) => ({ game: fiveHandsGameFor(rev(p, "fiveHandsRev")) as AnyGame }),
+  fivehands: (p) => ({ game: fiveHandsGameAt(rev(p, "fiveHandsRev"), levelOfPuzzle(p)) as AnyGame }),
   // Ricochet: the ninja wall-climb (ricoRev 2, events) or the original shaft (a tap list).
-  ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? { game: ninjaGameFor(rev(p, "ricoRev")) as AnyGame } : { game: ricoGame as AnyGame, taps: true }),
-  pyramid: (p) => ({ game: pyramidGameFor(rev(p, "pyramidRev")) as AnyGame }),
+  ricochet: (p) => (isNinjaRev(rev(p, "ricoRev")) ? { game: ninjaGameFor(rev(p, "ricoRev"), puzzleLevel(p)) as AnyGame } : { game: ricoGame as AnyGame, taps: true }),
+  pyramid: (p) => ({ game: pyramidGameAt(rev(p, "pyramidRev"), levelOfPuzzle(p)) as AnyGame }),
   golfsol: (p) => ({ game: golfSolGameFor(rev(p, "golfSolRev")) as AnyGame }),
   muggins: (p) => ({ game: mugginsGameFor(rev(p, "mugginsRev")) as AnyGame }),
-  curling: (p) => ({ game: curlingGameFor(rev(p, "curlRev") ?? 1) as AnyGame }),
-  blockfall: (p) => ({ game: blockfallGameFor(rev(p, "blockfallRev")) as AnyGame }),
+  curling: (p) => ({ game: curlingGameFor(rev(p, "curlRev") ?? 1, (p as { level?: unknown }).level) as AnyGame }),
+  blockfall: (p) => ({ game: blockfallGameFor(rev(p, "blockfallRev"), puzzleLevel(p)) as AnyGame }),
   alleyroll: (p) => ({ game: alleyRollGameFor(rev(p, "alleyRollRev")) as AnyGame }),
-  pool: (p) => ({ game: poolGameFor(rev(p, "poolRev")) as AnyGame }),
-  minigolf: (p) => ({ game: minigolfGameFor(p.type === "minigolf" ? p.pars : undefined, p.type === "minigolf" ? p.golfRev : undefined) as AnyGame }),
-  rally: (p) => ({ game: rallyGameFor(rev(p, "rallyRev")) as AnyGame }),
+  pool: (p) => ({ game: poolGameFor(rev(p, "poolRev"), undefined, (p as { level?: unknown }).level) as AnyGame }),
+  minigolf: (p) => ({ game: minigolfGameFor(p.type === "minigolf" ? p.pars : undefined, p.type === "minigolf" ? p.golfRev : undefined, p.type === "minigolf" ? minigolfCourseOf(p) : {}) as AnyGame }),
+  rally: (p) => ({ game: rallyGameFor(rev(p, "rallyRev"), puzzleLevel(p)) as AnyGame }),
   slice: (p) => ({ game: sliceGameFor(rev(p, "sliceRev")) as AnyGame }),
-  bubble: (p) => ({ game: bubbleGameFor(rev(p, "bubbleRev")) as AnyGame }),
-  beat: (p) => ({ game: beatGameFor(rev(p, "beatRev")) as AnyGame }),
-  snake: (p) => ({ game: snakeGameFor(rev(p, "snakeRev")) as AnyGame }),
-  cross: (p) => ({ game: crossGameFor(rev(p, "crossRev")) as AnyGame }),
-  wavefront: (p) => ({ game: wavefrontGameFor(rev(p, "wavRev")) as AnyGame }),
-  flip: (p) => ({ game: flipGameFor(rev(p, "flipRev")) as AnyGame }),
+  bubble: (p) => ({ game: bubbleGameFor(rev(p, "bubbleRev"), (p as { level?: unknown }).level) as AnyGame }),
+  beat: (p) => ({ game: beatGameFor(rev(p, "beatRev"), puzzleLevel(p)) as AnyGame }),
+  snake: (p) => ({ game: snakeGameFor(rev(p, "snakeRev"), puzzleLevel(p)) as AnyGame }),
+  cross: (p) => ({ game: crossGameFor(rev(p, "crossRev"), puzzleLevel(p)) as AnyGame }),
+  wavefront: (p) => ({ game: wavefrontGameFor(rev(p, "wavRev"), puzzleLevel(p)) as AnyGame }),
+  flip: (p) => ({ game: flipGameFor(rev(p, "flipRev"), puzzleLevel(p)) as AnyGame }),
   junction: (p) => ({ game: junctionGameFor(rev(p, "junctionRev")) as AnyGame }),
-  inkbridge: (p) => ({ game: inkBridgeGameFor(rev(p, "inkRev")) as AnyGame }),
-  burst: (p) => ({ game: burstGameFor(rev(p, "burstRev")) as AnyGame }),
+  inkbridge: (p) => ({ game: inkBridgeGameFor(rev(p, "inkRev"), (p as { level?: unknown }).level) as AnyGame }),
+  burst: (p) => ({ game: burstGameFor(rev(p, "burstRev"), puzzleLevel(p)) as AnyGame }),
   orbit: orbitSource,
-  swing: (p) => ({ game: swingGameFor(rev(p, "swingRev")) as AnyGame }),
+  swing: (p) => ({ game: swingGameFor(rev(p, "swingRev"), puzzleLevel(p)) as AnyGame }),
   snip: (p) => ({ game: snipGameFor(rev(p, "snipRev")) as AnyGame }),
-  tilt: (p) => ({ game: tiltGameFor(rev(p, "tiltRev")) as AnyGame }),
+  tilt: (p) => ({ game: tiltGameForLevel(rev(p, "tiltRev"), (p as { level?: unknown }).level) as AnyGame }),
   balltrack: (p) => ({
     game: makeBallTrackGame(
       (p as unknown as { course: Parameters<typeof makeBallTrackGame>[0] }).course,

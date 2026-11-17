@@ -146,9 +146,36 @@ export interface HoleWitness {
 
 /** Builds and proves the holes for one bank course; null when it cannot (the course then stays rev 3). */
 export let holeFailure = "";
-export function buildHoles(planets: Planet[], bankTaps: readonly number[], seed: number): HoleWitness | null {
+/**
+ * A level's own walk (scripts/orbit-fuel-lib.ts, the Action overhaul's levels, 16 Nov 2026): the start the holes are
+ * placed on (the level's fuel rules, no holes yet) and the release delay its witness takes at a plain hop. Without it,
+ * orbitRev 4's old-rule walk exactly, as every earlier bank.
+ */
+export interface HoleWalk {
+  init: (planets: Planet[], holes: OrbitHole[]) => OrbitRev3State;
+  hopDelay: (state: OrbitRev3State) => number | null;
+}
+
+/**
+ * A level walk's plain-hop release: the middle of the first run of at least `window` release delays (over two laps,
+ * or a belt period where belts are near) whose flight lands on a later planet, or null.
+ */
+export function windowHopDelay(state: OrbitRev3State, window: number): number | null {
+  const maxK = holeDelays(state);
+  let run = 0;
+  for (let d = 0; d <= maxK; d++) {
+    if (holeFork(state, d).kind === "hop") run++;
+    else {
+      if (run >= window) return d - run + Math.trunc(run / 2);
+      run = 0;
+    }
+  }
+  return run >= window ? maxK + 1 - run + Math.trunc(run / 2) : null;
+}
+
+export function buildHoles(planets: Planet[], bankTaps: readonly number[] | null, seed: number, holeFrom: readonly number[] = HOLE_FROM, walk?: HoleWalk): HoleWitness | null {
   holeFailure = "";
-  let state = initRev4From(planets, ORBIT_REV3_WORLD_W, []);
+  let state = walk ? walk.init(planets, []) : initRev4From(planets, ORBIT_REV3_WORLD_W, []);
   const holes: OrbitHole[] = [];
   const taps: number[] = [];
   let next = 0;
@@ -161,7 +188,7 @@ export function buildHoles(planets: Planet[], bankTaps: readonly number[], seed:
     let delay: number | null = null;
     // The hole goes beside the first planet the run stops at from each slot on
     // (a hop can pass two planets at once).
-    if (next < HOLE_FROM.length && state.cur >= HOLE_FROM[next]!) {
+    if (next < holeFrom.length && state.cur >= holeFrom[next]!) {
       const to = state.cur + 5 + ((seed >>> next) & 1);
       const placed = placeHole(state, to, seed) ?? placeHole(state, state.cur + 11 - (to - state.cur), seed);
       if (!placed) {
@@ -173,7 +200,7 @@ export function buildHoles(planets: Planet[], bankTaps: readonly number[], seed:
       delay = placed.entries[0]!;
       next++;
     } else {
-      delay = findHopTapDelay(state, ORBIT_REV3_WORLD_W, lapPhases(state.planets[state.cur]!).length);
+      delay = walk ? walk.hopDelay(state) : findHopTapDelay(state, ORBIT_REV3_WORLD_W, lapPhases(state.planets[state.cur]!).length);
       if (delay === null) {
         holeFailure = `no hop window at planet ${state.cur}`;
         return null;
@@ -183,11 +210,13 @@ export function buildHoles(planets: Planet[], bankTaps: readonly number[], seed:
     taps.push(state.tick + 1);
     state = step(state, tapAt(state.tick + 1));
   }
-  if (!(state.finished === 1 && (state.jumps ?? 0) === HOLE_FROM.length)) {
+  if (!(state.finished === 1 && (state.jumps ?? 0) === holeFrom.length)) {
     holeFailure = `witness ended at planet ${state.cur} (jumps ${state.jumps ?? 0}, tick ${state.tick})`;
     return null;
   }
-  // The course's own proof taps (which go planet by planet) must still reach the sun.
+  // The course's own proof taps (which go planet by planet) must still reach the sun (an old-rule bank; a level walk
+  // has none: its witness, scripts/orbit-xp-lib.ts, is the proof).
+  if (!bankTaps) return { holes, taps, ticks: state.tick };
   let plain = initRev4From(planets, ORBIT_REV3_WORLD_W, holes);
   const tapSet = new Set(bankTaps);
   while (plain.ended === 0 && plain.tick < ORBIT_REV3_RUN_TICKS) plain = step(plain, tapSet.has(plain.tick + 1) ? tapAt(plain.tick + 1) : null);

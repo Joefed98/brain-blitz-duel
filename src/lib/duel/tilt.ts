@@ -25,6 +25,9 @@ import {
   TILT_CHECKPOINT_INTERVAL,
   TILT_CHECKPOINT_KEYS,
   tiltExtra,
+  tiltLevelGame,
+  isTiltLevel,
+  type TiltLevel,
   type TiltCheckpoint,
   type TiltState,
 } from "@/lib/arcade/tilt";
@@ -118,13 +121,30 @@ const runBand = makeArcadeRun<TiltState, TiltCheckpoint>({
   interval: TILT_CHECKPOINT_INTERVAL,
 });
 
+/** Levels (stage 3): one run per level on tiltRev 12 (the same encoding). */
+const levelRuns = new Map<TiltLevel, typeof runBig>();
+function levelRun(level: TiltLevel): typeof runBig {
+  let r = levelRuns.get(level);
+  if (!r) {
+    r = makeArcadeRun<TiltState, TiltCheckpoint>({ tag: "tilt", game: tiltLevelGame(level), checkpoint: tiltCheckpoint, keys: TILT_CHECKPOINT_KEYS, interval: TILT_CHECKPOINT_INTERVAL });
+    levelRuns.set(level, r);
+  }
+  return r;
+}
+
 export type TiltResult = FlatReplay<TiltState, TiltCheckpoint> & ReturnType<typeof tiltExtra>;
 
 export const encodeTiltRun = run.encode;
 export const decodeTiltRun = run.decode;
 
 /** The single place a Tilt score is worked out. */
-export function replayTiltRun(seed: number, raw: string, rev?: number | null): TiltResult {
+export function replayTiltRun(seed: number, raw: string, rev?: number | null, level?: unknown): TiltResult {
+  // Levels (stage 3, 15 Nov 2026): a tiltRev 12 round dealt at easy, hard or expert replays on that level's game; a level
+  // on any other stamp, or none, replays exactly as before.
+  if (rev === TILT_REV_BIG && isTiltLevel(level)) {
+    const r = levelRun(level).replay(seed, raw);
+    return { ...r, ...tiltExtra(r.state) };
+  }
   const result = (rev === TILT_REV_BIG ? runBig : rev === TILT_REV_PAR ? runPar : rev === TILT_REV_STD ? runStd : rev === TILT_REV_LIFT ? runLift : rev === TILT_REV_EXPAND ? runExpand : rev === TILT_REV_STRICT ? runStrict : rev === TILT_REV_TARGET ? runTarget : rev === TILT_REV_TUNEC ? runTunec : rev === TILT_REV_BAND ? runBand : rev === TILT_REV ? runRev2 : run).replay(seed, raw);
   return { ...result, ...tiltExtra(result.state) };
 }

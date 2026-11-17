@@ -5,6 +5,7 @@
  * payload against the game's declared ranges, and keeps its own score.
  */
 
+import type { Level } from "@/lib/levels/levels";
 import type { InputDiag } from "@/lib/arcade/engine";
 
 import {
@@ -136,8 +137,8 @@ export interface CrossResult {
 }
 
 /** The single place a Cross score is worked out. */
-export function replayCrossRun(seed: number, raw: string, rev?: number | null): CrossResult {
-  const crossGame = crossGameFor(rev);
+export function replayCrossRun(seed: number, raw: string, rev?: number | null, level?: Level | null): CrossResult {
+  const crossGame = crossGameFor(rev, level);
   const run = decodeCrossRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, CROSS_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < CROSS_RUN_TICKS;

@@ -114,8 +114,9 @@ export interface MatchupResult {
 }
 
 /** The single place a Matchup score is worked out. */
-export function replayMatchupRun(seed: number, raw: string, rev?: number | null): MatchupResult {
-  const matchupGame = matchupGameFor(rev);
+export function replayMatchupRun(seed: number, raw: string, rev?: number | null, level?: string | null): MatchupResult {
+  // matchupRev 13: the stored puzzle's level (levels.ts puzzleLevel) picks its world; earlier stamps have none.
+  const matchupGame = matchupGameFor(rev, level);
   const run = decodeMatchupRun(raw);
   // matchupRev 10 runs 90 s (its game's runTicks); every earlier revision 60 s (MATCHUP_RUN_TICKS).
   const runTicks = matchupGame.runTicks;

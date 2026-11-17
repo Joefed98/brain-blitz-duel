@@ -25,8 +25,13 @@ import {
   NINJA_CHECKPOINT_INTERVAL,
   NINJA_CHECKPOINT_KEYS,
   NINJA_REV,
+  moonBigGame,
   moonCheckpoint,
   moonGame,
+  moonGameFor,
+  moonLevelOf,
+  type MoonLevel,
+  MOON_BIG_REV,
   MOON_CHECKPOINT_KEYS,
   MOON_REV,
   type MoonCheckpoint,
@@ -221,6 +226,15 @@ const moonRun = makeArcadeRun<MoonState, MoonCheckpoint>({
   interval: NINJA_CHECKPOINT_INTERVAL,
 });
 
+/** ricoRev 4 (the bigger ninja): the same run format, the tower dealt and played with the bigger body. */
+const moonBigRun = makeArcadeRun<MoonState, MoonCheckpoint>({
+  tag: "ricochet",
+  game: moonBigGame,
+  checkpoint: moonCheckpoint,
+  keys: MOON_CHECKPOINT_KEYS,
+  interval: NINJA_CHECKPOINT_INTERVAL,
+});
+
 export const encodeMoonRun = moonRun.encode;
 export const decodeMoonRun = moonRun.decode;
 
@@ -235,14 +249,30 @@ export interface MoonResult extends FlatReplay<MoonState, MoonCheckpoint> {
   djs: number;
 }
 
-/** The single place a ricoRev 3 (Moon Climb) score is worked out (the stored seed; the phone's claim is only compared). */
-export function replayMoonRun(seed: number, raw: string): MoonResult {
-  const r = moonRun.replay(seed, raw);
+/**
+ * The single place a ricoRev 3 or 4 (Moon Climb) score is worked out (the stored seed and stamp; the phone's claim is
+ * only compared). `rev` is the stored ricoRev (3 when absent).
+ */
+const moonLevelRuns = new Map<MoonLevel, typeof moonRun>();
+/** ricoRev 4 at a level (the puzzle's stored `level`): the same run format, the level's tower and rules. */
+function moonLevelRun(level: MoonLevel): typeof moonRun {
+  let run = moonLevelRuns.get(level);
+  if (!run) {
+    run = makeArcadeRun<MoonState, MoonCheckpoint>({ tag: "ricochet", game: moonGameFor(MOON_BIG_REV, level), checkpoint: moonCheckpoint, keys: MOON_CHECKPOINT_KEYS, interval: NINJA_CHECKPOINT_INTERVAL });
+    moonLevelRuns.set(level, run);
+  }
+  return run;
+}
+
+export function replayMoonRun(seed: number, raw: string, rev: number | null | undefined = MOON_REV, level?: unknown): MoonResult {
+  // A stored level (ricoRev 4 only; absent or Normal: today's run exactly).
+  const lvl = moonLevelOf(rev ?? MOON_REV, level);
+  const r = (lvl ? moonLevelRun(lvl) : (rev ?? MOON_REV) >= MOON_BIG_REV ? moonBigRun : moonRun).replay(seed, raw);
   const s = r.state;
   return { ...r, metres: ninjaMetres(s), rides: s.rides, flow: s.flow, bestFlow: s.bestStreak, scrolls: s.scrolls, hits: s.hits, leaps: s.leaps, djs: s.djs };
 }
 
-/** True for a Ricochet puzzle dealt on Moon Climb (ricoRev 3). */
+/** True for a Ricochet puzzle dealt on Moon Climb (ricoRev 3, or 4's bigger ninja). */
 export function isMoonRev(rev: number | null | undefined): boolean {
   return (rev ?? 1) >= MOON_REV;
 }

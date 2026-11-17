@@ -8,41 +8,114 @@
  */
 import { HOMERUN_REV_DEALT } from "@/lib/arcade/homerun";
 import { FREEKICK_REV_DEALT } from "@/lib/arcade/freekick";
-import { RACING_REV_DEALT } from "@/lib/arcade/racing";
+import { RACING_REV_3, RACING_REV_DEALT, type RacingLevelSettings } from "@/lib/arcade/racing";
+import { checkOverride } from "@/lib/checkOverride";
+import { gameLevelSettings } from "@/lib/levels/gameLevels";
+import { NORMAL, type Level } from "@/lib/levels/levels";
+import { racingDealSeedV3 } from "./racingDealV3.server";
 import { arcadeSeed } from "./arcade.server";
+import { homerunDealSeedV5 } from "./homerunDealV5.server";
 import { homerunDealSeedV4 } from "./homerunDealV4.server";
 import { freekickDealSeedV4 } from "./freekickDealV4.server";
-import { racingDealSeedV3 } from "./racingDealV3.server";
-import { MINIGOLF_REV } from "@/lib/arcade/minigolf";
+import { dealPinned } from "./dealEra";
+import { freekickDealSeedV6 } from "./freekickDealV6.server";
+import { hrLevelOf } from "@/lib/arcade/homerunInnings";
+import { fkLevelOf } from "@/lib/arcade/freekick";
+import { racingDealSeedV4 } from "./racingDealV4.server";
+import { racingDealSeedV4Easy } from "./racingDealV4Easy.server";
+import { racingDealSeedV4Hard } from "./racingDealV4Hard.server";
+import { racingDealSeedV4Expert } from "./racingDealV4Expert.server";
+import { MINIGOLF_REV, MINIGOLF_REV_COURSE, mgLevelOf, MG_LEVELS, MG_LEVEL_NAMES, type MgLevel } from "@/lib/arcade/minigolf";
+import { MINIGOLF_HOLES_BANK, type MinigolfHoleEntry } from "./minigolfHolesBank.server";
 import { POOL_REV } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
 import { CURLING_BANK_V4 } from "./curlingBankV4.server";
+import { CURLING_LEVEL_BANKS } from "./curlingLevelBanks.server";
 import { MINIGOLF_BANK_V2 } from "./minigolfBankV2.server";
 import { POOL_BANK_V3 } from "./poolBankV3.server";
 import { ALLEYROLL_REV_DEALT } from "@/lib/arcade/alleyroll";
 import type { AlleyRollPuzzleData, CurlingPuzzleData, FreekickPuzzleData, HomerunPuzzleData, MinigolfPuzzleData, PoolPuzzleData, RacingPuzzleData } from "./types";
 
-export function generateHomerun(): HomerunPuzzleData {
-  // homerunRev 4 (3 Nov 2026, pick your spot): rev 4's own proved deal (homerunDealV4.server.ts); rev-3, rev-2 and rev-1
-  // rounds replay on their own revisions (their deal files stay as they were).
-  return { type: "homerun", seed: homerunDealSeedV4(arcadeSeed()), homerunRev: HOMERUN_REV_DEALT };
+/**
+ * homerunRev 5 (15 Nov 2026, the innings): the level's own proved deal (homerunDealV5.server.ts). `level` is the
+ * difficulty framework's (absent or "normal": Normal, stamped with no `level` field); rev 1–4 rounds replay on their own
+ * revisions (their deal files stay as they were).
+ */
+export function generateHomerun(level?: string | null): HomerunPuzzleData {
+  // A check's era pin (dealEra.ts): rooms' deal before the overhaul, homerunRev 4 from its own proved deal.
+  if (dealPinned("sportsPreOverhaul")) return { type: "homerun", seed: homerunDealSeedV4(arcadeSeed()), homerunRev: 4 };
+  const l = hrLevelOf(level);
+  return { type: "homerun", seed: homerunDealSeedV5(arcadeSeed(), l), homerunRev: HOMERUN_REV_DEALT, ...(l !== "normal" ? { level: l } : {}) };
 }
 
-export function generateFreekick(): FreekickPuzzleData {
-  // Top Bins deals freekickRev 4 (3 Nov 2026, the drawn shot) from its own proved deal; rev-1 to rev-3 rounds replay on their own.
-  return { type: "freekick", seed: freekickDealSeedV4(arcadeSeed()), freekickRev: FREEKICK_REV_DEALT };
+/** Top Bins deals freekickRev 6 (16 Nov 2026: rev 5 with Easy and Normal eased, Hard and Expert harder) from the level’s proved deal; rev 1–5 rounds replay on their own. */
+export function generateFreekick(level?: string | null): FreekickPuzzleData {
+  if (dealPinned("sportsPreOverhaul")) return { type: "freekick", seed: freekickDealSeedV4(arcadeSeed()), freekickRev: 4 };
+  const l = fkLevelOf(level);
+  return { type: "freekick", seed: freekickDealSeedV6(arcadeSeed(), l), freekickRev: FREEKICK_REV_DEALT, ...(l !== "normal" ? { level: l } : {}) };
 }
 
-export function generateRacing(): RacingPuzzleData {
-  // Apex deals racingRev 3 (3 Nov 2026: the softer gravel, corner speed signs, the pace score) from its own proved deal;
-  // racingRev 2 and 1 rounds replay on theirs (racingDealV2.server.ts, racingDeal.server.ts).
-  return { type: "racing", seed: racingDealSeedV3(arcadeSeed()), racingRev: RACING_REV_DEALT };
+export function generateRacing(level: Level = NORMAL): RacingPuzzleData {
+  // Apex deals racingRev 4 (15 Nov 2026, the Sports overhaul: three named circuits) from its own proved deal;
+  // racingRev 3, 2 and 1 rounds replay on theirs (racingDealV3.server.ts, racingDealV2.server.ts, racingDeal.server.ts).
+  // Checks written for racingRev 3 pin racingPreCircuits, a check-only switch read through checkOverride (as Minefield's
+  // minesPreLogic): a production build never deals rev 3.
+  if (checkOverride<boolean>("__DUELZ_RACING_PRE_CIRCUITS__") === true) return { type: "racing", seed: racingDealSeedV3(arcadeSeed()), racingRev: RACING_REV_3 };
+  // Difficulty levels (stage 3, 16 Nov 2026): Easy, Hard and Expert deal from their own proved deals and stamp the
+  // level's settings (racingLevel) for the sim; Normal deals exactly as before (no field, the same draw).
+  const settings = level === NORMAL ? null : gameLevelSettings<RacingLevelSettings>("racing", level);
+  if (!settings) return { type: "racing", seed: racingDealSeedV4(arcadeSeed()), racingRev: RACING_REV_DEALT };
+  const deal = level === "easy" ? racingDealSeedV4Easy : level === "hard" ? racingDealSeedV4Hard : racingDealSeedV4Expert;
+  return { type: "racing", seed: deal(arcadeSeed()), racingRev: RACING_REV_DEALT, racingLevel: {
+      keep: settings.keep,
+      road: settings.road,
+      kerb: settings.kerb,
+      wall: settings.wall,
+      tight: settings.tight,
+      ...(settings.tightBy ? { tightBy: [...settings.tightBy] } : {}),
+      aids: settings.aids,
+      ...(settings.pace ? { pace: [...settings.pace] } : {}),
+      ...(settings.spread ? { spread: settings.spread } : {}),
+    },
+  };
 }
 
-export function generateMinigolf(): MinigolfPuzzleData {
-  // golfRev 2 (crazy golf, 31 Oct 2026) deals from its own proven bank; golfRev 1's bank (minigolfBank.server.ts) still replays.
-  const entry = MINIGOLF_BANK_V2[arcadeSeed() % MINIGOLF_BANK_V2.length]!;
-  return { type: "minigolf", seed: entry.seed, golfRev: MINIGOLF_REV, pars: [...entry.pars] };
+/**
+ * golfRev 3's five holes at a level, one per slot, drawn with `draw` (the server's CSPRNG; checks pass a seeded one):
+ * five whose witnesses fit the level's Speed time together (their worst times summed, the bank's `t`), so a perfect run
+ * always scores 200. A fresh draw until one fits (at least half of all draws do at every level), else each slot's
+ * quickest hole, which always fits (crazy-golf-v3-check).
+ */
+export function pickMinigolfHoles(level: MgLevel, draw: () => number): MinigolfHoleEntry[] {
+  const at = MG_LEVEL_NAMES.indexOf(level);
+  const budget = MG_LEVELS[level].fullByS * 60;
+  const sum = (p: readonly MinigolfHoleEntry[]) => p.reduce((a, e) => a + e.t[at]!, 0);
+  let picks = MINIGOLF_HOLES_BANK.map((slot) => slot[draw() % slot.length]!);
+  for (let tries = 0; tries < 64 && sum(picks) > budget; tries++) picks = MINIGOLF_HOLES_BANK.map((slot) => slot[draw() % slot.length]!);
+  if (sum(picks) > budget) picks = MINIGOLF_HOLES_BANK.map((slot) => slot.reduce((a, e) => (e.t[at]! < a.t[at]! ? e : a)));
+  return picks;
+}
+
+export function generateMinigolf(level: unknown = "normal"): MinigolfPuzzleData {
+  if (dealPinned("minigolfPreCourse")) {
+    // golfRev 2 (crazy golf, 31 Oct 2026) deals from its own proven bank; golfRev 1's bank (minigolfBank.server.ts) still replays.
+    const entry = MINIGOLF_BANK_V2[arcadeSeed() % MINIGOLF_BANK_V2.length]!;
+    return { type: "minigolf", seed: entry.seed, golfRev: MINIGOLF_REV, pars: [...entry.pars] };
+  }
+  // golfRev 3 (the Crazy Golf overhaul, 15 Nov 2026): one hole from each slot of the proven hole bank, with its par at the
+  // dealt level (a level the deal doesn't know is Normal). Stored once, so a room's players all play the same five.
+  const lv: MgLevel = mgLevelOf(level);
+  const at = MG_LEVEL_NAMES.indexOf(lv);
+  const seed = arcadeSeed();
+  const picks = pickMinigolfHoles(lv, arcadeSeed);
+  return {
+    type: "minigolf",
+    seed,
+    golfRev: MINIGOLF_REV_COURSE,
+    holes: picks.map((e) => e.id),
+    pars: picks.map((e) => e.pars[at]!),
+    ...(lv === "normal" ? {} : { level: lv }),
+  };
 }
 
 export function generatePool(): PoolPuzzleData {
@@ -51,7 +124,14 @@ export function generatePool(): PoolPuzzleData {
   return { type: "pool", seed: POOL_BANK_V3[arcadeSeed() % POOL_BANK_V3.length]!, poolRev: POOL_REV };
 }
 
-export function generateCurling(): CurlingPuzzleData {
+export function generateCurling(level?: string | null): CurlingPuzzleData {
+  // The levels (the Sports overhaul, 15 Nov 2026): Easy, Hard and Expert each deal a sheet from their own bank, every
+  // seed proved at 200 at that level (curlingLevelBanks.server.ts); the deal stamps `level` itself (generate.server.ts).
+  // Normal (no level) is curlRev 4's deal exactly, the same draw from the same bank.
+  if (level === "easy" || level === "hard" || level === "expert") {
+    const bank = CURLING_LEVEL_BANKS[level];
+    return { type: "curling", seed: bank[arcadeSeed() % bank.length]!, curlRev: CURLING_REV };
+  }
   // curlRev 4 (3 Nov 2026): its own bank, proved with three reds and curling's count (curlingBankV4.server.ts); curlRev 3
   // rounds replay on curlingBankV3.server.ts's sheets, curlRev 2 on curlingBankV2's, curlRev 1 on curlingBank's.
   return { type: "curling", seed: CURLING_BANK_V4[arcadeSeed() % CURLING_BANK_V4.length]!, curlRev: CURLING_REV };

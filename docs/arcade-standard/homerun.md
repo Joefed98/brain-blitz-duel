@@ -1,5 +1,108 @@
 # Home Run on the arcade scoring standard (homerunRev 1, 30 Oct 2026; homerunRev 2, 31 Oct 2026; homerunRev 3, 1 Nov 2026; homerunRev 4, 3 Nov 2026)
 
+## homerunRev 5: the innings (15 Nov 2026)
+
+**Rooms deal homerunRev 5** (`HOMERUN_REV_5`, `src/lib/arcade/homerunInnings.ts`; the sections below describe rev 1–4,
+which replay and score exactly as before). One innings of real batting with consequences, 117 s (the round's clock
+120 s), against a seeded run of up to 40 pitches (`homerunInningsPlan(seed, level)`), the same for everyone in a room.
+
+- **Each pitch**: the pitcher's wind-up shows its kind in the last 0.4 s (arm slot and glove colour; Easy adds the grip
+  bubble): fastball quick and straight, curveball bending, changeup floating in slowly. A fixed count of the first 24
+  pitches land outside the strike zone (Easy 6, Normal 7, Hard 8, Expert 9; seeded places), one in four after that.
+- **Swing or take**: a swipe swings (kind 5, `a` the swipe's direction in tenths of a degree, + pulled to left field),
+  the bat meeting the plate 6 ticks after it starts. Leaving a pitch: a strike in the zone, a ball outside. Four balls
+  walk, three strikes an out (swinging or looking), a foul never the third strike. On two strikes the plate must be
+  protected.
+- **Contact or Power** (kind 2, locked at the release, carried on): Contact's window ±5 ticks (Normal) and at most
+  340 ft; Power's ±3 and at most 450 ft. A swing within the PERFECT window (±1 tick on Easy and Normal, the exact tick
+  on Hard and Expert) goes exactly where it was swiped at full carry; each tick beyond takes carry and moves it 3° (early
+  pulls, late pushes). A ball outside the zone hit at all is weak contact (52 %), never PERFECT.
+  The Contact / Power buttons sit below the play area, as every other arcade game's controls, in rooms and Practice
+  alike (Joe, 16 Nov 2026; the view is the world, 390 × 720, with no rows below the plate).
+- **The field**: seven fielders, shifting every pitch; a ball landing in a catch area is an out. Otherwise a single
+  (short of 170 ft), a double, a triple (within 30 ft of the wall) or a home run over it (400 ft in centre, 330 down the
+  lines); an outfielder within 11° of the ball's line holds it to one base less. Runners advance by the hit's bases, a
+  runner on second scoring on a single; a short single with a runner on first near an infielder is a fielder's choice
+  (the runner out at second).
+- **The end**: three outs, or no pitch in the clock's last 2 s; the run holds 2 s on the innings' summary.
+
+**Score** (`HOMERUN_STD_SPEC_V5`): Runs 100 (a straight line, full at 18), Home runs 40 (4 each), Perfect streak 40
+(4 for each swing in the longest run of perfect swings), Good eye 20 (4 for each ball left alone beyond the balls
+chased). The flawless batter (Power, every zone pitch met on its arrival tick, every ball left) scores 200 on every
+seed of the proved deal (`homerunDealV5.server.ts`, 120 a level, `bun scripts/homerun-innings-deal.ts [--check]`).
+
+**Levels** (`HR_LEVEL_SETTINGS`; Normal is the rated level):
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Fastball flight (ticks) | 42–47 | 36–41 | 28–31 | 27–29 |
+| Balls in the first 24 | 6 | 7 | 8 | 9 |
+| Contact / Power window | ±7 / ±5 | ±5 / ±3 | ±4 / ±3 | ±4 / ±2 |
+| PERFECT | ±2 | ±1 | exact | exact |
+| Movement | 45 % | 100 % | 130 % | 160 % |
+| Catch areas | 80 % | 100 % | 110 % | 120 % |
+| Balls finish outside the zone by (px) | 14–34 | 14–34 | 8–24 | 5–17 |
+| Curveball / changeup flight (ticks) | 54–60 / 66–74 | 48–54 / 62–70 | 40–44 / 54–59 | 37–40 / 51–55 |
+
+**Hard and Expert retuned** (16 Nov 2026, Joe: a clear step up from Easy to Expert, Normal comfortable for a strong
+player, Expert proven humanly possible to score well on, measured on the elite bot under human limits: about 0.25 s to
+react and 0.15 s to move, `HUMAN_LIMITS`, `bun scripts/level-tune.ts homerun --human-limits`). The fastball now runs
+close to a person's limit (no swing lands before about 30 ticks: the reaction, the swipe, then the 6-tick swing), the
+curveball and changeup are quicker, and balls finish nearer the zone's edge (`ballOff`), so the take is a closer call.
+Changed in place on homerunRev 5: rev 5 has never been dealt outside this branch (it isn't on main), so no stored round
+holds the old Hard or Expert; Easy and Normal are unchanged (their deal seeds rebuild byte for byte). Hard and Expert
+re-proved (`homerunDealV5.server.ts`, 120 a level; dropped hard 2, expert 15).
+
+The bot under human limits (measurement only): the swipe lands no sooner than the release plus a reaction plus the
+swipe's own movement (without limits it could start 8 ticks before its reaction, reading the pitch before it was
+thrown), and a pitch that moves more is harder to read (the level's bend). Without limits every bot plays as before.
+
+**Measured, every bot under human limits** (`bun scripts/homerun-innings-bands.ts --seeds=30 --human-limits`, medians,
+average in brackets):
+
+| | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+|---|---|---|---|---|---|---|---|
+| Easy | 52 (50) | 89 (86) | 143 (141) | 184 (184) | 200 (195) | 200 (199) | 200 |
+| Normal | 21 (28) | 63 (60) | 127 (121) | 170 (169) | 192 (191) | 200 (198) | 200 |
+| Hard | 5 (6) | 26 (28) | 84 (78) | 136 (132) | 162 (156) | 172 (172) | 200 |
+| Expert | 4 (6) | 16 (18) | 67 (59) | 102 (102) | 139 (136) | 149 (143) | 200 |
+
+The same without limits (`--seeds=30`, the bots as before: they can read the pitch before it is thrown):
+
+| | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+|---|---|---|---|---|---|---|---|
+| Easy | 63 (51) | 93 (89) | 150 (143) | 184 (184) | 200 (195) | 200 (199) | 200 |
+| Normal | 19 (28) | 63 (60) | 134 (126) | 172 (173) | 200 (193) | 200 (198) | 200 |
+| Hard | 15 (18) | 31 (38) | 85 (78) | 146 (142) | 172 (169) | 180 (180) | 200 |
+| Expert | 9 (11) | 38 (34) | 78 (78) | 131 (128) | 168 (168) | 176 (175) | 200 |
+
+**The Expert proof** (`bun scripts/home-run-top-bins-expert-proof.ts --game=homerun`): the first ten Expert innings,
+each scored through the server replay. A practice round at Expert deals one of these 120 seeds at random
+(`HOMERUN_DEAL_V5.expert`); a room at Expert deals `room seed % 120`.
+
+| Seed | Near-perfect | Elite | The elite run |
+|---|---|---|---|
+| 2009206361 | 137 | 149 | 14 runs, 10 home runs, 1 outs |
+| 1889868361 | 125 | 148 | 16 runs, 8 home runs, 0 outs |
+| 2190600 | 150 | 166 | 17 runs, 11 home runs, 0 outs |
+| 1235787910 | 136 | 136 | 13 runs, 9 home runs, 2 outs |
+| 1200536643 | 160 | 137 | 14 runs, 8 home runs, 2 outs |
+| 1184107813 | 117 | 133 | 14 runs, 7 home runs, 0 outs |
+| 2076974042 | 140 | 156 | 18 runs, 8 home runs, 1 outs |
+| 736148341 | 143 | 103 | 10 runs, 5 home runs, 2 outs |
+| 448486709 | 143 | 137 | 14 runs, 8 home runs, 0 outs |
+| 584028232 | 139 | 160 | 16 runs, 14 home runs, 0 outs |
+| Average | 139 | 143 | |
+
+**For when challenges have levels** (Joe, 16 Nov 2026; no change now): "Perfect ten" (the perfect streak's full 40)
+can't be done on Hard or Expert under human limits: the elite bot under them completes it on 95 % of Easy innings and
+80 % of Normal, but 0 % of Hard and Expert, since it needs the exact tick on the fastest pitches. When Practice
+challenges can be set per level, its Hard and Expert version should ask for five in a row instead. The other two hold
+up: Good eye 90 / 95 / 100 / 100 % and Out of the park 100 / 100 / 85 / 35 % (Easy / Normal / Hard / Expert, 20 seeds).
+
+Checks: homerun-innings-check (the deal, the count, the runners, contact, the plan, the replay, the bands),
+arcade-standard-check's entry, homerun-check (rev 1–4 unchanged).
+
 Shown as **Home Run** since 31 Oct 2026 (was Home Run Derby; the id `homerun` is unchanged). Rooms deal
 **homerunRev 4** since 3 Nov 2026 (section "homerunRev 4" at the end: a new way to bat, with its own plan and parts);
 rev 3 was dealt on 1 Nov 2026 and rev 2 on 31 Oct 2026 (their sections); everything above them describes rev 1, which

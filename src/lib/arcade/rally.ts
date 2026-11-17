@@ -9,6 +9,8 @@
  * rally plays out identically on the phone and on the server.
  */
 
+import { retroLevelSettings, withRetroLevel, type RallyLv } from "./retroLevels";
+import type { Level } from "@/lib/levels/levels";
 import {
   clampInt,
   inputRange,
@@ -115,6 +117,13 @@ export function rallyTargetLeft(spots: readonly number[], index: number): number
   return spots[index % spots.length] ?? RALLY_WALL;
 }
 
+/** The paddle's width a state plays with after `extra` more hits: its level's (stage 3 of the Retro overhaul), else Normal's. */
+export function rallyPaddleWOf(state: Pick<RallyState, "hits" | "goldHits"> & { lv?: RallyLv }, extra = 0): number {
+  const hits = rallyTotalHits(state as RallyState) + extra;
+  const lv = state.lv;
+  return lv ? Math.max(lv.paddleMin, lv.paddleStart - RALLY_PADDLE_SHRINK * hits) : rallyPaddleW(hits);
+}
+
 export function rallyPaddleW(hits: number): number {
   return Math.max(RALLY_PADDLE_MIN_W, RALLY_PADDLE_START_W - RALLY_PADDLE_SHRINK * hits);
 }
@@ -191,6 +200,18 @@ export interface RallyState extends BandFields {
   bonus?: RallyBonusTarget[];
   bonusHit?: number;
   bonusAt?: number;
+  /**
+   * rallyRev 13 only (the Retro overhaul, 15 Nov 2026): blue-ball lives left, the tick a lost blue ball relaunches
+   * on (0 while it is in play), spin scores (a curling ball striking a pink pad or a gold target) and the tick of the
+   * latest life lost and spin score (render only).
+   */
+  lives?: number;
+  /** Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. */
+  lv?: RallyLv;
+  relaunch?: number;
+  spinScores?: number;
+  lostAt?: number;
+  spinAt?: number;
 }
 
 /** rallyRev 10: one gold bonus target, fixed at init from the seed: when it appears and where (centre, whole px). */
@@ -278,7 +299,7 @@ function step(state: RallyState, input: ArcadeInputEvent | null): RallyState {
 
   let aimX = state.aimX;
   if (input && input.k === ARCADE_INPUT_DRAG) aimX = clampInt(input.a, 0, RALLY_WORLD_W);
-  const width = rallyPaddleW(rallyTotalHits(state));
+  const width = rallyPaddleWOf(state);
   const half = Math.trunc(width / 2);
   const paddleX = clampInt(aimX, RALLY_WALL + half, RALLY_WORLD_W - RALLY_WALL - half);
 
@@ -482,7 +503,7 @@ export function rallyCheckpointState(state: RallyState): RallyCheckpointState {
     hits: state.hits,
     goldHits: state.goldHits,
     golds: state.golds.length,
-    width: rallyPaddleW(rallyTotalHits(state)),
+    width: rallyPaddleWOf(state),
   };
 }
 
@@ -500,6 +521,8 @@ export function rallyCheckpoint(state: RallyState): RallyCheckpoint {
   if (state.worldH) values.push(state.worldH);
   // rallyRev 10 (the expansion): its own counters, last.
   if (state.exp) values.push(state.exp, state.worldW ?? 0, state.pv ?? 0, state.spin ?? 0, state.spun ?? 0, state.bonusHit ?? 0, ...(state.live ?? []));
+  // rallyRev 13 (the Retro overhaul): lives, the relaunch tick and spin scores, last.
+  if ((state.exp ?? 0) >= 4) values.push(state.lives ?? 0, state.relaunch ?? 0, state.spinScores ?? 0);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -534,7 +557,7 @@ function draw(ctx: CanvasRenderingContext2D, state: RallyState, size: CanvasSize
   ctx.lineTo(RALLY_WORLD_W - RALLY_WALL, worldH);
   ctx.stroke();
 
-  const width = rallyPaddleW(rallyTotalHits(state));
+  const width = rallyPaddleWOf(state);
   ctx.fillStyle = RALLY_GOLD;
   ctx.fillRect(state.paddleX - width / 2, rallyPaddleY(state), width, RALLY_PADDLE_H);
 
@@ -614,7 +637,9 @@ function initRev2(seed: number): RallyState {
 export const rallyRev2Game: ArcadeGame<RallyState, ArcadeInputEvent | null> = { ...rallyGame, init: initRev2 };
 
 /** Takes puzzle.rallyRev; anything else is the original game. */
-export function rallyGameFor(rev?: number | null): ArcadeGame<RallyState, ArcadeInputEvent | null> {
+export function rallyGameFor(rev?: number | null, level?: Level | null): ArcadeGame<RallyState, ArcadeInputEvent | null> {
+  // Stage 3 of the Retro overhaul: rallyRev 13 at a level (retroLevels.ts: lives, paddle, ball cap, bumpers).
+  if (rev === RALLY_REV_LIVES) return withRetroLevel(rallyLivesGame, retroLevelSettings("rally", level), (s, lv) => ({ ...s, lives: lv.lives }));
   if (rev === RALLY_REV_STD) return rallyStdGame;
   if (rev === RALLY_REV_CURVE) return rallyCurveGame;
   if (rev === RALLY_REV_BONUS) return rallyBonusGame;
@@ -757,13 +782,13 @@ export const rallyTallGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
 
 /** The court height (px) a stored round's rallyRev plays on. */
 export function rallyWorldHFor(rev?: number | null): number {
-  if (rev === RALLY_REV_BONUS || rev === RALLY_REV_CURVE || rev === RALLY_REV_STD) return RALLY_V10_H;
+  if (rev === RALLY_REV_BONUS || rev === RALLY_REV_CURVE || rev === RALLY_REV_STD || rev === RALLY_REV_LIVES) return RALLY_V10_H;
   return rev === RALLY_REV_TALL || rev === RALLY_REV_TARGET || rev === RALLY_REV_STRICT ? RALLY_TALL_H : RALLY_WORLD_H;
 }
 
 /** The court width (px) a stored round's rallyRev plays on. */
 export function rallyWorldWFor(rev?: number | null): number {
-  return rev === RALLY_REV_BONUS || rev === RALLY_REV_CURVE || rev === RALLY_REV_STD ? RALLY_V10_W : RALLY_WORLD_W;
+  return rev === RALLY_REV_BONUS || rev === RALLY_REV_CURVE || rev === RALLY_REV_STD || rev === RALLY_REV_LIVES ? RALLY_V10_W : RALLY_WORLD_W;
 }
 
 /* ================= Scoring targets (rallyRev 7, 18 Oct 2026) ================= */
@@ -1003,7 +1028,7 @@ function stepBonus(state: RallyState, input: ArcadeInputEvent | null): RallyStat
 
   let aimX = state.aimX;
   if (input && input.k === ARCADE_INPUT_DRAG) aimX = clampInt(input.a, 0, W);
-  const width = rallyPaddleW(rallyTotalHits(state));
+  const width = rallyPaddleWOf(state);
   const half = Math.trunc(width / 2);
   const paddleX = clampInt(aimX, RALLY_WALL + half, W - RALLY_WALL - half);
   // Smoothed paddle speed (1/256 px a tick): what a return's spin is made of.
@@ -1020,12 +1045,18 @@ function stepBonus(state: RallyState, input: ArcadeInputEvent | null): RallyStat
   let bumped = state.bumped ?? 0;
   let bonusHit = state.bonusHit ?? 0;
   let bonusAt = state.bonusAt ?? 0;
+  // rallyRev 13: spin scores, and whether the blue ball is waiting to relaunch (it neither moves nor misses then).
+  const lives13 = (state.exp ?? 0) >= RALLY_V13_EXP;
+  let spinScores = state.spinScores ?? 0;
+  let spinAt = state.spinAt ?? 0;
+  const waiting = lives13 && (state.relaunch ?? 0) > tick;
   // The target up this tick (decided before any ball moves, so every ball sees the same one).
   const up = rallyBonusNow(state, tick);
   const target = up >= 0 ? state.bonus![up]! : null;
   const bumpers: { x: number; y: number }[] = [];
-  if (tick >= RALLY_BUMPER_FROM && state.bumper) bumpers.push(state.bumper);
-  if (tick >= RALLY_BUMPER2_FROM && state.bumper2) bumpers.push(state.bumper2);
+  // A level (stage 3 of the Retro overhaul) brings the bumpers in at its own times.
+  if (tick >= (state.lv ? state.lv.bumper1S * TICKS_PER_SECOND : RALLY_BUMPER_FROM) && state.bumper) bumpers.push(state.bumper);
+  if (tick >= (state.lv ? state.lv.bumper2S * TICKS_PER_SECOND : RALLY_BUMPER2_FROM) && state.bumper2) bumpers.push(state.bumper2);
   const top = (RALLY_HUD_H + RALLY_WALL) * 256;
   const leftWall = RALLY_WALL * 256;
   const rightWall = (W - RALLY_WALL) * 256;
@@ -1096,6 +1127,10 @@ function stepBonus(state: RallyState, input: ArcadeInputEvent | null): RallyStat
               targetHits += 1;
               struckTick = tick;
               struckLeft = left;
+              if (lives13 && spun) {
+                spinScores += 1;
+                spinAt = tick;
+              }
               // The pad jumps to its own half's next seeded spot (the same list for every player).
               live[k] = live[k]! + RALLY_TARGETS_LIVE;
               break;
@@ -1117,6 +1152,10 @@ function stepBonus(state: RallyState, input: ArcadeInputEvent | null): RallyStat
         if (Math.abs(dx) < reachT && Math.abs(dy) < reachT && dx * dx + dy * dy <= reachT * reachT) {
           bonusHit |= 1 << up;
           bonusAt = tick;
+          if (lives13 && spun) {
+            spinScores += 1;
+            spinAt = tick;
+          }
         }
       }
 
@@ -1150,7 +1189,7 @@ function stepBonus(state: RallyState, input: ArcadeInputEvent | null): RallyStat
         if (offset >= -RALLY_BALL_R && offset <= width + RALLY_BALL_R) {
           if (gold) goldHits += 1;
           else hits += 1;
-          speed = Math.min(RALLY_SPEED_CAP, Math.trunc((speed * 103) / 100));
+          speed = Math.min(state.lv ? Math.trunc((RALLY_SPEED_CAP * state.lv.capPct) / 100) : RALLY_SPEED_CAP, Math.trunc((speed * 103) / 100));
           const fromCentre = Math.round(offset - half);
           const steered = setLength(Math.trunc((fromCentre * 256) / Math.max(1, half)) + Math.trunc(vx / 4), -Math.max(RALLY_MIN_VY, Math.abs(vy)), speed);
           vx = steered.vx;
@@ -1173,7 +1212,7 @@ function stepBonus(state: RallyState, input: ArcadeInputEvent | null): RallyStat
     return { x, y, vx, vy, spin, spun };
   };
 
-  const main = move({ x: next.x, y: next.y, vx: next.vx, vy: next.vy, spin: state.spin ?? 0, spun: state.spun ?? 0 }, false);
+  const main = waiting ? { x: next.x, y: next.y, vx: next.vx, vy: next.vy, spin: 0, spun: 0 } : move({ x: next.x, y: next.y, vx: next.vx, vy: next.vy, spin: state.spin ?? 0, spun: state.spun ?? 0 }, false);
   if (main === null) next.dead = true;
   else {
     next.x = main.x;
@@ -1204,6 +1243,10 @@ function stepBonus(state: RallyState, input: ArcadeInputEvent | null): RallyStat
   next.bumped = bumped;
   next.bonusHit = bonusHit;
   next.bonusAt = bonusAt;
+  if (lives13) {
+    next.spinScores = spinScores;
+    next.spinAt = spinAt;
+  }
   if (next.dead || tick >= RALLY_RUN_TICKS) next.endedTick = tick;
   return next;
 }
@@ -1338,6 +1381,7 @@ export const RALLY_STD_SPEC: StdSpec = {
 
 /** rallyRev 12's parts (null on any other revision). */
 export function rallyStdParts(state: RallyState): StdPart[] | null {
+  if ((state.exp ?? 0) >= RALLY_V13_EXP) return rallyV13Parts(state);
   if ((state.exp ?? 0) < RALLY_V12_EXP) return null;
   const gold = state.goldHits;
   const pads = state.targetHits ?? 0;
@@ -1355,7 +1399,7 @@ export function rallyStdBandParts(state: RallyState): BandParts {
   return {
     units: state.goldHits,
     points: parts[0]!.points,
-    bonus: parts[1]!.points + parts[2]!.points,
+    bonus: parts.slice(1).reduce((sum, p) => sum + p.points, 0),
     penalty: 0,
     finished: false,
     text: `${state.goldHits} gold hits · ${state.targetHits ?? 0} pads · ${state.hits} returns`,
@@ -1373,3 +1417,104 @@ export const rallyStdGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
 export function rallyBonusPtsOf(state: Pick<RallyState, "exp">): number {
   return (state.exp ?? 0) >= RALLY_V12_EXP ? RALLY_V12_TARGET_PTS : RALLY_V10_BONUS_PTS;
 }
+
+/* ================= The Retro overhaul: lives and spin scores (rallyRev 13, 15 Nov 2026) ================= */
+
+/**
+ * rallyRev 13 (the Retro overhaul, docs/design/game-reviews/retro.md "Rally", docs/arcade-standard/rally.md "rallyRev
+ * 13"): rallyRev 12's court, balls, pads, bumpers, targets, spin and timings, with two changes, the same for every player:
+ *
+ *  - Lives. Missing the blue ball no longer ends the run while a life is left (RALLY_V13_LIVES, 2 at Normal: the first
+ *    miss is forgiven). The lost ball waits RALLY_V13_RELAUNCH ticks at the serve spot (gold balls, pads, targets and the
+ *    clock carry on), then serves upwards again at its current speed with a sideways lean from the seeded stream. The
+ *    run ends on the miss that takes the last life, or at the buzzer.
+ *  - Spin scores. A ball still curving from a spun return (a swipe at contact) that strikes a pink pad or a gold target
+ *    is a spin score: RALLY_V13_SPIN_PTS each, up to RALLY_V13_SPIN_MAX.
+ *
+ * Score (arcadeStandard.ts): gold-ball hits on a straight line to 130 (full at RALLY_V12_FULL_AT), pink pads 3 each up
+ * to 30, gold targets 5 each (30), spin scores 2 each up to 10. Init draws exactly rallyRev 10's stream; states carry
+ * `exp: 4` and `lives`, folded into the checkpoint.
+ */
+export const RALLY_REV_LIVES = 13;
+/** rallyRev 13's state marker (`exp`). */
+export const RALLY_V13_EXP = 4;
+export const RALLY_V13_LIVES = 2;
+/** Ticks a lost blue ball waits at the serve spot before it serves again (1.5 s). */
+export const RALLY_V13_RELAUNCH = 90;
+export const RALLY_V13_CORE_MAX = 130;
+export const RALLY_V13_SPIN_PTS = 2;
+export const RALLY_V13_SPIN_MAX = 10;
+/** The serve spot (px): the court's centre line, 140 px below the HUD (rallyRev 10's opening). */
+export const RALLY_V13_SERVE_Y = RALLY_HUD_H + 140;
+
+export const RALLY_V13_BAND_CURVE = bandCurve([0, RALLY_V12_FULL_AT], [0, RALLY_V13_CORE_MAX]);
+
+export const RALLY_STD_SPEC_V13: StdSpec = {
+  field: "rallyRev",
+  rev: RALLY_REV_LIVES,
+  parts: [
+    { key: "core", label: "Gold-ball hits", max: RALLY_V13_CORE_MAX, how: `hit gold balls back, all of it for ${RALLY_V12_FULL_AT} hits` },
+    { key: "pads", label: "Pink pads", max: RALLY_V12_PADS_MAX, how: `${RALLY_V12_PAD_PTS} each time a gold ball strikes a pink pad` },
+    { key: "targets", label: "Gold targets", max: RALLY_V12_TARGETS_MAX, how: `${RALLY_V12_TARGET_PTS} for each of the ${RALLY_V10_BONUS_COUNT} gold targets hit` },
+    { key: "spin", label: "Spin shots", max: RALLY_V13_SPIN_MAX, how: `${RALLY_V13_SPIN_PTS} each time a ball you swiped into a curve strikes a pink pad or a gold target` },
+  ],
+};
+
+/** rallyRev 13's parts (null on any other revision). */
+export function rallyV13Parts(state: RallyState): StdPart[] | null {
+  if ((state.exp ?? 0) < RALLY_V13_EXP) return null;
+  const gold = state.goldHits;
+  const pads = state.targetHits ?? 0;
+  const targets = rallyBonusCount(state);
+  const spins = state.spinScores ?? 0;
+  return [
+    // A level (stage 3 of the Retro overhaul) asks for its own count of gold-ball hits.
+    stdPart(RALLY_STD_SPEC_V13, "core", stdLine(RALLY_V13_CORE_MAX, gold, state.lv?.fullAt ?? RALLY_V12_FULL_AT), `${gold} gold-ball hit${gold === 1 ? "" : "s"}`),
+    stdPart(RALLY_STD_SPEC_V13, "pads", stdEach(pads, RALLY_V12_PAD_PTS, RALLY_V12_PADS_MAX), `${pads} pink pad${pads === 1 ? "" : "s"}`),
+    stdPart(RALLY_STD_SPEC_V13, "targets", stdEach(targets, RALLY_V12_TARGET_PTS, RALLY_V12_TARGETS_MAX), `${targets} of ${RALLY_V10_BONUS_COUNT}`),
+    stdPart(RALLY_STD_SPEC_V13, "spin", stdEach(spins, RALLY_V13_SPIN_PTS, RALLY_V13_SPIN_MAX), `${spins} spin shot${spins === 1 ? "" : "s"}`),
+  ];
+}
+
+/** The lives a rallyRev 13 state starts with. */
+export function rallyLivesOf(state: Pick<RallyState, "exp" | "lives">): number | null {
+  return (state.exp ?? 0) >= RALLY_V13_EXP ? (state.lives ?? 0) : null;
+}
+
+function stepLives(state: RallyState, input: ArcadeInputEvent | null): RallyState {
+  if (isOver(state)) return state;
+  const next = stepBonus(state, input);
+  const tick = next.tick;
+  // The relaunch: the waiting ball serves upwards from the serve spot at its current speed.
+  if ((state.relaunch ?? 0) > 0 && tick >= (state.relaunch ?? 0) && !next.dead) {
+    const d = rngBelow(next.rng, 2 * 160 + 1);
+    const serve = setLength(d.value - 160, -256, next.speed);
+    return { ...next, rng: d.state, vx: serve.vx, vy: serve.vy, relaunch: 0 };
+  }
+  // A miss with a life to spare: park the ball at the serve spot and wait.
+  if (next.dead && (state.lives ?? 0) > 1 && tick < RALLY_RUN_TICKS) {
+    return {
+      ...next,
+      dead: false,
+      endedTick: 0,
+      lives: (state.lives ?? 0) - 1,
+      lostAt: tick,
+      relaunch: tick + RALLY_V13_RELAUNCH,
+      x: Math.round(RALLY_V10_W / 2) * 256,
+      y: RALLY_V13_SERVE_Y * 256,
+      vx: 0,
+      vy: 0,
+      spin: 0,
+      spun: 0,
+    };
+  }
+  if (next.dead) return { ...next, lives: 0, lostAt: tick };
+  return next;
+}
+
+export const rallyLivesGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
+  ...rallyBonusGame,
+  init: (seed) => ({ ...rallyBonusInit(seed, RALLY_V13_EXP), lives: RALLY_V13_LIVES, relaunch: 0, spinScores: 0, lostAt: 0, spinAt: 0 }),
+  step: bandStep(stepLives),
+  score: (state) => stdScore(rallyV13Parts(state)!, Boolean(state.acted)),
+};

@@ -1,11 +1,13 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
+import { strategyImage } from "./strategyArt";
+import { fxAmount, fxMemory, strategyFx } from "./strategyFx";
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { inkBridgeFxFor } from "./arcadeFxGames.renderer";
 import { reducedMotion } from "./art.renderer";
 /** Rainbow Ink Bridge. Presentation only; all geometry comes from the unchanged sim. */
 import type { CanvasSize } from './engine';
-import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkBudgetFor, inkIsLive, inkWorldH, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_CLOUD_HW, INK_CLOUD_R, INK_FAILS, INK_LEVELS, inkClover, inkNoDrawZone, INK_LIVE_PRE_CAP, INK_SHAMROCK_R, INK_SILVER_R, INK_STAR_R, INK_WORLD_H, INK_WORLD_W, type InkCloud, type InkState, type InkWind } from './inkBridge';
+import { inkBridgeGame, inkBridgeGameFor, inkBlockH, inkBucketX, inkBudget, inkBudgetFor, inkBudgetNow, inkBirdDx, inkIsLive, inkLiveNow, inkWorldH, INK_BLOCK_H, INK_BUCKET_H, INK_BUCKET_W, INK_CLOUD_HW, INK_CLOUD_R, INK_FAILS, INK_LEVELS, inkClover, inkNoDrawZone, INK_LIVE_PRE_CAP, INK_SHAMROCK_R, INK_SILVER_R, INK_STAR_R, INK_REV_HILLS, INK_WORLD_H, INK_WORLD_W, type InkCloud, type InkState, type InkWind } from './inkBridge';
 import { artCanvas, artContext, type ArtCanvas } from './cache.renderer';
 import { sceneBelow, sceneBlades, sceneFill, sceneSides, type ArenaSceneView } from './arenaScene.renderer';
 import { artHash } from './art.renderer';
@@ -43,9 +45,27 @@ function birdFrame(c: CanvasRenderingContext2D, f: number): void {
   c.fillStyle = 'rgba(38,49,63,0.16)'; c.beginPath(); c.ellipse(16, 9.2, 3.6, 2.2, 0, 0, Math.PI * 2); c.fill();
 }
 /** A flock filling the obstacle box exactly, flapping in place. */
-function drawBirds(c: CanvasRenderingContext2D, b: { x0: number; x1: number; y: number }, h: number, tick: number): void {
+function drawBirds(c: CanvasRenderingContext2D, b: { x0: number; x1: number; y: number }, h: number, tick: number, scared?: (i: number, cx: number, cy: number, w: number) => number): void {
+  const len = b.x1 - b.x0;
   // inkRev 14's thicker birds (10 px) keep the cell's shape: one bird every 24 px of the box (18 px at 6.5 px and below).
-  const len = b.x1 - b.x0, n = Math.max(1, Math.round(len / (h > 7 ? 24 : 18))), w = len / n;
+  // inkRev 15 (the Strategy overhaul, 14 px birds): bigger birds, one every 36 px or so, filling the box exactly
+  // (what is drawn is what collides), each flapping on its own beat so the flock reads loose, not as a row.
+  if (h > 12) {
+    const n15 = Math.max(1, Math.round(len / 36)), w15 = len / n15;
+    for (let i = 0; i < n15; i++) {
+      // The Strategy overhaul, stage 2: a bird the coin passed close to beats its wings fast for a moment and lifts
+      // a pixel (inside the arcade bounds rule), shedding a feather (scared: 0 calm, up to 1 just passed).
+      const fright = scared ? scared(i, b.x0 + i * w15 + w15 / 2, b.y + h / 2, w15) : 0;
+      const f = Math.floor((tick + ((i * 11 + Math.round(b.x0)) % 13)) / (fright > 0 ? 3 : 8)) % 4;
+      const lift = fright * 1.5;
+      if (fright > 0.2) { c.fillStyle = `rgba(255,255,255,${0.7 * fright})`; c.beginPath(); c.ellipse(b.x0 + i * w15 + w15 * 0.5 + (1 - fright) * 6, b.y + h + (1 - fright) * 10, 2.2, 1, 0.6, 0, Math.PI * 2); c.fill(); }
+      const img = sprite(`bird${f}`, 64, 26, (m) => { m.scale(2, 2); birdFrame(m, f); });
+      if (img) c.drawImage(img, b.x0 + i * w15, b.y - lift, w15, h);
+      else { c.save(); c.translate(b.x0 + i * w15, b.y); c.scale(w15 / 32, h / 13); birdFrame(c, f); c.restore(); }
+    }
+    return;
+  }
+  const n = Math.max(1, Math.round(len / (h > 7 ? 24 : 18))), w = len / n;
   for (let i = 0; i < n; i++) {
     const f = Math.floor((tick + i * 5) / 7) % 4;
     const img = sprite(`bird${f}`, 64, 26, (m) => { m.scale(2, 2); birdFrame(m, f); });
@@ -76,6 +96,9 @@ function stamp(c: CanvasRenderingContext2D, key: string, w: number, h: number, x
   if (image) c.drawImage(image, x, y, w, h);
   else { c.save(); c.translate(x, y); draw(c); c.restore(); }
 }
+/** Captain Joulz by the pot: his drawn height (world px) and how long he cheers after a coin lands in the pot (ticks). */
+export const INK_CAPTAIN_H = 70;
+export const INK_CAPTAIN_CHEER_TICKS = 75;
 function leprechaun(c:CanvasRenderingContext2D):void {
  c.fillStyle='#183F36';c.fillRect(6,14,10,10);c.fillRect(5,27,6,3);c.fillRect(13,27,6,3);
  c.fillStyle='#557F48';c.fillRect(7,22,3,5);c.fillRect(13,22,3,5);
@@ -121,11 +144,29 @@ function drawClover(c: CanvasRenderingContext2D, x: number, y: number, r: number
 }
 export function pot(c: CanvasRenderingContext2D): void {
   // Exact body rectangle and opening width; only the authoritative rim caps protrude.
-  c.fillStyle = POT; c.beginPath(); c.moveTo(0,0); c.lineTo(64,0); c.lineTo(64,19); c.quadraticCurveTo(64,36,48,36); c.lineTo(16,36); c.quadraticCurveTo(0,36,0,19); c.closePath(); c.fill();
-  c.fillStyle = POT_EDGE; c.fillRect(2,8,2,16); c.fillRect(60,8,2,16);
-  c.fillStyle = GOLD_EDGE; c.fillRect(4,2,56,6);
-  for (let i=0;i<9;i++) { c.fillStyle = i%2 ? GOLD : SHINE; c.beginPath(); c.ellipse(7+i*6.2,4,3,2,0.2*(i%3),0,Math.PI*2); c.fill(); }
-  c.fillStyle = POT_EDGE; c.fillRect(0,0,64,2);
+  // The Strategy overhaul (15 Nov 2026, display only, every revision): a rendered cast-iron pot of gold: a rounded
+  // iron body lit from the upper left with a soft (never glaring) highlight, a thick rim band, and a heaped mound of
+  // gold coins, each with its own edge and shine, all inside the 64 × 36 body.
+  const body = c.createRadialGradient(18, 12, 2, 30, 20, 44);
+  body.addColorStop(0, '#5A606B'); body.addColorStop(0.35, '#2C3038'); body.addColorStop(1, '#0B0C10');
+  c.fillStyle = body; c.beginPath(); c.moveTo(0,0); c.lineTo(64,0); c.lineTo(64,19); c.quadraticCurveTo(64,36,48,36); c.lineTo(16,36); c.quadraticCurveTo(0,36,0,19); c.closePath(); c.fill();
+  c.fillStyle = 'rgba(255,255,255,0.14)'; c.beginPath(); c.ellipse(15,20,4,9,0.15,0,Math.PI*2); c.fill();
+  c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(2,24,60,2);
+  // The heap of coins in the mouth: back row, then front row, each coin a lit ellipse with a darker edge.
+  const coinAt = (x: number, y: number, r: number, k: number) => {
+    const g = c.createLinearGradient(x - r, y - r, x + r, y + r);
+    g.addColorStop(0, '#FFF2B8'); g.addColorStop(0.45, k % 2 ? '#F2C24A' : '#FFD45E'); g.addColorStop(1, '#B07A1C');
+    c.fillStyle = g; c.beginPath(); c.ellipse(x, y, r, r * 0.62, 0.15 * (k % 3), 0, Math.PI * 2); c.fill();
+    c.strokeStyle = 'rgba(120,76,10,0.8)'; c.lineWidth = 0.6; c.stroke();
+  };
+  for (let i = 0; i < 8; i++) coinAt(8 + i * 6.8, 4.2 - (i % 2) * 0.8, 3.4, i);
+  for (let i = 0; i < 7; i++) coinAt(11 + i * 7, 6.6, 3.6, i + 1);
+  c.fillStyle = 'rgba(255,255,240,0.85)'; c.fillRect(26,3,2,1); c.fillRect(41,4,1.5,1);
+  // The rim band.
+  const rim = c.createLinearGradient(0, 7, 0, 11);
+  rim.addColorStop(0, '#4A505A'); rim.addColorStop(1, '#16181D');
+  c.fillStyle = rim; c.fillRect(0,8,64,3);
+  c.fillStyle = POT_EDGE; c.fillRect(0,0,64,1.5);
 }
 /** Polish A2: a soft round glow (cached once per colour), for the coin and the pot's gold. */
 function glowSprite(key: string, rgb: string): ArtCanvas | null {
@@ -141,14 +182,15 @@ function drawGlow(c: CanvasRenderingContext2D, key: string, rgb: string, x: numb
   if (!g) return;
   c.globalAlpha = alpha; c.drawImage(g, x - rx, y - ry, rx * 2, ry * 2); c.globalAlpha = 1;
 }
-export function drawPot(c: CanvasRenderingContext2D, x: number, y: number, flash: boolean): void {
+export function drawPot(c: CanvasRenderingContext2D, x: number, y: number, flash: boolean, w: number = INK_BUCKET_W): void {
   // Polish A2: the gold glowing out of the pot's mouth (behind the pot, above its rim).
   const t = countryClock();
   drawGlow(c, 'gold', '255,214,80', x, y + 2, 46, 24, 0.75 + 0.15 * Math.sin(t * 2.2));
-  stamp(c,'pot',INK_BUCKET_W,INK_BUCKET_H,x-INK_BUCKET_W/2,y,pot);
+  // Stage 3: a level's own pot width, the same art drawn to its rim caps (its own sprite key; today's 64 px unchanged).
+  stamp(c,w===INK_BUCKET_W?'pot':`pot-${w}`,w,INK_BUCKET_H,x-w/2,y,(m)=>{ if(w===INK_BUCKET_W)pot(m); else { m.save(); m.scale(w/INK_BUCKET_W,1); pot(m); m.restore(); } });
   c.fillStyle = POT;
-  for (const rx of [x-INK_BUCKET_W/2,x+INK_BUCKET_W/2]) { c.beginPath(); c.arc(rx,y,RIM_R,0,Math.PI*2); c.fill(); }
-  if (flash) { c.fillStyle = SHINE; c.globalAlpha=0.6; c.fillRect(x-28,y+2,56,5); c.globalAlpha=1; }
+  for (const rx of [x-w/2,x+w/2]) { c.beginPath(); c.arc(rx,y,RIM_R,0,Math.PI*2); c.fill(); }
+  if (flash) { c.fillStyle = SHINE; c.globalAlpha=0.6; c.fillRect(x-w/2+4,y+2,w-8,5); c.globalAlpha=1; }
 }
 /** Failure classification reads the recorded failed position, never changes physics. */
 export function inkFailedOnBlock(state: InkState): boolean {
@@ -156,7 +198,8 @@ export function inkFailedOnBlock(state: InkState): boolean {
   if (state.flashKind !== 2 || !b || !lvl) return false;
   const x=b.x/FP,y=b.y/FP;
   return lvl.blocks.some(block => {
-    const dx=x-Math.max(block.x0,Math.min(block.x1,x));
+    const sx=inkBirdDx(lvl,block,state.flashTick);
+    const dx=x-Math.max(block.x0+sx,Math.min(block.x1+sx,x));
     const dy=y-Math.max(block.y,Math.min(block.y+inkBlockH(block),y));
     const r=lvl.ballR??BALL_R;
     return dx*dx+dy*dy<=r*r;
@@ -178,15 +221,15 @@ function paintBridge(c: CanvasRenderingContext2D,state:InkState):void {
     c.strokeStyle=rainbow(c,s.x0,s.y0,s.x1,s.y1,distance,len);
     c.beginPath();c.moveTo(s.x0,s.y0);c.lineTo(s.x1,s.y1);c.stroke();distance+=len;
   }
-  // Polish A2: a shine line along the ink, a thin white highlight on its upper side (inside the 6 px stroke).
-  c.lineWidth=1.4;c.strokeStyle='rgba(255,255,255,0.5)';
-  c.beginPath();
-  for(const s of state.segs){
+  // The Strategy overhaul (15 Nov 2026, display only): the ink as a glossy glass tube, all inside the 6 px stroke: a
+  // shade along its lower side, then a crisp white highlight on its upper side (Polish A2's shine, now sharper).
+  const along=(off:number)=>{c.beginPath();for(const s of state.segs){
     if(!s)continue;const len=Math.hypot(s.x1-s.x0,s.y1-s.y0);if(!len)continue;
     let nx=-(s.y1-s.y0)/len,ny=(s.x1-s.x0)/len;if(ny>0){nx=-nx;ny=-ny;}
-    c.moveTo(s.x0+nx*1.4,s.y0+ny*1.4);c.lineTo(s.x1+nx*1.4,s.y1+ny*1.4);
-  }
-  c.stroke();
+    c.moveTo(s.x0+nx*off,s.y0+ny*off);c.lineTo(s.x1+nx*off,s.y1+ny*off);
+  }c.stroke();};
+  c.lineWidth=1.6;c.strokeStyle='rgba(20,10,40,0.28)';along(-1.9);
+  c.lineWidth=1.3;c.strokeStyle='rgba(255,255,255,0.86)';along(1.5);
 }
 type BridgeCache={surface:ArtCanvas|null;segs:InkState['segs'];starts:InkState['strokeStarts'];k:number;h:number};
 const bridges=new WeakMap<CanvasRenderingContext2D,BridgeCache>();
@@ -316,8 +359,28 @@ function inkGroundPath(c: CanvasRenderingContext2D, base: number, x: number, H =
 }
 /** Sprite keys for the world-sized layers: the 620 world keeps its original keys. */
 const sizedKey = (key: string, H: number) => (H === INK_WORLD_H ? key : `${key}${H}`);
+/**
+ * The Strategy overhaul (inkRev 15, display only): the sky turns from day to sunset over the ten levels, the same for
+ * every player (from the level reached alone): 0 on level 1, 1 on level 10.
+ */
+export function inkSunset(state: { rev?: number | undefined; level: number }): number {
+  return state.rev === INK_REV_HILLS ? Math.max(0, Math.min(1, state.level / (INK_LEVELS - 1))) : 0;
+}
+/** The sunset wash over the sky (world y 0…H), at strength k (0–1): navy above, rose, then peach at the horizon. */
+export function inkSunsetWash(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, H: number, k: number): void {
+  if (k <= 0 || w <= 0 || h <= 0) return;
+  const g = c.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, `rgba(24,30,78,${0.78 * k})`);
+  g.addColorStop(0.45, `rgba(170,96,138,${0.5 * k})`);
+  g.addColorStop(0.8, `rgba(255,162,104,${0.55 * k})`);
+  g.addColorStop(1, `rgba(255,196,140,${0.5 * k})`);
+  c.fillStyle = g;
+  c.fillRect(x, y, w, h);
+}
+let sunsetNow = 0;
 function drawInkBackdrop(c: CanvasRenderingContext2D, H = INK_WORLD_H): void {
   stamp(c,sizedKey('inksky',H),INK_WORLD_W,H,0,0,(m)=>inkSky(m,H));
+  inkSunsetWash(c, 0, 0, INK_WORLD_W, H, H, sunsetNow);
   const t=countryClock();
   for(const [x,y,f,a] of [[38,100,0.55,0.75],[278,146,0.7,0.8],[152,218,0.4,0.6],[300,300,0.35,0.5],[70,350,0.3,0.45]] as const) {
     c.save();c.globalAlpha=a;c.translate(x+Math.sin(t*0.08+y)*5,y);c.scale(f,f);
@@ -479,17 +542,45 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   const scale=Math.min(size.width/INK_WORLD_W,size.height/H);
   c.save();c.fillStyle=SKY;c.fillRect(0,0,size.width,size.height);
   c.translate((size.width-INK_WORLD_W*scale)/2,(size.height-H*scale)/2);c.scale(scale,scale);
+  sunsetNow = inkSunset(state);
   drawInkBackdrop(c,H);
   // Background only, below the pot opening and every level block; touchable art paints above it.
   const bx=inkBucketX(lvl,state.tick), base=lvl.bucketY+INK_BUCKET_H;
   drawInkGround(c,base,bx,H);
   const lx=Math.min(INK_WORLD_W-24,Math.max(2,bx+40));
+  // Captain Joulz stands just clear of the pot (Joe, 15 Nov: about 70 px tall), on its right, or on its left where the
+  // pot is near the right edge; the old figure keeps its place.
+  const potHalfW=(lvl.potW??INK_BUCKET_W)/2,capW=INK_CAPTAIN_H*0.5,capRight=bx+potHalfW+6+capW/2<=INK_WORLD_W-capW/2-2;
+  const capX=capRight?bx+potHalfW+6+capW/2:bx-potHalfW-6-capW/2;
   // Polish A2: his soft shadow on the grass.
-  c.fillStyle='rgba(20,60,25,0.28)';c.beginPath();c.ellipse(lx+11,base+2.5,11,2.6,0,0,Math.PI*2);c.fill();
-  stamp(c,"leprechaun",22,30,lx,base-27,leprechaun);
+  const shadowX=strategyImage("inkbridge-captain-ready")?capX:lx+11,shadowR=strategyImage("inkbridge-captain-ready")?17:11;
+  c.fillStyle='rgba(20,60,25,0.28)';c.beginPath();c.ellipse(shadowX,base+2.5,shadowR,3,0,0,Math.PI*2);c.fill();
+  // The Strategy overhaul (stage 2, Joe: Captain Joulz by the pot): the 3D Captain (PR #423's model, rendered by
+  // strategy_art.py) waits by the pot and cheers, arms up, for 1.25 s after the coin lands in it; display only, every
+  // revision. The old figure is drawn only until his images have loaded (and in checks, where there is no Image).
+  const cheering=state.flashKind===1&&state.tick-state.flashTick>=0&&state.tick-state.flashTick<INK_CAPTAIN_CHEER_TICKS;
+  const captain=strategyImage(cheering?"inkbridge-captain-win":"inkbridge-captain-ready");
+  if(captain){const h=INK_CAPTAIN_H,w=h*captain.naturalWidth/captain.naturalHeight;c.save();if(!capRight){c.translate(capX*2,0);c.scale(-1,1);}c.drawImage(captain,capX-w/2,base+2-h,w,h);c.restore();}
+  else stamp(c,"leprechaun",22,30,lx,base-27,leprechaun);
   countryStamp(c,'inkcloud',48,26,lvl.spoutX-24,19,inkCloud);
+  // The Strategy overhaul, stage 2 (display only; the kit's variants, strategyFx.ts): memory of this drop for the coin's
+  // wobble on release, the birds it passes close to, and a miss falling away.
+  const fxm=fxMemory(c,"ink-strategy",state.tick,()=>({tick:-1,dropping:0,release:-1000,passes:new Map<string,number>()}));
+  if(state.tick!==fxm.tick){ if(state.dropping&&!fxm.dropping)fxm.release=state.tick; fxm.dropping=state.dropping?1:0; fxm.tick=state.tick; }
+  const birdFx=strategyFx("nearMiss");
   for(const b of lvl.blocks) {
-    if(b.h){drawBirds(c,b,inkBlockH(b),state.tick);continue;}
+    if(b.h){
+      const bh=inkBlockH(b);
+      // Stage 3 (Expert): a swaying bird drawn where it is on this tick (its box exactly; the effect keyed by its place).
+      const dx=inkBirdDx(lvl,b,state.tick);
+      drawBirds(c,dx?{...b,x0:b.x0+dx,x1:b.x1+dx}:b,bh,state.tick,birdFx==="reduced"?undefined:(i,cx,cy,w)=>{
+        const key=`${b.x0},${b.y},${i}`;
+        if(state.dropping&&Math.hypot(state.ball.x/FP-cx,state.ball.y/FP-cy)<w/2+26)fxm.passes.set(key,state.tick);
+        const at=fxm.passes.get(key);const age=at===undefined?99:state.tick-at;
+        return age<40?(1-age/40)*fxAmount(birdFx):0;
+      });
+      continue;
+    }
     // Fully fill all 4px of every hazard, never an inset silhouette.
     c.fillStyle=RED;c.fillRect(b.x0,b.y,b.x1-b.x0,INK_BLOCK_H);
     c.fillStyle=RED_EDGE;c.fillRect(b.x0,b.y+INK_BLOCK_H-1,b.x1-b.x0,1);
@@ -497,7 +588,20 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   // inkRev 10: this level's wind zone (behind everything it pushes) and bounce clouds (drawn to their capsules).
   if(lvl.wind)drawWind(c,lvl.wind,state.tick);
   if(lvl.clouds)drawBounceClouds(c,lvl.clouds,state);
-  drawPot(c,inkBucketX(lvl,state.tick),lvl.bucketY,state.flashKind===1&&state.tick-state.flashTick<20);
+  drawPot(c,inkBucketX(lvl,state.tick),lvl.bucketY,state.flashKind===1&&state.tick-state.flashTick<20,lvl.potW??INK_BUCKET_W);
+  // The Strategy overhaul, stage 2 (display only): a potted coin sends a small burst of rainbow coins up out of the pot
+  // for half a second (fixed arcs, the same every time), then they fall back in.
+  if(state.flashKind===1&&state.tick-state.flashTick>=0&&state.tick-state.flashTick<30&&!reducedMotion()&&!arcadeReducedEffects()){
+    const age=state.tick-state.flashTick,px=inkBucketX(lvl,state.tick),py=lvl.bucketY+4;
+    const hues=['#FF5A5A','#FFB23E','#FFE14D','#5BD66B','#4DA6FF','#9C6BFF'];
+    for(let i=0;i<6;i++){
+      const vx=(i-2.5)*0.9,vy=-3.4-(i%3)*0.5,x=px+vx*age,y=py+vy*age+0.16*age*age;
+      if(y>py+2)continue;
+      c.globalAlpha=Math.max(0,1-age/30);c.fillStyle=hues[i]!;c.beginPath();c.arc(x,y,3,0,Math.PI*2);c.fill();
+      c.fillStyle='rgba(255,255,255,0.7)';c.beginPath();c.arc(x-0.9,y-0.9,1,0,Math.PI*2);c.fill();
+    }
+    c.globalAlpha=1;
+  }
   // Rev 4: this level's gold star, until the coin in flight touches it (then it rides as a glow).
   if(lvl.star){ if(!state.starGot) stamp(c,'star',INK_STAR_R*2,INK_STAR_R*2,lvl.star.x-INK_STAR_R,lvl.star.y-INK_STAR_R,goldStar); else { c.save();c.globalAlpha=0.5;c.strokeStyle=GOLD;c.lineWidth=2;c.beginPath();c.arc(state.ball.x/FP,state.ball.y/FP,BALL_R+4,0,Math.PI*2);c.stroke();c.restore(); } }
   // inkRev 10: silver coins and the shamrock, until the coin in flight takes them.
@@ -509,12 +613,21 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
   }
   const ballR=lvl.ballR??BALL_R;
   drawGlow(c,'gold','255,214,80',state.ball.x/FP,state.ball.y/FP,ballR*2.4,ballR*2.4,0.7);
-  drawCoin(c,state.ball.x/FP,state.ball.y/FP,ballR);
+  {
+    const bx0=state.ball.x/FP,by0=state.ball.y/FP,coinFx=strategyFx("drop"),amt=fxAmount(coinFx),age=state.tick-fxm.release;
+    // A miss: once the coin is below the pot's rim and still falling, pale speed lines over it as it falls away.
+    const falling=state.dropping&&by0>lvl.bucketY+INK_BUCKET_H+8;
+    if(falling&&amt){c.strokeStyle='rgba(255,255,255,0.45)';c.lineWidth=1.5;c.lineCap='round';for(const dx of [-ballR*0.6,0,ballR*0.6]){c.beginPath();c.moveTo(bx0+dx,by0-ballR-4);c.lineTo(bx0+dx,by0-ballR-4-10*amt);c.stroke();}}
+    // On release the coin wobbles on its edge for a moment (turned about its centre: what collides is unchanged).
+    const wob=state.dropping&&age>=0&&age<14?Math.sin(age*1.5)*0.35*amt*(1-age/14):falling?state.tick*0.25*amt:0;
+    if(wob){c.save();c.translate(bx0,by0);c.rotate(wob);c.translate(-bx0,-by0);drawCoin(c,bx0,by0,ballR);c.restore();}
+    else drawCoin(c,bx0,by0,ballR);
+  }
   // Live levels while dropping: faded, non-solid draft strokes (clipped off any birds) and a
   // no-draw ring where the next draft point would be rejected.
-  if (inkIsLive(state.level,state.rev)&&state.dropping) {
+  if (inkLiveNow(state)&&state.dropping) {
     c.save();c.beginPath();c.rect(0,0,INK_WORLD_W,H);
-    for(const b of lvl.blocks) if(b.h) c.rect(b.x0,b.y,b.x1-b.x0,inkBlockH(b));
+    for(const b of lvl.blocks) if(b.h) c.rect(b.x0+inkBirdDx(lvl,b,state.tick),b.y,b.x1-b.x0,inkBlockH(b));
     c.clip('evenodd');
     c.strokeStyle=GOLD;c.lineCap='round';c.setLineDash([6,6]);c.globalAlpha=0.35;c.lineWidth=4;
     for(const seg of state.draftSegs){c.beginPath();c.moveTo(seg.x0,seg.y0);c.lineTo(seg.x1,seg.y1);c.stroke();}
@@ -540,7 +653,7 @@ function drawInkBridgeArtWorld(c:CanvasRenderingContext2D,state:InkState,size:Ca
  * only on live levels: LIVE, and LINE LIMIT once the first line reaches its cap.
  */
 function drawInkHud(c: CanvasRenderingContext2D, state: InkState, lvl: InkState['list'][number]): void {
-  const X = 6, Y = 6, budget = inkBudgetFor(state.level, state.rev);
+  const X = 6, Y = 6, budget = inkBudgetNow(state);
   const remaining = Math.max(0, Math.min(1, state.ink / (budget * FP)));
   const levelValue = `${Math.min(state.level + 1, INK_LEVELS)} / ${INK_LEVELS}`;
   const levelW = hudPillWidth(c, 'Level', levelValue);
@@ -567,7 +680,7 @@ function drawInkHud(c: CanvasRenderingContext2D, state: InkState, lvl: InkState[
   if (meter) c.drawImage(meter, MX, MY, MW, 8);
   c.restore();
   // Live levels before release: mark how far the capped first line can drain the meter, and flag the cap once reached.
-  const live = inkIsLive(state.level, state.rev);
+  const live = inkLiveNow(state);
   const Y2 = Y + h + HUD_PILL_GAP;
   if (live) drawHudPill(c, X, Y2, '', 'LIVE', { gold: true });
   if (live && !state.dropping) {
@@ -601,7 +714,7 @@ export function drawInkRainbowExample(c:CanvasRenderingContext2D):void {
   c.save();c.translate(96,40);c.scale(0.8,0.8);stamp(c,'shamrock',INK_SHAMROCK_R*2,INK_SHAMROCK_R*2,-INK_SHAMROCK_R,-INK_SHAMROCK_R,shamrock);c.restore();
 }
 export const inkBridgeArtGame={...inkBridgeGame,draw:drawInkBridgeArt};
-export const inkBridgeArtGameFor=(rev?:number|null)=>({...inkBridgeGameFor(rev),draw:drawInkBridgeArt});
+export const inkBridgeArtGameFor=(rev?:number|null,level?:unknown)=>({...inkBridgeGameFor(rev,level),draw:drawInkBridgeArt});
 
 /**
  * Arena scene (15 Oct 2026, display only; arenaScene.renderer.ts): more grass and hillside
@@ -609,11 +722,13 @@ export const inkBridgeArtGameFor=(rev?:number|null)=>({...inkBridgeGameFor(rev),
  * phone, the same sky, far hills and ground at this level's ground line, `groundY`). Grass,
  * clover and a few flowers only: no pot, coin, birds, blocks or rainbow, and nothing moves.
  */
-export function inkArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, groundY: number, H = INK_WORLD_H): void {
+export function inkArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView, groundY: number, H = INK_WORLD_H, sunset = 0): void {
   const dy = H - INK_WORLD_H;
   for (const side of sceneSides(view)) {
     const left = side.x < 0;
     sceneFill(ctx, side, 0, H, INK_SKY_STOPS);
+    // inkRev 15: the same sunset wash as the world's sky, so the sides meet it with no seam.
+    inkSunsetWash(ctx, side.x, side.y, side.w, Math.min(side.h, H - side.y), H, sunset);
     ctx.fillStyle = 'rgba(132,186,196,0.55)';
     ctx.fillRect(side.x, (left ? 548 : 528) + dy, side.w, H);
     ctx.fillStyle = 'rgba(146,206,128,0.8)';

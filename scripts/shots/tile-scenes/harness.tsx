@@ -5,6 +5,8 @@
  * imported by the app.
  */
 import { useLayoutEffect, useRef } from "react";
+import { strategyImage, type StrategyArtName } from "@/lib/arcade/strategyArt";
+import { STRATEGY_ART } from "@/lib/arcade/strategyArt.data";
 import { createRoot } from "react-dom/client";
 import { flushSync } from "react-dom";
 
@@ -67,9 +69,41 @@ function BackgroundBox({ type }: { type: string }) {
 }
 
 /** Mounts the scenes for `types` (all when empty); resolves with the types mounted once art and fonts have loaded. */
+/**
+ * Loads the rendered sprites every wanted scene names (the Sports overhaul, 15 Nov 2026) and waits until the game's
+ * loader hands each one back, so the tile is painted with the real art. Fails loudly if one never arrives.
+ */
+async function loadSceneSprites(wanted: string[]): Promise<void> {
+  const need: [string, string][] = [];
+  for (const t of wanted) {
+    const scene = ALL_SCENES[t as keyof SceneSet];
+    if (scene?.kind === "canvas") for (const [game, names] of scene.sprites ?? []) for (const n of names) need.push([game, n]);
+  }
+  if (need.length === 0) return;
+  const { sportsSprite } = await import("@/lib/arcade/sportsSprites");
+  for (let i = 0; i < 200; i++) {
+    if (need.every(([g, n]) => sportsSprite(g, n) !== null)) return;
+    await new Promise((r) => setTimeout(r, 50));
+  }
+  throw new Error(`tile sprites never loaded: ${need.filter(([g, n]) => sportsSprite(g, n) === null).map(([g, n]) => `${g}/${n}`).join(", ")}`);
+}
+
 export async function mountScenes(types: string[]): Promise<string[]> {
   const wanted = (types.length ? types : Object.keys(ALL_SCENES)).filter((t) => ALL_SCENES[t as keyof SceneSet]);
   await Promise.all(wanted.map((t) => preloadGameArt(t).catch(() => undefined)));
+  // The Strategy overhaul's rendered materials (stage 2): every image loaded before a scene paints, so the tiles show
+  // the rendered gems, marbles, bubbles, disc and Captain (src/lib/arcade/strategyArt.ts).
+  await Promise.all(
+    (Object.keys(STRATEGY_ART) as StrategyArtName[]).map(
+      (name) =>
+        new Promise<void>((done) => {
+          const started = Date.now();
+          const wait = () => (strategyImage(name) || Date.now() - started > 10_000 ? done() : setTimeout(wait, 25));
+          wait();
+        }),
+    ),
+  );
+  await loadSceneSprites(wanted);
   await document.fonts.ready;
   document.getElementById("tile-scenes-host")?.remove();
   const host = document.createElement("div");

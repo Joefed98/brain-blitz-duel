@@ -286,6 +286,8 @@ export const SHARDS: Record<string, string[]> = {
     "ink-v13-check.ts",
     "burst-standard-check.ts",
     "bastion-check.ts",
+    "orbit-levels-check.ts",
+    "flip-levels-check.ts",
     "d5-remodels-check.ts",
     "ink-v11-check.ts",
     "hover-standard-check.ts",
@@ -523,6 +525,9 @@ export const SHARDS: Record<string, string[]> = {
     // cards-check re-split into eighths (a quarter took 241 s there); each part well under 200 s on CI.
     "freekick-check.ts@2/4",
     "cards-check.ts@2/8",
+    // action-demos-check (15 Nov 2026, ~6 s): the six Action intro demos, their save end to end on a local PostgreSQL
+    // through the server-function harness (PostgreSQL is installed on this shard), beside server-functions-check.
+    "action-demos-check.ts",
   ],
   // ~282 s of checks on run 38608375501's times.
   f: [

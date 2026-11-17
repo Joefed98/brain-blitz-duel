@@ -136,3 +136,144 @@ counted: 30 × min(perfect drops, 61) ÷ 61 (`SKYLINE_STD_SPEC_V10`). Up to 61 f
 scoring-audit-arcade-check proves the score never falls for another floor (perfect or not) over 0–160 floors.
 
 The table's medians (p10–p90) are 30 room seeds, measured with `bun scripts/arcade-skill-bands.ts cross wavefront burst skyline slice --rev=now --seeds=30 --levels=all` on main and on this branch.
+
+## skylineRev 11: lives and the wide-block rescue (15 Nov 2026, the Action overhaul)
+
+Rooms deal **`skylineRev 11`** (`SKYLINE_REV_LIVES`, `skylineLivesGame`; `docs/design/game-reviews/action.md`). It is
+skylineRev 10's play, gold blocks and parts exactly (Floors 140, Perfect drops 30, Perfect streak 10, Gold blocks 20;
+`SKYLINE_STD_SPEC_V11` is rev 10's parts under the new stamp), with two changes so no run ends on the first miss:
+
+- **Lives.** A run starts with 3 (`SKYLINE_V11_LIVES`). A block that misses the tower costs a life and falls away; the
+  run carries on with the same tower and the same block again (its kind and width) from the side it came from, the
+  streak broken. A tap in the half second after a lost life is ignored (`SKYLINE_V11_REARM_TICKS`, 30), so a double tap
+  can't cost two. The last life's miss ends the run as before. The score never reads the lives: a lost life costs its
+  time and the streak.
+- **The wide-block rescue.** After 5 placed drops in a row that were not perfect (`SKYLINE_V11_TRIM_RUN`), the next block
+  is a wide one (rev 7's wide block: the top's width + `SKYLINE_WIDE_GROW`, up to the start width; centred, it stays whole
+  and widens the tower) when the schedule has a normal block there and after it; the count starts again. The rule reads
+  only the drops, so it is the same for every player who drops the same.
+
+States add `lives`, `livesLost`, `trimRun` and `rescues` (folded into the checkpoint checksum last) and keep `expandRev: 9`
+and `perfectCount: 1`, so every rev 9/10 path (the parts, the HUD, the reveal) reads them. A run with no miss and no trim
+is skylineRev 10's run exactly (skyline-overhaul-check proves it on the perfect-drop player's runs). Every older stamp
+replays and scores as on main a3f40ff7 (60 runs, `scripts/fixtures/skyline-overhaul-legacy.json`).
+
+Medians, skill-band tool (`bun scripts/arcade-skill-bands.ts skyline --rev=now --levels=all --seeds=30`, the default
+fixed bots), skylineRev 10 → 11:
+
+| Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+| --- | --- | --- | --- | --- | --- | --- |
+| 35 → 39 | 44 → 53 | 66 → 75 | 96 → 103 | 161 → 168 | 177 → 177 | 200 → 200 |
+
+The look (display only, every revision): the city from concept A behind the tower (three layers deep, lights coming on
+as night falls), the round starting at dusk and turning to night from the floors built (`skylineNightShare`, in 24 steps,
+`skylineNightStep`), a solid plaza the tower stands on (the tower drawn 22 px above the world's bottom; the sim has no
+heights), a LIVES chip in the HUD, a lost block falling away with "−1 LIFE". Edge to edge: the screen's fill
+(`skylineSceneFill`, painted once per size and night step) paints the still scene beside the world and the quay and river
+below it, and the world blends its side edges into that same still scene (`drawEdgeRamps`) and settles its bottom rows to
+the quay's colour, so no seam shows at its edges however the camera has moved.
+
+### Levels (15 Nov 2026, the difficulty framework: built)
+
+Normal is skylineRev 11 exactly (checked: a 3 px perfect tolerance, `SKYLINE_PERFECT_TOL` 768; wind from block 20; 3
+lives; the slide 768 + 26 a floor up to 1,536). Easy, Hard and Expert are skylineRev 11 with the puzzle's `level` (the
+deal stamps it; the stamp stays 11, the seed is Normal's for the room seed, no proved deal is needed: every seed is
+proved at every level). The sim reads the level from the state (`lvl`: 1 / 3 / 4, folded into the checkpoint checksum
+last) and `SKYLINE_LEVEL_RULES` (frozen with the sim; `GAME_LEVELS.skyline` mirrors it for the phone). The parts (Floors
+140, Perfect drops 30, Perfect streak 10, Gold blocks 20), the gold blocks, the wide-block rescue and the 60 s run are
+skylineRev 11's at every level.
+
+| | Easy | Normal | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Slide (1/256 px a tick: start + a floor, top) | 448 + 12, 896 | 768 + 26, 1,536 | 896 + 30, 1,792 | 960 + 32, 1,920 |
+| Perfect tolerance | 5 px | 3 px | 3 px | 2 px |
+| Wind from block | 30 | 20 | 15 | 10 |
+| Lives (grace: never fewer than 2) | 3 | 3 | 3 | 3 |
+
+Code: `skylineGameFor(rev, level)`, `skylineLivesGameAt`, `skylineSpeedOf` / `skylineTolOf` / `skylineWindFrom` /
+`skylineStartLives` (the HUD's "LIVES n / 3", the flag and the success layer's wind pop read them); every replay site
+passes `puzzleLevel(puzzle)` (grade.ts, the stage, the reveal, the run picture, round replays). Help: one "Levels:" line
+and the lives and wind lines say what changes (instructions.ts).
+
+**Hard and Expert at 3 lives** (16 Nov 2026, Joe: "Hard keeps 3 lives. Retune Expert so it stays clearly harder than
+Hard but its best runs score well"; were 2 each). Every level now starts with 3 lives, so a run on Hard or Expert is not
+lost to two early slips. Expert stays harder than Hard by design on the three other levers, unchanged: the fastest slide
+(960 + 32 a floor up to 1,920 against Hard's 896 + 30 up to 1,792), the tightest perfect drop (2 px against 3) and the
+earliest wind (from block 10 against 15). Hard's other levers are unchanged; Normal is unchanged (skylineRev 11 exactly).
+Hard and Expert had never been dealt on main, so no new stamp. Joe (16 Nov 2026): one design change, measured once for
+information; his playtest decides (the bots play differently from people).
+
+**Measured once** (`bun scripts/flip-skyline-levels-bands.ts skyline --seeds=40 --bots=weak,average,good,great,near,elite,limited`;
+real deals graded by the server replay; mean / median, p10–p90, finish = the run not ended by the last life). `limited` is
+the elite held to Joe's human limits (`scripts/arcade-skill-bands/humanLimits.ts`: 250 ± 30 ms reactions, 150 ms finger
+lag, 15 ms timing, 2.5 px aim):
+
+| Bot | Easy | Normal | Hard (3 lives) | Expert (3 lives) |
+| --- | --- | --- | --- | --- |
+| weak | 86 / 85 | 43 / 44 | 36 / 36 | 31 / 32 |
+| average | 116 / 113 (p90 144) | 53 / 52 | 46 / 46 | 41 / 39 |
+| good | 166 / 168 (p90 187) | 72 / 70 | 61 / 58 | 54 / 51 |
+| great | 183 / 188, 100 % | 105 / 101, 3 % | 86 / 83, 0 % | 72 / 72, 0 % |
+| near-perfect | 194 / 196, 100 % | 156 / 164, 20 % | 138 / 133 (p90 168), 10 % | 113 / 112 (p90 148), 0 % |
+| elite (145 ms) | 196 / 200, 100 % | 176 / 178, 80 % | 168 / 173 (p90 180), 43 % | 142 / 153 (p90 165), 13 % |
+| **limited elite** | 167 / 168, 100 % | 123 / 122 (p90 151), 73 % | 114 / 112 (p90 144), 38 % | 98 / 95 (p90 133), 5 % |
+| oracle (`scripts/skyline-oracle.ts`) | 200 | 200 | 200 | 200 |
+
+Before (2 lives each): Hard limited elite 112 / 106, 33 %; Expert 96 / 94, 5 % (p90 131); elite Hard 167, 38 %, Expert
+141, 13 %. The third life adds about 2 points a run for the bots: they lose their lives to the fast slide's trims,
+which narrow the block until it misses, and the third life mostly buys a few more floors before the end. The bots stay
+well short of the brief's figures on Expert (best tenth about 150+, most strong runs reaching the clock); per Joe's
+update these figures are for information only, and his playtest decides. Every step is still a clear step down for
+every bot.
+
+Expert boards for Joe to play (the limited elite's best of the first 40 Expert deals, room seed n → course seed; the
+145 ms elite in brackets): n=29 (1530145177) 146 (155), n=39 (1523294388) 139 (162), n=34 (989469536) 136 (166), n=14
+(30710843) 134 (156), n=25 (870299109) 133 (156), n=38 (495834591) 128 (167). The clip
+(`docs/design/pages-review/action/skyline/expert-clip.webp`, `bun scripts/shots/action-expert-clip.ts skyline 29
+--from=30 --secs=5`) is the limited elite's n=29 run, 146 by the server.
+
+**For Joe's scoring review** (16 Nov 2026): High Rise's Normal under human limits (the limited elite) is 123 mean, 122
+median, short of the ~198 guide (the limited bot, reacting in a quarter second, often lets a fast pass go and takes the
+return pass, so it builds fewer floors in the minute: none of its 40 runs reaches 61). Roofbound's is 183 mean, 188
+median (flip.md). Normal is unchanged.
+
+Skyscraper ("Build 61 floors on Expert", switched off until levels go live for challenges): the oracle builds 61+ floors
+on Expert on every seed checked (fewest 103 floors; skyline-levels-check), the 145 ms elite on 20 of 40 (3 lives).
+skyline-levels-check (~10 s) proves Normal's deals byte for byte and skylineRev 9–11 runs recorded on de3bec96
+(`scripts/fixtures/levels-action-legacy.json.gz`), each level's rules, the 120 s rule, grace, the oracle at 200 through the
+server replay on every level (tuning 0–29 and fresh 10000–10019; `CHECKS_FULL=1` 0–59 and 10000–10199), identical worlds
+and the Skyscraper.
+
+## Stage 2: effects and the reveal (15 Nov 2026, the Action overhaul; display only, no stamp)
+
+Joe's effects list, each drawn by the game's own renderer from the sim moment it observes (`skyline.renderer.ts`, the
+landing the renderer remembers: its sim tick, a perfect drop, a trim or a sliver, and the block below's span). Nothing is
+written to the sim; the next tap is taken at once.
+
+| Moment | What shows | Sound slot |
+| --- | --- | --- |
+| A drop | the block falls the last floor from the hook (`DROP_FALL_TICKS` 5, ~80 ms), then the tower squashes 2 px from the plaza and springs back (`skylineSquashPx`, 300 ms) | `skyline.drop` (no whistle recording yet; the clank meanwhile) |
+| A perfect drop | a flattened gold ring spreads from the join (`PERFECT_RING_TICKS`, ~470 ms), the join a crisp gold seam, and the strip the block grew by (beyond the block below) lit gold and fading into the glass; the success layer's burst at the join, not mid-screen | `skyline.perfect`, a semitone higher for each drop in the streak, up to seven (`skylinePerfectRate`) |
+| A trim | the overhang falls away spinning (`TRIM_SPIN`) and chips of glass and concrete crumble from the cut edge | `skyline.trim` |
+| A sliver (under a quarter of the block on the tower) | it wobbles on its foot, at most 2 px at its corners (`skylineSliverTilt`, a second) | `skyline.sliver` |
+| A lost life | the block tumbles away (`LOST_SPIN`), "−1 LIFE", the LIVES chip rings | `skyline.lifeLost` |
+| A gold block landed perfectly | GOLD BONUS and the gold lights (as before) | `shared.celebrate.chime` |
+| The end | the hook and NEXT go, the camera pulls back over the whole tower (`END_FIT`) and a big floor count counts up from 0 (`SKYLINE_END_COUNT_MS`, 900 ms); the stage holds its submit `SKYLINE_END_HOLD_MS` (1.3 s) so it is seen (the drafts already carry the same run) | none |
+
+No edge glow: the shared success layer draws none for the Action games (`ACTION_EDGELESS_GAMES`, `success.renderer.ts`;
+the effect is on the tower instead). Reduced motion: no fall, squash, wobble, spin or crumbs; the ring and the strip show
+still and fade; the count is shown whole.
+
+**The reveal** (`RunPicture` in `src/puzzles/skyline.tsx`, drawn by ArcadeReveal under the score and breakdown): the stored
+log replayed through the real sim (`skylineRunSummary`, `src/lib/duel/skylineSummary.ts`) and drawn as the tower as built
+(`drawSkylineRunPicture`): every floor at its real width and place, perfect drops gold, gold blocks brighter, wide blocks
+(the rescue) teal, trims the tower's glass; each lost life the missed block tipping off in red where it missed; the best
+streak bracketed in gold. Above it the three numbers that explain the score, big (Floors, Perfect drops, Best streak);
+under it a legend with short labels and counts. The picture's numbers replace the reveal's stat tiles. The score is the
+stored one; nothing here grades.
+
+**Stage 3 (15 Nov 2026, Joe: no block of text lines above the picture):** the shared arcade reveal now draws the score,
+then the big numbers and the picture, then the stored breakdown in the shared list (`RevealBreakdown`; in a room the
+summary line and See breakdown) below it, for every game with a run picture (`ArcadeReveal`, `data-reveal-run-picture`).
+skyline-overhaul-check section 11 mounts the reveal in happy-dom in practice and in a room and proves the order, every
+stored part line a row of the shared list and none above the picture, and Roofbound's reveal in the same order.

@@ -137,6 +137,41 @@ export interface BtCourse {
   gold?: number[];
   boost?: number[];
   cross?: number[];
+  /**
+   * Difficulty levels (stage 3 of the Strategy overhaul, 15 Nov 2026; docs/arcade-standard/balltrack.md "Levels"):
+   * a level course (Easy, Hard, Expert, from its own proved deal list) carries its release interval in ticks and its
+   * marble count is its `balls`' length. Absent on every Normal course (btRev 8's bank) and every older one, which keep
+   * BT_V7_DROP_TICKS / BT_V7_BALLS (or BT_DROP_TICKS / BT_BALLS before btRev 7).
+   */
+  drop?: number;
+  /**
+   * Level courses only: every cup move in order (a re-lay of the drop columns or a colour shuffle), in place of
+   * `relay` and `shuffle` (which then hold the first and last move, or BT_NEVER_TICK on Easy, where the cups never move).
+   */
+  moves?: { tick: number; trays: number[] }[];
+  /**
+   * Level courses only, Easy's (16 Nov 2026): the combo landings that fill the combos part (its 16 marbles hold at most
+   * 14). Absent on every other course, which keeps BT_V8_COMBOS_FULL (20).
+   */
+  combo?: number;
+}
+
+/** A tick no run reaches: Easy's stand-in `relay` / `shuffle` (its cups never move). */
+export const BT_NEVER_TICK = 1_000_000;
+
+/** A course's cup moves in order: a level course's own list, else its re-lay and its colour shuffle. */
+export function btMovesOf(course: BtCourse): readonly { tick: number; trays: number[] }[] {
+  return course.moves ?? [course.relay, course.shuffle];
+}
+
+/** The ticks between releases on a course (a level course's own; btRev 7's 84 on the 13-row board; 103 before). */
+export function btDropTicksOf(course: BtCourse, v7 = course.rows === BT_V7_ROWS): number {
+  return course.drop ?? (v7 ? BT_V7_DROP_TICKS : BT_DROP_TICKS);
+}
+
+/** The marbles a course releases (a level course's own count; 36 on btRev 7's board; 30 before). */
+export function btBallsOf(course: BtCourse, v7 = course.rows === BT_V7_ROWS): number {
+  return course.drop !== undefined ? course.balls.length : v7 ? BT_V7_BALLS : BT_BALLS;
 }
 
 /** Rotatable straights: every straight not in column 4 rows 1–6 and not a seeded fixed tile. */
@@ -150,12 +185,24 @@ const PIT = -2;
 
 /** Bottom-row layout (drop columns and their tray colours) live at tick `t`. */
 export function btTraysAt(course: BtCourse, t: number): number[] {
+  if (course.moves) {
+    let trays = course.trays;
+    for (const move of course.moves) if (t >= move.tick) trays = move.trays;
+    return trays;
+  }
   return t >= course.shuffle.tick ? course.shuffle.trays : t >= course.relay.tick ? course.relay.trays : course.trays;
+}
+
+/** The latest cup move at or before tick `t` (null before the first). */
+export function btLatestMove(course: BtCourse, t: number): { tick: number; trays: number[] } | null {
+  let latest: { tick: number; trays: number[] } | null = null;
+  for (const move of btMovesOf(course)) if (t >= move.tick && (!latest || move.tick >= latest.tick)) latest = move;
+  return latest;
 }
 
 /** Render-only warning from stored event ticks; never changes replay state. */
 export function btEventCountdown(course: BtCourse, tick: number): number | null {
-  for (const event of [course.relay, course.shuffle]) {
+  for (const event of btMovesOf(course)) {
     const remaining = event.tick - tick;
     if (remaining > 0 && remaining <= 5 * 60) return Math.ceil(remaining / 60);
   }
@@ -240,6 +287,14 @@ export interface BtState extends BandFields {
   crashes?: number;
   /** btRev 8 only (the arcade scoring standard): btRev 7's play scored on BT_STD; not in the checkpoint checksum. */
   std?: number;
+  /**
+   * Level courses only (Easy, Hard, Expert): the course's marble and gold-marble counts, which the standard's parts
+   * are shared over (btStdSpecOf); not in the checkpoint checksum (the stored course fixes them). Absent = 36 and 6.
+   */
+  nb?: number;
+  ng?: number;
+  /** Level courses that carry `combo` only (Easy): the combo landings that fill the combos part; absent = 20. */
+  nc?: number;
 }
 
 export function btInit(course: BtCourse): BtState {
@@ -282,7 +337,7 @@ export function btStep(course: BtCourse, rotatable: Set<number>, prev: BtState, 
     s.actions++;
   }
 
-  if (s.next < (v7 ? BT_V7_BALLS : BT_BALLS) && (t - 1) % (v7 ? BT_V7_DROP_TICKS : BT_DROP_TICKS) === 0) {
+  if (s.next < btBallsOf(course, v7) && (t - 1) % btDropTicksOf(course, v7) === 0) {
     s.balls.push({ id: s.next, colour: course.balls[s.next]!, cell: -1, from: -1, above: 1, arrived: t, at: t + BT_STEP_TICKS, steps: 0, ...(v7 ? { bst: 0 } : {}) });
     s.next++;
   }
@@ -357,7 +412,7 @@ export function btStep(course: BtCourse, rotatable: Set<number>, prev: BtState, 
 }
 
 export function btOver(s: BtState): boolean {
-  return s.tick >= BT_RUN_TICKS || (s.next >= (s.r7 ? BT_V7_BALLS : BT_BALLS) && s.balls.length === 0);
+  return s.tick >= BT_RUN_TICKS || (s.next >= (s.nb ?? (s.r7 ? BT_V7_BALLS : BT_BALLS)) && s.balls.length === 0);
 }
 
 /** Perfect-run speed bonus: round(20 × (run ticks − last landing) ÷ run ticks). */
@@ -513,7 +568,7 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSta
   // Trays: after the shuffle each colour flashes and slides from its old column to its new one.
   const trayY = gridY + BT_ROWS * BT_TILE + 6;
   // Latest bottom-row event (re-lay or colour shuffle) animates from the layout before it.
-  const event = s.tick >= course.shuffle.tick ? course.shuffle : s.tick >= course.relay.tick ? course.relay : null;
+  const event = btLatestMove(course, s.tick);
   const prior = event ? btTraysAt(course, event.tick - 1) : course.trays;
   const since = event ? s.tick - event.tick : -1;
   const k = since < 0 ? 0 : Math.min(1, since / BT_SHUFFLE_TICKS);
@@ -564,7 +619,7 @@ export function btDraw(ctx: CanvasRenderingContext2D, course: BtCourse, s: BtSta
   const queueGap = BALL_R; // half a full ball diameter of clear space; never compress it
   const leadOutline = BALL_R + 6 + 1.5;
   const queuedRadius = Math.min(BALL_R, (leadX - 4 - leadOutline - 5 * queueGap) / 10);
-  for (let i = s.next; i < Math.min(BT_BALLS, s.next + 6); i++) {
+  for (let i = s.next; i < Math.min(course.balls.length || BT_BALLS, s.next + 6); i++) {
     const offset = i - s.next;
     const x = offset === 0 ? leadX : leadX - leadOutline - queueGap - queuedRadius - (offset - 1) * (queuedRadius * 2 + queueGap);
     ctx.fillStyle = BT_PALETTE[course.balls[i]!]!;
@@ -622,9 +677,12 @@ export function makeBallTrackGame(course: BtCourse, rev?: number | null): BtGame
       // btRev 6 (score bands): the same play on its strict curve.
       if (rev === BT_REV_STRICT) return { ...bandInit({ ...state, worldH: layout.h }), band: BAND_STRICT_MARK };
       // btRev 7 (expansion E6): the rev-2 rules on the 13-row board with the expansion's features.
-      if (rev === BT_REV_RUSH) return bandInit({ ...state, worldH: layout.h, r7: 1, streak: 0, bestStreak: 0, combos: 0, golds: 0, boosts: 0, crashes: 0 });
+      // A level course (Easy, Hard, Expert; dealt only on btRev 8, but the proving tools also play it on btRev 7's rules)
+      // carries its own marble and gold counts (outside the checksum).
+      const counts = course.drop !== undefined ? { nb: course.balls.length, ng: course.gold?.length ?? 0, ...(course.combo !== undefined ? { nc: course.combo } : {}) } : {};
+      if (rev === BT_REV_RUSH) return { ...bandInit({ ...state, worldH: layout.h, r7: 1, streak: 0, bestStreak: 0, combos: 0, golds: 0, boosts: 0, crashes: 0 }), ...counts };
       // btRev 8 (the arcade scoring standard): btRev 7's play exactly, scored on BT_STD (`std` stays out of the checksum).
-      if (rev === BT_REV_STD) return { ...bandInit({ ...state, worldH: layout.h, r7: 1, streak: 0, bestStreak: 0, combos: 0, golds: 0, boosts: 0, crashes: 0 }), std: 1 };
+      if (rev === BT_REV_STD) return { ...bandInit({ ...state, worldH: layout.h, r7: 1, streak: 0, bestStreak: 0, combos: 0, golds: 0, boosts: 0, crashes: 0 }), std: 1, ...counts };
       return rev === BT_REV_BAND ? bandInit(state) : state;
     },
     step: bandStep((state, input) => btStep(course, rotatable, state, input)),
@@ -852,11 +910,37 @@ export function btIsV7Play(rev?: number | null): boolean {
   return rev === BT_REV_RUSH || rev === BT_REV_STD;
 }
 
+/**
+ * The standard's parts a btRev 8 state is scored on: BT_STD, or on a level course (the state's `nb` / `ng`) the same
+ * parts and maximums shared over that course's marbles and gold marbles (the core and the boosted part over its `nb`
+ * marbles, the gold part over its `ng` gold marbles; combos full at 20, or at the course's own `combo` on Easy, `nc`).
+ */
+export function btStdSpecOf(state: { nb?: number; ng?: number; nc?: number }): StdSpec {
+  if (state.nb === undefined) return BT_STD;
+  const nb = state.nb, ng = state.ng ?? BT_V7_GOLDS, nc = state.nc ?? BT_V8_COMBOS_FULL;
+  const key = `${nb}|${ng}|${nc}`;
+  const cached = specCache.get(key);
+  if (cached) return cached;
+  const spec: StdSpec = {
+    ...BT_STD,
+    parts: BT_STD.parts.map((p) => (p.key === "core" || p.key === "boost" ? { ...p, of: nb } : p.key === "gold" ? { ...p, of: ng } : p.key === "combo" ? { ...p, of: nc } : p)),
+  };
+  specCache.set(key, spec);
+  return spec;
+}
+const specCache = new Map<string, StdSpec>();
+
+/** The marbles a btRev 7/8 state's run releases (a level course's own count, else 36). */
+export function btStateBalls(state: { nb?: number; r7?: number }): number {
+  return state.nb ?? (state.r7 ? BT_V7_BALLS : BT_BALLS);
+}
+
 /** btRev 8's breakdown on the standard. */
 export function btStdScore(state: BtState): StdBreakdown {
-  const [gold, combo, boost] = stdFeatures(BT_STD);
+  const spec = btStdSpecOf(state);
+  const [gold, combo, boost] = stdFeatures(spec);
   return {
-    core: stdPartLine(stdCore(BT_STD), state.home),
+    core: stdPartLine(stdCore(spec), state.home),
     features: {
       gold: stdPartLine(gold!, state.golds ?? 0),
       combo: stdPartLine(combo!, state.combos ?? 0),
@@ -868,8 +952,9 @@ export function btStdScore(state: BtState): StdBreakdown {
 
 /** btRev 8's breakdown as BandParts (the reveal, the bands): core as the points, the features as one bonus line. */
 export function btStdParts(state: BtState): BandParts {
-  const units = clampInt(state.home, 0, BT_V7_BALLS);
-  return stdBandParts(BT_STD, btStdScore(state), units, `${units} / ${BT_V7_BALLS} marbles home`, units >= BT_V7_BALLS);
+  const all = btStateBalls(state);
+  const units = clampInt(state.home, 0, all);
+  return stdBandParts(btStdSpecOf(state), btStdScore(state), units, `${units} / ${all} marbles home`, units >= all);
 }
 
 function btStdTotal(state: BtState): number {

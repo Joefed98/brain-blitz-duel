@@ -1,5 +1,16 @@
 import { puzzleLevel } from "@/lib/levels/levels";
 import { puzzleDef, puzzleName, typeTimeLimitMs, usesArcadeClock } from "@/lib/duel/catalogue";
+import { levelOfPuzzle } from "@/lib/levels/levels";
+import { preloadStrategyArt } from "@/lib/arcade/strategyArt";
+
+/** Which rendered Strategy images each game draws (public/strategy/; strategy_art.py). */
+const STRATEGY_ART_PREFIXES: Partial<Record<string, readonly string[]>> = {
+  tilt: ["tilt-", "marble-gloss"],
+  matchup: ["gem-"],
+  bubble: ["bubble-"],
+  inkbridge: ["inkbridge-"],
+  balltrack: ["bt-", "marble-gloss"],
+};
 import { useGameDef } from "@/lib/duel/gameLoader";
 import { GameIntroExample } from "@/components/duel/GameParts";
 import { levelStarsOf } from "@/lib/practice/progress";
@@ -33,8 +44,10 @@ import { useReducedMotion } from "@/lib/motion";
 
 /* Game code arrives with the game (speed fix 1, Nov 2026): these build a deal or load a game's art while the intro
    is up, fetching that game's sim or art chunk on first use, never with the room screen. */
-const prepareSwingCourse = (seed: number, rev?: number) => void import("@/lib/arcade/swing").then((m) => m.prepareSwingCourse(seed, rev)).catch(() => undefined);
-const prepareInkLevels = (seed: number, rev?: number | null) => void import("@/lib/arcade/inkBridge").then((m) => m.prepareInkLevels(seed, rev)).catch(() => undefined);
+const prepareSwingCourse = (seed: number, rev?: number, level?: unknown) => void import("@/lib/arcade/swing").then((m) => m.prepareSwingCourse(seed, rev, level)).catch(() => undefined);
+const prepareFlipCourse = (seed: number, rev: number | undefined, level: unknown) => void import("@/lib/arcade/flip").then((m) => m.prepareFlipCourse(seed, rev, level)).catch(() => undefined);
+const prepareMoonTower = (seed: number, rev: number | undefined, level: unknown) => void import("@/lib/arcade/ricochetNinja").then((m) => m.moonGameFor(rev, level).init(seed)).catch(() => undefined);
+const prepareInkLevels = (seed: number, rev?: number | null, level?: unknown) => void import("@/lib/arcade/inkBridge").then((m) => m.prepareInkLevels(seed, rev, level)).catch(() => undefined);
 const mgDeal = (seed: number) => void import("@/lib/arcade/cards/muggins").then((m) => m.mgDeal(seed)).catch(() => undefined);
 const pyDeal = (seed: number) => void import("@/lib/arcade/cards/pyramid").then((m) => m.pyDeal(seed)).catch(() => undefined);
 const preloadGameArt = (type: string) => import("@/lib/arcade/gameArt.renderer").then((m) => m.preloadGameArt(type)).catch(() => undefined);
@@ -112,7 +125,9 @@ export function RoundIntro({
   // Engine games play their demo once a recorded one is there; until then, and for good when it is
   // stopped or missing, the same box shows the game's still (IntroStage), so the intro never moves.
   const savedArcadeDemo = useArcadeIntroDemo(type);
-  const arcadeDemo = hasIntroDemo(type) && savedArcadeDemo !== "pending" ? savedArcadeDemo : null;
+  // A level other than Normal (the Cards & Board levels): the saved demo shows Normal's game, so the still shows instead.
+  const atLevel = puzzle ? levelOfPuzzle(puzzle) !== null : false;
+  const arcadeDemo = hasIntroDemo(type) && savedArcadeDemo !== "pending" && !atLevel ? savedArcadeDemo : null;
   const reducedMotion = useReducedMotion();
   const loadedDef = useGameDef(type);
   const introLine = puzzle ? (loadedDef?.introLine?.(puzzle) ?? null) : null;
@@ -196,10 +211,31 @@ export function RoundIntro({
 
   // Grappler (swingRev 14, 15, 16 and 17) builds and proves its course from the seed: built while the intro is up (after its
   // first paint), so the round itself starts at once (rooms and practice; an async round's seed arrives at its start).
+  // (swingRev 18's levels: the stored level's course.)
   useEffect(() => {
     if (puzzle?.type !== "swing") return;
-    const { seed, swingRev } = puzzle;
-    const timer = window.setTimeout(() => prepareSwingCourse(seed, swingRev), 120);
+    const { seed, swingRev, level } = puzzle as typeof puzzle & { level?: unknown };
+    const timer = window.setTimeout(() => prepareSwingCourse(seed, swingRev, level), 120);
+    return () => window.clearTimeout(timer);
+  }, [puzzle]);
+
+  // Roofbound (flipRev 13, every level): the course is built and proved from the seed (cached) while the intro is up, so
+  // the round's own init is a cache hit (a level's course can take seconds on a phone; rooms and practice).
+  useEffect(() => {
+    if (puzzle?.type !== "flip") return;
+    const level = (puzzle as { level?: unknown }).level;
+    const { seed, flipRev } = puzzle;
+    const timer = window.setTimeout(() => prepareFlipCourse(seed, flipRev, level), 120);
+    return () => window.clearTimeout(timer);
+  }, [puzzle]);
+
+  // Moon Climb at a level (ricoRev 4): the level's tower is built and proved from the seed (cached), while the intro is up.
+  useEffect(() => {
+    if (puzzle?.type !== "ricochet") return;
+    const level = (puzzle as { level?: unknown }).level;
+    if (!level) return;
+    const { seed, ricoRev } = puzzle;
+    const timer = window.setTimeout(() => prepareMoonTower(seed, ricoRev, level), 120);
     return () => window.clearTimeout(timer);
   }, [puzzle]);
 
@@ -216,7 +252,7 @@ export function RoundIntro({
   useEffect(() => {
     if (puzzle?.type !== "inkbridge") return;
     const { seed, inkRev } = puzzle;
-    const timer = window.setTimeout(() => prepareInkLevels(seed, inkRev), 120);
+    const timer = window.setTimeout(() => prepareInkLevels(seed, inkRev, (puzzle as { level?: unknown }).level), 120);
     return () => window.clearTimeout(timer);
   }, [puzzle]);
 
@@ -224,6 +260,9 @@ export function RoundIntro({
   // demo (which waits for them) and the round itself draw the art from frame one.
   useEffect(() => {
     void preloadGameArt(type);
+    // The Strategy overhaul's rendered materials (src/lib/arcade/strategyArt.ts): loaded during the intro.
+    const strategyArt = STRATEGY_ART_PREFIXES[type];
+    if (strategyArt) preloadStrategyArt(strategyArt);
     // The game's own sounds (speed fix 5): decoded during the intro, so they play from the round's first moment.
     loadGameSounds(type);
     // Letterfall's dictionary: fetched as its intro begins, never with the main bundle.
@@ -336,7 +375,7 @@ export function RoundIntro({
               beforeScore={
                 <IntroStage
                   key={type}
-                  still={<GameIntroExample type={type} />}
+                  still={<GameIntroExample type={type} level={puzzle ? levelOfPuzzle(puzzle) : null} />}
                   aspect={arcadeDemo ? introDemoAspect(type, arcadeDemo) : puzzleDemo ? puzzleDemo.log.w / puzzleDemo.log.h : null}
                   // Reduce Motion (7 Nov 2026, accessibility audit #11): a demo loops until Ready with no pause, so
                   // it isn't played; the game's still holds the same box (IntroStage sizes it by the text alone).

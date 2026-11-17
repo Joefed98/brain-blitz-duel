@@ -1,4 +1,203 @@
-# Grappler: the swinging course (swingRev 15)
+# Grappler: the swinging course (swingRev 15; swingRev 18 rooms deal since 15 Nov 2026)
+
+## Stage 2: the bigger hero (swingRev 18) and the look pass (15 Nov 2026)
+
+Joe's ask (15 Nov 2026), concept A: the hero and rope bigger on a new stamp with re-proved courses, better water, clearer
+hooks, a calmer background. Gallery: `docs/design/pages-review/action/GALLERY.md` (Grappler, "Stage 2 look pass").
+
+### swingRev 18 (`SWING_REV_BIG`, the state's `big`)
+
+- **The rule.** swingRev 17's game exactly (sliding hooks, dark ledge runs, the streak, the four parts and their 200, 90 s
+  on a 93 s clock, 51 stretches) with the hero's body **14 px** in radius (`SWING_V18_RADIUS`; 10 on every earlier
+  revision). The sim reads the body through one module variable, `RADIUS`, set by `withBody` only for the length of a
+  rev-18 build or step (synchronous, always restored), so every older revision steps exactly as before.
+- **What the larger body changes.** The roof and the river are touched 4 px sooner (the river is a miss); a squeeze's
+  rock is touched 4 px sooner (each rev-18 course is built on the larger body, so the squeezes keep their 14 px of
+  clearance round it); a landing stands the body 14 px above the platform (4 px higher); the pterodactyl's catch line
+  reaches the body 4 px sooner. **Grabs are by reach** (220 px, unchanged, a level lever not touched here) and **gates by
+  the body's centre line**, so neither changes. Pickups (gems, stars) are not dealt on rev 17 or 18.
+- **Re-proved.** Each course is built and proved on the 14 px body from its own salt (`V18_SHAPE`); rooms deal
+  `SWING_BIG_DEAL` (`src/lib/duel/swingBigDeal.server.ts`, `bun scripts/swing-slide-deal.ts --rev=18 [--check]`): 120
+  courses whose flawless oracle run replays to exactly 200 through `replaySwingRun` (witnesses
+  `scripts/fixtures/swing-big-deal-witness.json.gz`); 168 of the first 288 candidates dropped (rev 17: 114 of 234).
+  `pinSwingPreBig(true)` deals swingRev 17 from its own deal for the checks written for it. "King of the swingers" (the
+  Course part full) holds on every witness sampled.
+- **Bands** (room seeds 0–11 on each revision's deal, `bun scripts/swing-rework-bands.ts --rev=17|18`, through the
+  server replay), medians weak → flawless:
+
+  | | Weak | Average | Good | Great | Near-perfect | Elite | Flawless | Random |
+  |---|---|---|---|---|---|---|---|---|
+  | swingRev 17 | 63 | 97 | 123 | 166 | 191 | 198 | 200 | 6 |
+  | swingRev 18 | 67 | 97 | 121 | 164 | 188 | 197 | 200 | 7 |
+
+  flawless > great > good on 12 of 12 courses on both. The larger body costs the better levels a few points (an
+  occasional extra river touch); the deal keeps only courses its flawless line clears.
+
+### The look (display only; every jungle revision unless noted)
+
+- **The hero** (swingRev 18): Captain Joulz drawn **1.4×** about the body's centre (`GRAPPLER_V18_SCALE`, the radius
+  ratio), filling the 14 px circle as the rev-17 figure fills its 10 px one; the dark pool and warm light round him scale
+  with him. art-check holds every pose to main's jungle figure plus the Grappler allowance, × 1.4 (its own entry, Joe's
+  approval of 15 Nov 2026; main's recorded bounds unchanged).
+- **The held vine** (swingRev 18) 1.85× (`SWING_V18_ROPE_W`, was 1.35); every hanging vine 1.2× with two leaf tufts
+  instead of five, so the line from the canopy to the ring reads at speed.
+- **The hooks**: concept A's target ring at **14 px** (`JUNGLE_LOOP_R`, was 12): a soft dark pad behind it whatever is
+  behind (contrast, not a glow), a heavy dark rim, a thick band of enamelled cream metal with a crisp specular arc, a dark
+  well with a small cream bullseye ring, a lime binding where the vine ties on; gold enamel just after a grab. The cream
+  band stands at least 7:1 against its pad.
+- **The water**: glossy liquid with real movement: a brighter sky band under the surface, the near trunks reflected as
+  unbroken wavering columns that fade with depth, low-hanging rings reflected as a broken cream streak, a broad sheen of
+  light drifting across, ripple rings opening and fading at seeded spots, the current's ripple lines and streaks, glints
+  twinkling along the crests, a dark meniscus under the crisp lit edge, lily pads with a lit rim. The surface stays
+  within 1.45 px of the sim's floor line; with reduced motion every motion holds still.
+- **A calmer background**: a darker, quieter haze; faint light shafts only; far trunks and crowns closer to the haze; mid
+  trunks low in contrast and well into the mist; near trunks dark columns with half the bark detail, one dim leaf cluster
+  each and a shade at their top and foot; more mist low down. Measured on the backdrop alone (camera 3000 px): luminance
+  spread 11.1 (stage 1 20.1), edge energy 2.94 (5.44), mean 47 (64). The deepening jungle and the screen fill beside the
+  world use the same layers, so edge to edge and the depth veil hold.
+- Frames: `bun scripts/shots/swing-overhaul-frames.ts --rev=18 [--course=0] [--tag=after] [--clip]`.
+- The intro still is swingRev 18's first dealt course; **the intro demo stays stopped until recorded on swingRev 18**.
+
+## Stage 2: effects and the reveal (15 Nov 2026; display and sound only, no stamp)
+
+Each effect is drawn from the sim moment it observes (`swingEffects.renderer.ts`; the out-of-reach press in
+`swingPress.ts`), at most 900 ms, never holding an input back, calm under reduced motion or effects: the grab's vine
+flex (`swingGrabFlex`, from `grabTick`), the speed streak while flying at gate speed or faster, the streak meter under
+STREAK (eight segments, `swingStreakMeter`; the burst on the grab that pays a block), the out-of-reach tint (the stage
+notes each press, `noteSwingPress`; the sound observer judges it three ticks on, `observeSwingPress`), the pterodactyl's
+shadow (`swingChaseAge`, from the clear tick of the stretch before `chaseFrom`; its screech and wingbeats wait
+`PTERO_SHADOW_TICKS`), and the end banner with the stretches tallying (`drawSwingEnd`; the stage holds its submit
+`SWING_END_HOLD_MS`, 1.6 s). Sounds: `swing.ropeSnap`, `speedWhoosh`, `streakMeter` (a pentatonic step a grab),
+`streak`, `outOfReach`, `pteroShadow`, `courseCleared`, `stretchTally` (rows in `docs/sound-cues/arcade-effects.md`).
+The reveal's run picture (`SwingRunPicture`, `traceSwingRun` through `replaySwingRun`'s observe, `drawSwingRunPicture`):
+course %, stretches (the one count, 51), under par and gates big over the course drawn as a path of its stretches. Older
+stamps draw no run picture (their reveal lines remain in `Reveal`).
+
+## Stage 3: the canopy and a readable reveal (15 Nov 2026; display only, no stamp)
+
+- **The canopy** (every jungle revision): four rows of lit leaf clusters packed back into the canopy mass
+  (`paintCanopyLeaves`, `CANOPY_ROWS` in `swingJungleArt.renderer.ts`), seeded by world x, clipped to the mass so its
+  underside is still the sim's ceiling line, darkened with the deepening jungle (`canopyShade`); the screen fill's canopy
+  band beside the world draws the same rows. Each near trunk's tile carries a crown of leaves under the canopy, a spray
+  part way up and five sprigs down its length in the shade's own greens (`paintLeafCluster(..., soft)`: no midrib or
+  sheen); the far trunks' sides fade into the haze. The backdrop stays at most 60 % of stage 1's luminance spread and edge
+  energy at every camera (swing-overhaul-check 13). Drawn in code and cached per size: no image shipped.
+- **The reveal's run picture** (`swingRunLayout`): the 51 stretches fold into rows that keep each at least
+  `SWING_RUN_MIN_CELL` (34) px wide on the reveal's real width (8 a row and 7 rows at 375 × 667, 9 and 6 at 390 × 844),
+  `SWING_RUN_ROW_H` (46) px apart, with `SWING_RUN_MARKS` (6 px lines, 11 px drops, 12 px gate posts, a 14 px wedge, an
+  18 px flag) and the fall count at `SWING_RUN_TEXT_PX` (13); the legend is text-sm (14 px). The canvas is drawn at its
+  CSS size, so these are on-screen pixels; swing-overhaul-check 12 measures them at both sizes.
+
+## The Action overhaul (15 Nov 2026, phase 2 step 4; display only, swingRev 17)
+
+Joe's review (`docs/design/game-reviews/action.md`). No stamp: the course, rules, timings and scores are unchanged
+(swing-overhaul-check replays the dealt courses' witnesses at 200 and the runs recorded for rev 17 to the same score).
+
+- **One stretch count.** Every dealt course has **51 stretches** (`swingAssaultCounts(state).sectionTotal`; the 45 in the
+  scoring table is only the pars' divisor, `SWING_V17_PAR_STRETCHES`). The HUD shows the stretch in play ("STRETCH 23 /
+  51"); the reveal's course line says the share and the stretches cleared in one line ("85 % of the course, 44 of 51
+  stretches cleared"); the separate "7 stretches left to clear" line is gone on swingRev 17 (`nearMiss.ts`), so the
+  reveal no longer shows two counts side by side.
+- **The setting deepens.** `swingJungleDepth` (0 at the start, 1 by the finish platform, from the sim's camera and the
+  course's last ledge, so the same for every player and replay) darkens and cools the backdrop only (a veil over the far
+  crowns and mid trunks, hanging moss curtains from a third of the way), dims the canopy's leaves a little and takes the
+  river darker. Every vine, platform, gate and the hero are drawn over it at full contrast.
+- **Calmer backdrop.** Softer light shafts, crowns closer to the haze with a low mist over them, mid trunks half as
+  strong, so the vines and the hero stand out.
+- **Better water.** Three waves (at most 1.45 px off the sim's floor line), a lit band under the surface, ripple lines
+  drifting with the current at two depths, and small glints travelling along the surface that twinkle; still under
+  reduced motion.
+- **Hooks more obvious, less glow.** The grab loop is 12 px (was 10): a dark centre, a thick dark rim and a bright
+  cream ring, a gold knot with an outline; the glow round it is smaller and fainter (`JUNGLE_LOOP_R`). A grab is by
+  reach, so the loop's size changes nothing in play.
+- **The hero and rope.** The held vine is 1.35× as thick (`SWING_JUNGLE_ROPE_W`). The figure is already as large as its
+  10 px hit circle and art-check's approved Grappler allowance allow (its hands reach ±15.25 px, its head 19.25 px up);
+  instead it gets a dark pool under the figure inside a smaller warm glow, so its gold and black read at once against
+  leaves, trunks, water and the deep shade. Drawing it larger needs Joe's decision (a larger allowance, or a larger hit
+  circle on a new stamp with a re-proved deal).
+- **Bigger HUD.** The Action HUD's chips drawn 1.3× (`SWING_HUD_SCALE`: the 10 px label was about 8.7 px on a 390-wide
+  phone, now about 11.3; values about 17); the platform's PAR label 14 px (was 11).
+- **Intro.** A real still from the game's renderer: swingRev 17's first dealt course a second and a half in (`ArtStill`).
+- **Sounds.** The release is pitched by its speed (0.85× to 1.25×); new slots, silent until Joe's files
+  (`docs/sound-cues/action-elevenlabs.md`): `swing.ropeSnap` on every grab, `swing.speedWhoosh` on a release fast enough
+  to light a gate, `swing.courseCleared` when the course is cleared (all three wired now), and `swing.streakMeter`,
+  `swing.outOfReach`, `swing.pteroShadow`, `swing.stretchTally` for stage 2's effects.
+- Frames: `bun scripts/shots/swing-overhaul-frames.ts [--root=<main checkout>] [--tag=before|after] [--clip]`.
+
+### Levels (swingRev 18, 15 Nov 2026; Normal is today's game)
+
+Joe's levels: "Easy longer reach, few sliding vines, relaxed stall limit, no pterodactyl, all stretches lit; Normal
+today; Hard more sliding vines, tighter stall limit, pterodactyl last quarter faster; Expert slightly shorter reach, a
+few more sliding vines than Hard, a little tighter stall limit, pterodactyl last quarter faster, 7 dark stretches." The
+deal stamps the puzzle's `level` (swingRev 18 only) and deals a course from that level's own proved deal
+(`SWING_LEVEL_DEAL`, `src/lib/duel/swingLevelDeal.server.ts`, `bun scripts/swing-slide-deal.ts --rev=18
+--level=<level> [--check]`: 24 courses a level whose flawless oracle replays to exactly 200 through `replaySwingRun` at
+the level; witnesses `scripts/fixtures/swing-level-<level>-witness.json.gz`; dropped: Easy 55 of 79, Hard 24 of 48,
+Expert 20 of 44, Hard and Expert rebuilt on 16 Nov 2026 with the vine's swing below). The sim reads the level into the state's `lvl` (absent at Normal, so a Normal state, course and score
+are exactly today's: swing-levels-check 1 against 6 courses and 18 runs recorded on de3bec96,
+`scripts/fixtures/action-levels-legacy.json.gz`). Settings: `SWING_LEVELS` in `swing.ts` (the registry's
+`GAME_LEVELS.swing` repeats them for display); a change to one needs a new stamp.
+
+| Lever (`SWING_LEVELS`) | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Reach in play / built with | 250 / 220 px | 220 px | 220 px | 205 / 205 px |
+| Sliding vines a quarter | 0, 1, 2, 2 | 0, 4, 6, 8 | 2, 6, 8, 10 | 3, 7, 9, 11 |
+| Streak stall limit | 200 ticks | 150 | 55 | 50 |
+| Pterodactyl (last quarter) | none | 2.4 px a tick | 3.2 px a tick | 3.4 px a tick |
+| Dark ledge runs | none (all lit) | 6 | 6 | 7 (`runs` 3,2,2,3,2,3,2, a run every 5 blocks) |
+| Course part full at | 50 % of the way | 70 % | 70 % | 70 % |
+| Vine swing (gravity on a held vine, `swing`) | 100 % | 100 % | 125 % | 145 % |
+
+The parts (course 110, pars 40, gates 10, streak 40 = 200), the 90 s run and the stretch restarts (no slip ends a run)
+are swingRev 18's at every level; Easy's course part is full sooner (a level's "full at"). How it works in the sim:
+`withLevel` sets the reach (build reach while a course is built, play reach while it is stepped) and the level for the
+builder, as `withBody` sets the body, so every other revision steps exactly as before; the step reads the stall
+(`swingStall`) and the pterodactyl's pace from the state; `swingDarkFrom` lights everything on Easy; the builder places
+each level's sliding hooks (the first quarter too) and drops the pterodactyl on Easy. Builds: median ~0.2 / 0.2 / 0.3 /
+0.7 s on a desktop core (Normal / Easy / Hard / Expert, more under load); `RoundIntro` builds the level's course while the
+intro is up (`prepareSwingCourse(seed, rev, level)`).
+
+- **The vine's swing** (16 Nov 2026, Joe: "add levers that test human timing rather than the route"): on Hard and
+  Expert a held vine swings faster (`SWING_LEVELS.swing`, the gravity in `moveBody`'s rope branch read from the level
+  while it is built or stepped; flight, reach and every other rule unchanged; Easy, Normal and every older revision at
+  100 %, so their states step exactly as before). A faster swing turns further each tick (|ω| after a quarter second from
+  the same hang: Normal 4,652, Hard 5,724, Expert 6,540 in the sim's units, swing-levels-check 2q), so a release a tick
+  early or late flies a plainly different line and the hook that line reaches comes and goes sooner: a test of the
+  player's timing, not of the route. The courses are built and proved on the same swing (the builder's reach test steps
+  the faster vine), and the flawless oracle still hits its exact tick, so each rebuilt deal keeps exactly 200 on every
+  course. Levers kept on the route (reach, stall, pterodactyl) are unchanged: tightening them broke the proof before.
+- **"King of the swingers"** ("Get 70 % of the way on Expert", the Course part full) is met on every sampled Expert
+  witness (swing-levels-check 7b), on the rebuilt deal as on the first.
+- **Why the stall limits are where they are.** The elite bot's grab-to-grab gaps run 15–68 ticks (median 22, 95th
+  percentile 42), so Joe's "about 130" changed nothing for strong players. At 40 / 32 ticks the near-perfect bot fell to
+  about 166 on Expert, but the flawless oracle no longer reached 200 on any course (0 of 6), so no proved deal could be
+  built; 55 / 50 is the tightest where it still does (about 1 course in 3–4).
+
+### Measured (16 Nov 2026, with the faster vine on Hard and Expert; information only)
+
+`bun scripts/action-levels-bands.ts swing --level=<level> --seeds=6 --each` (real deals, graded by the server; human
+limits: a ledge press reacts no sooner than 0.25 s, a grab comes no sooner than 0.15 s after the release; a release on
+the swing is a timed moment with the level's own timing error). Averages over 6 dealt courses a level; Joe: bots play
+differently from people, and his playtest decides.
+
+| Bot | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Weak | 88.3 | 61.8 | 67.3 | 67.2 |
+| Average | 112.5 | 86.3 | 89.0 | 78.5 |
+| Good | 138.8 | 114.5 | 114.7 | 111.7 |
+| Great | 158.2 | 156.5 | 147.2 | 157.7 |
+| Near-perfect | 196.8 | 191.7 | 198.0 | 195.2 |
+| Elite | 199.0 | 198.8 | 199.5 | 198.0 |
+| Flawless | 200 | 200 | 200 | 200 |
+
+What it shows: the bots plan their releases with the sim's own look-ahead and the elite bot's timing error is about half
+a tick, so the faster swing barely touches it (the deal's proof plays at an exact tick, as it must). The average player
+drops on Expert (78.5 against Normal's 86.3); weak and great move by noise-sized amounts on six courses. The faster swing
+is a design change for people's timing, kept without re-tuning (Joe, 16 Nov 2026).
+
+Expert courses to play (dealt seeds, the human-limited elite's server score): 416796831 (200, the gallery clip),
+519412512 (198), 527841388 (198), 1116863695 (198), 1492875028 (196). "King of the swingers" (70 % of the way on Expert) is met on
+every Expert course's witness (swing-levels-check 7b; with `CHECKS_FULL=1`, all 24).
 
 ## The jungle canopy (3 Nov 2026, the Action polish; display only, swingRev 17)
 
@@ -317,7 +516,7 @@ the dealt courses are ones a flawless line clears cleanly, a little kinder on av
 | Part | Points | How |
 |---|---|---|
 | Course (core) | 110 | A straight line on the share of the course behind the hero (as rev 15), **full at 700 per mille** (`SWING_V17_FULL`, about the great level's median; `SWING_V17_BAND_CURVE`). |
-| Pars | 40 | Each stretch cleared pays by how far under par (full at 30 ticks under), counted over **45 stretches** (`SWING_V17_PAR_STRETCHES`; every dealt course has **51**, the HUD's STRETCH x / 51 and the reveal's stretches left, so the pars are full with 45 cleared well under par), so the pars keep paying for every stretch after the core is full. |
+| Pars | 40 | Each stretch cleared pays by how far under par (full at 30 ticks under), counted over **45 stretches** (`SWING_V17_PAR_STRETCHES`; every dealt course has **51**, the HUD's STRETCH x / 51 and the reveal's "n of 51 stretches cleared", so the pars are full with 45 cleared well under par), so the pars keep paying for every stretch after the core is full. |
 | Gates | 10 | 2 each for the 5 (banked as before: put back on a miss since the last hook). |
 | Clean-swing streak | 40 | 2 for every 8 clean grabs in a row (summed over the run's streaks), up to 40. |
 | **Total** | **200** | No input 0; any input at least 1 (`stdFinal`). Earning a feature never costs core. |
@@ -371,7 +570,7 @@ home), the arcade-standard entry (four parts), the self-replay list (`swing/slid
 
 ## Follow-ups
 
-- The intro demo needs recording on swingRev 17 (until then the intro shows its still).
+- The intro demo needs recording on swingRev 17 (until then the intro shows its still, since 15 Nov 2026 drawn by the game's own renderer).
 - Sounds: the library only when swingRev 17 shipped (3 Nov 2026); since 6 Nov 2026 the streak (`swing.streak`) and the
   sliding vines (the `swing.slideVine` loop) have recordings of their own (docs/sound-cues/retheme-nov-2026.md).
 - Screenshots: `screenshots/grappler-slide-nov-2026/` (`bun scripts/shots/swing-slide-shots.ts`): a sliding hook at

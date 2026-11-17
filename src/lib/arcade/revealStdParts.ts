@@ -10,7 +10,7 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { stdPart, type StdPart, type StdSpec } from "./arcadeStandard";
-import { flipFlowScore, flipFlowUnits, flipSweetsTaken, FLIP_V11, FLIP_V8_SWEETS, type FlipState } from "./flip";
+import { flipFlowScore, flipFlowUnits, flipGraceScore, flipGraceSpecOf, flipGraceUnits, flipSweetsTaken, FLIP_V11, FLIP_V8_SWEETS, type FlipState } from "./flip";
 import {
   swingAssaultCounts,
   swingReworkParts,
@@ -31,10 +31,10 @@ import {
 } from "./swing";
 import {
   matchupGoalsMet,
+  matchupGoalsOf,
   matchupSixParts,
   MATCHUP_V12_BIG_MAX,
   MATCHUP_V12_CORE_MAX,
-  MATCHUP_V12_GOALS,
   MATCHUP_V12_GOALS_MAX,
   MATCHUP_V12_ICE_MAX,
   MATCHUP_V12_TREASURES,
@@ -43,7 +43,7 @@ import {
 } from "./matchup";
 import { inkClover, inkStdSpecFor, inkV13Score, INK_CLOUD_LEVELS, INK_LEVELS, INK_RUN_TICKS, INK_V13_CLOVERS, type InkState } from "./inkBridge";
 import { tiltParParts, TILT_P_CLEAN_POINTS, TILT_P_CORE_MAX, TILT_P_PAR_MAX, TILT_P_SPEED_POINTS, TILT_RUN_TICKS, TILT_S_MAZES, TILT_S_PROGRESS_SCALE, type TiltState } from "./tilt";
-import { btStdScore, BT_STD, BT_V7_BALLS, BT_V7_GOLDS, type BtState } from "./ballTrack";
+import { btStateBalls, btStdScore, btStdSpecOf, BT_V7_GOLDS, type BtState } from "./ballTrack";
 import { orbitStdScore, orbitXpCounts, ORBIT_REV3_RUN_TICKS, ORBIT_STD, ORBIT_XP_FIELDS, ORBIT_XP_MOONS, ORBIT_XP_MOTES, ORBIT_XP_TRAILS, type OrbitRev3State } from "./orbitRev3";
 import { ORBIT_TOTAL } from "./orbit";
 
@@ -54,19 +54,22 @@ const of = (got: number, total: number, many: string) => `${got} of ${total} ${m
 /** Ticks as seconds, one decimal, "45.2 s". */
 const secs = (ticks: number) => `${(Math.max(0, ticks) / 60).toFixed(1)} s`;
 
-/* ---- Roofbound: flipRev 11 and 12 (states carry `flow`) ---- */
+/* ---- Roofbound: flipRev 11, 12 and 13 (states carry `flow`; 13 also `grace`) ---- */
 
 function flipParts(s: FlipState): StdPart[] | null {
   if (!s.flow) return null;
-  const b = flipFlowScore(s);
-  const clean = flipFlowUnits(s) / 2;
+  // flipRev 13 (grace): every crash costs 10 s of clean time and none ends the run.
+  // Levels (15 Nov 2026): a level's spec (perfect landings full at its count) and its own number of sweet spots.
+  const spec = s.grace ? flipGraceSpecOf(s) : FLIP_V11;
+  const b = s.grace ? flipGraceScore(s) : flipFlowScore(s);
+  const clean = (s.grace ? flipGraceUnits(s) : flipFlowUnits(s)) / 2;
   const saves = s.saves ?? 0;
   const sweets = flipSweetsTaken(s);
   return [
-    stdPart(FLIP_V11, "core", b.core, `${clean % 1 ? clean.toFixed(1) : clean} s clean${saves ? ` · ${n(saves, "crash", "crashes")} saved` : ""}`),
-    stdPart(FLIP_V11, "sweets", b.features["sweets"] ?? 0, of(sweets, FLIP_V8_SWEETS, "perfect landings")),
-    stdPart(FLIP_V11, "doubles", b.features["doubles"] ?? 0, n(s.combos ?? 0, "double flip")),
-    stdPart(FLIP_V11, "flow", b.features["flow"] ?? 0, n(s.bestStreak ?? 0, "clean jump", "clean jumps") + " in a row"),
+    stdPart(spec, "core", b.core, `${clean % 1 ? clean.toFixed(1) : clean} s clean${saves ? ` · ${n(saves, "crash", "crashes")}${s.grace ? "" : " saved"}` : ""}`),
+    stdPart(spec, "sweets", b.features["sweets"] ?? 0, of(sweets, s.v8?.sweets.length ?? FLIP_V8_SWEETS, "perfect landings")),
+    stdPart(spec, "doubles", b.features["doubles"] ?? 0, n(s.combos ?? 0, "double flip")),
+    stdPart(spec, "flow", b.features["flow"] ?? 0, n(s.bestStreak ?? 0, "clean jump", "clean jumps") + " in a row"),
   ];
 }
 
@@ -100,7 +103,8 @@ function swingParts(s: SwingState): StdPart[] | null {
     const p = swingSlideParts(s);
     const paid = s.streakPaid ?? 0;
     return [
-      stdPart(SWING_V17_SPEC, "core", p.core, `${Math.trunc(p.permille / 10)} % of the course`),
+      // The Action overhaul (15 Nov 2026): one plain line, the course share and the stretches cleared (the HUD's count).
+      stdPart(SWING_V17_SPEC, "core", p.core, `${Math.trunc(p.permille / 10)} % of the course, ${c.sections} of ${c.sectionTotal} stretches cleared`),
       stdPart(SWING_V17_SPEC, "par", p.par, pars),
       stdPart(SWING_V17_SPEC, "gates", p.gates, of(c.gates, SWING_V17_GATES, "gates")),
       stdPart(SWING_V17_SPEC, "streak", p.streak, `${n(paid, "run", "runs")} of ${SWING_V17_STREAK_BLOCK} clean grabs`),
@@ -135,7 +139,7 @@ function matchupParts(s: MatchupState): StdPart[] | null {
   return [
     stdPart(MATCHUP_V12_SPEC, "core", p.core, `${gems.toLocaleString("en-GB")} ${gems === 1 ? "gem" : "gems"}`),
     stdPart(MATCHUP_V12_SPEC, "treasure", p.treasure, `${of(s.treasures ?? 0, MATCHUP_V12_TREASURES, "treasures")} brought down`),
-    stdPart(MATCHUP_V12_SPEC, "goals", p.goals, of(matchupGoalsMet(s), MATCHUP_V12_GOALS, "colours done")),
+    stdPart(MATCHUP_V12_SPEC, "goals", p.goals, of(matchupGoalsMet(s), matchupGoalsOf(s), "colours done")),
     stdPart(MATCHUP_V12_SPEC, "ice", p.ice, `${n(s.iceBroken ?? 0, "frozen cell")} broken`),
     stdPart(MATCHUP_V12_SPEC, "big", p.big, `${n(s.bigLines ?? 0, "line")} of 4 or 5`),
   ];
@@ -174,15 +178,17 @@ const TILT_V11_SPEC: StdSpec = {
 function tiltParts(s: TiltState): StdPart[] | null {
   if (!s.parClean) return null;
   const p = tiltParParts(s);
-  const finished = p.mazes >= TILT_S_MAZES;
+  // Levels (stage 3): a level's run counts its own mazes; every Normal tiltRev 11 and 12 run has TILT_S_MAZES.
+  const all = s.lvl ? s.list.length : TILT_S_MAZES;
+  const finished = p.mazes >= all;
   const prog = !finished && s.progMaze === p.mazes ? Math.max(0, Math.min(TILT_S_PROGRESS_SCALE, s.prog ?? 0)) : 0;
   const pct = Math.trunc((100 * prog) / TILT_S_PROGRESS_SCALE);
   const end = Math.max(0, Math.min(TILT_RUN_TICKS, s.endedTick));
   return [
-    stdPart(TILT_V11_SPEC, "core", p.core, `${of(p.mazes, TILT_S_MAZES, "mazes")}${pct > 0 ? ` · ${pct} % of the next` : ""}`),
+    stdPart(TILT_V11_SPEC, "core", p.core, `${of(p.mazes, all, "mazes")}${pct > 0 ? ` · ${pct} % of the next` : ""}`),
     stdPart(TILT_V11_SPEC, "par", p.par, `${n(p.parsMet, "maze")} within par`),
     stdPart(TILT_V11_SPEC, "clean", p.clean, (s.falls ?? 0) === 0 ? (p.mazes ? `no fall in ${n(p.mazes, "maze")}` : "no maze yet") : `${n(p.cleanMazes, "maze")} before the first fall`),
-    stdPart(TILT_V11_SPEC, "speed", p.speed, finished ? `all ${TILT_S_MAZES} in ${secs(end)}` : "not every maze"),
+    stdPart(TILT_V11_SPEC, "speed", p.speed, finished ? `all ${all} in ${secs(end)}` : "not every maze"),
   ];
 }
 
@@ -191,11 +197,13 @@ function tiltParts(s: TiltState): StdPart[] | null {
 function btParts(s: BtState): StdPart[] | null {
   if (!s.std) return null;
   const b = btStdScore(s);
+  // A level course's own marble and gold counts (BT_STD's 36 and 6 on Normal).
+  const spec = btStdSpecOf(s);
   return [
-    stdPart(BT_STD, "core", b.core, of(s.home, BT_V7_BALLS, "marbles")),
-    stdPart(BT_STD, "gold", b.features["gold"] ?? 0, of(s.golds ?? 0, BT_V7_GOLDS, "gold marbles")),
-    stdPart(BT_STD, "combo", b.features["combo"] ?? 0, n(s.combos ?? 0, "combo landing")),
-    stdPart(BT_STD, "boost", b.features["boost"] ?? 0, n(s.boosts ?? 0, "boosted marble")),
+    stdPart(spec, "core", b.core, of(s.home, btStateBalls(s), "marbles")),
+    stdPart(spec, "gold", b.features["gold"] ?? 0, of(s.golds ?? 0, s.ng ?? BT_V7_GOLDS, "gold marbles")),
+    stdPart(spec, "combo", b.features["combo"] ?? 0, n(s.combos ?? 0, "combo landing")),
+    stdPart(spec, "boost", b.features["boost"] ?? 0, n(s.boosts ?? 0, "boosted marble")),
   ];
 }
 

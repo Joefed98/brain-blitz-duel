@@ -28,7 +28,10 @@ import {
   HOMERUN_INPUT_TAP,
   HOMERUN_SWING_TICKS,
   HOMERUN_V4_SIGNS,
+  HOMERUN_REV_5,
+  HOMERUN_INPUT_RANGES_V5,
 } from "../src/lib/arcade/homerun";
+import { homerunInningsPlan, hrLevelOf, HR5_INPUT_MODE, HR5_INPUT_SWING, HR5_MODE_POWER } from "../src/lib/arcade/homerunInnings";
 
 /** The swipe angle (tenths of a degree) whose spray is `spray` (rev 1 takes three quarters of the swipe, rev 2 9/16). */
 export const homerunAngleFor = (spray: number, rev = 1) => (rev >= HOMERUN_REV_2 ? Math.round((spray * 16) / 9) : Math.round((spray * 4) / 3));
@@ -69,4 +72,36 @@ export function oracleRunV4(seed: number): ArcadeInputEvent[] {
     recordInput(events, { t: p.arrive - HOMERUN_SWING_TICKS, k: HOMERUN_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 }, HOMERUN_INPUT_RANGES_V4);
   });
   return events;
+}
+
+/**
+ * homerunRev 5's flawless batter (the innings): Power from tick 1; every pitch in the zone swung on so the bat meets it
+ * on its arrival tick, aimed straight away (450 ft, a home run over the 400 ft centre wall); every ball left alone.
+ * Played live through the sim (each release follows the last pitch). 200 on any seed and level whose plan allows it.
+ */
+export function oracleRunV5(seed: number, level?: string | null): ArcadeInputEvent[] {
+  const game = homerunGameFor(HOMERUN_REV_5, level);
+  const plan = homerunInningsPlan(seed, hrLevelOf(level));
+  const events: ArcadeInputEvent[] = [];
+  let s = game.init(seed);
+  while (!game.isOver(s)) {
+    const t = s.tick + 1;
+    const inn = s.inn!;
+    let e: ArcadeInputEvent | null = null;
+    const p = plan.pitches[inn.i];
+    if (t === 1) e = { t, k: HR5_INPUT_MODE, a: HR5_MODE_POWER, b: 0, c: 0, d: 0 };
+    else if (p && p.zone && inn.st < 0 && t === inn.release + p.flight - HOMERUN_SWING_TICKS) e = { t, k: HR5_INPUT_SWING, a: 0, b: 0, c: 0, d: 0 };
+    if (e) recordInput(events, e, HOMERUN_INPUT_RANGES_V5);
+    s = game.step(s, e);
+  }
+  return events;
+}
+
+/** Plays a rev-5 log at a level and returns the final state. */
+export function playLogV5(seed: number, events: ArcadeInputEvent[], level?: string | null) {
+  const game = homerunGameFor(HOMERUN_REV_5, level);
+  const at = new Map(events.map((e) => [e.t, e]));
+  let s = game.init(seed);
+  while (!game.isOver(s)) s = game.step(s, at.get(s.tick + 1) ?? null);
+  return s;
 }

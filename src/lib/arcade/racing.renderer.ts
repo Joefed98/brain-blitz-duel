@@ -20,6 +20,35 @@
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { arcadeFx, ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
 import { RACING_FX } from "./sportsFx.renderer";
+import { drawRacingCarSprite } from "./racingCar.renderer";
+import {
+  SCENE_GROUND,
+  SCENE_HAZE,
+  RACING_SCENE_HARBOUR,
+  RACING_SCENE_PARK,
+  RACING_SCENE_RIDGE,
+  paintHarbourFar,
+  paintHarbourNear,
+  paintHarbourProp,
+  paintHarbourWater,
+  paintRidgeFar,
+  paintRidgeNear,
+  paintRidgeProp,
+  racingSceneOf,
+} from "./racingScenery.renderer";
+import {
+  drawCornerFlash,
+  drawFinish,
+  drawParticles,
+  drawSpeedLines,
+  observeRacingFx,
+  racingCornerEntry,
+  racingDust,
+  racingGrassDrop,
+  racingKerbShake,
+  racingSectorFlash,
+  racingSparks,
+} from "./racingFx.renderer";
 import { lookKey, NO_LOOK, type GameLook } from "./skins/look";
 import { skinReducedMotion, skinTime } from "./skins/motion.renderer";
 import {
@@ -45,6 +74,7 @@ import type { ArenaAmbient, ArenaSceneView } from "./arenaScene.renderer";
 import type { ArcadeGame, ArcadeInputEvent, CanvasSize } from "./engine";
 import {
   racingGame,
+  racingGameFor,
   racingGoTick,
   racingKmh,
   racingLap,
@@ -52,13 +82,20 @@ import {
   racingLightsOn,
   racingRaceTicks,
   racingSegAt,
-  racingTrack,
+  racingTrackOf,
+  RACING_BRAKE,
   RACING_CAR_HALF,
+  RACING_CLEAN_X,
+  RACING_VMAX,
+  type RacingLevelSettings,
   RACING_KERB_X,
   RACING_LAP_SEGS,
   RACING_LAPS,
   RACING_REV_2,
   RACING_REV_3,
+  RACING_REV_4,
+  RACING_CIRCUITS,
+  racingCircuitOf,
   RACING_ROAD_X,
   RACING_RUN_TICKS,
   RACING_SEC_CHICANE,
@@ -94,13 +131,22 @@ const F = 300;
  * instead of about 40 %: more road shows ahead, and corners are seen earlier. The sim, the stick and its mapping are
  * unchanged.
  */
-const CH = 2200;
-const ZC = 1714;
+/**
+ * 15 Nov 2026 (the Sports overhaul, display only): the chase camera moved closer and lower (ZC 1714 → 1270, CH 2200 →
+ * 1600), so the car is drawn 1.35 times as large and its contact line sits a little higher (row 563, was 570). The sim,
+ * the stick and its mapping are unchanged.
+ */
+const CH = 1600;
+const ZC = 1270;
+/** The sun's lens flare (off: the overhaul's look has no glare). */
+const LENS_FLARE = false;
 const HORIZON = 185;
 /** Where the haze under the road reaches the near grass colour (COL.grassA), which it keeps below. */
 const HAZE_END = HORIZON + 40;
 /** Rows past HAZE_END where the gradient may still round a channel off grassA: grassA bands there are painted. */
 const HAZE_MARGIN = 8;
+/** Harbour Run's water band under the horizon (stage 2; ends well above HAZE_END, so the grass saving is unchanged). */
+const WATER_H = 18;
 /** Checks only (racing-render-check): false paints every grassA band as before, to prove the skip changes no pixel. */
 let grassSkip = true;
 export function setRacingGrassSkip(on: boolean): void {
@@ -110,12 +156,15 @@ export function setRacingGrassSkip(on: boolean): void {
 export const RACING_CAR_Y = HORIZON + (CH * F) / ZC;
 const DRAW_SEGS = 150;
 const K_CURVE = 1.4;
-const HILL_K = 0.5;
+/** Hills on screen, scaled with the camera height (0.5 at CH 2200; the overhaul's lower camera, 15 Nov 2026). */
+const HILL_K = 0.36;
 /** Heading: radians per unit of curvature × segment; the sun's bearing. */
 const K_ANG = Math.PI / 300;
 const SUN_BEARING = 0.18;
 const PX_PER_RAD = F;
 
+/** Easy's painted braking point (aids 2): a warm white stripe across the road. */
+const BRAKE_POINT_COL = "rgba(255,236,196,0.78)";
 const lat = (x: number) => (x / RACING_ROAD_X) * RW;
 const KERB_W = lat(RACING_KERB_X);
 const WALL_W = lat(RACING_WALL_X);
@@ -237,11 +286,13 @@ export function paintRacingSky(ctx: Ctx2D, w: number, h: number, horizon = HORIZ
     return;
   }
   const g = ctx.createLinearGradient(0, 0, 0, horizon + 20);
-  g.addColorStop(0, "#2C2F5E");
-  g.addColorStop(0.28, "#6B4778");
-  g.addColorStop(0.58, "#D9714F");
-  g.addColorStop(0.84, "#F7A55C");
-  g.addColorStop(1, "#FFD38A");
+  // Dusk (the Sports overhaul, 15 Nov 2026): deep violet overhead through rose to a gold horizon.
+  g.addColorStop(0, "#241C40");
+  g.addColorStop(0.3, "#4E3260");
+  g.addColorStop(0.58, "#A4566C");
+  g.addColorStop(0.8, "#E28456");
+  g.addColorStop(0.93, "#F9B36E");
+  g.addColorStop(1, "#FFD89A");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, w, Math.min(h, horizon + 20));
   // Thin warm clouds.
@@ -272,9 +323,9 @@ function paintSun(ctx: Ctx2D, x: number, y: number, r = 15): void {
   glow.addColorStop(1, "rgba(255,140,80,0)");
   ctx.fillStyle = glow;
   ctx.fillRect(x - r * 9, y - r * 9, r * 18, r * 18);
-  // Rays: soft wedges.
+  // Rays: soft wedges (off since the Sports overhaul: no glare).
   ctx.save();
-  ctx.globalAlpha = 0.12;
+  ctx.globalAlpha = SUN_RAYS ? 0.12 : 0;
   ctx.fillStyle = "#FFE3A8";
   for (let i = 0; i < 12; i++) {
     const a = (i / 12) * Math.PI * 2 + 0.13;
@@ -287,11 +338,17 @@ function paintSun(ctx: Ctx2D, x: number, y: number, r = 15): void {
     ctx.fill();
   }
   ctx.restore();
-  ctx.fillStyle = "#FFF4D6";
+  const disc = ctx.createRadialGradient(x, y - r * 0.2, 0, x, y, r);
+  disc.addColorStop(0, "#FFFBEA");
+  disc.addColorStop(0.7, "#FFF0C8");
+  disc.addColorStop(1, "#FFD99A");
+  ctx.fillStyle = disc;
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);
   ctx.fill();
 }
+/** The sun's rays (off: the overhaul's sun is a soft disc and halo, no glare). */
+const SUN_RAYS = false;
 
 /** A hill layer strip (repeating every `w`): ridge heights from a seeded sum of waves. */
 function paintHillStrip(ctx: Ctx2D, w: number, h: number, seed: number, top: string, bottom: string, rim: string, amp: number, trees: boolean): void {
@@ -354,10 +411,12 @@ const TREE_H = 120;
 const STAND_W = 240;
 const STAND_H = 120;
 
-function layersFor(scale: number): Layers {
+function layersFor(scale: number, scene: number = RACING_SCENE_PARK): Layers {
   const s = Math.max(1, Math.min(3, Math.round(scale * 2) / 2));
   const key = lookKey(SK) + (SK.world ? neonNightLayerKey() : "");
-  const cacheKey = key ? `${s}|${key}` : s;
+  // The circuit's own scenery (stage 2): the Neon Night keeps its one look on every circuit.
+  const sc = SK.world ? RACING_SCENE_PARK : scene;
+  const cacheKey = key || sc ? `${s}|${key}|${sc}` : s;
   const hit = layerCache.get(cacheKey);
   if (hit) return hit;
   const surf = (w: number, h: number, paint: (c: Ctx2D) => void): Surface | null => {
@@ -371,15 +430,37 @@ function layersFor(scale: number): Layers {
   const layers: Layers = {
     scale: s,
     sky: surf(RACING_WORLD_W, HORIZON + 20, (c) => paintRacingSky(c, RACING_WORLD_W, RACING_WORLD_H)),
-    far: surf(HILL_W, FAR_H, (c) => (SK.world ? paintNeonCity(c, HILL_W, FAR_H) : paintHillStrip(c, HILL_W, FAR_H, 3, "#8A5A7A", "#5E4466", "rgba(255,190,150,0.55)", 52, false))),
+    far: surf(HILL_W, FAR_H, (c) =>
+      SK.world
+        ? paintNeonCity(c, HILL_W, FAR_H)
+        : sc === RACING_SCENE_HARBOUR
+          ? paintHarbourFar(c, HILL_W, FAR_H)
+          : sc === RACING_SCENE_RIDGE
+            ? paintRidgeFar(c, HILL_W, FAR_H)
+            : paintHillStrip(c, HILL_W, FAR_H, 3, "#A56A80", "#7E5774", "rgba(255,200,160,0.7)", 52, false),
+    ),
     near: surf(HILL_W, NEAR_H, (c) =>
       SK.world
         ? paintNeonNear(c, HILL_W, NEAR_H) || paintHillStrip(c, HILL_W, NEAR_H, 11, NEON_NIGHT_NEAR.top, NEON_NIGHT_NEAR.bottom, NEON_NIGHT_NEAR.rim, 40, false)
-        : paintHillStrip(c, HILL_W, NEAR_H, 11, "#4A3B48", "#2E2A30", "rgba(255,170,110,0.6)", 40, true),
+        : sc === RACING_SCENE_HARBOUR
+          ? paintHarbourNear(c, HILL_W, NEAR_H)
+          : sc === RACING_SCENE_RIDGE
+            ? paintRidgeNear(c, HILL_W, NEAR_H)
+            : paintHillStrip(c, HILL_W, NEAR_H, 11, "#3A2A3A", "#1C171D", "rgba(255,160,95,0.75)", 40, true),
     ),
     car: surf(CAR_SPRITE_W, CAR_SPRITE_H, (c) => paintRacingCar(c, CAR_SPRITE_W / 2, CAR_SPRITE_H - 2, CAR_SPRITE_W, false)),
     carBrake: surf(CAR_SPRITE_W, CAR_SPRITE_H, (c) => paintRacingCar(c, CAR_SPRITE_W / 2, CAR_SPRITE_H - 2, CAR_SPRITE_W, true)),
-    trees: [0, 1, 2].map((v) => surf(TREE_W, TREE_H, (c) => paintTree(c, TREE_W / 2, TREE_H, TREE_H, v))).filter((x): x is Surface => x !== null),
+    trees: [0, 1, 2]
+      .map((v) =>
+        surf(TREE_W, TREE_H, (c) =>
+          !SK.world && sc === RACING_SCENE_HARBOUR
+            ? paintHarbourProp(c, TREE_W / 2, TREE_H, TREE_H, v)
+            : !SK.world && sc === RACING_SCENE_RIDGE
+              ? paintRidgeProp(c, TREE_W / 2, TREE_H, TREE_H, v)
+              : paintTree(c, TREE_W / 2, TREE_H, TREE_H, v),
+        ),
+      )
+      .filter((x): x is Surface => x !== null),
     stand: surf(STAND_W, STAND_H, (c) => (SK.world ? paintNeonStand(c, STAND_W, STAND_H) : paintStand(c, STAND_W, STAND_H))),
   };
   if (layerCache.size >= 4) layerCache.delete(layerCache.keys().next().value!);
@@ -394,8 +475,8 @@ function paintTree(ctx: Ctx2D, x: number, y: number, h: number, variant: number)
   if (SK.world && paintNeonTower(ctx as CanvasRenderingContext2D, x, y, h, variant)) return;
   ctx.fillStyle = SK.world ? NEON_NIGHT_TREE.trunk : "#2B1E18";
   ctx.fillRect(x - h * 0.025, y - h * 0.3, h * 0.05, h * 0.3);
-  const body = SK.world ? NEON_NIGHT_TREE.body : variant === 0 ? "#22301F" : variant === 1 ? "#283522" : "#1E2A20";
-  const rim = SK.world ? NEON_NIGHT_TREE.rim : "rgba(255,170,90,0.55)";
+  const body = SK.world ? NEON_NIGHT_TREE.body : variant === 0 ? "#18221A" : variant === 1 ? "#1C261C" : "#141D17";
+  const rim = SK.world ? NEON_NIGHT_TREE.rim : "rgba(255,165,85,0.8)";
   if (variant === 2) {
     // A poplar.
     ctx.fillStyle = body;
@@ -564,6 +645,80 @@ export function paintRacingCar(ctx: Ctx2D, cx: number, bottom: number, w: number
   ctx.restore();
 }
 
+/** The asphalt grain's tile (world px). */
+const GRAIN = 48;
+/** Paints the grain's specks (light and dark, hashed, so every frame and device draws the same) on a GRAIN tile. */
+function paintGrainSpecks(g: Ctx2D): void {
+  for (let i = 0; i < 260; i++) {
+    const x = hash(i * 3 + 1) * GRAIN;
+    const y = hash(i * 3 + 2) * GRAIN;
+    const light = hash(i * 3 + 3) > 0.55;
+    g.fillStyle = light ? "rgba(255,240,225,0.10)" : "rgba(0,0,0,0.16)";
+    g.fillRect(x, y, light ? 1 : 1.5, light ? 1 : 1);
+  }
+}
+/**
+ * A tarmac surface's fill with its grain baked in (performance pass, 15 Nov 2026): the surface's colour with the specks
+ * over it, as one repeating pattern, cached per canvas, device-pixel ratio and colour. The road, the second road shade
+ * and the run-off fill with it directly, so the grain costs no clip and no second full-screen fill (it used to be
+ * painted over the three surfaces afterwards, clipped to each). The tile is drawn at the canvas's own device pixels and
+ * mapped onto them 1:1 (its transform undoes the canvas's scale, its offset whole device pixels), so the fill copies
+ * pixels instead of resampling the tile for every pixel of road.
+ */
+const surfaceTiles = new Map<string, { pattern: CanvasPattern; ctx: Ctx2D }>();
+function surfacePattern(ctx: Ctx2D, colour: string, k: number): CanvasPattern | null {
+  const id = `${colour}|${k}`;
+  const known = surfaceTiles.get(id);
+  if (known && known.ctx === ctx) return known.pattern;
+  const s = makeSurface(GRAIN * k, GRAIN * k);
+  if (!s) return null;
+  const g = s.getContext("2d") as unknown as Ctx2D;
+  g.scale(k, k);
+  g.fillStyle = colour;
+  g.fillRect(0, 0, GRAIN, GRAIN);
+  paintGrainSpecks(g);
+  const pattern = ctx.createPattern(s as unknown as CanvasImageSource, "repeat");
+  if (!pattern) return null;
+  surfaceTiles.set(id, { pattern, ctx });
+  return pattern;
+}
+
+/**
+ * The low sun's warm light across the ground (the Sports overhaul; performance pass, 15 Nov 2026): a soft radial glow
+ * from the sun's place on the horizon, drawn once into a layer at the canvas's own device pixels and kept while the sun
+ * stays within a world pixel of where it was drawn (the sun moves only with the heading, so straights and steady corners
+ * reuse it frame after frame), then copied 1:1 over the ground: one image copy a frame in place of a full-screen radial
+ * gradient. The glow has no edge, so a sun at most a pixel from its drawn place is indistinguishable.
+ */
+let warmLayer: { surface: Surface; key: string } | null = null;
+function paintWarmLight(ctx: Ctx2D, lx: number, x0: number, y0: number, x1: number, y1: number): void {
+  const w = x1 - x0;
+  const h = y1 - y0;
+  if (w <= 0 || h <= 0) return;
+  const m = ctx.getTransform();
+  const k = Math.max(1, Math.round(Math.hypot(m.a, m.b) * 4) / 4);
+  const sun = Math.round(lx / 2) * 2;
+  const key = `${sun}|${x0}|${y0}|${x1}|${y1}|${k}`;
+  if (!warmLayer || warmLayer.key !== key) {
+    const s = warmLayer && warmLayer.surface.width === Math.ceil(w * k) && warmLayer.surface.height === Math.ceil(h * k) ? warmLayer.surface : makeSurface(w * k, h * k);
+    if (!s) return;
+    const g = s.getContext("2d") as unknown as Ctx2D;
+    g.setTransform(k, 0, 0, k, -x0 * k, -y0 * k);
+    g.clearRect(x0, y0, w, h);
+    const warm = g.createRadialGradient(sun, HORIZON, 0, sun, HORIZON, RACING_WORLD_W * 1.5);
+    warm.addColorStop(0, "rgba(255,150,80,0.26)");
+    warm.addColorStop(0.45, "rgba(255,120,70,0.1)");
+    warm.addColorStop(1, "rgba(255,120,70,0)");
+    g.fillStyle = warm;
+    g.fillRect(x0, y0, w, h);
+    warmLayer = { surface: s, key };
+  }
+  const smoothing = ctx.imageSmoothingEnabled;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(warmLayer.surface as unknown as CanvasImageSource, x0, y0, w, h);
+  ctx.imageSmoothingEnabled = smoothing;
+}
+
 /* ================================ The track's look ================================ */
 
 interface Look {
@@ -578,6 +733,20 @@ interface Look {
   heading: Float32Array;
   /** Roadside sprites per segment. */
   sprites: { kind: number; x: number; v: number }[][];
+  /** The heading smoothed over a long window (the sun's frame). */
+  smooth: Float32Array;
+  /**
+   * A difficulty level's widths and aids (racingRev 4; display): the tarmac's half width as a share of Normal's (`rf`,
+   * 1 at Normal), the kerb's and the tyre wall's edges (world units), and the aids (2 signs, boards and braking
+   * points; 1 Normal's signs and boards; 0 signs only, no boards, racing line or skid marks).
+   */
+  key: string;
+  rf: number;
+  kerbW: number;
+  wallW: number;
+  aids: number;
+  /** Aids 2: the braking point painted across the road, per segment (1 = a stripe). */
+  brake: Uint8Array | null;
 }
 const SPR_TREE = 0;
 const SPR_STAND = 1;
@@ -585,10 +754,21 @@ const SPR_BOARD = 2;
 const SPR_FENCE = 3;
 /** racingRev 3's advisory corner speed sign (`v` = the speed in km/h). */
 const SPR_SIGN = 4;
+/** A marshal post behind the wall at a corner's entry (stage 2, trackside detail). */
+const SPR_MARSHAL = 5;
 let look: Look | null = null;
 
-function lookFor(track: RacingTrack): Look {
-  if (look && look.track === track) return look;
+/** A level's display widths and aids (Normal: the constants, aids 1). */
+function laneOf(lv: RacingLevelSettings | null | undefined): { key: string; rf: number; kerbW: number; wallW: number; aids: number; clean: number } {
+  if (!lv) return { key: "", rf: 1, kerbW: KERB_W, wallW: WALL_W, aids: 1, clean: RACING_CLEAN_X };
+  return { key: `${lv.road}:${lv.kerb}:${lv.wall}:${lv.aids}`, rf: lv.road / RACING_ROAD_X, kerbW: lat(lv.kerb), wallW: lat(lv.wall), aids: lv.aids, clean: lv.kerb - RACING_CAR_HALF };
+}
+
+function lookFor(track: RacingTrack, lv?: RacingLevelSettings | null): Look {
+  const lane = laneOf(lv);
+  if (look && look.track === track && look.key === lane.key) return look;
+  const { kerbW: KERB_W, wallW: WALL_W, aids } = lane;
+  const brake = aids >= 2 ? new Uint8Array(RACING_LAP_SEGS) : null;
   const n = RACING_LAP_SEGS;
   const kerb = new Uint8Array(n);
   const gravel = new Uint8Array(n);
@@ -602,20 +782,36 @@ function lookFor(track: RacingTrack): Look {
   const inStand = (i: number) => i >= standFrom || i < standTo;
   for (const c of track.corners) {
     const outside = c.dir > 0 ? 1 : 2;
-    for (let k = -8; k < c.len + 8; k++) kerb[at(c.start + k)] = 1;
+    // Kerbs a little before and after each curve (stage 2: the kerbs read again at dusk).
+    for (let k = -12; k < c.len + 12; k++) kerb[at(c.start + k)] = 1;
     for (let k = -10; k < c.len + 22; k++) {
       const g = at(c.start + k);
       gravel[g] = gravel[g]! | (c.kind === RACING_SEC_CHICANE ? 3 : outside);
     }
     const zone = c.kind === RACING_SEC_HAIRPIN ? 30 : 22;
-    for (let k = -zone; k < 0; k++) skid[at(c.start + k)] = 1;
+    // Expert (aids 0): no skid marks or braking boards, the signs alone.
+    if (aids > 0) for (let k = -zone; k < 0; k++) skid[at(c.start + k)] = 1;
     // Braking boards on the outside: 150, 100, 50.
     const side = c.dir > 0 ? -1 : 1;
-    [24, 16, 8].forEach((d, j) => sprites[at(c.start - d)]!.push({ kind: SPR_BOARD, x: side * (KERB_W + 260), v: j }));
+    if (aids > 0) [24, 16, 8].forEach((d, j) => sprites[at(c.start - d)]!.push({ kind: SPR_BOARD, x: side * (KERB_W + 260), v: j }));
     // racingRev 3: the corner's advisory speed on the same side, before the boards (drawn on racingRev 3 only).
-    const sign = racingCornerAdvice(track).find((a) => a.corner === c);
+    const sign = racingCornerAdvice(track, lane.clean).find((a) => a.corner === c);
     if (sign) sprites[at(c.start - RACING_SIGN_SEGS)]!.push({ kind: SPR_SIGN, x: side * (KERB_W + 420), v: sign.kmh });
-    // The racing line: outside on the approach, the apex inside, out again on the exit.
+    // Easy (aids 2): the braking point painted across the road, where full braking from top speed reaches the sign's
+    // speed by the turn-in (display only; two segments wide).
+    if (brake && sign) {
+      const segs = Math.round((RACING_VMAX * RACING_VMAX - sign.limit * sign.limit) / (2 * RACING_BRAKE * RACING_SEG));
+      const d = Math.max(4, Math.min(RACING_SIGN_SEGS - 2, segs));
+      brake[at(c.start - d)] = 1;
+      brake[at(c.start - d + 1)] = 1;
+    }
+    // Trackside (stage 2): a marshal post behind the wall at the entry, a catch fence along the outside, and at a
+    // hairpin a grandstand piece looking down on it.
+    sprites[at(c.start - 3)]!.push({ kind: SPR_MARSHAL, x: side * (WALL_W + 260), v: 0 });
+    for (let k = -6; k < c.len + 6; k++) sprites[at(c.start + k)]!.push({ kind: SPR_FENCE, x: side * WALL_W, v: 0 });
+    if (c.kind === RACING_SEC_HAIRPIN) for (let k = -12; k < c.len; k += 6) sprites[at(c.start + k)]!.push({ kind: SPR_STAND, x: side * (WALL_W + 700), v: 0 });
+    // The racing line: outside on the approach, the apex inside, out again on the exit (none on Expert, aids 0).
+    if (aids === 0) continue;
     const out = -c.dir * RW * 0.5;
     for (let k = -30; k < c.len + 30; k++) {
       let v: number;
@@ -643,8 +839,55 @@ function lookFor(track: RacingTrack): Look {
       if (r < 0.42) sprites[i]!.push({ kind: SPR_TREE, x: side * (WALL_W + 500 + hash(i * 5 + side + track.seed) * 2800), v: Math.floor(hash(i * 11 + side) * 3) });
     }
   }
-  look = { track, kerb, gravel, skid, line, heading, sprites };
+  // The sun's frame (the Sports overhaul, 15 Nov 2026, display only): the heading averaged over 140 segments either way
+  // (the lap continued past its ends), so through a corner the sun swings with the hills and on a straight it settles
+  // ahead of the car again (the circuits are pseudo-3D: their heading drifts over a lap, so a fixed sun would hide).
+  const total = h;
+  const SMOOTH = 140;
+  const smooth = new Float32Array(n);
+  const H = (j: number) => heading[at(j)]! + Math.floor(j / n) * total;
+  let acc = 0;
+  for (let j = -SMOOTH; j <= SMOOTH; j++) acc += H(j);
+  for (let i = 0; i < n; i++) {
+    smooth[i] = acc / (2 * SMOOTH + 1);
+    acc += H(i + SMOOTH + 1) - H(i - SMOOTH);
+  }
+  look = { track, kerb, gravel, skid, line, heading, smooth, sprites, key: lane.key, rf: lane.rf, kerbW: KERB_W, wallW: WALL_W, aids, brake };
   return look;
+}
+
+/**
+ * The trackside a circuit draws (checks only; stage 2): which segments carry kerbs and, per corner, what stands at it
+ * (the marshal post, the catch fence on the outside, the braking boards and the speed sign).
+ */
+export function racingTrackDetail(track: RacingTrack, lv?: RacingLevelSettings | null): {
+  kerb: Uint8Array;
+  corners: { start: number; len: number; marshal: boolean; fenceOutside: boolean; boards: number; sign: boolean; brake: boolean; line: boolean }[];
+} {
+  const lk = lookFor(track, lv);
+  const n = RACING_LAP_SEGS;
+  const at = (i: number) => ((i % n) + n) % n;
+  return {
+    kerb: lk.kerb,
+    corners: track.corners.map((c) => {
+      const side = c.dir > 0 ? -1 : 1;
+      const near = (from: number, to: number, kind: number) => {
+        let count = 0;
+        for (let k = from; k < to; k++) count += lk.sprites[at(c.start + k)]!.filter((s) => s.kind === kind && Math.sign(s.x) === side).length;
+        return count;
+      };
+      return {
+        start: c.start,
+        len: c.len,
+        marshal: near(-6, 0, SPR_MARSHAL) > 0,
+        fenceOutside: near(0, c.len, SPR_FENCE) >= c.len,
+        boards: near(-30, 0, SPR_BOARD),
+        sign: near(-RACING_SIGN_SEGS - 1, 0, SPR_SIGN) > 0,
+        brake: lk.brake ? Array.from({ length: RACING_SIGN_SEGS }, (_, k) => lk.brake![at(c.start - 1 - k)]!).some(Boolean) : false,
+        line: lk.line[at(c.start)] !== 0,
+      };
+    }),
+  };
 }
 
 /* ================================ Drawing ================================ */
@@ -656,20 +899,9 @@ interface Proj {
   scale: number;
 }
 
-const COL_DAY = {
-  grassA: "#5D6A2E",
-  grassB: "#566428",
-  gravelA: "#C4A275",
-  gravelB: "#BC9A6C",
-  runoff: "#5A5A60",
-  roadA: "#4B4A52",
-  roadB: "#47464E",
-  lineDark: "rgba(28,26,30,0.38)",
-  kerbR: "#C8312C",
-  kerbW: "#EDE7DF",
-  edge: "#E9E4DA",
-  skid: "rgba(18,16,18,0.32)",
-};
+/** The default circuit at dusk (the Sports overhaul, 15 Nov 2026: darker ground and asphalt under the low sun). */
+/** The ground's colours: Sunset Park's dusk palette (each circuit's own in SCENE_GROUND, racingScenery.renderer.ts). */
+const COL_DAY = SCENE_GROUND[RACING_SCENE_PARK]!;
 
 /**
  * The look this draw uses (wave 2 skins; src/lib/arcade/skins/look.ts): set for the length of the public draw calls,
@@ -691,13 +923,15 @@ function quad(path: Path2D, x1: number, y1: number, w1: number, x2: number, y2: 
   path.closePath();
 }
 
+/** The HUD chip's height and type (the Sports overhaul, 15 Nov 2026: 30 px at 16 px, was 24 at 12). */
+const CHIP_H = 30;
 function chip(ctx: Ctx2D, x: number, y: number, text: string, align: "left" | "center" | "right" = "left", accent = false): number {
-  ctx.font = `700 12px ${MONO}`;
-  const w = Math.ceil(ctx.measureText(text).width) + 18;
+  ctx.font = `800 16px ${MONO}`;
+  const w = Math.ceil(ctx.measureText(text).width) + 22;
   const left = align === "left" ? x : align === "right" ? x - w : x - w / 2;
-  ctx.fillStyle = "rgba(10,10,14,0.62)";
+  ctx.fillStyle = "rgba(10,10,14,0.7)";
   ctx.beginPath();
-  ctx.roundRect(left, y, w, 24, 12);
+  ctx.roundRect(left, y, w, CHIP_H, CHIP_H / 2);
   ctx.fill();
   ctx.strokeStyle = accent ? "rgba(242,199,92,0.8)" : "rgba(255,255,255,0.14)";
   ctx.lineWidth = 1;
@@ -705,7 +939,7 @@ function chip(ctx: Ctx2D, x: number, y: number, text: string, align: "left" | "c
   ctx.fillStyle = accent ? "#F2C75C" : "#F3F1EC";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(text, left + w / 2, y + 12.5);
+  ctx.fillText(text, left + w / 2, y + CHIP_H / 2 + 1);
   ctx.textAlign = "left";
   ctx.textBaseline = "alphabetic";
   return w;
@@ -737,8 +971,8 @@ const WORLD_BOUNDS: Bounds = { x0: 0, x1: RACING_WORLD_W, y1: RACING_WORLD_H, be
 /** The scene (sky, hills, road, roadside, ghosts, car) for a state, without the HUD. */
 function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_BOUNDS): void {
   const W = RACING_WORLD_W;
-  const track = racingTrack(state.seed);
-  const lk = lookFor(track);
+  const track = racingTrackOf(state);
+  const lk = lookFor(track, state.lv);
   const n = RACING_LAP_SEGS;
   const carZ = (state.s / RACING_SEG) * SL;
   const camZ = carZ - ZC;
@@ -749,6 +983,9 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   const carFrac = (state.s % RACING_SEG) / RACING_SEG;
   const heading = lk.heading[carSeg]! + track.curve[carSeg]! * K_ANG * carFrac;
 
+  // The circuit's own ground (stage 2): its grass under the same road palette; the Neon Night keeps its own.
+  const scene = SK.world ? RACING_SCENE_PARK : racingSceneOf(state);
+  if (!SK.world) COL = SCENE_GROUND[scene]!;
   const y0 = B.y0 ?? 0;
   const high = y0 <= HORIZON + 20;
   // Sky, sun, hills (beyond the world, the sky's layer mirrored on either side, so its clouds run on).
@@ -765,14 +1002,17 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
         ctx.restore();
       }
   } else paintRacingSky(ctx, W, RACING_WORLD_H);
-  let rel = SUN_BEARING - heading;
+  // The low sun ahead (the Sports overhaul): bearing taken against the smoothed heading, so it sits just off centre on
+  // the straights and swings out through the corners; on the horizon, half behind the tree line. The Neon Night has none.
+  const smoothHere = lk.smooth[carSeg]! + (lk.smooth[(carSeg + 1) % n]! - lk.smooth[carSeg]!) * carFrac;
+  let rel = SUN_BEARING * 0.4 - 0.5 * (heading - smoothHere);
   rel = Math.atan2(Math.sin(rel), Math.cos(rel));
   const sunX = W / 2 + Math.tan(Math.max(-1.3, Math.min(1.3, rel))) * F;
-  const sunY = HORIZON - 34;
+  const sunY = HORIZON - 30;
   const sunOn = Math.abs(rel) < 1.1;
   if (SK.world) {
     if (high) paintNeonNightStars(ctx, W, HORIZON, skinTime());
-  } else if (sunOn && high) paintSun(ctx, sunX, sunY);
+  }
   const hillShift = (layer: Surface | null, h: number, k: number, y: number) => {
     if (!layer) return;
     let off = (-heading * PX_PER_RAD * k) % HILL_W;
@@ -782,14 +1022,27 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   };
   if (high) {
     hillShift(L.far, FAR_H, 0.5, HORIZON + 2);
+    // The sun between the far hills and the near tree line: low ahead, its foot behind the trees.
+    if (!SK.world && sunOn) paintSun(ctx, sunX, sunY, 22);
     hillShift(L.near, NEAR_H, 0.8, HORIZON + 4);
   }
   // The far fields in the haze, under the road's farthest segment.
   const haze = ctx.createLinearGradient(0, HORIZON + 4, 0, HAZE_END);
-  haze.addColorStop(0, SK.world ? NEON_NIGHT_HAZE : "#8C7A58");
+  haze.addColorStop(0, SK.world ? NEON_NIGHT_HAZE : SCENE_HAZE[scene]!);
   haze.addColorStop(1, COL.grassA);
   ctx.fillStyle = haze;
-  ctx.fillRect(B.x0, HORIZON + 3, B.x1 - B.x0, B.y1 - HORIZON - 3);
+  // The gradient only down to its end; below it the haze is the grass's own colour, filled flat (the same colour as the
+  // gradient's pad, without a gradient evaluated for every pixel of the lower screen: performance pass, 15 Nov 2026).
+  const hazeEnd = Math.min(B.y1, HAZE_END);
+  ctx.fillRect(B.x0, HORIZON + 3, B.x1 - B.x0, hazeEnd - HORIZON - 3);
+  if (B.y1 > hazeEnd) {
+    ctx.fillStyle = COL.grassA;
+    ctx.fillRect(B.x0, hazeEnd, B.x1 - B.x0, B.y1 - hazeEnd);
+  }
+  // Harbour Run: the water on the horizon with the low sun's path on it, above where the haze reaches the grass (the
+  // road's far end draws over it).
+  const harbour = !SK.world && scene === RACING_SCENE_HARBOUR;
+  if (high && harbour) paintHarbourWater(ctx, B.x0, B.x1, HORIZON + 3, HORIZON + WATER_H + 2, sunOn ? sunX : null);
 
   // Segment edges: curve offsets and hills, zero offset at the car's depth.
   const edges = DRAW_SEGS + 1;
@@ -831,18 +1084,20 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
     const scale = F / z;
     proj.push({ x: W / 2 + (px - carOffset - camX) * scale, y: HORIZON + (camY - py) * scale, w: RW * scale, scale });
   }
-
   // Road surfaces, front to back with the crest clip, one path per colour.
   const P = {
     grassA: new Path2D(), grassB: new Path2D(), gravelA: new Path2D(), gravelB: new Path2D(), runoff: new Path2D(),
     roadA: new Path2D(), roadB: new Path2D(), line: new Path2D(), kerbR: new Path2D(), kerbW: new Path2D(), edge: new Path2D(),
-    skid: new Path2D(), start: new Path2D(), startW: new Path2D(),
+    skid: new Path2D(), start: new Path2D(), startW: new Path2D(), dash: new Path2D(),
   };
   const clipY = new Float64Array(edges).fill(B.y1);
   let maxY = B.y1;
   const visible = new Uint8Array(edges);
-  const kw = KERB_W / RW;
-  const ww = WALL_W / RW;
+  // The tarmac's half width (1 at Normal: every road quad below is exactly as before), the kerb and the wall.
+  const rf = lk.rf;
+  const kw = lk.kerbW / RW;
+  const ww = lk.wallW / RW;
+  const brakePath = lk.brake ? new Path2D() : null;
   // The Neon Night's kerbs chase (0 by default, and at rest under Reduce Motion).
   const chase = SK.world ? neonNightChase(skinTime()) : 0;
   for (let i = 0; i < DRAW_SEGS; i++) {
@@ -867,11 +1122,15 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
     // HAZE_MARGIN down): grassA over grassA changes no pixel. Skipped a whole three-segment group at a time, so every
     // edge of the grassA area stays under a grassB band painted after it, exactly as when the group was part of one
     // filled union (1 Nov 2026; racing-render-check proves every pixel the same on frames across whole races).
-    if (!alt) P.grassB.rect(B.x0, p2.y, B.x1 - B.x0, y1 - p2.y + 1);
+    // Harbour Run's grass starts below the water on the horizon (stage 2); above HAZE_END, so the saving is untouched.
+    const gTop = harbour ? Math.max(p2.y, HORIZON + WATER_H) : p2.y;
+    if (y1 - gTop + 1 <= 0) {
+      // Wholly in the water band: no grass.
+    } else if (!alt) P.grassB.rect(B.x0, gTop, B.x1 - B.x0, y1 - gTop + 1);
     else {
       const far = i + (Math.floor(k / 3) * 3 + 2 - k);
       const groupTop = far + 1 < edges ? proj[far + 1]!.y : -Infinity;
-      if (!(grassSkip && groupTop >= HAZE_END + HAZE_MARGIN && ez[far + 1]! > NEAR)) P.grassA.rect(B.x0, p2.y, B.x1 - B.x0, y1 - p2.y + 1);
+      if (!(grassSkip && groupTop >= HAZE_END + HAZE_MARGIN && ez[far + 1]! > NEAR)) P.grassA.rect(B.x0, gTop, B.x1 - B.x0, y1 - gTop + 1);
     }
     const gv = lk.gravel[seg]!;
     const gp = alt ? P.gravelA : P.gravelB;
@@ -881,30 +1140,33 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
     const kerbHere = lk.kerb[seg]!;
     if (kerbHere) {
       const kp = Math.floor((k + chase) / 2) % 2 === 0 ? P.kerbR : P.kerbW;
-      quad(kp, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -kw, -1, -kw, -1);
-      quad(kp, p1.x, y1, p1.w, p2.x, p2.y, p2.w, 1, kw, 1, kw);
+      quad(kp, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -kw, -rf, -kw, -rf);
+      quad(kp, p1.x, y1, p1.w, p2.x, p2.y, p2.w, rf, kw, rf, kw);
     } else {
-      quad(P.runoff, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -kw, -1, -kw, -1);
-      quad(P.runoff, p1.x, y1, p1.w, p2.x, p2.y, p2.w, 1, kw, 1, kw);
+      quad(P.runoff, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -kw, -rf, -kw, -rf);
+      quad(P.runoff, p1.x, y1, p1.w, p2.x, p2.y, p2.w, rf, kw, rf, kw);
     }
-    quad(alt ? P.roadA : P.roadB, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -1, 1, -1, 1);
-    // White track-limit lines on the straights.
+    quad(alt ? P.roadA : P.roadB, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -rf, rf, -rf, rf);
+    // White track-limit lines on the straights, and (stage 2) the dashed centre marking between them.
     if (!kerbHere) {
-      quad(P.edge, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -1, -0.97, -1, -0.97);
-      quad(P.edge, p1.x, y1, p1.w, p2.x, p2.y, p2.w, 0.97, 1, 0.97, 1);
+      quad(P.edge, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -rf, -0.97 * rf, -rf, -0.97 * rf);
+      quad(P.edge, p1.x, y1, p1.w, p2.x, p2.y, p2.w, 0.97 * rf, rf, 0.97 * rf, rf);
+      if (k % 3 === 0) quad(P.dash, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -0.012, 0.012, -0.012, 0.012);
     }
-    // The darker racing line.
+    // Easy's braking point: a bright stripe across the tarmac.
+    if (brakePath && lk.brake![seg]) quad(brakePath, p1.x, y1, p1.w, p2.x, p2.y, p2.w, -0.92 * rf, 0.92 * rf, -0.92 * rf, 0.92 * rf);
+    // The darker racing line (none on Expert, aids 0).
     const l1 = lk.line[seg]! / RW;
     const l2 = lk.line[segOf(k + 1)]! / RW;
-    quad(P.line, p1.x, y1, p1.w, p2.x, p2.y, p2.w, l1 - 0.28, l1 + 0.28, l2 - 0.28, l2 + 0.28);
+    if (lk.aids > 0) quad(P.line, p1.x, y1, p1.w, p2.x, p2.y, p2.w, l1 - 0.28, l1 + 0.28, l2 - 0.28, l2 + 0.28);
     if (lk.skid[seg] && (k * 7) % 5 !== 0) {
       for (const o of [-0.42, -0.3, 0.3, 0.42]) quad(P.skid, p1.x, y1, p1.w, p2.x, p2.y, p2.w, l1 + o - 0.035, l1 + o + 0.035, l2 + o - 0.035, l2 + o + 0.035);
     }
     if (seg === 0) {
       // The start / finish line: a chequered band.
       for (let c = 0; c < 16; c++) {
-        const a = -1 + c / 8;
-        quad(c % 2 ? P.start : P.startW, p1.x, y1, p1.w, p2.x, p2.y, p2.w, a, a + 1 / 8, a, a + 1 / 8);
+        const a = -rf + (c / 8) * rf;
+        quad(c % 2 ? P.start : P.startW, p1.x, y1, p1.w, p2.x, p2.y, p2.w, a, a + rf / 8, a, a + rf / 8);
       }
     }
     maxY = p2.y;
@@ -917,16 +1179,70 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   fill(P.grassB, COL.grassB);
   fill(P.gravelA, COL.gravelA);
   fill(P.gravelB, COL.gravelB);
-  fill(P.runoff, COL.runoff);
-  fill(P.roadA, COL.roadA);
-  fill(P.roadB, COL.roadB);
+  // The tarmac with its grain baked in (the default look only; the Neon Night's road is plain): the grain flows past
+  // with the car, its offset following the distance driven.
+  // Reduced effects (a slow phone, lib/fx/lowEnd.ts; performance pass, 15 Nov 2026): the ground's decorative passes, the
+  // tarmac's grain, the sheen towards the sun and the sun's warm light, are left out, so a stepped-down phone draws the
+  // ground as cheaply as before the overhaul. Checks pin full effects.
+  const reduced = arcadeReducedEffects();
+  const grainOff = ((state.s / RACING_SEG) * 9) % GRAIN;
+  // The canvas's device pixels per world px (its scale, unrotated), rounded to the quarter so the tile is cached.
+  const m = ctx.getTransform();
+  const k = Math.max(1, Math.round(Math.hypot(m.a, m.b) * 4) / 4);
+  const tarmac = (p: Path2D, c: string) => {
+    const pattern = SK.world || reduced ? null : surfacePattern(ctx, c, k);
+    if (!pattern) return fill(p, c);
+    pattern.setTransform({ a: 1 / k, b: 0, c: 0, d: 1 / k, e: 0, f: Math.round(grainOff * k) / k });
+    ctx.fillStyle = pattern;
+    const smoothing = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+    ctx.fill(p);
+    ctx.imageSmoothingEnabled = smoothing;
+  };
+  tarmac(P.runoff, COL.runoff);
+  tarmac(P.roadA, COL.roadA);
+  tarmac(P.roadB, COL.roadB);
   fill(P.line, COL.lineDark);
   fill(P.skid, COL.skid);
   fill(P.kerbR, COL.kerbR);
   fill(P.kerbW, COL.kerbW);
   fill(P.edge, COL.edge);
+  fill(P.dash, SK.world ? COL.edge : "rgba(238,233,223,0.55)");
+  if (brakePath) fill(brakePath, BRAKE_POINT_COL);
   fill(P.start, "#18181C");
   fill(P.startW, "#F1EEE8");
+  if (!SK.world && !reduced) {
+    // The Sports overhaul (15 Nov 2026, display only): the asphalt's grain (baked into the tarmac's own fills above),
+    // and the low sun's warm light across the ground from its side of the sky (no glare: under the roadside, the car and
+    // every number).
+    const lx = Math.max(-W, Math.min(2 * W, sunX));
+    // The asphalt's sheen towards the low sun: a warm band from the sun's place on the horizon fanning down the road,
+    // brightest far ahead, gone before the car (on the tarmac only: the paths it clips to are the road's).
+    if (sunOn) {
+      const reach = (RACING_CAR_Y - HORIZON) * 0.95;
+      const sheen = ctx.createLinearGradient(0, HORIZON, 0, HORIZON + reach);
+      sheen.addColorStop(0, "rgba(255,196,140,0.42)");
+      sheen.addColorStop(0.35, "rgba(255,170,115,0.2)");
+      sheen.addColorStop(1, "rgba(255,150,100,0)");
+      // One clip to both road shades (they never overlap), so the sheen is filled once.
+      const road = new Path2D(P.roadA);
+      road.addPath(P.roadB);
+      {
+        ctx.save();
+        ctx.clip(road);
+        ctx.fillStyle = sheen;
+        ctx.beginPath();
+        ctx.moveTo(lx - 10, HORIZON);
+        ctx.lineTo(lx + 10, HORIZON);
+        ctx.lineTo(lx + (W / 2 - lx) * 0.6 + W * 0.32, HORIZON + reach);
+        ctx.lineTo(lx + (W / 2 - lx) * 0.6 - W * 0.32, HORIZON + reach);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+    paintWarmLight(ctx, lx, B.x0, HORIZON + 3, B.x1, B.y1);
+  }
 
   // Roadside, back to front: per segment its sprites, then its tyre walls (the trees stand behind them).
   const ghostAt = new Map<number, RacingGhostView[]>();
@@ -948,6 +1264,8 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
       const sx = p2.x + (sp.x / RW) * p2.w;
       const sc = p2.scale;
       if (sp.kind === SPR_TREE) {
+        // Harbour Run's quay is sparser than the park (half its containers and lamps).
+        if (harbour && (seg + sp.v) % 2) continue;
         const img = L.trees[sp.v % Math.max(1, L.trees.length)];
         const h = (1100 + 500 * ((sp.v + seg) % 3)) * sc;
         const w = h * (TREE_W / TREE_H);
@@ -958,11 +1276,15 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
       } else if (sp.kind === SPR_STAND) {
         const w = 2600 * sc;
         const h = 1300 * sc;
-        if (sx > B.x1 || sx + w < B.x0) continue;
-        if (B.beyond && sx - w * 0.1 >= 0 && sx + w * 0.9 <= W && p2.y <= RACING_WORLD_H) continue;
-        drawClipped(ctx, L.stand, sx - w * 0.1, p2.y - h, w, h, clip);
+        const left = sp.x < 0 ? sx - w * 0.9 : sx - w * 0.1;
+        if (left > B.x1 || left + w < B.x0) continue;
+        if (B.beyond && left >= 0 && left + w <= W && p2.y <= RACING_WORLD_H) continue;
+        // On the right its front edge at the post, on the left mirrored (stage 2: stands by the hairpins either side).
+        drawClipped(ctx, L.stand, sp.x < 0 ? sx - w * 0.9 : sx - w * 0.1, p2.y - h, w, h, clip);
       } else if (sp.kind === SPR_SIGN) {
         if (state.rev >= RACING_REV_3) drawSpeedSign(ctx, sx, p2.y, sc, sp.v, clip);
+      } else if (sp.kind === SPR_MARSHAL) {
+        drawMarshalPost(ctx, sx, p2.y, sc, clip, sp.x < 0 ? -1 : 1);
       } else if (sp.kind === SPR_BOARD) {
         const w = 220 * sc;
         const h = 300 * sc;
@@ -1008,9 +1330,11 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
         ctx.fill();
       }
       // Catch fence over the wall by the grandstand.
-      if (lk.sprites[seg]!.some((s) => s.kind === SPR_FENCE)) {
-        const xa = p1.x + ww * p1.w;
-        const xb = p2.x + ww * p2.w;
+      for (const fence of lk.sprites[seg]!) {
+        if (fence.kind !== SPR_FENCE) continue;
+        const fs = fence.x < 0 ? -1 : 1;
+        const xa = p1.x + fs * ww * p1.w;
+        const xb = p2.x + fs * ww * p2.w;
         ctx.strokeStyle = "rgba(200,200,210,0.35)";
         ctx.lineWidth = Math.max(0.5, 6 * p2.scale);
         ctx.beginPath();
@@ -1039,7 +1363,10 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
       const gw = CAR_HALF_W * 2 * sc;
       ctx.save();
       ctx.globalAlpha = 0.42;
-      paintRacingCar(ctx, gx, gy, gw, false, g.colour, g.skin);
+      // The rendered car in the ghost's colour (or its owner's paint); the painted one until the images arrive.
+      const gPaint = racingCarPaint({ skin: g.skin ?? null, world: null });
+      if (!drawRacingCarSprite(ctx, { cx: gx, contactY: gy, width: gw, yawDeg: 0, braking: false, paint: gPaint, ghost: gPaint ? null : g.colour }))
+        paintRacingCar(ctx, gx, gy, gw, false, g.colour, g.skin);
       ctx.restore();
       if (gw > 14) {
         ctx.font = `700 ${Math.max(8, Math.min(12, gw * 0.18))}px ${ARCADE_FX_DISPLAY_FONT}`;
@@ -1095,6 +1422,35 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
   // the body: more with speed, a little even at a crawl so the wheels read on the grid.
   const steerShare = (state.rev >= RACING_REV_2 ? state.wheel : state.steer) / RACING_STICK_MAX;
   const yaw = Math.max(-1, Math.min(1, steerShare * (0.35 + 0.65 * Math.min(1, speedShare * 1.6))));
+  // The car's long shadow towards the camera, cast by the low sun ahead (display only, on the ground under the car;
+  // the Neon Night has no sun).
+  if (!SK.world) {
+    const len = carW * 1.15;
+    const lean = Math.max(-0.5, Math.min(0.5, (W / 2 - sunX) / W)) * carW * 0.8;
+    const top = RACING_CAR_Y + bounce - carW * 0.05;
+    const sh = ctx.createLinearGradient(0, top, 0, top + len);
+    sh.addColorStop(0, "rgba(8,6,10,0.5)");
+    sh.addColorStop(1, "rgba(8,6,10,0)");
+    ctx.fillStyle = sh;
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - carW * 0.46, top);
+    ctx.lineTo(W / 2 + carW * 0.46, top);
+    ctx.lineTo(W / 2 + carW * 0.4 + lean, top + len);
+    ctx.lineTo(W / 2 - carW * 0.4 + lean, top + len);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // The rendered car (the Sports overhaul, 15 Nov 2026): the yaw's own frame, exactly the collision width, its lowest
+  // pixel on the contact line; the painted car below until its images arrive (and in checks without images).
+  const rendered = drawRacingCarSprite(ctx, {
+    cx: W / 2,
+    contactY: RACING_CAR_Y + bounce,
+    width: carW,
+    yawDeg: (yaw * RACING_CAR_TURN_MAX * 180) / Math.PI,
+    braking,
+    paint: racingCarPaint(SK),
+  });
+  if (!rendered) {
   ctx.save();
   // Yaw (3 Nov 2026, every revision): the car is one shape turned slightly into the turn about its centre, never
   // reshaped, so it stays symmetrical; scaled so the turned body's width stays the collision width (rule 3) and lifted
@@ -1112,8 +1468,10 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
     ctx.drawImage(sprite, -CAR_SPRITE_W * s / 2, -(CAR_SPRITE_H - 2) * s, CAR_SPRITE_W * s, CAR_SPRITE_H * s);
   } else paintRacingCar(ctx, 0, 0, carW, braking);
   ctx.restore();
-  // Brake-light bloom (drawn here, not in the sprite, so it has no edge).
-  if (braking) {
+  }
+  // Brake-light bloom on the painted car only (drawn here, not in the sprite, so it has no edge); the rendered car's
+  // lights are its own.
+  if (braking && !rendered) {
     const by = RACING_CAR_Y + bounce - carW * 0.6 * 0.44;
     const glow = ctx.createRadialGradient(W / 2, by, 0, W / 2, by, carW * 0.62);
     glow.addColorStop(0, "rgba(255,70,60,0.32)");
@@ -1122,14 +1480,14 @@ function drawWorld(ctx: Ctx2D, state: RacingState, L: Layers, B: Bounds = WORLD_
     ctx.fillRect(W / 2 - carW * 0.62, by - carW * 0.62, carW * 1.24, carW * 1.24);
   }
   // Rain light blinking on the grass.
-  if (state.off && Math.floor(state.tick / 8) % 2 === 0) {
+  if (!rendered && state.off && Math.floor(state.tick / 8) % 2 === 0) {
     ctx.fillStyle = "rgba(255,80,80,0.9)";
     const h = carW * 0.6;
     ctx.fillRect(W / 2 - carW * 0.025, RACING_CAR_Y - h * 0.34 + bounce, carW * 0.05, h * 0.06);
   }
 
-  // A light lens flare when facing the sun.
-  if (sunOn) {
+  // A light lens flare when facing the sun (off since the Sports overhaul, 15 Nov 2026: no glare).
+  if (sunOn && LENS_FLARE) {
     const k = 1 - Math.abs(rel) / 1.1;
     const cx = W / 2;
     const cy = RACING_WORLD_H * 0.45;
@@ -1274,6 +1632,39 @@ function drawCountdown(ctx: Ctx2D, state: RacingState): void {
 }
 
 /**
+ * A marshal post (stage 2, trackside detail; display only): a small orange hut on legs behind the wall at a corner's
+ * entry, its window lit and the low sun on its side, a flag pole beside it; scaled with distance, clipped at the crest.
+ */
+function drawMarshalPost(ctx: Ctx2D, sx: number, groundY: number, sc: number, clip: number, side: number): void {
+  const w = 300 * sc;
+  const h = 420 * sc;
+  if (groundY - h > clip || w < 1.5) return;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(sx - w, groundY - h * 1.6, w * 2, Math.max(0, clip - (groundY - h * 1.6)));
+  ctx.clip();
+  ctx.fillStyle = "#1C1B21";
+  ctx.fillRect(sx - w * 0.42, groundY - h * 0.4, w * 0.06, h * 0.4);
+  ctx.fillRect(sx + w * 0.36, groundY - h * 0.4, w * 0.06, h * 0.4);
+  // The hut: orange, darker on the side away from the sun.
+  ctx.fillStyle = "#C2561E";
+  ctx.fillRect(sx - w / 2, groundY - h, w, h * 0.62);
+  ctx.fillStyle = "rgba(40,16,10,0.35)";
+  ctx.fillRect(side > 0 ? sx : sx - w / 2, groundY - h, w / 2, h * 0.62);
+  ctx.fillStyle = "#26232A";
+  ctx.fillRect(sx - w * 0.56, groundY - h * 1.06, w * 1.12, h * 0.08);
+  // The lit window.
+  ctx.fillStyle = "#FFD58E";
+  ctx.fillRect(sx - w * 0.3, groundY - h * 0.88, w * 0.6, h * 0.2);
+  // The flag pole and a yellow flag.
+  ctx.fillStyle = "#2A272E";
+  ctx.fillRect(sx - side * w * 0.66, groundY - h * 1.5, Math.max(0.5, w * 0.03), h * 1.5);
+  ctx.fillStyle = "#E8C33A";
+  ctx.fillRect(sx - side * w * 0.66 - (side > 0 ? 0 : w * 0.28), groundY - h * 1.5, w * 0.28, h * 0.18);
+  ctx.restore();
+}
+
+/**
  * racingRev 3's advisory corner speed sign (display): a round white sign with a red ring and the corner's speed in
  * km/h on a dark post, standing on the outside of the corner before the braking boards, scaled with distance.
  */
@@ -1332,20 +1723,35 @@ function drawHud(ctx: Ctx2D, state: RacingState): void {
   // The race clock (from lights out on racingRev 2).
   const go = racingGoTick(state.rev);
   chip(ctx, W - 12, 10, done ? timeText(state.finishTick - go) : timeText(Math.min(racingRaceTicks(state), RACING_RUN_TICKS)), "right", done);
+  // racingRev 4: the circuit's name on the grid and for two seconds after lights out.
+  if (state.rev >= RACING_REV_4 && state.tick < go + 120) chip(ctx, W / 2, 48, RACING_CIRCUITS[racingCircuitOf(state.seed)]!.name.toUpperCase(), "center", true);
 
   // Speed, bottom left.
   const y = RACING_STICK_Y;
-  ctx.fillStyle = "rgba(10,10,14,0.5)";
+  ctx.fillStyle = "rgba(10,10,14,0.62)";
   ctx.beginPath();
   ctx.roundRect(12, y - 30, 92, 54, 12);
   ctx.fill();
-  ctx.fillStyle = "#F3F1EC";
-  ctx.font = `700 28px ${MONO}`;
+  // On the grass the speedo reads red and shows how much has been lost since leaving the tarmac (stage 2).
+  const drop = racingGrassDrop(state);
+  ctx.fillStyle = state.off ? "#FF6B5E" : "#F3F1EC";
+  ctx.font = `800 34px ${MONO}`;
   ctx.textAlign = "right";
-  ctx.fillText(String(racingKmh(state.v)), 84, y + 4);
-  ctx.font = `700 10px ${MONO}`;
-  ctx.fillStyle = "rgba(243,241,236,0.7)";
-  ctx.fillText("KM/H", 92, y + 18);
+  ctx.fillText(String(racingKmh(state.v)), 94, y + 6);
+  if (drop > 0) {
+    ctx.fillStyle = "rgba(10,10,14,0.62)";
+    ctx.beginPath();
+    ctx.roundRect(12, y - 54, 72, 20, 8);
+    ctx.fill();
+    ctx.fillStyle = "#FF6B5E";
+    ctx.font = `800 13px ${MONO}`;
+    ctx.textAlign = "left";
+    ctx.fillText(`▼ ${drop}`, 22, y - 39);
+    ctx.textAlign = "right";
+  }
+  ctx.font = `800 11px ${MONO}`;
+  ctx.fillStyle = "rgba(243,241,236,0.78)";
+  ctx.fillText("KM/H", 94, y + 20);
   ctx.textAlign = "left";
 
   // Clean-sector bars, bottom right: gold when clean, dim red when touched, outline ahead.
@@ -1354,12 +1760,15 @@ function drawHud(ctx: Ctx2D, state: RacingState): void {
   ctx.beginPath();
   ctx.roundRect(bx, y - 30, 92, 54, 12);
   ctx.fill();
+  // A clean sector just completed (stage 2): its bar flashes white and gold as the car crosses into the next.
+  const flash = racingSectorFlash(state);
   for (let k = 0; k < RACING_SECTORS; k++) {
     const x = bx + 10 + k * 9.5;
     const top = y - 18;
     const h = 30;
     const clean = (state.cleanMask >> k) & 1;
-    if (k < state.sector) ctx.fillStyle = clean ? "#F2C75C" : "rgba(220,80,70,0.55)";
+    if (k === flash) ctx.fillStyle = skinReducedMotion() || Math.floor(state.tick / 5) % 2 ? "#FFFFFF" : "#F2C75C";
+    else if (k < state.sector) ctx.fillStyle = clean ? "#F2C75C" : "rgba(220,80,70,0.55)";
     else if (k === state.sector) ctx.fillStyle = state.dirty ? "rgba(220,80,70,0.55)" : "rgba(243,241,236,0.55)";
     else ctx.fillStyle = "rgba(243,241,236,0.16)";
     ctx.fillRect(x, top, 6, h);
@@ -1431,13 +1840,27 @@ function drawRacingWorld(ctx: CanvasRenderingContext2D, state: RacingState, size
   ctx.save();
   if (size.width !== W || size.height !== H) ctx.scale(size.width / W, size.height / H);
   const t = typeof ctx.getTransform === "function" ? ctx.getTransform() : null;
-  const L = layersFor(t ? Math.hypot(t.a, t.b) : 1);
+  const L = layersFor(t ? Math.hypot(t.a, t.b) : 1, racingSceneOf(state));
   ctx.beginPath();
   ctx.rect(0, 0, W, H);
   ctx.clip();
+  // Stage 2's effects (racingFx.renderer.ts, display only): the view (the world, the car and what the car throws up)
+  // shakes on the kerb; the HUD and the controls never move.
+  const fx = observeRacingFx(ctx, state);
+  const shake = racingKerbShake(state);
+  const carW = RACING_CAR_HALF_PX * 2;
+  ctx.save();
+  if (shake.dx || shake.dy) ctx.translate(shake.dx, shake.dy);
   drawWorld(ctx, state, L);
+  drawParticles(ctx, W / 2, RACING_CAR_Y, racingDust(state, carW), "dust");
+  drawParticles(ctx, W / 2, RACING_CAR_Y, racingSparks(state, carW), "spark");
+  drawSpeedLines(ctx, state, W, HORIZON, RACING_STICK_TOP);
+  ctx.restore();
   drawCountdown(ctx, state);
   drawHud(ctx, state);
+  const entry = racingCornerEntry(state, fx.entryAt);
+  if (entry) drawCornerFlash(ctx, entry, W / 2, 70, ARCADE_FX_DISPLAY_FONT);
+  drawFinish(ctx, state, fx.finishedMs, W, 50, ARCADE_FX_DISPLAY_FONT, fx.laps);
   ctx.restore();
 }
 
@@ -1532,7 +1955,7 @@ function paintBeyond(ctx: CanvasRenderingContext2D, view: ArenaSceneView, state:
 }
 
 function paintBeyondLooked(ctx: CanvasRenderingContext2D, view: ArenaSceneView, state: RacingState): void {
-  const L = layersFor(Math.max(1, view.scale * 2));
+  const L = layersFor(Math.max(1, view.scale * 2), racingSceneOf(state));
   // Only round the world (its own canvas covers the rest): the area outside its box, a 1-unit overlap at the seam.
   ctx.save();
   ctx.beginPath();
@@ -1615,6 +2038,22 @@ export function paintRacingTile(ctx: CanvasRenderingContext2D, size: number): vo
   ctx.translate(-(RACING_WORLD_W - crop) / 2, -(RACING_CAR_Y + 16 - crop));
   const state = { ...racingGame.init(11), s: RACING_SEG * 40, v: 2600, tick: 300 };
   const L = layersFor(Math.max(1, s * 2));
+  drawWorld(ctx, state, L);
+  ctx.restore();
+}
+
+/**
+ * The intro's still (the Sports overhaul, 15 Nov 2026): racingRev 4's chase view on Sunset Park with the rendered car
+ * (the painted one until its images arrive; the stage repaints it once they have).
+ */
+export function paintRacingIntro(ctx: CanvasRenderingContext2D, size: number): void {
+  ctx.save();
+  const crop = 360;
+  const s = size / crop;
+  ctx.scale(s, s);
+  ctx.translate(-(RACING_WORLD_W - crop) / 2, -(RACING_CAR_Y + 16 - crop));
+  const state = { ...racingGameFor(RACING_REV_4).init(RACING_CIRCUITS.length * 7), s: RACING_SEG * 40, v: 2600, tick: 600 };
+  const L = layersFor(Math.max(1, s * 2), racingSceneOf(state));
   drawWorld(ctx, state, L);
   ctx.restore();
 }

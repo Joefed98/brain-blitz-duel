@@ -53,7 +53,12 @@ export type ChallengeCond =
   /** An arcade standard part at its maximum `max` (the stored line's "of m" must be `max`). */
   | { c: "full"; label: string; max: number }
   /** An arcade reveal tile's leading whole number (extra.reveal.tiles). */
-  | { c: "tile"; label: string; op: CmpOp; v: number };
+  | { c: "tile"; label: string; op: CmpOp; v: number }
+  /**
+   * From a stamp on: `then` when the stored extra's `path` (a version stamp) is at least `from`, else `before` (the
+   * older stamps' rule). Apex's "Two hundred club" (15 Nov 2026): racingRev 4's stored pace10, older stamps' Pace line.
+   */
+  | { c: "since"; path: string; from: number; then: ChallengeCond; before: ChallengeCond };
 
 export type ChallengeGoal =
   | { kind: "part"; label: string; max: number }
@@ -354,7 +359,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("bastion", "Weak at the knees", "Land 30 hits on glowing weak spots.", "C", "maxout", true, part("Weak spots", 30)),
   // Roofbound (flip): clean time 100 + perfect landings 60 + double flips 20 + flow streak 20.
   ch("flip", "Double or nothing", "Land eight double flips.", "C", "combo", false, all(full("Double flips", 20))),
-  ch("flip", "Sweet spot", "Land every sweet spot.", "C", "fullset", false, all(full("Perfect landings", 60))),
+  ch("flip", "Sweet spot", "Land five sweet spots.", "C", "fullset", false, all(full("Perfect landings", 60))),
   ch("flip", "Flow rider", "Make 50 clean jumps in a row.", "C", "streak", true, all(full("Flow streak", 20))),
   // Grappler (swing): course 110 + pars 40 + gates 10 + clean-swing streak 40.
   ch("swing", "Gatecrasher", "Fly through every gate.", "C", "fullset", false, all(full("Gates", 10))),
@@ -405,14 +410,14 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("hover", "All the way", "Pass every barrier.", "C", "finish", true, all(f("gates", "gte", "@totalGates"), f("totalGates", "gte", 1))),
   // Pinball (pinball): table points 130 + J-O-U-L-Z 20 + multiball 20 + jackpots 15 + ramp combos 15.
   ch("pinball", "Multiball madness", "Start multiball.", "C", "target", false, part("Multiball", 20), "pinball.multiball"),
-  ch("pinball", "Spell it out", "Spell J-O-U-L-Z twice.", "C", "maxout", false, part("J-O-U-L-Z", 20), "pinball.joulz"),
+  ch("pinball", "Spell it out", "Spell J-O-U-L-Z in one game.", "C", "maxout", false, part("J-O-U-L-Z", 20), "pinball.joulz"),
   ch("pinball", "Jackpot", "Hit three jackpots.", "C", "fullset", true, part("Jackpots", 15)),
   // Rally (rally): gold-ball hits 140 + pink pads 30 + gold targets 30.
   ch("rally", "Pink pong", "Strike pink pads five times.", "C", "target", false, all(line("Pink pads", "gte", 15))),
   ch("rally", "Target practice", "Hit all six gold targets.", "C", "fullset", false, part("Gold targets", 30)),
-  ch("rally", "Rally king", "Return 23 gold balls on Hard.", "H", "maxout", false, part("Gold-ball hits", 140)),
+  ch("rally", "Rally king", "Return 23 gold balls on Hard.", "H", "maxout", false, part("Gold-ball hits", 130)),
   // Meteor (snake): stars 120 + gold stars 40 + combos 20 + lane rides 10 + warp stars 10.
-  ch("snake", "Star eater", "Eat 28 stars; a gold star counts as two.", "C", "target", false, all(f("meteorParts.core", "gte", 120))),
+  ch("snake", "Star eater", "Eat 36 stars; a gold star counts as two.", "C", "target", false, all(f("meteorParts.core", "gte", 120))),
   ch("snake", "Comet tail", "Score 150 or more.", "C", "bigscore", false, score(150)),
   ch("snake", "Golden comet", "Eat all seven gold stars.", "C", "fullset", false, all(f("goldStars", "gte", "@goldStarsDealt"), f("goldStarsDealt", "gte", 7))),
   // Wavefront (wavefront): ships 150 + boss destroyed 10 + boss speed 10 + saucers 20 + cannons and weak points 10.
@@ -437,7 +442,8 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("minigolf", "Birdie", "Hole one under par.", "C", "par", false, all(line("Under par", "gte", 4))),
   ch("minigolf", "Par for the course", "Hole all five in par or better.", "C", "par", false, part("Par", 40)),
   ch("minigolf", "Quick round", "Hole all five within 53 s.", "C", "speed", false, part("Speed", 20)),
-  ch("minigolf", "Under, under", "Hole all five under par on Hard.", "H", "par", true, part("Under par", 20)),
+  // golfRev 3 (15 Nov 2026): Hard's par is the best route, so its under-par bonus is for holing in par.
+  ch("minigolf", "Under, under", "Hole all five in par on Hard, where par is the best route.", "H", "par", true, part("Under par", 20)),
   // Cue Ball (pool): your balls 140 + black 10 + pots in a row 30 + speed 20 (69 s).
   ch("pool", "Behind the eight", "Pot the black.", "C", "finish", false, part("Black", 10), "pool.black"),
   ch("pool", "Clean break", "Pot the black without a foul.", "C", "clean", false, all(full("Black", 10), f("fouls", "eq", 0))),
@@ -446,31 +452,37 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("curling", "Shot stone", "Finish holding shot.", "C", "target", false, part("Holding shot", 10)),
   ch("curling", "House clearance", "Knock every red out of the house.", "C", "maxout", false, part("Takeouts", 20)),
   ch("curling", "Red ring circus", "Stop all eight stones in the red ring.", "C", "fullset", true, part("Red ring", 20)),
-  // Home Run (homerun): distance 120 + home runs 40 + bonus signs 20 + perfect streak 20.
-  ch("homerun", "Sign here", "Hit the lit sign five times.", "C", "target", false, all(line("Bonus signs", "gte", 10))),
+  // Home Run (homerun, homerunRev 5 since 15 Nov 2026, the innings): runs 100 + home runs 40 + perfect streak 40 + good
+  // eye 20. "Sign here" (the lit signs, gone on rev 5) became "Good eye"; "Perfect ten" reads rev 5's streak (4 a swing).
+  ch("homerun", "Good eye", "Leave five more balls alone than you chase.", "C", "target", false, part("Good eye", 20)),
   ch("homerun", "Out of the park", "Hit ten home runs.", "C", "fullset", false, part("Home runs", 40), "homerun.homers"),
-  ch("homerun", "Perfect ten", "Make ten perfect swings in a row.", "C", "streak", true, part("Perfect streak", 20), "homerun.streak"),
-  // Top Bins (freekick): goals 120 + targets 40 + round the wall 10 + curl bonus 20 + five in a row 10.
+  ch("homerun", "Perfect ten", "Make ten perfect swings in a row.", "C", "streak", true, part("Perfect streak", 40), "homerun.streak"),
+  // Top Bins (freekick, freekickRev 5 since 15 Nov 2026, the layered kick): goals 120 + targets 40 + skill shots 30 + five
+  // in a row 10. "Bend it" (the Curl bonus, gone on rev 5) became "Skill shooter".
   ch("freekick", "Five alive", "Score five in a row.", "C", "streak", false, part("Five in a row", 10)),
-  ch("freekick", "Bend it", "Score five well-bent goals.", "C", "target", false, all(line("Curl bonus", "gte", 10))),
+  ch("freekick", "Skill shooter", "Score five skill shots.", "C", "target", false, all(line("Skill shots", "gte", 15))),
   ch("freekick", "Top bins", "Score through all four hoops.", "C", "fullset", true, part("Targets", 40)),
   // Apex (racing): pace 160 + clean sectors 40.
   ch("racing", "Clean half", "Drive four sectors clean.", "C", "clean", false, all(line("Clean sectors", "gte", 20))),
-  ch("racing", "Two hundred club", "Average 200 km/h.", "C", "speed", false, all(line("Pace", "gte", 110))),
+  // racingRev 4 (the Sports overhaul, 15 Nov 2026): the stored average speed itself on the three circuits, each with its
+  // own pace range; older stamps keep the Pace line (110 there is 200 km/h).
+  ch("racing", "Two hundred club", "Average 200 km/h.", "C", "speed", false, all({ c: "since", path: "racingRev", from: 4, then: f("pace10", "gte", 2000), before: line("Pace", "gte", 110) })),
   ch("racing", "Grand slam", "Drive all eight sectors clean on Expert.", "E", "clean", false, part("Clean sectors", 40)),
 
   /* ================================================================ Cards and Board */
   // Five Hands (fivehands): rows plus the picked column, × 1.4, capped at 200.
   ch("fivehands", "Handsome", "Score 150 or more.", "C", "bigscore", false, score(150)),
   ch("fivehands", "Pick of the bunch", "Pick the best bonus column on the table.", "C", "par", false, all(f("column", "gte", 0), f("columnPoints", "gte", "@bestColumnPoints"))),
-  ch("fivehands", "High roller", "Score 170 or more on Hard.", "H", "bigscore", true, score(170)),
+  // Changed with Joe's approval, 16 Nov 2026 (level challenge thresholds): 170 → 160.
+  ch("fivehands", "High roller", "Score 160 or more on Hard.", "H", "bigscore", true, score(160)),
   // Free Cell (freecell): cards 105 + par moves 50 + speed 45 (32 s).
   ch("freecell", "All home", "Get all 40 cards home.", "C", "finish", false, part("Cards", 105)),
   ch("freecell", "By the book", "Finish in par moves.", "C", "par", false, part("Par moves", 50)),
   ch("freecell", "Card sharp", "Finish within 32 s.", "C", "speed", true, part("Speed", 45)),
   // Mahjong Solitaire (mahjong): pairs 150 + no shuffles 20 + speed 30 (65 s).
   ch("mahjong", "No shuffle", "Clear the stack without a Shuffle.", "C", "clean", false, all(full("Pairs", 150), full("No shuffles", 20))),
-  ch("mahjong", "Tile rush", "Clear a Hard stack within 65 s.", "H", "speed", false, part("Speed", 30)),
+  // Changed with Joe's approval, 16 Nov 2026 (level challenge thresholds): the text matches Hard's speed rule (65 s → 25 s).
+  ch("mahjong", "Tile rush", "Clear a Hard stack within 25 s.", "H", "speed", false, part("Speed", 30)),
   // Minefield (minesweeper): safe squares 150 + no mines hit 20 + speed 30 (37 s on minesRev 3, today's Normal, as on
   // minesRev 2, now Hard; 50 s on rev 1). Joe, 16 Nov 2026: Normal keeps 37 s so it stays a clear step below Hard.
   ch("minesweeper", "Light feet", "Clear the board without hitting a mine.", "C", "clean", false, all(full("Safe squares", 150), full("No mines hit", 20))),

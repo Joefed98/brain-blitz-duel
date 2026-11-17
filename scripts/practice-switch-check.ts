@@ -20,6 +20,7 @@
  *
  *   bun scripts/practice-switch-check.ts
  */
+import { execSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
 import { chromium, type Page } from "playwright";
@@ -29,6 +30,10 @@ import { gameDisplayName } from "../src/lib/duel/gameNames";
 import { alsoInOf, typesAlsoIn } from "../src/lib/duel/alsoIn";
 import { ACTIVE_PUZZLE_TYPES, PUZZLE_REGISTRY, gameCounts, typesInCategory } from "../src/lib/duel/registry";
 import { practiceSideCounts } from "../src/lib/duel/practiceSide";
+import { dealOne } from "../src/lib/duel/generate.server";
+import { splitPuzzle } from "../src/lib/duel/secrets";
+import { GAME_LEVELS, offersLevel } from "../src/lib/levels/gameLevels";
+import { puzzleLevel } from "../src/lib/levels/levels";
 import { startSafeAreaServer } from "./safe-area-server";
 import { CHROMIUM_PATHS, THEME_SCREENS, VIEWPORTS, fixThemeClock, openThemeScreen } from "./theme-screens";
 
@@ -138,6 +143,19 @@ const tiles = (page: Page) =>
     els.map((el) => ({ id: el.getAttribute("data-practice-filter")!, name: (el.querySelector(".gm-cat-tile-name")?.textContent ?? "").trim(), pressed: el.getAttribute("aria-pressed"), cat: el.getAttribute("data-cat"), bg: getComputedStyle(el).borderTopColor })),
   );
 const sidePressed = (page: Page, side: string) => page.locator(`[data-practice-side='${side}']`).getAttribute("aria-pressed");
+/**
+ * The stand-in's test-only game without Hard (section 3): the first arcade game, Hover today. Approved by Joe, 17 Nov
+ * 2026, on condition the stand-in level list is used only by this check and the real Hover keeps Hard (both asserted).
+ */
+const TEST_NO_HARD = ACTIVE_PUZZLE_TYPES.filter((t) => PUZZLE_REGISTRY[t].category === "arcade")[0]!;
+/** Each tile's game, the level it plays at (the wrapper's and the label's) and whether it is marked as falling back. */
+const levelTiles = (page: Page) =>
+  page.locator("[data-practice-game]").evaluateAll((els) =>
+    els.map((el) => {
+      const label = el.querySelector("[data-tile-level]");
+      return { type: el.getAttribute("data-practice-game")!, level: el.getAttribute("data-level"), plays: label?.getAttribute("data-tile-level") ?? null, fallback: !!label?.hasAttribute("data-level-fallback") };
+    }),
+  );
 
 fixThemeClock();
 const server = await startSafeAreaServer({ cacheDir: "node_modules/.vite-practice-switch", buildId: "practice-switch-check" });
@@ -214,9 +232,26 @@ try {
       check((await atLevel()).every(([l, f]) => l === "normal" && !f), `${at}: on Normal every tile plays Normal`);
       await page.locator("[data-catalogue-level] [data-level-option='hard']").click();
       await settle(page);
-      // No game has Hard yet (15 Nov 2026): every tile plays Normal and says so.
-      const hard = await atLevel();
-      check(hard.length > 0 && hard.every(([l, f]) => l === "normal" && f === true), `${at}: on Hard, a game without the level is marked Normal (${hard.length} tiles)`);
+      // Changed with Joe's approval, 16 Nov 2026 (games now have levels): was "No game has Hard yet (15 Nov 2026): every
+      // tile plays Normal and says so". Now a game with Hard plays Hard (its tile here; the dealt round carries the Hard
+      // level, section 3) and a game without Hard plays Normal and is marked Normal (here, and in section 3 on a stand-in
+      // registry's test-only game, since every arcade game has Hard today).
+      const hard = await levelTiles(page);
+      const hardOnes = hard.filter((t) => offersLevel(t.type, "hard"));
+      const normalOnes = hard.filter((t) => !offersLevel(t.type, "hard"));
+      check(
+        hardOnes.length > 0 && hardOnes.every((t) => t.level === "hard" && t.plays === "hard" && !t.fallback),
+        `${at}: on Hard, a game with Hard plays Hard (${hardOnes.length} tiles)${hardOnes.filter((t) => t.level !== "hard" || t.plays !== "hard" || t.fallback).map((t) => ` ${t.type}`).join("")}`,
+      );
+      const realTest = hard.filter((t) => t.type === TEST_NO_HARD);
+      check(
+        realTest.length === 1 && realTest.every((t) => t.level === "hard" && t.plays === "hard" && !t.fallback),
+        `${at}: in the live catalogue (no stand-in) the stand-in's test-only game ${TEST_NO_HARD} plays Hard (${JSON.stringify(realTest)})`,
+      );
+      check(
+        normalOnes.every((t) => t.level === "normal" && t.plays === "normal" && t.fallback),
+        `${at}: on Hard, a game without Hard plays Normal and is marked Normal (${normalOnes.length} tiles here${normalOnes.length ? "" : "; the stand-in's test-only game in section 3"})`,
+      );
       // The side and the level are remembered across a reload.
       await page.reload();
       await page.locator("[data-games-catalogue][data-hydrated]").waitFor({ timeout: 20_000 });
@@ -245,6 +280,73 @@ try {
     } finally {
       await context.close();
     }
+  }
+
+  /* ---------------------------------------------- 3. the level a round is dealt at */
+  // Changed with Joe's approval, 16 Nov 2026 (games now have levels). A game with Hard: its game page at the catalogue's
+  // Hard asks the server for a Hard deal, and the server's own deal (dealOne, as practiceGenerateFn deals it) carries the
+  // Hard level, for every arcade game with Hard. A game without Hard: every arcade game has Hard today, so a stand-in
+  // registry (the check-only __DUELZ_GAME_LEVELS__) gives every arcade game Hard but one test-only game, which must play
+  // Normal, be marked Normal and ask for a Normal deal (no level), while every other tile plays Hard.
+  const arcadeTypes = sideGames("arcade");
+  const withHard = arcadeTypes.filter((t) => offersLevel(t, "hard"));
+  const undealt = withHard.filter((t) => puzzleLevel(dealOne(t, { unblockRow: null as never, bankSeed: 4242, level: "hard" })) !== "hard");
+  check(withHard.length > 0 && undealt.length === 0, `the server's Hard deal carries the Hard level for every arcade game with Hard (${withHard.length})${undealt.length ? `: not ${undealt.join(", ")}` : ""}`);
+  check(puzzleLevel(dealOne(withHard[0]!, { unblockRow: null as never, bankSeed: 4242 })) === "normal", `a deal with no level is Normal (${withHard[0]})`);
+  // Joe's conditions (17 Nov 2026): the real Hover keeps Hard, and the stand-in list is used only by this check, set
+  // only through the check-only __DUELZ_GAME_LEVELS__ hook, which a production build never reads.
+  check(TEST_NO_HARD === arcadeTypes[0] && GAME_LEVELS[TEST_NO_HARD]?.levels.hard !== undefined && offersLevel(TEST_NO_HARD, "hard"), `the real registry (GAME_LEVELS) gives the stand-in's test-only game ${TEST_NO_HARD} Hard`);
+  const hookUses = execSync("git grep -n __DUELZ_GAME_LEVELS__ -- src", { encoding: "utf8" }).trim().split("\n").filter(Boolean);
+  const hookRead = hookUses.filter((l) => l.startsWith("src/lib/levels/gameLevels.ts:") && /checkOverride<[^>]*>+\("__DUELZ_GAME_LEVELS__"\)/.test(l));
+  const hookOther = hookUses.filter((l) => !l.startsWith("src/lib/levels/gameLevels.ts:") && !l.startsWith("src/lib/checkOverride.ts:"));
+  check(hookRead.length === 1 && hookOther.length === 0, `the app reads __DUELZ_GAME_LEVELS__ in one place only, gameLevels.ts through checkOverride (${hookUses.length} mentions in src${hookOther.length ? `; elsewhere: ${hookOther.join(" | ")}` : ""})`);
+  check(/if \(import\.meta\.env\.PROD\) return undefined;/.test(readFileSync("src/lib/checkOverride.ts", "utf8")), "checkOverride answers nothing in a production build, so the stand-in list can't reach the live app");
+  const STAND_IN = Object.fromEntries(
+    arcadeTypes.filter((t) => t !== TEST_NO_HARD).map((t) => [t, { levels: { hard: { settings: {}, oneSolution: { open: "practice-switch-check stand-in" } } } }]),
+  );
+  const atHard = async (page: Page) => {
+    await page.evaluate(() => localStorage.setItem("duelz-levels:v1", JSON.stringify({ catalogue: "hard", games: {} })));
+    await page.reload();
+  };
+  /** The deal requests a game page's Play sends at the catalogue's Hard. */
+  const playRequests = async (viewport: (typeof VIEWPORTS)[number], type: string, globals: Record<string, unknown>, level?: "hard") => {
+    const { context, page } = await openThemeScreen(browser, server.origin, { name: `game page ${type}`, mode: "practice", search: { page: type }, globals }, viewport);
+    try {
+      await atHard(page);
+      // The stubbed server answers with a real public half (at the level it is asked for), so the round opens cleanly.
+      const pub = splitPuzzle(dealOne(type as never, { unblockRow: null as never, bankSeed: 4242, ...(level ? { level } : {}) })).pub;
+      await page.evaluate(([t, p]) => {
+        (window as unknown as { __harness: { puzzles: Record<string, unknown> } }).__harness.puzzles[t as string] = p;
+      }, [type, pub] as const);
+      await page.locator(`[data-game-page-play='${type}']`).click({ timeout: 20_000 });
+      await page.waitForFunction(() => ((window as unknown as { __harness: { generated?: unknown[] } }).__harness.generated ?? []).length > 0, null, { timeout: 20_000 });
+      return await page.evaluate(() => (window as unknown as { __harness: { generated?: { type: string; level?: string }[] } }).__harness.generated ?? []);
+    } finally {
+      await context.close();
+    }
+  };
+  for (const viewport of VIEWPORTS.filter((v) => !v.desktop)) {
+    const at = viewport.name;
+    const hardAsk = await playRequests(viewport, withHard[0]!, screen.globals ?? {}, "hard");
+    check(hardAsk.length === 1 && hardAsk[0]!.type === withHard[0] && hardAsk[0]!.level === "hard", `${at}: Play on ${withHard[0]}'s page at Hard asks for a Hard deal (${JSON.stringify(hardAsk)})`);
+    const standIn = { ...(screen.globals ?? {}), __DUELZ_GAME_LEVELS__: STAND_IN };
+    const { context, page } = await openThemeScreen(browser, server.origin, { ...screen, globals: standIn }, viewport);
+    try {
+      await page.locator("[data-practice-side='arcade']").click();
+      await settle(page);
+      await page.locator("[data-catalogue-level] [data-level-option='hard']").click();
+      await settle(page);
+      const stood = await levelTiles(page);
+      const test = stood.filter((t) => t.type === TEST_NO_HARD);
+      const others = stood.filter((t) => t.type !== TEST_NO_HARD);
+      check(test.length === 1 && test.every((t) => t.level === "normal" && t.plays === "normal" && t.fallback), `${at}: on Hard, the stand-in's test-only game without Hard (${TEST_NO_HARD}) plays Normal and is marked Normal (${JSON.stringify(test)})`);
+      check(others.length === arcadeTypes.length - 1 && others.every((t) => t.level === "hard" && t.plays === "hard" && !t.fallback), `${at}: on Hard, every stand-in game with Hard plays Hard (${others.length} tiles)`);
+    } finally {
+      await context.close();
+    }
+    check(offersLevel(TEST_NO_HARD, "hard"), `${at}: after the stand-in pages, the real registry still gives ${TEST_NO_HARD} Hard`);
+    const normalAsk = await playRequests(viewport, TEST_NO_HARD, standIn);
+    check(normalAsk.length === 1 && normalAsk[0]!.type === TEST_NO_HARD && normalAsk[0]!.level === undefined, `${at}: Play on the test-only game's page at Hard asks for a Normal deal, no level (${JSON.stringify(normalAsk)})`);
   }
 } finally {
   await browser.close();

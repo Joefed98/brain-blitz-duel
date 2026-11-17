@@ -1,0 +1,37 @@
+{
+ "note": "Rainbow Bridge inkRev 15 Normal: each seed's initial state (its ten built levels) SHA-256, recorded on 6987d8bb before levels (stage 3, 15 Nov 2026); ink-levels-check builds them again and compares",
+ "digests": [
+  {
+   "seed": 1655421732,
+   "digest": "ab3578811f746e9327f68f13f6cf38f9d1323626121dec3864a89353b483ad5e"
+  },
+  {
+   "seed": 1670336335,
+   "digest": "4b462b795e37e93f3b51292431b7d7d03846a03e69f0e6b771953c532b9ac631"
+  },
+  {
+   "seed": 1095647772,
+   "digest": "4fb1e1d3a0798dfd1d9d349cdf2059d85f83434518ce8575cf447c2461c5b269"
+  },
+  {
+   "seed": 1911792321,
+   "digest": "179e0b93816349fe7d7cdc666795437cf4bb275413eba968bbe559369b2afd7e"
+  },
+  {
+   "seed": 735923524,
+   "digest": "d027412b32146bbb7665fbb923c2295b5b4cf2e8547b6d253c13f1298cc306d1"
+  },
+  {
+   "seed": 1129528896,
+   "digest": "d5d828b51e0bead68f51ac67e0ea9463dfb170b108472f244edbcce439b5b220"
+  },
+  {
+   "seed": 12345,
+   "digest": "e28cc5d4cc7a965a6912903aa9d43dcf873064ab1c87508f4494cc641f2de9c4"
+  },
+  {
+   "seed": 987654321,
+   "digest": "bbe1e6441f6552346dfa00406702d18fe2b55c31b23f6fd51ee605988f127e94"
+  }
+ ]
+}

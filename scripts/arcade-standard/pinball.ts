@@ -2,12 +2,15 @@
  * arcade-standard-check's case for `pinball` (see ./entry.ts): pinRev 6, the 90 s table on the standard. Table points
  * (no multiplier) on a straight line to 130, J-O-U-L-Z 10 a set (up to 2), multiball started 20, jackpots 5 each (up to
  * 3), ramp combos 5 each (up to 3). States are built from pinRev 6's own init; pinball-standard-check proves the play.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the entry moved to the dealt
+ * stamp, pinRev 7 (one J-O-U-L-Z set fills its 20); pinRev 6's 10 a set is still proved below on pinRev 6 states.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
 import { caseEntry, type StdCase } from "./entry";
 import {
   pinball6Game,
+  pinball7Game,
   pinballGameForAny,
   pinballStdParts,
   PIN_V6_FULL_AT,
@@ -15,20 +18,24 @@ import {
 } from "../../src/lib/arcade/pinball4";
 import { PIN_REV_LONG } from "../../src/lib/arcade/pinball";
 
-const base = (): Pin4State => ({ ...pinball6Game.init(7), acted: 1 });
+const base = (): Pin4State => ({ ...pinball7Game.init(7), acted: 1 });
+/** The same counts on a pinRev 6 state (10 a J-O-U-L-Z set). */
+const v6 = (s: Pin4State): Pin4State => ({ ...s, rev7: undefined });
 const at = (fields: Partial<Pin4State>): Pin4State => ({ ...base(), ...fields });
 const part = (s: Pin4State, key: string) => pinballStdParts(s)!.find((p) => p.key === key)!.points;
 
 export const stdCase: StdCase = {
-  game: pinball6Game,
+  game: pinball7Game,
   fullAt: PIN_V6_FULL_AT,
-  perfect: () => at({ points: PIN_V6_FULL_AT, laneSets: 2, multiballs: 1, jackpots: 3, combos: 3 }),
+  perfect: () => at({ points: PIN_V6_FULL_AT, laneSets: 1, multiballs: 1, jackpots: 3, combos: 3 }),
   idle: () => at({}),
   core: (value) => at({ points: value }),
   older: () => pinballGameForAny(PIN_REV_LONG).init(7),
   extra(ok) {
     // J-O-U-L-Z: 10 a completed set, up to 2.
-    for (const [n, want] of [[0, 0], [1, 10], [2, 20], [3, 20], [5, 20]] as const) ok(part(at({ laneSets: n }), "joulz") === want, `pinball: ${n} J-O-U-L-Z sets pay ${want}`);
+    for (const [n, want] of [[0, 0], [1, 10], [2, 20], [3, 20], [5, 20]] as const) ok(part(v6(at({ laneSets: n })), "joulz") === want, `pinball: on pinRev 6 ${n} J-O-U-L-Z sets pay ${want}`);
+    // pinRev 7: one set fills the part.
+    for (const [n, want] of [[0, 0], [1, 20], [2, 20], [5, 20]] as const) ok(part(at({ laneSets: n }), "joulz") === want, `pinball: on pinRev 7 ${n} J-O-U-L-Z sets pay ${want}`);
     // Multiball: 20 once started, however many.
     for (const [n, want] of [[0, 0], [1, 20], [2, 20], [4, 20]] as const) ok(part(at({ multiballs: n }), "multiball") === want, `pinball: ${n} multiballs pay ${want}`);
     // Jackpots and ramp combos: 5 each, up to 3.
@@ -40,7 +47,7 @@ export const stdCase: StdCase = {
     const core = at({ points: 40_000 });
     const all = at({ points: 40_000, laneSets: 1, multiballs: 1, jackpots: 2, combos: 1 });
     ok(part(all, "core") === part(core, "core"), "pinball: earning features leaves the core as it was");
-    ok(pinball6Game.score(all) === pinball6Game.score(core) + 10 + 20 + 10 + 5, `pinball: features add their fixed amounts (${pinball6Game.score(all)})`);
+    ok(pinball6Game.score(v6(all)) === pinball6Game.score(v6(core)) + 10 + 20 + 10 + 5 && pinball7Game.score(all) === pinball7Game.score(core) + 20 + 20 + 10 + 5, `pinball: features add their fixed amounts (${pinball6Game.score(all)})`);
     // The score is held to 200; a negative or missing count never scores.
     ok(pinball6Game.score(at({ points: PIN_V6_FULL_AT * 3, laneSets: 9, multiballs: 9, jackpots: 9, combos: 9 })) === 200, "pinball: never above 200");
     ok(part(at({ points: -50 }), "core") === 0, "pinball: negative table points give no core");

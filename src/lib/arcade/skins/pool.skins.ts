@@ -33,7 +33,7 @@ export const POOL_NEON: Readonly<Record<number, string>> = {
 };
 /**
  * The same neon set on the default green cloth: the art's hues lifted until each reaches the contrast check's 3:1
- * against every shade of the cloth (#1F6B45 the lightest); the art's cyan, gold, yellow and green already do.
+ * against every shade of the cloth (#1B6342 the lightest since the Sports overhaul; lifted for #1F6B45); the art's cyan, gold, yellow and green already do.
  */
 export const POOL_NEON_ON_CLOTH: Readonly<Record<number, string>> = {
   1: "#FFF06A",
@@ -541,7 +541,8 @@ export function POOL_NEON_SCENE(ctx: CanvasRenderingContext2D, view: ArenaSceneV
 
 /* ============================== The contrast check ============================== */
 
-const CLOTH = ["#1F6B45", "#1A5E3C"];
+// The default felt (concept C, the Sports overhaul, 15 Nov 2026): pool.renderer.ts POOL_CLOTH and POOL_CLOTH_EDGE.
+const CLOTH = ["#1B6342", "#14523A"];
 const NEON_CLOTH = ["#06242C"];
 
 /** What each Cue Ball look must keep visible: the cue ball, the black and a spot and a stripe, on the cloth. */

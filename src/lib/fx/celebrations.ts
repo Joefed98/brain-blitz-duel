@@ -140,7 +140,7 @@ let logoCharged = false;
  * The first charge-in belongs to the screen the app opened on: a header first drawn after a route
  * change (a room link opened first, then Play) is drawn finished.
  */
-const openPath = typeof window === "undefined" ? null : window.location.pathname;
+const openPath = typeof window === "undefined" || !window.location ? null : window.location.pathname;
 /** Back from at least this long in the background counts as reopening the app (an iOS home-screen app resumed). */
 export const APP_REOPEN_HIDDEN_MS = 30_000;
 /**

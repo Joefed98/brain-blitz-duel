@@ -1,5 +1,6 @@
 import type { ScoreParts } from "@/lib/duel/puzzleScoreRev";
 import type { ComponentType } from "react";
+import type { Level } from "@/lib/levels/levels";
 
 import type {
   PlayerRoundDetail,
@@ -58,6 +59,12 @@ export interface PuzzleStageProps {
   checkMoves?: CheckMoves;
 }
 
+/** What an arcade game's RunPicture is drawn from: the stored puzzle and the player's own stored answer (stage 2). */
+export interface RunPictureProps {
+  puzzle: PuzzleData;
+  myAnswer: string;
+}
+
 export interface PuzzleRevealProps {
   puzzle: PuzzleData;
   /** The player's own submitted answer, or null if they never submitted. */
@@ -112,10 +119,16 @@ export interface PuzzleDefinition {
   retired?: boolean;
   /** Shared GOAL / HOW / SCORE copy used by the intro and in-round help. */
   instructions?: PuzzleInstructions;
-  /** Fixed intro example — identical every single time. */
-  IntroExample: ComponentType;
+  /** Fixed intro example — identical every single time (at a difficulty level, `level` names it; most games ignore it). */
+  IntroExample: ComponentType<{ level?: Level | null }>;
   /** Optional puzzle-specific intro line (e.g. "4 pegs"), same for every player. */
   introLine?: (puzzle: PuzzleData) => string | null;
   Stage: ComponentType<PuzzleStageProps>;
   Reveal: ComponentType<PuzzleRevealProps>;
+  /**
+   * The Action overhaul, stage 2 (15 Nov 2026): an arcade game's own visual summary of the run, drawn by ArcadeReveal
+   * under the score and breakdown (GameRunPicture); its key numbers replace the reveal's stat tiles. Display only: from
+   * the stored answer and the stored score, never a grade.
+   */
+  RunPicture?: ComponentType<RunPictureProps>;
 }

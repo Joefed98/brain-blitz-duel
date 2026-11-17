@@ -209,6 +209,14 @@ export const CURLING_STD_SPEC_V3: StdSpec = {
  */
 export const CURL_V4_CORE_MAX = 150;
 export const CURL_V4_CORE_FULL = 95;
+/**
+ * The levels (16 Nov 2026): Easy's core is full at fewer closeness points (its two reds far out, the whole path shown:
+ * an average player's stones land a little off, and Easy is where they reach a star); Normal, Hard and Expert at 95.
+ */
+export const CURL_EASY_CORE_FULL = 60;
+export function curlCoreFullFor(level: unknown): number {
+  return level === "easy" ? CURL_EASY_CORE_FULL : CURL_V4_CORE_FULL;
+}
 export const CURL_V4_TAKEOUT_PTS = 20;
 export const CURL_V4_RED_PTS = 20;
 export const CURL_V4_HOLD_PTS = 10;
@@ -262,6 +270,11 @@ export interface CurlingState {
   hitTick: number;
   restTick: number;
   sweeps: number;
+  /**
+   * The level the sheet was dealt at (the Sports overhaul's levels, 15 Nov 2026): set only when it isn't Normal, so
+   * every Normal state is exactly today's. Not in the checksum: the level's reds are (x, y).
+   */
+  lvl?: CurlLevel;
 }
 
 /** A tiny integer PRNG for the deal only (mulberry32); play never draws. */
@@ -316,8 +329,72 @@ export function curlingOpponentsV4(seed: number): { x: number; y: number }[] {
   return out;
 }
 
-function initState(seed: number, rev: number): CurlingState {
-  const opp = rev >= 4 ? curlingOpponentsV4(seed) : curlingOpponents(seed);
+/* ================================ Levels ================================ */
+
+/**
+ * Curl Champ's levels beyond Normal (the Sports overhaul, phase 2 step 4; Joe's agreed numbers): how many red stones
+ * the end starts with and how far their centres lie from the button (cm). Normal is curlRev 4's three reds 35–110 cm
+ * (curlingOpponentsV4), exactly. The level registry (src/lib/levels/gameLevels.ts) mirrors this table for the selectors
+ * (curling-levels-check proves they agree). Play only on curlRev 4 (the stamp rooms deal); every older stamp is Normal.
+ */
+export type CurlLevel = "easy" | "hard" | "expert";
+export const CURL_LEVEL_REDS: Readonly<Record<CurlLevel, { reds: number; minCm: number; maxCm: number }>> = {
+  easy: { reds: 2, minCm: 60, maxCm: 130 },
+  hard: { reds: 4, minCm: 30, maxCm: 90 },
+  expert: { reds: 5, minCm: 20, maxCm: 70 },
+};
+const LEVEL_SALT: Readonly<Record<CurlLevel, number>> = { easy: 0x1e1ea5, hard: 0x2a7d03, expert: 0x3e9b11 };
+
+/**
+ * Each level's aids (display only; the stage reads them from the dealt puzzle's level): the power bar's gold HOUSE zone
+ * and how much of the aim path shows (`part` for curlAimPath: 1 the whole path, 3 its first third, 0 none). Normal is
+ * today's: the zone and the first third.
+ */
+export interface CurlAids {
+  houseZone: boolean;
+  aimPart: 0 | 1 | 3;
+}
+export const CURL_NORMAL_AIDS: CurlAids = { houseZone: true, aimPart: 3 };
+export const CURL_LEVEL_AIDS: Readonly<Record<CurlLevel, CurlAids>> = {
+  easy: { houseZone: true, aimPart: 1 },
+  hard: { houseZone: true, aimPart: 3 },
+  expert: { houseZone: false, aimPart: 0 },
+};
+export function curlAidsFor(level: unknown): CurlAids {
+  return isCurlLevel(level) ? CURL_LEVEL_AIDS[level] : CURL_NORMAL_AIDS;
+}
+
+export function isCurlLevel(v: unknown): v is CurlLevel {
+  return v === "easy" || v === "hard" || v === "expert";
+}
+
+/**
+ * A level's red stones for a seed: exactly the level's count, centres within its range of the button, at least 40 cm
+ * apart; the first in the nearer half of the range and the second in the further half, so each sheet has a stone to
+ * beat near the button and one further out. No level (Normal): curlRev 4's three reds, exactly.
+ */
+export function curlingOpponentsAt(seed: number, level?: CurlLevel | null): { x: number; y: number }[] {
+  if (!level) return curlingOpponentsV4(seed);
+  const { reds, minCm, maxCm } = CURL_LEVEL_REDS[level];
+  const mid = (minCm + maxCm) >> 1;
+  const rnd = dealRng(seed ^ 0x4ed5c4 ^ LEVEL_SALT[level]);
+  const out: { x: number; y: number }[] = [];
+  for (let tries = 0; out.length < reds && tries < 4000; tries++) {
+    const x = rnd(2 * maxCm + 1) - maxCm;
+    const y = rnd(2 * maxCm + 1) - maxCm;
+    const d2 = x * x + y * y;
+    if (d2 < minCm * minCm || d2 > maxCm * maxCm) continue;
+    if (out.length === 0 && d2 > mid * mid) continue;
+    if (out.length === 1 && d2 <= mid * mid) continue;
+    if (out.some((o) => (o.x - x) * (o.x - x) + (o.y - y) * (o.y - y) < 40 * 40)) continue;
+    out.push({ x, y });
+  }
+  return out;
+}
+
+function initState(seed: number, rev: number, level?: CurlLevel | null): CurlingState {
+  const lvl = rev >= 4 && level ? level : null;
+  const opp = rev >= 4 ? curlingOpponentsAt(seed, lvl) : curlingOpponents(seed);
   return {
     tick: 0,
     rev,
@@ -344,6 +421,7 @@ function initState(seed: number, rev: number): CurlingState {
     hitTick: 0,
     restTick: 0,
     sweeps: 0,
+    ...(lvl ? { lvl } : {}),
   };
 }
 
@@ -626,7 +704,7 @@ export function curlingStdParts(s: CurlingState): StdPart[] | null {
   const counted = s.pts.filter((p) => p > 0).length;
   if (s.rev >= 4)
     return [
-      stdPart(spec, "core", stdLine(CURL_V4_CORE_MAX, core, CURL_V4_CORE_FULL), `${s.pts.length} thrown, ${counted} counting, ${onButton} on the button`),
+      stdPart(spec, "core", stdLine(CURL_V4_CORE_MAX, core, curlCoreFullFor(s.lvl)), `${s.pts.length} thrown, ${counted} counting, ${onButton} on the button`),
       stdPart(spec, "takeouts", stdLine(CURL_V4_TAKEOUT_PTS, out, Math.max(1, s.theirs)), `${out} of ${s.theirs} out of the house`),
       stdPart(spec, "redring", stdLine(CURL_V4_RED_PTS, red, CURLING_STONES), `${red} in the red ring`),
       stdPart(spec, "hold", holding ? CURL_V4_HOLD_PTS : 0, holding ? "yours is nearest the button" : "not nearest the button"),
@@ -656,13 +734,18 @@ export function curlingCheckpoint(s: CurlingState): SportsCheckpoint & { thrown:
 
 const noDraw = (_ctx: CanvasRenderingContext2D, _s: CurlingState, _size: CanvasSize) => {};
 
-/** The game for a stored curlRev (1–4; anything else plays curlRev 1; the default is the dealt stamp). */
-export function curlingGameFor(rev: number | null | undefined = CURLING_REV): ArcadeGame<CurlingState, ArcadeInputEvent | null> {
+/**
+ * The game for a stored curlRev (1–4; anything else plays curlRev 1; the default is the dealt stamp) and level (the
+ * dealt puzzle's `level`, read with puzzleLevel; anything but Easy, Hard or Expert, and every stamp before curlRev 4,
+ * plays Normal).
+ */
+export function curlingGameFor(rev: number | null | undefined = CURLING_REV, level?: unknown): ArcadeGame<CurlingState, ArcadeInputEvent | null> {
   const r = rev === CURLING_REV || rev === CURLING_REV_V3 || rev === CURLING_REV_V2 ? rev : CURLING_REV_V1;
+  const lvl = isCurlLevel(level) ? level : null;
   return {
     key: "curling",
     runTicks: CURLING_RUN_TICKS,
-    init: (seed: number) => initState(seed, r),
+    init: (seed: number) => initState(seed, r, lvl),
     step: stepState,
     isOver: (s) => s.over === 1,
     score: curlingScore,

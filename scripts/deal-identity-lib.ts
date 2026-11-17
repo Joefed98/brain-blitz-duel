@@ -120,9 +120,26 @@ export function digest(value: unknown): string {
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Word overhaul, wordOverhaul.ts): preWordOverhaul.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): preAttentionOverhaul.
  * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul, speedOverhaul.ts): preSpeedOverhaul.
- * Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): preRetro (Tempo beatRev 12).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreGrace (orbitRev 15),
+ * flipPreGrace (Roofbound flipRev 13), skylinePreLives (High Rise skylineRev 11).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): ricoPreBig (Moon Climb ricoRev 4).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): swingPreBig (Grappler swingRev 18).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreBig (Orbit orbitRev 16).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): bastionPreLevels (Iron Wall
+ * bastionRev 4, the levels).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): bubblePreFast and inkPreHills,
+ * and matchupPreIce2 (Gemstone matchupRev 13).
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Crazy Golf overhaul, golfRev 3's hole bank):
+ * minigolfPreCourse.
+ * Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Sports overhaul: Apex deals racingRev 4's three
+ * circuits): racingPreCircuits.
+ * Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): the puzzle train's pins, then the arcade train's.
  */
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "preNumberOverhaul", "preCheckoutLevels", "preKakuroLevels", "preMeasureLevels", "preBalanceLevels", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul"];
+// sportsPreOverhaul added 15 Nov 2026 (routine consequence of the Home Run and Top Bins overhaul: their live deal moved
+// to rev 5, so the recorded deals are compared on rev 4 exactly as before; homerun-innings-check and
+// freekick-layered-check prove the rev-5 deals).
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "preNumberOverhaul", "preCheckoutLevels", "preKakuroLevels", "preMeasureLevels", "preBalanceLevels", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul", "preRetro", "orbitPreGrace", "flipPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "matchupPreIce2", "minigolfPreCourse", "sportsPreOverhaul", "racingPreCircuits"];
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {
@@ -186,7 +203,20 @@ export function roomDigests(seeds: readonly number[]): Record<string, string> {
   // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): preLogic2 and prePatternNov15 too.
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Word overhaul): preWordOverhaul too.
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): preAttentionOverhaul.
-  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul"]);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): preRetro, Tempo's room deal.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action
+  // overhaul): the new arcade stamps that reach a room's deals, orbitPreGrace and skylinePreLives, beside flipPreGrace;
+  // ricoPreBig (Moon Climb ricoRev 4) and swingPreBig (Grappler swingRev 18), the same approval; orbitPreBig (Orbit
+  // orbitRev 16), the same approval; bastionPreLevels (Iron Wall bastionRev 4), the same approval.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy
+  // overhaul): Coral Pop's bubbleRev 12 and Rainbow Bridge's inkRev 15 stamp the room's puzzles, so their pins join.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Crazy
+  // Golf overhaul): rooms deal Crazy Golf's hole bank, so minigolfPreCourse is pinned for the rooms too.
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Home Run and Top Bins overhaul, stage 1
+  // approved at 72b7b38f): sportsPreOverhaul reaches a room's Home Run and Top Bins deals, so rooms pin it too and
+  // compare on rev 4 exactly as recorded; homerun-innings-check and freekick-layered-check prove the new deals.
+  // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): both trains' room pins, the puzzle train's first.
+  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul", "preRetro", "flipPreGrace", "orbitPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "minigolfPreCourse", "sportsPreOverhaul"]);
 }
 
 function roomDigestsNow(seeds: readonly number[]): Record<string, string> {

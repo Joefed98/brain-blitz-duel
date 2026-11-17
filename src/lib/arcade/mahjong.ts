@@ -62,26 +62,83 @@ export const MAHJONG_TILES = MAHJONG_SLOTS.length;
 export const MAHJONG_PAIRS = MAHJONG_TILES / 2;
 export const MAHJONG_LAYERS = 4;
 
-/** For each place: the places above it that cover it, and the places beside it on its left and right. */
-const COVERERS: readonly (readonly number[])[] = MAHJONG_SLOTS.map((a) =>
-  MAHJONG_SLOTS.flatMap((b, j) => (b.z === a.z + 1 && Math.abs(b.x2 - a.x2) < 2 && Math.abs(b.y2 - a.y2) < 2 ? [j] : [])),
-);
-const LEFTS: readonly (readonly number[])[] = MAHJONG_SLOTS.map((a) =>
-  MAHJONG_SLOTS.flatMap((b, j) => (b.z === a.z && b.x2 === a.x2 - 2 && Math.abs(b.y2 - a.y2) < 2 ? [j] : [])),
-);
-const RIGHTS: readonly (readonly number[])[] = MAHJONG_SLOTS.map((a) =>
-  MAHJONG_SLOTS.flatMap((b, j) => (b.z === a.z && b.x2 === a.x2 + 2 && Math.abs(b.y2 - a.y2) < 2 ? [j] : [])),
-);
+/**
+ * A layout: its places and, for each, the places above it that cover it and the places beside it on its left and right.
+ * Normal and Hard play MAHJONG_SLOTS (72); the difficulty levels (15 Nov 2026) add Easy's 56 in three layers and
+ * Expert's 88 in five, on the same 6 × 7 footprint so the world and the table are unchanged. A board's layout is told by
+ * its length (56, 72 or 88 places), so every rule below reads the face list alone.
+ */
+export interface MahjongLayout {
+  slots: readonly MahjongSlot[];
+  tiles: number;
+  pairs: number;
+  layers: number;
+  coverers: readonly (readonly number[])[];
+  lefts: readonly (readonly number[])[];
+  rights: readonly (readonly number[])[];
+}
+
+function makeLayout(slots: readonly MahjongSlot[]): MahjongLayout {
+  return {
+    slots,
+    tiles: slots.length,
+    pairs: slots.length / 2,
+    layers: 1 + Math.max(...slots.map((s) => s.z)),
+    coverers: slots.map((a) => slots.flatMap((b, j) => (b.z === a.z + 1 && Math.abs(b.x2 - a.x2) < 2 && Math.abs(b.y2 - a.y2) < 2 ? [j] : []))),
+    lefts: slots.map((a) => slots.flatMap((b, j) => (b.z === a.z && b.x2 === a.x2 - 2 && Math.abs(b.y2 - a.y2) < 2 ? [j] : []))),
+    rights: slots.map((a) => slots.flatMap((b, j) => (b.z === a.z && b.x2 === a.x2 + 2 && Math.abs(b.y2 - a.y2) < 2 ? [j] : []))),
+  };
+}
+
+export const MAHJONG_LAYOUT: MahjongLayout = makeLayout(MAHJONG_SLOTS);
+/** Easy: 56 places in three layers (6 × 7, 3 × 4 on the gaps, 1 × 2). */
+export const MAHJONG_LAYOUT_EASY: MahjongLayout = makeLayout([
+  ...layer(0, [0, 2, 4, 6, 8, 10], [0, 2, 4, 6, 8, 10, 12]),
+  ...layer(1, [3, 5, 7], [3, 5, 7, 9]),
+  ...layer(2, [5], [5, 7]),
+]);
+/** Expert: 88 places in five layers (6 × 7, 5 × 6 on the gaps, 2 × 5, 2 × 2, 1 × 2). */
+export const MAHJONG_LAYOUT_EXPERT: MahjongLayout = makeLayout([
+  ...layer(0, [0, 2, 4, 6, 8, 10], [0, 2, 4, 6, 8, 10, 12]),
+  ...layer(1, [1, 3, 5, 7, 9], [1, 3, 5, 7, 9, 11]),
+  ...layer(2, [4, 6], [2, 4, 6, 8, 10]),
+  ...layer(3, [4, 6], [5, 7]),
+  ...layer(4, [5], [5, 7]),
+]);
+
+/** The layout a board (its face list) is on. */
+export function mahjongLayoutOf(face: readonly unknown[]): MahjongLayout {
+  return face.length === MAHJONG_LAYOUT_EASY.tiles ? MAHJONG_LAYOUT_EASY : face.length === MAHJONG_LAYOUT_EXPERT.tiles ? MAHJONG_LAYOUT_EXPERT : MAHJONG_LAYOUT;
+}
+
+const COVERERS = MAHJONG_LAYOUT.coverers;
+const LEFTS = MAHJONG_LAYOUT.lefts;
+const RIGHTS = MAHJONG_LAYOUT.rights;
 
 /** True when the place holds a tile with nothing on it and its left or right side open. */
 export function mahjongFree(face: readonly number[], slot: number): boolean {
   if ((face[slot] ?? -1) < 0) return false;
-  for (const c of COVERERS[slot]!) if (face[c]! >= 0) return false;
+  const lay = face.length === MAHJONG_TILES ? MAHJONG_LAYOUT : mahjongLayoutOf(face);
+  for (const c of lay.coverers[slot]!) if (face[c]! >= 0) return false;
   let left = false;
-  for (const l of LEFTS[slot]!) if (face[l]! >= 0) left = true;
+  for (const l of lay.lefts[slot]!) if (face[l]! >= 0) left = true;
   if (!left) return true;
-  for (const r of RIGHTS[slot]!) if (face[r]! >= 0) return false;
+  for (const r of lay.rights[slot]!) if (face[r]! >= 0) return false;
   return true;
+}
+
+/**
+ * The tiles keeping a place from being free (display only: the overhaul's stage 2 flashes them when a blocked tile is
+ * tapped): the tiles lying on it, or else the tiles both sides of it. Empty when the place is free or taken.
+ */
+export function mahjongBlockers(face: readonly number[], slot: number): number[] {
+  if ((face[slot] ?? -1) < 0) return [];
+  const lay = mahjongLayoutOf(face);
+  const on = lay.coverers[slot]!.filter((c) => face[c]! >= 0);
+  if (on.length) return on;
+  const left = lay.lefts[slot]!.filter((l) => face[l]! >= 0);
+  const right = lay.rights[slot]!.filter((r) => face[r]! >= 0);
+  return left.length && right.length ? [...left, ...right] : [];
 }
 
 /* ================================ Faces ================================ */
@@ -106,10 +163,10 @@ export function mahjongSuit(face: number): "dots" | "bamboo" | "chars" | "wind" 
  * Pairs of places (each pair free together at its turn) that clear `places` when taken in order, built by taking
  * two free places at random from the remaining ones; null after `tries` dead ends (one free place left).
  */
-function buildOrder(places: readonly number[], rng: number, tries: number): { rng: number; order: [number, number][] } | null {
+function buildOrder(places: readonly number[], rng: number, tries: number, tiles = MAHJONG_TILES): { rng: number; order: [number, number][] } | null {
   let r = rng;
   for (let t = 0; t < tries; t++) {
-    const face = new Array<number>(MAHJONG_TILES).fill(-1);
+    const face = new Array<number>(tiles).fill(-1);
     for (const p of places) face[p] = 0;
     const order: [number, number][] = [];
     let left = places.length;
@@ -167,18 +224,23 @@ export interface MahjongDeal {
 /** Tries per build; the layout's builds rarely meet a dead end (mahjong-check counts them). */
 export const MAHJONG_BUILD_TRIES = 200;
 
-/** The seed's deal (the same on every device and the server). */
-export function mahjongBuild(seed: number): MahjongDeal {
-  let rng = mixSeed(seed);
+/** The seed's deal (the same on every device and the server); a level's on its layout and face mix. */
+export function mahjongBuild(seed: number, level?: MahjongLevelName | null): MahjongDeal {
+  const rules = level ? MAHJONG_LEVEL_RULES[level] : null;
+  const lay = rules ? rules.layout : MAHJONG_LAYOUT;
+  const quads = rules ? rules.quads : MAHJONG_QUADS;
+  const doubles = lay.pairs - 2 * quads;
+  // A level's deal draws from its own stream of the seed, so it never repeats a Normal deal's.
+  let rng = rules ? mixSeed(seed ^ (0x1e5e1 * rules.lv)) : mixSeed(seed);
   const kinds = Array.from({ length: MAHJONG_KINDS }, (_, i) => i);
   rng = shuffleList(kinds, rng);
   const pairs: number[] = [];
-  for (let i = 0; i < MAHJONG_QUADS; i++) pairs.push(kinds[i]!, kinds[i]!);
-  for (let i = MAHJONG_QUADS; i < MAHJONG_QUADS + MAHJONG_DOUBLES; i++) pairs.push(kinds[i]!);
+  for (let i = 0; i < quads; i++) pairs.push(kinds[i]!, kinds[i]!);
+  for (let i = quads; i < quads + doubles; i++) pairs.push(kinds[i]!);
   rng = shuffleList(pairs, rng);
-  const places = MAHJONG_SLOTS.map((_, i) => i);
-  const built = buildOrder(places, rng, MAHJONG_BUILD_TRIES) ?? buildOrder(places, mixSeed(0x5eed), 100_000)!;
-  const face = new Array<number>(MAHJONG_TILES).fill(-1);
+  const places = lay.slots.map((_, i) => i);
+  const built = buildOrder(places, rng, MAHJONG_BUILD_TRIES, lay.tiles) ?? buildOrder(places, mixSeed(0x5eed), 100_000, lay.tiles)!;
+  const face = new Array<number>(lay.tiles).fill(-1);
   built.order.forEach(([a, b], i) => {
     face[a] = pairs[i]!;
     face[b] = pairs[i]!;
@@ -187,20 +249,21 @@ export function mahjongBuild(seed: number): MahjongDeal {
 }
 
 /** True when the seed's build order, played forwards through the real sim, clears every pair (the deal's proof). */
-export function mahjongBuildClears(seed: number): boolean {
-  const deal = mahjongBuild(seed);
-  let s = mahjongGame.init(seed);
+export function mahjongBuildClears(seed: number, level?: MahjongLevelName | null): boolean {
+  const deal = mahjongBuild(seed, level);
+  const game = level ? mahjongLevelGame(level) : mahjongGame;
+  let s = game.init(seed);
   let t = 0;
   for (const [a, b] of deal.order) {
-    s = mahjongGame.step(s, { t: ++t, k: MAHJONG_INPUT_TAP, a, b: 0, c: 0, d: 0 });
-    s = mahjongGame.step(s, { t: ++t, k: MAHJONG_INPUT_TAP, a: b, b: 0, c: 0, d: 0 });
+    s = game.step(s, { t: ++t, k: MAHJONG_INPUT_TAP, a, b: 0, c: 0, d: 0 });
+    s = game.step(s, { t: ++t, k: MAHJONG_INPUT_TAP, a: b, b: 0, c: 0, d: 0 });
   }
   return mahjongCleared(s) && s.shuffles === 0;
 }
 
 /** The lowest `count` places of the layout (bottom layer first): the Shuffle's fallback when no order clears the board as it stands. */
-function packedPlaces(count: number): number[] {
-  return MAHJONG_SLOTS.map((_, i) => i).slice(0, count);
+function packedPlaces(count: number, lay: MahjongLayout = MAHJONG_LAYOUT): number[] {
+  return lay.slots.map((_, i) => i).slice(0, count);
 }
 
 /**
@@ -222,13 +285,14 @@ export function mahjongReshuffle(face: readonly number[], rng: number): { face: 
   for (let i = 0; i + 1 < faces.length; i += 2) pairs.push(faces[i]!);
   let r = shuffleList(pairs, rngStep(rng));
   let packed = false;
-  let built = buildOrder(places, r, 60);
+  const lay = mahjongLayoutOf(face);
+  let built = buildOrder(places, r, 60, lay.tiles);
   if (!built) {
     packed = true;
-    built = buildOrder(packedPlaces(places.length), r, 100_000)!;
+    built = buildOrder(packedPlaces(places.length, lay), r, 100_000, lay.tiles)!;
   }
   r = built.rng;
-  const out = new Array<number>(MAHJONG_TILES).fill(-1);
+  const out = new Array<number>(lay.tiles).fill(-1);
   built.order.forEach(([a, b], i) => {
     out[a] = pairs[i]!;
     out[b] = pairs[i]!;
@@ -239,7 +303,7 @@ export function mahjongReshuffle(face: readonly number[], rng: number): { face: 
 /** Matching pairs of free tiles on the board (0 = stuck: only a Shuffle helps). */
 export function mahjongMoves(face: readonly number[]): [number, number][] {
   const free: number[] = [];
-  for (let i = 0; i < MAHJONG_TILES; i++) if (mahjongFree(face, i)) free.push(i);
+  for (let i = 0; i < face.length; i++) if (mahjongFree(face, i)) free.push(i);
   const out: [number, number][] = [];
   for (let i = 0; i < free.length; i++) for (let j = i + 1; j < free.length; j++) if (face[free[i]!] === face[free[j]!]) out.push([free[i]!, free[j]!]);
   return out;
@@ -280,9 +344,9 @@ export const MAHJONG_BOARD_X = Math.round((MAHJONG_WORLD_W - MAHJONG_BOARD_W) / 
 export const MAHJONG_BOARD_Y = MAHJONG_HUD_H + 14 + 3 * MAHJONG_LIFT_Y;
 export const MAHJONG_WORLD_H = MAHJONG_BOARD_Y + MAHJONG_BOARD_H + 14;
 
-/** A place's tile face rectangle (top-left) in world units. */
-export function mahjongSlotRect(slot: number): { x: number; y: number; w: number; h: number } {
-  const s = MAHJONG_SLOTS[slot]!;
+/** A place's tile face rectangle (top-left) in world units (on a level's layout when given). */
+export function mahjongSlotRect(slot: number, lay: MahjongLayout = MAHJONG_LAYOUT): { x: number; y: number; w: number; h: number } {
+  const s = lay.slots[slot]!;
   return {
     x: MAHJONG_BOARD_X + (s.x2 * MAHJONG_TILE_W) / 2 - s.z * MAHJONG_LIFT_X,
     y: MAHJONG_BOARD_Y + (s.y2 * MAHJONG_TILE_H) / 2 - s.z * MAHJONG_LIFT_Y,
@@ -294,10 +358,11 @@ export function mahjongSlotRect(slot: number): { x: number; y: number; w: number
 /** The topmost tile under a world point, or −1. */
 export function mahjongSlotAt(face: readonly number[], x: number, y: number): number {
   let best = -1;
-  for (let i = 0; i < MAHJONG_TILES; i++) {
+  const lay = mahjongLayoutOf(face);
+  for (let i = 0; i < face.length; i++) {
     if (face[i]! < 0) continue;
-    const r = mahjongSlotRect(i);
-    if (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h && (best < 0 || MAHJONG_SLOTS[i]!.z >= MAHJONG_SLOTS[best]!.z)) best = i;
+    const r = mahjongSlotRect(i, lay);
+    if (x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h && (best < 0 || lay.slots[i]!.z >= lay.slots[best]!.z)) best = i;
   }
   return best;
 }
@@ -336,14 +401,18 @@ export interface MahjongState {
   resets?: number;
   lastUndoTick?: number;
   lastResetTick?: number;
+  /** The difficulty levels (level deals only): the level (MAHJONG_LV_*), hints asked for and the last one's tick. */
+  lv?: number;
+  hints?: number;
+  hintTick?: number;
 }
 
 function init(seed: number): MahjongState {
   return initRev(seed, MAHJONG_REV_STD);
 }
 
-function initRev(seed: number, rev: number): MahjongState {
-  const deal = mahjongBuild(seed);
+function initRev(seed: number, rev: number, level?: MahjongLevelName | null): MahjongState {
+  const deal = mahjongBuild(seed, level);
   const base: MahjongState = {
     rev,
     tick: 0,
@@ -364,7 +433,8 @@ function initRev(seed: number, rev: number): MahjongState {
     lastShuffleTick: 0,
     acted: 0,
   };
-  return rev >= MAHJONG_REV_UNDO ? { ...base, start: deal.face, history: [], undos: 0, resets: 0, lastUndoTick: 0, lastResetTick: 0 } : base;
+  const undo = rev >= MAHJONG_REV_UNDO ? { ...base, start: deal.face, history: [], undos: 0, resets: 0, lastUndoTick: 0, lastResetTick: 0 } : base;
+  return level ? { ...undo, lv: MAHJONG_LEVEL_RULES[level].lv, hints: 0, hintTick: 0 } : undo;
 }
 
 /** On mahjongRev 2, the board before a change goes on the undo history. */
@@ -400,13 +470,14 @@ function applyTap(s: MahjongState, slot: number, tick: number): MahjongState {
   face[s.sel] = -1;
   face[slot] = -1;
   const pairs = s.pairs + 1;
+  const all = s.face.length / 2;
   return {
     ...s,
     ...remember(s),
     face,
     sel: -1,
     pairs,
-    clearedTick: pairs >= MAHJONG_PAIRS && s.clearedTick === 0 ? tick : s.clearedTick,
+    clearedTick: pairs >= all && s.clearedTick === 0 ? tick : s.clearedTick,
     lastA: s.sel,
     lastB: slot,
     lastPairTick: tick,
@@ -414,7 +485,7 @@ function applyTap(s: MahjongState, slot: number, tick: number): MahjongState {
 }
 
 function applyShuffle(s: MahjongState, tick: number): MahjongState {
-  if (s.pairs >= MAHJONG_PAIRS) return s;
+  if (mahjongCleared(s)) return s;
   const out = mahjongReshuffle(s.face, s.rng);
   return { ...s, ...remember(s), face: out.face, rng: out.rng, sel: -1, shuffles: s.shuffles + 1, lastShuffleTick: tick };
 }
@@ -424,7 +495,8 @@ function step(s: MahjongState, input: ArcadeInputEvent | null): MahjongState {
   const tick = s.tick + 1;
   let next: MahjongState = s;
   if (input) {
-    if (input.k === MAHJONG_INPUT_TAP && input.a >= 0 && input.a < MAHJONG_TILES) next = applyTap(s, input.a, tick);
+    if (input.k === MAHJONG_INPUT_TAP && input.a >= 0 && input.a < s.face.length) next = applyTap(s, input.a, tick);
+    else if (input.k === MAHJONG_INPUT_BUTTON && s.lv && input.a === MAHJONG_BUTTON_HINT) next = applyHint(s, tick);
     else if (input.k === MAHJONG_INPUT_BUTTON && s.rev >= MAHJONG_REV_UNDO && input.a === MAHJONG_BUTTON_UNDO) next = applyUndo(s, tick);
     else if (input.k === MAHJONG_INPUT_BUTTON && s.rev >= MAHJONG_REV_UNDO && input.a === MAHJONG_BUTTON_RESET) next = applyReset(s, tick);
     else if (input.k === MAHJONG_INPUT_SHUFFLE) next = applyShuffle(s, tick);
@@ -433,8 +505,8 @@ function step(s: MahjongState, input: ArcadeInputEvent | null): MahjongState {
   return next === s ? { ...s, tick } : { ...next, tick };
 }
 
-export function mahjongCleared(s: Pick<MahjongState, "pairs">): boolean {
-  return s.pairs >= MAHJONG_PAIRS;
+export function mahjongCleared(s: Pick<MahjongState, "pairs"> & { face?: readonly number[] }): boolean {
+  return s.pairs >= (s.face ? s.face.length / 2 : MAHJONG_PAIRS);
 }
 
 function isOver(s: MahjongState): boolean {
@@ -468,6 +540,7 @@ export const MAHJONG_STD_SPEC: StdSpec = {
 };
 
 export function mahjongParts(s: MahjongState): { core: number; clean: number; speed: number; penalty: number; total: number } {
+  if (s.lv) return mahjongLevelParts(s);
   const core = stdLine(MAHJONG_CORE_MAX, s.pairs, MAHJONG_PAIRS);
   const clean = s.shuffles === 0 ? stdLine(MAHJONG_CLEAN_MAX, s.pairs, MAHJONG_PAIRS) : 0;
   const speed = mahjongCleared(s) && s.clearedTick > 0 ? stdSpeed(MAHJONG_SPEED_MAX, s.clearedTick, MAHJONG_SPEED_FULL_TICKS, MAHJONG_RUN_TICKS) : 0;
@@ -487,6 +560,7 @@ export function mahjongStdParts(state: unknown): StdPart[] | null {
   if (!s || (s.rev !== MAHJONG_REV_STD && s.rev !== MAHJONG_REV_UNDO) || !Array.isArray(s.face)) return null;
   const st = s as MahjongState;
   const p = mahjongParts(st);
+  if (st.lv) return mahjongLevelStdParts(st, p);
   return [
     stdPart(MAHJONG_STD_SPEC, "core", p.core, `${st.pairs} of ${MAHJONG_PAIRS} pairs`),
     stdPart(MAHJONG_STD_SPEC, "clean", p.clean, st.shuffles === 0 ? "no shuffle" : `${st.shuffles} ${st.shuffles === 1 ? "shuffle" : "shuffles"} (−${p.penalty})`),
@@ -516,6 +590,11 @@ export function mahjongCheckpoint(s: MahjongState): MahjongCheckpoint {
   h = Math.imul(h ^ (s.sel + 2), 0x01000193);
   h = Math.imul(h ^ s.pairs, 0x01000193);
   h = Math.imul(h ^ s.tick, 0x01000193);
+  // The levels: the board's own length and the hints asked for (level states only).
+  if (s.lv) {
+    for (let i = MAHJONG_TILES; i < s.face.length; i++) h = Math.imul(h ^ (s.face[i]! + 2), 0x01000193);
+    h = Math.imul(h ^ (300 + (s.hints ?? 0)), 0x01000193);
+  }
   return { tick: s.tick, pairs: s.pairs, shuffles: s.shuffles, checksum: h >>> 0 };
 }
 
@@ -542,4 +621,159 @@ export const mahjongUndoGame: ArcadeGame<MahjongState, ArcadeInputEvent | null> 
 
 export function mahjongGameFor(rev?: number | null): ArcadeGame<MahjongState, ArcadeInputEvent | null> {
   return (rev ?? MAHJONG_REV_STD) >= MAHJONG_REV_UNDO ? mahjongUndoGame : mahjongGame;
+}
+
+/* ================================ Difficulty levels (15 Nov 2026) ================================ */
+
+/*
+ * The levels (docs/design/difficulty/README.md; docs/arcade-standard/mahjong.md "Levels"): Normal is mahjongRev 2
+ * exactly (no `level` on the puzzle, none of this code runs). A level deal carries `level` and mahjongRev 2; its game is
+ * rev 2's play (Undo and Reset) on the level's layout and face mix, with hints:
+ *
+ *   Easy    56 tiles in three layers, 2 faces dealt four times, a Shuffle costs 2, hints free.
+ *   Hard    the 72-tile stack, 10 faces dealt four times (more look-alike choices), a Shuffle costs 8, a hint 5.
+ *   Expert  88 tiles in five layers, 12 faces dealt four times, a Shuffle costs 10, one hint.
+ *
+ * A face dealt four times is the hard kind to pair: either pair can be taken first, and the wrong one can bury the
+ * other. Every level's board is built backwards as Normal's is (`mahjongBuild`), so every deal clears; a Shuffle builds
+ * again on the board's own layout. Parts: Pairs 150, No shuffles 20, Speed 30 (full by the level's seconds); the
+ * Shuffles' and hints' costs come off the total.
+ */
+export const MAHJONG_BUTTON_HINT = 3;
+export const MAHJONG_LV_EASY = 1;
+export const MAHJONG_LV_HARD = 3;
+export const MAHJONG_LV_EXPERT = 4;
+export type MahjongLevelName = "easy" | "hard" | "expert";
+
+export interface MahjongLevelRules {
+  lv: number;
+  layout: MahjongLayout;
+  quads: number;
+  shuffleCost: number;
+  hintCost: number;
+  hintLimit: number;
+  speedFullS: number;
+}
+
+export const MAHJONG_LEVEL_RULES: Readonly<Record<MahjongLevelName, MahjongLevelRules>> = {
+  easy: { lv: MAHJONG_LV_EASY, layout: MAHJONG_LAYOUT_EASY, quads: 2, shuffleCost: 2, hintCost: 0, hintLimit: -1, speedFullS: 70 },
+  hard: { lv: MAHJONG_LV_HARD, layout: MAHJONG_LAYOUT, quads: 10, shuffleCost: 8, hintCost: 5, hintLimit: -1, speedFullS: 25 },
+  expert: { lv: MAHJONG_LV_EXPERT, layout: MAHJONG_LAYOUT_EXPERT, quads: 12, shuffleCost: 10, hintCost: 0, hintLimit: 1, speedFullS: 30 },
+};
+
+function levelNameOf(lv: number | undefined): MahjongLevelName | null {
+  return lv === MAHJONG_LV_EASY ? "easy" : lv === MAHJONG_LV_HARD ? "hard" : lv === MAHJONG_LV_EXPERT ? "expert" : null;
+}
+
+export function mahjongLevelRulesOf(s: Pick<MahjongState, "lv">): MahjongLevelRules | null {
+  const name = levelNameOf(s.lv);
+  return name ? MAHJONG_LEVEL_RULES[name] : null;
+}
+
+export function mahjongHintsLeft(s: MahjongState): number {
+  const rules = mahjongLevelRulesOf(s);
+  if (!rules) return 0;
+  return rules.hintLimit < 0 ? Infinity : Math.max(0, rules.hintLimit - (s.hints ?? 0));
+}
+
+function applyHint(s: MahjongState, tick: number): MahjongState {
+  if (mahjongCleared(s) || mahjongHintsLeft(s) <= 0) return s;
+  return { ...s, hints: (s.hints ?? 0) + 1, hintTick: tick };
+}
+
+/** A level's spec (the help and the reveal). */
+export function mahjongLevelSpec(level: MahjongLevelName): StdSpec {
+  const rules = MAHJONG_LEVEL_RULES[level];
+  const pairs = rules.layout.pairs;
+  return {
+    field: "mahjongRev",
+    rev: MAHJONG_REV_DEALT,
+    parts: [
+      { key: "core", label: "Pairs", max: MAHJONG_CORE_MAX, item: "pair", how: `clear the ${pairs} pairs, each worth the same` },
+      { key: "clean", label: "No shuffles", max: MAHJONG_CLEAN_MAX, how: `the same again for each pair, all of it lost on your first shuffle; each shuffle costs ${rules.shuffleCost}${rules.hintCost ? `, each hint ${rules.hintCost}` : ""}` },
+      { key: "speed", label: "Speed", max: MAHJONG_SPEED_MAX, how: `clear the board within ${rules.speedFullS} s for all of it, falling to 0 at the buzzer` },
+    ],
+  };
+}
+
+function mahjongLevelParts(s: MahjongState): { core: number; clean: number; speed: number; penalty: number; total: number } {
+  const rules = mahjongLevelRulesOf(s)!;
+  const pairsAll = s.face.length / 2;
+  const core = stdLine(MAHJONG_CORE_MAX, s.pairs, pairsAll);
+  const clean = s.shuffles === 0 ? stdLine(MAHJONG_CLEAN_MAX, s.pairs, pairsAll) : 0;
+  const speed = mahjongCleared(s) && s.clearedTick > 0 ? stdSpeed(MAHJONG_SPEED_MAX, s.clearedTick, rules.speedFullS * TICKS_PER_SECOND, MAHJONG_RUN_TICKS) : 0;
+  const penalty = rules.shuffleCost * s.shuffles + rules.hintCost * (s.hints ?? 0);
+  return { core, clean, speed, penalty, total: core + clean + speed - penalty };
+}
+
+function mahjongLevelStdParts(st: MahjongState, p: { core: number; clean: number; speed: number; penalty: number }): StdPart[] {
+  const rules = mahjongLevelRulesOf(st)!;
+  const level = levelNameOf(st.lv)!;
+  const spec = mahjongLevelSpec(level);
+  const pairsAll = st.face.length / 2;
+  const hints = st.hints ?? 0;
+  const costs: string[] = [];
+  if (st.shuffles) costs.push(`${st.shuffles} ${st.shuffles === 1 ? "shuffle" : "shuffles"} (−${rules.shuffleCost * st.shuffles})`);
+  if (hints && rules.hintCost) costs.push(`${hints} ${hints === 1 ? "hint" : "hints"} (−${rules.hintCost * hints})`);
+  return [
+    stdPart(spec, "core", p.core, `${st.pairs} of ${pairsAll} pairs`),
+    stdPart(spec, "clean", p.clean, costs.length ? costs.join(", ") : "no shuffle"),
+    stdPart(spec, "speed", p.speed, mahjongCleared(st) ? `cleared in ${secs(st.clearedTick)}` : "not cleared"),
+  ];
+}
+
+/**
+ * The hint's pair (display only, never read by the sim): a free matching pair after which the board can still be
+ * cleared (a short search over the free pairs), else the first free pair, else null (only a Shuffle helps).
+ */
+export function mahjongHintPair(face: readonly number[], budget = 3000): [number, number] | null {
+  const moves = mahjongMoves(face);
+  if (!moves.length) return null;
+  let left = budget;
+  const seen = new Set<string>();
+  const clears = (f: number[]): boolean => {
+    if (f.every((x) => x < 0)) return true;
+    if (--left <= 0) return false;
+    const key = f.join(",");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    for (const [a, b] of mahjongMoves(f)) {
+      const g = f.slice();
+      g[a] = -1;
+      g[b] = -1;
+      if (clears(g)) return true;
+      if (left <= 0) return false;
+    }
+    return false;
+  };
+  for (const [a, b] of moves) {
+    const g = face.slice();
+    g[a] = -1;
+    g[b] = -1;
+    if (clears(g)) return [a, b];
+    if (left <= 0) break;
+  }
+  return moves[0]!;
+}
+
+const MAHJONG_LEVEL_GAMES = new Map<MahjongLevelName, ArcadeGame<MahjongState, ArcadeInputEvent | null>>();
+
+/** A level's game: mahjongRev 2's play on the level's layout and faces, plus hints. */
+export function mahjongLevelGame(level: MahjongLevelName): ArcadeGame<MahjongState, ArcadeInputEvent | null> {
+  let g = MAHJONG_LEVEL_GAMES.get(level);
+  if (!g) {
+    const tiles = MAHJONG_LEVEL_RULES[level].layout.tiles;
+    g = {
+      ...mahjongUndoGame,
+      init: (seed: number) => initRev(seed, MAHJONG_REV_UNDO, level),
+      inputRanges: [inputRange(MAHJONG_INPUT_TAP, [0, tiles - 1]), inputRange(MAHJONG_INPUT_BUTTON, [0, MAHJONG_BUTTON_HINT])],
+    };
+    MAHJONG_LEVEL_GAMES.set(level, g);
+  }
+  return g;
+}
+
+/** The game a puzzle plays: its level's (a level deal) or its revision's (Normal). */
+export function mahjongGameAt(rev: number | null | undefined, level: string | null | undefined): ArcadeGame<MahjongState, ArcadeInputEvent | null> {
+  return level === "easy" || level === "hard" || level === "expert" ? mahjongLevelGame(level) : mahjongGameFor(rev);
 }

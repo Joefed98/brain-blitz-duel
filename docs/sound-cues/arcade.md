@@ -24,6 +24,9 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `orbit.launch` | Orbit | The rocket is released from a planet | `arc_thruster` | 20–40 | 160 ms |
 | `orbit.checkpoint` | Orbit | The first checkpoint is reached | `arc_pickup` | 1 | 100 ms |
 | `orbit.crash` | Orbit | A respawn (black hole, missed planet) or the run lost | `arc_crash` | 1–5 | 200 ms |
+| `orbit.outOfFuel` | Orbit | The tank runs dry (orbitRev 14+: the run lost, or on 15 a respawn) | `arc_lose_life` | 0–5 | 900 ms |
+| `orbit.lowFuel` | Orbit | A flight's tank falls to a quarter, then every half second while it keeps falling (orbitRev 14+; the gauge pulses red with it) | `warning_tick` | 0–40 | 600 ms |
+| `orbit.respawnReady` | Orbit | An automatic respawn's hold ends (orbitRev 15) | `countdown_step` | 0–5 | 250 ms |
 | `swing.crash` | Grappler | The run ends in a crash | `arc_crash` | 0–1 | 200 ms |
 | `swing.grapple` | Grappler | The rope catches | `arc_grapple` | 20–60 | 450 ms |
 | `swing.starTaken` | Grappler | A star is taken (swingRev 4+) | `arc_pickup` (0.9) | 5–20 | 100 ms |
@@ -49,6 +52,8 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `cross.closeCall` | Spacewalk | A close call (crossRev 9+; Joe's recording since 6 Nov 2026, was `arc_retro_pickup` at 0.6) | `arc_retro_pickup` (0.6) | 0–12 | 220 ms |
 | `flip.crash` | Roofbound | The run ends in a crash | `arc_crash` | 0–1 | 200 ms |
 | `flip.flip` | Roofbound | Gravity flips | `arc_gravity_flip` (0.7) | 20–60 | 330 ms |
+| `flip.flipUp` | Roofbound | Gravity flips and the runner rises to the roof (flipRev 11–13; the Action overhaul, Joe's file to come) | `arc_gravity_flip` (0.7) | 10–30 | 300 ms |
+| `flip.flipDown` | Roofbound | Gravity flips and the runner drops to the floor (flipRev 11–13; Joe's file to come) | `arc_gravity_flip` (0.7) | 10–30 | 300 ms |
 | `ricochet.leap` | Moon Climb | The ninja leaps off a wall, a ledge or a sky lantern (ricoRev 2–3) | `arc_gravity_flip` (0.5) | 80–140 | 330 ms |
 | `ricochet.doubleJump` | Moon Climb | The double jump in the air (ricoRev 2–3) | `arc_gravity_flip` (0.6, ×1.25) | 10–60 | 330 ms |
 | `ricochet.hit` | Moon Climb | A katana or shuriken knocks the ninja down (ricoRev 2–3) | `arc_crash` | 0–20 | 200 ms |
@@ -60,11 +65,20 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `ricochet.flow` | Moon Climb | Each Flow step (every 7 clean leaps in a row, ricoRev 3) | `combo` (0.75) | 0–16 | 120 ms |
 | `hover.start` | Hover | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `hover.crash` | Hover | The craft crashes | `arc_retro_explode` | 0–1 | 260 ms |
-| `hover.gate` | Hover | A barrier is passed | `arc_retro_note` | 20–60 | 90 ms |
+| `hover.gate` | Hover | A barrier is passed; since the Retro overhaul (15 Nov 2026) a semitone higher for each gate in a row passed without a scrape or a shield breaking, at most an octave | `arc_retro_note` | 20–60 | 90 ms |
 | `hover.star` | Hover | A gold star is collected (hoverRev 2+) | `arc_retro_coin` (0.8) | 3–10 | 120 ms |
+| `hover.thrust` | Hover | Each tap: the thrust puff under the saucer (the Retro overhaul) | `arc_retro_blip` (0.18) | every tap | 60 ms |
+| `hover.scrape` | Hover | The saucer's edge passes within 3 px of a gap's edge: sparks off the barrier (the Retro overhaul; `hoverScrape` in retroMoments.ts) | `arc_retro_blip` (0.45) | 0–20 | 150 ms |
+| `hover.deadCentre` | Hover | A tight gate threaded dead centre: its rims flash gold (hoverRev 9+, the Retro overhaul) | `arc_retro_coin` (0.6) | 0–10 | 250 ms |
+| `hover.shieldShatter` | Hover | A shield shatters in place of a crash: glass shards round the saucer (hoverRev 9+, the Retro overhaul; was `hover.crash`) | `arc_retro_hit` (0.9) | 0–3 | 450 ms |
+| `breaker.goldTang` | Breaker | Each hit on a gold brick that doesn't break it: a metallic tang, the brick's crack deepening (the Retro overhaul) | `arc_retro_coin` (0.6, ×1.6) | 0–12 | 200 ms |
+| `breaker.capsuleIcon` | Breaker | A caught power-up: its icon rises over the paddle (the Retro overhaul) | `arc_retro_blip` (0.45, ×1.5) | 0–8 | 120 ms |
+| `rally.fwip` | Rally | A swiped return starts a curl: a white swirl leaves the ball (the Retro overhaul) | `arc_retro_blip` (0.4, ×1.8) | 0–20 | 150 ms |
+| `rally.edgeSave` | Rally | A return on the paddle's last 4 px: sparks off that end (`rallyEdgeSave` in retroMoments.ts) | `arc_retro_hit` (0.45, ×1.7) | 0–15 | 100 ms |
 | `snake.start` | Meteor | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `snake.dead` | Meteor | The snake dies | `arc_retro_explode` | 0–1 | 260 ms |
 | `snake.eat` | Meteor | A star is eaten | `arc_retro_blip` | 10–40 | 50 ms |
+| `snake.saved` | Meteor | A crash forgiven (snakeRev 15, the comet holds still) | `arc_retro_explode` (softer, faster; Joe's file to come) | 0–2 | 400 ms |
 | `snake.rockLand` | Meteor | A rock lands clear of the head (snakeRev 2+) | `arc_retro_hit` (0.7) | 5–20 | 120 ms |
 | `snake.rockWarn` | Meteor | A rock's shadow appears | `arc_retro_note` (0.5, slowed ×0.7) | 5–20 | 90 ms |
 | `snake.showerAlarm` | Meteor | A meteor shower's three shadows appear (snakeRev 3+) | `arc_retro_note` (0.7, slowed ×0.5) | 1–3 | 180 ms |
@@ -93,6 +107,7 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `rally.dead` | Rally | The rally ends | `arc_retro_explode` | 0–1 | 260 ms |
 | `rally.goldHit` | Rally | The gold ball is returned | `arc_retro_note` | 3–10 | 90 ms |
 | `rally.hit` | Rally | The ball is returned | `arc_retro_blip` | 30–80 | 50 ms |
+| `rally.lifeLost` | Rally | The blue ball is missed with a life to spare (rallyRev 13); the run goes on | `arc_retro_explode` (0.7) | 0–1 | 420 ms |
 | `burst.start` | Fission | The run starts | `arc_retro_coin` | 1 | 120 ms |
 | `burst.gameOver` | Fission | The run ends on the last life | `arc_retro_explode` | 0–1 | 260 ms |
 | `burst.lifeLost` | Fission | A life is lost | `arc_lose_life` | 0–3 | 220 ms |
@@ -105,6 +120,13 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `minigolf.water` | Crazy Golf | The ball goes in a pond | `arc_sea_pop` (0.9) | 0–6 | 200 ms |
 | `minigolf.holed` | Crazy Golf | The ball drops in the cup | `arc_marble_clink` | 0–5 | 200 ms |
 | `minigolf.birdie` | Crazy Golf | A hole holed under par | `arc_fair_bell` (0.8) | 0–5 | 300 ms |
+| `minigolf.chip` | Crazy Golf | golfRev 3: a chip is struck (a crisp lofted click; the putt keeps `minigolf.putt`'s tock) | `arc_wood_knock` (0.9) | 0–15 | 120 ms |
+| `minigolf.land` | Crazy Golf | golfRev 3: a chip lands | `arc_bounce` (0.4) | 0–15 | 80 ms |
+| `minigolf.rattle` | Crazy Golf | golfRev 3: the ball runs over the cup's lip without dropping | `arc_marble_clink` (0.6) | 0–10 | 150 ms |
+| `minigolf.plip` | Crazy Golf | golfRev 3: the ball drops into water (with `minigolf.water`'s splash) | `arc_sea_pop` (0.8) | 0–6 | 200 ms |
+| `minigolf.sand` | Crazy Golf | golfRev 3: a chip stops dead in a bunker | `arc_bounce` (0.3) | 0–6 | 120 ms |
+| `minigolf.loop` | Crazy Golf | golfRev 3: the ball goes round a loop-the-loop | `arc_marble_roll` (0.7) | 0–6 | 300 ms |
+| `minigolf.loopBack` | Crazy Golf | golfRev 3: the ball stalls in a loop and rolls back out | `arc_bounce` (0.5) | 0–6 | 120 ms |
 | `bintoss.basket` | Swish | A throw goes in | `arc_fair_bucket` | 3–10 | 200 ms |
 | `bintoss.allBaskets` | Swish | The last throw goes in with every throw in | `arc_fair_bell` | 0–1 | 400 ms |
 | `bintoss.missBounce` | Swish | A throw misses | `arc_bounce` (0.7) | 0–7 | 80 ms |
@@ -141,6 +163,13 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `homerun.foul` | Home Run | A foul ball, or weak contact (a fair ball under 400 per mille, once the slot has its file) | `arc_bounce` (0.7) | 0–5 | 150 ms |
 | `homerun.strike` | Home Run | The ball in the catcher's mitt: a swing and a miss, or a pitch taken | `arc_fair_thud` (0.6) | 0–10 | 150 ms |
 | `homerun.catch` | Home Run | homerunRev 4: a fielder catches the ball as it comes down (with `homerun.groan`, the crowd); the library's glove pop, `homerun_mitt.mp3` | `arc_fair_thud` (0.8) | 0–10 | 400 ms |
+| `homerun.umpOut` | Home Run | homerunRev 5: a caught ball reaches the glove (with `homerun.catch` and `homerun.groan`) | `arc_fair_thud` (0.4, rate 0.8) | 0–3 | 700 ms |
+| `homerun.strikeout` | Home Run | homerunRev 5: strike three, swinging or looking (with an impact haptic) | `arc_fair_thud` (0.9, rate 0.7) | 0–3 | 1100 ms |
+| `homerun.walk` | Home Run | homerunRev 5: ball four, the batter takes first | `arc_hover_tap` (0.5) | 0–5 | 700 ms |
+| `homerun.perfect` | Home Run | homerunRev 5: a perfect swing, a note higher for each in a row | `arc_fair_bell` (0.55, rate 1 + 0.06 a swing, at most 1.6) | 0–25 | 400 ms |
+| `homerun.slide` | Home Run | homerunRev 5: the runners reach their bases after a hit (a slide into the bag) | `arc_bounce` (0.4, rate 0.7) | 0–25 | 600 ms |
+| `homerun.runScores` | Home Run | homerunRev 5: a run scores (with a tick haptic) | `arc_fair_bell` (0.7) | 0–30 | 800 ms |
+| `freekick.goldTick` | Top Bins | freekickRev 5: the power bar's needle crosses the gold zone's edge | `arc_hover_tap` (0.45, rate 1.6) | 0–40 | 120 ms |
 | `freekick.kick` | Top Bins | The ball is struck | `arc_fair_thud` | 10 | 150 ms |
 | `freekick.post` | Top Bins | The ball hits a post or the bar | `arc_clank` | 0–5 | 200 ms |
 | `freekick.save` | Top Bins | The keeper saves | `arc_wood_knock` | 0–10 | 200 ms |
@@ -170,12 +199,13 @@ when the run starts. Rooms deal Pinball since 14 Oct 2026; Junction is practice 
 | `minigolf.stone` | Crazy Golf | The ball bounces off a boulder or a planter | `arc_bounce` (0.6) | 0–20 | 300 ms |
 | `freekick.wall` | Top Bins | The wall blocks the kick | `arc_wood_knock` (0.65, rate 0.85) | 0–10 | 300 ms |
 | `pool.click` | Cue Ball | Ball meets ball | `tick` (0.5, overlapping) | 10–60 | 200 ms |
+| `pool.jawRattle` | Cue Ball | A ball bounces off a pocket's jaw (the ball shivers) | `arc_bounce` (0.55) | 0–8 | 600 ms |
 | `minesweeper.reveal` | Minefield | A tap opens a square (or a few) | `tick` (0.6) | 20–80 | 80 ms |
 | `minesweeper.cascade` | Minefield | A tap opens six or more squares (an area opens) | `tick` (0.6) | 2–10 | 604 ms |
 | `minesweeper.flag` | Minefield | A flag is placed | `tick` (0.35) | 5–25 | 300 ms |
 | `mahjong.blocked` | Mahjong Solitaire | A tap on a covered or hemmed-in tile | `tick` (0.4) | 0–10 | 300 ms |
 | `freecell.place` | Free Cell | A move made (a tap or a drag) | `place` (0.8) | 40–120 | 300 ms |
-| `freecell.home` | Free Cell | A card goes home (one auto move, or the player's) | `correct` (0.55, rising with the cards home) | 10–52 | 406 ms |
+| `freecell.home` | Free Cell | A card goes home (one auto move, or the player's) | `correct` (0.55, a step up its suit's major scale per rank, the Cards & Board overhaul) | 10–52 | 406 ms |
 | `freecell.cascade` | Free Cell | Two or more cards go home on their own at once | `correct` (0.55, rising) | 2–10 | 948 ms |
 | `freecell.invalid` | Free Cell | A tap that moves nothing | `wrong` (0.5) | 0–10 | 434 ms |
 | `freecell.win` | Free Cell | Every card home | `complete` | 0–1 | 1362 ms |

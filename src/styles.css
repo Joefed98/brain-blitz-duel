@@ -42,6 +42,7 @@
 @import "./polish-layout/pass.css";
 @import "./polish-layout/seasons.css";
 @import "./polish-layout/tournaments.css";
+@import "./polish-layout/strategy-reveal.css";
 @import "./polish-layout/badges.css";
 @import "./polish-layout/rated-multi.css";
 @import "./polish-layout/rated.css";
@@ -56,6 +57,7 @@
 @import "./polish-layout/tournaments-pages.css";
 @import "./polish-layout/home-play.css";
 @import "./polish-layout/settings.css";
+@import "./polish-layout/minigolf-reveal.css";
 @import "./polish-layout/game-fx.css";
 @import "./polish-layout/moments.css";
 /* The Logic overhaul, session 1 (15 Nov 2026): last, so the rendered pieces win the cascade. */

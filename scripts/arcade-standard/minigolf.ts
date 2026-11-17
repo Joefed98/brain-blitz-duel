@@ -4,6 +4,10 @@
  * to 120 (24 a hole holed, an unfinished hole up to 20 by closeness), Par up to 40 (8 a hole), Under par up to 20 (4 a
  * hole), Speed up to 20 (all five holed). Perfect runs are both banks' witnesses through the server's replay; the core
  * line counts holes holed at the stroke limit (no par points).
+ *
+ * golfRev 3 (the Crazy Golf overhaul, 15 Nov 2026; rooms deal it): the same four parts on the proven hole bank at four
+ * levels; its perfect runs are composed courses' witnesses (scripts/minigolf-holes-bank.ts playCourseV3) at every level
+ * through the server's replay. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Crazy Golf overhaul).
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { readFileSync } from "node:fs";
@@ -28,6 +32,11 @@ import {
 import { replayMinigolfRun } from "../../src/lib/duel/minigolf";
 import { MINIGOLF_BANK } from "../../src/lib/duel/minigolfBank.server";
 import { MINIGOLF_BANK_V2 } from "../../src/lib/duel/minigolfBankV2.server";
+import { MINIGOLF_HOLES_BANK } from "../../src/lib/duel/minigolfHolesBank.server";
+import { pickMinigolfHoles } from "../../src/lib/duel/sports.server";
+import { MG_LEVEL_NAMES, MINIGOLF_REV_COURSE, MINIGOLF_STD_SPEC_V3 } from "../../src/lib/arcade/minigolf";
+import { encodeSportsRun } from "../../src/lib/arcade/sportsKit";
+import { playCourseV3, WITNESS_FILE, type WitnessFile } from "../minigolf-holes-bank";
 import type { StdEntry } from "./entry";
 
 const witness = JSON.parse(readFileSync(new URL("../fixtures/minigolf-witness.json", import.meta.url), "utf8")) as Record<string, string>;
@@ -54,14 +63,36 @@ function final(holed: number, strokes: number, over: Partial<MinigolfState> = {}
 const part = (s: MinigolfState, key: string) => minigolfStdParts(s)!.find((p) => p.key === key)!.points;
 const record = (s: MinigolfState) => Object.fromEntries(minigolfStdParts(s)!.map((p) => [p.key, p.points]));
 
+/** golfRev 3's perfect runs: composed courses (any hole of each slot) on their witnesses, at every level. */
+function perfectV3() {
+  const w = JSON.parse(readFileSync(WITNESS_FILE, "utf8")) as WitnessFile;
+  const out = [];
+  for (const level of MG_LEVEL_NAMES)
+    for (let n = 0; n < 12; n++) {
+      let x = (n * 7919 + MG_LEVEL_NAMES.indexOf(level) * 104729 + 1) >>> 0;
+      const draw = () => ((x = (Math.imul(x, 1103515245) + 12345) >>> 0), (Math.imul(x ^ (x >>> 15), 0x2c1b3c6d) >>> 0) ^ (x >>> 7));
+      const holes = pickMinigolfHoles(level, () => draw() >>> 0).map((e) => e.id);
+      const pars = holes.map((id, i) => MINIGOLF_HOLES_BANK[i]!.find((e) => e.id === id)!.pars[MG_LEVEL_NAMES.indexOf(level)]!);
+      const { events, state, checkpoints } = playCourseV3(holes, pars, level, w);
+      const g = minigolfGameFor(pars, MINIGOLF_REV_COURSE, { holes, level });
+      const raw = encodeSportsRun({ seed: 11, claimedScore: g.score(state), events, endTick: state.tick, checkpoints });
+      const run = replayMinigolfRun(11, raw, pars, MINIGOLF_REV_COURSE, { holes, level });
+      out.push({ label: `golfRev 3 ${level} course ${holes.join("-")}'s witness (server replay)`, score: run.flagged ? -1 : run.score, parts: record(run.state) });
+    }
+  return out;
+}
+const v3Holes = MINIGOLF_HOLES_BANK.map((slot) => slot[0]!.id);
+const v3Pars = MINIGOLF_HOLES_BANK.map((slot) => slot[0]!.pars[1]!);
+
 export const entry: StdEntry = {
   type: "minigolf",
   field: "golfRev",
-  rev: MINIGOLF_REV,
-  parts: MINIGOLF_STD_SPEC.parts,
-  spec: MINIGOLF_STD_SPEC,
+  rev: MINIGOLF_REV_COURSE,
+  parts: MINIGOLF_STD_SPEC_V3.parts,
+  spec: MINIGOLF_STD_SPEC_V3,
   liveSpec: true,
   perfect: () => [
+    ...perfectV3(),
     ...MINIGOLF_BANK_V2.map((e) => {
       const run = replayMinigolfRun(e.seed, witnessV2[String(e.seed)] ?? "", e.pars, MINIGOLF_REV);
       return { label: `golfRev 2 bank course ${e.seed}'s witness (server replay)`, score: run.flagged ? -1 : run.score, parts: record(run.state) };
@@ -72,6 +103,13 @@ export const entry: StdEntry = {
     }),
   ],
   played: () => [
+    { label: "golfRev 3: one chip into the fence and then nothing", score: (() => {
+      const g = minigolfGameFor(v3Pars, MINIGOLF_REV_COURSE, { holes: v3Holes });
+      let s = g.init(1);
+      s = g.step(s, { t: 1, k: 2, a: 4000, b: 0, c: 1 });
+      while (!g.isOver(s)) s = g.step(s, null);
+      return g.score(s);
+    })() },
     { label: "one putt into a rail and then nothing", score: (() => {
       const g = minigolfGameFor(entry0.pars, MINIGOLF_REV);
       let s = g.init(entry0.seed);
@@ -81,7 +119,12 @@ export const entry: StdEntry = {
     })() },
     { label: "a built state that played and earned nothing", score: game.score(final(0, 6)), want: 1 },
   ],
-  idle: () => [{ label: "an untouched run to the buzzer", score: (() => {
+  idle: () => [{ label: "golfRev 3: an untouched run to the buzzer", score: (() => {
+    const g = minigolfGameFor(v3Pars, MINIGOLF_REV_COURSE, { holes: v3Holes });
+    let s = g.init(1);
+    while (!g.isOver(s)) s = g.step(s, null);
+    return g.score(s);
+  })() }, { label: "an untouched run to the buzzer", score: (() => {
     const g = minigolfGameFor(entry0.pars, MINIGOLF_REV);
     let s = g.init(entry0.seed);
     while (!g.isOver(s)) s = g.step(s, null);

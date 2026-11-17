@@ -68,6 +68,11 @@ const BURNT_CAUTION = 6;
 /** tiltRev 8: the ticks a cell the player reckons a trip to a quick star takes. */
 const QUICK_TRIP = 14;
 
+/** Human limits (opt-in through TILT_HUMAN_LIMITS=1; level tuning): a 0.25 s reaction and a 0.15 s move, in ticks. */
+const HUMAN_LIMITS = process.env.TILT_HUMAN_LIMITS === "1";
+const HUMAN_REACT_TICKS = 15;
+const HUMAN_MOVE_TICKS = 9;
+
 /** tiltRev 8: the keys taken in the maze being played (the bot's own view of the gates). */
 let KEYS = 0;
 function gateShut(m: Maze, c: number, nc: number): boolean {
@@ -190,7 +195,11 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   const init = game.init(seed) as TiltState;
   const history: TiltState[] = [];
   // tiltRev 8: a skilled player anticipates where the marble has rolled since the eye last saw it.
-  const lag = init.xp ? Math.round(human.lagTicks() * (1 - ANTICIPATE[level])) : human.lagTicks();
+  // Human limits (levels, stage 3; opt-in, TILT_HUMAN_LIMITS=1 only, so every check plays the bot as before): the eye
+  // reads the board at least HUMAN_REACT_TICKS late (≈ 0.25 s), less what the player anticipates of their own tilt as
+  // before, and re-decides at most every HUMAN_MOVE_TICKS (≈ 0.15 s).
+  const rawLag = HUMAN_LIMITS ? Math.max(HUMAN_REACT_TICKS, human.lagTicks()) : human.lagTicks();
+  const lag = init.xp ? Math.round(rawLag * (1 - ANTICIPATE[level])) : rawLag;
   const fingerTop = FINGER[level];
 
   let touch = 0;
@@ -527,7 +536,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       const m = s.list[s.level]!;
 
       if (t >= nextGlance) {
-        nextGlance = t + Math.max(3, GLANCE[level] + human.int(-2, 2));
+        nextGlance = t + Math.max(HUMAN_LIMITS ? HUMAN_MOVE_TICKS : 3, GLANCE[level] + human.int(-2, 2));
         const goal = goalOf(seen, m, t);
         if (!goal) return null;
         if (detour) {

@@ -12,6 +12,7 @@ import { devDiagnosticsOn, type ArcadeDiag } from "@/lib/arcade/diagnostics";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { WaitingLine } from "@/components/duel/Dots";
+import { hasArcadeSummary } from "@/lib/duel/arcadeSummary";
 import { ArcadeReveal, revealShown, storedCostRows, type RevealPlayer } from "@/components/duel/ArcadeReveal";
 import { engineLines, statRepeatsPart } from "@/lib/duel/revealBreakdown";
 import { engineScoreLines } from "@/lib/duel/engineBreakdown";
@@ -935,6 +936,7 @@ function LiveAnswerReveal({
 
       {ARCADE_REVEAL_RENDERERS[puzzle.type] && !PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) ? (
         <ArcadeReveal
+          summaryVisual={hasArcadeSummary(puzzle) ? <Reveal puzzle={puzzle} myAnswer={myAnswer} myCorrect={myCorrect} myReactionAvgMs={myReactionAvgMs} myMsRemaining={myMsRemaining} timeLimitMs={puzzleTimeLimitMs(puzzle)} myExtra={myExtra ?? null} /> : undefined}
           practice={practice}
           best={best}
           puzzle={puzzle}

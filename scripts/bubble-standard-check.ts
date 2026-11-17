@@ -26,6 +26,8 @@ import {
   BUB_REV_STD,
   BUB_V11_MINE_POPS,
   BUB_V11_STD_SPEC,
+  BUB_V12_STD_SPEC,
+  BUB_REV_FAST,
   type BubState,
 } from "../src/lib/arcade/bubble";
 import { stdHelp, stdHelpLines, stdLines, stdScore } from "../src/lib/arcade/arcadeStandard";
@@ -72,8 +74,9 @@ for (const seed of [1, 7, 12345, 987654321, 2_000_000_011]) {
   ok(JSON.stringify({ ...s, minePops: undefined, std: undefined }) === JSON.stringify({ ...b, bombR: undefined }), `seed ${seed}: bubbleRev 11 starts as bubbleRev 10 (field, queue, chests)`);
   ok(bubCheckpoint(s).checksum !== bubCheckpoint(b).checksum, `seed ${seed}: the checksum folds the mine in`);
 }
-ok(generateBubble().bubbleRev === BUB_REV_STD, `rooms deal bubbleRev ${BUB_REV_STD}`);
-ok(String(PUZZLE_INSTRUCTIONS.bubble?.score ?? "").includes(stdHelpLines(BUB_V11_STD_SPEC)), "the help states every part and the 200");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): rooms deal bubbleRev 12.
+ok(generateBubble().bubbleRev === BUB_REV_FAST, `rooms deal bubbleRev ${BUB_REV_FAST}`);
+ok(String(PUZZLE_INSTRUCTIONS.bubble?.score ?? "").includes(stdHelpLines(BUB_V12_STD_SPEC)), "the help states every part and the 200 (the dealt bubbleRev 12 spec)");
 
 /* 3. The mine. */
 {

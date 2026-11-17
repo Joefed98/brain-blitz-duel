@@ -40,6 +40,12 @@ export function puzzleLevel(puzzle: unknown): Level {
   return levelOrNormal((puzzle as { level?: unknown }).level);
 }
 
+/** A level deal's level, or null at Normal (the games' sims take null for today's game). */
+export function levelOfPuzzle(puzzle: unknown): Exclude<Level, "normal"> | null {
+  const level = puzzleLevel(puzzle);
+  return level === "normal" ? null : level;
+}
+
 /** The stored key practice progress and ratings use: Normal keeps its older name, "classic". */
 export type StoredLevelKey = "easy" | "classic" | "hard" | "expert";
 export function storedLevelKey(level: Level): StoredLevelKey {

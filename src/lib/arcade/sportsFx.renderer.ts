@@ -9,11 +9,12 @@ import { freekickFxCounts, FREEKICK_WORLD_H, FREEKICK_WORLD_W, type FreekickStat
 import { racingFxCounts, RACING_WORLD_H, RACING_WORLD_W, type RacingState } from "./racing";
 import { px } from "./engine";
 import { MINIGOLF_H, MINIGOLF_HOLES, MINIGOLF_W, type MinigolfState } from "./minigolf";
-import { POOL_H, POOL_SPOTS, POOL_W, type PoolState } from "./pool";
+import { poolBlackOpen, POOL_H, POOL_SPOTS, POOL_W, type PoolState } from "./pool";
 import { curlShotTeam, curlTakeouts, CURL_STONE_PTS, CURLING_H, CURLING_H_V2, CURLING_H_V4, CURLING_STONES, CURLING_W, TEAM_MINE, type CurlingState } from "./curling";
 import { curlProject, CURL_VIEW_V1, CURL_VIEW_V2, CURL_VIEW_V4 } from "./curling.renderer";
 
-const homerunMisses = (s: HomerunState) => s.hits.filter((h) => h.out === OUT_WHIFF || h.out === OUT_TAKEN || h.out === OUT_FOUL || h.out === OUT_CAUGHT).length;
+// homerunRev 5: an out is a miss moment, a perfect streak's growth a streak burst (the innings keeps its own counters).
+const homerunMisses = (s: HomerunState) => (s.inn ? s.inn.outs : 0) + s.hits.filter((h) => h.out === OUT_WHIFF || h.out === OUT_TAKEN || h.out === OUT_FOUL || h.out === OUT_CAUGHT).length;
 
 /**
  * Home Run's success layer over the dealt stage view (homerunRev 4: the 720-row world again; homerunRev 3's view runs
@@ -30,7 +31,7 @@ export const HOMERUN_FX: ArcadeFxSpec<HomerunState> = {
     // The renderer writes the call ("HOME RUN", the distance); the layer adds the burst over the stands (31 Oct 2026:
     // the stands sit higher with the camera behind the batter).
     { kind: "perfect", count: (s) => s.homers, at: () => ({ x: HOMERUN_WORLD_W / 2, y: 120 }), label: () => null, lights: ["#F2C75C", "#FFF1C2", "#FFFFFF"] },
-    { kind: "streak", count: (s) => (s.rev >= HOMERUN_REV_4 ? (s.bonus ?? 0) : homerunSignCount(s)), at: () => ({ x: HOMERUN_WORLD_W / 2, y: 140 }), label: () => null, neon: true },
+    { kind: "streak", count: (s) => (s.inn ? s.inn.best : s.rev >= HOMERUN_REV_4 ? (s.bonus ?? 0) : homerunSignCount(s)), at: () => ({ x: HOMERUN_WORLD_W / 2, y: 140 }), label: () => null, neon: true },
   ],
   misses: [{ count: homerunMisses }],
 };
@@ -115,9 +116,11 @@ export const POOL_FX: ArcadeFxSpec<PoolState> = {
   fit: "world",
   shake: false,
   events: [
-    { kind: "combo", count: (s) => s.follows, at: () => ({ x: POOL_W / 2, y: 120 }), label: (s) => `${s.streak} IN A ROW` },
-    { kind: "clear", count: (s) => (s.spotsDown >= POOL_SPOTS ? 1 : 0), label: () => "NOW THE BLACK" },
-    { kind: "final", count: (s) => (s.black === 1 ? 1 : 0), label: () => "CLEARED!" },
+    // The run's count by the rack (the Sports overhaul, stage 2), just under the HUD row, not mid-table.
+    { kind: "combo", count: (s) => s.follows, at: () => ({ x: 104, y: 52 }), label: (s) => `${s.streak} IN A ROW` },
+    { kind: "clear", count: (s) => (poolBlackOpen(s) ? 1 : 0), label: () => "NOW THE BLACK" },
+    // The black has dropped (the shot ends once every ball is still): CLEARED! with the clear's time on the clock.
+    { kind: "final", count: (s) => (s.black === 1 ? 1 : 0), label: (s) => `CLEARED! ${(Math.round(s.finishAt / 6) / 10).toFixed(1)} s` },
   ],
   misses: [{ count: (s) => s.fouls + s.scratches }],
 };

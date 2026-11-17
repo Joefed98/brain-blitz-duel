@@ -208,3 +208,106 @@ down 2 a run, median; 3 of 120 flawless runs got all six). On 30 seeds the tunin
   `matchup.renderer.ts`, about a point chosen so the strip starts at y 36 and the panel ends 17 px inside the world's bottom). Taps
   and the selection, swap tween and desktop key cursor go through the same zoom (`matchupCellAtShown`,
   `matchupShownPoint`), so a tap on a drawn gem selects that gem's cell. Earlier revisions draw exactly as before.
+
+# matchupRev 13: two-hit ice and levels (stage 3)
+
+The Strategy overhaul, stage 3 (15–16 Nov 2026). Joe: "Two-hit ice: yes, add it in stage 3 on a new Gemstone stamp,
+with older stamps replaying and grading exactly as before, and the tuning re-proved at every level", and the levels
+"Easy 5 colours, lower goals, 5 ice cells, hint after 3 s idle; Normal today (6, 10 ice, 5 s); Hard 6, higher goals,
+14 ice, 8 s; Expert 7, highest goals, 18 ice, no hint." Rooms and practice deal **`matchupRev 13`** at every level,
+Normal included (`MATCHUP_REV_ICE2`); the level rides on the puzzle as `level` (the difficulty framework; none =
+Normal) and the sim reads it once at init (`matchupGameFor(rev, level)`, `matchupIce2GameFor`). Rated play and the
+Daily are always Normal (the framework's `modeLevel`).
+
+Older stamps replay and score exactly as before: gemstone-levels-check replays 35 bot runs on `matchupRev 11` and `12`
+recorded before the change (`scripts/fixtures/gemstone-levels-legacy.json`, `scripts/gemstone-levels-legacy.ts`) to the
+same score and final state, and every older stamp ignores a level. Checks written for `matchupRev 12`'s deal pin it
+with `pinMatchupPreIce2(true)` (`DEAL_PINS.matchupPreIce2`; deal-identity-lib's `POST_RECORDING_PINS` lists it).
+
+## Two-hit ice (every level)
+
+- A **hit** is what broke ice before: the gem on an iced cell is cleared, by a line, a cascade or a blast (every step of
+  a swap's resolution that clears the cell is one hit). Ice is stored per cell as 2 (whole), 1 (cracked) or 0.
+- The first hit cracks the cell (2 → 1; `iceCracked` counts it); the second breaks it (1 → 0; `iceBroken`, the only one
+  that scores). A cell cleared twice in one cascade cracks and breaks in the same swap.
+- Cracked ice is still ice: a swap into or out of it needs a line of three, as before.
+- Drawn: whole ice as before; cracked ice adds bold white fault lines on a dark seam inside the cell
+  (`paintIceCrack`). Stage 2's ice effect now maps to the hits: the first hit flashes the crack (the cell then stays
+  drawn cracked), the second shatters it into shards; both in one swap crack, then shatter. The crack plays
+  `matchup.iceCrack` quieter (0.35) and the break at its usual level.
+
+## The levels
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Colours | 5 | 6 | 6 | 7 (the seventh a cyan heart, kind 9) |
+| Goals (one a colour, seeded order) | 12, 18, 24, 30, 36 | 20, 28, 36, 44, 52, 60 | 28, 38, 48, 58, 68, 78 | 30, 40, 50, 60, 70, 80, 90 |
+| Frozen cells (two hits each) | 5 | 10 | 14 | 18 |
+| Hint after idle | 3 s | 5 s | 8 s | none |
+| Clock | 90 s | 90 s | 90 s | 90 s |
+| Core full at (gems) | 320 | 360 | 380 | 320 |
+| Treasure full at | 2 | 6 | 6 | 2 |
+| Goals full at | 5 | 6 | 6 | 3 |
+| Ice full at (cells broken) | 4 | 10 | 14 | 12 |
+| Big lines full at | 2 | 5 | 5 | 3 |
+
+- Normal deals `matchupRev 12`'s board, queues, plan, rng, goals and ten ice cells exactly (300 seeds proved), only
+  with every cell whole, and scores on `matchupRev 12`'s figures: Normal is today's game with two-hit ice.
+- Hard deals the same six-colour board; Easy and Expert roll their own boards and queues from the seed with 5 or 7
+  colours (more tries for a line-free start and for reshuffles with 5 colours, so a board is never left stuck). A
+  level's extra or fewer frozen cells come from their own seeded stream (`matchupV13Ice`); the goals' order is
+  `matchupRev 12`'s seeded shuffle of the level's ladder (`matchupV13GoalNeed`). Everyone in a room gets the same deal.
+- The parts and their maximums are `matchupRev 12`'s (gems 108, treasure 36, colour goals 36, ice 10, big lines 10 =
+  200); each is a straight line full at the level's figure (`matchupIce2Parts`). Any played run scores at least 1.
+- The seventh gem: kind 9 (kinds 6–8 are the specials), colour index 6 (`matchupColourIndex`,
+  `matchupKindOfColour`), its Jackpot `MATCHUP_JACKPOT + 6`; drawn in code (no rendered stone yet) as a cyan
+  (`MATCHUP_COLOUR7` #2FE3E6) faceted heart, a shape no other gem has, so it reads without colour. The goals panel and
+  the reveal draw five or seven goals.
+- The settings live in the sim (`MATCHUP_V13_LEVELS`, the one the sim reads); `GAME_LEVELS.matchup` in
+  `src/lib/levels/gameLevels.ts` is a plain copy for the selectors, and gemstone-levels-check proves they agree.
+
+## Why these figures
+
+Joe's targets (elite about 198 / 160 / 140 on Normal / Hard / Expert) were relaxed on 16 Nov 2026 to a guide: a clear
+step up Easy → Normal → Hard → Expert, Normal comfortable for a strong player, Expert proven humanly possible to score
+well on. Normal keeps `matchupRev 12`'s figures (its elite average 158, about rev 12's 164 less the second ice hit;
+reaching 198 would need its treasure and core figures cut far below what Joe asked of rev 12, so left for Joe). Hard
+needs 380 gems for the core. Easy's figures are lenient so an average player has a real shot at a star. Expert's are
+full well short of its goals, cells and treasures, so a strong player scores well and the elite bot reaches 200.
+
+The elite level is measured under Joe's human limits (about 0.25 s to react, 0.15 s to move): the shared elite profile
+with its reaction mean raised to 250 ms (the bot's swipe is 140 ms); `scripts/gemstone-levels-bands.ts --limits`.
+
+## Measured (`bun scripts/gemstone-levels-bands.ts --seeds=60 --limits`, room seeds 0–59, the server's replay)
+
+Average / median; star = runs at 175+; 200 = runs at 200 of 60.
+
+| Level | Weak | Average | Good | Great | Near | Elite (limits) | Flawless |
+|---|---|---|---|---|---|---|---|
+| Easy | 144.5 / 146 | 162.6 / 161 (star 32 %) | 177.7 / 177 | 190.1 / 197 | 191.3 / 200 | 197.2 / 200 (200 × 47) | 198.1 / 200 |
+| Normal | 71.5 / 68 | 95.3 / 96 | 114.2 / 109 | 135.0 / 136 | 151.3 / 154 | 158.1 / 158 (best 199) | 173.7 / 174 |
+| Hard | 61.1 / 60 | 82.4 / 82 | 102.2 / 101 | 122.1 / 122 | 141.4 / 142 | 146.2 / 146 (best 193) | 167.4 / 167 (200 × 1) |
+| Expert | 54.6 / 52 | 72.3 / 69 | 88.1 / 88 | 108.6 / 107 | 130.5 / 126 | 137.0 / 137 (200 × 1) | 167.6 / 170 (200 × 7) |
+
+On 200 Expert seeds the human-limited elite bot averages 135.6 and scores 200 on 3 (16 of 200 at 180+). 200 at every
+level: recorded witnesses in `scripts/fixtures/gemstone-levels-runs.json` (`scripts/gemstone-levels-record.ts`)
+replay to 200 through the server: the flawless bot on every level (Easy seed 301794028, Normal 1213491835, Hard
+1893021695, Expert 291005263), the elite bot on Easy (1453580015) and, under human limits, on Expert (1852014459,
+1445033835, 793207959). The flawless bot reaches 200 on Normal rarely (1 in the first 245 seeds: it needs all six
+treasures, as on `matchupRev 12`).
+
+The shared tool, `bun scripts/level-tune.ts matchup --level=all --seeds=60` (the standard elite profile, its own deal
+seeds): see the PR.
+
+## Other updates
+
+- `LIVE_BANDS.matchup`, the arcade-standard roster and entry (`scripts/arcade-standard/matchup.ts`, its perfect run the
+  Normal flawless witness), the room identity script and the intro demo gate name `matchupRev 13`; the "?" help explains
+  two-hit ice and the levels and keeps Normal's points. The intro demo stays stopped until one is recorded on 13.
+- `arcade-self-replay-check` gained `matchup/ice2`, `matchup/ice2-easy` and `matchup/ice2-expert` at the end of its list.
+- The bot reads the level's hint delay (`matchupHintTicksOf`; none on Expert) and the seventh colour's goal; every older
+  revision's bot plays exactly as before.
+- The reveal's summary draws the level's goals (`StrategyRunSummary`, the heart for the seventh).
+- Checks pinned or moved to the successor (changed with Joe's approval, 15 Nov 2026, routine consequence of the
+  Strategy overhaul): gemstone-rev12-check (pinned for "rooms deal 12"; its own flawless run replayed directly),
+  gemstone-standard-check, gemstone-rev10-check, e6-check, arcade-standard-check's roster.

@@ -4,7 +4,7 @@ import { equationVerdict, gapStageText, usesOperatorGaps } from "./operatorGaps"
 import { usesParMoves } from "./parMoves";
 import { pipesDims } from "./logic";
 import { pairsOf } from "./attentionLevels";
-import { bastionStdSpecFor } from "@/lib/arcade/bastionTank";
+import { bastionBaseMax, bastionStdSpecFor } from "@/lib/arcade/bastionTank";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { ARCADE_STANDARD } from "@/lib/arcade/standard";
 import { homerunStdSpecFor } from "@/lib/arcade/homerun";
@@ -1037,18 +1037,22 @@ const skylineSummary: SummaryBuilder = (result) => {
   return {
     summary: survived
       ? `${blocks} blocks, ${perfects} perfect, survived`
-      : `${blocks} blocks, missed at ${ended.toFixed(1)}s`,
+      : Number(result.extra?.["skylineRev"] ?? 0) === 11
+        ? `${blocks} blocks, out of lives at ${ended.toFixed(1)}s`
+        : `${blocks} blocks, missed at ${ended.toFixed(1)}s`,
     detail: [
       `${perfects} perfect drop${perfects === 1 ? "" : "s"}`,
       ...(result.extra?.["skylineRev"] ? [`Best streak ${Number(result.extra?.["bestStreak"] ?? 0)} in a row`] : []),
       // skylineRev 7: the expansion's gold blocks and height milestones.
       // skylineRev 9 (the arcade scoring standard): five gold blocks a run; milestones no longer score.
       // skylineRev 10 (the scoring audit): rev 9's play and gold blocks.
-      ...(Number(result.extra?.["skylineRev"] ?? 0) === 9 || Number(result.extra?.["skylineRev"] ?? 0) === 10
+      // skylineRev 11 (15 Nov 2026, lives): rev 10's gold blocks, and the lives lost.
+      ...(Number(result.extra?.["skylineRev"] ?? 0) === 9 || Number(result.extra?.["skylineRev"] ?? 0) === 10 || Number(result.extra?.["skylineRev"] ?? 0) === 11
         ? [`${Number(result.extra?.["golds"] ?? 0)} of 5 gold blocks`]
         : Number(result.extra?.["skylineRev"] ?? 0) >= 7
           ? [`${Number(result.extra?.["golds"] ?? 0)} gold, ${Number(result.extra?.["milestones"] ?? 0)} milestones`]
           : []),
+      ...(Number(result.extra?.["skylineRev"] ?? 0) === 11 ? [`${Number(result.extra?.["livesLost"] ?? 0)} of 3 lives lost`] : []),
     ],
   };
 };
@@ -1532,11 +1536,12 @@ const bastionSummary: SummaryBuilder = (result, puzzle) => {
     const base = Number(result.extra?.["base"] ?? 0);
     const fell = result.extra?.["fell"] === true;
     const ended = Number(result.extra?.["endedSeconds"] ?? 0);
-    // Each stamp's own parts (rev 3 adds Drones).
-    const spec = bastionStdSpecFor(puzzle.bastionRev);
+    // Each stamp's own parts (rev 3 adds Drones; rev 4's are its level's, with the level's base).
+    const level = (puzzle as { level?: unknown }).level;
+    const spec = bastionStdSpecFor(puzzle.bastionRev, level);
     const parts = (spec?.parts ?? []).map((p) => `${p.label} ${Number(result.extra?.[`part_${p.key}`] ?? 0)}/${p.max}`);
     return {
-      summary: fell ? `${kills} tanks, base fell at ${ended.toFixed(1)}s` : `${kills} tanks, base ${base} / 3`,
+      summary: fell ? `${kills} tanks, base fell at ${ended.toFixed(1)}s` : `${kills} tanks, base ${base} / ${bastionBaseMax(puzzle.bastionRev ?? 2, level)}`,
       detail: parts,
     };
   }
@@ -1679,7 +1684,8 @@ const tiltSummary: SummaryBuilder = (result) => {
   const head = `${mazes} ${mazes === 1 ? "maze" : "mazes"} completed`;
   // tiltRev 8 and 9 (the expansion): three mazes, quick stars, and falls that cost time instead of the run; tiltRev 10 four mazes.
   const rev = Number(result.extra?.["tiltRev"] ?? 0);
-  const all = rev === 8 || rev === 9 ? 3 : 4;
+  // Levels (stage 3): a level's run stores its own maze count (Easy three).
+  const all = Number(result.extra?.["totalMazes"] ?? 0) > 0 ? Number(result.extra?.["totalMazes"]) : rev === 8 || rev === 9 ? 3 : 4;
   const quick = Number(result.extra?.["totalQuick"] ?? 0);
   return {
     summary:

@@ -336,7 +336,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "rings") return generateRings();
   if (type === "hover") return generateHover();
   if (type === "swerve") return generateSwerve();
-  if (type === "skyline") return generateSkyline();
+  if (type === "skyline") return generateSkyline(context.level);
   if (type === "bintoss") return generateBinToss();
   if (type === "bullseye") return generateBullseye();
   if (type === "matchup") return generateMatchup();
@@ -347,20 +347,22 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "breaker") return generateBreaker();
   if (type === "pinball") return generatePinball();
   if (type === "minesweeper") return generateMinesweeper(context.level);
-  if (type === "mahjong") return generateMahjong();
-  if (type === "homerun") return generateHomerun();
-  if (type === "freekick") return generateFreekick();
-  if (type === "racing") return generateRacing();
-  if (type === "freecell") return generateFreecell();
-  if (type === "tripeaks") return generateTripeaks();
+  if (type === "mahjong") return generateMahjong(context.level);
+  if (type === "homerun") return generateHomerun(context.level);
+  if (type === "freekick") return generateFreekick(context.level);
+  if (type === "racing") return generateRacing(context.level);
+  if (type === "freecell") return generateFreecell(context.level);
+  if (type === "tripeaks") return generateTripeaks(context.level);
   if (type === "pokersquares") return generatePokerSquares();
-  if (type === "fivehands") return generateFiveHands();
+  if (type === "fivehands") return generateFiveHands(context.level);
   if (type === "pyramid") return generatePyramid();
   if (type === "golfsol") return generateGolfSol();
   if (type === "muggins") return generateMuggins();
-  if (type === "minigolf") return generateMinigolf();
+  // golfRev 3 reads the level the deal asks for (the difficulty framework's context.level; absent on main: Normal).
+  if (type === "minigolf") return generateMinigolf((context as { level?: unknown }).level);
   if (type === "pool") return generatePool();
-  if (type === "curling") return generateCurling();
+  // Curl Champ's levels (the Sports overhaul): Easy, Hard and Expert deal from their own proved banks; Normal as before.
+  if (type === "curling") return generateCurling(context.level);
   if (type === "blockfall") return generateBlockfall();
   if (type === "alleyroll") return generateAlleyRoll();
   if (type === "rally") return generateRally();
@@ -373,21 +375,21 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "wordfall") return generateWordfall();
   if (type === "clayshoot") return generateClayShoot();
   if (type === "wavefront") return generateWavefront();
-  if (type === "bastion") return generateBastion();
+  if (type === "bastion") return generateBastion(context.level);
   if (type === "rooftop") return generateRooftop();
-  if (type === "flip") return generateFlip();
+  if (type === "flip") return generateFlip(context.level);
   if (type === "junction") return generateJunction();
-  if (type === "inkbridge") return generateInkBridge();
+  if (type === "inkbridge") return generateInkBridge(context.level);
   if (type === "burst") return generateBurst();
-  if (type === "orbit") return generateOrbit();
-  if (type === "swing") return generateSwing();
+  if (type === "orbit") return generateOrbit(context.level);
+  if (type === "swing") return generateSwing(context.level);
   if (type === "snip") return generateSnip();
-  if (type === "tilt") return generateTilt();
+  if (type === "tilt") return generateTilt(context.level);
   if (type === "hotfloor") return generateHotFloor();
   if (type === "tents") return generateTents();
   if (type === "shikaku") return generateShikaku();
   if (type === "lightup") return generateLightUp();
-  if (type === "balltrack") return generateBallTrack();
+  if (type === "balltrack") return generateBallTrack(context.level);
   // Levels (stage 3 of the Number overhaul): Integer Pyramid's level banks, Operator's level equations; Normal as before.
   if (type === "numpyramid") return generateNumberPyramid(context.level);
   if (type === "equation" && context.level) {

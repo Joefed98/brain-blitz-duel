@@ -38,8 +38,7 @@ import {
   breakerStdParts,
   breakerWorldHFor,
   breakerWorldWFor,
-  type BrkState,
-} from "../src/lib/arcade/breaker";
+  type BrkState, BRK_REV_CLEAR, BRK_V12_BAND_CURVE } from "../src/lib/arcade/breaker";
 import { replayBreakerRun } from "../src/lib/duel/breaker";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { bandLines, bandPoints } from "../src/lib/arcade/scoreBands";
@@ -51,6 +50,12 @@ import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { breakerPuzzle } from "../src/puzzles/breaker";
 import { entry } from "./arcade-standard/breaker";
 import type { StdRun } from "./arcade-standard/entry";
+import { pinPreRetro } from "../src/lib/duel/arcade.server";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal the overhaul's stamps
+// (Breaker brkRev 12, Rally rallyRev 13, Meteor snakeRev 13…); this check was written for the deal before it, so it pins
+// preRetro.
+pinPreRetro(true);
 
 /** The game's arcade-standard-check entry, read as this check always has (the first perfect run, split into parts). */
 const STANDARD = {
@@ -110,8 +115,9 @@ section("3. Rooms and practice deal brkRev 11");
 {
   const dealt = generatePuzzle("breaker") as { brkRev?: number };
   ok(dealt.brkRev === BRK_REV_STD && BRK_REV_STD === BRK_REV_PHONE + 1, `rooms deal brkRev ${dealt.brkRev}, expected ${BRK_REV_STD}`);
-  ok((breakerPuzzle.generate() as { brkRev?: number }).brkRev === BRK_REV_STD, "practice's own generate deals brkRev 11");
-  ok(LIVE_BANDS.breaker.rev === BRK_REV_STD && LIVE_BANDS.breaker.curve === BRK_V11_BAND_CURVE, "LIVE_BANDS names brkRev 11 and its straight line");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the dealt and help stamp is brkRev 12.
+  ok((breakerPuzzle.generate() as { brkRev?: number }).brkRev === BRK_REV_CLEAR, "practice's own generate deals brkRev 12 (brkRev 11 before the Retro overhaul)");
+  ok(LIVE_BANDS.breaker.rev === BRK_REV_CLEAR && LIVE_BANDS.breaker.curve === BRK_V12_BAND_CURVE && BRK_V12_BAND_CURVE.points.at(-1) === BRK_V11_BAND_CURVE.points.at(-1), "LIVE_BANDS names brkRev 12 and its straight line");
   ok(roundMaxFor("breaker") === 200 && BRK_V11_MAX === 200, "the round maximum is 200 and the parts add to it");
   ok(breakerWorldWFor(BRK_REV_STD) === breakerWorldWFor(BRK_REV_PHONE) && breakerWorldHFor(BRK_REV_STD) === breakerWorldHFor(BRK_REV_PHONE), "brkRev 11 plays brkRev 10's 420 × 784 court");
 }

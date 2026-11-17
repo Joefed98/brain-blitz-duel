@@ -5,9 +5,10 @@
  * example draw nothing until it lands, then the game's own component mounts once. The Stage also asks for the
  * game's own sounds (lib/sound.ts loadGameSounds).
  */
+import type { Level } from "@/lib/levels/levels";
 import { useEffect } from "react";
 
-import type { PuzzleRevealProps, PuzzleStageProps } from "@/puzzles/types";
+import type { PuzzleRevealProps, PuzzleStageProps, RunPictureProps } from "@/puzzles/types";
 import { loadGameSounds } from "@/lib/sound";
 import { useGameDef } from "@/lib/duel/gameLoader";
 import type { RemovedPuzzleType } from "@/lib/duel/removedGames";
@@ -29,9 +30,25 @@ export function GameReveal(props: PuzzleRevealProps) {
   return <Reveal {...props} />;
 }
 
-export function GameIntroExample({ type }: { type: PuzzleType | RemovedPuzzleType }) {
+export function GameIntroExample({ type, level }: { type: PuzzleType | RemovedPuzzleType; level?: Level | null }) {
   const definition = useGameDef(type);
   if (!definition) return null;
   const Example = definition.IntroExample;
-  return <Example />;
+  return <Example level={level ?? null} />;
+}
+
+/**
+ * An arcade game's own picture of the run on the answer reveal (the Action overhaul, stage 2, 15 Nov 2026): drawn by the
+ * game's `RunPicture` (PuzzleDefinition) under the score and breakdown when it has one, nothing otherwise. Display only.
+ */
+export function GameRunPicture(props: RunPictureProps) {
+  const definition = useGameDef(props.puzzle.type);
+  const Picture = definition?.RunPicture;
+  if (!Picture) return null;
+  return <Picture {...props} />;
+}
+
+/** True once the game's chunk is in and it draws its own run picture (its stats then replace the reveal's tiles). */
+export function useHasRunPicture(type: PuzzleType): boolean {
+  return Boolean(useGameDef(type)?.RunPicture);
 }

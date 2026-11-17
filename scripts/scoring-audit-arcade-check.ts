@@ -26,13 +26,14 @@ import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { INTRO_SCORE } from "../src/lib/duel/introScore";
 import { stdCappedPenalty, stdLivesCharged } from "../src/lib/arcade/arcadeStandard";
 import { crossFlowScore, crossGameFor, CROSS_LIVES, CROSS_REV_FLOW, CROSS_REV_KEEP, CROSS_V11_HIT_COST, type CrossState } from "../src/lib/arcade/cross";
-import { wavefrontGameFor, wavStdScore, WAV_LIVES, WAV_REV_KEEP, WAV_REV_STD, WAV_STD_LIFE_COST, type WavState } from "../src/lib/arcade/wavefront";
+import { wavefrontGameFor, wavStdScore, WAV_LIVES, WAV_REV_CHARGE, WAV_REV_KEEP, WAV_REV_STD, WAV_STD_LIFE_COST, type WavState } from "../src/lib/arcade/wavefront";
 import {
   burstGameFor,
   burstStdParts,
   burstV11Charged,
   BURST_LIVES,
   BURST_REV_AIM,
+  BURST_REV_BIG,
   BURST_REV_STD,
   BURST_V10_LIFE_COST,
   BURST_V11_FREE_MISSES,
@@ -42,6 +43,16 @@ import {
 import { skylineGameFor, skylineStdParts, SKYLINE_REV_COUNT, SKYLINE_REV_STD, SKYLINE_V9_FULL_AT, type SkylineState } from "../src/lib/arcade/skyline";
 import { sliceGameFor, sliceV11Parts, SLICE_REV_FOOD, SLICE_REV_LINE, SLICE_V11_COMBO_CAP, SLICE_V11_CORE, SLICE_V12_COMBO_FULL, type SliceState } from "../src/lib/arcade/slice";
 import { stdSum } from "../src/lib/arcade/arcadeStandard";
+import { pinPreRetro } from "../src/lib/duel/arcade.server";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal the overhaul's stamps
+// (Wavefront wavRev 14's charged shot, Fission burstRev 12…); this check was written for the deal before it, so it pins
+// preRetro.
+pinPreRetro(true);
+/** The Retro overhaul's live stamps for the audit games it moved on (the help reads these exactly). */
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): stage 3 deals Wavefront wavRev 15
+// and Spacewalk crossRev 13 (one above the stamps named here).
+const RETRO_LIVE_STAMPS: Record<string, number> = { wavefront: WAV_REV_CHARGE + 1, burst: BURST_REV_BIG, cross: CROSS_REV_KEEP + 1 };
 
 let checks = 0;
 const failures: string[] = [];
@@ -55,12 +66,22 @@ const kit = await auditKit(new URL("..", import.meta.url).pathname.replace(/\/$/
 
 /* 1. Wiring. */
 section("1. rooms deal the new stamps; each keeps the previous stamp's play");
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): High Rise moved on to skylineRev 11
+// (lives, skyline-overhaul-check), so rooms and LIVE_BANDS now carry the stamp after the audit's; the audit's stamp still
+// replays and scores as proved below.
+const LATER_DEALT: Partial<Record<string, number>> = { skyline: 11 };
 for (const g of AUDIT_GAMES) {
+  const want = LATER_DEALT[g.type] ?? g.rev;
   for (let k = 0; k < 5; k++) {
     const dealt = (generatePuzzle(g.type) as unknown as Record<string, unknown>)[g.field];
-    ok(dealt === g.rev, `${g.type}: rooms deal ${g.field} ${g.rev} (got ${String(dealt)})`);
+    ok(dealt === want, `${g.type}: rooms deal ${g.field} ${want} (got ${String(dealt)})`);
   }
-  ok((LIVE_BANDS as any)[g.type].rev === g.rev, `${g.type}: LIVE_BANDS reads ${g.field} ${g.rev}`);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the "?" help reads the stamp
+  // rooms deal live, which for Wavefront and Fission is now the Retro overhaul's (wavRev 14, burstRev 13); every other
+  // audit game's live stamp is still the audit's own (or, for High Rise, the Action overhaul's skylineRev 11, `want`).
+  // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine). The comparison stays exact.
+  const liveStamp = RETRO_LIVE_STAMPS[g.type] ?? want;
+  ok((LIVE_BANDS as any)[g.type].rev === liveStamp, `${g.type}: LIVE_BANDS reads ${g.field} ${liveStamp} (got ${String((LIVE_BANDS as any)[g.type].rev)})`);
   ok(playRevOf(g.type, g.rev) === playRevOf(g.type, g.old), `${g.type}: ${g.field} ${g.rev} keeps ${g.field} ${g.old}'s play (playRevOf ${String(playRevOf(g.type, g.rev))})`);
   // The intro demo's gate names the stamp the demo was recorded on (the old one): the same play, so it still plays.
   const demos = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");

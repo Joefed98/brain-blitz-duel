@@ -31,6 +31,10 @@
  * window's line carries the features (on a figure-eight or a belted orbit the windows in a lap fly different lines):
  * they look on to the end of the usual scan and take the window that takes the most (with the fixes, only one under
  * their risk tolerance).
+ *
+ * orbitRev 14 (the fuel meter) and 15 (grace, the Action overhaul): the forks follow each flight to its catch, crash or
+ * empty tank as the sim plays it, so the same planning holds; on orbitRev 15 an automatic respawn (no checkpoint) keeps
+ * the planet, so the replan key carries the respawn count, and the hold's taps (which do nothing) fork as misses.
  */
 import { lapPhases, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP } from "../../../src/lib/arcade/orbit";
 import type { OrbitRev3State } from "../../../src/lib/arcade/orbitRev3";
@@ -246,7 +250,8 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
 
   return driveEvents(game, (s: OrbitRev3State, t) => {
     if (s.flying === 0) {
-      const k = `${s.cur}:${s.respawns}:${s.captured}`;
+      // orbitRev 15 (grace): an automatic respawn keeps the planet, respawns and catches, so it is in the key too.
+      const k = `${s.cur}:${s.respawns}:${s.captured}${s.grace ? `:${s.autoRespawns ?? 0}` : ""}`;
       if (k !== key) {
         const first = key === "";
         key = k;

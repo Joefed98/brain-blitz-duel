@@ -134,7 +134,26 @@ tasks.push({
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): 27.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul's preSpeedOverhaul): 27.
     // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): main's 26 plus the trains' 11 make 37.
-    ok(names.size === 37, `37 era switches (${names.size})`);
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): preRetro, 27.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreGrace (orbitRev 15), 27.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): flipPreGrace (flipRev 13) and
+    // skylinePreLives (skylineRev 11), 29.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): ricoPreBig (ricoRev 4), 30.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): swingPreBig (swingRev 18), 31.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitPreBig (orbitRev 16), 32.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): bastionPreLevels (bastionRev 4), 33.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul: bubblePreFast, inkPreHills and
+    // Gemstone's matchupPreIce2): 29.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Crazy Golf overhaul's minigolfPreCourse): 27.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Home Run and Top Bins overhaul's era switch
+    // sportsPreOverhaul, stage 1 approved at 72b7b38f): 27.
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Sports overhaul): racingPreCircuits, 27.
+    // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): preRetro, the Action overhaul's seven,
+    // the Strategy overhaul's three, Crazy Golf's minigolfPreCourse, Home Run / Top Bins' sportsPreOverhaul and the
+    // Sports overhaul's racingPreCircuits, 40.
+    // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): the puzzle train's 37 and the arcade
+    // train's 14 more (40 less main's 26) make 51.
+    ok(names.size === 51, `51 era switches (${names.size})`);
   },
 });
 

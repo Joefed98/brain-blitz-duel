@@ -180,7 +180,9 @@ const EXTRACT = String.raw`
     // Listed exception: finger-driven paddles and ships sit under the finger by design (the sim
     // sets them to the drag x, so a new touch elsewhere moves them at once); only physics bodies are tracked.
     case "breaker": s.balls.forEach((b, i) => P.push(["ball" + i, fp(b.x), fp(b.y)])); reset = s.balls.length + ":" + s.losses + ":" + s.pause; break;
-    case "rally": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.dead; break;
+    // Changed with Joe's approval, 16 Nov 2026 (approved grace respawns count as resets): rallyRev 13 parks a missed ball on
+    // the serve spot when a life is left; older revisions have no lives, so their key is as before.
+    case "rally": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.dead + ":" + (s.lives ?? ""); break;
     // Pinball: the ball; a drain puts it back in the shooter lane (a reset).
     // pinRev 4 (E4): a ball riding a ramp or the plunge rail is drawn on the ride (not tracked); a ride, a lock and a
     // multiball drain that hands play to another ball each put the ball somewhere new (a reset).
@@ -192,8 +194,10 @@ const EXTRACT = String.raw`
       if (s.boss) P.push(["boss", s.boss.x, 0]);
       reset = s.wave + ":" + (s.divers ?? []).map((d) => d.cell + (d.t > 150 ? "h" : "d")).join(",");
       break;
-    case "orbit": P.push(["rocket", fp(s.x), fp(s.y)]); reset = s.respawns + ":" + s.checkpoint + ":" + s.cur; break;
-    case "skyline": P.push(["block", fp(s.x), 0]); reset = s.placed; break;
+    // Changed with Joe's approval, 16 Nov 2026 (approved grace respawns count as resets).
+    case "orbit": P.push(["rocket", fp(s.x), fp(s.y)]); reset = s.respawns + ":" + s.checkpoint + ":" + s.cur + ":" + (s.autoRespawns ?? 0); break;
+    // Changed with Joe's approval, 16 Nov 2026 (approved grace respawns count as resets).
+    case "skyline": P.push(["block", fp(s.x), 0]); reset = s.placed + ":" + (s.livesLost ?? 0); break;
     case "inkbridge": if (s.ball) P.push(["ball", fp(s.ball.x), fp(s.ball.y)]); reset = s.level + ":" + s.levels + ":" + s.fails + ":" + s.dropping; break;
     case "bintoss": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.throwIndex + ":" + s.phase; break;
     // Minigolf (30 Oct 2026): the ball; a new hole, water (the ball back where it was played) and holing out move it at once.

@@ -32,6 +32,7 @@ import {
   rallyWorldHFor,
   rallyWorldWFor,
   type RallyState,
+  RALLY_STD_SPEC_V13,
 } from "../src/lib/arcade/rally";
 import { replayRallyRun, encodeRallyRun } from "../src/lib/duel/rally";
 import { stdScore, stdHelp, stdHelpLines } from "../src/lib/arcade/arcadeStandard";
@@ -39,6 +40,11 @@ import { ARCADE_INPUT_DRAG } from "../src/lib/arcade/engine";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { buildArcadeReveal } from "../src/lib/arcade/reveal";
+import { pinPreRetro } from "../src/lib/duel/arcade.server";
+
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal rallyRev 13 (lives,
+// retro-overhaul-check); this check was written for the deal before it, so it pins preRetro (rallyRev 12, beatRev 11).
+pinPreRetro(true);
 
 const quiet = console.error;
 console.error = () => {};
@@ -134,7 +140,9 @@ for (const run of std.runs) {
 /* 6. Texts. */
 const help = PUZZLE_INSTRUCTIONS.rally;
 const score = help.score;
-ok(score.includes(stdHelpLines(RALLY_STD_SPEC)), `the help states the standard's parts: ${score}`);
+// Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the help reads the dealt stamp,
+// rallyRev 13 (four parts with spin shots).
+ok(score.includes(stdHelpLines(RALLY_STD_SPEC_V13)), `the help states the standard's parts: ${score}`);
 ok(help.how.some((h) => /curves back round the other way/.test(h.detail)), "the help says a swipe goes its way, then curves back");
 ok(!help.how.some((h) => /swerves the way it moved/.test(h.detail)), "the help no longer says the ball swerves the way the paddle moved");
 const best = std.runs.find((r) => r.level === "near")!;

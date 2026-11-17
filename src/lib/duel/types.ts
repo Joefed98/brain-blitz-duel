@@ -2172,8 +2172,8 @@ export interface MahjongPuzzleData {
 
 /* =========================== Sports (Oct 2026) =========================== */
 
-/** Home Run Derby's 60-second, ten-pitch run; the round clock adds three of slack (63 s). */
-export const HOMERUN_TIME_MS = 63_000;
+/** homerunRev 5's 117-second innings plus three of slack (15 Nov 2026); older 60-second runs still end at their own 60 s. */
+export const HOMERUN_TIME_MS = 120_000;
 /** Top Bins' 90-second, ten-kick run (freekickRev 3 and 4; rev 1 and 2 runs end at 75 s), plus three of slack. */
 export const FREEKICK_TIME_MS = 93_000;
 /**
@@ -2188,6 +2188,11 @@ export interface HomerunPuzzleData {
   seed: number;
   /** Rules revision (1 = the first run, on the arcade scoring standard). */
   homerunRev?: number;
+  /**
+   * The difficulty level it was dealt at (15 Nov 2026, homerunRev 5): absent for Normal (the rated level and every round
+   * before levels), else "easy" | "hard" | "expert" (the difficulty framework's stored form).
+   */
+  level?: string;
 }
 
 export interface FreekickPuzzleData {
@@ -2196,10 +2201,21 @@ export interface FreekickPuzzleData {
   seed: number;
   /** Rules revision (1 = the first run, on the arcade scoring standard). */
   freekickRev?: number;
+  /**
+   * The difficulty level it was dealt at (15 Nov 2026, freekickRev 5): absent for Normal (the rated level and every round
+   * before levels), else "easy" | "hard" | "expert" (the difficulty framework's stored form).
+   */
+  level?: string;
 }
 
 export interface RacingPuzzleData {
   type: "racing";
+  /**
+   * A difficulty level's play settings (racingRev 4 at Easy, Hard or Expert; absent at Normal): the gravel's keep, the
+   * kerb and wall, tighter hairpins, the display aids and the level's par pace (src/lib/arcade/racing.ts
+   * RacingLevelSettings). The sim and the server replay read this stored copy, never the registry.
+   */
+  racingLevel?: { keep: number; road: number; kerb: number; wall: number; tight: number; aids: number; pace?: number[]; spread?: number };
   /** A proved seed (racingDealV3.server.ts; racingDealV2.server.ts on rev 2, racingDeal.server.ts on rev 1): the track, identical for everyone. */
   seed: number;
   /**
@@ -2605,6 +2621,11 @@ export interface OrbitPuzzleData {
   orbitRev?: number;
   /** Rev3 only: the proved 0..ORBIT_TOTAL planet layout, shipped so client play, reveal and grading never re-prove the course. */
   planets?: OrbitRev3CompactPlanet[];
+  /**
+   * Levels (orbitRev 16 only; stamped by the deal, never present at Normal): the level the course was dealt at, from
+   * that level's proved bank; the sim reads its rules (orbitLevelFields). Absent = Normal.
+   */
+  level?: "easy" | "hard" | "expert";
   /** Rev 4 and 5: proved black holes (rev 5 may carry none), [from, to, x, y] each (orbitHoleBank.server.ts). */
   holes?: OrbitHoleRow[];
   /** orbitRev 12, 13 and 14 (the expansion to 200): the course's proved stardust, slingshot moons and asteroid fields (orbitXpBank.server.ts; orbitRev 14: orbitFuelBank.server.ts). */
@@ -2629,6 +2650,8 @@ export interface TiltPuzzleData {
   seed: number;
   /** Rules revision (2 = bonus stars, two marbles from maze 3, rimmed cups; 3 = score bands; 4 = amber start away from its cup, stars at the holes, Tuning C); absent = original rules. */
   tiltRev?: number;
+  /** Levels (stage 3; tiltRev 12 only): the level the round was dealt at, stamped by the deal; absent = Normal. */
+  level?: "easy" | "hard" | "expert";
 }
 
 export interface HotFloorPuzzleData {
@@ -3002,6 +3025,13 @@ export interface MinigolfPuzzleData {
   golfRev?: number;
   /** Each hole's par (its best proven route + 1), stored with the round. */
   pars: number[];
+  /**
+   * golfRev 3 (the Crazy Golf overhaul, 15 Nov 2026): the five holes' catalogue ids, one per slot, drawn from the proven
+   * hole bank (minigolfHolesBank.server.ts); the seed then lays out nothing (it salts the art only).
+   */
+  holes?: number[];
+  /** golfRev 3: the level the round was dealt at (absent: Normal; the difficulty framework's stored form). */
+  level?: "easy" | "hard" | "expert";
 }
 
 export interface PoolPuzzleData {
@@ -3025,6 +3055,12 @@ export interface CurlingPuzzleData {
    * in the house score their closeness), the same parts.
    */
   curlRev?: number;
+  /**
+   * The level it was dealt at (the Sports overhaul's levels, 15 Nov 2026; stamped by the deal, only when it isn't
+   * Normal): Easy 2 reds 60–130 cm, Hard 4 reds 30–90 cm, Expert 5 reds 20–70 cm, each from its own proved bank
+   * (curlingLevelBanks.server.ts). Absent: Normal, curlRev 4's three reds exactly.
+   */
+  level?: "easy" | "hard" | "expert";
 }
 
 /* ============================ New grid puzzles (1 Nov 2026) ============================ */

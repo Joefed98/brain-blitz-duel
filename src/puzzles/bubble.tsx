@@ -1,4 +1,5 @@
 import { aimVector, directionOf, useGameKeys } from "@/lib/desktop";
+import { FrameStill } from "@/components/puzzles/FrameStill";
 import { auditEventAt } from "@/lib/arcade/auditInput";
 import { bubbleFill } from "@/lib/arcade/arenaFills.renderer";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
@@ -21,11 +22,14 @@ import {
 import {
   bubCheckpoint,
   bubbleGameFor,
+  bubColoursOf,
   bubColour,
   BUB_BG,
   BUB_CHECKPOINT_INTERVAL,
   BUB_GOLD,
   BUB_INPUT_SHOT,
+  BUB_REV_FAST,
+  bubFastLevel,
   BUB_R,
   BUB_RUN_TICKS,
   BUB_SHOOTER_X,
@@ -49,53 +53,15 @@ import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 
 /** Fixed intro still: a shot bouncing off the wall into a matching group. */
 function IntroExample() {
-  return (
-    <div className="flex w-full flex-col items-center gap-2">
-      <svg
-        viewBox="0 0 168 120"
-        width={168}
-        height={120}
-        aria-hidden="true"
-        style={{ background: BUB_BG, borderRadius: 10 }}
-      >
-        <circle cx={60} cy={26} r={10} fill={bubColour(1)} />
-        <circle cx={82} cy={26} r={10} fill={bubColour(1)} />
-        <circle cx={104} cy={26} r={10} fill={bubColour(2)} />
-        <path
-          d="M84 106 L24 62 L104 38"
-          stroke="rgba(255,255,255,0.35)"
-          strokeDasharray="4 4"
-          fill="none"
-        />
-        <circle cx={84} cy={106} r={9} fill={bubColour(1)} />
-        <g transform="translate(130 96)">
-          <circle r={9} fill="#F4F1FF" />
-          {["#FF4D4D", "#FFE600", "#3DDC84", "#4D8CFF", "#B26BFF"].map((colour, i) => (
-            <path key={colour} d={`M0 0 L${(9 * Math.cos((i * 2 * Math.PI) / 5 - Math.PI / 2)).toFixed(2)} ${(9 * Math.sin((i * 2 * Math.PI) / 5 - Math.PI / 2)).toFixed(2)} A9 9 0 0 1 ${(9 * Math.cos(((i + 1) * 2 * Math.PI) / 5 - Math.PI / 2)).toFixed(2)} ${(9 * Math.sin(((i + 1) * 2 * Math.PI) / 5 - Math.PI / 2)).toFixed(2)} Z`} fill={colour} opacity={0.75} />
-          ))}
-          <circle r={5.2} fill="#F4F1FF" />
-          <path d="M0 -4 L1 -1 L4 0 L1 1 L0 4 L-1 1 L-4 0 L-1 -1 Z" fill="#5B3FD0" />
-        </g>
-        <g transform="translate(150 70)">
-          <circle r={9} fill="#E0662A" />
-          <circle r={4.8} fill="#141519" />
-          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
-            <circle key={i} r={1.1} cx={(6.8 * Math.cos((i * Math.PI) / 4)).toFixed(2)} cy={(6.8 * Math.sin((i * Math.PI) / 4)).toFixed(2)} fill="#141519" />
-          ))}
-          <circle r={1.6} fill="#FF2E2E" />
-        </g>
-      </svg>
-      <p className="text-center text-xs text-muted-foreground">
-        Bank off the walls to reach a match. Crown Jokers match any colour; mines blast round them; torpedoes drill where aimed.
-      </p>
-    </div>
-  );
+  // The Strategy overhaul (15 Nov 2026): a real frame of today's game (scripts/shots/strategy-stills.ts).
+  return <FrameStill type="bubble" ratio={1.8714} caption="Pop threes to clear the reef; drag further for a faster shot." />;
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const data: BubblePuzzleData | null = puzzle.type === "bubble" ? puzzle : null;
   const seed = data?.seed ?? 1;
-  const bubbleGame = bubbleGameFor(data?.bubbleRev);
+  // Levels (stage 3): the stored puzzle's level picks bubbleRev 12's reef, colours and descent cadence.
+  const bubbleGame = bubbleGameFor(data?.bubbleRev, (data as { level?: unknown } | null)?.level);
   // bubbleRev 5: the deeper tank; every phone draws the stored revision's world.
   const BUB_WORLD_H = bubbleWorldHFor(data?.bubbleRev);
 
@@ -108,7 +74,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const pending = useRef<ArcadeInputEvent[]>([]);
   /** Where the finger went down; the aim is measured from there. */
   const anchor = useRef<{ x: number; y: number } | null>(null);
-  const aim = useRef<{ vx: number; vy: number } | null>(null);
+  const aim = useRef<{ vx: number; vy: number; fast?: number } | null>(null);
+  // bubbleRev 12: dragging further down the aim line shoots faster (the same path, only quicker).
+  const fastShots = data?.bubbleRev === BUB_REV_FAST;
   const submitted = useRef(false);
   const deadAt = useRef<number | null>(null);
   const [, forceRedraw] = useState(0);
@@ -326,7 +294,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
             if (!start) return;
             const point = worldPoint(event);
             const preview = dragLaunch(point.x - start.x, point.y - start.y, BUB_SPEED);
-            aim.current = preview && preview.vy < 0 ? { vx: preview.vx, vy: preview.vy } : null;
+            const fast = fastShots ? bubFastLevel(Math.hypot(point.x - start.x, point.y - start.y)) : 0;
+            aim.current = preview && preview.vy < 0 ? { vx: preview.vx, vy: preview.vy, fast } : null;
           }}
           onPointerUp={(event) => {
             const start = anchor.current;
@@ -337,7 +306,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
               event.currentTarget.releasePointerCapture(event.pointerId);
             }
             if (!start || !shot || locked || submitted.current) return;
-            pending.current.push({ t: 0, k: BUB_INPUT_SHOT, a: shot.vx, b: shot.vy, c: 0, d: 0 });
+            pending.current.push({ t: 0, k: BUB_INPUT_SHOT, a: shot.vx, b: shot.vy, c: shot.fast ?? 0, d: 0 });
           }}
           onPointerCancel={(event) => {
             anchor.current = null;
@@ -354,13 +323,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "bubble") return null;
-  const result = replayBubbleRun(puzzle.seed, myAnswer ?? "", puzzle.bubbleRev);
+  const result = replayBubbleRun(puzzle.seed, myAnswer ?? "", puzzle.bubbleRev, (puzzle as { level?: unknown }).level);
   const shots = decodeBubbleRun(myAnswer ?? "").events.length;
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="flex shrink-0 items-center gap-2">
-        {[1, 2, 3, 4, 5].map((value) => (
+        {bubColoursOf(result.state).map((value) => (
           <span
             key={value}
             className="h-4 w-4 rounded-full"

@@ -1,3 +1,208 @@
+# Moon Climb: the stage-2 look pass and ricoRev 4, the bigger ninja (15 Nov 2026)
+
+## Stage 2: effects and the reveal (display only, no stamp)
+
+Drawn by `ricochetNinja.renderer.ts` from the sim (`moonFxEvents` notices them by comparing each drawn state with the
+last one drawn on the same canvas; ages in sim ticks; every physical action within 900 ms; reduced motion and reduced
+effects get calm versions):
+
+| Effect | Sim moment | Sound slot |
+|---|---|---|
+| Dust off the wall or ledge pushed off (slate grit, moss or ice flecks and a soft puff, 30 ticks) | a leap from a cling (`leaps` up) | `ricochet.leap` |
+| A ring of air under the feet (24 ticks) | a double jump (`djs` up) | `ricochet.doubleJump` |
+| Scuff gouges down moss or ice beside the face (hands' and feet's tracks), red from where the slide passes `MOON_FLOW_SLIDE` with a streak running; a left trail fades over 30 ticks, all red if the streak broke | clinging and sliding on moss or ice (`moonScuff`) | `ricochet.scuff` (loop), `ricochet.flowBreak` |
+| The grabbed lantern flares and sways about the hands, settling over the ride (`moonLanternSway`) | a ride starts | `ricochet.lanternSway` |
+| The scroll flies into the HUD's SCROLLS chip (24 ticks), the chip flashing as it lands | a scroll taken | `ricochet.scrollTally` (on the landing) |
+| The ninja tumbles one turn through the knock-down's fall (20 ticks), a red "−3 m" beside HEIGHT for a second | a hit | `ricochet.fallWhistle` |
+
+No edge glow (Moon Climb is one of `ACTION_EDGELESS_GAMES`); the red miss pulse stays.
+
+**The reveal** (`RunPicture` on the puzzle definition, drawn by the shared arcade reveal in place of the stat tiles):
+`moonRunSummary` (`src/lib/duel/moonSummary.ts`) replays the stored log through the real sim exactly as
+`replayMoonRun` does and `drawMoonRunPicture` draws the shaft: the climb as a column to the height reached (labelled),
+the longest Flow streak's stretch in gold, each hit a red mark with its drop and metres lost, lanterns ridden and scrolls
+taken beside it at their heights, the core's full height dashed and a ruler every 50 m; above it Height, Best flow,
+Rides n/6 and Scrolls n/3 in big type; a legend under it. ricoRev 2 rounds show their four numbers; the stage-1 hits line
+stays in the breakdown. No score or grade change.
+
+Joe's ask (the Action overhaul's stage 2; concept ricochet-A: carved slate with moss, steel katanas with gold guards
+and wrapped hilts, a cratered warm moon, a paper lantern rising across it, the pagoda in mist), and a visible step up
+from stage 1. Gallery: `docs/design/pages-review/action/GALLERY.md` "Moon Climb", "Stage 2 look pass".
+
+## The look (display only, every Moon Climb revision; `ricochetNinja.renderer.ts`)
+
+- **Sky** (`paintMoonSky`, cached per size): a deeper night in five stops (near-black indigo at the top to moonlit blue
+  at the horizon), a faint slanting band of star dust, 170 stars of every kind (dim pinpoints, small cool and warm ones,
+  a few bright with a soft core and a thin four-point glint). Each frame (`drawMoonNight`): the night's deepening and
+  the stars that come out with it (bright ones glint), a wide faint lift of the sky round the moon (no ring), the moon,
+  seven cloud wisps drifting across (their lobes lit where they pass the moon), a moonlit mist band at the moon's
+  height, and six **far paper lanterns** rising slowly up the sky behind the walls (`farLanternAt`: placed by the tick
+  alone, never touched, never taller than half a sky lantern), one at a time crossing the moon.
+- **Moon** (`paintMoonDisc`, cached per radius, warmth step and device scale): larger (84 px low down, 66 px at the top,
+  was 66 → 50), a sphere lit from the upper left darkening to its limb, broad soft maria, 28 craters (a few large with a
+  central peak, many small; each floor shadowed towards the light, its far rim lit), fine grain; amber low down, warm
+  cream high up (`warm = 1 − 0.75 p`). It still rises with the climb (`moonNight`, `moonPlace`).
+- **Ridges and pagoda** (`paintMoonRidge`): three ranges with a thin moonlit line along each crest, a small far pagoda,
+  a second pagoda on the middle range, the temple's pagoda with lit paper windows (two panes low down), layered mist.
+- **Walls** (`paintSlate`): each block stands proud of a lighter mortar bed and casts a short shadow on it, down and away
+  from the gap; its face rounded by light falling across it towards the gap; a brighter lit top and gap-side edge. Each
+  frame the moon **rakes** across the stone (`wallRake`): strongest on the face towards the gap at the moon's height,
+  falling off along the wall, warmer while the moon is low, none in the world's bottom 40 px (so the play screen's fill
+  below meets it with no seam). **Moss and ice catch the moon** (`moonCatch`): a wet or glassy line along the lip,
+  brightest level with the moon.
+- **Mid-ledges** (`drawLedge`): the walls' own carved slate in short blocks (lit top and left, shaded underneath and
+  right), iron bands with a bright edge at each end, a twisted rope.
+- **Sky lanterns** (`drawSkyLantern`): a real sky lantern's shape (wider at the shoulder, the flame low in the open
+  base), translucent paper glowing brightest round the flame and deepening to orange-red at its curve, four bamboo ribs
+  dark against the light with the paper beside each a touch brighter, two cross ribs, a crisp sheen down the curve, a
+  lacquered top rim and the flame seen through the base ring; nothing past its touch radius. Its **light falls on the
+  walls and ledges near it** (`drawLanternLight`: a warm pool added to the stone only, `LANTERN_LIGHT_R` 210 px), so a
+  lantern lights what is near it and is never ringed by a glow (ricochet-overhaul-check 10a: a frame with the lantern
+  differs from one without it only inside its radius + 2 px or on the stone).
+- **The ninja**: no gold rim round it any more (Joe: no glowing edges); the moonlit backing behind it fades out to its
+  edge. Drawn at `ninjaArtScale(rev)`: 1 up to ricoRev 3, 17 / 13 on ricoRev 4.
+
+## ricoRev 4: the bigger ninja (`MOON_BIG_REV`)
+
+Rev 3's game with the ninja's body box `MOON_BIG_HW` × `MOON_BIG_HH` either side of its centre: **34 × 68 px** (was
+26 × 52, ×1.31, as Grappler's figure was grown). Everything that reads the body follows it (`NinjaBody`,
+`ninjaBodyFor(rev)`): the cling x on each wall (87 and 303), the floor's standing height (`start`, so metres are
+measured from it and mean the same), a leap's sideways ticks (a wall-to-wall leap still `NINJA_LEAP_TICKS`, the gap
+the bigger body's), the mid-ledges' faces, and the katana, shuriken, scroll and lantern touches. The figure is drawn at
+17 / 13 and fills the box within the old figure's own allowance grown by the same scale (art-check 4a, Joe's explicit
+approval of 15 Nov 2026; the old stamps' figure stays pinned to main's exactly).
+
+- **The deal**: `moonBuildDeal(seed, 4)` draws its attempts from rev 3's seeded stream and plans, places and proves every
+  tower with the bigger body (the witness through the real rev-4 step takes every part in full, no hit, 245 m or more).
+  Every rev-4 tower is its own; a perfect run is 200 on every tower (ricochet-overhaul-check 9d through the server's
+  replay, 24 seeds; `CHECKS_FULL=1` 120; 400 seeds checked while building it, the lowest witness 290 m).
+- **Parts**: rev 3's exactly (`MOON_BIG_STD_SPEC` = `MOON_STD_SPEC` under the new stamp): height 125 (full at 245 m),
+  flow 30, lantern rides 30, scrolls 15. Hit scoring unchanged (a hit costs the 3 m knock-down and the stun). "Moonwalker"
+  (245 m on Hard) stays possible on every tower.
+- **The 120 s rule and grace**: the run is still 60 s and no hit ends it.
+- **Older rounds**: ricoRev 3 and 2 states keep `NINJA_BODY` and play, deal and score as before (ricochet-overhaul-check
+  9a: 60 towers and 40 runs at every skill level recorded on 14ce058d before the change,
+  `scripts/fixtures/ricochet-big-legacy.json`, `scripts/ricochet-big-legacy-record.ts`). Rooms deal ricoRev 4
+  (`generateRicochet`); the deal pin `ricoPreBig` (`pinRicoPreBig`) deals ricoRev 3 for the checks written for it.
+  `replayMoonRun(seed, raw, rev)` replays a stored round on its own stamp (3 when absent).
+
+### Medians, weak → flawless, ricoRev 3 → ricoRev 4
+
+Fresh seeds 10000–10039 through the server replay (`bun scripts/ninja-bands.ts --rev=3|4 --from=10000 --seeds=40`):
+
+| Level | ricoRev 3 | ricoRev 4 | Metres 3 → 4 | Hits 3 → 4 |
+|---|---|---|---|---|
+| Random | 34 | 29 | 60 → 54 | 21 → 22 |
+| Weak | 55 | 49 | 96 → 85 | 21 → 21 |
+| Average | 88 | 84 | 148 → 138 | 18 → 18 |
+| Good | 126 | 128 | 204 → 201 | 15 → 15 |
+| Great | 165 | 153 | 239 → 227 | 13 → 14 |
+| Near-perfect | 178 | 172 | 259 → 247 | 12 → 12 |
+| Elite | 189 | 186 | 272 → 262 | 11 → 11 |
+| Flawless | 200 | 200 | 316 → 319 | 0 → 0 |
+
+The bigger box is clipped a little more often by the hazards a player doesn't plan round: the medians fall 3–12 points
+(Good is level), still rising weak → flawless, the flawless witness 200 on every tower. A decision for Joe: keep the
+parts as they are (Joe's ask: hit scoring unchanged), or re-fit the core's 245 m to the new near-perfect median (247 m,
+so practically unchanged) in his scoring review.
+
+
+# Moon Climb: the Action overhaul (15 Nov 2026)
+
+Phase 2, step 4 (`docs/design/game-reviews/action.md`, gallery `docs/design/pages-review/action/GALLERY.md`). Stage 1
+is display only: no stamp, the sim, deal and scoring untouched (ricochet-overhaul-check replays 24 ricoRev 3 runs
+recorded before it and the 12 ricoRev 2 runs recorded on main to the same scores and states).
+
+- **The night** (`ricochetNinja.renderer.ts`): a deep blue moonlit sky that changes as the climb goes on. The moon rises
+  from just over the far ridge (large, warm, behind the pagoda) to high above the shaft (smaller, pale) and the sky
+  deepens with more stars, both from the run's best height (`moonNight`: 0 at the foot, 1 at the core's full 245 m,
+  smoothstepped, never going back), so every player at the same height sees the same sky. Three layers: the sky
+  (painted once per size), the deepening, extra stars and moon (a few fills each frame), the ridges, pagoda and mist
+  (painted once per size, over the moon).
+- **Crisper walls**: moonlit slate, every block bevelled (a lit top edge, a shadowed bottom, now and then a crack), a
+  moonlit rim on the inner face; moss has dark damp clumps (never read as ice); katanas a dark outline, a white cutting
+  edge and a long sharp tip; shurikens sharper points and a faint red ring at their touch radius. All inside their sim
+  boxes (+2 px).
+- **The ninja**: bolder (limbs 5.2 px, was 4.6) with a brighter moonlit glow and gold rim. The figure already fills its
+  26 × 52 body box, so it is drawn heavier, not larger (art-check holds every pose to main's extent + 0.5 px).
+- **HUD**: a second row of the Action HUD: lantern RIDES n/6 and SCROLLS n/3 (with small icons, gold once complete,
+  flashing as one is taken), under HEIGHT and FLOW (`moonHudRows`).
+- **Hits on the reveal**: one plain line in the breakdown, "Hits: 11 · knocked down 3 m each" (or "Hits: none"),
+  read from the stored Hits stat (`src/lib/duel/moonRevealHits.ts`), so older rounds show it too; the score unchanged.
+- **Edge to edge**: the world's floor is the temple's slate (`MOON_FLOOR`) and the play screen's fill below carries it
+  on to the screen's bottom; beside the world (wide screens) the slate wall continues, shaded as the world's walls are
+  at their outer edge (`ricochetNinjaScene.renderer.ts`).
+- **Materials pass** (15 Nov 2026, concept A as the bar): the walls are carved moonlit slate painted once per wall and
+  device scale into a 32-course strip (`paintSlate`, `slateStrip`; lit bevels, grain, strata, chipped corners, cracks),
+  wet moss with crisp highlights, glassy ice, polished steel katanas (temper line, specular edge, gold guards, a wrapped
+  hilt stub in the stone), blued-steel shurikens with a sheen, paper sky lanterns lit from within (no glow round them),
+  a cratered moon and the pagoda in layered mist with a far pagoda. The floor runs between the walls only, and the
+  play screen's fill continues the walls' slate under them (`paintSlate` again). No images shipped (all painted in code).
+- **Sounds**: new silent-until-recorded slots `ricochet.fallWhistle` (a hit), `ricochet.flowBreak` (a streak of 3+
+  broken by a slide) and the loop `ricochet.scuff` (sliding on moss or ice); briefs in
+  `docs/sound-cues/action-elevenlabs.md`. Every earlier slot keeps Joe's recording.
+
+## Levels (ricoRev 4, 15 Nov 2026; Normal is today's game)
+
+Joe's levels: "Easy about half the blades, less moss and ice, 6 slower lanterns, 2 m knock-down, full at 200 m; Normal
+today; Hard about 1.3× blades, more ice, 3 m, 245 m; Expert 1.6× with faster shurikens, mostly ice, 4 faster lanterns,
+4 m, 260 m." The deal stamps the puzzle's `level` (ricoRev 4 only; the generator is unchanged, so a level's puzzle is
+Normal's plus `level`); the sim reads it into the state's `lvl` (absent at Normal, so a Normal state, tower and score are
+exactly today's: ricochet-levels-check 1 against 24 towers and 24 runs recorded on de3bec96,
+`scripts/fixtures/action-levels-legacy.json.gz`). Settings: `MOON_LEVELS` in `ricochetNinja.ts` (the registry's
+`GAME_LEVELS.ricochet` repeats them for display); a change to one needs a new stamp.
+
+| Lever (`MOON_LEVELS`) | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Katanas and shurikens (`blades`, density) | ×0.5 (and half the placed-on-purpose ones) | today | ×1.3 | ×1.6 |
+| Shuriken crossing (`pace`) | today | today | today | ×0.75 the time (faster) |
+| Moss / ice patches (`patchGap`, `ice`) | gaps ×1.8, 30 % ice | 40 % ice | 65 % ice | gaps ×0.8, 88 % ice |
+| Sky lanterns (`sky`, `skyVy`) | 6, 144/256 px a tick | 6, 192 | 6, 192 | 4, 256 |
+| Knock-down on a hit (`knock`) | 2 m | 3 m | 3 m | 4 m |
+| Height part: max, full at | 125, 200 m | 125, 245 m | 125, 245 m | 135, 260 m |
+| Lantern rides | 6 × 5 | 6 × 5 | 6 × 5 | 4 × 5 |
+
+Parts sum to 200 at every level (Expert's 10 points from its two missing lanterns go to the height part); flow 30 and
+scrolls 15 unchanged; hit scoring unchanged (Joe). Measured over 12 sampled towers (ricochet-levels-check 2h–2j):
+blades 81 / 160 / 208 / 247 a tower, patches 24 / 40 / 40 / 48, ice 38 → 68 → 84 %, Expert's shurikens 80 ticks a
+crossing against 105.
+
+- **The proof.** Each level's tower is built from the seed with its own settings on its own attempt stream
+  (`moonBuildDeal(seed, 4, level)`, salt `MOON_LEVELS[level].salt`) and kept only when its witness, played through the
+  real step at that level, takes every part in full with no hit and reaches the level's full height; so 200 is reachable
+  on every tower at every level (ricochet-levels-check 5: every sampled witness exactly 200 through `gradeAnswer`). The
+  same seed and level always build the same tower (6). Builds ~20 / 27 / 136 / 27 ms (Easy / Normal / Hard / Expert, a
+  desktop core); a level's tower is built while the round's intro is up (`RoundIntro`, `prepareMoonTower`).
+- **120 s and grace.** The run is 60 s at every level; no hit ends it (3, 4).
+- **"Moonwalker"** ("Climb 245 m on Hard") is met by every sampled Hard tower's witness (7b); Hard's height part is
+  Normal's (125, full at 245 m), so its goal reads as before. Challenges complete only on Normal until Hard is live.
+- **Plumbing.** `replayMoonRun(seed, raw, rev, level)`, `moonGameFor(rev, level)`, `moonArtGameFor(rev, level)`,
+  `moonRunSummary(…, level)`, the steppers and playback renderer read the puzzle's `level`; the graded extra adds
+  `rideTotal` and `fullM` at a level only (display; the reveal's rides tile and full-height line read them).
+
+### Measured (15 Nov 2026)
+
+`bun scripts/action-levels-bands.ts ricochet --seeds=12 --each`: real deals, graded by the server, the skill-band bots
+under human limits (a double jump no sooner than 0.15 s into its leap; the leap as the ninja lands is a timed moment,
+not a reaction, and keeps the level's own timing error; Flawless plays the witness). Averages:
+
+| Bot | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Weak | 122.7 | 54.7 | 46.8 | 21.9 |
+| Average | 161.7 (3 of 12 at 175+) | 85.8 | 74.8 | 41.3 |
+| Good | 178.8 | 129.5 | 115.8 | 82.3 |
+| Great | 190.8 | 164.8 | 142.2 | 105.9 |
+| Near-perfect | 190.5 | 173.6 | 157.6 | 124.9 |
+| Elite | 190.2 | 172.8 | 158.6 | 134.8 |
+| Flawless | 200 | 200 | 200 | 200 |
+
+Without the limits the elite bot averages 190 on Normal; the shared tool (`bun scripts/level-tune.ts ricochet
+--level=all --seeds=12`, no limits) gives near-perfect / elite 190.3 / 194.3 Easy, 178.8 / 188.9 Normal, 157.8 / 161.9
+Hard, 120.3 / 127.3 Expert. Every level steps down from the one before at every bot
+level. **Expert played well**: the elite bot scores 113–161 (average 135, every run past 110) on the 12 Expert towers;
+the best boards to try (dealt seeds, elite score): 1636024891 (161), 1579423756 (153), 1650178925 (150), 623742088
+(145), 355978649 (143).
+
 # Moon Climb: ricoRev 3 (3 Nov 2026)
 
 Ricochet is shown as **Moon Climb** since 3 Nov 2026 (`gameNames.ts`; the id stays `ricochet`). Rooms and practice deal

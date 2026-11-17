@@ -22,7 +22,8 @@ import { buildFlipDeal, flipDealSource, FLIP_DEAL_FILE } from "./flip-deal";
 import { encodeFlipLog, FLIP_WITNESS_FIXTURE, type FlipWitness } from "./flip-x200-record";
 import { flipTap } from "./flip-x200-plan";
 import { playRevOf } from "./scoring-targets-revs";
-import { flipCheckpoint, flipGameFor, flipWorldHFor, FLIP_REV_DEAL, FLIP_REV_FLOW, FLIP_V11_BAND_CURVE, type FlipState } from "../src/lib/arcade/flip";
+import { flipCheckpoint, flipGameFor, flipWorldHFor, FLIP_REV_DEAL, FLIP_REV_FLOW, FLIP_REV_GRACE, FLIP_V13_BAND_CURVE, type FlipState } from "../src/lib/arcade/flip";
+import { pinFlipPreGrace } from "../src/lib/duel/arcade.server";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { replayFlipRun } from "../src/lib/duel/flip";
 import { FLIP_DEAL, flipDealSeed } from "../src/lib/duel/flipDeal.server";
@@ -38,16 +39,22 @@ const section = (name: string) => console.log(`— ${name}`);
 
 section("1. wiring");
 {
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal flipRev 13 (grace,
+  // flip-overhaul-check), so flipRev 12's deal is read with its pin; LIVE_BANDS and the standard entry follow flipRev 13
+  // (after 12); the demo rule also accepts flipRev 13.
+  const was = pinFlipPreGrace(true);
   for (let k = 0; k < 30; k++) {
     const p = generatePuzzle("flip" as any) as any;
     ok(p.flipRev === FLIP_REV_DEAL && FLIP_DEAL.includes(p.seed), `deal ${k}: flipRev 12 on a proved course (${p.flipRev}, ${p.seed})`);
   }
+  pinFlipPreGrace(was);
   ok(new Set(Array.from({ length: 4000 }, (_, n) => flipDealSeed(n * 7919 + 3))).size === FLIP_DEAL.length, "room seeds reach every course in the deal");
-  ok(LIVE_BANDS.flip.rev === FLIP_REV_DEAL && LIVE_BANDS.flip.curve === FLIP_V11_BAND_CURVE, "LIVE_BANDS reads flipRev 12 on flipRev 11's core line");
-  ok(entry.rev === FLIP_REV_DEAL && entry.before === FLIP_REV_FLOW, "the arcade-standard entry is flipRev 12, after 11");
+  ok(LIVE_BANDS.flip.rev === FLIP_REV_GRACE && LIVE_BANDS.flip.curve === FLIP_V13_BAND_CURVE, "LIVE_BANDS reads flipRev 13 on its core line (flipRev 12 on flipRev 11's until 15 Nov 2026)");
+  ok(entry.rev === FLIP_REV_GRACE && entry.before === FLIP_REV_DEAL, "the arcade-standard entry is flipRev 13, after 12");
   ok(playRevOf("flip", FLIP_REV_DEAL) === playRevOf("flip", FLIP_REV_FLOW) && playRevOf("flip", FLIP_REV_DEAL) === 8, "playRevOf maps flipRev 12 to flipRev 11's play (flipRev 8's)");
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/demo\.puzzle\.flipRev !== FLIP_REV_FLOW && demo\.puzzle\.flipRev !== FLIP_REV_DEAL\) return null/.test(demo), "the intro demo plays one recorded on flipRev 11 or 12");
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the intro demo is recorded on the live stamp (scripts/action-demos-check.ts).
+  ok(/demo\?\.puzzle\.type === "flip" && demo\.puzzle\.flipRev !== FLIP_REV_GRACE\) return null/.test(demo), "the intro demo plays one recorded on flipRev 13 (the stamp rooms deal)");
 }
 
 section("2. the same game as flipRev 11");

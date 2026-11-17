@@ -13,11 +13,12 @@
  * generated from those constants). A retune that moves a number fails here.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { MAHJONG_LEVEL_RULES } from "../src/lib/arcade/mahjong";
 import { readFileSync } from "node:fs";
 
 import { ARCADE_STANDARD } from "../src/lib/arcade/standard";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
-import { FLIP_V11 } from "../src/lib/arcade/flip";
+import { FLIP_V13 } from "../src/lib/arcade/flip";
 import { BT_STD } from "../src/lib/arcade/ballTrack";
 import { ORBIT_STD } from "../src/lib/arcade/orbitRev3";
 import { inkStdSpecFor } from "../src/lib/arcade/inkBridge";
@@ -29,7 +30,7 @@ import { CLAY_CONFIG, CLAY_QUICK_FULL_TICKS, CLAY_STREAK_POINTS, CLAY_WIDE_FULL_
 import { WHACK_COMBO_FULL_PCT, WHACK_COMBO_POINTS, WHACK_QUICK_FULL_TICKS, whackComboMaxPips, whackComboMultiplier, whackGame } from "../src/lib/arcade/whack";
 import { SKYLINE_V9_FULL_AT } from "../src/lib/arcade/skyline";
 import { SLICE_V12_COMBO_FULL } from "../src/lib/arcade/slice";
-import { SNAKE_STD_CORE_MAX, SNAKE_STD_GOLDS, SNAKE_V12_CORE_STARS, SNAKE_V12_GOLD_CORE } from "../src/lib/arcade/snake";
+import { SNAKE_STD_CORE_MAX, SNAKE_STD_GOLDS, SNAKE_V12_CORE_STARS, SNAKE_V12_GOLD_CORE, SNAKE_V13_CORE_STARS } from "../src/lib/arcade/snake";
 import { WAV_LIVES, WAV_X_SAUCERS } from "../src/lib/arcade/wavefront";
 import { CROSS_V11_CLOSE_MAX, CROSS_V11_FLOW_EACH, CROSS_V11_FLOW_MAX } from "../src/lib/arcade/cross";
 import { BURST_V10_GOLDENS, BURST_V10_WAVES } from "../src/lib/arcade/burst";
@@ -47,6 +48,7 @@ const BULLSEYE_DEAD_DOC = /whose centre ring is the 10/.test(readSrc("src/lib/ar
 import { PAR_MOVES_STD } from "../src/lib/duel/parMoves";
 import { PATTERN_STD } from "../src/lib/duel/standard/patternRules";
 import { LOGIC_STANDARD } from "../src/lib/duel/standard/logicRules";
+import { PIN_V7_JOULZ_EACH } from "../src/lib/arcade/pinball4";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { PRACTICE_CHALLENGES, type ChallengeCond, type PracticeChallenge } from "../src/lib/duel/practiceChallenges";
 
@@ -83,7 +85,8 @@ function helpCount(type: string, noun: string): number {
 /** A live arcade spec's part (ARCADE_STANDARD, LIVE_BANDS std, or the reveal's own specs). */
 function specPart(type: string, label: string): { max: number; of?: number; how?: string } | null {
   const specs: any[] = [ARCADE_STANDARD[type]?.spec, (LIVE_BANDS as any)[type]?.std];
-  if (type === "flip") specs.push(FLIP_V11);
+  // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the live spec is flipRev 13's.
+  if (type === "flip") specs.push(FLIP_V13);
   if (type === "balltrack") specs.push(BT_STD);
   if (type === "orbit") specs.push(ORBIT_STD);
   if (type === "inkbridge") specs.push(inkStdSpecFor(14));
@@ -202,6 +205,8 @@ function expectations(): Record<string, Expect> {
     "bastion.weak-at-the-knees": { say: [[30, of("bastion", "Weak spots")]] },
     "flip.double-or-nothing": { say: [[8, of("flip", "Double flips")]] },
     "flip.flow-rider": { say: [[50, of("flip", "Flow streak")]] },
+    // The Action overhaul (15 Nov 2026): flipRev 13's perfect landings are full at five of the eight sweet spots.
+    "flip.sweet-spot": { say: [[5, of("flip", "Perfect landings")]] },
     "swing.vine-time": { say: [[10, 20 / SWING_V17_STREAK_EACH], [8, SWING_V17_STREAK_BLOCK]], th: [[20, 10 * SWING_V17_STREAK_EACH]] },
     "swing.king-of-the-swingers": { say: [[70, SWING_V17_FULL / 10]] },
     "ricochet.scroll-keeper": { say: [[3, of("ricochet", "Scrolls")]] },
@@ -225,12 +230,16 @@ function expectations(): Record<string, Expect> {
     "hover.tight-squeeze": { say: [[5, helpCount("hover", "tight gates") || 5]] },
     "hover.chain-gang": { say: [[5, 5]], th: [[30, HOVER_STD_CHAINS]] },
     "hover.all-the-way": { th: [[1, 1]] },
-    "pinball.joulz": { say: [[2, maxOf("pinball", "J-O-U-L-Z") / 10]] },
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): pinRev 7 pays the whole
+    // J-O-U-L-Z part for one set (pinRev 6: 10 a set, two sets), so the goal reads "in one game" against the live spec.
+    "pinball.joulz": { say: [[1, maxOf("pinball", "J-O-U-L-Z") / PIN_V7_JOULZ_EACH]] },
     "pinball.jackpot": { say: [[3, maxOf("pinball", "Jackpots") / 5]] },
     "rally.pink-pong": { say: [[5, 15 / 3]], th: [[15, 5 * Number(/(\d+) each time/.exec(specPart("rally", "Pink pads")?.how ?? "")?.[1])]] },
     "rally.target-practice": { say: [[6, Number(/of the (\d+) gold targets/.exec(specPart("rally", "Gold targets")?.how ?? "")?.[1])]] },
     "rally.rally-king": { say: [[23, Number(/for (\d+) hits/.exec(specPart("rally", "Gold-ball hits")?.how ?? "")?.[1])]] },
-    "snake.star-eater": { say: [[28, SNAKE_V12_CORE_STARS], [2, SNAKE_V12_GOLD_CORE]], th: [[120, SNAKE_STD_CORE_MAX]] },
+    // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): snakeRev 13's core is full at
+    // 36 core stars (snakeRev 12: 28), so the goal's text says 36.
+    "snake.star-eater": { say: [[36, SNAKE_V13_CORE_STARS], [2, SNAKE_V12_GOLD_CORE]], th: [[120, SNAKE_STD_CORE_MAX]] },
     "snake.golden-comet": { say: [[7, SNAKE_STD_GOLDS]], th: [[7, SNAKE_STD_GOLDS]] },
     "wavefront.boss-fight": { th: [[1, 1]] },
     "wavefront.saucer-spotter": { say: [[5, WAV_X_SAUCERS]] },
@@ -253,19 +262,24 @@ function expectations(): Record<string, Expect> {
     "wordhunt.long-haul": { say: [[6, Number(/extra for (\d)-letter words/.exec(help("wordhunt"))?.[1])]] },
     "pool.clean-break": { th: [[0, 0]] },
     "curling.red-ring-circus": { say: [[8, of("curling", "Red ring")]] },
-    "homerun.sign-here": { say: [[5, 10 / Number(/(\d+) each time/.exec(specPart("homerun", "Bonus signs")?.how ?? "")?.[1])]], th: [[10, 10]] },
+    // Since 15 Nov 2026 (homerunRev 5, routine consequence of the Home Run and Top Bins overhaul): Good eye's five balls
+    // are the part's own count; Top Bins' Skill shooter's five are 15 points at the part's own each.
+    "homerun.good-eye": { say: [[5, of("homerun", "Good eye")]] },
     "homerun.homers": { say: [[10, of("homerun", "Home runs")]] },
     "homerun.streak": { say: [[10, of("homerun", "Perfect streak")]] },
     "freekick.five-alive": { say: [[5, 5]] },
-    "freekick.bend-it": { say: [[5, 10 / Number(/(\d+) for each goal from a well-bent/.exec(specPart("freekick", "Curl bonus")?.how ?? "")?.[1])]], th: [[10, 10]] },
+    "freekick.skill-shooter": { say: [[5, 15 / Number(/(\d+) for each goal under/.exec(specPart("freekick", "Skill shots")?.how ?? "")?.[1])]], th: [[15, 15]] },
     "freekick.top-bins": { say: [[4, of("freekick", "Targets")]] },
     "racing.clean-half": { say: [[4, 20 / 5]], th: [[20, 4 * (maxOf("racing", "Clean sectors") / of("racing", "Clean sectors"))]] },
-    "racing.two-hundred-club": { say: [[200, 200]], th: [[110, Math.floor((160 * (2000 - 1520)) / 695)]] },
+    // racingRev 4 reads pace10 (tenths of a km/h) itself: 2000 is 200 km/h; older stamps' Pace line as before.
+    "racing.two-hundred-club": { say: [[200, 200]], th: [[110, Math.floor((160 * (2000 - 1520)) / 695)], [2000, 200 * 10]] },
     "racing.grand-slam": { say: [[8, of("racing", "Clean sectors")]] },
     "fivehands.pick-of-the-bunch": { th: [[0, 0]] },
     "freecell.all-home": { say: [[40, Number(/all (\d+) home/.exec(specPart("freecell", "Cards")?.how ?? "")?.[1])]] },
     "freecell.card-sharp": { say: [[32, withinS("freecell", "Speed")]] },
-    "mahjong.tile-rush": { say: [[65, withinS("mahjong", "Speed")]] },
+    // Changed with Joe's approval, 16 Nov 2026 (level challenge thresholds): Tile rush is a Hard goal, so its number is
+    // Hard's own speed rule (full by 25 s, MAHJONG_LEVEL_RULES.hard), not Normal's 65 s.
+    "mahjong.tile-rush": { say: [[25, MAHJONG_LEVEL_RULES.hard.speedFullS]] },
     // Changed with Joe's approval, 13 Nov 2026: Minefield's minesRev 2 is full by 37 s (the near-perfect median clear on 20 mines).
     // Changed with Joe's approval, 13 Nov 2026: Minefield's minesRev 2 is full by 37 s (the near-perfect median clear on 20 mines).
     // Joe, 16 Nov 2026: Normal (minesRev 3) keeps 37 s too, so the number is unchanged.
@@ -300,7 +314,9 @@ function thresholds(c: PracticeChallenge): { v: number; proved: boolean; what: s
   if (g.kind === "speed") return [{ v: g.max, proved: true, what: "speed max" }, { v: g.withinS, proved: true, what: "full by" }];
   if (g.kind === "score") return [{ v: g.score, proved: false, what: "score" }];
   const out: { v: number; proved: boolean; what: string }[] = [];
-  for (const cond of g.all as readonly ChallengeCond[]) {
+  // A `since` condition reads its two rules (the stamp it switches on is not a goal number).
+  const flat = (g.all as readonly ChallengeCond[]).flatMap((cond) => (cond.c === "since" ? [cond.then, cond.before] : [cond]));
+  for (const cond of flat) {
     if (cond.c === "full") out.push({ v: cond.max, proved: true, what: `full ${cond.label}` });
     else if ("v" in cond && typeof cond.v === "number") out.push({ v: cond.v, proved: false, what: `${cond.c} ${"path" in cond ? cond.path : "label" in cond ? cond.label : ""}` });
   }

@@ -4,7 +4,10 @@
  * elite targets (about 198 on Normal, 160 on Hard, 140 on Expert, mostly finishing). Not a check: no pass/fail, not run
  * by run-checks or CI.
  *
- *   bun scripts/level-tune.ts <game> [--level=normal|easy|hard|expert|all] [--seeds=20] [--from=0]
+ *   bun scripts/level-tune.ts <game> [--level=normal|easy|hard|expert|all] [--seeds=20] [--from=0] [--human-limits]
+ *
+ * --human-limits plays the arcade bots under human limits (about 0.25 s to react, 0.15 s to move; human.ts
+ * HUMAN_LIMITS), the measure Joe tunes levels by (16 Nov 2026).
  *
  * Each sample is a real deal: `generatePuzzle(game, { bankSeed, level })` under a seeded Math.random (the room path, so
  * a level the game doesn't offer is dealt as Normal and said so). Only the server's own grade counts: puzzles grade the
@@ -32,7 +35,7 @@ import { LEVELS, isLevel, puzzleLevel, type Level } from "../src/lib/levels/leve
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { appendClientCounters, arcadeCounters } from "../src/lib/arcade/diagnostics";
 import { GAME_BY_TYPE, roomSeed, type GameSpec } from "./arcade-skill-bands/games";
-import { Human, type SkillLevel } from "./arcade-skill-bands/human";
+import { Human, HUMAN_LIMITS, type HumanLimits, type SkillLevel } from "./arcade-skill-bands/human";
 import type { SkillBot } from "./arcade-skill-bands/bot";
 import { UNITS } from "./arcade-skill-bands/units";
 import { KITS } from "./puzzle-fairness/kits";
@@ -110,7 +113,7 @@ function gameOf(spec: GameSpec, puzzle: PuzzleData, rev: number | null, seed: nu
 }
 
 /** Arcade: the skill-band bot at Near-perfect and Elite, graded by the server on the dealt puzzle. */
-async function tuneArcade(type: PuzzleType, level: Level, ns: readonly number[]): Promise<TuneRow[]> {
+async function tuneArcade(type: PuzzleType, level: Level, ns: readonly number[], limits: HumanLimits | null = null): Promise<TuneRow[]> {
   const spec = GAME_BY_TYPE.get(type);
   if (!spec) throw new Error(`${type}: no skill-band spec (scripts/arcade-skill-bands/games.ts)`);
   const bot = await loadBot(type);
@@ -126,7 +129,7 @@ async function tuneArcade(type: PuzzleType, level: Level, ns: readonly number[])
     const rev = field && typeof loose[field] === "number" ? (loose[field] as number) : null;
     for (const lv of levels) {
       const game = gameOf(spec, puzzle, rev, seed);
-      const out = bot({ game, seed, rev, human: new Human(type, seed, lv), fixes: true });
+      const out = bot({ game, seed, rev, human: new Human(type, seed, lv, limits), fixes: true });
       let state = game.init(seed);
       const events = out.events ?? [];
       const taps = out.taps ?? [];
@@ -136,7 +139,10 @@ async function tuneArcade(type: PuzzleType, level: Level, ns: readonly number[])
       while (!game.isOver(state) && state.tick < game.runTicks) {
         const t = state.tick + 1;
         state = game.step(state, spec.taps ? tapSet.has(t) : (byTick.get(t) ?? null));
-        if (state.tick % 300 === 0) checkpoints.push(spec.checkpoint(state));
+        // At the game's own checkpoint interval (the spec's checkpointEvery: Home Run and Top Bins every 60 ticks, Apex
+        // 120, the rest 300), as the phone records them: a longer spacing made those replays log a desync on every run,
+        // hiding a real one, and a shorter one overruns the games whose run format caps its checkpoints.
+        if (state.tick % (spec.checkpointEvery ?? 300) === 0) checkpoints.push(spec.checkpoint(state));
       }
       const claimed = game.score(state);
       const body = { seed, claimedScore: claimed, events, inputs: taps, taps: [], endTick: state.tick, checkpoints };
@@ -146,19 +152,20 @@ async function tuneArcade(type: PuzzleType, level: Level, ns: readonly number[])
       runs[lv]!.push({ score: graded.score, finished });
     }
   }
-  return levels.map((lv) => row(type, level, dealt, lv === "near" ? "near-perfect" : lv, runs[lv]!));
+  const tag = limits ? "+limits" : "";
+  return levels.map((lv) => row(type, level, dealt, (lv === "near" ? "near-perfect" : lv) + tag, runs[lv]!));
 }
 
 /** Plays one game at one level on `seeds` samples from `from`. */
-export async function tune(type: PuzzleType, level: Level, seeds = 20, from = 0): Promise<TuneRow[]> {
+export async function tune(type: PuzzleType, level: Level, seeds = 20, from = 0, limits: HumanLimits | null = null): Promise<TuneRow[]> {
   const ns = Array.from({ length: seeds }, (_, i) => from + i);
   // An arcade-engine game in a puzzle category (Minefield, Logic) plays its skill-band bot, like the arcade games.
-  return usesArcadeClock(type) ? tuneArcade(type, level, ns) : tunePuzzle(type, level, ns);
+  return usesArcadeClock(type) ? tuneArcade(type, level, ns, limits) : tunePuzzle(type, level, ns);
 }
 
 export function tuneLine(r: TuneRow): string {
   const fell = r.dealt !== r.level ? ` (no ${r.level} level: dealt ${r.dealt})` : "";
-  return `${r.game.padEnd(12)} ${r.level.padEnd(7)} ${r.bot.padEnd(13)} avg ${r.average.toFixed(1).padStart(6)}  median ${String(r.median).padStart(3)}  finished ${(r.finishRate * 100).toFixed(0).padStart(3)}%  (${r.runs} runs)${fell}`;
+  return `${r.game.padEnd(12)} ${r.level.padEnd(7)} ${r.bot.padEnd(19)} avg ${r.average.toFixed(1).padStart(6)}  median ${String(r.median).padStart(3)}  finished ${(r.finishRate * 100).toFixed(0).padStart(3)}%  (${r.runs} runs)${fell}`;
 }
 
 if (import.meta.main) {
@@ -166,7 +173,7 @@ if (import.meta.main) {
   const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
   const game = args.find((a) => !a.startsWith("--")) as PuzzleType | undefined;
   if (!game) {
-    console.log("usage: bun scripts/level-tune.ts <game> [--level=normal|easy|hard|expert|all] [--seeds=20] [--from=0]");
+    console.log("usage: bun scripts/level-tune.ts <game> [--level=normal|easy|hard|expert|all] [--seeds=20] [--from=0] [--human-limits]");
     process.exit(2);
   }
   const asked = opt("level") ?? "all";
@@ -178,5 +185,8 @@ if (import.meta.main) {
   const seeds = Number(opt("seeds") ?? 20);
   const from = Number(opt("from") ?? 0);
   console.log(`${game}: levels ${levelsOf(game).join(", ")}`);
-  for (const level of levels) for (const r of await tune(game, level, seeds, from)) console.log(tuneLine(r));
+  // --human-limits: the arcade bots play under Joe's human limits (about 0.25 s to react, 0.15 s to move; human.ts
+  // HUMAN_LIMITS), the rows tagged "+limits".
+  const limits = args.includes("--human-limits") ? HUMAN_LIMITS : null;
+  for (const level of levels) for (const r of await tune(game, level, seeds, from, limits)) console.log(tuneLine(r));
 }

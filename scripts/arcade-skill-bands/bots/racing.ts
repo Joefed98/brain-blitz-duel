@@ -17,7 +17,7 @@ import { inputAt, recordInput, type ArcadeInputEvent } from "../../../src/lib/ar
 import {
   racingBalanceSpeed,
   racingGoTick,
-  racingTrack,
+  racingTrackOf,
   RACING_BRAKE,
   RACING_INPUT_RANGES,
   RACING_INPUT_STICK,
@@ -53,8 +53,9 @@ const STYLE: Record<Exclude<SkillLevel, "perfect">, Style> = {
 };
 
 /** A profile with a per-corner share (each corner's judgement drawn once, a slip taking one far too fast). */
-function humanProfile(seed: number, st: Style, human: Parameters<SkillBot>[0]["human"]): Int32Array {
-  const track = racingTrack(seed);
+function humanProfile(state: RacingState, st: Style, human: Parameters<SkillBot>[0]["human"]): Int32Array {
+  // The state's own circuit (a level's tighter hairpins included).
+  const track = racingTrackOf(state);
   // Both laps (each corner judged afresh on each lap).
   const lapN = RACING_LAP_SEGS;
   const n = lapN * RACING_LAPS;
@@ -80,10 +81,11 @@ function humanProfile(seed: number, st: Style, human: Parameters<SkillBot>[0]["h
 }
 
 export const bot: SkillBot = ({ game, seed, human }) => {
-  const rev = (game.init(seed) as RacingState).rev;
-  if (human.level === "perfect") return { events: oracleRun(seed, rev) };
+  const first = game.init(seed) as RacingState;
+  const rev = first.rev;
+  if (human.level === "perfect") return { events: oracleRun(seed, rev, first.lv) };
   const st = STYLE[human.level];
-  const profile = humanProfile(seed, st, human);
+  const profile = humanProfile(first, st, human);
   const tune: DriveTuning = { share: st.share, brakeShare: st.brakeShare, look: 1, line: 0, gain: st.gain };
   // racingRev 2: nothing moves before lights out; the thumb goes down a reaction after it.
   const go = racingGoTick(rev) > 0 ? racingGoTick(rev) + human.reactTicks() : 0;
