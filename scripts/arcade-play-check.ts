@@ -194,8 +194,10 @@ const EXTRACT = String.raw`
       if (s.boss) P.push(["boss", s.boss.x, 0]);
       reset = s.wave + ":" + (s.divers ?? []).map((d) => d.cell + (d.t > 150 ? "h" : "d")).join(",");
       break;
-    case "orbit": P.push(["rocket", fp(s.x), fp(s.y)]); reset = s.respawns + ":" + s.checkpoint + ":" + s.cur; break;
-    case "skyline": P.push(["block", fp(s.x), 0]); reset = s.placed; break;
+    // Changed with Joe's approval, 16 Nov 2026 (approved grace respawns count as resets).
+    case "orbit": P.push(["rocket", fp(s.x), fp(s.y)]); reset = s.respawns + ":" + s.checkpoint + ":" + s.cur + ":" + (s.autoRespawns ?? 0); break;
+    // Changed with Joe's approval, 16 Nov 2026 (approved grace respawns count as resets).
+    case "skyline": P.push(["block", fp(s.x), 0]); reset = s.placed + ":" + (s.livesLost ?? 0); break;
     case "inkbridge": if (s.ball) P.push(["ball", fp(s.ball.x), fp(s.ball.y)]); reset = s.level + ":" + s.levels + ":" + s.fails + ":" + s.dropping; break;
     case "bintoss": P.push(["ball", fp(s.x), fp(s.y)]); reset = s.throwIndex + ":" + s.phase; break;
     // Minigolf (30 Oct 2026): the ball; a new hole, water (the ball back where it was played) and holing out move it at once.
