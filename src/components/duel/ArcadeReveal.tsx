@@ -392,8 +392,13 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
         {myScore !== null ? <RetroRunSummary puzzle={puzzle} answer={myAnswer} /> : null}
         {/* Cards & Board (the overhaul, 15 Nov 2026): the final table large, the key numbers and a run summary. */}
         {CARDS_REVEAL_TYPES.has(puzzle.type) && myScore !== null ? <CardsRevealPicture puzzle={puzzle} answer={myAnswer ?? null} /> : null}
-        {/* The Strategy games' picture of the run (the Strategy overhaul, stage 2): large pieces under the score. */}
-        {myScore !== null ? <StrategyRunSummary puzzle={puzzle} myAnswer={myAnswer} reveal={myReveal} /> : null}
+        {/* The Strategy games' picture of the run (the Strategy overhaul, stage 2): large pieces under the score. In a room
+            it folds with the breakdown (one tap away under "See breakdown"), so the folded reveal still fits its screen. */}
+        {myScore !== null ? (
+          <div data-strategy-summary-fold="" className={folds && !open ? "hidden" : "contents"}>
+            <StrategyRunSummary puzzle={puzzle} myAnswer={myAnswer} reveal={myReveal} />
+          </div>
+        ) : null}
         {/* The run's own visual summary (a game's Reveal, src/lib/duel/runSummary.ts): Crazy Golf's scorecard and hole map, first under the score. */}
         {RUN_SUMMARY_TYPES.has(puzzle.type) && myAnswer !== null && myAnswer !== undefined ? (
           <div data-run-summary={puzzle.type} className="w-full shrink-0">
