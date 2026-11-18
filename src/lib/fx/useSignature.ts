@@ -52,6 +52,6 @@ export function usePerfectBurst(ref: RefObject<HTMLElement | null>, score: numbe
   useEffect(() => {
     if (score !== roundMaxFor(type) || burst.current || !ref.current) return;
     burst.current = true;
-    perfectBurst(ref.current);
+    perfectBurst(ref.current, score);
   }, [ref, score, type]);
 }

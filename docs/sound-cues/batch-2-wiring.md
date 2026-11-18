@@ -1,5 +1,7 @@
 # Sound batch 2: wiring (16 Nov 2026)
 
+**Wired on 18 Nov 2026** ([sound-wiring-nov18.md](sound-wiring-nov18.md)): every file below now plays in the live game, the held-back ones included, and `NEW_GAME_SOUNDS` is on; sound-manifest-check is strict again. The "nothing is wired" notes below describe the batch as it was delivered.
+
 Joe's 309 ElevenLabs uploads for the Number (#431), Word (#437), Retro (#440), Cards and Board (#441), Strategy
 (#442), Crazy Golf (#443) and Sports (#445) overhauls, listed in [sounds-batch-2.csv](sounds-batch-2.csv) (branch
 `sounds-batch-2`, commit a512ca90). `python3 -I scripts/sound-batch-2/process.py <originals> public/sounds <report>`

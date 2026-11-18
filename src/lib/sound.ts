@@ -17,6 +17,7 @@
 
 import { SOUND_MANIFEST, type SoundId } from "./fx/manifest";
 import { NEW_GAME_SOUND_REPLACES } from "./fx/newGameSounds";
+import { WIRED_SOUND_REPLACES } from "./fx/wiredSoundReplaces";
 import { PUZZLE_TYPES, puzzleInfo } from "./duel/catalogue";
 import type { PuzzleType } from "./duel/types";
 import { SOUND_CUE_EVENT, type SoundCueDetail } from "./fx/soundCues";
@@ -27,6 +28,7 @@ import {
   changeChannelMuted,
   changeChannelVolume,
   readSoundSettings,
+  writeAnnouncer,
   roundMusicRamp,
   SOUND_SETTINGS_EVENT,
 } from "./soundSettings";
@@ -169,6 +171,15 @@ function warnOnce(message: string, error?: unknown): void {
 
 export function isMuted(): boolean {
   return readSoundSettings().effects.muted;
+}
+/** The announcer's switch (Settings → Sound): off whenever sound effects are off. */
+export function isAnnouncerOn(): boolean {
+  return readSoundSettings().announcer && !isMuted();
+}
+export function setAnnouncerOn(next: boolean): void {
+  if (typeof window === "undefined") return;
+  writeAnnouncer(next);
+  announce();
 }
 export function isMusicMuted(): boolean {
   return readSoundSettings().music.muted;
@@ -1037,6 +1048,7 @@ export const SOLVE_SHARED = ["correct", "lock", "complete"] as const;
 const MOMENT_SHARED = new Set<string>([
   ...SOLVE_SHARED,
   ...Object.values(NEW_GAME_SOUND_REPLACES).flat(),
+  ...Object.values(WIRED_SOUND_REPLACES).flat(),
 ]);
 const momentClock = () => (typeof performance === "undefined" ? Date.now() : performance.now());
 const momentUntil = new Map<string, number>();
@@ -1053,7 +1065,7 @@ export function isOwnSolveCue(cue: string): boolean {
 }
 /** The shared sounds a game's own cue stands in for when it plays from its file (none for most cues). */
 export function ownMomentReplaces(cue: string): readonly string[] {
-  return NEW_GAME_SOUND_REPLACES[cue] ?? (isOwnSolveCue(cue) ? SOLVE_SHARED : []);
+  return NEW_GAME_SOUND_REPLACES[cue] ?? WIRED_SOUND_REPLACES[cue] ?? (isOwnSolveCue(cue) ? SOLVE_SHARED : []);
 }
 function holdMomentSounds(ids: readonly string[]): void {
   const now = momentClock();
@@ -1162,6 +1174,17 @@ export type VoiceId =
   // Sound batch 2's voice lines (18 Oct 2026).
   | "voice.timesUp"
   | "voice.perfect"
+  | "voice.great"
+  | "voice.brilliant"
+  | "voice.superb"
+  | "voice.amazing"
+  | "voice.outstanding"
+  | "voice.incredible"
+  | "voice.sensational"
+  | "voice.unbelievable"
+  | "voice.phenomenal"
+  | "voice.legendary"
+  | "voice.flawless"
   | "voice.tie"
   | "voice.youWin"
   | "voice.rematch"
@@ -1191,6 +1214,17 @@ const VOICE_IDS: VoiceId[] = [
   "round11",
   "voice.timesUp",
   "voice.perfect",
+  "voice.great",
+  "voice.brilliant",
+  "voice.superb",
+  "voice.amazing",
+  "voice.outstanding",
+  "voice.incredible",
+  "voice.sensational",
+  "voice.unbelievable",
+  "voice.phenomenal",
+  "voice.legendary",
+  "voice.flawless",
   "voice.tie",
   "voice.youWin",
   "voice.rematch",

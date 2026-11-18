@@ -1,5 +1,7 @@
 # Sound batch 3: wiring (17 Nov 2026)
 
+**Wired on 18 Nov 2026** ([sound-wiring-nov18.md](sound-wiring-nov18.md)): every file below now plays in the live game, the held-back ones included, and `NEW_GAME_SOUNDS` is on; sound-manifest-check is strict again. The "nothing is wired" notes below describe the batch as it was delivered.
+
 Joe's 141 ElevenLabs uploads, listed in [sounds-batch-3.csv](sounds-batch-3.csv) (branch `sounds-batch-3`, commit
 6d5a5e7d): 118 new sounds for the Pattern (#433), Action (#436), Home Run and Top Bins (#444) and Logic 1 (#430)
 overhauls, and 23 retakes of batch 1.

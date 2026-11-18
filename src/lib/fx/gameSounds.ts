@@ -41,7 +41,7 @@ import { freekickV4Ui } from "@/lib/arcade/freekick.renderer";
 import { RACING_CAR_HALF, RACING_KMH_AT_VMAX, RACING_LAP, RACING_ROAD_X, RACING_VMAX, racingBalanceSpeed, racingGoTick, racingLightsOn, racingSegAt, racingTrackOf, type RacingState } from "@/lib/arcade/racing";
 import { btEventCountdown, btMovesOf, type BtCourse, type BtState } from "@/lib/arcade/ballTrack";
 import { JUNC_BUILD_EVERY, JUNC_BUILDS, type JuncState } from "@/lib/arcade/junction";
-import { skylineFlagAt, skylineGustAt, skylineShownMult, SKYLINE_REV_STD, SKYLINE_V9_STREAK_MAX, type SkylineState } from "@/lib/arcade/skyline";
+import { skylineFlagAt, skylineGustAt, skylineShownMult, SKYLINE_REV_STD, SKYLINE_RUN_TICKS, SKYLINE_V9_STREAK_MAX, type SkylineState } from "@/lib/arcade/skyline";
 import { INK_BUCKET_H, INK_LIVE_PRE_CAP, inkBirdDx, inkBlockH, inkLiveNow, type InkState } from "@/lib/arcade/inkBridge";
 import { bubbleNearLine } from "@/lib/arcade/strategyFx";
 import { inkFailedOnBlock } from "@/lib/arcade/inkBridge.renderer";
@@ -360,8 +360,12 @@ export function wavefrontSounds(): GameSounds<WavState> {
     frame(state, running) {
       beginFrame("wavefront", state);
       loopCue("wavefront.danger", running && wavDanger(state));
+      // wavRev 14: the charge-up hum while a hold is charging the heavy shot (stops on the lift or the run's end).
+      loopCue("wavefront.charge", running && !!state.charge && (state.chargeAt ?? 0) > 0 && state.ended === 0, 0.5);
       if (prev && state.tick > prev.tick) {
         if (state.fireIn > prev.fireIn) sfx("wavefront.fire", "arc_blaster", 0.6, 1, true);
+        // wavRev 14: the charged blast released (a heavy bolt fired on the lift).
+        if ((state.heavies ?? 0) > (prev.heavies ?? 0)) effectCue("wavefront.chargeRelease");
         // wavRev 10 plays the pickup for every power-up caught (laser, spread or shield); older rounds the laser.
         if (state.x10 ? (state.powerups ?? 0) > (prev.powerups ?? 0) : state.pierce > prev.pierce) sfx("wavefront.pierce", "arc_retro_pickup");
         if (state.x10) {
@@ -403,7 +407,10 @@ export function wavefrontSounds(): GameSounds<WavState> {
       }
       prev = state;
     },
-    stop: () => stopCueLoop("wavefront.danger"),
+    stop: () => {
+      stopCueLoop("wavefront.danger");
+      stopCueLoop("wavefront.charge");
+    },
   };
 }
 
@@ -421,6 +428,9 @@ export function crossSounds(): GameSounds<CrossState> {
       loopCue("cross.traffic", running && !state.dead);
       if (prev && state.tick > prev.tick) {
         if (state.lives < prev.lives) { sfx("cross.lifeLost", "arc_lose_life"); feel("impact"); }
+        // The run's end: the crossings tally (after the last life's sound when the run ended on a hit).
+        const ended = (s: CrossState) => s.dead || s.endedTick > 0;
+        if (ended(state) && !ended(prev) && state.crossings > 0) later(state.dead ? TALLY_AFTER_CRASH_MS : 0, () => effectCue("cross.tally"));
         // Spacewalk (6 Nov 2026): a freighter lane crossed (crossRev 9+, the only courses with them), its rumble going by.
         if (state.wide && crossKindCrossed(state, CROSS_KIND_BUS) > crossKindCrossed(prev, CROSS_KIND_BUS)) effectCue("cross.freighter");
         else if (state.crossings > prev.crossings) sfx("cross.crossed", "stage_complete");
@@ -721,6 +731,18 @@ export function breakerSounds(): GameSounds<BrkState> {
   };
 }
 
+/**
+ * A follow-on sound shortly after its moment (presentation only): a second moment on the same frame (a bonus after a
+ * clear, the end tally after a crash, each ball of a multiball) sounds a beat later instead of on top of the first.
+ */
+function later(ms: number, play: () => void): void {
+  if (ms <= 0) play();
+  else if (typeof setTimeout !== "undefined") setTimeout(play, ms);
+}
+
+/** Pinball's multiball start sounds this far apart, one for each extra ball released. */
+const PIN_MULTIBALL_STAGGER_MS = 120;
+
 /** The pinball run is over (the time, or every ball drained). */
 function pinOver(state: PinState): boolean {
   return state.tick >= pinRunTicksOf(state) || state.lost >= pinBallsOf(state as never);
@@ -749,7 +771,8 @@ export function pinballSounds(): GameSounds<PinState> {
           if ((p4.ramps ?? 0) > (q4.ramps ?? 0)) {
             const combo = p4.combo ?? 1;
             if (combo > 1) sfx(`shared.celebrate.crackle${Math.min(3, combo - 1)}` as SoundId, "arc_retro_pickup", 0.9);
-            else sfx("shared.celebrate.zap", "arc_retro_pickup", 0.8);
+            // A plain ramp shot: the ramp light chasing the ball up (its own file in place of the zap).
+            else overCue("pinball.rampChase", () => sfx("shared.celebrate.zap", "arc_retro_pickup", 0.8));
           }
           // The Retro overhaul, stage 2: the lock, multiball starting and ending have their own slots (the old sounds
           // stand in until Joe's recordings arrive).
@@ -758,8 +781,14 @@ export function pinballSounds(): GameSounds<PinState> {
             else sfx("shared.celebrate.countDing", "tick", 0.9);
           }
           if ((p4.multiballs ?? 0) > (q4.multiballs ?? 0)) {
-            if (cueHasFile("pinball.multiballStart")) effectCue("pinball.multiballStart");
-            else sfx("shared.celebrate.zap", "arc_retro_pickup", 1);
+            // Joe (18 Nov 2026): the start sound once for each extra ball multiball releases (the sim queues them in
+            // `releases`; any already out this frame are new `extras`), PIN_MULTIBALL_STAGGER_MS apart.
+            const balls = Math.max(1, (p4.releases?.length ?? 0) + Math.max(0, (p4.extras?.length ?? 0) - (q4.extras?.length ?? 0)));
+            const play = () => {
+              if (cueHasFile("pinball.multiballStart")) effectCue("pinball.multiballStart");
+              else sfx("shared.celebrate.zap", "arc_retro_pickup", 1);
+            };
+            for (let i = 0; i < balls; i++) later(i * PIN_MULTIBALL_STAGGER_MS, play);
           }
           if ((q4.extras?.length ?? 0) > 0 && (p4.extras?.length ?? 0) === 0 && state.live) effectCue("pinball.multiballEnd");
           if ((p4.jackpots ?? 0) > (q4.jackpots ?? 0) || (p4.skills ?? 0) > (q4.skills ?? 0)) sfx("shared.celebrate.chime", "correct", 0.9);
@@ -848,6 +877,11 @@ function burstTouching(s: BurstState): boolean {
   return s.balls.some((b) => b.y / 256 - burstRadius(s, b.size) <= ceil + 2);
 }
 
+/** A bonus or tally that follows a moment on the same frame sounds this long after it (later). */
+const BONUS_AFTER_MS = 250;
+/** A run-end tally after a run-ending crash waits for the crash to sound first. */
+const TALLY_AFTER_CRASH_MS = 500;
+
 /** Fission's split pitch by atom size (0 = the biggest): lower for big atoms, higher for small (the Retro overhaul). */
 const BURST_SPLIT_RATES = [0.82, 0.94, 1.06, 1.2] as const;
 export function burstSounds(): GameSounds<BurstState> {
@@ -873,6 +907,8 @@ export function burstSounds(): GameSounds<BurstState> {
         if (!state.shield && prev.shield && state.lives === prev.lives) effectCue("burst.shieldBreak");
         if (!state.freeze && prev.freeze) effectCue("burst.thaw");
         if (state.wave > prev.wave) effectCue("burst.newWave");
+        // The wave-clear bonus ("CLEAR +n") ticking in, a beat after the wave-cleared moment.
+        if ((state.clearPts ?? 0) > (prev.clearPts ?? 0)) later(BONUS_AFTER_MS, () => effectCue("burst.clearTick"));
         // The ceiling flashes white as an atom touches it (as the renderer works it out).
         if (burstTouching(state) && !burstTouching(prev)) effectCue("burst.ceilingTouch");
         // An atom bounces off the floor, pitched by its size (the biggest that bounced).
@@ -1128,9 +1164,13 @@ export function skylineSounds(): GameSounds<SkylineState> {
             if (skylineShownMult(state) > skylineShownMult(prev, prev.streak ?? 0)) sfx("shared.celebrate.countDing", "tick", 0.8);
             // skylineRev 9 (no multiplier): the ding marks the streak filling its part, 10 in a row.
             if (state.expandRev === SKYLINE_REV_STD && (state.streak ?? 0) === SKYLINE_V9_STREAK_MAX && (prev.streak ?? 0) < SKYLINE_V9_STREAK_MAX) sfx("shared.celebrate.countDing", "tick", 0.8);
-            if ((state.golds ?? 0) > (prev.golds ?? 0)) sfx("shared.celebrate.chime", "correct", 0.9);
+            if ((state.golds ?? 0) > (prev.golds ?? 0)) overCue("skyline.goldChime", () => sfx("shared.celebrate.chime", "correct", 0.9));
           }
         }
+        // The run's end (as the renderer's end card reads it): the floors count up while the camera pulls back,
+        // after the miss's crash when the run ended on a miss.
+        const over = (s: SkylineState) => s.missed || s.tick >= SKYLINE_RUN_TICKS;
+        if (over(state) && !over(prev)) later(state.missed ? TALLY_AFTER_CRASH_MS : 0, () => effectCue("skyline.endCount"));
         if (state.missed && !prev.missed) { sfx("skyline.miss", "arc_crash"); feel("impact"); }
         // skylineRev 11 (lives): a miss that costs a life and the run carries on; the wide-block rescue arriving.
         else if ((state.livesLost ?? 0) > (prev.livesLost ?? 0)) ownCue("skyline.lifeLost", "arc_lose_life");
@@ -1170,9 +1210,14 @@ export function inkBridgeSounds(): GameSounds<InkState> {
             // The Strategy overhaul (15 Nov 2026): a light success haptic for a coin in the pot.
             feel("success");
           } else if (inkFailedOnBlock(state)) {
-            sfx("inkbridge.bump", "arc_rainbow_bump");
+            // A coin into a bird (the birds' revisions): the flock scatters, in place of the bump's stand-in.
+            const birds = state.list[Math.min(state.level, state.list.length - 1)]?.blocks.some((b) => b.h) ?? false;
+            if (birds) overCue("inkbridge.birdScatter", () => sfx("inkbridge.bump", "arc_rainbow_bump"));
+            else sfx("inkbridge.bump", "arc_rainbow_bump");
           } else if (state.flashKind === 2) effectCue("inkbridge.fail");
         }
+        // inkRev 13: a level potted within its ink par (PAR ✓), a beat after the pot's jingle.
+        if ((state.parLevels ?? 0) > (prev.parLevels ?? 0)) later(BONUS_AFTER_MS, () => effectCue("inkbridge.parFlourish"));
         if (state.dropping && !prev.dropping) { effectCue("inkbridge.release"); effectCue("inkbridge.coinWobble"); }
         // The Strategy overhaul, stage 2: a miss whistles as the coin falls past the pot's rim; a bird the coin passes
         // close to flaps away (as the renderer draws them).
@@ -1213,7 +1258,18 @@ export function bubbleSounds(): GameSounds<BubState> {
       if (running) ensureSlotLoop("bubble.waves", "arc_sea_waves", WAVES_VOLUME);
       else stopSlotLoop("bubble.waves", "arc_sea_waves");
       if (prev && state.tick > prev.tick) {
-        if (state.queueAt > prev.queueAt) sfx("bubble.load", "arc_sea_bubble", 0.7);
+        // A shot fired (the next bubble loads); bubbleRev 12's fast shot (the drag's boost) whooshes in its place.
+        if (state.queueAt > prev.queueAt) {
+          if ((state.boost ?? 0) > 0) overCue("bubble.fastShot", () => sfx("bubble.load", "arc_sea_bubble", 0.7));
+          else sfx("bubble.load", "arc_sea_bubble", 0.7);
+        }
+        // The shot in flight glancing off a side wall (the same shot, its sideways speed reversed).
+        if (prev.flightColour !== 0 && state.flightColour !== 0 && state.queueAt === prev.queueAt && prev.vx !== 0 && state.vx !== 0 && prev.vx > 0 !== state.vx > 0) effectCue("bubble.wallBlip", 60);
+        // Bubbles cut loose fall to the seabed; a treasure chest among them pops open in place of the splash.
+        if (state.dropped > prev.dropped) {
+          if ((state.chests ?? 0) > (prev.chests ?? 0)) effectCue("bubble.chestOpen");
+          else effectCue("bubble.fallSplash", 120);
+        }
         if (state.popped > prev.popped) {
           const now = typeof performance === "undefined" ? 0 : performance.now();
           if (now - lastPop >= 40) {
@@ -1235,7 +1291,7 @@ export function bubbleSounds(): GameSounds<BubState> {
         if (state.cleared && !prev.cleared) feel("success");
         // A shot that sticks without popping, dropping or setting off a special.
         const special = (s: BubState) => (s.bombs ?? 0) + (s.lines ?? 0) + (s.jokers ?? 0);
-        if (state.shots > prev.shots && state.popped === prev.popped && state.dropped === prev.dropped && special(state) === special(prev)) effectCue("bubble.stick");
+        if (state.shots > prev.shots && state.popped === prev.popped && state.dropped === prev.dropped && special(state) === special(prev)) overCue("bubble.thup", () => effectCue("bubble.stick"));
       }
       prev = state;
     },
@@ -1400,12 +1456,30 @@ export function minigolfSounds(): GameSounds<MinigolfState> {
           sfx("minigolf.holed", "arc_marble_clink");
           if (under) sfx("minigolf.birdie", "arc_fair_bell", 0.8);
           if (state.rev >= 3) feel("success");
+          // A beat after the cup: the flag lifted out, or on golfRev 3's birdie or better (where the renderer bursts
+          // its confetti as the flag lifts) the party popper in its place.
+          const popper = under && state.rev >= 3;
+          later(MINIGOLF_FLAG_AFTER_MS, () => effectCue(popper ? "minigolf.confetti" : "minigolf.flag"));
         }
       }
       prev = state;
     },
     stop: () => loopCue("minigolf.roll", false),
   };
+}
+
+/** The flag lifts (and a birdie's confetti bursts) this long after the cup's sound. */
+const MINIGOLF_FLAG_AFTER_MS = 220;
+
+/**
+ * Crazy Golf's aim meter (golfRev 3, the stage calls it at each twelfth of the pull): Joe's tick pitched by the pull's
+ * power, the same steps as the synthesised tone it replaces (240–860 Hz, the recording's own pitch at the middle);
+ * false until the file is loaded, so the stage keeps its tone.
+ */
+export function minigolfAimTick(power: number): boolean {
+  if (!cueHasFile("minigolf.aim")) return false;
+  effectCue("minigolf.aim", 0, (240 + power * 620) / 550);
+  return true;
 }
 
 /** What the ball struck on a bounce tick: the nearest boulder or planter it touches, else a rail or log (display only). */
@@ -1486,9 +1560,13 @@ const SWEEP_HOLD_TICKS = 20;
 export function curlingSounds(): GameSounds<CurlingState> {
   let prev: CurlingState | null = null;
   let lastStroke = -1;
+  // The sheet as the stone left the hand: a red is knocked out, and shot taken, while it travels, so the stone's
+  // verdict at rest (applause, the shot, the "aw") is judged against the sheet before the throw, not the frame before.
+  let atRelease: { takeouts: number; shot: number } | null = null;
   return {
     frame(state, running) {
       beginFrame("curling", state);
+      if (prev && state.tick < prev.tick) atRelease = null;
       const travelling = running && state.active >= 0;
       loopCue("curling.slide", travelling, SURFACE_VOLUME);
       // The brooms sound while strokes keep coming (curlRev 1's sweeps and curlRev 2's brushing either side alike):
@@ -1500,6 +1578,7 @@ export function curlingSounds(): GameSounds<CurlingState> {
         // Haptics (the Sports overhaul, 15 Nov 2026): the release, stone on stone, and a stone coming to rest counting
         // or after a takeout (the end has the shared arcade buzzer's).
         if (state.thrown > prev.thrown) {
+          atRelease = { takeouts: curlTakeouts(prev), shot: curlShotTeam(prev) };
           effectCue("curling.release");
           feel("tick");
         }
@@ -1521,8 +1600,10 @@ export function curlingSounds(): GameSounds<CurlingState> {
         if (state.restTick !== prev.restTick && state.pts.length > prev.pts.length) {
           const takeout = curlTakeouts(state) > curlTakeouts(prev);
           if (takeout || (state.pts[state.pts.length - 1] ?? 0) > 0) feel("success");
-          if (curlShotTeam(state) === TEAM_MINE && curlShotTeam(prev) !== TEAM_MINE) effectCue("curling.shot");
-          else if (state.four[state.four.length - 1] === 1 || takeout) effectCue("curling.applause");
+          const before = atRelease ?? { takeouts: curlTakeouts(prev), shot: curlShotTeam(prev) };
+          const tookOut = curlTakeouts(state) > before.takeouts;
+          if (curlShotTeam(state) === TEAM_MINE && before.shot !== TEAM_MINE) effectCue("curling.shot");
+          else if (state.four[state.four.length - 1] === 1 || tookOut) effectCue("curling.applause");
           // A near miss (curlingFx.ts: scored nothing, but would have NEAR_MISS_CM nearer the button): a soft "aw".
           else if ((state.pts[state.pts.length - 1] ?? 0) === 0 && curlShortBy(state, state.theirs + state.pts.length - 1) <= NEAR_MISS_CM) effectCue("curling.aw");
         }
@@ -1534,6 +1615,7 @@ export function curlingSounds(): GameSounds<CurlingState> {
       loopCue("curling.sweep", false);
       prev = null;
       lastStroke = -1;
+      atRelease = null;
     },
   };
 }
@@ -2281,6 +2363,8 @@ export function blockfallSounds(): GameSounds<BfState> {
         if (bfLevelFor(state.tick, state.rev) > bfLevelFor(prev.tick, prev.rev)) sfx("blockfall.speedUp", "arc_retro_note", 0.6, 1.25);
         // A top-out ends the run early: an `impact` haptic, as every other Retro game's run-ending crash (15 Nov 2026).
         if (state.ended === 2 && prev.ended === 0) { sfx("blockfall.topOut", "arc_retro_explode", 0.8); feel("impact"); }
+        // The run's end: the lines count up (after the top-out's crash when the stack topped out).
+        if (state.ended !== 0 && prev.ended === 0 && state.lines > 0) later(state.ended === 2 ? TALLY_AFTER_CRASH_MS : 0, () => effectCue("blockfall.linesCount"));
         // The Retro overhaul, stage 2: a refused move or turn dunks, a hard drop whooshes.
         if (state.rejects > prev.rejects) effectCue("blockfall.turnRefused", 120);
         if (bfHardDropped(prev, state, prevGhost)) effectCue("blockfall.hardDrop");

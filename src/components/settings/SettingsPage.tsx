@@ -37,7 +37,8 @@ import { setPreferredScheme, usePreferredScheme } from "@/lib/gameControls";
 import { betaValue } from "@/lib/beta/betaValues";
 import { feedbackBase, feedbackUrl } from "@/lib/beta/feedback";
 import { setHapticsOn, useHapticsOn, useHapticsSupported } from "@/lib/haptics";
-import { isMuted, isMusicMuted, onSoundSettingsChange, setMusicMuted, setMuted } from "@/lib/sound";
+import { isMuted, isMusicMuted, onSoundSettingsChange, setAnnouncerOn, setMusicMuted, setMuted } from "@/lib/sound";
+import { readSoundSettings } from "@/lib/soundSettings";
 
 export interface SettingsActions {
   /** Back to the page before (More, Profile, wherever Settings was opened from). */
@@ -138,6 +139,8 @@ export function SettingsBody({ onHowItWorks, onTerms, onSignIn, onSignedOut, onD
           <Panel data-sound-controls="settings">
             <SwitchRow label="Sound effects" on={!sound.muted} onChange={(on) => setMuted(!on)} />
             <SwitchRow label="Music" on={!sound.musicMuted} onChange={(on) => setMusicMuted(!on)} />
+            {/* The announcer's line on a round result (src/lib/fx/announcer.ts): on by default, off whenever sound is off. */}
+            <SwitchRow label="Announcer voice" on={sound.announcer && !sound.muted} onChange={setAnnouncerOn} data="announcer" disabled={sound.muted} />
             <VolumeSliders />
           </Panel>
         </Group>
@@ -295,6 +298,7 @@ function SwitchRow({
   onChange,
   note,
   data,
+  disabled,
 }: {
   label: string;
   on: boolean;
@@ -302,9 +306,11 @@ function SwitchRow({
   note?: string | undefined;
   /** A data-setting marker for checks. */
   data?: string;
+  /** Shown off and not changeable (the announcer while sound effects are off). */
+  disabled?: boolean;
 }) {
   return (
-    <Row as="button" role="switch" aria-checked={on} aria-label={label} data-setting={data} onClick={() => onChange(!on)}>
+    <Row as="button" role="switch" aria-checked={on} aria-label={label} data-setting={data} disabled={disabled} onClick={() => onChange(!on)}>
       {note ? (
         <span className="jz-row-text items-start text-left">
           <span className="jz-row-title">{label}</span>
@@ -322,9 +328,9 @@ function SwitchRow({
 
 /** The sound settings, kept current (the same source as the header's MuteToggle). */
 function useSoundSettings() {
-  const [settings, setSettings] = useState({ muted: false, musicMuted: false });
+  const [settings, setSettings] = useState({ muted: false, musicMuted: false, announcer: true });
   useEffect(() => {
-    const read = () => setSettings({ muted: isMuted(), musicMuted: isMusicMuted() });
+    const read = () => setSettings({ muted: isMuted(), musicMuted: isMusicMuted(), announcer: readSoundSettings().announcer });
     read();
     return onSoundSettingsChange(read);
   }, []);

@@ -18,6 +18,7 @@ import { join, relative, sep } from "node:path";
 
 import { MEDIA_DIRS } from "../src/lib/offline/assets";
 import { awaitingWiringPaths, lazyMediaPaths, offlineWorkerSource } from "../src/lib/offline/swPlugin";
+import { soundBatchRows } from "../src/lib/offline/soundBatches";
 
 const failures: string[] = [];
 let passes = 0;
@@ -236,7 +237,14 @@ check(
   ),
   "offlineWorkerPlugin leaves awaitingWiringPaths() out of the public files",
 );
-check(unwired.size > 0 && [...unwired].every((p) => p.startsWith("/sounds/") && existsSync(join("public", p))), "every unwired batch file is in public/sounds");
+// Every batch file is wired (18 Nov 2026, scripts/sound-wiring-nov18/wire.ts): none is left out, and each one a
+// phone plays is in the offline download (a TO RECORD row has no file; a .base note is the source of its series).
+check(unwired.size === 0, `every batch file is wired (${[...unwired].slice(0, 5).join(", ")} not)`);
+for (const r of soundBatchRows()) {
+  if (r.toRecord || r.source) continue;
+  const p = `/sounds/${r.file}`;
+  check(realConfig.media.includes(p) || realConfig.lazyMedia.includes(p), `${p}: a wired batch file missing from the offline download (or its lazy list, for music)`);
+}
 check(
   [...unwired].every((p) => !realConfig.media.includes(p) && !realConfig.lazyMedia.includes(p) && !(p in realConfig.mediaHash)),
   "no unwired batch file is in the offline download, the lazy list or the hashes",

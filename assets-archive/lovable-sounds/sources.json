@@ -1006,9 +1006,9 @@
     "sha256": "d5b2bc0745233c01ddac59bda780470f631987c7b171c67d00826bbf8358ee7c",
     "keptAs": "public/sounds/music_eatgrow.mp3",
     "levelled": {
-      "size": 1443212,
-      "sha256": "346f7f76917349c7a7dcf227441411b67428043c16147e6fddc7c09647eb1700",
-      "by": "scripts/sound-audit-nov-2026/fix.py (audio audit fixes, 8 Nov 2026; docs/audit-nov-2026/audio-fixes.md)"
+      "size": 961723,
+      "sha256": "5de688fb517bd4fb3ba61e7334a76da33765db08339ae70b4c317be6b42e3451",
+      "by": "scripts/sound-audit-nov-2026/fix.py's writer via scripts/sound-batch-2/process.py music(): Joe's own Meteor bed (uploaded as music_snake.mp3, batch 2) replaced the Lovable download (sound wiring, 18 Nov 2026; docs/sound-cues/sound-wiring-nov18.md)"
     }
   },
   {

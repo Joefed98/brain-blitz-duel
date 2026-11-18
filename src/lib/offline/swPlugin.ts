@@ -124,7 +124,7 @@ export function awaitingWiringPaths(root: string = fileURLToPath(new URL("../../
     ...Object.values(SOUND_MANIFEST as Record<string, { url: string | null }>).flatMap((e) => (e.url ? [e.url] : [])),
     ...Object.values(NEW_GAME_SOUND_FILES).map((f) => f.url),
   ]);
-  return [...new Set(soundBatchRows(root).filter((r) => !r.toRecord).map((r) => `/sounds/${r.file}`))]
+  return [...new Set(soundBatchRows(root).filter((r) => !r.toRecord && !r.source).map((r) => `/sounds/${r.file}`))]
     .filter((url) => !wired.has(url))
     .sort();
 }

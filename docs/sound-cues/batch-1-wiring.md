@@ -1,5 +1,7 @@
 # Sound batch 1: wiring and retakes (16 Nov 2026)
 
+**Wired on 18 Nov 2026** ([sound-wiring-nov18.md](sound-wiring-nov18.md)): every file below now plays in the live game, the held-back ones included, and `NEW_GAME_SOUNDS` is on; sound-manifest-check is strict again. The "nothing is wired" notes below describe the batch as it was delivered.
+
 Joe's 153 ElevenLabs recordings for the Logic (sessions 1 and 2), Speed and Attention overhauls, listed in
 [sounds-batch-1.csv](sounds-batch-1.csv) (uploaded to branch `sounds-batch-1`, commit e810f88d). Each is cut and
 levelled into `public/sounds/<file>` by `python3 -I scripts/sound-batch-1/process.py <originals> public/sounds <report>`

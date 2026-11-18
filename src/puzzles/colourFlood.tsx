@@ -35,6 +35,8 @@ function fillOf(colour: number): string {
 
 /** A move that floods this many squares or more is a combo (the kit's sparkle and chord). */
 const FLOOD_COMBO_SQUARES = 20;
+/** A follow-on cue (near par, out of moves) waits this long after the move's whoosh, so each moment has one sound. */
+const FLOOD_AFTER_WHOOSH_MS = 300;
 
 /** The board, with one white outline around the player's region boundary. */
 export function Board({
@@ -184,6 +186,7 @@ function Stage({
     if (replay.grid[0] === colour) {
       // Batch P (display only): the pot already in use shakes, so a tap that changes nothing still answers.
       wrongMoveFlash(document.querySelector(`[data-game-stage] [aria-label="${FLOOD_NAMES[colour]}"]`));
+      soundCue("flood.reject");
       return;
     }
     const next = [...moves, colour];
@@ -191,7 +194,9 @@ function Stage({
     const after = replayFlood(data.grid, next, cols, moveLimit, colours);
     // The whoosh grows with the squares taken (a big gulp plays longer and lower); 20+ squares is a combo sparkle.
     const taken = Math.max(0, after.region - replay.region);
-    soundCue("flood.spread", Math.max(0.7, 1.2 - taken / 90));
+    // 20+ squares in one move play the combo in the whoosh's place (one sound a moment).
+    if (taken >= FLOOD_COMBO_SQUARES) soundCue("flood.combo");
+    else soundCue("flood.spread", Math.max(0.7, 1.2 - taken / 90));
     if (taken >= FLOOD_COMBO_SQUARES) {
       gameFx("combo", document.querySelector('[data-game-stage] [data-logic-stage="flood"] .logic-flood'), { count: Math.min(8, Math.floor(taken / 10)), silent: true });
     }
@@ -201,8 +206,15 @@ function Stage({
       onSubmit(encodeFloodMoves(next));
       return;
     }
+    // The moves counter starts glowing gold near par (the HUD's tone above): a soft pulse just after the whoosh.
+    const nearPar = (m: number) => Boolean(data.par) && m >= data.par! - 1;
+    if (inFrame && !after.outOfMoves && nearPar(after.moves) && !nearPar(replay.moves)) {
+      window.setTimeout(() => soundCue("flood.nearPar"), FLOOD_AFTER_WHOOSH_MS);
+    }
     // Out of moves: the board ends unfinished and goes in now.
     if (after.outOfMoves) {
+      // Its own final tone, just after the last whoosh.
+      window.setTimeout(() => soundCue("flood.outOfMoves"), FLOOD_AFTER_WHOOSH_MS);
       submitted.current = true;
       onSubmit(encodeFloodMoves(next));
     }

@@ -21,6 +21,11 @@ export interface SoundBatchRow {
   toRecord: boolean;
   /** An ambience bed (its note says so): stereo, as the library's beds, not mono. */
   stereo: boolean;
+  /**
+   * A `.base` note ("Record ONE clean note only"): the source its pitch series is made from (sounds-batch-2-series.csv),
+   * not a sound a slot plays, so it is not served (18 Nov 2026); the upload stays in the branch's history.
+   */
+  source: boolean;
 }
 
 /** One CSV line into its fields (double quotes, "" inside them). */
@@ -67,6 +72,7 @@ export function soundBatchRows(root = "."): SoundBatchRow[] {
         note,
         toRecord: note.startsWith("TO RECORD"),
         stereo: /ambience bed/i.test(note),
+        source: (f[col("file")] ?? "").includes(".base."),
       });
     }
   }

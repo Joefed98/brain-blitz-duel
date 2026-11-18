@@ -19,26 +19,19 @@ effects ([arcade-effects.md](arcade-effects.md)) so a sound can be written for e
 
 | Category | Silent | Placeholder | Recorded | Total |
 |---|---|---|---|---|
-| game event | 252 | 0 | 625 | 877 |
-| room moment | 1 | 0 | 41 | 42 |
+| game event | 16 | 0 | 907 | 923 |
+| room moment | 1 | 0 | 52 | 53 |
 | music | 10 | 0 | 105 | 115 |
-| fail sting | 21 | 0 | 50 | 71 |
-| success sting | 20 | 0 | 76 | 96 |
-| UI tap | 15 | 0 | 44 | 59 |
-| ambience | 2 | 1 | 22 | 25 |
+| success sting | 1 | 0 | 96 | 97 |
+| fail sting | 1 | 0 | 76 | 77 |
+| UI tap | 1 | 0 | 59 | 60 |
+| ambience | 0 | 1 | 24 | 25 |
 | replay | 0 | 0 | 186 | 186 |
-| **all** | 321 | 1 | 1149 | 1471 |
+| **all** | 30 | 1 | 1505 | 1536 |
 
 ## Silent and placeholder cues
 
 Grouped by game or screen. These are the cues still missing a sound.
-
-### Shared screens and effects
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `shared.wordDrop` | A Word game's round end (stage 2, 15 Nov 2026): each found word drops into the reveal's list, one every 90 ms (up to 12); the shared tick until Joe's recording. [shared.md] |  | 5–40 (per move) | silent | none | 60 | game event | `shared.wordDrop` |
-| `shared.wordLongest` | A Word game's round end: the longest word lands on its gold chip; the shared tick until Joe's recording. [shared.md] |  | 5–40 (per move) | silent | none | 300 | game event | `shared.wordLongest` |
 
 ### App-wide sounds
 
@@ -62,175 +55,16 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `music.winner` | Winner reveal: none (drum roll and voice) |  | loop | silent | none | 6300 | music | `music_winner` |
 | `music.tension` | Tension bed (not placed): registered, no file, never started (startMusic refuses it) |  | loop | silent | none | loop | music | `tension_loop` |
 
-### Cryptogrid
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `codeword.key` | Cryptogrid: Any key on the keyboard, as Strikeout's. [word.md] |  | 5–40 (per move) | silent | none | 50 | game event | `codeword.key` |
-| `codeword.ripple` | Cryptogrid: A letter ripples into every matching square, ticks rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 450 | game event | `codeword.ripple` |
-| `codeword.word` | Cryptogrid: A word completed by the letter glints (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 360 | game event | `codeword.word` |
-| `codeword.wrong` | Cryptogrid: Full and wrong: the letters that can't make words flash (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 190 | fail sting | `codeword.wrong` |
-| `codeword.jump` | Cryptogrid: The selection jumps to the next unsolved number (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 90 | game event | `codeword.jump` |
-
-### Forage
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `wordhunt.trace1` | Forage: Tracing, letter 1: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 160 | success sting | `wordhunt.trace1` |
-| `wordhunt.trace2` | Forage: Tracing, letter 2: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 160 | success sting | `wordhunt.trace2` |
-| `wordhunt.trace3` | Forage: Tracing, letter 3: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 140 | success sting | `wordhunt.trace3` |
-| `wordhunt.trace4` | Forage: Tracing, letter 4: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 150 | success sting | `wordhunt.trace4` |
-| `wordhunt.trace5` | Forage: Tracing, letter 5: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 150 | success sting | `wordhunt.trace5` |
-| `wordhunt.trace6` | Forage: Tracing, letter 6: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 150 | success sting | `wordhunt.trace6` |
-| `wordhunt.trace7` | Forage: Tracing, letter 7: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 150 | success sting | `wordhunt.trace7` |
-| `wordhunt.trace8` | Forage: Tracing, letter 8: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 150 | success sting | `wordhunt.trace8` |
-| `wordhunt.trace9` | Forage: Tracing, letter 9: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 160 | success sting | `wordhunt.trace9` |
-| `wordhunt.golden` | Forage: The trace crosses the golden tile: a sparkle (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 330 | game event | `wordhunt.golden` |
-| `wordhunt.word` | Forage: A valid word: the path flashes and it flies to the list (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 520 | game event | `wordhunt.word` |
-| `wordhunt.long` | Forage: A word of 7 or more letters: a bigger chord (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 580 | game event | `wordhunt.long` |
-| `wordhunt.points` | Forage: The word's points pop beside it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 80 | game event | `wordhunt.points` |
-
-### Interlock
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `tilegrid.pick` | Interlock: A tile lifted from the tray (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 70 | game event | `tilegrid.pick` |
-| `tilegrid.place` | Interlock: A wooden tile clacked onto its square (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 80 | UI tap | `tilegrid.place` |
-| `tilegrid.back` | Interlock: A tile slid back to the tray (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 80 | game event | `tilegrid.back` |
-| `tilegrid.word3` | Interlock: A 3-letter run becomes a word: a chord that grows with it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 480 | game event | `tilegrid.word3` |
-| `tilegrid.word4` | Interlock: A 4-letter run becomes a word: a chord that grows with it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 550 | game event | `tilegrid.word4` |
-| `tilegrid.word5` | Interlock: A 5-letter run becomes a word: a chord that grows with it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 570 | game event | `tilegrid.word5` |
-| `tilegrid.word6` | Interlock: A 6-letter run becomes a word: a chord that grows with it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 590 | game event | `tilegrid.word6` |
-| `tilegrid.word7` | Interlock: A 7-letter run becomes a word: a chord that grows with it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 630 | game event | `tilegrid.word7` |
-| `tilegrid.combo` | Interlock: Two words form at once (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 480 | game event | `tilegrid.combo` |
-| `tilegrid.notword` | Interlock: A run that is no word turns faint red (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 190 | game event | `tilegrid.notword` |
-| `tilegrid.bonus` | Interlock: The big-word bonus counting up (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 510 | game event | `tilegrid.bonus` |
-
-### Lookout
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `wordsearch.drag` | Lookout: A marker squeak as the loop grows a letter (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 80 | game event | `wordsearch.drag` |
-| `wordsearch.found4` | Lookout: A 4-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 340 | game event | `wordsearch.found4` |
-| `wordsearch.found5` | Lookout: A 5-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 350 | game event | `wordsearch.found5` |
-| `wordsearch.found6` | Lookout: A 6-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 360 | game event | `wordsearch.found6` |
-| `wordsearch.found7` | Lookout: A 7-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 350 | game event | `wordsearch.found7` |
-| `wordsearch.found8` | Lookout: A 8-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 350 | game event | `wordsearch.found8` |
-| `wordsearch.found9` | Lookout: A 9-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 360 | game event | `wordsearch.found9` |
-| `wordsearch.bonus` | Lookout: The bonus word: a sparkle and a brighter chime (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 330 | game event | `wordsearch.bonus` |
-| `wordsearch.already` | Lookout: Re-dragging a found word: a gentle bump (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 70 | game event | `wordsearch.already` |
-| `wordsearch.redraw` | Lookout: The last word: every loop redrawn in order (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 700 | game event | `wordsearch.redraw` |
-
-### Nucleus
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `wordsmith.letter` | Nucleus: A soft key click as a letter rises out of the ring (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 70 | game event | `wordsmith.letter` |
-| `wordsmith.shuffle` | Nucleus: The letters sliding round the ring (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 250 | game event | `wordsmith.shuffle` |
-| `wordsmith.word4` | Nucleus: A valid 4-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 260 | game event | `wordsmith.word4` |
-| `wordsmith.word5` | Nucleus: A valid 5-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 260 | game event | `wordsmith.word5` |
-| `wordsmith.word6` | Nucleus: A valid 6-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 260 | game event | `wordsmith.word6` |
-| `wordsmith.word7` | Nucleus: A valid 7-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 270 | game event | `wordsmith.word7` |
-| `wordsmith.word8` | Nucleus: A valid 8-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 250 | game event | `wordsmith.word8` |
-| `wordsmith.word9` | Nucleus: A valid 9-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 270 | game event | `wordsmith.word9` |
-| `wordsmith.combo` | Nucleus: Three words inside 10 s: a quick bright run (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 510 | game event | `wordsmith.combo` |
-| `wordsmith.pangram` | Nucleus: The pangram: the ring spins once in gold, a big rolled chord (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 620 | game event | `wordsmith.pangram` |
-| `wordsmith.invalid` | Nucleus: Not a word: a soft buzz as the letters shake back (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 190 | game event | `wordsmith.invalid` |
-
-### Roundabout
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `letterwheel.trace1` | Roundabout: Tracing, letter 1: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 130 | success sting | `letterwheel.trace1` |
-| `letterwheel.trace2` | Roundabout: Tracing, letter 2: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 140 | success sting | `letterwheel.trace2` |
-| `letterwheel.trace3` | Roundabout: Tracing, letter 3: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 130 | success sting | `letterwheel.trace3` |
-| `letterwheel.trace4` | Roundabout: Tracing, letter 4: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 140 | success sting | `letterwheel.trace4` |
-| `letterwheel.trace5` | Roundabout: Tracing, letter 5: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 130 | success sting | `letterwheel.trace5` |
-| `letterwheel.trace6` | Roundabout: Tracing, letter 6: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 140 | success sting | `letterwheel.trace6` |
-| `letterwheel.trace7` | Roundabout: Tracing, letter 7: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 140 | success sting | `letterwheel.trace7` |
-| `letterwheel.trace8` | Roundabout: Tracing, letter 8: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 130 | success sting | `letterwheel.trace8` |
-| `letterwheel.fly` | Roundabout: A slot word's letters fly into their squares one by one (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 510 | game event | `letterwheel.fly` |
-| `letterwheel.jar` | Roundabout: A bonus word drops into the jar: a coin plink on glass (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 290 | game event | `letterwheel.jar` |
-| `letterwheel.repeat` | Roundabout: A harmless repeat: a gentle bump (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 80 | game event | `letterwheel.repeat` |
-| `letterwheel.miss` | Roundabout: A miss: not a word (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 190 | fail sting | `letterwheel.miss` |
-| `letterwheel.spin` | Roundabout: Grid done: the wheel spins and the grid lights (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 650 | game event | `letterwheel.spin` |
-
-### Slider
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `wordslide.slide` | Slider: A row or column slid: a short tile rattle (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 150 | game event | `wordslide.slide` |
-| `wordslide.word` | Slider: A row becomes a word: a bright two-note (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 360 | game event | `wordslide.word` |
-| `wordslide.lock` | Slider: A padlock snapping shut (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 120 | game event | `wordslide.lock` |
-| `wordslide.unlock` | Slider: A padlock opened again (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 120 | game event | `wordslide.unlock` |
-| `wordslide.swap` | Slider: Two tiles of the last row swap (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 80 | game event | `wordslide.swap` |
-| `wordslide.nudge` | Slider: At par with three rows done: a small nudge (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 90 | game event | `wordslide.nudge` |
-| `wordslide.resetArm` | Slider: Reset armed: a soft cautious tick (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 280 | fail sting | `wordslide.resetArm` |
-
-### Strikeout
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `strikeout.key` | Strikeout: Any key on the keyboard (the Word overhaul, 15 Nov 2026): a soft typewriter click; word.key.mp3 behind NEW_GAME_SOUNDS until Joe's recording (word-elevenlabs.md). [word.md] |  | 5–40 (per move) | silent | none | 50 | game event | `strikeout.key` |
-| `strikeout.flip` | Strikeout: A hit: matching tiles flip with a clack, one after another (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 160 | game event | `strikeout.flip` |
-| `strikeout.strike` | Strikeout: A strike slammed onto the strike row (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 170 | game event | `strikeout.strike` |
-| `strikeout.combo` | Strikeout: An early solve with 3+ letters hidden: they all flip at once (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 450 | game event | `strikeout.combo` |
-| `strikeout.lastStrike` | Strikeout: One strike left: the strike row pulses (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 270 | game event | `strikeout.lastStrike` |
-| `strikeout.solve` | Strikeout: A word solved (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | silent | none | 550 | success sting | `strikeout.solve` |
-
-### Swapword
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `swapword.swap` | Swapword: Two tiles pass each other in a short arc: a wooden clack (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 90 | game event | `swapword.swap` |
-| `swapword.gold` | Swapword: A tile turns gold: a bright plink (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 270 | game event | `swapword.gold` |
-| `swapword.combo` | Swapword: Two tiles turn gold in one swap (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 430 | game event | `swapword.combo` |
-| `swapword.locked` | Swapword: A locked gold tile tapped: a small wiggle (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 70 | game event | `swapword.locked` |
-| `swapword.low` | Swapword: Three swaps left: the counter pulses (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 280 | game event | `swapword.low` |
-| `swapword.out` | Swapword: Out of swaps: a closing clunk as the board greys (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 170 | game event | `swapword.out` |
-| `swapword.scale` | Swapword: Solved: a wave round the figure-eight, a rising scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | silent | none | 720 | game event | `swapword.scale` |
-
 ### Ballpark
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `numline.place` | every Place [number.md] |  | 5–40 (per move) | silent | none | 220 | UI tap | `numline.place` |
 | `numline.line` | a new line starts (lines 2 and 3) [number.md] |  | 1–5 | silent | none | 220 | game event | `numline.line` |
-
-### Brimful
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `measure.pour` | a pour that changes the jugs [number.md] |  | 5–40 (per move) | silent | none | 320 | game event | `measure.pour` |
-| `measure.fill` | Fill applied [number.md] |  | 5–40 (per move) | silent | none | 320 | game event | `measure.fill` |
-| `measure.empty` | Empty applied [number.md] |  | 5–40 (per move) | silent | none | 260 | game event | `measure.empty` |
-| `measure.reject` | a refused pour, fill or empty [number.md] |  | 5–40 (per move) | silent | none | 320 | fail sting | `measure.reject` |
-| `measure.reset` | Reset applied [number.md] |  | 5–40 (per move) | silent | none | 260 | fail sting | `measure.reset` |
-
-### Checkout
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `checkout.tick` | the remaining score changes (dart or Undo) [number.md] |  | 5–40 (per move) | silent | none | 220 | game event | `checkout.tick` |
-
-### Counterweight
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `balance.drop` | a weight is hung on a notch [number.md] |  | 5–40 (per move) | silent | none | 230 | game event | `balance.drop` |
-| `balance.lift` | double-tap returns a weight to the tray [number.md] |  | 5–40 (per move) | silent | none | 260 | UI tap | `balance.lift` |
-
-### Integer Pyramid
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `numpyramid.place` | a block is placed in a cell (tap or drag) [number.md] |  | 5–40 (per move) | silent | none | 210 | UI tap | `numpyramid.place` |
 
 ### Operator
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `equation.drop` | an operator drops into a slot [number.md] |  | 5–40 (per move) | silent | none | 200 | game event | `equation.drop` |
 | `equation.advance` | the next stage slides in [number.md] |  | 1–5 | silent | none | 240 | game event | `equation.advance` |
 
 ### Pull!
@@ -246,67 +80,11 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `tendrop.refused` | a ÷ or − tile is refused [number.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `tendrop.refused` |
 
-### Bomb Defusal
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `bomb.press` | Button A or B is pressed [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `bomb.press` |
-| `bomb.step` | Each step fills a pip in the step counter (the Attention overhaul, 15 Nov 2026) [logic.md] |  | 5–40 (per move) | silent | none | 50 | game event | `bomb.step` |
-| `bomb.instant` | Expert: a wrong step sets the bomb off at once (the Attention overhaul's levels) [logic.md] |  | 5–40 (per move) | silent | none | 800 | game event | `bomb.instant` |
-
-### Double Take
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `spotdiff.hidden` | Double Take: The hidden seventh found [speed-attention.md] |  | 5–40 (per move) | silent | none | 600 | game event | `spotdiff.hidden` |
-| `spotdiff.pictureOut` | Double Take: A picture done: it slides out as the next comes in [speed-attention.md] |  | 5–40 (per move) | silent | none | 350 | game event | `spotdiff.pictureOut` |
-| `spotdiff.found` | Double Take: A difference found (ring draws in) [speed-attention.md] |  | 5–40 (per move) | silent | none | 260 | game event | `spotdiff.found` |
-| `spotdiff.miss` | Double Take: A wrong tap (the existing shake) [speed-attention.md] |  | 5–40 (per move) | silent | none | 250 | fail sting | `spotdiff.miss` |
-
-### Eagle Eye
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `symscan.gridClear` | Eagle Eye: A grid submitted: its matching eagles fly off [speed-attention.md] |  | 5–40 (per move) | silent | none | 600 | game event | `symscan.gridClear` |
-| `symscan.cleanGrid` | Eagle Eye: A grid submitted with no wrong marks: a quiet sparkle [speed-attention.md] |  | 5–40 (per move) | silent | none | 400 | game event | `symscan.cleanGrid` |
-| `symscan.missed` | Eagle Eye: The reveal pulses the eagles that were missed [speed-attention.md] |  | 5–40 (per move) | silent | none | 200 | fail sting | `symscan.missed` |
-| `symscan.mark` | Eagle Eye: A cell is marked (pop) [speed-attention.md] |  | 5–40 (per move) | silent | none | 200 | UI tap | `symscan.mark` |
-| `symscan.unmark` | Eagle Eye: A cell is unmarked [speed-attention.md] |  | 5–40 (per move) | silent | none | 150 | UI tap | `symscan.unmark` |
-
-### Labyrinth
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `maze.step` | Labyrinth: Each step of the trail (a little higher past each junction) [speed-attention.md] |  | 5–40 (per move) | silent | none | 50 | game event | `maze.step` |
-| `maze.bump` | Labyrinth: A step into a wall: the trail end flashes [speed-attention.md] |  | 5–40 (per move) | silent | none | 120 | fail sting | `maze.bump` |
-| `maze.back` | Labyrinth: A step back along the trail (it retracts) [speed-attention.md] |  | 5–40 (per move) | silent | none | 40 | game event | `maze.back` |
-| `maze.deadEnd` | Labyrinth: The trail reaches the tip of a dead end [speed-attention.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `maze.deadEnd` |
-
-### Matchmaker
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `pairmatch.flip` | Matchmaker: A card turned over [speed-attention.md] |  | 5–40 (per move) | silent | none | 100 | game event | `pairmatch.flip` |
-| `pairmatch.match` | Matchmaker: A match: both cards lift and lock face up (from a streak of two, the kit's rising combo tone instead) [speed-attention.md] |  | 5–40 (per move) | silent | none | 350 | game event | `pairmatch.match` |
-| `pairmatch.miss` | Matchmaker: A miss: the cards flip back [speed-attention.md] |  | 5–40 (per move) | silent | none | 150 | fail sting | `pairmatch.miss` |
-| `pairmatch.gold` | Matchmaker: The gold pair matched: its own shimmer [speed-attention.md] |  | 5–40 (per move) | silent | none | 700 | game event | `pairmatch.gold` |
-
 ### Mixed Signals
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `stroop.gatePulse` | Mixed Signals: A word lands in a gate (white pulse if right, grey if wrong) [speed-attention.md] |  | 5–40 (per move) | silent | none | 300 | game event | `stroop.gatePulse` |
-
-### Tally
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `countup.mark` | Tally: countRev 7: a shape tapped to mark it as counted (the Attention overhaul, 15 Nov 2026) [speed-attention.md] |  | 5–40 (per move) | silent | none | 120 | UI tap | `countup.mark` |
-| `countup.unmark` | Tally: countRev 7: a mark taken off a shape [speed-attention.md] |  | 5–40 (per move) | silent | none | 100 | UI tap | `countup.unmark` |
-| `countup.key` | Tally: A keypad key pressed (the Attention overhaul's stage 2, 15 Nov 2026) [speed-attention.md] |  | 5–40 (per move) | silent | none | 60 | game event | `countup.key` |
-| `countup.trayOut` | Tally: ENTER: the tray slides away and the next comes in [speed-attention.md] |  | 5–40 (per move) | silent | none | 400 | game event | `countup.trayOut` |
-| `countup.revealTick` | Tally: The reveal lights each counted shape in turn (pitched up a little each time) [speed-attention.md] |  | 5–40 (per move) | silent | none | 40 | game event | `countup.revealTick` |
-| `countup.soClose` | Tally: The reveal: a tray one off ("So close") [speed-attention.md] |  | 5–40 (per move) | silent | none | 400 | game event | `countup.soClose` |
 
 ### Gradient
 
@@ -314,33 +92,11 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `tiles.slide` | A tile changes cell (a slide or an undo) [pattern.md (Gradient (tiles))] |  | 5–40 (per move) | silent | none | 160 | game event | `tiles.slide` |
 
-### Heave
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `push.step` | A walking step [pattern.md (Heave (push))] |  | 5–40 (per move) | silent | none | 120 | game event | `push.step` |
-| `push.push` | A step that pushes a crate [pattern.md (Heave (push))] |  | 5–40 (per move) | silent | none | 120 | game event | `push.push` |
-
 ### Lightbender
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `laser.place` | A mirror or splitter is placed or moved [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 180 | UI tap | `laser.place` |
-| `laser.turn` | A placed mirror is flipped [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 180 | game event | `laser.turn` |
-| `laser.fire` | The beam starts [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 2000 | game event | `laser.fire` |
 | `laser.gem` | One or more gems light during a shot [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | silent | none | 260 | game event | `laser.gem` |
-
-### Pipeline
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `pipes.rotate` | Each tile turn, either way (a quarter turn) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | silent | none | 170 | game event | `pipes.rotate` |
-
-### Skid
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `iceslide.slide` | A slide of up to four squares starts (the ball and its frost trail move) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | silent | none | 100 | game event | `iceslide.slide` |
 
 ### Turntable
 
@@ -354,216 +110,11 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `lightsout.toggle` | A light is pressed [logic.md] |  | 5–40 (per move) | silent | none | 180 | UI tap | `lightsout.toggle` |
 
-### Box Six
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `sudoku.place` | A digit is entered in a cell (not pencil marks, not clearing) [logic.md] |  | 5–40 (per move) | silent | none | 170 | UI tap | `sudoku.place` |
-| `sudoku.clash` | A digit makes a row, column or box repeat (the clashing digits turn red) [logic.md] |  | 5–40 (per move) | silent | none | 360 | game event | `sudoku.clash` |
-| `sudoku.pencil` | A pencil mark is added or removed [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `sudoku.pencil` |
-| `sudoku.line` | A digit completes a row, column or box (pitched up when it completes several) [logic.md] |  | 1–5 | silent | none | 420 | game event | `sudoku.line` |
-| `sudoku.check` | Box Six Expert: Check pressed with no clash (a clash plays sudoku.clash as it shows) [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `sudoku.check` |
-
-### Colour Flood
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `flood.spread` | A colour is tapped and the paint spreads [logic.md] |  | 5–40 (per move) | silent | none | 220 | game event | `flood.spread` |
-
-### Hanoi
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `tower.drop` | A ring lands on a post (legal move) [logic.md] |  | 5–40 (per move) | silent | none | 220 | game event | `tower.drop` |
-
-### Lamplighter
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `lightup.lamp` | A lamp is placed [logic.md] |  | 5–40 (per move) | silent | none | 40 | game event | `lightup.lamp` |
-| `lightup.dot` | A square is marked with a dot [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `lightup.dot` |
-
-### Minefield
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `minesweeper.cascadeTick` | Minefield: a cascade opens; up to 8 ticks, 45 ms apart, rising in pitch [minefield.md] |  | 5–40 (per move) | silent | none | 200 | game event | `minesweeper.cascadeTick` |
-| `minesweeper.defuse` | Minefield: each mine still hidden at the clear, one by one [minefield.md] |  | 0–1 | silent | none | 1000 | success sting | `minesweeper.defuse` |
-| `minesweeper.tapNumber` | Minefield: a number tapped before its flags add up [minefield.md] |  | 5–40 (per move) | silent | none | 80 | UI tap | `minesweeper.tapNumber` |
-
-### Mosaic
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `nonogram.fill` | A cell is filled [logic.md] |  | 5–40 (per move) | silent | none | 170 | game event | `nonogram.fill` |
-| `nonogram.mark` | A cell is marked empty (×) [logic.md] |  | 5–40 (per move) | silent | none | 140 | UI tap | `nonogram.mark` |
-| `nonogram.paint` | A drag paints one more square (fill) [logic.md] |  | 5–40 (per move) | silent | none | 90 | game event | `nonogram.paint` |
-| `nonogram.line` | A line now matches its numbers (pitched up for several at once) [logic.md] |  | 1–5 | silent | none | 420 | game event | `nonogram.line` |
-| `nonogram.autoCross` | Mosaic Easy: a line matching its numbers crosses its empty squares [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `nonogram.autoCross` |
-
-### Polypotions
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `tubes.pour` | A pour lands [logic.md] |  | 5–40 (per move) | silent | none | 240 | game event | `tubes.pour` |
-| `tubes.undo` | Undo is tapped (tubesRev 3 gives the pour back) [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tubes.undo` |
-| `tubes.outOfPours` | The last allowed pour leaves the board unsorted [logic.md] |  | 5–40 (per move) | silent | none | 1100 | game event | `tubes.outOfPours` |
-| `tubes.uncover` | Polypotions Expert: a hidden layer uncovered [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tubes.uncover` |
-
-### Safe Cracker
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `safe.wrongTry` | A try that breaks a clue (the broken clues flash red) [logic.md] |  | 5–40 (per move) | silent | none | 520 | fail sting | `safe.wrongTry` |
-
-### Shikaku
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `shikaku.place` | A rectangle is accepted [logic.md] |  | 5–40 (per move) | silent | none | 180 | UI tap | `shikaku.place` |
-| `shikaku.remove` | A rectangle is tapped away [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `shikaku.remove` |
-
-### Tents and Trees
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `tents.pitch` | A tent is placed [logic.md] |  | 5–40 (per move) | silent | none | 240 | game event | `tents.pitch` |
-| `tents.grass` | A cell is marked as grass [logic.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tents.grass` |
-
-### Trail
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `trail.step` | the path gains a step [number.md] |  | 5–40 (per move) | silent | none | 200 | game event | `trail.step` |
-
-### Apex
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `racing.speedRush` |  [arcade-effects.md] | Speed lines at the screen's edges, stronger with speed | 5–40 (per move) | silent | none | loop | game event | `racing.speedRush` |
-| `racing.scrape` |  [arcade-effects.md] | Sparks off the car's touching side | 5–40 (per move) | silent | none | 800 | game event | `racing.scrape` |
-| `racing.chequer` |  [arcade-effects.md] | The chequered flag waves in, then the lap times and average speed count up | 5–40 (per move) | silent | none | 2500 | game event | `racing.chequer` |
-
-### Ball Tracker
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `balltrack.booster` | Ball Tracker: A marble rolls onto a booster [strategy-elevenlabs.md] |  | 5–20 | silent | none | 200 | game event | `balltrack.booster` |
-| `balltrack.combo` | Ball Tracker: The home-in-a-row combo steps up (a step higher each time) [strategy-elevenlabs.md] |  | 0–30 | silent | none | 300 | game event | `balltrack.combo` |
-| `balltrack.cupPulse` | Ball Tracker: One second before the cups move [strategy-elevenlabs.md] |  | 2 | silent | none | 400 | game event | `balltrack.cupPulse` |
-
-### Blockzone
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `blockfall.turnRefused` | A move or turn refused (the state's rejects; at most one per 120 ms) [arcade-effects.md] | The piece outlined red | 0–30 | silent | none | 120 | game event | `blockfall.turnRefused` |
-| `blockfall.hardDrop` | A piece locks after a drop of three rows or more (bfHardDropped) [arcade-effects.md] | A streak down each of the piece's columns | 10–60 | silent | none | 250 | game event | `blockfall.hardDrop` |
-| `blockfall.sweep` | A line clear (beside blockfall.clear / blockfall.bigClear) [arcade-effects.md] | Sparks off both walls along the rows | 5–30 | silent | none | 300 | game event | `blockfall.sweep` |
-| `blockfall.heartbeat` | The stack within three rows of the top (bfNearTop; a loop while it stays) [arcade-effects.md] | The well's rim beats red | loop | silent | none | loop | ambience | `blockfall.heartbeat` |
-
-### Breaker
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `breaker.timeToPoints` | The wall cleared (stage 3) [arcade-effects.md] | WALL CLEARED! and SPEED +n counting up, sparks | 0–1 | silent | none | 1200 | game event | `breaker.timeToPoints` |
-
-### Coral Pop
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `bubble.reefRumble` | Coral Pop: The reef shifts down a row [strategy-elevenlabs.md] |  | 5–12 | silent | none | 600 | game event | `bubble.reefRumble` |
-| `bubble.warning` | Coral Pop: The reef's lowest row comes within two rows of the line (at most every 1.5 s) [strategy-elevenlabs.md] |  | 0–5 | silent | none | 500 | game event | `bubble.warning` |
-
-### Cue Ball
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `pool.cueCrack` | Cue Ball: The cue strikes the cue ball (with its file it replaces the soft or hard strike) [pool-overhaul.md] |  | 5–20 | silent | none | 300 | game event | `pool.cueCrack` |
-| `pool.rackRoll` | Cue Ball: A potted ball of your set lands in the rack at the top [pool-overhaul.md] |  | 0–7 | silent | none | 800 | game event | `pool.rackRoll` |
-| `pool.blackUnlock` | Cue Ball: Your seven are down: the black unlocks [pool-overhaul.md] |  | 0–1 | silent | none | 700 | game event | `pool.blackUnlock` |
-| `pool.streakUp` | Cue Ball: The "IN A ROW" count grows [pool-overhaul.md] |  | 0–6 | silent | none | 400 | game event | `pool.streakUp` |
-
-### Curl Champ
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `curling.powerNotch` | Curl Champ: The power bar's marker clicks into place (curlRev 4: a tap or the end of a drag on the bar, each − / +), outside the gold HOUSE zone; the marker snaps (without its file: tick, 0.55) [sports-overhaul.md] |  | 8–20 | silent | none | 80 | game event | `curling.powerNotch` |
-| `curling.powerNotchHouse` | Curl Champ: The same, with the marker in the gold HOUSE zone (without its file: tick, full and a third higher) [sports-overhaul.md] |  | 4–16 | silent | none | 150 | game event | `curling.powerNotchHouse` |
-| `curling.clack` | Curl Champ: Stone on stone, with a ring opening at the contact point (without its file: curling.hit, as before) [sports-overhaul.md] |  | 0–15 | silent | none | 300 | game event | `curling.clack` |
-| `curling.ooh` | Curl Champ: A red knocked out of the house, as it goes (a dashed red ring marks where it left; silent until its file, the applause still plays as the stone comes to rest) [sports-overhaul.md] |  | 0–3 | silent | none | 1200 | game event | `curling.ooh` |
-| `curling.countTick` | Curl Champ: The end (curlRev 4): the house view zooms to the middle and each counting stone lights, one tick each, a step higher each time (without its file: tick, 0.7) [sports-overhaul.md] |  | 0–8 | silent | none | 100 | game event | `curling.countTick` |
-
 ### Dual
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.dual` | Dual (retired, practice): none |  | loop | silent | none | 60000 | music | `music_dual` |
-
-### Fission
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `burst.fizzle` | A wasted beam reaches the ceiling with no hit (burstRev 11's whiffs; at most one per 120 ms) [arcade-effects.md] | A grey puff and sparks at the ceiling | 0–30 | silent | none | 160 | game event | `burst.fizzle` |
-| `burst.overheadHum` | An atom skims within 6 px over the ship (burstOverhead; at most one per 400 ms) [arcade-effects.md] | A white ring shimmers over the ship | 0–20 | silent | none | 300 | game event | `burst.overheadHum` |
-| `burst.lifeIconBreak` | A life is lost (beside burst.lifeLost) [arcade-effects.md] | The ship breaks into red shards | 0–3 | silent | none | 200 | game event | `burst.lifeIconBreak` |
-
-### Five Hands
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `fivehands.flip` | Five Hands [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `fivehands.flip` |
-| `fivehands.stamp` | Five Hands [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `fivehands.stamp` |
-| `fivehands.bigStamp` | Five Hands [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `fivehands.bigStamp` |
-| `fivehands.columnTick` | Five Hands [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `fivehands.columnTick` |
-| `fivehands.countUp` | Five Hands [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `fivehands.countUp` |
-
-### Free Cell
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `freecell.undo` | Free Cell [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `freecell.undo` |
-| `freecell.reset` | Free Cell [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `freecell.reset` |
-| `freecell.wobble` | Free Cell [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `freecell.wobble` |
-| `freecell.combo` | Free Cell [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `freecell.combo` |
-| `freecell.bounce` | Free Cell [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `freecell.bounce` |
-
-### Gemstone
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `matchup.goalSpark` | Gemstone: A clear counts towards a colour goal (sparks fly to it) [strategy-elevenlabs.md] |  | 20–60 | silent | none | 300 | game event | `matchup.goalSpark` |
-| `matchup.iceCrack` | Gemstone: An ice cell cracks and shatters [strategy-elevenlabs.md] |  | 0–10 | silent | none | 300 | game event | `matchup.iceCrack` |
-
-### Grappler
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `swing.ropeSnap` | Action overhaul: every grab, on top of swing.vineCreak (swingRev 17) [arcade-effects.md] | The vine pulled taut at the grab point | 20–60 | silent | none | 200 | game event | `swing.ropeSnap` |
-| `swing.speedWhoosh` | Action overhaul: a release fast enough to light a speed gate (swingRev 17) [arcade-effects.md] | The hero flying off the vine | 0–20 | silent | none | 450 | game event | `swing.speedWhoosh` |
-| `swing.courseCleared` | Action overhaul: the whole course cleared (swingRev 17) [arcade-effects.md] | COURSE CLEARED! banner | 0–1 | silent | none | 1600 | game event | `swing.courseCleared` |
-| `swing.streakMeter` | Action overhaul stage 2: each clean grab (swingRev 17+), a pentatonic step higher up the block of eight [arcade-effects.md] | A segment of the arc meter under STREAK lighting gold | 0–60 | silent | none | 120 | game event | `swing.streakMeter` |
-| `swing.outOfReach` | Action overhaul stage 2: a press that grabbed nothing, the nearest vine ahead just out of reach (swingRev 17+, live play only) [arcade-effects.md] | That vine and its ring tinted red for half a second | 0–20 | silent | none | 300 | game event | `swing.outOfReach` |
-| `swing.pteroShadow` | Action overhaul stage 2: the pterodactyl starting the chase (swingRev 17+); its screech and wingbeats follow 1.2 s later [arcade-effects.md] | Its shadow sweeping across the canopy | 0–1 | silent | none | 1200 | game event | `swing.pteroShadow` |
-| `swing.stretchTally` | Action overhaul stage 2: the end banner counting the stretches cleared up, one tick a stretch, rising [arcade-effects.md] | "COURSE CLEARED!" (or "TIME") and "n / 51 stretches" | 0–51 | silent | none | 90 | game event | `swing.stretchTally` |
-
-### High Rise
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `skyline.lifeLost` | A block misses and costs a life; the run carries on (skylineRev 11, the Action overhaul) [arcade-effects.md] | The block falls away, "−1 LIFE", the LIVES chip rings | 0–2 | silent | none | 600 | fail sting | `skyline.lifeLost` |
-| `skyline.wideBlock` | The wide-block rescue arrives after five trims in a row (skylineRev 11) [arcade-effects.md] | The NEXT panel shows WIDE | 0–3 | silent | none | 400 | game event | `skyline.wideBlock` |
-| `skyline.trim` | A drop cuts an overhang off (the Action overhaul) [arcade-effects.md] | The overhang falls away spinning and the cut edge crumbles (stage 2) | 10–40 | silent | none | 700 | game event | `skyline.trim` |
-| `skyline.sliver` | A drop lands with under a quarter of the block on the tower (the Action overhaul) [arcade-effects.md] | A thin floor on the tower wobbles on its foot (stage 2) | 0–5 | silent | none | 700 | game event | `skyline.sliver` |
-
-### Home Run
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `homerun.umpStrike` | Home Run: homerunRev 5: strike one or two (swinging or looking): the umpire's call [home-run-top-bins-elevenlabs.md] |  | 0–30 | silent | none | 700 | game event | `homerun.umpStrike` |
-| `homerun.umpBall` | Home Run: homerunRev 5: a pitch outside the zone left alone (ball one to three) [home-run-top-bins-elevenlabs.md] |  | 0–15 | silent | none | 600 | game event | `homerun.umpBall` |
-| `homerun.footsteps` | Home Run: homerunRev 5: a hit or fielder's choice, as the runners set off [home-run-top-bins-elevenlabs.md] |  | 0–25 | silent | none | 900 | game event | `homerun.footsteps` |
-| `homerun.aimThunk` | Home Run: homerunRev 5: the swipe's aim line drops onto the field as the swing starts [home-run-top-bins-elevenlabs.md] |  | 0–30 | silent | none | 250 | UI tap | `homerun.aimThunk` |
-| `homerun.inningsEnd` | Home Run: homerunRev 5: the third out or the clock (the innings summary appears) [home-run-top-bins-elevenlabs.md] |  | 1 | silent | none | 2500 | game event | `homerun.inningsEnd` |
 
 ### Hot Floor
 
@@ -571,51 +122,11 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `music.hotfloor` | Hot Floor (retired, practice): none |  | loop | silent | none | 60000 | music | `music_hotfloor` |
 
-### Hover
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `hover.flyOff` | The run lasted the minute (stage 3 of the Retro overhaul) [arcade-effects.md] | The saucer lifts away with streaks; COURSE COMPLETE and the barriers counting up | 0–1 | silent | none | 700 | game event | `hover.flyOff` |
-
 ### Iron Wall
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `bastion.weakTing` |  [arcade-effects.md] | The weak spot flashing gold (a disc, then a ring opening out), every time | 5–40 (per move) | silent | none | 260 | game event | `bastion.weakTing` |
-| `bastion.shellIn` |  [arcade-effects.md] | The five shell slots lighting one by one beside the green needle | 5–40 (per move) | silent | none | 90 | game event | `bastion.shellIn` |
-| `bastion.jamGrind` |  [arcade-effects.md] | The needle turns red and shakes | 5–40 (per move) | silent | none | 700 | game event | `bastion.jamGrind` |
-| `bastion.debris` |  [arcade-effects.md] | The burst, armour debris flung out and falling, "+n" rising off it, then the smoke | 5–40 (per move) | silent | none | 600 | game event | `bastion.debris` |
-| `bastion.nearMiss` |  [arcade-effects.md] | A bigger, dustier puff where it landed and CLOSE rising off it | 5–40 (per move) | silent | none | 350 | game event | `bastion.nearMiss` |
-| `bastion.panelCrack` |  [arcade-effects.md] | The red edge flash and a crack splitting across the bottom panel where the tank came through (it stays) | 5–40 (per move) | silent | none | 500 | game event | `bastion.panelCrack` |
-| `bastion.wallHeld` |  [arcade-effects.md] | WALL HELD stamped under the tally | 5–40 (per move) | silent | none | 1800 | game event | `bastion.wallHeld` |
-| `bastion.tally` |  [arcade-effects.md] | WAVE n with its tank pips and "4 / 5" | 5–40 (per move) | silent | none | 150 | game event | `bastion.tally` |
-| `bastion.tip` |  [arcade-effects.md] | "Tip: swipe down to reload early" on the panel | 5–40 (per move) | silent | none | 300 | game event | `bastion.tip` |
-| `bastion.dustWind` |  [arcade-effects.md] | Amber haze and sand hills | 5–40 (per move) | silent | none | loop | game event | `bastion.dustWind` |
-| `bastion.stormFire` |  [arcade-effects.md] | Smoke columns and fires on the skyline | 5–40 (per move) | silent | none | loop | game event | `bastion.stormFire` |
-
-### Mahjong Solitaire
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `mahjong.undo` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `mahjong.undo` |
-| `mahjong.reset` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `mahjong.reset` |
-| `mahjong.pairFly` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `mahjong.pairFly` |
-| `mahjong.wrongPair` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `mahjong.wrongPair` |
-| `mahjong.blockers` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `mahjong.blockers` |
-| `mahjong.spin` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `mahjong.spin` |
-| `mahjong.nearEnd` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `mahjong.nearEnd` |
-| `mahjong.shower` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `mahjong.shower` |
-
-### Meteor
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `snake.turn` | The comet turns (at most one per 60 ms) [arcade-effects.md] | A few sparks flare off the head | 20–80 | silent | none | 60 | game event | `snake.turn` |
-| `snake.wrap` | The head comes in through an edge (snakeRev 13; at most one per 150 ms) [arcade-effects.md] | A cyan ring where it arrives | 0–20 | silent | none | 250 | game event | `snake.wrap` |
-| `snake.rockGraze` | The head passes a rock square beside it (snakeRockGraze; at most one per 200 ms) [arcade-effects.md] | Dust puffs off the rock | 0–20 | silent | none | 180 | game event | `snake.rockGraze` |
-| `snake.goldStar` | A gold star eaten (snakeRev 9+) [arcade-effects.md] | A gold ring where it was eaten | 0–8 | silent | none | 300 | game event | `snake.goldStar` |
-| `snake.warp` | Through a wormhole (snakeRev 9+; at most one per 150 ms) [arcade-effects.md] | The wormhole's own flash | 0–10 | silent | none | 300 | game event | `snake.warp` |
-| `snake.laneWhoosh` | A speed-lane ride counted (snakeRev 11+) [arcade-effects.md] | The lane's own glow | 0–10 | silent | none | 400 | game event | `snake.laneWhoosh` |
 
 ### Moon Climb
 
@@ -627,51 +138,11 @@ Grouped by game or screen. These are the cues still missing a sound.
 | `ricochet.scrollTally` |  [arcade-effects.md] | The scroll flies up into the count, the chip flashing | 5–40 (per move) | silent | none | 400 | game event | `ricochet.scrollTally` |
 | `ricochet.lanternSway` |  [arcade-effects.md] | The lantern brightens and sways under the ninja's hands, settling over the ride | 5–40 (per move) | silent | none | 500 | game event | `ricochet.lanternSway` |
 
-### Orbit
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `orbit.thrust` | The rocket flies (orbitRev 14+, the Action overhaul) [arcade-effects.md] | The flame; the loop's rate falls with the fuel left | loop | silent | none | loop | ambience | `orbit.thrust` |
-| `orbit.stardust` | A stardust mote is taken (orbitRev 12+) [arcade-effects.md] | The mote's glitter | 0–30 | silent | none | 120 | game event | `orbit.stardust` |
-| `orbit.sunBloom` | The sun is reached (orbitRev 14+) [arcade-effects.md] | The sun's bloom (stage 2 of the Action overhaul) | 0–1 | silent | none | 2500 | game event | `orbit.sunBloom` |
-
-### Pinball
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `pinball.ballLocked` | A ball locked (pinRev 4+) [arcade-effects.md] | The lock flares gold, "BALL n LOCKED" over it | 0–6 | silent | none | 500 | game event | `pinball.ballLocked` |
-| `pinball.multiballStart` | Multiball starts (pinRev 4+) [arcade-effects.md] | Bright sparks from the lock | 0–3 | silent | none | 1200 | game event | `pinball.multiballStart` |
-| `pinball.multiballEnd` | Multiball ends: the last extra ball drains with the main ball still in play (pinRev 4+) [arcade-effects.md] | The lock's lights settle | 0–3 | silent | none | 600 | game event | `pinball.multiballEnd` |
-| `pinball.counterRoll` | The run ends (stage 3) [arcade-effects.md] | TABLE TOTAL rolls up digit by digit like a mechanical counter | 0–1 | silent | none | 1500 | game event | `pinball.counterRoll` |
-| `pinball.outlaneSave` | A ball that fell into an outlane's mouth climbs back out (pinRev 8, the sim's outSaves) [arcade-effects.md] | Gold sparks at the post, SAVED! | 0–1 | silent | none | 400 | game event | `pinball.outlaneSave` |
-
-### Rainbow Bridge
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `inkbridge.coinWobble` | Rainbow Bridge: The coin is released and wobbles [strategy-elevenlabs.md] |  | 10–20 | silent | none | 300 | game event | `inkbridge.coinWobble` |
-| `inkbridge.birdFlap` | Rainbow Bridge: The coin passes close to a flock [strategy-elevenlabs.md] |  | 0–20 | silent | none | 400 | game event | `inkbridge.birdFlap` |
-| `inkbridge.missWhistle` | Rainbow Bridge: The coin falls past the pot's rim (a miss) [strategy-elevenlabs.md] |  | 0–10 | silent | none | 900 | fail sting | `inkbridge.missWhistle` |
-
-### Rally
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `rally.serve` | The lost blue ball serves again after its 1.5 s wait (rallyRev 13) [arcade-effects.md] | The waiting ball stops blinking and flies up | 0–1 | silent | none | 160 | game event | `rally.serve` |
-| `rally.spinShot` | A ball still curving from a swiped return strikes a pink pad or a gold target (rallyRev 13) [arcade-effects.md] | The pad's or target's own burst | 0–8 | silent | none | 360 | game event | `rally.spinShot` |
-
 ### Roofbound
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `flip.respawn` | After a crash the runner blinks back and runs on (flipRev 13's grace, the Action overhaul) [arcade-effects.md] | A short white flash at the runner (8 ticks), then it blinks for its second of shield; a "−10 s" pop | 0–5 | silent | none | 450 | game event | `flip.respawn` |
-| `flip.land` | A landing on the stone lip (flipRev 11–13, at most one a 60 ms) [arcade-effects.md] | A dust puff at the landing spot, drifting back with the cave (stage 2; gold on a sweet spot) | 20–60 | silent | none | 180 | game event | `flip.land` |
-| `flip.flowTick` | A clean landing adds to the flow streak (flipRev 11–13; pitched up along the streak) [arcade-effects.md] | The flow counter riding over the runner's head ("×12") pops up a step (stage 2); the FLOW chip ticks up | 20–60 | silent | none | 160 | game event | `flip.flowTick` |
-| `flip.flowTen` | Every 10th clean landing in a row (flipRev 11–13) [arcade-effects.md] | The counter turns gold for the step, bigger, with two small glints (stage 2) | 0–6 | silent | none | 300 | game event | `flip.flowTen` |
-| `flip.flowBreak` | A crash breaks a flow streak of 3 or more (flipRev 11–13) [arcade-effects.md] | The counter cracks in two, dulls and falls away (stage 2); the FLOW chip drops to 0 | 0–5 | silent | none | 350 | game event | `flip.flowBreak` |
-| `flip.nearMiss` | The runner flips off just before a spike or lands just past one, within 24 px of its box (flipRev 11–13, stage 2 of the Action overhaul) [arcade-effects.md] | A white glint on the spike's nearest blade tip | 0–10 | silent | none | 250 | game event | `flip.nearMiss` |
 | `flip.sweetGold` | A sweet-spot landing's gold dust puff (flipRev 11–13, stage 2; the chime stays flip.sweetLanding) [arcade-effects.md] | A gold puff at the landing spot | 0–8 | silent | none | 350 | game event | `flip.sweetGold` |
-| `flip.flowCount` | The end card's flow best counting up (flipRev 11–13, stage 2) [arcade-effects.md] | SURVIVED! with BEST FLOW counting up under it (800 ms) | 0–1 | silent | none | 800 | game event | `flip.flowCount` |
 
 ### Rooftop Run
 
@@ -679,29 +150,11 @@ Grouped by game or screen. These are the cues still missing a sound.
 |---|---|---|---|---|---|---|---|---|
 | `music.rooftop` | Rooftop Run (retired, practice): none |  | loop | silent | none | 60000 | music | `music_rooftop` |
 
-### Spacewalk
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `cross.jetPuff` | Each hop starts (at most one per 60 ms) [arcade-effects.md] | A jet puff under the astronaut | every hop | silent | none | 80 | game event | `cross.jetPuff` |
-| `cross.land` | A hop lands with no hit (at most one per 80 ms) [arcade-effects.md] | A dust ring at the astronaut's feet | every hop | silent | none | 90 | game event | `cross.land` |
-
 ### Steady
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `music.steady` | Steady (retired, practice): none |  | loop | silent | none | 60000 | music | `music_steady` |
-
-### Summit
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `tripeaks.flip` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tripeaks.flip` |
-| `tripeaks.ladderBreak` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tripeaks.ladderBreak` |
-| `tripeaks.peakFly` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tripeaks.peakFly` |
-| `tripeaks.nudge` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tripeaks.nudge` |
-| `tripeaks.stuck` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tripeaks.stuck` |
-| `tripeaks.peaksLight` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `tripeaks.peaksLight` |
 
 ### Swerve
 
@@ -719,61 +172,7 @@ Grouped by game or screen. These are the cues still missing a sound.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `beat.feverRiser` | Fever starts (beatRev 9+) [arcade-effects.md] | The fever bar's own flash | 0–4 | silent | none | 700 | game event | `beat.feverRiser` |
-| `beat.holdCrackle` | A hold note released cleanly (at most one per 80 ms) [arcade-effects.md] | Sparks crackle at its button while it is held | 0–20 | silent | none | 200 | game event | `beat.holdCrackle` |
-| `beat.missThud` | A note missed (beside beat.miss) [arcade-effects.md] | A grey block drops out of its lane | 0–40 | silent | none | 120 | fail sting | `beat.missThud` |
 | `beat.backing` | Tempo: The synthesised 120 BPM backing beat, one step per eighth note (no slot); since sound batch 4 only until music_beat has decoded, or if it fails [core.md] |  | loop | synthesised placeholder | none | loop | ambience | none |
-
-### Thirteen
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `pyramid.undo` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `pyramid.undo` |
-| `pyramid.reset` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `pyramid.reset` |
-| `pyramid.pairFly` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `pyramid.pairFly` |
-| `pyramid.kingFlourish` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `pyramid.kingFlourish` |
-| `pyramid.wrongPair` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `pyramid.wrongPair` |
-| `pyramid.uncover` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `pyramid.uncover` |
-| `pyramid.outline` | Thirteen [cards-board-elevenlabs.md] |  | 1–5 | silent | none | 200 | game event | `pyramid.outline` |
-
-### Tilt
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `tilt.rimTick` | Tilt: The disc's rim passes one of its 48 notches (at most one per 45 ms) [strategy-elevenlabs.md] |  | 50–300 | silent | none | 40 | game event | `tilt.rimTick` |
-| `tilt.pitWobble` | Tilt: A marble arrives on a black hole's lip [strategy-elevenlabs.md] |  | 0–15 | silent | none | 250 | game event | `tilt.pitWobble` |
-| `tilt.discSwap` | Tilt: A maze is finished; it spins away as the next drops in [strategy-elevenlabs.md] |  | 3–4 | silent | none | 800 | game event | `tilt.discSwap` |
-
-### Top Bins
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `freekick.windFlag` | Top Bins: freekickRev 5: a loop under a kick being set when there is wind (louder with it) [home-run-top-bins-elevenlabs.md] |  | 0–10 | silent | none | 3000 | game event | `freekick.windFlag` |
-| `freekick.bendWhistle` | Top Bins: freekickRev 5: a loop while the drawn stroke bends, its pitch rising with the bend [home-run-top-bins-elevenlabs.md] |  | 0–10 | silent | none | 1200 | game event | `freekick.bendWhistle` |
-| `freekick.powerTone` | Top Bins: freekickRev 5: a loop while the power bar is held, its pitch rising with the bar [home-run-top-bins-elevenlabs.md] |  | 0–10 | silent | none | 1600 | game event | `freekick.powerTone` |
-| `freekick.wallJump` | Top Bins: freekickRev 5: the wall jumps (its kicks only) [home-run-top-bins-elevenlabs.md] |  | 0–6 | silent | none | 500 | game event | `freekick.wallJump` |
-| `freekick.dive` | Top Bins: freekickRev 5: the keeper sets off on his dive [home-run-top-bins-elevenlabs.md] |  | 0–10 | silent | none | 600 | game event | `freekick.dive` |
-| `freekick.spill` | Top Bins: freekickRev 5: a save, the ball spilling from the keeper's hands [home-run-top-bins-elevenlabs.md] |  | 0–10 | silent | none | 500 | game event | `freekick.spill` |
-| `freekick.chant` | Top Bins: freekickRev 5: the fifth goal in a row (the crowd chants) [home-run-top-bins-elevenlabs.md] |  | 0–1 | silent | none | 4000 | game event | `freekick.chant` |
-| `freekick.hoopShrink` | Top Bins: freekickRev 5: the next kick's corner hoop appears, smaller [home-run-top-bins-elevenlabs.md] |  | 0–4 | silent | none | 600 | game event | `freekick.hoopShrink` |
-
-### Wavefront
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `wavefront.powerChirp` | A power-up caught (the Retro overhaul) [arcade-effects.md] | A ring opens round the fighter | 0–8 | silent | none | 220 | game event | `wavefront.powerChirp` |
-| `wavefront.boltZip` | An enemy bolt passes within 4 px of the fighter (wavBoltNearMiss; at most one per 330 ms) [arcade-effects.md] | A white streak beside the fighter | 0–20 | silent | none | 140 | game event | `wavefront.boltZip` |
-| `wavefront.plateOff` | An armoured ship loses a plate without dying (beside wavefront.armourHit) [arcade-effects.md] | The warship flashes white | 0–12 | silent | none | 200 | game event | `wavefront.plateOff` |
-| `wavefront.bossStages` | The final boss destroyed (stage 3) [arcade-effects.md] | Three bursts across the hull, then the big one; BOSS DOWN! and the waves counting up | 0–1 | silent | none | 2000 | game event | `wavefront.bossStages` |
-
-### cards
-
-| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
-|---|---|---|---|---|---|---|---|---|
-| `cards.confirm` | Free Cell, Mahjong, Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `cards.confirm` |
-| `cards.hint` |  [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `cards.hint` |
-| `cards.hintIdle` |  [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 200 | game event | `cards.hintIdle` |
-| `cards.deadEnd` |  [cards-board-elevenlabs.md] |  | 5–40 (per move) | silent | none | 300 | fail sting | `cards.deadEnd` |
 
 ## Music by screen and game
 
@@ -906,6 +305,8 @@ Grouped by game or screen.
 | `shared.signature.solve` | The signature beat starts: 1.0 s after a puzzle's solve moment (verdict solved); after a non-arcade game with no finish state ends its run on 120 or more; 1.0 s after an arcade finish game reaches its finish; 1.0 s after an open arcade game ends a run of 120 or more on the phone's sim. [shared.md] |  | 0–1 (solve or 120+) | recorded sound | `shared.signature.solve` | 600 | success sting | `shared.signature.solve` |
 | `shared.signature.fast` | As shared.signature.solve, for a solve or finish with at least half the time left (the full speed part); the beat is a little bigger. Replaces the solve cue (one or the other, never both). [shared.md] |  | 0–1 (solve or 120+) | recorded sound | `shared.signature.fast` | 600 | success sting | `shared.signature.fast` |
 | `shared.perfect` | The reveal shows a stored score of 150: a short gold burst on the score (puzzle and arcade reveals). [shared.md] |  | 0–1 | recorded sound | `shared.perfect` | 500 | success sting | `shared.perfect` |
+| `shared.wordDrop` | A Word game's round end (stage 2, 15 Nov 2026): each found word drops into the reveal's list, one every 90 ms (up to 12); the shared tick until Joe's recording. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.wordDrop` | 60 | game event | `shared.wordDrop` |
+| `shared.wordLongest` | A Word game's round end: the longest word lands on its gold chip; the shared tick until Joe's recording. [shared.md] |  | 5–40 (per move) | recorded sound | `shared.wordLongest` | 300 | game event | `shared.wordLongest` |
 | `shared.roundResults` | The room's Round results screen appears (RoundResult, RoundResultsTable, once on mount): every player but the round's top scorer, who hears round_won instead (never both). In a two-player room the loser's "round lost" or the tie's "tie" voice line follows it. Sound batch 4 (room.roundResults.mp3). [shared.md] |  | 5–40 (per move) | recorded sound | `shared.roundResults` | 900 | game event | `shared.roundResults` |
 | `shared.help.open` | An in-game "?" help sheet opens. [shared.md] |  | 0–2 | recorded sound | `shared.help.open` | 150 | UI tap | `shared.help.open` |
 | `shared.help.close` | An in-game "?" help sheet closes (close button, tap outside or Escape). [shared.md] |  | 0–2 | recorded sound | `shared.help.close` | 150 | UI tap | `shared.help.close` |
@@ -1211,6 +612,11 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `codeword.finish` | Cryptogrid: The server confirms the grid is cracked (the solve moment). The decoded letters flip across the grid in a diagonal wave. [word.md] |  | 0–1 | recorded sound | `codeword.finish` | 1100 | success sting | `codeword.finish` |
+| `codeword.key` | Cryptogrid: Any key on the keyboard, as Strikeout's. [word.md] |  | 5–40 (per move) | recorded sound | `codeword.key` | 50 | game event | `codeword.key` |
+| `codeword.ripple` | Cryptogrid: A letter ripples into every matching square, ticks rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `codeword.ripple` | 450 | game event | `codeword.ripple` |
+| `codeword.word` | Cryptogrid: A word completed by the letter glints (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `codeword.word` | 360 | game event | `codeword.word` |
+| `codeword.wrong` | Cryptogrid: Full and wrong: the letters that can't make words flash (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `codeword.wrong` | 190 | fail sting | `codeword.wrong` |
+| `codeword.jump` | Cryptogrid: The selection jumps to the next unsolved number (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `codeword.jump` | 90 | game event | `codeword.jump` |
 | `music.codeword` | Cryptogrid round bed: music_word_2 (word bed shared with other games) |  | loop | recorded sound | `music_word_2` (shared) | 60000 | music | `music_word_codeword` |
 
 ### Forage
@@ -1218,6 +624,19 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `wordhunt.finish` | Forage: End of the run (0.6 s before the buzzer) when the local round score (scoreWordHunt) is 120 or more. A gold ripple runs out across the letter grid from the centre. [word.md] |  | 0–1 | recorded sound | `wordhunt.finish` | 900 | success sting | `wordhunt.finish` |
+| `wordhunt.trace1` | Forage: Tracing, letter 1: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `wordhunt.trace1` | 160 | success sting | `wordhunt.trace1` |
+| `wordhunt.trace2` | Forage: Tracing, letter 2: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `wordhunt.trace2` | 160 | success sting | `wordhunt.trace2` |
+| `wordhunt.trace3` | Forage: Tracing, letter 3: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `wordhunt.trace3` | 140 | success sting | `wordhunt.trace3` |
+| `wordhunt.trace4` | Forage: Tracing, letter 4: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `wordhunt.trace4` | 150 | success sting | `wordhunt.trace4` |
+| `wordhunt.trace5` | Forage: Tracing, letter 5: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `wordhunt.trace5` | 150 | success sting | `wordhunt.trace5` |
+| `wordhunt.trace6` | Forage: Tracing, letter 6: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `wordhunt.trace6` | 150 | success sting | `wordhunt.trace6` |
+| `wordhunt.trace7` | Forage: Tracing, letter 7: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `wordhunt.trace7` | 150 | success sting | `wordhunt.trace7` |
+| `wordhunt.trace8` | Forage: Tracing, letter 8: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `wordhunt.trace8` | 150 | success sting | `wordhunt.trace8` |
+| `wordhunt.trace9` | Forage: Tracing, letter 9: a soft note rising up the scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `wordhunt.trace9` | 160 | success sting | `wordhunt.trace9` |
+| `wordhunt.golden` | Forage: The trace crosses the golden tile: a sparkle (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordhunt.golden` | 330 | game event | `wordhunt.golden` |
+| `wordhunt.word` | Forage: A valid word: the path flashes and it flies to the list (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordhunt.word` | 520 | game event | `wordhunt.word` |
+| `wordhunt.long` | Forage: A word of 7 or more letters: a bigger chord (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordhunt.long` | 580 | game event | `wordhunt.long` |
+| `wordhunt.points` | Forage: The word's points pop beside it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordhunt.points` | 80 | game event | `wordhunt.points` |
 | `music.wordhunt` | Forage round bed: music_word_2 (word bed shared with other games) |  | loop | recorded sound | `music_word_2` (shared) | 60000 | music | `music_word_wordhunt` |
 
 ### Interlock
@@ -1225,6 +644,17 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `tilegrid.finish` | Interlock: Done accepted a valid grid (the solve moment). The grid's words light up one after another, each word's tiles in reading order. [word.md] |  | 0–1 | recorded sound | `tilegrid.finish` | 1200 | success sting | `tilegrid.finish` |
+| `tilegrid.pick` | Interlock: A tile lifted from the tray (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `tilegrid.pick` | 70 | game event | `tilegrid.pick` |
+| `tilegrid.place` | Interlock: A wooden tile clacked onto its square (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `tilegrid.place` | 80 | UI tap | `tilegrid.place` |
+| `tilegrid.back` | Interlock: A tile slid back to the tray (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `tilegrid.back` | 80 | game event | `tilegrid.back` |
+| `tilegrid.word3` | Interlock: A 3-letter run becomes a word: a chord that grows with it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `tilegrid.word3` | 480 | game event | `tilegrid.word3` |
+| `tilegrid.word4` | Interlock: A 4-letter run becomes a word: a chord that grows with it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `tilegrid.word4` | 550 | game event | `tilegrid.word4` |
+| `tilegrid.word5` | Interlock: A 5-letter run becomes a word: a chord that grows with it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `tilegrid.word5` | 570 | game event | `tilegrid.word5` |
+| `tilegrid.word6` | Interlock: A 6-letter run becomes a word: a chord that grows with it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `tilegrid.word6` | 590 | game event | `tilegrid.word6` |
+| `tilegrid.word7` | Interlock: A 7-letter run becomes a word: a chord that grows with it (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `tilegrid.word7` | 630 | game event | `tilegrid.word7` |
+| `tilegrid.combo` | Interlock: Two words form at once (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `tilegrid.combo` | 480 | game event | `tilegrid.combo` |
+| `tilegrid.notword` | Interlock: A run that is no word turns faint red (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `tilegrid.notword` | 190 | game event | `tilegrid.notword` |
+| `tilegrid.bonus` | Interlock: The big-word bonus counting up (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `tilegrid.bonus` | 510 | game event | `tilegrid.bonus` |
 | `music.tilegrid` | Interlock round bed: music_word_3 (word bed shared with other games) |  | loop | recorded sound | `music_word_3` (shared) | 60000 | music | `music_word_tilegrid` |
 
 ### Letterfall
@@ -1242,6 +672,16 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `wordsearch.finish` | Lookout: The sixth word is found (the solve moment). Every found word glows in the grid together, the found-word lines brighten. [word.md] |  | 0–1 | recorded sound | `wordsearch.finish` | 900 | success sting | `wordsearch.finish` |
+| `wordsearch.drag` | Lookout: A marker squeak as the loop grows a letter (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsearch.drag` | 80 | game event | `wordsearch.drag` |
+| `wordsearch.found4` | Lookout: A 4-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsearch.found4` | 340 | game event | `wordsearch.found4` |
+| `wordsearch.found5` | Lookout: A 5-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsearch.found5` | 350 | game event | `wordsearch.found5` |
+| `wordsearch.found6` | Lookout: A 6-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsearch.found6` | 360 | game event | `wordsearch.found6` |
+| `wordsearch.found7` | Lookout: A 7-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsearch.found7` | 350 | game event | `wordsearch.found7` |
+| `wordsearch.found8` | Lookout: A 8-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsearch.found8` | 350 | game event | `wordsearch.found8` |
+| `wordsearch.found9` | Lookout: A 9-letter word found: the loop inks in, a chime pitched by length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsearch.found9` | 360 | game event | `wordsearch.found9` |
+| `wordsearch.bonus` | Lookout: The bonus word: a sparkle and a brighter chime (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsearch.bonus` | 330 | game event | `wordsearch.bonus` |
+| `wordsearch.already` | Lookout: Re-dragging a found word: a gentle bump (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsearch.already` | 70 | game event | `wordsearch.already` |
+| `wordsearch.redraw` | Lookout: The last word: every loop redrawn in order (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsearch.redraw` | 700 | game event | `wordsearch.redraw` |
 | `music.wordsearch` | Lookout round bed: music_word_2 (word bed shared with other games) |  | loop | recorded sound | `music_word_2` (shared) | 60000 | music | `music_word_wordsearch` |
 
 ### Nucleus
@@ -1249,6 +689,17 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `wordsmith.finish` | Nucleus: End of the run (the found words lock in, 0.6 s before the buzzer) when the phone's local round score (scoreWordsmith of its word points) is 120 or more. The atom spins up once: the outer tiles orbit the centre, letters stay upright, the nucleus glows. [word.md] |  | 0–1 | recorded sound | `wordsmith.finish` | 1100 | success sting | `wordsmith.finish` |
+| `wordsmith.letter` | Nucleus: A soft key click as a letter rises out of the ring (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsmith.letter` | 70 | game event | `wordsmith.letter` |
+| `wordsmith.shuffle` | Nucleus: The letters sliding round the ring (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsmith.shuffle` | 250 | game event | `wordsmith.shuffle` |
+| `wordsmith.word4` | Nucleus: A valid 4-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsmith.word4` | 260 | game event | `wordsmith.word4` |
+| `wordsmith.word5` | Nucleus: A valid 5-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsmith.word5` | 260 | game event | `wordsmith.word5` |
+| `wordsmith.word6` | Nucleus: A valid 6-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsmith.word6` | 260 | game event | `wordsmith.word6` |
+| `wordsmith.word7` | Nucleus: A valid 7-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsmith.word7` | 270 | game event | `wordsmith.word7` |
+| `wordsmith.word8` | Nucleus: A valid 8-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsmith.word8` | 250 | game event | `wordsmith.word8` |
+| `wordsmith.word9` | Nucleus: A valid 9-letter word: a note rising with its length (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsmith.word9` | 270 | game event | `wordsmith.word9` |
+| `wordsmith.combo` | Nucleus: Three words inside 10 s: a quick bright run (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsmith.combo` | 510 | game event | `wordsmith.combo` |
+| `wordsmith.pangram` | Nucleus: The pangram: the ring spins once in gold, a big rolled chord (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsmith.pangram` | 620 | game event | `wordsmith.pangram` |
+| `wordsmith.invalid` | Nucleus: Not a word: a soft buzz as the letters shake back (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordsmith.invalid` | 190 | game event | `wordsmith.invalid` |
 | `music.wordsmith` | Nucleus round bed: music_word_1 (word bed shared with other games) |  | loop | recorded sound | `music_word_1` (shared) | 60000 | music | `music_word_wordsmith` |
 
 ### Roundabout
@@ -1256,6 +707,19 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `letterwheel.finish` | Roundabout: The last crossword slot fills (the solve moment). The wheel spins once (letters stay upright), then the crossword lights corner to corner. [word.md] |  | 0–1 | recorded sound | `letterwheel.finish` | 1100 | success sting | `letterwheel.finish` |
+| `letterwheel.trace1` | Roundabout: Tracing, letter 1: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `letterwheel.trace1` | 130 | success sting | `letterwheel.trace1` |
+| `letterwheel.trace2` | Roundabout: Tracing, letter 2: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `letterwheel.trace2` | 140 | success sting | `letterwheel.trace2` |
+| `letterwheel.trace3` | Roundabout: Tracing, letter 3: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `letterwheel.trace3` | 130 | success sting | `letterwheel.trace3` |
+| `letterwheel.trace4` | Roundabout: Tracing, letter 4: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `letterwheel.trace4` | 140 | success sting | `letterwheel.trace4` |
+| `letterwheel.trace5` | Roundabout: Tracing, letter 5: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `letterwheel.trace5` | 130 | success sting | `letterwheel.trace5` |
+| `letterwheel.trace6` | Roundabout: Tracing, letter 6: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `letterwheel.trace6` | 140 | success sting | `letterwheel.trace6` |
+| `letterwheel.trace7` | Roundabout: Tracing, letter 7: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `letterwheel.trace7` | 140 | success sting | `letterwheel.trace7` |
+| `letterwheel.trace8` | Roundabout: Tracing, letter 8: a note rising (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `letterwheel.trace8` | 130 | success sting | `letterwheel.trace8` |
+| `letterwheel.fly` | Roundabout: A slot word's letters fly into their squares one by one (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `letterwheel.fly` | 510 | game event | `letterwheel.fly` |
+| `letterwheel.jar` | Roundabout: A bonus word drops into the jar: a coin plink on glass (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `letterwheel.jar` | 290 | game event | `letterwheel.jar` |
+| `letterwheel.repeat` | Roundabout: A harmless repeat: a gentle bump (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `letterwheel.repeat` | 80 | game event | `letterwheel.repeat` |
+| `letterwheel.miss` | Roundabout: A miss: not a word (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `letterwheel.miss` | 190 | fail sting | `letterwheel.miss` |
+| `letterwheel.spin` | Roundabout: Grid done: the wheel spins and the grid lights (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `letterwheel.spin` | 650 | game event | `letterwheel.spin` |
 | `music.letterwheel` | Roundabout round bed: music_word_1 (word bed shared with other games) |  | loop | recorded sound | `music_word_1` (shared) | 60000 | music | `music_word_letterwheel` |
 
 ### Slider
@@ -1264,6 +728,13 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `pz_padlock` | Slider: A row locks as a word [core.md] |  | 5 | recorded sound | `pz_padlock` | 450 | game event | `pz_padlock` |
 | `wordslide.finish` | Slider: All five rows read as words (the solve moment). The padlocks click shut down the rows in a cascade (drawn shut from then on), each row glowing as its lock closes. [word.md] |  | 0–1 | recorded sound | `wordslide.finish` | 1140 | success sting | `wordslide.finish` |
+| `wordslide.slide` | Slider: A row or column slid: a short tile rattle (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordslide.slide` | 150 | game event | `wordslide.slide` |
+| `wordslide.word` | Slider: A row becomes a word: a bright two-note (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordslide.word` | 360 | game event | `wordslide.word` |
+| `wordslide.lock` | Slider: A padlock snapping shut (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordslide.lock` | 120 | game event | `wordslide.lock` |
+| `wordslide.unlock` | Slider: A padlock opened again (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordslide.unlock` | 120 | game event | `wordslide.unlock` |
+| `wordslide.swap` | Slider: Two tiles of the last row swap (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordslide.swap` | 80 | game event | `wordslide.swap` |
+| `wordslide.nudge` | Slider: At par with three rows done: a small nudge (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordslide.nudge` | 90 | game event | `wordslide.nudge` |
+| `wordslide.resetArm` | Slider: Reset armed: a soft cautious tick (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `wordslide.resetArm` | 280 | fail sting | `wordslide.resetArm` |
 | `music.wordslide` | Slider round bed: music_word_3 (word bed shared with other games) |  | loop | recorded sound | `music_word_3` (shared) | 60000 | music | `music_word_wordslide` |
 
 ### Strikeout
@@ -1271,6 +742,12 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `strikeout.finish` | Strikeout: The fifth word is revealed (the solve moment). The tiles flip gold row by row. [word.md] |  | 0–1 | recorded sound | `strikeout.finish` | 1160 | success sting | `strikeout.finish` |
+| `strikeout.key` | Strikeout: Any key on the keyboard (the Word overhaul, 15 Nov 2026): a soft typewriter click; word.key.mp3 behind NEW_GAME_SOUNDS until Joe's recording (word-elevenlabs.md). [word.md] |  | 5–40 (per move) | recorded sound | `strikeout.key` | 50 | game event | `strikeout.key` |
+| `strikeout.flip` | Strikeout: A hit: matching tiles flip with a clack, one after another (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `strikeout.flip` | 160 | game event | `strikeout.flip` |
+| `strikeout.strike` | Strikeout: A strike slammed onto the strike row (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `strikeout.strike` | 170 | game event | `strikeout.strike` |
+| `strikeout.combo` | Strikeout: An early solve with 3+ letters hidden: they all flip at once (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `strikeout.combo` | 450 | game event | `strikeout.combo` |
+| `strikeout.lastStrike` | Strikeout: One strike left: the strike row pulses (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `strikeout.lastStrike` | 270 | game event | `strikeout.lastStrike` |
+| `strikeout.solve` | Strikeout: A word solved (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 0–1 | recorded sound | `strikeout.solve` | 550 | success sting | `strikeout.solve` |
 | `music.strikeout` | Strikeout round bed: music_word_1 (word bed shared with other games) |  | loop | recorded sound | `music_word_1` (shared) | 60000 | music | `music_word_strikeout` |
 
 ### Swapword
@@ -1278,19 +755,27 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `swapword.finish` | Swapword: The server confirms the board is solved (the solve moment). A gold wave runs once round the figure-eight. [word.md] |  | 0–1 | recorded sound | `swapword.finish` | 1160 | success sting | `swapword.finish` |
+| `swapword.swap` | Swapword: Two tiles pass each other in a short arc: a wooden clack (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `swapword.swap` | 90 | game event | `swapword.swap` |
+| `swapword.gold` | Swapword: A tile turns gold: a bright plink (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `swapword.gold` | 270 | game event | `swapword.gold` |
+| `swapword.combo` | Swapword: Two tiles turn gold in one swap (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `swapword.combo` | 430 | game event | `swapword.combo` |
+| `swapword.locked` | Swapword: A locked gold tile tapped: a small wiggle (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `swapword.locked` | 70 | game event | `swapword.locked` |
+| `swapword.low` | Swapword: Three swaps left: the counter pulses (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `swapword.low` | 280 | game event | `swapword.low` |
+| `swapword.out` | Swapword: Out of swaps: a closing clunk as the board greys (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `swapword.out` | 170 | game event | `swapword.out` |
+| `swapword.scale` | Swapword: Solved: a wave round the figure-eight, a rising scale (stage 2 effects, 15 Nov 2026; the kit's shared sound until Joe's recording). [word.md] |  | 5–40 (per move) | recorded sound | `swapword.scale` | 720 | game event | `swapword.scale` |
 | `music.swapword` | Swapword round bed: music_word_3 (word bed shared with other games) |  | loop | recorded sound | `music_word_3` (shared) | 60000 | music | `music_word_swapword` |
 
 ### Ballpark
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `numline.place` | every Place [number.md] |  | 5–40 (per move) | recorded sound | `numline.place` | 220 | UI tap | `numline.place` |
 | `numline.solve` | the 15th Place [number.md] |  | 0–1 | recorded sound | `numline.solve` | 1100 | success sting | `numline.solve` |
 | `numline.sweepTick` | ×5, as the glint passes each marker on line 3 [number.md] |  | 1–5 | recorded sound | `tick` (shared) | 260 | game event | `numline.sweepTick` |
-| `numline.stageClear` | a line of five is placed (not the last): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `stage_complete` (shared) | 160 | game event | `numline.stageClear` |
+| `numline.stageClear` | a line of five is placed (not the last): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `numline.stageClear` | 160 | game event | `numline.stageClear` |
 | `numline.skip` | kept for a skip this game may get: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `numline.skip` | 528 | UI tap | `numline.skip` |
 | `numline.fail` | kept for a failed stage this game may get: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `numline.fail` |
 | `numline.edge` | a touch or drag past an end of the line: a short stop shows at that end (the marker clamps there) [number.md] |  | 5–40 (per move) | recorded sound | `numline.edge` | 320 | game event | `numline.edge` |
-| `numline.dragTick` | the marker crosses a tenth of the line (wired with the effects kit) [number.md] |  | 5–40 (per move) | recorded sound | `tick` (shared) | 30 | game event | `numline.dragTick` |
+| `numline.dragTick` | the marker crosses a tenth of the line (wired with the effects kit) [number.md] |  | 5–40 (per move) | recorded sound | `numline.dragTick` | 30 | game event | `numline.dragTick` |
 | `numline.bullseye` | a bullseye lands at the payoff (wired with the effects kit) [number.md] |  | 5–40 (per move) | recorded sound | `numline.bullseye` | 250 | game event | `numline.bullseye` |
 | `music.numline` | Ballpark round bed: music_number_3 (number bed shared with other games) |  | loop | recorded sound | `music_number_3` (shared) | 60000 | music | `music_number_numline` |
 
@@ -1299,10 +784,15 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `measure.select` | a jug is tapped to select it [number.md] |  | 5–40 (per move) | recorded sound | `measure.select` | 150 | UI tap | `measure.select` |
+| `measure.pour` | a pour that changes the jugs [number.md] |  | 5–40 (per move) | recorded sound | `measure.pour` | 320 | game event | `measure.pour` |
+| `measure.fill` | Fill applied [number.md] |  | 5–40 (per move) | recorded sound | `measure.fill` | 320 | game event | `measure.fill` |
+| `measure.empty` | Empty applied [number.md] |  | 5–40 (per move) | recorded sound | `measure.empty` | 260 | game event | `measure.empty` |
+| `measure.reject` | a refused pour, fill or empty [number.md] |  | 5–40 (per move) | recorded sound | `measure.reject` | 320 | fail sting | `measure.reject` |
+| `measure.reset` | Reset applied [number.md] |  | 5–40 (per move) | recorded sound | `measure.reset` | 260 | fail sting | `measure.reset` |
 | `measure.solve` | the last board is solved [number.md] |  | 0–1 | recorded sound | `measure.solve` | 1100 | success sting | `measure.solve` |
-| `measure.stageClear` | a jug reaches its target (not the last board): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `stage_complete` (shared) | 160 | game event | `measure.stageClear` |
+| `measure.stageClear` | a jug reaches its target (not the last board): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `measure.stageClear` | 160 | game event | `measure.stageClear` |
 | `measure.skip` | kept for a skip this game may get: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `measure.skip` | 528 | UI tap | `measure.skip` |
-| `measure.fail` | a board runs out of moves: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `measure.fail` |
+| `measure.fail` | a board runs out of moves: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `measure.fail` | 90 | game event | `measure.fail` |
 | `measure.target` | the water meets the target line (wired with the effects kit) [number.md] |  | 5–40 (per move) | recorded sound | `measure.target` | 200 | game event | `measure.target` |
 | `measure.near` | one move from the target (wired with the effects kit) [number.md] |  | 5–40 (per move) | recorded sound | `measure.near` | 250 | game event | `measure.near` |
 | `music.measure` | Brimful round bed: music_number_1 (number bed shared with other games) |  | loop | recorded sound | `music_number_1` (shared) | 60000 | music | `music_number_measure` |
@@ -1313,17 +803,18 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `checkout.aim` | a wedge or bull is selected [number.md] |  | 5–40 (per move) | recorded sound | `checkout.aim` | 140 | UI tap | `checkout.aim` |
 | `checkout.thud` | a ring button adds a dart [number.md] |  | 5–40 (per move) | recorded sound | `checkout.thud` | 230 | game event | `checkout.thud` |
+| `checkout.tick` | the remaining score changes (dart or Undo) [number.md] |  | 5–40 (per move) | recorded sound | `checkout.tick` | 220 | game event | `checkout.tick` |
 | `checkout.stage` | a board checks out, round not finished [number.md] |  | 1–5 | recorded sound | `checkout.stage` | 560 | game event | `checkout.stage` |
 | `checkout.solve` | the final board checks out [number.md] |  | 0–1 | recorded sound | `checkout.solve` | 1150 | success sting | `checkout.solve` |
-| `checkout.stageClear` | a board checks out (not the last): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `stage_complete` (shared) | 160 | game event | `checkout.stageClear` |
+| `checkout.stageClear` | a board checks out (not the last): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `checkout.stageClear` | 160 | game event | `checkout.stageClear` |
 | `checkout.skip` | kept for a skip this game may get: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `checkout.skip` | 528 | UI tap | `checkout.skip` |
 | `checkout.fail` | a dart busts the board (checkoutRev 3): the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `checkout.fail` |
-| `checkout.bust` | a dart busts the board (checkoutRev 3): "Bust", the darts drop out [number.md] |  | 5–40 (per move) | recorded sound | `pz_clash_wrong` (shared) | 250 | game event | `checkout.bust` |
+| `checkout.bust` | a dart busts the board (checkoutRev 3): "Bust", the darts drop out [number.md] |  | 5–40 (per move) | recorded sound | `checkout.bust` | 250 | game event | `checkout.bust` |
 | `checkout.undo` | Undo pulls the last dart: a light tug [number.md] |  | 5–40 (per move) | recorded sound | `checkout.undo` | 528 | game event | `checkout.undo` |
 | `checkout.nudge` | a ring is tapped before a wedge is picked: "Pick a wedge first" [number.md] |  | 5–40 (per move) | recorded sound | `checkout.nudge` | 486 | game event | `checkout.nudge` |
 | `checkout.switch` | another board's tab is chosen [number.md] |  | 5–40 (per move) | recorded sound | `checkout.switch` | 486 | UI tap | `checkout.switch` |
 | `checkout.bigFinish` | a board checks out on a big finish that pays: the crowd's "oh!" [number.md] |  | 5–40 (per move) | recorded sound | `checkout.bigFinish` | 600 | game event | `checkout.bigFinish` |
-| `checkout.wrong` | a Throw that doesn't check out (the score bar shakes) [number.md] |  | 5–40 (per move) | recorded sound | `wrong` (shared) | 300 | fail sting | `checkout.wrong` |
+| `checkout.wrong` | a Throw that doesn't check out (the score bar shakes) [number.md] |  | 5–40 (per move) | recorded sound | `checkout.wrong` | 300 | fail sting | `checkout.wrong` |
 | `music.checkout` | Checkout round bed: music_number_2 (number bed shared with other games) |  | loop | recorded sound | `music_number_2` (shared) | 60000 | music | `music_number_checkout` |
 
 ### Counterweight
@@ -1331,11 +822,13 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `balance.select` | a weight is selected [number.md] |  | 5–40 (per move) | recorded sound | `balance.select` | 140 | UI tap | `balance.select` |
+| `balance.drop` | a weight is hung on a notch [number.md] |  | 5–40 (per move) | recorded sound | `balance.drop` | 230 | game event | `balance.drop` |
+| `balance.lift` | double-tap returns a weight to the tray [number.md] |  | 5–40 (per move) | recorded sound | `balance.lift` | 260 | UI tap | `balance.lift` |
 | `balance.level` | a non-final scale balances (until 15 Nov 2026; the Number overhaul plays balance.stageClear instead, older rounds included) [number.md] |  | 1–5 | recorded sound | `balance.level` | 760 | success sting | `balance.level` |
 | `balance.solve` | the final scale balances [number.md] |  | 0–1 | recorded sound | `balance.solve` | 1100 | success sting | `balance.solve` |
-| `balance.stageClear` | a scale balances (not the last): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `stage_complete` (shared) | 160 | game event | `balance.stageClear` |
+| `balance.stageClear` | a scale balances (not the last): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `balance.stageClear` | 160 | game event | `balance.stageClear` |
 | `balance.skip` | kept for a skip this game may get: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `balance.skip` | 528 | UI tap | `balance.skip` |
-| `balance.fail` | out of hangs: the scale greys and slides away: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `balance.fail` |
+| `balance.fail` | out of hangs: the scale greys and slides away: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `balance.fail` | 90 | game event | `balance.fail` |
 | `balance.pickup` | balanceRev 4: one tap picks a hung kettlebell up off its notch [number.md] |  | 5–40 (per move) | recorded sound | `balance.pickup` | 150 | game event | `balance.pickup` |
 | `balance.nudge` | a free notch tapped with no weight picked: the tray nudges, "Pick a weight first" [number.md] |  | 5–40 (per move) | recorded sound | `balance.nudge` | 300 | game event | `balance.nudge` |
 | `music.balance` | Counterweight round bed: music_number_2 (number bed shared with other games) |  | loop | recorded sound | `music_number_2` (shared) | 60000 | music | `music_number_balance` |
@@ -1357,16 +850,17 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `numpyramid.place` | a block is placed in a cell (tap or drag) [number.md] |  | 5–40 (per move) | recorded sound | `numpyramid.place` | 210 | UI tap | `numpyramid.place` |
 | `numpyramid.solve` | the final board is solved [number.md] |  | 0–1 | recorded sound | `numpyramid.solve` | 1100 | success sting | `numpyramid.solve` |
-| `numpyramid.stageClear` | a pyramid is complete and right (not the last): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `stage_complete` (shared) | 160 | game event | `numpyramid.stageClear` |
+| `numpyramid.stageClear` | a pyramid is complete and right (not the last): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `numpyramid.stageClear` | 160 | game event | `numpyramid.stageClear` |
 | `numpyramid.skip` | Skip moves on from a pyramid: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `numpyramid.skip` | 528 | UI tap | `numpyramid.skip` |
 | `numpyramid.fail` | kept for a failed stage this game may get: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `numpyramid.fail` |
 | `numpyramid.pick` | a stone is picked up (a tap on a tray tile or a placed stone) [number.md] |  | 5–40 (per move) | recorded sound | `numpyramid.pick` | 120 | game event | `numpyramid.pick` |
-| `numpyramid.swap` | a placed stone is dropped on another placed stone and they swap [number.md] |  | 5–40 (per move) | recorded sound | `place` (shared) | 150 | game event | `numpyramid.swap` |
+| `numpyramid.swap` | a placed stone is dropped on another placed stone and they swap [number.md] |  | 5–40 (per move) | recorded sound | `numpyramid.swap` | 150 | game event | `numpyramid.swap` |
 | `numpyramid.unplace` | a placed stone goes back to the tray (double tap or drag) [number.md] |  | 5–40 (per move) | recorded sound | `numpyramid.unplace` | 140 | game event | `numpyramid.unplace` |
 | `numpyramid.seam` | a sum the player had a hand in comes out right: a faint gold seam [number.md] |  | 5–40 (per move) | recorded sound | `numpyramid.seam` | 200 | game event | `numpyramid.seam` |
 | `numpyramid.crack` | a sum the player had a hand in comes out wrong: a red crack between the three stones [number.md] |  | 5–40 (per move) | recorded sound | `numpyramid.crack` | 250 | game event | `numpyramid.crack` |
-| `numpyramid.row` | a full row of the pyramid right (wired with the effects kit) [number.md] |  | 5–40 (per move) | recorded sound | `stage_complete` (shared) | 300 | game event | `numpyramid.row` |
+| `numpyramid.row` | a full row of the pyramid right (wired with the effects kit) [number.md] |  | 5–40 (per move) | recorded sound | `numpyramid.row` | 300 | game event | `numpyramid.row` |
 | `music.numpyramid` | Integer Pyramid round bed: music_number_2 (number bed shared with other games) |  | loop | recorded sound | `music_number_2` (shared) | 60000 | music | `music_number_numpyramid` |
 
 ### Kakuro
@@ -1379,7 +873,7 @@ Grouped by game or screen.
 | `kakuro.select` | another square is tapped [number.md] |  | 5–40 (per move) | recorded sound | `kakuro.select` | 486 | UI tap | `kakuro.select` |
 | `kakuro.pencil` | a pencil mark is set or taken off [number.md] |  | 5–40 (per move) | recorded sound | `kakuro.pencil` | 486 | game event | `kakuro.pencil` |
 | `kakuro.clear` | Clear empties a square that held a digit or marks [number.md] |  | 5–40 (per move) | recorded sound | `kakuro.clear` | 528 | game event | `kakuro.clear` |
-| `kakuro.broken` | a run newly breaks a rule (a repeat, past its clue, out of reach): its clue turns red [number.md] |  | 5–40 (per move) | recorded sound | `pz_clash_wrong` (shared) | 250 | game event | `kakuro.broken` |
+| `kakuro.broken` | a run newly breaks a rule (a repeat, past its clue, out of reach): its clue turns red [number.md] |  | 5–40 (per move) | recorded sound | `kakuro.broken` | 250 | game event | `kakuro.broken` |
 | `kakuro.combo` | one digit completes two runs at once (in place of kakuro.run) [number.md] |  | 5–40 (per move) | recorded sound | `kakuro.combo` | 600 | game event | `kakuro.combo` |
 | `music.kakuro` | Kakuro round bed: music_number_2 (number bed shared with other games) |  | loop | recorded sound | `music_number_2` (shared) | 60000 | music | `music_number_kakuro` |
 
@@ -1387,12 +881,13 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `equation.drop` | an operator drops into a slot [number.md] |  | 5–40 (per move) | recorded sound | `equation.drop` | 200 | game event | `equation.drop` |
 | `equation.correct` | a stage is held as correct (green glow) [number.md] |  | 1–5 | recorded sound | `equation.correct` | 1000 | game event | `equation.correct` |
 | `equation.solve` | all four right: equations tick green in turn [number.md] |  | 0–1 | recorded sound | `equation.solve` | 1200 | success sting | `equation.solve` |
-| `equation.stageClear` | an equation comes out true (not the last): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `stage_complete` (shared) | 160 | game event | `equation.stageClear` |
+| `equation.stageClear` | an equation comes out true (not the last): the stage lifts and slides away, the stage pip fills [number.md] |  | 1–5 | recorded sound | `equation.stageClear` | 160 | game event | `equation.stageClear` |
 | `equation.skip` | Next skips an equation: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `equation.skip` | 528 | UI tap | `equation.skip` |
-| `equation.fail` | an equation runs out of tries: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `equation.fail` |
-| `equation.tryCracked` | a new full line is wrong and uses a try: a try pip cracks (gapsRev 2: a fill already tried uses none) [number.md] |  | 5–40 (per move) | recorded sound | `wrong` (shared) | 140 | game event | `equation.tryCracked` |
+| `equation.fail` | an equation runs out of tries: the stage slides away [number.md] |  | 5–40 (per move) | recorded sound | `equation.fail` | 90 | game event | `equation.fail` |
+| `equation.tryCracked` | a new full line is wrong and uses a try: a try pip cracks (gapsRev 2: a fill already tried uses none) [number.md] |  | 5–40 (per move) | recorded sound | `equation.tryCracked` | 140 | game event | `equation.tryCracked` |
 | `equation.chooseGap` | an empty gap is tapped to fill it next (tapped again lets go) [number.md] |  | 5–40 (per move) | recorded sound | `equation.chooseGap` | 120 | game event | `equation.chooseGap` |
 | `equation.clearGap` | a filled gap is tapped and empties [number.md] |  | 5–40 (per move) | recorded sound | `equation.clearGap` | 120 | game event | `equation.clearGap` |
 | `equation.goBack` | gapsRev 2: an earlier equation's chip is tapped to go back to it [number.md] |  | 5–40 (per move) | recorded sound | `equation.goBack` | 300 | game event | `equation.goBack` |
@@ -1505,6 +1000,9 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `pz_bomb_explode` | reveal (Bomb Defusal): The bomb explodes on a wrong answer [core.md] |  | 0–1 | recorded sound | `pz_bomb_explode` | 1770 | fail sting | `pz_bomb_explode` |
 | `bomb.cut` | A wire is cut [logic.md] |  | 5–40 (per move) | recorded sound | `bomb.cut` | 220 | game event | `bomb.cut` |
+| `bomb.press` | Button A or B is pressed [logic.md] |  | 5–40 (per move) | recorded sound | `bomb.press` | 200 | game event | `bomb.press` |
+| `bomb.step` | Each step fills a pip in the step counter (the Attention overhaul, 15 Nov 2026) [logic.md] |  | 5–40 (per move) | recorded sound | `bomb.step` | 50 | game event | `bomb.step` |
+| `bomb.instant` | Expert: a wrong step sets the bomb off at once (the Attention overhaul's levels) [logic.md] |  | 5–40 (per move) | recorded sound | `bomb.instant` | 800 | game event | `bomb.instant` |
 | `bomb.defuse` | DEFUSE is tapped (the submission; not a verdict) [logic.md] |  | 0–1 | recorded sound | `bomb.defuse` | 640 | success sting | `bomb.defuse` |
 | `bomb.solve` | The reveal shows a verified defuse [logic.md] |  | 0–1 | recorded sound | `bomb.solve` | 700 | success sting | `bomb.solve` |
 | `music.bomb` | Bomb Defusal round bed: music_logic_3 (attention bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_attention_bomb` |
@@ -1513,7 +1011,11 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `spotdiff.hidden` | Double Take: The hidden seventh found [speed-attention.md] |  | 5–40 (per move) | recorded sound | `spotdiff.hidden` | 600 | game event | `spotdiff.hidden` |
+| `spotdiff.pictureOut` | Double Take: A picture done: it slides out as the next comes in [speed-attention.md] |  | 5–40 (per move) | recorded sound | `spotdiff.pictureOut` | 350 | game event | `spotdiff.pictureOut` |
 | `spotdiff.allFound` | Double Take: Sixth difference of a picture found: all six glow in both panels (spotRev 1: after picture 1 too, then picture 2 slides in) [speed-attention.md] |  | 0–1 | recorded sound | `spotdiff.allFound` | 1100 | success sting | `spotdiff.allFound` |
+| `spotdiff.found` | Double Take: A difference found (ring draws in) [speed-attention.md] |  | 5–40 (per move) | recorded sound | `spotdiff.found` | 260 | game event | `spotdiff.found` |
+| `spotdiff.miss` | Double Take: A wrong tap (the existing shake) [speed-attention.md] |  | 5–40 (per move) | recorded sound | `spotdiff.miss` | 250 | fail sting | `spotdiff.miss` |
 | `spotdiff.nextPicture` | Double Take: spotRev 1: Next picture pressed before all six were found (picture 2 slides in) [speed-attention.md] |  | 1–5 | recorded sound | `spotdiff.nextPicture` | 320 | game event | `spotdiff.nextPicture` |
 | `music.spotdiff` | Double Take round bed: music_attention_1 (attention bed shared with other games) |  | loop | recorded sound | `music_attention_1` (shared) | 60000 | music | `music_attention_spotdiff` |
 
@@ -1521,8 +1023,13 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `symscan.gridClear` | Eagle Eye: A grid submitted: its matching eagles fly off [speed-attention.md] |  | 5–40 (per move) | recorded sound | `symscan.gridClear` | 600 | game event | `symscan.gridClear` |
+| `symscan.cleanGrid` | Eagle Eye: A grid submitted with no wrong marks: a quiet sparkle [speed-attention.md] |  | 5–40 (per move) | recorded sound | `symscan.cleanGrid` | 400 | game event | `symscan.cleanGrid` |
+| `symscan.missed` | Eagle Eye: The reveal pulses the eagles that were missed [speed-attention.md] |  | 5–40 (per move) | recorded sound | `symscan.missed` | 200 | fail sting | `symscan.missed` |
 | `symscan.takeoff` | Eagle Eye: Final grid submitted: the matching eagles take off [speed-attention.md] |  | 0–1 | recorded sound | `symscan.takeoff` | 1100 | success sting | `symscan.takeoff` |
 | `symscan.eagle` | Eagle Eye: With the take-off: an eagle's cry over the wingbeats (Joe's recording, 6 Nov 2026) [speed-attention.md] |  | 5–40 (per move) | recorded sound | `symscan.eagle` | 800 | game event | `symscan.eagle` |
+| `symscan.mark` | Eagle Eye: A cell is marked (pop) [speed-attention.md] |  | 5–40 (per move) | recorded sound | `symscan.mark` | 200 | UI tap | `symscan.mark` |
+| `symscan.unmark` | Eagle Eye: A cell is unmarked [speed-attention.md] |  | 5–40 (per move) | recorded sound | `symscan.unmark` | 150 | UI tap | `symscan.unmark` |
 | `symscan.revealGrid` | Eagle Eye: Reveal: a different grid is shown [speed-attention.md] |  | 1–5 | recorded sound | `tick` (shared) | 150 | game event | `symscan.revealGrid` |
 | `music.symscan` | Eagle Eye round bed: music_attention_2 (attention bed shared with other games) |  | loop | recorded sound | `music_attention_2` (shared) | 60000 | music | `music_attention_symscan` |
 
@@ -1530,6 +1037,10 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `maze.step` | Labyrinth: Each step of the trail (a little higher past each junction) [speed-attention.md] |  | 5–40 (per move) | recorded sound | `maze.step` | 50 | game event | `maze.step` |
+| `maze.bump` | Labyrinth: A step into a wall: the trail end flashes [speed-attention.md] |  | 5–40 (per move) | recorded sound | `maze.bump` | 120 | fail sting | `maze.bump` |
+| `maze.back` | Labyrinth: A step back along the trail (it retracts) [speed-attention.md] |  | 5–40 (per move) | recorded sound | `maze.back` | 40 | game event | `maze.back` |
+| `maze.deadEnd` | Labyrinth: The trail reaches the tip of a dead end [speed-attention.md] |  | 5–40 (per move) | recorded sound | `maze.deadEnd` | 300 | fail sting | `maze.deadEnd` |
 | `maze.trace` | Labyrinth: Exit reached: glowing line traces the route from start to exit [speed-attention.md] |  | 0–1 | recorded sound | `maze.trace` | 1100 | success sting | `maze.trace` |
 | `music.maze` | Labyrinth round bed: music_attention_3 (attention bed shared with other games) |  | loop | recorded sound | `music_attention_3` (shared) | 60000 | music | `music_attention_maze` |
 
@@ -1537,6 +1048,10 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `pairmatch.flip` | Matchmaker: A card turned over [speed-attention.md] |  | 5–40 (per move) | recorded sound | `pairmatch.flip` | 100 | game event | `pairmatch.flip` |
+| `pairmatch.match` | Matchmaker: A match: both cards lift and lock face up (from a streak of two, the kit's rising combo tone instead) [speed-attention.md] |  | 5–40 (per move) | recorded sound | `pairmatch.match` | 350 | game event | `pairmatch.match` |
+| `pairmatch.miss` | Matchmaker: A miss: the cards flip back [speed-attention.md] |  | 5–40 (per move) | recorded sound | `pairmatch.miss` | 150 | fail sting | `pairmatch.miss` |
+| `pairmatch.gold` | Matchmaker: The gold pair matched: its own shimmer [speed-attention.md] |  | 5–40 (per move) | recorded sound | `pairmatch.gold` | 700 | game event | `pairmatch.gold` |
 | `pairmatch.cardWave` | Matchmaker: Last pair matched: the cards flip in a wave [speed-attention.md] |  | 0–1 | recorded sound | `pairmatch.cardWave` | 1100 | success sting | `pairmatch.cardWave` |
 | `music.pairmatch` | Matchmaker round bed: music_attention_2 (attention bed shared with other games) |  | loop | recorded sound | `music_attention_2` (shared) | 60000 | music | `music_attention_pairmatch` |
 
@@ -1561,16 +1076,22 @@ Grouped by game or screen.
 | `countup.countersTick` | Tally: Final answer submitted: tray counters start ticking up [speed-attention.md] |  | 0–1 | recorded sound | `countup.countersTick` | 1100 | success sting | `countup.countersTick` |
 | `countup.countersLock` | Tally: The last counter locks (about 790 ms into the effect) [speed-attention.md] |  | 0–1 | recorded sound | `countup.countersLock` | 150 | success sting | `countup.countersLock` |
 | `countup.trayIn` | Tally: Stage 2 or 3 tray slides in (2, 3 or 4 on countRev 2) [speed-attention.md] |  | 1–5 | recorded sound | `countup.trayIn` | 280 | game event | `countup.trayIn` |
+| `countup.mark` | Tally: countRev 7: a shape tapped to mark it as counted (the Attention overhaul, 15 Nov 2026) [speed-attention.md] |  | 5–40 (per move) | recorded sound | `countup.mark` | 120 | UI tap | `countup.mark` |
+| `countup.unmark` | Tally: countRev 7: a mark taken off a shape [speed-attention.md] |  | 5–40 (per move) | recorded sound | `countup.unmark` | 100 | UI tap | `countup.unmark` |
+| `countup.key` | Tally: A keypad key pressed (the Attention overhaul's stage 2, 15 Nov 2026) [speed-attention.md] |  | 5–40 (per move) | recorded sound | `countup.key` | 60 | game event | `countup.key` |
+| `countup.trayOut` | Tally: ENTER: the tray slides away and the next comes in [speed-attention.md] |  | 5–40 (per move) | recorded sound | `countup.trayOut` | 400 | game event | `countup.trayOut` |
+| `countup.revealTick` | Tally: The reveal lights each counted shape in turn (pitched up a little each time) [speed-attention.md] |  | 5–40 (per move) | recorded sound | `countup.revealTick` | 40 | game event | `countup.revealTick` |
+| `countup.soClose` | Tally: The reveal: a tray one off ("So close") [speed-attention.md] |  | 5–40 (per move) | recorded sound | `countup.soClose` | 400 | game event | `countup.soClose` |
 | `music.countup` | Tally round bed: music_attention_1 (attention bed shared with other games) |  | loop | recorded sound | `music_attention_1` (shared) | 60000 | music | `music_attention_countup` |
 
 ### Chroma Lines
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `flow.draw` | The line grows by a square (a soft liquid tone, played a little higher as the line grows; the move tick until it has a file) [pattern.md (Chroma Lines (flow))] |  | 5–40 (per move) | recorded sound | `arc_sea_bubble` (shared) | 140 | game event | `flow.draw` |
-| `flow.cut` | flowRev 3: drawing over another colour cuts that line back [pattern.md (Chroma Lines (flow))] |  | 5–40 (per move) | recorded sound | `arc_sea_pop` (shared) | 180 | game event | `flow.cut` |
+| `flow.draw` | The line grows by a square (a soft liquid tone, played a little higher as the line grows; the move tick until it has a file) [pattern.md (Chroma Lines (flow))] |  | 5–40 (per move) | recorded sound | `flow.draw` | 140 | game event | `flow.draw` |
+| `flow.cut` | flowRev 3: drawing over another colour cuts that line back [pattern.md (Chroma Lines (flow))] |  | 5–40 (per move) | recorded sound | `flow.cut` | 180 | game event | `flow.cut` |
 | `flow.connect` | A pair is joined and a pulse runs along it (not on the solving join; the only sound for a join since the Pattern overhaul) [pattern.md (Chroma Lines (flow))] |  | 5–40 (per move) | recorded sound | `flow.connect` | 460 | game event | `flow.connect` |
-| `flow.nearMiss` | The board first reaches one pair short, or every pair joined with squares still empty (a soft hint) [pattern.md (Chroma Lines (flow))] |  | 5–40 (per move) | recorded sound | `arc_retro_blip` (shared) | 600 | game event | `flow.nearMiss` |
+| `flow.nearMiss` | The board first reaches one pair short, or every pair joined with squares still empty (a soft hint) [pattern.md (Chroma Lines (flow))] |  | 5–40 (per move) | recorded sound | `flow.nearMiss` | 600 | game event | `flow.nearMiss` |
 | `flow.solve` | Each path pulses end to end in its colour, then the board glows [pattern.md (Chroma Lines (flow))] |  | 0–1 | recorded sound | `flow.solve` | 1150 | success sting | `flow.solve` |
 | `music.flow` | Chroma Lines round bed: music_logic_2 (pattern bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_pattern_flow` |
 
@@ -1587,7 +1108,7 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `unblock.slide` | A car settles into a new bay one or two bays away (each kept move, each undo, a reset with moves to undo) [pattern.md (Gridlock (unblock))] |  | 5–40 (per move) | recorded sound | `unblock.slide` | 170 | game event | `unblock.slide` |
 | `unblock.slideLong` | A car slides three or more bays (since 15 Nov 2026; move.slide.mp3 until its own file) [pattern.md (Gridlock (unblock))] |  | 5–40 (per move) | recorded sound | `unblock.slideLong` | 170 | game event | `unblock.slideLong` |
-| `unblock.blocked` | A drag pushed into the car or wall in the way: the car shakes and stays (a plain tap keeps the shake's quiet wrong; since 15 Nov 2026, arc_wood_knock.mp3 until its own file) [pattern.md (Gridlock (unblock))] |  | 5–40 (per move) | recorded sound | `arc_wood_knock` (shared) | 320 | game event | `unblock.blocked` |
+| `unblock.blocked` | A drag pushed into the car or wall in the way: the car shakes and stays (a plain tap keeps the shake's quiet wrong; since 15 Nov 2026, arc_wood_knock.mp3 until its own file) [pattern.md (Gridlock (unblock))] |  | 5–40 (per move) | recorded sound | `unblock.blocked` | 320 | game event | `unblock.blocked` |
 | `unblock.laneClear` | A move leaves nothing between the gold car and the exit, short of the solve (since 15 Nov 2026, gem.glint.mp3 until its own file) [pattern.md (Gridlock (unblock))] |  | 5–40 (per move) | recorded sound | `unblock.laneClear` | 200 | game event | `unblock.laneClear` |
 | `unblock.solve` | The solving drop: the gold car revs back and drives out through the exit with speed streaks [pattern.md (Gridlock (unblock))] |  | 0–1 | recorded sound | `unblock.solve` | 2470 | success sting | `unblock.solve` |
 | `music.unblock` | Gridlock round bed: music_pattern_2 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_2` (shared) | 60000 | music | `music_pattern_unblock` |
@@ -1596,6 +1117,8 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `push.step` | A walking step [pattern.md (Heave (push))] |  | 5–40 (per move) | recorded sound | `push.step` | 120 | game event | `push.step` |
+| `push.push` | A step that pushes a crate [pattern.md (Heave (push))] |  | 5–40 (per move) | recorded sound | `push.push` | 120 | game event | `push.push` |
 | `push.home` | A crate lands on a marking: it thumps and kicks up dust (not on the solving push) [pattern.md (Heave (push))] |  | 5–40 (per move) | recorded sound | `push.home` | 300 | game event | `push.home` |
 | `push.solve` | The crates thump in turn and the warehouse lights switch on in a row [pattern.md (Heave (push))] |  | 0–1 | recorded sound | `push.solve` | 1200 | success sting | `push.solve` |
 | `push.goldOff` | The gold crate pushed off its gold mark (since 15 Nov 2026, retro.powerDown.mp3 until its own file) [pattern.md (Heave (push))] |  | 5–40 (per move) | recorded sound | `push.goldOff` | 200 | game event | `push.goldOff` |
@@ -1608,8 +1131,11 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `pz_laser_gem` | Lightbender: The beam reaches a gem (pitched up gem by gem) [core.md] |  | 3–8 | recorded sound | `pz_laser_gem` | 1012 | game event | `pz_laser_gem` |
 | `pz_laser_split` | Lightbender: The beam reaches a splitter [core.md] |  | 0–4 | recorded sound | `pz_laser_split` | 1042 | game event | `pz_laser_split` |
+| `laser.place` | A mirror or splitter is placed or moved [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | recorded sound | `laser.place` | 180 | UI tap | `laser.place` |
+| `laser.turn` | A placed mirror is flipped [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | recorded sound | `laser.turn` | 180 | game event | `laser.turn` |
+| `laser.fire` | The beam starts [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | recorded sound | `laser.fire` | 2000 | game event | `laser.fire` |
 | `laser.bomb` | The beam hits a bomb (the miss's one sound) [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | recorded sound | `laser.bomb` | 420 | game event | `laser.bomb` |
-| `laser.nearMiss` | A shot ends with every gem but one lit and no bomb ("1 gem dark", in place of wrong) [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | recorded sound | `arc_retro_blip` (shared) | 600 | game event | `laser.nearMiss` |
+| `laser.nearMiss` | A shot ends with every gem but one lit and no bomb ("1 gem dark", in place of wrong) [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | recorded sound | `laser.nearMiss` | 600 | game event | `laser.nearMiss` |
 | `laser.outOfShots` | laserRev 4: the third shot fades without a solve; the board locks and says "Out of shots" [pattern.md (Lightbender (laser))] |  | 5–40 (per move) | recorded sound | `laser.outOfShots` | 528 | game event | `laser.outOfShots` |
 | `laser.solve` | The beam flares to full and the gems burst with light in beam order [pattern.md (Lightbender (laser))] |  | 0–1 | recorded sound | `laser.solve` | 1150 | success sting | `laser.solve` |
 | `music.laser` | Lightbender round bed: music_pattern_3 (pattern bed shared with other games) |  | loop | recorded sound | `music_pattern_3` (shared) | 60000 | music | `music_pattern_laser` |
@@ -1618,20 +1144,22 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `pipes.rotate` | Each tile turn, either way (a quarter turn) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | recorded sound | `pipes.rotate` | 170 | game event | `pipes.rotate` |
 | `pipes.flow` | Water reaches more pipes after a turn (not on the solve) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | recorded sound | `pipes.flow` | 220 | game event | `pipes.flow` |
-| `pipes.combo` | Water reaches 6 or more pipes in one turn, in place of pipes.flow (pipesRev 5) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | recorded sound | `combo` (shared) | 486 | game event | `pipes.combo` |
+| `pipes.combo` | Water reaches 6 or more pipes in one turn, in place of pipes.flow (pipesRev 5) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | recorded sound | `pipes.combo` | 486 | game event | `pipes.combo` |
 | `pipes.drain` | A turn cuts pipes off the water (pipesRev 5) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | recorded sound | `pipes.drain` | 486 | game event | `pipes.drain` |
 | `pipes.solve` | Water rushes from the source through every pipe [pattern.md (Pipeline (pipes))] |  | 0–1 | recorded sound | `pipes.solve` | 1200 | success sting | `pipes.solve` |
-| `pipes.bubble` | The source bubbles as the solve fills the network (pipesRev 5) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | recorded sound | `arc_sea_bubble` (shared) | 486 | game event | `pipes.bubble` |
+| `pipes.bubble` | The source bubbles as the solve fills the network (pipesRev 5) [pattern.md (Pipeline (pipes))] |  | 5–40 (per move) | recorded sound | `pipes.bubble` | 486 | game event | `pipes.bubble` |
 | `music.pipes` | Pipeline round bed: music_logic_2 (pattern bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_pattern_pipes` |
 
 ### Skid
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `iceslide.slide` | A slide of up to four squares starts (the ball and its frost trail move) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.slide` | 100 | game event | `iceslide.slide` |
 | `iceslide.slideLong` | A slide of five squares or more starts (since 15 Nov 2026, move.slide.mp3 until its own file) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.slideLong` | 100 | game event | `iceslide.slideLong` |
-| `iceslide.stop` | The ball comes to rest against what stopped it (not a fall or the exit; since 15 Nov 2026, arc_fair_thud.mp3 until its own file) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `arc_fair_thud` (shared) | 160 | game event | `iceslide.stop` |
-| `iceslide.bump` | A slide straight into a wall or the edge: nothing moves and nothing counts (since 15 Nov 2026, arc_wood_knock.mp3 until its own file) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `arc_wood_knock` (shared) | 90 | fail sting | `iceslide.bump` |
+| `iceslide.stop` | The ball comes to rest against what stopped it (not a fall or the exit; since 15 Nov 2026, arc_fair_thud.mp3 until its own file) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.stop` | 160 | game event | `iceslide.stop` |
+| `iceslide.bump` | A slide straight into a wall or the edge: nothing moves and nothing counts (since 15 Nov 2026, arc_wood_knock.mp3 until its own file) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.bump` | 90 | fail sting | `iceslide.bump` |
 | `iceslide.nearExit` | The ball rests one slide from the exit with the finish still at par: the exit glows softly (since 15 Nov 2026, gem.glint.mp3 until its own file) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.nearExit` | 300 | game event | `iceslide.nearExit` |
 | `iceslide.portal` | The ball comes out of a portal; both cells of the pair flare [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.portal` | 450 | game event | `iceslide.portal` |
 | `iceslide.crack` | Thin ice breaks as the ball leaves it (shards fly) [pattern.md (Skid (iceslide))] |  | 5–40 (per move) | recorded sound | `iceslide.crack` | 520 | game event | `iceslide.crack` |
@@ -1658,10 +1186,10 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `pz_gravity_pull` | Topsy-Turvy: The board tilts [core.md] |  | 5–30 | recorded sound | `pz_gravity_pull` | 1100 | game event | `pz_gravity_pull` |
-| `gravity.tilt` | A tilt that moves a ball: the balls' rolling rumble, looped for exactly as long as any ball moves (since the Pattern overhaul, 15 Nov 2026; arc_marble_roll.mp3 until its own file). A tilt that moves nothing is silent (a small lean only) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `arc_marble_roll` (shared) | 45 | game event | `gravity.tilt` |
-| `gravity.stop` | A ball comes to rest at the end of its roll (one each; since 15 Nov 2026, arc_marble_clink.mp3 until its own file) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `arc_marble_clink` (shared) | 120 | game event | `gravity.stop` |
+| `gravity.tilt` | A tilt that moves a ball: the balls' rolling rumble, looped for exactly as long as any ball moves (since the Pattern overhaul, 15 Nov 2026; arc_marble_roll.mp3 until its own file). A tilt that moves nothing is silent (a small lean only) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `gravity.tilt` | 45 | game event | `gravity.tilt` |
+| `gravity.stop` | A ball comes to rest at the end of its roll (one each; since 15 Nov 2026, arc_marble_clink.mp3 until its own file) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `gravity.stop` | 120 | game event | `gravity.stop` |
 | `gravity.lock` | A ball drops into its own hole, as it reaches it (not on the solving tilt's last board sound) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `gravity.lock` | 201 | game event | `gravity.lock` |
-| `gravity.combo` | Two or more balls drop home in one tilt, after their pips (since 15 Nov 2026, combo.mp3 until its own file) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `combo` (shared) | 486 | game event | `gravity.combo` |
+| `gravity.combo` | Two or more balls drop home in one tilt, after their pips (since 15 Nov 2026, combo.mp3 until its own file) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `gravity.combo` | 486 | game event | `gravity.combo` |
 | `gravity.boardClear` | A board cleared, short of the round's solve: the next board comes (since 15 Nov 2026, in place of the generic correct; ui.counterLock.mp3 until its own file) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `gravity.boardClear` | 486 | game event | `gravity.boardClear` |
 | `gravity.outOfTilts` | The tilt that used the board's last one: a closing clunk (since 15 Nov 2026, silent before; checkout.thud.mp3 until its own file) [pattern.md (Topsy-Turvy (gravity))] |  | 5–40 (per move) | recorded sound | `gravity.outOfTilts` | 606 | game event | `gravity.outOfTilts` |
 | `gravity.solve` | The solving tilt: the balls light up on their holes one after another [pattern.md (Topsy-Turvy (gravity))] |  | 0–1 | recorded sound | `gravity.solve` | 1150 | success sting | `gravity.solve` |
@@ -1685,14 +1213,26 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `sudoku.place` | A digit is entered in a cell (not pencil marks, not clearing) [logic.md] |  | 5–40 (per move) | recorded sound | `sudoku.place` | 170 | UI tap | `sudoku.place` |
 | `sudoku.solve` | The grid is complete and valid [logic.md] |  | 0–1 | recorded sound | `sudoku.solve` | 1200 | success sting | `sudoku.solve` |
+| `sudoku.clash` | A digit makes a row, column or box repeat (the clashing digits turn red) [logic.md] |  | 5–40 (per move) | recorded sound | `sudoku.clash` | 360 | game event | `sudoku.clash` |
+| `sudoku.pencil` | A pencil mark is added or removed [logic.md] |  | 5–40 (per move) | recorded sound | `sudoku.pencil` | 200 | game event | `sudoku.pencil` |
+| `sudoku.line` | A digit completes a row, column or box (pitched up when it completes several) [logic.md] |  | 1–5 | recorded sound | `sudoku.line` | 420 | game event | `sudoku.line` |
+| `sudoku.check` | Box Six Expert: Check pressed with no clash (a clash plays sudoku.clash as it shows) [logic.md] |  | 5–40 (per move) | recorded sound | `sudoku.check` | 200 | game event | `sudoku.check` |
+| `sudoku.combo` | Box Six: A digit completes two or more rows, columns or boxes at once (in place of sudoku.line) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `sudoku.combo` | 800 | game event | `sudoku.combo` |
+| `sudoku.clear` | Box Six: A digit or pencil marks cleared (Clear, Backspace, or the same digit tapped again) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `sudoku.clear` | 120 | game event | `sudoku.clear` |
 | `music.sudoku` | Box Six round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_sudoku` |
 
 ### Colour Flood
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `flood.spread` | A colour is tapped and the paint spreads [logic.md] |  | 5–40 (per move) | recorded sound | `flood.spread` | 220 | game event | `flood.spread` |
 | `flood.solve` | The board is one colour [logic.md] |  | 0–1 | recorded sound | `flood.solve` | 1150 | success sting | `flood.solve` |
+| `flood.reject` | Colour Flood: The current colour tapped [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `flood.reject` | 250 | fail sting | `flood.reject` |
+| `flood.combo` | Colour Flood: 20 or more squares in one move (in place of flood.spread) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `flood.combo` | 600 | game event | `flood.combo` |
+| `flood.nearPar` | Colour Flood: The moves counter first turns gold near par [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `flood.nearPar` | 400 | game event | `flood.nearPar` |
+| `flood.outOfMoves` | Colour Flood: The last allowed move used up [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `flood.outOfMoves` | 600 | game event | `flood.outOfMoves` |
 | `music.flood` | Colour Flood round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_flood` |
 
 ### Dig
@@ -1706,7 +1246,14 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `tower.lift` | A ring is lifted off a post [logic.md] |  | 5–40 (per move) | recorded sound | `tower.lift` | 80 | UI tap | `tower.lift` |
+| `tower.drop` | A ring lands on a post (legal move) [logic.md] |  | 5–40 (per move) | recorded sound | `tower.drop` | 220 | game event | `tower.drop` |
 | `tower.solve` | Every ring is on the gold post [logic.md] |  | 0–1 | recorded sound | `tower.solve` | 1170 | success sting | `tower.solve` |
+| `tower.illegal` | Hanoi: An illegal drop refused (the ring bounces back) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tower.illegal` | 250 | game event | `tower.illegal` |
+| `tower.lower` | Hanoi: The lifted ring lowered back onto its own post [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tower.lower` | 150 | game event | `tower.lower` |
+| `tower.glint` | Hanoi: A ring lands on the gold post in order (not the last ring: that drop is the solve) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tower.glint` | 400 | game event | `tower.glint` |
+| `tower.undo` | Hanoi: Undo [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tower.undo` | 250 | game event | `tower.undo` |
+| `tower.reset` | Hanoi: Reset [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tower.reset` | 500 | fail sting | `tower.reset` |
+| `tower.near` | Hanoi: The reveal of an unfinished board one or two moves from done, once [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tower.near` | 600 | game event | `tower.near` |
 | `music.tower` | Hanoi round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_tower` |
 
 ### Island Link
@@ -1727,10 +1274,12 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `lightup.lamp` | A lamp is placed [logic.md] |  | 5–40 (per move) | recorded sound | `lightup.lamp` | 40 | game event | `lightup.lamp` |
+| `lightup.dot` | A square is marked with a dot [logic.md] |  | 5–40 (per move) | recorded sound | `lightup.dot` | 200 | game event | `lightup.dot` |
 | `lightup.clear` | A square is cleared [logic.md] |  | 5–40 (per move) | recorded sound | `lightup.clear` | 200 | game event | `lightup.clear` |
 | `lightup.solve` | Every square is lit with no clash and every number met [logic.md] |  | 0–1 | recorded sound | `lightup.solve` | 1170 | success sting | `lightup.solve` |
 | `lightup.clash` | A lamp is placed where it sees another (15 Nov 2026, the Logic overhaul) [logic.md] |  | 5–40 (per move) | recorded sound | `lightup.clash` | 200 | game event | `lightup.clash` |
-| `lightup.wallMet` | A wall's number is newly satisfied [logic.md] |  | 5–40 (per move) | recorded sound | `tick` (shared) | 200 | game event | `lightup.wallMet` |
+| `lightup.wallMet` | A wall's number is newly satisfied [logic.md] |  | 5–40 (per move) | recorded sound | `lightup.wallMet` | 200 | game event | `lightup.wallMet` |
 | `lightup.dark` | Six or fewer squares are left dark, the first time [logic.md] |  | 5–40 (per move) | recorded sound | `lightup.dark` | 200 | game event | `lightup.dark` |
 | `music.lightup` | Lamplighter round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_lightup` |
 
@@ -1742,7 +1291,7 @@ Grouped by game or screen.
 | `fences.cross` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.cross` | 200 | game event | `fences.cross` |
 | `fences.clear` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.clear` | 200 | game event | `fences.clear` |
 | `fences.solve` |  [grid.md] |  | 0–1 | recorded sound | `fences.solve` | 1000 | success sting | `fences.solve` |
-| `fences.numberMet` |  [grid.md] |  | 5–40 (per move) | recorded sound | `tick` (shared) | 200 | game event | `fences.numberMet` |
+| `fences.numberMet` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.numberMet` | 200 | game event | `fences.numberMet` |
 | `fences.over` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.over` | 200 | game event | `fences.over` |
 | `fences.loopWrong` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.loopWrong` | 200 | game event | `fences.loopWrong` |
 | `fences.undo` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fences.undo` | 200 | game event | `fences.undo` |
@@ -1759,14 +1308,23 @@ Grouped by game or screen.
 | `minesweeper.hit` | Minefield: A mine is hit (without its file: shared.celebrate.zap, as before) [batch6-sports-cards.md] |  | 0–5 | recorded sound | `minesweeper.hit` | 474 | game event | `minesweeper.hit` |
 | `minesweeper.clear` | Minefield: Every safe square open (without its file: shared.celebrate.chime, as before) [batch6-sports-cards.md] |  | 0–1 | recorded sound | `minesweeper.clear` | 998 | game event | `minesweeper.clear` |
 | `minesweeper.unflag` | Minefield: A flag is lifted [batch6-sports-cards.md] |  | 0–10 | recorded sound | `minesweeper.unflag` | 350 | game event | `minesweeper.unflag` |
+| `minesweeper.cascadeTick` | Minefield: a cascade opens; up to 8 ticks, 45 ms apart, rising in pitch [minefield.md] |  | 5–40 (per move) | recorded sound | `minesweeper.cascadeTick` | 200 | game event | `minesweeper.cascadeTick` |
+| `minesweeper.defuse` | Minefield: each mine still hidden at the clear, one by one [minefield.md] |  | 0–1 | recorded sound | `minesweeper.defuse` | 1000 | success sting | `minesweeper.defuse` |
+| `minesweeper.tapNumber` | Minefield: a number tapped before its flags add up [minefield.md] |  | 5–40 (per move) | recorded sound | `minesweeper.tapNumber` | 80 | UI tap | `minesweeper.tapNumber` |
 | `music.minesweeper` | Minefield round bed: music_minesweeper (logic bed shared with other games) |  | loop | recorded sound | `music_minesweeper` (shared) | 60000 | music | `music_logic_minesweeper` |
 
 ### Mosaic
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `nonogram.fill` | A cell is filled [logic.md] |  | 5–40 (per move) | recorded sound | `nonogram.fill` | 170 | game event | `nonogram.fill` |
+| `nonogram.mark` | A cell is marked empty (×) [logic.md] |  | 5–40 (per move) | recorded sound | `nonogram.mark` | 140 | UI tap | `nonogram.mark` |
 | `nonogram.clear` | A cell is cleared [logic.md] |  | 5–40 (per move) | recorded sound | `nonogram.clear` | 200 | game event | `nonogram.clear` |
 | `nonogram.solve` | Every line matches its clues [logic.md] |  | 0–1 | recorded sound | `nonogram.solve` | 1160 | success sting | `nonogram.solve` |
+| `nonogram.paint` | A drag paints one more square (fill) [logic.md] |  | 5–40 (per move) | recorded sound | `nonogram.paint` | 90 | game event | `nonogram.paint` |
+| `nonogram.line` | A line now matches its numbers (pitched up for several at once) [logic.md] |  | 1–5 | recorded sound | `nonogram.line` | 420 | game event | `nonogram.line` |
+| `nonogram.autoCross` | Mosaic Easy: a line matching its numbers crosses its empty squares [logic.md] |  | 5–40 (per move) | recorded sound | `nonogram.autoCross` | 200 | game event | `nonogram.autoCross` |
+| `nonogram.combo` | Mosaic: Two or more lines matched at once (in place of nonogram.line) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `nonogram.combo` | 600 | game event | `nonogram.combo` |
 | `music.nonogram` | Mosaic round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_nonogram` |
 
 ### Polypotions
@@ -1774,8 +1332,16 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `tubes.lift` | A flask's top layer is lifted [logic.md] |  | 5–40 (per move) | recorded sound | `tubes.lift` | 150 | UI tap | `tubes.lift` |
+| `tubes.pour` | A pour lands [logic.md] |  | 5–40 (per move) | recorded sound | `tubes.pour` | 240 | game event | `tubes.pour` |
 | `tubes.cork` | A pour fills a flask with one colour (it gets a cork) [logic.md] |  | 5–40 (per move) | recorded sound | `tubes.cork` | 380 | game event | `tubes.cork` |
 | `tubes.solve` | Every flask is sorted [logic.md] |  | 0–1 | recorded sound | `tubes.solve` | 1140 | success sting | `tubes.solve` |
+| `tubes.undo` | Undo is tapped (tubesRev 3 gives the pour back) [logic.md] |  | 5–40 (per move) | recorded sound | `tubes.undo` | 200 | game event | `tubes.undo` |
+| `tubes.outOfPours` | The last allowed pour leaves the board unsorted [logic.md] |  | 5–40 (per move) | recorded sound | `tubes.outOfPours` | 1100 | game event | `tubes.outOfPours` |
+| `tubes.uncover` | Polypotions Expert: a hidden layer uncovered [logic.md] |  | 5–40 (per move) | recorded sound | `tubes.uncover` | 200 | game event | `tubes.uncover` |
+| `tubes.wrong` | Polypotions: A pour refused: the lifted flask tips and nothing pours [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tubes.wrong` | 350 | fail sting | `tubes.wrong` |
+| `tubes.combo` | Polypotions: A second cork within 4 s (in place of tubes.cork) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tubes.combo` | 600 | game event | `tubes.combo` |
+| `tubes.reset` | Polypotions: Reset with moves made [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tubes.reset` | 500 | fail sting | `tubes.reset` |
+| `tubes.glint` | Polypotions: The solve: one ting per corked flask, staggered with the cork pops [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tubes.glint` | 400 | game event | `tubes.glint` |
 | `music.tubes` | Polypotions round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_tubes` |
 
 ### Regions
@@ -1785,7 +1351,7 @@ Grouped by game or screen.
 | `fillomino.place` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.place` | 80 | UI tap | `fillomino.place` |
 | `fillomino.region` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.region` | 200 | game event | `fillomino.region` |
 | `fillomino.solve` |  [grid.md] |  | 0–1 | recorded sound | `fillomino.solve` | 1000 | success sting | `fillomino.solve` |
-| `fillomino.stroke` |  [grid.md] |  | 5–40 (per move) | recorded sound | `tick` (shared) | 200 | game event | `fillomino.stroke` |
+| `fillomino.stroke` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.stroke` | 200 | game event | `fillomino.stroke` |
 | `fillomino.over` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.over` | 200 | game event | `fillomino.over` |
 | `fillomino.erase` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.erase` | 200 | game event | `fillomino.erase` |
 | `fillomino.undo` |  [grid.md] |  | 5–40 (per move) | recorded sound | `fillomino.undo` | 200 | game event | `fillomino.undo` |
@@ -1799,15 +1365,19 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `safe.click` | A dial turns one step (each repeat while held fires again) [logic.md] |  | 5–40 (per move) | recorded sound | `safe.click` | 130 | game event | `safe.click` |
 | `safe.solve` | A try satisfies every clue (the same test that submits) [logic.md] |  | 0–1 | recorded sound | `safe.solve` | 2200 | success sting | `safe.solve` |
+| `safe.wrongTry` | A try that breaks a clue (the broken clues flash red) [logic.md] |  | 5–40 (per move) | recorded sound | `safe.wrongTry` | 520 | fail sting | `safe.wrongTry` |
+| `safe.drumLock` | Safe Cracker: The opening: one click per drum, staggered with the drums locking [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `safe.drumLock` | 150 | game event | `safe.drumLock` |
 | `music.safe` | Safe Cracker round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_safe` |
 
 ### Shikaku
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `shikaku.place` | A rectangle is accepted [logic.md] |  | 5–40 (per move) | recorded sound | `shikaku.place` | 180 | UI tap | `shikaku.place` |
+| `shikaku.remove` | A rectangle is tapped away [logic.md] |  | 5–40 (per move) | recorded sound | `shikaku.remove` | 200 | game event | `shikaku.remove` |
 | `shikaku.solve` | Every square is covered by a valid rectangle [logic.md] |  | 0–1 | recorded sound | `shikaku.solve` | 1200 | success sting | `shikaku.solve` |
 | `shikaku.dragStart` | A drag starts on the board (15 Nov 2026, the Logic overhaul) [logic.md] |  | 5–40 (per move) | recorded sound | `shikaku.dragStart` | 200 | game event | `shikaku.dragStart` |
-| `shikaku.snap` | The drag's outline grows or shrinks by a square [logic.md] |  | 5–40 (per move) | recorded sound | `tick` (shared) | 200 | game event | `shikaku.snap` |
+| `shikaku.snap` | The drag's outline grows or shrinks by a square [logic.md] |  | 5–40 (per move) | recorded sound | `shikaku.snap` | 200 | game event | `shikaku.snap` |
 | `shikaku.invalid` | A rectangle is refused [logic.md] |  | 5–40 (per move) | recorded sound | `shikaku.invalid` | 420 | game event | `shikaku.invalid` |
 | `music.shikaku` | Shikaku round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_shikaku` |
 
@@ -1815,6 +1385,8 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `tents.pitch` | A tent is placed [logic.md] |  | 5–40 (per move) | recorded sound | `tents.pitch` | 240 | game event | `tents.pitch` |
+| `tents.grass` | A cell is marked as grass [logic.md] |  | 5–40 (per move) | recorded sound | `tents.grass` | 200 | game event | `tents.grass` |
 | `tents.clear` | A cell is cleared [logic.md] |  | 5–40 (per move) | recorded sound | `tents.clear` | 200 | game event | `tents.clear` |
 | `tents.solve` | The layout is valid [logic.md] |  | 0–1 | recorded sound | `tents.solve` | 1150 | success sting | `tents.solve` |
 | `tents.touch` | A tent is pitched touching another (15 Nov 2026, the Logic overhaul) [logic.md] |  | 5–40 (per move) | recorded sound | `tents.touch` | 200 | game event | `tents.touch` |
@@ -1826,6 +1398,7 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `trail.step` | the path gains a step [number.md] |  | 5–40 (per move) | recorded sound | `trail.step` | 200 | game event | `trail.step` |
 | `trail.solve` | the trail is complete [number.md] |  | 0–1 | recorded sound | `trail.solve` | 1150 | success sting | `trail.solve` |
 | `trail.fixed` | the path reaches a fixed number on its own step (15 Nov 2026, the Logic overhaul) [number.md] |  | 5–40 (per move) | recorded sound | `trail.fixed` | 700 | game event | `trail.fixed` |
 | `trail.refused` | a step is refused [number.md] |  | 5–40 (per move) | recorded sound | `trail.refused` | 300 | fail sting | `trail.refused` |
@@ -1837,12 +1410,15 @@ Grouped by game or screen.
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `racing.speedRush` |  [arcade-effects.md] | Speed lines at the screen's edges, stronger with speed | 5–40 (per move) | recorded sound | `racing.speedRush` | loop | game event | `racing.speedRush` |
+| `racing.scrape` |  [arcade-effects.md] | Sparks off the car's touching side | 5–40 (per move) | recorded sound | `racing.scrape` | 800 | game event | `racing.scrape` |
+| `racing.chequer` |  [arcade-effects.md] | The chequered flag waves in, then the lap times and average speed count up | 5–40 (per move) | recorded sound | `racing.chequer` | 2500 | game event | `racing.chequer` |
 | `racing.light` | Apex: A red start light comes on (racingRev 2; five a race) [arcade.md] |  | 5 | recorded sound | `racing.light` | 155 | game event | `racing.light` |
 | `racing.go` | Apex: The race starts (racingRev 2: lights out; racingRev 1: the first throttle) [arcade.md] |  | 1 | recorded sound | `racing.go` | 300 | game event | `racing.go` |
 | `racing.lap` | Apex: A lap is completed [arcade.md] |  | 1–2 | recorded sound | `racing.lap` | 480 | game event | `racing.lap` |
-| `racing.sector` | Apex: A clean sector [arcade.md] |  | 0–8 | recorded sound | `arc_retro_coin` (shared) | 200 | game event | `racing.sector` |
+| `racing.sector` | Apex: A clean sector [arcade.md] |  | 0–8 | recorded sound | `racing.sector` | 200 | game event | `racing.sector` |
 | `racing.wall` | Apex: The car hits the tyre wall [arcade.md] |  | 0–10 | recorded sound | `racing.wall` | 200 | game event | `racing.wall` |
-| `racing.grass` | Apex: The car runs onto the grass or gravel [arcade.md] |  | 0–20 | recorded sound | `arc_bounce` (shared) | 150 | game event | `racing.grass` |
+| `racing.grass` | Apex: The car runs onto the grass or gravel [arcade.md] |  | 0–20 | recorded sound | `racing.grass` | 150 | game event | `racing.grass` |
 | `racing.finish` | Apex: The finish line after lap 2 [arcade.md] |  | 0–1 | recorded sound | `racing.finish` | 480 | success sting | `racing.finish` |
 | `racing.idle` | Apex: On the grid until the car first moves (0.3) [batch6-sports-cards.md] |  | loop | recorded sound | `racing.idle` | loop | ambience | `racing.idle` |
 | `racing.drive` | Apex: While driving (0.3), pitched by speed: 0.7× at rest to 1.5× flat out [batch6-sports-cards.md] |  | loop | recorded sound | `racing.drive` | loop | ambience | `racing.drive` |
@@ -1864,25 +1440,33 @@ Grouped by game or screen.
 | `balltrack.lost` | A marble falls into a pit or misses every cup [arcade-effects.md] | An expanding ring where it fell | 0–10 | recorded sound | `balltrack.lost` | 250 | fail sting | `balltrack.lost` |
 | `balltrack.shuffle` | The cups move (relay, then shuffle) [arcade-effects.md] | The cups slide to new places and flash white | 2 | recorded sound | `balltrack.shuffle` | 500 | game event | `balltrack.shuffle` |
 | `balltrack.countdown` | Each step of the hopper's 5-4-3-2-1 before the relay and before the shuffle [arcade-effects.md] | The countdown digit changes | 10 | recorded sound | `countdown_step` (shared) | 251 | UI tap | `balltrack.countdown` |
-| `balltrack.roll` | Ball Tracker: Loop while a ball is on the track [arcade.md] |  | loop | recorded sound | `arc_marble_roll` (shared) | loop | ambience | `balltrack.roll` |
-| `balltrack.marbleHome` | Ball Tracker: A ball reaches its home [arcade.md] |  | 10–30 | recorded sound | `arc_marble_clink` (shared) | 120 | game event | `balltrack.marbleHome` |
-| `balltrack.wrong` | Ball Tracker: A ball reaches the wrong home [arcade.md] |  | 0–10 | recorded sound | `arc_wood_knock` (shared) | 90 | fail sting | `balltrack.wrong` |
-| `balltrack.switch` | Ball Tracker: A switch is flipped [arcade.md] |  | 20–60 | recorded sound | `arc_latch` (shared) | 100 | UI tap | `balltrack.switch` |
+| `balltrack.roll` | Ball Tracker: Loop while a ball is on the track [arcade.md] |  | loop | recorded sound | `balltrack.roll` | loop | ambience | `balltrack.roll` |
+| `balltrack.marbleHome` | Ball Tracker: A ball reaches its home [arcade.md] |  | 10–30 | recorded sound | `balltrack.marbleHome` | 120 | game event | `balltrack.marbleHome` |
+| `balltrack.wrong` | Ball Tracker: A ball reaches the wrong home [arcade.md] |  | 0–10 | recorded sound | `balltrack.wrong` | 90 | fail sting | `balltrack.wrong` |
+| `balltrack.switch` | Ball Tracker: A switch is flipped [arcade.md] |  | 20–60 | recorded sound | `balltrack.switch` | 100 | UI tap | `balltrack.switch` |
 | `music.balltrack` | Ball Tracker: music_balltrack |  | loop | recorded sound | `music_balltrack` | loop | music | `music_balltrack` |
+| `balltrack.booster` | Ball Tracker: A marble rolls onto a booster [strategy-elevenlabs.md] |  | 5–20 | recorded sound | `balltrack.booster` | 200 | game event | `balltrack.booster` |
+| `balltrack.combo` | Ball Tracker: The home-in-a-row combo steps up (a step higher each time) [strategy-elevenlabs.md] |  | 0–30 | recorded sound | `balltrack.combo` | 300 | game event | `balltrack.combo` |
+| `balltrack.cupPulse` | Ball Tracker: One second before the cups move [strategy-elevenlabs.md] |  | 2 | recorded sound | `balltrack.cupPulse` | 400 | game event | `balltrack.cupPulse` |
 
 ### Blockzone
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
+| `blockfall.turnRefused` | A move or turn refused (the state's rejects; at most one per 120 ms) [arcade-effects.md] | The piece outlined red | 0–30 | recorded sound | `blockfall.turnRefused` | 120 | game event | `blockfall.turnRefused` |
+| `blockfall.hardDrop` | A piece locks after a drop of three rows or more (bfHardDropped) [arcade-effects.md] | A streak down each of the piece's columns | 10–60 | recorded sound | `blockfall.hardDrop` | 250 | game event | `blockfall.hardDrop` |
+| `blockfall.sweep` | A line clear (beside blockfall.clear / blockfall.bigClear) [arcade-effects.md] | Sparks off both walls along the rows | 5–30 | recorded sound | `blockfall.sweep` | 300 | game event | `blockfall.sweep` |
+| `blockfall.heartbeat` | The stack within three rows of the top (bfNearTop; a loop while it stays) [arcade-effects.md] | The well's rim beats red | loop | recorded sound | `blockfall.heartbeat` | loop | ambience | `blockfall.heartbeat` |
 | `blockfall.move` | Blockzone: The falling piece moves a column or more [arcade.md] |  | 40–200 | recorded sound | `blockfall.move` | 50 | game event | `blockfall.move` |
 | `blockfall.turn` | Blockzone: The falling piece turns [arcade.md] |  | 20–80 | recorded sound | `blockfall.turn` | 50 | game event | `blockfall.turn` |
 | `blockfall.lock` | Blockzone: A piece lands and locks without clearing a row [arcade.md] |  | 20–80 | recorded sound | `blockfall.lock` | 120 | game event | `blockfall.lock` |
 | `blockfall.clear` | Blockzone: One or two rows clear [arcade.md] |  | 5–25 | recorded sound | `blockfall.clear` | 120 | game event | `blockfall.clear` |
 | `blockfall.bigClear` | Blockzone: Three or four rows clear at once (with a success haptic) [arcade.md] |  | 0–6 | recorded sound | `blockfall.bigClear` | 100 | game event | `blockfall.bigClear` |
-| `blockfall.speedUp` | Blockzone: The speed rises (every 15 s) [arcade.md] |  | 3 | recorded sound | `arc_retro_note` (shared) | 90 | game event | `blockfall.speedUp` |
+| `blockfall.speedUp` | Blockzone: The speed rises (every 15 s) [arcade.md] |  | 3 | recorded sound | `blockfall.speedUp` | 90 | game event | `blockfall.speedUp` |
 | `blockfall.topOut` | Blockzone: The stack reaches the top and the run ends early (with an impact haptic) [arcade.md] |  | 0–1 | recorded sound | `blockfall.topOut` | 260 | game event | `blockfall.topOut` |
-| `blockfall.start` | Blockzone: The run starts [arcade.md] |  | 1 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `blockfall.start` |
+| `blockfall.start` | Blockzone: The run starts [arcade.md] |  | 1 | recorded sound | `blockfall.start` | 120 | game event | `blockfall.start` |
 | `music.blockfall` | Blockzone: music_blockfall (music_blockfall.mp3, Joe's recording, 3 Nov 2026) |  | loop | recorded sound | `music_blockfall` | 52900 | music | `music_blockfall` |
+| `blockfall.linesCount` | Blockzone: The end: the lines count up [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `blockfall.linesCount` | 1000 | game event | `blockfall.linesCount` |
 
 ### Breaker
 
@@ -1898,16 +1482,17 @@ Grouped by game or screen.
 | `breaker.relaunch` | The ball relaunches after a pause [arcade-effects.md] | RELAUNCHING disappears and the ball leaves the paddle | 1–3 | recorded sound | `arc_retro_blip` (shared) | 200 | game event | `breaker.relaunch` |
 | `breaker.wallBounce` | A ball turns back off a side wall or the ceiling (no brick hit, no paddle return; at most one per 120 ms, volume 0.4) [arcade-effects.md] | The ball changes direction at the frame | 60–150 | recorded sound | `breaker.wallBounce` | 60 | game event | `breaker.wallBounce` |
 | `breaker.rowsSlide` | Rows 3 and 7 start sliding (brkRev 2+, at 30 s and 60 s) [arcade-effects.md] | The row begins to glide side to side | 0–2 | recorded sound | `breaker.rowsSlide` | 600 | game event | `breaker.rowsSlide` |
-| `breaker.goldTang` | Breaker: Each hit on a gold brick that doesn't break it: a metallic tang, the brick's crack deepening (the Retro overhaul) [arcade.md] |  | 0–12 | recorded sound | `arc_retro_coin` (shared) | 200 | game event | `breaker.goldTang` |
-| `breaker.capsuleIcon` | Breaker: A caught power-up: its icon rises over the paddle (the Retro overhaul) [arcade.md] |  | 0–8 | recorded sound | `arc_retro_blip` (shared) | 120 | game event | `breaker.capsuleIcon` |
-| `breaker.start` | Breaker: The run starts [arcade.md] |  | 1 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `breaker.start` |
-| `breaker.ballLost` | Breaker: A ball is lost [arcade.md] |  | 0–3 | recorded sound | `arc_retro_explode` (shared) | 260 | fail sting | `breaker.ballLost` |
-| `breaker.powerUp` | Breaker: A power-up is caught [arcade.md] |  | 2–6 | recorded sound | `arc_retro_pickup` (shared) | 100 | game event | `breaker.powerUp` |
-| `breaker.fireballLit` | Breaker: Fireball is lit (brkRev 2+) [arcade.md] |  | 0–3 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `breaker.fireballLit` |
-| `breaker.brickHit` | Breaker: A brick is hit (at most one per 50 ms, three at once) [arcade.md] |  | 50–150 | recorded sound | `arc_retro_hit` (shared) | 120 | game event | `breaker.brickHit` |
-| `breaker.laser` | Breaker: The laser fires [arcade.md] |  | 0–6 | recorded sound | `arc_laser_beam` (shared) | 370 | game event | `breaker.laser` |
-| `breaker.multiball` | Breaker: Extra balls appear (one per ball) [arcade.md] |  | 0–6 | recorded sound | `arc_multiball` (shared) | 64 | game event | `breaker.multiball` |
-| `breaker.paddle` | Breaker: A ball bounces off the paddle [arcade.md] |  | 30–80 | recorded sound | `arc_retro_blip` (shared) | 50 | game event | `breaker.paddle` |
+| `breaker.timeToPoints` | The wall cleared (stage 3) [arcade-effects.md] | WALL CLEARED! and SPEED +n counting up, sparks | 0–1 | recorded sound | `breaker.timeToPoints` | 1200 | game event | `breaker.timeToPoints` |
+| `breaker.goldTang` | Breaker: Each hit on a gold brick that doesn't break it: a metallic tang, the brick's crack deepening (the Retro overhaul) [arcade.md] |  | 0–12 | recorded sound | `breaker.goldTang` | 200 | game event | `breaker.goldTang` |
+| `breaker.capsuleIcon` | Breaker: A caught power-up: its icon rises over the paddle (the Retro overhaul) [arcade.md] |  | 0–8 | recorded sound | `breaker.capsuleIcon` | 120 | game event | `breaker.capsuleIcon` |
+| `breaker.start` | Breaker: The run starts [arcade.md] |  | 1 | recorded sound | `breaker.start` | 120 | game event | `breaker.start` |
+| `breaker.ballLost` | Breaker: A ball is lost [arcade.md] |  | 0–3 | recorded sound | `breaker.ballLost` | 260 | fail sting | `breaker.ballLost` |
+| `breaker.powerUp` | Breaker: A power-up is caught [arcade.md] |  | 2–6 | recorded sound | `breaker.powerUp` | 100 | game event | `breaker.powerUp` |
+| `breaker.fireballLit` | Breaker: Fireball is lit (brkRev 2+) [arcade.md] |  | 0–3 | recorded sound | `breaker.fireballLit` | 120 | game event | `breaker.fireballLit` |
+| `breaker.brickHit` | Breaker: A brick is hit (at most one per 50 ms, three at once) [arcade.md] |  | 50–150 | recorded sound | `breaker.brickHit` | 120 | game event | `breaker.brickHit` |
+| `breaker.laser` | Breaker: The laser fires [arcade.md] |  | 0–6 | recorded sound | `breaker.laser` | 370 | game event | `breaker.laser` |
+| `breaker.multiball` | Breaker: Extra balls appear (one per ball) [arcade.md] |  | 0–6 | recorded sound | `breaker.multiball` | 64 | game event | `breaker.multiball` |
+| `breaker.paddle` | Breaker: A ball bounces off the paddle [arcade.md] |  | 30–80 | recorded sound | `breaker.paddle` | 50 | game event | `breaker.paddle` |
 | `music.breaker` | Breaker: music_breaker |  | loop | recorded sound | `music_breaker` | loop | music | `music_breaker` |
 
 ### Coral Pop
@@ -1921,13 +1506,20 @@ Grouped by game or screen.
 | `bubble.stick` | A shot sticks without popping [arcade-effects.md] | The bubble settles into the grid | 10–40 | recorded sound | `bubble.stick` | 100 | game event | `bubble.stick` |
 | `bubble.rush` | 8 or more bubbles cleared by one shot [arcade-effects.md] | A rush of bubbles rises | 0–5 | recorded sound | `bubble.rush` | 900 | game event | `bubble.rush` |
 | `bubble.reefLost` | The reef reaches the gun: the run is lost [arcade-effects.md] | The reef touches the gun line | 0–1 | recorded sound | `arc_lose_life` (shared) | 220 | fail sting | `bubble.reefLost` |
-| `bubble.waves` | Coral Pop: Loop while the run is live [arcade.md] |  | loop | recorded sound | `arc_sea_waves` (shared) | loop | ambience | `bubble.waves` |
-| `bubble.load` | Coral Pop: The next bubble loads [arcade.md] |  | 30–80 | recorded sound | `arc_sea_bubble` (shared) | 120 | game event | `bubble.load` |
-| `bubble.pop` | Coral Pop: Bubbles pop (at most one per 40 ms) [arcade.md] |  | 30–100 | recorded sound | `arc_sea_pop` (shared) | 80 | game event | `bubble.pop` |
+| `bubble.waves` | Coral Pop: Loop while the run is live [arcade.md] |  | loop | recorded sound | `bubble.waves` | loop | ambience | `bubble.waves` |
+| `bubble.load` | Coral Pop: The next bubble loads [arcade.md] |  | 30–80 | recorded sound | `bubble.load` | 120 | game event | `bubble.load` |
+| `bubble.pop` | Coral Pop: Bubbles pop (at most one per 40 ms) [arcade.md] |  | 30–100 | recorded sound | `bubble.pop` | 80 | game event | `bubble.pop` |
 | `bubble.bomb` | Coral Pop: A bomb bubble goes off (bubbleRev 2+) [arcade.md] |  | 0–5 | recorded sound | `bubble.bomb` | 662 | game event | `bubble.bomb` |
 | `bubble.line` | Coral Pop: A line bubble fires (bubbleRev 2+) [arcade.md] |  | 0–5 | recorded sound | `bubble.line` | 600 | game event | `bubble.line` |
 | `bubble.jokerLand` | Coral Pop: A joker bubble lands (bubbleRev 2+) [arcade.md] |  | 0–5 | recorded sound | `bubble.jokerLand` | 680 | game event | `bubble.jokerLand` |
 | `music.bubble` | Coral Pop: music_bubble |  | loop | recorded sound | `music_bubble` | loop | music | `music_bubble` |
+| `bubble.fastShot` | Coral Pop: A boosted shot fired (in place of bubble.load) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `bubble.fastShot` | 300 | game event | `bubble.fastShot` |
+| `bubble.wallBlip` | Coral Pop: The bubble in flight glances off a wall [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `bubble.wallBlip` | 80 | game event | `bubble.wallBlip` |
+| `bubble.fallSplash` | Coral Pop: Bubbles cut loose fall to the seabed [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `bubble.fallSplash` | 400 | game event | `bubble.fallSplash` |
+| `bubble.chestOpen` | Coral Pop: A treasure chest falls with the cluster (in place of the splash) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `bubble.chestOpen` | 700 | game event | `bubble.chestOpen` |
+| `bubble.thup` | Coral Pop: A shot sticks without popping (in place of bubble.stick) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `bubble.thup` | 150 | game event | `bubble.thup` |
+| `bubble.reefRumble` | Coral Pop: The reef shifts down a row [strategy-elevenlabs.md] |  | 5–12 | recorded sound | `bubble.reefRumble` | 600 | game event | `bubble.reefRumble` |
+| `bubble.warning` | Coral Pop: The reef's lowest row comes within two rows of the line (at most every 1.5 s) [strategy-elevenlabs.md] |  | 0–5 | recorded sound | `bubble.warning` | 500 | game event | `bubble.warning` |
 
 ### Crazy Golf
 
@@ -1949,13 +1541,16 @@ Grouped by game or screen.
 | `minigolf.roll` | Crazy Golf: While the ball rolls (0.32) [batch6-sports-cards.md] |  | loop | recorded sound | `minigolf.roll` | loop | ambience | `minigolf.roll` |
 | `minigolf.bush` | Crazy Golf: The ball strikes a planter's bush (with minigolf.stone; at most one per 120 ms) [batch6-sports-cards.md] |  | 0–10 | recorded sound | `minigolf.bush` | 439 | game event | `minigolf.bush` |
 | `music.minigolf` | Crazy Golf: music_minigolf |  | loop | recorded sound | `music_minigolf` | 52200 | music | `music_minigolf` |
+| `minigolf.aim` | Crazy Golf: The aim meter ticks, rising with the pull (in place of the synthesised tone) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `minigolf.aim` | 50 | UI tap | `minigolf.aim` |
+| `minigolf.flag` | Crazy Golf: A holed ball: the flagstick lifted [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `minigolf.flag` | 400 | game event | `minigolf.flag` |
+| `minigolf.confetti` | Crazy Golf: A birdie or better: the party popper (in place of minigolf.flag) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `minigolf.confetti` | 600 | game event | `minigolf.confetti` |
 
 ### Cue Ball
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `pool.click` | Cue Ball: Ball meets ball [arcade.md] |  | 10–60 | recorded sound | `pool.click` | 200 | game event | `pool.click` |
-| `pool.jawRattle` | Cue Ball: A ball bounces off a pocket's jaw (the ball shivers) [arcade.md] |  | 0–8 | recorded sound | `arc_bounce` (shared) | 600 | game event | `pool.jawRattle` |
+| `pool.jawRattle` | Cue Ball: A ball bounces off a pocket's jaw (the ball shivers) [arcade.md] |  | 0–8 | recorded sound | `pool.jawRattle` | 600 | game event | `pool.jawRattle` |
 | `pool.pocket` | Cue Ball: A ball drops into a pocket (the cue ball too): poolRev 1 on the drop, poolRev 2 as the rolling ball reaches the mouth, 10 ticks into its 18-tick drop (POOL_DROP_MOUTH_TICKS, pool.renderer.ts) (without its file: shared.celebrate.countDing, 0.9, as before) [batch6-sports-cards.md] |  | 5–12 | recorded sound | `pool.pocket` | 908 | game event | `pool.pocket` |
 | `pool.foul` | Cue Ball: A foul (without its file: shared.celebrate.zap, 0.7, as before) [batch6-sports-cards.md] |  | 0–5 | recorded sound | `pool.foul` | 484 | game event | `pool.foul` |
 | `pool.blackWin` | Cue Ball: The black potted after every spot (without its file: shared.celebrate.chime, as before) [batch6-sports-cards.md] |  | 0–1 | recorded sound | `pool.blackWin` | 1327 | game event | `pool.blackWin` |
@@ -1964,6 +1559,10 @@ Grouped by game or screen.
 | `pool.cueHard` | Cue Ball: A power shot (55 % of the range or more) [batch6-sports-cards.md] |  | 2–15 | recorded sound | `pool.cueHard` | 400 | game event | `pool.cueHard` |
 | `pool.cushion` | Cue Ball: A ball hits a cushion (at most one per 60 ms) [batch6-sports-cards.md] |  | 10–60 | recorded sound | `pool.cushion` | 300 | game event | `pool.cushion` |
 | `music.pool` | Cue Ball: music_pool |  | loop | recorded sound | `music_pool` | 49100 | music | `music_pool` |
+| `pool.cueCrack` | Cue Ball: The cue strikes the cue ball (with its file it replaces the soft or hard strike) [pool-overhaul.md] |  | 5–20 | recorded sound | `pool.cueCrack` | 300 | game event | `pool.cueCrack` |
+| `pool.rackRoll` | Cue Ball: A potted ball of your set lands in the rack at the top [pool-overhaul.md] |  | 0–7 | recorded sound | `pool.rackRoll` | 800 | game event | `pool.rackRoll` |
+| `pool.blackUnlock` | Cue Ball: Your seven are down: the black unlocks [pool-overhaul.md] |  | 0–1 | recorded sound | `pool.blackUnlock` | 700 | game event | `pool.blackUnlock` |
+| `pool.streakUp` | Cue Ball: The "IN A ROW" count grows [pool-overhaul.md] |  | 0–6 | recorded sound | `pool.streakUp` | 400 | game event | `pool.streakUp` |
 
 ### Curl Champ
 
@@ -1977,7 +1576,12 @@ Grouped by game or screen.
 | `curling.applause` | Curl Champ: A thrown stone settles in the 4-foot or knocks a stone out [batch6-sports-cards.md] |  | 0–8 | recorded sound | `curling.applause` | 1995 | game event | `curling.applause` |
 | `curling.shot` | Curl Champ: A thrown stone settles and takes shot (nearest the button) [batch6-sports-cards.md] |  | 0–8 | recorded sound | `curling.shot` | 998 | game event | `curling.shot` |
 | `music.curling` | Curl Champ: music_curling |  | loop | recorded sound | `music_curling` | 39300 | music | `music_curling` |
+| `curling.powerNotch` | Curl Champ: The power bar's marker clicks into place (curlRev 4: a tap or the end of a drag on the bar, each − / +), outside the gold HOUSE zone; the marker snaps (without its file: tick, 0.55) [sports-overhaul.md] |  | 8–20 | recorded sound | `curling.powerNotch` | 80 | game event | `curling.powerNotch` |
+| `curling.powerNotchHouse` | Curl Champ: The same, with the marker in the gold HOUSE zone (without its file: tick, full and a third higher) [sports-overhaul.md] |  | 4–16 | recorded sound | `curling.powerNotchHouse` | 150 | game event | `curling.powerNotchHouse` |
+| `curling.clack` | Curl Champ: Stone on stone, with a ring opening at the contact point (without its file: curling.hit, as before) [sports-overhaul.md] |  | 0–15 | recorded sound | `curling.clack` | 300 | game event | `curling.clack` |
+| `curling.ooh` | Curl Champ: A red knocked out of the house, as it goes (a dashed red ring marks where it left; silent until its file, the applause still plays as the stone comes to rest) [sports-overhaul.md] |  | 0–3 | recorded sound | `curling.ooh` | 1200 | game event | `curling.ooh` |
 | `curling.aw` | Curl Champ: A thrown stone comes to rest a near miss (a grey ring on it) [sports-overhaul.md] |  | 0–8 | recorded sound | `curling.aw` | 1995 | game event | `curling.aw` |
+| `curling.countTick` | Curl Champ: The end (curlRev 4): the house view zooms to the middle and each counting stone lights, one tick each, a step higher each time (without its file: tick, 0.7) [sports-overhaul.md] |  | 0–8 | recorded sound | `curling.countTick` | 100 | game event | `curling.countTick` |
 
 ### Fission
 
@@ -1993,14 +1597,18 @@ Grouped by game or screen.
 | `burst.ceilingTouch` | An atom touches the ceiling (at most one per 120 ms, volume 0.4) [arcade-effects.md] | The ceiling flashes white | 5–30 | recorded sound | `burst.ceilingTouch` | 60 | game event | `burst.ceilingTouch` |
 | `burst.atomBounce` | An atom bounces off the floor, pitched by its size, the biggest that bounced (at most one per 100 ms, volume 0.35) [arcade-effects.md] | The atom rebounds off the floor | hundreds | recorded sound | `burst.atomBounce` | 120 | game event | `burst.atomBounce` |
 | `burst.lastLife` | Down to the last life [arcade-effects.md] | The two spare ship icons dim | 0–1 | recorded sound | `burst.lastLife` | 500 | game event | `burst.lastLife` |
-| `burst.start` | Fission: The run starts [arcade.md] |  | 1 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `burst.start` |
-| `burst.gameOver` | Fission: The run ends on the last life [arcade.md] |  | 0–1 | recorded sound | `arc_retro_explode` (shared) | 260 | fail sting | `burst.gameOver` |
-| `burst.lifeLost` | Fission: A life is lost [arcade.md] |  | 0–3 | recorded sound | `arc_lose_life` (shared) | 220 | fail sting | `burst.lifeLost` |
-| `burst.hit` | Fission: An atom is split or destroyed (at most one per 50 ms, three at once) [arcade.md] |  | 30–100 | recorded sound | `arc_retro_hit` (shared) | 120 | game event | `burst.hit` |
-| `burst.powerUp` | Fission: A shield or burst power-up is caught [arcade.md] |  | 1–5 | recorded sound | `arc_retro_pickup` (shared) | 100 | game event | `burst.powerUp` |
-| `burst.freezeCaught` | Fission: A FREEZE icon is caught (burstRev 2+) [arcade.md] |  | 0–3 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `burst.freezeCaught` |
-| `burst.shot` | Fission: A shot is fired (at most one per 70 ms, two at once) [arcade.md] |  | 50–200 | recorded sound | `arc_retro_blip` (shared) | 50 | game event | `burst.shot` |
+| `burst.fizzle` | A wasted beam reaches the ceiling with no hit (burstRev 11's whiffs; at most one per 120 ms) [arcade-effects.md] | A grey puff and sparks at the ceiling | 0–30 | recorded sound | `burst.fizzle` | 160 | game event | `burst.fizzle` |
+| `burst.overheadHum` | An atom skims within 6 px over the ship (burstOverhead; at most one per 400 ms) [arcade-effects.md] | A white ring shimmers over the ship | 0–20 | recorded sound | `burst.overheadHum` | 300 | game event | `burst.overheadHum` |
+| `burst.lifeIconBreak` | A life is lost (beside burst.lifeLost) [arcade-effects.md] | The ship breaks into red shards | 0–3 | recorded sound | `burst.lifeIconBreak` | 200 | game event | `burst.lifeIconBreak` |
+| `burst.start` | Fission: The run starts [arcade.md] |  | 1 | recorded sound | `burst.start` | 120 | game event | `burst.start` |
+| `burst.gameOver` | Fission: The run ends on the last life [arcade.md] |  | 0–1 | recorded sound | `burst.gameOver` | 260 | fail sting | `burst.gameOver` |
+| `burst.lifeLost` | Fission: A life is lost [arcade.md] |  | 0–3 | recorded sound | `burst.lifeLost` | 220 | fail sting | `burst.lifeLost` |
+| `burst.hit` | Fission: An atom is split or destroyed (at most one per 50 ms, three at once) [arcade.md] |  | 30–100 | recorded sound | `burst.hit` | 120 | game event | `burst.hit` |
+| `burst.powerUp` | Fission: A shield or burst power-up is caught [arcade.md] |  | 1–5 | recorded sound | `burst.powerUp` | 100 | game event | `burst.powerUp` |
+| `burst.freezeCaught` | Fission: A FREEZE icon is caught (burstRev 2+) [arcade.md] |  | 0–3 | recorded sound | `burst.freezeCaught` | 120 | game event | `burst.freezeCaught` |
+| `burst.shot` | Fission: A shot is fired (at most one per 70 ms, two at once) [arcade.md] |  | 50–200 | recorded sound | `burst.shot` | 50 | game event | `burst.shot` |
 | `music.burst` | Fission: music_burst |  | loop | recorded sound | `music_burst` | loop | music | `music_burst` |
+| `burst.clearTick` | Fission: The wave-clear bonus ticks in [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `burst.clearTick` | 700 | game event | `burst.clearTick` |
 
 ### Five Hands
 
@@ -2012,6 +1620,11 @@ Grouped by game or screen.
 | `fivehands.invalid` | Five Hands: A tap on a full row [arcade.md] |  | 0–5 | recorded sound | `fivehands.invalid` | 434 | game event | `fivehands.invalid` |
 | `fivehands.shuffle` | Five Hands: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `fivehands.shuffle` | 1093 | game event | `fivehands.shuffle` |
 | `fivehands.final` | Five Hands: The rows scored: every card placed (without its file: complete, as before), or the buzzer [batch6-sports-cards.md] |  | 1 | recorded sound | `fivehands.final` | 983 | game event | `fivehands.final` |
+| `fivehands.flip` | Five Hands [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `fivehands.flip` | 200 | game event | `fivehands.flip` |
+| `fivehands.stamp` | Five Hands [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `fivehands.stamp` | 200 | game event | `fivehands.stamp` |
+| `fivehands.bigStamp` | Five Hands [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `fivehands.bigStamp` | 200 | game event | `fivehands.bigStamp` |
+| `fivehands.columnTick` | Five Hands [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `fivehands.columnTick` | 200 | game event | `fivehands.columnTick` |
+| `fivehands.countUp` | Five Hands [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `fivehands.countUp` | 200 | game event | `fivehands.countUp` |
 | `music.fivehands` | Five Hands: music_fivehands (Full House's bed, music_pokersquares.mp3) |  | loop | recorded sound | `music_fivehands` | 55200 | music | `music_fivehands` |
 
 ### Flightpath
@@ -2040,6 +1653,11 @@ Grouped by game or screen.
 | `freecell.win` | Free Cell: Every card home [arcade.md] |  | 0–1 | recorded sound | `freecell.win` | 1362 | game event | `freecell.win` |
 | `freecell.pick` | Free Cell: A card lifted as a drag starts (the stage; at most one per 60 ms) [batch6-sports-cards.md] |  | 10–60 | recorded sound | `freecell.pick` | 334 | game event | `freecell.pick` |
 | `freecell.shuffle` | Free Cell: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `freecell.shuffle` | 1093 | game event | `freecell.shuffle` |
+| `freecell.undo` | Free Cell [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `freecell.undo` | 200 | game event | `freecell.undo` |
+| `freecell.reset` | Free Cell [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `freecell.reset` | 300 | fail sting | `freecell.reset` |
+| `freecell.wobble` | Free Cell [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `freecell.wobble` | 200 | game event | `freecell.wobble` |
+| `freecell.combo` | Free Cell [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `freecell.combo` | 200 | game event | `freecell.combo` |
+| `freecell.bounce` | Free Cell [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `freecell.bounce` | 200 | game event | `freecell.bounce` |
 | `music.freecell` | Free Cell: music_freecell |  | loop | recorded sound | `music_freecell` | 47400 | music | `music_freecell` |
 
 ### Full House
@@ -2070,6 +1688,12 @@ Grouped by game or screen.
 | `arc_gem_bomb` | Gemstone: A bomb gem goes off [core.md] |  | 0–5 | recorded sound | `arc_gem_bomb` | 722 | game event | `arc_gem_bomb` |
 | `arc_gem_star` | Gemstone: A star gem goes off (gem.starBurst.mp3, sound batch 4, volume 0.8) [core.md] |  | 0–5 | recorded sound | `arc_gem_star` | 800 | game event | `arc_gem_star` |
 | `music.matchup` | Gemstone: music_matchup (music_matchup.mp3, Joe's recorded bed since 3 Nov 2026; the 28 Oct chiptune music_matchup2.mp3 retired) |  | loop | recorded sound | `music_matchup` | 54500 | music | `music_matchup` |
+| `matchup.shatter` | Gemstone: A match: the gems shatter (in place of arc_gem_match) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `matchup.shatter` | 300 | game event | `matchup.shatter` |
+| `matchup.chestHome` | Gemstone: A treasure collected [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `matchup.chestHome` | 700 | game event | `matchup.chestHome` |
+| `matchup.chestGlint` | Gemstone: A treasure comes within three rows of home [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `matchup.chestGlint` | 400 | game event | `matchup.chestGlint` |
+| `matchup.goalTick` | Gemstone: The run's end: one tick per goal met [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `matchup.goalTick` | 250 | game event | `matchup.goalTick` |
+| `matchup.goalSpark` | Gemstone: A clear counts towards a colour goal (sparks fly to it) [strategy-elevenlabs.md] |  | 20–60 | recorded sound | `matchup.goalSpark` | 300 | game event | `matchup.goalSpark` |
+| `matchup.iceCrack` | Gemstone: An ice cell cracks and shatters [strategy-elevenlabs.md] |  | 0–10 | recorded sound | `matchup.iceCrack` | 300 | game event | `matchup.iceCrack` |
 
 ### Golf Solitaire
 
@@ -2114,12 +1738,19 @@ Grouped by game or screen.
 | `swing.assaultStar` | A star taken on a tighter swing (swingRev 14; a miss puts it back) [arcade-effects.md] | STAR! burst in gold | 0–4 | recorded sound | `swing.assaultStar` | 600 | game event | `swing.assaultStar` |
 | `swing.assaultClear` | A section's landing ledge reached (swingRev 14) [arcade-effects.md] | CLEAR! (or "−0.4 s UNDER PAR") pop above the hero | 0–36 | recorded sound | `swing.assaultClear` | 487 | game event | `swing.assaultClear` |
 | `swing.assaultCourse` | The last section cleared (swingRev 14) [arcade-effects.md] | COURSE CLEARED! banner | 0–1 | recorded sound | `swing.assaultCourse` | 1200 | game event | `swing.assaultCourse` |
-| `swing.crash` | Grappler: The run ends in a crash [arcade.md] |  | 0–1 | recorded sound | `arc_crash` (shared) | 200 | fail sting | `swing.crash` |
-| `swing.grapple` | Grappler: The rope catches [arcade.md] |  | 20–60 | recorded sound | `arc_grapple` (shared) | 450 | game event | `swing.grapple` |
-| `swing.starTaken` | Grappler: A star is taken (swingRev 4+) [arcade.md] |  | 5–20 | recorded sound | `arc_pickup` (shared) | 100 | game event | `swing.starTaken` |
-| `swing.dragon` | Grappler: The dragon appears behind the player [arcade.md] |  | 0–1 | recorded sound | `arc_siren` (shared) | 600 | game event | `swing.dragon` |
-| `swing.rockShake` | Grappler: A stalactite starts to shake [arcade.md] |  | 2–8 | recorded sound | `arc_clank` (shared) | 150 | game event | `swing.rockShake` |
-| `swing.rockLand` | Grappler: A stalactite hits the floor [arcade.md] |  | 2–8 | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `swing.rockLand` |
+| `swing.ropeSnap` | Action overhaul: every grab, on top of swing.vineCreak (swingRev 17) [arcade-effects.md] | The vine pulled taut at the grab point | 20–60 | recorded sound | `swing.ropeSnap` | 200 | game event | `swing.ropeSnap` |
+| `swing.speedWhoosh` | Action overhaul: a release fast enough to light a speed gate (swingRev 17) [arcade-effects.md] | The hero flying off the vine | 0–20 | recorded sound | `swing.speedWhoosh` | 450 | game event | `swing.speedWhoosh` |
+| `swing.courseCleared` | Action overhaul: the whole course cleared (swingRev 17) [arcade-effects.md] | COURSE CLEARED! banner | 0–1 | recorded sound | `swing.courseCleared` | 1600 | game event | `swing.courseCleared` |
+| `swing.streakMeter` | Action overhaul stage 2: each clean grab (swingRev 17+), a pentatonic step higher up the block of eight [arcade-effects.md] | A segment of the arc meter under STREAK lighting gold | 0–60 | recorded sound | `swing.streakMeter` | 120 | game event | `swing.streakMeter` |
+| `swing.outOfReach` | Action overhaul stage 2: a press that grabbed nothing, the nearest vine ahead just out of reach (swingRev 17+, live play only) [arcade-effects.md] | That vine and its ring tinted red for half a second | 0–20 | recorded sound | `swing.outOfReach` | 300 | game event | `swing.outOfReach` |
+| `swing.pteroShadow` | Action overhaul stage 2: the pterodactyl starting the chase (swingRev 17+); its screech and wingbeats follow 1.2 s later [arcade-effects.md] | Its shadow sweeping across the canopy | 0–1 | recorded sound | `swing.pteroShadow` | 1200 | game event | `swing.pteroShadow` |
+| `swing.stretchTally` | Action overhaul stage 2: the end banner counting the stretches cleared up, one tick a stretch, rising [arcade-effects.md] | "COURSE CLEARED!" (or "TIME") and "n / 51 stretches" | 0–51 | recorded sound | `swing.stretchTally` | 90 | game event | `swing.stretchTally` |
+| `swing.crash` | Grappler: The run ends in a crash [arcade.md] |  | 0–1 | recorded sound | `swing.crash` | 200 | fail sting | `swing.crash` |
+| `swing.grapple` | Grappler: The rope catches [arcade.md] |  | 20–60 | recorded sound | `swing.grapple` | 450 | game event | `swing.grapple` |
+| `swing.starTaken` | Grappler: A star is taken (swingRev 4+) [arcade.md] |  | 5–20 | recorded sound | `swing.starTaken` | 100 | game event | `swing.starTaken` |
+| `swing.dragon` | Grappler: The dragon appears behind the player [arcade.md] |  | 0–1 | recorded sound | `swing.dragon` | 600 | game event | `swing.dragon` |
+| `swing.rockShake` | Grappler: A stalactite starts to shake [arcade.md] |  | 2–8 | recorded sound | `swing.rockShake` | 150 | game event | `swing.rockShake` |
+| `swing.rockLand` | Grappler: A stalactite hits the floor [arcade.md] |  | 2–8 | recorded sound | `swing.rockLand` | 90 | game event | `swing.rockLand` |
 | `swing.vineCreak` | Grappler: The vine catches (swingRev 17, the jungle canopy; swing.grapple before; Joe's swing.vineCreak.mp3 since 6 Nov 2026) [arcade.md] |  | 20–60 | recorded sound | `swing.vineCreak` | 480 | game event | `swing.vineCreak` |
 | `swing.splash` | Grappler: A miss drops the hero into the river (swingRev 17; swing.crash before; Joe's swing.splash.mp3 since 6 Nov 2026) [arcade.md] |  | 0–10 | recorded sound | `swing.splash` | 880 | game event | `swing.splash` |
 | `swing.pterodactyl` | Grappler: The pterodactyl swoops in over the last quarter (swingRev 17; swing.dragon before; Joe's swing.pterodactyl.mp3 since 6 Nov 2026) [arcade.md] |  | 0–1 | recorded sound | `swing.pterodactyl` | 1200 | game event | `swing.pterodactyl` |
@@ -2135,34 +1766,45 @@ Grouped by game or screen.
 | `skyline.windPerfect` | A perfect drop in the wind [arcade-effects.md] | PERFECT pop at the seam in a gust | 0–5 | recorded sound | `skyline.windPerfect` | 483 | game event | `skyline.windPerfect` |
 | `skyline.gust` | A gust starts blowing [arcade-effects.md] | Gust streaks cross the sky | 2–8 | recorded sound | `skyline.gust` | 600 | game event | `skyline.gust` |
 | `skyline.gustWarn` | The flag streams a second before a gust blows [arcade-effects.md] | The flag streams and ripples | 2–8 | recorded sound | `skyline.gustWarn` | 500 | game event | `skyline.gustWarn` |
-| `skyline.drop` | High Rise: A block lands [arcade.md] |  | 20–50 | recorded sound | `arc_clank` (shared) | 150 | game event | `skyline.drop` |
+| `skyline.lifeLost` | A block misses and costs a life; the run carries on (skylineRev 11, the Action overhaul) [arcade-effects.md] | The block falls away, "−1 LIFE", the LIVES chip rings | 0–2 | recorded sound | `skyline.lifeLost` | 600 | fail sting | `skyline.lifeLost` |
+| `skyline.wideBlock` | The wide-block rescue arrives after five trims in a row (skylineRev 11) [arcade-effects.md] | The NEXT panel shows WIDE | 0–3 | recorded sound | `skyline.wideBlock` | 400 | game event | `skyline.wideBlock` |
+| `skyline.trim` | A drop cuts an overhang off (the Action overhaul) [arcade-effects.md] | The overhang falls away spinning and the cut edge crumbles (stage 2) | 10–40 | recorded sound | `skyline.trim` | 700 | game event | `skyline.trim` |
+| `skyline.sliver` | A drop lands with under a quarter of the block on the tower (the Action overhaul) [arcade-effects.md] | A thin floor on the tower wobbles on its foot (stage 2) | 0–5 | recorded sound | `skyline.sliver` | 700 | game event | `skyline.sliver` |
+| `skyline.drop` | High Rise: A block lands [arcade.md] |  | 20–50 | recorded sound | `skyline.drop` | 150 | game event | `skyline.drop` |
 | `skyline.perfect` | High Rise: A perfect drop [arcade.md] |  | 5–20 | recorded sound | `skyline.perfect` | 483 | success sting | `skyline.perfect` |
-| `skyline.streakDrop` | High Rise: A streak bonus drop (skylineRev 2+) [arcade.md] |  | 2–10 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `skyline.streakDrop` |
-| `skyline.miss` | High Rise: A block misses the tower [arcade.md] |  | 0–1 | recorded sound | `arc_crash` (shared) | 200 | fail sting | `skyline.miss` |
+| `skyline.streakDrop` | High Rise: A streak bonus drop (skylineRev 2+) [arcade.md] |  | 2–10 | recorded sound | `skyline.streakDrop` | 120 | game event | `skyline.streakDrop` |
+| `skyline.miss` | High Rise: A block misses the tower [arcade.md] |  | 0–1 | recorded sound | `skyline.miss` | 200 | fail sting | `skyline.miss` |
 | `music.skyline` | High Rise: music_skyline |  | loop | recorded sound | `music_skyline` | loop | music | `music_skyline` |
+| `skyline.goldChime` | High Rise: A gold block landed perfectly (in place of the shared spark chime) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `skyline.goldChime` | 600 | game event | `skyline.goldChime` |
+| `skyline.endCount` | High Rise: The end: the floors count up [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `skyline.endCount` | 2500 | game event | `skyline.endCount` |
 
 ### Home Run
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `homerun.swing` | Home Run: A swing starts [arcade.md] |  | 10 | recorded sound | `arc_hover_tap` (shared) | 120 | game event | `homerun.swing` |
+| `homerun.swing` | Home Run: A swing starts [arcade.md] |  | 10 | recorded sound | `homerun.swing` | 120 | game event | `homerun.swing` |
 | `homerun.crack` | Home Run: Bat meets ball (a fair ball or a home run) [arcade.md] |  | 5–10 | recorded sound | `homerun.crack` | 200 | game event | `homerun.crack` |
 | `homerun.homer` | Home Run: A home run [arcade.md] |  | 0–10 | recorded sound | `homerun.homer` | 480 | game event | `homerun.homer` |
 | `homerun.sign` | Home Run: A sign beyond the fence is struck [arcade.md] |  | 0–4 | recorded sound | `homerun.sign` | 480 | game event | `homerun.sign` |
 | `homerun.foul` | Home Run: A foul ball, or weak contact (a fair ball under 400 per mille, once the slot has its file) [arcade.md] |  | 0–5 | recorded sound | `homerun.foul` | 150 | game event | `homerun.foul` |
 | `homerun.strike` | Home Run: The ball in the catcher's mitt: a swing and a miss, or a pitch taken [arcade.md] |  | 0–10 | recorded sound | `homerun.strike` | 150 | game event | `homerun.strike` |
 | `homerun.catch` | Home Run: homerunRev 4: a fielder catches the ball as it comes down (with homerun.groan, the crowd); the library's glove pop, homerun_mitt.mp3 [arcade.md] |  | 0–10 | recorded sound | `homerun.catch` | 400 | game event | `homerun.catch` |
-| `homerun.umpOut` | Home Run: homerunRev 5: a caught ball reaches the glove (with homerun.catch and homerun.groan) [arcade.md] |  | 0–3 | recorded sound | `arc_fair_thud` (shared) | 700 | game event | `homerun.umpOut` |
-| `homerun.strikeout` | Home Run: homerunRev 5: strike three, swinging or looking (with an impact haptic) [arcade.md] |  | 0–3 | recorded sound | `arc_fair_thud` (shared) | 1100 | game event | `homerun.strikeout` |
-| `homerun.walk` | Home Run: homerunRev 5: ball four, the batter takes first [arcade.md] |  | 0–5 | recorded sound | `arc_hover_tap` (shared) | 700 | game event | `homerun.walk` |
-| `homerun.perfect` | Home Run: homerunRev 5: a perfect swing, a note higher for each in a row [arcade.md] |  | 0–25 | recorded sound | `arc_fair_bell` (shared) | 400 | success sting | `homerun.perfect` |
-| `homerun.slide` | Home Run: homerunRev 5: the runners reach their bases after a hit (a slide into the bag) [arcade.md] |  | 0–25 | recorded sound | `arc_bounce` (shared) | 600 | game event | `homerun.slide` |
-| `homerun.runScores` | Home Run: homerunRev 5: a run scores (with a tick haptic) [arcade.md] |  | 0–30 | recorded sound | `arc_fair_bell` (shared) | 800 | game event | `homerun.runScores` |
+| `homerun.umpOut` | Home Run: homerunRev 5: a caught ball reaches the glove (with homerun.catch and homerun.groan) [arcade.md] |  | 0–3 | recorded sound | `homerun.umpOut` | 700 | game event | `homerun.umpOut` |
+| `homerun.strikeout` | Home Run: homerunRev 5: strike three, swinging or looking (with an impact haptic) [arcade.md] |  | 0–3 | recorded sound | `homerun.strikeout` | 1100 | game event | `homerun.strikeout` |
+| `homerun.walk` | Home Run: homerunRev 5: ball four, the batter takes first [arcade.md] |  | 0–5 | recorded sound | `homerun.walk` | 700 | game event | `homerun.walk` |
+| `homerun.perfect` | Home Run: homerunRev 5: a perfect swing, a note higher for each in a row [arcade.md] |  | 0–25 | recorded sound | `homerun.perfect` | 400 | success sting | `homerun.perfect` |
+| `homerun.slide` | Home Run: homerunRev 5: the runners reach their bases after a hit (a slide into the bag) [arcade.md] |  | 0–25 | recorded sound | `homerun.slide` | 600 | game event | `homerun.slide` |
+| `homerun.runScores` | Home Run: homerunRev 5: a run scores (with a tick haptic) [arcade.md] |  | 0–30 | recorded sound | `homerun.runScores` | 800 | game event | `homerun.runScores` |
 | `homerun.crowd` | Home Run: While the run is live (0.26) [batch6-sports-cards.md] |  | loop | recorded sound | `homerun.crowd` | loop | ambience | `homerun.crowd` |
 | `homerun.pitch` | Home Run: The pitcher releases the ball [batch6-sports-cards.md] |  | 10 | recorded sound | `homerun.pitch` | 259 | game event | `homerun.pitch` |
 | `homerun.whiff` | Home Run: A swing and a miss (with homerun.strike, the mitt) [batch6-sports-cards.md] |  | 0–10 | recorded sound | `homerun.whiff` | 400 | game event | `homerun.whiff` |
 | `homerun.roar` | Home Run: A home run [batch6-sports-cards.md] |  | 0–10 | recorded sound | `homerun.roar` | 3477 | game event | `homerun.roar` |
 | `homerun.groan` | Home Run: A fair ball within 30 ft of the fence; homerunRev 4: a fielder's catch (with homerun.catch) [batch6-sports-cards.md] |  | 0–5 | recorded sound | `homerun.groan` | 1995 | game event | `homerun.groan` |
+| `homerun.umpStrike` | Home Run: homerunRev 5: strike one or two (swinging or looking): the umpire's call [home-run-top-bins-elevenlabs.md] |  | 0–30 | recorded sound | `homerun.umpStrike` | 700 | game event | `homerun.umpStrike` |
+| `homerun.umpBall` | Home Run: homerunRev 5: a pitch outside the zone left alone (ball one to three) [home-run-top-bins-elevenlabs.md] |  | 0–15 | recorded sound | `homerun.umpBall` | 600 | game event | `homerun.umpBall` |
+| `homerun.footsteps` | Home Run: homerunRev 5: a hit or fielder's choice, as the runners set off [home-run-top-bins-elevenlabs.md] |  | 0–25 | recorded sound | `homerun.footsteps` | 900 | game event | `homerun.footsteps` |
+| `homerun.aimThunk` | Home Run: homerunRev 5: the swipe's aim line drops onto the field as the swing starts [home-run-top-bins-elevenlabs.md] |  | 0–30 | recorded sound | `homerun.aimThunk` | 250 | UI tap | `homerun.aimThunk` |
+| `homerun.inningsEnd` | Home Run: homerunRev 5: the third out or the clock (the innings summary appears) [home-run-top-bins-elevenlabs.md] |  | 1 | recorded sound | `homerun.inningsEnd` | 2500 | game event | `homerun.inningsEnd` |
 | `music.homerun` | Home Run: music_homerun |  | loop | recorded sound | `music_homerun` | 52000 | music | `music_homerun` |
 
 ### Hover
@@ -2174,14 +1816,15 @@ Grouped by game or screen.
 | `hover.slippedThrough` | Past a moving barrier (hoverRev 2+) [arcade-effects.md] | A near-miss pop over the sliding barrier | 2–8 | recorded sound | `hover.slippedThrough` | 350 | game event | `hover.slippedThrough` |
 | `hover.allBarriers` | Every barrier on the course passed [arcade-effects.md] | FULL CLEAR banner, confetti pixels, border lights chase | 0–1 | recorded sound | `hover.allBarriers` | 1200 | game event | `hover.allBarriers` |
 | `hover.newHazard` | The first two-gap barrier and the first moving barrier scroll into view (hoverRev 2+) [arcade-effects.md] | The new kind of barrier enters from the right | 0–2 | recorded sound | `hover.newHazard` | 600 | game event | `hover.newHazard` |
-| `hover.start` | Hover: The run starts [arcade.md] |  | 1 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `hover.start` |
-| `hover.crash` | Hover: The craft crashes [arcade.md] |  | 0–1 | recorded sound | `arc_retro_explode` (shared) | 260 | fail sting | `hover.crash` |
+| `hover.flyOff` | The run lasted the minute (stage 3 of the Retro overhaul) [arcade-effects.md] | The saucer lifts away with streaks; COURSE COMPLETE and the barriers counting up | 0–1 | recorded sound | `hover.flyOff` | 700 | game event | `hover.flyOff` |
+| `hover.start` | Hover: The run starts [arcade.md] |  | 1 | recorded sound | `hover.start` | 120 | game event | `hover.start` |
+| `hover.crash` | Hover: The craft crashes [arcade.md] |  | 0–1 | recorded sound | `hover.crash` | 260 | fail sting | `hover.crash` |
 | `hover.gate` | Hover: A barrier is passed; since the Retro overhaul (15 Nov 2026) a semitone higher for each gate in a row passed without a scrape or a shield breaking, at most an octave [arcade.md] |  | 20–60 | recorded sound | `arc_retro_note` (shared) | 90 | game event | `hover.gate` |
 | `hover.star` | Hover: A gold star is collected (hoverRev 2+) [arcade.md] |  | 3–10 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `hover.star` |
 | `hover.thrust` | Hover: Each tap: the thrust puff under the saucer (the Retro overhaul) [arcade.md] |  | every tap | recorded sound | `arc_retro_blip` (shared) | 60 | game event | `hover.thrust` |
-| `hover.scrape` | Hover: The saucer's edge passes within 3 px of a gap's edge: sparks off the barrier (the Retro overhaul; hoverScrape in retroMoments.ts) [arcade.md] |  | 0–20 | recorded sound | `arc_retro_blip` (shared) | 150 | game event | `hover.scrape` |
-| `hover.deadCentre` | Hover: A tight gate threaded dead centre: its rims flash gold (hoverRev 9+, the Retro overhaul) [arcade.md] |  | 0–10 | recorded sound | `arc_retro_coin` (shared) | 250 | fail sting | `hover.deadCentre` |
-| `hover.shieldShatter` | Hover: A shield shatters in place of a crash: glass shards round the saucer (hoverRev 9+, the Retro overhaul; was hover.crash) [arcade.md] |  | 0–3 | recorded sound | `arc_retro_hit` (shared) | 450 | game event | `hover.shieldShatter` |
+| `hover.scrape` | Hover: The saucer's edge passes within 3 px of a gap's edge: sparks off the barrier (the Retro overhaul; hoverScrape in retroMoments.ts) [arcade.md] |  | 0–20 | recorded sound | `hover.scrape` | 150 | game event | `hover.scrape` |
+| `hover.deadCentre` | Hover: A tight gate threaded dead centre: its rims flash gold (hoverRev 9+, the Retro overhaul) [arcade.md] |  | 0–10 | recorded sound | `hover.deadCentre` | 250 | fail sting | `hover.deadCentre` |
+| `hover.shieldShatter` | Hover: A shield shatters in place of a crash: glass shards round the saucer (hoverRev 9+, the Retro overhaul; was hover.crash) [arcade.md] |  | 0–3 | recorded sound | `hover.shieldShatter` | 450 | game event | `hover.shieldShatter` |
 | `arc_hover_tap` | Hover: Each tap that lifts the craft [core.md] |  | 50–200 | recorded sound | `arc_hover_tap` | 110 | UI tap | `arc_hover_tap` |
 | `music.hover` | Hover: music_hover |  | loop | recorded sound | `music_hover` | loop | music | `music_hover` |
 
@@ -2190,8 +1833,18 @@ Grouped by game or screen.
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
 | `bastion.drone` |  [arcade-effects.md] | A small dark drone with a blinking red light crosses the sky | 5–40 (per move) | recorded sound | `bastion.drone` | loop | game event | `bastion.drone` |
+| `bastion.shellIn` |  [arcade-effects.md] | The five shell slots lighting one by one beside the green needle | 5–40 (per move) | recorded sound | `bastion.shellIn` | 90 | game event | `bastion.shellIn` |
+| `bastion.jamGrind` |  [arcade-effects.md] | The needle turns red and shakes | 5–40 (per move) | recorded sound | `bastion.jamGrind` | 700 | game event | `bastion.jamGrind` |
+| `bastion.debris` |  [arcade-effects.md] | The burst, armour debris flung out and falling, "+n" rising off it, then the smoke | 5–40 (per move) | recorded sound | `bastion.debris` | 600 | game event | `bastion.debris` |
+| `bastion.nearMiss` |  [arcade-effects.md] | A bigger, dustier puff where it landed and CLOSE rising off it | 5–40 (per move) | recorded sound | `bastion.nearMiss` | 350 | game event | `bastion.nearMiss` |
+| `bastion.panelCrack` |  [arcade-effects.md] | The red edge flash and a crack splitting across the bottom panel where the tank came through (it stays) | 5–40 (per move) | recorded sound | `bastion.panelCrack` | 500 | game event | `bastion.panelCrack` |
+| `bastion.wallHeld` |  [arcade-effects.md] | WALL HELD stamped under the tally | 5–40 (per move) | recorded sound | `bastion.wallHeld` | 1800 | game event | `bastion.wallHeld` |
+| `bastion.tally` |  [arcade-effects.md] | WAVE n with its tank pips and "4 / 5" | 5–40 (per move) | recorded sound | `bastion.tally` | 150 | game event | `bastion.tally` |
+| `bastion.tip` |  [arcade-effects.md] | "Tip: swipe down to reload early" on the panel | 5–40 (per move) | recorded sound | `bastion.tip` | 300 | game event | `bastion.tip` |
+| `bastion.dustWind` |  [arcade-effects.md] | Amber haze and sand hills | 5–40 (per move) | recorded sound | `bastion.dustWind` | loop | game event | `bastion.dustWind` |
+| `bastion.stormFire` |  [arcade-effects.md] | Smoke columns and fires on the skyline | 5–40 (per move) | recorded sound | `bastion.stormFire` | loop | game event | `bastion.stormFire` |
 | `bastion.cannon` | Iron Wall: The cannon fires a shell [arcade.md] |  | 20–60 | recorded sound | `bastion.cannon` | 420 | game event | `bastion.cannon` |
-| `bastion.dry` | Iron Wall: Fire with no shell ready (reloading or cooling): a dry click [arcade.md] |  | 0–10 | recorded sound | `tick` (shared) | 120 | game event | `bastion.dry` |
+| `bastion.dry` | Iron Wall: Fire with no shell ready (reloading or cooling): a dry click [arcade.md] |  | 0–10 | recorded sound | `bastion.dry` | 120 | game event | `bastion.dry` |
 | `bastion.reload` | Iron Wall: A reload starts (the magazine empty, or a swipe down) [arcade.md] |  | 7–15 | recorded sound | `bastion.reload` | 500 | game event | `bastion.reload` |
 | `bastion.fastReload` | Iron Wall: A tap in the green: a fast reload [arcade.md] |  | 0–15 | recorded sound | `bastion.fastReload` | 350 | game event | `bastion.fastReload` |
 | `bastion.jam` | Iron Wall: A tap outside the green: the gun jams [arcade.md] |  | 0–10 | recorded sound | `bastion.jam` | 450 | game event | `bastion.jam` |
@@ -2227,6 +1880,14 @@ Grouped by game or screen.
 | `mahjong.clear` | Mahjong Solitaire: The board cleared (without its file: shared.celebrate.chime, as before) [batch6-sports-cards.md] |  | 0–1 | recorded sound | `mahjong.clear` | 1806 | game event | `mahjong.clear` |
 | `mahjong.select` | Mahjong Solitaire: A free tile selected [batch6-sports-cards.md] |  | 20–40 | recorded sound | `mahjong.select` | 200 | UI tap | `mahjong.select` |
 | `mahjong.invalid` | Mahjong Solitaire: A second free tile that doesn't match (the selection moves to it) [batch6-sports-cards.md] |  | 0–10 | recorded sound | `mahjong.invalid` | 300 | game event | `mahjong.invalid` |
+| `mahjong.undo` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `mahjong.undo` | 200 | game event | `mahjong.undo` |
+| `mahjong.reset` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `mahjong.reset` | 300 | fail sting | `mahjong.reset` |
+| `mahjong.pairFly` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `mahjong.pairFly` | 200 | game event | `mahjong.pairFly` |
+| `mahjong.wrongPair` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `mahjong.wrongPair` | 300 | fail sting | `mahjong.wrongPair` |
+| `mahjong.blockers` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `mahjong.blockers` | 200 | game event | `mahjong.blockers` |
+| `mahjong.spin` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `mahjong.spin` | 200 | game event | `mahjong.spin` |
+| `mahjong.nearEnd` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `mahjong.nearEnd` | 200 | game event | `mahjong.nearEnd` |
+| `mahjong.shower` | Mahjong Solitaire [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `mahjong.shower` | 200 | game event | `mahjong.shower` |
 | `music.mahjong` | Mahjong Solitaire: music_mahjong |  | loop | recorded sound | `music_mahjong` | 48000 | music | `music_mahjong` |
 
 ### Meteor
@@ -2238,13 +1899,19 @@ Grouped by game or screen.
 | `snake.allEaten` | Every star on the course eaten [arcade-effects.md] | FULL CLEAR banner, confetti pixels | 0–1 | recorded sound | `snake.allEaten` | 1200 | game event | `snake.allEaten` |
 | `snake.rockFalling` | A rock (or a meteor shower) enters its last 0.8 s before impact (at most one per 300 ms) [arcade-effects.md] | The rock sprite drops in, growing, and the crosshair blinks faster | 5–20 | recorded sound | `snake.rockFalling` | 800 | game event | `snake.rockFalling` |
 | `snake.speedUp` | A speed step on the 5th, 15th and 25th star (the 10th and 20th have the STREAK banner) [arcade-effects.md] | The snake steps faster | 0–3 | recorded sound | `snake.speedUp` | 400 | game event | `snake.speedUp` |
-| `snake.start` | Meteor: The run starts [arcade.md] |  | 1 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `snake.start` |
-| `snake.dead` | Meteor: The snake dies [arcade.md] |  | 0–1 | recorded sound | `arc_retro_explode` (shared) | 260 | fail sting | `snake.dead` |
-| `snake.eat` | Meteor: A star is eaten [arcade.md] |  | 10–40 | recorded sound | `arc_retro_blip` (shared) | 50 | game event | `snake.eat` |
-| `snake.saved` | Meteor: A crash forgiven (snakeRev 15, the comet holds still) [arcade.md] |  | 0–2 | recorded sound | `arc_retro_explode` (shared) | 400 | game event | `snake.saved` |
-| `snake.rockLand` | Meteor: A rock lands clear of the head (snakeRev 2+) [arcade.md] |  | 5–20 | recorded sound | `arc_retro_hit` (shared) | 120 | game event | `snake.rockLand` |
-| `snake.rockWarn` | Meteor: A rock's shadow appears [arcade.md] |  | 5–20 | recorded sound | `arc_retro_note` (shared) | 90 | game event | `snake.rockWarn` |
-| `snake.showerAlarm` | Meteor: A meteor shower's three shadows appear (snakeRev 3+) [arcade.md] |  | 1–3 | recorded sound | `arc_retro_note` (shared) | 180 | game event | `snake.showerAlarm` |
+| `snake.turn` | The comet turns (at most one per 60 ms) [arcade-effects.md] | A few sparks flare off the head | 20–80 | recorded sound | `snake.turn` | 60 | game event | `snake.turn` |
+| `snake.wrap` | The head comes in through an edge (snakeRev 13; at most one per 150 ms) [arcade-effects.md] | A cyan ring where it arrives | 0–20 | recorded sound | `snake.wrap` | 250 | game event | `snake.wrap` |
+| `snake.rockGraze` | The head passes a rock square beside it (snakeRockGraze; at most one per 200 ms) [arcade-effects.md] | Dust puffs off the rock | 0–20 | recorded sound | `snake.rockGraze` | 180 | game event | `snake.rockGraze` |
+| `snake.goldStar` | A gold star eaten (snakeRev 9+) [arcade-effects.md] | A gold ring where it was eaten | 0–8 | recorded sound | `snake.goldStar` | 300 | game event | `snake.goldStar` |
+| `snake.warp` | Through a wormhole (snakeRev 9+; at most one per 150 ms) [arcade-effects.md] | The wormhole's own flash | 0–10 | recorded sound | `snake.warp` | 300 | game event | `snake.warp` |
+| `snake.laneWhoosh` | A speed-lane ride counted (snakeRev 11+) [arcade-effects.md] | The lane's own glow | 0–10 | recorded sound | `snake.laneWhoosh` | 400 | game event | `snake.laneWhoosh` |
+| `snake.start` | Meteor: The run starts [arcade.md] |  | 1 | recorded sound | `snake.start` | 120 | game event | `snake.start` |
+| `snake.dead` | Meteor: The snake dies [arcade.md] |  | 0–1 | recorded sound | `snake.dead` | 260 | fail sting | `snake.dead` |
+| `snake.eat` | Meteor: A star is eaten [arcade.md] |  | 10–40 | recorded sound | `snake.eat` | 50 | game event | `snake.eat` |
+| `snake.saved` | Meteor: A crash forgiven (snakeRev 15, the comet holds still) [arcade.md] |  | 0–2 | recorded sound | `snake.saved` | 400 | game event | `snake.saved` |
+| `snake.rockLand` | Meteor: A rock lands clear of the head (snakeRev 2+) [arcade.md] |  | 5–20 | recorded sound | `snake.rockLand` | 120 | game event | `snake.rockLand` |
+| `snake.rockWarn` | Meteor: A rock's shadow appears [arcade.md] |  | 5–20 | recorded sound | `snake.rockWarn` | 90 | game event | `snake.rockWarn` |
+| `snake.showerAlarm` | Meteor: A meteor shower's three shadows appear (snakeRev 3+) [arcade.md] |  | 1–3 | recorded sound | `snake.showerAlarm` | 180 | game event | `snake.showerAlarm` |
 | `music.snake` | Meteor: music_eatgrow |  | loop | recorded sound | `music_eatgrow` | loop | music | `music_eatgrow` |
 
 ### Moon Climb
@@ -2288,13 +1955,16 @@ Grouped by game or screen.
 | `orbit.allPlanets` | All 40 planets [arcade-effects.md] | FULL CLEAR banner, stars burst, shake | 0–1 | recorded sound | `orbit.allPlanets` | 1200 | game event | `orbit.allPlanets` |
 | `orbit.blackHole` | Through a black hole (orbitRev 4+) [arcade-effects.md] | The hole's rim turns gold and the rocket jumps ahead; CLEAR banner | 0–5 | recorded sound | `orbit.blackHole` | 1080 | game event | `orbit.blackHole` |
 | `orbit.newHazard` | The planet before the first figure-eight (21) or the first asteroid belt is reached [arcade-effects.md] | The new orbit shape or belt comes into view ahead | 0–2 | recorded sound | `orbit.newHazard` | 600 | game event | `orbit.newHazard` |
-| `orbit.ambience` | Orbit: Loop while the run is live [arcade.md] |  | loop | recorded sound | `arc_space_ambience` (shared) | loop | ambience | `orbit.ambience` |
-| `orbit.launch` | Orbit: The rocket is released from a planet [arcade.md] |  | 20–40 | recorded sound | `arc_thruster` (shared) | 160 | game event | `orbit.launch` |
-| `orbit.checkpoint` | Orbit: The first checkpoint is reached [arcade.md] |  | 1 | recorded sound | `arc_pickup` (shared) | 100 | game event | `orbit.checkpoint` |
-| `orbit.crash` | Orbit: A respawn (black hole, missed planet) or the run lost [arcade.md] |  | 1–5 | recorded sound | `arc_crash` (shared) | 200 | fail sting | `orbit.crash` |
-| `orbit.outOfFuel` | Orbit: The tank runs dry (orbitRev 14+: the run lost, or on 15 a respawn) [arcade.md] |  | 0–5 | recorded sound | `arc_lose_life` (shared) | 900 | game event | `orbit.outOfFuel` |
-| `orbit.lowFuel` | Orbit: A flight's tank falls to a quarter, then every half second while it keeps falling (orbitRev 14+; the gauge pulses red with it) [arcade.md] |  | 0–40 | recorded sound | `warning_tick` (shared) | 600 | game event | `orbit.lowFuel` |
-| `orbit.respawnReady` | Orbit: An automatic respawn's hold ends (orbitRev 15) [arcade.md] |  | 0–5 | recorded sound | `countdown_step` (shared) | 250 | game event | `orbit.respawnReady` |
+| `orbit.thrust` | The rocket flies (orbitRev 14+, the Action overhaul) [arcade-effects.md] | The flame; the loop's rate falls with the fuel left | loop | recorded sound | `orbit.thrust` | loop | ambience | `orbit.thrust` |
+| `orbit.stardust` | A stardust mote is taken (orbitRev 12+) [arcade-effects.md] | The mote's glitter | 0–30 | recorded sound | `orbit.stardust` | 120 | game event | `orbit.stardust` |
+| `orbit.sunBloom` | The sun is reached (orbitRev 14+) [arcade-effects.md] | The sun's bloom (stage 2 of the Action overhaul) | 0–1 | recorded sound | `orbit.sunBloom` | 2500 | game event | `orbit.sunBloom` |
+| `orbit.ambience` | Orbit: Loop while the run is live [arcade.md] |  | loop | recorded sound | `orbit.ambience` | loop | ambience | `orbit.ambience` |
+| `orbit.launch` | Orbit: The rocket is released from a planet [arcade.md] |  | 20–40 | recorded sound | `orbit.launch` | 160 | game event | `orbit.launch` |
+| `orbit.checkpoint` | Orbit: The first checkpoint is reached [arcade.md] |  | 1 | recorded sound | `orbit.checkpoint` | 100 | game event | `orbit.checkpoint` |
+| `orbit.crash` | Orbit: A respawn (black hole, missed planet) or the run lost [arcade.md] |  | 1–5 | recorded sound | `orbit.crash` | 200 | fail sting | `orbit.crash` |
+| `orbit.outOfFuel` | Orbit: The tank runs dry (orbitRev 14+: the run lost, or on 15 a respawn) [arcade.md] |  | 0–5 | recorded sound | `orbit.outOfFuel` | 900 | game event | `orbit.outOfFuel` |
+| `orbit.lowFuel` | Orbit: A flight's tank falls to a quarter, then every half second while it keeps falling (orbitRev 14+; the gauge pulses red with it) [arcade.md] |  | 0–40 | recorded sound | `orbit.lowFuel` | 600 | game event | `orbit.lowFuel` |
+| `orbit.respawnReady` | Orbit: An automatic respawn's hold ends (orbitRev 15) [arcade.md] |  | 0–5 | recorded sound | `orbit.respawnReady` | 250 | game event | `orbit.respawnReady` |
 | `music.orbit` | Orbit: music_orbit |  | loop | recorded sound | `music_orbit` | loop | music | `music_orbit` |
 
 ### Pinball
@@ -2306,6 +1976,11 @@ Grouped by game or screen.
 | `pinball.lastBall` | The last ball is launched [arcade-effects.md] | BALL 3/3 in the HUD | 0–1 | recorded sound | `pinball.lastBall` | 800 | game event | `pinball.lastBall` |
 | `pinball.gameOver` | Every ball drained before time (its file stands in for pinball.ballLost on that drain) [arcade-effects.md] | GAME OVER, the table lights go out | 0–1 | recorded sound | `pinball.gameOver` | 1500 | fail sting | `pinball.gameOver` |
 | `pinball.joulz` | J-O-U-L-Z completed (pinRev 4+; its file stands in for pinball.bankComplete on that frame; 1 Nov 2026) [arcade-effects.md] | JOULZ in gold, large and centred, and the border flashing gold three times (0.15 s on, 0.15 s off) | 0–4 | recorded sound | `pinball.joulz` | 1200 | game event | `pinball.joulz` |
+| `pinball.ballLocked` | A ball locked (pinRev 4+) [arcade-effects.md] | The lock flares gold, "BALL n LOCKED" over it | 0–6 | recorded sound | `pinball.ballLocked` | 500 | game event | `pinball.ballLocked` |
+| `pinball.multiballStart` | Multiball starts (pinRev 4+) [arcade-effects.md] | Bright sparks from the lock | 0–3 | recorded sound | `pinball.multiballStart` | 1200 | game event | `pinball.multiballStart` |
+| `pinball.multiballEnd` | Multiball ends: the last extra ball drains with the main ball still in play (pinRev 4+) [arcade-effects.md] | The lock's lights settle | 0–3 | recorded sound | `pinball.multiballEnd` | 600 | game event | `pinball.multiballEnd` |
+| `pinball.counterRoll` | The run ends (stage 3) [arcade-effects.md] | TABLE TOTAL rolls up digit by digit like a mechanical counter | 0–1 | recorded sound | `pinball.counterRoll` | 1500 | game event | `pinball.counterRoll` |
+| `pinball.outlaneSave` | A ball that fell into an outlane's mouth climbs back out (pinRev 8, the sim's outSaves) [arcade-effects.md] | Gold sparks at the post, SAVED! | 0–1 | recorded sound | `pinball.outlaneSave` | 400 | game event | `pinball.outlaneSave` |
 | `pinball.start` | Pinball: The run starts [arcade.md] |  | 1 | recorded sound | `pinball.start` | 120 | game event | `pinball.start` |
 | `pinball.ballLost` | Pinball: A ball drains (left out on the last drain before time once pinball.gameOver has a file) [arcade.md] |  | 1–3 | recorded sound | `pinball.ballLost` | 260 | fail sting | `pinball.ballLost` |
 | `pinball.launch` | Pinball: A ball is launched into play [arcade.md] |  | 1–4 | recorded sound | `pinball.launch` | 80 | game event | `pinball.launch` |
@@ -2317,6 +1992,7 @@ Grouped by game or screen.
 | `pinball.spinner` | Pinball: The spinner turns [arcade.md] |  | 5–30 | recorded sound | `pinball.spinner` | 50 | game event | `pinball.spinner` |
 | `pinball.flipper` | Pinball: A flipper is raised (each side once per press) [arcade.md] |  | 50–150 | recorded sound | `pinball.flipper` | 50 | UI tap | `pinball.flipper` |
 | `music.pinball` | Pinball (arcade): music_rally (borrowed from Rally) |  | loop | recorded sound | `music_pinball` | 60000 | music | `music_pinball` |
+| `pinball.rampChase` | Pinball: A plain ramp shot: the ramp light chases the ball up [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `pinball.rampChase` | 500 | game event | `pinball.rampChase` |
 
 ### Rainbow Bridge
 
@@ -2335,10 +2011,15 @@ Grouped by game or screen.
 | `inkbridge.trickShot` | The coin is potted after bouncing off a cloud (inkRev 10) [arcade-effects.md] | A TRICK SHOT! pop over the pot | 0–5 | recorded sound | `inkbridge.trickShot` | 600 | game event | `inkbridge.trickShot` |
 | `inkbridge.silverCoin` | The coin in flight takes a silver coin (inkRev 10; at most one per 60 ms) [arcade-effects.md] | The silver coin goes | 0–25 | recorded sound | `inkbridge.silverCoin` | 150 | game event | `inkbridge.silverCoin` |
 | `inkbridge.shamrock` | The coin in flight takes the run's shamrock (inkRev 10) [arcade-effects.md] | The shamrock goes; a SHAMROCK +20! pop when the coin is potted | 0–1 | recorded sound | `inkbridge.shamrock` | 600 | game event | `inkbridge.shamrock` |
-| `inkbridge.draw` | Rainbow Bridge: The first segment of each drawn stroke [arcade.md] |  | 10–30 | recorded sound | `arc_rainbow` (shared) | 910 | game event | `inkbridge.draw` |
-| `inkbridge.pot` | Rainbow Bridge: The pot of gold is reached [arcade.md] |  | 3–10 | recorded sound | `arc_rainbow_pot` (shared) | 1000 | success sting | `inkbridge.pot` |
-| `inkbridge.bump` | Rainbow Bridge: A level fails on a block [arcade.md] |  | 0–5 | recorded sound | `arc_rainbow_bump` (shared) | 200 | fail sting | `inkbridge.bump` |
+| `inkbridge.draw` | Rainbow Bridge: The first segment of each drawn stroke [arcade.md] |  | 10–30 | recorded sound | `inkbridge.draw` | 910 | game event | `inkbridge.draw` |
+| `inkbridge.pot` | Rainbow Bridge: The pot of gold is reached [arcade.md] |  | 3–10 | recorded sound | `inkbridge.pot` | 1000 | success sting | `inkbridge.pot` |
+| `inkbridge.bump` | Rainbow Bridge: A level fails on a block [arcade.md] |  | 0–5 | recorded sound | `inkbridge.bump` | 200 | fail sting | `inkbridge.bump` |
 | `music.inkbridge` | Rainbow Bridge: music_inkbridge |  | loop | recorded sound | `music_inkbridge` | loop | music | `music_inkbridge` |
+| `inkbridge.birdScatter` | Rainbow Bridge: A failed drop on a bird [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `inkbridge.birdScatter` | 500 | game event | `inkbridge.birdScatter` |
+| `inkbridge.parFlourish` | Rainbow Bridge: A level potted within its ink par [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `inkbridge.parFlourish` | 500 | game event | `inkbridge.parFlourish` |
+| `inkbridge.coinWobble` | Rainbow Bridge: The coin is released and wobbles [strategy-elevenlabs.md] |  | 10–20 | recorded sound | `inkbridge.coinWobble` | 300 | game event | `inkbridge.coinWobble` |
+| `inkbridge.birdFlap` | Rainbow Bridge: The coin passes close to a flock [strategy-elevenlabs.md] |  | 0–20 | recorded sound | `inkbridge.birdFlap` | 400 | game event | `inkbridge.birdFlap` |
+| `inkbridge.missWhistle` | Rainbow Bridge: The coin falls past the pot's rim (a miss) [strategy-elevenlabs.md] |  | 0–10 | recorded sound | `inkbridge.missWhistle` | 900 | fail sting | `inkbridge.missWhistle` |
 
 ### Rally
 
@@ -2350,14 +2031,16 @@ Grouped by game or screen.
 | `rally.goldEnter` | A gold ball enters the court [arcade-effects.md] | The gold ball flies in with a trail | 3–10 | recorded sound | `rally.goldEnter` | 350 | game event | `rally.goldEnter` |
 | `rally.bumperWarn` | 2 s before a bumper appears (rallyRev 2+, again for rev 5's second) [arcade-effects.md] | BUMPER blinks where the post will stand | 1–2 | recorded sound | `rally.bumperWarn` | 500 | game event | `rally.bumperWarn` |
 | `rally.bumperIn` | A bumper appears (30 s; rev 5's second at 45 s) [arcade-effects.md] | The round post appears in the court | 1–2 | recorded sound | `rally.bumperIn` | 300 | game event | `rally.bumperIn` |
+| `rally.serve` | The lost blue ball serves again after its 1.5 s wait (rallyRev 13) [arcade-effects.md] | The waiting ball stops blinking and flies up | 0–1 | recorded sound | `rally.serve` | 160 | game event | `rally.serve` |
+| `rally.spinShot` | A ball still curving from a swiped return strikes a pink pad or a gold target (rallyRev 13) [arcade-effects.md] | The pad's or target's own burst | 0–8 | recorded sound | `rally.spinShot` | 360 | game event | `rally.spinShot` |
 | `rally.wallBounce` | A ball turns back off a side or the far wall (no return, bumper or pad; at most one per 120 ms, volume 0.4) [arcade-effects.md] | The ball changes direction at the wall | 60–150 | recorded sound | `rally.wallBounce` | 60 | game event | `rally.wallBounce` |
-| `rally.fwip` | Rally: A swiped return starts a curl: a white swirl leaves the ball (the Retro overhaul) [arcade.md] |  | 0–20 | recorded sound | `arc_retro_blip` (shared) | 150 | game event | `rally.fwip` |
-| `rally.edgeSave` | Rally: A return on the paddle's last 4 px: sparks off that end (rallyEdgeSave in retroMoments.ts) [arcade.md] |  | 0–15 | recorded sound | `arc_retro_hit` (shared) | 100 | game event | `rally.edgeSave` |
-| `rally.start` | Rally: The run starts [arcade.md] |  | 1 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `rally.start` |
-| `rally.dead` | Rally: The rally ends [arcade.md] |  | 0–1 | recorded sound | `arc_retro_explode` (shared) | 260 | fail sting | `rally.dead` |
-| `rally.goldHit` | Rally: The gold ball is returned [arcade.md] |  | 3–10 | recorded sound | `arc_retro_note` (shared) | 90 | game event | `rally.goldHit` |
-| `rally.hit` | Rally: The ball is returned [arcade.md] |  | 30–80 | recorded sound | `arc_retro_blip` (shared) | 50 | game event | `rally.hit` |
-| `rally.lifeLost` | Rally: The blue ball is missed with a life to spare (rallyRev 13); the run goes on [arcade.md] |  | 0–1 | recorded sound | `arc_retro_explode` (shared) | 420 | fail sting | `rally.lifeLost` |
+| `rally.fwip` | Rally: A swiped return starts a curl: a white swirl leaves the ball (the Retro overhaul) [arcade.md] |  | 0–20 | recorded sound | `rally.fwip` | 150 | game event | `rally.fwip` |
+| `rally.edgeSave` | Rally: A return on the paddle's last 4 px: sparks off that end (rallyEdgeSave in retroMoments.ts) [arcade.md] |  | 0–15 | recorded sound | `rally.edgeSave` | 100 | game event | `rally.edgeSave` |
+| `rally.start` | Rally: The run starts [arcade.md] |  | 1 | recorded sound | `rally.start` | 120 | game event | `rally.start` |
+| `rally.dead` | Rally: The rally ends [arcade.md] |  | 0–1 | recorded sound | `rally.dead` | 260 | fail sting | `rally.dead` |
+| `rally.goldHit` | Rally: The gold ball is returned [arcade.md] |  | 3–10 | recorded sound | `rally.goldHit` | 90 | game event | `rally.goldHit` |
+| `rally.hit` | Rally: The ball is returned [arcade.md] |  | 30–80 | recorded sound | `rally.hit` | 50 | game event | `rally.hit` |
+| `rally.lifeLost` | Rally: The blue ball is missed with a life to spare (rallyRev 13); the run goes on [arcade.md] |  | 0–1 | recorded sound | `rally.lifeLost` | 420 | fail sting | `rally.lifeLost` |
 | `music.rally` | Rally: music_rally |  | loop | recorded sound | `music_rally` | loop | music | `music_rally` |
 
 ### Ringer
@@ -2393,10 +2076,17 @@ Grouped by game or screen.
 | `flip.speedZone` | Into a speed zone (flipRev 8) [arcade-effects.md] | SPEED ZONE! banner; warm air and streaks between the zone's gates | 0–2 | recorded sound | `flip.speedZone` | 528 | game event | `flip.speedZone` |
 | `flip.sweetLanding` | A flip landed with the runner's centre on a roof's sweet spot (flipRev 8) [arcade-effects.md] | a small molten PERFECT at the runner (neon orange, dripping, ~0.6 s; no burst; since 3 Nov 2026, every flipRev 8+ round); the strip glows orange and cools | 0–8 | recorded sound | `flip.sweetLanding` | 600 | game event | `flip.sweetLanding` |
 | `flip.speedUp` | Every third speed step (9, 18, 27, 36 and 45 s; the tunnel still speeds up every 3 s, sound batch 4) [arcade-effects.md] | The scroll speeds up | 5 | recorded sound | `flip.speedUp` | 390 | game event | `flip.speedUp` |
-| `flip.crash` | Roofbound: The run ends in a crash [arcade.md] |  | 0–1 | recorded sound | `arc_crash` (shared) | 200 | fail sting | `flip.crash` |
-| `flip.flip` | Roofbound: Gravity flips [arcade.md] |  | 20–60 | recorded sound | `arc_gravity_flip` (shared) | 330 | game event | `flip.flip` |
-| `flip.flipUp` | Roofbound: Gravity flips and the runner rises to the roof (flipRev 11–13; the Action overhaul, Joe's file to come) [arcade.md] |  | 10–30 | recorded sound | `arc_gravity_flip` (shared) | 300 | game event | `flip.flipUp` |
-| `flip.flipDown` | Roofbound: Gravity flips and the runner drops to the floor (flipRev 11–13; Joe's file to come) [arcade.md] |  | 10–30 | recorded sound | `arc_gravity_flip` (shared) | 300 | game event | `flip.flipDown` |
+| `flip.respawn` | After a crash the runner blinks back and runs on (flipRev 13's grace, the Action overhaul) [arcade-effects.md] | A short white flash at the runner (8 ticks), then it blinks for its second of shield; a "−10 s" pop | 0–5 | recorded sound | `flip.respawn` | 450 | game event | `flip.respawn` |
+| `flip.land` | A landing on the stone lip (flipRev 11–13, at most one a 60 ms) [arcade-effects.md] | A dust puff at the landing spot, drifting back with the cave (stage 2; gold on a sweet spot) | 20–60 | recorded sound | `flip.land` | 180 | game event | `flip.land` |
+| `flip.flowTick` | A clean landing adds to the flow streak (flipRev 11–13; pitched up along the streak) [arcade-effects.md] | The flow counter riding over the runner's head ("×12") pops up a step (stage 2); the FLOW chip ticks up | 20–60 | recorded sound | `flip.flowTick` | 160 | game event | `flip.flowTick` |
+| `flip.flowTen` | Every 10th clean landing in a row (flipRev 11–13) [arcade-effects.md] | The counter turns gold for the step, bigger, with two small glints (stage 2) | 0–6 | recorded sound | `flip.flowTen` | 300 | game event | `flip.flowTen` |
+| `flip.flowBreak` | A crash breaks a flow streak of 3 or more (flipRev 11–13) [arcade-effects.md] | The counter cracks in two, dulls and falls away (stage 2); the FLOW chip drops to 0 | 0–5 | recorded sound | `flip.flowBreak` | 350 | game event | `flip.flowBreak` |
+| `flip.nearMiss` | The runner flips off just before a spike or lands just past one, within 24 px of its box (flipRev 11–13, stage 2 of the Action overhaul) [arcade-effects.md] | A white glint on the spike's nearest blade tip | 0–10 | recorded sound | `flip.nearMiss` | 250 | game event | `flip.nearMiss` |
+| `flip.flowCount` | The end card's flow best counting up (flipRev 11–13, stage 2) [arcade-effects.md] | SURVIVED! with BEST FLOW counting up under it (800 ms) | 0–1 | recorded sound | `flip.flowCount` | 800 | game event | `flip.flowCount` |
+| `flip.crash` | Roofbound: The run ends in a crash [arcade.md] |  | 0–1 | recorded sound | `flip.crash` | 200 | fail sting | `flip.crash` |
+| `flip.flip` | Roofbound: Gravity flips [arcade.md] |  | 20–60 | recorded sound | `flip.flip` | 330 | game event | `flip.flip` |
+| `flip.flipUp` | Roofbound: Gravity flips and the runner rises to the roof (flipRev 11–13; the Action overhaul, Joe's file to come) [arcade.md] |  | 10–30 | recorded sound | `flip.flipUp` | 300 | game event | `flip.flipUp` |
+| `flip.flipDown` | Roofbound: Gravity flips and the runner drops to the floor (flipRev 11–13; Joe's file to come) [arcade.md] |  | 10–30 | recorded sound | `flip.flipDown` | 300 | game event | `flip.flipDown` |
 | `music.flip` | Roofbound: music_flip |  | loop | recorded sound | `music_flip` | loop | music | `music_flip` |
 
 ### Scrumper
@@ -2441,12 +2131,15 @@ Grouped by game or screen.
 | `cross.freighter` | A freighter lane crossed (crossRev 9+; at most one per 600 ms) [arcade-effects.md] | The long cargo freighter going by | 0–15 | recorded sound | `cross.freighter` | 1350 | game event | `cross.freighter` |
 | `cross.newHazard` | A new layout's crossing begins (its kerb pause ends): the first cycle lane (crossing 3), roadworks (4) and the chicane (7), crossRev 2+ [arcade-effects.md] | Cyclists, cones or a chicane on the road ahead | 0–3 | recorded sound | `cross.newHazard` | 600 | game event | `cross.newHazard` |
 | `cross.traffic` | While the run is live [arcade-effects.md] | Space traffic streaming both ways (Spacewalk) | loop | recorded sound | `cross.traffic` | loop | ambience | `cross.traffic` |
+| `cross.jetPuff` | Each hop starts (at most one per 60 ms) [arcade-effects.md] | A jet puff under the astronaut | every hop | recorded sound | `cross.jetPuff` | 80 | game event | `cross.jetPuff` |
+| `cross.land` | A hop lands with no hit (at most one per 80 ms) [arcade-effects.md] | A dust ring at the astronaut's feet | every hop | recorded sound | `cross.land` | 90 | game event | `cross.land` |
 | `cross.lifeLost` | Spacewalk: The astronaut is hit (Joe's cross.lifeLost.mp3 since 6 Nov 2026) [arcade.md] |  | 0–3 | recorded sound | `cross.lifeLost` | 350 | fail sting | `cross.lifeLost` |
 | `cross.crossed` | Spacewalk: A crossing is completed: the astronaut docks (Joe's cross.crossed.mp3 since 6 Nov 2026) [arcade.md] |  | 5–15 | recorded sound | `cross.crossed` | 610 | game event | `cross.crossed` |
 | `cross.hop` | Spacewalk: The astronaut hops a lane or moves sideways (at most one per 90 ms) [arcade.md] |  | 50–150 | recorded sound | `cross.hop` | 490 | game event | `cross.hop` |
 | `cross.streakUp` | Spacewalk: The streak bonus rises (crossRev 9+; Joe's recording since 6 Nov 2026, was arc_fair_sting at 0.7) [arcade.md] |  | 0–5 | recorded sound | `cross.streakUp` | 610 | game event | `cross.streakUp` |
 | `cross.closeCall` | Spacewalk: A close call (crossRev 9+; Joe's recording since 6 Nov 2026, was arc_retro_pickup at 0.6) [arcade.md] |  | 0–12 | recorded sound | `cross.closeCall` | 220 | game event | `cross.closeCall` |
 | `music.cross` | Spacewalk: music_cross (music_cross.mp3, Joe's recorded bed since 6 Nov 2026) |  | loop | recorded sound | `music_cross` | 60000 | music | `music_cross` |
+| `cross.tally` | Spacewalk: The end: the crossings tally [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `cross.tally` | 1000 | game event | `cross.tally` |
 
 ### Summit
 
@@ -2458,6 +2151,12 @@ Grouped by game or screen.
 | `tripeaks.invalid` | Summit: A tap on a card that can't be played [arcade.md] |  | 0–10 | recorded sound | `tripeaks.invalid` | 434 | game event | `tripeaks.invalid` |
 | `tripeaks.clear` | Summit: Every peak card cleared [arcade.md] |  | 0–1 | recorded sound | `tripeaks.clear` | 1666 | game event | `tripeaks.clear` |
 | `tripeaks.shuffle` | Summit: The run starts [batch6-sports-cards.md] |  | 1 | recorded sound | `tripeaks.shuffle` | 1093 | game event | `tripeaks.shuffle` |
+| `tripeaks.flip` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `tripeaks.flip` | 200 | game event | `tripeaks.flip` |
+| `tripeaks.ladderBreak` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `tripeaks.ladderBreak` | 200 | game event | `tripeaks.ladderBreak` |
+| `tripeaks.peakFly` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `tripeaks.peakFly` | 200 | game event | `tripeaks.peakFly` |
+| `tripeaks.nudge` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `tripeaks.nudge` | 200 | game event | `tripeaks.nudge` |
+| `tripeaks.stuck` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `tripeaks.stuck` | 200 | game event | `tripeaks.stuck` |
+| `tripeaks.peaksLight` | Summit [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `tripeaks.peaksLight` | 200 | game event | `tripeaks.peaksLight` |
 | `music.tripeaks` | Summit: music_tripeaks |  | loop | recorded sound | `music_tripeaks` | 55700 | music | `music_tripeaks` |
 
 ### Swish
@@ -2489,7 +2188,10 @@ Grouped by game or screen.
 | `beat.fullCombo` | Every note hit (full combo) [arcade-effects.md] | FULL CLEAR banner and confetti pixels | 0–1 | recorded sound | `beat.fullCombo` | 1200 | game event | `beat.fullCombo` |
 | `beat.comboLost` | A combo of 10 or more broken (its file stands in for beat.miss on that note) [arcade-effects.md] | The combo glow bands vanish | 0–6 | recorded sound | `beat.comboLost` | 500 | fail sting | `beat.comboLost` |
 | `beat.swipeArrive` | The first swipe notes come into the lanes (beatRev 2+, about 30 s) [arcade-effects.md] | Swipe arrows appear at the top of the lanes | 0–1 | recorded sound | `beat.swipeArrive` | 600 | game event | `beat.swipeArrive` |
-| `beat.start` | Tempo: The run starts [arcade.md] |  | 1 | recorded sound | `arc_retro_coin` (shared) | 120 | game event | `beat.start` |
+| `beat.feverRiser` | Fever starts (beatRev 9+) [arcade-effects.md] | The fever bar's own flash | 0–4 | recorded sound | `beat.feverRiser` | 700 | game event | `beat.feverRiser` |
+| `beat.holdCrackle` | A hold note released cleanly (at most one per 80 ms) [arcade-effects.md] | Sparks crackle at its button while it is held | 0–20 | recorded sound | `beat.holdCrackle` | 200 | game event | `beat.holdCrackle` |
+| `beat.missThud` | A note missed (beside beat.miss) [arcade-effects.md] | A grey block drops out of its lane | 0–40 | recorded sound | `beat.missThud` | 120 | fail sting | `beat.missThud` |
+| `beat.start` | Tempo: The run starts [arcade.md] |  | 1 | recorded sound | `beat.start` | 120 | game event | `beat.start` |
 | `beat.miss` | Tempo: A note is missed (left out when it breaks a combo of 10+ and beat.comboLost has a file) [arcade.md] |  | 5–20 | recorded sound | `beat.miss` | 150 | fail sting | `beat.miss` |
 | `beat.note` | Tempo: A note is hit or a hold starts (pitched by lane; an own file keeps the lane pitch) [arcade.md] |  | 80–150 | recorded sound | `beat.note` | 140 | game event | `beat.note` |
 | `music.beat` | Tempo (arcade): none: the chart's synthesised beat is the music |  | loop | recorded sound | `music_beat` | 60000 | music | `music_beat` |
@@ -2503,6 +2205,13 @@ Grouped by game or screen.
 | `pyramid.deal` | Thirteen: A stock card turned onto the waste [arcade.md] |  | 10–60 | recorded sound | `pyramid.deal` | 220 | game event | `pyramid.deal` |
 | `pyramid.invalid` | Thirteen: A tap refused (a covered card, a pair not adding to 13, an empty stock) [arcade.md] |  | 0–10 | recorded sound | `pyramid.invalid` | 434 | game event | `pyramid.invalid` |
 | `pyramid.clear` | Thirteen: All 28 pyramid cards removed [arcade.md] |  | 0–1 | recorded sound | `pyramid.clear` | 1666 | game event | `pyramid.clear` |
+| `pyramid.undo` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `pyramid.undo` | 200 | game event | `pyramid.undo` |
+| `pyramid.reset` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `pyramid.reset` | 300 | fail sting | `pyramid.reset` |
+| `pyramid.pairFly` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `pyramid.pairFly` | 200 | game event | `pyramid.pairFly` |
+| `pyramid.kingFlourish` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `pyramid.kingFlourish` | 200 | game event | `pyramid.kingFlourish` |
+| `pyramid.wrongPair` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `pyramid.wrongPair` | 300 | fail sting | `pyramid.wrongPair` |
+| `pyramid.uncover` | Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `pyramid.uncover` | 200 | game event | `pyramid.uncover` |
+| `pyramid.outline` | Thirteen [cards-board-elevenlabs.md] |  | 1–5 | recorded sound | `pyramid.outline` | 200 | game event | `pyramid.outline` |
 | `pyramid.shuffle` | Thirteen [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.shuffle` | 1093 | game event | `pyramid.shuffle` |
 | `pyramid.select` | Thirteen [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.select` | 334 | UI tap | `pyramid.select` |
 | `pyramid.turn` | Thirteen [cards-solitaire.md] |  | 5–40 (per move) | recorded sound | `pyramid.turn` | 1093 | game event | `pyramid.turn` |
@@ -2515,31 +2224,42 @@ Grouped by game or screen.
 | `tilt.allMazes` | All 4 mazes finished [arcade-effects.md] | FULL CLEAR banner, confetti, shake | 0–1 | recorded sound | `tilt.allMazes` | 1200 | game event | `tilt.allMazes` |
 | `tilt.pitFall` | The marble falls into a pit (run over) [arcade-effects.md] | The marble drops out of sight | 0–1 | recorded sound | `arc_crash` (shared) | 300 | game event | `tilt.pitFall` |
 | `tilt.chaserFall` | The red chaser marble falls into a pit [arcade-effects.md] | The chaser drops and vanishes | 0–3 | recorded sound | `tilt.chaserFall` | 300 | game event | `tilt.chaserFall` |
-| `tilt.roll` | Tilt: Loop while the marble moves [arcade.md] |  | loop | recorded sound | `arc_marble_roll` (shared) | loop | ambience | `tilt.roll` |
-| `tilt.caught` | Tilt: The marble is caught [arcade.md] |  | 0–3 | recorded sound | `arc_crash` (shared) | 200 | fail sting | `tilt.caught` |
-| `tilt.mazeDone` | Tilt: A maze is finished [arcade.md] |  | 2–6 | recorded sound | `arc_marble_clink` (shared) | 120 | game event | `tilt.mazeDone` |
-| `tilt.cup` | Tilt: The marble drops into a cup [arcade.md] |  | 2–10 | recorded sound | `arc_marble_clink` (shared) | 120 | game event | `tilt.cup` |
+| `tilt.roll` | Tilt: Loop while the marble moves [arcade.md] |  | loop | recorded sound | `tilt.roll` | loop | ambience | `tilt.roll` |
+| `tilt.caught` | Tilt: The marble is caught [arcade.md] |  | 0–3 | recorded sound | `tilt.caught` | 200 | fail sting | `tilt.caught` |
+| `tilt.mazeDone` | Tilt: A maze is finished [arcade.md] |  | 2–6 | recorded sound | `tilt.mazeDone` | 120 | game event | `tilt.mazeDone` |
+| `tilt.cup` | Tilt: The marble drops into a cup [arcade.md] |  | 2–10 | recorded sound | `tilt.cup` | 120 | game event | `tilt.cup` |
 | `tilt.starTaken` | Tilt: A star is collected [arcade.md] |  | 3–15 | recorded sound | `tilt.starTaken` | 450 | game event | `tilt.starTaken` |
-| `tilt.gate` | Tilt: A gate opens [arcade.md] |  | 1–6 | recorded sound | `arc_latch` (shared) | 100 | game event | `tilt.gate` |
-| `tilt.knock` | Tilt: The marble knocks a wall (at most one per 80 ms) [arcade.md] |  | 20–80 | recorded sound | `arc_wood_knock` (shared) | 90 | game event | `tilt.knock` |
+| `tilt.gate` | Tilt: A gate opens [arcade.md] |  | 1–6 | recorded sound | `tilt.gate` | 100 | game event | `tilt.gate` |
+| `tilt.knock` | Tilt: The marble knocks a wall (at most one per 80 ms) [arcade.md] |  | 20–80 | recorded sound | `tilt.knock` | 90 | game event | `tilt.knock` |
 | `music.tilt` | Tilt: music_tilt |  | loop | recorded sound | `music_tilt` | loop | music | `music_tilt` |
+| `tilt.rimTick` | Tilt: The disc's rim passes one of its 48 notches (at most one per 45 ms) [strategy-elevenlabs.md] |  | 50–300 | recorded sound | `tilt.rimTick` | 40 | game event | `tilt.rimTick` |
+| `tilt.pitWobble` | Tilt: A marble arrives on a black hole's lip [strategy-elevenlabs.md] |  | 0–15 | recorded sound | `tilt.pitWobble` | 250 | game event | `tilt.pitWobble` |
+| `tilt.discSwap` | Tilt: A maze is finished; it spins away as the next drops in [strategy-elevenlabs.md] |  | 3–4 | recorded sound | `tilt.discSwap` | 800 | game event | `tilt.discSwap` |
 
 ### Top Bins
 
 | cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
 |---|---|---|---|---|---|---|---|---|
-| `freekick.goldTick` | Top Bins: freekickRev 5: the power bar's needle crosses the gold zone's edge [arcade.md] |  | 0–40 | recorded sound | `arc_hover_tap` (shared) | 120 | game event | `freekick.goldTick` |
+| `freekick.goldTick` | Top Bins: freekickRev 5: the power bar's needle crosses the gold zone's edge [arcade.md] |  | 0–40 | recorded sound | `freekick.goldTick` | 120 | game event | `freekick.goldTick` |
 | `freekick.kick` | Top Bins: The ball is struck [arcade.md] |  | 10 | recorded sound | `freekick.kick` | 150 | game event | `freekick.kick` |
 | `freekick.post` | Top Bins: The ball hits a post or the bar [arcade.md] |  | 0–5 | recorded sound | `freekick.post` | 200 | game event | `freekick.post` |
 | `freekick.save` | Top Bins: The keeper saves [arcade.md] |  | 0–10 | recorded sound | `freekick.save` | 200 | game event | `freekick.save` |
 | `freekick.goal` | Top Bins: A goal (its file is the net; with it, freekick.net is not played) [arcade.md] |  | 0–10 | recorded sound | `freekick.goal` | 480 | game event | `freekick.goal` |
 | `freekick.target` | Top Bins: A target hit [arcade.md] |  | 0–4 | recorded sound | `freekick.target` | 480 | game event | `freekick.target` |
-| `freekick.net` | Top Bins: The ball hits the net [arcade.md] |  | 0–10 | recorded sound | `arc_bounce` (shared) | 200 | game event | `freekick.net` |
+| `freekick.net` | Top Bins: The ball hits the net [arcade.md] |  | 0–10 | recorded sound | `freekick.net` | 200 | game event | `freekick.net` |
 | `freekick.wall` | Top Bins: The wall blocks the kick [arcade.md] |  | 0–10 | recorded sound | `freekick.wall` | 300 | game event | `freekick.wall` |
 | `freekick.crowd` | Top Bins: While the run is live (0.26) [batch6-sports-cards.md] |  | loop | recorded sound | `freekick.crowd` | loop | ambience | `freekick.crowd` |
 | `freekick.whistle` | Top Bins: The referee's whistle before the first kick (once a run, since 3 Nov 2026) [batch6-sports-cards.md] |  | 10 | recorded sound | `freekick.whistle` | 683 | game event | `freekick.whistle` |
 | `freekick.roar` | Top Bins: A goal [batch6-sports-cards.md] |  | 0–10 | recorded sound | `freekick.roar` | 3477 | game event | `freekick.roar` |
 | `freekick.groan` | Top Bins: A save, or a kick off the woodwork and wide [batch6-sports-cards.md] |  | 0–8 | recorded sound | `freekick.groan` | 1995 | game event | `freekick.groan` |
+| `freekick.windFlag` | Top Bins: freekickRev 5: a loop under a kick being set when there is wind (louder with it) [home-run-top-bins-elevenlabs.md] |  | 0–10 | recorded sound | `freekick.windFlag` | 3000 | game event | `freekick.windFlag` |
+| `freekick.bendWhistle` | Top Bins: freekickRev 5: a loop while the drawn stroke bends, its pitch rising with the bend [home-run-top-bins-elevenlabs.md] |  | 0–10 | recorded sound | `freekick.bendWhistle` | 1200 | game event | `freekick.bendWhistle` |
+| `freekick.powerTone` | Top Bins: freekickRev 5: a loop while the power bar is held, its pitch rising with the bar [home-run-top-bins-elevenlabs.md] |  | 0–10 | recorded sound | `freekick.powerTone` | 1600 | game event | `freekick.powerTone` |
+| `freekick.wallJump` | Top Bins: freekickRev 5: the wall jumps (its kicks only) [home-run-top-bins-elevenlabs.md] |  | 0–6 | recorded sound | `freekick.wallJump` | 500 | game event | `freekick.wallJump` |
+| `freekick.dive` | Top Bins: freekickRev 5: the keeper sets off on his dive [home-run-top-bins-elevenlabs.md] |  | 0–10 | recorded sound | `freekick.dive` | 600 | game event | `freekick.dive` |
+| `freekick.spill` | Top Bins: freekickRev 5: a save, the ball spilling from the keeper's hands [home-run-top-bins-elevenlabs.md] |  | 0–10 | recorded sound | `freekick.spill` | 500 | game event | `freekick.spill` |
+| `freekick.chant` | Top Bins: freekickRev 5: the fifth goal in a row (the crowd chants) [home-run-top-bins-elevenlabs.md] |  | 0–1 | recorded sound | `freekick.chant` | 4000 | game event | `freekick.chant` |
+| `freekick.hoopShrink` | Top Bins: freekickRev 5: the next kick's corner hoop appears, smaller [home-run-top-bins-elevenlabs.md] |  | 0–4 | recorded sound | `freekick.hoopShrink` | 600 | game event | `freekick.hoopShrink` |
 | `music.freekick` | Top Bins: music_freekick |  | loop | recorded sound | `music_freekick` | 53700 | music | `music_freekick` |
 
 ### Wavefront
@@ -2558,15 +2278,130 @@ Grouped by game or screen.
 | `wavefront.march` | The formation marches a step (at most one per 100 ms, volume 0.3) [arcade-effects.md] | The ships shuffle one step sideways | 150–400 | recorded sound | `wavefront.march` | 120 | game event | `wavefront.march` |
 | `wavefront.rowDrop` | The formation drops a row at a wall (at most one per 100 ms) [arcade-effects.md] | The ships step down a row | 5–20 | recorded sound | `wavefront.rowDrop` | 120 | game event | `wavefront.rowDrop` |
 | `wavefront.danger` | While the formation's lowest ship is within two drops of the ship line (it ends the run on reaching it) [arcade-effects.md] | The formation closes on the ship | loop | recorded sound | `wavefront.danger` | loop | ambience | `wavefront.danger` |
+| `wavefront.powerChirp` | A power-up caught (the Retro overhaul) [arcade-effects.md] | A ring opens round the fighter | 0–8 | recorded sound | `wavefront.powerChirp` | 220 | game event | `wavefront.powerChirp` |
+| `wavefront.boltZip` | An enemy bolt passes within 4 px of the fighter (wavBoltNearMiss; at most one per 330 ms) [arcade-effects.md] | A white streak beside the fighter | 0–20 | recorded sound | `wavefront.boltZip` | 140 | game event | `wavefront.boltZip` |
+| `wavefront.plateOff` | An armoured ship loses a plate without dying (beside wavefront.armourHit) [arcade-effects.md] | The warship flashes white | 0–12 | recorded sound | `wavefront.plateOff` | 200 | game event | `wavefront.plateOff` |
+| `wavefront.bossStages` | The final boss destroyed (stage 3) [arcade-effects.md] | Three bursts across the hull, then the big one; BOSS DOWN! and the waves counting up | 0–1 | recorded sound | `wavefront.bossStages` | 2000 | game event | `wavefront.bossStages` |
 | `wavefront.fire` | Wavefront: A shot is fired (one per volley; at most one per 120 ms, two at once) [arcade.md] |  | about 250 in 90 s | recorded sound | `wavefront.fire` | 90 | game event | `wavefront.fire` |
-| `wavefront.pierce` | Wavefront: A piercing power-up is taken [arcade.md] |  | 0–3 | recorded sound | `arc_retro_pickup` (shared) | 100 | game event | `wavefront.pierce` |
-| `wavefront.bigExplode` | Wavefront: A ship or the armoured ship is destroyed [arcade.md] |  | 5–20 | recorded sound | `arc_big_explode` (shared) | 810 | game event | `wavefront.bigExplode` |
-| `wavefront.shapePop` | Wavefront: Any other shape is destroyed [arcade.md] |  | 20–60 | recorded sound | `arc_shape_pop` (shared) | 150 | game event | `wavefront.shapePop` |
-| `wavefront.lifeLost` | Wavefront: A life is lost [arcade.md] |  | 0–3 | recorded sound | `arc_lose_life` (shared) | 220 | fail sting | `wavefront.lifeLost` |
-| `wavefront.bossHit` | Wavefront: The boss is hit and survives (wavRev 2) [arcade.md] |  | 0–30 | recorded sound | `arc_retro_hit` (shared) | 120 | game event | `wavefront.bossHit` |
+| `wavefront.pierce` | Wavefront: A piercing power-up is taken [arcade.md] |  | 0–3 | recorded sound | `wavefront.pierce` | 100 | game event | `wavefront.pierce` |
+| `wavefront.bigExplode` | Wavefront: A ship or the armoured ship is destroyed [arcade.md] |  | 5–20 | recorded sound | `wavefront.bigExplode` | 810 | game event | `wavefront.bigExplode` |
+| `wavefront.shapePop` | Wavefront: Any other shape is destroyed [arcade.md] |  | 20–60 | recorded sound | `wavefront.shapePop` | 150 | game event | `wavefront.shapePop` |
+| `wavefront.lifeLost` | Wavefront: A life is lost [arcade.md] |  | 0–3 | recorded sound | `wavefront.lifeLost` | 220 | fail sting | `wavefront.lifeLost` |
+| `wavefront.bossHit` | Wavefront: The boss is hit and survives (wavRev 2) [arcade.md] |  | 0–30 | recorded sound | `wavefront.bossHit` | 120 | game event | `wavefront.bossHit` |
 | `wavefront.formation` | Wavefront: The next formation (or the boss) arrives [arcade.md] |  | 3–5 | recorded sound | `wavefront.formation` | 830 | game event | `wavefront.formation` |
-| `wavefront.dive` | Wavefront: A ship peels off to dive [arcade.md] |  | 5–20 | recorded sound | `arc_retro_blip` (shared) | 50 | game event | `wavefront.dive` |
+| `wavefront.dive` | Wavefront: A ship peels off to dive [arcade.md] |  | 5–20 | recorded sound | `wavefront.dive` | 50 | game event | `wavefront.dive` |
 | `music.wavefront` | Wavefront: music_wavefront |  | loop | recorded sound | `music_wavefront` | loop | music | `music_wavefront` |
+| `wavefront.charge` | Wavefront: Holding to charge the heavy shot (loop, stops on release or the run's end) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `wavefront.charge` | 1200 | game event | `wavefront.charge` |
+| `wavefront.chargeRelease` | Wavefront: The charged blast released [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `wavefront.chargeRelease` | 400 | game event | `wavefront.chargeRelease` |
+
+### arc_big_explode
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `arc_big_explode` | Stand-in for a big explosion until the slot's own file decodes [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `arc_big_explode` | 810 | fail sting | `arc_big_explode` |
+
+### arc_grapple
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `arc_grapple` | Stand-in for Grappler's grab until the slot's own file decodes [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `arc_grapple` | 450 | game event | `arc_grapple` |
+
+### arc_gravity_flip
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `arc_gravity_flip` | Stand-in for Roofbound's flip until the slot's own file decodes [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `arc_gravity_flip` | 330 | game event | `arc_gravity_flip` |
+
+### arc_laser_beam
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `arc_laser_beam` | Stand-in for a laser shot until the slot's own file decodes [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `arc_laser_beam` | 370 | game event | `arc_laser_beam` |
+
+### arc_multiball
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `arc_multiball` | Stand-in for Breaker's and Pinball's multiball until the slot's own file decodes [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `arc_multiball` | 64 | game event | `arc_multiball` |
+
+### arc_rainbow
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `arc_rainbow` | Stand-in for Rainbow Bridge's and Gemstone's sparkle until the slot's own file decodes [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `arc_rainbow` | 910 | game event | `arc_rainbow` |
+
+### arc_rainbow_bump
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `arc_rainbow_bump` | Stand-in for Rainbow Bridge's bump until the slot's own file decodes [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `arc_rainbow_bump` | 200 | fail sting | `arc_rainbow_bump` |
+
+### arc_rainbow_pot
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `arc_rainbow_pot` | Stand-in for Rainbow Bridge's pot until the slot's own file decodes [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `arc_rainbow_pot` | 1000 | success sting | `arc_rainbow_pot` |
+
+### arc_retro_pickup
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `arc_retro_pickup` | Stand-in for a Retro pickup until the slot's own file decodes [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `arc_retro_pickup` | 100 | game event | `arc_retro_pickup` |
+
+### arc_sea_bubble
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `arc_sea_bubble` | Stand-in for a Coral Pop bubble until the slot's own file decodes [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `arc_sea_bubble` | 120 | game event | `arc_sea_bubble` |
+
+### arc_sea_waves
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `arc_sea_waves` | Stand-in for Coral Pop's waves until the slot's own file decodes [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `arc_sea_waves` | 600 | game event | `arc_sea_waves` |
+
+### arc_shape_pop
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `arc_shape_pop` | Stand-in for Wavefront's shape pop until the slot's own file decodes [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `arc_shape_pop` | 150 | game event | `arc_shape_pop` |
+
+### arc_space_ambience
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `arc_space_ambience` | Stand-in for an Orbit and Spacewalk space bed until the slot's own file decodes [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `arc_space_ambience` | loop | game event | `arc_space_ambience` |
+
+### arc_thruster
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `arc_thruster` | Stand-in for Hover's and Orbit's thrust until the slot's own file decodes [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `arc_thruster` | 160 | game event | `arc_thruster` |
+
+### cards
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `cards.confirm` | Free Cell, Mahjong, Thirteen [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `cards.confirm` | 200 | game event | `cards.confirm` |
+| `cards.hint` |  [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `cards.hint` | 200 | game event | `cards.hint` |
+| `cards.hintIdle` |  [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `cards.hintIdle` | 200 | game event | `cards.hintIdle` |
+| `cards.deadEnd` |  [cards-board-elevenlabs.md] |  | 5–40 (per move) | recorded sound | `cards.deadEnd` | 300 | fail sting | `cards.deadEnd` |
+
+### voice
+
+| cue id | where and when it fires | what it looks like | how often in a typical round | status | file it uses today | suggested length (ms) | category | manifest slot |
+|---|---|---|---|---|---|---|---|---|
+| `voice.great` | A round result of 175–184 (one of three, at random) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `voice.great` | 900 | room moment | `voice.great` |
+| `voice.brilliant` | A round result of 175–184 [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `voice.brilliant` | 1000 | room moment | `voice.brilliant` |
+| `voice.superb` | A round result of 175–184 [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `voice.superb` | 1240 | room moment | `voice.superb` |
+| `voice.amazing` | A round result of 185–194 [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `voice.amazing` | 1100 | room moment | `voice.amazing` |
+| `voice.outstanding` | A round result of 185–194 [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `voice.outstanding` | 1240 | room moment | `voice.outstanding` |
+| `voice.incredible` | A round result of 185–194 [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `voice.incredible` | 1240 | room moment | `voice.incredible` |
+| `voice.sensational` | A round result of 195–199 [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `voice.sensational` | 1240 | room moment | `voice.sensational` |
+| `voice.unbelievable` | A round result of 195–199 [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `voice.unbelievable` | 1240 | room moment | `voice.unbelievable` |
+| `voice.phenomenal` | A round result of 195–199 [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `voice.phenomenal` | 1240 | room moment | `voice.phenomenal` |
+| `voice.legendary` | A round result of 200 [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `voice.legendary` | 1240 | room moment | `voice.legendary` |
+| `voice.flawless` | A round result of 200 [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `voice.flawless` | 1240 | room moment | `voice.flawless` |
 
 ## Recorded files
 
@@ -2577,65 +2412,65 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 |---|---|---|---|
 | `player_joined` | effects | `player_joined` | 110 |
 | `round_start` | effects | `round_start` | 180 |
-| `tick` | effects | `tick`, `numline.sweepTick`, `numline.dragTick`, `symscan.revealGrid`, `lightup.wallMet`, `fences.numberMet`, `fillomino.stroke`, `shikaku.snap`, `bastion.dry` | 55 |
-| `countdown_step` | effects | `countdown_step`, `balltrack.countdown`, `orbit.respawnReady` | 251 |
-| `place` | effects | `place`, `numpyramid.swap` | 50 |
+| `tick` | effects | `tick`, `numline.sweepTick`, `symscan.revealGrid` | 55 |
+| `countdown_step` | effects | `countdown_step`, `balltrack.countdown` | 251 |
+| `place` | effects | `place` | 50 |
 | `move` | effects | `move`, `shared.timelapse.move` | 40 |
 | `correct` | effects | `correct` | 120 |
-| `wrong` | effects | `wrong`, `checkout.wrong`, `equation.tryCracked` | 140 |
+| `wrong` | effects | `wrong` | 140 |
 | `lock` | effects | `lock` | 90 |
 | `round_won` | effects | `round_won` | 680 |
 | `podium_fanfare` | effects | `podium_fanfare` | 350 |
-| `stage_complete` | effects | `stage_complete`, `numline.stageClear`, `measure.stageClear`, `checkout.stageClear`, `balance.stageClear`, `numpyramid.stageClear`, `numpyramid.row`, `equation.stageClear`, `junction.complete` | 160 |
+| `stage_complete` | effects | `stage_complete`, `junction.complete` | 160 |
 | `complete` | effects | `complete` | 200 |
-| `combo` | effects | `combo`, `pipes.combo`, `gravity.combo` | 90 |
+| `combo` | effects | `combo` | 90 |
 | `warning_10` | effects | `warning_10` | 10000 |
-| `warning_tick` | effects | `warning_tick`, `orbit.lowFuel` | 120 |
+| `warning_tick` | effects | `warning_tick` | 120 |
 | `warning_tick_final` | effects | `warning_tick_final` | 250 |
 | `warning_5` | effects | `warning_5` (registered, never played) | 130 |
 | `time_up` | effects | `time_up` | 250 |
 | `reveal_score` | effects | `reveal_score` | 140 |
 | `reaction` | effects | `reaction` | 100 |
-| `arc_crash` | effects | `swing.crash`, `skyline.miss`, `junction.crash`, `orbit.crash`, `flip.crash`, `slice.bomb`, `tilt.pitFall`, `tilt.caught` | 200 |
-| `arc_pickup` | effects | `swing.starTaken`, `orbit.checkpoint`, `flip.starTaken`, `flip.trailStar` | 100 |
-| `arc_space_ambience` | effects | `orbit.ambience` | loop |
-| `arc_thruster` | effects | `orbit.launch` | 160 |
-| `arc_lose_life` | effects | `bubble.reefLost`, `burst.lifeLost`, `orbit.outOfFuel`, `wavefront.lifeLost` | 220 |
-| `arc_bounce` | effects | `racing.grass`, `pool.jawRattle`, `homerun.slide`, `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble`, `freekick.net` | 80 |
-| `arc_retro_note` | effects | `blockfall.speedUp`, `hover.gate`, `snake.rockWarn`, `snake.showerAlarm`, `rally.goldHit` | 90 |
-| `arc_retro_pickup` | effects | `breaker.powerUp`, `burst.powerUp`, `wavefront.pierce` | 100 |
-| `arc_retro_blip` | effects | `flow.nearMiss`, `laser.nearMiss`, `breaker.relaunch`, `breaker.capsuleIcon`, `breaker.paddle`, `burst.shot`, `hover.thrust`, `hover.scrape`, `snake.eat`, `rally.fwip`, `rally.hit`, `wavefront.dive` | 50 |
-| `arc_retro_coin` | effects | `racing.sector`, `blockfall.start`, `breaker.goldTang`, `breaker.start`, `breaker.fireballLit`, `burst.start`, `burst.freezeCaught`, `skyline.streakDrop`, `hover.start`, `hover.star`, `hover.deadCentre`, `snake.start`, `rally.start`, `beat.start` | 120 |
-| `arc_retro_explode` | effects | `whack.bomb`, `breaker.ballLost`, `burst.gameOver`, `hover.crash`, `snake.dead`, `snake.saved`, `rally.dead`, `rally.lifeLost` | 260 |
-| `arc_retro_hit` | effects | `breaker.brickHit`, `burst.hit`, `hover.shieldShatter`, `snake.rockLand`, `rally.edgeSave`, `wavefront.armourHit`, `wavefront.bossHit` | 120 |
-| `arc_fair_thud` | effects | `iceslide.stop`, `bullseye.thud`, `homerun.umpOut`, `homerun.strikeout` | 160 |
-| `arc_fair_bell` | effects | `bullseye.bull`, `homerun.perfect`, `homerun.runScores`, `bintoss.allBaskets` | 400 |
+| `arc_crash` | effects | `junction.crash`, `slice.bomb`, `tilt.pitFall` | 200 |
+| `arc_pickup` | effects | `flip.starTaken`, `flip.trailStar` | 100 |
+| `arc_space_ambience` | effects | `arc_space_ambience` | loop |
+| `arc_thruster` | effects | `arc_thruster` | 160 |
+| `arc_lose_life` | effects | `bubble.reefLost` | 220 |
+| `arc_bounce` | effects | `rally.bumperBounce`, `snip.springBounce`, `snip.hook`, `bintoss.missBounce`, `bintoss.wobble` | 80 |
+| `arc_retro_note` | effects | `hover.gate` | 90 |
+| `arc_retro_pickup` | effects | `arc_retro_pickup` | 100 |
+| `arc_retro_blip` | effects | `breaker.relaunch`, `hover.thrust` | 50 |
+| `arc_retro_coin` | effects | `hover.star` | 120 |
+| `arc_retro_explode` | effects | `whack.bomb` | 260 |
+| `arc_retro_hit` | effects | `wavefront.armourHit` | 120 |
+| `arc_fair_thud` | effects | `bullseye.thud` | 160 |
+| `arc_fair_bell` | effects | `bullseye.bull`, `bintoss.allBaskets` | 400 |
 | `arc_fair_bucket` | effects | `bintoss.basket` | 200 |
 | `arc_fair_sting` | effects | `bullseye.perfect`, `bintoss.perfect` | 300 |
-| `arc_marble_roll` | effects | `gravity.tilt`, `balltrack.roll`, `inkbridge.coinRoll`, `tilt.roll` | 400 |
-| `arc_siren` | effects | `swing.dragon`, `junction.siren` | 600 |
-| `arc_wood_knock` | effects | `numline.fail`, `measure.fail`, `checkout.fail`, `balance.fail`, `numpyramid.fail`, `equation.fail`, `unblock.blocked`, `iceslide.bump`, `balltrack.wrong`, `swing.rockLand`, `bintoss.spinnerKnock`, `tilt.knock` | 90 |
-| `arc_clank` | effects | `swing.rockShake`, `skyline.drop`, `junction.newRoad` | 150 |
+| `arc_marble_roll` | effects | `inkbridge.coinRoll` | 400 |
+| `arc_siren` | effects | `junction.siren` | 600 |
+| `arc_wood_knock` | effects | `numline.fail`, `checkout.fail`, `numpyramid.fail`, `bintoss.spinnerKnock` | 90 |
+| `arc_clank` | effects | `junction.newRoad` | 150 |
 | `arc_horn` | effects | `junction.horn` | 400 |
-| `arc_latch` | effects | `balltrack.switch`, `pinball.bankReset`, `tilt.gate` | 100 |
-| `arc_marble_clink` | effects | `gravity.stop`, `balltrack.marbleHome`, `inkbridge.coinLand`, `tilt.mazeDone`, `tilt.cup` | 120 |
-| `arc_sea_pop` | effects | `flow.cut`, `bubble.pop`, `bullseye.balloonPop` | 80 |
-| `arc_sea_waves` | effects | `bubble.waves` | 600 |
-| `arc_sea_bubble` | effects | `flow.draw`, `pipes.bubble`, `bubble.load` | 120 |
+| `arc_latch` | effects | `pinball.bankReset` | 100 |
+| `arc_marble_clink` | effects | `inkbridge.coinLand` | 120 |
+| `arc_sea_pop` | effects | `bullseye.balloonPop` | 80 |
+| `arc_sea_waves` | effects | `arc_sea_waves` | 600 |
+| `arc_sea_bubble` | effects | `arc_sea_bubble` | 120 |
 | `arc_leaf_collect` | effects | `arc_leaf_collect` | 840 |
-| `arc_rainbow` | effects | `inkbridge.draw` | 910 |
+| `arc_rainbow` | effects | `arc_rainbow` | 910 |
 | `arc_rope_cut` | effects | `snip.cut` | 230 |
-| `arc_grapple` | effects | `swing.grapple` | 450 |
-| `arc_gravity_flip` | effects | `flip.flip`, `flip.flipUp`, `flip.flipDown` | 330 |
-| `arc_hover_tap` | effects | `homerun.swing`, `homerun.walk`, `arc_hover_tap`, `freekick.goldTick` | 110 |
+| `arc_grapple` | effects | `arc_grapple` | 450 |
+| `arc_gravity_flip` | effects | `arc_gravity_flip` | 330 |
+| `arc_hover_tap` | effects | `arc_hover_tap` | 110 |
 | `arc_gem_match` | effects | `arc_gem_match` | 400 |
 | `arc_ketchup` | effects | `arc_ketchup` | 230 |
 | `arc_knife_slice` | effects | `slice.cut` | 300 |
-| `arc_laser_beam` | effects | `breaker.laser` | 370 |
-| `arc_multiball` | effects | `breaker.multiball` | 64 |
+| `arc_laser_beam` | effects | `arc_laser_beam` | 370 |
+| `arc_multiball` | effects | `arc_multiball` | 64 |
 | `arc_mustard` | effects | `arc_mustard` | 410 |
 | `arc_slice_combo` | effects | `slice.comboUp` | 721 |
-| `arc_big_explode` | effects | `wavefront.bigExplode` | 810 |
+| `arc_big_explode` | effects | `arc_big_explode` | 810 |
 | `arc_blaster` | effects | `arc_blaster` | 140 |
 | `arc_gem_zap` | effects | `arc_gem_zap` | 450 |
 | `arc_gem_bomb` | effects | `arc_gem_bomb` | 722 |
@@ -2653,14 +2488,14 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `gg` | voice | `gg` | 1312 |
 | `roundTaken` | voice | `roundTaken` | 1801 |
 | `roundLost` | voice | `roundLost` | 1801 |
-| `arc_shape_pop` | effects | `wavefront.shapePop` | 150 |
-| `arc_rainbow_pot` | effects | `inkbridge.pot` | 1000 |
-| `arc_rainbow_bump` | effects | `inkbridge.bump` | 200 |
+| `arc_shape_pop` | effects | `arc_shape_pop` | 150 |
+| `arc_rainbow_pot` | effects | `arc_rainbow_pot` | 1000 |
+| `arc_rainbow_bump` | effects | `arc_rainbow_bump` | 200 |
 | `arc_orchard_basket` | effects | `snip.basket` | 399 |
 | `arc_orchard_miss` | effects | `snip.miss` | 399 |
 | `pz_clash_lane` | effects | `stroop.lane` | 100 |
 | `pz_clash_right` | effects | `stroop.right` | 301 |
-| `pz_clash_wrong` | effects | `checkout.bust`, `kakuro.broken`, `stroop.wrong` | 250 |
+| `pz_clash_wrong` | effects | `stroop.wrong` | 250 |
 | `round1` | voice | `round1` | 1298 |
 | `round2` | voice | `round2` | 1532 |
 | `round3` | voice | `round3` | 1399 |
@@ -2951,73 +2786,85 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `wordslide.finish` | effects | `wordslide.finish` | 1001 |
 | `strikeout.finish` | effects | `strikeout.finish` | 1000 |
 | `swapword.finish` | effects | `swapword.finish` | 1000 |
+| `numline.place` | effects | `numline.place` | 120 |
 | `numline.solve` | effects | `numline.solve` | 1000 |
 | `numline.sweepTick` | effects | `numline.sweepTick` | 55 |
-| `numline.edge` | effects | `numline.edge` | 486 |
-| `measure.select` | effects | `measure.select` | 528 |
+| `numline.edge` | effects | `numline.edge` | 108 |
+| `measure.select` | effects | `measure.select` | 138 |
+| `measure.pour` | effects | `measure.pour` | 350 |
+| `measure.fill` | effects | `measure.fill` | 486 |
+| `measure.empty` | effects | `measure.empty` | 300 |
+| `measure.reject` | effects | `measure.reject` | 213 |
+| `measure.reset` | effects | `measure.reset` | 375 |
 | `measure.solve` | effects | `measure.solve` | 1080 |
-| `checkout.aim` | effects | `checkout.aim` | 528 |
+| `checkout.aim` | effects | `checkout.aim` | 108 |
 | `checkout.thud` | effects | `checkout.thud` | 606 |
+| `checkout.tick` | effects | `checkout.tick` | 88 |
 | `checkout.stage` | effects | `checkout.stage` | 486 |
 | `checkout.solve` | effects | `checkout.solve` | 1000 |
-| `checkout.bust` | effects | `checkout.bust` | 250 |
-| `checkout.undo` | effects | `checkout.undo` | 528 |
-| `checkout.nudge` | effects | `checkout.nudge` | 486 |
-| `checkout.switch` | effects | `checkout.switch` | 486 |
-| `checkout.bigFinish` | effects | `checkout.bigFinish` | 600 |
-| `balance.select` | effects | `balance.select` | 528 |
+| `checkout.bust` | effects | `checkout.bust` | 402 |
+| `checkout.undo` | effects | `checkout.undo` | 208 |
+| `checkout.nudge` | effects | `checkout.nudge` | 138 |
+| `checkout.switch` | effects | `checkout.switch` | 78 |
+| `checkout.bigFinish` | effects | `checkout.bigFinish` | 875 |
+| `balance.select` | effects | `balance.select` | 138 |
+| `balance.drop` | effects | `balance.drop` | 300 |
+| `balance.lift` | effects | `balance.lift` | 220 |
 | `balance.level` | effects | `balance.level` | 806 |
-| `balance.solve` | effects | `balance.solve` | 1080 |
-| `checkout.wrong` | effects | `checkout.wrong` | 300 |
-| `measure.target` | effects | `measure.target` | 200 |
-| `measure.near` | effects | `measure.near` | 250 |
-| `numline.dragTick` | effects | `numline.dragTick` | 55 |
-| `numline.bullseye` | effects | `numline.bullseye` | 250 |
-| `numpyramid.row` | effects | `numpyramid.row` | 160 |
-| `balance.pickup` | effects | `balance.pickup` | 528 |
-| `balance.nudge` | effects | `balance.nudge` | 486 |
-| `balance.stageClear` | effects | `balance.stageClear` | 160 |
+| `balance.solve` | effects | `balance.solve` | 474 |
+| `checkout.wrong` | effects | `checkout.wrong` | 288 |
+| `measure.target` | effects | `measure.target` | 188 |
+| `measure.near` | effects | `measure.near` | 363 |
+| `numline.dragTick` | effects | `numline.dragTick` | 18 |
+| `numline.bullseye` | effects | `numline.bullseye` | 238 |
+| `numpyramid.row` | effects | `numpyramid.row` | 288 |
+| `balance.pickup` | effects | `balance.pickup` | 168 |
+| `balance.nudge` | effects | `balance.nudge` | 288 |
+| `balance.stageClear` | effects | `balance.stageClear` | 475 |
 | `balance.skip` | effects | `balance.skip` | 528 |
-| `balance.fail` | effects | `balance.fail` | 90 |
-| `equation.stageClear` | effects | `equation.stageClear` | 160 |
-| `equation.skip` | effects | `equation.skip` | 528 |
-| `equation.fail` | effects | `equation.fail` | 90 |
-| `numpyramid.stageClear` | effects | `numpyramid.stageClear` | 160 |
-| `numpyramid.skip` | effects | `numpyramid.skip` | 528 |
+| `balance.fail` | effects | `balance.fail` | 288 |
+| `equation.stageClear` | effects | `equation.stageClear` | 388 |
+| `equation.skip` | effects | `equation.skip` | 288 |
+| `equation.fail` | effects | `equation.fail` | 288 |
+| `numpyramid.stageClear` | effects | `numpyramid.stageClear` | 388 |
+| `numpyramid.skip` | effects | `numpyramid.skip` | 438 |
 | `numpyramid.fail` | effects | `numpyramid.fail` | 90 |
-| `measure.stageClear` | effects | `measure.stageClear` | 160 |
+| `measure.stageClear` | effects | `measure.stageClear` | 338 |
 | `measure.skip` | effects | `measure.skip` | 528 |
-| `measure.fail` | effects | `measure.fail` | 90 |
-| `checkout.stageClear` | effects | `checkout.stageClear` | 160 |
+| `measure.fail` | effects | `measure.fail` | 188 |
+| `checkout.stageClear` | effects | `checkout.stageClear` | 388 |
 | `checkout.skip` | effects | `checkout.skip` | 528 |
 | `checkout.fail` | effects | `checkout.fail` | 90 |
-| `numline.stageClear` | effects | `numline.stageClear` | 160 |
+| `numline.stageClear` | effects | `numline.stageClear` | 475 |
 | `numline.skip` | effects | `numline.skip` | 528 |
 | `numline.fail` | effects | `numline.fail` | 90 |
-| `target.select` | effects | `target.select` | 528 |
-| `target.combine` | effects | `target.combine` | 528 |
-| `target.solve` | effects | `target.solve` | 1000 |
+| `target.select` | effects | `target.select` | 108 |
+| `target.combine` | effects | `target.combine` | 184 |
+| `target.solve` | effects | `target.solve` | 138 |
 | `target.operator` | effects | `target.operator` | 486 |
-| `target.undo` | effects | `target.undo` | 528 |
-| `target.reset` | effects | `target.reset` | 528 |
-| `target.lock` | effects | `target.lock` | 486 |
+| `target.undo` | effects | `target.undo` | 208 |
+| `target.reset` | effects | `target.reset` | 475 |
+| `target.lock` | effects | `target.lock` | 388 |
+| `numpyramid.place` | effects | `numpyramid.place` | 150 |
 | `numpyramid.solve` | effects | `numpyramid.solve` | 1000 |
+| `equation.drop` | effects | `equation.drop` | 120 |
 | `equation.correct` | effects | `equation.correct` | 486 |
 | `equation.solve` | effects | `equation.solve` | 1000 |
-| `equation.tryCracked` | effects | `equation.tryCracked` | 140 |
-| `equation.chooseGap` | effects | `equation.chooseGap` | 486 |
-| `equation.clearGap` | effects | `equation.clearGap` | 486 |
-| `equation.goBack` | effects | `equation.goBack` | 528 |
-| `numpyramid.swap` | effects | `numpyramid.swap` | 50 |
-| `numpyramid.pick` | effects | `numpyramid.pick` | 528 |
-| `numpyramid.unplace` | effects | `numpyramid.unplace` | 486 |
-| `numpyramid.seam` | effects | `numpyramid.seam` | 486 |
-| `numpyramid.crack` | effects | `numpyramid.crack` | 528 |
-| `tendrop.apply` | effects | `tendrop.apply` | 50 |
+| `equation.tryCracked` | effects | `equation.tryCracked` | 138 |
+| `equation.chooseGap` | effects | `equation.chooseGap` | 71 |
+| `equation.clearGap` | effects | `equation.clearGap` | 108 |
+| `equation.goBack` | effects | `equation.goBack` | 238 |
+| `numpyramid.swap` | effects | `numpyramid.swap` | 138 |
+| `numpyramid.pick` | effects | `numpyramid.pick` | 108 |
+| `numpyramid.unplace` | effects | `numpyramid.unplace` | 138 |
+| `numpyramid.seam` | effects | `numpyramid.seam` | 288 |
+| `numpyramid.crack` | effects | `numpyramid.crack` | 238 |
+| `tendrop.apply` | effects | `tendrop.apply` | 58 |
 | `tendrop.clear` | effects | `tendrop.clear` | 486 |
 | `tendrop.reset` | effects | `tendrop.reset` | 486 |
 | `tendrop.solve` | effects | `tendrop.solve` | 1000 |
-| `trail.solve` | effects | `trail.solve` | 1000 |
+| `trail.step` | effects | `trail.step` | 300 |
+| `trail.solve` | effects | `trail.solve` | 1068 |
 | `numhunt.discsPop` | effects | `numhunt.discsPop` | 1000 |
 | `stopwatch.goldFaces` | effects | `stopwatch.goldFaces` | 1000 |
 | `whack.finale` | effects | `whack.finale` | 1000 |
@@ -3026,135 +2873,277 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `chain.finishShine` | effects | `chain.finishShine` | 1000 |
 | `reaction.goldPulse` | effects | `reaction.goldPulse` | 1000 |
 | `clayshoot.finalBurst` | effects | `clayshoot.finalBurst` | 1080 |
-| `clayshoot.goldShatter` | effects | `clayshoot.goldShatter` | 433 |
+| `clayshoot.goldShatter` | effects | `clayshoot.goldShatter` | 352 |
 | `clayshoot.birdStartle` | effects | `clayshoot.birdStartle` | 606 |
 | `spotdiff.allFound` | effects | `spotdiff.allFound` | 1000 |
+| `spotdiff.found` | effects | `spotdiff.found` | 350 |
+| `spotdiff.miss` | effects | `spotdiff.miss` | 138 |
 | `spotdiff.nextPicture` | effects | `spotdiff.nextPicture` | 528 |
 | `symscan.takeoff` | effects | `symscan.takeoff` | 1077 |
+| `symscan.mark` | effects | `symscan.mark` | 100 |
+| `symscan.unmark` | effects | `symscan.unmark` | 80 |
 | `symscan.revealGrid` | effects | `symscan.revealGrid` | 55 |
-| `maze.trace` | effects | `maze.trace` | 1000 |
-| `pairmatch.cardWave` | effects | `pairmatch.cardWave` | 1000 |
+| `maze.trace` | effects | `maze.trace` | 988 |
+| `pairmatch.cardWave` | effects | `pairmatch.cardWave` | 988 |
 | `stroop.gatesFlash` | effects | `stroop.gatesFlash` | 1000 |
 | `countup.countersTick` | effects | `countup.countersTick` | 1000 |
 | `countup.countersLock` | effects | `countup.countersLock` | 486 |
 | `countup.trayIn` | effects | `countup.trayIn` | 486 |
-| `flow.draw` | effects | `flow.draw` | 140 |
-| `flow.cut` | effects | `flow.cut` | 180 |
-| `flow.nearMiss` | effects | `flow.nearMiss` | 600 |
-| `flow.connect` | effects | `flow.connect` | 486 |
-| `flow.solve` | effects | `flow.solve` | 1000 |
-| `unblock.slide` | effects | `unblock.slide` | 528 |
-| `unblock.slideLong` | effects | `unblock.slideLong` | 528 |
-| `unblock.blocked` | effects | `unblock.blocked` | 90 |
-| `unblock.laneClear` | effects | `unblock.laneClear` | 300 |
+| `flow.draw` | effects | `flow.draw` | 213 |
+| `flow.cut` | effects | `flow.cut` | 228 |
+| `flow.nearMiss` | effects | `flow.nearMiss` | 668 |
+| `countup.mark` | effects | `countup.mark` | 68 |
+| `countup.unmark` | effects | `countup.unmark` | 48 |
+| `countup.key` | effects | `countup.key` | 48 |
+| `countup.trayOut` | effects | `countup.trayOut` | 388 |
+| `countup.revealTick` | effects | `countup.revealTick` | 28 |
+| `countup.soClose` | effects | `countup.soClose` | 388 |
+| `symscan.gridClear` | effects | `symscan.gridClear` | 475 |
+| `symscan.cleanGrid` | effects | `symscan.cleanGrid` | 379 |
+| `symscan.missed` | effects | `symscan.missed` | 188 |
+| `spotdiff.hidden` | effects | `spotdiff.hidden` | 468 |
+| `spotdiff.pictureOut` | effects | `spotdiff.pictureOut` | 474 |
+| `maze.step` | effects | `maze.step` | 38 |
+| `maze.bump` | effects | `maze.bump` | 108 |
+| `maze.back` | effects | `maze.back` | 28 |
+| `maze.deadEnd` | effects | `maze.deadEnd` | 438 |
+| `bomb.step` | effects | `bomb.step` | 38 |
+| `bomb.instant` | effects | `bomb.instant` | 712 |
+| `pairmatch.flip` | effects | `pairmatch.flip` | 88 |
+| `pairmatch.match` | effects | `pairmatch.match` | 338 |
+| `pairmatch.miss` | effects | `pairmatch.miss` | 138 |
+| `pairmatch.gold` | effects | `pairmatch.gold` | 668 |
+| `flow.connect` | effects | `flow.connect` | 475 |
+| `flow.solve` | effects | `flow.solve` | 1188 |
+| `unblock.slide` | effects | `unblock.slide` | 518 |
+| `unblock.slideLong` | effects | `unblock.slideLong` | 363 |
+| `unblock.blocked` | effects | `unblock.blocked` | 108 |
+| `unblock.laneClear` | effects | `unblock.laneClear` | 338 |
 | `unblock.solve` | effects | `unblock.solve` | 2470 |
+| `push.step` | effects | `push.step` | 110 |
+| `push.push` | effects | `push.push` | 330 |
 | `push.home` | effects | `push.home` | 486 |
-| `push.solve` | effects | `push.solve` | 1147 |
-| `push.goldOff` | effects | `push.goldOff` | 528 |
-| `push.stuck` | effects | `push.stuck` | 480 |
+| `push.solve` | effects | `push.solve` | 1218 |
+| `push.goldOff` | effects | `push.goldOff` | 388 |
+| `push.stuck` | effects | `push.stuck` | 475 |
 | `tiles.solve` | effects | `tiles.solve` | 1000 |
-| `laser.bomb` | effects | `laser.bomb` | 486 |
-| `laser.nearMiss` | effects | `laser.nearMiss` | 600 |
-| `laser.outOfShots` | effects | `laser.outOfShots` | 528 |
+| `laser.place` | effects | `laser.place` | 120 |
+| `laser.turn` | effects | `laser.turn` | 130 |
+| `laser.fire` | effects | `laser.fire` | 487 |
+| `laser.bomb` | effects | `laser.bomb` | 467 |
+| `laser.nearMiss` | effects | `laser.nearMiss` | 668 |
+| `laser.outOfShots` | effects | `laser.outOfShots` | 673 |
 | `laser.solve` | effects | `laser.solve` | 1080 |
-| `pipes.flow` | effects | `pipes.flow` | 486 |
+| `pipes.rotate` | effects | `pipes.rotate` | 150 |
+| `pipes.flow` | effects | `pipes.flow` | 288 |
 | `pipes.solve` | effects | `pipes.solve` | 1200 |
-| `pipes.combo` | effects | `pipes.combo` | 486 |
-| `pipes.drain` | effects | `pipes.drain` | 486 |
-| `pipes.bubble` | effects | `pipes.bubble` | 486 |
+| `pipes.combo` | effects | `pipes.combo` | 588 |
+| `pipes.drain` | effects | `pipes.drain` | 468 |
+| `pipes.bubble` | effects | `pipes.bubble` | 538 |
+| `iceslide.slide` | effects | `iceslide.slide` | 255 |
 | `iceslide.portal` | effects | `iceslide.portal` | 486 |
 | `iceslide.crack` | effects | `iceslide.crack` | 486 |
 | `iceslide.fall` | effects | `iceslide.fall` | 486 |
 | `iceslide.solve` | effects | `iceslide.solve` | 1200 |
-| `iceslide.slideLong` | effects | `iceslide.slideLong` | 528 |
-| `iceslide.stop` | effects | `iceslide.stop` | 160 |
-| `iceslide.bump` | effects | `iceslide.bump` | 90 |
-| `iceslide.nearExit` | effects | `iceslide.nearExit` | 300 |
-| `blockparty.place` | effects | `blockparty.place` | 528 |
-| `blockparty.turn` | effects | `blockparty.turn` | 528 |
-| `blockparty.flip` | effects | `blockparty.flip` | 528 |
-| `blockparty.solve` | effects | `blockparty.solve` | 1000 |
-| `blockparty.pickup` | effects | `blockparty.pickup` | 120 |
-| `blockparty.illegal` | effects | `blockparty.illegal` | 606 |
-| `blockparty.undo` | effects | `blockparty.undo` | 120 |
-| `blockparty.reset` | effects | `blockparty.reset` | 528 |
-| `gravity.tilt` | effects | `gravity.tilt` | 3000 |
-| `gravity.stop` | effects | `gravity.stop` | 120 |
-| `gravity.combo` | effects | `gravity.combo` | 486 |
-| `gravity.boardClear` | effects | `gravity.boardClear` | 486 |
-| `gravity.outOfTilts` | effects | `gravity.outOfTilts` | 606 |
+| `iceslide.slideLong` | effects | `iceslide.slideLong` | 874 |
+| `iceslide.stop` | effects | `iceslide.stop` | 138 |
+| `iceslide.bump` | effects | `iceslide.bump` | 68 |
+| `iceslide.nearExit` | effects | `iceslide.nearExit` | 288 |
+| `blockparty.place` | effects | `blockparty.place` | 188 |
+| `blockparty.turn` | effects | `blockparty.turn` | 168 |
+| `blockparty.flip` | effects | `blockparty.flip` | 188 |
+| `blockparty.solve` | effects | `blockparty.solve` | 138 |
+| `blockparty.pickup` | effects | `blockparty.pickup` | 168 |
+| `blockparty.illegal` | effects | `blockparty.illegal` | 338 |
+| `blockparty.undo` | effects | `blockparty.undo` | 168 |
+| `blockparty.reset` | effects | `blockparty.reset` | 475 |
+| `gravity.tilt` | effects | `gravity.tilt` | 2561 |
+| `gravity.stop` | effects | `gravity.stop` | 88 |
+| `gravity.combo` | effects | `gravity.combo` | 409 |
+| `gravity.boardClear` | effects | `gravity.boardClear` | 588 |
+| `gravity.outOfTilts` | effects | `gravity.outOfTilts` | 588 |
 | `gravity.lock` | effects | `gravity.lock` | 201 |
 | `gravity.solve` | effects | `gravity.solve` | 1080 |
 | `rings.solve` | effects | `rings.solve` | 1080 |
 | `lightsout.solve` | effects | `lightsout.solve` | 1000 |
 | `bomb.cut` | effects | `bomb.cut` | 486 |
-| `bomb.defuse` | effects | `bomb.defuse` | 606 |
+| `bomb.press` | effects | `bomb.press` | 120 |
+| `strikeout.key` | effects | `strikeout.key` | 70 |
+| `codeword.key` | effects | `codeword.key` | 70 |
+| `wordsmith.letter` | effects | `wordsmith.letter` | 60 |
+| `wordsmith.shuffle` | effects | `wordsmith.shuffle` | 450 |
+| `wordsmith.word4` | effects | `wordsmith.word4` | 350 |
+| `wordsmith.word5` | effects | `wordsmith.word5` | 312 |
+| `wordsmith.word6` | effects | `wordsmith.word6` | 278 |
+| `wordsmith.word7` | effects | `wordsmith.word7` | 262 |
+| `wordsmith.word8` | effects | `wordsmith.word8` | 234 |
+| `wordsmith.word9` | effects | `wordsmith.word9` | 208 |
+| `wordsmith.combo` | effects | `wordsmith.combo` | 487 |
+| `wordsmith.pangram` | effects | `wordsmith.pangram` | 1156 |
+| `wordsmith.invalid` | effects | `wordsmith.invalid` | 220 |
+| `tilegrid.pick` | effects | `tilegrid.pick` | 70 |
+| `tilegrid.place` | effects | `tilegrid.place` | 120 |
+| `tilegrid.back` | effects | `tilegrid.back` | 270 |
+| `tilegrid.word3` | effects | `tilegrid.word3` | 480 |
+| `tilegrid.word4` | effects | `tilegrid.word4` | 381 |
+| `tilegrid.word5` | effects | `tilegrid.word5` | 480 |
+| `tilegrid.word6` | effects | `tilegrid.word6` | 381 |
+| `tilegrid.word7` | effects | `tilegrid.word7` | 480 |
+| `tilegrid.combo` | effects | `tilegrid.combo` | 600 |
+| `tilegrid.notword` | effects | `tilegrid.notword` | 150 |
+| `tilegrid.bonus` | effects | `tilegrid.bonus` | 791 |
+| `wordslide.slide` | effects | `wordslide.slide` | 330 |
+| `wordslide.word` | effects | `wordslide.word` | 400 |
+| `wordslide.lock` | effects | `wordslide.lock` | 140 |
+| `wordslide.unlock` | effects | `wordslide.unlock` | 120 |
+| `wordslide.swap` | effects | `wordslide.swap` | 180 |
+| `wordslide.nudge` | effects | `wordslide.nudge` | 160 |
+| `wordslide.resetArm` | effects | `wordslide.resetArm` | 166 |
+| `wordhunt.trace1` | effects | `wordhunt.trace1` | 270 |
+| `wordhunt.trace2` | effects | `wordhunt.trace2` | 241 |
+| `wordhunt.trace3` | effects | `wordhunt.trace3` | 214 |
+| `wordhunt.trace4` | effects | `wordhunt.trace4` | 202 |
+| `wordhunt.trace5` | effects | `wordhunt.trace5` | 180 |
+| `wordhunt.trace6` | effects | `wordhunt.trace6` | 161 |
+| `wordhunt.trace7` | effects | `wordhunt.trace7` | 143 |
+| `wordhunt.trace8` | effects | `wordhunt.trace8` | 135 |
+| `wordhunt.trace9` | effects | `wordhunt.trace9` | 120 |
+| `wordhunt.golden` | effects | `wordhunt.golden` | 350 |
+| `wordhunt.word` | effects | `wordhunt.word` | 522 |
+| `wordhunt.long` | effects | `wordhunt.long` | 685 |
+| `wordhunt.points` | effects | `wordhunt.points` | 100 |
+| `wordsearch.drag` | effects | `wordsearch.drag` | 120 |
+| `wordsearch.found4` | effects | `wordsearch.found4` | 343 |
+| `wordsearch.found5` | effects | `wordsearch.found5` | 354 |
+| `wordsearch.found6` | effects | `wordsearch.found6` | 357 |
+| `wordsearch.found7` | effects | `wordsearch.found7` | 355 |
+| `wordsearch.found8` | effects | `wordsearch.found8` | 352 |
+| `wordsearch.found9` | effects | `wordsearch.found9` | 357 |
+| `wordsearch.bonus` | effects | `wordsearch.bonus` | 655 |
+| `wordsearch.already` | effects | `wordsearch.already` | 180 |
+| `wordsearch.redraw` | effects | `wordsearch.redraw` | 1156 |
+| `letterwheel.trace1` | effects | `letterwheel.trace1` | 160 |
+| `letterwheel.trace2` | effects | `letterwheel.trace2` | 143 |
+| `letterwheel.trace3` | effects | `letterwheel.trace3` | 127 |
+| `letterwheel.trace4` | effects | `letterwheel.trace4` | 107 |
+| `letterwheel.trace5` | effects | `letterwheel.trace5` | 95 |
+| `letterwheel.trace6` | effects | `letterwheel.trace6` | 80 |
+| `letterwheel.trace7` | effects | `letterwheel.trace7` | 71 |
+| `letterwheel.trace8` | effects | `letterwheel.trace8` | 63 |
+| `letterwheel.fly` | effects | `letterwheel.fly` | 687 |
+| `letterwheel.jar` | effects | `letterwheel.jar` | 450 |
+| `letterwheel.repeat` | effects | `letterwheel.repeat` | 150 |
+| `letterwheel.miss` | effects | `letterwheel.miss` | 200 |
+| `letterwheel.spin` | effects | `letterwheel.spin` | 1169 |
+| `strikeout.flip` | effects | `strikeout.flip` | 110 |
+| `strikeout.strike` | effects | `strikeout.strike` | 250 |
+| `strikeout.combo` | effects | `strikeout.combo` | 316 |
+| `strikeout.lastStrike` | effects | `strikeout.lastStrike` | 687 |
+| `strikeout.solve` | effects | `strikeout.solve` | 400 |
+| `codeword.ripple` | effects | `codeword.ripple` | 436 |
+| `codeword.word` | effects | `codeword.word` | 300 |
+| `codeword.wrong` | effects | `codeword.wrong` | 350 |
+| `codeword.jump` | effects | `codeword.jump` | 37 |
+| `swapword.swap` | effects | `swapword.swap` | 260 |
+| `swapword.gold` | effects | `swapword.gold` | 250 |
+| `swapword.combo` | effects | `swapword.combo` | 400 |
+| `swapword.locked` | effects | `swapword.locked` | 120 |
+| `swapword.low` | effects | `swapword.low` | 350 |
+| `swapword.out` | effects | `swapword.out` | 450 |
+| `swapword.scale` | effects | `swapword.scale` | 1169 |
+| `shared.wordDrop` | effects | `shared.wordDrop` | 58 |
+| `shared.wordLongest` | effects | `shared.wordLongest` | 338 |
+| `bomb.defuse` | effects | `bomb.defuse` | 1187 |
 | `bomb.solve` | effects | `bomb.solve` | 686 |
-| `sudoku.solve` | effects | `sudoku.solve` | 1000 |
-| `flood.solve` | effects | `flood.solve` | 1000 |
-| `tower.lift` | effects | `tower.lift` | 528 |
-| `tower.solve` | effects | `tower.solve` | 1080 |
+| `sudoku.place` | effects | `sudoku.place` | 150 |
+| `sudoku.solve` | effects | `sudoku.solve` | 988 |
+| `flood.spread` | effects | `flood.spread` | 300 |
+| `flood.solve` | effects | `flood.solve` | 988 |
+| `tower.lift` | effects | `tower.lift` | 238 |
+| `tower.drop` | effects | `tower.drop` | 180 |
+| `tower.solve` | effects | `tower.solve` | 963 |
+| `lightup.lamp` | effects | `lightup.lamp` | 300 |
+| `lightup.dot` | effects | `lightup.dot` | 100 |
 | `lightup.clear` | effects | `lightup.clear` | 528 |
-| `lightup.solve` | effects | `lightup.solve` | 1000 |
+| `lightup.solve` | effects | `lightup.solve` | 988 |
+| `nonogram.fill` | effects | `nonogram.fill` | 150 |
+| `nonogram.mark` | effects | `nonogram.mark` | 120 |
 | `nonogram.clear` | effects | `nonogram.clear` | 528 |
-| `nonogram.solve` | effects | `nonogram.solve` | 1000 |
-| `tubes.lift` | effects | `tubes.lift` | 528 |
+| `nonogram.solve` | effects | `nonogram.solve` | 893 |
+| `tubes.lift` | effects | `tubes.lift` | 288 |
+| `tubes.pour` | effects | `tubes.pour` | 450 |
 | `tubes.cork` | effects | `tubes.cork` | 486 |
 | `tubes.solve` | effects | `tubes.solve` | 1080 |
 | `safe.click` | effects | `safe.click` | 528 |
-| `safe.solve` | effects | `safe.solve` | 2200 |
-| `shikaku.solve` | effects | `shikaku.solve` | 1000 |
+| `safe.solve` | effects | `safe.solve` | 1174 |
+| `sudoku.clash` | effects | `sudoku.clash` | 200 |
+| `sudoku.pencil` | effects | `sudoku.pencil` | 100 |
+| `sudoku.check` | effects | `sudoku.check` | 200 |
+| `tubes.uncover` | effects | `tubes.uncover` | 300 |
+| `nonogram.autoCross` | effects | `nonogram.autoCross` | 140 |
+| `tubes.undo` | effects | `tubes.undo` | 200 |
+| `tubes.outOfPours` | effects | `tubes.outOfPours` | 600 |
+| `safe.wrongTry` | effects | `safe.wrongTry` | 400 |
+| `nonogram.paint` | effects | `nonogram.paint` | 120 |
+| `sudoku.line` | effects | `sudoku.line` | 480 |
+| `nonogram.line` | effects | `nonogram.line` | 400 |
+| `shikaku.place` | effects | `shikaku.place` | 250 |
+| `shikaku.remove` | effects | `shikaku.remove` | 200 |
+| `shikaku.solve` | effects | `shikaku.solve` | 988 |
 | `fences.draw` | effects | `fences.draw` | 486 |
-| `fences.cross` | effects | `fences.cross` | 528 |
-| `fences.clear` | effects | `fences.clear` | 528 |
-| `fences.solve` | effects | `fences.solve` | 1000 |
-| `tents.touch` | effects | `tents.touch` | 522 |
-| `tents.signMet` | effects | `tents.signMet` | 528 |
-| `tents.lonely` | effects | `tents.lonely` | 522 |
-| `shikaku.dragStart` | effects | `shikaku.dragStart` | 522 |
-| `shikaku.snap` | effects | `shikaku.snap` | 78 |
-| `shikaku.invalid` | effects | `shikaku.invalid` | 522 |
-| `lightup.clash` | effects | `lightup.clash` | 522 |
-| `lightup.wallMet` | effects | `lightup.wallMet` | 78 |
-| `lightup.dark` | effects | `lightup.dark` | 522 |
-| `trail.fixed` | effects | `trail.fixed` | 528 |
-| `trail.refused` | effects | `trail.refused` | 522 |
-| `trail.undo` | effects | `trail.undo` | 522 |
-| `trail.reset` | effects | `trail.reset` | 522 |
-| `fences.numberMet` | effects | `fences.numberMet` | 78 |
-| `fences.over` | effects | `fences.over` | 522 |
-| `fences.loopWrong` | effects | `fences.loopWrong` | 522 |
-| `fences.undo` | effects | `fences.undo` | 522 |
-| `fences.reset` | effects | `fences.reset` | 522 |
-| `fillomino.stroke` | effects | `fillomino.stroke` | 78 |
-| `fillomino.over` | effects | `fillomino.over` | 522 |
-| `fillomino.erase` | effects | `fillomino.erase` | 522 |
-| `fillomino.undo` | effects | `fillomino.undo` | 522 |
-| `fillomino.reset` | effects | `fillomino.reset` | 522 |
-| `fillomino.pick` | effects | `fillomino.pick` | 522 |
-| `bridges.double` | effects | `bridges.double` | 528 |
-| `bridges.islandMet` | effects | `bridges.islandMet` | 528 |
-| `bridges.snapBack` | effects | `bridges.snapBack` | 522 |
-| `bridges.undo` | effects | `bridges.undo` | 522 |
-| `bridges.reset` | effects | `bridges.reset` | 522 |
+| `fences.cross` | effects | `fences.cross` | 138 |
+| `fences.clear` | effects | `fences.clear` | 138 |
+| `fences.solve` | effects | `fences.solve` | 520 |
+| `tents.touch` | effects | `tents.touch` | 167 |
+| `tents.signMet` | effects | `tents.signMet` | 388 |
+| `tents.lonely` | effects | `tents.lonely` | 188 |
+| `shikaku.dragStart` | effects | `shikaku.dragStart` | 68 |
+| `shikaku.snap` | effects | `shikaku.snap` | 38 |
+| `shikaku.invalid` | effects | `shikaku.invalid` | 138 |
+| `lightup.clash` | effects | `lightup.clash` | 288 |
+| `lightup.wallMet` | effects | `lightup.wallMet` | 138 |
+| `lightup.dark` | effects | `lightup.dark` | 388 |
+| `trail.fixed` | effects | `trail.fixed` | 468 |
+| `trail.refused` | effects | `trail.refused` | 138 |
+| `trail.undo` | effects | `trail.undo` | 213 |
+| `trail.reset` | effects | `trail.reset` | 388 |
+| `fences.numberMet` | effects | `fences.numberMet` | 188 |
+| `fences.over` | effects | `fences.over` | 138 |
+| `fences.loopWrong` | effects | `fences.loopWrong` | 388 |
+| `fences.undo` | effects | `fences.undo` | 108 |
+| `fences.reset` | effects | `fences.reset` | 388 |
+| `fillomino.stroke` | effects | `fillomino.stroke` | 68 |
+| `fillomino.over` | effects | `fillomino.over` | 138 |
+| `fillomino.erase` | effects | `fillomino.erase` | 138 |
+| `fillomino.undo` | effects | `fillomino.undo` | 138 |
+| `fillomino.reset` | effects | `fillomino.reset` | 388 |
+| `fillomino.pick` | effects | `fillomino.pick` | 68 |
+| `bridges.double` | effects | `bridges.double` | 434 |
+| `bridges.islandMet` | effects | `bridges.islandMet` | 388 |
+| `bridges.snapBack` | effects | `bridges.snapBack` | 188 |
+| `bridges.undo` | effects | `bridges.undo` | 138 |
+| `bridges.reset` | effects | `bridges.reset` | 388 |
 | `fillomino.place` | effects | `fillomino.place` | 528 |
-| `fillomino.region` | effects | `fillomino.region` | 528 |
-| `fillomino.solve` | effects | `fillomino.solve` | 1000 |
-| `bridges.build` | effects | `bridges.build` | 528 |
-| `bridges.remove` | effects | `bridges.remove` | 528 |
-| `bridges.solve` | effects | `bridges.solve` | 1080 |
-| `kakuro.place` | effects | `kakuro.place` | 528 |
-| `kakuro.run` | effects | `kakuro.run` | 1000 |
+| `fillomino.region` | effects | `fillomino.region` | 588 |
+| `fillomino.solve` | effects | `fillomino.solve` | 1188 |
+| `bridges.build` | effects | `bridges.build` | 238 |
+| `bridges.remove` | effects | `bridges.remove` | 238 |
+| `bridges.solve` | effects | `bridges.solve` | 988 |
+| `kakuro.place` | effects | `kakuro.place` | 98 |
+| `kakuro.run` | effects | `kakuro.run` | 338 |
 | `kakuro.solve` | effects | `kakuro.solve` | 1000 |
-| `kakuro.select` | effects | `kakuro.select` | 486 |
-| `kakuro.pencil` | effects | `kakuro.pencil` | 486 |
-| `kakuro.clear` | effects | `kakuro.clear` | 528 |
-| `kakuro.broken` | effects | `kakuro.broken` | 250 |
-| `kakuro.combo` | effects | `kakuro.combo` | 600 |
+| `kakuro.select` | effects | `kakuro.select` | 48 |
+| `kakuro.pencil` | effects | `kakuro.pencil` | 58 |
+| `kakuro.clear` | effects | `kakuro.clear` | 188 |
+| `kakuro.broken` | effects | `kakuro.broken` | 188 |
+| `kakuro.combo` | effects | `kakuro.combo` | 554 |
+| `tents.pitch` | effects | `tents.pitch` | 300 |
+| `tents.grass` | effects | `tents.grass` | 200 |
 | `tents.clear` | effects | `tents.clear` | 528 |
-| `tents.solve` | effects | `tents.solve` | 1000 |
+| `tents.solve` | effects | `tents.solve` | 1188 |
 | `music_bastion` | music | `music.bastion` | loop |
 | `bastion.cannon` | effects | `bastion.cannon` | 800 |
+| `bastion.dry` | effects | `bastion.dry` | 180 |
 | `bastion.reload` | effects | `bastion.reload` | 590 |
 | `bastion.fastReload` | effects | `bastion.fastReload` | 367 |
 | `bastion.jam` | effects | `bastion.jam` | 566 |
@@ -3167,12 +3156,53 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `bastion.wave` | effects | `bastion.wave` | 1342 |
 | `bastion.drone` | effects | `bastion.drone` | 2000 |
 | `bastion.droneDown` | effects | `bastion.droneDown` | 800 |
+| `bastion.shellIn` | effects | `bastion.shellIn` | 78 |
+| `bastion.jamGrind` | effects | `bastion.jamGrind` | 550 |
+| `bastion.debris` | effects | `bastion.debris` | 588 |
+| `bastion.nearMiss` | effects | `bastion.nearMiss` | 338 |
+| `bastion.panelCrack` | effects | `bastion.panelCrack` | 473 |
+| `bastion.wallHeld` | effects | `bastion.wallHeld` | 1788 |
+| `bastion.tip` | effects | `bastion.tip` | 288 |
+| `bastion.tally` | effects | `bastion.tally` | 138 |
+| `bastion.dustWind` | effects | `bastion.dustWind` | 4768 |
+| `bastion.stormFire` | effects | `bastion.stormFire` | 4818 |
 | `music_ricochet` | music | `music.ricochet` | loop |
 | `music_beat` | music | `music.beat` | 60087 |
+| `balltrack.roll` | effects | `balltrack.roll` | 1694 |
+| `balltrack.marbleHome` | effects | `balltrack.marbleHome` | 300 |
+| `balltrack.wrong` | effects | `balltrack.wrong` | 300 |
+| `balltrack.switch` | effects | `balltrack.switch` | 180 |
+| `breaker.start` | effects | `breaker.start` | 475 |
+| `breaker.ballLost` | effects | `breaker.ballLost` | 487 |
+| `breaker.powerUp` | effects | `breaker.powerUp` | 475 |
+| `breaker.fireballLit` | effects | `breaker.fireballLit` | 487 |
+| `breaker.brickHit` | effects | `breaker.brickHit` | 70 |
+| `breaker.laser` | effects | `breaker.laser` | 150 |
+| `breaker.multiball` | effects | `breaker.multiball` | 252 |
+| `breaker.paddle` | effects | `breaker.paddle` | 120 |
+| `bubble.waves` | effects | `bubble.waves` | 2249 |
+| `bubble.load` | effects | `bubble.load` | 300 |
+| `bubble.pop` | effects | `bubble.pop` | 103 |
 | `bubble.bomb` | effects | `bubble.bomb` | 662 |
 | `bubble.line` | effects | `bubble.line` | 600 |
 | `bubble.jokerLand` | effects | `bubble.jokerLand` | 680 |
-| `skyline.perfect` | effects | `skyline.perfect` | 483 |
+| `burst.start` | effects | `burst.start` | 475 |
+| `burst.gameOver` | effects | `burst.gameOver` | 886 |
+| `burst.lifeLost` | effects | `burst.lifeLost` | 333 |
+| `burst.hit` | effects | `burst.hit` | 120 |
+| `burst.powerUp` | effects | `burst.powerUp` | 475 |
+| `burst.freezeCaught` | effects | `burst.freezeCaught` | 487 |
+| `burst.shot` | effects | `burst.shot` | 180 |
+| `swing.crash` | effects | `swing.crash` | 284 |
+| `swing.grapple` | effects | `swing.grapple` | 211 |
+| `swing.starTaken` | effects | `swing.starTaken` | 184 |
+| `swing.dragon` | effects | `swing.dragon` | 604 |
+| `swing.rockShake` | effects | `swing.rockShake` | 200 |
+| `swing.rockLand` | effects | `swing.rockLand` | 119 |
+| `skyline.drop` | effects | `skyline.drop` | 350 |
+| `skyline.perfect` | effects | `skyline.perfect` | 238 |
+| `skyline.streakDrop` | effects | `skyline.streakDrop` | 243 |
+| `homerun.swing` | effects | `homerun.swing` | 180 |
 | `homerun.crack` | effects | `homerun.crack` | 106 |
 | `homerun.homer` | effects | `homerun.homer` | 1512 |
 | `homerun.sign` | effects | `homerun.sign` | 994 |
@@ -3183,14 +3213,79 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `freekick.save` | effects | `freekick.save` | 130 |
 | `freekick.goal` | effects | `freekick.goal` | 698 |
 | `freekick.target` | effects | `freekick.target` | 600 |
+| `freekick.net` | effects | `freekick.net` | 240 |
 | `racing.light` | effects | `racing.light` | 155 |
 | `racing.go` | effects | `racing.go` | 469 |
 | `racing.lap` | effects | `racing.lap` | 800 |
+| `racing.sector` | effects | `racing.sector` | 189 |
 | `racing.wall` | effects | `racing.wall` | 604 |
+| `racing.grass` | effects | `racing.grass` | 1000 |
+| `racing.scrape` | effects | `racing.scrape` | 788 |
+| `racing.chequer` | effects | `racing.chequer` | 2468 |
 | `racing.finish` | effects | `racing.finish` | 1357 |
+| `skyline.miss` | effects | `skyline.miss` | 600 |
+| `skyline.lifeLost` | effects | `skyline.lifeLost` | 481 |
+| `skyline.wideBlock` | effects | `skyline.wideBlock` | 388 |
+| `skyline.trim` | effects | `skyline.trim` | 671 |
+| `skyline.sliver` | effects | `skyline.sliver` | 675 |
+| `hover.start` | effects | `hover.start` | 475 |
+| `hover.crash` | effects | `hover.crash` | 388 |
+| `hover.scrape` | effects | `hover.scrape` | 197 |
+| `hover.deadCentre` | effects | `hover.deadCentre` | 363 |
+| `hover.shieldShatter` | effects | `hover.shieldShatter` | 438 |
+| `breaker.goldTang` | effects | `breaker.goldTang` | 288 |
+| `breaker.capsuleIcon` | effects | `breaker.capsuleIcon` | 108 |
+| `rally.fwip` | effects | `rally.fwip` | 213 |
+| `rally.edgeSave` | effects | `rally.edgeSave` | 88 |
+| `wavefront.powerChirp` | effects | `wavefront.powerChirp` | 438 |
+| `wavefront.boltZip` | effects | `wavefront.boltZip` | 138 |
+| `burst.fizzle` | effects | `burst.fizzle` | 108 |
+| `burst.overheadHum` | effects | `burst.overheadHum` | 438 |
+| `beat.feverRiser` | effects | `beat.feverRiser` | 988 |
+| `beat.holdCrackle` | effects | `beat.holdCrackle` | 288 |
+| `beat.missThud` | effects | `beat.missThud` | 108 |
+| `snake.turn` | effects | `snake.turn` | 28 |
+| `snake.wrap` | effects | `snake.wrap` | 108 |
+| `snake.rockGraze` | effects | `snake.rockGraze` | 168 |
+| `cross.land` | effects | `cross.land` | 38 |
+| `pinball.ballLocked` | effects | `pinball.ballLocked` | 475 |
+| `pinball.multiballStart` | effects | `pinball.multiballStart` | 1188 |
+| `pinball.multiballEnd` | effects | `pinball.multiballEnd` | 588 |
+| `blockfall.turnRefused` | effects | `blockfall.turnRefused` | 68 |
+| `blockfall.hardDrop` | effects | `blockfall.hardDrop` | 188 |
+| `blockfall.heartbeat` | effects | `blockfall.heartbeat` | 120 |
+| `hover.flyOff` | effects | `hover.flyOff` | 675 |
+| `breaker.timeToPoints` | effects | `breaker.timeToPoints` | 1188 |
+| `wavefront.bossStages` | effects | `wavefront.bossStages` | 1987 |
+| `pinball.counterRoll` | effects | `pinball.counterRoll` | 1588 |
+| `pinball.outlaneSave` | effects | `pinball.outlaneSave` | 138 |
+| `snake.saved` | effects | `snake.saved` | 388 |
+| `blockfall.sweep` | effects | `blockfall.sweep` | 288 |
+| `snake.goldStar` | effects | `snake.goldStar` | 288 |
+| `snake.warp` | effects | `snake.warp` | 438 |
+| `snake.laneWhoosh` | effects | `snake.laneWhoosh` | 475 |
+| `cross.jetPuff` | effects | `cross.jetPuff` | 108 |
+| `burst.lifeIconBreak` | effects | `burst.lifeIconBreak` | 188 |
+| `wavefront.plateOff` | effects | `wavefront.plateOff` | 188 |
 | `cross.lifeLost` | effects | `cross.lifeLost` | 350 |
 | `cross.crossed` | effects | `cross.crossed` | 607 |
 | `cross.hop` | effects | `cross.hop` | 487 |
+| `snake.start` | effects | `snake.start` | 388 |
+| `snake.dead` | effects | `snake.dead` | 475 |
+| `snake.eat` | effects | `snake.eat` | 146 |
+| `snake.rockLand` | effects | `snake.rockLand` | 300 |
+| `snake.rockWarn` | effects | `snake.rockWarn` | 300 |
+| `snake.showerAlarm` | effects | `snake.showerAlarm` | 886 |
+| `orbit.ambience` | effects | `orbit.ambience` | 2000 |
+| `orbit.launch` | effects | `orbit.launch` | 225 |
+| `orbit.checkpoint` | effects | `orbit.checkpoint` | 300 |
+| `orbit.crash` | effects | `orbit.crash` | 300 |
+| `orbit.thrust` | effects | `orbit.thrust` | 1332 |
+| `orbit.lowFuel` | effects | `orbit.lowFuel` | 256 |
+| `orbit.outOfFuel` | effects | `orbit.outOfFuel` | 872 |
+| `orbit.respawnReady` | effects | `orbit.respawnReady` | 238 |
+| `orbit.stardust` | effects | `orbit.stardust` | 108 |
+| `orbit.sunBloom` | effects | `orbit.sunBloom` | 2468 |
 | `pinball.start` | effects | `pinball.start` | 486 |
 | `pinball.ballLost` | effects | `pinball.ballLost` | 587 |
 | `pinball.launch` | effects | `pinball.launch` | 428 |
@@ -3203,6 +3298,27 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `pinball.spinner` | effects | `pinball.spinner` | 486 |
 | `pinball.flipper` | effects | `pinball.flipper` | 482 |
 | `music_pinball` | music | `music.pinball` | loop |
+| `inkbridge.draw` | effects | `inkbridge.draw` | 880 |
+| `inkbridge.pot` | effects | `inkbridge.pot` | 763 |
+| `inkbridge.bump` | effects | `inkbridge.bump` | 200 |
+| `rally.start` | effects | `rally.start` | 438 |
+| `rally.dead` | effects | `rally.dead` | 475 |
+| `rally.goldHit` | effects | `rally.goldHit` | 120 |
+| `rally.hit` | effects | `rally.hit` | 60 |
+| `rally.lifeLost` | effects | `rally.lifeLost` | 475 |
+| `rally.serve` | effects | `rally.serve` | 228 |
+| `rally.spinShot` | effects | `rally.spinShot` | 472 |
+| `flip.crash` | effects | `flip.crash` | 300 |
+| `flip.flip` | effects | `flip.flip` | 255 |
+| `flip.flipUp` | effects | `flip.flipUp` | 288 |
+| `flip.flipDown` | effects | `flip.flipDown` | 288 |
+| `flip.respawn` | effects | `flip.respawn` | 475 |
+| `flip.land` | effects | `flip.land` | 168 |
+| `flip.flowTick` | effects | `flip.flowTick` | 148 |
+| `flip.flowTen` | effects | `flip.flowTen` | 288 |
+| `flip.flowBreak` | effects | `flip.flowBreak` | 468 |
+| `flip.nearMiss` | effects | `flip.nearMiss` | 238 |
+| `flip.flowCount` | effects | `flip.flowCount` | 868 |
 | `ricochet.leap` | effects | `ricochet.leap` | 416 |
 | `ricochet.doubleJump` | effects | `ricochet.doubleJump` | 473 |
 | `ricochet.hit` | effects | `ricochet.hit` | 476 |
@@ -3218,16 +3334,42 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `snip.star` | effects | `snip.star` | 386 |
 | `slice.frenzyStart` | effects | `slice.frenzyStart` | 350 |
 | `slice.slow` | effects | `slice.slow` | 479 |
+| `beat.start` | effects | `beat.start` | 417 |
 | `beat.miss` | effects | `beat.miss` | 150 |
 | `beat.note` | effects | `beat.note` | 140 |
-| `minigolf.putt` | effects | `minigolf.putt` | 400 |
+| `minigolf.putt` | effects | `minigolf.putt` | 288 |
 | `minigolf.bounce` | effects | `minigolf.bounce` | 300 |
 | `minigolf.water` | effects | `minigolf.water` | 803 |
 | `minigolf.holed` | effects | `minigolf.holed` | 733 |
 | `minigolf.birdie` | effects | `minigolf.birdie` | 994 |
+| `tilt.roll` | effects | `tilt.roll` | 1938 |
+| `tilt.caught` | effects | `tilt.caught` | 300 |
+| `tilt.mazeDone` | effects | `tilt.mazeDone` | 600 |
+| `tilt.rimTick` | effects | `tilt.rimTick` | 38 |
+| `tilt.pitWobble` | effects | `tilt.pitWobble` | 388 |
+| `tilt.discSwap` | effects | `tilt.discSwap` | 781 |
+| `matchup.goalSpark` | effects | `matchup.goalSpark` | 288 |
+| `matchup.iceCrack` | effects | `matchup.iceCrack` | 288 |
+| `bubble.reefRumble` | effects | `bubble.reefRumble` | 588 |
+| `bubble.warning` | effects | `bubble.warning` | 468 |
+| `inkbridge.coinWobble` | effects | `inkbridge.coinWobble` | 288 |
+| `inkbridge.birdFlap` | effects | `inkbridge.birdFlap` | 388 |
+| `inkbridge.missWhistle` | effects | `inkbridge.missWhistle` | 787 |
+| `balltrack.booster` | effects | `balltrack.booster` | 188 |
+| `balltrack.combo` | effects | `balltrack.combo` | 188 |
+| `balltrack.cupPulse` | effects | `balltrack.cupPulse` | 388 |
+| `tilt.cup` | effects | `tilt.cup` | 193 |
 | `tilt.starTaken` | effects | `tilt.starTaken` | 450 |
+| `tilt.gate` | effects | `tilt.gate` | 224 |
+| `tilt.knock` | effects | `tilt.knock` | 100 |
 | `wavefront.fire` | effects | `wavefront.fire` | 90 |
+| `wavefront.pierce` | effects | `wavefront.pierce` | 120 |
+| `wavefront.bigExplode` | effects | `wavefront.bigExplode` | 600 |
+| `wavefront.shapePop` | effects | `wavefront.shapePop` | 99 |
+| `wavefront.lifeLost` | effects | `wavefront.lifeLost` | 475 |
+| `wavefront.bossHit` | effects | `wavefront.bossHit` | 300 |
 | `wavefront.formation` | effects | `wavefront.formation` | 830 |
+| `wavefront.dive` | effects | `wavefront.dive` | 487 |
 | `hover.newZone` | effects | `hover.newZone` | 480 |
 | `hover.twoGap` | effects | `hover.twoGap` | 300 |
 | `hover.slippedThrough` | effects | `hover.slippedThrough` | 350 |
@@ -3236,7 +3378,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `breaker.bricksStreak` | effects | `breaker.bricksStreak` | 450 |
 | `breaker.movingTarget` | effects | `breaker.movingTarget` | 250 |
 | `breaker.rowClear` | effects | `breaker.rowClear` | 680 |
-| `breaker.wallCleared` | effects | `breaker.wallCleared` | 840 |
+| `breaker.wallCleared` | effects | `breaker.wallCleared` | 1348 |
 | `breaker.capsuleDrop` | effects | `breaker.capsuleDrop` | 528 |
 | `breaker.fireballOut` | effects | `breaker.fireballOut` | 528 |
 | `breaker.relaunch` | effects | `breaker.relaunch` | 50 |
@@ -3251,7 +3393,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `beat.comboTen` | effects | `beat.comboTen` | 528 |
 | `beat.comboTier` | effects | `beat.comboTier` | 648 |
 | `beat.swipeHit` | effects | `beat.swipeHit` | 200 |
-| `beat.fullCombo` | effects | `beat.fullCombo` | 840 |
+| `beat.fullCombo` | effects | `beat.fullCombo` | 1188 |
 | `snake.starsStreak` | effects | `snake.starsStreak` | 528 |
 | `snake.showerDodged` | effects | `snake.showerDodged` | 528 |
 | `snake.allEaten` | effects | `snake.allEaten` | 840 |
@@ -3271,7 +3413,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `wavefront.laserDrop` | effects | `wavefront.laserDrop` | 528 |
 | `wavefront.armourHit` | effects | `wavefront.armourHit` | 120 |
 | `wavefront.enemyFire` | effects | `wavefront.enemyFire` | 528 |
-| `orbit.planetCaught` | effects | `orbit.planetCaught` | 528 |
+| `orbit.planetCaught` | effects | `orbit.planetCaught` | 415 |
 | `orbit.shootingStar` | effects | `orbit.shootingStar` | 840 |
 | `orbit.planetsStreak` | effects | `orbit.planetsStreak` | 528 |
 | `orbit.allPlanets` | effects | `orbit.allPlanets` | 840 |
@@ -3304,11 +3446,11 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `flip.collapse` | effects | `flip.collapse` | 528 |
 | `flip.trailStar` | effects | `flip.trailStar` | 200 |
 | `flip.trailDone` | effects | `flip.trailDone` | 600 |
-| `flip.doubleFlip` | effects | `flip.doubleFlip` | 500 |
+| `flip.doubleFlip` | effects | `flip.doubleFlip` | 438 |
 | `flip.checkpointPassed` | effects | `flip.checkpointPassed` | 600 |
 | `flip.crashSaved` | effects | `flip.crashSaved` | 600 |
 | `flip.speedZone` | effects | `flip.speedZone` | 528 |
-| `flip.sweetLanding` | effects | `flip.sweetLanding` | 600 |
+| `flip.sweetLanding` | effects | `flip.sweetLanding` | 388 |
 | `inkbridge.goldStar` | effects | `inkbridge.goldStar` | 528 |
 | `inkbridge.trickShot` | effects | `inkbridge.trickShot` | 600 |
 | `inkbridge.cloudBounce` | effects | `inkbridge.cloudBounce` | 528 |
@@ -3376,7 +3518,7 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `stroop.lanesGrow` | effects | `stroop.lanesGrow` | 528 |
 | `stroop.drop` | effects | `stroop.drop` | 528 |
 | `voice.timesUp` | voice | `voice.timesUp` | 2752 |
-| `voice.perfect` | voice | `voice.perfect` | 2395 |
+| `voice.perfect` | voice | `voice.perfect` | 909 |
 | `voice.tie` | voice | `voice.tie` | 2886 |
 | `voice.youWin` | voice | `voice.youWin` | 2823 |
 | `voice.rematch` | voice | `voice.rematch` | 2594 |
@@ -3430,9 +3572,9 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `bubble.reefLost` | effects | `bubble.reefLost` | 220 |
 | `balltrack.countdown` | effects | `balltrack.countdown` | 251 |
 | `matchup.select` | effects | `matchup.select` | 80 |
-| `whack.emptyTap` | effects | `whack.emptyTap` | 528 |
+| `whack.emptyTap` | effects | `whack.emptyTap` | 68 |
 | `shared.reject` | effects | `shared.reject` | 528 |
-| `clayshoot.escape` | effects | `clayshoot.escape` | 528 |
+| `clayshoot.escape` | effects | `clayshoot.escape` | 388 |
 | `chain.reverse` | effects | `chain.reverse` | 528 |
 | `minigolf.stone` | effects | `minigolf.stone` | 300 |
 | `freekick.wall` | effects | `freekick.wall` | 300 |
@@ -3462,24 +3604,29 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `pool.pocket` | effects | `pool.pocket` | 908 |
 | `pool.foul` | effects | `pool.foul` | 484 |
 | `pool.blackWin` | effects | `pool.blackWin` | 1327 |
-| `minesweeper.hit` | effects | `minesweeper.hit` | 474 |
-| `minesweeper.clear` | effects | `minesweeper.clear` | 998 |
+| `minesweeper.hit` | effects | `minesweeper.hit` | 438 |
+| `minesweeper.clear` | effects | `minesweeper.clear` | 1188 |
 | `mahjong.match` | effects | `mahjong.match` | 359 |
 | `mahjong.shuffle` | effects | `mahjong.shuffle` | 1043 |
 | `mahjong.clear` | effects | `mahjong.clear` | 1806 |
 | `minigolf.roll` | effects | `minigolf.roll` | 1375 |
 | `minigolf.bush` | effects | `minigolf.bush` | 439 |
-| `minigolf.chip` | effects | `minigolf.chip` | 120 |
-| `minigolf.land` | effects | `minigolf.land` | 200 |
-| `minigolf.rattle` | effects | `minigolf.rattle` | 120 |
-| `minigolf.plip` | effects | `minigolf.plip` | 80 |
-| `minigolf.sand` | effects | `minigolf.sand` | 200 |
-| `minigolf.loop` | effects | `minigolf.loop` | 300 |
-| `minigolf.loopBack` | effects | `minigolf.loopBack` | 120 |
+| `minigolf.chip` | effects | `minigolf.chip` | 250 |
+| `minigolf.land` | effects | `minigolf.land` | 238 |
+| `minigolf.rattle` | effects | `minigolf.rattle` | 388 |
+| `minigolf.plip` | effects | `minigolf.plip` | 288 |
+| `minigolf.sand` | effects | `minigolf.sand` | 288 |
+| `minigolf.loop` | effects | `minigolf.loop` | 407 |
+| `minigolf.loopBack` | effects | `minigolf.loopBack` | 372 |
 | `pool.chalk` | effects | `pool.chalk` | 733 |
 | `pool.cueSoft` | effects | `pool.cueSoft` | 400 |
 | `pool.cueHard` | effects | `pool.cueHard` | 400 |
 | `pool.cushion` | effects | `pool.cushion` | 300 |
+| `pool.cueCrack` | effects | `pool.cueCrack` | 288 |
+| `pool.jawRattle` | effects | `pool.jawRattle` | 588 |
+| `pool.rackRoll` | effects | `pool.rackRoll` | 616 |
+| `pool.blackUnlock` | effects | `pool.blackUnlock` | 390 |
+| `pool.streakUp` | effects | `pool.streakUp` | 388 |
 | `curling.release` | effects | `curling.release` | 484 |
 | `curling.slide` | effects | `curling.slide` | 2177 |
 | `curling.sweep` | effects | `curling.sweep` | 1013 |
@@ -3487,7 +3634,12 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `curling.board` | effects | `curling.board` | 400 |
 | `curling.applause` | effects | `curling.applause` | 1995 |
 | `curling.shot` | effects | `curling.shot` | 998 |
-| `curling.aw` | effects | `curling.aw` | 1995 |
+| `curling.powerNotch` | effects | `curling.powerNotch` | 68 |
+| `curling.powerNotchHouse` | effects | `curling.powerNotchHouse` | 138 |
+| `curling.clack` | effects | `curling.clack` | 288 |
+| `curling.ooh` | effects | `curling.ooh` | 1188 |
+| `curling.aw` | effects | `curling.aw` | 875 |
+| `curling.countTick` | effects | `curling.countTick` | 138 |
 | `homerun.crowd` | effects | `homerun.crowd` | 9271 |
 | `homerun.pitch` | effects | `homerun.pitch` | 259 |
 | `homerun.whiff` | effects | `homerun.whiff` | 400 |
@@ -3498,12 +3650,36 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `freekick.whistle` | effects | `freekick.whistle` | 683 |
 | `freekick.roar` | effects | `freekick.roar` | 3477 |
 | `freekick.groan` | effects | `freekick.groan` | 1995 |
+| `homerun.umpStrike` | effects | `homerun.umpStrike` | 680 |
+| `homerun.umpBall` | effects | `homerun.umpBall` | 504 |
+| `homerun.umpOut` | effects | `homerun.umpOut` | 683 |
+| `homerun.strikeout` | effects | `homerun.strikeout` | 1000 |
+| `homerun.walk` | effects | `homerun.walk` | 680 |
+| `homerun.footsteps` | effects | `homerun.footsteps` | 644 |
+| `homerun.slide` | effects | `homerun.slide` | 599 |
+| `homerun.runScores` | effects | `homerun.runScores` | 800 |
+| `homerun.perfect` | effects | `homerun.perfect` | 400 |
+| `homerun.aimThunk` | effects | `homerun.aimThunk` | 250 |
+| `homerun.inningsEnd` | effects | `homerun.inningsEnd` | 1174 |
+| `freekick.bendWhistle` | effects | `freekick.bendWhistle` | 1447 |
+| `freekick.powerTone` | effects | `freekick.powerTone` | 1815 |
+| `freekick.goldTick` | effects | `freekick.goldTick` | 180 |
+| `freekick.dive` | effects | `freekick.dive` | 600 |
+| `freekick.spill` | effects | `freekick.spill` | 480 |
+| `freekick.wallJump` | effects | `freekick.wallJump` | 487 |
+| `freekick.chant` | effects | `freekick.chant` | 1153 |
+| `freekick.hoopShrink` | effects | `freekick.hoopShrink` | 600 |
+| `freekick.windFlag` | effects | `freekick.windFlag` | 1776 |
 | `racing.idle` | effects | `racing.idle` | 2283 |
 | `racing.drive` | effects | `racing.drive` | 2419 |
 | `racing.squeal` | effects | `racing.squeal` | 1197 |
-| `racing.kerb` | effects | `racing.kerb` | 672 |
+| `racing.kerb` | effects | `racing.kerb` | 595 |
 | `racing.grassLoop` | effects | `racing.grassLoop` | 726 |
+| `racing.speedRush` | effects | `racing.speedRush` | 1307 |
 | `racing.roar` | effects | `racing.roar` | 3477 |
+| `minesweeper.cascadeTick` | effects | `minesweeper.cascadeTick` | 50 |
+| `minesweeper.defuse` | effects | `minesweeper.defuse` | 150 |
+| `minesweeper.tapNumber` | effects | `minesweeper.tapNumber` | 100 |
 | `minesweeper.unflag` | effects | `minesweeper.unflag` | 350 |
 | `mahjong.select` | effects | `mahjong.select` | 200 |
 | `mahjong.invalid` | effects | `mahjong.invalid` | 300 |
@@ -3534,6 +3710,41 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `pyramid.invalid` | effects | `pyramid.invalid` | 434 |
 | `pyramid.clear` | effects | `pyramid.clear` | 1666 |
 | `pyramid.shuffle` | effects | `pyramid.shuffle` | 1093 |
+| `freecell.undo` | effects | `freecell.undo` | 288 |
+| `freecell.reset` | effects | `freecell.reset` | 588 |
+| `mahjong.undo` | effects | `mahjong.undo` | 288 |
+| `mahjong.reset` | effects | `mahjong.reset` | 282 |
+| `pyramid.undo` | effects | `pyramid.undo` | 288 |
+| `pyramid.reset` | effects | `pyramid.reset` | 475 |
+| `tripeaks.flip` | effects | `tripeaks.flip` | 288 |
+| `cards.confirm` | effects | `cards.confirm` | 238 |
+| `cards.hint` | effects | `cards.hint` | 468 |
+| `cards.hintIdle` | effects | `cards.hintIdle` | 288 |
+| `cards.deadEnd` | effects | `cards.deadEnd` | 588 |
+| `freecell.wobble` | effects | `freecell.wobble` | 288 |
+| `freecell.combo` | effects | `freecell.combo` | 338 |
+| `freecell.bounce` | effects | `freecell.bounce` | 868 |
+| `mahjong.pairFly` | effects | `mahjong.pairFly` | 227 |
+| `mahjong.wrongPair` | effects | `mahjong.wrongPair` | 238 |
+| `mahjong.blockers` | effects | `mahjong.blockers` | 138 |
+| `mahjong.spin` | effects | `mahjong.spin` | 795 |
+| `mahjong.nearEnd` | effects | `mahjong.nearEnd` | 588 |
+| `mahjong.shower` | effects | `mahjong.shower` | 1188 |
+| `tripeaks.ladderBreak` | effects | `tripeaks.ladderBreak` | 388 |
+| `tripeaks.peakFly` | effects | `tripeaks.peakFly` | 588 |
+| `tripeaks.nudge` | effects | `tripeaks.nudge` | 238 |
+| `tripeaks.stuck` | effects | `tripeaks.stuck` | 1188 |
+| `tripeaks.peaksLight` | effects | `tripeaks.peaksLight` | 488 |
+| `fivehands.flip` | effects | `fivehands.flip` | 188 |
+| `fivehands.stamp` | effects | `fivehands.stamp` | 288 |
+| `fivehands.bigStamp` | effects | `fivehands.bigStamp` | 588 |
+| `fivehands.columnTick` | effects | `fivehands.columnTick` | 68 |
+| `fivehands.countUp` | effects | `fivehands.countUp` | 488 |
+| `pyramid.pairFly` | effects | `pyramid.pairFly` | 388 |
+| `pyramid.kingFlourish` | effects | `pyramid.kingFlourish` | 669 |
+| `pyramid.wrongPair` | effects | `pyramid.wrongPair` | 238 |
+| `pyramid.uncover` | effects | `pyramid.uncover` | 288 |
+| `pyramid.outline` | effects | `pyramid.outline` | 1188 |
 | `golfsol.play` | effects | `golfsol.play` | 329 |
 | `golfsol.deal` | effects | `golfsol.deal` | 220 |
 | `golfsol.run` | effects | `golfsol.run` | 998 |
@@ -3555,6 +3766,8 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `blockfall.lock` | effects | `blockfall.lock` | 477 |
 | `blockfall.clear` | effects | `blockfall.clear` | 599 |
 | `blockfall.bigClear` | effects | `blockfall.bigClear` | 1194 |
+| `blockfall.speedUp` | effects | `blockfall.speedUp` | 375 |
+| `blockfall.start` | effects | `blockfall.start` | 475 |
 | `blockfall.topOut` | effects | `blockfall.topOut` | 1200 |
 | `alleyroll.roll` | effects | `alleyroll.roll` | 456 |
 | `alleyroll.rolling` | effects | `alleyroll.rolling` | 2000 |
@@ -3572,39 +3785,97 @@ loops are not measured there). Files in `public/sounds/` are listed once per slo
 | `swing.gate` | effects | `swing.gate` | 479 |
 | `swing.land` | effects | `swing.land` | 485 |
 | `swing.release` | effects | `swing.release` | 480 |
-| `swing.streak` | effects | `swing.streak` | 600 |
+| `swing.streak` | effects | `swing.streak` | 588 |
 | `swing.slideVine` | effects | `swing.slideVine` | 2000 |
 | `swing.wings` | effects | `swing.wings` | 2000 |
+| `swing.ropeSnap` | effects | `swing.ropeSnap` | 188 |
+| `swing.speedWhoosh` | effects | `swing.speedWhoosh` | 438 |
+| `swing.courseCleared` | effects | `swing.courseCleared` | 1588 |
+| `swing.outOfReach` | effects | `swing.outOfReach` | 288 |
+| `swing.pteroShadow` | effects | `swing.pteroShadow` | 1188 |
+| `swing.streakMeter` | effects | `swing.streakMeter` | 108 |
+| `swing.stretchTally` | effects | `swing.stretchTally` | 78 |
 | `slice.chilli` | effects | `slice.chilli` | 485 |
 | `symscan.eagle` | effects | `symscan.eagle` | 807 |
 | `bintoss.wind` | effects | `bintoss.wind` | 800 |
 | `bintoss.ambience` | effects | `bintoss.ambience` | 8000 |
 | `bullseye.ambience` | effects | `bullseye.ambience` | 8000 |
-| `reaction.hit` | effects | `reaction.hit` | 90 |
-| `reaction.combo` | effects | `reaction.combo` | 250 |
-| `reaction.wrong` | effects | `reaction.wrong` | 140 |
-| `reaction.done` | effects | `reaction.done` | 600 |
-| `reaction.bar` | effects | `reaction.bar` | 70 |
-| `numhunt.note-low` | effects | `numhunt.note-low` | 300 |
-| `numhunt.note-mid` | effects | `numhunt.note-mid` | 300 |
-| `numhunt.note-high` | effects | `numhunt.note-high` | 300 |
-| `numhunt.combo` | effects | `numhunt.combo` | 400 |
-| `numhunt.wrong` | effects | `numhunt.wrong` | 150 |
-| `numhunt.warn` | effects | `numhunt.warn` | 900 |
-| `numhunt.shuffle` | effects | `numhunt.shuffle` | 320 |
-| `chain.reshuffle` | effects | `chain.reshuffle` | 300 |
-| `chain.heartbeat` | effects | `chain.heartbeat` | 500 |
-| `whack.bonk` | effects | `whack.bonk` | 180 |
-| `whack.whistle` | effects | `whack.whistle` | 450 |
-| `whack.slam` | effects | `whack.slam` | 260 |
-| `whack.hedgehog` | effects | `whack.hedgehog` | 320 |
-| `whack.wrongHat` | effects | `whack.wrongHat` | 150 |
-| `whack.diamond` | effects | `whack.diamond` | 420 |
-| `tendrop.count` | effects | `tendrop.count` | 30 |
-| `tendrop.near` | effects | `tendrop.near` | 300 |
-| `tendrop.tenBurst` | effects | `tendrop.tenBurst` | 500 |
-| `tendrop.shatter` | effects | `tendrop.shatter` | 420 |
-| `tendrop.tap` | effects | `tendrop.tap` | 50 |
-| `clayshoot.shot` | effects | `clayshoot.shot` | 450 |
-| `clayshoot.goldChime` | effects | `clayshoot.goldChime` | 500 |
-| `clayshoot.birdWrong` | effects | `clayshoot.birdWrong` | 250 |
+| `reaction.hit` | effects | `reaction.hit` | 78 |
+| `reaction.combo` | effects | `reaction.combo` | 363 |
+| `reaction.wrong` | effects | `reaction.wrong` | 198 |
+| `reaction.done` | effects | `reaction.done` | 588 |
+| `reaction.bar` | effects | `reaction.bar` | 58 |
+| `numhunt.note-low` | effects | `numhunt.note-low` | 288 |
+| `numhunt.note-mid` | effects | `numhunt.note-mid` | 288 |
+| `numhunt.note-high` | effects | `numhunt.note-high` | 288 |
+| `numhunt.combo` | effects | `numhunt.combo` | 388 |
+| `numhunt.wrong` | effects | `numhunt.wrong` | 138 |
+| `numhunt.warn` | effects | `numhunt.warn` | 857 |
+| `numhunt.shuffle` | effects | `numhunt.shuffle` | 468 |
+| `chain.reshuffle` | effects | `chain.reshuffle` | 288 |
+| `chain.heartbeat` | effects | `chain.heartbeat` | 123 |
+| `whack.bonk` | effects | `whack.bonk` | 158 |
+| `whack.whistle` | effects | `whack.whistle` | 438 |
+| `whack.slam` | effects | `whack.slam` | 248 |
+| `whack.hedgehog` | effects | `whack.hedgehog` | 308 |
+| `whack.wrongHat` | effects | `whack.wrongHat` | 138 |
+| `whack.diamond` | effects | `whack.diamond` | 408 |
+| `tendrop.count` | effects | `tendrop.count` | 33 |
+| `tendrop.near` | effects | `tendrop.near` | 438 |
+| `tendrop.tenBurst` | effects | `tendrop.tenBurst` | 446 |
+| `tendrop.shatter` | effects | `tendrop.shatter` | 384 |
+| `tendrop.tap` | effects | `tendrop.tap` | 38 |
+| `clayshoot.shot` | effects | `clayshoot.shot` | 399 |
+| `clayshoot.goldChime` | effects | `clayshoot.goldChime` | 474 |
+| `clayshoot.birdWrong` | effects | `clayshoot.birdWrong` | 238 |
+| `blockfall.linesCount` | effects | `blockfall.linesCount` | 988 |
+| `bubble.chestOpen` | effects | `bubble.chestOpen` | 492 |
+| `bubble.fallSplash` | effects | `bubble.fallSplash` | 388 |
+| `bubble.fastShot` | effects | `bubble.fastShot` | 288 |
+| `bubble.thup` | effects | `bubble.thup` | 138 |
+| `bubble.wallBlip` | effects | `bubble.wallBlip` | 68 |
+| `burst.clearTick` | effects | `burst.clearTick` | 675 |
+| `cross.tally` | effects | `cross.tally` | 988 |
+| `flood.combo` | effects | `flood.combo` | 581 |
+| `flood.nearPar` | effects | `flood.nearPar` | 388 |
+| `flood.outOfMoves` | effects | `flood.outOfMoves` | 587 |
+| `flood.reject` | effects | `flood.reject` | 138 |
+| `inkbridge.birdScatter` | effects | `inkbridge.birdScatter` | 474 |
+| `inkbridge.parFlourish` | effects | `inkbridge.parFlourish` | 474 |
+| `matchup.chestGlint` | effects | `matchup.chestGlint` | 388 |
+| `matchup.chestHome` | effects | `matchup.chestHome` | 669 |
+| `matchup.goalTick` | effects | `matchup.goalTick` | 363 |
+| `matchup.shatter` | effects | `matchup.shatter` | 288 |
+| `minigolf.aim` | effects | `minigolf.aim` | 63 |
+| `minigolf.confetti` | effects | `minigolf.confetti` | 230 |
+| `minigolf.flag` | effects | `minigolf.flag` | 377 |
+| `nonogram.combo` | effects | `nonogram.combo` | 588 |
+| `pinball.rampChase` | effects | `pinball.rampChase` | 475 |
+| `safe.drumLock` | effects | `safe.drumLock` | 138 |
+| `skyline.endCount` | effects | `skyline.endCount` | 2468 |
+| `skyline.goldChime` | effects | `skyline.goldChime` | 382 |
+| `sudoku.clear` | effects | `sudoku.clear` | 108 |
+| `sudoku.combo` | effects | `sudoku.combo` | 788 |
+| `tower.glint` | effects | `tower.glint` | 388 |
+| `tower.illegal` | effects | `tower.illegal` | 363 |
+| `tower.lower` | effects | `tower.lower` | 138 |
+| `tower.near` | effects | `tower.near` | 388 |
+| `tower.reset` | effects | `tower.reset` | 468 |
+| `tower.undo` | effects | `tower.undo` | 238 |
+| `tubes.combo` | effects | `tubes.combo` | 588 |
+| `tubes.glint` | effects | `tubes.glint` | 288 |
+| `tubes.reset` | effects | `tubes.reset` | 474 |
+| `tubes.wrong` | effects | `tubes.wrong` | 338 |
+| `voice.amazing` | voice | `voice.amazing` | 1072 |
+| `voice.brilliant` | voice | `voice.brilliant` | 995 |
+| `voice.flawless` | voice | `voice.flawless` | 1228 |
+| `voice.great` | voice | `voice.great` | 881 |
+| `voice.incredible` | voice | `voice.incredible` | 1228 |
+| `voice.legendary` | voice | `voice.legendary` | 1228 |
+| `voice.outstanding` | voice | `voice.outstanding` | 1228 |
+| `voice.phenomenal` | voice | `voice.phenomenal` | 1228 |
+| `voice.sensational` | voice | `voice.sensational` | 1228 |
+| `voice.superb` | voice | `voice.superb` | 1228 |
+| `voice.unbelievable` | voice | `voice.unbelievable` | 1228 |
+| `wavefront.charge` | effects | `wavefront.charge` | 1061 |
+| `wavefront.chargeRelease` | effects | `wavefront.chargeRelease` | 388 |

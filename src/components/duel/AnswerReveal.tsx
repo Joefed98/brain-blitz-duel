@@ -34,6 +34,7 @@ import { usePerfectBurst } from "@/lib/fx/useSignature";
 import { NewBestMoment } from "@/components/duel/NewBestMoment";
 import { FxNewBest, FxStars } from "@/components/fx/GameFx";
 import { MuteToggle } from "@/components/duel/MuteToggle";
+import { ANNOUNCER_AFTER_STING_MS, announceRoundResult } from "@/lib/fx/announcer";
 import {
   HERO_DANCE_MS,
   HERO_GRAND_MS,
@@ -845,6 +846,14 @@ function LiveAnswerReveal({
     scoreCue.current = window.setTimeout(() => fx.onRevealScore(score, def.theme), REVEAL_SCORE_DELAY_MS);
   }, [round, myCorrect, myScore, puzzle.type, def.category]);
   useEffect(() => () => window.clearTimeout(scoreCue.current), []);
+  // The announcer (src/lib/fx/announcer.ts): one line for this player's own stored score of 175 or more, just after
+  // the score's sting; never on a reveal reopened later (heroRun false), once per round.
+  useEffect(() => {
+    if (myScore === null) return;
+    const key = `${practice ? "practice" : "round"}:${puzzle.type}:${round}:${startedAt}`;
+    const said = announceRoundResult(key, myScore, heroRunAllowed, REVEAL_SCORE_DELAY_MS + ANNOUNCER_AFTER_STING_MS);
+    return () => said?.cancel();
+  }, [myScore, round, startedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Celebrations (src/lib/fx/celebrations.ts), once per round, just after the score lands, ending with
   // the reveal: a round score of HERO_RUN_SCORE or more sends the hero running along the bottom;
