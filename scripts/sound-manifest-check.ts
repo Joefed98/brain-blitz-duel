@@ -23,6 +23,8 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { SOUND_MANIFEST } from "../src/lib/fx/manifest";
 import { SOUND_CUE_EVENT } from "../src/lib/fx/soundCues";
+import { readMp3Gapless } from "../src/lib/mp3Gapless";
+import { soundBatchRows } from "../src/lib/offline/soundBatches";
 import { buildRows, parseCsv, readDocRows, sortRows } from "./sound-cue-sheet";
 
 const failures: string[] = [];
@@ -205,6 +207,38 @@ const switchUrls = new Set(
     .filter(([slot]) => !!manifest[slot])
     .map(([, f]) => f.url),
 );
+// Joe's sound batches (docs/sound-cues/sounds-batch-*.csv, src/lib/offline/soundBatches.ts), all wired on 18 Nov 2026
+// (scripts/sound-wiring-nov18/wire.ts): the temporary "awaiting wiring" exception of 16 Nov 2026 is gone, so every
+// served file must be a manifest URL again (below). Each batch file must be in public/sounds/, a tagged 44.1 kHz MP3,
+// mono (a music_ bed or ambience bed stereo, as the library's beds), played by its slot (the manifest's url, or the
+// NEW_GAME_SOUNDS switch's file for it), and its row must name its slot and PR; a row marked "TO RECORD" has no file
+// yet and must have none; a `.base` note is the source of its pitch series (not played), so it is not served.
+const batchRows = soundBatchRows();
+for (const r of batchRows) {
+  const path = `public/sounds/${r.file}`;
+  check(/^#\d+$/.test(r.pr) && r.file === `${r.slot}.mp3`, `${r.csv}: ${r.file} must name its slot and PR`);
+  if (r.toRecord) {
+    check(!urls.has(`/sounds/${r.file}`) && !switchUrls.has(`/sounds/${r.file}`), `${r.file}: marked TO RECORD in ${r.csv} but a slot plays it`);
+    check(!audioFiles.includes(path), `${path}: marked TO RECORD in ${r.csv} but the file is served`);
+    continue;
+  }
+  if (r.source) {
+    check(!audioFiles.includes(path), `${path}: a .base note is the source of its series, not a served file`);
+    continue;
+  }
+  check(audioFiles.includes(path), `${path}: in ${r.csv} but not in public/sounds/`);
+  if (!audioFiles.includes(path)) continue;
+  check(urls.has(`/sounds/${r.file}`) || switchUrls.has(`/sounds/${r.file}`),
+    `${path}: in ${r.csv} but no slot plays it (wire it in src/lib/fx/manifest.ts)`);
+  const bytes = new Uint8Array(readFileSync(path));
+  const tag = readMp3Gapless(bytes);
+  let at = 0;
+  while (at < bytes.length - 4 && !(bytes[at] === 0xff && (bytes[at + 1]! & 0xe0) === 0xe0)) at++;
+  const mono = bytes[at + 3]! >> 6 === 3;
+  const stereoBed = r.slot.startsWith("music_") || r.stereo;
+  check(!!tag && tag.sampleRate === 44100 && (stereoBed ? !mono : mono),
+    `${path}: must be a tagged 44.1 kHz MP3, ${stereoBed ? "stereo" : "mono"}`);
+}
 for (const file of audioFiles) {
   const url = file.startsWith("public/") ? `/${file.slice("public/".length)}` : null;
   check(

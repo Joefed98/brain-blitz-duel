@@ -231,6 +231,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const replay = useMemo(() => play(moves), [start, moves, logged, pourLimit]);
   const solving = useSolveFx("tubes", isTubes && replay.solved);
+  // The solve: each cork glints as it pops in turn (logic.css logic-cork-pop, 80 ms apart), a very soft ting each.
+  const glintCount = replay.sorted;
+  useEffect(() => {
+    if (!solving) return;
+    const timers = Array.from({ length: glintCount }, (_, i) => window.setTimeout(() => soundCue("tubes.glint"), i * 80 + 150));
+    return () => timers.forEach((t) => window.clearTimeout(t));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [solving]);
   const inFrame = useFrameProgress(replay.sorted, isTubes ? tubesColourCount(start) : TUBES_COLOURS, "corked");
   // Expert (`hidden`, the levels): a starting layer stays hidden until it has been the top of its flask (or moved).
   // Display only: the lowest each flask has been emptied to over the boards played (undone boards included: seen is
@@ -309,6 +317,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
       // An invalid destination: the lifted flask tips toward it, nothing pours, it rights itself; the lift is kept.
       animateRefusedPour(boardRef.current, lifted, tube);
       playWrong();
+      soundCue("tubes.wrong");
       return;
     }
     const after = play([...moves, { from: lifted, to: tube }]).tubes[tube] ?? [];
@@ -324,7 +333,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
       const combo = now - lastCork.current < CORK_COMBO_MS;
       lastCork.current = now;
       window.setTimeout(() => {
-        soundCue("tubes.cork");
+        // A second flask corked within CORK_COMBO_MS plays the combo in the cork's place (one sound a moment).
+        soundCue(combo ? "tubes.combo" : "tubes.cork");
         setJustCorked([tube]);
         const flask = boardRef.current?.querySelector(`[data-flask="${tube}"]`);
         if (combo) gameFx("combo", flask, { count: 2, silent: true });
@@ -349,6 +359,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tubes" }: 
   const reset = () => {
     setLifted(null);
     setPoured(null);
+    if (moves.length) soundCue("tubes.reset");
     setMoves((current) => (logged ? [...current, "reset"] : []));
   };
 

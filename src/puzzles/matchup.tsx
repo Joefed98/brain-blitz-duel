@@ -41,6 +41,8 @@ import {
   matchupWorldHFor,
   matchupGoalsMet,
   matchupStdParts,
+  matchupRowsOf,
+  MATCHUP_TREASURE,
 } from "@/lib/arcade/matchup";
 import { KeyCursor, useGridCursor } from "@/components/puzzles/KeyCursor";
 import { directionOf, useGameKeys } from "@/lib/desktop";
@@ -62,6 +64,22 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 import { puzzleLevel } from "@/lib/levels/levels";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+
+/** The run's end: the first goal ticks off this long after the buzzer, the rest this far apart. */
+const GOAL_TICK_FROM_MS = 400;
+const GOAL_TICK_STEP_MS = 180;
+
+/** The treasure cells within three rows of home (the renderer's "↓ n" chip, drawTreasureTrail). */
+function treasuresNearHome(cells: readonly number[]): number[] {
+  const rows = matchupRowsOf(cells);
+  const near: number[] = [];
+  for (let index = 0; index < cells.length; index++) {
+    if (cells[index] !== MATCHUP_TREASURE) continue;
+    const toGo = rows - 1 - Math.floor(index / MATCHUP_SIZE);
+    if (toGo >= 1 && toGo <= 3) near.push(index);
+  }
+  return near;
+}
 
 /** Fixed intro still: a 4×4 board with one swap making a line of three. */
 function IntroExample() {
@@ -155,6 +173,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     // matchupRev 9: the features sound from the shared set (a goal's chime, ice cracking, a treasure's ding, a deep cascade's zap).
     let goalLeftSeen = (state.current.goalLeft ?? []).reduce((a: number, b: number) => a + b, 0);
     let goalsSeen = { levels: state.current.levels ?? 0, ice: state.current.iceBroken ?? 0, treasures: state.current.treasures ?? 0, swaps: state.current.swaps, cracked: state.current.iceCracked ?? 0 };
+    // The treasures within three rows of home (the renderer's "↓ n" chip), and whether the run's end has sounded.
+    let nearSeen = treasuresNearHome(state.current.cells);
+    let overSeen = matchupGame.isOver(state.current);
+    const timers: number[] = [];
 
     const finish = () => {
       if (submitted.current) return;
@@ -233,7 +255,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       if (state.current.goals) {
         const now = state.current;
         if ((now.levels ?? 0) > goalsSeen.levels) playSound("shared.celebrate.chime", 0.7);
-        if ((now.treasures ?? 0) > goalsSeen.treasures) playSound("shared.celebrate.countDing", 0.8);
+        // A treasure home (the chest lands and its coins tumble out), in place of the count's ding.
+        if ((now.treasures ?? 0) > goalsSeen.treasures) playSlotOr("matchup.chestHome", "shared.celebrate.countDing", 0.8);
+        // A treasure glints as it comes within three rows of home.
+        const near = treasuresNearHome(now.cells);
+        if (near.some((index) => !nearSeen.includes(index))) liveCue("matchup.chestGlint", 600);
+        nearSeen = near;
         // The Strategy overhaul, stage 2: the ice's own crack (today's crackle until Joe's recording), and a goal's spark.
         if ((now.iceBroken ?? 0) > goalsSeen.ice) playSlotOr("matchup.iceCrack", "shared.celebrate.crackle2", 0.55);
         // matchupRev 13: a first hit only cracks the ice (the same crack, quieter).
@@ -243,6 +270,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
         if (now.swaps > goalsSeen.swaps && (now.lastMult ?? 0) >= 3) playSound("shared.celebrate.zap", 0.45);
         goalsSeen = { levels: now.levels ?? 0, ice: now.iceBroken ?? 0, treasures: now.treasures ?? 0, swaps: now.swaps, cracked: now.iceCracked ?? 0 };
       }
+      // The run's end: each goal met ticks off in turn, after the buzzer (goal revisions only).
+      const over = matchupGame.isOver(state.current);
+      if (over && !overSeen && state.current.goals) {
+        const met = matchupGoalsMet(state.current);
+        for (let k = 0; k < met; k++) timers.push(window.setTimeout(() => liveCue("matchup.goalTick"), GOAL_TICK_FROM_MS + k * GOAL_TICK_STEP_MS));
+      }
+      overSeen = over;
       reportArcadeTick(state.current.tick, matchupGame.isOver(state.current));
       feedback(state.current, matchupGame.isOver(state.current));
       // The hint highlight appears after a spell without a move.
@@ -253,7 +287,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       while (chime.next < chime.at.length && time >= chime.at[chime.next]!) {
         // Cascade pitch ladder: chain depth 1-4 rises 1.0 / 1.12 / 1.26 / 1.41.
         const depth = Math.min(chime.depth ?? chime.next + 1, MATCHUP_PITCH_RATES.length);
-        playSound("arc_gem_match", 0.8, MATCHUP_PITCH_RATES[depth - 1] ?? 1, true);
+        // The gems shatter (Joe's file in place of the match chime once it is set), on the same cascade ladder.
+        playSlotOr("matchup.shatter", "arc_gem_match", 0.8, MATCHUP_PITCH_RATES[depth - 1] ?? 1, true, true);
         const special = chime.sounds[chime.next];
         // A special layers over the match chime rather than cutting it.
         if (special && special !== "arc_gem_match") playSound(special, 0.8, 1, true);
@@ -310,7 +345,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     };
 
     frame = arenaFrame(loop);
-    return () => cancelArenaFrame(loop, frame);
+    return () => {
+      cancelArenaFrame(loop, frame);
+      for (const timer of timers) window.clearTimeout(timer);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, seed]);
 

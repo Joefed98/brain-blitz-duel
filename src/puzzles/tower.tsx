@@ -202,6 +202,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
     // The lifted ring bounces back up (the kit's "wrong" on the ring itself) and stays lifted.
     gameFx("wrong", stageRef.current?.querySelector(".hanoi-lifted"), { silent: true });
     playWrong();
+    soundCue("tower.illegal");
   };
 
   const tapPeg = (peg: number) => {
@@ -213,6 +214,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
       return;
     }
     if (lifted === peg) {
+      // The lifted ring lowered back onto its own post.
+      soundCue("tower.lower");
       setLifted(null);
       return;
     }
@@ -229,6 +232,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
     const target = [...(replay.pegs[peg] ?? []), ring];
     const glint = peg === targetPeg && target.every((size, i) => size === discs - i);
     setDropped({ peg, key: moves.length + 1, glint });
+    // The glint's shimmer follows the clunk, at the ring's brightest (logic-hanoi-glint, 35 % of 520 ms); the last
+    // ring home is the solve's moment (tower.solve) instead.
+    if (glint && target.length < discs) window.setTimeout(() => soundCue("tower.glint"), 180);
     setMoves((current) => [...current, { from: lifted, to: peg }]);
     setLifted(null);
   };
@@ -236,12 +242,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
   const undo = () => {
     setLifted(null);
     setDropped(null);
+    if (moves.length) soundCue("tower.undo");
     setMoves((current) => current.slice(0, -1));
   };
 
   const reset = () => {
     setLifted(null);
     setDropped(null);
+    if (moves.length) soundCue("tower.reset");
     setMoves([]);
   };
 
@@ -331,9 +339,16 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "tower" }: 
  * possible, rings on the gold post), and the shortest route as small pictures of each move (the ring, post to post).
  */
 function Reveal({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
-  if (puzzle.type !== "tower") return null;
   // The levels' stamp (towerRev 1): the grade stores how far from done the board was left.
   const left = typeof myExtra?.["movesLeft"] === "number" ? (myExtra["movesLeft"] as number) : null;
+  // A time-out one or two moves from done: a soft falling near-miss tone once the reveal opens (display only).
+  const near = puzzle.type === "tower" && !myCorrect && left !== null && left > 0 && left <= TOWER_NEAR_MOVES;
+  useEffect(() => {
+    if (!near) return;
+    const t = window.setTimeout(() => soundCue("tower.near"), 450);
+    return () => window.clearTimeout(t);
+  }, [near]);
+  if (puzzle.type !== "tower") return null;
   const start = puzzle.start ?? [];
   const mine = replayTower(start, puzzle.targetPeg, puzzle.discs, decodeTowerMoves(myAnswer ?? ""));
   const route: ReactNode[] = [];
@@ -376,6 +391,9 @@ function Reveal({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
     </div>
   );
 }
+
+/** A time-out this many moves (or fewer) from done is a near miss on the reveal (`tower.near`). */
+const TOWER_NEAR_MOVES = 2;
 
 /** The spread, the minimum and one shortest solution all come from the server. */
 export const towerPuzzle: PuzzleDefinition = {

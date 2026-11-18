@@ -33,6 +33,7 @@ import { scaledToMax } from "@/lib/duel/roundMax";
 import type { PuzzleType } from "@/lib/duel/types";
 import { prefersReducedMotion } from "@/lib/motion";
 import { demoHushed, playVoice } from "@/lib/sound";
+import { ANNOUNCER_MIN_SCORE } from "./announcer";
 import { soundCue } from "./soundCues";
 
 export type SignatureTier = "solve" | "fast";
@@ -342,12 +343,14 @@ export function playSignature(tier: SignatureTier): void {
 
 /**
  * The reveal's perfect-score moment: a short gold burst on the stored score
- * element (only ever called for a stored score at the game's maximum).
+ * element (only ever called for a stored score at the game's maximum). Its "Perfect" voice line plays only for a
+ * maximum under the announcer's 175 (a 150-point game): from 175 the announcer's own line is the round's one voice
+ * line (src/lib/fx/announcer.ts, 18 Nov 2026).
  */
-export function perfectBurst(target: HTMLElement): void {
+export function perfectBurst(target: HTMLElement, score?: number): void {
   if (typeof document === "undefined" || !document.body) return;
   soundCue(PERFECT_CUE);
-  playVoice("voice.perfect");
+  if (score === undefined || score < ANNOUNCER_MIN_SCORE) playVoice("voice.perfect");
   const box = target.getBoundingClientRect();
   const reduced = prefersReducedMotion();
   const layer = document.createElement("div");

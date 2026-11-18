@@ -18,6 +18,7 @@
  *
  *   bun scripts/logic-review-fixes-check.ts
  */
+import { existsSync } from "node:fs";
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
@@ -395,7 +396,7 @@ for (const type of NOTES_FREE_TYPES) {
   ok(fencesPaintCue(st, [0, 1], FENCES_EMPTY) === "fences.clear", "fences: a drag erase plays fences.clear");
   ok(fencesPaintCue(st, [1], FENCES_LINE) === "fences.draw", "fences: a drag draw plays fences.draw");
   const clear = SOUND_MANIFEST["fences.clear"];
-  ok(clear?.url === SOUND_MANIFEST["tents.clear"]?.url && typeof clear?.url === "string", "fences.clear plays the library's existing clear recording");
+  ok(clear?.url === "/sounds/fences.clear.mp3" && existsSync("public/sounds/fences.clear.mp3"), "fences.clear plays Joe's own recording");  // Changed with Joe's approval, 18 Nov 2026 (new sounds switched on)
   const click = SOUND_MANIFEST["safe.click"];
   ok(typeof click?.gapMs === "number" && click.gapMs >= 50 && click.gapMs < (click.ms ?? 0), `safe.click has a gap cap (${String(click?.gapMs)} ms) so held arrows don't layer it`);
 }

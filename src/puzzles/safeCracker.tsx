@@ -129,6 +129,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "safe" }: P
   const lastTry = tries[tries.length - 1];
   const opened = isSafe && lastTry !== undefined && puzzle.clues.every((clue) => clueHolds(clue, lastTry));
   const solving = useSolveFx("safe", opened);
+  // The opening: each drum clicks into place in turn (logic.css logic-drum-lock, 95 ms apart, its dip at 45 % of
+  // 220 ms), a single tumbler dropping each time.
+  useEffect(() => {
+    if (!solving) return;
+    const timers = Array.from({ length: shape.dials }, (_, i) => window.setTimeout(() => soundCue("safe.drumLock"), i * 95 + 100));
+    return () => timers.forEach((t) => window.clearTimeout(t));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [solving]);
 
   // puzzleScoreRev 2: the draft also carries the dials as they stand, so a time-out keeps their right dials as progress.
   const pendingDraft = puzzleScoreRevOf(puzzle) >= 2 && tries.length < shape.tries;

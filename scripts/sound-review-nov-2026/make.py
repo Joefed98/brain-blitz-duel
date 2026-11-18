@@ -15,6 +15,9 @@ tick.
 
 Nothing here is wired by default: the files play only with NEW_GAME_SOUNDS on (src/config/soundConfig.ts), through
 src/lib/fx/newGameSounds.data.ts, which this script writes from the report.
+
+A recipe whose file Joe has since recorded (sound batch 1, docs/sound-cues/sounds-batch-1.csv) is not synthesised: its
+file is his recording (scripts/sound-batch-1/process.py), only measured here for the data file.
 """
 import json, os, sys, zlib
 
@@ -448,13 +451,9 @@ def _(r):
     return room(mix(clicks, latch, swing), r, 0.16, 0.14)
 
 
-@sound("unblock.solve", ["unblock.solve"], "placeholder: the gold block driving out: a short rising engine buzz and a whoosh past the exit")
-def _(r):
-    n = n_of(0.8)
-    f = glide(85, 170, n)
-    buzz = svf((tri(glide(110, 220, n), n) * 0.5 + noise(n, r) * 0.15) * (0.6 + 0.4 * sine(30, n)), f * 6, 0.9, "lp") * env(n, 0.04, 0.55) * 0.7
-    whoosh = svf(noise(n, r), glide(900, 3200, n), 1.3) * env(n, 0.25, 0.4) * 0.3
-    return room(mix(buzz, whoosh), r, 0.12, 0.12)
+# Gridlock's drive-out placeholder (unblock.solve) is gone (sound wiring, 18 Nov 2026): with NEW_GAME_SOUNDS on it would
+# have replaced the game's real recording (pz_car_escape) with a synthesised stand-in, and there is no take from Joe for it,
+# so the slot keeps its recording (Joe's rule: existing files are kept).
 
 
 @sound("shikaku.place", ["shikaku.place"], "a frame snapping into place: two quick clicks on a wooden body")
@@ -651,53 +650,10 @@ def _(r):
 
 # --- Retro arcade (Hover, Breaker, Rally, Fission, Tempo, Meteor, Wavefront, Blockzone): a dry sound chip --------
 
-@sound("retro.start", ["hover.start", "breaker.start", "rally.start", "burst.start", "beat.start", "snake.start", "blockfall.start"],
-       "the Retro run starting: a quick three-note pulse arpeggio up to a held note")
-def _(r):
-    n = n_of(0.3)
-    f = steps([523.25, 659.25, 783.99, 1046.5], 0.055, n)
-    v = stepped(n, 0.055, [0.8, 0.8, 0.8, 1.0]) * env(n, 0.001, 0.3, 0.17)
-    return pulse(f, n, 0.25) * v * 0.55 + tri(f / 2, n) * v * 0.3
-
-
-@sound("retro.crash", ["hover.crash", "snake.dead", "rally.dead"],
-       "a Retro crash: a crunchy noise burst falling in pitch")
-def _(r):
-    n = n_of(0.36)
-    nz = retro_noise(n, r, glide(9000, 700, n, 0.6)) * env(n, 0.001, 0.32)
-    tone = pulse(glide(320, 70, n, 0.7), n, 0.5) * env(n, 0.001, 0.2) * 0.4
-    return crush(nz * 0.8 + tone, 9, 2)
-
-
-@sound("retro.lifeLost", ["burst.lifeLost", "wavefront.lifeLost"],
-       "a life lost: three falling pulse notes, the last one bending down")
-def _(r):
-    n = n_of(0.42)
-    f = steps([659.25, 523.25, 392.0], 0.1, n)
-    f = np.where(tt(n) > 0.2, f * glide(1.0, 0.7, n, 1.0), f)
-    v = env(n, 0.001, 0.42, 0.22) * stepped(n, 0.1, [1.0, 0.95, 0.9])
-    return pulse(f, n, 0.5) * v * 0.5 + tri(f / 2, n) * v * 0.25
-
-
-@sound("retro.powerUp", ["breaker.powerUp", "burst.powerUp"], "a power-up caught: a fast four-note climb")
-def _(r):
-    n = n_of(0.22)
-    f = steps([523.25, 783.99, 1046.5, 1567.98], 0.04, n)
-    return pulse(f, n, 0.25) * env(n, 0.001, 0.22, 0.12) * 0.55
-
-
-@sound("hover.gate", ["hover.gate"], "through a barrier: a quick two-note pulse, up a fourth")
-def _(r):
-    n = n_of(0.1)
-    f = steps([1318.5, 1760.0], 0.035, n)
-    return pulse(f, n, 0.5) * env(n, 0.001, 0.1, 0.04) * 0.5
-
-
-@sound("hover.star", ["hover.star"], "a gold star: a bright sparkling arpeggio")
-def _(r):
-    n = n_of(0.16)
-    f = steps([1567.98, 2093.0, 2637.0], 0.03, n)
-    return pulse(f, n, 0.125) * env(n, 0.001, 0.16, 0.06) * 0.5 + tri(f, n) * env(n, 0.001, 0.14) * 0.2
+# The Retro run start, crash, life lost and power-up placeholders (retro.start, retro.crash, retro.lifeLost,
+# retro.powerUp) are gone: every slot they stood in for has Joe's own recording, wired in the manifest (sound
+# wiring, 18 Nov 2026). Hover's gate and gold star placeholders are gone too: Joe kept main's sound for both
+# (the library note, through playSlotOr), 18 Nov 2026.
 
 
 @sound("breaker.paddle", ["breaker.paddle"], "the ball off the paddle: a short, round blip")
@@ -1911,16 +1867,40 @@ def build(name, outdir):
             "limited": limited}
 
 
+def recorded_files(root):
+    """The slots Joe has since recorded (his sound batches, docs/sound-cues/sounds-batch-*.csv, cut and levelled by
+    scripts/sound-batch-1/process.py and scripts/sound-batch-2/process.py): their files are his recordings, so this
+    script never overwrites them and only measures them for the data file. A row marked TO RECORD has no file yet."""
+    import csv, glob
+    out = set()
+    for path in sorted(glob.glob(os.path.join(root, "docs", "sound-cues", "sounds-batch-*.csv"))):
+        out |= {r["file"] for r in csv.DictReader(open(path, newline="")) if not r.get("note", "").startswith("TO RECORD")}
+    return out
+
+
+def measured(name, outdir):
+    """A recorded file's row, measured as build() measures its own."""
+    _, loop, slots, what = RECIPES[name]
+    path = os.path.join(outdir, f"{name}.mp3")
+    dec = fix.load(path)[0]
+    lufs_out, tp = fix.ebur(np.tile(dec, (2, 1)) if loop else dec, SR)
+    secs = len(dec) / SR
+    return {"file": f"{name}.mp3", "slots": slots, "what": what.removeprefix("placeholder: "), "loop": loop,
+            "ms": round(secs * 1000), "bytes": os.path.getsize(path), "lufs": round(lufs_out, 1),
+            "target": target_lufs(secs, loop), "truePeak": round(tp, 1), "limited": None}
+
+
 def main():
     root = os.path.abspath(os.path.join(HERE, "..", ".."))
     outdir = sys.argv[1] if len(sys.argv) > 1 else os.path.join(root, "public", "sounds")
     report = sys.argv[2] if len(sys.argv) > 2 and sys.argv[2] != "-" else None
     only = set(sys.argv[3].split(",")) if len(sys.argv) > 3 else None
     rows = []
+    recorded = recorded_files(root)
     for name in RECIPES:
         if only and name not in only:
             continue
-        row = build(name, outdir)
+        row = measured(name, outdir) if f"{name}.mp3" in recorded else build(name, outdir)
         rows.append(row)
         print(f"{row['file']:34} {row['ms']:5} ms {row['bytes']:6} B {row['lufs']:6} LUFS (target {row['target']}) tp {row['truePeak']}")
     if report:

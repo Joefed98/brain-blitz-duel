@@ -30,7 +30,7 @@ import { MINIGOLF_FX } from "@/lib/arcade/sportsFx.renderer";
 import { encodeMinigolfRun, minigolfCourseOf, replayMinigolfPuzzle } from "@/lib/duel/minigolf";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import type { MinigolfPuzzleData } from "@/lib/duel/types";
-import { minigolfSounds } from "@/lib/fx/gameSounds";
+import { minigolfAimTick, minigolfSounds } from "@/lib/fx/gameSounds";
 
 import { MinigolfReveal } from "./minigolfReveal";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -124,7 +124,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     const step = Math.round(power * 12);
     if (step === toneStep.current) return;
     toneStep.current = step;
-    playTone(240 + power * 620, 45, "sine", 0.05);
+    // Joe's aim tick, pitched by the same steps, once its file is loaded; the synthesised tone until then.
+    if (!minigolfAimTick(power)) playTone(240 + power * 620, 45, "sine", 0.05);
   };
   const shotPayload = (a: { dx: number; dy: number; power: number }): PointerPayload => ({
     k: chipRef.current ? MG_INPUT_CHIP : MG_INPUT_PUTT,

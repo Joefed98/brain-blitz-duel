@@ -296,7 +296,9 @@ function Stage({
       }
     }
     lightCells(fresh.map((key) => boardRef.current?.querySelector<HTMLElement>(`[data-clue="${key}"]`)), 0);
-    soundCue("nonogram.line", 1 + (fresh.length - 1) * 0.12);
+    // Two lines or more at once play the combo in the line sound's place (one sound a moment).
+    if (fresh.length > 1) soundCue("nonogram.combo");
+    else soundCue("nonogram.line");
     if (fresh.length > 1) gameFx("combo", boardRef.current?.querySelector(`[data-clue="${fresh[0]}"]`), { count: fresh.length, silent: true });
   }, [data, marks, W, H, complete]);
 

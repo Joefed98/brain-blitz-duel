@@ -275,12 +275,14 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           lightCells(ordered.map((c) => root?.querySelector<HTMLElement>(`[data-cell="${c}"]`)));
         }
         if (fresh.length > 1) gameFx("combo", root?.querySelector(`[data-cell="${at}"]`), { count: fresh.length, silent: true });
-        soundCue("sudoku.line", 1 + (fresh.length - 1) * 0.12);
+        // Several lines at once play the combo in the single line's place (one sound a moment).
+        if (fresh.length > 1) soundCue("sudoku.combo");
+        else soundCue("sudoku.line");
       }
       if (!onCheck && sudokuClashes(nextGrid).has(selected)) {
         gameFx("wrong", gridRef.current?.querySelector(`[data-cell="${selected}"] .logic-sudoku-digit`), { silent: true });
       }
-    }
+    } else soundCue("sudoku.clear"); // the same digit tapped again takes it off
     setEntries((current) =>
       current.map((value, cell) => (cell === selected ? (value === digit ? 0 : digit) : value)),
     );
@@ -288,6 +290,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   const clearCell = () => {
     if (locked || selected === null || givens[selected]) return;
+    if (entries[selected] || pencil[selected]?.length) soundCue("sudoku.clear");
     setEntries((current) => current.map((value, cell) => (cell === selected ? 0 : value)));
     setPencil((current) => current.map((marks, cell) => (cell === selected ? [] : marks)));
   };

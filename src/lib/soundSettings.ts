@@ -13,6 +13,8 @@ export interface ChannelSettings {
 export interface SoundSettings {
   effects: ChannelSettings;
   music: ChannelSettings;
+  /** The announcer's voice line on a round result (18 Nov 2026, src/lib/fx/announcer.ts): on unless switched off. */
+  announcer: boolean;
 }
 const KEY = "duelz_sound_settings_v2";
 export const SOUND_SETTINGS_EVENT = "duelz-sound-change";
@@ -21,6 +23,7 @@ export const DEFAULT_VOLUME: Record<SoundChannel, number> = { effects: 1, music:
 const defaults = (): SoundSettings => ({
   effects: { muted: false, volume: DEFAULT_VOLUME.effects, lastVolume: DEFAULT_VOLUME.effects, set: false },
   music: { muted: false, volume: DEFAULT_VOLUME.music, lastVolume: DEFAULT_VOLUME.music, set: false },
+  announcer: true,
 });
 /**
  * Whether a stored channel is the player's own choice. Records from before the marker carry none: one that is still
@@ -41,6 +44,7 @@ export function readSoundSettings(): SoundSettings {
     const raw = window.localStorage.getItem(KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as SoundSettings;
+      if (parsed.announcer === false) next.announcer = false;
       for (const channel of ["effects", "music"] as const) {
         const value = parsed[channel];
         if (!value) continue;
@@ -90,6 +94,16 @@ export function readSoundSettings(): SoundSettings {
 export function writeChannelSettings(channel: SoundChannel, patch: Partial<ChannelSettings>): void {
   const settings = readSoundSettings();
   cached = { ...settings, [channel]: { ...settings[channel], ...patch } };
+  try {
+    window.localStorage.setItem(KEY, JSON.stringify(cached));
+  } catch {
+    /* session only */
+  }
+}
+/** Settings → Sound → Announcer voice (stored with the other sound settings). */
+export function writeAnnouncer(on: boolean): void {
+  const settings = readSoundSettings();
+  cached = { ...settings, announcer: on };
   try {
     window.localStorage.setItem(KEY, JSON.stringify(cached));
   } catch {
