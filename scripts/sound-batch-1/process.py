@@ -176,7 +176,8 @@ def level(x, path, loop, max_short=None):
         # The loop can end on a step up that overshot: turn down until the true peak is at -1 dBFS or under.
         if tp <= TP_MAX:
             break
-        gain -= tp - TP_MAX + 0.05
+        # Measured on the encoded file, an overshoot that clipped reads small: step by the unclipped peak too.
+        gain -= max(tp - TP_MAX, fix.db(np.abs(m).max()) + gain - TP_MAX) + 0.05
         lufs_out, tp = render(gain, limited)
     dec = fix.load(path)[0]
     lufs_out, tp = fix.ebur(meter(dec), SR)

@@ -228,7 +228,7 @@ check(!(await mediaC.match("/sounds/lazy.mp3")), "a changed lazy sound's old cop
 const res3 = (await b3("fetch", { request: req })) as Response;
 check((await res3.text()) === "re-levelled bytes", "the next play gets the changed lazy sound");
 
-// 4. Sound batch 1 (16 Nov 2026, Joe): a recording no manifest slot plays yet stays out of the offline worker (not
+// 4. Sound batches 1 and 2 (16 Nov 2026, Joe): a recording no manifest slot plays yet stays out of the offline worker (not
 // downloaded, not lazy, no hash), and joins it once wired.
 check(
   /const unwired = new Set\(awaitingWiringPaths\(\)\);[\s\S]*?\.filter\(\(f\) => !unwired\.has\(f\.path\)\)/.test(
@@ -236,16 +236,16 @@ check(
   ),
   "offlineWorkerPlugin leaves awaitingWiringPaths() out of the public files",
 );
-check(unwired.size > 0 && [...unwired].every((p) => p.startsWith("/sounds/") && existsSync(join("public", p))), "every unwired batch-1 file is in public/sounds");
+check(unwired.size > 0 && [...unwired].every((p) => p.startsWith("/sounds/") && existsSync(join("public", p))), "every unwired batch file is in public/sounds");
 check(
   [...unwired].every((p) => !realConfig.media.includes(p) && !realConfig.lazyMedia.includes(p) && !(p in realConfig.mediaHash)),
-  "no unwired batch-1 file is in the offline download, the lazy list or the hashes",
+  "no unwired batch file is in the offline download, the lazy list or the hashes",
 );
 // Wired batch-1 names stay in: a placeholder slot's file (behind NEW_GAME_SOUNDS) and the live bomb.defuse.
-for (const p of ["/sounds/tubes.pour.mp3", "/sounds/bomb.defuse.mp3"]) {
+for (const p of ["/sounds/tubes.pour.mp3", "/sounds/breaker.paddle.mp3", "/sounds/bomb.defuse.mp3"]) {
   check(!unwired.has(p) && realConfig.media.includes(p), `${p}: wired, so still downloaded`);
 }
-console.log(`NOTE ${unwired.size} sound batch 1 files left out of the offline worker until wired`);
+console.log(`NOTE ${unwired.size} sound batch files left out of the offline worker until wired`);
 
 if (failures.length) {
   for (const f of failures) console.log(`FAIL ${f}`);

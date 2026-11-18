@@ -1915,12 +1915,14 @@ def build(name, outdir):
 
 
 def recorded_files(root):
-    """The slots Joe has since recorded (sound batch 1, docs/sound-cues/sounds-batch-1.csv, cut and levelled by
-    scripts/sound-batch-1/process.py): their files are his recordings, so this script never overwrites them and only
-    measures them for the data file."""
-    import csv
-    path = os.path.join(root, "docs", "sound-cues", "sounds-batch-1.csv")
-    return {r["file"] for r in csv.DictReader(open(path))} if os.path.exists(path) else set()
+    """The slots Joe has since recorded (his sound batches, docs/sound-cues/sounds-batch-*.csv, cut and levelled by
+    scripts/sound-batch-1/process.py and scripts/sound-batch-2/process.py): their files are his recordings, so this
+    script never overwrites them and only measures them for the data file. A row marked TO RECORD has no file yet."""
+    import csv, glob
+    out = set()
+    for path in sorted(glob.glob(os.path.join(root, "docs", "sound-cues", "sounds-batch-*.csv"))):
+        out |= {r["file"] for r in csv.DictReader(open(path, newline="")) if not r.get("note", "").startswith("TO RECORD")}
+    return out
 
 
 def measured(name, outdir):
