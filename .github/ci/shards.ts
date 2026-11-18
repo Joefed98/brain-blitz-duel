@@ -361,6 +361,8 @@ export const SHARDS: Record<string, string[]> = {
   ],
   // ~282 s of checks on run 38608375501's times.
   e: [
+    // The existing voice and crowd cues on their events (18 Nov 2026, the sound wiring; ~90 s, too slow for the catch-all).
+    "voice-cues-check.ts",
     // B4's deal identity (9 Nov 2026, docs/audit-nov-2026/architecture.md): every game's deal and each pin against main, ~6 min whole, in quarters.
     "deal-identity-check.ts@4/4",
     // From g's catch-all (3 Nov 2026 rebalance; ~231 s on PR #253's CI times): g ran ~31 min, d-f 6-10.

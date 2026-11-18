@@ -1,5 +1,7 @@
 # Sound cues: sound batch 6, Sports and Cards & Board (31 Oct 2026)
 
+> Changed with Joe's approval, 18 Nov 2026 (new sounds switched on): five rows of batch6-mapping.csv name Joe's newer files (docs/sound-cues/sound-wiring-nov18.md, "Joe's decisions").
+
 Joe's ElevenLabs recordings for the eleven new arcade games (Crazy Golf, Cue Ball, Curl Champ, Home Run, Top Bins,
 Apex, Minefield, Free Cell, Mahjong Solitaire, Summit, Full House, and Five Hands on Full House's sounds), trimmed, looped and levelled into
 `public/sounds/<slot>.mp3` ([batch6-mapping.csv](batch6-mapping.csv): each file, its game, event, length budget, loop

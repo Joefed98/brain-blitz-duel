@@ -1,0 +1,49 @@
+{
+  "results": [
+    {
+      "file": "account-screens-check.ts",
+      "ok": true,
+      "status": "pass",
+      "timeoutMs": 300000,
+      "ms": 3990,
+      "output": "account-screens-check: 86 passed, 0 failed\nPASS: save-your-progress timing and events, account emails rate limited per network (10 in 10 min) and per address (5 an hour), usernames in rooms, Dailies and challenges, name refusals with suggestions, 16-character name boxes, sign-in switches.\n"
+    },
+    {
+      "file": "accounts-check.ts",
+      "ok": true,
+      "status": "pass",
+      "timeoutMs": 300000,
+      "ms": 6382,
+      "output": "accounts-check: 182 passed, 0 failed\nPASS: accounts keep every guest row, usernames, ages, numbers, RLS, deletion and the clean-up hold.\n"
+    },
+    {
+      "file": "action-demos-check.ts",
+      "ok": true,
+      "status": "pass",
+      "timeoutMs": 300000,
+      "ms": 5015,
+      "output": "\n1–5. each stored demo\n  flip (13): elite#4, 200 points, window 33 {\"inputs\":12,\"score\":33,\"flips\":12,\"crashes\":0,\"sweet\":0}\n  swing (18): perfect#1, 200 points, window 24 {\"inputs\":30,\"score\":24,\"restarts\":0,\"caught\":0,\"streak\":15,\"gates\":7}\n  ricochet (4): perfect#1, 200 points, window 26 {\"inputs\":16,\"score\":26,\"hits\":0,\"rides\":1,\"climbedPx\":1489}\n  bastion (4): perfect#1, 200 points, window 34 {\"inputs\":13,\"score\":34,\"base\":4,\"armour\":6,\"weakSpots\":5,\"fastReloads\":4}\n  skyline (11): elite#3, 184 points, window 48 {\"inputs\":15,\"score\":48,\"floors\":15,\"perfects\":11,\"livesLost\":0}\n  orbit (16): perfect#4, 196 points, window 21 {\"inputs\":5,\"score\":21,\"captured\":4,\"slips\":0,\"checkpoint\":1}\n\n6. the save, end to end (server-function harness, local PostgreSQL)\n\naction-demos-check: 137 passed, 0 failed\nPASS: the six Action intro demos are on the live stamps and examples, replay to good scores with clean windows, draw through the demo player, pass the stop rules, and save end to end.\n"
+    },
+    {
+      "file": "badges-check.ts",
+      "ok": true,
+      "status": "pass",
+      "timeoutMs": 300000,
+      "ms": 8986,
+      "output": "badges-check: 230 passed, 0 failed\nPASS: badges, titles, the account rewards and the Daily streak on the account hold.\n"
+    },
+    {
+      "file": "category-pool-check.ts",
+      "ok": true,
+      "status": "pass",
+      "timeoutMs": 300000,
+      "ms": 454,
+      "output": "PASS: every lobby category has at least 6 active games (logic 14, pattern 8, speed 6, attention 6, word 9, number 8, arcade 32; 83 active, 21 retired); Chroma Lines, Pipeline and Heave in Pattern; the 19 deleted games and Memory gone; grading, scoring and generators never read a category, and rooms store only types and the host's selection\n"
+    }
+  ],
+  "optionalSkipped": [
+    "orbit-outside-belt-deep-check.ts",
+    "puzzle-bank-rebuild-check.ts",
+    "puzzle-bands-depth-check.ts"
+  ]
+}

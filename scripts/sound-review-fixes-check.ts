@@ -46,7 +46,9 @@ const isArcade = (slot: string) => puzzleInfo(prefixOf(slot) as PuzzleType).cate
 
 /* ---------------------------------------------------------------- 3a. the switch and the manifest as written */
 
-check(NEW_GAME_SOUNDS === false, "NEW_GAME_SOUNDS must default to false (src/config/soundConfig.ts)");
+// Changed with Joe's approval, 18 Nov 2026 (new sounds switched on): the switch is on; this said "must default to
+// false" until then.
+check(NEW_GAME_SOUNDS === true, "NEW_GAME_SOUNDS must be on (src/config/soundConfig.ts)");
 for (const slot of Object.keys(NEW_GAME_SOUND_FILES)) {
   const e = manifest[slot];
   check(!!e, `${slot}: a new sound for a slot the manifest doesn't have`);
@@ -141,6 +143,10 @@ const EXEMPT: Record<string, string> = {
 
   // Joe's sound wiring (18 Nov 2026) removed every exemption here whose slot now plays his recording; these stay without
   // one: hover.thrust and bastion.weakTing (Joe kept main's sound), the Moon Climb and Roofbound slots with no take.
+  // Changed with Joe's approval, 18 Nov 2026 (new sounds switched on): Hover's gate and gold star keep the library
+  // sound they play live (playSlotOr's stand-in); Joe kept main's sound, so neither has a file.
+  "hover.gate": "Joe kept main's sound (18 Nov 2026): the library note it plays live",
+  "hover.star": "Joe kept main's sound (18 Nov 2026): the library sparkle it plays live",
   "hover.thrust": "awaiting Joe's ElevenLabs recording (the Retro overhaul, 15 Nov 2026; docs/sound-cues/retro-elevenlabs.md): plays its library stand-in until the file drops in by name",
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): Iron Wall's new slots wait
   // for Joe's ElevenLabs files (each entry fails here once its url is set, so it is removed with the file).
@@ -273,6 +279,15 @@ Object.assign(globalThis, {
 const realWarn = console.warn;
 console.warn = () => {};
 
+// Changed with Joe's approval, 18 Nov 2026 (new sounds switched on): the parts below test the switch-off state first,
+// then apply the switch (applyNewGameSounds, as manifest.ts does at load). With the switch on at load the manifest
+// already carries the new files, so it is set back to its entries as written before sound.ts loads: each switch slot
+// url null, or the recording it plays with the switch off (Safe Cracker's solve). The same assertions then keep
+// testing the off state.
+if (NEW_GAME_SOUNDS) {
+  const WRITTEN_URL: Record<string, string> = { "safe.solve": "/sounds/pz_safe_open.mp3", "unblock.solve": "/sounds/pz_car_escape.mp3" };
+  for (const slot of Object.keys(NEW_GAME_SOUND_FILES)) if (manifest[slot]) manifest[slot]!.url = WRITTEN_URL[slot] ?? null;
+}
 const sound = await import("../src/lib/sound");
 const { puzzleReject } = await import("../src/lib/fx/puzzleReject");
 const settle = () => new Promise((resolve) => setTimeout(resolve, 15));

@@ -158,3 +158,48 @@ The tempo (rubberband, pitch and formants kept) tightens the seven words longer 
 - `wordhunt.word`: main's placeholder plays (the batch-2 upload was a copy of `strikeout.solve`).
 - `hover.gate`, `hover.star`, `hover.thrust`, `bastion.weakTing`: Joe kept main's sound; a new take only if he wants one.
 - `target.operator`: never recorded (batch 2's upload was digital silence).
+
+## Joe's decisions (18 Nov 2026)
+
+Each marked "Changed with Joe's approval, 18 Nov 2026 (new sounds switched on)" where it touches a check:
+
+1. sound-review-fixes-check: "NEW_GAME_SOUNDS must default to false" is now "must be on"; the manifest is set back to its
+   entries as written before the switch-off tests run, so the same assertions keep testing the off state.
+2. `hover.gate` and `hover.star` keep the library sound they play live (two exemption lines in sound-review-fixes-check).
+3. [batch6-mapping.csv](batch6-mapping.csv): `minigolf.putt`, `racing.kerb`, `minesweeper.hit` and `minesweeper.clear`
+   now name Joe's newer files (the batch-6 files `minigolf_putt`, `racing_kerb_loop`, `mines_hit` and `mines_clear` are
+   gone), and `curling.aw` left the crowd groan's row for its own file.
+4. `pz_safe_open` (Safe Cracker's opening, copied from Lovable) is deleted with its `sources.json` and `.asset.json`
+   records: the solve plays Joe's `safe.solve`. The manifest's as-written `safe.solve` entry (used only with the switch
+   off) still names it.
+5. `music_eatgrow`'s `sources.json` record is Joe's new Meteor bed.
+
+## The existing voice and crowd cues
+
+`voice-cues-check` (~90 s, shard e) plays each game's skill-band bots through its real sound observer on its dealt stamp
+and works each event out from the sim's own state; every slot plays on its event's frame only (the umpire's "out" within
+3 frames of the catch), exactly once per event, never on another event's frame; muted, none plays; at an effects volume
+of 0.4 each is heard at 0.4 x its gain; no one-shot is stopped before its end.
+
+| Slot | Game | Plays on | Result |
+|---|---|---|---|
+| `homerun.umpStrike` | Home Run | Strike one or two (never a foul or strike three) | pass |
+| `homerun.umpBall` | Home Run | Ball one to three (never a strike or ball four) | pass |
+| `homerun.walk` | Home Run | Ball four (in place of "Ball") | pass |
+| `homerun.strikeout` | Home Run | Strike three | pass |
+| `homerun.umpOut` | Home Run | A caught fly reaching the glove | pass |
+| `homerun.groan` | Home Run | The same catch | pass |
+| `homerun.roar` | Home Run | A home run | pass |
+| `homerun.runScores` | Home Run | Runs score | pass |
+| `homerun.inningsEnd` | Home Run | The innings over (third out or the clock) | pass |
+| `homerun.crowd` | Home Run | Loop while the run is live | pass |
+| `curling.ooh` | Curl Champ | A red knocked out of the house | pass |
+| `curling.aw` | Curl Champ | A stone at rest just short of counting | pass |
+| `curling.applause` | Curl Champ | A stone at rest in the 4-foot, or after its throw knocked a red out | fixed: judged against the sheet at the release (a takeout happens while the stone travels) |
+| `curling.shot` | Curl Champ | A stone at rest holding shot it didn't hold before the throw | fixed: never played before (the same cause) |
+| `freekick.roar` | Top Bins | A goal | pass |
+| `freekick.groan` | Top Bins | A save, or wide off the post or bar | pass |
+| `freekick.chant` | Top Bins | The fifth goal in a row | pass |
+| `freekick.crowd` | Top Bins | Loop while the run is live | pass |
+| `racing.roar` | Apex | Crossing the finish line | pass |
+| `racing.chequer` | Apex | Crossing the finish line | pass |
