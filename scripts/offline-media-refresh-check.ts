@@ -9,7 +9,7 @@
  * bytes differ. This check runs the real worker text (swPlugin's offlineWorkerSource on the real
  * template) against an in-memory Cache Storage: an unchanged kept file is not fetched, a changed
  * one is fetched and served, a missing one is fetched, and every public media file has a hash.
- * 7 Nov 2026: the 135 sounds copied from Lovable's asset store (sources.json) are lazy media, out of the
+ * 7 Nov 2026: the 135 sounds (134 since pz_safe_open was deleted, 18 Nov 2026) copied from Lovable's asset store (sources.json) are lazy media, out of the
  * install download as they were on /__l5e/: kept once played, across builds, dropped when their bytes change.
  */
 import { createHash } from "node:crypto";
@@ -159,7 +159,7 @@ check(
   /lazyMedia: lazyMediaPaths\(\)/.test(readFileSync("src/lib/offline/swPlugin.ts", "utf8")),
   "offlineWorkerPlugin passes lazyMediaPaths() to the worker",
 );
-check(lazyReal.length === 135, `135 copied Lovable sounds are lazy (got ${lazyReal.length})`);
+check(lazyReal.length === 134, `134 copied Lovable sounds are lazy (got ${lazyReal.length})`);  // Changed with Joe's approval, 18 Nov 2026 (new sounds switched on): pz_safe_open deleted
 check(
   lazyReal.every((p) => !realConfig.media.includes(p) && realConfig.lazyMedia.includes(p)),
   "the real build lists every copied Lovable sound as lazy, none in the install download",

@@ -124,7 +124,10 @@ check("docs/sound-cues/logic.md matches the code", () => {
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul).
   // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): 50, main's 34 plus Logic 1's 8, Logic 2's
   // 6 (tents.touch, tents.lonely, shikaku.snap, shikaku.invalid, lightup.clash, lightup.dark) and Attention's 2.
-  assert.equal(fired.size, 50);
+  // Changed with Joe's approval, 18 Nov 2026 (new sounds switched on): 65, + sudoku.clear, sudoku.combo, tower.glint,
+  // tower.illegal, tower.lower, tower.near, tower.reset, tower.undo, tubes.combo, tubes.glint, tubes.reset, tubes.wrong,
+  // flood.combo, flood.reject, nonogram.combo (the slots the sound batches marked "to add", now fired; listed in logic.md).
+  assert.equal(fired.size, 65);
 });
 
 if (failures) {
