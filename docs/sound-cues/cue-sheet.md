@@ -1219,8 +1219,8 @@ Grouped by game or screen.
 | `sudoku.pencil` | A pencil mark is added or removed [logic.md] |  | 5–40 (per move) | recorded sound | `sudoku.pencil` | 200 | game event | `sudoku.pencil` |
 | `sudoku.line` | A digit completes a row, column or box (pitched up when it completes several) [logic.md] |  | 1–5 | recorded sound | `sudoku.line` | 420 | game event | `sudoku.line` |
 | `sudoku.check` | Box Six Expert: Check pressed with no clash (a clash plays sudoku.clash as it shows) [logic.md] |  | 5–40 (per move) | recorded sound | `sudoku.check` | 200 | game event | `sudoku.check` |
-| `sudoku.combo` | Box Six: A digit completes two or more rows, columns or boxes at once (in place of sudoku.line) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `sudoku.combo` | 800 | game event | `sudoku.combo` |
-| `sudoku.clear` | Box Six: A digit or pencil marks cleared (Clear, Backspace, or the same digit tapped again) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `sudoku.clear` | 120 | game event | `sudoku.clear` |
+| `sudoku.combo` | Box Six: A digit completes two or more rows, columns or boxes at once (in place of sudoku.line) [logic.md] |  | 5–40 (per move) | recorded sound | `sudoku.combo` | 800 | game event | `sudoku.combo` |
+| `sudoku.clear` | Box Six: A digit or pencil marks cleared (Clear, Backspace, or the same digit tapped again) [logic.md] |  | 5–40 (per move) | recorded sound | `sudoku.clear` | 120 | game event | `sudoku.clear` |
 | `music.sudoku` | Box Six round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_sudoku` |
 
 ### Colour Flood
@@ -1229,10 +1229,10 @@ Grouped by game or screen.
 |---|---|---|---|---|---|---|---|---|
 | `flood.spread` | A colour is tapped and the paint spreads [logic.md] |  | 5–40 (per move) | recorded sound | `flood.spread` | 220 | game event | `flood.spread` |
 | `flood.solve` | The board is one colour [logic.md] |  | 0–1 | recorded sound | `flood.solve` | 1150 | success sting | `flood.solve` |
-| `flood.reject` | Colour Flood: The current colour tapped [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `flood.reject` | 250 | fail sting | `flood.reject` |
-| `flood.combo` | Colour Flood: 20 or more squares in one move (in place of flood.spread) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `flood.combo` | 600 | game event | `flood.combo` |
-| `flood.nearPar` | Colour Flood: The moves counter first turns gold near par [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `flood.nearPar` | 400 | game event | `flood.nearPar` |
-| `flood.outOfMoves` | Colour Flood: The last allowed move used up [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `flood.outOfMoves` | 600 | game event | `flood.outOfMoves` |
+| `flood.reject` | Colour Flood: The current colour tapped [logic.md] |  | 5–40 (per move) | recorded sound | `flood.reject` | 250 | fail sting | `flood.reject` |
+| `flood.combo` | Colour Flood: 20 or more squares in one move (in place of flood.spread) [logic.md] |  | 5–40 (per move) | recorded sound | `flood.combo` | 600 | game event | `flood.combo` |
+| `flood.nearPar` | Colour Flood: The moves counter first turns gold near par [logic.md] |  | 5–40 (per move) | recorded sound | `flood.nearPar` | 400 | game event | `flood.nearPar` |
+| `flood.outOfMoves` | Colour Flood: The last allowed move used up [logic.md] |  | 5–40 (per move) | recorded sound | `flood.outOfMoves` | 600 | game event | `flood.outOfMoves` |
 | `music.flood` | Colour Flood round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_flood` |
 
 ### Dig
@@ -1248,12 +1248,12 @@ Grouped by game or screen.
 | `tower.lift` | A ring is lifted off a post [logic.md] |  | 5–40 (per move) | recorded sound | `tower.lift` | 80 | UI tap | `tower.lift` |
 | `tower.drop` | A ring lands on a post (legal move) [logic.md] |  | 5–40 (per move) | recorded sound | `tower.drop` | 220 | game event | `tower.drop` |
 | `tower.solve` | Every ring is on the gold post [logic.md] |  | 0–1 | recorded sound | `tower.solve` | 1170 | success sting | `tower.solve` |
-| `tower.illegal` | Hanoi: An illegal drop refused (the ring bounces back) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tower.illegal` | 250 | game event | `tower.illegal` |
-| `tower.lower` | Hanoi: The lifted ring lowered back onto its own post [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tower.lower` | 150 | game event | `tower.lower` |
-| `tower.glint` | Hanoi: A ring lands on the gold post in order (not the last ring: that drop is the solve) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tower.glint` | 400 | game event | `tower.glint` |
-| `tower.undo` | Hanoi: Undo [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tower.undo` | 250 | game event | `tower.undo` |
-| `tower.reset` | Hanoi: Reset [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tower.reset` | 500 | fail sting | `tower.reset` |
-| `tower.near` | Hanoi: The reveal of an unfinished board one or two moves from done, once [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tower.near` | 600 | game event | `tower.near` |
+| `tower.illegal` | Hanoi: An illegal drop refused (the ring bounces back) [logic.md] |  | 5–40 (per move) | recorded sound | `tower.illegal` | 250 | game event | `tower.illegal` |
+| `tower.lower` | Hanoi: The lifted ring lowered back onto its own post [logic.md] |  | 5–40 (per move) | recorded sound | `tower.lower` | 150 | game event | `tower.lower` |
+| `tower.glint` | Hanoi: A ring lands on the gold post in order (not the last ring: that drop is the solve) [logic.md] |  | 5–40 (per move) | recorded sound | `tower.glint` | 400 | game event | `tower.glint` |
+| `tower.undo` | Hanoi: Undo [logic.md] |  | 5–40 (per move) | recorded sound | `tower.undo` | 250 | game event | `tower.undo` |
+| `tower.reset` | Hanoi: Reset [logic.md] |  | 5–40 (per move) | recorded sound | `tower.reset` | 500 | fail sting | `tower.reset` |
+| `tower.near` | Hanoi: The reveal of an unfinished board one or two moves from done, once [logic.md] |  | 5–40 (per move) | recorded sound | `tower.near` | 600 | game event | `tower.near` |
 | `music.tower` | Hanoi round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_tower` |
 
 ### Island Link
@@ -1324,7 +1324,7 @@ Grouped by game or screen.
 | `nonogram.paint` | A drag paints one more square (fill) [logic.md] |  | 5–40 (per move) | recorded sound | `nonogram.paint` | 90 | game event | `nonogram.paint` |
 | `nonogram.line` | A line now matches its numbers (pitched up for several at once) [logic.md] |  | 1–5 | recorded sound | `nonogram.line` | 420 | game event | `nonogram.line` |
 | `nonogram.autoCross` | Mosaic Easy: a line matching its numbers crosses its empty squares [logic.md] |  | 5–40 (per move) | recorded sound | `nonogram.autoCross` | 200 | game event | `nonogram.autoCross` |
-| `nonogram.combo` | Mosaic: Two or more lines matched at once (in place of nonogram.line) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `nonogram.combo` | 600 | game event | `nonogram.combo` |
+| `nonogram.combo` | Mosaic: Two or more lines matched at once (in place of nonogram.line) [logic.md] |  | 5–40 (per move) | recorded sound | `nonogram.combo` | 600 | game event | `nonogram.combo` |
 | `music.nonogram` | Mosaic round bed: music_logic_1 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_1` (shared) | 60000 | music | `music_logic_nonogram` |
 
 ### Polypotions
@@ -1338,10 +1338,10 @@ Grouped by game or screen.
 | `tubes.undo` | Undo is tapped (tubesRev 3 gives the pour back) [logic.md] |  | 5–40 (per move) | recorded sound | `tubes.undo` | 200 | game event | `tubes.undo` |
 | `tubes.outOfPours` | The last allowed pour leaves the board unsorted [logic.md] |  | 5–40 (per move) | recorded sound | `tubes.outOfPours` | 1100 | game event | `tubes.outOfPours` |
 | `tubes.uncover` | Polypotions Expert: a hidden layer uncovered [logic.md] |  | 5–40 (per move) | recorded sound | `tubes.uncover` | 200 | game event | `tubes.uncover` |
-| `tubes.wrong` | Polypotions: A pour refused: the lifted flask tips and nothing pours [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tubes.wrong` | 350 | fail sting | `tubes.wrong` |
-| `tubes.combo` | Polypotions: A second cork within 4 s (in place of tubes.cork) [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tubes.combo` | 600 | game event | `tubes.combo` |
-| `tubes.reset` | Polypotions: Reset with moves made [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tubes.reset` | 500 | fail sting | `tubes.reset` |
-| `tubes.glint` | Polypotions: The solve: one ting per corked flask, staggered with the cork pops [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `tubes.glint` | 400 | game event | `tubes.glint` |
+| `tubes.wrong` | Polypotions: A pour refused: the lifted flask tips and nothing pours [logic.md] |  | 5–40 (per move) | recorded sound | `tubes.wrong` | 350 | fail sting | `tubes.wrong` |
+| `tubes.combo` | Polypotions: A second cork within 4 s (in place of tubes.cork) [logic.md] |  | 5–40 (per move) | recorded sound | `tubes.combo` | 600 | game event | `tubes.combo` |
+| `tubes.reset` | Polypotions: Reset with moves made [logic.md] |  | 5–40 (per move) | recorded sound | `tubes.reset` | 500 | fail sting | `tubes.reset` |
+| `tubes.glint` | Polypotions: The solve: one ting per corked flask, staggered with the cork pops [logic.md] |  | 5–40 (per move) | recorded sound | `tubes.glint` | 400 | game event | `tubes.glint` |
 | `music.tubes` | Polypotions round bed: music_logic_3 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_3` (shared) | 60000 | music | `music_logic_tubes` |
 
 ### Regions
@@ -1366,7 +1366,7 @@ Grouped by game or screen.
 | `safe.click` | A dial turns one step (each repeat while held fires again) [logic.md] |  | 5–40 (per move) | recorded sound | `safe.click` | 130 | game event | `safe.click` |
 | `safe.solve` | A try satisfies every clue (the same test that submits) [logic.md] |  | 0–1 | recorded sound | `safe.solve` | 2200 | success sting | `safe.solve` |
 | `safe.wrongTry` | A try that breaks a clue (the broken clues flash red) [logic.md] |  | 5–40 (per move) | recorded sound | `safe.wrongTry` | 520 | fail sting | `safe.wrongTry` |
-| `safe.drumLock` | Safe Cracker: The opening: one click per drum, staggered with the drums locking [sound-wiring-nov18.md] |  | 5–40 (per move) | recorded sound | `safe.drumLock` | 150 | game event | `safe.drumLock` |
+| `safe.drumLock` | Safe Cracker: The opening: one click per drum, staggered with the drums locking [logic.md] |  | 5–40 (per move) | recorded sound | `safe.drumLock` | 150 | game event | `safe.drumLock` |
 | `music.safe` | Safe Cracker round bed: music_logic_2 (logic bed shared with other games) |  | loop | recorded sound | `music_logic_2` (shared) | 60000 | music | `music_logic_safe` |
 
 ### Shikaku

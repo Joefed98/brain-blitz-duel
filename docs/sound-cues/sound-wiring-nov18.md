@@ -22,26 +22,11 @@ two music tracks and the announcer's twelve lines) are wired into the live game,
 
 ## Slots added on wiring
 
+The Logic puzzles' new slots (Box Six, Polypotions, Hanoi, Colour Flood, Safe Cracker, Mosaic) are listed in
+[logic.md](logic.md), "Wired 18 Nov 2026".
+
 | Cue | Game | Trigger | Length |
 |---|---|---|---|
-| `sudoku.combo` | Box Six | A digit completes two or more rows, columns or boxes at once (in place of `sudoku.line`) | 0.8 s |
-| `sudoku.clear` | Box Six | A digit or pencil marks cleared (Clear, Backspace, or the same digit tapped again) | 0.12 s |
-| `tubes.wrong` | Polypotions | A pour refused: the lifted flask tips and nothing pours | 0.35 s |
-| `tubes.combo` | Polypotions | A second cork within 4 s (in place of `tubes.cork`) | 0.6 s |
-| `tubes.reset` | Polypotions | Reset with moves made | 0.5 s |
-| `tubes.glint` | Polypotions | The solve: one ting per corked flask, staggered with the cork pops | 0.4 s |
-| `tower.illegal` | Hanoi | An illegal drop refused (the ring bounces back) | 0.25 s |
-| `tower.lower` | Hanoi | The lifted ring lowered back onto its own post | 0.15 s |
-| `tower.glint` | Hanoi | A ring lands on the gold post in order (not the last ring: that drop is the solve) | 0.4 s |
-| `tower.undo` | Hanoi | Undo | 0.25 s |
-| `tower.reset` | Hanoi | Reset | 0.5 s |
-| `tower.near` | Hanoi | The reveal of an unfinished board one or two moves from done, once | 0.6 s |
-| `flood.reject` | Colour Flood | The current colour tapped | 0.25 s |
-| `flood.combo` | Colour Flood | 20 or more squares in one move (in place of `flood.spread`) | 0.6 s |
-| `flood.nearPar` | Colour Flood | The moves counter first turns gold near par | 0.4 s |
-| `flood.outOfMoves` | Colour Flood | The last allowed move used up | 0.6 s |
-| `safe.drumLock` | Safe Cracker | The opening: one click per drum, staggered with the drums locking | 0.15 s |
-| `nonogram.combo` | Mosaic | Two or more lines matched at once (in place of `nonogram.line`) | 0.6 s |
 | `pinball.rampChase` | Pinball | A plain ramp shot: the ramp light chases the ball up | 0.5 s |
 | `wavefront.charge` | Wavefront | Holding to charge the heavy shot (loop, stops on release or the run's end) | 1.2 s |
 | `wavefront.chargeRelease` | Wavefront | The charged blast released | 0.4 s |
@@ -181,25 +166,25 @@ and works each event out from the sim's own state; every slot plays on its event
 3 frames of the catch), exactly once per event, never on another event's frame; muted, none plays; at an effects volume
 of 0.4 each is heard at 0.4 x its gain; no one-shot is stopped before its end.
 
-| Slot | Game | Plays on | Result |
-|---|---|---|---|
-| `homerun.umpStrike` | Home Run | Strike one or two (never a foul or strike three) | pass |
-| `homerun.umpBall` | Home Run | Ball one to three (never a strike or ball four) | pass |
-| `homerun.walk` | Home Run | Ball four (in place of "Ball") | pass |
-| `homerun.strikeout` | Home Run | Strike three | pass |
-| `homerun.umpOut` | Home Run | A caught fly reaching the glove | pass |
-| `homerun.groan` | Home Run | The same catch | pass |
-| `homerun.roar` | Home Run | A home run | pass |
-| `homerun.runScores` | Home Run | Runs score | pass |
-| `homerun.inningsEnd` | Home Run | The innings over (third out or the clock) | pass |
-| `homerun.crowd` | Home Run | Loop while the run is live | pass |
-| `curling.ooh` | Curl Champ | A red knocked out of the house | pass |
-| `curling.aw` | Curl Champ | A stone at rest just short of counting | pass |
-| `curling.applause` | Curl Champ | A stone at rest in the 4-foot, or after its throw knocked a red out | fixed: judged against the sheet at the release (a takeout happens while the stone travels) |
-| `curling.shot` | Curl Champ | A stone at rest holding shot it didn't hold before the throw | fixed: never played before (the same cause) |
-| `freekick.roar` | Top Bins | A goal | pass |
-| `freekick.groan` | Top Bins | A save, or wide off the post or bar | pass |
-| `freekick.chant` | Top Bins | The fifth goal in a row | pass |
-| `freekick.crowd` | Top Bins | Loop while the run is live | pass |
-| `racing.roar` | Apex | Crossing the finish line | pass |
-| `racing.chequer` | Apex | Crossing the finish line | pass |
+| Game | Slot | Plays on | Result |
+| --- | --- | --- | --- |
+| Home Run | `homerun.umpStrike` | Strike one or two (never a foul or strike three) | pass |
+| Home Run | `homerun.umpBall` | Ball one to three (never a strike or ball four) | pass |
+| Home Run | `homerun.walk` | Ball four (in place of "Ball") | pass |
+| Home Run | `homerun.strikeout` | Strike three | pass |
+| Home Run | `homerun.umpOut` | A caught fly reaching the glove | pass |
+| Home Run | `homerun.groan` | The same catch | pass |
+| Home Run | `homerun.roar` | A home run | pass |
+| Home Run | `homerun.runScores` | Runs score | pass |
+| Home Run | `homerun.inningsEnd` | The innings over (third out or the clock) | pass |
+| Home Run | `homerun.crowd` | Loop while the run is live | pass |
+| Curl Champ | `curling.ooh` | A red knocked out of the house | pass |
+| Curl Champ | `curling.aw` | A stone at rest just short of counting | pass |
+| Curl Champ | `curling.applause` | A stone at rest in the 4-foot, or after its throw knocked a red out | fixed: judged against the sheet at the release (a takeout happens while the stone travels) |
+| Curl Champ | `curling.shot` | A stone at rest holding shot it didn't hold before the throw | fixed: never played before (the same cause) |
+| Top Bins | `freekick.roar` | A goal | pass |
+| Top Bins | `freekick.groan` | A save, or wide off the post or bar | pass |
+| Top Bins | `freekick.chant` | The fifth goal in a row | pass |
+| Top Bins | `freekick.crowd` | Loop while the run is live | pass |
+| Apex | `racing.roar` | Crossing the finish line | pass |
+| Apex | `racing.chequer` | Crossing the finish line | pass |

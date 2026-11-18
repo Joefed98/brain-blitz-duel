@@ -85,3 +85,29 @@ Placeholder slots (no file yet: silent until Joe's ElevenLabs recordings, `logic
 
 With `prefers-reduced-motion: reduce`, move animations snap and each completion effect is replaced by one still,
 soft glow over the play area (opacity only, 1.0 s). The cues fire either way.
+
+## Wired 18 Nov 2026
+
+The slots the Logic overhaul's sound list marked "to add", each fired at its moment and playing Joe's recording
+([sound-wiring-nov18.md](sound-wiring-nov18.md)).
+
+| Cue | Trigger | Visual length |
+|---|---|---|
+| `sudoku.combo` | Box Six: A digit completes two or more rows, columns or boxes at once (in place of `sudoku.line`) | 0.8 s |
+| `sudoku.clear` | Box Six: A digit or pencil marks cleared (Clear, Backspace, or the same digit tapped again) | 0.12 s |
+| `tubes.wrong` | Polypotions: A pour refused: the lifted flask tips and nothing pours | 0.35 s |
+| `tubes.combo` | Polypotions: A second cork within 4 s (in place of `tubes.cork`) | 0.6 s |
+| `tubes.reset` | Polypotions: Reset with moves made | 0.5 s |
+| `tubes.glint` | Polypotions: The solve: one ting per corked flask, staggered with the cork pops | 0.4 s |
+| `tower.illegal` | Hanoi: An illegal drop refused (the ring bounces back) | 0.25 s |
+| `tower.lower` | Hanoi: The lifted ring lowered back onto its own post | 0.15 s |
+| `tower.glint` | Hanoi: A ring lands on the gold post in order (not the last ring: that drop is the solve) | 0.4 s |
+| `tower.undo` | Hanoi: Undo | 0.25 s |
+| `tower.reset` | Hanoi: Reset | 0.5 s |
+| `tower.near` | Hanoi: The reveal of an unfinished board one or two moves from done, once | 0.6 s |
+| `flood.reject` | Colour Flood: The current colour tapped | 0.25 s |
+| `flood.combo` | Colour Flood: 20 or more squares in one move (in place of `flood.spread`) | 0.6 s |
+| `flood.nearPar` | Colour Flood: The moves counter first turns gold near par | 0.4 s |
+| `flood.outOfMoves` | Colour Flood: The last allowed move used up | 0.6 s |
+| `safe.drumLock` | Safe Cracker: The opening: one click per drum, staggered with the drums locking | 0.15 s |
+| `nonogram.combo` | Mosaic: Two or more lines matched at once (in place of `nonogram.line`) | 0.6 s |
