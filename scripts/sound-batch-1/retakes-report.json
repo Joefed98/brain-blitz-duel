@@ -1,0 +1,779 @@
+[
+ {
+  "file": "bridges.double.mp3",
+  "slot": "bridges.double",
+  "pr": "#435",
+  "note": "RETAKE: Last time only the first click came through.",
+  "old": {
+   "ms": 300,
+   "lufs": -26.1,
+   "target": -17.5,
+   "truePeak": -1.0,
+   "short_db": 8.6,
+   "active_share": 0.2
+  },
+  "old_problems": [
+   "a click then nothing",
+   "8.6 dB quieter than its family (a spike over a quiet body)"
+  ],
+  "new": {
+   "ms": 300,
+   "lufs": -25.7,
+   "target": -17.5,
+   "truePeak": -2.6,
+   "short_db": 8.2,
+   "active_share": 0.37,
+   "raw_lufs": -28.9,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [
+   "8.2 dB quieter than its family (a spike over a quiet body)"
+  ],
+  "kept": "new",
+  "why": "fewer or lighter problems",
+  "held": false
+ },
+ {
+  "file": "clayshoot.birdWrong.mp3",
+  "slot": "clayshoot.birdWrong",
+  "pr": "#439",
+  "note": "RETAKE: Last time it was a sharp spike over a very quiet body.",
+  "old": {
+   "ms": 250,
+   "lufs": -25.2,
+   "target": -17.5,
+   "truePeak": -1.1,
+   "short_db": 7.7,
+   "active_share": 0.8
+  },
+  "old_problems": [
+   "7.7 dB quieter than its family (a spike over a quiet body)"
+  ],
+  "new": {
+   "ms": 250,
+   "lufs": -18.0,
+   "target": -17.5,
+   "truePeak": -2.3,
+   "short_db": 0.5,
+   "active_share": 0.9,
+   "raw_lufs": -40.0,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
+  "held": true
+ },
+ {
+  "file": "countup.revealTick.mp3",
+  "slot": "countup.revealTick",
+  "pr": "#438",
+  "note": "RETAKE: Last time it was almost silent.",
+  "old": {
+   "ms": 40,
+   "lufs": -22.7,
+   "target": -22.7,
+   "truePeak": -4.3,
+   "short_db": 0.0,
+   "active_share": 1.0
+  },
+  "old_problems": [
+   "near-silent upload (-68.0 LUFS)",
+   "reverb tail: the fade starts 1.8 dB under the peak"
+  ],
+  "new": {
+   "ms": 60,
+   "lufs": -28.7,
+   "target": -22.7,
+   "truePeak": -3.1,
+   "short_db": 6.0,
+   "active_share": 0.58,
+   "raw_lufs": -30.1,
+   "rings_out": true,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [
+   "6.0 dB quieter than its family (a spike over a quiet body)",
+   "still sounding at 1.5x its length (-4.4 dB under its peak at the fade)"
+  ],
+  "kept": "new",
+  "why": "fewer or lighter problems",
+  "held": false
+ },
+ {
+  "file": "fences.over.mp3",
+  "slot": "fences.over",
+  "pr": "#435",
+  "note": "RETAKE: Last time it had a reverb tail.",
+  "old": {
+   "ms": 150,
+   "lufs": -22.7,
+   "target": -22.7,
+   "truePeak": -7.2,
+   "short_db": 0.0,
+   "active_share": 1.0
+  },
+  "old_problems": [
+   "reverb tail: the fade starts 6.6 dB under the peak"
+  ],
+  "new": {
+   "ms": 150,
+   "lufs": -26.7,
+   "target": -22.7,
+   "truePeak": -2.4,
+   "short_db": 4.0,
+   "active_share": 0.47,
+   "raw_lufs": -52.5,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
+  "held": false
+ },
+ {
+  "file": "fillomino.over.mp3",
+  "slot": "fillomino.over",
+  "pr": "#435",
+  "note": "RETAKE: Last time it was almost silent.",
+  "old": {
+   "ms": 150,
+   "lufs": -22.7,
+   "target": -22.7,
+   "truePeak": -4.1,
+   "short_db": 0.0,
+   "active_share": 1.0
+  },
+  "old_problems": [
+   "near-silent upload (-66.7 LUFS)"
+  ],
+  "new": {
+   "ms": 150,
+   "lufs": -22.7,
+   "target": -22.7,
+   "truePeak": -3.5,
+   "short_db": 0.0,
+   "active_share": 0.73,
+   "raw_lufs": -32.0,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
+  "held": false
+ },
+ {
+  "file": "lightup.clash.mp3",
+  "slot": "lightup.clash",
+  "pr": "#435",
+  "note": "RETAKE: Last time it rang on too long.",
+  "old": {
+   "ms": 450,
+   "lufs": -17.6,
+   "target": -17.5,
+   "truePeak": -5.3,
+   "short_db": 0.1,
+   "active_share": 1.0
+  },
+  "old_problems": [
+   "still sounding at 1.5x its length (-3.1 dB under its peak at the fade)"
+  ],
+  "new": {
+   "ms": 300,
+   "lufs": -21.5,
+   "target": -17.5,
+   "truePeak": -1.5,
+   "short_db": 4.0,
+   "active_share": 0.98,
+   "raw_lufs": -24.4,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
+  "held": false
+ },
+ {
+  "file": "maze.bump.mp3",
+  "slot": "maze.bump",
+  "pr": "#438",
+  "note": "RETAKE: Last time it had a reverb tail.",
+  "old": {
+   "ms": 120,
+   "lufs": -22.7,
+   "target": -22.7,
+   "truePeak": -5.8,
+   "short_db": 0.0,
+   "active_share": 1.0
+  },
+  "old_problems": [
+   "reverb tail: the fade starts 8.5 dB under the peak"
+  ],
+  "new": {
+   "ms": 120,
+   "lufs": -22.6,
+   "target": -22.7,
+   "truePeak": -2.1,
+   "short_db": -0.1,
+   "active_share": 0.96,
+   "raw_lufs": -30.2,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
+  "held": false
+ },
+ {
+  "file": "minesweeper.defuse.mp3",
+  "slot": "minesweeper.defuse",
+  "pr": "#430",
+  "note": "RETAKE: Last time it was a sharp spike over a very quiet body.",
+  "old": {
+   "ms": 150,
+   "lufs": -28.8,
+   "target": -22.7,
+   "truePeak": -1.0,
+   "short_db": 6.1,
+   "active_share": 0.37
+  },
+  "old_problems": [
+   "6.1 dB quieter than its family (a spike over a quiet body)"
+  ],
+  "new": {
+   "ms": 150,
+   "lufs": -26.9,
+   "target": -22.7,
+   "truePeak": -1.5,
+   "short_db": 4.2,
+   "active_share": 0.23,
+   "raw_lufs": -31.7,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": -3.8
+  },
+  "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
+  "held": false
+ },
+ {
+  "file": "reaction.wrong.mp3",
+  "slot": "reaction.wrong",
+  "pr": "#439",
+  "note": "RETAKE: Last time it rang on too long.",
+  "old": {
+   "ms": 210,
+   "lufs": -22.7,
+   "target": -22.7,
+   "truePeak": -9.6,
+   "short_db": 0.0,
+   "active_share": 1.0
+  },
+  "old_problems": [
+   "still sounding at 1.5x its length (-5.1 dB under its peak at the fade)"
+  ],
+  "new": {
+   "ms": 210,
+   "lufs": -22.7,
+   "target": -22.7,
+   "truePeak": -7.2,
+   "short_db": 0.0,
+   "active_share": 0.95,
+   "raw_lufs": -34.5,
+   "rings_out": true,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
+  "held": true
+ },
+ {
+  "file": "shikaku.invalid.mp3",
+  "slot": "shikaku.invalid",
+  "pr": "#435",
+  "note": "RETAKE: Last time it was almost silent.",
+  "old": {
+   "ms": 150,
+   "lufs": -22.7,
+   "target": -22.7,
+   "truePeak": -7.5,
+   "short_db": 0.0,
+   "active_share": 1.0
+  },
+  "old_problems": [
+   "near-silent upload (-67.1 LUFS)",
+   "reverb tail: the fade starts 4.5 dB under the peak"
+  ],
+  "new": {
+   "ms": 150,
+   "lufs": -23.2,
+   "target": -22.7,
+   "truePeak": -2.5,
+   "short_db": 0.5,
+   "active_share": 0.37,
+   "raw_lufs": -32.0,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
+  "held": false
+ },
+ {
+  "file": "shikaku.snap.mp3",
+  "slot": "shikaku.snap",
+  "pr": "#435",
+  "note": "RETAKE: Last time it was a sharp spike over a very quiet body.",
+  "old": {
+   "ms": 50,
+   "lufs": -31.3,
+   "target": -22.7,
+   "truePeak": -2.2,
+   "short_db": 8.6,
+   "active_share": 0.6
+  },
+  "old_problems": [
+   "8.6 dB quieter than its family (a spike over a quiet body)"
+  ],
+  "new": {
+   "ms": 50,
+   "lufs": -26.3,
+   "target": -22.7,
+   "truePeak": -1.5,
+   "short_db": 3.6,
+   "active_share": 0.8,
+   "raw_lufs": -29.4,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
+  "held": false
+ },
+ {
+  "file": "sudoku.clear.mp3",
+  "slot": "sudoku.clear",
+  "pr": "#430",
+  "note": "RETAKE: Judge by ear: a single short tick may already be right; only redo if it sounds wrong.",
+  "old": {
+   "ms": 120,
+   "lufs": -26.6,
+   "target": -22.7,
+   "truePeak": -2.6,
+   "short_db": 3.9,
+   "active_share": 0.21
+  },
+  "old_problems": [
+   "a click then nothing"
+  ],
+  "new": {
+   "ms": 120,
+   "lufs": -26.8,
+   "target": -22.7,
+   "truePeak": -2.5,
+   "short_db": 4.1,
+   "active_share": 0.75,
+   "raw_lufs": -35.5,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
+  "held": false
+ },
+ {
+  "file": "sudoku.pencil.mp3",
+  "slot": "sudoku.pencil",
+  "pr": "#430",
+  "note": "RETAKE: Last time it had a reverb tail.",
+  "old": {
+   "ms": 100,
+   "lufs": -22.7,
+   "target": -22.7,
+   "truePeak": -1.7,
+   "short_db": 0.0,
+   "active_share": 1.0
+  },
+  "old_problems": [
+   "reverb tail: the fade starts 9.1 dB under the peak"
+  ],
+  "new": {
+   "ms": 100,
+   "lufs": -22.8,
+   "target": -22.7,
+   "truePeak": -1.9,
+   "short_db": 0.1,
+   "active_share": 0.95,
+   "raw_lufs": -55.9,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
+  "held": false
+ },
+ {
+  "file": "tendrop.count.mp3",
+  "slot": "tendrop.count",
+  "pr": "#439",
+  "note": "RETAKE: Last time it rang on too long.",
+  "old": {
+   "ms": 45,
+   "lufs": -22.8,
+   "target": -22.7,
+   "truePeak": -3.9,
+   "short_db": 0.1,
+   "active_share": 1.0
+  },
+  "old_problems": [
+   "still sounding at 1.5x its length (-9.0 dB under its peak at the fade)"
+  ],
+  "new": {
+   "ms": 45,
+   "lufs": -25.4,
+   "target": -22.7,
+   "truePeak": -1.9,
+   "short_db": 2.7,
+   "active_share": 0.78,
+   "raw_lufs": -26.2,
+   "rings_out": true,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
+  "held": true
+ },
+ {
+  "file": "tendrop.tap.mp3",
+  "slot": "tendrop.tap",
+  "pr": "#439",
+  "note": "RETAKE: Last time it rang on too long.",
+  "old": {
+   "ms": 75,
+   "lufs": -22.7,
+   "target": -22.7,
+   "truePeak": -1.5,
+   "short_db": 0.0,
+   "active_share": 1.0
+  },
+  "old_problems": [
+   "still sounding at 1.5x its length (-5.5 dB under its peak at the fade)"
+  ],
+  "new": {
+   "ms": 50,
+   "lufs": -25.4,
+   "target": -22.7,
+   "truePeak": -2.3,
+   "short_db": 2.7,
+   "active_share": 0.9,
+   "raw_lufs": -51.3,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
+  "held": true
+ },
+ {
+  "file": "tendrop.tenBurst.mp3",
+  "slot": "tendrop.tenBurst",
+  "pr": "#439",
+  "note": "RETAKE: Last time only the first click came through.",
+  "old": {
+   "ms": 417,
+   "lufs": -26.6,
+   "target": -17.5,
+   "truePeak": -2.5,
+   "short_db": 9.1,
+   "active_share": 0.13
+  },
+  "old_problems": [
+   "a click then nothing",
+   "9.1 dB quieter than its family (a spike over a quiet body)"
+  ],
+  "new": {
+   "ms": 480,
+   "lufs": -22.4,
+   "target": -17.5,
+   "truePeak": -2.1,
+   "short_db": 4.9,
+   "active_share": 0.23,
+   "raw_lufs": -24.0,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
+  "held": true
+ },
+ {
+  "file": "trail.undo.mp3",
+  "slot": "trail.undo",
+  "pr": "#435",
+  "note": "RETAKE: Last time it rang on too long.",
+  "old": {
+   "ms": 225,
+   "lufs": -22.7,
+   "target": -22.7,
+   "truePeak": -4.4,
+   "short_db": 0.0,
+   "active_share": 1.0
+  },
+  "old_problems": [
+   "still sounding at 1.5x its length (-2.5 dB under its peak at the fade)"
+  ],
+  "new": {
+   "ms": 225,
+   "lufs": -22.7,
+   "target": -22.7,
+   "truePeak": -7.1,
+   "short_db": 0.0,
+   "active_share": 1.0,
+   "raw_lufs": -40.9,
+   "rings_out": true,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [
+   "still sounding at 1.5x its length (-3.5 dB under its peak at the fade)"
+  ],
+  "kept": "old",
+  "why": "the same problems, and the old take sits closer to the house level",
+  "held": false
+ },
+ {
+  "file": "tubes.reset.mp3",
+  "slot": "tubes.reset",
+  "pr": "#430",
+  "note": "RETAKE: Last time it was a sharp spike over a very quiet body.",
+  "old": {
+   "ms": 480,
+   "lufs": -23.5,
+   "target": -17.5,
+   "truePeak": -2.6,
+   "short_db": 6.0,
+   "active_share": 0.51
+  },
+  "old_problems": [
+   "6.0 dB quieter than its family (a spike over a quiet body)"
+  ],
+  "new": {
+   "ms": 479,
+   "lufs": -24.3,
+   "target": -17.5,
+   "truePeak": -2.6,
+   "short_db": 6.8,
+   "active_share": 0.31,
+   "raw_lufs": -39.0,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [
+   "6.8 dB quieter than its family (a spike over a quiet body)"
+  ],
+  "kept": "old",
+  "why": "the same problems, and the old take sits closer to the house level",
+  "held": false
+ },
+ {
+  "file": "whack.bonk.mp3",
+  "slot": "whack.bonk",
+  "pr": "#439",
+  "note": "RETAKE: Last time it was almost silent.",
+  "old": {
+   "ms": 180,
+   "lufs": -22.7,
+   "target": -22.7,
+   "truePeak": -7.2,
+   "short_db": 0.0,
+   "active_share": 1.0
+  },
+  "old_problems": [
+   "near-silent upload (-59.9 LUFS)"
+  ],
+  "new": {
+   "ms": 170,
+   "lufs": -22.6,
+   "target": -22.7,
+   "truePeak": -3.1,
+   "short_db": -0.1,
+   "active_share": 0.76,
+   "raw_lufs": -21.7,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
+  "held": true
+ },
+ {
+  "file": "fences.solve.mp3",
+  "slot": "fences.solve",
+  "pr": "#435",
+  "note": "RETAKE: Last time only the first click came through.",
+  "old": {
+   "ms": 582,
+   "lufs": -23.5,
+   "target": -17.1,
+   "truePeak": -1.7,
+   "short_db": 6.4,
+   "active_share": 0.19
+  },
+  "old_problems": [
+   "a click then nothing",
+   "6.4 dB quieter than its family (a spike over a quiet body)"
+  ],
+  "new": {
+   "ms": 524,
+   "lufs": -30.8,
+   "target": -17.1,
+   "truePeak": -2.5,
+   "short_db": 13.7,
+   "active_share": 0.23,
+   "raw_lufs": -31.5,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [
+   "13.7 dB quieter than its family (a spike over a quiet body)"
+  ],
+  "kept": "new",
+  "why": "fewer or lighter problems",
+  "held": false
+ },
+ {
+  "file": "reaction.done.mp3",
+  "slot": "reaction.done",
+  "pr": "#439",
+  "note": "RETAKE: Last time only the first click came through.",
+  "old": {
+   "ms": 600,
+   "lufs": -17.4,
+   "target": -17.1,
+   "truePeak": -2.0,
+   "short_db": 0.3,
+   "active_share": 0.12
+  },
+  "old_problems": [
+   "a click then nothing"
+  ],
+  "new": {
+   "ms": 600,
+   "lufs": -17.1,
+   "target": -17.1,
+   "truePeak": -4.9,
+   "short_db": 0.0,
+   "active_share": 0.95,
+   "raw_lufs": -17.3,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
+  "held": true
+ },
+ {
+  "file": "symscan.gridClear.mp3",
+  "slot": "symscan.gridClear",
+  "pr": "#438",
+  "note": "RETAKE: Last time it was a sharp spike over a very quiet body.",
+  "old": {
+   "ms": 594,
+   "lufs": -26.4,
+   "target": -17.1,
+   "truePeak": -2.5,
+   "short_db": 9.3,
+   "active_share": 0.3
+  },
+  "old_problems": [
+   "9.3 dB quieter than its family (a spike over a quiet body)"
+  ],
+  "new": {
+   "ms": 584,
+   "lufs": -24.5,
+   "target": -17.1,
+   "truePeak": -2.4,
+   "short_db": 7.4,
+   "active_share": 0.35,
+   "raw_lufs": -38.1,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [
+   "7.4 dB quieter than its family (a spike over a quiet body)"
+  ],
+  "kept": "new",
+  "why": "the same problems, closer to the house level",
+  "held": false
+ },
+ {
+  "file": "nonogram.solve.mp3",
+  "slot": "nonogram.solve",
+  "pr": "#430",
+  "note": "RETAKE: Last time it was a sharp spike over a very quiet body.",
+  "old": {
+   "ms": 970,
+   "lufs": -26.3,
+   "target": -16.5,
+   "truePeak": -2.6,
+   "short_db": 9.8,
+   "active_share": 0.39
+  },
+  "old_problems": [
+   "9.8 dB quieter than its family (a spike over a quiet body)"
+  ],
+  "new": {
+   "ms": 739,
+   "lufs": -19.7,
+   "target": -17.1,
+   "truePeak": -2.1,
+   "short_db": 2.6,
+   "active_share": 0.64,
+   "raw_lufs": -26.3,
+   "rings_out": false,
+   "first_event_ms": null,
+   "forced_distortion_db": null
+  },
+  "new_problems": [],
+  "kept": "new",
+  "why": "no problems left",
+  "held": false
+ }
+]
