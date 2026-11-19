@@ -6,8 +6,8 @@ manifest slot (`<gameId>.<event>`) whose `url` names its recording in `public/so
 **Plays today** column ([README.md](README.md) says how to change one). Sound batch 2 (18 Oct 2026,
 [batch2-mapping.csv](batch2-mapping.csv)) filled every slot here but the five below that a shared sound already
 covers; batch 3's must-haves ([batch3-mapping.csv](batch3-mapping.csv), [arcade-gaps-oct-2026.md](arcade-gaps-oct-2026.md)
-section 4) added the rows for moments that had no cue, including four quiet loops (`wavefront.danger`, `swing.lava`,
-`cross.traffic`, `inkbridge.coinRoll`: 0.25–0.35, faded in over 500 ms and out at the end, one per game).
+section 4) added the rows for moments that had no cue, including quiet loops (`wavefront.danger`, `swing.lava`,
+`inkbridge.coinRoll`: 0.25–0.35, faded in over 500 ms and out at the end, one per game).
 Batch 3's nice-to-have slots are not made yet. Still silent here, by design: `tendrop.refused`, `clayshoot.shatter`,
 `clayshoot.goldShatter`, `clayshoot.goldSparkle` and `stroop.gatePulse` (a shared sound plays on the same frame).
 
@@ -75,7 +75,6 @@ Already sounded: power-up caught (`breaker.powerUp`), Fireball lit (`breaker.fir
 | `pinball.gameOver` | Every ball drained before time (its file stands in for `pinball.ballLost` on that drain) | GAME OVER, the table lights go out | `pinball.gameOver.mp3` | 0–1 | 1500 ms |
 | `pinball.joulz` | J-O-U-L-Z completed (pinRev 4+; its file stands in for `pinball.bankComplete` on that frame; 1 Nov 2026) | JOULZ in gold, large and centred, and the border flashing gold three times (0.15 s on, 0.15 s off) | `sfx_streak_flourish.mp3` (the celebrations library's streak flourish) | 0–4 | 1200 ms |
 | `pinball.ballLocked` | A ball locked (pinRev 4+) | The lock flares gold, "BALL n LOCKED" over it | `sfx_count_ding.mp3` (`shared.celebrate.countDing`) until Joe's file (retro-elevenlabs.md), then only the file | 0–6 | 500 ms |
-| `pinball.multiballStart` | Multiball starts (pinRev 4+) | Bright sparks from the lock | `sfx_joulz_zap.mp3` (`shared.celebrate.zap`) until Joe's file (retro-elevenlabs.md), then only the file | 0–3 | 1.2 s |
 | `pinball.multiballEnd` | Multiball ends: the last extra ball drains with the main ball still in play (pinRev 4+) | The lock's lights settle | silent until Joe's file (retro-elevenlabs.md) | 0–3 | 600 ms |
 
 Already sounded: bumper glow and ripple (`pinball.bumperHit`), drop target (`pinball.dropTarget`), bank down and the multiplier lanes (`pinball.bankComplete`; J-O-U-L-Z has `pinball.joulz` on pinRev 4+), lane lit (`pinball.laneLight`), spinner turn (`pinball.spinner`), flippers and lane rotation (`pinball.flipper`), sling (`pinball.sling`), drain and lights out (`pinball.ballLost`).
@@ -249,8 +248,6 @@ Already sounded: rope catch and anchor flash (`swing.grapple`), star (`swing.sta
 | `cross.pastRoadworks` | Through the drifting debris (Spacewalk) | A +1 pop at the astronaut | `cross.pastRoadworks.mp3` (Joe's `cross.pass` recording, 6 Nov 2026; was the library's `hover.slipPast.mp3`) | 2–8 | 460 ms |
 | `cross.freighter` | A freighter lane crossed (crossRev 9+; at most one per 600 ms) | The long cargo freighter going by | `cross.freighter.mp3` (Joe's, 6 Nov 2026) | 0–15 | 1350 ms |
 | `cross.newHazard` | A new layout's crossing begins (its kerb pause ends): the first cycle lane (crossing 3), roadworks (4) and the chicane (7), crossRev 2+ | Cyclists, cones or a chicane on the road ahead | `alert.newHazard.mp3` | 0–3 | 600 ms |
-| `cross.traffic` | While the run is live | Space traffic streaming both ways (Spacewalk) | `bastion.drone.mp3` from the library since 3 Nov 2026 (was `cross.traffic.mp3`) | loop | loop |
-| `cross.jetPuff` | Each hop starts (at most one per 60 ms) | A jet puff under the astronaut | silent until Joe's file (retro-elevenlabs.md) | every hop | 80 ms |
 | `cross.land` | A hop lands with no hit (at most one per 80 ms) | A dust ring at the astronaut's feet | silent until Joe's file (retro-elevenlabs.md) | every hop | 90 ms |
 
 Already sounded: crossing and its banner (`cross.crossed`), hops (`cross.hop`), hit and tumble (`cross.lifeLost`).
@@ -536,3 +533,6 @@ Already sounded: lane change (`stroop.lane`), right / wrong gate (`stroop.right`
 | `racing.chequer` | The finish line after lap 2, with `racing.finish` and `racing.roar` | The chequered flag waves in, then the lap times and average speed count up | none yet (silent until it has a file) | 0–1 | 2500 ms |
 
 Already sounded: a clean sector (`racing.sector`, its bar flashing on the timing bar), the kerb (`racing.kerb`, the view's rumble), the grass (`racing.grass` / `racing.grassLoop`, the dust and the speedo's red drop). The corner sign's green or red verdict is silent (it would fall on every corner). The prompts for all six are in `sports-elevenlabs.md`.
+
+
+Removed 19 Nov 2026 (Joe's bring-back, docs/sound-cues/sounds-bring-back.md): `pinball.multiballStart` (multiball plays the zap, `shared.celebrate.zap`, once a ball again), `cross.traffic` (Spacewalk plays no traffic loop) and `cross.jetPuff` (a hop plays no jet puff). Their recordings are kept, unused.
