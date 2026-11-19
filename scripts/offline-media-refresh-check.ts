@@ -260,8 +260,9 @@ check(
   [...unwired].every((p) => !realConfig.media.includes(p) && !realConfig.lazyMedia.includes(p) && !(p in realConfig.mediaHash)),
   "no unwired batch file is in the offline download, the lazy list or the hashes",
 );
-// Wired batch-1 names stay in: a placeholder slot's file (behind NEW_GAME_SOUNDS) and the live bomb.defuse.
-for (const p of ["/sounds/tubes.pour.mp3", "/sounds/breaker.paddle.mp3", "/sounds/bomb.defuse.mp3"]) {
+// Wired batch-1 names stay in: placeholder slots' files (behind NEW_GAME_SOUNDS) and a manifest-wired tower.illegal.
+// Changed with Joe's approval, 19 Nov 2026 (breaker.paddle and bomb.defuse play their old sounds again; their recordings are kept unused).
+for (const p of ["/sounds/tubes.pour.mp3", "/sounds/sudoku.place.mp3", "/sounds/tower.illegal.mp3"]) {
   check(!unwired.has(p) && realConfig.media.includes(p), `${p}: wired, so still downloaded`);
 }
 console.log(`NOTE ${unwired.size} sound batch files left out of the offline worker until wired`);
