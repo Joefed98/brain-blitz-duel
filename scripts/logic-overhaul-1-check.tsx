@@ -382,7 +382,10 @@ const press = (el: Element | null | undefined) =>
   const cues: { cue: string; rate?: number }[] = [];
   win.addEventListener("duelz-sound", (e) => cues.push((e as unknown as { detail: { cue: string; rate?: number } }).detail));
   // Box Six: finishing a row plays the line's chime.
-  const sud = generatePuzzle("sudoku", { bankSeed: 7 });
+  // Changed with Joe's approval, 19 Nov 2026: a fixed board, the dealt solution with rows 1 and 2 left empty, so finishing
+  // row 1 finishes that row alone (its columns and boxes still have row 2's cells to fill) on every run.
+  const dealt = generatePuzzle("sudoku", { bankSeed: 7 });
+  const sud = dealt.type === "sudoku" && dealt.solution ? { ...dealt, givens: dealt.solution.map((d, i) => (i < 12 ? 0 : d)) } : dealt;
   if (sud.type === "sudoku" && sud.solution) {
     const row = [0, 1, 2, 3, 4, 5].map((c) => c);
     const empty = row.filter((c) => !sud.givens[c]);
