@@ -39,7 +39,7 @@ interface Want {
 export function wanted(): Want[] {
   const out = new Map<string, Want>();
   for (const r of soundBatchRows()) {
-    if (r.toRecord || r.file.includes(".base.")) continue;
+    if (r.toRecord || r.file.includes(".base.") || BROUGHT_BACK.has(r.slot)) continue;
     // The switch's: the slot's placeholder, or a recording several slots share under its own name (word.key.mp3 for
     // Strikeout's and Cryptogrid's keys).
     if (NEW_GAME_SOUND_FILES[r.slot] || SWITCH_URLS.has(`/sounds/${r.file}`)) continue;
@@ -54,6 +54,91 @@ export function wanted(): Want[] {
   return [...out.values()];
 }
 
+/**
+ * Joe's picks of 19 Nov 2026 (the bring-back, docs/sound-cues/sounds-bring-back.md): slots that play what they played
+ * before #453 again (the old file, a library sound or nothing), so this script leaves them as the manifest has them.
+ * Their recordings stay in public/sounds, unused.
+ */
+export const BROUGHT_BACK: ReadonlySet<string> = new Set([
+  "balance.select",
+  "balance.solve",
+  "balltrack.marbleHome",
+  "blockparty.place",
+  "blockparty.reset",
+  "bomb.defuse",
+  "breaker.ballLost",
+  "breaker.brickHit",
+  "breaker.fireballLit",
+  "breaker.laser",
+  "breaker.multiball",
+  "breaker.paddle",
+  "breaker.powerUp",
+  "bridges.snapBack",
+  "bubble.load",
+  "bubble.pop",
+  "burst.hit",
+  "burst.lifeLost",
+  "burst.powerUp",
+  "burst.shot",
+  "chain.reshuffle",
+  "checkout.undo",
+  "clayshoot.goldShatter",
+  "cross.jetPuff",
+  "curling.aw",
+  "curling.clack",
+  "curling.countTick",
+  "fences.over",
+  "fillomino.erase",
+  "fillomino.undo",
+  "flip.crash",
+  "flip.flipDown",
+  "flip.flipUp",
+  "flow.cut",
+  "flow.draw",
+  "gravity.boardClear",
+  "inkbridge.bump",
+  "inkbridge.pot",
+  "matchup.chestHome",
+  "measure.near",
+  "measure.target",
+  "minesweeper.clear",
+  "minigolf.loop",
+  "minigolf.putt",
+  "minigolf.sand",
+  "numhunt.shuffle",
+  "numline.bullseye",
+  "numline.dragTick",
+  "numpyramid.swap",
+  "orbit.crash",
+  "orbit.launch",
+  "pinball.multiballStart",
+  "pipes.flow",
+  "push.stuck",
+  "pyramid.undo",
+  "racing.kerb",
+  "rally.edgeSave",
+  "rally.hit",
+  "reaction.bar",
+  "safe.solve",
+  "skyline.drop",
+  "skyline.perfect",
+  "swing.crash",
+  "swing.grapple",
+  "swing.rockLand",
+  "swing.rockShake",
+  "swing.streak",
+  "target.lock",
+  "target.reset",
+  "target.select",
+  "target.undo",
+  "tilt.cup",
+  "tilt.gate",
+  "unblock.laneClear",
+  "unblock.slide",
+  "unblock.slideLong",
+  "whack.bonk",
+  "cross.traffic",
+]);
 const SWITCH_URLS = new Set(Object.values(NEW_GAME_SOUND_FILES).map((f) => f.url));
 const keyOf = (slot: string) => (/^[A-Za-z_][A-Za-z0-9_]*$/.test(slot) ? slot : JSON.stringify(slot));
 

@@ -442,7 +442,7 @@ def _(r):
     return g * 0.6
 
 
-@sound("safe.solve", ["safe.solve"], "placeholder: the safe opening: three drum clicks in turn, then a heavy latch and a low door swing")
+@sound("safe.solve", [], "placeholder: the safe opening: three drum clicks in turn, then a heavy latch and a low door swing")
 def _(r):
     n = n_of(0.9)
     clicks = mix(*[at(struck(METAL, 1900 + 140 * i, 0, 0.05, n_of(0.08), r) * 0.6 + click(n_of(0.08), r, 6500) * 0.4, 0.06 * i, n) for i in range(3)])
@@ -656,25 +656,25 @@ def _(r):
 # (the library note, through playSlotOr), 18 Nov 2026.
 
 
-@sound("breaker.paddle", ["breaker.paddle"], "the ball off the paddle: a short, round blip")
+@sound("breaker.paddle", [], "the ball off the paddle: a short, round blip")
 def _(r):
     n = n_of(0.06)
     return (pulse(440, n, 0.5) * 0.5 + tri(220, n) * 0.4) * env(n, 0.001, 0.07, 0.01)
 
 
-@sound("breaker.brickHit", ["breaker.brickHit"], "a brick hit: a hard high blip with a tick")
+@sound("breaker.brickHit", [], "a brick hit: a hard high blip with a tick")
 def _(r):
     n = n_of(0.06)
     return crush(pulse(glide(990, 880, n), n, 0.5) * env(n, 0.001, 0.05) * 0.5 + retro_noise(n, r, 12000) * env(n, 0.001, 0.012) * 0.25, 7, 1)
 
 
-@sound("breaker.ballLost", ["breaker.ballLost"], "the ball lost: a pulse sliding down")
+@sound("breaker.ballLost", [], "the ball lost: a pulse sliding down")
 def _(r):
     n = n_of(0.3)
     return pulse(glide(620, 140, n, 0.8), n, 0.5) * env(n, 0.002, 0.3, 0.12) * 0.5
 
 
-@sound("breaker.fireballLit", ["breaker.fireballLit"], "the fireball lit: a rising rush of noise and pulse")
+@sound("breaker.fireballLit", [], "the fireball lit: a rising rush of noise and pulse")
 def _(r):
     n = n_of(0.24)
     nz = retro_noise(n, r, glide(2000, 12000, n)) * env(n, 0.02, 0.2, 0.05) * 0.5
@@ -682,27 +682,27 @@ def _(r):
     return crush(nz + tone, 6, 2)
 
 
-@sound("breaker.laser", ["breaker.laser"], "a paddle laser: a classic pew diving in pitch")
+@sound("breaker.laser", [], "a paddle laser: a classic pew diving in pitch")
 def _(r):
     n = n_of(0.16)
     return pulse(glide(1900, 380, n, 0.5), n, 0.25) * env(n, 0.001, 0.16) * 0.5
 
 
-@sound("breaker.multiball", ["breaker.multiball"], "multiball: three quick blips, up")
+@sound("breaker.multiball", [], "multiball: three quick blips, up")
 def _(r):
     n = n_of(0.12)
     f = steps([880, 1174.7, 1568.0], 0.035, n)
     return pulse(f, n, 0.5) * env(n, 0.001, 0.12, 0.08) * 0.45
 
 
-@sound("burst.hit", ["burst.hit"], "an atom popped: a chip pop falling an octave")
+@sound("burst.hit", [], "an atom popped: a chip pop falling an octave")
 def _(r):
     n = n_of(0.08)
     p = pulse(glide(1100, 520, n, 0.5), n, 0.5) * env(n, 0.001, 0.07) * 0.45
     return crush(p + retro_noise(n, r, 9000) * env(n, 0.001, 0.02) * 0.3, 7, 1)
 
 
-@sound("burst.shot", ["burst.shot"], "a shot fired: a short, high pew")
+@sound("burst.shot", [], "a shot fired: a short, high pew")
 def _(r):
     n = n_of(0.06)
     return pulse(glide(2200, 900, n, 0.6), n, 0.25) * env(n, 0.001, 0.07, 0.01) * 0.45
@@ -752,7 +752,7 @@ def _(r):
     return pulse(f, n, 0.5) * env(n, 0.001, 0.2, 0.15) * 0.42
 
 
-@sound("rally.hit", ["rally.hit"], "the ball returned: a round bop")
+@sound("rally.hit", [], "the ball returned: a round bop")
 def _(r):
     n = n_of(0.06)
     return (pulse(523.25, n, 0.5) * 0.45 + tri(261.6, n) * 0.35) * env(n, 0.001, 0.07, 0.01)
@@ -817,7 +817,7 @@ def _(r):
     return room(w + t, r, 0.1, 0.1)
 
 
-@sound("flip.crash", ["flip.crash"], "a crash into the cave: a heavy thud with falling grit")
+@sound("flip.crash", [], "a crash into the cave: a heavy thud with falling grit")
 def _(r):
     n = n_of(0.4)
     thud = thump(110, 45, 0.24, n) * 0.8 + struck(STONE, 180, 0, 0.16, n, r) * 0.4
@@ -825,7 +825,7 @@ def _(r):
     return room(thud + grit, r, 0.16, 0.14)
 
 
-@sound("orbit.launch", ["orbit.launch"], "the rocket launched: a short thruster roar")
+@sound("orbit.launch", [], "the rocket launched: a short thruster roar")
 def _(r):
     n = n_of(0.32)
     roar = svf(noise(n, r), glide(400, 1400, n, 0.5), 0.9, "lp") * env(n, 0.02, 0.28, 0.04) * 0.9
@@ -841,7 +841,7 @@ def _(r):
     return room(mix(a, b), r, 0.2, 0.2)
 
 
-@sound("orbit.crash", ["orbit.crash"], "a crash in space: a muffled, low burst")
+@sound("orbit.crash", [], "a crash in space: a muffled, low burst")
 def _(r):
     n = n_of(0.45)
     burst = svf(noise(n, r), glide(1800, 300, n, 0.5), 0.8, "lp") * env(n, 0.002, 0.4) * 1.0
@@ -859,7 +859,7 @@ def _(r):
     return make_loop(pad * 0.5 + air, 0.25)
 
 
-@sound("swing.crash", ["swing.crash"], "a fall into the lava: a heavy splash-thud")
+@sound("swing.crash", [], "a fall into the lava: a heavy splash-thud")
 def _(r):
     n = n_of(0.36)
     thud = thump(120, 50, 0.16, n) * 0.8
@@ -867,7 +867,7 @@ def _(r):
     return room(thud + hiss, r, 0.14, 0.12)
 
 
-@sound("swing.grapple", ["swing.grapple"], "the grapple thrown and caught: a whip of rope and a metal clink")
+@sound("swing.grapple", [], "the grapple thrown and caught: a whip of rope and a metal clink")
 def _(r):
     n = n_of(0.3)
     whip = svf(noise(n, r), glide(900, 3400, n_of(0.3), 0.5), 2.0) * env(n, 0.01, 0.12) * 0.5
@@ -893,20 +893,20 @@ def _(r):
     return room(growl * 0.8 + breath, r, 0.16, 0.12)
 
 
-@sound("swing.rockShake", ["swing.rockShake"], "rocks about to fall: a short low rumble")
+@sound("swing.rockShake", [], "rocks about to fall: a short low rumble")
 def _(r):
     n = n_of(0.2)
     rum = svf(noise(n, r), 220, 1.0, "lp") * env(n, 0.03, 0.17) * 1.4
     return rum * (0.7 + 0.3 * np.sin(TAU * 26 * tt(n)))
 
 
-@sound("swing.rockLand", ["swing.rockLand"], "a rock landing: a dull stone thud")
+@sound("swing.rockLand", [], "a rock landing: a dull stone thud")
 def _(r):
     n = n_of(0.14)
     return room(struck(STONE, 210, 0, 0.12, n, r) * 0.7 + thump(130, 70, 0.1, n) * 0.6, r, 0.1, 0.12)
 
 
-@sound("skyline.drop", ["skyline.drop"], "a block landing on the tower: a solid clank over a thud")
+@sound("skyline.drop", [], "a block landing on the tower: a solid clank over a thud")
 def _(r):
     n = n_of(0.24)
     clank = struck(METAL, 330, 0, 0.2, n, r, 0.01) * 0.55
@@ -970,7 +970,7 @@ def _(r):
     return room(gl + sh, r, 0.2, 0.2)
 
 
-@sound("inkbridge.pot", ["inkbridge.pot"], "the coin in the pot: a bright clink and a little cascade of bells")
+@sound("inkbridge.pot", [], "the coin in the pot: a bright clink and a little cascade of bells")
 def _(r):
     n = n_of(0.7)
     clink = struck(METAL, 2400, 0, 0.18, n, r) * 0.4 + click(n, r, 6000) * 0.3
@@ -979,7 +979,7 @@ def _(r):
     return room(mix(clink, *bells), r, 0.2, 0.18)
 
 
-@sound("inkbridge.bump", ["inkbridge.bump"], "the ball bouncing off the ink: a soft, round boing")
+@sound("inkbridge.bump", [], "the ball bouncing off the ink: a soft, round boing")
 def _(r):
     n = n_of(0.16)
     f = glide(260, 420, n, 0.4)
@@ -1012,7 +1012,7 @@ def _(r):
     return room(mix(*parts), r, 0.14, 0.14)
 
 
-@sound("tilt.cup", ["tilt.cup"], "a marble home in its cup: a wooden thunk with a short rattle")
+@sound("tilt.cup", [], "a marble home in its cup: a wooden thunk with a short rattle")
 def _(r):
     n = n_of(0.2)
     thunk = struck(WOOD, 360, 0, 0.09, n, r) * 0.7 + thump(200, 150, 0.04, n) * 0.4
@@ -1020,7 +1020,7 @@ def _(r):
     return room(thunk + rattle, r, 0.09, 0.1)
 
 
-@sound("tilt.gate", ["tilt.gate"], "a gate swinging: a light wooden click")
+@sound("tilt.gate", [], "a gate swinging: a light wooden click")
 def _(r):
     n = n_of(0.1)
     return room(struck(WOOD, 980, 0, 0.09, n, r) * 0.6 + click(n, r, 4500) * 0.2, r, 0.07, 0.1)
@@ -1042,13 +1042,13 @@ def _(r):
     return make_loop(sea + fizz, 0.3)
 
 
-@sound("bubble.load", ["bubble.load"], "a bubble loaded: a round, rising bloop")
+@sound("bubble.load", [], "a bubble loaded: a round, rising bloop")
 def _(r):
     n = n_of(0.12)
     return room(sine(glide(300, 620, n, 0.5), n) * env(n, 0.003, 0.1) * 0.6, r, 0.08, 0.12)
 
 
-@sound("bubble.pop", ["bubble.pop"], "a bubble popped: a small wet pop")
+@sound("bubble.pop", [], "a bubble popped: a small wet pop")
 def _(r):
     n = n_of(0.08)
     p = sine(glide(900, 1700, n, 0.4), n) * env(n, 0.001, 0.05) * 0.5
@@ -1064,7 +1064,7 @@ def _(r):
     return make_loop(tube, 0.15)
 
 
-@sound("balltrack.marbleHome", ["balltrack.marbleHome"], "a marble home: a glassy clink into its slot")
+@sound("balltrack.marbleHome", [], "a marble home: a glassy clink into its slot")
 def _(r):
     n = n_of(0.17)
     return room(struck(GLASS, 1900, 0, 0.12, n, r) * 0.55 + click(n, r, 6000) * 0.3, r, 0.08, 0.12)

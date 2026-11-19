@@ -425,7 +425,7 @@ export function crossSounds(): GameSounds<CrossState> {
   return {
     frame(state, running) {
       beginFrame("cross", state);
-      loopCue("cross.traffic", running && !state.dead);
+      // Joe (19 Nov 2026): Spacewalk plays no traffic loop (cross.traffic, the drone bed, is gone from here).
       if (prev && state.tick > prev.tick) {
         if (state.lives < prev.lives) { sfx("cross.lifeLost", "arc_lose_life"); feel("impact"); }
         // The run's end: the crossings tally (after the last life's sound when the run ended on a hit).
@@ -437,7 +437,7 @@ export function crossSounds(): GameSounds<CrossState> {
         else if (state.col !== prev.col || (state.hop > 0 && (prev.hop === 0 || state.hop > prev.hop))) sfx("cross.hop", "arc_honk", 0.6);
         // The Retro overhaul, stage 2: the astronaut landing a hop.
         if (state.hop === 0 && prev.hop > 0 && state.lives === prev.lives) effectCue("cross.land", 80);
-        if (state.hop > 0 && (prev.hop === 0 || state.hop > prev.hop)) effectCue("cross.jetPuff", 60);
+        // Joe (19 Nov 2026): a hop's start plays no jet puff (cross.jetPuff.mp3 is kept, unused).
         // A new layout's crossing begins (its kerb pause ends).
         const go = prev.tick < state.pauseUntil && state.tick >= state.pauseUntil;
         if (go && (state.rev ?? 0) >= CROSS_REV2 && (state.wide ? CROSS_X_NEW_LAYOUTS : CROSS_NEW_LAYOUTS).includes(state.crossings) && !announced.has(state.crossings)) {
@@ -454,7 +454,7 @@ export function crossSounds(): GameSounds<CrossState> {
       } else if (prev && state.tick < prev.tick) announced.clear();
       prev = state;
     },
-    stop: () => stopCueLoop("cross.traffic"),
+    stop: () => {},
   };
 }
 
@@ -784,10 +784,9 @@ export function pinballSounds(): GameSounds<PinState> {
             // Joe (18 Nov 2026): the start sound once for each extra ball multiball releases (the sim queues them in
             // `releases`; any already out this frame are new `extras`), PIN_MULTIBALL_STAGGER_MS apart.
             const balls = Math.max(1, (p4.releases?.length ?? 0) + Math.max(0, (p4.extras?.length ?? 0) - (q4.extras?.length ?? 0)));
-            const play = () => {
-              if (cueHasFile("pinball.multiballStart")) effectCue("pinball.multiballStart");
-              else sfx("shared.celebrate.zap", "arc_retro_pickup", 1);
-            };
+            // Joe (19 Nov 2026): each ball plays the sound multiball played before #453 (the zap), not the
+            // pinball.multiballStart recording (its file is kept, unused).
+            const play = () => sfx("shared.celebrate.zap", "arc_retro_pickup", 1);
             for (let i = 0; i < balls; i++) later(i * PIN_MULTIBALL_STAGGER_MS, play);
           }
           if ((q4.extras?.length ?? 0) > 0 && (p4.extras?.length ?? 0) === 0 && state.live) effectCue("pinball.multiballEnd");
@@ -1584,7 +1583,8 @@ export function curlingSounds(): GameSounds<CurlingState> {
         }
         if (state.hits > prev.hits) {
           // The clack (the Sports overhaul's effects): its own recording once it has one, today's hit until then.
-          effectCue(cueHasFile("curling.clack") ? "curling.clack" : "curling.hit", 80);
+          // Joe (19 Nov 2026): a collision plays curling.hit, as before #453 (curling.clack.mp3 is kept, unused).
+          effectCue("curling.hit", 80);
           feel("impact");
         }
         // A red knocked out of the house: the crowd's "ooh" as it goes (silent until its recording; the applause still
