@@ -1,0 +1,309 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Joulz polish review</title>
+<style>
+:root{--bg:#06080F;--surface:#0F1424;--text:#EEF2FF;--text2:#B5C6DD;--text3:#8F9BBF;--gold:#E2C07A;--line:#1E2640}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#F4F6FB;--surface:#FFFFFF;--text:#0B1020;--text2:#2E3A55;--text3:#5B6A8A;--gold:#8A6A1E;--line:#D9DEEA}}
+:root[data-theme="dark"]{--bg:#06080F;--surface:#0F1424;--text:#EEF2FF;--text2:#B5C6DD;--text3:#8F9BBF;--gold:#E2C07A;--line:#1E2640}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:0 16px 80px}
+header{padding:28px 0 12px;border-bottom:1px solid var(--line);margin-bottom:12px}h1{font-size:28px;margin:0 0 6px}h2{font-size:20px;margin:36px 0 10px;color:var(--gold)}h3{font-size:16px;margin:22px 0 8px}
+p,li{color:var(--text2)}nav{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}nav a{color:var(--text);background:var(--surface);padding:6px 12px;border-radius:999px;text-decoration:none;font-size:13px;border:1px solid var(--line)}
+figure{margin:0 0 18px;background:var(--surface);border-radius:12px;padding:8px}figure img{width:100%;height:auto;display:block;border-radius:8px}figcaption{font-size:13px;color:var(--text3);padding:6px 4px 0}
+.grid{display:grid;grid-template-columns:1fr;gap:14px}@media(min-width:900px){.grid.two{grid-template-columns:1fr 1fr}}
+details{border:1px solid var(--line);border-radius:12px;padding:8px 12px;margin:8px 0}summary{cursor:pointer;font-weight:600;color:var(--text)}
+.note{background:var(--surface);border-left:3px solid var(--gold);padding:10px 14px;border-radius:8px;margin:12px 0}
+</style></head><body>
+
+<header><h1>Joulz polish review</h1><p>Every page and game, old against new, the levels, the mockups and the plan’s decisions, in one scroll. Fable session, 20 Nov 2026. The plan itself is <code>docs/polish-plan-final.md</code> on the branch <code>fable-polish-plan</code>.</p><nav><a href="#decisions">Decisions</a><a href="#mockups">Mockups</a><a href="#pages">Pages</a><a href="#now">Every game now</a><a href="#goback">Old vs new</a><a href="#levels">Levels</a><a href="#reveals">Reveals</a></nav></header>
+<h2 id="decisions">Decisions for Joe (with Fable's recommendation)</h2>
+<div class="note"><b>1. Desktop arcade.</b> C, the Cabinet (D1), for every game now; Breaker and Rally as landscape games (new stamps) only if Joe still wants them after playing the Cabinet. A wider world for everyone makes phones draw it smaller; desktop-only worlds reach practice only and need the fairness checks loosened.</div>
+<div class="note"><b>2. Difficulty.</b> Approve the rule: every level changes a mechanic (a hazard, a rule, hidden information, a shape), never only a number; Expert adds a second and takes an aid away; Expert is proven playable under human limits (0.25 s to react, 0.15 s to move). The spec names the mechanic for all 83 games.</div>
+<div class="note"><b>3. Go back vs what was built since.</b> Restore the look, keep the rules. Every revert is display only except Moon Climb's ninja size, Fission's atom size and Wavefront's wider formation, which are new stamps. No skin digest changes except Curl Champ's backing strip. Intro demos are input logs and stay valid.</div>
+<div class="note"><b>4. Assertions.</b> Seventeen check lines pin the look being reversed (section K of the plan). Joe approves the list in principle; each session shows him its exact lines before changing them.</div>
+<div class="note"><b>5. Notes Fable thinks are mistakes.</b> Redrawing the avatars in Blender now (drop the disc instead; redraw later). A splash sound on a cold open (impossible on iPhone before a tap: silent first open, sound on re-opens). Drawing Moon Climb's ninja smaller inside the big hit box (rule 3 forbids it: a new stamp with a smaller body). Removing Crazy Golf's Chip shot (it strands proved holes: the old aim drawing comes back instead).</div>
+<div class="note"><b>6. Scoring review.</b> Nine recommendations in section I; Roofbound and Moon Climb: leave them.</div>
+<div class="note"><b>7. Fable builds</b> the Apex yaw sign, the reveal template and the Cabinet's layout skeleton; seven normal sessions take the rest (section L).</div>
+
+<h2 id="mockups">Mockups (two directions each; Joe picks)</h2><div class="grid two">
+<figure><img loading="lazy" src="mockups/u1a.webp" alt="U1a · Splash: the vector bolt charges bottom to top with sparks; the wordmark fades in; silent on a cold open, the spark sound on re-opens (recommended)"><figcaption>U1a · Splash: the vector bolt charges bottom to top with sparks; the wordmark fades in; silent on a cold open, the spark sound on re-opens (recommended)</figcaption></figure>
+<figure><img loading="lazy" src="mockups/u1b.webp" alt="U1b · Splash: Captain Joulz holds the charging bolt (needs a new approved pose; later)"><figcaption>U1b · Splash: Captain Joulz holds the charging bolt (needs a new approved pose; later)</figcaption></figure>
+<figure><img loading="lazy" src="mockups/u6a.webp" alt="U6a · Home: stacked full-width cards, the daily cards with the category colour sweep (U3a) and the jigsaw bolt; sections reserved so nothing pops in"><figcaption>U6a · Home: stacked full-width cards, the daily cards with the category colour sweep (U3a) and the jigsaw bolt; sections reserved so nothing pops in</figcaption></figure>
+<figure><img loading="lazy" src="mockups/u6b.webp" alt="U6b · Home: the two daily cards side by side with a colour band and tint (U3b), ratings tiles, the next match"><figcaption>U6b · Home: the two daily cards side by side with a colour band and tint (U3b), ratings tiles, the next match</figcaption></figure>
+<figure><img loading="lazy" src="mockups/u2b.webp" alt="U2b · The bolder navy and deeper black (new token values) on U6a; U2a is today&#x27;s values as seen in the page screenshots"><figcaption>U2b · The bolder navy and deeper black (new token values) on U6a; U2a is today&#x27;s values as seen in the page screenshots</figcaption></figure>
+<figure><img loading="lazy" src="mockups/u4a.webp" alt="U4a · Shop, warm: obsidian and gold, rarity bands on tiles, the coin packs sparkling on gold leaf with a BEST VALUE frame (recommended)"><figcaption>U4a · Shop, warm: obsidian and gold, rarity bands on tiles, the coin packs sparkling on gold leaf with a BEST VALUE frame (recommended)</figcaption></figure>
+<figure><img loading="lazy" src="mockups/u4b.webp" alt="U4b · Shop, cool: navy and cyan, gold only on prices, the packs on a cyan panel"><figcaption>U4b · Shop, cool: navy and cyan, gold only on prices, the packs on a cyan panel</figcaption></figure>
+<figure><img loading="lazy" src="mockups/u5a.webp" alt="U5a · Games: one control row, pill chips with the category dot, the level switch inside the hero, square tiles with edge-to-edge art (recommended)"><figcaption>U5a · Games: one control row, pill chips with the category dot, the level switch inside the hero, square tiles with edge-to-edge art (recommended)</figcaption></figure>
+<figure><img loading="lazy" src="mockups/u5b.webp" alt="U5b · Games: three 4:5 tiles a row, a bigger hero, the chips a sticky row"><figcaption>U5b · Games: three 4:5 tiles a row, a bigger hero, the chips a sticky row</figcaption></figure>
+<figure><img loading="lazy" src="mockups/u7a.webp" alt="U7a · Desktop Home: an 880 px content grid with one 320 px aside holding the week&#x27;s stats, friends and the next public game (recommended)"><figcaption>U7a · Desktop Home: an 880 px content grid with one 320 px aside holding the week&#x27;s stats, friends and the next public game (recommended)</figcaption></figure>
+<figure><img loading="lazy" src="mockups/u7b.webp" alt="U7b · Desktop Home: a dashboard of equal cards in three columns"><figcaption>U7b · Desktop Home: a dashboard of equal cards in three columns</figcaption></figure>
+<figure><img loading="lazy" src="mockups/d1.webp" alt="D1 · The Cabinet (desktop arcade): the identical world centred, stats and the live run strip left, goal, challenges and controls right, the game&#x27;s scenery carried behind both panels (recommended)"><figcaption>D1 · The Cabinet (desktop arcade): the identical world centred, stats and the live run strip left, goal, challenges and controls right, the game&#x27;s scenery carried behind both panels (recommended)</figcaption></figure>
+<figure><img loading="lazy" src="mockups/d2.webp" alt="D2 · The Stage (desktop arcade): the scenery across the whole screen, the HUD in a top strip, translucent pills, standings bottom right"><figcaption>D2 · The Stage (desktop arcade): the scenery across the whole screen, the HUD in a top strip, translucent pills, standings bottom right</figcaption></figure>
+<figure><img loading="lazy" src="mockups/r1.webp" alt="R1 · One reveal template on a puzzle (Box Six): score card, Solution / Yours / Room control, the board in a stage box at a fixed share of the height, three facts, Back / Play again; the breakdown in a sheet"><figcaption>R1 · One reveal template on a puzzle (Box Six): score card, Solution / Yours / Room control, the board in a stage box at a fixed share of the height, three facts, Back / Play again; the breakdown in a sheet</figcaption></figure>
+<figure><img loading="lazy" src="mockups/r1b.webp" alt="R1 · The same template on an arcade run in a room (Breaker): the final board as the picture, the chart as the Room view, the finished count in the footer"><figcaption>R1 · The same template on an arcade run in a room (Breaker): the final board as the picture, the chart as the Room view, the finished count in the footer</figcaption></figure>
+<figure><img loading="lazy" src="mockups/a1.webp" alt="A1 · Apex: the painted car (old) beside the rendered car (new) at the same moment; the fix flips the sprite&#x27;s turn and flattens the finish, or returns to the painted car"><figcaption>A1 · Apex: the painted car (old) beside the rendered car (new) at the same moment; the fix flips the sprite&#x27;s turn and flattens the finish, or returns to the painted car</figcaption></figure>
+</div>
+<h2 id="pages">Pages now (phone 390×844 and desktop 1440×900)</h2><div class="grid two">
+<figure><img loading="lazy" src="pages/account-settings.webp" alt="account settings"><figcaption>account settings</figcaption></figure>
+<figure><img loading="lazy" src="pages/account-sign-in.webp" alt="account sign in"><figcaption>account sign in</figcaption></figure>
+<figure><img loading="lazy" src="pages/account-welcome-player-number.webp" alt="account welcome player number"><figcaption>account welcome player number</figcaption></figure>
+<figure><img loading="lazy" src="pages/action-game-page-grappler.webp" alt="action game page grappler"><figcaption>action game page grappler</figcaption></figure>
+<figure><img loading="lazy" src="pages/answer-reveal-arcade.webp" alt="answer reveal arcade"><figcaption>answer reveal arcade</figcaption></figure>
+<figure><img loading="lazy" src="pages/answer-reveal-puzzle.webp" alt="answer reveal puzzle"><figcaption>answer reveal puzzle</figcaption></figure>
+<figure><img loading="lazy" src="pages/challenge-make-one.webp" alt="challenge make one"><figcaption>challenge make one</figcaption></figure>
+<figure><img loading="lazy" src="pages/challenge-podium.webp" alt="challenge podium"><figcaption>challenge podium</figcaption></figure>
+<figure><img loading="lazy" src="pages/components.webp" alt="components"><figcaption>components</figcaption></figure>
+<figure><img loading="lazy" src="pages/customise-games.webp" alt="customise games"><figcaption>customise games</figcaption></figure>
+<figure><img loading="lazy" src="pages/daily-before-playing.webp" alt="daily before playing"><figcaption>daily before playing</figcaption></figure>
+<figure><img loading="lazy" src="pages/daily-board-after-playing.webp" alt="daily board after playing"><figcaption>daily board after playing</figcaption></figure>
+<figure><img loading="lazy" src="pages/daily-board-today.webp" alt="daily board today"><figcaption>daily board today</figcaption></figure>
+<figure><img loading="lazy" src="pages/daily-results.webp" alt="daily results"><figcaption>daily results</figcaption></figure>
+<figure><img loading="lazy" src="pages/final-results-2-players.webp" alt="final results 2 players"><figcaption>final results 2 players</figcaption></figure>
+<figure><img loading="lazy" src="pages/first-open-screen-1.webp" alt="first open screen 1"><figcaption>first open screen 1</figcaption></figure>
+<figure><img loading="lazy" src="pages/friends-list.webp" alt="friends list"><figcaption>friends list</figcaption></figure>
+<figure><img loading="lazy" src="pages/identity-lobby-10-players-with-cards.webp" alt="identity lobby 10 players with cards"><figcaption>identity lobby 10 players with cards</figcaption></figure>
+<figure><img loading="lazy" src="pages/identity-podium-10-players-with-cards.webp" alt="identity podium 10 players with cards"><figcaption>identity podium 10 players with cards</figcaption></figure>
+<figure><img loading="lazy" src="pages/leaderboards-joulz-rating.webp" alt="leaderboards joulz rating"><figcaption>leaderboards joulz rating</figcaption></figure>
+<figure><img loading="lazy" src="pages/lobby-10-players.webp" alt="lobby 10 players"><figcaption>lobby 10 players</figcaption></figure>
+<figure><img loading="lazy" src="pages/nav-games.webp" alt="nav games"><figcaption>nav games</figcaption></figure>
+<figure><img loading="lazy" src="pages/nav-home-a-guest.webp" alt="nav home a guest"><figcaption>nav home a guest</figcaption></figure>
+<figure><img loading="lazy" src="pages/nav-home-an-account-with-the-shop.webp" alt="nav home an account with the shop"><figcaption>nav home an account with the shop</figcaption></figure>
+<figure><img loading="lazy" src="pages/nav-launch-screen.webp" alt="nav launch screen"><figcaption>nav launch screen</figcaption></figure>
+<figure><img loading="lazy" src="pages/nav-light-home.webp" alt="nav light home"><figcaption>nav light home</figcaption></figure>
+<figure><img loading="lazy" src="pages/nav-more-an-account-with-the-shop.webp" alt="nav more an account with the shop"><figcaption>nav more an account with the shop</figcaption></figure>
+<figure><img loading="lazy" src="pages/nav-shop.webp" alt="nav shop"><figcaption>nav shop</figcaption></figure>
+<figure><img loading="lazy" src="pages/nav-tournaments-coming-soon.webp" alt="nav tournaments coming soon"><figcaption>nav tournaments coming soon</figcaption></figure>
+<figure><img loading="lazy" src="pages/pass-a-tester-at-level-12.webp" alt="pass a tester at level 12"><figcaption>pass a tester at level 12</figcaption></figure>
+<figure><img loading="lazy" src="pages/play.webp" alt="play"><figcaption>play</figcaption></figure>
+<figure><img loading="lazy" src="pages/podium-10-players.webp" alt="podium 10 players"><figcaption>podium 10 players</figcaption></figure>
+<figure><img loading="lazy" src="pages/practice-list.webp" alt="practice list"><figcaption>practice list</figcaption></figure>
+<figure><img loading="lazy" src="pages/profile.webp" alt="profile"><figcaption>profile</figcaption></figure>
+<figure><img loading="lazy" src="pages/profile-new-player-empty-states.webp" alt="profile new player empty states"><figcaption>profile new player empty states</figcaption></figure>
+<figure><img loading="lazy" src="pages/rated-home.webp" alt="rated home"><figcaption>rated home</figcaption></figure>
+<figure><img loading="lazy" src="pages/rated-result-won.webp" alt="rated result won"><figcaption>rated result won</figcaption></figure>
+<figure><img loading="lazy" src="pages/rated-searching.webp" alt="rated searching"><figcaption>rated searching</figcaption></figure>
+<figure><img loading="lazy" src="pages/rated-tiers.webp" alt="rated tiers"><figcaption>rated tiers</figcaption></figure>
+<figure><img loading="lazy" src="pages/rated-vs-live.webp" alt="rated vs live"><figcaption>rated vs live</figcaption></figure>
+<figure><img loading="lazy" src="pages/room-settings-sheet-mixed.webp" alt="room settings sheet mixed"><figcaption>room settings sheet mixed</figcaption></figure>
+<figure><img loading="lazy" src="pages/round-leaderboard-10-players.webp" alt="round leaderboard 10 players"><figcaption>round leaderboard 10 players</figcaption></figure>
+<figure><img loading="lazy" src="pages/settings-appearance.webp" alt="settings appearance"><figcaption>settings appearance</figcaption></figure>
+<figure><img loading="lazy" src="pages/settings-sheet.webp" alt="settings sheet"><figcaption>settings sheet</figcaption></figure>
+<figure><img loading="lazy" src="pages/settings-sound-and-volume.webp" alt="settings sound and volume"><figcaption>settings sound and volume</figcaption></figure>
+<figure><img loading="lazy" src="pages/standings-10-players.webp" alt="standings 10 players"><figcaption>standings 10 players</figcaption></figure>
+<figure><img loading="lazy" src="pages/tournaments.webp" alt="tournaments"><figcaption>tournaments</figcaption></figure>
+</div>
+<h2 id="now">Every game now, by category</h2>
+<h3>word</h3>
+<figure><img loading="lazy" src="now/word-phone.webp" alt="word: phone"><figcaption>word: phone</figcaption></figure>
+<figure><img loading="lazy" src="now/word-desktop.webp" alt="word: desktop"><figcaption>word: desktop</figcaption></figure>
+<figure><img loading="lazy" src="now/word-reveals.webp" alt="word: reveals"><figcaption>word: reveals</figcaption></figure>
+<h3>number</h3>
+<figure><img loading="lazy" src="now/number-phone.webp" alt="number: phone"><figcaption>number: phone</figcaption></figure>
+<figure><img loading="lazy" src="now/number-desktop.webp" alt="number: desktop"><figcaption>number: desktop</figcaption></figure>
+<figure><img loading="lazy" src="now/number-reveals.webp" alt="number: reveals"><figcaption>number: reveals</figcaption></figure>
+<h3>speed</h3>
+<figure><img loading="lazy" src="now/speed-phone.webp" alt="speed: phone"><figcaption>speed: phone</figcaption></figure>
+<figure><img loading="lazy" src="now/speed-desktop.webp" alt="speed: desktop"><figcaption>speed: desktop</figcaption></figure>
+<figure><img loading="lazy" src="now/speed-reveals.webp" alt="speed: reveals"><figcaption>speed: reveals</figcaption></figure>
+<h3>attention</h3>
+<figure><img loading="lazy" src="now/attention-phone.webp" alt="attention: phone"><figcaption>attention: phone</figcaption></figure>
+<figure><img loading="lazy" src="now/attention-desktop.webp" alt="attention: desktop"><figcaption>attention: desktop</figcaption></figure>
+<figure><img loading="lazy" src="now/attention-reveals.webp" alt="attention: reveals"><figcaption>attention: reveals</figcaption></figure>
+<h3>pattern</h3>
+<figure><img loading="lazy" src="now/pattern-phone.webp" alt="pattern: phone"><figcaption>pattern: phone</figcaption></figure>
+<figure><img loading="lazy" src="now/pattern-desktop.webp" alt="pattern: desktop"><figcaption>pattern: desktop</figcaption></figure>
+<figure><img loading="lazy" src="now/pattern-reveals.webp" alt="pattern: reveals"><figcaption>pattern: reveals</figcaption></figure>
+<h3>logic</h3>
+<figure><img loading="lazy" src="now/logic-phone.webp" alt="logic: phone"><figcaption>logic: phone</figcaption></figure>
+<figure><img loading="lazy" src="now/logic-desktop.webp" alt="logic: desktop"><figcaption>logic: desktop</figcaption></figure>
+<figure><img loading="lazy" src="now/logic-reveals.webp" alt="logic: reveals"><figcaption>logic: reveals</figcaption></figure>
+<h3>arcade</h3>
+<figure><img loading="lazy" src="now/arcade-phone.webp" alt="arcade: phone"><figcaption>arcade: phone</figcaption></figure>
+<figure><img loading="lazy" src="now/arcade-desktop.webp" alt="arcade: desktop"><figcaption>arcade: desktop</figcaption></figure>
+<figure><img loading="lazy" src="now/arcade-reveals.webp" alt="arcade: reveals"><figcaption>arcade: reveals</figcaption></figure>
+<h2 id="goback">Old against new, every game</h2><p>OLD = main on 16 Nov before the overhaul trains (82f2f648); NEW = main on 18 Nov. The last tile, where present, is the 6 Nov main before the design foundations. Open a game to see its sheet.</p>
+<h3>word</h3>
+<details><summary>Nucleus (wordsmith)</summary><figure><img loading="lazy" src="games/wordsmith.webp" alt="Nucleus: old vs new"><figcaption>Nucleus: old vs new</figcaption></figure></details>
+<details><summary>Interlock (tilegrid)</summary><figure><img loading="lazy" src="games/tilegrid.webp" alt="Interlock: old vs new"><figcaption>Interlock: old vs new</figcaption></figure></details>
+<details><summary>Slider (wordslide)</summary><figure><img loading="lazy" src="games/wordslide.webp" alt="Slider: old vs new"><figcaption>Slider: old vs new</figcaption></figure></details>
+<details><summary>Forage (wordhunt)</summary><figure><img loading="lazy" src="games/wordhunt.webp" alt="Forage: old vs new"><figcaption>Forage: old vs new</figcaption></figure></details>
+<details><summary>Lookout (wordsearch)</summary><figure><img loading="lazy" src="games/wordsearch.webp" alt="Lookout: old vs new"><figcaption>Lookout: old vs new</figcaption></figure></details>
+<details><summary>Roundabout (letterwheel)</summary><figure><img loading="lazy" src="games/letterwheel.webp" alt="Roundabout: old vs new"><figcaption>Roundabout: old vs new</figcaption></figure></details>
+<details><summary>Strikeout (strikeout)</summary><figure><img loading="lazy" src="games/strikeout.webp" alt="Strikeout: old vs new"><figcaption>Strikeout: old vs new</figcaption></figure></details>
+<details><summary>Cryptogrid (codeword)</summary><figure><img loading="lazy" src="games/codeword.webp" alt="Cryptogrid: old vs new"><figcaption>Cryptogrid: old vs new</figcaption></figure></details>
+<details><summary>Swapword (swapword)</summary><figure><img loading="lazy" src="games/swapword.webp" alt="Swapword: old vs new"><figcaption>Swapword: old vs new</figcaption></figure></details>
+<h3>number</h3>
+<details><summary>Counterweight (balance)</summary><figure><img loading="lazy" src="games/balance.webp" alt="Counterweight: old vs new"><figcaption>Counterweight: old vs new</figcaption></figure></details>
+<details><summary>Exact (target)</summary><figure><img loading="lazy" src="games/target.webp" alt="Exact: old vs new"><figcaption>Exact: old vs new</figcaption></figure></details>
+<details><summary>Operator (equation)</summary><figure><img loading="lazy" src="games/equation.webp" alt="Operator: old vs new"><figcaption>Operator: old vs new</figcaption></figure></details>
+<details><summary>Integer Pyramid (numpyramid)</summary><figure><img loading="lazy" src="games/numpyramid.webp" alt="Integer Pyramid: old vs new"><figcaption>Integer Pyramid: old vs new</figcaption></figure></details>
+<details><summary>Brimful (measure)</summary><figure><img loading="lazy" src="games/measure.webp" alt="Brimful: old vs new"><figcaption>Brimful: old vs new</figcaption></figure></details>
+<details><summary>Checkout (checkout)</summary><figure><img loading="lazy" src="games/checkout.webp" alt="Checkout: old vs new"><figcaption>Checkout: old vs new</figcaption></figure></details>
+<details><summary>Ballpark (numline)</summary><figure><img loading="lazy" src="games/numline.webp" alt="Ballpark: old vs new"><figcaption>Ballpark: old vs new</figcaption></figure></details>
+<details><summary>Kakuro (kakuro)</summary><figure><img loading="lazy" src="games/kakuro.webp" alt="Kakuro: old vs new"><figcaption>Kakuro: old vs new</figcaption></figure></details>
+<h3>speed</h3>
+<details><summary>Flash (reaction)</summary><figure><img loading="lazy" src="games/reaction.webp" alt="Flash: old vs new"><figcaption>Flash: old vs new</figcaption></figure></details>
+<details><summary>Ascend (numhunt)</summary><figure><img loading="lazy" src="games/numhunt.webp" alt="Ascend: old vs new"><figcaption>Ascend: old vs new</figcaption></figure></details>
+<details><summary>Don’t Break the Chain (chain)</summary><figure><img loading="lazy" src="games/chain.webp" alt="Don’t Break the Chain: old vs new"><figcaption>Don’t Break the Chain: old vs new</figcaption></figure></details>
+<details><summary>Bonk (whack)</summary><figure><img loading="lazy" src="games/whack.webp" alt="Bonk: old vs new"><figcaption>Bonk: old vs new</figcaption></figure></details>
+<details><summary>Tenfall (tendrop)</summary><figure><img loading="lazy" src="games/tendrop.webp" alt="Tenfall: old vs new"><figcaption>Tenfall: old vs new</figcaption></figure></details>
+<details><summary>Pull! (clayshoot)</summary><figure><img loading="lazy" src="games/clayshoot.webp" alt="Pull!: old vs new"><figcaption>Pull!: old vs new</figcaption></figure></details>
+<h3>attention</h3>
+<details><summary>Eagle Eye (symscan)</summary><figure><img loading="lazy" src="games/symscan.webp" alt="Eagle Eye: old vs new"><figcaption>Eagle Eye: old vs new</figcaption></figure></details>
+<details><summary>Double Take (spotdiff)</summary><figure><img loading="lazy" src="games/spotdiff.webp" alt="Double Take: old vs new"><figcaption>Double Take: old vs new</figcaption></figure></details>
+<details><summary>Labyrinth (maze)</summary><figure><img loading="lazy" src="games/maze.webp" alt="Labyrinth: old vs new"><figcaption>Labyrinth: old vs new</figcaption></figure></details>
+<details><summary>Bomb Defusal (bomb)</summary><figure><img loading="lazy" src="games/bomb.webp" alt="Bomb Defusal: old vs new"><figcaption>Bomb Defusal: old vs new</figcaption></figure></details>
+<details><summary>Matchmaker (pairmatch)</summary><figure><img loading="lazy" src="games/pairmatch.webp" alt="Matchmaker: old vs new"><figcaption>Matchmaker: old vs new</figcaption></figure></details>
+<h3>pattern</h3>
+<details><summary>Gridlock (unblock)</summary><figure><img loading="lazy" src="games/unblock.webp" alt="Gridlock: old vs new"><figcaption>Gridlock: old vs new</figcaption></figure></details>
+<details><summary>Tessellate (blockparty)</summary><figure><img loading="lazy" src="games/blockparty.webp" alt="Tessellate: old vs new"><figcaption>Tessellate: old vs new</figcaption></figure></details>
+<details><summary>Pipeline (pipes)</summary><figure><img loading="lazy" src="games/pipes.webp" alt="Pipeline: old vs new"><figcaption>Pipeline: old vs new</figcaption></figure></details>
+<details><summary>Chroma Lines (flow)</summary><figure><img loading="lazy" src="games/flow.webp" alt="Chroma Lines: old vs new"><figcaption>Chroma Lines: old vs new</figcaption></figure></details>
+<details><summary>Skid (iceslide)</summary><figure><img loading="lazy" src="games/iceslide.webp" alt="Skid: old vs new"><figcaption>Skid: old vs new</figcaption></figure></details>
+<details><summary>Heave (push)</summary><figure><img loading="lazy" src="games/push.webp" alt="Heave: old vs new"><figcaption>Heave: old vs new</figcaption></figure></details>
+<details><summary>Lightbender (laser)</summary><figure><img loading="lazy" src="games/laser.webp" alt="Lightbender: old vs new"><figcaption>Lightbender: old vs new</figcaption></figure></details>
+<details><summary>Topsy-Turvy (gravity)</summary><figure><img loading="lazy" src="games/gravity.webp" alt="Topsy-Turvy: old vs new"><figcaption>Topsy-Turvy: old vs new</figcaption></figure></details>
+<h3>logic</h3>
+<details><summary>Box Six (sudoku)</summary><figure><img loading="lazy" src="games/sudoku.webp" alt="Box Six: old vs new"><figcaption>Box Six: old vs new</figcaption></figure></details>
+<details><summary>Hanoi (tower)</summary><figure><img loading="lazy" src="games/tower.webp" alt="Hanoi: old vs new"><figcaption>Hanoi: old vs new</figcaption></figure></details>
+<details><summary>Polypotions (tubes)</summary><figure><img loading="lazy" src="games/tubes.webp" alt="Polypotions: old vs new"><figcaption>Polypotions: old vs new</figcaption></figure></details>
+<details><summary>Safe Cracker (safe)</summary><figure><img loading="lazy" src="games/safe.webp" alt="Safe Cracker: old vs new"><figcaption>Safe Cracker: old vs new</figcaption></figure></details>
+<details><summary>Mosaic (nonogram)</summary><figure><img loading="lazy" src="games/nonogram.webp" alt="Mosaic: old vs new"><figcaption>Mosaic: old vs new</figcaption></figure></details>
+<details><summary>Colour Flood (flood)</summary><figure><img loading="lazy" src="games/flood.webp" alt="Colour Flood: old vs new"><figcaption>Colour Flood: old vs new</figcaption></figure></details>
+<details><summary>Minefield (minesweeper)</summary><figure><img loading="lazy" src="games/minesweeper.webp" alt="Minefield: old vs new"><figcaption>Minefield: old vs new</figcaption></figure></details>
+<details><summary>Tents and Trees (tents)</summary><figure><img loading="lazy" src="games/tents.webp" alt="Tents and Trees: old vs new"><figcaption>Tents and Trees: old vs new</figcaption></figure></details>
+<details><summary>Shikaku (shikaku)</summary><figure><img loading="lazy" src="games/shikaku.webp" alt="Shikaku: old vs new"><figcaption>Shikaku: old vs new</figcaption></figure></details>
+<details><summary>Lamplighter (lightup)</summary><figure><img loading="lazy" src="games/lightup.webp" alt="Lamplighter: old vs new"><figcaption>Lamplighter: old vs new</figcaption></figure></details>
+<details><summary>Trail (trail)</summary><figure><img loading="lazy" src="games/trail.webp" alt="Trail: old vs new"><figcaption>Trail: old vs new</figcaption></figure></details>
+<details><summary>Loopline (fences)</summary><figure><img loading="lazy" src="games/fences.webp" alt="Loopline: old vs new"><figcaption>Loopline: old vs new</figcaption></figure></details>
+<details><summary>Regions (fillomino)</summary><figure><img loading="lazy" src="games/fillomino.webp" alt="Regions: old vs new"><figcaption>Regions: old vs new</figcaption></figure></details>
+<details><summary>Island Link (bridges)</summary><figure><img loading="lazy" src="games/bridges.webp" alt="Island Link: old vs new"><figcaption>Island Link: old vs new</figcaption></figure></details>
+<h3>arcade</h3>
+<details><summary>Hover (hover)</summary><figure><img loading="lazy" src="games/hover.webp" alt="Hover: old vs new"><figcaption>Hover: old vs new</figcaption></figure></details>
+<details><summary>High Rise (skyline)</summary><figure><img loading="lazy" src="games/skyline.webp" alt="High Rise: old vs new"><figcaption>High Rise: old vs new</figcaption></figure></details>
+<details><summary>Gemstone (matchup)</summary><figure><img loading="lazy" src="games/matchup.webp" alt="Gemstone: old vs new"><figcaption>Gemstone: old vs new</figcaption></figure></details>
+<details><summary>Breaker (breaker)</summary><figure><img loading="lazy" src="games/breaker.webp" alt="Breaker: old vs new"><figcaption>Breaker: old vs new</figcaption></figure></details>
+<details><summary>Pinball (pinball)</summary><figure><img loading="lazy" src="games/pinball.webp" alt="Pinball: old vs new"><figcaption>Pinball: old vs new</figcaption></figure></details>
+<details><summary>Mahjong Solitaire (mahjong)</summary><figure><img loading="lazy" src="games/mahjong.webp" alt="Mahjong Solitaire: old vs new"><figcaption>Mahjong Solitaire: old vs new</figcaption></figure></details>
+<details><summary>Home Run (homerun)</summary><figure><img loading="lazy" src="games/homerun.webp" alt="Home Run: old vs new"><figcaption>Home Run: old vs new</figcaption></figure></details>
+<details><summary>Top Bins (freekick)</summary><figure><img loading="lazy" src="games/freekick.webp" alt="Top Bins: old vs new"><figcaption>Top Bins: old vs new</figcaption></figure></details>
+<details><summary>Apex (racing)</summary><figure><img loading="lazy" src="games/racing.webp" alt="Apex: old vs new"><figcaption>Apex: old vs new</figcaption></figure></details>
+<details><summary>Free Cell (freecell)</summary><figure><img loading="lazy" src="games/freecell.webp" alt="Free Cell: old vs new"><figcaption>Free Cell: old vs new</figcaption></figure></details>
+<details><summary>Summit (tripeaks)</summary><figure><img loading="lazy" src="games/tripeaks.webp" alt="Summit: old vs new"><figcaption>Summit: old vs new</figcaption></figure></details>
+<details><summary>Five Hands (fivehands)</summary><figure><img loading="lazy" src="games/fivehands.webp" alt="Five Hands: old vs new"><figcaption>Five Hands: old vs new</figcaption></figure></details>
+<details><summary>Thirteen (pyramid)</summary><figure><img loading="lazy" src="games/pyramid.webp" alt="Thirteen: old vs new"><figcaption>Thirteen: old vs new</figcaption></figure></details>
+<details><summary>Crazy Golf (minigolf)</summary><figure><img loading="lazy" src="games/minigolf.webp" alt="Crazy Golf: old vs new"><figcaption>Crazy Golf: old vs new</figcaption></figure></details>
+<details><summary>Cue Ball (pool)</summary><figure><img loading="lazy" src="games/pool.webp" alt="Cue Ball: old vs new"><figcaption>Cue Ball: old vs new</figcaption></figure></details>
+<details><summary>Curl Champ (curling)</summary><figure><img loading="lazy" src="games/curling.webp" alt="Curl Champ: old vs new"><figcaption>Curl Champ: old vs new</figcaption></figure></details>
+<details><summary>Blockzone (blockfall)</summary><figure><img loading="lazy" src="games/blockfall.webp" alt="Blockzone: old vs new"><figcaption>Blockzone: old vs new</figcaption></figure></details>
+<details><summary>Rally (rally)</summary><figure><img loading="lazy" src="games/rally.webp" alt="Rally: old vs new"><figcaption>Rally: old vs new</figcaption></figure></details>
+<details><summary>Coral Pop (bubble)</summary><figure><img loading="lazy" src="games/bubble.webp" alt="Coral Pop: old vs new"><figcaption>Coral Pop: old vs new</figcaption></figure></details>
+<details><summary>Tempo (beat)</summary><figure><img loading="lazy" src="games/beat.webp" alt="Tempo: old vs new"><figcaption>Tempo: old vs new</figcaption></figure></details>
+<details><summary>Meteor (snake)</summary><figure><img loading="lazy" src="games/snake.webp" alt="Meteor: old vs new"><figcaption>Meteor: old vs new</figcaption></figure></details>
+<details><summary>Spacewalk (cross)</summary><figure><img loading="lazy" src="games/cross.webp" alt="Spacewalk: old vs new"><figcaption>Spacewalk: old vs new</figcaption></figure></details>
+<details><summary>Moon Climb (ricochet)</summary><figure><img loading="lazy" src="games/ricochet.webp" alt="Moon Climb: old vs new"><figcaption>Moon Climb: old vs new</figcaption></figure></details>
+<details><summary>Wavefront (wavefront)</summary><figure><img loading="lazy" src="games/wavefront.webp" alt="Wavefront: old vs new"><figcaption>Wavefront: old vs new</figcaption></figure></details>
+<details><summary>Iron Wall (bastion)</summary><figure><img loading="lazy" src="games/bastion.webp" alt="Iron Wall: old vs new"><figcaption>Iron Wall: old vs new</figcaption></figure></details>
+<details><summary>Roofbound (flip)</summary><figure><img loading="lazy" src="games/flip.webp" alt="Roofbound: old vs new"><figcaption>Roofbound: old vs new</figcaption></figure></details>
+<details><summary>Rainbow Bridge (inkbridge)</summary><figure><img loading="lazy" src="games/inkbridge.webp" alt="Rainbow Bridge: old vs new"><figcaption>Rainbow Bridge: old vs new</figcaption></figure></details>
+<details><summary>Fission (burst)</summary><figure><img loading="lazy" src="games/burst.webp" alt="Fission: old vs new"><figcaption>Fission: old vs new</figcaption></figure></details>
+<details><summary>Orbit (orbit)</summary><figure><img loading="lazy" src="games/orbit.webp" alt="Orbit: old vs new"><figcaption>Orbit: old vs new</figcaption></figure></details>
+<details><summary>Grappler (swing)</summary><figure><img loading="lazy" src="games/swing.webp" alt="Grappler: old vs new"><figcaption>Grappler: old vs new</figcaption></figure></details>
+<details><summary>Tilt (tilt)</summary><figure><img loading="lazy" src="games/tilt.webp" alt="Tilt: old vs new"><figcaption>Tilt: old vs new</figcaption></figure></details>
+<details><summary>Ball Tracker (balltrack)</summary><figure><img loading="lazy" src="games/balltrack.webp" alt="Ball Tracker: old vs new"><figcaption>Ball Tracker: old vs new</figcaption></figure></details>
+<h2 id="levels">Easy, Normal, Hard, Expert (mid-play, untouched)</h2>
+<h3>word</h3>
+<details><summary>Nucleus</summary><figure><img loading="lazy" src="levels/wordsmith.webp" alt="Nucleus: levels"><figcaption>Nucleus: levels</figcaption></figure></details>
+<details><summary>Interlock</summary><figure><img loading="lazy" src="levels/tilegrid.webp" alt="Interlock: levels"><figcaption>Interlock: levels</figcaption></figure></details>
+<details><summary>Slider</summary><figure><img loading="lazy" src="levels/wordslide.webp" alt="Slider: levels"><figcaption>Slider: levels</figcaption></figure></details>
+<details><summary>Forage</summary><figure><img loading="lazy" src="levels/wordhunt.webp" alt="Forage: levels"><figcaption>Forage: levels</figcaption></figure></details>
+<details><summary>Lookout</summary><figure><img loading="lazy" src="levels/wordsearch.webp" alt="Lookout: levels"><figcaption>Lookout: levels</figcaption></figure></details>
+<details><summary>Roundabout</summary><figure><img loading="lazy" src="levels/letterwheel.webp" alt="Roundabout: levels"><figcaption>Roundabout: levels</figcaption></figure></details>
+<details><summary>Strikeout</summary><figure><img loading="lazy" src="levels/strikeout.webp" alt="Strikeout: levels"><figcaption>Strikeout: levels</figcaption></figure></details>
+<details><summary>Cryptogrid</summary><figure><img loading="lazy" src="levels/codeword.webp" alt="Cryptogrid: levels"><figcaption>Cryptogrid: levels</figcaption></figure></details>
+<details><summary>Swapword</summary><figure><img loading="lazy" src="levels/swapword.webp" alt="Swapword: levels"><figcaption>Swapword: levels</figcaption></figure></details>
+<h3>number</h3>
+<details><summary>Counterweight</summary><figure><img loading="lazy" src="levels/balance.webp" alt="Counterweight: levels"><figcaption>Counterweight: levels</figcaption></figure></details>
+<details><summary>Exact</summary><figure><img loading="lazy" src="levels/target.webp" alt="Exact: levels"><figcaption>Exact: levels</figcaption></figure></details>
+<details><summary>Operator</summary><figure><img loading="lazy" src="levels/equation.webp" alt="Operator: levels"><figcaption>Operator: levels</figcaption></figure></details>
+<details><summary>Integer Pyramid</summary><figure><img loading="lazy" src="levels/numpyramid.webp" alt="Integer Pyramid: levels"><figcaption>Integer Pyramid: levels</figcaption></figure></details>
+<details><summary>Brimful</summary><figure><img loading="lazy" src="levels/measure.webp" alt="Brimful: levels"><figcaption>Brimful: levels</figcaption></figure></details>
+<details><summary>Checkout</summary><figure><img loading="lazy" src="levels/checkout.webp" alt="Checkout: levels"><figcaption>Checkout: levels</figcaption></figure></details>
+<details><summary>Ballpark</summary><figure><img loading="lazy" src="levels/numline.webp" alt="Ballpark: levels"><figcaption>Ballpark: levels</figcaption></figure></details>
+<details><summary>Kakuro</summary><figure><img loading="lazy" src="levels/kakuro.webp" alt="Kakuro: levels"><figcaption>Kakuro: levels</figcaption></figure></details>
+<h3>speed</h3>
+<details><summary>Flash</summary><figure><img loading="lazy" src="levels/reaction.webp" alt="Flash: levels"><figcaption>Flash: levels</figcaption></figure></details>
+<details><summary>Ascend</summary><figure><img loading="lazy" src="levels/numhunt.webp" alt="Ascend: levels"><figcaption>Ascend: levels</figcaption></figure></details>
+<details><summary>Don’t Break the Chain</summary><figure><img loading="lazy" src="levels/chain.webp" alt="Don’t Break the Chain: levels"><figcaption>Don’t Break the Chain: levels</figcaption></figure></details>
+<details><summary>Bonk</summary><figure><img loading="lazy" src="levels/whack.webp" alt="Bonk: levels"><figcaption>Bonk: levels</figcaption></figure></details>
+<details><summary>Tenfall</summary><figure><img loading="lazy" src="levels/tendrop.webp" alt="Tenfall: levels"><figcaption>Tenfall: levels</figcaption></figure></details>
+<details><summary>Pull!</summary><figure><img loading="lazy" src="levels/clayshoot.webp" alt="Pull!: levels"><figcaption>Pull!: levels</figcaption></figure></details>
+<h3>attention</h3>
+<details><summary>Eagle Eye</summary><figure><img loading="lazy" src="levels/symscan.webp" alt="Eagle Eye: levels"><figcaption>Eagle Eye: levels</figcaption></figure></details>
+<details><summary>Double Take</summary><figure><img loading="lazy" src="levels/spotdiff.webp" alt="Double Take: levels"><figcaption>Double Take: levels</figcaption></figure></details>
+<details><summary>Labyrinth</summary><figure><img loading="lazy" src="levels/maze.webp" alt="Labyrinth: levels"><figcaption>Labyrinth: levels</figcaption></figure></details>
+<details><summary>Bomb Defusal</summary><figure><img loading="lazy" src="levels/bomb.webp" alt="Bomb Defusal: levels"><figcaption>Bomb Defusal: levels</figcaption></figure></details>
+<details><summary>Matchmaker</summary><figure><img loading="lazy" src="levels/pairmatch.webp" alt="Matchmaker: levels"><figcaption>Matchmaker: levels</figcaption></figure></details>
+<h3>pattern</h3>
+<details><summary>Gridlock</summary><figure><img loading="lazy" src="levels/unblock.webp" alt="Gridlock: levels"><figcaption>Gridlock: levels</figcaption></figure></details>
+<details><summary>Tessellate</summary><figure><img loading="lazy" src="levels/blockparty.webp" alt="Tessellate: levels"><figcaption>Tessellate: levels</figcaption></figure></details>
+<details><summary>Pipeline</summary><figure><img loading="lazy" src="levels/pipes.webp" alt="Pipeline: levels"><figcaption>Pipeline: levels</figcaption></figure></details>
+<details><summary>Chroma Lines</summary><figure><img loading="lazy" src="levels/flow.webp" alt="Chroma Lines: levels"><figcaption>Chroma Lines: levels</figcaption></figure></details>
+<details><summary>Skid</summary><figure><img loading="lazy" src="levels/iceslide.webp" alt="Skid: levels"><figcaption>Skid: levels</figcaption></figure></details>
+<details><summary>Heave</summary><figure><img loading="lazy" src="levels/push.webp" alt="Heave: levels"><figcaption>Heave: levels</figcaption></figure></details>
+<details><summary>Lightbender</summary><figure><img loading="lazy" src="levels/laser.webp" alt="Lightbender: levels"><figcaption>Lightbender: levels</figcaption></figure></details>
+<details><summary>Topsy-Turvy</summary><figure><img loading="lazy" src="levels/gravity.webp" alt="Topsy-Turvy: levels"><figcaption>Topsy-Turvy: levels</figcaption></figure></details>
+<h3>logic</h3>
+<details><summary>Box Six</summary><figure><img loading="lazy" src="levels/sudoku.webp" alt="Box Six: levels"><figcaption>Box Six: levels</figcaption></figure></details>
+<details><summary>Hanoi</summary><figure><img loading="lazy" src="levels/tower.webp" alt="Hanoi: levels"><figcaption>Hanoi: levels</figcaption></figure></details>
+<details><summary>Polypotions</summary><figure><img loading="lazy" src="levels/tubes.webp" alt="Polypotions: levels"><figcaption>Polypotions: levels</figcaption></figure></details>
+<details><summary>Safe Cracker</summary><figure><img loading="lazy" src="levels/safe.webp" alt="Safe Cracker: levels"><figcaption>Safe Cracker: levels</figcaption></figure></details>
+<details><summary>Mosaic</summary><figure><img loading="lazy" src="levels/nonogram.webp" alt="Mosaic: levels"><figcaption>Mosaic: levels</figcaption></figure></details>
+<details><summary>Colour Flood</summary><figure><img loading="lazy" src="levels/flood.webp" alt="Colour Flood: levels"><figcaption>Colour Flood: levels</figcaption></figure></details>
+<details><summary>Minefield</summary><figure><img loading="lazy" src="levels/minesweeper.webp" alt="Minefield: levels"><figcaption>Minefield: levels</figcaption></figure></details>
+<details><summary>Tents and Trees</summary><figure><img loading="lazy" src="levels/tents.webp" alt="Tents and Trees: levels"><figcaption>Tents and Trees: levels</figcaption></figure></details>
+<details><summary>Shikaku</summary><figure><img loading="lazy" src="levels/shikaku.webp" alt="Shikaku: levels"><figcaption>Shikaku: levels</figcaption></figure></details>
+<details><summary>Lamplighter</summary><figure><img loading="lazy" src="levels/lightup.webp" alt="Lamplighter: levels"><figcaption>Lamplighter: levels</figcaption></figure></details>
+<details><summary>Trail</summary><figure><img loading="lazy" src="levels/trail.webp" alt="Trail: levels"><figcaption>Trail: levels</figcaption></figure></details>
+<details><summary>Loopline</summary><figure><img loading="lazy" src="levels/fences.webp" alt="Loopline: levels"><figcaption>Loopline: levels</figcaption></figure></details>
+<details><summary>Regions</summary><figure><img loading="lazy" src="levels/fillomino.webp" alt="Regions: levels"><figcaption>Regions: levels</figcaption></figure></details>
+<details><summary>Island Link</summary><figure><img loading="lazy" src="levels/bridges.webp" alt="Island Link: levels"><figcaption>Island Link: levels</figcaption></figure></details>
+<h3>arcade</h3>
+<details><summary>Hover</summary><figure><img loading="lazy" src="levels/hover.webp" alt="Hover: levels"><figcaption>Hover: levels</figcaption></figure></details>
+<details><summary>High Rise</summary><figure><img loading="lazy" src="levels/skyline.webp" alt="High Rise: levels"><figcaption>High Rise: levels</figcaption></figure></details>
+<details><summary>Gemstone</summary><figure><img loading="lazy" src="levels/matchup.webp" alt="Gemstone: levels"><figcaption>Gemstone: levels</figcaption></figure></details>
+<details><summary>Breaker</summary><figure><img loading="lazy" src="levels/breaker.webp" alt="Breaker: levels"><figcaption>Breaker: levels</figcaption></figure></details>
+<details><summary>Pinball</summary><figure><img loading="lazy" src="levels/pinball.webp" alt="Pinball: levels"><figcaption>Pinball: levels</figcaption></figure></details>
+<details><summary>Mahjong Solitaire</summary><figure><img loading="lazy" src="levels/mahjong.webp" alt="Mahjong Solitaire: levels"><figcaption>Mahjong Solitaire: levels</figcaption></figure></details>
+<details><summary>Home Run</summary><figure><img loading="lazy" src="levels/homerun.webp" alt="Home Run: levels"><figcaption>Home Run: levels</figcaption></figure></details>
+<details><summary>Top Bins</summary><figure><img loading="lazy" src="levels/freekick.webp" alt="Top Bins: levels"><figcaption>Top Bins: levels</figcaption></figure></details>
+<details><summary>Apex</summary><figure><img loading="lazy" src="levels/racing.webp" alt="Apex: levels"><figcaption>Apex: levels</figcaption></figure></details>
+<details><summary>Free Cell</summary><figure><img loading="lazy" src="levels/freecell.webp" alt="Free Cell: levels"><figcaption>Free Cell: levels</figcaption></figure></details>
+<details><summary>Summit</summary><figure><img loading="lazy" src="levels/tripeaks.webp" alt="Summit: levels"><figcaption>Summit: levels</figcaption></figure></details>
+<details><summary>Five Hands</summary><figure><img loading="lazy" src="levels/fivehands.webp" alt="Five Hands: levels"><figcaption>Five Hands: levels</figcaption></figure></details>
+<details><summary>Thirteen</summary><figure><img loading="lazy" src="levels/pyramid.webp" alt="Thirteen: levels"><figcaption>Thirteen: levels</figcaption></figure></details>
+<details><summary>Crazy Golf</summary><figure><img loading="lazy" src="levels/minigolf.webp" alt="Crazy Golf: levels"><figcaption>Crazy Golf: levels</figcaption></figure></details>
+<details><summary>Cue Ball</summary><figure><img loading="lazy" src="levels/pool.webp" alt="Cue Ball: levels"><figcaption>Cue Ball: levels</figcaption></figure></details>
+<details><summary>Curl Champ</summary><figure><img loading="lazy" src="levels/curling.webp" alt="Curl Champ: levels"><figcaption>Curl Champ: levels</figcaption></figure></details>
+<details><summary>Blockzone</summary><figure><img loading="lazy" src="levels/blockfall.webp" alt="Blockzone: levels"><figcaption>Blockzone: levels</figcaption></figure></details>
+<details><summary>Rally</summary><figure><img loading="lazy" src="levels/rally.webp" alt="Rally: levels"><figcaption>Rally: levels</figcaption></figure></details>
+<details><summary>Coral Pop</summary><figure><img loading="lazy" src="levels/bubble.webp" alt="Coral Pop: levels"><figcaption>Coral Pop: levels</figcaption></figure></details>
+<details><summary>Tempo</summary><figure><img loading="lazy" src="levels/beat.webp" alt="Tempo: levels"><figcaption>Tempo: levels</figcaption></figure></details>
+<details><summary>Meteor</summary><figure><img loading="lazy" src="levels/snake.webp" alt="Meteor: levels"><figcaption>Meteor: levels</figcaption></figure></details>
+<details><summary>Spacewalk</summary><figure><img loading="lazy" src="levels/cross.webp" alt="Spacewalk: levels"><figcaption>Spacewalk: levels</figcaption></figure></details>
+<details><summary>Moon Climb</summary><figure><img loading="lazy" src="levels/ricochet.webp" alt="Moon Climb: levels"><figcaption>Moon Climb: levels</figcaption></figure></details>
+<details><summary>Wavefront</summary><figure><img loading="lazy" src="levels/wavefront.webp" alt="Wavefront: levels"><figcaption>Wavefront: levels</figcaption></figure></details>
+<details><summary>Iron Wall</summary><figure><img loading="lazy" src="levels/bastion.webp" alt="Iron Wall: levels"><figcaption>Iron Wall: levels</figcaption></figure></details>
+<details><summary>Roofbound</summary><figure><img loading="lazy" src="levels/flip.webp" alt="Roofbound: levels"><figcaption>Roofbound: levels</figcaption></figure></details>
+<details><summary>Rainbow Bridge</summary><figure><img loading="lazy" src="levels/inkbridge.webp" alt="Rainbow Bridge: levels"><figcaption>Rainbow Bridge: levels</figcaption></figure></details>
+<details><summary>Fission</summary><figure><img loading="lazy" src="levels/burst.webp" alt="Fission: levels"><figcaption>Fission: levels</figcaption></figure></details>
+<details><summary>Orbit</summary><figure><img loading="lazy" src="levels/orbit.webp" alt="Orbit: levels"><figcaption>Orbit: levels</figcaption></figure></details>
+<details><summary>Grappler</summary><figure><img loading="lazy" src="levels/swing.webp" alt="Grappler: levels"><figcaption>Grappler: levels</figcaption></figure></details>
+<details><summary>Tilt</summary><figure><img loading="lazy" src="levels/tilt.webp" alt="Tilt: levels"><figcaption>Tilt: levels</figcaption></figure></details>
+<details><summary>Ball Tracker</summary><figure><img loading="lazy" src="levels/balltrack.webp" alt="Ball Tracker: levels"><figcaption>Ball Tracker: levels</figcaption></figure></details>
+<h2 id="reveals">Every reveal now</h2>
+<figure><img loading="lazy" src="now/word-reveals.webp" alt="word reveals"><figcaption>word reveals</figcaption></figure>
+<figure><img loading="lazy" src="now/number-reveals.webp" alt="number reveals"><figcaption>number reveals</figcaption></figure>
+<figure><img loading="lazy" src="now/speed-reveals.webp" alt="speed reveals"><figcaption>speed reveals</figcaption></figure>
+<figure><img loading="lazy" src="now/attention-reveals.webp" alt="attention reveals"><figcaption>attention reveals</figcaption></figure>
+<figure><img loading="lazy" src="now/pattern-reveals.webp" alt="pattern reveals"><figcaption>pattern reveals</figcaption></figure>
+<figure><img loading="lazy" src="now/logic-reveals.webp" alt="logic reveals"><figcaption>logic reveals</figcaption></figure>
+<figure><img loading="lazy" src="now/arcade-reveals.webp" alt="arcade reveals"><figcaption>arcade reveals</figcaption></figure>
+</body></html>
