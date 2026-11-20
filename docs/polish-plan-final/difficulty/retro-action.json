@@ -94,15 +94,15 @@
       "expert": "9 rows, paddle 68 px, ball 108 %, every row one hit tougher"
     },
     "measured": "Elite bot under human limits (seeds 20 to 30): 190 / 185 / 177 / 143.",
-    "easy": "6 rows (54 bricks), every plain brick one hit; paddle 112 px; no sliding rows; ball as Normal (today's 108 % dropped).",
-    "hard": "11 rows (99 bricks); paddle 68 px; 2 rows slide from the first second (Normal from 30 s and 60 s); full speed points if the wall is cleared by 55 s (Normal 45 s, the wall is a fifth bigger); ball and brick hits as dealt.",
-    "expert": "12 rows (108 bricks, the whole dealt wall); paddle 52 px; 4 rows slide from the first second; full speed points if cleared by 60 s (the wall is a third bigger); ball and brick hits as dealt (today's extra hit on every row dropped).",
+    "easy": "6 rows (54 bricks), every plain brick one hit; paddle 112 px; no sliding rows; ball as Normal (today's 108 % dropped); the Bricks part is a share of the 54 bricks on screen (the sim already scores the board's own count, not Normal's 81).",
+    "hard": "11 rows (99 bricks); paddle 52 px; 2 rows slide from the first second (Normal from 30 s and 60 s); full speed points if the wall is cleared by 55 s (Normal 45 s, the wall is a fifth bigger); the Bricks part is a share of the 99; ball and brick hits as dealt.",
+    "expert": "12 rows (108 bricks, the whole dealt wall); paddle 36 px; 4 rows slide from the first second; full speed points if cleared by 60 s (the wall is a third bigger); the Bricks part is a share of the 108; ball and brick hits as dealt (today's extra hit on every row dropped).",
     "glance": {
       "easy": "A short six-row wall above a wide paddle",
-      "hard": "Two more rows, two already sliding, a narrower paddle",
-      "expert": "Twelve rows, four sliding, a paddle barely a brick wide"
+      "hard": "Two more rows, two already sliding, a paddle under two thirds as wide",
+      "expert": "Twelve rows, four sliding, a paddle well under half Normal's"
     },
-    "why": "Bricks to break is the whole game and today every level shows the same 81, so each level adds rows until the 90 s clock can hold no more (12 rows, the wall the stored perfect run clears), and the paddle and sliding rows carry the rest of Expert.",
+    "why": "Bricks to break is the whole game and today every level shows the same 81, so each level adds rows until the 90 s clock can hold no more (12 rows), each scored as a share of its own wall, and the paddle carries the rest because a bigger wall alone is no harder for an average player: more of it is within reach.",
     "proof": "No level has a proof today. Write scripts/breaker-level-deal.ts: the flawless skill-band bot (scripts/arcade-skill-bands/bots/breaker.ts, run as scripts/breaker-clear-perfect-record.ts runs it) under HUMAN_LIMITS on each level's wall, keeping only seeds whose run scores 200 through replayBreakerRun; deal levels from that list (src/lib/duel/breakerLevelDeals.server.ts) and replay it in a new breaker-levels-check. docs/arcade-standard/breaker.md records a stored perfect run clearing all 108 bricks of the 12-row wall in 35.3 s on brkRev 11.",
     "change": "redesign",
     "newMechanic": "",
@@ -115,13 +115,13 @@
       "src/lib/duel/breakerLevelDeals.server.ts (new)",
       "scripts/breaker-levels-check.ts (new)"
     ],
-    "risk": "the skill-band bots' scores do not move with paddle width or rows (average bot: Easy 43, Normal 79, Hard 87, Expert 64; 12 rows at 60, 52, 40 and 32 px: 67, 64, 68, 70), so the steps need a better bot or people to confirm; a human-paced bot clears 108 bricks inside 60 s on few seeds (200 on 2 of 16)",
+    "risk": "a lost ball costs only its 3 s relaunch, so even a 28 px paddle moves the average bot little (mean 66), and Easy stops at 131 to 139 on 6 to 9 rows, short of 150; at 36 px the aim-error elite reaches 200 on 1 seed in 24 and at 32 px or less on none",
     "evidence": {
-      "easy": "measured: wall built in memory from the dealt board, 16 seeds: 6 rows, one hit, 112 px paddle: average median 43 (mean 72), elite 184, best 199, 0/16 at 200. Normal today: average 79, elite 173.",
-      "hard": "measured: in memory, 16 seeds: 11 rows, 68 px, 2 rows sliding from the start, speed full by 55 s: average 87, elite 182, 2/16 at 200. Not below Normal (79 and 173).",
-      "expert": "measured: in memory, 16 seeds: 12 rows, 52 px, 4 sliding rows, speed full by 60 s: average 64, elite 167, best 200, 2/16 at 200; flawless bot 7/16 at 200."
+      "easy": "measured: aim-error bot (a seeded normal error on where the paddle is put, sd 16 px average, 6 px elite; no error repeats today's 79 because scatter itself breaks more bricks: Normal then measures 101 and 168), 24 seeds: 6 rows, one hit, 112 px: average 131, elite 175, 1/24 at 200. 7 to 9 rows: 124 to 136.",
+      "hard": "measured: aim-error bot (sd 16 / 6 px), 24 seeds, wall built in memory, Bricks a share of its 99: 11 rows, 52 px, 2 sliding rows: average median 87 (mean 90), elite 145, 1/24 at 200. With 68 px (16 seeds): 113 and 155.",
+      "expert": "measured: aim-error bot (sd 16 / 6 px), 24 seeds, Bricks a share of its 108: 12 rows, 36 px, 4 sliding rows: average 66 (mean 76), elite 129, best 200, 1/24 at 200. At 32, 28 and 24 px: average 66, 62, 49 and no 200. The same bot's best on Normal is 200 (3 of 24)."
     },
-    "verdict": "unproven: Expert's 200 is reached under the limits (2 of 16 seeds), but the bots do not respond to paddle width, Hard measures no harder than Normal and Easy measures below Normal for the average bot.",
+    "verdict": "adjusted: Hard's paddle 68 to 52 px and Expert's 52 to 36 px, measured with an aim-error bot (average 131, 101, 87, 66 from Easy to Expert; elite 175, 168, 145, 129; 200 reached at Expert on 1 seed in 24); Easy stops at 131, short of 150, and Hard sits 14 under Normal by median (21 by mean).",
     "limitsToday": "scripts/level-tune.ts:187 (--human-limits) builds the bots with HUMAN_LIMITS (human.ts:110, :132: reactions 250 ms, tracking lag 150 ms); it measures, nothing asserts, and no levels check for this game mentions limits. The breaker bot reads reaction and lag. There is no oracle, level deal or level check for Breaker."
   },
   {
@@ -242,13 +242,13 @@
       "src/lib/duel/rallyLevelDeals.server.ts (new)",
       "scripts/rally-levels-check.ts (new)"
     ],
-    "risk": "below about 72 px the bot's score stops falling (48 px: 98, 40 px: 87), so Expert's step is not shown, and a 24 px paddle against a 14 px ball at 125 % speed may be more than a human-paced oracle can hold, in which case the floor is 32",
+    "risk": "the elite bot does not separate Hard from Expert (114 and 115), no bot earns a spin shot so 200 is unshown at every level, and a 24 px paddle against a 14 px ball at 125 % speed may be more than a human-paced oracle can hold, in which case the floor is 32",
     "evidence": {
-      "easy": "measured: table overridden in memory, 24 seeds: average median 158, elite 177 (best 196, 0/24 at 200).",
-      "hard": "measured: table in memory, 24 seeds: paddle 72 to 28: average median 98, elite 110, best 171 (Normal 123 and 135). As first proposed (88 to 32): average 110, elite 114.",
-      "expert": "measured: in memory, 24 seeds: paddle 48 to 24, 1 life, 125 %: average 98 (mean 92), elite 114, best 175, 0/24 at 200. With 64 to 28: average 86; with 40 to 20: average 87, elite 108."
+      "easy": "measured: aim-error bot (a seeded normal error on where the paddle is put, sd 10 px average and 4 px elite; Normal then measures 114 and 145 against today's 123 and 135), 24 seeds: 168 to 84 px, 4 lives: average 148, elite 169, best 191.",
+      "hard": "measured: aim-error bot (sd 10 / 4 px), 24 seeds: paddle 72 to 28, bumpers from the first serve: average median 82, elite 114, best 181. With 80 to 30: 88; with 64 to 28: 90.",
+      "expert": "measured: aim-error bot (sd 10 / 4 px), 24 seeds: paddle 48 to 24, 1 life: average 57, elite 115, best 176, 0/24 at 200. The same bot's best on Normal is 185 (no bot earns a spin shot), so the missing 200 is a bot ceiling. With 40 to 20: 49 and 118."
     },
-    "verdict": "adjusted: Hard's paddle 88 to 72 px (88 px measured 13 under Normal, 72 px 25 under) and Expert's 64 to 48 px to keep a visible gap; Expert's step and its 200 stay unproven (the bot's score stops falling under 72 px and no bot earns a spin shot).",
+    "verdict": "holds: with an aim error on the paddle the average bot steps 148, 114, 82, 57 from Easy to Expert (34, 32 and 25 apart); the elite's Hard and Expert measure level (114 and 115) and no bot reaches 200 at any level, Normal included.",
     "limitsToday": "scripts/level-tune.ts:187 (--human-limits) builds the bots with HUMAN_LIMITS (human.ts:110, :132: reactions 250 ms, tracking lag 150 ms); it measures, nothing asserts, and no levels check for this game mentions limits. The rally bot reads reaction and lag. There is no Rally oracle, level deal or level check."
   },
   {
@@ -331,7 +331,7 @@
     "evidence": {
       "easy": "measured: table and first state in memory, 16 seeds: no rocks, 9 to 5 ticks, core full at 20: average median 143, elite 174, best 184. As first proposed (10 to 6 ticks, full at 27): average 118, elite 165.",
       "hard": "measured: 8 of the course's own rock squares landed at tick 0 in memory, walls, 2 lives, full at 36, 16 seeds: average 73, elite 175, best 186 (Normal 93 and 175). The rock-every-3-s rule needs sim code and was not played.",
-      "expert": "measured: about 12 of 16 rocks landed at tick 0 in memory, walls, 1 life, 7 to 3 ticks, 16 seeds: average 33, elite median 150, best 190, 0/16 at 200. The timed rocks up to 32 need sim code and were not played."
+      "expert": "measured: about 12 of 16 rocks landed at tick 0 in memory, walls, 1 life, 7 to 3 ticks, 16 seeds: average 33, elite median 150, best 190, 0/16 at 200. The timed rocks up to 32 need sim code and were not played. The same bot's best on Normal is 187 (0 of 24 at 200), so the missing 200 is at least partly a bot ceiling."
     },
     "verdict": "adjusted: Easy's core full at 27 to 20 stars and its pace back to today's 9 to 5 ticks (average 118 to 143, elite 165 to 174); Hard and Expert measure 73 and 33 for the average bot, but no elite run reaches 200 at any level.",
     "limitsToday": "scripts/level-tune.ts:187 (--human-limits) builds the bots with HUMAN_LIMITS (human.ts:110, :132: reactions 250 ms, tracking lag 150 ms); it measures, nothing asserts, and no levels check for this game mentions limits. The snake bot reads reaction and think time. There is no Meteor oracle, level deal or level check."
@@ -373,7 +373,7 @@
     "evidence": {
       "easy": "measured: density table in memory, 8 seeds: 3 rising to 8 twelfths, 4 lives: average median 151, elite 200, 7/8 at 200.",
       "hard": "measured: in memory, 8 seeds: 10 rising to 15 twelfths: average 69, elite 160, best 200, 1/8 at 200 (Normal 121 and 185).",
-      "expert": "measured: in memory, 8 seeds (the sim still thins a crossing it cannot prove): 14 then 15 twelfths, 2 lives, hit 20, full at 76, Normal's ship speed: average 46, elite 128, best 190, 0/8 at 200. Faster ships were not a setting."
+      "expert": "measured: in memory, 8 seeds (the sim still thins a crossing it cannot prove): 14 then 15 twelfths, 2 lives, hit 20, full at 76, Normal's ship speed: average 46, elite 128, best 190, 0/8 at 200. Faster ships were not a setting. The same bot's best on Normal is 200 (10 of 24), so the gap is the level, not a bot ceiling."
     },
     "verdict": "adjusted: Expert's 25 % faster ships dropped (not a setting, and the density table alone already measures average 46 and elite 128); Easy and Hard hold (151 and 69); Expert's 200 was not reached in 8 seeds (best 190).",
     "limitsToday": "scripts/level-tune.ts:187 (--human-limits) builds the bots with HUMAN_LIMITS (human.ts:110, :132: reactions 250 ms, tracking lag 150 ms); it measures, nothing asserts, and no levels check for this game mentions limits. The cross bot reads reaction and lag. The sim's crossing proofs and scripts/cross-std-density.ts use no human timing; there is no level deal or levels check."
@@ -412,7 +412,7 @@
     "evidence": {
       "easy": "measured: today's Easy, scratch harness (level-tune's own loop and HUMAN_LIMITS), 24 seeds, medians: average 165, elite 194, 8/24 at 200, no run ended early.",
       "hard": "measured: table in memory, 12 towers: blades 1.3 times, 65 % ice, knock-down 3.5 m: average median 61, elite 134, best 163, 0/12 at 200. Today's 3 m: average 80, elite 142; Normal 86 and 159. Blades at 1.45 times alone: 77 and 125.",
-      "expert": "measured: today's Expert, 24 seeds: average 42, elite 99, best 144, 0/24 at 200 under HUMAN_LIMITS (the earlier pass's 135 used the bot's own limits only)."
+      "expert": "measured: today's Expert, 24 seeds: average 42, elite 99, best 144, 0/24 at 200 under HUMAN_LIMITS (the earlier pass's 135 used the bot's own limits only). The same bot's best on Normal is 200 (1 of 24 towers), so Expert's 144 is the level, not a bot ceiling."
     },
     "verdict": "adjusted: Hard's knock-down 3 m to 3.5 m (today's Hard measured 6 under Normal for the average bot, now 25 under); Easy and Expert kept as today; Expert's 200 under HUMAN_LIMITS is unproven (elite median 99, best 144).",
     "limitsToday": "scripts/action-levels-bands.ts:29-33 sets `human.limits`, which bots/ricochet.ts reads; level-tune.ts:187 sets the same flag and also raises reactions to 250 ms. Both only measure. The tower's witness is frame-exact and ricochet-levels-check asserts its 200 with no limits."
@@ -497,7 +497,7 @@
     "evidence": {
       "easy": "not measured: tanks a wave are fixed in the sim (BT2_WAVES, bastionTank.ts:142). Today's Easy, 60 seeds: average 172, elite under the bot's limits 198, 9/60 at 200.",
       "hard": "not measured: the fourth lane needs sim code (3 lanes at bastionTank.ts:109, :289, :720). Today's Hard, 60 seeds: average 104, elite 161, best 177; oracle paced at 0.25 s and 0.15 s: 200 on 60/60.",
-      "expert": "not measured: needs sim code. Today's Expert, 60 seeds: average 84, elite 146, best 172; paced oracle 200 on 58/60; same field as Hard for the first 5 s on 60/60 seeds. Pace-only probe (56 56 56 80 104): average 91, elite 148."
+      "expert": "not measured: needs sim code. Today's Expert, 60 seeds: average 84, elite 146, best 172; paced oracle 200 on 58/60; same field as Hard for the first 5 s on 60/60 seeds. Pace-only probe (56 56 56 80 104): average 91, elite 148. The same bot's best on Normal is 200 (9 of 60), so 172 is the level under the bot's aim error, not a bot ceiling."
     },
     "verdict": "adjusted: Easy's weak-spot part made full at 20 hits (20 tanks cannot give 30); the four-lane Hard and Expert stay unproven, not measured without sim code, though today's Expert already measures 15 to 20 under Hard.",
     "limitsToday": "bots/bastion.ts:44 BASTION_HUMAN_LIMITS (0.25 s notice, 0.15 s move, aim 5 px, timing 30 ms) is applied through `fixes` (:66-70) by level-tune and the band tool; --human-limits changes nothing more. bastion-levels-check.ts:239-252 asserts the oracle's 200 with no human."
@@ -539,7 +539,7 @@
     "evidence": {
       "easy": "measured: rules in memory, 12 seeds: start 3 px, top 7, sweet spots 10 ticks, full at 3: average median 174, elite 200, 12/12 at 200. As first proposed (6 ticks, full at 5): average 129.",
       "hard": "measured: rules in memory, 12 seeds: start 5.5 px, top 12, spikes from 4 s: average median 86 (mean 72), elite 174, best 191, 0/12 at 200 (Normal 109 and 200).",
-      "expert": "measured: in memory, 12 seeds: start 7 px, top 13, spikes from 1 s: average 10, elite 140, best 173, 0/12 at 200. At 6.25 px with spikes from 2 s: average 20, elite 158, best 180. Today's Expert: best 186, 0/24."
+      "expert": "measured: in memory, 12 seeds: start 7 px, top 13, spikes from 1 s: average 10, elite 140, best 173, 0/12 at 200. At 6.25 px with spikes from 2 s: average 20, elite 158, best 180. Today's Expert: best 186, 0/24. The same bot's best on Normal is 200 (14 of 24), so the gap is the level, not a bot ceiling."
     },
     "verdict": "adjusted: Easy's sweet spots widened to 10 ticks and perfect landings full at 3 (average 129 to 174); Hard and Expert hold for the order (86 and 10 for the average bot, elite 174 and 140), but no elite run under the limits reaches 200 on either (best 191 and 173).",
     "limitsToday": "scripts/flip-skyline-levels-bands.ts plays a `limited` bot (humanLimits.ts:16) and level-tune.ts:187 the HUMAN_LIMITS bots: both only measure. The level deal's witness (flip-level-deal.ts with flip-x200-plan.ts) is planned to the exact tick and flip-levels-check asserts its 200 with no limits."

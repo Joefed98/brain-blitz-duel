@@ -32,13 +32,13 @@
       "scripts/gemstone-levels-bands.ts",
       "scripts/gemstone-levels-check.ts"
     ],
-    "risk": "measured: the ice count barely moves scores (average 72 at 18 cells, 71 at 28, 70 at 40), so Expert needs a second lever that bites before it is built; the limited bot also reaches 200 on about 3 Expert seeds in 200 today, so a 60-seed list needs a stronger planner",
+    "risk": "measured: the average bot clears about half the gems the flawless bot does at every setting, so any Expert whose parts the flawless run can fill leaves the average near 70; a real step for the average needs a new mechanic or a new gem kind, not a number in the table",
     "evidence": {
       "easy": "measured: today's Easy kept; gemstone-levels-bands playLevel, 60 seeds: average 162.6 (19 of 60 at 175+), elite under limits 197.2 (47 at 200), flawless 198.1.",
       "hard": "measured: the proposed Hard is today's Expert table; 60 seeds: average 72.3 (Normal 95.3), elite under limits 137.0 (Normal 158.1; one run at 200), flawless 167.6 with 7 of 60 at 200.",
-      "expert": "measured: 28 ice set in memory (MATCHUP_V13_LEVELS), 60 seeds: average 70.7, elite under limits 132.4 (best 197, none at 200), flawless 169.4 (7 at 200). With every free cell frozen (40): 69.9 / 129.8 / 158.3."
+      "expert": "measured: 28 ice in memory, 60 seeds: average 70.7, elite under limits 132.4, flawless 169.4 (7 at 200); 40 cells 69.9. Three-hit ice (scratch game, 40 seeds): 69.8 at 18 cells, 68.5 at 28. An eighth colour breaks the sim (an invalid gem kind)."
     },
-    "verdict": "unproven: Hard holds (95 to 72), but 28 ice does not separate Expert from Hard (average 72.3 to 70.7, elite 137 to 132) and nor do 40 cells; only the parts' full figures moved scores, and then no run reached 200.",
+    "verdict": "unproven: no lever the sim offers separates Expert from Hard for the average player: two-hit or three-hit ice at 18, 28 or 40 cells all score 68 to 72, an eighth colour is not supported, and stricter part figures that reach 58 to 63 leave the flawless run short of 200 (best 174 to 195).",
     "limitsToday": "scripts/gemstone-levels-bands.ts:25-29 (limitHuman: elite reactions held at 250 ms; --limits, line 90) measures only; nothing asserts per seed. The witnesses gemstone-levels-check replays are one flawless seed a level and 3 elite Expert seeds."
   },
   {
@@ -318,7 +318,7 @@
       "expert": "30 seconds: a card down every second and a half"
     },
     "why": "The deck and the five rows cannot grow, so thinking time per card is the lever: halving it turns a poker puzzle into speed poker, and the stricter tables make the rushed safe pair worth less.",
-    "proof": "Five Hands is the arcade standard's one named exception (NOT_200_ON_EVERY_DEAL in scripts/arcade-standard-check.ts): Normal deals the seed's first shuffle and only 165 of 200 decks can reach 200, so today no level has a 200 proof. A level need not inherit that: build a deck list per level with scripts/cards/fiveHandsBest.ts (the exact best rows plus best column, about 1 s a deck, run on the level's table) and keep only decks whose best reaches the level's full figure (143 hand points at x 1.4, 125 at x 1.6); the witness is 21 taps, 8.4 s at 0.4 s a tap. The exception then covers Normal alone.",
+    "proof": "Five Hands is the arcade standard's one named exception (NOT_200_ON_EVERY_DEAL in scripts/arcade-standard-check.ts): Normal deals the seed's first shuffle and only 165 of 200 decks can reach 200, so today no level has a 200 proof. A level need not inherit that: build a deck list per level with scripts/cards/fiveHandsBest.ts (the exact best rows plus best column, about 1 s a deck, run on the level's table) and keep only decks whose best reaches the level's full figure (143 hand points at x 1.4, 125 at x 1.6); the witness is 21 taps, 8.4 s at 0.4 s a tap. Measured with fhBest on 20 Expert-deal decks: 8 reach 143 points on the Expert table and 9 on the Hard table, so a list keeps about two decks in five. The exception then covers Normal alone.",
     "change": "retune",
     "newMechanic": "",
     "stamp": "fiveHandsRev 4 on level deals (Normal stays fiveHandsRev 3): proved deck lists replace the first shuffle, and today's hint rounds must still replay.",
@@ -335,9 +335,9 @@
     "evidence": {
       "easy": "measured: FH_LEVEL_RULES set in memory, 16 decks, cards-levels-tune reportLevel (server grade): average 144.5 and human-limits 156.5, the same as today's 75 s (the average bot finishes in 54 s); elite 177.0.",
       "hard": "measured: 42 s, no hints, 16 decks: average 60.0 and never places all 20 cards (Normal 121.2, today's Hard 86.2), human-limits 116.4, elite 137.4.",
-      "expert": "measured: 30 s at x 1.4, 16 decks: average 29.4 (today's Expert 62.7), human-limits 110.7 (best tenth 157.5; today 102.5), elite 131.5 (best tenth 194.5); no run at 200, and no proved deck list exists yet."
+      "expert": "measured: 30 s at x 1.4, 16 decks: average 29.4 (today 62.7), human-limits 110.7, elite 131.5 (best tenth 194.5), no run at 200. Best-deck search (fhBest, Expert table): 8 of 20 Expert-deal decks can reach 200 at x 1.4, 5 of 20 at today's x 1.3."
     },
-    "verdict": "unproven: the clock gives the average player steps of 61 and 31 points (121 / 60 / 29), but no run reached 200 at Expert (elite best tenth 194.5) and the proved deck lists are not built; Easy's 90 s changes nothing against today's 75 s.",
+    "verdict": "holds: the clock gives the average player steps of 61 and 31 points (121 / 60 / 29), and the exact best arrangement reaches 200 on 8 of 20 Expert decks at x 1.4, so a proved deck list is feasible; no bot found that arrangement in play (best tenth 194.5), and Easy's 90 s changes nothing against today's 75 s.",
     "limitsToday": "scripts/cards-human-limits.ts:175 (the hint's rule at one tap every 24 ticks) for cards-levels-tune.ts:60 (--bots=human) and cards-levels-order-check.ts, which asserts the levels step down; no level has a 200 witness."
   },
   {

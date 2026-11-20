@@ -82,6 +82,11 @@ def decisions():
         o=''.join(f'<label class="opt{" rec" if v==rec else ""}"><input type="radio" name="d-{k}" id="d-{k}-{v}" value="{E(lab)}"{" checked" if v==rec else ""}><span>{E(lab)}{" <small>recommended</small>" if v==rec else ""}</span></label>' for v,lab in opts)
         out.append(f'<fieldset class="dec" data-q="{E(q)}"><legend><b>{i}.</b> {E(q)}</legend><p>{E(note)}</p><div class="opts">{o}</div></fieldset>')
     return '\n'.join(out)
+import os as _os
+MOREFAM=[]
+for g,n,note in [('numhunt','Ascend · Speed','Spotlight'),('strikeout','Strikeout · Word','Spotlight'),('target','Exact · Number','Spotlight'),('symscan','Eagle Eye · Attention','Spotlight'),('balance','Counterweight · Number','Spotlight'),('tubes','Polypotions · Logic','Spotlight'),('bastion','Iron Wall · Action','lit stage'),('flow','Chroma Lines · Pattern','lit stage only'),('hover','Hover · Retro','stays neon')]:
+    if _os.path.exists(R+f'direction/games/{g}-spotlight.webp'):
+        MOREFAM+=[(f'games/{g}-now',n.split(' · ')[0]+' today','now'),(f'games/{g}-spotlight',n+' · '+note,'')]
 dirsec=[]
 for key,num,name,idea,what,pro,con in DIRS:
     rec=' <span class="recbadge">Recommended</span>' if key=='spotlight' else ''
@@ -215,6 +220,9 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 <h3>Spotlight, drawn rather than filtered</h3>
 <p>Five games with the pieces redrawn in the direction, under today’s real header. This is closer to what a build session would produce.</p>
 {strip([('games/wordhunt-now','Forage today','now'),('games/wordhunt-drawn','Forage, drawn',''),('games/sudoku-now','Box Six today','now'),('games/sudoku-drawn','Box Six, drawn',''),('games/target-now','Exact today','now'),('games/target-drawn','Exact, drawn',''),('games/flow-now','Chroma Lines today','now'),('games/flow-drawn','Chroma Lines, drawn',''),('games/matchup-now','Gemstone today','now'),('games/matchup-drawn','Gemstone, drawn','')])}
+<h3 id="morefam">Spotlight on more families</h3>
+<p>The recommended direction on seven more real screenshots, each beside today, so nine of the eleven families are now shown. Ascend’s discs go ivory on warm wood, Strikeout’s tiles and keys go light, Exact’s number tiles go ivory with the gold target kept, Polypotions sits on a lit teal stage. Iron Wall is a world, so it only gets its colours lifted. Two show the exceptions: Chroma Lines keeps its deep board and only gets the lit stage, and Hover, being Retro, stays dark and glows. These are filters on the real picture, so edges are rough; the build redraws each game.</p>
+{strip(MOREFAM)}
 <h3>One game across all four</h3>
 {''.join(compare)}
 
@@ -281,6 +289,9 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 <p><b>L1 Ladder</b> lists the four levels on the game’s page, each with a small picture of what changes and your best. <b>L2 Preview</b> shows one level large with the lever as a row of numbers. <b>L3 Step up</b> is the card on the reveal after a star: Normal beside Hard, and one line saying what is new. I recommend L1 with L3.</p>
 {strip([('pages/levels1-e-phone','L1 · Ladder (Breaker)',''),('pages/levels2-e-phone','L2 · Preview (Box Six)',''),('pages/levels3-e-phone','L3 · Step up, on the reveal','')])}
 {strip([('pages/levels-e-desktop','L1 on a computer: the four levels side by side','wide')])}
+<h3 id="pictures">You can see the step before you play</h3>
+<p>Eight ladders drawn as pictures of what the screen shows as the round opens: Breaker’s wall and paddle, Box Six’s given numbers, Ascend’s discs, Meteor’s rocks and walls, Top Bins’ wall and wind, Iron Wall’s lanes and tanks, Tempo’s lanes, Mahjong’s stack. They are drawn from the level numbers in the spec, and they are the small pictures the ladder on a game’s page would use.</p>
+{strip([('pages/pictures-board','Eight ladders as pictures','board')])}
 <h3 id="ladders">What each step up looks like</h3>
 <p>Twelve of the 83 ladders on one sheet: one from each family, and the five new mechanics. The gold line under each name is the game’s one lever. The small label on each level says whether its numbers were measured in this pass, come from the repo’s documents, or are not measured yet.</p>
 {strip([('pages/ladders-sheet','Twelve ladders','board')])}
