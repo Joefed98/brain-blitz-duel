@@ -30,7 +30,7 @@ body { background: radial-gradient(90% 70% at 60% -10%, color-mix(in srgb, var(-
   </div></div>
 <script>
 const cols = ["#FF4D6A","#FF8A3D","#FFC81E","#3DDC84","#36E2F5","#4D8CFF","#B26BFF","#FF6BD6","#FF4D6A","#FF8A3D","#FFC81E","#3DDC84"];
-const L = [["Easy",1,6,74,"6 rows, a wide paddle","184","star",[]],["Normal",2,9,56,"9 rows, the ranked game","148","star",[]],["Hard",3,11,45,"11 rows, 2 sliding, a narrow paddle","—","off",[8,10]],["Expert",4,12,34,"12 rows, 4 sliding, a tiny paddle","—","crown",[6,8,9,11]]];
+const L = [["Easy",1,6,74,"6 rows, a wide paddle","184","star",[]],["Normal",2,9,56,"9 rows, the ranked game","148","star",[]],["Hard",3,11,35,"11 rows, 2 sliding, a narrow paddle","—","off",[8,10]],["Expert",4,12,24,"12 rows, 4 sliding, a tiny paddle","—","crown",[6,8,9,11]]];
 document.getElementById("lad").innerHTML = L.map(([n,l,rows,pw,lev,best,st,sl]) => {
   let w = ""; for (let r = 0; r < rows; r++) for (let c = 0; c < 9; c++) w += `<i style="background:${cols[r]};${sl.includes(r) ? "transform:translateX(" + (r % 2 ? 9 : -9) + "px)" : ""}"></i>`;
   const mark = st === "star" ? '<span class="star"></span>' : st === "off" ? '<span class="star off"></span>' : '<span class="crown off"></span>';

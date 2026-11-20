@@ -27,7 +27,7 @@
 </div>
 <script>
 const cols = ["#FF4D6A","#FF8A3D","#FFC81E","#3DDC84","#36E2F5","#4D8CFF","#B26BFF","#FF6BD6","#FF4D6A","#FF8A3D","#FFC81E","#3DDC84"];
-const L = [["Easy",1,6,34,"6 rows · wide paddle","184","star"],["Normal",2,9,25,"9 rows · the ranked game","148","star"],["Hard",3,11,20,"11 rows, 2 sliding · narrow","—","off"],["Expert",4,12,15,"12 rows, 4 sliding · tiny","—","crownoff"]];
+const L = [["Easy",1,6,34,"6 rows · wide paddle","184","star"],["Normal",2,9,25,"9 rows · the ranked game","148","star"],["Hard",3,11,16,"11 rows, 2 sliding · narrow","—","off"],["Expert",4,12,11,"12 rows, 4 sliding · tiny","—","crownoff"]];
 document.getElementById("ladder").innerHTML = L.map(([n,l,rows,pw,lev,best,st]) => {
   let w = ""; for (let r = 0; r < rows; r++) for (let c = 0; c < 9; c++) w += `<i style="background:${cols[r]}"></i>`;
   const mark = st === "star" ? '<span class="star"></span>' : st === "off" ? '<span class="star off"></span>' : '<span class="crown off"></span>';

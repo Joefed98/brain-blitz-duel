@@ -27,7 +27,7 @@ body { background: radial-gradient(120% 50% at 50% -6%, color-mix(in srgb, var(-
   <div class="panel step mt14">
     <div class="row g8"><div class="cap grow">Next step up</div><span class="lchip l3"><span class="lvl l3"><i></i><i></i><i></i><i></i></span>Hard</span></div>
     <div class="pair"><div class="mini l2" id="a"></div><div class="arrow">›</div><div class="mini l3" id="b"></div></div>
-    <div style="font:800 17px/1.25 Archivo;margin-top:12px">Two more rows, two already sliding, a narrower paddle.</div>
+    <div style="font:800 17px/1.25 Archivo;margin-top:12px">Two more rows, two already sliding, a paddle under two thirds as wide.</div>
   </div>
   <div class="btn full mt14">Play Hard</div>
   <div class="row g8 mt10"><div class="btn sec sm grow">Play again</div><div class="btn sec sm grow">Games</div></div>
@@ -36,5 +36,5 @@ body { background: radial-gradient(120% 50% at 50% -6%, color-mix(in srgb, var(-
 const cols = ["#FF4D6A","#FF8A3D","#FFC81E","#3DDC84","#36E2F5","#4D8CFF","#B26BFF","#FF6BD6","#FF4D6A","#FF8A3D","#FFC81E","#3DDC84"];
 const mk = (id, rows, pw, t, slide) => { let w = ""; for (let r = 0; r < rows; r++) for (let c = 0; c < 9; c++) w += `<i style="background:${cols[r]};${slide.includes(r) ? "transform:translateX(" + (r % 2 ? 5 : -5) + "px)" : ""}"></i>`;
   document.getElementById(id).innerHTML = `<div class="w">${w}</div><div class="t">${t}</div><div class="p" style="width:${pw}px"></div>`; };
-mk("a", 9, 30, "9 rows", []); mk("b", 11, 22, "11 rows", [8, 10]);
+mk("a", 9, 30, "9 rows", []); mk("b", 11, 18, "11 rows", [8, 10]);
 </script></body></html>

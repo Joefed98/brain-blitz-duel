@@ -642,14 +642,14 @@
     },
     "measured": "6 courses, bots under human limits, mean: average 113 / 86 / 89 / 79 (Hard no harder than Normal); elite 199 / 199 / 200 / 198 (flat).",
     "easy": "No pterodactyl; reach 250 px; no sliding vines (today 5); no dark runs; course part full at 40 % of the way (today 50 %).",
-    "hard": "The pterodactyl chases from the first vine (Normal only the last quarter) at 3.2 px a tick for the whole course, its distance warning shown from the start; 26 sliding vines, vine swing 125 % and stall 55 ticks as today.",
-    "expert": "The pterodactyl chases from the first vine at 3.4 px a tick for the whole course; reach 205 px, 30 sliding vines, 7 dark runs and vine swing 145 % as today.",
+    "hard": "The pterodactyl chases from the first vine (Normal only the last quarter) at 3.4 px a tick for the whole course, its distance warning shown from the start; 26 sliding vines, vine swing 125 % and stall 55 ticks as today.",
+    "expert": "The pterodactyl chases from the first vine at 3.6 px a tick for the whole course; reach 205 px, 30 sliding vines, 7 dark runs and vine swing 145 % as today.",
     "glance": {
       "easy": "No pterodactyl, every vine hanging still, all lit",
       "hard": "A pterodactyl warning from the first vine, vines sliding",
       "expert": "The pterodactyl closing faster from the first vine, dark runs"
     },
-    "why": "Reach, sliding vines and swing speed change the route but not the look and leave every bot flat across the levels, whereas the chaser the game already has turns the whole course into a race the moment it appears.",
+    "why": "Reach, sliding vines and swing speed change the route but not the look and leave every bot flat across the levels (re-measured: a 200 px reach, a 200 % swing and more sliding vines move nothing), whereas the chaser the game already has is the one setting that moves the average player and shows from the first vine.",
     "proof": "Each level deals 24 courses whose flawless oracle replays to exactly 200 (bun scripts/swing-slide-deal.ts --rev=18 --level, src/lib/duel/swingLevelDeal.server.ts, scripts/swing-levels-check.ts). Rebuild with the chase from the first vine: the oracle must stay ahead on every stretch, ledge runs included, and its releases need re-timing under HUMAN_LIMITS (it hits exact ticks today).",
     "change": "redesign",
     "newMechanic": "",
@@ -663,13 +663,13 @@
       "scripts/arcade-skill-bands/bots/swingRework.ts",
       "scripts/action-levels-bands.ts"
     ],
-    "risk": "even at 3.2 and 3.4 px a tick from the first vine the elite bot is never caught (198 to 199, 200 reached) and the average bot only falls to 81 and 66; at 4.0 px a tick the sim's course build fails, as swing.md records for a tighter pterodactyl",
+    "risk": "no SWING_LEVELS setting gives the average bot a 20-point step: it covers 20 to 24 of 51 stretches at every level, the chase moves it 6 and 14, the elite is never caught, a 4.0 px chase and a reach under 205 px cannot be built, and a tighter streak stall (35 or 25 ticks) costs the elite its 200",
     "evidence": {
       "easy": "not measured: today's levels were not re-run this session (the run was cut off); the earlier pass's numbers stand (average 113, elite 199, 6 courses).",
-      "hard": "measured: chase start set in memory (one pace a level), 6 courses: from the first vine at 3.2 px a tick: average median 81, caught 4.3 times a run, elite 199, never caught, 3/6 at 200. At the first-proposed 2.0 px: average 87, never caught.",
-      "expert": "measured: in memory, 6 courses: from the first vine at 3.4 px a tick: average 66, caught 7.7 times, elite 198, 1/6 at 200. At the first-proposed 2.6 px: average 79, elite 198. At 4.0 px the course build throws (swing.ts:3751)."
+      "hard": "measured: table and chase start in memory, 6 courses: chase from the first vine at 3.4 px a tick (run with a 35-tick stall): average 75, caught 6.7 times, elite 185, best 190. At 3.2 px with today's stall: 81 and 199, 3/6 at 200. Normal: 81 and 197; today's Hard: 94 and 198 (4 courses).",
+      "expert": "measured: in memory, 6 courses: chase from the first vine at 3.6 px (run with a 25-tick stall): average 61, caught 13 times, elite 168, best 174. At 3.4 px with today's stall: 66 and 198, 1/6 at 200. Reach 195 or 185 px and a 4.0 px chase fail to build; a 200 % swing and more sliding vines change nothing."
     },
-    "verdict": "adjusted: the slow opening pace dropped (2.0 and 2.6 px a tick measured no change) for the level's own 3.2 and 3.4 px from the first vine; the step is still unproven: the average bot falls only to 81 and 66 and the elite stays at 198 to 199.",
+    "verdict": "adjusted: the chase runs from the first vine at 3.4 px (Hard) and 3.6 px (Expert), the only setting that moves the average bot (81, 75, 61 from Normal); the step stays under 20 and the elite is never caught, so the row needs a lever SWING_LEVELS lacks: a chase near 4 px a tick, which the course builder cannot prove today.",
     "limitsToday": "scripts/action-levels-bands.ts:29-33 sets `human.limits`, which bots/swingRework.ts reads; level-tune.ts:187 sets the same flag and raises reactions to 250 ms. Both only measure. The deal's oracle (swing-slide-deal.ts) hits exact ticks and swing-levels-check asserts its 200 with no limits."
   }
 ]

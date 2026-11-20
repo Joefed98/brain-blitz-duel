@@ -64,25 +64,25 @@ What the player sees in the first seconds at each level.
 | Pull! | Speed | Clays in the air together | One slow clay at a time in a big ring. | Two fast clays cross on the very first pull. | Three clays at once among a sky of birds. | measured / measured / measured |
 | Gridlock | Pattern | Lot size and cars | A small, half-empty lot with the gold car nearly out | A bigger 8×8 lot packed with fifteen or more cars | A 9×9 lot, wall to wall with over twenty cars | measured / measured / not measured |
 | Tessellate | Pattern | Board size and pieces | A tiny 5×5 board and four little pieces | A bigger 8×8 board with eleven pieces in the tray | A 9×9 board and thirteen pieces, two of them new | measured / measured / not measured |
-| Pipeline | Pattern | Tiles on the board | A small 5×5 board with many pipes already joined | A taller board of 72 tiles, nearly all turned | Tiles to the bottom of the screen and no leak marks | not measured / not measured / documented |
-| Box Six | Logic | Numbers given at the start | More than half the grid already filled in | Only ten or eleven numbers on the grid | Eight or nine numbers, and a Check button | documented / not measured / not measured |
+| Pipeline | Pattern | Tiles on the board | A small 5×5 board with many pipes already joined | An 8×8 board with nearly every tile turned | Tiles to the bottom of the screen and no leak marks | measured / measured / measured |
+| Box Six | Logic | Numbers given at the start | Two thirds of the grid already filled in | Only ten or eleven numbers on the grid | Eight or nine numbers, and a Check button | measured / measured / measured |
 | Chroma Lines | Pattern | Board height and pairs | A small 6×6 board with five or six pairs | A taller board with more coloured dots than Normal | Dots in fourteen colours fill the screen top to bottom | measured / measured / measured |
-| Skid | Pattern | Holes and thin ice | A small rink with rocks only and no holes | Twice Normal's holes dotted across the rink | A taller rink riddled with ten or more holes | not measured / not measured / not measured |
+| Skid | Pattern | Holes and thin ice | A small rink with rocks only and no holes | Twice Normal's holes dotted across the rink | A taller rink riddled with ten or more holes | measured / measured / measured |
 | Heave | Pattern | Crates to push home | Three crates in an open room | Six crates and six marks between tighter walls | Seven crates crowd a walled-in warehouse | documented / not measured / not measured |
 | Lightbender | Pattern | Bombs on the board | One or two bombs and five shots | Twice Normal's bombs between the gems | Bombs everywhere, an exact tray and two shots | documented / not measured / not measured |
 | Hanoi | Logic | Rings on the posts | Four posts and a short stack of seven | Three posts, ten rings and no spare post | Twelve rings stacked to the top of the posts | measured / measured / measured |
 | Polypotions | Logic | Flasks and colours | Six short flasks in four colours | Twelve flasks and ten colours, all on show | Fourteen flasks with grey question marks under every top layer | measured / measured / measured |
-| Safe Cracker | Logic | Dials on the safe | Three dials and five plain clues | Five dials that run to 20 and seven clues | Six dials, nine clues, one try | measured / measured / measured |
+| Safe Cracker | Logic | Dials on the safe | Three dials and four plain clues | Five dials that run to 20 and seven clues | Six dials, nine clues, one try | measured / measured / measured |
 | Topsy-Turvy | Pattern | Balls on each board | Three balls, three cups, two boards | Eight balls rolling at once | Ten balls and ten cups crowd the board | documented / not measured / not measured |
-| Mosaic | Logic | Picture size | A small 6×6 picture with short clues | A taller 9×11 picture, half as big again as Normal | A picture fourteen rows deep, down to the buttons | measured / measured / not measured |
-| Colour Flood | Logic | Board size and colours | A small board in four colours | A board half as tall again, in six colours | Seven colours, stones in the way, a screen-high board | documented / not measured / not measured |
+| Mosaic | Logic | Picture size | A tiny 5×5 picture with short clues | A taller 9×11 picture, half as big again as Normal | A picture fourteen rows deep, down to the buttons | measured / measured / not measured |
+| Colour Flood | Logic | Board size and colours | A small board in four colours | A taller board in six colours | Six colours, stones in the way, a screen-high board | measured / measured / measured |
 | Minefield | Logic | Mines on the board | A small board, a third of it already open | Mines 26 on the counter and a small opening | Mines 40 and only a handful of squares open | measured / measured / measured |
-| Tents and Trees | Logic | Board height and trees | A short board with every count shown | Two more rows, more trees, half the counts blank | Thirteen rows and over twenty trees | measured / measured / measured |
+| Tents and Trees | Logic | Board height and trees | A short board with every count shown | Two more rows, more trees, half the counts blank | Twelve rows and about eighteen trees | measured / measured / measured |
 | Shikaku | Logic | Board height and rectangles | A short board with small numbers | Two more rows and numbers up to 16 | Fifteen rows deep, with a 20 on the board | measured / measured / measured |
-| Lamplighter | Logic | Board height and walls | A short board with most walls numbered | Two more rows and most walls blank | Fourteen rows of dark squares and few numbers | measured / measured / measured |
+| Lamplighter | Logic | Board height and walls | A short board with nearly every wall numbered | One more row and most walls blank | Twelve rows of dark squares and few numbers | measured / measured / measured |
 | Trail | Logic | Board size | A small board: 1 to 25 | A 7×7 board: 1 to 49 | An 8×8 board: 1 to 64 | not measured / not measured / not measured |
 | Loopline | Logic | Board size | A small 5×5 grid, more than half the squares numbered | An 8×8 grid, almost twice Normal's squares | A tall 8×10 grid with wide blank patches | documented / documented / not measured |
-| Regions | Logic | Board size | A small grid with half its numbers given | An 8×8 grid, three squares in four blank | A 9×9 grid, four squares in five blank | measured / measured / measured |
+| Regions | Logic | Board size | A small grid with half its numbers given | An 8×8 grid, three squares in four blank | The same 8×8 grid with only a dozen numbers | measured / measured / measured |
 | Island Link | Logic | Islands to link | Eight islands on a small sea | About twenty islands, nearly twice Normal's | Nearly thirty islands down a taller sea | documented / documented / not measured |
 | Hover | Retro | Height of the barrier gaps | Gaps a quarter taller than Normal's from the first barrier | First gap a quarter narrower than Normal's | A gap under three quarters of Normal's, the saucer has no shield | measured / measured / measured |
 | High Rise | Action | Width of the blocks | A block two thirds of the screen wide, sliding very slowly | A block barely half Normal's width | A block a quarter of Normal's width, the wind flag waving | measured / measured / measured |
@@ -750,23 +750,23 @@ What the player sees in the first seconds at each level.
 
 ### Pipeline (`pipes`, Pattern)
 
-**Lever: Tiles on the board.** Retuned.
+**Lever: Tiles on the board.** Kept as today.
 
 | | Easy | Normal (today, fixed) | Hard | Expert |
 |---|---|---|---|---|
-| **Proposed** | As today: 5×5, 15 tiles to turn and 10 already right, spills shown, 120 s (a quarter of Expert's board; does the job) | 7×7 (49 tiles), at least 80 % turned, spills shown, one layout only, 120 s, full speed by 60 s (pipesRev 5) | 8×9 (72 tiles, today 64), at least 90 % turned, spills shown, 105 s (today 120), full speed by 60 s | As today: 8×11 (88 tiles), at least 95 % turned, no spills shown, 120 s, full speed by 90 s. Already at the ceiling: 8 across (45 px), 11 down on a short phone (39 px), and the person-like player needs 106–115 s of the 120 |
-| First seconds | A small 5×5 board with many pipes already joined | | A taller board of 72 tiles, nearly all turned | Tiles to the bottom of the screen and no leak marks |
+| **Proposed** | As today: 5×5, 15 tiles to turn and 10 already right, spills shown, 120 s (a quarter of Expert's board; does the job) | 7×7 (49 tiles), at least 80 % turned, spills shown, one layout only, 120 s, full speed by 60 s (pipesRev 5) | As today: 8×8 (64 tiles), at least 90 % turned, spills shown, 120 s, full speed by 60 s (an 8×9 board on 105 s measured level with Expert) | As today: 8×11 (88 tiles), at least 95 % turned, no spills shown, 120 s, full speed by 90 s. Already at the ceiling: 8 across (45 px), 11 down on a short phone (39 px), and the person-like player needs 106–115 s of the 120 |
+| First seconds | A small 5×5 board with many pipes already joined | | An 8×8 board with nearly every tile turned | Tiles to the bottom of the screen and no leak marks |
 | Today | 5×5 (25 tiles), exactly 60 % turned, spills shown, 120 s | | 8×8 (64 tiles), at least 90 % turned, spills shown, 120 s | 8×11 (88 tiles), at least 95 % turned, no spills shown in play, 120 s, full speed by 90 s |
-| **Evidence** | not measured: the narrowed pass ran the redesign rows only | | not measured: the narrowed pass ran the redesign rows only | documented: today's level kept; scripts/pipes-human.ts (levels-research.md): the person-like player finished Expert room seeds 1 and 2 in 115 s and 106 s (166 and 178 points); medians not documented |
+| **Evidence** | measured: today's Easy kept, 12 boards: average kit 186.5 (12/12 finished), near-perfect under limits 195.0; Normal 79.3 and 193.4 | | measured: today's 8×8 Hard on 120 s, 12 boards: average 59.4 (0/12), near-perfect under limits 180.4, 12/12. As first proposed (8×9, 105 s): 45.3 and 166.6, level with Expert | measured: today's Expert kept, 12 boards: average 44.9 (0/12), near-perfect under limits 164.1, 12/12, best 174, no 200, finish med 114 s of 120 |
 
-- **Why this curve:** Tile count is what a player sees and what sets the work (25, 49, 72, 88), and Expert already fills both the phone and the clock, so only Hard needed to move up to sit midway.
-- **Fact-check verdict:** unproven: Hard's 8x9 board and 105 s clock were not run in this pass; Expert is today's level on documented numbers.
+- **Why this curve:** Tile count is what a player sees and what sets the work (25, 49, 64, 88), and today's four boards already space the average player evenly (187, 79, 59, 45), so nothing moves.
+- **Fact-check verdict:** adjusted: Hard goes back to today's 8×8 on 120 s, because the proposed 8×9 on 105 s scored level with Expert (average 45.3 against 44.9, near-perfect 166.6 against 164.1); today's ladder measures 187, 79, 59, 45; 200 was not reached on Expert (best 174).
 - **Human limits today:** No 0.25 s / 0.15 s limit. scripts/pipes-human.ts:32 times a person-like player with its own costs (1.6 s to fix a tile, 0.25 s a turn); it is a tool, and no levels check calls it (grep). The deal's proof, deducePipes in pipesSolve.server.ts, has no clock.
 - **Proof:** Every level board is proved one-solution at the deal by the person-like solver deducePipes (pipesSolve.server.ts: matching sides, no loops, no sealed group, never a guess) and re-proved by search in pattern-overhaul-pipes-levels-check; scripts/pipes-human.ts times it, and Expert finishes inside 120 s at 0.25 s a turn.
 - **Measured today:** medians not documented; the person-like player finished Expert room seeds 1 and 2 in 115 s and 106 s (166 and 178 points)
-- **Stamp:** level field only: cols and rows ride on the board and Hard's new clock is the puzzle's own timeLimitMs, stamped at the deal
+- **Stamp:** level field only (no level changes)
 - **Files:** `src/lib/levels/pattern/pipes.levels.ts`, `src/lib/duel/logic.server.ts`, `scripts/pipes-human.ts`, `scripts/pattern-overhaul-pipes-levels-check.ts`
-- **Risk:** low; Hard at 72 tiles in 105 s may sit close to Expert for the best players
+- **Risk:** low; Expert already fills the clock (the near-perfect kit finishes in 114 of the 120 s, best 174), so 200 is not shown reachable on it
 
 ### Box Six (`sudoku`, Logic)
 
@@ -774,19 +774,19 @@ What the player sees in the first seconds at each level.
 
 | | Easy | Normal (today, fixed) | Hard | Expert |
 |---|---|---|---|---|
-| **Proposed** | As today: 19–21 of the 36 squares given, singles only, live clashes, used-up digits leave the keypad, 90 s | 13–15 givens, 90 s (depthRev 3) | 10–11 givens, needs 2 advanced steps (a pair, pointing or box-line), live clashes, 75 s (today 90) | 8–9 givens (8 is the fewest a 6×6 can have), needs 3 advanced steps, clashes only on Check, 75 s. The grid cannot grow (the game is six by six), so after the givens floor the lever is the deduction grade and the clock |
-| First seconds | More than half the grid already filled in | | Only ten or eleven numbers on the grid | Eight or nine numbers, and a Check button |
+| **Proposed** | 24–26 of the 36 squares given (today 19–21), singles only, live clashes, used-up digits leave the keypad, 90 s | 13–15 givens, 90 s (depthRev 3) | 10–11 givens, needs 2 advanced steps (a pair, pointing or box-line), live clashes, 75 s (today 90) | 8–9 givens (8 is the fewest a 6×6 can have), needs 3 advanced steps, clashes only on Check, 75 s. The grid cannot grow (the game is six by six), so after the givens floor the lever is the deduction grade and the clock |
+| First seconds | Two thirds of the grid already filled in | | Only ten or eleven numbers on the grid | Eight or nine numbers, and a Check button |
 | Today | 19–21 givens, singles only, live clashes, used-up digits leave the keypad, 90 s | | 10–12 givens, needs 1 advanced step, live clashes, 90 s, bank of 200 | 9–10 givens, needs 2 advanced steps, clashes only on Check, 90 s, bank of 200 |
-| **Evidence** | documented: today's level kept; logic-1-tune under human limits, 20 deals (levels-research.md): great 197.0, near-perfect 198.9 | | not measured: the narrowed pass ran the redesign rows only | not measured: the narrowed pass ran the redesign rows only |
+| **Evidence** | measured: 24–26 givens, 90 s, 12 boards: average 156.9 (med 163, 10/12 finished), near-perfect under limits 199.7. Today's Easy (19–21 givens): 94.4, 0/12 finished; Normal 66.6 | | measured: 10–11 givens, 2 advanced steps, 75 s, 10 boards in 8 s: average 39.4 (0/10), near-perfect under limits 178.3, 10/10, best 191, finish med 60 s | measured: 8–9 givens, 3 advanced steps, Check, 75 s, 10 boards in 46 s (one seed failed to build): average 36.1 (0/10), near-perfect under limits 172.5, 10/10, best 181, no 200, finish med 64 s |
 
 - **Why this curve:** The six-by-six grid is the game, so the visible ladder is how empty it starts, run down to the fewest givens a unique grid can have, with the solver's grade making sure fewer numbers means harder steps and never luck.
-- **Fact-check verdict:** unproven: fewer givens with 2 and 3 advanced steps and a 75 s clock need new banks and were not run.
+- **Fact-check verdict:** adjusted: Easy starts with 24–26 givens, because today's 19–21 was finished by none of 12 average runs; Hard and Expert build and are finished 10 of 10 by the near-perfect kit, but they score alike for the average kit (39.4, 36.1) and 200 was not reached (best 181).
 - **Human limits today:** scripts/logic-1-tune.ts:42-50 holds every kit step to 0.4 s (0.25 s react + 0.15 s move) and measures; scripts/logic-1-steps-check.ts:19-24 asserts on 20 deals that the great bot drops at least 5 points a level and the near-perfect bot finishes 75 % of Expert with a best tenth of 185+. The deal's own proof has no clock.
 - **Proof:** Banks of 200 per level from scripts/sudoku-level-bank.ts: one solution each, graded by the step solver in sudokuLogic.ts (singles, pairs, pointing, box-line, never a guess), which is the person-style proof; logic-1-levels-check proves every board and logic-1-steps-check the ladder. A time model (0.8 s a digit) must be added to show the Expert solve fits 75 s.
 - **Measured today:** great / near-perfect under human limits: E 197.0 / 198.9, N 184.5 / 199.1, H 159.7 (85 % finished) / 193.1, X 129.6 (35 %) / 184.7
 - **Stamp:** level field only (the grid and the clock are stored on the puzzle; each level's clash rule is unchanged)
 - **Files:** `src/lib/levels/gameLevels.ts`, `scripts/sudoku-level-bank.ts`, `src/lib/duel/sudokuLogic.ts`, `src/lib/duel/logicLevelBanks.server.ts`, `scripts/logic-1-levels-check.tsx`, `scripts/logic-1-steps-check.ts`
-- **Risk:** 6×6 grids with 8–9 givens that need three advanced steps may be too rare to bank 200
+- **Risk:** Hard and Expert score alike for the average kit (39.4, 36.1); the near-perfect kit finished every Expert board but did not reach 200 (best 181); the feared rarity did not appear (10 boards in 46 s, one seed failed)
 
 ### Chroma Lines (`flow`, Pattern)
 
@@ -817,10 +817,10 @@ What the player sees in the first seconds at each level.
 | **Proposed** | 8×8, 6–10 slides (today 8–12), rocks only: no holes, thin ice, chevrons or portals, 90 s, full speed by 20 s | 12×12, 18–26 slides, 2–4 holes, every hazard, 90 s, full speed by 30 s (slideRev 5) | 12×12, 26–32 slides, 6–8 holes, 4–6 thin ice, 1–3 chevrons, 1–2 portal pairs, 90 s (today 100), full speed by 40 s | 11×13, 34–42 slides, 10–12 holes (today 3–5, fewer than Hard), 6–8 thin ice, 2–4 chevrons, 2 portal pairs, 120 s, full speed by 45 s. Ceiling: the rink is full size from Normal (30 px squares; 26 px proved unreadable), so the lever is hazards and route length |
 | First seconds | A small rink with rocks only and no holes | | Twice Normal's holes dotted across the rink | A taller rink riddled with ten or more holes |
 | Today | 8×8, 8–12 slides, no holes or thin ice, at most 1 chevron and 1 portal pair, 90 s, full speed by 20 s | | 12×12, 24–30 slides, 5–8 holes, 3–5 thin ice, 100 s, full speed by 40 s | 11×13, 28–36 slides, 3–5 holes, 3–6 thin ice, 120 s, full speed by 45 s |
-| **Evidence** | not measured: the narrowed pass ran the redesign rows only | | not measured: the narrowed pass ran the redesign rows only | not measured: the narrowed pass ran the redesign rows only |
+| **Evidence** | measured: 8×8, 6–10 slides, rocks only, 12 boards: average 185.2 (12/12 finished), near-perfect under limits 199.5; Normal 70.3 and 195.9 | | measured: 12×12, 26–32 slides, 6–8 holes, 4–6 thin ice, 90 s, 8 boards built in 2 s: average 40.0 (0/8), near-perfect under limits 186.3, 8/8, best 194 | measured: 11×13, 34–42 slides, 10–12 holes, 6–8 thin ice, 120 s, 8 boards built in 17 s: average 41.4 (0/8), near-perfect under limits 189.3, 8/8, best 193, no 200, finish med 68 s |
 
 - **Why this curve:** The rink is already as big as a phone can show at Normal, so the ladder has to be what is on the ice, and today Expert has fewer holes than Hard and looks the safer of the two.
-- **Fact-check verdict:** unproven: boards with 10-12 holes and a 34-42 slide minimum need a new bank and were not built in this pass.
+- **Fact-check verdict:** unproven: every board builds in seconds, but Expert scores level with Hard (average 41.4 against 40.0, near-perfect 189 against 186); tighter Expert settings are being measured, and the person-like player was not run.
 - **Human limits today:** No 0.25 s / 0.15 s limit. scripts/iceslide-human.ts:40 (SKID_ELITE_PERSON) has its own times (0.6 s a look, 0.8 s a slide, 3 slides ahead); pattern-overhaul-iceslide-levels-check.ts:236 plays it on Expert boards inside 120 s and (header, line 27) wants a finish scoring 150+.
 - **Proof:** Banks of 300 per level (bun scripts/iceslide-levels-bank.ts): each minimum proved by BFS over the ball's square and the broken ice; Expert keeps only boards the person-like player scripts/iceslide-human.ts finishes inside 120 s under the limits; pattern-overhaul-iceslide-levels-check re-proves every board.
 - **Measured today:** medians not documented; on the best Expert bank boards the person-like player scores 197 in 52–54 s
@@ -874,19 +874,19 @@ What the player sees in the first seconds at each level.
 
 | | Easy | Normal (today, fixed) | Hard | Expert |
 |---|---|---|---|---|
-| **Proposed** | As today: 4 posts, 7 rings, 10–18 moves, 90 s (the spare post forgives a wrong move) | 3 or 4 posts, 9 rings, 20–40 moves, 90 s | 3 posts, 10 rings (today 9, the same as Normal), 40–55 moves, 90 s | 3 posts, 12 rings, 70–90 moves, 105 s. Ceiling: 12 rings (the smallest 36 px wide, about 7 px a step across three posts); after it, a longer minimum |
+| **Proposed** | As today: 4 posts, 7 rings, 10–18 moves, 90 s (the spare post forgives a wrong move) | 3 or 4 posts, 9 rings, 20–40 moves, 90 s | 3 posts, 10 rings (today 9, the same as Normal), 40–55 moves, 90 s | 3 posts, 12 rings, 70–90 moves, 120 s (today 105). Ceiling: 12 rings (the smallest 36 px wide, about 7 px a step across three posts); after it, a longer minimum |
 | First seconds | Four posts and a short stack of seven | | Three posts, ten rings and no spare post | Twelve rings stacked to the top of the posts |
 | Today | 4 posts, 7 rings, 10–18 moves at the minimum, 90 s | | 3 posts, 9 rings, 34–45 moves, 90 s | 3 posts, 10 rings, 45–60 moves, 105 s |
 | **Evidence** | measured: today's Easy kept, generic runner (real deal, settings in memory; average kit and near-perfect kit held to 0.4 s a step, server grade), 12 boards: average 155.1 (med 161, 10/12 finished), near-perfect 199.9 (200 on 11); Normal 69.1 and 199.8 | | measured: 3 posts, 10 rings, 40–55 moves, 90 s, 12 boards: average 37.6 (0/12 finished), near-perfect under limits 189.9, 12/12, best 199, finish med 56 s | measured: 12 rings, 70–90 moves, 12 boards: near-perfect under limits 168.3 on 105 s and 174.6 on 120 s, 12/12, best 183, no 200, finish med 95 s; average 0.0 (an unfinished board over 10 rings gets no credit). Today's Expert: 39.9 and 188.7 |
 
 - **Why this curve:** Hard today is Normal's nine rings again and the near-perfect bot still scores 192 on Expert, so the ring count now rises at every level and the minimum grows by about half each step.
-- **Fact-check verdict:** unproven: Hard measures as proposed (37.6 against Normal's 69.1), but on 12 rings the near-perfect kit needs 95 of the 105 s and never reaches 200, and unfinished boards score 0; smaller Experts are being measured.
+- **Fact-check verdict:** adjusted: Expert's clock 105 to 120 s, because the near-perfect kit needed 95 s for 12 rings (best 179 on 105 s, 183 on 120 s); Hard holds (37.6 against Normal's 69.1); still open: unfinished 12-ring boards score 0 until the grader's 10-ring cap is raised, and 200 was not reached.
 - **Human limits today:** scripts/logic-1-tune.ts:42-50 holds every kit step to 0.4 s (0.25 s react + 0.15 s move) and measures; scripts/logic-1-steps-check.ts:19-24 asserts on 20 deals that the great bot drops at least 5 points a level and the near-perfect bot finishes 75 % of Expert with a best tenth of 185+. The deal's own proof has no clock.
-- **Proof:** The exact minimum by search over every state in tower.server.ts (3 posts and 12 rings is 531,441 states), proved per board by logic-1-levels-check; the proof run is the minimum line played at 0.4 s a move (36 s for 90 moves), inside 105 s.
+- **Proof:** The exact minimum by search over every state in tower.server.ts (3 posts and 12 rings is 531,441 states), proved per board by logic-1-levels-check; the proof run is the minimum line played at 0.4 s a move (36 s for 90 moves), inside 120 s.
 - **Measured today:** great / near-perfect under human limits: E 199.3 / 200, N 195.3 / 199.8, H 181.2 / 199.3, X 169.2 (95 % finished) / 192.1
 - **Stamp:** level field only (level deals already carry towerRev 1; posts, rings, par and clock are stored on the puzzle)
 - **Files:** `src/lib/levels/gameLevels.ts`, `src/lib/duel/tower.server.ts`, `src/lib/duel/logicLevels.ts`, `scripts/logic-1-levels-check.tsx`, `scripts/logic-1-steps-check.ts`
-- **Risk:** twelve ring widths may be hard to tell apart on a 390 px phone
+- **Risk:** an unfinished board over 10 rings scores 0 today (the grader's distance table is built only up to 10 rings, towerBoardLegal), so that cap must rise with the level; the near-perfect kit needs 95 s and did not reach 200 (best 183); twelve ring widths may be hard to tell apart
 
 ### Polypotions (`tubes`, Logic)
 
@@ -900,13 +900,13 @@ What the player sees in the first seconds at each level.
 | **Evidence** | measured: today's Easy kept, generic runner (real deal, average kit, near-perfect kit held to 0.4 s a step), 12 boards: average 179.9 (med 185, 11/12 finished), near-perfect 200 on all 12; Normal 77.8 and 200 | | measured: 12 flasks, 10 colours, 6 layers, 28–38 pours, all shown, 90 s, 10 boards: average 54.1 (0/10 finished), near-perfect under limits 197.4, 10/10, 200 on 4, finish med 47 s | measured: 14 flasks, 12 colours, hidden layers, 36–46 pours, 120 s, 10 boards built in 6 s: average 35.3 (0/10), near-perfect under limits 176.8, 10/10, best 182, no 200, finish med 91 s. Today's Expert: 42.0 and 184.8, best 189 |
 
 - **Why this curve:** A strong player loses nothing until the layers hide (near-perfect 197 on Hard), so the rack itself grows at Hard and the hiding, the genre's own hard mode and already built, stays as Expert's last step.
-- **Fact-check verdict:** unproven: every level builds at once, the average kit steps 180, 78, 54, 35 and Expert is finished 10 of 10, but the near-perfect kit did not reach 200 on Expert (best 182) and no solver that sees only uncovered layers exists.
+- **Fact-check verdict:** holds: every level builds at once, the average kit steps 180, 78, 54, 35 and the near-perfect kit finished Expert 10 of 10; it did not reach 200 there (best 182; today's Expert best 189), and the solver that sees only uncovered layers is still to be written.
 - **Human limits today:** scripts/logic-1-tune.ts:42-50 holds every kit step to 0.4 s (0.25 s react + 0.15 s move) and measures; scripts/logic-1-steps-check.ts:19-24 asserts on 20 deals that the great bot drops at least 5 points a level and the near-perfect bot finishes 75 % of Expert with a best tenth of 185+. The deal's own proof has no clock.
 - **Proof:** Each level board is built with its exact minimum by search (generateTubesLevel and tubesLevelMinimum in tubes.server.ts; logic-1-levels-check); 14 flasks will want a pre-built bank. Must be written: a solver that sees only uncovered layers and still finishes inside 120 s using refunded Undos, so the hiding is never a guess.
 - **Measured today:** great / near-perfect under human limits: E 200 / 200, N 195.0 / 200, H 185.6 / 197.3, X 129.1 (25 % finished) / 181.9
 - **Stamp:** level field only (flasks, layers, the hidden flag, the minimum and the clock are stored on the puzzle)
 - **Files:** `src/lib/levels/gameLevels.ts`, `src/lib/duel/tubes.server.ts`, `src/lib/duel/logicLevelBanks.server.ts`, `scripts/logic-1-levels-check.tsx`, `scripts/logic-1-steps-check.ts`
-- **Risk:** the exact-minimum search for 12 colours may be too slow and 12 colours hard to tell apart; fall back to 13 flasks and 11 colours
+- **Risk:** 12 colours may be hard to tell apart; the feared slow search did not appear (ten 14-flask boards built in 6 s); the near-perfect kit did not reach 200 on Expert (best 182)
 
 ### Safe Cracker (`safe`, Logic)
 
@@ -914,19 +914,19 @@ What the player sees in the first seconds at each level.
 
 | | Easy | Normal (today, fixed) | Hard | Expert |
 |---|---|---|---|---|
-| **Proposed** | As today: 3 dials of 0–9, 5 simple clues (odd or even, more or less, a sum), 3 tries, 75 s | 4 dials of 0–9, 5 clues, 3 tries, 75 s | 5 dials of 0–20 (today 4 dials of 0–15), 7 clues with primes, squares and differences, 2 tries, 90 s | 6 dials of 0–20 (61 px each), 9 clues, 1 try, 105 s. Ceiling: six dials and a nine-line card fill the screen; after it, harder clue kinds |
-| First seconds | Three dials and five plain clues | | Five dials that run to 20 and seven clues | Six dials, nine clues, one try |
+| **Proposed** | 3 dials of 0–9, 4 simple clues (today 5: odd or even, more or less, a sum), 3 tries, 75 s | 4 dials of 0–9, 5 clues, 3 tries, 75 s | 5 dials of 0–20 (today 4 dials of 0–15), 7 clues with primes, squares and differences, 2 tries, 90 s | 6 dials of 0–20 (61 px each), 9 clues, 1 try, 105 s. Ceiling: six dials and a nine-line card fill the screen; after it, harder clue kinds |
+| First seconds | Three dials and four plain clues | | Five dials that run to 20 and seven clues | Six dials, nine clues, one try |
 | Today | 3 dials of 0–9, 5 simple clues, 3 tries, 75 s | | 4 dials of 0–15, 6 number clues, 3 tries, 75 s | 5 dials of 0–20, 7 clues, 2 tries, 105 s, bank of 200 |
-| **Evidence** | measured: today's Easy kept, 12 boards: average kit 119.2 (med 122, only 5/12 finished), near-perfect under limits 200 on all 12; Normal 94.9 (6/12 finished) and 200 | | measured: 5 dials of 0–20, 7 clues, 2 tries, 90 s, 12 boards: average 40.8 (0/12), near-perfect under limits 184.3, 12/12, best 194, finish med 52 s | measured: 6 dials of 0–20, 9 clues, 1 try, 105 s, only 3 cards in 76 s (about 25 s a card): average 32.7, near-perfect under limits 175.3, 3/3, best 179, no 200, finish med 75 s |
+| **Evidence** | measured: 3 dials, 4 simple clues, 75 s, 12 cards: average 172.3 (med 181, 11/12 finished), near-perfect under limits 200 on all 12. Today's 5-clue Easy: 119.2, 5/12 finished; Normal 94.9, 6/12 | | measured: 5 dials of 0–20, 7 clues, 2 tries, 90 s, 12 boards: average 40.8 (0/12), near-perfect under limits 184.3, 12/12, best 194, finish med 52 s | measured: 6 dials of 0–20, 9 clues, 1 try, 105 s, only 3 cards in 76 s (about 25 s a card): average 32.7, near-perfect under limits 175.3, 3/3, best 179, no 200, finish med 75 s |
 
 - **Why this curve:** Hard today keeps Normal's four dials and the bots barely notice Expert (187 near-perfect), so a dial is added at every level and the tries, the game's safety net, shrink 3, 3, 2, 1.
-- **Fact-check verdict:** unproven: Hard and a 6-dial Expert build and are finished by the near-perfect kit, but Expert is only 8 points below Hard on 3 cards, 200 was not reached (best 179), and today's Easy is finished by only 5 of 12 average runs; an easier Easy is being measured.
+- **Fact-check verdict:** adjusted: Easy drops to 4 clues, because today's 5-clue Easy was finished by only 5 of 12 average runs; Hard holds (40.8, near-perfect 184.3, 12 of 12); the 6-dial Expert builds and was finished 3 of 3 but rests on 3 cards, 8 points below Hard, best 179.
 - **Human limits today:** scripts/logic-1-tune.ts:42-50 holds every kit step to 0.4 s (0.25 s react + 0.15 s move) and measures; scripts/logic-1-steps-check.ts:19-24 asserts on 20 deals that the great bot drops at least 5 points a level and the near-perfect bot finishes 75 % of Expert with a best tenth of 185+. The deal's own proof has no clock.
 - **Proof:** A bank of 200 one-solution cards per level (scripts/safe-level-bank.ts, logic-1-levels-check). Must be written: a person-style solver (narrow each dial's range clue by clue, one-step trials, never a guess) that cracks every Expert card inside 105 s.
 - **Measured today:** great / near-perfect under human limits: E 200 / 200, N 193.9 / 200, H 182.0 (95 % finished) / 194.5, X 173.6 (95 %) / 186.8
 - **Stamp:** level field only (dialCount, dialMax, tries and the clock are stored on the puzzle); a sixth dial needs a sixth mark in DIAL_MARKS
 - **Files:** `src/lib/levels/gameLevels.ts`, `scripts/safe-level-bank.ts`, `src/lib/duel/safe.ts`, `src/lib/duel/safe.server.ts`, `scripts/logic-1-levels-check.tsx`
-- **Risk:** nine clues on six dials may read as a wall of text on a phone
+- **Risk:** nine clues on six dials may read as a wall of text on a phone; a 6-dial card took about 25 s to build, and on the 3 cards measured Expert was only 8 points below Hard for the average kit
 
 ### Topsy-Turvy (`gravity`, Pattern)
 
@@ -954,39 +954,39 @@ What the player sees in the first seconds at each level.
 
 | | Easy | Normal (today, fixed) | Hard | Expert |
 |---|---|---|---|---|
-| **Proposed** | As today: 6×6, every line solvable alone, right lines lock, 90 s | 8×8, 120 s (depthRev 2) | Today's board, 9×11 with single-line logic, in 100 s (today 120) | Today's board, 9×14, but two lines must be read together at least 3 times (today once), 120 s. Already at the ceiling: 9 across with the clue column is 36 px a square and 14 rows fill the height, so the lever is the reasoning and the clock |
-| First seconds | A small 6×6 picture with short clues | | A taller 9×11 picture, half as big again as Normal | A picture fourteen rows deep, down to the buttons |
+| **Proposed** | 5×5 (today 6×6), every line solvable alone, right lines lock, 90 s | 8×8, 120 s (depthRev 2) | Today's board, 9×11 with single-line logic, in 100 s (today 120) | Today's board, 9×14, but two lines must be read together at least 3 times (today once), 120 s. Already at the ceiling: 9 across with the clue column is 36 px a square and 14 rows fill the height, so the lever is the reasoning and the clock |
+| First seconds | A tiny 5×5 picture with short clues | | A taller 9×11 picture, half as big again as Normal | A picture fourteen rows deep, down to the buttons |
 | Today | 6×6, single-line logic, right lines lock, 90 s | | 9×11, single-line logic, 120 s | 9×14, needs two lines read together at least once, 120 s |
-| **Evidence** | measured: today's Easy kept, 12 boards: average kit 96.4 (med 86, only 2/12 finished), near-perfect under limits 198.4; Normal 66.3 and 199.0 | | measured: today's 9×11 board on a 100 s clock, 12 boards: average 35.5 (0/12), near-perfect under limits 187.8, 12/12, best 199, finish med 71 s | not measured: NonoLevel.logic is only "line" or "two" (src/lib/duel/logicLevels.ts), so three two-line steps cannot be asked for. Today's 9×14 Expert, 12 boards: average 36.3, near-perfect under limits 182.8, 12/12, best 187 |
+| **Evidence** | measured: 5×5, 90 s, 12 boards: average 151.6 (med 160, 8/12 finished), near-perfect under limits 199.7. Today's 6×6 Easy: 96.4, 2/12 finished (4/12 on a 120 s clock); Normal 66.3 | | measured: today's 9×11 board on a 100 s clock, 12 boards: average 35.5 (0/12), near-perfect under limits 187.8, 12/12, best 199, finish med 71 s | not measured: NonoLevel.logic is only "line" or "two" (src/lib/duel/logicLevels.ts), so three two-line steps cannot be asked for. Today's 9×14 Expert, 12 boards: average 36.3, near-perfect under limits 182.8, 12/12, best 187 |
 
-- **Why this curve:** Today's ladder (36, 64, 99, 126 squares) already steps up where everyone can see it and ends on the phone's ceiling, so only the clock and the depth of reasoning need tightening for the best players.
-- **Fact-check verdict:** unproven: Hard and Expert score alike (average 35.5 and 36.3, near-perfect 188 and 183), three two-line steps cannot be asked for, and today's Easy is finished by only 2 of 12 average runs; an easier Easy is being measured.
+- **Why this curve:** The ladder (25, 64, 99, 126 squares) steps up where everyone can see it and ends on the phone's ceiling, so beyond a smaller Easy only the clock and the depth of reasoning need tightening for the best players.
+- **Fact-check verdict:** adjusted: Easy shrinks to 5×5, because today's 6×6 Easy was finished by only 2 of 12 average runs; Hard's 100 s clock measures 35.5 and 187.8; Expert's three two-line steps cannot be dealt, and Hard and Expert score alike.
 - **Human limits today:** scripts/logic-1-tune.ts:42-50 holds every kit step to 0.4 s (0.25 s react + 0.15 s move) and measures; scripts/logic-1-steps-check.ts:19-24 asserts on 20 deals that the great bot drops at least 5 points a level and the near-perfect bot finishes 75 % of Expert with a best tenth of 185+. The deal's own proof has no clock.
 - **Proof:** One solution per board from the generator (generateNonogramLevel in nonogram.server.ts), solved without a guess by the line solver nonoLogicSolve (single lines for Hard, two lines together for Expert) and proved by logic-1-levels-check. A time model must be added for the 120 s.
 - **Measured today:** great / near-perfect under human limits: E 197.4 / 199.7, N 193.4 / 198.8, H 158.4 (90 % finished) / 189.9, X 126.0 (30 %) / 182.1
 - **Stamp:** level field only (the picture, its clues and the clock are stored on the puzzle)
 - **Files:** `src/lib/levels/gameLevels.ts`, `src/lib/duel/nonogram.server.ts`, `src/lib/duel/logicLevels.ts`, `scripts/logic-1-levels-check.tsx`, `scripts/logic-1-steps-check.ts`
-- **Risk:** low; pictures needing three two-line steps may be slow to build live and want a bank
+- **Risk:** Hard and Expert score alike (average 35.5 and 36.3, near-perfect 188 and 183); three two-line steps cannot be asked of today's generator (its logic setting is only line or two)
 
 ### Colour Flood (`flood`, Logic)
 
-**Lever: Board size and colours.** Retuned.
+**Lever: Board size and colours.** Kept as today.
 
 | | Easy | Normal (today, fixed) | Hard | Expert |
 |---|---|---|---|---|
-| **Proposed** | As today: 10×10, 4 colours, par 6–8, par + 8 moves, 60 s | 14×14, 5 colours, par 10–14, par + 6 moves, 60 s (floodRev 3) | 14×20, 6 colours, par 16–20, par + 4 moves, 60 s (today's 12×17 is no bigger than Normal's 196 squares) | 14×24, 7 colours (52 px buttons), 20 blocked squares, par 22–26, par + 2 moves, 75 s. Ceiling: 14×24 fills the screen (squares are never tapped, only the colour buttons); after it, colours and spare moves |
-| First seconds | A small board in four colours | | A board half as tall again, in six colours | Seven colours, stones in the way, a screen-high board |
+| **Proposed** | As today: 10×10, 4 colours, par 6–8, par + 8 moves, 60 s | 14×14, 5 colours, par 10–14, par + 6 moves, 60 s (floodRev 3) | As today: 12×17, 6 colours, par 14–18, par + 4 moves, 60 s (the 14×20 board measured as hard as Expert for the average kit) | As today: 14×24, 6 colours, 14 blocked squares, par 18–22, par + 3 moves, 75 s (no 7-colour board could be built). Ceiling: 14×24 fills the screen (squares are never tapped, only the colour buttons); after it, colours and spare moves |
+| First seconds | A small board in four colours | | A taller board in six colours | Six colours, stones in the way, a screen-high board |
 | Today | 10×10, 4 colours, par 6–8, par + 8 moves, 60 s | | 12×17, 6 colours, par 14–18, par + 4 moves, 60 s | 14×24, 6 colours, 14 blocked squares, par 18–22, par + 3 moves, 75 s |
-| **Evidence** | documented: today's level kept; logic-1-tune under human limits, 20 deals (levels-research.md): great 198.8, near-perfect 199.0 | | not measured: the narrowed pass ran the redesign rows only | not measured: the narrowed pass ran the redesign rows only |
+| **Evidence** | measured: today's Easy kept, 12 boards: average 195.0 (12/12 finished), near-perfect under limits 199.2; Normal 125.1 (med 99, 4/12 finished) and 198.8 | | measured: today's 12×17 Hard, 12 boards: average 57.8 (0/12), near-perfect under limits 198.1, 12/12, 200 on 9. As first proposed (14×20, par 16–20): 26.6 and 196.5 on 8 boards; 14×17 with par + 5: 33.9 | measured: today's Expert kept (bank), 12 boards: average 28.7 (0/12), near-perfect under limits 193.9, 12/12, best 198, no 200, finish med 45 s. The 7-colour, par 22–26 board: none built in 145 s |
 
-- **Why this curve:** A strong player scores within ten points on every level today, so the two things that set a flood's par, area and colours, both rise at each step and the spare moves fall 8, 6, 4, 2.
-- **Fact-check verdict:** unproven: the 14x20 Hard and the 7 colour Expert need new banks with an exact par and were not built.
+- **Why this curve:** The two things that set a flood's par, area and colours, already rise at each step and the spare moves fall 8, 6, 4, 3: the average kit scores 195, 125, 58 and 29 on today's four levels, a steep ladder that needs no change.
+- **Fact-check verdict:** adjusted: Hard and Expert go back to today's levels, because the proposed 14×20 Hard scored as low as Expert for the average kit (26.6 against 28.7) and no 7-colour Expert could be built in 145 s; today's ladder measures 195, 125, 58, 29; best on Expert 198.
 - **Human limits today:** scripts/logic-1-tune.ts:42-50 holds every kit step to 0.4 s (0.25 s react + 0.15 s move) and measures; scripts/logic-1-steps-check.ts:19-24 asserts on 20 deals that the great bot drops at least 5 points a level and the near-perfect bot finishes 75 % of Expert with a best tenth of 185+. The deal's own proof has no clock.
 - **Proof:** A bank per level with the exact par by search (scripts/flood-level-bank.ts, scripts/flood-par-proof.ts), proved by logic-1-levels-check; the proof run is the stored par line at 0.4 s a move, about 10 s, well inside 75 s.
 - **Measured today:** great / near-perfect under human limits: E 198.8 / 199.0, N 197.4 / 198.3, H 188.3 / 196.7, X 166.3 (75 % finished) / 192.1
 - **Stamp:** level field; size, colours, blocked squares, par and clock are stored on the puzzle; stamp the level's spare moves on it too so a later retune never moves a stored round
 - **Files:** `src/lib/levels/gameLevels.ts`, `scripts/flood-level-bank.ts`, `src/lib/duel/floodLevels.server.ts`, `scripts/flood-par-proof.ts`, `scripts/logic-1-levels-check.tsx`
-- **Risk:** the exact-par search at 7 colours and par 22–26 on 336 squares may be too slow to bank
+- **Risk:** a strong player still scores within 6 points on every level (near-perfect kit 199, 199, 198, 194), and a seventh colour could not be banked: no 14×24 board with par 22–26 was built in 145 s
 
 ### Minefield (`minesweeper`, Logic)
 
@@ -1014,19 +1014,19 @@ What the player sees in the first seconds at each level.
 
 | | Easy | Normal (today, fixed) | Hard | Expert |
 |---|---|---|---|---|
-| **Proposed** | As today: 8×6, 7–8 trees, every count shown, 90 s | 8×9, 12–13 trees, a third of the counts hidden, 90 s | 8×11 (today 8×10, one row more than Normal), 16–17 trees, half the counts hidden, 2–15 trials, 100 s | 8×13, 21–22 trees, half the counts hidden, 5–50 trials, 120 s. Ceiling: 8 across with the count column (40 px squares) and 13 down; after it, more hidden counts |
-| First seconds | A short board with every count shown | | Two more rows, more trees, half the counts blank | Thirteen rows and over twenty trees |
+| **Proposed** | As today: 8×6, 7–8 trees, every count shown, 90 s | 8×9, 12–13 trees, a third of the counts hidden, 90 s | 8×11 (today 8×10, one row more than Normal), 16–17 trees, half the counts hidden, 2–15 trials, 100 s | 8×12 (today's board), 17–18 trees, half the counts hidden, 4–40 trials, 120 s. Ceiling: the 120 s clock, not the phone: the near-perfect kit finished 9 of 12 of these, 6 of 12 with one more tree and 2 of 12 of an 8×13 with 21–22 trees |
+| First seconds | A short board with every count shown | | Two more rows, more trees, half the counts blank | Twelve rows and about eighteen trees |
 | Today | 8×6, 7–8 trees, every count shown, 90 s | | 8×10, 13–14 trees, half the counts hidden, 2–12 trials, 90 s | 8×12, 17–18 trees, half the counts hidden, 4–40 trials, 120 s |
-| **Evidence** | measured: today's Easy kept, 12 boards: average kit 151.1 (med 160, 8/12 finished), near-perfect under limits 199.8; Normal 59.4 and 199.4 | | measured: 8×11, 16–17 trees, half the counts hidden, 100 s, 12 boards: average 28.0 (0/12), near-perfect under limits 172.2, 12/12, best 178, finish med 83 s; person-style solver 12/12, trials med 11, max 15 | measured: 8×13, 21–22 trees, 120 s, 12 boards (up to 10 s each to build): average 15.3, near-perfect under limits 115.7, only 2/12 finished, best 163; person-style solver 12/12, trials med 9, max 20 |
+| **Evidence** | measured: today's Easy kept, 12 boards: average kit 151.1 (med 160, 8/12 finished), near-perfect under limits 199.8; Normal 59.4 and 199.4 | | measured: 8×11, 16–17 trees, half the counts hidden, 100 s, 12 boards: average 28.0 (0/12), near-perfect under limits 172.2, 12/12, best 178, finish med 83 s; person-style solver 12/12, trials med 11, max 15 | measured: 8×12, 17–18 trees (today's Expert), 12 boards: average 24.8, near-perfect under limits 151.7, 9/12 finished, best 170, no 200. As first proposed (8×13, 21–22 trees): 15.3 and 115.7, 2/12 finished; 8×12 with 18–19 trees: 6/12 |
 
-- **Why this curve:** Hard today is Normal plus one row, so each level now adds two rows and four or five trees, growing downwards because the width is already at its limit.
-- **Fact-check verdict:** unproven: Hard measures as proposed, but the near-perfect kit finishes only 2 of 12 of the 8×13 Expert boards inside 120 s; a smaller Expert is being measured.
+- **Why this curve:** Hard today is Normal plus one row, so Hard now adds two rows and four trees; Expert stays at today's 8×12, because the 120 s clock, not the phone's width, is the ceiling.
+- **Fact-check verdict:** adjusted: Expert goes back to today's 8×12 with 17–18 trees, because the near-perfect kit finished only 2 of 12 of the proposed 8×13 boards inside 120 s (9 of 12 on 8×12); Hard holds; 200 was not reached and the Hard to Expert step is small for the average kit (28.0, 24.8).
 - **Human limits today:** No reaction or move limit. src/lib/duel/logicLevelDeal.server.ts:86-90 keeps a level board only when the person-style solver (logicHuman.server.ts solveLikePerson) finishes it inside the trial band, and scripts/logic-levels-check.ts:170 re-runs it; the solver counts trials and has no clock. The kits scale think time by LEVEL_THINK (scripts/puzzle-fairness/kit.ts:167).
 - **Proof:** One solution by the game's solver, and every board finished by the person-style solver in logicHuman.server.ts (the rules plus one-step trials, never a guess) inside the level's trial band (logicLevelDeal.server.ts, scripts/logic-levels-check.ts). It counts trials but has no clock: add a time model (0.4 s a tent, about 1.5 s a trial) so Expert is proved inside 120 s.
 - **Measured today:** near-perfect kit, 20 boards, no human limits: 199.8 / 199.7 / 177.8 / 163.2 (95 % finished) (E/N/H/X)
 - **Stamp:** level field only (height, counts and clock are stored on the board)
 - **Files:** `src/lib/duel/logicOverhaul2Levels.ts`, `src/lib/duel/logicLevelDeal.server.ts`, `src/lib/duel/logicHuman.server.ts`, `scripts/logic-levels-check.ts`
-- **Risk:** 13 rows draw under 36 px on a 667 px tall phone
+- **Risk:** Hard (16–17 trees) and Expert (17–18) are now close: the average kit scores 28.0 and 24.8; the near-perfect kit reached 200 on neither (best 178 and 170)
 
 ### Shikaku (`shikaku`, Logic)
 
@@ -1034,19 +1034,19 @@ What the player sees in the first seconds at each level.
 
 | | Easy | Normal (today, fixed) | Hard | Expert |
 |---|---|---|---|---|
-| **Proposed** | As today: 10×7, 9–11 rectangles, none over 8 squares, 90 s | 10×11, 17–21 rectangles, largest 12, 90 s | 10×13 (today 10×12), 19–22 rectangles, largest 16, at least 6 of six squares or more, 0–15 trials, 100 s | 10×15, 22–26 rectangles, largest 20, at least 8 of six squares or more, 5–40 trials (never a walk-through), 120 s. Ceiling: 10 across is Normal's width (36.6 px) and 15 down fills the height; after it, bigger rectangles |
+| **Proposed** | As today: 10×7, 9–11 rectangles, none over 8 squares, 90 s | 10×11, 17–21 rectangles, largest 12, 90 s | 10×13 (today 10×12), 19–22 rectangles, largest 16, at least 6 of six squares or more, 0–15 trials, 100 s | 10×15, 22–26 rectangles, largest 20, at least 8 of six squares or more, 0–40 trials, 120 s. Ceiling: 10 across is Normal's width (36.6 px) and 15 down fills the height; after it, bigger rectangles |
 | First seconds | A short board with small numbers | | Two more rows and numbers up to 16 | Fifteen rows deep, with a 20 on the board |
 | Today | 10×7, 9–11 rectangles, largest 8, 90 s | | 10×12, 15–17 rectangles, largest 16, 0–10 trials, 90 s | 10×13, 18–21 rectangles, largest 16, 0–30 trials, 120 s |
-| **Evidence** | measured: today's Easy kept, 12 boards: average kit 161.7 (med 168, 10/12 finished), near-perfect under limits 199.5; Normal 51.9 and 198.9 | | measured: 10×13, 19–22 rectangles, largest 16, 100 s, 12 boards: average 33.5 (0/12), near-perfect under limits 175.8, 12/12, best 186, finish med 77 s; person-style solver 12/12, trials 0–1 | measured: 10×15, 22–26 rectangles, largest 20, 120 s, 12 boards: average 31.0 (0/12), near-perfect under limits 153.2, 9/12 finished, best 171, no 200, finish med 109 s; person-style solver 12/12 with 0 trials on every board |
+| **Evidence** | measured: today's Easy kept, 12 boards: average kit 161.7 (med 168, 10/12 finished), near-perfect under limits 199.5; Normal 51.9 and 198.9 | | measured: 10×13, 19–22 rectangles, largest 16, 100 s, 12 boards: average 33.5 (0/12), near-perfect under limits 175.8, 12/12, best 186, finish med 77 s; person-style solver 12/12, trials 0–1 | measured: 10×15, 22–26 rectangles, largest 20, 120 s, 12 boards: average 31.0 (0/12), near-perfect under limits 153.2, 9/12 finished, best 171, no 200; person-style solver 12/12 with 0 trials each. Today's 10×13 Expert: 27.6 and 171.8, 12/12 |
 
 - **Why this curve:** Expert today is one row taller than Hard and scores within six points of it, so the board now grows two rows a level and the largest rectangle, the number a player reads first, rises 8, 12, 16, 20.
-- **Fact-check verdict:** unproven: the boards deal and play, but Expert is only 2.5 points below Hard for the average kit, 200 was not reached (best 171), and no board met the 5–40 trial band (every board needed 0 trials).
+- **Fact-check verdict:** adjusted: Expert's trial band 5–40 becomes 0–40, because every one of 12 dealt 10×15 boards needed 0 trials; the sizes hold (near-perfect kit finished 9 of 12, best 171, no 200), but Hard and Expert score alike for the average kit (33.5, 31.0).
 - **Human limits today:** No reaction or move limit. src/lib/duel/logicLevelDeal.server.ts:86-90 keeps a level board only when the person-style solver (logicHuman.server.ts solveLikePerson) finishes it inside the trial band, and scripts/logic-levels-check.ts:170 re-runs it; the solver counts trials and has no clock. The kits scale think time by LEVEL_THINK (scripts/puzzle-fairness/kit.ts:167).
 - **Proof:** One solution by the game's solver, and every board finished by the person-style solver in logicHuman.server.ts inside the level's trial band (logicLevelDeal.server.ts, scripts/logic-levels-check.ts); add a time model (0.6 s a rectangle, about 1.5 s a trial) so Expert is proved inside 120 s.
 - **Measured today:** near-perfect kit, 20 boards, no human limits: 199.5 / 198.9 / 176.6 / 171.2 (all finished) (E/N/H/X)
 - **Stamp:** level field only (height, numbers and clock are stored on the board)
 - **Files:** `src/lib/duel/logicOverhaul2Levels.ts`, `src/lib/duel/logicLevelDeal.server.ts`, `src/lib/duel/logicHuman.server.ts`, `scripts/logic-levels-check.ts`
-- **Risk:** low; 15 rows of 36 px leave no spare height on a short phone
+- **Risk:** no dealt 10×15 board needed a single trial (the 5–40 band was never met in 12 deals of 60 tries); Hard and Expert score alike for the average kit (33.5, 31.0); the near-perfect kit finished 9 of 12 Experts, best 171
 
 ### Lamplighter (`lightup`, Logic)
 
@@ -1054,19 +1054,19 @@ What the player sees in the first seconds at each level.
 
 | | Easy | Normal (today, fixed) | Hard | Expert |
 |---|---|---|---|---|
-| **Proposed** | As today: 9×7, 15–19 walls, 70 % of them numbered, 90 s | 9×10, 20–25 walls, half numbered, 90 s | 9×12 (today Normal's own 9×10), 26–30 walls, 35 % numbered, 3–40 trials, 100 s (today's Expert board with 20 s less) | 9×14, 32–38 walls, 30 % numbered, 6–60 trials, 120 s. Ceiling: 9 across (40 px squares) and 14 down; after it, fewer numbered walls |
-| First seconds | A short board with most walls numbered | | Two more rows and most walls blank | Fourteen rows of dark squares and few numbers |
+| **Proposed** | 9×6 (today 9×7), 13–16 walls, 80 % of them numbered (today 70 %), 120 s (today 90) | 9×10, 20–25 walls, half numbered, 90 s | 9×11 (today Normal's own 9×10), 23–27 walls, 40 % numbered, 2–25 trials, 100 s | 9×12 (today's board), 26–30 walls, 35 % numbered, 3–40 trials, 120 s. Ceiling: the 120 s clock: the near-perfect kit finished 11 of 12 of these but 2 of 5 at 9×13 and 1 of 6 at 9×14; after it, fewer numbered walls |
+| First seconds | A short board with nearly every wall numbered | | One more row and most walls blank | Twelve rows of dark squares and few numbers |
 | Today | 9×7, 15–19 walls, 70 % numbered, 90 s | | 9×10, 18–22 walls, 35 % numbered, 1–15 trials, 90 s | 9×12, 26–30 walls, 35 % numbered, 3–40 trials, 120 s |
-| **Evidence** | measured: today's Easy kept, 12 boards: average kit 115.3 (med 91, only 4/12 finished), near-perfect under limits 199.3; Normal 59.4 and 199.2 | | measured: 9×12, 26–30 walls, 35 % numbered, 100 s, 12 boards: average 29.6 (0/12), near-perfect under limits 168.8, 11/12, best 180, finish med 80 s; person-style solver 12/12, trials med 4, max 22 | measured: 9×14, 32–38 walls, 30 % numbered, 120 s, 6 boards in 77 s (up to 36 s each): average 23.5, near-perfect under limits 121.5, only 1/6 finished, best 175; person-style solver 6/6, trials med 9, max 21 |
+| **Evidence** | measured: 9×6, 13–16 walls, 80 % numbered, 120 s, 12 boards: average 166.3 (11/12 finished), near-perfect under limits 199.7. Today's Easy: 115.3, 4/12 finished; Normal 59.4 | | measured: 9×11, 23–27 walls, 40 % numbered, 100 s, 12 boards: average 29.3 (0/12), near-perfect under limits 174.8, 11/12, best 190, finish med 71 s; person-style solver 12/12, trials med 5, max 11 | measured: 9×12, 26–30 walls (today's Expert), 12 boards: average 30.4, near-perfect under limits 163.1, 11/12, best 178, no 200. As first proposed (9×14): 23.5 and 121.5, 1/6 finished; 9×13: 2/5 finished |
 
-- **Why this curve:** Hard today is Normal's own board with fewer numbers, so the board now grows two rows a level while the numbered share falls 70, 50, 35, 30 per cent.
-- **Fact-check verdict:** unproven: Hard measures as proposed, but the near-perfect kit finishes 1 of 6 of the 9×14 Expert boards and the average kit finishes only 4 of 12 on today's Easy; smaller boards are being measured.
+- **Why this curve:** Hard today is Normal's own board with fewer numbers, so the board now grows a row or two a level (6, 10, 11, 12) while the numbered share falls 80, 50, 40, 35 per cent; the 120 s clock stops it at twelve rows.
+- **Fact-check verdict:** adjusted: Expert goes back to today's 9×12 (the near-perfect kit finished 1 of 6 at 9×14 and 2 of 5 at 9×13), Hard becomes 9×11 with 23–27 walls so it is not Expert's board, and Easy becomes 9×6 on 120 s (today's Easy: 4 of 12 average runs finished); Hard and Expert score alike for the average kit.
 - **Human limits today:** No reaction or move limit. src/lib/duel/logicLevelDeal.server.ts:86-90 keeps a level board only when the person-style solver (logicHuman.server.ts solveLikePerson) finishes it inside the trial band, and scripts/logic-levels-check.ts:170 re-runs it; the solver counts trials and has no clock. The kits scale think time by LEVEL_THINK (scripts/puzzle-fairness/kit.ts:167).
 - **Proof:** One solution by the game's solver, and every board finished by the person-style solver in logicHuman.server.ts inside the level's trial band (logicLevelDeal.server.ts, scripts/logic-levels-check.ts); add a time model (0.4 s a bulb, about 1.5 s a trial) so Expert is proved inside 120 s.
 - **Measured today:** near-perfect kit, 20 boards, no human limits: 199.3 / 199.7 / 178.7 / 158.9 (80 % finished) (E/N/H/X)
 - **Stamp:** level field only (height, walls and clock are stored on the board)
 - **Files:** `src/lib/duel/logicOverhaul2Levels.ts`, `src/lib/duel/logicLevelDeal.server.ts`, `src/lib/duel/logicHuman.server.ts`, `scripts/logic-levels-check.ts`
-- **Risk:** 14 rows draw under 36 px on a 667 px tall phone
+- **Risk:** Hard and Expert score alike for the average kit (29.3, 30.4); the near-perfect kit reached 200 on neither (best 190 and 178)
 
 ### Trail (`trail`, Logic)
 
@@ -1114,19 +1114,19 @@ What the player sees in the first seconds at each level.
 
 | | Easy | Normal (today, fixed) | Hard | Expert |
 |---|---|---|---|---|
-| **Proposed** | As today: 6×6, 16–22 numbers shown, 90 s | 7×7, 14–26 numbers shown, grade 8–120, 90 s (fillominoRev 2) | 8×8 (today Normal's 7×7 with fewer numbers), 16–20 numbers shown, grade 30–400, 20–120 trials, 100 s | 9×9, 16–20 numbers shown (about a fifth of the board), grade 40+, 40–300 trials, bank of 120, 120 s. Ceiling: 9 across (40 px with a digit in every square and the number pad below); after it, fewer numbers |
-| First seconds | A small grid with half its numbers given | | An 8×8 grid, three squares in four blank | A 9×9 grid, four squares in five blank |
+| **Proposed** | As today: 6×6, 16–22 numbers shown, 90 s | 7×7, 14–26 numbers shown, grade 8–120, 90 s (fillominoRev 2) | 8×8 (today Normal's 7×7 with fewer numbers), 16–20 numbers shown, grade 30–400, 20–120 trials, 100 s | 8×8, 10–14 numbers shown (today's Expert), grade 40+, 40–400 trials, bank of 120, 120 s. Ceiling: the 120 s clock: the near-perfect kit finished none of 10 9×9 boards, with 16–20 or 26–30 numbers; after 8×8 the lever is fewer numbers |
+| First seconds | A small grid with half its numbers given | | An 8×8 grid, three squares in four blank | The same 8×8 grid with only a dozen numbers |
 | Today | 6×6, 16–22 numbers shown, grade 0–20, 90 s | | 7×7, 10–15 numbers shown, grade 30–400, 20–120 trials, 90 s | 8×8, 10–14 numbers shown, grade 40+, 40–400 trials, bank of 120, 120 s |
-| **Evidence** | measured: today's Easy kept, 12 boards: average kit 179.8 (12/12 finished), near-perfect under limits 199.8; Normal 104.3 (1/12 finished) and 199.2 | | measured: 8×8, 16–20 numbers, 100 s, 8 boards in 78 s (7–14 s each): average 35.8 (0/8), near-perfect under limits 168.9, 8/8, best 177, finish med 83 s; person-style solver 8/8, trials med 68, max 102 | measured: 9×9, 16–20 numbers, 120 s, 4 boards in 111 s (22–40 s each): average 28.0, near-perfect under limits 96.5, 0/4 finished, best 105; person-style solver 4/4, trials med 77, max 133 |
+| **Evidence** | measured: today's Easy kept, 12 boards: average kit 179.8 (12/12 finished), near-perfect under limits 199.8; Normal 104.3 (1/12 finished) and 199.2 | | measured: 8×8, 16–20 numbers, 100 s, 8 boards in 78 s (7–14 s each): average 35.8 (0/8), near-perfect under limits 168.9, 8/8, best 177, finish med 83 s; person-style solver 8/8, trials med 68, max 102 | measured: 8×8, 10–14 numbers (today's Expert, bank), 12 boards: average 32.7, near-perfect under limits 157.0, 10/12 finished, best 170, no 200. As first proposed (9×9): 0/4 finished with 16–20 numbers, 0/6 with 26–30, 22–40 s a board to build |
 
-- **Why this curve:** Hard today is Normal's 7×7 with fewer numbers, which reads as the same board; a side longer at each level (36, 49, 64, 81 squares) with a thinner spread of numbers is a step the eye and the solver both feel.
-- **Fact-check verdict:** unproven: Hard measures as proposed, but the near-perfect kit finishes none of 4 of the 9×9 Expert boards inside 120 s; a 9×9 with more numbers is being measured.
+- **Why this curve:** Hard today is Normal's 7×7 with fewer numbers, which reads as the same board; the grid now grows a side a level up to 8×8 (36, 49, 64 squares), where the 120 s clock stops it, and Expert thins the numbers instead.
+- **Fact-check verdict:** adjusted: Expert stays 8×8 with 10–14 numbers, because the near-perfect kit finished none of 10 9×9 boards inside 120 s; Hard holds (35.8, near-perfect 168.9, 8 of 8); Hard and Expert now share a grid and score alike for the average kit.
 - **Human limits today:** No reaction or move limit. src/lib/duel/logicLevelDeal.server.ts:86-90 keeps a level board only when the person-style solver (logicHuman.server.ts solveLikePerson) finishes it inside the trial band, and scripts/logic-levels-check.ts:170 re-runs it; the solver counts trials and has no clock. The kits scale think time by LEVEL_THINK (scripts/puzzle-fairness/kit.ts:167).
 - **Proof:** One solution by the game's solver, and every board finished by the person-style solver (fillominoDeductions plus one-step trials, logicHuman.server.ts) inside the trial band; Hard and Expert from banks (scripts/logic-level-bank.ts), proved by scripts/logic-levels-check.ts; add a time model so Expert is proved inside 120 s.
 - **Measured today:** near-perfect kit, 20 boards, no human limits: 200.0 / 199.5 / 169.1 (95 % finished) / 154.7 (80 %) (E/N/H/X)
 - **Stamp:** level field only (size, numbers and clock are stored on the board)
 - **Files:** `src/lib/duel/logicOverhaul2Levels.ts`, `src/lib/duel/fillomino.server.ts`, `src/lib/duel/logicLevelBank.server.ts`, `scripts/logic-level-bank.ts`, `src/lib/duel/logicHuman.server.ts`, `scripts/logic-levels-check.ts`
-- **Risk:** 9×9 boards inside a 300-trial band may be slow to find (the 8×8 bank already takes seconds a board)
+- **Risk:** Hard and Expert share the 8×8 grid and score alike for the average kit (35.8, 32.7); the near-perfect kit reached 200 on neither (best 177 and 170)
 
 ### Island Link (`bridges`, Logic)
 
@@ -1457,19 +1457,19 @@ What the player sees in the first seconds at each level.
 
 | | Easy | Normal (today, fixed) | Hard | Expert |
 |---|---|---|---|---|
-| **Proposed** | No pterodactyl; reach 250 px; no sliding vines (today 5); no dark runs; course part full at 40 % of the way (today 50 %). | swingRev 18: reach 220 px, 18 sliding vines, pterodactyl over the last quarter at 2.4 px a tick, 6 dark ledge runs, course part full at 70 %, 90 s | The pterodactyl chases from the first vine (Normal only the last quarter) at 3.2 px a tick for the whole course, its distance warning shown from the start; 26 sliding vines, vine swing 125 % and stall 55 ticks as today. | The pterodactyl chases from the first vine at 3.4 px a tick for the whole course; reach 205 px, 30 sliding vines, 7 dark runs and vine swing 145 % as today. |
+| **Proposed** | No pterodactyl; reach 250 px; no sliding vines (today 5); no dark runs; course part full at 40 % of the way (today 50 %). | swingRev 18: reach 220 px, 18 sliding vines, pterodactyl over the last quarter at 2.4 px a tick, 6 dark ledge runs, course part full at 70 %, 90 s | The pterodactyl chases from the first vine (Normal only the last quarter) at 3.4 px a tick for the whole course, its distance warning shown from the start; 26 sliding vines, vine swing 125 % and stall 55 ticks as today. | The pterodactyl chases from the first vine at 3.6 px a tick for the whole course; reach 205 px, 30 sliding vines, 7 dark runs and vine swing 145 % as today. |
 | First seconds | No pterodactyl, every vine hanging still, all lit | | A pterodactyl warning from the first vine, vines sliding | The pterodactyl closing faster from the first vine, dark runs |
 | Today | Reach 250 px, 5 sliding vines, no pterodactyl, no dark runs, course part full at 50 % of the way | | 26 sliding vines, pterodactyl 3.2 px a tick over the last quarter, streak stall 55 ticks, vine swing 125 % | Reach 205 px, 30 sliding vines, pterodactyl 3.4 px a tick over the last quarter, 7 dark runs, vine swing 145 % |
-| **Evidence** | not measured: today's levels were not re-run this session (the run was cut off); the earlier pass's numbers stand (average 113, elite 199, 6 courses). | | measured: chase start set in memory (one pace a level), 6 courses: from the first vine at 3.2 px a tick: average median 81, caught 4.3 times a run, elite 199, never caught, 3/6 at 200. At the first-proposed 2.0 px: average 87, never caught. | measured: in memory, 6 courses: from the first vine at 3.4 px a tick: average 66, caught 7.7 times, elite 198, 1/6 at 200. At the first-proposed 2.6 px: average 79, elite 198. At 4.0 px the course build throws (swing.ts:3751). |
+| **Evidence** | not measured: today's levels were not re-run this session (the run was cut off); the earlier pass's numbers stand (average 113, elite 199, 6 courses). | | measured: table and chase start in memory, 6 courses: chase from the first vine at 3.4 px a tick (run with a 35-tick stall): average 75, caught 6.7 times, elite 185, best 190. At 3.2 px with today's stall: 81 and 199, 3/6 at 200. Normal: 81 and 197; today's Hard: 94 and 198 (4 courses). | measured: in memory, 6 courses: chase from the first vine at 3.6 px (run with a 25-tick stall): average 61, caught 13 times, elite 168, best 174. At 3.4 px with today's stall: 66 and 198, 1/6 at 200. Reach 195 or 185 px and a 4.0 px chase fail to build; a 200 % swing and more sliding vines change nothing. |
 
-- **Why this curve:** Reach, sliding vines and swing speed change the route but not the look and leave every bot flat across the levels, whereas the chaser the game already has turns the whole course into a race the moment it appears.
-- **Fact-check verdict:** adjusted: the slow opening pace dropped (2.0 and 2.6 px a tick measured no change) for the level's own 3.2 and 3.4 px from the first vine; the step is still unproven: the average bot falls only to 81 and 66 and the elite stays at 198 to 199.
+- **Why this curve:** Reach, sliding vines and swing speed change the route but not the look and leave every bot flat across the levels (re-measured: a 200 px reach, a 200 % swing and more sliding vines move nothing), whereas the chaser the game already has is the one setting that moves the average player and shows from the first vine.
+- **Fact-check verdict:** adjusted: the chase runs from the first vine at 3.4 px (Hard) and 3.6 px (Expert), the only setting that moves the average bot (81, 75, 61 from Normal); the step stays under 20 and the elite is never caught, so the row needs a lever SWING_LEVELS lacks: a chase near 4 px a tick, which the course builder cannot prove today.
 - **Human limits today:** scripts/action-levels-bands.ts:29-33 sets `human.limits`, which bots/swingRework.ts reads; level-tune.ts:187 sets the same flag and raises reactions to 250 ms. Both only measure. The deal's oracle (swing-slide-deal.ts) hits exact ticks and swing-levels-check asserts its 200 with no limits.
 - **Proof:** Each level deals 24 courses whose flawless oracle replays to exactly 200 (bun scripts/swing-slide-deal.ts --rev=18 --level, src/lib/duel/swingLevelDeal.server.ts, scripts/swing-levels-check.ts). Rebuild with the chase from the first vine: the oracle must stay ahead on every stretch, ledge runs included, and its releases need re-timing under HUMAN_LIMITS (it hits exact ticks today).
 - **Measured today:** 6 courses, bots under human limits, mean: average 113 / 86 / 89 / 79 (Hard no harder than Normal); elite 199 / 199 / 200 / 198 (flat).
 - **Stamp:** swingRev 19 on Easy, Hard and Expert deals only (Normal stays swingRev 18): SWING_LEVELS says a changed value needs a new stamp.
 - **Files:** `src/lib/arcade/swing.ts (SWING_LEVELS gains a chase start)`, `src/lib/levels/gameLevels.ts (display copy)`, `scripts/swing-slide-deal.ts`, `src/lib/duel/swingLevelDeal.server.ts`, `scripts/swing-levels-check.ts`, `scripts/arcade-skill-bands/bots/swingRework.ts`, `scripts/action-levels-bands.ts`
-- **Risk:** even at 3.2 and 3.4 px a tick from the first vine the elite bot is never caught (198 to 199, 200 reached) and the average bot only falls to 81 and 66; at 4.0 px a tick the sim's course build fails, as swing.md records for a tighter pterodactyl
+- **Risk:** no SWING_LEVELS setting gives the average bot a 20-point step: it covers 20 to 24 of 51 stretches at every level, the chase moves it 6 and 14, the elite is never caught, a 4.0 px chase and a reach under 205 px cannot be built, and a tighter streak stall (35 or 25 ticks) costs the elite its 200
 
 
 ## Strategy, Sports and Cards & Board (session D6)
