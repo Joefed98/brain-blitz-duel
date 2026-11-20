@@ -119,7 +119,13 @@ export function RevealScreen({
       </div>
       {views && views.length > 1 ? <RevealViews views={views} value={current} onChange={change} /> : null}
       <div data-reveal-slot="stage" data-reveal-stage="" className="reveal-slot-stage">
-        {shown ? shown.node : stage}
+        {views && views.length > 1
+          ? views.map((v) => (
+              <div key={v.id} data-reveal-view={v.id} hidden={v.id !== (shown?.id ?? v.id)} className="reveal-view">
+                {v.node}
+              </div>
+            ))
+          : stage}
       </div>
       {facts ? (
         <div data-reveal-slot="facts" className="reveal-slot-facts">

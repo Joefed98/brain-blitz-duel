@@ -542,3 +542,12 @@
     min-height: 160px;
   }
 }
+.reveal-view {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+}
+.reveal-view[hidden] {
+  display: none;
+}
