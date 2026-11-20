@@ -23,7 +23,7 @@
     "proof": "An open word find, so the proof is a witness. To write: scripts/wordsmith-level-bank.ts (or a filter in src/lib/duel/levels/wordsmith.server.ts) keeps a board only when a list of its allowed words reaches 140 points plus the every-tile word, typed inside the clock at 0.25 s a word and 0.15 s a tap (HUMAN_LIMITS). Measured: of 155 sampled 11-letter rings 126 hold 140 or more points in 6+ letter words and 24 also sit in the 12-20 everyday band; on those 24 the witness types in 22-37 s, inside the 40 s clock, but it needs bonus words (everyday 6+ words alone reach 200 on none). scripts/wordsmith-levels-check.ts re-proves the witness on every dealt board and that a 4-letter word is refused on Hard.",
     "change": "redesign",
     "newMechanic": "",
-    "stamp": "Level field plus a stored minLength on the level's puzzle (absent = 4, so Normal and every stored round are unchanged); Easy's 3-letter point and step-up table are read from the same field. No new Normal stamp.",
+    "stamp": "Joe, 20 Nov: Normal itself moves to wordsmithRev 6 (the points line refit) first, under the routine of plan section 8.2; the levels are then tuned on that Normal and stamped after it. Level field plus a stored minLength on the level's puzzle (absent = 4, so Normal and every stored round are unchanged); Easy's 3-letter point and step-up table are read from the same field. No new Normal stamp.",
     "files": [
       "src/lib/levels/word/wordsmith.ts",
       "src/lib/duel/levels/wordsmith.server.ts",
@@ -152,7 +152,7 @@
     "proof": "An open word find, so the proof is a witness. The level deal (src/lib/duel/levels/wordhunt.server.ts) keeps a board only when a list of its allowed words reaches 60 base points and 120 long-word and gold points traced inside the clock at 0.25 s a word and 0.15 s a letter. Measured on 24 packed boards: each holds 95-241 everyday words of 6+ letters and 30 or more of 7+, and six 8-letter words, four of them through the golden tile, score 200 through the server's grader in 8.7 s of tracing. scripts/wordhunt-levels-check.ts re-proves the witness on every dealt board and that a short trace is refused.",
     "change": "redesign",
     "newMechanic": "",
-    "stamp": "Level field plus a stored minLength and free-miss allowance on the level's puzzle (absent = 4 letters, 10 plus 2); Easy's 3-letter point and step-up table read from the same field. No new Normal stamp.",
+    "stamp": "Joe, 20 Nov: Normal itself moves to wordHuntRev 5 (the points line refit) first, under the routine of plan section 8.2; the levels are then tuned on that Normal and stamped after it. Level field plus a stored minLength and free-miss allowance on the level's puzzle (absent = 4 letters, 10 plus 2); Easy's 3-letter point and step-up table read from the same field. No new Normal stamp.",
     "files": [
       "src/lib/levels/word/wordhunt.ts",
       "src/lib/duel/levels/wordhunt.server.ts",
@@ -234,7 +234,7 @@
     "proof": "scripts/letter-wheel-bank.ts --level builds each bank (every slot word a common answer traceable on the wheel, the grid inside the level's limits, rebuilt byte for byte with --check); Expert needs a new 8-letter bank from a new LW_LEVEL_LIMITS row. Open by design (fills are not unique), so 200 is shown by a witness to add to scripts/letterwheel-levels-check.ts: every slot word and a full jar traced inside the 40 s full-speed line at 0.25 s a word and 0.15 s a letter (about 33 s of tracing for 22 slot words plus the 11 or so bonus words that fill the 30-drop jar).",
     "change": "retune",
     "newMechanic": "",
-    "stamp": "Level field plus a stored free-miss allowance on the level's puzzle (absent = 5); the wheel's letters, grid and clock are already stored. New level banks, no new Normal stamp.",
+    "stamp": "Joe, 20 Nov: Normal itself moves to wheelRev 6 (the points line refit) first, under the routine of plan section 8.2; the levels are then tuned on that Normal and stamped after it. Level field plus a stored free-miss allowance on the level's puzzle (absent = 5); the wheel's letters, grid and clock are already stored. New level banks, no new Normal stamp.",
     "files": [
       "src/lib/levels/word/letterwheel.ts",
       "src/lib/duel/letterWheel.ts",

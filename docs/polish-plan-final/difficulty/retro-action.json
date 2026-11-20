@@ -65,7 +65,7 @@
     "proof": "scripts/skyline-oracle.ts scores 200 on every seed at every level today (skyline-levels-check) and a run of perfect drops never trims, so block width cannot break it. With Normal's slide kept, a perfect drop is never under one tick wide; today's Expert (2 px either side at up to 7.5 px a tick) is, so its 200 is only there for a frame-exact oracle. The build session should also report the elite bot under scripts/arcade-skill-bands/humanLimits.ts.",
     "change": "redesign",
     "newMechanic": "",
-    "stamp": "skylineRev 12 on Easy, Hard and Expert deals only (Normal stays skylineRev 11): SKYLINE_LEVEL_RULES is frozen with the sim and stored level rounds must replay.",
+    "stamp": "Joe, 20 Nov: Normal itself moves to skylineRev 12 (floors full at 45, perfect drops at 30) first, under the routine of plan section 8.2; the levels are then tuned on that Normal and stamped after it. skylineRev 12 on Easy, Hard and Expert deals only (Normal stays skylineRev 11): SKYLINE_LEVEL_RULES is frozen with the sim and stored level rounds must replay.",
     "files": [
       "src/lib/arcade/skyline.ts (SKYLINE_LEVEL_RULES gains a start width)",
       "src/lib/levels/gameLevels.ts (display copy)",
@@ -402,7 +402,7 @@
     "proof": "Each level's tower is built in the sim and kept only when its witness takes every part with no hit through the real step (moonBuildDeal(seed, 4, level) in src/lib/arcade/ricochetNinja.ts); scripts/ricochet-levels-check.ts grades sampled witnesses at exactly 200. A knock-down change does not touch a hitless witness, so Hard's towers stay proved. The witness leaps on exact ticks, so the build session should re-time it under HUMAN_LIMITS once.",
     "change": "retune",
     "newMechanic": "",
-    "stamp": "A new stamp on Hard deals only (ricoRev 5, or 6 if the pending smaller ninja takes 5): MOON_LEVELS is frozen with the sim, so stored Hard rounds keep the 3 m knock-down. Easy, Normal and Expert keep their stamp and table.",
+    "stamp": "Joe, 20 Nov: Normal itself moves to ricoRev 5 (a 30 × 60 ninja, C3.5) first, under the routine of plan section 8.2; the levels are then tuned on that Normal and stamped after it. A new stamp on Hard deals only (ricoRev 5, or 6 if the pending smaller ninja takes 5): MOON_LEVELS is frozen with the sim, so stored Hard rounds keep the 3 m knock-down. Easy, Normal and Expert keep their stamp and table.",
     "files": [
       "src/lib/arcade/ricochetNinja.ts (MOON_LEVELS: Hard's knock-down)",
       "scripts/ricochet-levels-check.ts",
@@ -441,7 +441,7 @@
     "proof": "wavRev 15 is already dealt only from seeds with a stored witness at exactly 200 at every level (scripts/wavefront-big-deal.ts, src/lib/duel/wavefrontDeal.server.ts, scripts/wavefront-deal-check.ts). Rebuild that deal on the new fire tables with the witness held to HUMAN_LIMITS (no dodge sooner than 0.25 s after a bolt leaves its ship) and drop seeds without one.",
     "change": "redesign",
     "newMechanic": "",
-    "stamp": "wavRev 16 on Easy, Hard and Expert deals only (17 if the pending wider formation takes 16). The ladder does not need that stamp: the same 36 ships a wave fire more.",
+    "stamp": "Joe, 20 Nov: Normal itself moves to wavRev 16 (the wider formation, C1.6) first, under the routine of plan section 8.2; the levels are then tuned on that Normal and stamped after it. wavRev 16 on Easy, Hard and Expert deals only (17 if the pending wider formation takes 16). The ladder does not need that stamp: the same 36 ships a wave fire more.",
     "files": [
       "src/lib/arcade/retroLevels.ts (WAVEFRONT_LEVELS: volley, bolt cap, divers from)",
       "src/lib/arcade/wavefront.ts",
@@ -568,7 +568,7 @@
     "proof": "The oracle in scripts/arcade-standard/burst.ts searches the real sim with the phone's own moves and taps and reaches 200 on Normal (a perfect run in 43.5 s). Run it at each level under HUMAN_LIMITS, keep seeds at 200 in a per-level deal (src/lib/duel/burstLevelDeals.server.ts, to write) and replay them in a new burst-levels-check. Today's Hard and Expert cut the quick-clear time to 75 % and 60 % with no proof that 200 is still there.",
     "change": "redesign",
     "newMechanic": "",
-    "stamp": "burstRev 14 on Easy, Hard and Expert deals only (15 if the pending atom-size stamp takes 14). The ladder does not need that stamp: wave lists carry over to any atom size.",
+    "stamp": "Joe, 20 Nov: Normal itself moves to burstRev 14 (atoms 35 / 24 / 15 / 9 px, C1.8) first, under the routine of plan section 8.2; the levels are then tuned on that Normal and stamped after it. burstRev 14 on Easy, Hard and Expert deals only (15 if the pending atom-size stamp takes 14). The ladder does not need that stamp: wave lists carry over to any atom size.",
     "files": [
       "src/lib/arcade/retroLevels.ts (BURST_LEVELS gains wave lists)",
       "src/lib/arcade/burst.ts (initV10 waves per level)",
@@ -663,7 +663,7 @@
       "scripts/arcade-skill-bands/bots/swingRework.ts",
       "scripts/action-levels-bands.ts"
     ],
-    "risk": "no SWING_LEVELS setting gives the average bot a 20-point step: it covers 20 to 24 of 51 stretches at every level, the chase moves it 6 and 14, the elite is never caught, a 4.0 px chase and a reach under 205 px cannot be built, and a tighter streak stall (35 or 25 ticks) costs the elite its 200",
+    "risk": "Joe, 20 Nov: no setting makes a real step today, so D5 proposes a working lever to Joe, with numbers, before building Grappler's levels. no SWING_LEVELS setting gives the average bot a 20-point step: it covers 20 to 24 of 51 stretches at every level, the chase moves it 6 and 14, the elite is never caught, a 4.0 px chase and a reach under 205 px cannot be built, and a tighter streak stall (35 or 25 ticks) costs the elite its 200",
     "evidence": {
       "easy": "not measured: today's levels were not re-run this session (the run was cut off); the earlier pass's numbers stand (average 113, elite 199, 6 courses).",
       "hard": "measured: table and chase start in memory, 6 courses: chase from the first vine at 3.4 px a tick (run with a 35-tick stall): average 75, caught 6.7 times, elite 185, best 190. At 3.2 px with today's stall: 81 and 199, 3/6 at 200. Normal: 81 and 197; today's Hard: 94 and 198 (4 courses).",

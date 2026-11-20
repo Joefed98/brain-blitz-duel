@@ -23,6 +23,56 @@ reads each row's file, goes to the row's lines and looks for the row's quoted te
   Classic rule); `realArt.renderer.ts:24-26` and `practiceChallenges.data.ts:526` now carry their folders.
 - Nothing was withdrawn and nothing was added: no row turned out to be about a line that no longer exists.
 
+## After Joe's answers of 20 Nov 2026
+
+Joe's answers (plan section 2.1) change which rows apply. Every line below was read in the file on this branch on 20 Nov.
+
+### Rows brought back with the three stamps (D5)
+
+| Check | Lines | Asserts today (quote) | Needs | Why |
+|---|---|---|---|---|
+| `scripts/ricochet-overhaul-check.ts` | 387-423 | ricoRev 4's deal, body and witnesses | **addition**: a rev-5 block beside it (K10's rev-5 part). The rev-4 lines stay and keep passing, because rev 4 still replays | Moon Climb `ricoRev 5` (C3.5) |
+| same | 544-561 | `ninjaArtScale(4) === MOON_BIG_HW / 13`; the bigger ninja's ink | **addition**: the rev-5 scale and ink beside it (K10) | same |
+| `scripts/art-check.tsx` | 196-217 | 4a: ricoRev 4's figure `<= (main + 0.5) × 17/13 + 0.25` | **addition**: a rev-5 entry (K11), with its own fixture row | same |
+| `scripts/arcade-standard-check.ts` | 157 | `{ type: "ricochet", field: "ricoRev", rev: 4, batch: "Action" }` | **1**: `rev: 5` | the roster names each game's live stamp as a literal |
+| same | 53 | `{ type: "burst", field: "burstRev", rev: 13, batch: "A" }` | **1**: `rev: 14` | Fission `burstRev 14` (C1.8) |
+| same | 87 | `{ type: "wavefront", field: "wavRev", rev: 15, batch: "C" }` | **1**: `rev: 16` | Wavefront `wavRev 16` (C1.6) |
+| `wavefront-deal-check.ts`, `retro-overhaul-check.ts`, `burst-standard-check.ts`, `fission-carry-check.ts`, `scoring-audit-arcade-check.ts` | their legacy sections | the older stamps replay and score as recorded | **2 / addition**: a legacy fixture of today's stamp recorded first, then a section for the new stamp; no line that pins an older stamp changes | the house rule for a stamp |
+
+### Rows for the Normal scoring stamps of plan section 8.2 (D1, D2, D3, D5, D6)
+
+| Check | Lines | Asserts today (quote) | Needs | Stamp |
+|---|---|---|---|---|
+| `scripts/arcade-standard-check.ts` | 67 | `{ type: "skyline", field: "skylineRev", rev: 11, batch: "B" }` | **1**: `rev: 12` | High Rise (I5), D5 |
+| same | 143 | `{ type: "pool", field: "poolRev", rev: 4, batch: "Sports" }` | **1**: `rev: 5` | Cue Ball (I7), D6 |
+| same | 49 | `{ type: "tilt", field: "tiltRev", rev: 12, batch: "A" }` | **1**: `rev: 13` | Tilt (I8), D6 |
+| same | 127 | `{ type: "fivehands", field: "fiveHandsRev", rev: 3, batch: "Cards" }` | **1**: `rev: 4` | Five Hands (I2), D6 |
+| `scripts/deal-identity-check.ts` | 59-60, 70 | "every deal identical to main"; "whole rooms identical to main" | **addition, no line changes**: each new Normal stamp gets an era pin in `DEAL_PINS`, and the check's pinned pass keeps the fixture; line 156 (`names.size === 51`) is a **1** each time a pin is added (51 becomes 52 and so on) | every stamp in section 8.2 and the three above |
+| `scripts/practice-bests-check.ts`, `practice-goals-check.ts` | their generated-data lines | `PRACTICE_STAMPS` and the challenge numbers match what is dealt | **2**: `bun scripts/practice-stamps.ts` and the catalogue doc script after each stamp | all |
+| each game's own legacy and levels checks (speed-levels-check and tap-log-check for Flash; speed-overhaul-check for Bonk and Pull!; partial-credit-check and standard-legacy-check for Integer Pyramid; word-overhaul-check and the three word levels checks; skyline-overhaul-check and skyline-levels-check; pool-check; tilt-rev12-check and tilt-levels-check; cards-check and cards-nov7-check) | their "dealt stamp" and legacy sections | today's stamp is what is dealt; older stamps replay unchanged | **1 where a line names today's stamp as the dealt one** (the session shows Joe each exact line when it builds), **addition** for the new stamp's section; never a change to a legacy line | the game named |
+
+The D sessions' prompts tell each to record the legacy fixture first, so every "older stamps replay as before" assertion stays green untouched.
+
+### Keyboard controls in every game (P4, P2)
+
+| Check | Lines | Asserts today (quote) | Needs |
+|---|---|---|---|
+| `scripts/game-controls-check.ts` | 47-48 | a game with a `DESKTOP_KEYS` line "offers keys, mouse"; one without "(no keys) offers mouse" | **3**: it reads the map, so 18 more games move from the second line to the first with no line changed |
+| `scripts/desktop-geometry-check.tsx` | 366-369 | `if (DESKTOP_KEYS[type])` … "the intro does not show the game's keys" | **3**: the short intro keeps `[data-desktop-keys]` on a computer (P2), and the 18 new lines are then covered by the same assertion |
+| `scripts/desktop-fairness-check.ts`, each game's self-replay entry | whole | keys feed the same handlers on the same ticks; the world is identical | **3**: must stay green untouched (input mapping only) |
+
+### Pages: what the answers change in Part 1
+
+- **Home** (change 4): the rows stand. The player banner replaces the hero, and the three Ratings tiles still go, so `rated-screens-check.tsx:737-742` still needs its change (the source it reads no longer has `<RatingTiles`); what replaces it is the banner's component, shown to Joe by P1.
+- **Games** (change 6): the rows stand. The Shelves · All switch replaces the Puzzles | Arcade switch; the All view keeps the three-across grid, so the grid rows of `desktop-layout-check.ts:243-246` and `practice-switch-check.ts:198-210` can keep passing in that view if P2 keeps their attributes.
+- **Game page** (change 6): `difficulty-check.ts:258-260, 271-273` ("the catalogue's switch sets the level for every game"; "changing the catalogue's level clears each game's own choice") still change, as listed: the catalogue switch is gone and the level is remembered per game.
+- **Compete and You** (changes 9 to 11): the rows stand; the order inside each page is Joe's (`profile-pages-check.tsx:281-282` pins Profile's section order and still needs its new order, now card, trophy shelf, gauges, categories, rows).
+- **First open** (change 5): the rows stand; the game is Joe's pick of three.
+
+### The four looks of 14b (A1, A2)
+
+If Joe picks the **old** look for a game, the earlier plan's assertion row comes back with it: K5 for Ballpark (`number-overhaul-measure-numline-check.ts` 132, 135, 169, 262-271), K2 for Chroma Lines (`pattern-overhaul-flow-check.ts` 216-224, 318-324, 348-352), K3 for Pipeline (`pattern-overhaul-pipes-check.ts` 194-202), and Topsy-Turvy's rows in Part 2A's Pattern table. If he picks **today**, that game has no row at all. If he picks **Spotlight**, Part 2A's rows for that game apply as written.
+
 ## Who shows Joe which rows
 
 | Session | Rows |

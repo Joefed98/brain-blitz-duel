@@ -9,6 +9,8 @@ MORE = {  # id: (name, family colour, stage top, stage bottom, treatment, boxes 
  'target':   ('Exact',         '#3DDC84', '#11703F', '#072A1A', 'spot', [(30,1070,524,1212),(30,1212,756,1500)], [(192,338,588,504)]),
  'hover':    ('Hover',         '#36E2F5', '#0F4F8C', '#060B2E', 'neon', []),
  'flow':     ('Chroma Lines',  '#B26BFF', '#4A2A9E', '#170C3D', 'flood', []),
+ 'gravity':  ('Topsy-Turvy',   '#B26BFF', '#4A2A9E', '#170C3D', 'spot', [(28,600,756,1324)]),
+ 'numline':  ('Ballpark',      '#3DDC84', '#11703F', '#072A1A', 'spot', [(56,940,734,1160),(216,286,564,394)]),
  'symscan':  ('Eagle Eye',     '#FF6BD6', '#8E2A7A', '#2A0C26', 'spot', []),
  'bastion':  ('Iron Wall',     '#FF4D4D', '#8A2020', '#2A0A0A', 'flood', []),
  'balance':  ('Counterweight', '#3DDC84', '#11703F', '#072A1A', 'floodbox', [(28,228,756,1340),(32,1440,750,1616)]),

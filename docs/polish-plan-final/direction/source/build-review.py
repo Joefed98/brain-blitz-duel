@@ -22,11 +22,11 @@ dec=[
  ('intro','Round intro: demo, one-line goal and Ready',[('yes','Yes'),('no','No')],'yes','How and Score move behind “?”. Rooms and the Daily keep the Ready tap.'),
  ('ratings','Ratings tiles leave Home',[('yes','Yes'),('keep','Keep them on Home')],'yes','The hero shows your rating; all three live on You. This reverses the 14 Nov choice.'),
  ('terms','Beta terms cut to about 60 words and a link',[('yes','Yes, subject to the adviser'),('no','No')],'yes','On the Daily the page shows first and the terms come at the first Play tap.'),
- ('hard4','A new Hard for Counterweight, Brimful, Checkout and Kakuro',[('yes','Yes'),('no','Keep the older game as Hard')],'yes','The older game as Hard looks and scores like Normal. This reverses the 15 Nov choice.'),
+ ('hard4','A new Hard for Counterweight, Brimful, Checkout and Kakuro',[('yes','Yes'),('no','Keep the older game as Hard')],'yes','The older game as Hard is harder than Normal (a good player drops 24 to 87 points). It just does not look different in the first seconds, so each gets a step you can see. This reverses the 15 Nov choice.'),
  ('ironwall','Iron Wall’s Expert becomes four lanes',[('yes','Yes'),('no','Keep Expert as it is')],'yes','The fourth lane arrives at Hard (8 tanks a wave), Expert has 9.'),
  ('reach200','Fix scoring on level deals so 200 is reachable under the human limits',[('yes','Yes'),('no','No')],'yes','Flash, Bonk, Home Run, Matchmaker, Tenfall’s Easy, Nucleus, Forage, Five Hands. Normal untouched.'),
- ('proofs','Every difficulty session builds its proof tool first',[('yes','Yes'),('no','No')],'yes','No oracle applies the human limits today; four Retro games have none.'),
- ('mines','Minefield’s Expert goes back to 10 × 16 (36 mines)',[('yes','Yes'),('no','No')],'yes','Today’s 12 × 18 draws squares at about 31 px on a phone.'),
+ ('proofs','Every difficulty session builds its proof tool first',[('yes','Yes'),('no','No')],'yes','Some proof tools apply the human limits today (the level tuning tool, the Home Run and Top Bins proof, nine level checks). Most 200 proofs are still frame-exact, and four Retro games have no oracle at all.'),
+ ('mines','Minefield’s Expert goes back to 10 × 16 (40 mines)',[('yes','Yes'),('no','No')],'yes','Today’s 12 × 18 draws squares at about 31 px on a phone.'),
  ('bestvalue','Drop “best value” from the coin packs',[('yes','Yes, drop it'),('no','Keep it')],'yes','The style guide’s own rule is no pressure labels.'),
  ('avatars','Leave the avatars’ backing disc and their art as they are',[('yes','Yes, leave them'),('no','Remove the disc')],'yes','The new header and VS screens make the disc a non-issue.'),
  ('homelayout','Home layout',[('H1','H1 · Hero'),('H2','H2 · Match day'),('H3','H3 · Deck')],'H1','H1 works for every player today. H2 is the one to move to when rated play is open to everyone.'),
@@ -67,6 +67,15 @@ def levels():
     return '\n'.join(out)
 def famnav():
     return '<div class="chips">'+''.join(f'<a href="#fam-{grp.lower().replace(" & ","-").replace(" ","-")}">{E(grp)}</a>' for grp in order)+'</div>'
+def threeway():
+    import os
+    out=[]
+    for g,n,note in [('pipes','Pipeline',''),('flow','Chroma Lines','The old capture is mid-game, so its lines are drawn. Today’s play capture is the start of a round, so today’s lines are shown from the reveal’s solution (a small capture, enlarged).'),('gravity','Topsy-Turvy',''),('numline','Ballpark','The 82f2f648 play screen would not capture, so “old” is the earlier 6 Nov capture of the same look, enlarged from a small picture.')]:
+        items=[]
+        for k,lab in (('old','Old'),('now','Today'),('nowlines','Today, lines drawn'),('spotlight','Spotlight'),('drawn','Spotlight, drawn')):
+            if os.path.exists(R+f'direction/games/{g}-{k}.webp'): items.append((f'games/{g}-{k}',f'{n} · {lab}','now' if k=='now' else ''))
+        out.append(f'<h4>{E(n)}</h4>'+(f'<p class="muted">{E(note)}</p>' if note else '')+strip(items))
+    return '\n'.join(out)
 def factcounts():
     lab={'measured':0,'documented':0,'not measured':0}; ver={'holds':0,'adjusted':0,'unproven':0}
     for g in allg:
@@ -79,7 +88,52 @@ def adjusted():
         v=g.get('verdict') or ''
         if v.lower().startswith('adjusted'): out.append(f'<li><b>{E(g["name"])}:</b> {E(v.split(":",1)[1].strip() if ":" in v else v)}</li>')
     return '\n'.join(out)
+ANS={
+ 'look':('changed','E, with my rating front and centre on Home.'),
+ 'games':('agreed','Spotlight, with Retro on Neon’s glow and the light-on-dark games keeping a deep board. “Your drawn versions look really good.”'),
+ 'nav':('agreed','N1: Home · Games · Compete · Shop · You.'),
+ 'first':('changed','Straight into a game, yes. Which game: Joe picks from three candidates (still open, below).'),
+ 'gamespage':('changed','G1 shelves (bigger tiles) by default, plus one switch to “All”: every game in the three-across grid, grouped by category. The page remembers the last view.'),
+ 'levels':('agreed','Yes.'),
+ 'intro':('agreed','Yes.'),
+ 'ratings':('changed','The three tiles go, but my main rating is in the banner and my other two ratings show as small chips under it; tapping one opens Compete.'),
+ 'terms':('agreed','Yes, subject to the adviser.'),
+ 'hard4':('agreed','Yes.'),
+ 'ironwall':('agreed','Yes.'),
+ 'reach200':('agreed','Yes, and on Normal too: the seven approved scoring fixes are built under new stamps, with Normal’s caps for Flash, Bonk and Pull!.'),
+ 'proofs':('agreed','Yes.'),
+ 'mines':('agreed','Yes: 40 mines, per the spec.'),
+ 'bestvalue':('agreed','Yes.'),
+ 'avatars':('agreed','Yes.'),
+ 'homelayout':('changed','H1 and H2 combined, nothing shown twice: H1’s top line (avatar, name, streak, coins; no rating), then H2’s player banner (rating large, “+22 this week”, tier and bar, gold Find a match), then H1’s middle (the two Dailies, Play friends), then H2’s Jump back in. Not rated yet: “Play now” over the game of the day. Open but unplaced: “Play 5 placement matches to get your rating”.'),
+ 'competelayout':('changed','C1’s layout, reordered: rating, tier and Find a match first; then tournaments (C2’s live event card and upcoming fixtures); then leaderboards lower down as tabs, with the Daily top 100 as one tab and nothing more prominent.'),
+ 'youlayout':('changed','Y2, with Y3’s three ring gauges in place of the three stat tiles and Y3’s trophy shelf as one row under the card.'),
+ 'levelpick':('changed','L1 and L2 combined: the page opens on my current level shown large; all four levels sit underneath as a compact row to tap, each with its small picture, my best and my star; it remembers the last level I played on each game; Challenges and How to play are two small buttons.'),
+ 'wordtop':('agreed','Change the scoring.'),
+ 'breakerball':('agreed','Yes.'),
+ 'gem8':('agreed','Yes.'),
+ 'accent':('agreed','Champagne.'),
+}
 def decisions():
+    out=[]
+    for i,(k,q,opts,rec,note) in enumerate(dec,1):
+        st,txt=ANS[k]
+        out.append(f'<div class="done {st}"><div class="dq"><b>{i}.</b> {E(q)}<i class="tag {"v-holds" if st=="agreed" else "v-adjusted"}">{"agreed" if st=="agreed" else "changed"}</i></div><p class="da">{E(txt)}</p><p class="dn">{E(note)}</p></div>')
+    return '\n'.join(out)
+OPEN=[
+ ('firstgame','The first game on a new phone',[('ascend','Ascend, Easy: tap 1 to 16 in order; nothing to explain, over in about 20 seconds (average player 171)'),('flood','Colour Flood, Easy: tap a colour and the board floods; one rule, the highest Easy average measured (195)'),('tubes','Polypotions, Easy: pour to sort the colours; most people have seen the idea (average 180)')],'ascend','All three are understood without reading and are a likely win inside a minute. My pick is Ascend: its first tap is the game’s first tap.'),
+ ('lookpipes','Pipeline’s look',[('spot','Spotlight'),('today','Today’s'),('old','The old look (82f2f648)')],'spot','Shown three ways above. Old means the earlier plan’s E1.4, built by A2.'),
+ ('lookflow','Chroma Lines’ look',[('spot','Spotlight (the deep board kept, the stage lit)'),('today','Today’s'),('old','The old look (82f2f648)')],'old','The old neon lines read best of the three to me. Old means the earlier plan’s E1.3, built by A2.'),
+ ('lookgravity','Topsy-Turvy’s look',[('spot','Spotlight'),('today','Today’s'),('old','The old look (82f2f648)')],'spot','Old means the earlier plan’s E1.2, built by A2.'),
+ ('looknumline','Ballpark’s look',[('spot','Spotlight'),('today','Today’s'),('old','The old look')],'old','The old lit card and plain white tape are clearer than either newer version. Old means the earlier plan’s E1.5, built by A1.'),
+]
+def opendecisions():
+    out=[]
+    for i,(k,q,opts,rec,note) in enumerate(OPEN,1):
+        o=''.join(f'<label class="opt{" rec" if v==rec else ""}"><input type="radio" name="d-{k}" id="d-{k}-{v}" value="{E(lab)}"{" checked" if v==rec else ""}><span>{E(lab)}{" <small>my pick</small>" if v==rec else ""}</span></label>' for v,lab in opts)
+        out.append(f'<fieldset class="dec" data-q="{E(q)}"><legend><b>{chr(64+i)}.</b> {E(q)}</legend><p>{E(note)}</p><div class="opts">{o}</div></fieldset>')
+    return '\n'.join(out)
+def olddecisions():
     out=[]
     for i,(k,q,opts,rec,note) in enumerate(dec,1):
         o=''.join(f'<label class="opt{" rec" if v==rec else ""}"><input type="radio" name="d-{k}" id="d-{k}-{v}" value="{E(lab)}"{" checked" if v==rec else ""}><span>{E(lab)}{" <small>recommended</small>" if v==rec else ""}</span></label>' for v,lab in opts)
@@ -146,7 +200,7 @@ nav.toc a{{text-decoration:none;color:var(--text);background:var(--panel2);borde
 .short{{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin:18px 0}}
 .short ul{{margin:0;padding-left:18px}} .short li{{margin:7px 0}}
 .strip{{display:flex;gap:12px;overflow-x:auto;padding:6px 2px 14px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}}
-.shot{{flex:none;margin:0;width:228px;scroll-snap-align:start}} .shot.wide{{width:min(86vw,640px)}} .shot.board{{width:min(92vw,900px)}} .fcs{{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin:14px 0}} .fc{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}} .fc .q{{font:800 16px/1.3 var(--font);margin-bottom:8px}} .fc p{{margin:0 0 8px;color:var(--text2);font-size:15px}} .fc p.v{{margin:0;color:var(--gold)}} .fc p.v b{{color:var(--gold)}} ul.adj{{margin:8px 0 4px;padding-left:18px}} ul.adj li{{margin:8px 0;color:var(--text2)}} ul.adj b{{color:var(--text)}}
+.shot{{flex:none;margin:0;width:228px;scroll-snap-align:start}} .shot.wide{{width:min(86vw,640px)}} .shot.board{{width:min(92vw,900px)}} .fcs{{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin:14px 0}} .fc{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}} .fc .q{{font:800 16px/1.3 var(--font);margin-bottom:8px}} .fc p{{margin:0 0 8px;color:var(--text2);font-size:15px}} .fc p.v{{margin:0;color:var(--gold)}} .fc p.v b{{color:var(--gold)}} .done{{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:8px 0}} .done .dq{{font:800 16px/1.3 var(--font);display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}} .done .dq .tag{{margin-left:auto}} .done .da{{margin:8px 0 0;color:var(--text)}} .done.changed{{border-color:var(--blue)}} .done .dn{{margin:6px 0 0;color:var(--text3);font-size:14px}} ul.adds{{padding-left:18px}} ul.adds li{{margin:8px 0;color:var(--text2)}} ul.adds b{{color:var(--text)}} ul.adj{{margin:8px 0 4px;padding-left:18px}} ul.adj li{{margin:8px 0;color:var(--text2)}} ul.adj b{{color:var(--text)}}
 .shot img{{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--line);background:#000;cursor:zoom-in}}
 .shot.now img{{border-color:#4A5E9E}} .shot figcaption{{font:700 13px var(--font);color:var(--text2);margin-top:6px}}
 .shot.now figcaption{{color:var(--text3)}}
@@ -203,7 +257,7 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 <div class="eyebrow">Joulz · design direction · 20 Nov 2026</div>
 <h1>Vivid games in a <b>sleek frame</b></h1>
 <p class="lede">The pages keep today’s esports look and get a better structure. The games get brighter. Everything here is a plan and mockups: nothing is built. Tap any picture to enlarge it. Your choices at the bottom copy out as text to paste back to me.</p>
-<nav class="toc"><a href="#games">Game art</a><a href="#pages">Pages</a><a href="#flow">Flow</a><a href="#levels">Difficulty</a><a href="#check">Fact-check</a><a href="#decide">Decide</a><a href="#files">Files</a></nav>
+<nav class="toc"><a href="#games">Game art</a><a href="#pages">Pages</a><a href="#mixed">Your mixes</a><a href="#threeway">Three ways</a><a href="#flow">Flow</a><a href="#levels">Difficulty</a><a href="#check">Fact-check</a><a href="#decide">Decided</a><a href="#open">Still open</a><a href="#files">Files</a></nav>
 
 <div class="short"><div class="eyebrow">The short version</div><ul>
 <li><b>Games:</b> I recommend direction 4, <b>Spotlight</b>: a lit stage in each category’s deep colour and light matte pieces on the board puzzles. Retro stays dark and glows.</li>
@@ -266,6 +320,27 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 <h3>On a computer</h3>
 {''.join(desk)}
 
+<h2 id="mixed">Your mixes, drawn</h2>
+<p>Each screen you mixed on 20 Nov, drawn beside the originals it came from.</p>
+<h3>Home: H1 and H2 combined</h3>
+<p>H1’s top line, H2’s player banner with the rating large, your other two ratings as chips under it, the two Dailies, Play friends, then Jump back in. Nothing is shown twice. The banner has three states of one height.</p>
+{strip([('pages/home-e-phone','H1 · original',''),('pages/home2-e-phone','H2 · original',''),('pages/home-mixed-phone','Your mix · placed',''),('pages/home-mixed-unplaced-phone','Your mix · open, unplaced',''),('pages/home-mixed-open-phone','Your mix · rated play not on','')])}
+{strip([('pages/home-e-desktop','Desktop Home · original','wide'),('pages/home-mixed-desktop','Desktop Home · your mix, with the fuller rail','wide')])}
+<h3>Compete: C1, reordered</h3>
+<p>Rating, tier and Find a match first. Then tournaments: the live event as a card, then the fixtures. Leaderboards sit lower as tabs, with the Daily top 100 as one of them.</p>
+{strip([('pages/compete1-e-phone','C1 · original',''),('pages/compete2-e-phone','C2 · original',''),('pages/compete-mixed-phone','Your mix','')])}
+<h3>You: Y2 with Y3’s gauges and trophy shelf</h3>
+{strip([('pages/profile2-e-phone','Y2 · original',''),('pages/profile3-e-phone','Y3 · original',''),('pages/you-mixed-phone','Your mix','')])}
+<h3>A game’s page: L1 and L2 combined</h3>
+<p>The page opens on your current level, shown large. The four levels sit under it as a compact row, each with its small picture, your best and your star. Challenges and How to play are two small buttons.</p>
+{strip([('pages/levels1-e-phone','L1 · original',''),('pages/levels2-e-phone','L2 · original',''),('pages/gamepage-mixed-phone','Your mix','')])}
+<h3>Games: shelves, with a switch to All</h3>
+{strip([('pages/games-e-phone','G1 · original',''),('pages/games-e2-phone','G2 · original',''),('pages/games-mixed-phone','Your mix · Shelves (default)',''),('pages/games-mixed-all-phone','Your mix · All','')])}
+
+<h2 id="threeway">Four games, three ways</h2>
+<p>On 20 Nov you asked for the old look of Pipeline, Chroma Lines, Topsy-Turvy and Ballpark, and my plan re-rendered them in Spotlight instead. Here is each one as it was at 82f2f648, as it is today, and in Spotlight, for you to pick per game (under “Still open” at the bottom). The Spotlight versions are filters on today’s picture, so their edges are rough.</p>
+{threeway()}
+
 <h2 id="flow">Flow: a first game in seconds</h2>
 <p>Today a new player sees Home, a loading screen and a full intro before the first tap inside a game. In the plan the splash leads straight to a first game, and the first tap is the game’s first tap.</p>
 <h3 id="flowboard">The whole app on one sheet</h3>
@@ -315,9 +390,21 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 </ul></details>
 <p class="muted">Also re-checked: all 203 rows of the assertion list against the files (3 line numbers corrected), every plan row against the prompts (each built by exactly one), and the standing rules in all 14 prompts (identical).</p>
 
-<h2 id="decide">Decide</h2>
-<p>My recommendation is selected on each. Change any you disagree with, then copy your answers and paste them back to me.</p>
+<h2 id="decide">Decided, 20 Nov 2026</h2>
+<p>Your answers are recorded here and in the plan’s section 2.1. Seventeen are as I recommended; seven you changed or mixed, and the mixed screens are drawn above. Under each answer is my original note; three of those notes were stale and are corrected (the four Number games’ Hard, the proof tools, Minefield’s mines).</p>
 {decisions()}
+<h3>Your additions</h3>
+<ul class="adds">
+<li><b>Three stamps come back, in D5:</b> Moon Climb’s smaller ninja (ricoRev 5), Fission’s smaller atoms (burstRev 14), Wavefront’s wider formation (wavRev 16), with their assertion rows and demo re-records.</li>
+<li><b>The seven approved scoring fixes are built on Normal too</b>, each under a new stamp, in the session that owns the game, with Normal’s caps for Flash, Bonk and Pull!. I6 and I9 stay “leave it”.</li>
+<li><b>The desktop rail</b> also gets Badges, Notifications, Leaderboards and the Daily (drawn on the desktop Home above).</li>
+<li><b>Keyboard controls in every game on a computer</b>, shown on the intro. Eighteen of the 83 games have no keys today; P4 maps them and P2 shows the key line.</li>
+<li><b>Grappler and Curl Champ:</b> D5 and D6 each propose a working lever to you before building those two.</li>
+<li><b>Pipeline, Chroma Lines, Topsy-Turvy and Ballpark</b> are shown three ways above: old, today, Spotlight. Your pick per game is below.</li>
+</ul>
+<h3 id="open">Still open</h3>
+<p>Five small picks. Mine is selected on each; change any, then copy and paste them back to me. One more thing waits for you in the chat, not here: the one check line for the reveal template.</p>
+{opendecisions()}
 <div class="copybar"><button class="gold" id="copy" type="button">Copy my answers</button></div>
 <textarea id="answers" readonly aria-label="Your answers as text" hidden></textarea>
 <p class="muted" id="copied" hidden>Copied. Paste it into the chat.</p>

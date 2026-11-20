@@ -148,7 +148,7 @@
     "proof": "Each level deals from its own bank (scripts/number-pyramid-levels-bank.ts): every board has exactly one tray assignment, decoys included (npCountSolutionsFast, numberPyramidLevels.ts), and the person-like solver completes it; scripts/number-levels-equation-pyramid-check.ts. To add: 3-row boards, the new Expert bank, and a near-perfect kit finish of 60 % or more once the kit is timed on three-digit sums.",
     "change": "retune",
     "newMechanic": "",
-    "stamp": "Level field only: boards come from each level's bank and carry their rows. The stage and grader must accept 3-row boards and 3-pyramid rounds.",
+    "stamp": "Joe, 20 Nov: Normal itself moves to depthRev 3 (partial credit for an unfinished pyramid) first, under the routine of plan section 8.2; the levels are then tuned on that Normal and stamped after it. Level field only: boards come from each level's bank and carry their rows. The stage and grader must accept 3-row boards and 3-pyramid rounds.",
     "files": [
       "src/lib/levels/gameLevels.ts",
       "src/lib/duel/numberPyramidLevels.ts",

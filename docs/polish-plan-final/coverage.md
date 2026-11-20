@@ -16,10 +16,10 @@ Companion to `docs/polish-plan-final.md` section 11 and the prompts in `prompts/
 | 3.2 Tabs Home · Games · Compete · Shop · You; ids kept | P1 |
 | 3.2 The Play bar removed; `/play` and `/more` redirect | P1 |
 | 3.2 The avatar always opens You | P1 |
-| 3.2 The rail's contents (earlier B5) | P1 |
+| 3.2 The rail's contents (earlier B5), with Joe's added rows of 20 Nov: Daily, Leaderboards, Badges, Notifications | P1 |
 | 3.2 Compete's contents | P3 |
 | 3.2 You's contents | P3 |
-| 3.3 Home: hero, Dailies side by side, Play friends, Jump back in; the removals | P1 |
+| 3.3 Home, Joe's mix of H1 and H2 (20 Nov): the top line, the player banner in three states, the two rating chips, Dailies side by side, Play friends, Jump back in; the removals | P1 |
 | 3.3 Every Home section reserved before paint (earlier A2) | P1 |
 | 3.4 The first open | P2 |
 | 3.5 Words: round intro, game page, help sheet | P2 |
@@ -41,9 +41,9 @@ Companion to `docs/polish-plan-final.md` section 11 and the prompts in `prompts/
 | First open | P2 |
 | Home | P1 |
 | Games | P2 |
-| Game page | P2 |
+| Game page, with Joe's combined level picker (the current level large, the four levels as a row, the last level remembered per game) | P2 |
 | Challenges | P2 |
-| Compete | P3 |
+| Compete, in Joe's order (rating and Find a match; tournaments; leaderboards as tabs with the Daily 100 as one) | P3 |
 | Leaderboards, Daily board | P3 |
 | Daily | P3 |
 | Rated: searching, VS | P3 |
@@ -77,12 +77,12 @@ Carried rows of `earlier-plan.md`:
 | A1 splash, A2 Home reserved, A5 navy, B5 rail | kept | P1 |
 | A4 showcase, A8 Shop, A12 tournaments page (now Compete), A13 guest profile | kept or absorbed | P3 |
 | A6, A7 Daily cards; A11 Home layout | absorbed into the plan's Home | P1 |
-| A9 Games page | absorbed into the plan's Games page | P2 |
+| A9 Games page | absorbed into the plan's Games page, with Joe's Shelves · All switch (remembered) | P2 |
 | A10 tiles re-exported | kept | F1 |
 | A3 avatar discs; "best value" in A8 | dropped | – |
 | B1 Cabinet, B2 Blockzone, B3 puzzles in two columns, B4 desktop tab pages | kept | P4 |
 | C1.1, C1.2, C1.3, C1.4, C1.5, C1.7, C1.9, C1.10, C1.11 | kept | A3 |
-| C1.6, C1.8, C3.5 | dropped | – |
+| C1.6 Wavefront `wavRev 16`, C1.8 Fission `burstRev 14`, C3.5 Moon Climb `ricoRev 5` | **back** (Joe, 20 Nov) | D5; their demo re-records in F1's list |
 | C2.1, C2.2, C2.3, C2.4 | kept | A3 |
 | C3.1, C3.2, C3.4, C3.6, C3.7, C3.8 | kept | A3 |
 | C3.3 Grappler's ring | changed (redrawn, size kept) | A3 |
@@ -93,15 +93,22 @@ Carried rows of `earlier-plan.md`:
 | E0.3 near-black frames | replaced by the stage rule and light pieces | A1 (the shared rule), A2 (its families' frames) |
 | E0.4 dyed controls | kept | A1 (`number-overhaul.css`), A2 (`topsy.css`) |
 | E0.5 outlines | kept | A1 (the shared ring and tray border, Word and Number frames), A2 (its families' frames) |
-| E1.1 Lamplighter, E1.2 Topsy-Turvy, E1.3 Chroma Lines, E1.4 Pipeline, E2.2 Minefield | kept or changed as section 5 says | A2 |
-| E1.5 Ballpark, E2.1 Checkout, E2.3 Counterweight, E2.4 keyboards | kept or changed as section 5 says | A1 |
+| E1.1 Lamplighter, E2.2 Minefield | kept or changed as section 5 says | A2 |
+| E1.2 Topsy-Turvy, E1.3 Chroma Lines, E1.4 Pipeline | **Joe's pick per game** (14b): Spotlight (section 5's row), today (no change) or old (the earlier row as written, the look at 82f2f648) | A2 |
+| E2.1 Checkout, E2.3 Counterweight, E2.4 keyboards | kept or changed as section 5 says | A1 |
+| E1.5 Ballpark | **Joe's pick** (14b): Spotlight, today or old (the earlier row as written) | A1 |
 | G1 reveal template | built; its paint and its one waiting assertion | P2 |
 | G2 Word reveals, G3 Number reveals | kept | A1 |
 | G4 Pattern, G5 Logic, G6 Attention and Speed reveals | kept | A2 |
 | G7 arcade run pictures | kept | A3 |
 | H1, H2, H3, H5, H6, H7, H8 | kept | A3 |
 | H4 Orbit's lost-flight rule (a stamp) | kept | D5 |
-| I1 to I9 scoring review | **not built here**: each would change Normal's own scoring, which the fixed rules forbid without a separate decision. Where a level's 200 depends on one, the level-deal version is in the difficulty spec (D1 Word star line, D2 Integer Pyramid, D3 Flash and Bonk, D5 High Rise, D6 Five Hands, Cue Ball, Tilt) | – |
+| I1 Flash `tapRev 8`; Normal's caps for Bonk `whackRev 5` and Pull! `clayRev 9` | **built on Normal too** (Joe, 20 Nov; plan section 8.2) | D3 |
+| I2 Five Hands `fiveHandsRev 4`, I7 Cue Ball `poolRev 5`, I8 Tilt `tiltRev 13` | built on Normal too | D6 |
+| I3 Integer Pyramid `depthRev 3` | built on Normal too | D2 |
+| I4 Nucleus `wordsmithRev 6`, Forage `wordHuntRev 5`, Roundabout `wheelRev 6` (the refit, as stamps) | built on Normal too | D1 |
+| I5 High Rise `skylineRev 12` | built on Normal too | D5 |
+| I6 Roofbound, I9 Moon Climb | "leave it", as before | – |
 | J1, J2 infrastructure | not in this plan | infrastructure session |
 
 ### Sections 6 to 9 and 12
@@ -117,7 +124,12 @@ Carried rows of `earlier-plan.md`:
 | 6.1 Each family's lever pictures (one new file a session, `src/lib/levels/pictures/<its json name>.tsx`) | D1 to D6, each its own file; Breaker's is P2's worked example in its own file, `pictures/breaker.tsx` |
 | 6 The reveal's paint | P2 |
 | 7 Desktop tab pages, the Cabinet, Blockzone's cabinet, puzzles in two columns | P4 |
-| 7 The rail | P1 |
+| 7 The rail, with Joe's added rows | P1 |
+| 7 Keyboard controls in every game on a computer: the map (`DESKTOP_KEYS`), the handlers, `docs/desktop-support.md` (Joe, 20 Nov) | P4 |
+| 7 The intro's key line on a computer | P2 |
+| 2.1 The first game on a new phone (Joe's pick of three) | P2 |
+| 8.2 Grappler's lever, proposed to Joe before its levels are built | D5 |
+| 8.2 Curl Champ's lever, proposed to Joe before its levels are built | D6 |
 | 7 VS on a computer | P3 |
 | 8 Difficulty: 83 games | D1 Word (9), D2 Number (8), D3 Speed and Attention (12), D4 Pattern and Logic (22), D5 Retro and Action (16), D6 Strategy, Sports and Cards & Board (16) |
 | 9 The Cabinet skeleton switched on | P4 |
@@ -130,6 +142,9 @@ The first set of prompts shared the files below. Each now has one owner; the pro
 | File | Who wanted it | Now |
 |---|---|---|
 | `src/components/app/AppRail.tsx` | P1 (the tabs), P4 (earlier B5) | **P1.** B5 moved to P1 |
+| `src/lib/desktopKeys.ts` | P4 (the map), P2 (the intro reads it) | **P4** writes it; P2 only reads `DESKTOP_KEYS` and draws what it holds |
+| The 18 stage files without keys today (`src/puzzles/<game>.tsx`) | P4 (a `keys` prop), A1 / A2 / A3 (the markup) | **The art session owns the file**; P4 changes the `keys` prop line alone and names each file in its report. If the art session has not merged, P4 merges after it for those files |
+| A game's sim, deal and scoring file where section 8.2 puts a Normal stamp | the D session (levels), the same D session (the scoring fix) | **One session**: the fix and the levels are the same session's, in that order, so nobody else touches the file |
 | `src/components/duel/PhoneShell.tsx` | P1 (the Play bar and tabs), P4 (the arena branch) | P1 first; **P4 edits only the arena branch after P1 has merged** |
 | `src/lib/arcade/arenaFills.renderer.ts` | P4 (scenery behind the panels), A3 (the fills' colours) | **A3.** The fills already paint to the screen's edges; P4 changes layout only |
 | `src/lib/arcade/retro.renderer.ts`, `actionHud.renderer.ts`, `hudPill.renderer.ts`, `cards/cards.renderer.ts` | P4 (HUD flags), A3 (art) | **A3.** The built skeleton already made these painters honour the placement flag, so P4 has nothing to change in them |

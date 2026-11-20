@@ -49,6 +49,8 @@ Alternatives on the review page, same layouts: **F "Esports, colour-charged"** (
 | You | **Y2 Card first** (`profile2-…`) | The player card large, strongest categories as bars, recent form, four quick tiles | **Yes**: the page is about identity, and the card is the identity |
 | You | **Y3 Career** (`profile3-…`) | Ring gauges, a trophy shelf, recent matches | No: more stats than a profile needs |
 
+Joe's answers of 20 Nov (section 2.1) combine these: Home is H1 with H2's banner and Jump back in (`home-mixed-phone`); Compete is C1 reordered with C2's fixtures (`compete-mixed-phone`); You is Y2 with Y3's gauges and trophy shelf (`you-mixed-phone`). The mixed mockups are what P1 and P3 build.
+
 Colourways tried on those layouts: **champagne** (today's, look E), **Ion** (navy with electric cyan as the accent) and **Ember** (carbon with a magenta-to-orange accent). Gold stays the one action colour in all three. **Recommendation: champagne.** Ion is the nearest sibling (cyan is already Joulz's colour for live and positive) and would be the one to try if Joe wants a cooler look; Ember is a different brand.
 
 ### 1.2 Games: four directions
@@ -85,7 +87,7 @@ Today's motion rules stand (reduced motion ends visible; transform and opacity o
 
 ## 2. Decisions for Joe
 
-Each has a recommendation he can say yes to. **Joe's answers: none recorded yet.** The session that takes his answers writes them here, dated, before any build session starts.
+Each has a recommendation he can say yes to. **Joe answered on 20 Nov 2026; section 2.1 records every answer.** Where an answer changes a recommendation in this table, section 2.1 is what the sessions build.
 
 | # | Decision | Recommendation |
 |---|---|---|
@@ -110,6 +112,58 @@ Each has a recommendation he can say yes to. **Joe's answers: none recorded yet.
 | 19 | Nucleus and Forage on Expert: the modelled best player cannot reach 200 (best 160 to 191; 184 on Nucleus's Normal). Change the points line on level deals, or accept a typed-out perfect run as the proof | **Change the scoring on level deals** (a new stamp; Normal untouched) |
 | 20 | Breaker: a lost ball costs only a 3-second relaunch, so even measured with a bot that feels paddle width Hard sits just 14 under Normal. Make a lost ball cost a life or time on Hard and Expert deals | **Yes** |
 | 21 | Gemstone: ice at any count leaves Expert level with Hard; colours are the only setting that moves an average player (163, 95, 72 on 5, 6, 7 colours). An eighth gem for Expert (sim code and one new gem) | **Yes**: the ladder is 5, 6, 7, 8 colours |
+
+### 2.1 Joe's answers, 20 Nov 2026
+
+The numbers are the review page's (its Decide section had 24 questions).
+
+**Agreed as recommended**
+
+| # | Decision | Answer |
+|---|---|---|
+| 2 | Game art direction | **Spotlight**, with Retro on Neon's glow and the light-on-dark games keeping a deep board ("your drawn versions look really good") |
+| 3 | Navigation | **N1**: Home · Games · Compete · Shop · You |
+| 4 | A new phone opens straight into a game | **Yes**; which game is Joe's pick from the three candidates in section 3.4 |
+| 6 | The level picker lives on each game's page only | **Yes** |
+| 7 | Round intro: demo, one-line goal, Ready | **Yes** |
+| 9 | Beta terms at about 60 words and a link | **Yes, subject to Joe's adviser** |
+| 10 | A Hard you can see for Counterweight, Brimful, Checkout and Kakuro | **Yes** |
+| 11 | Iron Wall's four lanes | **Yes** |
+| 12 | Scoring on level deals so 200 is reachable | **Yes** (and see addition 10: on Normal too) |
+| 13 | Every difficulty session builds its proof first | **Yes** |
+| 14 | Minefield's Expert back to 10 × 16 | **Yes, with 40 mines**, as the spec now says |
+| 15 | Drop "best value" | **Yes** |
+| 16 | Leave the avatars and their disc | **Yes** |
+| 21 | Nucleus and Forage on Expert | **Change the scoring** so a real top player can reach 200 |
+| 22 | Breaker: a lost ball costs more on Hard and Expert | **Yes** |
+| 23 | Gemstone: an eighth gem for Expert | **Yes** |
+| 24 | Accent | **Champagne** |
+
+**Changed or mixed**
+
+| # | Decision | Joe's answer |
+|---|---|---|
+| 1 | Page look | **E**, with my rating front and centre on Home |
+| 17 | Home layout | **H1 and H2 combined, nothing shown twice** (mockups `home-mixed-phone`, `home-mixed-unplaced-phone`, `home-mixed-open-phone`, `home-mixed-desktop`): H1's top line (avatar, name, streak, coins; no rating there); then H2's player banner (rating large, "+22 this week", tier and the bar to the next tier, gold Find a match; no streak or coins in the banner); then H1's middle (Daily Puzzle and Daily Arcade side by side, Play friends with Create and Join); then H2's bottom (Jump back in). Until rated play is on for a player the banner is "Play now" over the game of the day; once it is open to them but they are unplaced it is "Play 5 placement matches to get your rating" |
+| 8 | Ratings on Home | The three tiles go. The main rating is in the banner; the other two ratings show as small chips under it; tapping one opens Compete |
+| 18 | Compete layout | **C1's layout, reordered** (`compete-mixed-phone`). Compete is about ranked play and tournaments: rating, tier and Find a match first; then tournaments (C2's live event card and upcoming fixtures); then leaderboards lower down as tabs, with the Daily top 100 as one tab and nothing more prominent |
+| 19 | You layout | **Y2**, with Y3's three ring gauges in place of the three stat tiles and Y3's trophy shelf as one row under the card (`you-mixed-phone`) |
+| 20 | Level picker on a game's page | **L1 and L2 combined** (`gamepage-mixed-phone`): the page opens on my current level, shown large (from L2); all four levels sit underneath as a compact row to tap, each with its small picture, my best and my star (from L1); it remembers the last level I played on each game; Challenges and How to play are two small buttons |
+| 5 | Games page | **G1 shelves (bigger tiles) by default, plus one switch to "All"**: every game in the three-across grid (G2), grouped by category. The page remembers the last view (`games-mixed-phone`, `games-mixed-all-phone`) |
+| 4 | The first game | Straight into a game, yes. Joe picks from the three candidates in section 3.4 |
+
+**Additions**
+
+| # | Addition | Where it is built |
+|---|---|---|
+| 9 | The three stamps approved on 20 Nov come back: Moon Climb's smaller ninja (C3.5, `ricoRev 5`), Fission's smaller atoms (C1.8, `burstRev 14`), Wavefront's wider formation (C1.6, `wavRev 16`), with their assertion rows (K10's rev-5 parts, K11) and their demo re-records | D5; the demos in F1's list |
+| 10 | The scoring review's seven approved fixes are built on Normal too, each under a new stamp, with Normal's caps for Flash, Bonk and Pull! (section 8.2). "Normal stays today's game" meant the difficulty levels do not change Normal, not that approved scoring fixes are banned. I6 and I9 stay "leave it" | The difficulty session that owns each game |
+| 11 | The desktop rail also gets Badges, Notifications, Leaderboards and the Daily | P1 (it owns the rail) |
+| 12 | Keyboard controls in every game on a computer, shown on the intro | P4 (the mapping), P2 (the intro's key line) |
+| 13 | Grappler and Curl Champ: D5 and D6 each propose a working lever to Joe before building those two | D5, D6 |
+| 14b | Pipeline, Chroma Lines, Topsy-Turvy and Ballpark: Joe picks per game between the old look (82f2f648), today's and Spotlight, shown three ways on the review page. If he picks old, the earlier plan's E1 rows are built as written (E1.4, E1.3, E1.2 by A2; E1.5 by A1) | A1, A2 |
+
+**Still open with Joe**: the first game (section 3.4); the four looks of 14b; Grappler's and Curl Champ's levers (D5 and D6 propose first); `scripts/skyline-overhaul-check.ts:728` (the exact change was shown to Joe on 20 Nov and is applied only on his typed approval, with the dated note beside it).
 
 Where I disagree with something Joe asked for:
 
@@ -148,12 +202,21 @@ Routes that go: `/more` (its file stays and redirects to `/profile`), `/play` (s
 
 ### 3.3 Home
 
-Order, phone: header (avatar, name, tier and rating, streak, coins) → **hero** → Daily Puzzle and Daily Arcade side by side → Play friends (Create, Join) → Jump back in (tiles) → This week (pass players) → Friends online.
+Joe's answer of 20 Nov combines H1 and H2 (mockups `home-mixed-phone`, `home-mixed-unplaced-phone`, `home-mixed-open-phone`, `home-mixed-desktop`). Order, phone:
 
-- **Hero.** Rated players: "Quick match · Best of 3 · Rated", one gold Play that starts the search. Everyone else (all players today): "Play now" over the game of the day, one gold Play that goes straight to its 3-2-1. Two taps to a game become one.
-- **Play friends** puts Create and Join on Home: one tap each (today two and three).
-- Gone from Home: the IntroCard, "Your next match", the Ratings tiles, "How it works" (it moves to You → Help), the Play bar.
-- Every section is reserved before paint (earlier A2 stands: slot ids, the cached record, fixed-height skeletons), so nothing pops in.
+1. **The top line** (H1's): avatar, name, streak, coins. No rating here.
+2. **The player banner** (H2's), the page's one hero and its one gold button. It has three states:
+   - **Placed**: the tier, the rating large, the bar to the next tier, "+22 this week", gold **Find a match**. No streak or coins in the banner.
+   - **Rated play open to the player, not yet placed**: "Play 5 placement matches to get your rating", five pips, gold Find a match.
+   - **Rated play not on for the player** (everyone but the testers today): "Play now" over the game of the day, gold Play that goes straight to its 3-2-1.
+3. **The other two ratings** as two small chips under the banner (Puzzles, Arcade), for placed players only. Tapping either opens Compete. The three Ratings tiles are gone.
+4. **Daily Puzzle and Daily Arcade** side by side (H1's middle), each with a visible Play or its score once played.
+5. **Play friends** with Create and Join: one tap each (today two and three).
+6. **Jump back in** (H2's bottom): the last four games as tiles.
+
+- Nothing is shown twice: the rating is in the banner only, streak and coins in the top line only.
+- Gone from Home: the IntroCard, "Your next match", the Ratings tiles, "How it works" (it moves to You → Help), the Play bar, H2's live strip and Today timeline (Compete carries what is live).
+- Every section is reserved before paint (earlier A2 stands: slot ids, the cached record, fixed-height skeletons), so nothing pops in. The banner's three states share one height.
 
 ### 3.4 The first open
 
@@ -161,9 +224,17 @@ Order, phone: header (avatar, name, tier and rating, streak, coins) → **hero**
 |---|---|---|
 | Screens before the first tap inside a game | Home, loading, the full intro (Goal, How, Score, Ready) or the game page | **None.** Splash, then the first game's board with one coach line |
 | Taps before the first tap inside a game | 2 | **0** (the first tap is "1" on the board; it also starts the clock and unlocks sound) |
-| The first game | Gridlock at Normal (a 120 s puzzle) | **Ascend on Easy**: tap 1 to 16 in order, about 15 s, nothing to read |
+| The first game | Gridlock at Normal (a 120 s puzzle) | **Joe picks one of three** (table below). My pick is Ascend on Easy |
 | First result | The standard reveal | A win screen: the score, the first star, "248 to collect", then **Play again**, **Try another game**, and for rated players **Play a real opponent**; "No account needed" |
 | Then | – | Home, with the intro card gone for good |
+
+The three candidates (Joe, 20 Nov: "propose two or three, each with one line on why"). All three are understood without reading and are a likely win inside a minute; the averages are the average player's, measured on 20 Nov.
+
+| Candidate | Why | Easy, average player |
+|---|---|---|
+| **Ascend, Easy** (my pick) | Tap 1 to 16 in order. There is nothing to explain, the first tap is the game's first tap, and it is over in about 20 seconds | 171 |
+| **Colour Flood, Easy** | Tap a colour and the board floods with it. One rule, big moves, and the highest Easy average of any game measured | 195 |
+| **Polypotions, Easy** | Pour to sort the colours. Most people have seen the idea, six flasks take well under a minute, and the finish is satisfying | 180 |
 
 Rules: only on a device with no play history and only online (offline goes to Home); never on a room, Daily, challenge or `?game=` link (those go where they point) and never under automation; no terms, name or account on this path (practice needs none today). One switch, `FIRST_GAME_ON_OPEN`, replaces `FIRST_OPEN_ONBOARDING`; off by default until Joe has played it.
 
@@ -197,17 +268,17 @@ Mockups are in `direction/pages/` as `<page>-<e|f|a>-<phone|desktop>.webp` besid
 | Page | Stays | Changes | Why | Mockup | Size |
 |---|---|---|---|---|---|
 | Launch / splash | The bolt and wordmark; `--jz-bg` | The vector bolt at 160 px charging bottom to top (earlier A1, Joe's U1a pick: no speed lines, no caption); at least 0.9 s then a 200 ms fade; silent on a cold open | Today it is gone at hydration and jumps from the iOS launch image | `first1-e-phone` | M |
-| First open | – | Section 3.4 | A first win inside seconds | `first1`, `first2`, `first3` | M |
-| Home | The art kit, the Daily art, the header's counters | Section 3.3: hero, Dailies side by side with a visible Play on both, Play friends, larger tiles, every section reserved | One tap to play; no dead space; no floating bar | `home-e-phone`, `home-e-desktop` | L |
-| Games | Tiles' art, stars, search, game of the day | One control (All, Puzzles, Arcade), the hero, category shelves of 132 × 164 tiles with "All n" leading to today's grid; no level switch or explainer here | Five rows of controls before a game today; larger tiles | `games-e-phone`, `games-e2-phone` (the grid), `games-e-desktop` | M |
-| Game page | Art, name, best, challenges | A one-line goal; four level steps each with its star and its lever in numbers ("Normal: 8 flasks, 90 s"); a 68 px Play; "How to play" and "Challenges 1 / 3" as two quiet rows | The level is chosen where it is played; 40 words | `gamepage-e-phone` | M |
+| First open | – | Section 3.4; the first game is Joe's pick of three | A first win inside seconds | `first1-e`, `first2-e`, `first3-e` | M |
+| Home | The art kit, the Daily art, the header's counters | Section 3.3 (Joe's mix of H1 and H2): top line, the player banner in three states, two rating chips, Dailies side by side, Play friends, Jump back in; every section reserved | The rating front and centre; one tap to play; nothing twice | `home-mixed-phone`, `home-mixed-unplaced-phone`, `home-mixed-open-phone`, `home-mixed-desktop` | L |
+| Games | Tiles' art, stars, search, game of the day | One switch, **Shelves · All**, remembered on the device. Shelves (the default): the game-of-the-day hero, then a shelf per family of 132 × 164 tiles with "All n". All: every game in the three-across grid, grouped by family. No level switch or explainer here | Five rows of controls before a game today; larger tiles; one tap to see everything | `games-mixed-phone`, `games-mixed-all-phone`, `games-e-desktop` | M |
+| Game page | Art, name, best, challenges | Joe's mix of L1 and L2: the page opens on the player's current level shown large (its picture, its lever in words, their best and star); the four levels sit under it as a compact row to tap, each with its small picture, best and star; the last level played is remembered per game; one large gold Play; "How to play" and "Challenges 1 / 3" as two small buttons | The level is chosen where it is played; 40 words | `gamepage-mixed-phone`, `levels-e-desktop` | M |
 | Challenges | The tabs and rows | Reached from You and the rail; rows gain the game's tile | A home that is not More | – | S |
-| Compete (was Tournaments) | The hub's Upcoming and Your results, event pages, podium, rules | Opens on your rating card (where rated is on), then tournaments (where on), then Leaderboards and the Daily top 100 with your place | Never a dead end | `compete1-e-phone` (C1), `compete2-…`, `compete3-…` | M |
+| Compete (was Tournaments) | The hub's Upcoming and Your results, event pages, podium, rules | Joe's order: your rating, tier and Find a match first (where rated is on); then tournaments (a live event card, then upcoming fixtures); then leaderboards lower down as tabs (Rating, Puzzles, Arcade, Daily 100) with your row pinned. Nothing is more prominent than ranked play and tournaments | Never a dead end; about ranked play and tournaments | `compete-mixed-phone`, `event-e-phone`, `leaderboard-e-phone` | M |
 | Leaderboards, Daily board | As built (nameplates, podium, picker) | Reached from Compete | – | – | S |
 | Daily | The hero cards and your line | The page shows before the terms; results gain Home; the name box becomes the shared sheet | Look before you agree; a way home | – | S |
 | Rated: searching, VS | The data and timings; each player's full `PlayerCard` in their half | **VS**: full-bleed, each half lit in its player's colour, the card drawn large (its avatar about 124 px), the tier and rating, a champagne VS plate on a gold seam, the first game's tile and the stakes at the foot | Today it is two small cards and a third of a screen of nothing | `vs-e-phone`, `vs-e-desktop` | M |
 | Rated: result | The rating panel, game rows, Joules, Next match, the title text "You win" | The title at 62 px in gold, the score under it, the rating bar, Home beside Rematch | The win should feel won; a way home | `result-e-phone` (the mockup's exclamation mark is not built), `result-e-desktop` | M |
-| You (Profile + More) | The player card, Customise, badges, the season section | One page: the card, the rating with its bar, three stat tiles, a showcase strip (earlier A4), rows for Friends, Challenges, Badges and trophies, Settings, Help | One home for the player | `profile-e-phone` (Y1), `profile2-…` (Y2), `profile3-…` (Y3), `profile-e-desktop` | M |
+| You (Profile + More) | The player card, Customise, badges, the season section | One page (Joe's mix of Y2 and Y3): the card large with Customise; the trophy shelf as one row under it; three ring gauges (rated wins, stars, Daily streak) in place of stat tiles; strongest categories; rows for Friends, Challenges, Badges, Help; Settings in the header | One home for the player | `you-mixed-phone`, `profile-e-desktop` | M |
 | Friends, Customise, Card, Badges | As built | Reached from You | – | – | S |
 | Shop, Pass, Plus | The parts, the bundle, Today, the wishlist, the confirmation | The bundle as an obsidian hero with gold edge light and its item stills large; item cards with the still filling the top half and the rarity as the name's colour; no "best value" | Warmer and larger, still no pressure | `shop-e-phone`, `shop-e-desktop` | M |
 | Settings, Account, Terms | As built | Terms cut to 60 words and a link; "How it works" lives here | Words | – | S |
@@ -247,7 +318,7 @@ All nine share one move: `scripts/word-art/word_art.py` re-renders the tile, dis
 | Integer Pyramid | The sandstone blocks (they already read) | The stage lit; gold completion kept | – |
 | Brimful | Glass jugs, bright water | The stage lit; scale marks 13 px | – |
 | Checkout | The dartboard | The fairground backdrop back, the stacked outlines gone | E2.1 and E0.5 kept |
-| Ballpark | The line and the markers | A white ruler with dark ticks; the lit card; no ticks through the marker | E1.5 changed (new material, same usability fix) |
+| Ballpark | The line and the markers | A white ruler with dark ticks; the lit card; no ticks through the marker | E1.5 changed (new material, same usability fix) **Joe picks (14b, 20 Nov): the old look (82f2f648), today's or Spotlight, shown three ways on the review page; if old, A1 builds the earlier plan's E1.5 as written** |
 | Kakuro | Clues and keypad | White cells, deep-green clue cells | – |
 
 Category-wide: E0.1 (the halved backdrop) is replaced by rule 1 of the stage; E0.4 (navy and champagne dyed controls) kept.
@@ -277,12 +348,12 @@ Speed and Attention's dark frames (earlier E0.3) follow rule 1.
 |---|---|---|---|
 | Gridlock | The lot and cars | Lighter tarmac, saturated cars, a champagne gold car | E0.2 changed: soft glows return where the direction asks, not the deleted blocks wholesale |
 | Tessellate | The pieces (already vivid) | An ivory pegboard | – |
-| Pipeline | The effects (water in, drain) and the sprite structure | Coloured enamel pipes on ivory tiles; wet pipes bright blue with a soft glow | E1.4 **changed**: re-render the set, do not restore the old SVG |
-| Chroma Lines | The tube structure and effects | A deep-violet board, thick saturated lines with a highlight, round dots | E1.3 changed: the bright line is back by re-colouring `tubeLayers()`, the halo as a soft glow |
+| Pipeline | The effects (water in, drain) and the sprite structure | Coloured enamel pipes on ivory tiles; wet pipes bright blue with a soft glow | E1.4 **changed**: re-render the set, do not restore the old SVG **Joe picks (14b, 20 Nov): the old look (82f2f648), today's or Spotlight, shown three ways on the review page; if old, A2 builds the earlier plan's E1.4 as written** |
+| Chroma Lines | The tube structure and effects | A deep-violet board, thick saturated lines with a highlight, round dots | E1.3 changed: the bright line is back by re-colouring `tubeLayers()`, the halo as a soft glow **Joe picks (14b, 20 Nov): the old look (82f2f648), today's or Spotlight, shown three ways on the review page; if old, A2 builds the earlier plan's E1.3 as written** |
 | Skid | The ice (already bright) | – | – |
 | Heave | The warehouse | The stage lit | – |
 | Lightbender | The dark board (a beam needs it) | Deep violet, not black; the beam's glow back | E0.2 kept for this game |
-| Topsy-Turvy | The three-layer tray, the effects | Marbles re-rendered saturated and matte; a lighter steel board | E1.2 changed: new renders, not the old CSS balls |
+| Topsy-Turvy | The three-layer tray, the effects | Marbles re-rendered saturated and matte; a lighter steel board | E1.2 changed: new renders, not the old CSS balls **Joe picks (14b, 20 Nov): the old look (82f2f648), today's or Spotlight, shown three ways on the review page; if old, A2 builds the earlier plan's E1.2 as written** |
 
 ### Logic (14)
 
@@ -314,8 +385,8 @@ E0.3 (near-black Logic 2 frames) is replaced by rules 1 and 2; E0.5 (hairline ri
 | Rally | The court | The same ball and a flat paddle | C1.1 kept |
 | Tempo | Lanes and fever bar | Brighter lanes, notes with a glow | – |
 | Meteor | The comet, the border | Soft nebulae, ringed wormholes | C1.9 kept |
-| Fission | The atoms | No white glass highlight | C1.7 kept; C1.8 (the size stamp) dropped: the difficulty spec's ladder does not need it |
-| Wavefront | The hulls | A cool nebula; edge light by wave; the fill continues the sky | C1.4, C1.5 kept; C1.6 (wider formation) dropped for the same reason |
+| Fission | The atoms | No white glass highlight | C1.7 kept; C1.8 back (Joe, 20 Nov): `burstRev 14`, atoms 35 / 24 / 15 / 9 px, built by D5 |
+| Wavefront | The hulls | A cool nebula; edge light by wave; the fill continues the sky | C1.4, C1.5 kept; C1.6 back (Joe, 20 Nov): `wavRev 16`, the wider formation on a proved deal, built by D5 |
 | Blockzone | All of it | A true cabinet on a computer (section 7) | B2 kept |
 | Pinball | All of it | – | – |
 | Spacewalk | The pixel art | The fill continues the sky | C1.11 kept |
@@ -327,7 +398,7 @@ E0.3 (near-black Logic 2 frames) is replaced by rules 1 and 2; E0.5 (hairline ri
 | Roofbound | The runner, the course | Two tones: cool basalt and warm lava | C3.8 kept |
 | High Rise | The city, plaza and dusk | Coloured floors; a bolder crane | C3.6, C3.7 kept |
 | Grappler | The jungle; **the 14 px grab ring's size** (a larger target helps play) | The ring drawn as a vine loop, not an enamel disc | C3.3 changed: no radius change, so its assertion stays |
-| Moon Climb | The shaft, the ninja's size | A calmer sky (fewer stars, no far lanterns) | C3.4 kept; C3.5 (a smaller ninja stamp) dropped |
+| Moon Climb | The shaft, the ninja's size | A calmer sky (fewer stars, no far lanterns) | C3.4 kept; C3.5 back (Joe, 20 Nov): `ricoRev 5`, a 30 × 60 body between today's and the old one, built by D5 |
 | Iron Wall | The road, badges | No white outline on far tanks; ruins beside the road; a brighter desert | C3.1, C3.2 kept |
 | Orbit | The planets | Solid orbit paths | C1.10 and H2–H8 kept |
 | Tilt | The disc filling the width | A lighter walnut table | C2.4 kept |
@@ -359,8 +430,8 @@ After the art sessions: re-export every tile and intro still, and re-run `bun sc
 
 - **One level mark everywhere**: a colour and one to four bars (Easy green and one bar, Normal blue and two, Hard orange and three, Expert red and four), never colour alone. It sits on the game's page, in the frame header during play (beside "Round 2 of 6"), on the intro, on the reveal and in room settings. A star marks 175+ on Easy, Normal and Hard; Expert's mark is a crown.
 - **The small pictures** are shown for eight games on `pictures-board.webp` (Breaker's wall and paddle, Box Six's given numbers, Ascend's discs, Meteor's rocks and walls, Top Bins' wall and wind, Iron Wall's lanes and tanks, Tempo's lanes, Mahjong's stack), drawn from the spec's level numbers. A ladder whose four pictures look alike is a ladder whose steps a player cannot see: the board is the quick test of that.
-- **The ladder on a game's page (L1, recommended)**: the four levels as rows, each with a small picture of what changes (Breaker: the wall's rows and the paddle's width), the lever in a few words ("11 rows, 2 sliding · narrow"), your best and the star. Normal is marked "the ranked game". One gold Play. The pictures are drawn from the level's own settings (`GAME_LEVELS`), never hand-made, so they cannot drift from the game.
-- **The preview (L2, the alternative)**: one level large, the lever as a row of four numbers (25 · 14 · 10 · 8 numbers given), a four-way switch under it.
+- **The level picker on a game's page (Joe, 20 Nov: L1 and L2 combined; mockup `gamepage-mixed-phone`, desktop `levels-e-desktop`)**: the page opens on the player's current level, shown large (the level's picture, its lever in a few words, their best and star). Under it the four levels sit as a compact row to tap, each with its small picture, the level mark, their best and their star (a crown on Expert). Tapping a level makes it the large one. The page remembers the last level played on each game (the device's existing level choice, per game; a new player starts on Normal). Normal says "the ranked game". One large gold Play; "How to play" and "Challenges n / m" are two small buttons under it. The pictures are drawn from the level's own settings (`GAME_LEVELS`), never hand-made, so they cannot drift from the game.
+- The earlier L1 (`levels1-e-phone`: four full rows) and L2 (`levels2-e-phone`: one level large with a switch) mockups are kept as the two halves this picker combines.
 - **The step-up card on the reveal (L3)**: after a star, Normal beside Hard and one line saying what is new, with "Play Hard" as the gold button. No star: Play again stays gold and the card is not shown. It never appears in rooms, rated play or the Daily.
 - **In play**: the frame header shows the game's name, the level mark and round, the score with place, and the timer as a gold bar on the header's bottom edge (the 60 px geometry is unchanged).
 - **The kit** (`kit-board`): the navy frame, the one gold action, Archivo, the cut corner for heroes only, the family colours, level marks, tiles, nameplates, the lit stage and six rules, on one board for the build sessions.
@@ -369,9 +440,10 @@ After the art sessions: re-export every tile and intro still, and re-run `bun sc
 ## 7. Desktop (1024 px and up)
 
 - **Tab pages** (earlier B4, kept, with this plan's layouts): Home is the hero across two columns, the three feature cards in a row, Jump back in as six tiles, an aside with your rating, friends online and this week; Games is the hero across the top and shelves of seven tiles; Shop and You gain a second column so no aside is empty.
-- **The rail** (earlier B5, kept): the nameplate, gold Play, then Home, Games, Compete, Shop, Friends, Challenges, You, with Settings at the foot.
+- **The rail** (earlier B5, with Joe's additions of 20 Nov; mockup `home-mixed-desktop`): the nameplate, gold Play, then Home, Games, Compete, Shop, You; under a "More" label Daily, Leaderboards, Friends, Challenges, Badges and Notifications (with its count); Settings at the foot. Compact in rooms and games, as today.
 - **Arcade games: the Cabinet** (earlier B1, Joe's D1 pick, kept): the identical world at its largest uniform scale, a left panel (game, big score, timer, best, this run) and a right panel (goal, next challenges, controls; in a room the standings and chat), the game's scenery carried behind both. Mockup `play-a-desktop` shows it on Breaker.
 - **Puzzles** (earlier B3, kept): the board left at the largest size that fits, controls in a right column.
+- **Keyboard controls in every game** (Joe, 20 Nov). Every active game is playable from the keyboard on a computer and says so on its intro. Today 18 of the 83 active games have no line in `DESKTOP_KEYS` (`src/lib/desktopKeys.ts`, read on 20 Nov): Counterweight, Tessellate, Don't Break the Chain, Pull!, Chroma Lines, Lamplighter, Mosaic, Ascend, Matchmaker, Pipeline, Cue Ball, Flash, Shikaku, Swapword, Tenfall, Tents and Trees, Bonk and Lookout. Some of them are pointer games by nature (Ascend, Bonk, Pull!, Flash, Cue Ball): P4 proposes each one's keys to Joe where the choice is not obvious (a cursor moved with the arrows and Space to tap is the default for board games; number or letter keys for targets that can be labelled). P4 completes the mapping in `src/lib/desktopKeys.ts`, `useGameKeys` and each stage's `keys` prop: input mapping only, feeding the same handlers and queues as taps, so the game world, its timing and its scoring are identical on every device (`desktop-fairness-check`). P2 draws the intro's key line from `DESKTOP_KEYS` on a computer (the short intro keeps one how line on a phone; on a computer the key line sits under it) and the Controls tab in the game menu stays as today.
 - **VS on a computer**: the two halves side by side on a slanted gold seam (`vs-e-desktop`).
 - **You, the Shop and the rated result on a computer**: `profile-e-desktop` (the card, rating and stats left; rows, recent matches and the showcase right), `shop-e-desktop` (the bundle across the top, four items a row, coins and the wishlist in the aside), `result-e-desktop` (the title, the rating card beside the game rows, the three actions in a row).
 
@@ -407,6 +479,28 @@ Asked for by Joe before any build. Measured with the repo's own tools on this br
 
 Each of the 83 rows in the spec now carries an **Evidence** line per level (documented, measured or not measured, with the numbers), a fact-check verdict (holds, adjusted or unproven) and what applies the human limits to that game today. Rows the measurements contradicted were changed and say so.
 
+### 8.2 Scoring fixes and stamps on Normal (Joe, 20 Nov)
+
+Joe's ruling: "Normal stays today's game" means the difficulty levels do not change Normal. It does not ban the scoring fixes he approved. So the scoring review's seven fixes are built **on Normal too**, each under a new stamp, by the difficulty session that owns the game, together with Normal's caps for Flash, Bonk and Pull!. I6 (Roofbound) and I9 (Moon Climb) stay "leave it".
+
+| Item | Game | New stamp | The fix | Session |
+|---|---|---|---|---|
+| I1 | Flash | `tapRev 8` | Refit the per-flash curve so a 0.25 s tap pays about 150 and a 0.17 s tap about 200. Measured today: every flash at exactly 0.25 s scores 130 at all four levels | D3 |
+| cap | Bonk | `whackRev 5` | Widen the quick window so a player reacting in 0.25 s and moving in 0.15 s can fill the combo part. Measured today: 156 at the limits (0.20 s would give 198) | D3 |
+| cap | Pull! | `clayRev 9` | Set the quick-hit part's full line from the best human-limited run. Measured today: no limited run reaches 200 (best 183) | D3 |
+| I2 | Five Hands | `fiveHandsRev 4` | Hand points full at the elite median (143 → 128); × 1.4 and the bonus column kept | D6 |
+| I3 | Integer Pyramid | `depthRev 3` (numpyramid) | Unfinished credit 130 × stones placed correctly ÷ stones; finishes unchanged | D2 |
+| I4 | Nucleus, Forage, Roundabout | `wordsmithRev 6`, `wordHuntRev 5`, `wheelRev 6` | Refit each points line so a near-perfect player earns the star and the best can reach 200 (the refit option of I4, because each fix is to be a stamp; the star line stays 175 and no migration is needed). This is also decision 21's fix, on Normal and on the level deals | D1 |
+| I5 | High Rise | `skylineRev 12` | Floors full at 45, perfect drops full at 30; play unchanged | D5 |
+| I7 | Cue Ball | `poolRev 5` | Speed measured from the fifth pot (full by 60 s); the bank re-proved | D6 |
+| I8 | Tilt | `tiltRev 13` | Normal deals 3 mazes (today's 4 without the tight fourth), par over three, speed full by 55 s; the deal re-proved | D6 |
+
+The three stamps Joe approved on 20 Nov also come back, all in D5: **Moon Climb `ricoRev 5`** (a 30 × 60 body between today's 34 × 68 and the old 26 × 52; C3.5), **Fission `burstRev 14`** (atoms 35 / 24 / 15 / 9 px; C1.8) and **Wavefront `wavRev 16`** (the wider formation, on a deal proved at 200 at every level; C1.6).
+
+Every one of these is a gameplay or scoring stamp under the house rule, so each session does the whole routine for it: record a legacy fixture of today's stamp first; gate the change on the new stamp so older rounds replay and score exactly as before; add the era pin in `DEAL_PINS` so checks written for today's stamp keep their deals; update the game's entry in `LIVE_BANDS` and `scripts/arcade-standard/` and its help and intro numbers; re-run `practice-stamps.ts` (practice bests start fresh for that game) and the challenge catalogue's numbers; append its self-replay entries at the end; and list its intro demo for re-recording (F1). The level ladders in the spec are then tuned on the new Normal, not today's.
+
+**Grappler and Curl Champ.** Neither has a working lever today (section 8.1). D5 and D6 each propose one to Joe, with numbers, **before** building those two games' levels.
+
 ## 9. The three items built in the earlier session
 
 | Item | Still fits? | Note |
@@ -437,6 +531,8 @@ Fourteen sessions. Prompts: `docs/polish-plan-final/prompts/`, each paste-ready 
 
 **Launch order.** Three trains that share no files. Pages: **P1** first and alone, then P2, P3 and P4 together. Art: **A1** first, then A2; A3 any time. Difficulty: **D1 to D6** merged one at a time in that order. **F1** last, then the merge captain runs the Save-intro-demos workflow. Two cross-train rules: a difficulty session that needs new art waits for that family's art session, and P2 merges before any difficulty session touches help or intro text. If only three sessions start at once: P1, A1 and D1.
 
+**After Joe's answers of 20 Nov** (section 2.1; `coverage.md` has the rows): P1 builds the mixed Home and the fuller desktop rail; P2 the Games switch, the combined level picker, the intro's key line and the first game Joe picks; P3 the reordered Compete and the mixed You; P4 the keyboard mapping for every game (P1 builds the fuller rail with the rest of the navigation); A1 and A2 whichever look Joe picks for Ballpark, Pipeline, Chroma Lines and Topsy-Turvy; D1 to D6 the scoring fixes on Normal for their games (section 8.2), D5 the three stamps, and D5 and D6 a lever proposal to Joe before Grappler and Curl Champ; F1 the longer list of demos to re-record.
+
 ## 12. Carried forward unchanged from the earlier plan
 
 - Section H (bugs H1–H8: Hover's frame drop, Orbit's planet bake, camera cut, low-fuel line, rings, checkpoint button, pop texts), built by A3, except H4 (a rules change, so a stamp), built by D5.
@@ -445,6 +541,6 @@ Fourteen sessions. Prompts: `docs/polish-plan-final/prompts/`, each paste-ready 
 - Section J (infrastructure notes), for the infrastructure session.
 - A2 (Home's sections reserved), A12 and A13 are absorbed into sections 3 and 4 here.
 
-Not built by any session: the earlier scoring review (I1 to I9). Each would change Normal's own scoring, which the fixed rules do not allow without a separate decision; where a level's 200 depends on one, the difficulty spec carries a level-deal version.
+Built after Joe's answers of 20 Nov: the earlier scoring review's seven approved fixes (I1 to I5, I7, I8) and Normal's caps for Flash, Bonk and Pull!, each under a new stamp in the difficulty session that owns the game (section 8.2). I6 and I9 stay "leave it".
 
-Dropped from the earlier plan: A3 (avatar discs), the "best value" pack frame in A8, C1.6, C1.8 and C3.5 (three stamps the new ladders do not need), the old section D and its spec, and the wholesale "restore the old file" reading of E1.2–E1.5 (each is now a re-render or re-colour in the new direction).
+Dropped from the earlier plan: A3 (avatar discs), the "best value" pack frame in A8, the old section D and its spec. C1.6, C1.8 and C3.5 (the three stamps) are back, in D5. The earlier E1.2 to E1.5 (the old looks of Topsy-Turvy, Chroma Lines, Pipeline and Ballpark) are Joe's pick per game (14b): Spotlight's re-render, today's, or the old look restored as E1 described.

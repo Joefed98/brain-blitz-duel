@@ -17,7 +17,7 @@ Fable, 20 Nov 2026 (the design-direction session). This replaces the spec of the
 
 ## The rule
 
-1. **Normal is today's game, exactly.** Rated play and the Daily deal it. Nothing here retunes Normal.
+1. **The levels never change Normal.** Rated play and the Daily deal it. Joe's ruling of 20 Nov: this does not ban the scoring fixes he approved; those are built on Normal too, each under its own new stamp (the section "Scoring fixes and stamps on Normal" below), and the ladders are then tuned on the new Normal.
 2. **One headline lever per game, visible in the first three seconds.** A player who opens Hard after Normal sees the difference before touching anything: a bigger board, more pieces, more enemies, another lane, a narrower gap, a shorter paddle. The four levels sit on that one lever as a ladder (Easy < Normal < Hard < Expert), with at most two supporting levers (time, aids, tolerance). A step whose only change is invisible (a tighter par, a refitted curve) is not a level.
 3. **Steep and even.** Each step is roughly 1.4 to 1.7 times the load of the one before. Targets for an average player: Easy 150–180 with a finish nearly every time; Normal about 100 (today, fixed); Hard 55–75; Expert 25–45. For the elite bot under `HUMAN_LIMITS`: Easy 195+, Hard 150–175, Expert 120–150. These are tuning targets for the build session, not promises; Joe's playtest decides.
 4. **Easy is welcoming.** A first-time player finishes or scores well on the first try, gets a first success inside ten seconds, and never loses the run to one slip. Aids live here.
@@ -32,7 +32,31 @@ Fable, 20 Nov 2026 (the design-direction session). This replaces the spec of the
 - The commonest fault found: **Hard looks the same as Normal** in the first seconds (same board, same counts) on about thirty games, and on a handful Hard or Expert reads as *easier* (Chroma Lines' Hard has fewer dots, Skid's Expert fewer holes, Tenfall's Hard opens on smaller targets, Lookout's Expert outscores Hard).
 - **New mechanics (5):** Exact plays targets in a row (2 at Hard, 3 at Expert); Double Take mirrors the lower picture at Expert; Labyrinth swaps its hidden exit (partly a guess) for gold keys to fetch; Tempo's lane count becomes the ladder (3 / 4–5 / 5 / 6); Iron Wall gains a fourth lane from Hard.
 
+## Scoring fixes and stamps on Normal (Joe, 20 Nov 2026)
+
+Built by the difficulty session that owns the game, before that game's levels, each under a new stamp with a legacy fixture of today's stamp recorded first (plan section 8.2 has the routine).
+
+| Game | New stamp | The fix | Session |
+|---|---|---|---|
+| Flash | `tapRev 8` | The per-flash curve refit so a 0.25 s tap pays about 150 and 0.17 s about 200 (today 130 at 0.25 s on every level) | D3 |
+| Bonk | `whackRev 5` | The quick window widened so a player at the human limits can fill the combo part (today 156) | D3 |
+| Pull! | `clayRev 9` | The quick-hit part's full line set from the best human-limited run (today no limited run reaches 200) | D3 |
+| Five Hands | `fiveHandsRev 4` | Hand points full at the elite median, 143 → 128 | D6 |
+| Integer Pyramid | `depthRev 3` | Unfinished credit 130 × stones placed correctly ÷ stones | D2 |
+| Nucleus, Forage, Roundabout | `wordsmithRev 6`, `wordHuntRev 5`, `wheelRev 6` | Each points line refit so a near-perfect player earns the star and the best can reach 200 | D1 |
+| High Rise | `skylineRev 12` | Floors full at 45, perfect drops full at 30 | D5 |
+| Cue Ball | `poolRev 5` | Speed measured from the fifth pot, full by 60 s | D6 |
+| Tilt | `tiltRev 13` | Normal deals 3 mazes, par over three, speed full by 55 s | D6 |
+| Moon Climb | `ricoRev 5` | A 30 × 60 ninja, between today's and the old one (C3.5) | D5 |
+| Fission | `burstRev 14` | Atoms 35 / 24 / 15 / 9 px (C1.8) | D5 |
+| Wavefront | `wavRev 16` | The wider formation on a deal proved at 200 at every level (C1.6) | D5 |
+
+**Grappler and Curl Champ** have no working lever today. D5 and D6 each propose one to Joe, with numbers, before building those two games' levels.
+
 ## Decisions for Joe
+
+**Joe answered all eight on 20 Nov 2026: yes to each** (1 a Hard you can see; 2 Iron Wall's four lanes; 3 scoring so 200 is reachable, on Normal too; 4 the proof first; 5 Minefield's Expert at 10 × 16 with 40 mines; 6 change the scoring on Nucleus and Forage; 7 a lost ball costs more on Breaker's Hard and Expert; 8 an eighth gem for Gemstone). They are kept below as the reasons.
+
 
 1. **Counterweight, Brimful, Checkout and Kakuro: a Hard you can see.** On 15 Nov you chose to keep the older game as their Hard. Measured on 20 Nov (96 deals a game, the same seeds at both levels, the repo's four kits through the server's own grade): that Hard's first board is the same as Normal's on all four, so nothing shows in the first seconds. It is not the same difficulty, though, and my first version was wrong to say it "scores like Normal": the good kit drops 24 (Counterweight), 87 (Brimful), 37 (Checkout) and 61 (Kakuro) points, and Counterweight's average kit drops 70. The person-like solver finishes 81 of 96 old-Hard Kakuro boards (my "a quarter cannot be finished" was also wrong: it is 15 of 96). **Recommendation, unchanged in substance: keep the older game's difficulty where it is good and put a visible step on top, as each game's row says.**
 2. **Iron Wall: Expert becomes four lanes** (9 tanks a wave), on bastionRev 3's aim settings. That replaces the 15 Nov ruling that Expert is bastionRev 3's game unchanged. Measured on 20 Nov (60 room seeds a level): today's Hard and Expert put the same tanks on the same lanes at the same moments on 60 of 60 seeds, so the first five seconds look alike; the average bot scores 104 and 84, the elite bot under the human limits 161 and 146. A faster pace alone, tried in memory, changes neither the look nor the gap (average 91, elite 148). The fourth lane itself is not measured: it needs sim code. **Recommendation: yes; a lane is a step a player sees at once, and the fourth lane is your own example of a natural mechanic.**

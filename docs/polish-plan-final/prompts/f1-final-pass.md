@@ -10,7 +10,7 @@ Do, in this order, and commit each step's output:
 4. `bun scripts/look-previews.ts --check` and `bun scripts/shop-previews.ts` if a skinned game's or an item's picture changed.
 5. `bun scripts/practice-stamps.ts` and the challenge catalogue doc script, as a check that nothing is stale.
 6. Re-record `scripts/fixtures/celebrations-off.json` (`bun scripts/celebrations-browser.ts --record-off`) only if a recorded screen's markup changed since it was last recorded, and only with Joe's approval typed in this session.
-7. Tell the merge captain the intro demos are ready to re-record: list every game whose dealt stamp changed, from the D sessions' reports, for the "Save intro demos" workflow.
+7. Tell the merge captain the intro demos are ready to re-record: list every game whose dealt stamp changed, from the D sessions' reports, for the "Save intro demos" workflow. That list includes the three stamps of 20 Nov (Moon Climb `ricoRev 5`, Fission `burstRev 14`, Wavefront `wavRev 16`) and every Normal scoring stamp of the plan's section 8.2 (Flash, Bonk, Pull!, Five Hands, Integer Pyramid, Nucleus, Forage, Roundabout, High Rise, Cue Ball, Tilt), with the stop rule each needs updating (`ACTION_DEMO_REVS`, `SAME_PLAY_DEMO_REVS`, `wordDemoStampOk`, `cardsDemoRules.ts`, `sportsDemoRules.ts`).
 
 You own: `public/tiles/*`, `src/components/app/gameIcons/tileScenes.data.ts`, `public/intro/*`, `src/lib/duel/revealPalette.data.ts`, `src/lib/arcade/strategyArt.data.ts`, `public/looks/*`, `public/shop/*`, `scripts/fixtures/celebrations-off.json`. Do not touch anything else.
 

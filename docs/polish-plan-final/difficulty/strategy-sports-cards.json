@@ -322,7 +322,7 @@
     "proof": "Five Hands is the arcade standard's one named exception (NOT_200_ON_EVERY_DEAL in scripts/arcade-standard-check.ts): Normal deals the seed's first shuffle and only 165 of 200 decks can reach 200, so today no level has a 200 proof. A level need not inherit that: build a deck list per level with scripts/cards/fiveHandsBest.ts (the exact best rows plus best column, about 1 s a deck, run on the level's table) and keep only decks whose best reaches the level's full figure (143 hand points at x 1.4, 125 at x 1.6); the witness is 21 taps, 8.4 s at 0.4 s a tap. Measured with fhBest on 20 Expert-deal decks: 8 reach 143 points on the Expert table and 9 on the Hard table, so a list keeps about two decks in five. The exception then covers Normal alone.",
     "change": "retune",
     "newMechanic": "",
-    "stamp": "fiveHandsRev 4 on level deals (Normal stays fiveHandsRev 3): proved deck lists replace the first shuffle, and today's hint rounds must still replay.",
+    "stamp": "Joe, 20 Nov: Normal itself moves to fiveHandsRev 4 (hand points full at 128) first, under the routine of plan section 8.2; the levels are then tuned on that Normal and stamped after it. fiveHandsRev 4 on level deals (Normal stays fiveHandsRev 3): proved deck lists replace the first shuffle, and today's hint rounds must still replay.",
     "files": [
       "src/lib/arcade/cards/fiveHands.ts (FH_LEVEL_RULES)",
       "scripts/cards/fiveHandsBest.ts (take the level's table)",
@@ -450,7 +450,7 @@
     "proof": "Today every level reuses src/lib/duel/poolBankV3.server.ts and its 60 witnesses. Build a bank per level with scripts/pool-bank.ts (a --level flag) and the shot search in scripts/pool-oracle.ts on the level's pockets and rack: keep a layout only when a witness pots all seven and the black with no foul for exactly 200 through the server replay, each shot at least 0.4 s after the balls stop, inside the speed line; scripts/pool-levels-check.ts replays every witness.",
     "change": "redesign",
     "newMechanic": "",
-    "stamp": "poolRev 5 on level deals (Normal stays poolRev 4): pocket geometry and the rack change the physics, and today's level rounds must still replay.",
+    "stamp": "Joe, 20 Nov: Normal itself moves to poolRev 5 (Speed from the fifth pot) first, under the routine of plan section 8.2; the levels are then tuned on that Normal and stamped after it. poolRev 5 on level deals (Normal stays poolRev 4): pocket geometry and the rack change the physics, and today's level rounds must still replay.",
     "files": [
       "src/lib/arcade/pool.ts (POOL_POCKETS and the jaws per level, poolLayout's other-set count)",
       "src/lib/arcade/pool.renderer.ts (pockets drawn to the collision mouth)",
@@ -503,7 +503,7 @@
       "scripts/curling-levels-check.ts",
       "scripts/curling-levels-bands.ts"
     ],
-    "risk": "seven reds only fit a 15 to 60 cm span (a tighter ring or an eighth red places 4 to 6), the elite's best on 5 sheets was 195, and seven takeouts with eight stones may prove on too few sheets; six reds is the fallback",
+    "risk": "Joe, 20 Nov: the dealer cannot place the reds this row asked for and the red count saturates, so D6 proposes a working lever to Joe, with numbers, before building Curl Champ's levels. seven reds only fit a 15 to 60 cm span (a tighter ring or an eighth red places 4 to 6), the elite's best on 5 sheets was 195, and seven takeouts with eight stones may prove on too few sheets; six reds is the fallback",
     "evidence": {
       "easy": "measured: CURL_LEVEL_REDS set in memory, 8 Easy-bank sheets (not proved for one red), HUMAN_LIMITS, server replay: average 96.9, against 101.3 for today's two reds on the same sheets and 89.6 on Normal's.",
       "hard": "measured: 5 reds 25 to 80 cm, 8 sheets a run, average bot under limits: 73.1 as proposed (HOUSE zone, no aim line), 70.0 with the aim line's first third, 78.9 with no aids at all (Normal 89.6); elite not run (too slow for the time box).",
@@ -620,7 +620,7 @@
     "proof": "Per-level proved deals as today: bun scripts/tilt-deal.ts --level=<l> keeps a seed only when scripts/tilt-oracle.ts plays every maze inside par with no fall and replays to exactly 200 through replayTiltRun (src/lib/duel/tiltDealLevels.server.ts; today Hard keeps 119 and Expert 111 of 150). The oracle is not held to the limits today: run it with the bot's TILT_HUMAN_LIMITS rule (0.25 s from eye to hand, a new decision every 0.15 s at most) and drop seeds that fail; scripts/tilt-levels-check.ts replays every witness. Measured with today's hole rule: on four 19-cell mazes the flawless bot under the limits reaches 200 on 1 of 16 seeds at par 125 % with speed full by 85 s, and stops at 194 at par 115 % or 120 %.",
     "change": "redesign",
     "newMechanic": "",
-    "stamp": "tiltRev 13 on level deals (Normal stays tiltRev 12): the sim reads TILT_LEVELS and the hole placement rule.",
+    "stamp": "Joe, 20 Nov: Normal itself moves to tiltRev 13 (Normal deals 3 mazes) first, under the routine of plan section 8.2; the levels are then tuned on that Normal and stamped after it. tiltRev 13 on level deals (Normal stays tiltRev 12): the sim reads TILT_LEVELS and the hole placement rule.",
     "files": [
       "src/lib/arcade/tilt.ts (TILT_LEVELS, buildMazeX's hole rule)",
       "scripts/tilt-deal.ts",
