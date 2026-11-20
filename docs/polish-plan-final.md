@@ -21,6 +21,8 @@ How this plan was made: every page and game was looked at on today's real app (t
 
 Keep: the navy-black page, champagne gold as the one action colour, the angled cut on the key elements (the main button, hero cards, the player card), Archivo, thin lines, the 3D art kit, cyan for live, the nameplates and cards.
 
+The whole kit is on one board for the build sessions, `direction/pages/kit-board.webp`: the navy frame, the gold metal for actions only, the type scale, the cut corner for heroes only, the eleven family colours, the four level marks, tiles, nameplates, the lit game stage and six rules (one gold button a screen; one hero a page; colour means a family, a level, a win or a loss; numbers are the display type; fewer words; dark frame, bright game). Room and game screens in the same kit: `frame-spotlight-phone`, `frame-neon-phone`, `intro-e-phone`, `reveal-e-phone`, `lobby-e-phone`, `podium-e-phone`, `daily-e-phone`, `event-e-phone` (a live tournament), `play-e-desktop`, `levels-e-desktop`.
+
 Refine (what changes on every page):
 
 - **One job per screen, one gold button.** Each page opens on a hero that says what to do next; everything else is quieter.
@@ -29,7 +31,25 @@ Refine (what changes on every page):
 - **The navy from the earlier round stays picked** (U2b: `--jz-bg #04060C`, `--jz-surface #101A33`, `--jz-surface-2 #1C2A52`, `--jz-surface-3 #26376B`, `--jz-line #223058`), so panels separate from the page. Gold, text and `--screen-edge` do not change.
 - **Fewer words.** A page budget of 40 words of body text (Terms and Help apart); see 3.5.
 
+**The navy change, checked on the real app** (fact-check pass): Home, Games and the Shop were re-shot with only those eight token values changed (`direction/pages/home-now-phone.webp` beside `home-navy-phone.webp`, and the same for `games` and `shop`). The pictures differ by an average of 1 to 7 levels in 255 per colour channel, most of it in blue; mean brightness rises by 1 to 2 levels. It reads as today's style with panels that separate from the page a little better, not as a restyle, so the change stays in P1. It is small: if Joe would rather not spend five assertion rows on it, dropping it costs nothing else in the plan.
+
 Alternatives on the review page, same layouts: **F "Esports, colour-charged"** (the same style with the hero and feature cards carrying full colour) and **A "Bright Spark"** (the royal-blue, bolt-yellow, rounded redesign made before the correction; kept as the bold option). **Recommendation: E.** F is the fallback if E reads too quiet on a phone; A is a different product.
+
+**More layouts for Home, Compete and You** (added at Joe's request on the fact-check pass; `direction/pages/home2…`, `home3…`, `compete1…3`, `profile2…3`), each drawn in the esports style and in a second colourway:
+
+| Page | Layout | The idea | Recommended |
+|---|---|---|---|
+| Home | **H1 Hero** (`home-e-phone`) | One hero, one gold button, then the Dailies, friends and recent games | **Yes, for launch**: it works for every player, rated or not |
+| Home | **H2 Match day** (`home2-…`) | A live strip, your player banner with rating and tier bar, a full-width Find a match, then today as a timeline | The best competitive feel; right once rated play is open to everyone |
+| Home | **H3 Deck** (`home3-…`) | A console-style grid of mode tiles with corner brackets, a Continue strip, friends online | No: five equal tiles and no single next step |
+| Compete | **C1 Ladder** (`compete1-…`) | Your tier and rating as the hero, Find a match, then the boards as tabs with your row pinned | **Yes**: never empty, even with tournaments off |
+| Compete | **C2 Fixtures** (`compete2-…`) | A live event card, today's fixtures as a timeline, the top three, your rating as a strip | Later, when tournaments are open to everyone |
+| Compete | **C3 Season** (`compete3-…`) | The season banner, the tier ladder with you on it, rivals either side of you | Later, when a season has dates |
+| You | **Y1 Rows** (`profile-e-phone`) | The card, the rating, three stats, rows | Sound, plain |
+| You | **Y2 Card first** (`profile2-…`) | The player card large, strongest categories as bars, recent form, four quick tiles | **Yes**: the page is about identity, and the card is the identity |
+| You | **Y3 Career** (`profile3-…`) | Ring gauges, a trophy shelf, recent matches | No: more stats than a profile needs |
+
+Colourways tried on those layouts: **champagne** (today's, look E), **Ion** (navy with electric cyan as the accent) and **Ember** (carbon with a magenta-to-orange accent). Gold stays the one action colour in all three. **Recommendation: champagne.** Ion is the nearest sibling (cyan is already Joulz's colour for live and positive) and would be the one to try if Joe wants a cooler look; Ember is a different brand.
 
 ### 1.2 Games: four directions
 
@@ -75,10 +95,15 @@ Each has a recommendation he can say yes to. **Joe's answers: none recorded yet.
 | 7 | Round intro: demo, one-line goal and Ready; How and Score move behind "?" (rooms and the Daily keep the Ready tap) | **Yes** |
 | 8 | Ratings tiles leave Home (the hero shows the rating; all three ratings live on You). This reverses the 14 Nov choice to show them on both | **Yes** |
 | 9 | Beta terms cut to about 60 words with a link to the full text, shown at the first Play tap on the Daily rather than before the page. Legal wording is the adviser's call | **Yes, subject to the adviser** |
-| 10 | Difficulty: the five items in `difficulty-spec.md` "Decisions for Joe" (a new Hard for Counterweight, Brimful, Checkout and Kakuro; Iron Wall's four-lane Expert; level-deal scoring fixes so 200 is reachable; proof tools first; Minefield's Expert back to 10 × 16) | **Yes to all five** |
+| 10 | Difficulty: the five items in `difficulty-spec.md` "Decisions for Joe" (a Hard you can see for Counterweight, Brimful, Checkout and Kakuro; Iron Wall's four-lane Expert; level-deal scoring fixes so 200 is reachable; proof tools first; Minefield's Expert back to 10 × 16) | **Yes to all five** |
 | 11 | "Best value" on coin packs (in the earlier plan's shop mockup) | **Drop it.** The style guide's own rule is no pressure labels |
 | 12 | The avatars' backing disc (earlier A3) and a Blender redraw of the avatars | **Leave both.** The rounded-square avatar in the new header and VS screens makes the disc a non-issue |
 | 13 | Earlier "go back" items | **Judged one by one in section 5**, not reverted wholesale: most become "re-render in the new material" instead of "restore the old file" |
+| 14 | Home layout: H1 Hero, H2 Match day or H3 Deck | **H1** now; H2 when rated play is open to everyone |
+| 15 | Compete layout: C1 Ladder, C2 Fixtures or C3 Season | **C1** now; C2 and C3 as tournaments and seasons open |
+| 16 | You layout: Y1 Rows, Y2 Card first or Y3 Career | **Y2** |
+| 17 | Accent colourway: champagne, Ion or Ember | **Champagne** |
+| 18 | The level picker on a game's page: L1 Ladder (all four levels with a picture of what changes) or L2 Preview (one level large). The step-up card on the reveal comes with either (section 6.1) | **L1** |
 
 Where I disagree with something Joe asked for:
 
@@ -171,14 +196,14 @@ Mockups are in `direction/pages/` as `<page>-<e|f|a>-<phone|desktop>.webp` besid
 | Games | Tiles' art, stars, search, game of the day | One control (All, Puzzles, Arcade), the hero, category shelves of 132 × 164 tiles with "All n" leading to today's grid; no level switch or explainer here | Five rows of controls before a game today; larger tiles | `games-e-phone`, `games-e2-phone` (the grid), `games-e-desktop` | M |
 | Game page | Art, name, best, challenges | A one-line goal; four level steps each with its star and its lever in numbers ("Normal: 8 flasks, 90 s"); a 68 px Play; "How to play" and "Challenges 1 / 3" as two quiet rows | The level is chosen where it is played; 40 words | `gamepage-e-phone` | M |
 | Challenges | The tabs and rows | Reached from You and the rail; rows gain the game's tile | A home that is not More | – | S |
-| Compete (was Tournaments) | The hub's Upcoming and Your results, event pages, podium, rules | Opens on your rating card (where rated is on), then tournaments (where on), then Leaderboards and the Daily top 100 as two rows with your place | Never a dead end | – | M |
+| Compete (was Tournaments) | The hub's Upcoming and Your results, event pages, podium, rules | Opens on your rating card (where rated is on), then tournaments (where on), then Leaderboards and the Daily top 100 with your place | Never a dead end | `compete1-e-phone` (C1), `compete2-…`, `compete3-…` | M |
 | Leaderboards, Daily board | As built (nameplates, podium, picker) | Reached from Compete | – | – | S |
 | Daily | The hero cards and your line | The page shows before the terms; results gain Home; the name box becomes the shared sheet | Look before you agree; a way home | – | S |
 | Rated: searching, VS | The data and timings; each player's full `PlayerCard` in their half | **VS**: full-bleed, each half lit in its player's colour, the card drawn large (its avatar about 124 px), the tier and rating, a champagne VS plate on a gold seam, the first game's tile and the stakes at the foot | Today it is two small cards and a third of a screen of nothing | `vs-e-phone`, `vs-e-desktop` | M |
-| Rated: result | The rating panel, game rows, Joules, Next match, the title text "You win" | The title at 62 px in gold, the score under it, the rating bar, Home beside Rematch | The win should feel won; a way home | `result-e-phone` (the mockup's exclamation mark is not built) | M |
-| You (Profile + More) | The player card, Customise, badges, the season section | One page: the card, the rating with its bar, three stat tiles, rows for Friends, Challenges, Badges and trophies, Settings, Help | One home for the player | `profile-e-phone` | M |
+| Rated: result | The rating panel, game rows, Joules, Next match, the title text "You win" | The title at 62 px in gold, the score under it, the rating bar, Home beside Rematch | The win should feel won; a way home | `result-e-phone` (the mockup's exclamation mark is not built), `result-e-desktop` | M |
+| You (Profile + More) | The player card, Customise, badges, the season section | One page: the card, the rating with its bar, three stat tiles, a showcase strip (earlier A4), rows for Friends, Challenges, Badges and trophies, Settings, Help | One home for the player | `profile-e-phone` (Y1), `profile2-…` (Y2), `profile3-…` (Y3), `profile-e-desktop` | M |
 | Friends, Customise, Card, Badges | As built | Reached from You | – | – | S |
-| Shop, Pass, Plus | The parts, the bundle, Today, the wishlist, the confirmation | The bundle as an obsidian hero with gold edge light and its item stills large; item cards with the still filling the top half and the rarity as the name's colour; no "best value" | Warmer and larger, still no pressure | `shop-e-phone` | M |
+| Shop, Pass, Plus | The parts, the bundle, Today, the wishlist, the confirmation | The bundle as an obsidian hero with gold edge light and its item stills large; item cards with the still filling the top half and the rarity as the name's colour; no "best value" | Warmer and larger, still no pressure | `shop-e-phone`, `shop-e-desktop` | M |
 | Settings, Account, Terms | As built | Terms cut to 60 words and a link; "How it works" lives here | Words | – | S |
 | Room: lobby, link join, round results, standings, podium | As built (nameplates, the broadcast reveal) | Larger type on the room code and the main action; the join screen's name box pre-filled | These screens are sound | – | S |
 | Round intro | The frame header, the demo box, Ready, the countdown | Goal 22 px, one how line, How and Score behind "?" | 15 words | – | M |
@@ -322,7 +347,17 @@ After the art sessions: re-export every tile and intro still, and re-run `bun sc
 
 - **The frame keeps its geometry**: the 60 px header, the timer on its bottom edge, the goal line, the dock, the phone-gap rule. Those are pinned by six checks and are right. Only paint changes: the stage behind the board (rule 1), goal text 19 px, status chips 15 px.
 - **The intro** keeps the frame header, the demo box (about 40 % of the height) and Ready; the goal grows to 22 px, one how line stays, How and Score move behind "?" (section 3.5).
-- **The reveal** uses the built template. Its paint follows the direction: the score 72–96 px, the star row under it, "New best" as a champagne ribbon, three part chips, the stage picture, then Play again (gold), the next level up, Games. No layout change to the template.
+- **The reveal** uses the built template. Its paint follows the direction: the score 72–96 px, the star row under it, "New best" as a champagne ribbon, three part chips, the stage picture, then Play again (gold), the next level up, Games. No layout change to the template. Each family's boards and run pictures move onto the template's stage box (earlier rows G2 to G7, carried forward: the first version of this plan left them out).
+
+### 6.1 The levels in the app (added 20 Nov, mockups `levels1-e`, `levels2-e`, `levels3-e`, `frame-*`, `kit-board`)
+
+- **One level mark everywhere**: a colour and one to four bars (Easy green and one bar, Normal blue and two, Hard orange and three, Expert red and four), never colour alone. It sits on the game's page, in the frame header during play (beside "Round 2 of 6"), on the intro, on the reveal and in room settings. A star marks 175+ on Easy, Normal and Hard; Expert's mark is a crown.
+- **The ladder on a game's page (L1, recommended)**: the four levels as rows, each with a small picture of what changes (Breaker: the wall's rows and the paddle's width), the lever in a few words ("11 rows, 2 sliding · narrow"), your best and the star. Normal is marked "the ranked game". One gold Play. The pictures are drawn from the level's own settings (`GAME_LEVELS`), never hand-made, so they cannot drift from the game.
+- **The preview (L2, the alternative)**: one level large, the lever as a row of four numbers (20 · 14 · 10 · 8 numbers given), a four-way switch under it.
+- **The step-up card on the reveal (L3)**: after a star, Normal beside Hard and one line saying what is new, with "Play Hard" as the gold button. No star: Play again stays gold and the card is not shown. It never appears in rooms, rated play or the Daily.
+- **In play**: the frame header shows the game's name, the level mark and round, the score with place, and the timer as a gold bar on the header's bottom edge (the 60 px geometry is unchanged).
+- **The kit** (`kit-board`): the navy frame, the one gold action, Archivo, the cut corner for heroes only, the family colours, level marks, tiles, nameplates, the lit stage and six rules, on one board for the build sessions.
+- Built by P2: the level mark as one shared component (`LevelMark.tsx`), the game page's ladder, the intro's and the frame header's mark, the reveal's step-up card and the lever-picture slot, with Breaker's picture as the worked example. Each difficulty session (D1 to D6) adds its own families' pictures in one new file of its own, drawn from the level settings it has just written (`coverage.md` has the file names).
 
 ## 7. Desktop (1024 px and up)
 
@@ -331,10 +366,24 @@ After the art sessions: re-export every tile and intro still, and re-run `bun sc
 - **Arcade games: the Cabinet** (earlier B1, Joe's D1 pick, kept): the identical world at its largest uniform scale, a left panel (game, big score, timer, best, this run) and a right panel (goal, next challenges, controls; in a room the standings and chat), the game's scenery carried behind both. Mockup `play-a-desktop` shows it on Breaker.
 - **Puzzles** (earlier B3, kept): the board left at the largest size that fits, controls in a right column.
 - **VS on a computer**: the two halves side by side on a slanted gold seam (`vs-e-desktop`).
+- **You, the Shop and the rated result on a computer**: `profile-e-desktop` (the card, rating and stats left; rows, recent matches and the showcase right), `shop-e-desktop` (the bundle across the top, four items a row, coins and the wishlist in the aside), `result-e-desktop` (the title, the rating card beside the game rows, the three actions in a row).
 
 ## 8. Difficulty
 
 The full spec is `docs/polish-plan-final/difficulty-spec.md`; its data is `difficulty/*.json`. In short: one visible lever per game, four levels as one ladder, Normal untouched, 1 game kept, 48 retuned, 34 redesigned, five new mechanics, and a proof route for every Expert. Its five decisions are decision 10 above. The scoring items of the earlier plan's section I stay open and are folded into the spec where a level's 200 depends on them (Flash, Five Hands, Integer Pyramid, the open Word games' star line, High Rise, Cue Ball, Tilt); I6 and I9 stay "leave it".
+
+### 8.1 Fact-check of 20 Nov (numbers and method)
+
+Asked for by Joe before any build. Measured with the repo's own tools on this branch (main f3016234 merged in); nothing in the repo was changed to measure.
+
+| Claim in the first version | Measured | Verdict |
+|---|---|---|
+| Counterweight, Brimful, Checkout, Kakuro: the old game as Hard "looks and scores like Normal" | 96 deals a game, seeds 7000 to 7095, same seeds at both levels, the four puzzle-fairness kits through the server's grade. First board identical on all four. Good kit, Normal → Hard: 195 → 171, 182 → 95, 140 → 103, 167 → 106. Average kit: 164 → 94, 63 → 61, 53 → 50, 80 → 65. Person-like solver finishes 81 of 96 old-Hard Kakuro boards. | **Half right.** It looks like Normal in the first seconds; it does not score like Normal. The rows keep the difficulty and add a visible step. |
+| Iron Wall's Expert needs the fourth lane | 60 room seeds a level. Hard and Expert: same tanks, lanes and spawn moments on 60 of 60 seeds. Average bot 104 and 84; elite under the limits 161 and 146 (best 177 and 172, no 200). A pace-only Expert in memory: average 91, elite 148. The oracle held to human pace reaches 200 on 58 of 60 Expert seeds. | **The reason holds** (Expert is not a step you can see, and pace alone does not make one). The lane itself is not measured: it needs sim code. |
+| No proof tool applies `HUMAN_LIMITS` today | Read from the code: `level-tune.ts --human-limits`, the Home Run and Top Bins Expert proof, and nine level checks apply or assert under them. | **Wrong as written.** True only in the narrower form now in the spec: most 200 witnesses are frame-exact, and most checks assert "scores well" under the limits, not 200. |
+| Flash and Bonk cap a perfect human at about 130 and 160 at every level | Flash: every flash tapped at exactly 0.25 s, 100 deals a level: 130 at all four levels (0.20 s gives 135, 0.17 s 165, 0.14 s 190). Bonk: 0.25 s to react and 0.15 s to move, one finger, 100 deals a level: 156 on Easy, Normal and Hard, 153 on Expert. | **Holds** (130 and 156). It is the scoring curve, so no level setting fixes it; the spec's decision 3 stands. |
+
+Each of the 83 rows in the spec now carries an **Evidence** line per level (documented, measured or not measured, with the numbers), a fact-check verdict (holds, adjusted or unproven) and what applies the human limits to that game today. Rows the measurements contradicted were changed and say so.
 
 ## 9. The three items built in the earlier session
 
@@ -350,25 +399,30 @@ The rule stands: no session loosens, retargets or deletes an assertion without J
 
 ## 11. Build sessions
 
-Thirteen sessions, grouped so they rarely touch the same files. Prompts: `docs/polish-plan-final/prompts/`. Each is paste-ready for an Opus 5.5 session and carries the standing rules.
+Fourteen sessions. Prompts: `docs/polish-plan-final/prompts/`, each paste-ready for an Opus 5.5 session and ending with the same standing rules, byte for byte (`build-prompts.py` in `direction/source/` writes them all from one block). **`docs/polish-plan-final/coverage.md` maps every row of this plan to the one prompt that builds it, lists every file two prompts would have shared with its one owner, and gives the launch order.**
 
-| Session | Builds | Owns | Does not touch |
-|---|---|---|---|
-| **P1 Navigation and Home** | Sections 3.2, 3.3; the navy token values; the splash | `TabBar.tsx`, `AppRail.tsx`, `PlayBar.tsx`, `src/routes/{index,play,more}.tsx`, `src/components/home/*`, `src/components/nav/*`, `playCards.ts`, `tokens.css` (the five navy values), `home-play.css`, `nav.css` | game screens; Games, Shop, You |
-| **P2 Games, the game page, the intro, first open** | Sections 3.4, 3.5; the Games and game page rows; the intro | `src/components/games/*`, `src/routes/practice.tsx` (catalogue and page), `RoundIntro.tsx`, `PuzzleInstructions.tsx`, `src/lib/duel/instructions.ts` (cuts), `FirstOpen.tsx`, `games.css` | the game stages |
-| **P3 Compete, You, Shop, rated screens** | The Compete, You, Shop, VS and result rows; the shared name sheet; terms | `src/routes/{tournaments,profile,shop,rated,daily,settings,terms}.tsx`, `src/components/{rated,identity,shop,tournaments,beta}/*` | Home, Games |
-| **P4 Desktop** | Section 7 (B1–B5 on the built skeleton) | `desktop-layout.css`, `ArenaGamePanel.tsx`, `src/lib/gameFrame/arena.ts`, the HUD placement flags, `blockfall.renderer.ts` layout | the art functions |
-| **A1 Word and Number art** | Section 5's Word and Number tables; rule 1 for both | `scripts/word-art/*`, `src/polish-word/*`, the Number art script and `src/polish-number/*`, `number-overhaul.css` | levels, sims |
-| **A2 Speed, Attention, Pattern, Logic art** | Their tables | `src/polish-speed/*`, `src/polish-pattern/*`, `src/polish-logic/*`, `scripts/logic-art/*`, the Pattern art scripts, `src/components/puzzles/pattern/*` | levels, sims |
-| **A3 Arcade art** (Retro, Action, Strategy, Sports, Cards) | Their tables and the H bugs | the arcade `*.renderer.ts` files named in the carried rows, `strategy_art.py`, `scripts/cards-board-art/*`, `arenaFills.renderer.ts` | sims, deals, stamps |
-| **D1–D6 Difficulty** (Word; Number; Speed and Attention; Pattern and Logic; Retro and Action; Strategy, Sports and Cards) | `difficulty-spec.md`, each group's section; the proof tool first | each game's level table, deal and bank scripts, level checks | renderers and CSS (a level that needs new art puts it in a separate function and tells the art session) |
+| Session | Builds | Owns (in short; the prompt has the list) |
+|---|---|---|
+| **P1 Navigation, Home, splash, navy** | Sections 3.2, 3.3; the splash; the navy values; the rail | The tab bar, rail and header, `index.tsx`, `play.tsx`, `more.tsx`, Home's components, `tokens.css`, the shared page CSS, the screen harness |
+| **P2 Games, game page, Challenges, intro, reveal paint, first open** | Sections 3.4, 3.5; those rows of section 4; the reveal's paint | The games components, `practice.tsx`, `challenges.tsx`, `RoundIntro`, `RevealScreen`, `instructions.ts`, the first-open files |
+| **P3 Compete, You, Shop, rated, Daily, rooms** | Those rows of section 4; section 3.6 | The other routes and their components, the room screens |
+| **P4 Desktop** | Section 7 (earlier B1 to B4) | `desktop-layout.css`, the arena panel and frame files, Blockzone's layout |
+| **A1 Word and Number art, and the shared puzzle stage** | Their tables in section 5; section 6's frame paint; G2, G3 | The Word and Number art and CSS, `game-frame.css`, the one shared stage rule |
+| **A2 Speed, Attention, Pattern, Logic art** | Their tables; G4 to G6 | Those families' art and CSS, Minefield's and the Speed engine games' renderers |
+| **A3 Arcade art and the bugs** | Their tables; G7; H1 to H3, H5 to H8 | Every other arcade renderer, the fills, the run pictures |
+| **D1 to D6 Difficulty** | `difficulty-spec.md`, a group each; the proof tool first; D5 also H4 | Each game's level table, deal and bank scripts, level checks; only its own games' rows in the shared one-row-a-game files |
+| **F1 Final pass** | Tiles, stills, the reveal palette, `celebrations-off.json`, the list of demos to re-record | The generated art data, once, at the end |
 
-Order: P1 first (the tab list and tokens touch everything), then P2–P4 and A1–A3 together, D1–D6 any time (they own no page or art file). Last: one pass re-exports tiles and stills, re-runs the reveal palette, re-records `celebrations-off.json`, and the merge captain runs the Save-intro-demos workflow.
+**Launch order.** Three trains that share no files. Pages: **P1** first and alone, then P2, P3 and P4 together. Art: **A1** first, then A2; A3 any time. Difficulty: **D1 to D6** merged one at a time in that order. **F1** last, then the merge captain runs the Save-intro-demos workflow. Two cross-train rules: a difficulty session that needs new art waits for that family's art session, and P2 merges before any difficulty session touches help or intro text. If only three sessions start at once: P1, A1 and D1.
 
 ## 12. Carried forward unchanged from the earlier plan
 
-- Section H (bugs H1–H8: Hover's frame drop, Orbit's planet bake, camera cut, low-fuel line, rings, checkpoint button, pop texts), built by A3.
+- Section H (bugs H1–H8: Hover's frame drop, Orbit's planet bake, camera cut, low-fuel line, rings, checkpoint button, pop texts), built by A3, except H4 (a rules change, so a stamp), built by D5.
+- Rows G2 to G7 (each family's reveal boards and run pictures drawn at the reveal template's stage size), built by A1, A2 and A3.
+- Row A4 (the showcase strip on the profile), built by P3.
 - Section J (infrastructure notes), for the infrastructure session.
 - A2 (Home's sections reserved), A12 and A13 are absorbed into sections 3 and 4 here.
+
+Not built by any session: the earlier scoring review (I1 to I9). Each would change Normal's own scoring, which the fixed rules do not allow without a separate decision; where a level's 200 depends on one, the difficulty spec carries a level-deal version.
 
 Dropped from the earlier plan: A3 (avatar discs), the "best value" pack frame in A8, C1.6, C1.8 and C3.5 (three stamps the new ladders do not need), the old section D and its spec, and the wholesale "restore the old file" reading of E1.2–E1.5 (each is now a re-render or re-colour in the new direction).

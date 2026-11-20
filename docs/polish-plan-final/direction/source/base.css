@@ -122,7 +122,7 @@ h2, .h2 { font: 900 21px/1.1 "Archivo"; font-stretch: 108%; }
    (deep navy-black, champagne gold metal, angled cuts on the key elements, thin lines),
    on the new page structure. E keeps feature cards obsidian; F lets them carry colour.
    ===================================================================================== */
-html:is([data-dir="e"],[data-dir="f"]) {
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) {
   --bg0:#0A1126; --bg1:#04060C; --card:#101A33; --card2:#1C2A52; --ledge:#0A1022; --line:#223058;
   --text:#EEF2FF; --text2:#B5C6DD; --text3:#8F9BBF; --ink:#EEF2FF;
   --act:#E2C07A; --act-hi:#FBEDC4; --act-ledge:#A8843E; --on-act:#06080F;
@@ -133,34 +133,34 @@ html:is([data-dir="e"],[data-dir="f"]) {
   --cut-lg: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
   --cut-sm: polygon(11px 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%, 0 11px);
 }
-html:is([data-dir="e"],[data-dir="f"]) body { background: linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 46%); }
-html:is([data-dir="e"],[data-dir="f"]) body::before { display:none; }
-html:is([data-dir="e"],[data-dir="f"]) :is(h1,.h1,h2,.h2) { font-stretch: 100%; font-weight: 800; text-shadow: none !important; }
-html:is([data-dir="e"],[data-dir="f"]) .card { border-radius:16px; box-shadow: inset 0 0 0 1px var(--line); }
-html:is([data-dir="e"],[data-dir="f"]) :is(.hero,.gotd,.bundle,.pc) { border-radius:0; clip-path: var(--cut-lg); }
-html:is([data-dir="e"],[data-dir="f"]) .btn { border-radius:0; clip-path: var(--cut-sm); font-weight:800; font-stretch:100%; color:#06080F; padding-bottom:5px;
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) body { background: linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 46%); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) body::before { display:none; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) :is(h1,.h1,h2,.h2) { font-stretch: 100%; font-weight: 800; text-shadow: none !important; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .card { border-radius:16px; box-shadow: inset 0 0 0 1px var(--line); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) :is(.hero,.gotd,.bundle,.pc) { border-radius:0; clip-path: var(--cut-lg); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .btn { border-radius:0; clip-path: var(--cut-sm); font-weight:800; font-stretch:100%; color:#06080F; padding-bottom:5px;
   background: linear-gradient(165deg,#FBEDC4 0%,#E6C67E 34%,#D2AC5E 68%,#EED79C 100%) top / 100% calc(100% - 5px) no-repeat, #A8843E; box-shadow:none; }
-html:is([data-dir="e"],[data-dir="f"]) .btn:is(.sec,.white,.green) { clip-path:none; border-radius:10px; padding-bottom:0; color:#EEF2FF; background:#1C2A52; box-shadow: inset 0 0 0 1px #2F4A94, 0 3px 0 #0A1022; }
-html:is([data-dir="e"],[data-dir="f"]) .pill { box-shadow: inset 0 0 0 1px var(--line); }
-html:is([data-dir="e"],[data-dir="f"]) .pill.dark { background: rgba(4,6,12,.62); box-shadow:none; }
-html:is([data-dir="e"],[data-dir="f"]) .tabs { border-top: 1px solid var(--tab-line); }
-html:is([data-dir="e"],[data-dir="f"]) .tab.on { background:none; box-shadow:none; }
-html:is([data-dir="e"],[data-dir="f"]) .tab.on img { transform:none; }
-html:is([data-dir="e"],[data-dir="f"]) .tile { border-radius:14px; box-shadow: 0 0 0 3px var(--tc, var(--line)); }
-html:is([data-dir="e"],[data-dir="f"]) .tile .catbar { display:none; }
-html:is([data-dir="e"],[data-dir="f"]) .seg { background:#0A1022; box-shadow: inset 0 0 0 1px var(--line); border-radius:12px; }
-html:is([data-dir="e"],[data-dir="f"]) .seg div { border-radius:8px; }
-html:is([data-dir="e"],[data-dir="f"]) .seg div.on { background:#1C2A52; color:#EEF2FF; box-shadow: inset 0 0 0 1.5px #4A5E9E; }
-html:is([data-dir="e"],[data-dir="f"]) .avatar { border-radius:10px; box-shadow: inset 0 0 0 1px var(--line); }
-html:is([data-dir="e"],[data-dir="f"]) .tier { color:#E2C07A; }
-html:is([data-dir="e"],[data-dir="f"]) .star { background:#E2C07A; }
-html:is([data-dir="e"],[data-dir="f"]) .star.off { background: rgba(238,242,255,.22); }
-html:is([data-dir="e"],[data-dir="f"]) .done { background:#1C2A52; color:#EEF2FF; box-shadow: inset 0 0 0 1px #2F4A94; border-radius:10px; }
-html:is([data-dir="e"],[data-dir="f"]) .rail { border-right:1px solid var(--tab-line); }
-html:is([data-dir="e"],[data-dir="f"]) .rail .item.on { background:#1C2A52; box-shadow:none; border-radius:10px; }
-html:is([data-dir="e"],[data-dir="f"]) .shelf-h .blob { width:12px; height:12px; border-radius:50%; font-size:0; box-shadow:none; }
-html:is([data-dir="e"],[data-dir="f"]) .rw, html:is([data-dir="e"],[data-dir="f"]) .gr { border-radius:12px; box-shadow: inset 0 0 0 1px var(--line); }
-html:is([data-dir="e"],[data-dir="f"]) .find { box-shadow: inset 0 0 0 1px var(--line); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .btn:is(.sec,.white,.green) { clip-path:none; border-radius:10px; padding-bottom:0; color:#EEF2FF; background:#1C2A52; box-shadow: inset 0 0 0 1px #2F4A94, 0 3px 0 #0A1022; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .pill { box-shadow: inset 0 0 0 1px var(--line); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .pill.dark { background: rgba(4,6,12,.62); box-shadow:none; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .tabs { border-top: 1px solid var(--tab-line); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .tab.on { background:none; box-shadow:none; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .tab.on img { transform:none; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .tile { border-radius:14px; box-shadow: 0 0 0 3px var(--tc, var(--line)); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .tile .catbar { display:none; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .seg { background:#0A1022; box-shadow: inset 0 0 0 1px var(--line); border-radius:12px; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .seg div { border-radius:8px; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .seg div.on { background:#1C2A52; color:#EEF2FF; box-shadow: inset 0 0 0 1.5px #4A5E9E; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .avatar { border-radius:10px; box-shadow: inset 0 0 0 1px var(--line); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .tier { color:#E2C07A; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .star { background:#E2C07A; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .star.off { background: rgba(238,242,255,.22); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .done { background:#1C2A52; color:#EEF2FF; box-shadow: inset 0 0 0 1px #2F4A94; border-radius:10px; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .rail { border-right:1px solid var(--tab-line); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .rail .item.on { background:#1C2A52; box-shadow:none; border-radius:10px; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .shelf-h .blob { width:12px; height:12px; border-radius:50%; font-size:0; box-shadow:none; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .rw, html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .gr { border-radius:12px; box-shadow: inset 0 0 0 1px var(--line); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .find { box-shadow: inset 0 0 0 1px var(--line); }
 /* E only: feature cards stay obsidian, colour arrives as an edge light */
 html[data-dir="e"] :is(.rays,.slash) { display:none; }
 html[data-dir="e"] .hero { background: radial-gradient(90% 120% at 86% 60%, rgba(226,192,122,.20), transparent 60%), linear-gradient(135deg,#1C2A52 0%,#101A33 46%,#0A1022 100%); box-shadow: inset 0 2px 0 rgba(226,192,122,.6); }
@@ -180,9 +180,9 @@ html[data-dir="e"] .st div:nth-child(1) b { color:#E2C07A; } html[data-dir="e"] 
 html[data-dir="e"] body:has(.art) { background: radial-gradient(120% 46% at 50% 0%, rgba(46,211,183,.42), transparent 70%), linear-gradient(180deg,#0A1126,#04060C 60%); }
 html[data-dir="e"] .art .tile { border:0; border-radius:20px; box-shadow: 0 0 0 4px #2ED3B7, 0 24px 40px rgba(0,0,0,.5); }
 html[data-dir="e"] .back { background:#101A33; color:#EEF2FF; box-shadow: inset 0 0 0 1px var(--line); }
-html:is([data-dir="e"],[data-dir="f"]) .lv div { border-radius:12px; box-shadow: inset 0 0 0 1px var(--line); }
-html:is([data-dir="e"],[data-dir="f"]) .lv div.on { background:#1C2A52 !important; box-shadow: inset 0 0 0 2px #4D8CFF !important; transform:none; }
-html:is([data-dir="e"],[data-dir="f"]) .how div { border-radius:10px; box-shadow: inset 0 0 0 1px var(--line); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .lv div { border-radius:12px; box-shadow: inset 0 0 0 1px var(--line); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .lv div.on { background:#1C2A52 !important; box-shadow: inset 0 0 0 2px #4D8CFF !important; transform:none; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .how div { border-radius:10px; box-shadow: inset 0 0 0 1px var(--line); }
 /* VS and result in E */
 html[data-dir="e"] .them { background: radial-gradient(90% 80% at 50% 34%, rgba(54,226,245,.34), transparent 70%), #0A1022; }
 html[data-dir="e"] .me { background: radial-gradient(90% 80% at 50% 66%, rgba(255,107,214,.32), transparent 70%), #0B1128; }
@@ -209,3 +209,11 @@ html[data-dir="f"] .vs { border-radius:0; clip-path: var(--cut-lg); background: 
 html[data-dir="f"] .seam { background:#E2C07A; box-shadow: 0 0 18px rgba(226,192,122,.8); }
 html[data-dir="f"] .win h1 { color:#E2C07A; text-shadow:none; }
 html[data-dir="f"] body:has(.win) { background: radial-gradient(110% 50% at 50% 0%, #2B40D2, transparent 72%), #04060C; }
+
+/* Two more colourways on the esports base, for the extra layouts: G "Ion" (navy with electric cyan) and H "Ember" (carbon with a magenta-to-orange accent). Gold stays the one action colour in both. */
+html[data-dir="e"], html[data-dir="f"] { --acc:#E2C07A; --acc2:#22E4FF; --accg: linear-gradient(135deg,#FBEDC4,#D2AC5E); --acc-ink:#06080F; }
+html[data-dir="g"] { --bg0:#08173A; --bg1:#03060F; --card:#0C1C3D; --card2:#143463; --ledge:#061022; --line:#1F4C86; --chip:#0C1C3D; --tab:#050B1C; --tab-line:#143463;
+  --acc:#22E4FF; --acc2:#7C8CFF; --accg: linear-gradient(135deg,#22E4FF,#4D8CFF); --acc-ink:#03121C; }
+html[data-dir="h"] { --bg0:#1A141D; --bg1:#07070A; --card:#18151E; --card2:#27222F; --ledge:#0B0A0F; --line:#3B3547; --chip:#18151E; --tab:#0B0A0F; --tab-line:#27222F; --text2:#D2C8D8; --text3:#A398AE;
+  --acc:#FF5C7A; --acc2:#FF9A3D; --accg: linear-gradient(135deg,#FF3D81,#FF9A3D); --acc-ink:#1A0610; }
+html[data-dir="a"] { --acc:#FFC81E; --acc2:#36E2F5; --accg: linear-gradient(135deg,#FFE570,#FFC81E); --acc-ink:#22164F; }

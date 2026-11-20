@@ -1,0 +1,40 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="kit.css">
+<style>
+body { background: radial-gradient(90% 70% at 60% -10%, color-mix(in srgb, var(--retro) 20%, #0A1126) 0%, var(--bg) 60%); }
+.shell { width: 1440px; height: 900px; display: grid; grid-template-columns: 240px 1fr; }
+.rail { background: #070B18; box-shadow: inset -1px 0 0 var(--surface2); padding: 22px 14px; display: flex; flex-direction: column; gap: 4px; }
+.rail .it { height: 46px; border-radius: 10px; display: flex; align-items: center; gap: 12px; padding: 0 12px; font: 700 15px/1 "Archivo"; color: var(--text3); } .rail .it img { width: 28px; height: 28px; filter: grayscale(1) brightness(.75); } .rail .it.on { background: var(--surface); color: var(--text); box-shadow: inset 0 0 0 1px var(--line); } .rail .it.on img { filter: none; }
+.main { padding: 34px 44px; display: grid; grid-template-columns: 330px 1fr; gap: 36px; align-content: start; }
+.left .tile { width: 330px; --c: var(--retro); border-radius: 22px; }
+.lad { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.card { border-radius: 14px; padding: 14px 14px 16px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); position: relative; }
+.card.on { background: linear-gradient(170deg, color-mix(in srgb, var(--lc) 22%, var(--surface)) 0%, var(--surface) 70%); box-shadow: inset 0 0 0 2px var(--lc); }
+.mini { height: 236px; border-radius: 10px; background: #050818; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--retro) 70%, transparent); position: relative; overflow: hidden; margin-top: 12px; }
+.mini .w { position: absolute; left: 10px; right: 10px; top: 10px; display: grid; grid-template-columns: repeat(9, 1fr); gap: 2.5px; } .mini .w i { height: 9px; border-radius: 2px; }
+.mini .p { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); height: 7px; border-radius: 3px; background: var(--gold); } .mini .b { position: absolute; width: 7px; height: 7px; background: #fff; border-radius: 2px; bottom: 52px; left: 58%; }
+.lev { font: 800 16px/1.25 "Archivo"; margin-top: 12px; min-height: 40px; } .best { display: flex; align-items: center; gap: 7px; margin-top: 10px; font: 800 17px/1 "Archivo"; font-variant-numeric: tabular-nums; } .best small { font: 700 10px/1 "Archivo"; letter-spacing: .1em; color: var(--text3); margin-left: auto; }
+.rk { position: absolute; right: 12px; top: 14px; font: 800 9.5px/1 "Archivo"; letter-spacing: .1em; color: var(--gold); }
+</style></head><body><div class="shell">
+  <div class="rail"><div class="row g10" style="padding:0 8px 18px"><img src="pub/nav/bolt-2x.webp" width="26"><b style="font:900 20px/1 Archivo;font-stretch:118%">JOULZ</b></div>
+    <div class="btn full" style="height:48px;font-size:17px;margin-bottom:12px">Play</div>
+    <div class="it"><img src="pub/nav/home-3x.webp">Home</div><div class="it on"><img src="pub/nav/games-3x.webp">Games</div><div class="it"><img src="pub/nav/tournaments-3x.webp">Compete</div><div class="it"><img src="pub/nav/shop-3x.webp">Shop</div><div class="it"><img src="pub/nav/friends-3x.webp">Friends</div><div class="it"><img src="pub/nav/challenges-3x.webp">Challenges</div><div class="it"><img src="pub/nav/profile-3x.webp">You</div></div>
+  <div class="main">
+    <div class="left"><div class="tile"><img src="pub/tiles/breaker.webp"></div>
+      <div class="cap mt18" style="color:var(--retro)">Retro · 90 seconds</div><h1 class="mt6" style="font-size:44px">Breaker</h1><div class="sub mt10" style="font-size:17px">Clear the wall. Gold bricks pay double.</div>
+      <div class="btn full mt24" style="height:64px;font-size:22px">Play Normal</div>
+      <div class="row g8 mt10"><div class="btn sec sm grow">How to play</div><div class="btn sec sm grow">Challenges 1 / 3</div></div>
+      <div class="sub mt14" style="font-size:13px;color:var(--text3)">Ranked matches and the Daily are always Normal.</div></div>
+    <div><div class="row"><div class="cap grow">Choose your level</div><div class="row g6"><span class="star"></span><span class="star"></span><span class="star off"></span><span class="crown off"></span></div></div>
+      <div class="lad mt14" id="lad"></div>
+      <div class="panel mt18" style="padding:16px 18px"><div class="cap">What changes</div><div class="row g16 mt10" style="font:700 15px/1.3 Archivo;color:var(--text2)"><div class="grow"><b style="color:var(--text)">Rows in the wall</b><br>6 · 9 · 11 · 12</div><div class="grow"><b style="color:var(--text)">Paddle</b><br>wide · standard · narrow · tiny</div><div class="grow"><b style="color:var(--text)">Sliding rows</b><br>none · later · 2 from the start · 4 from the start</div></div></div></div>
+  </div></div>
+<script>
+const cols = ["#FF4D6A","#FF8A3D","#FFC81E","#3DDC84","#36E2F5","#4D8CFF","#B26BFF","#FF6BD6","#FF4D6A","#FF8A3D","#FFC81E","#3DDC84"];
+const L = [["Easy",1,6,74,"6 rows, a wide paddle","184","star",[]],["Normal",2,9,56,"9 rows, the ranked game","148","star",[]],["Hard",3,11,45,"11 rows, 2 sliding, a narrow paddle","—","off",[8,10]],["Expert",4,12,34,"12 rows, 4 sliding, a tiny paddle","—","crown",[6,8,9,11]]];
+document.getElementById("lad").innerHTML = L.map(([n,l,rows,pw,lev,best,st,sl]) => {
+  let w = ""; for (let r = 0; r < rows; r++) for (let c = 0; c < 9; c++) w += `<i style="background:${cols[r]};${sl.includes(r) ? "transform:translateX(" + (r % 2 ? 9 : -9) + "px)" : ""}"></i>`;
+  const mark = st === "star" ? '<span class="star"></span>' : st === "off" ? '<span class="star off"></span>' : '<span class="crown off"></span>';
+  return `<div class="card l${l}${l===2?" on":""}"><div class="row g8"><span class="lvl l${l}"><i></i><i></i><i></i><i></i></span><b style="font:800 19px/1 Archivo">${n}</b></div>
+    <div class="mini"><div class="w">${w}</div><div class="b"></div><div class="p" style="width:${pw}px"></div></div><div class="lev">${lev}</div><div class="best">${mark}<span>${best}</span><small>BEST</small></div></div>`;
+}).join("");
+</script></body></html>

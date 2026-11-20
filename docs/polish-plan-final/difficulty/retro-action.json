@@ -12,12 +12,12 @@
     },
     "measured": "Elite bot under human limits, 20 seeds: 174 / 173 / 140 / 141 (Hard and Expert level with each other: the bot crashes early on both). Average bot at Normal on hoverRev 10, before the starting shield: median 36 to 47.",
     "easy": "Gaps 190 px narrowing to 140 (127 % of Normal's); starts with 3 shields (Normal 1); no sliding gaps; scroll as Normal.",
-    "hard": "Gaps 120 px narrowing to 84 (80 % of Normal's); every third gap slides from the third barrier (Normal from barrier 23); no starting shield; scroll as Normal (today's 106 % dropped).",
-    "expert": "Gaps 100 px narrowing to 72 (two thirds of Normal's, a little under Normal's own 80 px tight gates); every second gap slides, starting with the first barrier; no starting shield; scroll as Normal (today's 112 % dropped).",
+    "hard": "Gaps 135 px narrowing to 90 (90 % of Normal's); no starting shield; sliding gaps as Normal (from barrier 23); scroll as Normal (today's 106 % dropped).",
+    "expert": "Gaps 120 px narrowing to 80 (80 % of Normal's, level with Normal's own 80 px tight gates); every third gap slides from the third barrier (Normal from barrier 23); no starting shield; scroll as Normal (today's 112 % dropped).",
     "glance": {
       "easy": "Gaps a quarter taller than Normal's from the first barrier",
-      "hard": "First gap a fifth narrower, the saucer has no shield",
-      "expert": "A gap two thirds the size, already sliding up and down"
+      "hard": "First gap a tenth narrower, the saucer has no shield",
+      "expert": "A gap a fifth narrower, sliding from the third barrier"
     },
     "why": "A gap flyer is exactly as hard as its gaps are small, so the gap is the one thing every level should change, while today's Hard and Expert leave the gaps alone and only scroll 6 and 12 % faster, which neither a player nor the bots can tell apart.",
     "proof": "Today only Normal's courses are proved passable and levels only ever widen gaps. scripts/hover-x200-solver.ts already searches a tap log through every barrier, star, tight gate and chain and scripts/hover-x200-witness.ts keeps it when the server replay scores 200: run both on each level's narrowed course with taps at least 0.15 s apart and no tap sooner than 0.25 s after a barrier scrolls into view, and deal each level only from seeds that have a witness (src/lib/duel/hoverLevelDeals.server.ts and scripts/hover-levels-check.ts, to write).",
@@ -32,7 +32,14 @@
       "src/lib/duel/hoverLevelDeals.server.ts (new)",
       "scripts/hover-levels-check.ts (new)"
     ],
-    "risk": "a 72 px gap at top scroll may leave too few seeds with a human-paced witness, in which case Expert stops at 80 px"
+    "risk": "without the shield the average bot falls to the floor at any narrowing (90 %: 8, 80 %: 5), so it cannot tell Hard from Expert and Hard's visible step is small; Easy with one shield measures only 85 to 94 however wide the gaps, so it rests on the unbuilt three shields; no elite run reaches 200 at any level",
+    "evidence": {
+      "easy": "measured: gaps scaled in memory, 10 seeds, one shield (three need sim code): 127 % with no sliding gaps: average median 85, elite 170, best 186; 150 %: 92 and 173; 175 %: 94 and 173. Normal: about 50 and 156 to 174.",
+      "hard": "measured: in memory, 10 seeds: 90 % gaps, no shield: average median 8 (mean 22), elite 125, best 180, 0/10 at 200. As first proposed (80 %, every third gap sliding from the third): average 5, elite 149.",
+      "expert": "measured: in memory, 10 seeds: 80 %, every third gap sliding from the third, no shield: average 5, elite median 149 (mean 125), best 181, 0/10 at 200. As first proposed (67 %, every second sliding): average 5, elite 101, 1 run in 10 lasts."
+    },
+    "verdict": "adjusted: Expert 67 % to 80 % gaps with every third gap sliding (67 % left the elite at 101 with one run in ten lasting) and Hard 80 % to 90 % with Normal's slides; Easy's three shields and any 200 under the limits stay unproven.",
+    "limitsToday": "scripts/level-tune.ts:187 (--human-limits) builds the bots with HUMAN_LIMITS (human.ts:110, :132: reactions 250 ms, tracking lag 150 ms); it measures, nothing asserts, and no levels check for this game mentions limits. The hover bot reads reaction and lag. scripts/hover-x200-solver.ts and hover-x200-witness.ts are frame-exact and cover Normal only; no level has a deal or proof."
   },
   {
     "id": "skyline",
@@ -46,13 +53,13 @@
       "expert": "Slide 3.75 px a tick rising to 7.5, perfect within 2 px, wind from block 10, 3 lives"
     },
     "measured": "Mean, 40 seeds: average bot 116 / 53 / 46 / 41; elite under human limits 167 / 123 / 114 / 98 (runs reaching the clock 100 / 73 / 38 / 5 %).",
-    "easy": "Blocks start 260 px wide (Normal 200); slide 1.75 px a tick rising to 3.5 and perfect within 5 px (today's Easy); no wind; the wide rescue block after 3 trims in a row (Normal 5); 3 lives.",
-    "hard": "Blocks start 150 px wide; wind from block 8 (Normal 20); slide and perfect window as Normal (today's faster slide dropped); 3 lives.",
-    "expert": "Blocks start 110 px wide; wind from the first block; slide and perfect window as Normal (today's 7.5 px slide and 2 px window dropped); 3 lives.",
+    "easy": "Blocks start 260 px wide (Normal 200); slide 1.25 px a tick rising to 2.5 (today's Easy 1.75 to 3.5) and perfect within 5 px; no wind; the wide rescue block after 3 trims in a row (Normal 5); 3 lives.",
+    "hard": "Blocks start 110 px wide; wind from block 8 (Normal 20); slide and perfect window as Normal (today's faster slide dropped); 3 lives.",
+    "expert": "Blocks start 50 px wide; wind from the first block; slide and perfect window as Normal (today's 7.5 px slide and 2 px window dropped); 3 lives.",
     "glance": {
-      "easy": "A block two thirds of the screen wide, sliding slowly",
-      "hard": "A block a quarter narrower than Normal's",
-      "expert": "A block barely half Normal's width, the wind flag waving"
+      "easy": "A block two thirds of the screen wide, sliding very slowly",
+      "hard": "A block barely half Normal's width",
+      "expert": "A block a quarter of Normal's width, the wind flag waving"
     },
     "why": "Normal's slide already leaves a perfect drop one tick wide at top speed, so going faster stops testing people and starts testing luck, whereas a narrower block and earlier wind raise the cost of every drop in a way the player sees before the first tap.",
     "proof": "scripts/skyline-oracle.ts scores 200 on every seed at every level today (skyline-levels-check) and a run of perfect drops never trims, so block width cannot break it. With Normal's slide kept, a perfect drop is never under one tick wide; today's Expert (2 px either side at up to 7.5 px a tick) is, so its 200 is only there for a frame-exact oracle. The build session should also report the elite bot under scripts/arcade-skill-bands/humanLimits.ts.",
@@ -66,7 +73,14 @@
       "scripts/skyline-levels-check.ts",
       "scripts/flip-skyline-levels-bands.ts"
     ],
-    "risk": "Normal already scores 53 for the average bot and 123 for the limited elite, so Hard and Expert have little room below it until Joe's scoring review of Normal"
+    "risk": "Normal already scores 50 for the average bot, so 110 and 50 px blocks only reach 30 and 21, and no elite run under the limits reaches 200 on Normal, Hard or Expert (best 171, 167, 147); a build must also cap regrowth at the level's width (the sim grows a tower back to 200 px)",
+    "evidence": {
+      "easy": "measured: rules in memory at 200 px (the sim caps a block at 200, so 260 px was not played), 16 seeds: slide 1.25 to 2.5, no wind: average median 143, elite 149, 3/16 at 200. With the 1.75 to 3.5 slide: average 111, elite 162.",
+      "hard": "measured: first state and rules in memory, 16 seeds: 110 px, wind from block 8: average 30 (mean 34), elite 135, best 167, 0/16 at 200. As first proposed (150 px): average 40, elite 139. Normal: 50 and 143.",
+      "expert": "measured: in memory, 16 seeds: 50 px, wind from the first block: average 21, elite 131, best 147, 0/16 at 200, 81 % reach the clock. As first proposed (110 px): average 30, elite 141, best 157."
+    },
+    "verdict": "adjusted: Hard 150 to 110 px and Expert 110 to 50 px (150 and 110 px measured 40 and 30, only 10 apart), Easy's slide slowed to 1.25 to 2.5 px a tick (average 111 to 143); the 260 px block and any 200 under the limits stay unproven.",
+    "limitsToday": "scripts/flip-skyline-levels-bands.ts plays a `limited` bot (humanLimits.ts:16: reactions 250 ms, lag 150 ms, timing 15 ms, aim 2.5 px) and level-tune.ts:187 the HUMAN_LIMITS bots: both only measure. skyline-oracle.ts is frame-exact and skyline-levels-check asserts its 200 with no limits."
   },
   {
     "id": "breaker",
@@ -101,7 +115,14 @@
       "src/lib/duel/breakerLevelDeals.server.ts (new)",
       "scripts/breaker-levels-check.ts (new)"
     ],
-    "risk": "a human-paced bot may clear 108 bricks inside 60 s on too few seeds, in which case Expert keeps 11 rows and leans on the paddle"
+    "risk": "the skill-band bots' scores do not move with paddle width or rows (average bot: Easy 43, Normal 79, Hard 87, Expert 64; 12 rows at 60, 52, 40 and 32 px: 67, 64, 68, 70), so the steps need a better bot or people to confirm; a human-paced bot clears 108 bricks inside 60 s on few seeds (200 on 2 of 16)",
+    "evidence": {
+      "easy": "measured: wall built in memory from the dealt board, 16 seeds: 6 rows, one hit, 112 px paddle: average median 43 (mean 72), elite 184, best 199, 0/16 at 200. Normal today: average 79, elite 173.",
+      "hard": "measured: in memory, 16 seeds: 11 rows, 68 px, 2 rows sliding from the start, speed full by 55 s: average 87, elite 182, 2/16 at 200. Not below Normal (79 and 173).",
+      "expert": "measured: in memory, 16 seeds: 12 rows, 52 px, 4 sliding rows, speed full by 60 s: average 64, elite 167, best 200, 2/16 at 200; flawless bot 7/16 at 200."
+    },
+    "verdict": "unproven: Expert's 200 is reached under the limits (2 of 16 seeds), but the bots do not respond to paddle width, Hard measures no harder than Normal and Easy measures below Normal for the average bot.",
+    "limitsToday": "scripts/level-tune.ts:187 (--human-limits) builds the bots with HUMAN_LIMITS (human.ts:110, :132: reactions 250 ms, tracking lag 150 ms); it measures, nothing asserts, and no levels check for this game mentions limits. The breaker bot reads reaction and lag. There is no oracle, level deal or level check for Breaker."
   },
   {
     "id": "pinball",
@@ -116,8 +137,8 @@
     },
     "measured": "Elite bot under human limits, 12 seeds: 196 / 188 / 188 / 164 (Hard is no harder than Normal).",
     "easy": "Flippers 62 px (the drain shrinks to about 17 px, one ball wide); 4 balls; 10 s ball save; gravity 85 %; core full at 50,000.",
-    "hard": "Flippers 48 px (drain about 41 px, two and a half balls); gravity 115 %; 3 balls; multiball and core figure as Normal.",
-    "expert": "Flippers 42 px (drain about 51 px, three balls); gravity 130 %; 2 balls; multiball and core figure as Normal (today's 66,000 dropped).",
+    "hard": "Flippers 48 px (drain about 41 px, two and a half balls); gravity 110 % (today's Hard); 3 balls; multiball and core figure as Normal.",
+    "expert": "Flippers 42 px (drain about 51 px, three balls); gravity 120 % (today's Expert); 2 balls; multiball and core figure as Normal (today's 66,000 dropped).",
     "glance": {
       "easy": "Long flippers that almost meet, four balls",
       "hard": "Shorter flippers, a drain two and a half balls wide",
@@ -136,7 +157,14 @@
       "scripts/pinball-level-witness.ts (new)",
       "scripts/pinball-levels-check.ts (new)"
     ],
-    "risk": "the ramps and lock were tuned for 56 px flippers, so a 42 px flipper may not reach a shot the 200 needs"
+    "risk": "the ramps and lock were tuned for 56 px flippers, so a 42 px flipper may not reach a shot the 200 needs, and gravity above 120 % collapses the elite before any flipper change",
+    "evidence": {
+      "easy": "not measured: flipper length is a module constant (PIN_FLIP_LEN, pinball.ts:75; pinball4.ts:340), not a level setting. Today's Easy, scratch harness (level-tune's own loop and HUMAN_LIMITS), 24 seeds, medians: average 86, elite 185, 4/24 at 200.",
+      "hard": "not measured: needs sim code for the flipper length. Partial with Normal's flippers, 6 seeds: gravity 115 %, 3 balls: average median 32, elite 178, best 195. Today's Hard (110 %): average 97, elite 185.",
+      "expert": "not measured: needs sim code for the flipper length. Partial with Normal's flippers, 6 seeds: gravity 130 %, 2 balls: average 1, elite median 37, best 180, 0/6 at 200. Today's Expert (120 %): average 29, elite 190, 6/24 at 200."
+    },
+    "verdict": "adjusted: gravity cut from 115 % and 130 % to today's 110 % and 120 % (130 % with Normal's flippers already left the elite at a median of 37 and the average at 1); the flipper lengths themselves stay unproven, a module constant.",
+    "limitsToday": "scripts/level-tune.ts:187 (--human-limits) builds the bots with HUMAN_LIMITS (human.ts:110, :132: reactions 250 ms, tracking lag 150 ms); it measures, nothing asserts, and no levels check for this game mentions limits. The pinball bot reads reaction and lag. The table has no stored witness at any level and no levels check."
   },
   {
     "id": "blockfall",
@@ -150,15 +178,15 @@
       "expert": "A row every 29 ticks at the start (60 %), lock 18, 1 preview, lines full at 62"
     },
     "measured": "Elite bot under human limits, 20 seeds: 178 / 172 / 166 / 155. Average bot at Normal: 91 (14 lines, 58 pieces).",
-    "easy": "A row every 72 ticks quickening to 36 (150 %); lock delay 45 ticks; 5 previews; lines full at 30.",
-    "hard": "A row every 24 ticks quickening to 12 (twice Normal's pace); lock delay 20 ticks; 2 previews; lines full at 51 as Normal (today's 57 dropped).",
-    "expert": "A row every 12 ticks quickening to 6 (four times Normal's pace); lock delay 12 ticks; 1 preview; lines full at 51 as Normal (today's 62 dropped).",
+    "easy": "A row every 72 ticks quickening to 36 (150 %); lock delay 45 ticks; 5 previews; lines full at 15 (an average player clears about 14 in 90 s).",
+    "hard": "A row every 12 ticks quickening to 6 (four times Normal's pace); lock delay 15 ticks; 2 previews; lines full at 51 as Normal (today's 57 dropped).",
+    "expert": "A row every 7 ticks quickening to 4 (15 % of Normal's fall time, nearly seven times the pace); lock delay 12 ticks; 1 preview; lines full at 51 as Normal (today's 62 dropped).",
     "glance": {
       "easy": "The first piece drifts down, five next pieces shown",
-      "hard": "The first piece falls twice as fast, two previews",
-      "expert": "The piece hits the floor in four seconds, one preview"
+      "hard": "The first piece falls four times as fast, two previews",
+      "expert": "The piece hits the floor in about two seconds, one preview"
     },
-    "why": "Fall speed is the genre's own difficulty dial and is felt on the very first piece, so doubling it at each step reads at once, while the line target stops rising because a human-paced player cannot place pieces any faster than Normal already asks.",
+    "why": "Fall speed is the genre's own difficulty dial and is felt on the very first piece, but doubling it measured no harder than Normal, so the steps are four and nearly seven times Normal's pace, and Easy lowers the line target to what an average player clears.",
     "proof": "Normal has a proved deal (scripts/blockfall-oracle.ts through scripts/blockfall-deal.ts: 300 seeds at exactly 200); levels have none, and today's Hard and Expert ask for 57 and 62 lines against Normal's 51. Run the same oracle (it already looks only one piece ahead) under HUMAN_LIMITS with each level's gravity, lock delay and previews and keep a seed list per level (blockfall-deal.ts --level and src/lib/duel/blockfallLevelDeals.server.ts, to write), re-proved by a new blockfall-levels-check.",
     "change": "retune",
     "newMechanic": "",
@@ -172,7 +200,14 @@
       "src/lib/duel/blockfallLevelDeals.server.ts (new)",
       "scripts/blockfall-levels-check.ts (new)"
     ],
-    "risk": "a 12-tick lock delay leaves room for one 0.15 s correction after landing, so Expert may need 15"
+    "risk": "the bot hard-drops and never reads the previews, so the elite's Hard stays near 190 (a third of its runs top out) and only Expert pulls it down to 144",
+    "evidence": {
+      "easy": "measured: table overridden in memory, 24 seeds: 150 % with lines full at 15: average median 158 (92 % reach the clock), elite 189, 10/24 at 200. As first proposed (full at 30): average 113.",
+      "hard": "measured: in memory, 24 seeds: 25 % fall time, lock 15: average 57 (every run tops out), elite median 190, mean 166, 9/24 at 200. As first proposed (50 %): average 86 against Normal's 92.",
+      "expert": "measured: in memory, 24 seeds: 15 % fall time, lock 12: average 29, elite median 144, best 200, 6/24 at 200, 38 % reach the clock. As first proposed (25 %): average 53, elite 190."
+    },
+    "verdict": "adjusted: Hard from twice to four times Normal's pace (twice measured 6 points under Normal), Expert from 25 % to 15 % fall time (elite 190 to 144), Easy's lines full at 30 to 15 (average 113 to 158).",
+    "limitsToday": "Nothing: --human-limits changes no Blockzone number because the bot reads neither reaction nor lag (bots/blockfall.ts:47-80); its own gesture model gives the elite about 0.13 to 0.17 s a gesture. blockfall-oracle.ts and blockfall-deal.ts are frame-exact, Normal only."
   },
   {
     "id": "rally",
@@ -187,14 +222,14 @@
     },
     "measured": "Elite bot under human limits (seeds 20 to 30): 175 / 159 / 156 / 142 (Hard barely below Normal). Average bot at Normal: 135.",
     "easy": "Paddle 168 px shrinking to 84; no bumpers at all; 4 lives; ball top speed 86 %; core full at 20 gold hits.",
-    "hard": "Paddle 88 px shrinking to 32; both bumpers on court from the first serve; 2 lives; top speed 115 %; core full at 23 as Normal (today's 26 dropped).",
-    "expert": "Paddle 64 px shrinking to 28; both bumpers on court from the first serve; 1 life; top speed 125 %; core full at 23 as Normal (today's 29 dropped).",
+    "hard": "Paddle 72 px shrinking to 28; both bumpers on court from the first serve; 2 lives; top speed 115 %; core full at 23 as Normal (today's 26 dropped).",
+    "expert": "Paddle 48 px shrinking to 24; both bumpers on court from the first serve; 1 life; top speed 125 %; core full at 23 as Normal (today's 29 dropped).",
     "glance": {
       "easy": "A paddle 40 % of the court wide, no bumpers",
-      "hard": "A paddle a quarter narrower, two bumpers already on court",
-      "expert": "A paddle half Normal's width, two bumpers, one life"
+      "hard": "A paddle two fifths narrower, two bumpers already on court",
+      "expert": "A paddle two fifths of Normal's width, two bumpers, one life"
     },
-    "why": "In a paddle game the paddle is the target, so taking about a quarter off it at each level, with the bumpers already on court instead of arriving ten seconds sooner, makes every step visible before the ball is struck.",
+    "why": "In a paddle game the paddle is the target, so each level takes about two fifths off it, with the bumpers already on court instead of arriving ten seconds sooner, which makes every step visible before the ball is struck.",
     "proof": "No level has a proof, and no bot earns a spin shot, so even Normal's last 10 points are unshown. Write a Rally oracle that plans returns and the swipes for spin shots under HUMAN_LIMITS (scripts/rally-oracle.ts), keep per-level seeds whose run scores 200 through the server replay (src/lib/duel/rallyLevelDeals.server.ts) and replay them in a new rally-levels-check; raise the gold-hit figure above 23 only if the oracle shows it.",
     "change": "retune",
     "newMechanic": "",
@@ -207,7 +242,14 @@
       "src/lib/duel/rallyLevelDeals.server.ts (new)",
       "scripts/rally-levels-check.ts (new)"
     ],
-    "risk": "a 28 px paddle against a 14 px ball at 125 % speed may be more than a human-paced oracle can hold for a minute, in which case the floor is 32"
+    "risk": "below about 72 px the bot's score stops falling (48 px: 98, 40 px: 87), so Expert's step is not shown, and a 24 px paddle against a 14 px ball at 125 % speed may be more than a human-paced oracle can hold, in which case the floor is 32",
+    "evidence": {
+      "easy": "measured: table overridden in memory, 24 seeds: average median 158, elite 177 (best 196, 0/24 at 200).",
+      "hard": "measured: table in memory, 24 seeds: paddle 72 to 28: average median 98, elite 110, best 171 (Normal 123 and 135). As first proposed (88 to 32): average 110, elite 114.",
+      "expert": "measured: in memory, 24 seeds: paddle 48 to 24, 1 life, 125 %: average 98 (mean 92), elite 114, best 175, 0/24 at 200. With 64 to 28: average 86; with 40 to 20: average 87, elite 108."
+    },
+    "verdict": "adjusted: Hard's paddle 88 to 72 px (88 px measured 13 under Normal, 72 px 25 under) and Expert's 64 to 48 px to keep a visible gap; Expert's step and its 200 stay unproven (the bot's score stops falling under 72 px and no bot earns a spin shot).",
+    "limitsToday": "scripts/level-tune.ts:187 (--human-limits) builds the bots with HUMAN_LIMITS (human.ts:110, :132: reactions 250 ms, tracking lag 150 ms); it measures, nothing asserts, and no levels check for this game mentions limits. The rally bot reads reaction and lag. There is no Rally oracle, level deal or level check."
   },
   {
     "id": "beat",
@@ -243,7 +285,14 @@
       "scripts/arcade-skill-bands/bots/beat.ts",
       "scripts/beat-levels-check.ts (new)"
     ],
-    "risk": "six lanes of about 60 px for two thumbs on a 390 px phone, and the chart builder and art are written for four and five lanes"
+    "risk": "six lanes of about 60 px for two thumbs on a 390 px phone, and the chart builder and art are written for four and five lanes",
+    "evidence": {
+      "easy": "not measured: three lanes need sim code. Partial on Normal's lanes, table in memory, 16 seeds (windows 5/10/16, fall 110, half the off-beats and chords): average 121, elite 188.",
+      "hard": "not measured: five lanes from the first note needs sim code. Today's Hard carries the proposal's windows, fall and chart shares: 24 seeds, average 88, elite 188 (Normal 106 and 194).",
+      "expert": "not measured: the sixth lane is a new mechanic, not built. Partial on Normal's lanes, 16 seeds (windows 3/6/11, fall 60, 240 % and 220 %): average 80, elite 180, best 189; today's Expert 73 and 181."
+    },
+    "verdict": "unproven: lanes cannot be played without sim code; without them the proposal's other settings measure 121, 106, 88, 80 for the average bot (Hard to Expert only 8 apart) and no elite run reaches 200 at any level (best 199).",
+    "limitsToday": "scripts/level-tune.ts:187 (--human-limits) builds the bots with HUMAN_LIMITS (human.ts:110, :132: reactions 250 ms, tracking lag 150 ms); it measures, nothing asserts, and no levels check for this game mentions limits. The beat bot reads reaction and timing only. No chart check or oracle applies any limit."
   },
   {
     "id": "snake",
@@ -257,7 +306,7 @@
       "expert": "1 life, a square every 8 ticks quickening to 3, walls, core full at 48"
     },
     "measured": "Elite bot under human limits, 20 seeds: 177 / 175 / 167 / 161.",
-    "easy": "No rocks and no meteor shower; edges wrap; 3 lives; a square every 10 ticks quickening to 6; core full at 27 stars.",
+    "easy": "No rocks and no meteor shower; edges wrap; 3 lives; a square every 9 ticks quickening to 5 (today's Easy pace); core full at 20 stars.",
     "hard": "8 rocks on the field from the first tick, then one more every 3 s from 10 s whatever the comet's length (20 at most); walls; 2 lives; pace as Normal; core full at 36 as Normal (today's 50 dropped).",
     "expert": "16 rocks on the field from the first tick, then one more every 2 s from 5 s (32 at most); walls; 1 life; a square every 7 ticks quickening to 3; core full at 36 as Normal (today's 48 dropped).",
     "glance": {
@@ -278,7 +327,14 @@
       "src/lib/duel/snakeLevelDeals.server.ts (new)",
       "scripts/snake-levels-check.ts (new)"
     ],
-    "risk": "no Meteor oracle exists, and at a square every 3 ticks a human-paced comet cannot make a tight U-turn, so Expert's top pace may need to stay at 4"
+    "risk": "no Meteor oracle exists and no elite run under the limits reaches 200 at any level (best 190; Normal's best 187); at a square every 3 ticks a human-paced comet cannot make a tight U-turn, so Expert's top pace may need to stay at 4",
+    "evidence": {
+      "easy": "measured: table and first state in memory, 16 seeds: no rocks, 9 to 5 ticks, core full at 20: average median 143, elite 174, best 184. As first proposed (10 to 6 ticks, full at 27): average 118, elite 165.",
+      "hard": "measured: 8 of the course's own rock squares landed at tick 0 in memory, walls, 2 lives, full at 36, 16 seeds: average 73, elite 175, best 186 (Normal 93 and 175). The rock-every-3-s rule needs sim code and was not played.",
+      "expert": "measured: about 12 of 16 rocks landed at tick 0 in memory, walls, 1 life, 7 to 3 ticks, 16 seeds: average 33, elite median 150, best 190, 0/16 at 200. The timed rocks up to 32 need sim code and were not played."
+    },
+    "verdict": "adjusted: Easy's core full at 27 to 20 stars and its pace back to today's 9 to 5 ticks (average 118 to 143, elite 165 to 174); Hard and Expert measure 73 and 33 for the average bot, but no elite run reaches 200 at any level.",
+    "limitsToday": "scripts/level-tune.ts:187 (--human-limits) builds the bots with HUMAN_LIMITS (human.ts:110, :132: reactions 250 ms, tracking lag 150 ms); it measures, nothing asserts, and no levels check for this game mentions limits. The snake bot reads reaction and think time. There is no Meteor oracle, level deal or level check."
   },
   {
     "id": "cross",
@@ -294,26 +350,33 @@
     "measured": "Elite bot under human limits, 20 seeds: 197 / 193 / 164 / 139.",
     "easy": "Traffic 3 twelfths on the first crossing rising to 8 (half of Normal's start); 4 lives; a hit costs 10; core full at 70.",
     "hard": "Traffic 10 twelfths on the first crossing rising to 15 (Normal starts at 6); 3 lives; a hit costs 15; core full at 76.",
-    "expert": "Traffic 14 twelfths on the first crossing and 15 from the second (the most that can be proved passable); every ship 25 % faster; 2 lives; a hit costs 20; core full at 76 as Normal (today's 80 dropped).",
+    "expert": "Traffic 14 twelfths on the first crossing and 15 from the second (the most that can be proved passable); 2 lives; a hit costs 20; core full at 76 as Normal (today's 80 dropped); ship speed as Normal.",
     "glance": {
       "easy": "Half Normal's ships, long empty gaps in every lane",
       "hard": "Two thirds more ships than Normal on the first crossing",
-      "expert": "Over twice Normal's ships, each a quarter faster"
+      "expert": "Over twice Normal's ships on the first crossing, two lives"
     },
-    "why": "Today's steps are the right size for strong players but only open up from the fourth crossing; moving the density to the first crossing makes each level look different at once, and ship speed carries Expert because density cannot be proved much past 15 twelfths and the 14 rows are all a phone can hold.",
+    "why": "Today's steps are the right size for strong players but only open up from the fourth crossing; moving the density to the first crossing makes each level look different at once, and measured, the density tables alone land every level on target, so Expert needs no faster ships.",
     "proof": "Every crossing is proved passable in the sim (crossPassable and crossFairPassable in src/lib/arcade/cross.ts; scripts/cross-std-density.ts reports how far each density reaches). Change the level deal so a seed whose crossing cannot be proved at the level's table is dropped instead of thinned, and add a walker witness at 200 with hops at least 0.15 s apart (scripts/cross-level-deal.ts, src/lib/duel/crossLevelDeals.server.ts and scripts/cross-levels-check.ts, to write).",
     "change": "retune",
     "newMechanic": "",
     "stamp": "crossRev 14 on Easy, Hard and Expert deals only (Normal stays crossRev 13): stored level rounds must replay on today's tables.",
     "files": [
-      "src/lib/arcade/retroLevels.ts (CROSS_LEVELS gains a ship speed)",
+      "src/lib/arcade/retroLevels.ts (CROSS_LEVELS)",
       "src/lib/arcade/cross.ts (rollCourseV13: no step back at a level)",
       "scripts/cross-std-density.ts",
       "scripts/arcade-skill-bands/bots/cross.ts",
       "scripts/cross-level-deal.ts (new)",
       "scripts/cross-levels-check.ts (new)"
     ],
-    "risk": "the fairness proof kept for crossings 1 and 2 may reject 14 twelfths on most seeds, leaving a small Expert deal"
+    "risk": "the fairness proof kept for crossings 1 and 2 may reject 14 twelfths on most seeds, leaving a small Expert deal, and the elite's best Expert run in 8 seeds was 190, not 200",
+    "evidence": {
+      "easy": "measured: density table in memory, 8 seeds: 3 rising to 8 twelfths, 4 lives: average median 151, elite 200, 7/8 at 200.",
+      "hard": "measured: in memory, 8 seeds: 10 rising to 15 twelfths: average 69, elite 160, best 200, 1/8 at 200 (Normal 121 and 185).",
+      "expert": "measured: in memory, 8 seeds (the sim still thins a crossing it cannot prove): 14 then 15 twelfths, 2 lives, hit 20, full at 76, Normal's ship speed: average 46, elite 128, best 190, 0/8 at 200. Faster ships were not a setting."
+    },
+    "verdict": "adjusted: Expert's 25 % faster ships dropped (not a setting, and the density table alone already measures average 46 and elite 128); Easy and Hard hold (151 and 69); Expert's 200 was not reached in 8 seeds (best 190).",
+    "limitsToday": "scripts/level-tune.ts:187 (--human-limits) builds the bots with HUMAN_LIMITS (human.ts:110, :132: reactions 250 ms, tracking lag 150 ms); it measures, nothing asserts, and no levels check for this game mentions limits. The cross bot reads reaction and lag. The sim's crossing proofs and scripts/cross-std-density.ts use no human timing; there is no level deal or levels check."
   },
   {
     "id": "ricochet",
@@ -345,7 +408,14 @@
       "scripts/ricochet-levels-check.ts",
       "scripts/action-levels-bands.ts"
     ],
-    "risk": "low"
+    "risk": "low",
+    "evidence": {
+      "easy": "measured: today's Easy, scratch harness (level-tune's own loop and HUMAN_LIMITS), 24 seeds, medians: average 165, elite 194, 8/24 at 200, no run ended early.",
+      "hard": "measured: today's Hard, 24 seeds: average 80, elite 142 (best 178); Normal measures 86 and 159, so Hard is 6 under Normal for the average bot.",
+      "expert": "measured: today's Expert, 24 seeds: average 42, elite 99, best 144, 0/24 at 200 under HUMAN_LIMITS (the earlier pass's 135 used the bot's own limits only)."
+    },
+    "verdict": "unproven: Easy and Expert measure on target for the average bot, but Hard is only 6 under Normal and the elite under HUMAN_LIMITS never passes 144 on Expert.",
+    "limitsToday": "scripts/action-levels-bands.ts:29-33 sets `human.limits`, which bots/ricochet.ts reads; level-tune.ts:187 sets the same flag and also raises reactions to 250 ms. Both only measure. The tower's witness is frame-exact and ricochet-levels-check asserts its 200 with no limits."
   },
   {
     "id": "wavefront",
@@ -380,7 +450,14 @@
       "scripts/wavefront-deal-check.ts",
       "scripts/arcade-skill-bands/bots/wavefront.ts"
     ],
-    "risk": "triple volleys with 18 bolts in the air may leave no hitless path on most seeds, so the cap is the number to tune first"
+    "risk": "triple volleys with 18 bolts in the air may leave no hitless path on most seeds, so the cap is the number to tune first",
+    "evidence": {
+      "easy": "not measured: bolts a volley, the bolt cap and the diver wave are module constants (wavefront.ts:70, :163, :1588), not level settings. Today's Easy, scratch harness (level-tune's own loop and HUMAN_LIMITS), 24 seeds, medians: average 175, elite 194.",
+      "hard": "not measured: needs sim code for the fire tables. Today's Hard: average 170, elite 194, 2/24 at 200 (Normal 173 and 196).",
+      "expert": "not measured: needs sim code for the fire tables. Today's Expert: average 140, elite 194, 4/24 at 200."
+    },
+    "verdict": "unproven: the volley ladder cannot be played without sim code; today's levels measure flat for the elite (194 to 196) and 173, 170, 140 for the average bot.",
+    "limitsToday": "scripts/level-tune.ts:187 (--human-limits) builds the bots with HUMAN_LIMITS (human.ts:110, :132: reactions 250 ms, tracking lag 150 ms); it measures, nothing asserts, and no levels check for this game mentions limits. The wavefront bot reads reaction and lag. The dealt witnesses (scripts/wavefront-big-deal.ts, wavefront-deal-check) are exact logs with no limits."
   },
   {
     "id": "bastion",
@@ -394,7 +471,7 @@
       "expert": "bastionRev 3, the old Normal: 30 tanks (8 heavies), pace 44 to 104 %, green zone 90 ms, weak spots 100 %, 3 base hits, drones 4 px a tick"
     },
     "measured": "Bots under human limits, 60 seeds, mean: average 172 / 153 / 104 / 89; elite 198 / 197 / 162 / 146.",
-    "easy": "4 tanks a wave (20 in all, 1 heavy) on 3 lanes; today's Easy aids kept: green zone 320 ms, weak spots 260 %, 5 base hits, pace 32 to 74 %.",
+    "easy": "4 tanks a wave (20 in all, 1 heavy) on 3 lanes; weak-spot part full at 20 hits (20 tanks with 1 heavy allow only 21); today's Easy aids kept: green zone 320 ms, weak spots 260 %, 5 base hits, pace 32 to 74 %.",
     "hard": "A fourth lane; 8 tanks a wave (40 in all, 10 heavies); today's Hard aim settings: green zone 120 ms, weak spots 120 %, 3 base hits, pace 40 to 95 %.",
     "expert": "Four lanes; 9 tanks a wave (45 in all, 12 heavies); bastionRev 3's aim settings (green zone 90 ms, weak spots 100 %, 3 base hits, drones 4 px a tick); pace 56 % from the first wave (bastionRev 3 reaches that on wave 3), then 80 and 104 %.",
     "glance": {
@@ -416,7 +493,14 @@
       "scripts/arcade-skill-bands/bots/bastion.ts",
       "scripts/bastion-levels-check.ts"
     ],
-    "risk": "it replaces Joe's 15 Nov ruling that Expert is bastionRev 3's game, and 45 tanks need about 60 well-aimed shells in 60 s"
+    "risk": "it replaces Joe's 15 Nov ruling that Expert is bastionRev 3's game, and 45 tanks need about 60 well-aimed shells in 60 s",
+    "evidence": {
+      "easy": "not measured: tanks a wave are fixed in the sim (BT2_WAVES, bastionTank.ts:142). Today's Easy, 60 seeds: average 172, elite under the bot's limits 198, 9/60 at 200.",
+      "hard": "not measured: the fourth lane needs sim code (3 lanes at bastionTank.ts:109, :289, :720). Today's Hard, 60 seeds: average 104, elite 161, best 177; oracle paced at 0.25 s and 0.15 s: 200 on 60/60.",
+      "expert": "not measured: needs sim code. Today's Expert, 60 seeds: average 84, elite 146, best 172; paced oracle 200 on 58/60; same field as Hard for the first 5 s on 60/60 seeds. Pace-only probe (56 56 56 80 104): average 91, elite 148."
+    },
+    "verdict": "adjusted: Easy's weak-spot part made full at 20 hits (20 tanks cannot give 30); the four-lane Hard and Expert stay unproven, not measured without sim code, though today's Expert already measures 15 to 20 under Hard.",
+    "limitsToday": "bots/bastion.ts:44 BASTION_HUMAN_LIMITS (0.25 s notice, 0.15 s move, aim 5 px, timing 30 ms) is applied through `fixes` (:66-70) by level-tune and the band tool; --human-limits changes nothing more. bastion-levels-check.ts:239-252 asserts the oracle's 200 with no human."
   },
   {
     "id": "flip",
@@ -430,7 +514,7 @@
       "expert": "Starts at 5.5 px a tick, top 13, moving spikes from 5 s, 10 sweet spots, a crash costs 25 s, perfect landings full at 9"
     },
     "measured": "Mean, 24 seeds: average bot 137 / 107 / 62 / 47; elite under human limits 200 / 183 / 163 / 159.",
-    "easy": "Starts at 3 px a tick (Normal 4), top 7; no moving spikes; sweet spots 6 ticks wide; a crash costs 5 s.",
+    "easy": "Starts at 3 px a tick (Normal 4), top 7; no moving spikes; sweet spots 10 ticks wide (today 6) and perfect landings full at 3 (Normal 5); a crash costs 5 s.",
     "hard": "Starts at 5.5 px a tick, top 12; moving spikes from 4 s; a crash costs 20 s; perfect landings full at 7.",
     "expert": "Starts at 7 px a tick, top 13 as today; moving spikes from the first second; 10 sweet spots; a crash costs 25 s; perfect landings full at 9.",
     "glance": {
@@ -451,7 +535,14 @@
       "src/lib/duel/flipLevelDeals.server.ts",
       "scripts/flip-levels-check.ts"
     ],
-    "risk": "moving spikes from the first second at 7 px a tick may cut the share of courses with a witness (three Expert witnesses stop at 140 today)"
+    "risk": "moving spikes from the first second at 7 px a tick may cut the share of courses with a witness (three Expert witnesses stop at 140 today), and no elite run under the limits reaches 200 on today's or the proposed Expert (best 186 and 173)",
+    "evidence": {
+      "easy": "measured: rules in memory, 12 seeds: start 3 px, top 7, sweet spots 10 ticks, full at 3: average median 174, elite 200, 12/12 at 200. As first proposed (6 ticks, full at 5): average 129.",
+      "hard": "measured: rules in memory, 12 seeds: start 5.5 px, top 12, spikes from 4 s: average median 86 (mean 72), elite 174, best 191, 0/12 at 200 (Normal 109 and 200).",
+      "expert": "measured: in memory, 12 seeds: start 7 px, top 13, spikes from 1 s: average 10, elite 140, best 173, 0/12 at 200. At 6.25 px with spikes from 2 s: average 20, elite 158, best 180. Today's Expert: best 186, 0/24."
+    },
+    "verdict": "adjusted: Easy's sweet spots widened to 10 ticks and perfect landings full at 3 (average 129 to 174); Hard and Expert hold for the order (86 and 10 for the average bot, elite 174 and 140), but no elite run under the limits reaches 200 on either (best 191 and 173).",
+    "limitsToday": "scripts/flip-skyline-levels-bands.ts plays a `limited` bot (humanLimits.ts:16) and level-tune.ts:187 the HUMAN_LIMITS bots: both only measure. The level deal's witness (flip-level-deal.ts with flip-x200-plan.ts) is planned to the exact tick and flip-levels-check asserts its 200 with no limits."
   },
   {
     "id": "burst",
@@ -486,7 +577,14 @@
       "src/lib/duel/burstLevelDeals.server.ts (new)",
       "scripts/burst-levels-check.ts (new)"
     ],
-    "risk": "the oracle's own pace is 87 atoms in 43.5 s, so 125 atoms leaves under half a minute of slack before human limits are applied"
+    "risk": "the oracle's own pace is 87 atoms in 43.5 s, so 125 atoms leaves under half a minute of slack before human limits are applied",
+    "evidence": {
+      "easy": "not measured: wave lists are built inside the sim's init (buildWaves, burst.ts:164; initV10, :1702), not a level setting. Today's Easy, scratch harness (level-tune's own loop and HUMAN_LIMITS), 24 seeds, medians: average 151, elite 185 (best 198).",
+      "hard": "not measured: needs sim code for per-level wave lists. Today's Hard: average 83, elite 173 (Normal 87 and 180).",
+      "expert": "not measured: needs sim code for per-level wave lists. Today's Expert: average 61, elite 165, best 179, 0/24 at 200."
+    },
+    "verdict": "unproven: bigger waves cannot be played without sim code; today no elite run under the limits reaches 200 at any level (best 198, 192, 184, 179) and Hard is 4 under Normal for the average bot.",
+    "limitsToday": "scripts/level-tune.ts:187 (--human-limits) builds the bots with HUMAN_LIMITS (human.ts:110, :132: reactions 250 ms, tracking lag 150 ms); it measures, nothing asserts, and no levels check for this game mentions limits. The burst bot reads reaction and lag. The oracle in scripts/arcade-standard/burst.ts is frame-exact and covers Normal only; no level has a proof."
   },
   {
     "id": "orbit",
@@ -522,7 +620,14 @@
       "scripts/orbit-levels-check.ts",
       "scripts/orbit-level-bands.ts"
     ],
-    "risk": "belts on the opening planets may cut how many courses the builder can prove (31 or 32 a level today)"
+    "risk": "belts on the opening planets may cut how many courses the builder can prove (31 or 32 a level today)",
+    "evidence": {
+      "easy": "not measured: belts are part of each level's banked courses (scripts/orbit-fuel-bank.ts:53 beltsFrom), so a bank rebuild is needed. Today's Easy, scratch harness (level-tune's own loop and HUMAN_LIMITS), 24 seeds, medians: average 119, elite 185.",
+      "hard": "not measured: needs a rebuilt bank and a belt spacing the builder lacks. Today's Hard: average 77, elite 176 (best 189).",
+      "expert": "not measured: needs a rebuilt bank. Today's Expert: average 88 (above Hard's 77), elite 159, best 183, 0/24 at 200; 42 % of elite runs reach the sun."
+    },
+    "verdict": "unproven: belt settings need a bank rebuild, so none of the three levels was played; today's Expert measures no harder than Hard for the average bot, as the row says.",
+    "limitsToday": "scripts/orbit-level-bands.ts:26 ORBIT_HUMAN_LIMITS (reactions 250 ms, think scale 0.43, applied at :56-58) and level-tune.ts:187 only measure. The bank witness (orbit-fuel-bank.ts, orbit-xp-lib.ts) is frame-exact and orbit-levels-check asserts its 200 with no limits."
   },
   {
     "id": "swing",
@@ -537,12 +642,12 @@
     },
     "measured": "6 courses, bots under human limits, mean: average 113 / 86 / 89 / 79 (Hard no harder than Normal); elite 199 / 199 / 200 / 198 (flat).",
     "easy": "No pterodactyl; reach 250 px; no sliding vines (today 5); no dark runs; course part full at 40 % of the way (today 50 %).",
-    "hard": "The pterodactyl chases from the first vine (Normal only the last quarter), starting 400 px behind at 2.0 px a tick and 3.2 over the last quarter, its distance warning shown from the start; 26 sliding vines, vine swing 125 % and stall 55 ticks as today.",
-    "expert": "The pterodactyl starts 200 px behind at the first vine, 2.6 px a tick and 3.4 over the last quarter; reach 205 px, 30 sliding vines, 7 dark runs and vine swing 145 % as today.",
+    "hard": "The pterodactyl chases from the first vine (Normal only the last quarter) at 3.2 px a tick for the whole course, its distance warning shown from the start; 26 sliding vines, vine swing 125 % and stall 55 ticks as today.",
+    "expert": "The pterodactyl chases from the first vine at 3.4 px a tick for the whole course; reach 205 px, 30 sliding vines, 7 dark runs and vine swing 145 % as today.",
     "glance": {
       "easy": "No pterodactyl, every vine hanging still, all lit",
       "hard": "A pterodactyl warning from the first vine, vines sliding",
-      "expert": "The pterodactyl warning twice as close and closing faster"
+      "expert": "The pterodactyl closing faster from the first vine, dark runs"
     },
     "why": "Reach, sliding vines and swing speed change the route but not the look and leave every bot flat across the levels, whereas the chaser the game already has turns the whole course into a race the moment it appears.",
     "proof": "Each level deals 24 courses whose flawless oracle replays to exactly 200 (bun scripts/swing-slide-deal.ts --rev=18 --level, src/lib/duel/swingLevelDeal.server.ts, scripts/swing-levels-check.ts). Rebuild with the chase from the first vine: the oracle must stay ahead on every stretch, ledge runs included, and its releases need re-timing under HUMAN_LIMITS (it hits exact ticks today).",
@@ -550,7 +655,7 @@
     "newMechanic": "",
     "stamp": "swingRev 19 on Easy, Hard and Expert deals only (Normal stays swingRev 18): SWING_LEVELS says a changed value needs a new stamp.",
     "files": [
-      "src/lib/arcade/swing.ts (SWING_LEVELS gains a chase start and opening pace)",
+      "src/lib/arcade/swing.ts (SWING_LEVELS gains a chase start)",
       "src/lib/levels/gameLevels.ts (display copy)",
       "scripts/swing-slide-deal.ts",
       "src/lib/duel/swingLevelDeal.server.ts",
@@ -558,6 +663,13 @@
       "scripts/arcade-skill-bands/bots/swingRework.ts",
       "scripts/action-levels-bands.ts"
     ],
-    "risk": "swing.md records that tightening the pterodactyl broke the proof before, so the opening pace may have to fall under 2.0 px a tick"
+    "risk": "even at 3.2 and 3.4 px a tick from the first vine the elite bot is never caught (198 to 199, 200 reached) and the average bot only falls to 81 and 66; at 4.0 px a tick the sim's course build fails, as swing.md records for a tighter pterodactyl",
+    "evidence": {
+      "easy": "not measured: today's levels were not re-run this session (the run was cut off); the earlier pass's numbers stand (average 113, elite 199, 6 courses).",
+      "hard": "measured: chase start set in memory (one pace a level), 6 courses: from the first vine at 3.2 px a tick: average median 81, caught 4.3 times a run, elite 199, never caught, 3/6 at 200. At the first-proposed 2.0 px: average 87, never caught.",
+      "expert": "measured: in memory, 6 courses: from the first vine at 3.4 px a tick: average 66, caught 7.7 times, elite 198, 1/6 at 200. At the first-proposed 2.6 px: average 79, elite 198. At 4.0 px the course build throws (swing.ts:3751)."
+    },
+    "verdict": "adjusted: the slow opening pace dropped (2.0 and 2.6 px a tick measured no change) for the level's own 3.2 and 3.4 px from the first vine; the step is still unproven: the average bot falls only to 81 and 66 and the elite stays at 198 to 199.",
+    "limitsToday": "scripts/action-levels-bands.ts:29-33 sets `human.limits`, which bots/swingRework.ts reads; level-tune.ts:187 sets the same flag and raises reactions to 250 ms. Both only measure. The deal's oracle (swing-slide-deal.ts) hits exact ticks and swing-levels-check asserts its 200 with no limits."
   }
 ]

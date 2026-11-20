@@ -7,6 +7,22 @@ It has two parts, each written from a read of every check that could notice the 
 - **Part 1, pages and chrome** (sessions P1 to P4): the navy token values, navigation, Home, the first open, the Games page, the round intro, the game frame's paint, the rated screens, You, the Shop. Its "Can be avoided" section matters most: about twenty-five keep-this-attribute choices remove over half the rows, and the plan asks every session to take them.
 - **Part 2, games** (sessions A1 to A3 and D1 to D6): Part A is each family's look pins, classed 1 (a line must change), 2 (a documented script re-records data) or 3 (keeps passing if names, sizes and budgets are kept); Part B is each game's level pins, including the six "today's game is Hard" identities the new ladders break. It ends with the earlier plan's K1 to K14 re-verified.
 
+## Re-verified line by line, 20 Nov 2026
+
+Every row was checked again against the files as they are on this branch (main f3016234 merged in), by a script that
+reads each row's file, goes to the row's lines and looks for the row's quoted text there
+(`direction/source/verify-assertions.py`), and by eye for the rows whose quote paraphrases a regular expression.
+
+- **Rows that name a file: 203.** 112 match their quote on their lines exactly (after the corrections below). 86 were
+  read by eye (the quote paraphrases a regex, names a selector the line reads through a helper, or the row has no
+  quote): all on the right lines. 5 have no single line by design (two globs, two whole-file rows, one re-record
+  command). **3 were wrong and are corrected below.**
+- **Inline `file:line` references: 130.** All point inside their file; two named a file without its folder (fixed).
+- Corrected: `word-overhaul-check.ts` reveal markup is lines **372-384** (was 359-372, which is the table above it);
+  `practice-challenges-check.ts` "can't complete before wave 3.5" is lines **283-284** (was 281-284; 281 is the
+  Classic rule); `realArt.renderer.ts:24-26` and `practiceChallenges.data.ts:526` now carry their folders.
+- Nothing was withdrawn and nothing was added: no row turned out to be about a line that no longer exists.
+
 ## Who shows Joe which rows
 
 | Session | Rows |
@@ -342,7 +358,7 @@ Classes used in Part A:
 | `word-overhaul-check.ts` | 257-261 | `statSync(path).size === m.bytes`, `m.bytes <= 20_000`, `allCss.includes('/word-art/${name}.webp')` | 2 / 3 | `scripts/word-art/word_art.py` rewrites `public/word-art/manifest.json` (lines 543-556 of the script) with each render: routine. The 20 KB cap (260) is a literal. Every manifest name must still be used by the CSS (261). |
 | `word-overhaul-check.ts` | 263 | `existsSync("scripts/word-art/word_art.py")` | 3 | |
 | `word-overhaul-check.ts` | 278-279, 281 | `imports "@/polish-word/word-look.css"`, `/data-wa=/`, the four-attribute selector `[data-wa][data-wa][data-wa][data-wa] {` | 3 | Keep the `data-wa` / `data-wa-tone` / `data-wa-btn` attributes. |
-| `word-overhaul-check.ts` | 359-372 | reveal markup `data-wr-version="overhaul"`, `data-wr-number`, `data-wr-pair`, `data-wr-tiles` | 3 | |
+| `word-overhaul-check.ts` | 372-384 | reveal markup `data-wr-version="overhaul"`, `data-wr-number`, `data-wr-pair`, `data-wr-tiles` | 3 | |
 | `word-polish-check.ts` | 84 | "reduced motion: one still glow, no stagger, no movement" | 3 | About the finish effect, not the board. |
 
 #### Number
@@ -514,7 +530,7 @@ No Retro check pins a Retro material (dithered court, enamel bricks, glass atoms
 
 | Check | Lines | Asserts today (quote) | Class | Note |
 |---|---|---|---|---|
-| `cards-board-overhaul-check.ts` | 214 | every image exists in `public/cards-board/` | 3 | `scripts/cards-board-art/{textures.ts, render.py, pack.py}`; no hash file (atlas URLs are plain, `realArt.renderer.ts:24-26`). |
+| `cards-board-overhaul-check.ts` | 214 | every image exists in `public/cards-board/` | 3 | `scripts/cards-board-art/{textures.ts, render.py, pack.py}`; no hash file (atlas URLs are plain, `src/lib/arcade/cards/realArt.renderer.ts:24-26`). |
 | same | 218-219 | card game `< 400` KB; Mahjong `< 400` KB | 3 (literal budget) | |
 | same | 232, 236, 238 | cards 0.68 aspect; tile `(W+6)/(H+6)`; felt `828 × 1544` | 3 | The atlas cell sizes must stay. |
 | same | 239, 242 | the Blender pipeline's three files exist; `drawCard` has no `realArt` | 3 | |
@@ -586,7 +602,7 @@ string is written in the check.
 |---|---|---|---|
 | `practice-goals-check.ts` | 117-121, 231-234 | 261 challenges; 217 Classic, 30 Hard, 14 Expert; 13 Hard at 100 coins, 9 Expert at 250 | Only if challenges are added, dropped or re-levelled. |
 | `practice-challenge-numbers.ts` (run by practice-goals-check section 7) | header 5-10; 282 | every number in a goal's text must be a threshold its check reads or a declared live value; `"mahjong.tile-rush": { say: [[25, MAHJONG_LEVEL_RULES.hard.speedFullS]] }` | The 44 Hard and Expert goals are in `src/lib/duel/practiceChallenges.data.ts` lines 137-521 and quote level numbers: "Sort a Hard set within 45 s" (147), "Link an Expert chain within 45 s" (182), "Connect a Hard network within 60 s" (219), "Tap all 40 on Hard" (242), "Fill a Hard set within 60 s" (325), "Get 70 % of the way on Expert" (367), "Climb 245 m on Hard" (371), "Build 61 floors on Expert" (376), "Return 23 gold balls on Hard" (418), "Clear a Hard stack within 25 s" (485), "Clear a Hard deal within 20 s" (499), "Make 30 bank shots on Hard" (509), "Bring all six treasures down on Expert" (517), "Finish all four Hard mazes within 60 s" (521). A level redesign that moves any of these fails section 7 until the goal's text and number change, then `bun scripts/challenge-catalogue-doc.ts` rewrites `docs/challenges/catalogue.md`. |
-| `practice-challenges-check.ts` | 281-284 | a Hard or Expert challenge "can't complete before wave 3.5" on any run | Class 1 the day `LIVE_CHALLENGE_LEVELS` (`practiceChallenges.data.ts:526`) gains a level. |
+| `practice-challenges-check.ts` | 283-284 | a Hard or Expert challenge "can't complete before wave 3.5" on any run | Class 1 the day `LIVE_CHALLENGE_LEVELS` (`src/lib/duel/practiceChallenges.data.ts:526`) gains a level. |
 | `intro-score-text-check.ts` | 17-60 | Normal's `INTRO_SCORE` and "?" help only | Does not read a level. Unaffected. |
 | Level text with a `--check` | `cards-levels-check.ts:150-151` | `src/lib/levels/cardLevelText.data.ts` equals what `scripts/cards-level-text.ts` builds from the rules | Routine re-run. The only level text file with a generator. |
 | Level text pinned by hand | `strategy-overhaul-check.ts:262-265`; `speed-levels-check.ts:226-232`; `racing-levels-check.ts:271-276`; `curling-levels-check.ts:68-73`; `pool-levels-check.ts:184-194`; `balltrack-levels-check.ts:174-176`; `pattern-overhaul-iceslide-levels-check.ts:264-265`; `-pipes-:300`; `-push-:364`; `number-levels-*:232-233, 278-279`; `tilt-levels-check.ts:184-186` | the help's `Levels:` line and each intro's level line | Mostly format; the literal words are listed in the table above. |

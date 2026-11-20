@@ -10,7 +10,7 @@
       "hard": "The old game (balanceRev 4): 2, 3, 4, 5 weights to hang (1, 2, 3, 3 fixed) on 8, 8, 8, 10 notches; hang limits 9, 12, 15, 18; 120 s",
       "expert": "4 scales of 10 notches; 3, 4, 5, 6 weights to hang (1, 2, 2, 2 fixed); 5, 6, 6, 7 spare hangs; balance readout hidden; 120 s"
     },
-    "measured": "Not documented. This session's read-only kit run (24 deals, medians for the average / good / great / near-perfect kit): Easy 197 / 200 / 200 / 200; Normal 95 / 194 / 200 / 200; Hard 94 / 170 / 189 / 200; Expert 31 / 62 / 94 / 171 (79 % finish). Hard scores like Normal.",
+    "measured": "Not documented. Measuring pass, 48 deals, same seeds every level (average / good / great / near-perfect kit medians, server grade as a phone sends): Easy 198 / 198 / 200 / 200; Normal 165 / 193 / 200 / 200 (average finishes 65 %); Hard 94 / 170 / 190 / 200 (average finishes 0 %, good 71 %); Expert 31 / 62 / 93 / 172 (83 % finish). Today's Hard is clearly harder than Normal for the average and good kits, but its first scale is the same shape as Normal's (8 notches, 2 weights to hang, 1 fixed), so the step is not seen in the first seconds.",
     "easy": "Keep today's: 3 short scales with 2, 2, 3 light weights already do the job (average kit 197, every run finished).",
     "hard": "All 4 scales on 10-notch beams from the first one: 2, 3, 4, 5 weights to hang with 2, 2, 2, 3 fixed, the first scale with one arrangement, 6, 7, 8, 9 spare hangs, readout shown, 120 s. In-memory kit trial: 62 / 94 / 168 / 190.",
     "expert": "Keep today's: 10-notch beams, 3, 4, 5, 6 weights, 5 to 7 spare hangs, readout hidden. The kit already puts it at 31 / 62 / 94 / 171.",
@@ -31,7 +31,14 @@
       "scripts/number-levels-balance-target-check.ts",
       "scripts/puzzle-fairness/kits-number.ts"
     ],
-    "risk": "It retires the old game from Hard, which Joe chose on 15 Nov; the kits show that Hard scoring like Normal (average 94 against 95)."
+    "risk": "It retires the old game from Hard, which Joe chose on 15 Nov. The old game does score lower than Normal (average kit 94 against 165, good 170 against 193); what it lacks is a first screen that looks harder.",
+    "evidence": {
+      "easy": "measured: today's Easy (kept), puzzle-fairness kits (average / good / great / near-perfect medians, server grade as a phone sends), 48 deals: 198 / 198 / 200 / 200, every run finished; hand-speed oracle 200 on 48 of 48.",
+      "hard": "measured: proposed scales stood in for Hard in memory, 48 deals: 62 / 94 / 171 / 189 (finish 0 / 0 / 73 / 100 %), best 199; with the person filter personSolveScale balances 192 of 192 scales; hand-speed oracle 200 on 48 of 48.",
+      "expert": "measured: today's Expert (kept), 48 deals: 31 / 62 / 93 / 172, near-perfect finishes 83 %, kit best 183; personSolveScale 192 of 192 scales; stored solution played at hand speed (0.4 s an action) scores 200 on 48 of 48."
+    },
+    "verdict": "holds: the average kit steps 198, 165, 62, 31 from Easy to Expert and Expert reaches 200 at hand speed; only measured and risk were reworded (today's Hard is 94 against Normal's 165, not level with it).",
+    "limitsToday": "Nothing applies the human limits. personSolveScale (balanceLevels.server.ts:26, 40 trial hangs, no clock) filters Expert deals (:72); number-levels-balance-target-check.ts:162 asserts it on 100 Expert boards. level-tune.ts:163 ignores --human-limits for puzzles (kits only, great and near-perfect)."
   },
   {
     "id": "target",
@@ -54,7 +61,7 @@
       "expert": "\"Target 1 of 3\" and three stage pips"
     },
     "why": "One deep target is all or nothing and looks the same at every level, so the harder levels chain targets that rise inside the round: the load doubles, then trebles, and an average player still banks the first.",
-    "proof": "Each target is proved by exhaustive search to need its count of numbers (targetLevelRoute, targetLevels.server.ts). Expert's last target comes from the existing proved bank (targetExpertBank.server.ts, scripts/target-expert-bank.ts, personSolveTarget). To write: a bank of whole rounds per level, and a check that the near-perfect kit finishes 80 % of Expert rounds inside 120 s (my estimate from today's times: about 16 + 35 + 60 s).",
+    "proof": "Each target is proved by exhaustive search to need its count of numbers (targetLevelRoute, targetLevels.server.ts). Expert's last target comes from the existing proved bank (targetExpertBank.server.ts, scripts/target-expert-bank.ts, personSolveTarget). To write: a bank of whole rounds per level in which every target passes personSolveTarget (today it finds 62 of 72 Normal-style boards and 54 of 72 middle boards), and a check that the near-perfect kit finishes 80 % of Expert rounds inside 120 s. Measured sum of the kit's own solve times: about 17 + 46 + 64 s, which finishes 29 to 46 % of rounds; with a second Normal-style target in the middle (17 + 17 + 64 s) it finishes 94 to 96 %.",
     "change": "redesign",
     "newMechanic": "Targets in a row: 2 at Hard, 3 at Expert, announced as \"Target 1 of 2\" with the Number family's stage pips. Arrives at Hard.",
     "stamp": "New stamp (for example targetRev 1): the stored puzzle holds 2 or 3 racks and targets and the grader pays per target. Today's one-target rounds grade as before.",
@@ -68,7 +75,14 @@
       "scripts/number-levels-balance-target-check.ts",
       "scripts/puzzle-fairness/kits-number.ts"
     ],
-    "risk": "The biggest build of the group: a staged screen, answer format, grader and reveal for a game with one board today."
+    "risk": "The biggest build of the group: a staged screen, answer format, grader and reveal for a game with one board today. On the kit's timings the Expert round as written is finished by the near-perfect kit on about a third of deals, so its middle target may have to be a Normal-style one.",
+    "evidence": {
+      "easy": "measured: proposed Easy (target 20 to 99, 2 or 3 numbers, 2 big) stood in for Easy in memory, kits, 72 deals: 200 / 200 / 200 / 200, every run finished; personSolveTarget finds 72 of 72. Today's Easy: 193 to 197 / 200 / 200 / 200.",
+      "hard": "not measured: a 2-target round has no stage, answer format or grader. Boards alone at 75 s, 72 deals: Normal-style 172 / 196 / 200 / 200, today's Hard board 26 / 78 / 106 / 181. Kit time sum: near-perfect both inside 100 s on 97 %; average never both.",
+      "expert": "not measured: no 3-target round exists. Boards alone, 72 deals: middle 38 / 78 / 169 / 188, Expert bank board 26 / 52 / 104 / 175. Kit time sum 17 + 46 + 64 s: near-perfect all three inside 120 s on 29 to 46 %; hand-speed oracle 200 on every board."
+    },
+    "verdict": "unproven: the chained round cannot be graded today; board by board Hard's time sum fits, Expert's reaches 29 to 46 % and not the 80 % its proof line assumed, so proof and risk now give the measured sum and a lighter middle target as the fallback.",
+    "limitsToday": "Nothing applies the human limits. personSolveTarget (targetLevels.server.ts:67, 20,000 lines of thought, no clock) filters the Expert bank; number-levels-balance-target-check.ts:163 and :181 assert it on 100 Expert deals and on every bank board."
   },
   {
     "id": "equation",
@@ -101,7 +115,14 @@
       "scripts/number-levels-equation-pyramid-check.ts",
       "scripts/puzzle-fairness/kits-number.ts"
     ],
-    "risk": "A line the builder cannot make in 50 attempts silently deals a fixed fallback equation; all-open lines must be proved never to."
+    "risk": "A line the builder cannot make in 50 attempts silently deals a fixed fallback equation; all-open lines must be proved never to.",
+    "evidence": {
+      "easy": "measured: today's Easy (kept), kits, 24 deals: 189 / 200 / 200 / 200, every run finished; person-like search inside its 800-line budget on 96 of 96 lines; hand-speed oracle 200 on 24 of 24.",
+      "hard": "measured: today's Hard (kept), kits, 24 deals, 85 s: 63 / 99 / 172 / 190 (means 54 / 97 / 166 / 190); Normal 67 / 166 / 200 / 200 (mean 75). A bigger first line (4 gaps) was tried: 31 / 98 / 169 / 188, level with Expert for the average kit, so today's stays.",
+      "expert": "measured: proposed lines stood in for Expert in memory, 78 s, 150 deals: 31 / 65 / 99 / 175, near-perfect finishes 98 %, best 190; no fallback equation in 600 lines; person-like search inside 800 on 600 of 600; hand-speed oracle 200 on 150 of 150."
+    },
+    "verdict": "holds: by kit means the average steps 185, 75, 54, 24 from Easy to Expert (medians 189, 67, 63, 31, which move a whole equation at a time); the proposed Expert finishes for the near-perfect kit on 98 % of 150 deals and reaches 200 at hand speed.",
+    "limitsToday": "Nothing applies the human limits. operatorPersonSearch (operatorGaps.server.ts:190, 800 partial lines at :244, no clock) filters every level line (:256); number-levels-equation-pyramid-check.ts:177 asserts it on 150 seeds a level. No kit finish rate is asserted."
   },
   {
     "id": "numpyramid",
@@ -136,7 +157,14 @@
       "src/puzzles/numberPyramid.tsx",
       "scripts/number-levels-equation-pyramid-check.ts"
     ],
-    "risk": "The six-row board already clips the goal line on the Expert contact sheet, and the kit counts stones, not sum size, so Expert's step needs a real playtest."
+    "risk": "The six-row board already clips the goal line on the Expert contact sheet, and the kit counts stones, not sum size, so Expert's step needs a real playtest. The proposed Expert also has fewer stones than Hard (about 44 against 48), so by the kit's only measure its step rests wholly on the bigger sums.",
+    "evidence": {
+      "easy": "not measured: 3-row boards and a 3-pyramid round need new answer, grader and stage code (NP_SET_SIZE is 4; rows are typed 4 to 6). Today's Easy, kits, 24 deals this session: 99 / 180 / 198 / 200, the average kit never finishes.",
+      "hard": "measured: today's Hard (kept), kits, 24 deals: 38 / 69 / 99 / 169, near-perfect finishes 100 %, kit best 178 (Normal 55 / 90 / 124 / 187); hand-speed oracle 200 on 24 of 24.",
+      "expert": "not measured: a 3-pyramid round cannot be dealt or graded, and the kit counts stones, not the size of the sums. Today's Expert, 24 deals: 35 / 64 / 90 / 160, near-perfect finishes 63 %; hand-speed oracle 200 on 24 of 24."
+    },
+    "verdict": "unproven: Easy and Expert need a 3-pyramid round the answer format and grader do not have; the proposed Expert has fewer stones than Hard, so its step rests on the bigger sums, which no tool measures (risk now says so).",
+    "limitsToday": "Nothing applies the human limits. npPersonSolve (numberPyramidLevels.ts:99, forced stones only, no clock) filters the level banks (scripts/number-pyramid-levels-bank.ts:55); number-levels-equation-pyramid-check.ts:111 asserts it on every bank board. No kit finish rate is asserted."
   },
   {
     "id": "measure",
@@ -149,10 +177,10 @@
       "hard": "The old game (measureRev 4): 2 jugs 4-6 pours; 2 jugs 6-9; 3 jugs 8-11; then 3 jugs, no tap, split evenly, 10-14; limit about 4.5 ×; 120 s",
       "expert": "4 boards: 2 jugs and tap 14-16 pours; 3 jugs and tap 12-15; 3 jugs no tap 11-15; no-tap split 13-16; limit 1.5 ×; 120 s"
     },
-    "measured": "Documented: only that the near-perfect kit finishes 80 % of Expert. This session's kit run (24 deals): Easy 168 (67 % finish) / 196 / 200 / 200; Normal 64 / 184 / 199 / 200; Hard 32 / 95 / 189 / 200; Expert 0 / 30 / 94 / 188 (79 % finish). An average player scores nothing on Expert.",
+    "measured": "Documented: only that the near-perfect kit finishes 80 % of Expert. Measuring pass, 96 deals, same seeds (average / good / great / near-perfect kit medians): Normal 63 / 182 / 199 / 200 (good finishes 86 %); Hard 61 / 95 / 191 / 200 (good finishes 38 %; average kit mean 48 against 68). Earlier pass, 24 deals: Easy 168 (67 % finish) / 196 / 200 / 200; Expert 0 / 30 / 94 / 188 (79 % finish). Today's Hard is clearly harder than Normal for the good kit, but its first board looks the same (2 jugs and a tap). An average player scores nothing on Expert.",
     "easy": "3 boards, 2 jugs and the tap, fewest pours 2, 2-4, 4, limit 5 ×. In-memory kit trial: 183 (88 % finish) / 193 / 197 / 200.",
     "hard": "3 jugs on every board, and the tap goes half-way: 3 jugs with tap, 4-6 pours; with tap, 7-10; no tap, 9-12; no tap, split evenly, 12-15; limit 2.5 ×; 120 s. A lighter trial (4-6, 6-8, 7-10, 10-13) gave 63 / 161 / 197 / 200, so these bands sit one notch longer.",
-    "expert": "No tap or drain on any board, the big jug starts full: 3 jugs, 6-8 pours; 10-13; split evenly, 13-16; split, 15-18; limit 1.5 ×; the one-move pulse off; 120 s. Kit trials either side: 31 / 62 / 169 / 198 and 31 / 63 / 93 / 189.",
+    "expert": "No tap or drain on any board, the big jug starts full: 3 jugs, 4-6 pours; 10-13; split evenly, 13-16; split, 15-18; limit 1.5 ×; the one-move pulse off; 120 s. Measured on 24 deals: 32 / 64 / 169 / 197 (88 % finish).",
     "glance": {
       "easy": "Two jugs and a tap, \"Par 2\"",
       "hard": "Three jugs on the bench",
@@ -170,7 +198,14 @@
       "src/puzzles/measure.tsx",
       "scripts/number-levels-measure-numline-check.ts"
     ],
-    "risk": "The kit plays the proven shortest plan, so its top scores overstate real experts; it also retires the old game from Hard (Joe's 15 Nov choice)."
+    "risk": "The kit plays the proven shortest plan, so its top scores overstate real experts; it also retires the old game from Hard (Joe's 15 Nov choice).",
+    "evidence": {
+      "easy": "measured: proposed bands stood in for Easy in memory, kits, 16 deals: 181 / 197 / 199 / 200, average finishes 94 % (today's Easy 174 / 195 / 198 / 200, 88 %); hand-speed oracle 200 on 16 of 16.",
+      "hard": "measured: proposed bands dealt through the Expert slot in memory, 24 deals: 47 / 95 / 182 / 200 (means 44 / 104 / 181 / 199; finish 0 / 17 / 100 / 100 %); Normal 63 / 186 / 199 / 200 (mean 71); hand-speed oracle 200 on 24 of 24.",
+      "expert": "measured: first board cut to 4-6 pours, stood in for Expert in memory, 24 deals: 32 / 64 / 169 / 197, near-perfect finishes 88 %, kit best 200; as first proposed (6-8 pours) the average kit's median was 0 (mean 17); hand-speed oracle 200 on 24 of 24."
+    },
+    "verdict": "adjusted: Expert's first board is 4-6 pours, not 6-8, because at 6-8 the average kit's median was 0 and the short first board did not let it score; at 4-6 it is 32 (near-perfect 197, 88 % finish). Easy and Hard hold as proposed (average 181 and 47 against Normal's 63).",
+    "limitsToday": "Nothing applies the human limits. personSolve (measureLevels.ts:76, fixed strategies inside the move limit, no clock) filters every level board (measureLevels.server.ts:88); number-levels-measure-numline-check.ts:129 asserts it on 100 seeds a level and :241 asserts the near-perfect kit finishes 80 % of Expert on 40 seeds at the kit's own pace."
   },
   {
     "id": "checkout",
@@ -183,17 +218,17 @@
       "hard": "The old game (checkoutRev 3): standard; shuffled; odd values 5 to 60 (targets 200-400); odd values with a ×4 ring and treble finish; shuffled with 2 minus wedges and exactly 4 darts; 90 s",
       "expert": "5 odd boards, an exact dart count on each: odd values; ×4 ring and treble finish; minus wedges, 4 darts; minus and ×4, 4 darts; minus, ×4 and treble finish; targets 80 to 320; 90 s"
     },
-    "measured": "Documented: only that the near-perfect kit finishes 80 % of Expert. This session's kit run (24 deals): Easy 168 (54 % finish) / 200 / 200 / 200; Normal 50 / 105 / 198 / 200; Hard 52 / 104 / 188 / 197; Expert 25 / 53 / 103 / 187 (83 % finish). Hard scores like Normal.",
+    "measured": "Documented: only that the near-perfect kit finishes 80 % of Expert. Measuring pass, 96 deals, same seeds (average / good / great / near-perfect kit medians): Normal 53 / 140 / 200 / 200 (finish 0 / 50 / 96 / 100 %); Hard 50 / 103 / 182 / 197 (finish 0 / 18 / 74 / 100 %). Earlier pass, 24 deals: Easy 168 (54 % finish) / 200 / 200 / 200; Expert 25 / 53 / 103 / 187 (83 % finish). Today's Hard is level with Normal for the average kit, which finishes neither, and clearly harder for the good and great kits; its first board is the same standard board as Normal's.",
     "easy": "3 standard boards, any dart finishes, targets 20-50, 40-80, 100-120, and a 120 s clock. In-memory kit trial at 90 s: 190 (63 % finish) / 200 / 200 / 200. One board stays at 100 or more because only that can pay the big-finish 10.",
     "hard": "Odd numbers from the first board: odd values 5 to 60, double finish, 120-200; shuffled 1 to 20, 100-160; odd values, ×4 ring, treble finish, 200-400; shuffled with 2 minus wedges, exactly 4 darts, 80-170; odd values with minus wedges, 200-400; 90 s. Kit trial: 28 / 80 / 185 / 198.",
-    "expert": "5 odd-value boards, every one with 2 minus wedges and an exact dart count (3, 4, 4, 4, 4 darts), ×4 ring on three, treble finish on two, targets 80 to 360, 90 s. Kit trial: 25 / 50 / 79 / 180 (81 % finish).",
+    "expert": "5 odd-value boards, every one with 2 minus wedges and an exact dart count (3, 3, 4, 4, 4 darts), ×4 ring on three, treble finish on two, targets 80 to 360, 90 s. Measured on 40 deals: 25 / 52 / 78 / 183 (85 % finish).",
     "glance": {
       "easy": "A normal dartboard and three small targets",
       "hard": "Odd numbers up to 60 round the board",
       "expert": "Odd numbers, red minus wedges, \"exactly 3 darts\""
     },
     "why": "Darts players lean on checkouts they know by heart, so the fair way to raise the game is to change the board under them, then add minus wedges and exact dart counts.",
-    "proof": "searchCheckout (exhaustive, checkout.ts) proves every board has a checkout thrown in a bust-free order and stores the fewest darts; Easy and Expert boards are also found by checkoutPersonFinds inside 6,000 dart lists (checkout.server.ts); scripts/number-levels-checkout-kakuro-check.ts runs 100 Expert seeds. Give the new Hard the same person filter. Five boards is the ceiling: a six-board trial left the near-perfect kit unfinished on all 16 deals.",
+    "proof": "searchCheckout (exhaustive, checkout.ts) proves every board has a checkout thrown in a bust-free order and stores the fewest darts; Easy and Expert boards are also found by checkoutPersonFinds inside 6,000 dart lists (checkout.server.ts); scripts/number-levels-checkout-kakuro-check.ts runs 100 Expert seeds. Give the new Hard the same person filter. Five boards is the ceiling: a six-board trial left the near-perfect kit unfinished on all 16 deals. To add: a search proving every Hard and Expert round has routes that take the fewest darts and the big finishes together; the stored fewest-dart routes played at hand speed score 190 to 198, not 200.",
     "change": "retune",
     "newMechanic": "",
     "stamp": "Level field only: checkoutRev 4 stores every board's wedges, ring, darts and target, and timeLimitMs can carry Easy's clock. Hard moves from checkoutRev 3 to checkoutRev 4 rows.",
@@ -204,7 +239,14 @@
       "scripts/number-levels-checkout-kakuro-check.ts",
       "scripts/puzzle-fairness/kits-number.ts"
     ],
-    "risk": "The kit rates an odd board only 1.25 times slower than a standard one, so Hard's real step is unproven until played; it also retires the old game from Hard."
+    "risk": "The kit rates an odd board only 1.25 times slower than a standard one, so Hard's real step is unproven until played; it also retires the old game from Hard.",
+    "evidence": {
+      "easy": "measured: proposed boards stood in for Easy in memory, kits, 16 deals: 199 / 200 / 200 / 200 at 120 s and 198 / 200 / 200 / 200 at 90 s, average finishes 94 % either way (today's Easy 186, 69 %); checkoutPersonFinds 48 of 48 boards.",
+      "hard": "measured: proposed boards stood in for Hard in memory, 16 deals: 40 / 78 / 184 / 196 (finish 0 / 0 / 69 / 100 %); Normal 53 / 107 / 200 / 200, today's Hard 50 / 103 / 179 / 197; checkoutPersonFinds 80 of 80; hand-speed oracle median 196, best 198.",
+      "expert": "measured: darts 3, 3, 4, 4, 4 stood in for Expert in memory, 40 deals: 25 / 52 / 78 / 183, near-perfect finishes 85 %, kit best 192; as first proposed (3, 4, 4, 4, 4) it finished 78 %; today's Expert 25 / 53 / 79 / 190; fewest-dart routes at hand speed score 190 to 196."
+    },
+    "verdict": "adjusted: Expert's second board takes exactly 3 darts, not 4, because the near-perfect kit finished 78 % of 40 deals as proposed and the Expert check asks 80 %; now 85 %. Still unproven: 200 on Hard and Expert needs the big-finish points too (proof now asks for that search).",
+    "limitsToday": "Nothing applies the human limits. checkoutPersonFinds (checkout.server.ts:130, 6,000 dart lists, no clock) filters Easy, Normal and Expert boards (:200); number-levels-checkout-kakuro-check.ts:198 asserts it and :287 asserts the near-perfect kit finishes 80 % of Expert on 40 seeds."
   },
   {
     "id": "numline",
@@ -239,7 +281,14 @@
       "scripts/number-levels-measure-numline-check.ts",
       "scripts/puzzle-fairness/kits-number.ts"
     ],
-    "risk": "The drag sound ticks at every tenth, which would give the missing marks away by ear unless it follows the marks shown."
+    "risk": "The drag sound ticks at every tenth, which would give the missing marks away by ear unless it follows the marks shown. No tool models pointing error against the marks shown: with the clock and the shown end labels alone the proposed Expert measures level with Hard for the near-perfect kit (185 against 186).",
+    "evidence": {
+      "easy": "not measured: the kit has no model for labelled ticks (its error is set by level name). Today's Easy lines, kits, 16 deals this session: 152 / 178 / 190 / 198, every run finished.",
+      "hard": "not measured: the kit has no model for the number of ticks. Today's Hard lines, 16 deals this session: 69 / 146 / 175 / 186 (Normal 103 / 165 / 184 / 192).",
+      "expert": "not measured: the bare ruler is not modelled. Clock and shown end labels only, in memory, 16 deals: 75 s gives 52 / 106 / 172 / 185, 65 s 45 / 94 / 172 / 185 (today's Expert 52 / 123 / 158 / 174); hand-speed oracle median 193, best 200."
+    },
+    "verdict": "unproven: no tool models pointing error against the marks shown; without the ruler effect the proposed Expert is 17 under Hard for the average kit and level with it for the near-perfect kit (185 against 186), so the step rests on the bare ruler (risk now says so).",
+    "limitsToday": "Nothing: no solver (every placing scores by distance), no kit finish rate and no human limits. number-levels-measure-numline-check.ts:201 and :216 assert only that a perfect answer finishes at 180 or more at every level."
   },
   {
     "id": "kakuro",
@@ -252,7 +301,7 @@
       "hard": "The old game (kakuroRev 2): 6 × 6, 19 to 21 white squares, grade up to 10, not filtered by the person-like solver; 120 s",
       "expert": "7 × 7, 26 to 28 white squares, grade 4 to 12, every board finished by the person-like solver; 120 s"
     },
-    "measured": "Documented: only that the near-perfect kit finishes 80 % of Expert. This session's kit run (24 deals): Easy 106 (38 % finish) / 190 / 198 / 200; Normal 80 / 163 / 187 / 200; Hard 60 / 105 / 172 / 198; Expert 46 / 78 / 102 / 174 (83 % finish). The person-like solver finishes only 30 of 40 of today's Hard boards.",
+    "measured": "Documented: only that the near-perfect kit finishes 80 % of Expert. Measuring pass, 96 deals, same seeds (average / good / great / near-perfect kit medians): Normal 80 / 167 / 190 / 200 (good finishes 92 %); Hard 65 / 106 / 174 / 195 (good finishes 17 %). Earlier pass, 24 deals: Easy 106 (38 % finish) / 190 / 198 / 200; Expert 46 / 78 / 102 / 174 (83 % finish). Today's Hard is clearly harder than Normal for the good kit, but it is the same 6 × 6 grid with about two more white squares. The person-like solver finishes 498 of 600 of today's Hard boards.",
     "easy": "5 × 5 with 9 to 11 white squares (today 12 to 14), grade 0, every square seen within 2 solver passes, 120 s. In-memory kit trial: 179 (every run finished) / 198 / 200 / 200.",
     "hard": "A wider board, 7 squares across by 6 down, 20 to 23 white squares, grade 0 to 6, every board finished by the person-like solver, 120 s. Nearest trials: the old 6 × 6 gives 60 / 105 / 172 / 198 and a 7 × 7 with 22 to 25 squares 55 / 100 / 120 / 187.",
     "expert": "Keep today's 7 × 7 with 26 to 28 white squares: the clock is the ceiling (a 7 × 7 with 29 to 31 squares halved the near-perfect kit's finishes), and it measures 46 / 78 / 102 / 174.",
@@ -275,6 +324,13 @@
       "scripts/number-levels-checkout-kakuro-check.ts",
       "scripts/puzzle-fairness/kits-kakuro.ts"
     ],
-    "risk": "It retires the old game from Hard (Joe's 15 Nov choice), a quarter of whose boards cannot be finished by deduction alone."
+    "risk": "It retires the old game from Hard (Joe's 15 Nov choice), about a sixth of whose boards (102 of 600 dealt) cannot be finished by the person-like solver without a guess.",
+    "evidence": {
+      "easy": "measured: proposed settings stood in for Easy in memory, kits, 16 deals: 167 / 197 / 200 / 200, average finishes 94 % (today's Easy 110, 19 %); kakuroPersonSolve 16 of 16 inside 2 passes; hand-speed oracle 200 on 16 of 16.",
+      "hard": "not measured: a 7 by 6 board needs rectangular layouts (size is one number). Stand-in, 7 × 7 with 20 to 23 squares, 11 of 16 deals (5 found no layout): 62 / 92 / 163 / 189, person-like solver 11 of 11. Today's Hard: 59 / 99 / 174 / 194.",
+      "expert": "measured: today's Expert (kept), kits, 16 deals: 52 / 79 / 109 / 175, near-perfect finishes 81 %, kit best 187; kakuroPersonSolve 16 of 16; stored solution at hand speed scores 200 on 16 of 16."
+    },
+    "verdict": "unproven: the 7 by 6 Hard cannot be dealt today (a 7 × 7 stand-in gives 62 / 92 / 163 / 189); Easy and Expert hold as measured; risk and measured now give the person-like solver's real count on the old Hard (102 of 600 unfinished, a sixth, not a quarter).",
+    "limitsToday": "Nothing applies the human limits. kakuroPersonSolve (kakuro.server.ts:410, run combinations only, no clock) filters Easy, Normal and Expert deals (:512), not today's Hard; number-levels-checkout-kakuro-check.ts:242 asserts it (100 Expert seeds) and :287 the near-perfect kit's 80 % Expert finish on 40 seeds."
   }
 ]

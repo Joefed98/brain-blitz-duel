@@ -1,7 +1,15 @@
 import json
-R='/home/user/brain-blitz-duel/docs/polish-plan-final/'
+import os
+R=os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','..')+os.sep
 files=[('word','D1 Word'),('number','D2 Number'),('speed-attention','D3 Speed and Attention'),('pattern-logic','D4 Pattern and Logic'),('retro-action','D5 Retro and Action'),('strategy-sports-cards','D6 Strategy, Sports and Cards & Board')]
 def cell(s): return s.replace('|','\\|').replace('\n',' ').strip()
+def lab_of(v):
+    v=(v or '').strip().lower()
+    return 'documented' if v.startswith('documented') else 'measured' if v.startswith('measured') else 'not measured'
+def basis(g):
+    e=g.get('evidence') or {}
+    short={'documented':'documented','measured':'measured','not measured':'not measured'}
+    return ' / '.join(short[lab_of(e.get(k))] for k in ('easy','hard','expert'))
 out=[]
 out.append('''# Joulz difficulty spec: Easy, Hard and Expert for every game
 
@@ -26,23 +34,23 @@ Fable, 20 Nov 2026 (the design-direction session). This replaces the spec of the
 
 ## Decisions for Joe
 
-1. **Counterweight, Brimful, Checkout and Kakuro: a new Hard.** On 15 Nov you chose to keep the older game as their Hard. Measured now, that Hard looks like Normal in the first seconds and scores like it (Counterweight average 94 against 95; Checkout 52 against 50), and a quarter of old-Hard Kakuro boards cannot be finished without a guess. **Recommendation: replace it with the visible step in each game's row.** If you say no, those four Hards stay and only Easy and Expert change.
-2. **Iron Wall: Expert becomes four lanes** (9 tanks a wave), on bastionRev 3's aim settings. That replaces the 15 Nov ruling that Expert is bastionRev 3's game unchanged. **Recommendation: yes; the fourth lane is your own example of a natural mechanic.**
-3. **200 must be reachable, and on some games it is not today, at any level.** Under the human limits the scoring itself caps the best possible run: Flash at about 130 (a 250 ms tap pays 115), Bonk at about 160 (the quick window closes at 267 ms), Home Run's perfect streak (the exact tick) at 0 % of Hard and Expert innings, Matchmaker's extras (perfect memory still misses about 11 first looks), Tenfall's Easy at 196, and no Hard or Expert Nucleus board (and 7 of 12 Expert Forage boards) holds 200 points of words. Five Hands has no 200 proof at any level. **Recommendation: fix each on the level deals only** (a scoring stamp or a deal rule that Easy, Hard and Expert carry; Normal untouched), as each game's row says. Whether Normal's own curve should follow later is a separate scoring decision (Flash `tapRev 8`, Bonk `whackRev 5`, Pull! `clayRev 11`).
-4. **Proofs to build.** No oracle or deal builder applies `HUMAN_LIMITS` today; they are frame-exact. Breaker, Rally, Meteor and Pinball have no oracle at all; the Logic person-style solver counts trials but has no clock; the Attention "200 at every level" run knows the answer. Each row names what to write. **Recommendation: every difficulty session's first job is its proof tool, before any number is tuned.**
-5. **Minefield's Expert goes back to 10 × 16** (36 mines): today's 12 × 18 draws squares at about 31 px on a phone, under the 36 px floor.
+1. **Counterweight, Brimful, Checkout and Kakuro: a Hard you can see.** On 15 Nov you chose to keep the older game as their Hard. Measured on 20 Nov (96 deals a game, the same seeds at both levels, the repo's four kits through the server's own grade): that Hard's first board is the same as Normal's on all four, so nothing shows in the first seconds. It is not the same difficulty, though, and my first version was wrong to say it "scores like Normal": the good kit drops 24 (Counterweight), 87 (Brimful), 37 (Checkout) and 61 (Kakuro) points, and Counterweight's average kit drops 70. The person-like solver finishes 81 of 96 old-Hard Kakuro boards (my "a quarter cannot be finished" was also wrong: it is 15 of 96). **Recommendation, unchanged in substance: keep the older game's difficulty where it is good and put a visible step on top, as each game's row says.**
+2. **Iron Wall: Expert becomes four lanes** (9 tanks a wave), on bastionRev 3's aim settings. That replaces the 15 Nov ruling that Expert is bastionRev 3's game unchanged. Measured on 20 Nov (60 room seeds a level): today's Hard and Expert put the same tanks on the same lanes at the same moments on 60 of 60 seeds, so the first five seconds look alike; the average bot scores 104 and 84, the elite bot under the human limits 161 and 146. A faster pace alone, tried in memory, changes neither the look nor the gap (average 91, elite 148). The fourth lane itself is not measured: it needs sim code. **Recommendation: yes; a lane is a step a player sees at once, and the fourth lane is your own example of a natural mechanic.**
+3. **200 must be reachable, and on some games it is not today, at any level.** Under the human limits the scoring itself caps the best possible run: Flash at exactly 130 on every level (measured 20 Nov: a 250 ms tap pays 115 plus 15 for steadiness), Bonk at 156 (153 on Expert) (the quick window closes at 267 ms), Home Run's perfect streak (the exact tick) at 0 % of Hard and Expert innings, Matchmaker's extras (perfect memory still misses about 11 first looks), Tenfall's Easy at 196, and no Hard or Expert Nucleus board (and 7 of 12 Expert Forage boards) holds 200 points of words. Five Hands has no 200 proof at any level. **Recommendation: fix each on the level deals only** (a scoring stamp or a deal rule that Easy, Hard and Expert carry; Normal untouched), as each game's row says. Whether Normal's own curve should follow later is a separate scoring decision (Flash `tapRev 8`, Bonk `whackRev 5`, Pull! `clayRev 11`).
+4. **Proofs to build.** My first version said no tool applies `HUMAN_LIMITS` today. That was wrong. `scripts/level-tune.ts --human-limits` measures under them, `scripts/home-run-top-bins-expert-proof.ts` proves under them, and the level checks for the Speed games, Apex, Gemstone, Ball Tracker, Coral Pop, Home Run and Top Bins assert results under them; the Logic levels assert a person-style solver finishes every Expert board. What is true is narrower: most deal and bank builders prove 200 with a frame-exact oracle; most checks under the limits assert "scores well", not "reaches 200"; nothing applies the limits to any Word game; Breaker, Rally, Meteor and Pinball have no oracle at all; the Logic person-style solver has no clock. Each game's row now says what applies the limits to it today. **Recommendation, unchanged: every difficulty session's first job is its proof under the limits, before any number is tuned.**
+5. **Minefield's Expert goes back to 10 × 16** (40 mines, dealt from a proved bank): today's 12 × 18 draws squares at about 31 px on a phone, under the 36 px floor. The first version said 36 mines; measured, 36 left the average player only 17 points below Hard, and 40 gives 93 against Hard's 129 with the elite still reaching 200.
 
 ## Every game at a glance
 
 What the player sees in the first seconds at each level.
 
-| Game | Group | The lever | Easy | Hard | Expert |
-|---|---|---|---|---|---|''')
+| Game | Group | The lever | Easy | Hard | Expert | Basis (E / H / X) |
+|---|---|---|---|---|---|---|''')
 allg=[]
 for f,label in files:
     for g in json.load(open(R+f'difficulty/{f}.json')): g['_s']=label; allg.append(g)
 for g in allg:
-    out.append(f"| {g['name']} | {g['group']} | {cell(g['lever'])} | {cell(g['glance']['easy'])} | {cell(g['glance']['hard'])} | {cell(g['glance']['expert'])} |")
+    out.append(f"| {g['name']} | {g['group']} | {cell(g['lever'])} | {cell(g['glance']['easy'])} | {cell(g['glance']['hard'])} | {cell(g['glance']['expert'])} | {basis(g)} |")
 for f,label in files:
     gs=[g for g in allg if g['_s']==label]
     out.append(f"\n## {label.split(' ',1)[1]} (session {label.split(' ',1)[0]})\n")
@@ -56,8 +64,12 @@ for f,label in files:
         out.append(f"| **Proposed** | {cell(g['easy'])} | {cell(g['today']['normal'])} | {cell(g['hard'])} | {cell(g['expert'])} |")
         out.append(f"| First seconds | {cell(g['glance']['easy'])} | | {cell(g['glance']['hard'])} | {cell(g['glance']['expert'])} |")
         out.append(f"| Today | {cell(g['today']['easy'])} | | {cell(g['today']['hard'])} | {cell(g['today']['expert'])} |")
+        e=g.get('evidence') or {}
+        out.append(f"| **Evidence** | {cell(e.get('easy','not measured'))} | | {cell(e.get('hard','not measured'))} | {cell(e.get('expert','not measured'))} |")
         out.append('')
         out.append(f"- **Why this curve:** {g['why'].strip()}")
+        if g.get('verdict'): out.append(f"- **Fact-check verdict:** {g['verdict'].strip()}")
+        if g.get('limitsToday'): out.append(f"- **Human limits today:** {g['limitsToday'].strip()}")
         out.append(f"- **Proof:** {g['proof'].strip()}")
         out.append(f"- **Measured today:** {g['measured'].strip()}")
         out.append(f"- **Stamp:** {g['stamp'].strip()}")

@@ -1,0 +1,38 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="kit.css">
+<style>
+.hero { height: 146px; margin: -14px -16px 0; padding: 14px 16px 0; display: flex; align-items: center; gap: 14px; background: linear-gradient(180deg, color-mix(in srgb, var(--retro) 30%, #0A1126) 0%, transparent 100%); }
+.hero .tile { width: 96px; --c: var(--retro); }
+.rung { display: grid; grid-template-columns: 78px 1fr auto; gap: 12px; align-items: center; padding: 10px 12px 10px 10px; border-radius: 12px; background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); position: relative; }
+.rung::before { content: ""; position: absolute; left: 0; top: 10px; bottom: 10px; width: 3px; border-radius: 2px; background: var(--lc); }
+.rung.on { background: linear-gradient(160deg, color-mix(in srgb, var(--lc) 20%, var(--surface)) 0%, var(--surface) 70%); box-shadow: inset 0 0 0 2px var(--lc); }
+.rung .nm { font: 800 17px/1 "Archivo"; } .rung .lev { font: 700 13.5px/1.25 "Archivo"; color: var(--text2); margin-top: 5px; }
+.rung .best { font: 800 17px/1 "Archivo"; font-variant-numeric: tabular-nums; text-align: right; } .rung .best small { display: block; font: 700 10px/1 "Archivo"; letter-spacing: .1em; color: var(--text3); margin-top: 5px; }
+.mini { width: 78px; height: 92px; border-radius: 8px; background: #050818; box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--retro) 70%, transparent); position: relative; overflow: hidden; margin-left: 6px; }
+.mini .w { position: absolute; left: 5px; right: 5px; top: 5px; display: grid; grid-template-columns: repeat(9, 1fr); gap: 1.2px; }
+.mini .w i { height: 4.4px; border-radius: 1px; }
+.mini .p { position: absolute; bottom: 7px; left: 50%; transform: translateX(-50%); height: 4px; border-radius: 2px; background: var(--gold); }
+.mini .b { position: absolute; width: 4px; height: 4px; background: #fff; border-radius: 1px; bottom: 22px; left: 46px; }
+.note { font: 600 12.5px/1.35 "Archivo"; color: var(--text3); text-align: center; }
+</style></head><body><div class="page">
+  <div class="hero">
+    <div class="back">‹</div>
+    <div class="tile"><img src="pub/tiles/breaker.webp"></div>
+    <div class="grow"><div class="cap" style="color:var(--retro)">Retro</div><h1 class="mt6">Breaker</h1><div class="sub mt6">Clear the wall.</div></div>
+  </div>
+  <div class="row mt6" style="justify-content:space-between"><div class="cap">Choose your level</div><div class="row g6"><span class="star"></span><span class="star"></span><span class="star off"></span><span class="crown off"></span></div></div>
+  <div class="col g8 mt10" id="ladder"></div>
+  <div class="btn full mt14">Play Normal</div>
+  <div class="note mt10">Ranked matches and the Daily are always Normal.</div>
+  <div class="tabs"><div class="tab"><img src="pub/nav/home-3x.webp">Home</div><div class="tab on"><img src="pub/nav/games-3x.webp">Games</div><div class="tab"><img src="pub/nav/tournaments-3x.webp">Compete</div><div class="tab"><img src="pub/nav/shop-3x.webp">Shop</div><div class="tab"><img src="pub/nav/profile-3x.webp">You</div></div>
+</div>
+<script>
+const cols = ["#FF4D6A","#FF8A3D","#FFC81E","#3DDC84","#36E2F5","#4D8CFF","#B26BFF","#FF6BD6","#FF4D6A","#FF8A3D","#FFC81E","#3DDC84"];
+const L = [["Easy",1,6,34,"6 rows · wide paddle","184","star"],["Normal",2,9,25,"9 rows · the ranked game","148","star"],["Hard",3,11,20,"11 rows, 2 sliding · narrow","—","off"],["Expert",4,12,15,"12 rows, 4 sliding · tiny","—","crownoff"]];
+document.getElementById("ladder").innerHTML = L.map(([n,l,rows,pw,lev,best,st]) => {
+  let w = ""; for (let r = 0; r < rows; r++) for (let c = 0; c < 9; c++) w += `<i style="background:${cols[r]}"></i>`;
+  const mark = st === "star" ? '<span class="star"></span>' : st === "off" ? '<span class="star off"></span>' : '<span class="crown off"></span>';
+  return `<div class="rung l${l}${l===2?" on":""}"><div class="mini"><div class="w">${w}</div><div class="b"></div><div class="p" style="width:${pw}px"></div></div>
+    <div><div class="row g8"><span class="lvl l${l}"><i></i><i></i><i></i><i></i></span><span class="nm">${n}</span></div><div class="lev">${lev}</div></div>
+    <div class="best"><div class="row g6" style="justify-content:flex-end">${mark}<span>${best}</span></div><small>BEST</small></div></div>`;
+}).join("");
+</script></body></html>

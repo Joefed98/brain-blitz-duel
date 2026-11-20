@@ -32,7 +32,14 @@
       "scripts/unblock-human.ts",
       "scripts/pattern-overhaul-unblock-levels-check.ts"
     ],
-    "risk": "9×9 lots with a 36–44 move minimum may be rare and slow to prove, and each new lot size needs its own lot render (lot-8, lot-9)"
+    "risk": "9×9 lots with a 36–44 move minimum may be rare and slow to prove, and each new lot size needs its own lot render (lot-8, lot-9)",
+    "evidence": {
+      "easy": "measured: 6×6, 6–8 cars, 5–9 moves built by the bank builder with settings patched in memory, 16 boards: average kit 175.8 (15/16 finished; today's Easy 154.2, 10/12), near-perfect under limits 200 on all 16; person-like solver 16/16 in 5–10 s",
+      "hard": "measured: 8×8, 15–16 cars, 22–30 moves, 75 s, 3 boards (7–122 s each to build): average kit 28.3, 0/3 finished (Normal 51.2 on 12 deals), near-perfect under limits 200 on 3/3; person-like solver 3/3 in 30–49 s, avg 192",
+      "expert": "not measured: src/lib/duel/types.ts:935-938 reads cols 9 as 7, and scripts/unblock-levels-bank.ts:107 packs one base-8 digit a vehicle into a float (17 vehicles at most; 21-25 need 63-75 bits), so a 9x9 lot cannot be built, dealt or graded"
+    },
+    "verdict": "unproven: Easy (175.8) and an 8×8 Hard (28.3 against Normal's 51.2) measure as proposed on few boards, but the 9×9 Expert cannot be built, dealt or graded by today's code, and 17 or more cars break the bank builder's key.",
+    "limitsToday": "No 0.25 s / 0.15 s limit anywhere. scripts/unblock-human.ts:22-26 has its own time model (0.9 s a slide, thinking calibrated so Normal's median board takes 35 s); it is a tool, and pattern-overhaul-unblock-levels-check.ts never calls it (it proves minimums by BFS). Re-run here: 40 deals Hard 73 %, Expert 70 % finished; whole Expert bank 88/120 (73 %) inside 90 s, a line found on 120/120."
   },
   {
     "id": "blockparty",
@@ -46,11 +53,11 @@
       "expert": "8×8, 11 pieces (+U, P), 21 pegs, 1–2 ways, 3 held guesses, 70 s, full speed by 36 s"
     },
     "measured": "not documented",
-    "easy": "As today: 6×6, six small pieces grown into one patch, 20+ ways to finish, 60 s (a smaller board and forgiving pieces already do the job)",
+    "easy": "5×5 board, four small pieces (Two, Three, Corner, Square), 13 pegs, 10+ ways to finish, 60 s, full speed by 40 s (today a 6×6 with six pieces, which the average kit cannot finish inside 60 s)",
     "hard": "8×8, 11 pieces (Normal's nine plus U and P), 21 pegs, 3–8 ways to finish, 2–3 held guesses, 70 s, full speed by 36 s",
     "expert": "9×9 (40 px squares), 13 pieces (two more five-square shapes), 28 pegs, 1–2 ways, 3 held guesses, 90 s, full speed by 45 s; tray five to a row. Ceiling: 9 across; after it, fewer ways and less time",
     "glance": {
-      "easy": "A small board and six little pieces",
+      "easy": "A tiny 5×5 board and four little pieces",
       "hard": "A bigger 8×8 board with eleven pieces in the tray",
       "expert": "A 9×9 board and thirteen pieces, two of them new"
     },
@@ -66,7 +73,14 @@
       "src/lib/duel/blockPartyLevelBank.server.ts",
       "scripts/pattern-overhaul-blockparty-levels-check.tsx"
     ],
-    "risk": "two new piece renders, a 13-piece tray on short phones, and a slower exhaustive count on 9×9"
+    "risk": "two new piece renders, a 13-piece tray on short phones, and a slower exhaustive count on 9×9; the dealt puzzle stores no size or tray (the grader reads them from the registry by level), so new boards need a levelRev; Easy rests on the kit's 13 s a piece (today's 6×6 Easy on a 90 s clock also measured well: 161.8, 11 of 12 finished)",
+    "evidence": {
+      "easy": "measured: 5×5, four pieces, 13 pegs, 10+ ways patched in memory, 12 boards: average kit 160.3 (med 180, 10/12 finished), near-perfect under limits 200 on all 12. Today's 6×6 Easy: average 53.6, 0/12 finished (Normal 71.4)",
+      "hard": "measured: 8×8, 11 pieces, 21 pegs, 3–8 ways, 70 s, full by 36 s in memory, 10 boards (under 1 s each, person-like solver 10/10): average kit 46.8, 0/10 finished (Normal 71.4), near-perfect under limits 185.7, 10/10, best 198",
+      "expert": "not measured: a 9×9 board of 13 pieces needs two five-square shapes that do not exist (BLOCK_SHAPES in src/lib/duel/blockParty.ts has 12: the eleven plus Dot). Today's 8×8 Expert, 12 deals: average 37.3, near-perfect under limits 184.7"
+    },
+    "verdict": "adjusted: Easy becomes a 5×5 board with four pieces, because today's 6×6 Easy scored below Normal for the average kit (53.6 against 71.4, none finished); Hard holds; the 9×9 Expert is unproven until its two new shapes exist.",
+    "limitsToday": "No reaction or move limit and no clock. HUMAN_LIMITS in src/lib/duel/blockPartyLevels.server.ts:269 is a thinking limit (4 choices wide, 3 held guesses); scripts/blockparty-levels-bank.ts:99 keeps only boards humanSolveBlock finishes, and pattern-overhaul-blockparty-levels-check.tsx:203 pins the limit's values."
   },
   {
     "id": "pipes",
@@ -99,7 +113,14 @@
       "scripts/pipes-human.ts",
       "scripts/pattern-overhaul-pipes-levels-check.ts"
     ],
-    "risk": "low; Hard at 72 tiles in 105 s may sit close to Expert for the best players"
+    "risk": "low; Hard at 72 tiles in 105 s may sit close to Expert for the best players",
+    "evidence": {
+      "easy": "not measured: the narrowed pass ran the redesign rows only",
+      "hard": "not measured: the narrowed pass ran the redesign rows only",
+      "expert": "documented: today's level kept; scripts/pipes-human.ts (levels-research.md): the person-like player finished Expert room seeds 1 and 2 in 115 s and 106 s (166 and 178 points); medians not documented"
+    },
+    "verdict": "unproven: Hard's 8x9 board and 105 s clock were not run in this pass; Expert is today's level on documented numbers.",
+    "limitsToday": "No 0.25 s / 0.15 s limit. scripts/pipes-human.ts:32 times a person-like player with its own costs (1.6 s to fix a tile, 0.25 s a turn); it is a tool, and no levels check calls it (grep). The deal's proof, deducePipes in pipesSolve.server.ts, has no clock."
   },
   {
     "id": "sudoku",
@@ -134,7 +155,14 @@
       "scripts/logic-1-levels-check.tsx",
       "scripts/logic-1-steps-check.ts"
     ],
-    "risk": "6×6 grids with 8–9 givens that need three advanced steps may be too rare to bank 200"
+    "risk": "6×6 grids with 8–9 givens that need three advanced steps may be too rare to bank 200",
+    "evidence": {
+      "easy": "documented: today's level kept; logic-1-tune under human limits, 20 deals (levels-research.md): great 197.0, near-perfect 198.9",
+      "hard": "not measured: the narrowed pass ran the redesign rows only",
+      "expert": "not measured: the narrowed pass ran the redesign rows only"
+    },
+    "verdict": "unproven: fewer givens with 2 and 3 advanced steps and a 75 s clock need new banks and were not run.",
+    "limitsToday": "scripts/logic-1-tune.ts:42-50 holds every kit step to 0.4 s (0.25 s react + 0.15 s move) and measures; scripts/logic-1-steps-check.ts:19-24 asserts on 20 deals that the great bot drops at least 5 points a level and the near-perfect bot finishes 75 % of Expert with a best tenth of 185+. The deal's own proof has no clock."
   },
   {
     "id": "flow",
@@ -149,15 +177,15 @@
     },
     "measured": "not documented",
     "easy": "As today: 6×6, 5–6 pairs, no walls, 75 s (a small open board; does the job)",
-    "hard": "9×11, 12–13 pairs, 4–6 walls, at least 3 what-ifs, 80 s, full speed by 35 s (today's Hard has fewer dots than Normal and reads as easier)",
-    "expert": "9×13, 14 pairs, 6–8 walls, at least 4 what-ifs, 95 s, full speed by 45 s. Ceiling: 9 across (40 px beads), 13 down and the 14 bead colours; after it, longer lines and less time",
+    "hard": "9×11, 12–13 pairs, 4–6 walls, at least 3 what-ifs, 75 s (Normal's clock), full speed by 35 s (today's Hard has fewer dots than Normal and reads as easier)",
+    "expert": "9×13, 14 pairs, 6–8 walls, at least 4 what-ifs, 75 s (Normal's clock), full speed by 40 s. Ceiling: 9 across (40 px beads), 13 down and the 14 bead colours; after it, longer lines and less time",
     "glance": {
       "easy": "A small 6×6 board with five or six pairs",
       "hard": "A taller board with more coloured dots than Normal",
       "expert": "Dots in fourteen colours fill the screen top to bottom"
     },
     "why": "Today's Hard takes dots off Normal's board and so looks easier; growing the board downwards with more pairs at every level makes one ladder the eye can read (36, 81, 99, 117 squares), with the what-if floor as the guard.",
-    "proof": "Banks of 500 per level (bun scripts/flow-bank.ts --level): exactly one solution by the exhaustive solver, and every board finished by the person-like solver flowHuman.server.ts (forced moves and one what-if at a time); pattern-overhaul-flow-levels-check re-proves them. A time model must be added so Expert is shown inside 95 s.",
+    "proof": "Banks of 500 per level (bun scripts/flow-bank.ts --level): exactly one solution by the exhaustive solver, and every board finished by the person-like solver flowHuman.server.ts (forced moves and one what-if at a time); pattern-overhaul-flow-levels-check re-proves them. A time model must be added so Expert is shown inside 75 s (the near-perfect kit under the limits finished 12 of 12 trial boards, 47 s at the median and 58 s at most).",
     "change": "redesign",
     "newMechanic": "",
     "stamp": "level field; the board's size is stored on the puzzle; the new full-by times need a levelRev on level deals (flowFullByS reads the registry)",
@@ -169,7 +197,14 @@
       "src/lib/duel/flowHuman.server.ts",
       "scripts/pattern-overhaul-flow-levels-check.ts"
     ],
-    "risk": "the uniqueness solver's node budget may reject most 9×13 boards with 14 pairs"
+    "risk": "the average kit scores Normal, Hard and Expert within 12 points (unfinished credit is a share of the board), so the step may be seen but not felt in the score; the feared solver rejections did not appear (every 9×13 board built first try)",
+    "evidence": {
+      "easy": "measured: today's Easy kept, 12 deals: average kit 181.5 (12/12 finished), near-perfect under limits 199.6 (200 on 10); Normal on 12 deals: 73.8 and 198.9",
+      "hard": "measured: 9×11, 12–13 pairs, 75 s, full by 35 s in memory, 12 boards built first try: average kit 71.0, 0/12 finished, near-perfect under limits 195.6, 12/12, 200 on 5, finish med 36 s. At 80 s as first proposed: 77.6 and 191.6",
+      "expert": "measured: 9×13, 14 pairs, 75 s, full by 40 s, 12 boards (0.1 s each; person-like solver 8/8, 4–9 what-ifs): average kit 61.9, 0/12, near-perfect under limits 191.5, 12/12, best 200. At 95 s/45: 72.6 and 196.3; at 60 s/35: 52.2 and 171.2 (10/12)"
+    },
+    "verdict": "adjusted: Hard's clock 80 to 75 s and Expert's 95 to 75 s with full speed by 40 s, because on the longer clocks the elite scored Expert above Hard and the average kit scored every level alike; the average's steps are still small (73.8, 71.0, 61.9) with the board at the phone's ceiling.",
+    "limitsToday": "No reaction or move limit and no clock. The person-like solver (src/lib/duel/flowHuman.server.ts) counts what-ifs; pattern-overhaul-flow-levels-check.ts:210 sums them per level. Nothing times a solve."
   },
   {
     "id": "iceslide",
@@ -203,7 +238,14 @@
       "scripts/iceslide-human.ts",
       "scripts/pattern-overhaul-iceslide-levels-check.ts"
     ],
-    "risk": "boards with 10–12 holes and a 34–42 slide minimum may be too rare to fill a bank of 300"
+    "risk": "boards with 10–12 holes and a 34–42 slide minimum may be too rare to fill a bank of 300",
+    "evidence": {
+      "easy": "not measured: the narrowed pass ran the redesign rows only",
+      "hard": "not measured: the narrowed pass ran the redesign rows only",
+      "expert": "not measured: the narrowed pass ran the redesign rows only"
+    },
+    "verdict": "unproven: boards with 10-12 holes and a 34-42 slide minimum need a new bank and were not built in this pass.",
+    "limitsToday": "No 0.25 s / 0.15 s limit. scripts/iceslide-human.ts:40 (SKID_ELITE_PERSON) has its own times (0.6 s a look, 0.8 s a slide, 3 slides ahead); pattern-overhaul-iceslide-levels-check.ts:236 plays it on Expert boards inside 120 s and (header, line 27) wants a finish scoring 150+."
   },
   {
     "id": "push",
@@ -237,7 +279,14 @@
       "src/lib/duel/pushLevels.server.ts",
       "scripts/pattern-overhaul-push-levels-check.ts"
     ],
-    "risk": "exact minimums for 7 crates may cost too much search; fall back to 6 crates with 40–48 pushes"
+    "risk": "exact minimums for 7 crates may cost too much search; fall back to 6 crates with 40–48 pushes",
+    "evidence": {
+      "easy": "documented: today's level kept; measurements not documented (the check only asserts that great and near-perfect averages step down)",
+      "hard": "not measured: the narrowed pass ran the redesign rows only",
+      "expert": "not measured: the narrowed pass ran the redesign rows only"
+    },
+    "verdict": "unproven: 6 and 7 crate banks were not built, and no person-style push solver exists to prove Expert.",
+    "limitsToday": "Nothing. No person-style push solver exists (grep: no human player in scripts/push-levels-bank.ts or pattern-overhaul-push-levels-check.ts); the bank's proof is the exact minimum by search, with no clock."
   },
   {
     "id": "laser",
@@ -272,7 +321,14 @@
       "src/lib/duel/laserSolve.server.ts",
       "scripts/pattern-overhaul-laser-levels-check.ts"
     ],
-    "risk": "with nine or more bombs the generator may find too few boards the person-like solver lights in 1,000 tries"
+    "risk": "with nine or more bombs the generator may find too few boards the person-like solver lights in 1,000 tries",
+    "evidence": {
+      "easy": "documented: today's level kept; not documented (only Expert has numbers: near-perfect 183-193 on 12 boards)",
+      "hard": "not measured: the narrowed pass ran the redesign rows only",
+      "expert": "not measured: the narrowed pass ran the redesign rows only"
+    },
+    "verdict": "unproven: boards with 6-7 and 9-10 bombs need new banks and were not built in this pass.",
+    "limitsToday": "No reaction or move limit and no clock. pattern-overhaul-laser-levels-check.ts:126 and :158 require the person-like solver (laserSolve.server.ts solveLaserLikeAPerson) to light each board inside the level's try band; it counts tries, not seconds."
   },
   {
     "id": "tower",
@@ -306,7 +362,14 @@
       "scripts/logic-1-levels-check.tsx",
       "scripts/logic-1-steps-check.ts"
     ],
-    "risk": "twelve ring widths may be hard to tell apart on a 390 px phone"
+    "risk": "twelve ring widths may be hard to tell apart on a 390 px phone",
+    "evidence": {
+      "easy": "documented: today's level kept; logic-1-tune under human limits, 20 deals (levels-research.md): great 199.3, near-perfect 200",
+      "hard": "not measured: the narrowed pass ran the redesign rows only",
+      "expert": "not measured: the narrowed pass ran the redesign rows only"
+    },
+    "verdict": "unproven: 10 and 12 ring boards were not dealt in this pass.",
+    "limitsToday": "scripts/logic-1-tune.ts:42-50 holds every kit step to 0.4 s (0.25 s react + 0.15 s move) and measures; scripts/logic-1-steps-check.ts:19-24 asserts on 20 deals that the great bot drops at least 5 points a level and the near-perfect bot finishes 75 % of Expert with a best tenth of 185+. The deal's own proof has no clock."
   },
   {
     "id": "tubes",
@@ -340,7 +403,14 @@
       "scripts/logic-1-levels-check.tsx",
       "scripts/logic-1-steps-check.ts"
     ],
-    "risk": "the exact-minimum search for 12 colours may be too slow and 12 colours hard to tell apart; fall back to 13 flasks and 11 colours"
+    "risk": "the exact-minimum search for 12 colours may be too slow and 12 colours hard to tell apart; fall back to 13 flasks and 11 colours",
+    "evidence": {
+      "easy": "documented: today's level kept; logic-1-tune under human limits, 20 deals (levels-research.md): great 200, near-perfect 200",
+      "hard": "not measured: the narrowed pass ran the redesign rows only",
+      "expert": "not measured: the narrowed pass ran the redesign rows only"
+    },
+    "verdict": "unproven: the 14 flask, 12 colour rack was not built, and no solver that sees only uncovered layers exists.",
+    "limitsToday": "scripts/logic-1-tune.ts:42-50 holds every kit step to 0.4 s (0.25 s react + 0.15 s move) and measures; scripts/logic-1-steps-check.ts:19-24 asserts on 20 deals that the great bot drops at least 5 points a level and the near-perfect bot finishes 75 % of Expert with a best tenth of 185+. The deal's own proof has no clock."
   },
   {
     "id": "safe",
@@ -374,7 +444,14 @@
       "src/lib/duel/safe.server.ts",
       "scripts/logic-1-levels-check.tsx"
     ],
-    "risk": "nine clues on six dials may read as a wall of text on a phone"
+    "risk": "nine clues on six dials may read as a wall of text on a phone",
+    "evidence": {
+      "easy": "documented: today's level kept; logic-1-tune under human limits, 20 deals (levels-research.md): great 200, near-perfect 200",
+      "hard": "not measured: the narrowed pass ran the redesign rows only",
+      "expert": "not measured: the narrowed pass ran the redesign rows only"
+    },
+    "verdict": "unproven: 5 and 6 dial cards with 2 and 1 tries were not built, and no person-style solver exists for the card.",
+    "limitsToday": "scripts/logic-1-tune.ts:42-50 holds every kit step to 0.4 s (0.25 s react + 0.15 s move) and measures; scripts/logic-1-steps-check.ts:19-24 asserts on 20 deals that the great bot drops at least 5 points a level and the near-perfect bot finishes 75 % of Expert with a best tenth of 185+. The deal's own proof has no clock."
   },
   {
     "id": "gravity",
@@ -408,7 +485,14 @@
       "scripts/topsy-human.ts",
       "scripts/pattern-overhaul-gravity-levels-check.ts"
     ],
-    "risk": "ten-ball boards the person-like solver clears within the fewest + 4 may be rare, and two more ball renders are needed"
+    "risk": "ten-ball boards the person-like solver clears within the fewest + 4 may be rare, and two more ball renders are needed",
+    "evidence": {
+      "easy": "documented: today's level kept; not documented",
+      "hard": "not measured: the narrowed pass ran the redesign rows only",
+      "expert": "not measured: the narrowed pass ran the redesign rows only"
+    },
+    "verdict": "unproven: 8 and 10 ball boards need new banks and were not built in this pass.",
+    "limitsToday": "No reaction or move limit and no clock. scripts/topsy-levels-bank.ts:28 and :90 keep an Expert board only when the person-like solver (scripts/topsy-human.ts: 3 tilts ahead, 2 resets) clears it inside the tilt limit; pattern-overhaul-gravity-levels-check.ts:63 re-runs it."
   },
   {
     "id": "nonogram",
@@ -442,7 +526,14 @@
       "scripts/logic-1-levels-check.tsx",
       "scripts/logic-1-steps-check.ts"
     ],
-    "risk": "low; pictures needing three two-line steps may be slow to build live and want a bank"
+    "risk": "low; pictures needing three two-line steps may be slow to build live and want a bank",
+    "evidence": {
+      "easy": "documented: today's level kept; logic-1-tune under human limits, 20 deals (levels-research.md): great 197.4, near-perfect 199.7",
+      "hard": "documented: today's 9x11 board on a 120 s clock (logic-1-tune, 20 deals): great 158.4 (90 % finished), near-perfect 189.9; the proposed 100 s clock was not run",
+      "expert": "documented: today's 9x14 board needing one two-line step (logic-1-tune, 20 deals): great 126.0 (30 % finished), near-perfect 182.1; three two-line steps were not run"
+    },
+    "verdict": "unproven: the boards are today's, but the 100 s Hard clock and the three two-line steps on Expert were not run.",
+    "limitsToday": "scripts/logic-1-tune.ts:42-50 holds every kit step to 0.4 s (0.25 s react + 0.15 s move) and measures; scripts/logic-1-steps-check.ts:19-24 asserts on 20 deals that the great bot drops at least 5 points a level and the near-perfect bot finishes 75 % of Expert with a best tenth of 185+. The deal's own proof has no clock."
   },
   {
     "id": "flood",
@@ -476,7 +567,14 @@
       "scripts/flood-par-proof.ts",
       "scripts/logic-1-levels-check.tsx"
     ],
-    "risk": "the exact-par search at 7 colours and par 22–26 on 336 squares may be too slow to bank"
+    "risk": "the exact-par search at 7 colours and par 22–26 on 336 squares may be too slow to bank",
+    "evidence": {
+      "easy": "documented: today's level kept; logic-1-tune under human limits, 20 deals (levels-research.md): great 198.8, near-perfect 199.0",
+      "hard": "not measured: the narrowed pass ran the redesign rows only",
+      "expert": "not measured: the narrowed pass ran the redesign rows only"
+    },
+    "verdict": "unproven: the 14x20 Hard and the 7 colour Expert need new banks with an exact par and were not built.",
+    "limitsToday": "scripts/logic-1-tune.ts:42-50 holds every kit step to 0.4 s (0.25 s react + 0.15 s move) and measures; scripts/logic-1-steps-check.ts:19-24 asserts on 20 deals that the great bot drops at least 5 points a level and the near-perfect bot finishes 75 % of Expert with a best tenth of 185+. The deal's own proof has no clock."
   },
   {
     "id": "minesweeper",
@@ -492,17 +590,17 @@
     "measured": "great / near-perfect under human limits: E 199.1 / 200, N 194.6 (90 % finished) / 200, H 188.9 (95 %) / 196.4, X 174.2 (85 %) / 191.0",
     "easy": "As today (minesRev 4): 8×12, 9 mines, about a third of the board already open, 90 s; a mine costs 5 points and never the run",
     "hard": "10×16, 26 mines (today 20, only 4 more than Normal), opening 12–24 squares, 90 s, full speed by 45 s",
-    "expert": "10×16, 36 mines (22 % of the board), opening 6–12, 120 s, full speed by 60 s; squares stay 37 px (today's 12×18 draws them at about 31 px, under the 36 px floor). Ceiling: 10×16 is Normal's board already, so the lever is mine density and the opening",
+    "expert": "10×16, 40 mines (a quarter of the board), opening 6–12, 120 s, full speed by 75 s, dealt from a pre-proved bank; squares stay 37 px (today's 12×18 draws them at about 31 px, under the 36 px floor). Ceiling: 10×16 is Normal's board already, so the lever is mine density and the opening",
     "glance": {
       "easy": "A small board, a third of it already open",
       "hard": "Mines 26 on the counter and a small opening",
-      "expert": "Mines 36 and only a handful of squares open"
+      "expert": "Mines 40 and only a handful of squares open"
     },
-    "why": "The board cannot grow without shrinking the squares under a thumb, so the ladder is the mine count (9, 16, 26, 36) with the free opening shrinking as it climbs, which is how this game gets harder everywhere it is played.",
-    "proof": "Every board is dealt by the existing rule: the logic solver minesSolve clears it from the opening with never a guess (logic-1-levels-check, minefield-logic-check). At 26 and 36 mines deal from a pre-proved bank, and the oracle (scripts/cards-board-oracles.ts) must reach 200 under HUMAN_LIMITS on every banked seed or the seed is dropped.",
+    "why": "The board cannot grow without shrinking the squares under a thumb, so the ladder is the mine count (9, 16, 26, 40) with the free opening shrinking as it climbs, which is how this game gets harder everywhere it is played.",
+    "proof": "Every board is dealt by the existing rule: the logic solver minesSolve clears it from the opening with never a guess (logic-1-levels-check, minefield-logic-check). At 26 and 40 mines deal from a pre-proved bank (at 40, 17 % of seeds find no board inside the live deal's 600 tries), and the oracle (scripts/cards-board-oracles.ts) must reach 200 under HUMAN_LIMITS on every banked seed or the seed is dropped.",
     "change": "redesign",
     "newMechanic": "",
-    "stamp": "minesRev 6 (Hard, 26 mines) and minesRev 7 (Expert, 36 mines): each level's geometry and clock ride on its own revision, and stored minesRev 2 and 5 rounds must replay as dealt",
+    "stamp": "minesRev 6 (Hard, 26 mines) and minesRev 7 (Expert, 40 mines): each level's geometry and clock ride on its own revision, and stored minesRev 2 and 5 rounds must replay as dealt",
     "files": [
       "src/lib/arcade/minesweeper.ts",
       "src/lib/levels/gameLevels.ts",
@@ -511,7 +609,14 @@
       "scripts/minefield-logic-check.ts",
       "docs/arcade-standard/minesweeper.md"
     ],
-    "risk": "no-guess boards at 22 % mines from a 6–12 square opening may be too rare; fall back to 32 mines"
+    "risk": "40 mines needs the bank (17 % of seeds find no no-guess board in 600 tries; at 38 mines 8 %, average 101.5, elite 200 on 15 of 24); the elite still averages 198, so Expert is very hard for the average player only",
+    "evidence": {
+      "easy": "measured: today's minesRev 4 kept, 24 seeds, skill-band bot graded by the server replay: average 190.0 (23/24 cleared), elite under limits 200 on all 24",
+      "hard": "measured: 10x16, 26 mines, opening 12-24, full by 45 s patched in memory on minesRev 2, 24 seeds: average 128.9 (0/24 cleared), elite under limits avg 195.3, med 198, 200 on 8; the deal took 8 tries a seed and none of 300 seeds failed",
+      "expert": "measured: 10×16, 40 mines, opening 6–12, 120 s, full by 75 s in memory on minesRev 5, 24 seeds (8 on the stand-in board): average 93.3, 0/24 cleared, elite under limits 197.8, 24/24, 200 on 10. At 36 mines, full by 60 s: average 112.1, elite 196.0"
+    },
+    "verdict": "adjusted: Expert's mines 36 to 40 and full speed by 60 to 75 s, because at 36 the average bot was only 17 points below Hard (112 against 129) and at 40 it is 93 with the elite reaching 200 on 10 of 24; Easy stays 14 above Normal (190, 177) under the 200 ceiling.",
+    "limitsToday": "scripts/logic-1-tune.ts:63-85 holds the bot's taps 0.4 s apart and measures; scripts/logic-1-steps-check.ts:19-24 asserts the level steps and Expert's finish (75 %) and best tenth (185+) on 20 deals; scripts/level-tune.ts:131 passes HUMAN_LIMITS to the bot with --human-limits. The deal's proof (minesSolve, minesweeper.ts:405-420) has no clock."
   },
   {
     "id": "tents",
@@ -544,7 +649,14 @@
       "src/lib/duel/logicHuman.server.ts",
       "scripts/logic-levels-check.ts"
     ],
-    "risk": "13 rows draw under 36 px on a 667 px tall phone"
+    "risk": "13 rows draw under 36 px on a 667 px tall phone",
+    "evidence": {
+      "easy": "documented: today's level kept; level-tune near-perfect kit, 20 boards, no human limits (levels-research.md): 199.8",
+      "hard": "not measured: the narrowed pass ran the redesign rows only",
+      "expert": "not measured: the narrowed pass ran the redesign rows only"
+    },
+    "verdict": "unproven: 8x11 and 8x13 boards fit the generator's height setting but were not run in this pass.",
+    "limitsToday": "No reaction or move limit. src/lib/duel/logicLevelDeal.server.ts:86-90 keeps a level board only when the person-style solver (logicHuman.server.ts solveLikePerson) finishes it inside the trial band, and scripts/logic-levels-check.ts:170 re-runs it; the solver counts trials and has no clock. The kits scale think time by LEVEL_THINK (scripts/puzzle-fairness/kit.ts:167)."
   },
   {
     "id": "shikaku",
@@ -577,7 +689,14 @@
       "src/lib/duel/logicHuman.server.ts",
       "scripts/logic-levels-check.ts"
     ],
-    "risk": "low; 15 rows of 36 px leave no spare height on a short phone"
+    "risk": "low; 15 rows of 36 px leave no spare height on a short phone",
+    "evidence": {
+      "easy": "documented: today's level kept; level-tune near-perfect kit, 20 boards, no human limits (levels-research.md): 199.5",
+      "hard": "not measured: the narrowed pass ran the redesign rows only",
+      "expert": "not measured: the narrowed pass ran the redesign rows only"
+    },
+    "verdict": "unproven: 10x13 and 10x15 boards fit the generator's height setting but were not run in this pass.",
+    "limitsToday": "No reaction or move limit. src/lib/duel/logicLevelDeal.server.ts:86-90 keeps a level board only when the person-style solver (logicHuman.server.ts solveLikePerson) finishes it inside the trial band, and scripts/logic-levels-check.ts:170 re-runs it; the solver counts trials and has no clock. The kits scale think time by LEVEL_THINK (scripts/puzzle-fairness/kit.ts:167)."
   },
   {
     "id": "lightup",
@@ -610,7 +729,14 @@
       "src/lib/duel/logicHuman.server.ts",
       "scripts/logic-levels-check.ts"
     ],
-    "risk": "14 rows draw under 36 px on a 667 px tall phone"
+    "risk": "14 rows draw under 36 px on a 667 px tall phone",
+    "evidence": {
+      "easy": "documented: today's level kept; level-tune near-perfect kit, 20 boards, no human limits (levels-research.md): 199.3",
+      "hard": "documented: today's Expert board (9x12, 26-30 walls) on a 120 s clock: near-perfect kit 158.9, 80 % finished (levels-research.md); the proposed 100 s clock was not run",
+      "expert": "not measured: the narrowed pass ran the redesign rows only"
+    },
+    "verdict": "unproven: Hard is today's Expert board with 20 s less and the 9x14 Expert was not run.",
+    "limitsToday": "No reaction or move limit. src/lib/duel/logicLevelDeal.server.ts:86-90 keeps a level board only when the person-style solver (logicHuman.server.ts solveLikePerson) finishes it inside the trial band, and scripts/logic-levels-check.ts:170 re-runs it; the solver counts trials and has no clock. The kits scale think time by LEVEL_THINK (scripts/puzzle-fairness/kit.ts:167)."
   },
   {
     "id": "trail",
@@ -646,7 +772,14 @@
       "scripts/logic-levels-check.ts",
       "src/puzzles/trail.tsx"
     ],
-    "risk": "proving one path on 8×8 may be too slow to bank 120 boards; fall back to 7×7 with 11 numbers for Expert"
+    "risk": "proving one path on 8×8 may be too slow to bank 120 boards; fall back to 7×7 with 11 numbers for Expert",
+    "evidence": {
+      "easy": "not measured: the board is fixed at 6x6 (src/lib/duel/trail.ts:8-9 TR_SIZE; generateTrail in trail.server.ts:13 takes no size), so a 5x5 board cannot be generated",
+      "hard": "not measured: a 7x7 board needs new generator and solver code (trail.server.ts:34 and the person-style trail model in logicHuman.server.ts read TR_CELLS, 36)",
+      "expert": "not measured: an 8x8 board cannot be generated, proved or solved by today's code (fixed 6x6, as above); the bank-yield and search-cost risk is untested"
+    },
+    "verdict": "unproven: Trail has no size setting today, so none of the three proposed boards can be dealt, solved or timed without new code.",
+    "limitsToday": "No reaction or move limit. src/lib/duel/logicLevelDeal.server.ts:86-90 keeps a level board only when the person-style solver (logicHuman.server.ts solveLikePerson) finishes it inside the trial band, and scripts/logic-levels-check.ts:170 re-runs it; the solver counts trials and has no clock. The kits scale think time by LEVEL_THINK (scripts/puzzle-fairness/kit.ts:167)."
   },
   {
     "id": "fences",
@@ -682,7 +815,14 @@
       "scripts/logic-levels-check.ts",
       "src/puzzles/fences.tsx"
     ],
-    "risk": "Loopline is square-only today: rules, solver, stage and reveal all need a row count"
+    "risk": "Loopline is square-only today: rules, solver, stage and reveal all need a row count",
+    "evidence": {
+      "easy": "documented: today's level kept; level-tune near-perfect kit, 20 boards, no human limits (levels-research.md): 199.0",
+      "hard": "documented: today's Expert board (8x8) on a 120 s clock: near-perfect kit 171.1, all finished (levels-research.md); the tighter grade band and 90 s clock were not run",
+      "expert": "not measured: FencesLevel has only a square size (src/lib/duel/logicOverhaul2Levels.ts:57-64), so an 8x10 board cannot be asked for"
+    },
+    "verdict": "unproven: Loopline is square-only today, so the 8x10 Expert cannot be dealt until rules, solver and stage take a row count.",
+    "limitsToday": "No reaction or move limit. src/lib/duel/logicLevelDeal.server.ts:86-90 keeps a level board only when the person-style solver (logicHuman.server.ts solveLikePerson) finishes it inside the trial band, and scripts/logic-levels-check.ts:170 re-runs it; the solver counts trials and has no clock. The kits scale think time by LEVEL_THINK (scripts/puzzle-fairness/kit.ts:167)."
   },
   {
     "id": "fillomino",
@@ -717,7 +857,14 @@
       "src/lib/duel/logicHuman.server.ts",
       "scripts/logic-levels-check.ts"
     ],
-    "risk": "9×9 boards inside a 300-trial band may be slow to find (the 8×8 bank already takes seconds a board)"
+    "risk": "9×9 boards inside a 300-trial band may be slow to find (the 8×8 bank already takes seconds a board)",
+    "evidence": {
+      "easy": "documented: today's level kept; level-tune near-perfect kit, 20 boards, no human limits (levels-research.md): 200.0",
+      "hard": "not measured: the narrowed pass ran the redesign rows only",
+      "expert": "not measured: the narrowed pass ran the redesign rows only"
+    },
+    "verdict": "unproven: the 8x8 Hard and 9x9 Expert fit the generator's size setting but were not run in this pass.",
+    "limitsToday": "No reaction or move limit. src/lib/duel/logicLevelDeal.server.ts:86-90 keeps a level board only when the person-style solver (logicHuman.server.ts solveLikePerson) finishes it inside the trial band, and scripts/logic-levels-check.ts:170 re-runs it; the solver counts trials and has no clock. The kits scale think time by LEVEL_THINK (scripts/puzzle-fairness/kit.ts:167)."
   },
   {
     "id": "bridges",
@@ -753,6 +900,13 @@
       "scripts/logic-levels-check.ts",
       "src/puzzles/bridges.tsx"
     ],
-    "risk": "Island Link is square-only today: rules, solver, stage and reveal all need a row count"
+    "risk": "Island Link is square-only today: rules, solver, stage and reveal all need a row count",
+    "evidence": {
+      "easy": "documented: today's level kept; level-tune near-perfect kit, 20 boards, no human limits (levels-research.md): 199.6",
+      "hard": "documented: today's Expert board (8x8, 18-22 islands) on a 120 s clock: near-perfect kit 155.5, 85 % finished (levels-research.md); the 105 s clock was not run",
+      "expert": "not measured: BridgesLevel has only a square size (src/lib/duel/logicOverhaul2Levels.ts:73-80), so an 8x11 board cannot be asked for"
+    },
+    "verdict": "unproven: Island Link is square-only today, so the 8x11 Expert cannot be dealt until rules, solver and stage take a row count.",
+    "limitsToday": "No reaction or move limit. src/lib/duel/logicLevelDeal.server.ts:86-90 keeps a level board only when the person-style solver (logicHuman.server.ts solveLikePerson) finishes it inside the trial band, and scripts/logic-levels-check.ts:170 re-runs it; the solver counts trials and has no clock. The kits scale think time by LEVEL_THINK (scripts/puzzle-fairness/kit.ts:167)."
   }
 ]

@@ -12,7 +12,7 @@
     },
     "measured": "Elite held to human limits 124 / 114 / 106 / 100 (Expert best tenth 123); 140 ms elite 188 / 186 / 187 / 183 (speed-levels-tune, 100 deals). Average player: not documented.",
     "easy": "5 golds; the first inside 3 s with no trap before it (today 4–7 s); 0–1 plain trap before the others and no look-alikes (as today); gold up 1.5 s.",
-    "hard": "8 golds; 3–5 traps before each (about 32 a round against Normal's 13), each 0.45 s long and 0.6–1 s apart, the first inside the first second; 75 % gold look-alikes; gold up 0.9 s.",
+    "hard": "8 golds; 2–3 traps before each (about 20 a round against Normal's 13), each 0.45 s long and 0.6–1 s apart, the first inside the first second; 75 % gold look-alikes; gold up 0.9 s.",
     "expert": "9 golds; 6–8 traps before each (about 63 a round), each 0.35 s long and 0.5–0.65 s apart (never more than two a second); 90 % look-alikes; gold up 0.6 s.",
     "glance": {
       "easy": "A calm dark glass; the first gold arrives within three seconds.",
@@ -20,12 +20,19 @@
       "expert": "The glass flickers twice a second, nearly all gold look-alikes."
     },
     "why": "The only thing Flash can ask beyond a fast finger is not to be fooled, so the traps multiply and quicken while the gold's own window never drops below 0.6 s, more than twice the 0.25 s limit.",
-    "proof": "Open by design (a reaction game). At 0.25 s a gold pays 115 on tapRev 7's curve, so with the 15-point steady hand the limits player tops out at 130 on every level, Normal included. Expert's 200 needs I1's tapRev 8 with the curve's full mark at 250 ms (I1 as written, 250 ms = 150, still caps the limits player at 165). With that, playFlashHuman in scripts/speed-levels-tune.ts must reach 200 in its best tenth at Expert, pinned in scripts/speed-levels-check.ts.",
+    "proof": "Open by design (a reaction game). At 0.25 s a gold pays 115 on tapRev 7's curve, so with the 15-point steady hand the limits player tops out at 130 on every level, Normal included (measured through the server's grader: 250 ms 130, 200 ms 135, 170 ms 165, 140 ms 190 at all four levels). Expert's 200 needs I1's tapRev 8 with the curve's full mark at 250 ms (I1 as written, 250 ms = 150, still caps the limits player at 165). With that, playFlashHuman in scripts/speed-levels-tune.ts must reach 200 in its best tenth at Expert, pinned in scripts/speed-levels-check.ts.",
     "change": "retune",
     "newMechanic": "",
     "stamp": "Level field only: the deal stamps flashMs (as today) and a new trapMs that the stage and replayFlash read. Expert's 200 also needs I1's tapRev 8 (Joe's scoring decision).",
     "files": ["src/lib/levels/speedLevels.ts", "src/puzzles/reaction.tsx", "src/lib/duel/tapLog.ts", "src/lib/duel/depth/flash.ts", "scripts/speed-levels-tune.ts", "scripts/speed-levels-check.ts"],
-    "risk": "Until I1 moves the curve no level can pass 130 under the limits, and fast full-screen flashes must stay under three a second."
+    "risk": "The scoring curve, not the level, caps a 0.25 s player at 130 on every level (115 a gold plus the 15-point steady hand). Level design can only change how often a player is fooled; it cannot lift that cap, so no Expert reaches 200 under the limits until a scoring change (I1's tapRev 8, which as written still stops at 165). The average kit is already at its floor (17) on any Expert of 36 traps or more, and fast full-screen flashes must stay under three a second.",
+    "evidence": {
+      "easy": "measured: today's Easy (the first gold inside 3 s needs builder code), speed-levels-tune players, 100 deals: average kit 91, limits 122 (best tenth 131), 140 ms elite 188. A run on exactly 250 ms scores 130.",
+      "hard": "measured: adjusted Hard built by hand in memory (8 golds, 2–3 traps, 75 % look-alikes, gold 0.9 s), 100 deals: average kit 35, limits 106 (best 131). As first proposed (3–5 traps) it scored 21 and 99, the same as today's Expert (24 and 100).",
+      "expert": "measured: built by hand in memory (9 golds, 6–8 traps, 90 % look-alikes, gold 0.6 s), 100 deals: average kit 17 (its floor), limits 69 (best 107), 140 ms elite 180. Exactly 250 ms scores 130, so no run reached 200."
+    },
+    "verdict": "adjusted: Hard's traps cut from 3–5 to 2–3 before each gold (about 20 a round) because 3–5 scored the same as today's Expert; the average kit now steps 91, 71, 35, 17, and Expert's 200 stays out of reach under the limits on today's curve (130 at most).",
+    "limitsToday": "scripts/speed-levels-tune.ts:134 playFlashHuman (250 ± 25 ms reactions plus lure taps) under the tool's own HUMAN_LIMITS (:32); scripts/speed-levels-check.ts:215-220 asserts on 100 deals that Easy is no harder than Normal, Hard and Expert are each 3 lower, and Expert's best tenth is at least min(140, Normal's average), which for Flash is Normal's 114. Nothing asserts 200. level-tune.ts --human-limits plays the plain kits and ignores the flag for puzzles (level-tune.ts:163)."
   },
   {
     "id": "numhunt",
@@ -40,20 +47,27 @@
     },
     "measured": "Elite held to human limits 199 / 199 / 190 / 178 (Expert best tenth 181); 140 ms elite 200 / 199 / 199 / 193. Average player: not documented.",
     "easy": "16 numbers, 1 to 16 with no gaps (today 16 picked from 1–30), discs never move, 60 s, speed full by 15 s (today 40 s).",
-    "hard": "32 numbers 10–99, discs move every 10 s, 40 s clock, speed full by 32 s.",
-    "expert": "40 numbers 10–99, highest first, discs move every 8 s, 55 s clock, speed full by 49 s. 40 is the 390 px ceiling at 44 px discs (a jittered 5 × 8 grid).",
+    "hard": "32 numbers 10–99, discs move every 10 s, 42 s clock, speed full by 34 s.",
+    "expert": "40 numbers 10–99, highest first, discs move every 8 s, 55 s clock, speed full by 51 s. 40 is the 390 px ceiling at 44 px discs (a jittered 5 × 8 grid).",
     "glance": {
       "easy": "Sixteen big discs, 1 to 16, that never move.",
       "hard": "Thirty-two discs crowd the board; the clock bar is short.",
       "expert": "Forty discs fill the board; the goal says highest first."
     },
     "why": "Search time grows with the square of the numbers on the board (about 11, 20, 33 and 51 s for the limits player), so eight more discs a level is a steep, even step anyone can see.",
-    "proof": "Open (search and tap). playAscend in scripts/speed-levels-tune.ts under HUMAN_LIMITS (0.25 s to react, 0.15 s to move, 35 ms a disc still to search) finishes Hard in about 33 s and Expert in about 51 s; each clock and full-by is set from that run so its best tenth scores 200, pinned in scripts/speed-levels-check.ts. Today's Expert is full by 20 s against about 31 s for that player (best tenth 181).",
+    "proof": "Open (search and tap). playAscend in scripts/speed-levels-tune.ts under HUMAN_LIMITS (0.25 s to react, 0.15 s to move, 35 ms a disc still to search) finishes Hard in about 34 s and Expert in about 52 s (measured, 100 deals); with speed full by 34 s and 51 s its best tenth scores 200 on both (57 and 20 runs in 100), to be pinned in scripts/speed-levels-check.ts. At the first proposal's 32 s and 49 s one Hard run and no Expert run in 100 reached 200. Today's Expert is full by 20 s against about 33 s for that player (best tenth 181).",
     "change": "retune",
     "newMechanic": "",
     "stamp": "Level field only: moveMs, timeLimitMs, fullByS and descending are already stamped on the puzzle, and the count and range are in the dealt board.",
     "files": ["src/lib/levels/speedLevels.ts", "src/puzzles/numberHunt.tsx", "scripts/speed-levels-tune.ts", "scripts/speed-levels-check.ts"],
-    "risk": "40 discs need the jittered grid, which reads more orderly than a free scatter."
+    "risk": "40 discs need the jittered grid, which reads more orderly than a free scatter; and Easy can sit only about 9 above Normal for an average player, who already scores about 162 on Normal.",
+    "evidence": {
+      "easy": "measured: proposed settings in memory, playAscend, 100 deals: average kit 171 (every run finishes, median 16 s); limits 199 (21 of 24 at 200). Normal's average kit is 162, so the step is 9 whatever Easy does.",
+      "hard": "measured: 32 discs, 42 s, full by 34 s, in memory, playAscend, 100 deals: average kit 77 (12 % finish), limits 196 (57 at 200), finish median 34 s. At the first proposal's 40 s and 32 s: average 64, limits 188, one run at 200.",
+      "expert": "measured: 40 discs highest first, 55 s, in memory, 100 deals: limits 173 at full by 49 s (best 193, no 200) and 181 at 51 s (best tenth 200, 20 at 200), 94 % finish in a median 52 s. Average kit 49, never finishes."
+    },
+    "verdict": "adjusted: Hard's clock 40 to 42 s and full by 32 to 34 s (at 40 s the average kit was only 15 above Expert, 64 and 49; now 77), and Expert's full by 49 to 51 s (no run in 100 reached 200 at 49 s); Easy is only 9 above Normal for the average kit (171 and 162), which Easy cannot fix.",
+    "limitsToday": "scripts/speed-levels-tune.ts:54 playAscend through actionMs (:48-52: 250 ± 25 ms to react, 150 ms to move, 35 ms a disc to search) under the tool's HUMAN_LIMITS (:32); scripts/speed-levels-check.ts:215-220 asserts the step rules on 100 deals (Expert's best tenth at least 140; it is 181). Nothing asserts 200: no limits run reaches it on today's Hard or Expert."
   },
   {
     "id": "symscan",
@@ -68,20 +82,27 @@
     },
     "measured": "Great / near-perfect kit, 40 seeds: E 184 / 193, N 187 / 196, H 159 / 179, X 148 / 175 (Expert best tenth 166 / 189). Easy scores below Normal for the great kit. Average player: not documented.",
     "easy": "Grids 4×4, 4×4, 5×5 (16, 16, 25 eagles); 3–5 targets; one facing; no look-alikes (every other eagle faces at least 90° away); 60 s; speed full by 20 s.",
-    "hard": "Grids 7×7, 8×8, 8×8 (49, 64, 64 eagles); 8–12 targets; two facings from grid 2; 75 % look-alikes; 60 s; speed full by 26 s.",
+    "hard": "Grids 6×6, 7×7, 8×8 (36, 49, 64 eagles); 8–12 targets; two facings from grid 2; 75 % look-alikes; 60 s; speed full by 26 s.",
     "expert": "Three grids of 8 across by 10 down (80 eagles each at 45 px, the phone's ceiling); 10–14 targets in two facings on every grid; 85 % look-alikes; 60 s; speed full by 40 s.",
     "glance": {
       "easy": "Sixteen big eagles, and nothing that nearly matches.",
-      "hard": "Forty-nine small eagles in the very first grid.",
+      "hard": "Thirty-six eagles in the first grid, sixty-four in the last.",
       "expert": "Eighty eagles a grid and two facings to find."
     },
-    "why": "A search game is as hard as the crowd is big, so the first grid runs 16, 25, 49, 80 eagles (to the 45 px ceiling) while look-alikes and a second facing slow every judgement.",
+    "why": "A search game is as hard as the crowd is big, so the first grid runs 16, 25, 36, 80 eagles (to the 45 px ceiling) while look-alikes and a second facing slow every judgement.",
     "proof": "Answers are counted from the dealt board (scripts/attention-levels-check.ts). Only the 10 speed points are timed: a limits run (0.4 s a tap plus the scan; to be added to scripts/attention-levels-lib.ts) sets each full-by so its best tenth scores 200. Today Hard and Expert are full by 8 s, under the 11 and 13 s their taps alone take (best tenth 189); the check's own 200 is a 40 ms-a-step run.",
     "change": "retune",
     "newMechanic": "",
     "stamp": "levelRev 2 on level deals: the grader reads full-by from the level table by level name, so new numbers need a stamp to leave stored level rounds alone. Normal untouched.",
     "files": ["src/lib/levels/attentionLevels.data.ts", "src/puzzles/symbolScan.tsx", "src/lib/duel/attentionLevels.ts", "src/lib/duel/attentionLevels.server.ts", "src/lib/duel/standard/attention.server.ts", "scripts/attention-levels-lib.ts", "scripts/attention-levels-check.ts"],
-    "risk": "45° look-alikes must stay readable on 45 px eagles."
+    "risk": "45° look-alikes must stay readable on 45 px eagles; an 8 by 10 grid needs a rows setting the square-grid builder does not have (measured as 9×9); and the average kit finishes neither Hard nor Expert, so it sits only 14 apart on them (48 and 34).",
+    "evidence": {
+      "easy": "measured: row patched in memory (grids 4×4, 4×4, 5×5; no look-alikes; full by 20 s), kits, 24 deals: average kit 170 (every run finishes; today's Easy 138), great 190, near-perfect 197. Normal's average kit: 141.",
+      "hard": "measured: row in memory (6×6, 7×7, 8×8; 8–12 targets; full by 26 s), kits, 48 deals: average kit 48, great 155, near-perfect 179 (one run at 200); flawless taps at 0.4 s score 200 (11–14 s). At 7×7, 8×8, 8×8 the average kit scored 41.",
+      "expert": "measured: stand-in in memory (three 9×9 grids of 81, since 8 by 10 cannot be dealt; 10–14 targets, 85 % look-alikes, full by 40 s), 48 deals: average kit 34, great 89, near-perfect 169 (2 at 200); flawless taps at 0.4 s score 200 (14–17 s)."
+    },
+    "verdict": "adjusted: Hard's grids eased from 7×7, 8×8, 8×8 to 6×6, 7×7, 8×8, because the average kit was only 7 above Expert (41 and 34; now 48, still 14 apart as it finishes neither); the great kit steps 190, 187, 155, 89 and Expert reaches 200, measured as 9×9 because 8 by 10 cannot be dealt today.",
+    "limitsToday": "Nothing applies the human limits. scripts/attention-levels-check.ts:257 plays its flawless run at 40 ms a step (:304 asserts it scores 200 at every level) and :348-351 asserts the near-perfect kit finishes over half of Expert boards. level-tune.ts --human-limits ignores the flag for puzzles (level-tune.ts:163)."
   },
   {
     "id": "spotdiff",
@@ -109,7 +130,14 @@
     "newMechanic": "Mirrored lower picture, at Expert.",
     "stamp": "levelRev 2 on level deals (miss limits and full-by are read from the level table) and a stored mirror flag on Expert deals, through which taps are mapped.",
     "files": ["src/lib/levels/attentionLevels.data.ts", "src/puzzles/spotTheDifference.tsx", "src/lib/duel/attentionLevels.server.ts", "src/lib/duel/attentionRev.ts", "src/lib/duel/standard/attention.server.ts", "scripts/attention-levels-lib.ts", "scripts/attention-levels-check.ts"],
-    "risk": "Joe may read the mirror as a gimmick; the fallback Expert is a third 8×7 picture in 90 s."
+    "risk": "Joe may read the mirror as a gimmick, and nothing can measure it until it is built: without it the proposed Expert scores the same as Hard. The measured fallback Expert is the same 8×7 with 10 differences and the hidden one in 60 s, full by about 50 s (average kit 35, great 96, near-perfect 171 at full by 45 s, where no run in 24 reached 200).",
+    "evidence": {
+      "easy": "measured: row patched in memory (5×4, 4 differences), kits, 12 deals: average kit 179 (every run finishes; today's Easy 154), great 183, near-perfect 198. The 8-miss allowance is grader code and was not run.",
+      "hard": "measured: row in memory (8×7, 8 + hidden, 75 s, full by 45 s), kits, 24 deals: average kit 52, great 165, near-perfect 185 (5 at 200). Normal: 78, 178, 192. The 3-miss limit is grader code and was not run.",
+      "expert": "not measured: the mirror is not built. Without it (8×7, 10 + hidden, 90 s; 12 deals) the kits score 52, 161, 185, the same as Hard; in 60 s, full by 45 s (24 deals) 35, 96, 171 and no 200."
+    },
+    "verdict": "unproven: the mirror is not built, and without it the proposed Expert scores the same as Hard (average kit 52 and 52, near-perfect 185 and 185), so the whole Expert step rests on it; the fallback in risk is replaced by a measured one (10 differences in 60 s: average kit 35).",
+    "limitsToday": "Nothing applies the human limits. scripts/attention-levels-check.ts:257 plays its flawless run at 40 ms a step (:304 asserts it scores 200 at every level) and :348-351 asserts the near-perfect kit finishes over half of Expert boards. level-tune.ts --human-limits ignores the flag for puzzles (level-tune.ts:163)."
   },
   {
     "id": "countup",
@@ -124,20 +152,27 @@
     },
     "measured": "Great / near-perfect kit, 40 seeds: E 166 / 192, N 162 / 185, H 125 / 169, X 115 / 160 (Expert best tenth 183 / 200). Average player: not documented. No contact sheet exists for Tally.",
     "easy": "3 trays of 15, 25, 35 shapes; counts 3–9; each tray asks for one colour or one shape alone; no near-miss groups; marks on; 60 s; speed full by 20 s.",
-    "hard": "4 trays of 80, 95, 110, 80; counts 8–24; 3 near-miss groups; comparison gap 1–5; marks on; 75 s; speed full by 45 s.",
-    "expert": "4 trays of 110 (the most a tray holds); counts 12–26; two-colour questions; 3 near-miss groups; no marks; 90 s; speed full by 60 s.",
+    "hard": "4 trays of 80, 95, 110, 80; counts 8–24; 3 near-miss groups; comparison gap 1–5; marks on; 60 s; speed full by 30 s.",
+    "expert": "4 trays of 110 (the most a tray holds); counts 12–26; two-colour questions; 3 near-miss groups; no marks; 75 s; speed full by 35 s.",
     "glance": {
       "easy": "Fifteen big shapes; count one colour.",
       "hard": "Eighty shapes on the first tray, counts into the twenties.",
       "expert": "A packed tray of 110, two colours, no marks."
     },
     "why": "Counting gets harder with the crowd and the size of the count, so both rise every level to the 110-shape ceiling and only Expert loses the marks, where today's Hard is a 5-second speed target nobody can see or meet.",
-    "proof": "Each answer is counted from the dealt tray (scripts/attention-levels-check.ts). A limits run (about 0.25 s an item counted and 0.4 s a key; to be written in scripts/attention-levels-lib.ts) sets each full-by so its best tenth scores 200. Today's Hard is full by 5 s, about the time it takes just to key four answers.",
+    "proof": "Each answer is counted from the dealt tray (scripts/attention-levels-check.ts). A limits run (about 0.25 s an item counted and 0.4 s a key; to be written in scripts/attention-levels-lib.ts) sets each full-by so its best tenth scores 200: a scratch run at that pace finished every one of 100 Hard deals in 17–26 s and every Expert deal in 19–28 s, inside the 30 s and 35 s full-bys, and scored 200 on all of them. Today's Hard is full by 5 s, under the 12–22 s that run needs (it scores 185–193).",
     "change": "redesign",
     "newMechanic": "",
     "stamp": "levelRev 2 on level deals: full-by is read from the level table by level name; the trays themselves are in the dealt board.",
     "files": ["src/lib/levels/attentionLevels.data.ts", "src/puzzles/countUp.tsx", "src/lib/duel/attentionLevels.server.ts", "src/lib/duel/standard/attention.server.ts", "scripts/attention-levels-lib.ts", "scripts/attention-levels-check.ts"],
-    "risk": "110-shape trays with counts in the twenties leave few clear colours; the spread already re-deals trays it cannot make legible."
+    "risk": "110-shape trays with counts in the twenties leave few clear colours; the spread already re-deals trays it cannot make legible. The kits' miscount chance does not fall with the size of the tray, so they cannot show Easy's welcome (average kit 98, 29 % finish).",
+    "evidence": {
+      "easy": "measured: row patched in memory, kits, 100 deals: average kit 98 (29 % finish; today's Easy 88), great 169, near-perfect 190; a flawless run at 0.25 s an item scores 200 in 5–9 s. One colour or one shape alone is generator code, not run.",
+      "hard": "measured: row in memory at 60 s, full by 30 s, 100 deals: average kit 29, great 128, near-perfect 173; flawless limits run 200 on all 100 (17–26 s). At the first proposal's 75 s and 45 s the near kit scored 183, the same as Normal (12 deals).",
+      "expert": "measured: row in memory at 75 s, full by 35 s, 100 deals: average kit 6, great 78, near-perfect 147 (best 200, one run); flawless limits run 200 on all 100 (19–28 s). At 90 s and 60 s the near kit scored 181, the same as Hard (12 deals)."
+    },
+    "verdict": "adjusted: Hard's clock and full-by cut from 75 and 45 s to 60 and 30 s and Expert's from 90 and 60 s to 75 and 35 s, because at the proposed times the near-perfect kit scored the same on Normal, Hard and Expert (183, 183, 181); now the average kit steps 98, 59, 29, 6 and the near-perfect kit 190, 184, 173, 147, with 200 reached at Expert.",
+    "limitsToday": "Nothing applies the human limits. scripts/attention-levels-check.ts:257 plays its flawless run at 40 ms a step (:304 asserts it scores 200 at every level) and :348-351 asserts the near-perfect kit finishes over half of Expert boards. level-tune.ts --human-limits ignores the flag for puzzles (level-tune.ts:163)."
   },
   {
     "id": "maze",
@@ -152,20 +187,27 @@
     },
     "measured": "Great / near-perfect kit, 40 seeds: E 196 / 199, N 184 / 196, H 158 / 176, X 150 / 169 (Expert best tenth 162 / 189); the person-like solver reaches the hidden exit in 36–71 s. Average player: not documented.",
     "easy": "As today (13×15, route 40–70, 4 dead ends, 60 s, full by 20 s): it already does its job, the great kit averages 196 on 28 px corridors.",
-    "hard": "21×27 (17 px corridors, the finest a finger can trace); 2 gold keys at the ends of long dead ends, fetched in either order before the exit opens; shortest walk 200–260 steps; 75 s; speed full by 55 s; par points gone at 1.5× par (Normal's rule).",
-    "expert": "21×27; 4 keys, one in each quarter; the exit shown from the start (today's hidden exit goes); shortest walk 320–400 steps; 105 s; speed full by 85 s; par points gone at 1.25× par.",
+    "hard": "21×27 (17 px corridors, the finest a finger can trace); 2 gold keys at the ends of long dead ends, fetched in either order before the exit opens, placed so the shortest walk is 200–250 steps; 75 s; speed full by 55 s; par points gone at 1.5× par (Normal's rule).",
+    "expert": "21×27; 4 keys, one in each quarter, placed so the shortest walk is 320–390 steps; the exit shown from the start (today's hidden exit goes); 105 s; speed full by 85 s; par points gone at 1.25× par.",
     "glance": {
       "easy": "A small maze with wide corridors.",
       "hard": "A fine maze with two gold keys and a locked exit.",
       "expert": "Four keys in four corners; par above 320."
     },
     "why": "The maze is already as fine as a finger can trace at 21 by 27, so the walk is lengthened the way mazes always have been, with keys to fetch, which shows at a glance and hides nothing, unlike today's hidden exit.",
-    "proof": "A perfect maze has one path between any two squares, so the shortest key tour is exact (tree distances over at most 24 orders) and becomes the par. personMazeSeconds in scripts/attention-levels-lib.ts (0.2 s a square, reading the walls) must be extended to tour the keys and finish every dealt Hard and Expert maze inside its full-by, which makes 200 reachable; a maze it cannot is redrawn. Today's full by 15 s and 20 s sit far under that solver's 36–71 s.",
+    "proof": "A perfect maze has one path between any two squares, so the shortest key tour is exact (tree distances over at most 24 orders) and becomes the par. personMazeSeconds in scripts/attention-levels-lib.ts (0.2 s a square, reading the walls) must be extended to tour the keys and finish every dealt Hard and Expert maze inside its full-by, which makes 200 reachable; a maze it cannot is redrawn. At that pace 250 steps take 55 s and 390 steps 85 s. Measured on 16 of today's 21×27 mazes (tree distances only): keys at the two deepest dead ends make the walk 222–372 steps and the deepest dead end in each quarter 340–541, so the keys must be placed for the walk length. Today's full by 15 s and 20 s sit far under that solver's 36–71 s (a flawless walk at 0.2 s a square scores 188–193 on today's Hard and Expert).",
     "change": "redesign",
     "newMechanic": "Gold keys to collect before the exit opens: 2 at Hard, 4 at Expert.",
     "stamp": "mazeRev 6 on Hard and Expert deals (the exit counts only once every key is held; par is the key tour); Easy and Normal keep mazeRev 5; levelRev 2 for the new full-by times.",
     "files": ["src/lib/levels/attentionLevels.data.ts", "src/lib/duel/maze.server.ts", "src/lib/duel/maze.ts", "src/lib/duel/depth/labyrinth.ts", "src/lib/duel/standard/attention.server.ts", "src/puzzles/mazeDash.tsx", "scripts/attention-levels-lib.ts", "scripts/attention-levels-check.ts"],
-    "risk": "Choosing the key order on 17 px corridors may decide the score more than the walking does."
+    "risk": "Where the keys go decides the level: at the deepest dead ends the walk runs past the full-by and, at Expert, past the clock, so the generator must place them for the walk length; and choosing the key order on 17 px corridors may decide the score more than the walking does.",
+    "evidence": {
+      "easy": "measured: today's Easy kept, kits, 12 deals: average kit 162 (83 % finish), great 196, near-perfect 199; a flawless walk at 0.2 s a square scores 200 (14–17 s). Normal's average kit: 63.",
+      "hard": "not measured: the keys are not built. Tree distances on 16 of today's Hard mazes: two keys at the two deepest dead ends make the walk 222–372 steps (median 318), 49–79 s at 0.2 s a square, past the 55 s full-by on most.",
+      "expert": "not measured: the keys are not built. On 16 of today's 21×27 mazes the deepest dead end in each quarter makes the walk 340–541 steps (75–115 s, past the 105 s clock on some); the farthest in each quarter 256–443 (58–96 s)."
+    },
+    "verdict": "unproven: the keys are a new mechanic and no kit can play them; the walk ranges are narrowed from 200–260 and 320–400 to 200–250 and 320–390 steps, with keys placed for the walk length, because keys at the deepest dead ends gave 222–372 and 340–541 steps, past the full-by and the clock.",
+    "limitsToday": "Nothing applies the 0.25 s and 0.15 s limits. scripts/attention-levels-check.ts:338-340 asserts personMazeSeconds (scripts/attention-levels-lib.ts:77, 0.2 s a square, 3 s to look, 1 s a pick) reaches Expert's hidden exit inside the 90 s clock on 75 % of mazes, not inside the 20 s full-by; :257 plays the flawless run at 40 ms a step (:304 asserts 200); :348-351 asserts the near-perfect kit finishes over half of Expert mazes."
   },
   {
     "id": "bomb",
@@ -193,7 +235,14 @@
     "newMechanic": "",
     "stamp": "levelRev 2 on level deals (full-by is read from the level table) and rebuilt Hard and Expert banks; Expert keeps its stored bombInstant flag.",
     "files": ["src/lib/levels/attentionLevels.data.ts", "src/lib/duel/bombLevels.server.ts", "scripts/bomb-levels-bank.ts", "src/lib/duel/bombLevelsBank.server.ts", "src/lib/duel/standard/logic.server.ts", "scripts/attention-levels-lib.ts", "scripts/attention-levels-check.ts"],
-    "risk": "Cards with one anchor clue that crack within 40 orders may be rare; Expert's proof already takes about 25 s a card."
+    "risk": "Only 4 of today's 120 Expert cards have at most one Step clue and crack within 40 orders (50 have two or fewer), so the rebuilt banks may be slow to fill; Expert's proof already takes about 25 s a card. The average kit scores 0 on every 7- or 8-step card at any clock, so only stronger players can show the Hard and Expert steps.",
+    "evidence": {
+      "easy": "measured: today's Easy kept, kits, 24 deals: average kit 138 (71 % finish), great 200, near-perfect 194; at a person's pace (2.5 s a clue, 1 s an order tried, 0.4 s a step) 23 of 24 score 200. Normal's average kit: 93.",
+      "hard": "measured: today's Expert cards dealt in memory as Hard (Reset kept, 105 s, full by 55 s), kits, 24 deals: average kit 0, great 80, near-perfect 180 (2 at 200); person's pace 200 on 21 of 24. 50 of today's 120 cards have two Step clues or fewer.",
+      "expert": "measured: 120 s, full by 70 s in memory, 24 deals: average kit 0, great 56, near-perfect 156 (13 at 200). Only 4 of today's 120 Expert cards have at most one Step clue and crack within 40 orders; on those the near kit scores 122 (6 of 17 at 200)."
+    },
+    "verdict": "unproven: the great and near-perfect kits step down as designed (Normal 178 and 194, Hard 80 and 180, Expert 56 and 156) and Expert reaches 200, but only 4 of today's 120 Expert cards pass the proposed Expert filter, so a full bank of such cards is not shown to exist; the average kit scores 0 on every 7- or 8-step card, today's Hard included, at 105 s and 120 s alike.",
+    "limitsToday": "Nothing applies the 0.25 s and 0.15 s limits. scripts/attention-levels-check.ts:335-337 asserts personBombTries (scripts/attention-levels-lib.ts:11) cracks every Expert bank card within 400 orders tried, with no clock; :257 plays the flawless run at 40 ms a step (:304 asserts 200); :348-351 asserts the near-perfect kit finishes over half of Expert cards."
   },
   {
     "id": "chain",
@@ -209,19 +258,26 @@
     "measured": "Elite held to human limits 174 / 160 / 141 / 119 (Expert best tenth 182); 140 ms elite 180 / 175 / 174 / 165. Speed is full by 30 s at every level. Average player: not documented.",
     "easy": "4 charms in the cycle and a new board every 4 links; 24 links; windows 4 / 3.5 / 3 s; no reversed board; one spare link (the first wrong or late tap is forgiven); 45 s; speed full by 25 s.",
     "hard": "6 charms and a new board every 6 links; 48 links; windows 2.5 / 2 / 1.6 s; two reversed boards; 60 s; speed full by 42 s. The board stays at 20 charms, its ceiling.",
-    "expert": "7 charms and a new board every 7 links; 56 links; windows 2 / 1.6 / 1.4 s (the human floor); three reversed boards; 70 s; speed full by 50 s.",
+    "expert": "7 charms and a new board every 7 links (needs a fourth charm shape: today's three shapes, two of each at most, stop at six); 56 links; windows 2 / 1.6 / 1.4 s (the human floor); three reversed boards; 70 s; speed full by 50 s.",
     "glance": {
       "easy": "Four charms in the strip and a spare-link pip.",
       "hard": "Six charms in the strip, and 0 / 48 links.",
       "expert": "Seven charms in the strip, and 0 / 56 links."
     },
     "why": "The cycle is what the player has to hold in mind, and four fits in a glance where seven does not, so a charm is added every level while the tap windows only fall to the human floor of 1.4 s.",
-    "proof": "Open (find and tap in time). playChain in scripts/speed-levels-tune.ts under HUMAN_LIMITS (0.4 s a tap, about 0.32 s to find a charm, more on a new or reversed board) must finish Expert's 56 links in its best tenth inside the stamped full-by, which is 200; scripts/speed-levels-check.ts pins it. Today full-by is 30 s at every level: 0.6 s a link over Expert's 50 links, under that player's 0.72 s (best tenth 182).",
+    "proof": "Open (find and tap in time). playChain in scripts/speed-levels-tune.ts under HUMAN_LIMITS (0.4 s a tap, about 0.32 s to find a charm, more on a new or reversed board) must finish Expert's 56 links in its best tenth inside the stamped full-by, which is 200; scripts/speed-levels-check.ts pins it. Measured with 6 charms standing in for 7 (400 deals): 38 % of limits runs finish, in about 47 s, and every finisher scores 200. Today full-by is 30 s at every level, so no limits run reaches 200 at Normal, Hard or Expert (best 197, 196, 184).",
     "change": "redesign",
     "newMechanic": "",
-    "stamp": "Level field only: chainLevel gains cycle (4 to 7), block, spare and fullByS, all stamped on the puzzle and read by the stage, replayChain and the grader.",
-    "files": ["src/lib/levels/speedLevels.ts", "src/lib/duel/chain.ts", "src/lib/duel/chain.server.ts", "src/lib/duel/standard/attention.server.ts", "src/puzzles/chainTap.tsx", "scripts/speed-levels-tune.ts", "scripts/speed-levels-check.ts"],
-    "risk": "A link slower than its window ends the run, so a tenth of a second on the last window swings Expert from fair to unfinishable."
+    "stamp": "chainCycleRev 2 on Expert deals for the fourth charm shape and the 7-charm board (7 rule charms and 13 near misses on the 20 charms); level field only for the rest: chainLevel gains cycle, block, spare and fullByS, all stamped on the puzzle and read by the stage, replayChain and the grader.",
+    "files": ["src/lib/levels/speedLevels.ts", "src/lib/duel/chain.ts", "src/lib/duel/chain.server.ts", "src/lib/duel/standard/attention.server.ts", "src/puzzles/chainTap.tsx", "scripts/speed-levels-tune.ts", "scripts/speed-levels-check.ts", "src/lib/duel/types.ts"],
+    "risk": "A link slower than its window ends the run, so a tenth of a second on the last window swings Expert from fair to unfinishable. The 7th charm needs a new charm shape and a generator rule (generateChain never returns for 7 today); the fallback Expert is 6 charms with 56 links.",
+    "evidence": {
+      "easy": "not measured: a 4-charm cycle needs a board every 4 links (CHAIN_BLOCK is a constant 5) and the spare link is new code; on today's 5-link boards every run broke at link 5 (22 points).",
+      "hard": "measured: stand-in in memory (6 charms, 48 links, boards every 5 links, full by 42 s), playChain, 400 deals: limits 145–148 (60 % finish, every finisher 200), 140 ms elite 171; Normal 156. Windows 0.3 s tighter moved it under 6 points.",
+      "expert": "measured: stand-in in memory (6 charms, as 7 cannot be dealt; 56 links, windows 2 / 1.6 / 1.4 s, full by 50 s), 400 deals: limits 121, median 102, best tenth 200, 38 % finish; 140 ms elite 165. Today's Expert: 115, best 184."
+    },
+    "verdict": "adjusted: a 7-charm cycle cannot be dealt today (three shapes, two of each, give six), so Expert now names the fourth charm shape and stamp it needs; Hard sits only about 10 below Normal for the limits player and tighter windows do not widen it; the average kit scores about 15 at every level, Normal included, so its steps cannot be judged.",
+    "limitsToday": "scripts/speed-levels-tune.ts:83 playChain (the same 250 ms and 150 ms action, :48-52, plus 320 ms to find a charm; a link past its window breaks the chain) under the tool's HUMAN_LIMITS (:32); scripts/speed-levels-check.ts:215-220 asserts the step rules on 100 deals (Expert's best tenth at least 140; it is 182). Nothing asserts 200."
   },
   {
     "id": "pairmatch",
@@ -236,20 +292,27 @@
     },
     "measured": "Great / near-perfect kit, 40 seeds: E 197 / 197, N 192 / 199, H 154 / 165, X 151 / 153 (Expert best tenth 156 / 165). Average player: not documented.",
     "easy": "As today (8 pairs, 16 cards in 4 columns, flip-back 0.9 s, 90 s, full by 35 s): it already does its job, the great kit averages 197.",
-    "hard": "21 pairs (42 cards, 6 × 7); flip-back 0.5 s; 5 shapes; 105 s; speed full by 60 s; extras in full with up to 3 memory misses (a miss on a card whose partner was already seen) and none from 9; first looks never count.",
-    "expert": "28 pairs (56 cards, 7 × 8, about 47 px wide: the phone's ceiling); flip-back 0.4 s; all 6 shapes (28 of the 30 faces); 120 s; speed full by 80 s; extras in full with up to 2 memory misses and none from 6; gold pair window 45 s.",
+    "hard": "21 pairs (42 cards, 6 × 7); flip-back 0.5 s; 5 shapes; 90 s; speed full by 40 s; extras in full with up to 3 memory misses (a miss on a card whose partner was already seen) and none from 9; first looks never count.",
+    "expert": "28 pairs (56 cards, 7 × 8, about 47 px wide: the phone's ceiling); flip-back 0.4 s; all 6 shapes (28 of the 30 faces); 90 s; speed full by 48 s; extras in full with up to 2 memory misses and none from 6; gold pair window 45 s.",
     "glance": {
       "easy": "Sixteen big cards.",
       "hard": "Forty-two cards, six across and seven down.",
       "expert": "Fifty-six small cards fill the whole screen."
     },
     "why": "Memory load is the number of cards, so the board grows about 1.4 times a level to the phone's ceiling of 56, where today's 30, 36 and 42 are too close to tell apart.",
-    "proof": "Every face is dealt twice. A perfect-memory sweep under the limits (0.4 s a flip; to be written in scripts/attention-levels-lib.ts) must finish each dealt Hard and Expert board inside its full-by with no memory miss and the gold pair in its window, or the board is redrawn: that run is 200. Today 200 is luck on Hard and Expert: extras need 6 or fewer misses, but perfect memory still averages about 11 first-look misses on 18 pairs and 13 on 21 (best tenth 165), and the check's 200 pairs every card unseen.",
+    "proof": "Every face is dealt twice. A perfect-memory sweep under the limits (0.4 s a flip; to be written in scripts/attention-levels-lib.ts) must finish each dealt Hard and Expert board inside its full-by with no memory miss and the gold pair in its window, or the board is redrawn: that run is 200. A scratch sweep finished 48 Hard boards in 26–29 s and 48 Expert boards in 33–38 s, inside the 40 s and 48 s full-bys, and scored 200 on 32 and 29 of them with extras in full. Today 200 is luck on Hard and Expert: extras need 6 or fewer misses, and the same sweep scores 162–182 and 150–169 there; the check's 200 pairs every card unseen.",
     "change": "retune",
     "newMechanic": "",
     "stamp": "levelRev 2 on level deals: the extras rule (memory misses), full-by and gold window are read from the level table.",
     "files": ["src/lib/levels/attentionLevels.data.ts", "src/lib/duel/attentionLevels.ts", "src/lib/duel/pairmatch.ts", "src/lib/duel/standard/attention.server.ts", "src/lib/duel/attentionLevels.server.ts", "src/puzzles/pairMatch.tsx", "scripts/attention-levels-lib.ts", "scripts/attention-levels-check.ts"],
-    "risk": "56 cards in 120 s may be past anyone's memory; if the great kit never finishes, Expert steps back to 24 pairs (6 × 8)."
+    "risk": "The memory-miss rule is grader code and was not measured; with extras in full the near-perfect kit still scores about 190 on Hard and Expert alike, so that rule has to carry the step for strong players. 56 cards are finishable: the great kit finished every board in a median 76 s, which leaves about 14 s on the 90 s clock.",
+    "evidence": {
+      "easy": "measured: today's Easy kept, kits, 24 deals: average kit 174 (every run finishes), great 197, near-perfect 197; a perfect-memory sweep at 0.4 s a flip scores 195–200. Normal's average kit: 86.",
+      "hard": "measured: row in memory (21 pairs, 90 s, full by 40 s; extras in full, as the memory-miss rule is grader code), kits, 48 deals: average kit 39, great 182, near-perfect 193; a perfect-memory sweep at 0.4 s a flip scores 197–200 in 26–29 s.",
+      "expert": "measured: row in memory (28 pairs in 7 columns, 90 s, full by 48 s; extras in full), 48 deals: average kit 21, great 166 (every run finishes, median 76 s), near-perfect 188 (4 at 200); perfect-memory sweep 183–200 (29 at 200) in 33–38 s."
+    },
+    "verdict": "adjusted: clocks and full-bys tightened (Hard 105 and 60 s to 90 and 40 s; Expert 120 and 80 s to 90 and 48 s), because at the proposed times the average kit was only 10 apart on Hard and Expert (41 and 31; now 39 and 21) and strong kits scored about 190 on both; the memory-miss rule is grader code and stays unproven; 56 cards are finishable and 200 is reached at Expert.",
+    "limitsToday": "Nothing applies the human limits. scripts/attention-levels-check.ts:257 plays its flawless run at 40 ms a step, pairing every card unseen (:304 asserts it scores 200 at every level), and :348-351 asserts the near-perfect kit finishes over half of Expert boards. level-tune.ts --human-limits ignores the flag for puzzles (level-tune.ts:163)."
   },
   {
     "id": "whack",
@@ -263,21 +326,28 @@
       "expert": "4×4, up 0.67 to 0.45 s, 4 up, 7–9 flips, 20 % hedgehogs, pops 50 % apart"
     },
     "measured": "Elite held to human limits 148 / 146 / 140 / 129 (Expert best tenth 143); 140 ms elite 194 / 194 / 191 / 190. The contact sheet's seed deals 47 / 64 / 132 / 126 gophers to bonk, so Expert has fewer than Hard. Average player: not documented.",
-    "easy": "3×3 lawn (9 burrows, about 125 px each); up 1.1 to 0.8 s, 2 up at once, 2 rule flips, 5 % hedgehogs, pops 115 % apart (all as today).",
-    "hard": "5×5 lawn (25 burrows, about 72 px); 4 up at once; up 0.72 to 0.5 s; pops 60 % apart (about 110 gophers to bonk); 5–7 flips; 15 % hedgehogs.",
-    "expert": "6×6 lawn (36 burrows, about 58 px); 5 up at once; up 0.67 to 0.5 s (the floor: 0.25 s to react, 0.15 s to move, 0.1 s spare); pops 45 % apart (about 150 to bonk); 7–9 flips; 20 % hedgehogs.",
+    "easy": "3×3 lawn (9 burrows, about 125 px each); up 1.5 to 1.1 s and pops 140 % apart (today 1.1 to 0.8 s and 115 %); 2 up at once, 2 rule flips, 5 % hedgehogs (as today).",
+    "hard": "5×5 lawn (25 burrows, about 72 px); 4 up at once; up 0.9 to 0.6 s (Normal's own up-time: the bigger, busier lawn is the step); pops 60 % apart (about 110 gophers to bonk); 5–7 flips; 15 % hedgehogs.",
+    "expert": "6×6 lawn (36 burrows, about 58 px); 5 up at once; up 0.67 to 0.5 s (the floor: 0.25 s to react, 0.15 s to move, 0.1 s spare); pops 45 % apart (about 140 to bonk); 7–9 flips; 20 % hedgehogs.",
     "glance": {
       "easy": "A 3 by 3 lawn of nine big burrows.",
       "hard": "A 5 by 5 lawn: 25 burrows, four gophers up.",
       "expert": "A 6 by 6 lawn: 36 burrows, five up at once."
     },
     "why": "A bigger lawn is the classic whack-a-mole step, seen before the first gopher pops, and it is the lever left because up-time is already at the human floor of half a second.",
-    "proof": "Must be written: a limits oracle (a bonk no sooner than 24 ticks after its pop, 15 to react and 9 to move, and 9 after the last bonk, earliest deadline first) plays every dealt schedule through replayWhackRun; the deal keeps a seed only when it clears every gopher and both diamonds. That proves the 150 base and 6 for diamonds. The 44 combo points need bonks within 150 ms of the pop (none count from 267 ms), so the limits player tops out near 160 on every level, Normal included (today's best tenth 143): 200 needs the combo's quick window at the limit (full to 24 ticks, none from 36, the window Pull! was given in clayRev 10), a scoring-review item like I1 that is not in the plan's list.",
+    "proof": "Must be written: a limits oracle (a bonk no sooner than 24 ticks after its pop, 15 to react and 9 to move, and 9 after the last bonk, earliest deadline first) plays every dealt schedule through replayWhackRun; the deal keeps a seed only when it clears every gopher and both diamonds (measured with a scratch oracle on the proposed Expert pace: 19 of 60 deals). That proves the 150 base and 6 for diamonds. The 44 combo points need bonks within 150 ms of the pop (none count from 267 ms), so the limits player tops out at exactly 156 on every level, Normal included (166 if moving cost nothing; today's best tenth 143): 200 needs the combo's quick window at the limit (full to 24 ticks, none from 36, the window Pull! was given in clayRev 10), a scoring-review item like I1 that is not in the plan's list.",
     "change": "redesign",
     "newMechanic": "",
     "stamp": "Level field only for the lawn and pace (bonkLevel gains cols, stamped on the puzzle); 200 under the limits also needs whackRev 5 for the combo's quick window (Joe's scoring decision).",
     "files": ["src/lib/levels/speedLevels.ts", "src/lib/arcade/whack.ts", "src/lib/arcade/whack.renderer.ts", "src/puzzles/whack.tsx", "src/lib/duel/whack.ts", "scripts/speed-levels-tune.ts", "scripts/speed-levels-check.ts"],
-    "risk": "The bots move in a flat 0.15 s, so they cannot feel a bigger lawn; the crowd and the pace have to carry the measured step."
+    "risk": "The combo's quick window, not the level, caps a limited player at 156 on every level (150 base, 6 for diamonds, 0 of the 44 combo points): level design cannot lift that, so 200 at Expert waits on a scoring change (whackRev 5). The bots move in a flat 0.15 s, so they cannot feel a bigger lawn, and the average kit already scores about 1 at today's Hard and Expert up-times.",
+    "evidence": {
+      "easy": "measured: pace in memory on today's 4×4 lawn (3×3 needs sim code), kits, 40 deals: average kit 89 at up 1.5–1.1 s and pops 140 % apart (81 at today's Easy pace), limits 148 (best 156). A scratch limits oracle scores 156 on every deal.",
+      "hard": "measured: pace and crowd in memory on 4×4 (5×5 needs sim code), 40 deals: average kit 20 at up 0.9–0.6 s (5 at the first proposal's 0.72–0.5 s), limits 142 (best 156). Normal: 71 and 144. Oracle: every gopher in reach on all deals.",
+      "expert": "measured: proposed pace on 4×4 (6×6 needs sim code), 60 deals: average kit 1, limits 130 (best 154), elite 188; oracle 146–156, every gopher and both diamonds in reach on 19 of 60 deals, median 140 gophers. No run can pass 156."
+    },
+    "verdict": "adjusted: Easy's up-time lengthened to 1.5–1.1 s with pops 140 % apart and Hard's set back to Normal's 0.9–0.6 s, so the average kit steps 89, 71, 20, 1 (it was 81, 71, 5, 1); the lawn itself is unproven (it needs sim code and no bot can feel it), Expert's count corrected to about 140 gophers, and no level can pass 156 under the limits.",
+    "limitsToday": "scripts/speed-levels-tune.ts:162 plays the Bonk kit (scripts/puzzle-fairness/kits-engine.ts:533-571) at the tool's HUMAN_LIMITS skill (:32): 250 ± 25 ms to react plus about 110 ms to check the colour, the finger about 154 ms between taps (kits-engine.ts:552); scripts/speed-levels-check.ts:215-220 asserts the step rules on 100 deals (Expert's best tenth 143 against 140). No oracle exists and nothing asserts 200. level-tune.ts --human-limits throws for Bonk: there is no scripts/arcade-skill-bands/bots/whack.ts."
   },
   {
     "id": "tendrop",
@@ -293,19 +363,26 @@
     "measured": "Elite held to human limits 182 / 175 / 168 / 143 (Expert best tenth 163); 140 ms elite 183 / 181 / 181 / 166. Average player: not documented.",
     "easy": "As today (8 targets from 10 up to 60, plus and minus tiles only, 80 % speed), but each gold ten pays 2.5 so a flawless run is 200 (today 8 gold tens at 2 make 196).",
     "hard": "10 targets from 40 up to 250 (today's Hard opens below Normal); ×2 on about 30 % of tiles, ÷2 and ÷3 as today's Hard; 115 % speed; speed full by the oracle's finish.",
-    "expert": "9 targets from 100 up to 400; every operator; 115 % speed (at 125 % the limits player never finished); gold pays 20 ÷ 9 a ten; speed full by the oracle's finish.",
+    "expert": "9 targets from 150 up to 400; every operator; 115 % speed (at 125 % the limits player never finished); gold pays 20 ÷ 9 a ten; speed full by the oracle's finish.",
     "glance": {
       "easy": "Target 10, slow tiles, only numbers and minus.",
       "hard": "Target 40 or more at once; gold ×2 tiles everywhere.",
-      "expert": "Target 100 or more straight away, climbing to 400."
+      "expert": "Target 150 or more straight away, climbing to 400."
     },
-    "why": "The target is the whole question the game asks, so bigger targets from the first second (10, 22, 40, 100) are the honest ladder, and tile speed stays at 115 % because that is where the human limit was measured.",
+    "why": "The target is the whole question the game asks, so bigger targets from the first second (10, 22, 40, 150) are the honest ladder, and tile speed stays at 115 % because that is where the human limit was measured.",
     "proof": "Must be written: the plan's own solver (the fastest gold line, src/lib/arcade/tenDrop.ts) run at the level's spawn gap under the limits (a tile tappable 24 ticks after it enters, taps 9 ticks apart) gives each seed's earliest finish through replayTenDropRun; the deal keeps a seed only when that lands inside the level's full-speed time, so 150 + 30 + 20 is reachable. Today nothing proves it: full speed is by 60 s at every level and Expert's best tenth under the limits is 163.",
     "change": "retune",
     "newMechanic": "",
     "stamp": "Level field only: tenLevel.stages already carries each target's range, tiles and speed; add goldEach and fullByTicks to tenLevel, stamped on the puzzle.",
     "files": ["src/lib/levels/speedLevels.ts", "src/lib/arcade/tenDrop.ts", "src/lib/duel/tenDrop.ts", "scripts/speed-levels-tune.ts", "scripts/speed-levels-check.ts"],
-    "risk": "Targets near 400 may be too much mental arithmetic at tile speed even for strong players; tune the top target first."
+    "risk": "No bot reaches 200 at any level today (best 190), and at the proposed Expert the limits kit finishes 21 % of runs, at 87 s of 90 (31–44 % when the targets start at 100), so 200 there rests wholly on the unwritten oracle and on speed and gold pay that are scoring changes; targets near 400 may be too much mental arithmetic at tile speed even for strong players, so tune the top target first.",
+    "evidence": {
+      "easy": "measured: today's Easy (the 2.5-a-gold pay needs scoring code), kits, 48 deals: average kit 160 (88 % finish), limits 183, 140 ms elite 183, best 190. Today's 8 gold tens allow 196 at most.",
+      "hard": "measured: stages overridden in memory (10 targets from 40 to 250, ×2 on 30 % of tiles, 115 %), 48 deals: average kit 72, limits 154 (83 % finish, best 172), 140 ms elite 171. Normal: 101 and 175.",
+      "expert": "measured: stages in memory (9 targets from 150 to 400, every operator, 115 %), kits, 48 deals: average kit 51, limits 119 (21 % finish, at 87 s of 90; best 158), 140 ms elite 147. From 100: average 56–59, limits 125–129. No run reached 200."
+    },
+    "verdict": "adjusted: Expert's first target raised from 100 to 150 so the average kit steps 160, 101, 72, 51 (from 100 Expert scored 56–59, about 14 below Hard); Expert's 200 is unproven: no bot reaches 200 at any level today, the limits kit finishes 21 % of Expert runs at the buzzer, and the oracle and the gold and speed pay are not written.",
+    "limitsToday": "scripts/speed-levels-tune.ts:162 plays the Tenfall kit (tenDropKit in scripts/puzzle-fairness/kits-engine.ts) at the tool's HUMAN_LIMITS skill (:32); scripts/speed-levels-check.ts:215-220 asserts the step rules on 100 deals (Expert's best tenth 163 against 140). Nothing proves a finish or 200 under the limits. level-tune.ts --human-limits throws for Tenfall: there is no scripts/arcade-skill-bands/bots/tendrop.ts."
   },
   {
     "id": "clayshoot",
@@ -333,6 +410,13 @@
     "newMechanic": "",
     "stamp": "Level field only: pullLevel already carries clays, singles, groups, birds and speed; add the ring radius (Easy) and the smallest gap inside a group, stamped on the puzzle.",
     "files": ["src/lib/levels/speedLevels.ts", "src/lib/arcade/clayShoot.ts", "src/lib/arcade/clayShoot.renderer.ts", "src/lib/duel/clayShoot.ts", "scripts/speed-levels-tune.ts", "scripts/speed-levels-check.ts"],
-    "risk": "32 birds across triples may leave few seeds with a clean shot inside every quick window; the oracle drops the rest."
+    "risk": "32 birds across triples may leave few seeds with a clean shot inside every quick window; the oracle drops the rest. Easy cannot reach 150 for an average player by level settings alone: a clean sweep by the average kit scores about 132, because the quick-shot points need a shot inside 0.4 s.",
+    "evidence": {
+      "easy": "measured: today's Easy with the hit radii patched in memory (38 px for 30, gold 30 for 24), kits, 48 deals: average kit 105 (96 today; 10 % finish), limits 181, 140 ms elite 200. A clean average sweep still scores about 132.",
+      "hard": "measured: registry settings overridden in memory (30 clays in 15 doubles, 145 %, 24 birds), 24 deals: average kit 56, limits 164 (79 % finish, best 187), 140 ms elite 198. Normal: 76 and 178.",
+      "expert": "measured: in memory (36 clays in 12 triples, 160 %, 32 birds), 24 deals: average kit 40, limits 144 (33 % finish, best 183, no 200), 140 ms elite 195 (7 of 24 at 200). Launches inside a group are 25–43 ticks apart."
+    },
+    "verdict": "unproven: Hard and Expert step down as designed (average kit 76, 56, 40; limits 178, 164, 144), but no limits run reached 200 at Expert (best 183) and the oracle that would prove it is not written; Easy's bigger ring lifts the average kit only from 96 to 105.",
+    "limitsToday": "scripts/speed-levels-tune.ts:162 plays the Pull! kit (clayKit in scripts/puzzle-fairness/kits-engine.ts) at the tool's HUMAN_LIMITS skill (:32); scripts/speed-levels-check.ts:215-220 asserts the step rules on 100 deals (Expert's best tenth 175 against 140). No oracle exists and nothing asserts 200. level-tune.ts --human-limits throws for Pull!: there is no scripts/arcade-skill-bands/bots/clayshoot.ts."
   }
 ]

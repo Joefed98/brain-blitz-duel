@@ -13,11 +13,11 @@
     "measured": "60 seeds: average bot 163 / 95 / 82 / 72; elite under human limits 197 / 158 / 146 / 137; flawless 198 / 174 / 167 / 168",
     "easy": "As today: 5 ice cells, 5 colours, goals 12 to 36, hint after 3 s (average 163 and a third of runs earn a star, so it does its job).",
     "hard": "18 ice cells (Normal 10); a 7th colour, the cyan heart; goals 30 to 90 over 7 colours; no hint; parts full at 320 gems, 2 treasures, 3 goals, 12 ice, 3 big lines (today's Expert moved down one level).",
-    "expert": "28 ice cells (40 % of the 70 squares, the bottom four rows nearly solid); 7 colours; goals 30 to 90; no hint; parts full at 320 gems, 2 treasures, 3 goals, 18 ice, 3 big lines.",
+    "expert": "28 ice cells (40 % of the 70 squares; the sim lays ice only in the bottom six rows, so two thirds of them freeze); 7 colours; goals 30 to 90; no hint; parts full at 320 gems, 2 treasures, 3 goals, 18 ice, 3 big lines.",
     "glance": {
       "easy": "Five colours, a handful of frozen squares, a hint after three seconds",
       "hard": "A seventh gem, the cyan heart, and 18 frozen squares",
-      "expert": "Ice over 28 squares: the bottom rows nearly solid"
+      "expert": "Ice over 28 squares: two thirds of the lower board"
     },
     "why": "Ice is the one thing on a match-three board you can count at a glance, each frozen square takes two clears and blocks free swaps, and the seventh colour thins the matches needed to break it.",
     "proof": "No per-seed proof today: scripts/gemstone-levels-record.ts holds a flawless witness on one seed a level and elite-under-limits witnesses on 3 Expert seeds. Write scripts/gemstone-level-deal.ts: a dealt list per level (new src/lib/duel/matchupLevelDeal.server.ts) keeping only seeds where the planner of scripts/arcade-skill-bands/bots/matchup.ts, held to HUMAN_LIMITS (250 ms reactions, 150 ms swipes), replays to exactly 200 through the server; scripts/gemstone-levels-check.ts replays every witness.",
@@ -32,7 +32,14 @@
       "scripts/gemstone-levels-bands.ts",
       "scripts/gemstone-levels-check.ts"
     ],
-    "risk": "the limited bot reaches 200 on about 3 Expert seeds in 200 today, so a 60-seed list needs a stronger planner or thousands of candidates"
+    "risk": "measured: the ice count barely moves scores (average 72 at 18 cells, 71 at 28, 70 at 40), so Expert needs a second lever that bites before it is built; the limited bot also reaches 200 on about 3 Expert seeds in 200 today, so a 60-seed list needs a stronger planner",
+    "evidence": {
+      "easy": "measured: today's Easy kept; gemstone-levels-bands playLevel, 60 seeds: average 162.6 (19 of 60 at 175+), elite under limits 197.2 (47 at 200), flawless 198.1.",
+      "hard": "measured: the proposed Hard is today's Expert table; 60 seeds: average 72.3 (Normal 95.3), elite under limits 137.0 (Normal 158.1; one run at 200), flawless 167.6 with 7 of 60 at 200.",
+      "expert": "measured: 28 ice set in memory (MATCHUP_V13_LEVELS), 60 seeds: average 70.7, elite under limits 132.4 (best 197, none at 200), flawless 169.4 (7 at 200). With every free cell frozen (40): 69.9 / 129.8 / 158.3."
+    },
+    "verdict": "unproven: Hard holds (95 to 72), but 28 ice does not separate Expert from Hard (average 72.3 to 70.7, elite 137 to 132) and nor do 40 cells; only the parts' full figures moved scores, and then no run reached 200.",
+    "limitsToday": "scripts/gemstone-levels-bands.ts:25-29 (limitHuman: elite reactions held at 250 ms; --limits, line 90) measures only; nothing asserts per seed. The witnesses gemstone-levels-check replays are one flawless seed a level and 3 elite Expert seeds."
   },
   {
     "id": "mahjong",
@@ -67,7 +74,14 @@
       "scripts/cards-levels-order-check.ts",
       "scripts/cards-levels-tune.ts"
     ],
-    "risk": "tile faces must stay readable at 46 px, and a wrong pick among four-of-a-kind faces under hidden tiles still needs the Shuffle"
+    "risk": "tile faces must stay readable at 46 px, and a wrong pick among four-of-a-kind faces under hidden tiles still needs the Shuffle",
+    "evidence": {
+      "easy": "not measured: a 48-tile layout does not exist (the sim tells a layout by its length; only 56, 72 and 88 places are defined in mahjong.ts).",
+      "hard": "not measured: needs a new 104-place layout on a 7 x 8 footprint and renderer sizes.",
+      "expert": "not measured: needs a new 136-place layout on an 8 x 9 footprint; today's 88-tile Expert measured 193.3 for the human-limits player (earlier pass, 40 deals)."
+    },
+    "verdict": "unproven: every proposed level needs a layout the sim does not have, so nothing could be run; today's human-limits player scores 197.5 / 195.1 / 193.3 on Normal / Hard / Expert, so tile count must carry the whole step.",
+    "limitsToday": "scripts/cards-human-limits.ts:28-30, 175 (one action every 24 ticks, a pair's second tap after 9) plays it for cards-levels-tune.ts:60 (--bots=human) and cards-levels-order-check.ts, which asserts each level is below the one before; the build-order proof has no clock."
   },
   {
     "id": "homerun",
@@ -102,7 +116,14 @@
       "scripts/homerun-innings-bands.ts",
       "scripts/homerun-innings-check.ts"
     ],
-    "risk": "Normal's average is already 63, so Hard and Expert land near 35 and 15 for an average player, under the guide numbers"
+    "risk": "Normal's average is already 63, so Hard and Expert land near 35 and 15 for an average player, under the guide numbers",
+    "evidence": {
+      "easy": "measured: HR_LEVEL_SETTINGS set in memory (not the 5 outs: a new sim rule), 12 dealt seeds, HUMAN_LIMITS, server replay: average 103.3 (today's Easy 89 and Normal 63, earlier pass), elite 194.3, flawless 195.0.",
+      "hard": "measured: 12 Hard-deal seeds (unproved on these settings): average 42.7 (median 46), elite under limits 197.8 with 9 of 12 at 200, flawless 200 on 12 of 12; today's Hard 26 / 172 (earlier pass).",
+      "expert": "measured: 12 Expert-deal seeds: average 13.1 (median 15), elite under limits 163.7 (median 157, one run at 200), flawless under limits 200 on 12 of 12; today's Expert 16 / 149 (earlier pass)."
+    },
+    "verdict": "holds: the average batter steps 103 / 63 / 43 / 13 and the elite reaches 200 at Expert under the limits (1 of 12) with PERFECT at ±1 tick; the elite's Hard (198) is no harder than Normal, the 5 outs were not run and the level deals are not re-proved.",
+    "limitsToday": "scripts/homerun-innings-bands.ts:17 (--human-limits) measures; scripts/homerun-innings-check.ts:247-257 asserts the elite under HUMAN_LIMITS steps down level by level on the dealt seeds; scripts/home-run-top-bins-expert-proof.ts:44 lists Expert seeds. The deal's oracle (homerun-oracle.ts) is not limited."
   },
   {
     "id": "freekick",
@@ -137,7 +158,14 @@
       "scripts/freekick-layered-bands.ts",
       "scripts/freekick-layered-check.ts"
     ],
-    "risk": "a seven man wall may leave too few seeds where all ten kicks have a scoring line; a wall of 6 to 7 is the fallback"
+    "risk": "a seven man wall may leave too few seeds where all ten kicks have a scoring line; a wall of 6 to 7 is the fallback",
+    "evidence": {
+      "easy": "not measured: not reached this session.",
+      "hard": "not measured: not reached this session.",
+      "expert": "not measured: not reached this session."
+    },
+    "verdict": "unproven: not measured in this session.",
+    "limitsToday": "scripts/freekick-layered-bands.ts:18 (--human-limits) measures; scripts/freekick-layered-check.ts:264-292 asserts the elite under HUMAN_LIMITS steps down level by level; scripts/home-run-top-bins-expert-proof.ts:44 lists Expert seeds. The deal's oracle is not limited (a kick reacts to nothing in flight)."
   },
   {
     "id": "racing",
@@ -152,15 +180,15 @@
     },
     "measured": "elite bot 199.9 / 186.7 / 172.1 / 157.4; Normal average bot 93.5; average per level not documented",
     "easy": "Road 130 % of Normal's width (85,197 units, 5.2 car widths); gravel keeps 80 % of speed; braking points and racing line painted; par pace as today's Easy (192.0 / 205.5 / 175.0 km/h).",
-    "hard": "Road 85 % (55,700 units, 3.4 car widths); gravel keeps 50 %; no racing line (signs and boards stay); par set just under the oracle's pace on the narrower road; spread 69.5 km/h as Normal.",
-    "expert": "Road 72 % (47,200 units, 2.9 car widths); gravel keeps 35 %; signs only; par from the oracle on this road; spread 69.5 km/h; the circuits keep their own hairpins.",
+    "hard": "Road 85 % (55,700 units, 3.4 car widths; the kerb, which is the sim's clean edge, moves in with it); gravel keeps 50 %; no racing line (signs and boards stay); par as Normal's; pace spread 60.0 km/h (Normal 69.5).",
+    "expert": "Road 72 % (47,200 units, 2.9 car widths; kerb with it); gravel keeps 35 %; signs only; par as Normal's; pace spread 45.0 km/h; the circuits keep their own hairpins.",
     "glance": {
       "easy": "A wide road with braking points and a racing line painted",
       "hard": "A visibly narrower road, no racing line",
       "expert": "A lane under three cars wide between gravel traps"
     },
-    "why": "Width is what a driver sees and feels at once: a narrower road cuts every corner's speed and turns small errors into gravel, where today's levels only change what happens after you have left the tarmac or how the pace is scored.",
-    "proof": "bun scripts/racing-deal.ts --rev=4 --level=<l> rebuilds each level's 300-seed list (100 a circuit): scripts/racing-oracle.ts must replay to exactly 200 through replayRacingRun on the level's road. The oracle is not held to HUMAN_LIMITS today; hold its stick changes to one every 0.15 s and set each circuit's par just under that limited oracle's average, as Expert's par is set today. scripts/racing-levels-check.ts proves the lists.",
+    "why": "Width is what a driver sees and feels at once: a narrower road turns small errors into gravel, and a tighter pace spread makes the lost speed count, where today's Hard and Expert show the same road as Normal.",
+    "proof": "bun scripts/racing-deal.ts --rev=4 --level=<l> rebuilds each level's 300-seed list: scripts/racing-oracle.ts must replay to exactly 200 through replayRacingRun on the level's road (measured: 24 of 24 at 72 % on Normal's par, Ridge Loop included, because the oracle holds the centre line and its pace does not change with the width). The oracle is frame-exact: under HUMAN_LIMITS no bot reaches 200 even on Normal (elite best 167), so a limited oracle must be written and each par set under its pace before the lists count as proved. scripts/racing-levels-check.ts proves the lists.",
     "change": "redesign",
     "newMechanic": "",
     "stamp": "level field only: the settings ride on each puzzle as racingLevel (road, kerb, wall, keep, aids, pace and spread already exist), so stored rounds keep their own copy.",
@@ -174,7 +202,14 @@
       "scripts/racing-levels-bands.ts",
       "src/lib/levels/levelNotes.ts"
     ],
-    "risk": "Ridge Loop's hairpins may be undriveable at 72 % width, as its tightened hairpins were on today's Expert; it may need its own width"
+    "risk": "the bots do not slow for a narrower road (the elite spends 453 ticks on gravel at 72 % and scores below the average bot at 50 %), so the numbers understate a careful driver and the spreads need a playtest",
+    "evidence": {
+      "easy": "measured: racingLevel patched on 24 dealt puzzles, bots under HUMAN_LIMITS, server grade: average 165.6 (today's Easy 163.4, Normal 89.7), elite 195.4 (7 at 200), oracle 200 on 24 of 24; the average bot finishes both laps on 6 of 24.",
+      "hard": "measured: racingLevel patched on 24 dealt puzzles, bots under HUMAN_LIMITS, server grade. Road 85 %, keep 50, spread 60.0: average 69.8 (Normal 89.7), elite 127.9 (Normal 152.5), oracle 200 on 24 of 24. With Normal's spread: 85.2 / 133.7.",
+      "expert": "measured: 24 seeds, road 72 %, keep 35, spread 45.0: average 32.5, elite under limits 82.5 (best 102, none at 200); frame-exact oracle 200 on 24 of 24, Ridge Loop included. With Normal's spread: 82.6 / 111.2."
+    },
+    "verdict": "adjusted: width alone left the average driver at 90 / 85 / 83 and a still narrower road only sank the elite bot (33 at 50 %), so the pace spread now tightens to 60.0 km/h at Hard and 45.0 at Expert (average 70 and 33); 200 under the limits is unproven at every level, Normal included.",
+    "limitsToday": "nothing of its own: scripts/racing-levels-bands.ts:30 plays the bots without limits; only scripts/level-tune.ts --human-limits (lines 124-126, 188) measures. The deal's oracle (scripts/racing-oracle.ts) is frame-exact and holds the centre line."
   },
   {
     "id": "freecell",
@@ -210,7 +245,14 @@
       "scripts/cards-levels-check.ts",
       "scripts/cards-levels-order-check.ts"
     ],
-    "risk": "two-cell solutions may be too long to play inside 120 s, so the bank may need thousands of candidates to find 120 short ones"
+    "risk": "two-cell solutions may be too long to play inside 120 s, so the bank may need thousands of candidates to find 120 short ones",
+    "evidence": {
+      "easy": "documented: today's Easy kept; docs GALLERY (cards-levels-tune, 40 deals): elite 192.8, human-limits player 193.0.",
+      "hard": "not measured: not reached this session.",
+      "expert": "not measured: a two-cell bank does not exist; not reached this session."
+    },
+    "verdict": "unproven: not measured in this session.",
+    "limitsToday": "scripts/cards-human-limits.ts:28-30, 39-57, 175 (the bank solver's plan at one move every 24 ticks) for cards-levels-tune.ts:60 (--bots=human) and cards-levels-order-check.ts, which asserts the levels step down; the bank's solved lines carry no clock."
   },
   {
     "id": "tripeaks",
@@ -246,7 +288,14 @@
       "scripts/cards-levels-check.ts",
       "scripts/cards-levels-order-check.ts"
     ],
-    "risk": "the 300-deal bank may hold too few deals with stock par 11 or less, and extending it costs about 25 min of par search a pass"
+    "risk": "the 300-deal bank may hold too few deals with stock par 11 or less, and extending it costs about 25 min of par search a pass",
+    "evidence": {
+      "easy": "not measured: not reached yet.",
+      "hard": "not measured: not reached yet.",
+      "expert": "not measured: not reached yet."
+    },
+    "verdict": "unproven: not measured yet.",
+    "limitsToday": "scripts/cards-human-limits.ts:175 (visible cards only, one tap every 24 ticks) for cards-levels-tune.ts:60 (--bots=human) and cards-levels-order-check.ts, which asserts the levels step down; the bank's solver lines carry no clock."
   },
   {
     "id": "fivehands",
@@ -282,7 +331,14 @@
       "scripts/cards-levels-check.ts",
       "scripts/cards-levels-order-check.ts"
     ],
-    "risk": "at 30 s the game may read as a reflex test, not poker; 35 s is the fallback"
+    "risk": "at 30 s the game may read as a reflex test, not poker; 35 s is the fallback",
+    "evidence": {
+      "easy": "measured: FH_LEVEL_RULES set in memory, 16 decks, cards-levels-tune reportLevel (server grade): average 144.5 and human-limits 156.5, the same as today's 75 s (the average bot finishes in 54 s); elite 177.0.",
+      "hard": "measured: 42 s, no hints, 16 decks: average 60.0 and never places all 20 cards (Normal 121.2, today's Hard 86.2), human-limits 116.4, elite 137.4.",
+      "expert": "measured: 30 s at x 1.4, 16 decks: average 29.4 (today's Expert 62.7), human-limits 110.7 (best tenth 157.5; today 102.5), elite 131.5 (best tenth 194.5); no run at 200, and no proved deck list exists yet."
+    },
+    "verdict": "holds: the clock gives the average player steps of 61 and 31 points (121 / 60 / 29); Easy's 90 s changes nothing against today's 75 s, and 200 at Expert stays unproven until the deck lists are built (no run reached it).",
+    "limitsToday": "scripts/cards-human-limits.ts:175 (the hint's rule at one tap every 24 ticks) for cards-levels-tune.ts:60 (--bots=human) and cards-levels-order-check.ts, which asserts the levels step down; no level has a 200 witness."
   },
   {
     "id": "pyramid",
@@ -317,7 +373,14 @@
       "scripts/cards-levels-check.ts",
       "scripts/cards-levels-order-check.ts"
     ],
-    "risk": "nine rows leave 7 stock cards, so the builder may find few deals with a witness that a no-plan player cannot also clear"
+    "risk": "nine rows leave 7 stock cards, so the builder may find few deals with a witness that a no-plan player cannot also clear",
+    "evidence": {
+      "easy": "not measured: PY_CARDS is fixed at 28 (pyramid.ts:41) and the cover map, deal builder and prover are built on it; a 6-row pyramid needs new sim code.",
+      "hard": "not measured: an 8-row pyramid (36 cards) needs new sim code.",
+      "expert": "not measured: a 9-row pyramid (45 cards) needs new sim code. The arithmetic holds: 45 cards = 21 pairs + 3 Kings, 7 left for the stock, 45 taps = 18 s at 0.4 s a tap."
+    },
+    "verdict": "unproven: the headline lever (rows) cannot be set without new sim code, so no level was run.",
+    "limitsToday": "scripts/cards-human-limits.ts:175 (a five-removal look at one tap every 24 ticks) for cards-levels-tune.ts:60 (--bots=human) and cards-levels-order-check.ts, which asserts the levels step down; each deal's witness is proved in the sim with no clock."
   },
   {
     "id": "minigolf",
@@ -353,7 +416,14 @@
       "scripts/crazy-golf-v3-check.ts",
       "src/lib/levels/gameLevels.ts (the minigolf entry holds empty settings today)"
     ],
-    "risk": "two hazard tiers must be drawn by hand for 20 templates, and some of the 360 holes will lose their route at Expert and drop out"
+    "risk": "two hazard tiers must be drawn by hand for 20 templates, and some of the 360 holes will lose their route at Expert and drop out",
+    "evidence": {
+      "easy": "not measured: a hole with no sand or water is a new build of each template (the level build has only an extras on / off flag, minigolfHolesV3.ts:564).",
+      "hard": "not measured: 4 extra hazards a hole and sails 384 need new hole data (extras are hand-drawn per template; sails are slow, normal or fast).",
+      "expert": "not measured: 8 extra hazards a hole need new hole data and a re-searched bank; today's Expert (2 extras) measured near-perfect 142.9, elite 145.5 (earlier pass, 24 deals)."
+    },
+    "verdict": "unproven: the hazards are hand-drawn per template behind one flag, so no proposed level could be run.",
+    "limitsToday": "nothing asserts: scripts/crazy-golf-levels.ts:62 and scripts/level-tune.ts --human-limits (line 188) measure with the minigolfV3 bot; the bank's witnesses (scripts/minigolf-holes-bank.ts) carry no wait rule."
   },
   {
     "id": "pool",
@@ -389,7 +459,14 @@
       "scripts/pool-levels-check.ts",
       "scripts/pool-levels-tune.ts"
     ],
-    "risk": "narrow jaws in integer physics may rattle balls out, and the oracle may clear few 15-ball layouts with no foul"
+    "risk": "narrow jaws did not stop the flawless player (200 on 9 of 10 unproved Expert layouts), but the elite bot clears only 3 of 10 there and the average pots 2 of 7, so 12 px corners are the fallback; the oracle may still clear few 15-ball layouts with no foul",
+    "evidence": {
+      "easy": "measured: pockets, jaws and rack set in memory, 10 bank layouts, bots under HUMAN_LIMITS, sim score: average 123.7 (today's Easy 127.4, Normal 90.7), elite 188.0 (today 176.8), clears 1 and 10 of 10.",
+      "hard": "measured: 10 layouts (3 extra balls added at seeded free spots): average 71.5 (Normal 90.7, today's Hard 55.8), elite 128.8 (Normal 164.5), elite clears 4 of 10.",
+      "expert": "measured: 10 layouts: average 23.0, elite 109.1 (best 146, clears 3 of 10, none at 200); the flawless player 199.5 with 200 on 9 of 10 unproved layouts. Pockets alone (rack as today): 47.0 / 122.0."
+    },
+    "verdict": "holds: average 124 / 91 / 72 / 23 and elite 188 / 165 / 129 / 109 step down at every level and the flawless player reaches 200 on 9 of 10 Expert layouts; the banks and the 200 proof are not built.",
+    "limitsToday": "nothing of its own: scripts/pool-levels-tune.ts:65 plays the bots without limits; only scripts/level-tune.ts --human-limits (line 188) measures, and the game is turn-based so the limits bind only the pace. The bank witnesses carry no wait rule."
   },
   {
     "id": "curling",
@@ -425,7 +502,14 @@
       "scripts/curling-levels-check.ts",
       "scripts/curling-levels-bands.ts"
     ],
-    "risk": "seven takeouts with eight stones may prove on too few sheets; six reds is the fallback"
+    "risk": "seven takeouts with eight stones may prove on too few sheets; six reds is the fallback",
+    "evidence": {
+      "easy": "not measured: not reached this session.",
+      "hard": "not measured: not reached this session.",
+      "expert": "not measured: not reached this session."
+    },
+    "verdict": "unproven: not measured in this session.",
+    "limitsToday": "nothing of its own: scripts/curling-levels-bands.ts:27 plays the bots without limits; only scripts/level-tune.ts --human-limits (line 188) measures. The bank's oracle sets up each throw at leisure."
   },
   {
     "id": "bubble",
@@ -460,7 +544,14 @@
       "scripts/arcade-skill-bands/bots/bubble.ts",
       "scripts/bubble-levels-check.ts"
     ],
-    "risk": "a seven-colour reef may be clearable with 30 s left on very few seeds, so the planner and the speed line may both need work"
+    "risk": "a seven-colour reef may be clearable with 30 s left on very few seeds, so the planner and the speed line may both need work",
+    "evidence": {
+      "easy": "documented: today's Easy kept; bubble-levels-check witnesses, 12 seeds: average 157, elite under limits 195.",
+      "hard": "not measured: not reached yet.",
+      "expert": "not measured: not reached yet."
+    },
+    "verdict": "unproven: not measured yet.",
+    "limitsToday": "scripts/bubble-levels-record.ts:36 records the bots (the bubble bot paces its own shots) and scripts/bubble-levels-check.ts:222, 233 assert the elite clears a reef at every level and that Expert's elite averages 120+ with a best of 170+; no per-seed 200 proof."
   },
   {
     "id": "inkbridge",
@@ -495,7 +586,14 @@
       "scripts/ink-levels-check.ts",
       "scripts/ink-levels-bands.ts"
     ],
-    "risk": "a 34 px pot that also moves may fail the drawable proof on the live levels"
+    "risk": "a 34 px pot that also moves may fail the drawable proof on the live levels",
+    "evidence": {
+      "easy": "documented: today's Easy kept; ink-levels-bands on the dealt seeds: average 164, elite under limits 200.",
+      "hard": "not measured: not reached this session.",
+      "expert": "not measured: not reached this session."
+    },
+    "verdict": "unproven: not measured in this session.",
+    "limitsToday": "scripts/ink-levels-bands.ts:38 (--human: elite reactions 250 ms, finger lag 150 ms) measures only; nothing asserts. The deal builder's oracle (scripts/ink-big-deal.ts) is not limited."
   },
   {
     "id": "tilt",
@@ -531,7 +629,14 @@
       "scripts/tilt-levels-check.ts",
       "scripts/tilt-levels-bands.ts"
     ],
-    "risk": "Normal's own elite is 144 under human limits, so Hard and Expert will sit near 120 and 95, under the guide; the bots never fall, so the holes need a playtest"
+    "risk": "measured: the average player's run ends on the first two-marble maze, so Hard and Expert score alike (45 and 51) until the holes beside the route exist and are playtested; the bots rarely fall, and Normal's own elite is 160 under the limits",
+    "evidence": {
+      "easy": "measured: TILT_LEVELS set in memory, 16 unproved dealable seeds, TILT_HUMAN_LIMITS=1, server replay: average 136.2 (median 163.5, finishes 9 of 16; today's Easy 124.1), elite 197.6 with 13 at 200.",
+      "hard": "measured: two marbles on mazes 1 to 3 and 5 holes (today's hole rule), 40 seeds: average 45.0 (Normal 61.1, today's Hard 58.3); 16 seeds: elite under limits 136.3 (Normal 159.6), best 185.",
+      "expert": "measured: two marbles on all four mazes and 8 holes (today's hole rule), 40 seeds: average 50.5 (today's Expert 48.8); 16 seeds: elite under limits 113.9 (best 180), flawless under limits 128.8 with one run at 200."
+    },
+    "verdict": "unproven: two marbles from the first maze take the average player from 61 to 45 and the elite 160 / 136 / 114 down the ladder, and Easy holds (136), but Hard and Expert score alike for the average player (45 v 51); the holes beside the route, the only thing left to split them, need new sim code.",
+    "limitsToday": "scripts/arcade-skill-bands/bots/tilt.ts:72 (TILT_HUMAN_LIMITS=1: eye-to-hand at least 15 ticks, a new decision every 9 ticks at most; lines 198-201, 539), read by scripts/tilt-levels-bands.ts:11; measures only, never set by a check. The deal's oracle (tilt-oracle.ts) is not limited."
   },
   {
     "id": "balltrack",
@@ -567,6 +672,13 @@
       "scripts/balltrack-levels-check.ts",
       "scripts/balltrack-level-bands.ts"
     ],
-    "risk": "the oracle's search grows with six cups (Expert's list took 25 min with four), and a limited oracle may fail many six-colour courses"
+    "risk": "the oracle's search grows with six cups (Expert's list took 25 min with four), and a limited oracle may fail many six-colour courses",
+    "evidence": {
+      "easy": "not measured: BT_COLOURS is fixed at 4 (ballTrack.ts:17) and the course builder deals four cups and colours 0 to 3 (balltrack-level-deal.ts:175, 206-207); 3 colours need new builder code.",
+      "hard": "not measured: 5 colours and cups need new builder code, a fifth palette entry and bot support.",
+      "expert": "not measured: 6 colours need new builder code. Read from the builder: cups sit only in columns 1 to 6, so 6 cups fill every legal column and the re-lay kind of cup move cannot happen."
+    },
+    "verdict": "unproven: the colour count is a constant in the sim and the builder, so no proposed level could be run; with 6 cups only colour shuffles are possible, not re-lays.",
+    "limitsToday": "scripts/arcade-skill-bands/bots/balltrack.ts:64 (BT_HUMAN_LIMITS, off by default: no tap within 9 ticks, 15 to notice; lines 277, 292, 321), switched on by scripts/balltrack-level-bands.ts:76-77 (--limits); measures only. The boosted oracle is not limited."
   }
 ]

@@ -1,0 +1,40 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="kit.css">
+<style>
+body { background: radial-gradient(120% 50% at 50% -6%, color-mix(in srgb, var(--retro) 24%, #0A1126) 0%, var(--bg) 58%); }
+.score { text-align: center; margin-top: 18px; } .score .num { font-size: 92px; }
+.earn { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 14px; border-radius: 16px; background: color-mix(in srgb, var(--gold) 16%, var(--surface)); box-shadow: inset 0 0 0 1px var(--ledge); color: var(--gold-hi); font: 800 14px/1 "Archivo"; }
+.parts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; }
+.parts div { padding: 10px 0 9px; border-radius: 10px; background: var(--raised); box-shadow: inset 0 0 0 1px var(--line); } .parts b { display: block; font: 900 19px/1 "Archivo"; } .parts small { display: block; margin-top: 5px; font: 700 11px/1 "Archivo"; color: var(--text3); }
+.step { padding: 14px 14px 16px; }
+.pair { display: grid; grid-template-columns: 1fr 22px 1fr; align-items: center; gap: 6px; margin-top: 12px; }
+.mini { height: 104px; border-radius: 8px; background: #050818; position: relative; overflow: hidden; box-shadow: inset 0 0 0 1.5px var(--lc); }
+.mini .w { position: absolute; left: 6px; right: 6px; top: 6px; display: grid; grid-template-columns: repeat(9, 1fr); gap: 1.4px; } .mini .w i { height: 4.6px; border-radius: 1px; }
+.mini .p { position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%); height: 4px; border-radius: 2px; background: var(--gold); }
+.mini .t { position: absolute; left: 6px; bottom: 18px; font: 800 10px/1 "Archivo"; letter-spacing: .08em; color: var(--lc); text-transform: uppercase; }
+.arrow { font: 900 20px/1 "Archivo"; color: var(--text3); text-align: center; }
+.rungs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; } .rungs div { height: 44px; border-radius: 8px; background: var(--raised); box-shadow: inset 0 0 0 1px var(--line); display: flex; align-items: center; justify-content: center; gap: 7px; font: 800 12px/1 "Archivo"; color: var(--text2); }
+.rungs .next { box-shadow: inset 0 0 0 1.5px var(--hard); color: var(--text); }
+</style></head><body><div class="page" style="padding-bottom:20px">
+  <div class="row g12"><div class="back">✕</div><div class="grow"><h2>Breaker</h2><div class="row g8 mt6"><span class="lchip l2"><span class="lvl l2"><i></i><i></i><i></i><i></i></span>Normal</span><span class="cap">Practice</span></div></div></div>
+  <div class="score"><div class="cap">Wall cleared in 61 s</div><div class="num mt6">182</div><div class="mt10"><span class="earn"><span class="star"></span> Star earned · New best</span></div></div>
+  <div class="parts mt14"><div><b>150</b><small>Bricks</small></div><div><b>+22</b><small>Speed</small></div><div><b>+10</b><small>All 3 gold</small></div></div>
+  <div class="rungs mt14">
+    <div><span class="lvl l1"><i></i><i></i><i></i><i></i></span><span class="star"></span></div>
+    <div><span class="lvl l2"><i></i><i></i><i></i><i></i></span><span class="star"></span></div>
+    <div class="next"><span class="lvl l3"><i></i><i></i><i></i><i></i></span><span class="star off"></span></div>
+    <div><span class="lvl l4"><i></i><i></i><i></i><i></i></span><span class="crown off"></span></div>
+  </div>
+  <div class="panel step mt14">
+    <div class="row g8"><div class="cap grow">Next step up</div><span class="lchip l3"><span class="lvl l3"><i></i><i></i><i></i><i></i></span>Hard</span></div>
+    <div class="pair"><div class="mini l2" id="a"></div><div class="arrow">›</div><div class="mini l3" id="b"></div></div>
+    <div style="font:800 17px/1.25 Archivo;margin-top:12px">Two more rows, two already sliding, a narrower paddle.</div>
+  </div>
+  <div class="btn full mt14">Play Hard</div>
+  <div class="row g8 mt10"><div class="btn sec sm grow">Play again</div><div class="btn sec sm grow">Games</div></div>
+</div>
+<script>
+const cols = ["#FF4D6A","#FF8A3D","#FFC81E","#3DDC84","#36E2F5","#4D8CFF","#B26BFF","#FF6BD6","#FF4D6A","#FF8A3D","#FFC81E","#3DDC84"];
+const mk = (id, rows, pw, t, slide) => { let w = ""; for (let r = 0; r < rows; r++) for (let c = 0; c < 9; c++) w += `<i style="background:${cols[r]};${slide.includes(r) ? "transform:translateX(" + (r % 2 ? 5 : -5) + "px)" : ""}"></i>`;
+  document.getElementById(id).innerHTML = `<div class="w">${w}</div><div class="t">${t}</div><div class="p" style="width:${pw}px"></div>`; };
+mk("a", 9, 30, "9 rows", []); mk("b", 11, 22, "11 rows", [8, 10]);
+</script></body></html>

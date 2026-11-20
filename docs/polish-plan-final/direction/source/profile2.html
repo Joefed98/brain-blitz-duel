@@ -1,0 +1,34 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="alt.css"><script>const Q=new URLSearchParams(location.search);document.documentElement.dataset.dir = Q.get("dir") || "e";</script>
+<style>
+.big { height: 292px; padding:18px; text-align:center; background: radial-gradient(110% 70% at 50% 0%, color-mix(in srgb, var(--acc) 34%, transparent), transparent 72%), radial-gradient(90% 90% at 100% 100%, color-mix(in srgb, var(--acc2) 30%, transparent), transparent 62%), var(--card); box-shadow: inset 0 0 0 1.5px var(--acc); position:relative; }
+.big .av { width:128px; height:128px; border-radius:32px; margin:0 auto; box-shadow: 0 0 0 3px var(--acc), 0 14px 26px rgba(0,0,0,.5); background:#FF6BD6; }
+.big b { font: 900 28px/1.1 "Archivo"; font-stretch:108%; display:block; margin-top:12px; }
+.big .bd { display:flex; gap:10px; justify-content:center; margin-top:10px; } .big .bd img { width:38px; height:38px; }
+.big .ed { position:absolute; right:14px; top:14px; }
+.big .tr { position:absolute; left:14px; top:14px; text-align:left; }
+.cat { display:flex; align-items:center; gap:10px; height:40px; font: 800 15px "Archivo"; } .cat span { width:74px; } .cat .track { flex:1; height:12px; border-radius:6px; } .cat .num { font-size:17px; width:52px; text-align:right; }
+.form { display:flex; gap:8px; align-items:center; } .form i { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; font: 900 15px "Archivo"; font-style:normal; background: rgba(22,195,91,.2); color:#5BE38F; } .form i.l { background: rgba(255,90,110,.2); color:#FF8A98; }
+.q { display:grid; grid-template-columns: repeat(4,1fr); gap:10px; margin-top:14px; } .q div { height:78px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; font: 800 12.5px "Archivo"; color: var(--text2); } .q img { width:34px; height:34px; }
+</style></head><body><div class="page">
+  <div class="top" style="padding-bottom:4px"><h1 class="grow" style="font-size:32px">You</h1><span class="mini">Settings</span></div>
+  <div class="scroll">
+    <div class="big cut"><div class="tr"><div class="lab acc">Volt II</div><div class="num" style="font-size:26px">1,278</div></div><span class="mini ed">Customise</span>
+      <div class="av"><img src="art/avatars/svg/captain-joulz.svg"></div><b>TheInventor</b><span class="lab">Founding Player #0042</span>
+      <div class="bd"><img src="pub/art/badges/founding-player.svg"><img src="pub/art/badges/first-win.svg"><img src="pub/art/badges/hot-streak.svg"></div></div>
+    <div class="sec-head"><h2>Strongest categories</h2><a>All ratings ›</a></div>
+    <div class="panel" style="padding:8px 14px">
+      <div class="cat"><span>Pattern</span><div class="track"><i style="width:86%;background:#B26BFF"></i></div><span class="num">1,350</span></div>
+      <div class="cat"><span>Word</span><div class="track"><i style="width:78%;background:#4D8CFF"></i></div><span class="num">1,312</span></div>
+      <div class="cat"><span>Retro</span><div class="track"><i style="width:55%;background:#36E2F5"></i></div><span class="num">1,176</span></div>
+    </div>
+    <div class="panel" style="margin-top:14px;padding:12px 14px"><div class="row" style="justify-content:space-between"><div class="form"><i>W</i><i>W</i><i class="l">L</i><i>W</i><i>W</i></div><span class="lab">Won 4 of last 5</span></div></div>
+    <div class="q"><div class="panel"><img src="pub/nav/friends-3x.webp">Friends</div><div class="panel"><img src="pub/nav/challenges-3x.webp">Challenges</div><div class="panel"><img src="pub/nav/leaderboards-3x.webp">Badges</div><div class="panel"><img src="pub/nav/support-3x.webp">Help</div></div>
+  </div>
+  <div class="tabs">
+    <div class="tab "><img src="pub/nav/home-3x.webp">Home</div>
+    <div class="tab "><img src="pub/nav/games-3x.webp">Games</div>
+    <div class="tab "><img src="pub/nav/tournaments-3x.webp">Compete</div>
+    <div class="tab "><img src="pub/nav/shop-3x.webp">Shop</div>
+    <div class="tab on"><img src="pub/nav/profile-3x.webp">You</div>
+  </div>
+</div></body></html>

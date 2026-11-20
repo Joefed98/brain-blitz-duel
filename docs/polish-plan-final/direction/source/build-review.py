@@ -1,8 +1,10 @@
 import json, html
 R='/home/user/brain-blitz-duel/docs/polish-plan-final/'
 E=html.escape
+from PIL import Image as _I
 def img(path,cap,cls=''):
-    return f'<figure class="shot {cls}"><img loading="lazy" src="direction/{path}.webp" alt="{E(cap)}"><figcaption>{E(cap)}</figcaption></figure>'
+    w,h=_I.open(R+f'direction/{path}.webp').size
+    return f'<figure class="shot {cls}"><img loading="lazy" width="{w}" height="{h}" src="direction/{path}.webp" alt="{E(cap)}"><figcaption>{E(cap)}</figcaption></figure>'
 def strip(items,cls=''):
     return f'<div class="strip {cls}">'+''.join(img(p,c,k) for p,c,k in items)+'</div>'
 G=[('wordhunt','Forage · Word'),('sudoku','Box Six · Logic'),('pipes','Pipeline · Pattern'),('matchup','Gemstone · Strategy'),('breaker','Breaker · Retro'),('freekick','Top Bins · Sports'),('tripeaks','Summit · Cards')]
@@ -27,11 +29,19 @@ dec=[
  ('mines','Minefield’s Expert goes back to 10 × 16 (36 mines)',[('yes','Yes'),('no','No')],'yes','Today’s 12 × 18 draws squares at about 31 px on a phone.'),
  ('bestvalue','Drop “best value” from the coin packs',[('yes','Yes, drop it'),('no','Keep it')],'yes','The style guide’s own rule is no pressure labels.'),
  ('avatars','Leave the avatars’ backing disc and their art as they are',[('yes','Yes, leave them'),('no','Remove the disc')],'yes','The new header and VS screens make the disc a non-issue.'),
+ ('homelayout','Home layout',[('H1','H1 · Hero'),('H2','H2 · Match day'),('H3','H3 · Deck')],'H1','H1 works for every player today. H2 is the one to move to when rated play is open to everyone.'),
+ ('competelayout','Compete layout',[('C1','C1 · Ladder'),('C2','C2 · Fixtures'),('C3','C3 · Season')],'C1','C1 is never empty, even with tournaments off. C2 and C3 suit later, as tournaments and seasons open.'),
+ ('youlayout','You layout',[('Y1','Y1 · Rows'),('Y2','Y2 · Card first'),('Y3','Y3 · Career')],'Y2','The page is about identity, and the card is the identity.'),
+ ('levelpick','Level picker on a game’s page',[('L1','L1 · Ladder (all four levers at once)'),('L2','L2 · Preview (one level large)')],'L1','L1 shows every step and your best on each at a glance. L2 shows one level bigger. The step-up card on the reveal (L3) comes with either.'),
+ ('accent','Accent colourway',[('champagne','Champagne (today’s)'),('ion','Ion (electric cyan)'),('ember','Ember (magenta to orange)')],'champagne','Gold stays the one action colour in all three.'),
 ]
 allg=[]
 for f in ['word','number','speed-attention','pattern-logic','retro-action','strategy-sports-cards']:
     allg+=json.load(open(R+f'difficulty/{f}.json'))
 order=['Word','Number','Speed','Attention','Pattern','Logic','Retro','Action','Strategy','Sports','Cards & Board']
+def lab_of(v):
+    v=(v or '').strip().lower()
+    return 'documented' if v.startswith('documented') else 'measured' if v.startswith('measured') else 'not measured'
 def levels():
     out=[]
     for grp in order:
@@ -40,9 +50,23 @@ def levels():
         for g in gs:
             ch={'keep':'kept','retune':'retuned','redesign':'redesigned'}[g['change']]
             new=f'<p class="newm"><b>New:</b> {E(g["newMechanic"])}</p>' if g.get('newMechanic') else ''
+            ev=g.get('evidence') or {}
+            verdict=f'<p class="newm"><b>Fact-check:</b> {E(g["verdict"])}</p>' if g.get('verdict') else ''
             out.append(f'''<details class="lv"><summary><b>{E(g["name"])}</b><span class="lever">{E(g["lever"])}</span><i class="tag {g["change"]}">{ch}</i></summary>
-<div class="ladder"><div class="e"><em>Easy</em>{E(g["glance"]["easy"])}</div><div class="n"><em>Normal · today</em>{E(g["today"]["normal"])}</div><div class="h"><em>Hard</em>{E(g["glance"]["hard"])}</div><div class="x"><em>Expert</em>{E(g["glance"]["expert"])}</div></div>
-<p class="why">{E(g["why"])}</p>{new}</details>''')
+<div class="ladder"><div class="e"><em>Easy</em>{E(g["glance"]["easy"])}<small class="ev {lab_of(ev.get("easy")).replace(" ","-")}">{lab_of(ev.get("easy"))}</small></div><div class="n"><em>Normal · today</em>{E(g["today"]["normal"])}</div><div class="h"><em>Hard</em>{E(g["glance"]["hard"])}<small class="ev {lab_of(ev.get("hard")).replace(" ","-")}">{lab_of(ev.get("hard"))}</small></div><div class="x"><em>Expert</em>{E(g["glance"]["expert"])}<small class="ev {lab_of(ev.get("expert")).replace(" ","-")}">{lab_of(ev.get("expert"))}</small></div></div>
+<p class="why">{E(g["why"])}</p>{new}{verdict}</details>''')
+    return '\n'.join(out)
+def factcounts():
+    lab={'measured':0,'documented':0,'not measured':0}; ver={'holds':0,'adjusted':0,'unproven':0}
+    for g in allg:
+        for l in ('easy','hard','expert'): lab[lab_of((g.get('evidence') or {}).get(l))]+=1
+        v=(g.get('verdict') or 'unproven').split(':')[0].strip().lower(); ver[v if v in ver else 'unproven']+=1
+    return lab,ver
+def adjusted():
+    out=[]
+    for g in allg:
+        v=g.get('verdict') or ''
+        if v.lower().startswith('adjusted'): out.append(f'<li><b>{E(g["name"])}:</b> {E(v.split(":",1)[1].strip() if ":" in v else v)}</li>')
     return '\n'.join(out)
 def decisions():
     out=[]
@@ -74,7 +98,11 @@ desk=[
  pair('Desktop Home','The hero across two columns, three feature cards, six tiles, an aside that is never empty.',[('pages/home-now-desktop','Today','now wide'),('pages/home-e-desktop','E','wide'),('pages/home-f-desktop','F','wide'),('pages/home-a-desktop','A','wide')]),
  pair('Desktop Games','The hero across the top, shelves of seven tiles.',[('pages/games-now-desktop','Today','now wide'),('pages/games-e-desktop','E','wide'),('pages/games-a-desktop','A','wide')]),
  pair('Desktop VS','The two halves side by side on a slanted gold seam.',[('pages/vs-now-desktop','Today','now wide'),('pages/vs-e-desktop','E','wide'),('pages/vs-a-desktop','A','wide')]),
+ pair('Desktop You','The card, rating and stats on the left; rows, recent matches and the showcase on the right.',[('pages/profile-now-desktop','Today','now wide'),('pages/profile-e-desktop','E','wide'),('pages/profile-a-desktop','A','wide')]),
+ pair('Desktop Shop','The bundle across the top, four items a row, coins and the wishlist in the aside.',[('pages/shop-now-desktop','Today','now wide'),('pages/shop-e-desktop','E','wide'),('pages/shop-a-desktop','A','wide')]),
+ pair('Desktop rated result','The title, the rating card beside the game rows, the three actions in a row.',[('pages/result-now-desktop','Today','now wide'),('pages/result-e-desktop','E','wide'),('pages/result-a-desktop','A','wide')]),
  pair('Desktop game: the Cabinet','The identical world in the middle, score and run on the left, goal and controls on the right. The skeleton is already built, behind a switch that is off. Layout study; the panels are painted in the esports style when built.',[('pages/play-a-desktop','The Cabinet on Breaker','wide')]),
+ pair('Desktop game, in the esports look','The same Cabinet layout painted in the page style: run and score on the left, goal, next challenges and controls on the right, the world untouched in the middle.',[('pages/play-e-desktop','E','wide')]),
 ]
 page=f'''<title>Joulz Design Direction</title>
 <meta name="claude:viewport-fit-sides" content="cover">
@@ -102,7 +130,7 @@ nav.toc a{{text-decoration:none;color:var(--text);background:var(--panel2);borde
 .short{{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px 18px;margin:18px 0}}
 .short ul{{margin:0;padding-left:18px}} .short li{{margin:7px 0}}
 .strip{{display:flex;gap:12px;overflow-x:auto;padding:6px 2px 14px;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}}
-.shot{{flex:none;margin:0;width:228px;scroll-snap-align:start}} .shot.wide{{width:min(86vw,640px)}}
+.shot{{flex:none;margin:0;width:228px;scroll-snap-align:start}} .shot.wide{{width:min(86vw,640px)}} .shot.board{{width:min(92vw,900px)}} .fcs{{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px;margin:14px 0}} .fc{{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}} .fc .q{{font:800 16px/1.3 var(--font);margin-bottom:8px}} .fc p{{margin:0 0 8px;color:var(--text2);font-size:15px}} .fc p.v{{margin:0;color:var(--gold)}} .fc p.v b{{color:var(--gold)}} ul.adj{{margin:8px 0 4px;padding-left:18px}} ul.adj li{{margin:8px 0;color:var(--text2)}} ul.adj b{{color:var(--text)}}
 .shot img{{display:block;width:100%;height:auto;border-radius:14px;border:1px solid var(--line);background:#000;cursor:zoom-in}}
 .shot.now img{{border-color:#4A5E9E}} .shot figcaption{{font:700 13px var(--font);color:var(--text2);margin-top:6px}}
 .shot.now figcaption{{color:var(--text3)}}
@@ -128,6 +156,7 @@ details.lv summary b{{font:800 16px var(--font)}} .lever{{color:var(--text2);fon
 .ladder em{{display:block;font:800 11px var(--font);font-style:normal;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}}
 .ladder .e{{border-color:var(--green)}} .ladder .e em{{color:var(--green)}} .ladder .n{{border-color:var(--blue)}} .ladder .n em{{color:var(--blue)}}
 .ladder .h{{border-color:var(--amber)}} .ladder .h em{{color:var(--amber)}} .ladder .x{{border-color:var(--red)}} .ladder .x em{{color:var(--red)}}
+.ev{{display:block;margin-top:6px;font:800 10.5px var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--text3)}} .ev.measured{{color:var(--green)}} .ev.documented{{color:var(--blue)}}
 .why,.newm{{padding:0 14px;color:var(--text2);font-size:14px}} .newm b{{color:var(--gold)}}
 #lvfind{{width:100%;height:48px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--text);font:600 16px var(--font);padding:0 14px;margin:10px 0}}
 fieldset.dec{{border:1px solid var(--line);border-radius:14px;background:var(--panel);margin:12px 0;padding:10px 14px 12px;min-width:0}}
@@ -151,13 +180,14 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 <div class="eyebrow">Joulz · design direction · 20 Nov 2026</div>
 <h1>Vivid games in a <b>sleek frame</b></h1>
 <p class="lede">The pages keep today’s esports look and get a better structure. The games get brighter. Everything here is a plan and mockups: nothing is built. Tap any picture to enlarge it. Your choices at the bottom copy out as text to paste back to me.</p>
-<nav class="toc"><a href="#games">Game art</a><a href="#pages">Pages</a><a href="#flow">Flow</a><a href="#levels">Difficulty</a><a href="#decide">Decide</a><a href="#files">Files</a></nav>
+<nav class="toc"><a href="#games">Game art</a><a href="#pages">Pages</a><a href="#flow">Flow</a><a href="#levels">Difficulty</a><a href="#check">Fact-check</a><a href="#decide">Decide</a><a href="#files">Files</a></nav>
 
 <div class="short"><div class="eyebrow">The short version</div><ul>
 <li><b>Games:</b> I recommend direction 4, <b>Spotlight</b>: a lit stage in each category’s deep colour and light matte pieces on the board puzzles. Retro stays dark and glows.</li>
 <li><b>Pages:</b> today’s style, refined (look E). One hero and one gold button a page, larger type and tiles, far fewer words.</li>
 <li><b>Flow:</b> a new phone’s first tap is inside a game. Tabs become Home · Games · Compete · Shop · You.</li>
 <li><b>Difficulty:</b> every game gets one lever you can see in the first seconds, as a four-step ladder. Normal never changes.</li>
+<li><b>Levels in the app:</b> one level mark everywhere (a colour and one to four bars), a ladder on each game’s page that shows what changes, and a “next step up” card after a star.</li>
 <li><b>Your three built items</b> (Apex’s steering, the reveal template, the desktop Cabinet skeleton) all still fit.</li>
 </ul></div>
 
@@ -175,7 +205,33 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 
 <h2 id="pages">Pages: today’s style, refined</h2>
 <p>Three looks on the same new layouts. <b>E “Esports, refined”</b> is today’s navy, champagne gold and angled cuts, with feature cards taking colour as an edge light. <b>F “colour-charged”</b> lets the feature cards carry full colour. <b>A “Bright Spark”</b> is the bolder redesign I made before your correction. I recommend E.</p>
+<h3 id="kit">The look on one board</h3>
+<p>The whole kit the build sessions work from: the navy frame, the one gold action, Archivo, the cut corner for heroes only, the family colours, the level marks, tiles, nameplates and the lit game stage. Six rules sit at the bottom.</p>
+{strip([('pages/kit-board','The look on one board','board')])}
 {''.join(pages)}
+<h3 id="room">A game in play, the intro and the room</h3>
+<p>The frame round a game: its name, the level mark, the round, your score and place, and the timer as a gold bar. The two frames are real screenshots under the new header (Box Six in Spotlight, Breaker kept neon). Then the short intro (15 words, one gold button), the lobby, the reveal and the final screen.</p>
+{strip([('pages/frame-spotlight-phone','In play · Box Six, Spotlight',''),('pages/frame-neon-phone','In play · Breaker, neon',''),('pages/intro-e-phone','Round intro',''),('pages/reveal-e-phone','Reveal',''),('pages/lobby-e-phone','Room lobby',''),('pages/podium-e-phone','Final screen','')])}
+<h3 id="navy">The navy change, on the real app</h3>
+<p>These are real screenshots of today’s app, each beside the same screen with only the eight navy token values changed. Nothing else is touched. The difference is small on purpose: panels sit a little bluer and separate from the page a little better. It reads as today’s style, so I have kept it in the plan. If you can’t see a gain worth having, say so and it drops out at no other cost.</p>
+{strip([('pages/home-now-phone','Home · today','now'),('pages/home-navy-phone','Home · navy values',''),('pages/games-now-phone','Games · today','now'),('pages/games-navy-phone','Games · navy values',''),('pages/shop-now-phone','Shop · today','now'),('pages/shop-navy-phone','Shop · navy values','')])}
+{strip([('pages/home-now-desktop','Home on a computer · today','now wide'),('pages/home-navy-desktop','Home on a computer · navy values','wide')])}
+
+<h3 id="more">More layouts: Home, Compete and You</h3>
+<p>Extra designs with different structures, colours and features, all inside the esports style. Three colourways appear: <b>champagne</b> (today’s), <b>Ion</b> (navy with electric cyan) and <b>Ember</b> (carbon with a magenta-to-orange accent). Gold stays the one action colour in all of them.</p>
+<h4>Home</h4>
+<p><b>H1 Hero</b> is one hero and one gold button. <b>H2 Match day</b> opens on a live strip and your player banner, with today as a timeline. <b>H3 Deck</b> is a console-style grid of mode tiles. I recommend H1 for launch because it works for every player; H2 has the best competitive feel and is the one to move to when rated play is open to everyone.</p>
+{strip([('pages/home-e-phone','H1 · Hero · champagne',''),('pages/home2-e-phone','H2 · Match day · champagne',''),('pages/home2-g-phone','H2 · Match day · Ion',''),('pages/home3-e-phone','H3 · Deck · champagne',''),('pages/home3-h-phone','H3 · Deck · Ember','')])}
+<h4>Compete (a new page: your rating, tournaments and leaderboards in one place)</h4>
+<p><b>C1 Ladder</b> puts your tier and rating first, then the boards. <b>C2 Fixtures</b> leads with what is live and today’s events. <b>C3 Season</b> shows the tier ladder with you on it and the rivals either side. I recommend C1: it is never empty, even with tournaments off. C2 and C3 suit later, as tournaments and seasons open.</p>
+{strip([('pages/compete1-e-phone','C1 · Ladder · champagne',''),('pages/compete1-g-phone','C1 · Ladder · Ion',''),('pages/compete2-e-phone','C2 · Fixtures · champagne',''),('pages/compete2-h-phone','C2 · Fixtures · Ember',''),('pages/compete3-e-phone','C3 · Season · champagne',''),('pages/compete3-g-phone','C3 · Season · Ion','')])}
+<h4>The Daily and a tournament</h4>
+<p>Two pages inside Compete, in the same kit: the Daily with today’s six games on show and your week as a row of stars, and a live Arena with your points and place first and one gold button.</p>
+{strip([('pages/daily-e-phone','Daily',''),('pages/event-e-phone','A tournament, live','')])}
+<h4>You</h4>
+<p><b>Y1 Rows</b> is the card, the rating, three stats and rows. <b>Y2 Card first</b> makes the player card the page, with your strongest categories and recent form. <b>Y3 Career</b> is ring gauges and a trophy shelf. I recommend Y2: the page is about identity, and the card is the identity.</p>
+{strip([('pages/profile-e-phone','Y1 · Rows · champagne',''),('pages/profile2-e-phone','Y2 · Card first · champagne',''),('pages/profile2-h-phone','Y2 · Card first · Ember',''),('pages/profile3-e-phone','Y3 · Career · champagne',''),('pages/profile3-g-phone','Y3 · Career · Ion','')])}
+
 <h3>Two open layout choices</h3>
 {strip([('pages/home-e-phone','N1 · five tabs, the hero plays',''),('pages/home-e2-phone','N2 · centre Play button',''),('pages/games-e-phone','G1 · shelves',''),('pages/games-e2-phone','G2 · three-across grid','')])}
 <h3>On a computer</h3>
@@ -183,8 +239,8 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 
 <h2 id="flow">Flow: a first game in seconds</h2>
 <p>Today a new player sees Home, a loading screen and a full intro before the first tap inside a game. In the plan the splash leads straight to a first game, and the first tap is the game’s first tap.</p>
-{strip([('pages/first1-e-phone','1 · The bolt charges',''),('pages/first2-a-phone','2 · The first game: tap 1, 2, 3…',''),('pages/first3-a-phone','3 · A first win, then Home',''),('pages/intro-now-phone','Today’s intro, for contrast','now')])}
-<p class="muted">Frames 2 and 3 are flow sketches. The game itself is drawn in the art direction you pick.</p>
+{strip([('pages/first1-e-phone','1 · The bolt charges',''),('pages/first2-e-phone','2 · The first game: tap 1, 2, 3…',''),('pages/first3-e-phone','3 · A first win, then Home',''),('pages/intro-now-phone','Today’s intro, for contrast','now')])}
+<p class="muted">Frame 2 is a flow sketch. The game itself is drawn in the art direction you pick.</p>
 <div class="tbl"><table><tr><th>Journey</th><th>Today</th><th>Plan</th></tr>
 <tr><td>Taps before the first tap inside a game (new phone)</td><td class="tnum">2</td><td class="tnum"><b>0</b></td></tr>
 <tr><td>Home to a game</td><td class="tnum">2</td><td class="tnum"><b>1</b></td></tr>
@@ -199,10 +255,28 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 <h2 id="levels">Difficulty: one lever you can see</h2>
 <p>Every game gets one headline lever a player sees in the first three seconds, and Easy, Normal, Hard and Expert sit on it as one ladder. Normal is today’s game and never changes. Hard and Expert never add an aid. Expert is proven reachable at 200 by the best humans.</p>
 <p class="muted">Of 83 games: 1 kept, 48 retuned, 34 redesigned, 5 with one new mechanic. The commonest fault today is that Hard looks the same as Normal. Tap a game for its ladder; the full numbers, proofs and files are in the spec.</p>
+<h3 id="lvui">How the levels look in the app</h3>
+<p>One <b>level mark</b> everywhere: a colour and one to four bars, so it never relies on colour alone. It sits on the game’s page, in the header during play, on the reveal and in room settings.</p>
+<p><b>L1 Ladder</b> lists the four levels on the game’s page, each with a small picture of what changes and your best. <b>L2 Preview</b> shows one level large with the lever as a row of numbers. <b>L3 Step up</b> is the card on the reveal after a star: Normal beside Hard, and one line saying what is new. I recommend L1 with L3.</p>
+{strip([('pages/levels1-e-phone','L1 · Ladder (Breaker)',''),('pages/levels2-e-phone','L2 · Preview (Box Six)',''),('pages/levels3-e-phone','L3 · Step up, on the reveal','')])}
+{strip([('pages/levels-e-desktop','L1 on a computer: the four levels side by side','wide')])}
+<h3 id="ladders">What each step up looks like</h3>
+<p>Twelve of the 83 ladders on one sheet: one from each family, and the five new mechanics. The gold line under each name is the game’s one lever. The small label on each level says whether its numbers were measured in this pass, come from the repo’s documents, or are not measured yet.</p>
+{strip([('pages/ladders-sheet','Twelve ladders','board')])}
+<h3>Every game</h3>
 <input id="lvfind" type="search" placeholder="Find a game" aria-label="Find a game">
 <div id="lvlist">
 {levels()}
 </div>
+
+<h2 id="check">Fact-check</h2>
+<p>Before anything is built I checked my own work with the repo’s tools. In short: two of my four big claims held, one was half right and one was wrong as I wrote it. The plan and the spec are corrected.</p>
+<div class="fcs"><div class="fc"><div class="q">Counterweight, Brimful, Checkout and Kakuro: the old game as Hard looks and scores like Normal</div><p>96 deals a game, the same deals at both levels. The first board is the same on all four. But a good player drops 24, 87, 37 and 61 points, and an average player 70 on Counterweight.</p><p class="v"><b>Half right.</b> It looks like Normal. It does not score like Normal.</p></div><div class="fc"><div class="q">Iron Wall’s Expert needs the fourth lane</div><p>60 seeds a level. Hard and Expert put the same tanks on the same lanes at the same moments, every time. An average player scores 104 and 84. A faster pace alone changes neither the look nor the gap. The lane itself can’t be measured until it is built.</p><p class="v"><b>The reason holds.</b></p></div><div class="fc"><div class="q">No proof tool applies the human limits today</div><p>Several do: the level tuning tool, the Home Run and Top Bins proof, and nine level checks.</p><p class="v"><b>Wrong as written.</b> True only for most deal builders’ 200 proofs.</p></div><div class="fc"><div class="q">Flash and Bonk cap a perfect human at about 130 and 160</div><p>Flash at exactly 0.25 s a flash: 130 at all four levels. Bonk at the limits: 156 (153 on Expert). 100 deals a level.</p><p class="v"><b>Holds.</b> It is the scoring curve, not the level.</p></div></div>
+<p>Every level of every game now says what it rests on. Of the 249 Easy, Hard and Expert rows: <b>{factcounts()[0]["measured"]}</b> measured in this pass, <b>{factcounts()[0]["documented"]}</b> taken from the repo’s documents (today’s level, kept), <b>{factcounts()[0]["not measured"]}</b> not measured yet (they need a board size, a bank or a mechanic that doesn’t exist until it is built). By game: <b>{factcounts()[1]["holds"]}</b> hold as proposed, <b>{factcounts()[1]["adjusted"]}</b> were changed because a measurement contradicted them, <b>{factcounts()[1]["unproven"]}</b> have a risky part that stays unproven until its session builds the proof.</p>
+<details class="lv"><summary><b>The rows I changed</b><span class="lever">what the measurement showed</span></summary><ul class="adj">
+{adjusted()}
+</ul></details>
+<p class="muted">Also re-checked: all 203 rows of the assertion list against the files (3 line numbers corrected), every plan row against the prompts (each built by exactly one), and the standing rules in all 14 prompts (identical).</p>
 
 <h2 id="decide">Decide</h2>
 <p>My recommendation is selected on each. Change any you disagree with, then copy your answers and paste them back to me.</p>
