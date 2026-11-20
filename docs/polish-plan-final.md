@@ -123,7 +123,7 @@ The numbers are the review page's (its Decide section had 24 questions).
 |---|---|---|
 | 2 | Game art direction | **Spotlight**, with Retro on Neon's glow and the light-on-dark games keeping a deep board ("your drawn versions look really good") |
 | 3 | Navigation | **N1**: Home · Games · Compete · Shop · You |
-| 4 | A new phone opens straight into a game | **Yes**; which game is Joe's pick from the three candidates in section 3.4 |
+| 4 | A new phone opens straight into a game | **Yes**; the first game is **Ascend on Easy** (Joe's pick, 20 Nov) |
 | 6 | The level picker lives on each game's page only | **Yes** |
 | 7 | Round intro: demo, one-line goal, Ready | **Yes** |
 | 9 | Beta terms at about 60 words and a link | **Yes, subject to Joe's adviser** |
@@ -150,7 +150,7 @@ The numbers are the review page's (its Decide section had 24 questions).
 | 19 | You layout | **Y2**, with Y3's three ring gauges in place of the three stat tiles and Y3's trophy shelf as one row under the card (`you-mixed-phone`) |
 | 20 | Level picker on a game's page | **L1 and L2 combined** (`gamepage-mixed-phone`): the page opens on my current level, shown large (from L2); all four levels sit underneath as a compact row to tap, each with its small picture, my best and my star (from L1); it remembers the last level I played on each game; Challenges and How to play are two small buttons |
 | 5 | Games page | **G1 shelves (bigger tiles) by default, plus one switch to "All"**: every game in the three-across grid (G2), grouped by category. The page remembers the last view (`games-mixed-phone`, `games-mixed-all-phone`) |
-| 4 | The first game | Straight into a game, yes. Joe picks from the three candidates in section 3.4 |
+| 4 | The first game | Straight into a game, yes. **Ascend on Easy** (Joe's pick of the three candidates, 20 Nov) |
 
 **Additions**
 
@@ -161,9 +161,22 @@ The numbers are the review page's (its Decide section had 24 questions).
 | 11 | The desktop rail also gets Badges, Notifications, Leaderboards and the Daily | P1 (it owns the rail) |
 | 12 | Keyboard controls in every game on a computer, shown on the intro | P4 (the mapping), P2 (the intro's key line) |
 | 13 | Grappler and Curl Champ: D5 and D6 each propose a working lever to Joe before building those two | D5, D6 |
-| 14b | Pipeline, Chroma Lines, Topsy-Turvy and Ballpark: Joe picks per game between the old look (82f2f648), today's and Spotlight, shown three ways on the review page. If he picks old, the earlier plan's E1 rows are built as written (E1.4, E1.3, E1.2 by A2; E1.5 by A1) | A1, A2 |
+| 14b | Pipeline, Chroma Lines, Topsy-Turvy and Ballpark, shown three ways on the review page (old at 82f2f648, today, Spotlight). **Joe's picks, 20 Nov: the old look for all four.** Pipeline: the old look, with the bigger pipes. Chroma Lines: the old look ("I don't like the new circles; the old ones are much better"). Topsy-Turvy: the old look ("I don't like the new circle designs"). Ballpark: the old look. Each is restored as the earlier plan's E1 row describes, keeps today's rules, levels, effects and every `data-*` attribute, and sits on the new lit stage | E1.5 Ballpark by A1; E1.2 Topsy-Turvy, E1.3 Chroma Lines, E1.4 Pipeline by A2 |
 
-**Still open with Joe**: the first game (section 3.4); the four looks of 14b; Grappler's and Curl Champ's levers (D5 and D6 propose first); `scripts/skyline-overhaul-check.ts:728` (the exact change was shown to Joe on 20 Nov and is applied only on his typed approval, with the dated note beside it).
+**Joe's picks and approval, 20 Nov 2026 (later the same day)**
+
+| Pick | Joe's answer |
+|---|---|
+| The first game on a new phone | **Ascend on Easy** |
+| Pipeline | **The old look, with the bigger pipes**: the old SVG pipes and lit network (E1.4), drawn at today's tile and pipe size |
+| Chroma Lines | **The old look** (E1.3), old dots included: "I don't like the new circles; the old ones are much better" |
+| Topsy-Turvy | **The old look** (E1.2): "I don't like the new circle designs" |
+| Ballpark | **The old look** (E1.5) |
+| `scripts/skyline-overhaul-check.ts:728` | **Approved** exactly as shown: the room order is score, picture, chart, summary, breakdown(folded); practice unchanged. Applied with the note "Changed with Joe's approval, 20 Nov 2026" |
+
+For the four looks, A1 and A2 restore the old look as the earlier plan's E1 rows describe. They keep today's rules, levels, effects and every `data-*` attribute, and the boards sit on the new lit stage (art rule 1). Their assertion rows are back in `assertions.md`.
+
+**Still open with Joe**: Grappler's and Curl Champ's levers (D5 and D6 propose first), and the keys for the five pointer games (P4 proposes them).
 
 Where I disagree with something Joe asked for:
 
@@ -224,7 +237,7 @@ Joe's answer of 20 Nov combines H1 and H2 (mockups `home-mixed-phone`, `home-mix
 |---|---|---|
 | Screens before the first tap inside a game | Home, loading, the full intro (Goal, How, Score, Ready) or the game page | **None.** Splash, then the first game's board with one coach line |
 | Taps before the first tap inside a game | 2 | **0** (the first tap is "1" on the board; it also starts the clock and unlocks sound) |
-| The first game | Gridlock at Normal (a 120 s puzzle) | **Joe picks one of three** (table below). My pick is Ascend on Easy |
+| The first game | Gridlock at Normal (a 120 s puzzle) | **Ascend on Easy** (Joe's pick of the three below, 20 Nov): tap 1 to 16 in order, about 20 s, nothing to read |
 | First result | The standard reveal | A win screen: the score, the first star, "248 to collect", then **Play again**, **Try another game**, and for rated players **Play a real opponent**; "No account needed" |
 | Then | – | Home, with the intro card gone for good |
 
@@ -232,7 +245,7 @@ The three candidates (Joe, 20 Nov: "propose two or three, each with one line on 
 
 | Candidate | Why | Easy, average player |
 |---|---|---|
-| **Ascend, Easy** (my pick) | Tap 1 to 16 in order. There is nothing to explain, the first tap is the game's first tap, and it is over in about 20 seconds | 171 |
+| **Ascend, Easy** (Joe's pick) | Tap 1 to 16 in order. There is nothing to explain, the first tap is the game's first tap, and it is over in about 20 seconds | 171 |
 | **Colour Flood, Easy** | Tap a colour and the board floods with it. One rule, big moves, and the highest Easy average of any game measured | 195 |
 | **Polypotions, Easy** | Pour to sort the colours. Most people have seen the idea, six flasks take well under a minute, and the finish is satisfying | 180 |
 
@@ -268,7 +281,7 @@ Mockups are in `direction/pages/` as `<page>-<e|f|a>-<phone|desktop>.webp` besid
 | Page | Stays | Changes | Why | Mockup | Size |
 |---|---|---|---|---|---|
 | Launch / splash | The bolt and wordmark; `--jz-bg` | The vector bolt at 160 px charging bottom to top (earlier A1, Joe's U1a pick: no speed lines, no caption); at least 0.9 s then a 200 ms fade; silent on a cold open | Today it is gone at hydration and jumps from the iOS launch image | `first1-e-phone` | M |
-| First open | – | Section 3.4; the first game is Joe's pick of three | A first win inside seconds | `first1-e`, `first2-e`, `first3-e` | M |
+| First open | – | Section 3.4; the first game is Ascend on Easy (Joe's pick) | A first win inside seconds | `first1-e`, `first2-e`, `first3-e` | M |
 | Home | The art kit, the Daily art, the header's counters | Section 3.3 (Joe's mix of H1 and H2): top line, the player banner in three states, two rating chips, Dailies side by side, Play friends, Jump back in; every section reserved | The rating front and centre; one tap to play; nothing twice | `home-mixed-phone`, `home-mixed-unplaced-phone`, `home-mixed-open-phone`, `home-mixed-desktop` | L |
 | Games | Tiles' art, stars, search, game of the day | One switch, **Shelves · All**, remembered on the device. Shelves (the default): the game-of-the-day hero, then a shelf per family of 132 × 164 tiles with "All n". All: every game in the three-across grid, grouped by family. No level switch or explainer here | Five rows of controls before a game today; larger tiles; one tap to see everything | `games-mixed-phone`, `games-mixed-all-phone`, `games-e-desktop` | M |
 | Game page | Art, name, best, challenges | Joe's mix of L1 and L2: the page opens on the player's current level shown large (its picture, its lever in words, their best and star); the four levels sit under it as a compact row to tap, each with its small picture, best and star; the last level played is remembered per game; one large gold Play; "How to play" and "Challenges 1 / 3" as two small buttons | The level is chosen where it is played; 40 words | `gamepage-mixed-phone`, `levels-e-desktop` | M |
@@ -318,7 +331,7 @@ All nine share one move: `scripts/word-art/word_art.py` re-renders the tile, dis
 | Integer Pyramid | The sandstone blocks (they already read) | The stage lit; gold completion kept | – |
 | Brimful | Glass jugs, bright water | The stage lit; scale marks 13 px | – |
 | Checkout | The dartboard | The fairground backdrop back, the stacked outlines gone | E2.1 and E0.5 kept |
-| Ballpark | The line and the markers | A white ruler with dark ticks; the lit card; no ticks through the marker | E1.5 changed (new material, same usability fix) **Joe picks (14b, 20 Nov): the old look (82f2f648), today's or Spotlight, shown three ways on the review page; if old, A1 builds the earlier plan's E1.5 as written** |
+| Ballpark | today's rules, levels, effects and every `data-*` attribute | **The old look (Joe's pick, 20 Nov)**: the steel tape with no minor ticks, the notches above it, the old pin and the lit card, on the new lit stage | E1.5 as the earlier plan wrote it, built by A1 |
 | Kakuro | Clues and keypad | White cells, deep-green clue cells | – |
 
 Category-wide: E0.1 (the halved backdrop) is replaced by rule 1 of the stage; E0.4 (navy and champagne dyed controls) kept.
@@ -348,12 +361,12 @@ Speed and Attention's dark frames (earlier E0.3) follow rule 1.
 |---|---|---|---|
 | Gridlock | The lot and cars | Lighter tarmac, saturated cars, a champagne gold car | E0.2 changed: soft glows return where the direction asks, not the deleted blocks wholesale |
 | Tessellate | The pieces (already vivid) | An ivory pegboard | – |
-| Pipeline | The effects (water in, drain) and the sprite structure | Coloured enamel pipes on ivory tiles; wet pipes bright blue with a soft glow | E1.4 **changed**: re-render the set, do not restore the old SVG **Joe picks (14b, 20 Nov): the old look (82f2f648), today's or Spotlight, shown three ways on the review page; if old, A2 builds the earlier plan's E1.4 as written** |
-| Chroma Lines | The tube structure and effects | A deep-violet board, thick saturated lines with a highlight, round dots | E1.3 changed: the bright line is back by re-colouring `tubeLayers()`, the halo as a soft glow **Joe picks (14b, 20 Nov): the old look (82f2f648), today's or Spotlight, shown three ways on the review page; if old, A2 builds the earlier plan's E1.3 as written** |
+| Pipeline | today's rules, levels, effects and every `data-*` attribute | **The old look, with the bigger pipes (Joe's pick, 20 Nov)**: the old SVG pipes and lit network, drawn at today's tile and pipe size, on the new lit stage | E1.4 as the earlier plan wrote it, built by A2 |
+| Chroma Lines | today's rules, levels, effects and every `data-*` attribute | **The old look (Joe's pick, 20 Nov)**: tinted cells, the old flat glossy dots, the bright line with its halo, on the new lit stage | E1.3 as the earlier plan wrote it, built by A2 |
 | Skid | The ice (already bright) | – | – |
 | Heave | The warehouse | The stage lit | – |
 | Lightbender | The dark board (a beam needs it) | Deep violet, not black; the beam's glow back | E0.2 kept for this game |
-| Topsy-Turvy | The three-layer tray, the effects | Marbles re-rendered saturated and matte; a lighter steel board | E1.2 changed: new renders, not the old CSS balls **Joe picks (14b, 20 Nov): the old look (82f2f648), today's or Spotlight, shown three ways on the review page; if old, A2 builds the earlier plan's E1.2 as written** |
+| Topsy-Turvy | today's rules, levels, effects and every `data-*` attribute; the three-layer tray | **The old look (Joe's pick, 20 Nov)**: gradient balls with the white gloss, coloured-ring sockets, the blue-grey floor and steel-blue blocks, on the new lit stage | E1.2 as the earlier plan wrote it, built by A2 |
 
 ### Logic (14)
 
@@ -506,7 +519,7 @@ Every one of these is a gameplay or scoring stamp under the house rule, so each 
 | Item | Still fits? | Note |
 |---|---|---|
 | **Apex's steering fix** (C4.7: the car's sprite turns with the steer) | **Yes, unchanged.** | A plain bug fix; no direction touches it |
-| **The reveal template** (`RevealScreen`, G1) | **Yes.** | The direction needs exactly this: one layout to repaint. Section 6 changes its paint only. Its one waiting assertion (skyline-overhaul-check:728) still waits for Joe |
+| **The reveal template** (`RevealScreen`, G1) | **Yes.** | The direction needs exactly this: one layout to repaint. Section 6 changes its paint only. Its one assertion line (skyline-overhaul-check:728) was approved by Joe on 20 Nov and changed with the dated note beside it |
 | **The desktop Cabinet skeleton** (B1, behind `ARENA_CABINET_LEFT`, off) | **Yes.** | The Cabinet is still the desktop answer for arcade. The session that fills it paints the panels in the esports style (navy, one cyan or category edge) and switches it on with the three desktop-geometry lines Joe approves |
 
 ## 10. Assertion changes this plan needs
@@ -531,7 +544,7 @@ Fourteen sessions. Prompts: `docs/polish-plan-final/prompts/`, each paste-ready 
 
 **Launch order.** Three trains that share no files. Pages: **P1** first and alone, then P2, P3 and P4 together. Art: **A1** first, then A2; A3 any time. Difficulty: **D1 to D6** merged one at a time in that order. **F1** last, then the merge captain runs the Save-intro-demos workflow. Two cross-train rules: a difficulty session that needs new art waits for that family's art session, and P2 merges before any difficulty session touches help or intro text. If only three sessions start at once: P1, A1 and D1.
 
-**After Joe's answers of 20 Nov** (section 2.1; `coverage.md` has the rows): P1 builds the mixed Home and the fuller desktop rail; P2 the Games switch, the combined level picker, the intro's key line and the first game Joe picks; P3 the reordered Compete and the mixed You; P4 the keyboard mapping for every game (P1 builds the fuller rail with the rest of the navigation); A1 and A2 whichever look Joe picks for Ballpark, Pipeline, Chroma Lines and Topsy-Turvy; D1 to D6 the scoring fixes on Normal for their games (section 8.2), D5 the three stamps, and D5 and D6 a lever proposal to Joe before Grappler and Curl Champ; F1 the longer list of demos to re-record.
+**After Joe's answers of 20 Nov** (section 2.1; `coverage.md` has the rows): P1 builds the mixed Home and the fuller desktop rail; P2 the Games switch, the combined level picker, the intro's key line and the first open into Ascend on Easy; P3 the reordered Compete and the mixed You; P4 the keyboard mapping for every game (P1 builds the fuller rail with the rest of the navigation); A1 the old look of Ballpark (E1.5) and A2 the old looks of Pipeline (with the bigger pipes), Chroma Lines and Topsy-Turvy (E1.4, E1.3, E1.2), each on the new lit stage with today's rules, levels, effects and attributes; D1 to D6 the scoring fixes on Normal for their games (section 8.2), D5 the three stamps, and D5 and D6 a lever proposal to Joe before Grappler and Curl Champ; F1 the longer list of demos to re-record.
 
 ## 12. Carried forward unchanged from the earlier plan
 
@@ -543,4 +556,4 @@ Fourteen sessions. Prompts: `docs/polish-plan-final/prompts/`, each paste-ready 
 
 Built after Joe's answers of 20 Nov: the earlier scoring review's seven approved fixes (I1 to I5, I7, I8) and Normal's caps for Flash, Bonk and Pull!, each under a new stamp in the difficulty session that owns the game (section 8.2). I6 and I9 stay "leave it".
 
-Dropped from the earlier plan: A3 (avatar discs), the "best value" pack frame in A8, the old section D and its spec. C1.6, C1.8 and C3.5 (the three stamps) are back, in D5. The earlier E1.2 to E1.5 (the old looks of Topsy-Turvy, Chroma Lines, Pipeline and Ballpark) are Joe's pick per game (14b): Spotlight's re-render, today's, or the old look restored as E1 described.
+Dropped from the earlier plan: A3 (avatar discs), the "best value" pack frame in A8, the old section D and its spec. C1.6, C1.8 and C3.5 (the three stamps) are back, in D5. The earlier E1.2 to E1.5 are back: Joe picked the old look for Topsy-Turvy, Chroma Lines, Pipeline (with the bigger pipes) and Ballpark on 20 Nov, restored as E1 described, on the new lit stage.

@@ -69,9 +69,37 @@ The D sessions' prompts tell each to record the legacy fixture first, so every "
 - **Compete and You** (changes 9 to 11): the rows stand; the order inside each page is Joe's (`profile-pages-check.tsx:281-282` pins Profile's section order and still needs its new order, now card, trophy shelf, gauges, categories, rows).
 - **First open** (change 5): the rows stand; the game is Joe's pick of three.
 
-### The four looks of 14b (A1, A2)
+### Joe's picks of 20 Nov: the old look for four games (A1, A2)
 
-If Joe picks the **old** look for a game, the earlier plan's assertion row comes back with it: K5 for Ballpark (`number-overhaul-measure-numline-check.ts` 132, 135, 169, 262-271), K2 for Chroma Lines (`pattern-overhaul-flow-check.ts` 216-224, 318-324, 348-352), K3 for Pipeline (`pattern-overhaul-pipes-check.ts` 194-202), and Topsy-Turvy's rows in Part 2A's Pattern table. If he picks **today**, that game has no row at all. If he picks **Spotlight**, Part 2A's rows for that game apply as written.
+Joe picked the old look for Ballpark, Chroma Lines, Pipeline (with the bigger pipes) and Topsy-Turvy. The restores keep today's rules, levels, effects and every `data-*` attribute, so only the lines that pin today's **art** change. These are the earlier plan's rows K5, K2 and K3 put back, with the extra lines the re-verification found, and Topsy-Turvy's two. Every line below was read in the file on this branch on 20 Nov.
+
+| Game | Check | Lines | Asserts today (quote) | Needs |
+|---|---|---|---|---|
+| Ballpark (A1, E1.5) | `scripts/number-overhaul-measure-numline-check.ts` | 132 | the ruler's three slices and the pins are `numberArt("numline", …)` | **1**: the steel tape rects and the old pin |
+| | same | 135 | `!/drop-shadow\|text-shadow: 0 0 1\|0 0 14px/` "Ballpark: nothing glows in the live round" | **1**: the lit card glows |
+| | same | 169 | `numline/card.webp` in `batch-w-numline.css` "the number card is the rendered lacquer card" | **1**: the old lit card |
+| | same | 271 | `height: 56px;` "the card is compact (56 px)" | **1** if the old card's height returns with the old CSS |
+| | same | 262 | the ruler is at least 72 px thick | **3**: E1.5 keeps the thick tape |
+| Chroma Lines (A2, E1.3) | `scripts/pattern-overhaul-flow-check.ts` | 216 | `/pattern-art/flow/bead-<colour>.webp` "the board draws the … bead" | **1**: the old flat glossy dots |
+| | same | 220, 224 | `!/feGaussianBlur\|flow-halo/` "no glow filter on the board"; "no glow on the lines" | **1**: the halo is back |
+| | same | 318-325 | `batch-p.css` and `flowArt`: "no blur, dash animation, blend or filter on the tubes"; no tint wash | **1**: the lit tray, the halo and the cell tint |
+| | same | 343-349 | no lighter core, dark edge, darker sides, one stripe; "nothing drawn outside the tube (no halo)" | **1**: the old palette (body = the line's colour, rim, highlight) and the halo |
+| | same | 352 | "the tube is deeper than the old neon line" | **1**: it is the old neon line again |
+| Pipeline (A2, E1.4) | `scripts/pattern-overhaul-pipes-check.ts` | 173 | `=== 33` sprites | **1** if the sprite list is no longer what is drawn (the WebPs can stay on disk) |
+| | same | 195, 197, 200, 201 | the rendered pipe sprites and `tile.webp` in the board HTML and `pipes.css` | **1**: the SVG pipes |
+| | same | 198 | `data-pipe-leak=` appears once: "spills … at the network's open ends only" | **3**: the attribute is kept on the old red drip |
+| | same | 202 | `!/drop-shadow/` in polish-nov3-pattern's Pipeline block "the network still glows" | **1**: the lit network |
+| | same | 205 | the intro draws the sprites | **1**: the intro draws the SVG pipes |
+| Topsy-Turvy (A2, E1.2) | `scripts/pattern-overhaul-gravity-check.ts` | 311 | "topsy.css doesn't draw" the block, floor and frame URLs | **1**: `gravity.css` draws them again |
+| | same | 313 | no `drop-shadow(0 0` on `topsy-…`, and the exact `.grav-ball.is-locked` shadow rule | **1** if the old balls' rule differs |
+| | same | 281, 283-294, 309 | 19 sprites listed, each within its size and byte limits, in ball order | **3**: the WebPs stay on disk |
+| | `scripts/pattern-overhaul-gravity-levels-check.ts` | 246-252, 264-265 | the WebPs exist; the marble colours in the Blender source and `TOPSY_COLOURS` | **3**: nothing changes (the earlier plan's own note) |
+
+One difference from the earlier plan's E1.4: it dropped Pipeline's water-in, drain and bubble effects because they target the sprite markup. Joe's pick keeps today's effects, so A2 re-targets them at the SVG pipes instead; `pattern-overhaul-pipes-check`'s effect lines then keep passing.
+
+### The reveal template's one line (approved)
+
+`scripts/skyline-overhaul-check.ts:728` was changed on 20 Nov 2026 with Joe's typed approval: the room order is now `score, picture, chart, summary, breakdown(folded)`; practice is unchanged. The dated note is on the line above it (729 is now the `want` line).
 
 ## Who shows Joe which rows
 
@@ -680,7 +708,7 @@ string is written in the check.
 | K2 | `pattern-overhaul-flow-check.ts` | 216-224, 318-324, 348-352 | **Still right.** Add 325 (no tint wash) and 343-347, 349 (no lighter core, dark edge, darker sides, one stripe, "not a screen neon"). |
 | K3 | `pattern-overhaul-pipes-check.ts` | 194-202 | **Still right** (assertions at 195, 197, 200, 201, 202). Add 173 (`=== 33` sprites) and 205 (the intro draws the sprites). |
 | K4 | `pattern-overhaul-{unblock,push,laser,iceslide}-check.ts` | "each one's no-glow lines" | Exact lines: unblock **318-320**; push **299-303**; laser **389, 391-392**; iceslide **344-349**. Missing: `pattern-overhaul-gravity-check.ts` **313**. |
-| K5 | `number-overhaul-measure-numline-check.ts` | 132, 135, 169, 262-271 | **Still right.** Add 95 (`#F5B82E` "no bright yellow"). |
+| K5 | `number-overhaul-measure-numline-check.ts` | 132, 135, 169, 262-271 | **Still right.** (Line 95, `#F5B82E` "no bright yellow", is Brimful's line, not Ballpark's: it is not part of this row.) |
 | K6 | `pattern-overhaul-iceslide-check.ts` | 269 | **Still right.** |
 | K7 | `reveal-fold-check.ts`; `reveal-palette-check.ts:118-158`; `app-moments-check.tsx:210-218`; `orbit-overhaul-check.ts:783-790`; `skyline-overhaul-check.ts:688-712`; `room-16-check.ts:494-545`; `room-extras-check.ts:325` | as listed | **Still right** where spot-checked: reveal-palette is 158 lines long (118-123 are the reveal-screen CSS lines); app-moments section 6 is 209-219; orbit 783-790 is the reveal-order block; skyline 688 opens its reveal section; room-16 494 and 543-545 and room-extras 325 are the answer-reveal blocks. Not a game-look item. |
 | K8 | `bastion-overhaul-check.ts` | 217-233 | **Still right** (220, 230, 233). **Missing:** `bastion-levels-check.ts:345-359`, the `paintTank` SHA-256, and `bastion-overhaul-check.ts:348` (`PANEL_TOP = "#121A31"`). |

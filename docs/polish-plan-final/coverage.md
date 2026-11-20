@@ -94,9 +94,9 @@ Carried rows of `earlier-plan.md`:
 | E0.4 dyed controls | kept | A1 (`number-overhaul.css`), A2 (`topsy.css`) |
 | E0.5 outlines | kept | A1 (the shared ring and tray border, Word and Number frames), A2 (its families' frames) |
 | E1.1 Lamplighter, E2.2 Minefield | kept or changed as section 5 says | A2 |
-| E1.2 Topsy-Turvy, E1.3 Chroma Lines, E1.4 Pipeline | **Joe's pick per game** (14b): Spotlight (section 5's row), today (no change) or old (the earlier row as written, the look at 82f2f648) | A2 |
+| E1.2 Topsy-Turvy, E1.3 Chroma Lines, E1.4 Pipeline | **the old look restored** as the earlier rows describe (Joe's picks, 20 Nov; Pipeline with the bigger pipes: the old art at today's tile and pipe size); today's rules, levels, effects and every `data-*` attribute kept; the board sits on the new lit stage | A2 |
 | E2.1 Checkout, E2.3 Counterweight, E2.4 keyboards | kept or changed as section 5 says | A1 |
-| E1.5 Ballpark | **Joe's pick** (14b): Spotlight, today or old (the earlier row as written) | A1 |
+| E1.5 Ballpark | **the old look restored** as the earlier row describes (Joe's pick, 20 Nov); today's rules, levels, effects and every `data-*` attribute kept; the board sits on the new lit stage | A1 |
 | G1 reveal template | built; its paint and its one waiting assertion | P2 |
 | G2 Word reveals, G3 Number reveals | kept | A1 |
 | G4 Pattern, G5 Logic, G6 Attention and Speed reveals | kept | A2 |
@@ -127,7 +127,7 @@ Carried rows of `earlier-plan.md`:
 | 7 The rail, with Joe's added rows | P1 |
 | 7 Keyboard controls in every game on a computer: the map (`DESKTOP_KEYS`), the handlers, `docs/desktop-support.md` (Joe, 20 Nov) | P4 |
 | 7 The intro's key line on a computer | P2 |
-| 2.1 The first game on a new phone (Joe's pick of three) | P2 |
+| 2.1 The first game on a new phone: Ascend on Easy (Joe's pick, 20 Nov) | P2 |
 | 8.2 Grappler's lever, proposed to Joe before its levels are built | D5 |
 | 8.2 Curl Champ's lever, proposed to Joe before its levels are built | D6 |
 | 7 VS on a computer | P3 |

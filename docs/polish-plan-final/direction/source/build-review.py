@@ -257,7 +257,7 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 <div class="eyebrow">Joulz · design direction · 20 Nov 2026</div>
 <h1>Vivid games in a <b>sleek frame</b></h1>
 <p class="lede">The pages keep today’s esports look and get a better structure. The games get brighter. Everything here is a plan and mockups: nothing is built. Tap any picture to enlarge it. Your choices at the bottom copy out as text to paste back to me.</p>
-<nav class="toc"><a href="#games">Game art</a><a href="#pages">Pages</a><a href="#mixed">Your mixes</a><a href="#threeway">Three ways</a><a href="#flow">Flow</a><a href="#levels">Difficulty</a><a href="#check">Fact-check</a><a href="#decide">Decided</a><a href="#open">Still open</a><a href="#files">Files</a></nav>
+<nav class="toc"><a href="#games">Game art</a><a href="#pages">Pages</a><a href="#mixed">Your mixes</a><a href="#threeway">Three ways</a><a href="#flow">Flow</a><a href="#levels">Difficulty</a><a href="#check">Fact-check</a><a href="#decide">Decided</a><a href="#open">Your picks</a><a href="#files">Files</a></nav>
 
 <div class="short"><div class="eyebrow">The short version</div><ul>
 <li><b>Games:</b> I recommend direction 4, <b>Spotlight</b>: a lit stage in each category’s deep colour and light matte pieces on the board puzzles. Retro stays dark and glows.</li>
@@ -338,7 +338,7 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 {strip([('pages/games-e-phone','G1 · original',''),('pages/games-e2-phone','G2 · original',''),('pages/games-mixed-phone','Your mix · Shelves (default)',''),('pages/games-mixed-all-phone','Your mix · All','')])}
 
 <h2 id="threeway">Four games, three ways</h2>
-<p>On 20 Nov you asked for the old look of Pipeline, Chroma Lines, Topsy-Turvy and Ballpark, and my plan re-rendered them in Spotlight instead. Here is each one as it was at 82f2f648, as it is today, and in Spotlight, for you to pick per game (under “Still open” at the bottom). The Spotlight versions are filters on today’s picture, so their edges are rough.</p>
+<p>On 20 Nov you asked for the old look of Pipeline, Chroma Lines, Topsy-Turvy and Ballpark, and my plan re-rendered them in Spotlight instead. Here is each one as it was at 82f2f648, as it is today, and in Spotlight, and you picked the old look for all four on 20 Nov (Pipeline with the bigger pipes). The Spotlight versions are filters on today’s picture, so their edges are rough.</p>
 {threeway()}
 
 <h2 id="flow">Flow: a first game in seconds</h2>
@@ -400,12 +400,19 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 <li><b>The desktop rail</b> also gets Badges, Notifications, Leaderboards and the Daily (drawn on the desktop Home above).</li>
 <li><b>Keyboard controls in every game on a computer</b>, shown on the intro. Eighteen of the 83 games have no keys today; P4 maps them and P2 shows the key line.</li>
 <li><b>Grappler and Curl Champ:</b> D5 and D6 each propose a working lever to you before building those two.</li>
-<li><b>Pipeline, Chroma Lines, Topsy-Turvy and Ballpark</b> are shown three ways above: old, today, Spotlight. Your pick per game is below.</li>
+<li><b>Pipeline, Chroma Lines, Topsy-Turvy and Ballpark</b> are shown three ways above: old, today, Spotlight. Your picks are below: the old look for all four.</li>
 </ul>
-<h3 id="open">Still open</h3>
-<p>Five small picks. Mine is selected on each; change any, then copy and paste them back to me. One more thing waits for you in the chat, not here: the one check line for the reveal template.</p>
-{opendecisions()}
-<div class="copybar"><button class="gold" id="copy" type="button">Copy my answers</button></div>
+<h3 id="open">Your five picks and the check line, 20 Nov 2026</h3>
+<div class="done agreed"><div class="dq"><b>A.</b> The first game on a new phone<i class="tag v-holds">picked</i></div><p class="da">Ascend on Easy.</p></div>
+<div class="done changed"><div class="dq"><b>B.</b> Pipeline’s look<i class="tag v-adjusted">picked</i></div><p class="da">The old look, with the bigger pipes.</p><p class="dn">The old pipes and lit network, drawn at today’s tile and pipe size. Built by A2 as the earlier plan’s E1.4.</p></div>
+<div class="done changed"><div class="dq"><b>C.</b> Chroma Lines’ look<i class="tag v-adjusted">picked</i></div><p class="da">The old look. “I don’t like the new circles; the old ones are much better.”</p><p class="dn">Built by A2 as the earlier plan’s E1.3, old dots included.</p></div>
+<div class="done changed"><div class="dq"><b>D.</b> Topsy-Turvy’s look<i class="tag v-adjusted">picked</i></div><p class="da">The old look. “I don’t like the new circle designs.”</p><p class="dn">Built by A2 as the earlier plan’s E1.2.</p></div>
+<div class="done changed"><div class="dq"><b>E.</b> Ballpark’s look<i class="tag v-adjusted">picked</i></div><p class="da">The old look.</p><p class="dn">Built by A1 as the earlier plan’s E1.5.</p></div>
+<div class="done agreed"><div class="dq"><b>F.</b> The reveal template’s one check line<i class="tag v-holds">approved</i></div><p class="da">Approved exactly as shown: in a room the reveal reads score, picture, chart, summary, breakdown; practice is unchanged. Applied with the note “Changed with Joe’s approval, 20 Nov 2026”.</p></div>
+<p>All four restores keep today’s rules, levels, effects and every data attribute, and the boards sit on the new lit stage.</p>
+<h3>Still to come to you</h3>
+<ul class="adds"><li><b>Grappler and Curl Champ:</b> D5 and D6 each bring you a working lever, with numbers, before building those two.</li><li><b>Keys for five pointer games</b> (Ascend, Bonk, Pull!, Flash, Cue Ball): P4 proposes them.</li></ul>
+<div class="copybar" hidden><button class="gold" id="copy" type="button">Copy my answers</button></div>
 <textarea id="answers" readonly aria-label="Your answers as text" hidden></textarea>
 <p class="muted" id="copied" hidden>Copied. Paste it into the chat.</p>
 
