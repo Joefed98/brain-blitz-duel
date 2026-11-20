@@ -119,7 +119,9 @@ for (const { file, cues, kind } of rows) {
   for (const cue of cues) {
     newCues.add(cue);
     const e = manifest[cue];
-    check(!!e && e.url === `/sounds/${file}`, `${cue}: must play /sounds/${file} (has ${e?.url})`);
+    // Changed with Joe's approval, 19 Nov 2026: swing.streak plays its old sound again (swing.streak.prev.mp3).
+    const playsFile = cue === "swing.streak" ? "swing.streak.prev.mp3" : file;
+    check(!!e && e.url === `/sounds/${playsFile}`, `${cue}: must play /sounds/${playsFile} (has ${e?.url})`);
     if (e && e.channel !== "music") check(Math.abs(e.ms - ms) <= 27, `${cue}: manifest ms ${e.ms} is not the file's ${Math.round(ms)} ms`);
     if (e) check(!!e.loop === (kind === "loop" || kind === "ambience"), `${cue}: loop flag must be ${kind === "loop" || kind === "ambience"}`);
     if (e) check(e.channel === (kind === "music" ? "music" : "effects"), `${cue}: channel ${e.channel}`);
@@ -142,9 +144,11 @@ check(manifest["inkbridge.cloudBounce"]?.url === "/sounds/inkbridge.cloudBounce.
 }
 // The slots Joe kept (no new file): unchanged.
 check(manifest["bullseye.thud"]?.url === null && manifest["bullseye.bull"]?.url === null, "bullseye.thud / bullseye.bull: keep their shared sounds");
-check(manifest["pipes.flow"]?.url === "/sounds/pipes.flow.mp3", "pipes.flow: keeps its file");
+// Changed with Joe's approval, 19 Nov 2026: pipes.flow plays its old sound again (pipes.flow.prev.mp3).
+check(manifest["pipes.flow"]?.url === "/sounds/pipes.flow.prev.mp3", "pipes.flow: keeps its file");
 check(manifest["swing.pteroCatch"]?.url === "/sounds/clayshoot.birdStartle.mp3", "swing.pteroCatch: keeps the library's screech (no new file)");
-check(manifest["cross.traffic"]?.url === "/sounds/bastion.drone.mp3", "cross.traffic: keeps the library's drone loop (no new loop)");
+// Changed with Joe's approval, 19 Nov 2026: Spacewalk plays no traffic loop (the slot has no file, nothing starts it).
+check(manifest["cross.traffic"]?.url === null && !/"cross\.traffic"/.test(readFileSync("src/lib/fx/gameSounds.ts", "utf8")), "Spacewalk plays no cross.traffic loop");
 
 /* ------------------------------------------------------------- stubbed audio */
 
@@ -339,7 +343,8 @@ const GAME_RUNS: GameRun[] = [
       "swing.release.mp3": null,
       "swing.land.mp3": (p, s) => ((s.restarts ?? 0) === (p.restarts ?? 0) && (p.ledgeOn ?? -1) < 0 && (s.ledgeOn ?? -1) >= 0 ? 1 : 0),
       "swing.gate.mp3": (p, s) => bits(s.gatesLit ?? 0) - bits(p.gatesLit ?? 0) > 0 ? 1 : 0,
-      "swing.streak.mp3": (p, s) => ((s.streakPaid ?? 0) > (p.streakPaid ?? 0) ? 1 : 0),
+      // Changed with Joe's approval, 19 Nov 2026: the streak plays its old sound again (swing.streak.prev.mp3).
+      "swing.streak.prev.mp3": (p, s) => ((s.streakPaid ?? 0) > (p.streakPaid ?? 0) ? 1 : 0),
       "swing.splash.mp3": (p, s) => (s.ended !== 2 && (s.restarts ?? 0) > (p.restarts ?? 0) && !((s.caught ?? 0) > (p.caught ?? 0)) ? 1 : 0),
       // Changed with Joe's approval, 16 Nov 2026 (follows approved overhaul): stage 2 sends the
       // pterodactyl's shadow across first, so its screech comes once the shadow has gone (PTERO_SHADOW_TICKS).

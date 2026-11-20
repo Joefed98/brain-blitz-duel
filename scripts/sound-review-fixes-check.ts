@@ -147,6 +147,40 @@ const EXEMPT: Record<string, string> = {
   // sound they play live (playSlotOr's stand-in); Joe kept main's sound, so neither has a file.
   "hover.gate": "Joe kept main's sound (18 Nov 2026): the library note it plays live",
   "hover.star": "Joe kept main's sound (18 Nov 2026): the library sparkle it plays live",
+  // Changed with Joe's approval, 19 Nov 2026: the 33 arcade slots Joe brought back to their library sound (no file).
+  "balltrack.marbleHome": "Joe kept the library sound (19 Nov 2026)",
+  "breaker.ballLost": "Joe kept the library sound (19 Nov 2026)",
+  "breaker.brickHit": "Joe kept the library sound (19 Nov 2026)",
+  "breaker.fireballLit": "Joe kept the library sound (19 Nov 2026)",
+  "breaker.laser": "Joe kept the library sound (19 Nov 2026)",
+  "breaker.multiball": "Joe kept the library sound (19 Nov 2026)",
+  "breaker.paddle": "Joe kept the library sound (19 Nov 2026)",
+  "breaker.powerUp": "Joe kept the library sound (19 Nov 2026)",
+  "bubble.load": "Joe kept the library sound (19 Nov 2026)",
+  "bubble.pop": "Joe kept the library sound (19 Nov 2026)",
+  "curling.countTick": "Joe kept the library sound (19 Nov 2026)",
+  "burst.hit": "Joe kept the library sound (19 Nov 2026)",
+  "burst.lifeLost": "Joe kept the library sound (19 Nov 2026)",
+  "burst.powerUp": "Joe kept the library sound (19 Nov 2026)",
+  "burst.shot": "Joe kept the library sound (19 Nov 2026)",
+  "matchup.chestHome": "Joe kept the library sound (19 Nov 2026)",
+  "swing.crash": "Joe kept the library sound (19 Nov 2026)",
+  "swing.grapple": "Joe kept the library sound (19 Nov 2026)",
+  "swing.rockLand": "Joe kept the library sound (19 Nov 2026)",
+  "swing.rockShake": "Joe kept the library sound (19 Nov 2026)",
+  "skyline.drop": "Joe kept the library sound (19 Nov 2026)",
+  "orbit.crash": "Joe kept the library sound (19 Nov 2026)",
+  "orbit.launch": "Joe kept the library sound (19 Nov 2026)",
+  "inkbridge.bump": "Joe kept the library sound (19 Nov 2026)",
+  "inkbridge.pot": "Joe kept the library sound (19 Nov 2026)",
+  "rally.edgeSave": "Joe kept the library sound (19 Nov 2026)",
+  "rally.hit": "Joe kept the library sound (19 Nov 2026)",
+  "flip.crash": "Joe kept the library sound (19 Nov 2026)",
+  "flip.flipDown": "Joe kept the library sound (19 Nov 2026)",
+  "flip.flipUp": "Joe kept the library sound (19 Nov 2026)",
+  "pyramid.undo": "Joe kept the library sound (19 Nov 2026)",
+  "tilt.cup": "Joe kept the library sound (19 Nov 2026)",
+  "tilt.gate": "Joe kept the library sound (19 Nov 2026)",
   "hover.thrust": "awaiting Joe's ElevenLabs recording (the Retro overhaul, 15 Nov 2026; docs/sound-cues/retro-elevenlabs.md): plays its library stand-in until the file drops in by name",
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): Iron Wall's new slots wait
   // for Joe's ElevenLabs files (each entry fails here once its url is set, so it is removed with the file).
@@ -179,13 +213,18 @@ check(needed.length >= 90, `only ${needed.length} played slots without a file fo
 
 /* ---------------------------------------------------------------- 3d. puzzle cues name what they replace */
 
+/** Changed with Joe's approval, 19 Nov 2026: plays alongside the shared sound: Joe, 19 Nov 2026 (an empty REPLACES list). */
+const PLAYS_ALONGSIDE: ReadonlySet<string> = new Set(["numline.place", "codeword.wrong", "wordhunt.points", "push.push", "tilegrid.bonus", "wordsearch.drag", "letterwheel.spin", "wordslide.lock", "wordslide.unlock", "strikeout.strike"]);
+
 const gameSounds = readFileSync("src/lib/fx/gameSounds.ts", "utf8");
 for (const slot of Object.keys(NEW_GAME_SOUND_FILES)) {
   if (isArcade(slot)) {
     // Arcade moments go through their slot (sfx / ensureSlotLoop / retroStart / toy*): the file replaces the library.
     check(new RegExp(`\\("${slot.replace(".", "\\.")}"`).test(gameSounds), `${slot}: an arcade slot gameSounds.ts never plays`);
     check(!NEW_GAME_SOUND_REPLACES[slot], `${slot}: an arcade slot needs no REPLACES (its file replaces the library sound)`);
-  } else check(!!NEW_GAME_SOUND_REPLACES[slot]?.length || /^[a-z0-9]+\.(solve|finish)$/.test(slot), `${slot}: a puzzle cue must say which shared sound it replaces (a solve cue replaces the generic solve sounds)`);
+  // Changed with Joe's approval, 19 Nov 2026: an empty list only for the ten cues Joe set to play alongside their shared
+  // sound (PLAYS_ALONGSIDE); any other puzzle cue must still name what it replaces.
+  } else check(!!NEW_GAME_SOUND_REPLACES[slot]?.length || /^[a-z0-9]+\.(solve|finish)$/.test(slot) || (PLAYS_ALONGSIDE.has(slot) && NEW_GAME_SOUND_REPLACES[slot]?.length === 0), `${slot}: a puzzle cue must say which shared sound it replaces (a solve cue replaces the generic solve sounds)`);
 }
 for (const slot of Object.keys(NEW_GAME_SOUND_REPLACES)) check(!!NEW_GAME_SOUND_FILES[slot], `REPLACES ${slot}: no new file`);
 

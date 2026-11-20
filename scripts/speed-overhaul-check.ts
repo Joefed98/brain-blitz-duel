@@ -315,7 +315,10 @@ const stamp = (type: "tendrop" | "clayshoot", field: string) => (generatePuzzle(
   const sources = ["reaction", "numberHunt", "chainTap", "whack", "tenDrop", "clayShoot"].map((f) => read(`src/puzzles/${f}.tsx`)).join("\n");
   for (const slot of slots) {
     const e = (SOUND_MANIFEST as Record<string, { url: string | null }>)[slot];
-    check(e?.url === `/sounds/${slot}.mp3`, `${slot}: its manifest slot plays /sounds/${slot}.mp3 (Joe's file drops in by name)`);
+    // Changed with Joe's approval, 19 Nov 2026: these four play their old sound again, kept as <slot>.prev.mp3.
+    const PREV = ["reaction.bar", "numhunt.shuffle", "chain.reshuffle", "whack.bonk"];
+    const want = PREV.includes(slot) ? `/sounds/${slot}.prev.mp3` : `/sounds/${slot}.mp3`;
+    check(e?.url === want, `${slot}: its manifest slot plays ${want} (Joe's file drops in by name)`);
     check(existsSync(join(ROOT, "public", "sounds", `${slot}.mp3`)), `${slot}: the placeholder file is there`);
     check(sources.includes(`"${slot}"`) || (slot.startsWith("numhunt.note-") && sources.includes("numhunt.note-")), `${slot}: its game plays it`);
   }

@@ -13,12 +13,12 @@ export const WIRED_SOUND_REPLACES: Readonly<Record<string, readonly string[]>> =
   "tubes.wrong": ["wrong"],
   "tubes.reset": MOVE,
   // Hanoi: an illegal drop refused, Undo, Reset.
-  "tower.illegal": ["wrong"],
+  "tower.illegal": [],
   "tower.undo": MOVE,
   "tower.reset": MOVE,
   // Colour Flood: 20+ squares in flood.spread's place (MOVE); the current colour tapped.
   "flood.combo": MOVE,
-  "flood.reject": ["wrong"],
+  "flood.reject": [],
   // Mosaic: two lines at once in nonogram.line's place (MOVE).
   "nonogram.combo": MOVE,
 };

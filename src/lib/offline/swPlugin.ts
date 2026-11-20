@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import { GOOGLE_FONTS_CSS, MEDIA_DIRS, OFFLINE_PAGES, keepPublicFile } from "./assets";
 import { SOUND_MANIFEST } from "../fx/manifest";
 import { NEW_GAME_SOUND_FILES } from "../fx/newGameSounds";
+import { KEPT_UNUSED_URLS } from "../fx/keptUnusedSounds";
 import { soundBatchRows } from "./soundBatches";
 
 interface BundleLike {
@@ -143,6 +144,9 @@ export function offlineWorkerPlugin(version: string): PluginLike {
       const env = this.environment?.name;
       if (env && env !== "client") return;
       const unwired = new Set(awaitingWiringPaths());
+      // Joe's kept-unused recordings (19 Nov 2026, keptUnusedSounds.ts) stay out of the download too. Changed with Joe's
+      // approval, 19 Nov 2026.
+      for (const url of KEPT_UNUSED_URLS) unwired.add(url);
       const files = walk(publicDir)
         .map((full) => ({ full, path: `/${relative(publicDir, full).split(sep).join("/")}` }))
         .filter((f) => !unwired.has(f.path));
