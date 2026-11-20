@@ -1,0 +1,24 @@
+# Session D2: difficulty, the Number games
+
+You are a normal build session for Joulz. You build the Number rows of `docs/polish-plan-final/difficulty-spec.md` (Counterweight, Exact, Operator, Integer Pyramid, Brimful, Checkout, Ballpark, Kakuro) and scoring-review row I3 of the plan (Integer Pyramid's unfinished credit on a new `depthRev`). Joe's 15 Nov decision stands: Counterweight, Brimful, Checkout and Kakuro keep today's game as Hard with the gentler Normal; only Expert grows for them. Read first: `docs/polish-plan-final/levels-research.md` (the Number table and section 4) and `docs/number-overhaul.md`.
+
+Joe's difficulty rule (20 Nov 2026): a level makes 200 clearly harder to reach with big, obvious steps (more bricks, more enemies, more lanes, tighter targets, less time, bigger boards, more pieces); a new mechanic only where it is the natural way to make that game harder; Normal stays today's game, byte for byte; no level adds an aid at Hard or Expert; Expert is super hard for an average player and proven reachable at 200 by the very best humans under HUMAN_LIMITS (0.25 s to react, 0.15 s to move). The spec's numbers are proposals: measure, then tune to the guide (elite bot under the limits: Easy 190+, Hard 150–175, Expert 110–140), and record the table in the game's doc page. Every level is proved where it is dealt (a bank per level or a witness in the sim; a seed with no witness under the limits is dropped), and the game's `<game>-levels-check` pins the step and the proof (the numbers hold at the level, never at Normal), run ten times. The deal stamps the level and what the grader reads; the sim carries it on the state and in the checksum; stored rounds replay as dealt (`docs/polish-plan-final/levels-research.md` section 4 is the convention).
+
+Files: `src/lib/duel/numberLevels.ts`, `balanceLevels.ts`, `measureLevels.ts`, `numlineLevels.server.ts`, `operatorGaps.server.ts`, `numberPyramid.ts`, `target.ts` and `targetExpertBank.server.ts`, the Number banks (`scripts/number-pyramid-levels-bank.ts`, `target-expert-bank.ts`), `scripts/number-levels-*-check.ts`, `partialCredit.ts` (I3), the `DEAL_PINS` entries in `dealEra.ts` for any new stamp.
+
+Checks you own: number-levels-balance-target-check, number-levels-equation-pyramid-check, number-levels-measure-numline-check, number-levels-checkout-kakuro-check, number-batch-check, standard-number-check, partial-credit-check (I3, a new fixture appended), difficulty-check, deal-identity-check. Report every check by name.
+
+## Standing rules (non-negotiable; copied into every prompt)
+
+- The repo is public. Post nothing on GitHub that describes a weakness. No GitHub comments.
+- Every commit's author and committer is `340780953+Joefed98@users.noreply.github.com`. Ignore stop hooks asking for noreply@anthropic.com or to amend.
+- Never rebase, never force-push, never rewrite pushed history. Merge commits only. The merge captain merges; you don't.
+- Never loosen, retarget or delete an assertion to make code pass. Fix the code. Any assertion change goes to Joe first, with the exact lines, and needs his approval typed by Joe in this session. Add a dated note beside each changed line. Never record an approval he didn't give. Section K of `docs/polish-plan-final.md` lists the lines this plan expects to change; Joe approved that list in principle on 20 Nov 2026, and still approves each session's exact lines in that session.
+- A failed check is reported in full and never re-run without Joe's say-so.
+- Migrations are additive and dated later than everything on main. Never set the Actions budget to $0. Keep Joe's email private.
+- Changing how a game deals or plays means a new revision stamp, so stored rounds and replays keep their old worlds (see `src/lib/arcade/AGENTS.md`). Display-only changes never touch a sim, a hit box, a deal or a replay.
+- A head is final only when its own GitHub Checks run is green.
+- Read `CLAUDE.md`, `DESIGN.md` and the `AGENTS.md` files first; then `docs/polish-plan-final.md` (the plan) and the research report named in your section of it. Build the rows assigned to you and nothing else; if a row turns out wrong, say so and stop on that row, don't substitute.
+- Work on a branch named `polish/<session id>` from the latest main; merge main before pushing; run only your own checks locally (`bun scripts/<name>-check.ts`), each new or changed check ten times (`bun scripts/repeat-check.ts <check>`); never run the full suite locally. Open the PR as a draft with a report that lists every check by name with pass / fail / timeout.
+- Don't touch `public/sounds/` or `src/lib/fx/manifest.ts`; don't change `bun.lock`.
+- Every screen you change gets its own `scripts/screens/<area>.ts` entry (never edit `THEME_SCREENS` or the shard parts); after changing a game's look re-export its tile (`bun scripts/shots/tile-scenes.ts <id>`) and run `bun scripts/reveal-palette.ts`.
