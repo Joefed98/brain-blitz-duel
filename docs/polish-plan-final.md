@@ -107,6 +107,9 @@ Each has a recommendation he can say yes to. **Joe's answers: none recorded yet.
 | 16 | You layout: Y1 Rows, Y2 Card first or Y3 Career | **Y2** |
 | 17 | Accent colourway: champagne, Ion or Ember | **Champagne** |
 | 18 | The level picker on a game's page: L1 Ladder (all four levels with a picture of what changes) or L2 Preview (one level large). The step-up card on the reveal comes with either (section 6.1) | **L1** |
+| 19 | Nucleus and Forage on Expert: the modelled best player cannot reach 200 (best 160 to 191; 184 on Nucleus's Normal). Change the points line on level deals, or accept a typed-out perfect run as the proof | **Change the scoring on level deals** (a new stamp; Normal untouched) |
+| 20 | Breaker: a lost ball costs only a 3-second relaunch, so even measured with a bot that feels paddle width Hard sits just 14 under Normal. Make a lost ball cost a life or time on Hard and Expert deals | **Yes** |
+| 21 | Gemstone: ice at any count leaves Expert level with Hard; colours are the only setting that moves an average player (163, 95, 72 on 5, 6, 7 colours). An eighth gem for Expert (sim code and one new gem) | **Yes**: the ladder is 5, 6, 7, 8 colours |
 
 Where I disagree with something Joe asked for:
 
@@ -357,7 +360,7 @@ After the art sessions: re-export every tile and intro still, and re-run `bun sc
 - **One level mark everywhere**: a colour and one to four bars (Easy green and one bar, Normal blue and two, Hard orange and three, Expert red and four), never colour alone. It sits on the game's page, in the frame header during play (beside "Round 2 of 6"), on the intro, on the reveal and in room settings. A star marks 175+ on Easy, Normal and Hard; Expert's mark is a crown.
 - **The small pictures** are shown for eight games on `pictures-board.webp` (Breaker's wall and paddle, Box Six's given numbers, Ascend's discs, Meteor's rocks and walls, Top Bins' wall and wind, Iron Wall's lanes and tanks, Tempo's lanes, Mahjong's stack), drawn from the spec's level numbers. A ladder whose four pictures look alike is a ladder whose steps a player cannot see: the board is the quick test of that.
 - **The ladder on a game's page (L1, recommended)**: the four levels as rows, each with a small picture of what changes (Breaker: the wall's rows and the paddle's width), the lever in a few words ("11 rows, 2 sliding · narrow"), your best and the star. Normal is marked "the ranked game". One gold Play. The pictures are drawn from the level's own settings (`GAME_LEVELS`), never hand-made, so they cannot drift from the game.
-- **The preview (L2, the alternative)**: one level large, the lever as a row of four numbers (20 · 14 · 10 · 8 numbers given), a four-way switch under it.
+- **The preview (L2, the alternative)**: one level large, the lever as a row of four numbers (25 · 14 · 10 · 8 numbers given), a four-way switch under it.
 - **The step-up card on the reveal (L3)**: after a star, Normal beside Hard and one line saying what is new, with "Play Hard" as the gold button. No star: Play again stays gold and the card is not shown. It never appears in rooms, rated play or the Daily.
 - **In play**: the frame header shows the game's name, the level mark and round, the score with place, and the timer as a gold bar on the header's bottom edge (the 60 px geometry is unchanged).
 - **The kit** (`kit-board`): the navy frame, the one gold action, Archivo, the cut corner for heroes only, the family colours, level marks, tiles, nameplates, the lit stage and six rules, on one board for the build sessions.
@@ -394,6 +397,13 @@ Asked for by Joe before any build. Measured with the repo's own tools on this br
 2. **The repo's bots and kits cannot feel some of the levers a player sees**: a paddle's width (Breaker, Rally), the shortest word that counts (Nucleus, Forage), and any board size the code cannot deal yet (Interlock, Slider, Cryptogrid, Trail, Gridlock's 9 × 9). Those steps stay unproven until the session writes a player that can feel them, or people confirm them. A row marked measured is not a row marked proven: the verdict line says which.
 3. **200 under the human limits is rare today.** In the arcade families the elite bot under the limits reaches 200 on Expert in only a few games, and in several it does not reach 200 on Normal either, which is a ceiling of the bot or of the scoring (Flash 130, Bonk 156), not of the level. Nothing applies the limits to 28 of the 83 games at all. So each difficulty session's first job is its proof under the limits, before any number is tuned.
 <!-- /overall-result -->
+
+**The second round (20 Nov, later).** The rows the first measurements broke were worked on again, and the 15 Pattern and Logic games skipped the first time were measured. What it found, beyond the row changes in the spec:
+
+- **Easy was not welcoming in several puzzles**: an average player finished none of 12 boards on Box Six's Easy and few on Mosaic's, Safe Cracker's, Lightbender's and Lamplighter's. Each Easy is now bigger-hearted (Box Six starts with 24 to 26 numbers, was 19 to 21).
+- **Above Hard there is little room for an average player** in most Pattern and Logic games: they already score 25 to 40 on Hard, so a 20-point step to Expert is rarely possible. Expert there is a level for strong players, and it reads as one by what you see (fewer numbers, a bigger board), not by the average score.
+- **The best simulated player reached 200 on no proposed Pattern or Logic Expert until a "full speed by" time was moved** (Skid, Lightbender). Each difficulty session sets that time from its own measurement.
+- **Some levers do not exist yet**: Breaker's paddle is weak while a lost ball is cheap (decision 20), Gemstone's ice does nothing and its ladder moves to colours (decision 21), Grappler has no setting that makes a real step (it needs a faster chase than the course builder can prove today), and Curl Champ's dealer cannot place the red stones the row asked for.
 
 Each of the 83 rows in the spec now carries an **Evidence** line per level (documented, measured or not measured, with the numbers), a fact-check verdict (holds, adjusted or unproven) and what applies the human limits to that game today. Rows the measurements contradicted were changed and say so.
 
