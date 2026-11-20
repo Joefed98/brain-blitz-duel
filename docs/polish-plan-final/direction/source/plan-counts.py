@@ -18,6 +18,10 @@ para=f"""<!-- overall-result -->
 <!-- /overall-result -->
 """
 p=R+'polish-plan-final.md'; s=open(p,encoding='utf8').read()
+ch={'keep':0,'retune':0,'redesign':0}
+for f in sorted(glob.glob(R+'polish-plan-final/difficulty/*.json')):
+    for g in json.load(open(f,encoding='utf8')): ch[g['change']]+=1
+s=re.sub(r'Normal untouched, \d+ games? kept, \d+ retuned, \d+ redesigned,', f"Normal untouched, {ch['keep']} kept, {ch['retune']} retuned, {ch['redesign']} redesigned,", s)
 if '<!-- overall-result -->' in s:
     s=re.sub(r'<!-- overall-result -->.*?<!-- /overall-result -->\n',para,s,flags=re.S)
 else:

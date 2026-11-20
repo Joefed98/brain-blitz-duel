@@ -76,5 +76,10 @@ for f,label in files:
         out.append(f"- **Files:** {', '.join('`'+x+'`' for x in g['files'])}")
         out.append(f"- **Risk:** {g['risk'].strip()}")
         out.append('')
-open(R+'difficulty-spec.md','w').write('\n'.join(out)+'\n')
+_c={k:[g['name'] for g in allg if g['change']==k] for k in ('keep','retune','redesign')}
+_txt='\n'.join(out)+'\n'
+_old="- 83 games: **1 kept** as it is (Moon Climb), **48 retuned** (same levers, new numbers) and **34 redesigned** (a different lever)."
+assert _old in _txt
+_txt=_txt.replace(_old,f"- 83 games: **{len(_c['keep'])} kept** as they are ({', '.join(_c['keep'])}), **{len(_c['retune'])} retuned** (same levers, new numbers) and **{len(_c['redesign'])} redesigned** (a different lever). These counts moved during the fact-check of 20 Nov as rows were corrected.")
+open(R+'difficulty-spec.md','w').write(_txt)
 print(len(out),'lines',sum(len(x) for x in out)//1000,'KB')

@@ -219,15 +219,15 @@
     },
     "measured": "medians not documented; on the best Expert bank boards the person-like player scores 197 in 52–54 s",
     "easy": "8×8, 6–10 slides (today 8–12), rocks only: no holes, thin ice, chevrons or portals, 90 s, full speed by 20 s",
-    "hard": "12×12, 26–32 slides, 6–8 holes, 4–6 thin ice, 1–3 chevrons, 1–2 portal pairs, 90 s (today 100), full speed by 40 s",
-    "expert": "11×13, 34–42 slides, 10–12 holes (today 3–5, fewer than Hard), 6–8 thin ice, 2–4 chevrons, 2 portal pairs, 120 s, full speed by 45 s. Ceiling: the rink is full size from Normal (30 px squares; 26 px proved unreadable), so the lever is hazards and route length",
+    "hard": "12×12, 24–30 slides (as today), 6–8 holes, 4–6 thin ice, 1–3 chevrons, 1–2 portal pairs, 100 s (as today), full speed by 40 s",
+    "expert": "11×13, 34–42 slides, 10–12 holes (today 3–5, fewer than Hard), 6–8 thin ice, 2–4 chevrons, 2 portal pairs, 100 s (today 120), full speed by 65 s. Ceiling: the rink is full size from Normal (30 px squares; 26 px proved unreadable), so the lever is hazards and route length",
     "glance": {
       "easy": "A small rink with rocks only and no holes",
       "hard": "Twice Normal's holes dotted across the rink",
       "expert": "A taller rink riddled with ten or more holes"
     },
     "why": "The rink is already as big as a phone can show at Normal, so the ladder has to be what is on the ice, and today Expert has fewer holes than Hard and looks the safer of the two.",
-    "proof": "Banks of 300 per level (bun scripts/iceslide-levels-bank.ts): each minimum proved by BFS over the ball's square and the broken ice; Expert keeps only boards the person-like player scripts/iceslide-human.ts finishes inside 120 s under the limits; pattern-overhaul-iceslide-levels-check re-proves every board.",
+    "proof": "Banks of 300 per level (bun scripts/iceslide-levels-bank.ts): each minimum proved by BFS over the ball's square and the broken ice; Expert keeps only boards the person-like player scripts/iceslide-human.ts finishes inside 100 s under the limits; pattern-overhaul-iceslide-levels-check re-proves every board.",
     "change": "retune",
     "newMechanic": "",
     "stamp": "level field; hazards and par ride on the board and Hard's clock is the puzzle's timeLimitMs; stamp the level's full-by time on the puzzle too, or add a levelRev",
@@ -238,13 +238,13 @@
       "scripts/iceslide-human.ts",
       "scripts/pattern-overhaul-iceslide-levels-check.ts"
     ],
-    "risk": "boards with 10–12 holes and a 34–42 slide minimum may be too rare to fill a bank of 300",
+    "risk": "the person-like player finishes only 3 or 4 of 10 unfiltered Expert boards, so the bank must be filtered and about a third survive; the average kit's steps are 70, 49, 34; 40–48 slide boards are rare (2 in 65 s)",
     "evidence": {
       "easy": "measured: 8×8, 6–10 slides, rocks only, 12 boards: average 185.2 (12/12 finished), near-perfect under limits 199.5; Normal 70.3 and 195.9",
-      "hard": "measured: 12×12, 26–32 slides, 6–8 holes, 4–6 thin ice, 90 s, 8 boards built in 2 s: average 40.0 (0/8), near-perfect under limits 186.3, 8/8, best 194",
-      "expert": "measured: 11×13, 34–42 slides, 10–12 holes, 6–8 thin ice, 120 s, 8 boards built in 17 s: average 41.4 (0/8), near-perfect under limits 189.3, 8/8, best 193, no 200, finish med 68 s"
+      "hard": "measured: 12×12, 24–30 slides, 6–8 holes, 4–6 thin ice, 100 s, 10 boards built in 1 s: average 49.3 (0/10), near-perfect under limits 190.0, 10/10, best 197. On 26–32 slides and 90 s as first proposed: 40.0 and 186.3",
+      "expert": "measured: 34–42 slides, 10–12 holes, 100 s, full by 65 s, 10 boards built in 20 s: average 33.8 (0/10), near-perfect under limits 195.5, 10/10, 200 on 2; the person-like player finished 3 of 10 (4 of 10 on 120 s; 9 of 12 on today's Expert)"
     },
-    "verdict": "unproven: every board builds in seconds, but Expert scores level with Hard (average 41.4 against 40.0, near-perfect 189 against 186); tighter Expert settings are being measured, and the person-like player was not run.",
+    "verdict": "adjusted: Hard keeps today's 24–30 slides and 100 s with the extra holes and thin ice; Expert's clock drops from 120 to 100 s and its full speed moves from 45 to 65 s, because as proposed Expert scored level with Hard (41.4 against 40.0) and 200 was not reached; the person-like player finished only 3 of 10 unfiltered Expert boards, so the bank filter is essential.",
     "limitsToday": "No 0.25 s / 0.15 s limit. scripts/iceslide-human.ts:40 (SKID_ELITE_PERSON) has its own times (0.6 s a look, 0.8 s a slide, 3 slides ahead); pattern-overhaul-iceslide-levels-check.ts:236 plays it on Expert boards inside 120 s and (header, line 27) wants a finish scoring 150+."
   },
   {
@@ -279,13 +279,13 @@
       "src/lib/duel/pushLevels.server.ts",
       "scripts/pattern-overhaul-push-levels-check.ts"
     ],
-    "risk": "exact minimums for 7 crates may cost too much search; fall back to 6 crates with 40–48 pushes",
+    "risk": "a 7-crate board took about 106 s to build (a bank of 120 is some 3.5 hours on one core), and the fallback is worse: four 6-crate boards with 40–48 pushes were not built in 195 s",
     "evidence": {
-      "easy": "documented: today's level kept; measurements not documented (the check only asserts that great and near-perfect averages step down)",
-      "hard": "not measured: the narrowed pass ran the redesign rows only",
-      "expert": "not measured: the narrowed pass ran the redesign rows only"
+      "easy": "measured: today's Easy kept, 12 boards: average kit 138.8 (med 180, 8/12 finished), near-perfect under limits 199.7; Normal 48.8 (0/12) and 197.5",
+      "hard": "measured: 6 crates, 28–36 pushes, 6–12 inner walls, 120 s, 6 boards built in 32 s: average 36.7 (0/6), near-perfect under limits 187.7, 6/6, best 194, finish med 63 s. Today's 5-crate Hard: 45.7 and 195.1",
+      "expert": "measured: 7 crates, 38–48 pushes, 8–14 inner walls, 2 boards only (212 s to build both): average 25.0 (0/2), near-perfect under limits 185.0, 2/2, best 187, no 200, finish med 87 s. Today's 6-crate Expert: 30.6 and 188.9"
     },
-    "verdict": "unproven: 6 and 7 crate banks were not built, and no person-style push solver exists to prove Expert.",
+    "verdict": "unproven: Hard measures 36.7 against Normal's 48.8 and two 7-crate Experts were finished by the near-perfect kit (best 187), but Expert rests on 2 boards that took 106 s each to build, 200 was not reached, the average steps are only about 12 points, and no person-style push solver exists.",
     "limitsToday": "Nothing. No person-style push solver exists (grep: no human player in scripts/push-levels-bank.ts or pattern-overhaul-push-levels-check.ts); the bank's proof is the exact minimum by search, with no clock."
   },
   {
@@ -300,11 +300,11 @@
       "expert": "9–10 mirrors + 1 spare, 5–6 bombs, 2 shots, 90 s, full speed by 30 s"
     },
     "measured": "Expert only: near-perfect 183–193 on 12 boards; the other levels not documented",
-    "easy": "As today: 4–5 mirrors with 3 spare, 1–2 bombs, 5 shots, 60 s (a short beam and five tries already forgive a wrong read)",
+    "easy": "4–5 mirrors with 3 spare, exactly 1 bomb (today 1–2), 5 shots, 90 s (today 60)",
     "hard": "9–10 mirrors + 1 spare, 6–7 bombs (today 4–5), 3 shots, 75 s, full speed by 35 s, at least 100 tries for the person-like solver",
-    "expert": "10–12 mirrors with no spare, 9–10 bombs (today 5–6), 2 shots, 90 s, full speed by 35 s, 750–1,000 tries for the person-like solver. Ceiling: the 10×10 board is 36.6 px a square from Normal up, so the lever is what stands on it",
+    "expert": "10–12 mirrors with no spare, 9–10 bombs (today 5–6), 2 shots, 90 s, full speed by 50 s, 750–1,000 tries for the person-like solver. Ceiling: the 10×10 board is 36.6 px a square from Normal up, so the lever is what stands on it",
     "glance": {
-      "easy": "One or two bombs and five shots",
+      "easy": "One bomb and five shots",
       "hard": "Twice Normal's bombs between the gems",
       "expert": "Bombs everywhere, an exact tray and two shots"
     },
@@ -321,13 +321,13 @@
       "src/lib/duel/laserSolve.server.ts",
       "scripts/pattern-overhaul-laser-levels-check.ts"
     ],
-    "risk": "with nine or more bombs the generator may find too few boards the person-like solver lights in 1,000 tries",
+    "risk": "the average kit scores almost nothing on Expert (2.5; 15.0 on today's Expert), so it may read as impossible rather than very hard; the feared bank shortage did not appear (8 Expert boards built in 8 s)",
     "evidence": {
-      "easy": "documented: today's level kept; not documented (only Expert has numbers: near-perfect 183-193 on 12 boards)",
-      "hard": "not measured: the narrowed pass ran the redesign rows only",
-      "expert": "not measured: the narrowed pass ran the redesign rows only"
+      "easy": "measured: 4–5 mirrors, 1 bomb, 5 shots, 90 s, 12 boards: average 172.7 (12/12 finished), near-perfect under limits 199.6. Today's Easy (1–2 bombs, 60 s): 107.4, 6/12 finished; Normal 56.7",
+      "hard": "measured: 9–10 mirrors + 1 spare, 6–7 bombs, 3 shots, 75 s, 8 boards built in 1 s: average 35.0 (med 20, 0/8 finished), near-perfect under limits 197.0, 8/8, 200 on 3, finish med 30 s",
+      "expert": "measured: 10–12 mirrors, no spare, 9–10 bombs, 2 shots, 90 s, full by 50 s, 8 boards built in 6 s: average 2.5 (med 0, 0/8), near-perfect under limits 196.6, 8/8, 200 on 4, finish med 50 s. With full by 35 s as first proposed: 187.0, best 192"
     },
-    "verdict": "unproven: boards with 6-7 and 9-10 bombs need new banks and were not built in this pass.",
+    "verdict": "adjusted: Easy takes exactly one bomb on a 90 s clock (today's Easy: 6 of 12 average runs finished) and Expert's full speed moves from 35 to 50 s (best 192 before, 200 on 4 of 8 after); Hard holds (35.0 against Normal's 56.7); the average kit scores only 2.5 on Expert.",
     "limitsToday": "No reaction or move limit and no clock. pattern-overhaul-laser-levels-check.ts:126 and :158 require the person-like solver (laserSolve.server.ts solveLaserLikeAPerson) to light each board inside the level's try band; it counts tries, not seconds."
   },
   {
@@ -466,14 +466,14 @@
     },
     "measured": "not documented",
     "easy": "As today: 2 boards of 3 balls, 2–4 tilts each, a limit of the fewest + 12, 120 s",
-    "hard": "3 boards of 8 balls (today 6, the same as Normal), 7–10 tilts, fewest + 6, 120 s, full speed by 32 s",
+    "hard": "3 boards of 7 balls (today 6, the same as Normal), 6–9 tilts, fewest + 6, 120 s, full speed by 32 s",
     "expert": "3 boards of 10 balls (two new colours), 9–12 tilts, fewest + 4, 120 s, full speed by 36 s, person-solvable only. Ceiling: the 10×10 board and the 120 s clock are fixed, and ten balls with ten cups is the most the board shows clearly",
     "glance": {
       "easy": "Three balls, three cups, two boards",
-      "hard": "Eight balls rolling at once",
+      "hard": "Seven balls rolling at once",
       "expert": "Ten balls and ten cups crowd the board"
     },
-    "why": "Normal and Hard look identical today (six balls on the same board), so the ball count, which multiplies what every tilt does, becomes the ladder: 3, 6, 8, 10.",
+    "why": "Normal and Hard look identical today (six balls on the same board), so the ball count, which multiplies what every tilt does, becomes the ladder: 3, 6, 7, 10.",
     "proof": "A bank per level (bun scripts/topsy-levels-bank.ts): each board's fewest tilts by BFS over every ball's square; Hard and Expert keep only boards the person-like solver scripts/topsy-human.ts clears inside the tilt limit; pattern-overhaul-gravity-levels-check re-proves every board.",
     "change": "retune",
     "newMechanic": "",
@@ -485,13 +485,13 @@
       "scripts/topsy-human.ts",
       "scripts/pattern-overhaul-gravity-levels-check.ts"
     ],
-    "risk": "ten-ball boards the person-like solver clears within the fewest + 4 may be rare, and two more ball renders are needed",
+    "risk": "the near-perfect kit needs about 98 s for three 10-ball boards and did not reach 200 (best 181; full speed is by 36 s); two more ball renders are needed; the feared rarity did not appear (ten person-solvable 10-ball boards built in 30 s)",
     "evidence": {
-      "easy": "documented: today's level kept; not documented",
-      "hard": "not measured: the narrowed pass ran the redesign rows only",
-      "expert": "not measured: the narrowed pass ran the redesign rows only"
+      "easy": "measured: today's Easy kept, 12 deals: average kit 184.8 (12/12 finished), near-perfect under limits 200 on all 12; Normal 91.4 (med 83, 1/12 finished) and 198.4",
+      "hard": "measured: 3 boards of 7 balls, 6–9 tilts, fewest + 6, 10 bank boards built in 1 s, 8 deals: average 47.3 (0/8), near-perfect under limits 191.6, 8/8, best 194. With 8 balls as first proposed: 26.0 and 187.8; today's 6-ball Hard: 55.9",
+      "expert": "measured: 3 boards of 10 balls, 9–12 tilts, fewest + 4, person-solvable, 10 bank boards built in 30 s, 8 deals: average 21.8 (0/8), near-perfect under limits 169.1, 7/8 finished, best 181, no 200, finish med 98 s. Today's 8-ball Expert: 29.8 and 188.1"
     },
-    "verdict": "unproven: 8 and 10 ball boards need new banks and were not built in this pass.",
+    "verdict": "adjusted: Hard takes 7 balls, not 8, because 8 balls dropped the average kit to 26.0, only 4 points above the 10-ball Expert (21.8); the ladder now measures 185, 91, 47, 22; the near-perfect kit finished 7 of 8 Experts but did not reach 200 (best 181).",
     "limitsToday": "No reaction or move limit and no clock. scripts/topsy-levels-bank.ts:28 and :90 keep an Expert board only when the person-like solver (scripts/topsy-human.ts: 3 tilts ahead, 2 resets) clears it inside the tilt limit; pattern-overhaul-gravity-levels-check.ts:63 re-runs it."
   },
   {

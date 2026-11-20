@@ -283,7 +283,7 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 
 <h2 id="levels">Difficulty: one lever you can see</h2>
 <p>Every game gets one headline lever a player sees in the first three seconds, and Easy, Normal, Hard and Expert sit on it as one ladder. Normal is today’s game and never changes. Hard and Expert never add an aid. Expert is proven reachable at 200 by the best humans.</p>
-<p class="muted">Of 83 games: 1 kept, 48 retuned, 34 redesigned, 5 with one new mechanic. The commonest fault today is that Hard looks the same as Normal. Tap a game for its ladder; the full numbers, proofs and files are in the spec.</p>
+<p class="muted">Of 83 games: {sum(g['change']=='keep' for g in allg)} kept, {sum(g['change']=='retune' for g in allg)} retuned, {sum(g['change']=='redesign' for g in allg)} redesigned, 5 with one new mechanic. The commonest fault today is that Hard looks the same as Normal. Tap a game for its ladder; the full numbers, proofs and files are in the spec.</p>
 <h3 id="lvui">How the levels look in the app</h3>
 <p>One <b>level mark</b> everywhere: a colour and one to four bars, so it never relies on colour alone. It sits on the game’s page, in the header during play, on the reveal and in room settings.</p>
 <p><b>L1 Ladder</b> lists the four levels on the game’s page, each with a small picture of what changes and your best. <b>L2 Preview</b> shows one level large with the lever as a row of numbers. <b>L3 Step up</b> is the card on the reveal after a star: Normal beside Hard, and one line saying what is new. I recommend L1 with L3.</p>

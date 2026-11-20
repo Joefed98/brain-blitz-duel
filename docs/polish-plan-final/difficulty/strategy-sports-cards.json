@@ -3,7 +3,7 @@
     "id": "matchup",
     "name": "Gemstone",
     "group": "Strategy",
-    "lever": "Frozen cells on the board",
+    "lever": "Colours on the board",
     "today": {
       "easy": "5 colours, 5 ice cells, goals 12 to 36, hint after 3 s idle",
       "normal": "matchupRev 13: 6 colours, 10 two-hit ice cells on the 7 x 10 board, goals 20 to 60, hint after 5 s, 90 s",
@@ -12,33 +12,34 @@
     },
     "measured": "60 seeds: average bot 163 / 95 / 82 / 72; elite under human limits 197 / 158 / 146 / 137; flawless 198 / 174 / 167 / 168",
     "easy": "As today: 5 ice cells, 5 colours, goals 12 to 36, hint after 3 s (average 163 and a third of runs earn a star, so it does its job).",
-    "hard": "18 ice cells (Normal 10); a 7th colour, the cyan heart; goals 30 to 90 over 7 colours; no hint; parts full at 320 gems, 2 treasures, 3 goals, 12 ice, 3 big lines (today's Expert moved down one level).",
-    "expert": "28 ice cells (40 % of the 70 squares; the sim lays ice only in the bottom six rows, so two thirds of them freeze); 7 colours; goals 30 to 90; no hint; parts full at 320 gems, 2 treasures, 3 goals, 18 ice, 3 big lines.",
+    "hard": "7 colours: the cyan heart joins the six (Normal has 6); 18 ice cells; goals 30 to 90 over 7 colours; no hint; parts full at 320 gems, 2 treasures, 3 goals, 12 ice, 3 big lines (today's Expert table moved down one level, as measured).",
+    "expert": "8 colours: an eighth gem (a white pearl) joins the cyan heart; 18 ice cells as Hard; goals 30 to 90 over 8 colours; no hint; every deal guaranteed a first move; the parts' full figures set from the flawless run on eight-colour deals, so 200 stays reachable.",
     "glance": {
       "easy": "Five colours, a handful of frozen squares, a hint after three seconds",
-      "hard": "A seventh gem, the cyan heart, and 18 frozen squares",
-      "expert": "Ice over 28 squares: two thirds of the lower board"
+      "hard": "A seventh gem on the board: the cyan heart",
+      "expert": "An eighth gem too: eight colours crowd the board"
     },
-    "why": "Ice is the one thing on a match-three board you can count at a glance, each frozen square takes two clears and blocks free swaps, and the seventh colour thins the matches needed to break it.",
+    "why": "Measured, the number of colours is the one setting that moves an average player on a match-three board: 5, 6 and 7 colours score 163, 95 and 72, while ice at 18, 28 or 40 squares, two-hit or three-hit, changes nothing. Colours are also the first thing a player sees. So the ladder is 5, 6, 7, 8 colours, and ice stays as dressing.",
     "proof": "No per-seed proof today: scripts/gemstone-levels-record.ts holds a flawless witness on one seed a level and elite-under-limits witnesses on 3 Expert seeds. Write scripts/gemstone-level-deal.ts: a dealt list per level (new src/lib/duel/matchupLevelDeal.server.ts) keeping only seeds where the planner of scripts/arcade-skill-bands/bots/matchup.ts, held to HUMAN_LIMITS (250 ms reactions, 150 ms swipes), replays to exactly 200 through the server; scripts/gemstone-levels-check.ts replays every witness.",
-    "change": "retune",
+    "change": "redesign",
     "newMechanic": "",
-    "stamp": "matchupRev 14 on Hard and Expert deals (Easy and Normal stay matchupRev 13): MATCHUP_V13_LEVELS is frozen with the stamp and stored level rounds must replay.",
+    "stamp": "matchupRev 14 on Hard and Expert deals (Easy and Normal stay matchupRev 13): MATCHUP_V13_LEVELS is frozen with the stamp, stored level rounds must replay, and the eighth gem kind exists only on Expert deals.",
     "files": [
       "src/lib/arcade/matchup.ts (MATCHUP_V13_LEVELS, a rev 14 table)",
       "src/lib/levels/gameLevels.ts",
       "scripts/gemstone-level-deal.ts (new)",
       "src/lib/duel/matchupLevelDeal.server.ts (new)",
       "scripts/gemstone-levels-bands.ts",
-      "scripts/gemstone-levels-check.ts"
+      "scripts/gemstone-levels-check.ts",
+      "src/lib/arcade/matchup.renderer.ts (the eighth gem's drawing in its own function; tell A3)"
     ],
-    "risk": "measured: the average bot clears about half the gems the flawless bot does at every setting, so any Expert whose parts the flawless run can fill leaves the average near 70; a real step for the average needs a new mechanic or a new gem kind, not a number in the table",
+    "risk": "Expert is not measured: the gem table is seven long, so an eighth gem needs sim code and one new gem drawn. Eight colours thin the matches, so the deal must guarantee a move and the parts' full figures must come from the flawless run on eight-colour deals. If eight colours proves too sparse for the best players to reach 200, fall back to 7 colours with goals of 40 to 110 and say so. The average bot clears about half the flawless bot's gems at every setting measured, so numbers in the table alone will not make the step.",
     "evidence": {
       "easy": "measured: today's Easy kept; gemstone-levels-bands playLevel, 60 seeds: average 162.6 (19 of 60 at 175+), elite under limits 197.2 (47 at 200), flawless 198.1.",
       "hard": "measured: the proposed Hard is today's Expert table; 60 seeds: average 72.3 (Normal 95.3), elite under limits 137.0 (Normal 158.1; one run at 200), flawless 167.6 with 7 of 60 at 200.",
-      "expert": "measured: 28 ice in memory, 60 seeds: average 70.7, elite under limits 132.4, flawless 169.4 (7 at 200); 40 cells 69.9. Three-hit ice (scratch game, 40 seeds): 69.8 at 18 cells, 68.5 at 28. An eighth colour breaks the sim (an invalid gem kind)."
+      "expert": "not measured: the sim refuses an eighth gem kind today. Ice as the lever was measured and dropped: 28 cells average 70.7 against Hard's 72.3 (60 seeds), 40 cells 69.9, three-hit ice 68.5 to 69.8 (40 seeds)."
     },
-    "verdict": "unproven: no lever the sim offers separates Expert from Hard for the average player: two-hit or three-hit ice at 18, 28 or 40 cells all score 68 to 72, an eighth colour is not supported, and stricter part figures that reach 58 to 63 leave the flawless run short of 200 (best 174 to 195).",
+    "verdict": "adjusted: the lever moves from frozen cells to colours on the board (5, 6, 7, 8), because ice at any count left Expert level with Hard for the average bot (68 to 72, two-hit or three-hit) and the seventh colour was the only step that worked (95 to 72); the eight-colour Expert stays unproven until the sim takes an eighth gem.",
     "limitsToday": "scripts/gemstone-levels-bands.ts:25-29 (limitHuman: elite reactions held at 250 ms; --limits, line 90) measures only; nothing asserts per seed. The witnesses gemstone-levels-check replays are one flawless seed a level and 3 elite Expert seeds."
   },
   {
@@ -489,7 +490,7 @@
       "expert": "Seven reds ringing the button, no guides at all"
     },
     "why": "A stone only scores when it beats every red in the house, so each extra red is another one to take out or out-draw with the same eight stones, and the count shows in the house before the first throw.",
-    "proof": "bun scripts/curling-bank.ts --level=<l> with scripts/curling-oracle.ts: a sheet is kept only when the oracle clears every red and scores exactly 200 through the server replay at its level (src/lib/duel/curlingLevelBanks.server.ts, 30 sheets a level; with 5 reds Expert proved 56 of 90). Throws are set up at leisure, so HUMAN_LIMITS only bound the brushing (no tap within 0.15 s of the last); scripts/curling-levels-check.ts replays every witness.",
+    "proof": "bun scripts/curling-bank.ts --level=<l> with scripts/curling-oracle.ts: a sheet is kept only when the oracle clears every red and scores exactly 200 through the server replay at its level (src/lib/duel/curlingLevelBanks.server.ts, 30 sheets a level; with 5 reds Expert proved 56 of 90). With today's spacing rule the dealer places all seven reds on 6 of 8 sheets at 15 to 60 cm and only 4 to 6 inside 50 cm, so the bank must also drop sheets short of seven. Throws are set up at leisure, so HUMAN_LIMITS only bound the brushing (no tap within 0.15 s of the last); scripts/curling-levels-check.ts replays every witness.",
     "change": "retune",
     "newMechanic": "",
     "stamp": "curlRev 5 on level deals (Normal stays curlRev 4): the sim reads CURL_LEVEL_REDS from the level, so new counts need a stamp for stored rounds.",
@@ -502,13 +503,13 @@
       "scripts/curling-levels-check.ts",
       "scripts/curling-levels-bands.ts"
     ],
-    "risk": "measured: the average bot scores the same against 5, 7 or 8 reds (53 to 58), so the count shows at a glance but may not make Expert harder than today's; seven takeouts with eight stones may also prove on too few sheets, and six reds is the fallback",
+    "risk": "seven reds only fit a 15 to 60 cm span (a tighter ring or an eighth red places 4 to 6), the elite's best on 5 sheets was 195, and seven takeouts with eight stones may prove on too few sheets; six reds is the fallback",
     "evidence": {
       "easy": "measured: CURL_LEVEL_REDS set in memory, 8 Easy-bank sheets (not proved for one red), HUMAN_LIMITS, server replay: average 96.9, against 101.3 for today's two reds on the same sheets and 89.6 on Normal's.",
-      "hard": "measured: 5 reds 25 to 80 cm, 8 sheets: average 70.0 (Normal 89.6; today's Hard 92.4 on its own 8 sheets). With 6 reds 20 to 70 cm: 67.3. Elite not run (too slow for the time box).",
-      "expert": "measured: 7 reds 15 to 60 cm: average 53.4 (10 sheets), elite under limits 157.6 (5 sheets, best 195, none at 200). For the average bot today's 5-red Expert scores 53.1 and 8 reds 58.1."
+      "hard": "measured: 5 reds 25 to 80 cm, 8 sheets a run, average bot under limits: 73.1 as proposed (HOUSE zone, no aim line), 70.0 with the aim line's first third, 78.9 with no aids at all (Normal 89.6); elite not run (too slow for the time box).",
+      "expert": "measured: 7 reds 15 to 60 cm (seven placed on 6 of 8 sheets): average 53.4 (10 sheets; today's 5-red Expert 53.1), elite under limits 157.6 (5 sheets, best 195, none at 200). A tighter ring does not deal: 20 to 50 cm places 4 to 6 reds."
     },
-    "verdict": "unproven: the average player steps 90 / 70 / 53, but 7 reds score the same as today's 5 (53 v 53; 8 reds 58) and one red at Easy gains nothing (97 v 101), so the count shows more than it bites; no elite run reached 200 (best 195) and the 7-red bank is not proved.",
+    "verdict": "unproven: the average player steps 90 / 73 / 53 on the red count, but 7 reds score no lower than today's 5-red Expert, the house cannot hold a tighter ring or an eighth red (the dealer places 4 to 6), the aids do not move the bot, the Stones part's full figure is a constant that could not be tried, and no elite run reached 200 (best 195).",
     "limitsToday": "nothing of its own: scripts/curling-levels-bands.ts:27 plays the bots without limits; only scripts/level-tune.ts --human-limits (line 188) measures. The bank's oracle sets up each throw at leisure."
   },
   {
@@ -524,8 +525,8 @@
     },
     "measured": "12 seeds under human limits: average bot 157 / 64 / 53 / 26; elite 195 / 176 / 174 / 159; flawless 196 / 184 / 183 / 171; elite clears 12 / 8 / 4 / 1 of 12",
     "easy": "As today: 3 colours, 75 bubbles, a descent every 10 shots, core full at 50 (average 157 to 164 and a third of runs earn a star).",
-    "hard": "6 colours (the orange seahorse joins); 100 bubbles; one-bounce aim trail; a descent every 8 shots as Normal; parts full at the reef, 20 bank shots, a clear with 30 s left.",
-    "expert": "7 colours (a new pink starfish with its own symbol); 110 bubbles; short 120 px trail; a descent every 8 shots; parts full at the reef, 10 bank shots, a clear with 30 s left.",
+    "hard": "6 colours (the orange seahorse joins); 100 bubbles; one-bounce aim trail; a descent every 8 shots as Normal; parts full at the reef, 18 bank shots, a clear with 20 s left.",
+    "expert": "7 colours (a new pink starfish with its own symbol); 110 bubbles; short 120 px trail; a descent every 8 shots; parts full at the reef, 10 bank shots, a clear with 10 s left.",
     "glance": {
       "easy": "Three colours: big clusters everywhere",
       "hard": "Six colours, the reef two rows deeper",
@@ -544,13 +545,13 @@
       "scripts/arcade-skill-bands/bots/bubble.ts",
       "scripts/bubble-levels-check.ts"
     ],
-    "risk": "a seven-colour reef may be clearable with 30 s left on very few seeds, so the planner and the speed line may both need work",
+    "risk": "the elite bot under the limits never clears a seven-colour reef (best 178), so only planned play reaches 200 and the dealt lists need the planning oracle",
     "evidence": {
       "easy": "documented: today's Easy kept; bubble-levels-check witnesses, 12 seeds: average 157, elite under limits 195.",
-      "hard": "measured: BUB_LEVELS set in memory, 12 seeds, HUMAN_LIMITS, server replay: average 37.5 (Normal 62.0, today's Hard 44.0), elite 165.4 (Normal 174.8), flawless 188.5 (best 198). With 86 or 93 bubbles the average is 45.8 / 47.4.",
-      "expert": "measured: 7 colours run in the sim as it stands, 12 seeds: average 23.4 (today's Expert 22.9), elite 154.5 (median 167, best 178; today 132.4), flawless 178.8 (best 194, clears 5 of 12); no run at 200."
+      "hard": "measured: 12 seeds, HUMAN_LIMITS, server replay: average 37.5 (Normal 62.0), elite 165.4 (best 184). Flawless: best 198 with speed full at 30 s left and 20 bank shots; with 20 s left and 18 bank shots it reaches 200 on 3 of 12.",
+      "expert": "measured: 7 colours, 12 seeds: average 23.4 (today's Expert 22.9), elite 154.5 (best 178, never clears). Flawless: best 194 with speed full at 30 s left (speed 5 of 10 at most); with 10 s left it reaches 200 on 1 of 12."
     },
-    "verdict": "unproven: the ladder steps down for the average player (62 / 38 / 23, the last step inside 12-seed noise) and the elite (175 / 165 / 155), but no run reached 200 at Hard or Expert (flawless best 198 and 194), so the planner and the dealt lists must supply the proof.",
+    "verdict": "adjusted: the speed part could not fill at a clear with 30 s left, so it is now full with 20 s left at Hard (bank shots full at 18) and 10 s left at Expert, and the flawless run under the limits reaches 200 on 3 and 1 of 12 seeds; the elite bot does not (best 184 and 178), and the average steps 62 / 38 / 23.",
     "limitsToday": "scripts/bubble-levels-record.ts:36 records the bots (the bubble bot paces its own shots) and scripts/bubble-levels-check.ts:222, 233 assert the elite clears a reef at every level and that Expert's elite averages 120+ with a best of 170+; no per-seed 200 proof."
   },
   {
@@ -566,8 +567,8 @@
     },
     "measured": "dealt seeds: average bot 164 / 91 / 75 / 69; elite under human limits 200 / 190 / 183 / 166; oracle 200 on every entry",
     "easy": "As today: pot 110 px, a quarter of the birds, ink 150 %, nothing moves, clovers on the easy line (average 163 and 48 % of runs earn a star).",
-    "hard": "Pot 46 px; 3 extra birds on every level from level 1; ink 110 %; live levels, par margin and speed line as today's Hard.",
-    "expert": "Pot 28 px (the coin is 20 px); 5 extra birds on every level from level 1, 3 of them swaying on moving-pot levels; ink 100 %; live levels, par margin and speed line as today's Expert.",
+    "hard": "Pot 46 px; 3 extra birds on every level from level 1; ink 110 %; live levels and par margin as today's Hard; speed full with 60 s left (today's Hard 70).",
+    "expert": "Pot 28 px (the coin is 20 px); 5 extra birds on every level from level 1, 3 of them swaying on moving-pot levels; ink 100 %; live levels and par margin as today's Expert; speed full with 78 s left (today's Expert 85).",
     "glance": {
       "easy": "A huge pot under an almost empty sky",
       "hard": "A pot two coins wide, birds strung across level one",
@@ -586,13 +587,13 @@
       "scripts/ink-levels-check.ts",
       "scripts/ink-levels-bands.ts"
     ],
-    "risk": "a 28 px pot that also moves may fail the drawable proof on the live levels, and on unproved seeds no run reached 200 (flawless best 199 of 5)",
+    "risk": "a 28 px pot that also moves may fail the drawable proof on the live levels; the elite bot under the limits tops out at 185 to 192, so only near-flawless drawing reaches 200",
     "evidence": {
       "easy": "documented: today's Easy kept; ink-levels-bands on the dealt seeds: average 164, elite under limits 200.",
-      "hard": "measured: INK_LEVEL_SETS set in memory on 8 Hard-deal seeds (not proved for these birds), HUMAN_LIMITS, server replay: average 67.3 (median 72; Normal 91 and today's Hard 75 documented), elite 177.6 (best 192).",
-      "expert": "measured: pot 28 px with 5 birds a level: average 36.3 (median 15, 8 seeds), elite 167.6 and flawless 193.8 (5 seeds, best 199, none at 200). At the first proposed 34 px, 10 seeds: 59.3 / 160.0 / 184.0 (best 197)."
+      "hard": "measured: 8 Hard-deal seeds (not proved for these birds), HUMAN_LIMITS, server replay: average 67.3 (Normal 91 documented), elite 177.6 (best 192). Flawless, 5 seeds: best 198 with speed full at 70 s left (speed 18 of 20); at 60 s left it reaches 200 on 2 of 5.",
+      "expert": "measured: pot 28 px, 5 birds a level: average 36.3 (8 seeds; 59.3 at 34 px), elite 167.6 (5 seeds, best 185). Flawless, 5 seeds: best 199 with speed full at 85 s left (speed 19 of 20); at 78 s left it reaches 200 on 1 of 5."
     },
-    "verdict": "adjusted: at 34 px the average player scored 59 against Hard's 67, so the Expert pot is now 28 px (average 36, elite still 168); no run reached 200 on these unproved seeds (flawless best 199), so the dealt list must supply the proof.",
+    "verdict": "adjusted: the Expert pot is 28 px, not 34 (average 36 against Hard's 67), and speed, the one part the flawless run could not fill, is now full with 60 s left at Hard and 78 s at Expert, where the flawless run under the limits reaches 200 on 2 and 1 of 5 unproved seeds; the elite bot's best is 192 and 185.",
     "limitsToday": "scripts/ink-levels-bands.ts:38 (--human: elite reactions 250 ms, finger lag 150 ms) measures only; nothing asserts. The deal builder's oracle (scripts/ink-big-deal.ts) is not limited."
   },
   {
@@ -609,14 +610,14 @@
     "measured": "40 deals: average bot 150 / 83 / 77 / 61; elite 199 / 166 / 149 / 142; elite under human limits 193 / 144 / 141 / 121",
     "easy": "One marble on every maze (no amber marble); 3 mazes of 11, 13, 13 cells; holes 0, 1, 1; no ice; par 240 % (today's Easy without its two-marble maze).",
     "hard": "Two marbles from the first second on mazes 1, 2 and 3 (maze 4 single); 5 holes a maze, now allowed in pockets one cell off the route; ice and par as today's Hard (3 to 4 patches, 135 %).",
-    "expert": "Two marbles on all four mazes; 8 holes a maze, pockets beside the route included; ice and par as today's Expert (5 patches, 115 %).",
+    "expert": "Two marbles on all four mazes; four mazes of 19 cells (today's Expert 15, 17, 19, 19); 8 holes a maze, pockets beside the route included; 5 ice patches; par 125 % and speed full by 85 s (today's Expert 115 % and 70 s).",
     "glance": {
       "easy": "One blue marble, wide corridors, no holes on maze one",
       "hard": "Two marbles and two cups from the first maze",
-      "expert": "Two marbles and holes peppered along the path"
+      "expert": "Two marbles in every maze, four big mazes full of holes"
     },
-    "why": "One tilt moves every marble, so a second marble doubles what you must watch from the first second, and holes beside the route finally punish a slip; today's extra holes sit in dead ends two cells off the route, where a careful player never meets them.",
-    "proof": "Per-level proved deals as today: bun scripts/tilt-deal.ts --level=<l> keeps a seed only when scripts/tilt-oracle.ts plays every maze inside par with no fall and replays to exactly 200 through replayTiltRun (src/lib/duel/tiltDealLevels.server.ts; today Hard keeps 119 and Expert 111 of 150). The oracle is not held to the limits today: run it with the bot's TILT_HUMAN_LIMITS rule (0.25 s from eye to hand, a new decision every 0.15 s at most) and drop seeds that fail; scripts/tilt-levels-check.ts replays every witness.",
+    "why": "One tilt moves every marble, so a second marble doubles what you must watch from the first second, bigger mazes stretch that over the whole run, and holes beside the route finally punish a slip; today's extra holes sit in dead ends two cells off the route, where a careful player never meets them.",
+    "proof": "Per-level proved deals as today: bun scripts/tilt-deal.ts --level=<l> keeps a seed only when scripts/tilt-oracle.ts plays every maze inside par with no fall and replays to exactly 200 through replayTiltRun (src/lib/duel/tiltDealLevels.server.ts; today Hard keeps 119 and Expert 111 of 150). The oracle is not held to the limits today: run it with the bot's TILT_HUMAN_LIMITS rule (0.25 s from eye to hand, a new decision every 0.15 s at most) and drop seeds that fail; scripts/tilt-levels-check.ts replays every witness. Measured with today's hole rule: on four 19-cell mazes the flawless bot under the limits reaches 200 on 1 of 16 seeds at par 125 % with speed full by 85 s, and stops at 194 at par 115 % or 120 %.",
     "change": "redesign",
     "newMechanic": "",
     "stamp": "tiltRev 13 on level deals (Normal stays tiltRev 12): the sim reads TILT_LEVELS and the hole placement rule.",
@@ -629,13 +630,13 @@
       "scripts/tilt-levels-check.ts",
       "scripts/tilt-levels-bands.ts"
     ],
-    "risk": "measured: the average player's run ends on the first two-marble maze, so Hard and Expert score alike (45 and 51) until the holes beside the route exist and are playtested; the bots rarely fall, and Normal's own elite is 160 under the limits",
+    "risk": "at par 125 % the dealer's par-sum rule passes only 16 of 937 candidate seeds for four 19-cell mazes (16 of 219 at 120 %, where the flawless bot stops at 194), so the list needs thousands of candidates, the frame-exact oracle or a relaxed rule; the elite under the limits scores 84 (Normal 160); the holes beside the route need new sim code and a playtest",
     "evidence": {
       "easy": "measured: TILT_LEVELS set in memory, 16 unproved dealable seeds, TILT_HUMAN_LIMITS=1, server replay: average 136.2 (median 163.5, finishes 9 of 16; today's Easy 124.1), elite 197.6 with 13 at 200.",
       "hard": "measured: two marbles on mazes 1 to 3 and 5 holes (today's hole rule), 40 seeds: average 45.0 (Normal 61.1, today's Hard 58.3); 16 seeds: elite under limits 136.3 (Normal 159.6), best 185.",
-      "expert": "measured: two marbles on all four mazes and 8 holes (today's hole rule), 40 seeds: average 50.5 (today's Expert 48.8); 16 seeds: elite under limits 113.9 (best 180), flawless under limits 128.8 with one run at 200."
+      "expert": "measured: four 19-cell mazes, two marbles on all, 8 holes (today's hole rule), TILT_HUMAN_LIMITS=1: average 32 over 56 seeds (29.3, 34.8, 35.0), elite 83.8 (best 163); flawless under limits 200 on 1 of 16 at par 125 % and speed 85 s. On 15, 17, 19, 19 the average was 50.5."
     },
-    "verdict": "unproven: two marbles from the first maze take the average player from 61 to 45 and the elite 160 / 136 / 114 down the ladder, and Easy holds (136), but Hard and Expert score alike for the average player (45 v 51); the holes beside the route, the only thing left to split them, need new sim code.",
+    "verdict": "adjusted: Hard and Expert scored alike for the average player (45 v 51), so Expert now plays four 19-cell mazes with two marbles on each (average 32, Hard 45, Normal 61) at par 125 % and speed full by 85 s, where the flawless run under the limits reaches 200 on 1 of 16 seeds; the elite falls to 84, few seeds deal at that par, and the holes beside the route are still unmeasured.",
     "limitsToday": "scripts/arcade-skill-bands/bots/tilt.ts:72 (TILT_HUMAN_LIMITS=1: eye-to-hand at least 15 ticks, a new decision every 9 ticks at most; lines 198-201, 539), read by scripts/tilt-levels-bands.ts:11; measures only, never set by a check. The deal's oracle (tilt-oracle.ts) is not limited."
   },
   {

@@ -374,7 +374,7 @@ After the art sessions: re-export every tile and intro still, and re-run `bun sc
 
 ## 8. Difficulty
 
-The full spec is `docs/polish-plan-final/difficulty-spec.md`; its data is `difficulty/*.json`. In short: one visible lever per game, four levels as one ladder, Normal untouched, 1 game kept, 48 retuned, 34 redesigned, five new mechanics, and a proof route for every Expert. Its five decisions are decision 10 above. The scoring items of the earlier plan's section I stay open and are folded into the spec where a level's 200 depends on them (Flash, Five Hands, Integer Pyramid, the open Word games' star line, High Rise, Cue Ball, Tilt); I6 and I9 stay "leave it".
+The full spec is `docs/polish-plan-final/difficulty-spec.md`; its data is `difficulty/*.json`. In short: one visible lever per game, four levels as one ladder, Normal untouched, 2 kept, 46 retuned, 35 redesigned, five new mechanics, and a proof route for every Expert. Its five decisions are decision 10 above. The scoring items of the earlier plan's section I stay open and are folded into the spec where a level's 200 depends on them (Flash, Five Hands, Integer Pyramid, the open Word games' star line, High Rise, Cue Ball, Tilt); I6 and I9 stay "leave it".
 
 ### 8.1 Fact-check of 20 Nov (numbers and method)
 
@@ -388,7 +388,7 @@ Asked for by Joe before any build. Measured with the repo's own tools on this br
 | Flash and Bonk cap a perfect human at about 130 and 160 at every level | Flash: every flash tapped at exactly 0.25 s, 100 deals a level: 130 at all four levels (0.20 s gives 135, 0.17 s 165, 0.14 s 190). Bonk: 0.25 s to react and 0.15 s to move, one finger, 100 deals a level: 156 on Easy, Normal and Hard, 153 on Expert. | **Holds** (130 and 156). It is the scoring curve, so no level setting fixes it; the spec's decision 3 stands. |
 
 <!-- overall-result -->
-**The overall result.** Of the 249 Easy, Hard and Expert rows, 166 were measured in this pass, 10 come from the repo's documents (today's level, kept) and 73 are not measured yet, because they need a board size, a bank or a mechanic that does not exist until it is built. By game: 8 hold as proposed, 42 were changed because a measurement contradicted them, and 33 keep a risky part unproven until their session builds the proof. Three things showed across the board:
+**The overall result.** Of the 249 Easy, Hard and Expert rows, 174 were measured in this pass, 7 come from the repo's documents (today's level, kept) and 68 are not measured yet, because they need a board size, a bank or a mechanic that does not exist until it is built. By game: 8 hold as proposed, 48 were changed because a measurement contradicted them, and 27 keep a risky part unproven until their session builds the proof. Three things showed across the board:
 
 1. **The commonest fault was a step too small to matter**, and the fix was a bigger move of the same lever: Blockzone's Hard from twice to four times Normal's pace, High Rise's blocks from 150 and 110 px to 110 and 50, Rally's Hard paddle from 88 to 72 px, Minefield's Expert from 36 to 40 mines, Tally's and Matchmaker's clocks.
 2. **The repo's bots and kits cannot feel some of the levers a player sees**: a paddle's width (Breaker, Rally), the shortest word that counts (Nucleus, Forage), and any board size the code cannot deal yet (Interlock, Slider, Cryptogrid, Trail, Gridlock's 9 × 9). Those steps stay unproven until the session writes a player that can feel them, or people confirm them. A row marked measured is not a row marked proven: the verdict line says which.
