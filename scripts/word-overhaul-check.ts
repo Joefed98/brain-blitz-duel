@@ -411,12 +411,15 @@ const SEEDS = Array.from({ length: 24 }, (_, i) => 1000 + i * 37);
     "src/components/puzzles/WordHuntPuzzle.tsx", "src/puzzles/wordSearch.tsx", "src/puzzles/letterWheel.tsx", "src/puzzles/strikeout.tsx",
     "src/puzzles/codeword.tsx", "src/puzzles/swapword.tsx", "src/components/puzzles/WordReveal.tsx", "src/components/puzzles/LetterKeypad.tsx"]
     .map((f) => readFileSync(f, "utf8")).join("\n");
+  /** Changed with Joe's approval, 19 Nov 2026: plays alongside the shared sound: Joe, 19 Nov 2026 (an empty REPLACES list). */
+  const PLAYS_ALONGSIDE: ReadonlySet<string> = new Set(["numline.place", "codeword.wrong", "wordhunt.points", "push.push", "tilegrid.bonus", "wordsearch.drag", "letterwheel.spin", "wordslide.lock", "wordslide.unlock", "strikeout.strike"]);
   for (const slot of slots) {
     ok(sources.includes(`"${slot}"`), `effects: ${slot} is played by its game`);
     ok(slot in SOUND_MANIFEST, `effects: ${slot} has a manifest slot`);
     if (slot.startsWith("shared.")) continue;
     ok(!!NEW_GAME_SOUND_FILES[slot], `effects: ${slot} has a placeholder recording`);
-    ok((NEW_GAME_SOUND_REPLACES[slot]?.length ?? 0) > 0, `effects: ${slot} names the shared sound it stands in for`);
+    // Changed with Joe's approval, 19 Nov 2026: an empty list only for the cues Joe set to play alongside their shared sound.
+    ok((NEW_GAME_SOUND_REPLACES[slot]?.length ?? 0) > 0 || (PLAYS_ALONGSIDE.has(slot) && NEW_GAME_SOUND_REPLACES[slot]?.length === 0), `effects: ${slot} names the shared sound it stands in for`);
   }
   // Joe (15 Nov 2026): the pangram's recording replaces the shared moment-card sting once it is in; never both.
   const nucleus = readFileSync("src/components/puzzles/WordsmithPuzzle.tsx", "utf8");

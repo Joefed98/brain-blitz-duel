@@ -19,6 +19,7 @@ import { join, relative, sep } from "node:path";
 import { MEDIA_DIRS } from "../src/lib/offline/assets";
 import { awaitingWiringPaths, lazyMediaPaths, offlineWorkerSource } from "../src/lib/offline/swPlugin";
 import { soundBatchRows } from "../src/lib/offline/soundBatches";
+import { KEPT_UNUSED_SOUNDS, KEPT_UNUSED_URLS } from "../src/lib/fx/keptUnusedSounds";
 
 const failures: string[] = [];
 let passes = 0;
@@ -41,9 +42,11 @@ function walk(dir: string): string[] {
 }
 // As offlineWorkerPlugin walks it: sound batch 1's files no slot plays yet are left out (16 Nov 2026).
 const unwired = new Set(awaitingWiringPaths());
+// Changed with Joe's approval, 19 Nov 2026: as offlineWorkerPlugin, Joe's kept-unused recordings are left out too.
+const keptOut = new Set(KEPT_UNUSED_URLS);
 const files = walk("public")
   .map((full) => ({ full, path: `/${relative("public", full).split(sep).join("/")}` }))
-  .filter((f) => !unwired.has(f.path));
+  .filter((f) => !unwired.has(f.path) && !keptOut.has(f.path));
 const isMedia = (p: string) => MEDIA_DIRS.some((d) => p.startsWith(`/${d}/`));
 const realHashes = Object.fromEntries(files.filter((f) => isMedia(f.path)).map((f) => [f.path, sha(readFileSync(f.full))]));
 // As offlineWorkerPlugin builds it (lazyMedia from lazyMediaPaths()).
@@ -239,18 +242,27 @@ check(
 );
 // Every batch file is wired (18 Nov 2026, scripts/sound-wiring-nov18/wire.ts): none is left out, and each one a
 // phone plays is in the offline download (a TO RECORD row has no file; a .base note is the source of its series).
-check(unwired.size === 0, `every batch file is wired (${[...unwired].slice(0, 5).join(", ")} not)`);
+// Changed with Joe's approval, 19 Nov 2026: a batch file no slot plays is accepted only if it is on Joe's kept-unused list
+// (src/lib/fx/keptUnusedSounds.ts), and a listed file stays out of the download; every other one must be wired.
+check([...unwired].every((p) => KEPT_UNUSED_URLS.has(p)), `every batch file is wired or on Joe's kept-unused list (${[...unwired].filter((p) => !KEPT_UNUSED_URLS.has(p)).slice(0, 5).join(", ")} not)`);
 for (const r of soundBatchRows()) {
   if (r.toRecord || r.source) continue;
   const p = `/sounds/${r.file}`;
-  check(realConfig.media.includes(p) || realConfig.lazyMedia.includes(p), `${p}: a wired batch file missing from the offline download (or its lazy list, for music)`);
+  // Changed with Joe's approval, 19 Nov 2026: Joe's kept-unused recordings are out of the download, not in it.
+  if (KEPT_UNUSED_URLS.has(p)) check(!realConfig.media.includes(p) && !realConfig.lazyMedia.includes(p) && !(p in realConfig.mediaHash), `${p}: on Joe's kept-unused list, so out of the offline download`);
+  else check(realConfig.media.includes(p) || realConfig.lazyMedia.includes(p), `${p}: a wired batch file missing from the offline download (or its lazy list, for music)`);
+}
+for (const s of KEPT_UNUSED_SOUNDS) {
+  const p = `/sounds/${s.file}`;
+  check(!realConfig.media.includes(p) && !realConfig.lazyMedia.includes(p) && !(p in realConfig.mediaHash), `${p}: on Joe's kept-unused list, so out of the offline download`);
 }
 check(
   [...unwired].every((p) => !realConfig.media.includes(p) && !realConfig.lazyMedia.includes(p) && !(p in realConfig.mediaHash)),
   "no unwired batch file is in the offline download, the lazy list or the hashes",
 );
-// Wired batch-1 names stay in: a placeholder slot's file (behind NEW_GAME_SOUNDS) and the live bomb.defuse.
-for (const p of ["/sounds/tubes.pour.mp3", "/sounds/breaker.paddle.mp3", "/sounds/bomb.defuse.mp3"]) {
+// Wired batch-1 names stay in: placeholder slots' files (behind NEW_GAME_SOUNDS) and a manifest-wired tower.illegal.
+// Changed with Joe's approval, 19 Nov 2026 (breaker.paddle and bomb.defuse play their old sounds again; their recordings are kept unused).
+for (const p of ["/sounds/tubes.pour.mp3", "/sounds/sudoku.place.mp3", "/sounds/tower.illegal.mp3"]) {
   check(!unwired.has(p) && realConfig.media.includes(p), `${p}: wired, so still downloaded`);
 }
 console.log(`NOTE ${unwired.size} sound batch files left out of the offline worker until wired`);

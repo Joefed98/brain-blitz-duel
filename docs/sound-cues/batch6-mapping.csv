@@ -1,7 +1,7 @@
 slot,file,game,event,length_s,loop,cues
 sports_crowd_loop,sports_crowd_loop.mp3,homerun|freekick,stadium ambience,10,yes,homerun.crowd;freekick.crowd
 sports_crowd_roar,sports_crowd_roar.mp3,homerun|freekick|racing,big moment cheer,3.5,no,homerun.roar;freekick.roar;racing.roar
-sports_crowd_groan,sports_crowd_groan.mp3,homerun|freekick|curling,near miss,2,no,homerun.groan;freekick.groan
+sports_crowd_groan,sports_crowd_groan.mp3,homerun|freekick|curling,near miss,2,no,homerun.groan;freekick.groan;curling.aw
 cards_deal,cards_deal.mp3,freecell|tripeaks|pokersquares|pyramid|golfsol,card dealt,0.3,no,tripeaks.deal;pyramid.deal;golfsol.deal
 cards_pick,cards_pick.mp3,freecell|tripeaks|pokersquares|pyramid,card lifted,0.2,no,freecell.pick;pyramid.select
 cards_place,cards_place.mp3,freecell|tripeaks|pokersquares|fivehands,card placed,0.3,no,freecell.place;pokersquares.place;fivehands.place
@@ -9,7 +9,7 @@ cards_home,cards_home.mp3,freecell|tripeaks|pyramid,card to foundation,0.6,no,fr
 cards_invalid,cards_invalid.mp3,freecell|tripeaks|pokersquares|fivehands|pyramid|golfsol,move not allowed,0.3,no,freecell.invalid;tripeaks.invalid;pokersquares.invalid;fivehands.invalid;pyramid.invalid;golfsol.invalid
 cards_shuffle,cards_shuffle.mp3,freecell|tripeaks|pokersquares|fivehands|pyramid|golfsol,round start shuffle,1.5,no,freecell.shuffle;tripeaks.shuffle;pokersquares.shuffle;fivehands.shuffle;pyramid.turn;pyramid.shuffle;golfsol.shuffle
 music_minigolf,music_minigolf.mp3,minigolf,music bed,90,yes,music_minigolf
-minigolf.putt,minigolf.putt.mp3,minigolf,putt,0.4,no,minigolf.putt
+minigolf_putt,minigolf_putt.mp3,minigolf,putt,0.4,no,minigolf.putt
 minigolf_roll_loop,minigolf_roll_loop.mp3,minigolf,ball rolling,2,yes,minigolf.roll
 minigolf_rail,minigolf_rail.mp3,minigolf,hits rail or log,0.3,no,minigolf.bounce
 minigolf_stone,minigolf_stone.mp3,minigolf,hits boulder or planter,0.3,no,minigolf.stone
@@ -56,7 +56,7 @@ racing_go,racing_go.mp3,racing,lights out,0.6,no,racing.go
 racing_idle_loop,racing_idle_loop.mp3,racing,on the grid,3,yes,racing.idle
 racing_drive_loop,racing_drive_loop.mp3,racing,driving,3,yes,racing.drive
 racing_squeal,racing_squeal.mp3,racing,hard cornering,1.2,no,racing.squeal
-racing.kerb,racing.kerb.mp3,racing,on kerbs,1,yes,racing.kerb
+racing_kerb_loop,racing_kerb_loop.mp3,racing,on kerbs,1,yes,racing.kerb
 racing_grass_loop,racing_grass_loop.mp3,racing,on grass,1,yes,racing.grassLoop
 racing_bump,racing_bump.mp3,racing,wall contact,0.6,no,racing.wall
 racing_lap,racing_lap.mp3,racing,lap complete,0.8,no,racing.lap
@@ -67,7 +67,7 @@ mines_cascade,mines_cascade.mp3,minesweeper,area opens,0.6,no,minesweeper.cascad
 mines_flag,mines_flag.mp3,minesweeper,flag placed,0.3,no,minesweeper.flag
 mines_unflag,mines_unflag.mp3,minesweeper,flag removed,0.2,no,minesweeper.unflag
 minesweeper.hit,minesweeper.hit.mp3,minesweeper,mine hit,0.8,no,minesweeper.hit
-minesweeper.clear,minesweeper.clear.mp3,minesweeper,board cleared,1.5,no,minesweeper.clear
+mines_clear,mines_clear.mp3,minesweeper,board cleared,1.5,no,minesweeper.clear
 music_freecell,music_freecell.mp3,freecell|pyramid,music bed,90,yes,music_freecell;music_pyramid
 freecell_cascade,freecell_cascade.mp3,freecell,auto moves home,1,no,freecell.cascade
 freecell_win,freecell_win.mp3,freecell|golfsol,solved,2,no,freecell.win;golfsol.clear

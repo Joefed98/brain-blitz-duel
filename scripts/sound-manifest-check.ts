@@ -25,6 +25,7 @@ import { SOUND_MANIFEST } from "../src/lib/fx/manifest";
 import { SOUND_CUE_EVENT } from "../src/lib/fx/soundCues";
 import { readMp3Gapless } from "../src/lib/mp3Gapless";
 import { soundBatchRows } from "../src/lib/offline/soundBatches";
+import { KEPT_UNUSED_SOUNDS, KEPT_UNUSED_URLS } from "../src/lib/fx/keptUnusedSounds";
 import { buildRows, parseCsv, readDocRows, sortRows } from "./sound-cue-sheet";
 
 const failures: string[] = [];
@@ -228,7 +229,8 @@ for (const r of batchRows) {
   }
   check(audioFiles.includes(path), `${path}: in ${r.csv} but not in public/sounds/`);
   if (!audioFiles.includes(path)) continue;
-  check(urls.has(`/sounds/${r.file}`) || switchUrls.has(`/sounds/${r.file}`),
+  // Changed with Joe's approval, 19 Nov 2026: or on Joe's kept-unused list (src/lib/fx/keptUnusedSounds.ts).
+  check(urls.has(`/sounds/${r.file}`) || switchUrls.has(`/sounds/${r.file}`) || KEPT_UNUSED_URLS.has(`/sounds/${r.file}`),
     `${path}: in ${r.csv} but no slot plays it (wire it in src/lib/fx/manifest.ts)`);
   const bytes = new Uint8Array(readFileSync(path));
   const tag = readMp3Gapless(bytes);
@@ -241,10 +243,19 @@ for (const r of batchRows) {
 }
 for (const file of audioFiles) {
   const url = file.startsWith("public/") ? `/${file.slice("public/".length)}` : null;
+  // Changed with Joe's approval, 19 Nov 2026: or on Joe's kept-unused list (src/lib/fx/keptUnusedSounds.ts).
   check(
-    !!url && (urls.has(url) || switchUrls.has(url)),
+    !!url && (urls.has(url) || switchUrls.has(url) || KEPT_UNUSED_URLS.has(url)),
     `${file}: audio file not used by any manifest slot${url ? "" : " (only public/ is served)"}`,
   );
+}
+// Joe's kept-unused list (19 Nov 2026): each listed file is in public/sounds/ and really unused (a slot that plays it again
+// takes it off the list), named after its slot.
+for (const s of KEPT_UNUSED_SOUNDS) {
+  const url = `/sounds/${s.file}`;
+  check(audioFiles.includes(`public${url}`), `${url}: on the kept-unused list but not in public/sounds/`);
+  check(!urls.has(url) && !switchUrls.has(url), `${url}: on the kept-unused list but a slot plays it (take it off the list)`);
+  check(s.file === `${s.slot}.mp3` && s.note.length > 0, `${url}: a kept-unused entry names its slot and why`);
 }
 for (const url of urls) {
   // Every recording is served from public/ (Lovable's asset store, /__l5e/, is gone from the manifest).
