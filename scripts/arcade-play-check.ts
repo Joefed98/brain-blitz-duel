@@ -300,14 +300,14 @@ function seeded(seed: number) {
 
 async function startServer(): Promise<{ origin: string; proc: ChildProcess | null }> {
   if (URL_ARG) return { origin: URL_ARG.replace(/\/$/, ""), proc: null };
-  // A 4 GB heap for this check's dev server (5 Nov 2026, a stopgap as app-shell-check's): on CI it sat at 1.9 GB of
-  // Node's ~2.2 GB default heap all run (the dev-server capture, ci-results/dev-server), slowing pages until Hover's
-  // load timed out in the desktop pass (arcade-play-desktop-check runs this script). The first-deal compile spike
-  // that drives it is on the later list. Runners have ~7.7 GB.
+  // An 8 GB heap for this check's dev server (20 Nov 2026, Joe's brief J1; 4 GB from 5 Nov 2026, a stopgap as
+  // app-shell-check's): on CI it sat at 1.9 GB of Node's ~2.2 GB default heap all run (the dev-server capture,
+  // ci-results/dev-server), slowing pages until Hover's load timed out in the desktop pass (arcade-play-desktop-check
+  // runs this script). The first-deal compile spike that drives it is on the later list. Runners have 16 GB.
   const proc = spawn("npx", ["vite", "dev", "--port", String(PORT), "--host", "127.0.0.1", "--strictPort"], {
     stdio: "ignore",
     detached: true,
-    env: { ...process.env, NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --max-old-space-size=4096`.trim() },
+    env: { ...process.env, NODE_OPTIONS: `${process.env.NODE_OPTIONS ?? ""} --max-old-space-size=8192`.trim() },
   });
   const origin = `http://127.0.0.1:${PORT}`;
   for (let i = 0; i < 120; i++) {
@@ -331,8 +331,11 @@ async function startServer(): Promise<{ origin: string; proc: ChildProcess | nul
  * dev server. The phone passes keep one server (their frame-time baseline was recorded on one long-lived server).
  */
 const RESTART_BETWEEN_GAMES = DESKTOP && !URL_ARG;
-/** Changed with Joe's approval, 13 Nov 2026: the line above which the desktop pass restarts its dev server between games (vite's RSS, MB). */
-const RESTART_RSS_MB = 3600;
+/**
+ * Changed with Joe's approval, 13 Nov 2026: the line above which the desktop pass restarts its dev server between games (vite's RSS, MB).
+ * Changed with Joe's approval, 20 Nov 2026 (brief J1): 7 GB (was 3.6 GB), under the 8 GB heap above, now the runners have 16 GB.
+ */
+const RESTART_RSS_MB = 7000;
 
 /** Changed with Joe's approval, 13 Nov 2026: the resident memory (MB) of the vite process in the server's process group (not npx or esbuild). */
 function viteRssMb(proc: ChildProcess | null): number | null {

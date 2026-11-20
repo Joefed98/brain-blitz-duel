@@ -405,7 +405,12 @@ async function startServer(): Promise<{ origin: string; proc: ChildProcess | nul
   const proc = spawn(
     "npx",
     ["vite", "dev", "--port", String(PORT), "--host", "127.0.0.1", "--strictPort"],
-    { stdio: "ignore", detached: true },
+    // A 5 GB heap (20 Nov 2026, brief J2): the first practice deal's compile spike passes Node's ~2 GB default.
+    {
+      stdio: "ignore",
+      detached: true,
+      env: { ...process.env, NODE_OPTIONS: `${process.env["NODE_OPTIONS"] ?? ""} --max-old-space-size=5120`.trim() },
+    },
   );
   const origin = `http://127.0.0.1:${PORT}`;
   for (let i = 0; i < 120; i++) {
