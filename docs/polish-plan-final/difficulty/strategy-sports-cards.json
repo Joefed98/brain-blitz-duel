@@ -1,0 +1,572 @@
+[
+  {
+    "id": "matchup",
+    "name": "Gemstone",
+    "group": "Strategy",
+    "lever": "Frozen cells on the board",
+    "today": {
+      "easy": "5 colours, 5 ice cells, goals 12 to 36, hint after 3 s idle",
+      "normal": "matchupRev 13: 6 colours, 10 two-hit ice cells on the 7 x 10 board, goals 20 to 60, hint after 5 s, 90 s",
+      "hard": "6 colours, 14 ice cells, goals 28 to 78, hint after 8 s, core full at 380 gems",
+      "expert": "7 colours (cyan heart), 18 ice cells, goals 30 to 90, no hint; parts full well short (320 gems, 2 treasures, 3 goals, 12 ice, 3 big lines)"
+    },
+    "measured": "60 seeds: average bot 163 / 95 / 82 / 72; elite under human limits 197 / 158 / 146 / 137; flawless 198 / 174 / 167 / 168",
+    "easy": "As today: 5 ice cells, 5 colours, goals 12 to 36, hint after 3 s (average 163 and a third of runs earn a star, so it does its job).",
+    "hard": "18 ice cells (Normal 10); a 7th colour, the cyan heart; goals 30 to 90 over 7 colours; no hint; parts full at 320 gems, 2 treasures, 3 goals, 12 ice, 3 big lines (today's Expert moved down one level).",
+    "expert": "28 ice cells (40 % of the 70 squares, the bottom four rows nearly solid); 7 colours; goals 30 to 90; no hint; parts full at 320 gems, 2 treasures, 3 goals, 18 ice, 3 big lines.",
+    "glance": {
+      "easy": "Five colours, a handful of frozen squares, a hint after three seconds",
+      "hard": "A seventh gem, the cyan heart, and 18 frozen squares",
+      "expert": "Ice over 28 squares: the bottom rows nearly solid"
+    },
+    "why": "Ice is the one thing on a match-three board you can count at a glance, each frozen square takes two clears and blocks free swaps, and the seventh colour thins the matches needed to break it.",
+    "proof": "No per-seed proof today: scripts/gemstone-levels-record.ts holds a flawless witness on one seed a level and elite-under-limits witnesses on 3 Expert seeds. Write scripts/gemstone-level-deal.ts: a dealt list per level (new src/lib/duel/matchupLevelDeal.server.ts) keeping only seeds where the planner of scripts/arcade-skill-bands/bots/matchup.ts, held to HUMAN_LIMITS (250 ms reactions, 150 ms swipes), replays to exactly 200 through the server; scripts/gemstone-levels-check.ts replays every witness.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "matchupRev 14 on Hard and Expert deals (Easy and Normal stay matchupRev 13): MATCHUP_V13_LEVELS is frozen with the stamp and stored level rounds must replay.",
+    "files": [
+      "src/lib/arcade/matchup.ts (MATCHUP_V13_LEVELS, a rev 14 table)",
+      "src/lib/levels/gameLevels.ts",
+      "scripts/gemstone-level-deal.ts (new)",
+      "src/lib/duel/matchupLevelDeal.server.ts (new)",
+      "scripts/gemstone-levels-bands.ts",
+      "scripts/gemstone-levels-check.ts"
+    ],
+    "risk": "the limited bot reaches 200 on about 3 Expert seeds in 200 today, so a 60-seed list needs a stronger planner or thousands of candidates"
+  },
+  {
+    "id": "mahjong",
+    "name": "Mahjong Solitaire",
+    "group": "Cards & Board",
+    "lever": "Tiles in the stack",
+    "today": {
+      "easy": "56 tiles in 3 layers, 2 faces dealt four times, Shuffle costs 2, free hints and idle glow, speed full by 70 s",
+      "normal": "mahjongRev 2: 72 tiles in 4 layers on a 6 x 7 footprint, 6 faces dealt four times, Shuffle costs 5, no hints, speed full by 65 s, 120 s",
+      "hard": "72 tiles, 10 faces dealt four times, Shuffle costs 8, hints at 5 points each, speed full by 25 s",
+      "expert": "88 tiles in 5 layers, 12 faces dealt four times, Shuffle costs 10, one hint, speed full by 30 s"
+    },
+    "measured": "40 deals: elite 200.0 / 197.5 / 183.1 / 171.4; human limits 199.5 / 197.5 / 195.1 / 193.3; Normal average bot 136 with 0 of 60 cleared; average per level not documented",
+    "easy": "48 tiles in 2 layers (the 6 x 7 base plus a 2 x 3 cap); 2 faces dealt four times; Shuffle costs 2; free hints and the idle glow after 8 s; speed full by 70 s.",
+    "hard": "104 tiles in 4 layers on a 7 x 8 footprint (tiles 48 x 63 world px, 53 px wide on a phone); 18 faces dealt four times; Shuffle costs 10; no hints; speed full by 85 s.",
+    "expert": "136 tiles in 4 layers on an 8 x 9 footprint (tiles 42 x 55 world px, 46 px wide: the phone ceiling); all 34 faces dealt four times; Shuffle costs 15; no hints; speed full by 100 s.",
+    "glance": {
+      "easy": "A low two-layer stack of big tiles, a Hint button",
+      "hard": "A wider, taller stack: 104 smaller tiles",
+      "expert": "The full set: 136 small tiles wall to wall"
+    },
+    "why": "Mahjong Solitaire is a search against the clock, so the number of tiles is the whole load, and the full four-of-each set is the game's own natural summit.",
+    "proof": "Built backwards as today (mahjongBuild and mahjongBuildClears in src/lib/arcade/mahjong.ts), so the build order clears every deal. scripts/cards-levels-check.ts replays each level's build order, two taps a pair at 0.4 s a tap (HUMAN_LIMITS), through replayMahjongRun to exactly 200: Expert's 136 taps take 55 s, inside its 100 s speed line.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "mahjongRev 3 on level deals (Normal stays mahjongRev 2): two new layouts, and today's Hard and Expert rounds with hints must still replay.",
+    "files": [
+      "src/lib/arcade/mahjong.ts (MAHJONG_LEVEL_RULES, layouts of 48, 104 and 136 places)",
+      "src/lib/arcade/mahjong.renderer.ts (tile size per layout)",
+      "src/lib/levels/gameLevels.ts",
+      "scripts/cards-levels-check.ts",
+      "scripts/cards-levels-order-check.ts",
+      "scripts/cards-levels-tune.ts"
+    ],
+    "risk": "tile faces must stay readable at 46 px, and a wrong pick among four-of-a-kind faces under hidden tiles still needs the Shuffle"
+  },
+  {
+    "id": "homerun",
+    "name": "Home Run",
+    "group": "Sports",
+    "lever": "Pitch speed",
+    "today": {
+      "easy": "fastball 42 to 47 ticks to the plate, 6 balls off the zone in the first 24, windows ±7 / ±5 ticks, PERFECT ±2, movement 45 %, catch areas 80 %, three outs",
+      "normal": "homerunRev 5: fastball 36 to 41 ticks, curveball 48 to 54, changeup 62 to 70, 7 balls, windows ±5 / ±3, PERFECT ±1, catch areas 100 %, three outs, 117 s",
+      "hard": "fastball 28 to 31 ticks, 8 balls 8 to 24 px off the zone, windows ±4 / ±3, PERFECT the exact tick, movement 130 %, catch areas 110 %",
+      "expert": "fastball 27 to 29 ticks, 9 balls 5 to 17 px off the zone, windows ±4 / ±2, exact tick, movement 160 %, catch areas 120 %"
+    },
+    "measured": "30 seeds under human limits, medians: average 89 / 63 / 26 / 16; near-perfect 200 / 192 / 162 / 139; elite 200 / 200 / 172 / 149",
+    "easy": "Fastball 52 to 58 ticks (about 0.9 s), curveball 64 to 70, changeup 76 to 84; 5 outs instead of 3; only 3 balls off the zone in the first 24; windows ±9 / ±6, PERFECT ±2; movement 30 %; catch areas 60 %.",
+    "hard": "Fastball 31 to 34 ticks, curveball 42 to 46, changeup 56 to 61; catch areas 135 %; three outs; PERFECT stays ±1 tick; windows, movement and close balls as today's Hard (±4 / ±3, 130 %, 8 balls).",
+    "expert": "Fastball 27 to 29 ticks (today's, the human floor: 15 ticks to react, 9 to swipe, 6 for the swing), curveball 37 to 40, changeup 51 to 55; catch areas 165 %; PERFECT ±1 tick; windows, movement and close balls as today's Expert (±4 / ±2, 160 %, 9 balls).",
+    "glance": {
+      "easy": "A slow lob, small catch circles, five outs on the board",
+      "hard": "A fastball a fifth quicker, catch circles a third bigger",
+      "expert": "Heat at the human limit, catch circles closing every gap"
+    },
+    "why": "Batting is timing, so the ball's speed is the honest lever; it reaches the human floor at Expert, where the fielders' reach, already drawn on the grass before the first pitch, takes over as the squeeze.",
+    "proof": "Each level's 120-seed deal (src/lib/duel/homerunDealV5.server.ts, scripts/homerun-innings-deal.ts) is proved today by the flawless batter (oracleRunV5 in scripts/homerun-oracle.ts), which is not held to HUMAN_LIMITS, and docs/arcade-standard/homerun.md says the elite under limits fills the perfect streak on 0 % of Hard and Expert innings. Re-prove with the flawless batter under the limits (swing no sooner than the wind-up tell + 0.25 s + 0.15 s) and PERFECT at ±1 tick so ten in a row is humanly possible; drop any seed short of 200 through replayHomerunRun; scripts/homerun-innings-check.ts replays the lists.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "homerunRev 6 on level deals (Normal stays homerunRev 5): the plan, outs and windows per level change, and stored level rounds must replay.",
+    "files": [
+      "src/lib/arcade/homerunInnings.ts (HR_LEVEL_SETTINGS, outs per level)",
+      "src/lib/arcade/homerun.renderer.ts (the radar board shows the level's real speed, today it shows the pitch type's)",
+      "scripts/homerun-innings-deal.ts",
+      "src/lib/duel/homerunDealV5.server.ts (a rev 6 deal beside it)",
+      "scripts/homerun-innings-bands.ts",
+      "scripts/homerun-innings-check.ts"
+    ],
+    "risk": "Normal's average is already 63, so Hard and Expert land near 35 and 15 for an average player, under the guide numbers"
+  },
+  {
+    "id": "freekick",
+    "name": "Top Bins",
+    "group": "Sports",
+    "lever": "Players in the wall",
+    "today": {
+      "easy": "wall of 3, keeper waits 14 ticks at 85 % speed, wind up to 1, gold zone 680 to 820, hoop shrinks to 85 %, 3 jumping walls, scoring ease on",
+      "normal": "freekickRev 6: wall of 3 to 5, keeper 14 ticks at 85 %, wind up to 2, gold zone 720 to 800, hoop to 80 %, 4 jumping walls, scoring ease on, Goals full at 800, ten kicks, 90 s",
+      "hard": "wall of 4 to 5, keeper 6 ticks at 130 %, wind up to 6, zone 735 to 790, hoop to 60 %, 5 jumps, no scoring ease, Goals full at 1,200",
+      "expert": "wall of 5, keeper 5 ticks at 140 %, wind up to 7, zone 745 to 780, hoop to 50 %, 6 jumps, no scoring ease, Goals full at 1,250"
+    },
+    "measured": "30 seeds under human limits, medians: average 131 / 108 / 31 / 15; near-perfect 184 / 190 / 157 / 112; elite 190 / 197 / 168 / 128 (Easy's elite sits below Normal's)",
+    "easy": "Wall of 2 that never jumps; keeper waits 18 ticks at 70 % speed; no wind; gold zone 660 to 840; scoring ease kept (hoop 1.35 x, open side from 0.6 m).",
+    "hard": "Wall of 5 or 6, jumping on 6 of the 10 kicks; keeper 8 ticks at 115 %; wind up to 5; gold zone, hoop, scoring ease and Goals full at 800 stay Normal's.",
+    "expert": "Wall of 7, jumping on 8 of the 10 kicks; keeper 5 ticks at 140 % (today's Expert); wind up to 8; gold zone, hoop, scoring ease and Goals full at 800 stay Normal's.",
+    "glance": {
+      "easy": "Two men in the wall, a calm flag",
+      "hard": "A five or six man wall and a stiff wind flag",
+      "expert": "Seven in the wall, wind 8, half the goal hidden"
+    },
+    "why": "The wall is what a free kick is about and the first thing on screen: each extra man hides more of the goal and forces more bend or dip, which the quicker keeper and stronger wind then punish, with no hidden change to what a goal is worth.",
+    "proof": "Per-level proved deal as today: scripts/freekick-layered-deal.ts (a --rev=7 build) keeps a seed only when the oracle (oracleRunV5, scripts/freekick-oracle.ts) scores exactly 200 through the server replay; the kick reacts to nothing in flight, so the witness is the same under HUMAN_LIMITS. Today Expert dropped 52 of 112 candidates; expect more with a 7 man wall. scripts/freekick-layered-check.ts proves the lists.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "freekickRev 7 on level deals (Normal stays freekickRev 6): walls above 5 and new level tables; stored rounds replay on their own rev.",
+    "files": [
+      "src/lib/arcade/freekick.ts (FK_LEVEL_SETTINGS_V6, a rev 7 table; walls of 6 and 7)",
+      "src/lib/arcade/freekick.renderer.ts (shirts for a 7 man wall)",
+      "scripts/freekick-layered-deal.ts",
+      "src/lib/duel/freekickDealV6.server.ts (a rev 7 deal beside it)",
+      "scripts/freekick-layered-bands.ts",
+      "scripts/freekick-layered-check.ts"
+    ],
+    "risk": "a seven man wall may leave too few seeds where all ten kicks have a scoring line; a wall of 6 to 7 is the fallback"
+  },
+  {
+    "id": "racing",
+    "name": "Apex",
+    "group": "Sports",
+    "lever": "Road width",
+    "today": {
+      "easy": "road 115 % wide (75,366 units), gravel keeps 80 % of speed, braking points painted, lower par pace (192.0 / 205.5 / 175.0 km/h)",
+      "normal": "racingRev 4: road 65,536 units (four car widths), gravel keeps 65 %, wall at 131,072, racing line shown, par 221.5 / 238.5 / 203.0 km/h, spread 69.5 km/h, 99 s",
+      "hard": "same road, gravel keeps 60 %, wall at 108,134, signs and boards only, pace spread 32 km/h",
+      "expert": "same road, gravel keeps 50 %, hairpins 2 tighter on two circuits, signs only, pace spread 25 km/h"
+    },
+    "measured": "elite bot 199.9 / 186.7 / 172.1 / 157.4; Normal average bot 93.5; average per level not documented",
+    "easy": "Road 130 % of Normal's width (85,197 units, 5.2 car widths); gravel keeps 80 % of speed; braking points and racing line painted; par pace as today's Easy (192.0 / 205.5 / 175.0 km/h).",
+    "hard": "Road 85 % (55,700 units, 3.4 car widths); gravel keeps 50 %; no racing line (signs and boards stay); par set just under the oracle's pace on the narrower road; spread 69.5 km/h as Normal.",
+    "expert": "Road 72 % (47,200 units, 2.9 car widths); gravel keeps 35 %; signs only; par from the oracle on this road; spread 69.5 km/h; the circuits keep their own hairpins.",
+    "glance": {
+      "easy": "A wide road with braking points and a racing line painted",
+      "hard": "A visibly narrower road, no racing line",
+      "expert": "A lane under three cars wide between gravel traps"
+    },
+    "why": "Width is what a driver sees and feels at once: a narrower road cuts every corner's speed and turns small errors into gravel, where today's levels only change what happens after you have left the tarmac or how the pace is scored.",
+    "proof": "bun scripts/racing-deal.ts --rev=4 --level=<l> rebuilds each level's 300-seed list (100 a circuit): scripts/racing-oracle.ts must replay to exactly 200 through replayRacingRun on the level's road. The oracle is not held to HUMAN_LIMITS today; hold its stick changes to one every 0.15 s and set each circuit's par just under that limited oracle's average, as Expert's par is set today. scripts/racing-levels-check.ts proves the lists.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "level field only: the settings ride on each puzzle as racingLevel (road, kerb, wall, keep, aids, pace and spread already exist), so stored rounds keep their own copy.",
+    "files": [
+      "src/lib/levels/gameLevels.ts (GAME_LEVELS.racing)",
+      "src/lib/arcade/racing.ts",
+      "scripts/racing-deal.ts",
+      "scripts/racing-oracle.ts",
+      "src/lib/duel/racingDealV4Easy.server.ts, racingDealV4Hard.server.ts, racingDealV4Expert.server.ts",
+      "scripts/racing-levels-check.ts",
+      "scripts/racing-levels-bands.ts",
+      "src/lib/levels/levelNotes.ts"
+    ],
+    "risk": "Ridge Loop's hairpins may be undriveable at 72 % width, as its tightened hairpins were on today's Expert; it may need its own width"
+  },
+  {
+    "id": "freecell",
+    "name": "Free Cell",
+    "group": "Cards & Board",
+    "lever": "Free cells",
+    "today": {
+      "easy": "5 free cells, 32 cards (Ace to 8), free unlimited undo, free hints and idle glow, par 0 at 2 x, speed full by 60 s",
+      "normal": "freecellRev 5: 4 free cells, 40 cards (Ace to 10), undo counts as a move, no hints, par 0 at 1.5 x, speed full by 32 s, 120 s",
+      "hard": "4 free cells, 52 cards (par 29 to 41), hints at 5 points each, par 0 at 1.25 x, speed full by 25 s",
+      "expert": "3 free cells, 52 cards (par 32 to 43), 3 undos, one hint, par 0 at 1.25 x, speed full by 25 s"
+    },
+    "measured": "40 deals: elite 192.8 / 184.1 / 156.2 / 145.5; human limits 193.0 / 185.1 / 166.7 / 163.5 (Expert best tenth 189.8); Normal average bot 123; average per level not documented",
+    "easy": "As today: 5 free cells, 32 cards (Ace to 8), free unlimited undo, free hints with the idle glow, speed full by 60 s (four short rows and a fifth cell already read as easy).",
+    "hard": "3 free cells; the full 52 cards from the 120 shortest three-cell solutions (par 32 to 43, today's Expert deals); undo unlimited but a move; no hints; par 0 at 1.25 x; speed full by 30 s.",
+    "expert": "2 free cells; 52 cards from a new bank of the shortest two-cell solutions (par 50 or under); 3 undos; no hints; par 0 at 1.25 x; speed full by 40 s.",
+    "glance": {
+      "easy": "Five free cells over four short rows, a Hint button",
+      "hard": "Three free cells over a full 52-card table",
+      "expert": "Only two free cells, court cards everywhere, Undo (3)"
+    },
+    "why": "The free cells are Free Cell's own difficulty dial: each one removed roughly halves the room to manoeuvre, and since the deck is already full at Hard, the cells carry the ladder to the top.",
+    "proof": "scripts/freecell-level-bank.ts re-solves candidate deals with the level's cell count using the bank solver (src/lib/arcade/cards/freecellSolver.ts) and keeps the 120 shortest (src/lib/arcade/cards/freecellDealsLevels.data.ts, lines in scripts/fixtures/freecell-solutions-levels.json). scripts/cards-levels-check.ts replays every line to exactly 200 through the server at one move every 0.4 s (HUMAN_LIMITS), which must finish inside the speed line; deals the solver cannot clear with two cells are dropped.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "freecellRev 6 on Hard and Expert deals (Easy and Normal stay freecellRev 5): today's Hard and Expert rounds with hints must still replay.",
+    "files": [
+      "src/lib/arcade/cards/freecell.ts (FC_LEVEL_RULES)",
+      "scripts/freecell-level-bank.ts",
+      "src/lib/arcade/cards/freecellDealsLevels.data.ts",
+      "src/lib/arcade/cards/freecellSolver.ts",
+      "src/lib/levels/gameLevels.ts",
+      "scripts/cards-levels-check.ts",
+      "scripts/cards-levels-order-check.ts"
+    ],
+    "risk": "two-cell solutions may be too long to play inside 120 s, so the bank may need thousands of candidates to find 120 short ones"
+  },
+  {
+    "id": "tripeaks",
+    "name": "Summit",
+    "group": "Cards & Board",
+    "lever": "Seconds on the clock",
+    "today": {
+      "easy": "60 s; bank deals with stock par 12 or less; playable glow; Ace to King wrap; 3 undos; free hints; speed full by 25 s",
+      "normal": "tripeaksRev 3: 60 s, 28 peak cards, 23 stock turns, playable glow, wrap, no undo, no hints, speed full by 20 s",
+      "hard": "60 s; the no-wrap bank's 108 easier deals (stock par 8 to 18); no glow, no wrap; hints at 5 points each",
+      "expert": "60 s; the no-wrap bank's 100 hardest deals (stock par 18 to 23); no glow, no wrap; one hint; speed full by 16 s"
+    },
+    "measured": "40 deals: elite 183.3 / 181.3 / 173.6 / 171.3; human limits 164.9 / 159.1 / 144.9 / 128.5 (Expert best tenth 197.5); Normal average bot 110 with 9 of 60 cleared; average per level not documented",
+    "easy": "90 s; 23 stock turns; deals with stock par 12 or less (11 turns to spare); playable glow, wrap, 3 undos, free hints with the idle glow; speed full by 30 s.",
+    "hard": "45 s; the stock cut to 18 turns, on deals with stock par 13 or less (5 to spare); no glow; wrap kept; no undo, no hints; speed full by 20 s.",
+    "expert": "35 s; the stock cut to 14 turns, on deals with stock par 11 or less (3 to spare); no glow; wrap kept; no undo, no hints; speed full by 18 s.",
+    "glance": {
+      "easy": "A slow 90 second bar, glowing cards, an Undo button",
+      "hard": "The timer bar draining faster, a stock of 18, no glow",
+      "expert": "35 seconds, a thin stock of 14, nothing glows"
+    },
+    "why": "Summit is the sixty-second sprint of the card games and its ten-card bottom row is already at the phone's width limit, so time and stock, the two numbers on screen, make the ladder; they replace today's no-wrap rule, which changes how cards connect without showing it.",
+    "proof": "Every bank deal already has a proved clearing line and a stock par (src/lib/arcade/cards/tripeaksDeals.data.ts and tripeaksStockPar.data.ts, built by scripts/tripeaks-bank.ts and scripts/tripeaks-stock-par.ts with src/lib/arcade/cards/tripeaksSolver.ts). A level's list is the deals whose par fits its stock; scripts/cards-levels-check.ts replays each par line at one tap every 0.4 s (28 cards and 11 turns take 16 s) to exactly 200 inside the level's clock.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "tripeaksRev 4 on level deals (Normal stays tripeaksRev 3): a level clock and a shorter stock are new sim rules, and today's no-wrap rounds must still replay.",
+    "files": [
+      "src/lib/arcade/cards/tripeaks.ts (TP_LEVEL_RULES: clock and stock turns per level)",
+      "src/lib/arcade/cards/tripeaksStockPar.data.ts",
+      "scripts/tripeaks-stock-par.ts",
+      "scripts/tripeaks-bank.ts",
+      "src/lib/levels/gameLevels.ts",
+      "scripts/cards-levels-check.ts",
+      "scripts/cards-levels-order-check.ts"
+    ],
+    "risk": "the 300-deal bank may hold too few deals with stock par 11 or less, and extending it costs about 25 min of par search a pass"
+  },
+  {
+    "id": "fivehands",
+    "name": "Five Hands",
+    "group": "Cards & Board",
+    "lever": "Seconds per card",
+    "today": {
+      "easy": "75 s, score x 1.6, today's hand table, next two cards and column values shown, free hints",
+      "normal": "fiveHandsRev 3: 60 s for 20 cards and the column pick, score x 1.4, pair 15, two pair 20, no hints, the seed's first shuffle as dealt",
+      "hard": "50 s, x 1.4, a pair pays 10, hints at 5 points each",
+      "expert": "45 s, x 1.3, a pair pays 10 and two pair 15, one hint"
+    },
+    "measured": "40 deals: elite 171.6 / 153.8 / 130.6 / 114.9; human limits 154.4 / 136.0 / 115.2 / 101.3 (Expert best tenth 149.3); Normal average bot 112; flawless reaches 200 on 165 of 200 Normal decks",
+    "easy": "90 s (4.3 s a card); score x 1.6; today's hand table; the next two cards and each column's value shown; free hints with the idle glow.",
+    "hard": "42 s (2 s a card); the Hard table (a pair pays 10); score x 1.4; no hints; decks from a proved list.",
+    "expert": "30 s (1.4 s a card); the Expert table (a pair 10, two pair 15); score x 1.4; no hints; decks from a proved list.",
+    "glance": {
+      "easy": "The next two cards shown, a long 90 second bar",
+      "hard": "42 seconds for 20 cards: the bar visibly racing",
+      "expert": "30 seconds: a card down every second and a half"
+    },
+    "why": "The deck and the five rows cannot grow, so thinking time per card is the lever: halving it turns a poker puzzle into speed poker, and the stricter tables make the rushed safe pair worth less.",
+    "proof": "Five Hands is the arcade standard's one named exception (NOT_200_ON_EVERY_DEAL in scripts/arcade-standard-check.ts): Normal deals the seed's first shuffle and only 165 of 200 decks can reach 200, so today no level has a 200 proof. A level need not inherit that: build a deck list per level with scripts/cards/fiveHandsBest.ts (the exact best rows plus best column, about 1 s a deck, run on the level's table) and keep only decks whose best reaches the level's full figure (143 hand points at x 1.4, 125 at x 1.6); the witness is 21 taps, 8.4 s at 0.4 s a tap. The exception then covers Normal alone.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "fiveHandsRev 4 on level deals (Normal stays fiveHandsRev 3): proved deck lists replace the first shuffle, and today's hint rounds must still replay.",
+    "files": [
+      "src/lib/arcade/cards/fiveHands.ts (FH_LEVEL_RULES)",
+      "scripts/cards/fiveHandsBest.ts (take the level's table)",
+      "scripts/fivehands-level-decks.ts (new)",
+      "src/lib/arcade/cards/fiveHandsLevelDecks.data.ts (new)",
+      "scripts/arcade-standard-check.ts (the exception narrowed to Normal)",
+      "scripts/cards-levels-check.ts",
+      "scripts/cards-levels-order-check.ts"
+    ],
+    "risk": "at 30 s the game may read as a reflex test, not poker; 35 s is the fallback"
+  },
+  {
+    "id": "pyramid",
+    "name": "Thirteen",
+    "group": "Cards & Board",
+    "lever": "Rows in the pyramid",
+    "today": {
+      "easy": "7 rows (28 cards), 3 passes through the stock, 3 or 4 Kings, partner glow, free hints, any proved deal",
+      "normal": "pyramidRev 3: 7 rows (28 cards), 24 stock cards, one pass, 2 to 4 Kings, partner glow, no hints, speed full by 20 s, 90 s",
+      "hard": "7 rows, one pass, 2 or 3 Kings, no glow, a stricter deal filter (a three-removal look fails), hints at 5 points each",
+      "expert": "7 rows, one pass, exactly 3 Kings, no glow, a four-removal deal filter, one hint"
+    },
+    "measured": "40 deals: elite 195.5 / 180.3 / 159.1 / 139.6; human limits 196.2 / 176.6 / 143.2 / 133.8 (Expert best tenth 200); Normal average bot 131 with 14 of 60 cleared; average per level not documented",
+    "easy": "6 rows (21 cards, 31 in the stock); 3 passes through the stock; partner glow; free hints with the idle glow; 1 or 3 Kings; speed full by 20 s.",
+    "hard": "8 rows (36 cards, 16 in the stock); one pass; no glow; no hints; 2 or 4 Kings; speed full by 26 s.",
+    "expert": "9 rows (45 cards, only 7 in the stock; cards about 43 px wide, the phone ceiling); one pass; no glow; no hints; 3 Kings; speed full by 32 s.",
+    "glance": {
+      "easy": "A short six-row pyramid over a thick stock, pairs glowing",
+      "hard": "A taller eight-row pyramid, a thin stock, no glow",
+      "expert": "Nine rows edge to edge, seven cards in the stock"
+    },
+    "why": "A taller pyramid is the same game with more buried cards and a smaller stock to rescue you, which anyone sees before the first tap; today's three levels show the same 28 cards and differ only in a hidden deal filter.",
+    "proof": "Each deal is built with a witness in the sim as today (pyBuildLevelDeal and proveDeal in src/lib/arcade/cards/pyramid.ts, generalised from 7 rows to the level's rows, every pyramid card paired inside the pyramid so the face-down stock never decides a clear). The witness replays to exactly 200 through the server at 0.4 s a tap (45 cards take about 20 s), scripts/cards/pyramidSolver.ts re-proves samples, and scripts/cards-levels-check.ts runs both.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "pyramidRev 4 on level deals (Normal stays pyramidRev 3): new pyramid sizes, and today's level rounds must still replay.",
+    "files": [
+      "src/lib/arcade/cards/pyramid.ts (PY_LEVEL_RULES, rows per level, pyBuildLevelDeal)",
+      "src/lib/arcade/cards/pyramid.renderer.ts (layouts for 6, 8 and 9 rows)",
+      "scripts/cards/pyramidSolver.ts",
+      "src/lib/levels/gameLevels.ts",
+      "scripts/cards-levels-check.ts",
+      "scripts/cards-levels-order-check.ts"
+    ],
+    "risk": "nine rows leave 7 stock cards, so the builder may find few deals with a witness that a no-plan player cannot also clear"
+  },
+  {
+    "id": "minigolf",
+    "name": "Crazy Golf",
+    "group": "Sports",
+    "lever": "Hazards on each hole",
+    "today": {
+      "easy": "Normal's holes; slow sails (128); aim line shows the first bounce; par = best route + 2; stroke limit par + 4; speed full by 60 s",
+      "normal": "golfRev 3: 5 holes, par = best route + 2, stroke limit par + 3, sails 256, slopes 1 x, full aim line, speed full by 53 s, 90 s",
+      "hard": "2 extra hazards a hole (a rock and a small bunker); par = best route; slopes 1.4 x; aim line 35 %; speed full by 24 s",
+      "expert": "the same 2 extras; par = best route; limit par + 2; fast sails (512); slopes 1.8 x; aim line 20 %; speed full by 22 s"
+    },
+    "measured": "24 deals, human-limited bot: near-perfect 188.8 / 185.1 / 151.0 / 142.9; elite 191.6 / 191.7 / 163.0 / 145.5; average not documented",
+    "easy": "No sand or water on any hole (the windmills, castles, tunnels and ramps stay); slow sails (128); aim line shows the first bounce; par = best route + 2; limit par + 4; speed full by 60 s.",
+    "hard": "4 extra hazards a hole in the line of play (two bunkers, a pond and a boulder; today 2); sails 384; aim line 35 %; slopes back to 1 x; par = best route and limit par + 3 as today's Hard.",
+    "expert": "8 extra hazards a hole (a second pond and three more boulders); fast sails (512); aim line 20 %; slopes 1 x; par = best route and limit par + 2 as today's Expert.",
+    "glance": {
+      "easy": "Clean greens: no sand, no water, slow windmills",
+      "hard": "Bunkers, a pond and a boulder across the line",
+      "expert": "Sand and water everywhere, sails at double speed"
+    },
+    "why": "Crazy golf is its obstacles: clearing them for Easy and crowding the line for Hard and Expert changes every putt in a way the green shows at once, where today's steps hide in the par rule and the slope strength and Easy looks identical to Normal.",
+    "proof": "scripts/minigolf-holes-bank.ts re-searches all 360 holes at each level with the shot oracle (bestRouteV3 in scripts/minigolf-oracle.ts) and keeps a hole only if a route of par 2 to 5 exists on the level's build (src/lib/duel/minigolfHolesBank.server.ts); any five composed must score exactly 200 through the server replay (scripts/crazy-golf-v3-check.ts, 600 courses a level). The witness waits at least 0.4 s after the ball rests before each stroke and must hole all five inside the speed line.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "golfRev 4 on level deals (Normal stays golfRev 3): a hole is built from its id and level, so today's level builds must stay for stored rounds.",
+    "files": [
+      "src/lib/arcade/minigolfHolesV3.ts (two extra tiers per template, V3_LEVEL_BUILD)",
+      "src/lib/arcade/minigolf.ts (MG_LEVELS)",
+      "scripts/minigolf-holes-bank.ts",
+      "src/lib/duel/minigolfHolesBank.server.ts",
+      "scripts/minigolf-oracle.ts",
+      "scripts/crazy-golf-v3-check.ts",
+      "src/lib/levels/gameLevels.ts (the minigolf entry holds empty settings today)"
+    ],
+    "risk": "two hazard tiers must be drawn by hand for 20 templates, and some of the 360 holes will lose their route at Expert and drop out"
+  },
+  {
+    "id": "pool",
+    "name": "Cue Ball",
+    "group": "Sports",
+    "lever": "Pocket width",
+    "today": {
+      "easy": "the same table; long aim preview; a foul costs 5; the black opens at 5 of your 7",
+      "normal": "poolRev 4: corner pockets 16 px and middles 14 px (balls 8 px), your 7 plus 4 of the other set and the black, preview 0.6 of the reach, a foul costs 10, 90 s",
+      "hard": "the same table; preview a quarter of the reach; a foul costs 10",
+      "expert": "the same table; ghost ball only; a foul costs 15"
+    },
+    "measured": "30 deals: elite 177 / 164 / 156 to 160 / 138 to 140; Normal average bot 84 (median); Easy average 117 (mean, 10 % at 175+); Hard and Expert average not documented",
+    "easy": "Corner pockets 20 px and middles 17 px (mouths about 38 px for a 16 px ball); only 2 of the other set on the table; long preview; a foul costs 5; the black opens at 5 of your 7.",
+    "hard": "Corner pockets 13 px and middles 12 px (mouths about 25 px); all 7 of the other set on the table, 15 object balls; preview a quarter of the reach; a foul costs 10.",
+    "expert": "Corner pockets 11 px and middles 10 px (mouths about 21 px, 5 px wider than the ball); all 7 of the other set; ghost ball only; a foul costs 10.",
+    "glance": {
+      "easy": "Big bucket pockets and a near-empty table",
+      "hard": "Tighter pockets and a full rack of fifteen balls",
+      "expert": "Pockets barely wider than a ball, no aim line"
+    },
+    "why": "Today's four levels are one table with a different guide line; pocket width is pool's own difficulty dial, and a fuller table adds the blocked lines and fouls that make each tight pot a real choice.",
+    "proof": "Today every level reuses src/lib/duel/poolBankV3.server.ts and its 60 witnesses. Build a bank per level with scripts/pool-bank.ts (a --level flag) and the shot search in scripts/pool-oracle.ts on the level's pockets and rack: keep a layout only when a witness pots all seven and the black with no foul for exactly 200 through the server replay, each shot at least 0.4 s after the balls stop, inside the speed line; scripts/pool-levels-check.ts replays every witness.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "poolRev 5 on level deals (Normal stays poolRev 4): pocket geometry and the rack change the physics, and today's level rounds must still replay.",
+    "files": [
+      "src/lib/arcade/pool.ts (POOL_POCKETS and the jaws per level, poolLayout's other-set count)",
+      "src/lib/arcade/pool.renderer.ts (pockets drawn to the collision mouth)",
+      "scripts/pool-bank.ts",
+      "scripts/pool-oracle.ts",
+      "src/lib/duel/poolBankV3.server.ts (level banks beside it)",
+      "scripts/pool-levels-check.ts",
+      "scripts/pool-levels-tune.ts"
+    ],
+    "risk": "narrow jaws in integer physics may rattle balls out, and the oracle may clear few 15-ball layouts with no foul"
+  },
+  {
+    "id": "curling",
+    "name": "Curl Champ",
+    "group": "Sports",
+    "lever": "Red stones in the house",
+    "today": {
+      "easy": "2 reds 60 to 130 cm from the button, the stone's whole path shown, HOUSE zone, Stones full at 60",
+      "normal": "curlRev 4: 3 reds 35 to 110 cm from the button, HOUSE zone, aim line for the first third, Stones full at 95, 8 stones, 120 s",
+      "hard": "4 reds 30 to 90 cm, HOUSE zone, aim line for the first third",
+      "expert": "5 reds 20 to 70 cm, no HOUSE zone, no aim line"
+    },
+    "measured": "each level's 30 sheets played twice: average 132 / 80 / 76 / 70; near-perfect 195 / 176 / 168 / 141; elite 196 / 188 / 183 / 146",
+    "easy": "1 red, 80 to 140 cm out; the stone's whole path shown; HOUSE zone; Stones full at 60.",
+    "hard": "5 reds, 25 to 80 cm from the button; HOUSE zone kept; no aim line.",
+    "expert": "7 reds, 15 to 60 cm, a ring round the button at least 35 cm apart; no HOUSE zone, no aim line.",
+    "glance": {
+      "easy": "One red stone far from the button, the whole path drawn",
+      "hard": "Five reds crowding the button, no aim line",
+      "expert": "Seven reds ringing the button, no guides at all"
+    },
+    "why": "A stone only scores when it beats every red in the house, so each extra red is another one to take out or out-draw with the same eight stones, and the count shows in the house before the first throw.",
+    "proof": "bun scripts/curling-bank.ts --level=<l> with scripts/curling-oracle.ts: a sheet is kept only when the oracle clears every red and scores exactly 200 through the server replay at its level (src/lib/duel/curlingLevelBanks.server.ts, 30 sheets a level; with 5 reds Expert proved 56 of 90). Throws are set up at leisure, so HUMAN_LIMITS only bound the brushing (no tap within 0.15 s of the last); scripts/curling-levels-check.ts replays every witness.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "curlRev 5 on level deals (Normal stays curlRev 4): the sim reads CURL_LEVEL_REDS from the level, so new counts need a stamp for stored rounds.",
+    "files": [
+      "src/lib/arcade/curling.ts (CURL_LEVEL_REDS, CURL_LEVEL_AIDS)",
+      "scripts/curling-bank.ts",
+      "scripts/curling-oracle.ts",
+      "src/lib/duel/curlingLevelBanks.server.ts",
+      "src/lib/levels/gameLevels.ts",
+      "scripts/curling-levels-check.ts",
+      "scripts/curling-levels-bands.ts"
+    ],
+    "risk": "seven takeouts with eight stones may prove on too few sheets; six reds is the fallback"
+  },
+  {
+    "id": "bubble",
+    "name": "Coral Pop",
+    "group": "Strategy",
+    "lever": "Colours in the reef",
+    "today": {
+      "easy": "3 colours, 75 bubbles, a descent every 10 shots, two-bounce aim trail, core full at 50",
+      "normal": "bubbleRev 12: 5 colours, 86 bubbles in 9 rows, a descent every 8 shots, aim trail to the top, 90 s",
+      "hard": "5 colours, 110 bubbles, a descent every 5 shots, one-bounce aim trail",
+      "expert": "6 colours (orange seahorse), 110 bubbles, a descent every 7 shots, short 120 px trail"
+    },
+    "measured": "12 seeds under human limits: average bot 157 / 64 / 53 / 26; elite 195 / 176 / 174 / 159; flawless 196 / 184 / 183 / 171; elite clears 12 / 8 / 4 / 1 of 12",
+    "easy": "As today: 3 colours, 75 bubbles, a descent every 10 shots, core full at 50 (average 157 to 164 and a third of runs earn a star).",
+    "hard": "6 colours (the orange seahorse joins); 100 bubbles; one-bounce aim trail; a descent every 8 shots as Normal; parts full at the reef, 20 bank shots, a clear with 30 s left.",
+    "expert": "7 colours (a new pink starfish with its own symbol); 110 bubbles; short 120 px trail; a descent every 8 shots; parts full at the reef, 10 bank shots, a clear with 30 s left.",
+    "glance": {
+      "easy": "Three colours: big clusters everywhere",
+      "hard": "Six colours, the reef two rows deeper",
+      "expert": "Seven colours speckled through a reef past half way"
+    },
+    "why": "Colours are what make a bubble shooter hard, since each extra one shrinks the clusters and the chance the next bubble fits; the measurements agree: five-colour Hard moved nobody (elite 176 to 174) while six-colour Expert halved the average.",
+    "proof": "No per-seed proof today: 200 is reached on some seeds only (Expert: elite 1 of 12). Write scripts/bubble-level-deal.ts: a dealt list per level (new src/lib/duel/bubbleLevelDeal.server.ts) keeping only seeds where a planning oracle that knows the seeded queue, firing no faster than one shot every 0.4 s (HUMAN_LIMITS), clears the reef and replays to exactly 200 through replayBubbleRun; scripts/bubble-levels-check.ts replays every witness.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "bubbleRev 13 on Hard and Expert deals (Easy and Normal stay bubbleRev 12): BUB_LEVELS is frozen with the stamp.",
+    "files": [
+      "src/lib/arcade/bubble.ts (BUB_LEVELS, a seventh colour value)",
+      "src/lib/arcade/bubble.renderer.ts (the seventh bubble)",
+      "scripts/bubble-level-deal.ts (new)",
+      "src/lib/duel/bubbleLevelDeal.server.ts (new)",
+      "scripts/arcade-skill-bands/bots/bubble.ts",
+      "scripts/bubble-levels-check.ts"
+    ],
+    "risk": "a seven-colour reef may be clearable with 30 s left on very few seeds, so the planner and the speed line may both need work"
+  },
+  {
+    "id": "inkbridge",
+    "name": "Rainbow Bridge",
+    "group": "Strategy",
+    "lever": "Width of the pot",
+    "today": {
+      "easy": "pot 110 px, a quarter of the birds, ink 150 %, nothing moves, par margin 25 %, speed full with 10 s left",
+      "normal": "inkRev 15: pot 64 px, ink 125 %, today's birds, the pot moves from level 5, live levels 9 and 10, par margin 10 %, ten levels, 120 s",
+      "hard": "pot 48 px, 2 extra birds on levels 2 to 10, ink 110 %, live from level 8, speed full with 70 s left",
+      "expert": "pot 42 px, 2 to 3 extra birds, 3 swaying birds on levels 5 and 6, ink 100 %, live from level 7, par margin 0 %"
+    },
+    "measured": "dealt seeds: average bot 164 / 91 / 75 / 69; elite under human limits 200 / 190 / 183 / 166; oracle 200 on every entry",
+    "easy": "As today: pot 110 px, a quarter of the birds, ink 150 %, nothing moves, clovers on the easy line (average 163 and 48 % of runs earn a star).",
+    "hard": "Pot 46 px; 3 extra birds on every level from level 1; ink 110 %; live levels, par margin and speed line as today's Hard.",
+    "expert": "Pot 34 px (the coin is 20 px); 5 extra birds on every level from level 1, 3 of them swaying on moving-pot levels; ink 100 %; live levels, par margin and speed line as today's Expert.",
+    "glance": {
+      "easy": "A huge pot under an almost empty sky",
+      "hard": "A pot two coins wide, birds strung across level one",
+      "expert": "A pot barely wider than the coin, a sky full of birds"
+    },
+    "why": "The pot is the target every drawn line must end on, so shrinking it is the lever even strong players feel (the 16 Nov tuning found birds and ink alone moved nobody), while extra birds from the first level make the route itself harder and show the level at once.",
+    "proof": "Per-level proved deals as today: bun scripts/ink-big-deal.ts --rev=16 --level=<l> keeps 60 seeds a level where every level is drawable within its ink and the oracle's run is exactly 200 through the server replay (src/lib/duel/inkHillsDealHard.server.ts and inkHillsDealExpert.server.ts). The builder does not apply HUMAN_LIMITS today: hold the witness to one input every 0.15 s and releases no sooner than 0.25 s after a level appears; scripts/ink-levels-check.ts replays the lists. Expert dropped 7 of 67 seeds at 42 px; expect more at 34 px.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "inkRev 16 on Hard and Expert deals (Easy and Normal stay inkRev 15): the sim reads INK_LEVEL_SETS, so stored level rounds need their old table.",
+    "files": [
+      "src/lib/arcade/inkBridge.ts (INK_LEVEL_SETS)",
+      "scripts/ink-big-deal.ts",
+      "src/lib/duel/inkHillsDealHard.server.ts, inkHillsDealExpert.server.ts",
+      "src/lib/levels/gameLevels.ts",
+      "scripts/ink-levels-check.ts",
+      "scripts/ink-levels-bands.ts"
+    ],
+    "risk": "a 34 px pot that also moves may fail the drawable proof on the live levels"
+  },
+  {
+    "id": "tilt",
+    "name": "Tilt",
+    "group": "Strategy",
+    "lever": "Marbles steered at once",
+    "today": {
+      "easy": "3 mazes of 11, 13, 13 cells; holes 0, 1, 1; no ice; two marbles on maze 3; par 240 %",
+      "normal": "tiltRev 12: 4 mazes of 13, 15, 17, 19 cells; holes 2, 3, 3, 0; ice 2, 3, 3, 0; two marbles on maze 3 only; par 150 %; 90 s",
+      "hard": "4 mazes of 15, 15, 17, 19; holes 3, 4, 4, 4; ice 3, 3, 4, 4; two marbles on 2 of mazes 2 to 4; par 135 %",
+      "expert": "4 mazes of 15, 17, 19, 19; 4 holes and 5 ice patches each; two marbles on 2 or 3 of mazes 2 to 4; par 115 %"
+    },
+    "measured": "40 deals: average bot 150 / 83 / 77 / 61; elite 199 / 166 / 149 / 142; elite under human limits 193 / 144 / 141 / 121",
+    "easy": "One marble on every maze (no amber marble); 3 mazes of 11, 13, 13 cells; holes 0, 1, 1; no ice; par 240 % (today's Easy without its two-marble maze).",
+    "hard": "Two marbles from the first second on mazes 1, 2 and 3 (maze 4 single); 5 holes a maze, now allowed in pockets one cell off the route; ice and par as today's Hard (3 to 4 patches, 135 %).",
+    "expert": "Two marbles on all four mazes; 8 holes a maze, pockets beside the route included; ice and par as today's Expert (5 patches, 115 %).",
+    "glance": {
+      "easy": "One blue marble, wide corridors, no holes on maze one",
+      "hard": "Two marbles and two cups from the first maze",
+      "expert": "Two marbles and holes peppered along the path"
+    },
+    "why": "One tilt moves every marble, so a second marble doubles what you must watch from the first second, and holes beside the route finally punish a slip; today's extra holes sit in dead ends two cells off the route, where a careful player never meets them.",
+    "proof": "Per-level proved deals as today: bun scripts/tilt-deal.ts --level=<l> keeps a seed only when scripts/tilt-oracle.ts plays every maze inside par with no fall and replays to exactly 200 through replayTiltRun (src/lib/duel/tiltDealLevels.server.ts; today Hard keeps 119 and Expert 111 of 150). The oracle is not held to the limits today: run it with the bot's TILT_HUMAN_LIMITS rule (0.25 s from eye to hand, a new decision every 0.15 s at most) and drop seeds that fail; scripts/tilt-levels-check.ts replays every witness.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "tiltRev 13 on level deals (Normal stays tiltRev 12): the sim reads TILT_LEVELS and the hole placement rule.",
+    "files": [
+      "src/lib/arcade/tilt.ts (TILT_LEVELS, buildMazeX's hole rule)",
+      "scripts/tilt-deal.ts",
+      "scripts/tilt-oracle.ts",
+      "src/lib/duel/tiltDealLevels.server.ts",
+      "src/lib/levels/gameLevels.ts",
+      "scripts/tilt-levels-check.ts",
+      "scripts/tilt-levels-bands.ts"
+    ],
+    "risk": "Normal's own elite is 144 under human limits, so Hard and Expert will sit near 120 and 95, under the guide; the bots never fall, so the holes need a playtest"
+  },
+  {
+    "id": "balltrack",
+    "name": "Ball Tracker",
+    "group": "Strategy",
+    "lever": "Marble colours and cups",
+    "today": {
+      "easy": "4 colours and cups; 16 marbles, one every 3.2 s; the cups never move; 7 gold; 4 boosters; combos full at 10",
+      "normal": "btRev 8: 4 colours and 4 cups in 7 columns; 36 marbles, one every 1.4 s; 2 cup moves; 6 gold; 3 boosters; 60 s",
+      "hard": "4 colours; 42 marbles, one every 1.2 s; 8 cup moves; 7 gold; 3 boosters",
+      "expert": "4 colours; 42 marbles, one every 1.1 s; 12 cup moves; 7 gold; 2 boosters"
+    },
+    "measured": "30 courses under human limits, medians: average bot 164 / 91 / 51 / 50; near-perfect 200 / 190 / 160 / 120; elite 200 / 195 / 177 / 151; no bot reaches 200 on Expert",
+    "easy": "3 colours and 3 cups; 16 marbles, one every 3.2 s; the cups never move; combos full at 10 (today's Easy with one colour fewer).",
+    "hard": "5 colours and 5 cups (a purple star joins); 40 marbles, one every 1.3 s; 4 cup moves; 6 gold; 3 boosters.",
+    "expert": "6 colours and 6 cups in the 7 columns (an orange cross joins); 42 marbles, one every 1.2 s; 8 cup moves; 6 gold; 2 boosters.",
+    "glance": {
+      "easy": "Three cups, three colours, a marble every three seconds",
+      "hard": "Five cups along the bottom, a purple marble in the queue",
+      "expert": "Six cups in seven columns, six colours in the hopper"
+    },
+    "why": "Today's four levels show the same board and Hard and Expert score the same for an average player (51 and 50); each extra colour is another cup to route to, so the turns per marble grow with a count the queue and the cups show before the first drop.",
+    "proof": "bun scripts/balltrack-level-deal.ts --level=<l> builds 60 courses a level and keeps one only when the boosted oracle (scripts/arcade-standard/balltrack.ts) scores exactly 200 through the server's encode and replay. That oracle is not held to the limits today and no bot reaches 200 on Expert: run it with the bot's BT_HUMAN_LIMITS rule (no tap within 0.15 s of the last, an off-route marble noticed after 0.25 s) and drop courses that fail; scripts/balltrack-levels-check.ts replays each witness.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "level field only: a level's course is stored whole on the puzzle and can carry its own colours beside drop and moves, so stored level rounds keep their own course.",
+    "files": [
+      "src/lib/arcade/ballTrack.ts (colours per course, BT_PALETTE to six)",
+      "src/lib/arcade/ballTrackArt.renderer.ts (two new marbles and cups, each with its own symbol)",
+      "scripts/balltrack-level-deal.ts",
+      "src/lib/duel/ballTrackDealEasy.server.ts, ballTrackDealHard.server.ts, ballTrackDealExpert.server.ts",
+      "scripts/arcade-standard/balltrack.ts (the oracle)",
+      "scripts/balltrack-levels-check.ts",
+      "scripts/balltrack-level-bands.ts"
+    ],
+    "risk": "the oracle's search grows with six cups (Expert's list took 25 min with four), and a limited oracle may fail many six-colour courses"
+  }
+]

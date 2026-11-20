@@ -1,0 +1,758 @@
+[
+  {
+    "id": "unblock",
+    "name": "Gridlock",
+    "group": "Pattern",
+    "lever": "Lot size and cars",
+    "today": {
+      "easy": "6×6 lot, 8–10 cars, 6–12 moves at the minimum, 60 s, full speed by 40 s",
+      "normal": "7×7 lot, 10–13 cars, 15–22 moves, 60 s, full speed by 40 s (unblockRev 4)",
+      "hard": "7×7 lot, 12–14 cars, 22–30 moves, 60 s, full speed by 28 s",
+      "expert": "7×7 lot, 13–15 cars, 40–48 moves, 90 s, full speed by 30 s"
+    },
+    "measured": "level-tune, 60 deals: near-perfect 199.8 / 199.8 / 195.9 / 189.6, great 199.0 / 198.1 / 179.5 / 176.2 (E/N/H/X); person-like solver: Hard 164.3 (73 % finished), Expert 149.0 (70 %)",
+    "easy": "6×6 lot, 6–8 cars (today 8–10), 5–9 moves at the minimum (today 6–12), 60 s, full speed by 40 s",
+    "hard": "8×8 lot (46 px bays), 15–18 cars, 22–30 moves at the minimum, 75 s, full speed by 35 s",
+    "expert": "9×9 lot (40 px bays on a 390 px phone), 20–24 cars, 36–44 moves, 110 s, full speed by 45 s. Ceiling: 9 across (10 would be 36.6 px, too small to drag a two-bay car); after it the lever is the line's length",
+    "glance": {
+      "easy": "A small, half-empty lot with the gold car nearly out",
+      "hard": "A bigger 8×8 lot packed with fifteen or more cars",
+      "expert": "A 9×9 lot, wall to wall with over twenty cars"
+    },
+    "why": "Hard and Expert today are Normal's 7×7 lot with a longer hidden line (par 29 against 40 is the only thing that differs on screen), so the step moves onto what the player sees, the lot and the cars, and the line's length backs it up.",
+    "proof": "A bank of 120 per level from scripts/unblock-levels-bank.ts, every minimum proved by BFS over the whole lot (pattern-overhaul-unblock-levels-check). New: Expert keeps only boards scripts/unblock-human.ts finishes inside 110 s at 0.25 s to react and 0.15 s to move; today it finishes 73 % of the Expert bank, so 27 % of today's Expert boards have no proof.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "level field; the board already stores cols (raise unblockCols' limit in types.ts from 8 to 9); the new full-by times need a levelRev on level deals, because patternRules.ts reads them from the registry by the stored level",
+    "files": [
+      "src/lib/levels/pattern/unblock.levels.ts",
+      "scripts/unblock-levels-bank.ts",
+      "src/lib/duel/unblockLevelsBank.server.ts",
+      "src/lib/duel/types.ts",
+      "scripts/unblock-human.ts",
+      "scripts/pattern-overhaul-unblock-levels-check.ts"
+    ],
+    "risk": "9×9 lots with a 36–44 move minimum may be rare and slow to prove, and each new lot size needs its own lot render (lot-8, lot-9)"
+  },
+  {
+    "id": "blockparty",
+    "name": "Tessellate",
+    "group": "Pattern",
+    "lever": "Board size and pieces",
+    "today": {
+      "easy": "6×6, 6 small pieces, 19 pegs, 20+ ways to finish, 60 s, full speed by 40 s",
+      "normal": "7×7, 9 pieces, 16 pegs, 5–60 ways to finish, 60 s (blockRev 4)",
+      "hard": "7×7, Normal's 9 pieces, 2–5 ways, 2–3 held guesses for the person-like solver, 60 s, full speed by 32 s",
+      "expert": "8×8, 11 pieces (+U, P), 21 pegs, 1–2 ways, 3 held guesses, 70 s, full speed by 36 s"
+    },
+    "measured": "not documented",
+    "easy": "As today: 6×6, six small pieces grown into one patch, 20+ ways to finish, 60 s (a smaller board and forgiving pieces already do the job)",
+    "hard": "8×8, 11 pieces (Normal's nine plus U and P), 21 pegs, 3–8 ways to finish, 2–3 held guesses, 70 s, full speed by 36 s",
+    "expert": "9×9 (40 px squares), 13 pieces (two more five-square shapes), 28 pegs, 1–2 ways, 3 held guesses, 90 s, full speed by 45 s; tray five to a row. Ceiling: 9 across; after it, fewer ways and less time",
+    "glance": {
+      "easy": "A small board and six little pieces",
+      "hard": "A bigger 8×8 board with eleven pieces in the tray",
+      "expert": "A 9×9 board and thirteen pieces, two of them new"
+    },
+    "why": "Hard today is Normal's exact board and tray with fewer hidden solutions, which nobody can see, so every level now adds squares and pieces and the solution count only backs it up.",
+    "proof": "A bank per level from scripts/blockparty-levels-bank.ts: solution counts by exhaustive count, and every Hard and Expert board finished by the person-like solver humanSolveBlock (forced moves, at most three held guesses); pattern-overhaul-blockparty-levels-check re-counts every board. A time model must be added so Expert's finish is shown inside 90 s.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "level field; the board's size and tray are stored on the puzzle; the new full-by times need a levelRev on level deals (blockLevelFullByS reads the registry)",
+    "files": [
+      "src/lib/levels/pattern/blockparty.levels.ts",
+      "src/lib/duel/blockParty.ts",
+      "scripts/blockparty-levels-bank.ts",
+      "src/lib/duel/blockPartyLevelBank.server.ts",
+      "scripts/pattern-overhaul-blockparty-levels-check.tsx"
+    ],
+    "risk": "two new piece renders, a 13-piece tray on short phones, and a slower exhaustive count on 9×9"
+  },
+  {
+    "id": "pipes",
+    "name": "Pipeline",
+    "group": "Pattern",
+    "lever": "Tiles on the board",
+    "today": {
+      "easy": "5×5 (25 tiles), exactly 60 % turned, spills shown, 120 s",
+      "normal": "7×7 (49 tiles), at least 80 % turned, spills shown, one layout only, 120 s, full speed by 60 s (pipesRev 5)",
+      "hard": "8×8 (64 tiles), at least 90 % turned, spills shown, 120 s",
+      "expert": "8×11 (88 tiles), at least 95 % turned, no spills shown in play, 120 s, full speed by 90 s"
+    },
+    "measured": "medians not documented; the person-like player finished Expert room seeds 1 and 2 in 115 s and 106 s (166 and 178 points)",
+    "easy": "As today: 5×5, 15 tiles to turn and 10 already right, spills shown, 120 s (a quarter of Expert's board; does the job)",
+    "hard": "8×9 (72 tiles, today 64), at least 90 % turned, spills shown, 105 s (today 120), full speed by 60 s",
+    "expert": "As today: 8×11 (88 tiles), at least 95 % turned, no spills shown, 120 s, full speed by 90 s. Already at the ceiling: 8 across (45 px), 11 down on a short phone (39 px), and the person-like player needs 106–115 s of the 120",
+    "glance": {
+      "easy": "A small 5×5 board with many pipes already joined",
+      "hard": "A taller board of 72 tiles, nearly all turned",
+      "expert": "Tiles to the bottom of the screen and no leak marks"
+    },
+    "why": "Tile count is what a player sees and what sets the work (25, 49, 72, 88), and Expert already fills both the phone and the clock, so only Hard needed to move up to sit midway.",
+    "proof": "Every level board is proved one-solution at the deal by the person-like solver deducePipes (pipesSolve.server.ts: matching sides, no loops, no sealed group, never a guess) and re-proved by search in pattern-overhaul-pipes-levels-check; scripts/pipes-human.ts times it, and Expert finishes inside 120 s at 0.25 s a turn.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "level field only: cols and rows ride on the board and Hard's new clock is the puzzle's own timeLimitMs, stamped at the deal",
+    "files": [
+      "src/lib/levels/pattern/pipes.levels.ts",
+      "src/lib/duel/logic.server.ts",
+      "scripts/pipes-human.ts",
+      "scripts/pattern-overhaul-pipes-levels-check.ts"
+    ],
+    "risk": "low; Hard at 72 tiles in 105 s may sit close to Expert for the best players"
+  },
+  {
+    "id": "sudoku",
+    "name": "Box Six",
+    "group": "Logic",
+    "lever": "Numbers given at the start",
+    "today": {
+      "easy": "19–21 givens, singles only, live clashes, used-up digits leave the keypad, 90 s",
+      "normal": "13–15 givens, 90 s (depthRev 3)",
+      "hard": "10–12 givens, needs 1 advanced step, live clashes, 90 s, bank of 200",
+      "expert": "9–10 givens, needs 2 advanced steps, clashes only on Check, 90 s, bank of 200"
+    },
+    "measured": "great / near-perfect under human limits: E 197.0 / 198.9, N 184.5 / 199.1, H 159.7 (85 % finished) / 193.1, X 129.6 (35 %) / 184.7",
+    "easy": "As today: 19–21 of the 36 squares given, singles only, live clashes, used-up digits leave the keypad, 90 s",
+    "hard": "10–11 givens, needs 2 advanced steps (a pair, pointing or box-line), live clashes, 75 s (today 90)",
+    "expert": "8–9 givens (8 is the fewest a 6×6 can have), needs 3 advanced steps, clashes only on Check, 75 s. The grid cannot grow (the game is six by six), so after the givens floor the lever is the deduction grade and the clock",
+    "glance": {
+      "easy": "More than half the grid already filled in",
+      "hard": "Only ten or eleven numbers on the grid",
+      "expert": "Eight or nine numbers, and a Check button"
+    },
+    "why": "The six-by-six grid is the game, so the visible ladder is how empty it starts, run down to the fewest givens a unique grid can have, with the solver's grade making sure fewer numbers means harder steps and never luck.",
+    "proof": "Banks of 200 per level from scripts/sudoku-level-bank.ts: one solution each, graded by the step solver in sudokuLogic.ts (singles, pairs, pointing, box-line, never a guess), which is the person-style proof; logic-1-levels-check proves every board and logic-1-steps-check the ladder. A time model (0.8 s a digit) must be added to show the Expert solve fits 75 s.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "level field only (the grid and the clock are stored on the puzzle; each level's clash rule is unchanged)",
+    "files": [
+      "src/lib/levels/gameLevels.ts",
+      "scripts/sudoku-level-bank.ts",
+      "src/lib/duel/sudokuLogic.ts",
+      "src/lib/duel/logicLevelBanks.server.ts",
+      "scripts/logic-1-levels-check.tsx",
+      "scripts/logic-1-steps-check.ts"
+    ],
+    "risk": "6×6 grids with 8–9 givens that need three advanced steps may be too rare to bank 200"
+  },
+  {
+    "id": "flow",
+    "name": "Chroma Lines",
+    "group": "Pattern",
+    "lever": "Board height and pairs",
+    "today": {
+      "easy": "6×6, 5–6 pairs, no walls, 75 s, full speed by 15 s",
+      "normal": "9×9, 10–12 pairs, 2–4 walls, 75 s, full speed by 30 s (flowRev 3)",
+      "hard": "9×9, 8–9 pairs with longer lines, 4–6 walls, at least 3 what-ifs, 75 s, full speed by 35 s",
+      "expert": "9×12, 12–14 pairs, 4–6 walls, at least 4 what-ifs, 90 s, full speed by 45 s"
+    },
+    "measured": "not documented",
+    "easy": "As today: 6×6, 5–6 pairs, no walls, 75 s (a small open board; does the job)",
+    "hard": "9×11, 12–13 pairs, 4–6 walls, at least 3 what-ifs, 80 s, full speed by 35 s (today's Hard has fewer dots than Normal and reads as easier)",
+    "expert": "9×13, 14 pairs, 6–8 walls, at least 4 what-ifs, 95 s, full speed by 45 s. Ceiling: 9 across (40 px beads), 13 down and the 14 bead colours; after it, longer lines and less time",
+    "glance": {
+      "easy": "A small 6×6 board with five or six pairs",
+      "hard": "A taller board with more coloured dots than Normal",
+      "expert": "Dots in fourteen colours fill the screen top to bottom"
+    },
+    "why": "Today's Hard takes dots off Normal's board and so looks easier; growing the board downwards with more pairs at every level makes one ladder the eye can read (36, 81, 99, 117 squares), with the what-if floor as the guard.",
+    "proof": "Banks of 500 per level (bun scripts/flow-bank.ts --level): exactly one solution by the exhaustive solver, and every board finished by the person-like solver flowHuman.server.ts (forced moves and one what-if at a time); pattern-overhaul-flow-levels-check re-proves them. A time model must be added so Expert is shown inside 95 s.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "level field; the board's size is stored on the puzzle; the new full-by times need a levelRev on level deals (flowFullByS reads the registry)",
+    "files": [
+      "src/lib/levels/pattern/flow.levels.ts",
+      "scripts/flow-bank.ts",
+      "src/lib/duel/flowHardBank.server.ts",
+      "src/lib/duel/flowExpertBank.server.ts",
+      "src/lib/duel/flowHuman.server.ts",
+      "scripts/pattern-overhaul-flow-levels-check.ts"
+    ],
+    "risk": "the uniqueness solver's node budget may reject most 9×13 boards with 14 pairs"
+  },
+  {
+    "id": "iceslide",
+    "name": "Skid",
+    "group": "Pattern",
+    "lever": "Holes and thin ice",
+    "today": {
+      "easy": "8×8, 8–12 slides, no holes or thin ice, at most 1 chevron and 1 portal pair, 90 s, full speed by 20 s",
+      "normal": "12×12, 18–26 slides, 2–4 holes, every hazard, 90 s, full speed by 30 s (slideRev 5)",
+      "hard": "12×12, 24–30 slides, 5–8 holes, 3–5 thin ice, 100 s, full speed by 40 s",
+      "expert": "11×13, 28–36 slides, 3–5 holes, 3–6 thin ice, 120 s, full speed by 45 s"
+    },
+    "measured": "medians not documented; on the best Expert bank boards the person-like player scores 197 in 52–54 s",
+    "easy": "8×8, 6–10 slides (today 8–12), rocks only: no holes, thin ice, chevrons or portals, 90 s, full speed by 20 s",
+    "hard": "12×12, 26–32 slides, 6–8 holes, 4–6 thin ice, 1–3 chevrons, 1–2 portal pairs, 90 s (today 100), full speed by 40 s",
+    "expert": "11×13, 34–42 slides, 10–12 holes (today 3–5, fewer than Hard), 6–8 thin ice, 2–4 chevrons, 2 portal pairs, 120 s, full speed by 45 s. Ceiling: the rink is full size from Normal (30 px squares; 26 px proved unreadable), so the lever is hazards and route length",
+    "glance": {
+      "easy": "A small rink with rocks only and no holes",
+      "hard": "Twice Normal's holes dotted across the rink",
+      "expert": "A taller rink riddled with ten or more holes"
+    },
+    "why": "The rink is already as big as a phone can show at Normal, so the ladder has to be what is on the ice, and today Expert has fewer holes than Hard and looks the safer of the two.",
+    "proof": "Banks of 300 per level (bun scripts/iceslide-levels-bank.ts): each minimum proved by BFS over the ball's square and the broken ice; Expert keeps only boards the person-like player scripts/iceslide-human.ts finishes inside 120 s under the limits; pattern-overhaul-iceslide-levels-check re-proves every board.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "level field; hazards and par ride on the board and Hard's clock is the puzzle's timeLimitMs; stamp the level's full-by time on the puzzle too, or add a levelRev",
+    "files": [
+      "src/lib/levels/pattern/iceslide.levels.ts",
+      "scripts/iceslide-levels-bank.ts",
+      "src/lib/duel/iceSlideLevelBank.server.ts",
+      "scripts/iceslide-human.ts",
+      "scripts/pattern-overhaul-iceslide-levels-check.ts"
+    ],
+    "risk": "boards with 10–12 holes and a 34–42 slide minimum may be too rare to fill a bank of 300"
+  },
+  {
+    "id": "push",
+    "name": "Heave",
+    "group": "Pattern",
+    "lever": "Crates to push home",
+    "today": {
+      "easy": "3 crates, 8–14 pushes, open warehouse, stuck hint, 120 s, full speed by 30 s",
+      "normal": "5 crates, 18–27 pushes, stuck hint, 120 s, full speed by 45 s (pushRev 3)",
+      "hard": "5 crates, 25–32 pushes, a detour, no stuck hint, 120 s, full speed by 45 s",
+      "expert": "6 crates, 30–40 pushes, a detour, no stuck hint, 120 s, full speed by 45 s"
+    },
+    "measured": "not documented (the check only asserts that great and near-perfect averages step down)",
+    "easy": "As today: 3 crates, 8–14 pushes, an open warehouse, the stuck hint on, 120 s",
+    "hard": "6 crates (today 5, the same as Normal), 28–36 pushes, 6–12 inner walls, a detour, no stuck hint, 120 s, full speed by 45 s",
+    "expert": "7 crates, 38–48 pushes, 8–14 inner walls, a detour, no stuck hint, 120 s, full speed by 50 s. Ceiling: the 9×9 warehouse and the 120 s clock are both fixed, so crates and pushes are the levers",
+    "glance": {
+      "easy": "Three crates in an open room",
+      "hard": "Six crates and six marks between tighter walls",
+      "expert": "Seven crates crowd a walled-in warehouse"
+    },
+    "why": "Hard today shows the same five crates as Normal, so the crate count, the one thing a player counts at once, now climbs 3, 5, 6, 7 with the push minimum rising behind it.",
+    "proof": "A bank per level grown backwards from the solved warehouse (scripts/push-levels-bank.ts), so its depth is the exact minimum, re-solved forwards by the optimal solver in pattern-overhaul-push-levels-check. No person-style push solver exists today: one must be written (for example scripts/push-human.ts) to prove every Expert board inside 120 s.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "level field; crates and par ride on the board; Expert's new full-by time needs a levelRev on level deals (pushLevelFullByS reads the registry)",
+    "files": [
+      "src/lib/levels/pattern/push.levels.ts",
+      "scripts/push-levels-bank.ts",
+      "src/lib/duel/pushLevelBank.server.ts",
+      "src/lib/duel/pushLevels.server.ts",
+      "scripts/pattern-overhaul-push-levels-check.ts"
+    ],
+    "risk": "exact minimums for 7 crates may cost too much search; fall back to 6 crates with 40–48 pushes"
+  },
+  {
+    "id": "laser",
+    "name": "Lightbender",
+    "group": "Pattern",
+    "lever": "Bombs on the board",
+    "today": {
+      "easy": "4–5 mirrors + 3 spare, 1–2 bombs, 5 shots, 60 s, full speed by 20 s",
+      "normal": "7–8 mirrors + 2 spare, 3–4 bombs, 3 shots, 60 s, full speed by 30 s (laserRev 4)",
+      "hard": "8–9 mirrors + 1 spare, 4–5 bombs, 3 shots, 75 s, full speed by 35 s",
+      "expert": "9–10 mirrors + 1 spare, 5–6 bombs, 2 shots, 90 s, full speed by 30 s"
+    },
+    "measured": "Expert only: near-perfect 183–193 on 12 boards; the other levels not documented",
+    "easy": "As today: 4–5 mirrors with 3 spare, 1–2 bombs, 5 shots, 60 s (a short beam and five tries already forgive a wrong read)",
+    "hard": "9–10 mirrors + 1 spare, 6–7 bombs (today 4–5), 3 shots, 75 s, full speed by 35 s, at least 100 tries for the person-like solver",
+    "expert": "10–12 mirrors with no spare, 9–10 bombs (today 5–6), 2 shots, 90 s, full speed by 35 s, 750–1,000 tries for the person-like solver. Ceiling: the 10×10 board is 36.6 px a square from Normal up, so the lever is what stands on it",
+    "glance": {
+      "easy": "One or two bombs and five shots",
+      "hard": "Twice Normal's bombs between the gems",
+      "expert": "Bombs everywhere, an exact tray and two shots"
+    },
+    "why": "Normal, Hard and Expert look alike today (one more bomb, one more mirror), so bombs, the hazard a player spots first and the thing that kills the easy routes, double at Hard and triple at Expert.",
+    "proof": "Hard and Expert banks (bun scripts/laser-bank.ts --level): the stored layout lights all six gems and needs every piece, and the person-like solver solveLaserLikeAPerson (laserSolve.server.ts) lights it from the level's own tray inside the try band; pattern-overhaul-laser-levels-check. A time model must be added for the 90 s.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "level field; shots, tray and clock are stamped on the puzzle; the new full-by time needs a levelRev on level deals (laserFullByS reads the registry)",
+    "files": [
+      "src/lib/levels/pattern/laser.levels.ts",
+      "scripts/laser-bank.ts",
+      "src/lib/duel/laserHardBank.server.ts",
+      "src/lib/duel/laserExpertBank.server.ts",
+      "src/lib/duel/laserSolve.server.ts",
+      "scripts/pattern-overhaul-laser-levels-check.ts"
+    ],
+    "risk": "with nine or more bombs the generator may find too few boards the person-like solver lights in 1,000 tries"
+  },
+  {
+    "id": "tower",
+    "name": "Hanoi",
+    "group": "Logic",
+    "lever": "Rings on the posts",
+    "today": {
+      "easy": "4 posts, 7 rings, 10–18 moves at the minimum, 90 s",
+      "normal": "3 or 4 posts, 9 rings, 20–40 moves, 90 s",
+      "hard": "3 posts, 9 rings, 34–45 moves, 90 s",
+      "expert": "3 posts, 10 rings, 45–60 moves, 105 s"
+    },
+    "measured": "great / near-perfect under human limits: E 199.3 / 200, N 195.3 / 199.8, H 181.2 / 199.3, X 169.2 (95 % finished) / 192.1",
+    "easy": "As today: 4 posts, 7 rings, 10–18 moves, 90 s (the spare post forgives a wrong move)",
+    "hard": "3 posts, 10 rings (today 9, the same as Normal), 40–55 moves, 90 s",
+    "expert": "3 posts, 12 rings, 70–90 moves, 105 s. Ceiling: 12 rings (the smallest 36 px wide, about 7 px a step across three posts); after it, a longer minimum",
+    "glance": {
+      "easy": "Four posts and a short stack of seven",
+      "hard": "Three posts, ten rings and no spare post",
+      "expert": "Twelve rings stacked to the top of the posts"
+    },
+    "why": "Hard today is Normal's nine rings again and the near-perfect bot still scores 192 on Expert, so the ring count now rises at every level and the minimum grows by about half each step.",
+    "proof": "The exact minimum by search over every state in tower.server.ts (3 posts and 12 rings is 531,441 states), proved per board by logic-1-levels-check; the proof run is the minimum line played at 0.4 s a move (36 s for 90 moves), inside 105 s.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "level field only (level deals already carry towerRev 1; posts, rings, par and clock are stored on the puzzle)",
+    "files": [
+      "src/lib/levels/gameLevels.ts",
+      "src/lib/duel/tower.server.ts",
+      "src/lib/duel/logicLevels.ts",
+      "scripts/logic-1-levels-check.tsx",
+      "scripts/logic-1-steps-check.ts"
+    ],
+    "risk": "twelve ring widths may be hard to tell apart on a 390 px phone"
+  },
+  {
+    "id": "tubes",
+    "name": "Polypotions",
+    "group": "Logic",
+    "lever": "Flasks and colours",
+    "today": {
+      "easy": "6 flasks, 4 colours, 4 layers, 8–12 pours at the minimum, 90 s",
+      "normal": "10 flasks, 8 colours, 5 layers, minimum + 6 pours allowed, 90 s",
+      "hard": "10 flasks, 8 colours, 7 layers, minimum 26–34, 120 s",
+      "expert": "12 flasks, 10 colours, 6 layers, minimum 28–38, hidden layers, 120 s"
+    },
+    "measured": "great / near-perfect under human limits: E 200 / 200, N 195.0 / 200, H 185.6 / 197.3, X 129.1 (25 % finished) / 181.9",
+    "easy": "As today: 6 flasks, 4 colours, 4 layers, 8–12 pours, 90 s",
+    "hard": "12 flasks (two empty), 10 colours, 6 layers, minimum 28–38 pours, every layer shown, 90 s (today's Expert rack without the hiding, 30 s less)",
+    "expert": "14 flasks in two rows of seven (52 px each), 12 colours, 6 layers, minimum 36–46, hidden layers (only the top shows until uncovered; Undo gives the pour back), 120 s. Ceiling: 7 flasks a row; after it, deeper minimums",
+    "glance": {
+      "easy": "Six short flasks in four colours",
+      "hard": "Twelve flasks and ten colours, all on show",
+      "expert": "Fourteen flasks with grey question marks under every top layer"
+    },
+    "why": "A strong player loses nothing until the layers hide (near-perfect 197 on Hard), so the rack itself grows at Hard and the hiding, the genre's own hard mode and already built, stays as Expert's last step.",
+    "proof": "Each level board is built with its exact minimum by search (generateTubesLevel and tubesLevelMinimum in tubes.server.ts; logic-1-levels-check); 14 flasks will want a pre-built bank. Must be written: a solver that sees only uncovered layers and still finishes inside 120 s using refunded Undos, so the hiding is never a guess.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "level field only (flasks, layers, the hidden flag, the minimum and the clock are stored on the puzzle)",
+    "files": [
+      "src/lib/levels/gameLevels.ts",
+      "src/lib/duel/tubes.server.ts",
+      "src/lib/duel/logicLevelBanks.server.ts",
+      "scripts/logic-1-levels-check.tsx",
+      "scripts/logic-1-steps-check.ts"
+    ],
+    "risk": "the exact-minimum search for 12 colours may be too slow and 12 colours hard to tell apart; fall back to 13 flasks and 11 colours"
+  },
+  {
+    "id": "safe",
+    "name": "Safe Cracker",
+    "group": "Logic",
+    "lever": "Dials on the safe",
+    "today": {
+      "easy": "3 dials of 0–9, 5 simple clues, 3 tries, 75 s",
+      "normal": "4 dials of 0–9, 5 clues, 3 tries, 75 s",
+      "hard": "4 dials of 0–15, 6 number clues, 3 tries, 75 s",
+      "expert": "5 dials of 0–20, 7 clues, 2 tries, 105 s, bank of 200"
+    },
+    "measured": "great / near-perfect under human limits: E 200 / 200, N 193.9 / 200, H 182.0 (95 % finished) / 194.5, X 173.6 (95 %) / 186.8",
+    "easy": "As today: 3 dials of 0–9, 5 simple clues (odd or even, more or less, a sum), 3 tries, 75 s",
+    "hard": "5 dials of 0–20 (today 4 dials of 0–15), 7 clues with primes, squares and differences, 2 tries, 90 s",
+    "expert": "6 dials of 0–20 (61 px each), 9 clues, 1 try, 105 s. Ceiling: six dials and a nine-line card fill the screen; after it, harder clue kinds",
+    "glance": {
+      "easy": "Three dials and five plain clues",
+      "hard": "Five dials that run to 20 and seven clues",
+      "expert": "Six dials, nine clues, one try"
+    },
+    "why": "Hard today keeps Normal's four dials and the bots barely notice Expert (187 near-perfect), so a dial is added at every level and the tries, the game's safety net, shrink 3, 3, 2, 1.",
+    "proof": "A bank of 200 one-solution cards per level (scripts/safe-level-bank.ts, logic-1-levels-check). Must be written: a person-style solver (narrow each dial's range clue by clue, one-step trials, never a guess) that cracks every Expert card inside 105 s.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "level field only (dialCount, dialMax, tries and the clock are stored on the puzzle); a sixth dial needs a sixth mark in DIAL_MARKS",
+    "files": [
+      "src/lib/levels/gameLevels.ts",
+      "scripts/safe-level-bank.ts",
+      "src/lib/duel/safe.ts",
+      "src/lib/duel/safe.server.ts",
+      "scripts/logic-1-levels-check.tsx"
+    ],
+    "risk": "nine clues on six dials may read as a wall of text on a phone"
+  },
+  {
+    "id": "gravity",
+    "name": "Topsy-Turvy",
+    "group": "Pattern",
+    "lever": "Balls on each board",
+    "today": {
+      "easy": "2 boards of 3 balls, 2–4 tilts each, a limit of the fewest + 12, 120 s, full speed by 20 s",
+      "normal": "3 boards of 6 balls, 4–7 tilts, fewest + 8, 120 s, full speed by 32 s (gravityRev 8)",
+      "hard": "3 boards of 6 balls, 6–9 tilts, fewest + 6, 120 s, full speed by 30 s",
+      "expert": "3 boards of 8 balls, 7–10 tilts, fewest + 5, 120 s, full speed by 30 s, person-solvable only"
+    },
+    "measured": "not documented",
+    "easy": "As today: 2 boards of 3 balls, 2–4 tilts each, a limit of the fewest + 12, 120 s",
+    "hard": "3 boards of 8 balls (today 6, the same as Normal), 7–10 tilts, fewest + 6, 120 s, full speed by 32 s",
+    "expert": "3 boards of 10 balls (two new colours), 9–12 tilts, fewest + 4, 120 s, full speed by 36 s, person-solvable only. Ceiling: the 10×10 board and the 120 s clock are fixed, and ten balls with ten cups is the most the board shows clearly",
+    "glance": {
+      "easy": "Three balls, three cups, two boards",
+      "hard": "Eight balls rolling at once",
+      "expert": "Ten balls and ten cups crowd the board"
+    },
+    "why": "Normal and Hard look identical today (six balls on the same board), so the ball count, which multiplies what every tilt does, becomes the ladder: 3, 6, 8, 10.",
+    "proof": "A bank per level (bun scripts/topsy-levels-bank.ts): each board's fewest tilts by BFS over every ball's square; Hard and Expert keep only boards the person-like solver scripts/topsy-human.ts clears inside the tilt limit; pattern-overhaul-gravity-levels-check re-proves every board.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "level field; balls, limits and par ride on the boards; stamp the level's full-by time on the puzzle, or add a levelRev",
+    "files": [
+      "src/lib/levels/pattern/gravity.levels.ts",
+      "scripts/topsy-levels-bank.ts",
+      "src/lib/duel/topsyLevelsBank.server.ts",
+      "scripts/topsy-human.ts",
+      "scripts/pattern-overhaul-gravity-levels-check.ts"
+    ],
+    "risk": "ten-ball boards the person-like solver clears within the fewest + 4 may be rare, and two more ball renders are needed"
+  },
+  {
+    "id": "nonogram",
+    "name": "Mosaic",
+    "group": "Logic",
+    "lever": "Picture size",
+    "today": {
+      "easy": "6×6, single-line logic, right lines lock, 90 s",
+      "normal": "8×8, 120 s (depthRev 2)",
+      "hard": "9×11, single-line logic, 120 s",
+      "expert": "9×14, needs two lines read together at least once, 120 s"
+    },
+    "measured": "great / near-perfect under human limits: E 197.4 / 199.7, N 193.4 / 198.8, H 158.4 (90 % finished) / 189.9, X 126.0 (30 %) / 182.1",
+    "easy": "As today: 6×6, every line solvable alone, right lines lock, 90 s",
+    "hard": "Today's board, 9×11 with single-line logic, in 100 s (today 120)",
+    "expert": "Today's board, 9×14, but two lines must be read together at least 3 times (today once), 120 s. Already at the ceiling: 9 across with the clue column is 36 px a square and 14 rows fill the height, so the lever is the reasoning and the clock",
+    "glance": {
+      "easy": "A small 6×6 picture with short clues",
+      "hard": "A taller 9×11 picture, half as big again as Normal",
+      "expert": "A picture fourteen rows deep, down to the buttons"
+    },
+    "why": "Today's ladder (36, 64, 99, 126 squares) already steps up where everyone can see it and ends on the phone's ceiling, so only the clock and the depth of reasoning need tightening for the best players.",
+    "proof": "One solution per board from the generator (generateNonogramLevel in nonogram.server.ts), solved without a guess by the line solver nonoLogicSolve (single lines for Hard, two lines together for Expert) and proved by logic-1-levels-check. A time model must be added for the 120 s.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "level field only (the picture, its clues and the clock are stored on the puzzle)",
+    "files": [
+      "src/lib/levels/gameLevels.ts",
+      "src/lib/duel/nonogram.server.ts",
+      "src/lib/duel/logicLevels.ts",
+      "scripts/logic-1-levels-check.tsx",
+      "scripts/logic-1-steps-check.ts"
+    ],
+    "risk": "low; pictures needing three two-line steps may be slow to build live and want a bank"
+  },
+  {
+    "id": "flood",
+    "name": "Colour Flood",
+    "group": "Logic",
+    "lever": "Board size and colours",
+    "today": {
+      "easy": "10×10, 4 colours, par 6–8, par + 8 moves, 60 s",
+      "normal": "14×14, 5 colours, par 10–14, par + 6 moves, 60 s (floodRev 3)",
+      "hard": "12×17, 6 colours, par 14–18, par + 4 moves, 60 s",
+      "expert": "14×24, 6 colours, 14 blocked squares, par 18–22, par + 3 moves, 75 s"
+    },
+    "measured": "great / near-perfect under human limits: E 198.8 / 199.0, N 197.4 / 198.3, H 188.3 / 196.7, X 166.3 (75 % finished) / 192.1",
+    "easy": "As today: 10×10, 4 colours, par 6–8, par + 8 moves, 60 s",
+    "hard": "14×20, 6 colours, par 16–20, par + 4 moves, 60 s (today's 12×17 is no bigger than Normal's 196 squares)",
+    "expert": "14×24, 7 colours (52 px buttons), 20 blocked squares, par 22–26, par + 2 moves, 75 s. Ceiling: 14×24 fills the screen (squares are never tapped, only the colour buttons); after it, colours and spare moves",
+    "glance": {
+      "easy": "A small board in four colours",
+      "hard": "A board half as tall again, in six colours",
+      "expert": "Seven colours, stones in the way, a screen-high board"
+    },
+    "why": "A strong player scores within ten points on every level today, so the two things that set a flood's par, area and colours, both rise at each step and the spare moves fall 8, 6, 4, 2.",
+    "proof": "A bank per level with the exact par by search (scripts/flood-level-bank.ts, scripts/flood-par-proof.ts), proved by logic-1-levels-check; the proof run is the stored par line at 0.4 s a move, about 10 s, well inside 75 s.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "level field; size, colours, blocked squares, par and clock are stored on the puzzle; stamp the level's spare moves on it too so a later retune never moves a stored round",
+    "files": [
+      "src/lib/levels/gameLevels.ts",
+      "scripts/flood-level-bank.ts",
+      "src/lib/duel/floodLevels.server.ts",
+      "scripts/flood-par-proof.ts",
+      "scripts/logic-1-levels-check.tsx"
+    ],
+    "risk": "the exact-par search at 7 colours and par 22–26 on 336 squares may be too slow to bank"
+  },
+  {
+    "id": "minesweeper",
+    "name": "Minefield",
+    "group": "Logic",
+    "lever": "Mines on the board",
+    "today": {
+      "easy": "minesRev 4: 8×12, 9 mines, opening 25–40 squares, 90 s, full speed by 22 s",
+      "normal": "minesRev 3: 10×16, 16 mines, opening 20–60, 90 s, full speed by 37 s",
+      "hard": "minesRev 2: 10×16, 20 mines, opening 20–60, 90 s, full speed by 37 s",
+      "expert": "minesRev 5: 12×18, 34 mines, opening 8–16, 120 s, full speed by 50 s"
+    },
+    "measured": "great / near-perfect under human limits: E 199.1 / 200, N 194.6 (90 % finished) / 200, H 188.9 (95 %) / 196.4, X 174.2 (85 %) / 191.0",
+    "easy": "As today (minesRev 4): 8×12, 9 mines, about a third of the board already open, 90 s; a mine costs 5 points and never the run",
+    "hard": "10×16, 26 mines (today 20, only 4 more than Normal), opening 12–24 squares, 90 s, full speed by 45 s",
+    "expert": "10×16, 36 mines (22 % of the board), opening 6–12, 120 s, full speed by 60 s; squares stay 37 px (today's 12×18 draws them at about 31 px, under the 36 px floor). Ceiling: 10×16 is Normal's board already, so the lever is mine density and the opening",
+    "glance": {
+      "easy": "A small board, a third of it already open",
+      "hard": "Mines 26 on the counter and a small opening",
+      "expert": "Mines 36 and only a handful of squares open"
+    },
+    "why": "The board cannot grow without shrinking the squares under a thumb, so the ladder is the mine count (9, 16, 26, 36) with the free opening shrinking as it climbs, which is how this game gets harder everywhere it is played.",
+    "proof": "Every board is dealt by the existing rule: the logic solver minesSolve clears it from the opening with never a guess (logic-1-levels-check, minefield-logic-check). At 26 and 36 mines deal from a pre-proved bank, and the oracle (scripts/cards-board-oracles.ts) must reach 200 under HUMAN_LIMITS on every banked seed or the seed is dropped.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "minesRev 6 (Hard, 26 mines) and minesRev 7 (Expert, 36 mines): each level's geometry and clock ride on its own revision, and stored minesRev 2 and 5 rounds must replay as dealt",
+    "files": [
+      "src/lib/arcade/minesweeper.ts",
+      "src/lib/levels/gameLevels.ts",
+      "scripts/cards-board-oracles.ts",
+      "scripts/logic-1-levels-check.tsx",
+      "scripts/minefield-logic-check.ts",
+      "docs/arcade-standard/minesweeper.md"
+    ],
+    "risk": "no-guess boards at 22 % mines from a 6–12 square opening may be too rare; fall back to 32 mines"
+  },
+  {
+    "id": "tents",
+    "name": "Tents and Trees",
+    "group": "Logic",
+    "lever": "Board height and trees",
+    "today": {
+      "easy": "8×6, 7–8 trees, every count shown, 90 s",
+      "normal": "8×9, 12–13 trees, a third of the counts hidden, 90 s",
+      "hard": "8×10, 13–14 trees, half the counts hidden, 2–12 trials, 90 s",
+      "expert": "8×12, 17–18 trees, half the counts hidden, 4–40 trials, 120 s"
+    },
+    "measured": "near-perfect kit, 20 boards, no human limits: 199.8 / 199.7 / 177.8 / 163.2 (95 % finished) (E/N/H/X)",
+    "easy": "As today: 8×6, 7–8 trees, every count shown, 90 s",
+    "hard": "8×11 (today 8×10, one row more than Normal), 16–17 trees, half the counts hidden, 2–15 trials, 100 s",
+    "expert": "8×13, 21–22 trees, half the counts hidden, 5–50 trials, 120 s. Ceiling: 8 across with the count column (40 px squares) and 13 down; after it, more hidden counts",
+    "glance": {
+      "easy": "A short board with every count shown",
+      "hard": "Two more rows, more trees, half the counts blank",
+      "expert": "Thirteen rows and over twenty trees"
+    },
+    "why": "Hard today is Normal plus one row, so each level now adds two rows and four or five trees, growing downwards because the width is already at its limit.",
+    "proof": "One solution by the game's solver, and every board finished by the person-style solver in logicHuman.server.ts (the rules plus one-step trials, never a guess) inside the level's trial band (logicLevelDeal.server.ts, scripts/logic-levels-check.ts). It counts trials but has no clock: add a time model (0.4 s a tent, about 1.5 s a trial) so Expert is proved inside 120 s.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "level field only (height, counts and clock are stored on the board)",
+    "files": [
+      "src/lib/duel/logicOverhaul2Levels.ts",
+      "src/lib/duel/logicLevelDeal.server.ts",
+      "src/lib/duel/logicHuman.server.ts",
+      "scripts/logic-levels-check.ts"
+    ],
+    "risk": "13 rows draw under 36 px on a 667 px tall phone"
+  },
+  {
+    "id": "shikaku",
+    "name": "Shikaku",
+    "group": "Logic",
+    "lever": "Board height and rectangles",
+    "today": {
+      "easy": "10×7, 9–11 rectangles, largest 8, 90 s",
+      "normal": "10×11, 17–21 rectangles, largest 12, 90 s",
+      "hard": "10×12, 15–17 rectangles, largest 16, 0–10 trials, 90 s",
+      "expert": "10×13, 18–21 rectangles, largest 16, 0–30 trials, 120 s"
+    },
+    "measured": "near-perfect kit, 20 boards, no human limits: 199.5 / 198.9 / 176.6 / 171.2 (all finished) (E/N/H/X)",
+    "easy": "As today: 10×7, 9–11 rectangles, none over 8 squares, 90 s",
+    "hard": "10×13 (today 10×12), 19–22 rectangles, largest 16, at least 6 of six squares or more, 0–15 trials, 100 s",
+    "expert": "10×15, 22–26 rectangles, largest 20, at least 8 of six squares or more, 5–40 trials (never a walk-through), 120 s. Ceiling: 10 across is Normal's width (36.6 px) and 15 down fills the height; after it, bigger rectangles",
+    "glance": {
+      "easy": "A short board with small numbers",
+      "hard": "Two more rows and numbers up to 16",
+      "expert": "Fifteen rows deep, with a 20 on the board"
+    },
+    "why": "Expert today is one row taller than Hard and scores within six points of it, so the board now grows two rows a level and the largest rectangle, the number a player reads first, rises 8, 12, 16, 20.",
+    "proof": "One solution by the game's solver, and every board finished by the person-style solver in logicHuman.server.ts inside the level's trial band (logicLevelDeal.server.ts, scripts/logic-levels-check.ts); add a time model (0.6 s a rectangle, about 1.5 s a trial) so Expert is proved inside 120 s.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "level field only (height, numbers and clock are stored on the board)",
+    "files": [
+      "src/lib/duel/logicOverhaul2Levels.ts",
+      "src/lib/duel/logicLevelDeal.server.ts",
+      "src/lib/duel/logicHuman.server.ts",
+      "scripts/logic-levels-check.ts"
+    ],
+    "risk": "low; 15 rows of 36 px leave no spare height on a short phone"
+  },
+  {
+    "id": "lightup",
+    "name": "Lamplighter",
+    "group": "Logic",
+    "lever": "Board height and walls",
+    "today": {
+      "easy": "9×7, 15–19 walls, 70 % numbered, 90 s",
+      "normal": "9×10, 20–25 walls, half numbered, 90 s",
+      "hard": "9×10, 18–22 walls, 35 % numbered, 1–15 trials, 90 s",
+      "expert": "9×12, 26–30 walls, 35 % numbered, 3–40 trials, 120 s"
+    },
+    "measured": "near-perfect kit, 20 boards, no human limits: 199.3 / 199.7 / 178.7 / 158.9 (80 % finished) (E/N/H/X)",
+    "easy": "As today: 9×7, 15–19 walls, 70 % of them numbered, 90 s",
+    "hard": "9×12 (today Normal's own 9×10), 26–30 walls, 35 % numbered, 3–40 trials, 100 s (today's Expert board with 20 s less)",
+    "expert": "9×14, 32–38 walls, 30 % numbered, 6–60 trials, 120 s. Ceiling: 9 across (40 px squares) and 14 down; after it, fewer numbered walls",
+    "glance": {
+      "easy": "A short board with most walls numbered",
+      "hard": "Two more rows and most walls blank",
+      "expert": "Fourteen rows of dark squares and few numbers"
+    },
+    "why": "Hard today is Normal's own board with fewer numbers, so the board now grows two rows a level while the numbered share falls 70, 50, 35, 30 per cent.",
+    "proof": "One solution by the game's solver, and every board finished by the person-style solver in logicHuman.server.ts inside the level's trial band (logicLevelDeal.server.ts, scripts/logic-levels-check.ts); add a time model (0.4 s a bulb, about 1.5 s a trial) so Expert is proved inside 120 s.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "level field only (height, walls and clock are stored on the board)",
+    "files": [
+      "src/lib/duel/logicOverhaul2Levels.ts",
+      "src/lib/duel/logicLevelDeal.server.ts",
+      "src/lib/duel/logicHuman.server.ts",
+      "scripts/logic-levels-check.ts"
+    ],
+    "risk": "14 rows draw under 36 px on a 667 px tall phone"
+  },
+  {
+    "id": "trail",
+    "name": "Trail",
+    "group": "Logic",
+    "lever": "Board size",
+    "today": {
+      "easy": "6×6, 14 numbers shown, easy search (up to 2,000 solver steps), 120 s",
+      "normal": "6×6, 10 numbers shown, from the bank (median about 13,000 solver steps), 120 s",
+      "hard": "6×6, 10 numbers shown, 35,000+ solver steps, 40–400 trials, bank of 120, 120 s",
+      "expert": "6×6, 10 numbers shown, 70,000+ solver steps, 80–1,000 trials, bank of 120, 120 s"
+    },
+    "measured": "near-perfect kit, 20 boards, no human limits: 199.9 / 199.2 / 166.4 (95 % finished) / 154.0 (75 %) (E/N/H/X)",
+    "easy": "5×5 board, 1 to 25, 9 numbers shown, 0–20 trials, 120 s (today a 6×6 with 14 numbers)",
+    "hard": "7×7 board, 1 to 49, 13 numbers shown, 20–150 trials, 120 s",
+    "expert": "8×8 board, 1 to 64, 16 numbers shown, 40–250 trials, 120 s. The clock, not the phone, is the ceiling (8 across is 45 px): 48 squares to place in 120 s; after it, fewer numbers",
+    "glance": {
+      "easy": "A small board: 1 to 25",
+      "hard": "A 7×7 board: 1 to 49",
+      "expert": "An 8×8 board: 1 to 64"
+    },
+    "why": "Normal, Hard and Expert are the same 6×6 board with ten numbers today and differ only in a search count no player can see; a path nearly twice as long is a difficulty anyone reads in one look.",
+    "proof": "Banks of 120 per level (scripts/logic-level-bank.ts): one path by the game's solver, and every board finished by the person-style solver's trail model (logicHuman.server.ts) inside the trial band. Today's Expert band runs to 1,000 trials, more than 120 s allows, so add a time model and cap the band.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "level field plus a stored board size (absent = 6×6); trail.ts's helpers already take a size and the goal line must read the board's own last number",
+    "files": [
+      "src/lib/duel/trail.ts",
+      "src/lib/duel/trail.server.ts",
+      "src/lib/duel/logicOverhaul2Levels.ts",
+      "src/lib/duel/logicHuman.server.ts",
+      "scripts/logic-level-bank.ts",
+      "scripts/logic-levels-check.ts",
+      "src/puzzles/trail.tsx"
+    ],
+    "risk": "proving one path on 8×8 may be too slow to bank 120 boards; fall back to 7×7 with 11 numbers for Expert"
+  },
+  {
+    "id": "fences",
+    "name": "Loopline",
+    "group": "Logic",
+    "lever": "Board size",
+    "today": {
+      "easy": "5×5, 14+ numbers, grade 0–1, 90 s",
+      "normal": "6×6, 15+ numbers, grade 0–6, 90 s (fencesRev 1)",
+      "hard": "7×7, 18+ numbers, grade 3–8, 3–15 trials, 90 s",
+      "expert": "8×8, 19+ numbers, grade 4–30, 8–40 trials, 120 s"
+    },
+    "measured": "near-perfect kit, 20 boards, no human limits: 199.0 / 199.2 / 183.6 / 171.1 (all finished) (E/N/H/X)",
+    "easy": "As today: 5×5, 14 or more numbers, no branching, 90 s",
+    "hard": "8×8 (today 7×7), 22 or more numbers, grade 3–10, 3–20 trials, 90 s",
+    "expert": "8×10 (rows added below), 26 or more numbers, grade 6–40, 10–60 trials, 110 s. Ceiling: 8 across (the lines between dots are the targets, 45 px squares); after it the board grows downwards, then fewer numbers",
+    "glance": {
+      "easy": "A small 5×5 grid, more than half the squares numbered",
+      "hard": "An 8×8 grid, almost twice Normal's squares",
+      "expert": "A tall 8×10 grid with wide blank patches"
+    },
+    "why": "The ladder is already board size, but one square a side per level leaves the near-perfect kit finishing every Expert board, so Hard takes today's Expert board and Expert grows downwards past the width limit.",
+    "proof": "One loop by the game's solver, and every board finished by the person-style solver (fencesDeductions plus one-step trials, logicHuman.server.ts) inside the level's trial band; scripts/logic-levels-check.ts; add a time model (0.15 s a line drawn, about 1.5 s a trial) so Expert is proved inside 110 s.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "level field plus a stored row count (absent = square); no rule changes, so fencesRev stays 1",
+    "files": [
+      "src/lib/duel/fences.ts",
+      "src/lib/duel/fences.server.ts",
+      "src/lib/duel/logicOverhaul2Levels.ts",
+      "src/lib/duel/logicLevelDeal.server.ts",
+      "src/lib/duel/logicHuman.server.ts",
+      "scripts/logic-levels-check.ts",
+      "src/puzzles/fences.tsx"
+    ],
+    "risk": "Loopline is square-only today: rules, solver, stage and reveal all need a row count"
+  },
+  {
+    "id": "fillomino",
+    "name": "Regions",
+    "group": "Logic",
+    "lever": "Board size",
+    "today": {
+      "easy": "6×6, 16–22 numbers shown, grade 0–20, 90 s",
+      "normal": "7×7, 14–26 numbers shown, grade 8–120, 90 s (fillominoRev 2)",
+      "hard": "7×7, 10–15 numbers shown, grade 30–400, 20–120 trials, 90 s",
+      "expert": "8×8, 10–14 numbers shown, grade 40+, 40–400 trials, bank of 120, 120 s"
+    },
+    "measured": "near-perfect kit, 20 boards, no human limits: 200.0 / 199.5 / 169.1 (95 % finished) / 154.7 (80 %) (E/N/H/X)",
+    "easy": "As today: 6×6, 16–22 numbers shown, 90 s",
+    "hard": "8×8 (today Normal's 7×7 with fewer numbers), 16–20 numbers shown, grade 30–400, 20–120 trials, 100 s",
+    "expert": "9×9, 16–20 numbers shown (about a fifth of the board), grade 40+, 40–300 trials, bank of 120, 120 s. Ceiling: 9 across (40 px with a digit in every square and the number pad below); after it, fewer numbers",
+    "glance": {
+      "easy": "A small grid with half its numbers given",
+      "hard": "An 8×8 grid, three squares in four blank",
+      "expert": "A 9×9 grid, four squares in five blank"
+    },
+    "why": "Hard today is Normal's 7×7 with fewer numbers, which reads as the same board; a side longer at each level (36, 49, 64, 81 squares) with a thinner spread of numbers is a step the eye and the solver both feel.",
+    "proof": "One solution by the game's solver, and every board finished by the person-style solver (fillominoDeductions plus one-step trials, logicHuman.server.ts) inside the trial band; Hard and Expert from banks (scripts/logic-level-bank.ts), proved by scripts/logic-levels-check.ts; add a time model so Expert is proved inside 120 s.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "level field only (size, numbers and clock are stored on the board)",
+    "files": [
+      "src/lib/duel/logicOverhaul2Levels.ts",
+      "src/lib/duel/fillomino.server.ts",
+      "src/lib/duel/logicLevelBank.server.ts",
+      "scripts/logic-level-bank.ts",
+      "src/lib/duel/logicHuman.server.ts",
+      "scripts/logic-levels-check.ts"
+    ],
+    "risk": "9×9 boards inside a 300-trial band may be slow to find (the 8×8 bank already takes seconds a board)"
+  },
+  {
+    "id": "bridges",
+    "name": "Island Link",
+    "group": "Logic",
+    "lever": "Islands to link",
+    "today": {
+      "easy": "6×6, 7–9 islands, no branching, 90 s",
+      "normal": "7×7, 10–14 islands, grade 0–4, 90 s (bridgesRev 1)",
+      "hard": "8×8, 13–16 islands, grade 2–6, 1–8 trials, 90 s",
+      "expert": "8×8, 18–22 islands, grade 2–20, 3–20 trials, 120 s"
+    },
+    "measured": "near-perfect kit, 20 boards, no human limits: 199.6 / 199.9 / 180.3 / 155.5 (85 % finished) (E/N/H/X)",
+    "easy": "As today: 6×6, 7–9 islands, no branching, 90 s",
+    "hard": "8×8, 18–22 islands (today 13–16), grade 2–8, 2–12 trials, 105 s",
+    "expert": "8×11 (rows added below), 26–30 islands, grade 3–20, 4–25 trials, 120 s. Ceiling: 8 across (islands are the targets, 46 px apart); after it the board grows downwards",
+    "glance": {
+      "easy": "Eight islands on a small sea",
+      "hard": "About twenty islands, nearly twice Normal's",
+      "expert": "Nearly thirty islands down a taller sea"
+    },
+    "why": "Islands are what a player counts, and the count now climbs by about half at every level (8, 12, 20, 28), with Expert growing downwards because eight across is the phone's limit.",
+    "proof": "One solution by the game's solver, and every board finished by the person-style solver (bridgesDeductions plus one-step trials, logicHuman.server.ts) inside the trial band; scripts/logic-levels-check.ts; add a time model (0.4 s a bridge, about 1.5 s a trial) so Expert is proved inside 120 s.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "level field plus a stored row count (absent = square); no rule changes, so bridgesRev stays 1",
+    "files": [
+      "src/lib/duel/bridges.ts",
+      "src/lib/duel/bridges.server.ts",
+      "src/lib/duel/logicOverhaul2Levels.ts",
+      "src/lib/duel/logicLevelDeal.server.ts",
+      "src/lib/duel/logicHuman.server.ts",
+      "scripts/logic-levels-check.ts",
+      "src/puzzles/bridges.tsx"
+    ],
+    "risk": "Island Link is square-only today: rules, solver, stage and reveal all need a row count"
+  }
+]

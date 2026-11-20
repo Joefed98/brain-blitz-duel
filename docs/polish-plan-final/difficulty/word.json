@@ -1,0 +1,320 @@
+[
+  {
+    "id": "wordsmith",
+    "name": "Nucleus",
+    "group": "Word",
+    "lever": "Shortest word that counts",
+    "today": {
+      "easy": "9-10 letter ring, 45-85 everyday words, words of 4+ letters, 120 s",
+      "normal": "8-11 letter ring, 17-87 everyday words (median 37), words of 4+ letters, 100 s, wordsmithRev 5",
+      "hard": "8-9 letter ring, 16-24 everyday words, 4+ letters, 65 s",
+      "expert": "8 letter ring, 10-14 everyday words, 4+ letters, 50 s"
+    },
+    "measured": "Check bands, near-perfect mean: E 155-182, N 145-168, H 128-155, X 110-138. Kit medians, 12 seeds, read-only run for this plan (average / good / near-perfect): E 75 / 112 / 158, N 54 / 92 / 141, H 30 / 75 / 150, X 22 / 54 / 141. On the same seeds Hard boards hold 40-102 word points in the whole dictionary and Expert boards 36-61; 200 needs 140 points plus the every-tile word, so no Hard or Expert board dealt today can reach 200.",
+    "easy": "Words of 3+ letters count, and every word scores as one letter longer (3 letters 1 point, 4 letters 2, 5 letters 4, 6 letters 7, 7 letters 11, 8 or more 15). Ring of 9-10 letters with 45-85 everyday 4+ words, as today. 120 s. A first word inside 10 seconds.",
+    "hard": "Words of 5+ letters only. Ring of 10-11 letters holding 20-35 everyday words of 5+ letters and at least 140 word points with the every-tile word. 75 s (Normal 100 s). Normal's points table.",
+    "expert": "Words of 6+ letters only. Ring of 11 letters holding 12-20 everyday words of 6+ letters and at least 140 word points in 6+ letter words with the every-tile word. 65 s.",
+    "glance": {
+      "easy": "A 3+ LETTERS badge on a full ring; short words score.",
+      "hard": "A 5+ LETTERS badge on a bigger ring; four-letter words bounce.",
+      "expert": "A 6+ LETTERS badge on the biggest ring of eleven letters."
+    },
+    "why": "Long words are the whole skill of an anagram ring, so raising the shortest word that counts makes each level harder from the first try, while a bigger ring keeps a 200 on the board, which today's sparse Hard and Expert boards cannot hold.",
+    "proof": "An open word find, so the proof is a witness. To write: scripts/wordsmith-level-bank.ts (or a filter in src/lib/duel/levels/wordsmith.server.ts) keeps a board only when a list of its allowed words reaches 140 points plus the every-tile word, typed inside the clock at 0.25 s a word and 0.15 s a tap (HUMAN_LIMITS); six-letter words alone pay about 3 points a second, so 140 fits in about 45 s. All 14 sampled 11-letter rings hold 147 or more points in 6+ letter words. scripts/wordsmith-levels-check.ts re-proves the witness on every dealt board and that a 4-letter word is refused on Hard.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "Level field plus a stored minLength on the level's puzzle (absent = 4, so Normal and every stored round are unchanged); Easy's 3-letter point and step-up table are read from the same field. No new Normal stamp.",
+    "files": [
+      "src/lib/levels/word/wordsmith.ts",
+      "src/lib/duel/levels/wordsmith.server.ts",
+      "src/lib/duel/wordsmith.server.ts",
+      "src/lib/duel/types.ts",
+      "src/components/puzzles/WordsmithPuzzle.tsx",
+      "scripts/wordsmith-levels-check.ts"
+    ],
+    "risk": "rich rings can let strong players outscore Normal (near-perfect 141), so the word band and clock must be tuned to hold Hard and Expert below it"
+  },
+  {
+    "id": "tilegrid",
+    "name": "Interlock",
+    "group": "Word",
+    "lever": "Tiles in the tray",
+    "today": {
+      "easy": "15 tiles on the 7 by 7 board, down words start on the across word, 120 s",
+      "normal": "15 tiles, an H of three 4-7 letter words, 7 by 7 board, 100 s, tileGridRev 4",
+      "hard": "15 tiles, 7-letter across word crossed mid-word, 60 s",
+      "expert": "15 tiles, as Hard with crossings off the across word's ends, 50 s"
+    },
+    "measured": "No band pinned by the check. Kit medians, 12 seeds, read-only run for this plan (average / good / great): E 130 / 193 / 197, N 111 / 191 / 196, H 76 / 130 / 189, X 41 / 117 / 182; near-perfect 200 at every level. The four levels look identical on screen and the kit thinks per word, so the whole step is the clock.",
+    "easy": "10 tiles: two crossing everyday words of 5 and 6 letters, on a 6 by 6 board with bigger squares. 120 s. Live word lights and red runs as today.",
+    "hard": "19 tiles: four crossing words of 5-6 letters, on an 8 by 8 board. 90 s (Normal 100 s).",
+    "expert": "23 tiles: five crossing words of 5-6 letters, on a 9 by 9 board (38 px squares at 390 px, close to the 36 px floor). 90 s. Words light and bad runs show only on Done.",
+    "glance": {
+      "easy": "Ten tiles and a small 6 by 6 board with big squares.",
+      "hard": "Nineteen tiles in three tray rows; a bigger 8 by 8 board.",
+      "expert": "Twenty-three tiles, a 9 by 9 board, and no word lights."
+    },
+    "why": "An anagram crossword gets harder the way Bananagrams does, with every extra tile and word in the rack, and a fuller tray on a bigger board shows that before a tile is touched, where today's crossing rules cannot be seen at all.",
+    "proof": "Every rack comes from a real crossword built in the deal (tileGridValid, src/lib/duel/tileGrid.server.ts), and placing it at 0.25 s to react and 0.3 s a tile takes under 8 s, inside the 33 s full-speed line, so the dealt grid scores 200. To write: scripts/tilegrid-human.ts, a person-like builder (everyday words only, longest word first, one-step take-backs, never sees the answer) and scripts/tilegrid-level-bank.ts keeping only Hard and Expert racks it finishes inside the clock; scripts/tilegrid-levels-check.ts re-proves each. Any grid of real words still counts, so the game stays open by design.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "tileGridRev 5 on level deals only: the board size and tile count are stored on the puzzle, the answer string follows the stored size, and unfinished credit is 120 x tiles in words / tiles. Normal stays tileGridRev 4 on the 49-square board.",
+    "files": [
+      "src/lib/levels/word/tilegrid.ts",
+      "src/lib/duel/levels/tilegrid.server.ts",
+      "src/lib/duel/tileGrid.ts",
+      "src/lib/duel/tileGrid.server.ts",
+      "src/lib/duel/standard/word.server.ts",
+      "src/puzzles/tileGrid.tsx",
+      "scripts/tilegrid-levels-check.ts"
+    ],
+    "risk": "board size and tile count are constants in the shared rules, grader and reveal today, and 23 tiles in 90 s may be beyond the person-like builder, in which case Expert drops to 21"
+  },
+  {
+    "id": "wordslide",
+    "name": "Slider",
+    "group": "Word",
+    "lever": "Grid size",
+    "today": {
+      "easy": "5 by 5 grid, 2-3 slides from the words, 100 s",
+      "normal": "5 by 5 grid, five common words 5-8 slides away, par the proven fewest slides, 100 s, wordSlideRev 6",
+      "hard": "5 by 5 grid, 7 slides away, 60 s",
+      "expert": "5 by 5 grid, 8 slides away, 50 s"
+    },
+    "measured": "Person-like solver (scripts/slider-human.ts), 24 boards a level, average score and finishes, strong / elite: E 114.0 (13) / 200 (24); N 76.3 (4) / 140.4 (15); H 57.7 (2) / 108.9 (9); X 41.0 (0) / 89.0 (4, best 189). The kit follows the stored line and scores about 200 at every level.",
+    "easy": "4 by 4 grid of four 4-letter everyday words, 2-3 slides away, with the four target words listed above the grid. 100 s.",
+    "hard": "6 by 6 grid of six 6-letter words (36 tiles, Normal 25), 6-7 slides away, 100 s.",
+    "expert": "7 by 7 grid of seven 7-letter words (49 tiles, about 41 px at 390 px), 7 slides away, 100 s; only boards the elite person-like solver finishes.",
+    "glance": {
+      "easy": "A small 4 by 4 grid with its four target words listed.",
+      "hard": "A 6 by 6 grid: 36 tiles and six longer words.",
+      "expert": "A 7 by 7 grid: 49 tiles and seven 7-letter words."
+    },
+    "why": "The grid is the only thing a player can see change in a slide puzzle, and each size up adds a row, a column and longer words to hold in mind, so 16, 25, 36 and 49 tiles read as one ladder where today's four levels look the same.",
+    "proof": "Par is proven on every board by the two-way search (wordSlideDistance, src/lib/duel/wordSlideDistance.server.ts) and kept at 7 or under on the bigger grids so a grade costs no more than today's depth 8. Hard and Expert deal from a new bank (scripts/slider-level-bank.ts, to write) holding only boards scripts/slider-human.ts, made size-aware, finishes inside the clock at its elite setting without reading the stored words. Today that solver finishes only 4 of 24 Expert boards, so today's Expert is not proven. Any real words in the rows still count (open by design).",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "wordSlideRev 7 on level deals only: the grid size is stored on the puzzle and slide tokens take rows and columns 0-6. Normal stays wordSlideRev 6 on 5 by 5.",
+    "files": [
+      "src/lib/levels/word/wordslide.ts",
+      "src/lib/duel/levels/wordslide.server.ts",
+      "src/lib/duel/wordSlide.ts",
+      "src/lib/duel/wordSlide.server.ts",
+      "src/lib/duel/wordSlideDistance.server.ts",
+      "src/puzzles/wordSlide.tsx",
+      "scripts/slider-human.ts",
+      "scripts/wordslide-levels-check.ts"
+    ],
+    "risk": "a bigger grid leaves more of each word intact per slide, so 6 by 6 and 7 by 7 must be measured with the size-aware solver first; the fallback is today's depth and clock on 5 by 5 with only Easy changed"
+  },
+  {
+    "id": "wordhunt",
+    "name": "Forage",
+    "group": "Word",
+    "lever": "Shortest word that counts",
+    "today": {
+      "easy": "6 by 6 board, 320-700 everyday words, words of 4+ letters, 120 s",
+      "normal": "6 by 6 board, 140-420 everyday words (median about 240), words of 4+ letters, 10 free misses plus 2 a word, 100 s, wordHuntRev 4",
+      "hard": "6 by 6 board, 100-140 everyday words, 4+ letters, 80 s",
+      "expert": "6 by 6 board, 50-80 everyday words, 4+ letters, 70 s"
+    },
+    "measured": "Check bands, near-perfect mean: E 170-195, N 158-184, H 138-164, X 115-142. Kit medians, 12 seeds, read-only run for this plan (average / good / near-perfect): E 67 / 115 / 177, N 64 / 102 / 170, H 29 / 88 / 148, X 29 / 80 / 126. The four boards look the same on screen. On 7 of 12 sampled Expert boards every listed word together scores under 200 (176-198).",
+    "easy": "Words of 3+ letters count, and every word scores as one letter longer (3 letters 1 point, 4 letters 2, 5 letters 4, 6 letters 7, 7 or more 11). Packed board of 320-700 everyday words, as today. Misses cost nothing. 120 s.",
+    "hard": "Words of 5+ letters only, on a packed board (320-700 everyday 4+ words, at least 60 of them 5+ letters). Free misses 6 plus 1 a word (Normal 10 plus 2). 80 s.",
+    "expert": "Words of 6+ letters only, on a packed board with at least 25 everyday words of 6+ letters. Free misses 3 plus 1 a word. 70 s.",
+    "glance": {
+      "easy": "Goal line says 3+ letters; three-letter traces score at once.",
+      "hard": "Goal line says 5+ letters; a four-letter trace bounces.",
+      "expert": "Goal line says 6+ letters; only three free misses shown."
+    },
+    "why": "On a letter grid the short words are the easy ones, so lifting the shortest word that counts (the rule the bigger Boggle sets use) steepens every level, while packed boards keep 200 within reach, which today's sparse Expert boards often cannot.",
+    "proof": "An open word find, so the proof is a witness. The level deal (src/lib/duel/levels/wordhunt.server.ts) keeps a board only when a list of its allowed words reaches 60 base points and 120 long-word and gold points traced inside the clock at 0.25 s a word and 0.15 s a letter; packed boards hold 74-236 words of 6+ letters on the sampled seeds, and for example 18 seven-letter words (126 base and 126 extra points) trace in about 23 s. scripts/wordhunt-levels-check.ts re-proves the witness on every dealt board and that a short trace is refused.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "Level field plus a stored minLength and free-miss allowance on the level's puzzle (absent = 4 letters, 10 plus 2); Easy's 3-letter point and step-up table read from the same field. No new Normal stamp.",
+    "files": [
+      "src/lib/levels/word/wordhunt.ts",
+      "src/lib/duel/levels/wordhunt.server.ts",
+      "src/lib/duel/wordHunt.server.ts",
+      "src/lib/duel/wordHunt.ts",
+      "src/components/puzzles/WordHuntPuzzle.tsx",
+      "scripts/wordhunt-levels-check.ts"
+    ],
+    "risk": "five- and six-letter paths are rarer finds for people than the kit models, so Expert may sit near 0 for average players until the clock is tuned"
+  },
+  {
+    "id": "wordsearch",
+    "name": "Lookout",
+    "group": "Word",
+    "lever": "Words to find",
+    "today": {
+      "easy": "8 by 8 grid, 5 words, across and down only, 120 s",
+      "normal": "10 by 10 grid, 6 words in 8 directions plus a hidden bonus word, 120 s, wordSearchRev 6",
+      "hard": "10 by 11 grid, 7 words in 8 directions, 90 s",
+      "expert": "10 by 12 grid, 8 words, 4 false starts, 90 s"
+    },
+    "measured": "Check bands near-perfect / great: E 185-200 / 165-195, N 180-200 / 165-190, H 174-196 / 150-175, X 152-178 / 132-158. Kit medians, 12 seeds, read-only run for this plan (average / good / near-perfect): E 168 / 170 / 200, N 151 / 164 / 170, H 53 / 152 / 193, X 62 / 94 / 162; the average kit scores higher on Expert than on Hard.",
+    "easy": "As today: 8 by 8 grid, 5 words, across and down only, 120 s. It does the job: the average kit finishes 12 of 12 at 168 and the small grid is plain at a glance.",
+    "hard": "10 by 12 grid (today's Expert size, two rows taller than Normal), 8 words in all 8 directions, no false starts, 100 s.",
+    "expert": "10 by 12 grid, 10 words (Normal 6), 5 false starts, 90 s.",
+    "glance": {
+      "easy": "A small 8 by 8 grid, big letters, five words.",
+      "hard": "A taller 10 by 12 grid and eight word chips.",
+      "expert": "Ten word chips in three rows under the tall grid."
+    },
+    "why": "The grid is already at the phone's limit (ten columns of 36 px squares, twelve rows on a short phone), so the honest ladder is more words to find in that space with false starts on top, taking Hard to today's Expert size and Expert to ten words.",
+    "proof": "scripts/word-search-level-bank.ts rebuilds each level's bank byte for byte (--check) and proves every listed word is hidden exactly once in all 8 directions with no other word of the theme on the grid; scripts/wordsearch-levels-check.ts checks the bank, the rules and the bands. To add to the bank script: a reading witness, every word and the bonus dragged inside the full-speed time at 0.55 s a drag (about 6 s of hand time for 11 drags), so 200 is shown reachable on each Expert board.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "Level field only: new numbers in src/lib/levels/word/wordsearch.ts and a rebuilt level bank; the grid, words and clock are already stored on the puzzle.",
+    "files": [
+      "src/lib/levels/word/wordsearch.ts",
+      "scripts/word-search-level-bank.ts",
+      "src/lib/duel/wordSearchLevelBank.server.ts",
+      "scripts/wordsearch-levels-check.ts"
+    ],
+    "risk": "ten words, a bonus word and five false starts may not pack into 120 squares for every theme; 9 words is the fallback"
+  },
+  {
+    "id": "letterwheel",
+    "name": "Roundabout",
+    "group": "Word",
+    "lever": "Words in the crossword",
+    "today": {
+      "easy": "6-letter wheel, 7-9 words, 120 s",
+      "normal": "7-letter wheel, 11-14 words, grid up to 11 by 9, 5 free misses, 100 s, wheelRev 5",
+      "hard": "7-letter wheel, 12-15 words, grid up to 9 by 11, 75 s",
+      "expert": "7-letter wheel, 16-19 words, grid up to 9 by 12, 80 s"
+    },
+    "measured": "Check bands, near-perfect mean: E 170-195, N 162-186, H 155-180, X 148-174. Kit medians, 12 seeds, read-only run for this plan (average / good / great / near-perfect): E 110 / 162 / 170 / 180, N 53 / 108 / 158 / 174, H 38 / 82 / 111 / 167, X 37 / 70 / 103 / 166. No kit run reached 200 at any level (best 194 on Easy, 179 on Normal). Expert's clock is longer than Hard's.",
+    "easy": "As today: 6-letter wheel, 7-9 words, 120 s. It does the job: the good kit finishes 12 of 12 at 162 and the small wheel and crossword are plain at a glance.",
+    "hard": "7-letter wheel, 16-19 words (today's Expert bank, grid up to 9 by 12), 75 s, 3 free misses (Normal 5).",
+    "expert": "8-letter wheel, 20-24 words in a grid up to 10 by 13, 70 s, 2 free misses.",
+    "glance": {
+      "easy": "Six letters on the wheel and a small crossword.",
+      "hard": "A crossword of 16 to 19 words fills the top half.",
+      "expert": "Eight letters on the wheel under a 20-word-plus crossword."
+    },
+    "why": "A wheel-and-crossword game grows the way its kind always has, more letters on the wheel and more words to fill, and one more notch each way gives Expert a wheel and a crossword no other level has, where today Hard and Expert differ by a few words and Expert has the longer clock.",
+    "proof": "scripts/letter-wheel-bank.ts --level builds each bank (every slot word a common answer traceable on the wheel, the grid inside the level's limits, rebuilt byte for byte with --check); Expert needs a new 8-letter bank from a new LW_LEVEL_LIMITS row. Open by design (fills are not unique), so 200 is shown by a witness to add to scripts/letterwheel-levels-check.ts: every slot word and a full jar traced inside the 40 s full-speed line at 0.25 s a word and 0.15 s a letter (about 33 s of tracing for 22 slot words plus the 11 or so bonus words that fill the 30-drop jar).",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "Level field plus a stored free-miss allowance on the level's puzzle (absent = 5); the wheel's letters, grid and clock are already stored. New level banks, no new Normal stamp.",
+    "files": [
+      "src/lib/levels/word/letterwheel.ts",
+      "src/lib/duel/letterWheel.ts",
+      "scripts/letter-wheel-bank.ts",
+      "src/lib/duel/letterWheelBankHard.server.ts",
+      "src/lib/duel/letterWheelBankExpert.server.ts",
+      "src/puzzles/letterWheel.tsx",
+      "scripts/letterwheel-levels-check.ts"
+    ],
+    "risk": "an 8-letter wheel's 20-24 word crossword may need more than 10 by 13, and its squares shrink to about 24 px on short phones (display only; letters stay 11 px or more)"
+  },
+  {
+    "id": "strikeout",
+    "name": "Strikeout",
+    "group": "Word",
+    "lever": "Starting letters per word",
+    "today": {
+      "easy": "3 or 2 starting letters on all five words, 4 vowel guesses a word, 14 strikes, 120 s",
+      "normal": "3 or 2 starting letters on words 1-3 and one fewer on words 4-5, 3 vowel guesses a word, 12 strikes, 100 s, strikeoutRev 7",
+      "hard": "1 starting letter a word, 2 vowel guesses, 10 strikes, 90 s",
+      "expert": "no starting letters, 2 vowel guesses, 12 strikes, 85 s"
+    },
+    "measured": "Check bands near-perfect / great: E 188-200 / 185-200, N 190-200 / 180-196, H 172-192 / 145-178, X 155-182 / 100-132. Kit medians, 12 seeds, read-only run for this plan (average / good / great / near-perfect): E 178 / 191 / 196 / 196, N 100 / 183 / 191 / 196, H 66 / 107 / 172 / 183, X 39 / 80 / 127 / 172.",
+    "easy": "4 starting letters on every word (today 3 or 2, the same as Normal's first word), 4 vowel guesses a word, 14 strikes, 120 s.",
+    "hard": "As today: 1 starting letter a word, 2 vowel guesses, 10 strikes, 90 s. It does the job: one letter showing is plain at a glance and the average kit lands at 66.",
+    "expert": "No starting letters, 2 vowel guesses, 8 strikes (today 12, more than Hard's 10), 85 s.",
+    "glance": {
+      "easy": "Four letters of the first word already showing; 14 strike dots.",
+      "hard": "One letter showing; 10 strike dots; two vowel dots.",
+      "expert": "Every tile blank and only 8 strike dots."
+    },
+    "why": "Starting letters are what a hangman player sees first and leans on most, and today's 1 and 0 at Hard and Expert already land the average kit at 66 and 39, so only Easy's letters and Expert's strike row need to join the same ladder.",
+    "proof": "One answer word fits each pattern (scripts/strikeout-levels-check.ts). Hard and Expert deal only sets the person-like guesser (solveStrikeoutLikeAPerson, src/lib/duel/levels/strikeoutSolver.server.ts, never sees the answers) clears inside the level's strikes, redrawing on the room seed up to 40 times; on 60 blind first draws it cleared 25 inside 8 strikes and 47 inside 12 (this plan's read-only run). To add: time its line at 0.25 s a decision and 0.15 s a key against the 85 s clock.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "Level field only: starting letters, vowel guesses, strikes and clock are already stored on the puzzle (givens, maxVowels, maxStrikes, timeLimitMs).",
+    "files": [
+      "src/lib/levels/word/strikeout.ts",
+      "src/lib/duel/levels/strikeout.server.ts",
+      "src/lib/duel/levels/strikeoutSolver.server.ts",
+      "scripts/strikeout-levels-check.ts"
+    ],
+    "risk": "8 strikes with no letters showing may end most average runs inside the first two words; 10 strikes is the fallback"
+  },
+  {
+    "id": "codeword",
+    "name": "Cryptogrid",
+    "group": "Word",
+    "lever": "Grid size",
+    "today": {
+      "easy": "7 by 7 grid, 8 numbers decoded at the start, 120 s",
+      "normal": "7 by 7 grid of 14-18 letters, 6 numbers decoded at the start, 120 s, codewordRev 7",
+      "hard": "7 by 7 grid, 5 decoded, 75 s",
+      "expert": "7 by 7 grid, 4 decoded, 70 s, only the 666 bank boards a person-like solver cracks"
+    },
+    "measured": "Check bands near-perfect / great: E and N 190-200 / 185-200, H 185-200 / 175-198, X 185-200 / 130-190. Kit medians, 12 seeds, read-only run for this plan (average / good / great): E 151 / 190 / 200, N 91 / 183 / 200, H 56 / 100 / 198, X 48 / 100 / 200. Speed is full for any finish inside 60 s and Hard and Expert last 75 and 70 s, so strong players score about 200 on every level.",
+    "easy": "5 by 5 grid: six 5-letter words on rows and columns 1, 3 and 5 (21 squares, about 12 letters), 6 decoded at the start, 120 s.",
+    "hard": "8 by 8 grid (about 17-21 letters, Normal 14-18), 5 decoded at the start, 110 s.",
+    "expert": "9 by 9 grid (about 20-24 letters, 40 px squares at 390 px), 4 decoded at the start, 100 s; only boards the person-like solver cracks.",
+    "glance": {
+      "easy": "A small 5 by 5 grid, half its letters already in.",
+      "hard": "A bigger 8 by 8 grid with about 20 numbers.",
+      "expert": "A 9 by 9 grid with only four letters showing."
+    },
+    "why": "A code-breaker gets harder with more squares and more letters to crack, and only a bigger grid stretches strong players, who score about 200 on every level today because the levels differ by one starting letter and a clock they never run out of.",
+    "proof": "Each size needs its own bank from scripts/codeword-bank.ts made size-aware, every board proven to have exactly one decoding from its givens by the full-dictionary solver (as scripts/codeword-check.ts proves today's 1,000 boards from four and five givens). Expert keeps only boards solveCodewordLikeAHuman (src/lib/duel/levels/codewordHuman.server.ts) cracks from the four givens by reasoning alone, its steps timed at 0.25 s to react and 0.15 s a tap inside the clock (scripts/codeword-expert-bank.ts); scripts/codeword-levels-check.ts re-proves both.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "Level field plus a stored grid size on level deals (absent = 7); cells, numbers and givens are already stored. On level deals the full-speed time scales with the level's clock, as Lookout's does. No new Normal stamp.",
+    "files": [
+      "src/lib/levels/word/codeword.ts",
+      "src/lib/duel/levels/codeword.server.ts",
+      "src/lib/duel/codeword.ts",
+      "src/lib/duel/codeword.server.ts",
+      "scripts/codeword-bank.ts",
+      "src/lib/duel/levels/codewordHuman.server.ts",
+      "src/puzzles/codeword.tsx",
+      "scripts/codeword-levels-check.ts"
+    ],
+    "risk": "three new banks with a one-answer proof are the biggest build in the group, and on 667 px tall phones the 9 by 9 squares fall to about 35 px unless the number strip folds away"
+  },
+  {
+    "id": "swapword",
+    "name": "Swapword",
+    "group": "Word",
+    "lever": "Loops of crossing words",
+    "today": {
+      "easy": "21 tiles in two loops, 5-7 swaps from the answer, 7-9 tiles in place, 16 spare swaps, 120 s",
+      "normal": "21 tiles in two loops of six words, 9-12 swaps away, 3-5 tiles in place, 12 spare swaps, 120 s, swapwordRev 7",
+      "hard": "21 tiles, 13-15 swaps away, 3-4 in place, 6 spare swaps, 55 s",
+      "expert": "21 tiles, 15-17 swaps away, 2-3 in place, 4 spare swaps, 60 s, human-solvable boards only"
+    },
+    "measured": "No band pinned by the check. Kit medians, 12 seeds, read-only run for this plan (average / good / great / near-perfect): E 186 / 200 / 196 / 200, N 175 / 200 / 194 / 200, H 35 / 73 / 110 / 200, X 32 / 66 / 196 / 200: a cliff at Hard, no step to Expert, and Expert's clock is longer than Hard's.",
+    "easy": "As today: the 21-tile board with 7-9 tiles already gold, 5-7 swaps away, 16 spare swaps, 120 s. It does the job: the average kit finishes 12 of 12 at 186 and the gold tiles are plain at a glance.",
+    "hard": "A three-loop board: 30 tiles and 8 words (four of 6 letters, four of 4) on an 8 by 8 with 45 px tiles, 3-4 in place, 8 spare swaps (Normal 12), 110 s.",
+    "expert": "A four-loop window: 33 tiles in six 7-letter words on a 7 by 7 (rows and columns 1, 4 and 7), 3 in place, 6 spare swaps, 110 s; only boards the mark-reading solver works out.",
+    "glance": {
+      "easy": "Seven to nine of the 21 tiles already gold.",
+      "hard": "Three loops of words: 30 tiles on a bigger board.",
+      "expert": "A window of 33 tiles in six 7-letter words."
+    },
+    "why": "Each extra loop adds nine or more tiles to sort and more crossings to hold in mind, a step the player sees at once, where today's Hard and Expert are Normal's board on half the clock.",
+    "proof": "src/lib/duel/levels/swapwordProof.server.ts made lattice-aware: swapwordOneArrangement proves only one arrangement of answer words keeps the start's gold tiles, and swapwordHumanSolves (reads only the marks the phone shows) must work out every Hard and Expert board, its swaps timed at 0.25 s to react and 0.3 s a swap inside the clock. The fewest swaps are proven by minSwaps (src/lib/duel/swapword.server.ts); scripts/swapword-levels-check.ts re-proves all three on every dealt board.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "swapwordRev 8 on Hard and Expert deals only: the lattice (tile squares and word slots) is stored on the puzzle and the swap list indexes its tiles. Easy and Normal stay on the 21-tile board and their stamps.",
+    "files": [
+      "src/lib/levels/word/swapword.ts",
+      "src/lib/duel/levels/swapword.server.ts",
+      "src/lib/duel/swapword.ts",
+      "src/lib/duel/swapword.server.ts",
+      "src/lib/duel/levels/swapwordProof.server.ts",
+      "src/puzzles/swapword.tsx",
+      "scripts/swapword-levels-check.ts"
+    ],
+    "risk": "the exact fewest-swaps search and the one-arrangement proof may be slow on 30 and 33 tiles, and the mark-reading solver may reject most 7-letter windows"
+  }
+]

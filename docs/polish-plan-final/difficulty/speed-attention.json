@@ -1,0 +1,338 @@
+[
+  {
+    "id": "reaction",
+    "name": "Flash",
+    "group": "Speed",
+    "lever": "Trap flashes before each gold",
+    "today": {
+      "easy": "5 golds, 0–1 plain traps before each, gold up 1.5 s, 60 s",
+      "normal": "5–8 golds, 1–3 traps before each (half gold look-alikes), traps 0.6 s long, gold up 1.5 s, 60 s",
+      "hard": "6–8 golds, 2–3 traps, 75 % look-alikes, gold up 1.5 s",
+      "expert": "8 golds, 3–5 traps, 75 % look-alikes, gold up 1 s"
+    },
+    "measured": "Elite held to human limits 124 / 114 / 106 / 100 (Expert best tenth 123); 140 ms elite 188 / 186 / 187 / 183 (speed-levels-tune, 100 deals). Average player: not documented.",
+    "easy": "5 golds; the first inside 3 s with no trap before it (today 4–7 s); 0–1 plain trap before the others and no look-alikes (as today); gold up 1.5 s.",
+    "hard": "8 golds; 3–5 traps before each (about 32 a round against Normal's 13), each 0.45 s long and 0.6–1 s apart, the first inside the first second; 75 % gold look-alikes; gold up 0.9 s.",
+    "expert": "9 golds; 6–8 traps before each (about 63 a round), each 0.35 s long and 0.5–0.65 s apart (never more than two a second); 90 % look-alikes; gold up 0.6 s.",
+    "glance": {
+      "easy": "A calm dark glass; the first gold arrives within three seconds.",
+      "hard": "Trap colours fire about once a second from the start.",
+      "expert": "The glass flickers twice a second, nearly all gold look-alikes."
+    },
+    "why": "The only thing Flash can ask beyond a fast finger is not to be fooled, so the traps multiply and quicken while the gold's own window never drops below 0.6 s, more than twice the 0.25 s limit.",
+    "proof": "Open by design (a reaction game). At 0.25 s a gold pays 115 on tapRev 7's curve, so with the 15-point steady hand the limits player tops out at 130 on every level, Normal included. Expert's 200 needs I1's tapRev 8 with the curve's full mark at 250 ms (I1 as written, 250 ms = 150, still caps the limits player at 165). With that, playFlashHuman in scripts/speed-levels-tune.ts must reach 200 in its best tenth at Expert, pinned in scripts/speed-levels-check.ts.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "Level field only: the deal stamps flashMs (as today) and a new trapMs that the stage and replayFlash read. Expert's 200 also needs I1's tapRev 8 (Joe's scoring decision).",
+    "files": ["src/lib/levels/speedLevels.ts", "src/puzzles/reaction.tsx", "src/lib/duel/tapLog.ts", "src/lib/duel/depth/flash.ts", "scripts/speed-levels-tune.ts", "scripts/speed-levels-check.ts"],
+    "risk": "Until I1 moves the curve no level can pass 130 under the limits, and fast full-screen flashes must stay under three a second."
+  },
+  {
+    "id": "numhunt",
+    "name": "Ascend",
+    "group": "Speed",
+    "lever": "Numbers on the board",
+    "today": {
+      "easy": "16 numbers from 1–30, discs never move, 60 s, speed full by 40 s",
+      "normal": "24 numbers 10–99, discs move every 15 s, 60 s, speed full by 40 s",
+      "hard": "30 numbers 10–99, move every 10 s, 50 s, full by 25 s",
+      "expert": "30 numbers, highest first, move every 8 s, 45 s, full by 20 s"
+    },
+    "measured": "Elite held to human limits 199 / 199 / 190 / 178 (Expert best tenth 181); 140 ms elite 200 / 199 / 199 / 193. Average player: not documented.",
+    "easy": "16 numbers, 1 to 16 with no gaps (today 16 picked from 1–30), discs never move, 60 s, speed full by 15 s (today 40 s).",
+    "hard": "32 numbers 10–99, discs move every 10 s, 40 s clock, speed full by 32 s.",
+    "expert": "40 numbers 10–99, highest first, discs move every 8 s, 55 s clock, speed full by 49 s. 40 is the 390 px ceiling at 44 px discs (a jittered 5 × 8 grid).",
+    "glance": {
+      "easy": "Sixteen big discs, 1 to 16, that never move.",
+      "hard": "Thirty-two discs crowd the board; the clock bar is short.",
+      "expert": "Forty discs fill the board; the goal says highest first."
+    },
+    "why": "Search time grows with the square of the numbers on the board (about 11, 20, 33 and 51 s for the limits player), so eight more discs a level is a steep, even step anyone can see.",
+    "proof": "Open (search and tap). playAscend in scripts/speed-levels-tune.ts under HUMAN_LIMITS (0.25 s to react, 0.15 s to move, 35 ms a disc still to search) finishes Hard in about 33 s and Expert in about 51 s; each clock and full-by is set from that run so its best tenth scores 200, pinned in scripts/speed-levels-check.ts. Today's Expert is full by 20 s against about 31 s for that player (best tenth 181).",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "Level field only: moveMs, timeLimitMs, fullByS and descending are already stamped on the puzzle, and the count and range are in the dealt board.",
+    "files": ["src/lib/levels/speedLevels.ts", "src/puzzles/numberHunt.tsx", "scripts/speed-levels-tune.ts", "scripts/speed-levels-check.ts"],
+    "risk": "40 discs need the jittered grid, which reads more orderly than a free scatter."
+  },
+  {
+    "id": "symscan",
+    "name": "Eagle Eye",
+    "group": "Attention",
+    "lever": "Eagles in each grid",
+    "today": {
+      "easy": "Grids 4×4, 5×5, 6×6; 4–7 targets; one facing; 30 % look-alikes; 60 s; speed full by 12 s",
+      "normal": "Grids 5×5, 6×6, 7×7; 5–9 targets; two facings on grid 3 (4–6 each); 60 % look-alikes; 60 s; full by 15 s",
+      "hard": "Grids 6×6, 7×7, 8×8; 6–10 targets; two facings from grid 2; 75 % look-alikes; full by 8 s",
+      "expert": "Three 7×7 grids; two facings on every grid (4–6 each); 80 % look-alikes; full by 8 s"
+    },
+    "measured": "Great / near-perfect kit, 40 seeds: E 184 / 193, N 187 / 196, H 159 / 179, X 148 / 175 (Expert best tenth 166 / 189). Easy scores below Normal for the great kit. Average player: not documented.",
+    "easy": "Grids 4×4, 4×4, 5×5 (16, 16, 25 eagles); 3–5 targets; one facing; no look-alikes (every other eagle faces at least 90° away); 60 s; speed full by 20 s.",
+    "hard": "Grids 7×7, 8×8, 8×8 (49, 64, 64 eagles); 8–12 targets; two facings from grid 2; 75 % look-alikes; 60 s; speed full by 26 s.",
+    "expert": "Three grids of 8 across by 10 down (80 eagles each at 45 px, the phone's ceiling); 10–14 targets in two facings on every grid; 85 % look-alikes; 60 s; speed full by 40 s.",
+    "glance": {
+      "easy": "Sixteen big eagles, and nothing that nearly matches.",
+      "hard": "Forty-nine small eagles in the very first grid.",
+      "expert": "Eighty eagles a grid and two facings to find."
+    },
+    "why": "A search game is as hard as the crowd is big, so the first grid runs 16, 25, 49, 80 eagles (to the 45 px ceiling) while look-alikes and a second facing slow every judgement.",
+    "proof": "Answers are counted from the dealt board (scripts/attention-levels-check.ts). Only the 10 speed points are timed: a limits run (0.4 s a tap plus the scan; to be added to scripts/attention-levels-lib.ts) sets each full-by so its best tenth scores 200. Today Hard and Expert are full by 8 s, under the 11 and 13 s their taps alone take (best tenth 189); the check's own 200 is a 40 ms-a-step run.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "levelRev 2 on level deals: the grader reads full-by from the level table by level name, so new numbers need a stamp to leave stored level rounds alone. Normal untouched.",
+    "files": ["src/lib/levels/attentionLevels.data.ts", "src/puzzles/symbolScan.tsx", "src/lib/duel/attentionLevels.ts", "src/lib/duel/attentionLevels.server.ts", "src/lib/duel/standard/attention.server.ts", "scripts/attention-levels-lib.ts", "scripts/attention-levels-check.ts"],
+    "risk": "45° look-alikes must stay readable on 45 px eagles."
+  },
+  {
+    "id": "spotdiff",
+    "name": "Double Take",
+    "group": "Attention",
+    "lever": "Shapes in each picture",
+    "today": {
+      "easy": "6×5 pictures, 5 differences each, colour and shape only, no hidden one, 5 misses allowed, 60 s, speed full by 30 s",
+      "normal": "8×6 pictures, 6 differences + a hidden 7th, colour, shape and turn, 5 misses allowed, 60 s, full by 40 s",
+      "hard": "8×6, 7 + hidden, subtle colours, 60 s, full by 10 s",
+      "expert": "8×8, 8 + hidden, turns twice as common, subtle colours, 75 s, full by 12 s"
+    },
+    "measured": "Great / near-perfect kit, 40 seeds: E 185 / 196, N 179 / 188, H 162 / 176, X 150 / 173 (Expert best tenth 171 / 189). Average player: not documented.",
+    "easy": "5×4 pictures (20 shapes, about 70 px each); 4 differences a picture, colour and shape only; no hidden one; 8 misses allowed; 60 s; speed full by 25 s.",
+    "hard": "8×7 pictures (56 shapes, the ceiling: two stacked panels reach the 36 px floor); 8 differences + the hidden one; subtle colours; 3 misses allowed; 75 s; speed full by 45 s.",
+    "expert": "8×7; 10 differences + the hidden one; the lower picture is drawn mirrored left to right (new, announced on the divider); subtle colours; 2 misses allowed; 90 s; speed full by 65 s.",
+    "glance": {
+      "easy": "Two small pictures of twenty big sweets.",
+      "hard": "Fifty-six sweets a picture and only three misses allowed.",
+      "expert": "The lower picture is a mirror image of the upper."
+    },
+    "why": "The picture grows until two stacked panels hit the 36 px floor at 8 by 7, and past that the fair, visible step is to mirror the copy, which slows every comparison without hiding anything.",
+    "proof": "A picture is kept only when its panels differ in exactly the dealt ways (scripts/attention-levels-check.ts); the mirror only remaps places, so the answer is unchanged. A limits run (0.4 s a tap plus a row-by-row compare; to be written in scripts/attention-levels-lib.ts) sets each full-by so its best tenth scores 200. Today's full by 10 s and 12 s leave 3 to 4 s of looking after the taps (best tenth 189).",
+    "change": "redesign",
+    "newMechanic": "Mirrored lower picture, at Expert.",
+    "stamp": "levelRev 2 on level deals (miss limits and full-by are read from the level table) and a stored mirror flag on Expert deals, through which taps are mapped.",
+    "files": ["src/lib/levels/attentionLevels.data.ts", "src/puzzles/spotTheDifference.tsx", "src/lib/duel/attentionLevels.server.ts", "src/lib/duel/attentionRev.ts", "src/lib/duel/standard/attention.server.ts", "scripts/attention-levels-lib.ts", "scripts/attention-levels-check.ts"],
+    "risk": "Joe may read the mirror as a gimmick; the fallback Expert is a third 8×7 picture in 90 s."
+  },
+  {
+    "id": "countup",
+    "name": "Tally",
+    "group": "Attention",
+    "lever": "Shapes on the tray",
+    "today": {
+      "easy": "3 trays of 25, 40, 55 shapes; counts 3–14; 1 near-miss group; 60 s; speed full by 25 s",
+      "normal": "4 trays of 50, 80, 110, 50 (the last compares two colours); counts 3–19; 2 near-miss groups; tap to mark; 60 s; full by 30 s",
+      "hard": "Normal's trays; 3 near-miss groups; a closer comparison (gap 1–5); full by 5 s",
+      "expert": "Trays of 60, 90, 110, 60; counts 5–21; two-colour questions; no marks; 75 s; full by 35 s"
+    },
+    "measured": "Great / near-perfect kit, 40 seeds: E 166 / 192, N 162 / 185, H 125 / 169, X 115 / 160 (Expert best tenth 183 / 200). Average player: not documented. No contact sheet exists for Tally.",
+    "easy": "3 trays of 15, 25, 35 shapes; counts 3–9; each tray asks for one colour or one shape alone; no near-miss groups; marks on; 60 s; speed full by 20 s.",
+    "hard": "4 trays of 80, 95, 110, 80; counts 8–24; 3 near-miss groups; comparison gap 1–5; marks on; 75 s; speed full by 45 s.",
+    "expert": "4 trays of 110 (the most a tray holds); counts 12–26; two-colour questions; 3 near-miss groups; no marks; 90 s; speed full by 60 s.",
+    "glance": {
+      "easy": "Fifteen big shapes; count one colour.",
+      "hard": "Eighty shapes on the first tray, counts into the twenties.",
+      "expert": "A packed tray of 110, two colours, no marks."
+    },
+    "why": "Counting gets harder with the crowd and the size of the count, so both rise every level to the 110-shape ceiling and only Expert loses the marks, where today's Hard is a 5-second speed target nobody can see or meet.",
+    "proof": "Each answer is counted from the dealt tray (scripts/attention-levels-check.ts). A limits run (about 0.25 s an item counted and 0.4 s a key; to be written in scripts/attention-levels-lib.ts) sets each full-by so its best tenth scores 200. Today's Hard is full by 5 s, about the time it takes just to key four answers.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "levelRev 2 on level deals: full-by is read from the level table by level name; the trays themselves are in the dealt board.",
+    "files": ["src/lib/levels/attentionLevels.data.ts", "src/puzzles/countUp.tsx", "src/lib/duel/attentionLevels.server.ts", "src/lib/duel/standard/attention.server.ts", "scripts/attention-levels-lib.ts", "scripts/attention-levels-check.ts"],
+    "risk": "110-shape trays with counts in the twenties leave few clear colours; the spread already re-deals trays it cannot make legible."
+  },
+  {
+    "id": "maze",
+    "name": "Labyrinth",
+    "group": "Attention",
+    "lever": "Steps to walk",
+    "today": {
+      "easy": "13×15 maze, route 40–70, 4 dead ends, 60 s, speed full by 20 s",
+      "normal": "19×23, route 70–147, 8 dead ends (3 long), 60 s, full by 32 s, par points gone at 1.5× par",
+      "hard": "21×27, route 120–180, 12 dead ends (5 long), 75 s, full by 15 s, par points gone at 1.03× par",
+      "expert": "21×27, route 150–240, exit hidden until 4 squares away, 90 s, full by 20 s"
+    },
+    "measured": "Great / near-perfect kit, 40 seeds: E 196 / 199, N 184 / 196, H 158 / 176, X 150 / 169 (Expert best tenth 162 / 189); the person-like solver reaches the hidden exit in 36–71 s. Average player: not documented.",
+    "easy": "As today (13×15, route 40–70, 4 dead ends, 60 s, full by 20 s): it already does its job, the great kit averages 196 on 28 px corridors.",
+    "hard": "21×27 (17 px corridors, the finest a finger can trace); 2 gold keys at the ends of long dead ends, fetched in either order before the exit opens; shortest walk 200–260 steps; 75 s; speed full by 55 s; par points gone at 1.5× par (Normal's rule).",
+    "expert": "21×27; 4 keys, one in each quarter; the exit shown from the start (today's hidden exit goes); shortest walk 320–400 steps; 105 s; speed full by 85 s; par points gone at 1.25× par.",
+    "glance": {
+      "easy": "A small maze with wide corridors.",
+      "hard": "A fine maze with two gold keys and a locked exit.",
+      "expert": "Four keys in four corners; par above 320."
+    },
+    "why": "The maze is already as fine as a finger can trace at 21 by 27, so the walk is lengthened the way mazes always have been, with keys to fetch, which shows at a glance and hides nothing, unlike today's hidden exit.",
+    "proof": "A perfect maze has one path between any two squares, so the shortest key tour is exact (tree distances over at most 24 orders) and becomes the par. personMazeSeconds in scripts/attention-levels-lib.ts (0.2 s a square, reading the walls) must be extended to tour the keys and finish every dealt Hard and Expert maze inside its full-by, which makes 200 reachable; a maze it cannot is redrawn. Today's full by 15 s and 20 s sit far under that solver's 36–71 s.",
+    "change": "redesign",
+    "newMechanic": "Gold keys to collect before the exit opens: 2 at Hard, 4 at Expert.",
+    "stamp": "mazeRev 6 on Hard and Expert deals (the exit counts only once every key is held; par is the key tour); Easy and Normal keep mazeRev 5; levelRev 2 for the new full-by times.",
+    "files": ["src/lib/levels/attentionLevels.data.ts", "src/lib/duel/maze.server.ts", "src/lib/duel/maze.ts", "src/lib/duel/depth/labyrinth.ts", "src/lib/duel/standard/attention.server.ts", "src/puzzles/mazeDash.tsx", "scripts/attention-levels-lib.ts", "scripts/attention-levels-check.ts"],
+    "risk": "Choosing the key order on 17 px corridors may decide the score more than the walking does."
+  },
+  {
+    "id": "bomb",
+    "name": "Bomb Defusal",
+    "group": "Attention",
+    "lever": "Steps and clues on the card",
+    "today": {
+      "easy": "5 wires, 4 steps, 4 clues, 90 s, speed full by 25 s",
+      "normal": "7 wires, 6 steps, 6–9 clues, 90 s, full by 30 s",
+      "hard": "7 wires, 7 steps, 7–8 clues, 90 s, full by 15 s",
+      "expert": "8 wires, 8 steps, 8–9 clues, the first wrong step explodes, no Reset, 120 s, full by 40 s"
+    },
+    "measured": "Great / near-perfect kit, 40 seeds: E 197 / 200, N 182 / 194, H 113 / 168, X 72 / 136 (Expert best tenth 176 / 189); the person-like solver cracks every Expert card (median 19 orders, at most 99). Average player: not documented.",
+    "easy": "As today (5 wires, 4 steps, 4 clues, 90 s, full by 25 s): it already does its job, the great kit averages 197.",
+    "hard": "8 wires, 8 steps, 8–9 clues (today's Expert card) with Reset kept and at most two 'Step N' clues; 105 s; speed full by 55 s.",
+    "expert": "The same 8-wire, 8-step card (a 390 px phone is full at 8 wires and 9 clues); at most one 'Step N' clue, the rest relative; the first wrong step explodes and there is no Reset (as today); 120 s; speed full by 70 s; only cards the person-style solver cracks within 40 orders.",
+    "glance": {
+      "easy": "Five wires and a four-line card.",
+      "hard": "Eight wires and a card of eight or nine clues.",
+      "expert": "No Reset button: one wrong step sets it off."
+    },
+    "why": "A bomb is harder with more to read and reason about, so the card grows until the phone is full at 8 wires and 9 clues, and Expert then takes away the safety net and the give-away 'Step N' clues instead of shrinking the type.",
+    "proof": "Each level deals from its own bank (scripts/bomb-levels-bank.ts, src/lib/duel/bombLevels.server.ts), every card proved by search over all orders to have one answer with every clue needed. personBombTries in scripts/attention-levels-lib.ts must crack every Hard and Expert card within 40 orders tried in the head, and each full-by is set from that pace (about 2.5 s a clue read, 1 s an order, 0.4 s a step) so 200 is reachable. Today's Hard is full by 15 s, less than the time to read its card.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "levelRev 2 on level deals (full-by is read from the level table) and rebuilt Hard and Expert banks; Expert keeps its stored bombInstant flag.",
+    "files": ["src/lib/levels/attentionLevels.data.ts", "src/lib/duel/bombLevels.server.ts", "scripts/bomb-levels-bank.ts", "src/lib/duel/bombLevelsBank.server.ts", "src/lib/duel/standard/logic.server.ts", "scripts/attention-levels-lib.ts", "scripts/attention-levels-check.ts"],
+    "risk": "Cards with one anchor clue that crack within 40 orders may be rare; Expert's proof already takes about 25 s a card."
+  },
+  {
+    "id": "chain",
+    "name": "Don’t Break the Chain",
+    "group": "Speed",
+    "lever": "Charms in the cycle",
+    "today": {
+      "easy": "30 links, 5-charm cycle, windows 3.5 / 3 / 2.5 s, no reversed run, 45 s",
+      "normal": "40 links, 5-charm cycle, a new board every 5 links, windows 3 / 2.5 / 2 s, links 21–25 reversed, 45 s",
+      "hard": "40 links, 5 charms, windows 2.5 / 2 / 1.6 s, reversed 21–25 and 31–35, 45 s",
+      "expert": "50 links, 6 charms, windows 2 / 1.6 / 1.4 s, reversed 21–25 and 36–40, 60 s"
+    },
+    "measured": "Elite held to human limits 174 / 160 / 141 / 119 (Expert best tenth 182); 140 ms elite 180 / 175 / 174 / 165. Speed is full by 30 s at every level. Average player: not documented.",
+    "easy": "4 charms in the cycle and a new board every 4 links; 24 links; windows 4 / 3.5 / 3 s; no reversed board; one spare link (the first wrong or late tap is forgiven); 45 s; speed full by 25 s.",
+    "hard": "6 charms and a new board every 6 links; 48 links; windows 2.5 / 2 / 1.6 s; two reversed boards; 60 s; speed full by 42 s. The board stays at 20 charms, its ceiling.",
+    "expert": "7 charms and a new board every 7 links; 56 links; windows 2 / 1.6 / 1.4 s (the human floor); three reversed boards; 70 s; speed full by 50 s.",
+    "glance": {
+      "easy": "Four charms in the strip and a spare-link pip.",
+      "hard": "Six charms in the strip, and 0 / 48 links.",
+      "expert": "Seven charms in the strip, and 0 / 56 links."
+    },
+    "why": "The cycle is what the player has to hold in mind, and four fits in a glance where seven does not, so a charm is added every level while the tap windows only fall to the human floor of 1.4 s.",
+    "proof": "Open (find and tap in time). playChain in scripts/speed-levels-tune.ts under HUMAN_LIMITS (0.4 s a tap, about 0.32 s to find a charm, more on a new or reversed board) must finish Expert's 56 links in its best tenth inside the stamped full-by, which is 200; scripts/speed-levels-check.ts pins it. Today full-by is 30 s at every level: 0.6 s a link over Expert's 50 links, under that player's 0.72 s (best tenth 182).",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "Level field only: chainLevel gains cycle (4 to 7), block, spare and fullByS, all stamped on the puzzle and read by the stage, replayChain and the grader.",
+    "files": ["src/lib/levels/speedLevels.ts", "src/lib/duel/chain.ts", "src/lib/duel/chain.server.ts", "src/lib/duel/standard/attention.server.ts", "src/puzzles/chainTap.tsx", "scripts/speed-levels-tune.ts", "scripts/speed-levels-check.ts"],
+    "risk": "A link slower than its window ends the run, so a tenth of a second on the last window swings Expert from fair to unfinishable."
+  },
+  {
+    "id": "pairmatch",
+    "name": "Matchmaker",
+    "group": "Attention",
+    "lever": "Cards on the board",
+    "today": {
+      "easy": "8 pairs (16 cards, 4 columns), flip-back 0.9 s, 90 s, speed full by 35 s, 7 free misses",
+      "normal": "15 pairs (30 cards, 5 columns), flip-back 0.6 s, 6 shapes, 90 s, full by 60 s, 14 free misses",
+      "hard": "18 pairs (36 cards, 6 columns), 0.5 s, 4 shapes, 90 s, extras in full up to 6 misses and none from 14",
+      "expert": "21 pairs (42 cards, 6 × 7), 0.4 s, 5 shapes, 120 s, full by 75 s, extras 6 / 14"
+    },
+    "measured": "Great / near-perfect kit, 40 seeds: E 197 / 197, N 192 / 199, H 154 / 165, X 151 / 153 (Expert best tenth 156 / 165). Average player: not documented.",
+    "easy": "As today (8 pairs, 16 cards in 4 columns, flip-back 0.9 s, 90 s, full by 35 s): it already does its job, the great kit averages 197.",
+    "hard": "21 pairs (42 cards, 6 × 7); flip-back 0.5 s; 5 shapes; 105 s; speed full by 60 s; extras in full with up to 3 memory misses (a miss on a card whose partner was already seen) and none from 9; first looks never count.",
+    "expert": "28 pairs (56 cards, 7 × 8, about 47 px wide: the phone's ceiling); flip-back 0.4 s; all 6 shapes (28 of the 30 faces); 120 s; speed full by 80 s; extras in full with up to 2 memory misses and none from 6; gold pair window 45 s.",
+    "glance": {
+      "easy": "Sixteen big cards.",
+      "hard": "Forty-two cards, six across and seven down.",
+      "expert": "Fifty-six small cards fill the whole screen."
+    },
+    "why": "Memory load is the number of cards, so the board grows about 1.4 times a level to the phone's ceiling of 56, where today's 30, 36 and 42 are too close to tell apart.",
+    "proof": "Every face is dealt twice. A perfect-memory sweep under the limits (0.4 s a flip; to be written in scripts/attention-levels-lib.ts) must finish each dealt Hard and Expert board inside its full-by with no memory miss and the gold pair in its window, or the board is redrawn: that run is 200. Today 200 is luck on Hard and Expert: extras need 6 or fewer misses, but perfect memory still averages about 11 first-look misses on 18 pairs and 13 on 21 (best tenth 165), and the check's 200 pairs every card unseen.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "levelRev 2 on level deals: the extras rule (memory misses), full-by and gold window are read from the level table.",
+    "files": ["src/lib/levels/attentionLevels.data.ts", "src/lib/duel/attentionLevels.ts", "src/lib/duel/pairmatch.ts", "src/lib/duel/standard/attention.server.ts", "src/lib/duel/attentionLevels.server.ts", "src/puzzles/pairMatch.tsx", "scripts/attention-levels-lib.ts", "scripts/attention-levels-check.ts"],
+    "risk": "56 cards in 120 s may be past anyone's memory; if the great kit never finishes, Expert steps back to 24 pairs (6 × 8)."
+  },
+  {
+    "id": "whack",
+    "name": "Bonk",
+    "group": "Speed",
+    "lever": "Burrows on the lawn",
+    "today": {
+      "easy": "4×4 lawn, up 1.1 to 0.8 s, 2 up at once, 2 rule flips, 5 % hedgehogs, pops 115 % apart, 60 s",
+      "normal": "4×4 lawn, up 0.9 to 0.6 s, 3 up at once, 3–5 rule flips, 10 % hedgehogs, 60 s",
+      "hard": "4×4, up 0.72 to 0.5 s, 3 up, 5–7 flips, 15 % hedgehogs, pops 50 % apart",
+      "expert": "4×4, up 0.67 to 0.45 s, 4 up, 7–9 flips, 20 % hedgehogs, pops 50 % apart"
+    },
+    "measured": "Elite held to human limits 148 / 146 / 140 / 129 (Expert best tenth 143); 140 ms elite 194 / 194 / 191 / 190. The contact sheet's seed deals 47 / 64 / 132 / 126 gophers to bonk, so Expert has fewer than Hard. Average player: not documented.",
+    "easy": "3×3 lawn (9 burrows, about 125 px each); up 1.1 to 0.8 s, 2 up at once, 2 rule flips, 5 % hedgehogs, pops 115 % apart (all as today).",
+    "hard": "5×5 lawn (25 burrows, about 72 px); 4 up at once; up 0.72 to 0.5 s; pops 60 % apart (about 110 gophers to bonk); 5–7 flips; 15 % hedgehogs.",
+    "expert": "6×6 lawn (36 burrows, about 58 px); 5 up at once; up 0.67 to 0.5 s (the floor: 0.25 s to react, 0.15 s to move, 0.1 s spare); pops 45 % apart (about 150 to bonk); 7–9 flips; 20 % hedgehogs.",
+    "glance": {
+      "easy": "A 3 by 3 lawn of nine big burrows.",
+      "hard": "A 5 by 5 lawn: 25 burrows, four gophers up.",
+      "expert": "A 6 by 6 lawn: 36 burrows, five up at once."
+    },
+    "why": "A bigger lawn is the classic whack-a-mole step, seen before the first gopher pops, and it is the lever left because up-time is already at the human floor of half a second.",
+    "proof": "Must be written: a limits oracle (a bonk no sooner than 24 ticks after its pop, 15 to react and 9 to move, and 9 after the last bonk, earliest deadline first) plays every dealt schedule through replayWhackRun; the deal keeps a seed only when it clears every gopher and both diamonds. That proves the 150 base and 6 for diamonds. The 44 combo points need bonks within 150 ms of the pop (none count from 267 ms), so the limits player tops out near 160 on every level, Normal included (today's best tenth 143): 200 needs the combo's quick window at the limit (full to 24 ticks, none from 36, the window Pull! was given in clayRev 10), a scoring-review item like I1 that is not in the plan's list.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "Level field only for the lawn and pace (bonkLevel gains cols, stamped on the puzzle); 200 under the limits also needs whackRev 5 for the combo's quick window (Joe's scoring decision).",
+    "files": ["src/lib/levels/speedLevels.ts", "src/lib/arcade/whack.ts", "src/lib/arcade/whack.renderer.ts", "src/puzzles/whack.tsx", "src/lib/duel/whack.ts", "scripts/speed-levels-tune.ts", "scripts/speed-levels-check.ts"],
+    "risk": "The bots move in a flat 0.15 s, so they cannot feel a bigger lawn; the crowd and the pace have to carry the measured step."
+  },
+  {
+    "id": "tendrop",
+    "name": "Tenfall",
+    "group": "Speed",
+    "lever": "Size of the targets",
+    "today": {
+      "easy": "8 targets up to 60 (the first 10–12), plus and minus tiles only, 80 % speed, 90 s",
+      "normal": "10 targets from 19–25 up to 140, ×2, ÷2, ÷3 and minus tiles, fall speeds 288 to 504, 90 s, speed full by 60 s",
+      "hard": "10 targets up to 200 (the first 14–20), ÷3 tiles doubled, 115 % speed",
+      "expert": "11 targets up to 240 (the first 15–22), every operator evenly, 115 % speed"
+    },
+    "measured": "Elite held to human limits 182 / 175 / 168 / 143 (Expert best tenth 163); 140 ms elite 183 / 181 / 181 / 166. Average player: not documented.",
+    "easy": "As today (8 targets from 10 up to 60, plus and minus tiles only, 80 % speed), but each gold ten pays 2.5 so a flawless run is 200 (today 8 gold tens at 2 make 196).",
+    "hard": "10 targets from 40 up to 250 (today's Hard opens below Normal); ×2 on about 30 % of tiles, ÷2 and ÷3 as today's Hard; 115 % speed; speed full by the oracle's finish.",
+    "expert": "9 targets from 100 up to 400; every operator; 115 % speed (at 125 % the limits player never finished); gold pays 20 ÷ 9 a ten; speed full by the oracle's finish.",
+    "glance": {
+      "easy": "Target 10, slow tiles, only numbers and minus.",
+      "hard": "Target 40 or more at once; gold ×2 tiles everywhere.",
+      "expert": "Target 100 or more straight away, climbing to 400."
+    },
+    "why": "The target is the whole question the game asks, so bigger targets from the first second (10, 22, 40, 100) are the honest ladder, and tile speed stays at 115 % because that is where the human limit was measured.",
+    "proof": "Must be written: the plan's own solver (the fastest gold line, src/lib/arcade/tenDrop.ts) run at the level's spawn gap under the limits (a tile tappable 24 ticks after it enters, taps 9 ticks apart) gives each seed's earliest finish through replayTenDropRun; the deal keeps a seed only when that lands inside the level's full-speed time, so 150 + 30 + 20 is reachable. Today nothing proves it: full speed is by 60 s at every level and Expert's best tenth under the limits is 163.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "Level field only: tenLevel.stages already carries each target's range, tiles and speed; add goldEach and fullByTicks to tenLevel, stamped on the puzzle.",
+    "files": ["src/lib/levels/speedLevels.ts", "src/lib/arcade/tenDrop.ts", "src/lib/duel/tenDrop.ts", "scripts/speed-levels-tune.ts", "scripts/speed-levels-check.ts"],
+    "risk": "Targets near 400 may be too much mental arithmetic at tile speed even for strong players; tune the top target first."
+  },
+  {
+    "id": "clayshoot",
+    "name": "Pull!",
+    "group": "Speed",
+    "lever": "Clays in the air together",
+    "today": {
+      "easy": "20 clays, 3 doubles after the singles, 6 birds, 80 % speed, 60 s",
+      "normal": "25 clays (22 orange, 3 gold): 11 singles then 7 doubles, 14–16 birds, 30 px hit ring, 60 s",
+      "hard": "28 clays, 10 doubles, 24 birds (some together), 145 % speed",
+      "expert": "30 clays, 12 groups with 3 triples, 32 birds, 160 % speed"
+    },
+    "measured": "Elite held to human limits 181 / 170 / 162 / 152 (Expert best tenth 175); 140 ms elite 199 / 199 / 198 / 196. Average player: not documented.",
+    "easy": "As today (20 clays, 3 doubles at the end, 6 birds, 80 % speed) plus a bigger hit ring: 38 px against 30.",
+    "hard": "30 clays, all in doubles from the first pull (15 doubles; Normal flies 11 singles first); 145 % speed; 24 birds.",
+    "expert": "36 clays, all in triples from the first pull (12 triples, clays at least 0.2 s apart); 160 % speed (the ceiling: a clay must stay 0.6 s on screen); 32 birds.",
+    "glance": {
+      "easy": "One slow clay at a time in a big ring.",
+      "hard": "Two fast clays cross on the very first pull.",
+      "expert": "Three clays at once among a sky of birds."
+    },
+    "why": "Singles, doubles, triples is how clay shooting itself gets harder and it shows on the first pull, which matters because clay speed tops out at 160 %.",
+    "proof": "Must be written: a limits oracle (a shot no sooner than 24 ticks after its clay's launch, 15 to react and 9 to move, and 9 after the last shot, never through a bird) plays every dealt schedule through replayClayRun; the deal keeps a seed only when it hits every clay inside its quick window with the streak unbroken, which is 200. The quick window is full to 24 ticks (0.4 s), exactly the limit with nothing spare, so today's limits player's best tenth is 175; the oracle fires on tick 24, and a real player needs the window at 27 ticks (a small scoring-review item, clayRev 11).",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "Level field only: pullLevel already carries clays, singles, groups, birds and speed; add the ring radius (Easy) and the smallest gap inside a group, stamped on the puzzle.",
+    "files": ["src/lib/levels/speedLevels.ts", "src/lib/arcade/clayShoot.ts", "src/lib/arcade/clayShoot.renderer.ts", "src/lib/duel/clayShoot.ts", "scripts/speed-levels-tune.ts", "scripts/speed-levels-check.ts"],
+    "risk": "32 birds across triples may leave few seeds with a clean shot inside every quick window; the oracle drops the rest."
+  }
+]

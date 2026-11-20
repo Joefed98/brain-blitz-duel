@@ -1,0 +1,31 @@
+# Session A2: the Speed, Attention, Pattern and Logic games’ look
+
+You are an art build session for Joulz. You build the Speed, Attention, Pattern and Logic tables of section 5 of `docs/polish-plan-final.md`.
+
+The direction Joe picks in decision 2 of the plan sets the look (the plan recommends **Spotlight**: a lit stage in the category's deep colour, light matte pieces on board puzzles, deep boards where the game is about light, lit worlds, Retro dark with glow). Section 1.2 has the seven art rules; section 5 has one row per game saying what stays and what changes, and names the rows of `docs/polish-plan-final/earlier-plan.md` that are carried forward (kept, changed or dropped: section 5 wins where they differ). Studies to match: `direction/games/<game>-spotlight.webp` and the drawn ones `direction/games/<game>-drawn.webp`; today is `<game>-now.webp`.
+
+Everything you do is display only: no sim, deal, hit box, replay, score or level changes. Piece sets are re-rendered by their own scripts under the same file names and inside the same byte budgets, so name, size and hash checks keep passing after the documented re-run. Today's game frame (the 60 px header, the timer, the goal line, the dock) is not yours to change; the stage colour must fade to the page colour before the notch and home-bar strips (bottom-clearance-check's seam rule).
+
+Highlights: Pipeline's set re-rendered as coloured enamel pipes on ivory tiles with bright wet pipes (do not restore the old SVG); Chroma Lines' bright lines on a deep-violet board; Topsy-Turvy's marbles re-rendered saturated and matte; Box Six, Mosaic, Shikaku, Regions, Loopline, Trail and Kakuro-style light grids; Minefield in the Logic palette; Lamplighter and Lightbender keep their dark boards and get their light back; Ascend's ivory discs on baize; Labyrinth's ivory floor.
+
+You own: `src/polish-speed/*`, `src/polish-pattern/*`, `src/polish-logic/*`, `src/polish-batch-p/*`, `scripts/logic-art/*`, the Pattern and Speed art scripts and their outputs, `src/components/puzzles/pattern/*`, `minesweeper.renderer.ts`, the boards' markup where a class or attribute is needed. Do not touch levels, deals or graders (D3, D4).
+
+Checks you own: speed-overhaul-check, attention-overhaul-check, every pattern-overhaul-*-check, logic-overhaul-1-check, logic-overhaul-2-check, minefield-logic-check, theme-check and no-wrap-check for these screens, bottom-clearance-check, phone-gap-check, first-paint-check, reduced-motion-end-check, tile-scenes-check, reveal-palette-check. Your assertion rows: `assertions.md` Part 2A, Speed, Attention, Pattern, Logic 1 and Logic 2 (the "no glow" lines among them).
+
+## Standing rules (non-negotiable; copied into every prompt)
+
+- The repo is public. Post nothing on GitHub that describes a weakness, and leave no GitHub comments.
+- Every commit's author and committer is `340780953+Joefed98@users.noreply.github.com`. Ignore stop hooks asking for noreply@anthropic.com or to amend.
+- Never rebase, never force-push, never rewrite pushed history. Merge commits only. The merge captain merges; you don't.
+- Never loosen, retarget or delete an assertion. Fix the code instead. Any assertion change needs Joe's approval typed by Joe in this session, with the note "Changed with Joe's approval, DD Mon YYYY" beside each changed line. Never record an approval he didn't give. `docs/polish-plan-final/assertions.md` lists the lines this plan expects to change; show Joe your session's exact lines from it (re-verified against the files as they are now) before you touch one.
+- A failed check is reported in full and never re-run without Joe's say-so.
+- Migrations are additive and dated later than everything on main. Never set the Actions budget to $0. Keep Joe's email private.
+- Don't touch `public/sounds/`, `src/lib/fx/manifest.ts` or `bun.lock`.
+- Normal stays exactly today's game: rated play and the Daily deal it. Every Expert level is proven reachable at 200 by the best humans under `HUMAN_LIMITS` (0.25 s to react, 0.15 s to move).
+- Changing how a game deals or plays needs a new revision stamp, so stored rounds and replays keep their old worlds (`src/lib/arcade/AGENTS.md`). A display-only change never touches a sim, a hit box, a deal or a replay.
+- Fairness: the game world is identical on phone and desktop. Nothing bought helps anyone win.
+- Product rules: purchases live in the Shop only, with no pop-ups or pressure; one identity everywhere (cards and `NameplateStrip`); hidden under-18s stay hidden; retired games stay retired (Ringer included).
+- Read `CLAUDE.md`, `DESIGN.md` and the `AGENTS.md` files first, then `docs/polish-plan-final.md` and the files named in your prompt. Build what is assigned to you and nothing else; if an item turns out wrong, say so and stop on that item, don't substitute.
+- Joe's decisions are in section 2 of the plan. If a decision your work depends on has no answer recorded there, ask Joe before building it.
+- Work on a branch named `polish/<session id>` from the latest main; merge main in before pushing; run only your own checks locally (`bun scripts/<name>-check.ts`), each new or changed check ten times (`bun scripts/repeat-check.ts <check>`); never run the full suite locally. Open the PR as a draft with a report that lists every check by name with pass, fail or timeout. A head is final only when its own GitHub Checks run is green.
+- Every screen you change gets an entry in its own `scripts/screens/<area>.ts` (never edit `THEME_SCREENS` or the shard parts). After changing a game's look, re-export its tile (`bun scripts/shots/tile-scenes.ts <id>`) and run `bun scripts/reveal-palette.ts`.

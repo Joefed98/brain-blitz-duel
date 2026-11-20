@@ -1,0 +1,18 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="game.css"><script>const Q=new URLSearchParams(location.search);document.documentElement.dataset.dir = Q.get("dir") || "a";document.documentElement.dataset.v = Q.get("v") || "1";</script>
+<style>
+body.game { --g0:#FFA24D; --g1:#F0582E; --g2:#3A1560; }
+.hd { text-align:center; padding-top: 70px; position:relative; }
+.hd .rays { inset:-140px -60px auto -60px; height:640px; opacity:.2; }
+.hd h1 { font: 900 50px/1 "Archivo"; font-stretch:118%; color:#FFE570; text-shadow:0 5px 0 rgba(120,30,0,.6); position:relative; }
+.num { font: 900 110px/1 "Archivo"; font-stretch:116%; color:#fff; text-shadow: 0 6px 0 rgba(120,30,0,.55); position:relative; margin-top:14px; }
+.stars3 { display:flex; justify-content:center; margin-top:6px; position:relative; }
+.stars3 .star { width:60px; height:60px; filter: drop-shadow(0 4px 0 rgba(0,0,0,.25)); }
+.say { color:#fff; font: 800 19px "Archivo"; margin-top:14px; position:relative; }
+.conf i { position:absolute; width:12px; height:18px; border-radius:3px; }
+.act { position:absolute; left:16px; right:16px; bottom:26px; display:flex; flex-direction:column; gap:14px; }
+.cap2 { text-align:center; color: var(--text2); font-size:14px; font-weight:800; }
+</style></head><body class="game"><div class="page">
+  <div class="conf"><i style="left:40px;top:120px;background:#3EDB72;transform:rotate(20deg)"></i><i style="left:320px;top:160px;background:#4DA3FF;transform:rotate(-30deg)"></i><i style="left:90px;top:330px;background:#FF6BD6;transform:rotate(50deg)"></i><i style="left:300px;top:380px;background:#FFE570;transform:rotate(-12deg)"></i><i style="left:200px;top:60px;background:#B26BFF;transform:rotate(70deg)"></i><i style="left:350px;top:270px;background:#3EDB72;transform:rotate(15deg)"></i><i style="left:24px;top:250px;background:#36E2F5;transform:rotate(-40deg)"></i></div>
+  <div class="hd"><div class="rays"></div><h1>Nice one!</h1><div class="num">172</div><div class="stars3"><i class="star"></i></div><div class="say">Your first star. 248 to collect.</div></div>
+  <div class="act"><div class="btn big full">Play a real opponent</div><div class="btn sec full">Try another game</div><div class="cap2">No account needed</div></div>
+</div></body></html>

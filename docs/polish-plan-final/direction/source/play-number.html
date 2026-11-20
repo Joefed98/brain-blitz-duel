@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="game.css"><script>const Q0=new URLSearchParams(location.search);document.documentElement.dataset.dir = Q0.get("dir") || "a"; if(Q0.get("real")) document.documentElement.dataset.real="1";</script>
+<style>
+body.game { --d0:#157A48; --d1:#082A1C; --g0:#4BE594; --g1:#17995A; --g2:#10245F; --gink:#0B4A2B; }
+.target { margin: 14px 16px 0; height: 150px; border-radius:26px; background:#fff; box-shadow: 0 8px 0 #BFE8D0, 0 18px 26px rgba(0,0,0,.25); display:flex; flex-direction:column; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+.target small { font: 900 14px "Archivo"; letter-spacing:.14em; color:#17995A; }
+.target b { font: 900 84px/1 "Archivo"; font-stretch:112%; color:#141A4F; }
+.steps { display:flex; flex-direction:column; gap:8px; align-items:center; margin-top: 14px; }
+.steps span { height:38px; padding:0 16px; border-radius:13px; background: rgba(8,10,50,.32); color:#fff; font: 900 19px "Archivo"; display:flex; align-items:center; gap:8px; }
+.steps span b { color:#FFD84D; }
+.nums { display:grid; grid-template-columns: repeat(3,1fr); gap:10px; }
+.nt { height:62px; border-radius:16px; background: linear-gradient(180deg,#FFFDF2,#FFF1C9); color:#22164F; display:flex; align-items:center; justify-content:center; font: 900 28px "Archivo"; box-shadow: inset 0 2px 0 #fff, 0 6px 0 #D9B768; }
+.nt.new { background: linear-gradient(180deg,#FFE570,#FFC81E); box-shadow: inset 0 2px 0 rgba(255,255,255,.7), 0 6px 0 #C98200; }
+.nt.used { background: rgba(255,255,255,.18); color: rgba(255,255,255,.55); box-shadow: 0 6px 0 rgba(8,10,50,.3); }
+.ops { display:grid; grid-template-columns: repeat(4,1fr); gap:10px; }
+.op { height:54px; border-radius:15px; background: linear-gradient(180deg,#7D95FF,#5270FF 50%); color:#fff; display:flex; align-items:center; justify-content:center; font: 900 28px "Archivo"; box-shadow: inset 0 2px 0 rgba(255,255,255,.3), 0 5px 0 #2B41BD; }
+</style></head><body class="game"><div class="page">
+  <div class="gtop"><div class="x">✕</div><div class="gname"><b>Exact</b><span>Practice · Normal</span></div><div class="score"><small>Closest</small>150</div></div>
+  <div class="timer"><i style="width:58%"></i></div>
+  <div class="target"><div class="rays" style="opacity:.06;background:repeating-conic-gradient(from 0deg at 50% 50%, #17995A 0 7deg, transparent 7deg 18deg)"></div><small>MAKE</small><b>714</b></div>
+  <div class="steps"><span>9 × 4 = <b>36</b></span><span>100 + 50 = <b>150</b></span></div>
+  <div class="stage">
+    <div class="nums"><div class="nt new">36</div><div class="nt">5</div><div class="nt new">150</div><div class="nt">10</div><div class="nt used">50</div><div class="nt used">4</div></div>
+    <div class="ops"><div class="op">+</div><div class="op">−</div><div class="op">×</div><div class="op">÷</div></div>
+    <div class="dock"><div class="key dim" style="flex:none;width:56px">↶</div><div class="btn full" style="flex:1;font-size:18px">Lock in 150</div></div>
+  </div>
+</div></body></html>

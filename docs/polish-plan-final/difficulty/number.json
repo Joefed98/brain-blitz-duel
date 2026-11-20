@@ -1,0 +1,280 @@
+[
+  {
+    "id": "balance",
+    "name": "Counterweight",
+    "group": "Number",
+    "lever": "Beam length and weights to hang",
+    "today": {
+      "easy": "3 scales of 6 notches; 2, 2, 3 weights to hang (1, 1, 2 fixed); 8, 8, 10 spare hangs; readout shown; 120 s",
+      "normal": "balanceRev 5: 4 scales of 8 notches; 2, 2, 3, 4 weights to hang (1, 2, 2, 2 fixed); 8, 9, 10, 11 spare hangs; 120 s",
+      "hard": "The old game (balanceRev 4): 2, 3, 4, 5 weights to hang (1, 2, 3, 3 fixed) on 8, 8, 8, 10 notches; hang limits 9, 12, 15, 18; 120 s",
+      "expert": "4 scales of 10 notches; 3, 4, 5, 6 weights to hang (1, 2, 2, 2 fixed); 5, 6, 6, 7 spare hangs; balance readout hidden; 120 s"
+    },
+    "measured": "Not documented. This session's read-only kit run (24 deals, medians for the average / good / great / near-perfect kit): Easy 197 / 200 / 200 / 200; Normal 95 / 194 / 200 / 200; Hard 94 / 170 / 189 / 200; Expert 31 / 62 / 94 / 171 (79 % finish). Hard scores like Normal.",
+    "easy": "Keep today's: 3 short scales with 2, 2, 3 light weights already do the job (average kit 197, every run finished).",
+    "hard": "All 4 scales on 10-notch beams from the first one: 2, 3, 4, 5 weights to hang with 2, 2, 2, 3 fixed, the first scale with one arrangement, 6, 7, 8, 9 spare hangs, readout shown, 120 s. In-memory kit trial: 62 / 94 / 168 / 190.",
+    "expert": "Keep today's: 10-notch beams, 3, 4, 5, 6 weights, 5 to 7 spare hangs, readout hidden. The kit already puts it at 31 / 62 / 94 / 171.",
+    "glance": {
+      "easy": "A short six-notch beam and two light weights",
+      "hard": "A long ten-notch beam with two weights already hung",
+      "expert": "Ten notches, three weights to hang, no balance readout"
+    },
+    "why": "Every weight is a torque sum, so a longer beam and more weights multiply the sums, and hiding the readout last makes the player do them in the head.",
+    "proof": "Each scale is proved balanced with both sides used and, where set, exactly one arrangement (balancedArrangements, exhaustive) when dealt. Expert keeps only scales personSolveScale (balanceLevels.server.ts) balances without the readout inside 40 trial hangs. scripts/number-levels-balance-target-check.ts pins it. New Hard: the same filter with the readout on, and the near-perfect kit finishing 95 % or more inside 120 s.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "Level field only: balanceRev 5 already stores each deal's scales, hang limits and hideBalance. Hard moves from balanceRev 4 to a balanceRev 5 settings row, so its practice bests restart.",
+    "files": [
+      "src/lib/levels/gameLevels.ts",
+      "src/lib/duel/balanceLevels.ts",
+      "src/lib/duel/balanceLevels.server.ts",
+      "scripts/number-levels-balance-target-check.ts",
+      "scripts/puzzle-fairness/kits-number.ts"
+    ],
+    "risk": "It retires the old game from Hard, which Joe chose on 15 Nov; the kits show that Hard scoring like Normal (average 94 against 95)."
+  },
+  {
+    "id": "target",
+    "name": "Exact",
+    "group": "Number",
+    "lever": "Targets to hit in the round",
+    "today": {
+      "easy": "6 numbers, 1 or 2 big (25, 50, 75, 100); target 101 to 300 that 3 or 4 numbers make; 75 s",
+      "normal": "6 numbers, 1 or 2 big, small ones 1 to 10; target 101 to 999; 75 s; full speed points by 30 s",
+      "hard": "Exactly 1 big number; target 300 to 999 that needs all six; 75 s",
+      "expert": "No big number; target 500 to 999 that needs all six, from a bank of 320 boards a person-like solver cracks; 75 s"
+    },
+    "measured": "Not documented. This session's kit run (24 deals; the kit's search time is set by level name): Easy 189 / 200 / 200 / 200; Normal 168 / 194 / 200 / 200; Hard 52 / 78 / 120 / 180; Expert 26 / 52 / 78 / 173 (83 % finish). The scores step, but all four screens look the same.",
+    "easy": "1 target of two digits (20 to 99) that 2 or 3 of the six numbers make, 2 big numbers on the rack, 75 s.",
+    "hard": "2 targets in a row, each on a fresh rack, 100 s: first a Normal-style target, then today's Hard board (1 big number, 300 to 999, needs all six). Points per target; full speed points by 50 s.",
+    "expert": "3 targets in a row, 120 s: a Normal-style target, then 1 big number needing five or six, then today's Expert board (small numbers only, 500 to 999, needs all six). Full speed points by 75 s.",
+    "glance": {
+      "easy": "A two-digit target",
+      "hard": "\"Target 1 of 2\" and two stage pips",
+      "expert": "\"Target 1 of 3\" and three stage pips"
+    },
+    "why": "One deep target is all or nothing and looks the same at every level, so the harder levels chain targets that rise inside the round: the load doubles, then trebles, and an average player still banks the first.",
+    "proof": "Each target is proved by exhaustive search to need its count of numbers (targetLevelRoute, targetLevels.server.ts). Expert's last target comes from the existing proved bank (targetExpertBank.server.ts, scripts/target-expert-bank.ts, personSolveTarget). To write: a bank of whole rounds per level, and a check that the near-perfect kit finishes 80 % of Expert rounds inside 120 s (my estimate from today's times: about 16 + 35 + 60 s).",
+    "change": "redesign",
+    "newMechanic": "Targets in a row: 2 at Hard, 3 at Expert, announced as \"Target 1 of 2\" with the Number family's stage pips. Arrives at Hard.",
+    "stamp": "New stamp (for example targetRev 1): the stored puzzle holds 2 or 3 racks and targets and the grader pays per target. Today's one-target rounds grade as before.",
+    "files": [
+      "src/lib/duel/targetLevels.server.ts",
+      "src/lib/duel/target.ts",
+      "src/lib/duel/standard/number.server.ts",
+      "src/puzzles/targetNumber.tsx",
+      "src/lib/levels/gameLevels.ts",
+      "scripts/target-expert-bank.ts",
+      "scripts/number-levels-balance-target-check.ts",
+      "scripts/puzzle-fairness/kits-number.ts"
+    ],
+    "risk": "The biggest build of the group: a staged screen, answer format, grader and reveal for a game with one board today."
+  },
+  {
+    "id": "equation",
+    "name": "Operator",
+    "group": "Number",
+    "lever": "Gaps to fill per equation",
+    "today": {
+      "easy": "4 equations of 3, 3, 4, 4 numbers (2 to 9; + - ×); 1, 1, 2, 2 gaps; 3 tries; 90 s",
+      "normal": "gapsRev 2: 4 equations of 3, 4, 5, 5 numbers (up to 12, 15, 15, 20); 2, 3, 4, 5 gaps; 2 decoy tiles from line 2; 3 tries; 90 s",
+      "hard": "Numbers 2 to 25; equations of 4, 4, 5, 5 numbers; 3, 4, 5, 6 gaps; ÷ from line 3; 3 tries; 85 s, full speed by 40 s",
+      "expert": "Numbers 2 to 30; equations of 4, 5, 5, 5 numbers; 3, 4, 5, 6 gaps; 2 decoys a line; ÷ needed on lines 3 and 4; 2 tries; 78 s, full speed by 40 s"
+    },
+    "measured": "Not documented. This session's kit run (24 deals): Easy 184 / 200 / 200 / 200; Normal 66 / 168 / 199 / 200; Hard 64 / 99 / 168 / 190; Expert 34 / 98 / 165 / 189. Expert scores the same as Hard for good, great and near-perfect play.",
+    "easy": "Keep today's: one gap in the first equations, numbers under 10, no ÷ (average kit 184, 96 % finish).",
+    "hard": "Keep today's: three empty circles in the first equation and numbers to 25 are a clear step for good and great play (168 to 99, 199 to 168).",
+    "expert": "Every sign open on every equation: 4 equations of 5 numbers (2 to 30), 4 sign gaps plus 1, 2, 2, 3 number gaps (24 gaps, today 18), 2, 2, 3, 3 decoy tiles, ÷ needed on lines 3 and 4, 2 tries, 78 s. In-memory kit trial at 90 s: 31 / 65 / 99 / 183.",
+    "glance": {
+      "easy": "A short sum with one empty circle",
+      "hard": "Four numbers and three empty circles",
+      "expert": "Five numbers, every sign missing, a tray of tiles"
+    },
+    "why": "An equation is as hard as its open choices, and five numbers is all a phone line holds at 36 px a gap, so the top level opens every sign and some numbers instead of growing the line.",
+    "proof": "Each line is counted to have 1 to 3 true fills (countGapAnswers) and is found by the person-like left-to-right search inside 800 partial lines (operatorPersonSearch, OPERATOR_PERSON_BUDGET, operatorGaps.server.ts); the Expert trial's hardest line took 783. scripts/number-levels-equation-pyramid-check.ts pins it. Add an assertion that no level ever deals a fallback equation.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "Level field only: the deal already stores each equation, its tray, tryLimit, timeLimitMs and speedFullByS.",
+    "files": [
+      "src/lib/levels/gameLevels.ts",
+      "src/lib/duel/operatorGaps.server.ts",
+      "scripts/number-levels-equation-pyramid-check.ts",
+      "scripts/puzzle-fairness/kits-number.ts"
+    ],
+    "risk": "A line the builder cannot make in 50 attempts silently deals a fixed fallback equation; all-open lines must be proved never to."
+  },
+  {
+    "id": "numpyramid",
+    "name": "Integer Pyramid",
+    "group": "Number",
+    "lever": "Rows and empty stones",
+    "today": {
+      "easy": "4 pyramids of 4 rows (10 stones), 4 to 6 empty, bottom row 1 to 9, 1 decoy; 120 s",
+      "normal": "4 pyramids of 5 rows (15 stones); 6-7, 8-10, 10-12, 12-13 empty; bottom row 1-9 rising to 6-20; 2 decoys; 120 s",
+      "hard": "4 pyramids of 5 rows, 11 to 13 empty, bottom row 4 to 20, 3 decoys; 120 s",
+      "expert": "4 pyramids of 6 rows (21 stones), 12 to 14 empty, bottom row 4 to 25, 3 decoys; 120 s"
+    },
+    "measured": "Documented for Normal only: great 135.4 (35 % finish), near-perfect 188.7 (docs/number-overhaul.md). This session's kit run (24 deals, average / good / great / near-perfect): Easy 98 (0 % finish) / 183 / 198 / 200; Normal 58 / 95 / 125 / 188; Hard 36 / 67 / 95 / 168; Expert 33 / 62 / 93 / 161. Easy fails an average player; Expert scores like Hard.",
+    "easy": "3 pyramids: one of 3 rows (6 stones, 2 or 3 empty), then two of 4 rows (3-4 and 4-5 empty); bottom row 1 to 9; no decoys; 120 s. About 11 stones to place (today about 21).",
+    "hard": "Keep today's: 5 rows with only 2 to 4 stones given and a 14-stone tray is a visible step and measures 36 / 67 / 95 / 168.",
+    "expert": "3 pyramids of 6 rows, 14 or 15 of the 21 stones empty (6 or 7 given), bottom row 6 to 30 so the upper rows run to three digits, 3 decoys, 120 s. About 44 stones, each a longer sum.",
+    "glance": {
+      "easy": "A tiny three-row pyramid with two gaps",
+      "hard": "Five rows almost empty, a tray of 14 stones",
+      "expert": "Six rows almost empty, three-digit stones"
+    },
+    "why": "Six rows is as tall as a phone allows, so above Normal the pyramid empties out and its numbers grow, and Easy shrinks until an average player can finish it.",
+    "proof": "Each level deals from its own bank (scripts/number-pyramid-levels-bank.ts): every board has exactly one tray assignment, decoys included (npCountSolutionsFast, numberPyramidLevels.ts), and the person-like solver completes it; scripts/number-levels-equation-pyramid-check.ts. To add: 3-row boards, the new Expert bank, and a near-perfect kit finish of 60 % or more once the kit is timed on three-digit sums.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "Level field only: boards come from each level's bank and carry their rows. The stage and grader must accept 3-row boards and 3-pyramid rounds.",
+    "files": [
+      "src/lib/levels/gameLevels.ts",
+      "src/lib/duel/numberPyramidLevels.ts",
+      "scripts/number-pyramid-levels-bank.ts",
+      "src/lib/duel/numberPyramidLevelsBank.server.ts",
+      "src/puzzles/numberPyramid.tsx",
+      "scripts/number-levels-equation-pyramid-check.ts"
+    ],
+    "risk": "The six-row board already clips the goal line on the Expert contact sheet, and the kit counts stones, not sum size, so Expert's step needs a real playtest."
+  },
+  {
+    "id": "measure",
+    "name": "Brimful",
+    "group": "Number",
+    "lever": "Jugs on the bench, tap removed",
+    "today": {
+      "easy": "3 boards, 2 jugs and the tap; fewest pours 2-4, 3-4, 4-6; move limit 5 × the fewest; 120 s",
+      "normal": "measureRev 5: 4 boards, jugs 2, 2, 2, 3 with the tap; fewest pours 3-4, 4-6, 6-8, 6-10; limit 4.5 ×; 120 s",
+      "hard": "The old game (measureRev 4): 2 jugs 4-6 pours; 2 jugs 6-9; 3 jugs 8-11; then 3 jugs, no tap, split evenly, 10-14; limit about 4.5 ×; 120 s",
+      "expert": "4 boards: 2 jugs and tap 14-16 pours; 3 jugs and tap 12-15; 3 jugs no tap 11-15; no-tap split 13-16; limit 1.5 ×; 120 s"
+    },
+    "measured": "Documented: only that the near-perfect kit finishes 80 % of Expert. This session's kit run (24 deals): Easy 168 (67 % finish) / 196 / 200 / 200; Normal 64 / 184 / 199 / 200; Hard 32 / 95 / 189 / 200; Expert 0 / 30 / 94 / 188 (79 % finish). An average player scores nothing on Expert.",
+    "easy": "3 boards, 2 jugs and the tap, fewest pours 2, 2-4, 4, limit 5 ×. In-memory kit trial: 183 (88 % finish) / 193 / 197 / 200.",
+    "hard": "3 jugs on every board, and the tap goes half-way: 3 jugs with tap, 4-6 pours; with tap, 7-10; no tap, 9-12; no tap, split evenly, 12-15; limit 2.5 ×; 120 s. A lighter trial (4-6, 6-8, 7-10, 10-13) gave 63 / 161 / 197 / 200, so these bands sit one notch longer.",
+    "expert": "No tap or drain on any board, the big jug starts full: 3 jugs, 6-8 pours; 10-13; split evenly, 13-16; split, 15-18; limit 1.5 ×; the one-move pulse off; 120 s. Kit trials either side: 31 / 62 / 169 / 198 and 31 / 63 / 93 / 189.",
+    "glance": {
+      "easy": "Two jugs and a tap, \"Par 2\"",
+      "hard": "Three jugs on the bench",
+      "expert": "Three jugs, no tap, the big one full"
+    },
+    "why": "Each extra jug and each lost tap is one more thing to juggle and is seen at once, and a short first board on Expert lets an average player score before the long chains.",
+    "proof": "Every board's fewest pours come from a breadth-first search of all jug states, and a board is dealt only if personSolve (the textbook fill-pour-empty and three-jug cycles, measureLevels.ts) reaches the target inside its move limit (measureLevels.server.ts). scripts/number-levels-measure-numline-check.ts pins it and the near-perfect kit's Expert finish rate. Four boards is the ceiling: a five-board trial left the near-perfect kit unfinished on all 16 deals.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "Level field only: measureRev 5 stores the boards and move limits. Hard moves from measureRev 4 to a measureRev 5 row; the pulse is display, read from the stored level.",
+    "files": [
+      "src/lib/levels/gameLevels.ts",
+      "src/lib/duel/measureLevels.ts",
+      "src/lib/duel/measureLevels.server.ts",
+      "src/puzzles/measure.tsx",
+      "scripts/number-levels-measure-numline-check.ts"
+    ],
+    "risk": "The kit plays the proven shortest plan, so its top scores overstate real experts; it also retires the old game from Hard (Joe's 15 Nov choice)."
+  },
+  {
+    "id": "checkout",
+    "name": "Checkout",
+    "group": "Number",
+    "lever": "How strange the dartboard is",
+    "today": {
+      "easy": "3 standard boards, any dart may finish, 3 darts, targets 30-70, 50-100, 100-150; 90 s",
+      "normal": "checkoutRev 4: 5 boards, 3 standard then 2 with 1 to 20 shuffled; double finish; 3 darts; targets 40 to 160; 90 s",
+      "hard": "The old game (checkoutRev 3): standard; shuffled; odd values 5 to 60 (targets 200-400); odd values with a ×4 ring and treble finish; shuffled with 2 minus wedges and exactly 4 darts; 90 s",
+      "expert": "5 odd boards, an exact dart count on each: odd values; ×4 ring and treble finish; minus wedges, 4 darts; minus and ×4, 4 darts; minus, ×4 and treble finish; targets 80 to 320; 90 s"
+    },
+    "measured": "Documented: only that the near-perfect kit finishes 80 % of Expert. This session's kit run (24 deals): Easy 168 (54 % finish) / 200 / 200 / 200; Normal 50 / 105 / 198 / 200; Hard 52 / 104 / 188 / 197; Expert 25 / 53 / 103 / 187 (83 % finish). Hard scores like Normal.",
+    "easy": "3 standard boards, any dart finishes, targets 20-50, 40-80, 100-120, and a 120 s clock. In-memory kit trial at 90 s: 190 (63 % finish) / 200 / 200 / 200. One board stays at 100 or more because only that can pay the big-finish 10.",
+    "hard": "Odd numbers from the first board: odd values 5 to 60, double finish, 120-200; shuffled 1 to 20, 100-160; odd values, ×4 ring, treble finish, 200-400; shuffled with 2 minus wedges, exactly 4 darts, 80-170; odd values with minus wedges, 200-400; 90 s. Kit trial: 28 / 80 / 185 / 198.",
+    "expert": "5 odd-value boards, every one with 2 minus wedges and an exact dart count (3, 4, 4, 4, 4 darts), ×4 ring on three, treble finish on two, targets 80 to 360, 90 s. Kit trial: 25 / 50 / 79 / 180 (81 % finish).",
+    "glance": {
+      "easy": "A normal dartboard and three small targets",
+      "hard": "Odd numbers up to 60 round the board",
+      "expert": "Odd numbers, red minus wedges, \"exactly 3 darts\""
+    },
+    "why": "Darts players lean on checkouts they know by heart, so the fair way to raise the game is to change the board under them, then add minus wedges and exact dart counts.",
+    "proof": "searchCheckout (exhaustive, checkout.ts) proves every board has a checkout thrown in a bust-free order and stores the fewest darts; Easy and Expert boards are also found by checkoutPersonFinds inside 6,000 dart lists (checkout.server.ts); scripts/number-levels-checkout-kakuro-check.ts runs 100 Expert seeds. Give the new Hard the same person filter. Five boards is the ceiling: a six-board trial left the near-perfect kit unfinished on all 16 deals.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "Level field only: checkoutRev 4 stores every board's wedges, ring, darts and target, and timeLimitMs can carry Easy's clock. Hard moves from checkoutRev 3 to checkoutRev 4 rows.",
+    "files": [
+      "src/lib/levels/gameLevels.ts",
+      "src/lib/duel/numberLevels.ts",
+      "src/lib/duel/checkout.server.ts",
+      "scripts/number-levels-checkout-kakuro-check.ts",
+      "scripts/puzzle-fairness/kits-number.ts"
+    ],
+    "risk": "The kit rates an odd board only 1.25 times slower than a standard one, so Hard's real step is unproven until played; it also retires the old game from Hard."
+  },
+  {
+    "id": "numline",
+    "name": "Ballpark",
+    "group": "Number",
+    "lever": "Marks on the ruler",
+    "today": {
+      "easy": "Lines 0-10, 0-100, 0-1 (whole numbers, halves, simple fractions, tens per cents); 3 lines of 5 numbers; unlabelled tenth ticks; 90 s",
+      "normal": "numlineRev 2: 0-1 (fractions, decimals, per cents), 0-100 (products, per cent of, squares, divisions), then -50 to 50 or 0-1,000; 15 numbers; unlabelled tenth ticks; 90 s",
+      "hard": "0-1 (fractions over 11 to 19, thousandths), -100 to 100 (negatives, powers, roots), 0-1,000 (powers, roots, n/d of 1,000); tenth ticks; 90 s",
+      "expert": "0-100, then -50 to 50 or 0-1,000, then 0-10,000 (two-digit products, powers, 1,000 × roots); each line's top label hidden until 3 of 5 are placed; tenth ticks; 90 s"
+    },
+    "measured": "Not documented. This session's kit run (24 deals; the kit's error and pace are set by level name, so they are its author's guesses): Easy 151 / 174 / 189 / 198; Normal 92 / 158 / 178 / 192; Hard 63 / 143 / 170 / 187; Expert 46 / 123 / 154 / 175. All four screens look alike.",
+    "easy": "Today's three easy lines, with every tenth tick labelled (0, 1, 2 to 10; 0, 10 to 100; 0, 0.1 to 1), 90 s.",
+    "hard": "Today's Hard lines on a ruler marked only at the quarters (3 ticks, Normal has 9), 90 s.",
+    "expert": "A bare ruler with one middle tick; lines 0-100, then -50 to 50 or 0-1,000, then 0-10,000, every end label shown from the start (the hidden end goes); 75 s for the 15 numbers.",
+    "glance": {
+      "easy": "Every tick on the ruler carries its number",
+      "hard": "Only three ticks: the quarters",
+      "expert": "A bare ruler with one middle tick"
+    },
+    "why": "Ballpark is judging a place by eye, so thinning the ruler's marks makes the same sums harder to place and is seen before the first drag, where today's hidden end label only turns the first three into a guess.",
+    "proof": "Open by design (every placing scores by distance), so there is no solve to prove: nothing is hidden and every value is exact. scripts/number-levels-measure-numline-check.ts should pin that the near-perfect kit, refitted to measured pointing error on each ruler, still has Expert runs of 185 or more. No such refit exists today; it must be written.",
+    "change": "redesign",
+    "newMechanic": "",
+    "stamp": "Level field plus a stored marks count on each line (display only, like hideEnd) and Expert's 75 s in timeLimitMs; no grading change, so no new revision. Stored hideEnd rounds draw as before.",
+    "files": [
+      "src/lib/duel/numlineLevels.server.ts",
+      "src/lib/duel/numline.ts",
+      "src/puzzles/numline.tsx",
+      "src/lib/levels/gameLevels.ts",
+      "scripts/number-levels-measure-numline-check.ts",
+      "scripts/puzzle-fairness/kits-number.ts"
+    ],
+    "risk": "The drag sound ticks at every tenth, which would give the missing marks away by ear unless it follows the marks shown."
+  },
+  {
+    "id": "kakuro",
+    "name": "Kakuro",
+    "group": "Number",
+    "lever": "Size of the grid",
+    "today": {
+      "easy": "5 × 5 grid (clue row and column included), 12 to 14 white squares, grade 0; 120 s",
+      "normal": "kakuroRev 3: 6 × 6, 16 to 19 white squares, grade 0 to 4, at most 3 solver passes; 120 s",
+      "hard": "The old game (kakuroRev 2): 6 × 6, 19 to 21 white squares, grade up to 10, not filtered by the person-like solver; 120 s",
+      "expert": "7 × 7, 26 to 28 white squares, grade 4 to 12, every board finished by the person-like solver; 120 s"
+    },
+    "measured": "Documented: only that the near-perfect kit finishes 80 % of Expert. This session's kit run (24 deals): Easy 106 (38 % finish) / 190 / 198 / 200; Normal 80 / 163 / 187 / 200; Hard 60 / 105 / 172 / 198; Expert 46 / 78 / 102 / 174 (83 % finish). The person-like solver finishes only 30 of 40 of today's Hard boards.",
+    "easy": "5 × 5 with 9 to 11 white squares (today 12 to 14), grade 0, every square seen within 2 solver passes, 120 s. In-memory kit trial: 179 (every run finished) / 198 / 200 / 200.",
+    "hard": "A wider board, 7 squares across by 6 down, 20 to 23 white squares, grade 0 to 6, every board finished by the person-like solver, 120 s. Nearest trials: the old 6 × 6 gives 60 / 105 / 172 / 198 and a 7 × 7 with 22 to 25 squares 55 / 100 / 120 / 187.",
+    "expert": "Keep today's 7 × 7 with 26 to 28 white squares: the clock is the ceiling (a 7 × 7 with 29 to 31 squares halved the near-perfect kit's finishes), and it measures 46 / 78 / 102 / 174.",
+    "glance": {
+      "easy": "A small grid with about ten white squares",
+      "hard": "A wider grid, seven squares across",
+      "expert": "The full 7 × 7 grid, 27 squares to fill"
+    },
+    "why": "Kakuro's load is squares to fill times how deep each deduction runs, so the grid grows a row or a column a level until the 120 s clock, not the phone, stops it at 7 × 7.",
+    "proof": "searchKakuro proves exactly one solution and kakuroPersonSolve (run combinations only, never a guess) completes every Easy, Hard and Expert board (kakuro.server.ts). scripts/number-levels-checkout-kakuro-check.ts runs 100 Expert seeds and the near-perfect kit's 80 % finish. To write: rectangular layouts in generateKakuroLevel and a bank for the 7-wide boards, which take 0.5 to 2 s each to deal.",
+    "change": "retune",
+    "newMechanic": "",
+    "stamp": "New kakuroRev 4 for the 7 × 6 board: the stored puzzle and answer assume a square size. Easy and Expert stay kakuroRev 3 with the level field.",
+    "files": [
+      "src/lib/levels/gameLevels.ts",
+      "src/lib/duel/numberLevels.ts",
+      "src/lib/duel/kakuro.ts",
+      "src/lib/duel/kakuro.server.ts",
+      "src/puzzles/kakuro.tsx",
+      "scripts/number-levels-checkout-kakuro-check.ts",
+      "scripts/puzzle-fairness/kits-kakuro.ts"
+    ],
+    "risk": "It retires the old game from Hard (Joe's 15 Nov choice), a quarter of whose boards cannot be finished by deduction alone."
+  }
+]
