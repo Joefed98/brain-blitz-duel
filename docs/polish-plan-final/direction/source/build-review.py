@@ -44,18 +44,26 @@ def lab_of(v):
     return 'documented' if v.startswith('documented') else 'measured' if v.startswith('measured') else 'not measured'
 def levels():
     out=[]
+    bars=lambda n: '<span class="lm l%d"><i></i><i></i><i></i><i></i></span>'%n
     for grp in order:
         gs=[g for g in allg if g['group']==grp]
-        out.append(f'<h3 class="fam">{E(grp)} <span>{len(gs)}</span></h3>')
+        gid=grp.lower().replace(' & ','-').replace(' ','-')
+        out.append(f'<h3 class="fam" id="fam-{gid}">{E(grp)} <span>{len(gs)}</span></h3>')
         for g in gs:
             ch={'keep':'kept','retune':'retuned','redesign':'redesigned'}[g['change']]
-            new=f'<p class="newm"><b>New:</b> {E(g["newMechanic"])}</p>' if g.get('newMechanic') else ''
+            new=f'<p><b>New mechanic:</b> {E(g["newMechanic"])}</p>' if g.get('newMechanic') else ''
             ev=g.get('evidence') or {}
-            verdict=f'<p class="newm"><b>Fact-check:</b> {E(g["verdict"])}</p>' if g.get('verdict') else ''
-            out.append(f'''<details class="lv"><summary><b>{E(g["name"])}</b><span class="lever">{E(g["lever"])}</span><i class="tag {g["change"]}">{ch}</i></summary>
-<div class="ladder"><div class="e"><em>Easy</em>{E(g["glance"]["easy"])}<small class="ev {lab_of(ev.get("easy")).replace(" ","-")}">{lab_of(ev.get("easy"))}</small></div><div class="n"><em>Normal · today</em>{E(g["today"]["normal"])}</div><div class="h"><em>Hard</em>{E(g["glance"]["hard"])}<small class="ev {lab_of(ev.get("hard")).replace(" ","-")}">{lab_of(ev.get("hard"))}</small></div><div class="x"><em>Expert</em>{E(g["glance"]["expert"])}<small class="ev {lab_of(ev.get("expert")).replace(" ","-")}">{lab_of(ev.get("expert"))}</small></div></div>
-<p class="why">{E(g["why"])}</p>{new}{verdict}</details>''')
+            v=(g.get('verdict') or 'unproven')
+            vk=v.split(':')[0].strip().lower(); vk=vk if vk in ('holds','adjusted','unproven') else 'unproven'
+            vt={'holds':'checked: holds','adjusted':'checked: changed','unproven':'still to prove'}[vk]
+            newtag='<i class="tag newmech">new mechanic</i>' if g.get('newMechanic') else ''
+            cell=lambda cls,n,name,txt,lv: f'<div class="{cls}"><em>{bars(n)}{name}</em>{E(txt)}'+(f'<small class="ev {lab_of(ev.get(lv)).replace(" ","-")}">{lab_of(ev.get(lv))}</small>' if lv else '')+'</div>'
+            out.append(f'''<article class="lv" data-v="{vk}" data-new="{1 if g.get("newMechanic") else 0}" data-name="{E(g["name"].lower())} {E(g["lever"].lower())}"><header><b>{E(g["name"])}</b><span class="lever">{E(g["lever"])}</span><i class="tag {g["change"]}">{ch}</i>{newtag}<i class="tag v-{vk}">{vt}</i></header>
+<div class="ladder">{cell("e",1,"Easy",g["glance"]["easy"],"easy")}{cell("n",2,"Normal · today",g["today"]["normal"],None)}{cell("h",3,"Hard",g["glance"]["hard"],"hard")}{cell("x",4,"Expert",g["glance"]["expert"],"expert")}</div>
+<details><summary>Why, and what the check found</summary><p>{E(g["why"])}</p>{new}<p><b>Fact-check:</b> {E(v)}</p></details></article>''')
     return '\n'.join(out)
+def famnav():
+    return '<div class="chips">'+''.join(f'<a href="#fam-{grp.lower().replace(" & ","-").replace(" ","-")}">{E(grp)}</a>' for grp in order)+'</div>'
 def factcounts():
     lab={'measured':0,'documented':0,'not measured':0}; ver={'holds':0,'adjusted':0,'unproven':0}
     for g in allg:
@@ -145,13 +153,20 @@ table{{border-collapse:collapse;width:100%;font-size:15px}} .tbl{{overflow-x:aut
 th,td{{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}} th{{color:var(--text3);font:800 12px var(--font);letter-spacing:.08em;text-transform:uppercase}}
 td b{{color:var(--gold)}} .tnum{{font-variant-numeric:tabular-nums}}
 .fam{{margin-top:28px;display:flex;align-items:baseline;gap:8px}} .fam span{{font:800 13px var(--font);color:var(--text3)}}
+article.lv{{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin:10px 0;padding:12px 0 8px}}
+article.lv header{{padding:0 14px 10px;display:flex;gap:6px 8px;align-items:baseline;flex-wrap:wrap}} article.lv header b{{font:800 17px var(--font)}}
+article.lv details{{margin:4px 14px 2px}} article.lv details summary{{cursor:pointer;color:var(--text3);font:700 13px var(--font);padding:6px 0}} article.lv details p{{color:var(--text2);font-size:14px;margin:6px 0}} article.lv details p b{{color:var(--gold)}}
+.lm{{display:inline-flex;align-items:flex-end;gap:2px;height:11px;margin-right:6px;vertical-align:-1px}} .lm i{{width:3px;border-radius:1px;background:#2A3A6B}} .lm i:nth-child(1){{height:4px}} .lm i:nth-child(2){{height:6px}} .lm i:nth-child(3){{height:9px}} .lm i:nth-child(4){{height:11px}}
+.lm.l1 i:nth-child(-n+1){{background:var(--green)}} .lm.l2 i:nth-child(-n+2){{background:var(--blue)}} .lm.l3 i:nth-child(-n+3){{background:var(--amber)}} .lm.l4 i:nth-child(-n+4){{background:var(--red)}}
+.tag.v-holds{{color:var(--green);box-shadow:inset 0 0 0 1px currentColor;background:none}} .tag.v-adjusted{{color:var(--blue);box-shadow:inset 0 0 0 1px currentColor;background:none}} .tag.v-unproven{{color:var(--amber);box-shadow:inset 0 0 0 1px currentColor;background:none}} .tag.newmech{{background:var(--gold);color:var(--gold-ink)}}
+.chips{{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0}} .chips a,.chips button{{text-decoration:none;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font:700 13px var(--font);cursor:pointer}} .chips button[aria-pressed=true]{{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}}
 details.lv{{background:var(--panel);border:1px solid var(--line);border-radius:12px;margin:8px 0}}
 details.lv summary{{list-style:none;cursor:pointer;padding:12px 14px;display:flex;gap:8px 10px;align-items:baseline;flex-wrap:wrap}}
 details.lv summary::-webkit-details-marker{{display:none}}
 details.lv summary b{{font:800 16px var(--font)}} .lever{{color:var(--text2);font-size:14px;flex:1;min-width:140px}}
 .tag{{font:800 11px var(--font);font-style:normal;letter-spacing:.06em;text-transform:uppercase;border-radius:6px;padding:3px 7px;background:var(--panel2);color:var(--text2)}}
 .tag.redesign{{color:var(--amber)}} .tag.keep{{color:var(--green)}}
-.ladder{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:0 14px 6px}}
+.ladder{{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:0 14px 4px}}
 .ladder div{{background:var(--panel2);border-radius:10px;padding:9px 10px;font-size:14px;line-height:1.35;border-top:3px solid var(--line);min-width:0;overflow-wrap:anywhere}}
 .ladder em{{display:block;font:800 11px var(--font);font-style:normal;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}}
 .ladder .e{{border-color:var(--green)}} .ladder .e em{{color:var(--green)}} .ladder .n{{border-color:var(--blue)}} .ladder .n em{{color:var(--blue)}}
@@ -228,6 +243,9 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 <h4>The Daily and a tournament</h4>
 <p>Two pages inside Compete, in the same kit: the Daily with today’s six games on show and your week as a row of stars, and a live Arena with your points and place first and one gold button.</p>
 {strip([('pages/daily-e-phone','Daily',''),('pages/event-e-phone','A tournament, live','')])}
+<h4>The rest of the pages</h4>
+<p>The Season pass, Customise, a leaderboard, Friends and Settings in the same kit. One gold button on each, at most.</p>
+{strip([('pages/pass-e-phone','Pass',''),('pages/customise-e-phone','Customise',''),('pages/leaderboard-e-phone','Leaderboard',''),('pages/friends-e-phone','Friends',''),('pages/settings-e-phone','Settings','')])}
 <h4>You</h4>
 <p><b>Y1 Rows</b> is the card, the rating, three stats and rows. <b>Y2 Card first</b> makes the player card the page, with your strongest categories and recent form. <b>Y3 Career</b> is ring gauges and a trophy shelf. I recommend Y2: the page is about identity, and the card is the identity.</p>
 {strip([('pages/profile-e-phone','Y1 · Rows · champagne',''),('pages/profile2-e-phone','Y2 · Card first · champagne',''),('pages/profile2-h-phone','Y2 · Card first · Ember',''),('pages/profile3-e-phone','Y3 · Career · champagne',''),('pages/profile3-g-phone','Y3 · Career · Ion','')])}
@@ -239,6 +257,9 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 
 <h2 id="flow">Flow: a first game in seconds</h2>
 <p>Today a new player sees Home, a loading screen and a full intro before the first tap inside a game. In the plan the splash leads straight to a first game, and the first tap is the game’s first tap.</p>
+<h3 id="flowboard">The whole app on one sheet</h3>
+<p>Four journeys (a new phone, a practice game, a ranked match, a friends’ room) and the pages around them, all drawn in one kit. The number under each arrow is the taps it takes. Tap the sheet to enlarge it.</p>
+{strip([('pages/flow-board','The whole app on one sheet','board')])}
 {strip([('pages/first1-e-phone','1 · The bolt charges',''),('pages/first2-e-phone','2 · The first game: tap 1, 2, 3…',''),('pages/first3-e-phone','3 · A first win, then Home',''),('pages/intro-now-phone','Today’s intro, for contrast','now')])}
 <p class="muted">Frame 2 is a flow sketch. The game itself is drawn in the art direction you pick.</p>
 <div class="tbl"><table><tr><th>Journey</th><th>Today</th><th>Plan</th></tr>
@@ -265,6 +286,8 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 {strip([('pages/ladders-sheet','Twelve ladders','board')])}
 <h3>Every game</h3>
 <input id="lvfind" type="search" placeholder="Find a game" aria-label="Find a game">
+<div class="chips" id="lvfilter"><button type="button" data-f="all" aria-pressed="true">All 83</button><button type="button" data-f="adjusted" aria-pressed="false">Changed by the check</button><button type="button" data-f="unproven" aria-pressed="false">Still to prove</button><button type="button" data-f="holds" aria-pressed="false">Holds</button><button type="button" data-f="new" aria-pressed="false">New mechanic</button></div>
+{famnav()}
 <div id="lvlist">
 {levels()}
 </div>
@@ -313,9 +336,23 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
   var find=document.getElementById('lvfind');
   find.addEventListener('input',function(){{
     var q=find.value.trim().toLowerCase();
-    document.querySelectorAll('#lvlist details').forEach(function(d){{d.hidden=q!==''&&d.querySelector('summary').textContent.toLowerCase().indexOf(q)<0;}});
-    document.querySelectorAll('#lvlist .fam').forEach(function(h){{h.hidden=q!=='';}});
+    applyLv();
   }});
+  var lvf='all';
+  function applyLv(){{
+    var q=find.value.trim().toLowerCase();
+    document.querySelectorAll('#lvlist article.lv').forEach(function(d){{
+      var okq=q===''||d.getAttribute('data-name').indexOf(q)>=0;
+      var okf=lvf==='all'||(lvf==='new'?d.getAttribute('data-new')==='1':d.getAttribute('data-v')===lvf);
+      d.hidden=!(okq&&okf);
+    }});
+    document.querySelectorAll('#lvlist .fam').forEach(function(h){{h.hidden=q!==''||lvf!=='all';}});
+  }}
+  document.querySelectorAll('#lvfilter button').forEach(function(b){{b.addEventListener('click',function(){{
+    lvf=b.getAttribute('data-f');
+    document.querySelectorAll('#lvfilter button').forEach(function(x){{x.setAttribute('aria-pressed',x===b?'true':'false');}});
+    applyLv();
+  }});}});
   var KEY='joulz-direction-answers';
   try{{var saved=JSON.parse(localStorage.getItem(KEY)||'{{}}');Object.keys(saved).forEach(function(id){{var el=document.getElementById(id);if(el)el.checked=true;}});}}catch(e){{}}
   document.querySelectorAll('.dec input').forEach(function(i){{i.addEventListener('change',function(){{

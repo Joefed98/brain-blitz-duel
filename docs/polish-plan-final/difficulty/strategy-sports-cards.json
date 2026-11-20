@@ -119,7 +119,7 @@
     "risk": "Normal's average is already 63, so Hard and Expert land near 35 and 15 for an average player, under the guide numbers",
     "evidence": {
       "easy": "measured: HR_LEVEL_SETTINGS set in memory (not the 5 outs: a new sim rule), 12 dealt seeds, HUMAN_LIMITS, server replay: average 103.3 (today's Easy 89 and Normal 63, earlier pass), elite 194.3, flawless 195.0.",
-      "hard": "measured: 12 Hard-deal seeds (unproved on these settings): average 42.7 (median 46), elite under limits 197.8 with 9 of 12 at 200, flawless 200 on 12 of 12; today's Hard 26 / 172 (earlier pass).",
+      "hard": "measured: 12 Hard-deal seeds (unproved on these settings): average 42.7 (median 46), elite under limits 197.8 with 9 of 12 at 200, flawless 200 on 12 of 12; today's Hard 26 / 172 (earlier pass). For the elite, Hard (198) is no harder than Normal (200), while the average steps 103, 63, 43, 13.",
       "expert": "measured: 12 Expert-deal seeds: average 13.1 (median 15), elite under limits 163.7 (median 157, one run at 200), flawless under limits 200 on 12 of 12; today's Expert 16 / 149 (earlier pass)."
     },
     "verdict": "holds: the average batter steps 103 / 63 / 43 / 13 and the elite reaches 200 at Expert under the limits (1 of 12) with PERFECT at ±1 tick; the elite's Hard (198) is no harder than Normal, the 5 outs were not run and the level deals are not re-proved.",
