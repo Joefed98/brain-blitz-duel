@@ -391,30 +391,30 @@
     },
     "measured": "Bots under human limits, 12 towers, mean: average 162 / 86 / 75 / 41; elite 190 / 173 / 159 / 135.",
     "easy": "As today: half the blades, slower lanterns and a 2 m knock-down already land the average bot at 162 with no run ever ended.",
-    "hard": "As today: blades at 1.3 times and 65 % ice put the average bot at 75 and the elite at 159, inside the targets.",
+    "hard": "Blades 1.3 times Normal's (about 208) and 65 % ice as today; knock-down 3.5 m (today 3 m, Expert 4 m); height full at 245 m.",
     "expert": "As today: blades at 1.6 times, faster shurikens, 88 % ice and 4 lanterns put the average bot at 41 and the elite at 135.",
     "glance": {
       "easy": "About one blade on the first screen",
       "hard": "Blades on both walls from the first leap",
       "expert": "Blades and ice on every stretch, faster shurikens"
     },
-    "why": "It is the one ladder in the group that already climbs on a hazard you can count on the first screen and already measures on target at every level, so changing it would only add risk.",
-    "proof": "Each level's tower is built in the sim and kept only when its witness takes every part with no hit through the real step (moonBuildDeal(seed, 4, level) in src/lib/arcade/ricochetNinja.ts); scripts/ricochet-levels-check.ts grades sampled witnesses at exactly 200. The witness leaps on exact ticks, so the build session should re-time it under HUMAN_LIMITS once.",
-    "change": "keep",
+    "why": "It is the one ladder in the group that already climbs on a hazard you can count on the first screen, so only Hard's knock-down moves: measured, Hard sat 6 points under Normal for the average player and half a metre more puts it midway to Expert.",
+    "proof": "Each level's tower is built in the sim and kept only when its witness takes every part with no hit through the real step (moonBuildDeal(seed, 4, level) in src/lib/arcade/ricochetNinja.ts); scripts/ricochet-levels-check.ts grades sampled witnesses at exactly 200. A knock-down change does not touch a hitless witness, so Hard's towers stay proved. The witness leaps on exact ticks, so the build session should re-time it under HUMAN_LIMITS once.",
+    "change": "retune",
     "newMechanic": "",
-    "stamp": "level field only: no table change. The pending ricoRev 5 (smaller ninja) is not needed; if it ships the towers re-prove in the sim with the new body.",
+    "stamp": "A new stamp on Hard deals only (ricoRev 5, or 6 if the pending smaller ninja takes 5): MOON_LEVELS is frozen with the sim, so stored Hard rounds keep the 3 m knock-down. Easy, Normal and Expert keep their stamp and table.",
     "files": [
-      "src/lib/arcade/ricochetNinja.ts (MOON_LEVELS, unchanged)",
+      "src/lib/arcade/ricochetNinja.ts (MOON_LEVELS: Hard's knock-down)",
       "scripts/ricochet-levels-check.ts",
       "scripts/action-levels-bands.ts"
     ],
-    "risk": "low",
+    "risk": "the elite under HUMAN_LIMITS never passes 144 on Expert (median 99), so Expert's 200 rests on the frame-exact witness alone",
     "evidence": {
       "easy": "measured: today's Easy, scratch harness (level-tune's own loop and HUMAN_LIMITS), 24 seeds, medians: average 165, elite 194, 8/24 at 200, no run ended early.",
-      "hard": "measured: today's Hard, 24 seeds: average 80, elite 142 (best 178); Normal measures 86 and 159, so Hard is 6 under Normal for the average bot.",
+      "hard": "measured: table in memory, 12 towers: blades 1.3 times, 65 % ice, knock-down 3.5 m: average median 61, elite 134, best 163, 0/12 at 200. Today's 3 m: average 80, elite 142; Normal 86 and 159. Blades at 1.45 times alone: 77 and 125.",
       "expert": "measured: today's Expert, 24 seeds: average 42, elite 99, best 144, 0/24 at 200 under HUMAN_LIMITS (the earlier pass's 135 used the bot's own limits only)."
     },
-    "verdict": "unproven: Easy and Expert measure on target for the average bot, but Hard is only 6 under Normal and the elite under HUMAN_LIMITS never passes 144 on Expert.",
+    "verdict": "adjusted: Hard's knock-down 3 m to 3.5 m (today's Hard measured 6 under Normal for the average bot, now 25 under); Easy and Expert kept as today; Expert's 200 under HUMAN_LIMITS is unproven (elite median 99, best 144).",
     "limitsToday": "scripts/action-levels-bands.ts:29-33 sets `human.limits`, which bots/ricochet.ts reads; level-tune.ts:187 sets the same flag and also raises reactions to 250 ms. Both only measure. The tower's witness is frame-exact and ricochet-levels-check asserts its 200 with no limits."
   },
   {

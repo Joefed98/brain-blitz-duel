@@ -224,15 +224,15 @@
     },
     "measured": "40 deals: elite 192.8 / 184.1 / 156.2 / 145.5; human limits 193.0 / 185.1 / 166.7 / 163.5 (Expert best tenth 189.8); Normal average bot 123; average per level not documented",
     "easy": "As today: 5 free cells, 32 cards (Ace to 8), free unlimited undo, free hints with the idle glow, speed full by 60 s (four short rows and a fifth cell already read as easy).",
-    "hard": "3 free cells; the full 52 cards from the 120 shortest three-cell solutions (par 32 to 43, today's Expert deals); undo unlimited but a move; no hints; par 0 at 1.25 x; speed full by 30 s.",
-    "expert": "2 free cells; 52 cards from a new bank of the shortest two-cell solutions (par 50 or under); 3 undos; no hints; par 0 at 1.25 x; speed full by 40 s.",
+    "hard": "3 free cells on Normal's 40 cards (Ace to 10), so the missing cell is the only change; undo unlimited but a move; no hints; par 0 at 1.25 x of a three-cell par; speed full by 30 s.",
+    "expert": "2 free cells and the full 52 cards, from a new bank of the shortest two-cell solutions (par 50 or under); 3 undos; no hints; par 0 at 1.25 x; speed full by 40 s.",
     "glance": {
       "easy": "Five free cells over four short rows, a Hint button",
-      "hard": "Three free cells over a full 52-card table",
-      "expert": "Only two free cells, court cards everywhere, Undo (3)"
+      "hard": "Three free cells over the familiar 40-card table",
+      "expert": "Only two free cells, the full deck, Undo (3)"
     },
-    "why": "The free cells are Free Cell's own difficulty dial: each one removed roughly halves the room to manoeuvre, and since the deck is already full at Hard, the cells carry the ladder to the top.",
-    "proof": "scripts/freecell-level-bank.ts re-solves candidate deals with the level's cell count using the bank solver (src/lib/arcade/cards/freecellSolver.ts) and keeps the 120 shortest (src/lib/arcade/cards/freecellDealsLevels.data.ts, lines in scripts/fixtures/freecell-solutions-levels.json). scripts/cards-levels-check.ts replays every line to exactly 200 through the server at one move every 0.4 s (HUMAN_LIMITS), which must finish inside the speed line; deals the solver cannot clear with two cells are dropped.",
+    "why": "The free cells are Free Cell's own difficulty dial: each one removed roughly halves the room to manoeuvre, so Hard takes one away and nothing else, and Expert takes another and adds the full deck.",
+    "proof": "scripts/freecell-level-bank.ts re-solves candidate deals with the level's cell count using the bank solver (src/lib/arcade/cards/freecellSolver.ts) and keeps the 120 shortest (src/lib/arcade/cards/freecellDealsLevels.data.ts, lines in scripts/fixtures/freecell-solutions-levels.json): Hard from 40-card deals with three cells, Expert from 52-card deals with two. Both banks are new. On unproved deals the solver's plan cleared 12 of 12 with three cells (12 s at one move every 0.4 s) and 10 of 12 of today's Expert deals with two (24 s). scripts/cards-levels-check.ts replays every line to exactly 200 through the server at that pace, inside the speed line.",
     "change": "retune",
     "newMechanic": "",
     "stamp": "freecellRev 6 on Hard and Expert deals (Easy and Normal stay freecellRev 5): today's Hard and Expert rounds with hints must still replay.",
@@ -245,13 +245,13 @@
       "scripts/cards-levels-check.ts",
       "scripts/cards-levels-order-check.ts"
     ],
-    "risk": "two-cell solutions may be too long to play inside 120 s, so the bank may need thousands of candidates to find 120 short ones",
+    "risk": "the average bot scores about 20 on any 52-card deal, so Expert is a wall for average players; both banks and their pars are still to build, and until they are no Expert run can reach 200",
     "evidence": {
       "easy": "documented: today's Easy kept; docs GALLERY (cards-levels-tune, 40 deals): elite 192.8, human-limits player 193.0.",
-      "hard": "not measured: not reached this session.",
-      "expert": "not measured: a two-cell bank does not exist; not reached this session."
+      "hard": "measured: 3 cells on Normal's 40-card deals (scratch game, sim score), 12 deals: average 86.3 (6 of 12 cleared; Normal 123), human-limits 168.6 and elite 164.9, each with a best of 200. As first proposed (3 cells, 52 cards): 22.8 / 154.2 / 141.6.",
+      "expert": "measured: FC_LEVEL_RULES cells set to 2 on today's 12 Expert deals (not proved for two cells), server grade: average 19.7, human-limits 126.8 (10 of 12 cleared, in 24 s; best tenth 166), elite 117.0; the pars are three-cell ones, so no 200."
     },
-    "verdict": "unproven: not measured in this session.",
+    "verdict": "adjusted: with 52 cards at both levels the average player scored 23 at Hard and 20 at Expert, so Hard now only removes the fourth cell from Normal's 40-card deals (average 86) and the full deck arrives with the two cells at Expert (20); both banks and the Expert's 200 are unproved.",
     "limitsToday": "scripts/cards-human-limits.ts:28-30, 39-57, 175 (the bank solver's plan at one move every 24 ticks) for cards-levels-tune.ts:60 (--bots=human) and cards-levels-order-check.ts, which asserts the levels step down; the bank's solved lines carry no clock."
   },
   {
@@ -268,14 +268,14 @@
     "measured": "40 deals: elite 183.3 / 181.3 / 173.6 / 171.3; human limits 164.9 / 159.1 / 144.9 / 128.5 (Expert best tenth 197.5); Normal average bot 110 with 9 of 60 cleared; average per level not documented",
     "easy": "90 s; 23 stock turns; deals with stock par 12 or less (11 turns to spare); playable glow, wrap, 3 undos, free hints with the idle glow; speed full by 30 s.",
     "hard": "45 s; the stock cut to 18 turns, on deals with stock par 13 or less (5 to spare); no glow; wrap kept; no undo, no hints; speed full by 20 s.",
-    "expert": "35 s; the stock cut to 14 turns, on deals with stock par 11 or less (3 to spare); no glow; wrap kept; no undo, no hints; speed full by 18 s.",
+    "expert": "25 s; the stock cut to 14 turns, on deals with stock par 11 or less (3 to spare); no glow; wrap kept; no undo, no hints; speed full by 18 s.",
     "glance": {
       "easy": "A slow 90 second bar, glowing cards, an Undo button",
       "hard": "The timer bar draining faster, a stock of 18, no glow",
-      "expert": "35 seconds, a thin stock of 14, nothing glows"
+      "expert": "25 seconds, a thin stock of 14, nothing glows"
     },
     "why": "Summit is the sixty-second sprint of the card games and its ten-card bottom row is already at the phone's width limit, so time and stock, the two numbers on screen, make the ladder; they replace today's no-wrap rule, which changes how cards connect without showing it.",
-    "proof": "Every bank deal already has a proved clearing line and a stock par (src/lib/arcade/cards/tripeaksDeals.data.ts and tripeaksStockPar.data.ts, built by scripts/tripeaks-bank.ts and scripts/tripeaks-stock-par.ts with src/lib/arcade/cards/tripeaksSolver.ts). A level's list is the deals whose par fits its stock; scripts/cards-levels-check.ts replays each par line at one tap every 0.4 s (28 cards and 11 turns take 16 s) to exactly 200 inside the level's clock.",
+    "proof": "Every bank deal already has a proved clearing line and a stock par (src/lib/arcade/cards/tripeaksDeals.data.ts and tripeaksStockPar.data.ts, built by scripts/tripeaks-bank.ts and scripts/tripeaks-stock-par.ts with src/lib/arcade/cards/tripeaksSolver.ts). A level's list is the deals whose par fits its stock: 124 of the 300 have par 13 or less and 69 have 11 or less. scripts/cards-levels-check.ts replays each par line at one tap every 0.4 s (28 cards and 11 turns take 16 s) to exactly 200 inside the level's clock.",
     "change": "redesign",
     "newMechanic": "",
     "stamp": "tripeaksRev 4 on level deals (Normal stays tripeaksRev 3): a level clock and a shorter stock are new sim rules, and today's no-wrap rounds must still replay.",
@@ -288,13 +288,13 @@
       "scripts/cards-levels-check.ts",
       "scripts/cards-levels-order-check.ts"
     ],
-    "risk": "the 300-deal bank may hold too few deals with stock par 11 or less, and extending it costs about 25 min of par search a pass",
+    "risk": "the sim's 60 s run length is a constant, so Easy's 90 s could not be run; the average player clears no deal at Hard or Expert (0 of 24), so both are score-what-you-can levels for them",
     "evidence": {
-      "easy": "not measured: not reached yet.",
-      "hard": "not measured: not reached yet.",
-      "expert": "not measured: not reached yet."
+      "easy": "not measured at 90 s: the run length is a constant (TP_RUN_TICKS, tripeaks.ts:44). Today's Easy rules at 60 s, 24 deals: average 118.2 (1 of 24 cleared, in 58 s), human-limits 160.1, elite bot 182.6, so time is what the average player lacks.",
+      "hard": "measured: clock and stock emulated in a scratch game (sim score, no server replay), 24 bank deals of par 13 or less: average 58.3 (Normal 110 documented, today's Hard 73.3), human-limits 135.0 (best 196), elite bot 174.6.",
+      "expert": "measured: 24 deals of par 11 or less at 25 s, stock 14: average 36.2, human-limits 137.0 (7 cleared in 15.7 s, one run at 200), elite bot 111.0 (too slow to clear). At the first proposed 35 s: 52.0 / 137.0 / 172.4."
     },
-    "verdict": "unproven: not measured yet.",
+    "verdict": "adjusted: at 35 s Expert sat only 6 points under Hard for the average player (52 v 58), so the Expert clock is now 25 s (average 36; the human-limits player still scores 137 and reaches 200); Easy's 90 s could not be run.",
     "limitsToday": "scripts/cards-human-limits.ts:175 (visible cards only, one tap every 24 ticks) for cards-levels-tune.ts:60 (--bots=human) and cards-levels-order-check.ts, which asserts the levels step down; the bank's solver lines carry no clock."
   },
   {
@@ -337,7 +337,7 @@
       "hard": "measured: 42 s, no hints, 16 decks: average 60.0 and never places all 20 cards (Normal 121.2, today's Hard 86.2), human-limits 116.4, elite 137.4.",
       "expert": "measured: 30 s at x 1.4, 16 decks: average 29.4 (today's Expert 62.7), human-limits 110.7 (best tenth 157.5; today 102.5), elite 131.5 (best tenth 194.5); no run at 200, and no proved deck list exists yet."
     },
-    "verdict": "holds: the clock gives the average player steps of 61 and 31 points (121 / 60 / 29); Easy's 90 s changes nothing against today's 75 s, and 200 at Expert stays unproven until the deck lists are built (no run reached it).",
+    "verdict": "unproven: the clock gives the average player steps of 61 and 31 points (121 / 60 / 29), but no run reached 200 at Expert (elite best tenth 194.5) and the proved deck lists are not built; Easy's 90 s changes nothing against today's 75 s.",
     "limitsToday": "scripts/cards-human-limits.ts:175 (the hint's rule at one tap every 24 ticks) for cards-levels-tune.ts:60 (--bots=human) and cards-levels-order-check.ts, which asserts the levels step down; no level has a 200 witness."
   },
   {
@@ -547,10 +547,10 @@
     "risk": "a seven-colour reef may be clearable with 30 s left on very few seeds, so the planner and the speed line may both need work",
     "evidence": {
       "easy": "documented: today's Easy kept; bubble-levels-check witnesses, 12 seeds: average 157, elite under limits 195.",
-      "hard": "not measured: not reached yet.",
-      "expert": "not measured: not reached yet."
+      "hard": "measured: BUB_LEVELS set in memory, 12 seeds, HUMAN_LIMITS, server replay: average 37.5 (Normal 62.0, today's Hard 44.0), elite 165.4 (Normal 174.8), flawless 188.5 (best 198). With 86 or 93 bubbles the average is 45.8 / 47.4.",
+      "expert": "measured: 7 colours run in the sim as it stands, 12 seeds: average 23.4 (today's Expert 22.9), elite 154.5 (median 167, best 178; today 132.4), flawless 178.8 (best 194, clears 5 of 12); no run at 200."
     },
-    "verdict": "unproven: not measured yet.",
+    "verdict": "unproven: the ladder steps down for the average player (62 / 38 / 23, the last step inside 12-seed noise) and the elite (175 / 165 / 155), but no run reached 200 at Hard or Expert (flawless best 198 and 194), so the planner and the dealt lists must supply the proof.",
     "limitsToday": "scripts/bubble-levels-record.ts:36 records the bots (the bubble bot paces its own shots) and scripts/bubble-levels-check.ts:222, 233 assert the elite clears a reef at every level and that Expert's elite averages 120+ with a best of 170+; no per-seed 200 proof."
   },
   {
