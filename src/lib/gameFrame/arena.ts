@@ -42,6 +42,12 @@ export const ARENA_PANEL_W = 320;
  */
 export const ARENA_PANEL_LEFT_W = 280;
 /**
+ * The Cabinet's switch: off until session S2 fills the left panel and changes desktop-geometry-check's two pinned
+ * expectations with Joe's approval (the column centred between the rail and the right panel; the timer in
+ * `[data-arena-panel]`). The slot, the mount and the HUD flag are all in place behind it.
+ */
+export const ARENA_CABINET_LEFT = false;
+/**
  * Whether the arena's panels draw the canvas HUD's values in place of the world (hudPlacement.ts). Off until the
  * Cabinet session (S2) draws every value in the panels; on, the stage switches the HUD painters off for the draw.
  */

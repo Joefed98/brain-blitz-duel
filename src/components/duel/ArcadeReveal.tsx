@@ -326,7 +326,8 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
   // The one reveal template (G1, 20 Nov 2026; src/components/duel/RevealScreen.tsx): the score card, the run's picture
   // in the stage box (a room adds the chart as its "Room" view), the breakdown and tiles behind "See breakdown", the
   // room's players in the footer. The column never scrolls; PhoneShell's `reveal` paints the game's colours.
-  const [view, setView] = useState("run");
+  // The stage's views (G1): in a room the chart is the default view (the room's result), the run one tap away.
+  const [view, setView] = useState(practice || players.length < 2 ? "run" : "room");
   // The chart straight on the gradient, no panel behind it (rooms only: in practice it would hold one dot).
   const chart = (
     <>
