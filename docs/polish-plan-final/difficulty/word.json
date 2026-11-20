@@ -12,15 +12,15 @@
     },
     "measured": "Check bands, near-perfect mean: E 155-182, N 145-168, H 128-155, X 110-138. Kit medians, 12 seeds, read-only run for this plan (average / good / near-perfect): E 75 / 112 / 158, N 54 / 92 / 141, H 30 / 75 / 150, X 22 / 54 / 141. On the same seeds Hard boards hold 40-102 word points in the whole dictionary and Expert boards 36-61; 200 needs 140 points plus the every-tile word, so no Hard or Expert board dealt today can reach 200.",
     "easy": "Words of 3+ letters count, and every word scores as two letters longer (3 letters 2 points, 4 letters 4, 5 letters 7, 6 letters 11, 7 or more 15). Ring of 9-10 letters with 45-85 everyday 4+ words, as today. 120 s. A first word inside 10 seconds.",
-    "hard": "Words of 5+ letters only. Ring of 10-11 letters holding 20-35 everyday words of 5+ letters and at least 140 word points with the every-tile word. 75 s (Normal 100 s). Normal's points table.",
-    "expert": "Words of 6+ letters only. Ring of 11 letters holding 12-20 everyday words of 6+ letters and at least 140 word points in 6+ letter words with the every-tile word. 65 s.",
+    "hard": "Words of 5+ letters only. Ring of 10-11 letters holding 20-35 everyday words of 5+ letters and at least 140 word points with the every-tile word. 60 s (Normal 100 s). Normal's points table.",
+    "expert": "Words of 6+ letters only. Ring of 11 letters holding 12-20 everyday words of 6+ letters and at least 140 word points in 6+ letter words with the every-tile word. 40 s.",
     "glance": {
       "easy": "A 3+ LETTERS badge on a full ring; short words score.",
-      "hard": "A 5+ LETTERS badge on a bigger ring; four-letter words bounce.",
-      "expert": "A 6+ LETTERS badge on the biggest ring of eleven letters."
+      "hard": "A 5+ LETTERS badge on a bigger ring; a 60-second clock.",
+      "expert": "A 6+ LETTERS badge, eleven letters and a 40-second clock."
     },
     "why": "Long words are the whole skill of an anagram ring, so raising the shortest word that counts makes each level harder from the first try, while a bigger ring keeps a 200 on the board, which today's sparse Hard and Expert boards cannot hold.",
-    "proof": "An open word find, so the proof is a witness. To write: scripts/wordsmith-level-bank.ts (or a filter in src/lib/duel/levels/wordsmith.server.ts) keeps a board only when a list of its allowed words reaches 140 points plus the every-tile word, typed inside the clock at 0.25 s a word and 0.15 s a tap (HUMAN_LIMITS). Measured: of 155 sampled 11-letter rings 126 hold 140 or more points in 6+ letter words and 24 also sit in the 12-20 everyday band; on those 24 the witness types in 22-37 s, but it needs bonus words (everyday 6+ words alone reach 200 on none). scripts/wordsmith-levels-check.ts re-proves the witness on every dealt board and that a 4-letter word is refused on Hard.",
+    "proof": "An open word find, so the proof is a witness. To write: scripts/wordsmith-level-bank.ts (or a filter in src/lib/duel/levels/wordsmith.server.ts) keeps a board only when a list of its allowed words reaches 140 points plus the every-tile word, typed inside the clock at 0.25 s a word and 0.15 s a tap (HUMAN_LIMITS). Measured: of 155 sampled 11-letter rings 126 hold 140 or more points in 6+ letter words and 24 also sit in the 12-20 everyday band; on those 24 the witness types in 22-37 s, inside the 40 s clock, but it needs bonus words (everyday 6+ words alone reach 200 on none). scripts/wordsmith-levels-check.ts re-proves the witness on every dealt board and that a 4-letter word is refused on Hard.",
     "change": "redesign",
     "newMechanic": "",
     "stamp": "Level field plus a stored minLength on the level's puzzle (absent = 4, so Normal and every stored round are unchanged); Easy's 3-letter point and step-up table are read from the same field. No new Normal stamp.",
@@ -32,13 +32,13 @@
       "src/components/puzzles/WordsmithPuzzle.tsx",
       "scripts/wordsmith-levels-check.ts"
     ],
-    "risk": "measured: when the kit hunts only long words the rich rings outscore Normal at every skill (average 78 on Hard and 107 on Expert against 70), so no clock holds them below it until a length-aware player model exists to tune against",
+    "risk": "the modelled elite does not reach 200 at any level but Easy (best 184 on Normal, 160 on Expert), because 200 needs 140 word points and the elite makes about one a second; Expert's 200 exists only as a typed witness that uses bonus words, unless the points line is lowered under a new stamp",
     "evidence": {
-      "easy": "measured: 16 of today's Easy rings, 3-letter everyday words added, scored in memory on the live curve. One letter longer: average kit 87 (Normal 70). Two letters longer: average 131, good 153, near-perfect 180, elite 200 (10 of 16 at 200).",
-      "hard": "measured: 24 rings of 10-11 letters in the band (24 of 152 tried), 75 s, list filtered to 5+; kit hunting only 5+ words: average 78, near-perfect 170, elite 194, best 198; kit reading every word, only 5+ counting: average 4, elite 152.",
-      "expert": "measured: 24 rings of 11 letters in the band (24 of 155 tried), 65 s, list filtered to 6+; hunting only 6+ words: average 107, elite 194, best 199; reading every word: average 0, elite 115. 200 typed at the limits in 22-37 s on all 24, with bonus words."
+      "easy": "measured: length-aware player (scratch la.ts: knows 90/70/45/25 % of everyday 4/5/6/7+ letter words, elite 99/95/85/70; find time the kit's 4-letter pace x 0.8 x 1.6 per extra letter, tuned so Normal is 70), 24 rings x 3 runs: average 141, elite 180, 200 on 35 of 72.",
+      "hard": "measured: same player, 24 rings of 10-11 letters x 3 runs, 5+ letters at 60 s: average 43 (median 46; Normal 68, median 70), elite 156, best 175. At the proposed 75 s the average was 61, only 6 under Normal.",
+      "expert": "measured: same player, 24 rings of 11 letters x 3 runs, 6+ letters at 40 s: average 25 (median 14), elite 144, best 160, no 200 (Normal's elite best is 184). At the proposed 65 s the average was 57. Typed witness at the limits: 22-37 s on all 24."
     },
-    "verdict": "adjusted: Easy's words score as two letters longer, not one (one left the average kit 17 above Normal, two gives 131 against 70); Hard and Expert stay unproven, because the kit has no cost for word length and puts Expert anywhere from 0 to 107 for an average player (re-check: 0 of 24 Hard and 0 of 24 Expert boards dealt today can reach 200).",
+    "verdict": "adjusted: with the length-aware player the proposed clocks gave steps of only 6 and 5 (Normal 68, Hard 61, Expert 57), so Hard's clock drops from 75 s to 60 s and Expert's from 65 s to 40 s, giving 141, 68, 43, 25; the modelled elite cannot reach 200 on Expert at any length or clock tried (nor on Normal), so 200 there rests on the typed witness alone.",
     "limitsToday": "Nothing. scripts/level-tune.ts:163 sends puzzles to tunePuzzle (:85), which ignores --human-limits; scripts/wordsmith-levels-check.ts:70 pins only the kit's near-perfect mean (the kit takes 5 s a word, kits-word.ts:101), with no 200 witness and no typing time."
   },
   {
@@ -141,15 +141,15 @@
     },
     "measured": "Check bands, near-perfect mean: E 170-195, N 158-184, H 138-164, X 115-142. Kit medians, 12 seeds, read-only run for this plan (average / good / near-perfect): E 67 / 115 / 177, N 64 / 102 / 170, H 29 / 88 / 148, X 29 / 80 / 126. The four boards look the same on screen. On 7 of 12 sampled Expert boards every listed word together scores under 200 (176-198).",
     "easy": "Words of 3+ letters count, and every word scores as two letters longer (3 letters 2 points, 4 letters 4, 5 letters 7, 6 or more 11). Packed board of 320-700 everyday words, as today. Misses cost nothing. 120 s.",
-    "hard": "Words of 5+ letters only, on a packed board (320-700 everyday 4+ words, at least 60 of them 5+ letters). Free misses 6 plus 1 a word (Normal 10 plus 2). 80 s.",
-    "expert": "Words of 6+ letters only, on a packed board with at least 25 everyday words of 6+ letters. Free misses 3 plus 1 a word. 70 s.",
+    "hard": "Words of 5+ letters only, on a packed board (320-700 everyday 4+ words, at least 60 of them 5+ letters). Free misses 6 plus 1 a word (Normal 10 plus 2). 65 s.",
+    "expert": "Words of 7+ letters only, on a packed board with at least 25 everyday words of 7+ letters. Free misses 3 plus 1 a word. 40 s.",
     "glance": {
       "easy": "Goal line says 3+ letters; three-letter traces score at once.",
       "hard": "Goal line says 5+ letters; a four-letter trace bounces.",
-      "expert": "Goal line says 6+ letters; only three free misses shown."
+      "expert": "Goal line says 7+ letters; only three free misses shown."
     },
     "why": "On a letter grid the short words are the easy ones, so lifting the shortest word that counts (the rule the bigger Boggle sets use) steepens every level, while packed boards keep 200 within reach, which today's sparse Expert boards often cannot.",
-    "proof": "An open word find, so the proof is a witness. The level deal (src/lib/duel/levels/wordhunt.server.ts) keeps a board only when a list of its allowed words reaches 60 base points and 120 long-word and gold points traced inside the clock at 0.25 s a word and 0.15 s a letter. Measured on 24 packed boards: each holds 95-241 everyday words of 6+ letters, and six 8-letter words, four of them through the golden tile, score 200 through the server's grader in 8.7 s of tracing. scripts/wordhunt-levels-check.ts re-proves the witness on every dealt board and that a short trace is refused.",
+    "proof": "An open word find, so the proof is a witness. The level deal (src/lib/duel/levels/wordhunt.server.ts) keeps a board only when a list of its allowed words reaches 60 base points and 120 long-word and gold points traced inside the clock at 0.25 s a word and 0.15 s a letter. Measured on 24 packed boards: each holds 95-241 everyday words of 6+ letters and 30 or more of 7+, and six 8-letter words, four of them through the golden tile, score 200 through the server's grader in 8.7 s of tracing. scripts/wordhunt-levels-check.ts re-proves the witness on every dealt board and that a short trace is refused.",
     "change": "redesign",
     "newMechanic": "",
     "stamp": "Level field plus a stored minLength and free-miss allowance on the level's puzzle (absent = 4 letters, 10 plus 2); Easy's 3-letter point and step-up table read from the same field. No new Normal stamp.",
@@ -161,13 +161,13 @@
       "src/components/puzzles/WordHuntPuzzle.tsx",
       "scripts/wordhunt-levels-check.ts"
     ],
-    "risk": "the kit cannot place Hard and Expert: hunting only long words it scores Expert above Normal (118 against 64, with 200 on every near-perfect run), reading every word it scores 0, so a length-aware player model is needed before the clock and miss allowance can be tuned",
+    "risk": "under the length-aware player the room below Normal (61) is small: Hard 45 and Expert 26 are steps of 16 and 19, nearly half of average Expert runs score 0, and any Expert clock long enough for the modelled elite to reach 200 (7+ letters at 50 s or more) lifts the average to Hard's level",
     "evidence": {
-      "easy": "measured: 16 packed boards, 3-letter everyday words added, misses free, 120 s, scored in memory on the live curves. One letter longer: average kit 80 (Normal 64). Two letters longer: average 122, good 177, near-perfect and elite 200 on 16 of 16.",
-      "hard": "measured: 24 packed boards (each holds 200+ everyday 5+ words), 80 s, list filtered to 5+, 6 plus 1 free misses; kit hunting only 5+ words: average 76, near-perfect 185, elite 200 (19 of 24); kit reading every word: average 0, elite 130.",
-      "expert": "measured: 24 packed boards (95-241 everyday 6+ words), 70 s, list filtered to 6+, 3 plus 1 free misses; hunting only 6+ words: average 118, near-perfect and elite 200 on all 24; reading every word: 0. Six 8-letter words score 200 in 8.7 s at the limits."
+      "easy": "measured: length-aware player (scratch la.ts: knows 90/70/45/25 % of everyday 4/5/6/7+ letter words, elite 99/95/85/70; find time the kit's 4-letter pace x 0.9 x 1.6 per extra letter, tuned so Normal is 64), 24 packed boards x 3 runs: average 140, elite 200 on 72 of 72.",
+      "hard": "measured: same player, 24 packed boards x 3 runs, 5+ letters at 65 s: average 45 (median 48; Normal 61, median 64), elite 170, best 186. At the proposed 80 s the average was 59, level with Normal; the 6 plus 1 miss allowance never cut a run.",
+      "expert": "measured: same player, 7+ letters at 40 s: average 26 (31 of 72 runs score 0, the rest about 41), elite 162, best 191. The proposed 6+ at 70 s gave average 63, above Normal, elite 200 on 11 of 72. Six 8-letter words score 200 in 8.7 s at the limits."
     },
-    "verdict": "adjusted: Easy's words score as two letters longer, not one (one left the average kit 16 above Normal, two gives 122 against 64); Hard and Expert stay unproven, because the kit hunting only long words scores Expert above Hard above Normal (118, 76, 64) and the kit reading every word scores 0 (re-check: on 15 of 24 Expert boards dealt today every listed word together scores under 200).",
+    "verdict": "adjusted: with the length-aware player the proposed Hard (5+, 80 s) and Expert (6+, 70 s) scored 59 and 63 against Normal's 61, so Hard's clock drops to 65 s and Expert moves to 7+ letters at 40 s, giving 140, 61, 45, 26; the last two steps are 16 and 19, the most this lever gives, and at 40 s the modelled elite's best is 191, so 200 on Expert rests on the traced witness.",
     "limitsToday": "Nothing. scripts/level-tune.ts:163 ignores --human-limits for puzzles; scripts/wordhunt-levels-check.ts:71 pins only the kit's near-perfect mean (5 s a word, kits-word.ts:213), with no 200 witness and no tracing time."
   },
   {
@@ -223,11 +223,11 @@
     },
     "measured": "Check bands, near-perfect mean: E 170-195, N 162-186, H 155-180, X 148-174. Kit medians, 12 seeds, read-only run for this plan (average / good / great / near-perfect): E 110 / 162 / 170 / 180, N 53 / 108 / 158 / 174, H 38 / 82 / 111 / 167, X 37 / 70 / 103 / 166. No kit run reached 200 at any level (best 194 on Easy, 179 on Normal). Expert's clock is longer than Hard's.",
     "easy": "As today: 6-letter wheel, 7-9 words, 120 s. It does the job: the good kit finishes 12 of 12 at 162 and the small wheel and crossword are plain at a glance.",
-    "hard": "7-letter wheel, 16-19 words (today's Expert bank, grid up to 9 by 12), 75 s, 3 free misses (Normal 5).",
+    "hard": "7-letter wheel, 16-19 words (today's Expert bank, grid up to 9 by 12), 95 s (Normal 100 s), 3 free misses (Normal 5).",
     "expert": "8-letter wheel, 20-24 words in a grid up to 10 by 13, 70 s, 2 free misses.",
     "glance": {
       "easy": "Six letters on the wheel and a small crossword.",
-      "hard": "A crossword of 16 to 19 words fills the top half.",
+      "hard": "Sixteen to 19 words fill the top half; 95 seconds.",
       "expert": "Eight letters on the wheel under a 20-word-plus crossword."
     },
     "why": "A wheel-and-crossword game grows the way its kind always has, more letters on the wheel and more words to fill, and one more notch each way gives Expert a wheel and a crossword no other level has, where today Hard and Expert differ by a few words and Expert has the longer clock.",
@@ -244,13 +244,13 @@
       "src/puzzles/letterWheel.tsx",
       "scripts/letterwheel-levels-check.ts"
     ],
-    "risk": "an 8-letter wheel's 20-24 word crossword may need more than 10 by 13, and its squares shrink to about 24 px on short phones (display only; letters stay 11 px or more)",
+    "risk": "an 8-letter wheel's 20-24 word crossword may need more than 10 by 13, and its squares shrink to about 24 px on short phones (display only; letters stay 11 px or more); Normal already scores only 56 for the average kit, so the steps to Hard (44) and on towards Expert are about 11 points each",
     "evidence": {
       "easy": "measured: today's Easy kept, 12 room seeds: average kit median 103 with 4 of 12 finished (Normal 59, 0 of 12), elite 200 on 9 of 12.",
-      "hard": "measured: today's Expert boards with 75 s set in memory, 12 seeds (the 3 free misses not modelled): average 32, good 63, near-perfect 161, elite 185, best 190. Today's Hard on the same seeds: average 42, elite 190.",
+      "hard": "measured: today's Expert boards with 95 s set in memory, 12 deals (the 3 free misses not modelled): average kit median 44 (mean 46), good 83, elite 191, best 193. Same boards at 75 s: 35; at 100 s: 51; Normal on the same seeds: 56; today's Hard: 45.",
       "expert": "not measured: an 8-letter wheel with 20-24 words needs a new bank from a new LW_LEVEL_LIMITS row (scripts/letter-wheel-bank.ts writes files); no run."
     },
-    "verdict": "unproven: Expert's 8-letter bank does not exist; the proposed Hard measures 32 for the average kit, 27 under Normal and already where Expert should sit, and no run reached 200 on a Normal, Hard or Expert board (elite best 197).",
+    "verdict": "adjusted: Hard's clock moves from 75 s to 95 s on today's Expert boards, because at 75 s the average kit scored 35, where Expert should sit, and at 95 s it scores 44, between Normal's 56 and that; Expert stays not measured until its 8-letter bank exists, and no run reached 200 on any Normal, Hard or Expert board (elite best 197).",
     "limitsToday": "Nothing. scripts/letterwheel-levels-check.ts:116 pins only the kit's near-perfect mean (7 s a word, kits-word.ts:572); no traced witness and no tracing time."
   },
   {

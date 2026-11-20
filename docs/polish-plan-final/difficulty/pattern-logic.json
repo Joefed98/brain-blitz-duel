@@ -364,11 +364,11 @@
     ],
     "risk": "twelve ring widths may be hard to tell apart on a 390 px phone",
     "evidence": {
-      "easy": "documented: today's level kept; logic-1-tune under human limits, 20 deals (levels-research.md): great 199.3, near-perfect 200",
-      "hard": "not measured: the narrowed pass ran the redesign rows only",
-      "expert": "not measured: the narrowed pass ran the redesign rows only"
+      "easy": "measured: today's Easy kept, generic runner (real deal, settings in memory; average kit and near-perfect kit held to 0.4 s a step, server grade), 12 boards: average 155.1 (med 161, 10/12 finished), near-perfect 199.9 (200 on 11); Normal 69.1 and 199.8",
+      "hard": "measured: 3 posts, 10 rings, 40–55 moves, 90 s, 12 boards: average 37.6 (0/12 finished), near-perfect under limits 189.9, 12/12, best 199, finish med 56 s",
+      "expert": "measured: 12 rings, 70–90 moves, 105 s, 12 boards: near-perfect under limits 168.3, 12/12, best 179, no 200, finish med 95 s; average 0.0 on all 12 (no credit for an unfinished 12-ring board)"
     },
-    "verdict": "unproven: 10 and 12 ring boards were not dealt in this pass.",
+    "verdict": "unproven: Hard measures as proposed (37.6 against Normal's 69.1), but on 12 rings the near-perfect kit needs 95 of the 105 s and never reaches 200, and unfinished boards score 0; smaller Experts are being measured.",
     "limitsToday": "scripts/logic-1-tune.ts:42-50 holds every kit step to 0.4 s (0.25 s react + 0.15 s move) and measures; scripts/logic-1-steps-check.ts:19-24 asserts on 20 deals that the great bot drops at least 5 points a level and the near-perfect bot finishes 75 % of Expert with a best tenth of 185+. The deal's own proof has no clock."
   },
   {
@@ -651,11 +651,11 @@
     ],
     "risk": "13 rows draw under 36 px on a 667 px tall phone",
     "evidence": {
-      "easy": "documented: today's level kept; level-tune near-perfect kit, 20 boards, no human limits (levels-research.md): 199.8",
-      "hard": "not measured: the narrowed pass ran the redesign rows only",
-      "expert": "not measured: the narrowed pass ran the redesign rows only"
+      "easy": "measured: today's Easy kept, 12 boards: average kit 151.1 (med 160, 8/12 finished), near-perfect under limits 199.8; Normal 59.4 and 199.4",
+      "hard": "measured: 8×11, 16–17 trees, half the counts hidden, 100 s, 12 boards: average 28.0 (0/12), near-perfect under limits 172.2, 12/12, best 178, finish med 83 s; person-style solver 12/12, trials med 11, max 15",
+      "expert": "measured: 8×13, 21–22 trees, 120 s, 12 boards (up to 10 s each to build): average 15.3, near-perfect under limits 115.7, only 2/12 finished, best 163; person-style solver 12/12, trials med 9, max 20"
     },
-    "verdict": "unproven: 8x11 and 8x13 boards fit the generator's height setting but were not run in this pass.",
+    "verdict": "unproven: Hard measures as proposed, but the near-perfect kit finishes only 2 of 12 of the 8×13 Expert boards inside 120 s; a smaller Expert is being measured.",
     "limitsToday": "No reaction or move limit. src/lib/duel/logicLevelDeal.server.ts:86-90 keeps a level board only when the person-style solver (logicHuman.server.ts solveLikePerson) finishes it inside the trial band, and scripts/logic-levels-check.ts:170 re-runs it; the solver counts trials and has no clock. The kits scale think time by LEVEL_THINK (scripts/puzzle-fairness/kit.ts:167)."
   },
   {
@@ -691,11 +691,11 @@
     ],
     "risk": "low; 15 rows of 36 px leave no spare height on a short phone",
     "evidence": {
-      "easy": "documented: today's level kept; level-tune near-perfect kit, 20 boards, no human limits (levels-research.md): 199.5",
-      "hard": "not measured: the narrowed pass ran the redesign rows only",
-      "expert": "not measured: the narrowed pass ran the redesign rows only"
+      "easy": "measured: today's Easy kept, 12 boards: average kit 161.7 (med 168, 10/12 finished), near-perfect under limits 199.5; Normal 51.9 and 198.9",
+      "hard": "measured: 10×13, 19–22 rectangles, largest 16, 100 s, 12 boards: average 33.5 (0/12), near-perfect under limits 175.8, 12/12, best 186, finish med 77 s; person-style solver 12/12, trials 0–1",
+      "expert": "measured: 10×15, 22–26 rectangles, largest 20, 120 s, 12 boards: average 31.0 (0/12), near-perfect under limits 153.2, 9/12 finished, best 171, no 200, finish med 109 s; person-style solver 12/12 with 0 trials on every board"
     },
-    "verdict": "unproven: 10x13 and 10x15 boards fit the generator's height setting but were not run in this pass.",
+    "verdict": "unproven: the boards deal and play, but Expert is only 2.5 points below Hard for the average kit, 200 was not reached (best 171), and no board met the 5–40 trial band (every board needed 0 trials).",
     "limitsToday": "No reaction or move limit. src/lib/duel/logicLevelDeal.server.ts:86-90 keeps a level board only when the person-style solver (logicHuman.server.ts solveLikePerson) finishes it inside the trial band, and scripts/logic-levels-check.ts:170 re-runs it; the solver counts trials and has no clock. The kits scale think time by LEVEL_THINK (scripts/puzzle-fairness/kit.ts:167)."
   },
   {
@@ -731,11 +731,11 @@
     ],
     "risk": "14 rows draw under 36 px on a 667 px tall phone",
     "evidence": {
-      "easy": "documented: today's level kept; level-tune near-perfect kit, 20 boards, no human limits (levels-research.md): 199.3",
-      "hard": "documented: today's Expert board (9x12, 26-30 walls) on a 120 s clock: near-perfect kit 158.9, 80 % finished (levels-research.md); the proposed 100 s clock was not run",
-      "expert": "not measured: the narrowed pass ran the redesign rows only"
+      "easy": "measured: today's Easy kept, 12 boards: average kit 115.3 (med 91, only 4/12 finished), near-perfect under limits 199.3; Normal 59.4 and 199.2",
+      "hard": "measured: 9×12, 26–30 walls, 35 % numbered, 100 s, 12 boards: average 29.6 (0/12), near-perfect under limits 168.8, 11/12, best 180, finish med 80 s; person-style solver 12/12, trials med 4, max 22",
+      "expert": "measured: 9×14, 32–38 walls, 30 % numbered, 120 s, 6 boards in 77 s (up to 36 s each): average 23.5, near-perfect under limits 121.5, only 1/6 finished, best 175; person-style solver 6/6, trials med 9, max 21"
     },
-    "verdict": "unproven: Hard is today's Expert board with 20 s less and the 9x14 Expert was not run.",
+    "verdict": "unproven: Hard measures as proposed, but the near-perfect kit finishes 1 of 6 of the 9×14 Expert boards and the average kit finishes only 4 of 12 on today's Easy; smaller boards are being measured.",
     "limitsToday": "No reaction or move limit. src/lib/duel/logicLevelDeal.server.ts:86-90 keeps a level board only when the person-style solver (logicHuman.server.ts solveLikePerson) finishes it inside the trial band, and scripts/logic-levels-check.ts:170 re-runs it; the solver counts trials and has no clock. The kits scale think time by LEVEL_THINK (scripts/puzzle-fairness/kit.ts:167)."
   },
   {
@@ -859,11 +859,11 @@
     ],
     "risk": "9×9 boards inside a 300-trial band may be slow to find (the 8×8 bank already takes seconds a board)",
     "evidence": {
-      "easy": "documented: today's level kept; level-tune near-perfect kit, 20 boards, no human limits (levels-research.md): 200.0",
-      "hard": "not measured: the narrowed pass ran the redesign rows only",
-      "expert": "not measured: the narrowed pass ran the redesign rows only"
+      "easy": "measured: today's Easy kept, 12 boards: average kit 179.8 (12/12 finished), near-perfect under limits 199.8; Normal 104.3 (1/12 finished) and 199.2",
+      "hard": "measured: 8×8, 16–20 numbers, 100 s, 8 boards in 78 s (7–14 s each): average 35.8 (0/8), near-perfect under limits 168.9, 8/8, best 177, finish med 83 s; person-style solver 8/8, trials med 68, max 102",
+      "expert": "measured: 9×9, 16–20 numbers, 120 s, 4 boards in 111 s (22–40 s each): average 28.0, near-perfect under limits 96.5, 0/4 finished, best 105; person-style solver 4/4, trials med 77, max 133"
     },
-    "verdict": "unproven: the 8x8 Hard and 9x9 Expert fit the generator's size setting but were not run in this pass.",
+    "verdict": "unproven: Hard measures as proposed, but the near-perfect kit finishes none of 4 of the 9×9 Expert boards inside 120 s; a 9×9 with more numbers is being measured.",
     "limitsToday": "No reaction or move limit. src/lib/duel/logicLevelDeal.server.ts:86-90 keeps a level board only when the person-style solver (logicHuman.server.ts solveLikePerson) finishes it inside the trial band, and scripts/logic-levels-check.ts:170 re-runs it; the solver counts trials and has no clock. The kits scale think time by LEVEL_THINK (scripts/puzzle-fairness/kit.ts:167)."
   },
   {
