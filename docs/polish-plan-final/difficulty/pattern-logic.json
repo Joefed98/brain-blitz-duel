@@ -366,7 +366,7 @@
     "evidence": {
       "easy": "measured: today's Easy kept, generic runner (real deal, settings in memory; average kit and near-perfect kit held to 0.4 s a step, server grade), 12 boards: average 155.1 (med 161, 10/12 finished), near-perfect 199.9 (200 on 11); Normal 69.1 and 199.8",
       "hard": "measured: 3 posts, 10 rings, 40–55 moves, 90 s, 12 boards: average 37.6 (0/12 finished), near-perfect under limits 189.9, 12/12, best 199, finish med 56 s",
-      "expert": "measured: 12 rings, 70–90 moves, 105 s, 12 boards: near-perfect under limits 168.3, 12/12, best 179, no 200, finish med 95 s; average 0.0 on all 12 (no credit for an unfinished 12-ring board)"
+      "expert": "measured: 12 rings, 70–90 moves, 12 boards: near-perfect under limits 168.3 on 105 s and 174.6 on 120 s, 12/12, best 183, no 200, finish med 95 s; average 0.0 (an unfinished board over 10 rings gets no credit). Today's Expert: 39.9 and 188.7"
     },
     "verdict": "unproven: Hard measures as proposed (37.6 against Normal's 69.1), but on 12 rings the near-perfect kit needs 95 of the 105 s and never reaches 200, and unfinished boards score 0; smaller Experts are being measured.",
     "limitsToday": "scripts/logic-1-tune.ts:42-50 holds every kit step to 0.4 s (0.25 s react + 0.15 s move) and measures; scripts/logic-1-steps-check.ts:19-24 asserts on 20 deals that the great bot drops at least 5 points a level and the near-perfect bot finishes 75 % of Expert with a best tenth of 185+. The deal's own proof has no clock."
@@ -405,11 +405,11 @@
     ],
     "risk": "the exact-minimum search for 12 colours may be too slow and 12 colours hard to tell apart; fall back to 13 flasks and 11 colours",
     "evidence": {
-      "easy": "documented: today's level kept; logic-1-tune under human limits, 20 deals (levels-research.md): great 200, near-perfect 200",
-      "hard": "not measured: the narrowed pass ran the redesign rows only",
-      "expert": "not measured: the narrowed pass ran the redesign rows only"
+      "easy": "measured: today's Easy kept, generic runner (real deal, average kit, near-perfect kit held to 0.4 s a step), 12 boards: average 179.9 (med 185, 11/12 finished), near-perfect 200 on all 12; Normal 77.8 and 200",
+      "hard": "measured: 12 flasks, 10 colours, 6 layers, 28–38 pours, all shown, 90 s, 10 boards: average 54.1 (0/10 finished), near-perfect under limits 197.4, 10/10, 200 on 4, finish med 47 s",
+      "expert": "measured: 14 flasks, 12 colours, hidden layers, 36–46 pours, 120 s, 10 boards built in 6 s: average 35.3 (0/10), near-perfect under limits 176.8, 10/10, best 182, no 200, finish med 91 s. Today's Expert: 42.0 and 184.8, best 189"
     },
-    "verdict": "unproven: the 14 flask, 12 colour rack was not built, and no solver that sees only uncovered layers exists.",
+    "verdict": "unproven: every level builds at once, the average kit steps 180, 78, 54, 35 and Expert is finished 10 of 10, but the near-perfect kit did not reach 200 on Expert (best 182) and no solver that sees only uncovered layers exists.",
     "limitsToday": "scripts/logic-1-tune.ts:42-50 holds every kit step to 0.4 s (0.25 s react + 0.15 s move) and measures; scripts/logic-1-steps-check.ts:19-24 asserts on 20 deals that the great bot drops at least 5 points a level and the near-perfect bot finishes 75 % of Expert with a best tenth of 185+. The deal's own proof has no clock."
   },
   {
@@ -446,11 +446,11 @@
     ],
     "risk": "nine clues on six dials may read as a wall of text on a phone",
     "evidence": {
-      "easy": "documented: today's level kept; logic-1-tune under human limits, 20 deals (levels-research.md): great 200, near-perfect 200",
-      "hard": "not measured: the narrowed pass ran the redesign rows only",
-      "expert": "not measured: the narrowed pass ran the redesign rows only"
+      "easy": "measured: today's Easy kept, 12 boards: average kit 119.2 (med 122, only 5/12 finished), near-perfect under limits 200 on all 12; Normal 94.9 (6/12 finished) and 200",
+      "hard": "measured: 5 dials of 0–20, 7 clues, 2 tries, 90 s, 12 boards: average 40.8 (0/12), near-perfect under limits 184.3, 12/12, best 194, finish med 52 s",
+      "expert": "measured: 6 dials of 0–20, 9 clues, 1 try, 105 s, only 3 cards in 76 s (about 25 s a card): average 32.7, near-perfect under limits 175.3, 3/3, best 179, no 200, finish med 75 s"
     },
-    "verdict": "unproven: 5 and 6 dial cards with 2 and 1 tries were not built, and no person-style solver exists for the card.",
+    "verdict": "unproven: Hard and a 6-dial Expert build and are finished by the near-perfect kit, but Expert is only 8 points below Hard on 3 cards, 200 was not reached (best 179), and today's Easy is finished by only 5 of 12 average runs; an easier Easy is being measured.",
     "limitsToday": "scripts/logic-1-tune.ts:42-50 holds every kit step to 0.4 s (0.25 s react + 0.15 s move) and measures; scripts/logic-1-steps-check.ts:19-24 asserts on 20 deals that the great bot drops at least 5 points a level and the near-perfect bot finishes 75 % of Expert with a best tenth of 185+. The deal's own proof has no clock."
   },
   {
@@ -528,11 +528,11 @@
     ],
     "risk": "low; pictures needing three two-line steps may be slow to build live and want a bank",
     "evidence": {
-      "easy": "documented: today's level kept; logic-1-tune under human limits, 20 deals (levels-research.md): great 197.4, near-perfect 199.7",
-      "hard": "documented: today's 9x11 board on a 120 s clock (logic-1-tune, 20 deals): great 158.4 (90 % finished), near-perfect 189.9; the proposed 100 s clock was not run",
-      "expert": "documented: today's 9x14 board needing one two-line step (logic-1-tune, 20 deals): great 126.0 (30 % finished), near-perfect 182.1; three two-line steps were not run"
+      "easy": "measured: today's Easy kept, 12 boards: average kit 96.4 (med 86, only 2/12 finished), near-perfect under limits 198.4; Normal 66.3 and 199.0",
+      "hard": "measured: today's 9×11 board on a 100 s clock, 12 boards: average 35.5 (0/12), near-perfect under limits 187.8, 12/12, best 199, finish med 71 s",
+      "expert": "not measured: NonoLevel.logic is only \"line\" or \"two\" (src/lib/duel/logicLevels.ts), so three two-line steps cannot be asked for. Today's 9×14 Expert, 12 boards: average 36.3, near-perfect under limits 182.8, 12/12, best 187"
     },
-    "verdict": "unproven: the boards are today's, but the 100 s Hard clock and the three two-line steps on Expert were not run.",
+    "verdict": "unproven: Hard and Expert score alike (average 35.5 and 36.3, near-perfect 188 and 183), three two-line steps cannot be asked for, and today's Easy is finished by only 2 of 12 average runs; an easier Easy is being measured.",
     "limitsToday": "scripts/logic-1-tune.ts:42-50 holds every kit step to 0.4 s (0.25 s react + 0.15 s move) and measures; scripts/logic-1-steps-check.ts:19-24 asserts on 20 deals that the great bot drops at least 5 points a level and the near-perfect bot finishes 75 % of Expert with a best tenth of 185+. The deal's own proof has no clock."
   },
   {
