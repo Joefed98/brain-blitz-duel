@@ -20,7 +20,11 @@ export type WordsmithLevelSettings = {
   minLength: number;
   /** Keep only boards the typed witness takes to 200 inside the clock at the human limits. */
   witness?: boolean;
-  /** Word points at which the words part is full on this level (stored as `wordsFullAt`; Normal's 45 when absent). */
+  /**
+   * Word points at which the words part is full on this level (stored as `wordsFullAt`; Normal's 45 when absent). Joe (21
+   * Nov 2026, decision 21): set so the length-aware elite under the human limits reaches 200 on a fair share of boards
+   * (Hard 41 %, Expert 25 % of runs on 100 room seeds) while the average player steps down as before.
+   */
   wordsFullAt?: number;
   timeLimitMs: number;
 };
@@ -35,8 +39,8 @@ const OPEN = { open: "A word find: every word on the board that uses the centre 
 export const WORDSMITH_LEVELS: GameLevels<WordsmithLevelSettings> | null = {
   levels: {
     easy: { settings: { sizes: [9, 10], words: { min: 30, max: 400 }, everyday: { min: 45, max: 85 }, minLength: 3, timeLimitMs: 120_000 }, oneSolution: OPEN },
-    hard: { settings: { sizes: [10, 11], words: { min: 40, max: 400 }, everyday: { min: 20, max: 35 }, minLength: 5, witness: true, wordsFullAt: 75, timeLimitMs: 65_000 }, oneSolution: OPEN },
-    expert: { settings: { sizes: [11], words: { min: 40, max: 400 }, everyday: { min: 12, max: 20 }, minLength: 6, witness: true, wordsFullAt: 70, timeLimitMs: 40_000 }, oneSolution: OPEN },
+    hard: { settings: { sizes: [10, 11], words: { min: 40, max: 400 }, everyday: { min: 20, max: 35 }, minLength: 5, witness: true, wordsFullAt: 45, timeLimitMs: 65_000 }, oneSolution: OPEN },
+    expert: { settings: { sizes: [11], words: { min: 40, max: 400 }, everyday: { min: 12, max: 20 }, minLength: 6, witness: true, wordsFullAt: 32, timeLimitMs: 40_000 }, oneSolution: OPEN },
   },
 };
 

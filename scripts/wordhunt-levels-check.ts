@@ -71,7 +71,7 @@ for (const seed of seedsFrom(6101, 6)) {
 }
 
 // 6. The tuning (near-perfect kit, mean on 12 fixed seeds; bands measured on 15 Nov 2026 with a margin).
-const BANDS: Record<string, [number, number]> = { easy: [188, 200], normal: [172, 196], hard: [132, 158], expert: [156, 182] }; // Changed with Joe's approval, 21 Nov 2026
+const BANDS: Record<string, [number, number]> = { easy: [188, 200], normal: [172, 196], hard: [170, 196], expert: [186, 200] }; // Changed with Joe's approval, 21 Nov 2026
 const means: Record<string, number> = {};
 const tuneSeeds = seedsFrom(8101, 12);
 for (const level of ["easy", "normal", "hard", "expert"] as const) {
@@ -82,8 +82,10 @@ for (const level of ["easy", "normal", "hard", "expert"] as const) {
 t.ok(means.easy! >= means.normal!, "Easy is at least as kind as Normal");
 const people = (person: "average" | "elite") => Object.fromEntries((["easy", "normal", "hard", "expert"] as const).map((l) => [l, measureOpen(TYPE, l, tuneSeeds, 3, false, [person])[0]!.mean])) as Record<string, number>; // Changed with Joe's approval, 21 Nov 2026
 const show = (r: Record<string, number>) => Object.entries(r).map(([k, v]) => `${k} ${v.toFixed(0)}`).join(", "); // Changed with Joe's approval, 21 Nov 2026
-const elite = people("elite"); // Changed with Joe's approval, 21 Nov 2026
-t.ok(elite.hard! < elite.normal! && elite.expert! < elite.hard!, `Hard is harder than Normal, Expert harder than Hard for the elite player under the human limits (${show(elite)}; the near-perfect kit: ${show(means)})`); // Changed with Joe's approval, 21 Nov 2026
+// Changed with Joe's approval, 21 Nov 2026: the elite's mean, unused once the step reads its share at 200, is no longer measured.
+const reach = (l: "normal" | "hard" | "expert") => { const [e] = measureOpen(TYPE, l, seedsFrom(40001, 100), 3, false, ["elite"]); return e!.at200 / e!.runs; }; // Changed with Joe's approval, 21 Nov 2026
+const share = { normal: reach("normal"), hard: reach("hard"), expert: reach("expert") }; // Changed with Joe's approval, 21 Nov 2026
+t.ok(share.normal > share.hard && share.hard > share.expert && share.expert >= 0.2, `the elite under the human limits reaches 200 less often each level up, and on Expert on at least a fifth of runs (${Object.entries(share).map(([k, v]) => `${k} ${(100 * v).toFixed(0)}%`).join(", ")})`); // Changed with Joe's approval, 21 Nov 2026
 // Joe (16 Nov 2026): a clear step up for the Great player too, not only the Near-perfect one.
 const great: Record<string, number> = {};
 for (const level of ["easy", "normal", "hard", "expert"] as const) {

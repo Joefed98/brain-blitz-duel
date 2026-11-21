@@ -22,7 +22,11 @@ export type WordHuntLevelSettings = {
   freeMisses?: readonly [number, number];
   /** Keep only boards the typed witness takes to 200 inside the clock at the human limits. */
   witness?: boolean;
-  /** Base points and feature extras at which each part is full on this level (stored; Normal's 44 and 70 when absent). */
+  /**
+   * Base points and feature extras at which each part is full on this level (stored; Normal's 44 and 70 when absent). Joe
+   * (21 Nov 2026, decision 21): set so the length-aware elite under the human limits reaches 200 on a fair share of boards
+   * (Hard 55 %, Expert 30 % of runs on 100 room seeds) while the average player steps down as before.
+   */
   fullAt?: readonly [number, number];
   timeLimitMs: number;
 };
@@ -33,8 +37,8 @@ export const WORDHUNT_LEVELS: GameLevels<WordHuntLevelSettings> | null = {
   levels: {
     // Easy: misses cost nothing (120 free, the most the phone ever sends).
     easy: { settings: { words: { min: 320, max: 700 }, seeds: [4, 4], minLength: 3, longWords: 0, freeMisses: [120, 0], timeLimitMs: 120_000 }, oneSolution: OPEN },
-    hard: { settings: { words: { min: 320, max: 700 }, seeds: [4, 4], minLength: 5, longWords: 60, freeMisses: [6, 1], witness: true, fullAt: [80, 120], timeLimitMs: 65_000 }, oneSolution: OPEN },
-    expert: { settings: { words: { min: 320, max: 700 }, seeds: [4, 4], minLength: 7, longWords: 25, freeMisses: [3, 1], witness: true, fullAt: [100, 250], timeLimitMs: 40_000 }, oneSolution: OPEN },
+    hard: { settings: { words: { min: 320, max: 700 }, seeds: [4, 4], minLength: 5, longWords: 60, freeMisses: [6, 1], witness: true, fullAt: [49, 63], timeLimitMs: 65_000 }, oneSolution: OPEN },
+    expert: { settings: { words: { min: 320, max: 700 }, seeds: [4, 4], minLength: 7, longWords: 25, freeMisses: [3, 1], witness: true, fullAt: [49, 135], timeLimitMs: 40_000 }, oneSolution: OPEN },
   },
 };
 
