@@ -40,6 +40,18 @@ export default function wordScreens(): ThemeScreen[] {
     // Stage 3 (levels): a game's page with a level picked shows that level's line under the switch.
     { name: "word: game page, Cryptogrid Hard", mode: "practice", plain: true, search: { page: "codeword" }, sizes: ALL_SIZES, waitMs: 900, go: pickLevel("hard") },
     { name: "word: game page, Lookout Expert", mode: "practice", plain: true, search: { page: "wordsearch" }, sizes: ALL_SIZES, waitMs: 900, go: pickLevel("expert") },
+    // The polish plan's art (A1, 21 Nov 2026): every Word game's live round in a room, on the lit stage with the
+    // ivory piece set (game screens are not skinned; theme-check judges contrast and no-wrap-check the single lines).
+    ...REVEALS.map(
+      (g): ThemeScreen => ({
+        name: `word: ${g.name} live round`,
+        mode: "room",
+        plain: true,
+        room: room("in_progress", "puzzle", { puzzleType: g.type }),
+        waitMs: 1500,
+        sizes: ALL_SIZES,
+      }),
+    ),
     ...REVEALS.map(
       (g): ThemeScreen => ({
         name: `word: ${g.name} answer reveal`,
