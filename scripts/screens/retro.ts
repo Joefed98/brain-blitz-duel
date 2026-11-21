@@ -7,6 +7,7 @@
 import { gamesChallengesFixture, gamesProgressFixture } from "./games";
 import { readFileSync } from "node:fs";
 import { room, type ThemeScreen } from "../theme-screens";
+import { openYourRun } from "./reveals";
 import type { PuzzleData } from "../../src/lib/duel/types";
 
 /** The ten Retro games, in the review's order (docs/design/game-reviews/retro.md). */
@@ -36,6 +37,9 @@ export function retroRevealScreens(): ThemeScreen[] {
       waitMs: 1600,
       // The answer reveal has no card of its own (as the core list's reveal screens).
       plain: true,
+      // Changed with Joe's approval, 21 Nov 2026: opens "Your run" (a room's reveal opens on the Room view), so the run summary is what is judged;
+      // Hover stays on the Room view, so a Retro room reveal's chart view is still drawn.
+      ...(type === "hover" ? {} : { go: openYourRun }),
     });
   }
   return out;
