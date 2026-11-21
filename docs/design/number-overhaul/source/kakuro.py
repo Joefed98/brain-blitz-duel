@@ -5,6 +5,10 @@ is a black lacquered tile split by a thin champagne diagonal; an unused black sq
 diagonal. The app lays each one under its grid cell (background-size 100%), so the tap target is the cell itself, and
 draws every digit and clue number over it in bold Archivo.
 
+Spotlight (the polish plan, 21 Nov 2026): a white square is now a white matte tile and the clue and unused squares a
+deep green matte tile (the clue's champagne diagonal kept), lit by one soft top light with the Word art's neutral view,
+so the digits on the white squares are dark navy ink in the app. The frame keeps the first pass's render.
+
 Sprites: cell, clue, block, frame (the board's tray).
 Run:  /opt/blender/venv/bin/python docs/design/number-overhaul/source/kakuro.py [cell clue block frame]
 """
@@ -38,9 +42,22 @@ def frame():
     write("kakuro", "frame")
 
 
+def lit_tile(name, top, diag=False):
+    """Spotlight's matte square: no lacquer, a faint satin coat, true colours (neutral view, a stop down)."""
+    sc = setup(S, S, scale=4, samples=64, reflect=0.12)
+    sc.view_settings.view_transform = "Khronos PBR Neutral"
+    sc.view_settings.look = "None"
+    sc.view_settings.exposure = -1.1
+    box(2, 2, S - 4, S - 4, 7, mat(name + "m", top, 0.6, coat=0.12, coat_rough=0.4), r=5.5)
+    if diag:
+        gold = mat("diag", "#d8b670", 0.3, metal=1.0)
+        tube([(7, 7, 7.1), (S - 7, S - 7, 7.1)], 0.6, gold, round_caps=False)
+    write("kakuro", name)
+
+
 run({
-    "cell": lambda: tile("cell", "#1c2c23"),
-    "clue": lambda: tile("clue", "#0c0f0e", diag=True),
-    "block": lambda: tile("block", "#0c0f0e"),
+    "cell": lambda: lit_tile("cell", "#f7f8fa"),
+    "clue": lambda: lit_tile("clue", "#17583c", diag=True),
+    "block": lambda: lit_tile("block", "#17583c"),
     "frame": frame,
 })

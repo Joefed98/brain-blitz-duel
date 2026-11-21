@@ -131,20 +131,22 @@ export const EXACT_CSS = `
 
 /* ---- The Number overhaul (15 Nov 2026): Blender-rendered tiles, keys and the gold target plate (public/number/target),
    bold Archivo numbers, champagne gold and navy, no glows or glare. Display only: every control keeps its place. */
-[data-polish="target"] .exact-board { background: linear-gradient(180deg, var(--jz-surface), var(--jz-bg)); box-shadow: inset 0 0 0 1px var(--jz-line), 0 8px 18px rgba(0,0,0,.4); }
+/* Spotlight (the polish plan, 21 Nov 2026): ivory tiles, champagne large numbers, the picked tile in the Number green and a
+   white target plate with a green ring, all with dark navy ink, on the shared lit stage (no hairline round the board). */
+[data-polish="target"] .exact-board { background: color-mix(in srgb, var(--jz-bg) 30%, transparent); box-shadow: 0 8px 18px rgba(0,0,0,.25); }
 [data-polish="target"] .exact-rings { display: none; }
 [data-polish="target"] .exact-plaque { padding: 8px 34px 10px; min-width: 62%; background: url("/number/target/target.webp") center / 100% 100% no-repeat; filter: drop-shadow(0 6px 8px rgba(0,0,0,.45)); }
-[data-polish="target"] .exact-label { color: var(--jz-on-gold); opacity: .72; font-family: var(--jz-font); font-weight: 800; }
-[data-polish="target"] .exact-number, [data-puzzle-play] .game-column [data-polish="target"] .exact-number { font-family: var(--jz-font); font-weight: 900; color: var(--jz-on-gold); text-shadow: none; }
-[data-polish="target"] .exact-history-card { background: var(--jz-well); box-shadow: inset 0 0 0 1px var(--jz-line); }
+[data-polish="target"] .exact-label { color: var(--jz-navy); opacity: .72; font-family: var(--jz-font); font-weight: 800; }
+[data-polish="target"] .exact-number, [data-puzzle-play] .game-column [data-polish="target"] .exact-number { font-family: var(--jz-font); font-weight: 900; color: var(--jz-navy); text-shadow: none; }
+[data-polish="target"] .exact-history-card { background: color-mix(in srgb, var(--jz-bg) 55%, transparent); box-shadow: none; }
 [data-polish="target"] .exact-line { font-family: var(--jz-font); font-weight: 700; color: var(--jz-text); }
 [data-polish="target"] .exact-line b { color: var(--jz-gold); font-weight: 800; }
 [data-polish="target"] .exact-tile, [data-polish="target"] .exact-tile[data-large="true"] {
-  font-family: var(--jz-font); font-weight: 800; font-size: 30px; color: var(--jz-white); box-shadow: 0 4px 8px rgba(0,0,0,.45);
+  font-family: var(--jz-font); font-weight: 800; font-size: 30px; color: var(--jz-navy); box-shadow: 0 3px 4px rgba(0,0,0,.28);
   background: url("/number/target/tile.webp") center / 100% 100% no-repeat; }
-[data-polish="target"] .exact-tile[data-large="true"] { color: var(--jz-gold); background-image: url("/number/target/tile-large.webp"); }
+[data-polish="target"] .exact-tile[data-large="true"] { color: var(--jz-navy); background-image: url("/number/target/tile-large.webp"); }
 [data-polish="target"] .exact-tile[data-state="selected"], [data-polish="target"] .exact-tile[data-hit="true"] {
-  translate: 0 -3px; color: var(--jz-on-gold); background: url("/number/target/tile-picked.webp") center / 100% 100% no-repeat; box-shadow: 0 6px 10px rgba(0,0,0,.5); }
+  translate: 0 -3px; color: var(--jz-navy); background: url("/number/target/tile-picked.webp") center / 100% 100% no-repeat; box-shadow: 0 5px 8px rgba(0,0,0,.3); }
 [data-polish="target"] .exact-tile[data-state="consumed"] { opacity: .4; color: var(--jz-text-3); background: var(--jz-well); box-shadow: inset 0 2px 6px rgba(0,0,0,.6); }
 [data-polish="target"] .exact-ring { box-shadow: inset 0 0 0 2px var(--jz-gold); }
 [data-polish="target"] .exact-op { font-family: var(--jz-font); font-weight: 800; font-size: 26px; color: var(--jz-white); box-shadow: 0 3px 6px rgba(0,0,0,.4);
@@ -155,7 +157,7 @@ export const EXACT_CSS = `
   color: var(--jz-text-2); background: var(--jz-surface-2); box-shadow: 0 4px 0 var(--jz-bg); }
 [data-polish="target"] .exact-lock[data-ready] { color: var(--jz-on-gold); background: var(--jz-gold); box-shadow: 0 4px 0 var(--jz-gold-ledge); }
 [data-polish="target"] .exact-lock:disabled { opacity: .6; }
-[data-polish="target"] .exact-ghost { font-family: var(--jz-font); font-weight: 900; color: var(--jz-on-gold); background: url("/number/target/tile-picked.webp") center / 100% 100% no-repeat; box-shadow: none; }
+[data-polish="target"] .exact-ghost { font-family: var(--jz-font); font-weight: 900; color: var(--jz-navy); background: url("/number/target/tile-picked.webp") center / 100% 100% no-repeat; box-shadow: none; }
 [data-polish="target"] .exact-burst { box-shadow: 0 0 0 3px var(--jz-gold); }
 @keyframes exact-target-pulse { 0% { scale: 1; } 30% { scale: 1.12; } 100% { scale: 1; } }
 @media (prefers-reduced-motion: reduce) {
@@ -600,7 +602,7 @@ const EXACT_REVEAL_CSS = `
 .exact-reveal { display: flex; width: 100%; flex-direction: column; align-items: center; gap: 10px; text-align: center; font-family: var(--jz-font); }
 .exact-rv-head { display: grid; width: 100%; grid-template-columns: 1fr 1fr; gap: 10px; }
 .exact-rv-plate { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 96px; padding: 8px 6px; border-radius: 16px; }
-.exact-rv-plate[data-plate="target"] { background: url("/number/target/target.webp") center / 100% 100% no-repeat; color: var(--jz-on-gold); }
+.exact-rv-plate[data-plate="target"] { background: url("/number/target/target.webp") center / 100% 100% no-repeat; color: var(--jz-navy); }
 .exact-rv-plate[data-plate="yours"] { background: var(--jz-surface-2); color: var(--jz-text); }
 .exact-rv-plate-label { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; opacity: .8; }
 .exact-rv-plate-value { font-size: 42px; line-height: 1.05; font-weight: 900; font-variant-numeric: tabular-nums; }
@@ -610,9 +612,9 @@ const EXACT_REVEAL_CSS = `
 .exact-rv-caption { font-size: 14px; font-weight: 600; color: var(--jz-text-2); }
 .exact-rv-step { display: flex; align-items: center; justify-content: center; gap: 6px; }
 .exact-rv-tile { display: inline-flex; min-width: 54px; height: 42px; align-items: center; justify-content: center; padding: 0 8px; border-radius: 10px;
-  background: url("/number/target/tile.webp") center / 100% 100% no-repeat; color: #fff; font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; }
+  background: url("/number/target/tile.webp") center / 100% 100% no-repeat; color: var(--jz-navy); font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; }
 .exact-rv-tile[data-made] { background-image: url("/number/target/tile-large.webp"); }
-.exact-rv-tile[data-hit] { background-image: url("/number/target/tile-picked.webp"); color: var(--jz-on-gold); }
+.exact-rv-tile[data-hit] { background-image: url("/number/target/tile-picked.webp"); color: var(--jz-navy); }
 .exact-rv-op { min-width: 18px; font-size: 22px; font-weight: 800; color: var(--jz-text); }
 .exact-rv-empty { font-size: 16px; font-weight: 600; color: var(--jz-text-2); }
 /* A short screen (the shared reveal layout's payoff row above, #422): smaller plates and route tiles, so a four-step

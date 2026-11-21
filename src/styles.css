@@ -1625,7 +1625,7 @@ html,
 .screen-background::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, var(--screen-edge) env(safe-area-inset-bottom, 0px), transparent) bottom / 100% calc(env(safe-area-inset-bottom, 0px) + 16px) no-repeat, radial-gradient(ellipse at center, transparent 30%, color-mix(in srgb, var(--screen-edge) 65%, transparent)); }
 .screen-drift { position: absolute; inset: -6%; background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--category-accent) 7%, transparent), transparent 65%); animation: screen-drift 30s ease-in-out infinite alternate; }
 @keyframes screen-drift { from { transform: translate3d(-2%, 0, 0); } to { transform: translate3d(2%, 3%, 0); } }
-.game-screen :is([data-play-area], .puzzle-square-board, .pipes-play-board, .logic-nonogram-board) { box-shadow: 0 0 0 1px color-mix(in srgb, var(--category-accent) 24%, transparent), 0 0 8px color-mix(in srgb, var(--category-accent) 8%, transparent); }
+/* The shared accent ring round every play area was removed (the polish plan's outlines row, earlier E0.5, 21 Nov 2026): a board's own edge is its frame, never a 1 px hairline. */
 .fx-layer { position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 30; contain: layout paint; }
 .fx-particle { position: absolute; top: 12%; left: 50%; width: 4px; height: 4px; border-radius: 50%; background: var(--category-accent); opacity: 0.75; }
 [data-particle-shape="square"] .fx-particle { border-radius: 0; }

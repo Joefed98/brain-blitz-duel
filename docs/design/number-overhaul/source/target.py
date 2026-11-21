@@ -1,4 +1,7 @@
-"""Exact (target) pieces: concept A's lacquered black tiles with blank faces and a big cast-gold target plate.
+"""Exact (target) pieces. Spotlight (the polish plan, 21 Nov 2026): ivory number tiles over a warm ledge, champagne
+enamel for the large numbers, the picked tile in the Number green, and a white target plate with a green ring; matte,
+one soft top light, no chrome. The operator keys stay navy (they are controls). The first pass (15 Nov 2026) was
+concept A's lacquered black tiles and a cast-gold plate, described below.
 
 Materials (Joe's clarification, 15 Nov 2026: lit, not flat): the tiles a deep black lacquer (a clear coat over dark
 graphite) that catches a crisp highlight along the bevel; the picked and large tiles polished gold; the target plate
@@ -49,18 +52,37 @@ def tile_base(name, face, edge=None):
     write(G, name)
 
 
+def neutral():
+    # Light pieces keep their true colours: AgX's look bleaches pale colours, so they take the Word art's view.
+    bpy.context.scene.view_settings.view_transform = "Khronos PBR Neutral"
+    bpy.context.scene.view_settings.look = "None"
+    bpy.context.scene.view_settings.exposure = -1.1
+
+
+def matte(name, color, rough=0.6):
+    """Spotlight's light pieces: a matte body under a faint satin coat (no chrome, no lacquer, no glare)."""
+    return mat(name, color, rough, coat=0.12, coat_rough=0.4)
+
+
+def lit_tile(name, face, ledge):
+    """A light tile: its matte face standing on a warmer, darker ledge that shows along the bottom edge."""
+    studio(120, 72, scale=3)
+    neutral()
+    box(2, 2, 116, 68, 6, matte(name + "ledge", ledge), r=12)
+    box(2, 2, 116, 63, 6, matte(name + "face", face), r=12, z=6)
+    write(G, name)
+
+
 def tile():
-    tile_base("tile", lambda: slate("tileface", "#101418"))
+    lit_tile("tile", "#f3ead3", "#c9a56a")
 
 
 def tile_large():
-    tile_base("tile-large", lambda: slate("tilelg", "#0f1215"), edge=lambda: gold("tileedge", 0.2))
+    lit_tile("tile-large", "#e9cc86", "#b48a40")
 
 
 def tile_picked():
-    # Polished gold at the rim, a brushed face where the number sits.
-    tile_base("tile-picked", lambda: add_bump(mat("tilegoldface", "#c99d52", 0.36, metal=1.0), 60, 0.02, stretch=(1, 40, 1), distance=0.001),
-              edge=lambda: gold("tilegold", 0.16))
+    lit_tile("tile-picked", "#79e3a7", "#2f9f64")
 
 
 def op():
@@ -71,10 +93,9 @@ def op():
 
 def target():
     studio(300, 150, scale=3)
-    g = gold("plate", 0.16)
-    box(2, 2, 296, 146, 6, g, r=22)                                  # the rim, polished
-    face = add_bump(mat("plateface", "#b88c44", 0.42, metal=1.0), 60, 0.02, stretch=(1, 40, 1), distance=0.001)
-    box(12, 12, 276, 126, 7, face, r=16, z=-0.5)                     # the face, brushed and set a touch lower
+    neutral()
+    box(2, 2, 296, 146, 6, matte("platering", "#2fb36a", 0.5), r=22)   # the ring, the Number green
+    box(12, 12, 276, 126, 7, matte("plateface", "#f7f8fa"), r=16, z=-0.5)  # the plate, white, set a touch lower
     write(G, "target")
 
 
