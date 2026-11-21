@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="kit.css">
+<style>
+.ban { padding:12px 16px 14px; } .ban .art { position:absolute; right:8px; top:6px; width:84px; height:84px; object-fit:contain; }
+.bar { height:8px; border-radius:4px; background:#0A1022; overflow:hidden; } .bar i { display:block; height:100%; width:64%; background:var(--metal); }
+.live { display:inline-flex; align-items:center; gap:6px; height:20px; padding:0 8px; border-radius:5px; background:#22E4FF; color:#04060C; font:800 10.5px/1 Archivo; letter-spacing:.08em; }
+.ev { padding:9px 12px; display:flex; align-items:center; gap:12px; } .ev img { width:46px; height:46px; object-fit:contain; flex:none; } .ev b { font:800 15.5px/1.1 Archivo; display:block; } .ev small { display:block; font:600 12px/1 Archivo; color:var(--text3); margin-top:5px; } .ev .t { font:800 13px/1 Archivo; color:var(--text2); text-align:right; }
+.seg { display:grid; grid-template-columns:repeat(4,1fr); gap:5px; } .seg div { height:34px; border-radius:9px; background:var(--surface); box-shadow:inset 0 0 0 1px var(--line); display:flex; align-items:center; justify-content:center; font:800 11.5px/1 Archivo; color:var(--text2); } .seg .on { background:var(--surface2); box-shadow:inset 0 0 0 1.5px var(--edge); color:var(--text); }
+.plate { height:40px; } .plate .av { width:30px; height:30px; border-radius:8px; } .rk { width:24px; text-align:center; font:800 14px/1 Archivo; color:var(--text3); }
+</style></head><body><div class="page">
+  <div class="row"><h1 class="grow">Compete</h1><div class="btn sec sm">Tiers</div></div>
+  <div class="cut ban mt14"><img class="art" src="art/svg/emblem-volt.svg"><div class="cap" style="color:var(--gold)">Volt II</div><div class="num" style="font-size:44px;margin-top:6px">1,278</div><div class="bar mt10" style="width:74%"><i></i></div><div class="sub mt6" style="font-size:12.5px">122 to Volt I · <span style="color:var(--win)">▲ 22 this week</span></div><div class="btn full mt14">Find a match</div></div>
+  <div class="row mt14"><div class="cap grow">Tournaments</div><span class="sub" style="font-size:13px">Schedule ›</span></div>
+  <div class="col g6 mt10">
+    <div class="panel ev" style="box-shadow:inset 0 0 0 1.5px #22E4FF"><img src="pub/tournaments-art/arena-3x.webp"><div class="grow"><span class="live">● LIVE</span><b style="margin-top:6px">The Arena</b><small>You are 12th of 148 · 31 min left</small></div><div class="btn sec sm">Next duel</div></div>
+    <div class="panel ev"><img src="pub/tournaments-art/scoreAttack-3x.webp"><div class="grow"><b>Score Attack</b><small>Strategy · 5 games · 50 coins</small></div><div class="t">Today<br>8:00 pm</div></div>
+    <div class="panel ev"><img src="pub/tournaments-art/cup-3x.webp"><div class="grow"><b>Category Cup</b><small>Logic · best of 3 rounds</small></div><div class="t">Sat<br>7:00 pm</div></div>
+  </div>
+  <div class="cap mt14">Leaderboards</div>
+  <div class="seg mt10"><div class="on">Rating</div><div>Puzzles</div><div>Arcade</div><div>Daily 100</div></div>
+  <div class="col g6 mt10" id="rows"></div>
+  <div class="tabs"><div class="tab"><img src="pub/nav/home-3x.webp">Home</div><div class="tab"><img src="pub/nav/games-3x.webp">Games</div><div class="tab on"><img src="pub/nav/tournaments-3x.webp">Compete</div><div class="tab"><img src="pub/nav/shop-3x.webp">Shop</div><div class="tab"><img src="pub/nav/profile-3x.webp">You</div></div>
+</div>
+<script>
+const R=[["1","NovaStrike","gemstone","#36E2F5","2,046"],["2","Sam_Speed","orbit","#FF6BD6","1,988"],["214","TheInventor","captain-joulz","#E2C07A","1,278"]];
+document.getElementById("rows").innerHTML=R.map(([k,n,a,c,r],i)=>'<div class="plate" style="--c:'+c+(i==2?';box-shadow:inset 0 0 0 1.5px var(--ledge)':'')+'"><span class="rk"'+(i==2?' style="color:var(--gold)"':'')+'>'+k+'</span><div class="av" style="--c:'+c+'"><img src="art/avatars/svg/'+a+'.svg"></div><b class="grow">'+n+'</b><span class="n">'+r+'</span></div>').join("");
+</script></body></html>

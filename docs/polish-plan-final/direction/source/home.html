@@ -1,0 +1,70 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<script>const Q=new URLSearchParams(location.search);document.documentElement.dataset.dir = Q.get('dir') || 'a';document.documentElement.dataset.v = Q.get('v') || '1';</script>
+<style>
+.hero { height: 204px; background: linear-gradient(135deg, #FF4FA3 0%, #8C4DFF 48%, #3E63FF 100%); box-shadow: 0 7px 0 #3A2AA8, var(--shadow); }
+.hero .txt { position:absolute; left:20px; top:18px; right: 150px; }
+.hero h1 { font-size: 34px; color:#fff; text-shadow: 0 3px 0 rgba(40,10,110,.55); }
+.hero .sub { color:#fff; opacity:.95; margin-top:6px; }
+.hero .btn { position:absolute; left:20px; bottom:22px; width: 186px; }
+.hero .art { position:absolute; right:-6px; bottom:-8px; height: 210px; filter: drop-shadow(0 8px 0 rgba(30,10,90,.35)); }
+.dailies { display:grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
+.daily { height: 150px; padding: 14px; }
+.daily h2 { color:#fff; font-size: 19px; text-shadow: 0 2px 0 rgba(0,0,0,.25); }
+.daily .cap { color:#fff; opacity:.95; }
+.daily img { position:absolute; right:-10px; bottom: 4px; width: 118px; }
+.daily .btn { position:absolute; left:14px; bottom:16px; }
+.dp { background: linear-gradient(160deg, #B26BFF, #6B3DF0); box-shadow: 0 6px 0 #4423B5, var(--shadow); }
+.da { background: linear-gradient(160deg, #36E2F5, #1389E8); box-shadow: 0 6px 0 #0B5DB0, var(--shadow); }
+.friends { margin-top: 18px; height: 84px; display:flex; align-items:center; gap:10px; padding: 0 12px; background: linear-gradient(160deg,#4FE08A,#1FA85A); box-shadow: 0 6px 0 #13753C, var(--shadow); }
+.friends img { width: 44px; height: 44px; }
+.friends b { font: 900 17px/1.1 "Archivo"; color:#fff; display:block; white-space:nowrap; text-shadow: 0 2px 0 rgba(0,0,0,.2); }
+.friends span { color:#fff; font-size: 14px; opacity:.95; white-space:nowrap; }
+.tiles { display:flex; gap:12px; }
+.tiles .tile { width: 112px; height: 136px; }
+.streak { display:inline-flex; align-items:center; gap:4px; font: 900 17px "Archivo"; color:#FF9A3D; }
+.done { position:absolute; left:14px; bottom:16px; display:flex; align-items:center; gap:6px; height:44px; padding:0 14px; border-radius:14px; background: rgba(255,255,255,.95); color:#3A1F9E; font: 900 16px "Archivo"; box-shadow: 0 4px 0 rgba(0,0,0,.25); }
+html[data-v="1"] .tabs.v2 { display:none; } html[data-v="2"] .tabs.v1 { display:none; }
+.tabs.v2 .playtab { flex:1.2; display:flex; align-items:flex-start; justify-content:center; }
+.tabs.v2 .playtab div { width:74px; height:74px; margin-top:-30px; border-radius:26px; background: linear-gradient(180deg,#FFE570,#FFC81E 50%); box-shadow: inset 0 3px 0 rgba(255,255,255,.6), 0 7px 0 #C98200, 0 0 0 6px var(--tab); display:flex; align-items:center; justify-content:center; }
+.tabs.v2 .playtab svg { width:30px; height:40px; color:#22164F; }
+</style></head><body><div class="page">
+  <div class="top">
+    <div class="avatar" style="background:#FF6BD6"><img src="art/avatars/svg/captain-joulz.svg"></div>
+    <div class="who grow"><b>TheInventor</b><span class="tier"><svg width="11" height="14" viewBox="0 0 26 34"><path fill="currentColor" d="M19 .5 7 18.5h6.5L14.2 13.5zM13.5 18.5 8 33.5 21 13.5h-6.8z"/></svg>Volt II · 1,482</span></div>
+    <span class="streak">🔥 4</span>
+    <span class="pill"><span class="coin"><svg viewBox="0 0 26 34"><path fill="#7A4A00" d="M19 .5 7 18.5h6.5L14.2 13.5zM13.5 18.5 8 33.5 21 13.5h-6.8z"/></svg></span>1,240</span>
+  </div>
+  <div class="scroll">
+    <div class="card hero"><div class="rays"></div>
+      <div class="txt"><h1>Quick match</h1><div class="sub">Best of 3 · Rated</div></div>
+      <img class="art" src="pub/art/captain-joulz-win.svg">
+      <div class="btn big">Play</div>
+    </div>
+    <div class="dailies">
+      <div class="card daily dp"><div class="slash"></div><h2>Daily Puzzle</h2><div class="cap">6 rounds</div><img src="pub/home/dailyPuzzle-3x.webp"><div class="btn sm">Play</div></div>
+      <div class="card daily da"><div class="slash"></div><h2>Daily Arcade</h2><div class="cap">3 rounds</div><img src="pub/home/dailyArcade-3x.webp" style="width:104px;right:-4px"><div class="done">✓ 512</div></div>
+    </div>
+    <div class="card friends"><img src="pub/home/rooms-3x.webp"><div class="grow"><b>Play friends</b><span>Room for 16</span></div><div class="btn white sm" style="padding:0 12px;font-size:15px">Create</div><div class="btn white sm" style="padding:0 12px;font-size:15px">Join</div></div>
+    <div class="sec-head"><h2>Jump back in</h2><a>All games ›</a></div>
+    <div class="tiles">
+      <div class="tile" style="--tc:var(--sports);--tc-ledge:#2E7F2C"><img src="pub/tiles/pool.webp"><div class="nm">Cue Ball</div><div class="stars"><i class="star"></i></div></div>
+      <div class="tile" style="--tc:var(--logic);--tc-ledge:#1A8573"><img src="pub/tiles/tubes.webp"><div class="nm">Polypotions</div><div class="stars"><i class="star"></i></div></div>
+      <div class="tile" style="--tc:var(--strategy);--tc-ledge:#5346C0"><img src="pub/tiles/matchup.webp"><div class="nm">Gemstone</div><div class="stars"><i class="star off"></i></div></div>
+      <div class="tile" style="--tc:var(--retro);--tc-ledge:#1392A3"><img src="pub/tiles/blockfall.webp"><div class="nm">Blockzone</div></div>
+    </div>
+  </div>
+  <div class="tabs v1">
+    <div class="tab on"><img src="pub/nav/home-3x.webp">Home</div>
+    <div class="tab"><img src="pub/nav/games-3x.webp">Games</div>
+    <div class="tab"><img src="pub/nav/tournaments-3x.webp">Compete</div>
+    <div class="tab"><img src="pub/nav/shop-3x.webp">Shop</div>
+    <div class="tab"><img src="pub/nav/profile-3x.webp">You</div>
+  </div>
+  <div class="tabs v2">
+    <div class="tab on"><img src="pub/nav/home-3x.webp">Home</div>
+    <div class="tab"><img src="pub/nav/games-3x.webp">Games</div>
+    <div class="playtab"><div><svg viewBox="0 0 26 34"><path fill="currentColor" d="M19 .5 7 18.5h6.5L14.2 13.5zM13.5 18.5 8 33.5 21 13.5h-6.8z"/></svg></div></div>
+    <div class="tab"><img src="pub/nav/tournaments-3x.webp">Compete</div>
+    <div class="tab"><img src="pub/nav/profile-3x.webp">You</div>
+  </div>
+</div></body></html>

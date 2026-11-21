@@ -342,6 +342,28 @@
 [data-arena].game-screen:not([data-room-panel]) {
   padding-right: var(--arena-panel-w, 320px);
 }
+/* The Cabinet (polish plan B1, Joe's pick D1, 20 Nov 2026): arcade play screens outside a room take a left panel
+   too (lib/gameFrame/arena.ts ARENA_PANEL_LEFT_W), past the compact rail on a computer; the world sits centred between
+   the two panels at its largest uniform scale (the slot's own rule), so nothing about the world changes. */
+[data-arena][data-arena-left].game-screen {
+  padding-left: calc(var(--arena-left, 0px) + var(--arena-panel-left-w, 280px));
+}
+.arena-panel-left {
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: var(--arena-left, 0px);
+  z-index: 40;
+  display: flex;
+  width: var(--arena-panel-left-w, 280px);
+  flex-direction: column;
+  overflow-y: auto;
+  padding: max(20px, env(safe-area-inset-top, 0px)) 20px max(20px, calc(env(safe-area-inset-bottom, 0px) + 12px));
+  border-right: 1px solid var(--jz-line);
+  background: var(--jz-raised);
+  color: var(--jz-text);
+  font-family: var(--jz-font);
+}
 [data-arena][data-layout="tablet"][data-room-panel] {
   padding-right: 380px;
 }

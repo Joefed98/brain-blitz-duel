@@ -1,0 +1,38 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="alt.css"><script>const Q=new URLSearchParams(location.search);document.documentElement.dataset.dir = Q.get("dir") || "e";</script>
+<style>
+.deck { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.dk { height:138px; padding:14px; overflow:hidden; }
+.dk.big { grid-column: span 2; height: 172px; background: linear-gradient(120deg, color-mix(in srgb, var(--acc) 22%, var(--card2)), var(--card) 70%); }
+.dk img.art { position:absolute; right:6px; bottom:6px; width:92px; }
+.dk.big img.art { width:150px; right:16px; bottom:10px; }
+.dk b { font: 900 19px/1.1 "Archivo"; display:block; position:relative; } .dk.big b { font-size:30px; font-stretch:108%; }
+.dk small { color: var(--text2); font: 700 13px "Archivo"; position:relative; }
+.dk .btn { position:absolute; left:14px; bottom:14px; }
+.dk .st { position:absolute; left:14px; bottom:14px; font: 800 13px "Archivo"; color: var(--text2); }
+.cont { margin-top:14px; height:76px; display:flex; align-items:center; gap:12px; padding:0 12px; }
+.cont .tile { width:54px; height:54px; border-radius:10px; }
+.frs { display:flex; gap:14px; } .frs .f { width:60px; text-align:center; font: 700 12px "Archivo"; color: var(--text2); } .frs .av { width:56px; height:56px; margin:0 auto 5px; box-shadow: 0 0 0 2px #16C35B; }
+</style></head><body><div class="page">
+  <div class="top"><div class="av" style="width:44px;height:44px;background:#FF6BD6"><img src="art/avatars/svg/captain-joulz.svg"></div>
+    <div class="grow"><div class="row gap8"><b style="font:900 16px Archivo">Volt II · 1,278</b></div><div class="track" style="margin-top:6px;width:150px"><i style="width:62%"></i></div></div>
+    <span class="streak" style="font:900 16px Archivo;color:#FF9A3D">🔥 4</span><span class="pill"><span class="coin"><svg viewBox="0 0 26 34"><path fill="#7A4A00" d="M19 .5 7 18.5h6.5L14.2 13.5zM13.5 18.5 8 33.5 21 13.5h-6.8z"/></svg></span> 1,240</span></div>
+  <div class="scroll">
+    <div class="deck">
+      <div class="panel dk big cut corner"><b>Quick match</b><small>Best of 3 · Rated · Win +8</small><img class="art" src="pub/home/playHero-2x.webp"><div class="btn" style="width:150px">Play</div></div>
+      <div class="panel dk corner" style="--acc:#B26BFF"><b>Daily Puzzle</b><small>6 rounds</small><img class="art" src="pub/home/dailyPuzzle-3x.webp"><span class="st" style="color:#B26BFF">New today</span></div>
+      <div class="panel dk corner" style="--acc:#36E2F5"><b>Daily Arcade</b><small>3 rounds</small><img class="art" src="pub/home/dailyArcade-3x.webp" style="width:80px"><span class="st" style="color:#5BE38F">✓ 512</span></div>
+      <div class="panel dk corner" style="--acc:#16C35B"><b>Play friends</b><small>Create or join</small><img class="art" src="pub/home/rooms-3x.webp" style="width:70px"><span class="st">Room for 16</span></div>
+      <div class="panel dk corner" style="--acc:#FF8A3D"><b>Arena</b><small>Tonight 8:00 pm</small><img class="art" src="pub/tournaments-art/arena-3x.webp" style="width:72px"><span class="st">45 minutes</span></div>
+    </div>
+    <div class="panel cont"><div class="tile" style="--tc:var(--logic)"><img src="pub/tiles/tubes.webp"></div><div class="grow"><span class="lab">Continue</span><b style="font:800 17px Archivo;display:block">Polypotions</b></div><span class="lab" style="margin-right:6px">Best 148</span><span class="mini">Play</span></div>
+    <div class="sec-head" style="margin-top:16px"><h2>Online now</h2><a>Friends ›</a></div>
+    <div class="frs"><div class="f"><div class="av" style="background:#36E2F5"><img src="art/avatars/svg/orbit.svg"></div>Sam</div><div class="f"><div class="av" style="background:#3DDC84"><img src="art/avatars/svg/gemstone.svg"></div>Priya</div><div class="f"><div class="av" style="background:#FF8A3D"><img src="art/avatars/svg/hover.svg"></div>Mo</div><div class="f"><div class="av" style="background:#B26BFF;box-shadow:0 0 0 2px var(--line)"><img src="art/avatars/svg/pinball.svg"></div>Lena</div></div>
+  </div>
+  <div class="tabs">
+    <div class="tab on"><img src="pub/nav/home-3x.webp">Home</div>
+    <div class="tab "><img src="pub/nav/games-3x.webp">Games</div>
+    <div class="tab "><img src="pub/nav/tournaments-3x.webp">Compete</div>
+    <div class="tab "><img src="pub/nav/shop-3x.webp">Shop</div>
+    <div class="tab "><img src="pub/nav/profile-3x.webp">You</div>
+  </div>
+</div></body></html>

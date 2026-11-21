@@ -1,0 +1,24 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="kit.css">
+<style>
+.pick { height:44px; padding:0 14px; border-radius:10px; background:var(--surface2); box-shadow:inset 0 0 0 1px var(--edge); display:flex; align-items:center; gap:8px; font:800 16px/1 Archivo; }
+.seg { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; } .seg div { height:36px; border-radius:9px; background:var(--surface); box-shadow:inset 0 0 0 1px var(--line); display:flex; align-items:center; justify-content:center; font:800 13px/1 Archivo; color:var(--text2); } .seg .on { background:var(--surface2); box-shadow:inset 0 0 0 1.5px var(--edge); color:var(--text); }
+.three { display:grid; grid-template-columns:1fr 1.12fr 1fr; gap:6px; align-items:end; } .three > div { text-align:center; padding:12px 4px; border-radius:12px; background:var(--surface); box-shadow:inset 0 0 0 1px var(--line); } .three .one { padding:16px 4px; box-shadow:inset 0 0 0 1px var(--ledge); background:linear-gradient(180deg,#2C2613,var(--surface)); }
+.three .av { margin:0 auto; width:50px; height:50px; border-radius:13px; } .three .one .av { width:62px; height:62px; border-radius:16px; } .three b { display:block; font:800 12.5px/1 Archivo; margin-top:8px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .three span { display:block; font:900 18px/1 Archivo; margin-top:5px; font-variant-numeric:tabular-nums; } .three img.m { width:24px; height:24px; margin-top:5px; }
+.plate { height:46px; } .plate .av { width:32px; height:32px; border-radius:9px; } .rk { width:26px; text-align:center; font:800 15px/1 Archivo; color:var(--text3); font-variant-numeric:tabular-nums; }
+.me { position:absolute; left:16px; right:16px; bottom:88px; box-shadow:inset 0 0 0 1.5px var(--ledge), 0 -14px 24px 6px var(--bg); }
+</style></head><body><div class="page">
+  <div class="row g12"><div class="back">‹</div><div class="pick grow">Joulz Rating <span style="margin-left:auto;color:var(--text3)">▾</span></div></div>
+  <div class="seg mt10"><div class="on">Global</div><div>United Kingdom</div><div>Friends</div></div>
+  <div class="three mt14">
+    <div><div class="av" style="--c:#FF6BD6"><img src="art/avatars/svg/orbit.svg"></div><b>Sam_Speed</b><span>1,988</span><img class="m" src="art/svg/medal-silver.svg"></div>
+    <div class="one"><div class="av" style="--c:#36E2F5"><img src="art/avatars/svg/gemstone.svg"></div><b>NovaStrike</b><span style="color:var(--gold-hi);font-size:22px">2,046</span><img class="m" src="art/svg/medal-gold.svg"></div>
+    <div><div class="av" style="--c:#3DDC84"><img src="art/avatars/svg/pinball.svg"></div><b>Priya_K</b><span>1,951</span><img class="m" src="art/svg/medal-bronze.svg"></div>
+  </div>
+  <div class="col g6 mt10" id="rows"></div>
+  <div class="plate me" style="--c:#E2C07A"><span class="rk" style="color:var(--gold)">214</span><div class="av" style="--c:#E2C07A"><img src="art/avatars/svg/captain-joulz.svg"></div><b class="grow">TheInventor</b><span class="pill" style="height:20px;font-size:10.5px;color:var(--win)">▲ 12</span><span class="n">1,278</span></div>
+  <div class="tabs"><div class="tab"><img src="pub/nav/home-3x.webp">Home</div><div class="tab"><img src="pub/nav/games-3x.webp">Games</div><div class="tab on"><img src="pub/nav/tournaments-3x.webp">Compete</div><div class="tab"><img src="pub/nav/shop-3x.webp">Shop</div><div class="tab"><img src="pub/nav/profile-3x.webp">You</div></div>
+</div>
+<script>
+const R=[["4","Mo","breaker","#FF8A3D","1,930"],["5","Lena","coral-pop","#8E80FF","1,902"],["6","Kai_91","blockzone","#4D8CFF","1,887"],["7","Hidden player","","#3A4A78","1,874"],["8","Zara","apex","#FF4D6A","1,860"],["9","Dev_Tom","cryptogrid","#2ED3B7","1,851"]];
+document.getElementById("rows").innerHTML=R.map(([k,n,a,c,r])=>'<div class="plate" style="--c:'+c+'"><span class="rk">'+k+'</span><div class="av" style="--c:'+c+'">'+(a?'<img src="art/avatars/svg/'+a+'.svg">':'')+'</div><b class="grow"'+(a?'':' style="color:var(--text3)"')+'>'+n+'</b><span class="n">'+r+'</span></div>').join("");
+</script></body></html>

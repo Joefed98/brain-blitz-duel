@@ -1,0 +1,61 @@
+/* Joulz design direction, second pass (20 Nov 2026): the esports look, refined, as one small kit.
+   Real token values (with the navy change), Archivo, cut corners, one gold action a screen. */
+@font-face { font-family: "Archivo"; font-weight: 100 900; font-stretch: 62% 125%; src: url("pub/fonts/archivo-var-latin.woff2") format("woff2"); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#04060C; --raised:#090D1A; --surface:#101A33; --surface2:#1C2A52; --surface3:#26376B; --line:#223058; --navy:#142454; --edge:#2F4A94;
+  --text:#EEF2FF; --text2:#B5C6DD; --text3:#8F9BBF;
+  --gold:#E2C07A; --gold-hi:#FBEDC4; --ledge:#A8843E; --on-gold:#06080F;
+  --metal: linear-gradient(165deg,#FBEDC4 0%,#E6C67E 34%,#D2AC5E 68%,#EED79C 100%);
+  --word:#4D8CFF; --number:#3DDC84; --speed:#FF8A3D; --attention:#FF6BD6; --pattern:#B26BFF; --logic:#2ED3B7;
+  --retro:#36E2F5; --sports:#4CC24A; --cards:#FF5C93; --action:#FF4D4D; --strategy:#8E80FF;
+  --easy:#3EDB72; --normal:#4D8CFF; --hard:#FF9A3D; --expert:#FF4D6A;
+  --win:#16C35B; --loss:#FF5A6E;
+  --cut-lg: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+  --cut-sm: polygon(11px 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%, 0 11px);
+  --cut-xs: polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+}
+html, body { background: var(--bg); color: var(--text); font-family: "Archivo", system-ui, sans-serif; font-size: 15px; line-height: 1.3; -webkit-font-smoothing: antialiased; }
+body { min-height: 100vh; background: radial-gradient(120% 60% at 50% -10%, #0E1838 0%, var(--bg) 62%); }
+.page { width: 390px; min-height: 844px; margin: 0 auto; position: relative; padding: 14px 16px 96px; overflow: hidden; }
+h1 { font: 800 30px/1.05 "Archivo"; letter-spacing: -.01em; }
+h2 { font: 800 20px/1.1 "Archivo"; }
+.cap { font: 700 11px/1 "Archivo"; letter-spacing: .14em; text-transform: uppercase; color: var(--text3); }
+.sub { color: var(--text2); font-weight: 600; font-size: 14px; }
+.num { font: 900 44px/1 "Archivo"; font-stretch: 112%; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.row { display: flex; align-items: center; } .col { display: flex; flex-direction: column; } .grow { flex: 1; min-width: 0; }
+.g4{gap:4px}.g6{gap:6px}.g8{gap:8px}.g10{gap:10px}.g12{gap:12px}.g16{gap:16px}
+.mt6{margin-top:6px}.mt10{margin-top:10px}.mt14{margin-top:14px}.mt18{margin-top:18px}.mt24{margin-top:24px}
+.panel { background: var(--surface); box-shadow: inset 0 0 0 1px var(--line); border-radius: 14px; }
+.cut { clip-path: var(--cut-lg); border-radius: 0; background: linear-gradient(160deg, #16244A 0%, var(--surface) 55%, #0B1226 100%); position: relative; }
+.cut::after { content:""; position:absolute; inset:0; clip-path: var(--cut-lg); box-shadow: inset 0 0 0 1px var(--edge); pointer-events:none; opacity:.55; }
+.btn { height: 56px; padding: 0 22px 4px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font: 800 19px/1 "Archivo"; color: var(--on-gold); background: var(--metal); clip-path: var(--cut-sm); box-shadow: inset 0 -4px 0 var(--ledge); white-space: nowrap; }
+.btn.full { display: flex; width: 100%; }
+.btn.sm { height: 40px; font-size: 15px; padding: 0 16px 3px; box-shadow: inset 0 -3px 0 var(--ledge); clip-path: var(--cut-xs); }
+.btn.sec { background: var(--surface2); color: var(--text); clip-path: none; border-radius: 10px; padding-bottom: 0; box-shadow: inset 0 0 0 1px var(--edge); font-weight: 700; }
+.btn.quiet { background: none; color: var(--text2); box-shadow: none; clip-path: none; padding-bottom: 0; font-weight: 700; }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 13px; background: var(--surface2); color: var(--text); font: 700 12px/1 "Archivo"; white-space: nowrap; }
+.pill.gold { background: none; box-shadow: inset 0 0 0 1px var(--ledge); color: var(--gold); }
+.tile { border-radius: 14px; overflow: hidden; background: #000; box-shadow: 0 0 0 2px var(--c, var(--edge)); position: relative; aspect-ratio: 1; }
+.tile img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.av { width: 40px; height: 40px; border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 2px var(--c, var(--edge)); background: var(--surface2); flex: none; }
+.av img { width: 100%; height: 100%; display: block; }
+.star { width: 16px; height: 16px; background: var(--gold); clip-path: polygon(50% 0, 62% 35%, 100% 38%, 70% 60%, 80% 100%, 50% 76%, 20% 100%, 30% 60%, 0 38%, 38% 35%); display: inline-block; flex: none; }
+.star.off { background: #2A3A6B; }
+.crown { width: 20px; height: 15px; background: var(--gold); clip-path: polygon(0 100%, 0 20%, 27% 55%, 50% 0, 73% 55%, 100% 20%, 100% 100%); display: inline-block; flex: none; }
+.crown.off { background: #2A3A6B; }
+/* The level mark: a colour AND a count of bars, never colour alone. */
+.lvl { display: inline-flex; align-items: flex-end; gap: 2px; height: 14px; flex: none; }
+.lvl i { width: 4px; border-radius: 1px; background: #2A3A6B; }
+.lvl i:nth-child(1){height:5px}.lvl i:nth-child(2){height:8px}.lvl i:nth-child(3){height:11px}.lvl i:nth-child(4){height:14px}
+.lvl.l1 i:nth-child(-n+1), .lvl.l2 i:nth-child(-n+2), .lvl.l3 i:nth-child(-n+3), .lvl.l4 i:nth-child(-n+4) { background: var(--lc); }
+.l1{--lc:var(--easy)} .l2{--lc:var(--normal)} .l3{--lc:var(--hard)} .l4{--lc:var(--expert)}
+.lchip { display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 10px 0 8px; border-radius: 6px; background: color-mix(in srgb, var(--lc) 16%, var(--surface)); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--lc) 55%, transparent); color: var(--text); font: 800 12px/1 "Archivo"; letter-spacing: .06em; text-transform: uppercase; }
+.tabs { position: absolute; left: 0; right: 0; bottom: 0; height: 78px; padding: 8px 6px 22px; display: flex; background: #070B18; box-shadow: inset 0 1px 0 var(--surface2); }
+.tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; font: 700 11px/1 "Archivo"; color: var(--text3); }
+.tab img { width: 30px; height: 30px; filter: grayscale(1) brightness(.75); }
+.tab.on { color: var(--text); } .tab.on img { filter: none; }
+.back { width: 40px; height: 40px; border-radius: 10px; background: var(--surface2); display: flex; align-items: center; justify-content: center; font: 800 20px/1 "Archivo"; color: var(--text); flex: none; }
+.line { height: 1px; background: var(--line); }
+.plate { display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 12px 0 6px; background: linear-gradient(90deg, color-mix(in srgb, var(--c, var(--edge)) 26%, var(--surface)) 0%, var(--surface) 62%); box-shadow: inset 0 0 0 1px var(--line); border-radius: 10px; font-weight: 700; }
+.plate b { font-weight: 800; } .plate .n { font: 800 17px/1 "Archivo"; font-variant-numeric: tabular-nums; }

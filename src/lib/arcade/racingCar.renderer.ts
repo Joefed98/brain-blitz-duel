@@ -28,11 +28,19 @@ export const RACING_CAR_FRAMES: readonly FrameBox[] = DATA.frames;
 export const RACING_CAR_SPRITE_W = DATA.w;
 export const RACING_CAR_SPRITE_H = DATA.h;
 
-/** The frame nearest a yaw in degrees (positive = turning right). */
+/**
+ * The frame nearest a yaw in degrees (positive = turning right, the sim's steer and the painted car's turn).
+ *
+ * The rendered frames turn the other way (20 Nov 2026, the polish plan's C4.7): render_sports.py turns the car
+ * about +z with the camera behind it, so the frame labelled +5° shows the nose swung to the screen's LEFT. Until
+ * this fix the game fed its right-steer yaw straight to the table and the car turned the wrong way round every bend.
+ * The table keeps the frames' own labels; this lookup mirrors the asked yaw onto them.
+ */
 export function racingCarFrameFor(yawDeg: number): number {
+  const frameYaw = -yawDeg;
   let best = 0;
   for (let i = 1; i < RACING_CAR_FRAMES.length; i++)
-    if (Math.abs(RACING_CAR_FRAMES[i]!.yaw - yawDeg) < Math.abs(RACING_CAR_FRAMES[best]!.yaw - yawDeg)) best = i;
+    if (Math.abs(RACING_CAR_FRAMES[i]!.yaw - frameYaw) < Math.abs(RACING_CAR_FRAMES[best]!.yaw - frameYaw)) best = i;
   return best;
 }
 

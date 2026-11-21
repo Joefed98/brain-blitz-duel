@@ -1,0 +1,56 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="kit.css">
+<style>
+body { background: var(--bg); } .board { width: 1440px; padding: 36px 40px 40px; }
+.grid { display: grid; grid-template-columns: 1.1fr 1fr 1fr; gap: 18px; margin-top: 22px; }
+.box { padding: 18px 20px 20px; border-radius: 16px; background: var(--raised); box-shadow: inset 0 0 0 1px var(--line); } .box > .cap { color: var(--gold); margin-bottom: 14px; display:block; }
+.sw { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; } .sw div { height: 54px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.08); display:flex; align-items:flex-end; padding: 5px 6px; font: 700 9.5px/1 "Archivo"; color: var(--text2); }
+.cats { display: flex; flex-wrap: wrap; gap: 6px; } .cats span { height: 26px; padding: 0 10px; border-radius: 6px; font: 800 11px/26px "Archivo"; letter-spacing:.05em; text-transform: uppercase; color: #06080F; background: var(--k); }
+.t1 { font: 900 46px/1 "Archivo"; font-stretch: 112%; } .t2 { font: 800 30px/1.05 "Archivo"; } .t3 { font: 800 20px/1.1 "Archivo"; } .t5 { font: 600 15px/1.35 "Archivo"; color: var(--text2); }
+.spec { font: 600 11px/1 "Archivo"; color: var(--text3); margin: 5px 0 14px; }
+.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+.stage { height: 150px; border-radius: 12px; overflow: hidden; position: relative; box-shadow: inset 0 0 0 1px var(--line); }
+.stage .h { height: 30px; background: #070B18; display:flex; align-items:center; padding: 0 8px; gap: 6px; font: 800 11px/1 Archivo; } .stage .tb { height: 3px; background: #0E1630; } .stage .tb i { display:block; height:100%; width: 60%; background: var(--metal); }
+.stage .s { position:absolute; left:0; right:0; top:33px; bottom:0; background: radial-gradient(90% 70% at 50% 30%, color-mix(in srgb, var(--k) 62%, #0B1020) 0%, color-mix(in srgb, var(--k) 26%, #070A14) 70%, #05070D 100%); display:flex; align-items:center; justify-content:center; }
+.stage .bd { width: 78px; height: 78px; border-radius: 8px; background: #F3F6FB; box-shadow: 0 8px 18px rgba(0,0,0,.45); display:grid; grid-template-columns: repeat(3,1fr); gap: 3px; padding: 5px; } .stage .bd i { border-radius: 4px; background: color-mix(in srgb, var(--k) 70%, #fff); } .stage .bd i:nth-child(2n) { background: #DCE4F2; }
+.stage.retro .s { background: #050818; } .stage.retro .bd { background: #050818; box-shadow: 0 0 0 1.5px var(--retro), 0 0 14px color-mix(in srgb, var(--retro) 60%, transparent); } .stage.retro .bd i { background: var(--retro); } .stage.retro .bd i:nth-child(2n) { background: #FF4D6A; } .stage.retro .bd i:nth-child(3n) { background: #FFC81E; }
+ul.rules { list-style: none; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px 28px; } ul.rules li { font: 600 14.5px/1.35 "Archivo"; color: var(--text2); padding-left: 16px; position: relative; } ul.rules li::before { content:""; position:absolute; left:0; top:6px; width:7px; height:7px; background: var(--gold); clip-path: polygon(50% 0,100% 50%,50% 100%,0 50%); } ul.rules b { color: var(--text); font-weight: 800; }
+</style></head><body><div class="board">
+  <div class="row"><div class="grow"><div class="cap" style="color:var(--gold)">Joulz · design direction · Nov 2026</div><div class="t1 mt10">The look on one board</div></div><div class="t5" style="max-width:420px;text-align:right">Today's esports style, refined: deep navy, champagne gold, cut corners, one gold action a screen. Colour belongs to the games, the categories and the levels.</div></div>
+  <div class="grid">
+    <div class="box"><span class="cap">Colour · the frame</span>
+      <div class="sw" id="navy"></div>
+      <div class="row g8 mt10"><div style="flex:2;height:44px;background:var(--metal);clip-path:var(--cut-xs);display:flex;align-items:center;padding:0 12px;font:800 12px/1 Archivo;color:#06080F">Gold metal · actions only</div><div style="flex:1;height:44px;border-radius:8px;background:var(--gold);display:flex;align-items:center;padding:0 10px;font:800 11px/1 Archivo;color:#06080F">#E2C07A</div><div style="flex:1;height:44px;border-radius:8px;background:var(--win);display:flex;align-items:center;padding:0 10px;font:800 11px/1 Archivo;color:#06080F">Win</div><div style="flex:1;height:44px;border-radius:8px;background:var(--loss);display:flex;align-items:center;padding:0 10px;font:800 11px/1 Archivo;color:#06080F">Loss</div></div>
+      <span class="cap" style="display:block;margin:18px 0 10px;color:var(--gold)">Colour · the games' eleven families</span><div class="cats" id="cats"></div>
+      <span class="cap" style="display:block;margin:18px 0 10px;color:var(--gold)">Colour and bars · the four levels</span>
+      <div class="row g8" id="lv"></div></div>
+    <div class="box"><span class="cap">Type · Archivo only</span>
+      <div class="t1">1,278</div><div class="spec">Numbers · 900, wide, tabular · 44–92 px</div>
+      <div class="t2">Find a match</div><div class="spec">Page hero · 800 · 30 px</div>
+      <div class="t3">Daily Puzzle</div><div class="spec">Card title · 800 · 20 px</div>
+      <div class="cap">Strongest categories</div><div class="spec">Section label · 700 caps · 11 px · tracked</div>
+      <div class="t5">Sort every flask to one colour.</div><div class="spec" style="margin-bottom:0">Body · 600 · 15 px · one line where it can be</div></div>
+    <div class="box"><span class="cap">Shape · buttons and marks</span>
+      <div class="row g10"><div class="btn" style="flex:1.4">Play</div><div class="btn sec" style="flex:1;height:56px">Create</div><div class="btn quiet">Skip</div></div>
+      <div class="row g8 mt14"><div class="btn sm">Claim</div><div class="btn sec sm">How to play</div><span class="pill">90 s</span><span class="pill gold"><span class="star" style="width:12px;height:12px"></span> Best 182</span></div>
+      <div class="cut mt14" style="padding:14px 16px"><div class="cap">Cut corner · heroes only</div><div class="t3 mt6">Quick match</div></div>
+      <div class="row g10 mt14"><span class="star"></span><span class="star"></span><span class="star off"></span><span class="crown"></span><span class="t5" style="font-size:13px">A star at 175 on Easy, Normal, Hard · a crown on Expert</span></div>
+      <div class="row mt14" style="height:62px;background:#070B18;border-radius:12px;box-shadow:inset 0 0 0 1px var(--surface2);padding:8px 4px 0"><div class="tab on"><img src="pub/nav/home-3x.webp">Home</div><div class="tab"><img src="pub/nav/games-3x.webp">Games</div><div class="tab"><img src="pub/nav/tournaments-3x.webp">Compete</div><div class="tab"><img src="pub/nav/shop-3x.webp">Shop</div><div class="tab"><img src="pub/nav/profile-3x.webp">You</div></div></div>
+    <div class="box"><span class="cap">Game tiles · black, ringed in the family colour</span><div class="tiles" id="tiles"></div>
+      <span class="cap" style="display:block;margin:18px 0 10px;color:var(--gold)">Players · one nameplate everywhere</span><div class="col g6" id="plates"></div></div>
+    <div class="box" style="grid-column: span 2"><span class="cap">Games · a bright world inside the dark frame (Spotlight; Retro stays neon)</span>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px" id="stages"></div>
+      <div class="row g16 mt18"><img src="art/svg/medal-gold.svg" height="54"><img src="art/svg/medal-silver.svg" height="54"><img src="art/svg/medal-bronze.svg" height="54"><img src="art/svg/emblem-volt.svg" height="60"><img src="art/svg/emblem-storm.svg" height="60"><img src="art/svg/trophy-gold.svg" height="60"><div class="t5" style="font-size:13px;max-width:330px">Reward art stays as approved: medals, tier emblems, trophies. It is the only metal on a page besides the one gold button.</div></div></div>
+  </div>
+  <div class="box" style="margin-top:18px"><span class="cap">Six rules every screen follows</span><ul class="rules">
+    <li><b>One gold button a screen.</b> Gold means "this plays". Everything else is navy.</li><li><b>One hero a page.</b> The cut-corner card. Everything under it is flat panels and rows.</li><li><b>Colour means something.</b> A family, a level, a win or a loss. Never decoration.</li>
+    <li><b>Numbers are the display type.</b> Ratings, scores and coins in the wide 900.</li><li><b>Fewer words.</b> A title, one line, a number. Detail sits behind a tap.</li><li><b>Dark frame, bright game.</b> No glow on pages; the light is inside the play area.</li></ul></div>
+</div>
+<script>
+document.getElementById("navy").innerHTML = [["Page","#04060C"],["Raised","#090D1A"],["Surface","#101A33"],["Surface 2","#1C2A52"],["Surface 3","#26376B"],["Line","#223058"]].map(([n,h]) => `<div style="background:${h}">${n}<br>${h}</div>`).join("");
+const C = [["Word","word"],["Number","number"],["Speed","speed"],["Attention","attention"],["Pattern","pattern"],["Logic","logic"],["Retro","retro"],["Sports","sports"],["Cards","cards"],["Action","action"],["Strategy","strategy"]];
+document.getElementById("cats").innerHTML = C.map(([n,k]) => `<span style="--k:var(--${k})">${n}</span>`).join("");
+document.getElementById("lv").innerHTML = ["Easy","Normal","Hard","Expert"].map((n,i) => `<span class="lchip l${i+1}" style="height:32px;flex:1;justify-content:center"><span class="lvl l${i+1}"><i></i><i></i><i></i><i></i></span>${n}</span>`).join("");
+document.getElementById("tiles").innerHTML = [["matchup","strategy"],["breaker","retro"],["tubes","logic"],["freekick","sports"]].map(([t,k]) => `<div class="tile" style="--c:var(--${k})"><img src="pub/tiles/${t}.webp"></div>`).join("");
+document.getElementById("plates").innerHTML = [["NovaStrike","gemstone","#36E2F5","2,046"],["TheInventor","captain-joulz","#E2C07A","1,278"],["Priya_K","pinball","#3DDC84","1,951"]].map(([n,a,c,r]) => `<div class="plate" style="--c:${c}"><div class="av" style="--c:${c}"><img src="art/avatars/svg/${a}.svg"></div><b class="grow">${n}</b><span class="n">${r}</span></div>`).join("");
+document.getElementById("stages").innerHTML = [["Box Six","logic",""],["Forage","word",""],["Top Bins","sports",""],["Free Cell","cards",""],["Breaker","retro","retro"]].map(([n,k,x]) => `<div class="stage ${x}" style="--k:var(--${k})"><div class="h"><span class="grow">${n}</span><span class="lvl l2" style="height:10px"><i></i><i></i><i></i><i></i></span></div><div class="tb"><i></i></div><div class="s"><div class="bd"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div>`).join("");
+</script></body></html>
