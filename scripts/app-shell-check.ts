@@ -84,7 +84,7 @@ async function startServer(): Promise<{ origin: string; proc: ChildProcess | nul
   if (URL_ARG) return { origin: URL_ARG.replace(/\/$/, ""), proc: null };
   // A 4 GB heap for this check's dev server (4 Nov 2026, #260; 6 GB from #258 until then): the first practice deal
   // compiles about 40 server bank modules at once (dev only), a brief spike past Node's ~2 GB default heap. With the
-  // offline pack top-up off in checks (src/lib/offline/packs.ts) the server peaks at ~3.9 GB here; runners have ~7.7 GB.
+  // offline pack top-up off in checks (src/lib/offline/packs.ts) the server peaks at ~3.9 GB here; runners have 16 GB.
   const proc = spawn("npx", ["vite", "dev", "--port", String(PORT), "--host", "127.0.0.1", "--strictPort"], {
     stdio: "ignore",
     detached: true,
