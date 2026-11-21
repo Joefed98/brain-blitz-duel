@@ -64,12 +64,12 @@
 .wr-key-swatch { display: inline-block; width: 14px; height: 14px; border-radius: 3px; }
 
 /* Strikeout: a word never found reads in red on its dimmed tiles. */
-[data-word-reveal="strikeout"][data-wr-version] [data-wa-tone="dim"][data-wa][data-wa][data-wa] { color: color-mix(in srgb, var(--jz-red) 80%, var(--jz-navy)) !important; }
+[data-word-reveal="strikeout"][data-wr-version] [data-wa-tone="dim"][data-wa][data-wa][data-wa] { color: color-mix(in srgb, var(--jz-red) 75%, white) !important; }
 
 /* Roundabout: found words gold, missed letters red on their dimmed tiles. */
 [data-word-reveal="letterwheel"][data-wr-version] [data-lw-cell][data-wa-tone="black"] { --wa-img: url(/word-art/tile-gold.webp); }
 [data-word-reveal="letterwheel"][data-wr-version] [data-lw-cell][data-wa-tone="black"][data-wa][data-wa][data-wa] { color: var(--jz-ink-gold) !important; }
-[data-word-reveal="letterwheel"][data-wr-version] [data-lw-cell][data-wa-tone="dim"][data-wa][data-wa][data-wa] { color: color-mix(in srgb, var(--jz-red) 80%, var(--jz-navy)) !important; }
+[data-word-reveal="letterwheel"][data-wr-version] [data-lw-cell][data-wa-tone="dim"][data-wa][data-wa][data-wa] { color: color-mix(in srgb, var(--jz-red) 75%, white) !important; }
 /* The jar's count pill on the reveal's gradient. */
 [data-word-reveal="letterwheel"][data-wr-version] .lw-jar-count { color: var(--jz-text); font: 800 15px/1 var(--jz-font); }
 
