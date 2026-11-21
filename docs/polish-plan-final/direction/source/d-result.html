@@ -1,0 +1,46 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="game.css"><script>const Q=new URLSearchParams(location.search);document.documentElement.dataset.dir = Q.get("dir") || "a";</script>
+<style>
+.wrap { display:flex; height:100%; position:relative; }
+.main { flex:1; padding: 26px 30px; min-width:0; }
+.cols { display:grid; gap:22px; margin-top:18px; }
+.rw { height:60px; border-radius:18px; background: var(--card); box-shadow: 0 4px 0 var(--ledge); display:flex; align-items:center; gap:12px; padding: 0 16px; font: 900 17px "Archivo"; }
+.rw img { width:36px; height:36px; } .rw span { margin-left:auto; color: var(--text2); font-size:14px; font-weight:800; }
+.bar { height:12px; border-radius:6px; background: var(--chip); margin-top:8px; overflow:hidden; }
+.bar i { display:block; height:100%; width:62%; border-radius:6px; background: linear-gradient(180deg,#FFE570,#FFC81E); }
+html:is([data-dir="e"],[data-dir="f"]) .bar i { background:#E2C07A; }
+.seg { display:inline-flex; gap:6px; background: var(--chip); border-radius:18px; padding:5px; }
+.seg div { height:44px; padding:0 22px; border-radius:14px; display:flex; align-items:center; font: 900 16px "Archivo"; color: var(--text2); }
+.seg div.on { background:#fff; color: var(--ink); box-shadow: 0 4px 0 var(--white-ledge); }
+
+body { background: radial-gradient(90% 60% at 50% 0%, #5B7BFF 0%, #2B40D2 40%, #141B63 100%); }
+.rail.mini { width:76px; padding:18px 10px; align-items:center; } .rail.mini .item { width:52px; padding:0; justify-content:center; }
+.main { display:flex; flex-direction:column; align-items:center; }
+.win { text-align:center; padding-top: 30px; position:relative; width:100%; }
+.win .rays { inset:-160px 10% auto 10%; height: 620px; opacity:.2; }
+.win h1 { font: 900 84px/1 "Archivo"; font-stretch:120%; color:#FFC81E; text-shadow: 0 6px 0 #A86400; position:relative; }
+.sc { font: 900 46px "Archivo"; color:#fff; margin-top:6px; position:relative; } .sc small { font-size:18px; font-weight:800; color:var(--text2); display:block; }
+.cols { grid-template-columns: 420px 520px; margin-top:26px; position:relative; }
+.rate { padding: 18px 20px; } .rate .n { font: 900 44px "Archivo"; }
+.rate .d { font: 900 24px "Archivo"; color:#06310F; background:#3EDB72; height:42px; padding:0 14px; border-radius:12px; display:flex; align-items:center; box-shadow:0 4px 0 #1E9A48; }
+.joules { display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 12px; border-radius:12px; background:#C6FF3D; color:#1E3300; font: 900 15px "Archivo"; }
+.gm { display:flex; flex-direction:column; gap:10px; }
+.gr { height:66px; border-radius:18px; background: var(--card); box-shadow: 0 4px 0 var(--ledge); display:flex; align-items:center; gap:14px; padding: 0 14px; }
+.gr img { width:46px; height:46px; border-radius:12px; } .gr b { font: 900 18px "Archivo"; } .gr .s { margin-left:auto; font: 900 22px "Archivo"; } .gr .s small { color: var(--text3); font-size:15px; }
+.tick { width:28px; height:28px; border-radius:50%; background:#3EDB72; color:#06310F; display:flex; align-items:center; justify-content:center; font: 900 15px "Archivo"; } .tick.no { background:#FF5470; color:#fff; }
+.act { display:flex; gap:16px; margin-top:30px; position:relative; }
+.act .btn.big { width: 320px; } .act .btn.sec { width: 180px; height:68px; font-size:20px; }
+</style></head><body><div class="wrap">
+<div class="rail mini"><svg width="24" height="31" viewBox="0 0 26 34" style="margin-bottom:14px"><path fill="var(--act)" d="M19 .5 7 18.5h6.5L14.2 13.5zM13.5 18.5 8 33.5 21 13.5h-6.8z"/></svg>
+  <div class="item"><img src="pub/nav/home-3x.webp"></div><div class="item"><img src="pub/nav/games-3x.webp"></div><div class="item on"><img src="pub/nav/tournaments-3x.webp"></div><div class="item"><img src="pub/nav/shop-3x.webp"></div></div>
+<div class="main">
+  <div class="win"><div class="rays"></div><h1>You win</h1><div class="sc">2 – 1<small>v Sam_Speedrunner1</small></div></div>
+  <div class="cols">
+    <div class="card rate"><div class="row gap10"><div class="grow"><div class="cap">Joulz Rating</div><div class="n">1,285</div></div><div class="d">▲ +7</div></div><div class="bar"><i></i></div><div class="row" style="justify-content:space-between;margin-top:10px"><span class="cap">Volt II · 115 to Volt I</span><span class="joules">⚡ +120 Joules</span></div></div>
+    <div class="gm">
+      <div class="gr"><img src="pub/tiles/wordsearch.webp"><b>Lookout</b><span class="s">168 <small>v 151</small></span><span class="tick">✓</span></div>
+      <div class="gr"><img src="pub/tiles/racing.webp"><b>Apex</b><span class="s">142 <small>v 171</small></span><span class="tick no">✕</span></div>
+      <div class="gr"><img src="pub/tiles/flow.webp"><b>Chroma Lines</b><span class="s">188 <small>v 176</small></span><span class="tick">✓</span></div>
+    </div>
+  </div>
+  <div class="act"><div class="btn big">Next match</div><div class="btn sec">Rematch</div><div class="btn sec">Home</div></div>
+</div></div></body></html>

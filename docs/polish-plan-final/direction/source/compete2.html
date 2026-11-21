@@ -1,0 +1,39 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="alt.css"><script>const Q=new URLSearchParams(location.search);document.documentElement.dataset.dir = Q.get("dir") || "e";</script>
+<style>
+.livec { height: 168px; padding:16px; background: linear-gradient(120deg, color-mix(in srgb, #FF3B5C 30%, var(--card2)), var(--card) 70%); box-shadow: inset 0 2px 0 #FF3B5C; position:relative; overflow:hidden; }
+.livec img { position:absolute; right:10px; top:14px; width:104px; }
+.livec h2 { font-size:28px; margin-top:10px; } .livec .btn { position:absolute; left:16px; bottom:16px; width:150px; }
+.livec .clock { position:absolute; right:16px; bottom:18px; text-align:right; }
+.fx { display:flex; align-items:center; gap:12px; height:62px; padding:0 14px; }
+.fx + .fx { box-shadow: inset 0 1px 0 var(--line); }
+.fx time { width:54px; font: 900 16px "Archivo"; font-variant-numeric:tabular-nums; } .fx b { font: 800 16px "Archivo"; display:block; } .fx small { color: var(--text3); font: 700 13px "Archivo"; }
+.pod { display:grid; grid-template-columns:1fr 1.1fr 1fr; gap:8px; align-items:end; }
+.pod .p { padding:10px 6px; text-align:center; } .pod .av { width:52px; height:52px; margin:0 auto 6px; } .pod b { font: 800 13px "Archivo"; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.pod .p1 { padding-bottom:22px; box-shadow: inset 0 0 0 1px var(--line), inset 0 3px 0 #E2C07A; }
+.rs { margin-top:14px; height:66px; display:flex; align-items:center; gap:12px; padding:0 12px; }
+</style></head><body><div class="page">
+  <div class="top"><h1 class="grow" style="font-size:32px">Compete</h1><span class="mini">Leaderboards</span></div>
+  <div class="scroll">
+    <div class="livec cut"><span class="live">Live now</span><h2>Arena</h2><div class="sub">64 players · Mixed</div><img src="pub/tournaments-art/arena-3x.webp"><div class="btn">Join</div><div class="clock"><div class="num" style="font-size:26px">18:42</div><div class="lab">left</div></div></div>
+    <div class="sec-head"><h2>Today</h2><a>This week ›</a></div>
+    <div class="panel">
+      <div class="fx"><time class="acc2">13:00</time><div class="grow"><b>Arena</b><small>Finished · you came 12th</small></div><span class="mini">Result</span></div>
+      <div class="fx"><time>20:00</time><div class="grow"><b>Arena</b><small>45 minutes · free entry</small></div><span class="mini">Remind me</span></div>
+      <div class="fx"><time>23:59</time><div class="grow"><b>Score Attack</b><small>5 games of Word · ends tonight</small></div><span class="mini">Enter</span></div>
+    </div>
+    <div class="sec-head"><h2>Top of the ladder</h2><a>All ›</a></div>
+    <div class="pod">
+      <div class="panel p"><div class="av" style="background:#36E2F5"><img src="art/avatars/svg/orbit.svg"></div><b>Sam_Speed…</b><span class="lab">2nd · 1,988</span></div>
+      <div class="panel p p1"><div class="av" style="background:#B26BFF;width:62px;height:62px"><img src="art/avatars/svg/pinball.svg"></div><b>NovaStrike</b><span class="lab acc">1st · 2,046</span></div>
+      <div class="panel p"><div class="av" style="background:#3DDC84"><img src="art/avatars/svg/gemstone.svg"></div><b>Priya_K</b><span class="lab">3rd · 1,951</span></div>
+    </div>
+    <div class="panel rs edge"><img src="pub/home/rated-3x.webp" style="width:40px"><div class="grow"><b style="font:800 16px Archivo;display:block">Rated · Volt II 1,278</b><span class="lab">214th this season</span></div><div class="btn sm">Play</div></div>
+  </div>
+  <div class="tabs">
+    <div class="tab "><img src="pub/nav/home-3x.webp">Home</div>
+    <div class="tab "><img src="pub/nav/games-3x.webp">Games</div>
+    <div class="tab on"><img src="pub/nav/tournaments-3x.webp">Compete</div>
+    <div class="tab "><img src="pub/nav/shop-3x.webp">Shop</div>
+    <div class="tab "><img src="pub/nav/profile-3x.webp">You</div>
+  </div>
+</div></body></html>

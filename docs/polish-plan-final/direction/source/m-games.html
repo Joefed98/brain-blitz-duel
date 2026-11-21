@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="kit.css">
+<style>
+.sw { display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:4px; border-radius:12px; background:#070B18; box-shadow:inset 0 0 0 1px var(--line); width:168px; } .sw div { height:32px; border-radius:9px; display:flex; align-items:center; justify-content:center; font:800 13px/1 Archivo; color:var(--text3); } .sw .on { background:var(--surface2); box-shadow:inset 0 0 0 1px var(--edge); color:var(--text); }
+.gotd { padding:12px 14px; display:flex; align-items:center; gap:12px; } .gotd .tile { width:74px; flex:none; border-radius:14px; }
+.sh { display:flex; align-items:center; margin-top:16px; } .sh b { font:800 16px/1 Archivo; } .sh i { width:8px; height:8px; border-radius:2px; background:var(--k); margin-right:8px; } .sh span { margin-left:auto; font:700 12.5px/1 Archivo; color:var(--text3); }
+.shelf { display:flex; gap:10px; margin:10px -16px 0; padding:0 16px; overflow:hidden; } .shelf .t { width:124px; flex:none; } .t .tile { border-radius:16px; } .t b { display:block; font:800 13px/1.1 Archivo; margin-top:7px; } .t small { display:flex; gap:3px; margin-top:5px; }
+.grid3 { display:grid; grid-template-columns:repeat(3,1fr); gap:10px 8px; margin-top:10px; } .grid3 .tile { border-radius:14px; } .grid3 b { display:block; font:800 12px/1.1 Archivo; margin-top:6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+</style></head><body><div class="page">
+  <div class="row"><h1 class="grow">Games</h1><span class="pill gold"><span class="star" style="width:12px;height:12px"></span> 37 / 249</span><div class="btn sec sm" style="padding:0 12px;margin-left:8px">⌕</div></div>
+  <div class="row mt14"><div class="sw" id="sw"></div><span class="sub" style="margin-left:auto;font-size:13px" id="cnt"></span></div>
+  <div id="out"></div>
+  <div class="tabs"><div class="tab"><img src="pub/nav/home-3x.webp">Home</div><div class="tab on"><img src="pub/nav/games-3x.webp">Games</div><div class="tab"><img src="pub/nav/tournaments-3x.webp">Compete</div><div class="tab"><img src="pub/nav/shop-3x.webp">Shop</div><div class="tab"><img src="pub/nav/profile-3x.webp">You</div></div>
+</div>
+<script>
+const all=new URLSearchParams(location.search).get("view")==="all";
+document.getElementById("sw").innerHTML='<div class="'+(all?'':'on')+'">Shelves</div><div class="'+(all?'on':'')+'">All</div>';
+document.getElementById("cnt").textContent=all?"83 games":"11 families";
+const F=[["Word","word",[["wordsmith","Nucleus",2],["tilegrid","Interlock",1],["wordslide","Slider",0],["wordhunt","Forage",1],["wordsearch","Lookout",0],["letterwheel","Roundabout",0]],9],["Number","number",[["balance","Counterweight",1],["target","Exact",2],["equation","Operator",0],["numpyramid","Integer Pyramid",0],["measure","Brimful",1],["checkout","Checkout",0]],8],["Retro","retro",[["breaker","Breaker",2],["hover","Hover",1],["rally","Rally",0],["beat","Tempo",0],["snake","Meteor",1],["burst","Fission",0]],10]];
+const stars=(n)=>'<small>'+[0,1,2].map((i)=>'<span class="star'+(i<n?'':' off')+'" style="width:11px;height:11px"></span>').join("")+'</small>';
+let h="";
+if(!all){ h+='<div class="cut gotd mt14"><div class="tile" style="--c:var(--logic)"><img src="pub/tiles/tubes.webp"></div><div class="grow"><div class="cap" style="color:var(--gold)">Game of the day</div><div style="font:800 20px/1 Archivo;margin-top:6px">Polypotions</div><div class="sub mt6" style="font-size:12.5px">Sort every flask</div></div><div class="btn sm">Play</div></div>';
+  for(const [n,k,g,c] of F) h+='<div class="sh"><i style="--k:var(--'+k+')"></i><b>'+n+'</b><span>All '+c+' ›</span></div><div class="shelf">'+g.slice(0,4).map(([id,nm,s])=>'<div class="t"><div class="tile" style="--c:var(--'+k+')"><img src="pub/tiles/'+id+'.webp"></div><b>'+nm+'</b>'+stars(s)+'</div>').join("")+'</div>'; }
+else { for(const [n,k,g,c] of F.slice(0,2)) h+='<div class="sh"><i style="--k:var(--'+k+')"></i><b>'+n+'</b><span>'+c+'</span></div><div class="grid3">'+g.map(([id,nm,s])=>'<div><div class="tile" style="--c:var(--'+k+')"><img src="pub/tiles/'+id+'.webp"></div><b>'+nm+'</b></div>').join("")+'</div>'; }
+document.getElementById("out").innerHTML=h;
+</script></body></html>

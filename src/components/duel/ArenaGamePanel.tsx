@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 import { useGuestLook } from "@/components/nav/AvatarButton";
 import { MyMiniCard } from "@/components/identity/MyMiniCard";
@@ -40,6 +41,7 @@ export function ArenaGamePanel({
   menu,
   inRoom,
   practice,
+  leftMount = null,
 }: {
   type: PuzzleType | undefined;
   arcade: boolean;
@@ -53,11 +55,16 @@ export function ArenaGamePanel({
   inRoom: boolean;
   /** Practice: the score block is the best already, and this game's challenges are shown. */
   practice: boolean;
+  /**
+   * The Cabinet's left panel (polish plan B1, 20 Nov 2026): on an arcade play screen outside a room the head, ping,
+   * timer and score go there and this panel keeps the status, goal, challenges and controls. Null: everything here.
+   */
+  leftMount?: HTMLElement | null;
 }) {
   const puzzleFrameGoal = useFrameGoal(arcade ? undefined : type);
   const goal = type ? (arcade ? puzzleGoal(type).replace(/\.$/, "") : puzzleFrameGoal) : null;
-  return (
-    <div data-arena-game data-in-room={inRoom ? "" : undefined} className="arena-game">
+  const stats = (
+    <>
       <div className="arena-game-head">
         <span className="game-frame-avatar">
           <FrameMe size={44} />
@@ -79,6 +86,11 @@ export function ArenaGamePanel({
         {score}
         {type ? <GameStars type={type} withBest={!practice} /> : null}
       </div>
+    </>
+  );
+  return (
+    <div data-arena-game data-in-room={inRoom ? "" : undefined} data-cabinet={leftMount ? "" : undefined} className="arena-game">
+      {leftMount ? createPortal(<div data-arena-game-left className="arena-game">{stats}</div>, leftMount) : stats}
       <BoardStatus />
       {goal ? (
         <p data-arena-goal className="arena-game-goal">

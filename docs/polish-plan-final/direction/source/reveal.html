@@ -1,0 +1,30 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="game.css"><script>document.documentElement.dataset.dir = new URLSearchParams(location.search).get("dir") || "a";</script>
+<style>
+body.game { --g0:#3FE0C5; --g1:#17958C; --g2:#122260; }
+.hd { text-align:center; padding-top: 18px; position:relative; }
+.hd .rays { inset:-140px -60px auto -60px; height:520px; opacity:.2; }
+.hd h2 { font-size:22px; color:#fff; position:relative; }
+.num { font: 900 96px/1 "Archivo"; font-stretch:116%; color:#fff; text-shadow: 0 6px 0 rgba(8,60,70,.55); position:relative; margin-top:4px; }
+.stars3 { display:flex; justify-content:center; gap:10px; margin-top:8px; position:relative; }
+.stars3 .star { width:46px; height:46px; filter: drop-shadow(0 4px 0 rgba(0,0,0,.25)); }
+.ribbon { display:inline-flex; align-items:center; height:36px; padding:0 16px; border-radius:12px; background:#FFC81E; color:#22164F; font: 900 16px "Archivo"; box-shadow:0 4px 0 #C98200; margin-top:12px; position:relative; }
+.parts { display:flex; gap:8px; padding: 14px 16px 0; }
+.parts div { flex:1; height:62px; border-radius:16px; background: rgba(8,10,50,.32); display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; }
+.parts b { font: 900 22px "Archivo"; } .parts span { font-size:12.5px; font-weight:800; opacity:.9; }
+.mini { margin: 14px auto 0; width: 214px; }
+.sd { display:grid; grid-template-columns: repeat(6,1fr); gap:2px; background:#0E4A52; border-radius:12px; padding:4px; }
+.sd div { aspect-ratio:1; background:#fff; display:flex; align-items:center; justify-content:center; font: 900 17px "Archivo"; color:#12235E; border-radius:4px; }
+.sd div.alt { background:#DDF6F0; } .sd div.me { color:#0FA08F; }
+.act { position:absolute; left:16px; right:16px; bottom:22px; display:flex; flex-direction:column; gap:14px; }
+</style></head><body class="game"><div class="page">
+  <div class="gtop"><div class="x">✕</div><div class="gname"><b>Box Six</b><span>Practice · Normal</span></div></div>
+  <div class="hd"><div class="rays"></div><h2>Solved in 41 s</h2><div class="num">182</div>
+    <div class="stars3"><i class="star"></i></div><div class="ribbon">New best · Star earned</div></div>
+  <div class="parts"><div><b>150</b><span>Solved</span></div><div><b>+22</b><span>Speed</span></div><div><b>+10</b><span>No mistakes</span></div></div>
+  <div class="mini"><div class="sd" id="g"></div></div>
+  <div class="act"><div class="btn big full">Play again</div><div class="row gap12"><div class="btn sec full" style="flex:1">Try Hard</div><div class="btn sec full" style="flex:1">Games</div></div></div>
+</div>
+<script>
+const G="352164416523631452245316564231123645"; const me=[0,2,7,9,12,14,15,18,19,20,22,24,26,27,28,30,31,33,35];
+document.getElementById("g").innerHTML=[...G].map((c,i)=>{const r=Math.floor(i/6),k=i%6;const alt=((Math.floor(r/2)+Math.floor(k/3))%2)==1;return '<div class="'+(alt?'alt ':'')+(me.includes(i)?'me':'')+'">'+c+'</div>'}).join("");
+</script></body></html>

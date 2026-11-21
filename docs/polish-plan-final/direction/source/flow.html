@@ -1,0 +1,31 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="kit.css">
+<style>
+body { background: var(--bg); } .board { width: 1440px; padding: 34px 40px 36px; }
+.t1 { font: 900 42px/1 "Archivo"; font-stretch: 112%; } .t5 { font: 600 15px/1.35 "Archivo"; color: var(--text2); }
+.j { margin-top: 20px; padding: 16px 18px 18px; border-radius: 16px; background: var(--raised); box-shadow: inset 0 0 0 1px var(--line); }
+.j h3 { font: 800 19px/1 "Archivo"; } .j h3 span { font: 700 12px/1 "Archivo"; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); margin-left: 12px; }
+.steps { display: flex; align-items: center; gap: 0; margin-top: 14px; }
+.s { width: 138px; flex: none; } .s img { width: 138px; height: 298px; object-fit: cover; object-position: top; border-radius: 12px; display: block; box-shadow: 0 0 0 1px var(--edge); } .s b { display: block; font: 800 12.5px/1.2 "Archivo"; margin-top: 8px; } .s small { display: block; font: 600 11px/1.25 "Archivo"; color: var(--text3); margin-top: 3px; min-height: 28px; }
+.a { width: 46px; flex: none; text-align: center; align-self: flex-start; margin-top: 130px; font: 900 20px/1 "Archivo"; color: var(--gold); } .a small { display: block; font: 700 9.5px/1.1 "Archivo"; letter-spacing: .06em; color: var(--text3); margin-top: 4px; text-transform: uppercase; }
+.grid { display: flex; gap: 11px; margin-top: 14px; }
+</style></head><body><div class="board">
+<div class="row"><div class="grow"><div class="cap" style="color:var(--gold)">Joulz · pages and flow · Nov 2026</div><div class="t1 mt10">The whole app on one sheet</div></div><div class="t5" style="max-width:430px;text-align:right">Four journeys and the pages around them, drawn in one kit. The number under each arrow is the taps it takes. A new phone's first tap is inside a game.</div></div>
+<div id="out"></div></div>
+<script>
+const P = (f) => `dirn/pages/${f}.webp`;
+const J = [
+ ["A new phone", "first tap is in a game", [["first1-e-phone","The bolt charges","No sign-up, no tour"],0,["first2-e-phone","Your first game","Ascend on Easy"],0,["first3-e-phone","A first win","A star in under a minute"],1,["home-e-phone","Home","One hero, one gold button"]]],
+ ["Play a game", "Home to playing in 2 taps", [["games-e-phone","Games","Shelves by family"],1,["levels1-e-phone","The game's page","The ladder of four levels"],1,["intro-e-phone","Intro","15 words; practice counts in 3-2-1"],0,["frame-spotlight-phone","In play","Name, level, score, timer"],0,["reveal-e-phone","Reveal","Score, star, three parts"],0,["levels3-e-phone","Next step up","After a star, the level above"]]],
+ ["A ranked match", "one tap from Home", [["home-e-phone","Home","Quick match"],1,["vs-e-phone","VS","Both cards, the stakes"],0,["frame-neon-phone","In play","Best of 3"],0,["result-e-phone","Result","Rating moves, a way home"],1,["compete1-e-phone","Compete","Rating, boards, events"],1,["leaderboard-e-phone","Leaderboard","Top three, then you"]]],
+ ["Friends' room", "join with a code in 1 tap", [["lobby-e-phone","Lobby","Code, players, Start"],1,["intro-e-phone","Round intro","Everyone taps Ready"],0,["frame-spotlight-phone","Rounds","The same game for all"],0,["podium-e-phone","Final","Podium, awards, Play again"],1,["friends-e-phone","Friends","Join, challenge, invite"]]],
+];
+let h = "";
+for (const [t, sub, steps] of J) {
+  h += `<div class="j"><h3>${t}<span>${sub}</span></h3><div class="steps">`;
+  for (const s of steps) h += typeof s === "number" ? `<div class="a">→<small>${s === 0 ? "no tap" : s + " tap"}</small></div>` : `<div class="s"><img src="${P(s[0])}"><b>${s[1]}</b><small>${s[2]}</small></div>`;
+  h += `</div></div>`;
+}
+const R = [["daily-e-phone","Daily","Today's six, your week"],["event-e-phone","Tournament","Points and place first"],["shop-e-phone","Shop","The bundle as hero"],["pass-e-phone","Pass","Level, track, this week"],["profile2-e-phone","You","The card is the page"],["customise-e-phone","Customise","Card, avatar, badges"],["settings-e-phone","Settings","Grouped rows"],["compete3-e-phone","Season","The tier ladder"],["home2-e-phone","Home, match day","When ranked is open to all"]];
+h += `<div class="j"><h3>The pages around them<span>all in the same kit</span></h3><div class="grid">` + R.map((s) => `<div class="s"><img src="${P(s[0])}"><b>${s[1]}</b><small>${s[2]}</small></div>`).join("") + `</div></div>`;
+document.getElementById("out").innerHTML = h;
+</script></body></html>

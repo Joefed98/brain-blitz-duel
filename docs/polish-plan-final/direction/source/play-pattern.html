@@ -1,0 +1,26 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="game.css"><script>const Q0=new URLSearchParams(location.search);document.documentElement.dataset.dir = Q0.get("dir") || "a"; if(Q0.get("real")) document.documentElement.dataset.real="1";</script>
+<style>
+body.game { --d0:#4A2A9E; --d1:#170C3D; --g0:#C084FF; --g1:#6E3BDB; --g2:#17155F; --gink:#3A1F9E; }
+.bd { position:relative; aspect-ratio:1; border-radius:18px; background:#241A6B; overflow:hidden; }
+.bd svg { position:absolute; inset:0; width:100%; height:100%; }
+</style></head><body class="game"><div class="page">
+  <div class="gtop"><div class="x">✕</div><div class="gname"><b>Chroma Lines</b><span>Practice · Normal</span></div><div class="score"><small>Pairs</small>3 / 6</div></div>
+  <div class="timer"><i style="width:80%"></i></div>
+  <div class="goal">Join every pair. Fill every square.</div>
+  <div class="chips"><span class="chip"><b>21</b> of 36 filled</span></div>
+  <div class="stage">
+    <div class="table" style="--table:rgba(255,255,255,.18)"><div class="bd"><svg viewBox="0 0 600 600" id="s"></svg></div></div>
+    <div class="dock"><div class="key dim">↶ Undo</div><div class="key dim">⟲ Reset</div></div>
+  </div>
+</div>
+<script>
+const s=document.getElementById("s"); let h="";
+for(let i=1;i<6;i++){h+='<path d="M'+i*100+' 0V600M0 '+i*100+'H600" stroke="#3A2C92" stroke-width="3"/>'}
+const C={r:"#FF4D6A",y:"#FFC81E",g:"#3EDB72",b:"#4DA3FF",p:"#FF6BD6",o:"#FF8A3D"};
+const c=(x,y)=>[x*100+50,y*100+50];
+const line=(col,pts)=>{const d=pts.map((p,i)=>(i?'L':'M')+c(...p).join(' ')).join('');return '<path d="'+d+'" fill="none" stroke="'+C[col]+'" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/><path d="'+d+'" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" transform="translate(-6,-8)"/>'};
+const dot=(col,p)=>{const [x,y]=c(...p);return '<circle cx="'+x+'" cy="'+(y+5)+'" r="36" fill="rgba(0,0,0,.35)"/><circle cx="'+x+'" cy="'+y+'" r="36" fill="'+C[col]+'"/><circle cx="'+(x-10)+'" cy="'+(y-12)+'" r="11" fill="rgba(255,255,255,.55)"/>'};
+h+=line('r',[[0,0],[0,1],[0,2],[1,2],[2,2]])+line('y',[[1,0],[2,0],[3,0],[3,1]])+line('g',[[5,0],[5,1],[5,2],[5,3],[4,3]])+line('b',[[0,5],[1,5],[2,5],[2,4]]);
+h+=dot('r',[0,0])+dot('r',[2,2])+dot('y',[1,0])+dot('y',[3,1])+dot('g',[5,0])+dot('g',[4,3])+dot('b',[0,5])+dot('b',[4,4])+dot('p',[1,3])+dot('p',[3,5])+dot('o',[1,1])+dot('o',[4,1]);
+s.innerHTML=h;
+</script></body></html>

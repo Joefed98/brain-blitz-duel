@@ -1,0 +1,18 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="kit.css">
+<style>
+.pc { padding:0; overflow:hidden; } .pc .band { height:96px; background: radial-gradient(60% 120% at 20% 0%, #2EF0C8 0%, transparent 60%), radial-gradient(60% 120% at 70% 10%, #B26BFF 0%, transparent 62%), linear-gradient(180deg,#14306A,#0B1226); } .pc .in { padding:0 16px 16px; margin-top:-34px; display:flex; align-items:flex-end; gap:12px; }
+.pc .av { width:84px; height:84px; border-radius:20px; --c:var(--gold); box-shadow:0 0 0 3px var(--gold); } .pc .nm { font:900 22px/1 Archivo; } 
+.seg { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; } .seg div { height:38px; border-radius:10px; background:var(--surface); box-shadow:inset 0 0 0 1px var(--line); display:flex; align-items:center; justify-content:center; font:800 13px/1 Archivo; color:var(--text2); } .seg .on { background:var(--surface2); box-shadow:inset 0 0 0 1.5px var(--edge); color:var(--text); }
+.opts { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; } .o { aspect-ratio:1.25; border-radius:12px; overflow:hidden; position:relative; box-shadow:inset 0 0 0 1px var(--line); background:var(--raised); } .o img { width:100%; height:100%; object-fit:cover; display:block; }
+.o.on { box-shadow:0 0 0 2.5px var(--gold); } .o.on::after { content:"✓"; position:absolute; right:6px; top:6px; width:20px; height:20px; border-radius:50%; background:var(--gold); color:#06080F; font:900 12px/20px Archivo; text-align:center; }
+.o.lock img { filter:grayscale(1) brightness(.45); } .o.lock span { position:absolute; left:0; right:0; bottom:0; padding:5px 6px; font:700 10.5px/1.15 Archivo; color:var(--text2); background:rgba(4,6,12,.78); text-align:center; }
+.foot { position:absolute; left:16px; right:16px; bottom:92px; }
+</style></head><body><div class="page">
+  <div class="row g12"><div class="back">‹</div><div class="grow"><h2>Customise</h2></div><span class="sub" style="font-size:13px">Reset</span></div>
+  <div class="cut pc mt14"><div class="band"></div><div class="in"><div class="av"><img src="art/avatars/svg/captain-joulz.svg"></div><div class="grow" style="padding-bottom:2px"><div class="nm">TheInventor</div><div class="row g8 mt6"><span class="pill gold">Volt II · 1,278</span><span class="cap" style="font-size:9.5px">Founding #0042</span></div></div></div></div>
+  <div class="seg mt14"><div>Avatar</div><div class="on">Card</div><div>Badges</div><div>Games</div></div>
+  <div class="cap mt18">Card art · 8 owned</div>
+  <div class="opts mt10"><div class="o on"><img src="pub/shop/card-art.aurora.webp"></div><div class="o"><img src="pub/shop/card-art.crimson.webp"></div><div class="o"><img src="pub/shop/card-art.diamond-plate.webp"></div><div class="o"><img src="pub/shop/avatar-finish.carbon.webp"></div><div class="o lock"><img src="pub/shop/avatar-finish.holographic.webp"><span>Pass level 20</span></div><div class="o lock"><img src="pub/shop/avatar-finish.lightning-core.webp"><span>In the Shop</span></div></div>
+  <div class="foot"><div class="btn full">Save</div></div>
+  <div class="tabs"><div class="tab"><img src="pub/nav/home-3x.webp">Home</div><div class="tab"><img src="pub/nav/games-3x.webp">Games</div><div class="tab"><img src="pub/nav/tournaments-3x.webp">Compete</div><div class="tab"><img src="pub/nav/shop-3x.webp">Shop</div><div class="tab on"><img src="pub/nav/profile-3x.webp">You</div></div>
+</div></body></html>

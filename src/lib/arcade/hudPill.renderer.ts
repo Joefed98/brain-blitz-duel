@@ -1,3 +1,4 @@
+import { hudInWorld } from "./hudPlacement";
 /**
  * The shared arcade HUD pill (3 Nov 2026, the Cards & Board and Strategy polish; display only, never imported by a sim
  * or the server): a dark rounded pill holding a quiet label and a bold value ("Maze 1 / 4", "Popped 12"), the main count
@@ -91,6 +92,8 @@ export function drawHudPillRow(
   pills: readonly { label: string; value: string; opts?: HudPillOpts }[],
   maxX = Infinity,
 ): { right: number; rest: { label: string; value: string; opts?: HudPillOpts }[] } {
+  // The Cabinet (polish plan B1): on the arena the panel draws these values instead (hudPlacement.ts).
+  if (!hudInWorld()) return { right: x, rest: [] };
   let cx = x;
   const rest: { label: string; value: string; opts?: HudPillOpts }[] = [];
   for (const p of pills) {
@@ -153,6 +156,7 @@ export function drawHudTextPillRow(
   right: number,
   px = 14,
 ): void {
+  if (!hudInWorld()) return;
   if (!pills.length) return;
   const measure = (text: string, s: number) => {
     ctx.font = `600 ${s}px ${HUD_PILL_FONT}`;

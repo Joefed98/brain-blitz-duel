@@ -1,0 +1,30 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="game.css"><script>document.documentElement.dataset.dir = new URLSearchParams(location.search).get("dir") || "a";</script>
+<style>
+@font-face { font-family:"Silkscreen"; font-weight:700; src:url("pub/fonts/silkscreen-700-latin.woff2") format("woff2"); }
+body.game { --g0:#1B1464; --g1:#0E0A3A; --g2:#070518; }
+body.game::before { display:none; }
+.hud { display:flex; justify-content:space-between; padding: 12px 18px 8px; font: 700 17px "Silkscreen"; color:#36E2F5; text-shadow: 0 0 10px rgba(54,226,245,.8); }
+.hud b { color:#FFC81E; text-shadow: 0 0 10px rgba(255,200,30,.8); font-weight:700; }
+.field { flex:1; margin: 0 12px 14px; border-radius: 10px; border: 4px solid #36E2F5; box-shadow: 0 0 22px rgba(54,226,245,.75), inset 0 0 26px rgba(54,226,245,.25); position:relative; overflow:hidden;
+  background: radial-gradient(120% 60% at 50% 110%, #5B1FA8 0%, transparent 60%), linear-gradient(180deg,#0B0830,#120A44); }
+.grid2 { position:absolute; left:-20%; right:-20%; bottom:0; height:42%; opacity:.55; transform: perspective(300px) rotateX(62deg); transform-origin: 50% 100%;
+  background: repeating-linear-gradient(90deg, #FF4FD8 0 2px, transparent 2px 44px), repeating-linear-gradient(0deg, #FF4FD8 0 2px, transparent 2px 44px); }
+.bricks { position:absolute; left:10px; right:10px; top:14px; display:grid; grid-template-columns: repeat(9,1fr); gap:4px; }
+.bricks i { height:20px; border-radius:3px; box-shadow: inset 0 3px 0 rgba(255,255,255,.45), inset 0 -3px 0 rgba(0,0,0,.25); }
+.bricks i.gold { background:#FFC81E !important; box-shadow: inset 0 3px 0 #FFF1A8, inset 0 -3px 0 #B87400, 0 0 12px #FFC81E; }
+.bricks i.gone { visibility:hidden; }
+.ball { position:absolute; left:58%; top:54%; width:16px; height:16px; background:#fff; box-shadow: 0 0 14px #fff, -10px 8px 0 rgba(255,255,255,.25), -20px 16px 0 rgba(255,255,255,.1); }
+.paddle { position:absolute; left:36%; bottom:34px; width:96px; height:16px; background: linear-gradient(180deg,#FFE570,#FFC81E); border-radius:3px; box-shadow: 0 0 16px rgba(255,200,30,.9); }
+.pop { position:absolute; left:44%; top:38%; font: 700 18px "Silkscreen"; color:#3EDB72; text-shadow:0 0 10px #3EDB72; }
+</style></head><body class="game"><div class="page">
+  <div class="gtop"><div class="x">✕</div><div class="gname"><b>Breaker</b><span>Practice · Normal</span></div><div class="score"><small>Score</small>62</div></div>
+  <div class="timer"><i style="width:55%"></i></div>
+  <div class="hud"><span>BRICKS <b>23</b>/81</span><span>GOLD <b>1</b>/3</span></div>
+  <div class="field"><div class="grid2"></div><div class="bricks" id="b"></div><div class="pop">+3</div><div class="ball"></div><div class="paddle"></div></div>
+</div>
+<script>
+const cols=["#FF4D6A","#FF8A3D","#FFC81E","#3EDB72","#36E2F5","#4D8CFF","#B26BFF","#FF6BD6","#FF4D6A"];
+let h=""; const gone=[58,59,66,67,68,69,74,75,76,77,78,49,50,57,60,65,70,73,79,80,72,64,56]; const gold=[13,40,31];
+for(let r=0;r<9;r++)for(let c=0;c<9;c++){const i=r*9+c; h+='<i class="'+(gone.includes(i)?'gone ':'')+(gold.includes(i)?'gold':'')+'" style="background:'+cols[r]+'"></i>'}
+document.getElementById("b").innerHTML=h;
+</script></body></html>

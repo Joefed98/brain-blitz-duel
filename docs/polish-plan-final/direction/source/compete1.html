@@ -1,0 +1,32 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="alt.css"><script>const Q=new URLSearchParams(location.search);document.documentElement.dataset.dir = Q.get("dir") || "e";</script>
+<style>
+.tierhero { height: 232px; padding:18px; text-align:center; background: radial-gradient(90% 90% at 50% 0%, color-mix(in srgb, var(--acc) 30%, transparent), transparent 70%), linear-gradient(180deg, var(--card2), var(--card)); box-shadow: inset 0 2px 0 var(--acc); position:relative; }
+.tierhero img { width:84px; height:84px; filter: drop-shadow(0 8px 14px rgba(0,0,0,.5)); }
+.tierhero .num { font-size:46px; margin-top:2px; }
+.tierhero .btn { margin-top:14px; }
+.seg3 { display:flex; gap:6px; margin:16px 0 10px; } .seg3 span { flex:1; height:42px; border-radius:10px; display:flex; align-items:center; justify-content:center; font: 800 14px "Archivo"; color: var(--text2); background: var(--card); box-shadow: inset 0 0 0 1px var(--line); }
+.seg3 span.on { color: var(--text); background: var(--card2); box-shadow: inset 0 0 0 1.5px var(--acc); }
+.gap { text-align:center; color: var(--text3); font: 900 16px "Archivo"; height:26px; }
+</style></head><body><div class="page">
+  <div class="top"><h1 class="grow" style="font-size:32px">Compete</h1><span class="mini">Tiers</span></div>
+  <div class="scroll">
+    <div class="tierhero cut"><img src="pub/home/rated-3x.webp"><div class="lab acc">Volt II</div><div class="num">1,278</div>
+      <div class="track" style="margin:10px 40px 6px"><i style="width:62%"></i></div><div class="lab">122 to Volt I</div></div>
+    <div class="btn big full" style="margin-top:14px">Find a match</div>
+    <div class="seg3"><span class="on">Leaderboard</span><span>Tournaments</span><span>Daily 100</span></div>
+    <div class="panel">
+      <div class="row2 " style="height:58px"><span class="pos">1</span><div class="av" style="width:40px;height:40px;background:#B26BFF"><img src="art/avatars/svg/pinball.svg"></div><div class="grow"><b>NovaStrike</b></div><span class="num" style="font-size:19px">2,046</span></div>
+      <div class="row2 " style="height:58px"><span class="pos">2</span><div class="av" style="width:40px;height:40px;background:#36E2F5"><img src="art/avatars/svg/orbit.svg"></div><div class="grow"><b>Sam_Speedrunner1</b></div><span class="num" style="font-size:19px">1,988</span></div>
+      <div class="row2 " style="height:58px"><span class="pos">3</span><div class="av" style="width:40px;height:40px;background:#3DDC84"><img src="art/avatars/svg/gemstone.svg"></div><div class="grow"><b>Priya_K</b></div><span class="num" style="font-size:19px">1,951</span></div>
+      <div class="gap">···</div>
+      <div class="row2 me-row" style="height:58px"><span class="pos">214</span><div class="av" style="width:40px;height:40px;background:#FF6BD6"><img src="art/avatars/svg/captain-joulz.svg"></div><div class="grow"><b>TheInventor</b></div><span class="num" style="font-size:19px">1,278</span></div>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab "><img src="pub/nav/home-3x.webp">Home</div>
+    <div class="tab "><img src="pub/nav/games-3x.webp">Games</div>
+    <div class="tab on"><img src="pub/nav/tournaments-3x.webp">Compete</div>
+    <div class="tab "><img src="pub/nav/shop-3x.webp">Shop</div>
+    <div class="tab "><img src="pub/nav/profile-3x.webp">You</div>
+  </div>
+</div></body></html>

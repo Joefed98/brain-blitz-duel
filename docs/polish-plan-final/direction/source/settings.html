@@ -1,0 +1,18 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="kit.css">
+<style>
+.grp { overflow:hidden; } .r { display:flex; align-items:center; gap:12px; min-height:54px; padding:0 14px; font:700 15.5px/1.2 Archivo; } .r + .r { box-shadow:inset 0 1px 0 var(--line); } .r small { display:block; font:600 12px/1.2 Archivo; color:var(--text3); margin-top:3px; }
+.sw { width:46px; height:28px; border-radius:14px; background:#26376B; position:relative; flex:none; } .sw::after { content:""; position:absolute; left:3px; top:3px; width:22px; height:22px; border-radius:50%; background:#B5C6DD; } .sw.on { background:var(--gold); } .sw.on::after { left:21px; background:#06080F; }
+.sl { flex:none; width:128px; height:6px; border-radius:3px; background:#26376B; position:relative; } .sl i { position:absolute; left:0; top:0; bottom:0; border-radius:3px; background:var(--gold); width:var(--v); } .sl b { position:absolute; top:-8px; left:calc(var(--v) - 11px); width:22px; height:22px; border-radius:50%; background:#EEF2FF; }
+.seg3 { display:grid; grid-template-columns:repeat(3,54px); gap:4px; } .seg3 div { height:32px; border-radius:8px; background:var(--raised); box-shadow:inset 0 0 0 1px var(--line); display:flex; align-items:center; justify-content:center; font:800 12px/1 Archivo; color:var(--text2); } .seg3 .on { background:var(--surface2); box-shadow:inset 0 0 0 1.5px var(--edge); color:var(--text); }
+.chev { color:var(--text3); font:800 18px/1 Archivo; }
+</style></head><body><div class="page">
+  <div class="row g12"><div class="back">‹</div><div class="grow"><h2>Settings</h2></div></div>
+  <div class="cap mt18">Account</div>
+  <div class="panel grp mt10"><div class="r"><div class="av" style="--c:var(--gold)"><img src="art/avatars/svg/captain-joulz.svg"></div><div class="grow">TheInventor<small>Founding Player #0042</small></div><span class="chev">›</span></div></div>
+  <div class="cap mt18">Sound and feel</div>
+  <div class="panel grp mt10"><div class="r"><div class="grow">Sound effects</div><div class="sl" style="--v:72%"><i></i><b></b></div></div><div class="r"><div class="grow">Music</div><div class="sl" style="--v:44%"><i></i><b></b></div></div><div class="r"><div class="grow">Haptics</div><div class="sw on"></div></div></div>
+  <div class="cap mt18">Play</div>
+  <div class="panel grp mt10"><div class="r"><div class="grow">Game timer</div><div class="seg3"><div class="on">Bar</div><div>Ring</div><div>Chip</div></div></div><div class="r"><div class="grow">Battery saver<small>Fewer effects, same game</small></div><div class="sw"></div></div><div class="r"><div class="grow">Offline practice</div><div class="sw on"></div></div><div class="r"><div class="grow">Notifications</div><span class="chev">›</span></div></div>
+  <div class="panel grp mt14"><div class="r"><div class="grow">How it works</div><span class="chev">›</span></div><div class="r"><div class="grow">Terms and privacy</div><span class="chev">›</span></div></div>
+  <div class="tabs"><div class="tab"><img src="pub/nav/home-3x.webp">Home</div><div class="tab"><img src="pub/nav/games-3x.webp">Games</div><div class="tab"><img src="pub/nav/tournaments-3x.webp">Compete</div><div class="tab"><img src="pub/nav/shop-3x.webp">Shop</div><div class="tab on"><img src="pub/nav/profile-3x.webp">You</div></div>
+</div></body></html>

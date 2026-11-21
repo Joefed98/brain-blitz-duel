@@ -12,6 +12,7 @@
  *
  * Cards and the felt are painted once per size and pixel scale into cached canvases and blitted each frame.
  */
+import { hudInWorld } from "../hudPlacement";
 import { isRed, RANK_LABELS, rankOf, suitOf } from "./cards";
 
 import { NO_LOOK, type GameLook } from "../skins/look";
@@ -834,6 +835,8 @@ export function paintFelt(c: CanvasRenderingContext2D, w: number, h: number): vo
 
 /** A HUD chip: a dark pill with a label and a value; `gold` for the lit state. Returns its width. */
 export function drawChip(ctx: CanvasRenderingContext2D, x: number, y: number, label: string, value: string, opts: { gold?: boolean; align?: "left" | "right" | "center"; h?: number } = {}): number {
+  // The Cabinet (polish plan B1): on the arena the panel draws these values instead (hudPlacement.ts).
+  if (!hudInWorld()) return 0;
   const h = opts.h ?? 26;
   ctx.font = `700 11px ${CARD_FONT}`;
   const lw = label ? ctx.measureText(label).width + 6 : 0;

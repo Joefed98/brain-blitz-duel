@@ -1,0 +1,70 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="game.css"><script>const Q=new URLSearchParams(location.search);document.documentElement.dataset.dir = Q.get("dir") || "a";</script>
+<style>
+.wrap { display:flex; height:100%; position:relative; }
+.main { flex:1; padding: 26px 28px; display:flex; flex-direction:column; gap:20px; min-width:0; }
+.aside { width: 320px; padding: 26px 26px 26px 0; display:flex; flex-direction:column; gap:16px; }
+.hero { height: 264px; background: linear-gradient(120deg, #FF4FA3 0%, #8C4DFF 46%, #3E63FF 100%); box-shadow: 0 8px 0 #3A2AA8, var(--shadow); }
+.hero .txt { position:absolute; left:34px; top:34px; }
+.hero h1 { font-size: 54px; color:#fff; text-shadow: 0 4px 0 rgba(40,10,110,.55); }
+.hero .sub { color:#fff; font-size:19px; margin-top:8px; }
+.hero .btn { position:absolute; left:34px; bottom:34px; width: 250px; }
+.hero .art { position:absolute; right:60px; bottom:-10px; height: 280px; filter: drop-shadow(0 8px 0 rgba(30,10,90,.35)); }
+.three { display:grid; grid-template-columns: 1fr 1fr 1fr; gap:18px; }
+.daily { height: 170px; padding: 18px; }
+.daily h2 { color:#fff; font-size: 23px; text-shadow: 0 2px 0 rgba(0,0,0,.25); }
+.daily .cap { color:#fff; font-size:14px; }
+.daily img.a { position:absolute; right:-6px; bottom: 6px; width: 132px; }
+.daily .btn, .daily .done { position:absolute; left:18px; bottom:20px; }
+.done { display:flex; align-items:center; gap:6px; height:44px; padding:0 14px; border-radius:14px; background: rgba(255,255,255,.95); color:#3A1F9E; font: 900 16px "Archivo"; box-shadow: 0 4px 0 rgba(0,0,0,.25); }
+.dp { background: linear-gradient(160deg, #B26BFF, #6B3DF0); box-shadow: 0 6px 0 #4423B5, var(--shadow); }
+.da { background: linear-gradient(160deg, #36E2F5, #1389E8); box-shadow: 0 6px 0 #0B5DB0, var(--shadow); }
+.fr { background: linear-gradient(160deg,#4FE08A,#1FA85A); box-shadow: 0 6px 0 #13753C, var(--shadow); }
+.tiles { display:flex; gap:16px; }
+.tiles .tile { width: 132px; height: 160px; }
+.side { padding:16px; }
+.side h2 { font-size:18px; margin-bottom:10px; }
+.bar { height:12px; border-radius:6px; background: var(--chip); overflow:hidden; margin:8px 0 6px; }
+.bar i { display:block; height:100%; width:62%; border-radius:6px; background: linear-gradient(180deg,#FFE570,#FFC81E); }
+.fl { display:flex; align-items:center; gap:10px; height:46px; font-weight:800; }
+.fl .avatar { width:36px; height:36px; border-radius:12px; box-shadow:none; }
+.fl i { width:10px; height:10px; border-radius:50%; background:#3EDB72; margin-left:auto; }
+.wk { display:flex; align-items:center; gap:10px; height:40px; font-weight:800; font-size:15px; }
+.wk b { margin-left:auto; color:#C6FF3D; font-weight:900; }
+</style></head><body><div class="wrap">
+<div class="rail">
+  <div class="row gap8" style="padding:2px 8px 14px"><svg width="22" height="29" viewBox="0 0 26 34"><path fill="#FFC81E" d="M19 .5 7 18.5h6.5L14.2 13.5zM13.5 18.5 8 33.5 21 13.5h-6.8z"/></svg><span style="font:900 26px Archivo;font-stretch:122%;letter-spacing:.04em">JOULZ</span></div>
+  <div class="row gap10" style="padding:0 6px 14px"><div class="avatar" style="background:#FF6BD6"><img src="art/avatars/svg/captain-joulz.svg"></div><div class="who grow"><b>TheInventor</b><span class="tier">Volt II · 1,482</span></div></div>
+  <div class="btn full" style="margin-bottom:16px">Play</div>
+  <div class="item on"><img src="pub/nav/home-3x.webp">Home</div>
+  <div class="item "><img src="pub/nav/games-3x.webp">Games</div>
+  <div class="item "><img src="pub/nav/tournaments-3x.webp">Compete</div>
+  <div class="item "><img src="pub/nav/shop-3x.webp">Shop</div>
+  <div class="item"><img src="pub/nav/friends-3x.webp">Friends</div>
+  <div class="item"><img src="pub/nav/challenges-3x.webp">Challenges</div>
+  <div class="item"><img src="pub/nav/profile-3x.webp">You</div>
+  <div style="flex:1"></div>
+  <div class="item"><img src="pub/nav/settings-3x.webp">Settings</div>
+</div>
+<div class="main">
+  <div class="card hero"><div class="rays"></div><div class="txt"><h1>Quick match</h1><div class="sub">Best of 3 · Rated · Win +8</div></div><img class="art" src="pub/art/captain-joulz-win.svg"><div class="btn big">Play</div></div>
+  <div class="three">
+    <div class="card daily dp"><div class="slash"></div><h2>Daily Puzzle</h2><div class="cap">6 rounds · 12,431 played</div><img class="a" src="pub/home/dailyPuzzle-3x.webp"><div class="btn sm">Play</div></div>
+    <div class="card daily da"><div class="slash"></div><h2>Daily Arcade</h2><div class="cap">3 rounds</div><img class="a" src="pub/home/dailyArcade-3x.webp" style="width:112px"><div class="done">✓ 512</div></div>
+    <div class="card daily fr"><div class="slash"></div><h2>Play friends</h2><div class="cap">Room for 16</div><img class="a" src="pub/home/rooms-3x.webp" style="width:84px;right:10px;top:14px;bottom:auto"><div class="row gap8" style="position:absolute;left:18px;bottom:20px"><div class="btn white sm" style="padding:0 14px">Create</div><div class="btn white sm" style="padding:0 14px">Join</div></div></div>
+  </div>
+  <div><div class="sec-head" style="margin-top:0"><h2>Jump back in</h2><a>All games ›</a></div>
+  <div class="tiles"><div class="tile" style="--tc:var(--sports);--tc-ledge:#2E7F2C"><img src="pub/tiles/pool.webp"><div class="nm">Cue Ball</div></div><div class="tile" style="--tc:var(--logic);--tc-ledge:#1A8573"><img src="pub/tiles/tubes.webp"><div class="nm">Polypotions</div></div><div class="tile" style="--tc:var(--strategy);--tc-ledge:#5346C0"><img src="pub/tiles/matchup.webp"><div class="nm">Gemstone</div></div><div class="tile" style="--tc:var(--retro);--tc-ledge:#1392A3"><img src="pub/tiles/blockfall.webp"><div class="nm">Blockzone</div></div><div class="tile" style="--tc:var(--word);--tc-ledge:#2D5FC4"><img src="pub/tiles/wordsmith.webp"><div class="nm">Nucleus</div></div><div class="tile" style="--tc:var(--number);--tc-ledge:#1E9A55"><img src="pub/tiles/measure.webp"><div class="nm">Brimful</div></div></div></div>
+  <div class="three" style="grid-template-columns:1fr 1fr">
+    <div class="card" style="height:104px;background:linear-gradient(160deg,#FF8A3D,#F0443E);box-shadow:0 6px 0 #9A2420,var(--shadow);display:flex;align-items:center;gap:16px;padding:0 20px"><img src="pub/tournaments-art/arena-3x.webp" style="width:68px"><div class="grow"><b style="font:900 22px Archivo;color:#fff;display:block;text-shadow:0 2px 0 rgba(0,0,0,.25)">Arena tonight</b><span style="color:#fff;font-size:14px">8:00 pm · 45 minutes</span></div><div class="btn white sm">Remind me</div></div>
+    <div class="card" style="height:104px;display:flex;align-items:center;gap:16px;padding:0 20px"><img src="pub/nav/leaderboards-3x.webp" style="width:60px"><div class="grow"><b style="font:900 22px Archivo;display:block">Leaderboard</b><span class="cap">You are 214th this season</span></div><div class="btn sec sm">View</div></div>
+  </div>
+</div>
+<div class="aside">
+  <div class="card side"><h2>Your rating</h2><div class="row"><span style="font:900 36px Archivo">1,482</span><span class="pill" style="margin-left:auto;background:#FFC81E;color:#22164F">Volt II</span></div><div class="bar"><i></i></div><span class="cap">118 to Volt I · 🔥 4 day streak</span></div>
+  <div class="card side"><h2>Friends online</h2>
+    <div class="fl"><div class="avatar" style="background:#36E2F5"><img src="art/avatars/svg/orbit.svg"></div>Sam_Speedrunner1<i></i></div>
+    <div class="fl"><div class="avatar" style="background:#3DDC84"><img src="art/avatars/svg/gemstone.svg"></div>Priya_K<i></i></div>
+    <div class="fl"><div class="avatar" style="background:#FF8A3D"><img src="art/avatars/svg/hover.svg"></div>MoGrid<i></i></div></div>
+  <div class="card side"><h2>This week</h2><div class="wk">Win 3 rated matches<b>2 / 3</b></div><div class="wk">Finish 5 Dailies<b>4 / 5</b></div><div class="wk">Earn 2 stars<b>✓</b></div></div>
+</div>
+</div></body></html>

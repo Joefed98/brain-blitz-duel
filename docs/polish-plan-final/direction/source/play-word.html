@@ -1,0 +1,20 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="game.css"><script>const Q0=new URLSearchParams(location.search);document.documentElement.dataset.dir = Q0.get("dir") || "a"; if(Q0.get("real")) document.documentElement.dataset.real="1";</script>
+<style>
+body.game { --d0:#1B3A9C; --d1:#0B163F; --g0:#5B9BFF; --g1:#2F58D6; --g2:#151C66; }
+.grid { display:grid; grid-template-columns: repeat(6,1fr); gap:7px; }
+.found { align-self:center; height:40px; padding:0 18px; border-radius:14px; background:#3EDB72; color:#06310F; font: 900 20px "Archivo"; display:flex; align-items:center; gap:8px; box-shadow: 0 4px 0 #1E9A48; letter-spacing:.06em; }
+</style></head><body class="game"><div class="page">
+  <div class="gtop"><div class="x">✕</div><div class="gname"><b>Forage</b><span>Practice · Normal</span></div><div class="score"><small>Score</small>44</div></div>
+  <div class="timer"><i style="width:72%"></i></div>
+  <div class="goal">Find words. Longer is better.</div>
+  <div class="chips"><span class="chip"><b>1</b> word</span><span class="chip"><b>0</b> misses</span><span class="chip hot">Gold tile ×2</span></div>
+  <div class="stage">
+    <div class="found">CAT <span style="opacity:.7;font-size:15px">+12</span></div>
+    <div class="table"><div class="grid" id="g"></div></div>
+    <div class="btn big full">Submit</div>
+  </div>
+</div>
+<script>
+const L="OTAWOGODDLUGNDCAEEEKATERNRBISZAALBER"; const sel=[14,21,22]; const gold=[16];
+document.getElementById("g").innerHTML=[...L].map((c,i)=>'<div class="lt'+(sel.includes(i)?' sel':'')+(gold.includes(i)?' gold':'')+'">'+c+'</div>').join("");
+</script></body></html>

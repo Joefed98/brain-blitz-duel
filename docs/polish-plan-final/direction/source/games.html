@@ -1,0 +1,63 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<script>const Q=new URLSearchParams(location.search);document.documentElement.dataset.dir = Q.get('dir') || 'a';document.documentElement.dataset.v = Q.get('v') || '1';</script>
+<style>
+.seg { display:flex; gap:6px; background: var(--chip); border-radius:18px; padding:5px; margin: 4px 0 14px; }
+.seg div { flex:1; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; gap:6px; font: 900 16px "Archivo"; color: var(--text2); }
+.seg div.on { background:#fff; color: var(--ink); box-shadow: 0 4px 0 var(--white-ledge); }
+.seg small { font-weight:800; opacity:.7; font-size:13px; }
+.gotd { height: 156px; background: linear-gradient(135deg,#3DDC84,#12915A); box-shadow: 0 6px 0 #0C6B41, var(--shadow); }
+.gotd .txt { position:absolute; left:18px; top:16px; }
+.gotd h1 { font-size:30px; color:#fff; text-shadow:0 3px 0 rgba(0,60,30,.4); margin-top:8px; }
+.gotd .tile { position:absolute; right:16px; top:14px; width:128px; height:128px; box-shadow: 0 6px 0 rgba(0,50,25,.5); border:4px solid #fff; }
+.gotd .btn { position:absolute; left:18px; bottom:18px; }
+.shelf-h { display:flex; align-items:center; gap:10px; margin: 20px 0 10px; }
+.shelf-h .blob { width:34px; height:34px; border-radius:11px; display:flex; align-items:center; justify-content:center; font: 900 18px "Archivo"; color:#fff; box-shadow: 0 3px 0 rgba(0,0,0,.25); }
+.shelf-h h2 { flex:1; }
+.shelf-h a { color: var(--text2); font-size:14px; font-weight:800; }
+.shelf { display:flex; gap:12px; }
+.shelf .tile { width:132px; height:164px; }
+.find { width:44px; height:44px; border-radius:14px; background: var(--chip); display:flex; align-items:center; justify-content:center; }
+html[data-v="2"] .shelfmode { display:none; }
+html[data-v="1"] .gridmode { display:none; }
+.chipsrow { display:flex; gap:8px; margin: 16px 0 12px; }
+.chipsrow span { height:40px; padding:0 14px; border-radius:14px; display:flex; align-items:center; font:900 15px "Archivo"; color:#fff; box-shadow:0 4px 0 rgba(0,0,0,.25); white-space:nowrap; }
+.grid3 { display:grid; grid-template-columns: repeat(3,1fr); gap:10px; }
+.grid3 .tile { width:auto; height:auto; aspect-ratio: 4/5; }
+.grid3 .tile .nm { font-size:13.5px; }
+</style></head><body><div class="page">
+  <div class="top" style="padding-bottom:10px"><h1 class="grow" style="font-size:32px">Games</h1>
+    <span class="pill"><i class="star"></i> 37 / 249</span>
+    <span class="find"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg></span></div>
+  <div class="scroll">
+    <div class="seg"><div class="on">All <small>83</small></div><div>Puzzles <small>51</small></div><div>Arcade <small>32</small></div></div>
+    <div class="card gotd"><div class="slash"></div>
+      <div class="txt"><span class="pill dark">Game of the day</span><h1>Brimful</h1></div>
+      <div class="tile"><img src="pub/tiles/measure.webp"></div>
+      <div class="btn sm">Play</div>
+    </div>
+    <div class="shelfmode"><div class="shelf-h"><span class="blob" style="background:var(--word)">W</span><h2>Word</h2><a>All 9 ›</a></div>
+    <div class="shelf">
+      <div class="tile" style="--tc:var(--word);--tc-ledge:#2D5FC4"><img src="pub/tiles/wordsmith.webp"><div class="nm">Nucleus</div><div class="stars"><i class="star"></i><i class="star"></i><i class="star off"></i></div></div>
+      <div class="tile" style="--tc:var(--word);--tc-ledge:#2D5FC4"><img src="pub/tiles/strikeout.webp"><div class="nm">Strikeout</div><div class="stars"><i class="star"></i><i class="star off"></i><i class="star off"></i></div></div>
+      <div class="tile" style="--tc:var(--word);--tc-ledge:#2D5FC4"><img src="pub/tiles/wordhunt.webp"><div class="nm">Forage</div><div class="stars"><i class="star off"></i><i class="star off"></i><i class="star off"></i></div></div>
+    </div>
+    <div class="shelf-h"><span class="blob" style="background:var(--retro)">R</span><h2>Retro</h2><a>All 10 ›</a></div>
+    <div class="shelf">
+      <div class="tile" style="--tc:var(--retro);--tc-ledge:#1392A3"><img src="pub/tiles/breaker.webp"><div class="nm">Breaker</div><div class="stars"><i class="star"></i><i class="star"></i><i class="star"></i></div></div>
+      <div class="tile" style="--tc:var(--retro);--tc-ledge:#1392A3"><img src="pub/tiles/hover.webp"><div class="nm">Hover</div><div class="stars"><i class="star off"></i><i class="star off"></i><i class="star off"></i></div></div>
+      <div class="tile" style="--tc:var(--retro);--tc-ledge:#1392A3"><img src="pub/tiles/pinball.webp"><div class="nm">Pinball</div><div class="stars"><i class="star"></i><i class="star off"></i><i class="star off"></i></div></div>
+    </div></div>
+    <div class="gridmode"><div class="chipsrow"><span style="background:var(--word)">Word</span><span style="background:var(--number);color:#06310F">Number</span><span style="background:var(--speed)">Speed</span><span style="background:var(--attention)">Attention</span><span style="background:var(--pattern)">Pattern</span></div>
+    <div class="grid3">
+      <div class="tile" style="--tc-ledge:#2D5FC4"><img src="pub/tiles/wordsmith.webp"><div class="nm">Nucleus</div></div><div class="tile" style="--tc-ledge:#2D5FC4"><img src="pub/tiles/strikeout.webp"><div class="nm">Strikeout</div></div><div class="tile" style="--tc-ledge:#2D5FC4"><img src="pub/tiles/wordhunt.webp"><div class="nm">Forage</div></div>
+      <div class="tile" style="--tc-ledge:#2D5FC4"><img src="pub/tiles/wordsearch.webp"><div class="nm">Lookout</div></div><div class="tile" style="--tc-ledge:#2D5FC4"><img src="pub/tiles/letterwheel.webp"><div class="nm">Roundabout</div></div><div class="tile" style="--tc-ledge:#2D5FC4"><img src="pub/tiles/codeword.webp"><div class="nm">Cryptogrid</div></div>
+    </div></div>
+  </div>
+  <div class="tabs">
+    <div class="tab"><img src="pub/nav/home-3x.webp">Home</div>
+    <div class="tab on"><img src="pub/nav/games-3x.webp">Games</div>
+    <div class="tab"><img src="pub/nav/tournaments-3x.webp">Compete</div>
+    <div class="tab"><img src="pub/nav/shop-3x.webp">Shop</div>
+    <div class="tab"><img src="pub/nav/profile-3x.webp">You</div>
+  </div>
+</div></body></html>

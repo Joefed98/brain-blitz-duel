@@ -1,0 +1,39 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="alt.css"><script>const Q=new URLSearchParams(location.search);document.documentElement.dataset.dir = Q.get("dir") || "e";</script>
+<style>
+.hd { display:flex; align-items:center; gap:12px; padding: 4px 0 14px; } .hd .av { width:72px; height:72px; border-radius:18px; background:#FF6BD6; box-shadow: 0 0 0 2px var(--acc); }
+.rings { display:grid; grid-template-columns: repeat(3,1fr); gap:10px; }
+.ring { height:132px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; }
+.ring .g { width:78px; height:78px; border-radius:50%; background: conic-gradient(var(--c) calc(var(--p)*1%), rgba(255,255,255,.10) 0); display:flex; align-items:center; justify-content:center; }
+.ring .g b { width:60px; height:60px; border-radius:50%; background: var(--card); display:flex; align-items:center; justify-content:center; font: 900 21px "Archivo"; }
+.shelf { margin-top:14px; padding:14px 14px 0; overflow:hidden; }
+.shelf .it { display:flex; gap:14px; justify-content:space-between; padding:0 6px; } .shelf img { width:50px; height:50px; filter: drop-shadow(0 6px 6px rgba(0,0,0,.5)); }
+.shelf .plank { height:10px; margin:6px -14px 0; background: linear-gradient(180deg, color-mix(in srgb, var(--acc) 60%, #000), color-mix(in srgb, var(--acc) 20%, #000)); }
+.shelf .cap2 { height:34px; display:flex; align-items:center; justify-content:space-between; }
+</style></head><body><div class="page">
+  <div class="top" style="padding-bottom:0"><h1 class="grow" style="font-size:32px">You</h1><span class="mini">Customise</span><span class="mini">Settings</span></div>
+  <div class="scroll">
+    <div class="hd"><div class="av"><img src="art/avatars/svg/captain-joulz.svg"></div><div class="grow"><b style="font:900 23px Archivo;font-stretch:106%">TheInventor</b><div class="lab acc" style="margin-top:4px">Volt II · 1,278 · 214th</div><div class="track" style="margin-top:8px"><i style="width:62%"></i></div></div></div>
+    <div class="rings">
+      <div class="panel ring" style="--c:#E2C07A;--p:15"><div class="g"><b>37</b></div><span class="lab">of 249 stars</span></div>
+      <div class="panel ring" style="--c:#16C35B;--p:68"><div class="g"><b>68%</b></div><span class="lab">Rated wins</span></div>
+      <div class="panel ring" style="--c:#FF8A3D;--p:57"><div class="g"><b>4</b></div><span class="lab">Day streak</span></div>
+    </div>
+    <div class="panel shelf"><div class="cap2"><b style="font:800 17px Archivo">Trophy shelf</b><span class="lab">9 of 54 ›</span></div>
+      <div class="it"><img src="pub/art/badges/founding-player.svg"><img src="pub/art/badges/first-win.svg"><img src="pub/art/badges/hot-streak.svg"><img src="pub/art/badges/first-star.svg"><img src="pub/art/badges/daily-habit.svg"></div><div class="plank"></div></div>
+    <div class="panel" style="margin-top:14px">
+      <div class="row2" style="height:56px"><img class="ic" src="pub/tiles/wordsearch.webp" style="border-radius:8px"><div class="grow"><b>Beat Sam_Speedrunner1</b><small>Rated · 2 – 1</small></div><span class="lab" style="color:#5BE38F">+7</span></div>
+      <div class="row2" style="height:56px"><img class="ic" src="pub/tiles/racing.webp" style="border-radius:8px"><div class="grow"><b>Lost to Priya_K</b><small>Rated · 1 – 2</small></div><span class="lab" style="color:#FF8A98">−8</span></div>
+    </div>
+    <div class="panel" style="margin-top:14px">
+      <div class="row2" style="height:54px"><img class="ic" src="pub/nav/friends-3x.webp"><div class="grow"><b>Friends</b></div><small>3 online</small><span class="go" style="margin-left:8px">›</span></div>
+      <div class="row2" style="height:54px"><img class="ic" src="pub/nav/challenges-3x.webp"><div class="grow"><b>Challenges</b></div><small>12 / 195</small><span class="go" style="margin-left:8px">›</span></div>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab "><img src="pub/nav/home-3x.webp">Home</div>
+    <div class="tab "><img src="pub/nav/games-3x.webp">Games</div>
+    <div class="tab "><img src="pub/nav/tournaments-3x.webp">Compete</div>
+    <div class="tab "><img src="pub/nav/shop-3x.webp">Shop</div>
+    <div class="tab on"><img src="pub/nav/profile-3x.webp">You</div>
+  </div>
+</div></body></html>

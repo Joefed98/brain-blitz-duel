@@ -24,7 +24,7 @@ import { OfflineBanner } from "@/components/offline/OfflineBanner";
 import { AppRail } from "@/components/app/AppRail";
 import { ArenaGamePanel, FrameMe, PhoneStatus } from "./ArenaGamePanel";
 import { createPortal } from "react-dom";
-import { ArenaMount, useArenaLayout, useArenaMount, ARENA_PANEL_W } from "@/lib/gameFrame/arena";
+import { ArenaMount, useArenaLayout, useArenaMount, ARENA_CABINET_LEFT, ARENA_PANEL_LEFT_W, ARENA_PANEL_W } from "@/lib/gameFrame/arena";
 import { TimerLookContext, useGameTimer } from "@/lib/gameFrame/headerStyle";
 import { BannerSlot } from "@/components/app/PageAside";
 import { useLayoutMode } from "@/lib/layoutMode";
@@ -275,6 +275,7 @@ export function GameLayout({ label, title, onHelp, progress, score, ping, timer,
             }
             inRoom={arenaMount.roomPanel}
             practice={label === "Practice"}
+            leftMount={arenaMount.leftMount}
           />,
           arenaMount.mount,
         )
@@ -525,10 +526,8 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   const arena = useArenaLayout(layout, Boolean(gameScreen && play));
   const panel = (desktop || arena) && !tabPage && roomPanel ? roomPanel : null;
   const [arenaMountNode, setArenaMountNode] = useState<HTMLElement | null>(null);
-  const arenaValue = useMemo(
-    () => ({ arena, mount: arenaMountNode, setMount: setArenaMountNode, roomPanel: Boolean(panel) }),
-    [arena, arenaMountNode, panel],
-  );
+  // The Cabinet (polish plan B1): the left panel on arcade play screens outside a room (arenaLeft, below the screen flags).
+  const [arenaLeftNode, setArenaLeftNode] = useState<HTMLElement | null>(null);
   const modeInfo = gameType ? DESKTOP_MODES[gameType] : undefined;
   const presented = Boolean((desktop && gameScreen) || arena);
   const presentation: DesktopPresentationValue = {
@@ -544,6 +543,11 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   /** The live round of an arcade play screen: GameLayout owns the one compact header row. */
   const arcadePlay = arcadeScreen && play;
   useStandaloneShortfall(arcadePlay && constrained);
+  const arenaLeft = ARENA_CABINET_LEFT && arena && !panel && arcadePlay;
+  const arenaValue = useMemo(
+    () => ({ arena, mount: arenaMountNode, setMount: setArenaMountNode, leftMount: arenaLeft ? arenaLeftNode : null, setLeftMount: setArenaLeftNode, roomPanel: Boolean(panel) }),
+    [arena, arenaMountNode, arenaLeft, arenaLeftNode, panel],
+  );
   /** Every game's live round (Polish 2): GameLayout's frame header replaces the app's top bar. */
   const framePlay = Boolean(gameScreen && play);
   /** A puzzle's game screen, intro or reveal: its edges and the page behind share the screen's own colour (polish-layout/bottom.css). */
@@ -578,6 +582,7 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
       data-desktop-mode={presentation.mode ?? undefined}
       data-room-panel={panel ? "" : undefined}
       data-arena={arena ? "" : undefined}
+      data-arena-left={arenaLeft ? "" : undefined}
       data-desktop-cap={desktop && gameScreen && modeInfo?.maxWorldWidth ? "" : undefined}
       style={
         gameScreen
@@ -585,6 +590,7 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
               ...NO_SELECT_STYLE,
               ...(desktop && modeInfo?.maxWorldWidth ? { ["--dk-world-max" as string]: `${modeInfo.maxWorldWidth}px` } : null),
               ...(reveal ? revealPaletteStyle(gameType) : null),
+              ...(arenaLeft ? { ["--arena-panel-left-w" as string]: `${ARENA_PANEL_LEFT_W}px`, ["--arena-left" as string]: desktop ? "var(--dk-rail-compact, 76px)" : "0px" } : null),
             }
           : undefined
       }
@@ -620,6 +626,12 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
         {wider && tabPage && aside ? aside : null}
       </div>
       {panel}
+      {/* The Cabinet's left panel (polish plan B1): arcade play screens outside a room; the game block's head, timer and score go here. */}
+      {arenaLeft ? (
+        <aside data-arena-panel-left aria-label="Score" className="arena-panel-left">
+          <div ref={setArenaLeftNode} className="arena-panel-mount" />
+        </aside>
+      ) : null}
       {/* The arena's side panel outside a room (a room's game block is at the top of its room panel). */}
       {arena && !panel ? (
         <aside data-arena-panel aria-label="Game" className="arena-panel" style={{ ["--arena-panel-w" as string]: `${ARENA_PANEL_W}px` }}>

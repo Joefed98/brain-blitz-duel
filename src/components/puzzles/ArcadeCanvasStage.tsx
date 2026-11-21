@@ -23,6 +23,8 @@ import { arcadeFeedback } from "@/lib/fx/arcade";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { useGameKeys } from "@/lib/desktop";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+import { withHudInWorld } from "@/lib/arcade/hudPlacement";
+import { ARENA_HUD_IN_PANEL, useArenaMount } from "@/lib/gameFrame/arena";
 import { useDesktopPresentation } from "@/lib/desktopPresentation";
 import { useLiveScore } from "@/components/puzzles/useLiveScore";
 import { liveScoreWanted, publishLiveScore } from "@/lib/rated/liveScore";
@@ -194,6 +196,10 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
   });
 
   const propsRef = useRef(props);
+  // The arena (the Cabinet, polish plan B1): read in the draw loop through a ref, never a per-frame hook.
+  const arenaMount = useArenaMount();
+  const arenaRef = useRef(arenaMount.arena);
+  arenaRef.current = arenaMount.arena;
   propsRef.current = props;
 
   const encode = (): string => {
@@ -352,12 +358,16 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
         if (ctx) {
           const { worldW, worldH } = propsRef.current;
           ctx.save();
-          if (propsRef.current.renderAtCanvasSize) {
-            game.draw(ctx, state.current, size);
-          } else {
-            ctx.scale(size.width / worldW, size.height / worldH);
-            game.draw(ctx, state.current, { width: worldW, height: worldH });
-          }
+          // The Cabinet (polish plan B1): on the arena the panels can draw the canvas HUD's values (ARENA_HUD_IN_PANEL);
+          // the painters read the flag for this draw only (hudPlacement.ts), so replays, reveals and checks are untouched.
+          withHudInWorld(!(arenaRef.current && ARENA_HUD_IN_PANEL), () => {
+            if (propsRef.current.renderAtCanvasSize) {
+              game.draw(ctx, state.current, size);
+            } else {
+              ctx.scale(size.width / worldW, size.height / worldH);
+              game.draw(ctx, state.current, { width: worldW, height: worldH });
+            }
+          });
           ctx.restore();
         }
       }
