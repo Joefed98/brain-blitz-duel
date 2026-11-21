@@ -28,6 +28,7 @@ import {
   type SlideShift,
   WORD_SLIDE_REV_PAR,
   wordSlideRevOf,
+  sliderParLine,
 } from "@/lib/duel/wordSlide";
 import { playSound } from "@/lib/sound";
 import { fx } from "@/lib/fx";
@@ -226,7 +227,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   }, [swapRow]);
   // Par moves (word depth d1): the phone shows the public par beside the moves; the server scores the bonus.
   const parOn = wordSlideRevOf(data) >= WORD_SLIDE_REV_PAR;
-  const withinPar = !!data && !!replay && replay.moves <= data.par;
+  const withinPar = !!data && !!replay && replay.moves <= sliderParLine(data).full;
 
   useEffect(() => {
     onDraftAnswer?.(encoded);
@@ -316,7 +317,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const nudgeAt = useRef(-1);
   useEffect(() => {
     if (!data || !replay || !parOn || locked || submitted.current) return;
-    if (replay.moves !== data.par || goodNow < 3 || nudgeAt.current === replay.moves) return;
+    if (replay.moves !== sliderParLine(data).full || goodNow < 3 || nudgeAt.current === replay.moves) return;
     nudgeAt.current = replay.moves;
     wordFx("nearMiss", root.current?.querySelector('[data-hud-pill="moves"]'), "wordslide.nudge");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -440,7 +441,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
             { id: "words", label: "Words", value: `${good.size} / ${wsRows(wordSlideSize(data)).length}` },
             { id: "locked", label: "Locked", value: lockedRows.size },
             { id: "moves", label: "Moves", value: replay.moves },
-            parOn ? { id: "par", label: "Par", value: data?.par, tone: withinPar ? "gold" : "warn" } : null,
+            parOn ? { id: "par", label: "Par", value: data ? sliderParLine(data).full : undefined, tone: withinPar ? "gold" : "warn" } : null,
           ]}
         />
       </div>
@@ -494,7 +495,7 @@ function RevealOverhaul({ puzzle, myAnswer, myCorrect, validRows }: PuzzleReveal
         countAfterMs={200}
         items={[
           { id: "rows", label: "Rows made", value: `${good.size}/${wsRows(wordSlideSize(puzzle)).length}`, tone: myCorrect ? "gold" : undefined },
-          { id: "moves", label: "Moves used", value: replay.moves, tone: myCorrect && replay.moves <= puzzle.par ? "gold" : undefined },
+          { id: "moves", label: "Moves used", value: replay.moves, tone: myCorrect && replay.moves <= sliderParLine(puzzle).full ? "gold" : undefined },
           { id: "par", label: "Par (fewest)", value: puzzle.par },
         ]}
       />

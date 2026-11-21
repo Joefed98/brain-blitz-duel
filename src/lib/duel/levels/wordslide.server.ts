@@ -18,8 +18,9 @@ import { rngBelow, seededRng, wordGameSeed } from "../wordSeed.server";
 export function dealSliderLevel(level: Exclude<Level, "normal">, context: GenerateContext): PuzzleData | null {
   const s = WORDSLIDE_LEVEL_SETTINGS[level];
   const seed = wordGameSeed(`wordslide:${level}`, context.bankSeed);
-  // D1 (21 Nov 2026): Hard and Expert deal from their proved banks (scripts/slider-level-bank.ts), drawn by the room's seed.
-  const bank = s.bank ? SLIDER_LEVEL_BANK[level as "hard" | "expert"] : undefined;
+  // Joe (21 Nov 2026): Expert deals from its proved bank (scripts/slider-level-bank.ts), drawn by the room's seed; Easy and
+  // Hard are built from the seed, unfiltered.
+  const bank = s.bank && level === "expert" ? SLIDER_LEVEL_BANK.expert : undefined;
   if (bank?.length) return sliderBankPuzzle(s, bank[rngBelow(seededRng(seed), bank.length)]!);
   return buildWordSlideLevel(s, seed);
 }
@@ -31,7 +32,14 @@ export function sliderBankPuzzle(s: WordSlideLevelSettings, e: { grid: string; w
 
 /** The stamp a sized level board carries (wordSlideRev 7 and its size; Normal's 5 × 5 deals keep their stamp). */
 function sizedSlider(s: WordSlideLevelSettings, made: WordSlidePuzzleData): WordSlidePuzzleData {
-  return { ...made, ...(s.timeLimitMs ? { timeLimitMs: s.timeLimitMs } : {}), size: s.size, wordSlideRev: WORD_SLIDE_REV_SIZED };
+  return {
+    ...made,
+    ...(s.timeLimitMs ? { timeLimitMs: s.timeLimitMs } : {}),
+    size: s.size,
+    wordSlideRev: WORD_SLIDE_REV_SIZED,
+    // Joe (21 Nov 2026): Expert's own par line, stored so the grader and the stage read it from the board.
+    ...(s.parLine ? { parFullAt: s.parLine.full, parZeroAt: s.parLine.zero } : {}),
+  };
 }
 
 /** Null when a level board meets its settings, else the rule broken (the check reads the same). */
@@ -39,7 +47,7 @@ export function wordSlideLevelRuleBreak(p: WordSlidePuzzleData, s: WordSlideLeve
   const size = s.size;
   const words = p.words ?? [];
   if (words.length !== size || new Set(words).size !== size) return `not ${size} different words`;
-  if (!words.every((w) => slideWords(size).includes(w.toLowerCase()))) return `a word outside the everyday ${size}-letter words`;
+  if (!words.every((w) => slideWords(size).includes(w.toLowerCase()))) return `a word outside the common ${size}-letter answers`;
   if ([...p.grid].sort().join("") !== [...words.join("")].sort().join("")) return "grid is not a scramble of the words";
   if (markedRowsSolved(p.grid, size) > 0) return "a row starts as a word";
   const d = wordSlideDistance(p.grid, [...words.join("")], s.par[1]);
@@ -47,13 +55,14 @@ export function wordSlideLevelRuleBreak(p: WordSlidePuzzleData, s: WordSlideLeve
   if (d < s.par[0] || d > s.par[1]) return `par ${d} outside ${s.par[0]}-${s.par[1]}`;
   if (p.timeLimitMs !== s.timeLimitMs) return "clock";
   if (p.size !== size || p.wordSlideRev !== WORD_SLIDE_REV_SIZED) return "size or stamp";
+  if ((p.parFullAt ?? null) !== (s.parLine?.full ?? null) || (p.parZeroAt ?? null) !== (s.parLine?.zero ?? null)) return "par line";
   return null;
 }
 
 /**
- * One level board from a seed (D1, 21 Nov 2026; the bank script and Easy's deal): `size` different everyday words of
- * `size` letters, a scramble of the level's length that never undoes its last slide and leaves no row a word, kept only
- * when the proven fewest slides back (the par) is in the level's range.
+ * One level board from a seed (D1, 21 Nov 2026; the bank script and the Easy and Hard deals): `size` different common
+ * answers of `size` letters (answerWords), a scramble of the level's length that never undoes its last slide and leaves
+ * no row a word, kept only when the proven fewest slides back (the par) is in the level's range.
  */
 export function buildWordSlideLevel(s: WordSlideLevelSettings, seed: number): WordSlidePuzzleData {
   const rng = seededRng(seed);

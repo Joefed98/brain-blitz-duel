@@ -54,6 +54,17 @@ export function wordSlideSize(puzzle: { wordSlideRev?: number; size?: number } |
   const n = puzzle?.size;
   return typeof n === "number" && (WS_LEVEL_SIZES as readonly number[]).includes(n) ? n : WS_SIZE;
 }
+/**
+ * The par line a board's bonus is scored on (D1, 21 Nov 2026): the whole bonus within `full` slides, nothing from `zero`.
+ * A level board may store its own (Expert's looser line, wordSlideRev 7 only); every other board, Normal and every older
+ * round, is scored on its par and twice its par, as before.
+ */
+export function sliderParLine(puzzle: { par: number; wordSlideRev?: number; parFullAt?: number; parZeroAt?: number }): { full: number; zero: number } {
+  const own = wordSlideRevOf(puzzle) >= WORD_SLIDE_REV_SIZED;
+  const full = own && typeof puzzle.parFullAt === "number" && puzzle.parFullAt >= puzzle.par ? puzzle.parFullAt : puzzle.par;
+  const zero = own && typeof puzzle.parZeroAt === "number" && puzzle.parZeroAt > full ? puzzle.parZeroAt : 2 * puzzle.par;
+  return { full, zero: Math.max(zero, full) };
+}
 /** A drawn grid's side from its tiles (16, 25, 36 or 49); anything else is Normal's 5 (display only). */
 export function slideGridSide(grid: readonly unknown[] | null | undefined): number {
   const n = grid?.length ?? 0;

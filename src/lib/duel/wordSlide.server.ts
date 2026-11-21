@@ -1,4 +1,4 @@
-import { commonWords, isWord } from "./dictionary.server";
+import { answerWords, commonWords, isWord } from "./dictionary.server";
 import { pick, randInt, randomBelow } from "./random";
 import type { WordSlidePuzzleData } from "./types";
 import { dealtDepthRev } from "./wordDepth";
@@ -13,13 +13,31 @@ export function fiveLetterWords(): string[] {
 }
 
 const pools = new Map<number, string[]>();
-/** The everyday words of `length` letters a level grid's rows are drawn from (D1, 21 Nov 2026; 5 is fiveLetterWords). */
+/**
+ * The words of `length` letters a level grid's rows are drawn from (D1, 21 Nov 2026, Joe: the common-answers list,
+ * answerWords, as Strikeout, Cryptogrid and Swapword use, so no odd word reaches a row); 5 is Normal's fiveLetterWords,
+ * untouched. Lower case.
+ */
 export function slideWords(length: number): string[] {
   if (length === WS_SIZE) return fiveLetterWords();
   const hit = pools.get(length);
   if (hit) return hit;
-  const list = [...new Set(commonWords().filter((w) => w.length === length && /^[a-z]+$/.test(w) && isWord(w)))];
+  const list = [...new Set(answerWords(length).map((w) => w.toLowerCase()).filter((w) => /^[a-z]+$/.test(w) && isWord(w)))];
   pools.set(length, list);
+  return list;
+}
+
+const everydayPools = new Map<number, string[]>();
+/**
+ * Every everyday word of `length` letters (commonWords): what a player knows and reads a level grid's rows against (the
+ * person-like solver's vocabulary, scripts/slider-human.ts); 5 is fiveLetterWords. Lower case.
+ */
+export function everydaySlideWords(length: number): string[] {
+  if (length === WS_SIZE) return fiveLetterWords();
+  const hit = everydayPools.get(length);
+  if (hit) return hit;
+  const list = [...new Set(commonWords().filter((w) => w.length === length && /^[a-z]+$/.test(w) && isWord(w)))];
+  everydayPools.set(length, list);
   return list;
 }
 
