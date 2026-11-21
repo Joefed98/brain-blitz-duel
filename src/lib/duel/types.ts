@@ -2880,6 +2880,8 @@ export interface LetterWheelPuzzleData {
   jarSize?: number;
   /** Levels (the Word overhaul, stage 3): the level's own clock; absent = LETTERWHEEL_TIME_MS (Normal and every older round). */
   timeLimitMs?: number;
+  /** Levels (D1, 21 Nov 2026): misses that cost nothing on this deal (Hard 3, Expert 2); absent = LW_FREE_MISSES (5). */
+  freeMisses?: number;
 }
 
 /** Strikeout: reveal five hidden five-letter words a letter at a time; five strikes end it. */

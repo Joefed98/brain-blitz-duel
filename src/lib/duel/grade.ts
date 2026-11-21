@@ -122,7 +122,7 @@ import { checkoutBust } from "./numberOverhaul";
 import { gradeNumlineItems, numlineAccuracy, numlineFullError, scoreNumline } from "./numline";
 import { digCleanCollected, digDecode, digReplay, scoreDig } from "./dig";
 import { scoreWordSearch, wsDecode, wsGrade, wsRowsOf, wsSplitBonus } from "./wordSearch";
-import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
+import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwFreeMissesOf, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
 import { decodeMoonRun, decodeNinjaRun, decodeRicoRun, isMoonRev, isNinjaRev, replayMoonRun, replayNinjaRun, replayRicoRun } from "./ricochet";
@@ -2895,7 +2895,7 @@ function gradeUnderRev(
           totalCells: cells.totalCells,
           traces: tally.traces,
           misses: tally.misses,
-          freeMisses: LW_FREE_MISSES,
+          freeMisses: lwFreeMissesOf(puzzle),
           neutral: tally.neutral,
         };
         break;

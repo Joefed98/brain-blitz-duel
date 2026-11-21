@@ -11,7 +11,7 @@ import { decodeSlideTokens, markedRowWord, WS_MARKED_ROWS } from "../wordSlide";
 import { checkWordSlideRow, replayWordSlideFor } from "../wordSlide.server";
 import { swapwordCounts, wordSlideMadeRows } from "../progressFigures";
 import { wsDecode, wsGrade, wsRowsOf, wsSplitBonus } from "../wordSearch";
-import { LW_JAR_DROPS, lwDecodeLog, lwJarKept, lwJarTally, lwMissPenalty, lwTallyLog } from "../letterWheel";
+import { LW_JAR_DROPS, lwDecodeLog, lwFreeMissesOf, lwJarKept, lwJarTally, lwMissPenalty, lwTallyLog } from "../letterWheel";
 import { decodeStrikeout2, replayStrikeout2, so2EarlySolves, so2Rules, so2Tally, strikeoutRevOf, so2RulesFor } from "../strikeout";
 import { codewordRuns, codewordTally, decodeCodeword, replayCodeword } from "../codeword";
 import { cryptogridVisibleWrong, usesWordOverhaul } from "../wordOverhaul";
@@ -235,14 +235,16 @@ const roundabout: StandardGame = {
     const misses = num(extra["misses"]);
     const size = Math.max(1, p.jarSize ?? LW_JAR_DROPS);
     const jar = lwJarTally(p.words ?? [], p.letters, lwDecodeLog(input.answer), isWord);
-    const kept = lwJarKept(jar.drops, misses);
+    // Levels (D1, 21 Nov 2026): a level deal's own free misses (absent = 5, every round before).
+    const freeMisses = lwFreeMissesOf(p);
+    const kept = lwJarKept(jar.drops, misses, freeMisses);
     // wheelRev 6 (D1's refit, wordStar.ts): the jar's points are full at four fifths of it, speed full by 55 s.
     const star = usesWordStar(p, "letterwheel");
     const full = star ? roundaboutStarJarFull(size) : size;
     const fullByS = star ? ROUNDABOUT_STAR_FULL_BY_S : STD_ROUNDABOUT.fullByS;
     const jarPoints = (STD_ROUNDABOUT.jar * Math.min(kept, full)) / full;
     const facts = { bonusWords: jar.bonus.length, jarDrops: kept, jarSpilled: jar.drops - kept, jarSize: size, jarPoints: Math.round(jarPoints) };
-    const penalty = lwMissPenalty(misses);
+    const penalty = lwMissPenalty(misses, freeMisses);
     if (input.graded.isCorrect) {
       // Today's finish efficiency (accuracy: 15 less the misses' cost) scales the speed points.
       const efficiency = Math.max(0, PUZZLE_EFFICIENCY_POINTS - penalty) / PUZZLE_EFFICIENCY_POINTS;

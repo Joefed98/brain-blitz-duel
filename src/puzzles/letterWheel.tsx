@@ -2,7 +2,7 @@ import { useGameKeys } from "@/lib/desktop";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 
-import { LW_FREE_MISSES, LW_JAR_DROPS, lwDecode, lwDecodeLog, lwEncodeLog, lwGrade, lwJarDrops, lwJarKept, lwSlotCells, lwUsesJar, lwUsesLog, LW_MAX_TRACES } from "@/lib/duel/letterWheel";
+import { LW_JAR_DROPS, lwFreeMissesOf, lwDecode, lwDecodeLog, lwEncodeLog, lwGrade, lwJarDrops, lwJarKept, lwSlotCells, lwUsesJar, lwUsesLog, LW_MAX_TRACES } from "@/lib/duel/letterWheel";
 import { useStageState } from "@/lib/duel/stageState";
 import { LETTERWHEEL_TIME_MS, type LetterWheelPuzzleData, type LetterWheelSlot } from "@/lib/duel/types";
 import { prefersReducedMotion } from "@/lib/motion";
@@ -346,7 +346,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
   const usesJar = lwUsesJar(data);
   const jarSize = data?.jarSize ?? LW_JAR_DROPS;
   // Each miss after the free ones spills a drop (as the server counts it from the log).
-  const jarDrops = lwJarKept(bonus.reduce((sum, w) => sum + lwJarDrops(w), 0), misses);
+  const jarDrops = lwJarKept(bonus.reduce((sum, w) => sum + lwJarDrops(w), 0), misses, lwFreeMissesOf(data));
   const encoded = usesLog ? lwEncodeLog(log) : words.join(",");
 
   useEffect(() => {
@@ -556,8 +556,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkWord, stateKey }:
         <span data-lw-count="" className="flex h-11 min-w-0 flex-col items-start justify-center">
           <HudPills testId="letterwheel" items={[{ id: "words", label: "Words", value: `${filledCount} / ${slotCount}`, tone: "gold" }]} />
           {usesLog && misses > 0 ? (
-            <span data-lw-misses={misses} title={`${LW_FREE_MISSES} misses are free`}>
-              <HudPills testId="letterwheel-misses" items={[{ id: "misses", label: misses === 1 ? "Miss" : "Misses", value: misses, ...(misses > LW_FREE_MISSES ? { tone: "warn" as const } : {}) }]} />
+            <span data-lw-misses={misses} title={`${lwFreeMissesOf(data)} misses are free`}>
+              <HudPills testId="letterwheel-misses" items={[{ id: "misses", label: misses === 1 ? "Miss" : "Misses", value: misses, ...(misses > lwFreeMissesOf(data) ? { tone: "warn" as const } : {}) }]} />
             </span>
           ) : null}
         </span>
@@ -603,7 +603,7 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
         items={[
           { id: "words", label: "Words found", value: `${v.slots.length}/${words.length}`, tone: v.slots.length === words.length ? "gold" : undefined },
           { id: "bonus", label: "Bonus words", value: bonusWords, tone: bonusWords > 0 ? "gold" : undefined },
-          { id: "misses", label: `Misses (${LW_FREE_MISSES} free)`, value: misses, tone: misses > LW_FREE_MISSES ? "warn" : undefined },
+          { id: "misses", label: `Misses (${lwFreeMissesOf(puzzle)} free)`, value: misses, tone: misses > lwFreeMissesOf(puzzle) ? "warn" : undefined },
         ]}
       />
       <div style={{ width: px * puzzle.cols, height: px * puzzle.rows }}>
@@ -649,7 +649,7 @@ function RevealOlder({ timeLimitMs, puzzle, myAnswer, myMsRemaining, myExtra }: 
       </p>
       {storedMisses > 0 ? (
         <p data-lw-reveal-misses={storedMisses} className="font-mono text-xs text-muted-foreground">
-          {storedMisses} miss{storedMisses === 1 ? "" : "es"} · {LW_FREE_MISSES} free
+          {storedMisses} miss{storedMisses === 1 ? "" : "es"} · {lwFreeMissesOf(puzzle)} free
         </p>
       ) : null}
       {lwUsesJar(puzzle) && myExtra?.["jarSize"] !== undefined ? (
