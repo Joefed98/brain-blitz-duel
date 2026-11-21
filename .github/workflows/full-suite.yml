@@ -174,11 +174,11 @@ jobs:
         # ci-results/dev-server/ (uploaded below). Observation only.
         env:
           DUELZ_DEV_SERVER_LOG_DIR: ${{ github.workspace }}/ci-results/dev-server
-          # --max-old-space-size=4096 (6 Nov 2026): a stopgap giving every check's vite dev server a 4 GB heap, as
-          # app-shell-check and arcade-play-check already set themselves; the dev servers of arcade-device-bottom,
-          # arcade-lowend and arcade-fill-check ran out of Node's ~2.2 GB default (the capture's fatal-error reports).
-          # The dev-only first-deal compile spike behind it stays on the later list. Runners have ~7.7 GB.
-          NODE_OPTIONS: --require ${{ github.workspace }}/.github/ci/dev-server-log.cjs --report-on-fatalerror --report-directory=${{ github.workspace }}/ci-results/dev-server --max-old-space-size=4096
+          # --max-old-space-size=8192 (20 Nov 2026, brief J1; 4096 from 6 Nov 2026): every check's vite dev server gets an
+          # 8 GB heap, as arcade-play-check sets itself; the dev servers of arcade-device-bottom, arcade-lowend and
+          # arcade-fill-check ran out of Node's ~2.2 GB default (the capture's fatal-error reports). The dev-only
+          # first-deal compile spike behind it stays on the later list. Runners have 16 GB.
+          NODE_OPTIONS: --require ${{ github.workspace }}/.github/ci/dev-server-log.cjs --report-on-fatalerror --report-directory=${{ github.workspace }}/ci-results/dev-server --max-old-space-size=8192
         run: bun .github/ci/run-shard.ts ${{ matrix.shard }} 2>&1 | tee ci-results-${{ matrix.shard }}.log
         shell: bash # -eo pipefail: a failing runner fails the step through tee
 
