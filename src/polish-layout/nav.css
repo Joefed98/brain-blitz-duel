@@ -246,6 +246,7 @@
 .jz-rail-meta {
   display: flex;
   min-height: 24px;
+  margin-block: -10px;
   align-items: center;
   gap: 10px;
   padding-left: 56px;
@@ -263,7 +264,7 @@
   color: var(--jz-text);
 }
 .jz-rail-meta .jz-coins {
-  min-height: 24px;
+  min-height: 44px;
   padding: 0;
   border: 0;
   background: none;
@@ -293,7 +294,7 @@
 .jz-rail-more-row {
   display: flex;
   min-width: 0;
-  height: 40px;
+  height: 44px;
   align-items: center;
   gap: 14px;
   padding-inline: 14px 12px;
