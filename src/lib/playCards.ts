@@ -47,7 +47,35 @@ export const publicCardStarts = (games: readonly PublicGameConfig[]): [number, n
   scheduledGames(games).map((g) => [g.startsAt, g.title ? PUBLIC_CARD_H.titled : PUBLIC_CARD_H.plain]);
 export const PUBLIC_CARD_STARTS: [number, number][] = publicCardStarts(PUBLIC_GAMES);
 
-export type PlaySlotId = "daily" | "challenge" | "rejoin" | "welcome" | "homescreen" | "intro";
+export type PlaySlotId = "daily" | "challenge" | "rejoin" | "welcome" | "homescreen" | "intro" | "chips";
+
+/**
+ * Home's player banner as it was last drawn (P1, 21 Nov 2026; plan section 3.3): the banner draws this from the first
+ * frame and updates in place when rated play's status answers (its three states share one height, so nothing moves),
+ * and the boot script reserves the two rating chips under it ("chips") when it was placed.
+ */
+export type CachedHero =
+  | { state: "off" }
+  | { state: "placement"; played: number }
+  | {
+      state: "placed";
+      rating: number;
+      /** The tier view's own words and emblem (W3a's TierView), as divisionBar drew them. */
+      tier: string;
+      division: "I" | "II" | "III" | null;
+      rank: number | null;
+      label: string;
+      fraction: number;
+      next: string;
+      puzzles: number | null;
+      arcade: number | null;
+    };
+
+/** The Joulz Rating this device first saw in the current UK week (Monday's day key), for "+22 this week". */
+export interface CachedWeek {
+  week: string;
+  rating: number;
+}
 
 
 export interface CachedRejoin {
@@ -62,6 +90,10 @@ export interface PlayCardsCache {
   rejoin?: CachedRejoin;
   /** The Next public game card's last height, px (0: there was none); the schedule is read on the phone. */
   publicH?: number;
+  /** Home's player banner, last drawn. */
+  hero?: CachedHero;
+  /** The week's first rating seen on this device. */
+  week?: CachedWeek;
 }
 
 function storage(): Storage | null {
@@ -121,6 +153,7 @@ export function playCardTokens(
     challenges?: boolean;
     rejoin?: { code?: string; open?: unknown };
     publicH?: number;
+    hero?: { state?: string };
   };
   if (!cache.daily || cache.daily.available !== false) tokens.push("daily");
   if (cache.challenges !== false) tokens.push("challenge");
@@ -144,6 +177,8 @@ export function playCardTokens(
     hinted = true;
   }
   if (!hinted && iphoneSafari(device)) tokens.push("homescreen");
+  // Home's two rating chips: the banner was last drawn placed.
+  if (cache.hero && cache.hero.state === "placed") tokens.push("chips");
   // The card's last height; else, while a configured game is still to come, its default height.
   const next = starts.find((g) => g[0] > now);
   if (typeof cache.publicH === "number" && cache.publicH > 0 && cache.publicH < 600) tokens.push("public:" + Math.round(cache.publicH));
@@ -173,6 +208,7 @@ export const PLAY_CARDS_BOOT =
   'var v=window.navigator,u=v&&v.userAgent||"",d=false;try{d=s.getItem("duelz-home-hint:v1")!==null}catch(e){d=true}' +
   'var a=!!v&&(v.standalone===true||!!(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches));' +
   'if(!d&&!a&&/iPhone|iPod/.test(u)&&/Safari\\//.test(u)&&/Version\\//.test(u)&&!/CriOS|FxiOS|EdgiOS|OPiOS|OPT\\/|GSA\\/|DuckDuckGo|FBAN|FBAV|Instagram|Line\\/|Snapchat|YaBrowser|Mercury/.test(u))t.push("homescreen");' +
+  'if(c.hero&&c.hero.state==="placed")t.push("chips");' +
   'var h=document.documentElement;' +
   "var g=" + JSON.stringify(PUBLIC_CARD_STARTS) + ",x=null,w=Date.now();for(var i=0;i<g.length;i++)if(g[i][0]>w){x=g[i];break}" +
   'if(typeof c.publicH==="number"&&c.publicH>0&&c.publicH<600){t.push("public");h.style.setProperty("--play-public-h",Math.round(c.publicH)+"px")}' +

@@ -72,14 +72,6 @@
   right: calc(50% - 20px);
 }
 
-/* The page leaves room for the tab bar and, on Home and Games, the Play bar above it. */
-[data-tab-screen]:is([data-tab-screen="play"], [data-tab-screen="practice"]):not([data-nav-rail], [data-layout="desktop"]) > [data-shell-column="page"] {
-  padding-bottom: calc(var(--nav-playbar, 56px) + 12px + 56px + env(safe-area-inset-bottom, 0px) + 24px);
-}
-html:has([data-tab-screen="play"], [data-tab-screen="practice"]):not(:has([data-nav-rail], [data-layout="desktop"])) {
-  scroll-padding-bottom: calc(56px + 12px + 56px + env(safe-area-inset-bottom, 0px) + 16px);
-}
-
 /* ------------------------------------------------------------------ the header's avatar */
 .jz-nav-header-left {
   display: inline-flex;
@@ -102,26 +94,7 @@ html:has([data-tab-screen="play"], [data-tab-screen="practice"]):not(:has([data-
   margin-left: -4px;
 }
 
-/* ------------------------------------------------------------------ the gold Play bar and the rail's Play */
-.jz-nav-playbar {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: calc(var(--nav-tabbar) + env(safe-area-inset-bottom, 0px) + 12px);
-  z-index: 29;
-  display: flex;
-  justify-content: center;
-  padding-inline: max(16px, env(safe-area-inset-left, 0px)) max(16px, env(safe-area-inset-right, 0px));
-  pointer-events: none;
-}
-.jz-nav-playbar > .jz-nav-play {
-  width: 100%;
-  max-width: 398px;
-  pointer-events: auto;
-}
-[data-layout="tablet"] .jz-nav-playbar > .jz-nav-play {
-  max-width: 608px;
-}
+/* ------------------------------------------------------------------ the rail's gold Play */
 .jz-nav-play {
   --cut: var(--jz-cut-lg);
   position: relative;
@@ -241,6 +214,169 @@ html:has([data-tab-screen="play"], [data-tab-screen="practice"]):not(:has([data-
 }
 .jz-nav-rail .dk-rail-icon {
   color: var(--jz-text-2);
+}
+
+/* The fuller rail (P1, 21 Nov 2026; plan section 7, mockup home-mixed-desktop): the nameplate, the gold Play, the five
+   tabs, the "More" group and the foot. It scrolls when a short window can't hold it all (every item stays reachable). */
+.dk-rail.jz-nav-rail[data-app-rail="full"] {
+  gap: 10px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.jz-nav-rail[data-app-rail="full"] .dk-rail-tabs {
+  gap: 2px;
+}
+.jz-nav-rail[data-app-rail="full"] .dk-rail-tab.jz-nav-rail-tab {
+  height: 44px;
+}
+.jz-rail-plate {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+.jz-nav-rail[data-app-rail="compact"] .jz-rail-plate {
+  align-items: center;
+}
+.jz-nav-rail[data-app-rail="full"] .dk-rail-account .dk-rail-name {
+  font-size: 17px;
+  font-weight: var(--jz-weight-bold);
+}
+.jz-rail-meta {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  gap: 10px;
+  padding-left: 56px;
+  color: var(--jz-text-2);
+  font: var(--jz-weight-bold) 15px/1 var(--jz-font);
+  font-variant-numeric: tabular-nums;
+}
+.jz-rail-meta:empty {
+  display: none;
+}
+.jz-rail-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--jz-text);
+}
+.jz-rail-meta .jz-coins {
+  min-height: 24px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.jz-rail-more {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--jz-line);
+}
+.jz-rail-more > ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.jz-rail-more-label {
+  padding: 4px 12px;
+  color: var(--jz-text-3);
+  font: var(--jz-weight-bold) 13px/16px var(--jz-font);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.jz-rail-more-row {
+  display: flex;
+  min-width: 0;
+  height: 40px;
+  align-items: center;
+  gap: 14px;
+  padding-inline: 14px 12px;
+  border-radius: var(--jz-radius-md);
+  color: var(--jz-text-2);
+  font: var(--jz-weight-bold) 15px/1 var(--jz-font);
+  text-decoration: none;
+}
+.jz-rail-more-row > span[data-ellipsis] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.jz-rail-more-row:hover {
+  background: var(--jz-surface);
+  color: var(--jz-text);
+}
+.jz-rail-more-row[aria-current="page"] {
+  background: var(--jz-surface-3);
+  color: var(--jz-gold-ink);
+}
+:root[data-theme="light"] .jz-rail-more-row[aria-current="page"] {
+  background: var(--jz-surface-2);
+}
+.jz-rail-more-icon {
+  width: 24px;
+  flex: none;
+}
+.jz-rail-count {
+  display: inline-flex;
+  min-width: 22px;
+  height: 22px;
+  margin-left: auto;
+  align-items: center;
+  justify-content: center;
+  padding-inline: 6px;
+  border-radius: 11px;
+  background: var(--jz-gold);
+  color: var(--jz-on-gold);
+  font: var(--jz-weight-bold) 13px/1 var(--jz-font);
+  font-variant-numeric: tabular-nums;
+}
+.jz-nav-rail[data-app-rail="full"] .dk-rail-foot {
+  gap: 8px;
+  padding-top: 8px;
+}
+.jz-nav-rail[data-app-rail="full"] .dk-rail-tools {
+  justify-content: space-between;
+  padding-inline: 0;
+}
+.jz-rail-settings {
+  display: inline-flex;
+  min-height: 44px;
+  flex: 1;
+  align-items: center;
+  gap: 14px;
+  padding-inline: 14px;
+  border-radius: var(--jz-radius-md);
+  color: var(--jz-text-2);
+  font: var(--jz-weight-bold) 15px/1 var(--jz-font);
+}
+.jz-rail-settings:hover {
+  background: var(--jz-surface);
+  color: var(--jz-text);
+}
+.jz-rail-mark {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--jz-radius-md);
+}
+.jz-rail-mark:hover {
+  background: var(--jz-surface);
+}
+.jz-rail-more-row:focus-visible,
+.jz-rail-settings:focus-visible,
+.jz-rail-mark:focus-visible {
+  outline: 3px solid var(--jz-focus-ring);
+  outline-offset: 2px;
 }
 
 /* A tablet turned sideways: its main screens take the rail (Joe, 14 Nov 2026); rooms and games stay the phone's. */
@@ -414,45 +550,100 @@ html:has([data-tab-screen="play"], [data-tab-screen="practice"]):not(:has([data-
 }
 
 /* ------------------------------------------------------------------ the launch screen */
+/* P1, 21 Nov 2026 (earlier row A1, Joe's U1a): the vector bolt on --jz-bg filling bottom to top, sparks off its tip,
+   the wordmark fading in; at least SPLASH_MIN_MS, then a SPLASH_FADE_MS fade (LaunchSplash.tsx). */
 .jz-launch {
   position: fixed;
   inset: 0;
   z-index: 200;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: var(--jz-surface);
-}
-.jz-launch {
-  flex-direction: column;
-  gap: 20px;
+  gap: 24px;
+  background: var(--jz-bg);
+  transition: opacity 200ms ease;
 }
 .jz-launch-name {
   display: inline-flex;
   white-space: nowrap;
+  animation: jz-launch-name 420ms 300ms ease-out both;
 }
 :root[data-theme="light"] .jz-launch .ap-wordmark-text {
   color: var(--jz-text);
 }
-.jz-launch > img {
-  animation: jz-launch-in var(--jz-dur-win) var(--jz-ease-out) both;
+.jz-launch-bolt {
+  position: relative;
+  display: inline-flex;
 }
-/* Gone the moment the app has started (never a fixed delay). */
+.jz-launch-bolt-dim {
+  fill: var(--jz-surface-2);
+}
+.jz-launch-bolt-fill {
+  fill: var(--jz-gold);
+  animation: jz-launch-fill 600ms cubic-bezier(0.35, 0, 0.25, 1) both;
+}
+/* The sparks leave from the tip (the bolt's top right) once the fill reaches it. */
+.jz-launch-sparks {
+  position: absolute;
+  top: 6px;
+  left: 62%;
+  width: 0;
+  height: 0;
+}
+.jz-launch-sparks > span {
+  position: absolute;
+  left: -2px;
+  top: -2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--jz-gold);
+  opacity: 0;
+  transform: rotate(var(--a)) translateY(0);
+  animation: jz-launch-spark 520ms calc(480ms + var(--i) * 20ms) ease-out both;
+}
+.jz-launch[data-leaving] {
+  opacity: 0;
+  pointer-events: none;
+}
+/* Gone once it has faded. */
 .jz-launch[data-done] {
   display: none;
 }
-@keyframes jz-launch-in {
+@keyframes jz-launch-fill {
   from {
-    opacity: 0.4;
-    transform: scale(0.9);
+    clip-path: inset(100% 0 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes jz-launch-name {
+  from {
+    opacity: 0;
   }
   to {
     opacity: 1;
-    transform: scale(1);
+  }
+}
+@keyframes jz-launch-spark {
+  0% {
+    opacity: 1;
+    transform: rotate(var(--a)) translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--a)) translateY(calc(-1 * var(--d))) scale(0.4);
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .jz-launch > img {
+  .jz-launch-bolt-fill,
+  .jz-launch-name {
+    animation: none;
+  }
+  .jz-launch-sparks > span {
+    display: none;
     animation: none;
   }
 }

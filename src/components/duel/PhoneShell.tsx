@@ -28,7 +28,6 @@ import { ArenaMount, useArenaLayout, useArenaMount, ARENA_PANEL_W } from "@/lib/
 import { TimerLookContext, useGameTimer } from "@/lib/gameFrame/headerStyle";
 import { BannerSlot } from "@/components/app/PageAside";
 import { useLayoutMode } from "@/lib/layoutMode";
-import { PlayBar } from "@/components/nav/PlayBar";
 import { useHomeBeneath, useNavPlacement, useNavScroll } from "@/components/nav/navigation";
 import { DESKTOP_MODES } from "@/lib/duel/desktopModes";
 import { ControlSchemeContext, useControlScheme } from "@/lib/gameControls";
@@ -559,7 +558,7 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
     <ArenaMount.Provider value={arenaValue}>
     <div
       ref={surfaceRef}
-      className={`relative w-full bg-background ${gameScreen ? "game-screen" : ""}${tabPage && tabs === "more" ? " jz-nav" : ""} ${
+      className={`relative w-full bg-background ${gameScreen ? "game-screen" : ""}${tabPage && (tabs === "more" || tabs === "you") ? " jz-nav" : ""} ${
         constrained ? "no-overscroll game-viewport overflow-hidden" : "min-h-[100dvh]"
       }`}
       data-category={theme?.accent}
@@ -626,8 +625,6 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
           <div ref={setArenaMountNode} className="arena-panel-mount" />
         </aside>
       ) : null}
-      {/* The gold Play bar: Home and Games only, just above the tab bar (the rail has its own Play button). */}
-      {tabPage && !railHere && (tabs === "play" || tabs === "practice") ? <PlayBar from={tabs} /> : null}
       {tabPage && !railHere ? <AppTabBar current={tabs!} /> : null}
       {/* "Save your progress" shows only here, on the tab pages (src/components/account/SaveProgressSlot.tsx). */}
       {tabs && !gameScreen ? <SaveProgressSlot /> : null}

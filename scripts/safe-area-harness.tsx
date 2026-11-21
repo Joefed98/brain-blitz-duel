@@ -33,7 +33,6 @@ import { Route as ChallengeRoute } from "@/routes/challenge";
 import { Route as TermsRoute } from "@/routes/terms";
 import { Route as FriendsRoute } from "@/routes/friends";
 import { Route as CustomiseRoute } from "@/routes/customise";
-import { Route as MoreRoute } from "@/routes/more";
 import { Route as DailyArchiveRoute } from "@/routes/daily-archive";
 import { TournamentEventScreen } from "@/components/tournaments/TournamentEvent";
 import { TournamentRulesScreen } from "@/components/tournaments/TournamentRules";
@@ -63,7 +62,6 @@ import { setIdentityBackend } from "@/lib/identity/backend";
 import { setBadgesBackend } from "@/lib/badges/badgesApi";
 import { Route as BadgesRoute } from "@/routes/badges";
 import { Route as CardRoute } from "@/routes/card";
-import { Route as PlayRoute } from "@/routes/play";
 import { Route as RoomsRoute } from "@/routes/rooms";
 
 interface Verdict {
@@ -792,10 +790,11 @@ const ROOT_SCREENS: Record<string, () => JSX.Element> = {
     const Card = CardRoute.options.component as () => JSX.Element;
     return <Card />;
   },
-  // Home and Play (phase 2 step 3): the Play page and the Rooms page as their routes draw them.
+  // Home and Play (phase 2 step 3): the Rooms page as its route draws it. The Play page folded into Home on 21 Nov 2026
+  // (P1): /play redirects there, so the "play" mode draws Home.
   play: () => {
-    const Play = PlayRoute.options.component as () => JSX.Element;
-    return <Play />;
+    const Home = HomeRoute.options.component as () => JSX.Element;
+    return <Home />;
   },
   rooms: () => {
     const Rooms = RoomsRoute.options.component as () => JSX.Element;
@@ -828,7 +827,8 @@ const Screen = ROOT_SCREENS[mode ?? ""] ?? (
                   : mode === "customise"
                     ? CustomiseRoute
                     : mode === "more"
-                      ? MoreRoute
+                      ? // More folded into You on 21 Nov 2026 (P1): /more redirects to the Profile page.
+                        ProfileRoute
                       : PracticeRoute
 ).options.component as () => JSX.Element;
 createRoot(document.getElementById("root")!).render(
