@@ -725,7 +725,9 @@ section("11. Stage 3: the shared reveal: the score, then the big numbers and the
     const { host, root } = await mount({ type: "skyline", seed: 13, skylineRev: SKYLINE_REV_LIVES }, s10Raw, run.score, reveal, practice);
     const where = practice ? "practice" : "a room";
     const seen = order(host);
-    const want = practice ? ["score", "picture", "breakdown"] : ["score", "picture", "summary", "breakdown(folded)", "chart"];
+    // Changed with Joe's approval, 21 Nov 2026 (the reveal template, P2): in a room the chart is the stage's Room view, straight after the run's
+    // picture ("Your run"), and the summary and folded breakdown sit under the stage, shown on both views.
+    const want = practice ? ["score", "picture", "breakdown"] : ["score", "picture", "chart", "summary", "breakdown(folded)"];
     ok(seen.join() === want.join(), `${where}: the reveal reads ${want.join(" → ")} (${seen.join(" → ")})`);
     const pic = host.querySelector("[data-reveal-run-picture] [data-skyline-run-picture]");
     ok(Boolean(pic) && pic!.querySelectorAll("[data-skyline-stat]").length === 3 && pic!.querySelectorAll("canvas").length === 1, `${where}: the three big numbers and the picture straight under the score`);

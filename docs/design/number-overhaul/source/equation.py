@@ -8,6 +8,10 @@ made real, in champagne gold and navy.
 - sign:       a sign key and a filled sign gap: a polished champagne-gold domed disc
 - panel:      the board: dark lacquered panel with a bevelled edge (drawn 9-slice by the app)
 
+Spotlight (the polish plan, 21 Nov 2026): `num` is re-rendered as a light piece, an ivory matte face over a warm ledge
+(dark navy ink in the app); the gaps, the sign discs and the board keep the first pass's look (the gap code: gold
+circles take a sign, the squares a number).
+
 Faces are blank: the app draws numbers and signs in Archivo over them. Highlights sit on bevels and curves; the
 faces stay dark and clear so the numbers read.
 Run:  /opt/blender/venv/bin/python docs/design/number-overhaul/source/equation.py [sprite ...]
@@ -52,8 +56,14 @@ def dark_piece(w, h):
 
 
 def num():
-    dark_piece(60, 56)
-    box(2, 2, 56, 52, 12, lacquer(), r=10)
+    setup(60, 56, scale=3, reflect=0.12)
+    sc = bpy.context.scene
+    # Light pieces keep their true colours (AgX's look bleaches pale colours): the Word art's view, a stop down.
+    sc.view_settings.view_transform = "Khronos PBR Neutral"
+    sc.view_settings.look = "None"
+    sc.view_settings.exposure = -1.1
+    box(2, 2, 56, 52, 6, mat("ivoryledge", "#c9a56a", 0.6, coat=0.12, coat_rough=0.4), r=10)
+    box(2, 2, 56, 48, 6, mat("ivoryface", "#f3ead3", 0.6, coat=0.12, coat_rough=0.4), r=10, z=6)
     write(G, "num")
 
 
