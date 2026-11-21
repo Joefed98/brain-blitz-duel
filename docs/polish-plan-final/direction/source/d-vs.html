@@ -1,0 +1,30 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="game.css"><script>const Q=new URLSearchParams(location.search);document.documentElement.dataset.dir = Q.get("dir") || "a";</script>
+<style>
+body { background:#141B63; } body::before { display:none; }
+.half { position:absolute; top:0; bottom:0; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+.me { left:0; width:54%; background: linear-gradient(160deg,#FF6BD6 0%, #B14DF0 50%, #5B37D6 100%); clip-path: polygon(0 0,100% 0,84% 100%,0 100%); }
+.them { right:0; width:54%; background: linear-gradient(200deg,#36E2F5 0%, #2B7BF0 55%, #2A3FD0 100%); clip-path: polygon(16% 0,100% 0,100% 100%,0 100%); }
+.pl { display:flex; flex-direction:column; align-items:center; gap:10px; text-align:center; position:relative; }
+.me .pl { margin-right:90px; } .them .pl { margin-left:90px; }
+.big-av { width:220px; height:220px; border-radius:64px; border:9px solid #fff; box-shadow: 0 12px 0 rgba(10,10,60,.35), 0 26px 40px rgba(0,0,0,.3); overflow:hidden; }
+.big-av img { width:100%; height:100%; transform: scale(1.12); }
+.pl b { font: 900 46px/1.05 "Archivo"; font-stretch:110%; color:#fff; text-shadow: 0 4px 0 rgba(10,10,60,.4); margin-top:8px; }
+.pl .ti { font-size:19px; font-weight:800; color:#fff; }
+.rk { display:inline-flex; align-items:center; gap:8px; height:46px; padding:0 20px; border-radius:23px; background: rgba(10,10,60,.4); color:#fff; font: 900 22px "Archivo"; }
+.rk svg { width:16px; height:21px; color:#FFC81E; }
+.vs { position:absolute; left:50%; top:50%; width:190px; height:190px; margin:-95px 0 0 -95px; border-radius:50%; background: radial-gradient(circle at 35% 30%, #FFF1A8, #FFC81E 58%); box-shadow: 0 12px 0 #C98200, 0 0 0 12px #fff, 0 26px 40px rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center; font: 900 82px "Archivo"; font-stretch:118%; color:#22164F; }
+.seam { position:absolute; left:50%; top:-10%; bottom:-10%; width:14px; margin-left:-7px; background:#fff; transform: rotate(8.2deg); box-shadow: 0 0 30px rgba(255,255,255,.9); }
+.topchips { position:absolute; top:26px; left:0; right:0; display:flex; gap:10px; justify-content:center; }
+.topchips .pill { height:40px; font-size:17px; padding:0 18px; }
+.live { height:40px; padding:0 14px; border-radius:12px; background:#FF3B5C; color:#fff; font: 900 16px "Archivo"; letter-spacing:.08em; display:flex; align-items:center; }
+.foot { position:absolute; left:0; right:0; bottom:34px; display:flex; gap:14px; justify-content:center; }
+.next { height:88px; border-radius:24px; background:#fff; box-shadow: 0 7px 0 rgba(10,10,60,.35); display:flex; align-items:center; gap:14px; padding:0 22px 0 14px; color:#22164F; }
+.next img { width:62px; height:62px; border-radius:16px; } .next small { display:block; font-size:14px; font-weight:800; color:#6772A6; } .next b { font: 900 24px "Archivo"; }
+.stake { height:88px; border-radius:24px; background: rgba(10,10,60,.55); padding: 0 22px; display:flex; align-items:center; gap:16px; font: 900 20px "Archivo"; color:#fff; }
+</style></head><body>
+  <div class="half me"><div class="rays" style="opacity:.14"></div><div class="pl"><div class="big-av" style="background:#FF6BD6"><img src="art/avatars/svg/captain-joulz.svg"></div><b>TheInventor_2026</b><span class="ti">Founding Player</span><span class="rk"><svg viewBox="0 0 26 34"><path fill="currentColor" d="M19 .5 7 18.5h6.5L14.2 13.5zM13.5 18.5 8 33.5 21 13.5h-6.8z"/></svg> Volt II · 1,278</span></div></div>
+  <div class="half them"><div class="rays" style="opacity:.14"></div><div class="pl"><div class="big-av" style="background:#36E2F5"><img src="art/avatars/svg/orbit.svg"></div><b>Sam_Speedrunner1</b><span class="ti">Arena Champion</span><span class="rk"><svg viewBox="0 0 26 34"><path fill="currentColor" d="M19 .5 7 18.5h6.5L14.2 13.5zM13.5 18.5 8 33.5 21 13.5h-6.8z"/></svg> Volt II · 1,296</span></div></div>
+  <div class="seam"></div><div class="vs">VS</div>
+  <div class="topchips"><span class="pill dark">Rated</span><span class="pill dark">Best of 3</span><span class="pill dark">You lead 3–1</span><span class="live">LIVE</span></div>
+  <div class="foot"><div class="next"><img src="pub/tiles/wordsearch.webp"><div><small>Game 1 of 3</small><b>Lookout</b></div></div><div class="stake"><span style="color:#7DFFA6">Win +8</span><span style="color:#FFC2CC">Lose −8</span></div></div>
+</body></html>

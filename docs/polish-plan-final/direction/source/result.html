@@ -1,0 +1,33 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="game.css"><script>document.documentElement.dataset.dir = new URLSearchParams(location.search).get("dir") || "a";</script>
+<style>
+body { background: radial-gradient(120% 70% at 50% 14%, #5B7BFF 0%, #2B40D2 40%, #141B63 100%); }
+.win { text-align:center; padding-top: 34px; position:relative; }
+.win .rays { inset:-120px -60px auto -60px; height: 520px; opacity:.22; }
+.win h1 { font: 900 62px/1 "Archivo"; font-stretch:120%; color:#FFC81E; text-shadow: 0 5px 0 #A86400, 0 12px 22px rgba(0,0,0,.35); position:relative; }
+.sc { font: 900 40px "Archivo"; color:#fff; margin-top:6px; position:relative; }
+.sc small { font-size:16px; font-weight:800; color:var(--text2); display:block; }
+.rate { margin: 18px 16px 0; padding: 14px 16px; }
+.rate .n { font: 900 34px "Archivo"; }
+.rate .d { font: 900 22px "Archivo"; color:#06310F; background:#3EDB72; height:38px; padding:0 12px; border-radius:12px; display:flex; align-items:center; box-shadow:0 4px 0 #1E9A48; }
+.bar { height:14px; border-radius:7px; background: var(--chip); margin-top:12px; overflow:hidden; }
+.bar i { display:block; height:100%; width:62%; border-radius:7px; background: linear-gradient(180deg,#FFE570,#FFC81E); }
+.gm { margin: 12px 16px 0; display:flex; flex-direction:column; gap:8px; }
+.gr { height:62px; border-radius:18px; background: var(--card); box-shadow: 0 4px 0 var(--ledge); display:flex; align-items:center; gap:12px; padding: 0 12px; }
+.gr img { width:44px; height:44px; border-radius:12px; }
+.gr b { font: 900 17px "Archivo"; }
+.gr .s { margin-left:auto; font: 900 20px "Archivo"; }
+.gr .s small { color: var(--text3); font-size:15px; }
+.tick { width:26px; height:26px; border-radius:50%; background:#3EDB72; color:#06310F; display:flex; align-items:center; justify-content:center; font: 900 15px "Archivo"; }
+.tick.no { background:#FF5470; color:#fff; }
+.act { position:absolute; left:16px; right:16px; bottom:22px; display:flex; flex-direction:column; gap:14px; }
+.joules { display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 12px; border-radius:12px; background:#C6FF3D; color:#1E3300; font: 900 15px "Archivo"; }
+</style></head><body><div class="page">
+  <div class="win"><div class="rays"></div><h1>You win!</h1><div class="sc">2 – 1<small>v Sam_Speedrunner1</small></div></div>
+  <div class="card rate"><div class="row gap10"><div class="grow"><div class="cap">Joulz Rating</div><div class="n">1,285</div></div><div class="d">▲ +7</div></div><div class="bar"><i></i></div><div class="row" style="justify-content:space-between;margin-top:8px"><span class="cap">Volt II · 115 to Volt I</span><span class="joules">⚡ +120 Joules</span></div></div>
+  <div class="gm">
+    <div class="gr"><img src="pub/tiles/wordsearch.webp"><b>Lookout</b><span class="s">168 <small>v 151</small></span><span class="tick">✓</span></div>
+    <div class="gr"><img src="pub/tiles/racing.webp"><b>Apex</b><span class="s">142 <small>v 171</small></span><span class="tick no">✕</span></div>
+    <div class="gr"><img src="pub/tiles/flow.webp"><b>Chroma Lines</b><span class="s">188 <small>v 176</small></span><span class="tick">✓</span></div>
+  </div>
+  <div class="act"><div class="btn big full">Next match</div><div class="row gap12"><div class="btn sec full" style="flex:1">Rematch</div><div class="btn sec full" style="flex:1">Home</div></div></div>
+</div></body></html>

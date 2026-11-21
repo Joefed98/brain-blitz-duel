@@ -1,0 +1,23 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="kit.css">
+<style>
+body { background: radial-gradient(120% 50% at 50% -8%, #2A1250 0%, var(--bg) 60%); }
+.seg { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; } .seg div { height:40px; border-radius:10px; background:var(--surface); box-shadow:inset 0 0 0 1px var(--line); display:flex; align-items:center; justify-content:center; font:800 14px/1 Archivo; color:var(--text2); } .seg .on { background:var(--surface2); box-shadow:inset 0 0 0 1.5px var(--edge); color:var(--text); }
+.hero { padding:16px 16px 18px; background:linear-gradient(160deg,#3A1B6E 0%,var(--surface) 62%,#0B1226 100%); }
+.bar { height:10px; border-radius:5px; background:#0A1022; overflow:hidden; } .bar i { display:block; height:100%; width:62%; background:var(--metal); }
+.track { display:grid; grid-template-columns:44px repeat(4,1fr); gap:6px; align-items:center; }
+.track .h { font:800 10px/1.1 Archivo; letter-spacing:.08em; color:var(--text3); text-transform:uppercase; }
+.rw { aspect-ratio:1; border-radius:10px; background:var(--raised); box-shadow:inset 0 0 0 1px var(--line); position:relative; overflow:hidden; display:flex; align-items:center; justify-content:center; font:900 15px/1 Archivo; color:var(--gold-hi); }
+.rw img { width:100%; height:100%; object-fit:cover; } .rw.got { opacity:.45; } .rw.now { box-shadow:inset 0 0 0 2px var(--gold); } .rw.lock::after { content:"🔒"; position:absolute; right:4px; top:4px; font-size:11px; }
+.lvn { text-align:center; font:900 13px/1 Archivo; color:var(--text3); } .lvn.now { color:var(--gold-hi); }
+.wk { padding:12px 14px; display:flex; align-items:center; gap:12px; } .wk .p { width:44px; height:44px; border-radius:50%; background:conic-gradient(var(--gold) var(--v), #1C2A52 0); display:flex; align-items:center; justify-content:center; } .wk .p b { width:34px; height:34px; border-radius:50%; background:var(--surface); display:flex; align-items:center; justify-content:center; font:800 11px/1 Archivo; }
+</style></head><body><div class="page">
+  <div class="row"><h1 class="grow">Shop</h1><span class="pill gold">🪙 1,250</span></div>
+  <div class="seg mt14"><div>Shop</div><div class="on">Pass</div><div>Plus</div></div>
+  <div class="cut hero mt14"><div class="cap" style="color:var(--gold)">Season 1 · Neon Circuit · 41 days left</div><div class="row g12 mt10"><div class="num" style="font-size:54px">14</div><div class="grow"><div style="font:800 15px/1 Archivo">Level 14 of 60</div><div class="bar mt10"><i></i></div><div class="sub mt6" style="font-size:12.5px">620 / 1,000 Joules to level 15</div></div></div><div class="btn mt14" style="width:176px">Claim 2</div></div>
+  <div class="track mt18"><div></div><div class="lvn">13</div><div class="lvn now">14</div><div class="lvn">15</div><div class="lvn">16</div>
+    <div class="h">Free</div><div class="rw got">100</div><div class="rw now">150</div><div class="rw"><img src="pub/shop/card-art.aurora.webp"></div><div class="rw">100</div>
+    <div class="h">Pre&shy;mium</div><div class="rw got"><img src="pub/shop/avatar-finish.chrome.webp"></div><div class="rw now"><img src="pub/shop/avatar-finish.neon-glow.webp"></div><div class="rw lock"><img src="pub/shop/card-art.crimson.webp"></div><div class="rw lock">300</div></div>
+  <div class="cap mt18">This week · 2 of 3</div>
+  <div class="col g6 mt10"><div class="panel wk"><div class="p" style="--v:100%"><b>✓</b></div><div class="grow"><b style="font:800 15px/1.1 Archivo">Win 5 rated games</b><div class="sub mt6" style="font-size:12.5px">+750 Joules · claimed</div></div></div><div class="panel wk"><div class="p" style="--v:60%"><b>3/5</b></div><div class="grow"><b style="font:800 15px/1.1 Archivo">Earn 5 stars</b><div class="sub mt6" style="font-size:12.5px">+1,000 Joules</div></div><div class="btn sec sm">Play</div></div></div>
+  <div class="tabs"><div class="tab"><img src="pub/nav/home-3x.webp">Home</div><div class="tab"><img src="pub/nav/games-3x.webp">Games</div><div class="tab"><img src="pub/nav/tournaments-3x.webp">Compete</div><div class="tab on"><img src="pub/nav/shop-3x.webp">Shop</div><div class="tab"><img src="pub/nav/profile-3x.webp">You</div></div>
+</div></body></html>

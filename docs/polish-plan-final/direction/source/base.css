@@ -1,0 +1,219 @@
+/* Joulz design-direction mockups (Nov 2026). Three colour directions on one set of components.
+   A "Bright Spark" (recommended): royal blue world, bolt yellow action.
+   B "Daylight": light pages.  C "Neon Night": today's dark, tuned up. */
+@font-face { font-family: "Archivo"; font-weight: 100 900; font-stretch: 62% 125%; src: url("pub/fonts/archivo-var-latin.woff2") format("woff2"); }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --word:#4D8CFF; --number:#3DDC84; --speed:#FF8A3D; --attention:#FF6BD6; --pattern:#B26BFF; --logic:#2ED3B7;
+  --retro:#36E2F5; --sports:#4CC24A; --cards:#FF5C93; --action:#FF4D4D; --strategy:#8E80FF;
+  --easy:#3EDB72; --normal:#4D8CFF; --hard:#FF8A3D; --expert:#FF4D6A;
+}
+[data-dir="a"] {
+  --bg0:#2B40D2; --bg1:#141B63; --card:#2A3FC6; --card2:#3A55E8; --ledge:#1A2889; --line:#5C77FF;
+  --text:#FFFFFF; --text2:#DCE3FF; --text3:#B6C3FB; --ink:#1B1450;
+  --act:#FFC81E; --act-hi:#FFE570; --act-ledge:#C98200; --on-act:#22164F;
+  --sec:#5270FF; --sec-hi:#7D95FF; --sec-ledge:#2B41BD; --on-sec:#FFFFFF;
+  --white:#FFFFFF; --white-ledge:#BFC9F2;
+  --win:#3EDB72; --loss:#FF5470; --tab:#0F1650; --tab-line:#2C3FB8; --chip:#1C2A8F;
+  --shadow: 0 10px 22px rgba(6,9,50,.38);
+}
+[data-dir="b"] {
+  --bg0:#F4F7FF; --bg1:#E3E9FB; --card:#FFFFFF; --card2:#EEF2FF; --ledge:#C5CEEE; --line:#D3DBF4;
+  --text:#141A4F; --text2:#38437C; --text3:#5E6AA0; --ink:#141A4F;
+  --act:#FFC81E; --act-hi:#FFE570; --act-ledge:#C98200; --on-act:#22164F;
+  --sec:#3F5EFF; --sec-hi:#6F88FF; --sec-ledge:#2941BF; --on-sec:#FFFFFF;
+  --white:#FFFFFF; --white-ledge:#C5CEEE;
+  --win:#19A84E; --loss:#E03255; --tab:#FFFFFF; --tab-line:#D3DBF4; --chip:#E3E9FB;
+  --shadow: 0 8px 18px rgba(40,56,140,.16);
+}
+[data-dir="c"] {
+  --bg0:#0C1236; --bg1:#05070F; --card:#121A44; --card2:#1B2660; --ledge:#090E2A; --line:#2B3A86;
+  --text:#FFFFFF; --text2:#D2DAFA; --text3:#9FADE3; --ink:#0B0F2A;
+  --act:#FFC81E; --act-hi:#FFE570; --act-ledge:#C98200; --on-act:#22164F;
+  --sec:#3049C9; --sec-hi:#4D68EA; --sec-ledge:#1B2B8A; --on-sec:#FFFFFF;
+  --white:#FFFFFF; --white-ledge:#BFC9F2;
+  --win:#3EDB72; --loss:#FF5470; --tab:#070A1C; --tab-line:#1B2660; --chip:#1B2660;
+  --shadow: 0 10px 22px rgba(0,0,0,.5);
+}
+html, body { width: 100%; height: 100%; }
+body {
+  font-family: "Archivo", system-ui, sans-serif; color: var(--text); overflow: hidden;
+  background: linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 78%); position: relative;
+  -webkit-font-smoothing: antialiased; font-weight: 700; font-size: 16px; line-height: 1.25;
+}
+/* the faint bolt-slash pattern behind every page: energy without noise */
+body::before { content:""; position:absolute; inset:0; pointer-events:none; opacity:.07;
+  background: repeating-linear-gradient(118deg, transparent 0 46px, #fff 46px 50px, transparent 50px 132px); }
+[data-dir="b"] body::before, body[data-dir="b"]::before { opacity:.5; background: repeating-linear-gradient(118deg, transparent 0 46px, #fff 46px 52px, transparent 52px 132px); }
+.page { position: relative; height: 100%; display: flex; flex-direction: column; }
+.scroll { flex: 1; overflow: hidden; padding: 0 16px; }
+h1, .h1 { font: 900 30px/1.05 "Archivo"; font-stretch: 112%; letter-spacing: -.01em; }
+h2, .h2 { font: 900 21px/1.1 "Archivo"; font-stretch: 108%; }
+.sub { color: var(--text2); font-weight: 700; font-size: 15px; }
+.cap { color: var(--text3); font-weight: 700; font-size: 13px; }
+.row { display: flex; align-items: center; }
+.gap8 { gap: 8px; } .gap10 { gap: 10px; } .gap12 { gap: 12px; } .gap16 { gap: 16px; }
+.grow { flex: 1; min-width: 0; }
+.sec-head { display:flex; align-items:baseline; justify-content:space-between; margin: 22px 2px 10px; }
+.sec-head a { color: var(--text2); font-size: 14px; font-weight: 800; }
+
+/* ---- buttons: every pressable thing has a ledge ---- */
+.btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; height:56px; padding:0 26px; border-radius:18px;
+  font: 900 20px/1 "Archivo"; font-stretch: 108%; color: var(--on-act);
+  background: linear-gradient(180deg, var(--act-hi) 0%, var(--act) 46%);
+  box-shadow: inset 0 2px 0 rgba(255,255,255,.6), 0 6px 0 var(--act-ledge), 0 12px 18px rgba(0,0,0,.28); }
+.btn.big { height: 68px; font-size: 26px; border-radius: 22px; box-shadow: inset 0 3px 0 rgba(255,255,255,.6), 0 8px 0 var(--act-ledge), 0 16px 22px rgba(0,0,0,.3); }
+.btn.sm { height: 44px; font-size: 16px; padding: 0 18px; border-radius: 14px; box-shadow: inset 0 2px 0 rgba(255,255,255,.6), 0 4px 0 var(--act-ledge); }
+.btn.sec { color: var(--on-sec); background: linear-gradient(180deg, var(--sec-hi), var(--sec) 50%); box-shadow: inset 0 2px 0 rgba(255,255,255,.3), 0 6px 0 var(--sec-ledge), 0 12px 18px rgba(0,0,0,.25); }
+.btn.sec.sm { box-shadow: inset 0 2px 0 rgba(255,255,255,.3), 0 4px 0 var(--sec-ledge); }
+.btn.white { color: var(--ink); background: #fff; box-shadow: 0 6px 0 var(--white-ledge), 0 12px 18px rgba(0,0,0,.22); }
+.btn.white.sm { box-shadow: 0 4px 0 var(--white-ledge); }
+.btn.green { color:#06310F; background: linear-gradient(180deg,#8CF2A8,#3EDB72 50%); box-shadow: inset 0 2px 0 rgba(255,255,255,.5), 0 6px 0 #1E9A48, 0 12px 18px rgba(0,0,0,.25); }
+.btn.full { width: 100%; }
+
+/* ---- cards ---- */
+.card { position: relative; border-radius: 22px; background: var(--card); box-shadow: 0 6px 0 var(--ledge), var(--shadow); overflow: hidden; }
+.card.flat { box-shadow: 0 4px 0 var(--ledge); }
+.pill { display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 12px; border-radius:15px; background: var(--chip); color: var(--text); font-weight:800; font-size:14px; }
+.pill.light { background: rgba(255,255,255,.22); color:#fff; }
+.pill.dark { background: rgba(10,12,60,.35); color:#fff; }
+.dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+.coin { width:22px; height:22px; border-radius:50%; background: radial-gradient(circle at 35% 30%, #FFF1A8, #FFC81E 55%, #D08A00); box-shadow: 0 2px 0 #9A6200; display:inline-flex; align-items:center; justify-content:center; }
+.coin svg { width: 10px; height: 13px; }
+.rays { position:absolute; inset:-40%; pointer-events:none; opacity:.16;
+  background: repeating-conic-gradient(from 0deg at 50% 50%, #fff 0 7deg, transparent 7deg 18deg); }
+.slash { position:absolute; inset:0; pointer-events:none; opacity:.13; background: repeating-linear-gradient(118deg, transparent 0 22px, #fff 22px 30px, transparent 30px 64px); }
+
+/* ---- header ---- */
+.top { display:flex; align-items:center; gap:10px; padding: 14px 16px 8px; }
+.avatar { width:48px; height:48px; border-radius:16px; background: var(--card2); box-shadow: 0 4px 0 var(--ledge); overflow:hidden; flex:none; display:flex; align-items:center; justify-content:center; }
+.avatar img { width: 118%; height: 118%; object-fit: cover; }
+.who b { display:block; font: 900 17px/1.1 "Archivo"; }
+.tier { display:inline-flex; align-items:center; gap:5px; font-size:13px; font-weight:800; color: var(--act); }
+[data-dir="b"] .tier { color:#B26A00; }
+
+/* ---- tab bar ---- */
+.tabs { height: 78px; display:flex; background: var(--tab); border-top: 3px solid var(--tab-line); padding: 6px 6px 10px; flex:none; }
+.tab { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; color: var(--text3); font-size:12.5px; font-weight:800; border-radius:16px; }
+.tab img { width:34px; height:34px; filter: saturate(.25) opacity(.75); }
+.tab.on { color: var(--text); background: var(--card); box-shadow: 0 3px 0 var(--ledge); }
+[data-dir="b"] .tab.on { background: var(--card2); }
+.tab.on img { filter:none; transform: translateY(-2px) scale(1.12); }
+
+/* ---- game tiles ---- */
+.tile { position:relative; border-radius:20px; overflow:hidden; flex:none; background:#111; box-shadow: 0 6px 0 var(--tc-ledge, var(--ledge)), var(--shadow); }
+.tile img { width:100%; height:100%; object-fit:cover; display:block; }
+.tile .nm { position:absolute; left:0; right:0; bottom:0; padding: 22px 10px 9px; font: 900 15px/1.1 "Archivo"; color:#fff; background: linear-gradient(180deg, transparent, rgba(8,10,40,.88) 62%); }
+.tile .stars { position:absolute; top:8px; right:8px; display:flex; gap:2px; }
+.tile .catbar { position:absolute; left:0; top:0; right:0; height:7px; background: var(--tc, var(--word)); }
+.star { width:16px; height:16px; background:#FFC81E; clip-path: polygon(50% 0, 62% 35%, 100% 38%, 70% 60%, 80% 100%, 50% 76%, 20% 100%, 30% 60%, 0 38%, 38% 35%); }
+.star.off { background: rgba(255,255,255,.28); }
+.star.lg { width: 34px; height: 34px; }
+
+/* desktop helpers */
+.rail { width: 232px; background: var(--tab); border-right: 3px solid var(--tab-line); padding: 18px 14px; display:flex; flex-direction:column; gap:6px; flex:none; }
+.rail .item { display:flex; align-items:center; gap:12px; height:48px; padding:0 12px; border-radius:14px; color: var(--text2); font-weight:800; font-size:16px; }
+.rail .item img { width:30px; height:30px; filter: saturate(.3) opacity(.8); }
+.rail .item.on { background: var(--card); color: var(--text); box-shadow: 0 3px 0 var(--ledge); }
+.rail .item.on img { filter:none; }
+
+/* =====================================================================================
+   E "Esports, refined" and F "Esports, colour-charged": today's Joulz style kept
+   (deep navy-black, champagne gold metal, angled cuts on the key elements, thin lines),
+   on the new page structure. E keeps feature cards obsidian; F lets them carry colour.
+   ===================================================================================== */
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) {
+  --bg0:#0A1126; --bg1:#04060C; --card:#101A33; --card2:#1C2A52; --ledge:#0A1022; --line:#223058;
+  --text:#EEF2FF; --text2:#B5C6DD; --text3:#8F9BBF; --ink:#EEF2FF;
+  --act:#E2C07A; --act-hi:#FBEDC4; --act-ledge:#A8843E; --on-act:#06080F;
+  --sec:#1C2A52; --sec-hi:#26376B; --sec-ledge:#0A1022; --on-sec:#EEF2FF;
+  --white:#1C2A52; --white-ledge:#0A1022;
+  --win:#16C35B; --loss:#FF5A6E; --tab:#070B18; --tab-line:#1C2A52; --chip:#101A33;
+  --shadow: 0 0 0 rgba(0,0,0,0);
+  --cut-lg: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+  --cut-sm: polygon(11px 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%, 0 11px);
+}
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) body { background: linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 46%); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) body::before { display:none; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) :is(h1,.h1,h2,.h2) { font-stretch: 100%; font-weight: 800; text-shadow: none !important; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .card { border-radius:16px; box-shadow: inset 0 0 0 1px var(--line); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) :is(.hero,.gotd,.bundle,.pc) { border-radius:0; clip-path: var(--cut-lg); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .btn { border-radius:0; clip-path: var(--cut-sm); font-weight:800; font-stretch:100%; color:#06080F; padding-bottom:5px;
+  background: linear-gradient(165deg,#FBEDC4 0%,#E6C67E 34%,#D2AC5E 68%,#EED79C 100%) top / 100% calc(100% - 5px) no-repeat, #A8843E; box-shadow:none; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .btn:is(.sec,.white,.green) { clip-path:none; border-radius:10px; padding-bottom:0; color:#EEF2FF; background:#1C2A52; box-shadow: inset 0 0 0 1px #2F4A94, 0 3px 0 #0A1022; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .pill { box-shadow: inset 0 0 0 1px var(--line); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .pill.dark { background: rgba(4,6,12,.62); box-shadow:none; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .tabs { border-top: 1px solid var(--tab-line); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .tab.on { background:none; box-shadow:none; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .tab.on img { transform:none; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .tile { border-radius:14px; box-shadow: 0 0 0 3px var(--tc, var(--line)); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .tile .catbar { display:none; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .seg { background:#0A1022; box-shadow: inset 0 0 0 1px var(--line); border-radius:12px; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .seg div { border-radius:8px; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .seg div.on { background:#1C2A52; color:#EEF2FF; box-shadow: inset 0 0 0 1.5px #4A5E9E; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .avatar { border-radius:10px; box-shadow: inset 0 0 0 1px var(--line); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .tier { color:#E2C07A; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .star { background:#E2C07A; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .star.off { background: rgba(238,242,255,.22); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .done { background:#1C2A52; color:#EEF2FF; box-shadow: inset 0 0 0 1px #2F4A94; border-radius:10px; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .rail { border-right:1px solid var(--tab-line); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .rail .item.on { background:#1C2A52; box-shadow:none; border-radius:10px; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .shelf-h .blob { width:12px; height:12px; border-radius:50%; font-size:0; box-shadow:none; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .rw, html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .gr { border-radius:12px; box-shadow: inset 0 0 0 1px var(--line); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .find { box-shadow: inset 0 0 0 1px var(--line); }
+/* E only: feature cards stay obsidian, colour arrives as an edge light */
+html[data-dir="e"] :is(.rays,.slash) { display:none; }
+html[data-dir="e"] .hero { background: radial-gradient(90% 120% at 86% 60%, rgba(226,192,122,.20), transparent 60%), linear-gradient(135deg,#1C2A52 0%,#101A33 46%,#0A1022 100%); box-shadow: inset 0 2px 0 rgba(226,192,122,.6); }
+html[data-dir="e"] .hero .sub { color: var(--text2); }
+html[data-dir="e"] .dp { background: radial-gradient(120% 110% at 100% 100%, rgba(178,107,255,.42), transparent 62%), #101A33; box-shadow: inset 0 0 0 1px var(--line), inset 0 3px 0 #B26BFF; }
+html[data-dir="e"] .da { background: radial-gradient(120% 110% at 100% 100%, rgba(54,226,245,.36), transparent 62%), #101A33; box-shadow: inset 0 0 0 1px var(--line), inset 0 3px 0 #36E2F5; }
+html[data-dir="e"] :is(.friends,.fr) { background: radial-gradient(120% 140% at 0% 100%, rgba(22,195,91,.30), transparent 60%), #101A33; box-shadow: inset 0 0 0 1px var(--line), inset 0 3px 0 #16C35B; }
+html[data-dir="e"] .gotd { background: radial-gradient(90% 120% at 90% 50%, rgba(61,220,132,.34), transparent 62%), linear-gradient(135deg,#1C2A52,#0A1022); box-shadow: inset 0 2px 0 #3DDC84; }
+html[data-dir="e"] .gotd .tile { border-width:0; box-shadow: 0 0 0 3px #3DDC84; }
+html[data-dir="e"] .bundle { background: radial-gradient(90% 120% at 86% 40%, rgba(226,192,122,.26), transparent 62%), linear-gradient(135deg,#26376B,#0A1022); box-shadow: inset 0 2px 0 rgba(226,192,122,.6); }
+html[data-dir="e"] .bundle .im img { border-width:0; box-shadow: 0 0 0 2px #E2C07A; }
+html[data-dir="e"] .it .still { background:#0A1022 !important; }
+html[data-dir="e"] .pc { background: radial-gradient(100% 130% at 0% 0%, rgba(255,107,214,.34), transparent 58%), radial-gradient(90% 120% at 100% 100%, rgba(62,99,255,.4), transparent 60%), #101A33; box-shadow: inset 0 0 0 1px #2F4A94; }
+html[data-dir="e"] .pc .av, html[data-dir="e"] .big-av { border: 3px solid #E2C07A; }
+html[data-dir="e"] .st div { background:#101A33 !important; box-shadow: inset 0 0 0 1px var(--line) !important; border-radius:12px; }
+html[data-dir="e"] .st div:nth-child(1) b { color:#E2C07A; } html[data-dir="e"] .st div:nth-child(2) b { color:#16C35B; } html[data-dir="e"] .st div:nth-child(3) b { color:#FF8A3D; }
+html[data-dir="e"] body:has(.art) { background: radial-gradient(120% 46% at 50% 0%, rgba(46,211,183,.42), transparent 70%), linear-gradient(180deg,#0A1126,#04060C 60%); }
+html[data-dir="e"] .art .tile { border:0; border-radius:20px; box-shadow: 0 0 0 4px #2ED3B7, 0 24px 40px rgba(0,0,0,.5); }
+html[data-dir="e"] .back { background:#101A33; color:#EEF2FF; box-shadow: inset 0 0 0 1px var(--line); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .lv div { border-radius:12px; box-shadow: inset 0 0 0 1px var(--line); }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .lv div.on { background:#1C2A52 !important; box-shadow: inset 0 0 0 2px #4D8CFF !important; transform:none; }
+html:is([data-dir="e"],[data-dir="f"],[data-dir="g"],[data-dir="h"]) .how div { border-radius:10px; box-shadow: inset 0 0 0 1px var(--line); }
+/* VS and result in E */
+html[data-dir="e"] .them { background: radial-gradient(90% 80% at 50% 34%, rgba(54,226,245,.34), transparent 70%), #0A1022; }
+html[data-dir="e"] .me { background: radial-gradient(90% 80% at 50% 66%, rgba(255,107,214,.32), transparent 70%), #0B1128; }
+html[data-dir="e"] .seam { background:#E2C07A; height:3px; width:auto; box-shadow: 0 0 18px rgba(226,192,122,.8); }
+html[data-dir="e"] body:has(.half) .seam[style], html[data-dir="e"] .seam { }
+html[data-dir="e"] .vs { border-radius:0; clip-path: var(--cut-lg); background: linear-gradient(165deg,#FBEDC4 0%,#E6C67E 34%,#D2AC5E 68%,#EED79C 100%); box-shadow:none; color:#06080F; }
+html[data-dir="e"] .next { background:#101A33; color:#EEF2FF; box-shadow: inset 0 0 0 1px var(--line); border-radius:14px; }
+html[data-dir="e"] .next small { color:#8F9BBF; }
+html[data-dir="e"] .stake { border-radius:14px; background:#101A33; box-shadow: inset 0 0 0 1px var(--line); }
+html[data-dir="e"] .rk { background: rgba(4,6,12,.6); box-shadow: inset 0 0 0 1px var(--line); }
+html[data-dir="e"] body:has(.win) { background: radial-gradient(110% 46% at 50% 0%, rgba(226,192,122,.30), transparent 70%), linear-gradient(180deg,#0A1126,#04060C 60%); }
+html[data-dir="e"] .win h1 { color:#E2C07A; font-stretch:112%; }
+html[data-dir="e"] .rate .d { border-radius:8px; box-shadow:none; background: rgba(22,195,91,.18); color:#5BE38F; }
+html[data-dir="e"] .joules { border-radius:8px; }
+html[data-dir="e"] body:has(.bolt) { background: radial-gradient(70% 46% at 50% 44%, rgba(226,192,122,.22), transparent 70%), #04060C; }
+html[data-dir="e"] .bolt { color:#E2C07A; filter: drop-shadow(0 0 34px rgba(226,192,122,.55)); }
+html[data-dir="e"] .wm { font-stretch:118%; text-shadow:none; }
+html[data-dir="e"] .sp { background:#FBEDC4; box-shadow:0 0 10px #E2C07A; }
+/* F: colour stays on the feature cards, toned to sit on navy */
+html[data-dir="f"] :is(.rays) { opacity:.10; }
+html[data-dir="f"] .hero { box-shadow:none; }
+html[data-dir="f"] :is(.dp,.da,.friends,.fr,.gotd,.bundle,.pc) { box-shadow:none; }
+html[data-dir="f"] .vs { border-radius:0; clip-path: var(--cut-lg); background: linear-gradient(165deg,#FBEDC4 0%,#E6C67E 34%,#D2AC5E 68%,#EED79C 100%); box-shadow:none; color:#06080F; }
+html[data-dir="f"] .seam { background:#E2C07A; box-shadow: 0 0 18px rgba(226,192,122,.8); }
+html[data-dir="f"] .win h1 { color:#E2C07A; text-shadow:none; }
+html[data-dir="f"] body:has(.win) { background: radial-gradient(110% 50% at 50% 0%, #2B40D2, transparent 72%), #04060C; }
+
+/* Two more colourways on the esports base, for the extra layouts: G "Ion" (navy with electric cyan) and H "Ember" (carbon with a magenta-to-orange accent). Gold stays the one action colour in both. */
+html[data-dir="e"], html[data-dir="f"] { --acc:#E2C07A; --acc2:#22E4FF; --accg: linear-gradient(135deg,#FBEDC4,#D2AC5E); --acc-ink:#06080F; }
+html[data-dir="g"] { --bg0:#08173A; --bg1:#03060F; --card:#0C1C3D; --card2:#143463; --ledge:#061022; --line:#1F4C86; --chip:#0C1C3D; --tab:#050B1C; --tab-line:#143463;
+  --acc:#22E4FF; --acc2:#7C8CFF; --accg: linear-gradient(135deg,#22E4FF,#4D8CFF); --acc-ink:#03121C; }
+html[data-dir="h"] { --bg0:#1A141D; --bg1:#07070A; --card:#18151E; --card2:#27222F; --ledge:#0B0A0F; --line:#3B3547; --chip:#18151E; --tab:#0B0A0F; --tab-line:#27222F; --text2:#D2C8D8; --text3:#A398AE;
+  --acc:#FF5C7A; --acc2:#FF9A3D; --accg: linear-gradient(135deg,#FF3D81,#FF9A3D); --acc-ink:#1A0610; }
+html[data-dir="a"] { --acc:#FFC81E; --acc2:#36E2F5; --accg: linear-gradient(135deg,#FFE570,#FFC81E); --acc-ink:#22164F; }

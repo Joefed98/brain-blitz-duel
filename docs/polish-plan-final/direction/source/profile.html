@@ -1,0 +1,45 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="game.css"><script>document.documentElement.dataset.dir = new URLSearchParams(location.search).get("dir") || "a";</script>
+<style>
+.pc { height: 190px; background: linear-gradient(135deg,#FF6BD6,#8C4DFF 55%,#3E63FF); box-shadow: 0 7px 0 #3A2AA8, var(--shadow); padding:16px; }
+.pc .av { width:104px; height:104px; border-radius:30px; border:5px solid #fff; overflow:hidden; background:#FF6BD6; box-shadow:0 6px 0 rgba(30,10,90,.4); }
+.pc .av img { width:100%; height:100%; transform:scale(1.12); }
+.pc b { font: 900 26px/1.05 "Archivo"; font-stretch:110%; color:#fff; text-shadow:0 3px 0 rgba(40,10,110,.5); display:block; }
+.pc .ti { color:#fff; font-weight:800; font-size:14px; }
+.bd { display:flex; gap:8px; position:absolute; left:16px; bottom:14px; }
+.bd img { width:40px; height:40px; filter: drop-shadow(0 3px 0 rgba(0,0,0,.25)); }
+.edit { position:absolute; right:14px; bottom:14px; }
+.rt { margin-top:16px; padding:14px 16px; display:flex; align-items:center; gap:14px; }
+.rt .sh { width:58px; height:58px; }
+.rt .n { font: 900 34px/1 "Archivo"; }
+.bar { height:12px; border-radius:6px; background: var(--chip); margin-top:8px; overflow:hidden; }
+.bar i { display:block; height:100%; width:62%; border-radius:6px; background: linear-gradient(180deg,#FFE570,#FFC81E); }
+.st { display:grid; grid-template-columns: repeat(3,1fr); gap:10px; margin-top:16px; }
+.st div { height:92px; border-radius:20px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; box-shadow: 0 5px 0 rgba(0,0,0,.28); }
+.st b { font: 900 30px/1 "Archivo"; text-shadow:0 2px 0 rgba(0,0,0,.2); } .st span { font-size:13px; font-weight:800; margin-top:4px; }
+.rows { margin-top:16px; display:flex; flex-direction:column; gap:8px; }
+.rw { height:60px; border-radius:18px; background: var(--card); box-shadow: 0 4px 0 var(--ledge); display:flex; align-items:center; gap:12px; padding: 0 14px; font: 900 17px "Archivo"; }
+.rw img { width:36px; height:36px; } .rw span { margin-left:auto; color: var(--text2); font-size:14px; font-weight:800; }
+</style></head><body><div class="page">
+  <div class="top"><h1 class="grow" style="font-size:32px">You</h1><span class="find" style="width:44px;height:44px;border-radius:14px;background:var(--chip);display:flex;align-items:center;justify-content:center"><img src="pub/nav/settings-3x.webp" style="width:28px"></span></div>
+  <div class="scroll">
+    <div class="card pc"><div class="rays"></div>
+      <div class="row gap12" style="position:relative"><div class="av"><img src="art/avatars/svg/captain-joulz.svg"></div><div><b>TheInventor</b><span class="ti">Founding Player #0042</span></div></div>
+      <div class="bd"><img src="pub/art/badges/founding-player.svg"><img src="pub/art/badges/first-win.svg"><img src="pub/art/badges/hot-streak.svg"></div>
+      <div class="btn white sm edit">Customise</div>
+    </div>
+    <div class="card rt"><img class="sh" src="pub/home/rated-3x.webp"><div class="grow"><div class="row" style="justify-content:space-between"><span class="n">1,278</span><span class="pill" style="background:#FFC81E;color:#22164F">Volt II</span></div><div class="bar"><i></i></div><div class="cap" style="margin-top:6px">122 to Volt I</div></div></div>
+    <div class="st"><div style="background:linear-gradient(160deg,#FFD84D,#FF9A1E)"><b>37</b><span>Stars</span></div><div style="background:linear-gradient(160deg,#4FE08A,#1FA85A)"><b>21</b><span>Wins</span></div><div style="background:linear-gradient(160deg,#FF8A5C,#F0443E)"><b>4</b><span>Day streak</span></div></div>
+    <div class="rows">
+      <div class="rw"><img src="pub/nav/friends-3x.webp">Friends<span>3 online ›</span></div>
+      <div class="rw"><img src="pub/nav/challenges-3x.webp">Challenges<span>12 / 195 ›</span></div>
+      <div class="rw"><img src="pub/nav/leaderboards-3x.webp">Badges and trophies<span>9 ›</span></div>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab "><img src="pub/nav/home-3x.webp">Home</div>
+    <div class="tab "><img src="pub/nav/games-3x.webp">Games</div>
+    <div class="tab "><img src="pub/nav/tournaments-3x.webp">Compete</div>
+    <div class="tab "><img src="pub/nav/shop-3x.webp">Shop</div>
+    <div class="tab on"><img src="pub/nav/profile-3x.webp">You</div>
+  </div>
+</div></body></html>

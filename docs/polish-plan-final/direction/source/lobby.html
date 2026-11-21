@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="kit.css">
+<style>
+.code { padding: 16px 18px 18px; } .code .c { font: 900 58px/1 "Archivo"; font-stretch: 118%; letter-spacing: .12em; color: var(--gold-hi); }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.plate { height: 48px; font-size: 14px; } .plate .av { width: 34px; height: 34px; border-radius: 9px; } .empty { height: 48px; border-radius: 10px; box-shadow: inset 0 0 0 1px var(--line); display:flex; align-items:center; justify-content:center; color: var(--text3); font: 700 12.5px/1 Archivo; border: 0; background: repeating-linear-gradient(135deg, transparent 0 8px, rgba(34,48,88,.35) 8px 9px); }
+.set { padding: 12px 14px; } .chips { display:flex; flex-wrap:wrap; gap:6px; } .chips span { height: 24px; padding: 0 9px; border-radius: 6px; font: 800 11px/24px "Archivo"; letter-spacing:.05em; text-transform:uppercase; color: #06080F; background: var(--k); }
+.foot { position: absolute; left: 16px; right: 16px; bottom: 26px; display: flex; gap: 8px; }
+.host { font: 800 9.5px/1 Archivo; letter-spacing:.1em; color: var(--gold); margin-left: auto; }
+</style></head><body><div class="page">
+  <div class="row g12"><div class="back">‹</div><div class="grow"><h2>Room</h2><div class="cap mt6">6 of 16 players</div></div><div class="back" style="font-size:16px">⋯</div></div>
+  <div class="cut code mt14"><div class="row"><div class="grow"><div class="cap">Room code</div><div class="c mt10">K7PX</div></div><div class="btn sm">Invite</div></div></div>
+  <div class="panel set mt10"><div class="row"><div class="grow"><b style="font:800 16px/1 Archivo">9 rounds · about 16 min</b></div><span class="sub" style="font-size:13px">Change ›</span></div>
+    <div class="chips mt10"><span style="--k:var(--pattern)">Pattern</span><span style="--k:var(--logic)">Logic</span><span style="--k:var(--retro)">Retro</span><span style="--k:var(--sports)">Sports</span><span class="lchip l2" style="height:24px;background:none;color:var(--text)"><span class="lvl l2" style="height:11px"><i></i><i></i><i></i><i></i></span>Normal</span></div></div>
+  <div class="cap mt18">Players</div>
+  <div class="grid mt10" id="g"></div>
+  <div class="foot"><div class="btn sec" style="width:56px;padding:0">💬</div><div class="btn grow">Start game</div></div>
+</div>
+<script>
+const P = [["TheInventor","captain-joulz","#E2C07A",1],["NovaStrike","gemstone","#36E2F5"],["Sam_Speed","orbit","#FF6BD6"],["Priya_K","pinball","#3DDC84"],["Mo","breaker","#FF8A3D"],["Lena","coral-pop","#8E80FF"]];
+document.getElementById("g").innerHTML = P.map(([n,a,c,h]) => `<div class="plate" style="--c:${c}"><div class="av" style="--c:${c}"><img src="art/avatars/svg/${a}.svg"></div><b>${n}</b>${h ? '<span class="host">HOST</span>' : ""}</div>`).join("") + '<div class="empty">Waiting…</div><div class="empty">Waiting…</div>';
+</script></body></html>

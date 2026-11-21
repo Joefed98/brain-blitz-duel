@@ -1,0 +1,66 @@
+[
+ {
+  "file": "u1a.webp",
+  "caption": "U1a \u00b7 Splash: the vector bolt charges bottom to top with sparks; the wordmark fades in; silent on a cold open, the spark sound on re-opens (recommended)"
+ },
+ {
+  "file": "u1b.webp",
+  "caption": "U1b \u00b7 Splash: Captain Joulz holds the charging bolt (needs a new approved pose; later)"
+ },
+ {
+  "file": "u6a.webp",
+  "caption": "U6a \u00b7 Home: stacked full-width cards, the daily cards with the category colour sweep (U3a) and the jigsaw bolt; sections reserved so nothing pops in"
+ },
+ {
+  "file": "u6b.webp",
+  "caption": "U6b \u00b7 Home: the two daily cards side by side with a colour band and tint (U3b), ratings tiles, the next match"
+ },
+ {
+  "file": "u2b.webp",
+  "caption": "U2b \u00b7 The bolder navy and deeper black (new token values) on U6a; U2a is today's values as seen in the page screenshots"
+ },
+ {
+  "file": "u4a.webp",
+  "caption": "U4a \u00b7 Shop, warm: obsidian and gold, rarity bands on tiles, the coin packs sparkling on gold leaf with a BEST VALUE frame (recommended)"
+ },
+ {
+  "file": "u4b.webp",
+  "caption": "U4b \u00b7 Shop, cool: navy and cyan, gold only on prices, the packs on a cyan panel"
+ },
+ {
+  "file": "u5a.webp",
+  "caption": "U5a \u00b7 Games: one control row, pill chips with the category dot, the level switch inside the hero, square tiles with edge-to-edge art (recommended)"
+ },
+ {
+  "file": "u5b.webp",
+  "caption": "U5b \u00b7 Games: three 4:5 tiles a row, a bigger hero, the chips a sticky row"
+ },
+ {
+  "file": "u7a.webp",
+  "caption": "U7a \u00b7 Desktop Home: an 880 px content grid with one 320 px aside holding the week's stats, friends and the next public game (recommended)"
+ },
+ {
+  "file": "u7b.webp",
+  "caption": "U7b \u00b7 Desktop Home: a dashboard of equal cards in three columns"
+ },
+ {
+  "file": "d1.webp",
+  "caption": "D1 \u00b7 The Cabinet (desktop arcade): the identical world centred, stats and the live run strip left, goal, challenges and controls right, the game's scenery carried behind both panels (recommended)"
+ },
+ {
+  "file": "d2.webp",
+  "caption": "D2 \u00b7 The Stage (desktop arcade): the scenery across the whole screen, the HUD in a top strip, translucent pills, standings bottom right"
+ },
+ {
+  "file": "r1.webp",
+  "caption": "R1 \u00b7 One reveal template on a puzzle (Box Six): score card, Solution / Yours / Room control, the board in a stage box at a fixed share of the height, three facts, Back / Play again; the breakdown in a sheet"
+ },
+ {
+  "file": "r1b.webp",
+  "caption": "R1 \u00b7 The same template on an arcade run in a room (Breaker): the final board as the picture, the chart as the Room view, the finished count in the footer"
+ },
+ {
+  "file": "a1.webp",
+  "caption": "A1 \u00b7 Apex: the painted car (old) beside the rendered car (new) at the same moment; the fix flips the sprite's turn and flattens the finish, or returns to the painted car"
+ }
+]

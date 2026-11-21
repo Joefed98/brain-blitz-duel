@@ -1,0 +1,1287 @@
+{
+ "games": [
+  {
+   "id": "wordsmith",
+   "name": "Nucleus",
+   "category": "word",
+   "sheet": "games/wordsmith.webp"
+  },
+  {
+   "id": "tilegrid",
+   "name": "Interlock",
+   "category": "word",
+   "sheet": "games/tilegrid.webp"
+  },
+  {
+   "id": "wordslide",
+   "name": "Slider",
+   "category": "word",
+   "sheet": "games/wordslide.webp"
+  },
+  {
+   "id": "balance",
+   "name": "Counterweight",
+   "category": "number",
+   "sheet": "games/balance.webp"
+  },
+  {
+   "id": "target",
+   "name": "Exact",
+   "category": "number",
+   "sheet": "games/target.webp"
+  },
+  {
+   "id": "equation",
+   "name": "Operator",
+   "category": "number",
+   "sheet": "games/equation.webp"
+  },
+  {
+   "id": "reaction",
+   "name": "Flash",
+   "category": "speed",
+   "sheet": "games/reaction.webp"
+  },
+  {
+   "id": "numhunt",
+   "name": "Ascend",
+   "category": "speed",
+   "sheet": "games/numhunt.webp"
+  },
+  {
+   "id": "symscan",
+   "name": "Eagle Eye",
+   "category": "attention",
+   "sheet": "games/symscan.webp"
+  },
+  {
+   "id": "spotdiff",
+   "name": "Double Take",
+   "category": "attention",
+   "sheet": "games/spotdiff.webp"
+  },
+  {
+   "id": "wordhunt",
+   "name": "Forage",
+   "category": "word",
+   "sheet": "games/wordhunt.webp"
+  },
+  {
+   "id": "unblock",
+   "name": "Gridlock",
+   "category": "pattern",
+   "sheet": "games/unblock.webp"
+  },
+  {
+   "id": "blockparty",
+   "name": "Tessellate",
+   "category": "pattern",
+   "sheet": "games/blockparty.webp"
+  },
+  {
+   "id": "pipes",
+   "name": "Pipeline",
+   "category": "pattern",
+   "sheet": "games/pipes.webp"
+  },
+  {
+   "id": "sudoku",
+   "name": "Box Six",
+   "category": "logic",
+   "sheet": "games/sudoku.webp"
+  },
+  {
+   "id": "flow",
+   "name": "Chroma Lines",
+   "category": "pattern",
+   "sheet": "games/flow.webp"
+  },
+  {
+   "id": "iceslide",
+   "name": "Skid",
+   "category": "pattern",
+   "sheet": "games/iceslide.webp"
+  },
+  {
+   "id": "push",
+   "name": "Heave",
+   "category": "pattern",
+   "sheet": "games/push.webp"
+  },
+  {
+   "id": "laser",
+   "name": "Lightbender",
+   "category": "pattern",
+   "sheet": "games/laser.webp"
+  },
+  {
+   "id": "tower",
+   "name": "Hanoi",
+   "category": "logic",
+   "sheet": "games/tower.webp"
+  },
+  {
+   "id": "maze",
+   "name": "Labyrinth",
+   "category": "attention",
+   "sheet": "games/maze.webp"
+  },
+  {
+   "id": "tubes",
+   "name": "Polypotions",
+   "category": "logic",
+   "sheet": "games/tubes.webp"
+  },
+  {
+   "id": "safe",
+   "name": "Safe Cracker",
+   "category": "logic",
+   "sheet": "games/safe.webp"
+  },
+  {
+   "id": "bomb",
+   "name": "Bomb Defusal",
+   "category": "attention",
+   "sheet": "games/bomb.webp"
+  },
+  {
+   "id": "gravity",
+   "name": "Topsy-Turvy",
+   "category": "pattern",
+   "sheet": "games/gravity.webp"
+  },
+  {
+   "id": "chain",
+   "name": "Don\u2019t Break the Chain",
+   "category": "speed",
+   "sheet": "games/chain.webp"
+  },
+  {
+   "id": "nonogram",
+   "name": "Mosaic",
+   "category": "logic",
+   "sheet": "games/nonogram.webp"
+  },
+  {
+   "id": "pairmatch",
+   "name": "Matchmaker",
+   "category": "attention",
+   "sheet": "games/pairmatch.webp"
+  },
+  {
+   "id": "flood",
+   "name": "Colour Flood",
+   "category": "logic",
+   "sheet": "games/flood.webp"
+  },
+  {
+   "id": "hover",
+   "name": "Hover",
+   "category": "arcade",
+   "sheet": "games/hover.webp"
+  },
+  {
+   "id": "skyline",
+   "name": "High Rise",
+   "category": "arcade",
+   "sheet": "games/skyline.webp"
+  },
+  {
+   "id": "matchup",
+   "name": "Gemstone",
+   "category": "arcade",
+   "sheet": "games/matchup.webp"
+  },
+  {
+   "id": "breaker",
+   "name": "Breaker",
+   "category": "arcade",
+   "sheet": "games/breaker.webp"
+  },
+  {
+   "id": "pinball",
+   "name": "Pinball",
+   "category": "arcade",
+   "sheet": "games/pinball.webp"
+  },
+  {
+   "id": "minesweeper",
+   "name": "Minefield",
+   "category": "logic",
+   "sheet": "games/minesweeper.webp"
+  },
+  {
+   "id": "mahjong",
+   "name": "Mahjong Solitaire",
+   "category": "arcade",
+   "sheet": "games/mahjong.webp"
+  },
+  {
+   "id": "homerun",
+   "name": "Home Run",
+   "category": "arcade",
+   "sheet": "games/homerun.webp"
+  },
+  {
+   "id": "freekick",
+   "name": "Top Bins",
+   "category": "arcade",
+   "sheet": "games/freekick.webp"
+  },
+  {
+   "id": "racing",
+   "name": "Apex",
+   "category": "arcade",
+   "sheet": "games/racing.webp"
+  },
+  {
+   "id": "freecell",
+   "name": "Free Cell",
+   "category": "arcade",
+   "sheet": "games/freecell.webp"
+  },
+  {
+   "id": "tripeaks",
+   "name": "Summit",
+   "category": "arcade",
+   "sheet": "games/tripeaks.webp"
+  },
+  {
+   "id": "fivehands",
+   "name": "Five Hands",
+   "category": "arcade",
+   "sheet": "games/fivehands.webp"
+  },
+  {
+   "id": "pyramid",
+   "name": "Thirteen",
+   "category": "arcade",
+   "sheet": "games/pyramid.webp"
+  },
+  {
+   "id": "minigolf",
+   "name": "Crazy Golf",
+   "category": "arcade",
+   "sheet": "games/minigolf.webp"
+  },
+  {
+   "id": "pool",
+   "name": "Cue Ball",
+   "category": "arcade",
+   "sheet": "games/pool.webp"
+  },
+  {
+   "id": "curling",
+   "name": "Curl Champ",
+   "category": "arcade",
+   "sheet": "games/curling.webp"
+  },
+  {
+   "id": "blockfall",
+   "name": "Blockzone",
+   "category": "arcade",
+   "sheet": "games/blockfall.webp"
+  },
+  {
+   "id": "rally",
+   "name": "Rally",
+   "category": "arcade",
+   "sheet": "games/rally.webp"
+  },
+  {
+   "id": "bubble",
+   "name": "Coral Pop",
+   "category": "arcade",
+   "sheet": "games/bubble.webp"
+  },
+  {
+   "id": "beat",
+   "name": "Tempo",
+   "category": "arcade",
+   "sheet": "games/beat.webp"
+  },
+  {
+   "id": "snake",
+   "name": "Meteor",
+   "category": "arcade",
+   "sheet": "games/snake.webp"
+  },
+  {
+   "id": "cross",
+   "name": "Spacewalk",
+   "category": "arcade",
+   "sheet": "games/cross.webp"
+  },
+  {
+   "id": "ricochet",
+   "name": "Moon Climb",
+   "category": "arcade",
+   "sheet": "games/ricochet.webp"
+  },
+  {
+   "id": "whack",
+   "name": "Bonk",
+   "category": "speed",
+   "sheet": "games/whack.webp"
+  },
+  {
+   "id": "tents",
+   "name": "Tents and Trees",
+   "category": "logic",
+   "sheet": "games/tents.webp"
+  },
+  {
+   "id": "shikaku",
+   "name": "Shikaku",
+   "category": "logic",
+   "sheet": "games/shikaku.webp"
+  },
+  {
+   "id": "lightup",
+   "name": "Lamplighter",
+   "category": "logic",
+   "sheet": "games/lightup.webp"
+  },
+  {
+   "id": "wavefront",
+   "name": "Wavefront",
+   "category": "arcade",
+   "sheet": "games/wavefront.webp"
+  },
+  {
+   "id": "bastion",
+   "name": "Iron Wall",
+   "category": "arcade",
+   "sheet": "games/bastion.webp"
+  },
+  {
+   "id": "flip",
+   "name": "Roofbound",
+   "category": "arcade",
+   "sheet": "games/flip.webp"
+  },
+  {
+   "id": "inkbridge",
+   "name": "Rainbow Bridge",
+   "category": "arcade",
+   "sheet": "games/inkbridge.webp"
+  },
+  {
+   "id": "burst",
+   "name": "Fission",
+   "category": "arcade",
+   "sheet": "games/burst.webp"
+  },
+  {
+   "id": "orbit",
+   "name": "Orbit",
+   "category": "arcade",
+   "sheet": "games/orbit.webp"
+  },
+  {
+   "id": "swing",
+   "name": "Grappler",
+   "category": "arcade",
+   "sheet": "games/swing.webp"
+  },
+  {
+   "id": "tilt",
+   "name": "Tilt",
+   "category": "arcade",
+   "sheet": "games/tilt.webp"
+  },
+  {
+   "id": "balltrack",
+   "name": "Ball Tracker",
+   "category": "arcade",
+   "sheet": "games/balltrack.webp"
+  },
+  {
+   "id": "wordsearch",
+   "name": "Lookout",
+   "category": "word",
+   "sheet": "games/wordsearch.webp"
+  },
+  {
+   "id": "letterwheel",
+   "name": "Roundabout",
+   "category": "word",
+   "sheet": "games/letterwheel.webp"
+  },
+  {
+   "id": "strikeout",
+   "name": "Strikeout",
+   "category": "word",
+   "sheet": "games/strikeout.webp"
+  },
+  {
+   "id": "codeword",
+   "name": "Cryptogrid",
+   "category": "word",
+   "sheet": "games/codeword.webp"
+  },
+  {
+   "id": "swapword",
+   "name": "Swapword",
+   "category": "word",
+   "sheet": "games/swapword.webp"
+  },
+  {
+   "id": "tendrop",
+   "name": "Tenfall",
+   "category": "speed",
+   "sheet": "games/tendrop.webp"
+  },
+  {
+   "id": "clayshoot",
+   "name": "Pull!",
+   "category": "speed",
+   "sheet": "games/clayshoot.webp"
+  },
+  {
+   "id": "numpyramid",
+   "name": "Integer Pyramid",
+   "category": "number",
+   "sheet": "games/numpyramid.webp"
+  },
+  {
+   "id": "trail",
+   "name": "Trail",
+   "category": "logic",
+   "sheet": "games/trail.webp"
+  },
+  {
+   "id": "measure",
+   "name": "Brimful",
+   "category": "number",
+   "sheet": "games/measure.webp"
+  },
+  {
+   "id": "checkout",
+   "name": "Checkout",
+   "category": "number",
+   "sheet": "games/checkout.webp"
+  },
+  {
+   "id": "numline",
+   "name": "Ballpark",
+   "category": "number",
+   "sheet": "games/numline.webp"
+  },
+  {
+   "id": "fences",
+   "name": "Loopline",
+   "category": "logic",
+   "sheet": "games/fences.webp"
+  },
+  {
+   "id": "fillomino",
+   "name": "Regions",
+   "category": "logic",
+   "sheet": "games/fillomino.webp"
+  },
+  {
+   "id": "bridges",
+   "name": "Island Link",
+   "category": "logic",
+   "sheet": "games/bridges.webp"
+  },
+  {
+   "id": "kakuro",
+   "name": "Kakuro",
+   "category": "number",
+   "sheet": "games/kakuro.webp"
+  }
+ ],
+ "now": [
+  {
+   "category": "word",
+   "kind": "phone",
+   "sheet": "now/word-phone.webp"
+  },
+  {
+   "category": "word",
+   "kind": "desktop",
+   "sheet": "now/word-desktop.webp"
+  },
+  {
+   "category": "word",
+   "kind": "reveals",
+   "sheet": "now/word-reveals.webp"
+  },
+  {
+   "category": "number",
+   "kind": "phone",
+   "sheet": "now/number-phone.webp"
+  },
+  {
+   "category": "number",
+   "kind": "desktop",
+   "sheet": "now/number-desktop.webp"
+  },
+  {
+   "category": "number",
+   "kind": "reveals",
+   "sheet": "now/number-reveals.webp"
+  },
+  {
+   "category": "speed",
+   "kind": "phone",
+   "sheet": "now/speed-phone.webp"
+  },
+  {
+   "category": "speed",
+   "kind": "desktop",
+   "sheet": "now/speed-desktop.webp"
+  },
+  {
+   "category": "speed",
+   "kind": "reveals",
+   "sheet": "now/speed-reveals.webp"
+  },
+  {
+   "category": "attention",
+   "kind": "phone",
+   "sheet": "now/attention-phone.webp"
+  },
+  {
+   "category": "attention",
+   "kind": "desktop",
+   "sheet": "now/attention-desktop.webp"
+  },
+  {
+   "category": "attention",
+   "kind": "reveals",
+   "sheet": "now/attention-reveals.webp"
+  },
+  {
+   "category": "pattern",
+   "kind": "phone",
+   "sheet": "now/pattern-phone.webp"
+  },
+  {
+   "category": "pattern",
+   "kind": "desktop",
+   "sheet": "now/pattern-desktop.webp"
+  },
+  {
+   "category": "pattern",
+   "kind": "reveals",
+   "sheet": "now/pattern-reveals.webp"
+  },
+  {
+   "category": "logic",
+   "kind": "phone",
+   "sheet": "now/logic-phone.webp"
+  },
+  {
+   "category": "logic",
+   "kind": "desktop",
+   "sheet": "now/logic-desktop.webp"
+  },
+  {
+   "category": "logic",
+   "kind": "reveals",
+   "sheet": "now/logic-reveals.webp"
+  },
+  {
+   "category": "arcade",
+   "kind": "phone",
+   "sheet": "now/arcade-phone.webp"
+  },
+  {
+   "category": "arcade",
+   "kind": "desktop",
+   "sheet": "now/arcade-desktop.webp"
+  },
+  {
+   "category": "arcade",
+   "kind": "reveals",
+   "sheet": "now/arcade-reveals.webp"
+  }
+ ],
+ "levels": [
+  {
+   "id": "wordsmith",
+   "name": "Nucleus",
+   "category": "word",
+   "sheet": "levels/wordsmith.webp"
+  },
+  {
+   "id": "tilegrid",
+   "name": "Interlock",
+   "category": "word",
+   "sheet": "levels/tilegrid.webp"
+  },
+  {
+   "id": "wordslide",
+   "name": "Slider",
+   "category": "word",
+   "sheet": "levels/wordslide.webp"
+  },
+  {
+   "id": "balance",
+   "name": "Counterweight",
+   "category": "number",
+   "sheet": "levels/balance.webp"
+  },
+  {
+   "id": "target",
+   "name": "Exact",
+   "category": "number",
+   "sheet": "levels/target.webp"
+  },
+  {
+   "id": "equation",
+   "name": "Operator",
+   "category": "number",
+   "sheet": "levels/equation.webp"
+  },
+  {
+   "id": "reaction",
+   "name": "Flash",
+   "category": "speed",
+   "sheet": "levels/reaction.webp"
+  },
+  {
+   "id": "numhunt",
+   "name": "Ascend",
+   "category": "speed",
+   "sheet": "levels/numhunt.webp"
+  },
+  {
+   "id": "symscan",
+   "name": "Eagle Eye",
+   "category": "attention",
+   "sheet": "levels/symscan.webp"
+  },
+  {
+   "id": "spotdiff",
+   "name": "Double Take",
+   "category": "attention",
+   "sheet": "levels/spotdiff.webp"
+  },
+  {
+   "id": "wordhunt",
+   "name": "Forage",
+   "category": "word",
+   "sheet": "levels/wordhunt.webp"
+  },
+  {
+   "id": "unblock",
+   "name": "Gridlock",
+   "category": "pattern",
+   "sheet": "levels/unblock.webp"
+  },
+  {
+   "id": "blockparty",
+   "name": "Tessellate",
+   "category": "pattern",
+   "sheet": "levels/blockparty.webp"
+  },
+  {
+   "id": "pipes",
+   "name": "Pipeline",
+   "category": "pattern",
+   "sheet": "levels/pipes.webp"
+  },
+  {
+   "id": "sudoku",
+   "name": "Box Six",
+   "category": "logic",
+   "sheet": "levels/sudoku.webp"
+  },
+  {
+   "id": "flow",
+   "name": "Chroma Lines",
+   "category": "pattern",
+   "sheet": "levels/flow.webp"
+  },
+  {
+   "id": "iceslide",
+   "name": "Skid",
+   "category": "pattern",
+   "sheet": "levels/iceslide.webp"
+  },
+  {
+   "id": "push",
+   "name": "Heave",
+   "category": "pattern",
+   "sheet": "levels/push.webp"
+  },
+  {
+   "id": "laser",
+   "name": "Lightbender",
+   "category": "pattern",
+   "sheet": "levels/laser.webp"
+  },
+  {
+   "id": "tower",
+   "name": "Hanoi",
+   "category": "logic",
+   "sheet": "levels/tower.webp"
+  },
+  {
+   "id": "maze",
+   "name": "Labyrinth",
+   "category": "attention",
+   "sheet": "levels/maze.webp"
+  },
+  {
+   "id": "tubes",
+   "name": "Polypotions",
+   "category": "logic",
+   "sheet": "levels/tubes.webp"
+  },
+  {
+   "id": "safe",
+   "name": "Safe Cracker",
+   "category": "logic",
+   "sheet": "levels/safe.webp"
+  },
+  {
+   "id": "bomb",
+   "name": "Bomb Defusal",
+   "category": "attention",
+   "sheet": "levels/bomb.webp"
+  },
+  {
+   "id": "gravity",
+   "name": "Topsy-Turvy",
+   "category": "pattern",
+   "sheet": "levels/gravity.webp"
+  },
+  {
+   "id": "chain",
+   "name": "Don\u2019t Break the Chain",
+   "category": "speed",
+   "sheet": "levels/chain.webp"
+  },
+  {
+   "id": "nonogram",
+   "name": "Mosaic",
+   "category": "logic",
+   "sheet": "levels/nonogram.webp"
+  },
+  {
+   "id": "pairmatch",
+   "name": "Matchmaker",
+   "category": "attention",
+   "sheet": "levels/pairmatch.webp"
+  },
+  {
+   "id": "flood",
+   "name": "Colour Flood",
+   "category": "logic",
+   "sheet": "levels/flood.webp"
+  },
+  {
+   "id": "hover",
+   "name": "Hover",
+   "category": "arcade",
+   "sheet": "levels/hover.webp"
+  },
+  {
+   "id": "skyline",
+   "name": "High Rise",
+   "category": "arcade",
+   "sheet": "levels/skyline.webp"
+  },
+  {
+   "id": "matchup",
+   "name": "Gemstone",
+   "category": "arcade",
+   "sheet": "levels/matchup.webp"
+  },
+  {
+   "id": "breaker",
+   "name": "Breaker",
+   "category": "arcade",
+   "sheet": "levels/breaker.webp"
+  },
+  {
+   "id": "pinball",
+   "name": "Pinball",
+   "category": "arcade",
+   "sheet": "levels/pinball.webp"
+  },
+  {
+   "id": "minesweeper",
+   "name": "Minefield",
+   "category": "logic",
+   "sheet": "levels/minesweeper.webp"
+  },
+  {
+   "id": "mahjong",
+   "name": "Mahjong Solitaire",
+   "category": "arcade",
+   "sheet": "levels/mahjong.webp"
+  },
+  {
+   "id": "homerun",
+   "name": "Home Run",
+   "category": "arcade",
+   "sheet": "levels/homerun.webp"
+  },
+  {
+   "id": "freekick",
+   "name": "Top Bins",
+   "category": "arcade",
+   "sheet": "levels/freekick.webp"
+  },
+  {
+   "id": "racing",
+   "name": "Apex",
+   "category": "arcade",
+   "sheet": "levels/racing.webp"
+  },
+  {
+   "id": "freecell",
+   "name": "Free Cell",
+   "category": "arcade",
+   "sheet": "levels/freecell.webp"
+  },
+  {
+   "id": "tripeaks",
+   "name": "Summit",
+   "category": "arcade",
+   "sheet": "levels/tripeaks.webp"
+  },
+  {
+   "id": "fivehands",
+   "name": "Five Hands",
+   "category": "arcade",
+   "sheet": "levels/fivehands.webp"
+  },
+  {
+   "id": "pyramid",
+   "name": "Thirteen",
+   "category": "arcade",
+   "sheet": "levels/pyramid.webp"
+  },
+  {
+   "id": "minigolf",
+   "name": "Crazy Golf",
+   "category": "arcade",
+   "sheet": "levels/minigolf.webp"
+  },
+  {
+   "id": "pool",
+   "name": "Cue Ball",
+   "category": "arcade",
+   "sheet": "levels/pool.webp"
+  },
+  {
+   "id": "curling",
+   "name": "Curl Champ",
+   "category": "arcade",
+   "sheet": "levels/curling.webp"
+  },
+  {
+   "id": "blockfall",
+   "name": "Blockzone",
+   "category": "arcade",
+   "sheet": "levels/blockfall.webp"
+  },
+  {
+   "id": "rally",
+   "name": "Rally",
+   "category": "arcade",
+   "sheet": "levels/rally.webp"
+  },
+  {
+   "id": "bubble",
+   "name": "Coral Pop",
+   "category": "arcade",
+   "sheet": "levels/bubble.webp"
+  },
+  {
+   "id": "beat",
+   "name": "Tempo",
+   "category": "arcade",
+   "sheet": "levels/beat.webp"
+  },
+  {
+   "id": "snake",
+   "name": "Meteor",
+   "category": "arcade",
+   "sheet": "levels/snake.webp"
+  },
+  {
+   "id": "cross",
+   "name": "Spacewalk",
+   "category": "arcade",
+   "sheet": "levels/cross.webp"
+  },
+  {
+   "id": "ricochet",
+   "name": "Moon Climb",
+   "category": "arcade",
+   "sheet": "levels/ricochet.webp"
+  },
+  {
+   "id": "whack",
+   "name": "Bonk",
+   "category": "speed",
+   "sheet": "levels/whack.webp"
+  },
+  {
+   "id": "tents",
+   "name": "Tents and Trees",
+   "category": "logic",
+   "sheet": "levels/tents.webp"
+  },
+  {
+   "id": "shikaku",
+   "name": "Shikaku",
+   "category": "logic",
+   "sheet": "levels/shikaku.webp"
+  },
+  {
+   "id": "lightup",
+   "name": "Lamplighter",
+   "category": "logic",
+   "sheet": "levels/lightup.webp"
+  },
+  {
+   "id": "wavefront",
+   "name": "Wavefront",
+   "category": "arcade",
+   "sheet": "levels/wavefront.webp"
+  },
+  {
+   "id": "bastion",
+   "name": "Iron Wall",
+   "category": "arcade",
+   "sheet": "levels/bastion.webp"
+  },
+  {
+   "id": "flip",
+   "name": "Roofbound",
+   "category": "arcade",
+   "sheet": "levels/flip.webp"
+  },
+  {
+   "id": "inkbridge",
+   "name": "Rainbow Bridge",
+   "category": "arcade",
+   "sheet": "levels/inkbridge.webp"
+  },
+  {
+   "id": "burst",
+   "name": "Fission",
+   "category": "arcade",
+   "sheet": "levels/burst.webp"
+  },
+  {
+   "id": "orbit",
+   "name": "Orbit",
+   "category": "arcade",
+   "sheet": "levels/orbit.webp"
+  },
+  {
+   "id": "swing",
+   "name": "Grappler",
+   "category": "arcade",
+   "sheet": "levels/swing.webp"
+  },
+  {
+   "id": "tilt",
+   "name": "Tilt",
+   "category": "arcade",
+   "sheet": "levels/tilt.webp"
+  },
+  {
+   "id": "balltrack",
+   "name": "Ball Tracker",
+   "category": "arcade",
+   "sheet": "levels/balltrack.webp"
+  },
+  {
+   "id": "wordsearch",
+   "name": "Lookout",
+   "category": "word",
+   "sheet": "levels/wordsearch.webp"
+  },
+  {
+   "id": "letterwheel",
+   "name": "Roundabout",
+   "category": "word",
+   "sheet": "levels/letterwheel.webp"
+  },
+  {
+   "id": "strikeout",
+   "name": "Strikeout",
+   "category": "word",
+   "sheet": "levels/strikeout.webp"
+  },
+  {
+   "id": "codeword",
+   "name": "Cryptogrid",
+   "category": "word",
+   "sheet": "levels/codeword.webp"
+  },
+  {
+   "id": "swapword",
+   "name": "Swapword",
+   "category": "word",
+   "sheet": "levels/swapword.webp"
+  },
+  {
+   "id": "tendrop",
+   "name": "Tenfall",
+   "category": "speed",
+   "sheet": "levels/tendrop.webp"
+  },
+  {
+   "id": "clayshoot",
+   "name": "Pull!",
+   "category": "speed",
+   "sheet": "levels/clayshoot.webp"
+  },
+  {
+   "id": "numpyramid",
+   "name": "Integer Pyramid",
+   "category": "number",
+   "sheet": "levels/numpyramid.webp"
+  },
+  {
+   "id": "trail",
+   "name": "Trail",
+   "category": "logic",
+   "sheet": "levels/trail.webp"
+  },
+  {
+   "id": "measure",
+   "name": "Brimful",
+   "category": "number",
+   "sheet": "levels/measure.webp"
+  },
+  {
+   "id": "checkout",
+   "name": "Checkout",
+   "category": "number",
+   "sheet": "levels/checkout.webp"
+  },
+  {
+   "id": "numline",
+   "name": "Ballpark",
+   "category": "number",
+   "sheet": "levels/numline.webp"
+  },
+  {
+   "id": "fences",
+   "name": "Loopline",
+   "category": "logic",
+   "sheet": "levels/fences.webp"
+  },
+  {
+   "id": "fillomino",
+   "name": "Regions",
+   "category": "logic",
+   "sheet": "levels/fillomino.webp"
+  },
+  {
+   "id": "bridges",
+   "name": "Island Link",
+   "category": "logic",
+   "sheet": "levels/bridges.webp"
+  },
+  {
+   "id": "kakuro",
+   "name": "Kakuro",
+   "category": "number",
+   "sheet": "levels/kakuro.webp"
+  }
+ ],
+ "pages": [
+  {
+   "name": "account-settings",
+   "sheet": "pages/account-settings.webp"
+  },
+  {
+   "name": "account-sign-in",
+   "sheet": "pages/account-sign-in.webp"
+  },
+  {
+   "name": "account-welcome-player-number",
+   "sheet": "pages/account-welcome-player-number.webp"
+  },
+  {
+   "name": "action-game-page-grappler",
+   "sheet": "pages/action-game-page-grappler.webp"
+  },
+  {
+   "name": "answer-reveal-arcade",
+   "sheet": "pages/answer-reveal-arcade.webp"
+  },
+  {
+   "name": "answer-reveal-puzzle",
+   "sheet": "pages/answer-reveal-puzzle.webp"
+  },
+  {
+   "name": "challenge-make-one",
+   "sheet": "pages/challenge-make-one.webp"
+  },
+  {
+   "name": "challenge-podium",
+   "sheet": "pages/challenge-podium.webp"
+  },
+  {
+   "name": "components",
+   "sheet": "pages/components.webp"
+  },
+  {
+   "name": "customise-games",
+   "sheet": "pages/customise-games.webp"
+  },
+  {
+   "name": "daily-before-playing",
+   "sheet": "pages/daily-before-playing.webp"
+  },
+  {
+   "name": "daily-board-after-playing",
+   "sheet": "pages/daily-board-after-playing.webp"
+  },
+  {
+   "name": "daily-board-today",
+   "sheet": "pages/daily-board-today.webp"
+  },
+  {
+   "name": "daily-results",
+   "sheet": "pages/daily-results.webp"
+  },
+  {
+   "name": "final-results-2-players",
+   "sheet": "pages/final-results-2-players.webp"
+  },
+  {
+   "name": "first-open-screen-1",
+   "sheet": "pages/first-open-screen-1.webp"
+  },
+  {
+   "name": "friends-list",
+   "sheet": "pages/friends-list.webp"
+  },
+  {
+   "name": "identity-lobby-10-players-with-cards",
+   "sheet": "pages/identity-lobby-10-players-with-cards.webp"
+  },
+  {
+   "name": "identity-podium-10-players-with-cards",
+   "sheet": "pages/identity-podium-10-players-with-cards.webp"
+  },
+  {
+   "name": "leaderboards-joulz-rating",
+   "sheet": "pages/leaderboards-joulz-rating.webp"
+  },
+  {
+   "name": "lobby-10-players",
+   "sheet": "pages/lobby-10-players.webp"
+  },
+  {
+   "name": "nav-games",
+   "sheet": "pages/nav-games.webp"
+  },
+  {
+   "name": "nav-home-a-guest",
+   "sheet": "pages/nav-home-a-guest.webp"
+  },
+  {
+   "name": "nav-home-an-account-with-the-shop",
+   "sheet": "pages/nav-home-an-account-with-the-shop.webp"
+  },
+  {
+   "name": "nav-launch-screen",
+   "sheet": "pages/nav-launch-screen.webp"
+  },
+  {
+   "name": "nav-light-home",
+   "sheet": "pages/nav-light-home.webp"
+  },
+  {
+   "name": "nav-more-an-account-with-the-shop",
+   "sheet": "pages/nav-more-an-account-with-the-shop.webp"
+  },
+  {
+   "name": "nav-shop",
+   "sheet": "pages/nav-shop.webp"
+  },
+  {
+   "name": "nav-tournaments-coming-soon",
+   "sheet": "pages/nav-tournaments-coming-soon.webp"
+  },
+  {
+   "name": "pass-a-tester-at-level-12",
+   "sheet": "pages/pass-a-tester-at-level-12.webp"
+  },
+  {
+   "name": "play",
+   "sheet": "pages/play.webp"
+  },
+  {
+   "name": "podium-10-players",
+   "sheet": "pages/podium-10-players.webp"
+  },
+  {
+   "name": "practice-list",
+   "sheet": "pages/practice-list.webp"
+  },
+  {
+   "name": "profile",
+   "sheet": "pages/profile.webp"
+  },
+  {
+   "name": "profile-new-player-empty-states",
+   "sheet": "pages/profile-new-player-empty-states.webp"
+  },
+  {
+   "name": "rated-home",
+   "sheet": "pages/rated-home.webp"
+  },
+  {
+   "name": "rated-result-won",
+   "sheet": "pages/rated-result-won.webp"
+  },
+  {
+   "name": "rated-searching",
+   "sheet": "pages/rated-searching.webp"
+  },
+  {
+   "name": "rated-tiers",
+   "sheet": "pages/rated-tiers.webp"
+  },
+  {
+   "name": "rated-vs-live",
+   "sheet": "pages/rated-vs-live.webp"
+  },
+  {
+   "name": "room-settings-sheet-mixed",
+   "sheet": "pages/room-settings-sheet-mixed.webp"
+  },
+  {
+   "name": "round-leaderboard-10-players",
+   "sheet": "pages/round-leaderboard-10-players.webp"
+  },
+  {
+   "name": "settings-appearance",
+   "sheet": "pages/settings-appearance.webp"
+  },
+  {
+   "name": "settings-sheet",
+   "sheet": "pages/settings-sheet.webp"
+  },
+  {
+   "name": "settings-sound-and-volume",
+   "sheet": "pages/settings-sound-and-volume.webp"
+  },
+  {
+   "name": "standings-10-players",
+   "sheet": "pages/standings-10-players.webp"
+  },
+  {
+   "name": "tournaments",
+   "sheet": "pages/tournaments.webp"
+  }
+ ]
+}
