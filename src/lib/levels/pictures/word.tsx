@@ -17,6 +17,10 @@ import { WS_SIZE, WS_WORDS } from "@/lib/duel/wordSearch";
 import { LW_LEVEL_LIMITS, LW_REV5_LIMITS } from "@/lib/duel/letterWheel";
 import { SW_EXPERT_LATTICE, SW_HARD_LATTICE, SW_NORMAL_LATTICE, type SwLattice } from "@/lib/duel/swapword";
 import { SWAPWORD_LEVEL_SETTINGS } from "../word/swapword";
+import { CW_SIZE, CODEWORD_REV, codewordGivensFor } from "@/lib/duel/codeword";
+import type { CodewordLevelSettings } from "../word/codeword";
+import { TG_SIZE, TG_TILES } from "@/lib/duel/tileGrid";
+import { TILEGRID_LEVEL_SETTINGS } from "../word/tilegrid";
 
 export interface LeverPictureProps {
   level: Level;
@@ -156,4 +160,38 @@ const swapword: Picture = ({ level, size }) => {
   );
 };
 
-export const LEVER_PICTURES: Readonly<Record<string, Picture>> = { wordsmith, wordhunt, wordsearch, letterwheel, strikeout, swapword };
+/** Cryptogrid: the grid's side, its starting letters gold. */
+const codeword: Picture = ({ level, size }) => {
+  const s = gameLevelSettings<CodewordLevelSettings>("codeword", level);
+  const side = s?.size ?? CW_SIZE;
+  const givens = s?.givens ?? codewordGivensFor(CODEWORD_REV);
+  const cell = 92 / side;
+  return (
+    <Frame size={size} label={`${side} by ${side} grid, ${givens} letters given`}>
+      {Array.from({ length: side * side }, (_, i) => (
+        <rect key={i} x={4 + (i % side) * cell} y={4 + Math.floor(i / side) * cell} width={cell - 1.5} height={cell - 1.5} rx={1} fill={(i * 5) % (side * side) < givens ? GOLD : DIM} />
+      ))}
+    </Frame>
+  );
+};
+
+/** Interlock: the board's side and the tray's tiles under it. */
+const tilegrid: Picture = ({ level, size }) => {
+  const s = level === "normal" ? null : TILEGRID_LEVEL_SETTINGS[level];
+  const side = s?.size ?? TG_SIZE;
+  const tiles = s?.tiles ?? TG_TILES;
+  const cell = 64 / side;
+  const perRow = 12;
+  return (
+    <Frame size={size} label={`${tiles} tiles on a ${side} by ${side} board`}>
+      {Array.from({ length: side * side }, (_, i) => (
+        <rect key={i} x={50 - 32 + (i % side) * cell} y={2 + Math.floor(i / side) * cell} width={cell - 1} height={cell - 1} fill={DIM} />
+      ))}
+      {Array.from({ length: tiles }, (_, i) => (
+        <rect key={`t${i}`} x={2 + (i % perRow) * 8.1} y={70 + Math.floor(i / perRow) * 9} width={7} height={7.5} rx={1.5} fill={GOLD} />
+      ))}
+    </Frame>
+  );
+};
+
+export const LEVER_PICTURES: Readonly<Record<string, Picture>> = { wordsmith, wordhunt, wordsearch, letterwheel, strikeout, swapword, codeword, tilegrid };
