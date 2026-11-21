@@ -44,7 +44,7 @@ import { isBullseye, usesNumberDepth } from "@/lib/duel/numberDepth";
 import { usesStandard } from "@/lib/duel/standard/stamps";
 import { BALLPARK_STD_FULL, isStdBullseye } from "@/lib/duel/standard/number";
 import "@/polish-layout/batch-w-numline.css";
-import { NumberStage, numberArt } from "@/components/puzzles/number/overhaul";
+import { NumberStage } from "@/components/puzzles/number/overhaul";
 import { RevealBoards, RevealFacts, useRevealBoard, type BoardMark } from "@/components/puzzles/number/RevealParts";
 import { Button } from "@/design/components/Button";
 // The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
@@ -313,20 +313,15 @@ export function Line({
       style={{ display: "block", overflow: "visible", ...svgStyle }}
     >
       <TapeDefs id={id} />
-      {/* The Number overhaul: the rendered ruler (docs/design/number-overhaul/source/numline.py), a flat bar the tape's
-          thickness tall: a dark enamel face between polished chrome edges and end caps. Drawn in three slices so only
-          the plain middle stretches, sideways; the caps keep their shape (24 x 80 points scaled to the tape). */}
-      {(() => {
-        const cap = (24 * t) / 80;
-        const top = y - t / 2;
-        return (
-          <g data-numline-ruler>
-            <image href={numberArt("numline", "ruler-m")} x={left + cap - 0.5} y={top} width={Math.max(0, right - left - 2 * cap + 1)} height={t} preserveAspectRatio="none" />
-            <image href={numberArt("numline", "ruler-l")} x={left} y={top} width={cap} height={t} preserveAspectRatio="none" />
-            <image href={numberArt("numline", "ruler-r")} x={right - cap} y={top} width={cap} height={t} preserveAspectRatio="none" />
-          </g>
-        );
-      })()}
+      {/* Ballpark's old look (Joe's pick, 20 Nov 2026; the polish plan's E1.5): the steel tape of 82f2f648, its drop
+          shadow, body, sheen and edges, drawn at today's thickness. */}
+      <g data-numline-ruler>
+        <rect x={left + 1} y={y - t / 2 + 3} width={right - left} height={t} rx={t / 3} fill="#000" opacity={0.4} />
+        <rect x={left} y={y - t / 2} width={right - left} height={t} rx={t / 3} fill={`url(#${id}-steel)`} />
+        <rect x={left} y={y - t / 2} width={right - left} height={t} rx={t / 3} fill={`url(#${id}-sheen)`} />
+        <line x1={left + 3} y1={y - t / 2 + 1} x2={right - 3} y2={y - t / 2 + 1} stroke="#ffffff" strokeOpacity={0.75} strokeWidth={1} />
+        <line x1={left + 3} y1={y + t / 2 - 0.5} x2={right - 3} y2={y + t / 2 - 0.5} stroke="#30323b" strokeOpacity={0.7} strokeWidth={1} />
+      </g>
       {minor > 0
         ? Array.from({ length: minor - 1 }, (_, i) => (i + 1) / minor).map((share) => (
             <line
@@ -344,13 +339,13 @@ export function Line({
         : null}
       {tickLabels(stage, hidden).map((tick) => (
         <g key={tick.share}>
-          {/* A crisp notch down the ruler's face (white, so it reads on the enamel), continued below it to the label. */}
+          {/* A crisp notch across the tape from just above it (the old look), continued below it to the label. */}
           <line
             x1={x(tick.share)}
-            y1={y - t / 2 + t * 0.14}
+            y1={y - t / 2 - 3}
             x2={x(tick.share)}
             y2={y + t / 2 + 6}
-            stroke="var(--jz-white)"
+            stroke="#14151a"
             strokeWidth={3}
             strokeLinecap="square"
           />
@@ -409,16 +404,9 @@ export function Pin({
         strokeWidth={r > 8 ? 3 : 2}
         strokeLinecap="round"
       />
-      <circle cx={cx + 1.5} cy={head + 2.5} r={r} fill="var(--jz-bg)" opacity={0.35} />
-      {/* The Number overhaul: the rendered head (champagne for the live marker, pewter once placed); `fill` keeps
-          the drawn gradient's role as which head to use. */}
-      <image
-        href={numberArt("numline", fill.endsWith("-placed)") ? "pin-placed" : "pin")}
-        x={cx - (r * 16) / 14}
-        y={head - (r * 16) / 14}
-        width={(r * 32) / 14}
-        height={(r * 32) / 14}
-      />
+      <circle cx={cx + 1.5} cy={head + 2.5} r={r} fill="#000" opacity={0.35} />
+      {/* The old pin (Joe's pick, 20 Nov 2026): the shaded gradient head, gold for the live marker, pewter once placed. */}
+      <circle cx={cx} cy={head} r={r} fill={fill} stroke="#1a1b21" strokeWidth={1.5} />
     </>
   );
 }
@@ -702,7 +690,7 @@ function Stage({
           <div ref={lineBox} key={shownStage} className="numline-line-in relative w-full" data-edge-bump={edge?.side}>
             {/* Puzzle polish (3 Nov 2026, display only): a thicker tape (16 → 24) and larger pins; x mapping unchanged.
                 The overhaul: 32 and bold 22 px end labels in a live round. */}
-            <Line stage={stage} width={size.width} height={lineH} t={live ? live.t : 24} label={live ? live.label : 18} yShare={lineY} minor={live ? 10 : 0} hidden={numlineHiddenEnd(stage, placedHere.length)}>
+            <Line stage={stage} width={size.width} height={lineH} t={live ? live.t : 24} label={live ? live.label : 18} yShare={lineY} minor={0} hidden={numlineHiddenEnd(stage, placedHere.length)}>
               {(x, y, geom) => (
                 <>
                   {placedHere.map((p, i) => (
