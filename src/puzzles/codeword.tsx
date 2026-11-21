@@ -40,7 +40,7 @@ function codewordRuns(cells: readonly number[], size: number): number[][] {
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-word/word-look.css";
 import "@/polish-word/cryptogrid.css";
-import { BoardPair, RevealKey, RevealNumbers } from "@/components/puzzles/WordReveal";
+import { BoardPair, RevealKey, RevealNumbers, stageWidth } from "@/components/puzzles/WordReveal";
 import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 import "@/polish-layout/polish-nov3-word.css";
 
@@ -417,7 +417,8 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   const tally = codewordTally(mine, solution, puzzle.givens);
   const given = new Set(puzzle.givens.map((g) => g.n));
   const shown = typeof myExtra?.["wrongEntered"] === "number" ? (myExtra["wrongEntered"] as number) : null;
-  const box = { width: "min(84vw, 340px)", height: "min(84vw, 340px)" };
+  // G2 (21 Nov 2026): the square board at the stage's width (was min(84vw, 340px)).
+  const box = { width: stageWidth(420), height: stageWidth(420) };
   return (
     <div data-word-reveal="codeword" data-wr-version="overhaul" className="wr">
       <RevealNumbers
