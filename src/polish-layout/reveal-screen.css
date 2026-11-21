@@ -470,3 +470,112 @@
   display: block;
   width: 100%;
 }
+
+/* ------------------------------------------------------------------ the one reveal template (G1)
+ * src/components/duel/RevealScreen.tsx (P2, 21 Nov 2026, from the first version of 20 Nov). The header stays at the
+ * top; the body column under it holds the score card, the stage, the facts, the breakdown and the footer. Nothing is
+ * ever cut off (the plan's fix (a)): an arcade stage grows with its picture and the body scrolls, as main's reveal
+ * did; a puzzle stage takes the space left and its board card scrolls inside it. The stage is an inline-size
+ * container, so a picture can draw at its width (cqw or useStageSize); its height is the picture's own. */
+.reveal-screen {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 10px;
+}
+.reveal-slot-header,
+.reveal-slot-score,
+.reveal-slot-facts,
+.reveal-slot-breakdown,
+.reveal-slot-footer,
+.reveal-views {
+  flex: 0 0 auto;
+}
+/* The breakdown's pieces centre in the column as main's did (the folded line, the rows full width). */
+.reveal-slot-breakdown {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+.reveal-slot-body {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 10px;
+}
+.reveal-slot-stage {
+  position: relative;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  align-items: stretch;
+  container-type: inline-size;
+}
+/* Arcade: the body scrolls and the stage is never shorter than its picture (a room's chart takes the spare height). */
+[data-reveal-screen-template="arcade"] > .reveal-slot-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+[data-reveal-screen-template="arcade"] .reveal-slot-stage {
+  flex: 1 0 auto;
+}
+/* Puzzles: the stage is the space left under the score card; the board card scrolls inside it (useRevealFit). */
+[data-reveal-screen-template="puzzle"] .reveal-slot-stage {
+  flex: 1 1 auto;
+}
+.reveal-views {
+  display: flex;
+  justify-content: center;
+}
+.reveal-facts {
+  display: grid;
+  grid-template-columns: repeat(var(--reveal-facts-n, 3), minmax(0, 1fr));
+  gap: 8px;
+}
+.reveal-fact {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  padding: 8px 10px;
+  border-radius: var(--jz-radius-md);
+  background: color-mix(in srgb, var(--jz-bg) 55%, transparent);
+}
+.reveal-fact-value {
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  color: var(--jz-text);
+}
+.reveal-fact-label {
+  font-size: 12px;
+  color: var(--reveal-text-2, var(--jz-text-3));
+}
+.reveal-view {
+  display: flex;
+  min-height: 0;
+  flex: 1 0 auto;
+  flex-direction: column;
+}
+.reveal-view[hidden] {
+  display: none;
+}
+/* Short phones (375 × 667 and the like): tighter spacing, so a room's folded reveal (the score, the views, a 16-player
+   chart and the folded breakdown) fits without scrolling, as main's did (room-16-check). The views' track keeps 44 px
+   buttons. */
+@media (max-height: 720px) {
+  .reveal-screen {
+    gap: 6px;
+  }
+  .reveal-slot-body {
+    gap: 4px;
+    padding-block: 0;
+  }
+  .reveal-views .jz-seg {
+    padding: 2px;
+  }
+}

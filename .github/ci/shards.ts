@@ -12,6 +12,9 @@
  * checks, 137 of its 155 unlisted) and e (641 s) gave ~398 s to a (298 s), b, c (334 s) and f, so every fast shard
  * is ~485-535 s of checks (a 486, b 507, c 525, d 525, e 532, f 505, g 516) and the workflow's wall time follows
  * its slowest shard down from ~13.4 to ~9.5 min.
+ * Rebalanced 21 Nov 2026 on Checks run 44837437683's times: g (the catch-all, 282 checks, ~43.5 min of checks) was at its
+ * 45-minute job limit while a-f ran 7-15 min; 63 of its slowest unlisted checks (~30.6 min) moved to a-f, so a-f are each
+ * ~16.7 min of checks and g ~12.9 min, leaving g room for the new checks every build session adds.
  * Rebalanced 3 Nov 2026: g (the catch-all, every new check) had grown to ~31-33 min while d-f
  * finished in 6-10; ~18 min of its largest unlisted checks (timed on PR #253's run) now sit on
  * c, d, e and f, each aiming at ~12-13 min against the job's 45-minute limit.
@@ -211,6 +214,19 @@ export const SHARDS: Record<string, string[]> = {
     // Full-depth split (10 Nov 2026, second pass): freekick-check (timed out at 300 s on run 42746046136) in quarters, and
     // cards-check re-split into eighths (a quarter took 241 s there); each part well under 200 s on CI.
     "cards-check.ts@5/8",
+    // From g's catch-all (21 Nov 2026 rebalance, ~364 s on Checks run 44837437683): g had reached ~44 min of its 45-minute job limit.
+    "freekick-layered-check.ts",
+    "number-levels-checkout-kakuro-check.ts",
+    "skins-replay-check.ts",
+    "cards-levels-order-check.ts",
+    "logic-1-steps-check.ts",
+    "curling-overhaul-check.ts",
+    "solver-progress-check.ts",
+    "word-overhaul-check.ts",
+    "bastion-levels-check.ts",
+    "room-late-run-check.ts",
+    "difficulty-check.ts",
+    "skyline-levels-check.ts",
   ],
   // ~282 s of checks on run 38608375501's times.
   b: [
@@ -263,6 +279,21 @@ export const SHARDS: Record<string, string[]> = {
     // cards-check re-split into eighths (a quarter took 241 s there); each part well under 200 s on CI.
     "freekick-check.ts@3/4",
     "cards-check.ts@3/8",
+    // From g's catch-all (21 Nov 2026 rebalance, ~565 s on Checks run 44837437683): g had reached ~44 min of its 45-minute job limit.
+    "pool-levels-check.ts",
+    "ink-levels-check.ts",
+    "retro-overhaul-check.ts",
+    "sound-review-fixes-check.ts",
+    "skins-check.ts",
+    "pattern-overhaul-unblock-levels-check.ts",
+    "pattern-overhaul-gravity-levels-check.ts",
+    "wavefront-deal-check.ts",
+    "pattern-overhaul-laser-levels-check.ts",
+    "word-nov7-check.ts",
+    "pattern-overhaul-flow-levels-check.ts",
+    "wavefront-phone-check.ts",
+    "codeword-levels-check.ts",
+    "security-fixes-check.ts",
   ],
   // ~282 s of checks on run 38608375501's times.
   c: [
@@ -321,6 +352,14 @@ export const SHARDS: Record<string, string[]> = {
     "freekick-check.ts@1/4",
     "cards-check.ts@1/8",
     "cards-check.ts@8/8",
+    // From g's catch-all (21 Nov 2026 rebalance, ~89 s on Checks run 44837437683): g had reached ~44 min of its 45-minute job limit.
+    "orbit-overhaul-check.ts",
+    "gemstone-levels-check.ts",
+    "logic-1-levels-check.tsx",
+    "pattern-overhaul-pipes-levels-check.ts",
+    "depth-wordsearch-check.ts",
+    "hover-x200-check.ts",
+    "wavefront-expand-check.ts",
   ],
   // ~282 s of checks on run 38608375501's times.
   d: [
@@ -358,6 +397,18 @@ export const SHARDS: Record<string, string[]> = {
     // cards-check re-split into eighths (a quarter took 241 s there); each part well under 200 s on CI.
     "freekick-check.ts@4/4",
     "cards-check.ts@4/8",
+    // From g's catch-all (21 Nov 2026 rebalance, ~297 s on Checks run 44837437683): g had reached ~44 min of its 45-minute job limit.
+    "wordslide-levels-check.ts",
+    "cards-levels-check.ts",
+    "ricochet-overhaul-check.ts",
+    "swing-overhaul-check.ts",
+    "balltrack-levels-check.ts",
+    "empty-sports-runs-check.ts",
+    "number-overhaul-checkout-kakuro-check.ts",
+    "speed-levels-check.ts",
+    "practice-receipt-check.ts",
+    "number-levels-measure-numline-check.ts",
+    "swing-levels-check.ts",
   ],
   // ~282 s of checks on run 38608375501's times.
   e: [
@@ -530,6 +581,14 @@ export const SHARDS: Record<string, string[]> = {
     // action-demos-check (15 Nov 2026, ~6 s): the six Action intro demos, their save end to end on a local PostgreSQL
     // through the server-function harness (PostgreSQL is installed on this shard), beside server-functions-check.
     "action-demos-check.ts",
+    // From g's catch-all (21 Nov 2026 rebalance, ~86 s on Checks run 44837437683): g had reached ~44 min of its 45-minute job limit.
+    "partial-credit-check.ts",
+    "voice-lines-check.ts",
+    "attention-levels-check.ts",
+    "bubble-levels-check.ts",
+    "standard-pattern-check.ts",
+    "pattern-overhaul-gravity-check.ts",
+    "pattern-overhaul-iceslide-check.ts",
   ],
   // ~282 s of checks on run 38608375501's times.
   f: [
@@ -570,6 +629,19 @@ export const SHARDS: Record<string, string[]> = {
     // Full-depth split (10 Nov 2026, second pass): freekick-check (timed out at 300 s on run 42746046136) in quarters, and
     // cards-check re-split into eighths (a quarter took 241 s there); each part well under 200 s on CI.
     "cards-check.ts@6/8",
+    // From g's catch-all (21 Nov 2026 rebalance, ~436 s on Checks run 44837437683): g had reached ~44 min of its 45-minute job limit.
+    "pool-overhaul-check.ts",
+    "pattern-overhaul-push-levels-check.ts",
+    "flip-overhaul-check.ts",
+    "sound-on-demand-check.ts",
+    "number-levels-balance-target-check.ts",
+    "skyline-overhaul-check.ts",
+    "wordhunt-levels-check.ts",
+    "net-request-check.ts",
+    "analytics-events-check.ts",
+    "ranking-identity-check.ts",
+    "bubble-standard-check.ts",
+    "wordsearch-levels-check.ts",
   ],
   // ~282 s of checks on run 38608375501's times.
   g: [
