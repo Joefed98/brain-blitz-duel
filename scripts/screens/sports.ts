@@ -6,6 +6,7 @@
  * (scripts/area-screens.ts finds this file).
  */
 import { room, ALL_SIZES, type ThemeScreen } from "../theme-screens";
+import { openYourRun } from "./reveals";
 import { SPORTS_OVERHAUL_GAMES, sportsRunFor, type SportsOverhaulGame } from "./sports-fixture";
 
 const NAMES: Record<SportsOverhaulGame, string> = { pool: "Cue Ball", curling: "Curl Champ", racing: "Apex" };
@@ -27,6 +28,7 @@ function revealRoomScored(type: SportsOverhaulGame) {
 export default function sportsScreens(): ThemeScreen[] {
   return SPORTS_OVERHAUL_GAMES.flatMap((type): ThemeScreen[] => [
     { name: `sports, ${NAMES[type]}'s game page`, mode: "practice", search: { page: type }, plain: true, waitMs: 800, sizes: ALL_SIZES },
-    { name: `sports, ${NAMES[type]}'s answer reveal with the run summary`, mode: "room", room: revealRoomScored(type), waitMs: 2500, plain: true, sizes: ALL_SIZES },
+    // Changed with Joe's approval, 21 Nov 2026: opens "Your run" (a room's reveal opens on the Room view), so the run summary is what is judged.
+    { name: `sports, ${NAMES[type]}'s answer reveal with the run summary`, mode: "room", room: revealRoomScored(type), waitMs: 2500, plain: true, sizes: ALL_SIZES, go: openYourRun },
   ]);
 }

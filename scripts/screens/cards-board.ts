@@ -8,6 +8,7 @@ import { decodeFreecellRun, decodeFiveHandsRun, decodePyramidRun, decodeTripeaks
 import type { PuzzleData } from "../../src/lib/duel/types";
 import { freecellFlawless, fiveHandsFlawless, pyramidFlawless, tripeaksFlawless } from "../cards/flawless";
 import { ALL_SIZES, room, type ThemeScreen } from "../theme-screens";
+import { openYourRun } from "./reveals";
 
 /** The run's first `keep` share of inputs (the rest of the round idle), re-encoded without checkpoints. */
 function cut<R extends { events: { t: number }[]; checkpoints?: unknown[]; endTick?: number }>(raw: string, decode: (r: string) => R, encode: (r: R) => string, keep: number): string {
@@ -30,5 +31,8 @@ export default function cardsBoardScreens(): ThemeScreen[] {
     plain: true,
     room: room("in_progress", "reveal", { arcade: true, arcadeType: type, arcadePuzzle: puzzle, players: 4, answer }),
     sizes: ALL_SIZES,
+    // Changed with Joe's approval, 21 Nov 2026: opens "Your run" (a room's reveal opens on the Room view), so the picture is what is judged;
+    // Mahjong's untouched stack stays on the Room view, so a Cards & Board room reveal's chart view is still drawn.
+    ...(type === "mahjong" ? {} : { go: openYourRun }),
   }));
 }
