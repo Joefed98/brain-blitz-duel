@@ -2547,6 +2547,12 @@ export interface WordSlidePuzzleData {
   timeLimitMs?: number;
   /** wordSlideRev 7 (D1, 21 Nov 2026, level deals only): the grid's side, 4–7; absent = 5 (Normal, every older round). */
   size?: number;
+  /**
+   * wordSlideRev 7 (D1, 21 Nov 2026, Expert deals only, Joe's looser Expert par): the slides that still earn the whole par
+   * bonus and the slides at which it reaches 0 (sliderParLine); absent = the par and twice the par (Normal's rule).
+   */
+  parFullAt?: number;
+  parZeroAt?: number;
 }
 
 /* ================================ Balance =============================== */

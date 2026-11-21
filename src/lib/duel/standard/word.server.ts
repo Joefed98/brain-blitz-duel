@@ -7,7 +7,7 @@
 import { isWord } from "../dictionary.server";
 import { decodeTileGrid, tileGridRuns, fitsTray } from "../tileGrid";
 import { judgeTileGrid } from "../tileGrid.server";
-import { decodeSlideTokens, markedRowWord, wordSlideSize, wsRows, WS_SIZE } from "../wordSlide";
+import { decodeSlideTokens, markedRowWord, sliderParLine, wordSlideSize, wsRows, WS_SIZE } from "../wordSlide";
 import { checkWordSlideRow, replayWordSlideFor } from "../wordSlide.server";
 import { swapwordCounts, wordSlideMadeRows } from "../progressFigures";
 import { wsDecode, wsGrade, wsRowsOf, wsSplitBonus } from "../wordSearch";
@@ -168,7 +168,8 @@ const slider: StandardGame = {
       return {
         finished: true,
         speed: speedOf(input, STD_SLIDER.speed, STD_SLIDER.fullByS),
-        bonus: parPoints(STD_SLIDER.par, moves, p.par),
+        // wordSlideRev 7 (D1, Expert deals): the board's own stored par line; every other board its par and twice it.
+        bonus: parPoints(STD_SLIDER.par, moves, sliderParLine(p).full, sliderParLine(p).zero),
         measure: "par moves",
       };
     }

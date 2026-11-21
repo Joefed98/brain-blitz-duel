@@ -5,12 +5,13 @@
  *  1. Normal is untouched: a puzzle without wordSlideRev 7 is 5 × 5 whatever it carries; every rule at size 5 reads tokens
  *     and rows exactly as before (a token past row or column 4 is still ignored); the indexed row closeness the solver uses
  *     on the bigger grids gives exactly the scan's value.
- *  2. Every level deal: wordSlideRev 7 and its size (Easy 4, Hard 6, Expert 7), the level's own words (everyday words of the
- *     grid's length, all different), no row a word at the start, the stored par the proven fewest slides (a fresh search)
- *     inside the level's range, on Normal's clock; the same deal for everyone.
- *  3. The banks: every Hard and Expert entry meets its rules; the committed file is what the bank script builds (the
- *     re-proof, sampled at quick depth, every entry with CHECKS_FULL=1): Hard boards the elite person-like solver
- *     finishes inside the clock, Expert boards whose line at the human limits (SLIDER_AT_LIMITS) the server grades 200.
+ *  2. Every level deal: wordSlideRev 7 and its size (Easy 4, Hard 6, Expert 7), the level's own words (common answers of
+ *     the grid's length, answerWords, all different), no row a word at the start, the stored par the proven fewest slides
+ *     (a fresh search) inside the level's range, on Normal's clock; the same deal for everyone.
+ *  3. Expert's bank (Joe, 21 Nov 2026; Hard and Easy deal unfiltered from the room seed): at least SLIDER_BANK_SIZE boards,
+ *     every entry meets its rules and is re-proved (three sampled at quick depth, every entry with CHECKS_FULL=1): the
+ *     elite person-like solver's line at the human limits (SLIDER_AT_LIMITS) is graded 200 by the server on the board's
+ *     own par line. 3b: that par line is stored on Expert boards only and read only on wordSlideRev 7.
  *  4. The server enforces the size: a level board's dealt words grade as a finish (200 when quick, within par); its rows
  *     are checked at the grid's length live and when graded; a 7 × 7 token is ignored on a 5 × 5 board.
  *  5. The cost: an unfinished 7 × 7 board grades in under 1.5 s.
@@ -27,7 +28,8 @@ import { checkWordSlideRow, slideWords } from "../src/lib/duel/wordSlide.server"
 import { decodeSlideTokens, parseToken, replayWordSlide, shiftToken, wordSlideSize, WORD_SLIDE_REV_SIZED, WS_TIME_MS } from "../src/lib/duel/wordSlide";
 import { wordSlideDistance } from "../src/lib/duel/wordSlideDistance.server";
 import { rowCloseness, rowClosenessScan } from "./slider-human";
-import { sliderBankProof } from "./slider-level-bank";
+import { SLIDER_BANK_SIZE, sliderBankProof } from "./slider-level-bank";
+import { sliderParLine } from "../src/lib/duel/wordSlide";
 import { asPhoneSends, gradeSteps } from "./standard-lib";
 
 let passes = 0;
@@ -81,18 +83,33 @@ for (const level of ["easy", "hard", "expert"] as const) {
   }
 }
 
-/* 3. The banks. */
-for (const level of ["hard", "expert"] as const) {
-  const s = WORDSLIDE_LEVEL_SETTINGS[level];
-  const bank = SLIDER_LEVEL_BANK[level];
-  ok(bank.length >= 20, `${level}: the bank holds ${bank.length} boards (at least 20)`);
-  ok(new Set(bank.map((e) => e.grid)).size === bank.length, `${level}: no board twice`);
+/* 3. Expert's bank (Joe, 21 Nov 2026: Hard is dealt unfiltered from the room seed; Expert only from proved boards). */
+{
+  const s = WORDSLIDE_LEVEL_SETTINGS.expert;
+  const bank = SLIDER_LEVEL_BANK.expert;
+  ok(!("hard" in SLIDER_LEVEL_BANK) && !WORDSLIDE_LEVEL_SETTINGS.hard.bank && !WORDSLIDE_LEVEL_SETTINGS.easy.bank, "hard and easy deal from the room seed, unfiltered (no bank)");
+  ok(bank.length >= SLIDER_BANK_SIZE.expert, `expert: the bank holds ${bank.length} boards (at least ${SLIDER_BANK_SIZE.expert}, so a board rarely repeats)`);
+  ok(new Set(bank.map((e) => e.grid)).size === bank.length, "expert: no board twice");
   const boards = bank.map((e) => sliderBankPuzzle(s, e));
-  ok(boards.every((b) => wordSlideLevelRuleBreak(b, s) === null), `${level}: every entry meets its rules`);
-  const sample = FULL ? boards : boards.slice(0, 2);
+  ok(boards.every((b) => wordSlideLevelRuleBreak(b, s) === null), "expert: every entry meets its rules (common answers, the par proven, its own par line)");
+  const sample = FULL ? boards : [boards[0]!, boards[Math.floor(boards.length / 2)]!, boards[boards.length - 1]!];
   for (const [i, b] of sample.entries()) {
-    const proof = sliderBankProof(level, b);
-    ok(proof.ok, `${level} #${i}: re-proved (${level === "hard" ? "the elite finishes" : "200 at the human limits"}; score ${proof.score}, ${proof.slides} slides)`);
+    const proof = sliderBankProof(b);
+    ok(proof.ok, `expert #${i}: re-proved, the elite's line at the human limits scores 200 (score ${proof.score}, ${proof.slides} slides, ${(proof.ms / 1000).toFixed(1)} s)`);
+  }
+}
+
+/* 3b. Expert's own par line (stored on the board, wordSlideRev 7 only); every other board scores on its par as before. */
+{
+  const e = deal(909, "expert");
+  const line = sliderParLine(e);
+  ok(e.parFullAt === WORDSLIDE_LEVEL_SETTINGS.expert.parLine!.full && e.parZeroAt === WORDSLIDE_LEVEL_SETTINGS.expert.parLine!.zero && line.full === e.parFullAt && line.zero === e.parZeroAt, `expert: its par line stored and read (${line.full} / ${line.zero} slides)`);
+  const n = deal(909);
+  ok(n.parFullAt === undefined && n.parZeroAt === undefined && sliderParLine(n).full === n.par && sliderParLine(n).zero === 2 * n.par, "normal: no par line stored, scored on its par and twice it");
+  ok(sliderParLine({ par: 6, wordSlideRev: 6, parFullAt: 20, parZeroAt: 40 }).full === 6, "a par line on a board without wordSlideRev 7 is ignored");
+  for (const level of ["easy", "hard"] as const) {
+    const d = deal(909, level);
+    ok(d.parFullAt === undefined && sliderParLine(d).full === d.par, `${level}: no par line of its own`);
   }
 }
 

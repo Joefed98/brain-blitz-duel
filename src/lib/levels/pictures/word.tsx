@@ -21,6 +21,8 @@ import { CW_SIZE, CODEWORD_REV, codewordGivensFor } from "@/lib/duel/codeword";
 import type { CodewordLevelSettings } from "../word/codeword";
 import { TG_SIZE, TG_TILES } from "@/lib/duel/tileGrid";
 import { TILEGRID_LEVEL_SETTINGS } from "../word/tilegrid";
+import { WS_SIZE as SLIDE_SIZE } from "@/lib/duel/wordSlide";
+import { WORDSLIDE_LEVEL_SETTINGS } from "../word/wordslide";
 
 export interface LeverPictureProps {
   level: Level;
@@ -194,4 +196,17 @@ const tilegrid: Picture = ({ level, size }) => {
   );
 };
 
-export const LEVER_PICTURES: Readonly<Record<string, Picture>> = { wordsmith, wordhunt, wordsearch, letterwheel, strikeout, swapword, codeword, tilegrid };
+/** Slider: the grid's side (one row a word), the first row gold. */
+const wordslide: Picture = ({ level, size }) => {
+  const side = level === "normal" ? SLIDE_SIZE : WORDSLIDE_LEVEL_SETTINGS[level].size;
+  const cell = 92 / side;
+  return (
+    <Frame size={size} label={`${side} by ${side} grid of ${side}-letter words`}>
+      {Array.from({ length: side * side }, (_, i) => (
+        <rect key={i} x={4 + (i % side) * cell} y={4 + Math.floor(i / side) * cell} width={cell - 1.5} height={cell - 1.5} rx={1.5} fill={i < side ? GOLD : INK} />
+      ))}
+    </Frame>
+  );
+};
+
+export const LEVER_PICTURES: Readonly<Record<string, Picture>> = { wordsmith, wordhunt, wordsearch, letterwheel, strikeout, swapword, codeword, tilegrid, wordslide };

@@ -1,30 +1,32 @@
 /**
- * Builds Slider's Hard and Expert banks (D1, 21 Nov 2026; src/lib/levels/word/wordslide.ts) in
- * src/lib/duel/sliderLevelBank.server.ts: boards built by the level deal's own recipe (buildWordSlideLevel: everyday words
- * of the grid's length, a scramble that never undoes its last slide and leaves no row a word, the par proven by the
- * two-way search), kept only when the size-aware person-like solver (scripts/slider-human.ts), which never reads the
- * words, proves them:
+ * Builds Slider's Expert bank (D1, 21 Nov 2026; Joe's decision of 21 Nov: Hard is dealt unfiltered from the room seed,
+ * Expert only from boards proved here) in src/lib/duel/sliderLevelBank.server.ts: 7 × 7 boards built by the level deal's
+ * own recipe (buildWordSlideLevel: seven different common answers of seven letters, answerWords; a scramble that never
+ * undoes its last slide and leaves no row a word; the par proven by the two-way search), kept only when the elite
+ * person-like solver held to the human limits (scripts/slider-human.ts SLIDER_AT_LIMITS: three slides ahead, 2 s a plan,
+ * every slide 0.25 s + 0.15 s; it never reads the words) finishes and the server grades its line 200 on the board's own
+ * stored par line (Expert's looser par, src/lib/levels/word/wordslide.ts).
  *
- *   - Hard (6 × 6): the elite solver finishes the board inside the clock.
- *   - Expert (7 × 7): the elite's line at the human limits (SLIDER_AT_LIMITS: three slides ahead, 2 s a plan, every slide
- *     0.25 s + 0.15 s) finishes in at most par slides and the server grades it 200.
+ *   bun scripts/slider-level-bank.ts                           rebuild the bank (one process)
+ *   bun scripts/slider-level-bank.ts --part=k/n --json=p.json  prove part k of n of the candidates (run the parts in parallel)
+ *   bun scripts/slider-level-bank.ts --merge=p1.json,…         join the parts into the file
+ *   bun scripts/slider-level-bank.ts --check [--part=k/n]      re-prove (a part of) the candidates and compare with the file
  *
- *   bun scripts/slider-level-bank.ts [--level=hard|expert] [--count=N]   rebuild the banks (both by default)
- *   bun scripts/slider-level-bank.ts --check                              rebuild in memory, compare with the committed file
- *   bun scripts/slider-level-bank.ts --level=hard --json=a.json & …--level=expert --json=b.json; …--merge=a.json,b.json
- *
- * Seeded (one seed a level, the solver's own seed per board), so a rebuild is byte for byte. A candidate takes the solver
- * up to about 20 s on 6 × 6 (a failed run plays its whole clock), so a full build takes the better part of an hour.
+ * Candidates are numbered by one seeded stream; candidate i belongs to part (i mod n) + 1; the bank is the first
+ * SLIDER_BANK_SIZE.expert candidates in number order that pass, out of the first SLIDER_EXPERT_TRIES, so a parallel build
+ * and a single process write the same file byte for byte.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { buildWordSlideLevel } from "../src/lib/duel/levels/wordslide.server";
 import { WORDSLIDE_LEVEL_SETTINGS } from "../src/lib/levels/word/wordslide";
+import { sliderParLine } from "../src/lib/duel/wordSlide";
 import { gradeLine } from "./word-human-solvers";
-import { playSliderHuman, SLIDER_AT_LIMITS, SLIDER_HUMANS } from "./slider-human";
+import { playSliderHuman, SLIDER_AT_LIMITS } from "./slider-human";
 
-export const SLIDER_BANK_SIZE = { hard: 30, expert: 30 } as const;
-const LEVEL_SEEDS = { hard: 0x51d6_0006, expert: 0x51d6_0007 } as const;
-export type SliderBankLevel = keyof typeof LEVEL_SEEDS;
+export const SLIDER_BANK_SIZE = { expert: 200 } as const;
+/** Candidates tried for the bank (the stream's first this many). */
+export const SLIDER_EXPERT_TRIES = 960;
+const LEVEL_SEED = 0x51d6_0017;
 const OUT = new URL("../src/lib/duel/sliderLevelBank.server.ts", import.meta.url).pathname;
 
 function mulberry32(seed: number): () => number {
@@ -44,85 +46,109 @@ export interface SliderBankEntry {
   par: number;
 }
 
-/** The proof a board passes at its level (also what the level check re-proves). */
-export function sliderBankProof(level: SliderBankLevel, p: ReturnType<typeof buildWordSlideLevel>): { ok: boolean; score: number; slides: number; ms: number } {
-  if (level === "hard") {
-    const run = playSliderHuman(p, SLIDER_HUMANS.elite, 1);
-    const line = gradeLine(p, run.steps, {});
-    return { ok: run.finished, score: line.score, slides: run.slides, ms: line.ms };
-  }
-  const run = playSliderHuman(p, SLIDER_AT_LIMITS, 1, p.par);
+/** The proof an Expert board passes (also what the level checks re-prove): the elite's line at the limits scores 200. */
+export function sliderBankProof(p: ReturnType<typeof buildWordSlideLevel>): { ok: boolean; score: number; slides: number; ms: number } {
+  // Slides past the par line's full point can't score 200, so the run stops there.
+  const run = playSliderHuman(p, SLIDER_AT_LIMITS, 1, sliderParLine(p).full);
   const line = gradeLine(p, run.steps, {});
-  return { ok: run.finished && run.slides <= p.par && line.score >= 200, score: line.score, slides: run.slides, ms: line.ms };
+  return { ok: run.finished && line.score >= 200, score: line.score, slides: run.slides, ms: line.ms };
 }
 
-export function buildSliderBank(level: SliderBankLevel, count: number = SLIDER_BANK_SIZE[level], log = false): SliderBankEntry[] {
-  const rand = mulberry32(LEVEL_SEEDS[level]);
-  const out: SliderBankEntry[] = [];
+/** Candidate seeds, in number order. */
+export function sliderCandidateSeeds(tries: number = SLIDER_EXPERT_TRIES): number[] {
+  const rand = mulberry32(LEVEL_SEED);
+  return Array.from({ length: tries }, () => Math.floor(rand() * 2 ** 32));
+}
+
+export interface SliderCandidate {
+  i: number;
+  ok: boolean;
+  entry: SliderBankEntry;
+}
+
+/** Proves the candidates of part k of n (k from 1). */
+export function sliderBankPart(k: number, n: number, log = false): SliderCandidate[] {
+  const out: SliderCandidate[] = [];
+  sliderCandidateSeeds().forEach((seed, i) => {
+    if (i % n !== k - 1) return;
+    const p = buildWordSlideLevel(WORDSLIDE_LEVEL_SETTINGS.expert, seed);
+    const proof = sliderBankProof(p);
+    if (log) console.log(`expert #${i}: par ${p.par}, ${proof.ok ? "kept" : "dropped"} (score ${proof.score}, ${proof.slides} slides, ${(proof.ms / 1000).toFixed(1)} s)`);
+    out.push({ i, ok: proof.ok, entry: { grid: p.grid.join(""), words: [...(p.words ?? [])], par: p.par } });
+  });
+  return out;
+}
+
+/** The bank: the first SLIDER_BANK_SIZE.expert passing candidates in number order, no grid twice. */
+export function sliderBankFrom(candidates: readonly SliderCandidate[]): SliderBankEntry[] {
   const seen = new Set<string>();
-  for (let tries = 0; out.length < count && tries < count * 40; tries++) {
-    const p = buildWordSlideLevel(WORDSLIDE_LEVEL_SETTINGS[level], Math.floor(rand() * 2 ** 32));
-    const key = p.grid.join("");
-    if (seen.has(key)) continue;
-    seen.add(key);
-    const proof = sliderBankProof(level, p);
-    if (log) console.log(`${level} try ${tries}: par ${p.par}, ${proof.ok ? "kept" : "dropped"} (score ${proof.score}, ${proof.slides} slides, ${(proof.ms / 1000).toFixed(1)} s)`);
-    if (proof.ok) out.push({ grid: key, words: [...(p.words ?? [])], par: p.par });
+  const out: SliderBankEntry[] = [];
+  for (const c of [...candidates].sort((a, b) => a.i - b.i)) {
+    if (!c.ok || seen.has(c.entry.grid)) continue;
+    seen.add(c.entry.grid);
+    out.push(c.entry);
+    if (out.length >= SLIDER_BANK_SIZE.expert) break;
   }
   return out;
 }
 
-function fileText(banks: Record<SliderBankLevel, SliderBankEntry[]>): string {
+function fileText(expert: readonly SliderBankEntry[]): string {
   return `/**
- * Slider's Hard and Expert banks (D1, 21 Nov 2026) — generated by scripts/slider-level-bank.ts. Do not edit by hand.
- * Hard: 6 × 6 boards the elite person-like solver finishes inside the clock; Expert: 7 × 7 boards whose elite line at the
- * human limits reaches 200 in at most par slides. Server-only.
+ * Slider's Expert bank (D1, 21 Nov 2026) — generated by scripts/slider-level-bank.ts. Do not edit by hand. 7 × 7 boards of
+ * common answers whose elite person-like line at the human limits reaches 200 on Expert's own par line. Server-only.
  */
 export interface SliderLevelBankEntry {
   grid: string;
   words: string[];
   par: number;
 }
-export const SLIDER_LEVEL_BANK: Record<"hard" | "expert", SliderLevelBankEntry[]> = ${JSON.stringify(banks)};
+export const SLIDER_LEVEL_BANK: Record<"expert", SliderLevelBankEntry[]> = ${JSON.stringify({ expert })};
 `;
 }
 
-/** The committed banks, read back from the generated file's JSON (for --check and a partial rebuild). */
-function committed(): Record<SliderBankLevel, SliderBankEntry[]> {
+/** The committed bank, read back from the generated file's JSON. */
+export function committedSliderBank(): SliderBankEntry[] {
   const text = readFileSync(OUT, "utf8");
   const json = text.slice(text.indexOf("= {") + 2).trim().replace(/;$/, "");
-  return JSON.parse(json);
+  return (JSON.parse(json) as { expert: SliderBankEntry[] }).expert;
 }
 
 if (import.meta.main) {
   const args = process.argv.slice(2);
-  const only = args.find((a) => a.startsWith("--level="))?.slice(8) as SliderBankLevel | undefined;
-  const count = Number(args.find((a) => a.startsWith("--count="))?.slice(8) ?? NaN);
-  const check = args.includes("--check");
-  const levels: SliderBankLevel[] = only ? [only] : ["hard", "expert"];
+  const part = args.find((a) => a.startsWith("--part="))?.slice(7);
+  const [k, n] = part ? (part.split("/").map(Number) as [number, number]) : [1, 1];
   const json = args.find((a) => a.startsWith("--json="))?.slice(7);
   const merge = args.find((a) => a.startsWith("--merge="))?.slice(8);
   if (merge) {
-    // Two levels built in parallel (each with --level and --json), joined into the file.
-    const banks = committed();
-    for (const path of merge.split(",")) Object.assign(banks, JSON.parse(readFileSync(path, "utf8")));
-    writeFileSync(OUT, fileText(banks));
-    console.log(`slider level banks: hard ${banks.hard.length}, expert ${banks.expert.length} → ${OUT}`);
+    const all = merge.split(",").flatMap((path) => JSON.parse(readFileSync(path, "utf8")) as SliderCandidate[]);
+    const bank = sliderBankFrom(all);
+    writeFileSync(OUT, fileText(bank));
+    console.log(`slider expert bank: ${bank.length} boards (${all.filter((c) => c.ok).length} proved among ${all.length} candidates) → ${OUT}`);
     process.exit(0);
   }
-  const banks = check ? { hard: [], expert: [] } : committed();
-  for (const level of levels) banks[level] = buildSliderBank(level, Number.isFinite(count) ? count : SLIDER_BANK_SIZE[level], !check);
+  const check = args.includes("--check");
+  const t0 = Date.now();
+  const cands = sliderBankPart(k, n, !check);
+  console.log(`part ${k}/${n}: ${cands.filter((c) => c.ok).length} of ${cands.length} proved in ${((Date.now() - t0) / 1000).toFixed(0)} s`);
   if (json) {
-    writeFileSync(json, JSON.stringify(Object.fromEntries(levels.map((l) => [l, banks[l]]))));
-    console.log(`wrote ${levels.join(", ")} to ${json}`);
+    writeFileSync(json, JSON.stringify(cands));
     process.exit(0);
   }
   if (check) {
-    const now = committed();
-    const same = levels.every((l) => JSON.stringify(now[l]) === JSON.stringify(banks[l]));
-    console.log(same ? `ok: ${OUT} rebuilds byte for byte (${levels.join(", ")})` : `FAIL: ${OUT} differs from a rebuild (${levels.join(", ")})`);
+    const bank = committedSliderBank();
+    // The whole stream: the bank rebuilds byte for byte. A part: each candidate it proves up to the bank's last one is
+    // in the bank exactly when it passes (the bank is the first passing candidates in number order).
+    let same: boolean;
+    if (n === 1) same = JSON.stringify(sliderBankFrom(cands)) === JSON.stringify(bank);
+    else {
+      const keys = new Set(bank.map((e) => e.grid));
+      const reach = bank.length < SLIDER_BANK_SIZE.expert ? Infinity : Math.max(...cands.filter((c) => keys.has(c.entry.grid)).map((c) => c.i), -1);
+      same = cands.every((c) => (c.i > reach && reach !== Infinity) || c.ok === keys.has(c.entry.grid));
+    }
+    console.log(same ? `ok: ${OUT} rebuilds byte for byte (part ${k}/${n})` : `FAIL: ${OUT} differs from a rebuild (part ${k}/${n})`);
     process.exit(same ? 0 : 1);
   }
-  writeFileSync(OUT, fileText(banks));
-  console.log(`slider level banks: hard ${banks.hard.length}, expert ${banks.expert.length} → ${OUT}`);
+  const bank = sliderBankFrom(cands);
+  writeFileSync(OUT, fileText(bank));
+  console.log(`slider expert bank: ${bank.length} boards → ${OUT}`);
 }

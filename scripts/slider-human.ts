@@ -9,7 +9,7 @@
  * Script-only (measurement and the level check); the play is graded by the server's own code (standard-lib).
  */
 import { isWord } from "../src/lib/duel/dictionary.server";
-import { slideWords } from "../src/lib/duel/wordSlide.server";
+import { everydaySlideWords as slideWords } from "../src/lib/duel/wordSlide.server";
 import { applyShift, markedRowWord, shiftToken, wordSlideSize, WS_SIZE, type SlideShift } from "../src/lib/duel/wordSlide";
 import type { WordSlidePuzzleData } from "../src/lib/duel/types";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
