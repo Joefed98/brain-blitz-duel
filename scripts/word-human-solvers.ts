@@ -8,7 +8,7 @@ import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { encodeStrikeout2, type So2Action } from "../src/lib/duel/strikeout";
 import { solveStrikeoutLikeAPerson } from "../src/lib/duel/levels/strikeoutSolver.server";
-import type { CodewordPuzzleData, PuzzleData, StrikeoutPuzzleData, SwapwordPuzzleData, TileGridPuzzleData, WordSearchPuzzleData } from "../src/lib/duel/types";
+import type { CodewordPuzzleData, PuzzleData, StrikeoutPuzzleData, SwapwordPuzzleData, TileGridPuzzleData, WordSearchPuzzleData, WordSlidePuzzleData } from "../src/lib/duel/types";
 import { encodeSwapword, swLatticeOf } from "../src/lib/duel/swapword";
 import { witnessSwaps } from "../src/lib/duel/swapword.server";
 import { swapwordDeduction } from "../src/lib/duel/levels/swapwordProof.server";
@@ -16,6 +16,7 @@ import { encodeCodeword, type CwAction } from "../src/lib/duel/codeword";
 import { solveCodewordLikeAHuman } from "../src/lib/duel/levels/codewordHuman.server";
 import { encodeTileGrid, tileGridSize } from "../src/lib/duel/tileGrid";
 import { buildTileGridLikeAPerson, type BuilderResult } from "./tilegrid-human";
+import { playSliderHuman, SLIDER_AT_LIMITS } from "./slider-human";
 import { wsEncode } from "../src/lib/duel/wordSearch";
 import { sentAnswer } from "./standard-lib";
 import { entryMs, LIMITS } from "./word-human";
@@ -163,8 +164,20 @@ export function tilegridLine(puzzle: TileGridPuzzleData, limits = LIMITS): Timed
   return line;
 }
 
+/* --------------------------------------------------------------------------------------------- Slider */
+
+/**
+ * Slider's person-like line at the human limits (scripts/slider-human.ts SLIDER_AT_LIMITS: the elite's planning, three
+ * slides ahead at 2 s a plan, never reading the words; each slide one drag at 0.25 s + 0.15 s), graded by the server.
+ */
+export function sliderLine(puzzle: WordSlidePuzzleData, seed = 1): TimedLine {
+  const run = playSliderHuman(puzzle, SLIDER_AT_LIMITS, seed);
+  return gradeLine(puzzle, run.steps, { slides: run.slides, finished: run.finished ? 1 : 0 });
+}
+
 /** The game's person-like line at the human limits, where the game has one (null otherwise). */
 export function personLine(puzzle: PuzzleData): TimedLine | null {
+  if (puzzle.type === "wordslide") return sliderLine(puzzle);
   if (puzzle.type === "strikeout") return strikeoutLine(puzzle);
   if (puzzle.type === "wordsearch") return lookoutLine(puzzle);
   if (puzzle.type === "swapword") return swapwordLine(puzzle);

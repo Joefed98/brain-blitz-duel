@@ -3,6 +3,7 @@
  * per-game checks a room's checkWordFn and practice's practiceCheckWordFn run). The private half is
  * read only for the games that match against it; only the verdict goes back.
  */
+import { wordSlideSize } from "./wordSlide";
 import { mergePuzzle } from "./secrets";
 import type { PuzzleData } from "./types";
 import { wordHuntMinLength, wordsmithMinLength } from "./types";
@@ -41,7 +42,7 @@ export async function checkRoundWord(
   }
   if (pub.type === "wordslide") {
     const { checkWordSlideRow } = await import("./wordSlide.server");
-    return checkWordSlideRow(String(data.word ?? ""));
+    return checkWordSlideRow(String(data.word ?? ""), wordSlideSize(pub));
   }
   if (pub.type !== "wordsmith")
     return { valid: false as const, points: 0, word: "", reason: "Not this round." };

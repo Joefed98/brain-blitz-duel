@@ -135,7 +135,7 @@ import { decodeMatchupRun, replayMatchupRun } from "./matchup";
 import { decodeTileGrid, scoreTileGrid, tileGridSize, tileGridTiles } from "./tileGrid";
 import { judgeTileGrid } from "./tileGrid.server";
 import { balanceRoundScore, balanceScaleCount, balanceScalesSolved, balanceSolvedCount, decodeBalance } from "./balance";
-import { decodeSlideTokens, markedRowWord, WS_MARKED_ROWS } from "./wordSlide";
+import { decodeSlideTokens, markedRowWord, wordSlideSize, wsRows } from "./wordSlide";
 import { checkWordSlideRow, markedRowsSolved, replayWordSlideFor } from "./wordSlide.server";
 import { checkAnswer } from "./puzzles";
 import {
@@ -432,14 +432,17 @@ function gradeUnderRev(
     }
     case "wordslide": {
       // Every swipe, Undo and Reset is replayed on the stored grid.
-      const replay = replayWordSlideFor(puzzle, decodeSlideTokens(answer));
-      const rows = markedRowsSolved(replay.grid);
-      isCorrect = rows === WS_MARKED_ROWS.length;
+      // wordSlideRev 7 (D1, level deals): the stored grid size; Normal and every older round are 5 × 5 as before.
+      const size = wordSlideSize(puzzle);
+      const sizedRows = wsRows(size);
+      const replay = replayWordSlideFor(puzzle, decodeSlideTokens(answer, size));
+      const rows = markedRowsSolved(replay.grid, size);
+      isCorrect = rows === sizedRows.length;
       correctCount = rows;
       // Rev 1: an unfinished grid earns only the word rows the player made (a row still as it started is not counted).
-      const validRows = WS_MARKED_ROWS.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r)).valid);
-      const madeRows = scoreRev1() && !isCorrect ? wordSlideMadeRows(puzzle.grid, replay.grid, validRows) : rows;
-      score = scoreWordSlide(madeRows, WS_MARKED_ROWS.length, ms, timeLimitMs, replay.moves, puzzle.par);
+      const validRows = sizedRows.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r, size), size).valid);
+      const madeRows = scoreRev1() && !isCorrect ? wordSlideMadeRows(puzzle.grid, replay.grid, validRows, size) : rows;
+      score = scoreWordSlide(madeRows, sizedRows.length, ms, timeLimitMs, replay.moves, puzzle.par);
       extraDetail = { solved: isCorrect, moves: replay.moves, par: puzzle.par, rows, validRows };
       break;
     }

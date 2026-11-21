@@ -7,7 +7,7 @@
 import { isWord } from "../dictionary.server";
 import { decodeTileGrid, tileGridRuns, fitsTray } from "../tileGrid";
 import { judgeTileGrid } from "../tileGrid.server";
-import { decodeSlideTokens, markedRowWord, WS_MARKED_ROWS } from "../wordSlide";
+import { decodeSlideTokens, markedRowWord, wordSlideSize, wsRows, WS_SIZE } from "../wordSlide";
 import { checkWordSlideRow, replayWordSlideFor } from "../wordSlide.server";
 import { swapwordCounts, wordSlideMadeRows } from "../progressFigures";
 import { wsDecode, wsGrade, wsRowsOf, wsSplitBonus } from "../wordSearch";
@@ -126,9 +126,11 @@ const interlock: StandardGame = {
 
 /** Rows the player turned into words (a row still as it started is never counted). */
 function sliderMadeRows(puzzle: Extract<PuzzleData, { type: "wordslide" }>, answer: string): number {
-  const replay = replayWordSlideFor(puzzle, decodeSlideTokens(answer));
-  const validRows = WS_MARKED_ROWS.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r)).valid);
-  return wordSlideMadeRows(puzzle.grid, replay.grid, validRows);
+  // wordSlideRev 7 (D1, level deals): the stored grid size; Normal's 5 × 5 otherwise.
+  const size = wordSlideSize(puzzle);
+  const replay = replayWordSlideFor(puzzle, decodeSlideTokens(answer, size));
+  const validRows = wsRows(size).filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r, size), size).valid);
+  return wordSlideMadeRows(puzzle.grid, replay.grid, validRows, size);
 }
 
 /**
@@ -137,19 +139,23 @@ function sliderMadeRows(puzzle: Extract<PuzzleData, { type: "wordslide" }>, answ
  */
 export function sliderCloser(puzzle: Extract<PuzzleData, { type: "wordslide" }>, answer: string): { start: number; closer: number; share: number } {
   const goal = [...(puzzle.words ?? []).join("")];
-  const start = wordSlideStartDistance(puzzle.grid, goal, puzzle.par) ?? 0;
+  const size = wordSlideSize(puzzle);
+  // wordSlideRev 7 (D1, level deals): the stored par is the proven distance (the level bank proved it), so the grade
+  // never searches the bigger grids' full depth; older rounds search as before.
+  const start = size !== WS_SIZE ? Math.max(0, puzzle.par) : wordSlideStartDistance(puzzle.grid, goal, puzzle.par) ?? 0;
   if (start <= 0) return { start, closer: 0, share: 0 };
-  const left = wordSlideDistance(replayWordSlideFor(puzzle, decodeSlideTokens(answer)).grid, goal, start - 1);
+  const left = wordSlideDistance(replayWordSlideFor(puzzle, decodeSlideTokens(answer, size)).grid, goal, start - 1);
   const closer = left === null ? 0 : start - left;
   return { start, closer, share: closer / start };
 }
 
 /** wordSlideRev 5: rows the player made into real words other than the dealt word for that row. */
 function sliderOtherRows(puzzle: Extract<PuzzleData, { type: "wordslide" }>, answer: string): number {
-  const grid = replayWordSlideFor(puzzle, decodeSlideTokens(answer)).grid;
+  const size = wordSlideSize(puzzle);
+  const grid = replayWordSlideFor(puzzle, decodeSlideTokens(answer, size)).grid;
   const words = puzzle.words ?? [];
-  const validRows = WS_MARKED_ROWS.filter((r) => markedRowWord(grid, r) !== words[r] && checkWordSlideRow(markedRowWord(grid, r)).valid);
-  return wordSlideMadeRows(puzzle.grid, grid, validRows);
+  const validRows = wsRows(size).filter((r) => markedRowWord(grid, r, size) !== words[r] && checkWordSlideRow(markedRowWord(grid, r, size), size).valid);
+  return wordSlideMadeRows(puzzle.grid, grid, validRows, size);
 }
 
 const slider: StandardGame = {
@@ -173,7 +179,9 @@ const slider: StandardGame = {
     // middle slides break rows) the credit rises with every slide.
     const closer = sliderCloser(p, input.answer);
     const other = sliderOtherRows(p, input.answer);
-    const credit = Math.max(STD_WORD_NOV7.closer * closer.share, STD_SLIDER.row * other);
+    // wordSlideRev 7 (D1, level deals): a row is worth five rows' credit shared over the grid's rows (Normal's 24 at 5).
+    const rowPoints = (STD_SLIDER.row * WS_SIZE) / wordSlideSize(p);
+    const credit = Math.max(STD_WORD_NOV7.closer * closer.share, rowPoints * other);
     return { finished: false, credit, facts: { madeRows: rows, otherWordRows: other, slidesCloser: closer.closer, slidesFromStart: closer.start } };
   },
 };

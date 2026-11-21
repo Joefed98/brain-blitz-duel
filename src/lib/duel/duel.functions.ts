@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 
+import { wordSlideSize } from "./wordSlide";
 import { ANSWER_MAX, CODE_MAX, COUNT_MAX, EXTRA_MAX, FOUND_MAX, ID_MAX, LIST_MAX, LOOK_MAX, NAME_MAX, NUMBER_MAX, PATH_MAX, SHORT_MAX, WORD_MAX } from "./inputLimits";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { staleSubmissionNote } from "@/lib/appVersion";
@@ -1360,7 +1361,7 @@ export const checkWordFn = createServerFn({ method: "POST" })
     }
     if (pub?.type === "wordslide") {
       const { checkWordSlideRow } = await import("./wordSlide.server");
-      return checkWordSlideRow(String(data.word ?? ""));
+      return checkWordSlideRow(String(data.word ?? ""), wordSlideSize(pub));
     }
     if (!pub || pub.type !== "wordsmith") {
       return { valid: false as const, points: 0, word: "", reason: "Not this round." };
