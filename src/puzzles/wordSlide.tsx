@@ -52,7 +52,11 @@ import { HudPills } from "@/components/puzzles/HudPills";
 const CELL = 44;
 /** Wider phones grow the tiles (lock column 56, board frame and gaps 36 take the rest). */
 const MAX_CELL = 72;
-const cellFor = (width: number, size: number = WS_SIZE) => Math.max(size > WS_SIZE ? 36 : CELL, Math.min(MAX_CELL, Math.floor((width - 84 - GAP * (size - WS_SIZE)) / size)));
+const cellFor = (width: number, size: number = WS_SIZE) =>
+  size === WS_SIZE
+    ? Math.max(CELL, Math.min(MAX_CELL, Math.floor((width - 84) / WS_SIZE)))
+    : // D1 (21 Nov 2026): a level grid's tiles share the same width (one gap more or less a size), never under 36 px.
+      Math.max(36, Math.min(MAX_CELL, Math.floor((width - 84 - GAP * (size - WS_SIZE)) / size)));
 const GAP = 4;
 
 export function Board({

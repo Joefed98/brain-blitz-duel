@@ -13,7 +13,7 @@ import { WORDSMITH_REV_DEPTH } from "../../src/lib/duel/scoring";
 import { judgeTileGrid } from "../../src/lib/duel/tileGrid.server";
 import { decodeTileGrid } from "../../src/lib/duel/tileGrid";
 import { encodeTileGrid, TG_CELLS, TG_SIZE } from "../../src/lib/duel/tileGrid";
-import { applyShift, markedRowWord, shiftToken, WS_SIZE as SL_SIZE, type SlideShift } from "../../src/lib/duel/wordSlide";
+import { applyShift, markedRowWord, shiftToken, slideGridSide, wordSlideSize, WS_SIZE as SL_SIZE, type SlideShift } from "../../src/lib/duel/wordSlide";
 import { wsEncode, wsLine, wsMatch, wsRowsOf } from "../../src/lib/duel/wordSearch";
 import { puzzleLevel } from "../../src/lib/levels/levels";
 import { WORDSEARCH_LEVEL_SETTINGS } from "../../src/lib/levels/word/wordsearch";
@@ -334,9 +334,12 @@ const interlock: PuzzleKit = {
 
 // ───────────────────────── Slider (wordslide) ─────────────────────────
 
-const ALL_SHIFTS: SlideShift[] = (["r", "c"] as const).flatMap((axis) =>
-  Array.from({ length: SL_SIZE }, (_, index) => [1, -1].map((dir) => ({ axis, index, dir: dir as 1 | -1 }))).flat(),
-);
+const shiftsOfSize = (size: number): SlideShift[] =>
+  (["r", "c"] as const).flatMap((axis) => Array.from({ length: size }, (_, index) => [1, -1].map((dir) => ({ axis, index, dir: dir as 1 | -1 }))).flat());
+const ALL_SHIFTS: SlideShift[] = shiftsOfSize(SL_SIZE);
+/** D1 (21 Nov 2026): the level grids' slides (4 × 4 to 7 × 7); Normal's ALL_SHIFTS at 5. */
+const SHIFTS_OF_SIZE = new Map<number, SlideShift[]>([[SL_SIZE, ALL_SHIFTS]]);
+const shiftsFor = (size: number) => SHIFTS_OF_SIZE.get(size) ?? (SHIFTS_OF_SIZE.set(size, shiftsOfSize(size)), SHIFTS_OF_SIZE.get(size)!);
 const inverse = (s: SlideShift): SlideShift => ({ ...s, dir: (s.dir === 1 ? -1 : 1) as 1 | -1 });
 const slideCache = new Map<string, SlideShift[]>();
 
@@ -356,14 +359,17 @@ export function solveSlide(start: string[], goal: string[]): SlideShift[] {
     return a;
   };
   if (fw.has(goal.join(""))) return [];
+  // D1: a level grid's own size (read from its tiles); Normal's 5 × 5 exactly as before.
+  const size = slideGridSide(start);
+  const shifts = shiftsFor(size);
   for (let depth = 0; depth < 12; depth++) {
     const forward = fFront.length <= bFront.length;
     const [mine, other, front] = forward ? [fw, bw, fFront] : [bw, fw, bFront];
     const next: string[] = [];
     for (const s of front) {
       const grid = [...s];
-      for (const m of ALL_SHIFTS) {
-        const t = applyShift(grid, m).join("");
+      for (const m of shifts) {
+        const t = applyShift(grid, m, undefined, size).join("");
         if (mine.has(t)) continue;
         mine.set(t, { parent: s, move: m });
         if (other.has(t)) {
@@ -385,24 +391,25 @@ const slider: PuzzleKit = {
   nothing: () => "",
   spam(p, rng, limitMs) {
     const d = p as WordSlidePuzzleData;
-    const randomShifts = Array.from({ length: Math.min(500, Math.floor(limitMs / 500)) }, () => shiftToken(rng.pick(ALL_SHIFTS)));
+    const size = wordSlideSize(d);
+    const randomShifts = Array.from({ length: Math.min(500, Math.floor(limitMs / 500)) }, () => shiftToken(rng.pick(shiftsFor(size))));
     // Spin each row until the phone shows it green (a real word), lock it, move on; then mash columns.
     const tokens: string[] = [];
     let grid = [...d.grid];
     const locked = new Set<number>();
     let budget = Math.floor(limitMs / 450);
     for (let pass = 0; pass < 6 && budget > 0; pass++) {
-      for (let r = 0; r < SL_SIZE && budget > 0; r++) {
+      for (let r = 0; r < size && budget > 0; r++) {
         if (locked.has(r)) continue;
-        for (let k = 0; k < SL_SIZE && budget > 0; k++) {
-          if (isWord(markedRowWord(grid, r))) { tokens.push(`L${r}`); locked.add(r); break; }
+        for (let k = 0; k < size && budget > 0; k++) {
+          if (isWord(markedRowWord(grid, r, size))) { tokens.push(`L${r}`); locked.add(r); break; }
           const s: SlideShift = { axis: "r", index: r, dir: 1 };
-          grid = applyShift(grid, s, locked); tokens.push(shiftToken(s)); budget--;
+          grid = applyShift(grid, s, locked, size); tokens.push(shiftToken(s)); budget--;
         }
       }
       for (let k = 0; k < 3 && budget > 0; k++) {
-        const s: SlideShift = { axis: "c", index: rng.below(SL_SIZE), dir: rng.chance(0.5) ? 1 : -1 };
-        grid = applyShift(grid, s, locked); tokens.push(shiftToken(s)); budget--;
+        const s: SlideShift = { axis: "c", index: rng.below(size), dir: rng.chance(0.5) ? 1 : -1 };
+        grid = applyShift(grid, s, locked, size); tokens.push(shiftToken(s)); budget--;
       }
     }
     return [
@@ -421,7 +428,7 @@ const slider: PuzzleKit = {
     for (const m of plan) {
       if (rng.chance(skill.err)) {
         // A wrong slide, noticed and undone (both count as moves).
-        let w = rng.pick(ALL_SHIFTS);
+        let w = rng.pick(shiftsFor(wordSlideSize(d)));
         if (w.axis === m.axis && w.index === m.index && w.dir === m.dir) w = inverse(w);
         at += thinkMs(rng, BASE, skill);
         tokens.push(shiftToken(w));
