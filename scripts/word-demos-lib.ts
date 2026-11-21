@@ -10,6 +10,7 @@
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { INTRO_EXAMPLE_ID, INTRO_EXAMPLE_SEED } from "../src/lib/duel/puzzleDemo";
+import { dealWordStar } from "../src/lib/duel/wordStar";
 import { generateWordsmithExample } from "../src/lib/duel/wordsmith.server";
 import { dealWordOverhaul } from "../src/lib/duel/wordOverhaul.server";
 import { bankedIntroExample } from "../src/lib/duel/puzzleBank.server";
@@ -58,7 +59,7 @@ export interface WordDemoRun {
 
 /** The intro example exactly as practiceDealFn deals it for a Word game (src/lib/duel/practice.functions.ts). */
 export function wordIntroExample(type: WordDemoType): PuzzleData {
-  return bankedIntroExample(type) ?? withSeededRandom(INTRO_EXAMPLE_SEED, () => type === "wordsmith" ? dealWordOverhaul(generateWordsmithExample()) : generatePuzzle(type, {}));
+  return bankedIntroExample(type) ?? withSeededRandom(INTRO_EXAMPLE_SEED, () => type === "wordsmith" ? dealWordStar(dealWordOverhaul(generateWordsmithExample())) : generatePuzzle(type, {}));
 }
 
 export function exampleStamps(puzzle: PuzzleData): Record<string, number> {
