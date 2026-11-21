@@ -58,5 +58,5 @@ export const WORDSLIDE_LEVELS: GameLevels | null = {
 export const WORDSLIDE_LEVEL_ABOUT: Partial<Record<Exclude<Level, "normal">, string>> = {
   easy: "A small 4 by 4 grid of four-letter words, only 2 or 3 slides away.",
   hard: "A 6 by 6 grid of six-letter words, 7 or 8 slides away.",
-  expert: "A 7 by 7 grid of seven-letter words, 5 or 6 slides away, with up to 21 slides for the full move bonus.",
+  expert: "A 7 by 7 grid of seven-letter words, 5 or 6 slides away, and a looser move bonus.",
 };
