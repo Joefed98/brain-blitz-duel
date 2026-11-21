@@ -39,6 +39,12 @@ import { HudPills } from "@/components/puzzles/HudPills";
 
 const GAP = 2;
 const TRAY_TILE = 44; // eight per row at 360px, with no overlapping targets
+/**
+ * Levels (D1, Joe 21 Nov 2026): a tray of more than 16 tiles (Hard's 19, Expert's 23) takes three rows of 40 px tiles,
+ * the tray's height following its rows; Normal's 15 keep the two rows of 44 px exactly (no style on the tray).
+ */
+const TRAY_TILE_BIG = 40;
+const TRAY_ROW_GAP = 4;
 /** Reveal: two 7×7 grids side by side in 343px (375 phone), letters 14px. */
 const REVEAL_CELL = 22;
 
@@ -129,6 +135,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   }, []);
 
   const tray = data?.tray ?? [];
+  const trayRows = Math.ceil(tileGridTiles(data) / 8);
+  const bigTray = tileGridTiles(data) > 16;
   const cells = useMemo(() => placed.map((t) => (t === null ? "" : (tray[t] ?? ""))), [placed, tray]);
   const runs = useMemo(() => tileGridRuns(cells), [cells]);
   const encoded = encodeTileGrid(cells, tileGridSize(data));
@@ -384,7 +392,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       <div onClick={(event) => {
         if (selected === null || event.target !== event.currentTarget || placed.indexOf(selected) < 0) return;
         returnToTray(selected);
-      }} data-game-controls="tray" data-word-controls-first="" className="interlock-tray grid w-full shrink-0 grid-cols-8 justify-items-center">
+      }} data-game-controls="tray" data-word-controls-first="" className="interlock-tray grid w-full shrink-0 grid-cols-8 justify-items-center" style={bigTray ? { height: trayRows * TRAY_TILE_BIG + (trayRows - 1) * TRAY_ROW_GAP, gridAutoRows: TRAY_TILE_BIG } : undefined}>
         {inTray.map((tile) => (
           <span
             key={tile}
@@ -399,7 +407,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
               setSelected((current) => current === tile ? null : tile);
             }}
             className={`word-letter-tile flex items-center justify-center rounded-lg bg-primary font-display text-xl font-bold text-primary-foreground ${selected === tile ? "ring-2 ring-primary shadow-[0_0_16px_var(--primary)]" : ""}`}
-            style={{ width: TRAY_TILE, height: TRAY_TILE }}
+            style={bigTray ? { width: TRAY_TILE_BIG, height: TRAY_TILE_BIG, minWidth: TRAY_TILE_BIG, minHeight: TRAY_TILE_BIG } : { width: TRAY_TILE, height: TRAY_TILE }}
           >
             {tray[tile]}
           </span>
