@@ -1,0 +1,48 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="game.css"><script>const Q=new URLSearchParams(location.search);document.documentElement.dataset.dir = Q.get("dir") || "a";</script>
+<style>
+@font-face { font-family:"Silkscreen"; font-weight:700; src:url("pub/fonts/silkscreen-700-latin.woff2") format("woff2"); }
+body { background: radial-gradient(70% 90% at 50% 100%, #5B1FA8 0%, #1B1464 45%, #0A0728 100%); }
+body::before { display:none; }
+.wrap { display:flex; height:100%; position:relative; }
+.rail.mini { width:76px; padding:18px 10px; align-items:center; }
+.rail.mini .item { width:52px; padding:0; justify-content:center; }
+.floor { position:absolute; left:0; right:0; bottom:0; height:36%; opacity:.4; transform: perspective(420px) rotateX(64deg); transform-origin:50% 100%;
+  background: repeating-linear-gradient(90deg, #FF4FD8 0 2px, transparent 2px 60px), repeating-linear-gradient(0deg, #FF4FD8 0 2px, transparent 2px 60px); }
+.stage3 { flex:1; display:flex; align-items:center; justify-content:center; gap:28px; position:relative; }
+.pn { width: 290px; display:flex; flex-direction:column; gap:14px; }
+.pcard { border-radius:22px; background: rgba(20,18,90,.82); box-shadow: 0 6px 0 rgba(6,4,40,.8); padding:16px; border:3px solid #36E2F5; }
+.pcard h2 { font-size:16px; color:#36E2F5; letter-spacing:.06em; margin-bottom:8px; }
+.big { font: 900 72px/1 "Archivo"; font-stretch:114%; color:#fff; }
+.tm { height: 18px; border-radius:9px; background: rgba(255,255,255,.14); overflow:hidden; margin-top:6px; }
+.tm i { display:block; height:100%; width:55%; border-radius:9px; background: linear-gradient(180deg,#FFE570,#FFC81E); }
+.kv { display:flex; justify-content:space-between; font: 800 16px "Archivo"; height:34px; align-items:center; color:var(--text2); } .kv b { color:#fff; font:900 20px "Archivo"; }
+.field { width: 414px; height: 776px; border-radius: 10px; border: 4px solid #36E2F5; box-shadow: 0 0 26px rgba(54,226,245,.75), inset 0 0 26px rgba(54,226,245,.25); position:relative; overflow:hidden; background: linear-gradient(180deg,#0B0830,#120A44); }
+.bricks { position:absolute; left:10px; right:10px; top:14px; display:grid; grid-template-columns: repeat(9,1fr); gap:4px; }
+.bricks i { height:21px; border-radius:3px; box-shadow: inset 0 3px 0 rgba(255,255,255,.45), inset 0 -3px 0 rgba(0,0,0,.25); }
+.bricks i.gold { background:#FFC81E !important; box-shadow: inset 0 3px 0 #FFF1A8, inset 0 -3px 0 #B87400, 0 0 12px #FFC81E; } .bricks i.gone { visibility:hidden; }
+.ball { position:absolute; left:58%; top:54%; width:16px; height:16px; background:#fff; box-shadow: 0 0 14px #fff; }
+.paddle { position:absolute; left:36%; bottom:34px; width:100px; height:16px; background: linear-gradient(180deg,#FFE570,#FFC81E); border-radius:3px; box-shadow: 0 0 16px rgba(255,200,30,.9); }
+.run { display:flex; align-items:flex-end; gap:4px; height:64px; } .run i { flex:1; background:#36E2F5; border-radius:3px 3px 0 0; } .run i.g { background:#FFC81E; }
+.keys { display:flex; gap:8px; } .keys span { height:40px; min-width:40px; padding:0 12px; border-radius:11px; background:#fff; color:#22164F; font:900 16px "Archivo"; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 0 #BFC9F2; }
+</style></head><body><div class="wrap"><div class="floor"></div>
+<div class="rail mini"><svg width="24" height="31" viewBox="0 0 26 34" style="margin-bottom:14px"><path fill="#FFC81E" d="M19 .5 7 18.5h6.5L14.2 13.5zM13.5 18.5 8 33.5 21 13.5h-6.8z"/></svg>
+  <div class="item"><img src="pub/nav/home-3x.webp"></div><div class="item on"><img src="pub/nav/games-3x.webp"></div><div class="item"><img src="pub/nav/tournaments-3x.webp"></div><div class="item"><img src="pub/nav/shop-3x.webp"></div></div>
+<div class="stage3">
+  <div class="pn">
+    <div class="pcard"><div class="row gap10"><div class="grow"><b style="font:900 26px Archivo">Breaker</b><div class="cap">Practice · Normal</div></div></div></div>
+    <div class="pcard"><h2>SCORE</h2><div class="big">62</div><div class="tm"><i></i></div><div class="kv" style="margin-top:6px"><span>Time left</span><b>0:33</b></div><div class="kv"><span>Best</span><b>148 ★</b></div></div>
+    <div class="pcard"><h2>THIS RUN</h2><div class="kv"><span>Bricks</span><b>23 / 81</b></div><div class="kv"><span>Gold</span><b>1 / 3</b></div><div class="run"><i style="height:20%"></i><i style="height:35%"></i><i style="height:30%"></i><i class="g" style="height:70%"></i><i style="height:45%"></i><i style="height:60%"></i><i style="height:52%"></i><i style="height:80%"></i><i style="height:10%;opacity:.3"></i><i style="height:10%;opacity:.3"></i><i style="height:10%;opacity:.3"></i><i style="height:10%;opacity:.3"></i></div></div>
+  </div>
+  <div class="field"><div class="bricks" id="b"></div><div class="ball"></div><div class="paddle"></div></div>
+  <div class="pn">
+    <div class="pcard"><h2>GOAL</h2><div style="font:900 20px/1.2 Archivo">Clear the wall. Gold bricks pay double.</div></div>
+    <div class="pcard"><h2>NEXT CHALLENGES</h2><div class="kv"><span>Clear 60 bricks</span><b>23</b></div><div class="kv"><span>All 3 gold</span><b>1</b></div></div>
+    <div class="pcard"><h2>CONTROLS</h2><div class="keys"><span>←</span><span>→</span><span>Mouse</span></div></div>
+  </div>
+</div></div>
+<script>
+const cols=["#FF4D6A","#FF8A3D","#FFC81E","#3EDB72","#36E2F5","#4D8CFF","#B26BFF","#FF6BD6","#FF4D6A"];
+let h=""; const gone=[58,59,66,67,68,69,74,75,76,77,78,49,50,57,60,65,70,73,79,80,72,64,56]; const gold=[13,40,31];
+for(let r=0;r<9;r++)for(let c=0;c<9;c++){const i=r*9+c; h+='<i class="'+(gone.includes(i)?'gone ':'')+(gold.includes(i)?'gold':'')+'" style="background:'+cols[r]+'"></i>'}
+document.getElementById("b").innerHTML=h;
+</script></body></html>

@@ -1,0 +1,78 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="game.css"><script>const Q=new URLSearchParams(location.search);document.documentElement.dataset.dir = Q.get("dir") || "a";</script>
+<style>
+.wrap { display:flex; height:100%; position:relative; }
+.main { flex:1; padding: 26px 30px; min-width:0; }
+.cols { display:grid; gap:22px; margin-top:18px; }
+.rw { height:60px; border-radius:18px; background: var(--card); box-shadow: 0 4px 0 var(--ledge); display:flex; align-items:center; gap:12px; padding: 0 16px; font: 900 17px "Archivo"; }
+.rw img { width:36px; height:36px; } .rw span { margin-left:auto; color: var(--text2); font-size:14px; font-weight:800; }
+.bar { height:12px; border-radius:6px; background: var(--chip); margin-top:8px; overflow:hidden; }
+.bar i { display:block; height:100%; width:62%; border-radius:6px; background: linear-gradient(180deg,#FFE570,#FFC81E); }
+html:is([data-dir="e"],[data-dir="f"]) .bar i { background:#E2C07A; }
+.seg { display:inline-flex; gap:6px; background: var(--chip); border-radius:18px; padding:5px; }
+.seg div { height:44px; padding:0 22px; border-radius:14px; display:flex; align-items:center; font: 900 16px "Archivo"; color: var(--text2); }
+.seg div.on { background:#fff; color: var(--ink); box-shadow: 0 4px 0 var(--white-ledge); }
+
+.cols { grid-template-columns: 460px 1fr; }
+.pc { height: 230px; background: linear-gradient(135deg,#FF6BD6,#8C4DFF 55%,#3E63FF); box-shadow: 0 7px 0 #3A2AA8, var(--shadow); padding:20px; }
+.pc .av { width:128px; height:128px; border-radius:36px; border:5px solid #fff; overflow:hidden; background:#FF6BD6; box-shadow:0 6px 0 rgba(30,10,90,.4); }
+.pc .av img { width:100%; height:100%; transform:scale(1.12); }
+.pc b { font: 900 32px/1.05 "Archivo"; font-stretch:110%; color:#fff; display:block; }
+.pc .ti { color:#fff; font-weight:800; font-size:15px; }
+.bd { display:flex; gap:10px; position:absolute; left:20px; bottom:18px; } .bd img { width:44px; height:44px; }
+.edit { position:absolute; right:18px; bottom:18px; }
+.rt { margin-top:18px; padding:16px 18px; display:flex; align-items:center; gap:16px; }
+.rt .sh { width:64px; height:64px; } .rt .n { font: 900 40px/1 "Archivo"; }
+.st { display:grid; grid-template-columns: repeat(3,1fr); gap:12px; margin-top:18px; }
+.st div { height:104px; border-radius:20px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; box-shadow: 0 5px 0 rgba(0,0,0,.28); }
+.st b { font: 900 34px/1 "Archivo"; } .st span { font-size:14px; font-weight:800; margin-top:4px; }
+.rows { display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; }
+.side { padding:16px 18px; margin-top:18px; } .side h2 { font-size:18px; margin-bottom:8px; }
+.gr { height:56px; display:flex; align-items:center; gap:12px; font: 800 16px "Archivo"; border-bottom:1px solid var(--line); }
+.gr:last-child { border-bottom:0; } .gr img { width:40px; height:40px; border-radius:10px; } .gr .s { margin-left:auto; font: 900 18px "Archivo"; } .gr .s small { color: var(--text3); font-size:14px; }
+.tick { width:24px; height:24px; border-radius:50%; background:#3EDB72; color:#06310F; display:flex; align-items:center; justify-content:center; font: 900 13px "Archivo"; } .tick.no { background:#FF5470; color:#fff; }
+html:is([data-dir="e"],[data-dir="f"]) .gr { border-radius:0; box-shadow:none; }
+.badges { display:flex; gap:14px; } .badges img { width:56px; height:56px; }
+</style></head><body><div class="wrap">
+<div class="rail">
+  <div class="row gap8" style="padding:2px 8px 14px"><svg width="22" height="29" viewBox="0 0 26 34"><path fill="#FFC81E" d="M19 .5 7 18.5h6.5L14.2 13.5zM13.5 18.5 8 33.5 21 13.5h-6.8z"/></svg><span style="font:900 26px Archivo;font-stretch:122%;letter-spacing:.04em">JOULZ</span></div>
+  <div class="row gap10" style="padding:0 6px 14px"><div class="avatar" style="background:#FF6BD6"><img src="art/avatars/svg/captain-joulz.svg"></div><div class="who grow"><b>TheInventor</b><span class="tier">Volt II · 1,482</span></div></div>
+  <div class="btn full" style="margin-bottom:16px">Play</div>
+  <div class="item"><img src="pub/nav/home-3x.webp">Home</div>
+  <div class="item "><img src="pub/nav/games-3x.webp">Games</div>
+  <div class="item "><img src="pub/nav/tournaments-3x.webp">Compete</div>
+  <div class="item "><img src="pub/nav/shop-3x.webp">Shop</div>
+  <div class="item"><img src="pub/nav/friends-3x.webp">Friends</div>
+  <div class="item"><img src="pub/nav/challenges-3x.webp">Challenges</div>
+  <div class="item on"><img src="pub/nav/profile-3x.webp">You</div>
+  <div style="flex:1"></div>
+  <div class="item"><img src="pub/nav/settings-3x.webp">Settings</div>
+</div>
+
+<div class="main">
+  <h1 style="font-size:40px">You</h1>
+  <div class="cols">
+    <div>
+      <div class="card pc"><div class="rays"></div>
+        <div class="row gap16" style="position:relative"><div class="av"><img src="art/avatars/svg/captain-joulz.svg"></div><div><b>TheInventor</b><span class="ti">Founding Player #0042</span></div></div>
+        <div class="bd"><img src="pub/art/badges/founding-player.svg"><img src="pub/art/badges/first-win.svg"><img src="pub/art/badges/hot-streak.svg"></div>
+        <div class="btn white sm edit">Customise</div>
+      </div>
+      <div class="card rt"><img class="sh" src="pub/home/rated-3x.webp"><div class="grow"><div class="row" style="justify-content:space-between"><span class="n">1,278</span><span class="pill" style="background:#FFC81E;color:#22164F">Volt II</span></div><div class="bar"><i></i></div><div class="cap" style="margin-top:6px">122 to Volt I · Puzzles 1,296 · Arcade 1,231</div></div></div>
+      <div class="st"><div style="background:linear-gradient(160deg,#FFD84D,#FF9A1E)"><b>37</b><span>Stars</span></div><div style="background:linear-gradient(160deg,#4FE08A,#1FA85A)"><b>21</b><span>Wins</span></div><div style="background:linear-gradient(160deg,#FF8A5C,#F0443E)"><b>4</b><span>Day streak</span></div></div>
+    </div>
+    <div>
+      <div class="rows">
+        <div class="rw"><img src="pub/nav/friends-3x.webp">Friends<span>3 online ›</span></div>
+        <div class="rw"><img src="pub/nav/challenges-3x.webp">Challenges<span>12 / 195 ›</span></div>
+        <div class="rw"><img src="pub/nav/leaderboards-3x.webp">Badges and trophies<span>9 ›</span></div>
+        <div class="rw"><img src="pub/nav/settings-3x.webp">Settings<span>›</span></div>
+      </div>
+      <div class="card side"><h2>Recent matches</h2>
+        <div class="gr"><img src="pub/tiles/wordsearch.webp">v Sam_Speedrunner1<span class="s">2 – 1</span><span class="tick">✓</span></div>
+        <div class="gr"><img src="pub/tiles/racing.webp">v Priya_K<span class="s">1 – 2</span><span class="tick no">✕</span></div>
+        <div class="gr"><img src="pub/tiles/flow.webp">v MoGrid<span class="s">2 – 0</span><span class="tick">✓</span></div>
+      </div>
+      <div class="card side"><h2>Showcase</h2><div class="badges"><img src="pub/art/badges/founding-player.svg"><img src="pub/art/badges/first-win.svg"><img src="pub/art/badges/hot-streak.svg"><img src="pub/art/badges/first-star.svg"><img src="pub/art/badges/daily-habit.svg"><img src="pub/art/badges/friendly.svg"></div></div>
+    </div>
+  </div>
+</div></div></body></html>

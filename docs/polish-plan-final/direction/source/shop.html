@@ -1,0 +1,42 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="game.css"><script>document.documentElement.dataset.dir = new URLSearchParams(location.search).get("dir") || "a";</script>
+<style>
+.seg { display:flex; gap:6px; background: var(--chip); border-radius:18px; padding:5px; margin: 4px 0 14px; }
+.seg div { flex:1; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; font: 900 16px "Archivo"; color: var(--text2); }
+.seg div.on { background:#fff; color: var(--ink); box-shadow: 0 4px 0 var(--white-ledge); }
+.bundle { height: 186px; background: linear-gradient(135deg,#FF8A3D,#F0443E 55%,#B02A8A); box-shadow: 0 7px 0 #7A1D5E, var(--shadow); padding:16px; }
+.bundle h1 { font-size:30px; color:#fff; text-shadow:0 3px 0 rgba(90,10,40,.5); margin-top:8px; }
+.bundle .sub { color:#fff; }
+.bundle .im { position:absolute; right:10px; top:14px; width:150px; height:150px; }
+.bundle .im img { position:absolute; width:104px; border-radius:14px; border:4px solid #fff; box-shadow:0 5px 0 rgba(0,0,0,.3); }
+.price { display:inline-flex; align-items:center; gap:8px; }
+.items { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.it { height: 208px; padding:10px; display:flex; flex-direction:column; align-items:center; }
+.it .still { width:100%; height:104px; border-radius:14px; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.it .still img { width:100%; height:100%; object-fit:cover; }
+.it b { font: 900 17px "Archivo"; margin-top:8px; }
+.it .r { font-size:12.5px; font-weight:800; }
+.it .btn { margin-top:auto; width:100%; }
+.heart { position:absolute; right:14px; top:14px; width:32px; height:32px; border-radius:50%; background: rgba(10,10,60,.55); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; }
+</style></head><body><div class="page">
+  <div class="top"><h1 class="grow" style="font-size:32px">Shop</h1><span class="pill"><span class="coin"><svg viewBox="0 0 26 34"><path fill="#7A4A00" d="M19 .5 7 18.5h6.5L14.2 13.5zM13.5 18.5 8 33.5 21 13.5h-6.8z"/></svg></span>1,250</span></div>
+  <div class="scroll">
+    <div class="seg"><div class="on">Shop</div><div>Pass</div><div>Plus</div></div>
+    <div class="card bundle"><div class="rays"></div>
+      <span class="pill dark" style="position:relative">This week’s bundle</span><h1 style="position:relative">Card Table</h1><div class="sub" style="position:relative">5 items</div>
+      <div class="im"><img src="pub/shop/card-back.holo-foil.webp" style="right:44px;top:0;transform:rotate(-8deg)"><img src="pub/shop/card-art.neon-city.webp" style="right:0;top:40px;transform:rotate(6deg)"></div>
+      <div class="btn sm price" style="position:absolute;left:16px;bottom:18px"><span class="coin"><svg viewBox="0 0 26 34"><path fill="#7A4A00" d="M19 .5 7 18.5h6.5L14.2 13.5zM13.5 18.5 8 33.5 21 13.5h-6.8z"/></svg></span>4,757</div>
+    </div>
+    <div class="sec-head"><h2>Today</h2><a>New every day</a></div>
+    <div class="items">
+      <div class="card it"><div class="still" style="background:linear-gradient(160deg,#FFE570,#FF9A1E)"><img src="pub/shop/frame.gold.webp"></div><span class="heart">♥</span><b>Gold</b><span class="r" style="color:#FFD84D">Epic frame</span><div class="btn sm price"><span class="coin"><svg viewBox="0 0 26 34"><path fill="#7A4A00" d="M19 .5 7 18.5h6.5L14.2 13.5zM13.5 18.5 8 33.5 21 13.5h-6.8z"/></svg></span>1,000</div></div>
+      <div class="card it"><div class="still" style="background:linear-gradient(160deg,#7DB4FF,#3E63FF)"><img src="pub/shop/name-colour.sapphire.webp"></div><span class="heart">♡</span><b>Sapphire</b><span class="r" style="color:#FFD84D">Epic name colour</span><div class="btn sm price"><span class="coin"><svg viewBox="0 0 26 34"><path fill="#7A4A00" d="M19 .5 7 18.5h6.5L14.2 13.5zM13.5 18.5 8 33.5 21 13.5h-6.8z"/></svg></span>1,000</div></div>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab "><img src="pub/nav/home-3x.webp">Home</div>
+    <div class="tab "><img src="pub/nav/games-3x.webp">Games</div>
+    <div class="tab "><img src="pub/nav/tournaments-3x.webp">Compete</div>
+    <div class="tab on"><img src="pub/nav/shop-3x.webp">Shop</div>
+    <div class="tab "><img src="pub/nav/profile-3x.webp">You</div>
+  </div>
+</div></body></html>

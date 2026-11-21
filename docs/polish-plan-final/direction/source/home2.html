@@ -1,0 +1,44 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><link rel="stylesheet" href="alt.css"><script>const Q=new URLSearchParams(location.search);document.documentElement.dataset.dir = Q.get("dir") || "e";</script>
+<style>
+.tick { display:flex; align-items:center; gap:10px; height:34px; padding:0 16px; background: color-mix(in srgb, var(--acc2) 14%, transparent); color: var(--text2); font: 700 13px "Archivo"; white-space:nowrap; overflow:hidden; }
+.banner { height: 148px; padding: 16px; background: linear-gradient(120deg, var(--card2), var(--card) 60%); box-shadow: inset 0 2px 0 var(--acc); overflow:hidden; }
+.banner .sl { position:absolute; right:-30px; top:-20px; bottom:-20px; width:170px; background: var(--accg); opacity:.16; transform: skewX(-18deg); }
+.banner .sl2 { position:absolute; right:120px; top:-20px; bottom:-20px; width:14px; background: var(--acc); opacity:.5; transform: skewX(-18deg); }
+.find { margin-top:14px; height:66px; font-size:24px; flex-direction:column; gap:2px; }
+.find small { font: 800 12px "Archivo"; letter-spacing:.06em; opacity:.75; }
+.tl { display:grid; grid-template-columns: repeat(3,1fr); gap:10px; }
+.tl .panel { height:118px; padding:10px; overflow:hidden; }
+.tl img { position:absolute; right:-8px; bottom:-4px; width:74px; }
+.tl b { font: 800 15px/1.15 "Archivo"; display:block; margin-top:6px; position:relative; }
+.tiles2 { display:flex; gap:10px; } .tiles2 .tile { width:84px; height:84px; }
+</style></head><body><div class="page">
+  <div class="tick"><span class="live">Live</span>12,431 in today’s Daily<span class="acc2">·</span>Arena tonight 8:00 pm</div>
+  <div class="scroll" style="padding-top:12px">
+    <div class="banner cut" style="position:relative"><div class="sl"></div><div class="sl2"></div>
+      <div class="row gap12" style="position:relative"><div class="av" style="width:64px;height:64px;background:#FF6BD6"><img src="art/avatars/svg/captain-joulz.svg"></div>
+        <div class="grow" style="min-width:0"><b style="font:900 17px Archivo;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">TheInventor</b><div class="lab acc" style="margin-top:3px">Volt II</div></div>
+        <div style="text-align:right;flex:none"><div class="num" style="font-size:30px">1,278</div><div class="lab" style="color:#5BE38F">▲ 22 this week</div></div></div>
+      <div style="position:relative;margin-top:16px"><div class="track"><i style="width:62%"></i></div><div class="row" style="justify-content:space-between;margin-top:6px"><span class="lab">122 to Volt I</span><span class="lab" style="display:inline-flex;align-items:center;gap:6px">🔥 4 · <span class="coin"><svg viewBox="0 0 26 34"><path fill="#7A4A00" d="M19 .5 7 18.5h6.5L14.2 13.5zM13.5 18.5 8 33.5 21 13.5h-6.8z"/></svg></span> 1,240</span></div></div>
+    </div>
+    <div class="btn full find"><span>Find a match</span><small>BEST OF 3 · RATED</small></div>
+    <div class="sec-head"><h2>Today</h2><a>Schedule ›</a></div>
+    <div class="tl">
+      <div class="panel edge" style="--acc:#B26BFF"><span class="lab">Now</span><b>Daily Puzzle</b><span class="mini" style="margin-top:8px;height:30px">Play</span><img src="pub/home/dailyPuzzle-3x.webp" style="width:86px;opacity:.9"></div>
+      <div class="panel edge" style="--acc:#36E2F5"><span class="lab">Done</span><b>Daily Arcade</b><span class="lab" style="display:block;margin-top:10px;color:#5BE38F">✓ 512</span><img src="pub/home/dailyArcade-3x.webp"></div>
+      <div class="panel edge" style="--acc:#FF8A3D"><span class="lab">8:00 pm</span><b>Arena</b><span class="mini" style="margin-top:8px;height:30px">Remind</span><img src="pub/tournaments-art/arena-3x.webp" style="width:40px;right:6px;top:8px;bottom:auto"></div>
+    </div>
+    <div class="panel" style="margin-top:16px">
+      <div class="row2"><img class="ic" src="pub/home/rooms-3x.webp"><div><b>Play friends</b><small>Room for 16</small></div><span class="mini" style="margin-left:auto">Create</span><span class="mini">Join</span></div>
+      <div class="row2"><img class="ic" src="pub/home/practice-3x.webp"><div><b>Practice</b><small>83 games · 37 stars</small></div><span class="go">›</span></div>
+    </div>
+    <div class="sec-head"><h2>Jump back in</h2></div>
+    <div class="tiles2"><div class="tile" style="--tc:var(--sports)"><img src="pub/tiles/pool.webp"></div><div class="tile" style="--tc:var(--logic)"><img src="pub/tiles/tubes.webp"></div><div class="tile" style="--tc:var(--strategy)"><img src="pub/tiles/matchup.webp"></div><div class="tile" style="--tc:var(--retro)"><img src="pub/tiles/blockfall.webp"></div></div>
+  </div>
+  <div class="tabs">
+    <div class="tab on"><img src="pub/nav/home-3x.webp">Home</div>
+    <div class="tab "><img src="pub/nav/games-3x.webp">Games</div>
+    <div class="tab "><img src="pub/nav/tournaments-3x.webp">Compete</div>
+    <div class="tab "><img src="pub/nav/shop-3x.webp">Shop</div>
+    <div class="tab "><img src="pub/nav/profile-3x.webp">You</div>
+  </div>
+</div></body></html>

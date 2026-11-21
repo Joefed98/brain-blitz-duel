@@ -1,0 +1,30 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="kit.css">
+<style>
+.top { display:flex; align-items:center; gap:10px; } .top .nm { font:800 17px/1 Archivo; }
+.ban { padding:16px 16px 18px; } .ban .art { position:absolute; right:6px; top:4px; width:96px; height:96px; object-fit:contain; opacity:.95; }
+.bar { height:8px; border-radius:4px; background:#0A1022; overflow:hidden; } .bar i { display:block; height:100%; background:var(--metal); }
+.up { color:var(--win); font:800 13px/1 Archivo; }
+.chips { display:flex; gap:6px; } .chips div { flex:1; height:38px; border-radius:10px; background:var(--surface); box-shadow:inset 0 0 0 1px var(--line); display:flex; align-items:center; gap:8px; padding:0 10px; font:700 12.5px/1 Archivo; color:var(--text2); } .chips b { margin-left:auto; font:800 15px/1 Archivo; color:var(--text); font-variant-numeric:tabular-nums; }
+.two { display:grid; grid-template-columns:1fr 1fr; gap:8px; } .d { padding:12px 12px 12px; position:relative; min-height:118px; } .d img { position:absolute; right:6px; bottom:6px; width:62px; height:62px; object-fit:contain; } .d b { display:block; font:800 16px/1.1 Archivo; } .d small { display:block; font:600 12px/1 Archivo; color:var(--text3); margin-top:5px; }
+.fr { padding:10px 12px; display:flex; align-items:center; gap:10px; } .fr img { width:36px; height:36px; object-fit:contain; }
+.jb { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; } .jb .tile { border-radius:12px; }
+.lvlx { display:flex; align-items:center; gap:6px; font:800 11px/1 Archivo; letter-spacing:.1em; text-transform:uppercase; color:var(--gold); }
+</style></head><body><div class="page">
+  <div class="top"><div class="av" style="--c:var(--gold)"><img src="art/avatars/svg/captain-joulz.svg"></div><div class="grow nm">TheInventor</div><span class="pill">🔥 4</span><span class="pill gold">🪙 1,240</span></div>
+  <div id="ban"></div>
+  <div class="two mt10"><div class="panel d"><b>Daily Puzzle</b><small>6 rounds</small><div class="btn sec sm" style="margin-top:14px;display:inline-flex">Play</div><img src="pub/home/dailyPuzzle-3x.webp"></div><div class="panel d"><b>Daily Arcade</b><small>3 rounds</small><div class="pill" style="margin-top:18px;color:var(--win)">✓ 512</div><img src="pub/home/dailyArcade-3x.webp"></div></div>
+  <div class="panel fr mt10"><img src="pub/home/friends-3x.webp"><div class="grow"><b style="font:800 15.5px/1 Archivo">Play friends</b><div class="sub" style="font-size:12px;margin-top:4px">Room for 16</div></div><div class="btn sec sm">Create</div><div class="btn sec sm">Join</div></div>
+  <div class="row mt18"><div class="cap grow">Jump back in</div><span class="sub" style="font-size:13px">All games ›</span></div>
+  <div class="jb mt10"><div class="tile" style="--c:var(--sports)"><img src="pub/tiles/pool.webp"></div><div class="tile" style="--c:var(--logic)"><img src="pub/tiles/tubes.webp"></div><div class="tile" style="--c:var(--strategy)"><img src="pub/tiles/matchup.webp"></div><div class="tile" style="--c:var(--retro)"><img src="pub/tiles/blockfall.webp"></div></div>
+  <div class="tabs"><div class="tab on"><img src="pub/nav/home-3x.webp">Home</div><div class="tab"><img src="pub/nav/games-3x.webp">Games</div><div class="tab"><img src="pub/nav/tournaments-3x.webp">Compete</div><div class="tab"><img src="pub/nav/shop-3x.webp">Shop</div><div class="tab"><img src="pub/nav/profile-3x.webp">You</div></div>
+</div>
+<script>
+const st = new URLSearchParams(location.search).get("state") || "rated";
+const B = {
+ rated: `<div class="cut ban mt14"><img class="art" src="art/svg/emblem-volt.svg"><div class="lvlx">Volt II</div><div class="num" style="font-size:56px;margin-top:8px">1,278</div><div class="bar mt10"><i style="width:64%"></i></div><div class="row mt6"><span class="sub grow" style="font-size:12.5px">122 to Volt I</span><span class="up">▲ 22 this week</span></div><div class="btn full mt14">Find a match</div></div>
+  <div class="chips mt10"><div><img src="pub/home/puzzles-3x.webp" width="20" height="20">Puzzles<b>1,296</b></div><div><img src="pub/home/arcade-3x.webp" width="20" height="20">Arcade<b>1,231</b></div></div>`,
+ unplaced: `<div class="cut ban mt14"><img class="art" src="pub/home/rated-3x.webp"><div class="lvlx">Ranked play</div><div style="font:800 25px/1.12 Archivo;margin-top:8px;max-width:250px">Play 5 placement matches to get your rating</div><div class="row g6 mt14">${[1,1,0,0,0].map((d) => `<i style="width:34px;height:8px;border-radius:4px;background:${d ? "var(--gold)" : "#1C2A52"}"></i>`).join("")}<span class="sub" style="font-size:12.5px;margin-left:6px">2 of 5 played</span></div><div class="btn full mt14">Find a match</div></div>`,
+ open: `<div class="cut ban mt14" style="background:linear-gradient(160deg,color-mix(in srgb,var(--logic) 34%,#101A33) 0%,var(--surface) 62%,#0B1226 100%)"><div class="row g12"><div class="grow"><div class="lvlx">Game of the day</div><div style="font:900 30px/1.05 Archivo;margin-top:8px">Play now</div><div class="sub mt6">Polypotions · sort every flask</div></div><div class="tile" style="width:92px;--c:var(--logic);border-radius:16px"><img src="pub/tiles/tubes.webp"></div></div><div class="btn full mt14">Play</div></div>`,
+};
+document.getElementById("ban").innerHTML = B[st];
+</script></body></html>

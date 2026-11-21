@@ -1,0 +1,5 @@
+/* The P1 navy token change, exactly as the plan lists it. Nothing else. */
+:root, html, body, [data-skin], [data-app-page], .jz-nav, :root[data-theme="dark"] {
+  --jz-bg: #04060C !important; --jz-bg-raised: #090D1A !important; --jz-surface: #101A33 !important; --jz-surface-2: #1C2A52 !important; --jz-surface-3: #26376B !important;
+  --jz-line: #223058 !important; --jz-navy: #142454 !important; --jz-navy-edge: #2F4A94 !important;
+}

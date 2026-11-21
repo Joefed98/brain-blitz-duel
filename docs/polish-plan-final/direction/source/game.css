@@ -1,0 +1,42 @@
+/* The game frame in the new direction: a bright category stage, a chunky timer, big numbers, toy pieces. */
+body.game { background: linear-gradient(180deg, var(--g0) 0%, var(--g1) 46%, var(--g2) 100%); }
+body.game::before { opacity: .09; }
+.gtop { display:flex; align-items:center; gap:10px; padding: 14px 14px 8px; }
+.x { width:44px; height:44px; border-radius:14px; background: rgba(8,10,50,.32); color:#fff; display:flex; align-items:center; justify-content:center; font: 900 20px "Archivo"; flex:none; }
+.gname b { display:block; font: 900 20px/1.05 "Archivo"; font-stretch:108%; color:#fff; text-shadow: 0 2px 0 rgba(0,0,0,.2); }
+.gname span { font-size:13px; font-weight:800; color: rgba(255,255,255,.88); }
+.score { margin-left:auto; height:44px; padding:0 14px; border-radius:14px; background:#fff; color: var(--gink, #1B1450); display:flex; align-items:center; gap:6px; font: 900 20px "Archivo"; box-shadow: 0 4px 0 rgba(0,0,0,.22); }
+.score small { font-size:12px; font-weight:800; opacity:.65; }
+.timer { margin: 4px 14px 0; height: 16px; border-radius: 8px; background: rgba(8,10,50,.35); position:relative; overflow:hidden; box-shadow: inset 0 2px 0 rgba(0,0,0,.25); }
+.timer i { position:absolute; left:0; top:0; bottom:0; border-radius:8px; background: linear-gradient(180deg,#FFE570,#FFC81E); box-shadow: inset 0 2px 0 rgba(255,255,255,.6); }
+.tsec { position:absolute; right:14px; top: 86px; font: 900 15px "Archivo"; color:#fff; }
+.goal { padding: 16px 16px 6px; font: 900 22px/1.15 "Archivo"; font-stretch:106%; color:#fff; text-shadow: 0 2px 0 rgba(0,0,0,.22); }
+.chips { display:flex; gap:8px; padding: 4px 16px 0; flex-wrap:wrap; }
+.chip { height:34px; padding:0 12px; border-radius:12px; background: rgba(8,10,50,.32); color:#fff; display:inline-flex; align-items:center; gap:6px; font: 800 14px "Archivo"; }
+.chip b { font: 900 17px "Archivo"; }
+.chip.hot { background:#FFC81E; color:#22164F; }
+.stage { flex:1; display:flex; flex-direction:column; justify-content:flex-end; padding: 0 12px 14px; gap: 12px; }
+.table { border-radius: 24px; padding: 10px; background: var(--table, rgba(8,10,50,.30)); box-shadow: inset 0 3px 0 rgba(0,0,0,.2), 0 2px 0 rgba(255,255,255,.18); }
+.dock { display:flex; gap:10px; }
+.key { height:52px; border-radius:15px; background:#fff; color:#1B1450; display:flex; align-items:center; justify-content:center; font: 900 20px "Archivo"; box-shadow: 0 5px 0 #BFC9F2; flex:1; }
+.key.dim { background: rgba(255,255,255,.22); color:#fff; box-shadow: 0 5px 0 rgba(8,10,50,.35); font-size:16px; }
+/* toy tiles */
+.lt { border-radius: 12px; background: linear-gradient(180deg,#FFFDF2,#FFF1C9); color:#22164F; display:flex; align-items:center; justify-content:center; font: 900 26px "Archivo"; box-shadow: inset 0 2px 0 #fff, 0 5px 0 #D9B768; aspect-ratio: 1; }
+.lt.sel { background: linear-gradient(180deg,#8EB6FF,#4D8CFF); color:#fff; box-shadow: inset 0 2px 0 rgba(255,255,255,.5), 0 5px 0 #2D5FC4; }
+.lt.gold { background: linear-gradient(180deg,#FFE570,#FFC81E); box-shadow: inset 0 2px 0 rgba(255,255,255,.7), 0 5px 0 #C98200; }
+/* "drawn" studies composited under today's real header: hide the mock header, use the deep lit stage */
+html[data-real] .gtop, html[data-real] .timer { visibility:hidden; }
+html[data-real] body.game { background: linear-gradient(180deg, var(--d0) 0%, var(--d1) 100%); }
+html[data-real] body.game::before { display:none; }
+html[data-real] .chip { background: rgba(4,6,12,.45); box-shadow: inset 0 0 0 1px rgba(255,255,255,.12); border-radius:10px; }
+html[data-real] .chip.hot { background:#E2C07A; color:#06080F; }
+html[data-real] .goal { font: 800 19px/1.2 "Archivo"; font-stretch:100%; text-shadow:none; }
+html[data-real] .btn { border-radius:0; clip-path: polygon(11px 0, 100% 0, 100% calc(100% - 11px), calc(100% - 11px) 100%, 0 100%, 0 11px); font-weight:800; font-stretch:100%; color:#06080F; padding-bottom:5px;
+  background: linear-gradient(165deg,#FBEDC4 0%,#E6C67E 34%,#D2AC5E 68%,#EED79C 100%) top / 100% calc(100% - 5px) no-repeat, #A8843E; box-shadow:none; }
+html[data-real] .key.dim { background:#1C2A52; box-shadow: inset 0 0 0 1px #2F4A94, 0 3px 0 #0A1022; border-radius:10px; }
+html[data-real] .key { border-radius:10px; }
+html[data-real] .table { background: rgba(4,6,12,.35); border-radius:18px; box-shadow: inset 0 0 0 1px rgba(255,255,255,.10); }
+html[data-real] .lt.gold { background: linear-gradient(165deg,#FBEDC4,#E2C07A); box-shadow: inset 0 2px 0 rgba(255,255,255,.7), 0 5px 0 #A8843E; }
+html[data-real] .nt.new { background: linear-gradient(165deg,#FBEDC4,#E2C07A); box-shadow: inset 0 2px 0 rgba(255,255,255,.7), 0 6px 0 #A8843E; }
+html[data-real] .op { border-radius:10px; background:#1C2A52; box-shadow: inset 0 0 0 1px #2F4A94, 0 3px 0 #0A1022; }
+html[data-real] .goals span { border-radius:10px; }

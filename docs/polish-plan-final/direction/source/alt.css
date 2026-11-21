@@ -1,0 +1,20 @@
+/* Shared pieces of the extra Home, Compete and You layouts. */
+.cut { clip-path: polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px); }
+.panel { background: var(--card); box-shadow: inset 0 0 0 1px var(--line); border-radius:14px; position:relative; }
+.num { font: 900 34px/1 "Archivo"; font-stretch:112%; font-variant-numeric: tabular-nums; }
+.lab { font: 800 11.5px "Archivo"; letter-spacing:.12em; text-transform:uppercase; color: var(--text3); }
+.acc { color: var(--acc); } .acc2 { color: var(--acc2); }
+.live { display:inline-flex; align-items:center; gap:6px; height:24px; padding:0 9px; border-radius:6px; background:#FF3B5C; color:#06080F; font: 900 12px "Archivo"; letter-spacing:.1em; }
+.live::before { content:""; width:7px; height:7px; border-radius:50%; background:#06080F; }
+.track { height:8px; border-radius:4px; background: rgba(255,255,255,.10); overflow:hidden; } .track i { display:block; height:100%; background: var(--accg); border-radius:4px; }
+.row2 { display:flex; align-items:center; gap:12px; height:64px; padding:0 14px; }
+.row2 + .row2 { box-shadow: inset 0 1px 0 var(--line); }
+.row2 img.ic { width:38px; height:38px; } .row2 b { font: 800 17px "Archivo"; display:block; } .row2 small { color: var(--text3); font: 700 13px "Archivo"; }
+.row2 .go { margin-left:auto; color: var(--text3); font: 900 18px "Archivo"; }
+.av { border-radius:12px; overflow:hidden; flex:none; background: var(--card2); } .av img { width:100%; height:100%; transform:scale(1.12); display:block; }
+.mini { height:36px; padding:0 14px; border-radius:9px; background: var(--card2); box-shadow: inset 0 0 0 1px var(--line); font: 800 14px "Archivo"; display:inline-flex; align-items:center; color: var(--text); }
+.edge { box-shadow: inset 0 0 0 1px var(--line), inset 0 3px 0 var(--acc); }
+.corner::before, .corner::after { content:""; position:absolute; width:14px; height:14px; border:2px solid var(--acc); opacity:.9; }
+.corner::before { left:8px; top:8px; border-right:0; border-bottom:0; } .corner::after { right:8px; bottom:8px; border-left:0; border-top:0; }
+.pos { width:30px; text-align:center; font: 900 17px "Archivo"; font-variant-numeric: tabular-nums; color: var(--text2); }
+.me-row { background: color-mix(in srgb, var(--acc) 16%, var(--card)); box-shadow: inset 3px 0 0 var(--acc); }
