@@ -1,32 +1,44 @@
-/* Pipeline (pipes). The Pattern overhaul (15 Nov 2026): the Blender sprites (public/pattern-art/pipes/, drawn by
-   pipesArt.tsx) on dark tiles, water in the connected network, spills at its open ends; presentation only. */
+/* Pipeline (pipes); presentation only. Since the polish plan (Joe's pick of 20 Nov 2026, earlier E1.4): the old SVG
+   pipework of the 13 Oct polish on brushed steel tiles, the lit blue network and the red drip at each open end, drawn at
+   today's bigger pipe size, on the lit stage. The Pattern overhaul's sprites (public/pattern-art/pipes/) stay on disk. */
 
 /* Arena: the board and its Turns / Par pills sit together, centred in the space under the goal line. */
 .game-column [data-polish="pipes"][data-stage-column] > [data-game-arena] { flex: 1 1 auto; max-height: none; gap: 10px; }
 .game-column [data-polish="pipes"] .pipes-play-board { width: min(100cqw, 100cqh); }
 .game-column [data-polish="pipes"] .pipes-play-board[data-with-pills] { width: min(100cqw, calc(100cqh - 34px)); }
 
-/* The board: a dark recess that shows through the gaps between tiles (darker since stage 2, so the water stands out). */
+/* The board: a recessed steel panel that shows through the gaps between tiles (the old look, Joe's pick of 20 Nov
+   2026, earlier E1.4, on the lit stage). */
 .pipes-board {
   border-radius: 8px;
-  background: linear-gradient(160deg, #0d0b11, #060508); /* design-lint-ignore: Pipeline's board art (game art) */
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.05), transparent 70%),
+    linear-gradient(160deg, #1a1f26, #0e1116); /* design-lint-ignore: Pipeline's board art (game art) */
 }
 .pipes-play-board { border-radius: 8px; }
+.pipes-play-board[data-solve-fx] { box-shadow: 0 0 0 1px rgba(124, 216, 251, 0.75), 0 0 18px rgba(76, 198, 247, 0.45) inset; }
 
-/* Each tile is the rendered dark tile; the pipe sprite is laid over it, turned by a transform. */
+/* Each tile is a brushed steel plate; tiles in the network get a cool rim. */
 .pipe-tile {
-  background: #0c0b0f url("/pattern-art/pipes/tile.webp") center / 100% 100% no-repeat; /* design-lint-ignore: tile art */
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.07), transparent 45%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #2a3038, #1d2229); /* design-lint-ignore: tile art */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px #303741;
   -webkit-touch-callout: none;
   user-select: none;
 }
+.pipe-tile[data-lit] {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(76, 198, 247, 0.55);
+}
 .pipe-tile[data-two-way] { touch-action: none; }
-.pipe-tile:not(:disabled):active { filter: brightness(1.12); }
+.pipe-tile:not(:disabled):active { filter: brightness(1.15); }
 .pipe-tile:focus-visible { outline: 2px solid var(--primary); outline-offset: -2px; }
 
 .pipe-art { position: absolute; inset: 0; display: block; pointer-events: none; }
-/* The tube runs to half the board gap past the tile (the sprite is drawn 12 % past each edge, pipesArt.tsx
-   PIPE_BLEED, and cropped here), so it meets its neighbour's tube in the middle of the gap with no seam. The tile
-   button, and so the hit area, is unchanged (pointer-events none). */
+/* The pipework is drawn in the tile's own box (.pipe-frame) with each arm running past its edges; .pipe-turn is the tile
+   plus half the board gap each side and crops it there, so a tube meets its neighbour's in the middle of the gap. The
+   tile button, and so the hit area, is unchanged (pointer-events none). */
 .pipe-turn {
   position: absolute;
   inset: calc(var(--pipe-gap, 6px) / -2);
@@ -35,12 +47,26 @@
   transform-origin: 50% 50%;
 }
 .pipe-frame { position: absolute; inset: calc(var(--pipe-gap, 6px) / 2); display: block; }
-.pipe-sprite { position: absolute; left: -12%; top: -12%; width: 124%; height: 124%; max-width: none; display: block; }
-/* The water: the wet set in its own clipping box over the dry one. Water reaching a pipe runs in from the side it
-   enters by, and drains back out of it (pipesFx.ts: the box slides, its content holds still; transform only). */
+.pipe-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
+.pipe-channel { fill: #34404e; } /* design-lint-ignore: pipe art */
+.pipe-rivet { fill: #dfe5ec; stroke: #2a3039; stroke-width: 0.9; } /* design-lint-ignore: pipe art */
+.pipe-spoke { fill: #f6d6cf; stroke: #6d1a15; stroke-width: 0.8; } /* design-lint-ignore: pipe art */
+.pipe-hub-eye { fill: #26303b; stroke: #262c34; stroke-width: 1.2; } /* design-lint-ignore: pipe art */
+.pipe-hub-eye-wet { fill: #8fe0ff; } /* design-lint-ignore: pipe art */
+.pipe-water-eye { fill: #7bd8fb; } /* design-lint-ignore: pipe art */
+
+/* The water: the blue tube and its water in their own clipping box over the dry pipework. Water reaching a pipe runs in
+   from the side it enters by, and drains back out of it (pipesFx.ts: the box slides, its content holds still; transform
+   only). In every connected pipe it ripples away from the source. */
 .pipe-wet { position: absolute; inset: 0; display: block; overflow: hidden; opacity: 0; }
 .pipe-wet[data-wet] { opacity: 1; }
 .pipe-wet-in { position: absolute; inset: 0; display: block; }
+.pipe-ripple-dot { fill: rgba(240, 252, 255, 0.95); }
+.pipe-ripple { animation: pipe-ripple 700ms linear infinite; }
+.pipe-ripple-in { animation-direction: reverse; }
+.pipe-wet:not([data-wet]) .pipe-ripple { animation: none; }
+@keyframes pipe-ripple { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+
 /* The solve: bubbles welling up out of the source valve (pipesFx.ts sourceBubbles; none under reduced motion). */
 .pipe-bubble {
   position: absolute;
@@ -53,17 +79,26 @@
   opacity: 0;
   background: radial-gradient(circle at 34% 30%, rgb(255 255 255 / 0.95) 0 14%, rgb(170 220 255 / 0.5) 26%, rgb(40 130 240 / 0.28) 62%, rgb(210 240 255 / 0.8) 74%, transparent 78%); /* design-lint-ignore: water bubble art */
 }
-.pipe-source { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
-/* A leak: the spill sprite at an open end of the network (north in the sprite, turned to its side). */
+/* A leak (the old red drip): at the mouth of an open end of the network (north, turned to its side). */
 .pipe-spill { position: absolute; inset: 0; display: block; }
-/* The spray fans from the pipe's mouth at the tile edge back along the pipe end (the sprite flipped). */
-.pipe-spill img { position: absolute; left: 14%; top: 0; width: 72%; height: 44%; display: block; transform: scaleY(-1); }
+.pipe-leak {
+  position: absolute;
+  left: 39%;
+  top: -4%;
+  width: 22%;
+  height: 22%;
+  display: block;
+  border-radius: 50% 0 50% 50%;
+  transform: rotate(-45deg);
+  background: radial-gradient(circle at 35% 35%, #ff9a8f, var(--destructive) 60%); /* design-lint-ignore: drip art */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+}
 
 /* Solve rush: a bright water front runs from the source through every pipe by 0.9 s, then fades by 1.2 s. */
 .pipe-surge { overflow: visible; animation: pipe-surge-fade 1200ms linear both; }
 .pipe-surge-line {
-  fill: #d7f1ff; /* design-lint-ignore: water rush art */
+  fill: #effbff; /* design-lint-ignore: water rush art */
   transform-box: fill-box;
   animation: pipe-surge-run var(--surge-ms) linear var(--surge-delay) both;
 }
@@ -74,6 +109,7 @@
 @keyframes pipe-surge-fade { 0%, 74% { opacity: 0.85; } 100% { opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
+  .pipe-ripple { animation: none; }
   /* A static glow over the network for the moment, then it is removed. */
   .pipe-surge { animation: none; opacity: 0.55; }
   .pipe-surge-line, .pipe-surge-hub { animation: none; opacity: 1; transform: none; }

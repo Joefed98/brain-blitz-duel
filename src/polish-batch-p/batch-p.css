@@ -73,13 +73,31 @@
 }
 
 /* ---------------------------------------------------------------- Pipeline (pipes) */
-/* The Pattern overhaul (15 Nov 2026): Pipeline's look is the Blender sprites (polish-pattern/pipes.css), no glow. */
+/* Pipes in the network glow softly with their water; the rest stay plain steel (the old look, Joe's pick of 20 Nov
+   2026, earlier E1.4 and E0.2). */
+[data-puzzle-play][data-puzzle-play] .pipe-tile[data-lit] .pipe-art {
+  filter: drop-shadow(0 0 3px rgba(76, 198, 247, 0.55));
+}
+[data-puzzle-play][data-puzzle-play] .pipe-tile[data-lit] {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(76, 198, 247, 0.7),
+    inset 0 0 12px rgba(76, 198, 247, 0.16);
+}
 [data-puzzle-play][data-puzzle-play] .pipes-board {
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 /* ---------------------------------------------------------------- Chroma Lines (flow) */
-/* The Pattern overhaul (15 Nov 2026): no halo or glow; the slots are the rendered cell tile (src/polish-pattern/flow.css). */
+/* A joined colour glows in its own hue (flowArt's halo path); open slots are wells (the old look, Joe's pick of 20 Nov
+   2026, earlier E1.3 and E0.2). */
+.flow-halo {
+  display: none;
+}
+[data-puzzle-play][data-puzzle-play] .flow-halo {
+  display: inline;
+}
 
 /* ---------------------------------------------------------------- Skid (iceslide) */
 /* The board's size budget gains the summary (156 → 160px). The Pattern overhaul (15 Nov 2026): the ice, blocks, ball
@@ -420,10 +438,43 @@
 }
 
 /* ---------------------------------------------------------------- Pipeline */
-/* The Pattern overhaul (15 Nov 2026): the tiles, network and board are the Blender sprites (polish-pattern/pipes.css). */
+/* Each tile a lit steel plate; pipes in the network glow blue round the whole tile (the old look, Joe's pick of 20 Nov
+   2026, earlier E1.4). The board's recess takes the category tint over the steel. */
+[data-puzzle-play][data-puzzle-play] .pipe-tile {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.02) 40%, rgba(0, 0, 0, 0.26)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #343b45, #1b2027);
+  box-shadow:
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.55),
+    inset 0 0 0 1px #2f3640,
+    0 3px 5px rgba(0, 0, 0, 0.55);
+}
+[data-puzzle-play][data-puzzle-play] .pipe-tile[data-lit] {
+  background:
+    linear-gradient(180deg, rgba(160, 225, 255, 0.2), rgba(76, 198, 247, 0.04) 45%, rgba(0, 0, 0, 0.24)),
+    linear-gradient(180deg, #2d3a48, #18212b);
+  box-shadow:
+    inset 0 1.5px 0 rgba(200, 240, 255, 0.4),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(76, 198, 247, 0.75),
+    0 0 10px rgba(76, 198, 247, 0.45),
+    0 3px 5px rgba(0, 0, 0, 0.5);
+}
+[data-puzzle-play][data-puzzle-play] .pipe-tile[data-lit] .pipe-art {
+  filter: drop-shadow(0 0 5px rgba(76, 198, 247, 0.85));
+}
+[data-puzzle-play][data-puzzle-play] .pipes-board {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 16%, transparent), transparent 55%, rgba(0, 0, 0, 0.3)),
+    linear-gradient(160deg, #1a1f26, #0e1116);
+  box-shadow: inset 0 0 26px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 14px 30px rgba(0, 0, 0, 0.5);
+}
 
 /* ---------------------------------------------------------------- Chroma Lines */
-/* A lit tray (the Pattern overhaul, 15 Nov 2026: no halo; the slots and beads are rendered art, flow.css). */
+/* The neon halo (flowArt, a blurred copy) under every path; deep slots; a lit tray (the old look, Joe's pick of 20 Nov
+   2026, earlier E1.3). */
 [data-puzzle-play][data-puzzle-play] .flow-board {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 16%, transparent), transparent 55%, rgba(0, 0, 0, 0.3)),
@@ -432,6 +483,15 @@
 }
 [data-puzzle-play][data-puzzle-play] .flow-board .flow-cell[data-puzzle-cell]:not(.flow-wall) {
   background-color: #101117 !important;
+  background-image: linear-gradient(180deg, rgba(0, 0, 0, 0.35), rgba(255, 255, 255, 0.04));
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.75), inset 0 -1px 0 rgba(255, 255, 255, 0.07);
+}
+[data-puzzle-play][data-puzzle-play] .flow-dot {
+  box-shadow:
+    0 0 0 1.5px var(--dot-rim, rgba(0, 0, 0, 0.6)),
+    0 0 0 3px rgba(10, 11, 15, 0.9),
+    0 0 10px 2px color-mix(in oklab, var(--dot, #fff) 55%, transparent),
+    0 3px 4px rgba(0, 0, 0, 0.6);
 }
 
 /* ---------------------------------------------------------------- Heave */

@@ -18,7 +18,7 @@ import {
 } from "@/lib/duel/types";
 import { soundCue } from "@/lib/fx/soundCues";
 
-import { FLOW_CELL_URL, FLOW_WALL_URL, FlowBead, FlowTubes, shadeHex, useFlowJoins } from "@/components/puzzles/pattern/flowArt";
+import { FlowTubes, shadeHex, useFlowJoins } from "@/components/puzzles/pattern/flowArt";
 import { useSolveMoment } from "@/lib/fx/patternFx";
 import { gameFx } from "@/lib/fx/kit";
 
@@ -63,7 +63,14 @@ export function FlowBoard({
   const pointer = useGridPointer({ cols, rows, onCell, onRelease });
   const metrics = useGridMetrics(pointer.ref, cols, rows);
 
-  const stroke = metrics ? Math.max(3, metrics.cellW * 0.44) : 0;
+  // The old look (Joe's pick of 20 Nov 2026, earlier E1.3): each filled square takes a soft tint of its line's colour.
+  const filled = new Map<number, string>();
+  paths.forEach((path, index) => {
+    const colour = pairs[index]?.colour;
+    if (!colour) return;
+    for (const cell of path) filled.set(cell, GLYPH_COLOURS[colour]);
+  });
+  const stroke = metrics ? Math.max(3, metrics.cellW * 0.4) : 0;
   // Presentation only: which pairs are joined end to end, for the tube caps,
   // the join pulse and the completion effect.
   const joined = pairs.map((pair, index) => {
@@ -97,42 +104,36 @@ export function FlowBoard({
       >
         {Array.from({ length: total }, (_, cell) => {
           const dot = pairs.find((pair) => pair.a === cell || pair.b === cell);
+          const tint = filled.get(cell);
           if (walls.includes(cell)) {
             return (
-              <div
-                key={cell}
-                className="flow-wall rounded-[3px]"
-                style={{ backgroundImage: `url(${FLOW_WALL_URL})` }}
-                aria-label="Wall"
-              />
+              <div key={cell} className="flow-wall rounded-[3px]" aria-label="Wall" />
             );
           }
           return (
             <div
               key={cell}
               data-flow-empty={marks?.empty.has(cell) ? "" : undefined}
-              className="flow-cell flex items-center justify-center rounded-[3px]"
-              // No colour wash round a line (Joe, 15 Nov 2026: it read as a glow); the tube alone shows the square is filled.
-              style={{ backgroundImage: `url(${FLOW_CELL_URL})` }}
+              className="flow-cell flex items-center justify-center rounded-[3px] border border-border bg-card"
+              style={tint ? { backgroundColor: `${tint}22`, borderColor: `${tint}55` } : undefined}
             >
               {/* The dot is a child of its own cell, so it is always dead centre,
                   and it sits above the path layer. */}
               {dot && (
                 <span
-                  className="flow-dot relative block rounded-full"
+                  className={`flow-dot relative block rounded-full ${joined[pairs.indexOf(dot)] ? "flow-dot-joined" : ""}`}
                   data-flow-pair={pairs.indexOf(dot)}
                   data-flow-missed={marks?.missed.has(cell) ? "" : undefined}
                   data-flow-colour={dot.colour}
                   style={{
-                    width: "72%",
-                    height: "72%",
+                    width: "64%",
+                    height: "64%",
                     zIndex: 2,
+                    backgroundColor: GLYPH_COLOURS[dot.colour],
                     ["--dot" as string]: GLYPH_COLOURS[dot.colour],
                     ["--dot-rim" as string]: shadeHex(GLYPH_COLOURS[dot.colour], -0.5),
                   }}
-                >
-                  <FlowBead colour={dot.colour} />
-                </span>
+                />
               )}
             </div>
           );
@@ -225,8 +226,7 @@ function PairChip({ colour, state }: { colour: FlowPair["colour"]; state: FlowPa
   const word = state === "route" ? "joined on the solution’s route" : state === "other" ? "joined another way" : "not joined";
   return (
     <span className="flow-pair-chip" data-state={state} aria-label={`${colour.toLowerCase()}: ${word}`} title={word}>
-      <span className="flow-pair-bead">
-        <FlowBead colour={colour} />
+      <span className="flow-pair-bead flow-dot" style={{ backgroundColor: GLYPH_COLOURS[colour], ["--dot-rim" as string]: shadeHex(GLYPH_COLOURS[colour], -0.5) } as CSSProperties}>
       </span>
       <span className="flow-pair-mark" aria-hidden="true">
         {state === "open" ? "!" : "✓"}
