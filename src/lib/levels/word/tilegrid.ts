@@ -9,7 +9,7 @@ import type { Level } from "../levels";
  * 7 × 7 board, 100 s).
  *
  * Tiles in the tray are the ladder (10, 15, 19, 23), each on a board sized for it: Easy two crossing everyday words of 5
- * and 6 letters on 6 × 6; Hard four crossing words of 5–6 letters on 8 × 8; Expert five on 9 × 9, its words lit and bad
+ * and 6 letters on 6 × 6; Hard four crossing words of 5–6 letters on 8 × 8; Expert five on 8 × 8 too, its words lit and bad
  * runs shown only on Done. Every level deals tileGridRev 5 (the size and tile count stored on the puzzle) from its bank,
  * boards the person-like builder (scripts/tilegrid-human.ts, never sees the answer) finishes inside the clock; Expert's
  * only where that builder's line, timed at the human limits, scores 200. Any grid of real words that uses every tile
@@ -32,7 +32,9 @@ const OPEN = { open: "Any grid of real words that uses every tile finishes the b
 export const TILEGRID_LEVEL_SETTINGS: Readonly<Record<Exclude<Level, "normal">, TileGridLevelSettings>> = {
   easy: { size: 6, tiles: 10, lengths: [5, 6], timeLimitMs: 120_000 },
   hard: { size: 8, tiles: 19, lengths: [5, 5, 6, 6], timeLimitMs: 90_000 },
-  expert: { size: 9, tiles: 23, lengths: [5, 5, 5, 6, 6], lightsOnDone: true, timeLimitMs: 70_000 },
+  // Joe (21 Nov 2026): 8 × 8, as Hard (9 × 9 drew 35 px squares on a 375 × 667 phone, under the 36 px floor); the tray
+  // is the ladder (10 / 15 / 19 / 23).
+  expert: { size: 8, tiles: 23, lengths: [5, 5, 5, 6, 6], lightsOnDone: true, timeLimitMs: 70_000 },
 };
 
 export const TILEGRID_LEVELS: GameLevels | null = {
@@ -47,5 +49,5 @@ export const TILEGRID_LEVELS: GameLevels | null = {
 export const TILEGRID_LEVEL_ABOUT: Partial<Record<Exclude<Level, "normal">, string>> = {
   easy: "Ten tiles and two crossing words on a small 6 by 6 board, with 120 seconds.",
   hard: "Nineteen tiles and four crossing words on an 8 by 8 board, with 90 seconds.",
-  expert: "Twenty-three tiles on a 9 by 9 board, words checked only on Done, and 70 seconds.",
+  expert: "Twenty-three tiles on the 8 by 8 board, words checked only on Done, and 70 seconds.",
 };
