@@ -1,15 +1,11 @@
 /*
  * The Number overhaul (15 Nov 2026, docs/number-overhaul.md): shared by the eight Number games. Display only.
- * Tokens only (DESIGN.md): champagne gold and navy controls, no glows, darker backgrounds.
+ * Tokens only (DESIGN.md). Since the polish plan (21 Nov 2026) the boards sit on the shared lit stage and the controls
+ * are the shared surface's.
  */
 
-/* A darker Number background: the category's colour kept, at about half the strength. Checkout keeps its cabinet. */
-[data-puzzle-play][data-category="number"] > .screen-background {
-  background:
-    radial-gradient(130% 45% at 50% 0%, color-mix(in srgb, var(--category-accent) 10%, transparent), transparent 65%),
-    radial-gradient(120% 40% at 50% 100%, color-mix(in srgb, var(--category-accent) 7%, transparent), transparent 70%),
-    linear-gradient(180deg, var(--frame-deep) 0%, var(--jz-bg) 40%, var(--jz-bg) 62%, var(--frame-deep) 100%);
-}
+/* The Number background is the shared stage (game-frame.css, the polish plan's art rule 1): the darker Number
+   backdrop of 15 Nov 2026 is gone (earlier E0.1, replaced by the stage rule). */
 
 /* The stage pip fills in as the stage clears (the frame's goal bar), in champagne gold, without a glow. */
 [data-category="number"] .game-goal-bar > span[data-done] {
@@ -70,27 +66,8 @@
   }
 }
 
-/*
- * Controls: champagne gold and navy only (the style guide). The shared puzzle surface dyes secondary actions in the
- * category's green (styles.css [data-puzzle-action]); in the Number games they are navy with light text and no
- * outline, and the one primary action stays champagne gold.
- */
-[data-puzzle-surface][data-category="number"] [data-puzzle-action]:not([data-puzzle-action="primary"]) {
-  background-color: var(--jz-surface-2) !important;
-  color: var(--jz-text) !important;
-  box-shadow: none;
-}
-/* A HUD pill's "gold" value (a target, par) is the interface's champagne, never the category's green. */
-[data-category="number"] [data-game-stage] .jz-status[data-tone="accent"] .jz-status-value {
-  color: var(--jz-gold);
-}
-/* Icon actions (Exact's Undo and Reset) likewise: navy, no category-coloured outline. */
-[data-puzzle-surface][data-category="number"] .puzzle-secondary-control {
-  border-color: transparent !important;
-  background-color: var(--jz-surface-2) !important;
-  color: var(--jz-text) !important;
-  box-shadow: none !important;
-}
+/* Controls: the shared puzzle surface draws them (styles.css [data-puzzle-action]), in the category's colour like every
+   other category (the dyed navy and champagne controls went with the polish plan's E0.4, 21 Nov 2026). */
 
 /* ---------------------------------------------------------------- the reveals (RevealParts.tsx) */
 .nrv-boards {

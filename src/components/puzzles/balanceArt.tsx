@@ -192,17 +192,19 @@ export const BALANCE_CSS = `
 
 /* ---- The Number overhaul (15 Nov 2026): the Blender-rendered pieces (public/number/balance), bold Archivo numbers,
    champagne gold and navy, no glows. Display only: every notch, weight and button keeps its place and size. */
+/* Spotlight (the polish plan, 21 Nov 2026; earlier E2.3 as changed): a light oak wall and bench, a champagne beam and
+   coloured enamel kettlebells with ivory faces, so the numbers on the bells and tags are dark navy ink; no hairline. */
 .bal-panel {
-  border: 1px solid color-mix(in srgb, var(--jz-gold) 18%, transparent);
-  background: linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,.42)), url("/number/balance/wall.webp") center / cover no-repeat, var(--jz-bg);
-  box-shadow: inset 0 0 40px rgba(0,0,0,.55);
+  border: 1px solid transparent;
+  background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.16)), url("/number/balance/wall.webp") center / cover no-repeat, var(--jz-bg);
+  box-shadow: inset 0 0 30px rgba(0,0,0,.22);
 }
 [data-polish="balance"] .bal-table {
   background: url("/number/balance/bench.webp") center top / 100% 100% no-repeat;
   box-shadow: 0 -8px 16px rgba(0,0,0,.4);
 }
 .bal-notch-label {
-  font-family: var(--jz-font); font-weight: 800; font-size: 16px; color: var(--jz-on-gold); text-shadow: none;
+  font-family: var(--jz-font); font-weight: 800; font-size: 16px; color: var(--jz-navy); text-shadow: none;
   background: url("/number/balance/tag.webp") center / 100% 100% no-repeat; background-color: transparent;
   border: 0; box-shadow: 0 2px 3px rgba(0,0,0,.45);
 }
@@ -212,7 +214,7 @@ export const BALANCE_CSS = `
 /* Beam fill (a live round): the rod a staggered kettlebell hangs from, brass. */
 [data-polish="balance"] .bal-rod { display: block; width: 3px; border-radius: 2px; background: linear-gradient(90deg, var(--jz-gold-ledge), var(--jz-gold), var(--jz-gold-ledge)); box-shadow: 0 1px 2px rgba(0,0,0,.45); }
 [data-polish="balance"] .bal-notch-active {
-  color: var(--jz-on-gold);
+  color: var(--jz-navy);
   background: url("/number/balance/tag.webp") center / 100% 100% no-repeat;
   box-shadow: 0 0 0 2px var(--jz-white), 0 3px 4px rgba(0,0,0,.5);
 }
@@ -220,7 +222,7 @@ export const BALANCE_CSS = `
 .bal-bell-art { position: absolute; left: 50%; bottom: 0; width: var(--bell-w); height: var(--bell-h); max-width: none; translate: -50% 0; pointer-events: none; user-select: none; }
 .bal-bell-num {
   position: absolute; left: 0; right: 0; bottom: calc(var(--bell-h) * 0.347); translate: 0 50%; text-align: center;
-  font-family: var(--jz-font); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--jz-on-gold); pointer-events: none;
+  font-family: var(--jz-font); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--jz-navy); pointer-events: none;
 }
 .bal-bell-lock { position: absolute; right: 0; top: calc(100% - var(--bell-h)); width: 10px; height: 12px; color: var(--jz-silver); }
 [data-polish="balance"] .bal-tray-cup { background: transparent !important; box-shadow: none !important; }

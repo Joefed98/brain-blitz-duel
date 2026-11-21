@@ -12,8 +12,9 @@
 [data-checkout-root][data-play-area] .co-tabs > button[aria-selected="true"]:not([data-solved="true"]) {
   box-shadow: inset 0 0 0 1px var(--jz-gold), 0 3px 0 var(--jz-ledge-2);
 }
+/* No ring round the arena (the polish plan's outlines row, E0.5): the stall's own edge is its frame. */
 [data-checkout-root][data-play-area] .co-arena {
-  box-shadow: inset 0 0 0 1px var(--jz-surface-2);
+  box-shadow: none;
 }
 [data-checkout-root] .co-darts {
   color: var(--jz-text-2);
