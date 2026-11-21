@@ -97,16 +97,43 @@ Joe picked the old look for Ballpark, Chroma Lines, Pipeline (with the bigger pi
 
 One difference from the earlier plan's E1.4: it dropped Pipeline's water-in, drain and bubble effects because they target the sprite markup. Joe's pick keeps today's effects, so A2 re-targets them at the SVG pipes instead; `pattern-overhaul-pipes-check`'s effect lines then keep passing.
 
-### The reveal template's one line (approved)
+### The reveal template (P2): the lines it changes
 
-`scripts/skyline-overhaul-check.ts:728` was changed on 20 Nov 2026 with Joe's typed approval: the room order is now `score, picture, chart, summary, breakdown(folded)`; practice is unchanged. The dated note is on the line above it (729 is now the `want` line).
+The first version of the template came off the plan's branch on 21 Nov 2026 (Joe's decision, plan section 2.1), so **none of these lines is changed today and no approval stands**: Joe's approval of `skyline-overhaul-check.ts:728` on 20 Nov lapsed when the line went back to main's text, and the three `swing-overhaul-check` lines he approved on 21 Nov were never applied. P2 builds the template and shows Joe every row here in its own session. How they were found, on the first version: Checks run 1216 for the checks that open no browser (529 of 530 passed), and five browser checks run once locally on 21 Nov (`room-16-check`, `room-extras-check`, `celebrations-check`, and `theme-check` and `no-wrap-check` over every reveal screen). The other 47 browser checks were read, not run. Every line below was read in the file on main's text on 21 Nov.
+
+| Check or file | Lines | Asserts today (quote) | What the first version did | Needs |
+|---|---|---|---|---|
+| `scripts/skyline-overhaul-check.ts` | 728 | `const want = practice ? ["score", "picture", "breakdown"] : ["score", "picture", "summary", "breakdown(folded)", "chart"];` | a room read score, picture, chart, summary, breakdown(folded) | **1**, if P2's template puts the chart in the stage |
+| `scripts/swing-overhaul-check.ts` | 672 | `/data-reveal-column className="[^"]*\bpx-3\b/` "AnswerReveal and the reveal column: px-3 (12 px) each a side" | the column lost its `px-3` (the template's root carries no padding) | **1** |
+| same | 673 | `/data-reveal-run-picture="" className="mt-2 w-full"/` "the picture fills the column's width (w-full)" | the wrapper became `className="w-full"` | **1** |
+| same | 675 | `const pictureW = (viewport: number) => viewport - 2 * (4 + 12 + 12);` | the Grappler picture measured 343 px at 375 and 358 px at 390 in a real browser: viewport − 2 × (4 + 12). The 4 is `pad-game-safe` (`PhoneShell.tsx:607`, defined at `styles.css:1462–1463`); the 12 is `AnswerReveal.tsx`'s `px-3`; no other box added side padding | **1**, with P2's own measured widths. Lines 657–658, a comment, describe the old chain |
+| `scripts/celebrations-browser.ts`, with `scripts/fixtures/celebrations-off.json` | 304; the `reveal150` entry | `check(now === recorded, …)` "the screen's markup differs from today's" | the reveal's markup changed (the template's wrapper and slots), so 1 of 10,946 assertions failed | **2**: re-record `reveal150` only, with Joe's approval (precedent: 13 and 15 Nov) |
+| `scripts/screens/crazy-golf.ts` | 39 | `await page.locator("[data-minigolf-reveal] [data-scorecard] button").nth(2).click();` | `click: Timeout 30000ms exceeded.` at every size, 6 draws in theme-check and 7 in no-wrap-check: a room's reveal opened on the Room view, and the scorecard was in the hidden "Your run" view | **1**: tap "Your run" first |
+| `scripts/screens/sports.ts`, `scripts/screens/cards-board.ts`, `scripts/theme-screens.ts` | the room reveal screens named "… with the run summary" and "… the overhaul's picture" | they draw the picture so its text is judged | passed while drawing only the chart | **1** for a step that opens "Your run"; **3** if the picture stays in the view a room opens on |
+
+Held on the first version, so they should hold on P2's: `room-16-check` (3,964 assertions), `room-extras-check`, every other reveal screen in theme-check (204 draws) and no-wrap-check (245), and `pattern-overhaul-gravity-levels-check.ts:353, 368` (Topsy-Turvy's reveal row measured 319 and 334 px, exactly as the check says).
+
+**Not an assertion, and the reason the template came off.** Its stage was a fixed-height box with `overflow: hidden` on a column that no longer scrolled, so run pictures were cut off on phones. No check catches that; P2 proves its version by measurement (fix list (a); `direction/source/reveal-survey.mjs`). Practice reveals on the first version:
+
+| Game | Hidden at 375 × 667 | Hidden at 390 × 844 |
+|---|---|---|
+| Crazy Golf | 531 px | 443 px |
+| Iron Wall | 269 px | 141 px |
+| Free Cell | 245 px | 129 px |
+| Grappler | 182 px | 50 px |
+| Orbit | 178 px | 67 px |
+| Moon Climb | 169 px | 23 px |
+| Apex | 129 px | none |
+| High Rise | 31 px | none |
+| Roofbound | 30 px | none |
+| Meteor, Hover, Gemstone, Tilt, Coral Pop | none | none |
 
 ## Who shows Joe which rows
 
 | Session | Rows |
 |---|---|
 | P1 Navigation and Home | Part 1: 1 (navy), 3 (navigation), 4 (Home), and the `celebrations-off.json` re-record |
-| P2 Games, intro, first open | Part 1: 5, 6, 7 |
+| P2 Games, intro, the reveal template, first open | "The reveal template (P2)" above, first; then Part 1: 5, 6, 7 |
 | P3 Compete, You, Shop, rated | Part 1: 9, 10, 11 |
 | P4 Desktop | The earlier K18 (three `desktop-geometry-check` lines for the Cabinet's left panel) and Part 1's desktop-layout rows |
 | A1, A2, A3 | Part 2A, their families (class 1 rows only; class 2 is a routine re-run named beside each) |

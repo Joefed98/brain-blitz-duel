@@ -172,9 +172,34 @@ The numbers are the review page's (its Decide section had 24 questions).
 | Chroma Lines | **The old look** (E1.3), old dots included: "I don't like the new circles; the old ones are much better" |
 | Topsy-Turvy | **The old look** (E1.2): "I don't like the new circle designs" |
 | Ballpark | **The old look** (E1.5) |
-| `scripts/skyline-overhaul-check.ts:728` | **Approved** exactly as shown: the room order is score, picture, chart, summary, breakdown(folded); practice unchanged. Applied with the note "Changed with Joe's approval, 20 Nov 2026" |
+| `scripts/skyline-overhaul-check.ts:728` | Approved on 20 Nov exactly as shown (the room order score, picture, chart, summary, breakdown(folded)). **It no longer applies** (21 Nov, below): the line is back to main's text with the template's code, and P2 shows Joe the line again |
 
 For the four looks, A1 and A2 restore the old look as the earlier plan's E1 rows describe. They keep today's rules, levels, effects and every `data-*` attribute, and the boards sit on the new lit stage (art rule 1). Their assertion rows are back in `assertions.md`.
+
+**Joe's decision of 21 Nov 2026: the reveal template comes off this branch and goes to P2.**
+
+What was found. The Checks run on the head that carried the approved line (`3f63fde5`) failed on one check, `swing-overhaul-check` (two lines, 672 and 673: the template had dropped the reveal column's `px-3` and the Grappler picture wrapper's `mt-2`). Measuring the Grappler reveal in a real browser to prove the new width (343 px at 375, 358 px at 390: viewport − 2 × (4 + 12)) showed something no check catches: the template's stage was a fixed-height box with `overflow: hidden` on a column that no longer scrolled, so **the run picture was cut off on phones** (`direction/pages/reveal-cut-375x667.webp`). Practice reveals, measured:
+
+| Game | Hidden at 375 × 667 | Hidden at 390 × 844 |
+|---|---|---|
+| Crazy Golf | 531 px | 443 px |
+| Iron Wall | 269 px | 141 px |
+| Free Cell | 245 px | 129 px |
+| Grappler | 182 px | 50 px |
+| Orbit | 178 px | 67 px |
+| Moon Climb | 169 px | 23 px |
+| Apex | 129 px | none |
+| High Rise | 31 px | none |
+| Roofbound | 30 px | none |
+| Meteor, Hover, Gemstone, Tilt, Coral Pop | none | none |
+
+Two more things broke, found by running the five browser checks that judge the reveal once each: `celebrations-check` (its recorded `reveal150` markup no longer matched, `scripts/celebrations-browser.ts:304`) and the Crazy Golf reveal screen that theme-check and no-wrap-check draw (`scripts/screens/crazy-golf.ts:39`: its tap timed out at every size, because a room's reveal opened on the Room view and the scorecard was in the hidden "Your run" view). `room-16-check`, `room-extras-check` and every other reveal screen in theme-check (204 draws) and no-wrap-check (245) passed; the other 47 browser checks were read, not run.
+
+What Joe decided (Option 1 of three):
+
+- **The template's code is off this branch**, in one commit: `AnswerReveal.tsx`, `ArcadeReveal.tsx`, `reveal-screen.css` and `scripts/skyline-overhaul-check.ts` are back to main's text (so the approval of line 728 no longer applies), and `RevealScreen.tsx` and `scripts/screens/reveals.ts` are removed. The three `swing-overhaul-check` lines Joe had approved on 21 Nov are **not applied**. Apex's steering fix and the Cabinet skeleton stay exactly as they were; no Cabinet file carried template code.
+- **P2 builds the template as its first job**, starting from commits `86fe22258` and `2cbba0c5e`, with this fix list: (a) the stage never cuts a run picture at any phone size (the picture fits the box, or the slot scrolls), proved in a real browser on all 14 games above at 375 × 667 and 390 × 844 with none hidden; (b) the `reveal150` entry in `celebrations-off.json` re-recorded, with Joe's approval in that session; (c) the Crazy Golf screen taps "Your run" first, with Joe's approval; (d) the room screens named "with the run summary" or "the overhaul's picture" still look at the picture; (e) the `swing-overhaul-check` and `skyline-overhaul-check` lines shown to Joe there, with the real measured widths.
+- **A1, A2 and A3 build their reveal rows (G2 to G7) only after P2's template has merged.** The rest of their art does not wait. P2 opens the template as its own first pull request so the art train is not held by the rest of P2.
 
 **Still open with Joe**: Grappler's and Curl Champ's levers (D5 and D6 propose first), and the keys for the five pointer games (P4 proposes them).
 
@@ -297,7 +322,7 @@ Mockups are in `direction/pages/` as `<page>-<e|f|a>-<phone|desktop>.webp` besid
 | Settings, Account, Terms | As built | Terms cut to 60 words and a link; "How it works" lives here | Words | – | S |
 | Room: lobby, link join, round results, standings, podium | As built (nameplates, the broadcast reveal) | Larger type on the room code and the main action; the join screen's name box pre-filled | These screens are sound | – | S |
 | Round intro | The frame header, the demo box, Ready, the countdown | Goal 22 px, one how line, How and Score behind "?" | 15 words | – | M |
-| Reveal | The built template (`RevealScreen`) | Section 6 | – | `reveal-a-phone` (layout only) | M |
+| Reveal | The reveal template, which P2 builds as its first job (section 9: it is not on main) | Section 6 | – | `reveal-a-phone` (layout only) | M |
 | Empty and error states | The Captain art | "Tournaments, coming soon" goes with the tab; a new guest's You page is one card and one row | – | – | S |
 | Desktop tab pages | The rail, the aside | Section 7 | – | `home-e-desktop`, `games-e-desktop`, `vs-e-desktop` | L |
 
@@ -437,7 +462,7 @@ After the art sessions: re-export every tile and intro still, and re-run `bun sc
 
 - **The frame keeps its geometry**: the 60 px header, the timer on its bottom edge, the goal line, the dock, the phone-gap rule. Those are pinned by six checks and are right. Only paint changes: the stage behind the board (rule 1), goal text 19 px, status chips 15 px.
 - **The intro** keeps the frame header, the demo box (about 40 % of the height) and Ready; the goal grows to 22 px, one how line stays, How and Score move behind "?" (section 3.5).
-- **The reveal** uses the built template. Its paint follows the direction: the score 72–96 px, the star row under it, "New best" as a champagne ribbon, three part chips, the stage picture, then Play again (gold), the next level up, Games. No layout change to the template. Each family's boards and run pictures move onto the template's stage box (earlier rows G2 to G7, carried forward: the first version of this plan left them out).
+- **The reveal** uses the reveal template, which P2 builds as its first job (section 9: the first version came off this branch on 21 Nov). Its paint follows the direction: the score 72–96 px, the star row under it, "New best" as a champagne ribbon, three part chips, the stage picture, then Play again (gold), the next level up, Games. The paint adds no layout change to the template. Each family's boards and run pictures move onto the template's stage (earlier rows G2 to G7, carried forward: the first version of this plan left them out), once P2's template has merged.
 
 ### 6.1 The levels in the app (added 20 Nov, mockups `levels1-e`, `levels2-e`, `levels3-e`, `frame-*`, `kit-board`)
 
@@ -519,7 +544,7 @@ Every one of these is a gameplay or scoring stamp under the house rule, so each 
 | Item | Still fits? | Note |
 |---|---|---|
 | **Apex's steering fix** (C4.7: the car's sprite turns with the steer) | **Yes, unchanged.** | A plain bug fix; no direction touches it |
-| **The reveal template** (`RevealScreen`, G1) | **Yes.** | The direction needs exactly this: one layout to repaint. Section 6 changes its paint only. Its one assertion line (skyline-overhaul-check:728) was approved by Joe on 20 Nov and changed with the dated note beside it |
+| **The reveal template** (`RevealScreen`, G1) | **Not as built.** Off this branch on 21 Nov; P2's first job | The direction still needs one reveal layout to repaint, but the first version cut run pictures off on phones (its stage was a fixed-height box that could not scroll: 9 of 14 sampled arcade games at 375 × 667, 6 of 14 at 390 × 844) and broke `swing-overhaul-check`, the `reveal150` entry `celebrations-check` compares and the Crazy Golf reveal screen that theme-check and no-wrap-check draw. Its files are back to main's text, `skyline-overhaul-check` line 728 included. P2 starts from commits `86fe22258` and `2cbba0c5e` with the fix list in section 2.1 |
 | **The desktop Cabinet skeleton** (B1, behind `ARENA_CABINET_LEFT`, off) | **Yes.** | The Cabinet is still the desktop answer for arcade. The session that fills it paints the panels in the esports style (navy, one cyan or category edge) and switches it on with the three desktop-geometry lines Joe approves |
 
 ## 10. Assertion changes this plan needs
@@ -533,23 +558,23 @@ Fourteen sessions. Prompts: `docs/polish-plan-final/prompts/`, each paste-ready 
 | Session | Builds | Owns (in short; the prompt has the list) |
 |---|---|---|
 | **P1 Navigation, Home, splash, navy** | Sections 3.2, 3.3; the splash; the navy values; the rail | The tab bar, rail and header, `index.tsx`, `play.tsx`, `more.tsx`, Home's components, `tokens.css`, the shared page CSS, the screen harness |
-| **P2 Games, game page, Challenges, intro, reveal paint, first open** | Sections 3.4, 3.5; those rows of section 4; the reveal's paint | The games components, `practice.tsx`, `challenges.tsx`, `RoundIntro`, `RevealScreen`, `instructions.ts`, the first-open files |
+| **P2 Games, game page, Challenges, intro, the reveal template, first open** | **The reveal template first** (G1, with the fix list of section 2.1), as its own pull request; then sections 3.4, 3.5; those rows of section 4; the reveal's paint | The games components, `practice.tsx`, `challenges.tsx`, `RoundIntro`, `RevealScreen`, `instructions.ts`, the first-open files |
 | **P3 Compete, You, Shop, rated, Daily, rooms** | Those rows of section 4; section 3.6 | The other routes and their components, the room screens |
 | **P4 Desktop** | Section 7 (earlier B1 to B4) | `desktop-layout.css`, the arena panel and frame files, Blockzone's layout |
-| **A1 Word and Number art, and the shared puzzle stage** | Their tables in section 5; section 6's frame paint; G2, G3 | The Word and Number art and CSS, `game-frame.css`, the one shared stage rule |
-| **A2 Speed, Attention, Pattern, Logic art** | Their tables; G4 to G6 | Those families' art and CSS, Minefield's and the Speed engine games' renderers |
-| **A3 Arcade art and the bugs** | Their tables; G7; H1 to H3, H5 to H8 | Every other arcade renderer, the fills, the run pictures |
+| **A1 Word and Number art, and the shared puzzle stage** | Their tables in section 5; section 6's frame paint; G2, G3 (after P2's template has merged) | The Word and Number art and CSS, `game-frame.css`, the one shared stage rule |
+| **A2 Speed, Attention, Pattern, Logic art** | Their tables; G4 to G6 (after P2's template has merged) | Those families' art and CSS, Minefield's and the Speed engine games' renderers |
+| **A3 Arcade art and the bugs** | Their tables; G7 (after P2's template has merged); H1 to H3, H5 to H8 | Every other arcade renderer, the fills, the run pictures |
 | **D1 to D6 Difficulty** | `difficulty-spec.md`, a group each; the proof tool first; D5 also H4 | Each game's level table, deal and bank scripts, level checks; only its own games' rows in the shared one-row-a-game files |
 | **F1 Final pass** | Tiles, stills, the reveal palette, `celebrations-off.json`, the list of demos to re-record | The generated art data, once, at the end |
 
-**Launch order.** Three trains that share no files. Pages: **P1** first and alone, then P2, P3 and P4 together. Art: **A1** first, then A2; A3 any time. Difficulty: **D1 to D6** merged one at a time in that order. **F1** last, then the merge captain runs the Save-intro-demos workflow. Two cross-train rules: a difficulty session that needs new art waits for that family's art session, and P2 merges before any difficulty session touches help or intro text. If only three sessions start at once: P1, A1 and D1.
+**Launch order.** Three trains that share no files. Pages: **P1** first and alone, then P2, P3 and P4 together. Art: **A1** first, then A2; A3 any time. Difficulty: **D1 to D6** merged one at a time in that order. **F1** last, then the merge captain runs the Save-intro-demos workflow. Three cross-train rules: a difficulty session that needs new art waits for that family's art session; P2 merges before any difficulty session touches help or intro text; and A1, A2 and A3 build their reveal rows (G2 to G7) only after P2's reveal template has merged, which P2 opens as its own first pull request (the rest of their art does not wait). If only three sessions start at once: P1, A1 and D1.
 
 **After Joe's answers of 20 Nov** (section 2.1; `coverage.md` has the rows): P1 builds the mixed Home and the fuller desktop rail; P2 the Games switch, the combined level picker, the intro's key line and the first open into Ascend on Easy; P3 the reordered Compete and the mixed You; P4 the keyboard mapping for every game (P1 builds the fuller rail with the rest of the navigation); A1 the old look of Ballpark (E1.5) and A2 the old looks of Pipeline (with the bigger pipes), Chroma Lines and Topsy-Turvy (E1.4, E1.3, E1.2), each on the new lit stage with today's rules, levels, effects and attributes; D1 to D6 the scoring fixes on Normal for their games (section 8.2), D5 the three stamps, and D5 and D6 a lever proposal to Joe before Grappler and Curl Champ; F1 the longer list of demos to re-record.
 
 ## 12. Carried forward unchanged from the earlier plan
 
 - Section H (bugs H1–H8: Hover's frame drop, Orbit's planet bake, camera cut, low-fuel line, rings, checkpoint button, pop texts), built by A3, except H4 (a rules change, so a stamp), built by D5.
-- Rows G2 to G7 (each family's reveal boards and run pictures drawn at the reveal template's stage size), built by A1, A2 and A3.
+- Rows G2 to G7 (each family's reveal boards and run pictures drawn at the reveal template's stage size), built by A1, A2 and A3 once P2's reveal template has merged.
 - Row A4 (the showcase strip on the profile), built by P3.
 - Section J (infrastructure notes), for the infrastructure session.
 - A2 (Home's sections reserved), A12 and A13 are absorbed into sections 3 and 4 here.

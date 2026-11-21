@@ -257,7 +257,7 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 <div class="eyebrow">Joulz · design direction · 20 Nov 2026</div>
 <h1>Vivid games in a <b>sleek frame</b></h1>
 <p class="lede">The pages keep today’s esports look and get a better structure. The games get brighter. Everything here is a plan and mockups: nothing is built. Tap any picture to enlarge it. Your choices at the bottom copy out as text to paste back to me.</p>
-<nav class="toc"><a href="#games">Game art</a><a href="#pages">Pages</a><a href="#mixed">Your mixes</a><a href="#threeway">Three ways</a><a href="#flow">Flow</a><a href="#levels">Difficulty</a><a href="#check">Fact-check</a><a href="#decide">Decided</a><a href="#open">Your picks</a><a href="#files">Files</a></nav>
+<nav class="toc"><a href="#games">Game art</a><a href="#pages">Pages</a><a href="#mixed">Your mixes</a><a href="#threeway">Three ways</a><a href="#flow">Flow</a><a href="#levels">Difficulty</a><a href="#check">Fact-check</a><a href="#decide">Decided</a><a href="#open">Your picks</a><a href="#template">Reveal template</a><a href="#files">Files</a></nav>
 
 <div class="short"><div class="eyebrow">The short version</div><ul>
 <li><b>Games:</b> I recommend direction 4, <b>Spotlight</b>: a lit stage in each category’s deep colour and light matte pieces on the board puzzles. Retro stays dark and glows.</li>
@@ -265,7 +265,7 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 <li><b>Flow:</b> a new phone’s first tap is inside a game. Tabs become Home · Games · Compete · Shop · You.</li>
 <li><b>Difficulty:</b> every game gets one lever you can see in the first seconds, as a four-step ladder. Normal never changes.</li>
 <li><b>Levels in the app:</b> one level mark everywhere (a colour and one to four bars), a ladder on each game’s page that shows what changes, and a “next step up” card after a star.</li>
-<li><b>Your three built items</b> (Apex’s steering, the reveal template, the desktop Cabinet skeleton) all still fit.</li>
+<li><b>Your three built items:</b> Apex’s steering and the desktop Cabinet skeleton still fit as built. The reveal template came off this branch on 21 Nov and is P2’s first job (below).</li>
 </ul></div>
 
 <h2 id="games">Games: four art directions</h2>
@@ -408,10 +408,34 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 <div class="done changed"><div class="dq"><b>C.</b> Chroma Lines’ look<i class="tag v-adjusted">picked</i></div><p class="da">The old look. “I don’t like the new circles; the old ones are much better.”</p><p class="dn">Built by A2 as the earlier plan’s E1.3, old dots included.</p></div>
 <div class="done changed"><div class="dq"><b>D.</b> Topsy-Turvy’s look<i class="tag v-adjusted">picked</i></div><p class="da">The old look. “I don’t like the new circle designs.”</p><p class="dn">Built by A2 as the earlier plan’s E1.2.</p></div>
 <div class="done changed"><div class="dq"><b>E.</b> Ballpark’s look<i class="tag v-adjusted">picked</i></div><p class="da">The old look.</p><p class="dn">Built by A1 as the earlier plan’s E1.5.</p></div>
-<div class="done agreed"><div class="dq"><b>F.</b> The reveal template’s one check line<i class="tag v-holds">approved</i></div><p class="da">Approved exactly as shown: in a room the reveal reads score, picture, chart, summary, breakdown; practice is unchanged. Applied with the note “Changed with Joe’s approval, 20 Nov 2026”.</p></div>
+<div class="done changed"><div class="dq"><b>F.</b> The reveal template’s one check line<i class="tag v-adjusted">no longer applies</i></div><p class="da">Approved on 20 Nov; withdrawn with the template on 21 Nov.</p><p class="dn">The line is back to main’s text. P2 shows it to you again when it builds the template.</p></div>
 <p>All four restores keep today’s rules, levels, effects and every data attribute, and the boards sit on the new lit stage.</p>
+<h3 id="template">The reveal template, 21 Nov 2026</h3>
+<div class="done changed"><div class="dq"><b>G.</b> The reveal template<i class="tag v-adjusted">decided</i></div><p class="da">Off this branch. P2 builds it as its first job.</p><p class="dn">Its files are back to main’s text, the skyline check line included. The three Grappler check lines are not applied. Apex’s steering and the Cabinet skeleton are untouched.</p></div>
+<p>Why: on phones the template’s stage was a fixed box that could not scroll, so the run picture was cut off. Six practice reveals at 375 × 667:</p>
+{strip([('pages/reveal-cut-375x667','The first version at 375 × 667: each run picture stops at the box','board')])}
+<div class="tbl"><table><tr><th>Game</th><th>Hidden at 375 × 667</th><th>Hidden at 390 × 844</th></tr>
+<tr><td>Crazy Golf</td><td>531 px</td><td>443 px</td></tr>
+<tr><td>Iron Wall</td><td>269 px</td><td>141 px</td></tr>
+<tr><td>Free Cell</td><td>245 px</td><td>129 px</td></tr>
+<tr><td>Grappler</td><td>182 px</td><td>50 px</td></tr>
+<tr><td>Orbit</td><td>178 px</td><td>67 px</td></tr>
+<tr><td>Moon Climb</td><td>169 px</td><td>23 px</td></tr>
+<tr><td>Apex</td><td>129 px</td><td>none</td></tr>
+<tr><td>High Rise</td><td>31 px</td><td>none</td></tr>
+<tr><td>Roofbound</td><td>30 px</td><td>none</td></tr>
+<tr><td>Meteor, Hover, Gemstone, Tilt, Coral Pop</td><td>none</td><td>none</td></tr></table></div>
+<p>P2’s fix list:</p>
+<ul class="adds">
+<li><b>(a)</b> The stage never cuts a run picture at any phone size: the picture fits the box, or the slot scrolls. All 14 games above measured in a real browser at 375 × 667 and 390 × 844, with none hidden.</li>
+<li><b>(b)</b> The reveal150 entry in celebrations-off.json re-recorded, with your approval in that session.</li>
+<li><b>(c)</b> The Crazy Golf reveal screen taps “Your run” first, with your approval.</li>
+<li><b>(d)</b> The room screens named “with the run summary” or “the overhaul’s picture” still look at the picture.</li>
+<li><b>(e)</b> The swing-overhaul-check and skyline-overhaul-check lines shown to you there, with the real measured widths.</li>
+</ul>
+<p>A1, A2 and A3 build their reveal rows (G2 to G7) only after P2’s template has merged. The rest of their art does not wait.</p>
 <h3>Still to come to you</h3>
-<ul class="adds"><li><b>Grappler and Curl Champ:</b> D5 and D6 each bring you a working lever, with numbers, before building those two.</li><li><b>Keys for five pointer games</b> (Ascend, Bonk, Pull!, Flash, Cue Ball): P4 proposes them.</li></ul>
+<ul class="adds"><li><b>Grappler and Curl Champ:</b> D5 and D6 each bring you a working lever, with numbers, before building those two.</li><li><b>Keys for five pointer games</b> (Ascend, Bonk, Pull!, Flash, Cue Ball): P4 proposes them.</li><li><b>The reveal template’s check lines:</b> P2 brings you the Grappler and High Rise check lines, the reveal150 re-record and the Crazy Golf screen’s tap, each for your approval.</li></ul>
 <div class="copybar" hidden><button class="gold" id="copy" type="button">Copy my answers</button></div>
 <textarea id="answers" readonly aria-label="Your answers as text" hidden></textarea>
 <p class="muted" id="copied" hidden>Copied. Paste it into the chat.</p>
@@ -421,14 +445,14 @@ button.gold:focus-visible,.opt:focus-within,nav.toc a:focus-visible,summary:focu
 <li><b>The plan</b>: <code>docs/polish-plan-final.md</code> (the direction, every page and game, the flow map, the sessions).</li>
 <li><b>The difficulty spec</b>: <code>docs/polish-plan-final/difficulty-spec.md</code> and its data in <code>difficulty/</code>.</li>
 <li><b>Check assertions the plan would change</b>, with exact lines: <code>docs/polish-plan-final/assertions.md</code>. You approve each one in the session that builds it.</li>
-<li><b>Thirteen build prompts</b>, paste-ready, each with the standing rules: <code>docs/polish-plan-final/prompts/</code>.</li>
+<li><b>Fourteen build prompts</b>, paste-ready, each with the standing rules: <code>docs/polish-plan-final/prompts/</code>.</li>
 <li><b>Today’s pages and flows, read from the code</b>: <code>direction/pages-flow-today.md</code>.</li>
 <li><b>The earlier plan</b>, kept because its rows are carried by id: <code>earlier-plan.md</code>.</li>
 </ul>
 <h3>Your three built items</h3>
 <div class="tbl"><table><tr><th>Item</th><th>Still fits?</th></tr>
 <tr><td>Apex’s steering fix</td><td><b>Yes, unchanged.</b> A plain bug fix.</td></tr>
-<tr><td>The reveal template</td><td><b>Yes.</b> One layout to repaint is exactly what the direction needs. Its paint changes, its layout does not.</td></tr>
+<tr><td>The reveal template</td><td><b>Not as built.</b> It cut run pictures off on phones, so it came off this branch on 21 Nov. P2 builds it as its first job, with the fix list above.</td></tr>
 <tr><td>The desktop Cabinet skeleton</td><td><b>Yes.</b> Still the desktop answer for arcade games. It stays switched off until the desktop session fills it.</td></tr></table></div>
 </div>
 <div id="zoom" hidden><img alt=""></div>

@@ -167,7 +167,7 @@ Longest explanatory strings (cut candidates), file:line:
 
 | Mode | Sequence | Main button |
 |---|---|---|
-| Practice | game → reveal (stays; `RevealScreen` template: header, score card, stage, facts, "See breakdown", footer; `src/components/duel/RevealScreen.tsx`) | gold "Play again" (deal → 3-2-1 → game); "Back" → game page. No next-game suggestion, no share |
+| Practice | game → reveal (stays; today's answer reveal: header row, score, the board or the run's picture, the breakdown, and in a room the chart; `src/components/duel/AnswerReveal.tsx` and `ArcadeReveal.tsx`. The one-template `RevealScreen` is P2's first job and is not on main) | gold "Play again" (deal → 3-2-1 → game); "Back" → game page. No next-game suggestion, no share |
 | Room round | reveal (timed, no button; footer = who has finished + countdown) → "Round results" → "Standings" → round title 3 s → next intro | gold "Continue (8s)" then "Continue (10s)"; after tapping: "2 of 4 ready, Standings in 5s" (`ContinueFooter.tsx`) |
 | Room end | final round: reveal → "Final round" results ("Continue", next = Winner) → winner reveal 6.3 s → Podium (3+ players) / FinalResult (2) | host: gold "Play again"; guests: text "Waiting for the host"; Share; "Challenge a friend"; Leave is in "⋯" (`Podium.tsx:376–398`) |
 | Daily | per round: reveal (timed) → next intro (Ready) … → results: title "Daily Puzzle, results", total, place line, round rows (tap → detail, replay, "See the reveal") | secondary "Leaderboard" (→ `/daily-board`) + Share. **No Home / Done button** (`AsyncResults.tsx:242–255`) |

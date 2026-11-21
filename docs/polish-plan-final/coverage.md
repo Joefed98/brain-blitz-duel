@@ -97,10 +97,10 @@ Carried rows of `earlier-plan.md`:
 | E1.2 Topsy-Turvy, E1.3 Chroma Lines, E1.4 Pipeline | **the old look restored** as the earlier rows describe (Joe's picks, 20 Nov; Pipeline with the bigger pipes: the old art at today's tile and pipe size); today's rules, levels, effects and every `data-*` attribute kept; the board sits on the new lit stage | A2 |
 | E2.1 Checkout, E2.3 Counterweight, E2.4 keyboards | kept or changed as section 5 says | A1 |
 | E1.5 Ballpark | **the old look restored** as the earlier row describes (Joe's pick, 20 Nov); today's rules, levels, effects and every `data-*` attribute kept; the board sits on the new lit stage | A1 |
-| G1 reveal template | built; its paint and its one waiting assertion | P2 |
-| G2 Word reveals, G3 Number reveals | kept | A1 |
-| G4 Pattern, G5 Logic, G6 Attention and Speed reveals | kept | A2 |
-| G7 arcade run pictures | kept | A3 |
+| G1 reveal template | **not on main** (the first version came off this branch on 21 Nov): built by P2 as its **first job** and its own first pull request, with the fix list of plan section 2.1; then its paint | P2 |
+| G2 Word reveals, G3 Number reveals | kept; **wait until P2's reveal template has merged** | A1 |
+| G4 Pattern, G5 Logic, G6 Attention and Speed reveals | kept; **wait until P2's reveal template has merged** | A2 |
+| G7 arcade run pictures | kept; **wait until P2's reveal template has merged** | A3 |
 | H1, H2, H3, H5, H6, H7, H8 | kept | A3 |
 | H4 Orbit's lost-flight rule (a stamp) | kept | D5 |
 | I1 Flash `tapRev 8`; Normal's caps for Bonk `whackRev 5` and Pull! `clayRev 9` | **built on Normal too** (Joe, 20 Nov; plan section 8.2) | D3 |
@@ -152,10 +152,12 @@ The first set of prompts shared the files below. Each now has one owner; the pro
 | `src/polish-layout/game-frame.css` | A1, A2 (each family's stage), P2 (goal text) | **A1**: one shared stage rule for every puzzle category, plus the goal and chip sizes |
 | `src/styles.css` (the accent ring, line 1628) | A1, A2 (earlier E0.5) | **A1** |
 | `src/components/puzzles/LetterKeypad.tsx` | A1 (key relief), P4 (the desktop column) | **A1.** P4 places the keypad by CSS |
-| `src/components/duel/RevealScreen.tsx`, `reveal-screen.css` | nobody (the reveal's paint was unassigned) | **P2** |
+| `src/components/duel/RevealScreen.tsx` (new), `reveal-screen.css`, `AnswerReveal.tsx`, `ArcadeReveal.tsx`, `scripts/screens/reveals.ts` (new) | nobody on main (the first version came off this branch on 21 Nov) | **P2**, as its first job and its own first pull request |
 | `src/components/duel/GameFrame.tsx` | P2 (the level mark), A1 (the stage) | **P2** for the one markup line that draws the level mark; A1 changes paint only in `game-frame.css` and does not edit the component |
 | `src/lib/levels/pictures/*` | P2 (Breaker), D1 to D6 (their families) | **One file each**: P2 `breaker.tsx`, D1 `word.tsx`, D2 `number.tsx`, D3 `speed-attention.tsx`, D4 `pattern-logic.tsx`, D5 `retro-action.tsx` (without Breaker), D6 `strategy-sports-cards.tsx`. The slot finds them by a glob, so there is no shared index |
-| Each family's reveal boards (earlier G2 to G7) | nobody (not carried forward in the first plan) | **A1** (Word, Number), **A2** (Pattern, Logic, Attention, Speed), **A3** (arcade) |
+| Each family's reveal boards (earlier G2 to G7) | nobody (not carried forward in the first plan) | **A1** (Word, Number), **A2** (Pattern, Logic, Attention, Speed), **A3** (arcade), each only **after P2's reveal template has merged** |
+| The "Your run" steps in `scripts/screens/crazy-golf.ts` (line 39), `sports.ts`, `cards-board.ts` and `scripts/theme-screens.ts` | the games' sessions (A3, D6), P2 (the template) | **P2**, those steps only, with Joe's approval (fix list c and d) |
+| The reveal lines of `scripts/swing-overhaul-check.ts` (672, 673, 675) and `scripts/skyline-overhaul-check.ts` (728) | the games' sessions (A3, D5), P2 (the template) | **P2** shows Joe those lines with its measured widths (fix list e); nothing else in those checks |
 | Room screens (`RoomLobby`, `JoinFromLink`, results, podium) | nobody | **P3** |
 | `src/routes/challenges.tsx` | nobody | **P2** |
 | `src/polish-layout/app-pages.css`, `app-shell.css`, `src/design/components.css` | P1, P2, P3 | **P1.** P2 and P3 style their pages in their own files (`games.css`, `shop.css`, `tournaments-pages.css`, the rated and profile styles) |
@@ -164,7 +166,7 @@ The first set of prompts shared the files below. Each now has one owner; the pro
 | `scripts/safe-area-harness.tsx`, `scripts/theme-screens.ts` | P1, P2, P3 | **P1**; later sessions add their screens in their own `scripts/screens/<area>.ts` |
 | `src/lib/duel/instructions.ts` | P2 (the cuts), D sessions (level lines) | **P2.** D sessions keep level text in `src/lib/levels/` |
 | `public/tiles/*`, `tileScenes.data.ts`, `revealPalette.data.ts`, intro stills | A1, A2, A3 (each re-exporting its games) | **F1**, once, at the end |
-| `scripts/fixtures/celebrations-off.json` | P1, P3 | **P1** records it for the Home change; **F1** records it again at the end if a recorded screen moved |
+| `scripts/fixtures/celebrations-off.json` | P1, P2, P3 | **One entry each**: P1 re-records `home` for the Home change, P2 `reveal150` for the reveal template (fix list b), each with Joe's approval; **F1** records it again at the end if another recorded screen moved |
 | `src/lib/duel/practiceChallenges.data.ts`, `src/lib/levels/gameLevels.ts`, `src/lib/duel/arcade.server.ts`, `src/lib/duel/dealEra.ts`, `scripts/scoring-targets-revs.ts`, `scripts/arcade-skill-bands/games.ts` | D1 to D6 (one row a game) | Each D session edits **only its own games' rows**, and the six merge one at a time |
 | `src/lib/practice/practiceStamps.data.ts`, `docs/challenges/catalogue.md` (generated) | D1 to D6 | Regenerated by its script after merging main; never merged by hand |
 | `scripts/arcade-self-replay-check.ts` (entries appended at the end) | D5, D6 | Appended after merging main, D5 before D6 |
@@ -173,7 +175,7 @@ Rule in every prompt's standing rules: you own the files your prompt lists and n
 
 ## 3. Launch order and merge trains
 
-Three trains that share no files, plus one last pass. Sessions in different trains can run and merge in any order relative to each other, with the two cross-train rules below.
+Three trains that share no files, plus one last pass. Sessions in different trains can run and merge in any order relative to each other, with the three cross-train rules below.
 
 | Train | Order inside it | Why |
 |---|---|---|
@@ -186,6 +188,7 @@ Cross-train rules:
 
 1. **A difficulty session that needs new art waits for that family's art session.** Coral Pop's seventh colour, Ball Tracker's two new colours, Tessellate's two pieces, Topsy-Turvy's two balls, Tempo's extra lanes and Iron Wall's fourth lane are drawn in a new, separate function after A2 or A3 has merged, so the new pieces are born in the new look.
 2. **P2 merges before any D session changes help or intro text**, because P2 cuts `instructions.ts`.
+3. **A1, A2 and A3 build their reveal rows (G2 to G7) only after P2's reveal template has merged** (Joe, 21 Nov). P2 opens the template as its own first pull request, so the art train is not held by the rest of P2. Everything else in the art prompts does not wait; an art session whose other work is ready first opens its pull request without those rows and builds them in a second one.
 
 Never in the same train or the same PR: a P session with an A or D session; A2 or A3 with any D session.
 
