@@ -24,7 +24,7 @@ import { usesWordNov7 } from "../wordNov7";
 import { ROUNDABOUT_STAR_FULL_BY_S, roundaboutStarJarFull, usesWordStar } from "../wordStar";
 import { puzzleLevel } from "@/lib/levels/levels";
 import { wordSlideDistance, wordSlideStartDistance } from "../wordSlideDistance.server";
-import { TG_CELLS, TG_SIZE } from "../tileGrid";
+import { TG_TILES, TILE_GRID_LEVEL_REV, tileGridSize, tileGridTiles } from "../tileGrid";
 import {
   STD_CRYPTOGRID,
   STD_INTERLOCK,
@@ -47,7 +47,7 @@ const num = (v: unknown, fallback = 0) => (typeof v === "number" && Number.isFin
 
 /** Tiles inside a real word (the game's own count, from the server's dictionary); 0 for a grid off the tray. */
 function interlockWordTiles(puzzle: Extract<PuzzleData, { type: "tilegrid" }>, answer: string): number {
-  return judgeTileGrid(decodeTileGrid(answer), puzzle.tray).wordTiles;
+  return judgeTileGrid(decodeTileGrid(answer, tileGridSize(puzzle)), puzzle.tray).wordTiles;
 }
 
 /** Big-word points of a grid's valid runs of 5+ letters (6 / 10 / 15 by length), uncapped, and the words. */
@@ -61,7 +61,7 @@ function bigWordSum(cells: readonly string[]): { sum: number; words: string[] } 
  * tileGridRev 4 (wordNov7.ts) the points are scaled so the dealt solution's own big words earn the full 30.
  */
 function interlockBigWords(puzzle: Extract<PuzzleData, { type: "tilegrid" }>, answer: string): { points: number; words: string[]; top?: number } {
-  const cells = decodeTileGrid(answer);
+  const cells = decodeTileGrid(answer, tileGridSize(puzzle));
   if (!fitsTray(cells, puzzle.tray)) return { points: 0, words: [] };
   const { sum, words } = bigWordSum(cells);
   if (!usesWordNov7(puzzle)) return { points: Math.min(STD_INTERLOCK.bigMax, sum), words };
@@ -76,7 +76,9 @@ function interlockBigWords(puzzle: Extract<PuzzleData, { type: "tilegrid" }>, an
  */
 export function interlockSolutionTiles(puzzle: Extract<PuzzleData, { type: "tilegrid" }>, cells: readonly string[]): number {
   const sol = puzzle.solution ?? [];
-  if (sol.length !== TG_CELLS || !fitsTray([...cells], puzzle.tray)) return 0;
+  // Levels (D1, 21 Nov 2026): a level board's stored side (tileGridRev 5); Normal's 7.
+  const TG_SIZE = tileGridSize(puzzle);
+  if (sol.length !== TG_SIZE * TG_SIZE || !fitsTray([...cells], puzzle.tray)) return 0;
   const placed: { r: number; c: number; l: string }[] = [];
   cells.forEach((l, i) => {
     if (l) placed.push({ r: Math.floor(i / TG_SIZE), c: i % TG_SIZE, l });
@@ -98,7 +100,7 @@ export function interlockSolutionTiles(puzzle: Extract<PuzzleData, { type: "tile
 /** The tiles an unfinished grid is credited for: in a real word or (tileGridRev 4) placed as in the answer, whichever is more. */
 function interlockTiles(puzzle: Extract<PuzzleData, { type: "tilegrid" }>, answer: string): number {
   const words = interlockWordTiles(puzzle, answer);
-  return usesWordNov7(puzzle) ? Math.max(words, interlockSolutionTiles(puzzle, decodeTileGrid(answer))) : words;
+  return usesWordNov7(puzzle) ? Math.max(words, interlockSolutionTiles(puzzle, decodeTileGrid(answer, tileGridSize(puzzle)))) : words;
 }
 
 const interlock: StandardGame = {
@@ -113,7 +115,9 @@ const interlock: StandardGame = {
       return { finished: true, speed: speedOf(input, STD_INTERLOCK.speed, STD_INTERLOCK.fullByS), bonus: big.points, measure: "big words", facts };
     }
     const tiles = fair ? interlockTiles(p, input.answer) : num(input.graded.extra?.["wordTiles"]);
-    const credit = STD_INTERLOCK.tile * tiles + ctx.early(STD_INTERLOCK.early, tiles) + big.points;
+    // tileGridRev 5 (levels, D1): 120 × tiles counted ÷ the board's tiles, the early share likewise (15 tiles: as today).
+    const per = (p.tileGridRev ?? 0) >= TILE_GRID_LEVEL_REV ? TG_TILES / tileGridTiles(p) : 1;
+    const credit = STD_INTERLOCK.tile * per * tiles + ctx.early(STD_INTERLOCK.early * per, tiles) + big.points;
     return { finished: false, credit, facts: fair ? { ...facts, countedTiles: tiles } : facts };
   },
 };

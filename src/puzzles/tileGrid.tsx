@@ -7,11 +7,11 @@ import {
   decodeTileGrid,
   encodeTileGrid,
   placedCount,
-  TG_CELLS,
   TG_REVEAL_MS,
-  TG_SIZE,
-  TG_TILES,
   TG_TIME_MS,
+  tileGridSize,
+  tileGridSizeOfCells,
+  tileGridTiles,
   tileGridConnected,
   tileGridResultLine,
   tileGridRuns,
@@ -46,7 +46,7 @@ function MiniGrid({ cells, cell = 20, font, gold }: { cells: string[]; cell?: nu
   return (
     <div
       className="grid rounded-md border border-border bg-card p-0.5"
-      style={{ gridTemplateColumns: `repeat(${TG_SIZE}, ${cell}px)`, gap: 1 }}
+      style={{ gridTemplateColumns: `repeat(${tileGridSizeOfCells(cells)}, ${cell}px)`, gap: 1 }}
     >
       {cells.map((letter, i) => (
         <span
@@ -96,7 +96,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const data: TileGridPuzzleData | null = puzzle.type === "tilegrid" ? puzzle : null;
   /** Which tray tile sits in each cell, or null. */
   const [placed, setPlaced] = useStageState<(number | null)[]>(stateKey, "placed", () =>
-    Array.from({ length: TG_CELLS }, () => null),
+    Array.from({ length: tileGridSize(data) ** 2 }, () => null),
   );
   const [verdicts, setVerdicts] = useState<Record<string, boolean>>({});
   const [flash, setFlash] = useState<Set<number>>(new Set());
@@ -119,8 +119,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     if (!space) return;
     // The Word overhaul: the size the space allows (a 44 px floor clipped the board on short screens), at least 30 px.
     const measure = () => setCellSize(Math.max(30, Math.floor(Math.min(
-      (space.clientWidth - 12 - GAP * (TG_SIZE - 1)) / TG_SIZE,
-      (space.clientHeight - 12 - GAP * (TG_SIZE - 1)) / TG_SIZE,
+      (space.clientWidth - 12 - GAP * (tileGridSize(data) - 1)) / tileGridSize(data),
+      (space.clientHeight - 12 - GAP * (tileGridSize(data) - 1)) / tileGridSize(data),
     ))));
     measure();
     const observer = new ResizeObserver(measure);
@@ -131,7 +131,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const tray = data?.tray ?? [];
   const cells = useMemo(() => placed.map((t) => (t === null ? "" : (tray[t] ?? ""))), [placed, tray]);
   const runs = useMemo(() => tileGridRuns(cells), [cells]);
-  const encoded = encodeTileGrid(cells);
+  const encoded = encodeTileGrid(cells, tileGridSize(data));
   const runsRef = useRef(runs);
   runsRef.current = runs;
 
@@ -156,9 +156,9 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       const verdict = await checkWord(word, []).catch(() => ({ valid: false }));
       pending.current.delete(word);
       setVerdicts((v) => ({ ...v, [word]: verdict.valid }));
-      if (verdict.valid) setAccepted(previous => ({ word, points: "points" in verdict && typeof verdict.points === "number" ? verdict.points : 0, serial: (previous?.serial ?? 0) + 1 }));
+      if (verdict.valid && !data?.lightsOnDone) setAccepted(previous => ({ word, points: "points" in verdict && typeof verdict.points === "number" ? verdict.points : 0, serial: (previous?.serial ?? 0) + 1 }));
       // A word the player built: the shared "correct" and its small burst, like the other word games.
-      if (verdict.valid && !lockedNow.current && !openingWords.current?.has(word)) {
+      if (verdict.valid && !data?.lightsOnDone && !lockedNow.current && !openingWords.current?.has(word)) {
         fx.onCorrect();
         // Batch W (display only): the word's tiles get the toolkit's right-move glow.
         for (const run of runsRef.current)
@@ -171,7 +171,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         const at = Date.now();
         if (at - lastWordAt.current < 400) wordFx("combo", boardSpace.current?.querySelector("[data-word-cell]"), "tilegrid.combo", { count: 2 });
         lastWordAt.current = at;
-      } else if (!verdict.valid && !lockedNow.current && !openingWords.current?.has(word)) {
+      } else if (!verdict.valid && !data?.lightsOnDone && !lockedNow.current && !openingWords.current?.has(word)) {
         // A run that isn't a word: it stays faintly red while it stands, with one quiet note (no haptic: not a refusal).
         wordFx("wrong", null, "tilegrid.notword", { noHaptic: true });
       }
@@ -193,17 +193,17 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   }, [now, phaseStartedAt, locked, data, encoded, onSubmit]);
 
   const goodCells = useMemo(
-    () => tileGridWordCells(cells, (word) => verdicts[word] === true),
-    [cells, verdicts],
+    () => (data?.lightsOnDone && !finished ? new Set<number>() : tileGridWordCells(cells, (word) => verdicts[word] === true)),
+    [cells, verdicts, data, finished],
   );
   // The Word overhaul: a run the server says is no word stays faintly red while it stands (it used to show only for
   // 0.7 s after Done). Cells also in a good word stay good.
   const badCells = useMemo(() => {
     const out = new Set<number>();
-    for (const run of runs) if (run.word.length >= 3 && verdicts[run.word] === false) run.cells.forEach((c) => out.add(c));
+    for (const run of runs) if (!data?.lightsOnDone && run.word.length >= 3 && verdicts[run.word] === false) run.cells.forEach((c) => out.add(c));
     for (const c of goodCells) out.delete(c);
     return out;
-  }, [runs, verdicts, goodCells]);
+  }, [runs, verdicts, goodCells, data]);
 
   // A valid grid on Done: its words light up one after another (display only).
   useWordFinish(finished, () => {
@@ -241,7 +241,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   const frozen = locked || submitted.current;
   const inTray = tray.map((_, i) => i).filter((i) => !placed.includes(i));
   /** Done needs every tray tile on the board; a shorter grid stays a draft, sent at the time-out. */
-  const allPlaced = placedCount(cells) === TG_TILES;
+  const allPlaced = placedCount(cells) === tileGridTiles(data);
 
 
   const place = (tile: number, hit: number) => {
@@ -265,7 +265,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
   };
   const clearAll = () => {
     if (frozen) return;
-    setPlaced(Array.from({ length: TG_CELLS }, () => null));
+    setPlaced(Array.from({ length: tileGridSize(data) ** 2 }, () => null));
     setSelected(null);
   };
   const tapPlaced = (tile: number) => {
@@ -315,7 +315,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     else setSelected(null);
   };
   const done = async () => {
-    if (frozen || checking || placedCount(cells) !== TG_TILES) return;
+    if (frozen || checking || placedCount(cells) !== tileGridTiles(data)) return;
     setChecking(true);
     const results = await Promise.all(runs.map(async (run) => (run.word.length >= 3 ? verify(run.word) : false)));
     setChecking(false);
@@ -325,7 +325,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
     });
     const connected = tileGridConnected(cells);
     if (!connected) cells.forEach((c, i) => c && bad.add(i));
-    if (bad.size === 0 && runs.length > 0 && placedCount(cells) === TG_TILES) {
+    if (bad.size === 0 && runs.length > 0 && placedCount(cells) === tileGridTiles(data)) {
       submitted.current = true;
       playLock();
       setFinished(true);
@@ -345,7 +345,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
       <div ref={boardSpace} data-game-arena="board" data-word-first="" className="relative flex min-h-0 w-full flex-1 items-center justify-center overflow-hidden">
       <div
         className="grid shrink-0 rounded-xl border-2 border-border bg-card p-1"
-        style={{ gridTemplateColumns: `repeat(${TG_SIZE}, ${cellSize}px)`, gap: GAP }}
+        style={{ gridTemplateColumns: `repeat(${tileGridSize(data)}, ${cellSize}px)`, gap: GAP }}
         aria-label={`${gameDisplayName("tilegrid")} board`}
       >
         {placed.map((tile, i) => {
@@ -413,7 +413,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
             testId="tilegrid"
             className="justify-start"
             items={[
-              { id: "placed", label: "Placed", value: `${placedCount(cells)}/${TG_TILES}` },
+              { id: "placed", label: "Placed", value: `${placedCount(cells)}/${tileGridTiles(data)}` },
               { id: "words", label: "In words", value: goodCells.size, tone: "gold" },
               badCells.size > 0 ? { id: "bad", label: "Not words", value: badCells.size, tone: "warn" } : null,
             ]}
@@ -432,7 +432,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
         <Button
           type="button"
           disabled={frozen || checking || !allPlaced}
-          title={allPlaced ? undefined : `Place all ${TG_TILES} tiles`}
+          title={allPlaced ? undefined : `Place all ${tileGridTiles(data)} tiles`}
           onClick={() => void done()}
           data-wa-btn="gold"
           className="h-11 w-24 shrink-0 font-display font-bold uppercase tracking-widest"
@@ -451,7 +451,7 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, c
  */
 function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "tilegrid") return null;
-  const mine = decodeTileGrid(myAnswer ?? "");
+  const mine = decodeTileGrid(myAnswer ?? "", tileGridSize(puzzle));
   const num = (k: string) => (typeof myExtra?.[k] === "number" ? (myExtra[k] as number) : null);
   const bigWords = Array.isArray(myExtra?.["bigWords"]) ? (myExtra["bigWords"] as unknown[]).map(String) : [];
   const bigCells = new Set(tileGridRuns(mine).filter((r) => bigWords.includes(r.word)).flatMap((r) => r.cells));
@@ -463,8 +463,8 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
       <RevealNumbers
         countAfterMs={dropEndsMs(bigWords.length)}
         items={[
-          { id: "placed", label: "Tiles placed", value: `${placedCount(mine)}/${TG_TILES}` },
-          inWords !== null ? { id: "in-words", label: "Tiles in words", value: inWords, tone: inWords === TG_TILES ? "gold" : undefined } : null,
+          { id: "placed", label: "Tiles placed", value: `${placedCount(mine)}/${tileGridTiles(puzzle)}` },
+          inWords !== null ? { id: "in-words", label: "Tiles in words", value: inWords, tone: inWords === tileGridTiles(puzzle) ? "gold" : undefined } : null,
           num("bigWordPoints") !== null ? { id: "big", label: "Big-word points", value: num("bigWordPoints"), tone: (num("bigWordPoints") ?? 0) > 0 ? "gold" : undefined } : null,
         ]}
       />
@@ -484,7 +484,7 @@ function Reveal(props: PuzzleRevealProps) {
 
 function RevealOlder({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
   if (puzzle.type !== "tilegrid") return null;
-  const mine = decodeTileGrid(myAnswer ?? "");
+  const mine = decodeTileGrid(myAnswer ?? "", tileGridSize(puzzle));
   const count = placedCount(mine);
   // The stored extra says what counted; a finish is all fifteen in a valid grid (display only).
   const storedPlaced = myExtra?.["placed"];
@@ -496,7 +496,7 @@ function RevealOlder({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps
     valid: typeof storedValid === "boolean" ? storedValid : myCorrect,
     wordTiles: typeof storedWords === "number" ? storedWords : null,
     countedTiles: typeof storedCounted === "number" ? storedCounted : null,
-  });
+  }, tileGridTiles(puzzle));
   return (
     <div data-word-reveal="tilegrid" className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <div className="flex flex-wrap justify-center gap-3">

@@ -33,7 +33,7 @@
 import { equationVerdict, usesOperatorGaps } from "./operatorGaps";
 import { pairCardsOf, pairsOf } from "./attentionLevels";
 import { judgeTileGrid } from "./tileGrid.server";
-import { decodeTileGrid, fitsTray as tileGridFitsTray, tileGridRuns } from "./tileGrid";
+import { decodeTileGrid, fitsTray as tileGridFitsTray, tileGridRuns, tileGridSize } from "./tileGrid";
 import { decodeSlideTokens, WS_MARKED_ROWS } from "./wordSlide";
 import { checkWordSlideRow, replayWordSlideFor } from "./wordSlide.server";
 import { markedRowWord } from "./wordSlide";
@@ -116,7 +116,7 @@ export function rev3Progress(input: ProgressInput): number | null {
       return Math.max(inPrefix, right - (placed - right)) / toPlace;
     }
     case "tilegrid": {
-      const cells = decodeTileGrid(answer);
+      const cells = decodeTileGrid(answer, tileGridSize(puzzle));
       if (!puzzle.tray.length || judgeTileGrid(cells, puzzle.tray).placed === 0) return 0;
       if (!tileGridFitsTray(cells, puzzle.tray)) return 0;
       // Tiles inside a real word. A run still being extended into a longer word (TANGE on the way to

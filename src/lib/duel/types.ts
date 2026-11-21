@@ -2524,6 +2524,11 @@ export interface TileGridPuzzleData {
   tileGridRev?: number;
   /** The level's own clock (the Word overhaul's levels, 15 Nov 2026); absent: the game's 100 s. */
   timeLimitMs?: number;
+  /** Levels (D1, 21 Nov 2026, tileGridRev 5): the board's side (6, 8 or 9) and its tile count (10, 19 or 23); absent = 7 and 15. */
+  size?: number;
+  tiles?: number;
+  /** Levels (D1, tileGridRev 5, Expert): words light and bad runs show only on Done; absent = live, as today. */
+  lightsOnDone?: boolean;
 }
 
 /* ============================== Word Slide ============================== */

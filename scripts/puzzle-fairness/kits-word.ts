@@ -12,7 +12,7 @@ import { WORDHUNT_MAX_MISSES, WORDHUNT_MISS_MARK, WORDHUNT_REV_MISSES } from "..
 import { WORDSMITH_REV_DEPTH } from "../../src/lib/duel/scoring";
 import { judgeTileGrid } from "../../src/lib/duel/tileGrid.server";
 import { decodeTileGrid } from "../../src/lib/duel/tileGrid";
-import { encodeTileGrid, TG_CELLS, TG_SIZE } from "../../src/lib/duel/tileGrid";
+import { encodeTileGrid, TG_CELLS, TG_SIZE, tileGridSize, tileGridSizeOfCells } from "../../src/lib/duel/tileGrid";
 import { applyShift, markedRowWord, shiftToken, WS_SIZE as SL_SIZE, type SlideShift } from "../../src/lib/duel/wordSlide";
 import { wsEncode, wsLine, wsMatch, wsRowsOf } from "../../src/lib/duel/wordSearch";
 import { puzzleLevel } from "../../src/lib/levels/levels";
@@ -242,7 +242,7 @@ const forage: PuzzleKit = {
 // ───────────────────────── Interlock (tilegrid) ─────────────────────────
 
 /** The solution's words as cell lists: the across word first, then each down word's new cells. */
-function tileGridWords(solution: string[]): number[][] {
+function tileGridWords(solution: string[], TG_SIZE: number = tileGridSizeOfCells(solution)): number[][] {
   const runs: number[][] = [];
   for (const horizontal of [true, false])
     for (let a = 0; a < TG_SIZE; a++) {
@@ -259,9 +259,13 @@ function tileGridWords(solution: string[]): number[][] {
 
 const interlock: PuzzleKit = {
   type: "tilegrid",
-  nothing: () => encodeTileGrid([]),
+  nothing: (p) => encodeTileGrid([], tileGridSize(p as TileGridPuzzleData)),
   spam(p, rng) {
     const d = p as TileGridPuzzleData;
+    // Levels (D1, 21 Nov 2026): a level board's stored side (tileGridRev 5); Normal's 7, exactly as before.
+    const TG_SIZE = tileGridSize(d);
+    const TG_CELLS = TG_SIZE * TG_SIZE;
+    const enc = (cells: string[]) => encodeTileGrid(cells, TG_SIZE);
     const tray = d.tray;
     const rows = Array.from({ length: TG_CELLS }, () => "");
     tray.forEach((l, i) => (rows[i] = l));
@@ -275,20 +279,24 @@ const interlock: PuzzleKit = {
     for (let r = 0; r < TG_SIZE && k < shuffled.length; r++) if (r !== 3) cross[r * TG_SIZE + 3] = shuffled[k++]!;
     for (let r = 0; r < TG_SIZE && k < shuffled.length; r++) if (r !== 3) cross[r * TG_SIZE + 1] = shuffled[k++]!;
     return [
-      { label: "tray-in-rows", answer: encodeTileGrid(rows) },
-      { label: "random-cells", answer: encodeTileGrid(random) },
-      { label: "random-cross", answer: encodeTileGrid(cross) },
+      { label: "tray-in-rows", answer: enc(rows) },
+      { label: "random-cells", answer: enc(random) },
+      { label: "random-cross", answer: enc(cross) },
     ];
   },
   play(p, rng, skill) {
     const d = p as TileGridPuzzleData;
     const sol = d.solution ?? [];
+    // Levels (D1, 21 Nov 2026): a level board's stored side (tileGridRev 5); Normal's 7, exactly as before.
+    const TG_SIZE = tileGridSize(d);
+    const TG_CELLS = TG_SIZE * TG_SIZE;
+    const enc = (cells: string[]) => encodeTileGrid(cells, TG_SIZE);
     // BASE: 14 s to work out each word from the tray (anagramming), then 1.2 s per tile dragged into place.
     const THINK = 14, TILE = 1.2;
     // Natural order: word by word, longest first; a think pause before each word's first new tile.
     const natural: { cell: number; think: boolean }[] = [];
     const seen = new Set<number>();
-    for (const word of tileGridWords(sol)) {
+    for (const word of tileGridWords(sol, TG_SIZE)) {
       const fresh = word.filter((c) => !seen.has(c));
       fresh.forEach((c, i) => { seen.add(c); natural.push({ cell: c, think: i === 0 }); });
     }
@@ -296,15 +304,16 @@ const interlock: PuzzleKit = {
     // would submit there, though the phone submits only on Done or at the buzzer. So the tile order
     // bends where needed (a tile of the next word goes down before the current word's last tile) to keep
     // the grid invalid until the fifteenth tile; the timing still follows the natural word-by-word order.
+    // (A level board: its own tile count.)
     const cells = Array.from({ length: TG_CELLS }, () => "");
     const validWith = (cell: number) => {
       const t = [...cells];
       t[cell] = sol[cell]!;
-      return judgeTileGrid(decodeTileGrid(encodeTileGrid(t)), d.tray).valid;
+      return judgeTileGrid(decodeTileGrid(enc(t), TG_SIZE), d.tray).valid;
     };
     const steps: Step[] = [];
     let at = 0;
-    const push = () => steps.push({ answer: encodeTileGrid(cells), atMs: at });
+    const push = () => steps.push({ answer: enc(cells), atMs: at });
     const left = natural.map((n) => n.cell);
     const bendFree = puzzleScoreRevOf(d) >= 3;
     for (let k = 0; k < natural.length; k++) {

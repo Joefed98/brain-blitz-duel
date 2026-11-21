@@ -132,7 +132,7 @@ import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
 import { bullseyeDeadPoints, bullseyeStreakPoints } from "@/lib/arcade/bullseye";
 import { decodeMatchupRun, replayMatchupRun } from "./matchup";
 
-import { decodeTileGrid, scoreTileGrid } from "./tileGrid";
+import { decodeTileGrid, scoreTileGrid, tileGridSize, tileGridTiles } from "./tileGrid";
 import { judgeTileGrid } from "./tileGrid.server";
 import { balanceRoundScore, balanceScaleCount, balanceScalesSolved, balanceSolvedCount, decodeBalance } from "./balance";
 import { decodeSlideTokens, markedRowWord, WS_MARKED_ROWS } from "./wordSlide";
@@ -400,11 +400,12 @@ function gradeUnderRev(
   switch (puzzle.type) {
     case "tilegrid": {
       // The placed grid is re-checked against the tray and the dictionary here.
-      const verdict = judgeTileGrid(decodeTileGrid(answer), puzzle.tray);
+      // Levels (D1, 21 Nov 2026): a level board's stored side and tile count (tileGridRev 5); Normal's 7 and 15.
+      const verdict = judgeTileGrid(decodeTileGrid(answer, tileGridSize(puzzle)), puzzle.tray);
       // puzzleScoreRev 3: a finish needs every tile of the tray in the grid (a short valid grid is progress).
       isCorrect = verdict.valid && (puzzleScoreRevOf(puzzle) < 3 || verdict.placed === puzzle.tray.length);
       correctCount = verdict.placed;
-      score = scoreTileGrid(verdict.valid, verdict.placed, verdict.wordTiles, wordSpeedBonus(ms, timeLimitMs, scoreRev1() ? 30 : 20));
+      score = scoreTileGrid(verdict.valid, verdict.placed, verdict.wordTiles, wordSpeedBonus(ms, timeLimitMs, scoreRev1() ? 30 : 20), tileGridTiles(puzzle));
       extraDetail = { placed: verdict.placed, valid: verdict.valid, wordTiles: verdict.wordTiles };
       break;
     }
