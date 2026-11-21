@@ -11,7 +11,8 @@
   stroke-linejoin: round;
 }
 /* A found word's letters inside its loop: gold on the glazed tile, so the word reads as found with no filled tiles. */
-[data-ws-found][data-wa][data-wa][data-wa][data-wa] { color: var(--jz-gold-ink) !important; }
+/* Spotlight (21 Nov 2026): on the light sheet a found word's letters take the Word blue (gold read too faint on ivory). */
+[data-ws-found][data-wa][data-wa][data-wa][data-wa] { color: color-mix(in srgb, var(--category-word) 70%, var(--jz-navy)) !important; }
 
 /* Chips: found ones champagne gold with the whole word; open ones a recessed well with the letter count. */
 .lookout-word-chip, .lookout-word-placeholder {

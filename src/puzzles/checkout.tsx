@@ -7,6 +7,7 @@ import { checkoutBust } from "@/lib/duel/numberOverhaul";
 import { countUpText, gameFx, gameFxVariant } from "@/lib/fx/kit";
 import { CHECKOUT_FLIGHT_MS, checkoutFlightKeyframes } from "./checkoutFx";
 import {
+  FAIR_BULB,
   FAIR_CHALK,
   FAIR_HORIZON,
   FAIR_SKY_MID,
@@ -393,9 +394,16 @@ function tugOut(dart: Element | null): void {
 
 /* Checkout's own stylesheet: the stall backdrop, chalk scoreboard and move animations. */
 const CHECKOUT_CSS = `
+/* The fairground stall behind the board is back (the polish plan's E2.1, 21 Nov 2026: 82f2f648's lamp glow, the string
+   of bulbs on its wire and the dusk sky); no ring round the arena (E0.5), clipped to its own box. */
 [data-checkout-root] .co-arena {
-  background: linear-gradient(${FAIR_SKY_TOP}, ${FAIR_SKY_MID} 72%, color-mix(in srgb, ${FAIR_HORIZON} 38%, ${FAIR_SKY_MID}));
-  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.06), inset 0 -18px 30px -18px rgba(0,0,0,0.5);
+  background:
+    radial-gradient(closest-side, rgba(255,214,140,0.2), rgba(255,214,140,0) 100%) center / 100% 100% no-repeat,
+    radial-gradient(circle at 50% 50%, ${FAIR_BULB} 0 1.6px, rgba(255,210,122,0.35) 2.4px, transparent 4px) 0 5px / 22px 10px repeat-x,
+    linear-gradient(to bottom, rgba(20,12,8,0.6), rgba(20,12,8,0.6)) 0 9.5px / 100% 1px no-repeat,
+    linear-gradient(${FAIR_SKY_TOP}, ${FAIR_SKY_MID} 72%, color-mix(in srgb, ${FAIR_HORIZON} 38%, ${FAIR_SKY_MID}));
+  box-shadow: none;
+  overflow: hidden;
 }
 [data-checkout-root] .co-tabs > button {
   background: var(--jz-surface-2);
@@ -418,7 +426,7 @@ const CHECKOUT_CSS = `
 [data-checkout-root] .co-big { color: ${GOLD}; font-weight: 700; }
 [data-checkout-root] .co-score {
   background: var(--jz-surface);
-  border: 1px solid var(--jz-surface-2);
+  border: 1px solid transparent;
   color: var(--jz-text);
   font-family: var(--jz-font);
 }

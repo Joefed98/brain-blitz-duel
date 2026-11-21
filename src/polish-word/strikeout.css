@@ -8,14 +8,14 @@
   background: transparent;
 }
 [data-wa="pip"][data-wa][data-wa][data-wa] { color: transparent !important; }
-[data-wa="pip"][data-wa-tone="red"][data-wa][data-wa][data-wa] { color: var(--jz-text) !important; }
+[data-wa="pip"][data-wa-tone="red"][data-wa][data-wa][data-wa] { color: var(--jz-navy) !important; }
 [data-word-polish="strikeout"] .so-early-pill {
   color: var(--jz-on-gold);
   background: var(--jz-gold);
   border: 0;
   box-shadow: 0 2px 4px rgb(0 0 0 / 0.4);
 }
-[data-word-polish="strikeout"] [data-so-solved] { background: var(--jz-gold); color: var(--jz-on-gold); }
+[data-word-polish="strikeout"] [data-so-solved] { background: var(--jz-gold); color: var(--jz-on-gold); font-size: 17px; /* Spotlight (21 Nov 2026): solved words 17 px. */ }
 
 /* The answer reveal keeps its markup (stored rounds render exactly as before; strikeout-check), so its tiles and pips
    take the rendered pieces by their existing look attributes. */
@@ -23,12 +23,13 @@
   background: url(/word-art/tile-black.webp) center / 100% 100% no-repeat !important;
   border-color: transparent !important;
   box-shadow: none !important;
-  color: var(--jz-text) !important;
+  /* tile-black is the ivory tile since 21 Nov 2026 (Spotlight): navy ink. */
+  color: var(--jz-navy) !important;
   font-family: var(--jz-font);
   font-weight: 800;
 }
 [data-word-reveal="strikeout"] .so-tile.so-tile.so-tile[data-so-look="solved"] { background-image: url(/word-art/tile-gold.webp) !important; color: var(--jz-ink-gold) !important; }
-[data-word-reveal="strikeout"] .so-tile.so-tile.so-tile[data-so-look="given"] { background-image: url(/word-art/tile-dim.webp) !important; color: var(--jz-text-3) !important; }
-[data-word-reveal="strikeout"] .so-tile.so-tile.so-tile[data-so-look="missed"] { background-image: url(/word-art/tile-dim.webp) !important; color: var(--jz-red) !important; }
+[data-word-reveal="strikeout"] .so-tile.so-tile.so-tile[data-so-look="given"] { background-image: url(/word-art/tile-dim.webp) !important; color: color-mix(in srgb, var(--jz-navy) 80%, var(--jz-text-3)) !important; }
+[data-word-reveal="strikeout"] .so-tile.so-tile.so-tile[data-so-look="missed"] { background-image: url(/word-art/tile-dim.webp) !important; color: color-mix(in srgb, var(--jz-red) 80%, var(--jz-navy)) !important; }
 [data-word-reveal="strikeout"] [aria-label$=" strikes"] > span { border: 0 !important; background: url(/word-art/pip-gold.webp) center / 100% 100% no-repeat !important; color: transparent !important; }
-[data-word-reveal="strikeout"] [aria-label$=" strikes"] > span.bg-destructive { background-image: url(/word-art/pip-red.webp) !important; color: var(--jz-text) !important; }
+[data-word-reveal="strikeout"] [aria-label$=" strikes"] > span.bg-destructive { background-image: url(/word-art/pip-red.webp) !important; color: var(--jz-navy) !important; }
