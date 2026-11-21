@@ -25,6 +25,7 @@ import { WORDSMITH_REV_STAR } from "../src/lib/duel/wordStar"; // Changed with J
 import { gameLevelSettings, levelProof, levelsOf } from "../src/lib/levels/gameLevels";
 import { puzzleLevel } from "../src/lib/levels/levels";
 import { WORDSMITH_LEVEL_ABOUT, type WordsmithLevelSettings } from "../src/lib/levels/word/wordsmith";
+import { measureOpen } from "./word-human-tune"; // Changed with Joe's approval, 21 Nov 2026
 import { MAX_ROUND_CLOCK_MS, Tally, aboutLineOk, dealLevel, kitScore, mean, seedsFrom } from "./word-levels-lib";
 
 const t = new Tally();
@@ -68,7 +69,7 @@ for (const seed of seeds) {
 }
 
 // 6. The tuning (near-perfect kit, mean on 16 fixed seeds; bands measured on 15 Nov 2026 with a margin).
-const BANDS: Record<string, [number, number]> = { easy: [155, 182], normal: [145, 168], hard: [128, 155], expert: [110, 138] };
+const BANDS: Record<string, [number, number]> = { easy: [180, 200], normal: [172, 196], hard: [166, 192], expert: [160, 188] }; // Changed with Joe's approval, 21 Nov 2026
 const means: Record<string, number> = {};
 const tuneSeeds = seedsFrom(7301, 16);
 for (const level of ["easy", "normal", "hard", "expert"] as const) {
@@ -83,7 +84,10 @@ const great: Record<string, number> = {};
 for (const level of ["easy", "normal", "hard", "expert"] as const) {
   great[level] = mean(tuneSeeds.map((seed) => kitScore(TYPE, dealLevel(TYPE, level === "normal" ? null : level, seed), seed, "great").score));
 }
-t.ok(great.easy! >= great.normal! && great.hard! < great.normal! - 5 && great.expert! < great.hard! - 5, `the Great player steps down too (${Object.entries(great).map(([k, v]) => `${k} ${v.toFixed(0)}`).join(", ")})`);
+const people = (person: "average" | "elite") => Object.fromEntries((["easy", "normal", "hard", "expert"] as const).map((l) => [l, measureOpen(TYPE, l, tuneSeeds, 3, false, [person])[0]!.mean])) as Record<string, number>; // Changed with Joe's approval, 21 Nov 2026
+const show = (r: Record<string, number>) => Object.entries(r).map(([k, v]) => `${k} ${v.toFixed(0)}`).join(", "); // Changed with Joe's approval, 21 Nov 2026
+const average = people("average"); // Changed with Joe's approval, 21 Nov 2026
+t.ok(average.easy! >= average.normal! && average.hard! < average.normal! - 5 && average.expert! < average.hard! - 5, `the average player under the human limits steps down too (${show(average)}; the Great kit, which finds long words as easily as short: ${show(great)})`); // Changed with Joe's approval, 21 Nov 2026
 
 // 7. The stage.
 const stage = readFileSync("src/components/puzzles/WordsmithPuzzle.tsx", "utf8");

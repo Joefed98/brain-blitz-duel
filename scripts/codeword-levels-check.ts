@@ -137,4 +137,5 @@ for (const level of ["easy", "normal", "hard", "expert"] as Level[]) {
 }
 ok(greatAvg.normal! > greatAvg.hard! && greatAvg.hard! > greatAvg.expert! + 10, `a clear step up: great ${greatAvg.normal!.toFixed(1)} → ${greatAvg.hard!.toFixed(1)} → ${greatAvg.expert!.toFixed(1)}`);
 
-console.log(`PASS codeword-levels-check: ${checks} checks (Easy 8 letters 120 s, Hard 5 letters 75 s, Expert 4 letters 70 s on ${list.length} reasoning-only boards; great / near-perfect: ${(["easy", "normal", "hard", "expert"] as Level[]).map((l) => `${l} ${greatAvg[l]!.toFixed(1)} / ${nearAvg[l]!.toFixed(1)}`).join(", ")})`);
+const lvLine = (l: Up) => { const s = gameLevelSettings<{ size: number; rows?: number; givens: number; clockMs: number }>("codeword", l)!; return `${l} ${s.size} × ${s.rows ?? s.size}, ${s.givens} letters, ${s.clockMs / 1000} s`; }; // Changed with Joe's approval, 21 Nov 2026
+console.log(`PASS codeword-levels-check: ${checks} checks (${UP.map(lvLine).join("; ")}; great / near-perfect: ${(["easy", "normal", "hard", "expert"] as Level[]).map((l) => `${l} ${greatAvg[l]!.toFixed(1)} / ${nearAvg[l]!.toFixed(1)}`).join(", ")})`); // Changed with Joe's approval, 21 Nov 2026
