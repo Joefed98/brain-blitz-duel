@@ -18,10 +18,11 @@ import { asPhoneSends, gradeSteps } from "./standard-lib";
 import { KIT_ELITE, limitSteps, PERSON_LEVELS, personRng, type PersonLevel } from "./word-human";
 import { lwDecodeLog } from "../src/lib/duel/letterWheel";
 import { gradeOpenRun, playOpen } from "./word-human-games";
+import { personLine } from "./word-human-solvers";
 
 export interface PersonRow {
   level: Level;
-  person: PersonLevel | "kit-average" | "kit-good" | "kit-near" | "kit-elite";
+  person: PersonLevel | "kit-average" | "kit-good" | "kit-near" | "kit-elite" | "line";
   mean: number;
   median: number;
   finish: number;
@@ -55,12 +56,20 @@ export function wheelTapsAdded(prev: string, next: string): number {
   return lwDecodeLog(next).slice(lwDecodeLog(prev).length).reduce((sum, w) => sum + w.length, 0);
 }
 
+export const OPEN_TYPES: readonly PuzzleType[] = ["wordsmith", "wordhunt", "letterwheel"];
+export const WORD_TYPES: readonly PuzzleType[] = ["wordsmith", "tilegrid", "wordslide", "wordhunt", "wordsearch", "letterwheel", "strikeout", "codeword", "swapword"];
+
 export function measureOpen(type: PuzzleType, level: Level, ns: readonly number[], runs = 3, kits = false, people: readonly PersonLevel[] = PERSON_LEVELS): PersonRow[] {
   const out: PersonRow[] = [];
   const by: Record<string, { score: number; ok: boolean }[]> = {};
+  const open = OPEN_TYPES.includes(type);
   for (const n of ns) {
     const puzzle = dealAt(type, level, n);
-    for (const person of people)
+    if (!open) {
+      const line = personLine(puzzle);
+      if (line) (by["line"] ??= []).push({ score: line.score, ok: line.finished });
+    }
+    if (open) for (const person of people)
       for (let r = 0; r < runs; r++) {
         const run = gradeOpenRun(puzzle, playOpen(puzzle, person, personRng(type, level, n, person, r)));
         (by[person] ??= []).push({ score: run.score, ok: run.isCorrect });
@@ -71,7 +80,7 @@ export function measureOpen(type: PuzzleType, level: Level, ns: readonly number[
       for (const k of ["average", "good", "near", "elite"] as const) {
         const skill = k === "elite" ? KIT_ELITE : SKILLS[k];
         const play = kit.play(puzzle, makeRng(hashText(`level-tune:${type}:${level}:${n}:${k}`)), skill, limit);
-        const steps = type === "letterwheel" ? limitSteps(play.steps, wheelTapsAdded) : play.steps;
+        const steps = type === "letterwheel" ? limitSteps(play.steps, wheelTapsAdded) : k === "elite" ? limitSteps(play.steps, () => 1) : play.steps;
         const run = gradeSteps(puzzle, asPhoneSends(puzzle, steps), play.timed);
         (by[`kit-${k}`] ??= []).push({ score: run.score, ok: run.isCorrect });
       }
@@ -84,8 +93,8 @@ export function measureOpen(type: PuzzleType, level: Level, ns: readonly number[
 if (import.meta.main) {
   const args = process.argv.slice(2);
   const type = args.find((a) => !a.startsWith("--")) as PuzzleType | undefined;
-  if (!type || !["wordsmith", "wordhunt", "letterwheel"].includes(type)) {
-    console.error("usage: bun scripts/word-human-tune.ts <wordsmith|wordhunt|letterwheel> [--level=all] [--seeds=24] [--runs=3] [--from=0] [--kits]");
+  if (!type || !WORD_TYPES.includes(type)) {
+    console.error("usage: bun scripts/word-human-tune.ts <word game> [--level=all] [--seeds=24] [--runs=3] [--from=0] [--kits]");
     process.exit(2);
   }
   const opt = (name: string, d: string) => args.find((a) => a.startsWith(`--${name}=`))?.split("=")[1] ?? d;
@@ -98,7 +107,7 @@ if (import.meta.main) {
   console.log(`${type}: ${seeds} deals a level from ${from}, ${runs} runs a person, human limits (0.25 s react, 0.15 s a move)`);
   console.log("level   person        mean  median  finish  best  200s");
   for (const level of levels)
-    for (const r of measureOpen(type, level, ns, runs, args.includes("--kits")))
+    for (const r of measureOpen(type, level, ns, runs, args.includes("--kits") || !OPEN_TYPES.includes(type)))
       console.log(
         `${r.level.padEnd(7)} ${r.person.padEnd(12)} ${r.mean.toFixed(1).padStart(6)} ${String(r.median).padStart(6)} ${(r.finish * 100).toFixed(0).padStart(5)}% ${String(r.best).padStart(5)} ${String(r.at200).padStart(3)}/${r.runs}`,
       );

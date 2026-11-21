@@ -1,4 +1,8 @@
 import { strikeoutAnswerWords } from "../strikeout.server";
+import { gradeAnswer } from "../gradeAnswer.server";
+import { encodeStrikeout2 } from "../strikeout";
+import { limitEntryMs } from "./humanLimits";
+import { dealStandard } from "../standard/stamps";
 import { SO2_VOWELS, replayStrikeout2, so2RulesFor, type So2Action } from "../strikeout";
 import type { StrikeoutPuzzleData } from "../types";
 
@@ -65,4 +69,23 @@ export function solveStrikeoutLikeAPerson(puzzle: StrikeoutPuzzleData): Strikeou
   }
   const end = replay();
   return { solved: end.done, strikes: end.strikes, candidatesAtSolve, actions };
+}
+
+/** Taps for one action at the human limits: a letter is one key; a solve taps the word, types it, then Solve. */
+export function strikeoutActionTaps(action: So2Action): number {
+  return action.kind === "guess" ? 1 : action.guess.length + 2;
+}
+
+/**
+ * The person-like guesser's line entered at the human limits (humanLimits.ts) and graded by the server at the moment its
+ * last action lands: the proof that a level's 200 is reachable by the best humans (D1, 21 Nov 2026). A level deal asks
+ * before the deal's layers have stamped it, so it is graded as the standard layer will stamp it (a puzzle already on its
+ * stamps passes through unchanged).
+ */
+export function strikeoutLineAtLimits(puzzle: StrikeoutPuzzleData): { score: number; ms: number; solve: StrikeoutSolve } {
+  const solve = solveStrikeoutLikeAPerson(puzzle);
+  const ms = solve.actions.reduce((sum, a) => sum + limitEntryMs(strikeoutActionTaps(a)), 0);
+  const limit = puzzle.timeLimitMs ?? 100_000;
+  const score = ms <= limit ? gradeAnswer(dealStandard(puzzle), encodeStrikeout2(solve.actions), Math.max(0, limit - ms)).score : 0;
+  return { score, ms, solve };
 }

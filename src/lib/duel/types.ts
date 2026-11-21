@@ -2907,6 +2907,11 @@ export interface StrikeoutPuzzleData {
    */
   maxStrikes?: number;
   maxVowels?: number;
+  /**
+   * Levels (D1, 21 Nov 2026): strikes that don't count against the strikes-left bonus (Expert's 8; the round still ends
+   * at maxStrikes). Absent = 0: Normal and every round dealt before.
+   */
+  strikeFree?: number;
   /** A level's own clock (puzzleTimeLimitMs reads it); absent: the game's 100 s. */
   timeLimitMs?: number;
 }

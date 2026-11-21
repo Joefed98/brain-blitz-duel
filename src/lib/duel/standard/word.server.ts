@@ -275,7 +275,9 @@ const strikeout: StandardGame = {
     const earlySolve = strikeoutEarlySolvePoints(early.hiddenAtSolve);
     const facts = { hiddenAtSolve: early.hiddenAtSolve, earlySolvePoints: earlySolve };
     if (input.graded.isCorrect) {
-      const strikesLeft = Math.max(0, rules.maxStrikes - tally.strikes);
+      // Levels (D1, 21 Nov 2026): a level deal's free strikes don't cost the bonus (absent = 0, every round before).
+      const free = Math.max(0, num((p as { strikeFree?: number }).strikeFree));
+      const strikesLeft = Math.max(0, rules.maxStrikes - Math.max(0, tally.strikes - free));
       const strikePoints = Math.min(STD_STRIKEOUT.strikeMax, STD_STRIKEOUT.strikeLeft * strikesLeft);
       return {
         finished: true,

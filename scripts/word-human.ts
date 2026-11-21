@@ -18,13 +18,14 @@
  *   bun scripts/word-human.ts <wordsmith|wordhunt|letterwheel> [--level=normal|easy|hard|expert|all] [--seeds=24] [--runs=3]
  */
 import { HUMAN_LIMITS } from "./arcade-skill-bands/human";
+import { limitEntryMs } from "../src/lib/duel/levels/humanLimits";
 import { hashText, makeRng, type Rng, type Step } from "./puzzle-fairness/kit";
 
 export const LIMITS = HUMAN_LIMITS;
 
-/** Time to enter one known word or move: react once, then each tap, key or traced letter. */
-export function entryMs(taps: number, limits = LIMITS): number {
-  return limits.reactMs + Math.max(0, taps) * limits.moveMs;
+/** Time to enter one known word or move: react once, then each tap, key or traced letter (limitEntryMs at the limits). */
+export function entryMs(taps: number, limits: { reactMs: number; moveMs: number } = LIMITS): number {
+  return limits === LIMITS ? limitEntryMs(taps) : limits.reactMs + Math.max(0, taps) * limits.moveMs;
 }
 
 /** The typed witness: the time to enter every entry in turn at the human limits (taps per entry). */

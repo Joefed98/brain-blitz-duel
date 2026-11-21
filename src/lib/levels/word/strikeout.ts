@@ -18,14 +18,20 @@ export interface StrikeoutLevelSettings {
   strikes: number;
   /** The round's clock, ms (at most 120 s). */
   timeLimitMs: number;
+  /** Strikes that don't cost the strikes-left bonus (stored on the puzzle as `strikeFree`; absent = 0). */
+  strikeFree?: number;
 }
 
 const PROOF = { proof: "scripts/strikeout-levels-check.ts" } as const;
 
 export const STRIKEOUT_LEVEL_SETTINGS: Readonly<Record<Exclude<Level, "normal">, StrikeoutLevelSettings>> = {
-  easy: { givensFirst: [3, 2], givensRest: [3, 2], vowels: 4, strikes: 14, timeLimitMs: 120_000 },
-  hard: { givensFirst: [1, 1], givensRest: [1, 1], vowels: 2, strikes: 10, timeLimitMs: 90_000 },
-  expert: { givensFirst: [0, 0], givensRest: [0, 0], vowels: 2, strikes: 12, timeLimitMs: 85_000 },
+  // D1 (21 Nov 2026; docs/polish-plan-final/difficulty-spec.md "Strikeout"): starting letters are the ladder (4, then
+  // Normal's 3 or 2, then 1, then none); Hard keeps Normal's strikes and clock so the missing letters make its step;
+  // Expert's shorter clock keeps it below Hard, and its first 8 strikes don't cost the bonus, so the person-like line
+  // reaches 200 at the human limits on every dealt set (the deal keeps only such sets).
+  easy: { givensFirst: [4, 4], givensRest: [4, 4], vowels: 4, strikes: 14, timeLimitMs: 120_000 },
+  hard: { givensFirst: [1, 1], givensRest: [1, 1], vowels: 2, strikes: 12, timeLimitMs: 100_000 },
+  expert: { givensFirst: [0, 0], givensRest: [0, 0], vowels: 2, strikes: 12, timeLimitMs: 70_000, strikeFree: 8 },
 };
 
 export const STRIKEOUT_LEVELS: GameLevels | null = {
@@ -38,7 +44,7 @@ export const STRIKEOUT_LEVELS: GameLevels | null = {
 
 /** One plain line per level beyond Normal: what changes (the game page, the intro and the help say it). */
 export const STRIKEOUT_LEVEL_ABOUT: Partial<Record<Exclude<Level, "normal">, string>> = {
-  easy: "An extra starting letter on words 4 and 5, four vowel guesses a word, 14 strikes and 120 seconds.",
-  hard: "One starting letter a word, two vowel guesses a word, 10 strikes and 90 seconds.",
-  expert: "No starting letters, two vowel guesses a word, 12 strikes and 85 seconds.",
+  easy: "Four starting letters on every word, four vowel guesses, 14 strikes and 120 seconds.",
+  hard: "One starting letter a word and two vowel guesses a word.",
+  expert: "No starting letters, two vowel guesses, 70 seconds; the bonus keeps 10 while 2 strikes are left.",
 };
