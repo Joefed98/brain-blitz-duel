@@ -15,6 +15,8 @@ import { STRIKEOUT_LEVEL_SETTINGS, STRIKEOUT_NORMAL_GIVENS } from "../word/strik
 import { WORDHUNT_MIN_LENGTH, WORDSMITH_MIN_LENGTH } from "@/lib/duel/types";
 import { WS_SIZE, WS_WORDS } from "@/lib/duel/wordSearch";
 import { LW_LEVEL_LIMITS, LW_REV5_LIMITS } from "@/lib/duel/letterWheel";
+import { SW_EXPERT_LATTICE, SW_HARD_LATTICE, SW_NORMAL_LATTICE, type SwLattice } from "@/lib/duel/swapword";
+import { SWAPWORD_LEVEL_SETTINGS } from "../word/swapword";
 
 export interface LeverPictureProps {
   level: Level;
@@ -136,4 +138,22 @@ const strikeout: Picture = ({ level, size }) => {
   );
 };
 
-export const LEVER_PICTURES: Readonly<Record<string, Picture>> = { wordsmith, wordhunt, wordsearch, letterwheel, strikeout };
+/** Normal's most tiles in place (swapword.server.ts SW_MAX_IN_PLACE, server-only; word-levels-proof-check proves they agree). */
+export const SWAPWORD_NORMAL_IN_PLACE = 5;
+
+/** Swapword: the lattice's tiles (the loops of crossing words), the start's tiles already in place gold. */
+const swapword: Picture = ({ level, size }) => {
+  const s = level === "normal" ? null : SWAPWORD_LEVEL_SETTINGS[level];
+  const lattice: SwLattice = s?.lattice === "hard" ? SW_HARD_LATTICE : s?.lattice === "expert" ? SW_EXPERT_LATTICE : SW_NORMAL_LATTICE;
+  const inPlace = s ? s.inPlace[1] : SWAPWORD_NORMAL_IN_PLACE;
+  const cell = 92 / Math.max(lattice.cols, lattice.rows);
+  return (
+    <Frame size={size} label={`${lattice.cells.length} tiles, ${inPlace} in place`}>
+      {lattice.cells.map((c, i) => (
+        <rect key={i} x={4 + (c % lattice.cols) * cell} y={4 + Math.floor(c / lattice.cols) * cell} width={cell - 1.5} height={cell - 1.5} rx={1.5} fill={i * 7 % lattice.cells.length < inPlace ? GOLD : INK} />
+      ))}
+    </Frame>
+  );
+};
+
+export const LEVER_PICTURES: Readonly<Record<string, Picture>> = { wordsmith, wordhunt, wordsearch, letterwheel, strikeout, swapword };

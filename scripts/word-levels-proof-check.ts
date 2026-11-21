@@ -31,7 +31,8 @@ import { GAME_LEVELS } from "../src/lib/levels/gameLevels";
 import { LW_LEVEL_LIMITS, LW_REV5_LIMITS } from "../src/lib/duel/letterWheel";
 import { STRIKEOUT_LEVEL_SETTINGS, STRIKEOUT_NORMAL_GIVENS } from "../src/lib/levels/word/strikeout";
 import { WORDSEARCH_LEVEL_SETTINGS } from "../src/lib/levels/word/wordsearch";
-import { LEVER_PICTURES } from "../src/lib/levels/pictures/word";
+import { LEVER_PICTURES, SWAPWORD_NORMAL_IN_PLACE } from "../src/lib/levels/pictures/word";
+import { SW_MAX_IN_PLACE } from "../src/lib/duel/swapword.server";
 import { LEVELS, type Level } from "../src/lib/levels/levels";
 import { HUMAN_LIMITS } from "./arcade-skill-bands/human";
 import { witnessOf } from "./word-human-games";
@@ -175,6 +176,7 @@ for (const [type, levels, kind] of PROVED)
 }
 
 /* ------------------------------------------------------------------------------------------------ 5. The pictures */
+ok(SWAPWORD_NORMAL_IN_PLACE === SW_MAX_IN_PLACE, `swapword: the picture's Normal tiles in place are the deal's (${SWAPWORD_NORMAL_IN_PLACE} / ${SW_MAX_IN_PLACE})`);
 for (const [type, Picture] of Object.entries(LEVER_PICTURES)) {
   const drawn = LEVELS.map((level) => renderToStaticMarkup(createElement(Picture, { level, size: 64 })));
   ok(drawn.every((svg) => svg.startsWith("<svg") && svg.includes("data-lever-picture")), `${type}: a picture at every level`);
