@@ -10,8 +10,12 @@ import {
   SW_ROWS,
   SW_TILES,
   SW_TILE_CELLS,
-  decodeSwapword,
+  SW_NORMAL_LATTICE,
+  decodeSwapwordFor,
   encodeSwapword,
+  swGeometry,
+  swLatticeOf,
+  type SwLattice,
   replaySwapword,
   swapwordMarks,
   type SwMark,
@@ -66,6 +70,7 @@ export function Board({
   boardRef,
   onPointerDown,
   side,
+  lattice = SW_NORMAL_LATTICE,
 }: {
   letters: string;
   looks: readonly TileLook[];
@@ -75,6 +80,8 @@ export function Board({
   onPointerDown?: (event: React.PointerEvent) => void;
   /** Board side: px or a CSS length. */
   side: number | string;
+  /** swapwordRev 8 (D1): the stored lattice (today's figure eight when absent). */
+  lattice?: SwLattice;
 }) {
   const size = typeof side === "number" ? `${side}px` : side;
   return (
@@ -85,16 +92,16 @@ export function Board({
       style={{
         width: size,
         height: size,
-        gridTemplateColumns: `repeat(${SW_COLS}, minmax(0, 1fr))`,
-        gridTemplateRows: `repeat(${SW_ROWS}, minmax(0, 1fr))`,
+        gridTemplateColumns: `repeat(${lattice.cols}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${lattice.rows}, minmax(0, 1fr))`,
         gap: `calc(${size} / 60)`,
         containerType: "size",
         ...(onPointerDown ? NO_SCROLL_STYLE : {}),
       }}
       aria-label={`${gameDisplayName("swapword")} board`}
     >
-      {Array.from({ length: SW_COLS * SW_ROWS }, (_, cell) => {
-        const tile = SW_TILE_CELLS.indexOf(cell);
+      {Array.from({ length: lattice.cols * lattice.rows }, (_, cell) => {
+        const tile = lattice.cells.indexOf(cell);
         if (tile < 0) return <div key={cell} aria-hidden="true" />;
         const look = looks[tile] ?? 0;
         return (
@@ -106,7 +113,7 @@ export function Board({
             className={`flex items-center justify-center rounded-[22%] border-b-4 font-display font-bold transition-transform ${
               selected === tile ? "-translate-y-0.5 ring-2 ring-foreground" : ""
             } ${lifted === tile ? "opacity-30" : ""}`}
-            style={{ ...tileStyle(look), fontSize: `calc(100cqw / ${SW_COLS} * 0.5)` }}
+            style={{ ...tileStyle(look), fontSize: `calc(100cqw / ${lattice.cols} * 0.5)` }}
           >
             {letters[tile]}
           </div>
@@ -162,6 +169,7 @@ function IntroExample() {
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }: PuzzleStageProps) {
   const data: SwapwordPuzzleData | null = puzzle.type === "swapword" ? puzzle : null;
+  const lattice = swLatticeOf(data);
   const key = stateKey ?? "swapword";
   const [swaps, setSwaps] = useStageState<SwSwap[]>(key, "swSwaps", () => []);
   const [marks, setMarks] = useStageState<(SwMark | null)[] | null>(key, "swMarks", () => null);
@@ -250,9 +258,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   useWordFinish(result.solved, () => {
     wordCue("swapword.finish");
     effectCue("swapword.scale");
-    const steps: FinishStep[] = FIGURE_EIGHT.flatMap((cells, i) =>
+    const steps: FinishStep[] = (lattice === SW_NORMAL_LATTICE ? FIGURE_EIGHT : lattice.cells.map((cell) => [cell])).flatMap((cells, i) =>
       cells.map((cell) => ({
-        el: boardRef.current?.querySelector(`[data-sw-tile="${SW_TILE_CELLS.indexOf(cell)}"]`),
+        el: boardRef.current?.querySelector(`[data-sw-tile="${lattice.cells.indexOf(cell)}"]`),
         keyframes: goldPulse(1.12),
         delay: i * 48,
         duration: 300,
@@ -264,10 +272,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   if (!data) return null;
   const board = replaySwapword(data.start, swaps, data.maxSwaps).board;
   const done = locked || submitted.current || result.solved || result.over || left === 0;
-  const looks: TileLook[] = Array.from({ length: SW_TILES }, (_, t) => marks?.[t] ?? "pending");
+  const looks: TileLook[] = Array.from({ length: swGeometry(lattice).tiles }, (_, t) => marks?.[t] ?? "pending");
   // Each colour's count, once every tile has its mark (between a swap and its reply the last counts stay).
   const counts =
-    marks && marks.length === SW_TILES && marks.every((m) => m !== null)
+    marks && marks.length === swGeometry(lattice).tiles && marks.every((m) => m !== null)
       ? ([0, 1, 2] as const).map((k) => marks.filter((m) => m === k).length)
       : lastCounts.current;
   lastCounts.current = counts;
@@ -294,10 +302,10 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
   const tileAt = (x: number, y: number): number | null => {
     const box = boardRef.current?.getBoundingClientRect();
     if (!box) return null;
-    const col = Math.floor(((x - box.left) / box.width) * SW_COLS);
-    const row = Math.floor(((y - box.top) / box.height) * SW_ROWS);
-    if (col < 0 || col >= SW_COLS || row < 0 || row >= SW_ROWS) return null;
-    const tile = SW_TILE_CELLS.indexOf(row * SW_COLS + col);
+    const col = Math.floor(((x - box.left) / box.width) * lattice.cols);
+    const row = Math.floor(((y - box.top) / box.height) * lattice.rows);
+    if (col < 0 || col >= lattice.cols || row < 0 || row >= lattice.rows) return null;
+    const tile = lattice.cells.indexOf(row * lattice.cols + col);
     return tile < 0 ? null : tile;
   };
   const movable = (tile: number | null): tile is number => tile !== null && marks?.[tile] !== 2;
@@ -384,6 +392,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
           boardRef={boardRef}
           onPointerDown={onPointerDown}
           side={boardSide}
+          lattice={lattice}
         />
       </div>
       {/* Batch W: the key doubles as the live summary, each colour's count from the marks the board shows. */}
@@ -413,8 +422,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, checkMoves, stateKey }
 function RevealOverhaul({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "swapword") return null;
   const solution = puzzle.solution ?? "";
-  const run = replaySwapword(puzzle.start, decodeSwapword(myAnswer ?? ""), puzzle.maxSwaps, solution);
-  const marks = swapwordMarks(run.board, solution);
+  const lattice = swLatticeOf(puzzle);
+  const run = replaySwapword(puzzle.start, decodeSwapwordFor(puzzle, myAnswer ?? ""), puzzle.maxSwaps, solution);
+  const marks = swapwordMarks(run.board, solution, lattice);
   const inPlace = marks.filter((m) => m === 2).length;
   const side = "min(84vw, 340px)";
   return (
@@ -422,14 +432,14 @@ function RevealOverhaul({ puzzle, myAnswer }: PuzzleRevealProps) {
       <RevealNumbers
         countAfterMs={200}
         items={[
-          { id: "in-place", label: "Tiles in place", value: `${inPlace}/${SW_TILES}`, tone: run.solved ? "gold" : undefined },
+          { id: "in-place", label: "Tiles in place", value: `${inPlace}/${swGeometry(lattice).tiles}`, tone: run.solved ? "gold" : undefined },
           { id: "swaps", label: run.swaps === 1 ? "Swap used" : "Swaps used", value: run.swaps },
           { id: "fewest", label: "Fewest possible", value: puzzle.minSwaps },
         ]}
       />
       <BoardPair
-        solution={<Board letters={solution} looks={marks.map(() => 2)} side={side} />}
-        yours={<Board letters={run.board} looks={marks} side={side} />}
+        solution={<Board letters={solution} looks={marks.map(() => 2)} side={side} lattice={lattice} />}
+        yours={<Board letters={run.board} looks={marks} side={side} lattice={lattice} />}
       />
       <RevealKey items={[{ tone: "gold", label: "In place" }, { tone: "teal", label: "In its word" }, { tone: "grey", label: "Neither" }]} />
     </div>
@@ -444,18 +454,18 @@ function Reveal(props: PuzzleRevealProps) {
 function RevealOlder({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealProps) {
   if (puzzle.type !== "swapword") return null;
   const solution = puzzle.solution ?? "";
-  const run = replaySwapword(puzzle.start, decodeSwapword(myAnswer ?? ""), puzzle.maxSwaps, solution);
-  const marks = swapwordMarks(run.board, solution);
+  const run = replaySwapword(puzzle.start, decodeSwapwordFor(puzzle, myAnswer ?? ""), puzzle.maxSwaps, solution);
+  const marks = swapwordMarks(run.board, solution, swLatticeOf(puzzle));
   const looks: TileLook[] = marks.map((m) => (m === 2 ? 2 : "missed"));
   const inPlace = marks.filter((m) => m === 2).length;
   const elapsed = Math.max(0, timeLimitMs - (myMsRemaining ?? 0));
   return (
     <div data-word-reveal="swapword" className="flex w-full flex-col items-center gap-2">
-      <Board letters={solution} looks={looks} side={252} />
+      <Board letters={solution} looks={looks} side={252} lattice={swLatticeOf(puzzle)} />
       <p className="font-mono text-base text-primary">
         {run.solved
           ? `${run.swaps} ${run.swaps === 1 ? "swap" : "swaps"} (fewest ${puzzle.minSwaps})`
-          : `${solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${inPlace} of ${SW_TILES} in place`} · ${run.swaps} ${run.swaps === 1 ? "swap" : "swaps"}`}
+          : `${solutionProgress(puzzle, myAnswer ?? "")?.text ?? `${inPlace} of ${swGeometry(swLatticeOf(puzzle)).tiles} in place`} · ${run.swaps} ${run.swaps === 1 ? "swap" : "swaps"}`}
       </p>
       {!run.solved ? <p className="text-sm text-muted-foreground">Red-edged tiles were not in place on your board.</p> : null}
     </div>
@@ -472,7 +482,7 @@ export const swapwordPuzzle: PuzzleDefinition = {
     ({ type: "swapword", swapwordRev: 1, start: "A".repeat(SW_TILES), minSwaps: 9, maxSwaps: 14 }) satisfies SwapwordPuzzleData,
   check: (answer, puzzle) => {
     if (puzzle.type !== "swapword") return false;
-    return replaySwapword(puzzle.start, decodeSwapword(answer), puzzle.maxSwaps, puzzle.solution).solved;
+    return replaySwapword(puzzle.start, decodeSwapwordFor(puzzle, answer), puzzle.maxSwaps, puzzle.solution).solved;
   },
   revealHeading: "The six words",
   IntroExample,

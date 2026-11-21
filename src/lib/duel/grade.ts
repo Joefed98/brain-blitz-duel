@@ -176,7 +176,7 @@ import { madeDistance } from "./target";
 import { isWord } from "./dictionary.server";
 import { STRIKEOUT_REV2, decodeStrikeout, decodeStrikeout2, encodeStrikeout, encodeStrikeout2, replayStrikeout, replayStrikeout2, scoreStrikeout, scoreStrikeout2, so2Rules, so2Tally, soTally, strikeoutRevOf, so2RulesFor } from "./strikeout";
 import { codewordTally, decodeCodeword, replayCodeword, scoreCodeword } from "./codeword";
-import { decodeSwapword, replaySwapword, scoreSwapword } from "./swapword";
+import { decodeSwapwordFor, replaySwapword, scoreSwapword } from "./swapword";
 import {
   blockPartyCounts,
   flowRouteCounts,
@@ -2971,7 +2971,7 @@ function gradeUnderRev(
     }
     case "swapword": {
       // Every swap is replayed on the stored scramble, within the swap budget.
-      const run = replaySwapword(puzzle.start, decodeSwapword(answer), puzzle.maxSwaps, puzzle.solution);
+      const run = replaySwapword(puzzle.start, decodeSwapwordFor(puzzle, answer), puzzle.maxSwaps, puzzle.solution);
       const solution = puzzle.solution ?? "";
       const { placed, toPlace, displaced } = swapwordCounts(puzzle.start, run.board, solution);
       const left = [...run.board].filter((ch, t) => ch !== solution[t]).length;

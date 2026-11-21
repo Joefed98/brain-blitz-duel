@@ -30,7 +30,7 @@ import {
 } from "../../src/lib/duel/strikeout";
 import { strikeoutAnswerWords } from "../../src/lib/duel/strikeout.server";
 import { encodeCodeword, replayCodeword, type CwAction } from "../../src/lib/duel/codeword";
-import { encodeSwapword, replaySwapword, swapwordMarks, SW_TILES, type SwSwap } from "../../src/lib/duel/swapword";
+import { encodeSwapword, replaySwapword, swapwordMarks, swGeometry, swLatticeOf, SW_NORMAL_LATTICE, SW_TILES as SW_TILES_NORMAL, type SwSwap } from "../../src/lib/duel/swapword";
 import { witnessSwaps } from "../../src/lib/duel/swapword.server";
 import { WORDHUNT_COLS, WORDSMITH_CENTRE_INDEX, WORDSMITH_SIZES, wordHuntCols } from "../../src/lib/duel/types";
 import type {
@@ -871,16 +871,19 @@ const swapword: PuzzleKit = {
   spam(p, rng) {
     const d = p as SwapwordPuzzleData;
     const sol = d.solution ?? "";
+    // swapwordRev 8 (D1): a lattice board's own tiles and words (today's figure eight when absent).
+    const lattice = swLatticeOf(d);
+    const tiles = swGeometry(lattice).tiles;
     const random: SwSwap[] = [];
     while (random.length < d.maxSwaps) {
-      const a = rng.below(SW_TILES), b = rng.below(SW_TILES);
+      const a = rng.below(tiles), b = rng.below(tiles);
       if (a !== b) random.push([a, b]);
     }
     // Swap only tiles not yet green (the phone shows in-place marks after every swap).
     const notGreen: SwSwap[] = [];
     let board = d.start;
     while (notGreen.length < d.maxSwaps) {
-      const marks = swapwordMarks(board, sol);
+      const marks = swapwordMarks(board, sol, lattice);
       const open = marks.map((m, t) => (m === 2 ? -1 : t)).filter((t) => t >= 0);
       if (open.length < 2) break;
       const [a, b] = rng.shuffle(open);
@@ -891,7 +894,7 @@ const swapword: PuzzleKit = {
     const amber: SwSwap[] = [];
     board = d.start;
     while (amber.length < d.maxSwaps) {
-      const marks = swapwordMarks(board, sol);
+      const marks = swapwordMarks(board, sol, lattice);
       const ambers = marks.map((m, t) => (m === 1 ? t : -1)).filter((t) => t >= 0);
       const open = marks.map((m, t) => (m === 2 ? -1 : t)).filter((t) => t >= 0);
       if (open.length < 2) break;
@@ -910,7 +913,11 @@ const swapword: PuzzleKit = {
     const d = p as SwapwordPuzzleData;
     const sol = d.solution ?? "";
     // BASE 5 s per swap: read the crossing words and marks, work out which two tiles to trade, drag.
-    const BASE = 5;
+    // swapwordRev 8 (D1, 21 Nov 2026): on a lattice board each swap's thinking time grows with the tiles on the board
+    // (30 or 33 against today's 21: more crossings to hold in mind; a modelling assumption stated for Joe); today's
+    // figure eight (every earlier round) is timed exactly as before.
+    const lattice = swLatticeOf(d);
+    const BASE = lattice === SW_NORMAL_LATTICE ? 5 : (5 * swGeometry(lattice).tiles) / SW_TILES_NORMAL;
     const swaps: SwSwap[] = [];
     const steps: Step[] = [];
     let at = 0;

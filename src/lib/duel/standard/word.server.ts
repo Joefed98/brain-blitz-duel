@@ -15,7 +15,7 @@ import { LW_JAR_DROPS, lwDecodeLog, lwFreeMissesOf, lwJarKept, lwJarTally, lwMis
 import { decodeStrikeout2, replayStrikeout2, so2EarlySolves, so2Rules, so2Tally, strikeoutRevOf, so2RulesFor } from "../strikeout";
 import { codewordRuns, codewordTally, decodeCodeword, replayCodeword } from "../codeword";
 import { cryptogridVisibleWrong, usesWordOverhaul } from "../wordOverhaul";
-import { decodeSwapword, replaySwapword } from "../swapword";
+import { decodeSwapwordFor, replaySwapword } from "../swapword";
 import { PUZZLE_EFFICIENCY_POINTS } from "../puzzleScoreRev";
 import type { PuzzleData, PuzzleType } from "../types";
 import type { StandardGame, StandardInput } from "./grade.server";
@@ -355,7 +355,7 @@ const cryptogrid: StandardGame = {
 
 /** Tiles in place net of those moved out of place (today's rev-1 measure) and of blind swaps (word.ts). */
 function swapwordNet(puzzle: Extract<PuzzleData, { type: "swapword" }>, answer: string): { net: number; toPlace: number; blind: number } {
-  const swaps = decodeSwapword(answer);
+  const swaps = decodeSwapwordFor(puzzle, answer);
   const solution = puzzle.solution ?? "";
   const run = replaySwapword(puzzle.start, swaps, puzzle.maxSwaps, puzzle.solution);
   const blind = swapwordBlindSwaps(puzzle.start, swaps, run.swaps, solution);
