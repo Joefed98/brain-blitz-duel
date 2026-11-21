@@ -340,7 +340,7 @@ export function cryptogridWrongEntries(puzzle: Extract<PuzzleData, { type: "code
  */
 export function cryptogridShownWrong(puzzle: Extract<PuzzleData, { type: "codeword" }>, drafts: readonly { draft: string }[] | null): number | null {
   if (!drafts) return null;
-  const runs = codewordRuns(puzzle.cells, puzzle.size).map((run) => run.cells.map((cell) => puzzle.cells[cell]!));
+  const runs = codewordRuns(puzzle.cells, puzzle.size, puzzle.rows ?? puzzle.size).map((run) => run.cells.map((cell) => puzzle.cells[cell]!));
   const states = drafts.map((d) => replayCodeword(puzzle.numbers, puzzle.givens, decodeCodeword(d.draft, puzzle.numbers)));
   return cryptogridVisibleWrong(states, runs, puzzle.solution ?? "", new Set(puzzle.givens.map((g) => g.n)), isWord);
 }

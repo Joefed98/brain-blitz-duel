@@ -117,7 +117,8 @@ export function swapwordLine(puzzle: SwapwordPuzzleData, limits = LIMITS): Timed
  * rest blank (graded at the buzzer).
  */
 export function codewordLine(puzzle: CodewordPuzzleData, limits = LIMITS): TimedLine {
-  const solve = solveCodewordLikeAHuman(puzzle.cells, puzzle.numbers, puzzle.givens);
+  // A level's wider grid (Hard 8 × 7, Expert 9 × 7) gives its width; a square board needs none.
+  const solve = solveCodewordLikeAHuman(puzzle.cells, puzzle.numbers, puzzle.givens, puzzle.rows && puzzle.rows !== puzzle.size ? puzzle.size : undefined);
   const actions: CwAction[] = [];
   const drafts: { answer: string; atMs: number }[] = [];
   let at = 0;

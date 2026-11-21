@@ -12,8 +12,9 @@ import { fmix32, saltOf, wordGameSeed } from "../wordSeed.server";
 /**
  * Cryptogrid at a level beyond Normal (redesigned by D1, 21 Nov 2026; settings in src/lib/levels/word/codeword.ts): the
  * room seed's board from the level's own bank (src/lib/duel/codewordLevelBank.server.ts, scripts/codeword-bank.ts
- * --levels): Easy a 5 × 5 lattice of six words with six letters in, Hard an 8 × 8 grid with five, Expert a 9 × 9 grid with
- * four that the person-like solver cracks by reasoning alone. Each board is proven to have exactly one decoding from its
+ * --levels): Easy a 5 × 5 lattice of six words with six letters in, Hard an 8 × 7 grid (wider, seven rows: Joe, 21 Nov 2026,
+ * so its squares stay 36 px or more on a 375 × 667 phone) with five, Expert a 9 × 7 grid with four that the person-like
+ * solver cracks by reasoning alone. Each board is proven to have exactly one decoding from its
  * stored starting letters; its size, clock and speed line are stored on the puzzle (the grader, the live check and the
  * stage read them), on today's rules stamp. Never called at Normal, so Normal is exactly today's deal.
  */
@@ -23,7 +24,9 @@ export function dealCryptogridLevel(level: Exclude<Level, "normal">, context: Ge
   const bank = CODEWORD_LEVEL_BANK[level];
   const seed = wordGameSeed("codeword", context.bankSeed);
   const entry = bank[fmix32((seed >>> 0) ^ saltOf(`codeword-level:${level}`)) % bank.length]!;
-  const base = codewordFromLevelEntry(entry, dealtDepthRev(CODEWORD_DEPTH_REV, CODEWORD_REV));
+  // A wider grid (Hard 8 × 7, Expert 9 × 7) reads its width from the settings and stores its rows.
+  const cols = settings.rows && settings.rows !== settings.size ? settings.size : undefined;
+  const base = codewordFromLevelEntry(entry, dealtDepthRev(CODEWORD_DEPTH_REV, CODEWORD_REV), cols);
   return { ...base, timeLimitMs: settings.clockMs, speedFullByS: settings.speedFullByS } satisfies CodewordPuzzleData;
 }
 
