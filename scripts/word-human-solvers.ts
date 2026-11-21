@@ -8,7 +8,9 @@ import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { encodeStrikeout2, type So2Action } from "../src/lib/duel/strikeout";
 import { solveStrikeoutLikeAPerson } from "../src/lib/duel/levels/strikeoutSolver.server";
-import type { PuzzleData, StrikeoutPuzzleData, WordSearchPuzzleData } from "../src/lib/duel/types";
+import type { PuzzleData, StrikeoutPuzzleData, TileGridPuzzleData, WordSearchPuzzleData } from "../src/lib/duel/types";
+import { encodeTileGrid, tileGridSize } from "../src/lib/duel/tileGrid";
+import { buildTileGridLikeAPerson, type BuilderResult } from "./tilegrid-human";
 import { wsEncode } from "../src/lib/duel/wordSearch";
 import { sentAnswer } from "./standard-lib";
 import { entryMs, LIMITS } from "./word-human";
@@ -77,9 +79,45 @@ export function lookoutLine(puzzle: WordSearchPuzzleData, limits = LIMITS): Time
   return gradeLine(puzzle, drafts, { drags: drags.length });
 }
 
+/* --------------------------------------------------------------------------------------------- Interlock */
+
+/** Each tile move (onto the board or back to the tray) is a tap on the tile then a tap on its cell; Done is one tap. */
+export const TILEGRID_MOVE_TAPS = 2;
+
+/** The clock ms each of the builder's moves lands at the human limits (scripts/tilegrid-human.ts), then Done. */
+export function tilegridMoveTimes(result: BuilderResult, limits = LIMITS): { at: number[]; doneMs: number } {
+  const at: number[] = [];
+  let t = 0;
+  for (let i = 0; i < result.moves.length; i++) {
+    t += entryMs(TILEGRID_MOVE_TAPS, limits);
+    at.push(t);
+  }
+  return { at, doneMs: t + entryMs(1, limits) };
+}
+
+/**
+ * Interlock's line: the person-like builder (never sees the solution) plays the tray, each tile move timed at the human
+ * limits, and taps Done; graded by the server at Done (a builder that gives up sends its board at the buzzer).
+ */
+export function tilegridLine(puzzle: TileGridPuzzleData, limits = LIMITS): TimedLine {
+  const size = tileGridSize(puzzle);
+  const result = buildTileGridLikeAPerson(puzzle.tray, size);
+  const { at, doneMs } = tilegridMoveTimes(result, limits);
+  const cells = Array.from({ length: size * size }, () => "");
+  const drafts: { answer: string; atMs: number }[] = [];
+  result.moves.forEach((m, i) => {
+    cells[m.cell] = m.kind === "place" ? m.letter : "";
+    drafts.push({ answer: encodeTileGrid(cells, size), atMs: at[i]! });
+  });
+  if (result.solved) drafts.push({ answer: encodeTileGrid(cells, size), atMs: doneMs });
+  const line = gradeLine(puzzle, drafts, { moves: result.moves.length, takeBacks: result.takeBacks, solved: result.solved ? 1 : 0 });
+  return line;
+}
+
 /** The game's person-like line at the human limits, where the game has one (null otherwise). */
 export function personLine(puzzle: PuzzleData): TimedLine | null {
   if (puzzle.type === "strikeout") return strikeoutLine(puzzle);
   if (puzzle.type === "wordsearch") return lookoutLine(puzzle);
+  if (puzzle.type === "tilegrid") return tilegridLine(puzzle);
   return null;
 }
