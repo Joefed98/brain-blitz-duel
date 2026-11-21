@@ -24,7 +24,7 @@ import { acceptedRects, decodeShikaku, shikakuHeightOf } from "./shikaku";
 import { decodeBulbs } from "./lightUp";
 import { decodeTileMoves, replayTiles, tilesLayout } from "./tiles";
 import { isJumbledGradient, JUMBLED_MOVABLE, jumbledInPlace, jumbledProgress, replayGradientAnswer } from "./jumbled";
-import { decodeSwapword, replaySwapword, swapwordPlaced } from "./swapword";
+import { decodeSwapwordFor, replaySwapword, swapwordPlaced } from "./swapword";
 import { decodeSlideTokens, markedRowWord, replayWordSlide, slideSwapsOn, WS_MARKED_ROWS } from "./wordSlide";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { FLOW_PAIRS, type BlockPlacement, type PuzzleData } from "./types";
@@ -173,10 +173,10 @@ export function solutionProgress(puzzle: PuzzleData, answer: string, extra?: Rec
     case "swapword": {
       const solution = puzzle.solution ?? "";
       if (!solution) return null;
-      const run = replaySwapword(puzzle.start, decodeSwapword(answer), puzzle.maxSwaps, solution);
+      const run = replaySwapword(puzzle.start, decodeSwapwordFor(puzzle, answer), puzzle.maxSwaps, solution);
       const { toPlace, placed, displaced } = swapwordCounts(puzzle.start, run.board, solution);
       // The scoring standard (swapwordRev 7, standard/word.ts): blind swaps count against the tiles placed too.
-      const blind = usesStandard(puzzle) ? swapwordBlindSwaps(puzzle.start, decodeSwapword(answer), run.swaps, solution) : 0;
+      const blind = usesStandard(puzzle) ? swapwordBlindSwaps(puzzle.start, decodeSwapwordFor(puzzle, answer), run.swaps, solution) : 0;
       const costs = [...(displaced > 0 ? [`${displaced} moved out of place`] : []), ...(blind > 0 ? [`${blind} blind swap${blind === 1 ? "" : "s"}`] : [])];
       return { text: `${Math.max(0, placed - displaced - blind)}/${toPlace} tiles placed`, cost: costs.length ? costs.join(", ") : null };
     }

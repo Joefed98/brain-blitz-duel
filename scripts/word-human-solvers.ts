@@ -8,7 +8,10 @@ import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { encodeStrikeout2, type So2Action } from "../src/lib/duel/strikeout";
 import { solveStrikeoutLikeAPerson } from "../src/lib/duel/levels/strikeoutSolver.server";
-import type { PuzzleData, StrikeoutPuzzleData, WordSearchPuzzleData } from "../src/lib/duel/types";
+import type { PuzzleData, StrikeoutPuzzleData, SwapwordPuzzleData, WordSearchPuzzleData } from "../src/lib/duel/types";
+import { encodeSwapword, swLatticeOf } from "../src/lib/duel/swapword";
+import { witnessSwaps } from "../src/lib/duel/swapword.server";
+import { swapwordDeduction } from "../src/lib/duel/levels/swapwordProof.server";
 import { wsEncode } from "../src/lib/duel/wordSearch";
 import { sentAnswer } from "./standard-lib";
 import { entryMs, LIMITS } from "./word-human";
@@ -77,9 +80,33 @@ export function lookoutLine(puzzle: WordSearchPuzzleData, limits = LIMITS): Time
   return gradeLine(puzzle, drafts, { drags: drags.length });
 }
 
+/* --------------------------------------------------------------------------------------------- Swapword */
+
+/**
+ * Swapword's person-like line (D1, 21 Nov 2026): the mark-reading solver (swapwordDeduction, it reads only what the phone
+ * shows) works out the words, 0.25 s to react for each word it fixes; where it would have to guess, the line stops there
+ * (no 200 claimed). Then the player makes the fewest swaps (witnessSwaps), each 0.25 s to react and two taps at 0.15 s;
+ * graded by the server as the phone sends it.
+ */
+export function swapwordLine(puzzle: SwapwordPuzzleData, limits = LIMITS): TimedLine {
+  const solution = puzzle.solution ?? "";
+  const trace = swapwordDeduction(puzzle.start, solution, swLatticeOf(puzzle));
+  const guesses = trace.steps.filter((step) => step.guessed).length;
+  if (guesses > 0 || trace.known !== solution) return { ...gradeLine(puzzle, [], { guesses }), finished: false };
+  const swaps = witnessSwaps(puzzle.start, solution);
+  const drafts: { answer: string; atMs: number }[] = [];
+  let at = trace.steps.length * entryMs(0, limits);
+  for (let i = 0; i < swaps.length; i++) {
+    at += entryMs(2, limits);
+    drafts.push({ answer: encodeSwapword(swaps.slice(0, i + 1)), atMs: at });
+  }
+  return gradeLine(puzzle, drafts, { guesses, swaps: swaps.length });
+}
+
 /** The game's person-like line at the human limits, where the game has one (null otherwise). */
 export function personLine(puzzle: PuzzleData): TimedLine | null {
   if (puzzle.type === "strikeout") return strikeoutLine(puzzle);
   if (puzzle.type === "wordsearch") return lookoutLine(puzzle);
+  if (puzzle.type === "swapword") return swapwordLine(puzzle);
   return null;
 }

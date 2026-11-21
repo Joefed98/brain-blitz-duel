@@ -3007,6 +3007,12 @@ export interface SwapwordPuzzleData {
   solution?: string;
   /** The level's own clock (the Word overhaul's levels, 15 Nov 2026); absent: the game's 120 s. */
   timeLimitMs?: number;
+  /**
+   * swapwordRev 8 (D1, 21 Nov 2026; Hard and Expert deals only): the board's lattice, its tile squares (grid cells in
+   * reading order) and word slots; `start`, `solution` and the swap list index its tiles. Absent: today's 21-tile
+   * figure eight (swapword.ts SW_NORMAL_LATTICE).
+   */
+  lattice?: { cols: number; rows: number; cells: readonly number[]; slots: readonly { row: number; col: number; across: boolean; len: number }[] };
 }
 
 export interface WordSearchPlacement {
