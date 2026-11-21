@@ -224,6 +224,10 @@
   overscroll-behavior: contain;
   scrollbar-width: thin;
 }
+/* Every item keeps its size; a short window scrolls the rail instead of squeezing them (theme-check, 21 Nov 2026). */
+.dk-rail.jz-nav-rail[data-app-rail="full"] > * {
+  flex-shrink: 0;
+}
 .jz-nav-rail[data-app-rail="full"] .dk-rail-tabs {
   gap: 2px;
 }
