@@ -12,6 +12,7 @@
  */
 import { bandCurve, bandOpen } from "@/lib/arcade/scoreBands";
 import { wordHuntPoints } from "./types";
+import { WORDHUNT_REV_STAR } from "./wordStar";
 
 /** wordHuntRev 3: the 6×6 board, long-word multiplier and golden tile. */
 export const WORDHUNT_REV_DEPTH = 3;
@@ -43,8 +44,18 @@ export const WORDHUNT_REV_TOPUP = 4;
 export const WORDHUNT_V4_BASE_CURVE = bandCurve([0, 4, 6, 9, 18, 27, 44, 60], [0, 6, 25, 58, 92, 112, 140, 150]);
 export const WORDHUNT_V4_BONUS_CURVE = bandCurve([0, 8, 17, 27, 48, 89, 120], [0, 6, 9, 15, 27, 40, 50]);
 
+/**
+ * The open word finds' refit (D1, 21 Nov 2026, wordHuntRev 5; wordStar.ts): rev 4's board and rules; base points full
+ * (150) at 44, the near-perfect person's median under the human limits (scripts/word-human.ts), and the extras full
+ * (50) at 70, the elite's lower quartile, so a near-perfect haul earns the star (175) and the best reach 200. Both curves
+ * are rev 4's to 27 points, so an average or good haul scores what it did.
+ */
+export const WORDHUNT_V5_BASE_CURVE = bandCurve([0, 4, 6, 9, 18, 27, 44], [0, 6, 25, 58, 92, 112, 150]);
+export const WORDHUNT_V5_BONUS_CURVE = bandCurve([0, 8, 17, 27, 43, 70], [0, 6, 9, 15, 30, 50]);
+
 /** The base and bonus curves a stamp scores on. */
 export function wordHuntCurves(rev: number | null | undefined): { base: typeof WORDHUNT_V3_BASE_CURVE; bonus: typeof WORDHUNT_V3_BONUS_CURVE } {
+  if ((rev ?? 0) >= WORDHUNT_REV_STAR) return { base: WORDHUNT_V5_BASE_CURVE, bonus: WORDHUNT_V5_BONUS_CURVE };
   return (rev ?? 0) >= WORDHUNT_REV_TOPUP ? { base: WORDHUNT_V4_BASE_CURVE, bonus: WORDHUNT_V4_BONUS_CURVE } : { base: WORDHUNT_V3_BASE_CURVE, bonus: WORDHUNT_V3_BONUS_CURVE };
 }
 

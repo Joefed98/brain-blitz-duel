@@ -21,6 +21,7 @@ import type { PuzzleData, PuzzleType } from "../types";
 import type { StandardGame, StandardInput } from "./grade.server";
 import { cleanPoints, parPoints, speedPoints } from "./shape";
 import { usesWordNov7 } from "../wordNov7";
+import { ROUNDABOUT_STAR_FULL_BY_S, roundaboutStarJarFull, usesWordStar } from "../wordStar";
 import { puzzleLevel } from "@/lib/levels/levels";
 import { wordSlideDistance, wordSlideStartDistance } from "../wordSlideDistance.server";
 import { TG_CELLS, TG_SIZE } from "../tileGrid";
@@ -235,13 +236,17 @@ const roundabout: StandardGame = {
     const size = Math.max(1, p.jarSize ?? LW_JAR_DROPS);
     const jar = lwJarTally(p.words ?? [], p.letters, lwDecodeLog(input.answer), isWord);
     const kept = lwJarKept(jar.drops, misses);
-    const jarPoints = (STD_ROUNDABOUT.jar * Math.min(kept, size)) / size;
+    // wheelRev 6 (D1's refit, wordStar.ts): the jar's points are full at four fifths of it, speed full by 55 s.
+    const star = usesWordStar(p, "letterwheel");
+    const full = star ? roundaboutStarJarFull(size) : size;
+    const fullByS = star ? ROUNDABOUT_STAR_FULL_BY_S : STD_ROUNDABOUT.fullByS;
+    const jarPoints = (STD_ROUNDABOUT.jar * Math.min(kept, full)) / full;
     const facts = { bonusWords: jar.bonus.length, jarDrops: kept, jarSpilled: jar.drops - kept, jarSize: size, jarPoints: Math.round(jarPoints) };
     const penalty = lwMissPenalty(misses);
     if (input.graded.isCorrect) {
       // Today's finish efficiency (accuracy: 15 less the misses' cost) scales the speed points.
       const efficiency = Math.max(0, PUZZLE_EFFICIENCY_POINTS - penalty) / PUZZLE_EFFICIENCY_POINTS;
-      return { finished: true, speed: speedOf(input, STD_ROUNDABOUT.speed, STD_ROUNDABOUT.fullByS) * efficiency, bonus: jarPoints, measure: "bonus jar", facts };
+      return { finished: true, speed: speedOf(input, STD_ROUNDABOUT.speed, fullByS) * efficiency, bonus: jarPoints, measure: "bonus jar", facts };
     }
     const slots = num(extra["slots"]);
     const total = Math.max(1, num(extra["total"], p.slots.length));

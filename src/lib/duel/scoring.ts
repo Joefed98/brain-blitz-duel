@@ -1,3 +1,4 @@
+import { WORDSMITH_REV_STAR } from "./wordStar";
 import { outcomeOf, placesOf, type Outcome, type RankRow } from "./ranking";
 import { roundPlacings, type RoundPlacing, type ScoringMode } from "./scoringMode";
 import { speedBonusCurve } from "./speedPar";
@@ -588,9 +589,15 @@ export const WORDSMITH_V3_PANGRAM_BONUS = 20;
  */
 export const WORDSMITH_REV_TOPUP = 4;
 export const WORDSMITH_V4_CURVE = bandCurve([0, 3, 4, 6, 11, 18, 32, 45, 60, 80, 105, 140], [0, 6, 14, 30, 70, 90, 130, 140, 153, 164, 174, 180]);
+/**
+ * The open word finds' refit (D1, 21 Nov 2026, wordsmithRev 6; wordStar.ts): rev 4's curve exactly up to 18 points (90),
+ * then full (180) at 45 points, the near-perfect person's median under the human limits (scripts/word-human.ts), so a
+ * near-perfect haul earns the star (175) and the best, with the every-tile word, reaches 200.
+ */
+export const WORDSMITH_V6_CURVE = bandCurve([0, 3, 4, 6, 11, 18, 32, 45], [0, 6, 14, 30, 70, 90, 140, 180]);
 /** wordsmithRev 3 and later: the word points part (0–180), on the stamp's own curve (rev 3's by default). */
 export function wordsmithV3Words(points: number, rev: number = WORDSMITH_REV_DEPTH): number {
-  const curve = rev >= WORDSMITH_REV_TOPUP ? WORDSMITH_V4_CURVE : WORDSMITH_V3_CURVE;
+  const curve = rev >= WORDSMITH_REV_STAR ? WORDSMITH_V6_CURVE : rev >= WORDSMITH_REV_TOPUP ? WORDSMITH_V4_CURVE : WORDSMITH_V3_CURVE;
   return Math.min(WORDSMITH_V3_CAP, bandOpen(curve, points, WORDSMITH_V3_CAP));
 }
 /** Forage's curve (wordHuntRev 1): kits' word points average 9, good 15, great 24, near-perfect 36; 150 at 48. */
