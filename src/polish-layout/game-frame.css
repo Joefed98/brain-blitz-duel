@@ -309,14 +309,14 @@
 
 .game-goal-line {
   display: flex;
-  height: 18px;
+  height: 24px;
   flex: none;
   flex-direction: column;
   margin-bottom: 12px;
   font-family: var(--jz-font);
 }
 .game-goal-line[data-goal-bar] {
-  height: 28px;
+  height: 34px;
 }
 .game-goal-row {
   display: flex;
@@ -324,10 +324,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  font-size: 13px;
-  font-weight: var(--jz-weight-medium);
-  line-height: 18px;
-  color: var(--jz-text-3);
+  /* Spotlight's frame paint: the goal reads at 19 px (it was 13 px), brighter on the lit stage. */
+  font-size: 19px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 24px;
+  color: var(--jz-text);
   white-space: nowrap;
 }
 .game-goal-text {
@@ -337,8 +338,17 @@
 }
 .game-goal-progress {
   flex: none;
+  font-size: 15px;
+  font-weight: var(--jz-weight-medium);
   font-variant-numeric: tabular-nums;
   color: var(--jz-text-2);
+}
+
+/* Status chips on a live puzzle round read at 15 px (Spotlight's frame paint; Chip variant="status" is 13 px elsewhere). */
+[data-puzzle-play] .jz-status {
+  height: 26px;
+  font-size: 15px;
+  line-height: 26px;
 }
 .game-goal-bar {
   display: flex;
@@ -361,15 +371,23 @@
 
 /* ---------------------------------------------------------------- the puzzle background */
 
+/*
+ * The stage (the polish plan's art rule 1, Spotlight, 21 Nov 2026): behind every puzzle board the backdrop is its
+ * category's deep colour, never near-black: about a third of the category colour over the navy at the top, falling to
+ * about a tenth at the foot. One rule for every puzzle category; a family's own folder may override it per game. The
+ * notch and home-bar strips still fade to the page colour (::after below), so the edges meet --screen-edge.
+ */
 [data-puzzle-play] {
   /* The base under the category tint is the app's own background (DESIGN.md section 9; F3, 6 Nov 2026). */
   --frame-deep: color-mix(in srgb, var(--category-accent) 10%, var(--jz-bg));
+  --stage-top: color-mix(in srgb, var(--category-accent) 34%, var(--jz-navy));
+  --stage-mid: color-mix(in srgb, var(--category-accent) 20%, var(--jz-navy));
+  --stage-foot: color-mix(in srgb, var(--category-accent) 10%, var(--jz-bg));
 }
 [data-puzzle-play] > .screen-background {
   background:
-    radial-gradient(130% 45% at 50% 0%, color-mix(in srgb, var(--category-accent) 20%, transparent), transparent 65%),
-    radial-gradient(120% 40% at 50% 100%, color-mix(in srgb, var(--category-accent) 14%, transparent), transparent 70%),
-    linear-gradient(180deg, var(--frame-deep) 0%, var(--jz-bg) 45%, var(--jz-bg) 60%, var(--frame-deep) 100%);
+    radial-gradient(120% 50% at 50% 0%, color-mix(in srgb, var(--category-accent) 16%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--stage-top) 0%, var(--stage-mid) 45%, var(--stage-foot) 100%);
 }
 /* No pattern or drift: the dot texture and the slow category glow give way to the gradient. */
 [data-puzzle-play] > .screen-background::before,
@@ -383,7 +401,7 @@
   background:
     linear-gradient(to bottom, var(--screen-edge) env(safe-area-inset-top, 0px), transparent) top / 100% calc(env(safe-area-inset-top, 0px) + 24px) no-repeat,
     linear-gradient(to top, var(--screen-edge), transparent) bottom / 100% calc(env(safe-area-inset-bottom, 0px) + 16px) no-repeat,
-    radial-gradient(140% 90% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.55) 100%);
+    radial-gradient(140% 90% at 50% 50%, transparent 60%, color-mix(in srgb, var(--jz-bg) 30%, transparent) 100%);
 }
 
 /* ---------------------------------------------------------------- the toolkit (for the category batches)
@@ -425,7 +443,8 @@
 .game-tray {
   position: absolute;
   z-index: -1;
-  border: 1px solid color-mix(in srgb, var(--category-accent) 18%, transparent);
+  /* No hairline (the polish plan's outlines row, earlier E0.5): the plate's gradient and depth are its edge. */
+  border: 1px solid transparent;
   border-radius: 26px;
   background: linear-gradient(180deg, color-mix(in srgb, var(--category-accent) 8%, transparent), rgba(255, 255, 255, 0.02));
   box-shadow:
