@@ -25,7 +25,7 @@ import { playSliderHuman, SLIDER_AT_LIMITS } from "./slider-human";
 
 export const SLIDER_BANK_SIZE = { expert: 250 } as const;
 /** Candidates tried for the bank (the stream's first this many). */
-export const SLIDER_EXPERT_TRIES = 960;
+export const SLIDER_EXPERT_TRIES = 640;
 const LEVEL_SEED = 0x51d6_0017;
 const OUT = new URL("../src/lib/duel/sliderLevelBank.server.ts", import.meta.url).pathname;
 

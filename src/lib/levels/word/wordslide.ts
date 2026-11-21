@@ -41,7 +41,9 @@ export const WORDSLIDE_LEVEL_SETTINGS: Readonly<Record<Exclude<Level, "normal">,
   // human limits takes to 200, on its own looser par line (scripts/slider-level-bank.ts).
   easy: { size: 4, shifts: [3, 3], par: [2, 3] },
   hard: { size: 6, shifts: [7, 8], par: [7, 8] },
-  expert: { size: 7, shifts: [7, 8], par: [7, 7], bank: true, parLine: { full: 21, zero: 42 } },
+  // Joe (21 Nov 2026): a shallower scramble, 5 or 6 slides, so the strong player solves about one board in ten (7 or 8
+  // left it near 0) while every dealt board keeps its proof.
+  expert: { size: 7, shifts: [5, 6], par: [5, 6], bank: true, parLine: { full: 21, zero: 42 } },
 };
 
 export const WORDSLIDE_LEVELS: GameLevels | null = {
@@ -56,5 +58,5 @@ export const WORDSLIDE_LEVELS: GameLevels | null = {
 export const WORDSLIDE_LEVEL_ABOUT: Partial<Record<Exclude<Level, "normal">, string>> = {
   easy: "A small 4 by 4 grid of four-letter words, only 2 or 3 slides away.",
   hard: "A 6 by 6 grid of six-letter words, 7 or 8 slides away.",
-  expert: "A 7 by 7 grid of seven-letter words, and up to 21 slides for the full move bonus.",
+  expert: "A 7 by 7 grid of seven-letter words, 5 or 6 slides away, with up to 21 slides for the full move bonus.",
 };
