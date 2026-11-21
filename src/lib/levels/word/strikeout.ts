@@ -24,6 +24,12 @@ export interface StrikeoutLevelSettings {
 
 const PROOF = { proof: "scripts/strikeout-levels-check.ts" } as const;
 
+/**
+ * Normal's starting letters in the same shape as a level's (D1, 21 Nov 2026: the lever pictures draw Normal from it; the
+ * server deals them through so2GivenCount and rev 3's extra letter, and word-levels-proof-check proves the two agree).
+ */
+export const STRIKEOUT_NORMAL_GIVENS = { givensFirst: [3, 2], givensRest: [2, 1] } as const satisfies Pick<StrikeoutLevelSettings, "givensFirst" | "givensRest">;
+
 export const STRIKEOUT_LEVEL_SETTINGS: Readonly<Record<Exclude<Level, "normal">, StrikeoutLevelSettings>> = {
   // D1 (21 Nov 2026; docs/polish-plan-final/difficulty-spec.md "Strikeout"): starting letters are the ladder (4, then
   // Normal's 3 or 2, then 1, then none); Hard keeps Normal's strikes and clock so the missing letters make its step;
