@@ -135,6 +135,28 @@ export function wordsmithPoints(word: string): number {
   return WORDSMITH_POINTS[Math.min(9, word.trim().length)] ?? 0;
 }
 
+/** A Nucleus level deal's own points line (D1, 21 Nov 2026): word points at which the words part is full, if any. */
+export function wordsmithFullAt(puzzle: { wordsFullAt?: number } | null | undefined): number | undefined {
+  const v = puzzle?.wordsFullAt;
+  return typeof v === "number" && Number.isFinite(v) && v > 0 ? v : undefined;
+}
+
+/** The shortest word a Nucleus board counts: a level deal's own (D1, 21 Nov 2026), else WORDSMITH_MIN_LENGTH. */
+export function wordsmithMinLength(puzzle: { minLength?: number } | null | undefined): number {
+  const v = puzzle?.minLength;
+  return typeof v === "number" && Number.isFinite(v) && v >= 3 ? Math.floor(v) : WORDSMITH_MIN_LENGTH;
+}
+
+/**
+ * A word's points on a board counting words from `minLength` letters: Normal's table, or on Easy (3+ letters) the
+ * step-up table, each word scoring as two letters longer (3 letters 2, 4 letters 4, 5 letters 7, 6 letters 11, 7+ 15).
+ */
+export function wordsmithPointsAt(word: string, minLength: number = WORDSMITH_MIN_LENGTH): number {
+  const n = word.trim().length;
+  if (n < minLength) return 0;
+  return WORDSMITH_POINTS[Math.min(9, minLength <= 3 ? n + 2 : n)] ?? 0;
+}
+
 export interface WordsmithWord {
   word: string;
   points: number;
@@ -156,6 +178,10 @@ export interface WordsmithPuzzleData {
   wordsmithRev?: number;
   /** Levels (the Word overhaul, stage 3): the level's own clock; absent = WORDSMITH_TIME_MS (Normal and every older round). */
   timeLimitMs?: number;
+  /** Levels (D1, 21 Nov 2026): the shortest word that counts (Easy 3, Hard 5, Expert 6); absent = 4 (Normal, every older round). */
+  minLength?: number;
+  /** Levels (D1, 21 Nov 2026): word points at which the words part is full (Hard 80, Expert 70); absent = the stamp's curve. */
+  wordsFullAt?: number;
 }
 
 /** One combining step: two values and an operator, giving a new value. */
@@ -862,6 +888,24 @@ export function wordHuntPoints(word: string): number {
   return { 4: 1, 5: 2, 6: 4, 7: 7 }[length] ?? 0;
 }
 
+/** The shortest word a Forage board counts: a level deal's own (D1, 21 Nov 2026), else WORDHUNT_MIN_LENGTH. */
+export function wordHuntMinLength(puzzle: { minLength?: number } | null | undefined): number {
+  const v = puzzle?.minLength;
+  return typeof v === "number" && Number.isFinite(v) && v >= 3 ? Math.floor(v) : WORDHUNT_MIN_LENGTH;
+}
+
+/**
+ * A word's points on a board counting words from `minLength` letters: Normal's table, or on Easy (3+ letters) the
+ * step-up table, each word scoring as two letters longer (3 letters 2, 4 letters 4, 5 letters 7, 6+ letters 11).
+ */
+export function wordHuntPointsAt(word: string, minLength: number = WORDHUNT_MIN_LENGTH): number {
+  const length = word.trim().length;
+  if (length < minLength) return 0;
+  const n = minLength <= 3 ? length + 2 : length;
+  if (n >= 8) return 11;
+  return { 4: 1, 5: 2, 6: 4, 7: 7 }[n] ?? 0;
+}
+
 export interface WordHuntWord {
   word: string;
   points: number;
@@ -886,6 +930,14 @@ export interface WordHuntPuzzleData {
   golden?: number;
   /** Levels (the Word overhaul, stage 3): the level's own clock; absent = WORDHUNT_TIME_MS (Normal and every older round). */
   timeLimitMs?: number;
+  /** Levels (D1, 21 Nov 2026): the shortest word that counts (Easy 3, Hard 5, Expert 7); absent = 4 (Normal, every older round). */
+  minLength?: number;
+  /** Levels (D1, 21 Nov 2026): free misses before any cost, and more for each word found; absent = 10 and 2. */
+  freeMisses?: number;
+  freeMissesPerWord?: number;
+  /** Levels (D1, 21 Nov 2026): base points and feature extras at which each part is full; absent = the stamp's curves. */
+  baseFullAt?: number;
+  extraFullAt?: number;
 }
 
 /* -------------------------------------------------------------------------- */

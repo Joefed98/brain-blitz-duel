@@ -13,6 +13,7 @@ import type { PracticeRunProgress } from "@/lib/practice/progress";
 import { levelOf } from "@/lib/practice/progressRules";
 import { PUZZLE_TYPES, isPlayable } from "./catalogue";
 import type { PuzzleData, PuzzleType } from "./types";
+import { wordHuntMinLength, wordsmithMinLength } from "./types";
 
 /* -------------------------------------------------------------------------- */
 /*  Practice mode: one puzzle, on this device only.                            */
@@ -502,7 +503,7 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
     if (data.puzzle.type === "wordhunt") {
       const { checkWordHuntPath } = await import("./wordHunt.server");
       const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
-      return checkWordHuntPath(data.puzzle.grid, path, found);
+      return checkWordHuntPath(data.puzzle.grid, path, found, wordHuntMinLength(data.puzzle));
     }
     if (data.puzzle.type === "tilegrid") {
       const { checkTileGridWord } = await import("./tileGrid.server");
@@ -516,7 +517,7 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
       return { valid: false as const, points: 0, word: "", reason: "Not this round." };
     }
     const { checkWordsmithWord } = await import("./wordsmith.server");
-    return checkWordsmithWord(data.puzzle.letters, String(data.word ?? ""), found, data.puzzle.wordsmithRev);
+    return checkWordsmithWord(data.puzzle.letters, String(data.word ?? ""), found, data.puzzle.wordsmithRev, wordsmithMinLength(data.puzzle));
   });
 
 /** Strikeout, Cryptogrid and Swapword practice: replays the moves against the sealed answer half. */

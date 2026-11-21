@@ -5,7 +5,7 @@
 
 import { commonWords, isCommonPrefix, isWord } from "./dictionary.server";
 import type { Graded } from "./grade";
-import { scoreWordHunt, wordHuntMissKeptPct, WORDHUNT_MAX_MISSES, WORDHUNT_MISS_MARK, WORDHUNT_REV_MISSES } from "./scoring";
+import { scoreWordHunt, wordHuntFreeMissesOf, wordHuntMissKeptPct, WORDHUNT_MAX_MISSES, WORDHUNT_MISS_MARK, WORDHUNT_REV_MISSES } from "./scoring";
 import { pick, randInt, shuffled } from "./random";
 import {
   WORDHUNT_CELLS,
@@ -16,11 +16,13 @@ import {
   WORDHUNT_MIN_WORDS,
   WORDHUNT_PAR_SHARE,
   WORDHUNT_TIME_MS,
+  wordHuntMinLength,
   wordHuntPoints,
+  wordHuntPointsAt,
   type WordHuntPuzzleData,
   type WordHuntWord,
 } from "./types";
-import { scoreWordHuntDepth, wordHuntDepth, wordHuntValue, WORDHUNT_REV_DEPTH, WORDHUNT_REV_TOPUP } from "./wordHunt";
+import { scoreWordHuntDepth, wordHuntDepth, wordHuntFullAtOf, wordHuntValue, WORDHUNT_REV_DEPTH, WORDHUNT_REV_TOPUP } from "./wordHunt";
 import { dealtTopupRev } from "./depthTopup";
 
 /** Letters weighted roughly by how often they turn up in English. */
@@ -80,7 +82,7 @@ function placeWord(grid: (string | null)[], word: string, cols = N): boolean {
  * Every everyday word the grid spells out, with one path each. With `golden` (wordHuntRev 3) a word's path runs
  * through the golden tile whenever one can.
  */
-function solveBoard(grid: string[], golden: number | null = null): WordHuntWord[] {
+export function solveBoard(grid: string[], golden: number | null = null, minLength: number = WORDHUNT_MIN_LENGTH): WordHuntWord[] {
   const dictionary = new Set(commonWords());
   const found = new Map<string, number[]>();
   const cols = wordHuntCols(grid);
@@ -89,7 +91,7 @@ function solveBoard(grid: string[], golden: number | null = null): WordHuntWord[
     const next = prefix + grid[cell]!.toLowerCase();
     if (!isCommonPrefix(next)) return;
     const trail = [...path, cell];
-    if (next.length >= WORDHUNT_MIN_LENGTH && dictionary.has(next)) {
+    if (next.length >= minLength && dictionary.has(next)) {
       const had = found.get(next);
       if (!had || (golden !== null && !had.includes(golden) && trail.includes(golden))) found.set(next, trail);
     }
@@ -102,7 +104,7 @@ function solveBoard(grid: string[], golden: number | null = null): WordHuntWord[
   for (let cell = 0; cell < grid.length; cell++) walk(cell, "", []);
 
   return [...found.entries()]
-    .map(([word, path]) => ({ word: word.toUpperCase(), points: wordHuntPoints(word), path }))
+    .map(([word, path]) => ({ word: word.toUpperCase(), points: wordHuntPointsAt(word, minLength), path }))
     .sort((a, b) => b.points - a.points || a.word.localeCompare(b.word));
 }
 
@@ -291,25 +293,27 @@ export function checkWordHuntPath(
   grid: string[],
   path: number[],
   already: string[],
+  minLength: number = WORDHUNT_MIN_LENGTH,
 ): WordHuntVerdict {
   const word = wordFromPath(grid, path);
   const base = { valid: false, points: 0, word: word ?? "" };
   if (!word) return { ...base, reason: "Not a path" };
-  if (word.length < WORDHUNT_MIN_LENGTH) return { ...base, reason: "Too short" };
+  // Levels (D1, 21 Nov 2026): a level deal's own shortest word (wordHuntMinLength); Normal's 4.
+  if (word.length < minLength) return { ...base, reason: "Too short" };
   if (already.map((entry) => entry.toUpperCase()).includes(word)) {
     return { ...base, reason: "Already found" };
   }
   if (!isWord(word)) return { ...base, reason: "Not a word" };
-  return { valid: true, points: wordHuntPoints(word), word };
+  return { valid: true, points: wordHuntPointsAt(word, minLength), word };
 }
 
 /** Answer length the server reads (words first, then misses). */
 export const WORDHUNT_ANSWER_CAP = 4_000;
 
 /** wordHuntRev 2: a real path of 4+ letters that spells no word. Short, broken or word paths never count. */
-export function isWordHuntMiss(grid: string[], path: number[]): boolean {
+export function isWordHuntMiss(grid: string[], path: number[], minLength: number = WORDHUNT_MIN_LENGTH): boolean {
   const word = wordFromPath(grid, path);
-  return word !== null && word.length >= WORDHUNT_MIN_LENGTH && !isWord(word);
+  return word !== null && word.length >= minLength && !isWord(word);
 }
 
 /**
@@ -322,6 +326,8 @@ export function gradeWordHunt(
   msRemaining: number,
 ): Graded {
   const par = puzzle.par ?? 1;
+  // Levels (D1, 21 Nov 2026): the deal's own shortest word (absent = 4, every round before).
+  const minLength = wordHuntMinLength(puzzle);
   const accepted: { word: string; points: number; path: number[] }[] = [];
   const seen: string[] = [];
 
@@ -338,7 +344,7 @@ export function gradeWordHunt(
       continue;
     }
     const [, rawPath] = entry.split(":");
-    const verdict = checkWordHuntPath(puzzle.grid, cells(rawPath), seen);
+    const verdict = checkWordHuntPath(puzzle.grid, cells(rawPath), seen, minLength);
     if (!verdict.valid) continue;
     seen.push(verdict.word);
     accepted.push({ word: verdict.word, points: verdict.points, path: cells(rawPath) });
@@ -347,15 +353,16 @@ export function gradeWordHunt(
   const points = accepted.reduce((sum, entry) => sum + entry.points, 0);
   // wordHuntRev 2: a miss is a real path of 4+ letters that spells no word (a word, even one found already, never is).
   const usesMisses = (puzzle.wordHuntRev ?? 0) >= WORDHUNT_REV_MISSES;
-  const misses = usesMisses ? missPaths.filter((path) => isWordHuntMiss(puzzle.grid, path)).length : 0;
-  const missCutPct = usesMisses ? 100 - wordHuntMissKeptPct(misses, accepted.length) : 0;
+  const misses = usesMisses ? missPaths.filter((path) => isWordHuntMiss(puzzle.grid, path, minLength)).length : 0;
+  const free = wordHuntFreeMissesOf(puzzle);
+  const missCutPct = usesMisses ? 100 - wordHuntMissKeptPct(misses, accepted.length, free.base, free.perWord) : 0;
   const ms = Math.min(WORDHUNT_TIME_MS, Math.max(0, Math.round(msRemaining)));
   if (wordHuntDepth(puzzle)) {
     // wordHuntRev 3: base points to 150 plus what long words and the golden tile add, to 50 (wordHunt.ts).
-    const values = accepted.map((entry) => wordHuntValue(entry.word, entry.path, puzzle.golden));
+    const values = accepted.map((entry) => wordHuntValue(entry.word, entry.path, puzzle.golden, minLength));
     const extraPoints = values.reduce((sum, v) => sum + v.extra, 0);
     const value = values.reduce((sum, v) => sum + v.value, 0);
-    const depth = scoreWordHuntDepth(points, extraPoints, 100 - missCutPct, puzzle.wordHuntRev ?? 0);
+    const depth = scoreWordHuntDepth(points, extraPoints, 100 - missCutPct, puzzle.wordHuntRev ?? 0, wordHuntFullAtOf(puzzle));
     return {
       answer: accepted.map((entry) => entry.word).join(","),
       isCorrect: points >= par,

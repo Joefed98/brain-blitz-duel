@@ -70,6 +70,8 @@ import {
   type StoredPuzzleType,
   type PuzzleCategory,
   type RoundResultRow,
+  wordHuntMinLength,
+  wordsmithMinLength,
 } from "./types";
 import { dbError, isUuid } from "./dbError";
 import { DEAL_CLAIM_MS, DEALING_MESSAGE, dealClaimFresh } from "./dealClaim";
@@ -1350,7 +1352,7 @@ export const checkWordFn = createServerFn({ method: "POST" })
     if (pub?.type === "wordhunt") {
       const { checkWordHuntPath } = await import("./wordHunt.server");
       const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
-      return checkWordHuntPath(pub.grid, path, found);
+      return checkWordHuntPath(pub.grid, path, found, wordHuntMinLength(pub));
     }
     if (pub?.type === "tilegrid") {
       const { checkTileGridWord } = await import("./tileGrid.server");
@@ -1365,7 +1367,7 @@ export const checkWordFn = createServerFn({ method: "POST" })
     }
 
     const { checkWordsmithWord } = await import("./wordsmith.server");
-    return checkWordsmithWord(pub.letters, String(data.word ?? ""), found, pub.wordsmithRev);
+    return checkWordsmithWord(pub.letters, String(data.word ?? ""), found, pub.wordsmithRev, wordsmithMinLength(pub));
   });
 
 /**

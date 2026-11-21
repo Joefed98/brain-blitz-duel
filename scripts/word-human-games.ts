@@ -8,6 +8,7 @@ import { isEverydayWord, isWord, wordsFrom } from "../src/lib/duel/dictionary.se
 import { isPluralForm } from "../src/lib/duel/wordsmith.server";
 import { isWordHuntMiss } from "../src/lib/duel/wordHunt.server";
 import { lwEncodeLog, lwSpellable } from "../src/lib/duel/letterWheel";
+import { wordHuntValue } from "../src/lib/duel/wordHunt";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { WORDHUNT_MISS_MARK } from "../src/lib/duel/scoring";
 import {
@@ -16,6 +17,7 @@ import {
   WORDSMITH_MIN_LENGTH,
   WORDSMITH_SIZES,
   wordHuntCols,
+  wordsmithPointsAt,
   type LetterWheelPuzzleData,
   type PuzzleData,
   type WordHuntPuzzleData,
@@ -231,9 +233,9 @@ export function openWitness(
 export function nucleusWitness(d: WordsmithPuzzleData): Witness {
   const limit = puzzleTimeLimitMs(d);
   const words = nucleusWords(d);
-  const points = (w: string) => ({ 3: 1, 4: 1, 5: 2, 6: 4, 7: 7, 8: 11 } as Record<number, number>)[w.length] ?? 15;
+  const min = minLengthOf(d as { minLength?: number }, WORDSMITH_MIN_LENGTH);
   return openWitness(
-    words.map((w) => ({ key: w, taps: w.length + 1, value: points(w) + (w.length >= d.letters.length ? 40 : 0) })),
+    words.map((w) => ({ key: w, taps: w.length + 1, value: wordsmithPointsAt(w, min) + (w.length >= d.letters.length ? 40 : 0) })),
     (keys) => [...keys].reverse().join(","),
     (answer) => gradeAnswer(d, answer, 0).score,
     limit,
@@ -244,11 +246,7 @@ export function forageWitness(d: WordHuntPuzzleData): Witness {
   const limit = puzzleTimeLimitMs(d);
   const min = minLengthOf(d as { minLength?: number }, WORDHUNT_MIN_LENGTH);
   const list = (d.words ?? []).filter((w) => w.word.length >= min);
-  const value = (w: { word: string; path: number[] }) => {
-    const base = ({ 3: 1, 4: 1, 5: 2, 6: 4, 7: 7 } as Record<number, number>)[w.word.length] ?? 11;
-    const long = w.word.length >= 7 ? 2 : w.word.length >= 6 ? 1.5 : 1;
-    return base * long * (typeof d.golden === "number" && w.path.includes(d.golden) ? 2 : 1);
-  };
+  const value = (w: { word: string; path: number[] }) => wordHuntValue(w.word, w.path, d.golden, min).value;
   return openWitness(
     list.map((w) => ({ key: `${w.word.toUpperCase()}:${w.path.join("-")}`, taps: w.path.length, value: value(w) })),
     (keys) => [...keys].reverse().join(","),

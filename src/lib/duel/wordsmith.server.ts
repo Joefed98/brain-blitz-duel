@@ -19,7 +19,10 @@ import {
   WORDSMITH_MIN_LENGTH,
   WORDSMITH_PAR_SHARE,
   WORDSMITH_TIME_MS,
+  wordsmithFullAt,
+  wordsmithMinLength,
   wordsmithPoints,
+  wordsmithPointsAt,
   type WordsmithPuzzleData,
 } from "./types";
 
@@ -152,18 +155,19 @@ export interface WordVerdict {
  * Checks one submitted word live, during play. From wordsmithRev 5 (`rev`) a valid word off the everyday list says
  * so (`bonus`): it scores as before but is not one of the board's counted words.
  */
-export function checkWordsmithWord(letters: string[], raw: string, already: string[], rev?: number | null): WordVerdict {
+export function checkWordsmithWord(letters: string[], raw: string, already: string[], rev?: number | null, minLength: number = WORDSMITH_MIN_LENGTH): WordVerdict {
   const word = raw.trim().toUpperCase();
   const base = { valid: false, points: 0, word };
   if (!/^[A-Z]+$/.test(word)) return { ...base, reason: "Letters only" };
-  if (word.length < WORDSMITH_MIN_LENGTH) return { ...base, reason: "Too short" };
+  // Levels (D1, 21 Nov 2026): a level deal's own shortest word (wordsmithMinLength); Normal's 4.
+  if (word.length < minLength) return { ...base, reason: "Too short" };
   if (!buildableFrom(word, letters)) return { ...base, reason: "Not on the board" };
   const centre = WORDSMITH_SIZES.some((size) => size === letters.length) ? letters[WORDSMITH_CENTRE_INDEX] : undefined;
   if (centre && !word.includes(centre.toUpperCase())) return { ...base, reason: "Must use the centre letter" };
   if (!isWord(word)) return { ...base, reason: "Not in the dictionary" };
   if (isPluralForm(word)) return { ...base, reason: "No plurals" };
   if (already.some((entry) => entry.toUpperCase() === word)) return { ...base, reason: "Already found" };
-  const verdict: WordVerdict = { valid: true, points: wordsmithPoints(word), word };
+  const verdict: WordVerdict = { valid: true, points: wordsmithPointsAt(word, minLength), word };
   return (rev ?? 0) >= WORDSMITH_REV_EVERYDAY && !isEverydayWord(word) ? { ...verdict, bonus: true } : verdict;
 }
 
@@ -181,7 +185,7 @@ export function gradeWordsmith(
   const seen: string[] = [];
 
   for (const candidate of rawAnswer.slice(0, 3_000).split(",")) {
-    const verdict = checkWordsmithWord(puzzle.letters, candidate, seen);
+    const verdict = checkWordsmithWord(puzzle.letters, candidate, seen, undefined, wordsmithMinLength(puzzle));
     if (!verdict.valid) continue;
     seen.push(verdict.word);
     accepted.push({ word: verdict.word, points: verdict.points });
@@ -195,7 +199,7 @@ export function gradeWordsmith(
   return {
     answer: accepted.map((entry) => entry.word).join(","),
     isCorrect: points >= par,
-    score: scoreWordsmith(points, puzzle.wordsmithRev, allLetters),
+    score: scoreWordsmith(points, puzzle.wordsmithRev, allLetters, wordsmithFullAt(puzzle)),
     reactionAvgMs: null,
     correctCount: accepted.length,
     errors: null,

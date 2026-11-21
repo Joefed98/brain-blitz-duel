@@ -5,6 +5,7 @@
  */
 import { mergePuzzle } from "./secrets";
 import type { PuzzleData } from "./types";
+import { wordHuntMinLength, wordsmithMinLength } from "./types";
 
 export async function checkRoundWord(
   pub: PuzzleData,
@@ -32,7 +33,7 @@ export async function checkRoundWord(
   if (pub.type === "wordhunt") {
     const { checkWordHuntPath } = await import("./wordHunt.server");
     const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
-    return checkWordHuntPath(pub.grid, path, found);
+    return checkWordHuntPath(pub.grid, path, found, wordHuntMinLength(pub));
   }
   if (pub.type === "tilegrid") {
     const { checkTileGridWord } = await import("./tileGrid.server");
@@ -45,5 +46,5 @@ export async function checkRoundWord(
   if (pub.type !== "wordsmith")
     return { valid: false as const, points: 0, word: "", reason: "Not this round." };
   const { checkWordsmithWord } = await import("./wordsmith.server");
-  return checkWordsmithWord(pub.letters, String(data.word ?? ""), found, pub.wordsmithRev);
+  return checkWordsmithWord(pub.letters, String(data.word ?? ""), found, pub.wordsmithRev, wordsmithMinLength(pub));
 }

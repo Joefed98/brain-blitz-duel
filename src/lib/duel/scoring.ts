@@ -542,8 +542,8 @@ export function playerBreakdown(
  * Wordsmith: each word point is worth 2.5 round points, rounded down. wordsmithRev 1: WORDSMITH_V1_CURVE.
  * wordsmithRev 2: WORDSMITH_V2_CURVE, at most 140 unless `allLetters` (a word using every tile was found).
  */
-export function scoreWordsmith(points: number, rev?: number | null, allLetters = false): number {
-  if ((rev ?? 0) >= WORDSMITH_REV_DEPTH) return wordsmithV3Words(points, rev ?? 0) + (allLetters ? WORDSMITH_V3_PANGRAM_BONUS : 0);
+export function scoreWordsmith(points: number, rev?: number | null, allLetters = false, wordsFullAt?: number): number {
+  if ((rev ?? 0) >= WORDSMITH_REV_DEPTH) return wordsmithV3Words(points, rev ?? 0, wordsFullAt) + (allLetters ? WORDSMITH_V3_PANGRAM_BONUS : 0);
   if ((rev ?? 0) >= WORDSMITH_REV_ONE_CURVE) return Math.min(allLetters ? MAX_ROUND_SCORE : WORDSMITH_V2_CAP, bandOpen(WORDSMITH_V2_CURVE, points));
   if (rev === WORDSMITH_REV_CURVE) return bandOpen(WORDSMITH_V1_CURVE, points);
   return clamp(Math.floor(2.5 * Math.max(0, points)), 0, MAX_ROUND_SCORE);
@@ -595,9 +595,17 @@ export const WORDSMITH_V4_CURVE = bandCurve([0, 3, 4, 6, 11, 18, 32, 45, 60, 80,
  * near-perfect haul earns the star (175) and the best, with the every-tile word, reaches 200.
  */
 export const WORDSMITH_V6_CURVE = bandCurve([0, 3, 4, 6, 11, 18, 32, 45], [0, 6, 14, 30, 70, 90, 140, 180]);
-/** wordsmithRev 3 and later: the word points part (0–180), on the stamp's own curve (rev 3's by default). */
-export function wordsmithV3Words(points: number, rev: number = WORDSMITH_REV_DEPTH): number {
-  const curve = rev >= WORDSMITH_REV_STAR ? WORDSMITH_V6_CURVE : rev >= WORDSMITH_REV_TOPUP ? WORDSMITH_V4_CURVE : WORDSMITH_V3_CURVE;
+/**
+ * A level deal's own points line (D1, 21 Nov 2026; stored as `wordsFullAt`): rev 6's curve to 18 points (90), then a
+ * straight line to 180 at `fullAt` points, so a level whose words are long and many still keeps its top for the best.
+ */
+export function wordsmithLevelCurve(fullAt: number) {
+  return bandCurve([0, 3, 4, 6, 11, 18, Math.max(19, fullAt)], [0, 6, 14, 30, 70, 90, 180]);
+}
+/** wordsmithRev 3 and later: the word points part (0–180), on the stamp's own curve (rev 3's by default; a level's own, D1). */
+export function wordsmithV3Words(points: number, rev: number = WORDSMITH_REV_DEPTH, wordsFullAt?: number): number {
+  const level = typeof wordsFullAt === "number" && wordsFullAt > 0 && rev >= WORDSMITH_REV_STAR;
+  const curve = level ? wordsmithLevelCurve(wordsFullAt) : rev >= WORDSMITH_REV_STAR ? WORDSMITH_V6_CURVE : rev >= WORDSMITH_REV_TOPUP ? WORDSMITH_V4_CURVE : WORDSMITH_V3_CURVE;
   return Math.min(WORDSMITH_V3_CAP, bandOpen(curve, points, WORDSMITH_V3_CAP));
 }
 /** Forage's curve (wordHuntRev 1): kits' word points average 9, good 15, great 24, near-perfect 36; 150 at 48. */
@@ -617,12 +625,17 @@ export const WORDHUNT_MISS_COST_PCT = 3;
 export const WORDHUNT_MISS_MARK = "!";
 /** The most misses the phone sends and the server reads (enough to take any score to 0). */
 export const WORDHUNT_MAX_MISSES = 120;
+/** The free misses a stored Forage board allows: a level deal's own (D1, 21 Nov 2026), else 10 and 2 a word. */
+export function wordHuntFreeMissesOf(puzzle: { freeMisses?: number; freeMissesPerWord?: number } | null | undefined): { base: number; perWord: number } {
+  const n = (v: unknown, d: number) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.floor(v) : d);
+  return { base: n(puzzle?.freeMisses, WORDHUNT_FREE_MISSES), perWord: n(puzzle?.freeMissesPerWord, WORDHUNT_FREE_MISSES_PER_WORD) };
+}
 /** The wordHuntRev new rounds are dealt (generatePuzzle stamps it). */
 export const WORDHUNT_REV_TARGET = WORDHUNT_REV_MISSES;
 
-/** wordHuntRev 2: the share (percent) of the score kept after `misses` with `words` found. */
-export function wordHuntMissKeptPct(misses: number, words: number): number {
-  const free = WORDHUNT_FREE_MISSES + WORDHUNT_FREE_MISSES_PER_WORD * Math.max(0, Math.trunc(words));
+/** wordHuntRev 2: the share (percent) of the score kept after `misses` with `words` found (a level deal's own allowance, D1). */
+export function wordHuntMissKeptPct(misses: number, words: number, base: number = WORDHUNT_FREE_MISSES, perWord: number = WORDHUNT_FREE_MISSES_PER_WORD): number {
+  const free = base + perWord * Math.max(0, Math.trunc(words));
   const extra = Math.max(0, Math.trunc(misses) - free);
   return Math.max(0, 100 - WORDHUNT_MISS_COST_PCT * extra);
 }
