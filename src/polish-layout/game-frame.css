@@ -396,10 +396,12 @@
 }
 /* The vignette, inside the same top and bottom edge strips as every puzzle screen (bottom.css). The top
    strip fades over 24px (0.5rem elsewhere): the frame's header starts right at the notch's inset, over a
-   brighter top than the old black, and a shorter fade showed there as a step (bottom-clearance-check). */
+   brighter top than the old black, and a shorter fade showed there as a step (bottom-clearance-check).
+   The lit stage (21 Nov 2026) is brighter again at the top, so the fade runs 80 px: every row under the notch
+   steps at most 2 per channel towards the stage colour. */
 [data-puzzle-play] > .screen-background::after {
   background:
-    linear-gradient(to bottom, var(--screen-edge) env(safe-area-inset-top, 0px), transparent) top / 100% calc(env(safe-area-inset-top, 0px) + 24px) no-repeat,
+    linear-gradient(to bottom, var(--screen-edge) env(safe-area-inset-top, 0px), transparent) top / 100% calc(env(safe-area-inset-top, 0px) + 80px) no-repeat,
     linear-gradient(to top, var(--screen-edge), transparent) bottom / 100% calc(env(safe-area-inset-bottom, 0px) + 16px) no-repeat,
     radial-gradient(140% 90% at 50% 50%, transparent 60%, color-mix(in srgb, var(--jz-bg) 30%, transparent) 100%);
 }
