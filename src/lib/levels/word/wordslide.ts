@@ -12,8 +12,8 @@ import type { Level } from "../levels";
  * every rule, the grader and the stage read the size from the stored puzzle. Joe (21 Nov 2026): Easy and Hard deal
  * unfiltered from the room seed; Expert deals only from its proved bank (scripts/slider-level-bank.ts): boards whose
  * elite person-like line at the human limits (scripts/slider-human.ts, never reading the words) reaches 200 on Expert's
- * own looser par line, stored on the board. The par stays at 8 or under on the bigger grids (Joe, 21 Nov 2026: Hard 7 or
- * 8), so proving it, and grading an unfinished board, costs no more than Normal's depth 8.
+ * own looser par line, stored on the board. The par stays at 7 or under on the bigger grids (Joe, 21 Nov 2026, option A:
+ * Hard 6 or 7, Expert 6), so proving it, and grading an unfinished board, costs no more than Normal's depth 8.
  * Any real words in the rows finish the board, so the game is open by design.
  */
 export interface WordSlideLevelSettings {
@@ -40,10 +40,10 @@ export const WORDSLIDE_LEVEL_SETTINGS: Readonly<Record<Exclude<Level, "normal">,
   // Joe (21 Nov 2026): Hard is dealt unfiltered from the room seed; Expert only from boards the elite's line at the
   // human limits takes to 200, on its own looser par line (scripts/slider-level-bank.ts).
   easy: { size: 4, shifts: [3, 3], par: [2, 3] },
-  hard: { size: 6, shifts: [7, 8], par: [7, 8] },
-  // Joe (21 Nov 2026): a shallower scramble, 5 or 6 slides, so the strong player solves about one board in ten (7 or 8
-  // left it near 0) while every dealt board keeps its proof.
-  expert: { size: 7, shifts: [5, 6], par: [5, 6], bank: true, parLine: { full: 21, zero: 42 } },
+  hard: { size: 6, shifts: [6, 7], par: [6, 7] },
+  // Joe (21 Nov 2026, option A): 6 slides, so the strong player steps down from Hard (about 35) to Expert (about 24,
+  // solving one board in nine) while every dealt board keeps its proof; Hard 6 or 7 slides.
+  expert: { size: 7, shifts: [6, 6], par: [6, 6], bank: true, parLine: { full: 21, zero: 42 } },
 };
 
 export const WORDSLIDE_LEVELS: GameLevels | null = {
@@ -57,6 +57,6 @@ export const WORDSLIDE_LEVELS: GameLevels | null = {
 /** One plain line per level beyond Normal: what changes (the game page, the intro and the help say it). */
 export const WORDSLIDE_LEVEL_ABOUT: Partial<Record<Exclude<Level, "normal">, string>> = {
   easy: "A small 4 by 4 grid of four-letter words, only 2 or 3 slides away.",
-  hard: "A 6 by 6 grid of six-letter words, 7 or 8 slides away.",
-  expert: "A 7 by 7 grid of seven-letter words, 5 or 6 slides away, and a looser move bonus.",
+  hard: "A 6 by 6 grid of six-letter words, 6 or 7 slides away.",
+  expert: "A 7 by 7 grid of seven-letter words, 6 slides away, and a looser move bonus.",
 };
