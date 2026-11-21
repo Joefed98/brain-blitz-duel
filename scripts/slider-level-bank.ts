@@ -23,7 +23,7 @@ import { sliderParLine } from "../src/lib/duel/wordSlide";
 import { gradeLine } from "./word-human-solvers";
 import { playSliderHuman, SLIDER_AT_LIMITS } from "./slider-human";
 
-export const SLIDER_BANK_SIZE = { expert: 200 } as const;
+export const SLIDER_BANK_SIZE = { expert: 250 } as const;
 /** Candidates tried for the bank (the stream's first this many). */
 export const SLIDER_EXPERT_TRIES = 960;
 const LEVEL_SEED = 0x51d6_0017;

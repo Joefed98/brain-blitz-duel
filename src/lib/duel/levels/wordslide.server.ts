@@ -18,7 +18,8 @@ import { rngBelow, seededRng, wordGameSeed } from "../wordSeed.server";
 export function dealSliderLevel(level: Exclude<Level, "normal">, context: GenerateContext): PuzzleData | null {
   const s = WORDSLIDE_LEVEL_SETTINGS[level];
   const seed = wordGameSeed(`wordslide:${level}`, context.bankSeed);
-  // D1 (21 Nov 2026): Hard and Expert deal from their proved banks (scripts/slider-level-bank.ts), drawn by the room's seed.
+  // Joe (21 Nov 2026): Expert deals from its proved bank (scripts/slider-level-bank.ts), drawn by the room's seed; Easy and
+  // Hard are built from the seed, unfiltered.
   const bank = s.bank && level === "expert" ? SLIDER_LEVEL_BANK.expert : undefined;
   if (bank?.length) return sliderBankPuzzle(s, bank[rngBelow(seededRng(seed), bank.length)]!);
   return buildWordSlideLevel(s, seed);
@@ -59,9 +60,9 @@ export function wordSlideLevelRuleBreak(p: WordSlidePuzzleData, s: WordSlideLeve
 }
 
 /**
- * One level board from a seed (D1, 21 Nov 2026; the bank script and Easy's deal): `size` different everyday words of
- * `size` letters, a scramble of the level's length that never undoes its last slide and leaves no row a word, kept only
- * when the proven fewest slides back (the par) is in the level's range.
+ * One level board from a seed (D1, 21 Nov 2026; the bank script and the Easy and Hard deals): `size` different common
+ * answers of `size` letters (answerWords), a scramble of the level's length that never undoes its last slide and leaves
+ * no row a word, kept only when the proven fewest slides back (the par) is in the level's range.
  */
 export function buildWordSlideLevel(s: WordSlideLevelSettings, seed: number): WordSlidePuzzleData {
   const rng = seededRng(seed);
