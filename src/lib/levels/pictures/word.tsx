@@ -160,16 +160,18 @@ const swapword: Picture = ({ level, size }) => {
   );
 };
 
-/** Cryptogrid: the grid's side, its starting letters gold. */
+/** Cryptogrid: the grid's columns and rows (Hard 8 by 7, Expert 9 by 7), its starting letters gold. */
 const codeword: Picture = ({ level, size }) => {
   const s = gameLevelSettings<CodewordLevelSettings>("codeword", level);
   const side = s?.size ?? CW_SIZE;
+  const rows = s?.rows ?? side;
   const givens = s?.givens ?? codewordGivensFor(CODEWORD_REV);
-  const cell = 92 / side;
+  const cell = 92 / Math.max(side, rows);
+  const top = 4 + (92 - rows * cell) / 2;
   return (
-    <Frame size={size} label={`${side} by ${side} grid, ${givens} letters given`}>
-      {Array.from({ length: side * side }, (_, i) => (
-        <rect key={i} x={4 + (i % side) * cell} y={4 + Math.floor(i / side) * cell} width={cell - 1.5} height={cell - 1.5} rx={1} fill={(i * 5) % (side * side) < givens ? GOLD : DIM} />
+    <Frame size={size} label={`${side} by ${rows} grid, ${givens} letters given`}>
+      {Array.from({ length: side * rows }, (_, i) => (
+        <rect key={i} x={4 + (i % side) * cell} y={top + Math.floor(i / side) * cell} width={cell - 1.5} height={cell - 1.5} rx={1} fill={(i * 5) % (side * rows) < givens ? GOLD : DIM} />
       ))}
     </Frame>
   );

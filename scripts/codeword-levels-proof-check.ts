@@ -1,16 +1,16 @@
 /**
  * codeword-levels-proof-check (D1, 21 Nov 2026; src/lib/levels/word/codeword.ts, difficulty-spec.md "Cryptogrid"): the grid
- * size is Cryptogrid's ladder (5, 7, 8, 9 a side), each level from its own bank (src/lib/duel/codewordLevelBank.server.ts,
- * scripts/codeword-bank.ts --levels).
+ * is Cryptogrid's ladder (Easy 5 × 5, Normal 7 × 7, Hard 8 × 7 and Expert 9 × 7, wider with seven rows: Joe, 21 Nov 2026),
+ * each level from its own bank (src/lib/duel/codewordLevelBank.server.ts, scripts/codeword-bank.ts --levels).
  *
- *  1. Every bank entry meets its level's rules: the grid size, symmetric and connected, no run of two or of more than seven
+ *  1. Every bank entry meets its level's rules: the grid's width and height, symmetric and connected, no run of two or of more than seven
  *     letters, every word a common answer, the letter range, the starting letters, and exactly one decoding from them
  *     against the full dictionary (codewordLevelEntryRuleBreak, the same solver as today's bank proof). No board twice.
  *  2. Expert: the person-like solver (codewordHuman.server.ts) decodes every board from its four letters alone, and its line
  *     entered at the human limits (0.25 s to react, 0.15 s a tap: humanLimits.ts) scores 200 through the server's grader
  *     on the dealt puzzle, inside the level's speed line, for every Expert bank board.
- *  3. Deals: a level's deal stores its size, clock and speed line; the same room seed deals the same board; Normal carries
- *     none of them; every level's clock is at most 120 s.
+ *  3. Deals: a level's deal stores its width, its rows (the wider grids), clock and speed line; the same room seed deals the
+ *     same board; Normal carries none of them; every level's clock is at most 120 s.
  *  4. The grader: a level board's crack scores full speed only inside its own stored line; a Normal board's line is 60 s.
  *  5. The bank rebuilds byte for byte: the first entries of each level here (CHECKS_FULL=1: the whole file, through
  *     `bun scripts/codeword-bank.ts --levels --check`), and today's 1,000-board bank's first 20 entries.
@@ -27,7 +27,7 @@ import { WORD_HUMAN_LIMITS } from "../src/lib/duel/levels/humanLimits";
 import { CODEWORD_LEVELS, type CodewordLevelSettings } from "../src/lib/levels/word/codeword";
 import type { CodewordPuzzleData } from "../src/lib/duel/types";
 import { HUMAN_LIMITS } from "./arcade-skill-bands/human";
-import { buildEntry, buildLevelEntry, codewordLevelRules, CODEWORD_BANK_LEVELS } from "./codeword-bank";
+import { buildEntry, buildLevelEntry, codewordLevelCols, codewordLevelRules, CODEWORD_BANK_LEVELS } from "./codeword-bank";
 import { codewordLine } from "./word-human-solvers";
 
 let passes = 0;
@@ -55,8 +55,14 @@ for (const level of CODEWORD_BANK_LEVELS) {
   ok(new Set(bank).size === bank.length && new Set(bank.map((e) => e.split("|")[0])).size === bank.length, `${level}: no board twice`);
   const broken = bank.map((e, i) => [i, codewordLevelEntryRuleBreak(e, rules)] as const).filter(([, b]) => b !== null);
   ok(broken.length === 0, `${level}: every board meets its rules and has exactly one decoding (${broken.slice(0, 3).map(([i, b]) => `#${i} ${b}`).join(", ")})`);
-  const sizes = new Set(bank.map((e) => codewordFromLevelEntry(e, 1).size));
-  ok(sizes.size === 1 && sizes.has(s.size), `${level}: every grid is ${s.size} × ${s.size}`);
+  const rows = s.rows ?? s.size;
+  const dims = new Set(
+    bank.map((e) => {
+      const b = codewordFromLevelEntry(e, 1, codewordLevelCols(level));
+      return `${b.size} × ${b.rows ?? b.size}`;
+    }),
+  );
+  ok(dims.size === 1 && dims.has(`${s.size} × ${rows}`), `${level}: every grid is ${s.size} × ${rows} (${[...dims].join(", ")})`);
 }
 
 /* ------------------------------------------------------------------------------------------------ 2. Expert's proof */
@@ -66,16 +72,17 @@ for (const level of CODEWORD_BANK_LEVELS) {
   let at200 = 0;
   let slowest = 0;
   const bank = CODEWORD_LEVEL_BANK.expert;
+  const cols = codewordLevelCols("expert");
   for (const entry of bank) {
-    const board = codewordFromLevelEntry(entry, 1);
-    const human = solveCodewordLikeAHuman(board.cells, board.numbers, board.givens);
+    const board = codewordFromLevelEntry(entry, 1, cols);
+    const human = solveCodewordLikeAHuman(board.cells, board.numbers, board.givens, cols);
     if (human.solved && human.letters.join("") === board.solution) cracked++;
   }
   ok(cracked === bank.length, `expert: the person-like solver cracks ${cracked} of ${bank.length} boards from their four letters`);
   // The dealt puzzle (today's stamps, the level's clock and speed line), the line graded by the server.
   const base = deal(1, "expert");
   for (const entry of bank) {
-    const p = { ...base, ...codewordFromLevelEntry(entry, base.codewordRev), timeLimitMs: base.timeLimitMs, speedFullByS: base.speedFullByS } as CodewordPuzzleData;
+    const p = { ...base, ...codewordFromLevelEntry(entry, base.codewordRev, cols), timeLimitMs: base.timeLimitMs, speedFullByS: base.speedFullByS } as CodewordPuzzleData;
     const line = codewordLine(p);
     if (line.score >= 200) at200++;
     slowest = Math.max(slowest, line.ms);
@@ -88,7 +95,11 @@ for (const level of CODEWORD_BANK_LEVELS) {
   const s = settingsOf(level);
   for (const seed of [3, 41, 977]) {
     const p = deal(seed, level);
-    ok(p.size === s.size && p.cells.length === s.size * s.size, `${level} ${seed}: a ${s.size} × ${s.size} grid (${p.size})`);
+    const rows = s.rows ?? s.size;
+    ok(
+      p.size === s.size && p.rows === s.rows && p.cells.length === s.size * rows,
+      `${level} ${seed}: a ${s.size} × ${rows} grid (${p.size} × ${p.rows ?? p.size}, ${p.cells.length} squares)`,
+    );
     ok(p.timeLimitMs === s.clockMs && s.clockMs <= 120_000 && p.speedFullByS === s.speedFullByS, `${level} ${seed}: the level's clock and speed line stored`);
     ok(p.givens.length === s.givens && (p as { level?: string }).level === level, `${level} ${seed}: ${s.givens} starting letters, stamped ${level}`);
     ok(JSON.stringify(deal(seed, level)) === JSON.stringify(p), `${level} ${seed}: the same seed deals the same board`);
@@ -96,7 +107,10 @@ for (const level of CODEWORD_BANK_LEVELS) {
 }
 {
   const n = deal(41);
-  ok(n.size === 7 && n.speedFullByS === undefined && n.timeLimitMs === undefined && (n as { level?: string }).level === undefined, "normal: today's 7 × 7 board, no level fields");
+  ok(
+    n.size === 7 && n.rows === undefined && n.speedFullByS === undefined && n.timeLimitMs === undefined && (n as { level?: string }).level === undefined,
+    "normal: today's 7 × 7 board, no level fields",
+  );
 }
 
 /* ------------------------------------------------------------------------------------------------ 4. The grader */

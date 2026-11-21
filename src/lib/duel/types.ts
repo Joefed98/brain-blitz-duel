@@ -2984,8 +2984,11 @@ export interface CodewordPuzzleData {
   type: "codeword";
   /** Rules revision (1 = first release, four givens; 2 = five givens, 14 Oct 2026; 3 = six givens, the sixth leaving the most words one number from done, 19 Oct 2026; 4 = rev 3's board scored to 200, 25 Oct 2026). */
   codewordRev: number;
+  /** The grid's width (columns); its height too unless `rows` says. */
   size: number;
-  /** size × size cells, row by row: 0 = black square, otherwise the cell's number (1…numbers). */
+  /** Levels (D1, 21 Nov 2026): the grid's height on a level's wider board (Hard 8 × 7, Expert 9 × 7); absent = `size` (square). */
+  rows?: number;
+  /** size × rows cells, row by row: 0 = black square, otherwise the cell's number (1…numbers). */
   cells: number[];
   /** How many different numbers (= different letters) the grid uses. */
   numbers: number;

@@ -28,10 +28,17 @@ export interface HumanSolve {
   order: number[];
 }
 
-export function solveCodewordLikeAHuman(cells: readonly number[], numbers: number, givens: readonly { n: number; letter: string }[]): HumanSolve {
+export function solveCodewordLikeAHuman(
+  cells: readonly number[],
+  numbers: number,
+  givens: readonly { n: number; letter: string }[],
+  cols?: number,
+): HumanSolve {
   const letterOf = new Map<number, string>(givens.map((g) => [g.n, g.letter]));
-  // D1 (21 Nov 2026): any square grid (a level board's 5, 8 or 9 a side); today's 49 cells are 7 × 7.
-  const runs = codewordRuns(cells, Math.round(Math.sqrt(cells.length)) || CW_SIZE).map((r) => r.cells.map((c) => cells[c]!));
+  // D1 (21 Nov 2026): any grid; `cols` a level's wider grid's width (Hard 8 × 7, Expert 9 × 7), else square (today's 7 × 7).
+  const side = Math.round(Math.sqrt(cells.length)) || CW_SIZE;
+  const width = typeof cols === "number" && cols > 0 && cells.length % cols === 0 ? cols : side;
+  const runs = codewordRuns(cells, width, cells.length / width).map((r) => r.cells.map((c) => cells[c]!));
   const order: number[] = [];
   let steps = 0;
   for (;;) {
