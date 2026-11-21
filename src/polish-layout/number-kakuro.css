@@ -3,7 +3,13 @@
  * docs/design/number-overhaul/source/kakuro.py) under every cell, bigger bold clue numbers in Archivo, champagne-gold
  * digits, and a broken run shown as a red clue with a thin red outline on its squares (never a red fill). No glows.
  * Every drawn cell is still exactly the element the stage counts as the tap.
+ * Spotlight (the polish plan, 21 Nov 2026): white matte squares with dark navy digits, deep green clue squares; the
+ * picked square and runs take the Number green.
  */
+[data-number-kakuro] {
+  --kk-ink: var(--jz-navy);
+  --kk-pick: color-mix(in srgb, var(--category-number) 70%, var(--jz-navy));
+}
 .kakuro-board[data-number-kakuro] {
   border-radius: 6px;
 }
@@ -44,15 +50,15 @@
 /* The selected square and its runs: a champagne ring, and a quiet navy wash on the runs. */
 [data-number-kakuro] .kakuro-cell.kakuro-lit {
   background-color: transparent;
-  box-shadow: inset 0 0 0 100vmax color-mix(in srgb, var(--jz-surface-2) 38%, transparent);
+  box-shadow: inset 0 0 0 100vmax color-mix(in srgb, var(--category-number) 18%, transparent);
 }
 [data-number-kakuro] .kakuro-cell.kakuro-selected {
   background-color: transparent;
-  box-shadow: inset 0 0 0 2px var(--jz-gold);
+  box-shadow: inset 0 0 0 2.5px var(--kk-pick);
 }
 /* A run right and full: a thin champagne line round its squares. */
 [data-number-kakuro] .kakuro-cell.kakuro-done {
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--jz-gold) 55%, transparent);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--category-number) 75%, transparent);
 }
 /* A broken run: a thin red outline, never a red fill. */
 [data-number-kakuro] .kakuro-cell.kakuro-bad {
@@ -61,25 +67,25 @@
 }
 [data-number-kakuro] .kakuro-cell.kakuro-selected.kakuro-done,
 [data-number-kakuro] .kakuro-cell.kakuro-selected.kakuro-bad {
-  box-shadow: inset 0 0 0 2px var(--jz-gold);
+  box-shadow: inset 0 0 0 2.5px var(--kk-pick);
 }
 [data-number-kakuro] .kakuro-digit {
   font-family: var(--jz-font);
   font-weight: 800;
-  color: var(--jz-gold);
+  color: var(--kk-ink);
   font-size: max(17px, calc(100cqw / var(--kakuro-n, 6) * 0.54));
 }
 [data-number-kakuro].kakuro-small .kakuro-digit { font-size: max(9px, calc(100cqw / var(--kakuro-n, 6) * 0.54)); }
-[data-number-kakuro] .kakuro-tone-entry .kakuro-digit { color: var(--jz-gold); }
+[data-number-kakuro] .kakuro-tone-entry .kakuro-digit { color: var(--kk-ink); }
 [data-number-kakuro] .kakuro-tone-wrong .kakuro-digit { color: var(--jz-loss); }
-[data-number-kakuro] .kakuro-tone-missing .kakuro-digit { color: var(--jz-text-2); opacity: 1; }
+[data-number-kakuro] .kakuro-tone-missing .kakuro-digit { color: color-mix(in srgb, var(--kk-ink) 60%, var(--jz-text-3)); opacity: 1; }
 /* Pencil marks readable: never under 11 px. */
 [data-number-kakuro] .kakuro-marks {
   font-family: var(--jz-font);
   font-weight: 700;
   font-size: max(11px, calc(100cqw / var(--kakuro-n, 6) * 0.2));
   line-height: 1.05;
-  color: var(--jz-text-2);
+  color: color-mix(in srgb, var(--kk-ink) 75%, var(--jz-text-3));
   padding: 0 4%;
 }
 [data-number-kakuro].kakuro-small .kakuro-marks { font-size: 11px; }
@@ -136,7 +142,7 @@
   outline-offset: -4px;
 }
 [data-kakuro-reveal] [data-number-kakuro] .kakuro-tone-missed .kakuro-digit {
-  color: var(--jz-text-3);
+  color: color-mix(in srgb, var(--kk-ink) 55%, var(--jz-text-3));
   opacity: 0.85;
   font-weight: 700;
 }

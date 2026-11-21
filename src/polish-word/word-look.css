@@ -5,6 +5,10 @@
  * light on them (glossy glaze and lacquer with depth, enamel gold, shining metal, glass with a crisp line on its
  * curve), but no glare washing across a face or a letter and no glowing edges or rings. Word's dark navy background
  * is kept; controls are champagne gold and navy.
+ * Spotlight (the polish plan, 21 Nov 2026): the board pieces are re-rendered light and matte under the same names
+ * (tile-black is the ivory tile, tile-teal mint, tile-grey pale stone, tile-red coral, tile-sapphire the Word blue,
+ * tile-slate a white cell, the well a pale recess), so letters on them are dark navy ink; the keyboard keys and the
+ * controls stay navy with light letters.
  *
  * Used through attributes, so every game keeps its own markup and hit areas:
  *   data-wa="tile" | "tile-sm" | "disc" | "well" | "key" | "pip"   the piece
@@ -15,11 +19,14 @@
  */
 
 :root {
-  --wa-ink: var(--jz-text);
+  /* Dark navy ink on the light pieces; light ink on the navy keys and on the Word blue. */
+  --wa-ink: var(--jz-navy);
+  --wa-ink-light: var(--jz-text);
   --wa-ink-gold: var(--jz-ink-gold);
   --wa-champagne: var(--jz-gold);
   --wa-navy-edge: color-mix(in srgb, var(--jz-gold) 70%, var(--jz-bg));
-  --wa-shadow: 0 2px 3px rgb(0 0 0 / 0.45), 0 6px 10px rgb(0 0 0 / 0.25);
+  /* Short shadows: one soft top light (Spotlight's art rule 2). */
+  --wa-shadow: 0 2px 3px rgb(0 0 0 / 0.3);
   --wa-font: var(--jz-font);
 }
 
@@ -67,10 +74,15 @@
 [data-wa="pip"][data-wa-tone="gold"] { --wa-img: url(/word-art/pip-gold.webp); }
 [data-wa="pip"][data-wa-tone="red"] { --wa-img: url(/word-art/pip-red.webp); }
 
-/* Letters on gold read dark; dim and grey letters stay readable (≥ 4.5:1 on their glaze). */
+/* Letters on gold read dark; letters on the Word blue and on the navy keys read light; a spent (dim) piece and an empty
+   well keep navy ink a step quieter (≥ 4.5:1 on their glaze). */
 [data-wa][data-wa][data-wa][data-wa-tone="gold"] { color: var(--wa-ink-gold) !important; }
-[data-wa][data-wa][data-wa][data-wa-tone="dim"] { color: var(--jz-text-3) !important; }
-[data-wa="well"][data-wa][data-wa][data-wa] { color: var(--jz-text-2) !important; }
+[data-wa][data-wa][data-wa][data-wa-tone="sapphire"] { color: var(--jz-white) !important; }
+[data-wa][data-wa][data-wa][data-wa-tone="dim"] { color: color-mix(in srgb, var(--jz-navy) 80%, var(--jz-text-3)) !important; }
+[data-wa="well"][data-wa][data-wa][data-wa] { color: color-mix(in srgb, var(--jz-navy) 85%, var(--jz-text-3)) !important; }
+[data-wa="key"][data-wa][data-wa][data-wa] { color: var(--wa-ink-light) !important; }
+[data-wa="key"][data-wa][data-wa][data-wa-tone="gold"],
+[data-wa="key"][data-wa][data-wa][data-wa-tone="red"] { color: var(--wa-ink) !important; }
 /* Dense grids (Lookout, the big Cryptogrid): no drop shadow between touching tiles. */
 [data-wa="tile-sm"][data-wa][data-wa][data-wa] { box-shadow: 0 1px 1px rgb(0 0 0 / 0.5) !important; }
 

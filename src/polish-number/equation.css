@@ -101,7 +101,8 @@
   inset: 0;
   font-size: 0.82em;
   font-weight: 800;
-  color: var(--jz-text);
+  /* Spotlight (21 Nov 2026): num.webp is an ivory tile, so its numbers are dark navy ink. */
+  color: var(--jz-navy);
   background: url("/number/equation/num.webp") center / 100% 100% no-repeat;
 }
 [data-number-overhaul] .opg-gap[data-kind="sign"] .opg-fill {
@@ -109,7 +110,7 @@
   background-image: url("/number/equation/sign.webp");
 }
 [data-number-overhaul] .opg-equation[data-correct="true"] .opg-gap[data-kind="number"] .opg-fill {
-  color: var(--jz-gold);
+  color: color-mix(in srgb, var(--category-number) 45%, var(--jz-navy));
 }
 
 [data-number-overhaul] .opg-gap[data-mark="bad"] .opg-fill {
@@ -132,7 +133,7 @@
   font-family: var(--jz-font);
   font-size: 28px;
   font-weight: 800;
-  color: var(--jz-text);
+  color: var(--jz-navy);
   background: url("/number/equation/num.webp") center / 100% 100% no-repeat;
   box-shadow: none;
 }
@@ -146,7 +147,7 @@
   box-shadow: none;
 }
 [data-number-overhaul] .opg-key[data-kind="number"] {
-  color: var(--jz-text);
+  color: var(--jz-navy);
   box-shadow: none;
 }
 [data-number-overhaul] .opg-key[data-used="true"] {

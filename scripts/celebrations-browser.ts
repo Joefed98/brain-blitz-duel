@@ -40,6 +40,9 @@
  *    Changed with Joe's approval, 21 Nov 2026 (P1, navigation and Home): "home" re-recorded (the new Home and tab bar),
  *    and "podium" and "standings" (the medal art's two panel colours named --jz-art-surface / --jz-art-surface-2, the
  *    reward art's own tokens since the navy change; nothing else); final2, lobby3 and reveal150 byte-identical.
+ *    Changed with Joe's approval, 21 Nov 2026 (the reveal template, P2): only "reveal150" re-recorded with --record-off,
+ *    its markup inside RevealScreen's wrappers (the template root, the header, body, score, stage and footer slots); every
+ *    other entry byte-identical.
  *
  * Every screen is drawn on a fixed clock (scripts/fixed-clock.ts: Mon 26 Oct 2026, the recording's day),
  * so a re-recording on any day draws the same dates; a failed markup comparison prints where they part.

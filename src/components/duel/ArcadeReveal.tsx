@@ -1,4 +1,5 @@
 import { GameReveal } from "@/components/duel/GameParts";
+import { RevealScreen } from "./RevealScreen";
 import { RUN_SUMMARY_TYPES } from "@/lib/duel/runSummary";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/design/components";
@@ -40,6 +41,10 @@ export interface RevealPlayer {
 interface ArcadeRevealProps {
   /** The game's own visual summary of the run (PuzzleDefinition.arcadeSummary), under the breakdown. */
   summaryVisual?: ReactNode;
+  /** The reveal screen's header row (AnswerReveal's `data-reveal-head`), drawn in the template's header slot (G1). */
+  header?: ReactNode;
+  /** Practice's stars and new best (AnswerReveal's RevealPayoff), at the top of the score card. */
+  aboveScore?: ReactNode;
   puzzle: PuzzleData;
   myAnswer: string | null;
   /** round_results.score for this player; null until the server has stored it. */
@@ -289,7 +294,7 @@ function useCelebration(puzzle: PuzzleData, myAnswer: string | null, myScore: nu
   return full && best ? "both" : full ? "full" : best ? "best" : null;
 }
 
-export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal, players, nearMissLine, personalBest, round, costRows = [], practice = false, best = null, summaryVisual }: ArcadeRevealProps) {
+export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal, players, nearMissLine, personalBest, round, costRows = [], practice = false, best = null, summaryVisual, header = null, aboveScore = null }: ArcadeRevealProps) {
   // The band-lined standard games read as the standard's part lines (arcadeBandStd.ts); display only.
   const myReveal = useMemo(() => {
     if (!storedReveal) return null;
@@ -318,14 +323,28 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
   const folds = !practice && !!summary && summary.rest.length + tiles.length > 0;
   const [open, setOpen] = useState(false);
   const breakdownLines = shown ? (hitsLine ? [...shown.lines, hitsLine] : shown.lines) : [];
-  // The reveal is its own screen (3 Nov 2026): no frozen world behind it; PhoneShell's `reveal` paints the game's colours.
-  return (
-    <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl">
-      {celebration ? <ArcadeCelebration kind={celebration} world={arcadeWorldOf(puzzle.type)} /> : null}
-      {/* Scrolls rather than overlap (31 Oct 2026): at 375×667 a game with four part lines left the chart
-          less height than it needs; opened, the column scrolls. */}
-      <div data-reveal-column className="relative flex min-h-0 flex-1 flex-col items-center justify-start gap-3 overflow-y-auto px-3 py-2">
+  // The one reveal template (G1; src/components/duel/RevealScreen.tsx): the score card, the run's picture on the stage
+  // (a room adds the chart as its "Room" view), the breakdown and tiles behind "See breakdown". The column scrolls, so
+  // a tall picture is never cut off; PhoneShell's `reveal` paints the game's colours.
+  // The stage's views (G1): in a room the chart is the default view (the room's result), the run one tap away.
+  const [view, setView] = useState(practice || players.length < 2 ? "run" : "room");
+  // The chart straight on the gradient, no panel behind it (rooms only: in practice it would hold one dot).
+  const chart = (
+    <>
+      {!practice ? (
+        <div data-chart-panel className="flex w-full flex-1 flex-col px-2.5 py-2.5">
+          <ArcadeScoreChart
+            players={players.map((p) => ({ slot: p.slot, name: p.name, isMe: p.isMe, look: p.look, score: p.isMe ? myScore : p.score }))}
+            type={puzzle.type}
+          />
+        </div>
+      ) : null}
+    </>
+  );
+  // The score card (the template's second slot): the big number, the headline, practice's best and the near miss.
+  const scoreCard = (
         <div className="flex w-full flex-col items-center gap-1">
+          {aboveScore}
           {/* The hero's reserved spot (3 Nov 2026): the celebration hero lands here, beside the score, never over the
               breakdown, the chart or a button (celebrations.ts heroAnchor). */}
           <div data-hero-spot="" aria-hidden="true" className="reveal-hero-spot" />
@@ -360,14 +379,61 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
               {best === null ? "First go at this one" : <>Your best: <span className="tabular-nums text-foreground">{best}</span></>}
             </p>
           ) : null}
-          {/* The game's own picture of the run (the Action overhaul, stage 2; stage 3, 15 Nov 2026, Joe: "the big
-              numbers plus the run picture, with the stored breakdown in the shared layout below"): straight under the
-              score, its numbers in place of the tiles, and the breakdown (the room's summary line, the rows) after it. */}
-          {myAnswer && ownPicture ? (
-            <div data-reveal-run-picture="" className="mt-2 w-full">
-              <GameRunPicture puzzle={puzzle} myAnswer={myAnswer} />
-            </div>
-          ) : null}
+          {myScore !== null && nearMissLine ? <FitLine text={nearMissLine} className="text-foreground" /> : null}
+        </div>
+  );
+  const picture = (
+    <div data-reveal-picture="" className="flex w-full flex-col items-center justify-start gap-3">
+      {/* The game's own picture of the run (the Action overhaul, stage 2; stage 3, 15 Nov 2026, Joe: "the big
+          numbers plus the run picture, with the stored breakdown in the shared layout below"). */}
+      {myAnswer && ownPicture ? (
+        <div data-reveal-run-picture="" className="mt-2 w-full">
+          <GameRunPicture puzzle={puzzle} myAnswer={myAnswer} />
+        </div>
+      ) : null}
+      {/* The Retro overhaul (stage 2): a Retro game's run summary, its key numbers and its moments along the clock. */}
+      {myScore !== null ? <RetroRunSummary puzzle={puzzle} answer={myAnswer} /> : null}
+      {/* Cards & Board (the overhaul, 15 Nov 2026): the final table large, the key numbers and a run summary. */}
+      {CARDS_REVEAL_TYPES.has(puzzle.type) && myScore !== null ? <CardsRevealPicture puzzle={puzzle} answer={myAnswer ?? null} /> : null}
+      {/* The Strategy games' picture of the run (the Strategy overhaul, stage 2): large pieces, in a room too (G1: no
+          picture hides behind "See breakdown" any more; the chart is the Room view). */}
+      {myScore !== null ? (
+        <div data-strategy-summary-fold="" className="contents">
+          <StrategyRunSummary puzzle={puzzle} myAnswer={myAnswer} reveal={myReveal} />
+        </div>
+      ) : null}
+      {/* The run's own visual summary (a game's Reveal, src/lib/duel/runSummary.ts): Crazy Golf's scorecard and hole map. */}
+      {RUN_SUMMARY_TYPES.has(puzzle.type) && myAnswer !== null && myAnswer !== undefined ? (
+        <div data-run-summary={puzzle.type} className="w-full shrink-0">
+          <GameReveal puzzle={puzzle} myAnswer={myAnswer} myCorrect={false} myReactionAvgMs={null} timeLimitMs={0} />
+        </div>
+      ) : null}
+      {/* The game's own picture of the run (15 Nov 2026): practice and rooms alike (G1). */}
+      {summaryVisual && myScore !== null ? (
+        <div data-reveal-summary-visual="" className="flex w-full shrink-0 flex-col items-center animate-fade-in">
+          {summaryVisual}
+        </div>
+      ) : null}
+      {/* The game's own run summary (the Sports overhaul): drawn large under the score, in practice and rooms. */}
+      <RunSummary puzzle={puzzle} myAnswer={myAnswer} myScore={myScore} practice={practice} />
+    </div>
+  );
+  const views = !practice ? [{ id: "run", label: "Your run", node: picture }, { id: "room", label: "Room", node: chart }] : undefined;
+  return (
+    <div className="relative flex min-h-0 w-full flex-1 flex-col overflow-hidden rounded-xl">
+      {celebration ? <ArcadeCelebration kind={celebration} world={arcadeWorldOf(puzzle.type)} /> : null}
+      <RevealScreen
+        kind="arcade"
+        data-reveal-column className="relative px-3 py-2"
+        header={header}
+        views={views}
+        view={view}
+        onView={setView}
+        stage={views ? undefined : picture}
+        score={scoreCard}
+        breakdown={
+        <>
+          {/* The room's one-line summary and its "See breakdown" tap, under the stage (the R1 mockup). */}
           {summary && !practice ? (
             folds ? (
               <Button
@@ -385,68 +451,28 @@ export function ArcadeReveal({ puzzle, myAnswer, myScore, myReveal: storedReveal
               <FitLine text={summaryText(summary.summary)} className="text-foreground animate-fade-in" />
             )
           ) : null}
-          {myScore !== null && nearMissLine ? <FitLine text={nearMissLine} className="text-foreground" /> : null}
-        </div>
-
-        {/* The Retro overhaul (stage 2): a Retro game's run summary, its key numbers and its moments along the clock. */}
-        {myScore !== null ? <RetroRunSummary puzzle={puzzle} answer={myAnswer} /> : null}
-        {/* Cards & Board (the overhaul, 15 Nov 2026): the final table large, the key numbers and a run summary. */}
-        {CARDS_REVEAL_TYPES.has(puzzle.type) && myScore !== null ? <CardsRevealPicture puzzle={puzzle} answer={myAnswer ?? null} /> : null}
-        {/* The Strategy games' picture of the run (the Strategy overhaul, stage 2): large pieces under the score. In a room
-            it folds with the breakdown (one tap away under "See breakdown"), so the folded reveal still fits its screen. */}
-        {myScore !== null ? (
-          <div data-strategy-summary-fold="" className={folds && !open ? "hidden" : "contents"}>
-            <StrategyRunSummary puzzle={puzzle} myAnswer={myAnswer} reveal={myReveal} />
-          </div>
-        ) : null}
-        {/* The run's own visual summary (a game's Reveal, src/lib/duel/runSummary.ts): Crazy Golf's scorecard and hole map, first under the score. */}
-        {RUN_SUMMARY_TYPES.has(puzzle.type) && myAnswer !== null && myAnswer !== undefined ? (
-          <div data-run-summary={puzzle.type} className="w-full shrink-0">
-            <GameReveal puzzle={puzzle} myAnswer={myAnswer} myCorrect={false} myReactionAvgMs={null} timeLimitMs={0} />
-          </div>
-        ) : null}
-
-        {/* The game's own picture of the run (15 Nov 2026): in practice always, in a room with the breakdown, above it. */}
-        {summaryVisual && myScore !== null ? (
-          <div data-reveal-summary-visual="" hidden={!practice && !open} className="flex w-full shrink-0 flex-col items-center animate-fade-in">
-            {summaryVisual}
-          </div>
-        ) : null}
-        {/* The game's own run summary (the Sports overhaul): drawn large under the score, in practice and rooms. */}
-        <RunSummary puzzle={puzzle} myAnswer={myAnswer} myScore={myScore} practice={practice} />
-
-        {/* The full breakdown: open in practice, one tap away in a room (always in the markup). */}
-        {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}
-        {/* The run's lines exactly as stored, when the rows above were rewritten as part rows (arcadeBandStd.ts). */}
-        {summary && myReveal !== storedReveal && storedReveal ? <span hidden data-stored-lines={storedReveal.lines.join("\n")} /> : null}
-
-        {/* The chart straight on the gradient, no panel behind it (rooms only: in practice it would hold one dot). */}
-        {/* Never shorter than the chart it holds (no min-h-0): the column scrolls instead of overlapping. */}
-        {!practice ? (
-          <div data-chart-panel className="flex w-full flex-1 flex-col px-2.5 py-2.5">
-            <ArcadeScoreChart
-              players={players.map((p) => ({ slot: p.slot, name: p.name, isMe: p.isMe, look: p.look, score: p.isMe ? myScore : p.score }))}
-              type={puzzle.type}
-            />
-          </div>
-        ) : null}
-
-        {tiles.length > 0 ? (
-          // One full-width row per stored tile (label left, value right), with the breakdown.
-          <div
-            data-reveal-tiles=""
-            hidden={!practice && !open}
-            className="reveal-breakdown flex w-full shrink-0 flex-col animate-fade-in"
-          >
-            {tiles.map((tile) => (
-              <div key={tile.label} className="reveal-breakdown-row">
-                <span className="reveal-breakdown-name">{tileLabel(tile.label)}</span>
-                <span className="reveal-breakdown-points">{tile.value}</span>
-              </div>
-            ))}
-          </div>
-        ) : null}
-      </div>
+          {/* The full breakdown: open in practice, one tap away in a room (always in the markup). */}
+          {summary ? <RevealBreakdown lines={breakdownLines} score={myScore} hidden={!practice && !open} /> : null}
+          {/* The run's lines exactly as stored, when the rows above were rewritten as part rows (arcadeBandStd.ts). */}
+          {summary && myReveal !== storedReveal && storedReveal ? <span hidden data-stored-lines={storedReveal.lines.join("\n")} /> : null}
+          {tiles.length > 0 ? (
+            // One full-width row per stored tile (label left, value right), with the breakdown.
+            <div
+              data-reveal-tiles=""
+              hidden={!practice && !open}
+              className="reveal-breakdown flex w-full shrink-0 flex-col animate-fade-in"
+            >
+              {tiles.map((tile) => (
+                <div key={tile.label} className="reveal-breakdown-row">
+                  <span className="reveal-breakdown-name">{tileLabel(tile.label)}</span>
+                  <span className="reveal-breakdown-points">{tile.value}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </>
+        }
+      />
     </div>
   );
 }

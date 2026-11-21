@@ -1,18 +1,20 @@
 /* Polish batch W (25 Oct 2026, display only): Ballpark. Imported only from src/puzzles/numline.tsx.
-   The Number overhaul (15 Nov 2026): the line gets the space, the number card is smaller, clean and matte, and
-   nothing glows. Live round only ([data-puzzle-play]); intros and demos keep their layout, so recorded touches land. */
+   The polish plan (Joe's pick, 20 Nov 2026; earlier E1.5): Ballpark's old look is back: this file is 82f2f648's (the lit
+   card, the dark glass well, the glowing pins), on the new lit stage, with two of today's rules kept: the compact card's
+   size (numlineLiveSizes lays the line out round a 56 px card) and the gold Place button at the end. */
 
 /* In a live round the frame's dock already ends 16px above the home-bar inset (pad-game-safe), so
-   Place's own 16px pad doubled it; the live summary takes that space instead. */
+   Place's own 16px pad doubled it; the live summary takes that space instead. Intros and demos
+   (no [data-puzzle-play]) keep the pad, so recorded touches still land. */
 [data-puzzle-play] [data-polish="numline"] > [data-game-controls="actions"] {
   padding-bottom: 0;
 }
 
-/* The number card: the rendered lacquer card (public/number/numline/card.webp, docs/design/number-overhaul/source/
-   numline.py), a deep navy face under a clear coat inside a polished steel rim that takes the light; drawn 9-slice
-   (corners 24 points of the 360 x 100 sprite, at 3 px a point). The face stays dark and clean for the number. */
+/* The number card: taller with a bigger number in a live round (the line is width-limited and the card
+   used to leave the height empty), lit from above in its own colours with a soft category glow behind
+   the number. Input maps only x across the whole arena, so nothing about touches changes. */
 [data-puzzle-play] [data-polish="numline"] .numline-card {
-  /* The layout pass (Joe, 15 Nov 2026): small and compact, one line just above the ruler (numlineLiveSizes). */
+  /* The compact card of the Number overhaul's layout pass (Joe, 15 Nov 2026): one line just above the ruler. */
   height: 56px;
   font-size: 36px;
   width: auto;
@@ -20,24 +22,48 @@
   max-width: 100%;
   padding: 0 28px;
   margin: 0 auto;
-  border: 0;
-  border-radius: 0;
-  border-image: url("/number/numline/card.webp") 72 fill / 18px stretch;
-  background: none;
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--jz-bg) 70%, transparent);
+  border-color: color-mix(in srgb, var(--category-accent) 28%, color-mix(in srgb, var(--jz-white) 12%, transparent));
+  background-image:
+    radial-gradient(60% 70% at 50% 55%, color-mix(in srgb, var(--category-accent) 20%, transparent), transparent 75%),
+    linear-gradient(180deg, color-mix(in oklab, var(--card) 78%, white 14%), color-mix(in oklab, var(--card) 92%, black 8%));
+  box-shadow:
+    inset 0 2px 0 color-mix(in srgb, var(--jz-white) 20%, transparent),
+    inset 0 -3px 0 color-mix(in srgb, var(--jz-bg) 30%, transparent),
+    0 12px 24px -8px color-mix(in srgb, var(--jz-bg) 80%, transparent);
 }
 [data-puzzle-play] [data-polish="numline"] .numline-card > span {
-  font-family: var(--jz-font);
-  font-weight: 800;
-  text-shadow: none;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--category-accent) 55%, transparent), 0 2px 0 color-mix(in srgb, var(--jz-bg) 50%, transparent);
+}
+/* The line sits close under the card (3 Nov 2026: was 22px of air; the tape's own box already holds the pins' room). */
+[data-puzzle-play] [data-polish="numline"] .numline-line-in {
+  margin-top: 4px;
 }
 
-/* The line sits in a plain, slightly sunk well under the card; it is what the player aims at. */
+/* Place: a light top edge and a soft glow in the category colour while a marker is ready. */
+[data-puzzle-play] [data-polish="numline"] > [data-game-controls="actions"] > button:not(:disabled) {
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, var(--jz-white) 35%, transparent),
+    0 4px 10px color-mix(in srgb, var(--jz-bg) 45%, transparent),
+    0 0 14px 4px color-mix(in srgb, var(--category-accent) 50%, transparent);
+}
+
+/* Dark glass pass (27 Oct 2026, display only): the line sits in a sunk well (the toolkit's .gf-well values)
+   with a faint category light along it, and placed pins and the live marker glow. Live round only; the
+   line's geometry and the whole-arena x mapping are unchanged. */
 [data-puzzle-play] [data-polish="numline"] .numline-line-in {
-  margin-top: 8px;
   border-radius: 16px;
-  background: color-mix(in srgb, var(--jz-bg) 45%, transparent);
-  box-shadow: inset 0 0 0 1px var(--jz-line);
+  background:
+    radial-gradient(80% 60% at 50% 60%, color-mix(in srgb, var(--category-accent) 12%, transparent), transparent 80%),
+    color-mix(in srgb, var(--jz-bg) 35%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--jz-white) 6%, transparent),
+    inset 0 2px 6px color-mix(in srgb, var(--jz-bg) 60%, transparent);
+}
+[data-puzzle-play] [data-polish="numline"] .numline-line-in g.numline-drop {
+  filter: drop-shadow(0 0 4px color-mix(in srgb, var(--category-accent) 55%, transparent));
+}
+[data-puzzle-play] [data-polish="numline"] .numline-line-in [data-numline-marker] {
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--primary) 70%, transparent)) drop-shadow(0 3px 4px color-mix(in srgb, var(--jz-bg) 50%, transparent));
 }
 
 /* Place: the screen's one gold button, flat champagne (never the surface layer's colours). */

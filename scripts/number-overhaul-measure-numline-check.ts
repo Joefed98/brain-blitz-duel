@@ -129,10 +129,10 @@ const between = (text: string, from: string, to: string) => {
   ok(!/soundCue\("numline\.line"\)/.test(s), "Ballpark: no second sound when the next line comes in");
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul): the ruler is three slices
   // (only the plain middle stretches, sideways), no longer one stretched rod.
-  ok(["ruler-l", "ruler-m", "ruler-r"].every((n) => s.includes(`numberArt("numline", "${n}")`)) && /"pin-placed" : "pin"/.test(s), "Ballpark: the ruler (three slices) and the pins are the rendered pieces");
+  ok(/data-numline-ruler/.test(s) && /fill=\{`url\(#\$\{id\}-steel\)`\}/.test(s) && /fill=\{fill\} stroke="#1a1b21"/.test(s), "Ballpark: the old steel tape and gradient pins (Joe's pick, 20 Nov 2026)"); // Changed with Joe's approval, 21 Nov 2026
   ok(/variant="gold"/.test(between(s, 'data-game-controls="actions"', "</Button>")), "Ballpark: Place is the screen's one gold button");
   const css = src("src/polish-layout/batch-w-numline.css");
-  ok(!/drop-shadow|text-shadow: 0 0 1|0 0 14px/.test(css), "Ballpark: nothing glows in the live round");
+  ok(/text-shadow: 0 0 18px/.test(css) && /g\.numline-drop/.test(css), "Ballpark: the old lit card and glowing pins in the live round"); // Changed with Joe's approval, 21 Nov 2026
   // Changed the card's size, never its input: a touch on the card still never places (the review fix stands).
   ok(/if \(!numlinePointerAllowed\(event\.target/.test(s), "Ballpark: the number card still takes no input");
 }
@@ -166,7 +166,7 @@ const between = (text: string, from: string, to: string) => {
   // glossy with a meniscus, and Ballpark's card is the rendered lacquer card.
   ok(/\$\{JUG_SLICE\} fill \//.test(src("src/puzzles/measure.tsx")), "Brimful: the glass shell draws its middle (the rendered highlights)");
   ok(/\.mj-surface::after/.test(src("src/puzzles/measure.tsx")) && /\.mj-glass::after/.test(src("src/puzzles/measure.tsx")), "Brimful: the water's meniscus and the glass's crisp highlight");
-  ok(/numline\/card\.webp/.test(src("src/polish-layout/batch-w-numline.css")), "Ballpark: the number card is the rendered lacquer card");
+  ok(!/numline\/card\.webp/.test(src("src/polish-layout/batch-w-numline.css")) && /\.numline-card \{[\s\S]*radial-gradient/.test(src("src/polish-layout/batch-w-numline.css")), "Ballpark: the number card is the old lit card"); // Changed with Joe's approval, 21 Nov 2026
   const sheet = src("docs/sound-cues/cue-sheet.csv");
   for (const slot of ["measure.stageClear", "measure.fail", "numline.stageClear", "numline.edge"]) {
     ok(Boolean((SOUND_MANIFEST as Record<string, unknown>)[slot]), `sound: ${slot} in the manifest`);
@@ -267,7 +267,7 @@ const between = (text: string, from: string, to: string) => {
     ok(z.yShare > 0.5 && z.yShare < 1, `Ballpark ${arenaH}: the tape sits low in its box, room above for the pins`);
   }
   const src = readFileSync("src/puzzles/numline.tsx", "utf8");
-  ok(/minor=\{live \? 10 : 0\}/.test(src), "Ballpark: the live ruler has tick marks at the tenths");
+  ok(/minor=\{0\}/.test(src), "Ballpark: the live ruler has no minor ticks (the old steel tape)"); // Changed with Joe's approval, 21 Nov 2026
   ok(/height: 56px;/.test(readFileSync("src/polish-layout/batch-w-numline.css", "utf8")), "Ballpark: the card is compact (56 px)");
 }
 
