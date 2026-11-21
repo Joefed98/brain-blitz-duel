@@ -341,7 +341,9 @@ const cryptogrid: StandardGame = {
       // codewordRev 6 (wordOverhaul.ts): only the wrong letters the grid showed to be wrong count.
       const wrong = usesWordOverhaul(p, "codeword") ? cryptogridShownWrong(p, input.drafts) : cryptogridWrongEntries(p, input.drafts);
       const clean = wrong === null ? 0 : cleanPoints(STD_CRYPTOGRID.clean, STD_CRYPTOGRID.clean, wrong);
-      return { finished: true, speed: speedOf(input, STD_CRYPTOGRID.speed, STD_CRYPTOGRID.fullByS), bonus: clean, measure: "clean crack", facts: { wrongEntered: wrong } };
+      // Levels (D1, 21 Nov 2026): a level deal's own speed line (speedFullByS); absent = 60 s, every round before.
+      const fullByS = typeof p.speedFullByS === "number" && p.speedFullByS > 0 ? p.speedFullByS : STD_CRYPTOGRID.fullByS;
+      return { finished: true, speed: speedOf(input, STD_CRYPTOGRID.speed, fullByS), bonus: clean, measure: "clean crack", facts: { wrongEntered: wrong } };
     }
     const letters = replayCodeword(p.numbers, p.givens, decodeCodeword(input.answer, p.numbers));
     const tally = codewordTally(letters, p.solution ?? "", p.givens);

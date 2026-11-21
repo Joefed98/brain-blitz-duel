@@ -2988,6 +2988,8 @@ export interface CodewordPuzzleData {
   solution?: string;
   /** The round's clock when a level deals one (the Word overhaul's levels; absent: the game's own 120 s). */
   timeLimitMs?: number;
+  /** Levels (D1, 21 Nov 2026): speed points are full for a crack inside this many seconds; absent = STD_CRYPTOGRID.fullByS (60). */
+  speedFullByS?: number;
 }
 
 /** Swapword: swap tiles until six crossing words read correctly. */

@@ -8,10 +8,12 @@ import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { encodeStrikeout2, type So2Action } from "../src/lib/duel/strikeout";
 import { solveStrikeoutLikeAPerson } from "../src/lib/duel/levels/strikeoutSolver.server";
-import type { PuzzleData, StrikeoutPuzzleData, SwapwordPuzzleData, WordSearchPuzzleData } from "../src/lib/duel/types";
+import type { CodewordPuzzleData, PuzzleData, StrikeoutPuzzleData, SwapwordPuzzleData, WordSearchPuzzleData } from "../src/lib/duel/types";
 import { encodeSwapword, swLatticeOf } from "../src/lib/duel/swapword";
 import { witnessSwaps } from "../src/lib/duel/swapword.server";
 import { swapwordDeduction } from "../src/lib/duel/levels/swapwordProof.server";
+import { encodeCodeword, type CwAction } from "../src/lib/duel/codeword";
+import { solveCodewordLikeAHuman } from "../src/lib/duel/levels/codewordHuman.server";
 import { wsEncode } from "../src/lib/duel/wordSearch";
 import { sentAnswer } from "./standard-lib";
 import { entryMs, LIMITS } from "./word-human";
@@ -103,10 +105,32 @@ export function swapwordLine(puzzle: SwapwordPuzzleData, limits = LIMITS): Timed
   return gradeLine(puzzle, drafts, { guesses, swaps: swaps.length });
 }
 
+/* --------------------------------------------------------------------------------------------- Cryptogrid */
+
+/**
+ * Cryptogrid's person-like line (codewordHuman.server.ts: it reads only the board and the letters it has decoded, and
+ * fixes a letter only when it is forced, never guessing): each number it decodes is entered in the order it decoded it,
+ * 0.25 s to react and 0.15 s each to tap the number's square and the letter's key. A board it can't finish leaves the
+ * rest blank (graded at the buzzer).
+ */
+export function codewordLine(puzzle: CodewordPuzzleData, limits = LIMITS): TimedLine {
+  const solve = solveCodewordLikeAHuman(puzzle.cells, puzzle.numbers, puzzle.givens);
+  const actions: CwAction[] = [];
+  const drafts: { answer: string; atMs: number }[] = [];
+  let at = 0;
+  for (const n of solve.order) {
+    at += entryMs(2, limits);
+    actions.push({ n, letter: solve.letters[n - 1]! });
+    drafts.push({ answer: encodeCodeword(actions), atMs: at });
+  }
+  return gradeLine(puzzle, drafts, { solved: solve.solved ? 1 : 0, left: solve.left, rounds: solve.steps });
+}
+
 /** The game's person-like line at the human limits, where the game has one (null otherwise). */
 export function personLine(puzzle: PuzzleData): TimedLine | null {
   if (puzzle.type === "strikeout") return strikeoutLine(puzzle);
   if (puzzle.type === "wordsearch") return lookoutLine(puzzle);
   if (puzzle.type === "swapword") return swapwordLine(puzzle);
+  if (puzzle.type === "codeword") return codewordLine(puzzle);
   return null;
 }

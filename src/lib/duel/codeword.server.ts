@@ -38,12 +38,40 @@ import { fmix32, rngBelow, rngShuffle, saltOf, seededRng } from "./wordSeed.serv
 const N = CW_SIZE;
 const CELLS = N * N;
 
+/** A square grid's side from its cell count (7 for today's 49 cells; a level board's 5, 8 or 9). */
+export function codewordSideOf(cells: { length: number }): number {
+  return Math.round(Math.sqrt(cells.length));
+}
+
+/**
+ * The shape of a level's templates (D1, 21 Nov 2026; src/lib/levels/word/codeword.ts): the side, how many symmetric pairs of
+ * black squares to drop (min + up to `pairsSpan − 1` more), the white-cell range, the share of white cells that must be
+ * crossed, the longest run (the answer list stops at seven letters) and the fill's search budget. `lattice`: no random
+ * squares, rows and columns 1, 3, 5 … are words (Easy's 5 × 5).
+ */
+export interface CodewordShape {
+  size: number;
+  pairsMin: number;
+  pairsSpan: number;
+  whiteMin: number;
+  whiteMax: number;
+  checked: number;
+  maxRun: number;
+  fillBudget: number;
+  lattice?: boolean;
+}
+
+/** Today's 7 × 7 shape (randomTemplate's own numbers; the bank rebuilds byte for byte from it). */
+export const CODEWORD_SHAPE_7: CodewordShape = { size: 7, pairsMin: 6, pairsSpan: 5, whiteMin: 30, whiteMax: 38, checked: 0.5, maxRun: 7, fillBudget: 4_000 };
+
 /* ------------------------------------------------------------------ */
 /*  Templates                                                          */
 /* ------------------------------------------------------------------ */
 
 /** Null when the black-square pattern is usable, else why not. */
 export function templateRuleBreak(white: readonly boolean[]): string | null {
+  const N = codewordSideOf(white);
+  const CELLS = N * N;
   const cells = white.map((w) => (w ? 1 : 0));
   const runs = codewordRuns(cells, N);
   if (runs.some((r) => r.cells.length === 2)) return "two-letter run";
@@ -71,24 +99,33 @@ export function templateRuleBreak(white: readonly boolean[]): string | null {
   return null;
 }
 
-function randomTemplate(rng: () => number): boolean[] | null {
+/** Easy's lattice: rows and columns 0, 2, 4 … white, the squares between them black. */
+function latticeTemplate(size: number): boolean[] {
+  return Array.from({ length: size * size }, (_, i) => Math.floor(i / size) % 2 === 0 || (i % size) % 2 === 0);
+}
+
+function randomTemplate(rng: () => number, shape: CodewordShape = CODEWORD_SHAPE_7): boolean[] | null {
+  if (shape.lattice) return latticeTemplate(shape.size);
+  const N = shape.size;
+  const CELLS = N * N;
   for (let tries = 0; tries < 400; tries++) {
     const white = Array.from({ length: CELLS }, () => true);
-    const pairs = 6 + rngBelow(rng, 5);
+    const pairs = shape.pairsMin + rngBelow(rng, shape.pairsSpan);
     for (let p = 0; p < pairs; p++) {
       const c = rngBelow(rng, CELLS);
       white[c] = false;
       white[CELLS - 1 - c] = false;
     }
     const count = white.filter(Boolean).length;
-    if (count < 30 || count > 38) continue;
+    if (count < shape.whiteMin || count > shape.whiteMax) continue;
     if (templateRuleBreak(white) !== null) continue;
     // Enough crossings that the code can be cracked: most white cells are checked.
     const runs = codewordRuns(white.map((w) => (w ? 1 : 0)), N);
+    if (runs.some((r) => r.cells.length > shape.maxRun)) continue;
     const cover = new Map<number, number>();
     for (const r of runs) for (const c of r.cells) cover.set(c, (cover.get(c) ?? 0) + 1);
     const checked = [...cover.values()].filter((v) => v === 2).length;
-    if (checked < count * 0.5) continue;
+    if (checked < count * shape.checked) continue;
     return white;
   }
   return null;
@@ -133,11 +170,12 @@ function candidates(pattern: readonly (string | undefined)[]): number[] {
 }
 
 /** Fills a template with different common words; null when the search budget runs out. */
-function fillTemplate(white: readonly boolean[], rng: () => number): string[] | null {
+function fillTemplate(white: readonly boolean[], rng: () => number, fillBudget = 4_000): string[] | null {
+  const N = codewordSideOf(white);
   const runs = codewordRuns(white.map((w) => (w ? 1 : 0)), N);
-  const letters: (string | undefined)[] = Array.from({ length: CELLS }, () => undefined);
+  const letters: (string | undefined)[] = Array.from({ length: N * N }, () => undefined);
   const used = new Set<string>();
-  let budget = 4_000;
+  let budget = fillBudget;
   const open = new Set(runs.map((_, i) => i));
   const solve = (): boolean => {
     if (open.size === 0) return true;
@@ -212,7 +250,7 @@ export function countCodewordSolutions(
   givens: readonly { n: number; letter: string }[],
   limit = 2,
 ): number {
-  const runs = codewordRuns(cells, N).map((r) => r.cells.map((c) => cells[c]!));
+  const runs = codewordRuns(cells, codewordSideOf(cells)).map((r) => r.cells.map((c) => cells[c]!));
   const assign: string[] = Array.from({ length: numbers + 1 }, () => "");
   const owner = new Map<string, number>();
   for (const g of givens) {
@@ -326,7 +364,7 @@ export function codewordFifthGiven(entry: string): number {
 export function codewordNextGuesses(cells: readonly number[], known: ReadonlySet<number>): { guessable: number; words: number } {
   const next = new Set<number>();
   let words = 0;
-  for (const run of codewordRuns(cells, N)) {
+  for (const run of codewordRuns(cells, codewordSideOf(cells))) {
     if (run.cells.length < 3) continue;
     const unknown = new Set(run.cells.map((c) => cells[c]!).filter((n) => !known.has(n)));
     if (unknown.size !== 1) continue;
@@ -376,7 +414,7 @@ export function codewordFromEntry(entry: string, rev: number = CODEWORD_REV): Co
   return {
     type: "codeword",
     codewordRev: rev,
-    size: N,
+    size: codewordSideOf(cells),
     cells,
     numbers: order.length,
     givens: numbers.map((n) => ({ n, letter: order[n - 1]! })),
@@ -443,10 +481,92 @@ export function checkCodewordMoves(puzzle: CodewordPuzzleData, moves: string): C
   // codewordRev 7: a full grid that isn't cracked names the words on it that aren't real words (the board's own
   // letters only; nothing about the solution).
   if (tally.complete && !solved && (puzzle.codewordRev ?? 0) >= CODEWORD_REV_NAMES) {
-    view.nonWords = codewordRuns(puzzle.cells, N)
+    view.nonWords = codewordRuns(puzzle.cells, puzzle.size ?? N)
       .map((run, i) => ({ i, word: run.cells.map((c) => letters[puzzle.cells[c]! - 1] ?? "").join("") }))
       .filter((r) => !isWord(r.word))
       .map((r) => r.i);
   }
   return view;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Level boards (D1, 21 Nov 2026)                                     */
+/* ------------------------------------------------------------------ */
+
+/** What a level's bank entry must meet (src/lib/levels/word/codeword.ts `CodewordLevelSettings`). */
+export interface CodewordLevelRules {
+  shape: CodewordShape;
+  letters: { readonly min: number; readonly max: number };
+  /** Numbers that start decoded; the entry stores exactly these, proven to leave one decoding. */
+  givens: number;
+  /** Keep only boards the person-like solver (levels/codewordHuman.server.ts) decodes from the givens alone. */
+  human?: boolean;
+}
+
+/**
+ * One level bank entry: "<size × size grid letters, # for black>|<letter of each number>|<given numbers>", the givens the
+ * level deals (not today's four plus the fifth and sixth rules), proven to leave exactly one decoding against the full
+ * dictionary (countCodewordSolutions); with `human`, also decoded by `cracks` (the person-like solver) from them alone.
+ * Null when the seed's tries run out.
+ */
+export function buildCodewordLevelEntry(
+  seed: number,
+  rules: CodewordLevelRules,
+  cracks?: (cells: number[], numbers: number, givens: { n: number; letter: string }[], solution: string) => boolean,
+): string | null {
+  const rng = seededRng(seed);
+  for (let attempt = 0; attempt < 30; attempt++) {
+    const white = randomTemplate(rng, rules.shape);
+    if (!white) continue;
+    const grid = fillTemplate(white, rng, rules.shape.fillBudget);
+    if (!grid) continue;
+    const distinct = [...new Set(grid.filter((ch) => ch !== "#"))];
+    if (distinct.length < rules.letters.min || distinct.length > rules.letters.max) continue;
+    const order = rngShuffle(rng, distinct).join("");
+    const cells = grid.map((ch) => (ch === "#" ? 0 : order.indexOf(ch) + 1));
+    for (let tries = 0; tries < 12; tries++) {
+      const given = rngShuffle(rng, Array.from({ length: order.length }, (_, i) => i + 1)).slice(0, rules.givens).sort((a, b) => a - b);
+      const givens = given.map((n) => ({ n, letter: order[n - 1]! }));
+      if (countCodewordSolutions(cells, order.length, givens, 2) !== 1) continue;
+      if (rules.human && cracks && !cracks(cells, order.length, givens, order)) continue;
+      return `${grid.join("")}|${order}|${given.join(".")}`;
+    }
+  }
+  return null;
+}
+
+/** A level bank entry as a board (its own stored givens; the rules stamp of today's deal). */
+export function codewordFromLevelEntry(entry: string, rev: number): CodewordPuzzleData {
+  const [grid = "", order = "", given = ""] = entry.split("|");
+  const cells = [...grid].map((ch) => (ch === "#" ? 0 : order.indexOf(ch) + 1));
+  const numbers = given.split(".").map(Number).sort((a, b) => a - b);
+  return {
+    type: "codeword",
+    codewordRev: rev,
+    size: codewordSideOf(cells),
+    cells,
+    numbers: order.length,
+    givens: numbers.map((n) => ({ n, letter: order[n - 1]! })),
+    solution: order,
+  };
+}
+
+/** Null when a level bank entry meets its level's rules (the uniqueness proof included), else the rule broken. */
+export function codewordLevelEntryRuleBreak(entry: string, rules: CodewordLevelRules): string | null {
+  const p = codewordFromLevelEntry(entry, 1);
+  const grid = entry.split("|")[0] ?? "";
+  if (grid.length !== rules.shape.size * rules.shape.size) return `grid is not ${rules.shape.size} × ${rules.shape.size}`;
+  const broken = templateRuleBreak(p.cells.map((n) => n > 0));
+  if (broken) return broken;
+  const runs = codewordRuns(p.cells, p.size);
+  if (runs.some((r) => r.cells.length > rules.shape.maxRun)) return "a run longer than the answer list";
+  const solution = p.solution ?? "";
+  if (new Set(solution).size !== solution.length) return "a letter has two numbers";
+  if (p.numbers < rules.letters.min || p.numbers > rules.letters.max) return `${p.numbers} letters`;
+  if (p.givens.length !== rules.givens || new Set(p.givens.map((g) => g.n)).size !== rules.givens) return `not ${rules.givens} givens`;
+  const words = runs.map((r) => r.cells.map((c) => grid[c]).join(""));
+  if (new Set(words).size !== words.length) return "repeated word";
+  for (const w of words) if (!answerWords(w.length).includes(w)) return `${w} is not a common answer word`;
+  if (countCodewordSolutions(p.cells, p.numbers, p.givens, 2) !== 1) return "not exactly one solution";
+  return null;
 }
