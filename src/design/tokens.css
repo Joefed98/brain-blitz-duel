@@ -36,7 +36,8 @@
 :root {
   /* ------------------------------------------------ neutrals (section 2) */
   /* The navy (P1, 21 Nov 2026; the polish plan's section 1.1, Joe's U2b): a deeper page and real navy panels, so panels
-     separate from the page. Gold, text, --jz-on-gold and --screen-edge are unchanged. */
+     separate from the page. Gold, text and --screen-edge are unchanged; --jz-on-gold follows the page to #04060C (Joe,
+     21 Nov 2026: one brand ink). */
   --jz-bg: #04060C;
   --jz-bg-raised: #090D1A;
   --jz-surface: #101A33;
@@ -57,7 +58,7 @@
   /* ------------------------------------------------ accents (section 2) */
   --jz-gold: #E2C07A;
   --jz-gold-metal: linear-gradient(165deg, #FBEDC4 0%, #E6C67E 34%, #D2AC5E 68%, #EED79C 100%);
-  --jz-on-gold: #06080F;
+  --jz-on-gold: #04060C;
   --jz-cyan: #22E4FF;
   --jz-cyan-panel: #112A3A;
   --jz-red: #FF3B5C;

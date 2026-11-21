@@ -71,12 +71,6 @@ export type CachedHero =
       arcade: number | null;
     };
 
-/** The Joulz Rating this device first saw in the current UK week (Monday's day key), for "+22 this week". */
-export interface CachedWeek {
-  week: string;
-  rating: number;
-}
-
 
 export interface CachedRejoin {
   code: string;
@@ -92,8 +86,6 @@ export interface PlayCardsCache {
   publicH?: number;
   /** Home's player banner, last drawn. */
   hero?: CachedHero;
-  /** The week's first rating seen on this device. */
-  week?: CachedWeek;
 }
 
 function storage(): Storage | null {

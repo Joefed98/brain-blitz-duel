@@ -16,8 +16,8 @@
  * chips' slot is reserved before the first paint from the same record ("chips").
  *
  * Nothing here decides a rating or a tier: the numbers and words are W3b's status and W3a's TierView as
- * tierDisplay.ts draws them. "+N this week" is the change since the first rating this device saw in the current UK
- * week (Monday), shown only when there is one: the rated server keeps no weekly figure yet.
+ * tierDisplay.ts draws them. "+N this week" is the server's: the Joulz Rating change over the rated matches finished
+ * since Monday 00:00 UK (useWeekChange), shown only when there is one.
  */
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
@@ -26,7 +26,6 @@ import { GameIcon } from "@/components/app/GameIcon";
 import { Emblem } from "@/design/art/Art";
 import { Button, Skeleton } from "@/design/components";
 import { puzzleName } from "@/lib/duel/catalogue";
-import { ukDayKey } from "@/lib/duel/daily";
 import { gameOfTheDayAt } from "@/lib/duel/gameOfTheDay";
 import type { PuzzleType } from "@/lib/duel/types";
 import { readPlayCards, writePlayCards, type CachedHero } from "@/lib/playCards";
@@ -106,29 +105,36 @@ export function useHero(): { hero: CachedHero | null; status: RatedStatus | null
   return { hero: mounted ? (live ?? cached ?? { state: "off" }) : null, status };
 }
 
-/** Monday's UK day key of the week holding `nowMs`. */
-function weekKey(nowMs: number): string {
-  const day = ukDayKey(nowMs);
-  const date = new Date(`${day}T12:00:00Z`);
-  const back = (date.getUTCDay() + 6) % 7;
-  date.setUTCDate(date.getUTCDate() - back);
-  return date.toISOString().slice(0, 10);
-}
-
-/** "+22 this week" (or −): the change since the week's first rating on this device; null for none. */
-function useWeekChange(rating: number | null): number | null {
+/**
+ * "+22 this week" (or −): the Joulz Rating change over this week's rated matches, from the server's match history
+ * (ratedWeekChangeFn: Monday 00:00 UK on), so every device shows the same; null for none or no answer. Checks set
+ * `window.__DUELZ_RATED_WEEK__` (a number) in place of the call; never read in a production build.
+ */
+function useWeekChange(placed: boolean): number | null {
   const [change, setChange] = useState<number | null>(null);
   useEffect(() => {
-    if (rating === null) return setChange(null);
-    const week = weekKey(Date.now());
-    const stored = readPlayCards().week;
-    if (!stored || stored.week !== week) {
-      writePlayCards({ week: { week, rating } });
-      return setChange(null);
+    if (!placed) return setChange(null);
+    let live = true;
+    if (!import.meta.env.PROD) {
+      const stand = (window as unknown as Record<string, unknown>)["__DUELZ_RATED_WEEK__"];
+      if (typeof stand === "number") {
+        setChange(stand === 0 ? null : stand);
+        return;
+      }
     }
-    const delta = Math.round(rating - stored.rating);
-    setChange(delta === 0 ? null : delta);
-  }, [rating]);
+    void (async () => {
+      try {
+        const { ratedWeekChangeFn } = await import("@/lib/home/weekChange.functions");
+        const answer = await ratedWeekChangeFn();
+        if (live) setChange(answer && answer.change !== 0 ? answer.change : null);
+      } catch {
+        if (live) setChange(null);
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [placed]);
   return change;
 }
 
@@ -185,7 +191,7 @@ function HeroButton({ label, onClick, data }: { label: string; onClick: () => vo
 export function PlayerBanner({ hero, status }: { hero: CachedHero | null; status: RatedStatus | null }) {
   const router = useRouter();
   const game = useGameOfTheDay();
-  const week = useWeekChange(hero?.state === "placed" ? hero.rating : null);
+  const week = useWeekChange(hero?.state === "placed");
   const start = () => (status ? findMatch(router, status) : undefined);
 
   if (!hero)

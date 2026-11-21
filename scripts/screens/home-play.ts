@@ -79,6 +79,8 @@ export const HOME_PLAY_SCREENS = (ALL_SIZES: ThemeViewport[]): ThemeScreen[] => 
     __harnessFriends: { account: pass.account, overview: OVERVIEW, profile: null },
     __harnessDailyCounts: { day: "2026-10-26", puzzle: 12431, arcade: 8902 },
     __harnessWallet: true,
+    // The player banner's "+22 this week" (the server's ratedWeekChangeFn, stood in for the screen).
+    __DUELZ_RATED_WEEK__: 22,
     __DUELZ_PUSH_PUBLIC_KEY__: "BNYcXg0Xpca8-OwTPsK5UfzinOSSLskdCpZtDqHpTCU5gmv6jd_qCZw9zXF418o4_tKAy6lldWvsxMXwaAlP0yA",
   };
   const light = { __harnessTheme: "light" };
