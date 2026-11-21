@@ -376,7 +376,7 @@
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--jz-space-12);
+  gap: 10px;
   padding: var(--jz-space-12) var(--jz-space-16);
   border-radius: var(--jz-radius-lg);
   background:
@@ -387,7 +387,7 @@
 .hp-friends-play-title {
   overflow: hidden;
   color: var(--jz-text);
-  font: var(--jz-type-heading);
+  font: var(--jz-weight-bold) 19px/24px var(--jz-font);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -397,7 +397,13 @@
 }
 .hp-friends-play-actions > .jz-btn {
   min-width: 56px;
-  padding-inline: 14px;
+  padding-inline: 12px;
+}
+/* A narrow phone: the title keeps its room, the art steps aside. */
+@media (max-width: 380px) {
+  .hp-friends-play-art {
+    display: none;
+  }
 }
 .hp-friends-play-error {
   grid-column: 1 / -1;

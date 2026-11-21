@@ -20,11 +20,11 @@
  * week (Monday), shown only when there is one: the rated server keeps no weekly figure yet.
  */
 import { useRouter } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 
 import { GameIcon } from "@/components/app/GameIcon";
 import { Emblem } from "@/design/art/Art";
-import { Button } from "@/design/components";
+import { Button, Skeleton } from "@/design/components";
 import { puzzleName } from "@/lib/duel/catalogue";
 import { ukDayKey } from "@/lib/duel/daily";
 import { gameOfTheDayAt } from "@/lib/duel/gameOfTheDay";
@@ -76,16 +76,23 @@ export function heroOf(status: RatedStatus | null): CachedHero {
 /** How long a null status is taken as "not known yet" before the banner settles on Play now (and remembers it). */
 const OFF_AFTER_MS = 6000;
 
+const useBeforePaint = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
 /**
  * The banner's state: the last drawn (the play-cards record) until rated play's status answers, then the live one,
  * remembered for the next visit. `status` is the live status (null: not open to this player, or not known yet).
+ * `hero` is null only on the server's page and the first client render (the banner draws its skeleton, the same
+ * height), so a device never shows a state it isn't in; the record is read before the first paint after that.
  */
-export function useHero(): { hero: CachedHero; status: RatedStatus | null } {
+export function useHero(): { hero: CachedHero | null; status: RatedStatus | null } {
   const status = useRatedStatus();
-  // The server's page and the first client render: Play now (the record is read before the first paint below).
   const [cached, setCached] = useState<CachedHero | null>(null);
+  const [mounted, setMounted] = useState(false);
   const [settledOff, setSettledOff] = useState(false);
-  useEffect(() => setCached(readPlayCards().hero ?? null), []);
+  useBeforePaint(() => {
+    setCached(readPlayCards().hero ?? null);
+    setMounted(true);
+  }, []);
   useEffect(() => {
     if (status) return;
     const timer = window.setTimeout(() => setSettledOff(true), OFF_AFTER_MS);
@@ -96,7 +103,7 @@ export function useHero(): { hero: CachedHero; status: RatedStatus | null } {
     if (live) writePlayCards({ hero: live });
     // The record is written whenever the live state's shape changes.
   }, [JSON.stringify(live)]); // eslint-disable-line react-hooks/exhaustive-deps
-  return { hero: live ?? cached ?? { state: "off" }, status };
+  return { hero: mounted ? (live ?? cached ?? { state: "off" }) : null, status };
 }
 
 /** Monday's UK day key of the week holding `nowMs`. */
@@ -175,11 +182,24 @@ function HeroButton({ label, onClick, data }: { label: string; onClick: () => vo
   );
 }
 
-export function PlayerBanner({ hero, status }: { hero: CachedHero; status: RatedStatus | null }) {
+export function PlayerBanner({ hero, status }: { hero: CachedHero | null; status: RatedStatus | null }) {
   const router = useRouter();
   const game = useGameOfTheDay();
-  const week = useWeekChange(hero.state === "placed" ? hero.rating : null);
+  const week = useWeekChange(hero?.state === "placed" ? hero.rating : null);
   const start = () => (status ? findMatch(router, status) : undefined);
+
+  if (!hero)
+    return (
+      <section aria-label="Loading" aria-busy="true" className="hp-banner jz-cut-lg" data-hp-banner="pending">
+        <div className="hp-banner-top">
+          <div className="hp-banner-text">
+            <Skeleton width={120} height={20} />
+            <Skeleton width="70%" height={44} />
+          </div>
+        </div>
+        <Skeleton height={60} className="hp-banner-skel" />
+      </section>
+    );
 
   if (hero.state === "placed") {
     const tier = emblemTier(hero.tier as TierId);
@@ -265,11 +285,11 @@ export function PlayerBanner({ hero, status }: { hero: CachedHero; status: Rated
 }
 
 /** Puzzles and Arcade, placed players only: two small chips under the banner, each opening Compete. */
-export function RatingChips({ hero }: { hero: CachedHero }) {
+export function RatingChips({ hero }: { hero: CachedHero | null }) {
   const router = useRouter();
   const chips = useMemo(
     () =>
-      hero.state === "placed"
+      hero?.state === "placed"
         ? [
             { key: "puzzles", art: "puzzles" as const, label: "Puzzles", value: hero.puzzles },
             { key: "arcade", art: "arcade" as const, label: "Arcade", value: hero.arcade },

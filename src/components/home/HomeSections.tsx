@@ -101,7 +101,7 @@ export function DailyHero({ status, onOpen }: { status: DailyStatus; counts?: un
 export function PlayFriends({ onCreate, onJoin, busy, error }: { onCreate: () => void; onJoin: () => void; busy: boolean; error: string | null }) {
   return (
     <section aria-label="Play friends" className="hp-friends-play jz-panel" data-hp-play-friends>
-      <HomeArt name="rooms" width={36} className="hp-friends-play-art" />
+      <HomeArt name="rooms" width={32} className="hp-friends-play-art" />
       <h2 data-ellipsis className="hp-friends-play-title">
         Play friends
       </h2>
