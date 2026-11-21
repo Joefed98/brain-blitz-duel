@@ -8,7 +8,8 @@ import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { encodeStrikeout2, type So2Action } from "../src/lib/duel/strikeout";
 import { solveStrikeoutLikeAPerson } from "../src/lib/duel/levels/strikeoutSolver.server";
-import type { PuzzleData, StrikeoutPuzzleData, WordSearchPuzzleData } from "../src/lib/duel/types";
+import type { PuzzleData, StrikeoutPuzzleData, WordSearchPuzzleData, WordSlidePuzzleData } from "../src/lib/duel/types";
+import { playSliderHuman, SLIDER_AT_LIMITS } from "./slider-human";
 import { wsEncode } from "../src/lib/duel/wordSearch";
 import { sentAnswer } from "./standard-lib";
 import { entryMs, LIMITS } from "./word-human";
@@ -77,8 +78,20 @@ export function lookoutLine(puzzle: WordSearchPuzzleData, limits = LIMITS): Time
   return gradeLine(puzzle, drafts, { drags: drags.length });
 }
 
+/* --------------------------------------------------------------------------------------------- Slider */
+
+/**
+ * Slider's person-like line at the human limits (scripts/slider-human.ts SLIDER_AT_LIMITS: the elite's planning, three
+ * slides ahead at 2 s a plan, never reading the words; each slide one drag at 0.25 s + 0.15 s), graded by the server.
+ */
+export function sliderLine(puzzle: WordSlidePuzzleData, seed = 1): TimedLine {
+  const run = playSliderHuman(puzzle, SLIDER_AT_LIMITS, seed);
+  return gradeLine(puzzle, run.steps, { slides: run.slides, finished: run.finished ? 1 : 0 });
+}
+
 /** The game's person-like line at the human limits, where the game has one (null otherwise). */
 export function personLine(puzzle: PuzzleData): TimedLine | null {
+  if (puzzle.type === "wordslide") return sliderLine(puzzle);
   if (puzzle.type === "strikeout") return strikeoutLine(puzzle);
   if (puzzle.type === "wordsearch") return lookoutLine(puzzle);
   return null;

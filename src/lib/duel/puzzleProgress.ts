@@ -34,7 +34,7 @@ import { equationVerdict, usesOperatorGaps } from "./operatorGaps";
 import { pairCardsOf, pairsOf } from "./attentionLevels";
 import { judgeTileGrid } from "./tileGrid.server";
 import { decodeTileGrid, fitsTray as tileGridFitsTray, tileGridRuns } from "./tileGrid";
-import { decodeSlideTokens, WS_MARKED_ROWS } from "./wordSlide";
+import { decodeSlideTokens, wordSlideSize, wsRows } from "./wordSlide";
 import { checkWordSlideRow, replayWordSlideFor } from "./wordSlide.server";
 import { markedRowWord } from "./wordSlide";
 import { wordSlideMadeRows } from "./progressFigures";
@@ -96,9 +96,10 @@ export function rev3Progress(input: ProgressInput): number | null {
   const { puzzle, answer } = input;
   switch (puzzle.type) {
     case "wordslide": {
-      const replay = replayWordSlideFor(puzzle, decodeSlideTokens(answer));
-      const validRows = WS_MARKED_ROWS.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r)).valid);
-      const made = wordSlideMadeRows(puzzle.grid, replay.grid, validRows);
+      const size = wordSlideSize(puzzle);
+      const replay = replayWordSlideFor(puzzle, decodeSlideTokens(answer, size));
+      const validRows = wsRows(size).filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r, size), size).valid);
+      const made = wordSlideMadeRows(puzzle.grid, replay.grid, validRows, size);
       const top = SLIDER_ROW_POINTS.length - 1;
       return (SLIDER_ROW_POINTS[Math.max(0, Math.min(top, made))] ?? 0) / SLIDER_ROW_POINTS[top]!;
     }

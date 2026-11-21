@@ -1,4 +1,5 @@
 import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION } from "@/lib/arcade/orbit";
+import { wordSlideSize } from "./wordSlide";
 import { ANSWER_MAX, COUNT_MAX, EXTRA_MAX, FOUND_MAX, KEY_MAX, LIST_MAX, NUMBER_MAX, PATH_MAX, PUZZLE_MAX, SEALED_MAX, SHORT_MAX, WORD_MAX } from "./inputLimits";
 import { bool, compact, listOf, maybe, numIn, oneOf, optional, record, sizedRecord, text, whole } from "@/lib/validate";
 import { LEVELS, NORMAL, levelOrNormal, type Level } from "@/lib/levels/levels";
@@ -511,7 +512,7 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
     }
     if (data.puzzle.type === "wordslide") {
       const { checkWordSlideRow } = await import("./wordSlide.server");
-      return checkWordSlideRow(String(data.word ?? ""));
+      return checkWordSlideRow(String(data.word ?? ""), wordSlideSize(data.puzzle));
     }
     if (data.puzzle.type !== "wordsmith") {
       return { valid: false as const, points: 0, word: "", reason: "Not this round." };

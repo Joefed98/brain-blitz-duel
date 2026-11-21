@@ -2540,6 +2540,8 @@ export interface WordSlidePuzzleData {
   wordSlideRev?: number;
   /** The level's own clock (the Word overhaul's levels, 15 Nov 2026); absent: the game's 100 s. */
   timeLimitMs?: number;
+  /** wordSlideRev 7 (D1, 21 Nov 2026, level deals only): the grid's side, 4–7; absent = 5 (Normal, every older round). */
+  size?: number;
 }
 
 /* ================================ Balance =============================== */
