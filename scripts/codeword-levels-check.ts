@@ -28,6 +28,8 @@ import { codewordFromEntry, countCodewordSolutions } from "../src/lib/duel/codew
 import { CODEWORD_EXPERT_INDICES } from "../src/lib/duel/levels/codewordExpert.data";
 import { solveCodewordLikeAHuman } from "../src/lib/duel/levels/codewordHuman.server";
 import type { CodewordPuzzleData } from "../src/lib/duel/types";
+import { CODEWORD_LEVEL_BANK } from "../src/lib/duel/codewordLevelBank.server"; // Changed with Joe's approval, 21 Nov 2026
+import { codewordFromLevelEntry } from "../src/lib/duel/codeword.server"; // Changed with Joe's approval, 21 Nov 2026
 import { CODEWORD_LEVELS, CODEWORD_LEVEL_ABOUT } from "../src/lib/levels/word/codeword";
 import { gameLevelSettings, levelProof, levelsOf } from "../src/lib/levels/gameLevels";
 import { MAX_ROUND_CLOCK_MS, puzzleLevel, type Level } from "../src/lib/levels/levels";
@@ -59,7 +61,7 @@ for (const level of UP) {
   ok(about.length > 0 && about.length <= 100 && !/core|units|full at|givens/i.test(about), `${level}: one plain line ("${about}")`);
   ok(about.includes(String(["", "", "", "", "Four", "Five", "", "", "Eight"][s.givens] ?? "")), `${level}: the line names the starting letters`);
 }
-ok(CODEWORD_LEVELS.levels.easy!.settings.givens > 6 && CODEWORD_LEVELS.levels.hard!.settings.givens < 6 && CODEWORD_LEVELS.levels.expert!.settings.givens === 4, "Easy gives more letters than Normal's six, Hard fewer, Expert the bank's own four");
+ok(CODEWORD_LEVELS.levels.easy!.settings.givens === 6 && CODEWORD_LEVELS.levels.hard!.settings.givens < 6 && CODEWORD_LEVELS.levels.expert!.settings.givens === 4, "Easy's small grid starts with six letters, Hard fewer, Expert four"); // Changed with Joe's approval, 21 Nov 2026
 
 // 2. Normal is today's game.
 for (const seed of SEEDS.slice(0, 8)) {
@@ -80,18 +82,15 @@ for (const level of UP) {
     const normal = normalBySeed.get(seed)!;
     ok(p.codewordRev === normal.codewordRev, `${level} ${seed}: today's stamp (codewordRev ${normal.codewordRev})`);
     ok(p.givens.length === s.givens && new Set(p.givens.map((g) => g.n)).size === s.givens, `${level} ${seed}: ${s.givens} different numbers start decoded`);
+    ok(level === "easy" ? p.givens.length === 6 : level === "hard" ? p.givens.length < normal.givens.length : p.givens.length === 4, `${level} ${seed}: the givens ladder, Easy 6, Hard fewer than Normal's ${normal.givens.length}, Expert 4 (${p.givens.length})`); // Changed with Joe's approval, 21 Nov 2026
     ok(p.givens.every((g) => p.solution![g.n - 1] === g.letter), `${level} ${seed}: every starting letter is the solution's`);
-    if (level !== "expert") {
-      ok(p.solution === normal.solution && p.cells.join() === normal.cells.join(), `${level} ${seed}: the room seed's own board`);
-      const mine = new Set(p.givens.map((g) => g.n));
-      const six = new Set(normal.givens.map((g) => g.n));
-      if (level === "easy") ok([...six].every((n) => mine.has(n)), `easy ${seed}: Normal's six letters plus more`);
-      else ok([...mine].every((n) => six.has(n)), `hard ${seed}: a subset of Normal's six`);
-    } else {
-      const index = CODEWORD_BANK.findIndex((e) => codewordFromEntry(e, 1).solution === p.solution && codewordFromEntry(e, 1).cells.join() === p.cells.join());
-      ok(CODEWORD_EXPERT_INDICES.includes(index), `expert ${seed}: an Expert-list board (#${index})`);
-    }
-    ok(countCodewordSolutions(p.cells, p.numbers, p.givens, 2) === 1, `${level} ${seed}: exactly one solution`);
+    const cols = p.rows && p.rows !== p.size ? p.size : undefined; // Changed with Joe's approval, 21 Nov 2026
+    const own = CODEWORD_LEVEL_BANK[level].some((e) => { // Changed with Joe's approval, 21 Nov 2026
+      const b = codewordFromLevelEntry(e, 1, cols); // Changed with Joe's approval, 21 Nov 2026
+      return b.solution === p.solution && b.cells.join() === p.cells.join(); // Changed with Joe's approval, 21 Nov 2026
+    }); // Changed with Joe's approval, 21 Nov 2026
+    ok(own, `${level} ${seed}: a board from the level's own bank`); // Changed with Joe's approval, 21 Nov 2026
+    ok(countCodewordSolutions(p.cells, p.numbers, p.givens, 2, cols) === 1, `${level} ${seed}: exactly one solution`); // Changed with Joe's approval, 21 Nov 2026
     ok(gradeAnswer(p, "", 0).score === 0, `${level} ${seed}: doing nothing scores 0`);
   }
 }

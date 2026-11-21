@@ -18,6 +18,7 @@
 import { readFileSync } from "node:fs";
 
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
+import { solveBoard } from "../src/lib/duel/wordHunt.server"; // Changed with Joe's approval, 21 Nov 2026
 import { WORDHUNT_COLS_DEPTH, WORDHUNT_TIME_MS, type WordHuntPuzzleData } from "../src/lib/duel/types";
 import { gameLevelSettings, levelProof, levelsOf } from "../src/lib/levels/gameLevels";
 import { puzzleLevel } from "../src/lib/levels/levels";
@@ -57,7 +58,8 @@ for (const seed of seedsFrom(6101, 6)) {
     t.ok(p.wordHuntRev === (normal as WordHuntPuzzleData).wordHuntRev, `${level} ${seed}: today's stamp (wordHuntRev ${p.wordHuntRev})`);
     t.ok(typeof p.golden === "number" && p.grid[p.golden] !== "QU", `${level} ${seed}: a golden tile, never a Qu`);
     const words = p.words ?? [];
-    t.ok(words.length >= s.words.min && words.length <= s.words.max, `${level} ${seed}: ${words.length} words inside ${s.words.min}–${s.words.max}`);
+    const onBoard = solveBoard(p.grid, typeof p.golden === "number" ? p.golden : null).length; // Changed with Joe's approval, 21 Nov 2026
+    t.ok(onBoard >= s.words.min && onBoard <= s.words.max && words.length >= s.longWords, `${level} ${seed}: ${onBoard} words on the board inside ${s.words.min}–${s.words.max}, ${words.length} listed (at least ${s.longWords})`); // Changed with Joe's approval, 21 Nov 2026
     const traced = words.every(({ word, path }) => {
       if (new Set(path).size !== path.length) return false;
       if (!path.every((c, i) => i === 0 || adjacent(path[i - 1]!, c))) return false;

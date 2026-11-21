@@ -21,6 +21,7 @@ import { isEverydayWord } from "../src/lib/duel/dictionary.server";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { WORDSMITH_CENTRE_INDEX, WORDSMITH_TIME_MS, type WordsmithPuzzleData } from "../src/lib/duel/types";
 import { WORDSMITH_REV_EVERYDAY } from "../src/lib/duel/wordOverhaul";
+import { WORDSMITH_REV_STAR } from "../src/lib/duel/wordStar"; // Changed with Joe's approval, 21 Nov 2026
 import { gameLevelSettings, levelProof, levelsOf } from "../src/lib/levels/gameLevels";
 import { puzzleLevel } from "../src/lib/levels/levels";
 import { WORDSMITH_LEVEL_ABOUT, type WordsmithLevelSettings } from "../src/lib/levels/word/wordsmith";
@@ -56,7 +57,7 @@ for (const seed of seeds) {
     t.ok(puzzleLevel(p) === level, `${level} ${seed}: stamped ${level}`);
     t.ok(puzzleTimeLimitMs(p) === s.timeLimitMs && s.timeLimitMs <= MAX_ROUND_CLOCK_MS, `${level} ${seed}: its own clock, at most 120 s`);
     t.ok(s.sizes.includes(p.letters.length), `${level} ${seed}: ${p.letters.length} letters, one of the level's sizes`);
-    t.ok(p.wordsmithRev === WORDSMITH_REV_EVERYDAY, `${level} ${seed}: today's stamp (wordsmithRev ${WORDSMITH_REV_EVERYDAY})`);
+    t.ok(p.wordsmithRev === WORDSMITH_REV_STAR, `${level} ${seed}: today's stamp (wordsmithRev ${WORDSMITH_REV_STAR})`); // Changed with Joe's approval, 21 Nov 2026
     const words = p.words ?? [];
     t.ok(words.every((w) => isEverydayWord(w.word)) && p.wordCount === words.length, `${level} ${seed}: the counted words are everyday words`);
     t.ok(words.length >= s.everyday.min && words.length <= s.everyday.max, `${level} ${seed}: ${words.length} everyday words inside ${s.everyday.min}–${s.everyday.max}`);

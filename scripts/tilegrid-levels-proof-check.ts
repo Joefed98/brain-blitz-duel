@@ -46,7 +46,7 @@ const deal = (seed: number, level?: Lv) =>
 {
   const s = TILEGRID_LEVEL_SETTINGS;
   ok(s.easy.tiles < 15 && 15 < s.hard.tiles && s.hard.tiles < s.expert.tiles, `tiles rise easy ${s.easy.tiles} < normal 15 < hard ${s.hard.tiles} < expert ${s.expert.tiles}`);
-  ok(s.easy.size < 7 && 7 < s.hard.size && s.hard.size < s.expert.size, `boards grow easy ${s.easy.size} < 7 < hard ${s.hard.size} < expert ${s.expert.size}`);
+  ok(s.easy.size < 7 && 7 < s.hard.size && s.hard.size === s.expert.size, `boards grow easy ${s.easy.size} < 7 < hard ${s.hard.size}, Expert on Hard's ${s.expert.size} × ${s.expert.size}`); // Changed with Joe's approval, 21 Nov 2026
   for (const l of LEVELS) {
     ok(s[l].timeLimitMs <= MAX_ROUND_CLOCK_MS, `${l}: clock ${s[l].timeLimitMs} ms inside 120 s`);
     ok(s[l].lengths.reduce((a, b) => a + b, 0) - (s[l].lengths.length - 1) === s[l].tiles, `${l}: the crossing words' letters less one a crossing are the ${s[l].tiles} tiles`);

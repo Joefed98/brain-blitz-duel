@@ -87,6 +87,16 @@ export function dealNucleusLevel(level: Exclude<Level, "normal">, _context: Gene
     }
     if (gap === 0) break;
   }
+  // Every dealt board where the level asks has its proof (Joe's decision 21): past the tries, keep drawing until the
+  // typed witness takes one to 200 (never seen needed on 500 room seeds a level, 21 Nov 2026).
+  for (let extra = 0; settings.witness && bestGap >= 1000; extra++) {
+    if (extra >= 4000) throw new Error(`Nucleus ${level}: no board the witness takes to 200`);
+    const made = { ...nucleusAtMinLength(generateWordsmithBand(pick(settings.sizes), settings.words), settings.minLength), ...(settings.wordsFullAt ? { wordsFullAt: settings.wordsFullAt } : {}) };
+    if (nucleusWitnessMs(made.letters, settings.minLength, settings.timeLimitMs, settings.wordsFullAt) === null) continue;
+    const n = wordsmithEverydayCount(made);
+    best = made;
+    bestGap = n < want.min ? want.min - n : n > want.max ? n - want.max : 0;
+  }
   return {
     ...best!,
     wordsmithRev: dealtDepthRev(dealtTopupRev(WORDSMITH_REV_TOPUP, WORDSMITH_REV_DEPTH), WORDSMITH_REV_TARGET),

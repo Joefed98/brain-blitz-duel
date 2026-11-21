@@ -34,6 +34,7 @@ import { spawnSync } from "node:child_process";
 
 import { DEAL_LAYERS, generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
+import { pinPreWordStar } from "../src/lib/duel/wordStar"; // Changed with Joe's approval, 21 Nov 2026
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { answerWords, isEverydayWord, isWord } from "../src/lib/duel/dictionary.server";
 import { checkWordsmithWord } from "../src/lib/duel/wordsmith.server";
@@ -68,9 +69,11 @@ const ok = (cond: unknown, label: string) => {
 const src = (path: string) => readFileSync(path, "utf8");
 const deal = (type: string, seed: number, pinned = false): PuzzleData => {
   const before = pinPreWordOverhaul(pinned);
+  const star = pinPreWordStar(true); // Changed with Joe's approval, 21 Nov 2026
   try {
     return withSeededRandom(seed, () => generatePuzzle(type as never, { bankSeed: seed }));
   } finally {
+    pinPreWordStar(star); // Changed with Joe's approval, 21 Nov 2026
     pinPreWordOverhaul(before);
   }
 };
@@ -96,7 +99,7 @@ const SEEDS = Array.from({ length: 24 }, (_, i) => 1000 + i * 37);
   }
   // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): the layers merged after it (Attention's
   // and Speed's, which never touch a Word game) follow it; it is still after every layer before it.
-  ok(DEAL_LAYERS.map((l) => l.name).slice(-3).join(" ") === "wordOverhaul attentionOverhaul speedOverhaul", "the overhaul is the last deal layer");
+  ok(DEAL_LAYERS.map((l) => l.name).slice(-4).join(" ") === "wordOverhaul attentionOverhaul speedOverhaul wordStar", "the overhaul is the last deal layer before the Normal scoring stamps"); // Changed with Joe's approval, 21 Nov 2026
   // Pinned, the deal is the stamp before exactly (the layer never touches it).
   for (const type of ["interlock", "tilegrid", "wordhunt", "strikeout", "swapword"]) {
     if (type === "interlock") continue;
@@ -304,7 +307,7 @@ const SEEDS = Array.from({ length: 24 }, (_, i) => 1000 + i * 37);
   const cell = Math.max(44, Math.min(72, Math.floor((351 - 84) / 5)));
   ok(cell * 5 + 4 * 4 + 16 + 4 + 44 + 4 <= 351, `slider: the board and its padlocks fit 351 px (${cell} px tiles)`);
   const wh = src("src/components/puzzles/WordHuntPuzzle.tsx");
-  ok(/free`/.test(wh) && /WORDHUNT_FREE_MISSES \+ WORDHUNT_FREE_MISSES_PER_WORD \* found\.length/.test(wh), "forage: the miss allowance on screen");
+  ok(/free`/.test(wh) && /wordHuntFreeMissesOf\(puzzle\)\.base \+ wordHuntFreeMissesOf\(puzzle\)\.perWord \* found\.length/.test(wh), "forage: the miss allowance on screen"); // Changed with Joe's approval, 21 Nov 2026
   ok(/white-space: normal/.test(src("src/polish-word/lookout.css")), "lookout: chips wrap to the whole word");
   const lw = src("src/puzzles/letterWheel.tsx");
   ok(/setMissFlash\(true\)/.test(lw) && /"Already found"/.test(lw) && /data-lw-flash=/.test(lw), "roundabout: a miss and a repeat look different");

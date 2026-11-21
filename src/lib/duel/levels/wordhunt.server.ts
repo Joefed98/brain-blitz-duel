@@ -43,6 +43,8 @@ export function forageAtMinLength(made: WordHuntPuzzleData, minLength: number): 
 
 /** Packed boards drawn at most this many times for one holding the level's long words and witness. */
 export const FORAGE_LEVEL_TRIES = 24;
+/** More boards drawn, only when none of the first tries has its proof, before the deal gives up. */
+export const FORAGE_WITNESS_TRIES = 2000;
 
 /**
  * Forage dealt at a level beyond Normal (D1, 21 Nov 2026; settings in src/lib/levels/word/wordhunt.ts): a packed 6×6
@@ -66,6 +68,15 @@ export function dealForageLevel(level: Exclude<Level, "normal">, _context: Gener
       bestGap = gap;
     }
     if (gap === 0) break;
+  }
+  // Every dealt board where the level asks has its proof (Joe's decision 21): past the tries, keep drawing until the
+  // typed witness takes one to 200 (never seen needed on 500 room seeds a level, 21 Nov 2026).
+  for (let extra = 0; settings.witness && bestGap >= 1000; extra++) {
+    if (extra >= FORAGE_WITNESS_TRIES) throw new Error(`Forage ${level}: no board the witness takes to 200`);
+    const made = { ...forageAtMinLength(generateWordHuntDepthBand(settings.words.min, settings.words.max, settings.seeds), settings.minLength), ...(settings.fullAt ? { baseFullAt: settings.fullAt[0], extraFullAt: settings.fullAt[1] } : {}) };
+    if (forageWitnessMs(made, settings.minLength, settings.timeLimitMs) === null) continue;
+    best = made;
+    bestGap = Math.max(0, settings.longWords - (made.words ?? []).length);
   }
   return {
     ...best!,

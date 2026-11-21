@@ -139,7 +139,7 @@ export function digest(value: unknown): string {
 // sportsPreOverhaul added 15 Nov 2026 (routine consequence of the Home Run and Top Bins overhaul: their live deal moved
 // to rev 5, so the recorded deals are compared on rev 4 exactly as before; homerun-innings-check and
 // freekick-layered-check prove the rev-5 deals).
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "preNumberOverhaul", "preCheckoutLevels", "preKakuroLevels", "preMeasureLevels", "preBalanceLevels", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul", "preRetro", "orbitPreGrace", "flipPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "matchupPreIce2", "minigolfPreCourse", "sportsPreOverhaul", "racingPreCircuits", "preWordStar"];
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "preNumberOverhaul", "preCheckoutLevels", "preKakuroLevels", "preMeasureLevels", "preBalanceLevels", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul", "preRetro", "orbitPreGrace", "flipPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "matchupPreIce2", "minigolfPreCourse", "sportsPreOverhaul", "racingPreCircuits", "preWordStar"]; // Changed with Joe's approval, 21 Nov 2026
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {
@@ -216,7 +216,7 @@ export function roomDigests(seeds: readonly number[]): Record<string, string> {
   // approved at 72b7b38f): sportsPreOverhaul reaches a room's Home Run and Top Bins deals, so rooms pin it too and
   // compare on rev 4 exactly as recorded; homerun-innings-check and freekick-layered-check prove the new deals.
   // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): both trains' room pins, the puzzle train's first.
-  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul", "preRetro", "flipPreGrace", "orbitPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "minigolfPreCourse", "sportsPreOverhaul"]);
+  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul", "preRetro", "flipPreGrace", "orbitPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "minigolfPreCourse", "sportsPreOverhaul", "preWordStar"]); // Changed with Joe's approval, 21 Nov 2026
 }
 
 function roomDigestsNow(seeds: readonly number[]): Record<string, string> {
