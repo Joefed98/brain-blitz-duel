@@ -11,7 +11,8 @@
   height: 60px;
   align-items: center;
   justify-content: center;
-  transform: translate(-50%, calc(-100% - 6px));
+  /* 8 px higher than the Word overhaul drew it, so it no longer covers the row above (the polish plan, earlier E2.4). */
+  transform: translate(-50%, calc(-100% - 14px));
   border-radius: 12px;
   background: url(/word-art/key.webp) center / 100% 100% no-repeat;
   box-shadow: 0 8px 16px rgb(0 0 0 / 0.5);

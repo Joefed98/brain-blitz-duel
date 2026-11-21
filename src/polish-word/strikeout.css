@@ -15,7 +15,7 @@
   border: 0;
   box-shadow: 0 2px 4px rgb(0 0 0 / 0.4);
 }
-[data-word-polish="strikeout"] [data-so-solved] { background: var(--jz-gold); color: var(--jz-on-gold); }
+[data-word-polish="strikeout"] [data-so-solved] { background: var(--jz-gold); color: var(--jz-on-gold); font-size: 17px; /* Spotlight (21 Nov 2026): solved words 17 px. */ }
 
 /* The answer reveal keeps its markup (stored rounds render exactly as before; strikeout-check), so its tiles and pips
    take the rendered pieces by their existing look attributes. */
