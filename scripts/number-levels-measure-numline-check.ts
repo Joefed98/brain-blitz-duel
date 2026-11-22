@@ -76,14 +76,15 @@ ok(json(levelProof("numline", "hard")) === json({ open: "estimation: every place
   for (let seed = 0; seed < 60; seed++) {
     const hard = deal<MeasurePuzzleData>("measure", seed, "hard");
     const today = deal<MeasurePuzzleData>("measure", seed, "normal", { pins: ["preMeasureLevels"] });
-    if ((hard as { level?: string }).level === "hard" && json(strip(hard)) === json(today) && today.measureRev === 4) sameHard++;
+    // D2 (Joe's decision 10, a Hard you can see): Hard deals its own measureRev 5 boards; today's game is its pin's. // Changed with Joe's approval, 22 Nov 2026
+    if ((hard as { level?: string }).level === "hard" && hard.measureRev === MEASURE_REV_LEVELS && today.measureRev === 4 && !("level" in today)) sameHard++; // Changed with Joe's approval, 22 Nov 2026
   }
-  ok(sameHard === 60, `Brimful Hard is today's game byte for byte, measureRev 4 (${sameHard} of 60)`);
+  ok(sameHard === 60, `Brimful Hard deals its own measureRev 5 boards, and today's game (measureRev 4) is still its pin's at Normal (${sameHard} of 60)`); // Changed with Joe's approval, 22 Nov 2026
 
   const settingsOf = (level: Level): MeasureLevelSettings =>
     level === "normal" ? MEASURE_NORMAL : (gameLevelSettings<MeasureLevelSettings>("measure", level) as MeasureLevelSettings);
-  ok("today" in settingsOf("hard"), "Brimful Hard's settings name today's game");
-  for (const level of ["easy", "normal", "expert"] as const) {
+  ok(!("today" in settingsOf("hard")), "Brimful Hard has its own boards, not today's game"); // Changed with Joe's approval, 22 Nov 2026
+  for (const level of ["easy", "normal", "hard", "expert"] as const) { // Changed with Joe's approval, 22 Nov 2026
     const settings = settingsOf(level);
     if ("today" in settings) {
       ok(false, `Brimful ${level}: has board settings`);
@@ -141,10 +142,11 @@ ok(json(levelProof("numline", "hard")) === json({ open: "estimation: every place
   ok(modeLevel("rated", "hard") === "normal" && modeLevel("daily", "expert") === "normal", "rated play and the Daily deal Normal");
   ok(deal<MeasurePuzzleData>("measure", 7, modeLevel("rated", null)).measureRev === MEASURE_REV_LEVELS, "rated play and the Daily get the new Normal (measureRev 5)");
 
+  // D2: the level never changes a grade: a Hard deal grades every answer exactly as the same puzzle with no level field. // Changed with Joe's approval, 22 Nov 2026
   let sameGrade = 0, total = 0;
   for (let seed = 20; seed < 30; seed++) {
     const hard = deal<MeasurePuzzleData>("measure", seed, "hard");
-    const today = deal<MeasurePuzzleData>("measure", seed, "normal", { pins: ["preMeasureLevels"] });
+    const today = strip(hard) as unknown as MeasurePuzzleData; // Changed with Joe's approval, 22 Nov 2026
     const sol = today.solutions ?? [];
     const limit = puzzleTimeLimitMs(today);
     for (const answer of [sol.join("|"), [sol[0], sol[1], "", ""].join("|"), "", [sol[0], "P0-1,P1-0", sol[2], sol[3]].join("|")]) {
@@ -155,9 +157,9 @@ ok(json(levelProof("numline", "hard")) === json({ open: "estimation: every place
       }
     }
   }
-  ok(sameGrade === total, `Brimful: Hard grades every answer exactly as today's game (${sameGrade} of ${total})`);
+  ok(sameGrade === total, `Brimful: Hard grades every answer exactly as the same puzzle without its level (${sameGrade} of ${total})`); // Changed with Joe's approval, 22 Nov 2026
 
-  for (const level of ["easy", "normal", "expert"] as const) {
+  for (const level of ["easy", "normal", "hard", "expert"] as const) { // Changed with Joe's approval, 22 Nov 2026
     let finished = 0, empty = 0;
     for (let seed = 40; seed < 50; seed++) {
       const p = deal<MeasurePuzzleData>("measure", seed, level);

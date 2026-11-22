@@ -54,6 +54,7 @@ import { playTenDropPerfect } from "./tendrop-depth-player";
 import { pinPrePartialCredit } from "../src/lib/duel/partialCredit";
 import { pinPreLogic2 } from "../src/lib/duel/logicOverhaul2";
 import { pinPreSpeedOverhaul } from "../src/lib/duel/speedOverhaul";
+import { pinPrePyramidPartial } from "../src/lib/duel/pyramidPartial"; // Changed with Joe's approval, 22 Nov 2026
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul): this check proves the stamps
 // before it (Tenfall tenRev 5, Pull! clayRev 9), so it deals them (speedOverhaul.ts).
 pinPreSpeedOverhaul(true);
@@ -64,6 +65,9 @@ pinPrePartialCredit(true);
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Logic overhaul): written for Trail depthRev 2,
 // so new deals keep it (logic-overhaul-2-check proves depthRev 3).
 pinPreLogic2(true);
+// Changed with Joe's approval, 22 Nov 2026 (routine consequence of D2's Integer Pyramid depthRev 3): written
+// for Integer Pyramid depthRev 2, so new deals keep it (number-pyramid-partial-check proves depthRev 3). Changed with Joe's approval, 22 Nov 2026
+pinPrePyramidPartial(true); // Changed with Joe's approval, 22 Nov 2026
 
 let checks = 0;
 const failures: string[] = [];
