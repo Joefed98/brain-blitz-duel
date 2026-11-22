@@ -146,7 +146,7 @@ export const BOARD_KEYS: Partial<Record<PuzzleType, BoardKeySpec>> = {
   blockparty: {
     kind: "cursor",
     targets: "[data-bp-tray-piece], .bp-board-art image",
-    hit: "[class~='z-[1]']",
+    hit: "[class~='z-[1]']", // design-lint-ignore: a selector for the tray's hit cells, not a Tailwind class
     buttons: { z: "[data-testid='blockparty-undo']", r: "[data-testid='blockparty-reset']" },
   },
   pipes: { kind: "cursor", targets: "button[data-pipe-cell]", secondary: true },

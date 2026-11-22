@@ -1089,21 +1089,21 @@
   z-index: 60;
   pointer-events: none;
   border-radius: 8px;
-  box-shadow: 0 0 0 3px var(--jz-white), 0 0 0 5px rgb(0 0 0 / 0.7);
+  box-shadow: 0 0 0 3px var(--jz-white), 0 0 0 5px color-mix(in srgb, var(--jz-bg) 70%, transparent);
 }
 .board-key-cursor[data-held] {
-  box-shadow: 0 0 0 3px var(--jz-gold), 0 0 0 5px rgb(0 0 0 / 0.7);
+  box-shadow: 0 0 0 3px var(--jz-gold), 0 0 0 5px color-mix(in srgb, var(--jz-bg) 70%, transparent);
 }
 .board-key-aim {
   border-radius: 50%;
-  box-shadow: 0 0 0 2px var(--jz-white), 0 0 0 4px rgb(0 0 0 / 0.6);
+  box-shadow: 0 0 0 2px var(--jz-white), 0 0 0 4px color-mix(in srgb, var(--jz-bg) 60%, transparent);
 }
 .board-key-aim::before,
 .board-key-aim::after {
   content: "";
   position: absolute;
   background: var(--jz-white);
-  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.6);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--jz-bg) 60%, transparent);
 }
 .board-key-aim::before {
   left: 50%;
