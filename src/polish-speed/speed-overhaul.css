@@ -50,6 +50,12 @@
 [data-ascend-art] .ascend-disc::after { display: none; }
 [data-ascend-art] .ascend-disc[data-disc="done"] { background-image: var(--ascend-disc-done-art); color: var(--jz-navy); }
 [data-ascend-art] .ascend-disc[data-disc="wrong"] { background-image: var(--ascend-disc-art); color: var(--jz-navy); box-shadow: 0 0 0 3px var(--warn), 0 2px 4px rgba(0, 0, 0, 0.35); }
+/* In a live round batch-s's glass-dome gradients ([data-puzzle-play] .ascend-disc[data-disc]) sat over the sprite; the
+   rendered counters win there too (Spotlight, 21 Nov 2026). */
+[data-puzzle-play] [data-ascend-art] .ascend-disc[data-disc] { background: var(--ascend-disc-art) center / 100% 100% no-repeat; border-color: transparent; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.35); color: var(--jz-navy); text-shadow: none; }
+[data-puzzle-play] [data-ascend-art] .ascend-disc[data-disc="done"] { background-image: var(--ascend-disc-done-art); }
+[data-puzzle-play] [data-ascend-art] .ascend-disc[data-disc="wrong"] { box-shadow: 0 0 0 3px var(--warn), 0 2px 4px rgba(0, 0, 0, 0.35); }
+[data-puzzle-play] [data-ascend-art] .ascend-disc::after { display: none; }
 
 /* ------------------------------------------------------------ Don't Break the Chain */
 /* Above batch-s's category-lit board (same selector, one more attribute): no edge glow. Spotlight (21 Nov 2026): a
