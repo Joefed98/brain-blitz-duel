@@ -11,7 +11,7 @@ import { gameDisplayName } from "@/lib/duel/gameNames";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useReducedMotion } from "@/lib/motion";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
 
 import { NO_SCROLL_STYLE, useNoTouchScroll } from "@/components/puzzles/noScroll";
@@ -58,6 +58,13 @@ const BELL_BODY = 0.775;
 const FILL_ROD = 18;
 /** balanceRev 2's 10-notch scale: ten notches must fit a 375 px phone, so each may narrow to this. */
 const MIN_WIDE_PEG_WIDTH = 32;
+/**
+ * A live round's 10-notch scale (22 Nov 2026, display only): a notch is at least this wide where the screen allows. On a
+ * 375 px phone ten notches fit 351 px (35 each), so the stage reaches into its side margins by up to LIVE_WIDE_BLEED a
+ * side (6 px left to the screen's edge) to give each 36 px.
+ */
+const LIVE_WIDE_PEG_TARGET = 36;
+const LIVE_WIDE_BLEED = 6;
 
 function Disc({ value, fixed, width, height, spill }: { value: number; fixed: boolean; width: number; height: number; spill?: number }) {
   return <IronKettlebell value={value} fixed={fixed} width={width} height={height} {...(spill ? { spill } : {})} />;
@@ -271,20 +278,34 @@ function IntroExample() {
   );
 }
 
-/** Notch width for the current scale: 44 px on 8 notches; a 10-notch scale shares the width, down to 32 px. */
-function useSpacing(ref: React.RefObject<HTMLDivElement | null>, pegs: number, max = 44): number {
-  const [spacing, setSpacing] = useState(44);
+/**
+ * Notch width for the current scale: 44 px on 8 notches; a 10-notch scale shares the width, down to 32 px. In a live
+ * round (`live`) a 10-notch scale too narrow for LIVE_WIDE_PEG_TARGET widens the stage into its side margins (`bleed`,
+ * at most LIVE_WIDE_BLEED a side); intros and demos never do, so recorded touches still land.
+ */
+function useSpacing(ref: React.RefObject<HTMLDivElement | null>, pegs: number, max = 44, live = false): { spacing: number; bleed: number } {
+  const [fit, setFit] = useState({ spacing: 44, bleed: 0 });
+  // The bleed in force, so a measure takes it off the stage's width (the stage's own width includes it).
+  const bleedNow = useRef(0);
   useBeforePaint(() => {
     const el = ref.current;
     if (!el) return;
     const min = pegs > 8 ? MIN_WIDE_PEG_WIDTH : MIN_PEG_WIDTH;
-    const measure = () => setSpacing(Math.max(min, Math.min(max, Math.floor((el.clientWidth - PEG_GAP * (pegs - 1)) / pegs))));
+    const measure = () => {
+      const base = el.clientWidth - 2 * bleedNow.current;
+      const room = (w: number) => Math.floor((w - PEG_GAP * (pegs - 1)) / pegs);
+      const short = live && pegs > 8 && room(base) < LIVE_WIDE_PEG_TARGET ? LIVE_WIDE_PEG_TARGET * pegs + PEG_GAP * (pegs - 1) - base : 0;
+      const bleed = short > 0 ? Math.min(LIVE_WIDE_BLEED, Math.ceil(short / 2)) : 0;
+      bleedNow.current = bleed;
+      const spacing = Math.max(min, Math.min(max, room(base + 2 * bleed)));
+      setFit((f) => (f.spacing === spacing && f.bleed === bleed ? f : { spacing, bleed }));
+    };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [ref, pegs, max]);
-  return spacing;
+  }, [ref, pegs, max, live]);
+  return fit;
 }
 
 /** Live instrument height: as tall as the bench allows, within a readable range (a live round up to 400, 3 Nov 2026). */
@@ -338,7 +359,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   const kitOn = freeMoves && inFrame;
   // Puzzle polish (3 Nov 2026, display only): in a live round the notches widen into the panel's width (up to
   // LIVE_PEG_WIDTH) and the kettlebells grow with them; intros and demos keep 44 px, so recorded touches still land.
-  const spacing = useSpacing(root, scales[current] ? scalePegs(scales[current]!) : 8, inFrame ? LIVE_PEG_WIDTH : 44);
+  const { spacing, bleed } = useSpacing(root, scales[current] ? scalePegs(scales[current]!) : 8, inFrame ? LIVE_PEG_WIDTH : 44, inFrame);
+  // A 10-notch scale on a narrow phone: the stage reaches `bleed` px into each side margin (useSpacing).
+  const rootStyle = useMemo<CSSProperties>(
+    () => (bleed ? { ...NO_SCROLL_STYLE, width: `calc(100% + ${2 * bleed}px)`, marginInline: -bleed } : NO_SCROLL_STYLE),
+    [bleed],
+  );
 
   useEffect(() => {
     setProgressTarget(inFrame ? null : document.getElementById(`balance-progress-${stateKey}`));
@@ -527,7 +553,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
       ref={root}
       data-polish="balance"
       data-stage-column="3" className="flex min-h-0 w-full flex-1 flex-col items-center gap-3"
-      style={NO_SCROLL_STYLE}
+      data-notch-bleed={bleed || undefined}
+      style={rootStyle}
     >
       <BalanceArt />
       {progressTarget && createPortal(
