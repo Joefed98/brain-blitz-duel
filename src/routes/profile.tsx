@@ -170,7 +170,7 @@ function ProfileScreen() {
               <span className="jz-row-text">
                 <span className="jz-row-title">Save your progress</span>
                 <span data-look-moved data-wrap-ok className="jz-row-sub pf-footer-note">
-                  Saved on this phone. Create an account to keep it everywhere, and choose your card in Customise.
+                  Saved on this phone. Create an account to keep it everywhere. Pick your card in Customise.
                 </span>
               </span>
               <Icon name="chevron-right" size={20} className="ap-chevron" />
