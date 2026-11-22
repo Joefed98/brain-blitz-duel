@@ -13,7 +13,7 @@
  *
  *   bun scripts/goal-line-check.ts [game ids…] [--part=k/n] [--report]
  *
- * In halves on CI (~3 min each with its dev server), both on play17.
+ * In thirds on CI (~2 min each with its dev server), all on play17.
  */
 import { existsSync } from "node:fs";
 import type { Browser, Page } from "playwright";

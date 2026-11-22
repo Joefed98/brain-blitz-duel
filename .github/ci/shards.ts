@@ -141,8 +141,8 @@ export const SHARDS: Record<string, string[]> = {
   // number-demos-check (16 Nov 2026, the Number overhaul's intro demos, ~105 s whole) in halves, one beside share-check
   // and one beside offline-check.
   // goal-line-check (22 Nov 2026: every puzzle's goal line on its live round at 375×667 and 390×844, never cut short;
-  // ~5.5 min whole with its dev server) in halves, both here (~3 min each, under the 300 s per-check limit).
-  play17: ["share-check.ts", "number-demos-check.ts@1/2", "goal-line-check.ts@1/2", "goal-line-check.ts@2/2"],
+  // ~5.5 min whole with its dev server) in thirds, all here (~2 min each locally, well under the 300 s per-check limit).
+  play17: ["share-check.ts", "number-demos-check.ts@1/2", "goal-line-check.ts@1/3", "goal-line-check.ts@2/3", "goal-line-check.ts@3/3"],
   // Prompt D (23 Oct 2026): demo-intro-check (every active game's intro from its first frame to its demo playing,
   // with and without a demo, as an iPhone 11 home-screen app; ~8 s a game) and replay-board-check (46 puzzle replays on
   // the room's results screen, ~2 min). demo-intro-check in sixths since 8 Nov 2026: its thirds took 197–300 s on CI
