@@ -21,6 +21,7 @@ import { decodeSlideMoves, replaySlide, slideBoard, slideDistance, type SlideBoa
 import { replayGems } from "../depth4/iceGems";
 import { decodeGravityTilts } from "../gravity";
 import { isTopsy, replayTopsyPuzzle, topsyLevelSettings } from "../topsy";
+import { TOPSY_NORMAL_FULL_BY_S, usesTopsyLine } from "../topsyLine";
 import { JUMBLED_MOVABLE, jumbledInPlace, replayGradientAnswer } from "../jumbled";
 import { decodeRingTaps, freshOffsets, replayRings, ringColour, ringsApply } from "../rings";
 import { decodeFlowPaths, flowCellCount, flowGrid, verifyFlow } from "../flow";
@@ -55,7 +56,9 @@ function parMovesSpeed(type: PatternStdType, input: StandardInput): number {
   // (gravity.levels.ts `speedFullByS`); Normal and every round dealt before levels keep the stamp's.
   const level = type === "gravity" ? topsyLevelSettings(input.puzzle) : null;
   if (level && usesParStrict(input.puzzle)) return speedPoints(PAR_MOVES_STD.speed, input.msLeft, input.limitMs, (patternLevelFullByS("gravity", input.puzzle) ?? level.speedFullByS) * 1000);
-  const fullByS = usesParStrict(input.puzzle) && (type === "iceslide" || type === "gravity") ? PAR_STRICT_FULL_BY_S[type] : patternFullByS(type, input.puzzle as { tilesRev?: number });
+  // Topsy-Turvy gravityRev 9 (D4, topsyLine.ts): Normal full speed by 40 s; gravityRev 7 and 8 keep the stricter 32 s.
+  const strictS = (t: "iceslide" | "gravity") => (t === "gravity" && usesTopsyLine(input.puzzle) ? TOPSY_NORMAL_FULL_BY_S : PAR_STRICT_FULL_BY_S[t]);
+  const fullByS = usesParStrict(input.puzzle) && (type === "iceslide" || type === "gravity") ? strictS(type) : patternFullByS(type, input.puzzle as { tilesRev?: number });
   return speedPoints(PAR_MOVES_STD.speed, input.msLeft, input.limitMs, fullByS * 1000);
 }
 

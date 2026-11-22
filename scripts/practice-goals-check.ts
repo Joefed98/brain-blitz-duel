@@ -71,6 +71,8 @@ import { ACTIVE_PUZZLE_TYPES, PUZZLE_TYPES } from "../src/lib/duel/registry";
 import { standardFinish, standardUnfinished } from "../src/lib/duel/standard/shape";
 import { FLOW_REV3_FULL_BY_S, LASER_REV4_FULL_BY_S, PATTERN_STD } from "../src/lib/duel/standard/patternRules";
 import { LOGIC_STANDARD } from "../src/lib/duel/standard/logicRules";
+import { PL_LEVEL_SPEED_GAMES, settingsFullByS } from "../src/lib/duel/standard/plLevelSpeed"; // Changed with Joe's approval, 22 Nov 2026
+import { gameLevelSettings } from "../src/lib/levels/gameLevels"; // Changed with Joe's approval, 22 Nov 2026
 import { STD_CRYPTOGRID, STD_SLIDER, STD_SWAPWORD } from "../src/lib/duel/standard/word";
 import { STANDARD_GAMES } from "../src/lib/duel/standard/games.server";
 import type { PuzzleType } from "../src/lib/duel/types";
@@ -209,7 +211,9 @@ for (const c of PRACTICE_CHALLENGES) {
     check(Boolean(rule), `${c.id}: its standard rules are known`);
     check(Boolean(STANDARD_GAMES[c.type]), `${c.id}: graded on the puzzle scoring standard`);
     if (rule && g.kind === "bonus") check(g.max === rule.bonus && g.max > 0, `${c.id}: bonus ${g.max} is the rule's ${rule.bonus}`);
-    if (rule && g.kind === "speed") check(g.max === rule.speed && g.withinS === rule.fullByS && c.text.includes(`${rule.fullByS} s`), `${c.id}: speed ${g.max} within ${g.withinS} s is the rule's ${rule.speed} by ${rule.fullByS} s`);
+    // Changed with Joe's approval, 22 Nov 2026: a Hard or Expert goal of the D4 games quotes its level's own speed line (stamped on the deal).
+    const fullBy = (c.level !== "classic" && PL_LEVEL_SPEED_GAMES.includes(c.type) ? settingsFullByS(gameLevelSettings(c.type, c.level)) : null) ?? rule?.fullByS;
+    if (rule && g.kind === "speed") check(g.max === rule.speed && g.withinS === fullBy && c.text.includes(`${fullBy} s`), `${c.id}: speed ${g.max} within ${g.withinS} s is the rule's ${rule.speed} by ${fullBy} s`); // Changed with Joe's approval, 22 Nov 2026
     if (rule) check(rule.speed + rule.bonus <= 50, `${c.id}: speed and bonus both fit a finish's 50 (standardFinish never trims either)`);
   } else if (g.kind === "score") {
     // APPROVED by Joe, 11 Nov 2026, change (6): was `g.score === 180 && c.text === "Score 180 or more"`; any score the

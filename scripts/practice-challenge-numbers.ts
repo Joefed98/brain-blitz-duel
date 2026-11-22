@@ -48,6 +48,8 @@ const BULLSEYE_DEAD_DOC = /whose centre ring is the 10/.test(readSrc("src/lib/ar
 import { PAR_MOVES_STD } from "../src/lib/duel/parMoves";
 import { PATTERN_STD } from "../src/lib/duel/standard/patternRules";
 import { LOGIC_STANDARD } from "../src/lib/duel/standard/logicRules";
+import { settingsFullByS } from "../src/lib/duel/standard/plLevelSpeed"; // Changed with Joe's approval, 22 Nov 2026
+import { gameLevelSettings } from "../src/lib/levels/gameLevels"; // Changed with Joe's approval, 22 Nov 2026
 import { PIN_V7_JOULZ_EACH } from "../src/lib/arcade/pinball4";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { PRACTICE_CHALLENGES, type ChallengeCond, type PracticeChallenge } from "../src/lib/duel/practiceChallenges";
@@ -136,7 +138,7 @@ function expectations(): Record<string, Expect> {
   const whack42 = whackComboRun();
   return {
     // Speed and finish counts from the live help text.
-    "sudoku.box-clever": { say: [[45, LOGIC_STANDARD.sudoku.fullByS]] },
+    "sudoku.box-clever": { say: [[44, settingsFullByS(gameLevelSettings("sudoku", "hard"))!]] }, // Changed with Joe's approval, 22 Nov 2026
     "numhunt.no-slips": { say: [[24, NUMHUNT_COUNT]] },
     "numhunt.in-the-flow": { say: [[24, NUMHUNT_COUNT], [1, 1]], th: [[24, NUMHUNT_COUNT]] },
     "numhunt.stairway": { say: [[24, NUMHUNT_COUNT]] },

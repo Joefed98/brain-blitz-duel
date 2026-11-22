@@ -87,8 +87,8 @@ const DIRS: GravityDir[] = ["U", "D", "L", "R"];
   check(same(levelsOf("gravity"), ["easy", "normal", "hard", "expert"]), `gravity offers ${levelsOf("gravity").join(", ")}`);
   const spec: Record<Banked, TopsyLevelSettings> = {
     easy: { balls: 3, boards: 2, minTilts: [2, 4], walls: [14, 22], spare: 12, timeLimitMs: 120_000, speedFullByS: 20 },
-    hard: { balls: 6, boards: 3, minTilts: [6, 9], walls: [14, 22], spare: 6, timeLimitMs: 120_000, speedFullByS: 30 },
-    expert: { balls: 8, boards: 3, minTilts: [7, 10], walls: [14, 22], spare: 5, timeLimitMs: 120_000, speedFullByS: 30, personSolvable: true },
+    hard: { balls: 7, boards: 3, minTilts: [6, 9], walls: [14, 22], spare: 6, timeLimitMs: 120_000, speedFullByS: 55 }, // Changed with Joe's approval, 22 Nov 2026
+    expert: { balls: 8, boards: 3, minTilts: [7, 10], walls: [14, 22], spare: 5, timeLimitMs: 120_000, speedFullByS: 64, personSolvable: true }, // Changed with Joe's approval, 22 Nov 2026
   };
   for (const level of BANKED) {
     check(same(settingsOf(level), spec[level]), `${level}: settings ${JSON.stringify(settingsOf(level))}`);
@@ -102,7 +102,10 @@ const DIRS: GravityDir[] = ["U", "D", "L", "R"];
   // (+6 over +8) and full speed asked for sooner than Normal's 32 s (30 s), so its speed points want quicker play per tilt.
   const { PAR_STRICT_FULL_BY_S } = await import("../src/lib/duel/parMoves");
   const normalFullBy = (PAR_STRICT_FULL_BY_S as Record<string, number>)["gravity"]!;
-  check(normalFullBy === 32 && settingsOf("hard").speedFullByS < normalFullBy, `Hard's full-speed time ${settingsOf("hard").speedFullByS} s isn't under Normal's ${normalFullBy} s`);
+  // Changed with Joe's approval, 22 Nov 2026 (option A): each level's line is set from measurement and more balls take longer, so Hard's line is
+  // after Normal's (40 s on gravityRev 9; gravityRev 8 keeps 32 s) and Expert's after Hard's.
+  const { TOPSY_NORMAL_FULL_BY_S } = await import("../src/lib/duel/topsyLine"); // Changed with Joe's approval, 22 Nov 2026
+  check(normalFullBy === 32 && TOPSY_NORMAL_FULL_BY_S === 40 && settingsOf("hard").speedFullByS > TOPSY_NORMAL_FULL_BY_S && settingsOf("expert").speedFullByS > settingsOf("hard").speedFullByS, `Hard's full-speed time ${settingsOf("hard").speedFullByS} s isn't after Normal's ${TOPSY_NORMAL_FULL_BY_S} s, or Expert's ${settingsOf("expert").speedFullByS} s after Hard's`); // Changed with Joe's approval, 22 Nov 2026
   check(settingsOf("hard").minTilts[0] > 4 && settingsOf("hard").spare < TOPSY_V8_SPARE, "Hard isn't more tilts and a tighter limit than Normal");
   check(/pattern-overhaul-gravity-levels-check/.test(src("src/lib/levels/pattern/gravity.levels.ts")), "the levels file doesn't name this check as the minimum's proof");
   check(LEVELS_GRAVITY.levels.normal === undefined, "Normal has a registry entry (it must be today's game)");
@@ -302,10 +305,12 @@ const dealt: Partial<Record<Banked, Leveled>> = {};
     const homeShare = p.boards![0]!.starts.length / topsyTotalBalls(p);
     check(!partial.isCorrect && partial.score > 0 && partial.score < 150 && (partial.extra as { home?: number })?.home === p.boards![0]!.starts.length, `${level}: board 1 cleared alone scores ${partial.score} (${(homeShare * 100).toFixed(0)} % of the balls)`);
   }
-  // Normal and every puzzle without a level: full speed by 32 s (the stricter-par stamp's).
+  // Normal: full speed by 40 s on gravityRev 9 (D4, option A), by 32 s on gravityRev 8 (the stricter-par stamp's). // Changed with Joe's approval, 22 Nov 2026
   const normal = dealNormal(5, true);
-  const at = (msLeft: number) => gradeAnswer(normal, (normal.boardSolutions ?? []).join(""), msLeft).score;
-  check(at(120_000 - 31_000) === 200 && at(120_000 - 40_000) < 200, `Normal isn't full speed by 32 s (${at(89_000)}, ${at(80_000)})`);
+  const at = (msLeft: number, p: GravityPuzzleData = normal) => gradeAnswer(p, (normal.boardSolutions ?? []).join(""), msLeft).score; // Changed with Joe's approval, 22 Nov 2026
+  check(normal.gravityRev === 9 && at(120_000 - 39_000) === 200 && at(120_000 - 45_000) < 200, `Normal isn't full speed by 40 s on gravityRev 9 (${at(81_000)}, ${at(75_000)})`); // Changed with Joe's approval, 22 Nov 2026
+  const rev8 = { ...normal, gravityRev: 8 } as GravityPuzzleData; // Changed with Joe's approval, 22 Nov 2026
+  check(at(120_000 - 31_000, rev8) === 200 && at(120_000 - 40_000, rev8) < 200, `gravityRev 8 isn't full speed by 32 s (${at(89_000, rev8)}, ${at(80_000, rev8)})`); // Changed with Joe's approval, 22 Nov 2026
   // Easy's speed reads its level: at 25 s an Easy round has lost speed, the same boards read as Normal haven't.
   const easy = dealt.easy!;
   const asNormal = { ...easy, level: undefined, tiltLimits: easy.boardMins!.map((m) => m + TOPSY_V8_SPARE) } as GravityPuzzleData;

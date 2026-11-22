@@ -14,7 +14,7 @@
  * `--check` rebuilds and fails unless the file on disk is exactly what it would write (re-run
  * `bun scripts/push-par-data.ts` after a rebuild: the phone's par table holds every level board too).
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 
 import { PUSH_CELLS, PUSH_COLS as N, type SlideDir } from "../src/lib/duel/types";
 import { LEVELS_PUSH, type PushLevelSettings } from "../src/lib/levels/pattern/push.levels";
@@ -239,6 +239,17 @@ function randomLayout(s: PushLevelSettings) {
  */
 export const PUSH_LEVEL_STREAMS: Partial<Record<PushLevelName, number>> = { expert: 4 };
 
+/**
+ * With PUSH_JOURNAL_DIR set (D4, 22 Nov 2026: a machine restart lost an hour of Expert boards), a build saves its whole
+ * state (the generator's seed state, the layouts tried and the boards kept) at the start of every layout after a board
+ * is kept, and at least every 10 layouts, and a restarted build carries on from it: the same boards in the same order as
+ * one uninterrupted run (--check rebuilds without a journal).
+ */
+function journalOf(level: PushLevelName, stream: { k: number; n: number } | null): string | null {
+  const dir = process.env["PUSH_JOURNAL_DIR"];
+  return dir ? `${dir}/push-${level}${stream ? `-${stream.k}-of-${stream.n}` : ""}.json` : null;
+}
+
 export function buildPushLevel(level: PushLevelName, log = false, stream: { k: number; n: number } | null = null): PushLevelEntry[] {
   const s = LEVELS_PUSH.levels[level]!.settings;
   const size = stream ? Math.ceil(PUSH_LEVEL_BANK_SIZE[level] / stream.n) + 2 : PUSH_LEVEL_BANK_SIZE[level];
@@ -248,7 +259,28 @@ export function buildPushLevel(level: PushLevelName, log = false, stream: { k: n
   const perWalls = new Map<string, number>();
   const startedAt = Date.now();
   let guard = 0;
+  const journal = journalOf(level, stream);
+  if (journal && existsSync(journal)) {
+    const saved = JSON.parse(readFileSync(journal, "utf8")) as { seedState: number; guard: number; bank: PushLevelEntry[] };
+    seedState = saved.seedState >>> 0;
+    guard = saved.guard;
+    for (const e of saved.bank) {
+      bank.push(e);
+      const wallKey = e.walls.join(".");
+      seen.add(`${wallKey}/${e.targets.join(".")}/${e.crates.join(".")}/${e.pusher}`);
+      perWalls.set(wallKey, (perWalls.get(wallKey) ?? 0) + 1);
+    }
+    if (log) console.log(`  ${level}: resuming at ${guard} layouts, ${bank.length} boards (${journal})`);
+  }
+  let savedLen = bank.length;
+  let savedGuard = guard;
   while (bank.length < size && guard < 200_000) {
+    if (journal && (bank.length !== savedLen || guard - savedGuard >= 10)) {
+      writeFileSync(`${journal}.tmp`, JSON.stringify({ seedState, guard, bank }));
+      renameSync(`${journal}.tmp`, journal);
+      savedLen = bank.length;
+      savedGuard = guard;
+    }
     guard += 1;
     const layout = randomLayout(s);
     if (!layout) continue;
@@ -379,6 +411,8 @@ if (import.meta.main) {
     banks[level] = streams ? await buildStreamed(level, streams) : buildPushLevel(level, !check);
     const mins = banks[level].map((e) => e.minPushes);
     console.log(`push ${level}: ${banks[level].length} boards, minimum pushes ${Math.min(...mins)}–${Math.max(...mins)} (${Math.round((Date.now() - t) / 1000)} s)`);
+    // Each finished level is written at once (D4: a restart while a later level builds keeps it).
+    if (!check) writeFileSync(PUSH_LEVEL_BANK_PATH, pushLevelBankSource(banks));
   }
   const text = pushLevelBankSource(banks);
   if (check) {

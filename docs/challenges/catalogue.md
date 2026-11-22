@@ -160,7 +160,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Right way up | Sink every ball in par tilts. | Classic | Par | finish, `parts.efficiency` ≥ 20 |  | `gravity.right-way-up` |
-| Head rush | Sink every ball within 32 s. | Classic | Speed | finish, `parts.speed` ≥ 30 (by 32 s) |  | `gravity.head-rush` |
+| Head rush | Sink every ball within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 30 (by 40 s) |  | `gravity.head-rush` |
 
 #### Gradient (`tiles`)
 

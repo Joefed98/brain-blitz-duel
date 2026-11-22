@@ -20,6 +20,7 @@ import { dealLogic2 } from "./logicOverhaul2";
 import { dealWordNov7 } from "./wordNov7";
 import { dealGameReviewNov15 } from "./gameReviewNov15";
 import { dealPatternNov15 } from "./patternNov15";
+import { dealTopsyLine } from "./topsyLine";
 import { withPipesTwoWayPar } from "./depth4/pipesTaps";
 import { dealWordOverhaul } from "./wordOverhaul.server";
 import { dealAttentionOverhaul } from "./attentionOverhaul";
@@ -218,6 +219,8 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   // The Speed overhaul (15 Nov 2026, speedOverhaul.ts): Tenfall tenRev 6 (resets cost on a finish), Pull! clayRev 10
   // (a wider quick-hit window).
   { name: "speedOverhaul", deal: dealSpeedOverhaul },
+  // D4 (22 Nov 2026, topsyLine.ts): Topsy-Turvy gravityRev 9 on Normal, full speed by 40 s (Joe's option A).
+  { name: "topsyLine", deal: dealTopsyLine },
 ];
 
 /**

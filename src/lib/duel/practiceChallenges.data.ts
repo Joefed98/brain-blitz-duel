@@ -193,9 +193,9 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Skid (iceslide): 150 + speed 30 (30 s) + slides 20 (par).
   ch("iceslide", "Ice cool", "Reach the exit in par slides.", "C", "par", false, all(FIN, f("slides", "lte", "@parSlides"))),
   ch("iceslide", "Black ice", "Score 200 on a Hard rink.", "H", "perfect", false, score(200)),
-  // Topsy-Turvy (gravity): 150 + speed 30 (32 s) + tilts 20 (par).
+  // Topsy-Turvy (gravity): 150 + speed 30 (40 s, gravityRev 9) + tilts 20 (par).
   ch("gravity", "Right way up", "Sink every ball in par tilts.", "C", "par", false, bonus(20)),
-  ch("gravity", "Head rush", "Sink every ball within 32 s.", "C", "speed", false, speed(30, 32)),
+  ch("gravity", "Head rush", "Sink every ball within 40 s.", "C", "speed", false, speed(30, 40)),
   // Gradient (tiles): 150 + speed 35 (30 s) + swaps 15 (par).
   ch("tiles", "Smooth blend", "Rebuild the gradient in par swaps.", "C", "par", false, bonus(15), "tiles.par"),
   ch("tiles", "Colour rush", "Rebuild the gradient within 30 s.", "C", "speed", false, speed(35, 30), "tiles.speed"),
