@@ -166,7 +166,22 @@ function TableCanvas({ picture }: { picture: Picture }) {
     paint();
     // The real card art may still be loading: paint again once it has had a moment.
     const again = window.setTimeout(paint, 700);
-    return () => window.clearTimeout(again);
+    // The reveal template's stage (the polish plan's G7, 21 Nov 2026): the table takes the stage's width, repainted when
+    // the stage's width changes (never on a frame).
+    let last = canvas.clientWidth;
+    const ro =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(() => {
+            if (canvas.clientWidth === last) return;
+            last = canvas.clientWidth;
+            paint();
+          })
+        : null;
+    ro?.observe(canvas);
+    return () => {
+      window.clearTimeout(again);
+      ro?.disconnect();
+    };
   }, [picture, h]);
   return <canvas ref={ref} aria-hidden="true" data-cards-reveal-table="" className="w-full rounded-xl" style={{ aspectRatio: `${picture.worldW} / ${h}` }} />;
 }
@@ -175,11 +190,11 @@ export function CardsRevealPicture({ puzzle, answer }: { puzzle: PuzzleData; ans
   const picture = useMemo(() => (answer ? cardsRevealPicture(puzzle, answer) : null), [puzzle, answer]);
   if (!picture) return null;
   return (
-    <div data-cards-reveal={puzzle.type} className="flex w-full max-w-[380px] shrink-0 flex-col items-stretch gap-2 self-center">
+    <div data-cards-reveal={puzzle.type} className="flex w-full shrink-0 flex-col items-stretch gap-2 self-center">
       <div data-cards-reveal-facts="" className="flex w-full items-stretch justify-center gap-2">
         {picture.facts.map((f) => (
           <div key={f.label} data-fact={f.label} className={`flex min-w-0 flex-1 flex-col items-center rounded-xl px-2 py-1.5 ${f.best ? "bg-[var(--jz-gold)] text-[var(--jz-on-gold)]" : "bg-black/35 text-foreground"}`}>
-            <span className="text-[12px] font-semibold opacity-80">{f.label}</span>
+            <span className="font-semibold opacity-80" style={{ fontSize: 13 }}>{f.label}</span>
             <span className="whitespace-nowrap text-[17px] font-extrabold tabular-nums">{f.value}</span>
           </div>
         ))}

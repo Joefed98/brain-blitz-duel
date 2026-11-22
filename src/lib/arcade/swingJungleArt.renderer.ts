@@ -380,85 +380,46 @@ export function strokeVineRope(ctx: Ctx, trace: () => void, w = 1, gold = false)
 
 const ringCache = new Map<string, { canvas: ArtCanvas; size: number } | null>();
 /**
- * Paints a grab ring of radius R centred at (x, y) (stage 2 of the Action overhaul, 15 Nov 2026: concept A's target
- * ring, made to read at a glance at speed): a soft dark pad under it (contrast, not a glow), a heavy dark rim, a thick
- * band of enamelled cream metal lit from the top left with a crisp specular arc, a dark well and a small cream inner
- * ring at its centre (the bullseye), and a lime binding where the vine ties on. Gold enamel once grabbed.
+ * Paints a grab point of radius R centred at (x, y) as a knotted vine loop (the polish plan's C3.3, Joe, 20 Nov 2026:
+ * the 14 px size kept, since a larger target helps play, but drawn as the old loop, not an enamel target disc): a dark
+ * vine ring, a lime ring over it twisted by short dark wraps, and a gold knot at the top where the vine ties on.
+ * Gold (just grabbed) lights the loop gold. Nothing past R + 3 but the knot.
  */
 export function paintGrabRing(ctx: Ctx, x: number, y: number, R: number, gold: boolean): void {
-  // The dark pad: the ring always sits on a calm dark disc, whatever is behind it (leaves, trunks, light).
-  const pad = ctx.createRadialGradient(x, y, R * 0.6, x, y, R + 7);
-  pad.addColorStop(0, "rgba(2,10,6,0.62)");
-  pad.addColorStop(0.7, "rgba(2,10,6,0.42)");
-  pad.addColorStop(1, "rgba(2,10,6,0)");
-  ctx.fillStyle = pad;
-  ctx.beginPath();
-  ctx.arc(x, y, R + 7, 0, Math.PI * 2);
-  ctx.fill();
-  // A contact shadow below (depth).
-  ctx.strokeStyle = "rgba(0,0,0,0.4)";
-  ctx.lineWidth = 7;
-  ctx.beginPath();
-  ctx.arc(x + 0.6, y + 1.8, R, 0, Math.PI * 2);
-  ctx.stroke();
-  // The dark well.
-  const hole = ctx.createRadialGradient(x, y - 2, 1, x, y, R);
-  hole.addColorStop(0, "rgba(6,18,10,0.82)");
-  hole.addColorStop(1, "rgba(3,10,6,0.94)");
-  ctx.fillStyle = hole;
-  ctx.beginPath();
-  ctx.arc(x, y, R - 2, 0, Math.PI * 2);
-  ctx.fill();
-  // The heavy rim, then the enamel band lit from the top left.
-  ctx.strokeStyle = gold ? "#3E2A08" : "#16200E";
-  ctx.lineWidth = 8.6;
-  ctx.beginPath();
-  ctx.arc(x, y, R, 0, Math.PI * 2);
-  ctx.stroke();
-  const e = ctx.createLinearGradient(x - R, y - R, x + R, y + R);
-  if (gold) {
-    e.addColorStop(0, "#FFF2B8");
-    e.addColorStop(0.45, "#F2C75C");
-    e.addColorStop(1, "#A0721E");
-  } else {
-    e.addColorStop(0, "#FFFDF0");
-    e.addColorStop(0.45, "#EEF0D4");
-    e.addColorStop(1, "#A3AB80");
-  }
-  ctx.strokeStyle = e;
-  ctx.lineWidth = 5.8;
-  ctx.beginPath();
-  ctx.arc(x, y, R, 0, Math.PI * 2);
-  ctx.stroke();
-  // The enamel's inner edge (depth).
-  ctx.strokeStyle = "rgba(20,26,10,0.55)";
-  ctx.lineWidth = 0.9;
-  ctx.beginPath();
-  ctx.arc(x, y, R - 2.9, 0, Math.PI * 2);
-  ctx.stroke();
-  // The bullseye: a small cream ring at the centre (concept A), a dark dot in it.
-  const ir = Math.max(2.6, R * 0.32);
-  ctx.strokeStyle = gold ? "#F7DA88" : "#E9EDCB";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(x, y, ir, 0, Math.PI * 2);
-  ctx.stroke();
-  // The specular: a crisp arc on the upper left of the band.
-  ctx.strokeStyle = "rgba(255,255,255,0.95)";
-  ctx.lineWidth = 1.6;
+  ctx.save();
   ctx.lineCap = "round";
+  // The vine's dark body.
+  ctx.strokeStyle = gold ? "#7A5410" : "#2E4A16";
+  ctx.lineWidth = gold ? 6 : 5.5;
   ctx.beginPath();
-  ctx.arc(x, y, R + 0.9, Math.PI * 1.08, Math.PI * 1.46);
+  ctx.arc(x, y, R, 0, Math.PI * 2);
   ctx.stroke();
-  // The binding at the top where the vine ties on: three lime wraps over the band.
-  for (let k = -1; k <= 1; k++) {
-    ctx.strokeStyle = k === 0 ? "#BCE97C" : "#5FA03A";
-    ctx.lineWidth = 1.8;
+  // The lit vine over it.
+  ctx.strokeStyle = gold ? "#FFF2B0" : "#CDEB7A";
+  ctx.lineWidth = gold ? 3.4 : 3;
+  ctx.beginPath();
+  ctx.arc(x, y, R, 0, Math.PI * 2);
+  ctx.stroke();
+  // The twist: short dark wraps round the loop (twelve, the gap at the knot left clear).
+  ctx.strokeStyle = gold ? "rgba(122,84,16,0.7)" : "rgba(46,74,22,0.75)";
+  ctx.lineWidth = 1.1;
+  for (let k = 1; k < 12; k++) {
+    const a = -Math.PI / 2 + (k / 12) * Math.PI * 2;
+    const c = Math.cos(a), sn = Math.sin(a);
     ctx.beginPath();
-    ctx.moveTo(x + k * 2.2 - 1.2, y - R - 3.4);
-    ctx.lineTo(x + k * 2.2 + 1.2, y - R + 3.4);
+    ctx.moveTo(x + c * (R - 1.4) - sn * 1.2, y + sn * (R - 1.4) + c * 1.2);
+    ctx.lineTo(x + c * (R + 1.4) + sn * 1.2, y + sn * (R + 1.4) - c * 1.2);
     ctx.stroke();
   }
+  // The knot at the loop's top.
+  ctx.fillStyle = gold ? "#FFD84A" : "#F2C75C";
+  ctx.beginPath();
+  ctx.arc(x, y - R, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(60,40,8,0.6)";
+  ctx.lineWidth = 0.8;
+  ctx.stroke();
+  ctx.restore();
 }
 
 /** A cached grab-ring sprite (radius R, gold or cream) drawn centred at (x, y); painted direct where none. */

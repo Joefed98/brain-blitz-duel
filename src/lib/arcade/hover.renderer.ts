@@ -34,6 +34,7 @@ import type { ArcadeGame, CanvasSize } from "./engine";
 import { artCanvas, artContext, deviceLayer, type ArtCanvas } from "./cache.renderer";
 import { arcadeReducedEffects } from "../fx/lowEnd";
 import { fillAbove, fillBelow, fillGradient } from "./arenaFills.renderer";
+import { blob } from "./polishA1.renderer";
 import type { ArenaSceneView } from "./arenaScene.renderer";
 import {
   pixelRect,
@@ -156,7 +157,7 @@ function spaceStars(c: CanvasRenderingContext2D, x: number, y: number, w: number
   }
   c.globalAlpha = 1;
 }
-function paintNight(c: CanvasRenderingContext2D, H: number): void {
+function paintNight(c: CanvasRenderingContext2D, H: number, idx = 0): void {
   const sky = c.createLinearGradient(0, 0, 0, H);
   sky.addColorStop(0, HOVER_SKY_TOP);
   sky.addColorStop(0.55, HOVER_SKY_MID);
@@ -175,71 +176,50 @@ function paintNight(c: CanvasRenderingContext2D, H: number): void {
   c.fillRect(-HOVER_WORLD_W, -90, HOVER_WORLD_W * 2, 180);
   spaceStars(c, -HOVER_WORLD_W, -70, HOVER_WORLD_W * 2, 140, 77, 1.1, 0.5);
   c.restore();
-  paintNebula(c, H);
+  paintNebula(c, H, idx);
   spaceStars(c, 0, 0, HOVER_WORLD_W, H, 41, 0.9, 0.55);
 }
 
 /**
- * The deep-space nebula (the Retro overhaul, 15 Nov 2026, concept B, kept retro): blue and indigo gas clouds sweeping
- * across the sky, painted once into the sky layer as pixel art: smooth value noise on a coarse lattice, quantised into
- * a few colour steps with a 4 × 4 ordered dither between them and drawn in 3 px blocks, so the clouds are chunky and
- * crisp rather than a soft photo. Seeded: every phone and the reveal draw the same sky. Kept dark under the barriers,
- * the saucer and the stars.
+ * The nebula (the polish plan's C1.3, Joe, 20 Nov 2026): soft gas clouds, no pixel blocks, tinted towards the colour of
+ * the next gate (`BARRIER_CYCLES`, a new colour every 7 gates, the rule the pillars use), so the sky follows the course.
+ * Six layers at most, one per gate colour, each painted once into the sky's device layer. The clouds stop short of the
+ * world's top and bottom rows, which stay `HOVER_SKY_TOP` / `HOVER_SKY_LOW`, so the fill meets the world with no seam.
+ * Seeded and fixed: every phone and the reveal draw the same sky. Kept dark under the barriers, the saucer and the stars.
  */
-const NEB_BLOCK = 3;
-const NEB_BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5] as const;
-/**
- * The nebula's colour steps, darkest first (stage 2, Joe: "much closer to concept B's rich nebula, with dark space
- * between the clouds"): deep navy gas, royal blue, a lit periwinkle and a pale blue-white heart, the steps opaque enough
- * to read as gas lit from within, not a tint.
- */
-const NEB_STEPS = ["rgba(14,26,84,0.5)", "rgba(22,44,128,0.6)", "rgba(34,66,170,0.66)", "rgba(58,96,206,0.7)", "rgba(96,132,226,0.7)", "rgba(150,176,240,0.66)"] as const;
-function nebulaNoise(x: number, y: number, cell: number, seed: number): number {
-  const gx = Math.floor(x / cell);
-  const gy = Math.floor(y / cell);
-  const fx = x / cell - gx;
-  const fy = y / cell - gy;
-  const v = (i: number, j: number) => (hash(gx + i + seed, gy + j) % 1000) / 1000;
-  const sx = fx * fx * (3 - 2 * fx);
-  const sy = fy * fy * (3 - 2 * fy);
-  const top = v(0, 0) + (v(1, 0) - v(0, 0)) * sx;
-  const bottom = v(0, 1) + (v(1, 1) - v(0, 1)) * sx;
-  return top + (bottom - top) * sy;
+const NEB_CLOUDS: readonly (readonly [x: number, y: number, r: number, alpha: number, sy: number, tint: number])[] = [
+  [70, 0.2, 150, 0.32, 0.62, 0.35],
+  [300, 0.34, 170, 0.26, 0.55, 0.5],
+  [180, 0.5, 200, 0.2, 0.5, 0.25],
+  [60, 0.68, 140, 0.24, 0.6, 0.55],
+  [320, 0.78, 150, 0.22, 0.58, 0.35],
+];
+/** A hex colour mixed towards another by t (both #RRGGBB). */
+function nebMix(a: string, b: string, t: number): string {
+  const p = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [ar, ag, ab] = p(a);
+  const [br, bg, bb] = p(b);
+  const c = (x: number, y: number) => Math.round(x + (y - x) * t).toString(16).padStart(2, "0");
+  return `#${c(ar!, br!)}${c(ag!, bg!)}${c(ab!, bb!)}`;
 }
-/**
- * The deep-space nebula (the Retro overhaul, concept B kept retro): billowing blue gas sweeping across the sky from the
- * upper left, bright at its heart with broad dark dust drifting through it, and deep black space either side. Pixel art: three
- * octaves of value noise quantised into NEB_STEPS with a 4 × 4 ordered dither between steps, in 3 px blocks; the dust
- * is a coarse noise darkening the gas in broad patches. A sprinkle of bright young stars sits inside the brightest gas.
- * Painted once into the sky layer, seeded: every phone and the reveal draw the same sky. Barriers, saucer and stars stay
- * brighter than the gas, so play reads first.
- */
-function paintNebula(c: CanvasRenderingContext2D, H: number): void {
-  for (let y = 0; y < H; y += NEB_BLOCK) {
-    for (let x = 0; x < HOVER_WORLD_W; x += NEB_BLOCK) {
-      const n = 0.5 * nebulaNoise(x, y, 150, 907) + 0.32 * nebulaNoise(x, y, 60, 131) + 0.18 * nebulaNoise(x, y, 22, 53);
-      // The band: a broad sweep from the upper left to the lower right, wavy along its length.
-      const along = (y - H * 0.12 - x * 0.85 - 40 * Math.sin(x / 70)) / (H * 0.36);
-      const band = Math.exp(-along * along * 1.4);
-      // Dust: broad dark patches drifting through the gas (a coarse noise, never thin lines).
-      const dust = 0.55 + 0.45 * Math.min(1, Math.max(0, (nebulaNoise(x, y, 90, 377) - 0.25) * 2.2));
-      const level = Math.max(0, (n * band * dust - 0.24) * 10);
-      const step = Math.floor(level);
-      const frac = level - step;
-      const k = step + (frac * 16 > NEB_BAYER[((y / NEB_BLOCK) & 3) * 4 + ((x / NEB_BLOCK) & 3)]! ? 1 : 0);
-      if (k <= 0) continue;
-      c.fillStyle = NEB_STEPS[Math.min(NEB_STEPS.length, k) - 1]!;
-      c.fillRect(x, y, NEB_BLOCK, NEB_BLOCK);
-      // Young stars in the brightest gas.
-      if (k >= 5 && hash(x * 7 + 3, y * 13 + 1) % 13 === 0) {
-        c.fillStyle = "#FFFFFF";
-        c.fillRect(x + 1, y + 1, 1, 1);
-      }
-    }
+function paintNebula(c: CanvasRenderingContext2D, H: number, idx: number): void {
+  const gate = BARRIER_CYCLES[idx % BARRIER_CYCLES.length] ?? "#3DFFE0";
+  for (const [x, yy, r, alpha, sy, tint] of NEB_CLOUDS) {
+    const y = yy * H;
+    // Keep every cloud's soft edge inside the world (its squashed half-height off the top and bottom rows).
+    const half = r * sy;
+    const cy = Math.min(H - half - 6, Math.max(half + 6, y));
+    blob(c, x, cy, r, nebMix("#2A3C9E", gate, tint), alpha, sy);
   }
+  // A brighter heart in the gate's colour, small and low in alpha.
+  blob(c, 230, Math.min(H - 70, Math.max(70, H * 0.42)), 90, nebMix("#5A78E0", gate, 0.6), 0.18, 0.7);
 }
-function drawNight(ctx: CanvasRenderingContext2D, H: number): void {
-  deviceLayer(ctx, `hover-space-${H}`, (c) => paintNight(c, H));
+/** The gate colour index the sky follows: the next gate's (pillar `gates`), as the barriers colour themselves. */
+function hoverSkyIndex(state: HoverState): number {
+  return Math.floor(state.gates / 7) % BARRIER_CYCLES.length;
+}
+function drawNight(ctx: CanvasRenderingContext2D, H: number, idx: number): void {
+  deviceLayer(ctx, `hover-space-${H}-${idx}`, (c) => paintNight(c, H, idx));
 }
 
 function draw(ctx: CanvasRenderingContext2D, state: HoverState, size: CanvasSize): void {
@@ -306,7 +286,7 @@ function drawStarField(ctx: CanvasRenderingContext2D, state: HoverState, H: numb
 
 function drawWorld(ctx: CanvasRenderingContext2D, state: HoverState, crashIndicator = true): void {
   const HOVER_WORLD_H = hoverWorldH(state);
-  drawNight(ctx, HOVER_WORLD_H);
+  drawNight(ctx, HOVER_WORLD_H, hoverSkyIndex(state));
   drawStarField(ctx, state, HOVER_WORLD_H);
   drawNearStars(ctx, state, HOVER_WORLD_H);
   const bloom = retroBloom();

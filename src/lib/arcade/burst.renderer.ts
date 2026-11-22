@@ -87,17 +87,7 @@ export function paintAtom(c: CanvasRenderingContext2D, r: number, colour: string
   c.fillStyle = colour; c.beginPath(); c.arc(r, r, Math.max(2, r * .27), 0, Math.PI * 2); c.fill();
   c.shadowBlur = 0; c.fillStyle = RETRO_WHITE;
   c.beginPath(); c.arc(r - r * .06, r - r * .06, Math.max(1, r * .12), 0, Math.PI * 2); c.fill();
-  // Glass (the Retro overhaul, 15 Nov 2026): the orb's body deepened in its own colour, a crisp highlight on the curve
-  // at the top left and a thin rim of reflected light at the bottom right, all inside the disc.
-  c.fillStyle = radial(c, r * 0.62, r * 0.55, r * 1.2, [[0, `${colour}30`], [0.7, `${colour}18`], [1, `${colour}55`]]);
-  c.fillRect(0, 0, r * 2, r * 2);
-  c.globalAlpha = 0.85;
-  c.fillStyle = RETRO_WHITE;
-  c.beginPath(); c.ellipse(r * 0.62, r * 0.5, r * 0.3, r * 0.15, -0.6, 0, Math.PI * 2); c.fill();
-  c.globalAlpha = 0.55;
-  c.strokeStyle = RETRO_WHITE; c.lineWidth = Math.max(1, r * 0.08);
-  c.beginPath(); c.arc(r, r, r - c.lineWidth, 0.15 * Math.PI, 0.55 * Math.PI); c.stroke();
-  c.globalAlpha = 1;
+  // No glass block (the polish plan's C1.7, Joe, 20 Nov 2026): no white highlight or rim, only the small centre dot.
   c.restore();
 }
 

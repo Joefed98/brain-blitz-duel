@@ -60,12 +60,15 @@ import {
 } from "./pool";
 
 export const POOL_BG = "#07070A";
-/** The deep green felt (concept C, the Sports overhaul): the bed's centre and edges, and the cushions' nose. */
-export const POOL_CLOTH = "#1B6342";
-export const POOL_CLOTH_EDGE = "#14523A";
+/**
+ * The green felt (concept C, the Sports overhaul): the bed's centre and edges, and the cushions' nose. The polish plan
+ * (Joe, 20 Nov 2026): a brighter baize, about a quarter lighter (was #1B6342 / #14523A / #0C3524).
+ */
+export const POOL_CLOTH = "#237C53";
+export const POOL_CLOTH_EDGE = "#1A6848";
 const CLOTH = POOL_CLOTH;
 const CLOTH_EDGE = POOL_CLOTH_EDGE;
-const CLOTH_DEEP = "#0C3524";
+const CLOTH_DEEP = "#104430";
 const FONT = "'Archivo', system-ui, sans-serif";
 
 /** Standard ball colours, 1–7 (9–15 repeat them on stripes); 8 is the black. */
@@ -900,33 +903,6 @@ export function poolArmPlacement(cx: number, cy: number, ux: number, uy: number,
   return { hx, hy, sx, sy, angle: back, k, halfW: (a.h * k) / 2 };
 }
 
-/**
- * Captain Joulz's arm from above (the Sports overhaul; Blender render public/sports/pool/arm.webp, his skin's set):
- * the gold-gauntleted hand closed round the cue's butt, the arm leaving behind and to the side, drawn back with the
- * pull. Always ~250 px behind the cue ball, so never over the ball, the aim, the ghost ball or the target. Nothing is
- * drawn until the image has loaded.
- */
-function drawCaptainArm(ctx: CanvasRenderingContext2D, cx: number, cy: number, ux: number, uy: number, pull: number): void {
-  const img = sportsSprite("pool", "arm", true);
-  if (!img) return;
-  const a = ARM;
-  const p = poolArmPlacement(cx, cy, ux, uy, pull);
-  const spriteAngle = Math.atan2(a.shoulder[1] - a.hand[1], a.shoulder[0] - a.hand[0]);
-  ctx.save();
-  // A soft shadow on the cloth, offset away from the window light.
-  ctx.strokeStyle = "rgba(0,0,0,0.28)";
-  ctx.lineCap = "round";
-  ctx.lineWidth = p.halfW * 1.3;
-  ctx.beginPath();
-  ctx.moveTo(p.hx + 3, p.hy + 4);
-  ctx.lineTo(p.sx + 3, p.sy + 4);
-  ctx.stroke();
-  ctx.translate(p.hx, p.hy);
-  ctx.rotate(p.angle - spriteAngle);
-  ctx.scale(p.k, p.k);
-  ctx.drawImage(img, -a.hand[0], -a.hand[1], a.w, a.h);
-  ctx.restore();
-}
 
 /* ============================ Potted balls ============================ */
 
@@ -1071,7 +1047,6 @@ function drawStrike(ctx: CanvasRenderingContext2D, s: PoolState): void {
     ctx.save();
     ctx.globalAlpha = t < 0.5 ? 1 : 1 - (t - 0.5) * 2;
     drawCueStick(ctx, st.x + st.ux * through, st.y + st.uy * through, st.ux, st.uy, 0);
-    drawCaptainArm(ctx, st.x + st.ux * through, st.y + st.uy * through, st.ux, st.uy, 0);
     ctx.restore();
   }
   // The chalk puff: a few pale blue motes off the tip, drifting back and fading.
@@ -1491,8 +1466,8 @@ function drawPoolLooked(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAi
   if (aiming && cue) {
     const l = Math.hypot(aim.dx, aim.dy);
     if (l > 1e-6) {
+      // The polish plan's C4.4 (Joe, 20 Nov 2026): no arm over the cue (poolArmPlacement stays for its placement check).
       drawCueStick(ctx, px(cue.x), px(cue.y), aim.dx / l, aim.dy / l, aim.power);
-      drawCaptainArm(ctx, px(cue.x), px(cue.y), aim.dx / l, aim.dy / l, aim.power);
     }
   }
   if (!turned) {
