@@ -122,12 +122,30 @@ export function RevealChips({ items, id, drop = false }: { items: readonly Revea
   );
 }
 
+/**
+ * Board sizes from the reveal template's stage (the polish plan's G2, 21 Nov 2026): the stage is an inline-size container
+ * (RevealScreen.tsx), so a board's cell is the stage's width less the card's 12 px padding each side and the board's own
+ * gaps and edges, shared by its columns, capped at `max`. Outside the stage `cqw` falls back to the small viewport's
+ * width. A number keeps the old fixed size, so the live boards and the older reveals draw exactly as before.
+ */
+export type CellSize = number | string;
+const REVEAL_CARD_PAD = 24;
+export function stageCell(cols: number, around: number, max: number): string {
+  return `min(${max}px, calc((100cqw - ${REVEAL_CARD_PAD + around}px) / ${cols}))`;
+}
+/** A cell size as a CSS length. */
+export const cellCss = (c: CellSize) => (typeof c === "number" ? `${c}px` : c);
+/** A font size as a share of the cell (the old rounding for a number). */
+export const cellFont = (c: CellSize, k: number): number | string => (typeof c === "number" ? Math.round(c * k) : `calc(${c} * ${k})`);
+/** The stage's width less the card's padding, capped at `max` px (a board drawn at the stage's width). */
+export const stageWidth = (max: number) => `min(${max}px, calc(100cqw - ${REVEAL_CARD_PAD}px))`;
+
 export type TileTone = "black" | "gold" | "teal" | "grey" | "red" | "dim" | "sapphire" | "well";
 
 /** A word as a row of rendered tiles (its letters live text), each tile its own tone. */
-export function TileRow({ letters, tones, size = 34, id }: { letters: readonly string[]; tones?: readonly TileTone[]; size?: number; id?: string }) {
+export function TileRow({ letters, tones, size = 34, id }: { letters: readonly string[]; tones?: readonly TileTone[]; size?: CellSize; id?: string }) {
   return (
-    <div data-wr-tiles={id ?? ""} className="wr-tiles" style={{ gap: Math.max(2, Math.round(size / 12)) }}>
+    <div data-wr-tiles={id ?? ""} className="wr-tiles" style={{ gap: typeof size === "number" ? Math.max(2, Math.round(size / 12)) : 4 }}>
       {letters.map((l, i) => {
         const tone = tones?.[i] ?? "black";
         return (
@@ -136,7 +154,7 @@ export function TileRow({ letters, tones, size = 34, id }: { letters: readonly s
             data-wa={tone === "well" ? "well" : "tile"}
             data-wa-tone={tone === "well" ? undefined : tone}
             className="wr-tile"
-            style={{ width: size, height: size, fontSize: Math.round(size * 0.56) }}
+            style={{ width: size, height: size, fontSize: cellFont(size, 0.56) }}
           >
             {l}
           </span>

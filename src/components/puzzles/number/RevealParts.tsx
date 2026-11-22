@@ -4,7 +4,8 @@
  *
  * - `RevealBoards`: one board at a time, drawn large, with a switcher of numbered tabs where there are several (each
  *   tab marked right, wrong or not reached), never shrunken copies side by side. It opens on the first board not
- *   right, so the player sees what they missed first.
+ *   right, so the player sees what they missed first. Since G3 (21 Nov 2026) the switcher is drawn as the reveal
+ *   template's control (the shared Segmented's look, `jz-seg`), its buttons still tabs; the board takes the stage.
  * - `RevealView`: "Yours" against "Solution" where the game has both; the board below draws the one chosen, with
  *   what was missed or wrong highlighted by the game.
  * - `RevealFacts`: the few numbers that explain the score, as label-and-value chips in plain words.
@@ -46,7 +47,7 @@ export function RevealBoards({ noun, marks, index, onIndex, children }: {
   return (
     <div data-number-reveal-boards className="nrv-boards">
       {marks.length > 1 ? (
-        <div role="tablist" aria-label={`${noun}s`} className="nrv-tabs">
+        <div role="tablist" aria-label={`${noun}s`} data-jz="segmented" className="jz-seg nrv-tabs">
           {marks.map((mark, i) => (
             <button
               key={i}

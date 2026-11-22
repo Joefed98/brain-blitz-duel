@@ -13,3 +13,8 @@
 /* A tile can be dragged: no browser pan or text selection under the finger. */
 [data-polish="tilegrid"] [data-wa] { touch-action: none; user-select: none; }
 [data-polish="tilegrid"] .interlock-tray { gap: 4px 0; }
+
+/* The live summary's pills beside Clear and Done (21 Nov 2026: "Placed 0/15" was cut off on a 375 px phone): the two
+   buttons a little narrower (72 and 84 px, still 44 px tall and wider than a thumb), so the pills keep their text. */
+[data-puzzle-play] [data-polish="tilegrid"] [data-game-controls="actions"] > [data-wa-btn="navy"] { width: 72px; }
+[data-puzzle-play] [data-polish="tilegrid"] [data-game-controls="actions"] > [data-wa-btn="gold"] { width: 84px; }
