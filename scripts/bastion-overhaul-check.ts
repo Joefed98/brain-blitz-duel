@@ -66,7 +66,6 @@ import {
   BT_SWIPE_HINT,
   bastionScene,
   paintTankBadge,
-  paintTankOutline,
 } from "../src/lib/arcade/bastionTank.renderer";
 import {
   bastionEndHoldMs,
@@ -184,7 +183,7 @@ const dist = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0]! - 
   ok(/sceneKey=\{bastionSceneKey\}/.test(stage), "the stage repaints its scene per setting");
 }
 
-/* 2. Far tanks: the outline and the badge. */
+/* 2. Far tanks: the badge (and no outline since the polish plan's C3.1). */
 {
   /** Records the points a paint call touches (strokes and text), as bastion-check's art test does for fills. */
   const record = (paint: (ctx: CanvasRenderingContext2D) => void) => {
@@ -211,26 +210,26 @@ const dist = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0]! - 
     paint(ctx);
     return { pts, texts, strokes };
   };
-  let outside = 0;
+  // Changed with Joe's approval, 22 Nov 2026 (the polish plan's C3.1): far tanks are no longer outlined. The painter is
+  // gone, and no frame strokes the old pale outline colour, so it can't come back unnoticed.
+  ok(!/function paintTankOutline|rgba\(255,246,226,/.test(readFileSync(new URL("../src/lib/arcade/bastionTank.renderer.ts", import.meta.url), "utf8")), "no far-tank outline painter or its pale outline colour");
+  {
+    const styles: string[] = [];
+    const ctx = new Proxy({}, { get: () => () => ({ addColorStop() {}, width: 10 }), set: (_, k, v) => (k === "strokeStyle" && styles.push(String(v)), true) }) as unknown as CanvasRenderingContext2D;
+    bastionIronArtGame.draw(ctx, idle(bastionIronGame, 11, 1500), { width: W, height: H });
+    ok(styles.length > 0 && !styles.some((v) => v.startsWith("rgba(255,246,226,")), "a live frame with far tanks strokes no outline");
+  }
   for (const kind of [0, 1, 2])
     for (const lane of [0, 1, 2])
       for (const z of [BT_FAR_MARK_Z, 800, 1000, BT2_FAR]) {
-        const r = bastionTankRects(kind, lane, z * 256);
-        const { pts, strokes } = record((c) => paintTankOutline(c, kind, lane, z * 256));
-        ok(strokes === 1 && pts.length > 0, `kind ${kind} lane ${lane} at ${z}: outlined`);
-        const x0 = Math.min(r.hull[0], r.turret[0]) - 2;
-        const x1 = Math.max(r.hull[2], r.turret[2]) + 2;
-        for (const [x, y] of pts) if (x < x0 || x > x1 || y < r.turret[1] - 2 || y > r.hull[3] + 2) outside++;
         const badge = record((c) => paintTankBadge(c, kind, lane, z * 256));
         const t = badge.texts[0];
         ok(badge.texts.length === 1 && t!.text === BT_BADGES[kind]!.letter, `kind ${kind} at ${z}: badge ${BT_BADGES[kind]!.letter}`);
         const size = Number(/(\d+)px/.exec(t?.font ?? "")?.[1] ?? 0);
         ok(size >= 10, `the badge's letter is at least 10 px (${size})`);
       }
-  ok(outside === 0, `every outline sits on the tank's own edges, within 2 px (${outside} points outside)`);
   ok(BT_BADGE_FONT >= 10 && BT_BADGES.map((b) => b.letter).join("") === "SMH" && BT_BADGES.map((b) => b.name).join() === "Scout,Medium,Heavy", "Scout, Medium and Heavy badges, letters at least 10 px");
   for (const z of [0, 120, 400, BT_FAR_MARK_Z - 1]) {
-    ok(record((c) => paintTankOutline(c, 2, 1, z * 256)).strokes === 0 || z > BT_FAR_MARK_Z - 160, `no outline on a near tank (z ${z})`);
     ok(record((c) => paintTankBadge(c, 2, 1, z * 256)).texts.length === 0 && bastionBadgeBox(2, 1, z * 256) === null, `no badge on a near tank (z ${z})`);
   }
   // The three lanes' badges side by side never overlap, even at the far end, and sit above the horizon line's tanks.

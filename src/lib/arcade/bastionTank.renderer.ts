@@ -1018,41 +1018,16 @@ export const BT_BADGES = [
   { letter: "M", name: "Medium", ring: "#E2C07A" },
   { letter: "H", name: "Heavy", ring: "#FF8A6A" },
 ] as const;
-/** From this depth (world px from the wall) a tank is far: it gets the light outline, fading in over the next 200 px, and its type badge. */
+/** From this depth (world px from the wall) a tank is far: it gets its type badge (no outline since the polish plan's C3.1, 22 Nov 2026). */
 export const BT_FAR_MARK_Z = 620;
 /** The badge's size (view px) and its letter's size: never under 10 px, readable at the horizon. */
 export const BT_BADGE_W = 16;
 export const BT_BADGE_H = 15;
 export const BT_BADGE_FONT = 11;
 
-/** How strongly a tank at depth z (1/256 px) is outlined (0 near, rising to 1 from BT_FAR_MARK_Z). */
+/** How far a tank at depth z (1/256 px) is (0 near, rising to 1 from BT_FAR_MARK_Z): its badge fades in with it. */
 export function bastionFarMark(z256: number): number {
   return Math.max(0, Math.min(1, (z256 / 256 - BT_FAR_MARK_Z + 160) / 200));
-}
-
-/** The far tank's light outline: a thin pale line round its hull and turret, on their edges (inside the 2 px bounds). */
-export function paintTankOutline(ctx: CanvasRenderingContext2D, kind: number, lane: number, z: number): void {
-  const k = bastionFarMark(z);
-  if (k <= 0) return;
-  const r = bastionTankRects(kind, lane, z);
-  ctx.save();
-  ctx.strokeStyle = `rgba(255,246,226,${0.75 * k})`;
-  ctx.lineWidth = 1.1;
-  ctx.lineJoin = "round";
-  const [hx0, hy0, hx1, hy1] = r.hull;
-  const [tx0, ty0, tx1, ty1] = r.turret;
-  ctx.beginPath();
-  ctx.moveTo(hx0, hy1);
-  ctx.lineTo(hx0, hy0);
-  ctx.lineTo(Math.max(hx0, tx0), hy0);
-  ctx.lineTo(tx0, ty0);
-  ctx.lineTo(tx1, ty0);
-  ctx.lineTo(Math.min(hx1, tx1), hy0);
-  ctx.lineTo(hx1, hy0);
-  ctx.lineTo(hx1, hy1);
-  ctx.closePath();
-  ctx.stroke();
-  ctx.restore();
 }
 
 /** Where a far tank's badge sits in the view: centred over its health pips (null for a near tank). */

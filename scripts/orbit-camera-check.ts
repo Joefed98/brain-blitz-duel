@@ -305,3 +305,37 @@ console.log(`ALL ORBITS PASS: ${allOrbits} orbits/${allPoints} phase points, set
   assert(stillOrbit > 10000 && stillFlight > 1000 && pans > 300, `the still-camera samples cover orbits, flights and pans (${stillOrbit} / ${stillFlight} / ${pans})`);
   console.log(`STILL CAMERA PASS (orbitRev 14): ${runs} runs, ${frames} frames, ${stillOrbit} still orbit and ${stillFlight} still flight samples, ${edgeMoves} edge-follow moves, ${pans} catch pans (longest ${maxPan} ticks), largest step ${maxStep.toFixed(1)} px a tick`);
 }
+
+// H3 (the polish plan; changed with Joe's approval, 22 Nov 2026): on orbitRev 16 (grace respawns, the fuel bank's
+// courses, random taps) a respawn pans the still camera to the respawn planet's framing, never cuts: every camera step
+// in the 1.5 s after a respawn is within the no-jump limit (warp ticks excepted, as above).
+{
+  const camMod = await import('../src/lib/arcade/orbitCamera');
+  const { ORBIT_FUEL_BANK } = await import('../src/lib/duel/orbitFuelBank.server');
+  const { initBigFrom, decodeOrbitHoles, decodeOrbitExtras } = await import('../src/lib/arcade/orbitRev3');
+  let respawns = 0, worst = 0;
+  for (const entry of ORBIT_FUEL_BANK.slice(0, 24)) {
+    camMod.orbitCameraResetCache();
+    let s = initBigFrom(decodeRev3Planets(entry.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(entry.holes), decodeOrbitExtras(entry.extras));
+    let prev = orbitCamera(s);
+    let v = (entry.seed * 2654435761) | 0;
+    let since = Infinity;
+    while (!s.ended && s.tick < orbitRev3Game.runTicks) {
+      v = (Math.imul(v, 1103515245) + 12345) | 0;
+      const tap = (v >>> 8) % 1000 < 14;
+      const before = s;
+      s = orbitRev3ArtGame.step(s, tap ? { t: s.tick + 1, k: ORBIT_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 } : null);
+      const cam = orbitCamera(s);
+      if (s.respawnTick !== before.respawnTick) { respawns++; since = 0; }
+      if (since < 90 && (before.warp ?? 0) === 0 && (s.warp ?? 0) === 0) {
+        const step = Math.hypot(cam.x - prev.x, cam.y - prev.y);
+        worst = Math.max(worst, step);
+        assert(step <= NO_JUMP, `a respawn pans, never cuts (course ${entry.seed} tick ${s.tick}: ${step.toFixed(1)} px in a tick)`);
+      }
+      since++;
+      prev = cam;
+    }
+  }
+  assert(respawns > 100, `the respawn sample covers enough respawns (${respawns})`);
+  console.log(`RESPAWN PAN PASS (orbitRev 16): ${respawns} respawns, largest camera step within 1.5 s of one ${worst.toFixed(1)} px a tick`);
+}

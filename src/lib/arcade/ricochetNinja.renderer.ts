@@ -432,44 +432,7 @@ function drawWisp(ctx: CanvasRenderingContext2D, x: number, y: number, wsp: Wisp
   }
 }
 
-/* ---- Far lanterns: small paper lanterns rising through the sky (display only, never touched) ---- */
-const FAR_LANTERNS = Array.from({ length: 6 }, (_, i) => {
-  const h = artHash(i, 131);
-  return { x: NINJA_WALL_L + 24 + (h % (NINJA_WALL_R - NINJA_WALL_L - 48)), s: 1.2 + ((h >>> 10) % 5) * 0.2, speed: 0.11 + ((h >>> 14) % 5) * 0.025, phase: (h >>> 4) % 900, sway: (h >>> 20) % 100 };
-});
-/** Where far lantern i is on this tick (world px; y may be off the sky), its size and its flicker. */
-export function farLanternAt(i: number, tick: number): { x: number; y: number; s: number } {
-  const l = FAR_LANTERNS[i]!;
-  const span = NINJA_WORLD_H + 120;
-  const y = NINJA_WORLD_H * 0.84 - ((tick * l.speed + l.phase) % span);
-  return { x: l.x + Math.sin((tick + l.sway * 7) / 140) * 6, y, s: l.s };
-}
-export const FAR_LANTERN_COUNT = FAR_LANTERNS.length;
-/** A far lantern: a small paper body lit from inside (bright gold round its flame, orange at the edge), no halo past it. */
-function drawFarLantern(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, tick: number, i: number): void {
-  const w = 5.4 * s;
-  const h = 7 * s;
-  const fl = 0.88 + 0.12 * Math.sin(tick / 5 + i * 1.7);
-  const g = ctx.createRadialGradient(x, y + h * 0.3, 0, x, y, h * 0.62);
-  g.addColorStop(0, `rgba(255,246,200,${fl})`);
-  g.addColorStop(0.45, `rgba(255,190,90,${fl})`);
-  g.addColorStop(1, `rgba(236,104,40,${fl})`);
-  ctx.fillStyle = g;
-  ctx.beginPath();
-  ctx.moveTo(x - w * 0.36, y - h / 2);
-  ctx.lineTo(x + w * 0.36, y - h / 2);
-  ctx.quadraticCurveTo(x + w * 0.62, y - h * 0.1, x + w * 0.34, y + h / 2);
-  ctx.lineTo(x - w * 0.34, y + h / 2);
-  ctx.quadraticCurveTo(x - w * 0.62, y - h * 0.1, x - w * 0.36, y - h / 2);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle = "rgba(150,60,20,0.28)";
-  ctx.fillRect(x - Math.max(0.25, 0.22 * s), y - h / 2, Math.max(0.5, 0.45 * s), h);
-  ctx.fillStyle = "rgba(70,28,10,0.9)";
-  ctx.fillRect(x - w * 0.36, y - h / 2 - 0.5 * s, w * 0.72, 0.9 * s);
-}
-
-/** The night's deepening, its stars, the moon, the drifting wisps, the moonlit mist and the far lanterns (each frame). */
+/** The night's deepening, its stars, the moon, the drifting wisps and the moonlit mist (each frame). */
 function drawMoonNight(ctx: CanvasRenderingContext2D, p: number, tick: number): void {
   const W = NINJA_WORLD_W;
   const H = NINJA_WORLD_H;
@@ -522,7 +485,7 @@ function drawMoonNight(ctx: CanvasRenderingContext2D, p: number, tick: number): 
   ctx.fillRect(0, m.y + m.r * 0.7 - W * 0.62, W, W * 1.24);
   ctx.restore();
   // The polish plan's C3.4: no decorative far lanterns in the sky any more (the six real sky lanterns, the pickups,
-  // are drawn by drawSkyLantern). Their placement stays exported for the look check until it is retired.
+  // are drawn by drawSkyLantern).
 }
 
 /** A five-roof pagoda silhouette, its base at (x, base), with a few lit windows. */

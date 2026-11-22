@@ -903,33 +903,6 @@ export function poolArmPlacement(cx: number, cy: number, ux: number, uy: number,
   return { hx, hy, sx, sy, angle: back, k, halfW: (a.h * k) / 2 };
 }
 
-/**
- * Captain Joulz's arm from above (the Sports overhaul; Blender render public/sports/pool/arm.webp, his skin's set):
- * the gold-gauntleted hand closed round the cue's butt, the arm leaving behind and to the side, drawn back with the
- * pull. Always ~250 px behind the cue ball, so never over the ball, the aim, the ghost ball or the target. Nothing is
- * drawn until the image has loaded.
- */
-function drawCaptainArm(ctx: CanvasRenderingContext2D, cx: number, cy: number, ux: number, uy: number, pull: number): void {
-  const img = sportsSprite("pool", "arm", true);
-  if (!img) return;
-  const a = ARM;
-  const p = poolArmPlacement(cx, cy, ux, uy, pull);
-  const spriteAngle = Math.atan2(a.shoulder[1] - a.hand[1], a.shoulder[0] - a.hand[0]);
-  ctx.save();
-  // A soft shadow on the cloth, offset away from the window light.
-  ctx.strokeStyle = "rgba(0,0,0,0.28)";
-  ctx.lineCap = "round";
-  ctx.lineWidth = p.halfW * 1.3;
-  ctx.beginPath();
-  ctx.moveTo(p.hx + 3, p.hy + 4);
-  ctx.lineTo(p.sx + 3, p.sy + 4);
-  ctx.stroke();
-  ctx.translate(p.hx, p.hy);
-  ctx.rotate(p.angle - spriteAngle);
-  ctx.scale(p.k, p.k);
-  ctx.drawImage(img, -a.hand[0], -a.hand[1], a.w, a.h);
-  ctx.restore();
-}
 
 /* ============================ Potted balls ============================ */
 
@@ -1493,7 +1466,7 @@ function drawPoolLooked(ctx: CanvasRenderingContext2D, s: PoolState, aim: PoolAi
   if (aiming && cue) {
     const l = Math.hypot(aim.dx, aim.dy);
     if (l > 1e-6) {
-      // The polish plan's C4.4 (Joe, 20 Nov 2026): no arm over the cue (drawCaptainArm stays for its placement check).
+      // The polish plan's C4.4 (Joe, 20 Nov 2026): no arm over the cue (poolArmPlacement stays for its placement check).
       drawCueStick(ctx, px(cue.x), px(cue.y), aim.dx / l, aim.dy / l, aim.power);
     }
   }
