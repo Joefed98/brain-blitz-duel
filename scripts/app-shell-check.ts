@@ -366,23 +366,15 @@ try {
         }
         return out;
       };
-      const pressSide = async (side: "puzzles" | "arcade") => {
-        await page.locator(`[data-practice-side='${side}']`).click();
-        await page.locator(`[data-practice-side='${side}'][aria-pressed='true']`).waitFor({ timeout: 10_000 });
-        await page.waitForTimeout(500);
-      };
+      // Changed with Joe's approval, 22 Nov 2026 (P2, the Games page's Shelves · All, Joe's decision 5 of 20 Nov): the Shelves view lists every game
+      // once on its family's shelf, puzzles and arcade games together, and the Logic shelf holds only logic games. Was the
+      // Puzzles side then the Arcade side pressed in turn ("each side lists only its games", "no game on both sides",
+      // "no All chip") and the Logic chip pressed and pressed again.
       const isArcadeType = (t: string | null) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.category === "arcade";
-      await pressSide("puzzles");
-      const puzzleRows = await sideRows();
-      const puzzleNames = await sideNames();
-      await pressSide("arcade");
-      const arcadeRows = await sideRows();
-      const arcadeNames = await sideNames();
-      check(puzzleRows.length > 0 && puzzleRows.every((r) => !isArcadeType(r.type)), `the Puzzles side lists only puzzles (${puzzleRows.length})`);
-      check(arcadeRows.length > 0 && arcadeRows.every((r) => isArcadeType(r.type)), `the Arcade side lists only arcade games (${arcadeRows.length})`);
-      const rows = [...puzzleRows, ...arcadeRows];
-      const named = [...new Set([...puzzleNames, ...arcadeNames])];
-      check(new Set(rows.map((r) => r.type)).size === rows.length, "no game is listed on both sides");
+      const rows = await sideRows();
+      const named = await sideNames();
+      check(rows.some((r) => isArcadeType(r.type)) && rows.some((r) => !isArcadeType(r.type)), `the Games page lists puzzles and arcade games together (${rows.length})`);
+      check(new Set(rows.map((r) => r.type)).size === rows.length, "no game is listed twice");
       const byType = new Map(rows.map((r) => [r.type, r]));
       const missing: string[] = [];
       for (const type of ACTIVE_PUZZLE_TYPES) {
@@ -394,13 +386,9 @@ try {
       check(missing.length === 0, `every active game (${ACTIVE_PUZZLE_TYPES.length}) has its own icon, drawn, with no text${missing.length ? `: ${missing.join(", ")}` : ""}`);
       const names = ACTIVE_PUZZLE_TYPES.map((type) => PUZZLE_REGISTRY[type].name).filter((name) => !named.includes(name));
       check(names.length === 0, `every practice button is named exactly its game${names.length ? `: ${names.join(", ")}` : ""}`);
-      check((await page.locator("[data-practice-filter='all']").count()) === 0, "no All chip (one side at a time)");
-      await pressSide("puzzles");
-      await page.locator("[data-practice-filter='logic']").click();
-      const logic = await page.locator("[data-practice-game]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-game")));
-      check(logic.length > 0 && logic.every((t) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.category === "logic"), "the Logic chip shows only logic games");
-      // A second tap on the chosen tile shows the whole side again (there is no All chip).
-      await page.locator("[data-practice-filter='logic']").click();
+      check((await page.locator("[data-practice-filter]").count()) === 0, "no category chips (a shelf per family in their place)");
+      const logic = await page.locator("[data-games-shelf='logic'] [data-practice-game]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-game")));
+      check(logic.length > 0 && logic.every((t) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.category === "logic"), "the Logic shelf holds only logic games");
       await page.locator("[data-games-search-toggle]").click();
       await page.getByRole("searchbox", { name: "Search games" }).fill("grid");
       const found = await page.locator("[data-practice-game]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-game")));

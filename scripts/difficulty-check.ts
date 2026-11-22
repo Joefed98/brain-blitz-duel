@@ -328,8 +328,10 @@ for (const sel of ["[data-game-stage]", "[data-arcade-play]", "[data-puzzle-play
   check(intro.GAME_ON_SCREEN.split(", ").includes(sel), `a game on screen includes ${sel}`);
 check(/Rated matches and the Daily are always Normal\./.test(intro.LEVEL_INTRO_TEXT) && /Easy, Normal, Hard or Expert/.test(intro.LEVEL_INTRO_TEXT), "it names the four levels and says rated matches and the Daily are always Normal");
 check(intro.LEVEL_INTRO_TEXT.length <= 140, `it is short (${intro.LEVEL_INTRO_TEXT.length} characters)`);
-const drawnBy = ["src/components/games/GamesCatalogue.tsx", "src/components/games/GamePage.tsx", "src/components/duel/RoomSettingsSheet.tsx"].filter((f) => /<LevelIntro \/>/.test(readFileSync(f, "utf8")));
-check(drawnBy.length === 3, `every level selector draws the explanation (${drawnBy.length} of 3)`);
+// Changed with Joe's approval, 22 Nov 2026 (P2: the catalogue's level switch is gone; a game's level is chosen on its page): was the three files with
+// GamesCatalogue.tsx first and "(… of 3)".
+const drawnBy = ["src/components/games/GamePage.tsx", "src/components/duel/RoomSettingsSheet.tsx"].filter((f) => /<LevelIntro \/>/.test(readFileSync(f, "utf8")));
+check(drawnBy.length === 2, `every level selector draws the explanation (${drawnBy.length} of 2)`);
 
 console.log(`\n${failures === 0 ? "PASS" : "FAIL"}: difficulty-check, ${passes} passed, ${failures} failed`);
 process.exit(failures === 0 ? 0 : 1);

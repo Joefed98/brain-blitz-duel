@@ -77,6 +77,8 @@ interface Room {
   duel: DuelRow;
   players: DuelPlayerRow[];
   results: RoundResultRow[];
+  /** Each round's full puzzle, which the stubbed server answers the reveal with (Changed with Joe's approval, 22 Nov 2026, P2 hook 4). */
+  revealed?: PuzzleData[];
 }
 interface Harness {
   /** The puzzle practice "generates" for each type. */
@@ -506,6 +508,14 @@ const IMPLEMENTATIONS: Record<string, unknown> = {
   scoreAttackBoardFn: async () => (window as unknown as { __harnessScoreAttackBoard?: unknown }).__harnessScoreAttackBoard ?? null,
   dailyArchiveFn: async () => (window as unknown as { __harnessArchive?: unknown }).__harnessArchive ?? { ok: false, message: "The Daily archive is part of Joulz Plus." },
   ...ECONOMY,
+  // Changed with Joe's approval, 22 Nov 2026 (P2 hook 4: the room reveal screens reach the board): the round's correct answer, fetched at reveal time,
+  // is the room's stored full puzzle for that round (H.room.revealed, the public half where a screen has none). Was
+  // unset, so the stub answered null and every room reveal screen stayed on "Revealing".
+  fetchRevealPuzzle: async (_duelId: string, round: number) => {
+    const room = H.room;
+    const puzzle = room?.revealed?.[round - 1] ?? room?.duel.puzzles_public?.[round - 1];
+    return puzzle ? { puzzle, correctAnswer: null, players: [] } : null;
+  },
   roomCardsFn,
   friendsOverviewFn,
   friendProfileFn,

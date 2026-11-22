@@ -593,7 +593,7 @@ async function introColours() {
             };
             if (!intro) return null;
             const shell = intro.closest("[data-category]");
-            const labels = [...intro.querySelectorAll(".round-instructions > div > p:first-child")].map((p) => colour(p, "color"));
+            const labels = [...intro.querySelectorAll(".round-instructions:not([data-intro-short]) > div > p:first-child")].map((p) => colour(p, "color"));
             const title = intro.querySelector(".round-intro-title");
             const ready = [...intro.querySelectorAll(".intro-footer button")].find((b) => /Ready/.test(b.textContent ?? ""));
             const box = (el: Element | null | undefined) => {
@@ -610,7 +610,8 @@ async function introColours() {
               titleBox: box(title),
               dot: colour(intro.querySelector(".game-frame-dot"), "backgroundColor"),
               labels,
-              labelBoxes: [...intro.querySelectorAll(".round-instructions > div > p:first-child")].map(box),
+              short: intro.querySelector("[data-intro-short]") !== null,
+              labelBoxes: [...intro.querySelectorAll(".round-instructions:not([data-intro-short]) > div > p:first-child")].map(box),
               // Gold: the gold button's own fill, never the intro's accent.
               readyGold: ready
                 ? // The shared gold Button (design foundation F2): the metal is painted on its ::before, inside the cut.
@@ -632,7 +633,10 @@ async function introColours() {
             const towardsWhite = [[ar, tr], [ag, tg], [ab, tb]].every(([a, t]) => t! >= a! - 1 && t! - a! <= (255 - a!) * 0.35 + 2);
             if (probe.title !== probe.titleWant || !towardsWhite) problems.push(`the title is ${probe.title}, not the accent's tint (${probe.titleWant} from ${probe.want})`);
             if (probe.dot !== probe.want) problems.push(`the category dot is ${probe.dot}, not the accent`);
-            if (probe.labels.length < 3 || probe.labels.some((c) => c !== probe.want)) problems.push(`Goal / How / Score labels are ${probe.labels.join(", ")}, not the accent`);
+            // Changed with Joe's approval, 22 Nov 2026 (P2, the short intro: goal, one how line and the score line, no labels): the short intro draws no Goal /
+            // How / Score labels; the full one (the "?" help's layout) keeps all three in the accent. Was the three labels
+            // required on every intro (the selectors above skip the short intro, which has none).
+            if (probe.short ? probe.labels.length !== 0 : probe.labels.length < 3 || probe.labels.some((c) => c !== probe.want)) problems.push(`Goal / How / Score labels are ${probe.labels.join(", ") || "none"}, ${probe.short ? "on the short intro" : "not the accent"}`);
             if (!probe.readyGold) problems.push(`Ready is not the gold button (${probe.readyClass})`);
             // Contrast of the coloured text against the screen behind it (text hidden).
             await page.addStyleTag({ content: `.round-intro * { color: transparent !important; -webkit-text-fill-color: transparent !important; text-shadow: none !important; } .round-intro canvas, .round-intro svg, .round-intro img { visibility: hidden !important; } * { transition: none !important; animation-play-state: paused !important; }` });

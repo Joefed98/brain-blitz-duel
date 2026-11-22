@@ -200,7 +200,9 @@ const localStorage = {
   // /function RowBest[\s\S]*?bestOf\(useContext\(ProgressOnList\), type\)/ on practice.tsx, "the list's rows read the
   // account's bests". The best now lives on each game's page.
   const gamePage = readFileSync("src/components/games/GamePage.tsx", "utf8");
-  check(/const best = bestOf\(progress, type\)/.test(gamePage) && /<GamePage[\s\S]*?progress=\{progressView\}/.test(practice), "the game page reads the account's best");
+  // Changed with Joe's approval, 22 Nov 2026 (P2: the game page shows the chosen level's best): was /const best = bestOf\(progress, type\)/, "the game
+  // page reads the account's best".
+  check(/const best = bestOf\(progress, type, storedLevelKey\(level\)\)/.test(gamePage) && /<GamePage[\s\S]*?progress=\{progressView\}/.test(practice), "the game page reads the account's best on the level shown");
   // Category lists (tab pages refresh, 26 Oct 2026): every list draws one row (row(key…)), which carries the best in
   // the BEST column and its description.
   // Changed with Joe's approval, 13 Nov 2026: the Practice list has no Retired section any more (retired games are out of the app).

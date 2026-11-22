@@ -33,6 +33,9 @@ import { DESKTOP_MODES } from "@/lib/duel/desktopModes";
 import { ControlSchemeContext, useControlScheme } from "@/lib/gameControls";
 import { GameKeysOff } from "@/lib/desktop";
 import { DesktopPresentation, type DesktopPresentationValue } from "@/lib/desktopPresentation";
+import { LevelMark } from "@/design/components/LevelMark";
+import { levelsOf } from "@/lib/levels/gameLevels";
+import { LEVEL_LABEL, type Level } from "@/lib/levels/levels";
 
 interface PhoneShellProps {
   children: ReactNode;
@@ -123,9 +126,14 @@ const CONTROL = "button, a, input, textarea, select, [role='button']";
  * the score block, an empty slot (kept for live scores) and the game menu (GameMenu: sound, music, how to play) on the right. Puzzles add the goal line under it (GoalLine) and sit
  * on the tray; arcade worlds start directly under it.
  */
-export function GameLayout({ label, title, onHelp, progress, score, ping, timer, opponent, beforeGame, children, overlay, stageRef, locked = false, held = false }: {
+export function GameLayout({ label, level, title, onHelp, progress, score, ping, timer, opponent, beforeGame, children, overlay, stageRef, locked = false, held = false }: {
   /** The context after the category: "Practice", "Round 2 of 6", "Daily". */
   label: ReactNode;
+  /**
+   * The round's level (puzzleLevel of its puzzle; P2, 22 Nov 2026): its level mark beside the label, for a game with
+   * levels or a round off Normal. Left out: no mark.
+   */
+  level?: Level | undefined;
   title: ReactNode;
   /** Opens the game's help (the round's PuzzleHelp); the game menu's How to play calls it. */
   onHelp?: () => void;
@@ -206,6 +214,7 @@ export function GameLayout({ label, title, onHelp, progress, score, ping, timer,
   const contextNode = (
     <span data-frame-context data-fit={contextLength > 20 ? "short" : undefined} className="game-frame-context">
       <span aria-hidden="true" className="game-frame-dot" />
+      {level && type && (levelsOf(type).length > 1 || level !== "normal") ? <LevelMark level={level} title={LEVEL_LABEL[level]} className="game-frame-level" /> : null}
       <span className="game-frame-context-text">
         {category ? <span className="game-frame-cat">{CATEGORY_NAMES[category]}, </span> : null}
         {label}

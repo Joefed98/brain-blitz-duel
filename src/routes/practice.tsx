@@ -101,7 +101,7 @@ import { syncOffline } from "@/lib/offline/install";
 import { notePracticeRoundFinished } from "@/lib/offline/packGrowth";
 import { takePackDeal } from "@/lib/offline/packs";
 import { playLevel, setGameLevel, useLevelChoice } from "@/lib/levels/levelChoice";
-import { LEVEL_LABEL, NORMAL, storedLevelKey, levelOfPuzzle, type Level } from "@/lib/levels/levels";
+import { LEVEL_LABEL, NORMAL, storedLevelKey, levelOfPuzzle, puzzleLevel, type Level } from "@/lib/levels/levels";
 import { flushQueue, queueRun } from "@/lib/offline/queue";
 
 /** How long a live deal may take before practice falls back to a saved pack deal (a weak signal underground). */
@@ -955,6 +955,7 @@ function PracticeScreen() {
     <PhoneShell constrained gameScreen play gameType={type}>
       <GameLayout
         label="Practice"
+        level={puzzleLevel(puzzle)}
         title={puzzleName(puzzle.type)}
         onHelp={() => setHelpOpen(true)}
         // Practice has no live score: the block shows this device's best under today's stamps.

@@ -25,9 +25,12 @@ import { boardsFixture } from "./leaderboards-fixture";
 import { passFixture } from "./pass-fixture";
 import { CHALLENGE_CODE, challengeFixture, type ChallengeScreenData } from "./challenge-fixture";
 
-export const PUZZLE = splitPuzzle(withSeededRandom(41, () => generatePuzzle("sudoku")))
-  .pub as PuzzleData;
-const ARCADE = splitPuzzle(withSeededRandom(41, () => generatePuzzle("matchup"))).pub as PuzzleData;
+// Changed with Joe's approval, 22 Nov 2026 (P2 hook 4): the full Box Six and Gemstone rounds are kept beside their public halves, so a room reveal
+// screen is answered with the round's real puzzle (roomNow's `revealed`).
+const PUZZLE_FULL = withSeededRandom(41, () => generatePuzzle("sudoku")) as PuzzleData;
+export const PUZZLE = splitPuzzle(PUZZLE_FULL).pub as PuzzleData;
+const ARCADE_FULL = withSeededRandom(41, () => generatePuzzle("matchup")) as PuzzleData;
+const ARCADE = splitPuzzle(ARCADE_FULL).pub as PuzzleData;
 const iso = (ms: number) => new Date(ms).toISOString();
 /** Long names on purpose: a name never wraps; it truncates with an ellipsis. */
 const NAMES = [
@@ -182,6 +185,13 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
       ...(opts.dealing ? { start_claimed_at: iso(now) } : {}),
     },
     players,
+    // Changed with Joe's approval, 22 Nov 2026 (P2 hook 4): each round's full puzzle for the reveal's answer (the harness's fetchRevealPuzzle). A round
+    // given only its public half (opts.puzzle, opts.arcadeRun, opts.arcadePuzzle) is answered with that half.
+    revealed: order.map((t) =>
+      t === arcadeType
+        ? opts.arcadeRun || opts.arcadePuzzle || arcadeType !== "matchup" ? arcadePuzzle : ARCADE_FULL
+        : opts.puzzle || opts.puzzleType ? puzzleRound : PUZZLE_FULL,
+    ),
     results: scored
       ? players.flatMap((p) =>
           Array.from({ length: rounds }, (_, r) => {
@@ -846,12 +856,10 @@ export const THEME_SCREENS: ThemeScreen[] = [
     name: "practice list, arcade side",
     mode: "practice",
     go: async (page) => {
-      // Changed with Joe's approval, 15 Nov 2026 (Puzzles | Arcade switch restored): the arcade groups' tiles are on the
-      // Arcade side, so the screen presses Arcade first, then the Retro tile as before.
-      await page.locator("[data-practice-side='arcade']").click();
-      await page.locator("[data-practice-side='arcade'][aria-pressed='true']").waitFor({ timeout: 10_000 });
-      await page.locator("[data-practice-filter='retro']").click();
-      await page.locator("[data-practice-filter='retro'][aria-pressed='true']").waitFor({ timeout: 10_000 });
+      // Changed with Joe's approval, 22 Nov 2026 (P2, the Games page's Shelves · All): the Games page has no Puzzles | Arcade switch or category tiles,
+      // so the screen scrolls to the Retro shelf (the name is kept: the shot tools ask for it). Was the Arcade side
+      // pressed, then the Retro tile.
+      await page.locator("[data-games-shelf='retro']").scrollIntoViewIfNeeded({ timeout: 10_000 });
       await page.waitForTimeout(400);
     },
   },
