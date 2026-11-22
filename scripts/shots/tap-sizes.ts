@@ -95,6 +95,7 @@ function probe(game: string): Seen {
 }
 
 const failures: string[] = [];
+const missing = new Set<string>();
 const worst = new Map<string, { px: number; where: string }>();
 const { origin, proc } = await startServer();
 const browser = await chromium
@@ -104,6 +105,18 @@ const browser = await chromium
     throw e;
   });
 try {
+  // Warm the cold dev server once per game, unmeasured: the first practice page compiles the app and the game's chunk.
+  for (const game of GAMES) {
+    const context = await browser.newContext({ viewport: { width: SIZES[0]![0], height: SIZES[0]![1] }, hasTouch: true });
+    const page = await context.newPage();
+    try {
+      await page.goto(practiceGameUrl(origin, game), { waitUntil: "domcontentloaded", timeout: 180_000 });
+      await page.getByRole("button", { name: /^Ready/ }).first().waitFor({ timeout: 180_000 });
+    } catch {
+      /* measured below, where a failure is reported */
+    }
+    await context.close();
+  }
   for (const game of GAMES) {
     for (const level of (levelsOf(game) as Level[]).filter((l) => !LEVELS || LEVELS.includes(l))) {
       for (let d = 1; d <= DEALS; d++) {
@@ -127,7 +140,11 @@ try {
             if (!/practiceGenerate/.test(serverFnName(route.request().url()))) return route.continue();
             const kept = deals[dealKey];
             if (REPLAY) {
-              if (!kept) throw new Error(`--replay: no deal ${dealKey}`);
+              // A deal missing from the record (its run failed there) is dealt afresh and named in the report.
+              if (!kept) {
+                missing.add(dealKey);
+                return route.continue();
+              }
               return route.fulfill({ status: kept.status, contentType: kept.contentType, body: kept.body });
             }
             const res = await route.fetch();
@@ -196,6 +213,7 @@ try {
 }
 
 for (const [key, { px, where }] of [...worst].sort()) console.log(`  ${key}: smallest ${px.toFixed(1)} px (${where})`);
+if (missing.size) console.log(`  dealt afresh (not in ${REPLAY}): ${[...missing].join(", ")}`);
 if (failures.length) {
   for (const f of failures) console.log(`  under ${MIN_PX} px: ${f}`);
   console.log(`FAIL: tap-sizes: ${failures.length} under ${MIN_PX} px or not measured`);
