@@ -976,22 +976,25 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, timeLimitMs }: Puz
   const [picked, setPicked] = useState<RevealSide | null>(null);
   const box = useRef<HTMLDivElement | null>(null);
   const [width, setWidth] = useState(300);
-  // A short screen (under 760 px, e.g. 375 × 667, where the shared reveal layout's rows above take more height): the
-  // compact layout, the target and the Yours | Solution switch on one row and a smaller board, so the reveal's text
-  // stays at full size instead of the shared fit shrinking the whole reveal.
+  // G3 (21 Nov 2026): the board sizes from the reveal template's stage (RevealScreen.tsx), never the window: as wide as
+  // its box allows, up to 360, and no taller than the stage's height less the reveal's lines round it. A short stage
+  // (under 520 px, e.g. 375 × 667) takes the compact layout: the target and the Yours | Solution switch on one row.
   const [short, setShort] = useState(false);
   useBeforePaint(() => {
     const el = box.current;
     if (!el) return;
-    // As wide as the box allows, up to 320, and no taller than 38 % of the screen (19 % on a short one).
+    const stageEl = el.closest<HTMLElement>("[data-reveal-stage]");
     const measure = () => {
-      const isShort = window.innerHeight < 760;
+      const stageH = stageEl ? stageEl.clientHeight : 0;
+      const isShort = stageH > 0 && stageH < 520;
       setShort(isShort);
-      setWidth(Math.max(isShort ? 120 : 200, Math.min(320, Math.floor(el.clientWidth), Math.floor(window.innerHeight * (isShort ? 0.19 : 0.38)))));
+      const tall = stageH > 0 ? stageH - (isShort ? 200 : 250) : 360;
+      setWidth(Math.max(120, Math.min(360, Math.floor(el.clientWidth), Math.floor(tall))));
     };
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(el);
+    if (stageEl) observer.observe(stageEl);
     return () => observer.disconnect();
   }, []);
   if (!checkout) return null;
