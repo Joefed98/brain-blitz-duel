@@ -28,7 +28,7 @@ import { bankedIntroExample } from "../src/lib/duel/puzzleBank.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import { PATTERN_NOV15_STAMPS } from "../src/lib/duel/patternNov15";
-import { pinPreTopsyLine } from "../src/lib/duel/topsyLine"; // Changed with Joe's approval, 22 Nov 2026
+import { TOPSY_LINE_REV } from "../src/lib/duel/topsyLine"; // Changed with Joe's approval, 22 Nov 2026
 import { slideBoard, replaySlide, type SlideDir } from "../src/lib/duel/slide";
 import { replayTopsyPuzzle, isTopsy } from "../src/lib/duel/topsy";
 import { pipesAfterTurns, type PipesTurn } from "../src/lib/duel/depth4/pipesTaps";
@@ -301,14 +301,12 @@ for (const game of GAMES) {
   ok(log.actions.every((a, i, list) => i === 0 || a.t >= list[i - 1]!.t), `${game}: actions in time order`);
 
   // 2. Today's stamp and presentation.
-  // Changed with Joe's approval, 22 Nov 2026: Topsy-Turvy's bundled demo was recorded on the gravityRev 8 example; gravityRev 9 (D4) plays the same
-  // tilts, so it is compared with the example dealt under that era's pin until F1 re-records it on gravityRev 9.
-  const wasTopsyLine = game === "gravity" ? pinPreTopsyLine(true) : null; // Changed with Joe's approval, 22 Nov 2026
   const pub = splitPuzzle(introExample(game)).pub;
-  if (wasTopsyLine !== null) pinPreTopsyLine(wasTopsyLine); // Changed with Joe's approval, 22 Nov 2026
   ok(JSON.stringify(row.puzzle) === JSON.stringify(pub), `${game}: the puzzle is exactly today's intro example (public half)`);
   const stamp = PATTERN_NOV15_STAMPS[game as PuzzleType]!;
-  ok((row.puzzle as unknown as Record<string, number>)[stamp.key] === stamp.to, `${game}: recorded on ${stamp.key} ${stamp.to}`);
+  // Changed with Joe's approval, 22 Nov 2026: Topsy-Turvy's demo is on gravityRev 9, the stamp Normal deals since D4.
+  const dealtRev = game === "gravity" ? TOPSY_LINE_REV : stamp.to; // Changed with Joe's approval, 22 Nov 2026
+  ok((row.puzzle as unknown as Record<string, number>)[stamp.key] === dealtRev, `${game}: recorded on ${stamp.key} ${dealtRev}`); // Changed with Joe's approval, 22 Nov 2026
   ok(acceptIntroDemo(game, row) === row, `${game}: getIntroDemoFn's stamp rules accept it`);
   ok(REVISED_PUZZLE_DEMOS.has(game) && log.presentation === puzzlePresentation(game), `${game}: presentation ${log.presentation}`);
   ok(puzzleInputDemoCompatible(game, log), `${game}: the phone's presentation rule accepts it`);

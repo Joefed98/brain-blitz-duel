@@ -290,13 +290,13 @@ check(351 / 9 >= 39, "grid: Normal's 9 × 9 cell size");
   const { level: _l, ...asNormal } = easy;
   const normal = gradeAnswer(asNormal as PuzzleData, moves, 120_000 - 38_000);
   check(own.isCorrect && normal.isCorrect && normal.score === 200 && own.score < 200 && own.score >= 190, `grade: Easy solved at 38 s scores ${own.score} (as Normal ${normal.score})`);
-  // Unfinished on Expert: credit out of its own six crates.
+  // Unfinished on Expert: credit out of its own seven crates. (Changed with Joe's approval, 22 Nov 2026)
   const ex = dealt.expert[0]!;
   const half = solutionMoves(ex)!;
   const part = half.slice(0, Math.floor(half.length * 0.7));
   const gp = gradeAnswer(ex as PuzzleData, encodePushMoves(part), 0);
   const extra = gp.extra as { crates?: number; cratesHome?: number };
-  check(!gp.isCorrect && extra.crates === 6 && gp.score >= 0 && gp.score <= 130, `grade: an unfinished Expert board ${gp.score}, ${extra.cratesHome} of ${extra.crates}`);
+  check(!gp.isCorrect && extra.crates === 7 && gp.score >= 0 && gp.score <= 130, `grade: an unfinished Expert board ${gp.score}, ${extra.cratesHome} of ${extra.crates}`); // Changed with Joe's approval, 22 Nov 2026
 }
 
 /* ------------------------------------------------------------------ 7. the stuck hint */

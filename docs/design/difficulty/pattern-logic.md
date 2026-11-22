@@ -95,8 +95,9 @@ Expert boards as in the help lines below.
   so Hard and Expert could not sit below Normal with Expert at a fifth or more. Rounds dealt before keep gravityRev 8
   and grade exactly as before (topsy-line-check against scripts/fixtures/topsy-line-legacy.json.gz, recorded on the
   tree before the stamp); checks written for gravityRev 8 pin it with `pinPreTopsyLine(true)` (era pin
-  `preTopsyLine`). Topsy-Turvy's intro demo (recorded on gravityRev 8) plays the same tilts; F1 should re-record it on
-  gravityRev 9 so its shown score matches.
+  `preTopsyLine`). Topsy-Turvy's bundled intro demo moved to gravityRev 9 (Joe, 22 Nov 2026): the same touches on the
+  same board, still a 200, so the "Save intro demos" run takes it and F1 has nothing to re-record
+  (`src/lib/duel/bundledDemos/gravity.json`, `scripts/fixtures/pattern-demos.json`).
 - **Skid's help line** names the new speed lines now (instructions.ts, "Speed by level:"); every other "Levels:" line
   waits for P2's second PR (proposed below).
 - **Shikaku** keeps Normal's 32.5 px squares at every level (its 10 columns; the boards grow downwards).
