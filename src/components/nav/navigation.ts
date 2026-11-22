@@ -14,8 +14,8 @@ import { tournamentsBackend } from "@/lib/tournaments/tournamentsApi";
  *   Home before leaving the app. Tabs opened from Home are pushed and tabs opened from another tab replace it
  *   (goToTab), so a main tab always sits on Home; a main tab opened directly (a link, a reload, the home-screen app
  *   opening on it) gets Home put beneath it once (useHomeBeneath).
- * - A destination inside a page (the Play bar's play section, More's Challenges) is passed as `navScroll` in the
- *   history state and scrolled to once the page has drawn it (useNavScroll), so no page's contents change.
+ * - A destination inside a page is passed as `navScroll` in the history state and scrolled to once the page has drawn
+ *   it (useNavScroll), so no page's contents change.
  */
 
 /** The tablet's turned-sideways test: wider than tall. */
@@ -56,7 +56,8 @@ const HOME_SEEDED = "duelz-nav-home-beneath";
 export function useHomeBeneath(tab: AppTab | undefined): void {
   const router = useRouter();
   useEffect(() => {
-    if (!tab || tab === "play" || tab === "profile") return;
+    // Every main tab but Home, You (the Profile page, tab id "profile") included since P1 (21 Nov 2026).
+    if (!tab || tab === "play") return;
     if (window.location.pathname !== TAB_PATHS[tab]) return;
     const state = (window.history.state ?? {}) as Record<string, unknown>;
     if (state["__TSR_index"] !== 0 || state["fromPlayTab"] || state[HOME_SEEDED]) return;
