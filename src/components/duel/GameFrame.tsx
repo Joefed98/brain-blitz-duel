@@ -26,6 +26,8 @@ export const CATEGORY_NAMES: Record<PuzzleCategory, string> = {
 /**
  * The goal line's text: each game's intro goal, shortened where it would not fit on one 13px line
  * beside its progress at 375px. Every other game shows its intro goal without the full stop.
+ * Since the goal reads at 19 px it steps down to fit (GoalLine's data-fit); Integer Pyramid's and Trail's were shortened
+ * again (22 Nov 2026) because they ran past the row even at 15 px on a 375 px phone.
  */
 const SHORT_GOALS: Partial<Record<PuzzleType, string>> = {
   wordslide: "Make every row a word",
@@ -47,8 +49,8 @@ const SHORT_GOALS: Partial<Record<PuzzleType, string>> = {
   strikeout: "Reveal five long words",
   codeword: "Each number is one letter",
   swapword: "Swap tiles until every word reads",
-  numpyramid: "Each cell is the sum of the two below",
-  trail: "One path from 1 to 36 through every square",
+  numpyramid: "Each cell sums the two below",
+  trail: "Join 1 to 36 through every square",
   gravity: "Roll every ball into its hole",
   tiles: "Swap tiles to rebuild the gradient",
   tilegrid: "Build a mini crossword",
@@ -353,17 +355,46 @@ export function useGoalText(goal: string | null): void {
   }, [publish, goal]);
 }
 
+/**
+ * The goal never ends in "…" where a smaller size fits (22 Nov 2026: Integer Pyramid's and Kakuro's goals were cut at
+ * 19 px on a 375 px phone, and Counterweight's beside its "Scale 1 of 4"). After every render and on every resize the
+ * row is measured: if the goal is wider than the room it has, `data-fit` steps it down, "compact" (17 px) then "tight"
+ * (15 px, the progress 13 px); game-frame.css draws the steps. The line keeps its 24 px height, so nothing below moves.
+ * The attribute is the DOM's alone (React never sets it), so a re-render doesn't undo a step before it is measured.
+ */
+function goalCut(row: HTMLElement): boolean {
+  const text = row.querySelector<HTMLElement>("[data-goal-text]");
+  return !!text && text.scrollWidth > text.clientWidth;
+}
+function fitGoal(row: HTMLElement) {
+  row.removeAttribute("data-fit");
+  if (goalCut(row)) row.setAttribute("data-fit", "compact");
+  if (goalCut(row)) row.setAttribute("data-fit", "tight");
+}
+
 /** The puzzles' goal line: the goal left, the progress right, a stage bar under both where the game has stages. */
 export function GoalLine({ type, children }: { type: PuzzleType; children: ReactNode }) {
   const [progress, setProgress] = useState<GoalProgress | null>(null);
   const goalText = useFrameGoal(type);
   const [goal, setGoal] = useState<string | null>(null);
   const bar = GOAL_BAR_GAMES.has(type);
+  const row = useRef<HTMLDivElement | null>(null);
+  // A goal or progress that changes (a stage's own goal, "Scale 2 of 4") re-fits the line before it paints.
+  useIsoLayoutEffect(() => {
+    if (row.current) fitGoal(row.current);
+  });
+  useEffect(() => {
+    const el = row.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => fitGoal(el));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   return (
     <GoalTextContext.Provider value={setGoal}>
     <GoalLineContext.Provider value={setProgress}>
       <div data-goal-line data-goal-bar={bar ? "" : undefined} className="game-goal-line">
-        <div className="game-goal-row">
+        <div ref={row} className="game-goal-row">
           {/* A stage's own goal text (the Speed overhaul's useGoalText) first, then a stage or level goal, then the game's. */}
           <span data-goal-text className="game-goal-text">{goal ?? goalText}</span>
           {progress ? <span data-goal-progress className="game-goal-progress">{progress.text}</span> : null}
