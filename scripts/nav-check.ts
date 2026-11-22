@@ -49,10 +49,10 @@ const check = (ok: boolean, what: string) => {
 /* ------------------------------------------------------------ 1. the rules */
 
 {
-  check(TABS.map((t) => t.label).join(",") === "Home,Games,Tournaments,Shop,More", `the five destinations in order (${TABS.map((t) => t.label).join(",")})`);
+  check(TABS.map((t) => t.label).join(",") === "Home,Games,Compete,Shop,You", `the five destinations in order (${TABS.map((t) => t.label).join(",")})`); // Changed with Joe's approval, 21 Nov 2026
   check(!TABS.some((t) => /^(Play|Profile)$/.test(t.label)), "no Play tab and no Profile tab");
-  check(tabsFor(false).map((t) => t.label).join(",") === "Home,Games,Tournaments,More", "the Shop switch off: four, Tournaments always there");
-  check(TAB_PATHS.play === "/" && TAB_PATHS.practice === "/practice" && TAB_PATHS.more === "/more" && TAB_PATHS.tournaments === "/tournaments", "Home is /, Games is /practice, More is /more");
+  check(tabsFor(false).map((t) => t.label).join(",") === "Home,Games,Compete,You", "the Shop switch off: four, Compete always there"); // Changed with Joe's approval, 21 Nov 2026
+  check(TAB_PATHS.play === "/" && TAB_PATHS.practice === "/practice" && TAB_PATHS.you === "/profile" && TAB_PATHS.tournaments === "/tournaments", "Home is /, Games is /practice, You is /profile"); // Changed with Joe's approval, 21 Nov 2026
 
   let total = 0;
   const files = readdirSync("public/nav");
@@ -72,7 +72,7 @@ const check = (ok: boolean, what: string) => {
   const tokens = readFileSync("src/design/tokens.css", "utf8");
   for (const [token, value] of [
     ["--jz-loss-text", "#FF5A6E"],
-    ["--jz-surface-3", "#28335A"],
+    ["--jz-surface-3", "#26376B"], // Changed with Joe's approval, 21 Nov 2026
     ["--jz-gold-ink", "#E2C07A"],
     ["--jz-cut-lg", "14px"],
     ["--jz-cut-sm", "8px"],
@@ -82,7 +82,7 @@ const check = (ok: boolean, what: string) => {
     check(new RegExp(`${token}:\\s*${value}`).test(tokens), `token ${token}: ${value}`);
   // Today's values. Changed with Joe's approval, 14 Nov 2026 (routine consequence of the components step: --jz-loss
   // takes the guide's #FF5A6E; was #E5243F).
-  for (const [token, value] of [["--jz-loss", "#FF5A6E"], ["--jz-bg", "#06080F"], ["--jz-gold", "#E2C07A"], ["--jz-surface", "#0F1424"]] as const) {
+  for (const [token, value] of [["--jz-loss", "#FF5A6E"], ["--jz-bg", "#04060C"], ["--jz-gold", "#E2C07A"], ["--jz-surface", "#101A33"]] as const) { // Changed with Joe's approval, 21 Nov 2026
     // Its first definition (the dark :root block; the light one comes after it, scoped to the navigation).
     const first = new RegExp(`\\n\\s*${token}:\\s*([^;]+);`).exec(tokens);
     check(first?.[1]?.trim() === value, `existing token ${token} still ${value} (${first?.[1]})`);
@@ -100,7 +100,7 @@ const check = (ok: boolean, what: string) => {
     "practice.tsx": "tab: Games",
     "tournaments.tsx": "tab: Tournaments",
     "shop.tsx": "tab: Shop (with its switch); More: Joulz Plus",
-    "more.tsx": "tab: More",
+    "more.tsx": "redirects to /profile (You)", // Changed with Joe's approval, 21 Nov 2026
     "profile.tsx": "avatar (an account); More: Profile",
     "friends.tsx": "More: Friends; Profile's Friends",
     "leaderboards.tsx": "More: Leaderboards",
@@ -113,7 +113,7 @@ const check = (ok: boolean, what: string) => {
     "duel.$code.tsx": "Rooms: Create a room, Join, Rejoin; Play: Create a room; a room link",
     "rated.tsx": "Play: Find a match (where rated play is open)",
     "tiers.tsx": "Home: Ratings' All ratings; Profile's rating",
-    "play.tsx": "the gold Play bar on Home and Games; the rail's Play",
+    "play.tsx": "redirects to / (Home)", // Changed with Joe's approval, 21 Nov 2026
     "rooms.tsx": "Play: Rooms",
     "tournament.tsx": "Tournaments: an event (players with tournaments)",
     "tournament-rules.tsx": "an event's rules link",
@@ -155,7 +155,7 @@ async function startServer(): Promise<{ origin: string; proc: ChildProcess | nul
   const origin = `http://127.0.0.1:${PORT}`;
   for (let i = 0; i < 120; i++) {
     try {
-      const r = await fetch(`${origin}/more`);
+      const r = await fetch(`${origin}/profile`); // Changed with Joe's approval, 21 Nov 2026
       if (r.ok) return { origin, proc };
     } catch {
       /* not up yet */
@@ -216,7 +216,7 @@ try {
   await warmUp(browser, `${origin}/`, async (page) => {
     await page.locator("[data-app-tabbar]").first().waitFor({ timeout: 180_000 });
   }, { init: () => localStorage.setItem("duelz_onboarding_seen", "1") });
-  for (const p of ["/practice", "/tournaments", "/more", "/profile", "/leaderboards", "/daily"])
+  for (const p of ["/practice", "/tournaments", "/profile", "/leaderboards", "/daily"]) // Changed with Joe's approval, 21 Nov 2026
     await warmUp(browser, `${origin}${p}`, async (page) => {
       await page.waitForSelector("#app, body *", { timeout: 180_000 });
       await page.waitForTimeout(3000);
@@ -225,14 +225,14 @@ try {
   /* The launch screen: in the server's page, gone once the app has started. */
   {
     const html = await (await fetch(`${origin}/`)).text();
-    check(/data-launch/.test(html) && /nav\/bolt-1x\.webp/.test(html), "the launch screen (the art kit's bolt) is in the server's page");
+    check(/data-launch/.test(html) && /data-launch-bolt/.test(html), "the launch screen (the vector bolt) is in the server's page"); // Changed with Joe's approval, 21 Nov 2026
     const { page, context } = await openApp("/");
     await hydrated(page, "[data-app-tabbar] a");
     const shown = await page.locator("[data-launch]").evaluate((el) => getComputedStyle(el).display);
     check(shown === "none", `the launch screen is gone once the app has started (${shown})`);
     await context.close();
     const reduced = await openApp("/", { reduce: true });
-    const anim = await reduced.page.locator("[data-launch] img").evaluate((el) => getComputedStyle(el).animationName);
+    const anim = await reduced.page.locator("[data-launch] .jz-launch-bolt-fill").evaluate((el) => getComputedStyle(el).animationName); // Changed with Joe's approval, 21 Nov 2026
     check(anim === "none", `Reduce motion: the bolt doesn't animate (${anim})`);
     await reduced.context.close();
   }
@@ -244,7 +244,7 @@ try {
     // The server's page has four tabs (no switch there); the check's switch adds the Shop once the app has started.
     await page.waitForFunction(() => document.querySelectorAll("[data-app-tabbar] a").length === 5, undefined, { timeout: 20_000 }).catch(() => undefined);
     const labels = await page.locator("[data-app-tabbar] a").evaluateAll((els) => els.map((el) => (el.textContent ?? "").trim()));
-    check(labels.join(",") === "Home,Games,Tournaments,Shop,More", `the tab bar (${labels.join(",")})`);
+    check(labels.join(",") === "Home,Games,Compete,Shop,You", `the tab bar (${labels.join(",")})`); // Changed with Joe's approval, 21 Nov 2026
     check((await page.locator("[data-app-tabbar] [aria-current='page']").getAttribute("data-tab")) === "play", "Home is current on /");
     const names = await page.locator("[data-app-tabbar] a").evaluateAll((els) => els.map((el) => (el as HTMLElement).innerText.trim()));
     check(names.every((n) => n.length > 0), "every tab has a name for screen readers");
@@ -263,44 +263,35 @@ try {
       return v;
     });
     check(!!row && row.y + row.height <= vh - inset + 0.5, `the tab bar sits above the home bar (row ends ${row && row.y + row.height}, inset ${inset}, screen ${vh})`);
-    const play = await box(page, "[data-nav-play='bar']");
-    check(!!play && !!row && play.y + play.height <= row.y - 8 && play.height >= 44, `the Play bar is above the tab bar and at least 44 px (${JSON.stringify(play)})`);
+    check((await page.locator("[data-nav-play]").count()) === 0, "no floating Play bar"); // Changed with Joe's approval, 21 Nov 2026
     const avatar = await box(page, "[data-app-header] [data-nav-avatar]");
     check(!!avatar && avatar.x < 40 && avatar.y < 80 && avatar.width >= 44 && avatar.height >= 44, `the avatar is top left and 44 px (${JSON.stringify(avatar)})`);
     check(!!(await page.locator("[data-app-header] [data-nav-avatar]").getAttribute("aria-label")), "the avatar has a screen-reader label");
 
-    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Play page, phase 2 step 3): the Play bar opens
-    // the Play page (was Home's play section), and Back returns to the screen it was tapped on.
-    await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
-    await page.waitForTimeout(300);
-    await page.locator("[data-nav-play='bar']").click();
-    await waitPath(page, "/play");
-    await page.getByRole("heading", { level: 1, name: "Play" }).waitFor({ timeout: 60_000 });
-    check((await page.locator("[data-play-mode]").count()) === 4, "the Play page: Arena, Rooms, Practice and Daily");
-    await page.goBack();
-    await waitPath(page, "/");
+    // Changed with Joe's approval, 21 Nov 2026 (P1: the Play page folded into Home): /play redirects to Home, and Home's
+    // one gold button is the player banner's.
+    check((await page.locator(".jz-btn[data-variant='gold']:visible").count()) === 1 && (await page.locator("[data-hp-banner] [data-hp-hero]").count()) === 1, "Home has one gold button, the banner's"); // Changed with Joe's approval, 21 Nov 2026
+    await page.goto(`${origin}/play`);
+    await waitPath(page, "/"); // Changed with Joe's approval, 21 Nov 2026
+    check(path(page) === "/", "/play redirects to Home"); // Changed with Joe's approval, 21 Nov 2026
+    await hydrated(page, "[data-app-tabbar] a");
+    await page.waitForFunction(() => document.querySelectorAll("[data-app-tabbar] a").length === 5, undefined, { timeout: 20_000 }).catch(() => undefined);
 
     // Every tab opens its screen; Back from them returns to Home once, then leaves.
     await tapTab(page, "practice");
     await waitPath(page, "/practice");
     // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: titled "Games").
     await page.getByRole("heading", { level: 1, name: "Games" }).waitFor({ timeout: 60_000 });
-    check((await page.locator("[data-nav-play='bar']").count()) === 1, "Games has the Play bar");
-    await page.locator("[data-nav-play='bar']").click();
-    await waitPath(page, "/play");
-    await page.getByRole("heading", { level: 1, name: "Play" }).waitFor({ timeout: 60_000 });
-    check(path(page) === "/play", "the Play bar on Games opens the Play page");
-    await page.goBack();
-    await waitPath(page, "/practice");
+    check((await page.locator("[data-nav-play]").count()) === 0, "Games has no Play bar"); // Changed with Joe's approval, 21 Nov 2026
     // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games catalogue: the tab's page is titled
     // "Games", was "Practice").
-    for (const [tab, to, heading] of [["practice", "/practice", "Games"], ["tournaments", "/tournaments", "Tournaments"], ["shop", "/shop", null], ["more", "/more", "More"]] as const) {
+    for (const [tab, to, heading] of [["practice", "/practice", "Games"], ["tournaments", "/tournaments", "Tournaments"], ["shop", "/shop", null], ["you", "/profile", "Profile"]] as const) { // Changed with Joe's approval, 21 Nov 2026
       await tapTab(page, tab);
       await waitPath(page, to);
       if (heading) await page.getByRole("heading", { level: 1, name: heading }).waitFor({ timeout: 30_000 });
-      await page.locator(`[data-tab-screen='${tab}']`).waitFor({ timeout: 30_000 }).catch(() => undefined);
+      await page.locator(`[data-tab-screen='${tab === "you" ? "profile" : tab}']`).waitFor({ timeout: 30_000 }).catch(() => undefined); // Changed with Joe's approval, 21 Nov 2026
       check((await page.locator("[data-app-tabbar] [aria-current='page']").getAttribute("data-tab")) === tab, `${tab}: its tab is current`);
-      check((await page.locator("[data-nav-play='bar']").count()) === (tab === "practice" ? 1 : 0), `${tab}: the Play bar only on Home and Games`);
+      check((await page.locator("[data-nav-play]").count()) === 0, `${tab}: no Play bar`); // Changed with Joe's approval, 21 Nov 2026
     }
     await page.goBack();
     await waitPath(page, "/");
@@ -313,7 +304,7 @@ try {
   }
 
   /* No page errors (hydration included) on Home and More as everyone opens them. */
-  for (const start of ["/", "/more", "/tournaments"]) {
+  for (const start of ["/", "/profile", "/tournaments"]) { // Changed with Joe's approval, 21 Nov 2026
     const { page, context, errors } = await openApp(start);
     await hydrated(page, "[data-app-tabbar] a");
     await page.waitForTimeout(1500);
@@ -321,67 +312,32 @@ try {
     await context.close();
   }
 
-  /* More's rows, the avatar for a guest, Back one screen at a time. */
+  /* Changed with Joe's approval, 21 Nov 2026 (P1: More folded into You, the Profile page; its rows are You's, P3's):
+     /more redirects to You; a guest's avatar opens You with no sheet; You opened directly: Back to Home, then out. */
   {
     const { page, context } = await openApp("/more", { shop: true });
-    await hydrated(page, "[data-more-row='profile']");
-    await page.locator("[data-more-row='plus']").waitFor({ timeout: 20_000 }).catch(() => undefined);
-    const rows = await page.locator("[data-more-row]").evaluateAll((els) => els.map((el) => el.getAttribute("data-more-row")));
-    check(rows.join(",") === "profile,friends,leaderboards,challenges,daily,plus,settings,support", `More's rows (${rows.join(",")})`);
-    const groups = await page.locator(".jz-nav-group-title").allTextContents();
-    check(groups.join("|") === "Friends and rivals|Compete|Joulz", `More's sections (${groups.join("|")})`);
-    const rowBoxes = await page.locator("[data-more-row]").evaluateAll((els) => els.map((el) => el.getBoundingClientRect().height));
-    check(rowBoxes.every((h) => h >= 44), "every row is at least 44 px");
-    const rowNames = await page.locator("[data-more-row]").evaluateAll((els) => els.map((el) => (el as HTMLElement).innerText.trim()));
-    check(rowNames.every((n) => n.length > 0), "every row has a name for screen readers");
-    check(/^mailto:/.test((await page.locator("[data-more-row='support']").getAttribute("href")) ?? ""), "Support writes to the support address");
-
-    for (const [row, to] of [["profile", "/profile"], ["leaderboards", "/leaderboards"], ["daily", "/daily"], ["plus", "/shop"]] as const) {
-      await page.locator(`[data-more-row='${row}']`).click();
-      await waitPath(page, to);
-      check(path(page) === to, `More → ${row} opens ${to}`);
-      await page.goBack();
-      await waitPath(page, "/more");
-      check(path(page) === "/more", `Back from ${row} returns to More`);
-      await page.locator("[data-more-row='profile']").waitFor();
-    }
-    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Games session moving the full challenges
-    // list from the Games tab to its own page, /challenges): the row's target follows it.
-    await page.locator("[data-more-row='challenges']").click();
-    await waitPath(page, "/challenges");
-    await page.locator("[data-challenges-page]").waitFor({ timeout: 60_000 });
-    await page.waitForTimeout(1200);
-    const list = await box(page, "[data-challenges-page]");
-    check(!!list && list.y >= -2 && list.y < 220, `More → Challenges opens the full list (${list?.y})`);
-    await page.goBack();
-    await waitPath(page, "/more");
-    // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings): More →
-    // Settings opens the Settings page, and Back returns to More.
-    await page.locator("[data-more-row='settings']").click();
-    await waitPath(page, "/settings");
-    check(path(page) === "/settings", "More → Settings opens /settings");
-    await page.getByRole("heading", { level: 1, name: "Settings" }).waitFor({ timeout: 60_000 });
-    await page.goBack();
-    await waitPath(page, "/more");
-    check(path(page) === "/more", "Back from Settings returns to More");
-    await page.locator("[data-more-row='friends']").waitFor();
-    await page.locator("[data-more-row='friends']").click();
-    await page.waitForTimeout(600);
-    check((await page.locator("[data-save-progress], [role='dialog']").count()) > 0 && path(page) === "/more", "More → Friends offers a guest the save-your-progress sheet");
-    await page.keyboard.press("Escape");
-    await page.waitForTimeout(400);
+    await waitPath(page, "/profile");
+    check(path(page) === "/profile", "/more redirects to You (/profile)"); // Changed with Joe's approval, 21 Nov 2026
+    await hydrated(page, "[data-app-tabbar] a");
+    check((await page.locator("[data-app-tabbar] [aria-current='page']").getAttribute("data-tab")) === "you", "You's tab is current on /profile"); // Changed with Joe's approval, 21 Nov 2026
+    await page.goto(`${origin}/`);
+    await hydrated(page, "[data-app-header] [data-nav-avatar]");
     await page.locator("[data-app-header] [data-nav-avatar]").click();
+    await waitPath(page, "/profile");
     await page.waitForTimeout(600);
-    check((await page.locator("[role='dialog']").count()) > 0 && path(page) === "/more", "a guest's avatar opens the save-your-progress sheet");
-    await page.keyboard.press("Escape");
-
-    // More opened directly: Back goes to Home (put beneath it), then leaves the app.
+    check(path(page) === "/profile" && (await page.locator("[role='dialog']").count()) === 0, "a guest's avatar opens You (/profile), no sheet"); // Changed with Joe's approval, 21 Nov 2026
+    await context.close();
+  }
+  {
+    const { page, context } = await openApp("/profile");
+    await hydrated(page, "[data-app-tabbar] a");
+    await page.waitForTimeout(500);
     await page.goBack();
     await waitPath(page, "/");
-    check(path(page) === "/", "a tab opened directly: Back returns to Home");
+    check(path(page) === "/", "a tab opened directly: Back returns to Home"); // Changed with Joe's approval, 21 Nov 2026
     await page.goBack();
     await page.waitForTimeout(800);
-    check(!page.url().startsWith(origin) || page.url() === "about:blank", `then Back leaves the app (${page.url()})`);
+    check(!page.url().startsWith(origin) || page.url() === "about:blank", `then Back leaves the app (${page.url()})`); // Changed with Joe's approval, 21 Nov 2026
     await context.close();
   }
 
@@ -390,18 +346,18 @@ try {
     const { page, context } = await openApp(start);
     await hydrated(page, "[data-app-tabbar] a");
     await page.waitForTimeout(500);
-    await tapTab(page, "more");
-    await waitPath(page, "/more");
+    await tapTab(page, "you"); // Changed with Joe's approval, 21 Nov 2026
+    await waitPath(page, "/profile"); // Changed with Joe's approval, 21 Nov 2026
     await page.goBack();
     await waitPath(page, "/");
-    check(path(page) === "/", `${start} opened directly, then More: Back returns to Home`);
+    check(path(page) === "/", `${start} opened directly, then You: Back returns to Home`); // Changed with Joe's approval, 21 Nov 2026
     await context.close();
   }
 
   /* Tablets: upright the tab bar, sideways the rail. */
   for (const [label, w, h, rail] of [["tablet upright 820×1180", 820, 1180, false], ["tablet sideways 1180×820", 1180, 820, true]] as const) {
-    const { page, context } = await openApp("/more", { w, h, touch: true, app: false });
-    await hydrated(page, "[data-more-row='profile']");
+    const { page, context } = await openApp("/tournaments", { w, h, touch: true, app: false }); // Changed with Joe's approval, 21 Nov 2026
+    await hydrated(page, "[data-app-tabbar] a, [data-app-rail] a"); // Changed with Joe's approval, 21 Nov 2026
     await page.waitForTimeout(400);
     const bar = await page.locator("[data-app-tabbar]").count();
     const railed = await page.locator("[data-app-rail='full']").count();
@@ -411,11 +367,38 @@ try {
 
   /* The computer: the rail by keyboard, a visible focus ring, collapsed in a room. */
   {
-    const { page, context } = await openApp("/more", { w: 1440, h: 900, touch: false, app: false });
+    const { page, context } = await openApp("/tournaments", { w: 1440, h: 900, touch: false, app: false }); // Changed with Joe's approval, 21 Nov 2026
     await hydrated(page, "[data-app-rail] [data-rail-tab]");
     const railTabs = await page.locator("[data-app-rail] [data-rail-tab]").evaluateAll((els) => els.map((el) => el.textContent?.trim()));
-    check(railTabs.join(",") === "Home,Games,Tournaments,More", `the rail's destinations (${railTabs.join(",")})`);
+    check(railTabs.join(",") === "Home,Games,Compete,You", `the rail's destinations (${railTabs.join(",")})`); // Changed with Joe's approval, 21 Nov 2026
     check((await page.locator("[data-app-rail] [data-rail-account]").count()) === 1 && (await page.locator("[data-app-rail] [data-nav-play='rail']").count()) === 1, "the rail carries the avatar and the gold Play button");
+    // Added 21 Nov 2026 (P1, Joe's rail rows of 20 Nov): under "More" the six rows, each opening its page; Settings at the foot.
+    const more = await page.locator("[data-app-rail] [data-rail-more]").evaluateAll((els) => els.map((el) => el.getAttribute("data-rail-more")));
+    check(more.join(",") === "daily,leaderboards,friends,challenges,badges,notifications", `the rail's More rows (${more.join(",")})`);
+    const foot = await page.evaluate(() => {
+      const rail = document.querySelector("[data-app-rail]")!.getBoundingClientRect();
+      const settings = document.querySelector("[data-app-rail] [data-rail-settings]")!.getBoundingClientRect();
+      const last = Array.from(document.querySelectorAll("[data-app-rail] [data-rail-more]")).pop()!.getBoundingClientRect();
+      return { settings: settings.top, bottom: rail.bottom, last: last.bottom, h: settings.height };
+    });
+    check(foot.settings > foot.last && foot.bottom - (foot.settings + foot.h) < 40 && foot.h >= 44, `Settings sits at the rail's foot (${JSON.stringify(foot)})`);
+    for (const [row, to] of [["daily", "/daily"], ["leaderboards", "/leaderboards"], ["challenges", "/challenges"], ["badges", "/badges"], ["notifications", "/settings"]] as const) {
+      await page.locator(`[data-app-rail] [data-rail-more='${row}']`).click();
+      await waitPath(page, to);
+      check(path(page) === to, `the rail's ${row} opens ${to}`);
+      await page.goBack();
+      await waitPath(page, "/tournaments");
+      await hydrated(page, "[data-app-rail] [data-rail-tab]");
+    }
+    // The guest rule of More's Friends row (14 Nov 2026), now on the rail's. // Changed with Joe's approval, 21 Nov 2026
+    await page.locator("[data-app-rail] [data-rail-more='friends']").click();
+    await page.waitForTimeout(600);
+    check((await page.locator("[data-save-progress], [role='dialog']").count()) > 0 && path(page) === "/tournaments", "the rail's Friends offers a guest the save-your-progress sheet"); // Changed with Joe's approval, 21 Nov 2026
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(400);
+    // The keyboard walk below starts from a fresh page, as before the rows above were added (they leave focus in the rail).
+    await page.reload();
+    await hydrated(page, "[data-app-rail] [data-rail-tab]");
     const seen: string[] = [];
     let ringed = 0;
     for (let i = 0; i < 12; i++) {
@@ -431,7 +414,7 @@ try {
       seen.push(info.name);
       if (info.ring) ringed++;
     }
-    check(["avatar", "rail", "play", "practice", "tournaments", "more"].every((n) => seen.includes(n)), `Tab reaches the rail's avatar, Play and destinations (${seen.join(",")})`);
+    check(["avatar", "rail", "play", "practice", "tournaments", "you"].every((n) => seen.includes(n)), `Tab reaches the rail's avatar, Play and destinations (${seen.join(",")})`); // Changed with Joe's approval, 21 Nov 2026
     check(ringed === seen.length && seen.length > 0, `every focused rail item shows a focus ring (${ringed} of ${seen.length})`);
     await page.locator("[data-app-rail] [data-rail-tab='practice']").focus();
     await page.keyboard.press("Enter");
@@ -450,7 +433,7 @@ try {
       rename: { kind: "free" }, email: "inventor@example.com",
     };
     {
-      const screen: ThemeScreen = { name: "nav: avatar, an account", mode: "more", plain: true, globals: { __harnessNavAccount: ACCOUNT } };
+      const screen: ThemeScreen = { name: "nav: avatar, an account", mode: "home", plain: true, globals: { __harnessNavAccount: ACCOUNT } }; // Changed with Joe's approval, 21 Nov 2026
       const { context, page } = await openThemeScreen(browser, harness.origin, screen, PHONE);
       check((await page.locator("[data-app-header] [data-nav-avatar='account']").count()) === 1, "an account's avatar shows in the header");
       await page.locator("[data-app-header] [data-nav-avatar]").click();
@@ -495,4 +478,4 @@ if (failures.length) {
   for (const f of failures) console.log(`FAIL ${f}`);
   process.exit(1);
 }
-console.log("PASS: the navigation frame: destinations, the Play bar, More, the avatar, Back to Home, tablets, the rail by keyboard, the launch screen and Tournaments for both kinds of player");
+console.log("PASS: the navigation frame: destinations, no Play bar, /more and /play redirected, the avatar, Back to Home, tablets, the rail's tabs, More rows and keyboard, the launch screen and Tournaments for both kinds of player"); // Changed with Joe's approval, 21 Nov 2026

@@ -17,7 +17,7 @@ export const APPEARANCE_EVENT = "duelz-appearance-change";
 const SYSTEM_LIGHT = "(prefers-color-scheme: light)";
 /** The status bar's colour for each theme: --jz-bg in that theme (tokens.css). */
 export const STATUS_BAR: Record<Theme, string> = {
-  dark: "#06080F", // design-lint-ignore: mirrors --jz-bg (dark)
+  dark: "#04060C", // design-lint-ignore: mirrors --jz-bg (dark)
   light: "#F3F4F8", // design-lint-ignore: mirrors --jz-bg (light)
 };
 

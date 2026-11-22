@@ -190,3 +190,20 @@ export async function readRatedWeekMatches(client: Db, userId: string, fromIso: 
   const { data, error } = await client.rpc("rated_week_matches", { p_user_id: userId, p_from: fromIso, p_to: toIso });
   return { data: Array.isArray(data) ? (data as unknown as RatedWeekMatchRow[]) : [], error };
 }
+
+/** A player's Joulz Rating change over the rated matches they finished from `fromIso` on (rated_week_change). */
+export interface RatedWeekChange {
+  matches: number;
+  change: number;
+}
+
+export async function readRatedWeekChange(client: Db, userId: string, fromIso: string): Promise<Result<RatedWeekChange | null>> {
+  // Not in the generated types yet (20261121100000_rated_week_change.sql): called through its name.
+  const rpc = client.rpc as unknown as (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: Result<unknown>["error"] }>;
+  const { data, error } = await rpc.call(client, "rated_week_change", { p_user_id: userId, p_from: fromIso });
+  const row = data as { matches?: unknown; change?: unknown } | null;
+  return {
+    data: row && typeof row === "object" ? { matches: Number(row.matches) || 0, change: Number(row.change) || 0 } : null,
+    error,
+  };
+}

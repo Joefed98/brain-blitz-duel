@@ -3,29 +3,24 @@ import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 
 import { HomeScreenHint } from "@/components/beta/HomeScreenHint";
 import { PhoneShell } from "@/components/duel/PhoneShell";
-import { Onboarding } from "@/components/duel/Onboarding";
+import { TermsScreen } from "@/components/beta/TermsScreen";
 import { goToTab } from "@/components/app/AppTabBar";
 import { shownDailyStatus, useDailyStatus } from "@/components/daily/DailyCard";
 import { PlaySlot } from "@/components/app/PlaySlot";
-import { IntroCard } from "@/components/app/IntroCard";
 import { ShareWelcomeCard } from "@/components/share/ShareWelcomeCard";
 import { WeekPanel } from "@/components/app/PageAside";
 import { HeaderLead } from "@/components/app/AppHeader";
 import { useClock } from "@/components/app/useClock";
 import { useNavPlacement } from "@/components/nav/navigation";
-import { DailyHero, FriendsRow, NextMatch, RatingTiles, RecentlyPlayed, WeeklyCard, openFromHome } from "@/components/home/HomeSections";
+import { DailyHero, FriendsRow, PlayFriends, RecentlyPlayed, WeeklyCard, openFromHome } from "@/components/home/HomeSections";
+import { PlayerBanner, RatingChips, useHero } from "@/components/home/PlayerBanner";
 import { Icon } from "@/design/components";
 import { OnlineOnly } from "@/components/offline/OnlineOnly";
-import { pushForPlayer, pushPublicKey } from "@/config/pushConfig";
-import { HOME_BELL } from "@/config/homeConfig";
-import { releaseSlot } from "@/lib/playCards";
 import { markOnboardingSeen, onboardingSeen } from "@/lib/onboarding";
 import { isShareRef } from "@/lib/share/shareRef";
 import { isPlayable } from "@/lib/duel/catalogue";
 import { recentPracticeTypes, warmUpTypes } from "@/lib/duel/practiceRecent";
 import { useDailyRecord } from "@/lib/badges/badgesApi";
-import { bestOf } from "@/lib/practice/progress";
-import { usePracticeProgress } from "@/lib/practice/useProgress";
 import { dailyStreak, readDailyRecord } from "@/lib/duel/dailyRecord";
 import { ukDayKey } from "@/lib/duel/daily";
 import { scheduledGames, upcomingGames, type PublicGame } from "@/lib/publicSchedule";
@@ -33,12 +28,12 @@ import { screenMusic, unlockAudio } from "@/lib/sound";
 import type { PuzzleType } from "@/lib/duel/types";
 import { APP_DESCRIPTION, APP_TITLE } from "@/lib/brand";
 import { useHomeBed } from "@/lib/useScreenMusic";
-import { useAccount } from "@/lib/account/accountApi";
+import { useAccount, useAccountName } from "@/lib/account/accountApi";
+import { getStoredName } from "@/lib/duel/session";
+import { useRoomStart } from "@/lib/home/useRoomStart";
+import { celebrationSound, celebrationsOn } from "@/lib/fx/celebrations";
 import { useShopOn } from "@/lib/identity/shopSwitch";
-import { useRatedStatus } from "@/lib/rated/ratedApi";
-import { defaultPick } from "@/lib/rated/rules";
-import type { RatedPick } from "@/lib/rated/backend";
-import { friendsByRecent, useDailyPlayedToday, useFriendsOverview } from "@/lib/home/homeData";
+import { friendsByRecent, useFriendsOverview } from "@/lib/home/homeData";
 import { cachedPass } from "@/lib/pass/passApi";
 
 export const Route = createFileRoute("/")({
@@ -75,71 +70,62 @@ const useBeforePaint = typeof window === "undefined" ? useEffect : useLayoutEffe
 
 const slotState = (settled: boolean, show: boolean) => (!settled ? "pending" : show ? "show" : "hide");
 
-/** How many games Recently played shows. */
-const RECENT_MAX = 8;
-const PICK_KEY = "duelz-rated-pick:v1";
-
-/** The rated pick this device last played (RatedHome's key), read only. */
-function lastPick(): RatedPick | null {
-  try {
-    return (localStorage.getItem(PICK_KEY) as RatedPick | null) ?? null;
-  } catch {
-    return null;
-  }
-}
+/** How many games Jump back in shows. */
+const RECENT_MAX = 4;
 
 /**
- * Home (phase 2 step 3, 14 Nov 2026; docs/design/style-guide/phone/home.png, home-scrolled.png, desktop/home.png):
- * the avatar, the Daily streak and coins in the header (the notifications bell waits for the inbox, HOME_BELL); the Daily hero; Your next match; Ratings (rated
- * play only); Recently played; This week (the pass); Friends. Rooms (create, join, rejoin, public games, Challenge a
- * friend) live on the Rooms page, reached from Play; the gold Play bar opens Play. The first-time intro card, the share
- * welcome and the Add to Home Screen hint keep their PlaySlots (playCards.ts), reserved before the first paint.
+ * Home (phase 2 step 3, 14 Nov 2026; P1, 21 Nov 2026: Joe's mix of H1 and H2, plan sections 2.1 and 3.3, mockups
+ * docs/polish-plan-final/direction/pages/home-mixed-*), in this order with nothing shown twice:
+ *
+ * 1. the top line (AppHeader): the avatar, the name and the Daily streak; an account's coins on the right where the
+ *    Shop is on; no rating;
+ * 2. the player banner (PlayerBanner.tsx), the page's one hero and its one gold button, in three states of one height;
+ * 3. placed players only: the Puzzles and Arcade ratings as two small chips (each opens Compete);
+ * 4. Daily Puzzle and Daily Arcade side by side;
+ * 5. Play friends: Create and Join, one tap each;
+ * 6. Jump back in: this device's last four games.
+ *
+ * The share welcome and the Add to Home Screen hint keep their PlaySlots (playCards.ts); every section is reserved
+ * before the first paint (the banner from its record, the chips' slot by the boot script, the dailies' slot as before,
+ * Jump back in from device storage before paint), so nothing pops in. On a computer the side column has This week and
+ * Friends. "How it works" lives in Settings.
  */
 function Home() {
   const router = useRouter();
   const account = useAccount();
   const shopOn = useShopOn();
   const placement = useNavPlacement();
-  // The first-time intro's three panels (Onboarding), from "How it works".
-  const [intro, setIntro] = useState(false);
-  const [introCard, setIntroCard] = useState<"pending" | "show" | "hide">("pending");
-  const progress = usePracticeProgress();
+  const accountName = useAccountName();
   const [streak, setStreak] = useState(0);
   const dailyView = useDailyRecord();
   const [homeHint, setHomeHint] = useState<"show" | "hide">("show");
   const [recent, setRecent] = useState<PuzzleType[]>([]);
-  const [warm, setWarm] = useState<PuzzleType[]>([]);
   const [games, setGames] = useState<PublicGame[]>([]);
   const [welcome, setWelcome] = useState<boolean | null>(null);
   const [mounted, setMounted] = useState(false);
-  const [pick, setPick] = useState<RatedPick | null>(null);
+  const [guestName, setGuestName] = useState("");
+  const { hero, status } = useHero();
+  const room = useRoomStart();
 
   useBeforePaint(() => {
     const played = recentPracticeTypes();
     setRecent(played.filter((t): t is PuzzleType => isPlayable(t)).slice(0, RECENT_MAX));
-    setWarm(warmUpTypes(played));
     setStreak(dailyStreak(readDailyRecord().days, ukDayKey(Date.now())));
     setGames(scheduledGames());
+    setGuestName(getStoredName());
     setMounted(true);
   }, []);
   useEffect(() => {
-    // Shown once on a plain visit: seen as soon as it is up, so leaving without closing it still counts.
-    const fresh = !isShareRef(window.location.search) && !onboardingSeen();
+    // The first-time intro (lib/onboarding.ts): a device that has been Home has seen the app (a shared link's welcome
+    // stands in for it), so the first-open rules treat it as not new.
     if (isShareRef(window.location.search)) markOnboardingSeen();
-    else if (fresh) markOnboardingSeen();
-    setIntroCard(fresh ? "show" : "hide");
-    return () => releaseSlot("intro");
+    else if (!onboardingSeen()) markOnboardingSeen();
   }, []);
   // The app-wide home bed (docs/sound-cues/music.md): held here, carried on unbroken to the other tabs and the lobby.
   useHomeBed(true, screenMusic("music_home"));
 
   const daily = useDailyStatus();
   const dailyShown = useMemo(() => (mounted ? shownDailyStatus(daily) : shownDailyStatus({ status: daily.status }, Date.now(), false)), [daily, mounted]);
-  const counts = useDailyPlayedToday();
-  const rated = useRatedStatus();
-  useEffect(() => {
-    if (rated) setPick(defaultPick(rated.options, lastPick()));
-  }, [rated]);
   const accountId = account.kind === "account" ? account.userId : null;
   const overview = useFriendsOverview(accountId);
   const friends = useMemo(() => friendsByRecent(overview?.friends ?? []), [overview]);
@@ -148,15 +134,23 @@ function Home() {
   const now = useClock(games.flatMap((g) => [g.lobbyAt, g.startsAt]));
   const nextGame = upcomingGames(now, games)[0] ?? null;
   const streakNow = dailyView?.source === "server" ? dailyView.streak : streak;
-  // Off until the notifications inbox exists (src/config/homeConfig.ts); then only where notifications are on.
-  const bell = HOME_BELL && !!pushPublicKey() && account.kind === "account" && pushForPlayer(account.playerNumber);
-  const warmUp = warm[0] ?? null;
+  const warmUp = recent[0] ?? warmUpTypes([])[0] ?? null;
+  const name = accountName ?? guestName;
 
-  if (intro) return <Onboarding onDone={() => setIntro(false)} />;
+  if (room.termsFor) return <TermsScreen onAgree={room.agree} />;
 
   const practiceFirst = () => {
     unlockAudio();
     goToTab(router, "play", "practice", warmUp ? { game: warmUp } : undefined);
+  };
+  const createRoom = () => {
+    if (celebrationsOn()) {
+      unlockAudio();
+      celebrationSound("zap");
+    }
+    // No name yet: the Rooms page, where the name is asked for beside Create a room.
+    if (!name.trim()) return openFromHome(router, "/rooms");
+    void room.start("create", name, "", () => openFromHome(router, "/rooms"));
   };
 
   const streakChip =
@@ -166,52 +160,45 @@ function Home() {
         <span>{streakNow}</span>
       </button>
     ) : null;
-  const bellButton = bell ? (
-    <button type="button" className="hp-bell press" aria-label="Notifications" onClick={() => void router.navigate({ to: "/settings", search: { section: "notifications" }, state: { fromPlayTab: true } as never } as never)} data-hp-bell>
-      <Icon name="notifications" size={22} />
-    </button>
-  ) : null;
+  const lead = (
+    <>
+      {name ? (
+        <span data-ellipsis className="hp-name" data-hp-name>
+          {name}
+        </span>
+      ) : null}
+      {streakChip}
+    </>
+  );
 
   return (
-    <HeaderLead.Provider value={placement === "bar" ? streakChip : null}>
+    <HeaderLead.Provider value={placement === "bar" ? lead : null}>
     <PhoneShell
       tabs="play"
-      headerAction={placement === "bar" ? bellButton : undefined}
       aside={
         <aside aria-label="More" data-page-aside className="dk-aside hp-aside">
-          <WeeklyCard eligible={passAsk} />
           <FriendsRow friends={friends} />
+          <WeeklyCard eligible={passAsk} />
           {/* Your week in practice, the column's existing panel, under them (and alone for a guest). */}
           <WeekPanel />
         </aside>
       }
     >
       <div className="ap-stack hp-home" data-home>
-        {placement === "rail" && (streakChip || bellButton) ? (
-          <div className="hp-railhead">
-            {streakChip}
-            {bellButton}
-          </div>
-        ) : null}
-        <PlaySlot id="intro" state={introCard}>
-          <IntroCard
-            onClose={() => setIntroCard("hide")}
-            onPractice={practiceFirst}
-            onHowItWorks={() => {
-              unlockAudio();
-              setIntro(true);
-            }}
-          />
+        <PlayerBanner hero={hero} status={status} />
+
+        <PlaySlot id="chips" state={hero === null ? "pending" : hero.state === "placed" ? "show" : "hide"}>
+          <RatingChips hero={hero} />
         </PlaySlot>
+
         <PlaySlot id="welcome" state={slotState(welcome !== null, welcome === true)}>
           <ShareWelcomeCard assumeDue onDue={setWelcome} nextGame={nextGame} now={now} onPractice={practiceFirst} onPublic={() => goToTab(router, "play", "tournaments")} />
         </PlaySlot>
 
-        {/* Today's dailies: the hero carousel. */}
+        {/* Today's dailies, side by side. */}
         <PlaySlot id="daily" state={slotState(daily.settled, !!daily.status?.available)}>
           <DailyHero
             status={dailyShown}
-            counts={counts}
             onOpen={(kind) => {
               unlockAudio();
               void router.navigate({ to: "/daily", search: { kind }, state: { fromPlayTab: true } as never });
@@ -219,35 +206,13 @@ function Home() {
           />
         </PlaySlot>
 
-        <NextMatch rated={rated} pick={pick} friend={friends[0] ?? null} practice={warmUp} practiceBest={warmUp ? bestOf(progress, warmUp) : null} nowMs={now} />
-
-        {rated ? <RatingTiles status={rated} /> : null}
+        <PlayFriends onCreate={createRoom} onJoin={() => openFromHome(router, "/rooms")} busy={room.busy === "create"} error={room.error} />
 
         <RecentlyPlayed types={recent} />
 
         <PlaySlot id="homescreen" state={homeHint}>
           <HomeScreenHint onDismiss={() => setHomeHint("hide")} />
         </PlaySlot>
-
-        {/* On a phone the pass's weekly challenges and friends follow here; wider screens draw them in the side column. */}
-        <div className="hp-narrow">
-          <WeeklyCard eligible={passAsk} />
-          <FriendsRow friends={friends} />
-        </div>
-
-        <div className="flex justify-center pb-1">
-          <button
-            type="button"
-            data-how-it-works
-            onClick={() => {
-              unlockAudio();
-              setIntro(true);
-            }}
-            className="ap-link-quiet press tap-target px-3"
-          >
-            How it works
-          </button>
-        </div>
       </div>
     </PhoneShell>
     </HeaderLead.Provider>

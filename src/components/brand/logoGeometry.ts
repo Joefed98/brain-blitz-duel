@@ -45,7 +45,7 @@ export const LOGO_PATHS = {
 /** --jz-gold: the bolt's one colour. */
 export const BRAND_GOLD = "#E2C07A"; // design-lint-ignore: mirrors --jz-gold (brand-assets-check)
 /** --jz-bg (and --jz-on-gold): the navy-black behind the gold bolt, and the bolt on the ring-gold metal. */
-export const BRAND_INK = "#06080F"; // design-lint-ignore: mirrors --jz-bg (brand-assets-check)
+export const BRAND_INK = "#04060C"; // design-lint-ignore: mirrors --jz-bg (brand-assets-check)
 /** --jz-text-3: the link preview's line. */
 export const BRAND_TEXT_3 = "#8F9BBF"; // design-lint-ignore: mirrors --jz-text-3 (brand-assets-check)
 /** --jz-gold-metal: the ring-gold metal, a CSS linear-gradient at `angle` degrees with these stops. */
