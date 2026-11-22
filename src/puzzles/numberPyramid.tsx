@@ -614,7 +614,9 @@ function npRevealNote(b: NpRevealBoard, side: RevealSide): string {
 function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealProps) {
   const [dev, setDev] = useState(false);
   useEffect(() => setDev(devDiagnosticsOn()), []);
-  const [root, space] = useHostSpace({ w: 343, h: 440 });
+  // G3 (21 Nov 2026): the pyramid sizes from its own slot in the reveal template's stage (the space the stage really
+  // leaves under the tabs and switch and above the note and facts), measured, never a hand-counted budget.
+  const [root, space] = useHostSpace({ w: 343, h: 300 });
   const data = puzzle.type === "numpyramid" ? puzzle : null;
   const boards = data ? npRevealBoards(data, myAnswer) : [];
   // The Number overhaul: one pyramid at a time, big, opening on the first not complete.
@@ -625,17 +627,14 @@ function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealPr
   const board = data.pyramids[index]!;
   const both = cur.mark !== "right" && cur.solution !== null;
   const view: RevealSide = both ? side : "yours";
-  // Brick sizes for one pyramid at the reveal's full width, in the height left by the tabs, switch, note and facts.
+  // Brick sizes for one pyramid at its slot's full width and height (G3: the slot is measured, so nothing is subtracted).
   const rows = board.rows;
   const gap = 4;
   const pyramidW = Math.min(space.w, 420) - 12;
   const widthFit = Math.floor((pyramidW - (rows - 1) * gap) / rows);
-  // Under the pyramid: the tabs (44 + 12), the switch (44 + 10), the note (24 + 10) and the facts (two rows on a small
-  // phone, 52 + 12).
-  const room = space.h - 56 - (both ? 54 : 0) - 34 - 64 - (dev ? 16 : 0);
   // Stage 2 (inside the shared reveal layout of #422): the stones keep their shape when the height is the limit (a
   // 375 × 667 phone), narrowing with it rather than squashing flat.
-  const heightFit = Math.floor((room - (rows - 1) * gap) / rows);
+  const heightFit = Math.floor((space.h - (dev ? 16 : 0) - (rows - 1) * gap) / rows);
   const cellW = Math.max(24, Math.min(68, widthFit, Math.round(Math.max(22, heightFit) / 0.86)));
   const cellH = Math.max(22, Math.min(58, heightFit, Math.round(cellW * 0.86)));
   const fontSize = Math.max(14, Math.min(26, Math.floor(Math.min(cellH * 0.56, cellW * 0.44))));
@@ -643,10 +642,10 @@ function Reveal({ puzzle, myAnswer, myMsRemaining, timeLimitMs }: PuzzleRevealPr
   const wrongTotal = boards.reduce((n, b) => n + b.wrong, 0);
   const used = myMsRemaining === undefined ? null : Math.max(0, (timeLimitMs - myMsRemaining) / 1000);
   return (
-    <div ref={root} className="np-rv flex w-full min-h-0 flex-1 flex-col items-center gap-3" data-np-reveal>
+    <div className="np-rv flex w-full min-h-0 flex-1 flex-col items-center gap-3" data-np-reveal>
       <RevealBoards noun="Pyramid" marks={boards.map((b) => b.mark)} index={index} onIndex={(i) => { setIndex(i); setSide("solution"); }}>
         {both ? <RevealView value={view} onChange={setSide} /> : null}
-        <div aria-label={`Pyramid ${index + 1}, ${view === "solution" ? "solution" : "yours"}`} data-np-reveal-view={view}>
+        <div ref={root} aria-label={`Pyramid ${index + 1}, ${view === "solution" ? "solution" : "yours"}`} data-np-reveal-view={view} className="np-rv-slot">
           {view === "solution" ? (
             <Pyramid rows={rows} givens={board.givens} values={cur.solution!} cellW={cellW} cellH={cellH} gap={gap} fontSize={fontSize} animate={false} fix={cur.fix} />
           ) : (

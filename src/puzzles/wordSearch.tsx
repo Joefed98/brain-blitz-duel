@@ -26,7 +26,7 @@ import "@/polish-word/word-look.css";
 import "@/polish-word/lookout.css";
 import { Button } from "@/components/ui/button";
 import { overhaulReveal, usesWordOverhaul } from "@/lib/duel/wordOverhaul";
-import { RevealChips, RevealNumbers, type RevealChip, dropEndsMs } from "@/components/puzzles/WordReveal";
+import { RevealChips, RevealNumbers, type RevealChip, dropEndsMs, stageWidth } from "@/components/puzzles/WordReveal";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 
@@ -382,7 +382,8 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
           wrong !== null ? { id: "wrong", label: "Wrong drags", value: wrong, tone: wrong > 0 ? "warn" : undefined } : null,
         ]}
       />
-      <div style={{ width: "min(84vw, 340px)", containerType: "inline-size" }}>
+      {/* G2 (21 Nov 2026): the sheet at the stage's width (was min(84vw, 340px)). */}
+      <div style={{ width: stageWidth(420), containerType: "inline-size" }}>
         <Grid grid={puzzle.grid} size={puzzle.size} {...(wsRowsOf(puzzle) === puzzle.size ? {} : { rows: wsRowsOf(puzzle) })} gold={gold} foundPaths={[...verdict.found.map((i) => placements[i]?.cells ?? []), ...(split.bonusFound ? [bonusCells] : [])]} missedPaths={missedPaths} />
       </div>
       <RevealChips id="words" items={chips} drop />

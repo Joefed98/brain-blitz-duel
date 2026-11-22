@@ -160,3 +160,14 @@
     animation: none;
   }
 }
+
+/* G3 (21 Nov 2026): the reveal's pyramid slot takes the height the template's stage leaves under the tabs and switch
+   (flex-basis 0, so the pyramid inside never sizes its own slot); the pyramid is measured to fit it. */
+.np-rv-slot {
+  display: flex;
+  width: 100%;
+  min-height: 0;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+}
