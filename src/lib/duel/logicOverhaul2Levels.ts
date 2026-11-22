@@ -139,7 +139,7 @@ export const LOGIC_GAME_LEVELS: { [K in LogicLevelGame]: { levels: Levels<LogicL
   trail: levels<TrailLevel>(
     { size: 5, givens: 9, nodes: [0, 1_000_000], person: [0, 20], timeLimitMs: 120_000 },
     { size: 7, givens: 17, nodes: [0, 1_000_000], person: [5, 40], timeLimitMs: 120_000, fullByS: 79 },
-    { size: 7, givens: 14, nodes: [0, 1_000_000], person: [30, 70], timeLimitMs: 120_000 },
+    { size: 7, givens: 14, nodes: [0, 1_000_000], person: [30, 70], timeLimitMs: 120_000, fullByS: 103 },
   ),
   fences: levels<FencesLevel>(
     { size: 5, grade: [0, 1], minClues: 14, person: [0, 1], timeLimitMs: 90_000 },
