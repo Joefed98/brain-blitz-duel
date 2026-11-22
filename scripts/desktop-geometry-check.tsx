@@ -289,7 +289,10 @@ function judgePlay(m: ReturnType<typeof playProbe>, arcade: boolean, problems: s
   // not drawn; the one timer is in the side panel (its seconds at least the phone's 15 px), never beside a header copy.
   if (m.header) problems.push("a header drawn in the arena (the panel carries it; no doubled timer)");
   // Changed with Joe's approval, 22 Nov 2026 (K18): an arcade round outside a room has the Cabinet's left panel once it is on.
-  if (arcade && ARENA_CABINET_LEFT && mode !== "rotate" && !m.arenaPanelLeft) problems.push("no Cabinet left panel on an arcade round outside a room");
+  // Changed with Joe's approval, 22 Nov 2026 (K18): the Cabinet wherever it draws the world no smaller, and never where it would.
+  const roomForLeft = m.worldW > 0 && m.innerW - RAIL_COMPACT - ARENA_PANEL - 280 >= Math.min(ARCADE_MAX_W[mode], m.innerW - RAIL_COMPACT - ARENA_PANEL, (m.innerH * m.worldW) / m.worldH);
+  if (arcade && ARENA_CABINET_LEFT && mode !== "rotate" && roomForLeft && !m.arenaPanelLeft) problems.push("no Cabinet left panel on an arcade round outside a room");
+  if (arcade && m.arenaPanelLeft && !roomForLeft) problems.push("the Cabinet's left panel where it would draw the world smaller");
   // Changed with Joe's approval, 22 Nov 2026 (K18): the timer is in the Cabinet's left panel where there is one, else the arena panel.
   const timerPanel = m.arenaPanelLeft ?? m.arenaPanel;
   if (!m.timer || !timerPanel || m.timer.x < timerPanel.x - 0.5 || m.timer.r > timerPanel.r + 0.5) problems.push(`the timer is not in the ${m.arenaPanelLeft ? "Cabinet's left" : "arena"} panel (${fmt(m.timer)})`);
