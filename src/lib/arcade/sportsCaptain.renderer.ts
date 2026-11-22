@@ -25,15 +25,17 @@ export function paintKicker(ctx: CanvasRenderingContext2D, feetX: number, feetY:
   const lean = 0.04 * h * run - 0.06 * h * strike * (1 - settle);
   p.scale = 1;
   p.stick = Math.max(2, h * 0.03);
-  p.headR = h * 0.085;
+  // The polish plan's C4.5 (Joe, 20 Nov 2026: "no neck"): a slightly smaller helmet set higher above the collar and
+  // the shoulders a touch lower, so a neck shows (were 0.085 h, 0.12 h above the neck joint and 0.04 h below it).
+  p.headR = h * 0.078;
   p.neckX = x + lean;
   p.neckY = feetY - 0.78 * h;
   p.headX = p.neckX + 0.02 * h;
-  p.headY = p.neckY - 0.12 * h;
+  p.headY = p.neckY - 0.17 * h;
   p.hipX = x;
   p.hipY = feetY - 0.46 * h;
   p.shoulderX = p.neckX;
-  p.shoulderY = p.neckY + 0.04 * h;
+  p.shoulderY = p.neckY + 0.06 * h;
   // Arms: down at rest, swinging with the stride, thrown out wide for balance at the strike.
   const out = strike * (1 - settle);
   p.handAX = x - 0.12 * h - 0.18 * h * out + 0.06 * h * step;

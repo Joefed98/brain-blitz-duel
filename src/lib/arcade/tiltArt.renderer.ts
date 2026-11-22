@@ -1469,11 +1469,11 @@ function tiltLevelArtGame(level: TiltLevel): ArcadeGame<TiltState, ArcadeInputEv
  * are drawn at their (bigger) collision radius, the keys to their pickup reach and the cups TILT_B_CUP % of the marble;
  * the HUD is the shared pills ("Maze 1 / 4" first, then the par countdown, "Over par" only once the par has passed).
  */
-export const WALNUT_TABLE = "#140C07";
+export const WALNUT_TABLE = "#2B1A10";
 /** The table's shade beyond the lamp pool (the world's edges): its colour there is WALNUT_TABLE_EDGE. */
-export const TILT_TABLE_SHADE = 0.5;
+export const TILT_TABLE_SHADE = 0.25;
 /** WALNUT_TABLE under TILT_TABLE_SHADE: the edge colour the arena fill continues. */
-export const WALNUT_TABLE_EDGE = "#0A0603";
+export const WALNUT_TABLE_EDGE = "#20140C";
 const WALNUT_DISC = "#4E2C18";
 const WALNUT_DISC_LIT = "#7A4A2B";
 const WALNUT_GRAIN = "#3A2213";
@@ -1510,12 +1510,13 @@ function drawWalnutTable(c: CanvasRenderingContext2D, W: number, H: number): voi
     c.bezierCurveTo(W * 0.3, y + ((h >>> 5) % 9) - 4, W * 0.7, y - ((h >>> 9) % 7) + 3, W, y + 1);
     c.stroke();
   }
-  // The Strategy overhaul (15 Nov 2026, display only): concept B's dark, shadowed table: one warm pool of light under
-  // the disc, falling to a shade that is the same at every edge of the world (so the fill outside it, which starts
-  // from that shade, meets it with no seam).
-  const pool = c.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, W / 2 - 10);
-  pool.addColorStop(0, "rgba(255,190,120,0.16)");
-  pool.addColorStop(1, "rgba(255,170,100,0)");
+  // The polish plan's C2.4 (Joe, 20 Nov 2026): the lighter walnut again (#2B1A10, was near-black #140C07) and the old
+  // lamp pool, falling to a gentler shade (0.25, was 0.5) that is the same at every edge of the world, so the fill
+  // outside it, which starts from that shade (WALNUT_TABLE_EDGE), meets it with no seam.
+  const pool = c.createRadialGradient(W / 2 - 20, H / 2 - 50, 20, W / 2 - 20, H / 2 - 50, Math.max(W, H) * 0.6);
+  pool.addColorStop(0, "rgba(255,190,120,0.22)");
+  pool.addColorStop(0.5, "rgba(255,170,100,0.08)");
+  pool.addColorStop(1, "rgba(0,0,0,0)");
   c.fillStyle = pool;
   c.fillRect(0, 0, W, H);
   const shade = c.createRadialGradient(W / 2, H / 2, W * 0.3, W / 2, H / 2, W / 2);

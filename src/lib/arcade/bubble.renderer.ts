@@ -397,13 +397,7 @@ function bubbleGloss(c: CanvasRenderingContext2D, r: number): void {
   c.beginPath();
   c.arc(r, r, r - 0.5, 0, Math.PI * 2);
   c.fill();
-  const through = c.createRadialGradient(r * 1.22, r * 1.42, 0, r * 1.22, r * 1.42, r * 0.5);
-  through.addColorStop(0, "rgba(255,255,255,0.28)");
-  through.addColorStop(1, "rgba(255,255,255,0)");
-  c.fillStyle = through;
-  c.beginPath();
-  c.arc(r, r, r - 0.5, 0, Math.PI * 2);
-  c.fill();
+  // (C2.3, 20 Nov 2026: the white "light through the glass" is gone.)
   c.restore();
   c.save();
   const fine = Math.max(0.8, r * 0.06);
@@ -416,22 +410,22 @@ function bubbleGloss(c: CanvasRenderingContext2D, r: number): void {
   c.rotate(-0.6);
   c.scale(1, 0.55);
   const sheen = c.createRadialGradient(0, 0, 0, 0, 0, r * 0.42);
-  sheen.addColorStop(0, "rgba(255,255,255,0.9)");
-  sheen.addColorStop(0.55, "rgba(255,255,255,0.32)");
+  sheen.addColorStop(0, "rgba(255,255,255,0.34)");
+  sheen.addColorStop(0.55, "rgba(255,255,255,0.12)");
   sheen.addColorStop(1, "rgba(255,255,255,0)");
   c.fillStyle = sheen;
   c.beginPath();
   c.arc(0, 0, r * 0.42, 0, Math.PI * 2);
   c.fill();
   c.restore();
-  c.strokeStyle = "rgba(255,255,255,0.45)";
+  c.strokeStyle = "rgba(255,255,255,0.2)";
   c.lineWidth = Math.max(0.8, r * 0.05);
   c.beginPath();
   c.arc(r, r, r - fine - Math.max(0.6, r * 0.05), Math.PI * 0.55, Math.PI * 1.05);
   c.stroke();
   // Refinement (A3): a bright highlight crescent high on the lit side, inside the rim.
   c.save();
-  c.strokeStyle = "rgba(255,255,255,0.92)";
+  c.strokeStyle = "rgba(255,255,255,0.36)";
   c.lineCap = "round";
   c.lineWidth = Math.max(1, r * 0.11);
   c.beginPath();
@@ -511,14 +505,14 @@ export function paintBubble(value: number) {
     // Expert's sixth colour (BUB_SIXTH) has its own rendered orange bubble (16 Nov 2026), the seahorse printed in it.
     const sixth = value === BUB_SIXTH;
     const body = strategyImage(sixth ? "bubble-orange" : (BUBBLE_ART[value - 1] ?? "bubble-red"));
-    const gloss = strategyImage("bubble-gloss");
-    if (body && gloss && (sixth || (value >= 1 && value <= BUBBLE_ART.length))) {
+    // The polish plan's C2.3 (Joe, 20 Nov 2026): no gloss overlay; the satin re-render alone, so the bubble reads as
+    // its colour.
+    if (body && (sixth || (value >= 1 && value <= BUBBLE_ART.length))) {
       c.drawImage(body, 0, 0, size, size);
       c.save();
       c.globalAlpha = 0.92;
       drawCreature(c, bubCreature(value), r, r + r * 0.03, r * BUB_CREATURE_FIT);
       c.restore();
-      c.drawImage(gloss, 0, 0, size, size);
       return;
     }
     const colour = bubColour(value);
@@ -547,18 +541,18 @@ export function paintBubble(value: number) {
     // Refinement (A3): the creature fills about 60 % of the bubble's diameter (was ~80 %), so more glass shows.
     // Phone notes (27 Oct 2026, display only, every revision): a little smaller again, 82 % of that (BUB_CREATURE_FIT).
     drawCreature(c, bubCreature(value), r, r + r * 0.03, r * BUB_CREATURE_FIT);
-    // Rim highlight, a round glint and the reflected light low on the far side.
-    c.strokeStyle = "rgba(255,255,255,0.85)";
+    // Rim highlight, a round glint and the reflected light low on the far side (C2.3: all soft, no white glare).
+    c.strokeStyle = "rgba(255,255,255,0.32)";
     c.lineWidth = Math.max(1, r * 0.12);
     c.lineCap = "round";
     c.beginPath();
     c.arc(r, r, r * 0.74, Math.PI * 1.1, Math.PI * 1.45);
     c.stroke();
-    c.fillStyle = "rgba(255,255,255,0.9)";
+    c.fillStyle = "rgba(255,255,255,0.4)";
     c.beginPath();
     c.arc(r * 0.62, r * 0.42, Math.max(0.8, r * 0.07), 0, Math.PI * 2);
     c.fill();
-    c.strokeStyle = "rgba(255,255,255,0.35)";
+    c.strokeStyle = "rgba(255,255,255,0.18)";
     c.lineWidth = Math.max(0.8, r * 0.07);
     c.beginPath();
     c.arc(r, r, r * 0.8, Math.PI * 0.15, Math.PI * 0.5);

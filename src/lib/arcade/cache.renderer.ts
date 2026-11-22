@@ -26,8 +26,8 @@ const deviceLayers = new WeakMap<object, Map<string, DeviceLayer>>();
  * back each frame at the identity transform (a straight blit, so the pixels are the ones direct
  * painting gives). `key` must name every input the scenery depends on; the canvas size and the
  * transform are added to it. A frame drawn at another translation (the success layer's shake)
- * paints straight onto `ctx`, so it too looks exactly as before; the layer is rebuilt only if that
- * translation lasts. Clips already set on `ctx` still apply. Where no offscreen canvas exists (SSR,
+ * blits the layer shifted by the change in translation (H1, 20 Nov 2026; it used to paint straight onto
+ * `ctx`); the layer is rebuilt only if that translation lasts. Clips already set on `ctx` still apply. Where no offscreen canvas exists (SSR,
  * Node checks) or the context has no transform, it paints straight onto `ctx`. At most four
  * layers are kept per canvas. Paint with the context's default alpha and compositing. `alpha` (default 1) draws the
  * whole layer at that opacity (Iron Wall's setting cross-fades one backdrop into the next).
@@ -66,7 +66,21 @@ function deviceLayerAt(
   let entry = layers.get(id);
   if (entry && (entry.e !== t.e || entry.f !== t.f)) {
     if (++entry.misses < 30) {
-      direct(ctx);
+      // H1 (the polish plan, 20 Nov 2026): a frame at another translation (a shake) blits the cached layer offset by
+      // the translation's change instead of painting the scenery straight onto the canvas, which cost Hover's sky
+      // 16 frames of a full repaint after every star chain. Under a whole-opacity layer the unshifted copy goes first,
+      // so the strip the shift uncovers shows the layer's own pixels at that edge rather than nothing.
+      if (!entry.layer) {
+        direct(ctx);
+        return;
+      }
+      ctx.save();
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = alpha;
+      ctx.globalCompositeOperation = "source-over";
+      if (alpha >= 1) ctx.drawImage(entry.layer as CanvasImageSource, 0, 0);
+      ctx.drawImage(entry.layer as CanvasImageSource, t.e - entry.e, t.f - entry.f);
+      ctx.restore();
       return;
     }
     entry = undefined;

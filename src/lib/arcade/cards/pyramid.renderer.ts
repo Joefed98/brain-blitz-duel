@@ -24,13 +24,18 @@ export const PY_WORLD_W = 414;
 export const PY_WORLD_H = 772;
 export const PY_BG = "#0E2A57";
 
-export const PY_CARD_W = 56;
-export const PY_CARD_H = 82;
+/*
+ * The polish plan (Joe, 20 Nov 2026, section 5: Thirteen's larger cards): 62 × 90 (were 56 × 82) on the same 58 px
+ * step, so the bottom row of seven still fits the table (each card a little over its neighbour's right edge, its own
+ * index clear), the rows 56 apart (were 52), and the panel 10 px lower (was 474).
+ */
+export const PY_CARD_W = 62;
+export const PY_CARD_H = 90;
 const STEP_X = 58;
 const ROW_Y0 = 46;
-const ROW_STEP = 52;
+const ROW_STEP = 56;
 export const PY_INFO_Y = ROW_Y0 + 6 * ROW_STEP + PY_CARD_H + 12;
-export const PY_PANEL_Y = 474;
+export const PY_PANEL_Y = 484;
 export const PY_PILE_W = 92;
 export const PY_PILE_H = 134;
 export const PY_PILE_Y = PY_PANEL_Y + 34;

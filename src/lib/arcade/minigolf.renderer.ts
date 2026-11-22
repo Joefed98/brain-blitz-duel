@@ -1962,15 +1962,19 @@ export function paintMinigolfTile(c: CanvasRenderingContext2D, size: number): vo
  * the ball (a top-down sprite from the approved 3D Captain, docs/design/cosmetics-redraws/blender/captain/
  * golf_sprites.py: addressing the ball while aiming, his follow-through after the strike; always to the side of the
  * line, never over the aim or the pull), the ball (lifted over its shadow while a chip is in the air), the windmills,
- * the aim (a rubber band from the ball to the finger and the level's preview: Easy's line to its first bounce, Normal's
+ * the aim (the pull-back handle behind the ball and the level's preview: Easy's line to its first bounce, Normal's
  * full line, Hard's and Expert's shorter ones; a chip's arc to its landing) and the moments: a white flash on a rail,
  * a rattle and wobble over the cup's lip, the ball dropping as the flag lifts (confetti on a birdie or better), a
  * splash ring in water, a puff of sand, a ring where a chip lands.
  */
 
-/** The Captain sprite's world size (px) and where the ball sits in it (sprite px of 256: ahead of the club's face). */
-export const MG_CAPTAIN_PX = 120;
-const CAPTAIN_BALL = { x: 152, y: 198 };
+/**
+ * The Captain sprite's world size (px) and where the ball sits in it (sprite px of 256: ahead of the club's face). The
+ * polish plan's C4.2 (Joe, 20 Nov 2026): half the size (was 120 on a 390 px course), re-rendered at a 28° camera tip
+ * (was 38°), so the ball's point in the sprite moved up (was 152, 198).
+ */
+export const MG_CAPTAIN_PX = 60;
+const CAPTAIN_BALL = { x: 152, y: 183 };
 const CAPTAIN_HOLD = 70;
 
 interface FrameMemory {
@@ -2263,8 +2267,8 @@ function drawFlagLifted(ctx: CanvasRenderingContext2D, h: MgHole, tick: number, 
 }
 
 /**
- * The aim: a rubber band stretched from the ball to the finger (thinner the further it stretches) and the level's
- * preview. A putt's preview is its line (Easy: rolled on a copy of the sim to its first bounce and a little past it;
+ * The aim: the old pull-back handle behind the ball (C4.1, 20 Nov 2026; golfRev 3 had a rubber band to the finger)
+ * and the level's preview. A putt's preview is its line (Easy: rolled on a copy of the sim to its first bounce and a little past it;
  * Normal its full length; Hard 60 %; Expert 35 %); a chip's is its arc to the landing (the landing ring on Easy and
  * Normal). Display only: the sim never sees any of it.
  */
@@ -2272,26 +2276,14 @@ function drawAimV3(ctx: CanvasRenderingContext2D, s: MinigolfState, h: MgHole, b
   const rules = MG_LEVELS[s.level];
   ctx.save();
   ctx.lineCap = "round";
-  // The rubber band, from either side of the ball to the handle.
-  const hx = aim.hx ?? bx - aim.dx * (12 + aim.power * 70);
-  const hy = aim.hy ?? by - aim.dy * (12 + aim.power * 70);
-  const nx = -aim.dy;
-  const ny = aim.dx;
-  const w = 3.2 - aim.power * 1.9;
-  ctx.strokeStyle = aim.chip ? "rgba(95,211,232,0.85)" : "rgba(242,199,92,0.85)";
-  ctx.lineWidth = w;
-  for (const side of [-1, 1]) {
-    ctx.beginPath();
-    ctx.moveTo(bx + nx * side * (MG_BALL_R + 1), by + ny * side * (MG_BALL_R + 1));
-    ctx.lineTo(hx + nx * side * 1.5, hy + ny * side * 1.5);
-    ctx.stroke();
-  }
-  ctx.fillStyle = aim.chip ? "#5FD3E8" : "#F2C75C";
+  // The polish plan's C4.1 (Joe, 20 Nov 2026: "the new aiming is worse"): the old aim again: no rubber band, a short
+  // pull-back handle behind the ball (where the finger is), the dotted line ahead and the power pill. The finger mapping
+  // is unchanged; each level's preview still sets how much of the line shows, and Chip keeps its arc and landing ring.
+  ctx.strokeStyle = aim.chip ? "rgba(95,211,232,0.6)" : "rgba(242,199,92,0.6)";
+  ctx.lineWidth = 2.2;
   ctx.beginPath();
-  ctx.arc(hx, hy, 4.5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(0,0,0,0.5)";
-  ctx.lineWidth = 1;
+  ctx.moveTo(bx - aim.dx * 8, by - aim.dy * 8);
+  ctx.lineTo(bx - aim.dx * (8 + aim.power * 60), by - aim.dy * (8 + aim.power * 60));
   ctx.stroke();
 
   const c = Math.max(1, Math.round(aim.power * 1000));
@@ -2618,6 +2610,9 @@ function paintCastleV3(ctx: CanvasRenderingContext2D, g: NonNullable<MgHole["gat
   ctx.strokeStyle = "rgba(20,16,12,0.65)";
   ctx.lineWidth = 1;
   ctx.strokeRect(-half + 0.5, -r - 1.5, half * 2 - 1, 5);
+  // C4.3: the archway's shadow under the gatehouse, darker, so the gate reads as a way through the wall.
+  ctx.fillStyle = "rgba(18,14,10,0.62)";
+  ctx.fillRect(-half + 1, -r + 3, half * 2 - 2, 5);
   // The portcullis's teeth hanging under the arch (overhead).
   ctx.fillStyle = "#2E2722";
   for (let t = -half + 3; t < half - 2; t += 5) ctx.fillRect(t, -r + 3, 1.6, 3.5);
@@ -2626,9 +2621,15 @@ function paintCastleV3(ctx: CanvasRenderingContext2D, g: NonNullable<MgHole["gat
     const tx = px(t.x);
     const ty = px(t.y);
     const tr = px(t.r);
-    ctx.fillStyle = "rgba(0,0,0,0.45)";
+    // The polish plan's C4.3 (Joe, 20 Nov 2026: castles that read as castles from above): a tower casts a long shadow
+    // across the green away from the light, so it stands up off the course (display only; the tower is the sim's circle).
+    ctx.fillStyle = "rgba(0,0,0,0.42)";
     ctx.beginPath();
-    ctx.ellipse(tx + 4, ty + 6, tr, tr * 0.92, 0, 0, Math.PI * 2);
+    ctx.ellipse(tx + tr * 0.55, ty + tr * 0.75, tr * 1.05, tr * 0.8, 0.6, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(0,0,0,0.25)";
+    ctx.beginPath();
+    ctx.ellipse(tx + tr * 1.05, ty + tr * 1.35, tr * 0.7, tr * 0.5, 0.6, 0, Math.PI * 2);
     ctx.fill();
     // The tower's wall ring and its battlements.
     const rg = ctx.createRadialGradient(tx - tr * 0.4, ty - tr * 0.4, 1, tx, ty, tr);
@@ -2648,21 +2649,26 @@ function paintCastleV3(ctx: CanvasRenderingContext2D, g: NonNullable<MgHole["gat
     }
     // The conical slate roof, lit from the upper left, with a crisp highlight.
     const rr = tr - 3.5;
-    const roof = ctx.createRadialGradient(tx - rr * 0.35, ty - rr * 0.45, 0.5, tx, ty, rr);
-    roof.addColorStop(0, "#7D8FB8");
-    roof.addColorStop(0.55, "#3E4C78");
-    roof.addColorStop(1, "#1E2544");
-    ctx.fillStyle = roof;
-    ctx.beginPath();
-    ctx.arc(tx, ty, rr, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(10,12,24,0.45)";
-    ctx.lineWidth = 0.7;
-    for (let k = 0; k < 8; k++) {
-      const a = (k / 8) * Math.PI * 2;
+    // C4.3: a cone you can see: twelve slate faces running up to a point leaning towards the viewer's upper left, each
+    // face lit by how it faces the light (bright upper left, deep lower right), with a dark ridge between faces.
+    const apx = tx - rr * 0.22, apy = ty - rr * 0.3;
+    for (let k = 0; k < 12; k++) {
+      const a0 = (k / 12) * Math.PI * 2, a1 = ((k + 1) / 12) * Math.PI * 2;
+      const mid = (a0 + a1) / 2;
+      const lit = 0.5 + 0.5 * Math.cos(mid - Math.PI * 1.25);
+      const cr = Math.round(30 + 110 * lit), cg = Math.round(38 + 120 * lit), cb = Math.round(68 + 130 * lit);
+      ctx.fillStyle = `rgb(${cr},${cg},${cb})`;
       ctx.beginPath();
-      ctx.moveTo(tx, ty);
-      ctx.lineTo(tx + Math.cos(a) * rr, ty + Math.sin(a) * rr);
+      ctx.moveTo(apx, apy);
+      ctx.lineTo(tx + Math.cos(a0) * rr, ty + Math.sin(a0) * rr);
+      ctx.arc(tx, ty, rr, a0, a1);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = "rgba(10,12,24,0.5)";
+      ctx.lineWidth = 0.6;
+      ctx.beginPath();
+      ctx.moveTo(apx, apy);
+      ctx.lineTo(tx + Math.cos(a0) * rr, ty + Math.sin(a0) * rr);
       ctx.stroke();
     }
     ctx.strokeStyle = "rgba(235,242,255,0.75)";
@@ -2673,13 +2679,13 @@ function paintCastleV3(ctx: CanvasRenderingContext2D, g: NonNullable<MgHole["gat
     // The pennant on the roof's point.
     ctx.fillStyle = "#F2C75C";
     ctx.beginPath();
-    ctx.moveTo(tx, ty - 1);
-    ctx.lineTo(tx + 8, ty - 4);
-    ctx.lineTo(tx, ty - 7);
+    ctx.moveTo(apx, apy - 1);
+    ctx.lineTo(apx + 8, apy - 4);
+    ctx.lineTo(apx, apy - 7);
     ctx.closePath();
     ctx.fill();
     ctx.fillStyle = "#2A2420";
-    ctx.fillRect(tx - 0.6, ty - 8, 1.2, 8);
+    ctx.fillRect(apx - 0.6, apy - 8, 1.2, 8);
   }
 }
 

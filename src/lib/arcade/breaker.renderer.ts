@@ -213,17 +213,12 @@ export function getBrickSprite(colour: string, power: number, taken: number, blo
  */
 export function paintBrick(ctx: CanvasRenderingContext2D, colour: string, power: number, taken: number, bloom: number, symbol = false): void {
   if (power >= 0) {
-    // Dark brick, metal outline, white pixel star. The Retro overhaul (15 Nov 2026): a smoked-glass plate in a polished
-    // gold frame, so a power brick reads as special at a glance: the face lifted towards its power's colour, a lit
-    // gold top edge with a crisp glint, a darker gold bottom edge, and the symbol over it.
+    // Dark brick, an outline in its power's colour, the symbol (the polish plan's C1.2: the old flat brick, Joe, 20 Nov 2026).
     pixelRect(ctx, 1, 0, BRK_BRICK_W - 2, BRK_BRICK_H, "#101018");
-    pixelRect(ctx, 3, 2, BRK_BRICK_W - 6, BRK_BRICK_H - 4, /^#[0-9a-f]{6}$/i.test(colour) ? retroMix("#101018", colour, 0.22) : "#1A1A26");
-    pixelRect(ctx, 3, 2, BRK_BRICK_W - 6, 2, "rgba(255,255,255,0.12)");
-    pixelRect(ctx, 1, 0, BRK_BRICK_W - 2, 2, "#FFE08A", bloom);
-    pixelRect(ctx, 1, BRK_BRICK_H - 2, BRK_BRICK_W - 2, 2, "#9A6A12");
-    pixelRect(ctx, 1, 0, 2, BRK_BRICK_H, "#E8B83A");
-    pixelRect(ctx, BRK_BRICK_W - 3, 0, 2, BRK_BRICK_H, "#B07E1C");
-    pixelRect(ctx, 7, 0, 6, 2, "#FFFFFF");
+    pixelRect(ctx, 1, 0, BRK_BRICK_W - 2, 2, colour, bloom);
+    pixelRect(ctx, 1, BRK_BRICK_H - 2, BRK_BRICK_W - 2, 2, colour);
+    pixelRect(ctx, 1, 0, 2, BRK_BRICK_H, colour);
+    pixelRect(ctx, BRK_BRICK_W - 3, 0, 2, BRK_BRICK_H, colour);
     if (!symbol || !powerSymbol(ctx, power, colour)) pixelStar(ctx, BRK_BRICK_W / 2, BRK_BRICK_H / 2);
   } else {
     // Neon brick with bevel highlights.
@@ -238,11 +233,7 @@ export function paintBrick(ctx: CanvasRenderingContext2D, colour: string, power:
     pixelRect(ctx, 1, 0, 2, BRK_BRICK_H, "rgba(255,255,255,0.35)");
     pixelRect(ctx, 1, BRK_BRICK_H - 2, BRK_BRICK_W - 2, 2, "rgba(0,0,0,0.45)");
     pixelRect(ctx, BRK_BRICK_W - 3, 0, 2, BRK_BRICK_H, "rgba(0,0,0,0.35)");
-    // Enamel (the Retro overhaul, 15 Nov 2026): a crisp glossy streak along the upper face and a hot glint at its left,
-    // light on a lacquered surface rather than a flat fill.
-    pixelRect(ctx, 5, 4, BRK_BRICK_W - 14, 2, "rgba(255,255,255,0.32)");
     pixelRect(ctx, 5, 2, 6, 2, "rgba(255,255,255,0.7)");
-    pixelRect(ctx, 5, 4, 2, 2, "#FFFFFF");
     // Pixel cracks per hit taken.
     for (let c = 0; c < taken; c++) {
       const cx = 10 + c * 16;

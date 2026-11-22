@@ -295,14 +295,14 @@ section("Rendered materials: present, hashed, within budget, code art without th
   // In Bun there is no Image: every renderer draws its code art, so checks and pixel digests see what they always did.
   ok(strategyImage("gem-circle") === null && strategyImage("tilt-disc") === null, "with no Image the loader answers null (the code art is drawn)");
   const sources = ["src/lib/arcade/matchup.renderer.ts", "src/lib/arcade/bubble.renderer.ts", "src/lib/arcade/ballTrackArt.renderer.ts", "src/lib/arcade/tiltArt.renderer.ts", "src/lib/arcade/inkBridge.renderer.ts"].map((f) => readFileSync(f, "utf8"));
-  ok(/if \(rendered\) ctx\.drawImage\(rendered, cx - radius, cy - radius, radius \* 2, radius \* 2\);\s*else flatGem/.test(sources[0]!), "Gemstone: the rendered stone at the gem's own radius, the code cut otherwise");
+  ok(/flatGem\(ctx, shape, cx, cy, radius, colour\);/.test(sources[0]!) && !/strategyImage\(`gem-/.test(sources[0]!), "Gemstone: the flat-cut code gem at the gem's own radius (C2.1)"); // Changed with Joe's approval, 22 Nov 2026
   ok(/c\.drawImage\(body, 0, 0, size, size\)/.test(sources[1]!) && /drawCreature\(c, bubCreature\(value\)/.test(sources[1]!), "Coral Pop: the rendered bubble at its own size with its creature printed in it");
-  ok(/ctx\.drawImage\(body, x - r, y - r, r \* 2, r \* 2\)/.test(sources[2]!) && /toyMarble\(ctx, x, y, r, colour, 0, seed\)/.test(sources[2]!), "Ball Tracker: the rendered marble at the marble's radius, the code marble otherwise");
+  ok(!/BT_MARBLE_ART/.test(sources[2]!) && /toyMarble\(ctx, x, y, r, colour, 0, seed\)/.test(sources[2]!) && /MARBLE_DRAW_R = BALL_R/.test(sources[2]!), "Ball Tracker: the code marble at the sim's radius (C2.2)"); // Changed with Joe's approval, 22 Nov 2026
   ok(/ctx\.drawImage\(body, -r, -r, r \* 2, r \* 2\)/.test(sources[3]!) && /strategyImage\("tilt-disc"\)/.test(sources[3]!), "Tilt: rendered marbles at the marble's radius and the lacquered disc");
   // Expert's extra colours are rendered as the others are (Joe, 16 Nov 2026: no code-drawn pieces): Gemstone's cyan heart
   // and Coral Pop's orange bubble, each its own render, the renderer asking for it with no exception for that colour.
-  ok("gem-heart" in STRATEGY_ART && "bubble-orange" in STRATEGY_ART, "Gemstone's seventh gem (the cyan heart) and Coral Pop's sixth bubble (orange) are rendered images");
-  ok(!/shape === "heart" \? null/.test(sources[0]!) && /strategyImage\(`gem-\$\{shape\}`/.test(sources[0]!), "Gemstone: the heart draws its rendered stone like every other gem");
+  ok(!("gem-heart" in STRATEGY_ART) && "bubble-orange" in STRATEGY_ART, "Gemstone's gems are code (the heart too); Coral Pop's orange bubble is rendered"); // Changed with Joe's approval, 22 Nov 2026
+  ok(/matchupGemShape\(kind\) \?\? "circle"/.test(sources[0]!) && !/strategyImage\(`gem-/.test(sources[0]!), "Gemstone: the heart draws the code cut like every other gem"); // Changed with Joe's approval, 22 Nov 2026
   ok(/sixth \? "bubble-orange"/.test(sources[1]!), "Coral Pop: the sixth colour draws its rendered orange bubble with the seahorse in it");
   ok(/inkbridge-captain-win/.test(sources[4]!) && /INK_CAPTAIN_CHEER_TICKS/.test(sources[4]!), "Rainbow Bridge: Captain Joulz waits by the pot and cheers when the coin lands");
 }
@@ -322,7 +322,7 @@ section("Answer reveals: one picture of the run in the shared layout");
   const tilt = draw("tilt", { axis: { value: 3, max: 4, label: "Mazes" }, lines: [], tiles: [], outcome: "time" });
   ok(count(tilt, /class="srs-cell"/g) === 4 && count(tilt, /data-done=""/g) === 3, "Tilt: four discs, three ticked");
   const gem = draw("matchup", { axis: { value: 240, max: 360, label: "Gems cleared" }, lines: [], tiles: [{ label: "Treasure", value: "2 / 6" }, { label: "Goals", value: "4 / 6" }], outcome: "time" });
-  ok(count(gem, /<img src="\/strategy\/gem-/g) === 6 && count(gem, /<img src="\/strategy\/matchup-chest/g) === 6 && count(gem, />Met</g) === 4, "Gemstone: six goals (four met) and six chests");
+  ok(count(gem, /data-gem-colour=/g) === 6 && count(gem, /<img src="\/strategy\/matchup-chest/g) === 6 && count(gem, />Met</g) === 4, "Gemstone: six goals (four met) and six chests"); // Changed with Joe's approval, 22 Nov 2026
   const bub = draw("bubble", { axis: { value: 62, max: 100, label: "% cleared" }, lines: [], tiles: [{ label: "Popped", value: "40" }, { label: "Dropped", value: "13" }, { label: "Shots", value: "30" }], outcome: "time" });
   ok(/62%/.test(bub) && />40</.test(bub) && />13</.test(bub) && /scaleX\(0\.62\)/.test(bub), "Coral Pop: the reef meter and the bubbles popped and dropped");
   const ink = draw("inkbridge", { axis: { value: 7, max: 10, label: "Levels" }, lines: [], tiles: [{ label: "Within ink par", value: "5 / 7" }], outcome: "time" });
