@@ -22,7 +22,7 @@ import assert from "node:assert/strict";
 
 import { generatePuzzle, gradeAnswer } from "../src/lib/duel/generate.server";
 import { withSeededRandom } from "../src/lib/duel/random";
-import { solveLikePerson } from "../src/lib/duel/logicHuman.server";
+import { personSeconds, solveLikePerson } from "../src/lib/duel/logicHuman.server"; // Changed with Joe's approval, 22 Nov 2026
 import { LOGIC_GAME_LEVELS, LOGIC_LEVEL_GAMES, type LogicLevelGame } from "../src/lib/duel/logicLevels";
 import { LOGIC_LEVEL_BANK } from "../src/lib/duel/logicLevelBank.server";
 import { LOGIC_LEVEL_BANKED, LOGIC_LEVEL_BANK_SIZE, logicLevelBankSeed } from "../src/lib/duel/logicLevelBankSpec";
@@ -40,7 +40,8 @@ import { puzzleTimeLimitMs } from "../src/lib/duel/catalogue";
 import { levelsOf, levelProof, gameLevelSettings } from "../src/lib/levels/gameLevels";
 import { MAX_ROUND_CLOCK_MS, puzzleLevel, type Level } from "../src/lib/levels/levels";
 import type { PuzzleData } from "../src/lib/duel/types";
-import { tune } from "./level-tune";
+import { dealAt, tune } from "./level-tune"; // Changed with Joe's approval, 22 Nov 2026
+import { personRun } from "./pattern-logic-human"; // Changed with Joe's approval, 22 Nov 2026
 import { readFileSync } from "node:fs";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 
@@ -238,7 +239,33 @@ if (GAMES.includes("trail")) check("trail easy: the count and \"to go\" follow t
 });
 
 // 5. Expert is humanly possible: the elite bot finishes most Expert boards.
+// Changed with Joe's approval, 22 Nov 2026 (D4, option (a), Trail only): Trail's 7 × 7 Expert is judged by the elite
+// under HUMAN_LIMITS (scripts/pattern-logic-human.ts, the D4 measurement), who must finish at least 90 % of 40 Expert
+// boards inside the clock, and every Trail Expert bank board must pass the person-style solver within 120 s (the
+// near-perfect kit, with no human limits and its Trail thinking factor, cannot finish a 7 × 7 board in 120 s). Every
+// other game keeps the near-perfect bot.
+const TRAIL_ELITE_BOARDS = 40; // Changed with Joe's approval, 22 Nov 2026
 for (const type of GAMES) {
+  if (type === "trail") { // Changed with Joe's approval, 22 Nov 2026
+    let inClock = 0; // Changed with Joe's approval, 22 Nov 2026
+    for (let n = 0; n < TRAIL_ELITE_BOARDS; n++) { // Changed with Joe's approval, 22 Nov 2026
+      const p = dealAt("trail", "expert", n); // Changed with Joe's approval, 22 Nov 2026
+      const r = personRun(p, "elite", `expert:${n}`); // Changed with Joe's approval, 22 Nov 2026
+      if (puzzleLevel(p) === "expert" && r.isCorrect && r.seconds * 1000 <= puzzleTimeLimitMs(p)) inClock++; // Changed with Joe's approval, 22 Nov 2026
+    } // Changed with Joe's approval, 22 Nov 2026
+    check(`trail expert: the elite under HUMAN_LIMITS finishes at least 90 % of boards inside the clock (${inClock} of ${TRAIL_ELITE_BOARDS})`, () => { // Changed with Joe's approval, 22 Nov 2026
+      assert.ok(inClock >= Math.ceil(0.9 * TRAIL_ELITE_BOARDS), `finished ${inClock} of ${TRAIL_ELITE_BOARDS} inside the clock`); // Changed with Joe's approval, 22 Nov 2026
+    }); // Changed with Joe's approval, 22 Nov 2026
+    const bank = LOGIC_LEVEL_BANK["trail:expert"] ?? []; // Changed with Joe's approval, 22 Nov 2026
+    check("trail expert: every bank board passes the person-style solver within 120 s", () => { // Changed with Joe's approval, 22 Nov 2026
+      assert.equal(bank.length, LOGIC_LEVEL_BANK_SIZE); // Changed with Joe's approval, 22 Nov 2026
+      for (const [i, p] of bank.entries()) { // Changed with Joe's approval, 22 Nov 2026
+        const s = solveLikePerson(p); // Changed with Joe's approval, 22 Nov 2026
+        assert.ok(s.solved && personSeconds(p, s) <= 120, `bank #${i}: solved ${s.solved}, ${personSeconds(p, s).toFixed(1)} s`); // Changed with Joe's approval, 22 Nov 2026
+      } // Changed with Joe's approval, 22 Nov 2026
+    }); // Changed with Joe's approval, 22 Nov 2026
+    continue; // Changed with Joe's approval, 22 Nov 2026
+  } // Changed with Joe's approval, 22 Nov 2026
   const rows = await tune(type, "expert", BOT_SEEDS);
   const elite = rows.find((r) => r.bot === "near-perfect")!;
   check(`${type} expert: the elite bot finishes most boards (${Math.round(elite.finishRate * 100)} %, average ${elite.average.toFixed(0)})`, () => {
