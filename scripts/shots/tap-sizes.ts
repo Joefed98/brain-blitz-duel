@@ -39,7 +39,7 @@ const LEVELS = arg("levels")?.split(",");
 const RECORD = arg("record");
 const REPLAY = arg("replay");
 /** Each deal's server reply, by game, level and deal number (`--record` / `--replay`). */
-const deals: Record<string, { status: number; contentType: string; body: string }> =
+const deals: Record<string, { status: number; contentType: string; headers?: Record<string, string>; body: string }> =
   REPLAY && existsSync(REPLAY) ? JSON.parse(readFileSync(REPLAY, "utf8")) : {};
 if (REPLAY && !Object.keys(deals).length) throw new Error(`--replay: no deals in ${REPLAY}`);
 
@@ -145,11 +145,17 @@ try {
                 missing.add(dealKey);
                 return route.continue();
               }
-              return route.fulfill({ status: kept.status, contentType: kept.contentType, body: kept.body });
+              // The client reads the reply only with its server-function headers (`x-tss-serialized`); a record written
+              // before headers were kept gets that one back.
+              const headers = kept.headers ?? { "content-type": kept.contentType, "x-tss-serialized": "true" };
+              return route.fulfill({ status: kept.status, headers, body: kept.body });
             }
             const res = await route.fetch();
             const body = await res.text();
-            deals[dealKey] = { status: res.status(), contentType: res.headers()["content-type"] ?? "application/json", body };
+            const headers = Object.fromEntries(
+              Object.entries(res.headers()).filter(([k]) => !/^(content-length|content-encoding|transfer-encoding|connection|date)$/i.test(k)),
+            );
+            deals[dealKey] = { status: res.status(), contentType: headers["content-type"] ?? "application/json", headers, body };
             return route.fulfill({ response: res, body });
           });
         try {
