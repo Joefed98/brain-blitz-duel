@@ -14,6 +14,7 @@ import { dealtTopupRev } from "./depthTopup";
 import { dealStandard } from "./standard/stamps";
 import { dealPuzzleNotes } from "./puzzleNotes";
 import { dealParMoves } from "./parMoves";
+import { dealD3Maze } from "./d3Attention";
 import { dealPipesPlaced } from "./speedPipesNov7";
 import { dealOperatorGaps, generateOperatorLevel, type OperatorLevelSettings } from "./operatorGaps.server";
 import { dealLogic2 } from "./logicOverhaul2";
@@ -217,6 +218,8 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   // The Speed overhaul (15 Nov 2026, speedOverhaul.ts): Tenfall tenRev 6 (resets cost on a finish), Pull! clayRev 10
   // (a wider quick-hit window).
   { name: "speedOverhaul", deal: dealSpeedOverhaul },
+  // D3 (22 Nov 2026, d3Attention.ts): Labyrinth mazeRev 6 (speed full by 34 s), Joe's approved Normal scoring stamp.
+  { name: "d3Maze", deal: dealD3Maze },
 ];
 
 /**

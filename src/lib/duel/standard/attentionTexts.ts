@@ -19,6 +19,7 @@ import {
 
 import { puzzleScoreList, scoreList } from "../scoreList";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, parStrictDealt } from "../parMoves";
+import { MAZE_D3_FULL_BY_S, d3MazeDealt } from "../d3Attention";
 import { ASCEND_STD, CHAIN_STD, COUNT_STD, MAZE_STD, PAIR_STD, SCAN_STD, SPOT_STD } from "./attention";
 
 const TOTAL = "{max}" as unknown as number;
@@ -103,7 +104,8 @@ export const STANDARD_ATTENTION_HELP = {
 /** Labyrinth on the puzzle batch's stamp (3 Nov 2026, parMoves.ts: mazeRev 4): no stars; 150 + speed + par moves. */
 export const PAR_MOVES_MAZE_HELP = (strict = parStrictDealt()) => {
   // mazeRev 5 (puzzle polish, 3 Nov 2026): par shown on screen, speed full a little earlier, par points gone at 1.5× par.
-  const fullBy = strict ? PAR_STRICT_FULL_BY_S.maze : MAZE_STD.fullByS;
+  // mazeRev 6 (D3, 22 Nov 2026, d3Attention.ts): Normal's speed full by 34 s.
+  const fullBy = strict && d3MazeDealt() ? MAZE_D3_FULL_BY_S : strict ? PAR_STRICT_FULL_BY_S.maze : MAZE_STD.fullByS;
   return puzzleScoreList({
     finish: "reach the exit",
     speed: { max: PAR_MOVES_STD.speed, fullByS: fullBy },

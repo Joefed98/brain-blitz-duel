@@ -22,6 +22,7 @@ import type { CountUpPuzzleData, MazePuzzleData, SymbolScanPuzzleData, PuzzleTyp
 import { earlyPoints, parPoints, speedPoints } from "./shape";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, PAR_STRICT_ZERO_AT, usesParMoves, usesParStrict } from "../parMoves";
 import type { StandardGame } from "./grade.server";
+import { MAZE_D3_FULL_BY_S, usesMazeD3 } from "../d3Attention";
 import { ASCEND_STD, CHAIN_STD, COUNT_STD, MAZE_STD, PAIR_STD, SCAN_STD, SPOT_STD, ascendBestRun, ascendFlowPoints, mazeStarPoints, pairGoldPoints, pairStreakPoints } from "./attention";
 
 const speedFor = (max: number, fullByS: number, msLeft: number, limitMs: number) => speedPoints(max, msLeft, limitMs, fullByS * 1000);
@@ -213,7 +214,8 @@ const labyrinth: StandardGame = {
         // mazeRev 5 (puzzle polish, 3 Nov 2026): speed full a little earlier, par points 0 at 1.5× par.
         const strict = usesParStrict(puzzle);
         // A level's maze (stage 3 of the Attention overhaul): its own full-by time (attentionLevels.data.ts).
-        const fullBy = leveled(puzzle) ? mazeLevel(puzzle).fullByS : strict ? PAR_STRICT_FULL_BY_S.maze : MAZE_STD.fullByS;
+        // mazeRev 6 (D3, 22 Nov 2026, d3Attention.ts): Normal's speed full by 34 s.
+        const fullBy = leveled(puzzle) ? mazeLevel(puzzle).fullByS : usesMazeD3(puzzle) ? MAZE_D3_FULL_BY_S : strict ? PAR_STRICT_FULL_BY_S.maze : MAZE_STD.fullByS;
         const zeroAt = (leveled(puzzle) ? mazeLevel(puzzle).parZeroAt : strict ? PAR_STRICT_ZERO_AT : 2) * run.routeSteps;
         return { finished: true, speed: speedFor(PAR_MOVES_STD.speed, fullBy, msLeft, limitMs), bonus: parPoints(PAR_MOVES_STD.par, run.walked, run.routeSteps, zeroAt), measure: "par", facts };
       }
