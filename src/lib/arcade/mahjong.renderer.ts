@@ -46,8 +46,9 @@ export const MAHJONG_ART = {
   wood: "#2A1A10",
   woodLo: "#160D07",
   grain: "rgba(255, 210, 160, 0.05)",
-  mat: "#1F6B4E",
-  matLo: "#14503A",
+  // The polish plan (Joe, 20 Nov 2026): a brighter felt, about a quarter lighter (were #1F6B4E / #14503A).
+  mat: "#2A8A64",
+  matLo: "#1C6A4C",
   stitch: "#D9B45A",
   ivory: "#FBF6E8",
   ivoryLo: "#E9DEC2",

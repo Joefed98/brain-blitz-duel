@@ -26,16 +26,21 @@ export const TP_BG = "#0E2A57";
  * is as wide as a tenth of the world allows), the peaks taller (taller cards, more space between rows), and a smaller
  * stock and discard panel at the bottom, within thumb reach.
  */
-export const TP_CARD_W = 54;
-export const TP_CARD_H = 80;
+/*
+ * The polish plan (Joe, 20 Nov 2026, section 5: "the peaks and the stock a fifth larger into the empty lower third"):
+ * cards 65 × 96 (were 54 × 80) on the same ten-across grid, so the bottom row overlaps a little more and each card's
+ * left side stays clear to tap; the rows 79 apart (were 66); the stock and discard 115 × 170 (were 96 × 142), lower.
+ */
+export const TP_CARD_W = 65;
+export const TP_CARD_H = 96;
 const MARGIN = 4;
 const UNIT = (TP_WORLD_W - 2 * MARGIN - TP_CARD_W) / 9;
 const ROW_Y0 = 54;
-const ROW_STEP = 66;
+const ROW_STEP = 79;
 export const TP_FLAME_Y = ROW_Y0 + 3 * ROW_STEP + TP_CARD_H + 30;
 export const TP_PANEL_Y = TP_FLAME_Y + 30;
-export const TP_PILE_W = 96;
-export const TP_PILE_H = 142;
+export const TP_PILE_W = 115;
+export const TP_PILE_H = 170;
 export const TP_PILE_Y = TP_PANEL_Y + 30;
 export const TP_STOCK_X = TP_WORLD_W / 2 - 20 - TP_PILE_W;
 export const TP_DISCARD_X = TP_WORLD_W / 2 + 20;

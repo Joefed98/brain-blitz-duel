@@ -564,9 +564,9 @@ function stone(ctx: CanvasRenderingContext2D, x: number, y: number, mine: boolea
     ctx.translate(0, -p.sy);
     ctx.drawImage(img, ix, iy, is, is);
     ctx.restore();
-    // A soft contact shadow.
+    // A soft contact shadow (the polish plan's C4.9, 20 Nov 2026: darker, so a stone sits on the ice, not over it).
     const sh = ctx.createRadialGradient(p.sx, p.sy + ry * 0.2, 0, p.sx, p.sy + ry * 0.2, rx * 1.15);
-    sh.addColorStop(0, "rgba(10,22,40,0.32)");
+    sh.addColorStop(0, "rgba(10,22,40,0.52)");
     sh.addColorStop(1, "rgba(10,22,40,0)");
     ctx.save();
     ctx.translate(p.sx, p.sy + ry * 0.2);
@@ -587,8 +587,8 @@ function stone(ctx: CanvasRenderingContext2D, x: number, y: number, mine: boolea
     }
     return;
   }
-  // Shadow on the ice.
-  ctx.fillStyle = "#0B1A2A33";
+  // Shadow on the ice (C4.9: darker, so the stone sits on the ice).
+  ctx.fillStyle = "#0B1A2A66";
   ctx.beginPath();
   ctx.ellipse(p.sx + rx * 0.08, p.sy + ry * 0.4, rx * 1.05, ry * 1.1, 0, 0, Math.PI * 2);
   ctx.fill();

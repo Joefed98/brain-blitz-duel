@@ -171,7 +171,7 @@ export async function drawFrames(game: SkinGame, look: Look): Promise<Frame[]> {
         for (const scale of [1, 2]) out.push(paint(`r${rev}-s${seed}-t${ticks}@${scale}`, R.PS_WORLD_W, R.PS_WORLD_H, scale, (ctx) => art.draw(ctx, s, { width: R.PS_WORLD_W, height: R.PS_WORLD_H })));
       }
     }
-    out.push(scene("scene", R.PS_WORLD_W, R.PS_WORLD_H, 1, (ctx, v) => (has ? fill.cardsFillFor(look)(ctx, v) : fill.cardsFill(ctx, v))));
+    out.push(scene("scene", R.PS_WORLD_W, R.PS_WORLD_H, 1, (ctx, v) => (has ? fill.cardsFillFor(look, true)(ctx, v) : (fill.cardsFillClassic ?? fill.cardsFill)(ctx, v)))); // Changed with Joe's approval, 22 Nov 2026
   } else if (game === "tripeaks" || game === "pyramid" || game === "fivehands") {
     // Summit, Thirteen and Five Hands (13 Nov 2026): the stage draws the art game inside withCardsLook (the back only).
     const C = await import("../../src/lib/arcade/cards/cards.renderer");

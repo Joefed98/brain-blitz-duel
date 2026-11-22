@@ -21,6 +21,9 @@
  * new default to that record wherever this machine draws the other games' stored digests exactly (the same
  * rasteriser); main's live frames are its reference only once main draws the record itself. The original stored
  * digests stay in skins-default-frames.json untouched. Every other game is checked exactly as before.
+ *
+ * Re-recorded for Cue Ball and Curl Champ (changed with Joe's approval, 22 Nov 2026: the polish plan's A3, a brighter
+ * baize and darker stone shadows in their code art): `--record-overhaul=pool,curling`.
  */
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { SKIN_GAMES, drawFrames, digest, type SkinGame } from "./skins/frames";

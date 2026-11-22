@@ -407,7 +407,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   function turnButtons(send: ((payload: PointerPayload) => void) | null) {
     return (
-          <div data-game-controls="turn" className={`grid h-12 shrink-0 touch-none select-none ${v4 ? "grid-cols-3" : "grid-cols-2"} gap-3 px-1`}>
+          // The polish plan's C4.9 (20 Nov 2026): on curlRev 4, where the row sits over the ice, a dark backing strip
+          // behind it, so the buttons read off the sheet.
+          <div
+            data-game-controls="turn"
+            className={`grid h-12 shrink-0 touch-none select-none ${v4 ? "grid-cols-3 rounded-2xl" : "grid-cols-2"} gap-3 px-1`}
+            style={v4 ? { background: "color-mix(in srgb, var(--jz-bg) 58%, transparent)" } : undefined}
+          >
             {(["In", "Out"] as const).map((label, t) => (
               <button
                 key={label}
