@@ -116,7 +116,7 @@ for (const seed of seedsFrom(4101, 12)) {
 }
 
 // 6. The tuning (near-perfect kit, mean on 16 fixed seeds; bands measured on 15 Nov 2026 with a margin).
-const BANDS: Record<string, [number, number]> = { easy: [170, 195], normal: [162, 186], hard: [155, 180], expert: [100, 125] }; // Changed with Joe's approval, 21 Nov 2026
+const BANDS: Record<string, [number, number]> = { easy: [170, 195], normal: [162, 186], hard: [155, 180], expert: [140, 165] }; // Changed with Joe's approval, 22 Nov 2026
 const means: Record<string, number> = {};
 const tuneSeeds = seedsFrom(9101, 16);
 for (const level of ["easy", "normal", "hard", "expert"] as const) {

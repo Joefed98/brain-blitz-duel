@@ -48,7 +48,7 @@ export const WORDSEARCH_LEVEL_SETTINGS: Readonly<Record<Exclude<Level, "normal">
   easy: { cols: 8, rows: 8, words: 5, dirs: [[0, 1], [1, 0]], decoys: 0, timeLimitMs: 120_000 },
   // D1 (21 Nov 2026; difficulty-spec.md "Lookout"): words to find are the ladder (5, 6, 8, 10) in a grid already at the
   // phone's limit (ten columns), so Hard takes today's Expert size with no false starts and Expert ten words with five.
-  hard: { cols: 10, rows: 12, words: 8, dirs: WS_ALL_DIRS, decoys: 0, timeLimitMs: 100_000 },
+  hard: { cols: 10, rows: 12, words: 8, dirs: WS_ALL_DIRS, decoys: 0, timeLimitMs: 100_000, speedFullByS: 45 },
   expert: { cols: 10, rows: 12, words: 10, dirs: WS_ALL_DIRS, decoys: 5, timeLimitMs: 90_000, speedFullByS: 60 },
 };
 

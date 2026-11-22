@@ -432,9 +432,9 @@ and the best can reach 200. Older stamps replay and score as before (word-star-c
 |---|---|---|---|---|
 | Nucleus | 9–10 letters, 3+ letter words count, 120 s | 10–11 letters, 5+ letters, 65 s, words part full at 45 points | 11 letters, 6+ letters, 40 s, full at 32 | the elite reaches 200 on 25 % of runs |
 | Forage | 3+ letter words, misses free, 120 s | 5+ letters, 6 free misses, 65 s, full at 49 / 63 | 7+ letters, 3 free misses, 40 s, full at 49 / 135 | the elite reaches 200 on 30 % of runs |
-| Roundabout | 6-letter wheel, a smaller crossword, 120 s | 16–19 words, 3 free misses, 95 s | 8-letter wheel, 20–24 words, 2 free misses, 70 s | the typed witness (see the open question below) |
+| Roundabout | 6-letter wheel, a smaller crossword, 120 s | 16–19 words, 3 free misses, 95 s, speed full by 63 s | 8-letter wheel, 20–24 words, 2 free misses, 90 s, speed full by 74 s | the elite (kit, under the human limits) reaches 200 on 24 % of boards |
 | Strikeout | 4 starting letters a word, 4 vowels, 14 strikes, 120 s | 1 starting letter, 2 vowels, 12 strikes, 100 s | none, 2 vowels, 12 strikes, 70 s | the person-like guesser: 200 on 24 of 24 |
-| Lookout | 8 × 8, five words across and down, 120 s | 10 × 12, eight words any way, 100 s | 10 × 12, ten words, five false starts, 90 s | the reading witness (see the open question below) |
+| Lookout | 8 × 8, five words across and down, 120 s | 10 × 12, eight words any way, 100 s, speed full by 45 s | 10 × 12, ten words, five false starts, 90 s, speed full by 60 s | the elite (kit, under the human limits) reaches 200 on 33 % of boards |
 | Cryptogrid | 5 × 5, six words, 6 starting letters, 120 s | 8 × 7, 5 starting letters, 110 s | 9 × 7, 4 starting letters, 80 s | the person-like solver: 200 on 24 of 24 |
 | Swapword | 5–7 swaps, 16 spare, 120 s | three loops, 30 tiles on 8 × 8, 13–15 swaps, 8 spare, 110 s | a window of six 7-letter words, 33 tiles, 17–20 swaps, 6 spare, 110 s | the mark-reading solver: 200 on 24 of 24 |
 | Interlock | 6 × 6, 10 tiles, two words, 120 s | 8 × 8, 19 tiles, four words, 90 s | 8 × 8, 23 tiles, five words checked only on Done, 70 s | the person-like builder: 200 on 24 of 24 |
@@ -446,9 +446,9 @@ Measured (average player / elite player; Normal in the middle column for referen
 |---|---|---|---|---|
 | Nucleus (people, 100 seeds × 3; Easy 16) | 177 / 193 | 69 / 189 | 56 / 187 | 33 / 171 |
 | Forage (people, 100 seeds × 3; Easy 12) | 152 / 198 | 68 / 192 | 57 / 191 | 38 / 187 |
-| Roundabout (people, 24 seeds × 3; elite kit) | 97 / 198 | 45 / 198 | 38 / 194 | 23 / 134 |
+| Roundabout (people, 24 seeds × 3; elite kit, 72 seeds) | 97 / 198 | 45 / 198 | 35 / 197 | 29 / 193 |
 | Strikeout (kits, 24 seeds) | 191 / 198 | 107 / 196 | 62 / 190 | 33 / 192 |
-| Lookout (kits, 24 seeds) | 168 / 198 | 138 / 195 | 59 / 185 | 36 / 176 |
+| Lookout (kits, 72 seeds) | 168 / 198 | 136 / 193 | 58 / 190 | 36 / 184 |
 | Cryptogrid (kits, 24 seeds) | 177 / 200 | 116 / 199 | 75 / 199 | 40 / 198 |
 | Swapword (kits, 24 seeds) | 182 / 199 | 117 / 200 | 50 / 199 | 35 / 199 |
 | Interlock (kits, 24 seeds) | 188 / 200 | 111 / 200 | 73 / 199 | 43 / 196 |
@@ -460,7 +460,9 @@ Expert) while the average player steps down unchanged. The big boards fit a 375 
 (8 × 7) and 37.2 px (9 × 7), Interlock's 40 px with a three-row tray of 40 px tiles, Swapword's 38.8 and 45.1 px,
 Slider's 43 and 37 px.
 
-**Open question for Joe (22 Nov 2026).** By decision 21's measure (real play, not a perfect run), Roundabout's and
-Lookout's Expert are not yet reached at 200: Roundabout's best elite run is 184 (the elite finishes 8 % of Expert boards
-in 70 s), Lookout's 196 (the speed part's top is out of reach). Their fixes differ from Nucleus's and Forage's: more time
-or fewer words for Roundabout, a gentler speed line for Lookout.
+**Roundabout and Lookout (Joe, 22 Nov 2026, decision 21).** Their Hard and Expert boards store their own speed line
+(`speedFullByS`), so the elite under the human limits reaches 200 less often each level up, Expert on at least a fifth:
+Roundabout 42 % → 35 % → 24 % (Normal → Hard → Expert, 72 boards), Lookout 76 % → 54 % → 33 %. The average player never
+finishes these levels, so the speed lines leave them where they were; they step down Normal → Hard → Expert as before
+(Roundabout 45 → 35 → 29, Lookout 136 → 58 → 36). For Roundabout the elite is the elite kit: the length-aware people never
+reach 200 on Roundabout, even on Normal.

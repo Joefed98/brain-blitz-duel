@@ -29,10 +29,12 @@ export const LETTERWHEEL_LEVELS: GameLevels<LetterWheelLevelSettings> | null = {
     // D1 (21 Nov 2026; difficulty-spec.md "Roundabout"): Hard deals the 15 Nov Expert boards (16–19 words) on 95 s with 3
     // free misses; Expert an 8-letter wheel and 20–24 words with 2 (LW_LEVEL_LIMITS, letterWheel.ts), on 90 s since 22 Nov.
     easy: { settings: { timeLimitMs: 120_000 }, oneSolution: OPEN },
-    hard: { settings: { timeLimitMs: 95_000, freeMisses: 3 }, oneSolution: OPEN },
-    // Joe (22 Nov 2026, decision 21): 90 s and the speed points full by 75 s, so the elite under the human limits
-    // reaches 200 on about a third of boards while the average player stays clearly below Hard.
-    expert: { settings: { timeLimitMs: 90_000, freeMisses: 2, speedFullByS: 75 }, oneSolution: OPEN },
+    // Joe (22 Nov 2026): Hard's speed points full by 63 s, so the elite reaches 200 less often each level up (Normal
+    // 42 %, Hard 35 %, Expert 24 % of 72 boards).
+    hard: { settings: { timeLimitMs: 95_000, freeMisses: 3, speedFullByS: 63 }, oneSolution: OPEN },
+    // Joe (22 Nov 2026, decision 21): 90 s and the speed points full by 74 s, so the elite under the human limits
+    // reaches 200 on about a quarter of boards while the average player stays clearly below Hard.
+    expert: { settings: { timeLimitMs: 90_000, freeMisses: 2, speedFullByS: 74 }, oneSolution: OPEN },
   },
 };
 
