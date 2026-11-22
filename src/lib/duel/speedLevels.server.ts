@@ -41,7 +41,7 @@ export function dealSpeedLevel(type: PuzzleType, level: Level | undefined): Puzz
   }
   if (type === "whack") {
     const settings = gameLevelSettings<BonkLevel>(type, level);
-    return settings ? provedSeed("whack", level, { ...generateWhack(), bonkLevel: { ...settings, flips: [settings.flips[0], settings.flips[1]] } }) : null;
+    return settings ? provedSeed("whack", level, { ...generateWhack(), bonkLevel: { ...settings, flips: [settings.flips[0], settings.flips[1]] as [number, number] } }) : null;
   }
   if (type === "tendrop") {
     const settings = gameLevelSettings<TenfallLevel>(type, level);
