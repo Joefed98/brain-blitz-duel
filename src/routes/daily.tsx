@@ -3,7 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { FinishedGameCounter } from "@/components/account/SaveProgress";
 import { FeedbackLink } from "@/components/beta/FeedbackLink";
-import { TermsGate } from "@/components/beta/TermsGate";
+import { TermsScreen } from "@/components/beta/TermsScreen";
+import { termsAgreed } from "@/lib/beta/terms";
 import { AsyncResults } from "@/components/async/AsyncResults";
 import { AsyncRun } from "@/components/async/AsyncRun";
 import { DailyYou } from "@/components/daily/DailyYou";
@@ -42,6 +43,7 @@ import {
 import { useCelebrationScope } from "@/components/fx/useCelebration";
 import { ordinal } from "@/lib/duel/ordinal";
 import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
+import { nameOrGenerated } from "@/components/account/generatedName";
 import { getStoredName, setStoredName } from "@/lib/duel/session";
 import { unlockAudio } from "@/lib/sound";
 import { APP_NAME } from "@/lib/brand";
@@ -77,19 +79,18 @@ export const Route = createFileRoute("/daily")({
 /** Offline practice (31 Oct 2026): with no connection, the offline state and a way to Practice. */
 function OfflineDaily() {
   return (
-    <OnlineOnly body="The daily challenge needs a connection. Practice games are saved on this phone, so they still work.">
+    <OnlineOnly body="The Daily needs a connection. Practice still works.">
       <GatedDailyScreen />
     </OnlineOnly>
   );
 }
 
-/** The beta terms come first: shown once on this device before its first room, daily or challenge. */
+/**
+ * The Daily shows its page before the beta terms (P3, 22 Nov 2026; plan decision 9 and section 3.6): look before you
+ * agree. The terms come at the first Play tap on a device that hasn't agreed (DailyScreen's `play`), once.
+ */
 function GatedDailyScreen() {
-  return (
-    <TermsGate>
-      <DailyScreen />
-    </TermsGate>
-  );
+  return <DailyScreen />;
 }
 
 type Day = "today" | "yesterday";
@@ -164,6 +165,8 @@ function DailyScreen() {
   const topPlace = useDailyTopPlace(kind, isAccount, finishedKey);
   const [look, setLook] = useState<PlayerLook>({ colour: 0, icon: null });
   const [busy, setBusy] = useState(false);
+  // The beta terms, asked at the first Play tap on a device that hasn't agreed yet.
+  const [askTerms, setAskTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => serverNow());
 
@@ -175,7 +178,8 @@ function DailyScreen() {
   }, []);
   useEffect(() => {
     const stored = getStoredName();
-    setName(stored);
+    // Pre-filled with a generated name when none is stored yet (P3: one tap to go; the box stays open to change it).
+    setName(nameOrGenerated(stored));
     setEditingName(stored.trim() === "");
     const remembered = rememberedLook();
     setLook({ colour: remembered.colour ?? 0, icon: remembered.icon ?? null });
@@ -227,6 +231,11 @@ function DailyScreen() {
 
   const play = async () => {
     unlockAudio();
+    // The terms at the first Play tap (once on this device), then on to the round.
+    if (!termsAgreed()) {
+      setAskTerms(true);
+      return;
+    }
     setSuggestions([]);
     const trimmed = (accountName ?? name).trim();
     if (!trimmed) {
@@ -296,6 +305,16 @@ function DailyScreen() {
     },
     [status, kind, refresh],
   );
+
+  if (askTerms)
+    return (
+      <TermsScreen
+        onAgree={() => {
+          setAskTerms(false);
+          void play();
+        }}
+      />
+    );
 
   if (mode.kind === "run") {
     return (

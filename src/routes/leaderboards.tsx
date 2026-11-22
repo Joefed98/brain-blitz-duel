@@ -35,7 +35,7 @@ export const Route = createFileRoute("/leaderboards")({
 
 function LeaderboardsPage() {
   return (
-    <OnlineOnly body="Leaderboards need a connection. Practice games are saved on this phone, so they still work.">
+    <OnlineOnly body="Leaderboards need a connection. Practice still works.">
       <LeaderboardsScreen />
     </OnlineOnly>
   );

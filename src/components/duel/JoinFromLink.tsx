@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { fetchRoomPreview, joinRoomByCode, type RoomPreview } from "@/lib/duel/api";
 import { getStoredName, setStoredName } from "@/lib/duel/session";
+import { nameOrGenerated } from "@/components/account/generatedName";
 import {
   isShareRef,
   noteShareLobbyArrival,
@@ -42,7 +43,8 @@ export function JoinFromLink({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => setName(getStoredName()), []);
+  // Pre-filled with a generated name when none is stored yet (P3, 22 Nov 2026: one tap to join).
+  useEffect(() => setName(nameOrGenerated(getStoredName())), []);
   useEffect(() => {
     let cancelled = false;
     void fetchRoomPreview(roomCode)
@@ -119,7 +121,7 @@ export function JoinFromLink({
       preview.state === "playing"
         ? [
             "This game’s already started.",
-            "You can join the next one if the host plays again from the lobby.",
+            "Join the next one when the host plays again.",
           ]
         : preview.state === "finished"
           ? ["This game has finished", "Ask the host to play again, then reopen the link."]
@@ -178,7 +180,7 @@ export function JoinFromLink({
       />
       <Button
         variant="gold"
-        size={52}
+        size={60}
         block
         type="submit"
         disabled={busy || full}

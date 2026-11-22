@@ -121,8 +121,7 @@ function Offer({ status }: { status: PlusStatus }) {
       </section>
       <Perks />
       <p className="plus-note">
-        Cancel any time. Plus never helps you win: ratings, scores and matchmaking are the same for everyone, and rooms
-        are always free.
+        Cancel any time. Plus never helps you win, and rooms are always free.
       </p>
     </div>
   );

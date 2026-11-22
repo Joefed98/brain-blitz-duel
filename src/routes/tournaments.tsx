@@ -52,7 +52,7 @@ function OfflineTournaments() {
   // The app-wide home bed carries on here from the other tabs (docs/sound-cues/music.md).
   useHomeBed();
   return (
-    <OnlineOnly tabs="tournaments" live body="Compete needs a connection. Practice games are saved on this phone, so they still work.">
+    <OnlineOnly tabs="tournaments" live body="Compete needs a connection. Practice still works.">
       <TournamentsTab />
     </OnlineOnly>
   );
@@ -126,7 +126,7 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
           data-public-none
           layout="card"
           title="No public games on the calendar"
-          body={`${discord ? "New dates are posted in the beta Discord." : "New dates are posted here."} Until then, start a room with friends or sharpen up in Practice.`}
+          body={discord ? "New dates go up in the beta Discord." : "New dates go up here."}
           action={
             discord
               ? { label: "Open the beta Discord", href: discord, external: true, data: { "data-discord-link": "" } }
@@ -155,7 +155,7 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
       data-public-results-empty
       layout="card"
       title="No results yet"
-      body="Play a public game and your place, medal and points land here."
+      body="Your public game results land here."
       action={{ label: "Play with friends", onClick: () => goToTab(router, "tournaments", "play") }}
     />
   );

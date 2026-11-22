@@ -85,7 +85,7 @@ export function SaveProgressPrompt() {
     return (
       <div role="dialog" aria-label="Save your progress" className="acct-popup" data-save-progress="popup">
         <p className="jz-card-title">{from === "rated" ? "Save your rating and stars?" : "Save your progress?"}</p>
-        <p className="acct-lede">Make an account and keep your games, bests and stars on every phone.</p>
+        <p className="acct-lede">Keep your games, bests and stars on every phone.</p>
         <div className="acct-popup-row">
           <Button variant="secondary" size={46} onClick={dismiss} data-save-progress-dismiss>
             Not now
