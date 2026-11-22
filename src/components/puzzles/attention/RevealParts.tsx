@@ -5,6 +5,11 @@
  * the few numbers that explain the score as big tiles (`RevealStats`). They sit inside the shared answer reveal
  * (AnswerReveal: the result card, then the game's own Reveal), and never read a score of their own: every number is
  * from the stored answer, the stored puzzle or the stored extra.
+ *
+ * Since the reveal template (the polish plan's G6, 21 Nov 2026) the switch is the template's views control (the
+ * `data-reveal-views` row round the shared Segmented, as RevealScreen's `RevealViews` draws it) and the numbers are the
+ * template's facts strip (`FactTiles`' markup and classes), so an Attention reveal reads as every other game's; the
+ * boards take their size from the template's stage (`cqw`, attention-overhaul.css). Every Attention attribute is kept.
  */
 import type { ReactNode } from "react";
 
@@ -19,15 +24,20 @@ export interface RevealStat {
   tone?: "good" | "bad" | undefined;
 }
 
-/** The numbers that explain the score: two to four tiles, label above, a big number below. */
+/** The numbers that explain the score: two to four tiles, a big number over its label (the template's facts strip). */
 export function RevealStats({ items, game }: { items: (RevealStat | null | false | undefined)[]; game: string }) {
   const shown = items.filter((s): s is RevealStat => !!s);
   return (
-    <div className="attn-rv-stats" data-attn-reveal-stats={game} style={{ gridTemplateColumns: `repeat(${shown.length}, minmax(0, 1fr))` }}>
+    <div
+      className="reveal-facts attn-rv-stats"
+      data-reveal-facts=""
+      data-attn-reveal-stats={game}
+      style={{ ["--reveal-facts-n" as string]: Math.min(4, Math.max(1, shown.length)) }}
+    >
       {shown.map((s) => (
-        <div key={s.id} className="attn-rv-stat" data-attn-stat={s.id} data-tone={s.tone}>
-          <span className="attn-rv-stat-label">{s.label}</span>
-          <span className="attn-rv-stat-value">{s.value}</span>
+        <div key={s.id} className="reveal-fact attn-rv-stat" data-attn-stat={s.id} data-tone={s.tone}>
+          <b className="reveal-fact-value attn-rv-stat-value">{s.value}</b>
+          <span className="reveal-fact-label attn-rv-stat-label">{s.label}</span>
         </div>
       ))}
     </div>
@@ -47,14 +57,16 @@ export function RevealTabs<T extends string | number>({
   onChange: (value: T) => void;
 }) {
   return (
-    <Segmented
-      label={label}
-      radio
-      value={value}
-      onChange={onChange}
-      className="attn-rv-tabs"
-      options={options.map((o) => ({ value: o.value, label: o.label, data: { "data-attn-tab": String(o.value), "data-tone": o.tone } }))}
-    />
+    <div data-reveal-views="" className="reveal-views attn-rv-views">
+      <Segmented
+        label={label}
+        radio
+        value={value}
+        onChange={onChange}
+        className="attn-rv-tabs"
+        options={options.map((o) => ({ value: o.value, label: o.label, data: { "data-attn-tab": String(o.value), "data-tone": o.tone } }))}
+      />
+    </div>
   );
 }
 

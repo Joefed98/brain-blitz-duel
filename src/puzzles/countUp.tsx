@@ -369,12 +369,34 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = "countup" }
   );
 }
 
+/**
+ * The reveal tray's width: the layout width of the box it sits in (the reveal template's stage, G6, 21 Nov 2026), read
+ * from a ResizeObserver's content box so a fit transform on the card never feeds back; 340 px until measured.
+ */
+function useTrayWidth(): { ref: (el: HTMLElement | null) => void; width: number } {
+  const [width, setWidth] = useState(0);
+  const observer = useRef<ResizeObserver | null>(null);
+  const ref = (el: HTMLElement | null) => {
+    observer.current?.disconnect();
+    observer.current = null;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    observer.current = new ResizeObserver((entries) => {
+      const w = Math.floor(entries[0]?.contentRect.width ?? 0);
+      setWidth((old) => (old === w ? old : w));
+    });
+    observer.current.observe(el);
+  };
+  useEffect(() => () => observer.current?.disconnect(), []);
+  return { ref, width: width > 0 ? width : 340 };
+}
+
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   const [shown, setShown] = useState<number | null>(null);
   return puzzle.type === "countup" ? <TallyReveal puzzle={puzzle} myAnswer={myAnswer} shown={shown} setShown={setShown} /> : null;
 }
 
 function TallyReveal({ puzzle, myAnswer, shown, setShown }: { puzzle: CountUpPuzzleData; myAnswer: string | null | undefined; shown: number | null; setShown: (n: number) => void }) {
+  const tray = useTrayWidth();
   const revealRef = useRef<HTMLDivElement>(null);
   const rev2 = usesCountRev2(puzzle);
   const parts = splitStages(myAnswer, rev2 ? puzzle.stages.length : STAGE_COUNT);
@@ -389,10 +411,10 @@ function TallyReveal({ puzzle, myAnswer, shown, setShown }: { puzzle: CountUpPuz
   // The Attention overhaul's reveal (15 Nov 2026): one tray at a time, large, the shapes that count ringed gold; the
   // right count against yours in big numbers; a tab for each tray. The first tray you got wrong opens first.
   const open = shown ?? Math.max(0, trays.findIndex((t) => !t.exact));
-  const tray = trays[open]!;
+  const trayNow = trays[open]!;
   const right = trays.filter((t) => t.exact).length;
-  const off = tray.truth !== null && tray.given !== null ? Math.abs(tray.given - tray.truth) : null;
-  const verdict = tray.given === null ? "No answer" : tray.exact ? "Exact" : off === 1 ? `So close: ${tray.truth}, you said ${tray.given}` : `Off by ${off}`;
+  const off = trayNow.truth !== null && trayNow.given !== null ? Math.abs(trayNow.given - trayNow.truth) : null;
+  const verdict = trayNow.given === null ? "No answer" : trayNow.exact ? "Exact" : off === 1 ? `So close: ${trayNow.truth}, you said ${trayNow.given}` : `Off by ${off}`;
   // The Attention overhaul (stage 2): the counted shapes light one by one while the right count ticks up; one off
   // pulses its verdict softly. Display only, when a tray opens.
   useEffect(() => {
@@ -421,13 +443,14 @@ function TallyReveal({ puzzle, myAnswer, shown, setShown }: { puzzle: CountUpPuz
         onChange={setShown}
         options={trays.map((t, i) => ({ value: i, label: `Tray ${i + 1}`, tone: t.exact ? "good" : "bad" }))}
       />
-      <p className="text-center font-display text-base font-bold leading-snug" data-tally-question="">{countUpStageQuestion(tray.stage)}</p>
-      <div className="tally-reveal-tray flex w-full justify-center" data-tally-reveal-tray={open + 1}>
+      <p className="text-center font-display text-base font-bold leading-snug" data-tally-question="">{countUpStageQuestion(trayNow.stage)}</p>
+      {/* The tray takes the stage's width (G6; was a fixed 340 × 300 field), its height in proportion. */}
+      <div ref={tray.ref} className="tally-reveal-tray flex w-full justify-center" data-tally-reveal-tray={open + 1}>
         {tallySpread(puzzle) ? (
-          <SpreadField stage={tray.stage} width={340} height={300} highlight={(item) => countUpCounts(tray.stage, item)} />
+          <SpreadField stage={trayNow.stage} width={Math.min(tray.width, 440)} height={Math.round(Math.min(tray.width, 440) * 0.9)} highlight={(item) => countUpCounts(trayNow.stage, item)} />
         ) : (
-          <div className="w-full max-w-[340px]">
-            <Field shapes={tray.stage.shapes} cols={tray.stage.cols} rows={tray.stage.rows} highlight={(item) => countUpCounts(tray.stage, item)} height={260} size={26} />
+          <div className="w-full max-w-[440px]">
+            <Field shapes={trayNow.stage.shapes} cols={trayNow.stage.cols} rows={trayNow.stage.rows} highlight={(item) => countUpCounts(trayNow.stage, item)} height={260} size={26} />
           </div>
         )}
       </div>
@@ -435,9 +458,9 @@ function TallyReveal({ puzzle, myAnswer, shown, setShown }: { puzzle: CountUpPuz
       <RevealStats
         game="countup"
         items={[
-          { id: "answer", label: "Right count", value: tray.truth === null ? "—" : <FxCountUp key={open} value={tray.truth} silent />, tone: "good" },
-          { id: "you", label: "You said", value: tray.given ?? "—", tone: tray.exact ? "good" : "bad" },
-          { id: "verdict", label: "This tray", value: <span className="text-base">{verdict}</span>, tone: tray.exact ? "good" : tray.near ? undefined : "bad" },
+          { id: "answer", label: "Right count", value: trayNow.truth === null ? "—" : <FxCountUp key={open} value={trayNow.truth} silent />, tone: "good" },
+          { id: "you", label: "You said", value: trayNow.given ?? "—", tone: trayNow.exact ? "good" : "bad" },
+          { id: "verdict", label: "This tray", value: <span className="text-base">{verdict}</span>, tone: trayNow.exact ? "good" : trayNow.near ? undefined : "bad" },
         ]}
       />
       <p className="text-center text-sm font-semibold text-muted-foreground" data-tally-right="">
