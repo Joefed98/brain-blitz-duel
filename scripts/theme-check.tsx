@@ -13,7 +13,7 @@
  *     results and podium), drawn in headless Chromium as an iPhone 11 home-screen app (414×896):
  *     - the fonts load: Archivo is loaded wherever it is used;
  *     - the tokens are used: the screen carries data-skin, its background, text and gold tokens are
- *       the design tokens' (--jz-bg #06080F, --jz-text #EEF2FF, --jz-gold #E2C07A on the tab
+ *       the design tokens' (--jz-bg #04060C since 21 Nov 2026, with Joe's approval, --jz-text #EEF2FF, --jz-gold #E2C07A on the tab
  *       screens; the room screens' --primary is the neutral --jz-text), headings, body text, scores
  *       and codes are Archivo, and its cards are the skin's cards;
  *     - contrast: every visible piece of text (not dimmed on purpose, not in a game's own art)
@@ -289,12 +289,12 @@ function themeProbe(families: { head: string; body: string; mono: string; app: s
       : room
       ? [
           // The design tokens (F1): --jz-bg, --jz-text; --primary neutral.
-          ["--background", "#06080F"],
+          ["--background", "#04060C"], // Changed with Joe's approval, 21 Nov 2026
           ["--foreground", "#EEF2FF"],
           ["--primary", "#EEF2FF"],
         ]
       : [
-          ["--background", "#06080F"],
+          ["--background", "#04060C"], // Changed with Joe's approval, 21 Nov 2026
           ["--foreground", "#EEF2FF"],
           ["--primary", "#E2C07A"],
         ];

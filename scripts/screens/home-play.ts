@@ -1,8 +1,10 @@
 /**
- * Home, Play and Rooms (phase 2 step 3, 14 Nov 2026; docs/design/style-guide/phone/home.png, play.png, sheet.png):
- * the redesigned Home for an account with everything on (rated play, the Shop and pass, friends, recently played,
- * today's dailies), the Play page with and without rated play and with the match sheet open, and the Rooms page, in
- * the dark theme at every size and the light theme at every size. Drawn by theme-check and no-wrap-check after the core list (scripts/area-screens.ts finds this file, 14 Nov 2026).
+ * Home and Rooms (phase 2 step 3, 14 Nov 2026; P1, 21 Nov 2026: Joe's mix of H1 and H2, plan section 3.3): Home in its
+ * player banner's three states (placed, with the two rating chips; placement; rated play off, "Play now" on the game
+ * of the day) for an account with everything on (the Shop and pass, friends, Jump back in, today's dailies), Home for a
+ * new guest, and the Rooms page, in the dark theme and the light theme at every size. The Play page folded into Home
+ * (/play redirects there). Drawn by theme-check and no-wrap-check after the core list (scripts/area-screens.ts finds
+ * this file, 14 Nov 2026).
  */
 import type { Page } from "playwright";
 
@@ -77,22 +79,27 @@ export const HOME_PLAY_SCREENS = (ALL_SIZES: ThemeViewport[]): ThemeScreen[] => 
     __harnessFriends: { account: pass.account, overview: OVERVIEW, profile: null },
     __harnessDailyCounts: { day: "2026-10-26", puzzle: 12431, arcade: 8902 },
     __harnessWallet: true,
+    // The player banner's "+22 this week" (the server's ratedWeekChangeFn, stood in for the screen).
+    __DUELZ_RATED_WEEK__: 22,
     __DUELZ_PUSH_PUBLIC_KEY__: "BNYcXg0Xpca8-OwTPsK5UfzinOSSLskdCpZtDqHpTCU5gmv6jd_qCZw9zXF418o4_tKAy6lldWvsxMXwaAlP0yA",
   };
   const light = { __harnessTheme: "light" };
-  const sheet = async (page: Page) => {
-    await page.locator("[data-play-format]").click();
-    await page.locator("[data-match-sheet]").waitFor({ timeout: 10_000 });
-    await page.waitForTimeout(500);
+  const placement = {
+    ...everything,
+    __harnessRatedStatus: {
+      ...HOME_RATED_STATUS,
+      standing: { state: "placement", results: ["won", "lost"], puzzles: { rating: null, matches: 1 }, arcade: { rating: null, matches: 1 } },
+    },
   };
+  const { __harnessRatedStatus: _rated, ...ratedOff } = everything;
   const screens: ThemeScreen[] = [
     { name: "home: an account with rated play, the pass and friends", mode: "home", daily: () => dailyFixture().before, globals: everything, go: withRecent, waitMs: 800 },
-    { name: "home: play, rated", mode: "play", plain: true, globals: everything, waitMs: 800 },
-    { name: "home: play, rated, the match sheet", mode: "play", plain: true, globals: { ...everything, __harnessRatedStatus: { ...HOME_RATED_STATUS, options: { ...HOME_RATED_STATUS.options, formats: ["bo3", "ffa4", "ffa8"], sizes: [2, 4, 8] } } }, go: sheet, waitMs: 600 },
-    { name: "home: play, no rated play", mode: "play", plain: true },
+    { name: "home: placement matches to play", mode: "home", daily: () => dailyFixture().before, globals: placement, go: withRecent, waitMs: 800 },
+    { name: "home: rated play off, play now", mode: "home", daily: () => dailyFixture().before, globals: ratedOff, go: withRecent, waitMs: 800 },
+    { name: "home: a new guest", mode: "home", daily: () => dailyFixture().before, waitMs: 800 },
     { name: "home: rooms", mode: "rooms" },
     { name: "home light: home, an account with everything", mode: "home", daily: () => dailyFixture().before, globals: { ...everything, ...light }, go: withRecent, waitMs: 800 },
-    { name: "home light: play, rated", mode: "play", plain: true, globals: { ...everything, ...light }, waitMs: 800 },
+    { name: "home light: rated play off, play now", mode: "home", daily: () => dailyFixture().before, globals: { ...ratedOff, ...light }, go: withRecent, waitMs: 800 },
     { name: "home light: rooms", mode: "rooms", globals: light },
   ];
   return screens.map((s) => ({ ...s, sizes: ALL_SIZES }));

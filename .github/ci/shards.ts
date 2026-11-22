@@ -475,6 +475,8 @@ export const SHARDS: Record<string, string[]> = {
     // placement, tiers and caps, recorded runs, the 4th-match rule, Joules, the competitive badges) on a local
     // PostgreSQL through the server-function harness, beside badges-check.
     "ratings-check.ts",
+    // rated-week-change-check (P1, 21 Nov 2026, ~10 s): Home's "+22 this week" from the stored rated matches.
+    "rated-week-change-check.ts",
     // practice-progress-check (wave 2 C1a, 11 Nov 2026, ~15 s): practice stars, bests and gems on the account (the stored
     // breakdown against a room's, 175 / 174, the fresh start, gems, two devices, roles) on a local PostgreSQL.
     "practice-progress-check.ts",

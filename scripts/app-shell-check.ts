@@ -190,7 +190,7 @@ try {
   // compiles each route's own modules on its first request (/practice, every game's tile, takes ~18 s cold here). The waits and assertions below are unchanged.
   // Changed with Joe's approval, 14 Nov 2026 (routine consequences of the Home and Play pages, /play and /rooms
   // warmed too, and of the Games catalogue, its page titled "Games").
-  for (const [path, heading] of [["/practice", "Games"], ["/tournaments", "Tournaments"], ["/profile", "Profile"], ["/play", "Play"], ["/rooms", "Rooms"]] as const) {
+  for (const [path, heading] of [["/practice", "Games"], ["/tournaments", "Tournaments"], ["/profile", "Profile"], ["/rooms", "Rooms"]] as const) { // Changed with Joe's approval, 21 Nov 2026
     await warmUp(browser, `${origin}${path}`, async (page) => {
       await page.getByRole("heading", { level: 1, name: heading }).waitFor({ timeout: 180_000 });
     }, {
@@ -209,7 +209,7 @@ try {
       check((await tabBar(page)) === 1 && (await currentTab(page)) === "play", "Play: the tab bar is up with Play current");
       const tabs = await page.locator("[data-app-tabbar] a").evaluateAll((els) => els.map((el) => (el.textContent ?? "").trim()));
       // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the navigation step: the tabs are Home, Games, Tournaments, More, with the Shop's switch off).
-      check(tabs.join(",") === "Home,Games,Tournaments,More", `four tabs with labels (${tabs.join(",")})`);
+      check(tabs.join(",") === "Home,Games,Compete,You", `four tabs with labels (${tabs.join(",")})`); // Changed with Joe's approval, 21 Nov 2026
       const gold = await page.locator("[data-app-tabbar] [aria-current='page']").evaluate((el) => getComputedStyle(el).color);
       // The tab screens' gold: --jz-gold #E2C07A (src/design/tokens.css, design foundation F1, 6 Nov 2026).
       check(gold === "rgb(226, 192, 122)", `the current tab is gold (${gold})`);
@@ -243,8 +243,10 @@ try {
       check(Math.abs(bar.bottom - bar.h) < 0.5 && bar.h - bar.rowBottom >= 33.5, `the tab bar sits on the bottom, its tabs above the 34px home bar (${JSON.stringify(bar)})`);
       // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages): Warm up's three tiles
       // became Your next match's Practice suggestion (a device with no rated play or friends), with its game's icon.
-      check((await page.locator("[data-next-match='practice']").count()) === 1, "Your next match: a Practice suggestion");
-      check((await page.locator("[data-next-match='practice'] [data-game-icon]").count()) === 1, "Your next match: the game's icon");
+      // Changed with Joe's approval, 21 Nov 2026 (P1: Home's player banner replaces Your next match; with rated play off
+      // it is Play now on the game of the day, with that game's icon).
+      check((await page.locator("[data-hp-banner='off']").count()) === 1, "Home's banner: Play now on the game of the day"); // Changed with Joe's approval, 21 Nov 2026
+      check((await page.locator("[data-hp-banner='off'] [data-game-icon]").count()) === 1, "Home's banner: the game of the day's icon"); // Changed with Joe's approval, 21 Nov 2026
       // The public game card moved to the Rooms page (checked on its own page below); the clock moves on to lobby
       // time here too, for Tournaments' Join now further down.
       await page.clock.fastForward(45_000);
@@ -257,16 +259,15 @@ try {
       for (const [label, path, tab] of [
         ["Games", "/practice", "practice"],
         ["Tournaments", "/tournaments", "tournaments"],
-        ["More", "/more", "more"],
+        ["Profile", "/profile", "you"], // Changed with Joe's approval, 21 Nov 2026
       ] as const) {
         await page.locator(`[data-app-tabbar] [data-tab='${tab}']`).click();
         await page.getByRole("heading", { level: 1, name: label }).waitFor({ timeout: 30_000 });
         check(new URL(page.url()).pathname === path, `${label}: the URL is ${path} (${new URL(page.url()).pathname})`);
         check((await tabBar(page)) === 1 && (await currentTab(page)) === tab, `${label}: the tab bar is up with ${label} current`);
       }
-      await page.locator("[data-more-row='profile']").click();
-      await page.getByRole("heading", { level: 1, name: "Profile" }).waitFor({ timeout: 30_000 });
-      check(new URL(page.url()).pathname === "/profile", `Profile (from More): the URL is /profile (${new URL(page.url()).pathname})`);
+      // Changed with Joe's approval, 21 Nov 2026 (P1: You is the tab itself, no More row to click).
+      check(new URL(page.url()).pathname === "/profile", `Profile (the You tab): the URL is /profile (${new URL(page.url()).pathname})`); // Changed with Joe's approval, 21 Nov 2026
       check((await page.locator("[data-public-game='join']").count()) === 0, "Profile has no schedule card");
       // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the settings sheet becoming /settings): the gear
       // opens the Settings page, and its Back returns to Profile.
@@ -285,10 +286,9 @@ try {
       check(/Customise/.test((await page.locator("[data-look-moved]").textContent()) ?? "") && (await page.locator("[data-customise-open]").count()) === 1, "Profile: points to Customise (the card's Customise button)");
       // Changed with Joe's approval, 14 Nov 2026: a guest's footer reads "Saved on this phone. Create an account to keep it everywhere." (none for an account).
       check(/Saved on this phone\. Create an account to keep it everywhere\./.test((await page.textContent("body")) ?? ""), "Profile: the saved-on-this-phone note");
+      // Changed with Joe's approval, 21 Nov 2026 (P1: You replaced the tab before it, so Back goes straight to Home).
       await page.goBack();
-      await page.locator("[data-more-row='profile']").waitFor({ timeout: 30_000 });
-      await page.goBack();
-      await page.locator("[data-home]").waitFor({ timeout: 30_000 });
+      await page.locator("[data-home]").waitFor({ timeout: 30_000 }); // Changed with Joe's approval, 21 Nov 2026
       check(new URL(page.url()).pathname === "/", "Back from the tabs returns to Play");
 
       // Tournaments: Next up (Join now, it is lobby time) and Coming up; Join now opens the public room.
@@ -455,19 +455,15 @@ try {
     // On the schedule's clock, as the Play tab tests above: the page draws the same cards on any day.
     const { page, context } = await openApp("/", { clock: BEFORE_LOBBY });
     try {
-      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages): the Warm up tile became
-      // Your next match's Practice suggestion, which opens the game's page (gamePageHref: today's Practice round).
-      const card = page.locator("[data-next-match='practice']");
+      // Changed with Joe's approval, 21 Nov 2026 (P1: Home's player banner replaces Your next match; with rated play off
+      // its gold Play opens the game of the day's round, passing quick=1 for the Games page to start it in its 3-2-1).
+      const card = page.locator("[data-hp-banner='off']");
       await card.waitFor({ timeout: 60_000 });
-      await hydrated(page, "[data-next-match='practice'] button");
-      const type = await card.getAttribute("data-next-game");
-      await card.locator("button").click();
-      // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the combined step-3 train: gamePageHref is the
-      // Games session's game page, whose Play opens the round's intro counting down, no Ready to press).
-      await page.locator("[data-game-page-play]").first().waitFor({ timeout: 60_000 });
-      check(new URL(page.url()).pathname === "/practice" && new URL(page.url()).searchParams.get("page") === type, `Your next match's Practice game (${type}) opens its game's page in practice`);
-      await page.locator("[data-game-page-play]").first().click();
-      await page.locator(".round-intro").first().waitFor({ timeout: 60_000 });
+      await hydrated(page, "[data-hp-banner='off'] [data-hp-hero='play']");
+      const type = await card.getAttribute("data-hp-game");
+      await card.locator("[data-hp-hero='play']").click();
+      await page.locator(".round-intro").first().waitFor({ timeout: 60_000 }); // Changed with Joe's approval, 21 Nov 2026
+      check(new URL(page.url()).pathname === "/practice" && !!type, `Home's Play opens the game of the day's round (${type}) in practice`); // Changed with Joe's approval, 21 Nov 2026
       check((await tabBar(page)) === 0, "the Practice round has no tab bar");
     } finally {
       await context.close();

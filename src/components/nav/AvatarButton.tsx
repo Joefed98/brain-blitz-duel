@@ -1,7 +1,8 @@
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
-import { SaveProgressOffer } from "@/components/account/SaveProgress";
+import { goToTab } from "@/components/app/AppTabBar";
+import { TAB_PATHS, type AppTab } from "@/design/components/TabBar";
 import { MyMiniCard } from "@/components/identity/MyMiniCard";
 import { useAccount } from "@/lib/account/accountApi";
 import { getStoredName } from "@/lib/duel/session";
@@ -9,10 +10,10 @@ import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { unlockAudio } from "@/lib/sound";
 
 /**
- * The player's avatar, top left on every main screen (Home, Games, Tournaments, Shop, More) and at the top of the
- * rail (phase 2 step 1, 14 Nov 2026). An account sees their card's avatar and it opens their Profile; a guest sees
- * their colour and initial and it opens the save-your-progress sheet, as Profile's Customise does for a guest.
- * Profile itself stays reachable for everyone from More.
+ * The player's avatar, top left on every main screen (Home, Games, Compete, Shop, You) and at the top of the rail
+ * (phase 2 step 1, 14 Nov 2026). An account sees their card's avatar, a guest their colour and initial; for both it
+ * opens You (the Profile page), as the You tab does (P1, 21 Nov 2026, plan section 3.2: no sheet on a tap). A guest's
+ * You page carries the one calm "Save your progress" row.
  */
 export function useGuestLook(): { look: PlayerLook; name: string } {
   const [state, setState] = useState<{ look: PlayerLook; name: string }>({ look: { colour: 0, icon: null }, name: "" });
@@ -38,10 +39,9 @@ export function AvatarButton({
   const router = useRouter();
   const account = useAccount();
   const { look, name } = useGuestLook();
-  const [offer, setOffer] = useState(false);
   const guest = account.kind === "guest" || account.kind === "incomplete";
   const shown = account.kind === "account" ? account.username : name || "You";
-  const label = guest ? "Your avatar: save your progress" : "Your profile";
+  const label = "Your profile";
   return (
     <>
       <a
@@ -50,12 +50,11 @@ export function AvatarButton({
           if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
           event.preventDefault();
           unlockAudio();
-          if (guest) {
-            setOffer(true);
-            return;
-          }
           if (window.location.pathname === "/profile") return;
-          // Pushed, so Back returns to the screen the avatar was tapped on.
+          // From a main tab: as the You tab (tabs opened from Home are pushed, from another tab replace it).
+          const from = tabAt(window.location.pathname);
+          if (from) return goToTab(router, from, "you");
+          // Elsewhere (a room's rail): pushed, so Back returns to the screen the avatar was tapped on.
           void router.navigate({ to: "/profile", state: { fromPlayTab: true } as never });
         }}
         aria-label={label}
@@ -71,7 +70,12 @@ export function AvatarButton({
           </span>
         ) : null}
       </a>
-      {offer ? <SaveProgressOffer onClose={() => setOffer(false)} /> : null}
     </>
   );
+}
+
+/** The main tab a path is (Home, Games, Compete, Shop), or null. */
+function tabAt(path: string): AppTab | null {
+  const tabs: AppTab[] = ["play", "practice", "tournaments", "shop"];
+  return tabs.find((t) => TAB_PATHS[t] === path) ?? null;
 }
