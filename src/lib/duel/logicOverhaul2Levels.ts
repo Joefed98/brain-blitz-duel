@@ -124,7 +124,7 @@ export const LOGIC_GAME_LEVELS: { [K in LogicLevelGame]: { levels: Levels<LogicL
   tents: levels<TentsLevel>(
     { height: 6, pairs: [7, 8], hidden: 0, person: [0, 1], timeLimitMs: 90_000 },
     { height: 11, pairs: [16, 17], hidden: 0.5, person: [2, 15], timeLimitMs: 120_000, fullByS: 69 },
-    { height: 12, pairs: [17, 18], hidden: 0.5, person: [4, 40], timeLimitMs: 110_000, fullByS: 85 },
+    { height: 12, pairs: [17, 18], hidden: 0.5, person: [4, 40], timeLimitMs: 115_000, fullByS: 85 },
   ),
   shikaku: levels<ShikakuLevel>(
     { height: 7, rects: [9, 11], maxArea: 8, minBig: 2, minEqualPairs: 1, person: [0, 0], timeLimitMs: 90_000 },
