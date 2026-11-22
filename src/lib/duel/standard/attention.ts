@@ -170,11 +170,11 @@ export function pairStandard(p: PairPuzzleData | null | undefined): boolean {
 }
 
 /** The match streak's points for the longest run of matches. */
-export function pairStreakPoints(bestStreak: number): number {
-  return Math.max(0, Math.min(PAIR_STD.streak, bestStreak - PAIR_STD.streakFrom));
+export function pairStreakPoints(bestStreak: number, from: number = PAIR_STD.streakFrom): number {
+  return Math.max(0, Math.min(PAIR_STD.streak, bestStreak - from));
 }
 
 /** The gold pair's points: matched (goldTry set) in the first 30 s of the round. */
-export function pairGoldPoints(goldTry: number | null, goldMs: number | null): number {
-  return goldTry !== null && goldMs !== null && goldMs <= PAIR_STD.goldWindowMs ? PAIR_STD.gold : 0;
+export function pairGoldPoints(goldTry: number | null, goldMs: number | null, windowMs: number = PAIR_STD.goldWindowMs): number {
+  return goldTry !== null && goldMs !== null && goldMs <= windowMs ? PAIR_STD.gold : 0;
 }

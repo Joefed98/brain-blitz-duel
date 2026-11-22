@@ -47,7 +47,7 @@ export const PRACTICE_STAMPS = {
   "lightup": "depthRev=2 notesRev=1 puzzleScoreRev=3 speedPar=1",
   "mahjong": "mahjongRev=2 puzzleScoreRev=3 speedPar=1",
   "matchup": "matchupRev=13 puzzleScoreRev=3 speedPar=1",
-  "maze": "mazeRev=5 puzzleScoreRev=3 speedPar=1",
+  "maze": "mazeRev=6 puzzleScoreRev=3 speedPar=1",
   "measure": "depthRev=3 measureRev=5 puzzleScoreRev=3 speedPar=1",
   "minesweeper": "minesRev=3 puzzleScoreRev=3 speedPar=1",
   "minigolf": "golfRev=3 puzzleScoreRev=3 speedPar=1",

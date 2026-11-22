@@ -226,6 +226,8 @@ export interface SpotPuzzleData {
    * (`scene`). Server-side only until the reveal, like `differences`; never counted in the twelve.
    */
   bonus?: SpotDifference;
+  /** D3 (levelRev 2's Expert): 1 = each picture's lower panel is drawn as the upper one's mirror image; absent: not. */
+  mirror?: 1;
 }
 
 export interface ReactionPuzzleData {
@@ -1515,6 +1517,8 @@ export interface MazePuzzleData {
   stars?: number[];
   /** A level's own clock (attentionLevels.data.ts); absent at Normal (60 s). */
   timeLimitMs?: number;
+  /** D3 (levelRev 2's Hard and Expert, mazeKeys.ts): gold keys to walk over before the exit opens; absent: none. */
+  keys?: number[];
 }
 
 /* ============================ Sort the Tubes ============================ */

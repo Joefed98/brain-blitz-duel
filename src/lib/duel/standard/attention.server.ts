@@ -16,12 +16,14 @@ import { decodePairFlips, replayPairs } from "../pairmatch";
 import { pairDepthReplay, splitPairGoldTime } from "../depth/matchmaker";
 import { spotBonusFound } from "../depth/doubleTake";
 import { scanMinute } from "../attentionOverhaul";
-import { leveled, scanLevel, tallyLevel, tallyTrays, mazeLevel, spotLevel, spotPerPicture, pairCardsOf, pairExtrasShare, pairLevel, pairsOf } from "../attentionLevels";
+import { leveled, levelRev2, scanLevel, tallyLevel, tallyTrays, mazeLevel, spotLevel, spotPerPicture, pairCardsOf, pairCountsMemoryMisses, pairExtrasShare, pairGoldWindowMs, pairLevel, pairMemoryMisses, pairsOf } from "../attentionLevels";
 import { PAIR_PAIRS } from "../types";
 import type { CountUpPuzzleData, MazePuzzleData, SymbolScanPuzzleData, PuzzleType } from "../types";
 import { earlyPoints, parPoints, speedPoints } from "./shape";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, PAR_STRICT_ZERO_AT, usesParMoves, usesParStrict } from "../parMoves";
 import type { StandardGame } from "./grade.server";
+import { MAZE_D3_FULL_BY_S, usesMazeD3 } from "../d3Attention";
+import { mazeKeysOf, mazeKeysTaken, mazeKeysWalk, mazeTourSteps } from "../mazeKeys";
 import { ASCEND_STD, CHAIN_STD, chainFullByS, COUNT_STD, MAZE_STD, PAIR_STD, SCAN_STD, SPOT_STD, ascendBestRun, ascendFlowPoints, mazeStarPoints, pairGoldPoints, pairStreakPoints } from "./attention";
 
 const speedFor = (max: number, fullByS: number, msLeft: number, limitMs: number) => speedPoints(max, msLeft, limitMs, fullByS * 1000);
@@ -190,6 +192,8 @@ interface MazeRun {
 
 function mazeRun(puzzle: MazePuzzleData, answer: string): MazeRun {
   const cols = mazeColsOf(puzzle);
+  const keys = mazeKeysOf(puzzle);
+  if (keys.length) return mazeKeysRun(puzzle, answer, cols, keys);
   const walk = mazeTrailWalk(puzzle.cells, puzzle.start, puzzle.exit, decodeMazeTrail(answer, puzzle.start, cols, puzzle.cells.length), cols);
   const route = puzzle.solution ?? [];
   const verdict = verifyMazePath(puzzle.cells, puzzle.start, puzzle.exit, route, mazeTrailRoute(walk), cols);
@@ -199,6 +203,26 @@ function mazeRun(puzzle: MazePuzzleData, answer: string): MazeRun {
   const share = (Math.max(0, progress * waste - MAZE_REV1_DEAD_ZONE) / (1 - MAZE_REV1_DEAD_ZONE));
   const stars = puzzle.stars ?? [];
   return { steps: Math.round(progress * (length - 1)), routeSteps: length - 1, share: Math.min(1, share), waste, stars: mazeStarsTaken(walk, stars).length, starCount: stars.length, walked: Math.max(0, walk.length - 1) };
+}
+
+/**
+ * D3's keyed maze (levelRev 2's Hard and Expert, mazeKeys.ts): the par is the shortest walk through every key to the
+ * exit (the stored `par`); progress is how much of it is done, from what is left to walk (the shortest walk from the
+ * trail's head through the keys still to take to the exit), discounted for wandering as the route's share is.
+ */
+function mazeKeysRun(puzzle: MazePuzzleData, answer: string, cols: number, keys: number[]): MazeRun {
+  const walk = mazeKeysWalk(puzzle.cells, puzzle.start, puzzle.exit, decodeMazeTrail(answer, puzzle.start, cols, puzzle.cells.length), cols, keys);
+  const tour = typeof puzzle.par === "number" && puzzle.par > 0 ? puzzle.par : mazeTourSteps(puzzle.cells, cols, puzzle.start, keys, puzzle.exit);
+  const taken = new Set(mazeKeysTaken(walk, keys).map((i) => keys[i]!));
+  const head = walk[walk.length - 1] ?? puzzle.start;
+  const left = keys.filter((k) => !taken.has(k));
+  const done = head === puzzle.exit && left.length === 0;
+  const remaining = done ? 0 : mazeTourSteps(puzzle.cells, cols, head, left, puzzle.exit);
+  const progress = Math.max(0, Math.min(1, (tour - remaining) / tour));
+  const walked = Math.max(0, walk.length - 1);
+  const waste = wasteFactor(walked, tour + 1);
+  const share = Math.max(0, progress * waste - MAZE_REV1_DEAD_ZONE) / (1 - MAZE_REV1_DEAD_ZONE);
+  return { steps: Math.round(progress * tour), routeSteps: tour, share: Math.min(1, share), waste, stars: 0, starCount: 0, walked };
 }
 
 const labyrinth: StandardGame = {
@@ -213,7 +237,8 @@ const labyrinth: StandardGame = {
         // mazeRev 5 (puzzle polish, 3 Nov 2026): speed full a little earlier, par points 0 at 1.5× par.
         const strict = usesParStrict(puzzle);
         // A level's maze (stage 3 of the Attention overhaul): its own full-by time (attentionLevels.data.ts).
-        const fullBy = leveled(puzzle) ? mazeLevel(puzzle).fullByS : strict ? PAR_STRICT_FULL_BY_S.maze : MAZE_STD.fullByS;
+        // mazeRev 6 (D3, 22 Nov 2026, d3Attention.ts): Normal's speed full by 34 s.
+        const fullBy = leveled(puzzle) ? mazeLevel(puzzle).fullByS : usesMazeD3(puzzle) ? MAZE_D3_FULL_BY_S : strict ? PAR_STRICT_FULL_BY_S.maze : MAZE_STD.fullByS;
         const zeroAt = (leveled(puzzle) ? mazeLevel(puzzle).parZeroAt : strict ? PAR_STRICT_ZERO_AT : 2) * run.routeSteps;
         return { finished: true, speed: speedFor(PAR_MOVES_STD.speed, fullBy, msLeft, limitMs), bonus: parPoints(PAR_MOVES_STD.par, run.walked, run.routeSteps, zeroAt), measure: "par", facts };
       }
@@ -249,13 +274,18 @@ const matchmaker: StandardGame = {
     const sent = splitPairGoldTime(answer).goldMs;
     const goldMs = sent === null ? null : Math.min(sent, latestMs);
     const d = pairDepthReplay(puzzle, flips, goldMs);
-    const streak = pairStreakPoints(d.bestStreak);
-    const gold = pairGoldPoints(d.goldTry, goldMs);
+    // D3 (levelRev 2): a level may start the streak's points sooner (Easy's eight pairs hold no run of eight).
+    const streak = pairStreakPoints(d.bestStreak, levelRev2(puzzle) ? (lv.streakFrom ?? PAIR_STD.streakFrom) : PAIR_STD.streakFrom);
+    // D3 (levelRev 2's Expert): the gold pair's own window (pairGoldWindowMs; the standard's 30 s everywhere else).
+    const gold = pairGoldPoints(d.goldTry, goldMs, pairGoldWindowMs(puzzle) ?? undefined);
     const facts = { bestStreak: d.bestStreak, streakPoints: streak, goldPoints: gold, ...(d.goldTry !== null && goldMs !== null ? { goldMs } : {}) };
     if (graded.isCorrect) {
-      // Hard and Expert: the extras fall with the misses made (pairExtrasShare; 1 everywhere else).
-      const keep = pairExtrasShare(puzzle, Math.max(0, replay.tries - replay.pairs));
-      const levelFacts = keep < 1 ? { ...facts, missesMade: Math.max(0, replay.tries - replay.pairs), extrasKept: Math.round(keep * 100) } : facts;
+      // Hard and Expert: the extras fall with the misses made (pairExtrasShare; 1 everywhere else). D3 (levelRev 2): the
+      // memory misses only (a miss on a card whose partner had been seen), never a first look.
+      const memory = pairCountsMemoryMisses(puzzle);
+      const made = memory ? pairMemoryMisses(puzzle.cards, flips) : Math.max(0, replay.tries - replay.pairs);
+      const keep = pairExtrasShare(puzzle, made);
+      const levelFacts = keep < 1 ? { ...facts, ...(memory ? { memoryMisses: made } : { missesMade: made }), extrasKept: Math.round(keep * 100) } : facts;
       return { finished: true, speed: speedFor(PAIR_STD.speed, fullByS, msLeft, limitMs) * keep, bonus: (streak + gold) * keep, measure: "bonus", facts: levelFacts };
     }
     const misses = Math.max(0, replay.tries - replay.pairs);
