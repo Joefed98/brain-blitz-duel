@@ -60,7 +60,8 @@ export const LEVELS_PUSH: GameLevels<PushLevelSettings> = {
     },
     // Hard: Normal's five crates, 25–32 pushes, the detour kept, no stuck hint.
     // D4 (22 Nov 2026; the spec's Heave row): the crates climb 3, 5, 6, 7 (Hard today showed Normal's five), the push
-    // minimum rising behind them, between tighter walls.
+    // minimum rising behind them, between tighter walls. Hard full speed by 61 s, set from the elite's finishes under
+    // the human limits (at Normal's 45 s the elite reached 200 on 1 % of six-crate boards).
     hard: {
       settings: {
         crates: 6,
@@ -69,7 +70,7 @@ export const LEVELS_PUSH: GameLevels<PushLevelSettings> = {
         perCrate: 3,
         detour: true,
         stuckHint: false,
-        speedFullByS: 45,
+        speedFullByS: 61,
         timeLimitMs: 120_000,
       },
       oneSolution: OPEN,
