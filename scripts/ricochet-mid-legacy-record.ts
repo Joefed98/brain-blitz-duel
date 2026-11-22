@@ -32,7 +32,15 @@ if (existsSync(OUT) && !process.argv.includes("--overwrite")) {
 }
 console.error = () => {};
 const digest = (v: unknown) => createHash("sha256").update(JSON.stringify(v)).digest("hex").slice(0, 24);
-const tap = (t: number, a = 0): ArcadeInputEvent => ({ t, k: NINJA_INPUT_TAP, a, b: 0, c: 0, d: 0 });
+/** The graded extra without the replay's own wall time (`diag.replayMs`, the only field that is not the run's). */
+function stableExtra(extra: unknown): unknown {
+  const e = (extra ?? {}) as Record<string, unknown>;
+  const diag = e["diag"] as Record<string, unknown> | undefined;
+  if (!diag || typeof diag !== "object") return e;
+  const { replayMs: _ms, ...rest } = diag;
+  return { ...e, diag: rest };
+}
+const tap =(t: number, a = 0): ArcadeInputEvent => ({ t, k: NINJA_INPUT_TAP, a, b: 0, c: 0, d: 0 });
 
 /** A run as the phone sends it (with checkpoints), and its checkpoint checksums. */
 function encode(rev: number, level: MoonLevel | null, seed: number, events: readonly ArcadeInputEvent[]): { raw: string; sums: number[] } {
@@ -84,7 +92,7 @@ for (const { rev, level } of STAMPS) {
       const { raw, sums } = encode(rev, level, seed, events);
       const replay = replayMoonRun(seed, raw, rev, level);
       const graded = gradeAnswer(puzzle as any, raw, 0);
-      runs.push({ rev, level, seed, skill, raw, score: graded.score, replayScore: replay.score, flagged: Boolean(replay.flagged), state: digest(replay.state), sums, extra: digest(graded.extra) });
+      runs.push({ rev, level, seed, skill, raw, score: graded.score, replayScore: replay.score, flagged: Boolean(replay.flagged), state: digest(replay.state), sums, extra: digest(stableExtra(graded.extra)) });
     }
     console.log(`ricoRev ${rev} ${level ?? "normal"} ${seed}: done`);
   }
