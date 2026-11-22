@@ -21,7 +21,7 @@ import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_SHIELD } from "@/lib/arcade/hover";
 import { RALLY_REV_LIVES, RALLY_REV_STD } from "@/lib/arcade/rally";
 import { WAV_REV_BIG } from "@/lib/arcade/wavefront";
-import { BURST_REV_BIG } from "@/lib/arcade/burst";
+import { BURST_REV_SMALL } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import { BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
 import { BLOCKFALL_REV_ZONE } from "@/lib/arcade/blockfall";
@@ -65,7 +65,8 @@ export const SAME_PLAY_DEMO_REVS = {
   wavefront: [WAV_REV_BIG],
   // burstRev 13 (the Retro overhaul, 15 Nov 2026) has bigger atoms, so only a demo recorded on burstRev 13 plays (burstRev
   // 12 played burstRev 11 exactly; its demos and 11's are stopped now).
-  burst: [BURST_REV_BIG],
+  // burstRev 14 (D5, 22 Nov 2026) has the middle atoms, so only a demo recorded on burstRev 14 plays (13's is stopped).
+  burst: [BURST_REV_SMALL],
   // crossRev 13 (stage 3) has lighter traffic, so only a demo recorded on crossRev 13 plays.
   cross: [CROSS_REV_LIGHT],
   // rallyRev 13 (the Retro overhaul) plays rallyRev 12 tick for tick until the first miss, so a demo on either plays.

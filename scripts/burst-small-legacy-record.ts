@@ -3,7 +3,8 @@
  * 2026; docs/arcade-standard/burst.md "burstRev 14"), for scripts/burst-small-check.ts: each stamp's start at every level
  * (a digest per seed) and runs at several skill levels plus a random-input run, each with its server grade (gradeAnswer
  * on the stored puzzle: score, verdict and a digest of the stored extra), its replayed score and a digest of the final
- * state and checkpoints. Recorded on 6988eaa3 (polish/d5), before any burstRev 14 code; never re-record over it.
+ * state and checkpoints. Recorded on 2fda6e83 (polish/d5 6988eaa3 plus this script; the source tree before any burstRev 14
+ * code), the extra digested without its wall-clock replayMs; never re-record over it.
  *
  *   bun scripts/burst-small-legacy-record.ts
  */
@@ -22,6 +23,8 @@ import { bot as burstBot } from "./arcade-skill-bands/bots/burst";
 
 const OUT = "scripts/fixtures/burst-small-legacy.json.gz";
 const digest = (v: unknown) => createHash("sha256").update(JSON.stringify(v)).digest("hex").slice(0, 16);
+/** The stored extra without the replay's own wall-clock time (`diag.replayMs`), the one field that varies run to run. */
+const stableExtra = (v: unknown): unknown => (v == null ? null : JSON.parse(JSON.stringify(v, (k, x) => (k === "replayMs" ? undefined : x))));
 
 /** The stamps and levels recorded: burstRev 13 at every level (Normal and the three level deals), burstRev 12 (Normal only). */
 const PLANS: { rev: number; levels: Level[] }[] = [
@@ -82,7 +85,7 @@ for (const plan of PLANS) {
           flagged: !!replay.flagged,
           state: digest(replay.state),
           checkpoints: digest(replay.checkpoints ?? null),
-          grade: { score: g.score, isCorrect: g.isCorrect, extra: digest(g.extra ?? null) },
+          grade: { score: g.score, isCorrect: g.isCorrect, extra: digest(stableExtra(g.extra)) },
         });
         console.log(`burstRev ${plan.rev} ${level.padEnd(6)} seed ${String(seed).padStart(5)} ${player.padEnd(7)} → ${replay.score} (graded ${g.score})`);
       }

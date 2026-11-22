@@ -42,7 +42,7 @@ export interface WavefrontLv {
   bossPct: number;
   killS: number;
 }
-/** Fission (burstRev 13): lives, the atoms' size (per cent), the quick-clear time per wave (per cent of Normal's) and
+/** Fission (burstRev 13 and 14): lives, the atoms' size (per cent), the quick-clear time per wave (per cent of Normal's) and
  * the wasted beams that cost nothing (Normal: 20, or one an atom popped if more). */
 export interface BurstLv {
   lives: number;

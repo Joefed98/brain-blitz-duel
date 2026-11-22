@@ -1,5 +1,69 @@
 # Fission under the arcade scoring standard (`burstRev 10`)
 
+## burstRev 14: the middle atoms (D5, 22 Nov 2026)
+
+Joe (20 Nov 2026; the polish plan's C1.8, `docs/polish-plan-final/earlier-plan.md`): burstRev 13's atoms are a little
+too big. New stamp **burstRev 14** (`BURST_REV_SMALL`): burstRev 13's waves, lives, beams, power-ups, golden atoms,
+parts, kinder wave clears and levels, with every atom drawn and collided at `BURST_RADIUS_SMALL`, between burstRev 13's
+table and the original one:
+
+| Size | Original (burstRev ≤ 12) | burstRev 13 | **burstRev 14** | burstRev 14 Easy (125 %) |
+|---|---|---|---|---|
+| L | 32 | 38 | **35** | 43 |
+| M | 22 | 26 | **24** | 30 |
+| S | 14 | 17 | **15** | 18 |
+| XS | 8 | 10 | **9** | 11 |
+
+- One radius function serves everything, as on burstRev 13: `burstRadius(state, size)` reads the state's `small: 1`
+  (in place of burstRev 13's `big: 1`), then a level's `sizePct` on top (`Math.trunc(r × pct ÷ 100)`; Easy 125 %, Hard
+  and Expert 100 %). The sim's beams, bounces, walls, ceiling and spawn places, the renderer, the sound observer and the
+  near-miss moments all read it. The marker and the stamp are folded into the checkpoint checksum last, so every earlier
+  checksum is unchanged and burstRev 14's are its own.
+- **An atom touches the ship at the radius it is drawn at, its level's size included** (burstRev 14 only). On burstRev 13
+  the touch read the size table alone, so on Easy a quarter-bigger atom (47 px drawn) touched the ship only at 38 px: the
+  arcade bounds rule's one gap. burstRev 13 keeps its own touch exactly; Normal, Hard and Expert were never affected.
+- The golden atom (9 px), the ship, the beams and every number in the help are unchanged; the help states no atom size,
+  so no text changed.
+- Rooms deal it at every level; checks written for burstRev 13 pin **`burstPreSmall`** (`DEAL_PINS`), which deals
+  burstRev 13 on the same seed (and `preRetro` still deals burstRev 11). The practice definition, the intro still and
+  LIVE_BANDS name burstRev 14; only an intro demo recorded on burstRev 14 plays (`SAME_PLAY_DEMO_REVS`), so the Fission
+  demo needs recording on it (`bun scripts/retro-demos-record.ts burst`, then the Save intro demos workflow).
+- The standard's perfect run: the same oracle (scripts/burst-small-oracle.ts, the standard entry's search with the game
+  passed in) reaches 200 on 3 of 200 room seeds on burstRev 14 (1 of 200 on burstRev 13); on a real deal, level-tune's
+  deal 64 (seed **330123215**) scores 200 through `gradeAnswer`, every part at its maximum. burstRev 13's seed 489736026
+  scores 194 on burstRev 14.
+
+Measured on 24 real deals a level under Joe's human limits (`bun scripts/d5-ladder.ts burst --deals=24
+--bots=average,elite,proof`; averages, with the median in brackets; nothing reached 200 on either stamp):
+
+| Level | Average, 13 → 14 | Elite, 13 → 14 | Proof (flawless at the limits), 13 → 14 |
+|---|---|---|---|
+| Easy | 148.0 (151) → 121.7 (126) | 183.9 (185) → 184.8 (187) | 186.2 (188) → 173.5 (184) |
+| Normal | 93.4 (87) → 89.3 (88) | 172.9 (180) → 178.8 (178) | 176.1 (182) → 170.9 (179) |
+| Hard | 88.8 (83) → 84.9 (83) | 165.2 (173) → 170.6 (169) | 168.6 (175) → 163.5 (170) |
+| Expert | 70.7 (61) → 66.0 (62) | 157.3 (165) → 156.8 (162) | 160.2 (167) → 152.4 (163) |
+
+On 120 Normal deals: average 94.8 → 82.1, elite 176.1 → 173.9, proof 180.1 → 177.4 (medians 94 → 82, 181 → 178,
+182 → 180). Smaller atoms are harder to hit and easier to dodge: the average player loses most, the best players about
+as much as they gain. Easy drops most for the average player (its atoms shrink, and they now touch the ship at the size
+they are drawn).
+
+Medians (p10–p90) on 20 room seeds, `bun scripts/arcade-skill-bands.ts burst --rev=now --seeds=20 --levels=all` (no
+human limits; burstRev 13's row measured again the same day, identical to its section below):
+
+| Stamp | Weak | Average | Good | Great | Near-perfect | Elite | Flawless |
+|---|---|---|---|---|---|---|---|
+| burstRev 13 | 34 (14–55) | 102 (40–143) | 162 (129–178) | 178 (165–185) | 178 (159–190) | 181 (169–189) | 189 (183–194) |
+| burstRev 14 | 25 (5–58) | 82 (26–130) | 157 (91–173) | 176 (164–183) | 180 (169–191) | 183 (170–188) | 182 (177–191) |
+
+The skill-band bot reads its atoms' paths with `burstRadius({ big }, …)` (scripts/arcade-skill-bands/bots/burst.ts,
+`path`), so on burstRev 14 it predicts bounces with the original table (1–3 px small); its danger watch reads the state's
+own radius. A copy reading `{ big, small }` measured the same within noise on Normal (elite 176.9, proof 168.2, average
+83.2 on the 24 deals); the one-line fix is listed for Joe's approval. burst-small-check proves the stamp: burstRev 13 at
+every level and burstRev 12 replay and grade exactly as recorded before it (scripts/fixtures/burst-small-legacy.json.gz,
+scripts/burst-small-legacy-record.ts), the deal and pin, the radius rules, the art within 2 px of every collision radius
+(Normal, Easy, Hard), and the perfect deal at 200.
+
 ## burstRev 13: bigger atoms (the Retro overhaul, 15 Nov 2026)
 
 Joe (15 Nov 2026): "bigger Fission atoms, with their stamps". New stamp **burstRev 13** (`BURST_REV_BIG`): burstRev
