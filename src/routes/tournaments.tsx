@@ -25,17 +25,21 @@ import { TournamentHubSections } from "@/components/tournaments/TournamentHub";
 import { tournamentsBackend, useTournamentHub } from "@/lib/tournaments/tournamentsApi";
 import { HallOfFame } from "@/components/tournaments/BigEventLive";
 import { TOURNAMENT_KINDS_ON } from "@/config/tournamentConfig";
-import { TournamentArt } from "@/components/tournaments/TournamentArt";
+import { RatedHome } from "@/components/rated/RatedHome";
+import { CompeteBoards } from "@/components/leaderboards/CompeteBoards";
 import { useTournamentsAccess } from "@/components/nav/navigation";
+import { useRatedStatus } from "@/lib/rated/ratedApi";
+import { recordRatedEvent } from "@/lib/rated/ratedEvents";
+import { Button } from "@/design/components";
 
 export const Route = createFileRoute("/tournaments")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: `${APP_NAME} tournaments — public games` },
+      { title: `${APP_NAME} compete` },
       {
         name: "description",
-        content: `Scheduled public ${APP_NAME} games: join the room when the lobby opens.`,
+        content: `Ranked play, tournaments and leaderboards on ${APP_NAME}.`,
       },
       { name: "robots", content: "noindex" },
     ],
@@ -48,7 +52,7 @@ function OfflineTournaments() {
   // The app-wide home bed carries on here from the other tabs (docs/sound-cues/music.md).
   useHomeBed();
   return (
-    <OnlineOnly tabs="tournaments" live body="Tournaments need a connection. Practice games are saved on this phone, so they still work.">
+    <OnlineOnly tabs="tournaments" live body="Compete needs a connection. Practice games are saved on this phone, so they still work.">
       <TournamentsTab />
     </OnlineOnly>
   );
@@ -67,32 +71,21 @@ function gameForResult(record: RoomRecord, games: readonly PublicGame[]): Public
 }
 
 /**
- * The Tournaments tab (the navigation step, 14 Nov 2026): always in the navigation. A player who has tournaments
- * (today's switch: TOURNAMENTS_FOR_EVERYONE or the tester list, answered by the server's hub) gets the tournaments
- * screens exactly as before; everyone else the coming-soon page, which lists the upcoming public games where any are
- * scheduled and shows no list where none are.
+ * Compete (the Tournaments tab, id `tournaments`; P3, 22 Nov 2026, Joe's order of 20 Nov, plan section 2.1, mockup
+ * compete-mixed-phone): about ranked play and tournaments. First the player's rating, tier, bar and gold Find a match
+ * (RatedHome: only where rated play is open to them); then tournaments (the hub: live events as cards with their one
+ * action, then the week's fixtures as rows; only for players tournaments are open to), with the scheduled public games
+ * where any are; then, lower down, the leaderboards as tabs (CompeteBoards), the Daily top 100 one of them. Nothing
+ * here changes who may see rated play or tournaments: each part asks the server as before. The "Coming soon" page is
+ * gone (the leaderboards are open to all, so the tab is never empty).
  */
 function TournamentsTab() {
   const access = useTournamentsAccess();
   return <TournamentsScreen soon={!access.open} />;
 }
 
-/**
- * The coming-soon page's top (restyled in phase 2 step 3 to match the hub): the art kit's trophy, a quiet tag, the
- * title and one line, on one flat panel.
- */
-function ComingSoon() {
-  return (
-    <section aria-label="Tournaments are coming" data-tournaments-soon className="jz-panel tn-soon">
-      <TournamentArt name="trophy" size={96} />
-      <span className="tn-soon-tag">Coming soon</span>
-      <h2 className="tn-soon-title">Compete for trophies</h2>
-      <p className="tn-soon-body">Arenas, daily Score Attacks and cups, with trophies for your Profile. They open here soon.</p>
-    </section>
-  );
-}
-
 function TournamentsScreen({ soon }: { soon: boolean }) {
+  // `soon`: tournaments aren't open to this player (the hub is never drawn for them).
   const navigate = useNavigate();
   const router = useRouter();
   const games = useMemo(() => scheduledGames(), []);
@@ -108,7 +101,6 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
   // Wave 4 (W4b): the Arena and the daily Score Attack, once the server answers with tournaments open; until then
   // (and for anyone they aren't open to) the tab is exactly the public games below.
   const { hub: liveHub, refresh } = useTournamentHub();
-  // The coming-soon page never draws the hub (a player it shows to has no tournaments).
   const hub = soon ? null : liveHub;
   const openEvent = (id: string) => void navigate({ to: "/tournament", search: { id } });
   const remind = async (id: string, on: boolean) => {
@@ -126,7 +118,7 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
     </section>
   ) : null;
   // Nothing scheduled (T-TournamentsEmpty; wave 1's empty-state card, E2): what to do meanwhile; the Discord button
-  // only with its link. Not on the coming-soon page.
+  // only with its link. Only for a player with tournaments.
   const noneSection =
     next || soon ? null : (
       <section aria-label="No public games" className="ap-section">
@@ -209,35 +201,52 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
       </section>
     ) : null;
 
+  // Rated play's status (null for anyone it isn't open to): the ladder and the header's Tiers link follow it.
+  const rated = useRatedStatus();
+  const openTiers = () => {
+    recordRatedEvent({ event: "tier_ladder_viewed", from: "home" });
+    void navigate({ to: "/tiers" as never, state: { fromPlayTab: true } as never } as never);
+  };
+  // A player without tournaments: the public games only where some are scheduled or this device played one.
+  const publicGames = (
+    <>
+      {nextSection}
+      {laterSection}
+      {!next && results.length === 0 ? null : (resultsList ?? (
+        <section aria-label="Your results" className="ap-section">
+          <SectionHeader title="Your results" />
+          {resultsEmpty}
+        </section>
+      ))}
+    </>
+  );
+
   return (
     <PhoneShell
       tabs="tournaments"
-      title="Tournaments"
-      headerAction={soon ? undefined : <span className="ap-beta">Beta</span>}
+      title="Compete"
+      headerAction={
+        rated ? (
+          <Button variant="secondary" size={48} onClick={openTiers} data-compete-tiers>
+            Tiers
+          </Button>
+        ) : hub ? (
+          <span className="ap-beta">Beta</span>
+        ) : undefined
+      }
       aside={<PageAside panels={["daily", "week"]} />}
     >
-      <div className="ap-stack tn-tab" data-tournaments-tab={soon ? "soon" : "open"}>
-        {soon ? <ComingSoon /> : null}
+      <div className="ap-stack tn-tab cp-page" data-tournaments-tab={soon ? "closed" : "open"}>
+        {/* 1. Ranked play: the rating, tier, bar and gold Find a match (nothing for anyone rated play isn't open to). */}
+        <RatedHome />
 
-        {/* A player with tournaments: the hub's two views, with the public games in each (the style guide's list). */}
-        {hub ? <TournamentHubSections hub={hub} onOpen={openEvent} onRemind={(id, on) => void remind(id, on)} upcoming={<>{nextSection}{laterSection}{noneSection}</>} results={resultsList} resultsEmpty={hub.entries.length === 0 ? resultsEmpty : undefined} /> : null}
+        {/* 2. Tournaments (a player with tournaments): live events as cards, then the week's fixtures as rows. */}
+        {hub ? <TournamentHubSections hub={hub} heading="Tournaments" compact={!!rated} onOpen={openEvent} onRemind={(id, on) => void remind(id, on)} upcoming={<>{nextSection}{laterSection}{noneSection}</>} results={resultsList} resultsEmpty={hub.entries.length === 0 ? resultsEmpty : undefined} /> : publicGames}
         {/* The Joulz Championship's hall of fame (W4c): nothing while the Championship is off or nobody has won. */}
         {hub ? <HallOfFame on={TOURNAMENT_KINDS_ON.championship} /> : null}
 
-        {hub ? null : (
-          <>
-            {nextSection}
-            {noneSection}
-            {laterSection}
-            {/* Coming soon: the results only where public games are scheduled or this device has played one. */}
-            {soon && !next && results.length === 0 ? null : (resultsList ?? (
-              <section aria-label="Your results" className="ap-section">
-                <SectionHeader title="Your results" />
-                {resultsEmpty}
-              </section>
-            ))}
-          </>
-        )}
+        {/* 3. The leaderboards, lower down: Rating, Puzzles, Arcade and the Daily top 100 as tabs, your row pinned. */}
+        <CompeteBoards />
       </div>
     </PhoneShell>
   );

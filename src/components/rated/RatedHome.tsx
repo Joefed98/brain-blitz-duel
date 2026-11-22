@@ -1,7 +1,8 @@
 /**
- * Home's rated part (wave 3, session W3c; mockups 01, 02 and 11 in docs/mockups/wave-3/): the rank panel (your tier,
- * division and Joulz Rating once placed, "Placement 2 of 5" during it) and the Play card ("Find a match", the pick,
- * Play), with the picker sheet.
+ * The rated ladder (wave 3, session W3c; mockups 01, 02 and 11 in docs/mockups/wave-3/; since P3, 22 Nov 2026, Compete's
+ * hero, plan section 2.1 and mockup compete-mixed-phone): the rank (your tier, the Joulz Rating large, the bar to the
+ * next division and the week's change once placed; "Placement 2 of 5" during it) and the Play card (the pick and gold
+ * Find a match), with the picker sheet, as one hero.
  *
  * Testers only while rated play is testers only: drawn only when the server says rated play is open to this player
  * (useRatedStatus); everyone else gets nothing here, so their Home is today's, markup for markup.
@@ -14,8 +15,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 
-import { Button, Icon, Panel, Segmented, Sheet } from "@/design/components";
-import { Avatar, DEFAULT_AVATAR } from "@/design/identity";
+import { Button, Icon, Segmented, Sheet } from "@/design/components";
 import { formatOf, type BestOf, type RatedPick, type RatedStatus } from "@/lib/rated/backend";
 import { useRatedStatus } from "@/lib/rated/ratedApi";
 import { cooldownLine } from "@/lib/rated/rules";
@@ -63,8 +63,10 @@ export function RatedHome() {
 }
 
 export function RatedHomeView({ status }: { status: RatedStatus }) {
+  // Compete's ladder hero (P3, 22 Nov 2026; plan section 2.1, mockup compete-mixed-phone): the rank and the Play card
+  // drawn as one obsidian hero with the cut corner, Find a match its one gold button.
   return (
-    <div className="rt-home" data-rated-home={status.standing.state}>
+    <div className="rt-home rt-ladder jz-cut-lg" data-rated-home={status.standing.state}>
       <RankPanel status={status} />
       <PlayCard status={status} />
     </div>
@@ -73,11 +75,46 @@ export function RatedHomeView({ status }: { status: RatedStatus }) {
 
 /* ------------------------------------------------------------------ the rank panel */
 
+/**
+ * "+22 this week" (or −): the Joulz Rating change over this week's rated matches, from the server's match history
+ * (ratedWeekChangeFn, Monday 00:00 UK on), the same call Home's banner makes; null for none or no answer. Checks set
+ * `window.__DUELZ_RATED_WEEK__` (a number) in place of the call; never read in a production build.
+ */
+function useWeekChange(placed: boolean): number | null {
+  const [change, setChange] = useState<number | null>(null);
+  useEffect(() => {
+    if (!placed) return setChange(null);
+    let live = true;
+    if (!import.meta.env.PROD) {
+      const stand = (window as unknown as Record<string, unknown>)["__DUELZ_RATED_WEEK__"];
+      if (typeof stand === "number") {
+        setChange(stand === 0 ? null : stand);
+        return;
+      }
+      // Under automation with no stand-in: no call (no existing check gains a server call).
+      if (typeof navigator !== "undefined" && navigator.webdriver) return;
+    }
+    void (async () => {
+      try {
+        const { ratedWeekChangeFn } = await import("@/lib/home/weekChange.functions");
+        const answer = await ratedWeekChangeFn();
+        if (live) setChange(answer && answer.change !== 0 ? answer.change : null);
+      } catch {
+        if (live) setChange(null);
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, [placed]);
+  return change;
+}
+
 function RankPanel({ status }: { status: RatedStatus }) {
   const navigate = useNavigate();
   const name = status.me.username;
   const s = status.standing;
-  const avatar = <Avatar look={status.me.look.avatar ?? DEFAULT_AVATAR} size={52} />;
+  const week = useWeekChange(s.state === "placed");
   // The season line from D2's pass (accounts with a pass; nothing otherwise).
   const pass = usePass();
   const season = pass.state === "open" && pass.view.season.daysLeft !== null && !pass.view.season.ended ? pass.view.season : null;
@@ -92,15 +129,14 @@ function RankPanel({ status }: { status: RatedStatus }) {
     const lost = s.results.filter((r) => r === "lost").length;
     const known = s.results.every((r) => r !== null);
     return (
-      <Panel as="section" pad aria-label="Placement" className="rt-rank" data-rank-panel="placement">
+      <section aria-label="Placement" className="rt-rank" data-rank-panel="placement">
         <div className="rt-rank-head">
-          {avatar}
           <span className="rt-rank-who">
             <span className="rt-rank-name">
               {name}
               {guestTag}
             </span>
-            <span className="rt-rank-sub">Placement matches</span>
+            <span className="rt-ladder-eyebrow">Placement matches</span>
           </span>
           <UnplacedEmblem />
         </div>
@@ -116,18 +152,20 @@ function RankPanel({ status }: { status: RatedStatus }) {
           <SideTile side="puzzles" rating={s.puzzles} hidden sub={s.puzzles.matches > 0 ? `${s.puzzles.matches} played` : undefined} />
           <SideTile side="arcade" rating={s.arcade} hidden sub={s.arcade.matches > 0 ? `${s.arcade.matches} played` : undefined} />
         </div>
-      </Panel>
+      </section>
     );
   }
 
   return (
-    <Panel as="section" pad aria-label="Your rank" className="rt-rank" data-rank-panel="placed">
+    <section aria-label="Your rank" className="rt-rank" data-rank-panel="placed">
       <div className="rt-rank-head">
-        {avatar}
         <span className="rt-rank-who">
-          <span className="rt-rank-name">
-            {name}
+          <span className="rt-ladder-eyebrow" data-ellipsis>
+            {s.rank.label}
             {guestTag}
+          </span>
+          <span className="rt-ladder-rating" data-joulz-rating>
+            {ratingText(s.rank.rating)}
           </span>
           {season ? (
             <span className="rt-rank-sub" data-season-line>
@@ -137,29 +175,28 @@ function RankPanel({ status }: { status: RatedStatus }) {
         </span>
         <button
           type="button"
-          className="rt-rank-rating press"
-          aria-label={`Joulz Rating ${ratingText(s.rank.rating)}. See the tiers`}
+          className="rt-rank-rating rt-ladder-emblem press"
+          aria-label={`Joulz Rating ${ratingText(s.rank.rating)}, ${s.rank.label}. See the tiers`}
           onClick={() => {
             recordRatedEvent({ event: "tier_ladder_viewed", from: "home" });
             void navigate({ to: "/tiers" as never });
           }}
           data-open-tiers
         >
-          <RankEmblem rank={s.rank} size={36} />
-          <span className="rt-rank-rating-text">
-            <span className="rt-rank-label">Joulz Rating</span>
-            <span className="rt-rank-value" data-joulz-rating>
-              {ratingText(s.rank.rating)}
-            </span>
-          </span>
+          <RankEmblem rank={s.rank} size={76} />
         </button>
       </div>
+      <DivisionBarView rank={s.rank} />
+      {week !== null ? (
+        <p className={week > 0 ? "rt-ladder-week rt-ladder-up" : "rt-ladder-week rt-ladder-down"} data-rated-week-change={week}>
+          {week > 0 ? "▲" : "▼"} {Math.abs(week)} this week
+        </p>
+      ) : null}
       <div className="rt-sides">
         <SideTile side="puzzles" rating={s.puzzles} />
         <SideTile side="arcade" rating={s.arcade} />
       </div>
-      <DivisionBarView rank={s.rank} />
-    </Panel>
+    </section>
   );
 }
 
@@ -211,8 +248,7 @@ function PlayCard({ status }: { status: RatedStatus }) {
   };
 
   return (
-    <section aria-label="Find a match" className="rt-play jz-stripes jz-cut-lg" data-rated-play>
-      <h2 className="rt-play-title">Find a match</h2>
+    <section aria-label="Find a match" className="rt-play" data-rated-play>
       {!placing && bests.length > 1 ? (
         <Segmented
           label="Match length"
@@ -242,8 +278,8 @@ function PlayCard({ status }: { status: RatedStatus }) {
         {picks.length > 1 ? <Icon name="chevron-down" size={20} tone="text-3" /> : null}
       </button>
       <CooldownNote line={cooldown} />
-      <Button variant="gold" size={58} block onClick={play} disabled={cooldown !== null} data-rated-play-button>
-        {placing ? `Play placement ${nextPlacement}` : "Play"}
+      <Button variant="gold" size={60} block onClick={play} disabled={cooldown !== null} data-rated-play-button>
+        {placing ? `Play placement ${nextPlacement}` : "Find a match"}
       </Button>
       {picker ? (
         <RatedPicker
