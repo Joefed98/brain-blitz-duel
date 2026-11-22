@@ -219,7 +219,9 @@
   font: var(--jz-type-label);
   white-space: nowrap;
 }
-/* The hero button: one slow sheen every six seconds (plan section 1.3), inside its cut, over the face only. */
+/* The hero button: a sheen inside its cut, over the face only (plan section 1.3). It sweeps twice when Home opens (and
+   again each time Home is opened, since Home mounts afresh), then stops, so idle Home draws nothing (battery-check);
+   none under Reduce motion. */
 .hp-banner-play {
   flex: none;
   font-size: 20px;
@@ -241,13 +243,13 @@
   width: 40%;
   background: linear-gradient(105deg, transparent 0%, color-mix(in srgb, var(--jz-white) 45%, transparent) 50%, transparent 100%);
   transform: translateX(-120%);
-  animation: hp-sheen 6s 1.2s ease-in-out infinite;
+  animation: hp-sheen 1.1s 0.4s ease-in-out 2;
 }
 @keyframes hp-sheen {
   0% {
     transform: translateX(-120%);
   }
-  16% {
+  72% {
     transform: translateX(320%);
   }
   100% {
