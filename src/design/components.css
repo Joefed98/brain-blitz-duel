@@ -1290,7 +1290,8 @@
     display: block;
     width: calc(var(--level-bar-h) * 0.26);
     border-radius: 1px;
-    background: var(--jz-surface-2);
+    /* Unlit bars: a faint text tint, so they show on every panel (surface 2 vanished on a selected level's tile). */
+    background: color-mix(in srgb, var(--jz-text-3) 40%, transparent);
   }
   .jz-level-bars > span:nth-child(1) { height: 40%; }
   .jz-level-bars > span:nth-child(2) { height: 60%; }
