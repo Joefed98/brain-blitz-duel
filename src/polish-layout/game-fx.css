@@ -364,6 +364,112 @@
   color: var(--jz-text);
   font-family: var(--jz-font);
 }
+/* The Cabinet's paint (mockup play-a-desktop, the esports style): both panels open onto the game's own scenery (no
+   panel fill, no fade), their content navy cards with one edge in the game's group colour (--cab-edge, PhoneShell),
+   centred down the screen. The aside boxes stay full height at the screen's edges; only what is drawn in them moves. */
+[data-arena-left] > .arena-panel-left,
+[data-arena-left] > .arena-panel {
+  justify-content: center;
+  border: 0;
+  background: transparent;
+}
+[data-arena-left] > .arena-panel-left > .arena-panel-mount,
+[data-arena-left] > .arena-panel > .arena-panel-mount {
+  flex: 0 1 auto;
+}
+.cab-col {
+  gap: var(--jz-space-12);
+}
+.cab-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  padding: var(--jz-space-16);
+  border: 2px solid var(--cab-edge, var(--jz-cyan));
+  border-radius: var(--jz-radius-lg);
+  background: color-mix(in srgb, var(--jz-navy) 92%, transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--cab-edge, var(--jz-cyan)) 22%, transparent);
+}
+.cab-caption {
+  font-size: 13px;
+  font-weight: var(--jz-weight-black);
+  line-height: 16px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--cab-edge, var(--jz-cyan));
+}
+.cab-run-score {
+  font-size: 64px;
+  font-weight: var(--jz-weight-black);
+  line-height: 64px;
+  color: var(--jz-white);
+  font-variant-numeric: tabular-nums;
+}
+.cab-card .arena-game-timer,
+.cab-card .arena-game-score,
+.cab-card.arena-game-status,
+.cab-card .cab-status {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.cab-card.arena-game-status {
+  padding: var(--jz-space-16);
+  border-radius: var(--jz-radius-lg);
+  background: color-mix(in srgb, var(--jz-navy) 92%, transparent);
+}
+.cab-status {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+}
+.cab-card .arena-game-score .game-frame-score-value {
+  font-size: 22px;
+  line-height: 26px;
+}
+.cab-goal .arena-game-goal {
+  font-size: 18px;
+  font-weight: var(--jz-weight-bold);
+  line-height: 24px;
+  color: var(--jz-text);
+}
+.cab-card .gm-ch-list {
+  margin: 0;
+}
+.cab-controls {
+  margin-top: 0;
+}
+.cab-keys {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cab-keys li {
+  display: flex;
+  align-items: center;
+  gap: var(--jz-space-12);
+  font-size: 14px;
+  font-weight: var(--jz-weight-medium);
+  line-height: 18px;
+  color: var(--jz-text-2);
+}
+.cab-keys kbd {
+  flex: none;
+  min-width: 36px;
+  padding: 5px 10px;
+  border-radius: var(--jz-radius-sm);
+  background: var(--jz-white);
+  box-shadow: 0 3px 0 var(--jz-line);
+  font-family: var(--jz-font);
+  font-size: 14px;
+  font-weight: var(--jz-weight-black);
+  line-height: 18px;
+  text-align: center;
+  color: var(--jz-bg);
+}
 [data-arena][data-layout="tablet"][data-room-panel] {
   padding-right: 380px;
 }
