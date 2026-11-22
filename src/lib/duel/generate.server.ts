@@ -24,6 +24,7 @@ import { withPipesTwoWayPar } from "./depth4/pipesTaps";
 import { dealWordOverhaul } from "./wordOverhaul.server";
 import { dealAttentionOverhaul } from "./attentionOverhaul";
 import { dealSpeedOverhaul } from "./speedOverhaul";
+import { dealPyramidPartial } from "./pyramidPartial";
 import { activeDealPins, dealPinned, withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
 import { dealNotesFree } from "./notesFree";
@@ -217,6 +218,8 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   // The Speed overhaul (15 Nov 2026, speedOverhaul.ts): Tenfall tenRev 6 (resets cost on a finish), Pull! clayRev 10
   // (a wider quick-hit window).
   { name: "speedOverhaul", deal: dealSpeedOverhaul },
+  // Integer Pyramid's unfinished credit (D2, 22 Nov 2026, pyramidPartial.ts): depthRev 3, stone by stone.
+  { name: "pyramidPartial", deal: dealPyramidPartial },
 ];
 
 /**

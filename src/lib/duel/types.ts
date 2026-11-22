@@ -176,6 +176,8 @@ export interface TargetNumberPuzzleData {
   target: number;
   /** One valid solution, kept server-side until the reveal. */
   solution: TargetStep[];
+  /** A level deal's own "full by" time for its speed points (D2, 22 Nov 2026, standard/levelSpeed.ts); absent = the game's own. */
+  speedFullByS?: number;
 }
 
 export type SpotShapeKind = "circle" | "square" | "triangle" | "star" | "hexagon" | "arrow";
@@ -2516,6 +2518,8 @@ export interface BalancePuzzleData {
   timeLimitMs?: number;
   /** balanceRev 5 at Expert (balanceLevels.ts): the balance readout under the beam is not shown. */
   hideBalance?: boolean;
+  /** A level deal's own "full by" time for its speed points (D2, 22 Nov 2026, standard/levelSpeed.ts); absent = the game's own. */
+  speedFullByS?: number;
 }
 
 /* ========================== Wavefront / Bastion ========================== */
@@ -2672,7 +2676,7 @@ export const WORDSEARCH_TIME_MS = 120_000;
 export const NUMPYRAMID_TIME_MS = 120_000;
 
 export interface NumberPyramidBoardData {
-  rows: 4 | 5 | 6;
+  rows: 3 | 4 | 5 | 6;
   givens: (number | null)[];
   tray: number[];
 }
@@ -2684,6 +2688,8 @@ export interface NumberPyramidPuzzleData {
   pyramids: NumberPyramidBoardData[];
   /** Every board's values — private until the reveal. */
   solutions?: number[][];
+  /** A level deal's own "full by" time for its speed points (D2, 22 Nov 2026, standard/levelSpeed.ts); absent = the game's own. */
+  speedFullByS?: number;
 }
 
 /** Trail: a 6×6 king-move path from 1 to 36. */
@@ -2732,6 +2738,8 @@ export interface MeasurePuzzleData {
   par?: number[];
   /** One shortest action list per board — private until the reveal. */
   solutions?: string[];
+  /** A level deal's own "full by" time for its speed points (D2, 22 Nov 2026, standard/levelSpeed.ts); absent = the game's own. */
+  speedFullByS?: number;
 }
 
 /** Checkout: five darts boards in 90 s. */
@@ -2773,6 +2781,10 @@ export interface CheckoutPuzzleData {
   minDarts?: number[];
   /** One shortest route per stage ("wedge:ring,…", wedge 20 = bull) — private until the reveal. */
   routes?: string[];
+  /** A level deal's own clock (D2, 22 Nov 2026: Checkout's Easy 120 s); absent = the type's 90 s. */
+  timeLimitMs?: number;
+  /** A level deal's own "full by" time for its speed points (D2, 22 Nov 2026, standard/levelSpeed.ts); absent = the game's own. */
+  speedFullByS?: number;
 }
 
 /** Ballpark: three lines of five numbers in 75 s (the registry limit: stored rounds; numlineRev 2 puzzles carry 90 s as `timeLimitMs`). */
@@ -2810,6 +2822,8 @@ export interface NumlinePuzzleData {
   stages: NumlineStageData[];
   /** Exact value of every item, stage by stage — private until the reveal. */
   values?: NumlineValue[][];
+  /** A level deal's own "full by" time for its speed points (D2, 22 Nov 2026, standard/levelSpeed.ts); absent = the game's own. */
+  speedFullByS?: number;
 }
 
 /** Dig: 60 s of water flowing at 10 steps per second. */
@@ -3155,4 +3169,11 @@ export interface KakuroPuzzleData {
   grade?: number;
   /** One per cell, row by row: the digit, 0 on black cells — private until the reveal. */
   solution?: number[];
+  /**
+   * D2 (22 Nov 2026, Kakuro's Hard): the rows drawn, the clue row included, when fewer than `size` (the rows past it are
+   * black and empty). Absent = `size` rows, as every board dealt before.
+   */
+  rows?: number;
+  /** A level deal's own "full by" time for its speed points (D2, 22 Nov 2026, standard/levelSpeed.ts); absent = the game's own. */
+  speedFullByS?: number;
 }

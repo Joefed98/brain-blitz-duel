@@ -286,7 +286,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     ro.observe(node); measure();
     return () => ro.disconnect();
   }, [!!data]);
-  const board = data?.pyramids[Math.min(stage, NP_SET_SIZE - 1)];
+  // D2 (22 Nov 2026): the dealt pyramids (Easy and Expert deal three; four as before everywhere else).
+  const pyramidCount = data?.pyramids.length || NP_SET_SIZE;
+  const board = data?.pyramids[Math.min(stage, pyramidCount - 1)];
   const placements = allPlacements[stage] ?? {};
   const encoded = npEncodeRound(stage, allPlacements);
 
@@ -314,13 +316,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
   const complete = board ? npComplete(board.givens, board.tray, placements, board.rows) : false;
   const holding = useStageCorrectHold({
     complete,
-    finalStage: stage >= NP_SET_SIZE - 1,
+    finalStage: stage >= pyramidCount - 1,
     locked: locked || submitted.current,
     stateKey: key,
     onAdvance: () => advance(placements),
   });
   // Completion: the final board's sums light from the bottom row up (display only, after the submit).
-  const lit = useSolveFx(complete && stage >= NP_SET_SIZE - 1, "numpyramid.solve", 1100);
+  const lit = useSolveFx(complete && stage >= pyramidCount - 1, "numpyramid.solve", 1100);
   const busy = locked || submitted.current || complete;
   // Game review fix (15 Nov 2026, display only): a full pyramid that isn't right gets the shared wrong-move shake with
   // its quiet reject sound, once per arrangement. The Number overhaul (Joe's approval, 15 Nov 2026): its broken sums
@@ -389,7 +391,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     setSelected(null); setDrag(null);
     // Skip (or Finish) on a pyramid not complete: its own flat swish, never the stage-complete sound.
     if (board && !npComplete(board.givens, board.tray, nextPlacements, board.rows)) soundCue("numpyramid.skip");
-    if (stage >= NP_SET_SIZE - 1) { submitted.current = true; onSubmit(npEncodeRound(NP_SET_SIZE, boards)); return; }
+    if (stage >= pyramidCount - 1) { submitted.current = true; onSubmit(npEncodeRound(pyramidCount, boards)); return; }
     setStage(stage + 1);
   };
 
@@ -492,7 +494,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
     <div ref={box} data-polish="numpyramid" data-bw-live={framed ? "" : undefined} data-play-area data-stage-column="1" className="flex min-h-0 w-full flex-1 flex-col items-center gap-1 py-0.5 select-none" style={NO_TOUCH} onPointerMove={move} onPointerUp={(e) => (drag ? end(e) : tapEmpty(e))} onPointerCancel={() => setDrag(null)}>
       {column && <div className="np-spacer" aria-hidden />}
       {/* A skip moves on quietly; a completed pyramid's moment is the shared NumberStage's, with its own sound. */}
-      <StageProgress stage={stage} total={NP_SET_SIZE} quiet={stage > 0 && !!data.pyramids[stage - 1] && !npComplete(data.pyramids[stage - 1]!.givens, data.pyramids[stage - 1]!.tray, allPlacements[stage - 1] ?? {}, data.pyramids[stage - 1]!.rows) || NUMBER_STAGE_MOMENT_SOUND} />
+      <StageProgress stage={stage} total={pyramidCount} quiet={stage > 0 && !!data.pyramids[stage - 1] && !npComplete(data.pyramids[stage - 1]!.givens, data.pyramids[stage - 1]!.tray, allPlacements[stage - 1] ?? {}, data.pyramids[stage - 1]!.rows) || NUMBER_STAGE_MOMENT_SOUND} />
       <div className="flex h-11 w-full shrink-0 items-center justify-between">
         {framed ? (
           <div className="min-w-0 flex-1">
@@ -506,9 +508,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             />
           </div>
         ) : (
-          <p className="font-mono text-xs uppercase text-muted-foreground">Pyramid {stage + 1} of {NP_SET_SIZE}</p>
+          <p className="font-mono text-xs uppercase text-muted-foreground">Pyramid {stage + 1} of {pyramidCount}</p>
         )}
-        <Button type="button" variant="ghost" size="sm" className="np-skip h-11 min-w-11" disabled={busy} onClick={() => advance(placements)}>{stage >= NP_SET_SIZE - 1 ? "Finish" : "Skip"}</Button>
+        <Button type="button" variant="ghost" size="sm" className="np-skip h-11 min-w-11" disabled={busy} onClick={() => advance(placements)}>{stage >= pyramidCount - 1 ? "Finish" : "Skip"}</Button>
       </div>
       <div ref={arenaRef} data-game-arena="board" className={`flex min-h-0 w-full items-center justify-center ${column ? "shrink-0" : "flex-1"}`} style={column ? { height: board.rows * (cellH + 4) + 16, maxHeight: "none", flexShrink: 0 } : undefined}>
         <NumberStage type="numpyramid" index={stage} exit={holding ? "clear" : null} className="justify-center">

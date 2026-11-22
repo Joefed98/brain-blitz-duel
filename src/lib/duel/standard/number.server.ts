@@ -31,6 +31,7 @@ import type {
 import type { StandardGame } from "./grade.server";
 import { PARTIAL_SHARE_POINTS, usesPartialCredit } from "../partialCredit";
 import { solverShare } from "../puzzleProgress";
+import { pyramidPartialCredit, usesPyramidPartial } from "../pyramidPartial";
 import {
   BALLPARK_STD_BULL_MAX,
   BALLPARK_STD_BULL_POINTS,
@@ -55,17 +56,14 @@ import {
   isStdBullseye,
 } from "./number";
 import { STANDARD_FINISH, cleanPoints, earlyPoints, parPoints, speedPoints } from "./shape";
+import { storedFullByS } from "./levelSpeed";
 
 function speedFor(type: keyof typeof NUMBER_STANDARD, msLeft: number, limitMs: number, fullByS?: number): number {
   const g = NUMBER_STANDARD[type]!;
   return speedPoints(g.speed, msLeft, limitMs, (fullByS ?? g.fullByS) * 1000);
 }
 
-/** A level's own "full by" time, stamped on the deal (Operator's Hard and Expert, 16 Nov 2026); none on Normal. */
-function storedFullByS(puzzle: unknown): number | undefined {
-  const v = (puzzle as { speedFullByS?: unknown }).speedFullByS;
-  return typeof v === "number" && v > 0 ? v : undefined;
-}
+export { storedFullByS } from "./levelSpeed";
 
 /* ------------------------------------------------------------------ Exact */
 
@@ -158,7 +156,7 @@ const exact: StandardGame = {
       const used = exactTilesUsed(p, answer);
       const min = exactMinTiles(p.tiles, p.target);
       const elegance = used === null ? 0 : cleanPoints(EXACT_STD_ELEGANCE, EXACT_STD_ELEGANCE_PER, used - min);
-      return { finished: true, speed: speedFor("target", msLeft, limitMs), bonus: elegance, measure: "elegance", facts: { tilesUsed: used, minTiles: min } };
+      return { finished: true, speed: speedFor("target", msLeft, limitMs, storedFullByS(puzzle)), bonus: elegance, measure: "elegance", facts: { tilesUsed: used, minTiles: min } };
     }
     const best = exactBestDistance(p, answer);
     if (usesPartialCredit(p)) {
@@ -218,7 +216,7 @@ const counterweight: StandardGame = {
       // Par hangs: every tray weight hung once (the fewest hangs a scale can take), over the four scales together.
       const par = p.scales.reduce((sum, scale) => sum + scale.tray.length, 0);
       const used = p.scales.reduce((sum, scale, s) => sum + Math.max(scale.tray.length, hangs[s] ?? 0), 0);
-      return { finished: true, speed: speedFor("balance", msLeft, limitMs), bonus: parPoints(NUMBER_STANDARD.balance!.bonus, used, par), measure: "par", facts: { hangsUsed: used, parHangs: par } };
+      return { finished: true, speed: speedFor("balance", msLeft, limitMs, storedFullByS(puzzle)), bonus: parPoints(NUMBER_STANDARD.balance!.bonus, used, par), measure: "par", facts: { hangsUsed: used, parHangs: par } };
     }
     return { finished: false, credit: NUMBER_PART_POINTS * scales + ctx.early(NUMBER_PART_EARLY, scales), facts: { scalesBalanced: scales } };
   },
@@ -268,9 +266,17 @@ const pyramid: StandardGame = {
     // No timeline, no history: the clean bonus needs it (0 without).
     const everWrong = drafts ? pyramidsEverWrong(p, drafts) : boards.map(() => true);
     const clean = boards.filter((b, i) => b.complete && !everWrong[i]).length;
-    const cleanPts = Math.min(NUMBER_STANDARD.numpyramid!.bonus, NUMBER_CLEAN_EACH * clean);
+    // The clean bonus's share a pyramid: 10 ÷ the pyramids (D2, 22 Nov 2026: Easy's and Expert's three pyramids can take
+    // all 10); exactly NUMBER_CLEAN_EACH (2.5) on every four-pyramid round, as before.
+    const cleanEach = p.pyramids.length === 4 ? NUMBER_CLEAN_EACH : NUMBER_STANDARD.numpyramid!.bonus / Math.max(1, p.pyramids.length);
+    const cleanPts = Math.min(NUMBER_STANDARD.numpyramid!.bonus, cleanEach * clean);
     const facts = { pyramidsDone: done, cleanPyramids: clean };
-    if (graded.isCorrect) return { finished: true, speed: speedFor("numpyramid", msLeft, limitMs), bonus: cleanPts, measure: "clean", facts };
+    if (graded.isCorrect) return { finished: true, speed: speedFor("numpyramid", msLeft, limitMs, storedFullByS(puzzle)), bonus: cleanPts, measure: "clean", facts };
+    // depthRev 3 (pyramidPartial.ts, D2): 130 × the stones placed correctly ÷ the round's stones, no extras.
+    if (usesPyramidPartial(p)) {
+      const partial = pyramidPartialCredit(boards);
+      return { finished: false, credit: partial.credit, facts: { pyramidsDone: done, stonesRight: partial.right, stones: partial.stones } };
+    }
     // The current pyramid is the first unfinished one (they are played in order), as rev 1 reads it.
     const current = boards.find((b) => !b.complete);
     const share = current && current.empty > 0 ? Math.min(0.99, Math.min(current.correct, current.empty) / current.empty) : 0;
@@ -367,7 +373,7 @@ const brimful: StandardGame = {
       // Par pours over the four puzzles together: total actions against the total of their par (their fewest).
       const par = results.reduce((sum, r, i) => sum + (p.par?.[i] ?? r.minMoves), 0);
       const used = results.reduce((sum, r) => sum + r.moves, 0);
-      return { finished: true, speed: speedFor("measure", msLeft, limitMs), bonus: parPoints(NUMBER_STANDARD.measure!.bonus, used, par), measure: "par", facts: { pours: used, parPours: par } };
+      return { finished: true, speed: speedFor("measure", msLeft, limitMs, storedFullByS(puzzle)), bonus: parPoints(NUMBER_STANDARD.measure!.bonus, used, par), measure: "par", facts: { pours: used, parPours: par } };
     }
     return { finished: false, credit: NUMBER_PART_POINTS * solved + ctx.early(NUMBER_PART_EARLY, solved), facts: { puzzlesSolved: solved } };
   },
@@ -407,7 +413,7 @@ const checkout: StandardGame = {
       const min = results.reduce((sum, r) => sum + r.minDarts, 0);
       const darts = results.reduce((sum, r) => sum + r.darts, 0);
       const fewest = parPoints(CHECKOUT_STD_FEWEST, darts, min);
-      return { finished: true, speed: speedFor("checkout", msLeft, limitMs), bonus: fewest + big.points, measure: "bonus", facts: { ...facts, darts, fewestDarts: min } };
+      return { finished: true, speed: speedFor("checkout", msLeft, limitMs, storedFullByS(puzzle)), bonus: fewest + big.points, measure: "bonus", facts: { ...facts, darts, fewestDarts: min } };
     }
     return { finished: false, credit: CHECKOUT_STD_BOARD * count + ctx.early(CHECKOUT_STD_EARLY, count) + big.points, facts };
   },
@@ -435,7 +441,7 @@ const ballpark: StandardGame = {
       return {
         finished: true,
         base: STANDARD_FINISH * average - wild,
-        speed: speedFor("numline", msLeft, limitMs) * average,
+        speed: speedFor("numline", msLeft, limitMs, storedFullByS(puzzle)) * average,
         bonus: bullPts,
         measure: "bullseyes",
         facts,

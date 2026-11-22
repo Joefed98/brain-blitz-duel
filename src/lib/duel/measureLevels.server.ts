@@ -145,9 +145,14 @@ export function stampMeasureLevel(puzzle: PuzzleData, level: Level | undefined):
   const settings = measureLevelSettings(level);
   if ("today" in settings) return puzzle;
   const mins = puzzle.minMoves ?? [];
+  const moveLimits = mins.map((m) => measureLevelLimit(m, settings.limitFactor));
+  // D2 (22 Nov 2026): a level's par from the textbook way, and its own "full by" time (both stored on the puzzle).
+  const par = settings.personPar ? puzzle.boards.map((b, i) => personSolve(b, moveLimits[i] ?? 0)?.length ?? mins[i]!) : null;
   return {
     ...puzzle,
     measureRev: MEASURE_REV_LEVELS,
-    moveLimits: mins.map((m) => measureLevelLimit(m, settings.limitFactor)),
+    moveLimits,
+    ...(par ? { par } : {}),
+    ...(settings.fullByS ? { speedFullByS: settings.fullByS } : {}),
   };
 }

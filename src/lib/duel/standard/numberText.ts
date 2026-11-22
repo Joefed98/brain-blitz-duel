@@ -7,6 +7,7 @@ import { preLogic2Pinned, TRAIL_UNDO_COST } from "../logicOverhaul2";
 import { preSpeedOverhaulPinned } from "../speedOverhaul";
 import { operatorGapsDealt } from "../operatorGaps";
 import { partialCreditDealt } from "../partialCredit";
+import { pyramidPartialDealt } from "../pyramidPartial";
 import {
   TD_REV3_FREE_RESETS,
   TD_REV3_RESET_COST,
@@ -90,7 +91,10 @@ export function standardNumberHelp(type: PuzzleType): string {
         finish("complete all four pyramids"),
         speed(type),
         { label: "Clean pyramids", how: `${NUMBER_CLEAN_EACH} for each pyramid done with no wrong number ever placed, finished or not`, max: g!.bonus },
-        { label: "Not finished", how: "the pyramids done and the share right of the one you are on, more for doing them early", max: STANDARD_UNFINISHED_CAP },
+        // depthRev 3 (pyramidPartial.ts, D2): stone by stone.
+        pyramidPartialDealt()
+          ? { label: "Not finished", how: "the share of all the stones you placed right", max: STANDARD_UNFINISHED_CAP }
+          : { label: "Not finished", how: "the pyramids done and the share right of the one you are on, more for doing them early", max: STANDARD_UNFINISHED_CAP },
       ], { total: max });
     case "trail":
       return scoreList([
@@ -148,7 +152,9 @@ export function standardNumberIntro(type: PuzzleType): string {
     case "balance":
       return "Balance every scale; bonuses for speed and hanging each weight once. Up to {max}.";
     case "numpyramid":
-      return "Complete every pyramid; bonuses for speed and no wrong numbers. Up to {max}.";
+      return pyramidPartialDealt()
+        ? "Fill every pyramid; each right stone counts. Bonuses for speed and no mistakes. Up to {max}."
+        : "Complete every pyramid; bonuses for speed and no wrong numbers. Up to {max}.";
     case "trail":
       return preLogic2Pinned()
         ? "Complete the trail; bonuses for speed and never undoing. Up to {max}."
