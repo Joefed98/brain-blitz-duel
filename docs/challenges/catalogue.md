@@ -248,7 +248,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Hedgehog friendly | Bonk 30 or more without a wrong hat or a hedgehog. | Classic | Clean | `hits` ≥ 30, `wrong` = 0, `bombs` = 0 |  | `whack.hedgehog-friendly` |
 | Diamond geezer | Bonk every diamond. | Classic | Full set | `depth.diamondHits` ≥ `depth.diamondTotal`, `depth.diamondTotal` ≥ 1 |  | `whack.diamond-geezer` |
-| Combo king | Bonk 47 in a row, each within 400 ms of rising. | Classic | Combo | `depth.combo` ≥ 44 | ● | `whack.combo-king` |
+| Combo king | Bonk 46 in a row, each within 400 ms of rising. | Classic | Combo | `depth.combo` ≥ 44 | ● | `whack.combo-king` |
 
 #### Pull! (`clayshoot`)
 
