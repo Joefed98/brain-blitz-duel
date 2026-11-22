@@ -4,8 +4,8 @@
  *   1. depthRev 2 rounds score exactly as before: every case of scripts/fixtures/number-pyramid-partial-legacy.json.gz
  *      (recorded on main 969e7bb5 by scripts/number-pyramid-partial-record.ts, Normal and every level) regrades to the same
  *      score, correctness and extra on its stored puzzle.
- *   2. The deal: every level deals depthRev 3 on depthRev 2's board, seed for seed (the stamp is the only difference); the
- *      prePyramidPartial pin deals depthRev 2 exactly as recorded.
+ *   2. The deal: every level deals depthRev 3, the same seed's board as the prePyramidPartial pin deals (depthRev 2), the
+ *      stamp the only difference; on Normal both are the board recorded on main.
  *   3. The rule: unfinished credit is 130 × the stones placed right ÷ the round's stones (pyramids done and the current
  *      one), rising stone by stone along a flawless line, always under 150; a finish scores exactly as depthRev 2's; later
  *      pyramids' tiles never count; spam stays low.
@@ -57,22 +57,27 @@ const fixture = JSON.parse(gunzipSync(readFileSync(new URL("./fixtures/number-py
   ok(fixture.cases.length >= 2000 && same === fixture.cases.length, `1. every recorded depthRev 2 case regrades exactly (${same} of ${fixture.cases.length})`);
 }
 
-/* 2. The deal. */
+/* 2. The deal. Every level: the live deal is the pinned (depthRev 2) deal of the same seed with only the stamp moved.
+ * Normal: both are the board recorded on main (the levels' own boards and speed lines have changed since the
+ * recording, D2's level work, so only Normal is held to it). */
 {
-  let sameBoard = 0, rev3 = 0, preSame = 0, total = 0;
+  let sameBoard = 0, rev3 = 0, total = 0, normalSame = 0, normals = 0;
   for (const level of PYRAMID_LEGACY_LEVELS)
     for (const seed of PYRAMID_LEGACY_SEEDS) {
       total++;
       const live = deal(level, seed) as NumberPyramidPuzzleData;
-      const pre = deal(level, seed, "pre");
-      const recorded = fixture.puzzles[keyOf(level, seed)]!;
-      if (live.depthRev === PYRAMID_REV_PARTIAL && usesPyramidPartial(live)) rev3++;
-      if (json({ ...live, depthRev: PYRAMID_REV_BEFORE }) === json(recorded)) sameBoard++;
-      if (json(pre) === json(recorded)) preSame++;
+      const pre = deal(level, seed, "pre") as NumberPyramidPuzzleData;
+      if (live.depthRev === PYRAMID_REV_PARTIAL && usesPyramidPartial(live) && pre.depthRev === PYRAMID_REV_BEFORE) rev3++;
+      if (json({ ...live, depthRev: PYRAMID_REV_BEFORE }) === json(pre)) sameBoard++;
+      if (level === "normal") {
+        normals++;
+        const recorded = fixture.puzzles[keyOf(level, seed)]!;
+        if (json(pre) === json(recorded) && json({ ...live, depthRev: PYRAMID_REV_BEFORE }) === json(recorded)) normalSame++;
+      }
     }
-  ok(rev3 === total, `2. every level deals depthRev ${PYRAMID_REV_PARTIAL} (${rev3} of ${total})`);
-  ok(sameBoard === total, `2. on depthRev 2's board, seed for seed; the stamp is the only difference (${sameBoard} of ${total})`);
-  ok(preSame === total, `2. the prePyramidPartial pin deals depthRev 2 exactly as recorded (${preSame} of ${total})`);
+  ok(rev3 === total, `2. every level deals depthRev ${PYRAMID_REV_PARTIAL}, and depthRev ${PYRAMID_REV_BEFORE} under the prePyramidPartial pin (${rev3} of ${total})`);
+  ok(sameBoard === total, `2. on the pinned deal's board, seed for seed; the stamp is the only difference (${sameBoard} of ${total})`);
+  ok(normals > 0 && normalSame === normals, `2. Normal: the live and pinned deals are the board recorded on main (${normalSame} of ${normals})`);
 }
 
 /* 3. The rule. */
