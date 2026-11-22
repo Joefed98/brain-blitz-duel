@@ -350,6 +350,25 @@
   font-size: 15px;
   line-height: 26px;
 }
+/* The pills' row is as tall as the 15 px pills (it was 24 px, so every pill lost its top and bottom pixel), and a row
+   too narrow for them steps them down (HudPills measures it, data-fit): 13 px, then 12 px with tighter padding. Never
+   clipped (21 Nov 2026: Interlock's "Placed 0/15" was cut off beside Clear and Done). */
+[data-puzzle-play] .hud-pills {
+  height: 26px;
+}
+[data-puzzle-play] .hud-pills[data-fit] .jz-status {
+  height: 22px;
+  padding: 0 8px;
+  font-size: 13px;
+  line-height: 22px;
+}
+[data-puzzle-play] .hud-pills[data-fit="tight"] {
+  gap: 4px;
+}
+[data-puzzle-play] .hud-pills[data-fit="tight"] .jz-status {
+  padding: 0 6px;
+  font-size: 12px;
+}
 .game-goal-bar {
   display: flex;
   height: 6px;
