@@ -122,7 +122,7 @@ export function GamesCatalogue({
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
   const tile = (type: PuzzleType) => (
-    <CatalogueTile key={type} type={type} progress={progress} tileStyle={tileStyle} onOpen={onOpen} extra={tileExtra?.(type)} />
+    <CatalogueTile key={type} type={type} progress={progress} tileStyle={tileStyle} onOpen={onOpen} tileExtra={tileExtra} />
   );
   return (
     <div className="gm-catalogue" data-games-catalogue data-games-view={view} data-hydrated={hydrated ? "" : undefined}>
@@ -237,14 +237,15 @@ function CatalogueTile({
   progress,
   tileStyle,
   onOpen,
-  extra,
+  tileExtra,
 }: {
   type: PuzzleType;
   progress: PracticeProgressView | null;
   tileStyle: string | null;
   onOpen: (type: PuzzleType) => void;
-  extra: ReactNode;
+  tileExtra?: ((type: PuzzleType) => ReactNode) | undefined;
 }) {
+  const nameOf = gameName;
   return (
     <div data-practice-game={type} data-stars={starCountOf(progress, type)} className="gm-tile-wrap">
       <GameTile
@@ -252,17 +253,17 @@ function CatalogueTile({
         size="card"
         name={
           <span aria-hidden="true" data-wrap-ok="">
-            {gameName(type)}
+            {nameOf(type)}
           </span>
         }
         stars={levelStarsOf(progress, type)}
         tileStyle={tileStyle}
         onClick={() => onOpen(type)}
-        aria-label={gameName(type)}
+        aria-label={nameOf(type)}
         aria-describedby={tileDescriptionId(type)}
         className="gm-tile"
       />
-      {extra}
+      {tileExtra ? tileExtra(type) : null}
     </div>
   );
 }

@@ -515,7 +515,7 @@
   font-variant-numeric: tabular-nums;
 }
 .gm-tag[data-none] {
-  color: var(--jz-text-3);
+  color: var(--jz-text-2);
 }
 .gm-page-level-note {
   margin: 0;
