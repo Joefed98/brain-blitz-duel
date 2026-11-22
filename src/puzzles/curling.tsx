@@ -392,7 +392,12 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                 // and the home-bar lift (the row ends at least 12 px above env(safe-area-inset-bottom): the arena ends 16 px
                 // above the screen's bottom, so the lift is the inset less 4 px). Only the buttons take a touch; a rub beside
                 // them reaches the canvas (brushing).
-                <div className="pointer-events-none absolute inset-x-1" style={{ top: CURL_TURN_ROW_TOP }}>
+                // The polish plan's C4.9 (20 Nov 2026): a dark backing strip under the row, so the buttons read off the ice.
+                <div
+                  className="pointer-events-none absolute inset-x-1 rounded-2xl"
+                  style={{ top: CURL_TURN_ROW_TOP, background: "color-mix(in srgb, var(--jz-bg) 58%, transparent)" }}
+                  data-curl-row-backing=""
+                >
                   {turnButtons(send)}
                 </div>
               )

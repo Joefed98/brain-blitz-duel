@@ -197,7 +197,8 @@ function paintMoonSky(ctx: CanvasRenderingContext2D): void {
   band.addColorStop(1, "rgba(150,170,235,0)");
   ctx.fillStyle = band;
   ctx.fillRect(-W, -46, 2 * W, 92);
-  for (let i = 0; i < 140; i++) {
+  // The polish plan's C3.4 (Joe, 20 Nov 2026): a calmer sky, fewer stars (were 140 + 170 painted and 46 a frame).
+  for (let i = 0; i < 60; i++) {
     const h = artHash(i, 77);
     ctx.fillStyle = `rgba(220,230,255,${(0.12 + ((h >>> 20) % 5) * 0.05).toFixed(2)})`;
     const along = (h % (2 * W)) - W;
@@ -206,7 +207,7 @@ function paintMoonSky(ctx: CanvasRenderingContext2D): void {
   }
   ctx.restore();
   // Stars: dim pinpoints, small cool and warm ones, a few bright with a soft core.
-  for (let i = 0; i < 170; i++) {
+  for (let i = 0; i < 70; i++) {
     const h = artHash(i, 43);
     const x = h % W;
     const y = (h >>> 12) % Math.round(H * 0.78);
@@ -487,7 +488,7 @@ function drawMoonNight(ctx: CanvasRenderingContext2D, p: number, tick: number): 
     ctx.fillStyle = d;
     ctx.fillRect(0, 0, W, H);
     // More stars come out as the night deepens; the bright ones glint.
-    for (let i = 0; i < 46; i++) {
+    for (let i = 0; i < 20; i++) {
       const h = artHash(i, 57);
       const tw = (h >>> 3) % 5 === 0 ? 0.55 + 0.45 * Math.sin((tick + (h % 97)) / 13) : 1;
       const a = Math.min(1, p * 1.4 * (0.45 + ((h >>> 9) % 6) * 0.1)) * tw;
@@ -520,11 +521,8 @@ function drawMoonNight(ctx: CanvasRenderingContext2D, p: number, tick: number): 
   ctx.fillStyle = mist;
   ctx.fillRect(0, m.y + m.r * 0.7 - W * 0.62, W, W * 1.24);
   ctx.restore();
-  for (let i = 0; i < FAR_LANTERN_COUNT; i++) {
-    const l = farLanternAt(i, tick);
-    if (l.y < -10 || l.y > H * 0.9) continue;
-    drawFarLantern(ctx, l.x, l.y, l.s, tick, i);
-  }
+  // The polish plan's C3.4: no decorative far lanterns in the sky any more (the six real sky lanterns, the pickups,
+  // are drawn by drawSkyLantern). Their placement stays exported for the look check until it is retired.
 }
 
 /** A five-roof pagoda silhouette, its base at (x, base), with a few lit windows. */

@@ -239,6 +239,11 @@ def sphere(colour, kind):
         p.inputs["IOR"].default_value = 1.5
         p.inputs["Subsurface Weight"].default_value = 0.6
         p.inputs["Subsurface Radius"].default_value = (0.5, 0.5, 0.5)
+        # The polish plan's C2.3 (Joe, 20 Nov 2026): satin candy, not polished glass, so no white glare spots: a thin,
+        # rough coat and a rougher body (the colour reads, not the reflection).
+        p.inputs["Roughness"].default_value = 0.38
+        p.inputs["Coat Weight"].default_value = 0.2
+        p.inputs["Coat Roughness"].default_value = 0.5
     ob.data.materials.append(m)
     return ob
 
@@ -259,19 +264,14 @@ def sphere_render(name, colour, kind, gloss_only=False):
         lib.world((0, 0, 0), 0.0)
     # One soft key upper left (the crisp curve of light on the glass), a cool rim lower right, a dim top fill.
     if kind == "bubble":
-        lib.area_light((-1.6, 1.8, 3.0), (0, 0, 0), 220, 4.0, (1.0, 0.97, 0.92))
-        lib.area_light((0, 0, 4.0), (0, 0, 0), 30, 8.0, (1, 1, 1))
-        mat = ob.data.materials[0].node_tree.nodes["Principled BSDF"]
-        mat.inputs["Coat Roughness"].default_value = 0.12
+        # C2.3: one broad soft key from the upper left and a soft top fill; no window or rim softboxes.
+        lib.area_light((-1.6, 1.8, 3.0), (0, 0, 0), 260, 6.0, (1.0, 0.97, 0.92))
+        lib.area_light((0, 0, 4.0), (0, 0, 0), 60, 8.0, (1, 1, 1))
     else:
         lib.area_light((-1.6, 1.8, 3.0), (0, 0, 0), 260, 0.6, (1.0, 0.97, 0.92))
         lib.area_light((2.2, -1.4, 1.2), (0, 0, 0), 120, 0.8, (0.6, 0.8, 1.0))
         lib.area_light((0, 0, 4.0), (0, 0, 0), 40, 3.0, (1, 1, 1))
-    if kind == "bubble":
-        # Candy glass that reads at 30 px (Joe, 15 Nov): a big bright window reflected high on the upper left (the
-        # crescent of light the concept shows) and a soft rim of light low on the far side.
-        softbox((-1.3, 1.3, 1.9), (0, 0, 0), 3.4, 5.0, (1, 1, 1), size_y=1.4)
-        softbox((1.8, -1.8, 0.4), (0, 0, 0), 4.0, 1.2, (0.85, 0.95, 1.0), size_y=0.8)
+    # (C2.3, 20 Nov 2026: the bubbles' big window of light and rim softbox are gone, with the gloss overlay.)
     round_lights()
     top_camera(2.0)
     png = os.path.join(lib.TMP, f"{name}.png")
@@ -302,10 +302,9 @@ def marbles():
 
 
 def bubbles(only=None):
+    # C2.3 (20 Nov 2026): no bubble-gloss overlay any more; the bubble's own render is all that is drawn.
     for name, colour in (only or BUBBLES).items():
         sphere_render(name, colour, "bubble")
-    if only is None:
-        sphere_render("bubble-gloss", "#000000", "bubble", gloss_only=True)
 
 
 # ------------------------------------------------------------------ Tilt's lacquered disc
@@ -589,8 +588,9 @@ def wood_tile(name, dark, light, lines, contrast, seed):
 
 
 def bt_wood():
-    # The board: warm light oak (concept A's face); the channels: deep oiled walnut (concept A's grooves).
-    wood_tile("bt-board", (0xB0, 0x7E, 0x4C), (0xD8, 0xAA, 0x72), 16, 0.22, 11)
+    # The board: warm light oak (concept A's face); the channels: deep oiled walnut (concept A's grooves). The polish
+    # plan (C2.2, Joe, 20 Nov 2026): a lighter oak (was (0xB0, 0x7E, 0x4C) to (0xD8, 0xAA, 0x72)).
+    wood_tile("bt-board", (0xC8, 0x98, 0x64), (0xEC, 0xC6, 0x90), 16, 0.22, 11)
     wood_tile("bt-walnut", (0x3A, 0x1E, 0x0C), (0x6E, 0x3E, 0x1E), 12, 0.35, 12)
 
 

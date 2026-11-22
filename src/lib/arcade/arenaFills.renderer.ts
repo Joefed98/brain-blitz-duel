@@ -24,6 +24,7 @@ import { jungleDeepWater, paintJungleSides } from "./swingJungle.renderer";
 import { artHash, reducedMotion } from "./art.renderer";
 import { SCENE_TUCK, type ArenaAmbient, type ArenaSceneView } from "./arenaScene.renderer";
 import { METEOR_BORDER_COLOURS } from "./snake.renderer";
+import { paintWavefrontSky } from "./wavefront.renderer";
 import { MINES_ART, paintMinesHexes } from "./minesweeper.renderer";
 import { paintMahjongWood } from "./mahjong.renderer";
 
@@ -501,19 +502,9 @@ export function bubbleFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView):
 
 /** 14. Wavefront: its night sky (stars and a faint nebula) runs on below and beside the world. */
 export function wavefrontFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
-  for (const [i, r] of around(view, true).entries()) {
-    // A deep navy (wavRev 10's taller world leaves sides at 414 px): never the screen edge's #070709.
-    ctx.fillStyle = "#0B0B18";
-    ctx.fillRect(r.x, r.y, r.w, r.h);
-    stars(ctx, r, 401 + i, ["#FFFFFF", "#C9D6FF", "#8FA8FF"], 380, 0.42);
-  }
-  const r = fillBelow(view);
-  if (!r) return;
-  const neb = ctx.createRadialGradient(view.worldW * 0.7, r.y + r.h, 6, view.worldW * 0.7, r.y + r.h, 160);
-  neb.addColorStop(0, "rgba(70,60,140,0.10)");
-  neb.addColorStop(1, "rgba(70,60,140,0)");
-  ctx.fillStyle = neb;
-  ctx.fillRect(r.x, r.y, r.w, r.h);
+  // The polish plan's C1.4 (20 Nov 2026): the sides and the foot continue the world's own sky (its gradient on the
+  // world's height and its stars), never a flat bluer panel beside it.
+  for (const r of around(view, true)) paintWavefrontSky(ctx, r, 0, view.worldH, 1);
 }
 
 /** 18. Orbit: black space with light stars under the world (no coloured nebula since 27 Oct 2026). */
@@ -718,8 +709,8 @@ export function tiltFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView, wo
 export function tiltWalnutFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView, worldW: number, worldH: number): void {
   const regions = around(view, true);
   for (const r of regions) {
-    // The Strategy overhaul (15 Nov 2026): the shaded table at the world's edge (tiltArt's WALNUT_TABLE_EDGE).
-    ctx.fillStyle = "#0A0603";
+    // The shaded table at the world's edge (tiltArt's WALNUT_TABLE_EDGE; the polish plan's C2.4: the lighter walnut).
+    ctx.fillStyle = "#20140C";
     ctx.fillRect(r.x, r.y, r.w, r.h);
   }
   ctx.save();
@@ -729,7 +720,7 @@ export function tiltWalnutFill(ctx: CanvasRenderingContext2D, view: ArenaSceneVi
   for (let i = 0; i < 90; i++) {
     const h = artHash(i, 223);
     const y = view.top + (((h >>> 6) % 10007) / 10007) * (view.bottom - view.top);
-    ctx.strokeStyle = h % 3 ? "rgba(6,3,1,0.3)" : "rgba(160,104,60,0.05)";
+    ctx.strokeStyle = h % 3 ? "rgba(12,6,2,0.3)" : "rgba(160,104,60,0.10)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(view.left, y);

@@ -759,7 +759,7 @@ export function drawJungleGrabPoints(ctx: CanvasRenderingContext2D, state: Swing
       const ly = topY + (y - R - 1 - topY) * f;
       drawLeafClusterSprite(ctx, lx + (f < 0.5 ? 5 : -5), ly, 6, (i + Math.round(f * 10)) % 6, 0);
     }
-    // The materials pass: the ring itself, enamelled cream metal (gold just after a grab), no glow round it.
+    // The loop itself (the polish plan's C3.3): a knotted vine loop at the 14 px size, gold just after a grab, no glow.
     const flash = held && state.tick - state.grabTick < 12;
     void still;
     drawGrabRing(ctx, x, y, R, flash);

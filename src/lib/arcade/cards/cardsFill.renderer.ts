@@ -28,7 +28,9 @@ function paintCardsFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView, loo
     if (below) fillGradient(ctx, below, below.y, below.y + below.h, stops.below);
     return;
   }
-  if (above) fillGradient(ctx, above, above.y, above.y + above.h, [[0, "#06142E"], [1, "#081A3A"]]);
-  for (const side of fillSides(view)) fillGradient(ctx, side, side.y, side.y + side.h, [[0, "#081A3A"], [0.5, "#0A2048"], [1, "#081A3A"]]);
-  if (below) fillGradient(ctx, below, below.y, below.y + below.h, [[0, "#081B3C"], [0.6, "#061430"], [1, "#040D22"]]);
+  // The polish plan (20 Nov 2026): the brighter baize's edges carried on, about a third lighter (were #06142E / #081A3A,
+  // #081A3A / #0A2048 and #081B3C / #061430 / #040D22), so the world meets the fill with no seam.
+  if (above) fillGradient(ctx, above, above.y, above.y + above.h, [[0, "#081B3F"], [1, "#0B234F"]]);
+  for (const side of fillSides(view)) fillGradient(ctx, side, side.y, side.y + side.h, [[0, "#0B234F"], [0.5, "#0E2C62"], [1, "#0B234F"]]);
+  if (below) fillGradient(ctx, below, below.y, below.y + below.h, [[0, "#0B2552"], [0.6, "#081B41"], [1, "#05112E"]]);
 }
