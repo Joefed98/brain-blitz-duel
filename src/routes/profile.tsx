@@ -6,7 +6,7 @@ import { PhoneShell } from "@/components/duel/PhoneShell";
 import { useHomeBed } from "@/lib/useScreenMusic";
 import { goToTab } from "@/components/app/AppTabBar";
 import { PlaceDisc } from "@/components/app/TabIcons";
-import { readRoomHistory, roomStats, type RoomRecord } from "@/lib/duel/deviceHistory";
+import { readRoomHistory, type RoomRecord } from "@/lib/duel/deviceHistory";
 import { rememberedLook, type PlayerLook } from "@/lib/duel/playerLook";
 import { bestOf, starTotalLine } from "@/lib/practice/progress";
 import { STAR_TOTAL_MAX } from "@/lib/practice/progressRules";
@@ -28,6 +28,7 @@ import { NavArt } from "@/components/nav/NavArt";
 import type { NavArtName } from "@/components/nav/navArt.data";
 import { useDailyRecord } from "@/lib/badges/badgesApi";
 import { useWaitingRequests } from "@/lib/friends/friendsApi";
+import { useRatedWins } from "@/lib/profile/ratedWins";
 import { useLayoutMode } from "@/lib/layoutMode";
 import { TrophyCabinet, TrophyShelf } from "@/components/tournaments/TournamentHub";
 import { useMyTrophies } from "@/lib/tournaments/tournamentsApi";
@@ -57,8 +58,8 @@ const ACTIVE_GAMES = (() => {
  * You (the You tab, the Profile route; P3, 22 Nov 2026, Joe's mix of Y2 and Y3, plan section 2.1, mockup
  * you-mixed-phone): Profile and More in one page.
  *
- * An account: the player card large with Customise; the trophy shelf as one row under it; three ring gauges (wins,
- * stars, the Daily streak) in place of stat tiles; the strongest categories (with the three ratings, where rated play
+ * An account: the player card large with Customise; the trophy shelf as one row under it; three ring gauges (rated
+ * wins, stars, the Daily streak) in place of stat tiles; the strongest categories (with the three ratings, where rated play
  * is open); four quick rows, Friends, Challenges, Badges and Help ("How it works"); then the recent matches, the season
  * and the trophy cabinet; Settings in the header. A guest: one card and one calm "Save your progress" row, nothing
  * more (30 words at most; the name a guest plays under is picked in the shared name sheet when it is needed).
@@ -90,7 +91,6 @@ function ProfileScreen() {
         .sort((a, b) => b.best - a.best || PUZZLE_REGISTRY[a.type].name.localeCompare(PUZZLE_REGISTRY[b.type].name)),
     [progress],
   );
-  const stats = useMemo(() => roomStats(history), [history]);
   // The Daily's streak (the server's for an account, this device's otherwise: useDailyRecord).
   const daily = useDailyRecord();
   const streakBest = useMemo(() => Math.max(bestStreak(daily?.days ?? []), daily?.streak ?? 0), [daily]);
@@ -98,6 +98,8 @@ function ProfileScreen() {
   const accountName = useAccountName();
   const shownName = accountName ?? (name.trim() || "Player");
   const waiting = useWaitingRequests(accountName !== null);
+  // Rated wins: the server's count of this account's counted rated matches and wins (ratedWinCountFn).
+  const rated = useRatedWins(accountName !== null);
   // Wave 4 (W4b): the trophy cabinet holds only the account's real trophies, and isn't drawn without one.
   const trophies = useMyTrophies(accountName !== null);
   // Room podiums on this device (the shelf's medals), newest first.
@@ -185,16 +187,16 @@ function ProfileScreen() {
             {/* The trophy shelf: the newest season emblems, trophies and podium medals in one row. */}
             <TrophyShelf trophies={trophies} podiums={podiums} />
 
-            {/* Three ring gauges in place of stat tiles: wins (this device's rooms), stars, the Daily streak. */}
+            {/* Three ring gauges in place of stat tiles: rated wins (the server's count), stars, the Daily streak. */}
             <div className="pf-gauges" data-profile-gauges>
               <Gauge
-                share={stats.played ? stats.wins / stats.played : 0}
+                share={rated && rated.played ? rated.wins / rated.played : 0}
                 tone="var(--jz-win)"
-                figure={stats.played ? `${Math.round((stats.wins / stats.played) * 100)}%` : "0"}
-                label="Wins"
-                sub={`${stats.wins} of ${stats.played}`}
-                ariaLabel={`Wins: ${stats.wins} of ${stats.played} rooms`}
-                data={{ "data-gauge": "wins" }}
+                figure={!rated ? "–" : rated.played ? `${Math.round((rated.wins / rated.played) * 100)}%` : "0"}
+                label="Rated wins"
+                sub={rated ? `${rated.wins} of ${rated.played}` : " "}
+                ariaLabel={rated ? `Rated wins: ${rated.wins} of ${rated.played}` : "Rated wins"}
+                data={{ "data-gauge": "rated-wins", "data-rated-wins": rated ? `${rated.wins}/${rated.played}` : undefined }}
               />
               {progress ? (
                 <section aria-label="Mastery stars" data-profile-mastery={progress.stars} className="pf-gauge-slot">

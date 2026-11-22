@@ -2,7 +2,7 @@
  * You's three ring gauges (P3, 22 Nov 2026; Joe's mix of Y2 and Y3, plan section 2.1, mockup you-mixed-phone), in place
  * of stat tiles: wins, stars and the Daily streak. Each is a ring drawn as one SVG arc over its track, the figure in
  * the middle and two quiet lines under it. Presentation only: every figure is passed in from what Profile already
- * reads (this device's room record, the account's star total, the Daily record).
+ * reads (the server's rated win count, the account's star total, the Daily record).
  */
 import type { ReactNode } from "react";
 
