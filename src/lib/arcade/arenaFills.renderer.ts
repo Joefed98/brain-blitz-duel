@@ -504,7 +504,15 @@ export function bubbleFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView):
 export function wavefrontFill(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   // The polish plan's C1.4 (20 Nov 2026): the sides and the foot continue the world's own sky (its gradient on the
   // world's height and its stars), never a flat bluer panel beside it.
-  for (const r of around(view, true)) paintWavefrontSky(ctx, r, 0, view.worldH, 1);
+  for (const r of [...fillSides(view), ...[fillAbove(view)].filter((x): x is Rect => x !== null)]) paintWavefrontSky(ctx, r, 0, view.worldH, 1);
+  // Below the world the sky's foot (#07070C) lifts to a deep navy towards the screen's bottom, never the screen edge's
+  // black (the black-strip rule).
+  const below = fillBelow(view);
+  if (below) {
+    paintWavefrontSky(ctx, below, 0, view.worldH, 1);
+    fillGradient(ctx, below, below.y, below.y + below.h, [[0, "rgba(14,16,40,0)"], [0.35, "rgba(14,16,40,0.85)"], [1, "#0E1028"]]);
+    stars(ctx, below, 401, ["#FFFFFF", "#C9D6FF", "#8FA8FF"], 380, 0.42);
+  }
 }
 
 /** 18. Orbit: black space with light stars under the world (no coloured nebula since 27 Oct 2026). */
