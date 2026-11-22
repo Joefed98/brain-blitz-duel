@@ -13,7 +13,8 @@
 import { knots, depthClamp } from "../depth200";
 import { reactionFalseStartCost } from "../scoring";
 import { REACTION_MISS_MS } from "../types";
-import { TAP_REV_DEPTH, TAP_REV_PER_ITEM, TAP_REV_TOPUP } from "../tapLog";
+import { dealPinned } from "../dealEra";
+import { TAP_REV_DEPTH, TAP_REV_FLASH_FAST, TAP_REV_PER_ITEM, TAP_REV_TOPUP } from "../tapLog";
 
 export const FLASH_DEPTH_REV = TAP_REV_DEPTH;
 /**
@@ -30,6 +31,14 @@ export const FLASH_REV6_CURVE = [[120, 186], [135, 178], [150, 168], [165, 155],
  * false starts and the floor are tapRev 6's.
  */
 export const FLASH_PER_ITEM_REV = TAP_REV_PER_ITEM;
+/**
+ * D3 (22 Nov 2026, tapRev 8; Joe: "200 by 0.24 s, 0.26 s 188, 0.32 s 150"): tapRev 7's per-flash scoring on a curve a
+ * player at the human limits (about 0.25 s to react) can fill, so a steady, clean run reaches 200. Below 320 ms it is
+ * new; from 450 ms it is tapRev 6's tail. Level deals may carry their own curve (`flashCurve`, stamped at the deal).
+ */
+export const FLASH_FAST_REV = TAP_REV_FLASH_FAST;
+export const FLASH_REV8_CURVE = [[240, 200], [260, 188], [320, 150], [450, 80], [600, 20], [800, 0]] as const;
+export type FlashCurve = readonly (readonly [number, number])[];
 export const FLASH_PARTIAL_PER_HIT = 2;
 export const FLASH_PARTIAL_HIT_MS = 800;
 
@@ -42,7 +51,31 @@ export const FLASH_STEADY_LOOSE_POINTS = 8;
 
 export function usesFlashDepth(puzzle: unknown): boolean {
   const p = puzzle as { type?: string; tapRev?: number } | null;
-  return p?.type === "reaction" && (p.tapRev === FLASH_DEPTH_REV || p.tapRev === FLASH_TOPUP_REV || p.tapRev === FLASH_PER_ITEM_REV);
+  return p?.type === "reaction" && (p.tapRev === FLASH_DEPTH_REV || p.tapRev === FLASH_TOPUP_REV || p.tapRev === FLASH_PER_ITEM_REV || p.tapRev === FLASH_FAST_REV);
+}
+
+/** A tapRev 8 curve read from a stored puzzle's `flashCurve` (a level deal's), when it is a well-formed falling table. */
+function storedCurve(puzzle: unknown): FlashCurve | null {
+  const c = (puzzle as { flashCurve?: unknown } | null)?.flashCurve;
+  if (!Array.isArray(c) || c.length < 2 || c.length > 12) return null;
+  const ok = c.every((k, i) => Array.isArray(k) && k.length === 2 && Number.isFinite(k[0]) && Number.isFinite(k[1]) && (i === 0 || k[0] > c[i - 1][0]));
+  return ok ? (c as FlashCurve) : null;
+}
+
+/** The curve new Normal deals score on (tapRev 8's, or tapRev 6's while a check pins the stamps before D3). */
+export function liveFlashCurve(): FlashCurve {
+  return dealPinned("preD3Speed") || dealPinned("preNov7") ? FLASH_REV6_CURVE : FLASH_REV8_CURVE;
+}
+/** Two reaction times the intro example names beside the top: tapRev 8's 260 and 320 ms, tapRev 6's 150 and 200 ms. */
+export function liveFlashCurveAt(): readonly [number, number] {
+  return liveFlashCurve() === FLASH_REV8_CURVE ? [260, 320] : [150, 200];
+}
+
+/** The per-flash curve a stored Flash puzzle scores on: tapRev 8's (a level deal's own where stamped), else tapRev 6's. */
+export function flashCurveOf(puzzle: unknown): FlashCurve {
+  const rev = (puzzle as { tapRev?: number } | null)?.tapRev ?? 0;
+  if (rev >= FLASH_FAST_REV) return storedCurve(puzzle) ?? FLASH_REV8_CURVE;
+  return FLASH_REV6_CURVE;
 }
 
 /** Fastest to slowest credited reaction, or null while any flash is missed or still to come. */
@@ -75,14 +108,16 @@ export interface FlashDepthScore {
 }
 
 /** A run's tapRev 5 (or 6) score from its credited reactions (misses as 1,200 ms) and false starts. */
-export function scoreFlashDepth(times: readonly (number | null)[], falseStarts: number, flashCount = times.length, tapRev = FLASH_DEPTH_REV): FlashDepthScore {
+export function scoreFlashDepth(times: readonly (number | null)[], falseStarts: number, flashCount = times.length, tapRev = FLASH_DEPTH_REV, curveIn?: FlashCurve): FlashDepthScore {
   const count = Math.max(1, flashCount);
   let total = 0;
   for (let i = 0; i < count; i++) total += Math.min(REACTION_MISS_MS, Math.max(1, times[i] ?? REACTION_MISS_MS));
   const average = Math.round(total / count);
   const filled = Array.from({ length: count }, (_, i) => times[i] ?? null);
   const topup = tapRev >= FLASH_TOPUP_REV;
-  const each = tapRev >= FLASH_PER_ITEM_REV ? filled.map((t) => (t === null || t >= REACTION_MISS_MS ? 0 : knots(FLASH_REV6_CURVE, Math.max(1, t)))) : null;
+  // tapRev 8: Joe's curve (or a level deal's own); tapRev 7: tapRev 6's.
+  const perFlash = tapRev >= FLASH_FAST_REV ? (curveIn ?? FLASH_REV8_CURVE) : FLASH_REV6_CURVE;
+  const each = tapRev >= FLASH_PER_ITEM_REV ? filled.map((t) => (t === null || t >= REACTION_MISS_MS ? 0 : knots(perFlash, Math.max(1, t)))) : null;
   const curve = each ? Math.round(each.reduce((a, b) => a + b, 0) / count) : knots(topup ? FLASH_REV6_CURVE : FLASH_REV5_CURVE, average);
   const steady = flashSteadyBonus(filled, falseStarts);
   const falseStartCost = reactionFalseStartCost(falseStarts, FLASH_DEPTH_REV);

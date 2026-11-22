@@ -19,7 +19,8 @@ import {
 
 import { puzzleScoreList, scoreList } from "../scoreList";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, parStrictDealt } from "../parMoves";
-import { ASCEND_STD, CHAIN_STD, COUNT_STD, MAZE_STD, PAIR_STD, SCAN_STD, SPOT_STD } from "./attention";
+import { ASCEND_STD, CHAIN_STD, CHAIN_V4_FULL_BY_S, COUNT_STD, MAZE_STD, PAIR_STD, SCAN_STD, SPOT_STD } from "./attention";
+import { preD3SpeedPinned } from "../d3Normal";
 
 const TOTAL = "{max}" as unknown as number;
 
@@ -38,7 +39,8 @@ export const STANDARD_ATTENTION_HELP = {
   chain: () =>
     puzzleScoreList({
       finish: "make all 40 links",
-      speed: { max: CHAIN_STD.speed, fullByS: CHAIN_STD.fullByS },
+      // D3's chainDepthRev 4 (d3Normal.ts): full by 33 s, unless a check deals the stamps before it.
+      speed: { max: CHAIN_STD.speed, fullByS: preD3SpeedPinned() ? CHAIN_STD.fullByS : CHAIN_V4_FULL_BY_S },
       unfinished: "the share of the links made, more for making them early",
       total: TOTAL,
     }),

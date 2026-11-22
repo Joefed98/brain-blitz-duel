@@ -96,6 +96,14 @@ export interface WhackLevel {
   hedgehogPct: number;
   /** The gap between pops, in per cent of today's (smaller = busier; absent = 100). */
   gapPct?: number;
+  /** D3 (22 Nov 2026, whackRev 5 level deals only): the lawn's burrows across and down (absent = WHACK_COLS, 4). */
+  cols?: number;
+}
+
+/** A level's lawn (burrows across and down): its own `cols`, else today's 4. */
+export function whackLevelCols(level?: WhackLevel | null): number {
+  const c = level?.cols;
+  return typeof c === "number" && Number.isInteger(c) && c >= 2 && c <= 8 ? c : WHACK_COLS;
 }
 
 /** Which colour to tap on a tick, given the seeded flip ticks (starts on gold). */
@@ -153,7 +161,8 @@ function buildSchedule(seed: number, level?: WhackLevel): { rng: number; schedul
     for (let i = 0; i < at.length; i++) if (at[i]! + life[i]! > tick) busy.add(hole[i]!);
     if (busy.size >= (level?.maxUp ?? WHACK_MAX_UP)) { tick += 1; continue; }
     const free: number[] = [];
-    for (let h = 0; h < WHACK_HOLES; h++) if (!busy.has(h) && h !== prevHole) free.push(h);
+    const holes = whackLevelCols(level) ** 2;
+    for (let h = 0; h < holes; h++) if (!busy.has(h) && h !== prevHole) free.push(h);
     const h = free[draw(free.length)]!;
     const rule = whackRule(flips, tick);
     let k: number;
@@ -179,6 +188,10 @@ export interface WhackState {
   sb?: number;
   /** whackRev 3 only (depth to 200): the gold combo and the diamonds (WhackDepth). Absent on older rounds. */
   dp?: WhackDepth;
+  /** whackRev 5 only (D3, 22 Nov 2026): 1 = the combo's wider quick window (whackComboQuickWide). Absent before. */
+  qw?: number;
+  /** whackRev 5 level deals only (D3): the lawn's burrows across and down; absent = WHACK_COLS. */
+  cols?: number;
   tick: number;
   rng: number;
   schedule: WhackSchedule;
@@ -219,6 +232,15 @@ function isOver(state: WhackState): boolean {
   return state.tick >= WHACK_RUN_TICKS;
 }
 
+/** A run's lawn: burrows across (and down), and every burrow. */
+export function whackColsOf(state: Pick<WhackState, "cols">): number {
+  return state.cols ?? WHACK_COLS;
+}
+export function whackHolesOf(state: Pick<WhackState, "cols">): number {
+  const c = whackColsOf(state);
+  return c * c;
+}
+
 /** The pop standing in a hole, or -1. */
 export function whackPopAt(state: WhackState, hole: number): number {
   for (let i = 0; i < state.next; i++) {
@@ -248,7 +270,7 @@ function step(state: WhackState, input: ArcadeInputEvent | null): WhackState {
   // whackRev 3: diamonds rise and sink on their own schedule, in holes no pop uses meanwhile.
   const dp = state.dp ? stepDiamonds(state.dp, tick) : undefined;
   if (input && input.k === WHACK_INPUT_TAP) {
-    const h = clampInt(input.a, 0, WHACK_HOLES - 1);
+    const h = clampInt(input.a, 0, whackHolesOf(state) - 1);
     taps += 1;
     let struck = false;
     let outcome = 0;
@@ -277,7 +299,7 @@ function step(state: WhackState, input: ArcadeInputEvent | null): WhackState {
       if (outcome > 0) {
         dp.combo += 1;
         // Each hit's pips are weighted by how quickly it landed after the target rose (whackComboQuick).
-        dp.pips += (whackComboMultiplier(dp.combo) - 1) * whackComboQuick(tick - risenAt);
+        dp.pips += (whackComboMultiplier(dp.combo) - 1) * (state.qw ? whackComboQuickWide : whackComboQuick)(tick - risenAt);
         if (dp.combo > dp.best) dp.best = dp.combo;
       } else if (outcome < 0) dp.combo = 0;
     }
@@ -478,6 +500,7 @@ export const whackTargetGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = 
 
 /** The game for a stored whackRev (absent = the original score), and a level's schedule (whackRev 4 rounds only). */
 export function whackGameFor(rev?: number | null, level?: WhackLevel | null): ArcadeGame<WhackState, ArcadeInputEvent | null> {
+  if (rev === WHACK_REV_QUICK) return level ? whackLevelGame(level, true) : whackQuickGame;
   if (rev === WHACK_REV_NOTES && level) return whackLevelGame(level);
   if (rev === WHACK_REV_NOTES) return whackNotesGame;
   if (rev === WHACK_REV_DEPTH) return whackDepthGame;
@@ -583,7 +606,7 @@ export function whackComboMaxPips(total: number): number {
   return pips;
 }
 
-function buildDiamonds(rngStart: number, schedule: WhackSchedule, life = WHACK_DIAMOND_LIFE_TICKS): { rng: number; at: number[]; hole: number[] } {
+function buildDiamonds(rngStart: number, schedule: WhackSchedule, life = WHACK_DIAMOND_LIFE_TICKS, holes = WHACK_HOLES): { rng: number; at: number[]; hole: number[] } {
   let rng = rngStart | 0;
   const draw = (bound: number) => {
     const r = rngBelow(rng, bound);
@@ -603,7 +626,7 @@ function buildDiamonds(rngStart: number, schedule: WhackSchedule, life = WHACK_D
         if (from <= tick + life + 6 && to >= tick) busy.add(schedule.hole[i]!);
       }
       const free: number[] = [];
-      for (let h = 0; h < WHACK_HOLES; h++) if (!busy.has(h)) free.push(h);
+      for (let h = 0; h < holes; h++) if (!busy.has(h)) free.push(h);
       if (free.length === 0) continue;
       at.push(tick);
       hole.push(free[draw(free.length)]!);
@@ -615,9 +638,12 @@ function buildDiamonds(rngStart: number, schedule: WhackSchedule, life = WHACK_D
 
 function initDepthWith(seed: number, life?: number, level?: WhackLevel): WhackState {
   const base = init(seed, level);
-  const d = buildDiamonds(base.rng, base.schedule, life);
+  const cols = whackLevelCols(level);
+  const d = buildDiamonds(base.rng, base.schedule, life, cols * cols);
   return {
     ...base,
+    // D3's lawns (whackRev 5 level deals with `cols`): the state says its lawn; today's 4 × 4 carries nothing.
+    ...(level?.cols !== undefined ? { cols } : {}),
     rng: d.rng,
     sb: 1,
     dp: {
@@ -677,13 +703,43 @@ export const whackDepthGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = {
 /** whackRev 4: whackRev 3 with the longer diamond. */
 export const whackNotesGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = { ...whackGame, init: (seed) => initDepthWith(seed, WHACK_DIAMOND_LIFE_TICKS_NOTES) };
 
+/* ============ The wider quick window (whackRev 5, D3, 22 Nov 2026) ============ */
+
+/**
+ * whackRev 5 (the polish plan's D3, plan section 8.2: "the quick window widened so a player reacting in 0.25 s and
+ * moving in 0.15 s can fill the combo part"): whackRev 4's play, schedule, diamonds and every other number, except the
+ * combo hit's quickness weight: full up to WHACK_QUICK_WIDE_FULL_TICKS (0.4 s: 0.25 s to react and 0.15 s to move)
+ * after the target rose, falling evenly to none at WHACK_QUICK_WIDE_ZERO_TICKS (0.6 s), where whackRev 3 and 4 asked
+ * for 0.15 s and none from about 0.27 s (a player at the human limits topped out at 156). The weight keeps
+ * WHACK_QUICK_STEPS steps, so the combo part's maximum is unchanged; the state adds `qw: 1`.
+ */
+export const WHACK_REV_QUICK = 5;
+export const WHACK_QUICK_WIDE_FULL_TICKS = 24;
+export const WHACK_QUICK_WIDE_ZERO_TICKS = 36;
+export function whackComboQuickWide(delayTicks: number): number {
+  if (delayTicks <= WHACK_QUICK_WIDE_FULL_TICKS) return WHACK_QUICK_STEPS;
+  if (delayTicks >= WHACK_QUICK_WIDE_ZERO_TICKS) return 0;
+  return Math.floor((WHACK_QUICK_STEPS * (WHACK_QUICK_WIDE_ZERO_TICKS - delayTicks)) / (WHACK_QUICK_WIDE_ZERO_TICKS - WHACK_QUICK_WIDE_FULL_TICKS));
+}
+/** whackRev 5: whackRev 4 with the wider quick window. */
+export const whackQuickGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = { ...whackGame, init: (seed) => ({ ...initDepthWith(seed, WHACK_DIAMOND_LIFE_TICKS_NOTES), qw: 1 }) };
+
 const levelGames = new Map<string, ArcadeGame<WhackState, ArcadeInputEvent | null>>();
-/** whackRev 4 at a level: the same game, its schedule built from the level's settings (the puzzle's `bonkLevel`). */
-function whackLevelGame(level: WhackLevel): ArcadeGame<WhackState, ArcadeInputEvent | null> {
-  const key = `${level.lifeStart}:${level.lifeEnd}:${level.maxUp}:${level.flips[0]}:${level.flips[1]}:${level.hedgehogPct}:${level.gapPct ?? 100}`;
+/**
+ * whackRev 4 (or 5, `wide`) at a level: the same game, its schedule built from the level's settings (the puzzle's
+ * `bonkLevel`).
+ */
+function whackLevelGame(level: WhackLevel, wide = false): ArcadeGame<WhackState, ArcadeInputEvent | null> {
+  const key = `${wide ? "w:" : ""}${level.cols ?? ""}:${level.lifeStart}:${level.lifeEnd}:${level.maxUp}:${level.flips[0]}:${level.flips[1]}:${level.hedgehogPct}:${level.gapPct ?? 100}`;
   let game = levelGames.get(key);
   if (!game) {
-    game = { ...whackNotesGame, init: (seed) => initDepthWith(seed, WHACK_DIAMOND_LIFE_TICKS_NOTES, level) };
+    const holes = whackLevelCols(level) ** 2;
+    game = {
+      ...whackNotesGame,
+      init: (seed) => ({ ...initDepthWith(seed, WHACK_DIAMOND_LIFE_TICKS_NOTES, level), ...(wide ? { qw: 1 } : {}) }),
+      // D3's lawns: a tap names any of the lawn's burrows (today's 16 otherwise).
+      ...(holes !== WHACK_HOLES ? { inputRanges: [inputRange(WHACK_INPUT_TAP, [0, holes - 1])] } : {}),
+    };
     levelGames.set(key, game);
   }
   return game;

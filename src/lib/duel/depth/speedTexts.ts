@@ -5,17 +5,19 @@
  */
 import { FLASH_DECOY_FREE_SHARE_PCT } from "../tapLog";
 import { preNov7Pinned } from "../speedPipesNov7";
+import { preD3SpeedPinned } from "../d3Normal";
 import { scoreList } from "../scoreList";
 import { STOPWATCH_REV4_CURVE } from "../scoring";
 import { fastFinishSeconds, rev3Figures } from "../puzzleBandsText";
-import { FLASH_REV6_CURVE, FLASH_STEADY_LOOSE_MS, FLASH_STEADY_LOOSE_POINTS, FLASH_STEADY_TIGHT_MS, FLASH_STEADY_TIGHT_POINTS } from "./flash";
+import { FLASH_REV6_CURVE, FLASH_REV8_CURVE, FLASH_STEADY_LOOSE_MS, FLASH_STEADY_LOOSE_POINTS, FLASH_STEADY_TIGHT_MS, FLASH_STEADY_TIGHT_POINTS } from "./flash";
 import { BANGON_PARTIAL_MS, BANGON_PARTIAL_POINTS, BANGON_TOPUP_CENTRE_POINTS, BANGON_TOPUP_STREAK_TOP } from "./bangOn";
 import { ASCEND_FLOW_GAP_MS, ASCEND_FLOW_MAX, ASCEND_FLOW_STEP, ASCEND_FLOW_TOP } from "./ascend";
 
 const grouped = (n: number) => n.toLocaleString("en-GB");
 
 export function flashDepthHelp(): string {
-  const [topMs, topPts] = FLASH_REV6_CURVE[0];
+  // D3's tapRev 8 (d3Normal.ts): Joe's curve, 200 by 240 ms; the pinned stamps keep tapRev 6's.
+  const [topMs, topPts] = preD3SpeedPinned() ? FLASH_REV6_CURVE[0] : FLASH_REV8_CURVE[0];
   // tapRev 7 (7 Nov 2026, speedPipesNov7.ts): each flash scores on its own and the points are averaged.
   const reactions = preNov7Pinned()
     ? `the faster your average reaction, the more; ${topMs} ms or faster for all of it (a miss counts as ${grouped(1200)} ms)`

@@ -138,12 +138,12 @@ export const CLAY_BIRD_OVERLAP_OFFSET_SPAN = 60;
 export const CLAY_BIRD_VARIETY_ROLL = 5;
 
 export function clayHasBirds(rev?: number | null): boolean {
-  return rev === CLAY_REV2 || rev === CLAY_REV3 || rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH || rev === CLAY_REV_WIDE;
+  return rev === CLAY_REV2 || rev === CLAY_REV3 || rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH || rev === CLAY_REV_WIDE || rev === CLAY_REV_FULL;
 }
 
 /** rev 4 and later: shots that hit nothing cost points beyond the free allowance. */
 export function clayChargesEmptyShots(rev?: number | null): boolean {
-  return rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH || rev === CLAY_REV_WIDE;
+  return rev === CLAY_REV4 || rev === CLAY_REV5 || rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH || rev === CLAY_REV_WIDE || rev === CLAY_REV_FULL;
 }
 
 /** rev 4: shots that hit nothing (no clay, no bird). Every shot hits one clay, one bird or nothing. */
@@ -439,6 +439,11 @@ export interface ClayState {
    * as `qk` and `sb` are.
    */
   qw?: 1;
+  /**
+   * clayRev 11 only (D3, 22 Nov 2026): 1 = the quick credit counts in full from CLAY_FULL_QUICK_PCT of the most a run
+   * can hold (clayFullQuick). Outside the checkpoint checksum, as `qw`. Absent before.
+   */
+  qf?: 1;
   /** clayRev 8 only: the hits' quick credit, CLAY_QUICK_STEPS for a clay hit within CLAY_QUICK_FULL_TICKS of its launch. */
   qk?: number;
   /** clayRev 9 only (depth to 200): the hit streak (ClayDepth); doubles are read from the clays' status. Absent on older rounds. */
@@ -942,6 +947,7 @@ export const clayRev4Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ..
 export const clayRev5Game: ArcadeGame<ClayState, ArcadeInputEvent | null> = { ...clayGame, init: (seed) => initRev3(seed, CLAY_REV5) };
 
 export function clayGameFor(rev?: number | null, level?: ClayLevel | null): ArcadeGame<ClayState, ArcadeInputEvent | null> {
+  if (rev === CLAY_REV_FULL) return level ? clayLevelGame(level, true) : clayFullGame;
   if (rev === CLAY_REV_WIDE && level) return clayLevelGame(level);
   if (rev === CLAY_REV_WIDE) return clayWideGame;
   if (rev === CLAY_REV_DEPTH) return clayDepthGame;
@@ -1002,7 +1008,7 @@ export const clayTallGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {
 
 /** The sky's height (px) a stored round's clayRev plays in. */
 export function clayWorldHFor(rev?: number | null): number {
-  return rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH || rev === CLAY_REV_WIDE ? CLAY_TALL_H : CLAY_H;
+  return rev === CLAY_REV_TALL || rev === CLAY_REV_BANDS || rev === CLAY_REV_QUICK || rev === CLAY_REV_DEPTH || rev === CLAY_REV_WIDE || rev === CLAY_REV_FULL ? CLAY_TALL_H : CLAY_H;
 }
 
 /* ================= Score bands (clayRev 7, 19 Oct 2026) ================= */
@@ -1132,13 +1138,13 @@ export interface ClayDepthScore {
 export function clayDepthScore(state: ClayState): ClayDepthScore {
   if (state.lv) return clayLevelDepthScore(state);
   const birdHits = state.birdHits ?? 0;
-  const base = clayQuickScore(clayScore(state.orangeHits, state.goldHits, birdHits, state.rev, clayEmptyShots(state.shots, state.hits, birdHits)), state.qk ?? 0);
+  const base = clayQuickScore(clayScore(state.orangeHits, state.goldHits, birdHits, state.rev, clayEmptyShots(state.shots, state.hits, birdHits)), clayFullQuick(state, CLAY_QUICK_MAX));
   // Both features are paid in proportion to the run's quick credit (clayRev 8's measure), so quick, clean
   // shooting is what reaches the top: a slow perfect run earns little of either.
   // As the quick part, they are also scaled by the clayRev 6 total ÷ 150, so birds and empty shots cut them and
   // mashing on movers (a total of 0) earns none.
   const total = clampInt(clayScore(state.orangeHits, state.goldHits, birdHits, state.rev, clayEmptyShots(state.shots, state.hits, birdHits)), 0, 150);
-  const qk = clampInt(state.qk ?? 0, 0, CLAY_QUICK_MAX);
+  const qk = clayFullQuick(state, CLAY_QUICK_MAX);
   const pairs = clayDoublesHit(state);
   const q2 = qk * qk * total;
   const Q2 = CLAY_QUICK_MAX * CLAY_QUICK_MAX * 150;
@@ -1157,7 +1163,7 @@ function clayLevelDepthScore(state: ClayState): ClayDepthScore {
   const lv = state.lv!;
   const total = clayLevelTotal(state);
   const qkMax = CLAY_QUICK_STEPS * lv.clays;
-  const qk = clampInt(state.qk ?? 0, 0, qkMax);
+  const qk = clayFullQuick(state, qkMax);
   const quick = Math.floor((CLAY_QUICK_POINTS * qk * total) / (qkMax * 150));
   const base = clampInt(bandMapTotal(CLAY_QUICK_HIT_MAP, total) + quick, 0, 150);
   const q2 = qk * qk * total;
@@ -1198,6 +1204,30 @@ export function clayWideQuickCredit(ticksSinceLaunch: number): number {
 export const clayWideGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {
   ...clayDepthGame,
   init: (seed) => ({ ...clayDepthGame.init(seed), qw: 1 }),
+};
+
+/* ============ The quick part's full line (clayRev 11, D3, 22 Nov 2026) ============ */
+
+/**
+ * clayRev 11 (the polish plan's D3, plan section 8.2: "the quick-hit part's full line set from the best human-limited
+ * run"): clayRev 10's play, schedule, window and every part's maximum, except where the quick credit counts in full:
+ * from CLAY_FULL_QUICK_PCT of the most a run can hold (every clay within 0.4 s of its launch), the line the realistic
+ * elite held to the human limits (0.25 s to react, 0.15 s to move) reaches on its better runs (measured on 100 Normal
+ * deals: median 83 %, best tenth 91 %). The quick part, the doubles and the streak all read that credit, so a clean,
+ * quick run at the human limits can reach 200. The state adds `qf: 1` (outside the checksum).
+ */
+export const CLAY_REV_FULL = 11;
+export const CLAY_FULL_QUICK_PCT = 85;
+
+/** A run's quick credit as its score reads it (0–`max`): clayRev 11 counts it in full from CLAY_FULL_QUICK_PCT of `max`. */
+export function clayFullQuick(state: Pick<ClayState, "qk" | "qf">, max: number): number {
+  const qk = clampInt(state.qk ?? 0, 0, max);
+  return state.qf ? Math.min(max, Math.floor((qk * 100) / CLAY_FULL_QUICK_PCT)) : qk;
+}
+
+export const clayFullGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {
+  ...clayWideGame,
+  init: (seed) => ({ ...clayWideGame.init(seed), qf: 1 }),
 };
 
 /** A level's clay schedule: the level's singles then groups across the minute, its golds spread through the run. */
@@ -1313,11 +1343,12 @@ function initLevel(seed: number, lv: ClayLevel): ClayState {
 
 const levelGames = new Map<string, ArcadeGame<ClayState, ArcadeInputEvent | null>>();
 /** clayRev 10 at a level (the puzzle's `pullLevel`). */
-export function clayLevelGame(lv: ClayLevel): ArcadeGame<ClayState, ArcadeInputEvent | null> {
-  const key = JSON.stringify(lv);
+export function clayLevelGame(lv: ClayLevel, full = false): ArcadeGame<ClayState, ArcadeInputEvent | null> {
+  const key = `${full ? "f:" : ""}${JSON.stringify(lv)}`;
   let game = levelGames.get(key);
   if (!game) {
-    game = { ...clayWideGame, init: (seed) => initLevel(seed, lv) };
+    // clayRev 11's level deals (`full`): the quick credit's full line too.
+    game = { ...clayWideGame, init: (seed) => (full ? { ...initLevel(seed, lv), qf: 1 as const } : initLevel(seed, lv)) };
     levelGames.set(key, game);
   }
   return game;

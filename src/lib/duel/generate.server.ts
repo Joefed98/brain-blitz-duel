@@ -24,6 +24,7 @@ import { withPipesTwoWayPar } from "./depth4/pipesTaps";
 import { dealWordOverhaul } from "./wordOverhaul.server";
 import { dealAttentionOverhaul } from "./attentionOverhaul";
 import { dealSpeedOverhaul } from "./speedOverhaul";
+import { dealD3Speed } from "./d3Normal";
 import { activeDealPins, dealPinned, withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
 import { dealNotesFree } from "./notesFree";
@@ -217,6 +218,9 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   // The Speed overhaul (15 Nov 2026, speedOverhaul.ts): Tenfall tenRev 6 (resets cost on a finish), Pull! clayRev 10
   // (a wider quick-hit window).
   { name: "speedOverhaul", deal: dealSpeedOverhaul },
+  // D3's Normal scoring stamps (22 Nov 2026, d3Normal.ts): Flash tapRev 8 and the other Speed games' new stamps, so a
+  // player at the human limits can reach 200.
+  { name: "d3Speed", deal: dealD3Speed },
 ];
 
 /**

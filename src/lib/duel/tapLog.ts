@@ -76,6 +76,12 @@ export const TAP_REV_TOPUP = 6;
  * Ascend never deals it.
  */
 export { TAP_REV_PER_ITEM };
+/**
+ * D3 (22 Nov 2026, Joe's curve; src/lib/duel/d3Normal.ts): Flash alone deals tapRev 8, tapRev 7's tap logs, schedules,
+ * replay, steady hand and false starts, each flash scored on FLASH_REV8_CURVE (200 by 240 ms) so a player at the human
+ * limits can reach 200. Bang On and Ascend keep their stamps.
+ */
+export const TAP_REV_FLASH_FAST = 8;
 
 /**
  * Checks written for the stamps rooms dealt before Depth to 200 (Flash and Bang On tapRev 4, Ascend tapRev 1) pin
@@ -104,7 +110,7 @@ export const FLASH_FALSE_START_GAP_MS = 250;
 /** The stored tap revision (0 = unstamped). */
 export function tapRevOf(puzzle: unknown): number {
   const rev = (puzzle as { tapRev?: number } | null)?.tapRev;
-  return rev === TAP_REV || rev === TAP_REV_CARELESS || rev === TAP_REV_SPEED_TUNING || rev === TAP_REV_ONE_CURVE || rev === TAP_REV_DEPTH || rev === TAP_REV_TOPUP || rev === TAP_REV_PER_ITEM ? rev : 0;
+  return rev === TAP_REV || rev === TAP_REV_CARELESS || rev === TAP_REV_SPEED_TUNING || rev === TAP_REV_ONE_CURVE || rev === TAP_REV_DEPTH || rev === TAP_REV_TOPUP || rev === TAP_REV_PER_ITEM || rev === TAP_REV_FLASH_FAST ? rev : 0;
 }
 
 export function usesTapLog(puzzle: unknown): boolean {

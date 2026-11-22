@@ -22,7 +22,7 @@ import type { CountUpPuzzleData, MazePuzzleData, SymbolScanPuzzleData, PuzzleTyp
 import { earlyPoints, parPoints, speedPoints } from "./shape";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, PAR_STRICT_ZERO_AT, usesParMoves, usesParStrict } from "../parMoves";
 import type { StandardGame } from "./grade.server";
-import { ASCEND_STD, CHAIN_STD, COUNT_STD, MAZE_STD, PAIR_STD, SCAN_STD, SPOT_STD, ascendBestRun, ascendFlowPoints, mazeStarPoints, pairGoldPoints, pairStreakPoints } from "./attention";
+import { ASCEND_STD, CHAIN_STD, chainFullByS, COUNT_STD, MAZE_STD, PAIR_STD, SCAN_STD, SPOT_STD, ascendBestRun, ascendFlowPoints, mazeStarPoints, pairGoldPoints, pairStreakPoints } from "./attention";
 
 const speedFor = (max: number, fullByS: number, msLeft: number, limitMs: number) => speedPoints(max, msLeft, limitMs, fullByS * 1000);
 
@@ -60,7 +60,7 @@ const chain: StandardGame = {
     const decoded = decodeChainAnswer(answer);
     const replay = replayChain(puzzle, decoded);
     const total = chainRules(puzzle).length;
-    if (graded.isCorrect) return { finished: true, speed: speedFor(CHAIN_STD.speed, CHAIN_STD.fullByS, msLeft, limitMs), bonus: 0, measure: "bonus" };
+    if (graded.isCorrect) return { finished: true, speed: speedFor(CHAIN_STD.speed, chainFullByS(puzzle), msLeft, limitMs), bonus: 0, measure: "bonus" };
     // The links are the first `links` taps, each timed by the tap itself.
     const times = decoded.taps.slice(0, replay.links).map((t) => t.t);
     return { finished: false, credit: (CHAIN_STD.share * replay.links) / total + earlyPoints(CHAIN_STD.early / total, times, limitMs) };

@@ -48,6 +48,20 @@ export function ascendStandard(p: NumberHuntPuzzleData | PuzzleData | null | und
 /* ------------------------------------------------------------------ Don't Break the Chain (chain, chainDepthRev 3) */
 
 export const CHAIN_STD = { share: 120, early: 10, speed: 50, fullByS: 30 } as const;
+/**
+ * D3 (22 Nov 2026, `chainDepthRev 4`; Joe's approval of 22 Nov 2026): Normal's speed full by CHAIN_V4_FULL_BY_S, where a
+ * realistic elite at the human limits finishes the 40 links (measured on 100 Normal deals: 31.5–32.9 s, median 32.2 s),
+ * so a clean run can reach 200; every other number is chainDepthRev 3's.
+ */
+export const CHAIN_DEPTH_REV_D3 = 4;
+export const CHAIN_V4_FULL_BY_S = 33;
+
+/** The full-by a stored Chain puzzle's speed is measured to: a D3 level deal's own, chainDepthRev 4's, else 30 s. */
+export function chainFullByS(p: ChainPuzzleData | null | undefined): number {
+  const own = (p?.chainLevel as { fullByS?: unknown } | undefined)?.fullByS;
+  if (typeof own === "number" && own > 0) return own;
+  return (p?.chainDepthRev ?? 0) >= CHAIN_DEPTH_REV_D3 ? CHAIN_V4_FULL_BY_S : CHAIN_STD.fullByS;
+}
 
 /** The standard drops the milestones (and their pips). */
 export function chainStandard(p: ChainPuzzleData | null | undefined): boolean {

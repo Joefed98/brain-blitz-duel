@@ -242,6 +242,13 @@ export interface ReactionPuzzleData {
   tapRev?: number;
   /** Expert (the Speed overhaul's levels, 15 Nov 2026): how long each gold flash stays up, in ms; absent = REACTION_FLASH_MS. */
   flashMs?: number;
+  /**
+   * D3's levels (22 Nov 2026, tapRev 8 level deals only): the per-flash curve the level scores on, as [ms, points]
+   * knots (depth/flash.ts flashCurveOf); absent = FLASH_REV8_CURVE (Normal) on tapRev 8.
+   */
+  flashCurve?: [number, number][];
+  /** D3's levels (tapRev 8 level deals only): how long each trap stays up, in ms; absent = REACTION_DECOY_MS. */
+  trapMs?: number;
 }
 
 /** How long a puzzle's gold flashes stay up: its own `flashMs` (Expert), else the 1.5 s every older round used. */

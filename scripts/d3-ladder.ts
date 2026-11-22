@@ -2,9 +2,13 @@
  * D3's ladder table (a tool, not a check): the average player and the realistic elite under Joe's human limits
  * (d3-ladder-lib.ts) on every level of the Speed and Attention games, graded by the server.
  *
- *   bun scripts/d3-ladder.ts [game…] [--deals=100] [--from=0] [--json]
+ *   bun scripts/d3-ladder.ts [game…] [--deals=100] [--from=0] [--levels=normal,hard] [--pre] [--json]
+ *
+ * --pre deals the stamps before D3's Normal scoring stamps (pinPreD3Speed), for the before → after table.
  */
 import { ALL_LEVELS, D3_GAMES, measure, type D3Game, type LadderRow } from "./d3-ladder-lib";
+import { pinPreD3Speed } from "../src/lib/duel/d3Normal";
+import type { Level } from "../src/lib/levels/levels";
 
 if (import.meta.main) {
   const args = process.argv.slice(2);
@@ -13,8 +17,10 @@ if (import.meta.main) {
   const deals = Number(opt("deals") ?? 100);
   const from = Number(opt("from") ?? 0);
   const rows: LadderRow[] = [];
+  if (args.includes("--pre")) pinPreD3Speed(true);
+  const levels = (opt("levels")?.split(",") as Level[] | undefined) ?? ALL_LEVELS;
   for (const game of games.length ? games : D3_GAMES) {
-    for (const level of ALL_LEVELS) {
+    for (const level of levels) {
       const avg = measure(game, level, "average", deals, from);
       const elite = measure(game, level, "elite", deals, from);
       rows.push(avg, elite);
