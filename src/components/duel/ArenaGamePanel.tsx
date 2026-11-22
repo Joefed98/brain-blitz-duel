@@ -15,6 +15,8 @@ import { puzzleDef, puzzleGoal } from "@/lib/duel/catalogue";
 import type { PuzzleType } from "@/lib/duel/types";
 import { SCHEME_LABEL, SCHEME_NOTE, schemesFor, setSchemeFor, useControlScheme, type ControlScheme } from "@/lib/gameControls";
 
+import { BoardKeys } from "@/components/puzzles/KeyCursor";
+
 import { useFrameGoal } from "./GameFrame";
 
 /** This player's avatar in the frame: their card's avatar (an account) or their colour and initial (a guest). */
@@ -62,6 +64,8 @@ export function ArenaGamePanel({
   leftMount?: HTMLElement | null;
 }) {
   const puzzleFrameGoal = useFrameGoal(arcade ? undefined : type);
+  // Keyboard play for the boards that take only taps and drags (desktopKeys.ts BOARD_KEYS): on while the controls are Keyboard.
+  const keysOn = useControlScheme(type) === "keys";
   const goal = type ? (arcade ? puzzleGoal(type).replace(/\.$/, "") : puzzleFrameGoal) : null;
   const stats = (
     <>
@@ -99,6 +103,7 @@ export function ArenaGamePanel({
       ) : null}
       {practice && type ? <NextChallenges type={type} /> : null}
       {type ? <ControlsTab type={type} /> : null}
+      {type ? <BoardKeys type={type} enabled={keysOn} /> : null}
     </div>
   );
 }

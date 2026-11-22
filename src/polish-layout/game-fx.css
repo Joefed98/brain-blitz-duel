@@ -972,3 +972,44 @@
     height: 36px;
   }
 }
+
+/* ------------------------------------------------------------------ 4. keyboard play on a board (KeyCursor.tsx BoardKeys)
+ * The ring the arrows move over a board's own pieces (white; gold while Space is held), and Pull!'s crosshair. Fixed
+ * over the page, it takes no pointer events, so a press always lands on the piece beneath it. */
+.board-key-cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  pointer-events: none;
+  border-radius: 8px;
+  box-shadow: 0 0 0 3px var(--jz-white), 0 0 0 5px rgb(0 0 0 / 0.7);
+}
+.board-key-cursor[data-held] {
+  box-shadow: 0 0 0 3px var(--jz-gold), 0 0 0 5px rgb(0 0 0 / 0.7);
+}
+.board-key-aim {
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--jz-white), 0 0 0 4px rgb(0 0 0 / 0.6);
+}
+.board-key-aim::before,
+.board-key-aim::after {
+  content: "";
+  position: absolute;
+  background: var(--jz-white);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.6);
+}
+.board-key-aim::before {
+  left: 50%;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  margin-left: -1px;
+}
+.board-key-aim::after {
+  top: 50%;
+  left: 6px;
+  right: 6px;
+  height: 2px;
+  margin-top: -1px;
+}

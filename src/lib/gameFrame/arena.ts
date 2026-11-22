@@ -54,6 +54,14 @@ export const ARENA_CABINET_LEFT = false;
 export const ARENA_HUD_IN_PANEL = false;
 
 /**
+ * Whether the Cabinet's left panel is on: the switch above, or (checks and review shots only, never a production build:
+ * checkOverride) a page's `window.__DUELZ_CABINET__ = true`, so the Cabinet can be drawn and judged before it is on.
+ */
+export function cabinetLeftOn(): boolean {
+  return ARENA_CABINET_LEFT || checkOverride<boolean>("__DUELZ_CABINET__") === true;
+}
+
+/**
  * Where the live round's panel content goes: PhoneShell (or, in a room on a computer, the room panel) owns the mount
  * node; GameLayout portals its timer, score and menu into it, once, so the header copies are never drawn too.
  */

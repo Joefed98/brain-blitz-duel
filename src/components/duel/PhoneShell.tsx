@@ -24,7 +24,7 @@ import { OfflineBanner } from "@/components/offline/OfflineBanner";
 import { AppRail } from "@/components/app/AppRail";
 import { ArenaGamePanel, FrameMe, PhoneStatus } from "./ArenaGamePanel";
 import { createPortal } from "react-dom";
-import { ArenaMount, useArenaLayout, useArenaMount, ARENA_CABINET_LEFT, ARENA_PANEL_LEFT_W, ARENA_PANEL_W } from "@/lib/gameFrame/arena";
+import { ArenaMount, useArenaLayout, useArenaMount, cabinetLeftOn, ARENA_PANEL_LEFT_W, ARENA_PANEL_W } from "@/lib/gameFrame/arena";
 import { TimerLookContext, useGameTimer } from "@/lib/gameFrame/headerStyle";
 import { BannerSlot } from "@/components/app/PageAside";
 import { useLayoutMode } from "@/lib/layoutMode";
@@ -542,7 +542,8 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   /** The live round of an arcade play screen: GameLayout owns the one compact header row. */
   const arcadePlay = arcadeScreen && play;
   useStandaloneShortfall(arcadePlay && constrained);
-  const arenaLeft = ARENA_CABINET_LEFT && arena && !panel && arcadePlay;
+  // A turned world (Cue Ball's landscape table, `rotate`) keeps the whole width for itself: one panel, as before.
+  const arenaLeft = cabinetLeftOn() && arena && !panel && arcadePlay && modeInfo?.mode !== "rotate";
   const arenaValue = useMemo(
     () => ({ arena, mount: arenaMountNode, setMount: setArenaMountNode, leftMount: arenaLeft ? arenaLeftNode : null, setLeftMount: setArenaLeftNode, roomPanel: Boolean(panel) }),
     [arena, arenaMountNode, arenaLeft, arenaLeftNode, panel],

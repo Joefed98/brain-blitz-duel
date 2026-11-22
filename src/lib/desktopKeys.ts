@@ -1,5 +1,6 @@
 import { DESKTOP_MODES } from "@/lib/duel/desktopModes";
 import type { PuzzleType } from "@/lib/duel/types";
+import type { BoardKeySpec } from "@/lib/gameFrame/boardKeys";
 
 /**
  * Each game's keyboard controls, as the round intro shows them on desktop (DesktopKeys in
@@ -10,6 +11,8 @@ import type { PuzzleType } from "@/lib/duel/types";
 export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string, string])[]>> = {
   // Arcade
   balltrack: [["← → ↑ ↓", "move"], ["Space", "turn tile"]],
+  // Cue Ball (Joe, 21 Nov 2026): the aim, the power and the spin from the keys, the shot on Space.
+  pool: [["← →", "aim (Shift: fine)"], ["↑ ↓", "power"], ["W A S D", "spin"], ["Space", "shoot"]],
   bintoss: [["← → ↑ ↓", "aim"], ["Space", "throw"]],
   breaker: [["← →", "paddle"], ["Space", "power-up"]],
   // Crazy Golf golfRev 3 (15 Nov 2026): the stage's keys (C switches putt and chip).
@@ -59,8 +62,18 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   swerve: [["← →", "change lane"]],
   // Engine games on the arcade stage
   stroop: [["← →", "move"], ["↓", "drop"]],
+  // Joe, 21 Nov 2026: Pull!'s crosshair, Bonk's key a hole, Tenfall's key a column.
+  clayshoot: [["← → ↑ ↓", "move the sight"], ["Space", "shoot"]],
+  whack: [["1 2 3 4 · Q W E R · A S D F · Z X C V", "the holes, row by row"]],
+  tendrop: [["1 2 3 4", "the lowest tile in that column"]],
   wordfall: [["Mouse", "tiles"], ["Enter", "enter word"]],
+  // Speed (keys from 21 Nov 2026; Flash and Ascend Joe's picks)
+  reaction: [["Space / Enter", "tap"]],
+  numhunt: [["← → ↑ ↓", "move to a disc"], ["Space", "tap it"]],
+  chain: [["← → ↑ ↓", "move"], ["Space", "tap"]],
   // Word
+  swapword: [["← → ↑ ↓", "move"], ["Space", "pick, then pick another to swap"]],
+  wordsearch: [["← → ↑ ↓", "move"], ["Hold Space + arrows", "trace a word"], ["Enter", "done"]],
   codeword: [["A–Z", "letter"], ["Backspace", "clear"], ["Enter", "next empty"]],
   letterwheel: [["A–Z", "letter"], ["Backspace", "back"], ["Enter", "check word"], ["Space", "shuffle"]],
   strikeout: [["A–Z", "letter"], ["Backspace", "delete"], ["Enter", "solve"]],
@@ -69,11 +82,13 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   tilegrid: [["A–Z", "pick tile"], ["Enter", "done"]],
   wordslide: [["Z", "undo"], ["R", "reset"]],
   // Attention
+  pairmatch: [["← → ↑ ↓", "move"], ["Space", "turn a card"]],
   countup: [["0–9", "count"], ["Backspace", "delete"], ["Enter", "enter"]],
   maze: [["← → ↑ ↓", "move"]],
   spotdiff: [["Enter / N", "next picture"]],
   symscan: [["Enter", "submit"]],
   // Number
+  balance: [["← → ↑ ↓", "move"], ["Space", "pick a weight, then a notch"]],
   checkout: [["Enter", "throw"], ["Z", "undo"]],
   equation: [["+ − × ÷", "sign"], ["Digits", "number"], ["Backspace", "clear"], ["Enter", "next"]],
   measure: [["1–9", "jug"], ["F / E", "fill / empty"], ["R", "reset"]],
@@ -82,6 +97,10 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   target: [["1–6", "tile"], ["+ − × ÷", "operator"], ["Enter", "lock"], ["Z", "undo"], ["R", "reset"]],
   trail: [["Z", "undo"], ["R", "reset"]],
   // Logic
+  nonogram: [["← → ↑ ↓", "cell"], ["Space", "fill, cross, clear"], ["Hold Space + arrows", "paint"]],
+  tents: [["← → ↑ ↓", "cell"], ["Space", "tent, grass, clear"]],
+  shikaku: [["← → ↑ ↓", "cell"], ["Hold Space + arrows", "draw a rectangle"], ["Space", "remove one"]],
+  lightup: [["← → ↑ ↓", "cell"], ["Space", "lamp, mark, clear"]],
   bomb: [["1–9", "wire"], ["A / B", "button"], ["Enter", "defuse"], ["R", "reset"]],
   flood: [["1–5", "colour"]],
   lightsout: [["Z", "undo"], ["R", "reset"]],
@@ -95,6 +114,9 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   tower: [["1–3", "peg"], ["Z", "undo"], ["R", "reset"]],
   tubes: [["1–9, 0", "flask"], ["Z", "undo"], ["R", "reset"]],
   // Pattern
+  blockparty: [["← → ↑ ↓", "move"], ["Space", "turn (twice: flip)"], ["Hold Space + arrows", "carry a piece"], ["Z", "undo"], ["R", "reset"]],
+  pipes: [["← → ↑ ↓", "tile"], ["Space", "turn"], ["Shift + Space", "turn back"]],
+  flow: [["← → ↑ ↓", "move"], ["Hold Space + arrows", "draw from a dot"]],
   gravity: [["← → ↑ ↓", "tilt"], ["Z", "undo"], ["R", "reset"]],
   iceslide: [["← → ↑ ↓", "slide"], ["Z", "undo"], ["R", "reset"]],
   laser: [["M / S", "mirror / splitter"], ["Space", "fire"], ["Z", "undo"], ["R", "reset"]],
@@ -102,6 +124,44 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   rings: [["↑ ↓", "ring"], ["← →", "turn"]],
   tiles: [["Mouse", "swap two tiles"], ["Esc", "let go"]],
   unblock: [["Z", "undo"], ["R", "reset"]],
+};
+
+/**
+ * How the games whose stage takes only taps and drags read the keys above (lib/gameFrame/boardKeys.ts, drawn by
+ * BoardKeys in KeyCursor.tsx beside the live round): a cursor over the board's own pieces, Bonk's key a hole, Pull!'s
+ * crosshair, Flash's one target. Every press is the same pointer and click a mouse makes there (input mapping only).
+ */
+export const BOARD_KEYS: Partial<Record<PuzzleType, BoardKeySpec>> = {
+  balance: { kind: "cursor", targets: "[data-bell-tray] button, button[data-tray-cup], .bal-rack, button.balance-notch" },
+  reaction: { kind: "press", target: "[data-flash-cue]", keys: [" ", "Enter"] },
+  numhunt: { kind: "cursor", targets: "button[aria-label^='Circle ']" },
+  chain: { kind: "cursor", targets: "button[data-pointer-index]" },
+  swapword: { kind: "cursor", targets: "[data-sw-tile]" },
+  wordsearch: { kind: "cursor", targets: "[data-ws-cell]", buttons: { Enter: "[data-ws-done]" } },
+  pairmatch: { kind: "cursor", targets: "button[data-pair-card]" },
+  nonogram: { kind: "cursor", targets: "button[data-nono-index]" },
+  tents: { kind: "cursor", targets: "button[data-tent-cell]" },
+  shikaku: { kind: "cursor", targets: ".shikaku-board .logic-glass-cell" },
+  lightup: { kind: "cursor", targets: ".lightup-cell" },
+  blockparty: {
+    kind: "cursor",
+    targets: "[data-bp-tray-piece], .bp-board-art image",
+    hit: "[class~='z-[1]']",
+    buttons: { z: "[data-testid='blockparty-undo']", r: "[data-testid='blockparty-reset']" },
+  },
+  pipes: { kind: "cursor", targets: "button[data-pipe-cell]", secondary: true },
+  flow: { kind: "cursor", targets: ".flow-cell" },
+  whack: {
+    kind: "grid",
+    board: ".puzzle-board[aria-label$=' board']",
+    keys: [
+      ["1", "2", "3", "4"],
+      ["q", "w", "e", "r"],
+      ["a", "s", "d", "f"],
+      ["z", "x", "c", "v"],
+    ],
+  },
+  clayshoot: { kind: "aim", board: "[data-game-arena='canvas'][aria-label$=' sky']" },
 };
 
 /**
