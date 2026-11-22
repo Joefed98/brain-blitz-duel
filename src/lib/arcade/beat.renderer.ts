@@ -243,10 +243,10 @@ export function drawBar(ctx: CanvasRenderingContext2D, x: number, y: number, w: 
 const NOTE_SCALE = 3;
 /** A note bar's art with its 2 px halo, the bar at (0, 0) (the sprite below; the game icon paints it at its real size). */
 export function paintNote(c: CanvasRenderingContext2D, colour: string, w: number): void {
-  // Soft 2 px halo, then the bar itself.
-  c.fillStyle = `${colour}30`;
+  // Soft 2 px halo, then the bar itself (the polish plan, 20 Nov 2026: a stronger glow, still inside 2 px of the bar).
+  c.fillStyle = `${colour}58`;
   c.fillRect(-2, -2, w + 4, BEAT_NOTE_H + 4);
-  c.fillStyle = `${colour}60`;
+  c.fillStyle = `${colour}A0`;
   c.fillRect(-1, -1, w + 2, BEAT_NOTE_H + 2);
   c.fillStyle = colour;
   c.fillRect(0, 0, w, BEAT_NOTE_H);
@@ -314,13 +314,14 @@ function paintStage(c: CanvasRenderingContext2D, BEAT_WORLD_H: number, BEAT_LANE
     const x = lane * laneW;
     const colour = NEON[lane]!;
     const tint = c.createLinearGradient(0, BEAT_HUD_H, 0, BEAT_HIT_LINE_Y);
-    tint.addColorStop(0, `${colour}05`);
-    tint.addColorStop(0.6, `${colour}14`);
-    tint.addColorStop(1, `${colour}3A`);
+    // The polish plan (20 Nov 2026): brighter lanes, about a half again.
+    tint.addColorStop(0, `${colour}0A`);
+    tint.addColorStop(0.6, `${colour}22`);
+    tint.addColorStop(1, `${colour}58`);
     c.fillStyle = tint;
     c.fillRect(x, BEAT_HUD_H, laneW, BEAT_HIT_LINE_Y - BEAT_HUD_H);
     // The lane's own glow, rising from the hit line.
-    c.fillStyle = linear(c, 0, BEAT_HIT_LINE_Y, 0, BEAT_HIT_LINE_Y - 90, [[0, `${colour}30`], [1, `${colour}00`]]);
+    c.fillStyle = linear(c, 0, BEAT_HIT_LINE_Y, 0, BEAT_HIT_LINE_Y - 90, [[0, `${colour}4C`], [1, `${colour}00`]]);
     c.fillRect(x + 4, BEAT_HIT_LINE_Y - 90, laneW - 8, 90);
     c.fillStyle = `${colour}10`;
     c.fillRect(x, BEAT_HIT_LINE_Y, laneW, BEAT_WORLD_H - BEAT_HIT_LINE_Y);
@@ -331,7 +332,7 @@ function paintStage(c: CanvasRenderingContext2D, BEAT_WORLD_H: number, BEAT_LANE
     }
     // The Retro overhaul (15 Nov 2026, concept A): one crisp 1 px rail a lane edge, in its colour (were two rails and
     // two hairlines); the lane's round button on the hit line marks where its notes land (drawn live, drawLaneButton).
-    c.fillStyle = `${colour}8C`;
+    c.fillStyle = `${colour}C0`;
     c.fillRect(Math.round(x + 1), BEAT_HUD_H, 1, h);
     c.fillRect(Math.round(x + laneW - 2), BEAT_HUD_H, 1, h);
   }

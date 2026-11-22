@@ -1280,6 +1280,31 @@ if (FIRST_PART) {
     assert.ok(uwFiles.length === 0 || uwFiles.length === 5, "underwater: all five creature files or none");
     checks += 2;
   }
+
+  /* ------------- H1: a shaken frame never repaints a device layer ------------- */
+  // Changed with Joe's approval, 22 Nov 2026 (the polish plan's H1): the success layer's shake translates the canvas for
+  // ~16 frames; deviceLayer must blit its cached layer at the shifted translation, never paint the scenery again.
+  {
+    const { deviceLayer } = await import("../src/lib/arcade/cache.renderer");
+    const target = createCanvas(200, 100).getContext("2d") as unknown as CanvasRenderingContext2D;
+    let paints = 0;
+    const scenery = (c: CanvasRenderingContext2D) => {
+      paints++;
+      c.fillStyle = "#3366FF";
+      c.fillRect(0, 0, 200, 100);
+    };
+    deviceLayer(target, "h1-shake", scenery);
+    for (let f = 0; f < 16; f++) {
+      target.save();
+      target.translate((f % 3) - 1, (f % 2) * 2 - 1);
+      deviceLayer(target, "h1-shake", scenery);
+      target.restore();
+    }
+    assert.equal(paints, 1, `a shaken frame blits the cached layer, never repaints it (${paints} paints over 17 frames)`);
+    const px = (target as unknown as { getImageData: (x: number, y: number, w: number, h: number) => { data: Uint8ClampedArray } }).getImageData(100, 50, 1, 1).data;
+    assert.deepEqual([px[0], px[1], px[2]], [0x33, 0x66, 0xff], "the shaken frame still shows the layer");
+    checks += 2;
+  }
 }
 
 for (const line of summary) console.log(`  ${line}`);

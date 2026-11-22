@@ -153,7 +153,7 @@ export function orbitSounds(): GameSounds<OrbitState> {
         if (state.releaseTick !== prev.releaseTick && state.flying > 0) sfx("orbit.launch", "arc_thruster");
         if (prev.checkpoint < 0 && state.checkpoint >= 0) sfx("orbit.checkpoint", "arc_pickup");
         // The Action overhaul (15 Nov 2026): an empty tank has its own sputter (orbitRev 14+), a crash keeps the crash.
-        const fuelState = state as OrbitState & { fuel?: number; dry?: number; hold?: number; finished?: number };
+        const fuelState = state as OrbitState & { fuel?: number; dry?: number; hold?: number; finished?: number; tank?: number };
         const fuelPrev = prev as typeof fuelState;
         if (state.respawnTick !== prev.respawnTick || (state.ended === 2 && prev.ended !== 2)) {
           if (fuelState.dry !== undefined && fuelState.dry === state.tick) sfx("orbit.outOfFuel", "arc_lose_life");
@@ -165,10 +165,12 @@ export function orbitSounds(): GameSounds<OrbitState> {
         if (fuelState.fuel !== undefined) {
           const flyingNow = state.flying > 0 && state.ended === 0;
           // Stage 2 (15 Nov 2026): the beep repeats every half second while the tank keeps falling (the gauge pulsing with it).
-          const lowStep = fuelState.fuel <= ORBIT_LOW_FUEL && fuelState.fuel !== fuelPrev.fuel && (ORBIT_LOW_FUEL - fuelState.fuel) % ORBIT_LOW_FUEL_BEEP === 0;
+          // H5 (20 Nov 2026): the line is a quarter of this run's tank (a level's own), not 40 on every tank.
+          const lowLine = Math.trunc((fuelState.tank ?? ORBIT_FULL_TANK) / 4);
+          const lowStep = fuelState.fuel <= lowLine && fuelState.fuel !== fuelPrev.fuel && (lowLine - fuelState.fuel) % ORBIT_LOW_FUEL_BEEP === 0;
           if (flyingNow && fuelState.fuel > 0 && lowStep) sfx("orbit.lowFuel", "warning_tick");
           loopCue("orbit.thrust", flyingNow);
-          if (flyingNow) setCueLoopRate("orbit.thrust", 0.75 + 0.35 * Math.min(1, fuelState.fuel / ORBIT_LOW_FUEL / 4));
+          if (flyingNow) setCueLoopRate("orbit.thrust", 0.75 + 0.35 * Math.min(1, fuelState.fuel / lowLine / 4));
           // orbitRev 15 (grace): the respawn's hold ends with a ready blip.
           if ((fuelPrev.hold ?? 0) > 0 && (fuelState.hold ?? 0) === 0) sfx("orbit.respawnReady", "countdown_step");
           // Reaching the sun: the bloom's swell (silent until its recording is set; the banner keeps its cue).
@@ -209,8 +211,8 @@ export function orbitSounds(): GameSounds<OrbitState> {
     },
   };
 }
-/** Orbit's low-fuel line (sound only): a quarter of the 160-tick tank. */
-const ORBIT_LOW_FUEL = 40;
+/** Orbit's full tank when a state carries no level tank (ORBIT_FUEL_MAX); the low-fuel line is a quarter of the tank. */
+const ORBIT_FULL_TANK = 160;
 /** Ticks between low-fuel beeps (stage 2: half a second). */
 const ORBIT_LOW_FUEL_BEEP = 30;
 

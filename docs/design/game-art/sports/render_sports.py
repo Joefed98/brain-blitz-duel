@@ -169,9 +169,12 @@ def render_curling():
 # ---------------------------------------------------------------- Apex
 # Premium materials (Joe, 15 Nov 2026: light on real materials, not flat): a deep lacquered crimson under a mirror clear
 # coat, glossy carbon, matt rubber and polished gold; coat_rough is the clear coat's roughness.
+# The polish plan's C4.8 (Joe, 20 Nov 2026: "less 3D on the cars"): a flatter, satin finish that reads at 60 px: the
+# clear coat at 0.2 and rough, the paint less metallic and rougher (was metallic 0.45, roughness 0.22, coat 1.0 at 0.02;
+# carbon coat 0.9 at 0.05).
 CAR = {
-    "paint": {"base": (0.20, 0.012, 0.022), "metallic": 0.45, "roughness": 0.22, "coat": 1.0, "coat_rough": 0.02},
-    "carbon": {"base": (0.014, 0.014, 0.017), "metallic": 0.25, "roughness": 0.2, "coat": 0.9, "coat_rough": 0.05},
+    "paint": {"base": (0.20, 0.012, 0.022), "metallic": 0.15, "roughness": 0.48, "coat": 0.2, "coat_rough": 0.35},
+    "carbon": {"base": (0.014, 0.014, 0.017), "metallic": 0.15, "roughness": 0.45, "coat": 0.2, "coat_rough": 0.35},
     "tyre": {"base": (0.03, 0.03, 0.032), "metallic": 0.0, "roughness": 0.62},
     "rim": {"base": (1.0, 0.74, 0.34), "metallic": 1.0, "roughness": 0.14},
     "gold": {"base": (1.0, 0.76, 0.36), "metallic": 1.0, "roughness": 0.1},
@@ -293,9 +296,11 @@ def render_racing():
             # The sunset: the environment for reflections, the low sun ahead-left raking the edges (rim light), a long soft
             # strip above and behind for a crisp highlight along the curves, a faint cool fill from the camera's side.
             sunset_world()
-            lib.area_light((-7, 14, 2.2), (0, 0, 0.6), 5200, 4, (1.0, 0.55, 0.28))
-            lib.area_light((0, -2.5, 5.5), (0, -0.5, 0.6), 520, 1.2, (1.0, 0.9, 0.82))
-            lib.area_light((4, -7, 2.5), (0, 0, 0.5), 160, 6, (0.55, 0.65, 1.0))
+            # C4.8: a softer key and no specular pool: the long strip above is broad and dim (was 520 at 1.2), the rim
+            # gentler (was 5200), the camera-side fill stronger so the car reads flat and even.
+            lib.area_light((-7, 14, 2.2), (0, 0, 0.6), 3400, 6, (1.0, 0.55, 0.28))
+            lib.area_light((0, -2.5, 5.5), (0, -0.5, 0.6), 300, 5.0, (1.0, 0.9, 0.82))
+            lib.area_light((4, -7, 2.5), (0, 0, 0.5), 320, 8, (0.55, 0.65, 1.0))
             spec = {"base": (0.85, 0.85, 0.85), "metallic": 0.2, "roughness": 0.3, "coat": 1.0, "coat_rough": 0.02} if variant == "mask" else None
             build_car(variant == "brake", spec)
             if variant == "mask":

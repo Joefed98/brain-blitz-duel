@@ -72,9 +72,8 @@ interface Spin {
  * and the walnut-and-brass meter.
  */
 function IntroExample() {
-  // The Captain's arm (the Sports overhaul) loads while the intro is up, so the first aim already has it.
+  // The table loads while the intro is up (no Captain's arm since the polish plan's C4.4, 20 Nov 2026).
   useEffect(() => {
-    preloadSportsSprites("pool", ["arm"], true);
     preloadSportsSprites("pool", ["table"]);
   }, []);
   const segs = Array.from({ length: 12 }, (_, i) => i);
@@ -243,7 +242,6 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const panel = useRef<HTMLCanvasElement | null>(null);
   const pullStart = useRef<{ id: number; x: number } | null>(null);
   useEffect(() => {
-    preloadSportsSprites("pool", ["arm"], true);
     preloadSportsSprites("pool", ["table"]);
   }, []);
 
