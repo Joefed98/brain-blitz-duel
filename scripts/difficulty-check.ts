@@ -330,8 +330,8 @@ check(/Rated matches and the Daily are always Normal\./.test(intro.LEVEL_INTRO_T
 check(intro.LEVEL_INTRO_TEXT.length <= 140, `it is short (${intro.LEVEL_INTRO_TEXT.length} characters)`);
 // Changed with Joe's approval, 22 Nov 2026 (P2: the catalogue's level switch is gone; a game's level is chosen on its page): was the three files with
 // GamesCatalogue.tsx first and "(… of 3)".
-const drawnBy = ["src/components/games/GamePage.tsx", "src/components/duel/RoomSettingsSheet.tsx"].filter((f) => /<LevelIntro \/>/.test(readFileSync(f, "utf8")));
-check(drawnBy.length === 2, `every level selector draws the explanation (${drawnBy.length} of 2)`);
+const drawnBy = ["src/components/games/GamePage.tsx", "src/components/duel/RoomSettingsSheet.tsx"].filter((f) => /<LevelIntro \/>/.test(readFileSync(f, "utf8"))); // Changed with Joe's approval, 22 Nov 2026
+check(drawnBy.length === 2, `every level selector draws the explanation (${drawnBy.length} of 2)`); // Changed with Joe's approval, 22 Nov 2026
 
 console.log(`\n${failures === 0 ? "PASS" : "FAIL"}: difficulty-check, ${passes} passed, ${failures} failed`);
 process.exit(failures === 0 ? 0 : 1);

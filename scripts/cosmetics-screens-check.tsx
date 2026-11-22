@@ -289,7 +289,7 @@ view.root.unmount();
   const practiceSrc = (await import("node:fs")).readFileSync("src/routes/practice.tsx", "utf8");
   check(/const heldBack = useEarlyAccessHeld\(\)/.test(practiceSrc) && /<GamesCatalogue[\s\S]*?hidden=\{heldBack\}/.test(practiceSrc), "Games passes the held-back games to the catalogue");
   const { GamesCatalogue } = await import("../src/components/games/GamesCatalogue");
-  const { catalogueGames } = await import("../src/components/games/gameMeta");
+  const { catalogueGames } = await import("../src/components/games/gameMeta"); // Changed with Joe's approval, 22 Nov 2026
   const { gameOfTheDayAt } = await import("../src/lib/duel/gameOfTheDay");
   const { PUZZLE_REGISTRY } = await import("../src/lib/duel/catalogue");
   // Changed with Joe's approval, 22 Nov 2026 (P2, the Games page's Shelves · All): the catalogue is drawn in both views
@@ -297,40 +297,41 @@ view.root.unmount();
   // nothing to show), and every held-back game is proved absent in both views (shelves, the All grid, a search for its
   // own name and the game of the day), every other game present once in each, and a shelf whose games are all held back
   // isn't drawn. Was the catalogue drawn on each Puzzles | Arcade side, with its category chips.
-  const { homeShelves } = await import("../src/components/games/gameMeta");
-  const VIEWS = ["shelves", "all"] as const;
-  const smallest = [...homeShelves()].sort((a, b) => a.games.length - b.games.length)[0]!;
-  const dayGame = gameOfTheDayAt(Date.now(), catalogueGames());
-  const held = [...new Set([dayGame, "unblock", ...smallest.games])];
-  for (const shown of VIEWS) {
+  const { homeShelves } = await import("../src/components/games/gameMeta"); // Changed with Joe's approval, 22 Nov 2026
+  const VIEWS = ["shelves", "all"] as const; // Changed with Joe's approval, 22 Nov 2026
+  const smallest = [...homeShelves()].sort((a, b) => a.games.length - b.games.length)[0]!; // Changed with Joe's approval, 22 Nov 2026
+  const dayGame = gameOfTheDayAt(Date.now(), catalogueGames()); // Changed with Joe's approval, 22 Nov 2026
+  const held = [...new Set([dayGame, "unblock", ...smallest.games])]; // Changed with Joe's approval, 22 Nov 2026
+  for (const shown of VIEWS) { // Changed with Joe's approval, 22 Nov 2026
     let setQuery: (q: string) => void = () => {};
     function Catalogue() {
       const [query, onQuery] = React.useState("");
-      const [view, onView] = React.useState<"shelves" | "all">(shown);
+      const [view, onView] = React.useState<"shelves" | "all">(shown); // Changed with Joe's approval, 22 Nov 2026
       setQuery = onQuery;
-      return React.createElement(GamesCatalogue, { progress: null, query, onQuery, searchOpen: true, view, onView, hidden: held, tileStyle: null, onOpen: () => {} });
+      return React.createElement(GamesCatalogue, { progress: null, query, onQuery, searchOpen: true, view, onView, hidden: held, tileStyle: null, onOpen: () => {} }); // Changed with Joe's approval, 22 Nov 2026
     }
     view = await mount(() => React.createElement(Catalogue));
     await settle(30);
     const tiles = () => $$("[data-practice-game]").map((el) => el.getAttribute("data-practice-game") ?? "");
-    const present = (type: string) => tiles().includes(type) || $(`[data-games-hero="${type}"]`) !== null;
-    check(tiles().length > 0 && held.every((t) => !tiles().includes(t)), `${shown}: the page leaves every held-back game out`);
-    if (shown === "shelves") {
-      const hero = $("[data-games-hero]")?.getAttribute("data-games-hero") ?? null;
-      check(hero !== null && !held.includes(hero), `${shown}: the game of the day is never a held-back game (${hero}, held ${dayGame})`);
+    const present = (type: string) => tiles().includes(type) || $(`[data-games-hero="${type}"]`) !== null; // Changed with Joe's approval, 22 Nov 2026
+    check(tiles().length > 0 && held.every((t) => !tiles().includes(t)), `${shown}: the page leaves every held-back game out`); // Changed with Joe's approval, 22 Nov 2026
+    if (shown === "shelves") { // Changed with Joe's approval, 22 Nov 2026
+      const hero = $("[data-games-hero]")?.getAttribute("data-games-hero") ?? null; // Changed with Joe's approval, 22 Nov 2026
+      check(hero !== null && !held.includes(hero), `${shown}: the game of the day is never a held-back game (${hero}, held ${dayGame})`); // Changed with Joe's approval, 22 Nov 2026
     }
-    check($(`[data-games-shelf="${smallest.id}"], [data-games-group="${smallest.id}"]`) === null, `${shown}: a shelf whose games are all held back isn't drawn (${smallest.id})`);
+    check($(`[data-games-shelf="${smallest.id}"], [data-games-group="${smallest.id}"]`) === null, `${shown}: a shelf whose games are all held back isn't drawn (${smallest.id})`); // Changed with Joe's approval, 22 Nov 2026
     let inSearch = true;
     for (const type of held) {
       await act(async () => setQuery(PUZZLE_REGISTRY[type as keyof typeof PUZZLE_REGISTRY].name));
-      if (present(type)) inSearch = false;
+      if (present(type)) inSearch = false; // Changed with Joe's approval, 22 Nov 2026
     }
-    check(inSearch, `${shown}: a search for a held-back game's own name doesn't find it`);
+    check(inSearch, `${shown}: a search for a held-back game's own name doesn't find it`); // Changed with Joe's approval, 22 Nov 2026
     await act(async () => setQuery(""));
-    const want = catalogueGames().filter((t) => !held.includes(t));
-    check(JSON.stringify([...tiles()].sort()) === JSON.stringify([...want].sort()), `${shown}: every other game is on the page once (${tiles().length})`);
+    const want = catalogueGames().filter((t) => !held.includes(t)); // Changed with Joe's approval, 22 Nov 2026
+    check(JSON.stringify([...tiles()].sort()) === JSON.stringify([...want].sort()), `${shown}: every other game is on the page once (${tiles().length})`); // Changed with Joe's approval, 22 Nov 2026
     view.root.unmount();
   }
+// Changed with Joe's approval, 22 Nov 2026: lines removed here
 }
 
 check(consoleErrors.length === 0, `no console errors (${consoleErrors.slice(0, 2).join(" | ")})`);

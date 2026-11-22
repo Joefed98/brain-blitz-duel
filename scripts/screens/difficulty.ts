@@ -20,6 +20,7 @@ const STAND_IN_LEVELS = {
   },
 };
 
+// Changed with Joe's approval, 22 Nov 2026: lines removed here
 /** The catalogue's level set to Expert on this device, then the page drawn again. */
 const expertStored = async (page: Page) => {
   await page.evaluate(() => localStorage.setItem("duelz-levels:v1", JSON.stringify({ catalogue: "expert", games: {} })));

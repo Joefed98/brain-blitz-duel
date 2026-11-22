@@ -371,10 +371,10 @@ try {
       // Puzzles side then the Arcade side pressed in turn ("each side lists only its games", "no game on both sides",
       // "no All chip") and the Logic chip pressed and pressed again.
       const isArcadeType = (t: string | null) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.category === "arcade";
-      const rows = await sideRows();
-      const named = await sideNames();
-      check(rows.some((r) => isArcadeType(r.type)) && rows.some((r) => !isArcadeType(r.type)), `the Games page lists puzzles and arcade games together (${rows.length})`);
-      check(new Set(rows.map((r) => r.type)).size === rows.length, "no game is listed twice");
+      const rows = await sideRows(); // Changed with Joe's approval, 22 Nov 2026
+      const named = await sideNames(); // Changed with Joe's approval, 22 Nov 2026
+      check(rows.some((r) => isArcadeType(r.type)) && rows.some((r) => !isArcadeType(r.type)), `the Games page lists puzzles and arcade games together (${rows.length})`); // Changed with Joe's approval, 22 Nov 2026
+      check(new Set(rows.map((r) => r.type)).size === rows.length, "no game is listed twice"); // Changed with Joe's approval, 22 Nov 2026
       const byType = new Map(rows.map((r) => [r.type, r]));
       const missing: string[] = [];
       for (const type of ACTIVE_PUZZLE_TYPES) {
@@ -386,9 +386,9 @@ try {
       check(missing.length === 0, `every active game (${ACTIVE_PUZZLE_TYPES.length}) has its own icon, drawn, with no text${missing.length ? `: ${missing.join(", ")}` : ""}`);
       const names = ACTIVE_PUZZLE_TYPES.map((type) => PUZZLE_REGISTRY[type].name).filter((name) => !named.includes(name));
       check(names.length === 0, `every practice button is named exactly its game${names.length ? `: ${names.join(", ")}` : ""}`);
-      check((await page.locator("[data-practice-filter]").count()) === 0, "no category chips (a shelf per family in their place)");
-      const logic = await page.locator("[data-games-shelf='logic'] [data-practice-game]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-game")));
-      check(logic.length > 0 && logic.every((t) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.category === "logic"), "the Logic shelf holds only logic games");
+      check((await page.locator("[data-practice-filter]").count()) === 0, "no category chips (a shelf per family in their place)"); // Changed with Joe's approval, 22 Nov 2026
+      const logic = await page.locator("[data-games-shelf='logic'] [data-practice-game]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-game"))); // Changed with Joe's approval, 22 Nov 2026
+      check(logic.length > 0 && logic.every((t) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.category === "logic"), "the Logic shelf holds only logic games"); // Changed with Joe's approval, 22 Nov 2026
       await page.locator("[data-games-search-toggle]").click();
       await page.getByRole("searchbox", { name: "Search games" }).fill("grid");
       const found = await page.locator("[data-practice-game]").evaluateAll((els) => els.map((el) => el.getAttribute("data-practice-game")));

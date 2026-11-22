@@ -27,10 +27,10 @@ import { CHALLENGE_CODE, challengeFixture, type ChallengeScreenData } from "./ch
 
 // Changed with Joe's approval, 22 Nov 2026 (P2 hook 4): the full Box Six and Gemstone rounds are kept beside their public halves, so a room reveal
 // screen is answered with the round's real puzzle (roomNow's `revealed`).
-const PUZZLE_FULL = withSeededRandom(41, () => generatePuzzle("sudoku")) as PuzzleData;
-export const PUZZLE = splitPuzzle(PUZZLE_FULL).pub as PuzzleData;
-const ARCADE_FULL = withSeededRandom(41, () => generatePuzzle("matchup")) as PuzzleData;
-const ARCADE = splitPuzzle(ARCADE_FULL).pub as PuzzleData;
+const PUZZLE_FULL = withSeededRandom(41, () => generatePuzzle("sudoku")) as PuzzleData; // Changed with Joe's approval, 22 Nov 2026
+export const PUZZLE = splitPuzzle(PUZZLE_FULL).pub as PuzzleData; // Changed with Joe's approval, 22 Nov 2026
+const ARCADE_FULL = withSeededRandom(41, () => generatePuzzle("matchup")) as PuzzleData; // Changed with Joe's approval, 22 Nov 2026
+const ARCADE = splitPuzzle(ARCADE_FULL).pub as PuzzleData; // Changed with Joe's approval, 22 Nov 2026
 const iso = (ms: number) => new Date(ms).toISOString();
 /** Long names on purpose: a name never wraps; it truncates with an ellipsis. */
 const NAMES = [
@@ -187,11 +187,11 @@ function roomNow(status: Status, phase: string, opts: RoomOpts) {
     players,
     // Changed with Joe's approval, 22 Nov 2026 (P2 hook 4): each round's full puzzle for the reveal's answer (the harness's fetchRevealPuzzle). A round
     // given only its public half (opts.puzzle, opts.arcadeRun, opts.arcadePuzzle) is answered with that half.
-    revealed: order.map((t) =>
-      t === arcadeType
-        ? opts.arcadeRun || opts.arcadePuzzle || arcadeType !== "matchup" ? arcadePuzzle : ARCADE_FULL
-        : opts.puzzle || opts.puzzleType ? puzzleRound : PUZZLE_FULL,
-    ),
+    revealed: order.map((t) => // Changed with Joe's approval, 22 Nov 2026
+      t === arcadeType // Changed with Joe's approval, 22 Nov 2026
+        ? opts.arcadeRun || opts.arcadePuzzle || arcadeType !== "matchup" ? arcadePuzzle : ARCADE_FULL // Changed with Joe's approval, 22 Nov 2026
+        : opts.puzzle || opts.puzzleType ? puzzleRound : PUZZLE_FULL, // Changed with Joe's approval, 22 Nov 2026
+    ), // Changed with Joe's approval, 22 Nov 2026
     results: scored
       ? players.flatMap((p) =>
           Array.from({ length: rounds }, (_, r) => {
@@ -859,7 +859,7 @@ export const THEME_SCREENS: ThemeScreen[] = [
       // Changed with Joe's approval, 22 Nov 2026 (P2, the Games page's Shelves · All): the Games page has no Puzzles | Arcade switch or category tiles,
       // so the screen scrolls to the Retro shelf (the name is kept: the shot tools ask for it). Was the Arcade side
       // pressed, then the Retro tile.
-      await page.locator("[data-games-shelf='retro']").scrollIntoViewIfNeeded({ timeout: 10_000 });
+      await page.locator("[data-games-shelf='retro']").scrollIntoViewIfNeeded({ timeout: 10_000 }); // Changed with Joe's approval, 22 Nov 2026
       await page.waitForTimeout(400);
     },
   },

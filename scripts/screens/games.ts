@@ -67,7 +67,7 @@ export const GAMES_SCREENS = (sizes: ThemeViewport[], allSizes: ThemeViewport[])
       sizes,
       // Changed with Joe's approval, 22 Nov 2026 (P2, Shelves · All): no category chips; the screen scrolls to the Logic shelf. Was the Logic chip pressed.
       go: async (page: Page) => {
-        await page.locator("[data-games-shelf='logic']").scrollIntoViewIfNeeded({ timeout: 10_000 });
+        await page.locator("[data-games-shelf='logic']").scrollIntoViewIfNeeded({ timeout: 10_000 }); // Changed with Joe's approval, 22 Nov 2026
         await page.waitForTimeout(300);
       },
     },
