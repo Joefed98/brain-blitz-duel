@@ -125,9 +125,14 @@ export function oracleTenfall(p: PuzzleData): string {
   return best.answer;
 }
 
+/** The proof run's answer for Bonk, Pull! or Tenfall. */
+export function proofAnswer(p: PuzzleData): string {
+  return p.type === "whack" ? oracleBonk(p) : p.type === "clayshoot" ? oraclePull(p) : oracleTenfall(p);
+}
+
 /** The server's grade of a proof run (score, flagged). */
 export function proofScore(p: PuzzleData): { score: number; flagged: boolean } {
-  const answer = p.type === "whack" ? oracleBonk(p) : p.type === "clayshoot" ? oraclePull(p) : oracleTenfall(p);
+  const answer = proofAnswer(p);
   const g = gradeAnswer(p, answer, 0);
   return { score: g.score, flagged: !!(g.extra as { flagged?: unknown } | undefined)?.flagged };
 }
