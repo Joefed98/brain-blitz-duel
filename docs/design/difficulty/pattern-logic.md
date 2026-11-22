@@ -80,10 +80,10 @@ The tables follow, generated from the final measurement (see "Measured").
 - Minefield: "Easy is 8 × 12 with 9 mines; Hard 26 mines, 90 seconds; Expert 40 mines on the same 10 × 16 with a small
   opening, 105 seconds. Never a guess on any level."
 - Tents and Trees: "Easy is 8 × 6 with every count shown; Hard 8 × 11 with half the counts hidden, 120 seconds; Expert
-  8 × 12, 110 seconds."
+  8 × 12, 115 seconds."
 - Shikaku: "Easy is 10 × 7; Hard 10 × 13 with 19 to 22 rectangles, 120 seconds; Expert 10 × 15 with 22 to 26."
 - Lamplighter: "Easy is 9 × 6 with most walls numbered; Hard 9 × 11, 120 seconds; Expert 9 × 12 with fewer numbers."
 - Trail: "Easy is 5 × 5 with 9 numbers shown; Hard 7 × 7 with 17; Expert 7 × 7 with 14."
-- Loopline: "Easy is 5 × 5; Hard 7 × 7; Expert 8 × 8, 120 seconds."
-- Regions: "Easy is 6 × 6; Hard 8 × 8, 100 seconds; Expert 8 × 8 with 10 to 14 numbers, 120 seconds."
+- Loopline: "Easy is 5 × 5; Hard 7 × 7, 120 seconds; Expert 8 × 8, 120 seconds."
+- Regions: "Easy is 6 × 6; Hard 8 × 8, 120 seconds; Expert 8 × 8 with 10 to 14 numbers, 120 seconds."
 - Island Link: "Easy is 6 × 6 with 7 to 9 islands; Hard 8 × 8 with 13 to 16, 120 seconds; Expert 18 to 22 islands."
