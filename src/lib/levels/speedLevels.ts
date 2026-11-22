@@ -196,7 +196,7 @@ export const BONK_LEVELS = {
  */
 export const TENFALL_LEVELS = {
   easy: { targets: 8, maxTarget: 60, ops: "plusMinus", speedPct: 80 },
-  hard: { targets: 10, minTarget: 40, maxTarget: 250, ops: "times", speedPct: 115, fullByS: 79 },
+  hard: { targets: 10, minTarget: 40, maxTarget: 250, ops: "times", speedPct: 115, fullByS: 76 },
   expert: { targets: 8, minTarget: 150, maxTarget: 400, ops: "all", speedPct: 115, fullByS: 75 },
 } as const satisfies Record<string, TenfallLevel>;
 
