@@ -132,7 +132,7 @@ const probe = (selector: string) => (sel: string) => {
 };
 try {
   for (const [label, globals, want] of [
-    ["profile, no choice", {}, { bg: "#06080F", text: "#EEF2FF", theme: null }],
+    ["profile, no choice", {}, { bg: "#04060C", text: "#EEF2FF", theme: null }], // Changed with Joe's approval, 21 Nov 2026
     ["profile, light", { __harnessTheme: "light" }, { bg: "#F3F4F8", text: "#0B1020", theme: "light" }],
   ] as const) {
     const { context, page } = await openThemeScreen(browser, server.origin, { ...named("profile"), globals }, viewport);
@@ -159,7 +159,7 @@ try {
     const { context, page } = await openThemeScreen(browser, server.origin, { ...named(name), globals: { __harnessTheme: "light" } }, viewport);
     const got = await page.evaluate(probe(".game-screen"), ".game-screen");
     check(
-      got?.theme === "light" && got.bg === "#06080F" && got.text === "#EEF2FF" && got.apText === "rgb(238, 242, 255)" && got.edge === "#070709",
+      got?.theme === "light" && got.bg === "#04060C" && got.text === "#EEF2FF" && got.apText === "rgb(238, 242, 255)" && got.edge === "#070709", // Changed with Joe's approval, 21 Nov 2026
       `${name} in light: the game screen stays dark (${JSON.stringify(got)})`,
     );
     await context.close();

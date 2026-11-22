@@ -41,6 +41,7 @@ import { CHROMIUM_PATHS, IPHONE_SAFARI_UA } from "./theme-screens";
 import { ONBOARDING_KEY } from "../src/lib/onboarding";
 import { ukDayKey, ukDayWindow, type DailyStatus } from "../src/lib/duel/daily";
 import { ARRIVAL_KEY, HOME_HINT_KEY, LAST_ROOM_KEY, NAME_KEY, ONBOARDING_SEEN_KEY, PLAY_CARDS_BOOT, PLAY_CARDS_KEY, PUBLIC_CARD_H, applyTokens, playCardTokens, type BootDevice } from "../src/lib/playCards";
+import { HOME_RATED_STATUS } from "./screens/home-play";
 
 const failures: string[] = [];
 let passes = 0;
@@ -65,7 +66,9 @@ const PAGE_ITEMS: Record<Where, Record<string, string>> = {
     welcome: "[data-share-welcome]",
     daily: "[data-daily-card]",
     homeHint: "[data-home-hint]",
-    intro: "[data-intro-card]",
+    banner: "[data-hp-banner]", // Changed with Joe's approval, 21 Nov 2026
+    chips: "[data-hp-chips]", // Changed with Joe's approval, 21 Nov 2026
+    friends: "[data-hp-play-friends]", // Changed with Joe's approval, 21 Nov 2026
   },
   rooms: {
     anchor: '[aria-label="Quick play"]',
@@ -101,6 +104,8 @@ interface Scenario {
   expect: "stable" | "collapse";
   /** The page drawn (Home unless set). */
   where?: Where;
+  /** Page globals set before the app starts (P1, 21 Nov 2026: rated play's stand-in status for a placed banner). */
+  globals?: Record<string, unknown>;
 }
 
 async function run(browser: Browser, origin: string, s: Scenario): Promise<{ frames: Frame[]; storage: Record<string, string>; nameRow: { natural: number; reserved: number } }> {
@@ -109,7 +114,8 @@ async function run(browser: Browser, origin: string, s: Scenario): Promise<{ fra
   await context.addInitScript(pageClock.script, pageClock.arg);
   await context.addInitScript(DEVICE_INIT);
   await context.addInitScript(
-    ({ storage, harness, items, onboarding, games }) => {
+    ({ storage, harness, items, onboarding, games, globals }) => {
+      for (const [k, v] of Object.entries(globals)) (window as unknown as Record<string, unknown>)[k] = v;
       try {
         if (onboarding) localStorage.setItem(onboarding, "1");
         for (const [k, v] of Object.entries(storage)) localStorage.setItem(k, v);
@@ -137,6 +143,7 @@ async function run(browser: Browser, origin: string, s: Scenario): Promise<{ fra
       storage: s.storage,
       items: ITEMS,
       onboarding: s.firstVisit ? "" : ONBOARDING_KEY,
+      globals: s.globals ?? {},
       games: [{ date: inTwoDays(), time: "19:00", lobbyOpens: "18:45", rounds: 6, roomCode: "PLAY", title: "Saturday night quiz" }],
       harness: {
         slowMs: SLOW_MS,
@@ -245,10 +252,22 @@ try {
   const arrivedSeen = judge(arrival, arrived.frames);
   check(!!arrivedSeen && arrivedSeen[0]!.items["welcome"] !== null, "arrival: the welcome card is there from the first frame");
 
-  const first: Scenario = { name: "first visit (intro card)", storage: lastRoom, server: all, expect: "stable", firstVisit: true };
+  // Changed with Joe's approval, 21 Nov 2026 (P1: Home has no intro card; its player banner is there from the first frame,
+  // and a banner last drawn placed holds the two rating chips from the first frame).
+  const first: Scenario = { name: "first visit", storage: lastRoom, server: all, expect: "stable", firstVisit: true };
   const firstSeen = judge(first, (await run(browser, server.origin, first)).frames);
-  check(!!firstSeen && firstSeen[0]!.items["intro"] !== null, "first visit: the intro card is there from the first frame");
-  check(!!freshSeen && freshSeen[freshSeen.length - 1]!.items["intro"] === null, "a device that has seen the intro: no intro card");
+  check(!!firstSeen && firstSeen[0]!.items["banner"] !== null && firstSeen[0]!.items["friends"] !== null, "first visit: the banner and Play friends are there from the first frame"); // Changed with Joe's approval, 21 Nov 2026
+  check(!!freshSeen && freshSeen[freshSeen.length - 1]!.items["chips"] === null, "no rated play: no rating chips"); // Changed with Joe's approval, 21 Nov 2026
+  const placedHero = { state: "placed", rating: 1482, tier: "volt", division: "I", rank: null, label: "Volt I", fraction: 0.82, next: "18 to Surge III", puzzles: 1530, arcade: 1410 };
+  const placed: Scenario = {
+    name: "a banner last drawn placed",
+    storage: { ...lastRoom, [PLAY_CARDS_KEY]: JSON.stringify({ hero: placedHero }) },
+    server: all,
+    expect: "stable",
+    globals: { __harnessRatedStatus: HOME_RATED_STATUS },
+  };
+  const placedSeen = judge(placed, (await run(browser, server.origin, placed)).frames);
+  check(!!placedSeen && placedSeen[0]!.items["chips"] !== null && placedSeen[placedSeen.length - 1]!.items["chips"] !== null, "a banner last drawn placed: the chips are there from the first frame"); // Changed with Joe's approval, 21 Nov 2026
 
   // The public game card: a cached height (the last visit's) holds it from the first frame as the boot
   // script's default does on a fresh device (above), and the Add to Home Screen hint on iPhone Safari.

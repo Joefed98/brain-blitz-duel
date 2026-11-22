@@ -110,7 +110,8 @@ html:not([data-play-cards~="challenge"]) [data-play-slot="challenge"],
 html:not([data-play-cards~="rejoin"]) [data-play-slot="rejoin"],
 html:not([data-play-cards~="welcome"]) [data-play-slot="welcome"],
 html:not([data-play-cards~="homescreen"]) [data-play-slot="homescreen"],
-html:not([data-play-cards~="intro"]) [data-play-slot="intro"] {
+html:not([data-play-cards~="intro"]) [data-play-slot="intro"],
+html:not([data-play-cards~="chips"]) [data-play-slot="chips"] {
   display: none;
 }
 @media (prefers-reduced-motion: reduce) {

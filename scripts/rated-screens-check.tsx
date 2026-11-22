@@ -734,10 +734,13 @@ const profileUi = () =>
   // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): rated play's Play card moved to the Play page
   // (Find a match), and Home's rated parts (the quick match card, Ratings) draw only from useRatedStatus, which is null
   // for anyone rated play isn't open to.
+  // Changed with Joe's approval, 21 Nov 2026 (P1: the Play page folded into Home, whose player banner, PlayerBanner.tsx,
+  // draws rated play only from useRatedStatus, else Play now; play.tsx only redirects).
   const home = readFileSync("src/routes/index.tsx", "utf8");
-  const play = readFileSync("src/routes/play.tsx", "utf8");
+  const banner = readFileSync("src/components/home/PlayerBanner.tsx", "utf8");
   check(
-    /const rated = useRatedStatus\(\);/.test(home) && /\{rated \? <RatingTiles status=\{rated\} \/> : null\}/.test(home) && /const status = useRatedStatus\(\);/.test(play) && /\{status \? \(\s*<RatedPlay status=\{status\} \/>/.test(play) && /if \(!status\) return null;/.test(readFileSync("src/components/rated/RatedHome.tsx", "utf8")),
+    /const \{ hero, status \} = useHero\(\);/.test(home) && /const status = useRatedStatus\(\);/.test(banner) && /if \(!status\) return \{ state: "off" \};/.test(banner) && /const live = status \? heroOf\(status\)/.test(banner) && // Changed with Joe's approval, 21 Nov 2026
+      /if \(!status\) return null;/.test(readFileSync("src/components/rated/RatedHome.tsx", "utf8")),
     "Home and Play draw rated play only for players it is open to",
   );
 }

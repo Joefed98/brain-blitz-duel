@@ -1,8 +1,9 @@
 /*
- * Home, Play and Rooms (phase 2 step 3, 14 Nov 2026; docs/design/style-guide/phone/home.png, play.png, sheet.png and
- * desktop/home.png, play.png). Tokens only (src/design/tokens.css); the Daily Puzzle card is Joulz navy in both themes
- * (the theme-fixed obsidian metal stops, white text from the theme-fixed silver stops). Angled cuts only on the hero
- * card and the gold buttons; rounded corners everywhere else.
+ * Home and Rooms (phase 2 step 3, 14 Nov 2026; P1, 21 Nov 2026: Joe's mix of H1 and H2, plan section 3.3, mockups
+ * docs/polish-plan-final/direction/pages/home-mixed-*). Tokens only (src/design/tokens.css). Angled cuts only on the
+ * player banner (the page's one hero) and the gold buttons; rounded corners everywhere else. Feature cards stay
+ * navy and take their mode's colour as an edge light (Daily Puzzle the Word blue, Daily Arcade the arcade cyan, Play
+ * friends the win green; plan section 1.1).
  */
 
 /* ------------------------------------------------------------------ shared */
@@ -49,8 +50,7 @@
 }
 
 /* ------------------------------------------------------------------ Home's header */
-.hp-streak,
-.hp-bell {
+.hp-streak {
   display: inline-flex;
   min-width: 44px;
   min-height: 44px;
@@ -62,13 +62,8 @@
   font: var(--jz-type-body);
   font-variant-numeric: tabular-nums;
 }
-.hp-streak {
-  padding-inline: var(--jz-space-8);
-}
 .hp-streak:focus-visible,
-.hp-bell:focus-visible,
 .hp-recent-game:focus-visible,
-.hp-select:focus-visible,
 .hp-option:focus-visible,
 .hp-week-head:focus-visible,
 .hp-friend:focus-visible,
@@ -76,88 +71,265 @@
   outline: 3px solid var(--jz-focus-ring);
   outline-offset: 3px;
 }
-.hp-railhead {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--jz-space-8);
-  margin-bottom: calc(-1 * var(--jz-space-12));
+
+.hp-name {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--jz-text);
+  font: var(--jz-type-heading);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* ------------------------------------------------------------------ the Daily hero carousel */
-.hp-hero {
-  margin-inline: calc(-1 * var(--jz-gutter, 16px));
-}
-.hp-hero-track {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 80%;
-  gap: var(--jz-space-12);
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  padding-inline: var(--jz-gutter, 16px);
-  scroll-padding-inline: var(--jz-gutter, 16px);
-  scroll-snap-type: x mandatory;
-  scrollbar-width: none;
-}
-.hp-hero-track::-webkit-scrollbar {
-  display: none;
-}
-.hp-daily {
+/* ------------------------------------------------------------------ the player banner */
+/* One height in all three states (placed, placement, Play now), so a state change moves nothing below it. */
+.hp-banner {
+  --hp-banner-h: 244px;
   position: relative;
-  display: grid;
-  min-height: 188px;
+  display: flex;
+  height: var(--hp-banner-h);
+  flex-direction: column;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-20);
+  background:
+    radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--jz-gold) 12%, transparent), transparent 60%),
+    linear-gradient(160deg, var(--jz-surface) 0%, var(--jz-bg-raised) 100%);
+  box-shadow: inset 0 0 0 1px var(--jz-line);
+  color: var(--jz-text);
+}
+.hp-banner[data-hp-banner="off"] {
+  background:
+    radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--category-logic) 18%, transparent), transparent 62%),
+    linear-gradient(160deg, var(--jz-surface) 0%, var(--jz-bg-raised) 100%);
+}
+.hp-banner-top {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  align-items: flex-start;
+  gap: var(--jz-space-12);
+}
+.hp-banner-text {
+  display: flex;
   min-width: 0;
-  grid-template-rows: auto 1fr auto;
-  padding: var(--jz-space-20) var(--jz-space-20) var(--jz-space-20);
+  flex: 1;
+  flex-direction: column;
+  gap: var(--jz-space-4);
+}
+.hp-banner-eyebrow {
   overflow: hidden;
-  border-radius: 0;
-  scroll-snap-align: start;
+  color: var(--jz-gold-ink);
+  font: var(--jz-weight-bold) 15px/20px var(--jz-font);
+  letter-spacing: 0.12em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
-.hp-daily[data-hp-daily="puzzle"] {
-  background: linear-gradient(160deg, var(--jz-metal-obsidian-2) 0%, var(--jz-metal-obsidian-3) 100%);
+.hp-banner-rating {
+  color: var(--jz-text);
+  font: var(--jz-weight-black) 56px/1 var(--jz-font);
+  font-stretch: 112%;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
-.hp-daily[data-hp-daily="arcade"] {
-  border-radius: var(--jz-radius-lg);
-  clip-path: none;
-  background: var(--jz-surface);
+.hp-banner-title {
+  color: var(--jz-text);
+  font: var(--jz-weight-bold) 30px/34px var(--jz-font);
+  letter-spacing: -0.01em;
 }
-.hp-daily-art {
+.hp-banner[data-hp-banner="placement"] .hp-banner-title {
+  font-size: 22px;
+  line-height: 27px;
+}
+.hp-banner-sub {
+  overflow: hidden;
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hp-banner-emblem,
+.hp-banner-art {
+  flex: none;
+}
+.hp-banner-tile {
+  display: inline-flex;
+  width: 96px;
+  height: 96px;
+  flex: none;
+}
+.hp-banner-bar {
+  position: relative;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: var(--jz-surface-2);
+}
+.hp-banner-bar > span {
   position: absolute;
-  right: -18px;
-  bottom: 10px;
-  width: 58%;
-  max-width: 220px;
+  inset: 0;
+  border-radius: inherit;
+  background: var(--jz-gold);
+  transform-origin: left center;
+}
+.hp-banner-line {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-12);
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  font-variant-numeric: tabular-nums;
+}
+.hp-banner-line > span[data-ellipsis] {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hp-banner-up {
+  flex: none;
+  color: var(--jz-win);
+  font-weight: var(--jz-weight-bold);
+}
+.hp-banner-down {
+  flex: none;
+  color: var(--jz-loss-text);
+  font-weight: var(--jz-weight-bold);
+}
+.hp-banner-pips {
+  display: flex;
+  min-height: 20px;
+  align-items: center;
+  gap: 6px;
+}
+.hp-banner-pips > span:not(.hp-banner-pips-text) {
+  width: 32px;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--jz-surface-3);
+}
+.hp-banner-pips > span[data-on] {
+  background: var(--jz-gold);
+}
+.hp-banner-pips-text {
+  margin-left: var(--jz-space-8);
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  white-space: nowrap;
+}
+/* The hero button: a sheen inside its cut, over the face only (plan section 1.3). It sweeps twice when Home opens (and
+   again each time Home is opened, since Home mounts afresh), then stops, so idle Home draws nothing (battery-check);
+   none under Reduce motion. */
+.hp-banner-play {
+  flex: none;
+  font-size: 20px;
+}
+.hp-sheen {
+  position: absolute;
+  inset: 0 0 var(--jz-ledge) 0;
+  z-index: -1;
+  overflow: hidden;
+  clip-path: polygon(var(--cut) 0, 100% 0, 100% calc(100% - var(--cut)), calc(100% - var(--cut)) 100%, 0 100%, 0 var(--cut));
   pointer-events: none;
 }
-.hp-daily[data-hp-daily="arcade"] .hp-daily-art {
-  position: relative;
-  right: auto;
-  bottom: auto;
-  grid-row: 1;
-  width: 64px;
+.hp-sheen::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 40%;
+  background: linear-gradient(105deg, transparent 0%, color-mix(in srgb, var(--jz-white) 45%, transparent) 50%, transparent 100%);
+  transform: translateX(-120%);
+  animation: hp-sheen 1.1s 0.4s ease-in-out 2;
 }
-.hp-daily-text {
+@keyframes hp-sheen {
+  0% {
+    transform: translateX(-120%);
+  }
+  72% {
+    transform: translateX(320%);
+  }
+  100% {
+    transform: translateX(320%);
+  }
+}
+
+/* ------------------------------------------------------------------ the rating chips */
+.hp-chips {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--jz-space-12);
+}
+.hp-chip {
+  display: flex;
+  min-width: 0;
+  min-height: 52px;
+  align-items: center;
+  gap: 6px;
+  padding-inline: 10px 12px;
+  border-radius: var(--jz-radius-md);
+  color: var(--jz-text);
+  text-align: left;
+}
+.hp-chip-label {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hp-chip-value {
+  flex: none;
+  font: var(--jz-type-body);
+  font-variant-numeric: tabular-nums;
+}
+.hp-chip:focus-visible {
+  outline: 3px solid var(--jz-focus-ring);
+  outline-offset: 3px;
+}
+
+/* ------------------------------------------------------------------ the dailies */
+.hp-dailies {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--jz-space-12);
+}
+.hp-daily {
+  --hp-light: var(--category-word);
   position: relative;
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: var(--jz-space-4);
+  justify-content: space-between;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-16);
+  overflow: hidden;
+  border-radius: var(--jz-radius-lg);
+  background:
+    radial-gradient(90% 70% at 100% 100%, color-mix(in srgb, var(--hp-light) 22%, transparent), transparent 70%),
+    var(--jz-surface);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--hp-light) 35%, var(--jz-line));
 }
-.hp-daily[data-hp-daily="arcade"] .hp-daily-text {
-  max-width: none;
-  grid-row: 3;
+.hp-daily[data-hp-daily="arcade"] {
+  --hp-light: var(--jz-cyan);
+}
+.hp-daily-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
 }
 .hp-daily-title {
   overflow: hidden;
-  font: var(--jz-type-heading);
   color: var(--jz-text);
+  font: var(--jz-type-heading);
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.hp-daily[data-hp-daily="puzzle"] .hp-daily-title {
-  font: var(--jz-type-title);
-  color: var(--jz-metal-silver-1);
 }
 .hp-daily-line {
   overflow: hidden;
@@ -166,91 +338,86 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.hp-daily[data-hp-daily="puzzle"] .hp-daily-line {
-  color: var(--jz-metal-silver-2);
+.hp-daily-foot {
+  display: flex;
+  min-height: 48px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--jz-space-8);
 }
 .hp-daily-play {
-  position: relative;
-  grid-row: 3;
-  width: min(172px, 52%);
+  flex: none;
+  min-width: 84px;
 }
-.hp-daily-cover {
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-}
-
-/* ------------------------------------------------------------------ your next match */
-.hp-next {
-  display: flex;
-  min-height: 88px;
-  align-items: center;
-  gap: var(--jz-space-12);
-  padding: var(--jz-space-16);
-}
-.hp-next-art {
+.hp-daily-done {
   display: inline-flex;
+  min-height: 44px;
   flex: none;
   align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  overflow: hidden;
-  border-radius: var(--jz-radius-md);
-}
-.hp-next-text {
-  display: flex;
-  min-width: 0;
-  flex: 1;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-}
-.hp-next-title {
-  max-width: 100%;
-  overflow: hidden;
-  font: var(--jz-type-body);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.hp-next-sub {
-  max-width: 100%;
-  overflow: hidden;
-  color: var(--jz-text-2);
-  font: var(--jz-type-label);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.hp-tag {
-  margin-top: 2px;
-  padding: 1px var(--jz-space-8);
-  border-radius: var(--jz-radius-sm);
+  gap: var(--jz-space-4);
+  padding-inline: var(--jz-space-12);
+  border-radius: 22px;
   background: var(--jz-surface-2);
   color: var(--jz-win);
-  font: var(--jz-type-caption);
+  font: var(--jz-type-body);
+  font-variant-numeric: tabular-nums;
 }
-.hp-next .jz-btn {
-  flex: none;
+.hp-daily-art {
+  min-width: 0;
+  flex: 0 1 auto;
+  margin: 0 calc(-1 * var(--jz-space-4)) calc(-1 * var(--jz-space-4)) 0;
+  pointer-events: none;
+}
+.hp-daily-done:focus-visible {
+  outline: 3px solid var(--jz-focus-ring);
+  outline-offset: 3px;
 }
 
-/* ------------------------------------------------------------------ ratings */
-.hp-tiles {
+/* ------------------------------------------------------------------ play friends */
+.hp-friends-play {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--jz-space-12);
-}
-.hp-tile {
-  min-height: 132px;
-  padding: var(--jz-space-12) var(--jz-space-8);
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: var(--jz-space-12) var(--jz-space-16);
   border-radius: var(--jz-radius-lg);
-  background: var(--jz-surface);
+  background:
+    radial-gradient(70% 120% at 0% 50%, color-mix(in srgb, var(--jz-win) 16%, transparent), transparent 70%),
+    var(--jz-surface);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--jz-win) 30%, var(--jz-line));
+}
+.hp-friends-play-title {
+  overflow: hidden;
+  color: var(--jz-text);
+  font: var(--jz-weight-bold) 19px/24px var(--jz-font);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hp-friends-play-actions {
+  display: flex;
+  gap: var(--jz-space-8);
+}
+.hp-friends-play-actions > .jz-btn {
+  min-width: 56px;
+  padding-inline: 12px;
+}
+/* A narrow phone: the title keeps its room, the art steps aside. */
+@media (max-width: 380px) {
+  .hp-friends-play-art {
+    display: none;
+  }
+}
+.hp-friends-play-error {
+  grid-column: 1 / -1;
+  color: var(--jz-loss-text);
+  font: var(--jz-type-label);
 }
 
-/* ------------------------------------------------------------------ recently played */
+/* ------------------------------------------------------------------ jump back in */
 .hp-recent {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 88px;
+  grid-auto-columns: 112px;
   gap: var(--jz-space-12);
   margin-inline: calc(-1 * var(--jz-gutter, 16px));
   overflow-x: auto;
@@ -263,29 +430,103 @@
 }
 .hp-recent-game {
   display: flex;
-  min-height: 44px;
+  min-height: 136px;
   flex-direction: column;
-  align-items: center;
-  gap: var(--jz-space-8);
+  align-items: stretch;
+  gap: var(--jz-space-4);
   border-radius: var(--jz-radius-md);
   color: var(--jz-text);
   text-decoration: none;
 }
-.hp-recent-icon {
-  display: inline-flex;
-  width: 76px;
-  height: 76px;
-  overflow: hidden;
-  border-radius: 50%;
-}
 .hp-recent-name {
-  max-width: 88px;
   overflow: hidden;
   color: var(--jz-text-2);
-  font: var(--jz-type-caption);
-  text-align: center;
+  font: var(--jz-type-label);
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* ------------------------------------------------------------------ arrival (plan section 1.3) */
+/* Home's sections arrive staggered, 40 ms a section, a fade only (no movement: every section keeps its place from the
+   first frame, play-tab-shift-check). */
+.hp-home > * {
+  animation: hp-arrive 320ms var(--jz-ease-out) both;
+}
+.hp-home > :nth-child(2) {
+  animation-delay: 40ms;
+}
+.hp-home > :nth-child(3) {
+  animation-delay: 80ms;
+}
+.hp-home > :nth-child(4) {
+  animation-delay: 120ms;
+}
+.hp-home > :nth-child(5) {
+  animation-delay: 160ms;
+}
+.hp-home > :nth-child(n + 6) {
+  animation-delay: 200ms;
+}
+@keyframes hp-arrive {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+/* ------------------------------------------------------------------ wider screens */
+@media (min-width: 700px) and (min-height: 500px) {
+  [data-layout] .hp-recent {
+    margin-inline: 0;
+    padding-inline: 0;
+  }
+}
+/* A computer (mockup home-mixed-desktop): the banner across the column, the two Dailies and Play friends three
+   across, Jump back in under them. */
+@media (min-width: 1024px) and (min-height: 500px) {
+  [data-layout="desktop"] .hp-home {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px 16px;
+  }
+  [data-layout="desktop"] .hp-home > * {
+    grid-column: 1 / -1;
+  }
+  [data-layout="desktop"] .hp-home > [data-play-slot="daily"] {
+    grid-column: span 2;
+  }
+  [data-layout="desktop"] .hp-home > [data-hp-play-friends] {
+    grid-column: span 1;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto 1fr auto;
+    align-items: start;
+    padding: var(--jz-space-16);
+  }
+  [data-layout="desktop"] .hp-home > [data-hp-play-friends] .hp-friends-play-title {
+    grid-row: 1;
+    grid-column: 1;
+  }
+  [data-layout="desktop"] .hp-home > [data-hp-play-friends] .hp-friends-play-art {
+    grid-row: 1;
+    grid-column: 2;
+  }
+  [data-layout="desktop"] .hp-home > [data-hp-play-friends] .hp-friends-play-actions {
+    grid-row: 3;
+    grid-column: 1 / -1;
+  }
+  [data-layout="desktop"] .hp-dailies {
+    height: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-home > * {
+    animation: none;
+  }
+  .hp-sheen::before {
+    animation: none;
+  }
 }
 
 /* ------------------------------------------------------------------ this week */
@@ -397,17 +638,6 @@
 }
 
 /* The phone draws This week and Friends in the page; wider layouts in the side column (data-page-aside). */
-.hp-narrow {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-}
-.hp-narrow:empty {
-  display: none;
-}
-[data-layout] .hp-narrow {
-  display: none;
-}
 .hp-aside {
   display: flex;
   flex-direction: column;
@@ -420,76 +650,6 @@
   margin-inline: 0;
   padding-inline: 0;
   overflow: visible;
-}
-
-/* ------------------------------------------------------------------ Play */
-.hp-play-grid {
-  display: flex;
-  flex-direction: column;
-  gap: var(--jz-space-16);
-}
-.hp-play-art {
-  display: flex;
-  justify-content: center;
-}
-.hp-play-hero {
-  width: min(300px, 78vw);
-}
-.hp-play-actions {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: var(--jz-space-24);
-}
-.hp-primary {
-  display: flex;
-  flex-direction: column;
-  gap: var(--jz-space-12);
-}
-.hp-select {
-  display: flex;
-  min-height: 60px;
-  align-items: center;
-  gap: var(--jz-space-12);
-  padding-inline: var(--jz-space-16);
-  border-radius: var(--jz-radius-md);
-  background: var(--jz-surface-2);
-  box-shadow: var(--jz-elev-1);
-  color: var(--jz-text);
-  font: var(--jz-type-body);
-  text-align: left;
-}
-.hp-select:disabled {
-  cursor: default;
-}
-.hp-select-text {
-  min-width: 0;
-  flex: 1;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.hp-stakes {
-  color: var(--jz-text-2);
-  font: var(--jz-type-label);
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-}
-.hp-win {
-  color: var(--jz-win);
-  font-weight: 800;
-}
-.hp-loss {
-  color: var(--jz-loss-text);
-  font-weight: 800;
-}
-.hp-error {
-  color: var(--jz-loss-text);
-}
-.hp-modes {
-  display: flex;
-  flex-direction: column;
-  gap: var(--jz-space-12);
 }
 
 /* The match sheet. */
@@ -543,41 +703,6 @@
   color: var(--jz-text-2);
   font: var(--jz-type-label);
   text-align: center;
-}
-
-/* ------------------------------------------------------------------ wider screens */
-@media (min-width: 700px) and (min-height: 500px) {
-  [data-layout] .hp-hero {
-    margin-inline: 0;
-  }
-  [data-layout] .hp-hero-track {
-    grid-auto-flow: row;
-    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
-    overflow: visible;
-    padding-inline: 0;
-  }
-  [data-layout] .hp-recent {
-    margin-inline: 0;
-    padding-inline: 0;
-  }
-}
-/* A computer: the art panel beside the actions (desktop/play.png); a tablet keeps the phone's one column. */
-@media (min-width: 1024px) and (min-height: 500px) {
-  [data-layout="desktop"] .hp-play-grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: start;
-    gap: var(--jz-space-24);
-  }
-  [data-layout="desktop"] .hp-play-art {
-    align-items: center;
-    min-height: 360px;
-    border-radius: var(--jz-radius-lg);
-    background: var(--jz-surface);
-  }
-  [data-layout="desktop"] .hp-play-hero {
-    width: 100%;
-  }
 }
 
 /* Sentence case (the style guide: capitals only for the wordmark and room codes), over the skin's older heading rule. */

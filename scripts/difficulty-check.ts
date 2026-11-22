@@ -235,7 +235,32 @@ check(bestOf(view, "tents") === 182 && bestOf(view, "tents", storedLevelKey("nor
 check(bestOf(view, "tents", storedLevelKey("hard")) === 150 && !starOf(view, "tents", storedLevelKey("hard")) && bestOf(view, "tents", storedLevelKey("expert")) === null, "each level keeps its own best and star");
 const migrations = readdirSync("supabase/migrations").filter((f) => f.endsWith(".sql")).sort();
 const mine = migrations.find((f) => f.endsWith("_difficulty_levels.sql"));
-check(Boolean(mine) && migrations.at(-1) === mine, `the levels migration is dated after everything before it (${mine})`);
+// Changed with Joe's approval, 21 Nov 2026: was "the newest migration", which any later migration broke. What it
+// guarded: the levels migration runs after the migrations whose tables it alters, and applies.
+const needs = ["_practice_progress.sql", "_tournaments.sql"].map((end) => migrations.find((f) => f.endsWith(end))); // Changed with Joe's approval, 21 Nov 2026
+check(Boolean(mine) && needs.every((f) => f !== undefined && f < mine!), `the levels migration exists and is dated after the migrations it alters (${mine} after ${needs.join(", ")})`); // Changed with Joe's approval, 21 Nov 2026
+// Changed with Joe's approval, 21 Nov 2026: applied, on a local PostgreSQL 16 with every migration in order.
+{ // Changed with Joe's approval, 21 Nov 2026
+  const { postgresBin, startLocalDb } = await import("./server-fn-harness"); // Changed with Joe's approval, 21 Nov 2026
+  if (!postgresBin()) { // Changed with Joe's approval, 21 Nov 2026
+    if (process.env["CI"]) check(false, "no PostgreSQL binaries on the CI runner (the levels migration can't be applied)"); // Changed with Joe's approval, 21 Nov 2026
+    else console.log("  NOTE no PostgreSQL binaries found: the levels migration not applied here (CI applies it)"); // Changed with Joe's approval, 21 Nov 2026
+  } else { // Changed with Joe's approval, 21 Nov 2026
+    const db = startLocalDb("difficulty-check-"); // Changed with Joe's approval, 21 Nov 2026
+    try { // Changed with Joe's approval, 21 Nov 2026
+      const q = (s: string) => db.psql(s).out.trim(); // Changed with Joe's approval, 21 Nov 2026
+      check(db.failed === null && Boolean(mine) && db.applied.includes(mine!), `every migration applies in order, the levels migration included${db.failed ? ` (${db.failed.file}: ${db.failed.error})` : ""}`); // Changed with Joe's approval, 21 Nov 2026
+      check(q(`SELECT is_nullable || ' ' || column_default FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'tournament_events' AND column_name = 'level'`) === "NO 'normal'::text", "applied: tournament_events.level exists, NOT NULL, default 'normal'"); // Changed with Joe's approval, 21 Nov 2026
+      // A row valid in every other column, so only its level can refuse it, and the error must name the level check. Changed with Joe's approval, 21 Nov 2026
+      const classic = db.psql(`INSERT INTO public.tournament_events (id, kind, title, pick, starts_at, ends_at, level) VALUES ('arena:2026-11-21:1300', 'arena', 'Level check', 'mixed', now(), now() + interval '1 hour', 'classic')`); // Changed with Joe's approval, 21 Nov 2026
+      check(!classic.ok && /tournament_events_level_check/.test(classic.err), `applied: an event's level is one of easy, normal, hard, expert (refused by tournament_events_level_check: ${classic.ok ? "inserted" : classic.err.split("\n")[0]})`); // Changed with Joe's approval, 21 Nov 2026
+      check(q(`SELECT public.level_name('classic') || ',' || public.level_name('hard') || ',' || public.level_name(NULL)`) === "normal,hard,normal", "applied: level_name reads the stored 'classic' as Normal"); // Changed with Joe's approval, 21 Nov 2026
+      check(q(`SELECT has_function_privilege('anon', 'public.level_name(text)', 'EXECUTE') OR has_function_privilege('authenticated', 'public.level_name(text)', 'EXECUTE')`) === "f", "applied: phones can't run level_name"); // Changed with Joe's approval, 21 Nov 2026
+    } finally { // Changed with Joe's approval, 21 Nov 2026
+      db.stop(); // Changed with Joe's approval, 21 Nov 2026
+    } // Changed with Joe's approval, 21 Nov 2026
+  } // Changed with Joe's approval, 21 Nov 2026
+} // Changed with Joe's approval, 21 Nov 2026
 const sql = mine ? readFileSync(`supabase/migrations/${mine}`, "utf8").replace(/--.*$/gm, "") : "";
 check(!/\b(UPDATE|DELETE|DROP TABLE|DROP COLUMN|TRUNCATE)\b/i.test(sql) && /ADD COLUMN IF NOT EXISTS level/.test(sql), "the migration only adds (no row rewritten): the tournament level column and the name mapping");
 const practiceFns = readFileSync("src/lib/duel/practice.functions.ts", "utf8");
