@@ -25,6 +25,7 @@ import { Button, Icon, LiveTag, Panel } from "@/design/components";
 import { PlayerCard } from "@/design/identity";
 import { puzzleName } from "@/lib/duel/catalogue";
 import { loadSoundGroup, playCueSlot } from "@/lib/sound";
+import { goStrike } from "@/lib/fx/celebrations";
 import type { RatedMatch, RatedPlayer, RatedResult, SearchProgress } from "@/lib/rated/backend";
 import { recordRatedEvent } from "@/lib/rated/ratedEvents";
 import {
@@ -126,8 +127,12 @@ export function VsScreen({ match, nowMs }: { match: RatedMatch; nowMs: number })
     sent.current = true;
     recordRatedEvent({ event: "vs_shown", source: match.source.kind });
     loadSoundGroup("room");
-    // The slam lands at 750 ms (rated.css .rt-vs-mark); the room's flash sound on it, silent when not decoded yet.
-    const t = window.setTimeout(() => playCueSlot("room.prepare.flash"), 750);
+    // The slam lands at 750 ms (rated.css .rt-vs-mark); the room's flash sound on it, silent when not decoded yet, and
+    // the plate lands with the existing GO strike (P3, 22 Nov 2026; plan section 1.3; nothing under Reduce Motion).
+    const t = window.setTimeout(() => {
+      playCueSlot("room.prepare.flash");
+      goStrike();
+    }, 750);
     return () => window.clearTimeout(t);
   }, [match.source.kind]);
   // W3b's own label from the run's real time ("Recorded run · 2 h ago", recordedAgeLabel).
@@ -148,28 +153,36 @@ export function VsScreen({ match, nowMs }: { match: RatedMatch; nowMs: number })
           </span>
         )}
       </div>
-      <StakesLine stakes={match.stakes} />
       <VsSide player={match.them} side="them" />
       <div className="rt-vs-rail" aria-hidden="true">
         <span className="rt-vs-line" />
-        <span className="rt-vs-mark" data-one-line>
+        <span className="rt-vs-mark jz-cut-sm" data-one-line>
           VS
         </span>
         <span className="rt-vs-line" />
       </div>
       <VsSide player={match.me} side="me" />
-      {record ? (
-        <p className="rt-vs-record" data-head-to-head data-one-line>
-          {record}
-        </p>
-      ) : null}
+      <div className="rt-vs-foot">
+        {record ? (
+          <p className="rt-vs-record" data-head-to-head data-one-line>
+            {record}
+          </p>
+        ) : null}
+        <StakesLine stakes={match.stakes} />
+      </div>
     </div>
   );
 }
 
+/** Each half is lit in its player's colour (their avatar's colour; the player wheel, tokens --jz-player-N). */
+function vsTint(player: RatedPlayer): Record<string, string> {
+  const colour = player.look.avatar?.colour;
+  return { ["--vs-tint" as string]: typeof colour === "number" && colour >= 0 && colour < 32 ? `var(--jz-player-${colour})` : "var(--jz-surface-3)" };
+}
+
 function VsSide({ player, side }: { player: RatedPlayer; side: "me" | "them" }) {
   return (
-    <div className={`rt-vs-side rt-vs-${side}`} data-vs-side={side}>
+    <div className={`rt-vs-side rt-vs-${side}`} data-vs-side={side} style={vsTint(player)}>
       <div className="rt-vs-card">
         <RatedCard player={player} label={side === "me" ? "Your card" : `${player.username}’s card`} />
       </div>
@@ -191,10 +204,13 @@ export function MatchResult({
   onTiers,
   onChallenge,
   onReveal,
+  onHome,
 }: {
   result: RatedResult;
   nowMs: number;
   onNext: () => void;
+  /** Home (P3, 22 Nov 2026; plan section 3.6: the rated result gains a way home). */
+  onHome?: () => void;
   /** After the 5th placement match: on to the reveal (mockup 13). */
   onReveal: () => void;
   onRematch: () => void;
@@ -343,14 +359,21 @@ export function MatchResult({
         >
           {result.reveal ? "Reveal my tier" : nextPlacement ? `Play placement ${nextPlacement}` : "Next match"}
         </Button>
-        {!placing && (rematchLeft > 0 || result.friend) ? (
+        <div className="rt-action-row">
+          {!placing && rematchLeft > 0 ? (
+            <Button variant="secondary" size={52} block onClick={onRematch} data-rematch>
+              Rematch, {rematchLeft} s
+            </Button>
+          ) : null}
+          {onHome ? (
+            <Button variant="secondary" size={52} block onClick={onHome} data-rated-home-button>
+              Home
+            </Button>
+          ) : null}
+        </div>
+        {!placing && result.friend ? (
           <div className="rt-action-row">
-            {rematchLeft > 0 ? (
-              <Button variant="secondary" size={52} block onClick={onRematch} data-rematch>
-                Rematch, {rematchLeft} s
-              </Button>
-            ) : null}
-            {result.friend ? <ChallengeButton them={them} total={result.games.reduce((t, g) => t + g.myScore, 0)} rounds={result.games.length} make={onChallenge} /> : null}
+            <ChallengeButton them={them} total={result.games.reduce((t, g) => t + g.myScore, 0)} rounds={result.games.length} make={onChallenge} />
           </div>
         ) : null}
         {!placing ? (

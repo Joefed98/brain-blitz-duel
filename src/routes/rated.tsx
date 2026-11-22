@@ -231,6 +231,7 @@ function RatedScreen() {
             return b.challenge(result.match.id);
           }}
           onReveal={() => setPhase({ kind: "reveal", result })}
+          onHome={() => void navigate({ to: "/" })}
         />
       </>
     ) : null;

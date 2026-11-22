@@ -322,6 +322,7 @@ function DailyScreen() {
         boardLabel="Leaderboard"
         share={mode.view.finished ? <DailyShareButton kind={kind} total={mode.view.total} /> : undefined}
         footer={<FeedbackLink small />}
+        onHome={() => void router.navigate({ to: "/" })}
       />
       </>
     );
