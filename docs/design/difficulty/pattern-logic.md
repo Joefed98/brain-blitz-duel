@@ -23,7 +23,70 @@ revisions (minesRev 6 and 7) with their own speed parts.
 
 ## The tables
 
-The tables follow, generated from the final measurement (see "Measured").
+### The ladder
+
+Seeds 2000–2095 (96 boards a level), which no fitting saw; Heave Expert, Trail Hard and Expert, Regions Hard and
+Expert and Loopline Expert are dealt from their banks. Average and great are mean scores; "Elite at 200" is the share
+of boards the elite finishes at 200. Easy / Normal / Hard / Expert.
+
+| Game | Average | Great | Elite at 200 |
+|---|---|---|---|
+| Gridlock | 177 / 43 / 35 / 27 | 199 / 199 / 181 / 132 | 98 / 85 / 74 / 33 % |
+| Tessellate | 144 / 72 / 45 / 39 | 200 / 197 / 159 / 137 | 100 / 100 / 65 / 24 % |
+| Pipeline | 194 / 78 / 60 / 43 | 200 / 184 / 169 / 99 | 96 / 99 / 47 / 38 % (Easy accepted as measured) |
+| Chroma Lines | 178 / 80 / 67 / 59 | 198 / 187 / 162 / 135 | 99 / 94 / 70 / 35 % |
+| Skid | 187 / 68 / 50 / 38 | 198 / 185 / 177 / 138 | 98 / 76 / 57 / 32 % |
+| Heave | 157 / 61 / 46 / 34 | 199 / 192 / 181 / 124 | 96 / 68 / 60 / 49 % (Expert 33 % across its whole bank) |
+| Lightbender | 164 / 40 / 27 / 22 | 196 / 188 / 150 / 110 | 92 / 94 / 53 / 34 % (Easy accepted as measured) |
+| Topsy-Turvy | 192 / 76 / 47 / 32 | 199 / 184 / 170 / 144 | 96 / 78 / 49 / 30 % (Normal on gravityRev 9) |
+| Box Six | 153 / 65 / 50 / 32 | 199 / 184 / 158 / 95 | 91 / 78 / 55 / 34 % |
+| Hanoi | 157 / 65 / 41 / 32 | 199 / 193 / 164 / 116 | 92 / 90 / 61 / 31 % |
+| Polypotions | 177 / 78 / 48 / 40 | 200 / 196 / 171 / 135 | 100 / 100 / 47 / 29 % |
+| Safe Cracker | 140 / 101 / 41 / 37 | 198 / 195 / 173 / 156 | 100 / 100 / 52 / 21 % |
+| Mosaic | 138 / 77 / 44 / 31 | 199 / 194 / 157 / 97 | 92 / 85 / 56 / 36 % |
+| Colour Flood | 194 / 108 / 55 / 37 | 198 / 197 / 184 / 167 | 94 / 89 / 52 / 36 % |
+| Minefield | 181 / 173 / 130 / 89 | 196 / 197 / 179 / 162 | 99 / 95 / 65 / 25 % |
+| Tents and Trees | 156 / 65 / 33 / 20 | 199 / 192 / 120 / 79 | 95 / 93 / 56 / 35 % |
+| Shikaku | 166 / 65 / 39 / 25 | 199 / 185 / 136 / 83 | 93 / 89 / 54 / 38 % |
+| Lamplighter | 166 / 62 / 38 / 27 | 199 / 187 / 141 / 93 | 94 / 86 / 44 / 34 % |
+| Trail | 167 / 75 / 34 / 25 | 197 / 192 / 99 / 73 | 89 / 85 / 53 / 40 % |
+| Loopline | 142 / 90 / 48 / 32 | 198 / 196 / 169 / 99 | 93 / 79 / 47 / 28 % |
+| Regions | 180 / 99 / 40 / 32 | 198 / 196 / 112 / 90 | 82 / 90 / 50 / 36 % (Easy accepted as measured) |
+| Island Link | 148 / 49 / 12 / 6 | 199 / 197 / 160 / 58 | 97 / 92 / 54 / 31 % |
+
+The elite's mean stays at 187–200 on every level: a finish without mistakes loses only speed points. Pipeline,
+Lightbender and Regions Easy reach 200 a few times in a hundred less often than Normal because one slip on a small board
+costs a point or two (every Regions Easy miss scores 198).
+
+### What each level is
+
+Clock and "full speed by" (Normal keeps its own line; a "–" on Easy is the game's own standard line). Easy / Hard /
+Expert boards as in the help lines below.
+
+| Game | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Gridlock | 60 s, by 40 s | 60 s | 70 s, by 28 s | 75 s, by 38 s |
+| Tessellate | 60 s, by 40 s | 60 s | 70 s, by 35 s | 70 s, by 37 s |
+| Pipeline | 120 s | 120 s | 120 s, by 70 s | 120 s, by 96 s |
+| Chroma Lines | 75 s, by 21 s | 75 s | 75 s, by 36 s | 70 s, by 36 s |
+| Skid | 90 s, by 20 s | 90 s | 100 s, by 41 s | 100 s, by 50 s |
+| Heave | 120 s, by 30 s | 120 s | 120 s, by 61 s | 120 s, by 81 s |
+| Lightbender | 90 s, by 21 s | 60 s | 60 s, by 28 s | 75 s, by 38 s |
+| Topsy-Turvy | 120 s, by 20 s | 120 s, by 40 s (gravityRev 9) | 120 s, by 55 s | 120 s, by 64 s |
+| Box Six | 90 s | 90 s | 90 s, by 44 s | 75 s, by 51 s |
+| Hanoi | 90 s | 90 s | 90 s, by 43 s | 120 s, by 66 s |
+| Polypotions | 90 s | 90 s | 90 s, by 40 s | 120 s, by 62 s |
+| Safe Cracker | 75 s | 75 s | 90 s, by 37 s | 105 s, by 52 s |
+| Mosaic | 90 s | 120 s | 120 s, by 60 s | 100 s, by 65 s |
+| Colour Flood | 60 s | 60 s | 60 s, by 22 s | 75 s, by 34 s |
+| Minefield | 90 s (minesRev 4) | 90 s (minesRev 3) | 90 s, minesRev 6 (by 49 s) | 105 s, minesRev 7 (by 69 s) |
+| Tents and Trees | 90 s | 90 s | 120 s, by 69 s | 115 s, by 85 s |
+| Shikaku | 90 s | 90 s | 120 s, by 67 s | 120 s, by 88 s |
+| Lamplighter | 120 s | 90 s | 120 s, by 63 s | 120 s, by 78 s |
+| Trail | 120 s | 120 s | 120 s, by 79 s | 120 s, by 103 s |
+| Loopline | 90 s | 90 s | 120 s, by 48 s | 120 s, by 74 s |
+| Regions | 90 s | 90 s | 120 s, by 78 s | 120 s, by 88 s |
+| Island Link | 90 s | 90 s | 120 s, by 51 s | 120 s, by 83 s |
 
 ## Joe's decisions (22 Nov 2026)
 
