@@ -2947,6 +2947,11 @@ export interface LetterWheelPuzzleData {
   timeLimitMs?: number;
   /** Levels (D1, 21 Nov 2026): misses that cost nothing on this deal (Hard 3, Expert 2); absent = LW_FREE_MISSES (5). */
   freeMisses?: number;
+  /**
+   * Levels (D1, 22 Nov 2026, Joe's decision 21): the speed points are full when the crossword is finished within this many
+   * seconds; absent = the stamp's own line (wheelRev 6: 55 s; before: 40 s).
+   */
+  speedFullByS?: number;
 }
 
 /** Strikeout: reveal five hidden five-letter words a letter at a time; five strikes end it. */
@@ -3059,6 +3064,11 @@ export interface WordSearchPuzzleData {
    */
   rows?: number;
   timeLimitMs?: number;
+  /**
+   * A level's own speed line (D1, 22 Nov 2026, Joe's decision 21: Expert's top reachable in real play): the speed points
+   * are full when every listed word is found within this many seconds; absent = a third of the clock (40 s of 120).
+   */
+  speedFullByS?: number;
 }
 
 export interface ShikakuPuzzleData {

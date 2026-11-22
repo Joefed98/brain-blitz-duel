@@ -14,6 +14,8 @@ export type LetterWheelLevelSettings = {
   timeLimitMs: number;
   /** Misses that cost nothing (stored on the puzzle as `freeMisses`; Normal's 5 when absent). */
   freeMisses?: number;
+  /** The speed points full by this many seconds (stored as `speedFullByS`; Normal's line when absent). */
+  speedFullByS?: number;
 };
 
 const OPEN = {
@@ -25,10 +27,12 @@ const OPEN = {
 export const LETTERWHEEL_LEVELS: GameLevels<LetterWheelLevelSettings> | null = {
   levels: {
     // D1 (21 Nov 2026; difficulty-spec.md "Roundabout"): Hard deals the 15 Nov Expert boards (16–19 words) on 95 s with 3
-    // free misses; Expert an 8-letter wheel and 20–24 words on 70 s with 2 (LW_LEVEL_LIMITS, letterWheel.ts).
+    // free misses; Expert an 8-letter wheel and 20–24 words with 2 (LW_LEVEL_LIMITS, letterWheel.ts), on 90 s since 22 Nov.
     easy: { settings: { timeLimitMs: 120_000 }, oneSolution: OPEN },
     hard: { settings: { timeLimitMs: 95_000, freeMisses: 3 }, oneSolution: OPEN },
-    expert: { settings: { timeLimitMs: 70_000, freeMisses: 2 }, oneSolution: OPEN },
+    // Joe (22 Nov 2026, decision 21): 90 s and the speed points full by 75 s, so the elite under the human limits
+    // reaches 200 on about a third of boards while the average player stays clearly below Hard.
+    expert: { settings: { timeLimitMs: 90_000, freeMisses: 2, speedFullByS: 75 }, oneSolution: OPEN },
   },
 };
 
@@ -36,5 +40,5 @@ export const LETTERWHEEL_LEVELS: GameLevels<LetterWheelLevelSettings> | null = {
 export const LETTERWHEEL_LEVEL_ABOUT: Partial<Record<Exclude<Level, "normal">, string>> = {
   easy: "Six letters on the wheel, a smaller crossword, and 120 seconds.",
   hard: "A bigger crossword with 16 to 19 words to find, 3 free misses and 95 seconds.",
-  expert: "Eight letters on the wheel, 20 or more words, 2 free misses and 70 seconds.",
+  expert: "Eight letters on the wheel, 20 or more words, 2 free misses and 90 seconds.",
 };

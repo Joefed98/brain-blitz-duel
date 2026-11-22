@@ -41,5 +41,6 @@ export function dealRoundaboutLevel(level: Exclude<Level, "normal">, context: Ge
     jarSize: lwJarSize(lwBonusDropsAvailable(e.letters, e.words)),
     timeLimitMs: settings.timeLimitMs,
     ...(typeof settings.freeMisses === "number" ? { freeMisses: settings.freeMisses } : {}),
+    ...(typeof settings.speedFullByS === "number" ? { speedFullByS: settings.speedFullByS } : {}),
   };
 }

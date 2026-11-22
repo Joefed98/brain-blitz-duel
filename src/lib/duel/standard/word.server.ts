@@ -200,6 +200,9 @@ function lookoutFound(puzzle: Extract<PuzzleData, { type: "wordsearch" }>, answe
  */
 function lookoutFullByMs(input: StandardInput): number {
   if (puzzleLevel(input.puzzle) === "normal") return STD_LOOKOUT.fullByS * 1000;
+  // D1 (22 Nov 2026): a level board's own stored speed line, where it carries one (absent on every board before).
+  const own = input.puzzle.type === "wordsearch" ? input.puzzle.speedFullByS : undefined;
+  if (typeof own === "number" && own > 0) return Math.min(input.limitMs, own * 1000);
   return Math.round((STD_LOOKOUT.fullByS * 1000 * input.limitMs) / 120_000);
 }
 
@@ -254,7 +257,8 @@ const roundabout: StandardGame = {
     // wheelRev 6 (D1's refit, wordStar.ts): the jar's points are full at four fifths of it, speed full by 55 s.
     const star = usesWordStar(p, "letterwheel");
     const full = star ? roundaboutStarJarFull(size) : size;
-    const fullByS = star ? ROUNDABOUT_STAR_FULL_BY_S : STD_ROUNDABOUT.fullByS;
+    // A level deal's own stored speed line (D1, 22 Nov 2026), where it carries one.
+    const fullByS = typeof p.speedFullByS === "number" && p.speedFullByS > 0 ? p.speedFullByS : star ? ROUNDABOUT_STAR_FULL_BY_S : STD_ROUNDABOUT.fullByS;
     const jarPoints = (STD_ROUNDABOUT.jar * Math.min(kept, full)) / full;
     const facts = { bonusWords: jar.bonus.length, jarDrops: kept, jarSpilled: jar.drops - kept, jarSize: size, jarPoints: Math.round(jarPoints) };
     const penalty = lwMissPenalty(misses, freeMisses);
