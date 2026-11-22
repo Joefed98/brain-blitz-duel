@@ -138,7 +138,7 @@ const PORT = 5179;
 
 /** Max drawn movement per sim tick, px (world units), where the default (24) is too tight. */
 // Jaywalk sidesteps are an instant 26 px column change; Meteor moves a whole cell per step.
-const SPEED_LIMIT: Record<string, number> = { curling: 40, cross: 27, flip: 40, slice: 32, balltrack: 26.5, snake: 40, orbit: 40, swing: 40 };
+const SPEED_LIMIT: Record<string, number> = { curling: 40, cross: 27, flip: 45 /* Changed with Joe's approval, 21 Nov 2026 (Roofbound's flip moves up to 43.7 px a tick by design) */, slice: 32, balltrack: 26.5, snake: 40, orbit: 40, swing: 40 };
 const DEFAULT_LIMIT = 24;
 
 /**
