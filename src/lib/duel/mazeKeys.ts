@@ -111,3 +111,17 @@ export function mazeBestKeyOrder(cells: number[], cols: number, from: number, ke
   permute([...keys], []);
   return best;
 }
+
+/**
+ * The par walk itself: the cells from `from` through every key (in mazeBestKeyOrder's order) to `to`, backtracks out of
+ * each key's dead end included. With no keys it is the one route from `from` to `to`.
+ */
+export function mazeKeyTour(cells: number[], cols: number, from: number, keys: readonly number[], to: number): number[] {
+  const walk = [from];
+  let here = from;
+  for (const target of [...(keys.length ? mazeBestKeyOrder(cells, cols, from, keys, to) : []), to]) {
+    walk.push(...mazePathBetween(cells, cols, here, target).slice(1));
+    here = target;
+  }
+  return walk;
+}
