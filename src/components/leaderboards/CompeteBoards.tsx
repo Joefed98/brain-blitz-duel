@@ -7,7 +7,7 @@
 import { useRouter } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 
-import { Button, Segmented, SectionHeader, Skeleton } from "@/design/components";
+import { Button, Panel, Segmented, SectionHeader, Skeleton } from "@/design/components";
 import type { BoardRow, MainBoard } from "@/lib/leaderboards/boards";
 import { leaderboardsApi } from "@/lib/leaderboards/leaderboardsApi";
 
@@ -76,37 +76,45 @@ export function CompeteBoards() {
         className="cp-board-tabs"
         options={TABS.map((t) => ({ value: t.value, label: t.label, data: { "data-compete-board-tab": t.value } }))}
       />
-      {!loaded ? (
-        <div className="cp-board-skel" aria-busy="true" aria-label="Loading the board">
-          {Array.from({ length: COMPETE_BOARD_ROWS }, (_, i) => (
-            <Skeleton key={i} height={64} />
-          ))}
-        </div>
-      ) : "failed" in loaded ? (
-        <p className="cp-board-note" role="status">
-          {loaded.failed}
-        </p>
-      ) : (
-        <>
-          {loaded.note ? (
-            <p className="cp-board-note" data-compete-board-note>
-              {loaded.note}
-            </p>
-          ) : null}
-          {loaded.rows.length || loaded.me ? (
-            <BoardList
-              label={label}
-              rows={loaded.rows.slice(0, COMPETE_BOARD_ROWS)}
-              me={loaded.me}
-              showTime={tab === "daily"}
-              onOpen={openRow}
-            />
-          ) : null}
-          <Button variant="quiet" size={48} block onClick={openWhole} data-compete-board-open={tab}>
-            {tab === "daily" ? "See the Daily top 100" : `See the ${label} board`}
-          </Button>
-        </>
-      )}
+      {/* One panel for the board whatever its state (loading, a note, the rows), so nothing jumps when the board
+          arrives: the skeleton draws the same rows the loaded list will, in the same place. */}
+      <Panel className="cp-board-panel" data-compete-board-panel={!loaded ? "loading" : "failed" in loaded ? "failed" : "loaded"}>
+        {!loaded ? (
+          <div className="cp-board-skel" aria-busy="true" aria-label="Loading the board">
+            {Array.from({ length: COMPETE_BOARD_ROWS + 1 }, (_, i) => (
+              <div key={i} className="cp-board-skel-row" data-pinned={i === COMPETE_BOARD_ROWS ? "" : undefined}>
+                <Skeleton width={28} height={28} className="cp-board-skel-medal" />
+                <Skeleton height={40} className="cp-board-skel-plate" />
+                <Skeleton width={52} height={20} />
+              </div>
+            ))}
+          </div>
+        ) : "failed" in loaded ? (
+          <p className="cp-board-note" role="status">
+            {loaded.failed}
+          </p>
+        ) : (
+          <>
+            {loaded.note ? (
+              <p className="cp-board-note" data-compete-board-note>
+                {loaded.note}
+              </p>
+            ) : null}
+            {loaded.rows.length || loaded.me ? (
+              <BoardList
+                label={label}
+                rows={loaded.rows.slice(0, COMPETE_BOARD_ROWS)}
+                me={loaded.me}
+                showTime={tab === "daily"}
+                onOpen={openRow}
+              />
+            ) : null}
+          </>
+        )}
+      </Panel>
+      <Button variant="quiet" size={48} block onClick={openWhole} data-compete-board-open={tab}>
+        {tab === "daily" ? "See the Daily top 100" : `See the ${label} board`}
+      </Button>
       <CardSheet row={openCard} onClose={closeCard} />
     </section>
   );

@@ -528,13 +528,51 @@ button.tn-pod-card:focus-visible {
 .cp-board-tabs {
   width: 100%;
 }
+/* One panel round the board in every state (loading, a note, the rows), so nothing moves when the board arrives. */
+.cp-board-panel {
+  overflow: hidden;
+}
+.cp-board-panel .lb-board {
+  border-radius: 0;
+  background: none;
+}
+/* The skeleton draws the loaded list's rows at their heights: three ranked rows (a nameplate and its line under it)
+   and the pinned row, with the same dividers. */
 .cp-board-skel {
   display: flex;
   flex-direction: column;
-  gap: var(--jz-space-8);
+}
+.cp-board-skel-row {
+  display: flex;
+  min-height: 80px;
+  align-items: center;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-8) var(--jz-space-16);
+  border-top: 1px solid var(--jz-line);
+}
+.cp-board-skel-row:first-child {
+  border-top: 0;
+}
+.cp-board-skel-row[data-pinned] {
+  min-height: 60px;
+  border-top: 0;
+  border-left: 3px solid var(--jz-gold);
+  background: var(--jz-surface-2);
+}
+.cp-board-skel-medal {
+  flex: none;
+  border-radius: 50%;
+}
+.cp-board-skel-plate {
+  flex: 1;
+  min-width: 0;
+}
+.cp-board-skel-row > .jz-skel:last-child {
+  flex: none;
 }
 .cp-board-note {
   margin: 0;
+  padding: var(--jz-space-16);
   font: var(--jz-type-label);
   color: var(--jz-text-2);
 }
