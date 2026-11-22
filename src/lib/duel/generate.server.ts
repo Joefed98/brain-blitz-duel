@@ -149,6 +149,7 @@ import { randomBelow } from "./random";
 import { saltSeed } from "./seededRng";
 import { NORMAL, stampLevel, type Level } from "@/lib/levels/levels";
 import { gameLevelSettings, resolveLevel } from "@/lib/levels/gameLevels";
+import { PL_LEVEL_SPEED_GAMES, settingsFullByS } from "./standard/plLevelSpeed";
 import { dealWordLevel } from "./wordLevels.server";
 import { dealAttentionLevel } from "./attentionLevels.server";
 
@@ -256,7 +257,16 @@ function dealAtLevel(type: PuzzleType, context: GenerateContext): PuzzleData {
   const measured = type === "measure" ? stampMeasureLevel(layered, context.level) : layered;
   // The Attention games' levels (stage 3 of the overhaul) re-deal their board on the level's levers, after every layer;
   // a context without a level (Normal) is never touched.
-  return context.level && context.level !== NORMAL ? dealAttentionLevel(measured, context.level) : measured;
+  if (!context.level || context.level === NORMAL) return measured;
+  // The Pattern and Logic levels' own speed lines (D4, 22 Nov 2026; plLevelSpeed.ts), after every layer.
+  return stampPlLevelSpeed(dealAttentionLevel(measured, context.level), context.level);
+}
+
+/** A D4 level deal carries its level's full-speed time (`levelFullByS`), so a later retune never moves it. */
+function stampPlLevelSpeed(puzzle: PuzzleData, level: Level): PuzzleData {
+  if (!PL_LEVEL_SPEED_GAMES.includes(puzzle.type)) return puzzle;
+  const fullByS = settingsFullByS(gameLevelSettings(puzzle.type, level));
+  return fullByS === null ? puzzle : ({ ...puzzle, levelFullByS: fullByS } as PuzzleData);
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {

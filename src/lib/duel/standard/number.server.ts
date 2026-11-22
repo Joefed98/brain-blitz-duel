@@ -55,6 +55,7 @@ import {
   isStdBullseye,
 } from "./number";
 import { STANDARD_FINISH, cleanPoints, earlyPoints, parPoints, speedPoints } from "./shape";
+import { storedLevelFullByS } from "./plLevelSpeed";
 
 function speedFor(type: keyof typeof NUMBER_STANDARD, msLeft: number, limitMs: number, fullByS?: number): number {
   const g = NUMBER_STANDARD[type]!;
@@ -334,11 +335,11 @@ const trail: StandardGame = {
       // depthRev 3: 2.5 off the clean bonus an undo (no timeline, no clean bonus, as before).
       const undos = drafts ? trailUndos(p, drafts) : null;
       const bonus = undos === null ? 0 : cleanPoints(NUMBER_STANDARD.trail!.bonus, TRAIL_UNDO_COST, undos);
-      return { finished: true, speed: speedFor("trail", msLeft, limitMs), bonus, measure: "clean", facts: { cleanPath: undos === 0, undos } };
+      return { finished: true, speed: speedFor("trail", msLeft, limitMs, storedLevelFullByS(p) ?? undefined), bonus, measure: "clean", facts: { cleanPath: undos === 0, undos } };
     }
     if (graded.isCorrect) {
       const undone = drafts ? trailEverUndone(p, drafts) : true;
-      return { finished: true, speed: speedFor("trail", msLeft, limitMs), bonus: undone ? 0 : NUMBER_STANDARD.trail!.bonus, measure: "clean", facts: { cleanPath: !undone } };
+      return { finished: true, speed: speedFor("trail", msLeft, limitMs, storedLevelFullByS(p) ?? undefined), bonus: undone ? 0 : NUMBER_STANDARD.trail!.bonus, measure: "clean", facts: { cleanPath: !undone } };
     }
     // Tiles in their right square, less the wrong ones (today's cost), or the right run from the start, whichever is more.
     const toPlace = p.givens.filter((g) => g === null).length;

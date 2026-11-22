@@ -7,6 +7,7 @@ import { gameLevelSettings } from "@/lib/levels/gameLevels";
 import { NORMAL, puzzleLevel, type Level } from "@/lib/levels/levels";
 
 import { BLOCK_CELLS, BLOCK_COLS as N, BLOCK_FREE_CELLS, type BlockPlacement } from "./types";
+import { patternLevelFullByS } from "./standard/plLevelSpeed";
 
 export interface BlockPieceDef {
   name: string;
@@ -214,9 +215,8 @@ export function blockLevelGeometry(level: Level): BlockGeometry | null {
 /** A level board's full-speed time (its settings' speedFullByS), or null for every puzzle not dealt at a level. */
 export function blockLevelFullByS(puzzle: { blockRev?: number; level?: unknown } | null | undefined): number | null {
   if ((puzzle?.blockRev ?? 0) < 1 || puzzle?.level === undefined) return null;
-  const level = puzzleLevel(puzzle);
-  if (level === NORMAL) return null;
-  return gameLevelSettings<BlockLevelSettings>("blockparty", level)?.speedFullByS ?? null;
+  // Its stamped time (D4, 22 Nov 2026), else the time its level had when it was dealt (plLevelSpeed.ts).
+  return patternLevelFullByS("blockparty", puzzle);
 }
 
 /**

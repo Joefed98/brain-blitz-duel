@@ -15,6 +15,7 @@ import { leftWrongKeys, usesNotesFree } from "../notesFree";
 import { kakuroProgress, kakuroRuleMistakeKeys, kakuroWrongKeys } from "../kakuro";
 import { kakuroRuleMistakes } from "../numberOverhaul";
 import { cleanPoints, speedPoints } from "./shape";
+import { storedLevelFullByS } from "./plLevelSpeed";
 import type { StandardGame, StandardInput } from "./grade.server";
 import { GRID_EARLY_POINTS, GRID_SHARE_POINTS, GRID_STANDARD, gridNetPlaced, type GridStandardType } from "./gridRules";
 
@@ -122,7 +123,8 @@ function gridGame(type: GridStandardType): StandardGame {
     grade(input, ctx) {
       if (input.graded.isCorrect) {
         const mistakes = fillominoStrokes(input.puzzle) ? wrongChanges(game, input) : everWrong(game, input);
-        const speed = speedPoints(rule.speed, input.msLeft, input.limitMs, rule.fullByS * 1000);
+        // A D4 level deal's own time (22 Nov 2026, plLevelSpeed.ts); every other round the game's own, as before.
+        const speed = speedPoints(rule.speed, input.msLeft, input.limitMs, (storedLevelFullByS(input.puzzle) ?? rule.fullByS) * 1000);
         const bonus = mistakes === null ? 0 : cleanPoints(rule.bonus, rule.per, mistakes);
         return { finished: true, speed, bonus, measure: "clean", facts: { mistakes } };
       }

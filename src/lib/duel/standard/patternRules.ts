@@ -7,8 +7,7 @@
 import type { PuzzleType } from "../types";
 import { blockLevelFullByS } from "../blockParty";
 import { pushLevelFullByS } from "../pushLevels";
-import { gameLevelSettings } from "@/lib/levels/gameLevels";
-import { puzzleLevel } from "@/lib/levels/levels";
+import { patternLevelFullByS } from "./plLevelSpeed";
 
 export type PatternStdType = "unblock" | "blockparty" | "iceslide" | "gravity" | "tiles" | "rings" | "laser" | "flow" | "pipes" | "push";
 
@@ -32,9 +31,8 @@ export const FLOW_REV3_FULL_BY_S = 30;
 
 export function flowFullByS(puzzle: { flowRev?: number; level?: unknown }): number {
   if ((puzzle.flowRev ?? 0) < FLOW_REV_LEVELS) return PATTERN_STD.flow.fullByS;
-  const level = puzzleLevel(puzzle);
-  const own = level === "normal" ? null : gameLevelSettings<{ fullByS?: number }>("flow", level)?.fullByS;
-  return own ?? FLOW_REV3_FULL_BY_S;
+  // A level round: its stamped time (D4, 22 Nov 2026), else the time its level had when it was dealt (plLevelSpeed.ts).
+  return patternLevelFullByS("flow", puzzle) ?? FLOW_REV3_FULL_BY_S;
 }
 
 /**
@@ -47,9 +45,8 @@ export const LASER_REV4_FULL_BY_S = 30;
 
 export function laserFullByS(puzzle: { laserRev?: number; level?: unknown }): number {
   if ((puzzle.laserRev ?? 0) < LASER_REV_LEVELS) return PATTERN_STD.laser.fullByS;
-  const level = puzzleLevel(puzzle);
-  const own = level === "normal" ? null : gameLevelSettings<{ fullByS?: number }>("laser", level)?.fullByS;
-  return own ?? LASER_REV4_FULL_BY_S;
+  // A level round: its stamped time (D4, 22 Nov 2026), else the time its level had when it was dealt (plLevelSpeed.ts).
+  return patternLevelFullByS("laser", puzzle) ?? LASER_REV4_FULL_BY_S;
 }
 
 /** The full-speed time a puzzle on the standard is graded with, by its stamp (Gradient's and Chroma Lines' moved). */
@@ -60,10 +57,11 @@ export function patternFullByS(type: PatternStdType, puzzle: { tilesRev?: number
   if (type === "laser") return laserFullByS(puzzle);
   // Gridlock's levels (the Pattern overhaul, stage 3): a board dealt at a level is full speed by its level's time
   // (unblock.levels.ts `speedFullByS`); Normal and every puzzle dealt before levels keep 40 s.
+  // From D4 (22 Nov 2026) the level's time rides on the deal (`levelFullByS`); a level round dealt before keeps its
+  // level's time then (plLevelSpeed.ts PRE_D4_LEVEL_FULL_BY_S).
   if (type === "unblock" && puzzle.level !== undefined) {
-    const level = puzzleLevel(puzzle);
-    const own = level === "normal" ? null : gameLevelSettings<{ speedFullByS?: number }>("unblock", level)?.speedFullByS;
-    if (typeof own === "number") return own;
+    const own = patternLevelFullByS("unblock", puzzle);
+    if (own !== null) return own;
   }
   // Tessellate's levels (the Pattern overhaul, stage 3): a board dealt at a level is full speed by its level's time.
   if (type === "blockparty") {
@@ -73,9 +71,8 @@ export function patternFullByS(type: PatternStdType, puzzle: { tilesRev?: number
   // Pipeline's levels (Joe, 16 Nov 2026): a board dealt at a level is full speed by its level's `speedFullByS` where it
   // sets one (Expert 90 s); every other level, Normal and every board dealt before levels keep the game's 60 s.
   if (type === "pipes" && puzzle.level !== undefined) {
-    const level = puzzleLevel(puzzle);
-    const own = level === "normal" ? null : gameLevelSettings<{ speedFullByS?: number }>("pipes", level)?.speedFullByS;
-    if (typeof own === "number") return own;
+    const own = patternLevelFullByS("pipes", puzzle);
+    if (own !== null) return own;
   }
   // Heave's levels (stage 3): a board dealt at a level is full speed by its level's time (Normal keeps 45 s).
   if (type === "push") {

@@ -8,6 +8,7 @@ import type { StandardContext, StandardGame, StandardInput } from "./grade.serve
 import { cleanPoints, parPoints, speedPoints } from "./shape";
 import { wasteFactor } from "../puzzleScoreRev";
 import type { TimedDraft } from "./timeline";
+import { patternLevelFullByS } from "./plLevelSpeed";
 import { BLOCK_STD, FLOW_STD, ICE_STD, LASER_STD, PATTERN_STD, PUSH_STD, SHARE_CREDIT, SHARE_EARLY, TOPSY_STD, patternFullByS, type PatternStdType } from "./patternRules";
 import type { PuzzleData, UnblockVehicle, PuzzleType } from "../types";
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S, PAR_STRICT_ZERO_AT, usesParMoves, usesParStrict } from "../parMoves";
@@ -53,7 +54,7 @@ function parMovesSpeed(type: PatternStdType, input: StandardInput): number {
   // Topsy-Turvy's difficulty levels (16 Nov 2026): a round dealt at a level is full speed by its level's time
   // (gravity.levels.ts `speedFullByS`); Normal and every round dealt before levels keep the stamp's.
   const level = type === "gravity" ? topsyLevelSettings(input.puzzle) : null;
-  if (level && usesParStrict(input.puzzle)) return speedPoints(PAR_MOVES_STD.speed, input.msLeft, input.limitMs, level.speedFullByS * 1000);
+  if (level && usesParStrict(input.puzzle)) return speedPoints(PAR_MOVES_STD.speed, input.msLeft, input.limitMs, (patternLevelFullByS("gravity", input.puzzle) ?? level.speedFullByS) * 1000);
   const fullByS = usesParStrict(input.puzzle) && (type === "iceslide" || type === "gravity") ? PAR_STRICT_FULL_BY_S[type] : patternFullByS(type, input.puzzle as { tilesRev?: number });
   return speedPoints(PAR_MOVES_STD.speed, input.msLeft, input.limitMs, fullByS * 1000);
 }
@@ -300,7 +301,9 @@ import type { IceSlideLevelSettings } from "@/lib/levels/pattern/iceslide.levels
 function skidSpeed(input: StandardInput): number {
   const s = skidLevelSettings<IceSlideLevelSettings>("iceslide", skidPuzzleLevel(input.puzzle));
   if (!s) return parMovesSpeed("iceslide", input);
-  return speedPoints(PAR_MOVES_STD.speed, input.msLeft, input.limitMs, s.fullByS * 1000);
+  // Its stamped time (D4, 22 Nov 2026), else the time its level had when it was dealt (plLevelSpeed.ts).
+  const fullByS = patternLevelFullByS("iceslide", input.puzzle) ?? s.fullByS;
+  return speedPoints(PAR_MOVES_STD.speed, input.msLeft, input.limitMs, fullByS * 1000);
 }
 
 const SLIDE_BOARDS = new WeakMap<object, SlideBoard>();
