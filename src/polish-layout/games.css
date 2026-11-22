@@ -910,3 +910,13 @@
   color: var(--jz-text-3);
   font: var(--jz-type-caption);
 }
+
+/* The light theme (tokens.css): the category shows as the icon's border, its words the text colour (as light.css's
+   pills); the current level's badge on a light panel, since the navy fill stays dark in every theme. */
+:root[data-theme="light"] .gm-page-sub {
+  color: var(--jz-text-2);
+}
+:root[data-theme="light"] .gm-page-now-mark {
+  border-color: var(--jz-line);
+  background: var(--jz-surface);
+}
