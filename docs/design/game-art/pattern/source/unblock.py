@@ -16,16 +16,19 @@ import jzlib
 PX_PER_CELL = 120
 LIGHT = float(os.environ.get("UB_LIGHT", "1.0"))  # a cell is ~45 css px on a phone; ~2.7× for DPR 2–3
 
-# Muted body colours, none near the gold car's (the gold car is the only gold thing on the lot).
+# Saturated toy-car body colours (Spotlight, the polish plan of 20 Nov 2026: "saturated cars"), none near the gold
+# car's (the gold car is the only gold thing on the lot). Until 21 Nov 2026 they were muted (#2f5aa6, #1f7a72, #a82c3e,
+# #5a46a8, #357a3a, #565c66).
 BODIES = {
-    "blue": "#2f5aa6",
-    "teal": "#1f7a72",
-    "red": "#a82c3e",
-    "violet": "#5a46a8",
-    "green": "#357a3a",
-    "silver": "#565c66",
+    "blue": "#1f63e6",
+    "teal": "#0fae9c",
+    "red": "#e3263e",
+    "violet": "#7a4fe6",
+    "green": "#2aa845",
+    "silver": "#8f98a6",
 }
-GOLD_PAINT = "#ecb032"
+# The gold car is the interface's champagne gold (--jz-gold, #E2C07A); it was #ecb032 until 21 Nov 2026.
+GOLD_PAINT = "#e2c07a"
 
 
 def frame(long_pts, short_pts, axis):
@@ -113,11 +116,13 @@ def lot(n=7):
     begin(V, 900, pad=0, light=LIGHT * 0.8)
     W0 = 45
     CELL = (V - 2 * W0) / n
-    kerb = mat("kerb", "#23252b", 0.7)
+    # Spotlight (20 Nov 2026): lighter tarmac and concrete, so the lot reads as a lit car park on the stage (were
+    # kerb #23252b, asphalt #0d0e11, bay paint #4a4944).
+    kerb = mat("kerb", "#5d6068", 0.7)
     add_bump(kerb, 90, 0.08, distance=0.004)
-    asphalt = mat("asphalt", "#0d0e11", 0.72)
+    asphalt = mat("asphalt", "#33363e", 0.72)
     add_bump(asphalt, 320, 0.8, distance=0.004)
-    paintm = mat("baypaint", "#4a4944", 0.6)
+    paintm = mat("baypaint", "#b9b6aa", 0.6)
     box(0, 0, V, V, 10, kerb, r=26)
     box(W0 - 2, W0 - 2, V - 2 * W0 + 4, V - 2 * W0 + 4, 10.6, asphalt, r=8)
     ey = W0 + 2 * CELL

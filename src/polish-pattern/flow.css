@@ -4,7 +4,7 @@
 .flow-board {
   border-radius: 8px;
   background: linear-gradient(180deg, #15171e, #0e0f14);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.05), inset 0 0 16px rgba(0, 0, 0, 0.55);
+  box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.55);
 }
 /* A square a line covers takes a soft tint of its colour (set inline). */
 .flow-board .flow-cell,

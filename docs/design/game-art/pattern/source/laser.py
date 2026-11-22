@@ -27,9 +27,10 @@ def cell_begin(light=LIGHT, shadow=True):
 # ---------------------------------------------------------------- board tiles
 
 def floor():
-    """An empty square: a satin graphite plate, softly bevelled (fills its box; the board gap shows round it)."""
+    """An empty square: a satin deep violet plate, softly bevelled (fills its box; the board gap shows round it).
+    Spotlight (the polish plan of 20 Nov 2026): deep violet, not black (was graphite #09080c)."""
     cell_begin(shadow=False)
-    plate = mat("plate", "#09080c", 0.7, coat=0.0)
+    plate = mat("plate", "#1d1330", 0.7, coat=0.0)
     add_bump(plate, scale=140, strength=0.04, detail=3, distance=0.002)
     box(1.0, 1.0, SIZE - 2.0, SIZE - 2.0, 5, plate, r=7, z=0)
 

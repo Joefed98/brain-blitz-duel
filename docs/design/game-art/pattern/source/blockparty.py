@@ -79,9 +79,11 @@ def tray_block(colour_name):
 def recess():
     # The dark slab around the square and the recessed well inside it (concept A's satin cells: a light coat, so the
     # bevels catch the light without a wash across the square).
-    slab = mat("slab", "#191a24", 0.45, coat=0.4, coat_rough=0.2)
+    # Spotlight (the polish plan of 20 Nov 2026): an ivory pegboard, a matte ivory slab round a pale stone well (were
+    # #191a24 and #0c0d13, a dark board).
+    slab = mat("slab", "#e9e2d2", 0.55, coat=0.15, coat_rough=0.35)
     box(0, 0, 100, 100, 6, slab, r=2)
-    well = mat("well", "#0c0d13", 0.38, coat=0.5, coat_rough=0.12)
+    well = mat("well", "#c4bba6", 0.6, coat=0.1, coat_rough=0.4)
     box(7, 7, 86, 86, 3, well, r=12, z=4)
 
 
