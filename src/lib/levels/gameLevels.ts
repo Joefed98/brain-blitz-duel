@@ -272,17 +272,28 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // Exact (targetLevels.server.ts): any route counts; each level's target is proved by exhaustive search.
   target: {
     levels: {
+      // D2 (22 Nov 2026): a two-digit target two or three of the numbers make, two large numbers on the rack.
       easy: {
-        settings: { large: [1, 2], target: [101, 300], tiles: [3, 4] },
-        oneSolution: { open: "any route counts; every target is proved reachable with 3 or 4 numbers by scripts/number-levels-balance-target-check.ts" },
+        settings: { large: [2, 2], target: [20, 99], tiles: [2, 3] },
+        oneSolution: { open: "any route counts; every target is proved reachable with 2 or 3 numbers by scripts/number-levels-balance-target-check.ts" },
       },
+      // D2 (the spec's new mechanic, targetRounds.ts): two targets in a row, each on its own rack, rising inside the
+      // round: a target to 300 from three or four numbers, then one large number and a target that needs all six; 100 s.
       hard: {
-        settings: { large: [1, 1], target: [300, 999], tiles: [6, 6] },
-        oneSolution: { open: "any route counts; every target is proved to need all six numbers by scripts/number-levels-balance-target-check.ts" },
+        settings: { rounds: [{ large: [1, 2], target: [101, 300], tiles: [3, 4] }, { large: [1, 1], target: [300, 999], tiles: [6, 6] }], clockS: 100, fullByS: 55 },
+        oneSolution: { open: "any route counts; every target is proved reachable by its own rule (exhaustive search) by scripts/number-levels-balance-target-check.ts" },
       },
+      // D2: three targets in a row: two Normal-style targets from their proved bank (each reached by the person-like
+      // solver, scripts/target-round-bank.ts), then a board from the proved Expert bank (small numbers only, all six
+      // needed, reached by the person-like solver); 120 s. (The spec's middle target, one large number
+      // needing five or six, left the elite finishing 58 % of rounds; its own fallback is a second Normal-style one.)
       expert: {
-        settings: { large: [0, 0], target: [500, 999], tiles: [6, 6], person: true },
-        oneSolution: { open: "any route counts; every target is proved to need all six numbers by scripts/number-levels-balance-target-check.ts" },
+        settings: {
+          rounds: [{ normalBank: true }, { normalBank: true }, { expertBank: true }],
+          clockS: 120,
+          fullByS: 88,
+        },
+        oneSolution: { open: "any route counts; every target is proved reachable by its own rule (exhaustive search) by scripts/number-levels-balance-target-check.ts" },
       },
     },
   },
@@ -313,6 +324,7 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
           ],
           limitFactor: 2.5,
           personPar: true,
+          fullByS: 54,
         },
         oneSolution: { open: "any sequence reaching the target counts; the minimum is proven by BFS" },
       },
@@ -369,19 +381,20 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
         },
         oneSolution: { open: "any dart sequence reaching the target on the finishing ring counts; every level board is proved to have a checkout by scripts/number-levels-checkout-kakuro-check.ts" },
       },
-      // D2: five odd boards, every one with two minus wedges and an exact dart count; x4 on three, treble finish on two.
+      // D2: five odd boards, every one with two minus wedges and an exact dart count (3, 3, 4, 3, 4: at 4, 4 the kit's
+      // near-perfect finished 73 % of rounds, under the 80 % the levels check asks); x4 on three, treble finish on two.
       expert: {
         settings: {
           boards: [
             { wedges: "uneven", negatives: true, finish: 2, maxDarts: 3, exact: true, target: [80, 170], notGreedy: true },
             { wedges: "uneven", negatives: true, quad: true, finish: 3, maxDarts: 3, exact: true, target: [150, 320], notGreedy: true },
-            { wedges: "uneven", negatives: true, finish: 2, maxDarts: 4, exact: true, target: [80, 200], notGreedy: true },
-            { wedges: "uneven", negatives: true, quad: true, finish: 2, maxDarts: 4, exact: true, target: [120, 300], notGreedy: true },
-            { wedges: "uneven", negatives: true, quad: true, finish: 3, maxDarts: 4, exact: true, target: [150, 360], notGreedy: true },
+            { wedges: "uneven", negatives: true, finish: 2, maxDarts: 4, exact: true, target: [80, 170], notGreedy: true },
+            { wedges: "uneven", negatives: true, quad: true, finish: 2, maxDarts: 3, exact: true, target: [120, 280], notGreedy: true },
+            { wedges: "uneven", negatives: true, quad: true, finish: 3, maxDarts: 4, exact: true, target: [150, 320], notGreedy: true },
           ],
           person: true,
           bonusRoute: true,
-          fullByS: 56,
+          fullByS: 53,
         },
         oneSolution: { open: "any dart sequence reaching the target on the finishing ring counts; every level board is proved to have a checkout by scripts/number-levels-checkout-kakuro-check.ts" },
       },
@@ -412,8 +425,9 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // Ballpark (numlineLevels.server.ts): Normal is today's game; three lines of five numbers at every level.
   numline: {
     levels: {
+      // D2 (22 Nov 2026): every tenth of the ruler marked and numbered.
       easy: {
-        settings: { lines: ["easy-10", "easy-100", "easy-1"] },
+        settings: { lines: ["easy-10", "easy-100", "easy-1"], marks: 10, markLabels: true },
         oneSolution: { open: "estimation: every placement scores by distance" },
       },
       hard: {

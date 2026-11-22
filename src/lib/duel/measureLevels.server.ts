@@ -119,7 +119,8 @@ export function generateMeasureLevel(seed: number, settings: MeasureLevelSetting
  * at Normal, as rooms did before levels.
  */
 export function dealsMeasureLevelBoards(level: Level | undefined): boolean {
-  if (level === "hard") return false;
+  // A level whose settings name today's game deals it (Hard until D2, 22 Nov 2026; no level does now).
+  if (level && "today" in measureLevelSettings(level)) return false;
   return !dealPinned("preMeasureLevels") && activeDealPins().length === 0;
 }
 

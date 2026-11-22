@@ -32,6 +32,7 @@ import type { StandardGame } from "./grade.server";
 import { PARTIAL_SHARE_POINTS, usesPartialCredit } from "../partialCredit";
 import { solverShare } from "../puzzleProgress";
 import { pyramidPartialCredit, usesPyramidPartial } from "../pyramidPartial";
+import { splitTargetRounds, targetRoundPuzzle, targetRoundsDone, targetRoundsOf, usesTargetRounds } from "../targetRounds";
 import {
   BALLPARK_STD_BULL_MAX,
   BALLPARK_STD_BULL_POINTS,
@@ -149,9 +150,31 @@ export function exactBuildShare(puzzle: TargetNumberPuzzleData, answer: string):
   return solverShare(start - 1, start - best, made, 1);
 }
 
+/**
+ * D2 (22 Nov 2026, targetRounds.ts): a round of targets in a row. A finish is 150 + speed (the round's own "full by" time)
+ * + elegance averaged over the targets (each target's 15, less 5 a number past its fewest); unfinished is 130 × (the
+ * targets hit + the share of the current one) ÷ the targets, the current one's share the better of the solution built
+ * and the closeness curve (each ÷ 130), so a later target never pays before the ones before it.
+ */
+function gradeTargetRounds(p: TargetNumberPuzzleData, answer: string, isCorrect: boolean, msLeft: number, limitMs: number) {
+  const rounds = targetRoundsOf(p);
+  const parts = splitTargetRounds(answer, rounds.length);
+  const done = targetRoundsDone(p, answer);
+  if (isCorrect) {
+    const used = rounds.map((_, i) => exactTilesUsed(targetRoundPuzzle(p, i), parts[i] ?? ""));
+    const min = rounds.map((r) => exactMinTiles(r.tiles, r.target));
+    const elegance = used.reduce<number>((sum, u, i) => sum + (u === null ? 0 : cleanPoints(EXACT_STD_ELEGANCE, EXACT_STD_ELEGANCE_PER, u - min[i]!)), 0) / rounds.length;
+    return { finished: true as const, speed: speedFor("target", msLeft, limitMs, storedFullByS(p)), bonus: elegance, measure: "elegance", facts: { targets: rounds.length, tilesUsed: used, minTiles: min } };
+  }
+  const current = targetRoundPuzzle(p, done);
+  const share = Math.min(0.99, Math.max(exactBuildShare(current, parts[done] ?? ""), exactCloseCredit(exactBestDistance(current, parts[done] ?? "")) / PARTIAL_SHARE_POINTS));
+  return { finished: false as const, credit: (PARTIAL_SHARE_POINTS * (done + share)) / rounds.length, facts: { targets: rounds.length, targetsDone: done, bestDistance: exactBestDistance(current, parts[done] ?? "") } };
+}
+
 const exact: StandardGame = {
   grade({ puzzle, answer, graded, msLeft, limitMs }) {
     const p = puzzle as TargetNumberPuzzleData;
+    if (usesTargetRounds(p)) return gradeTargetRounds(p, answer, graded.isCorrect, msLeft, limitMs);
     if (graded.isCorrect) {
       const used = exactTilesUsed(p, answer);
       const min = exactMinTiles(p.tiles, p.target);

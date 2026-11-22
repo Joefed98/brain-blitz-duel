@@ -6,7 +6,11 @@
 import { encodeMeasureRound, measureActions, measureApply, measureSolved, type MeasureAction } from "../src/lib/duel/measure";
 import { personRuns } from "../src/lib/duel/measureLevels";
 import { measureMoveLimits } from "../src/lib/duel/moveLimits";
-import type { CheckoutPuzzleData, MeasureBoardData, MeasurePuzzleData, NumberPyramidPuzzleData } from "../src/lib/duel/types";
+import type { CheckoutPuzzleData, MeasureBoardData, MeasurePuzzleData, NumberPyramidPuzzleData, TargetNumberPuzzleData } from "../src/lib/duel/types";
+import { LARGE_TILES, decodeSteps, replayTargetSteps } from "../src/lib/duel/target";
+import { joinTargetRounds, targetRoundPuzzle, targetRoundsOf, usesTargetRounds } from "../src/lib/duel/targetRounds";
+import { exactMinTiles } from "../src/lib/duel/standard/number.server";
+import { KITS } from "./puzzle-fairness/kits";
 import { npEncodeRound, type NpPlacements } from "../src/lib/duel/numberPyramid";
 import { npPersonSolve } from "../src/lib/duel/numberPyramidLevels";
 import { NUMBER_PYRAMID_BANK } from "../src/lib/duel/numberPyramidBank.server";
@@ -256,3 +260,51 @@ function pyramidPlayer(p: unknown, rng: Rng, skill: Skill): Play {
 }
 
 setNumberPlayer("numpyramid", pyramidPlayer);
+
+/* ================================ Exact ================================ */
+
+/**
+ * Exact's round of targets in a row (targetRounds.ts): each target played by the kit (kits-number.ts targetKit: 8 s a
+ * step for a good player, the stored route with dead ends at skill.err) at the search time its kind of board takes, the
+ * kit's own level factors read by the board, not the level: a target that needs all six from one large number is the
+ * kit's Hard (2.6 ×), one from small numbers only is its Expert (3 ×), one large and five or six numbers its Hard, and a
+ * Normal-style target today's Normal (1 ×). Targets are played in turn, the next rack after the hit's 1.1 s hold. A
+ * one-target puzzle plays the kit as it always has.
+ */
+const TARGET_ROUND_HOLD_MS = 1100;
+
+function targetKind(tiles: readonly number[], target: number): "normal" | "hard" | "expert" {
+  const large = tiles.filter((t) => LARGE_TILES.includes(t)).length;
+  const min = exactMinTiles(tiles, target);
+  if (min >= 6 && large === 0) return "expert";
+  if (min >= 5 && large <= 1) return "hard";
+  return "normal";
+}
+
+function targetPlayer(p: unknown, rng: Rng, skill: Skill, limitMs: number): Play {
+  const puzzle = p as TargetNumberPuzzleData;
+  const kit = KITS.target!;
+  if (!usesTargetRounds(puzzle)) return kit.play(puzzle, rng, skill, limitMs);
+  const rounds = targetRoundsOf(puzzle);
+  const steps: Step[] = [];
+  const done: string[] = [];
+  let t = 0;
+  for (let i = 0; i < rounds.length; i++) {
+    const one = targetRoundPuzzle(puzzle, i);
+    const kind = targetKind(one.tiles, one.target);
+    const tagged = (kind === "normal" ? one : { ...one, level: kind }) as TargetNumberPuzzleData;
+    const play = kit.play(tagged, rng, skill, limitMs);
+    let last = "";
+    for (const st of play.steps) {
+      steps.push({ answer: joinTargetRounds([...done, st.answer]), atMs: t + st.atMs });
+      last = st.answer;
+    }
+    t += play.steps.length ? play.steps[play.steps.length - 1]!.atMs : 0;
+    if (replayTargetSteps(one.tiles, one.target, decodeSteps(last)).distance !== 0) break;
+    done.push(last);
+    t += TARGET_ROUND_HOLD_MS;
+  }
+  return { steps };
+}
+
+setNumberPlayer("target", targetPlayer);

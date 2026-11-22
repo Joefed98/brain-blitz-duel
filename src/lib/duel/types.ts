@@ -176,6 +176,17 @@ export interface TargetNumberPuzzleData {
   target: number;
   /** One valid solution, kept server-side until the reveal. */
   solution: TargetStep[];
+  /**
+   * D2 (22 Nov 2026, targetRounds.ts): 1 = targets in a row (Hard 2, Expert 3), each on its own rack in `targets`, the
+   * first also in `tiles` / `target` / `solution`. Absent = one target, as every round dealt before.
+   */
+  targetRev?: number;
+  /** targetRev 1: every target's rack and number, in play order (public). */
+  targets?: { tiles: number[]; target: number }[];
+  /** targetRev 1: one stored route per target, kept server-side until the reveal. */
+  solutions?: TargetStep[][];
+  /** targetRev 1: the round's own clock (Hard 100 s, Expert 120 s); absent = the type's 75 s. */
+  timeLimitMs?: number;
   /** A level deal's own "full by" time for its speed points (D2, 22 Nov 2026, standard/levelSpeed.ts); absent = the game's own. */
   speedFullByS?: number;
 }
@@ -2809,6 +2820,13 @@ export interface NumlineStageData {
    * placed. Display only; absent on every other line.
    */
   hideEnd?: "hi";
+  /**
+   * D2 (22 Nov 2026, Ballpark's levels): the marks drawn across the ruler, dividing it into this many equal parts (Easy:
+   * 10), and whether each mark carries its number (`markLabels`). Display only; absent = no marks between the end labels,
+   * as every line dealt before.
+   */
+  marks?: number;
+  markLabels?: boolean;
 }
 
 export interface NumlinePuzzleData {

@@ -49,6 +49,14 @@ export type NumlineLineId =
 export interface NumlineLevelSettings {
   lines: readonly NumlineLineId[];
   hideEnd?: boolean;
+  /** D2 (22 Nov 2026): marks across every line, dividing it into this many parts, stamped on each line (display only). */
+  marks?: number;
+  /** D2: every mark carries its number (Easy). */
+  markLabels?: boolean;
+  /** D2: the level's own clock in seconds, stamped as `timeLimitMs`; 90 s without one. */
+  clockS?: number;
+  /** D2: the level's own "full by" time for its speed points, stamped as `speedFullByS`; 60 s without one. */
+  fullByS?: number;
 }
 
 const thousands = (n: number) => n.toLocaleString("en-GB");
@@ -286,8 +294,21 @@ export function generateNumlineLevel(seed: number, settings: NumlineLevelSetting
   for (const id of settings.lines) {
     const line = id === "today-third" ? (symmetric ? TODAY_SYMMETRIC : TODAY_LARGE) : LINES[id];
     const items = fill(rng, line.stage, line.makers);
-    stages.push({ ...line.stage, items: items.map((item) => item.text), ...(settings.hideEnd ? { hideEnd: "hi" as const } : {}) });
+    stages.push({
+      ...line.stage,
+      items: items.map((item) => item.text),
+      ...(settings.hideEnd ? { hideEnd: "hi" as const } : {}),
+      ...(settings.marks ? { marks: settings.marks } : {}),
+      ...(settings.markLabels ? { markLabels: true } : {}),
+    });
     values.push(items.map((item) => item.value));
   }
-  return { type: "numline", numlineRev: NUMLINE_REV, timeLimitMs: NUMLINE_REV2_TIME_MS, stages, values };
+  return {
+    type: "numline",
+    numlineRev: NUMLINE_REV,
+    timeLimitMs: settings.clockS ? settings.clockS * 1000 : NUMLINE_REV2_TIME_MS,
+    stages,
+    values,
+    ...(settings.fullByS ? { speedFullByS: settings.fullByS } : {}),
+  };
 }
