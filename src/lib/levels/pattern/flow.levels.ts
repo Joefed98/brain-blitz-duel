@@ -46,7 +46,7 @@ const PROOF = { proof: "scripts/pattern-overhaul-flow-levels-check.ts" } as cons
 export const LEVELS_FLOW: GameLevels<FlowLevelSettings> = {
   levels: {
     easy: {
-      settings: { cols: 6, rows: 6, minPairs: 5, maxPairs: 6, minWalls: 0, maxWalls: 0, maxPath: 12, minPath: 3, minAvgPath: 0, budget: 60_000, stuckLimit: 1500, minWhatIfs: 0, timeLimitMs: 75_000, fullByS: 15, bankSize: 500 },
+      settings: { cols: 6, rows: 6, minPairs: 5, maxPairs: 6, minWalls: 0, maxWalls: 0, maxPath: 12, minPath: 3, minAvgPath: 0, budget: 60_000, stuckLimit: 1500, minWhatIfs: 0, timeLimitMs: 75_000, fullByS: 21, bankSize: 500 },
       oneSolution: PROOF,
     },
     // D4 (22 Nov 2026; the spec's Chroma Lines row): the board grows downwards with more pairs at every level (36, 81, 99,
@@ -59,7 +59,7 @@ export const LEVELS_FLOW: GameLevels<FlowLevelSettings> = {
       oneSolution: PROOF,
     },
     expert: {
-      settings: { cols: 9, rows: 13, minPairs: 14, maxPairs: 14, minWalls: 6, maxWalls: 8, maxPath: 16, minPath: 3, minAvgPath: 0, budget: 200_000, stuckLimit: 1500, minWhatIfs: 4, timeLimitMs: 70_000, fullByS: 35, bankSize: 500 },
+      settings: { cols: 9, rows: 13, minPairs: 14, maxPairs: 14, minWalls: 6, maxWalls: 8, maxPath: 16, minPath: 3, minAvgPath: 0, budget: 200_000, stuckLimit: 1500, minWhatIfs: 4, timeLimitMs: 70_000, fullByS: 36, bankSize: 500 },
       oneSolution: PROOF,
     },
   },

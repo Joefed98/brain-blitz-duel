@@ -36,16 +36,18 @@ export const LEVELS_UNBLOCK: GameLevels<UnblockLevelSettings> = {
     easy: { settings: { cols: 6, minMoves: [5, 9], cars: [6, 8], timeLimitMs: 60_000, speedFullByS: 40 }, oneSolution: OPEN },
     // Hard: Normal's 7×7 lot, 22–30 moves at the minimum, 12–14 cars, 60 s; full speed by 28 s (about a second a
     // move along the line: the step up from Normal is seeing the longer line, then playing it briskly).
-    // D4: Hard a fuller lot (13–15 cars) and a longer line (26–32 moves). The spec's 8 × 8 Hard and 9 × 9 Expert wait for
-    // the lot renders (lot-8, lot-9, A2's art).
-    hard: { settings: { cols: 7, minMoves: [26, 32], cars: [13, 15], timeLimitMs: 60_000, speedFullByS: 28 }, oneSolution: OPEN },
+    // D4: Hard a fuller lot (13–15 cars) and a longer line (26–32 moves) on 70 s (on 60 s the average player stepped
+    // down from Hard to Expert by only 2). The spec's 8 × 8 Hard and 9 × 9 Expert wait for the lot renders (lot-8,
+    // lot-9, A2's art).
+    hard: { settings: { cols: 7, minMoves: [26, 32], cars: [13, 15], timeLimitMs: 70_000, speedFullByS: 28 }, oneSolution: OPEN },
     // Expert (deeper boards, Joe 16 Nov 2026): 7×7, 40–48 moves at the minimum (Hard 22–30, the old Expert 30–40), 13–15
     // cars, 90 s; full speed by 30 s, as before (about 0.7 s a move: only a player who reads the whole line at once).
     // The step up is the line's length, about 16 moves more than Hard's on average, so the clock grows to fit them (a
     // person-like solver's finishes take 42–90 s). The bank climbs each lot to 40 and takes the drawn depth or the
     // lot's hardest, whichever is less (scripts/unblock-levels-bank.ts).
-    // D4 (22 Nov 2026): on 80 s (on 90 s the great player scored Expert above Hard), full speed by 40 s (the elite's
-    // finishes under the human limits: a third of Expert boards at 200).
-    expert: { settings: { cols: 7, minMoves: [40, 48], cars: [13, 15], timeLimitMs: 80_000, speedFullByS: 40 }, oneSolution: OPEN },
+    // D4 (22 Nov 2026): on 75 s (on 90 s the great player scored Expert above Hard; on 80 s the average player stepped
+    // down from Hard by under 4), its own speed line from the elite's finishes under the human limits (a third of Expert
+    // boards at 200).
+    expert: { settings: { cols: 7, minMoves: [40, 48], cars: [13, 15], timeLimitMs: 75_000, speedFullByS: 38 }, oneSolution: OPEN },
   },
 };

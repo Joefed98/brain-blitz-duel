@@ -7,6 +7,9 @@
  *   bun scripts/pattern-logic-human-tune.ts <game[,game…]|all|pattern|logic> [--level=all] [--seeds=48] [--from=0]
  *       [--people=average,elite] [--json=<path>]
  *
+ * With PL_SCAN=1 the elite's rows also carry each finish's smallest speed line reaching 200, regraded by the real grader
+ * (`needs`; scripts/pattern-logic-human.ts lineNeeded), so a level's line can be set to an exact share at 200.
+ *
  * Each row: the person's mean score, median, finish rate, the share of runs at 200 ("reach 200") and the finish-time
  * quartiles, the ladder Joe judges the levels on (the average steps down clearly level by level; the elite reaches 200
  * less often each level up, and on Expert on at least a fifth of boards).
@@ -34,6 +37,8 @@ export interface PlRow {
   times: [number, number, number] | null;
   /** The finish seconds of every run that lost only speed (ceiling 200), sorted: a speed line at t reaches 200 on those ≤ t. */
   clean: number[];
+  /** With PL_SCAN=1: each run's smallest speed line reaching 200 (lineNeeded), sorted; runs that can't, left out. */
+  needs?: number[];
 }
 
 /** The speed line (whole seconds) at which `share` of the runs reach 200, from a row's clean finishes. */
@@ -56,7 +61,7 @@ const dealAt: typeof dealLive = (type, level, n) => (process.env["PL_BANK_OFF"] 
 
 /** The chosen people on `seeds` deals of one game at one level. */
 export function plRows(game: PlGame, level: Level, seeds: number, from = 0, people: readonly PersonLevel[] = PERSON_LEVELS): PlRow[] {
-  type R = { score: number; done: boolean; seconds: number; ceiling: number | null };
+  type R = { score: number; done: boolean; seconds: number; ceiling: number | null; need?: number | null };
   const runs = Object.fromEntries(people.map((p) => [p, [] as R[]])) as Record<PersonLevel, R[]>;
   let dealt: Level = "normal";
   for (let n = from; n < from + seeds; n++) {
@@ -64,7 +69,7 @@ export function plRows(game: PlGame, level: Level, seeds: number, from = 0, peop
     dealt = puzzleLevel(puzzle);
     for (const person of people) {
       const r = personRun(puzzle, person, `${level}:${n}`);
-      runs[person].push({ score: r.score, done: r.isCorrect, seconds: r.seconds, ceiling: r.ceiling });
+      runs[person].push({ score: r.score, done: r.isCorrect, seconds: r.seconds, ceiling: r.ceiling, need: r.need ?? null });
     }
   }
   return people.map((person) => {
@@ -84,6 +89,7 @@ export function plRows(game: PlGame, level: Level, seeds: number, from = 0, peop
       reach200: xs.filter((x) => x >= 200).length / Math.max(1, xs.length),
       times: t.length ? [q(0.25), q(0.5), q(0.75)] : null,
       clean: runs[person].filter((r) => r.done && r.ceiling === 200).map((r) => Math.round(r.seconds * 10) / 10).sort((a, b) => a - b),
+      ...(process.env["PL_SCAN"] === "1" ? { needs: runs[person].map((r) => r.need).filter((x): x is number => typeof x === "number").sort((a, b) => a - b) } : {}),
     };
   });
 }

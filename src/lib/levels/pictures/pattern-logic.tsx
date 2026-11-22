@@ -1,7 +1,8 @@
 /**
  * The Pattern and Logic games' lever pictures (D4, 22 Nov 2026; plan section 6.1): a small drawing of what each level
  * changes, made from the level's own settings (GAME_LEVELS through gameLevelSettings; Normal from the game's own
- * constants), never a hand-made image, so a picture cannot drift from the game. Read by P2's slot
+ * numbers, NORMAL_NUMBERS, proved against real Normal deals by pattern-logic-pictures-check), never a hand-made image,
+ * so a picture cannot drift from the game. Read by P2's slot
  * (src/lib/levels/leverPicture.tsx) through its glob of ./pictures/*.tsx and this file's named export LEVER_PICTURES;
  * nothing else imports it. Display only.
  *
@@ -14,7 +15,8 @@ import type { Level } from "../levels";
 import { LIGHTUP_SIZE } from "@/lib/duel/lightUp";
 import { SHIKAKU_SIZE } from "@/lib/duel/shikaku";
 import { TENTS_SIZE } from "@/lib/duel/tents";
-import { BRIDGES_SIZE, FENCES_SIZE, FILLOMINO_SIZE, FLOOD_SIZE, SLIDE_COLS, UNBLOCK_COLS } from "@/lib/duel/types";
+import { TR_SIZE } from "@/lib/duel/trail";
+import { BRIDGES_SIZE, FENCES_SIZE, FILLOMINO_SIZE, FLOOD_SIZE, LASER_COLS, PUSH_COLS, SAFE_DIALS, SAFE_TRIES, SLIDE_COLS, UNBLOCK_COLS } from "@/lib/duel/types";
 
 export interface LeverPictureProps {
   level: Level;
@@ -95,203 +97,216 @@ function Row({ count, fill, tone = GOLD, label, size, hidden = false }: { count:
   );
 }
 
-/* ---------------------------------------------------------------- Pattern */
+/* ---------------------------------------------------------------- The numbers */
 
-/** Gridlock: the lot (squares a side) and its cars. */
-const unblock: Picture = ({ level, size }) => {
-  const s = settingsOf("unblock", level);
-  const n = s?.cols ?? UNBLOCK_COLS;
-  const cars = low(s?.cars, 10);
-  return <Board cols={n} rows={n} marks={cars * 2} tone={INK} label={`a ${n} by ${n} lot, ${cars} or more cars`} size={size} />;
+/** What a picture draws: a board of squares with some marked, or a row of containers with some filled. */
+export type LeverNumbers =
+  | { kind: "board"; cols: number; rows: number; marks: number; tone: "ink" | "gold" | "red"; label: string }
+  | { kind: "row"; count: number; fill: number; hidden: boolean; label: string };
+
+/**
+ * Normal's numbers, the ones the level registry has no row for: the board's size from each game's own constants where
+ * the game exports one, the rest written here. pattern-logic-pictures-check deals real Normal puzzles and fails if any
+ * of these is no longer what Normal deals (the size exactly, a count inside the range Normal deals), so they can't
+ * drift from the game.
+ */
+export const NORMAL_NUMBERS = {
+  unblock: { cols: UNBLOCK_COLS, cars: 10 },
+  blockparty: { cols: 7, pieces: 9, pegs: 16 },
+  pipes: { cols: 7, rows: 7, scrambled: 0.8 },
+  flow: { cols: 9, rows: 9, pairs: 10 },
+  iceslide: { cols: SLIDE_COLS, rows: SLIDE_COLS, holes: 2 },
+  push: { crates: 5 },
+  laser: { bombs: 3, maxBombs: 4, shots: 3 },
+  gravity: { balls: 6, boards: 3 },
+  sudoku: { givens: 13 },
+  tower: { pegs: 3, maxPegs: 4, discs: 9 },
+  tubes: { flasks: 10, capacity: 5, colours: 8 },
+  safe: { dials: SAFE_DIALS, tries: SAFE_TRIES },
+  nonogram: { cols: 8, rows: 8 },
+  flood: { cols: FLOOD_SIZE, rows: FLOOD_SIZE, colours: 5 },
+  minesweeper: { cols: 10, rows: 16, mines: 16 },
+  tents: { rows: 9, trees: 12 },
+  shikaku: { rows: 11, rects: 17 },
+  lightup: { rows: 10, walls: 20 },
+  trail: { size: TR_SIZE, givens: 10 },
+  fences: { size: FENCES_SIZE, clues: 15 },
+  fillomino: { size: FILLOMINO_SIZE, givens: 16 },
+  bridges: { size: BRIDGES_SIZE, islands: 10 },
+} as const;
+
+const N = NORMAL_NUMBERS;
+const board = (cols: number, rows: number, marks: number, tone: "ink" | "gold" | "red", label: string): LeverNumbers => ({ kind: "board", cols, rows, marks, tone, label });
+const row = (count: number, fill: number, label: string, hidden = false): LeverNumbers => ({ kind: "row", count, fill, hidden, label });
+
+/** Each game's numbers at a level: the level's own settings, or Normal's. */
+export const LEVER_NUMBERS: Readonly<Record<string, (level: Level) => LeverNumbers>> = {
+  /** Gridlock: the lot (squares a side) and its cars. */
+  unblock: (level) => {
+    const s = settingsOf("unblock", level);
+    const n = s?.cols ?? N.unblock.cols;
+    const cars = low(s?.cars, N.unblock.cars);
+    return board(n, n, cars * 2, "ink", `a ${n} by ${n} lot, ${cars} or more cars`);
+  },
+  /** Tessellate: the board and its pegs. */
+  blockparty: (level) => {
+    const s = settingsOf("blockparty", level);
+    const n = s?.cols ?? N.blockparty.cols;
+    const pieces = s?.pieces?.length ?? N.blockparty.pieces;
+    return board(n, n, s?.pegs ?? N.blockparty.pegs, "ink", `a ${n} by ${n} board, ${pieces} pieces`);
+  },
+  /** Pipeline: the tiles on the board. */
+  pipes: (level) => {
+    const s = settingsOf("pipes", level);
+    const cols = s?.cols ?? N.pipes.cols;
+    const rows = s?.rows ?? N.pipes.rows;
+    return board(cols, rows, Math.round(cols * rows * (s?.scrambled ?? N.pipes.scrambled)), "ink", `${cols * rows} tiles`);
+  },
+  /** Chroma Lines: the board and its pairs of dots. */
+  flow: (level) => {
+    const s = settingsOf("flow", level);
+    const cols = s?.cols ?? N.flow.cols;
+    const rows = s?.rows ?? N.flow.rows;
+    const pairs = s?.minPairs ?? N.flow.pairs;
+    return board(cols, rows, pairs * 2, "gold", `a ${cols} by ${rows} board, ${pairs} or more pairs`);
+  },
+  /** Skid: the rink and its holes. */
+  iceslide: (level) => {
+    const s = settingsOf("iceslide", level);
+    const cols = s?.cols ?? N.iceslide.cols;
+    const rows = s?.rows ?? N.iceslide.rows;
+    const holes = low(s?.holes, N.iceslide.holes);
+    return board(cols, rows, holes, "red", `a ${cols} by ${rows} rink, ${holes === 0 ? "no holes" : `${holes} or more holes`}`);
+  },
+  /** Heave: the warehouse and its crates. */
+  push: (level) => {
+    const crates = settingsOf("push", level)?.crates ?? N.push.crates;
+    return board(PUSH_COLS, PUSH_COLS, crates, "ink", `${crates} crates to push home`);
+  },
+  /** Lightbender: the board and its bombs. */
+  laser: (level) => {
+    const s = settingsOf("laser", level);
+    const bombs = s?.minBombs ?? N.laser.bombs;
+    const most = s?.maxBombs ?? N.laser.maxBombs;
+    return board(LASER_COLS, LASER_COLS, bombs, "red", `${bombs === most ? bombs : `${bombs} or more`} bomb${bombs === 1 && bombs === most ? "" : "s"}, ${s?.shots ?? N.laser.shots} shots`);
+  },
+  /** Topsy-Turvy: the balls on each board. */
+  gravity: (level) => {
+    const s = settingsOf("gravity", level);
+    const balls = s?.balls ?? N.gravity.balls;
+    const boards = s?.boards ?? N.gravity.boards;
+    return row(boards, balls, `${boards} boards of ${balls} balls`);
+  },
+  /** Box Six: the numbers given at the start. */
+  sudoku: (level) => {
+    const s = settingsOf("sudoku", level);
+    const givens = low(s?.givens, N.sudoku.givens);
+    return board(6, 6, givens, "ink", `${givens} or more numbers given${s?.clashes === "check" ? ", clashes on Check" : ""}`);
+  },
+  /** Hanoi: the posts and their rings. */
+  tower: (level) => {
+    const s = settingsOf("tower", level);
+    const pegs = s?.pegs ?? N.tower.pegs;
+    const most = s?.pegs ?? N.tower.maxPegs;
+    const discs = s?.discs ?? N.tower.discs;
+    return row(pegs, Math.ceil(discs / pegs), `${pegs === most ? pegs : `${pegs} or ${most}`} posts, ${discs} rings`);
+  },
+  /** Polypotions: the flasks and their layers (hidden layers grey). */
+  tubes: (level) => {
+    const s = settingsOf("tubes", level);
+    const flasks = s?.flasks ?? N.tubes.flasks;
+    return row(flasks, s?.capacity ?? N.tubes.capacity, `${flasks} flasks, ${s?.colours ?? N.tubes.colours} colours${s?.hidden ? ", layers hidden" : ""}`, s?.hidden === true);
+  },
+  /** Safe Cracker: the dials and the tries. */
+  safe: (level) => {
+    const s = settingsOf("safe", level);
+    const dials = s?.dials ?? N.safe.dials;
+    const tries = s?.tries ?? N.safe.tries;
+    return row(dials, tries, `${dials} dials, ${tries} ${tries === 1 ? "try" : "tries"}`);
+  },
+  /** Mosaic: the picture's size. */
+  nonogram: (level) => {
+    const s = settingsOf("nonogram", level);
+    const cols = s?.cols ?? N.nonogram.cols;
+    const rows = s?.rows ?? N.nonogram.rows;
+    return board(cols, rows, Math.round(cols * rows * 0.55), "ink", `a ${cols} by ${rows} picture`);
+  },
+  /** Colour Flood: the board and its blocked squares. */
+  flood: (level) => {
+    const s = settingsOf("flood", level);
+    const cols = s?.cols ?? N.flood.cols;
+    const rows = s?.rows ?? N.flood.rows;
+    return board(cols, rows, s?.blocked ?? 0, "ink", `a ${cols} by ${rows} board in ${s?.colours ?? N.flood.colours} colours`);
+  },
+  /** Minefield: the board and its mines. */
+  minesweeper: (level) => {
+    const s = settingsOf("minesweeper", level);
+    const cols = s?.cols ?? N.minesweeper.cols;
+    const rows = s?.rows ?? N.minesweeper.rows;
+    const mines = s?.mines ?? N.minesweeper.mines;
+    return board(cols, rows, mines, "red", `${mines} mines on a ${cols} by ${rows} board`);
+  },
+  /** Tents and Trees: the board and its trees. */
+  tents: (level) => {
+    const s = settingsOf("tents", level);
+    const rows = s?.height ?? N.tents.rows;
+    const trees = low(s?.pairs, N.tents.trees);
+    return board(TENTS_SIZE, rows, trees, "ink", `an ${TENTS_SIZE} by ${rows} board, ${trees} or more trees`);
+  },
+  /** Shikaku: the board and its numbers (one a rectangle). */
+  shikaku: (level) => {
+    const s = settingsOf("shikaku", level);
+    const rows = s?.height ?? N.shikaku.rows;
+    const rects = low(s?.rects, N.shikaku.rects);
+    return board(SHIKAKU_SIZE, rows, rects, "ink", `a ${SHIKAKU_SIZE} by ${rows} board, ${rects} or more rectangles`);
+  },
+  /** Lamplighter: the board and its walls. */
+  lightup: (level) => {
+    const s = settingsOf("lightup", level);
+    const rows = s?.height ?? N.lightup.rows;
+    const walls = low(s?.walls, N.lightup.walls);
+    return board(LIGHTUP_SIZE, rows, walls, "ink", `a ${LIGHTUP_SIZE} by ${rows} board, ${walls} or more walls`);
+  },
+  /** Trail: the board and the numbers shown. */
+  trail: (level) => {
+    const s = settingsOf("trail", level);
+    const n = s?.size ?? N.trail.size;
+    const givens = s?.givens ?? N.trail.givens;
+    return board(n, n, givens, "gold", `1 to ${n * n}, ${givens} numbers shown`);
+  },
+  /** Loopline: the grid and its numbered squares. */
+  fences: (level) => {
+    const s = settingsOf("fences", level);
+    const n = s?.size ?? N.fences.size;
+    const clues = s?.minClues ?? N.fences.clues;
+    return board(n, n, clues, "ink", `a ${n} by ${n} grid, ${clues} or more numbers`);
+  },
+  /** Regions: the grid and the numbers shown. */
+  fillomino: (level) => {
+    const s = settingsOf("fillomino", level);
+    const n = s?.size ?? N.fillomino.size;
+    const givens = low(s?.givens, N.fillomino.givens);
+    return board(n, n, givens, "ink", `a ${n} by ${n} grid, ${givens} or more numbers shown`);
+  },
+  /** Island Link: the sea and its islands. */
+  bridges: (level) => {
+    const s = settingsOf("bridges", level);
+    const n = s?.size ?? N.bridges.size;
+    const islands = low(s?.islands, N.bridges.islands);
+    return board(n, n, islands, "gold", `${islands} or more islands on a ${n} by ${n} sea`);
+  },
 };
 
-/** Tessellate: the board and its pegs. */
-const blockparty: Picture = ({ level, size }) => {
-  const s = settingsOf("blockparty", level);
-  const n = s?.cols ?? 7;
-  const pieces = s?.pieces?.length ?? 9;
-  return <Board cols={n} rows={n} marks={s?.pegs ?? 16} tone={INK} label={`a ${n} by ${n} board, ${pieces} pieces`} size={size} />;
-};
+const TONES = { ink: INK, gold: GOLD, red: RED } as const;
 
-/** Pipeline: the tiles on the board. */
-const pipes: Picture = ({ level, size }) => {
-  const s = settingsOf("pipes", level);
-  const cols = s?.cols ?? 7;
-  const rows = s?.rows ?? 7;
-  return <Board cols={cols} rows={rows} marks={Math.round(cols * rows * (s?.scrambled ?? 0.8))} tone={INK} label={`${cols * rows} tiles`} size={size} />;
-};
+/** A game's picture at a level, drawn from its numbers. */
+function pictureOf(type: string): Picture {
+  return ({ level, size }) => {
+    const n = LEVER_NUMBERS[type]!(level);
+    return n.kind === "board"
+      ? <Board cols={n.cols} rows={n.rows} marks={n.marks} tone={TONES[n.tone]} label={n.label} size={size} />
+      : <Row count={n.count} fill={n.fill} hidden={n.hidden} label={n.label} size={size} />;
+  };
+}
 
-/** Chroma Lines: the board and its pairs of dots. */
-const flow: Picture = ({ level, size }) => {
-  const s = settingsOf("flow", level);
-  const cols = s?.cols ?? 9;
-  const rows = s?.rows ?? 9;
-  const pairs = s?.minPairs ?? 10;
-  return <Board cols={cols} rows={rows} marks={pairs * 2} label={`a ${cols} by ${rows} board, ${pairs} or more pairs`} size={size} />;
-};
-
-/** Skid: the rink and its holes. */
-const iceslide: Picture = ({ level, size }) => {
-  const s = settingsOf("iceslide", level);
-  const cols = s?.cols ?? SLIDE_COLS;
-  const rows = s?.rows ?? SLIDE_COLS;
-  const holes = low(s?.holes, 2);
-  return <Board cols={cols} rows={rows} marks={holes} tone={RED} label={`a ${cols} by ${rows} rink, ${holes === 0 ? "no holes" : `${holes} or more holes`}`} size={size} />;
-};
-
-/** Heave: the warehouse and its crates. */
-const push: Picture = ({ level, size }) => {
-  const s = settingsOf("push", level);
-  const crates = s?.crates ?? 5;
-  return <Board cols={9} rows={9} marks={crates} tone={INK} label={`${crates} crates to push home`} size={size} />;
-};
-
-/** Lightbender: the board and its bombs. */
-const laser: Picture = ({ level, size }) => {
-  const s = settingsOf("laser", level);
-  const bombs = s?.minBombs ?? 3;
-  return <Board cols={10} rows={10} marks={bombs} tone={RED} label={`${bombs === (s?.maxBombs ?? 4) ? bombs : `${bombs} or more`} bomb${bombs === 1 ? "" : "s"}, ${s?.shots ?? 3} shots`} size={size} />;
-};
-
-/** Topsy-Turvy: the balls on each board. */
-const gravity: Picture = ({ level, size }) => {
-  const s = settingsOf("gravity", level);
-  const balls = s?.balls ?? 6;
-  const boards = s?.boards ?? 3;
-  return <Row count={boards} fill={balls} label={`${boards} boards of ${balls} balls`} size={size} />;
-};
-
-/* ---------------------------------------------------------------- Logic */
-
-/** Box Six: the numbers given at the start. */
-const sudoku: Picture = ({ level, size }) => {
-  const s = settingsOf("sudoku", level);
-  const givens = low(s?.givens, 13);
-  return <Board cols={6} rows={6} marks={givens} tone={INK} label={`${givens} or more numbers given${s?.clashes === "check" ? ", clashes on Check" : ""}`} size={size} />;
-};
-
-/** Hanoi: the posts and their rings. */
-const tower: Picture = ({ level, size }) => {
-  const s = settingsOf("tower", level);
-  const pegs = s?.pegs ?? 3;
-  const discs = s?.discs ?? 9;
-  return <Row count={pegs} fill={Math.ceil(discs / pegs)} label={`${pegs} posts, ${discs} rings`} size={size} />;
-};
-
-/** Polypotions: the flasks and their layers (hidden layers grey). */
-const tubes: Picture = ({ level, size }) => {
-  const s = settingsOf("tubes", level);
-  const flasks = s?.flasks ?? 10;
-  return <Row count={flasks} fill={s?.capacity ?? 5} hidden={s?.hidden === true} label={`${flasks} flasks, ${s?.colours ?? 8} colours${s?.hidden ? ", layers hidden" : ""}`} size={size} />;
-};
-
-/** Safe Cracker: the dials and the tries. */
-const safe: Picture = ({ level, size }) => {
-  const s = settingsOf("safe", level);
-  const dials = s?.dials ?? 4;
-  return <Row count={dials} fill={s?.tries ?? 3} label={`${dials} dials, ${s?.tries ?? 3} ${s?.tries === 1 ? "try" : "tries"}`} size={size} />;
-};
-
-/** Mosaic: the picture's size. */
-const nonogram: Picture = ({ level, size }) => {
-  const s = settingsOf("nonogram", level);
-  const cols = s?.cols ?? 8;
-  const rows = s?.rows ?? 8;
-  return <Board cols={cols} rows={rows} marks={Math.round(cols * rows * 0.55)} tone={INK} label={`a ${cols} by ${rows} picture`} size={size} />;
-};
-
-/** Colour Flood: the board and its blocked squares. */
-const flood: Picture = ({ level, size }) => {
-  const s = settingsOf("flood", level);
-  const cols = s?.cols ?? FLOOD_SIZE;
-  const rows = s?.rows ?? FLOOD_SIZE;
-  return <Board cols={cols} rows={rows} marks={s?.blocked ?? 0} tone={INK} label={`a ${cols} by ${rows} board in ${s?.colours ?? 5} colours`} size={size} />;
-};
-
-/** Minefield: the board and its mines. */
-const minesweeper: Picture = ({ level, size }) => {
-  const s = settingsOf("minesweeper", level);
-  const cols = s?.cols ?? 10;
-  const rows = s?.rows ?? 16;
-  const mines = s?.mines ?? 16;
-  return <Board cols={cols} rows={rows} marks={mines} tone={RED} label={`${mines} mines on a ${cols} by ${rows} board`} size={size} />;
-};
-
-/** Tents and Trees: the board and its trees. */
-const tents: Picture = ({ level, size }) => {
-  const s = settingsOf("tents", level);
-  const rows = s?.height ?? 9;
-  const trees = low(s?.pairs, 12);
-  return <Board cols={TENTS_SIZE} rows={rows} marks={trees} tone={INK} label={`an ${TENTS_SIZE} by ${rows} board, ${trees} or more trees`} size={size} />;
-};
-
-/** Shikaku: the board and its numbers (one a rectangle). */
-const shikaku: Picture = ({ level, size }) => {
-  const s = settingsOf("shikaku", level);
-  const rows = s?.height ?? 11;
-  const rects = low(s?.rects, 17);
-  return <Board cols={SHIKAKU_SIZE} rows={rows} marks={rects} tone={INK} label={`a ${SHIKAKU_SIZE} by ${rows} board, ${rects} or more rectangles`} size={size} />;
-};
-
-/** Lamplighter: the board and its walls. */
-const lightup: Picture = ({ level, size }) => {
-  const s = settingsOf("lightup", level);
-  const rows = s?.height ?? 10;
-  const walls = low(s?.walls, 20);
-  return <Board cols={LIGHTUP_SIZE} rows={rows} marks={walls} tone={INK} label={`a ${LIGHTUP_SIZE} by ${rows} board, ${walls} or more walls`} size={size} />;
-};
-
-/** Trail: the board and the numbers shown. */
-const trail: Picture = ({ level, size }) => {
-  const s = settingsOf("trail", level);
-  const n = s?.size ?? 6;
-  return <Board cols={n} rows={n} marks={s?.givens ?? 10} label={`1 to ${n * n}, ${s?.givens ?? 10} numbers shown`} size={size} />;
-};
-
-/** Loopline: the grid and its numbered squares. */
-const fences: Picture = ({ level, size }) => {
-  const s = settingsOf("fences", level);
-  const n = s?.size ?? FENCES_SIZE;
-  return <Board cols={n} rows={n} marks={s?.minClues ?? 15} tone={INK} label={`a ${n} by ${n} grid, ${s?.minClues ?? 15} or more numbers`} size={size} />;
-};
-
-/** Regions: the grid and the numbers shown. */
-const fillomino: Picture = ({ level, size }) => {
-  const s = settingsOf("fillomino", level);
-  const n = s?.size ?? FILLOMINO_SIZE;
-  const givens = low(s?.givens, 14);
-  return <Board cols={n} rows={n} marks={givens} tone={INK} label={`a ${n} by ${n} grid, ${givens} or more numbers shown`} size={size} />;
-};
-
-/** Island Link: the sea and its islands. */
-const bridges: Picture = ({ level, size }) => {
-  const s = settingsOf("bridges", level);
-  const n = s?.size ?? BRIDGES_SIZE;
-  const islands = low(s?.islands, 10);
-  return <Board cols={n} rows={n} marks={islands} label={`${islands} or more islands on a ${n} by ${n} sea`} size={size} />;
-};
-
-export const LEVER_PICTURES: Readonly<Record<string, Picture>> = {
-  unblock,
-  blockparty,
-  pipes,
-  flow,
-  iceslide,
-  push,
-  laser,
-  gravity,
-  sudoku,
-  tower,
-  tubes,
-  safe,
-  nonogram,
-  flood,
-  minesweeper,
-  tents,
-  shikaku,
-  lightup,
-  trail,
-  fences,
-  fillomino,
-  bridges,
-};
+export const LEVER_PICTURES: Readonly<Record<string, Picture>> = Object.fromEntries(Object.keys(LEVER_NUMBERS).map((type) => [type, pictureOf(type)]));

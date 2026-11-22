@@ -30,14 +30,18 @@ for (const item of asked) {
   const page = await context.newPage();
   try {
     await page.goto(practiceGameUrl(origin, game!), { waitUntil: "domcontentloaded", timeout: 120_000 });
+    // The intro's Ready, or (if the route shows the game's page first) its Play, which opens the intro counting down.
     const ready = page.getByRole("button", { name: /^ready$/i });
-    await ready.waitFor({ timeout: 120_000 }).catch(() => undefined);
-    if (await ready.isVisible().catch(() => false)) await ready.click();
-    await page.waitForSelector("[data-game-stage]", { timeout: 60_000 });
+    const play = page.locator(`[data-game-page-play="${game}"]`);
+    await Promise.race([ready.waitFor({ timeout: 180_000 }), play.waitFor({ timeout: 180_000 })]).catch(() => undefined);
+    if (await play.isVisible().catch(() => false)) await play.click();
+    else if (await ready.isVisible().catch(() => false)) await ready.click();
+    // Only the live round is measured: a puzzle's play screen (data-puzzle-play) or an arcade stage on its play screen.
+    await page.waitForSelector("[data-puzzle-play] [data-game-stage], [data-arcade-play] [data-game-stage]", { timeout: 120_000 });
     await page.waitForTimeout(5_000);
     const want = Number(cells);
     const found = await page.evaluate(({ want, selector }: { want: number; selector: string }) => {
-      const stage = document.querySelector("[data-game-stage]");
+      const stage = document.querySelector("[data-puzzle-play] [data-game-stage], [data-arcade-play] [data-game-stage]");
       if (!stage) return null;
       // A named piece (Hanoi's rings, Safe Cracker's dials): its smallest width and height.
       if (selector) {

@@ -70,7 +70,7 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   sudoku: {
     levels: {
       easy: { settings: { givens: [24, 26], steps: "singles", clashes: "live", hideUsed: true, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      hard: { settings: { givens: [10, 12], steps: "advanced", minAdvanced: 1, clashes: "live", hideUsed: false, timeMs: 90_000, fullByS: 55 }, oneSolution: { proof: LOGIC1_PROOF } },
+      hard: { settings: { givens: [10, 12], steps: "advanced", minAdvanced: 1, clashes: "live", hideUsed: false, timeMs: 90_000, fullByS: 44 }, oneSolution: { proof: LOGIC1_PROOF } },
       expert: { settings: { givens: [8, 9], steps: "advanced", minAdvanced: 3, clashes: "check", hideUsed: false, timeMs: 75_000, fullByS: 51 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
@@ -81,7 +81,7 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       easy: { settings: { flasks: 6, colours: 4, capacity: 4, minMoves: [8, 12], hidden: false, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
       // D4 (22 Nov 2026): Hard is Expert's rack of twelve flasks and ten colours with every layer on show, on 90 s.
       hard: { settings: { flasks: 12, colours: 10, capacity: 6, minMoves: [28, 38], hidden: false, timeMs: 90_000, fullByS: 40 }, oneSolution: { proof: LOGIC1_PROOF } },
-      expert: { settings: { flasks: 12, colours: 10, capacity: 6, minMoves: [28, 38], hidden: true, timeMs: 120_000, fullByS: 65 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { flasks: 12, colours: 10, capacity: 6, minMoves: [28, 38], hidden: true, timeMs: 120_000, fullByS: 62 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
   // Hanoi. Levers: posts (fixed per level), rings, the exact minimum's band, the clock.
@@ -89,8 +89,8 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
     levels: {
       easy: { settings: { pegs: 4, discs: 7, minMoves: [10, 18], timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
       // D4 (22 Nov 2026): the rings climb every level (7, 9, 10, 12), each minimum about half again the one below.
-      hard: { settings: { pegs: 3, discs: 10, minMoves: [40, 55], timeMs: 90_000, fullByS: 44 }, oneSolution: { proof: LOGIC1_PROOF } },
-      expert: { settings: { pegs: 3, discs: 12, minMoves: [70, 90], timeMs: 120_000, fullByS: 67 }, oneSolution: { proof: LOGIC1_PROOF } },
+      hard: { settings: { pegs: 3, discs: 10, minMoves: [40, 55], timeMs: 90_000, fullByS: 43 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { pegs: 3, discs: 12, minMoves: [70, 90], timeMs: 120_000, fullByS: 66 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
   // Safe Cracker. Levers: dials, the dial range, clues on the card, the clue kinds and their weights, tries, the clock.
@@ -100,7 +100,7 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       // Hard five dials of 0–15, seven clues, two tries, 90 s; Expert six dials of 0–15, nine clues and one try (six of
       // 0–20 could not be built: no card in 110 s). Hard and Expert from their banks.
       easy: { settings: { dials: 3, max: 9, clues: 4, kinds: "simple", tries: 3, timeMs: 75_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      hard: { settings: { dials: 5, max: 15, clues: 7, kinds: "number", tries: 2, timeMs: 90_000, fullByS: 38 }, oneSolution: { proof: LOGIC1_PROOF } },
+      hard: { settings: { dials: 5, max: 15, clues: 7, kinds: "number", tries: 2, timeMs: 90_000, fullByS: 37 }, oneSolution: { proof: LOGIC1_PROOF } },
       expert: { settings: { dials: 6, max: 15, clues: 9, kinds: "number", tries: 1, timeMs: 105_000, fullByS: 52 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
@@ -109,10 +109,11 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // needs two lines together at least once), lines locking once right (Easy), the clock.
   nonogram: {
     levels: {
-      // D4 (22 Nov 2026): Easy a 5 × 5 picture; Expert two lines read together at least three times, on 100 s.
+      // D4 (22 Nov 2026): Easy a 5 × 5 picture; Expert two lines read together at least three times, on 100 s; Hard and
+      // Expert their own speed lines, from the elite's finishes under the human limits.
       easy: { settings: { cols: 5, rows: 5, fill: [0.5, 0.7], logic: "line", lockLines: true, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      hard: { settings: { cols: 9, rows: 11, fill: [0.5, 0.65], logic: "line", lockLines: false, timeMs: 120_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      expert: { settings: { cols: 9, rows: 14, fill: [0.5, 0.6], logic: "two", minProbes: 3, lockLines: false, timeMs: 100_000, fullByS: 67 }, oneSolution: { proof: LOGIC1_PROOF } },
+      hard: { settings: { cols: 9, rows: 11, fill: [0.5, 0.65], logic: "line", lockLines: false, timeMs: 120_000, fullByS: 60 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { cols: 9, rows: 14, fill: [0.5, 0.6], logic: "two", minProbes: 3, lockLines: false, timeMs: 100_000, fullByS: 65 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
   // Colour Flood. Levers: blob smoothing, columns × rows (grown downwards past 14 wide), colours, the exact minimum (par) band,
@@ -120,9 +121,9 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   flood: {
     levels: {
       easy: { settings: { smooth: 2, cols: 10, rows: 10, colours: 4, par: [6, 8], blocked: 0, spare: 8, timeMs: 60_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      // D4 (22 Nov 2026): the boards kept; each level's own speed line, set from the elite's finishes (Hard 24 s, Expert 37 s).
-      hard: { settings: { smooth: 1, cols: 12, rows: 17, colours: 6, par: [14, 18], blocked: 0, spare: 4, timeMs: 60_000, fullByS: 24 }, oneSolution: { proof: LOGIC1_PROOF } },
-      expert: { settings: { smooth: 2, cols: 14, rows: 24, colours: 6, par: [18, 22], blocked: 14, spare: 3, timeMs: 75_000, fullByS: 37 }, oneSolution: { proof: LOGIC1_PROOF } },
+      // D4 (22 Nov 2026): the boards kept; each level's own speed line, set from the elite's finishes under the human limits.
+      hard: { settings: { smooth: 1, cols: 12, rows: 17, colours: 6, par: [14, 18], blocked: 0, spare: 4, timeMs: 60_000, fullByS: 22 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { smooth: 2, cols: 14, rows: 24, colours: 6, par: [18, 22], blocked: 14, spare: 3, timeMs: 75_000, fullByS: 34 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
   // Minefield (an arcade-run Logic game). The lever: mines on the board (9, 16, 26, 40), the free opening shrinking as it

@@ -215,6 +215,26 @@ export interface PlRun {
    * the run lost only speed, so it reaches 200 under any speed line it finished inside (how each level's line is set).
    */
   ceiling: number | null;
+  /**
+   * With PL_SCAN=1, on a level round whose finish lost only speed: the smallest whole-second speed line at which the
+   * same answer at the same time grades 200 (the real grader, the line stamped on a copy of the puzzle), so a row's
+   * share at 200 under any line is the share of runs whose `need` is at most that line. Null otherwise.
+   */
+  need?: number | null;
+}
+
+/** The smallest whole-second `levelFullByS` at which `answer`, sent `msLeft` before the buzzer, grades 200. */
+function lineNeeded(puzzle: PuzzleData, answer: string, msLeft: number, limit: number): number | null {
+  const at = (line: number) => gradeAnswer({ ...(puzzle as object), levelFullByS: line } as unknown as PuzzleData, answer, msLeft).score >= 200;
+  let lo = 1;
+  let hi = Math.floor(limit / 1000);
+  if (!at(hi)) return null;
+  while (lo < hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    if (at(mid)) hi = mid;
+    else lo = mid + 1;
+  }
+  return lo;
 }
 
 /** The skill-band level a person plays Minefield's bot at. */
@@ -259,6 +279,9 @@ export function personRun(puzzle: PuzzleData, person: PersonLevel, salt: string)
     const upTo = sends.filter((s) => s.atMs <= run.seconds * 1000 + 0.5);
     const answer = play.timed ? upTo[upTo.length - 1]!.answer : sentAnswer(puzzle, upTo);
     ceiling = gradeAnswer(puzzle, answer, limit).score;
+    if (process.env["PL_SCAN"] === "1" && ceiling === 200 && (puzzle as { level?: string }).level) {
+      return { score: run.score, isCorrect: true, seconds: run.seconds, ceiling, need: lineNeeded(puzzle, answer, Math.max(0, limit - run.seconds * 1000), limit) };
+    }
   }
   return { score: run.score, isCorrect: run.isCorrect, seconds: run.seconds, ceiling };
 }

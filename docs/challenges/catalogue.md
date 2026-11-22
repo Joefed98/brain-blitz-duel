@@ -42,7 +42,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Ink, not pencil | Fill the grid without a single wrong digit. | Classic | Clean | finish, `parts.efficiency` ≥ 10 |  | `sudoku.clean` |
 | Six by six by speed | Solve it within 45 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 45 s) |  | `sudoku.speed` |
-| Box clever | Score 200 on a Hard grid: no mistakes, within 55 s. | Hard | Perfect | `score` ≥ 200 | ● | `sudoku.box-clever` |
+| Box clever | Score 200 on a Hard grid: no mistakes, within 44 s. | Hard | Perfect | `score` ≥ 200 | ● | `sudoku.box-clever` |
 
 #### Hanoi (`tower`)
 
@@ -131,7 +131,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Bridge builder | Link every island. | Classic | Finish | finish |  | `bridges.bridge-builder` |
 | Chartered engineer | Link a Hard chain with no wrong bridges. | Hard | Clean | finish, `mistakes` = 0 |  | `bridges.chartered-engineer` |
-| Iron bridge | Link an Expert chain within 81 s. | Expert | Speed | finish, `parts.speed` ≥ 40 (by 81 s) | ● | `bridges.iron-bridge` |
+| Iron bridge | Link an Expert chain within 83 s. | Expert | Speed | finish, `parts.speed` ≥ 40 (by 83 s) | ● | `bridges.iron-bridge` |
 
 #### Gridlock (`unblock`)
 
@@ -199,7 +199,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | No leaks | Connect every pipe. | Classic | Finish | finish |  | `pipes.no-leaks` |
 | Plumber’s par | Connect every pipe in par turns. | Classic | Par | finish, `parts.efficiency` ≥ 10 |  | `pipes.plumbers-par` |
-| Mains pressure | Connect a Hard network within 72 s. | Hard | Speed | finish, `parts.speed` ≥ 40 (by 72 s) |  | `pipes.mains-pressure` |
+| Mains pressure | Connect a Hard network within 70 s. | Hard | Speed | finish, `parts.speed` ≥ 40 (by 70 s) |  | `pipes.mains-pressure` |
 
 #### Heave (`push`)
 

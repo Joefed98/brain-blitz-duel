@@ -58,7 +58,7 @@ export const LEVELS_ICESLIDE: GameLevels<IceSlideLevelSettings> = {
     // the report), speed full by 40 s.
     hard: {
       // D4: twice Normal's holes (6–8) and more thin ice (4–6).
-      settings: { cols: 12, rows: 12, minMoves: [24, 30], walls: [30, 44], holes: [6, 8], arrows: [1, 3], portals: [1, 2], thin: [4, 6], routeUsesHazards: true, timeLimitMs: 100_000, fullByS: 40, bank: 300 },
+      settings: { cols: 12, rows: 12, minMoves: [24, 30], walls: [30, 44], holes: [6, 8], arrows: [1, 3], portals: [1, 2], thin: [4, 6], routeUsesHazards: true, timeLimitMs: 100_000, fullByS: 41, bank: 300 },
       oneSolution: OPEN,
     },
     // Expert: 11 across × 13 down (143 squares, Normal's 144 less one; Joe, 16 Nov 2026: 12 × 14's 25.9 px squares at
@@ -70,7 +70,7 @@ export const LEVELS_ICESLIDE: GameLevels<IceSlideLevelSettings> = {
       // D4: a longer route (34–42 slides) through 10–12 holes (today's Expert had fewer than Hard), 6–8 thin ice, 2–4
       // chevrons and two portal pairs, on 100 s; the bank keeps only boards the elite person-like player
       // (scripts/iceslide-human.ts) finishes inside the clock.
-      settings: { cols: 11, rows: 13, minMoves: [34, 42], walls: [30, 43], holes: [10, 12], arrows: [2, 4], portals: [2, 2], thin: [6, 8], routeUsesHazards: true, timeLimitMs: 100_000, fullByS: 53, bank: 300, personSolvable: true },
+      settings: { cols: 11, rows: 13, minMoves: [34, 42], walls: [30, 43], holes: [10, 12], arrows: [2, 4], portals: [2, 2], thin: [6, 8], routeUsesHazards: true, timeLimitMs: 100_000, fullByS: 50, bank: 300, personSolvable: true },
       oneSolution: OPEN,
     },
   },
