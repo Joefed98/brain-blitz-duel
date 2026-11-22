@@ -1,6 +1,6 @@
 import { checkOverride } from "@/lib/checkOverride";
 import { dealPinned, setDealPin } from "./dealEra";
-import { MOON_BIG_REV, MOON_REV } from "@/lib/arcade/ricochetNinja";
+import { MOON_BIG_REV, MOON_MID_REV, MOON_REV } from "@/lib/arcade/ricochetNinja";
 import { BASTION_REV_DEALT, BASTION_REV_IRON } from "@/lib/arcade/bastionTank";
 import type { Level } from "@/lib/levels/levels";
 import { gameLevelSettings } from "@/lib/levels/gameLevels";
@@ -248,17 +248,22 @@ export function generateDual(): DualPuzzleData {
 }
 
 /**
- * Ricochet deals Moon Climb's bigger ninja (ricoRev 4, 15 Nov 2026; ricoRev 3 under the `ricoPreBig` pin); ricoRev 3
- * rounds keep the smaller ninja, ricoRev 2 the ninja wall-climb, unstamped ones the old shaft. Any seed: the sim deals
- * the tower and proves its witness.
+ * Ricochet deals Moon Climb's 30 × 60 ninja (ricoRev 5, D5, 22 Nov 2026; ricoRev 4 under the `ricoPreMid` pin, ricoRev 3
+ * under `ricoPreBig`); ricoRev 4 rounds keep the bigger 34 × 68 ninja, ricoRev 3 the 26 × 52 one, ricoRev 2 the ninja
+ * wall-climb, unstamped ones the old shaft. Any seed: the sim deals the tower and proves its witness.
  */
 export function generateRicochet(): RicoPuzzleData {
-  return { type: "ricochet", seed: arcadeSeed(), ricoRev: dealPinned("ricoPreBig") ? MOON_REV : MOON_BIG_REV };
+  return { type: "ricochet", seed: arcadeSeed(), ricoRev: dealPinned("ricoPreBig") ? MOON_REV : dealPinned("ricoPreMid") ? MOON_BIG_REV : MOON_MID_REV };
 }
 
 /** Checks written for ricoRev 3: deal Moon Climb as rooms did before the bigger ninja (15 Nov 2026; returns the previous setting). */
 export function pinRicoPreBig(on: boolean): boolean {
   return setDealPin("ricoPreBig", on);
+}
+
+/** Checks written for ricoRev 4: deal Moon Climb as rooms did before the 30 × 60 ninja (22 Nov 2026; returns the previous setting). */
+export function pinRicoPreMid(on: boolean): boolean {
+  return setDealPin("ricoPreMid", on);
 }
 
 export function generateBreaker(): BreakerPuzzleData {

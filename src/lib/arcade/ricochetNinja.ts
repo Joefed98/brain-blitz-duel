@@ -839,9 +839,37 @@ export const MOON_BIG_BODY: NinjaBody = makeBody(MOON_BIG_HW, MOON_BIG_HH);
 export const MOON_BIG_STD_SPEC: StdSpec = { ...MOON_STD_SPEC, rev: MOON_BIG_REV };
 export const MOON_V4_BAND_CURVE = MOON_V3_BAND_CURVE;
 
-/** The body a state of this stamp plays with: MOON_BIG_BODY on ricoRev 4 and later, NINJA_BODY before. */
+/*
+ * ricoRev 5 (the 30 × 60 ninja, D5, 22 Nov 2026; Joe's approval of 20 Nov 2026, the polish plan's row C3.5;
+ * docs/arcade-standard/ricochet.md "ricoRev 5"): ricoRev 4's game (its levels' table, its parts and their 200 exactly)
+ * with the ninja's body box MOON_MID_HW × MOON_MID_HH either side of its centre, between rev 3's 26 × 52 and rev 4's
+ * 34 × 68 (the old box × 15 / 13), so the figure is drawn smaller than rev 4's and still hit by exactly what is drawn.
+ * Everything that reads the body follows it (NinjaBody), and the deal plans, places and proves every tower with this
+ * body at every level, from the same attempt stream as rev 3 and 4 (each tower its own; a perfect run is 200 on every
+ * tower). Rev 4 states keep MOON_BIG_BODY and play, deal and score as before at every level; rev 3 keeps NINJA_BODY.
+ */
+export const MOON_MID_REV = 5;
+export const MOON_MID_HW = 15;
+export const MOON_MID_HH = 30;
+export const MOON_MID_BODY: NinjaBody = makeBody(MOON_MID_HW, MOON_MID_HH);
+/** The parts on ricoRev 5: rev 3's (and rev 4's), under the new stamp. */
+export const MOON_MID_STD_SPEC: StdSpec = { ...MOON_STD_SPEC, rev: MOON_MID_REV };
+export const MOON_V5_BAND_CURVE = MOON_V3_BAND_CURVE;
+
+/** The body a state of this stamp plays with: MOON_MID_BODY on ricoRev 5 and later, MOON_BIG_BODY on ricoRev 4, NINJA_BODY before. */
 export function ninjaBodyFor(rev: number | null | undefined): NinjaBody {
-  return (rev ?? 0) >= MOON_BIG_REV ? MOON_BIG_BODY : NINJA_BODY;
+  const r = rev ?? 0;
+  return r >= MOON_MID_REV ? MOON_MID_BODY : r >= MOON_BIG_REV ? MOON_BIG_BODY : NINJA_BODY;
+}
+/** The Moon Climb stamp a revision's towers and states are built on: 5 from ricoRev 5, 4 on ricoRev 4, else 3. */
+export function moonRevOf(rev: number | null | undefined): number {
+  const r = rev ?? 0;
+  return r >= MOON_MID_REV ? MOON_MID_REV : r >= MOON_BIG_REV ? MOON_BIG_REV : MOON_REV;
+}
+/** A Moon Climb stamp's parts at Normal: ricoRev 5's, 4's or 3's (each rev 3's parts under its own stamp). */
+function moonBaseSpec(rev: number | null | undefined): StdSpec {
+  const r = moonRevOf(rev);
+  return r === MOON_MID_REV ? MOON_MID_STD_SPEC : r === MOON_BIG_REV ? MOON_BIG_STD_SPEC : MOON_STD_SPEC;
 }
 /*
  * Levels (ricoRev 4, the Action overhaul's difficulty levels, 15 Nov 2026; docs/arcade-standard/ricochet.md "Levels";
@@ -880,7 +908,7 @@ export const MOON_LEVELS: Readonly<Record<MoonLevel, MoonLevelCfg>> = {
   hard: { blades: 1300, pace: 1000, patchGap: 1000, ice: 650, sky: 6, skyVy: MOON_SKY_VY, knock: 120, coreMax: 125, fullM: 245, rideEach: 5, salt: 0x2b8d63 },
   expert: { blades: 1600, pace: 750, patchGap: 800, ice: 880, sky: 4, skyVy: 256, knock: 160, coreMax: 135, fullM: 260, rideEach: 5, salt: 0x3c9e75 },
 };
-/** The level a stored level names on a stamp that has levels (ricoRev 4), else null (Normal). */
+/** The level a stored level names on a stamp that has levels (ricoRev 4 and 5, the same table), else null (Normal). */
 export function moonLevelOf(rev: number | null | undefined, level: unknown): MoonLevel | null {
   if ((rev ?? 0) < MOON_BIG_REV) return null;
   return level === "easy" || level === "hard" || level === "expert" ? level : null;
@@ -899,9 +927,9 @@ export function moonSkyCount(s: { lvl?: MoonLevel | null }): number {
 export function moonKnockPx(s: { lvl?: MoonLevel | null }): number {
   return moonLevelCfg(s)?.knock ?? NINJA_KNOCK;
 }
-/** The parts at a level (rev 4): Normal's MOON_BIG_STD_SPEC, or the level's maxima and full height. */
+/** The parts at a level (rev 4 and 5): that stamp's Normal spec, or the level's maxima and full height. */
 export function moonStdSpecFor(rev: number | null | undefined, level: MoonLevel | null): StdSpec {
-  const base = (rev ?? 0) >= MOON_BIG_REV ? MOON_BIG_STD_SPEC : MOON_STD_SPEC;
+  const base = moonBaseSpec(rev);
   if (!level || (rev ?? 0) < MOON_BIG_REV) return base;
   const c = MOON_LEVELS[level];
   return {
@@ -971,7 +999,7 @@ export interface MoonFields {
   /** Display only: the tick of the last Flow step and of the last grab. */
   flowTick: number;
   grabTick: number;
-  /** ricoRev 4's level (absent: Normal, so every Normal state is exactly today's). */
+  /** ricoRev 4 and 5's level (absent: Normal, so every Normal state is exactly today's). */
   lvl?: MoonLevel;
 }
 export type MoonState = NinjaState & MoonFields & { tower: NinjaTower & { ledges: MoonLedge[]; sky: MoonSky[] } };
@@ -1424,7 +1452,7 @@ function buildMoon(r: Rng, patches: NinjaPatch[], rev: number, level: MoonLevel 
   return { tower, plan };
 }
 
-/** Plays a tap list (tick and direction) through the real rev-3 (or rev-4) run (the deal's proof and the oracle's). */
+/** Plays a tap list (tick and direction) through the real rev-3 (or rev-4 or rev-5) run (the deal's proof and the oracle's). */
 export function moonPlayEvents(seed: number, events: readonly MoonEvent[], rev = MOON_REV, level: MoonLevel | null = null): MoonState {
   let s = moonInit(seed, rev, level);
   const at = new Map(events.map((e) => [e.t, e.a]));
@@ -1435,18 +1463,18 @@ export function moonPlayEvents(seed: number, events: readonly MoonEvent[], rev =
   return s;
 }
 
-/** True when a rev-3 or rev-4 state earned every part in full (the deal's proof). */
+/** True when a rev-3, rev-4 or rev-5 state earned every part in full (the deal's proof). */
 function moonPerfect(s: MoonState): boolean {
   return s.hits === 0 && s.scrolls === MOON_SCROLLS && s.rides === moonSkyCount(s) && s.flow * MOON_FLOW_EACH >= MOON_FLOW_MAX && ninjaMetres(s) >= moonFullM(s);
 }
 
 /**
- * Builds a tower for this stamp (rev 3, or rev 4's bigger body) and proves it: the witness through the real step of the
- * same stamp. Rev 4 draws its attempts from the same seeded stream as rev 3, so its towers are rev 3's plans re-made
- * with the bigger body (the hazards and ledges then placed, and the whole proved, for that body).
+ * Builds a tower for this stamp (rev 3, rev 4's bigger body or rev 5's 30 × 60 one) and proves it: the witness through
+ * the real step of the same stamp. Rev 4 and 5 draw their attempts from the same seeded stream as rev 3, so their towers
+ * are rev 3's plans re-made with their own body (the hazards and ledges then placed, and the whole proved, for that body).
  */
 export function moonBuildDeal(seed: number, rev = MOON_REV, level: MoonLevel | null = null): MoonDeal {
-  // A level (ricoRev 4 only): its own settings and its own attempt stream; Normal exactly as before.
+  // A level (ricoRev 4 and 5): its own settings and its own attempt stream; Normal exactly as before.
   const lvl = moonLevelOf(rev, level);
   const lv = lvl ? MOON_LEVELS[lvl] : null;
   let fallback: MoonDeal | null = null;
@@ -1474,10 +1502,11 @@ export function moonBuildDeal(seed: number, rev = MOON_REV, level: MoonLevel | n
 const MOON_CACHE = new Map<string, MoonDeal>();
 export function moonDeal(seed: number, rev = MOON_REV, level: MoonLevel | null = null): MoonDeal {
   const lvl = moonLevelOf(rev, level);
-  const key = `${rev >= MOON_BIG_REV ? MOON_BIG_REV : MOON_REV}:${seed}${lvl ? `:${lvl}` : ""}`;
+  const r = moonRevOf(rev);
+  const key = `${r}:${seed}${lvl ? `:${lvl}` : ""}`;
   let d = MOON_CACHE.get(key);
   if (!d) {
-    d = moonBuildDeal(seed, rev >= MOON_BIG_REV ? MOON_BIG_REV : MOON_REV, lvl);
+    d = moonBuildDeal(seed, r, lvl);
     if (MOON_CACHE.size >= 8) MOON_CACHE.delete(MOON_CACHE.keys().next().value!);
     MOON_CACHE.set(key, d);
   }
@@ -1485,21 +1514,21 @@ export function moonDeal(seed: number, rev = MOON_REV, level: MoonLevel | null =
 }
 
 export function moonInit(seed: number, rev = MOON_REV, level: MoonLevel | null = null): MoonState {
-  const r = rev >= MOON_BIG_REV ? MOON_BIG_REV : MOON_REV;
+  const r = moonRevOf(rev);
   const lvl = moonLevelOf(r, level);
   return freshMoon(moonDeal(seed | 0, r, lvl).tower, r, lvl);
 }
 
 /* ------------------------------- Scoring ------------------------------- */
 
-/** True for a Moon Climb state (ricoRev 3 or 4). */
+/** True for a Moon Climb state (ricoRev 3, 4 or 5). */
 export function isMoonState(state: Pick<NinjaState, "rev"> | null | undefined): boolean {
-  return !!state && (state.rev === MOON_REV || state.rev === MOON_BIG_REV);
+  return !!state && (state.rev === MOON_REV || state.rev === MOON_BIG_REV || state.rev === MOON_MID_REV);
 }
 
 export function moonStdParts(state: MoonState): StdPart[] | null {
   if (!state || !isMoonState(state) || !state.std) return null;
-  const spec = state.rev === MOON_BIG_REV ? MOON_BIG_STD_SPEC : MOON_STD_SPEC;
+  const spec = moonBaseSpec(state.rev);
   const m = ninjaMetres(state);
   // A level (ricoRev 4): its own height maximum and full height, its own count of lanterns.
   const lv = moonLevelCfg(state);
@@ -1586,17 +1615,26 @@ export const moonBigGame: ArcadeGame<MoonState, ArcadeInputEvent | null> = {
   init: (seed: number) => moonInit(seed, MOON_BIG_REV),
 };
 
-const MOON_LEVEL_GAMES = new Map<MoonLevel, ArcadeGame<MoonState, ArcadeInputEvent | null>>();
-/** Moon Climb's game for a stamp (rev 3 or 4) and, on rev 4, a stored level (absent or Normal: today's game). */
+/** Moon Climb's 30 × 60 ninja (ricoRev 5): rev 4's game, its towers dealt and played with MOON_MID_BODY. */
+export const moonMidGame: ArcadeGame<MoonState, ArcadeInputEvent | null> = {
+  ...moonGame,
+  init: (seed: number) => moonInit(seed, MOON_MID_REV),
+};
+
+/** The level games, by stamp (4 or 5) and level. */
+const MOON_LEVEL_GAMES = new Map<string, ArcadeGame<MoonState, ArcadeInputEvent | null>>();
+/** Moon Climb's game for a stamp (rev 3, 4 or 5) and, on rev 4 and 5, a stored level (absent or Normal: that stamp's Normal game). */
 export function moonGameFor(rev: number | null | undefined, level?: unknown): ArcadeGame<MoonState, ArcadeInputEvent | null> {
-  const lvl = moonLevelOf(rev, level);
-  if (!lvl) return (rev ?? 0) >= MOON_BIG_REV ? moonBigGame : moonGame;
-  let g = MOON_LEVEL_GAMES.get(lvl);
-  if (!g) MOON_LEVEL_GAMES.set(lvl, (g = { ...moonBigGame, init: (seed: number) => moonInit(seed, MOON_BIG_REV, lvl) }));
+  const r = moonRevOf(rev);
+  const lvl = moonLevelOf(r, level);
+  if (!lvl) return r === MOON_MID_REV ? moonMidGame : r === MOON_BIG_REV ? moonBigGame : moonGame;
+  const key = `${r}:${lvl}`;
+  let g = MOON_LEVEL_GAMES.get(key);
+  if (!g) MOON_LEVEL_GAMES.set(key, (g = { ...(r === MOON_MID_REV ? moonMidGame : moonBigGame), init: (seed: number) => moonInit(seed, r, lvl) }));
   return g;
 }
 
-/** The ninja climb's game for a stamp (rev 2, 3 or 4) and its stored level (rev 4). */
+/** The ninja climb's game for a stamp (rev 2, 3, 4 or 5) and its stored level (rev 4 and 5). */
 export function ninjaGameFor(rev: number | null | undefined, level?: unknown): ArcadeGame<NinjaState, ArcadeInputEvent | null> {
   return ((rev ?? 0) >= MOON_REV ? moonGameFor(rev, level) : ninjaGame) as ArcadeGame<NinjaState, ArcadeInputEvent | null>;
 }
