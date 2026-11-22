@@ -43,10 +43,12 @@ export const LEVELS_PIPES: GameLevels<PipesLevelSettings> = {
   levels: {
     // Easy: a small 5 × 5 board (25 tiles), 60 % dealt turned (15 tiles; the other 10 already right), leaks shown.
     easy: { settings: { cols: 5, rows: 5, scrambled: 0.6, exact: true, leaks: true }, oneSolution: PROOF },
-    // Hard: 8 × 8 (64 tiles, about 44 px each on a 375 px phone), at least 90 % turned, leaks shown.
-    hard: { settings: { cols: 8, rows: 8, scrambled: 0.9, leaks: true }, oneSolution: PROOF },
+    // Hard: 8 × 8 (64 tiles, about 44 px each on a 375 px phone), at least 90 % turned, leaks shown; full speed by 72 s
+    // (D4, 22 Nov 2026: set from the elite's finishes under the human limits, so the best player reaches 200 less often
+    // than on Normal and more often than on Expert).
+    hard: { settings: { cols: 8, rows: 8, scrambled: 0.9, leaks: true, speedFullByS: 72 }, oneSolution: PROOF },
     // Expert: 8 across × 11 down (88 tiles, more than a 9 × 9's 81; 9 across would be 39 px tiles on a 375 px phone),
-    // at least 95 % turned, leaks hidden during play, full speed by 90 s (every other level 60 s).
-    expert: { settings: { cols: 8, rows: 11, scrambled: 0.95, leaks: false, speedFullByS: 90 }, oneSolution: PROOF },
+    // at least 95 % turned, leaks hidden during play, full speed by 97 s (D4; 90 s before, which the elite never met).
+    expert: { settings: { cols: 8, rows: 11, scrambled: 0.95, leaks: false, speedFullByS: 97 }, oneSolution: PROOF },
   },
 };

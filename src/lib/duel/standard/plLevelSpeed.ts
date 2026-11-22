@@ -12,8 +12,12 @@
  */
 import { puzzleLevel, type Level } from "@/lib/levels/levels";
 
-/** The level's own full-speed time stamped on a D4 level deal, in seconds; null on every other puzzle. */
+/**
+ * The level's own full-speed time stamped on a D4 level deal, in seconds; null on every other puzzle. The stored level
+ * decides: a puzzle without one is Normal, whatever else it carries.
+ */
 export function storedLevelFullByS(puzzle: unknown): number | null {
+  if (puzzleLevel(puzzle) === "normal") return null;
   const v = (puzzle as { levelFullByS?: unknown } | null)?.levelFullByS;
   return typeof v === "number" && v > 0 ? v : null;
 }

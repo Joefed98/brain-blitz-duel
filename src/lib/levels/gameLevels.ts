@@ -100,8 +100,8 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       // Hard five dials of 0–15, seven clues, two tries, 90 s; Expert six dials of 0–15, nine clues and one try (six of
       // 0–20 could not be built: no card in 110 s). Hard and Expert from their banks.
       easy: { settings: { dials: 3, max: 9, clues: 4, kinds: "simple", tries: 3, timeMs: 75_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      hard: { settings: { dials: 5, max: 15, clues: 7, kinds: "number", tries: 2, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      expert: { settings: { dials: 6, max: 15, clues: 9, kinds: "number", tries: 1, timeMs: 105_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      hard: { settings: { dials: 5, max: 15, clues: 7, kinds: "number", tries: 2, timeMs: 90_000, fullByS: 38 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { dials: 6, max: 15, clues: 9, kinds: "number", tries: 1, timeMs: 105_000, fullByS: 52 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
   // Mosaic. Levers: columns × rows (grown downwards, so squares stay tappable at 375 px), how full the picture is,

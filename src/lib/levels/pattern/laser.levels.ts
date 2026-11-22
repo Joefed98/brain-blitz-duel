@@ -59,9 +59,10 @@ export const LEVELS_LASER: GameLevels<LaserLevelSettings> = {
     // the spare mirrors and shots shrinking beside them. Easy: a short beam (4–5 mirrors), 3 spare, exactly one bomb,
     // 5 shots, 90 s.
     easy: { settings: { minMirrors: 4, maxMirrors: 5, spare: 3, minBombs: 1, maxBombs: 1, shots: 5, timeLimitMs: 90_000, fullByS: 20, humanTurns: 1000, humanMinTurns: 0 }, oneSolution: OPEN },
-    // Hard: 9–10 mirrors, 1 spare, 6–7 bombs (twice Normal's), 3 shots, 75 s.
-    hard: { settings: { minMirrors: 9, maxMirrors: 10, spare: 1, minBombs: 6, maxBombs: 7, shots: 3, timeLimitMs: 75_000, fullByS: 35, humanTurns: 1000, humanMinTurns: 100 }, oneSolution: OPEN },
+    // Hard: 9–10 mirrors, 1 spare, 6–7 bombs (twice Normal's), 3 shots, on Normal's 60 s (on 75 s the average player
+    // scored above Normal); full speed by 28 s.
+    hard: { settings: { minMirrors: 9, maxMirrors: 10, spare: 1, minBombs: 6, maxBombs: 7, shots: 3, timeLimitMs: 60_000, fullByS: 28, humanTurns: 1000, humanMinTurns: 100 }, oneSolution: OPEN },
     // Expert: 10–12 mirrors and no spare (the tray is exact), 9–10 bombs, 2 shots, 90 s.
-    expert: { settings: { minMirrors: 10, maxMirrors: 12, spare: 0, minBombs: 9, maxBombs: 10, shots: 2, timeLimitMs: 90_000, fullByS: 50, humanTurns: 1000, humanMinTurns: 750 }, oneSolution: OPEN },
+    expert: { settings: { minMirrors: 10, maxMirrors: 12, spare: 0, minBombs: 9, maxBombs: 10, shots: 2, timeLimitMs: 75_000, fullByS: 38, humanTurns: 1000, humanMinTurns: 750 }, oneSolution: OPEN },
   },
 };

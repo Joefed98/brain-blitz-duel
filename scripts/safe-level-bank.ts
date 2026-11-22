@@ -41,7 +41,8 @@ if (partArg) {
 
 async function build(level: BankLevel): Promise<SafePuzzleData[]> {
   const size = SAFE_LEVEL_BANK_SIZE[level];
-  const cap = size + 20;
+  // Twenty spare seeds, sixty from D4 (22 Nov 2026: about one six-dial seed in twelve finds no card).
+  const cap = size + 60;
   const outputs = await Promise.all(
     Array.from({ length: WORKERS }, async (_, k) => {
       const child = Bun.spawn(["bun", import.meta.path, `--part=${level}/${k}/${WORKERS}/${cap}`], { stdout: "pipe", stderr: "inherit" });

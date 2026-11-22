@@ -50,14 +50,16 @@ export const LEVELS_FLOW: GameLevels<FlowLevelSettings> = {
       oneSolution: PROOF,
     },
     // D4 (22 Nov 2026; the spec's Chroma Lines row): the board grows downwards with more pairs at every level (36, 81, 99,
-    // 117 squares), so Hard no longer has fewer dots than Normal; Hard 9 × 11 with 12–13 pairs, Expert 9 × 13 with 14 (the
-    // fourteen colours, cyan and tan Expert's), both on Normal's 75 s clock.
+    // 117 squares), so Hard no longer has fewer dots than Normal; Hard 9 × 11 with 12 pairs (a 13th would take Expert's
+    // extra colours), Expert 9 × 13 with 14 (the fourteen colours, cyan and tan Expert's); Hard on Normal's 75 s clock,
+    // Expert on 70 s (on 75 s the average player scored Expert level with Hard; on 60 s the near-perfect player finished
+    // only 83 % of the boards).
     hard: {
-      settings: { cols: 9, rows: 11, minPairs: 12, maxPairs: 13, minWalls: 4, maxWalls: 6, maxPath: 20, minPath: 3, minAvgPath: 0, budget: 200_000, stuckLimit: 1500, minWhatIfs: 3, timeLimitMs: 75_000, fullByS: 35, bankSize: 500 },
+      settings: { cols: 9, rows: 11, minPairs: 12, maxPairs: 12, minWalls: 4, maxWalls: 6, maxPath: 20, minPath: 3, minAvgPath: 0, budget: 200_000, stuckLimit: 1500, minWhatIfs: 3, timeLimitMs: 75_000, fullByS: 36, bankSize: 500 },
       oneSolution: PROOF,
     },
     expert: {
-      settings: { cols: 9, rows: 13, minPairs: 14, maxPairs: 14, minWalls: 6, maxWalls: 8, maxPath: 16, minPath: 3, minAvgPath: 0, budget: 200_000, stuckLimit: 1500, minWhatIfs: 4, timeLimitMs: 75_000, fullByS: 40, bankSize: 500 },
+      settings: { cols: 9, rows: 13, minPairs: 14, maxPairs: 14, minWalls: 6, maxWalls: 8, maxPath: 16, minPath: 3, minAvgPath: 0, budget: 200_000, stuckLimit: 1500, minWhatIfs: 4, timeLimitMs: 70_000, fullByS: 35, bankSize: 500 },
       oneSolution: PROOF,
     },
   },

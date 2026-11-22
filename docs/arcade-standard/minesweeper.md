@@ -1,5 +1,17 @@
 # Minefield (minesweeper) on the arcade scoring standard
 
+## Levels from D4 (22 Nov 2026; docs/polish-plan-final/difficulty-spec.md, Joe's answer of 20 Nov)
+
+The ladder is the **mine count on Normal's own 10 × 16 board**, the free opening shrinking as it climbs: Easy 9 (minesRev
+4, 8 × 12, unchanged), Normal 16 (minesRev 3, unchanged), **Hard 26: minesRev 6** (opening 12–24, 90 s, Speed full by
+**49 s**) and **Expert 40: minesRev 7** (opening 6–12, **120 s**, Speed full by **69 s**; back on 10 × 16, so the squares
+stay 36 px; minesRev 5's 12 × 18 drew them at about 31 px). Each is its own revision (`minesGeoFor`), so stored minesRev 2
+(the old Hard) and minesRev 5 (the old Expert) rounds replay and score exactly as dealt. The deal draws a fresh seed until
+its board exists (15 % of 40-mine seeds have none in 600 tries), and on every dealt seed the logic oracle tapping at the
+human limits (0.25 s to react, 0.15 s a tap) reaches 200. Speed lines set from the elite bot under the human limits
+(`bun scripts/pattern-logic-human-tune.ts minesweeper`): Hard reaches 200 on about half its boards, Expert on about a
+third.
+
 ## Levels (15 Nov 2026, the Logic overhaul; Joe: "too-hard games: today's becomes Hard")
 
 Normal now deals **minesRev 3**: 10 × 16, **16 mines**, opening 20–60, 90 s, Speed full by **37 s** (as Hard; Joe, 16

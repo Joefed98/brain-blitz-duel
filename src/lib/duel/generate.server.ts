@@ -266,7 +266,7 @@ function dealAtLevel(type: PuzzleType, context: GenerateContext): PuzzleData {
 function stampPlLevelSpeed(puzzle: PuzzleData, level: Level): PuzzleData {
   if (!PL_LEVEL_SPEED_GAMES.includes(puzzle.type)) return puzzle;
   const fullByS = settingsFullByS(gameLevelSettings(puzzle.type, level));
-  return fullByS === null ? puzzle : ({ ...puzzle, levelFullByS: fullByS } as PuzzleData);
+  return fullByS === null ? puzzle : ({ ...puzzle, levelFullByS: fullByS } as unknown as PuzzleData);
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {

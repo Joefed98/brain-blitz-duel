@@ -210,7 +210,7 @@ function storedLevelGeometry(puzzle: { level?: unknown; blockCols?: unknown; blo
   const level = puzzleLevel(puzzle);
   if (level === NORMAL) return null;
   if (typeof puzzle.blockCols === "number" && Array.isArray(puzzle.blockPieces)) return geometryOf(puzzle.blockCols, puzzle.blockPieces as string[]);
-  const before = PRE_D4_BLOCK_LEVELS[level];
+  const before = PRE_D4_BLOCK_LEVELS[level as keyof typeof PRE_D4_BLOCK_LEVELS];
   return before ? geometryOf(before.cols, before.pieces) : null;
 }
 
