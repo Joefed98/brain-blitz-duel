@@ -61,6 +61,32 @@ export function cabinetLeftOn(): boolean {
   return ARENA_CABINET_LEFT || checkOverride<boolean>("__DUELZ_CABINET__") === true;
 }
 
+/** The computer's compact rail beside a game (desktop-layout.css --dk-rail-compact). */
+export const ARENA_RAIL_COMPACT_W = 76;
+/** A computer's arcade column caps by desktop mode (desktop-layout.css): tall 640, wide 960. */
+const COLUMN_MAX = { tall: 640, wide: 960 } as const;
+
+/**
+ * Whether the Cabinet's left panel fits without drawing the world any smaller than the single panel does (Joe, 22 Nov
+ * 2026: the Cabinet never draws a game smaller than before). Without it the world is drawn as wide as the least of its
+ * column's cap, the space beside the rail and the right panel, and its height's fit (`worldW` / `worldH`, the arena
+ * slot's own world); the left panel takes 280 px of that space, so it goes on only while what is left still holds that
+ * width. Presentation only: the world's size, place on the world and inputs are the same either way.
+ */
+export function cabinetFits(o: {
+  viewportW: number;
+  viewportH: number;
+  worldW: number;
+  worldH: number;
+  mode: "tall" | "wide";
+  maxWorldWidth?: number;
+}): boolean {
+  if (!(o.worldW > 0 && o.worldH > 0)) return false;
+  const space = o.viewportW - ARENA_RAIL_COMPACT_W - ARENA_PANEL_W;
+  const today = Math.min(COLUMN_MAX[o.mode], space, o.maxWorldWidth ?? Infinity, (o.viewportH * o.worldW) / o.worldH);
+  return space - ARENA_PANEL_LEFT_W >= today;
+}
+
 /**
  * Where the live round's panel content goes: PhoneShell (or, in a room on a computer, the room panel) owns the mount
  * node; GameLayout portals its timer, score and menu into it, once, so the header copies are never drawn too.

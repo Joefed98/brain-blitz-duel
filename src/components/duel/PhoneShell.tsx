@@ -25,7 +25,7 @@ import { AppRail } from "@/components/app/AppRail";
 import { ArenaGamePanel, FrameMe, PhoneStatus } from "./ArenaGamePanel";
 import { createPortal } from "react-dom";
 import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
-import { ArenaMount, useArenaLayout, useArenaMount, cabinetLeftOn, ARENA_PANEL_LEFT_W, ARENA_PANEL_W } from "@/lib/gameFrame/arena";
+import { ArenaMount, useArenaLayout, useArenaMount, cabinetFits, cabinetLeftOn, ARENA_PANEL_LEFT_W, ARENA_PANEL_W } from "@/lib/gameFrame/arena";
 import { TimerLookContext, useGameTimer } from "@/lib/gameFrame/headerStyle";
 import { BannerSlot } from "@/components/app/PageAside";
 import { useLayoutMode } from "@/lib/layoutMode";
@@ -545,7 +545,10 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   useStandaloneShortfall(arcadePlay && constrained);
   // A turned world (Cue Ball's landscape table, `rotate`) keeps the whole width for itself: one panel, as before.
   // Computers only: a sideways tablet keeps its one panel (its touch screen has the phone's controls on the world).
-  const arenaLeft = cabinetLeftOn() && desktop && arena && !panel && arcadePlay && modeInfo?.mode !== "rotate";
+  const cabinetWanted = cabinetLeftOn() && desktop && arena && !panel && arcadePlay && modeInfo?.mode !== "rotate";
+  // Only where it draws the world no smaller than the single panel does (cabinetFits; read before paint, and on resize).
+  const [cabinetRoom, setCabinetRoom] = useState(false);
+  const arenaLeft = cabinetWanted && cabinetRoom;
   const cabinetGroup = arenaLeft && gameType ? arcadeGroupOf(gameType) : null;
   const arenaValue = useMemo(
     () => ({ arena, mount: arenaMountNode, setMount: setArenaMountNode, leftMount: arenaLeft ? arenaLeftNode : null, setLeftMount: setArenaLeftNode, roomPanel: Boolean(panel) }),
@@ -556,6 +559,37 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   /** A puzzle's game screen, intro or reveal: its edges and the page behind share the screen's own colour (polish-layout/bottom.css). */
   const puzzleScreen = Boolean(definition && !definition.arcadeRun && definition.category !== "arcade");
   const surfaceRef = useRef<HTMLDivElement>(null);
+  useIsoLayoutEffect(() => {
+    if (!cabinetWanted) return;
+    let found = false;
+    const read = () => {
+      const slot = surfaceRef.current?.querySelector("[data-arena-slot]");
+      if (!slot) return;
+      found = true;
+      const style = getComputedStyle(slot);
+      const fits = cabinetFits({
+        viewportW: window.innerWidth,
+        viewportH: window.innerHeight,
+        worldW: Number(style.getPropertyValue("--arena-w")),
+        worldH: Number(style.getPropertyValue("--arena-h")),
+        mode: modeInfo?.mode === "wide" ? "wide" : "tall",
+        ...(modeInfo?.maxWorldWidth ? { maxWorldWidth: modeInfo.maxWorldWidth } : {}),
+      });
+      setCabinetRoom((prev) => (prev === fits ? prev : fits));
+    };
+    read();
+    // The stage can arrive after the shell (its game's chunk): read once its arena slot is there.
+    const watch = new MutationObserver(() => {
+      if (found) return watch.disconnect();
+      read();
+    });
+    if (!found && surfaceRef.current) watch.observe(surfaceRef.current, { subtree: true, childList: true });
+    window.addEventListener("resize", read);
+    return () => {
+      watch.disconnect();
+      window.removeEventListener("resize", read);
+    };
+  }, [cabinetWanted, gameType]); // eslint-disable-line react-hooks/exhaustive-deps
   useGeometryHold(surfaceRef, Boolean(play && constrained && gameScreen && !arcadeScreen));
   usePuzzleSurfaces(surfaceRef, gameType, puzzleSurface);
   usePuzzleRejections(surfaceRef, Boolean(gameScreen && definition && !definition.arcadeRun && definition.category !== "arcade"), gameType);

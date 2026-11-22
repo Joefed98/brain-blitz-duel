@@ -108,8 +108,11 @@ export function BoardKeys({ type, enabled }: { type: PuzzleType; enabled: boolea
           const dy = (arrows.current.has("down") ? 1 : 0) - (arrows.current.has("up") ? 1 : 0);
           speed = dx || dy ? Math.min(14, speed + 0.5) : 0;
           if (dx || dy) {
-            a.fx = Math.max(0, Math.min(1, a.fx + (dx * (3 + speed)) / board.width));
-            a.fy = Math.max(0, Math.min(1, a.fy + (dy * (3 + speed)) / board.height));
+            // Kept a pixel inside the board's edge, where a press still lands on the board (as a mouse's must).
+            const inX = 1 / board.width;
+            const inY = 1 / board.height;
+            a.fx = Math.max(inX, Math.min(1 - inX, a.fx + (dx * (3 + speed)) / board.width));
+            a.fy = Math.max(inY, Math.min(1 - inY, a.fy + (dy * (3 + speed)) / board.height));
           }
           r = { left: board.left + a.fx * board.width - 18, top: board.top + a.fy * board.height - 18, width: 36, height: 36 };
         }
