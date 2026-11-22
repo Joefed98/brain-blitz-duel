@@ -358,6 +358,8 @@ a rising scale.
 
 ## Stage 3: levels (15–16 Nov 2026)
 
+*Superseded by the D1 redesign below (21–22 Nov 2026); kept for the record.*
+
 On #432's framework (`docs/design/difficulty/README.md`). Normal is today's game at every point; each game's levels
 live in `src/lib/levels/word/<game>.ts` (settings and one plain line a level, shown on the game page, in the round
 intro and in the "?" help's Levels block) and its level deal in `src/lib/duel/levels/<game>.server.ts`. Joe's guide (16
@@ -411,3 +413,54 @@ Their near-perfect averages on Normal are 162 (Nucleus), 165 (Forage) and 175 (R
 strong player in all three: the open word finds score on how much of a large word list is found, and the curves were
 fitted before the levels existed. Worth a look in the scoring review: the star line for these three, or their curves.
 
+## Stage 3 redesign: D1 (21–22 Nov 2026)
+
+`docs/polish-plan-final/difficulty-spec.md`, brief `docs/polish-plan-final/prompts/d1-word.md`. Each game has one headline
+lever and Easy, Normal, Hard and Expert sit on it as one ladder; Normal is today's game exactly (deal-identity-check),
+apart from the three Normal scoring stamps of I4 below. Every level is measured on real deals graded by the server,
+under `HUMAN_LIMITS` (0.25 s to react, 0.15 s to move): the open word finds by length-aware people
+(`scripts/word-human.ts`, `scripts/word-human-games.ts`: the longer the word, the harder it is to see), the deduction
+games by their person-like solvers (`scripts/word-human-solvers.ts`), Slider by its person-like slider
+(`scripts/slider-human.ts`); `bun scripts/word-human-tune.ts <game> --level=all` prints any game's table.
+
+**Normal scoring stamps (I4).** Nucleus `wordsmithRev 6`, Forage `wordHuntRev 5`, Roundabout `wheelRev 6` (`wordStar.ts`,
+the deal layer `wordStar`, era pin `preWordStar`): each points line refit so a near-perfect player earns the star (175)
+and the best can reach 200. Older stamps replay and score as before (word-star-check, on
+`scripts/fixtures/word-star-legacy.json.gz`).
+
+| Game | Easy | Hard | Expert | Proof at Expert |
+|---|---|---|---|---|
+| Nucleus | 9–10 letters, 3+ letter words count, 120 s | 10–11 letters, 5+ letters, 65 s, words part full at 45 points | 11 letters, 6+ letters, 40 s, full at 32 | the elite reaches 200 on 25 % of runs |
+| Forage | 3+ letter words, misses free, 120 s | 5+ letters, 6 free misses, 65 s, full at 49 / 63 | 7+ letters, 3 free misses, 40 s, full at 49 / 135 | the elite reaches 200 on 30 % of runs |
+| Roundabout | 6-letter wheel, a smaller crossword, 120 s | 16–19 words, 3 free misses, 95 s | 8-letter wheel, 20–24 words, 2 free misses, 70 s | the typed witness (see the open question below) |
+| Strikeout | 4 starting letters a word, 4 vowels, 14 strikes, 120 s | 1 starting letter, 2 vowels, 12 strikes, 100 s | none, 2 vowels, 12 strikes, 70 s | the person-like guesser: 200 on 24 of 24 |
+| Lookout | 8 × 8, five words across and down, 120 s | 10 × 12, eight words any way, 100 s | 10 × 12, ten words, five false starts, 90 s | the reading witness (see the open question below) |
+| Cryptogrid | 5 × 5, six words, 6 starting letters, 120 s | 8 × 7, 5 starting letters, 110 s | 9 × 7, 4 starting letters, 80 s | the person-like solver: 200 on 24 of 24 |
+| Swapword | 5–7 swaps, 16 spare, 120 s | three loops, 30 tiles on 8 × 8, 13–15 swaps, 8 spare, 110 s | a window of six 7-letter words, 33 tiles, 17–20 swaps, 6 spare, 110 s | the mark-reading solver: 200 on 24 of 24 |
+| Interlock | 6 × 6, 10 tiles, two words, 120 s | 8 × 8, 19 tiles, four words, 90 s | 8 × 8, 23 tiles, five words checked only on Done, 70 s | the person-like builder: 200 on 24 of 24 |
+| Slider | 4 × 4, 2–3 slides, 100 s | 6 × 6, 6–7 slides, 100 s | 7 × 7, 6 slides, a looser move bonus, 100 s; from a bank of 250 proved boards | every dealt board: the elite's line reaches 200 |
+
+Measured (average player / elite player; Normal in the middle column for reference):
+
+| Game | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Nucleus (people, 100 seeds × 3; Easy 16) | 177 / 193 | 69 / 189 | 56 / 187 | 33 / 171 |
+| Forage (people, 100 seeds × 3; Easy 12) | 152 / 198 | 68 / 192 | 57 / 191 | 38 / 187 |
+| Roundabout (people, 24 seeds × 3; elite kit) | 97 / 198 | 45 / 198 | 38 / 194 | 23 / 134 |
+| Strikeout (kits, 24 seeds) | 191 / 198 | 107 / 196 | 62 / 190 | 33 / 192 |
+| Lookout (kits, 24 seeds) | 168 / 198 | 138 / 195 | 59 / 185 | 36 / 176 |
+| Cryptogrid (kits, 24 seeds) | 177 / 200 | 116 / 199 | 75 / 199 | 40 / 198 |
+| Swapword (kits, 24 seeds) | 182 / 199 | 117 / 200 | 50 / 199 | 35 / 199 |
+| Interlock (kits, 24 seeds) | 188 / 200 | 111 / 200 | 73 / 199 | 43 / 196 |
+| Slider (strong / elite people, 100 seeds) | 173 / 200 | 55 / 123 | 38 / 102 | 28 / 172 |
+
+Nucleus's and Forage's Hard and Expert points lines follow Joe's decision 21 (21 Nov 2026): the elite under the human
+limits reaches 200 on a fair share of boards (Nucleus 58 % → 41 % → 25 %, Forage 68 % → 55 % → 30 %, Normal → Hard →
+Expert) while the average player steps down unchanged. The big boards fit a 375 × 667 phone: Cryptogrid's squares 41.3 px
+(8 × 7) and 37.2 px (9 × 7), Interlock's 40 px with a three-row tray of 40 px tiles, Swapword's 38.8 and 45.1 px,
+Slider's 43 and 37 px.
+
+**Open question for Joe (22 Nov 2026).** By decision 21's measure (real play, not a perfect run), Roundabout's and
+Lookout's Expert are not yet reached at 200: Roundabout's best elite run is 184 (the elite finishes 8 % of Expert boards
+in 70 s), Lookout's 196 (the speed part's top is out of reach). Their fixes differ from Nucleus's and Forage's: more time
+or fewer words for Roundabout, a gentler speed line for Lookout.
