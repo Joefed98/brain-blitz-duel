@@ -9,7 +9,7 @@ import { WORDSMITH_V3_PANGRAM_BONUS } from "@/lib/duel/scoring";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { WORDSMITH_REV_EVERYDAY } from "@/lib/duel/wordOverhaul";
 import { WordDropList } from "@/components/puzzles/WordDropList";
-import { RevealChips, RevealHeadline, RevealLabel, RevealNumbers, TileRow, type RevealChip, dropEndsMs } from "@/components/puzzles/WordReveal";
+import { RevealChips, RevealHeadline, RevealLabel, RevealNumbers, TileRow, type RevealChip, dropEndsMs, stageCell } from "@/components/puzzles/WordReveal";
 
 /** Fixed intro example — never randomised. Centre letter is index 4. */
 const EXAMPLE_TILES = ["C", "A", "R", "E", "P", "N", "T", "E", "R"];
@@ -79,7 +79,8 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
     .filter((entry) => !mine.includes(entry.word))
     .sort((a, b) => b.word.length - a.word.length || b.points - a.points)
     .slice(0, 8);
-  const size = Math.max(28, Math.min(40, Math.floor((330 - (pangram.length - 1) * 4) / Math.max(1, pangram.length))));
+  // G2 (21 Nov 2026): the tile from the stage's width (was a fixed 330 px budget).
+  const size = stageCell(Math.max(1, pangram.length), (Math.max(1, pangram.length) - 1) * 4, 44);
   return (
     <div data-word-reveal="wordsmith" data-wr-version="overhaul" className="wr">
       <RevealHeadline>{mine.length} {mine.length === 1 ? "word" : "words"}</RevealHeadline>
