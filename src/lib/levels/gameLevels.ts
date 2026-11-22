@@ -203,7 +203,7 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
             { rows: 5, minEmpty: 13, maxEmpty: 13, bottomLo: 4, bottomHi: 20 },
           ],
           decoys: 3,
-          fullByS: 92,
+          fullByS: 93,
         },
         oneSolution: { proof: "scripts/number-levels-equation-pyramid-check.ts" },
       },
