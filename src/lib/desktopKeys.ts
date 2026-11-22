@@ -64,7 +64,7 @@ export const DESKTOP_KEYS: Partial<Record<PuzzleType, readonly (readonly [string
   stroop: [["← →", "move"], ["↓", "drop"]],
   // Joe, 21 Nov 2026: Pull!'s crosshair, Bonk's key a hole, Tenfall's key a column.
   clayshoot: [["← → ↑ ↓", "move the sight"], ["Space", "shoot"]],
-  whack: [["1 2 3 4 · Q W E R · A S D F · Z X C V", "the holes, row by row"]],
+  whack: [["1 2 3 4", "the top row of holes"], ["Q W E R", "the second row"], ["A S D F", "the third row"], ["Z X C V", "the bottom row"]],
   tendrop: [["1 2 3 4", "the lowest tile in that column"]],
   wordfall: [["Mouse", "tiles"], ["Enter", "enter word"]],
   // Speed (keys from 21 Nov 2026; Flash and Ascend Joe's picks)

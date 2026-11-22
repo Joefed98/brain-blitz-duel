@@ -234,8 +234,15 @@ big score (this run's own running score, the sim's, read through `src/lib/rated/
 timer, the best and stars, and "This run" (the board's DOM status pills, where it has them). Right (`[data-arena-panel]`,
 320 px): the goal, the next challenges (practice) and the controls as key chips with the Keyboard / Mouse choice. Navy
 cards (`.cab-card`) with one edge in the game's arcade group colour (`--cab-edge`; cyan for the engine games). Sideways
-tablets, rooms (the room panel is the right panel there) and Cue Ball's turned table keep the one panel. Nothing here
+tablets, rooms (the room panel is the right panel there) and Cue Ball's turned table keep the one panel, and so does
+any window where the left panel would draw the world smaller than the single panel does (`cabinetFits`, Joe 22 Nov
+2026: the Cabinet never draws a game smaller than before; read before paint and on every resize). Nothing here
 reaches a sim, an input or a score.
+
+Not built (Joe, 22 Nov 2026): **Blockzone's own cabinet** (the plan's B2: Next and the stats beside the well, drawn as
+scene) is dropped for now: it needs `blockfallScene` and the world's own drawing changed, not only `bfLayout`.
+**Puzzles in two columns** (B3) waits: a right controls column inside today's puzzle column (at most 960 px; 765 px at
+900 px tall, pinned by desktop-geometry-check) would make every board smaller, so puzzles keep one column on computers.
 
 ### The canvas HUD in the panel (`ARENA_HUD_IN_PANEL`, off; for A3)
 
