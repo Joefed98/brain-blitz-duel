@@ -16,18 +16,28 @@ export interface RevealNumber {
   tone?: "gold" | "good" | "warn" | undefined;
 }
 
-/** Two or three big figures a row, each a short label over a large value. */
+/**
+ * Two to four big figures, each a large value over a short label. Since the reveal template (the polish plan's G6, 21
+ * Nov 2026) they are the template's facts strip (`FactTiles`' markup and classes: `data-reveal-facts`, `.reveal-fact`),
+ * so a Speed reveal's numbers read as every other game's; the Speed attributes and tones are kept.
+ */
 export function RevealNumbers({ items, testId }: { items: readonly (RevealNumber | false | null | undefined)[]; testId: string }) {
   const shown = items.filter((i): i is RevealNumber => !!i);
   return (
-    <dl data-speed-reveal-numbers={testId} className="sr-numbers" data-count={shown.length}>
+    <div
+      data-speed-reveal-numbers={testId}
+      data-reveal-facts=""
+      className="reveal-facts sr-numbers"
+      data-count={shown.length}
+      style={{ ["--reveal-facts-n" as string]: Math.min(4, Math.max(1, shown.length)) }}
+    >
       {shown.map((item) => (
-        <div key={item.id} data-reveal-number={item.id} data-tone={item.tone} className="sr-number">
-          <dt className="sr-number-label">{item.label}</dt>
-          <dd className="sr-number-value">{item.value}</dd>
+        <div key={item.id} data-reveal-number={item.id} data-tone={item.tone} className="reveal-fact sr-number">
+          <b className="reveal-fact-value sr-number-value">{item.value}</b>
+          <span className="reveal-fact-label sr-number-label">{item.label}</span>
         </div>
       ))}
-    </dl>
+    </div>
   );
 }
 
