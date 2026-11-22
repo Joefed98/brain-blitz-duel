@@ -47,6 +47,26 @@
     0 0 0 3px rgba(10, 11, 15, 0.9),
     0 0 9px 1px color-mix(in oklab, var(--dot, #fff) 75%, transparent);
 }
+/* Each dot carries its colour's small symbol (Joe, 22 Nov 2026: keep the colour-blind symbols on the old dots), white
+   over a dark outline so it reads on every colour. */
+.flow-dot > .flow-symbol,
+.flow-pair-bead > .flow-symbol {
+  position: absolute;
+  left: 27%;
+  top: 27%;
+  width: 46%;
+  height: 46%;
+  pointer-events: none;
+  overflow: visible;
+}
+.flow-dot > .flow-symbol path,
+.flow-pair-bead > .flow-symbol path {
+  fill: #ffffff;
+  stroke: rgba(12, 13, 26, 0.85);
+  stroke-width: 2.2px;
+  stroke-linejoin: round;
+  paint-order: stroke fill;
+}
 /* --- Tubes: the old neon line (flowArt.tsx: a halo, a dark rim, the colour body, a light streak). The live board's
    effects are the effects kit's (transform and opacity, src/lib/fx/kit.ts), so no keyframes here. --- */
 .flow-loose-end {

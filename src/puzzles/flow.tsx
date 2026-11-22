@@ -18,7 +18,7 @@ import {
 } from "@/lib/duel/types";
 import { soundCue } from "@/lib/fx/soundCues";
 
-import { FlowTubes, shadeHex, useFlowJoins } from "@/components/puzzles/pattern/flowArt";
+import { FlowSymbol, FlowTubes, shadeHex, useFlowJoins } from "@/components/puzzles/pattern/flowArt";
 import { useSolveMoment } from "@/lib/fx/patternFx";
 import { gameFx } from "@/lib/fx/kit";
 
@@ -133,7 +133,9 @@ export function FlowBoard({
                     ["--dot" as string]: GLYPH_COLOURS[dot.colour],
                     ["--dot-rim" as string]: shadeHex(GLYPH_COLOURS[dot.colour], -0.5),
                   }}
-                />
+                >
+                  <FlowSymbol colour={dot.colour} />
+                </span>
               )}
             </div>
           );
@@ -227,6 +229,7 @@ function PairChip({ colour, state }: { colour: FlowPair["colour"]; state: FlowPa
   return (
     <span className="flow-pair-chip" data-state={state} aria-label={`${colour.toLowerCase()}: ${word}`} title={word}>
       <span className="flow-pair-bead flow-dot" style={{ backgroundColor: GLYPH_COLOURS[colour], ["--dot-rim" as string]: shadeHex(GLYPH_COLOURS[colour], -0.5) } as CSSProperties}>
+        <FlowSymbol colour={colour} />
       </span>
       <span className="flow-pair-mark" aria-hidden="true">
         {state === "open" ? "!" : "✓"}

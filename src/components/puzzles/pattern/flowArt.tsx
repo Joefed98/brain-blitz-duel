@@ -44,6 +44,18 @@ export const FLOW_SYMBOL_PATH: Record<FlowColour, string> = {
 };
 
 /** One bead: the rendered marble, its symbol on top; it fills its box (the dot, 72 % of a cell). */
+/**
+ * The small symbol drawn on each old flat dot (Joe, 22 Nov 2026: keep the colour-blind symbols on the old dots), so
+ * colours close to each other (white and silver, yellow and lime) are told apart at a glance.
+ */
+export function FlowSymbol({ colour }: { colour: FlowColour }) {
+  return (
+    <svg className="flow-symbol" viewBox="0 0 20 20" aria-hidden="true">
+      <path d={FLOW_SYMBOL_PATH[colour]} fillRule="evenodd" />
+    </svg>
+  );
+}
+
 export function FlowBead({ colour }: { colour: FlowColour }) {
   return (
     <>
