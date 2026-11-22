@@ -216,6 +216,12 @@ const fly = (k: FkKick, shot: { x: number; y: number; b: number; st: number }, g
   ok(strikeFromStroke(straight, 2) === STRIKE_DRIVE, "a straight stroke drives");
   ok(strikeFromStroke(bent, 70) === STRIKE_CURL, "a bent stroke curls");
   ok(strikeFromStroke(flick, 10) === STRIKE_DIP, "a flick at the end dips");
+  // A smooth arc bowed a quarter of its 300 px chord (full curl), sampled every 5 px, either way: a curler, never a dip
+  // (the polish plan's C4.6). Changed with Joe's approval, 22 Nov 2026.
+  for (const side of [1, -1]) {
+    const arc = Array.from({ length: 61 }, (_, i) => ({ x: 195 + side * 4 * 0.25 * 300 * (i / 60) * (1 - i / 60), y: 600 - 300 * (i / 60) }));
+    ok(strikeFromStroke(arc, 100 * side) === STRIKE_CURL, `a smooth arc bowed a quarter of its chord curls (${side > 0 ? "right" : "left"})`);
+  }
 }
 
 /* 8. The bands. */

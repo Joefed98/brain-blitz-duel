@@ -230,9 +230,10 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 /** A lava colour at a heat (0 deep red-orange → 1 yellow-white), alpha `a`. */
 function lavaRgb(heat: number, hot: number, a = 1): string {
   // hot: 0 = the river's body, 1 = its core.
+  // C3.8: the river from #FF6A2A at its edge to #FFB347 at its core, both running brighter with the heat.
   const r = 255;
-  const g = Math.round(lerp(lerp(70, 120, heat), lerp(170, 236, heat), hot));
-  const b = Math.round(lerp(lerp(26, 40, heat), lerp(80, 170, heat), hot));
+  const g = Math.round(lerp(lerp(106, 132, heat), lerp(179, 226, heat), hot));
+  const b = Math.round(lerp(lerp(42, 52, heat), lerp(71, 150, heat), hot));
   return `rgba(${r},${g},${b},${a})`;
 }
 
@@ -266,7 +267,8 @@ function paintFacetTile(c: CanvasRenderingContext2D): void {
     const h = artHash(ii * 131 + jj, 4211);
     return [i * FACET_STEP + ((h % 21) - 10), j * FACET_STEP + (((h >>> 8) % 21) - 10)];
   };
-  c.fillStyle = "#26232B";
+  // The polish plan's C3.8 (20 Nov 2026): cool basalt (blue-grey), so the warm lava is the cave's second tone.
+  c.fillStyle = "#1C1F28";
   c.fillRect(0, 0, FACET_TILE, FACET_TILE);
   // Light from the upper left (x −0.55, y −0.65, out of the rock 0.52).
   const L = [-0.55, -0.65, 0.52];
@@ -278,7 +280,7 @@ function paintFacetTile(c: CanvasRenderingContext2D): void {
     const len = Math.hypot(n[0]!, n[1]!, n[2]!);
     const lit = Math.max(0, (n[0]! * L[0]! + n[1]! * L[1]! + n[2]! * L[2]!) / len);
     const v = Math.round(20 + lit * 46 + ((h >>> 17) % 8));
-    c.fillStyle = `rgb(${v + 6},${v + 1},${v + 2})`;
+    c.fillStyle = `rgb(${v - 3},${v},${v + 8})`;
     c.beginPath();
     c.moveTo(p[0]![0], p[0]![1]);
     c.lineTo(p[1]![0], p[1]![1]);
@@ -292,7 +294,7 @@ function paintFacetTile(c: CanvasRenderingContext2D): void {
       const nx = y1 - y0;
       const ny = -(x1 - x0);
       const facing = (nx * L[0]! + ny * L[1]!) / (Math.hypot(nx, ny) || 1);
-      c.strokeStyle = facing < -0.2 ? `rgba(236,224,214,${(0.1 + lit * 0.22).toFixed(3)})` : "rgba(4,3,6,0.55)";
+      c.strokeStyle = facing < -0.2 ? `rgba(214,224,240,${(0.1 + lit * 0.22).toFixed(3)})` : "rgba(3,4,8,0.55)";
       c.lineWidth = facing < -0.2 ? 0.9 : 1.1;
       c.beginPath();
       c.moveTo(x0, y0);
@@ -321,7 +323,7 @@ function paintFacetTile(c: CanvasRenderingContext2D): void {
   // Grain and a few hairline cracks.
   for (let k = 0; k < 900; k++) {
     const h = artHash(k, 4231);
-    c.fillStyle = h % 3 ? "rgba(0,0,0,0.22)" : "rgba(255,240,228,0.07)";
+    c.fillStyle = h % 3 ? "rgba(0,0,0,0.22)" : "rgba(228,236,255,0.07)";
     c.fillRect(h % FACET_TILE, (h >>> 9) % FACET_TILE, 1, 1);
   }
 }
@@ -352,7 +354,7 @@ function drawRichRock(ctx: CanvasRenderingContext2D, state: FlipState, side: num
   const heat = flipCaveHeat(state);
   const outward = side === 0 ? 1 : -1;
   const lite = arcadeReducedEffects();
-  ctx.fillStyle = "#24212A";
+  ctx.fillStyle = "#1C1F28";
   ctx.fillRect(0, 0, FLIP_WORLD_W, worldH);
   const tile = facetTile(ctx);
   const par = still ? 0 : (cam * 0.4) % FACET_TILE;
@@ -369,7 +371,8 @@ function drawRichRock(ctx: CanvasRenderingContext2D, state: FlipState, side: num
   ctx.fillStyle = deep;
   ctx.fillRect(0, 0, FLIP_WORLD_W, worldH);
   if (heat > 0) {
-    ctx.fillStyle = `rgba(150,46,18,${(0.16 * heat).toFixed(3)})`;
+    // C3.8: only a faint warmth over the rock as the heat rises (it was a 16 % orange wash: one tone everywhere).
+    ctx.fillStyle = `rgba(150,46,18,${(0.05 * heat).toFixed(3)})`;
     ctx.fillRect(0, 0, FLIP_WORLD_W, worldH);
   }
   // Two glossy lava channels a side (one under reduced effects).
@@ -1016,7 +1019,8 @@ function drawCaveDepths(ctx: CanvasRenderingContext2D, run: number, tick: number
     const par = run / (row ? 10 : 6);
     const stride = row ? 52 : 38;
     const k0 = Math.floor(par / stride) - 1;
-    ctx.fillStyle = row ? "rgba(4,6,8,0.34)" : "rgba(5,7,9,0.5)";
+    // C3.8: the stalactite silhouettes a shade lighter than the basalt walls, so they read against them.
+    ctx.fillStyle = row ? "rgba(46,52,66,0.34)" : "rgba(40,46,60,0.5)";
     for (let k = k0; k < k0 + Math.ceil(FLIP_WORLD_W / stride) + 3; k++) {
       const h = artHash(k + row * 7919, 1709);
       const x = k * stride - par + (h % 12);

@@ -309,9 +309,21 @@ export function drawPlanetRing(ctx: CanvasRenderingContext2D, x: number, y: numb
  */
 export function drawRenderedPlanet(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, look: OrbitPlanetLook, turn: number): boolean {
   // The materials pass: a sphere projected from its surface map, once the map has loaded; the strip look until then.
-  const sphere = planetSphereFrame(ctx, look, r, turn);
+  const frames = sphereBakeFrames();
+  const at = turn * frames;
+  const sphere = planetSphereFrame(ctx, look, r, Math.floor(at), frames);
   if (sphere) {
     ctx.drawImage(sphere, x - r, y - r, 2 * r, 2 * r);
+    // H2 (the polish plan, 20 Nov 2026): the turn is baked in SPHERE_BAKE_FRAMES steps (a quarter of SPHERE_FRAMES), and
+    // the next step cross-fades in over this one, so the surface turns as smoothly as before for a quarter of the bakes.
+    const frac = at - Math.floor(at);
+    const next = frac > 0.02 ? planetSphereFrame(ctx, look, r, Math.floor(at) + 1, frames) : null;
+    if (next) {
+      const was = ctx.globalAlpha;
+      ctx.globalAlpha = was * frac;
+      ctx.drawImage(next, x - r, y - r, 2 * r, 2 * r);
+      ctx.globalAlpha = was;
+    }
     return true;
   }
   return drawStripPlanet(ctx, x, y, r, look, turn);
@@ -345,6 +357,12 @@ const mapStore = new Map<MapKey, OrbitMapPixels | "loading" | "failed">();
 export const SPHERE_FRAMES = 240;
 /** Frames a turn on a slow device (lib/fx/lowEnd's reduced effects): half the bakes. */
 export const SPHERE_FRAMES_LITE = 120;
+/**
+ * Steps a turn actually baked (H2, 20 Nov 2026): a quarter of SPHERE_FRAMES, the step between two bakes cross-faded, so
+ * a planet re-bakes about once a second instead of every third frame (orbitRev 16's bigger bodies doubled each bake).
+ */
+export const SPHERE_BAKE_FRAMES = SPHERE_FRAMES / 4;
+export const SPHERE_BAKE_FRAMES_LITE = SPHERE_FRAMES_LITE / 4;
 /** The largest baked disc, in device px (a radius-28 planet on the 640-wide desktop column at 2x is 159; orbitRev 16's
  * radius-39 planet 222, stage 3, 15 Nov 2026). */
 export const SPHERE_MAX_PX = 224;
@@ -442,7 +460,11 @@ function liteDevice(): boolean {
   }
 }
 
-function planetSphereFrame(ctx: CanvasRenderingContext2D, look: OrbitPlanetLook, r: number, turn: number): HTMLCanvasElement | null {
+/** Baked steps a turn: SPHERE_BAKE_FRAMES (SPHERE_BAKE_FRAMES_LITE on a slow device). */
+function sphereBakeFrames(): number {
+  return liteDevice() ? SPHERE_BAKE_FRAMES_LITE : SPHERE_BAKE_FRAMES;
+}
+function planetSphereFrame(ctx: CanvasRenderingContext2D, look: OrbitPlanetLook, r: number, step: number, frames: number): HTMLCanvasElement | null {
   if (typeof document === "undefined" || r <= 0) return null;
   const name = orbitPlanetMapFor(look);
   const spec = ORBIT_PLANET_MAPS[name];
@@ -451,8 +473,7 @@ function planetSphereFrame(ctx: CanvasRenderingContext2D, look: OrbitPlanetLook,
   // The height map is optional: until it arrives (or if it fails) the surface draws without relief.
   const height = spec.height ? loadMap(`${name}-h`, spec.height) : null;
   const S = Math.max(4, Math.min(SPHERE_MAX_PX, Math.ceil(2 * r * deviceScale(ctx))));
-  const frames = liteDevice() ? SPHERE_FRAMES_LITE : SPHERE_FRAMES;
-  const frame = ((Math.floor(turn * frames) % frames) + frames) % frames;
+  const frame = ((step % frames) + frames) % frames;
   const key = `${look.h}:${look.colour}:${S}:${frames}:${frame}:${height ? 1 : 0}`;
   const hit = sphereCache.get(key);
   if (hit) {

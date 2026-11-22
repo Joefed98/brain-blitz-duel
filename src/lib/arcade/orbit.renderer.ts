@@ -494,24 +494,18 @@ function drawBelt(ctx: CanvasRenderingContext2D, p: Planet, tick: number, cam: n
  * The same traced path as before; the glow pass is skipped with reduced effects.
  */
 function drawOrbitPaths(ctx: CanvasRenderingContext2D, state: { planets: Planet[]; cur: number }, visible: number[], camX: number, camY: number, t: number): void {
-  const lite = arcadeReducedEffects();
+  // The polish plan's C1.10 (Joe, 20 Nov 2026): every orbit path one thin solid line, no dashes, drift or glow
+  // (the release guide and the reveal's dotted course keep their dashes).
+  void t;
   ctx.save();
   ctx.lineCap = "round";
+  ctx.setLineDash([]);
   for (const i of visible) {
     const p = state.planets[i]!;
     const sun = i === ORBIT_TOTAL;
     const cur = i === state.cur;
     ctx.strokeStyle = sun ? ORBIT_GOLD : planetLook(p, i, 0).colour;
-    if (!lite) {
-      ctx.setLineDash([]);
-      ctx.globalAlpha = cur ? 0.2 : 0.08;
-      ctx.lineWidth = cur ? 7 : 4;
-      tracePath(ctx, p, p.x / FP - camX, p.y / FP - camY, 0, 65536, 72);
-      ctx.stroke();
-    }
-    ctx.setLineDash(cur ? [7, 5] : [4, 6]);
-    ctx.lineDashOffset = cur ? -t * 14 * p.dir : 0;
-    ctx.lineWidth = cur ? 2 : 1.2;
+    ctx.lineWidth = cur ? 1.5 : 1;
     ctx.globalAlpha = cur ? 0.95 : 0.5;
     tracePath(ctx, p, p.x / FP - camX, p.y / FP - camY, 0, 65536, 72);
     ctx.stroke();

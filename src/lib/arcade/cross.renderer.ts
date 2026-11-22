@@ -1231,10 +1231,13 @@ export const crossRevealGame = { draw: (ctx: CanvasRenderingContext2D, state: Cr
  */
 export function crossArenaScene(ctx: CanvasRenderingContext2D, view: ArenaSceneView): void {
   // Spacewalk (3 Nov 2026): open space at the sides; below the world the start deck runs on to the box's bottom.
-  for (const side of sceneSides(view)) paintSpaceVoid(ctx, side.x, side.y, side.w, side.h, 29);
+  // The polish plan's C1.11 (20 Nov 2026): the fill continues the world's own sky: its gradient on the world's height
+  // and its nebula's seed (the nebula's noise is on world coordinates, so it runs on across the edge).
+  const sky = { top: 0, h: view.worldH };
+  for (const side of sceneSides(view)) paintSpaceVoid(ctx, side.x, side.y, side.w, side.h, 11, sky);
   const below = sceneBelow(view);
   if (!below) return;
-  paintSpaceVoid(ctx, below.x, below.y, below.w, below.h, 31);
+  paintSpaceVoid(ctx, below.x, below.y, below.w, below.h, 11, sky);
   paintStationDeck(ctx, CROSS_BOARD_X, below.y, CROSS_BOARD_W, below.h, "none");
   ctx.fillStyle = "rgba(61,255,224,0.35)";
   ctx.fillRect(CROSS_BOARD_X - 1, below.y, 1, below.h);

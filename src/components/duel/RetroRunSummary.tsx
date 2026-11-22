@@ -13,7 +13,11 @@ import type { RetroSummary } from "@/lib/replay/retroSummary";
 import { hasRetroSummary, retroSummaryHasPicture } from "@/lib/replay/retroSummaryTypes";
 import { canvasRatio } from "@/lib/battery";
 
-const PICTURE_H = 104;
+/**
+ * The board picture's height (the polish plan's G7, 21 Nov 2026: drawn large in the reveal template's stage, was a
+ * 58 × 104 thumbnail); its width follows the world's own shape. Fixed, so the box holds its space before it loads.
+ */
+const PICTURE_H = 220;
 
 function SummaryPicture({ puzzle, state }: { puzzle: PuzzleData; state: unknown }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -48,7 +52,7 @@ function SummaryPicture({ puzzle, state }: { puzzle: PuzzleData; state: unknown 
       data-retro-summary-picture=""
       aria-hidden="true"
       className="retro-summary-picture"
-      style={{ width: width || Math.round(PICTURE_H * 0.55), height: PICTURE_H }}
+      style={{ width: width || Math.round(PICTURE_H * 0.55), height: PICTURE_H, maxWidth: "62%" }}
     />
   );
 }
