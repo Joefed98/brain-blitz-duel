@@ -12,11 +12,18 @@
  * The out-of-fuel sputter (cough, fizzle, drift) is in orbit.renderer.ts beside the fuel meter it shares a clock with.
  */
 import { ORBIT_TOTAL, type Planet } from "./orbit";
-import { ORBIT_GRACE_HOLD_TICKS, type OrbitRev3State } from "./orbitRev3";
+import { ORBIT_GRACE_HOLD_TICKS, orbitTankOf, type OrbitRev3State } from "./orbitRev3";
 
 const FP = 256;
-/** A quarter of the 160-tick tank: the low-fuel line (gameSounds.ts uses the same). */
+/** A quarter of the 160-tick tank: the low-fuel line on a full-size tank (gameSounds.ts uses the same rule). */
 export const ORBIT_LOW_FUEL = 40;
+/**
+ * The low-fuel line for this run's tank (H5, the polish plan, 20 Nov 2026): a quarter of it, so Easy's 240 warns at 60 and
+ * Expert's 120 at 30 (it was 40 on every tank). Display and sound only.
+ */
+export function orbitLowFuelLine(s: Pick<OrbitRev3State, "tank">): number {
+  return Math.trunc(orbitTankOf(s) / 4);
+}
 /** The launch puff's length, ticks (300 ms). */
 export const ORBIT_PUFF_TICKS = 18;
 /** The catch lock's length, ms. */
@@ -36,8 +43,8 @@ export function setOrbitFxClock(clock: (() => number) | null): void {
 }
 
 /** In flight with a quarter of the tank or less (the low-fuel warning's moment). */
-export function orbitLowFuel(s: Pick<OrbitRev3State, "fuel" | "flying" | "ended">): boolean {
-  return s.fuel !== undefined && s.flying > 0 && s.ended === 0 && s.fuel <= ORBIT_LOW_FUEL;
+export function orbitLowFuel(s: Pick<OrbitRev3State, "fuel" | "flying" | "ended" | "tank">): boolean {
+  return s.fuel !== undefined && s.flying > 0 && s.ended === 0 && s.fuel <= orbitLowFuelLine(s);
 }
 
 /** The low-fuel gauge's red wash (0–1): a 3 Hz pulse on the round tick, a steady wash under reduced motion. */
@@ -104,6 +111,11 @@ function observeLock(ctx: object, s: OrbitRev3State): LockMemory {
  * Every catch: a crisp ring closing from wide onto the planet (180 ms), then four clamps snapping in on it and fading
  * (to 520 ms); no glow. Reduced motion: the ring at rest round the planet, fading.
  */
+/** The largest radius a ring round planet `p` may take: 4 px inside its orbit path (and never inside the body). */
+export function orbitRingLimit(p: Planet, r: number): number {
+  const ring = p.ring / FP;
+  return ring > 0 ? Math.max(r + 2, ring - 4) : Infinity;
+}
 export function drawCatchLock(ctx: CanvasRenderingContext2D, s: OrbitRev3State, cam: { x: number; y: number }, colour: string, still: boolean): void {
   const m = observeLock(ctx, s);
   const age = fxClock() - m.at;
@@ -114,7 +126,8 @@ export function drawCatchLock(ctx: CanvasRenderingContext2D, s: OrbitRev3State, 
   const close = still ? 1 : Math.min(1, age / 180);
   const ease = 1 - (1 - close) * (1 - close);
   const fade = age < 300 ? 1 : 1 - (age - 300) / (ORBIT_LOCK_MS - 300);
-  const ringR = r + 4 + 16 * (1 - ease);
+  // H6 (the polish plan, 20 Nov 2026): never past the planet's orbit path (orbitRev 16's bigger bodies sit 13 px inside it).
+  const ringR = Math.min(r + 4 + 16 * (1 - ease), orbitRingLimit(p, r));
   ctx.save();
   ctx.globalAlpha = 0.9 * fade;
   ctx.strokeStyle = colour;
@@ -151,6 +164,7 @@ export function drawHoldRing(ctx: CanvasRenderingContext2D, s: OrbitRev3State, c
   const p = s.planets[s.cur];
   if (!p || s.ended !== 0) return;
   const x = p.x / FP - cam.x, y = p.y / FP - cam.y, r = p.r / FP;
+  const holdR = Math.min(r + 9, orbitRingLimit(p, r));
   const hold = s.hold ?? 0;
   if (hold > 0) holdEnds.set(ctx, s.tick + hold);
   else if ((holdEnds.get(ctx) ?? -1) > s.tick) holdEnds.delete(ctx); // a rewind
@@ -161,11 +175,11 @@ export function drawHoldRing(ctx: CanvasRenderingContext2D, s: OrbitRev3State, c
     ctx.strokeStyle = "rgba(255,255,255,0.18)";
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(x, y, r + 9, 0, Math.PI * 2);
+    ctx.arc(x, y, holdR, 0, Math.PI * 2);
     ctx.stroke();
     ctx.strokeStyle = "#F5B82E";
     ctx.beginPath();
-    ctx.arc(x, y, r + 9, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left);
+    ctx.arc(x, y, holdR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * left);
     ctx.stroke();
   } else {
     // GO: the hold just ended (remembered from the frames that showed it; a checkpoint respawn has no hold).
