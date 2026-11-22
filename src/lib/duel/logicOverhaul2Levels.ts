@@ -118,7 +118,7 @@ const levels = <S>(easy: S, hard: S, expert: S): { levels: Levels<S> } => ({
 export const LOGIC_GAME_LEVELS: { [K in LogicLevelGame]: { levels: Levels<LogicLevelSettings[K]> } } = {
   // D4 (22 Nov 2026): every Hard and Expert has its own speed line (`fullByS`, stamped on the deal as levelFullByS),
   // set from the elite's finishes under the human limits (scripts/pattern-logic-human-tune.ts). Clocks: Tents Hard
-  // 120 s and Expert 110 s, Shikaku, Lamplighter, Loopline, Regions and Island Link Hard 120 s (on 100 s and 90 s the average player
+  // 120 s and Expert 115 s, Shikaku, Lamplighter, Loopline, Regions and Island Link Hard 120 s (on 100 s and 90 s the average player
   // scored Expert about level with Hard; the longer Hard clock gives the average room to place more, the shorter
   // Expert clock less).
   tents: levels<TentsLevel>(

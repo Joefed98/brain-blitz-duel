@@ -75,7 +75,8 @@ export const LEVELS_PUSH: GameLevels<PushLevelSettings> = {
       },
       oneSolution: OPEN,
     },
-    // Expert: six crates, 30–40 pushes, the detour kept, no stuck hint.
+    // Expert: six crates, 30–40 pushes, the detour kept, no stuck hint. D4: seven crates, 38–48 pushes, full speed by
+    // 81 s (the elite's finishes under the human limits over the whole bank: a third at 200).
     expert: {
       settings: {
         crates: 7,
@@ -84,7 +85,7 @@ export const LEVELS_PUSH: GameLevels<PushLevelSettings> = {
         perCrate: 3,
         detour: true,
         stuckHint: false,
-        speedFullByS: 45,
+        speedFullByS: 81,
         timeLimitMs: 120_000,
       },
       oneSolution: OPEN,
