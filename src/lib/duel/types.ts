@@ -249,6 +249,14 @@ export interface ReactionPuzzleData {
   flashCurve?: [number, number][];
   /** D3's levels (tapRev 8 level deals only): how long each trap stays up, in ms; absent = REACTION_DECOY_MS. */
   trapMs?: number;
+  /** D3's levels (tapRev 8 level deals only): false starts the level forgives (depth/flash.ts flashFreeOf). */
+  flashFree?: number;
+}
+
+/** How long a puzzle's traps stay up: a D3 level deal's own `trapMs`, else the 0.6 s every older round used. */
+export function flashTrapMs(puzzle: unknown): number {
+  const own = puzzle && typeof puzzle === "object" ? (puzzle as { trapMs?: unknown }).trapMs : undefined;
+  return typeof own === "number" && own > 0 ? own : REACTION_DECOY_MS;
 }
 
 /** How long a puzzle's gold flashes stay up: its own `flashMs` (Expert), else the 1.5 s every older round used. */
@@ -1804,7 +1812,17 @@ export interface ChainPuzzleData {
    * runs (1-based, inclusive), on its own clock (`timeLimitMs`); the cycles stored on the boards carry its cycle length.
    * Absent: today's 40 links, windows and the one reversed board (every round dealt before the levels, and Normal).
    */
-  chainLevel?: { links: number; bands: { upTo: number; ms: number }[]; reverse: [number, number][] };
+  chainLevel?: {
+    links: number;
+    bands: { upTo: number; ms: number }[];
+    reverse: [number, number][];
+    /** D3's levels (22 Nov 2026): links per board, a new board every cycle (chain.ts chainBlockOf); absent = 5. */
+    block?: number;
+    /** D3's levels: the finish's full-speed time, s (standard/attention.ts chainFullByS); absent = the stamp's. */
+    fullByS?: number;
+    /** D3's levels: wrong taps forgiven (chain.ts chainSpareOf; Easy's spare link); absent = none. */
+    spare?: number;
+  };
   timeLimitMs?: number;
   /** CHAIN_CYCLE_REV: five-symbol cycles and the reversed board from link 20; absent = three-symbol cycles. */
   chainCycleRev?: number;

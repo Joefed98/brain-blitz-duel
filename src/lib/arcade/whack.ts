@@ -98,6 +98,11 @@ export interface WhackLevel {
   gapPct?: number;
   /** D3 (22 Nov 2026, whackRev 5 level deals only): the lawn's burrows across and down (absent = WHACK_COLS, 4). */
   cols?: number;
+  /**
+   * D3 (whackRev 5 level deals only): the share of the targets, in per cent, that counts as hitting them all (the
+   * hits part and its bonus read hits × 100 ÷ this, at most all); absent = every target (100).
+   */
+  hitsFullPct?: number;
 }
 
 /** A level's lawn (burrows across and down): its own `cols`, else today's 4. */
@@ -192,6 +197,8 @@ export interface WhackState {
   qw?: number;
   /** whackRev 5 level deals only (D3): the lawn's burrows across and down; absent = WHACK_COLS. */
   cols?: number;
+  /** whackRev 5 level deals only (D3): WhackLevel.hitsFullPct; absent = 100. */
+  hf?: number;
   tick: number;
   rng: number;
   schedule: WhackSchedule;
@@ -644,6 +651,7 @@ function initDepthWith(seed: number, life?: number, level?: WhackLevel): WhackSt
     ...base,
     // D3's lawns (whackRev 5 level deals with `cols`): the state says its lawn; today's 4 × 4 carries nothing.
     ...(level?.cols !== undefined ? { cols } : {}),
+    ...(level?.hitsFullPct !== undefined && level.hitsFullPct > 0 && level.hitsFullPct < 100 ? { hf: level.hitsFullPct } : {}),
     rng: d.rng,
     sb: 1,
     dp: {
@@ -681,12 +689,19 @@ export interface WhackDepthScore {
 }
 
 /** whackRev 3's score: the whackRev 2 base, the combo part and the diamonds, 0–200. */
+/** The hits a run's score counts: a D3 level's share of the targets counts as all of them (WhackLevel.hitsFullPct). */
+export function whackCountedHits(state: Pick<WhackState, "hits" | "hf" | "schedule">): number {
+  if (!state.hf) return state.hits;
+  return Math.min(state.schedule.total, Math.floor((state.hits * 100) / state.hf));
+}
+
 export function whackDepthScore(state: WhackState): WhackDepthScore {
-  const raw = whackScore(state.hits, state.wrong, state.schedule.total, state.empty, state.bombs);
+  const raw = whackScore(whackCountedHits(state), state.wrong, state.schedule.total, state.empty, state.bombs);
   const base = bandMapTotal(WHACK_BANDS_MAP, raw);
   const dp = state.dp;
   if (!dp) return { base, combo: 0, diamonds: 0, score: base };
-  const maxPips = whackComboMaxPips(state.schedule.total);
+  // A D3 level's hits share: the combo's full run is over that share of the targets too.
+  const maxPips = whackComboMaxPips(state.hf ? Math.ceil((state.schedule.total * state.hf) / 100) : state.schedule.total);
   const pips = Math.min(dp.pips, maxPips);
   const combo = maxPips > 0 ? Math.min(WHACK_COMBO_POINTS, Math.floor((WHACK_COMBO_POINTS * 100 * pips) / (maxPips * WHACK_COMBO_FULL_PCT))) : 0;
   const diamonds = WHACK_DIAMOND_POINTS * dp.hits;

@@ -23,7 +23,8 @@ export function flashDepthHelp(): string {
     ? `the faster your average reaction, the more; ${topMs} ms or faster for all of it (a miss counts as ${grouped(1200)} ms)`
     : `each flash scores by how fast you react, ${topMs} ms or faster for all of it, a missed flash nothing; your points are the average over the flashes`;
   return scoreList([
-    { label: "Reactions", how: reactions, max: topPts },
+    // tapRev 8's top is the round's maximum itself: written as {max}, as every total is.
+    { label: "Reactions", how: reactions, max: (topPts === 200 ? "{max}" : topPts) as unknown as number },
     { label: "Steady hand", how: `hit every flash with no false start and every reaction within ${FLASH_STEADY_TIGHT_MS} ms of the others (${FLASH_STEADY_LOOSE_POINTS} within ${FLASH_STEADY_LOOSE_MS} ms)`, max: FLASH_STEADY_TIGHT_POINTS },
   ], {
     penalties: [

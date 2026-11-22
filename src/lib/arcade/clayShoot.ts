@@ -424,6 +424,11 @@ export interface ClayLevel {
   speedPct: number;
   /** Two birds up together in more of the round (Hard and Expert). */
   overlap: boolean;
+  /**
+   * D3 (22 Nov 2026, clayRev 11 level deals only): where the quick credit counts in full, in per cent of the most a run
+   * can hold (absent: CLAY_FULL_QUICK_PCT, Normal's 85).
+   */
+  quickFullPct?: number;
 }
 
 export interface ClayState {
@@ -1220,9 +1225,12 @@ export const CLAY_REV_FULL = 11;
 export const CLAY_FULL_QUICK_PCT = 85;
 
 /** A run's quick credit as its score reads it (0–`max`): clayRev 11 counts it in full from CLAY_FULL_QUICK_PCT of `max`. */
-export function clayFullQuick(state: Pick<ClayState, "qk" | "qf">, max: number): number {
+export function clayFullQuick(state: Pick<ClayState, "qk" | "qf" | "lv">, max: number): number {
   const qk = clampInt(state.qk ?? 0, 0, max);
-  return state.qf ? Math.min(max, Math.floor((qk * 100) / CLAY_FULL_QUICK_PCT)) : qk;
+  // A D3 level's own line (ClayLevel.quickFullPct), else Normal's.
+  const own = state.lv?.quickFullPct;
+  const pct = typeof own === "number" && own >= 30 && own <= 100 ? own : CLAY_FULL_QUICK_PCT;
+  return state.qf ? Math.min(max, Math.floor((qk * 100) / pct)) : qk;
 }
 
 export const clayFullGame: ArcadeGame<ClayState, ArcadeInputEvent | null> = {

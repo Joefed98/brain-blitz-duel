@@ -24,6 +24,7 @@ import {
   NUMHUNT_MOVE_MS,
   REACTION_DECOY_MS,
   flashWindowMs,
+  flashTrapMs,
   REACTION_MISS_MS,
   STOPWATCH_GAP_MS,
   STOPWATCH_LEAD_IN_MS,
@@ -302,7 +303,7 @@ export function flashDecoyCut(tapped: number, shown: number): number {
  * last flash is settled are ignored.
  */
 export function replayFlash(
-  puzzle: Pick<ReactionPuzzleData, "flashes"> & Partial<Pick<ReactionPuzzleData, "decoys" | "tapRev" | "flashMs">>,
+  puzzle: Pick<ReactionPuzzleData, "flashes"> & Partial<Pick<ReactionPuzzleData, "decoys" | "tapRev" | "flashMs" | "trapMs">>,
   times: readonly number[],
   upTo = Number.POSITIVE_INFINITY,
 ): FlashReplay {
@@ -350,7 +351,9 @@ export function replayFlash(
   const decoys = tapRevOf(puzzle) >= TAP_REV_ONE_CURVE ? (puzzle.decoys ?? []) : [];
   const nonHits = times.filter((t, i) => t <= upTo && outcomes[i] !== "hit");
   const shown = decoys.filter((d) => d.at <= upTo);
-  const decoysTapped = shown.filter((d) => nonHits.some((t) => t >= d.at && t < d.at + REACTION_DECOY_MS)).length;
+  // A D3 level deal's own trap length (flashTrapMs); every older round's 0.6 s.
+  const trapMs = flashTrapMs(puzzle);
+  const decoysTapped = shown.filter((d) => nonHits.some((t) => t >= d.at && t < d.at + trapMs)).length;
   const decoyCut = flashDecoyCut(decoysTapped, shown.length);
   const credited = decoyCut > 0
     ? result.map((v) => (v === null ? null : Math.min(REACTION_MISS_MS, v + Math.round((REACTION_MISS_MS - v) * decoyCut))))

@@ -31,6 +31,7 @@ import {
   REACTION_MIN_FLASHES,
   REACTION_FLASH_MS,
   flashWindowMs,
+  flashTrapMs,
   REACTION_MISS_MS,
   REACTION_ROUND_MS,
   type ReactionDecoyColour,
@@ -41,7 +42,7 @@ import { fireFlashGoldPulse, flashEarnsGoldPulse, localFlashScore } from "@/comp
 import { registerFxPreview } from "@/components/puzzles/speedFx";
 import { FLASH_FALSE_START_COST } from "@/lib/duel/scoring";
 import { knots } from "@/lib/duel/depth200";
-import { FLASH_STEADY_LOOSE_MS, FLASH_STEADY_TIGHT_MS, flashCurveOf, flashSpread, liveFlashCurve, liveFlashCurveAt, usesFlashDepth } from "@/lib/duel/depth/flash";
+import { FLASH_STEADY_LOOSE_MS, FLASH_STEADY_TIGHT_MS, flashCurveOf, flashFreeOf, flashSpread, liveFlashCurve, liveFlashCurveAt, usesFlashDepth } from "@/lib/duel/depth/flash";
 import { roundMaxFor } from "@/lib/duel/roundMax";
 
 import { RevealBars, RevealCaption, RevealNumbers, RevealPanel } from "@/components/puzzles/SpeedRevealKit";
@@ -86,19 +87,25 @@ export function buildReaction(level?: FlashLevel): ReactionPuzzleData {
   const windowMs = level?.flashMs ?? REACTION_FLASH_MS;
   let flashes: number[] = [];
   let decoys: ReactionPuzzleData["decoys"] = [];
+  // D3's levels (22 Nov 2026): a level may set the golds' timing and the traps' lead and spacing; absent, the
+  // Speed overhaul's figures (and Normal, which has no level, today's).
+  const firstGold = level?.firstGold ?? [4_000, 7_000];
+  const goldGap = level?.goldGap ?? [5_000, 8_000];
+  const lead = level?.lead ?? [800, 2_000];
+  const trapGap = level?.trapGap ?? [900, 1_600];
   for (let attempt = 0; attempt < 1_000; attempt++) {
-    const list = [randInt(4_000, 7_000)];
-    while (list.length < flashCount) list.push(list[list.length - 1]! + randInt(5_000, 8_000));
+    const list = [randInt(firstGold[0], firstGold[1])];
+    while (list.length < flashCount) list.push(list[list.length - 1]! + randInt(goldGap[0], goldGap[1]));
     if (list[list.length - 1]! + windowMs > REACTION_ROUND_MS - 500) continue;
 
     // Begin at two per flash, then vary to a seeded total of 8–12.
-    const counts = Array.from({ length: flashCount }, () => (level ? randInt(level.decoys[0], level.decoys[1]) : randInt(1, 3)));
+    const counts = Array.from({ length: flashCount }, (_, i) => (level ? (i === 0 && level.firstClear ? 0 : randInt(level.decoys[0], level.decoys[1])) : randInt(1, 3)));
 
     const proposed: ReactionPuzzleData["decoys"] = [];
     let valid = true;
     for (let flashIndex = 0; flashIndex < list.length; flashIndex++) {
       const segmentStart = flashIndex === 0 ? 0 : list[flashIndex - 1]! + windowMs;
-      let cursor = list[flashIndex]! - (level ? randInt(800, 2_000) : randInt(1_000, 5_000));
+      let cursor = list[flashIndex]! - (level ? randInt(lead[0], lead[1]) : randInt(1_000, 5_000));
       const backwards: ReactionPuzzleData["decoys"] = [];
       for (let n = 0; n < counts[flashIndex]!; n++) {
         if (cursor < segmentStart + 250) {
@@ -106,7 +113,7 @@ export function buildReaction(level?: FlashLevel): ReactionPuzzleData {
           break;
         }
         backwards.push({ at: cursor, color: pick(DECOY_COLOURS) });
-        cursor -= level ? randInt(900, 1_600) : randInt(1_500, 4_000);
+        cursor -= level ? randInt(trapGap[0], trapGap[1]) : randInt(1_500, 4_000);
       }
       proposed.push(...backwards.reverse());
       if (!valid) break;
@@ -125,7 +132,17 @@ export function buildReaction(level?: FlashLevel): ReactionPuzzleData {
   }
   const kinds = dealDecoyKinds(decoys.length, level);
   decoys = decoys.map((decoy, index) => ({ at: decoy.at, color: kinds[index]! }));
-  return { type: "reaction", flashes, decoys, tapRev: dealtTapRev("reaction"), ...(level && level.flashMs !== REACTION_FLASH_MS ? { flashMs: level.flashMs } : {}) };
+  return {
+    type: "reaction",
+    flashes,
+    decoys,
+    tapRev: dealtTapRev("reaction"),
+    ...(level && level.flashMs !== REACTION_FLASH_MS ? { flashMs: level.flashMs } : {}),
+    // D3's levels: the traps' length and the level's own curve, stamped so the stage and the grader read the deal's.
+    ...(level?.trapMs !== undefined && level.trapMs !== REACTION_DECOY_MS ? { trapMs: level.trapMs } : {}),
+    ...(level?.curve ? { flashCurve: level.curve.map(([ms, pts]) => [ms, pts] as [number, number]) } : {}),
+    ...(level?.free ? { flashFree: level.free } : {}),
+  };
 }
 
 export function reactionAverage(times: number[], falseStarts: number, flashCount = times.length): number {
@@ -495,8 +512,8 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
   if (puzzle.type !== "reaction") return null;
 
   const liveIndex = flashes.findIndex((f, i) => replay.times[i] === null && t >= f && t < f + flashWindowMs(puzzle));
-  const decoy = decoys.find((d) => t >= d.at && t < d.at + REACTION_DECOY_MS) ?? null;
-  const steadyLine = usesFlashDepth(puzzle) && flashes.length ? flashSteadyLine(replay.times, replay.falseStarts) : null;
+  const decoy = decoys.find((d) => t >= d.at && t < d.at + flashTrapMs(puzzle)) ?? null;
+  const steadyLine = usesFlashDepth(puzzle) && flashes.length ? flashSteadyLine(replay.times, Math.max(0, replay.falseStarts - flashFreeOf(puzzle))) : null;
 
   const handleTap = () => {
     if (locked || replay.done) return;
@@ -543,7 +560,7 @@ function LoggedStage({ puzzle, phaseStartedAt, locked, onSubmit, onDraftAnswer }
       // The live replay shows each reaction as tapped; the end-of-run score uses the credited ones (tapRev 4's decoy cut).
       summary={steadyLine ? steadyLine.text : flashes.length ? flashSummary(replay.times) : ""}
       steady={steadyLine?.steady ?? null}
-      fxScore={replay.done ? localFlashScore(replayFlash({ flashes, decoys, tapRev: puzzle.type === "reaction" ? (puzzle.tapRev ?? 0) : 0 }, taps.current, Math.max(t, lastTap)).times, replay.falseStarts, flashes.length, tapRevOf(puzzle), flashCurveOf(puzzle)) : null}
+      fxScore={replay.done ? localFlashScore(replayFlash({ flashes, decoys, tapRev: puzzle.type === "reaction" ? (puzzle.tapRev ?? 0) : 0 }, taps.current, Math.max(t, lastTap)).times, replay.falseStarts, flashes.length, tapRevOf(puzzle), flashCurveOf(puzzle), flashFreeOf(puzzle)) : null}
     />
   );
 }

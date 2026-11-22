@@ -108,7 +108,20 @@ export interface FlashDepthScore {
 }
 
 /** A run's tapRev 5 (or 6) score from its credited reactions (misses as 1,200 ms) and false starts. */
-export function scoreFlashDepth(times: readonly (number | null)[], falseStarts: number, flashCount = times.length, tapRev = FLASH_DEPTH_REV, curveIn?: FlashCurve): FlashDepthScore {
+/**
+ * D3's levels (tapRev 8 level deals only): false starts a level forgives (`flashFree`): they cost nothing and keep the
+ * steady hand. Absent (Normal, every older round): none.
+ */
+export function flashFreeOf(puzzle: unknown): number {
+  const rev = (puzzle as { tapRev?: number } | null)?.tapRev ?? 0;
+  const own = (puzzle as { flashFree?: unknown } | null)?.flashFree;
+  return rev >= FLASH_FAST_REV && typeof own === "number" && Number.isInteger(own) && own > 0 && own <= 20 ? own : 0;
+}
+
+export function scoreFlashDepth(timesIn: readonly (number | null)[], falseStartsIn: number, flashCount = timesIn.length, tapRev = FLASH_DEPTH_REV, curveIn?: FlashCurve, free = 0): FlashDepthScore {
+  const times = timesIn;
+  // A D3 level's forgiven false starts (flashFreeOf): only those beyond them count, for the cost and the steady hand.
+  const falseStarts = Math.max(0, falseStartsIn - free);
   const count = Math.max(1, flashCount);
   let total = 0;
   for (let i = 0; i < count; i++) total += Math.min(REACTION_MISS_MS, Math.max(1, times[i] ?? REACTION_MISS_MS));

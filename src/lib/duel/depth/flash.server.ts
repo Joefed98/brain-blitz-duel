@@ -6,7 +6,7 @@ import { decodeTapTimes, replayFlash, tapRevOf } from "../tapLog";
 import { latestTapMs } from "../grade";
 import { puzzleTimeLimitMs } from "../catalogue";
 import type { DepthGrader } from "../depth200.server";
-import { flashCurveOf, scoreFlashDepth, usesFlashDepth } from "./flash";
+import { flashCurveOf, flashFreeOf, scoreFlashDepth, usesFlashDepth } from "./flash";
 
 export const flashDepth: DepthGrader = {
   applies: usesFlashDepth,
@@ -16,7 +16,7 @@ export const flashDepth: DepthGrader = {
     // The same log grade.ts read (its taps were held to the receipt time there too).
     const { times } = decodeTapTimes(graded.answer || answer, latestTapMs(limit, receivedMsRemaining));
     const replay = replayFlash(puzzle, times, limit);
-    const s = scoreFlashDepth(replay.times, Math.min(99, Math.max(0, replay.falseStarts)), puzzle.flashes.length, tapRevOf(puzzle), flashCurveOf(puzzle));
+    const s = scoreFlashDepth(replay.times, Math.min(99, Math.max(0, replay.falseStarts)), puzzle.flashes.length, tapRevOf(puzzle), flashCurveOf(puzzle), flashFreeOf(puzzle));
     return {
       ...graded,
       score: s.score,

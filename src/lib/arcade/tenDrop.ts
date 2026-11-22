@@ -874,22 +874,30 @@ export const tenDropGame: ArcadeGame<TenDropState, ArcadeInputEvent | null> = {
  * "plusMinus" digits and minus only (no operator needed), "more" today's mix with ÷3 doubled, "all" every operator
  * evenly. Queues grow with the target so one pass can always reach it.
  */
-export function tdLevelStages(level: { targets: number; maxTarget: number; ops: "plusMinus" | "more" | "all"; speedPct: number }): TenDropStage[] {
+export function tdLevelStages(level: { targets: number; maxTarget: number; ops: "plusMinus" | "more" | "all" | "times"; speedPct: number; minTarget?: number; fullByS?: number }): TenDropStage[] {
   const base = TD_CONFIG.stages;
   const out: TenDropStage[] = [];
   for (let i = 0; i < level.targets; i++) {
     const from = base[Math.min(base.length - 1, Math.floor((i * base.length) / level.targets))]!;
-    const hi = Math.max(12, Math.round((level.maxTarget * (i + 1)) / level.targets));
+    // D3 (22 Nov 2026): a level may start its targets high (`minTarget`, climbing evenly to the top) and set the run's
+    // full-speed time (`fullByS`, shared as each target's par); absent, the Speed overhaul's ramp.
+    const hi = level.minTarget !== undefined
+      ? Math.round(level.minTarget + ((level.maxTarget - level.minTarget) * i) / Math.max(1, level.targets - 1))
+      : Math.max(12, Math.round((level.maxTarget * (i + 1)) / level.targets));
     const lo = Math.max(10, Math.round(hi * 0.7));
+    const par = level.fullByS !== undefined ? { parTicks: Math.round((level.fullByS * 60) / level.targets) } : {};
     const speed = Math.round((from.speed * level.speedPct) / 100);
     const gap = Math.max(12, Math.round((from.gap * 100) / level.speedPct));
     const len = Math.max(from.len, Math.min(20, 8 + Math.ceil(hi / 20)));
     if (level.ops === "plusMinus") {
-      out.push({ lo, hi, speed, gap, len, digitLo: 1, digitHi: 10, mul2: 0, div2: 0, div3: 0, minus: 20, minusLo: 1, minusHi: 3, needOp: false });
+      out.push({ lo, hi, speed, gap, len, digitLo: 1, digitHi: 10, mul2: 0, div2: 0, div3: 0, minus: 20, minusLo: 1, minusHi: 3, needOp: false, ...par });
     } else if (level.ops === "more") {
-      out.push({ ...from, lo, hi, speed, gap, len, div3: Math.max(8, from.div3 * 2) });
+      out.push({ ...from, lo, hi, speed, gap, len, div3: Math.max(8, from.div3 * 2), ...par });
+    } else if (level.ops === "times") {
+      // D3's Hard: ×2 on about three tiles in ten, ÷2 and ÷3 as the Speed overhaul's Hard.
+      out.push({ ...HARD, lo, hi, speed, gap, len, mul2: 30, div2: 10, div3: 8, ...par });
     } else {
-      out.push({ ...from, lo, hi, speed, gap, len, mul2: 20, div2: 12, div3: 12, minus: 15 });
+      out.push({ ...from, lo, hi, speed, gap, len, mul2: 20, div2: 12, div3: 12, minus: 15, ...par });
     }
   }
   return out;

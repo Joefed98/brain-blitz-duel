@@ -17,7 +17,10 @@ import { encodeTenDropRun } from "../src/lib/duel/tenDrop";
 import { SKILLS, hashText, makeRng, thinkMs, type Play, type Rng, type Skill } from "./puzzle-fairness/kit";
 import { HUMAN_LIMITS } from "./speed-levels-tune";
 import type { D3Players } from "./d3-ladder-lib";
-import type { PuzzleData } from "../src/lib/duel/types";
+import type { ChainPuzzleData, PuzzleData } from "../src/lib/duel/types";
+import { chainBlockOf, chainSpareOf, chainBoardIndex, chainCycleAt, chainLongCycles, chainRequiredAt, chainReversedAt, chainRules, chainTimeLimitMs, chainWindowMs, encodeChainAnswer, type ChainTap } from "../src/lib/duel/chain";
+import type { ChainBreak } from "../src/lib/duel/types";
+import type { Step } from "./puzzle-fairness/kit";
 
 type Ev = Omit<ArcadeInputEvent, "t" | "d"> & { d?: number };
 const ticks = (ms: number) => Math.max(1, Math.round(ms / TICK_MS));
@@ -222,10 +225,99 @@ export function playTenfall(p: PuzzleData, rng: Rng, skill: Skill, goldDetour: n
   return { steps: [{ answer: run.raw, atMs: tickMs(end) }], timed: true };
 }
 
+/* ============================ Don't Break the Chain ============================ */
+
+/**
+ * The Chain, both players on the stored puzzle's own boards (chainBlockOf: a new board every cycle at D3's levels),
+ * finding the next charm takes a little longer the longer the cycle (6 % a charm over Normal's five, as the kits' six):
+ *  - elite: speed-levels-tune's playChain (a 0.25 s reaction, a 0.15 s move and 0.32 s to find the charm, 0.35 s more
+ *    on a new board, a quarter slower reversed; a slip is a wrong tap);
+ *  - average: the Chain kit's player (kits-speed.ts: 0.85 s × pace a link, 1.1 s on a new board; most slips are a
+ *    hesitation that can run past the window, a fifth a wrong tap).
+ */
+function chainNodesOf(c: ChainPuzzleData, links: number, used: number[][], match: boolean): number[] {
+  const board = chainBoardIndex(links, c);
+  const need = chainRequiredAt(c, links)!;
+  return (c.boards[board] ?? []).map((n, i) => ({ n, i })).filter(({ n, i }) => !(used[board] ?? []).includes(i) && (n.shape === need.shape && n.colour === need.colour) === match).map(({ i }) => i);
+}
+
+export function playChainD3(p: PuzzleData, rng: Rng, skill: Skill, model: "elite" | "kit"): Play {
+  if (p.type !== "chain") throw new Error("playChainD3: not a Chain puzzle");
+  const c = p;
+  const taps: ChainTap[] = [];
+  const used: number[][] = [];
+  const steps: Step[] = [];
+  const length = chainRules(c).length;
+  const limit = chainTimeLimitMs(c);
+  const block = chainBlockOf(c);
+  let spares = chainSpareOf(c);
+  const finish = (reason: ChainBreak, at: number) => steps.push({ answer: encodeChainAnswer({ taps, reason }), atMs: at });
+  let lastT: number | null = null;
+  let t = model === "elite" ? 900 : thinkMs(rng, 1.5, skill);
+  for (let links = 0; links < length; ) {
+    const reversed = chainReversedAt(c, links);
+    const firstReversed = reversed && !chainReversedAt(c, links - 1);
+    const cycleLen = chainCycleAt(c, links).length;
+    const newBoard = links > 0 && links % block === 0;
+    const cycleFactor = 1 + 0.06 * (cycleLen - 5);
+    let gap: number;
+    let wrong: boolean;
+    if (model === "elite") {
+      const search = (320 * cycleFactor + (newBoard ? 350 : 0)) * (reversed ? 1.25 : 1);
+      gap = links === 0 ? 0 : actionMs(rng, skill, search);
+      wrong = links > 0 && (rng.chance(skill.err * (reversed ? 1.5 : 1)) || (firstReversed && rng.chance(skill.err * 2)));
+    } else {
+      const factor = (chainLongCycles(c) ? cycleFactor : 1) * (reversed ? 1.25 : 1);
+      gap = links === 0 ? 0 : thinkMs(rng, (newBoard ? 1.1 : 0.85) * factor, skill);
+      const mistake = links > 0 && rng.chance(skill.err * (reversed ? 1.5 : 1));
+      const forgot = firstReversed && rng.chance(Math.min(0.5, skill.err * 1.5));
+      wrong = forgot || (mistake && rng.chance(0.2));
+      if (mistake && !wrong) gap += thinkMs(rng, 0.8, skill);
+    }
+    // From the player's last tap (a forgiven wrong one included).
+    const at = (lastT === null ? t : Math.max(lastT, t)) + gap;
+    if (lastT !== null && at - lastT > chainWindowMs(links + 1, c)) {
+      finish("momentum", lastT + chainWindowMs(links + 1, c));
+      return { timed: true, steps };
+    }
+    if (at > limit) break;
+    const pool = chainNodesOf(c, links, used, !wrong);
+    const node = pool.length ? rng.pick(pool) : 0;
+    taps.push({ node, t: Math.round(at) });
+    if (wrong) {
+      // Easy's spare link (chainSpareOf): the first wrong tap is forgiven; the chain goes on from the last link.
+      if (spares > 0) {
+        spares -= 1;
+        steps.push({ answer: encodeChainAnswer({ taps, reason: "timer" }), atMs: at });
+        t = at;
+        continue;
+      }
+      finish("wrong", at);
+      return { timed: true, steps };
+    }
+    (used[chainBoardIndex(links, c)] ??= []).push(node);
+    links += 1;
+    lastT = at;
+    t = at;
+    if (links >= length) finish("complete", at);
+    else steps.push({ answer: encodeChainAnswer({ taps, reason: "timer" }), atMs: at });
+  }
+  return { timed: true, steps };
+}
+/** speed-levels-tune's action time: a reaction (held to 0.8 of the mean), a 0.15 s move and the search. */
+function actionMs(rng: Rng, skill: Skill, searchMs: number): number {
+  const reactMs = Math.max(skill.reactionMs * 0.8, rng.normal(skill.reactionMs, skill.reactionSd));
+  return reactMs + 150 + searchMs * Math.exp(rng.normal(0, 0.18));
+}
+
 export const SPEED_PLAYERS: D3Players = {
   whack: {
     average: (p, rng) => playBonk(p, rng, SKILLS.average),
     elite: (p, rng) => playBonk(p, rng, HUMAN_LIMITS),
+  },
+  chain: {
+    average: (p, rng) => playChainD3(p, rng, SKILLS.average, "kit"),
+    elite: (p, rng) => playChainD3(p, rng, HUMAN_LIMITS, "elite"),
   },
   tendrop: {
     average: (p, rng) => playTenfall(p, rng, SKILLS.average, 0),

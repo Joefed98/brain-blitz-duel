@@ -1,5 +1,5 @@
 import { successFrame } from "./success.renderer";
-import { whackRule, WHACK_RED, whackComboMultiplier, whackGame, WHACK_COLS, whackDiamondLife, WHACK_HOLES, WHACK_GAP_PX, WHACK_STATUS_WRONG, WHACK_STATUS_RETIRED, WHACK_STATUS_UP, WHACK_STATUS_HIT, type WhackState } from './whack';
+import { whackRule, WHACK_RED, whackComboMultiplier, whackGame, WHACK_COLS, whackColsOf, whackDiamondLife, WHACK_GAP_PX, WHACK_STATUS_WRONG, WHACK_STATUS_RETIRED, WHACK_STATUS_UP, WHACK_STATUS_HIT, type WhackState } from './whack';
 import { reducedMotion } from './art.renderer';
 import { arcadeReducedEffects } from '@/lib/fx/lowEnd';
 import type { CanvasSize } from './engine';
@@ -49,25 +49,26 @@ function prng(seed: number): () => number {
 type Ctx = CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 
 interface Grid { cellW: number; cellH: number; cell: number; origin: (h: number) => { x: number; y: number } }
-function grid(width: number, height: number): Grid {
+// D3 (22 Nov 2026): `cols`, the run's lawn (whackColsOf: a level's 3 × 3, 5 × 5 or 6 × 6; Normal's 4 × 4 by default).
+function grid(width: number, height: number, cols = WHACK_COLS): Grid {
   const gap = WHACK_GAP_PX;
-  const cellW = (width - gap * (WHACK_COLS - 1)) / WHACK_COLS;
-  const cellH = (height - gap * (WHACK_COLS - 1)) / WHACK_COLS;
+  const cellW = (width - gap * (cols - 1)) / cols;
+  const cellH = (height - gap * (cols - 1)) / cols;
   return {
     cellW, cellH, cell: Math.min(cellW, cellH),
-    origin: (h: number) => ({ x: (h % WHACK_COLS) * (cellW + gap), y: Math.floor(h / WHACK_COLS) * (cellH + gap) }),
+    origin: (h: number) => ({ x: (h % cols) * (cellW + gap), y: Math.floor(h / cols) * (cellH + gap) }),
   };
 }
 
 /** Meadow + burrows, painted in board px (the caller scales). */
-export function paintMeadow(c: Ctx, width: number, height: number): void {
+export function paintMeadow(c: Ctx, width: number, height: number, cols = WHACK_COLS): void {
   const g = c.createLinearGradient(0, 0, 0, height);
   g.addColorStop(0, PALETTE.meadowTop); g.addColorStop(1, PALETTE.meadowBottom);
   c.fillStyle = g; c.fillRect(0, 0, width, height);
-  const { cellW, cellH, origin } = grid(width, height);
+  const { cellW, cellH, origin } = grid(width, height, cols);
   // Mown bands, one per row of burrows.
   c.fillStyle = '#FFFFFF';
-  for (let row = 0; row < WHACK_COLS; row += 2) { c.globalAlpha = 0.035; c.fillRect(0, row * (cellH + WHACK_GAP_PX) - WHACK_GAP_PX / 2, width, cellH + WHACK_GAP_PX); }
+  for (let row = 0; row < cols; row += 2) { c.globalAlpha = 0.035; c.fillRect(0, row * (cellH + WHACK_GAP_PX) - WHACK_GAP_PX / 2, width, cellH + WHACK_GAP_PX); }
   c.globalAlpha = 1;
   // Grass blades: two shades, short strokes leaning with the wind.
   const rnd = prng(0xb0b5);
@@ -81,7 +82,7 @@ export function paintMeadow(c: Ctx, width: number, height: number): void {
   }
   c.globalAlpha = 1;
   const inHole = (x: number, y: number, pad: number) => {
-    for (let h = 0; h < WHACK_HOLES; h++) {
+    for (let h = 0; h < cols * cols; h++) {
       const o = origin(h), dx = (x - o.x - cellW / 2) / (cellW * 0.5 + pad), dy = (y - o.y - cellH / 2) / (cellH * 0.5 + pad);
       if (dx * dx + dy * dy < 1) return true;
     }
@@ -100,7 +101,7 @@ export function paintMeadow(c: Ctx, width: number, height: number): void {
   }
   c.globalAlpha = 1;
   // Burrows: earth mound, dark depth, lit front lip. All inside the cell.
-  for (let h = 0; h < WHACK_HOLES; h++) {
+  for (let h = 0; h < cols * cols; h++) {
     const o = origin(h), cx = o.x + cellW / 2, cy = o.y + cellH / 2;
     const rx = cellW * 0.47, ry = cellH * 0.45;
     c.fillStyle = 'rgba(0,0,0,0.22)';
@@ -157,17 +158,17 @@ export function paintMeadow(c: Ctx, width: number, height: number): void {
   c.fillStyle = vignette; c.fillRect(0, 0, width, height);
 }
 
-function ground(width: number, height: number, scale: number): ArtCanvas | null {
+function ground(width: number, height: number, scale: number, cols = WHACK_COLS): ArtCanvas | null {
   // Rebuilt once when the overhaul's lawn and burrow have loaded.
   const art = speedArtReady(BONK_GROUND_ART);
-  const key = `${width}x${height}@${scale}${art ? ':art' : ''}`;
+  const key = `${width}x${height}@${scale}${art ? ':art' : ''}${cols !== WHACK_COLS ? `:${cols}` : ''}`;
   if (backdrop?.key === key) return backdrop.canvas;
   const canvas = artCanvas(Math.ceil(width * scale), Math.ceil(height * scale)), c = canvas ? artContext(canvas) : null;
   if (!canvas || !c) return null;
   c.scale(scale, scale);
   const lawn = art ? speedArtImage('bonk-lawn') : null, burrow = art ? speedArtImage('bonk-burrow') : null;
-  if (lawn && burrow) paintLawn(c, width, height, lawn, burrow);
-  else paintMeadow(c, width, height);
+  if (lawn && burrow) paintLawn(c, width, height, lawn, burrow, cols);
+  else paintMeadow(c, width, height, cols);
   backdrop = { key, canvas };
   return canvas;
 }
@@ -256,11 +257,11 @@ export function drawTarget(c: CanvasRenderingContext2D, x: number, y: number, r:
  * The overhaul's ground: the rendered lawn (scaled to cover the board) and a rendered burrow filling each hole's
  * ellipse plus its earth lip (inside the cell). Nothing outside the sixteen burrows looks like one.
  */
-function paintLawn(c: Ctx, width: number, height: number, lawn: HTMLImageElement, burrow: HTMLImageElement): void {
+function paintLawn(c: Ctx, width: number, height: number, lawn: HTMLImageElement, burrow: HTMLImageElement, cols = WHACK_COLS): void {
   const s = Math.max(width / lawn.naturalWidth, height / lawn.naturalHeight);
   c.drawImage(lawn, (width - lawn.naturalWidth * s) / 2, (height - lawn.naturalHeight * s) / 2, lawn.naturalWidth * s, lawn.naturalHeight * s);
-  const { cellW, cellH, origin } = grid(width, height);
-  for (let h = 0; h < WHACK_HOLES; h++) {
+  const { cellW, cellH, origin } = grid(width, height, cols);
+  for (let h = 0; h < cols * cols; h++) {
     const o = origin(h), cx = o.x + cellW / 2, cy = o.y + cellH / 2;
     // The sprite's hole (r 66 of its 80 × 75 half-box, squashed to 0.92) lands on the hole's ellipse; its thin
     // earth lip reaches just past the cell into the gap, never a neighbour's.
@@ -280,10 +281,11 @@ function pixelScale(ctx: CanvasRenderingContext2D): number {
 
 /** Draws the 4×4 board filling the canvas; the overlay grid shares the geometry. */
 export function drawBonk(ctx: CanvasRenderingContext2D, state: WhackState, size: CanvasSize): void {
-  const { cellW, cellH, cell, origin } = grid(size.width, size.height);
+  const cols = whackColsOf(state);
+  const { cellW, cellH, cell, origin } = grid(size.width, size.height, cols);
   ctx.save();
   ctx.clearRect(0, 0, size.width, size.height);
-  const bg = ground(size.width, size.height, pixelScale(ctx));
+  const bg = ground(size.width, size.height, pixelScale(ctx), cols);
   if (bg) ctx.drawImage(bg, 0, 0, size.width, size.height);
   else { ctx.fillStyle = PALETTE.meadowBottom; ctx.fillRect(0, 0, size.width, size.height); }
 
@@ -405,7 +407,7 @@ function drawFlipRims(ctx: CanvasRenderingContext2D, state: WhackState, cellW: n
   ctx.globalAlpha = reducedMotion() ? 0.85 : 0.9 * (1 - age / WHACK_FLIP_RIM_TICKS) * (age % 12 < 8 ? 1 : 0.55);
   ctx.strokeStyle = red ? PALETTE.red : PALETTE.gold;
   ctx.lineWidth = Math.max(3, cellW * 0.05);
-  for (let h = 0; h < WHACK_HOLES; h++) {
+  for (let h = 0; h < whackColsOf(state) ** 2; h++) {
     const o = origin(h);
     ctx.beginPath();
     ctx.ellipse(o.x + cellW / 2, o.y + cellH / 2, cellW * 0.485, cellH * 0.465, 0, 0, Math.PI * 2);
@@ -535,13 +537,13 @@ function drawComboTag(ctx: CanvasRenderingContext2D, x: number, y: number, cell:
  * together and the hard hats fly up and spin away. Reduced motion: one still frame
  * (hats raised) that simply fades.
  */
-export function drawBonkFinale(ctx: CanvasRenderingContext2D, ms: number, width: number, height: number, lift: number, reduced: boolean): void {
-  const { cellW, cellH, cell, origin } = grid(width, height);
+export function drawBonkFinale(ctx: CanvasRenderingContext2D, ms: number, width: number, height: number, lift: number, reduced: boolean, cols = WHACK_COLS): void {
+  const { cellW, cellH, cell, origin } = grid(width, height, cols);
   const r = cell * 0.3;
   const fade = ms < 800 ? 1 : Math.max(0, 1 - (ms - 800) / 300);
   ctx.save();
   ctx.translate(0, lift);
-  for (let h = 0; h < WHACK_HOLES; h++) {
+  for (let h = 0; h < cols * cols; h++) {
     const o = origin(h), cx = o.x + cellW / 2, cy = o.y + cellH / 2;
     const delay = ((h * 7) % 5) * 14;
     const local = Math.max(0, ms - delay);
@@ -582,7 +584,7 @@ function bonkMissAt(state: WhackState, width: number, height: number): { x: numb
   for (let i = 0; i < state.status.length; i++) if (state.status[i] === WHACK_STATUS_WRONG && (last < 0 || (state.doneTick[i] ?? 0) > (state.doneTick[last] ?? 0))) last = i;
   const hole = state.schedule.hole[last];
   if (last < 0 || hole === undefined || state.tick - (state.doneTick[last] ?? 0) > 6) return null;
-  const { cellW, cellH, origin } = grid(width, height);
+  const { cellW, cellH, origin } = grid(width, height, whackColsOf(state));
   const o = origin(hole);
   return { x: o.x + cellW / 2, y: o.y + cellH / 2 };
 }
