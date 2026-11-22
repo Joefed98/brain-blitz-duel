@@ -143,13 +143,13 @@ export const LOGIC_GAME_LEVELS: { [K in LogicLevelGame]: { levels: Levels<LogicL
   ),
   fences: levels<FencesLevel>(
     { size: 5, grade: [0, 1], minClues: 14, person: [0, 1], timeLimitMs: 90_000 },
-    { size: 7, grade: [3, 8], minClues: 18, person: [3, 15], timeLimitMs: 90_000, fullByS: 48 },
-    { size: 8, grade: [4, 30], minClues: 19, person: [8, 40], timeLimitMs: 120_000, fullByS: 76 },
+    { size: 7, grade: [3, 8], minClues: 18, person: [3, 15], timeLimitMs: 90_000, fullByS: 49 },
+    { size: 8, grade: [4, 30], minClues: 19, person: [8, 40], timeLimitMs: 120_000, fullByS: 69 },
   ),
   fillomino: levels<FillominoLevel>(
     { size: 6, grade: [0, 20], givens: [16, 22], person: [0, 15], timeLimitMs: 90_000 },
-    { size: 8, grade: [30, 400], givens: [16, 20], person: [20, 120], timeLimitMs: 100_000 },
-    { size: 8, grade: [40, 100_000], givens: [10, 14], person: [40, 400], timeLimitMs: 120_000 },
+    { size: 8, grade: [30, 400], givens: [16, 20], person: [20, 120], timeLimitMs: 100_000, fullByS: 78 },
+    { size: 8, grade: [40, 100_000], givens: [10, 14], person: [40, 400], timeLimitMs: 120_000, fullByS: 88 },
   ),
   bridges: levels<BridgesLevel>(
     { size: 6, islands: [7, 9], grade: [0, 0], person: [0, 0], timeLimitMs: 90_000 },
