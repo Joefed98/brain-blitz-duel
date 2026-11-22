@@ -82,8 +82,8 @@ const LEVELS = ["easy", "hard", "expert"] as const;
 type L = (typeof LEVELS)[number];
 const WANT: Record<L, { crates: number; min: number; max: number; perCrate: number; detour: boolean; hint: boolean; fullBy: number }> = {
   easy: { crates: 3, min: 8, max: 14, perCrate: 2, detour: false, hint: true, fullBy: 30 },
-  hard: { crates: 5, min: 25, max: 32, perCrate: 3, detour: true, hint: false, fullBy: 45 },
-  expert: { crates: 6, min: 30, max: 40, perCrate: 3, detour: true, hint: false, fullBy: 45 },
+  hard: { crates: 6, min: 28, max: 36, perCrate: 3, detour: true, hint: false, fullBy: 61 }, // Changed with Joe's approval, 22 Nov 2026
+  expert: { crates: 7, min: 38, max: 48, perCrate: 3, detour: true, hint: false, fullBy: 81 }, // Changed with Joe's approval, 22 Nov 2026
 };
 const OPP = { U: "D", D: "U", L: "R", R: "L" } as Record<SlideDir, SlideDir>;
 const deal = (seed: number, level?: string) =>

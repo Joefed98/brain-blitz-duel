@@ -227,10 +227,10 @@ for (const { type, level } of LOGIC_LEVEL_BANKED.filter((b) => GAMES.includes(b.
   });
 }
 
-// The live count follows the board: Trail Easy shows 14 numbers, so 22 squares are left (not Normal's 26).
+// The live count follows the board: Trail Easy is 5 × 5 with 9 numbers, so 16 squares are left (not Normal's 26). // Changed with Joe's approval, 22 Nov 2026
 if (GAMES.includes("trail")) check("trail easy: the count and \"to go\" follow the board's own blanks", () => {
   const p = splitPuzzle(deal("trail", "easy", 0)).pub as Any;
-  assert.equal(trToFill(p.givens), 22);
+  assert.equal(trToFill(p.givens), 16); // Changed with Joe's approval, 22 Nov 2026
   assert.equal(trToFill((splitPuzzle(deal("trail", null, 0)).pub as Any).givens), 26, "Normal's ten numbers leave 26");
   const stage = readFileSync("src/puzzles/trail.tsx", "utf8");
   assert.match(stage, /const toFill = data \? trToFill\(data\.givens\)/);
