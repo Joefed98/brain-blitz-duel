@@ -27,7 +27,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const rev = data?.pokerSquaresRev ?? 1;
   // The player's own equipped skin (wave 2; display only, src/lib/skins/equipped.ts).
   const [look, lookRef] = useGameLookRef("pokersquares");
-  const scene = useMemo(() => cardsFillFor(look), [look]);
+  // Full House is retired: its fill stays as it was before the polish plan's brighter baize (20 Nov 2026).
+  const scene = useMemo(() => cardsFillFor(look, true), [look]);
   const game = useMemo(() => {
     const art = pokerSquaresArtGame(view, rev);
     return { ...art, draw: (ctx: CanvasRenderingContext2D, state: PsState, size: { width: number; height: number }) => { latest.current = state; withCardsLook(lookRef.current, () => art.draw(ctx, state, size)); } };

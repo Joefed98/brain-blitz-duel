@@ -158,7 +158,8 @@ interface Extent {
 /** Each setting's colours: sky top, middle and horizon, the far and near ridges, the field far and near, the horizon haze and the far tanks' fog. */
 export const BT_SETTING_LOOK = [
   { sky: ["#25334A", "#5F7690", "#9DB0C2"], ridge: "#3A4658", ridgeNear: "#2B333F", field: ["#776448", "#5A4B37"], haze: "120,140,160", hazeA: 0.5, fog: "96,112,130" },
-  { sky: ["#4A3A34", "#A3734A", "#E0B27A"], ridge: "#A07A52", ridgeNear: "#7E5E40", field: ["#9A7C54", "#6E583C"], haze: "214,170,112", hazeA: 0.55, fog: "176,140,98" },
+  // The desert (the polish plan, 20 Nov 2026): a brighter sky and sand, about a quarter lighter (the fog unchanged).
+  { sky: ["#6A5448", "#C48E5C", "#F2C892"], ridge: "#BC9264", ridgeNear: "#987050", field: ["#BC9868", "#8C7050"], haze: "232,194,138", hazeA: 0.5, fog: "176,140,98" },
   { sky: ["#1C1418", "#5C2A22", "#C0582E"], ridge: "#3A2626", ridgeNear: "#241A1C", field: ["#6A4F38", "#43342A"], haze: "70,48,44", hazeA: 0.5, fog: "84,60,54" },
 ] as const;
 
@@ -553,7 +554,7 @@ function paintFieldGrain(ctx: CanvasRenderingContext2D, e: Extent, setting: BtSe
  * out from the vanishing point at scale 1, always at least 214 px out (the road's edge is 192 px out at the wall and the
  * outer lanes' hulls end 175 px out), so nothing ever covers a lane or a shot. The list repeats outward for wide scenes.
  */
-type SceneryKind = "rock" | "wall" | "scrub" | "trap" | "wreck";
+type SceneryKind = "rock" | "wall" | "scrub" | "trap" | "wreck" | "ruin";
 export const BT_SCENERY: readonly (readonly [side: -1 | 1, out: number, z: number, kind: SceneryKind])[] = [
   [-1, 236, 70, "wall"],
   [1, 230, 110, "trap"],
@@ -577,6 +578,13 @@ export const BT_SCENERY: readonly (readonly [side: -1 | 1, out: number, z: numbe
   [1, 600, 90, "wall"],
   [-1, 640, 380, "trap"],
   [1, 620, 460, "rock"],
+  // The polish plan's C3.2 (Joe, 20 Nov 2026): ruined buildings beside the road, both sides, never on a lane.
+  [-1, 300, 150, "ruin"],
+  [1, 330, 340, "ruin"],
+  [-1, 360, 820, "ruin"],
+  [1, 280, 1080, "ruin"],
+  [-1, 520, 300, "ruin"],
+  [1, 540, 760, "ruin"],
 ];
 
 function paintScenery(ctx: CanvasRenderingContext2D, e: Extent, setting: BtSetting = 0): void {
@@ -592,6 +600,7 @@ function paintScenery(ctx: CanvasRenderingContext2D, e: Extent, setting: BtSetti
     else if (kind === "wall") paintBrokenWall(ctx, x, y, s, side);
     else if (kind === "scrub") paintScrub(ctx, x, y, s);
     else if (kind === "trap") paintTankTrap(ctx, x, y, s);
+    else if (kind === "ruin") paintRuinBuilding(ctx, x, y, s, side, z);
     else {
       paintWreck(ctx, x, y, s, side);
       // In the storm every wreck burns: a smoke plume with volume rising off it (behind the tanks, in the backdrop).
@@ -710,6 +719,72 @@ function paintBrokenWall(ctx: CanvasRenderingContext2D, x: number, y: number, s:
   for (let k = 0; k < 4; k++) {
     ctx.beginPath();
     ctx.arc(x0 + w * (0.5 + k * 0.16), y - 1.5 * s, (2.5 + (k % 2)) * s + 0.4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/**
+ * A ruined building beside the road (C3.2): a two- or three-storey shell in the wall's stone with a broken top, dark
+ * windows, a lit face on the sun's side and a scorch, at the lane's depth scale. Its near edge stays on the field side
+ * of the road (`out` is at least 280 at scale 1; the shell is 46 wide).
+ */
+function paintRuinBuilding(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, side: number, z: number): void {
+  const storeys = z % 3 === 0 ? 3 : 2;
+  const w = 46 * s + 2;
+  const h = (24 + 16 * storeys) * s + 2;
+  const x0 = x - w / 2;
+  ctx.fillStyle = "rgba(20,16,12,0.32)";
+  ctx.beginPath();
+  ctx.ellipse(x, y, w * 0.62, h * 0.06 + 0.6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#58504A";
+  ctx.beginPath();
+  ctx.moveTo(x0, y);
+  ctx.lineTo(x0, y - h * 0.86);
+  ctx.lineTo(x0 + w * 0.16, y - h);
+  ctx.lineTo(x0 + w * 0.3, y - h * 0.9);
+  ctx.lineTo(x0 + w * 0.46, y - h * 0.96);
+  ctx.lineTo(x0 + w * 0.6, y - h * 0.62);
+  ctx.lineTo(x0 + w * 0.78, y - h * 0.7);
+  ctx.lineTo(x0 + w, y - h * 0.48);
+  ctx.lineTo(x0 + w, y);
+  ctx.closePath();
+  ctx.fill();
+  // The lit face (the sun's side) and the shaded side.
+  ctx.fillStyle = side > 0 ? "rgba(255,200,140,0.14)" : "rgba(0,0,0,0.16)";
+  ctx.fillRect(x0, y - h * 0.86, w * 0.12, h * 0.86);
+  // Floors and empty windows.
+  if (s > 0.25) {
+    ctx.strokeStyle = "rgba(28,24,20,0.5)";
+    ctx.lineWidth = Math.max(0.6, s);
+    for (let k = 1; k < storeys; k++) {
+      const yy = y - (h * k) / (storeys + 0.6);
+      ctx.beginPath();
+      ctx.moveTo(x0, yy);
+      ctx.lineTo(x0 + w * (k === storeys - 1 ? 0.62 : 1), yy);
+      ctx.stroke();
+    }
+    ctx.fillStyle = "rgba(16,14,14,0.78)";
+    for (let k = 0; k < storeys; k++) {
+      const yy = y - (h * (k + 0.62)) / (storeys + 0.6);
+      for (let c = 0; c < 3; c++) {
+        const wx = x0 + w * (0.18 + c * 0.26);
+        if (yy < y - h * (c === 2 ? 0.46 : 0.82)) continue;
+        ctx.fillRect(wx, yy, w * 0.12, h * 0.1);
+      }
+    }
+  }
+  // A scorch up the wall from a doorway.
+  const scorch = ctx.createLinearGradient(0, y, 0, y - h * 0.6);
+  scorch.addColorStop(0, "rgba(20,14,12,0.5)");
+  scorch.addColorStop(1, "rgba(20,14,12,0)");
+  ctx.fillStyle = scorch;
+  ctx.fillRect(x0 + w * 0.42, y - h * 0.6, w * 0.22, h * 0.6);
+  // Rubble at its foot.
+  ctx.fillStyle = "#423B35";
+  for (let k = 0; k < 5; k++) {
+    ctx.beginPath();
+    ctx.arc(x0 + w * (0.08 + k * 0.22), y - 1.5 * s, (2.5 + (k % 2)) * s + 0.4, 0, Math.PI * 2);
     ctx.fill();
   }
 }
@@ -943,41 +1018,16 @@ export const BT_BADGES = [
   { letter: "M", name: "Medium", ring: "#E2C07A" },
   { letter: "H", name: "Heavy", ring: "#FF8A6A" },
 ] as const;
-/** From this depth (world px from the wall) a tank is far: it gets the light outline, fading in over the next 200 px, and its type badge. */
+/** From this depth (world px from the wall) a tank is far: it gets its type badge (no outline since the polish plan's C3.1, 22 Nov 2026). */
 export const BT_FAR_MARK_Z = 620;
 /** The badge's size (view px) and its letter's size: never under 10 px, readable at the horizon. */
 export const BT_BADGE_W = 16;
 export const BT_BADGE_H = 15;
 export const BT_BADGE_FONT = 11;
 
-/** How strongly a tank at depth z (1/256 px) is outlined (0 near, rising to 1 from BT_FAR_MARK_Z). */
+/** How far a tank at depth z (1/256 px) is (0 near, rising to 1 from BT_FAR_MARK_Z): its badge fades in with it. */
 export function bastionFarMark(z256: number): number {
   return Math.max(0, Math.min(1, (z256 / 256 - BT_FAR_MARK_Z + 160) / 200));
-}
-
-/** The far tank's light outline: a thin pale line round its hull and turret, on their edges (inside the 2 px bounds). */
-export function paintTankOutline(ctx: CanvasRenderingContext2D, kind: number, lane: number, z: number): void {
-  const k = bastionFarMark(z);
-  if (k <= 0) return;
-  const r = bastionTankRects(kind, lane, z);
-  ctx.save();
-  ctx.strokeStyle = `rgba(255,246,226,${0.75 * k})`;
-  ctx.lineWidth = 1.1;
-  ctx.lineJoin = "round";
-  const [hx0, hy0, hx1, hy1] = r.hull;
-  const [tx0, ty0, tx1, ty1] = r.turret;
-  ctx.beginPath();
-  ctx.moveTo(hx0, hy1);
-  ctx.lineTo(hx0, hy0);
-  ctx.lineTo(Math.max(hx0, tx0), hy0);
-  ctx.lineTo(tx0, ty0);
-  ctx.lineTo(tx1, ty0);
-  ctx.lineTo(Math.min(hx1, tx1), hy0);
-  ctx.lineTo(hx1, hy0);
-  ctx.lineTo(hx1, hy1);
-  ctx.closePath();
-  ctx.stroke();
-  ctx.restore();
 }
 
 /** Where a far tank's badge sits in the view: centred over its health pips (null for a near tank). */
@@ -2006,7 +2056,7 @@ function drawBastionWorld(ctx: CanvasRenderingContext2D, state: BastionTankState
     btViewTransform(ctx, tr.cx, (tr.turret[1] + tr.ground) / 2);
     paintTankShadow(ctx, t.kind, t.lane, t.z);
     paintTank(ctx, t.kind, t.lane, t.z, t.hp, t.flash, state.tick, still, p ? bastionWeakOpen(p, state.tick) : true, true, t.i, weakPct);
-    paintTankOutline(ctx, t.kind, t.lane, t.z);
+    // The polish plan's C3.1 (Joe, 20 Nov 2026): no white outline round far tanks; the S/M/H badges stay.
     ctx.restore();
     paintTankBadge(ctx, t.kind, t.lane, t.z);
   }

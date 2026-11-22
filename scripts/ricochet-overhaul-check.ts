@@ -47,7 +47,7 @@ import {
   NINJA_LEAP_TICKS, katanaTouches, moonGameFor, moonLeapTicks, moonLedgeX, moonSkyAt, ninjaBodyFor, ninjaSurface, MOON_FLOW_SLIDE, SURF_MOSS,
 } from "../src/lib/arcade/ricochetNinja";
 import {
-  drawKatana, drawNinja, drawNinjaWorld as drawWorld, drawShuriken, FAR_LANTERN_COUNT, farLanternAt, moonHudRows, moonNight, moonPlace, ninjaArtScale,
+  drawKatana, drawNinja, drawNinjaWorld as drawWorld, drawShuriken, moonHudRows, moonNight, moonPlace, ninjaArtScale,
   ninjaCamera, ninjaDrawPoint, ninjaScreenY, wallRake,
 } from "../src/lib/arcade/ricochetNinja.renderer";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
@@ -506,21 +506,13 @@ if (process.argv.includes("--record")) {
     ok(stray === 0, `look a: the lantern changes nothing in the gap outside its own radius (+2): ${stray} pixels`);
     ok(lit > 400, `look a: its warm light falls on the stone near it (${lit} wall or ledge pixels lit)`);
   }
-  // b. Far lanterns.
+  // b. No far lanterns (the sky's lanterns are the six real ones).
   const sim = readFileSync("src/lib/arcade/ricochetNinja.ts", "utf8");
   ok(!/renderer/.test(sim.split("\n").filter((l) => l.startsWith("import")).join("\n")), "look b: the sim imports no renderer");
-  let inside = true;
-  let small = true;
-  for (let i = 0; i < FAR_LANTERN_COUNT; i++)
-    for (const t of [0, 500, 1800, 3599]) {
-      const f = farLanternAt(i, t);
-      const g2 = farLanternAt(i, t);
-      if (f.x !== g2.x || f.y !== g2.y) inside = false;
-      if (f.x < NINJA_WALL_L + 8 || f.x > NINJA_WALL_R - 8) inside = false;
-      if (7 * f.s > MOON_SKY_R) small = false;
-    }
-  ok(FAR_LANTERN_COUNT >= 4 && inside, "look b: the far lanterns are placed by the tick alone, inside the shaft");
-  ok(small, "look b: a far lantern is never taller than half a sky lantern");
+  // Changed with Joe's approval, 22 Nov 2026 (the polish plan's C3.4): no decorative far lanterns in the sky; their
+  // painter and placement are gone, so they can't come back unnoticed (the six real sky lanterns are drawSkyLantern's).
+  const art = readFileSync("src/lib/arcade/ricochetNinja.renderer.ts", "utf8");
+  ok(!/FAR_LANTERN|farLanternAt|drawFarLantern/.test(art), "look b: no far lanterns drawn in the sky");
   // c. The moon: large and low at the foot.
   ok(moonPlace(0).r >= 80 && moonPlace(1).r >= 60, `look c: the moon is large (${moonPlace(0).r} px low down, ${moonPlace(1).r} px high)`);
   // d. The rake.

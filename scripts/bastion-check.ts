@@ -613,7 +613,7 @@ const serverReplay = (seed: number, events: ArcadeInputEvent[], claim?: number, 
     ok(bad === 0, `the drone's drawn art sits within 2 px of its rectangle (${bad} points outside)`);
     // Each item's half-width at scale 1 (the painters' widest reach); the road's edge is 192 px out at the wall and the
     // outer lanes' hulls end 175 px out.
-    const half: Record<string, number> = { rock: 16, wall: 28, scrub: 18, trap: 12, wreck: 40 };
+    const half: Record<string, number> = { rock: 16, wall: 28, scrub: 18, trap: 12, wreck: 40, ruin: 25 }; // Changed with Joe's approval, 22 Nov 2026
     ok(BT_SCENERY.every(([, out, , kind]) => out - half[kind]! > 200), "every scenery item sits outside the road's edges (nothing covers a lane or a shot)");
   }
 }

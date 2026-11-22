@@ -170,8 +170,10 @@ def felt():
     nt.links.new(tc.outputs["Object"], n.inputs["Vector"])
     ramp = nt.nodes.new("ShaderNodeValToRGB")
     el = ramp.color_ramp.elements
-    el[0].position, el[0].color = 0.35, (0.006, 0.05, 0.022, 1)
-    el[1].position, el[1].color = 0.65, (0.012, 0.075, 0.036, 1)
+    # The polish plan (Joe, 20 Nov 2026): a brighter baize, about a quarter lighter on screen (was (0.006, 0.05, 0.022)
+    # to (0.012, 0.075, 0.036) linear).
+    el[0].position, el[0].color = 0.35, (0.010, 0.08, 0.036, 1)
+    el[1].position, el[1].color = 0.65, (0.019, 0.118, 0.057, 1)
     nt.links.new(n.outputs["Fac"], ramp.inputs[0])
     nt.links.new(ramp.outputs[0], b.inputs["Base Color"])
     bump = nt.nodes.new("ShaderNodeBump")
