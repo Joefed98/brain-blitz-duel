@@ -8,7 +8,7 @@
  *
  * Render only: never reads or writes a sim, only the numbers each renderer hands it.
  */
-import { hudInWorld } from "./hudPlacement";
+import { hudInWorld, noteHud } from "./hudPlacement";
 import { ARCADE_FX_DISPLAY_FONT } from "./arcadeFx.renderer";
 import { successHud } from "./success.renderer";
 
@@ -137,6 +137,7 @@ function drawChip(ctx: CanvasRenderingContext2D, x: number, y: number, chip: Act
  */
 export function drawActionHud(ctx: CanvasRenderingContext2D, width: number, rows: readonly ActionHudRow[], top = ACTION_HUD_TOP): void {
   // The Cabinet (polish plan B1): on the arena the panel draws these values instead (hudPlacement.ts).
+  for (const row of rows) for (const chip of [...row.left, ...(row.right ?? [])]) noteHud({ label: chip.label, value: chip.value, gold: chip.tone === "gold" });
   if (!hudInWorld()) return;
   if (rows.length > 2) throw new Error("the action HUD has at most two rows");
   ctx.save();
