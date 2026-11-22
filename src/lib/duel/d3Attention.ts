@@ -47,11 +47,5 @@ export function dealD3Maze<T extends PuzzleData>(puzzle: T): T {
   return { ...puzzle, mazeRev: MAZE_REV_D3 };
 }
 
-/** The Attention levels' second table: stamped `levelRev: 2` on every level deal from D3 on. */
-export const ATTENTION_LEVEL_REV = 2;
-
-/** The level table revision a stored puzzle was dealt on (1 for every puzzle without the stamp). */
-export function attentionLevelRevOf(puzzle: unknown): number {
-  const v = (puzzle as { levelRev?: unknown } | null)?.levelRev;
-  return typeof v === "number" && Number.isFinite(v) ? v : 1;
-}
+// The Attention levels' `levelRev 2` lives with the level helpers (attentionLevels.ts ATTENTION_LEVEL_REV), which the
+// phone loads with no deal-era code.
