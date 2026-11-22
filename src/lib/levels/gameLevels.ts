@@ -69,9 +69,9 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // used-up digits hidden from the keypad (Easy), the clock.
   sudoku: {
     levels: {
-      easy: { settings: { givens: [19, 21], steps: "singles", clashes: "live", hideUsed: true, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      hard: { settings: { givens: [10, 12], steps: "advanced", minAdvanced: 1, clashes: "live", hideUsed: false, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      expert: { settings: { givens: [9, 10], steps: "advanced", minAdvanced: 2, clashes: "check", hideUsed: false, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      easy: { settings: { givens: [24, 26], steps: "singles", clashes: "live", hideUsed: true, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      hard: { settings: { givens: [10, 12], steps: "advanced", minAdvanced: 1, clashes: "live", hideUsed: false, timeMs: 90_000, fullByS: 55 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { givens: [8, 9], steps: "advanced", minAdvanced: 3, clashes: "check", hideUsed: false, timeMs: 75_000, fullByS: 51 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
   // Polypotions. Levers: flasks, colours, layers a flask holds, empty flasks, the exact minimum's band, hidden layers
@@ -79,24 +79,29 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   tubes: {
     levels: {
       easy: { settings: { flasks: 6, colours: 4, capacity: 4, minMoves: [8, 12], hidden: false, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      hard: { settings: { flasks: 10, colours: 8, capacity: 7, minMoves: [26, 34], hidden: false, timeMs: 120_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      expert: { settings: { flasks: 12, colours: 10, capacity: 6, minMoves: [28, 38], hidden: true, timeMs: 120_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      // D4 (22 Nov 2026): Hard is Expert's rack of twelve flasks and ten colours with every layer on show, on 90 s.
+      hard: { settings: { flasks: 12, colours: 10, capacity: 6, minMoves: [28, 38], hidden: false, timeMs: 90_000, fullByS: 40 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { flasks: 12, colours: 10, capacity: 6, minMoves: [28, 38], hidden: true, timeMs: 120_000, fullByS: 65 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
   // Hanoi. Levers: posts (fixed per level), rings, the exact minimum's band, the clock.
   tower: {
     levels: {
       easy: { settings: { pegs: 4, discs: 7, minMoves: [10, 18], timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      hard: { settings: { pegs: 3, discs: 9, minMoves: [34, 45], timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      expert: { settings: { pegs: 3, discs: 10, minMoves: [45, 60], timeMs: 105_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      // D4 (22 Nov 2026): the rings climb every level (7, 9, 10, 12), each minimum about half again the one below.
+      hard: { settings: { pegs: 3, discs: 10, minMoves: [40, 55], timeMs: 90_000, fullByS: 44 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { pegs: 3, discs: 12, minMoves: [70, 90], timeMs: 120_000, fullByS: 67 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
   // Safe Cracker. Levers: dials, the dial range, clues on the card, the clue kinds and their weights, tries, the clock.
   safe: {
     levels: {
-      easy: { settings: { dials: 3, max: 9, clues: 5, kinds: "simple", tries: 3, timeMs: 75_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      hard: { settings: { dials: 4, max: 15, clues: 6, kinds: "number", tries: 3, timeMs: 75_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      expert: { settings: { dials: 5, max: 20, clues: 7, kinds: "number", tries: 2, timeMs: 105_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      // D4 (22 Nov 2026): a dial every level (3, 4, 5, 6) and the tries shrinking (3, 3, 2, 1). Easy four simple clues;
+      // Hard five dials of 0–15, seven clues, two tries, 90 s; Expert six dials of 0–15, nine clues and one try (six of
+      // 0–20 could not be built: no card in 110 s). Hard and Expert from their banks.
+      easy: { settings: { dials: 3, max: 9, clues: 4, kinds: "simple", tries: 3, timeMs: 75_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      hard: { settings: { dials: 5, max: 15, clues: 7, kinds: "number", tries: 2, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { dials: 6, max: 15, clues: 9, kinds: "number", tries: 1, timeMs: 105_000 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
   // Mosaic. Levers: columns × rows (grown downwards, so squares stay tappable at 375 px), how full the picture is,
@@ -104,9 +109,10 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // needs two lines together at least once), lines locking once right (Easy), the clock.
   nonogram: {
     levels: {
-      easy: { settings: { cols: 6, rows: 6, fill: [0.5, 0.7], logic: "line", lockLines: true, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      // D4 (22 Nov 2026): Easy a 5 × 5 picture; Expert two lines read together at least three times, on 100 s.
+      easy: { settings: { cols: 5, rows: 5, fill: [0.5, 0.7], logic: "line", lockLines: true, timeMs: 90_000 }, oneSolution: { proof: LOGIC1_PROOF } },
       hard: { settings: { cols: 9, rows: 11, fill: [0.5, 0.65], logic: "line", lockLines: false, timeMs: 120_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      expert: { settings: { cols: 9, rows: 14, fill: [0.5, 0.6], logic: "two", lockLines: false, timeMs: 120_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { cols: 9, rows: 14, fill: [0.5, 0.6], logic: "two", minProbes: 3, lockLines: false, timeMs: 100_000, fullByS: 67 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
   // Colour Flood. Levers: blob smoothing, columns × rows (grown downwards past 14 wide), colours, the exact minimum (par) band,
@@ -118,14 +124,15 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       expert: { settings: { smooth: 2, cols: 14, rows: 24, colours: 6, par: [18, 22], blocked: 14, spare: 3, timeMs: 75_000 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
-  // Minefield (an arcade-run Logic game). Levers: columns × rows (grown downwards past 10 wide), mines, the opening's
-  // size band, the solver steps a board needs (never a guess), the run's length. Hard is today's game exactly
-  // (minesRev 2: 20 mines); Normal is the gentler minesRev 3 (Joe, 15 Nov 2026, "too-hard games: today's becomes Hard").
+  // Minefield (an arcade-run Logic game). The lever: mines on the board (9, 16, 26, 40), the free opening shrinking as it
+  // climbs, the solver steps a board needs (never a guess), the run's length. Each level is its own revision (D4,
+  // 22 Nov 2026: Hard minesRev 6, Expert minesRev 7 back on Normal's 10 × 16; Joe's answer of 20 Nov), a display copy
+  // of minesweeper.ts's geometry.
   minesweeper: {
     levels: {
       easy: { settings: { cols: 8, rows: 12, mines: 9, opening: [25, 40], seconds: 90 }, oneSolution: { proof: LOGIC1_PROOF } },
-      hard: { settings: { cols: 10, rows: 16, mines: 20, opening: [20, 60], seconds: 90 }, oneSolution: { proof: LOGIC1_PROOF } },
-      expert: { settings: { cols: 12, rows: 18, mines: 34, opening: [8, 16], seconds: 120 }, oneSolution: { proof: LOGIC1_PROOF } },
+      hard: { settings: { cols: 10, rows: 16, mines: 26, opening: [12, 24], seconds: 90 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { cols: 10, rows: 16, mines: 40, opening: [6, 12], seconds: 120 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
   // Logic overhaul 2 (15–16 Nov 2026): Tents and Trees, Shikaku, Lamplighter, Trail, Loopline, Regions, Island Link.

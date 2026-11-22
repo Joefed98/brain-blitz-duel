@@ -23,8 +23,8 @@
  */
 import { HUMAN_LIMITS, Human, type SkillLevel } from "./arcade-skill-bands/human";
 import { KITS } from "./puzzle-fairness/kits";
-import { SKILLS, hashText, makeRng, type Play, type Skill, type Step } from "./puzzle-fairness/kit";
-import { asPhoneSends, gradeSteps } from "./standard-lib";
+import { LEVEL_THINK, SKILLS, hashText, makeRng, type Play, type Skill, type Step } from "./puzzle-fairness/kit";
+import { asPhoneSends, gradeSteps, sentAnswer } from "./standard-lib";
 import { bot as minesBot } from "./arcade-skill-bands/bots/minesweeper";
 import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
@@ -210,6 +210,11 @@ export interface PlRun {
   isCorrect: boolean;
   /** Seconds to the finish (the clock when unfinished). */
   seconds: number;
+  /**
+   * A finish's score had it come with the whole clock left (the same answer and timeline, speed in full): 200 means
+   * the run lost only speed, so it reaches 200 under any speed line it finished inside (how each level's line is set).
+   */
+  ceiling: number | null;
 }
 
 /** The skill-band level a person plays Minefield's bot at. */
@@ -230,7 +235,10 @@ function minesRun(puzzle: PuzzleData, person: PersonLevel): PlRun {
   }
   const raw = encodeMinesweeperRun({ seed: p.seed, claimedScore: game.score(s), events, endTick: s.tick, checkpoints });
   const graded = gradeAnswer(puzzle, raw, 0);
-  return { score: graded.score, isCorrect: minesCleared(s), seconds: s.tick / 60 };
+  // A clear with no mine hit loses only speed (core and clean in full), so its ceiling is 200.
+  const cleared = minesCleared(s);
+  const clearedS = cleared && s.clearedTick > 0 ? s.clearedTick / 60 : s.tick / 60;
+  return { score: graded.score, isCorrect: cleared, seconds: clearedS, ceiling: cleared && s.hits === 0 ? 200 : cleared ? graded.score : null };
 }
 
 /** One person's run on a dealt puzzle, held to the limits and graded by the server as the phone sends it. */
@@ -246,5 +254,24 @@ export function personRun(puzzle: PuzzleData, person: PersonLevel, salt: string)
   const steps = play.timed ? play.steps : limitSteps(type, puzzle, play.steps);
   const sends = type === "pipes" && usesPatternNov15(puzzle, "pipes") ? pipesTwoWaySends(puzzle, steps) : asPhoneSends(puzzle, steps);
   const run = gradeSteps(puzzle, sends, play.timed);
-  return { score: run.score, isCorrect: run.isCorrect, seconds: run.seconds };
+  let ceiling: number | null = null;
+  if (run.isCorrect) {
+    const upTo = sends.filter((s) => s.atMs <= run.seconds * 1000 + 0.5);
+    const answer = play.timed ? upTo[upTo.length - 1]!.answer : sentAnswer(puzzle, upTo);
+    ceiling = gradeAnswer(puzzle, answer, limit).score;
+  }
+  return { score: run.score, isCorrect: run.isCorrect, seconds: run.seconds, ceiling };
 }
+
+/**
+ * Trail (D4): its kit scales thinking by LEVEL_THINK_GAME's Trail factors (2.6 and 2.7, set on 16 Nov 2026 when every
+ * level was the same 6 × 6 board and "its harder boards are harder moves"). D4's levels grow the board instead (5 × 5,
+ * 7 × 7), so the extra moves carry the difficulty, and Trail plays on the shared LEVEL_THINK like the other Logic
+ * games (Hard 1.9, Expert 2.35). A stated modelling choice, proposed to Joe for the kit itself.
+ */
+setPlPlayer("trail", (puzzle, rng, skill, limitMs) => {
+  const level = (puzzle as { level?: string }).level;
+  const factor = level ? (LEVEL_THINK[level] ?? 1) : 1;
+  const plain = { ...(puzzle as object), level: undefined } as unknown as PuzzleData;
+  return KITS.trail!.play(plain, rng, { ...skill, pace: skill.pace * factor }, limitMs);
+});

@@ -59,11 +59,13 @@ export const LEVELS_PUSH: GameLevels<PushLevelSettings> = {
       oneSolution: OPEN,
     },
     // Hard: Normal's five crates, 25–32 pushes, the detour kept, no stuck hint.
+    // D4 (22 Nov 2026; the spec's Heave row): the crates climb 3, 5, 6, 7 (Hard today showed Normal's five), the push
+    // minimum rising behind them, between tighter walls.
     hard: {
       settings: {
-        crates: 5,
-        pushes: { min: 25, max: 32 },
-        innerWalls: { min: 4, max: 10 },
+        crates: 6,
+        pushes: { min: 28, max: 36 },
+        innerWalls: { min: 6, max: 12 },
         perCrate: 3,
         detour: true,
         stuckHint: false,
@@ -75,9 +77,9 @@ export const LEVELS_PUSH: GameLevels<PushLevelSettings> = {
     // Expert: six crates, 30–40 pushes, the detour kept, no stuck hint.
     expert: {
       settings: {
-        crates: 6,
-        pushes: { min: 30, max: 40 },
-        innerWalls: { min: 6, max: 12 },
+        crates: 7,
+        pushes: { min: 38, max: 48 },
+        innerWalls: { min: 8, max: 14 },
         perCrate: 3,
         detour: true,
         stuckHint: false,

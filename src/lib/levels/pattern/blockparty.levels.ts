@@ -31,13 +31,14 @@ const OPEN = { open: "any full packing counts; solution counts per level are pro
 
 export const LEVELS_BLOCKPARTY: GameLevels = {
   levels: {
+    // D4 (22 Nov 2026; the spec's Tessellate row): every level adds squares and pieces (25, 49, 64, 64 squares), and the
+    // solution count only backs it up. Easy: a tiny 5 × 5 board and four little pieces (12 squares), 10+ ways to finish.
     easy: {
       settings: {
-        cols: 6,
-        // Six small pieces (17 squares): the Dot and the Two give many ways to finish.
-        pieces: ["Dot", "Two", "Three", "Corner", "Square", "L"],
-        pegs: 19,
-        solutions: { min: 20, max: null },
+        cols: 5,
+        pieces: ["Two", "Three", "Corner", "Square"],
+        pegs: 13,
+        solutions: { min: 10, max: null },
         layout: "grow",
         humanDepth: null,
         timeLimitMs: 60_000,
@@ -45,17 +46,18 @@ export const LEVELS_BLOCKPARTY: GameLevels = {
       },
       oneSolution: OPEN,
     },
+    // Hard: a bigger 8 × 8 board with Normal's nine pieces and the U (38 squares), 3–8 ways, 70 s. Expert keeps eleven
+    // pieces on 8 × 8 (the spec's 9 × 9 with thirteen needs two new piece renders, A2).
     hard: {
       settings: {
-        cols: 7,
-        // Normal's board and pieces exactly; only the solution count is tighter.
-        pieces: ["Plus", "Two", "Three", "Four", "Square", "Corner", "L", "T", "S"],
-        pegs: 16,
-        solutions: { min: 2, max: 5 },
+        cols: 8,
+        pieces: ["Plus", "Two", "Three", "Four", "Square", "Corner", "L", "T", "S", "U"],
+        pegs: 26,
+        solutions: { min: 3, max: 8 },
         layout: "scatter",
         humanDepth: { min: 2, max: 3 },
-        timeLimitMs: 60_000,
-        speedFullByS: 32,
+        timeLimitMs: 70_000,
+        speedFullByS: 36,
       },
       oneSolution: OPEN,
     },

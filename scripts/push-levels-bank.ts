@@ -232,10 +232,17 @@ function randomLayout(s: PushLevelSettings) {
   return { walls, targets };
 }
 
-export function buildPushLevel(level: PushLevelName, log = false): PushLevelEntry[] {
+/**
+ * Levels built in parallel streams (D4, 22 Nov 2026: Expert's seven crates take about 100 s a board): stream k of n is
+ * seeded SEEDS[level] + k and builds its share; the bank is the streams' boards in stream order, duplicates dropped,
+ * cut to the bank's size. Deterministic: --check rebuilds every stream the same way.
+ */
+export const PUSH_LEVEL_STREAMS: Partial<Record<PushLevelName, number>> = { expert: 4 };
+
+export function buildPushLevel(level: PushLevelName, log = false, stream: { k: number; n: number } | null = null): PushLevelEntry[] {
   const s = LEVELS_PUSH.levels[level]!.settings;
-  const size = PUSH_LEVEL_BANK_SIZE[level];
-  seedState = SEEDS[level];
+  const size = stream ? Math.ceil(PUSH_LEVEL_BANK_SIZE[level] / stream.n) + 2 : PUSH_LEVEL_BANK_SIZE[level];
+  seedState = (SEEDS[level] + (stream?.k ?? 0)) >>> 0;
   const bank: PushLevelEntry[] = [];
   const seen = new Set<string>();
   const perWalls = new Map<string, number>();
@@ -325,6 +332,36 @@ ${PUSH_LEVEL_NAMES.map(block).join("\n")}
 
 export const PUSH_LEVEL_BANK_PATH = new URL("../src/lib/duel/pushLevelBank.server.ts", import.meta.url);
 
+/** A level built as PUSH_LEVEL_STREAMS streams, each in its own process (`--stream=level/k/n`), merged in order. */
+async function buildStreamed(level: PushLevelName, n: number): Promise<PushLevelEntry[]> {
+  const outputs = await Promise.all(
+    Array.from({ length: n }, async (_, k) => {
+      const child = Bun.spawn(["bun", import.meta.path, `--stream=${level}/${k}/${n}`], { stdout: "pipe", stderr: "inherit" });
+      const text = await new Response(child.stdout).text();
+      if ((await child.exited) !== 0) throw new Error(`push ${level} stream ${k} failed`);
+      return JSON.parse(text) as PushLevelEntry[];
+    }),
+  );
+  const seen = new Set<string>();
+  const bank: PushLevelEntry[] = [];
+  for (const list of outputs)
+    for (const e of list) {
+      const key = `${e.walls.join(".")}/${e.targets.join(".")}/${e.crates.join(".")}/${e.pusher}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      bank.push(e);
+    }
+  if (bank.length < PUSH_LEVEL_BANK_SIZE[level]) throw new Error(`push ${level}: only ${bank.length} boards from ${n} streams`);
+  return bank.slice(0, PUSH_LEVEL_BANK_SIZE[level]);
+}
+
+const streamArg = process.argv.find((a) => a.startsWith("--stream="));
+if (import.meta.main && streamArg) {
+  const [level, k, n] = streamArg.slice("--stream=".length).split("/") as [PushLevelName, string, string];
+  process.stdout.write(JSON.stringify(buildPushLevel(level, false, { k: Number(k), n: Number(n) })));
+  process.exit(0);
+}
+
 if (import.meta.main) {
   const check = process.argv.includes("--check");
   const asked = process.argv.slice(2).filter((a) => (PUSH_LEVEL_NAMES as readonly string[]).includes(a)) as PushLevelName[];
@@ -338,7 +375,8 @@ if (import.meta.main) {
   const banks = { easy: [], hard: [], expert: [], ...(current ?? {}) } as Record<PushLevelName, PushLevelEntry[]>;
   for (const level of only) {
     const t = Date.now();
-    banks[level] = buildPushLevel(level, !check);
+    const streams = PUSH_LEVEL_STREAMS[level];
+    banks[level] = streams ? await buildStreamed(level, streams) : buildPushLevel(level, !check);
     const mins = banks[level].map((e) => e.minPushes);
     console.log(`push ${level}: ${banks[level].length} boards, minimum pushes ${Math.min(...mins)}–${Math.max(...mins)} (${Math.round((Date.now() - t) / 1000)} s)`);
   }

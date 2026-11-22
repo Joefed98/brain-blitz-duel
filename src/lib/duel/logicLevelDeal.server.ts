@@ -12,7 +12,7 @@ import { generateBridges } from "./bridges.server";
 import { generateFences } from "./fences.server";
 import { generateFillomino } from "./fillomino.server";
 import { generateLightUp } from "./lightUp.server";
-import { solveLikePerson } from "./logicHuman.server";
+import { personSeconds, solveLikePerson } from "./logicHuman.server";
 import type { LogicLevelGame } from "./logicLevels";
 import { LOGIC_LEVEL_GAMES } from "./logicLevels";
 import { logicLevel } from "./logicLevels.server";
@@ -90,6 +90,9 @@ export function dealLogicLevel(type: PuzzleType, level: Level | undefined, seed:
     }
     const person = solveLikePerson(board);
     if (!person.solved) continue;
+    // The person's clock (D4, 22 Nov 2026): the board's entries at the human limits and 1.5 s a one-step trial must
+    // fit the level's clock, so every level board is finished by a person inside its round.
+    if (personSeconds(board, person) > settings.timeLimitMs / 1000) continue;
     if (person.eliminations >= lo && person.eliminations <= hi) return board;
     // Closest fair board kept in case the band is never met (logic-levels-check measures how often: never in its samples).
     fallback ??= board;

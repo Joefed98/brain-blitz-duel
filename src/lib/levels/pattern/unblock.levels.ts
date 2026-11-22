@@ -32,10 +32,13 @@ export const LEVELS_UNBLOCK: GameLevels<UnblockLevelSettings> = {
   levels: {
     // Easy: a 6×6 lot (squares about 53 px on a 375 px phone), 6–12 moves at the minimum, 8–10 cars, 60 s; full speed
     // by Normal's 40 s.
-    easy: { settings: { cols: 6, minMoves: [6, 12], cars: [8, 10], timeLimitMs: 60_000, speedFullByS: 40 }, oneSolution: OPEN },
+    // D4 (22 Nov 2026; the spec's Gridlock row): Easy a half-empty lot, 6–8 cars, 5–9 moves at the minimum.
+    easy: { settings: { cols: 6, minMoves: [5, 9], cars: [6, 8], timeLimitMs: 60_000, speedFullByS: 40 }, oneSolution: OPEN },
     // Hard: Normal's 7×7 lot, 22–30 moves at the minimum, 12–14 cars, 60 s; full speed by 28 s (about a second a
     // move along the line: the step up from Normal is seeing the longer line, then playing it briskly).
-    hard: { settings: { cols: 7, minMoves: [22, 30], cars: [12, 14], timeLimitMs: 60_000, speedFullByS: 28 }, oneSolution: OPEN },
+    // D4: Hard a fuller lot (13–15 cars) and a longer line (26–32 moves). The spec's 8 × 8 Hard and 9 × 9 Expert wait for
+    // the lot renders (lot-8, lot-9, A2's art).
+    hard: { settings: { cols: 7, minMoves: [26, 32], cars: [13, 15], timeLimitMs: 60_000, speedFullByS: 28 }, oneSolution: OPEN },
     // Expert (deeper boards, Joe 16 Nov 2026): 7×7, 40–48 moves at the minimum (Hard 22–30, the old Expert 30–40), 13–15
     // cars, 90 s; full speed by 30 s, as before (about 0.7 s a move: only a player who reads the whole line at once).
     // The step up is the line's length, about 16 moves more than Hard's on average, so the clock grows to fit them (a

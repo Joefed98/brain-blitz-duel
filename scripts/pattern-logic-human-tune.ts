@@ -13,7 +13,8 @@
  */
 import { writeFileSync } from "node:fs";
 
-import { dealAt } from "./level-tune";
+import { dealAt as dealLive } from "./level-tune";
+import { logicLevelBankOff } from "../src/lib/duel/logicLevelDeal.server";
 import { LOGIC_GAMES, PATTERN_GAMES, PERSON_LEVELS, PL_GAMES, personRun, type PersonLevel, type PlGame } from "./pattern-logic-human";
 import { levelsOf } from "../src/lib/levels/gameLevels";
 import { puzzleLevel, type Level } from "../src/lib/levels/levels";
@@ -31,6 +32,16 @@ export interface PlRow {
   reach200: number;
   /** Finish times of the finished runs, in seconds: the quartiles (each level's speed line is set from the elite's). */
   times: [number, number, number] | null;
+  /** The finish seconds of every run that lost only speed (ceiling 200), sorted: a speed line at t reaches 200 on those ≤ t. */
+  clean: number[];
+}
+
+/** The speed line (whole seconds) at which `share` of the runs reach 200, from a row's clean finishes. */
+export function lineForShare(row: PlRow, share: number): number | null {
+  const need = Math.ceil(share * row.runs);
+  if (need <= 0) return 0;
+  if (need > row.clean.length) return null;
+  return Math.ceil(row.clean[need - 1]!);
 }
 
 const avg = (xs: readonly number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
@@ -40,16 +51,20 @@ const med = (xs: readonly number[]) => {
   return s[Math.floor((s.length - 1) / 2)]!;
 };
 
+/** A deal as a room deals it; with PL_BANK_OFF=1 the Logic levels' banks are built live (measuring before a rebuild). */
+const dealAt: typeof dealLive = (type, level, n) => (process.env["PL_BANK_OFF"] === "1" ? logicLevelBankOff(() => dealLive(type, level, n)) : dealLive(type, level, n));
+
 /** The chosen people on `seeds` deals of one game at one level. */
 export function plRows(game: PlGame, level: Level, seeds: number, from = 0, people: readonly PersonLevel[] = PERSON_LEVELS): PlRow[] {
-  const runs = Object.fromEntries(people.map((p) => [p, [] as { score: number; done: boolean; seconds: number }[]])) as Record<PersonLevel, { score: number; done: boolean; seconds: number }[]>;
+  type R = { score: number; done: boolean; seconds: number; ceiling: number | null };
+  const runs = Object.fromEntries(people.map((p) => [p, [] as R[]])) as Record<PersonLevel, R[]>;
   let dealt: Level = "normal";
   for (let n = from; n < from + seeds; n++) {
     const puzzle = dealAt(game, level, n);
     dealt = puzzleLevel(puzzle);
     for (const person of people) {
       const r = personRun(puzzle, person, `${level}:${n}`);
-      runs[person].push({ score: r.score, done: r.isCorrect, seconds: r.seconds });
+      runs[person].push({ score: r.score, done: r.isCorrect, seconds: r.seconds, ceiling: r.ceiling });
     }
   }
   return people.map((person) => {
@@ -68,6 +83,7 @@ export function plRows(game: PlGame, level: Level, seeds: number, from = 0, peop
       finish: runs[person].filter((r) => r.done).length / Math.max(1, xs.length),
       reach200: xs.filter((x) => x >= 200).length / Math.max(1, xs.length),
       times: t.length ? [q(0.25), q(0.5), q(0.75)] : null,
+      clean: runs[person].filter((r) => r.done && r.ceiling === 200).map((r) => Math.round(r.seconds * 10) / 10).sort((a, b) => a - b),
     };
   });
 }
@@ -75,7 +91,8 @@ export function plRows(game: PlGame, level: Level, seeds: number, from = 0, peop
 export function rowLine(r: PlRow): string {
   const fell = r.dealt !== r.level ? ` (no ${r.level}: dealt ${r.dealt})` : "";
   const times = r.times ? `  finish s ${r.times.join(" / ")}` : "";
-  return `${r.game.padEnd(11)} ${r.level.padEnd(7)} ${r.person.padEnd(8)} mean ${r.mean.toFixed(1).padStart(6)}  median ${String(r.median).padStart(3)}  best ${String(r.best).padStart(3)}  finish ${(r.finish * 100).toFixed(0).padStart(3)}%  reach 200 ${(r.reach200 * 100).toFixed(0).padStart(3)}%${times}  (${r.runs})${fell}`;
+  const lines = r.person === "elite" && r.clean.length ? `  line for 25/50/75 %: ${[0.25, 0.5, 0.75].map((f) => lineForShare(r, f) ?? "-").join(" / ")} s (clean ${r.clean.length})` : "";
+  return `${r.game.padEnd(11)} ${r.level.padEnd(7)} ${r.person.padEnd(8)} mean ${r.mean.toFixed(1).padStart(6)}  median ${String(r.median).padStart(3)}  best ${String(r.best).padStart(3)}  finish ${(r.finish * 100).toFixed(0).padStart(3)}%  reach 200 ${(r.reach200 * 100).toFixed(0).padStart(3)}%${times}${lines}  (${r.runs})${fell}`;
 }
 
 if (import.meta.main) {

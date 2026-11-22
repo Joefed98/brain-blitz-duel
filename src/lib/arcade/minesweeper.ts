@@ -67,6 +67,17 @@ export function minesSafeFor(rev: number | null | undefined): number {
 export const MINES_REV_NORMAL = 3;
 export const MINES_REV_EASY = 4;
 export const MINES_REV_EXPERT = 5;
+/**
+ * D4 (22 Nov 2026; docs/polish-plan-final/difficulty-spec.md, Joe's answer of 20 Nov: Expert back to 10 × 16 with 40
+ * mines): the ladder is the mine count on Normal's own board (9, 16, 26, 40), the free opening shrinking as it climbs.
+ *
+ *   minesRev 6, Hard: 10 × 16, 26 mines, opening 12–24, 90 s.
+ *   minesRev 7, Expert: 10 × 16, 40 mines, opening 6–12, 120 s (squares stay 36 px; rev 5's 12 × 18 drew about 31).
+ *
+ * Each is its own revision, so stored minesRev 2 and 5 rounds replay and score exactly as dealt.
+ */
+export const MINES_REV_HARD_D4 = 6;
+export const MINES_REV_EXPERT_D4 = 7;
 
 export interface MinesGeo {
   rev: number;
@@ -114,6 +125,9 @@ function geo(rev: number, cols: number, rows: number, count: number, openMin: nu
 export const MINES_SPEED_FULL_S_V3 = 37;
 export const MINES_SPEED_FULL_S_EASY = 22;
 export const MINES_SPEED_FULL_S_EXPERT = 50;
+/** D4's Hard and Expert "full by" times, set from the elite's clears under the human limits (scripts/pattern-logic-human-tune.ts). */
+export const MINES_SPEED_FULL_S_HARD_D4 = 49;
+export const MINES_SPEED_FULL_S_EXPERT_D4 = 69;
 
 const GEOS: Readonly<Record<number, MinesGeo>> = {
   1: geo(1, 10, 16, 25, 20, 60, 90, 50),
@@ -121,6 +135,8 @@ const GEOS: Readonly<Record<number, MinesGeo>> = {
   3: geo(3, 10, 16, 16, 20, 60, 90, MINES_SPEED_FULL_S_V3),
   4: geo(4, 8, 12, 9, 25, 40, 90, MINES_SPEED_FULL_S_EASY),
   5: geo(5, 12, 18, 34, 8, 16, 120, MINES_SPEED_FULL_S_EXPERT),
+  6: geo(6, 10, 16, 26, 12, 24, 90, MINES_SPEED_FULL_S_HARD_D4),
+  7: geo(7, 10, 16, 40, 6, 12, 120, MINES_SPEED_FULL_S_EXPERT_D4),
 };
 
 /** A revision's board (a stamp no server dealt reads as rev 1's). */
@@ -129,7 +145,7 @@ export function minesGeoFor(rev: number | null | undefined): MinesGeo {
 }
 
 /** Every revision whose rules this file knows (the reveal's parts and the checks walk them). */
-export const MINES_REVS: readonly number[] = [1, 2, 3, 4, 5];
+export const MINES_REVS: readonly number[] = [1, 2, 3, 4, 5, 6, 7];
 
 /* ================================ World ================================ */
 
@@ -651,6 +667,8 @@ function levelSpec(rev: number): StdSpec {
 export const MINES_STD_SPEC_V3 = levelSpec(MINES_REV_NORMAL);
 export const MINES_STD_SPEC_EASY = levelSpec(MINES_REV_EASY);
 export const MINES_STD_SPEC_EXPERT = levelSpec(MINES_REV_EXPERT);
+export const MINES_STD_SPEC_HARD_D4 = levelSpec(MINES_REV_HARD_D4);
+export const MINES_STD_SPEC_EXPERT_D4 = levelSpec(MINES_REV_EXPERT_D4);
 export function minesStdSpecFor(rev: number | null | undefined): StdSpec {
   switch (minesGeoFor(rev).rev) {
     case MINES_REV_LOGIC:
@@ -661,6 +679,10 @@ export function minesStdSpecFor(rev: number | null | undefined): StdSpec {
       return MINES_STD_SPEC_EASY;
     case MINES_REV_EXPERT:
       return MINES_STD_SPEC_EXPERT;
+    case MINES_REV_HARD_D4:
+      return MINES_STD_SPEC_HARD_D4;
+    case MINES_REV_EXPERT_D4:
+      return MINES_STD_SPEC_EXPERT_D4;
     default:
       return MINES_STD_SPEC;
   }
@@ -750,7 +772,7 @@ export const minesweeperGameV2: ArcadeGame<MinesState, ArcadeInputEvent | null> 
   init: (seed: number) => initFor(seed, MINES_REV_LOGIC),
 };
 
-/** The levels' games (minesRev 3–5): rev 2's rules on each level's board and clock. */
+/** The levels' games (minesRev 3–7): rev 2's rules on each level's board and clock. */
 const LEVEL_GAMES = new Map<number, ArcadeGame<MinesState, ArcadeInputEvent | null>>();
 function levelGame(rev: number): ArcadeGame<MinesState, ArcadeInputEvent | null> {
   let game = LEVEL_GAMES.get(rev);

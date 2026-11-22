@@ -192,6 +192,30 @@ export function blockLevelGeometry(level: Level): BlockGeometry | null {
   if (level === NORMAL) return null;
   const settings = gameLevelSettings<BlockLevelSettings>("blockparty", level);
   if (!settings) return null;
+  return geometryOf(settings.cols, settings.pieces);
+}
+
+/**
+ * Each level's board before D4 (frozen, 22 Nov 2026): a level round dealt before its board rode on the deal
+ * (`blockCols`, `blockPieces`) reads its level's board as it was then. Never edit.
+ */
+export const PRE_D4_BLOCK_LEVELS: Readonly<Record<"easy" | "hard" | "expert", { cols: number; pieces: readonly string[] }>> = {
+  easy: { cols: 6, pieces: ["Dot", "Two", "Three", "Corner", "Square", "L"] },
+  hard: { cols: 7, pieces: ["Plus", "Two", "Three", "Four", "Square", "Corner", "L", "T", "S"] },
+  expert: { cols: 8, pieces: ["Plus", "Two", "Three", "Four", "Square", "Corner", "L", "T", "S", "U", "P"] },
+};
+
+/** A stored level round's board: the size and pieces its deal carries (D4), else its level's board before D4. */
+function storedLevelGeometry(puzzle: { level?: unknown; blockCols?: unknown; blockPieces?: unknown }): BlockGeometry | null {
+  const level = puzzleLevel(puzzle);
+  if (level === NORMAL) return null;
+  if (typeof puzzle.blockCols === "number" && Array.isArray(puzzle.blockPieces)) return geometryOf(puzzle.blockCols, puzzle.blockPieces as string[]);
+  const before = PRE_D4_BLOCK_LEVELS[level];
+  return before ? geometryOf(before.cols, before.pieces) : null;
+}
+
+function geometryOf(cols: number, names: readonly string[]): BlockGeometry {
+  const settings = { cols, pieces: names };
   const id = `${settings.cols}:${settings.pieces.join(",")}`;
   const known = LEVEL_GEOMETRY.get(id);
   if (known) return known;
@@ -223,9 +247,10 @@ export function blockLevelFullByS(puzzle: { blockRev?: number; level?: unknown }
  * The board a stored puzzle plays on. A puzzle dealt at a level (stage 3: `level` is only ever stamped on deals made
  * since levels, all on the 7×7 era's stamps) plays its level's board; every other puzzle exactly as before.
  */
-export function blockGeometry(puzzle: { blockRev?: number; level?: unknown } | null | undefined): BlockGeometry {
+export function blockGeometry(puzzle: { blockRev?: number; level?: unknown; blockCols?: unknown; blockPieces?: unknown } | null | undefined): BlockGeometry {
   if ((puzzle?.blockRev ?? 0) >= 1 && puzzle?.level !== undefined) {
-    const geo = blockLevelGeometry(puzzleLevel(puzzle));
+    // The board the round was dealt with (D4: carried on the deal; before, its level's board then).
+    const geo = storedLevelGeometry(puzzle);
     if (geo) return geo;
   }
   return (puzzle?.blockRev ?? 0) >= 1 ? BLOCK_GEOMETRY_D4 : BLOCK_GEOMETRY_0;
