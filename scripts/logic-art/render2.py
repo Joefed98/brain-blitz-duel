@@ -20,6 +20,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.abspath(os.path.join(HERE, "..", "..", "docs", "design", "logic-art", "source"))
 SAMPLES = int(os.environ.get("JZ_SAMPLES", "128"))
 PX = 192
+# Spotlight (A2, 21 Nov 2026): the light scale for the light matte pieces (sprite option `light`).
+LIGHT_KEY = float(os.environ.get("JZ_LIGHT_KEY", "0.7"))
 
 
 def hexc(h, a=1.0):
@@ -416,8 +418,8 @@ def grass(name, c1, c2):
 
 @sprite("tents-turf")
 def _turf():
-    # Rich turf on B's darker ground: deep greens with blades, a soft bevel.
-    tile(grass("turf", "#163319", "#08170c"), edge=0.07)
+    # Spotlight (the polish plan, A2, 21 Nov 2026): a brighter grass board, a lively green with blades, a soft bevel.
+    tile(grass("turf", "#4c9a3e", "#2a6a2a"), edge=0.07)
 
 
 # The standing pieces (trees, tents, tufts) are seen from the front and above (35°), so they stand up with real relief
@@ -556,21 +558,23 @@ def _sign_met():
 # Shikaku ------------------------------------------------------------------------------------------------------
 @sprite("logic-cell")
 def _cell():
-    tile(lacquer("cell", "#18201c"), edge=0.08, d=0.06)
+    # Spotlight (A2, 21 Nov 2026): Lamplighter's dark square, a deep Logic teal (never near-black), matte; Shikaku draws
+    # its own light grid in CSS.
+    tile(bump(mat("cell", "#1c3a35", 0.6), 160, 0.02, distance=0.002), edge=0.08, d=0.06)
 
 
-JEWELS = {"sapphire": "#1d4bb8", "emerald": "#137a4a", "amber": "#c27e14", "ruby": "#a51f38"}
+# Spotlight (A2, 21 Nov 2026): pastel fills, matte, a darker ledge of their own hue (the names kept).
+JEWELS = {"sapphire": "#9fc0f6", "emerald": "#9fe2bf", "amber": "#f8d58c", "ruby": "#f5aab9"}
+LEDGES = {"#9fc0f6": "#5f86c8", "#9fe2bf": "#53a983", "#f8d58c": "#c99a3e", "#f5aab9": "#c66e82"}
 
 
 def pane(color):
-    rim = gold("rim", 0.2)
-    rbox(0, 0, 0.96, 0.96, 0.07, rim, r=0.12)
-    glassm = mat("glass", color, 0.12, coat=1.0, emit=color, emit_strength=0.05)
-    rbox(0, 0, 0.86, 0.86, 0.10, glassm, r=0.10, z=0.0)
+    rbox(0, 0, 0.96, 0.96, 0.07, mat("rim", LEDGES[color], 0.6), r=0.12)
+    rbox(0, 0, 0.88, 0.88, 0.10, mat("glass", color, 0.62, sheen=0.2), r=0.10, z=0.0)
 
 
 for _k, _c in JEWELS.items():
-    sprite(f"shikaku-pane-{_k}")((lambda c: (lambda: pane(c)))(_c))
+    sprite(f"shikaku-pane-{_k}", light=True)((lambda c: (lambda: pane(c)))(_c))
 
 
 # Lamplighter ----------------------------------------------------------------------------------------------------
@@ -615,69 +619,76 @@ def _lamp():
 
 
 # Trail ---------------------------------------------------------------------------------------------------------
-@sprite("trail-given")
+@sprite("trail-given", light=True)
 def _given():
-    rbox(0, 0, 0.92, 0.92, 0.12, gold("tedge", 0.34), r=0.12)
-    stone = bump(mat("tstone", "#3b4440", 0.55, coat=0.2), 90, 0.18, distance=0.003)
-    rbox(0, 0, 0.80, 0.80, 0.14, stone, r=0.10)
+    # Spotlight (A2, 21 Nov 2026): an ivory tile over a darker warm ledge (navy numerals drawn by the game).
+    rbox(0, 0, 0.92, 0.92, 0.12, mat("tedge", "#b9ab90", 0.6), r=0.12)
+    rbox(0, 0, 0.84, 0.84, 0.14, mat("tstone", "#f6efe0", 0.62, sheen=0.15), r=0.10)
 
 
 @sprite("trail-stone")
 def _stone():
-    cyl(0, 0, 0.40, 0.12, bump(mat("ceramic", "#efe6d0", 0.28, coat=0.7), 60, 0.04, distance=0.002), z=0, bevel=0.05)
+    # Spotlight (A2, 21 Nov 2026): the path's stones in champagne gold, satin (on ivory tiles).
+    cyl(0, 0, 0.40, 0.12, mat("ceramic", "#e8c784", 0.4, metal=0.35), z=0, bevel=0.05)
 
 
-@sprite("trail-cell")
+@sprite("trail-cell", light=True)
 def _tcell():
-    tile(lacquer("tcell", "#1b2a23"), edge=0.1, d=0.05)
+    # Spotlight (A2, 21 Nov 2026): an empty square is a pale ivory tile, a step under the numbered ones.
+    tile(mat("tcell", "#e3dccd", 0.7), edge=0.1, d=0.05)
 
 
 # Loopline -------------------------------------------------------------------------------------------------------
-@sprite("fences-slate", px=768)
+@sprite("fences-slate", px=768, light=True)
 def _slate():
-    m = slate_mat("slate", "#24282d", "#121417")
+    # Spotlight (A2, 21 Nov 2026): light paper (was dark slate).
+    m = slate_mat("slate", "#f1ebdd", "#e2d9c6")
     rbox(0, 0, 1.0, 1.0, 0.04, m, r=0.0, seg=1)
 
 
 @sprite("fences-peg")
 def _peg():
-    cyl(0, 0, 0.26, 0.10, silver("pegbase", 0.25), bevel=0.03)
-    sphere(0, 0, 0.22, silver("peg", 0.12), z=0.18, sz=0.7)
+    # Spotlight (A2, 21 Nov 2026): navy dots on the paper.
+    cyl(0, 0, 0.26, 0.10, mat("pegbase", "#3a4566", 0.5), bevel=0.03)
+    sphere(0, 0, 0.22, mat("peg", "#26304d", 0.45), z=0.18, sz=0.7)
 
 
 # Regions ----------------------------------------------------------------------------------------------------------
 # Enamel by region size (1 to 9): rich, distinct, dark enough for white digits (the game picks the tile, never "correct").
-ENAMEL = {1: "#a8306f", 2: "#2f63c4", 3: "#1f9479", 4: "#b07a1c", 5: "#6c48c0", 6: "#4a9236", 7: "#bf4430", 8: "#2380a6", 9: "#8a7428"}
+# Spotlight (A2, 21 Nov 2026): tinted regions on a light grid, matte pastel tints for navy digits.
+ENAMEL = {1: "#f2a7c8", 2: "#a9c3f4", 3: "#98dcc8", 4: "#f3d08e", 5: "#c3b0f0", 6: "#b4dc98", 7: "#f4b3a2", 8: "#9fd6ec", 9: "#e0d391"}
 
 
 def enamel(color, name):
-    m = mat(name, color, 0.18, coat=1.0)
-    bump(m, 200, 0.015, distance=0.001)
+    m = mat(name, color, 0.62, sheen=0.15)
+    bump(m, 200, 0.01, distance=0.001)
     tile(m, edge=0.1, d=0.08)
 
 
 for _n, _c in ENAMEL.items():
-    sprite(f"fillomino-tile-{_n}")((lambda c, n: (lambda: enamel(c, f"en{n}")))(_c, _n))
-sprite("fillomino-tile-0")(lambda: enamel("#1a221e", "en0"))
-sprite("fillomino-tile-clash")(lambda: enamel("#5a1414", "enx"))
+    sprite(f"fillomino-tile-{_n}", light=True)((lambda c, n: (lambda: enamel(c, f"en{n}")))(_c, _n))
+sprite("fillomino-tile-0", light=True)(lambda: enamel("#efeae0", "en0"))
+sprite("fillomino-tile-clash", light=True)(lambda: enamel("#e8616a", "enx"))
 
 
 # Island Link -----------------------------------------------------------------------------------------------------
 @sprite("bridges-slate", px=768)
 def _bslate():
-    m = slate_mat("bslate", "#1a2a4c", "#0b1428")
+    # Spotlight (A2, 21 Nov 2026): a brighter sea.
+    m = slate_mat("bslate", "#2f6fc4", "#1f4f96")
     rbox(0, 0, 1.0, 1.0, 0.04, m, r=0.0, seg=1)
 
 
 def coin(full):
-    bezel = gold("bez", 0.2) if full else silver("bez", 0.18)
+    # Spotlight (A2, 21 Nov 2026): white islands over a pale ledge; a met island stays gold.
+    bezel = gold("bez", 0.2) if full else mat("bez", "#b9c3d4", 0.55)
     cyl(0, 0, 0.46, 0.10, bezel, bevel=0.035)
     # A brushed gold face (rough enough to gather the bright band, so it shines without mirroring a light).
-    face = gold("face", 0.36) if full else mat("enamelblk", "#0b1110", 0.14, coat=1.0)
+    face = gold("face", 0.36) if full else mat("enamelblk", "#f7f8fb", 0.6)
     cyl(0, 0, 0.37, 0.115, face, bevel=0.012)
 
 
-@sprite("bridges-coin")
+@sprite("bridges-coin", light=True)
 def _coin():
     coin(False)
 
@@ -695,6 +706,16 @@ def render(name):
     if opts.get("tilt"):
         # A standing piece: its ground point sits a little below the middle, so its top stays inside the square.
         bpy.context.scene.camera.data.shift_y = 0.16
+    if opts.get("light"):
+        # Spotlight's light matte pieces (A2, 21 Nov 2026): AgX greys an ivory or pastel body, so these render through
+        # the Standard view with the lights scaled to keep their whites just under clipping.
+        s0 = bpy.context.scene
+        s0.view_settings.view_transform = "Standard"
+        s0.view_settings.look = "None"
+        for ob in s0.objects:
+            if ob.type == "LIGHT":
+                ob.data.energy *= LIGHT_KEY
+        s0.world.node_tree.nodes["Background"].inputs[1].default_value *= LIGHT_KEY
     fn()
     os.makedirs(OUT, exist_ok=True)
     s = bpy.context.scene

@@ -128,15 +128,24 @@ def write(name, key_glass=False, shading=False, quality=88, saturate=1.0, crop=N
     print("wrote", name, im.size, os.path.getsize(os.path.join(OUT, f"{name}.webp")))
 
 
+def matte_view():
+    """Spotlight's light matte pieces (A2, 21 Nov 2026): the Standard view transform, so an ivory body renders ivory
+    (AgX greys every white); the scene's lights are unchanged."""
+    bpy.context.scene.view_settings.view_transform = "Standard"
+    bpy.context.scene.view_settings.look = "None"
+
+
 # ------------------------------------------------------------------ Box Six: lacquered tiles under B's light
 def box_tile(given):
     cs = 60
     x, y = 195 - cs / 2, 380 - cs / 2
     # Second pass (Joe, 15 Nov 2026: visible lacquered depth): concept B's camera lean (15 degrees), so the tile's lit
     # top bevel and its lacquered lower side show, a deeper slab and a softer bevel catching B's key light.
-    frame(195, 380, cs + 4, cs + 4, 256, 256, tilt=12, bold=True, lens=30, key=0.4)
-    # Concept A's tile (#162523, a clear lacquer coat) under B's light: a soft sheen across it, no glare.
-    tile = mat("sdkA", "#121c1b" if not given else "#161d1b", 0.45, coat=0.45, coat_rough=0.42)
+    frame(195, 380, cs + 4, cs + 4, 256, 256, tilt=12, bold=True, lens=30, key=0.38)
+    # Spotlight (the polish plan's art rule 2, A2, 21 Nov 2026): a light matte piece, an ivory body over a darker
+    # ledge, one soft top light, no lacquer or glare. The given tile a shade of pale stone, so it reads apart.
+    tile = mat("sdkA", "#f8eff6" if not given else "#ede5ea", 0.72, spec=0.25)
+    matte_view()
     box(x + 2, y + 2, cs - 4, cs - 4, 10, tile, r=6, z=4)
     write("box-tile-given" if given else "box-tile", crop="content")
 
@@ -218,7 +227,8 @@ HANOI_SHADES = ["#FFE14D", "#FFC23D", "#FF9A3D", "#F2675E", "#E0508F", "#B85CD6"
 def hanoi_post():
     # Second pass: thicker (r 8, from 6), at twice the resolution, the grain stretched along the turning.
     frame(150, 410, 20, 312, 96, 1498)
-    oak = wood("oak", "#b07a45", "#6e4422", rough=0.35, coat=0.8, scale=4)
+    # Spotlight (A2, 21 Nov 2026): light oak, satin rather than lacquered.
+    oak = wood("oak", "#e2bd88", "#b98a55", rough=0.55, coat=0.15, scale=4)
     ycyl(150, 260, 310, 8, oak, z=26, bevel=7.5)
     write("hanoi-post", crop="content")
 
@@ -258,7 +268,8 @@ def safe_drum():
     frame(x, 524, 68, 100, 204, 300, key=0.6)
     area(x, 380, 300, 30, 500, "#fff6ea", sx=24, sy=900, target=(x, 524, 0))
     box(x - 34, 474, 68, 100, 21, mat("well", "#050607", 0.5), r=6)
-    drum = mat("drum", GOLD, 0.5, metal=1.0, emit="#7a5410", emit_strength=0.3)
+    # Spotlight (A2, 21 Nov 2026): brighter brass, satin, so the inked numerals read on a lit stage.
+    drum = mat("drum", "#f2cf7c", 0.64, metal=1.0, emit="#a8781c", emit_strength=0.5)
     add_bump(drum, 40, 0.06, stretch=(1, 30, 1), distance=0.003)
     xcyl(x - 29, 524, 58, 36, drum, z=4, bevel=2)
     write("safe-drum")
@@ -269,8 +280,9 @@ def mosaic_tile():
     cs = 36
     x, y = 84 + 3 * cs, 342 + 2 * cs
     frame(x + cs / 2, y + cs / 2, cs, cs, 192, 192)
-    tile = mat("mtileA", ACC, 0.12, coat=1.0, coat_rough=0.02, emit=ACC, emit_strength=0.25)
-    add_bump(tile, 14, 0.05, distance=0.01)
+    # Spotlight (A2, 21 Nov 2026): a matte tile in the category teal, one soft top light, no glaze or glare.
+    tile = mat("mtileA", ACC, 0.55, spec=0.3, emit=ACC, emit_strength=0.12)
+    add_bump(tile, 14, 0.02, distance=0.01)
     box(x + 2, y + 2, cs - 4, cs - 4, 9, tile, r=4, z=8)
     write("mosaic-tile")
 
@@ -278,10 +290,12 @@ def mosaic_tile():
 def mosaic_well():
     cs = 36
     x, y = 84 + 3 * cs, 342 + 2 * cs
-    frame(x + cs / 2, y + cs / 2, cs, cs, 192, 192)
-    box(x - 2, y - 2, cs + 4, cs + 4, 8, mat("slatebed", "#070b0b", 0.6), r=0.5, z=0)
-    slate = cellm(C, "cell", False)
-    add_bump(slate, 40, 0.12, distance=0.004)
+    frame(x + cs / 2, y + cs / 2, cs, cs, 192, 192, key=0.5)
+    matte_view()
+    # Spotlight (A2, 21 Nov 2026): a light grid, a pale stone well over a darker ledge (was dark slate).
+    box(x - 2, y - 2, cs + 4, cs + 4, 8, mat("slatebed", "#a9aea8", 0.7), r=0.5, z=0)
+    slate = mat("paleWell", "#eae7df", 0.75, spec=0.25)
+    add_bump(slate, 40, 0.03, distance=0.004)
     box(x + 2.5, y + 2.5, cs - 5, cs - 5, 3, slate, r=3, z=8)
     write("mosaic-well")
 
@@ -337,8 +351,10 @@ MINE_CELL = 37.8
 def mine_raised():
     x, y = 6 + 4 * MINE_CELL, 104 + 3 * MINE_CELL
     cs = MINE_CELL
-    frame(x + cs / 2, y + cs / 2, cs, cs, 168, 168)
-    raised = stone_mat("stone", "#a3a8ad", "#5d6368", 0.55, 22, 0.35)
+    frame(x + cs / 2, y + cs / 2, cs, cs, 168, 168, key=0.5)
+    matte_view()
+    # Spotlight (A2, 21 Nov 2026; E2.2): light squares, a pale matte stone with a darker ledge.
+    raised = stone_mat("stone", "#efece4", "#cdc8bc", 0.7, 22, 0.12)
     box(x + 1.2, y + 1.2, cs - 2.4, cs - 2.4, 9, raised, r=3.5, z=4)
     write("mine-raised")
 
