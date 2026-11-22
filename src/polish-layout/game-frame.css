@@ -343,6 +343,18 @@
   font-variant-numeric: tabular-nums;
   color: var(--jz-text-2);
 }
+/* A goal too long for its row steps down (GoalLine measures it, data-fit): 17 px, then 15 px with the progress 13 px
+   and a tighter gap. Never cut short while a step fits (22 Nov 2026). */
+.game-goal-row[data-fit="compact"] {
+  font-size: 17px;
+}
+.game-goal-row[data-fit="tight"] {
+  gap: 8px;
+  font-size: 15px;
+}
+.game-goal-row[data-fit="tight"] .game-goal-progress {
+  font-size: 13px;
+}
 
 /* Status chips on a live puzzle round read at 15 px (Spotlight's frame paint; Chip variant="status" is 13 px elsewhere). */
 [data-puzzle-play] .jz-status {
