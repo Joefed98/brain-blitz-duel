@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+
+import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
 import { Chip, type ChipTone } from "@/design/components/Chip";
 import "@/polish-layout/hud-pills.css";
@@ -20,10 +22,40 @@ export interface HudPillItem {
   limit?: number | undefined;
 }
 
+/**
+ * The pills never clip (21 Nov 2026, the Word look's fix: Interlock's "Placed 0/15" was cut off at 15 px beside Clear and
+ * Done). After every render and on every resize the row is measured: if its pills are wider than it, `data-fit` steps
+ * them down, "compact" (13 px) then "tight" (12 px, tighter padding); game-frame.css draws the steps. The attribute is
+ * the DOM's alone (React never sets it), so a re-render doesn't undo a step before it is measured again.
+ */
+function overflows(el: HTMLElement): boolean {
+  // The row is too narrow, or a pill has shrunk below its text (the Chip shrinks and ellipsises).
+  if (el.scrollWidth > el.clientWidth + 1) return true;
+  for (const pill of Array.from(el.children) as HTMLElement[]) if (pill.scrollWidth > pill.clientWidth + 1) return true;
+  return false;
+}
+function fitRow(el: HTMLElement) {
+  el.removeAttribute("data-fit");
+  if (overflows(el)) el.setAttribute("data-fit", "compact");
+  if (overflows(el)) el.setAttribute("data-fit", "tight");
+}
+
 export function HudPills({ items, testId, className }: { items: ReadonlyArray<HudPillItem | false | null | undefined>; testId?: string; className?: string }) {
   const shown = items.filter((p): p is HudPillItem => !!p && (p.label !== undefined || p.value !== undefined));
+  const row = useRef<HTMLDivElement | null>(null);
+  // A value that grows ("Placed 9/15", "Not words 3") re-fits the row before it paints.
+  useBeforePaint(() => {
+    if (row.current) fitRow(row.current);
+  });
+  useEffect(() => {
+    const el = row.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(() => fitRow(el));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
   return (
-    <div data-hud-pills={testId ?? ""} className={`hud-pills${className ? ` ${className}` : ""}`} aria-live="polite">
+    <div ref={row} data-hud-pills={testId ?? ""} className={`hud-pills${className ? ` ${className}` : ""}`} aria-live="polite">
       {shown.map((p, i) => (
         <Chip
           variant="status"

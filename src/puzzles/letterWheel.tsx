@@ -21,7 +21,7 @@ import "@/polish-layout/batch-w-letterwheel.css";
 import "@/polish-word/word-look.css";
 import "@/polish-word/roundabout.css";
 import { overhaulReveal, usesWordOverhaul } from "@/lib/duel/wordOverhaul";
-import { RevealKey, RevealNumbers } from "@/components/puzzles/WordReveal";
+import { RevealKey, RevealNumbers, stageCell, type CellSize } from "@/components/puzzles/WordReveal";
 import "@/polish-layout/polish-nov3-word.css";
 import { HudPills } from "@/components/puzzles/HudPills";
 
@@ -46,7 +46,8 @@ export function Crossword({
   letters: ReadonlyMap<number, string>;
   /** Reveal: cell → letter for unfilled slots. */
   missed?: ReadonlyMap<number, string>;
-  cellPx?: number;
+  /** A cell's size: px (the older reveals), or a CSS length from the reveal's stage (wheelRev 5's reveal, G2). */
+  cellPx?: CellSize;
 }) {
   const used = new Set(slots.flatMap((s) => lwSlotCells(s, cols)));
   return (
@@ -68,7 +69,7 @@ export function Crossword({
             className={`word-letter-tile flex items-center justify-center rounded-sm font-mono font-bold ${
               ch ? "bg-primary text-primary-foreground" : miss ? "bg-card text-muted-foreground ring-1 ring-inset ring-destructive" : "bg-card"
             }`}
-            style={{ fontSize: cellPx ? cellPx * 0.6 : "clamp(12px, 8cqmin, 24px)" }}
+            style={{ fontSize: typeof cellPx === "string" ? `calc(${cellPx} * 0.6)` : cellPx ? cellPx * 0.6 : "clamp(12px, 8cqmin, 24px)" }}
           >
             {ch ?? miss ?? ""}
           </div>
@@ -595,7 +596,9 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   const num = (k: string) => (typeof myExtra?.[k] === "number" ? (myExtra[k] as number) : Number(myExtra?.[k] ?? 0));
   const misses = num("misses");
   const bonusWords = num("bonusWords");
-  const px = Math.floor(Math.min(340 / puzzle.cols, 300 / puzzle.rows, 40));
+  // G2 (21 Nov 2026): the cell from the stage's width (was a fixed 340 × 300 px budget); a tall crossword is fitted to the
+  // stage's height by the reveal (useRevealFit).
+  const px = stageCell(puzzle.cols, 0, 44);
   return (
     <div data-word-reveal="letterwheel" data-wr-version="overhaul" className="wr">
       <RevealNumbers
@@ -606,7 +609,7 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
           { id: "misses", label: `Misses (${LW_FREE_MISSES} free)`, value: misses, tone: misses > LW_FREE_MISSES ? "warn" : undefined },
         ]}
       />
-      <div style={{ width: px * puzzle.cols, height: px * puzzle.rows }}>
+      <div style={{ width: `calc(${px} * ${puzzle.cols})`, height: `calc(${px} * ${puzzle.rows})` }}>
         <Crossword cols={puzzle.cols} rows={puzzle.rows} slots={puzzle.slots} letters={mine} missed={missed} cellPx={px} art />
       </div>
       <div className="flex items-center gap-3">
