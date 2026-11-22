@@ -144,7 +144,7 @@ export const LOGIC_GAME_LEVELS: { [K in LogicLevelGame]: { levels: Levels<LogicL
   fences: levels<FencesLevel>(
     { size: 5, grade: [0, 1], minClues: 14, person: [0, 1], timeLimitMs: 90_000 },
     { size: 7, grade: [3, 8], minClues: 18, person: [3, 15], timeLimitMs: 120_000, fullByS: 49 },
-    { size: 8, grade: [4, 30], minClues: 19, person: [8, 40], timeLimitMs: 120_000, fullByS: 69 },
+    { size: 8, grade: [4, 30], minClues: 19, person: [8, 40], timeLimitMs: 120_000, fullByS: 74 },
   ),
   fillomino: levels<FillominoLevel>(
     { size: 6, grade: [0, 20], givens: [16, 22], person: [0, 15], timeLimitMs: 90_000 },
