@@ -71,6 +71,7 @@ import { ACTIVE_PUZZLE_TYPES, PUZZLE_TYPES } from "../src/lib/duel/registry";
 import { standardFinish, standardUnfinished } from "../src/lib/duel/standard/shape";
 import { FLOW_REV3_FULL_BY_S, LASER_REV4_FULL_BY_S, PATTERN_STD } from "../src/lib/duel/standard/patternRules";
 import { LOGIC_STANDARD } from "../src/lib/duel/standard/logicRules";
+import { TOPSY_NORMAL_FULL_BY_S } from "../src/lib/duel/topsyLine"; // Changed with Joe's approval, 22 Nov 2026
 import { PL_LEVEL_SPEED_GAMES, settingsFullByS } from "../src/lib/duel/standard/plLevelSpeed"; // Changed with Joe's approval, 22 Nov 2026
 import { gameLevelSettings } from "../src/lib/levels/gameLevels"; // Changed with Joe's approval, 22 Nov 2026
 import { STD_CRYPTOGRID, STD_SLIDER, STD_SWAPWORD } from "../src/lib/duel/standard/word";
@@ -161,7 +162,7 @@ const SPEED_RULES: Partial<Record<PuzzleType, { speed: number; fullByS: number; 
   bridges: GRID_STANDARD.bridges,
   kakuro: GRID_STANDARD.kakuro,
   blockparty: { speed: PATTERN_STD.blockparty.speed, fullByS: PATTERN_STD.blockparty.fullByS, bonus: 0 },
-  gravity: { speed: PAR_MOVES_STD.speed, fullByS: PAR_STRICT_FULL_BY_S.gravity, bonus: PAR_MOVES_STD.par },
+  gravity: { speed: PAR_MOVES_STD.speed, fullByS: TOPSY_NORMAL_FULL_BY_S, bonus: PAR_MOVES_STD.par }, // Changed with Joe's approval, 22 Nov 2026 (gravityRev 9: 40 s)
   rings: { speed: PATTERN_STD.rings.speed, fullByS: PATTERN_STD.rings.fullByS, bonus: PATTERN_STD.rings.par ?? -1 },
   // Changed with Joe's approval, 16 Nov 2026 (routine consequence of the Pattern overhaul): the dealt laserRev 4's full-speed time (30 s).
   laser: { speed: PATTERN_STD.laser.speed, fullByS: LASER_REV4_FULL_BY_S, bonus: 0 },
