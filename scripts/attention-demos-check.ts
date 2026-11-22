@@ -21,6 +21,10 @@ import { attentionDemoPlays } from "../src/lib/duel/attentionDemoRules";
 import { puzzleLevel } from "../src/lib/levels/levels";
 import type { PuzzleData } from "../src/lib/duel/types";
 import { DEMO_GAMES, DEMOS_FIXTURE, exampleDeal, exampleDealFull, type DemoRow } from "./attention-demos-lib";
+import { pinPreD3Maze } from "../src/lib/duel/d3Attention";
+
+// Changed with Joe's approval, 22 Nov 2026 (D3): the stored demos are on mazeRev 5, so this check deals it.
+pinPreD3Maze(true);
 
 const failures: string[] = [];
 let passes = 0;
