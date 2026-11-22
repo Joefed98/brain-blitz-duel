@@ -505,7 +505,8 @@ function useRevealFit(rootRef: { current: HTMLElement | null }, cardRef: { curre
       if (!frame) frame = requestAnimationFrame(fit);
     };
     // The reveal's own box resized (the screen's geometry settling, a safe-area inset arriving late): refit inside the
-    // observer, before that frame paints, so the tray is never drawn a frame behind the board (P2, 22 Nov 2026). Only
+    // observer, before that frame paints (resize observers run after the frame's animation callbacks, so a frame queued
+    // from here would draw the tray one frame behind the board; P2, 22 Nov 2026). Only
     // for the root: it is the shallowest box observed, so what the fit changes below it is delivered this frame, never
     // as an observer loop. Anything else waits for the next frame as before.
     const resized = (entries: ResizeObserverEntry[]) => {
@@ -518,12 +519,11 @@ function useRevealFit(rootRef: { current: HTMLElement | null }, cardRef: { curre
     resize?.observe(root);
     resize?.observe(card);
     for (const child of Array.from(card.children)) resize?.observe(child);
-    // The board landing (a room's puzzle fetched after the first frame) or changing: fitted in the same microtask as
-    // the DOM change, before paint, so the board is never drawn unscaled or without its tray first (P2, 22 Nov 2026).
+    // The board landing (a room's puzzle fetched after the first frame) or changing: fitted once in the next frame's
+    // animation callbacks, which run before that frame paints (the fit is costly: once a frame, never once a mutation).
     const mutations = new MutationObserver(() => {
       for (const child of Array.from(card.children)) resize?.observe(child);
-      if (frame) cancelAnimationFrame(frame);
-      fit();
+      if (!frame) frame = requestAnimationFrame(fit);
     });
     // The Solution / Yours switch shows (and flips) by attribute: refit then too.
     mutations.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "data-solution-switch", "data-solution-view"] });
