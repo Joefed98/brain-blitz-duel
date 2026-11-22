@@ -118,7 +118,7 @@ const levels = <S>(easy: S, hard: S, expert: S): { levels: Levels<S> } => ({
 export const LOGIC_GAME_LEVELS: { [K in LogicLevelGame]: { levels: Levels<LogicLevelSettings[K]> } } = {
   // D4 (22 Nov 2026): every Hard and Expert has its own speed line (`fullByS`, stamped on the deal as levelFullByS),
   // set from the elite's finishes under the human limits (scripts/pattern-logic-human-tune.ts). Clocks: Tents Hard
-  // 120 s and Expert 110 s, Shikaku, Lamplighter and Island Link Hard 120 s (on 100 s and 90 s the average player
+  // 120 s and Expert 110 s, Shikaku, Lamplighter, Loopline, Regions and Island Link Hard 120 s (on 100 s and 90 s the average player
   // scored Expert about level with Hard; the longer Hard clock gives the average room to place more, the shorter
   // Expert clock less).
   tents: levels<TentsLevel>(
@@ -143,12 +143,12 @@ export const LOGIC_GAME_LEVELS: { [K in LogicLevelGame]: { levels: Levels<LogicL
   ),
   fences: levels<FencesLevel>(
     { size: 5, grade: [0, 1], minClues: 14, person: [0, 1], timeLimitMs: 90_000 },
-    { size: 7, grade: [3, 8], minClues: 18, person: [3, 15], timeLimitMs: 90_000, fullByS: 49 },
+    { size: 7, grade: [3, 8], minClues: 18, person: [3, 15], timeLimitMs: 120_000, fullByS: 49 },
     { size: 8, grade: [4, 30], minClues: 19, person: [8, 40], timeLimitMs: 120_000, fullByS: 69 },
   ),
   fillomino: levels<FillominoLevel>(
     { size: 6, grade: [0, 20], givens: [16, 22], person: [0, 15], timeLimitMs: 90_000 },
-    { size: 8, grade: [30, 400], givens: [16, 20], person: [20, 120], timeLimitMs: 100_000, fullByS: 78 },
+    { size: 8, grade: [30, 400], givens: [16, 20], person: [20, 120], timeLimitMs: 120_000, fullByS: 78 },
     { size: 8, grade: [40, 100_000], givens: [10, 14], person: [40, 400], timeLimitMs: 120_000, fullByS: 88 },
   ),
   bridges: levels<BridgesLevel>(
