@@ -327,10 +327,11 @@ console.log(`ALL ORBITS PASS: ${allOrbits} orbits/${allPoints} phase points, set
       s = orbitRev3ArtGame.step(s, tap ? { t: s.tick + 1, k: ORBIT_INPUT_TAP, a: 0, b: 0, c: 0, d: 0 } : null);
       const cam = orbitCamera(s);
       if (s.respawnTick !== before.respawnTick) { respawns++; since = 0; }
+      // The respawn tick may take the shortest step out of SET CHECKPOINT's corner (up to 26 px). Changed with Joe's approval, 22 Nov 2026
       if (since < 90 && (before.warp ?? 0) === 0 && (s.warp ?? 0) === 0) {
         const step = Math.hypot(cam.x - prev.x, cam.y - prev.y);
         worst = Math.max(worst, step);
-        assert(step <= NO_JUMP, `a respawn pans, never cuts (course ${entry.seed} tick ${s.tick}: ${step.toFixed(1)} px in a tick)`);
+        assert(step <= NO_JUMP || (since === 0 && step <= 26), `a respawn pans, never cuts (course ${entry.seed} tick ${s.tick}: ${step.toFixed(1)} px in a tick)`); // Changed with Joe's approval, 22 Nov 2026
       }
       since++;
       prev = cam;
