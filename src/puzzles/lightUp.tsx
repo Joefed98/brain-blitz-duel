@@ -21,10 +21,8 @@ import { playCorrect } from "@/lib/sound";
 import { useSolveFx } from "./logicFx";
 import { soundCue } from "@/lib/fx/soundCues";
 import { gameFx } from "@/lib/fx/kit";
-import { logicArt, logicArtVars } from "./logicArt";
 import { LogicReveal, extraCount, tallySets } from "./logic2Reveal";
 
-const LIGHTUP_ART = logicArtVars(["logic-cell", "lightup-cell-lit", "lightup-wall"]);
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/polish-nov3-logic.css";
@@ -142,29 +140,18 @@ export function Board({
   const wallIndex = new Map(board.walls.map((wall, i) => [wall, i]));
   const wallSet = new Set(board.walls);
   const beamW = small ? 2 : 4;
+  // The polish plan's E1.1 (Joe, Spotlight, A2, 21 Nov 2026; display only): the lamps go back to the warm glowing bulbs
+  // and each lit square to its own warm pool of light (82f2f648's markup: `logic-lamp`, `lightup-cell-lit`, the
+  // white-edged `lightup-wall`), on the Logic deep board. Every data-* attribute of the overhaul is kept (the effects
+  // read them), as are the reveal's missed lamps and the wall ticks.
   return (
     <div
       ref={pointer?.ref}
       {...(pointer ? pointer.handlers : {})}
-      className={`logic-lamps logic2-lamps relative grid w-full select-none ${small ? "logic-lamps-small" : ""}`}
+      className={`logic-lamps logic-lamps-lit relative grid w-full select-none ${small ? "logic-lamps-small" : ""}`}
       data-logic2="lightup"
-      style={{ ...LIGHTUP_ART, ...(pointer?.handlers.style ?? {}), gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gap: small ? 1 : 2 }}
+      style={{ ...(pointer?.handlers.style ?? {}), gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gap: small ? 1 : 2 }}
     >
-      {/*
-        The light (Joe, 15 Nov 2026): one softly blurred warm layer under the squares, a pool on every lit square at its
-        falloff brightness. Lit squares are see-through over it, walls and dark squares opaque, so neighbouring lit
-        squares (and the gaps between them) blend into one glow with no hard edge, and the light dims away from its lamp.
-        Display only; <i> elements, so the shared puzzle surfaces never treat it as a cell.
-      */}
-      <i
-        aria-hidden="true"
-        className="logic2-glow"
-        style={{ gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${height}, minmax(0, 1fr))`, gap: small ? 1 : 2 }}
-      >
-        {[...lightAt].map(([cell, v]) => (
-          <i key={cell} style={{ gridRow: Math.floor(cell / size) + 1, gridColumn: (cell % size) + 1, "--logic2-light": v } as CSSProperties} />
-        ))}
-      </i>
       {Array.from({ length: size * height }, (_, cell) => {
         const wi = wallIndex.get(cell);
         if (wi !== undefined) {
@@ -175,16 +162,16 @@ export function Board({
           return (
             <div
               key={cell}
-              className="logic2-wall relative flex aspect-square items-center justify-center rounded-sm"
+              className={`lightup-wall logic-wall relative flex aspect-square items-center justify-center rounded-sm ${over ? "bg-destructive" : ""}`}
               data-over={over ? "" : undefined}
               data-met={done ? "" : undefined}
               data-wall={cell}
             >
               {n >= 0 && (
-                <span className={`logic2-num ${small ? "text-xs" : "logic2-wall-num"}`}>{n}</span>
+                <span className={`font-mono font-bold ${over ? "text-destructive-foreground" : "text-foreground"} ${small ? "text-xs" : "text-lg"}`}>{n}</span>
               )}
               {done && !small && (
-                <span className="logic2-tick absolute right-0.5 top-0 leading-none" aria-hidden="true">✓</span>
+                <span className="logic2-tick absolute right-0.5 top-0 text-xs font-bold leading-none text-primary" aria-hidden="true">✓</span>
               )}
             </div>
           );
@@ -199,9 +186,11 @@ export function Board({
         return (
           <div
             key={cell}
-            className="lightup-cell logic2-lamp-cell relative flex aspect-square items-center justify-center overflow-hidden rounded-sm"
+            style={{ "--logic-diag": r + c, ...(lit ? { "--logic2-light": lightAt.get(cell) ?? 1 } : {}) } as CSSProperties}
+            className={`lightup-cell logic-lamp-cell relative flex aspect-square items-center justify-center overflow-hidden rounded-sm border ${
+              lit ? "lightup-cell-lit border-transparent" : "border-dotted border-muted-foreground/50 bg-card"
+            }`}
             data-lit={lit ? "" : undefined}
-            style={lit ? ({ "--logic-diag": r + c, "--logic2-light": lightAt.get(cell) ?? 1 } as CSSProperties) : ({ "--logic-diag": r + c } as CSSProperties)}
             data-missed={missed?.has(cell) && mark !== 1 ? "" : undefined}
           >
             {reach >= 0 && (
@@ -220,16 +209,14 @@ export function Board({
               />
             )}
             {mark === 1 ? (
-              <img
-                className={`logic-lamp logic2-piece logic2-bulb relative ${bad ? "animate-pulse" : ""}`}
+              <span
+                className={`logic-lamp relative block h-1/2 w-1/2 rounded-full ${bad ? "animate-pulse bg-destructive" : "bg-primary"}`}
                 data-clash={bad ? "" : undefined}
                 data-bulb={cell}
-                src={logicArt("lightup-lamp")}
-                alt=""
-                draggable={false}
+                style={{ boxShadow: bad ? undefined : "0 0 10px var(--primary)" }}
               />
             ) : missed?.has(cell) ? (
-              <img className="logic2-piece logic2-bulb logic2-ghost relative" src={logicArt("lightup-lamp")} alt="" draggable={false} />
+              <span className="logic-lamp logic2-ghost relative block h-1/2 w-1/2 rounded-full bg-primary" />
             ) : mark === 2 ? (
               <span className="relative h-1.5 w-1.5 rounded-full bg-muted-foreground" />
             ) : null}

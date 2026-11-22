@@ -30,19 +30,28 @@ import {
 } from "./minesweeper";
 import { logicSprite, logicSpritesReady } from "./logicArt.renderer";
 
+/**
+ * Spotlight (the polish plan's art rule 4 and its row E2.2, A2, 21 Nov 2026; display only): the world's blacks lifted
+ * to the Logic category's deep teal, light raised squares (the re-rendered mine-raised sprite), opened squares in the
+ * navy surface (--jz-surface-2) with a 1 px lighter top edge, numbers in the Logic palette (1 cyan, 2 green, 3 orange,
+ * 4 pink) and a mine a red disc with a black cross. Every piece inside its own cell, as before.
+ */
 export const MINES_ART = {
-  bg: "#0B0D11",
-  hex: "rgba(120, 150, 180, 0.07)",
-  frameHi: "#5A616C",
-  frame: "#2E333B",
-  frameLo: "#15181D",
-  screw: "#8A929D",
-  slate: "#262C33",
-  cover: "#4E5966",
-  coverHi: "#7C8896",
-  coverLo: "#2B323A",
-  open: "#1A1F25",
-  openLo: "#11151A",
+  bg: "#0C2826",
+  hex: "rgba(46, 211, 183, 0.08)",
+  frameHi: "#3F7A72",
+  frame: "#1C4440",
+  frameLo: "#0F2A27",
+  screw: "#9FC9C1",
+  slate: "#16302E",
+  cover: "#E8E4DA",
+  coverHi: "#FFFFFF",
+  coverLo: "#B8B1A2",
+  open: "#1E2640",
+  openHi: "#33406A",
+  openLo: "#161D33",
+  mine: "#E8414A",
+  mineCross: "#0B0D11",
   flag: "#FF3B3B",
   pole: "#D9DDE2",
   boom: "#8E2424",
@@ -53,8 +62,8 @@ export const MINES_ART = {
   muted: "#AEB6C0",
 };
 
-/** Number colours 1–8, each distinct (and each with its own soft glow). */
-export const MINES_NUMBER_COLOURS = ["", "#5AB4FF", "#5CE08A", "#FF6B6B", "#C49BFF", "#FFB347", "#4FE3E0", "#F5F5F5", "#B7C0CA"];
+/** Number colours 1–8, each distinct: the Logic palette (1 cyan, 2 green, 3 orange, 4 pink), then violet, gold, white, grey. */
+export const MINES_NUMBER_COLOURS = ["", "#45D6F0", "#5CE08A", "#FF9A3D", "#FF6FB5", "#B79BFF", "#F2C75C", "#F5F5F5", "#B7C0CA"];
 
 const FONT = "800 22px Archivo, 'Duelz Mono', system-ui, sans-serif";
 
@@ -182,16 +191,13 @@ export function paintMinesCover(ctx: CanvasRenderingContext2D, x: number, y: num
 
 /** A revealed square: sunk into the slate, its top and left edges in shadow. */
 export function paintMinesOpen(ctx: CanvasRenderingContext2D, x: number, y: number, size = MINES_CELL): void {
-  const sprite = logicSprite("mine-open");
-  if (sprite) {
-    ctx.drawImage(sprite, x + 1, y + 1, size - 2, size - 2);
-    return;
-  }
+  // Spotlight (E2.2): the navy surface, a 1 px lighter top edge and a faint darker foot; drawn, not a sprite.
   ctx.fillStyle = MINES_ART.open;
   ctx.fillRect(x + 1, y + 1, size - 2, size - 2);
+  ctx.fillStyle = MINES_ART.openHi;
+  ctx.fillRect(x + 1, y + 1, size - 2, 1);
   ctx.fillStyle = MINES_ART.openLo;
-  ctx.fillRect(x + 1, y + 1, size - 2, 2);
-  ctx.fillRect(x + 1, y + 1, 2, size - 2);
+  ctx.fillRect(x + 1, y + size - 2, size - 2, 1);
 }
 
 /** A number with its colour and a soft glow. */
@@ -245,30 +251,23 @@ export function paintMinesFlag(ctx: CanvasRenderingContext2D, x: number, y: numb
 
 /** A mine: a dark sphere with eight spikes and a glint. */
 export function paintMinesMine(ctx: CanvasRenderingContext2D, cx: number, cy: number, size = MINES_CELL): void {
-  const sprite = logicSprite("mine-mine");
-  if (sprite) {
-    ctx.drawImage(sprite, cx - size * 0.42, cy - size * 0.42, size * 0.84, size * 0.84);
-    return;
-  }
-  const r = size * 0.22;
+  // Spotlight (E2.2): a red disc with a black cross, flat and bold, inside its square (drawn, not the iron sprite).
+  const r = size * 0.3;
+  const k = r * 0.55;
   ctx.save();
-  ctx.strokeStyle = "#0A0A0C";
-  ctx.lineWidth = Math.max(1.5, size / 16);
-  ctx.beginPath();
-  for (let k = 0; k < 8; k++) {
-    const a = (Math.PI / 4) * k;
-    ctx.moveTo(cx + Math.cos(a) * r * 0.6, cy + Math.sin(a) * r * 0.6);
-    ctx.lineTo(cx + Math.cos(a) * r * 1.55, cy + Math.sin(a) * r * 1.55);
-  }
-  ctx.stroke();
-  ctx.fillStyle = "#121216";
+  ctx.fillStyle = MINES_ART.mine;
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "rgba(255,255,255,0.7)";
+  ctx.strokeStyle = MINES_ART.mineCross;
+  ctx.lineWidth = Math.max(2, size * 0.09);
+  ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.arc(cx - r * 0.35, cy - r * 0.35, r * 0.25, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.moveTo(cx - k, cy - k);
+  ctx.lineTo(cx + k, cy + k);
+  ctx.moveTo(cx + k, cy - k);
+  ctx.lineTo(cx - k, cy + k);
+  ctx.stroke();
   ctx.restore();
 }
 
