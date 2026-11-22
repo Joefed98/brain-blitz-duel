@@ -430,12 +430,15 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
         settings: { lines: ["easy-10", "easy-100", "easy-1"], marks: 10, markLabels: true },
         oneSolution: { open: "estimation: every placement scores by distance" },
       },
+      // D2 (22 Nov 2026, Joe): Hard is today's Hard lines on the bare ruler (no marks between the ends).
       hard: {
         settings: { lines: ["hard-1", "hard-sym-100", "hard-1000"] },
         oneSolution: { open: "estimation: every placement scores by distance" },
       },
+      // D2 (22 Nov 2026, Joe): Expert opens on 0 to 10,000, then Hard's fractions and negatives, every end label shown,
+      // in 75 s.
       expert: {
-        settings: { lines: ["today-100", "today-third", "expert-10000"], hideEnd: true },
+        settings: { lines: ["expert-10000", "hard-1", "hard-sym-100"], clockS: 75, fullByS: 45 },
         oneSolution: { open: "estimation: every placement scores by distance" },
       },
     },

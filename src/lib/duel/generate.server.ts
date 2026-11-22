@@ -25,6 +25,7 @@ import { dealWordOverhaul } from "./wordOverhaul.server";
 import { dealAttentionOverhaul } from "./attentionOverhaul";
 import { dealSpeedOverhaul } from "./speedOverhaul";
 import { dealPyramidPartial } from "./pyramidPartial";
+import { dealBallparkBullseyes } from "./ballparkBullseyes";
 import { activeDealPins, dealPinned, withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
 import { dealNotesFree } from "./notesFree";
@@ -220,6 +221,8 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   { name: "speedOverhaul", deal: dealSpeedOverhaul },
   // Integer Pyramid's unfinished credit (D2, 22 Nov 2026, pyramidPartial.ts): depthRev 3, stone by stone.
   { name: "pyramidPartial", deal: dealPyramidPartial },
+  // Ballpark's bullseyes (D2, 22 Nov 2026, ballparkBullseyes.ts): depthRev 3, a bullseye worth 3 up to 30.
+  { name: "ballparkBullseyes", deal: dealBallparkBullseyes },
 ];
 
 /**

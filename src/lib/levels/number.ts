@@ -39,7 +39,7 @@ export const NUMBER_LEVEL_ABOUT: Readonly<Record<string, Partial<Record<Exclude<
   numline: {
     easy: "Every tenth of the ruler is marked with its number.",
     hard: "Harder fractions, a line from −100 to 100 and one from 0 to 1,000.",
-    expert: "A line to 10,000, and each line's top label shows once three numbers are placed.",
+    expert: "A line to 10,000 first, then Hard's fractions and negatives, in 75 seconds.",
   },
   kakuro: {
     easy: "A small 5 × 5 grid with about ten white squares.",

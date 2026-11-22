@@ -32,10 +32,10 @@ import type { StandardGame } from "./grade.server";
 import { PARTIAL_SHARE_POINTS, usesPartialCredit } from "../partialCredit";
 import { solverShare } from "../puzzleProgress";
 import { pyramidPartialCredit, usesPyramidPartial } from "../pyramidPartial";
+import { ballparkBullPoints } from "../ballparkBullseyes";
 import { splitTargetRounds, targetRoundPuzzle, targetRoundsDone, targetRoundsOf, usesTargetRounds } from "../targetRounds";
 import {
   BALLPARK_STD_BULL_MAX,
-  BALLPARK_STD_BULL_POINTS,
   BALLPARK_STD_EARLY,
   BALLPARK_STD_ITEM,
   BALLPARK_STD_WILD,
@@ -453,7 +453,8 @@ const ballpark: StandardGame = {
     const acc = results.map((r) => (r.placed ? ballparkAccuracy(r.error) : 0));
     const average = acc.reduce((sum, a) => sum + a, 0) / total;
     const bulls = results.filter((r) => r.placed && isStdBullseye(r.error)).length;
-    const bullPts = Math.min(BALLPARK_STD_BULL_MAX, BALLPARK_STD_BULL_POINTS * bulls);
+    // depthRev 3 (ballparkBullseyes.ts, D2): 3 a bullseye, still up to 30; earlier rounds 2.
+    const bullPts = Math.min(BALLPARK_STD_BULL_MAX, ballparkBullPoints(p) * bulls);
     // A wild number (25 % or more of the line off) costs 1, finished or not, as today (numlineRev 2's −1 item).
     const wild = results.filter((r) => r.placed && r.error !== null && r.error >= BALLPARK_STD_WILD).length;
     const facts = { accuracy: Math.round(average * 1000) / 1000, bullseyes: bulls, wild };

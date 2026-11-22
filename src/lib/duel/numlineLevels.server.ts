@@ -5,8 +5,9 @@
  * stage need nothing new but Expert's hidden end label (`hideEnd` on a line, numline.ts `numlineHiddenEnd`).
  *
  * Settings (gameLevels.ts `numline`): `lines`, three line ids from LINES below, in play order ("today-third" is today's
- * third line, −50 to 50 or 0 to 1,000 from the seed); `hideEnd`, Expert's top end label hidden until half the line's
- * numbers are placed. Deterministic from the seed.
+ * third line, −50 to 50 or 0 to 1,000 from the seed); `hideEnd`, a top end label hidden until half the line's numbers
+ * are placed (Expert from 15 Nov 2026; since D2, 22 Nov 2026, Joe, Expert shows every label and opens on 0 to 10,000 in
+ * 75 s, so only rounds already stored hide one). Deterministic from the seed.
  */
 import {
   bigProductItem,
