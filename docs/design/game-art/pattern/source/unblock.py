@@ -27,8 +27,10 @@ BODIES = {
     "green": "#2aa845",
     "silver": "#8f98a6",
 }
-# The gold car is the interface's champagne gold (--jz-gold, #E2C07A); it was #ecb032 until 21 Nov 2026.
-GOLD_PAINT = "#e2c07a"
+# The gold car is champagne gold (the interface's --jz-gold family, a shade lighter so the satin metal reads bright under
+# the sprite lights); it was #ecb032, fully metallic, until 21 Nov 2026.
+GOLD_PAINT = "#f0d690"
+GOLD_METAL = 0.55
 
 
 def frame(long_pts, short_pts, axis):
@@ -57,7 +59,7 @@ def car(colour, length, axis, gold=False):
         f"paint-{colour}",
         GOLD_PAINT if gold else BODIES[colour],
         0.24 if gold else 0.34,
-        metal=1.0 if gold else 0.35,
+        metal=GOLD_METAL if gold else 0.35,
         coat=1.0,
         coat_rough=0.03,
     )
