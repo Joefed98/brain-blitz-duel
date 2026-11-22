@@ -182,7 +182,7 @@ ok(json(levelProof("numline", "hard")) === json({ open: "estimation: every place
   const want: Record<"easy" | "hard" | "expert", number[][]> = {
     easy: [[0, 10], [0, 100], [0, 1]],
     hard: [[0, 1], [-100, 100], [0, 1000]],
-    expert: [[0, 100], [-50, 50], [0, 10000]],
+    expert: [[0, 10000], [0, 1], [-100, 100]], // Changed with Joe's approval, 22 Nov 2026 (Joe: Expert opens on 0 to 10,000, then Hard's fractions and negatives)
   };
   for (const level of ["easy", "hard", "expert"] as const) {
     let lines = 0, spread = 0, perfect = 0, simple = 0, hidden = 0;
@@ -202,21 +202,15 @@ ok(json(levelProof("numline", "hard")) === json({ open: "estimation: every place
       const g = gradeAnswer(p, answer, puzzleTimeLimitMs(p) - 30_000);
       if (g.isCorrect && g.score >= 180) perfect++;
       if (level === "easy" && (p.values ?? []).flat().every((v) => v.rootCoef === 0 && v.den <= 10)) simple++;
-      if (level === "expert") {
-        const st = p.stages[0]!;
-        if (
-          p.stages.every((s) => s.hideEnd === "hi") &&
-          numlineHiddenEnd(st, 0) === 1 &&
-          numlineHiddenEnd(st, NUMLINE_HIDE_UNTIL - 1) === 1 &&
-          numlineHiddenEnd(st, NUMLINE_HIDE_UNTIL) === null
-        )
-          hidden++;
+      if (level === "expert") { // Changed with Joe's approval, 22 Nov 2026
+        // D2 (22 Nov 2026, Joe): Expert shows every end label, in 75 s, its speed points full by 45 s. Changed with Joe's approval, 22 Nov 2026
+        if (p.stages.every((s) => s.hideEnd === undefined) && p.timeLimitMs === 75_000 && p.speedFullByS === 45) hidden++; // Changed with Joe's approval, 22 Nov 2026
       } else if (p.stages.every((s) => s.hideEnd === undefined)) hidden++;
     }
     ok(lines === 60, `Ballpark ${level}: its three lines of five (${lines} of 60)`);
     ok(spread === 60, `Ballpark ${level}: every number inside its line, one per fifth, clear of the ticks (${spread} of 60)`);
     ok(perfect === 60, `Ballpark ${level}: a perfect answer finishes (${perfect} of 60)`);
-    ok(hidden === 60, `Ballpark ${level}: ${level === "expert" ? "every line's top label hidden until three numbers are placed" : "no hidden end"} (${hidden} of 60)`);
+    ok(hidden === 60, `Ballpark ${level}: ${level === "expert" ? "every end label shown, a 75 s clock, speed full by 45 s" : "no hidden end"} (${hidden} of 60)`); // Changed with Joe's approval, 22 Nov 2026
     if (level === "easy") ok(simple === 60, `Ballpark Easy: whole numbers, halves and simple fractions only (${simple} of 60)`);
   }
   ok(numlineHiddenEnd({}, 0) === null, "Ballpark: a line without hideEnd hides nothing");
