@@ -17,9 +17,9 @@
  *      every card of Bomb Defusal's Hard and Expert banks; Labyrinth's slowest possible tour and Eagle Eye's largest
  *      boards fit inside their full-by.
  *   6. The ladder (Joe, 22 Nov 2026), on 100 deals a level (d3-ladder-lib.ts players): the average player's average
- *      falls clearly from Easy to Normal to Hard to Expert (Bomb Defusal's Expert only no higher than Hard: the average
- *      kit scores 0 on every 8-step card); the realistic elite under the human limits reaches 200 strictly less often
- *      each level up, and on Expert on at least a fifth of the deals.
+ *      falls clearly from Easy to Normal to Hard to Expert, Bomb Defusal included since its Hard and Expert became
+ *      6-step cards (Joe's option (a), 22 Nov 2026); the realistic elite under the human limits reaches 200 strictly
+ *      less often each level up, and on Expert on at least a fifth of the deals.
  *
  *   bun scripts/d3-attention-ladder-check.ts [--part=k/n]     (--part splits the six games, for CI shards)
  */
@@ -52,8 +52,6 @@ const LEVELS = ["easy", "normal", "hard", "expert"] as const;
 const LADDER_DEALS = 100;
 /** "Clearly": each level's average at least this far below the one before. */
 const AVERAGE_STEP = 5;
-/** Where the average kit sits at its floor (0) on the level above as well: Bomb Defusal's Expert after Hard. */
-const AVERAGE_FLOOR: Partial<Record<string, string>> = { bomb: "expert" };
 
 const partArg = process.argv.find((a) => a.startsWith("--part="))?.slice(7);
 const [partK, partN] = partArg ? (partArg.split("/").map(Number) as [number, number]) : [1, 1];
@@ -239,11 +237,8 @@ for (const type of mine) {
   table.push(`${type.padEnd(10)} average ${rows.map((r) => r.average.average.toFixed(1)).join(" / ")}   elite at 200 ${rows.map((r) => `${Math.round(r.elite.at200 * 100)}%`).join(" / ")}   elite avg ${rows.map((r) => r.elite.average.toFixed(1)).join(" / ")}`);
   for (let i = 1; i < rows.length; i++) {
     const [a, b] = [rows[i - 1]!, rows[i]!];
-    // The one exception, reported to Joe: the average kit reads every clue before it acts, so it runs out of time on
-    // every 8-step bomb (0 on Hard and Expert alike, as the spec recorded); there Expert may only not be above Hard.
-    const floor = AVERAGE_FLOOR[type] === b.level && a.average.average === 0;
-    if (floor) check(b.average.average <= a.average.average, `${type}: the average player's ${b.level} (${b.average.average}) is above ${a.level} (${a.average.average})`);
-    else check(b.average.average <= a.average.average - AVERAGE_STEP, `${type}: the average player's ${b.level} (${b.average.average}) isn't clearly below ${a.level} (${a.average.average})`);
+    // Bomb Defusal's Hard and Expert are 6-step cards since Joe's option (a) (22 Nov 2026), so no game is excepted.
+    check(b.average.average <= a.average.average - AVERAGE_STEP, `${type}: the average player's ${b.level} (${b.average.average}) isn't clearly below ${a.level} (${a.average.average})`);
     check(b.elite.at200 < a.elite.at200, `${type}: the elite reaches 200 on ${b.level} (${b.elite.at200}) no less often than on ${a.level} (${a.elite.at200})`);
   }
   check(rows[3]!.elite.at200 >= 0.2, `${type}: the elite reaches 200 on ${Math.round(rows[3]!.elite.at200 * 100)} % of Expert deals (at least a fifth)`);

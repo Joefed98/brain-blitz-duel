@@ -4,77 +4,90 @@
  * rebuild is byte for byte the same:
  *
  *  - Easy: entry i is generateBombAt(BOMB_LEVELS.easy) under seed BOMB_LEVEL_BASE.easy + i.
- *  - Hard and Expert (D3): both are drawn from the same proved source cards, the 8-wire, 8-step ones (source card j is
- *    generateBombAt(BOMB_LEVELS_REV1.expert) under seed BOMB_LEVEL_BASE.expert + j, j < 120: the first table's Expert
- *    bank exactly), split by how many "Step N" clues give a step away and kept only when a person-like solver works the
- *    card out within the level's orders (attention-levels-lib.ts personBombTries): Hard takes the cards with at least
- *    `stepCluesMin` step clues, Expert those with at most `stepCluesMax`. The file lists each one's source index
- *    (BOMB_HARD_FROM, BOMB_EXPERT_FROM). A source card's proof takes ~25 s, so the sources build in parts:
+ *  - Hard and Expert (D3, Joe's option (a), 22 Nov 2026: 6-step cards): candidate i is generateBombAt(BOMB_LEVELS[level])
+ *    under seed BOMB_LEVEL_BASE[level] + i (a seed that builds no card is passed by), kept when it fits the level
+ *    (bombFits: the "Step N" clue filters, a person-like solver working it out within the level's orders, and the D3
+ *    limits proof, scripts/d3-attention-proof.ts, defusing it at 200 on the level's clock and full-by), up to the
+ *    level's bank size. The file lists the kept seeds (BOMB_HARD_SEEDS, BOMB_EXPERT_SEEDS).
  *
- *   bun scripts/bomb-levels-bank.ts --source --from=0 --to=30 --part=/tmp/x/source-0.json
- *   bun scripts/bomb-levels-bank.ts --merge=/tmp/x        (writes the bank from every part; Easy and any missing source built here)
- *   bun scripts/bomb-levels-bank.ts --reuse               (takes the 120 source cards from the bank file as it stands)
- *   bun scripts/bomb-levels-bank.ts --check [--sample=4]  (rebuilds a few entries of each level and compares)
+ *   bun scripts/bomb-levels-bank.ts                                  (builds every level and writes the bank)
+ *   bun scripts/bomb-levels-bank.ts --level=hard --out=/tmp/x/hard.json   (one level's kept cards, for parallel builds)
+ *   bun scripts/bomb-levels-bank.ts --merge=/tmp/x                   (writes the bank from hard.json / expert.json there)
+ *   bun scripts/bomb-levels-bank.ts --check [--sample=4]             (rebuilds a few entries of each level and compares)
  */
-import { readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { BOMB_LEVELS, BOMB_LEVELS_REV1 } from "../src/lib/levels/attentionLevels.data";
+import { BOMB_LEVELS } from "../src/lib/levels/attentionLevels.data";
 import { generateBombAt } from "../src/lib/duel/bombLevels.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { personBombTries } from "./attention-levels-lib";
+import { proveAt200 } from "./d3-attention-proof";
+import { dealAt } from "./level-tune";
 import type { BombPuzzleData } from "../src/lib/duel/types";
 
 export const BOMB_LEVEL_BASE = { easy: 230_000, hard: 240_000, expert: 250_000 } as const;
-/** The proved 8-wire, 8-step source cards Hard and Expert are drawn from (the first table's Expert bank). */
-export const BOMB_SOURCE_COUNT = 120;
+/** Candidates tried before a level's bank is given up on. */
+const MAX_CANDIDATES = 4000;
 const OUT = "src/lib/duel/bombLevelsBank.server.ts";
 const arg = (k: string) => process.argv.find((a) => a.startsWith(`--${k}=`))?.slice(k.length + 3);
 
 export function buildEasy(i: number): BombPuzzleData {
   return withSeededRandom(BOMB_LEVEL_BASE.easy + i, () => generateBombAt(BOMB_LEVELS.easy));
 }
-export function buildSource(j: number): BombPuzzleData {
-  return withSeededRandom(BOMB_LEVEL_BASE.expert + j, () => generateBombAt(BOMB_LEVELS_REV1.expert));
+
+/** Hard's or Expert's candidate i, or null when its seed builds no card. */
+export function buildCandidate(level: "hard" | "expert", i: number): BombPuzzleData | null {
+  try {
+    return withSeededRandom(BOMB_LEVEL_BASE[level] + i, () => generateBombAt(BOMB_LEVELS[level]));
+  } catch {
+    return null;
+  }
 }
 
 /** "Step N" clues on a card (each gives one step away). */
 export const bombStepClues = (p: BombPuzzleData) => p.rules.filter((r) => r.id.startsWith("step:")).length;
 
-/** Whether a source card belongs to a level (D3's filters). */
+/** A card as the level deals it: the level's deal with the card's panel in it (attentionLevels.server.ts dealBombLevel). */
+export function bombLevelPuzzle(level: "hard" | "expert", card: BombPuzzleData): BombPuzzleData {
+  const { bombInstant: _instant, ...deal } = dealAt("bomb", level, 0) as BombPuzzleData;
+  return { ...deal, ...card, timeLimitMs: BOMB_LEVELS[level].timeLimitMs, ...(BOMB_LEVELS[level].instant ? { bombInstant: 1 as const } : {}) };
+}
+
+/** Whether a candidate belongs to a level's bank (D3's filters and the limits proof at 200). */
 export function bombFits(level: "hard" | "expert", p: BombPuzzleData): boolean {
   const row = BOMB_LEVELS[level];
   const steps = bombStepClues(p);
-  if ("stepCluesMin" in row && steps < row.stepCluesMin) return false;
-  if ("stepCluesMax" in row && steps > row.stepCluesMax) return false;
-  return personBombTries(p, row.ordersMax) <= row.ordersMax;
+  if ("stepCluesMin" in row && steps < (row as { stepCluesMin: number }).stepCluesMin) return false;
+  if ("stepCluesMax" in row && steps > (row as { stepCluesMax: number }).stepCluesMax) return false;
+  if (personBombTries(p, row.ordersMax) > row.ordersMax) return false;
+  return proveAt200(bombLevelPuzzle(level, p)).score >= 200;
 }
 
-/** The source indices a level takes, in order, up to its bank's size. */
-export function bombSourcesFor(level: "hard" | "expert", sources: readonly BombPuzzleData[]): number[] {
-  const out: number[] = [];
-  sources.forEach((p, j) => {
-    if (out.length < BOMB_LEVELS[level].bank && bombFits(level, p)) out.push(j);
-  });
-  return out;
-}
-
-function write(easy: BombPuzzleData[], sources: BombPuzzleData[]): void {
-  const hardFrom = bombSourcesFor("hard", sources);
-  const expertFrom = bombSourcesFor("expert", sources);
-  if (hardFrom.length !== BOMB_LEVELS.hard.bank || expertFrom.length !== BOMB_LEVELS.expert.bank) {
-    throw new Error(`the sources give Hard ${hardFrom.length} (want ${BOMB_LEVELS.hard.bank}) and Expert ${expertFrom.length} (want ${BOMB_LEVELS.expert.bank})`);
+/** A level's kept cards and their seed offsets, in order, up to its bank's size. */
+export function buildLevel(level: "hard" | "expert"): { seeds: number[]; cards: BombPuzzleData[] } {
+  const seeds: number[] = [];
+  const cards: BombPuzzleData[] = [];
+  for (let i = 0; i < MAX_CANDIDATES && cards.length < BOMB_LEVELS[level].bank; i++) {
+    const p = buildCandidate(level, i);
+    if (p && bombFits(level, p)) (seeds.push(i), cards.push(p));
+    if (i % 20 === 19) console.log(`${level}: ${cards.length} of ${BOMB_LEVELS[level].bank} kept from ${i + 1} candidates`);
   }
+  if (cards.length !== BOMB_LEVELS[level].bank) throw new Error(`${level}: ${cards.length} cards from ${MAX_CANDIDATES} candidates (want ${BOMB_LEVELS[level].bank})`);
+  return { seeds, cards };
+}
+
+function write(easy: BombPuzzleData[], hard: { seeds: number[]; cards: BombPuzzleData[] }, expert: { seeds: number[]; cards: BombPuzzleData[] }): void {
   const line = (p: BombPuzzleData) => `  ${JSON.stringify(p)},`;
   const arr = (name: string, list: BombPuzzleData[]) => `export const ${name}: BombPuzzleData[] = [\n${list.map(line).join("\n")}\n];\n`;
   const body = [
     arr("BOMB_EASY_BANK", easy),
-    `/** Hard's and Expert's source card indices (scripts/bomb-levels-bank.ts buildSource). */\nexport const BOMB_HARD_FROM: readonly number[] = ${JSON.stringify(hardFrom)};\nexport const BOMB_EXPERT_FROM: readonly number[] = ${JSON.stringify(expertFrom)};\n`,
-    arr("BOMB_HARD_BANK", hardFrom.map((j) => sources[j]!)),
-    arr("BOMB_EXPERT_BANK", expertFrom.map((j) => sources[j]!)),
+    `/** Hard's and Expert's kept candidates (scripts/bomb-levels-bank.ts buildCandidate). */\nexport const BOMB_HARD_SEEDS: readonly number[] = ${JSON.stringify(hard.seeds)};\nexport const BOMB_EXPERT_SEEDS: readonly number[] = ${JSON.stringify(expert.seeds)};\n`,
+    arr("BOMB_HARD_BANK", hard.cards),
+    arr("BOMB_EXPERT_BANK", expert.cards),
   ].join("\n");
   writeFileSync(
     OUT,
-    `/* Generated by scripts/bomb-levels-bank.ts — do not edit by hand. Easy entry i is generateBombAt(BOMB_LEVELS.easy) under seed BOMB_LEVEL_BASE.easy + i; Hard and Expert are source cards (generateBombAt(BOMB_LEVELS_REV1.expert) under seed BOMB_LEVEL_BASE.expert + j) by their filters. */\nimport type { BombPuzzleData } from "./types";\n\n${body}`,
+    `/* Generated by scripts/bomb-levels-bank.ts — do not edit by hand. Easy entry i is generateBombAt(BOMB_LEVELS.easy) under seed BOMB_LEVEL_BASE.easy + i; Hard and Expert keep the candidates generateBombAt(BOMB_LEVELS[level]) under seed BOMB_LEVEL_BASE[level] + i that fit the level. */\nimport type { BombPuzzleData } from "./types";\n\n${body}`,
   );
 }
 
@@ -87,53 +100,32 @@ if (process.argv.includes("--check")) {
     const i = Math.floor((k * mod.BOMB_EASY_BANK.length) / sample);
     if (JSON.stringify(buildEasy(i)) !== JSON.stringify(mod.BOMB_EASY_BANK[i])) (bad++, console.log(`FAIL easy[${i}] does not rebuild`));
   }
-  for (const [level, bank, from] of [["hard", mod.BOMB_HARD_BANK, mod.BOMB_HARD_FROM], ["expert", mod.BOMB_EXPERT_BANK, mod.BOMB_EXPERT_FROM]] as const) {
-    if (bank.length !== BOMB_LEVELS[level].bank || from.length !== bank.length) (bad++, console.log(`FAIL ${level}: ${bank.length} entries, ${from.length} sources`));
-    for (let k = 0; k < Math.min(2, sample); k++) {
-      const i = Math.floor((k * bank.length) / Math.min(2, sample));
-      const rebuilt = buildSource(from[i]!);
-      if (JSON.stringify(rebuilt) !== JSON.stringify(bank[i]) || !bombFits(level, rebuilt)) (bad++, console.log(`FAIL ${level}[${i}] (source ${from[i]}) does not rebuild or fit`));
+  for (const [level, bank, seeds] of [["hard", mod.BOMB_HARD_BANK, mod.BOMB_HARD_SEEDS], ["expert", mod.BOMB_EXPERT_BANK, mod.BOMB_EXPERT_SEEDS]] as const) {
+    if (bank.length !== BOMB_LEVELS[level].bank || seeds.length !== bank.length) (bad++, console.log(`FAIL ${level}: ${bank.length} entries, ${seeds.length} seeds`));
+    for (let k = 0; k < sample; k++) {
+      const i = Math.floor((k * bank.length) / sample);
+      const rebuilt = buildCandidate(level, seeds[i]!);
+      if (!rebuilt || JSON.stringify(rebuilt) !== JSON.stringify(bank[i]) || !bombFits(level, rebuilt)) (bad++, console.log(`FAIL ${level}[${i}] (seed ${seeds[i]}) does not rebuild or fit`));
     }
   }
   console.log(bad ? `FAIL bomb-levels-bank: ${bad}` : "PASS bomb-levels-bank: sampled entries rebuild byte for byte");
   process.exit(bad ? 1 : 0);
 }
 
-const part = arg("part");
-if (part && process.argv.includes("--source")) {
-  const from = Number(arg("from") ?? 0);
-  const to = Number(arg("to") ?? BOMB_SOURCE_COUNT);
-  const out: { j: number; p: BombPuzzleData }[] = [];
-  for (let j = from; j < to; j++) {
-    out.push({ j, p: buildSource(j) });
-    if ((j - from) % 5 === 4) console.log(`source ${j + 1}/${to}`);
-  }
-  writeFileSync(part, JSON.stringify({ entries: out }));
-  process.exit(0);
-}
-
 if (import.meta.main) {
-  const sources: BombPuzzleData[] = [];
-  if (process.argv.includes("--reuse")) {
-    // The bank file as it stands holds every source card: the first table's Expert bank (before D3) or D3's Hard and
-    // Expert with their source indices.
-    const mod = (await import("../src/lib/duel/bombLevelsBank.server")) as Record<string, unknown>;
-    const from = (name: string) => (mod[name] as readonly number[] | undefined) ?? null;
-    const hardFrom = from("BOMB_HARD_FROM");
-    if (hardFrom) {
-      (mod["BOMB_HARD_BANK"] as BombPuzzleData[]).forEach((p, i) => (sources[hardFrom[i]!] = p));
-      (mod["BOMB_EXPERT_BANK"] as BombPuzzleData[]).forEach((p, i) => (sources[from("BOMB_EXPERT_FROM")![i]!] = p));
-    } else (mod["BOMB_EXPERT_BANK"] as BombPuzzleData[]).forEach((p, j) => (sources[j] = p));
-  }
+  const only = arg("level") as "hard" | "expert" | undefined;
+  const out = arg("out");
   const merge = arg("merge");
-  if (merge) {
-    for (const f of readdirSync(merge).filter((f) => f.endsWith(".json"))) {
-      const { entries } = JSON.parse(readFileSync(join(merge, f), "utf8")) as { entries: { j: number; p: BombPuzzleData }[] };
-      for (const e of entries) sources[e.j] = e.p;
-    }
+  if (only && out) {
+    writeFileSync(out, JSON.stringify(buildLevel(only)));
+    console.log(`wrote ${out}`);
+  } else {
+    const from = (level: "hard" | "expert") => {
+      const file = merge ? join(merge, `${level}.json`) : null;
+      return file && existsSync(file) ? (JSON.parse(readFileSync(file, "utf8")) as { seeds: number[]; cards: BombPuzzleData[] }) : buildLevel(level);
+    };
+    const easy = Array.from({ length: BOMB_LEVELS.easy.bank }, (_, i) => buildEasy(i));
+    write(easy, from("hard"), from("expert"));
+    console.log(`wrote ${OUT}`);
   }
-  for (let j = 0; j < BOMB_SOURCE_COUNT; j++) if (!sources[j]) sources[j] = buildSource(j);
-  const easy = Array.from({ length: BOMB_LEVELS.easy.bank }, (_, i) => buildEasy(i));
-  write(easy, sources);
-  console.log(`wrote ${OUT}`);
 }

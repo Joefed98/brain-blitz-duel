@@ -12,21 +12,26 @@
  *    submit.
  *  - Labyrinth: 3 s to look the maze over, 1 s to plan each key, 0.2 s a square drawn (the spec's person-like solver),
  *    along the shortest walk through every key to the exit.
- *  - Bomb Defusal: 2.5 s a clue read, 1 s an order tried in the head (attention-levels-lib.ts personBombTries), 0.4 s
- *    a step.
+ *  - Bomb Defusal (Joe's option (a), 22 Nov 2026: 6-step cards): the realistic elite's own player with no slip (the
+ *    bomb kit at the elite's pace: 2.5 s a clue read, 0.6 s a step, held 0.4 s apart), on a fixed draw per card. The
+ *    first proof also charged 1 s for every order tried in the head (attention-levels-lib.ts personBombTries), which
+ *    the ladder's realistic elite never pays; the bank still keeps only cards a person-like solver works out within the
+ *    level's orders.
  *  - Matchmaker: a perfect memory sweeping the board in order at 0.4 s a flip (src/lib/duel/pairSweep.ts: a seen
  *    partner matched at once, the gold pair as soon as both are seen, the other found pairs kept for one long run at the
  *    end; a third flip skips the turn-back wait).
  */
 import { asPhoneSends, gradeSteps } from "./standard-lib";
-import { personBombTries } from "./attention-levels-lib";
+import { KITS } from "./puzzle-fairness/kits";
+import { hashText, makeRng } from "./puzzle-fairness/kit";
+import { ATTENTION_ELITE, heldToLimits } from "./d3-ladder-lib";
+import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { joinStages } from "../src/lib/duel/stagedRounds";
 import { usesScanDepth } from "../src/lib/duel/depth/eagleEye";
 import { countUpStageTruth, countUpCounts } from "../src/lib/duel/attentionRev";
 import { encodeMazeTrail } from "../src/lib/duel/depth/labyrinth";
 import { mazeColsOf } from "../src/lib/duel/maze";
 import { mazeBestKeyOrder, mazeKeysOf, mazePathBetween } from "../src/lib/duel/mazeKeys";
-import { decodeBombActions } from "../src/lib/duel/bomb";
 import { encodePairFlips } from "../src/lib/duel/pairmatch";
 import { PAIR_SWEEP_FLIP_MS, pairSweep } from "../src/lib/duel/pairSweep";
 import { joinPairGoldTime, pairGoldTimed } from "../src/lib/duel/depth/matchmaker";
@@ -90,9 +95,8 @@ export function limitsRun(p: PuzzleData): Step[] {
       if (k % 8 === 0 || k === trail.length - 1) steps.push({ answer: encodeMazeTrail(trail.slice(0, k + 1), cols), atMs: Math.round(t) });
     }
   } else if (p.type === "bomb") {
-    const seq = decodeBombActions(p.sequence ?? "");
-    t += 2500 * p.rules.length + 1000 * Math.max(0, Math.min(400, personBombTries(p, 400)));
-    for (let k = 1; k <= seq.length; k++) at(400, seq.slice(0, k).join(","));
+    const key = `d3-attention-proof:bomb:${p.sequence ?? ""}:${p.rules.map((r) => r.id).join(",")}`;
+    return heldToLimits(KITS.bomb!.play(p, makeRng(hashText(key)), { ...ATTENTION_ELITE, err: 0 }, puzzleTimeLimitMs(p))).steps;
   } else if (p.type === "pairmatch") {
     // The perfect-memory sweep (src/lib/duel/pairSweep.ts), one flip each 0.4 s, the gold match's time sent with it.
     const sweep = pairSweep(p.cards, p.gold);

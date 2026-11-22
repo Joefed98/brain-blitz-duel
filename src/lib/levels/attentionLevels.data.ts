@@ -233,9 +233,10 @@ export interface BombLevel {
   /** Speed full when defused by this many seconds (the standard's 30 s at Normal). */
   fullByS: number;
   /**
-   * levelRev 2 (Hard and Expert): the bank's cards come from the proved 8-wire, 8-step cards, split by how many "Step N"
-   * clues give a step away: Hard's at least `stepCluesMin`, Expert's at most `stepCluesMax`; every card worked out by a
-   * person-like solver within `ordersMax` orders tried (scripts/bomb-levels-bank.ts).
+   * levelRev 2 (Hard and Expert): the bank's cards are generated on the level's own levers and kept when the realistic
+   * elite's pace with no slip defuses them by the full-by (scripts/bomb-levels-bank.ts), at least `stepCluesMin` /
+   * at most `stepCluesMax` of their clues give a step away ("Step N"), and a person-like solver works them out within
+   * `ordersMax` orders tried.
    */
   stepCluesMin?: number;
   stepCluesMax?: number;
@@ -249,10 +250,15 @@ export const BOMB_LEVELS_REV1 = {
   expert: { wires: 8, steps: 8, clues: [8, 9], instant: true, timeLimitMs: 120_000, bank: 120, fullByS: 40 },
 } as const satisfies Record<"easy" | "normal" | "hard" | "expert", BombLevel>;
 
-/** D3: the card grows 4 → 6–9 → 8–9 clues (eight wires, eight steps); Expert takes Reset and the give-away clues away. */
+/**
+ * D3 (Joe's option (a), 22 Nov 2026): Hard and Expert keep Normal's 7 wires and 6 steps; the card holds 7 clues (every one
+ * needed: the most a 6-step card can), the clock is shorter (72 s, 64 s) and speed is full sooner (24 s, 22 s); Expert's
+ * first wrong step sets it off (no Reset). (A 6-step card's 7 clues nearly always include two "Step N" clues, so Expert
+ * no longer filters them out as the 8-step cards did.)
+ */
 export const BOMB_LEVELS = {
   easy: { wires: 5, steps: 4, clues: [4, 4], instant: false, timeLimitMs: 90_000, bank: 300, fullByS: 25 },
   normal: BOMB_LEVELS_REV1.normal,
-  hard: { wires: 8, steps: 8, clues: [8, 9], instant: false, timeLimitMs: 105_000, bank: 68, fullByS: 66, stepCluesMin: 3, ordersMax: 40 },
-  expert: { wires: 8, steps: 8, clues: [8, 9], instant: true, timeLimitMs: 120_000, bank: 44, fullByS: 66, stepCluesMax: 2, ordersMax: 40 },
+  hard: { wires: 7, steps: 6, clues: [7, 9], instant: false, timeLimitMs: 72_000, bank: 80, fullByS: 24, ordersMax: 40 },
+  expert: { wires: 7, steps: 6, clues: [7, 9], instant: true, timeLimitMs: 64_000, bank: 60, fullByS: 22, ordersMax: 40 },
 } as const satisfies Record<"easy" | "normal" | "hard" | "expert", BombLevel>;

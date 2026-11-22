@@ -197,15 +197,18 @@ const labyrinth: LeverPicture = ({ level }) => {
   );
 };
 
-/** Bomb Defusal: the wires on the panel. */
+/** Bomb Defusal: the clues on the card (lines) over the clock (the gold bar, out of two minutes). */
 const bomb: LeverPicture = ({ level }) => {
-  const wires = BOMB_LEVELS[level].wires;
-  const gap = H / (wires + 1);
+  const row = BOMB_LEVELS[level];
+  const clues = row.clues[0];
+  const seconds = Math.round(row.timeLimitMs / 1000);
+  const gap = (H - 14) / (clues + 1);
   return (
-    <Frame label={`${wires} wires`}>
-      {Array.from({ length: wires }, (_, i) => (
-        <line key={i} x1={8} y1={gap * (i + 1)} x2={W - 8} y2={gap * (i + 1)} stroke={i === 0 ? GOLD : DIM} strokeWidth={3} strokeLinecap="round" />
+    <Frame label={`${clues} clues in ${seconds} seconds`}>
+      {Array.from({ length: clues }, (_, i) => (
+        <line key={i} x1={8} y1={gap * (i + 1)} x2={W - 8 - (i % 3) * 14} y2={gap * (i + 1)} stroke={DIM} strokeWidth={2} strokeLinecap="round" />
       ))}
+      <rect x={8} y={H - 10} width={((W - 16) * row.timeLimitMs) / 120_000} height={6} rx={3} fill={GOLD} />
     </Frame>
   );
 };
