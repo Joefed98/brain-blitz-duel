@@ -627,3 +627,11 @@
   display: flex;
   gap: var(--jz-space-8);
 }
+
+/* The Solution / Yours switch's held row (P2, 22 Nov 2026): the switch's exact box (3 + 36 + 3 px and its 8 px margin),
+   drawn while a room's board is on its way, so nothing below it moves when the board lands. */
+.solution-switch-space {
+  flex: 0 0 auto;
+  height: 42px;
+  margin-bottom: 8px;
+}

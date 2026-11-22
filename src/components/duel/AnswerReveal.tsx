@@ -504,13 +504,26 @@ function useRevealFit(rootRef: { current: HTMLElement | null }, cardRef: { curre
       if (`${root.clientWidth}x${root.clientHeight}:${card.scrollHeight}` === fitted) return;
       if (!frame) frame = requestAnimationFrame(fit);
     };
-    const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(later);
+    // The reveal's own box resized (the screen's geometry settling, a safe-area inset arriving late): refit inside the
+    // observer, before that frame paints, so the tray is never drawn a frame behind the board (P2, 22 Nov 2026). Only
+    // for the root: it is the shallowest box observed, so what the fit changes below it is delivered this frame, never
+    // as an observer loop. Anything else waits for the next frame as before.
+    const resized = (entries: ResizeObserverEntry[]) => {
+      if (!entries.some((entry) => entry.target === root)) return later();
+      if (`${root.clientWidth}x${root.clientHeight}:${card.scrollHeight}` === fitted) return;
+      if (frame) cancelAnimationFrame(frame);
+      fit();
+    };
+    const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resized);
     resize?.observe(root);
     resize?.observe(card);
     for (const child of Array.from(card.children)) resize?.observe(child);
+    // The board landing (a room's puzzle fetched after the first frame) or changing: fitted in the same microtask as
+    // the DOM change, before paint, so the board is never drawn unscaled or without its tray first (P2, 22 Nov 2026).
     const mutations = new MutationObserver(() => {
       for (const child of Array.from(card.children)) resize?.observe(child);
-      if (!frame) frame = requestAnimationFrame(fit);
+      if (frame) cancelAnimationFrame(frame);
+      fit();
     });
     // The Solution / Yours switch shows (and flips) by attribute: refit then too.
     mutations.observe(root, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "data-solution-switch", "data-solution-view"] });
@@ -1028,7 +1041,8 @@ function LiveAnswerReveal({
            until each family's boards draw at the box's size: S5). */
         <div ref={solvedBoard} data-skin-off className="answer-reveal-content relative isolate flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
           <div ref={trayRef} aria-hidden="true" data-reveal-tray className="reveal-tray" />
-          {answersReady && !solutionLock && !gameViews.views ? <SolutionSwitch type={puzzle.type} root={solvedBoard} onChange={setSwitchState} /> : null}
+          {/* Drawn from the first frame (P2, 22 Nov 2026): while a room's board is still on its way, its row is held. */}
+          {!solutionLock && !gameViews.views ? <SolutionSwitch type={puzzle.type} root={solvedBoard} onChange={setSwitchState} pending={!answersReady} /> : null}
           {/* The card: the game's board and every line it draws, measured and scaled as one (useRevealFit). */}
           <div ref={revealCard} data-reveal-card="" className="reveal-card">
           {/* An engine game's own summary line only while its breakdown is folded away (a room's "See breakdown"). */}
