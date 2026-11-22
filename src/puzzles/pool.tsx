@@ -44,6 +44,7 @@ import { SPORTS_CHECKPOINT_INTERVAL } from "@/lib/arcade/sportsKit";
 import { preloadSportsSprites } from "@/lib/arcade/sportsSprites";
 import { poolSounds } from "@/lib/fx/gameSounds";
 import { encodePoolRun, replayPoolRun } from "@/lib/duel/pool";
+import { poolKey } from "@/lib/gameFrame/stageKeys";
 import type { PoolPuzzleData } from "@/lib/duel/types";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -450,6 +451,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
           return null;
         }}
         footer={footer}
+        keys={(kind, key, send, s, event) => ready() && poolKey(kind, key, event.shiftKey, { angle: () => currentAngle(s), setAngle: (angle) => { aim.current = { shots: s.shots, angle }; }, pull, repaint: paintPanel, spin: () => spinRef.current, setSpin, shoot: (angle, power) => send(shotPayload(angle, power)), minPull: MIN_PULL })}
         onSubmit={(answer) => onSubmit(answer)}
         onDraftAnswer={onDraftAnswer}
       />

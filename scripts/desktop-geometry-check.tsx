@@ -43,6 +43,7 @@ import { DESKTOP_KEYS } from "../src/lib/desktopKeys";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import { DESKTOP_MODES } from "../src/lib/duel/desktopModes";
 import { DESKTOP_LAYOUT_QUERY } from "../src/lib/layoutMode";
+import { ARENA_CABINET_LEFT } from "../src/lib/gameFrame/arena";
 
 const args = process.argv.slice(2);
 const VERBOSE = args.includes("--verbose");
@@ -203,7 +204,8 @@ function playProbe() {
   const canvas = arena?.querySelector("canvas") ?? null;
   const header = document.querySelector("[data-arcade-header]");
   // The arena (15 Nov 2026): the timer is in the side panel, the header not drawn.
-  const arenaPanel = document.querySelector("[data-arena-panel], [data-arena-mount]");
+  // Changed with Joe's approval, 22 Nov 2026 (K18, the Cabinet): the timer may be in the Cabinet's left panel.
+  const arenaPanel = document.querySelector("[data-arena-panel-left]") ?? document.querySelector("[data-arena-panel], [data-arena-mount]");
   const timer = (arenaPanel ?? header)?.querySelector("[role='timer']") ?? null;
   const scene = shell?.querySelector(":scope > [data-arena-scene]") ?? null;
   const slotStyle = slot ? getComputedStyle(slot) : null;
@@ -220,6 +222,8 @@ function playProbe() {
     canvas: canvas ? { css: box(canvas), w: canvas.width, h: canvas.height } : null,
     header: box(header),
     arenaPanel: box(document.querySelector("[data-arena-panel]") ?? document.querySelector(".dk-room-panel")),
+    // Changed with Joe's approval, 22 Nov 2026 (K18): the Cabinet's left panel, where there is one.
+    arenaPanelLeft: box(document.querySelector("[data-arena-panel-left]")),
     timer: box(timer),
     ring: box(timer?.querySelector("svg") ?? null),
     seconds: timer?.querySelector("span") ? parseFloat(getComputedStyle(timer.querySelector("span")!).fontSize) : 0,
@@ -262,7 +266,8 @@ function judgePlay(m: ReturnType<typeof playProbe>, arcade: boolean, problems: s
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the game frame restyle): the column sits between
   // the rail and the arena's side panel (which carries the header's timer, score and menu), centred there.
   const right = m.innerW - (m.arenaPanel ? m.arenaPanel.w : ARENA_PANEL);
-  const space = right - RAIL_COMPACT;
+  const left = RAIL_COMPACT + (m.arenaPanelLeft ? m.arenaPanelLeft.w : 0); // Changed with Joe's approval, 22 Nov 2026 (K18)
+  const space = right - left;
   const maxW = arcade ? ARCADE_MAX_W[mode] : puzzleMaxW(m.innerH);
   const maxH = arcade ? m.innerH : PUZZLE_MAX_H;
   if (m.arcade !== arcade) problems.push(`arcade play screen ${m.arcade}, expected ${arcade}`);
@@ -270,7 +275,8 @@ function judgePlay(m: ReturnType<typeof playProbe>, arcade: boolean, problems: s
   if (m.column.w < Math.min(maxW, space) - 0.5) problems.push(`column ${m.column.w.toFixed(1)}px wide (should be ${Math.min(maxW, space)})`);
   if (m.column.h > maxH + 0.5) problems.push(`column ${m.column.h.toFixed(1)}px tall (max ${maxH})`);
   if (!m.arenaPanel || !near(m.arenaPanel.r, m.innerW)) problems.push(`no arena panel down the right edge (${fmt(m.arenaPanel)})`);
-  if (!near(m.column.x - RAIL_COMPACT, right - m.column.r)) problems.push(`column not centred between the rail and the panel (${(m.column.x - RAIL_COMPACT).toFixed(1)} | ${(right - m.column.r).toFixed(1)})`);
+  // Changed with Joe's approval, 22 Nov 2026 (K18): centred between the Cabinet's left panel (or the rail) and the panel.
+  if (!near(m.column.x - left, right - m.column.r)) problems.push(`column not centred between the ${m.arenaPanelLeft ? "Cabinet's left panel" : "rail"} and the panel (${(m.column.x - left).toFixed(1)} | ${(right - m.column.r).toFixed(1)})`);
   if (!near(m.column.y, m.innerH - m.column.b)) problems.push(`column not centred down (${m.column.y.toFixed(1)} | ${(m.innerH - m.column.b).toFixed(1)})`);
   if (m.column.y < -0.5 || m.column.b > m.innerH + 0.5) problems.push(`column off screen (${fmt(m.column)})`);
   if (m.scrollX > 0 || m.scrollY > 0) problems.push(`page scrolls (${m.scrollX}, ${m.scrollY})`);
@@ -282,7 +288,14 @@ function judgePlay(m: ReturnType<typeof playProbe>, arcade: boolean, problems: s
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the game frame restyle): in the arena the header is
   // not drawn; the one timer is in the side panel (its seconds at least the phone's 15 px), never beside a header copy.
   if (m.header) problems.push("a header drawn in the arena (the panel carries it; no doubled timer)");
-  if (!m.timer || !m.arenaPanel || m.timer.x < m.arenaPanel.x - 0.5) problems.push(`the timer is not in the arena panel (${fmt(m.timer)})`);
+  // Changed with Joe's approval, 22 Nov 2026 (K18): an arcade round outside a room has the Cabinet's left panel once it is on.
+  // Changed with Joe's approval, 22 Nov 2026 (K18): the Cabinet wherever it draws the world no smaller, and never where it would.
+  const roomForLeft = m.worldW > 0 && m.innerW - RAIL_COMPACT - ARENA_PANEL - 280 >= Math.min(ARCADE_MAX_W[mode], m.innerW - RAIL_COMPACT - ARENA_PANEL, (m.innerH * m.worldW) / m.worldH);
+  if (arcade && ARENA_CABINET_LEFT && mode !== "rotate" && roomForLeft && !m.arenaPanelLeft) problems.push("no Cabinet left panel on an arcade round outside a room");
+  if (arcade && m.arenaPanelLeft && !roomForLeft) problems.push("the Cabinet's left panel where it would draw the world smaller");
+  // Changed with Joe's approval, 22 Nov 2026 (K18): the timer is in the Cabinet's left panel where there is one, else the arena panel.
+  const timerPanel = m.arenaPanelLeft ?? m.arenaPanel;
+  if (!m.timer || !timerPanel || m.timer.x < timerPanel.x - 0.5 || m.timer.r > timerPanel.r + 0.5) problems.push(`the timer is not in the ${m.arenaPanelLeft ? "Cabinet's left" : "arena"} panel (${fmt(m.timer)})`);
   // Changed with Joe's approval, 15 Nov 2026 (timer bar only by default): the default bar shows its seconds only in the
   // last 10 s, so it may instead show the bar with its accessible label ("N seconds remaining"); the ring and chip keep
   // their seconds (at least 15 px). Exactly one timer still.
