@@ -6,10 +6,13 @@
  * (`pipeArtUrls`); the board no longer draws them. Nothing here reads or changes what the stage grades; water
  * directions come from the presentation-only BFS.
  */
-import { memo, useLayoutEffect, useRef, type CSSProperties } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 
 import { PIPE_E, PIPE_N, PIPE_S, PIPE_W } from "@/lib/duel/logic";
-import { pipeTurnFx } from "./pipesFx";
+import { PIPE_DRAIN_STEP_MS, PIPE_DRAIN_TILE_MS, PIPE_FLOW_TOTAL_MS, pipeTurnFx } from "./pipesFx";
+
+/** How long a drained pipe keeps its wet layers, so the drain (pipesFx.ts) has water to run out: every drain ends by then. */
+const PIPE_DRAIN_HOLD_MS = PIPE_FLOW_TOTAL_MS + PIPE_DRAIN_TILE_MS + PIPE_DRAIN_STEP_MS;
 
 /** Each open side, as a rotation of the canonical north arm. */
 export const PIPE_ARMS: { bit: number; turn: number; dx: number; dy: number }[] = [
@@ -75,50 +78,13 @@ export function pipeArtUrls(): string[] {
 }
 
 /**
- * Shared gradients, drawn once per board (the old look, Joe's pick of 20 Nov 2026; earlier E1.4): steel tubes, flanges
- * and hubs, the blue tube of a pipe the water reaches, the red source pump and the water. `id` keeps two boards' defs
- * apart (the reveal draws two).
+ * The board's shared clip for the ripples in the water channel (the old look, Joe's pick of 20 Nov 2026; earlier E1.4).
+ * `id` keeps two boards' defs apart (the reveal draws two).
  */
 export function PipeDefs({ id }: { id: string }) {
   return (
     <svg width="0" height="0" aria-hidden="true" focusable="false" className="pointer-events-none absolute">
       <defs>
-        <linearGradient id={`${id}-tube`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#56606e" />
-          <stop offset="0.22" stopColor="#adb8c5" />
-          <stop offset="0.42" stopColor="#f6f9fc" />
-          <stop offset="0.6" stopColor="#c8d1db" />
-          <stop offset="1" stopColor="#5e6876" />
-        </linearGradient>
-        {/* A pipe the water reaches: the tube itself turns blue, so the connected network is plainly lit. */}
-        <linearGradient id={`${id}-tube-wet`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#0d4f86" />
-          <stop offset="0.22" stopColor="#2f9be6" />
-          <stop offset="0.42" stopColor="#d4f2ff" />
-          <stop offset="0.6" stopColor="#66c4f5" />
-          <stop offset="1" stopColor="#11568f" />
-        </linearGradient>
-        <linearGradient id={`${id}-flange`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#c9d2dc" />
-          <stop offset="0.55" stopColor="#8a95a3" />
-          <stop offset="1" stopColor="#4a525e" />
-        </linearGradient>
-        <radialGradient id={`${id}-hub`} cx="0.4" cy="0.36" r="0.7">
-          <stop offset="0" stopColor="#f1f5f9" />
-          <stop offset="0.45" stopColor="#9ba7b5" />
-          <stop offset="1" stopColor="#3b434e" />
-        </radialGradient>
-        <radialGradient id={`${id}-pump`} cx="0.4" cy="0.35" r="0.72">
-          <stop offset="0" stopColor="#ffb39a" />
-          <stop offset="0.5" stopColor="#e2483a" />
-          <stop offset="1" stopColor="#7c1d18" />
-        </radialGradient>
-        <linearGradient id={`${id}-water`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stopColor="#1f86e0" />
-          <stop offset="0.45" stopColor="#6fd8ff" />
-          <stop offset="0.6" stopColor="#b5ecff" />
-          <stop offset="1" stopColor="#1f86e0" />
-        </linearGradient>
         <clipPath id={`${id}-channel`} clipPathUnits="userSpaceOnUse">
           <rect x={PIPE_SVG.channelX} y={-PIPE_SVG.reach} width={PIPE_SVG.channelW} height={50 + PIPE_SVG.reach} />
         </clipPath>
@@ -142,9 +108,72 @@ export const PIPE_SVG = {
   reach: 12,
 } as const;
 
+/* The tile art as cached SVG images (one element a tile, so a 49-tile board paints at once: first-paint-check; the
+   same drawing as the old inline SVG, its colours written in). Keyed by side-set, source and which layer. */
+const GRADIENTS =
+  '<linearGradient id="t" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#56606e"/><stop offset="0.22" stop-color="#adb8c5"/><stop offset="0.42" stop-color="#f6f9fc"/><stop offset="0.6" stop-color="#c8d1db"/><stop offset="1" stop-color="#5e6876"/></linearGradient>' +
+  '<linearGradient id="w" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#0d4f86"/><stop offset="0.22" stop-color="#2f9be6"/><stop offset="0.42" stop-color="#d4f2ff"/><stop offset="0.6" stop-color="#66c4f5"/><stop offset="1" stop-color="#11568f"/></linearGradient>' +
+  '<linearGradient id="a" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1f86e0"/><stop offset="0.45" stop-color="#6fd8ff"/><stop offset="0.6" stop-color="#b5ecff"/><stop offset="1" stop-color="#1f86e0"/></linearGradient>' +
+  '<linearGradient id="f" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9d2dc"/><stop offset="0.55" stop-color="#8a95a3"/><stop offset="1" stop-color="#4a525e"/></linearGradient>' +
+  '<radialGradient id="h" cx="0.4" cy="0.36" r="0.7"><stop offset="0" stop-color="#f1f5f9"/><stop offset="0.45" stop-color="#9ba7b5"/><stop offset="1" stop-color="#3b434e"/></radialGradient>' +
+  '<radialGradient id="p" cx="0.4" cy="0.35" r="0.72"><stop offset="0" stop-color="#ffb39a"/><stop offset="0.5" stop-color="#e2483a"/><stop offset="1" stop-color="#7c1d18"/></radialGradient>';
+
+function armsOf(mask: number) {
+  return PIPE_ARMS.filter((arm) => mask & arm.bit);
+}
+
+function tubesSvg(mask: number, wet: boolean): string {
+  const r = PIPE_SVG.reach;
+  return armsOf(mask)
+    .map(
+      (arm) =>
+        `<g transform="rotate(${arm.turn} 50 50)"><rect x="${PIPE_SVG.tubeX}" y="${-r}" width="${PIPE_SVG.tubeW}" height="${52 + r}" fill="url(#${wet ? "w" : "t"})"/>` +
+        `<rect x="${PIPE_SVG.channelX}" y="${-r}" width="${PIPE_SVG.channelW}" height="${50 + r}" fill="${wet ? "url(#a)" : "#34404e"}"/></g>`,
+    )
+    .join("");
+}
+
+function fittingsSvg(mask: number, source: boolean, eyeWet: boolean): string {
+  const flanges = armsOf(mask)
+    .map(
+      (arm) =>
+        `<g transform="rotate(${arm.turn} 50 50)"><rect x="26" y="0.5" width="48" height="8" rx="1.6" fill="url(#f)" stroke="#2a3039" stroke-width="1"/>` +
+        `<circle cx="30.5" cy="4.5" r="1.9" fill="#dfe5ec" stroke="#2a3039" stroke-width="0.9"/><circle cx="69.5" cy="4.5" r="1.9" fill="#dfe5ec" stroke="#2a3039" stroke-width="0.9"/></g>`,
+    )
+    .join("");
+  const hub = source
+    ? `<circle cx="50" cy="50" r="27" fill="url(#p)" stroke="#4a1210" stroke-width="1.6"/>` +
+      [0, 60, 120].map((t) => `<rect x="47.5" y="27" width="5" height="46" rx="2.5" transform="rotate(${t} 50 50)" fill="#f6d6cf" stroke="#6d1a15" stroke-width="0.8"/>`).join("") +
+      `<circle cx="50" cy="50" r="10" fill="url(#h)" stroke="#2a3039" stroke-width="1.2"/><circle cx="50" cy="50" r="5" fill="#7bd8fb"/>`
+    : `<circle cx="50" cy="50" r="20" fill="url(#h)" stroke="#262c34" stroke-width="1.4"/>` +
+      [45, 135, 225, 315].map((t) => `<circle cx="50" cy="35.5" r="2" transform="rotate(${t} 50 50)" fill="#dfe5ec" stroke="#2a3039" stroke-width="0.9"/>`).join("") +
+      `<circle cx="50" cy="50" r="8.5" fill="${eyeWet ? "#8fe0ff" : "#26303b"}" stroke="#262c34" stroke-width="1.2"/>`;
+  return flanges + hub;
+}
+
+const artCache = new Map<string, string>();
 /**
- * One tile's pipework: the old SVG pipes (steel tubes, a dark channel, flanges and rivets, a hub), dry under wet (the
- * blue tube with the rippling water) in its own clipping box, so water can run in and drain out (pipesFx.ts); the
+ * One layer of a tile's pipework as an SVG data URL, drawn in a box 12 tile units larger than the tile on every side
+ * (the arms run into the board gap; `.pipe-turn` crops them at its middle): "dry" (the steel tubes with the fittings),
+ * "wet" (the blue tube and its water) or "top" (the fittings again, over the water).
+ */
+export function pipeArtUrl(mask: number, source: boolean, layer: "dry" | "wet" | "top", eyeWet = false): string {
+  const key = `${mask}|${source ? 1 : 0}|${layer}|${eyeWet ? 1 : 0}`;
+  const hit = artCache.get(key);
+  if (hit) return hit;
+  const r = PIPE_SVG.reach;
+  const body =
+    layer === "dry" ? tubesSvg(mask, false) + fittingsSvg(mask, source, false) : layer === "wet" ? tubesSvg(mask, true) : fittingsSvg(mask, source, eyeWet);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-r} ${-r} ${100 + 2 * r} ${100 + 2 * r}"><defs>${GRADIENTS}</defs>${body}</svg>`;
+  const url = `data:image/svg+xml,${encodeURIComponent(svg)}`;
+  artCache.set(key, url);
+  return url;
+}
+
+/**
+ * One tile's pipework: the old SVG pipes (steel tubes, a dark channel, flanges and rivets, a hub; cached SVG images,
+ * `pipeArtUrl`), dry under wet (the blue tube with the rippling water, drawn only while the water is in it) in its own
+ * clipping box, so water can run in and drain out (pipesFx.ts); the
  * source's red pump on top; the old red drip at each open end of the network (`leakArms`). Memoised on its primitive
  * props (a board is 49 of these and the round clocks re-render the stage ten times a second).
  */
@@ -184,77 +213,55 @@ export const PipeArt = memo(function PipeArt({
     pipeTurnFx(turnRef.current, turnDir);
   }, [turnKey, turnDir]);
 
+  // The wet layers are drawn only while the water is in the pipe, and for a moment after it leaves (the drain runs on
+  // them, pipesFx.ts): a dry tile is one SVG, so a 49-tile board stays light enough to paint at once (first-paint-check).
+  const [wetShown, setWetShown] = useState(wet);
+  useEffect(() => {
+    if (wet) {
+      setWetShown(true);
+      return;
+    }
+    const t = setTimeout(() => setWetShown(false), PIPE_DRAIN_HOLD_MS);
+    return () => clearTimeout(t);
+  }, [wet]);
+  const showWet = wet || wetShown;
+
   const arms = PIPE_ARMS.filter((arm) => mask & arm.bit);
   const r = PIPE_SVG.reach;
-  // The art is drawn in the tile's own 0–100 box (`.pipe-frame`); the arms run `reach` past its edges and are cropped
-  // at half the board gap by `.pipe-turn`, so each tube meets its neighbour's in the middle of the gap.
-  const box = "0 0 100 100";
-  const { tubeX, tubeW, channelX, channelW } = PIPE_SVG;
   return (
     <span className="pipe-art" aria-hidden="true">
       {sprite ? (
         <span ref={turnRef} className="pipe-turn" data-pipe-turns={sprite.turns}>
           <span className="pipe-frame">
-          <svg viewBox={box} className="pipe-svg" aria-hidden="true">
-            {arms.map((arm) => (
-              <g key={arm.bit} transform={`rotate(${arm.turn} 50 50)`}>
-                <rect x={tubeX} y={-r} width={tubeW} height={52 + r} fill={`url(#${defs}-tube)`} />
-                <rect x={channelX} y={-r} width={channelW} height={50 + r} className="pipe-channel" />
-              </g>
-            ))}
-          </svg>
+            <img className="pipe-svg" data-pipe-layer="dry" src={pipeArtUrl(mask, source, "dry")} alt="" draggable={false} />
           </span>
-          {/* The water: the wet set in its own clipping box, so water can run in from the side it enters by (pipesFx). */}
+          {/* The water: the blue tube and its rippling water in their own clipping box, so water can run in from the
+              side it enters by (pipesFx); the fittings drawn again over it. */}
           <span className="pipe-wet" data-wet={wet ? "true" : undefined}>
             <span className="pipe-wet-in">
-              <span className="pipe-frame">
-              <svg viewBox={box} className="pipe-svg" aria-hidden="true">
-                {arms.map((arm) => (
-                  <g key={arm.bit} transform={`rotate(${arm.turn} 50 50)`}>
-                    <rect x={tubeX} y={-r} width={tubeW} height={52 + r} fill={`url(#${defs}-tube-wet)`} />
-                    <rect x={channelX} y={-r} width={channelW} height={50 + r} fill={`url(#${defs}-water)`} />
-                    <g clipPath={`url(#${defs}-channel)`}>
-                      <g className={inflow & arm.bit ? "pipe-ripple pipe-ripple-in" : "pipe-ripple"}>
-                        {[-24, -12, 0, 12, 24, 36, 48, 60].map((y) => (
-                          <rect key={y} x="47" y={y} width="6" height="5" rx="2.5" className="pipe-ripple-dot" />
-                        ))}
+              {showWet ? (
+                <span className="pipe-frame">
+                  <img className="pipe-svg" data-pipe-layer="wet" src={pipeArtUrl(mask, source, "wet")} alt="" draggable={false} />
+                  <svg viewBox={`${-r} ${-r} ${100 + 2 * r} ${100 + 2 * r}`} className="pipe-svg" aria-hidden="true">
+                    {arms.map((arm) => (
+                      <g key={arm.bit} transform={`rotate(${arm.turn} 50 50)`} clipPath={`url(#${defs}-channel)`}>
+                        <g className={inflow & arm.bit ? "pipe-ripple pipe-ripple-in" : "pipe-ripple"}>
+                          {[-24, -12, 0, 12, 24, 36, 48, 60].map((y) => (
+                            <rect key={y} x="47" y={y} width="6" height="5" rx="2.5" className="pipe-ripple-dot" />
+                          ))}
+                        </g>
                       </g>
-                    </g>
-                  </g>
-                ))}
-              </svg>
-              </span>
+                    ))}
+                  </svg>
+                </span>
+              ) : null}
             </span>
           </span>
-          <span className="pipe-frame">
-          <svg viewBox={box} className="pipe-svg" aria-hidden="true">
-            {arms.map((arm) => (
-              <g key={arm.bit} transform={`rotate(${arm.turn} 50 50)`}>
-                <rect x="26" y="0.5" width="48" height="8" rx="1.6" fill={`url(#${defs}-flange)`} stroke="#2a3039" strokeWidth="1" />
-                <circle cx="30.5" cy="4.5" r="1.9" className="pipe-rivet" />
-                <circle cx="69.5" cy="4.5" r="1.9" className="pipe-rivet" />
-              </g>
-            ))}
-            {source ? (
-              <g>
-                <circle cx="50" cy="50" r="27" fill={`url(#${defs}-pump)`} stroke="#4a1210" strokeWidth="1.6" />
-                {[0, 60, 120].map((turn) => (
-                  <rect key={turn} x="47.5" y="27" width="5" height="46" rx="2.5" transform={`rotate(${turn} 50 50)`} className="pipe-spoke" />
-                ))}
-                <circle cx="50" cy="50" r="10" fill={`url(#${defs}-hub)`} stroke="#2a3039" strokeWidth="1.2" />
-                <circle cx="50" cy="50" r="5" className="pipe-water-eye" />
-              </g>
-            ) : (
-              <g>
-                <circle cx="50" cy="50" r="20" fill={`url(#${defs}-hub)`} stroke="#262c34" strokeWidth="1.4" />
-                {[45, 135, 225, 315].map((turn) => (
-                  <circle key={turn} cx="50" cy="35.5" r="2" transform={`rotate(${turn} 50 50)`} className="pipe-rivet" />
-                ))}
-                <circle cx="50" cy="50" r="8.5" className={wet ? "pipe-hub-eye pipe-hub-eye-wet" : "pipe-hub-eye"} />
-              </g>
-            )}
-          </svg>
-          </span>
+          {showWet ? (
+            <span className="pipe-frame">
+              <img className="pipe-svg" data-pipe-layer="top" src={pipeArtUrl(mask, source, "top", wet)} alt="" draggable={false} />
+            </span>
+          ) : null}
         </span>
       ) : null}
       {/* The old red drip at each open end of the network, at that arm's mouth (north, turned to its side). */}
