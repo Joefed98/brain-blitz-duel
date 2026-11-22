@@ -72,7 +72,7 @@ export const MINES_REV_EXPERT = 5;
  * mines): the ladder is the mine count on Normal's own board (9, 16, 26, 40), the free opening shrinking as it climbs.
  *
  *   minesRev 6, Hard: 10 × 16, 26 mines, opening 12–24, 90 s.
- *   minesRev 7, Expert: 10 × 16, 40 mines, opening 6–12, 120 s (squares stay 36 px; rev 5's 12 × 18 drew about 31).
+ *   minesRev 7, Expert: 10 × 16, 40 mines, opening 6–12, 105 s (squares stay 36 px; rev 5's 12 × 18 drew about 31).
  *
  * Each is its own revision, so stored minesRev 2 and 5 rounds replay and score exactly as dealt.
  */
@@ -136,7 +136,7 @@ const GEOS: Readonly<Record<number, MinesGeo>> = {
   4: geo(4, 8, 12, 9, 25, 40, 90, MINES_SPEED_FULL_S_EASY),
   5: geo(5, 12, 18, 34, 8, 16, 120, MINES_SPEED_FULL_S_EXPERT),
   6: geo(6, 10, 16, 26, 12, 24, 90, MINES_SPEED_FULL_S_HARD_D4),
-  7: geo(7, 10, 16, 40, 6, 12, 120, MINES_SPEED_FULL_S_EXPERT_D4),
+  7: geo(7, 10, 16, 40, 6, 12, 105, MINES_SPEED_FULL_S_EXPERT_D4),
 };
 
 /** A revision's board (a stamp no server dealt reads as rev 1's). */

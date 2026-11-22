@@ -44,6 +44,8 @@ export const LEVELS_UNBLOCK: GameLevels<UnblockLevelSettings> = {
     // The step up is the line's length, about 16 moves more than Hard's on average, so the clock grows to fit them (a
     // person-like solver's finishes take 42–90 s). The bank climbs each lot to 40 and takes the drawn depth or the
     // lot's hardest, whichever is less (scripts/unblock-levels-bank.ts).
-    expert: { settings: { cols: 7, minMoves: [40, 48], cars: [13, 15], timeLimitMs: 90_000, speedFullByS: 30 }, oneSolution: OPEN },
+    // D4 (22 Nov 2026): on 80 s (on 90 s the great player scored Expert above Hard), full speed by 40 s (the elite's
+    // finishes under the human limits: a third of Expert boards at 200).
+    expert: { settings: { cols: 7, minMoves: [40, 48], cars: [13, 15], timeLimitMs: 80_000, speedFullByS: 40 }, oneSolution: OPEN },
   },
 };

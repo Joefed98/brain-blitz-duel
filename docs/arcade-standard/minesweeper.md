@@ -4,7 +4,8 @@
 
 The ladder is the **mine count on Normal's own 10 × 16 board**, the free opening shrinking as it climbs: Easy 9 (minesRev
 4, 8 × 12, unchanged), Normal 16 (minesRev 3, unchanged), **Hard 26: minesRev 6** (opening 12–24, 90 s, Speed full by
-**49 s**) and **Expert 40: minesRev 7** (opening 6–12, **120 s**, Speed full by **69 s**; back on 10 × 16, so the squares
+**49 s**) and **Expert 40: minesRev 7** (opening 6–12, **105 s**, Speed full by **69 s**: on 120 s the great player scored Expert
+within 2 of Hard; back on 10 × 16, so the squares
 stay 36 px; minesRev 5's 12 × 18 drew them at about 31 px). Each is its own revision (`minesGeoFor`), so stored minesRev 2
 (the old Hard) and minesRev 5 (the old Expert) rounds replay and score exactly as dealt. The deal draws a fresh seed until
 its board exists (15 % of 40-mine seeds have none in 600 tries), and on every dealt seed the logic oracle tapping at the

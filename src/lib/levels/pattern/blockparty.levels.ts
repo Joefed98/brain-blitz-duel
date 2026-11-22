@@ -32,13 +32,14 @@ const OPEN = { open: "any full packing counts; solution counts per level are pro
 export const LEVELS_BLOCKPARTY: GameLevels = {
   levels: {
     // D4 (22 Nov 2026; the spec's Tessellate row): every level adds squares and pieces (25, 49, 64, 64 squares), and the
-    // solution count only backs it up. Easy: a tiny 5 × 5 board and four little pieces (12 squares), 10+ ways to finish.
+    // solution count only backs it up. Easy: a tiny 5 × 5 board and four little pieces (12 squares), 6+ ways to finish
+    // (only 104 different boards have 10+, too few for the bank's 300; 889 have 6+).
     easy: {
       settings: {
         cols: 5,
         pieces: ["Two", "Three", "Corner", "Square"],
         pegs: 13,
-        solutions: { min: 10, max: null },
+        solutions: { min: 6, max: null },
         layout: "grow",
         humanDepth: null,
         timeLimitMs: 60_000,
@@ -57,7 +58,7 @@ export const LEVELS_BLOCKPARTY: GameLevels = {
         layout: "scatter",
         humanDepth: { min: 2, max: 3 },
         timeLimitMs: 70_000,
-        speedFullByS: 36,
+        speedFullByS: 35,
       },
       oneSolution: OPEN,
     },
@@ -74,7 +75,7 @@ export const LEVELS_BLOCKPARTY: GameLevels = {
         layout: "scatter",
         humanDepth: { min: 3, max: 3 },
         timeLimitMs: 70_000,
-        speedFullByS: 36,
+        speedFullByS: 38,
       },
       oneSolution: OPEN,
     },

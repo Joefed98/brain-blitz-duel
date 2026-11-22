@@ -120,8 +120,9 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   flood: {
     levels: {
       easy: { settings: { smooth: 2, cols: 10, rows: 10, colours: 4, par: [6, 8], blocked: 0, spare: 8, timeMs: 60_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      hard: { settings: { smooth: 1, cols: 12, rows: 17, colours: 6, par: [14, 18], blocked: 0, spare: 4, timeMs: 60_000 }, oneSolution: { proof: LOGIC1_PROOF } },
-      expert: { settings: { smooth: 2, cols: 14, rows: 24, colours: 6, par: [18, 22], blocked: 14, spare: 3, timeMs: 75_000 }, oneSolution: { proof: LOGIC1_PROOF } },
+      // D4 (22 Nov 2026): the boards kept; each level's own speed line, set from the elite's finishes (Hard 24 s, Expert 37 s).
+      hard: { settings: { smooth: 1, cols: 12, rows: 17, colours: 6, par: [14, 18], blocked: 0, spare: 4, timeMs: 60_000, fullByS: 24 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { smooth: 2, cols: 14, rows: 24, colours: 6, par: [18, 22], blocked: 14, spare: 3, timeMs: 75_000, fullByS: 37 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
   // Minefield (an arcade-run Logic game). The lever: mines on the board (9, 16, 26, 40), the free opening shrinking as it
@@ -132,7 +133,7 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
     levels: {
       easy: { settings: { cols: 8, rows: 12, mines: 9, opening: [25, 40], seconds: 90 }, oneSolution: { proof: LOGIC1_PROOF } },
       hard: { settings: { cols: 10, rows: 16, mines: 26, opening: [12, 24], seconds: 90 }, oneSolution: { proof: LOGIC1_PROOF } },
-      expert: { settings: { cols: 10, rows: 16, mines: 40, opening: [6, 12], seconds: 120 }, oneSolution: { proof: LOGIC1_PROOF } },
+      expert: { settings: { cols: 10, rows: 16, mines: 40, opening: [6, 12], seconds: 105 }, oneSolution: { proof: LOGIC1_PROOF } },
     },
   },
   // Logic overhaul 2 (15–16 Nov 2026): Tents and Trees, Shikaku, Lamplighter, Trail, Loopline, Regions, Island Link.
