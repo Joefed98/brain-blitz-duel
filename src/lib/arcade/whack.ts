@@ -727,8 +727,13 @@ export const whackNotesGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = {
  * after the target rose, falling evenly to none at WHACK_QUICK_WIDE_ZERO_TICKS (0.6 s), where whackRev 3 and 4 asked
  * for 0.15 s and none from about 0.27 s (a player at the human limits topped out at 156). The weight keeps
  * WHACK_QUICK_STEPS steps, so the combo part's maximum is unchanged; the state adds `qw: 1`.
+ *
+ * Joe, 22 Nov 2026 (D3's Bonk, option A): whackRev 5 also counts WHACK_V5_HITS_FULL_PCT (97 %) of the targets as hitting
+ * them all (the hits part's 15 and the combo's full run; the state's `hf`), where a single target missed at the human
+ * limits used to keep a run from 200. A level may set its own share (WhackLevel.hitsFullPct).
  */
 export const WHACK_REV_QUICK = 5;
+export const WHACK_V5_HITS_FULL_PCT = 97;
 export const WHACK_QUICK_WIDE_FULL_TICKS = 24;
 export const WHACK_QUICK_WIDE_ZERO_TICKS = 36;
 export function whackComboQuickWide(delayTicks: number): number {
@@ -737,7 +742,7 @@ export function whackComboQuickWide(delayTicks: number): number {
   return Math.floor((WHACK_QUICK_STEPS * (WHACK_QUICK_WIDE_ZERO_TICKS - delayTicks)) / (WHACK_QUICK_WIDE_ZERO_TICKS - WHACK_QUICK_WIDE_FULL_TICKS));
 }
 /** whackRev 5: whackRev 4 with the wider quick window. */
-export const whackQuickGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = { ...whackGame, init: (seed) => ({ ...initDepthWith(seed, WHACK_DIAMOND_LIFE_TICKS_NOTES), qw: 1 }) };
+export const whackQuickGame: ArcadeGame<WhackState, ArcadeInputEvent | null> = { ...whackGame, init: (seed) => ({ ...initDepthWith(seed, WHACK_DIAMOND_LIFE_TICKS_NOTES), qw: 1, hf: WHACK_V5_HITS_FULL_PCT }) };
 
 const levelGames = new Map<string, ArcadeGame<WhackState, ArcadeInputEvent | null>>();
 /**
@@ -745,13 +750,20 @@ const levelGames = new Map<string, ArcadeGame<WhackState, ArcadeInputEvent | nul
  * `bonkLevel`).
  */
 function whackLevelGame(level: WhackLevel, wide = false): ArcadeGame<WhackState, ArcadeInputEvent | null> {
-  const key = `${wide ? "w:" : ""}${level.cols ?? ""}:${level.lifeStart}:${level.lifeEnd}:${level.maxUp}:${level.flips[0]}:${level.flips[1]}:${level.hedgehogPct}:${level.gapPct ?? 100}`;
+  const key = `${wide ? "w:" : ""}${level.cols ?? ""}:${level.lifeStart}:${level.lifeEnd}:${level.maxUp}:${level.flips[0]}:${level.flips[1]}:${level.hedgehogPct}:${level.gapPct ?? 100}:${level.hitsFullPct ?? ""}`;
   let game = levelGames.get(key);
   if (!game) {
     const holes = whackLevelCols(level) ** 2;
     game = {
       ...whackNotesGame,
-      init: (seed) => ({ ...initDepthWith(seed, WHACK_DIAMOND_LIFE_TICKS_NOTES, level), ...(wide ? { qw: 1 } : {}) }),
+      // whackRev 5 levels: the level's own hits share, else WHACK_V5_HITS_FULL_PCT (option A).
+      init: (seed) => {
+        const state = initDepthWith(seed, WHACK_DIAMOND_LIFE_TICKS_NOTES, level);
+        if (!wide) return state;
+        const hf = level.hitsFullPct ?? WHACK_V5_HITS_FULL_PCT;
+        const { hf: _, ...rest } = state;
+        return { ...rest, qw: 1, ...(hf > 0 && hf < 100 ? { hf } : {}) };
+      },
       // D3's lawns: a tap names any of the lawn's burrows (today's 16 otherwise).
       ...(holes !== WHACK_HOLES ? { inputRanges: [inputRange(WHACK_INPUT_TAP, [0, holes - 1])] } : {}),
     };

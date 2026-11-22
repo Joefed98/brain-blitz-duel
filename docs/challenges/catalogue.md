@@ -239,8 +239,8 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Unbroken | Tap all 40 charms. | Classic | Finish | finish |  | `chain.unbroken` |
-| Chain reaction | Tap all 40 within 30 s. | Classic | Speed | finish, `parts.speed` ≥ 50 (by 30 s) |  | `chain.chain-reaction` |
-| Iron links | Tap all 40 on Hard. | Hard | Finish | finish |  | `chain.iron-links` |
+| Chain reaction | Tap all 40 within 33 s. | Classic | Speed | finish, `parts.speed` ≥ 50 (by 33 s) |  | `chain.chain-reaction` |
+| Iron links | Tap all 48 on Hard. | Hard | Finish | finish |  | `chain.iron-links` |
 
 #### Bonk (`whack`)
 
@@ -248,7 +248,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Hedgehog friendly | Bonk 30 or more without a wrong hat or a hedgehog. | Classic | Clean | `hits` ≥ 30, `wrong` = 0, `bombs` = 0 |  | `whack.hedgehog-friendly` |
 | Diamond geezer | Bonk every diamond. | Classic | Full set | `depth.diamondHits` ≥ `depth.diamondTotal`, `depth.diamondTotal` ≥ 1 |  | `whack.diamond-geezer` |
-| Combo king | Bonk 47 in a row, each within 150 ms of rising. | Classic | Combo | `depth.combo` ≥ 44 | ● | `whack.combo-king` |
+| Combo king | Bonk 47 in a row, each within 400 ms of rising. | Classic | Combo | `depth.combo` ≥ 44 | ● | `whack.combo-king` |
 
 #### Pull! (`clayshoot`)
 

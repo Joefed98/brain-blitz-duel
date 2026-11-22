@@ -57,10 +57,14 @@ import { formatRows, polishRows } from "./puzzle-polish-bands";
 import { median } from "./standard-lib";
 import type { EquationPuzzleData, MazePuzzleData, Operator, PuzzleData } from "../src/lib/duel/types";
 import { pinPreNumberOverhaul } from "../src/lib/duel/numberOverhaul";
+import { pinPreD3Maze } from "../src/lib/duel/d3Attention";
 
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Number overhaul): written for Operator gapsRev 1,
 // so it deals the stamps before the overhaul (gapsRev 2 is proved by number-overhaul-equation-pyramid-check).
 pinPreNumberOverhaul(true);
+// Changed with Joe's approval, 22 Nov 2026 (D3): Labyrinth's Normal deals mazeRev 6 (speed full by 34 s); this check
+// proves mazeRev 5, so it deals the stamp before (d3-attention-ladder-check proves mazeRev 6).
+pinPreD3Maze(true);
 
 let fails = 0;
 let passes = 0;

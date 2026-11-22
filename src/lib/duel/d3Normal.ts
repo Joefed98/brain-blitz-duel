@@ -4,7 +4,8 @@
  * react, 0.15 s to move) can reach 200, each under its own new stamp, before the levels were tuned on it.
  *
  *   - Flash `tapRev 8` (TAP_REV_FLASH_FAST, depth/flash.ts FLASH_REV8_CURVE): 200 by 240 ms, 188 at 260, 150 at 320.
- *   - Bonk `whackRev 5` (WHACK_REV_QUICK, arcade/whack.ts): the combo's quick window full to 0.4 s, none from 0.6 s.
+ *   - Bonk `whackRev 5` (WHACK_REV_QUICK, arcade/whack.ts): the combo's quick window full to 0.4 s, none from 0.6 s, and
+ *     97 % of the targets count as hitting them all (Joe's option A, 22 Nov 2026).
  *   - Don't Break the Chain `chainDepthRev 4` (standard/attention.ts CHAIN_V4_FULL_BY_S): speed full by 33 s (was 30).
  *   - Tenfall `tenRev 7` (TEN_DROP_REACH_REV, arcade/tenDrop.ts): speed full by 70 s (was 60), gold in full at 3 gold
  *     tens of ten (was 2 a gold ten up to 20).
@@ -60,6 +61,11 @@ export function dealD3Speed<T extends { type: string }>(puzzle: T): T {
 /** Bonk's combo line in the help: whackRev 5's window, or (pinned) the older one's ("none slower than about N ms"). */
 export function bonkComboText(olderZeroMs: number): string {
   return preD3SpeedPinned() ? `long unbroken runs of very quick hits (none slower than about ${olderZeroMs} ms)` : "long unbroken runs of quick hits (each within 0.4 s of its pop for all of it, none after 0.6 s)";
+}
+
+/** Bonk's hits line in the help: whackRev 5 counts nearly all the targets (97 %; Hard and Expert 98 %) as all of them. */
+export function bonkHitsText(): string {
+  return preD3SpeedPinned() ? "more for every target hit, 15 more for hitting them all; wrong taps come off this part" : "more for every target hit, 15 more for hitting nearly all of them; wrong taps come off this part";
 }
 
 /** Pull!'s quick-hit line in the help: clayRev 11 counts the part in full once most hits are quick. */

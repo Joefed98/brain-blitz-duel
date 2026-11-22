@@ -176,13 +176,14 @@ export const CHAIN_LEVELS = {
  * combo's quick window full to 0.4 s).
  *
  * D3 (22 Nov 2026; difficulty-spec.md "Bonk"): the lever is the burrows on the lawn, 3 × 3 / 4 × 4 / 5 × 5 / 6 × 6
- * (`cols`, stamped in `bonkLevel`). PROVISIONAL (for Joe): Expert's best player at the human limits reaches 200 on
- * under a fifth of runs while Normal's share stays at 23 % (scripts/d3-ladder.ts whack).
+ * (`cols`, stamped in `bonkLevel`). Joe's option A (22 Nov 2026): whackRev 5 counts 97 % of the targets as all of them
+ * (Easy too); Hard and Expert ask for 98 % (`hitsFullPct`). The realistic elite at the human limits reaches 200 on
+ * 71 / 47 / 43 / 25 % of runs (scripts/d3-ladder.ts whack).
  */
 export const BONK_LEVELS = {
   easy: { cols: 3, lifeStart: 90, lifeEnd: 66, maxUp: 2, flips: [2, 2], hedgehogPct: 5, gapPct: 140 },
-  hard: { cols: 5, lifeStart: 54, lifeEnd: 36, maxUp: 3, flips: [5, 7], hedgehogPct: 15, gapPct: 100 },
-  expert: { cols: 6, lifeStart: 54, lifeEnd: 36, maxUp: 3, flips: [7, 9], hedgehogPct: 20, gapPct: 90 },
+  hard: { cols: 5, lifeStart: 54, lifeEnd: 36, maxUp: 3, flips: [5, 7], hedgehogPct: 15, gapPct: 100, hitsFullPct: 98 },
+  expert: { cols: 6, lifeStart: 54, lifeEnd: 36, maxUp: 3, flips: [7, 9], hedgehogPct: 20, gapPct: 90, hitsFullPct: 98 },
 } as const satisfies Record<string, BonkLevel>;
 
 /**

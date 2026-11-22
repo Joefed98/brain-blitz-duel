@@ -1,5 +1,5 @@
 import { clayQuickWindowText } from "./speedOverhaul";
-import { bonkComboText, clayQuickHitsText } from "./d3Normal";
+import { bonkComboText, bonkHitsText, clayQuickHitsText } from "./d3Normal";
 import { openBandsLine } from "./puzzleBandsText";
 import { logicStandardHelp } from "./standard/logicText";
 import { gridStandardHelp } from "./standard/gridText";
@@ -1708,8 +1708,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The gold combo", detail: "grows ×2 from the 6th right hit in a row, ×3 from the 11th, ×4 from the 16th; a wrong hat, a hedgehog or an empty burrow ends it (a gopher left to sink does not).", helpOnly: true },
       ],
       score: scoreList([
-        { label: "Hits", how: "more for every target hit, 15 more for hitting them all; wrong taps come off this part", max: 150 },
-        // D3's whackRev 5 (d3Normal.ts): the wider quick window; the pinned whackRev 4 keeps its words.
+        // D3's whackRev 5 (d3Normal.ts): nearly all the targets count as all and the wider quick window; the pinned
+        // whackRev 4 keeps its words.
+        { label: "Hits", how: bonkHitsText(), max: 150 },
         { label: "Combo", how: bonkComboText(Math.round((WHACK_QUICK_ZERO_TICKS * 1000) / 60)), max: WHACK_COMBO_POINTS },
         { label: "Diamonds", how: `${WHACK_DIAMOND_POINTS} for each of the ${WHACK_DIAMONDS} diamonds`, max: WHACK_DIAMOND_POINTS * WHACK_DIAMONDS },
       ], { penalties: ["Each wrong hat or empty tap costs 3 and each hedgehog 5"], total: "{max}" as unknown as number }),
