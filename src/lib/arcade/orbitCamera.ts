@@ -77,6 +77,11 @@ export function orbitStillCamera(state: { fuel?: number } | null | undefined): b
 }
 /** Margin keeping the rocket fully on screen during a pan. */
 export const ORBIT_ROCKET_ON_SCREEN = 14;
+/**
+ * SET CHECKPOINT's corner as the rocket's centre may not enter it, in frame px: the zone's 210 px width and its rows above
+ * the frame (74 of the 80 drawn ahead) widened by the rocket's 16 px reach (orbit.renderer's ORBIT_XP_ZONE, ORBIT_XP_AHEAD).
+ */
+const ORBIT_XP_CORNER = { w: 210 + 16, top: 74 + 16 - 80 } as const;
 const ROCKET_ON_SCREEN = ORBIT_ROCKET_ON_SCREEN;
 export const ORBIT_SAFE_INSET_X = 50;
 const SAFE_INSET_X = ORBIT_SAFE_INSET_X;
@@ -444,7 +449,16 @@ function advanceStill(s: Rev3Like, previous: Entry, target: OrbitCamOffset, stil
     // H3 (the polish plan, 20 Nov 2026): a respawn's pan owns the view. The rocket is parked in orbit at the respawn
     // planet (held there for the grace hold's 3 s), so the backstop waits for the pan to land instead of snapping the
     // view to it on the respawn tick (a cut of up to ~1,000 px). A launch during the pan hands back to the flight's
-    // edge-follow and its backstop.
+    // edge-follow and its backstop. One exception: SET CHECKPOINT's corner (orbit.renderer's ORBIT_XP_ZONE, in the rows
+    // above the frame) never holds the rocket, so a pan that would start with it there takes the shortest step out.
+    const vx = r.x - at.x;
+    const vy = r.y - at.y;
+    if (vx > viewW - ORBIT_XP_CORNER.w && vy < ORBIT_XP_CORNER.top) {
+      const needX = vx - (viewW - ORBIT_XP_CORNER.w);
+      const needY = ORBIT_XP_CORNER.top - vy;
+      if (needX <= needY) dx = needX;
+      else dy = -needY;
+    }
   } else {
     // In orbit (or mid-pan after a black hole's jump): only the backstop, so the rocket is never off the frame.
     const kept = pushInside(r, at, ROCKET_ON_SCREEN, viewH, viewW);

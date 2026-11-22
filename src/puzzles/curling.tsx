@@ -392,12 +392,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
                 // and the home-bar lift (the row ends at least 12 px above env(safe-area-inset-bottom): the arena ends 16 px
                 // above the screen's bottom, so the lift is the inset less 4 px). Only the buttons take a touch; a rub beside
                 // them reaches the canvas (brushing).
-                // The polish plan's C4.9 (20 Nov 2026): a dark backing strip under the row, so the buttons read off the ice.
-                <div
-                  className="pointer-events-none absolute inset-x-1 rounded-2xl"
-                  style={{ top: CURL_TURN_ROW_TOP, background: "color-mix(in srgb, var(--jz-bg) 58%, transparent)" }}
-                  data-curl-row-backing=""
-                >
+                <div className="pointer-events-none absolute inset-x-1" style={{ top: CURL_TURN_ROW_TOP }}>
                   {turnButtons(send)}
                 </div>
               )
@@ -412,7 +407,13 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   function turnButtons(send: ((payload: PointerPayload) => void) | null) {
     return (
-          <div data-game-controls="turn" className={`grid h-12 shrink-0 touch-none select-none ${v4 ? "grid-cols-3" : "grid-cols-2"} gap-3 px-1`}>
+          // The polish plan's C4.9 (20 Nov 2026): on curlRev 4, where the row sits over the ice, a dark backing strip
+          // behind it, so the buttons read off the sheet.
+          <div
+            data-game-controls="turn"
+            className={`grid h-12 shrink-0 touch-none select-none ${v4 ? "grid-cols-3 rounded-2xl" : "grid-cols-2"} gap-3 px-1`}
+            style={v4 ? { background: "color-mix(in srgb, var(--jz-bg) 58%, transparent)" } : undefined}
+          >
             {(["In", "Out"] as const).map((label, t) => (
               <button
                 key={label}
