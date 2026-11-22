@@ -329,7 +329,7 @@ const dealt: Partial<Record<Banked, Leveled>> = {};
     check((html.match(/role="tab"/g) ?? []).length === p.boards!.length, `${level}: the reveal's switcher doesn't have a tab a board`);
     const round = text(html.slice(html.indexOf("data-topsy-keys")));
     check(round.includes(`Boards ${p.boards!.length}/${p.boards!.length}`) && round.includes(`Home ${topsyTotalBalls(p)}/${topsyTotalBalls(p)}`) && round.includes("Left 90 s"), `${level}: the reveal's round row: ${round.slice(0, 120)}`);
-    if (level === "expert") check(html.includes(`src="${topsyHoleUrl(6)}"`) && html.includes(`src="${topsyHoleUrl(7)}"`), "the Expert reveal doesn't draw the green and white cups");
+    if (level === "expert") check(/data-topsy-hole="6"/.test(html) && /data-topsy-hole="7"/.test(html), "the Expert reveal doesn't draw the green and white sockets"); // Changed with Joe's approval, 22 Nov 2026
   }
 }
 
