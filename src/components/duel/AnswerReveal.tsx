@@ -1042,7 +1042,9 @@ function LiveAnswerReveal({
         <div ref={solvedBoard} data-skin-off className="answer-reveal-content relative isolate flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
           <div ref={trayRef} aria-hidden="true" data-reveal-tray className="reveal-tray" />
           {/* Drawn from the first frame (P2, 22 Nov 2026): while a room's board is still on its way, its row is held. */}
-          {!solutionLock && !gameViews.views ? <SolutionSwitch type={puzzle.type} root={solvedBoard} onChange={setSwitchState} pending={!answersReady} /> : null}
+          {answersReady && !solutionLock ? <SolutionSwitch type={puzzle.type} root={solvedBoard} onChange={setSwitchState} off={!!gameViews.views} /> : !solutionLock && !gameViews.views ? (
+            <SolutionSwitch type={puzzle.type} root={solvedBoard} onChange={setSwitchState} pending />
+          ) : null}
           {/* The card: the game's board and every line it draws, measured and scaled as one (useRevealFit). */}
           <div ref={revealCard} data-reveal-card="" className="reveal-card">
           {/* An engine game's own summary line only while its breakdown is folded away (a room's "See breakdown"). */}

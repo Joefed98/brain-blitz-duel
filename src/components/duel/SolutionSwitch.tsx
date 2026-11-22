@@ -62,7 +62,18 @@ function findPair(root: HTMLElement): { solution: HTMLElement; yours: HTMLElemen
   return { solution, yours, labels: [sol, mine] };
 }
 
-export function SolutionSwitch({
+type SwitchRowProps = Parameters<typeof SwitchRow>[0];
+
+/**
+ * The switch as the reveal draws it. `off`: the game passes its own views to the template (P2 hook 1, the Word pairs),
+ * so the shared switch is not drawn at all (unmounted, as before `off` existed). The reveal draws it in one place
+ * whether or not the board has arrived, so the same row carries on when the board lands.
+ */
+export function SolutionSwitch({ off = false, ...props }: SwitchRowProps & { off?: boolean }) {
+  return off ? null : <SwitchRow {...props} />;
+}
+
+function SwitchRow({
   type,
   root,
   onChange,
