@@ -31,6 +31,7 @@ export type CheckOverrideName =
   | "__DUELZ_FAIL_ROOM_DEAL__"
   | "__DUELZ_CHALLENGES__"
   | "__DUELZ_FIRST_OPEN__"
+  | "__DUELZ_FIRST_GAME__"
   | "__DUELZ_GAME_LEVELS__"
   | "__DUELZ_IDENTITY_EVENTS__"
   | "__DUELZ_MINES_PRE_LOGIC__"

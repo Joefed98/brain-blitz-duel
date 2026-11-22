@@ -1260,6 +1260,48 @@
   /* The level being shown (the catalogue's difficulty switch): the other levels' stars step back. */
   .jz-stars:has(> [data-current]) > span:not([data-current]) { opacity: 0.4; }
 
+  /* ------------------------------------------------------------------ Level mark (P2, 22 Nov 2026) */
+  /* A colour and one to four bars (LevelMark.tsx), never the colour alone: the bars rise left to right, the unlit ones
+     a quiet surface tone. */
+  .jz-level-mark {
+    --level-colour: var(--jz-level-normal);
+    --level-bar-h: 14px;
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    gap: var(--jz-space-4);
+    color: var(--jz-text);
+    font-family: var(--jz-font);
+    font-weight: var(--jz-weight-bold);
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .jz-level-mark[data-size="m"] { --level-bar-h: 18px; }
+  .jz-level-mark[data-level-mark="easy"] { --level-colour: var(--jz-level-easy); }
+  .jz-level-mark[data-level-mark="hard"] { --level-colour: var(--jz-level-hard); }
+  .jz-level-mark[data-level-mark="expert"] { --level-colour: var(--jz-level-expert); }
+  .jz-level-bars {
+    display: inline-flex;
+    align-items: flex-end;
+    gap: 2px;
+    height: var(--level-bar-h);
+  }
+  .jz-level-bars > span {
+    display: block;
+    width: calc(var(--level-bar-h) * 0.26);
+    border-radius: 1px;
+    background: var(--jz-surface-2);
+  }
+  .jz-level-bars > span:nth-child(1) { height: 40%; }
+  .jz-level-bars > span:nth-child(2) { height: 60%; }
+  .jz-level-bars > span:nth-child(3) { height: 80%; }
+  .jz-level-bars > span:nth-child(4) { height: 100%; }
+  .jz-level-bars > span[data-on] { background: var(--level-colour); }
+  .jz-level-name { font-size: 15px; }
+  .jz-level-mark[data-size="m"] .jz-level-name { font-size: 17px; }
+  .jz-level-crown { display: block; flex: none; color: color-mix(in srgb, var(--jz-text-3) 45%, transparent); }
+  .jz-level-crown[data-on] { color: var(--jz-gold); }
+
   /* ------------------------------------------------------------------ Progress bar */
   .jz-progress {
     display: block;

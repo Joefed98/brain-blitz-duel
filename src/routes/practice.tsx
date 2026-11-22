@@ -4,7 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { WaitingLine } from "@/components/duel/Dots";
 import { Icon } from "@/design/components";
-import { CatalogueHeaderTools, GamesCatalogue, tileDescriptionId, type CatalogueFilter } from "@/components/games/GamesCatalogue";
+import { CatalogueHeaderTools, GamesCatalogue, tileDescriptionId } from "@/components/games/GamesCatalogue";
+import { readGamesView, rememberGamesView, type GamesView } from "@/components/games/gamesView";
+import { FirstGameWin } from "@/components/games/FirstGameWin";
+import { FIRST_GAME, FIRST_GAME_COACH } from "@/lib/firstOpen";
 import { GamePage } from "@/components/games/GamePage";
 import { gamePageLink } from "@/lib/nav/gamePage";
 import { useMyIdentity } from "@/lib/identity/identityApi";
@@ -97,9 +100,8 @@ import { ONLINE_ONLY_TYPES } from "@/lib/offline/offlineStatus";
 import { syncOffline } from "@/lib/offline/install";
 import { notePracticeRoundFinished } from "@/lib/offline/packGrowth";
 import { takePackDeal } from "@/lib/offline/packs";
-import { playLevel, setCatalogueLevel, setGameLevel, useLevelChoice } from "@/lib/levels/levelChoice";
-import { LEVEL_LABEL, NORMAL, storedLevelKey, levelOfPuzzle } from "@/lib/levels/levels";
-import { readPracticeSide, rememberPracticeSide, type PracticeSide } from "@/lib/duel/practiceSide";
+import { playLevel, setGameLevel, useLevelChoice } from "@/lib/levels/levelChoice";
+import { LEVEL_LABEL, NORMAL, storedLevelKey, levelOfPuzzle, type Level } from "@/lib/levels/levels";
 import { flushQueue, queueRun } from "@/lib/offline/queue";
 
 /** How long a live deal may take before practice falls back to a saved pack deal (a weak signal underground). */
@@ -124,8 +126,14 @@ function withTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
 export const Route = createFileRoute("/practice")({
   ssr: false,
   // ?game=<type>: open that game's round at once (the Play tab's Warm up tiles).
-  validateSearch: (search: Record<string, unknown>): { game?: string; q?: string; page?: string } => ({
+  validateSearch: (search: Record<string, unknown>): { game?: string; q?: string; page?: string; quick?: string; first?: string } => ({
+    // ?first=1 with ?game= (the first game on a new phone, lib/firstOpen.ts): Easy, straight into the round, a coach
+    // line over the board, then the win screen.
+    ...(search["first"] === "1" || search["first"] === 1 ? { first: "1" } : {}),
     ...(typeof search["game"] === "string" ? { game: search["game"] } : {}),
+    // ?quick=1 with ?game= (Home's Play, P1): the round's intro opens already in its 3-2-1, as a game page's Play does.
+    // (TanStack reads a typed ?quick=1 as the number 1, a navigated one as the string "1".)
+    ...(search["quick"] === "1" || search["quick"] === 1 ? { quick: "1" } : {}),
     // ?page=<type>: that game's page (src/lib/nav/gamePage.ts, phase 2 step 3).
     ...(typeof search["page"] === "string" && search["page"] ? { page: search["page"] } : {}),
     // The desktop rail's search (AppRail) opens the list with its words typed.
@@ -244,15 +252,13 @@ function practiceVerdict(graded: Graded) {
 
 function PracticeScreen() {
   const [stage, setStage] = useState<Stage>("list");
-  // The catalogue's chip (All, a category or an arcade group) and its search (phase 2 step 3).
-  const [catalogueFilter, setCatalogueFilter] = useState<CatalogueFilter>("all");
-  // The catalogue's top (difficulty framework, 15 Nov 2026): the Puzzles | Arcade switch (remembered on the device,
-  // read after the first paint so the server's render and the phone's agree) and the level choice (levelChoice.ts).
-  const [side, setSide] = useState<PracticeSide>("puzzles");
-  useEffect(() => setSide(readPracticeSide()), []);
-  const chooseSide = useCallback((next: PracticeSide) => {
-    rememberPracticeSide(next);
-    setSide(next);
+  // The catalogue's Shelves · All switch (P2, 22 Nov 2026): remembered on the device, read after the first paint so
+  // the server's render and the phone's agree. The level is chosen on each game's page (levelChoice.ts).
+  const [gamesView, setGamesView] = useState<GamesView>("shelves");
+  useEffect(() => setGamesView(readGamesView()), []);
+  const chooseGamesView = useCallback((next: GamesView) => {
+    rememberGamesView(next);
+    setGamesView(next);
   }, []);
   const levelChoice = useLevelChoice();
   // Wave 2 E2: the player's own tile style on their game tiles, and the games early access holds back (Joulz Plus).
@@ -272,7 +278,7 @@ function PracticeScreen() {
       return !open;
     });
   }, []);
-  const search = Route.useSearch() as { game?: string; page?: string };
+  const search = Route.useSearch() as { game?: string; page?: string; quick?: string; first?: string };
   const navigate = useNavigate();
   const router = useRouter();
   // A game's page (?page=<type>, gamePage.ts): shown on the list stage in place of the catalogue. Opening one from the
@@ -357,6 +363,8 @@ function PracticeScreen() {
     setStartedAt(Date.now());
     setStage("puzzle");
   }, [sealed]);
+  // The first game on a new phone (?first=1): no intro to read, the board at once; the first tap is the game's first tap.
+  const firstRun = useRef(false);
   const [offlineRunId, setOfflineRunId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const online = useOnline();
@@ -417,7 +425,7 @@ function PracticeScreen() {
      * already in its 3-2-1 (Joe, 14 Nov 2026), since the page has just shown the game's goal and how to play; the
      * intro itself is unchanged. Otherwise (a ?game= link) the full intro, Goal / How / Ready, as before.
      */
-    async (next: PuzzleType, quick = false) => {
+    async (next: PuzzleType, quick = false, levelOverride?: Level) => {
       unlockAudio();
       introCancelled.current = false;
       grading.current = false;
@@ -430,7 +438,7 @@ function PracticeScreen() {
       if (!exampleMode) notePracticePlayed(next);
       // The level this player plays the game at (levelChoice.ts; Normal where the game lacks it; the intro example
       // is always Normal).
-      const level = exampleMode ? NORMAL : playLevel(next);
+      const level = exampleMode ? NORMAL : (levelOverride ?? playLevel(next));
       setDeviceBest(bestOf(practiceProgressNow(), next, storedLevelKey(level)));
       setNewBest(false);
       setEarnedStar(null);
@@ -506,7 +514,13 @@ function PracticeScreen() {
     // Only a playable game: a retired one's link opens the list (catalogue.ts isPlayable).
     if (openedFromSearch.current || !wanted || !isPlayable(wanted)) return;
     openedFromSearch.current = true;
-    void load(wanted as PuzzleType);
+    // The first game on a new phone (?first=1): Ascend on Easy, straight into the round (lib/firstOpen.ts).
+    if (search.first === "1" && wanted === FIRST_GAME.type) {
+      firstRun.current = true;
+      void load(wanted as PuzzleType, true, FIRST_GAME.level);
+    }
+    // Home's Play asks for the quick start (?quick=1): straight into the 3-2-1; any other link shows the full intro.
+    else void load(wanted as PuzzleType, search.quick === "1");
     // Back from the round lands on the game's page (gamePage.ts), not straight on the catalogue.
     void navigate({
       to: "/practice",
@@ -514,7 +528,7 @@ function PracticeScreen() {
       replace: true,
       state: (prev: unknown) => prev as never,
     });
-  }, [search.game, load, navigate]);
+  }, [search.game, search.quick, search.first, load, navigate]);
 
   const cancelIntro = useCallback(() => {
     introCancelled.current = true;
@@ -767,15 +781,12 @@ function PracticeScreen() {
           query={query}
           onQuery={setQuery}
           searchOpen={searchOpen}
-          filter={catalogueFilter}
-          onFilter={setCatalogueFilter}
-          side={side}
-          onSide={chooseSide}
-          level={levelChoice.catalogue}
-          onLevel={setCatalogueLevel}
+          view={gamesView}
+          onView={chooseGamesView}
           hidden={heldBack}
           tileStyle={myTileStyle}
           onOpen={openPage}
+          onPlay={(next) => void load(next, true)}
           tileExtra={(key) => {
             const mark = offlineMark(key);
             const pending = pendingTypes.has(key);
@@ -858,6 +869,11 @@ function PracticeScreen() {
     );
   }
 
+  if (stage === "intro" && firstRun.current) {
+    // The first game: the board at once (FirstRunStart begins the round on its first effect).
+    return <FirstRunStart onStart={beginRound} />;
+  }
+
   if (stage === "intro") {
     return (
       // The intro draws the game frame's header itself (RoundIntro, Polish batch R).
@@ -876,6 +892,20 @@ function PracticeScreen() {
             if (introCancelled.current) return;
             playLock();
             beginRound();
+          }}
+        />
+      </PhoneShell>
+    );
+  }
+
+  if (stage === "reveal" && graded && firstRun.current) {
+    return (
+      <PhoneShell constrained gameScreen reveal gameType={type}>
+        <FirstGameWin
+          score={graded.score}
+          onPlayAgain={() => {
+            firstRun.current = false;
+            void load(type, true, FIRST_GAME.level);
           }}
         />
       </PhoneShell>
@@ -902,6 +932,11 @@ function PracticeScreen() {
           now={now}
           onPlayAgain={() => void load(type, true)}
           onBack={() => setStage("list")}
+          onPlayLevel={(next) => {
+            // The step-up card's "Play Hard": this game's level from now on (its page shows it too), then the round.
+            setGameLevel(type, next);
+            void load(type, true, next);
+          }}
         />
         <SaveDemoButton
           demoKey={demoKey}
@@ -942,7 +977,14 @@ function PracticeScreen() {
         locked={holding}
         held={holding}
         overlay={
-          <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} level={levelOfPuzzle(puzzle)} />
+          <>
+            <PuzzleHelp type={puzzle.type} open={helpOpen} onClose={() => setHelpOpen(false)} level={levelOfPuzzle(puzzle)} />
+            {firstRun.current ? (
+              <p role="status" data-first-game-coach="" className="gm-first-coach">
+                {FIRST_GAME_COACH}
+              </p>
+            ) : null}
+          </>
         }
       >
         <SteadyOrPlain
@@ -970,6 +1012,23 @@ function PracticeScreen() {
           }
         />
       </GameLayout>
+    </PhoneShell>
+  );
+}
+
+/** The first game's start: begins the round once, as soon as the deal is in (no intro, no countdown). */
+function FirstRunStart({ onStart }: { onStart: () => void }) {
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    onStart();
+  }, [onStart]);
+  return (
+    <PhoneShell>
+      <div className="flex flex-1 items-center justify-center">
+        <WaitingLine label="Making a puzzle" />
+      </div>
     </PhoneShell>
   );
 }

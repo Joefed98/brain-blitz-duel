@@ -1,35 +1,27 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { GameIcon } from "@/components/app/GameIcon";
-import { LevelIntro } from "@/components/levels/LevelIntro";
-import { LevelSwitch } from "@/components/levels/LevelSwitch";
 import { Button, GameTile, Icon, Input, Segmented, Stars } from "@/design/components";
-import { practiceSideCounts, practiceSideOf, type PracticeSide } from "@/lib/duel/practiceSide";
-import { offersLevel } from "@/lib/levels/gameLevels";
-import { LEVEL_LABEL, storedLevelKey, type Level } from "@/lib/levels/levels";
 import { PUZZLE_REGISTRY } from "@/lib/duel/catalogue";
 import { gameOfTheDayAt } from "@/lib/duel/gameOfTheDay";
+import { PUZZLE_INSTRUCTIONS } from "@/lib/duel/instructions";
 import type { PuzzleType } from "@/lib/duel/types";
-import { bestOf, levelStarsOf, starCountOf, type PracticeProgressView } from "@/lib/practice/progress";
+import { levelStarsOf, starCountOf, type PracticeProgressView } from "@/lib/practice/progress";
 
-import { catalogueGames, catalogueShelves, gameTag, onShelf, shelfSide } from "./gameMeta";
+import { catalogueGames, gameTag, homeShelves, type Shelf } from "./gameMeta";
+import type { GamesView } from "./gamesView";
 
 /**
- * The Games catalogue (phase 2 step 3, 14 Nov 2026; mockups docs/design/style-guide/phone/catalogue.png and
- * desktop/catalogue.png), the Games tab. Its top (the difficulty framework, 15 Nov 2026, Joe's order): the Puzzles |
- * Arcade switch (restored; remembered on the device, practiceSide.ts), then the switch's categories as colour tiles in
- * one sideways-scrolling row (the puzzle categories, or the arcade groups; a tap shows that category, a second tap the
- * whole side again), then the difficulty switch (Easy · Normal · Hard · Expert) that sets the level for the whole
- * catalogue: tiles show that level's best and mark that level's star, and a game without the level is marked
- * "Normal". Then the hero (the game of the day among the side's games, gameOfTheDay.ts) and the grid of game tiles
- * (today's tile art, the name, the three mastery stars), two columns on a phone and more on wider screens.
- * A tile or the hero opens the game's page. The star total and the search button sit in the page header
- * (CatalogueHeaderTools); a search filters by the game's name. No challenges here: they are on each game's page and
- * under More → Challenges (Joe: Practice stays uncluttered). Retired games appear nowhere (catalogueGames).
+ * The Games catalogue, the Games tab (P2, 22 Nov 2026; Joe, 20 Nov: "G1 shelves by default, plus one switch to All";
+ * mockups docs/polish-plan-final/direction/pages/games-mixed-phone.webp and games-mixed-all-phone.webp). One switch,
+ * Shelves · All, remembered on the device (gamesView.ts). Shelves: the game of the day as the hero, then one shelf per
+ * family (each live puzzle category, then each live arcade group) as a sideways-scrolling row of 132 × 164 tiles with
+ * "All n" (which opens All at that family); on a computer each shelf wraps to at most five across. All: every game in
+ * the three-across grid (five on a computer), grouped by family under the family's name. Each game is listed once a
+ * page, on its home shelf. The level switch and the "Difficulty levels" panel left the catalogue: a game's level is
+ * chosen on its page. The star total and the search button sit in the page header (CatalogueHeaderTools); a search
+ * filters by the game's name. Retired games appear nowhere (catalogueGames).
  */
-
-/** "all": the whole side (no category tile chosen); else a shelf id. */
-export type CatalogueFilter = "all" | string;
 
 export function CatalogueHeaderTools({
   stars,
@@ -70,15 +62,12 @@ export function GamesCatalogue({
   query,
   onQuery,
   searchOpen,
-  filter,
-  onFilter,
-  side,
-  onSide,
-  level,
-  onLevel,
+  view,
+  onView,
   hidden,
   tileStyle,
   onOpen,
+  onPlay,
   before,
   after,
   tileExtra,
@@ -87,21 +76,18 @@ export function GamesCatalogue({
   query: string;
   onQuery: (q: string) => void;
   searchOpen: boolean;
-  filter: CatalogueFilter;
-  onFilter: (f: CatalogueFilter) => void;
-  /** The Puzzles | Arcade switch. */
-  side: PracticeSide;
-  onSide: (side: PracticeSide) => void;
-  /** The catalogue's level (the difficulty switch). */
-  level: Level;
-  onLevel: (level: Level) => void;
+  /** Shelves or All (remembered on the device by the page). */
+  view: GamesView;
+  onView: (view: GamesView) => void;
   /** Games held back for this player (Joulz Plus early access). */
   hidden: readonly string[];
   tileStyle: string | null;
   onOpen: (type: PuzzleType) => void;
-  /** Notes drawn above the chips (the refresh note, offline install, a notice). */
+  /** The hero's Play: the game of the day's round, straight in. Left out, the hero's Play opens its page. */
+  onPlay?: (type: PuzzleType) => void;
+  /** Notes drawn above the switch (the refresh note, offline install, a notice). */
   before?: ReactNode;
-  /** Sections after the grid (offline runs, the footer). */
+  /** Sections after the games (offline runs, the footer). */
   after?: ReactNode;
   /**
    * Drawn inside each tile's wrapper after the tile: the offline mark or pending clock (a small badge) and the best,
@@ -109,47 +95,37 @@ export function GamesCatalogue({
    */
   tileExtra?: (type: PuzzleType) => ReactNode;
 }) {
-  // A chip only for a shelf with a game this player can play: held-back games (Plus early access) are left out of the
-  // grid, every chip, the search and the hero alike.
-  // Only the switch's side's categories (the puzzle categories, or the arcade groups).
+  // A shelf only with a game this player can play: held-back games (Plus early access) are left out of every shelf,
+  // the grid, the search and the hero alike.
   const shelves = useMemo(
     () =>
-      catalogueShelves().filter(
-        (shelf) => shelfSide(shelf.id) === side && shelf.games.some((t) => !hidden.includes(t)),
-      ),
-    [hidden, side],
+      homeShelves()
+        .map((shelf) => ({ ...shelf, games: shelf.games.filter((t) => !hidden.includes(t)) }))
+        .filter((shelf) => shelf.games.length > 0),
+    [hidden],
   );
-  const all = useMemo(() => catalogueGames(), []);
-  const counts = useMemo(() => practiceSideCounts(), []);
-  const nameOf = (type: PuzzleType) => gameName(type);
+  const all = useMemo(() => catalogueGames().filter((t) => !hidden.includes(t)), [hidden]);
   const q = query.trim().toLowerCase();
-  // A chosen tile from the other side (the switch just flipped) reads as the whole side.
-  const shelf = filter !== "all" && shelves.some((x) => x.id === filter) ? filter : "all";
-  // A search finds games by name on both sides (the switch and the tiles choose what shows without one).
-  const visible = all.filter(
-    (type) =>
-      !hidden.includes(type) &&
-      (q !== ""
-        ? nameOf(type).toLowerCase().includes(q)
-        : shelf === "all"
-          ? practiceSideOf(type) === side
-          : onShelf(type, shelf)),
-  );
-  // The hero: today's game of the day among the side's games, with no category chosen and no search.
+  const found = q === "" ? [] : all.filter((type) => gameName(type).toLowerCase().includes(q));
+  // The hero: today's game of the day among every playable game (Shelves only, no search).
   const [today] = useState(() => Date.now());
-  const hero =
-    shelf === "all" && q === ""
-      ? gameOfTheDayAt(
-          today,
-          all.filter((t) => !hidden.includes(t) && practiceSideOf(t) === side),
-        )
-      : null;
+  const hero = view === "shelves" && q === "" ? gameOfTheDayAt(today, all) : null;
   const searchRef = useRef<HTMLInputElement>(null);
+  // "All n" opens All scrolled to that family's group.
+  const [jumpTo, setJumpTo] = useState<string | null>(null);
+  useEffect(() => {
+    if (view !== "all" || !jumpTo) return;
+    document.querySelector(`[data-games-group="${jumpTo}"]`)?.scrollIntoView({ block: "start" });
+    setJumpTo(null);
+  }, [view, jumpTo]);
   // Marked once the page answers taps (hydrated): browser checks wait for it before pressing a tile.
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
+  const tile = (type: PuzzleType) => (
+    <CatalogueTile key={type} type={type} progress={progress} tileStyle={tileStyle} onOpen={onOpen} extra={tileExtra?.(type)} />
+  );
   return (
-    <div className="gm-catalogue" data-games-catalogue data-hydrated={hydrated ? "" : undefined}>
+    <div className="gm-catalogue" data-games-catalogue data-games-view={view} data-hydrated={hydrated ? "" : undefined}>
       {before}
       {searchOpen ? (
         <div className="gm-search">
@@ -168,112 +144,126 @@ export function GamesCatalogue({
           />
         </div>
       ) : null}
-      <Segmented
-        label="Puzzles or arcade"
-        value={side}
-        onChange={(next) => {
-          onSide(next);
-          onFilter("all");
-        }}
-        tone="gold"
-        className="gm-side"
-        data={{ "data-practice-switch": "" }}
-        options={(["puzzles", "arcade"] as const).map((id) => ({
-          value: id,
-          label: id === "puzzles" ? "Puzzles" : "Arcade",
-          count: counts[id],
-          data: { "data-practice-side": id },
-        }))}
-      />
-      <div
-        role="group"
-        aria-label={side === "puzzles" ? "Puzzle categories" : "Arcade groups"}
-        className="gm-cat-tiles"
-        data-games-chips
-        data-games-category-tiles={side}
-        data-scroll-x=""
-      >
-        {shelves.map((x) => (
-          <button
-            key={x.id}
-            type="button"
-            aria-pressed={shelf === x.id}
-            data-cat={x.id}
-            data-practice-filter={x.id}
-            onClick={() => onFilter(shelf === x.id ? "all" : x.id)}
-            className="gm-cat-tile press"
-          >
-            <span className="gm-cat-tile-name" data-wrap-ok="">
-              {x.label}
-            </span>
-            <span className="gm-cat-tile-count">{x.games.filter((t) => !hidden.includes(t)).length}</span>
-          </button>
-        ))}
+      <div className="gm-view-row" data-games-chips="">
+        <Segmented
+          label="Show games as"
+          value={view}
+          onChange={onView}
+          className="gm-view"
+          data={{ "data-games-view-switch": "" }}
+          options={(["shelves", "all"] as const).map((id) => ({
+            value: id,
+            label: id === "shelves" ? "Shelves" : "All",
+            data: { "data-games-view-option": id },
+          }))}
+        />
+        <span className="gm-view-count" data-games-count={view === "shelves" ? shelves.length : all.length}>
+          {view === "shelves" ? `${shelves.length} families` : `${all.length} games`}
+        </span>
       </div>
-      <LevelSwitch value={level} onChange={onLevel} label="Difficulty for every game" className="gm-levels" data={{ "data-catalogue-level": level }} />
-      <LevelIntro />
-      <div className="gm-grid" data-games-grid>
-        {hero ? (
-          <HeroTile type={hero} name={nameOf(hero)} progress={progress} level={level} onOpen={onOpen} />
-        ) : null}
-        {visible.map((type) => (
-          <div
-            key={type}
-            data-practice-game={type}
-            data-stars={starCountOf(progress, type)}
-            data-level={offersLevel(type, level) ? level : "normal"}
-            data-level-best={levelBest(progress, type, level) ?? undefined}
-            className="gm-tile-wrap"
-          >
-            <GameTile
-              type={type}
-              size="card"
-              name={
-                <span aria-hidden="true" data-wrap-ok="">
-                  {nameOf(type)}
-                </span>
-              }
-              stars={levelStarsOf(progress, type)}
-              starLevel={storedLevelKey(offersLevel(type, level) ? level : "normal")}
-              tileStyle={tileStyle}
-              onClick={() => onOpen(type)}
-              aria-label={nameOf(type)}
-              aria-describedby={tileDescriptionId(type)}
-              className="gm-tile"
-            />
-            <TileLevel type={type} level={level} progress={progress} />
-            {tileExtra ? tileExtra(type) : null}
+      {q !== "" ? (
+        <section aria-label="Search results" className="gm-group">
+          <div className="gm-grid gm-grid-all" data-games-grid="search">
+            {found.map(tile)}
           </div>
-        ))}
-      </div>
-      {visible.length === 0 ? (
-        <p data-games-empty className="gm-empty">
-          No games match “{query.trim()}”
-        </p>
-      ) : null}
+          {found.length === 0 ? (
+            <p data-games-empty className="gm-empty">
+              No games match “{query.trim()}”
+            </p>
+          ) : null}
+        </section>
+      ) : view === "shelves" ? (
+        <>
+          {hero ? <HeroCard type={hero} progress={progress} onOpen={onOpen} onPlay={onPlay} /> : null}
+          {shelves.map((shelf) => (
+            <ShelfRow
+              key={shelf.id}
+              shelf={shelf}
+              onAll={() => {
+                setJumpTo(shelf.id);
+                onView("all");
+              }}
+            >
+              {shelf.games.map(tile)}
+            </ShelfRow>
+          ))}
+        </>
+      ) : (
+        shelves.map((shelf) => (
+          <section key={shelf.id} aria-labelledby={`games-group-${shelf.id}`} data-games-group={shelf.id} className="gm-group">
+            <div className="gm-shelf-head">
+              <h2 id={`games-group-${shelf.id}`} className="gm-shelf-title">
+                <span aria-hidden="true" data-cat={shelf.id} className="gm-dot" />
+                {shelf.label}
+              </h2>
+              <span className="gm-shelf-count">{shelf.games.length}</span>
+            </div>
+            <div className="gm-grid gm-grid-all" data-games-grid={shelf.id}>
+              {shelf.games.map(tile)}
+            </div>
+          </section>
+        ))
+      )}
       {after}
     </div>
   );
 }
 
-/** A game's best at the catalogue's level (Normal's for a game without that level), or null. */
-function levelBest(progress: PracticeProgressView | null, type: PuzzleType, level: Level): number | null {
-  return bestOf(progress, type, storedLevelKey(offersLevel(type, level) ? level : "normal"));
+/** One family's shelf: its name and "All n" over a sideways-scrolling row (five across, wrapping, on a computer). */
+function ShelfRow({ shelf, onAll, children }: { shelf: Shelf; onAll: () => void; children: ReactNode }) {
+  return (
+    <section aria-labelledby={`games-shelf-${shelf.id}`} data-games-shelf={shelf.id} className="gm-shelf">
+      <div className="gm-shelf-head">
+        <h2 id={`games-shelf-${shelf.id}`} className="gm-shelf-title">
+          <span aria-hidden="true" data-cat={shelf.id} className="gm-dot" />
+          {shelf.label}
+        </h2>
+        <button type="button" onClick={onAll} data-games-shelf-all={shelf.id} className="gm-shelf-all press">
+          All {shelf.games.length}
+          <Icon name="chevron-right" size={18} className="gm-shelf-all-icon" />
+          <span className="sr-only"> {shelf.label} games</span>
+        </button>
+      </div>
+      <div className="gm-grid gm-shelf-row" data-games-grid={shelf.id} data-scroll-x="">
+        {children}
+      </div>
+    </section>
+  );
 }
 
-/**
- * Under a tile: the level it plays at and that level's best. A game without the catalogue's level says "Normal" (it
- * plays Normal); at Normal with a game that has no other level, nothing more than the best is shown.
- */
-function TileLevel({ type, level, progress }: { type: PuzzleType; level: Level; progress: PracticeProgressView | null }) {
-  const plays: Level = offersLevel(type, level) ? level : "normal";
-  const best = levelBest(progress, type, level);
-  const fallback = plays !== level;
+/** A game's tile: one button named exactly the game, its stars, the offline mark and best as its description. */
+function CatalogueTile({
+  type,
+  progress,
+  tileStyle,
+  onOpen,
+  extra,
+}: {
+  type: PuzzleType;
+  progress: PracticeProgressView | null;
+  tileStyle: string | null;
+  onOpen: (type: PuzzleType) => void;
+  extra: ReactNode;
+}) {
   return (
-    <span data-tile-level={plays} data-level-fallback={fallback || undefined} className="gm-tile-level">
-      {fallback || plays !== "normal" ? <span className="gm-tile-level-name">{LEVEL_LABEL[plays]}</span> : null}
-      <span className="gm-tile-level-best">Best {best ?? "–"}</span>
-    </span>
+    <div data-practice-game={type} data-stars={starCountOf(progress, type)} className="gm-tile-wrap">
+      <GameTile
+        type={type}
+        size="card"
+        name={
+          <span aria-hidden="true" data-wrap-ok="">
+            {gameName(type)}
+          </span>
+        }
+        stars={levelStarsOf(progress, type)}
+        tileStyle={tileStyle}
+        onClick={() => onOpen(type)}
+        aria-label={gameName(type)}
+        aria-describedby={tileDescriptionId(type)}
+        className="gm-tile"
+      />
+      {extra}
+    </div>
   );
 }
 
@@ -282,50 +272,44 @@ export function tileDescriptionId(type: string): string {
   return `practice-best-${type}`;
 }
 
-/** The hero card: the game of the day, its art on its own colour, the name, tag and stars; opens its page. */
-function HeroTile({
+/**
+ * The hero: the game of the day, its art on its family's colour, the name and goal, and a gold Play (its round,
+ * straight in). The card itself opens the game's page.
+ */
+function HeroCard({
   type,
-  name,
   progress,
-  level,
   onOpen,
+  onPlay,
 }: {
   type: PuzzleType;
-  name: string;
   progress: PracticeProgressView | null;
-  level: Level;
   onOpen: (type: PuzzleType) => void;
+  onPlay?: ((type: PuzzleType) => void) | undefined;
 }) {
   const tag = gameTag(type);
+  const name = gameName(type);
   return (
-    <button
-      type="button"
-      data-games-hero={type}
-      data-cat={tag.id}
-      onClick={() => onOpen(type)}
-      aria-label={`${name}, game of the day`}
-      className="gm-hero press"
-    >
-      <span className="gm-hero-text">
-        <span className="gm-hero-kicker">Game of the day</span>
-        <span className="gm-hero-name" data-wrap-ok="">
-          {name}
+    <div data-games-hero={type} data-cat={tag.id} className="gm-hero">
+      <button type="button" onClick={() => onOpen(type)} aria-label={`${name}, game of the day`} className="gm-hero-open press">
+        <span aria-hidden="true" className="gm-hero-art">
+          <GameIcon type={type} size={112} />
         </span>
-        <span className="gm-hero-tag">
-          <span aria-hidden="true" data-cat={tag.id} className="gm-dot" />
-          {tag.label}
+        <span className="gm-hero-text">
+          <span className="gm-hero-kicker">Game of the day</span>
+          <span className="gm-hero-name" data-wrap-ok="">
+            {name}
+          </span>
+          <span className="gm-hero-goal" data-wrap-ok="">
+            {PUZZLE_INSTRUCTIONS[type]?.goal ?? tag.label}
+          </span>
+          <Stars levels={levelStarsOf(progress, type)} size="m" label={false} />
         </span>
-        <Stars
-          levels={levelStarsOf(progress, type)}
-          current={storedLevelKey(offersLevel(type, level) ? level : "normal")}
-          size="m"
-          label={false}
-        />
-      </span>
-      <span aria-hidden="true" className="gm-hero-art">
-        <GameIcon type={type} size={168} />
-      </span>
-    </button>
+      </button>
+      <Button variant="gold" size={48} onClick={() => (onPlay ? onPlay(type) : onOpen(type))} data-games-hero-play={type} className="gm-hero-play">
+        Play
+      </Button>
+    </div>
   );
 }
 

@@ -18,7 +18,8 @@ import { practiceProgressNow } from "@/lib/practice/useProgress";
 import { INTRO_COUNTDOWN_MS, INTRO_MS, TOTAL_ROUNDS, type PuzzleType } from "@/lib/duel/types";
 import type { Outcome } from "@/lib/duel/scoring";
 import type { PuzzleData } from "@/lib/duel/types";
-import { Button as JzButton, Icon, Stars } from "@/design/components";
+import { Button as JzButton, Icon, LevelMark, Stars } from "@/design/components";
+import { levelsOf } from "@/lib/levels/gameLevels";
 import { useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { fx } from "@/lib/fx";
 import { roundMusicFor } from "@/lib/fx/theme";
@@ -333,6 +334,7 @@ export function RoundIntro({
             <span className="game-frame-context-text">
               {CATEGORY_NAMES[puzzleDef(type).category]}, {practice ? "Practice" : `Round ${round} of ${totalRounds}`}
             </span>
+            {levelsOf(type).length > 1 || puzzleLevel(puzzle) !== "normal" ? <LevelMark level={puzzleLevel(puzzle)} label className="intro-level-mark" /> : null}
           </span>
         </div>
         <div className="intro-header-right">
@@ -369,6 +371,8 @@ export function RoundIntro({
             className="round-intro-content flex min-h-0 flex-1 flex-col items-center justify-start gap-2 overflow-hidden py-1"
           >
             <PuzzleInstructions
+              short
+              afterHow={<DesktopKeys type={type} />}
               type={type}
               level={puzzleLevel(puzzle)}
               puzzle={puzzle}
@@ -396,7 +400,6 @@ export function RoundIntro({
                 {introLine}
               </p>
             ) : null}
-            <DesktopKeys type={type} />
             <p className="round-intro-time shrink-0 text-xs text-muted-foreground">
               You have {seconds} seconds
             </p>
