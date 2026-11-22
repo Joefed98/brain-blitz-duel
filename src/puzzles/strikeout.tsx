@@ -21,7 +21,7 @@ import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-layout/batch-w-strikeout.css";
 import "@/polish-word/word-look.css";
 import "@/polish-word/strikeout.css";
-import { RevealNumbers, TileRow, type TileTone } from "@/components/puzzles/WordReveal";
+import { RevealNumbers, TileRow, type TileTone, stageCell } from "@/components/puzzles/WordReveal";
 import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 import "@/polish-layout/polish-nov3-word.css";
 
@@ -815,7 +815,8 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   const state = replayStrikeout2(words, puzzle.givens ?? [], decodeStrikeout2(myAnswer ?? ""), () => true, rules);
   const early = typeof myExtra?.["earlySolvePoints"] === "number" ? (myExtra["earlySolvePoints"] as number) : null;
   const longest = Math.max(1, ...words.map((w) => w.length));
-  const size = Math.max(26, Math.min(40, Math.floor((330 - (longest - 1) * 4) / longest)));
+  // G2 (21 Nov 2026): the tile from the stage's width (was a fixed 330 px budget).
+  const size = stageCell(longest, (longest - 1) * 4, 44);
   return (
     <div data-word-reveal="strikeout" data-strikeout-rev={strikeoutRevOf(puzzle)} data-wr-version="overhaul" className="wr">
       <RevealNumbers

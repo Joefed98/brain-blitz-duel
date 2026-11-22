@@ -607,11 +607,12 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer, s
   );
 }
 
-/** The reveal's beam height: about a quarter of the screen's height, 170–250 px (a 375 × 667 phone fits it all). */
-// A short screen (the shared reveal layout's payoff row above, #422) gets a shorter beam, so the balance, the key and
-// the facts never meet.
-const revealBeamHeight = (screenHeight: number) =>
-  Math.round(screenHeight < 760 ? Math.max(130, screenHeight * 0.21) : Math.min(250, Math.max(170, screenHeight * 0.27)));
+/**
+ * The reveal's beam height (G3, 21 Nov 2026): from the reveal template's stage, never the window: under half the stage's
+ * height, 130–250 px, so the tabs, the switch, the balance, the key and the facts fit round it (the stage is what a
+ * 375 × 667 phone leaves under the score card).
+ */
+const revealBeamHeight = (stageHeight: number) => Math.round(Math.min(250, Math.max(130, stageHeight * 0.42)));
 
 /**
  * The answer reveal (the Number overhaul, 15 Nov 2026): one scale at a time, drawn large with its rendered art, on
@@ -641,7 +642,15 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myMsRemaining }: PuzzleRevealPr
   const pegs = scale ? scalePegs(scale) : 8;
   const spacing = stageWidth > 0 ? Math.max(30, Math.min(44, Math.floor((stageWidth - 12) / pegs))) : 36;
   const [beamHeight, setBeamHeight] = useState(250);
-  useBeforePaint(() => setBeamHeight(revealBeamHeight(window.innerHeight)), []);
+  useBeforePaint(() => {
+    const host = stage.current?.closest<HTMLElement>("[data-reveal-stage]");
+    if (!host) return;
+    const measure = () => setBeamHeight(revealBeamHeight(host.clientHeight));
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, []);
   const solution = data?.solutions?.[index] ?? null;
   const right = !!okAt[index];
   const [side, setSide] = useState<RevealSide>("solution");
