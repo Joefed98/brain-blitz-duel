@@ -3,7 +3,7 @@ import { useMemo, useRef } from "react";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { GS_CHECKPOINT_INTERVAL, GS_INPUT_TAP, GS_REV, GS_RUN_FULL, GS_STOCK_PILE, gsCheckpoint, type GsState } from "@/lib/arcade/cards/golfSol";
 import { drawGolfSol, golfSolArtGame, gsButtonHit, gsCardBox, gsHit, gsNewView, gsOverFoundation, GS_BG, GS_WORLD_H, GS_WORLD_W } from "@/lib/arcade/cards/golfSol.renderer";
-import { cardsFillClassic } from "@/lib/arcade/cards/cardsFill.renderer";
+import { cardsFill } from "@/lib/arcade/cards/cardsFill.renderer";
 import { encodeGolfSolRun, replayGolfSolRun } from "@/lib/duel/cards";
 import { GOLFSOL_TIME_MS, type GolfSolPuzzleData } from "@/lib/duel/types";
 import { ArcadeCanvasStage, type PointerPayload } from "@/components/puzzles/ArcadeCanvasStage";
@@ -79,7 +79,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       label={`${gameDisplayName("golfsol")}: tap a column’s bottom card one higher or lower than the foundation, or the stock; Undo and Reset at the bottom`}
       background={GS_BG}
       fitWorld
-      scene={cardsFillClassic}
+      scene={cardsFill}
       seed={data?.seed ?? 0}
       enabled={data !== null}
       locked={locked}
