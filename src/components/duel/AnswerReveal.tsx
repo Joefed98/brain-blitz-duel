@@ -1,4 +1,5 @@
 import { useMomentEnter } from "@/components/fx/useMomentEnter";
+import { RevealScreen } from "./RevealScreen";
 import { JoulesLine } from "@/components/pass/JoulesLine";
 import { scorePartsText, storedScoreParts } from "@/lib/duel/puzzleScoreRev";
 import { partialProgressNote } from "@/lib/duel/partialCredit";
@@ -922,29 +923,33 @@ function LiveAnswerReveal({
       ) : null}
     </>
   );
+  // The one reveal template (G1, 20 Nov 2026; RevealScreen.tsx): the screen's header row (no app top bar, so the sound
+  // button sits here) and practice's stars and new best go into the template's slots on both paths.
+  const head = (
+    <div data-reveal-head className="rs-head shrink-0 items-center">
+      <span className="reveal-title min-w-0 truncate">{def.name}</span>
+      <span className="flex shrink-0 items-center gap-1">
+        <MetaChips
+          data-reveal-meta
+          facts={practice ? (practiceActions ? ["Practice"] : ["Practice", `${secondsLeft}s`]) : [`Round ${round} of ${totalRounds}`, `${secondsLeft}s`]}
+        />
+        <MuteToggle variant="speaker" />
+      </span>
+    </div>
+  );
+  // The shared reveal layout (phase 2 step 4 pass 2): practice's stars and new best, for puzzles and arcade alike.
+  const payoff =
+    practice && myScore !== null && answersReady && !payoffInline ? (
+      <RevealPayoff type={puzzle.type} level={(puzzle as { level?: unknown }).level} personalBest={Boolean(personalBest)} starLine={starLine} />
+    ) : null;
   return (
     <div ref={revealRoot} data-skin="room" data-answer-reveal {...enter} data-hero-earned={heroSpot ? "" : undefined} className="relative flex min-h-0 flex-1 flex-col gap-2.5 px-3 text-left animate-phase-in">
       {/* Practice's new best (arcade too); rooms keep ArcadeReveal's room-best record. */}
       {practice && (personalBest || starLine) && myScore !== null ? <NewBestMoment starLine={starLine} /> : null}
-      {/* Its own screen (3 Nov 2026): this row is the screen's header (no app top bar), so the sound button sits here. */}
-      <div data-reveal-head className="rs-head shrink-0 items-center">
-        <span className="reveal-title min-w-0 truncate">{def.name}</span>
-        <span className="flex shrink-0 items-center gap-1">
-          <MetaChips
-            data-reveal-meta
-            facts={practice ? (practiceActions ? ["Practice"] : ["Practice", `${secondsLeft}s`]) : [`Round ${round} of ${totalRounds}`, `${secondsLeft}s`]}
-          />
-          <MuteToggle variant="speaker" />
-        </span>
-      </div>
-
-      {/* The shared reveal layout (phase 2 step 4 pass 2): practice's stars and new best, for puzzles and arcade alike. */}
-      {practice && myScore !== null && answersReady && !payoffInline ? (
-        <RevealPayoff type={puzzle.type} level={(puzzle as { level?: unknown }).level} personalBest={Boolean(personalBest)} starLine={starLine} />
-      ) : null}
-
       {ARCADE_REVEAL_RENDERERS[puzzle.type] && !PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) ? (
         <ArcadeReveal
+          header={head}
+          aboveScore={payoff}
           summaryVisual={hasArcadeSummary(puzzle) ? <Reveal puzzle={puzzle} myAnswer={myAnswer} myCorrect={myCorrect} myReactionAvgMs={myReactionAvgMs} myMsRemaining={myMsRemaining} timeLimitMs={puzzleTimeLimitMs(puzzle)} myExtra={myExtra ?? null} /> : undefined}
           practice={practice}
           best={best}
@@ -963,7 +968,12 @@ function LiveAnswerReveal({
           }
         />
       ) : (
-      <div className="flex min-h-0 w-full flex-1 flex-col items-stretch gap-2.5">
+      <RevealScreen
+        kind="puzzle"
+        header={head}
+        score={
+      <div className="flex w-full flex-col items-stretch gap-2.5">
+        {payoff}
         {/* The hero's reserved strip (3 Nov 2026): only when the score earns a hero moment, above the verdict. */}
         {heroSpot ? <div data-hero-spot="" aria-hidden="true" className="reveal-hero-spot shrink-0" /> : null}
         {/* The verdict row: the mark in the category colour, "Solved in 53.2 s" in sentence case, the score in white. */}
@@ -1002,7 +1012,11 @@ function LiveAnswerReveal({
         {myScore !== null && nearMiss(puzzle.type, myExtra) ? (
           <p className="shrink-0 text-center text-sm font-semibold text-foreground">{nearMiss(puzzle.type, myExtra)}</p>
         ) : null}
-        {/* The board keeps its box (flex-1, as before); the tray behind its card hugs what the card draws (useRevealFit). */}
+      </div>
+        }
+        stage={
+        /* The board fills the template's stage box; the tray behind its card hugs what the card draws (useRevealFit,
+           until each family's boards draw at the box's size: S5). */
         <div ref={solvedBoard} data-skin-off className="answer-reveal-content relative isolate flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
           <div ref={trayRef} aria-hidden="true" data-reveal-tray className="reveal-tray" />
           {answersReady && !solutionLock ? <SolutionSwitch type={puzzle.type} root={solvedBoard} onChange={setSwitchState} /> : null}
@@ -1030,8 +1044,9 @@ function LiveAnswerReveal({
           ) : null}
           </div>
         </div>
-        {players && players.length > 1 ? <RevealPlayers players={players} secondsLeft={secondsLeft} /> : null}
-      </div>
+        }
+        footer={players && players.length > 1 ? <RevealPlayers players={players} secondsLeft={secondsLeft} /> : undefined}
+      />
       )}
       {practiceActions ? <PracticeJoules /> : null}
       {practiceActions ? <PracticeRevealActions onPlayAgain={onPlayAgain} onBack={onBack} /> : null}

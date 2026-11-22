@@ -222,31 +222,48 @@ def glass(key, tint=(0.92, 0.95, 1.0, 1)):
 
 
 def palette():
-    """The Word palette: today's navy room, glazed black tiles, champagne gold, the clue colours."""
+    """The Word palette under Spotlight (the polish plan's art rule 2, 21 Nov 2026): the board pieces are light and
+    matte (an ivory body over a warm ledge, dark navy ink, one soft top light, short shadows); the tones are champagne
+    enamel, mint, pale stone, coral and the Word category's blue. No chrome, no black lacquer, no glare. The keyboard
+    keys, the empty strike pip and the controls stay navy (they are controls, not pieces)."""
+    def matte(key, face, rough=0.62):
+        # A matte glaze: a faint satin coat only, so the face reads its true colour under the soft top light.
+        return mat(key, hexc(face), rough=rough, coat=0.12, coat_rough=0.4, spec=0.3, rough_var=0.05, dome=0.12)
+
     return dict(
-        # Glazed ceramic: a deep glossy coat over the glaze, so a tile has depth and its bevel a bright line.
-        black=mat("glaze_black", hexc("#1A1D25"), rough=0.32, coat=0.85, coat_rough=0.05, spec=0.5, bump=0.01, dome=0.35),
-        pearl=mat("pearl_black", hexc("#1C1F28"), rough=0.3, coat=0.9, coat_rough=0.04, spec=0.5, sheen=0.3, dome=0.35),
-        dim=mat("glaze_dim", hexc("#14161C"), rough=0.45, coat=0.5, coat_rough=0.12),
-        # Enamel gold: a warm metallic glaze under a clear coat (shines on its curves, keeps its colour on the face).
-        gold=mat("enamel_gold", hexc("#E0C281"), rough=0.3, metal=0.3, coat=0.85, coat_rough=0.05, spec=0.5, dome=0.35),
-        gold_deep=mat("enamel_gold_deep", hexc("#B98F45"), rough=0.3, metal=0.6, coat=0.6, coat_rough=0.08),
-        teal=mat("glaze_teal", hexc("#2AAE98"), rough=0.3, coat=0.85, coat_rough=0.05, spec=0.5, dome=0.35),
-        grey=mat("glaze_grey", hexc("#4A4F5C"), rough=0.34, coat=0.75, coat_rough=0.06, spec=0.5, dome=0.35),
-        red=mat("glaze_red", hexc("#9A2C36"), rough=0.3, coat=0.85, coat_rough=0.05, spec=0.5, dome=0.35),
-        sapphire=mat("glaze_sapphire", hexc("#2347A0"), rough=0.26, coat=0.9, coat_rough=0.04, spec=0.5, dome=0.35),
-        # Navy lacquer: deep and glossy, with a fine fleck in the coat.
+        # Light pieces: each a face over its own warmer, darker ledge (ledge_<tone>).
+        black=matte("ivory", "#F3EAD3"),
+        ledge_black=matte("ivory_ledge", "#C9A56A"),
+        pearl=matte("ivory_disc", "#F3EAD3"),
+        ledge_pearl=matte("ivory_disc_ledge", "#C9A56A"),
+        gold=matte("champagne", "#E9CC86", rough=0.5),
+        ledge_gold=matte("champagne_ledge", "#B48A40"),
+        teal=matte("mint", "#9BE6CC"),
+        ledge_teal=matte("mint_ledge", "#4FAE8E"),
+        grey=matte("stone", "#D3D5DA"),
+        ledge_grey=matte("stone_ledge", "#9A9EA8"),
+        red=matte("coral", "#F4927F"),
+        ledge_red=matte("coral_ledge", "#C55A4A"),
+        sapphire=matte("word_blue", "#4D8CFF", rough=0.55),
+        ledge_sapphire=matte("word_blue_ledge", "#2B5BBE"),
+        # A used or spent piece: pale stone a step down, so the ink still reads on it.
+        dim=matte("stone_dim", "#A9ADB7"),
+        ledge_dim=matte("stone_dim_ledge", "#7C8190"),
+        # Cryptogrid's picked number: ivory warmed towards champagne.
+        amber=matte("ivory_warm", "#F2DC9F"),
+        ledge_amber=matte("ivory_warm_ledge", "#C49A4E"),
+        # Roundabout's empty crossword squares: white cells, a lower ledge.
+        slate=matte("white_cell", "#F7F8FA"),
+        ledge_slate=matte("white_cell_ledge", "#B9C0CF"),
+        # Interlock's empty squares: a pale well, a recess a step darker than its rim.
+        well=matte("well_pale", "#B7C0D3"),
+        well_plate=matte("well_pale_rim", "#D8DEEA"),
+        # Controls and their dishes stay navy (unchanged from the Word overhaul).
         navy=mat("lacquer_navy", hexc("#121D3C"), rough=0.3, coat=0.85, coat_rough=0.06, spec=0.5, bump=0.01, dome=0.35),
         navy_key=mat("key_navy", hexc("#1A2442"), rough=0.32, coat=0.75, coat_rough=0.07, spec=0.45, dome=0.35),
-        # A recess reads dark (concept A): a deep navy floor under a near-black lacquer rim.
-        well=mat("well", hexc("#0E1630"), rough=0.45, coat=0.4, coat_rough=0.15),
+        key_dim=mat("glaze_dim", hexc("#14161C"), rough=0.45, coat=0.5, coat_rough=0.12),
+        enamel_gold=mat("enamel_gold", hexc("#E0C281"), rough=0.3, metal=0.3, coat=0.85, coat_rough=0.05, spec=0.5, dome=0.35),
         tray=mat("tray", hexc("#0C1530"), rough=0.3, coat=0.8, coat_rough=0.07, bump=0.012),
-        well_plate=mat("well_plate", hexc("#18223F"), rough=0.3, coat=0.8, coat_rough=0.06, bump=0.012),
-        # Roundabout's empty crossword squares: a slate glaze a step lighter than the board, so every square reads
-        # clearly before it is filled (Joe, 15 Nov 2026: today's squares were easier to see than dark wells).
-        slate=mat("glaze_slate", hexc("#2C3448"), rough=0.3, coat=0.8, coat_rough=0.06, spec=0.5, dome=0.35),
-        # Cryptogrid's picked number: the dark glaze tinted gold (concept A's tinted, gold-ringed square).
-        amber=mat("glaze_amber", hexc("#4A3A1A"), rough=0.3, coat=0.85, coat_rough=0.05, spec=0.5, dome=0.35),
         # Metals that shine.
         rim=mat("rim_gold", hexc("#D8B66E"), rough=0.16, metal=1.0, rough_var=0.03),
         coin=mat("coin_gold", hexc("#E0B862"), rough=0.14, metal=1.0, rough_var=0.03),
@@ -353,14 +370,21 @@ def inset(w, h, r, depth, m_face, m_pocket, inner):
 
 def tile(m, size=64, r=11, d=10):
     def build(pal):
-        # A deep, rounded shoulder (the concepts' soft bevel): it carries the glaze's highlight and shade.
-        slab(size - 1, size - 1, d, r, pal[m], d * 0.46, segs=10)
+        # Spotlight: a matte face standing on a warmer, darker ledge that shows along the bottom edge (about a
+        # fourteenth of the tile), so the piece reads as a lifted block from straight above. The footprint is the
+        # sprite's, as before.
+        ledge = max(3.0, size / 14)
+        slab(size - 1, size - 1, d * 0.6, r, pal["ledge_" + m], d * 0.25, segs=6)
+        slab(size - 1, size - 1 - ledge, d * 0.45, r, pal[m], d * 0.22, z=d * 0.6, y=ledge / 2, segs=8)
     return build
 
 
 def disc(m, size=80, d=10):
     def build(pal):
-        cylinder(size / 2 - 0.6, d, pal[m], 4.6)
+        # The same lifted piece as a tile: a matte disc over its ledge, the ledge showing along the bottom.
+        ledge = size / 16
+        cylinder(size / 2 - 0.6, d * 0.6, pal["ledge_" + m], 2.0)
+        cylinder(size / 2 - 0.6 - ledge / 2, d * 0.45, pal[m], 2.2, z=d * 0.6, y=ledge / 2)
     return build
 
 
@@ -388,7 +412,8 @@ def button_navy(w=120, h=48):
 
 def well(size=64):
     def build(pal):
-        inset(size - 1, size - 1, 11, 4, pal["well_plate"], pal["well"], 4)
+        # A pale recess: the floor a step darker than its rim (Spotlight: ivory tiles on pale wells).
+        inset(size - 1, size - 1, 11, 3, pal["well_plate"], pal["well"], 4)
     return build
 
 
@@ -470,7 +495,7 @@ def coins(w=96, h=120):
 
 def padlock(shut, w=36, h=44):
     def build(pal):
-        slab(w - 4, h * 0.56, 8, 6, pal["gold"], 2.6, y=-h * 0.18, segs=6)
+        slab(w - 4, h * 0.56, 8, 6, pal["enamel_gold"], 2.6, y=-h * 0.18, segs=6)
         # The shackle, seen from above: a half ring lying flat; open, lifted to one side.
         me = bpy.data.meshes.new("shackle")
         bm = bmesh.new()
@@ -517,16 +542,16 @@ PIECES = {
     "disc-sapphire": (80, 80, disc("sapphire")),
     # Keyboards (Strikeout, Cryptogrid): about 52 px keys.
     "key": (44, 52, keycap("navy_key")),
-    "key-dim": (44, 52, keycap("dim")),
+    "key-dim": (44, 52, keycap("key_dim")),
     # Controls: champagne gold and navy (never bright yellow or blue).
-    "btn-gold": (120, 48, button("gold")),
+    "btn-gold": (120, 48, button("enamel_gold")),
     "btn-navy": (120, 48, button_navy()),
     "tray": (96, 96, tray()),
     "wheel-tray": (320, 320, wheel_tray()),
     # Strikeout: gold strike pips and red strike studs.
-    "pip-gold": (28, 28, pip("gold")),
+    "pip-gold": (28, 28, pip("enamel_gold")),
     "pip-red": (28, 28, pip("red")),
-    "pip-empty": (28, 28, pip("dim")),
+    "pip-empty": (28, 28, pip("key_dim")),
     # Roundabout: the bonus jar and the coins it fills with.
     "jar": (96, 120, jar()),
     "jar-coins": (96, 120, coins()),

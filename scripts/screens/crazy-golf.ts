@@ -7,6 +7,7 @@
 import { readFileSync } from "node:fs";
 import type { Page } from "playwright";
 
+import { openYourRun } from "./reveals";
 import { minigolfGameFor, MINIGOLF_REV_COURSE } from "../../src/lib/arcade/minigolf";
 import { encodeSportsRun } from "../../src/lib/arcade/sportsKit";
 import { MINIGOLF_HOLES_BANK } from "../../src/lib/duel/minigolfHolesBank.server";
@@ -36,6 +37,7 @@ function golfRoom(played: boolean) {
 
 /** Opens hole 3 on the scorecard (the switcher). */
 const pickHole3 = async (page: Page) => {
+  await openYourRun(page); // Changed with Joe's approval, 21 Nov 2026: a room's reveal opens on the Room view; the scorecard is in "Your run".
   await page.locator("[data-minigolf-reveal] [data-scorecard] button").nth(2).click();
   await page.waitForTimeout(300);
 };
@@ -44,7 +46,9 @@ export default function crazyGolfScreens(): ThemeScreen[] {
   // Changed with Joe's approval, 16 Nov 2026 (round intros aren't page-skinned): the round intro is no longer drawn
   // here (these checks judge page-skinned screens only); crazy-golf-v3-check proves its text, demo-intro-check its layout.
   return [
-    { name: "crazy golf: reveal after a played run", mode: "room", room: golfRoom(true), plain: true, waitMs: 1200, sizes: ALL_SIZES },
+    // Changed with Joe's approval, 21 Nov 2026: "after a played run" opens "Your run" (the scorecard and hole map); "after an empty run" stays on
+    // the Room view it opens on, so a Sports room reveal's chart view is still drawn.
+    { name: "crazy golf: reveal after a played run", mode: "room", room: golfRoom(true), plain: true, waitMs: 1200, sizes: ALL_SIZES, go: openYourRun },
     { name: "crazy golf: reveal, hole 3 chosen", mode: "room", room: golfRoom(true), plain: true, waitMs: 1200, sizes: ALL_SIZES, go: pickHole3 },
     { name: "crazy golf: reveal after an empty run", mode: "room", room: golfRoom(false), plain: true, waitMs: 1200, sizes: ALL_SIZES },
   ];
