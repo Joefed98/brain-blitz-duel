@@ -6,7 +6,7 @@ import { wordHuntDepth, wordHuntLongHalves } from "@/lib/duel/wordHunt";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import "@/polish-layout/polish-nov3-word.css";
 import { wordHuntCols } from "@/lib/duel/types";
-import { RevealChips, RevealHeadline, RevealLabel, RevealNumbers, type RevealChip, dropEndsMs } from "@/components/puzzles/WordReveal";
+import { RevealChips, RevealHeadline, RevealLabel, RevealNumbers, type RevealChip, dropEndsMs, stageWidth } from "@/components/puzzles/WordReveal";
 import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 
 /** Fixed intro example — never randomised: a 6×6 board (wordHuntRev 3) with its golden tile on the A. */
@@ -123,7 +123,8 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
           misses !== null ? { id: "misses", label: "Misses", value: misses, tone: (num("missCutPct") ?? 0) > 0 ? "warn" : undefined } : null,
         ]}
       />
-      <div className="flex flex-col items-center gap-1" style={{ width: "min(84vw, 320px)" }}>
+      {/* G2 (21 Nov 2026): the board at the stage's width (was min(84vw, 320px)). */}
+      <div className="flex flex-col items-center gap-1" style={{ width: stageWidth(420) }}>
         {best ? <RevealLabel>Your best word: {best}</RevealLabel> : null}
         <WordHuntBoard grid={puzzle.grid} path={path} golden={puzzle.golden} />
       </div>
