@@ -4,7 +4,7 @@ import { SHORT_MAX } from "./inputLimits";
 import { attentionDemoPlays } from "./attentionDemoRules";
 import { cardsDemoPlays } from "./cardsDemoRules";
 import { sportsDemoPlays } from "./sportsDemoRules";
-import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
+import { BASTION_REV_DEALT, BASTION_REV_LEVELS } from "@/lib/arcade/bastionTank";
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { fillominoStrokes, trailUndoEach } from "./logicOverhaul2";
 import { SWING_REV_BIG } from "@/lib/arcade/swing";
@@ -287,7 +287,9 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   if (data.type === "breaker" && demo?.puzzle.type === "breaker" && demo.puzzle.brkRev !== BRK_REV_CLEAR) return null;
   // Bastion bastionRev 2 (1 Nov 2026) is a new game (the tank-defence shooter): a demo of the original turret stays
   // stopped (the intro shows its still) until one is recorded on bastionRev 2.
-  if (data.type === "bastion" && demo?.puzzle.type === "bastion" && demo.puzzle.bastionRev !== BASTION_REV_DEALT) return null;
+  // bastionRev 5 (D5's ladder, 23 Nov 2026) plays bastionRev 4's Normal exactly at Normal (only Weak spots' full line
+  // moved), so a Normal demo recorded on 4 plays too; every other stamp, and any level's demo, stays stopped.
+  if (data.type === "bastion" && demo?.puzzle.type === "bastion" && demo.puzzle.bastionRev !== BASTION_REV_DEALT && !(demo.puzzle.bastionRev === BASTION_REV_LEVELS && (demo.puzzle as { level?: unknown }).level === undefined)) return null;
   // Moon Climb (15 Nov 2026, ricoRev 4, the Action overhaul): the bigger ninja on its own collision box. A demo of the old
   // shaft, the ninja wall-climb (ricoRev 2) or the smaller ninja (ricoRev 3) would show other rules, so only a demo
   // recorded on ricoRev 4 plays; until one is, the intro shows its still. ricoRev 5 (22 Nov 2026) the 30 × 60 ninja on

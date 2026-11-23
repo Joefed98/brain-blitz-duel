@@ -1,0 +1,19 @@
+{
+ "recordedOn": "polish/d5 c550c1bb's bastionTank.renderer.ts (before bastionRev 5's four-lane road)",
+ "digests": {
+  "rev4 normal intro still": "78afefdf88579bd345243a335f83f9e00c10a1582a05edea027c3fe2c77e0213",
+  "rev4 normal wave 2": "48648709848208e8ac4e49e5e3bdf54c82cf07cdf3dab6e3c72ce61cab51c9b4",
+  "rev4 normal wave 3": "0b5171eff63eefbbbe7dd2ae9a2184e951e8d62016b4e97b9ef872451563a494",
+  "rev4 normal wave 4": "c144d607079cff3d774838b938ef71509e08aa62700041d1912e50dc7b09eb86",
+  "rev4 normal wave 5": "87508a77eb10dd38ab22be4e7a7ddb4c58a9a36626561411778935c6b0f215cc",
+  "rev4 normal end": "af72d4b6f73206fb149f969abe60c2e70213e6a2de6c52f74ad8f48696f8b53e",
+  "rev4 easy wave 4": "ee51737c1f9424816c62e449b11685fd2ae020a5c0244be5d40b1c3e144a4214",
+  "rev4 hard wave 5": "335251b0c0669347c9fd8bfe2a8bc401b521cfd6b124eff75beb974889bd9323",
+  "rev3 wave 3": "aa1f2c013706cab9ffae3d42b72deebcb8cab4189a1a0bec4daf465309d9fbe1",
+  "rev3 wave 5": "35395881ec25e9f92d0e25f5ab5117111e7455d2d05c26e396c236ee5ce429dc",
+  "rev2 wave 4": "6649954eb5a5f11a7b46f8b7906e753970f706f6dc4b0f7a6a827aeaafe09a70",
+  "scene 100": "dc012ff72df68ea9899b3292b248335764f849c0e3ec1859a88de7d9a78c9574",
+  "scene 1400": "7f6fc340d69be75e3a08153f04a76162b4ac3f75f05bd2c285bc742f3823a820",
+  "scene 2700": "6aa45e48c624d34ae1b73431f833eb770fb5c61f1645c8f048c3e139f5f38b22"
+ }
+}
