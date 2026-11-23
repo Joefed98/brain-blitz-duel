@@ -490,7 +490,7 @@ challenges never count. How the checks read a run:
 | Gold top | Land all five gold blocks perfectly. | Classic | Full set | line “Gold blocks” = 20 of 20 |  | `skyline.gold` |
 | Thirty perfect | Make 30 perfect drops. | Classic | Target | `perfects` ≥ 30 |  | `skyline.perfects` |
 | Steady crane | Make ten perfect drops in a row. | Classic | Streak | line “Perfect streak” = 10 of 10 |  | `skyline.steady-crane` |
-| Skyscraper | Build 61 floors on Expert. | Expert | Max-out | line “Floors” = 140 of 140 | ● | `skyline.skyscraper` |
+| Skyscraper | Build 61 floors on Expert. | Expert | Max-out | `blocks` ≥ 61 | ● | `skyline.skyscraper` |
 
 #### Slice (`slice`)
 
