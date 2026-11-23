@@ -42,6 +42,24 @@ export interface WavefrontLv {
   bossPct: number;
   killS: number;
 }
+/**
+ * Wavefront wavRev 16's levels (D5, 23 Nov 2026; docs/arcade-standard/wavefront.md "Levels (D5, 23 Nov 2026)"): the
+ * headline lever is the enemy bolts in the air. On top of wavRev 15's four settings: the bolts each volley carries from
+ * wave 1 (`volley`), one more from wave `upFrom` (0: never) on one volley in `upOdds` (1: every volley), the bolts in
+ * the air at most (`maxRed`, the boss's included; Normal 10), the wave the divers start (`diveFrom`, 0: none; Normal 3)
+ * and the wave two dive at once from (`diveTwoFrom`; Normal 4), and each level's own full lines for the saucers (of the 5
+ * a run flies; Normal 4) and the cannons and weak points (of 6; Normal 5). wavRev 15 keeps WAVEFRONT_LEVELS exactly.
+ */
+export interface WavefrontLvWide extends WavefrontLv {
+  volley: number;
+  upFrom: number;
+  upOdds: number;
+  maxRed: number;
+  diveFrom: number;
+  diveTwoFrom: number;
+  saucersFull: number;
+  weakFull: number;
+}
 /** Fission (burstRev 13 and 14): lives, the atoms' size (per cent), the quick-clear time per wave (per cent of Normal's) and
  * the wasted beams that cost nothing (Normal: 20, or one an atom popped if more). */
 export interface BurstLv {
@@ -123,6 +141,12 @@ export const WAVEFRONT_LEVELS: Table<WavefrontLv> = {
   easy: { lives: 4, boltPct: 80, bossPct: 80, killS: 24 },
   hard: { lives: 3, boltPct: 120, bossPct: 130, killS: 16 },
   expert: { lives: 2, boltPct: 140, bossPct: 160, killS: 16 },
+};
+/** Wavefront wavRev 16 at Easy, Hard and Expert (the sim reads it from the run's state; the registry mirrors it). */
+export const WAVEFRONT_LEVELS_WIDE: Table<WavefrontLvWide> = {
+  easy: { lives: 4, boltPct: 80, bossPct: 80, killS: 24, volley: 1, upFrom: 0, upOdds: 1, maxRed: 4, diveFrom: 0, diveTwoFrom: 0, saucersFull: 3, weakFull: 4 },
+  hard: { lives: 3, boltPct: 100, bossPct: 100, killS: 20, volley: 2, upFrom: 3, upOdds: 1, maxRed: 14, diveFrom: 2, diveTwoFrom: 3, saucersFull: 4, weakFull: 5 },
+  expert: { lives: 2, boltPct: 100, bossPct: 100, killS: 20, volley: 3, upFrom: 3, upOdds: 1, maxRed: 18, diveFrom: 1, diveTwoFrom: 2, saucersFull: 4, weakFull: 4 },
 };
 export const BURST_LEVELS: Table<BurstLv> = {
   easy: { lives: 4, sizePct: 125, quickPct: 150, freeWhiffs: 40 },

@@ -46,11 +46,16 @@ export interface NormalPlayRun {
 
 const sha = (v: unknown) => createHash("sha256").update(JSON.stringify(v)).digest("hex").slice(0, 20);
 
-/** The server's replay of a run, reduced to its play: the final state and the checkpoints the replay made. */
+/**
+ * The server's replay of a run, reduced to its play: the replayed final state and whether the replay flagged the run for
+ * anything but its claimed score (a log recorded before a scoring change carries the score it claimed then, so a replay
+ * on the new lines flags only that mismatch: "score did not match the replay"; the play is what is compared).
+ */
 export function playDigest(type: "wavefront" | "burst", puzzle: PuzzleData, raw: string): string {
   const p = puzzle as unknown as { seed: number; wavRev?: number; burstRev?: number; level?: string };
   const r = type === "wavefront" ? replayWavefrontRun(p.seed, raw, p.wavRev, (p.level as never) ?? null) : replayBurstRun(p.seed, raw, p.burstRev, (p.level as never) ?? null);
-  return sha({ state: r.state, flagged: Boolean(r.flagged) });
+  const claimOnly = r.flagged && r.reason === "score did not match the replay" && r.desyncTick === null;
+  return sha({ state: r.state, flagged: Boolean(r.flagged) && !claimOnly });
 }
 
 /** A seeded random-input stream for a game (drags for Wavefront; walks and taps for Fission). */

@@ -155,7 +155,7 @@ import {
   WAV_STD_CORE_FULL,
   WAV_STD_LIFE_COST,
   WAVEFRONT_STD,
-  WAVEFRONT_STD_KEEP, WAV_V14_HEAVY_HITS } from "@/lib/arcade/wavefront";
+  WAVEFRONT_STD_KEEP, WAVEFRONT_STD_WIDE, WAV_V14_HEAVY_HITS, WAV_V16_SAUCERS_FULL, WAV_V16_WEAK_FULL } from "@/lib/arcade/wavefront";
 import {
   INK_CLOUD_LEVELS,
   INK_V13_CLOVERS,
@@ -1731,12 +1731,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ],
       // wavRev 12 (the arcade scoring standard, docs/arcade-standard/wavefront.md): the core and fixed parts, 200 in all.
       // wavRev 13 (Nov 2026, the scoring audit): the life that ends the run is free; lives take at most half the ships' points.
-      score: listFromSpec(WAVEFRONT_STD_KEEP, {
+      // wavRev 16 (D5, 23 Nov 2026): the saucers full at 4 of the 5, the cannons and weak points at 5 of the 6 (Normal).
+      score: listFromSpec(WAVEFRONT_STD_WIDE, {
         core: "about half a point for each ship shot, armour hit and gunship hit, and about 8 for each wave cleared (the gunship counts as one)",
         boss: "destroy the boss",
         speed: "destroy it within 20 s of its arrival for all of it, nothing after 40 s",
-        saucers: `${20 / WAV_X_SAUCERS} for each saucer shot down, and for every saucer still to come when you destroy the boss`,
-        weak: "destroy cannons and hit the boss’s open core",
+        saucers: `${20 / WAV_V16_SAUCERS_FULL} for each saucer shot down, and for every saucer still to come when you destroy the boss: ${WAV_V16_SAUCERS_FULL} of the ${WAV_X_SAUCERS} fill it`,
+        weak: `${10 / WAV_V16_WEAK_FULL} for each cannon destroyed and each boss whose open core you hit: ${WAV_V16_WEAK_FULL} of the 6 fill it`,
       }, [`Each life lost costs ${WAV_STD_LIFE_COST}, but losing the last just ends the run`, "Lives never take more than half your ships, hits and waves points", "Power-ups score nothing"]),
     },
     // Iron Wall (id bastion; bastionRev 3, 3 Nov 2026; docs/arcade-standard/bastion.md): the tank-defence shooter.

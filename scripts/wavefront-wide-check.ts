@@ -7,16 +7,19 @@
  *     final state (checkpoint checksum and counters).
  *  2. The stamp and the pin: rooms and practice deal wavRev 16 at Normal and at every level; with `wavPreWide` pinned they
  *     deal wavRev 15 from WAV_DEAL exactly as before (the legacy fixture's own deals, puzzle for puzzle); with `preRetro`
- *     wavRev 13; LIVE_BANDS, the practice stamps and the intro-demo rule name wavRev 16; a level's settings apply on it.
+ *     wavRev 13; LIVE_BANDS, the practice stamps and the intro-demo rule name wavRev 16; a level's settings apply on it
+ *     (since 23 Nov 2026 wavRev 16's own table, WAVEFRONT_LEVELS_WIDE: wavefront-ladder-check proves its rules).
  *  3. The geometry: the grid on a 52 px pitch, centred; every shaped wave WAV_V16_FORM_W wide by its rule, rows, slots and
  *     the armour core's 44 px spacing as wavRev 15, no new overlap; the escorts as WAV_FORMS_X's; the march's room; on
  *     every tick of runs at every level no formation ship drawn or hit outside the world; the art drawn on each ship's
  *     hit box (within the bounds rule's 2 px), the armour warship over its cells.
  *  4. The deal: every stored witness (scripts/fixtures/wavefront-wide-deal-witness.json.gz) scores exactly 200 through the
- *     server replay, unflagged, at every level, and is the flawless player held to HUMAN_LIMITS with its jitter (re-played
+ *     server replay, unflagged, at its level, and is the flawless player held to HUMAN_LIMITS with its jitter (re-played
  *     and compared event for event); wavefrontDealV16.server.ts is exactly what scripts/wavefront-wide-deal.ts builds from
- *     them; 2,000 deals across the levels all land on a proved seed; every proved seed is reachable.
- *  5. The parts still sum to 200, and a proof run on a dealt puzzle scores 200 through gradeAnswer at every level.
+ *     them; 2,000 deals across the levels all land on a seed proved at their level; every proved seed is reachable.
+ *     (Since 23 Nov 2026, D5's levels folded into wavRev 16: a list a level, each seed proved at its own level.)
+ *  5. The parts still sum to 200 (since 23 Nov 2026 wavRev 15's parts with Normal's saucers full at 4 of 5 and cannons and
+ *     weak points at 5 of 6), and a proof run on a dealt puzzle scores 200 through gradeAnswer at every level.
  */
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
@@ -49,14 +52,14 @@ import {
 import { WAV_V15_HULL_BLEED, wavefrontArtGameFor } from "../src/lib/arcade/wavefront.renderer";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
-import { retroLevelSettings } from "../src/lib/arcade/retroLevels";
+import { WAVEFRONT_LEVELS_WIDE } from "../src/lib/arcade/retroLevels";
 import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { gradeAnswer } from "../src/lib/duel/gradeAnswer.server";
 import { pinPreRetro, pinWavPreWide } from "../src/lib/duel/arcade.server";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { replayWavefrontRun } from "../src/lib/duel/wavefront";
 import { WAV_DEAL } from "../src/lib/duel/wavefrontDeal.server";
-import { WAV_DEAL_V16, wavDealSeedV16 } from "../src/lib/duel/wavefrontDealV16.server";
+import { WAV_DEAL_V16, WAV_DEAL_V16_LEVELS, wavDealSeedV16 } from "../src/lib/duel/wavefrontDealV16.server";
 import { PRACTICE_STAMPS } from "../src/lib/duel/practiceStamps.data";
 import { demoRevAccepted } from "../src/lib/duel/introDemo.functions";
 import type { PuzzleData } from "../src/lib/duel/types";
@@ -65,6 +68,9 @@ import { dealAt } from "./level-tune";
 import { randomLog } from "./room-identity/wavefront";
 import { wavLegacyDigest, type WavLegacyRun } from "./wavefront-wide-lib";
 import { checkWideWitnesses, humanWitnessLog, proveWideWitness, readWideWitnesses, WAV_WIDE_DEAL_FILE, WAV_WIDE_JITTERS, WAV_WIDE_LEVELS, wavWideDealSource } from "./wavefront-wide-deal";
+
+/** The seeds a level deals on wavRev 16 (D5, 23 Nov 2026: a list a level). */
+const listOf = (level: Level): readonly number[] => (level === "normal" ? WAV_DEAL_V16 : WAV_DEAL_V16_LEVELS[level as "easy" | "hard" | "expert"]);
 
 let checks = 0;
 const failures: string[] = [];
@@ -103,10 +109,9 @@ const legacy = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/wavefront-wi
 
 /* 2. The stamp and the pin. */
 {
-  const v16 = new Set(WAV_DEAL_V16);
   for (const level of LEVELS) {
     const p = withSeededRandom(0x5eed, () => generatePuzzle("wavefront", level === "normal" ? {} : { level })) as unknown as Record<string, unknown>;
-    ok(p["wavRev"] === WAV_REV_WIDE && v16.has(p["seed"] as number), `${level} deals wavRev 16 on a proved seed (wavRev ${String(p["wavRev"])})`);
+    ok(p["wavRev"] === WAV_REV_WIDE && listOf(level).includes(p["seed"] as number), `${level} deals wavRev 16 on a proved seed (wavRev ${String(p["wavRev"])})`);
     ok((p["level"] ?? "normal") === level, `${level}: the deal carries its level`);
   }
   // wavPreWide: today's wavRev 15 deal exactly: the legacy fixture's own deals (dealAt, recorded before wavRev 16).
@@ -136,10 +141,11 @@ const legacy = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/wavefront-wi
   ok(/wavRev=16\b/.test(PRACTICE_STAMPS["wavefront"] ?? ""), `the practice stamps name wavRev 16 (${PRACTICE_STAMPS["wavefront"]})`);
   ok(demoRevAccepted("wavefront", WAV_REV_WIDE) && !demoRevAccepted("wavefront", WAV_REV_BIG), "only an intro demo recorded on wavRev 16 plays (a wavRev 15 demo shows the narrower formation)");
   for (const level of ["easy", "hard", "expert"] as const) {
-    const lv = retroLevelSettings("wavefront", level)!;
+    // Since 23 Nov 2026 (D5's levels, folded into wavRev 16): wavRev 16's own table, WAVEFRONT_LEVELS_WIDE.
+    const lv = WAVEFRONT_LEVELS_WIDE[level];
     const s16 = wavefrontGameFor(WAV_REV_WIDE, level).init(7) as WavState;
-    const s15 = wavefrontGameFor(WAV_REV_BIG, level).init(7) as WavState;
-    ok(s16.lives === lv.lives && s16.redSpeed === s15.redSpeed && s16.lv?.killS === lv.killS && s16.lv?.bossPct === lv.bossPct, `${level}: wavRev 16 takes the level's settings as wavRev 15 does (${s16.lives} lives)`);
+    const n16 = wavefrontGameFor(WAV_REV_WIDE).init(7) as WavState;
+    ok(s16.lives === lv.lives && s16.redSpeed === Math.trunc((n16.redSpeed * lv.boltPct) / 100) && s16.lv?.killS === lv.killS && s16.lv?.bossPct === lv.bossPct, `${level}: wavRev 16 takes the level's settings (${s16.lives} lives)`);
   }
   const n16 = wavefrontGameFor(WAV_REV_WIDE).init(7) as WavState;
   const n15 = wavefrontGameFor(WAV_REV_BIG).init(7) as WavState;
@@ -222,11 +228,12 @@ const legacy = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/wavefront-wi
       });
     }
   };
-  const witnesses = readWideWitnesses().witnesses;
+  const witnessFile = readWideWitnesses();
+  const witnesses = witnessFile["normal"]!.witnesses;
   for (const level of LEVELS) {
-    for (const w of witnesses.slice(0, 6)) sweep(w.seed, level, w.runs.find((r) => r.level === level)!.events, `witness ${w.seed} ${level}`);
+    for (const w of witnessFile[level]!.witnesses.slice(0, 6)) sweep(w.seed, level, w.events, `witness ${w.seed} ${level}`);
     for (let k = 0; k < 4; k++) {
-      const seed = WAV_DEAL_V16[k * 7]!;
+      const seed = listOf(level)[k * 7]!;
       sweep(seed, level, randomLog(seed), `random ${seed} ${level}`);
       sweep(seed, level, [], `idle ${seed} ${level}`);
     }
@@ -288,7 +295,7 @@ const legacy = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/wavefront-wi
   // States from a witness's run, one settled frame on each formation wave.
   const w0 = witnesses[0]!;
   const game = wavefrontGameFor(WAV_REV_WIDE);
-  const events = w0.runs.find((r) => r.level === "normal")!.events;
+  const events = w0.events;
   const byTick = new Map(events.map((e) => [e.t, e]));
   const frames: WavState[] = [];
   let s = game.init(w0.seed) as WavState;
@@ -340,55 +347,62 @@ const legacy = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/wavefront-wi
 
 /* 4. The deal. */
 {
-  const { seeds, tried, bad } = checkWideWitnesses();
-  ok(seeds.length >= 60, `at least 60 seeds dealt (${seeds.length} of ${tried} candidates)`);
-  ok(bad.length === 0, `every witness scores 200 through the server replay at ${WAV_WIDE_LEVELS.join(", ")} (${bad.slice(0, 5).join("; ")})`);
-  ok(new Set(seeds).size === seeds.length, "no seed twice");
-  ok(readFileSync(WAV_WIDE_DEAL_FILE, "utf8") === wavWideDealSource(seeds, tried), "wavefrontDealV16.server.ts is exactly the witnessed seeds");
-  ok(WAV_DEAL_V16.join() === seeds.join(), "WAV_DEAL_V16 lists the witnessed seeds in order");
+  const { lists, bad } = checkWideWitnesses();
+  for (const level of WAV_WIDE_LEVELS) {
+    const { seeds, tried } = lists[level]!;
+    ok(seeds.length >= 60, `${level}: at least 60 seeds dealt (${seeds.length} of ${tried} candidates)`);
+    ok(new Set(seeds).size === seeds.length, `${level}: no seed twice`);
+    ok(listOf(level).join() === seeds.join(), `${level}: the deal lists the witnessed seeds in order`);
+  }
+  ok(bad.length === 0, `every witness scores 200 through the server replay at its level, ${WAV_WIDE_LEVELS.join(", ")} (${bad.slice(0, 5).join("; ")})`);
+  ok(readFileSync(WAV_WIDE_DEAL_FILE, "utf8") === wavWideDealSource(lists), "wavefrontDealV16.server.ts is exactly the witnessed seeds");
   // Each witness is the flawless player held to the human limits (its saucer reaction only ever later): re-played.
   const data = readWideWitnesses();
-  const sample = FULL ? data.witnesses : data.witnesses.filter((_, k) => k % 8 === 0);
   let same = 0;
   let runs = 0;
   const diff: string[] = [];
-  for (const w of sample) {
-    for (const r of w.runs) {
+  for (const level of WAV_WIDE_LEVELS) {
+    const sample = FULL ? data[level]!.witnesses : data[level]!.witnesses.filter((_, k) => k % 8 === 0);
+    for (const w of sample) {
       runs += 1;
-      const again = await humanWitnessLog(w.seed, r.level, r.jitter);
-      if (WAV_WIDE_JITTERS.includes(r.jitter) && JSON.stringify(again) === JSON.stringify(r.events)) same += 1;
-      else if (diff.length < 3) diff.push(`${w.seed} ${r.level} j${r.jitter}`);
+      const again = await humanWitnessLog(w.seed, level, w.jitter);
+      if (WAV_WIDE_JITTERS.includes(w.jitter) && JSON.stringify(again) === JSON.stringify(w.events)) same += 1;
+      else if (diff.length < 3) diff.push(`${w.seed} ${level} j${w.jitter}`);
     }
   }
-  ok(runs > 0 && same === runs, `${same} of ${runs} witnesses (${FULL ? "all" : "every eighth seed"}) are the human-limited flawless player's own logs (${diff.join("; ")})`);
-  const dealt = new Set(WAV_DEAL_V16);
+  ok(runs > 0 && same === runs, `${same} of ${runs} witnesses (${FULL ? "all" : "every eighth a level"}) are the human-limited flawless player's own logs (${diff.join("; ")})`);
   let outside = 0;
   let wrongRev = 0;
   for (const level of LEVELS) {
+    const dealt = new Set(listOf(level));
     for (let i = 0; i < 500; i++) {
       const p = withSeededRandom(0x5eed + i * 7919, () => generatePuzzle("wavefront", level === "normal" ? {} : { level })) as unknown as Record<string, number>;
       if (!dealt.has(p["seed"]!)) outside += 1;
       if (p["wavRev"] !== WAV_REV_WIDE) wrongRev += 1;
     }
   }
-  ok(outside === 0, `2,000 deals across the levels all on a witnessed seed (${outside} outside)`);
+  ok(outside === 0, `2,000 deals across the levels all on a seed witnessed at their level (${outside} outside)`);
   ok(wrongRev === 0, `every deal is wavRev 16 (${wrongRev} not)`);
-  const reach = new Set(Array.from({ length: WAV_DEAL_V16.length * 3 }, (_, k) => wavDealSeedV16(k * 104729 + 17)));
-  ok(reach.size === WAV_DEAL_V16.length, `every dealt seed reachable from a room seed (${reach.size} of ${WAV_DEAL_V16.length})`);
+  for (const level of LEVELS) {
+    const list = listOf(level);
+    const reach = new Set(Array.from({ length: list.length * 3 }, (_, k) => wavDealSeedV16(k * 104729 + 17, level)));
+    ok(reach.size === list.length, `${level}: every dealt seed reachable from a room seed (${reach.size} of ${list.length})`);
+  }
 }
 
 /* 5. The parts and a proof run through gradeAnswer on a dealt puzzle. */
 {
   const sum = WAVEFRONT_STD_WIDE.parts.reduce((a, p) => a + p.max, 0);
   ok(sum === 200 && WAVEFRONT_STD_WIDE.rev === WAV_REV_WIDE, `wavRev 16's parts sum to ${sum}`);
-  ok(JSON.stringify(WAVEFRONT_STD_WIDE.parts) === JSON.stringify(WAVEFRONT_STD_BIG.parts), "wavRev 16's parts are wavRev 15's");
-  const byseed = new Map(readWideWitnesses().witnesses.map((w) => [w.seed, w]));
+  // Since 23 Nov 2026 (D5, Normal's scoring folded into wavRev 16): wavRev 15's parts with the saucers' and the weak
+  // points' full lines at 4 and 5 (wavefront-ladder-check proves the lines).
+  ok(JSON.stringify(WAVEFRONT_STD_WIDE.parts.map((p) => (p.key === "saucers" || p.key === "weak" ? { ...p, of: undefined } : p))) === JSON.stringify(WAVEFRONT_STD_BIG.parts.map((p) => (p.key === "saucers" || p.key === "weak" ? { ...p, of: undefined } : p))), "wavRev 16's parts are wavRev 15's but for the saucers' and the weak points' lines");
+  const wfile = readWideWitnesses();
   for (const level of LEVELS) {
     const puzzle = withSeededRandom(0xc0ffee, () => generatePuzzle("wavefront", level === "normal" ? {} : { level }));
     const loose = puzzle as unknown as { seed: number };
-    const w = byseed.get(loose.seed)!;
-    const run = w.runs.find((r) => r.level === level)!;
-    const raw = proveWideWitness(loose.seed, level, run.events).raw;
+    const w = wfile[level]!.witnesses.find((x) => x.seed === loose.seed)!;
+    const raw = proveWideWitness(loose.seed, level, w.events).raw;
     const graded = gradeAnswer(puzzle, raw, 0);
     ok(graded.score === 200 && !(graded.extra as { flagged?: boolean } | undefined)?.flagged, `${level}: the dealt seed's witness scores 200 through gradeAnswer on the dealt puzzle (${graded.score})`);
   }

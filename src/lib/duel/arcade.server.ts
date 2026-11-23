@@ -398,7 +398,7 @@ export function generateWhack(): WhackPuzzleData {
   return { type: "whack", seed: arcadeSeed(), whackRev: dealtNotesRev(WHACK_REV_NOTES, WHACK_REV_DEPTH) };
 }
 
-export function generateWavefront(): WavefrontPuzzleData {
+export function generateWavefront(level?: Level): WavefrontPuzzleData {
   // wavRev 11 (Joe's phone notes, 27 Oct 2026): power-ups from carrier ships and saucers, no streak, the mothership after wave 5.
   // wavRev 12 (the arcade scoring standard, 29 Oct 2026): wavRev 11 play scored in fixed parts that total 200.
   // wavRev 13 (Nov 2026, the scoring audit): wavRev 12's play; the life that ends the run is free, lives capped at half the core.
@@ -407,9 +407,11 @@ export function generateWavefront(): WavefrontPuzzleData {
   // (wavefrontDeal.server.ts).
   // wavRev 16 (D5, 22 Nov 2026): the wider formation, dealt only on the seeds whose human-limited flawless witness
   // reaches 200 at every level (wavefrontDealV16.server.ts); wavPreWide: wavRev 15 from its own deal, as before.
+  // wavRev 16's levels and Normal scoring (D5, 23 Nov 2026, folded into the unshipped stamp): each level deals from its
+  // own proved list (the seeds whose human-limited flawless witness reaches 200 at that level); Normal from Normal's.
   if (dealPinned("preRetro")) return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_KEEP };
   if (dealPinned("wavPreWide")) return { type: "wavefront", seed: wavDealSeed(arcadeSeed()), wavRev: WAV_REV_BIG };
-  return { type: "wavefront", seed: wavDealSeedV16(arcadeSeed()), wavRev: WAV_REV_WIDE };
+  return { type: "wavefront", seed: wavDealSeedV16(arcadeSeed(), level), wavRev: WAV_REV_WIDE };
 }
 
 /** Checks written for wavRev 15: deal Wavefront as rooms did before the wider formation (wavRev 15 from WAV_DEAL). */

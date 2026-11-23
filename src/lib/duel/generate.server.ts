@@ -374,7 +374,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "tendrop") return generateTenDrop();
   if (type === "wordfall") return generateWordfall();
   if (type === "clayshoot") return generateClayShoot();
-  if (type === "wavefront") return generateWavefront();
+  if (type === "wavefront") return generateWavefront(context.level);
   if (type === "bastion") return generateBastion(context.level);
   if (type === "rooftop") return generateRooftop();
   if (type === "flip") return generateFlip(context.level);
