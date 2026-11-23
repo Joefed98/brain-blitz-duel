@@ -6,8 +6,9 @@ import type { Level } from "@/lib/levels/levels";
 import { gameLevelSettings } from "@/lib/levels/gameLevels";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_LINE, sliceFoodSeedOk } from "@/lib/arcade/slice";
-import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL, FLIP_REV_GRACE, isFlipLevel } from "@/lib/arcade/flip";
+import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL, FLIP_REV_GRACE, FLIP_REV_LADDER, isFlipLevel } from "@/lib/arcade/flip";
 import { flipLevelDealSeed } from "./flipLevelDeals.server";
+import { flipLadderDealSeed } from "./flipLadderDeals.server";
 import { flipDealSeed } from "./flipDeal.server";
 import { wavDealSeed } from "./wavefrontDeal.server";
 import { wavDealSeedV16 } from "./wavefrontDealV16.server";
@@ -458,15 +459,24 @@ export function generateFlip(level?: Level): FlipPuzzleData {
   // flipRev 13 (15 Nov 2026, the Action overhaul): grace, dealt from its own proved courses (flipDealV13.server.ts).
   // Checks written for flipRev 12 pin it (pinFlipPreGrace).
   if (dealPinned("flipPreGrace")) return { type: "flip", seed: flipDealSeed(arcadeSeed()), flipRev: FLIP_REV_DEAL };
-  // Levels (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): Easy, Hard and Expert deal flipRev 13 from their own
+  // Levels (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): Easy, Hard and Expert dealt flipRev 13 from their own
   // proved deals (flipLevelDeals.server.ts; the deal stamps `level`); Normal exactly as before.
-  if (isFlipLevel(level)) return { type: "flip", seed: flipLevelDealSeed(level, arcadeSeed()), flipRev: FLIP_REV_GRACE };
+  // D5 (23 Nov 2026, docs/arcade-standard/flip.md "Levels (D5, 23 Nov 2026)"): Easy, Hard and Expert deal flipRev 14, the
+  // running-speed ladder, from its own proved deals (flipLadderDeals.server.ts: courses whose witness held to the human
+  // limits scores exactly 200); Normal stays flipRev 13. Checks written for flipRev 13's levels pin flipPreLadder.
+  if (isFlipLevel(level) && dealPinned("flipPreLadder")) return { type: "flip", seed: flipLevelDealSeed(level, arcadeSeed()), flipRev: FLIP_REV_GRACE };
+  if (isFlipLevel(level)) return { type: "flip", seed: flipLadderDealSeed(level, arcadeSeed()), flipRev: FLIP_REV_LADDER };
   return { type: "flip", seed: flipDealSeedV13(arcadeSeed()), flipRev: FLIP_REV_GRACE };
 }
 
 /** Checks written for flipRev 12 (before the Action overhaul's grace, 15 Nov 2026) pin it; returns the previous setting. */
 export function pinFlipPreGrace(on: boolean): boolean {
   return setDealPin("flipPreGrace", on);
+}
+
+/** Checks written for flipRev 13's levels (before D5's running-speed ladder, 23 Nov 2026) pin it; returns the previous setting. */
+export function pinFlipPreLadder(on: boolean): boolean {
+  return setDealPin("flipPreLadder", on);
 }
 
 export function generateJunction(): JunctionPuzzleData {

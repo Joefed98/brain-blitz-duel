@@ -8,7 +8,7 @@ import {
   FLIP_REV,
   FLIP_REV_BAND,
   FLIP_REV_TUNEC,
-  FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_EXPAND, FLIP_REV_LIFT, FLIP_REV_STD, FLIP_REV_FLOW, FLIP_REV_DEAL, FLIP_REV_GRACE,
+  FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_EXPAND, FLIP_REV_LIFT, FLIP_REV_STD, FLIP_REV_FLOW, FLIP_REV_DEAL, FLIP_REV_GRACE, FLIP_REV_LADDER,
   flipStdFeatures,
   flipFlowFeatures,
   flipGraceFeatures,
@@ -60,6 +60,16 @@ function runAt(level: FlipLevel) {
   }
   return r;
 }
+/** flipRev 14 at a level (D5, 23 Nov 2026): the running-speed ladder's courses, crash cost and lines. */
+const ladderRuns = new Map<FlipLevel, ReturnType<typeof runFor>>();
+function runLadderAt(level: FlipLevel) {
+  let r = ladderRuns.get(level);
+  if (!r) {
+    r = makeArcadeRun<FlipState, FlipCheckpoint>({ tag: "flip", game: flipGameFor(FLIP_REV_LADDER, level), checkpoint: flipCheckpoint, keys: FLIP_CHECKPOINT_KEYS, interval: FLIP_CHECKPOINT_INTERVAL });
+    ladderRuns.set(level, r);
+  }
+  return r;
+}
 
 export interface FlipResult extends FlatReplay<FlipState, FlipCheckpoint> {
   survived: boolean;
@@ -95,7 +105,8 @@ export const decodeFlipRun = run.decode;
  */
 export function replayFlipRun(seed: number, raw: string, rev?: number | null, level?: string | null): FlipResult {
   // flipRev 12 is flipRev 11's game (only its deal differs).
-  const result = (rev === FLIP_REV_GRACE && isFlipLevel(level) ? runAt(level) : rev === FLIP_REV_GRACE ? runGrace : rev === FLIP_REV_FLOW || rev === FLIP_REV_DEAL ? runFlow : rev === FLIP_REV_STD ? runStd : rev === FLIP_REV_LIFT ? runLift : rev === FLIP_REV_EXPAND ? runExpand : rev === FLIP_REV_STRICT || rev === FLIP_REV_STRICT + 1 ? runStrict : rev === FLIP_REV_TARGET ? runTarget : rev === FLIP_REV_TUNEC ? runTunec : rev === FLIP_REV_BAND ? runBand : rev === FLIP_REV ? runV2 : run).replay(seed, raw);
+  // flipRev 14 (D5) at a level: the ladder; without a level it is flipRev 13's Normal (never dealt so).
+  const result = (rev === FLIP_REV_LADDER && isFlipLevel(level) ? runLadderAt(level) : rev === FLIP_REV_LADDER ? runGrace : rev === FLIP_REV_GRACE && isFlipLevel(level) ? runAt(level) : rev === FLIP_REV_GRACE ? runGrace : rev === FLIP_REV_FLOW || rev === FLIP_REV_DEAL ? runFlow : rev === FLIP_REV_STD ? runStd : rev === FLIP_REV_LIFT ? runLift : rev === FLIP_REV_EXPAND ? runExpand : rev === FLIP_REV_STRICT || rev === FLIP_REV_STRICT + 1 ? runStrict : rev === FLIP_REV_TARGET ? runTarget : rev === FLIP_REV_TUNEC ? runTunec : rev === FLIP_REV_BAND ? runBand : rev === FLIP_REV ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return { ...result, survived: s.ended !== 2, survivedSeconds: s.tick / 60, stars: flipStarsTaken(s), starsTotal: s.stars?.length ?? 0,
     trailStars: flipTrailStars(s).stars, trailTotal: (s.trailGot?.length ?? 0) * 5, combos: s.combos ?? 0, saves: s.saves ?? 0,

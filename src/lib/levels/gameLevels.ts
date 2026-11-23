@@ -501,12 +501,14 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   beat: retroGameLevels(BEAT_LEVELS),
   burst: retroGameLevels(BURST_LEVELS),
   rally: retroGameLevels(RALLY_LEVELS),
-  // Roofbound (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): the sim's FLIP_LEVEL_RULES, mirrored (flip-levels-check).
+  // Roofbound (D5, 23 Nov 2026, docs/arcade-standard/flip.md "Levels (D5, 23 Nov 2026)"): flipRev 14's running-speed
+  // ladder, the sim's FLIP_V14_LEVEL_RULES, mirrored (flip-ladder-check); speeds in 1/256 px a tick, moversFrom in ticks
+  // (null = none), crashCost and coreFull in half seconds, then each part's full line.
   flip: {
     levels: {
-      easy: { settings: { speedStart: 1024, speedStep: 90, stepTicks: 240, speedCap: 2048, moversFrom: null, sweetTicks: 6, sweetSpots: 8, crashCost: 10, sweetsFull: 5 } },
-      hard: { settings: { speedStart: 1280, speedStep: 90, stepTicks: 180, speedCap: 3072, moversFrom: 480, sweetTicks: 1, sweetSpots: 8, crashCost: 40, sweetsFull: 7 } },
-      expert: { settings: { speedStart: 1408, speedStep: 90, stepTicks: 150, speedCap: 3328, moversFrom: 300, sweetTicks: 1, sweetSpots: 10, crashCost: 50, sweetsFull: 9 } },
+      easy: { settings: { speedStart: 768, speedStep: 90, stepTicks: 240, speedCap: 1792, moversFrom: null, sweetTicks: 10, sweetSpots: 8, crashCost: 10, sweetsFull: 3, coreFull: 110, doublesFull: 8, streakFull: 50 } },
+      hard: { settings: { speedStart: 1408, speedStep: 90, stepTicks: 180, speedCap: 3072, moversFrom: 240, sweetTicks: 1, sweetSpots: 8, crashCost: 40, sweetsFull: 5, coreFull: 110, doublesFull: 8, streakFull: 50 } },
+      expert: { settings: { speedStart: 1600, speedStep: 90, stepTicks: 150, speedCap: 3328, moversFrom: 120, sweetTicks: 1, sweetSpots: 10, crashCost: 50, sweetsFull: 5, coreFull: 110, doublesFull: 8, streakFull: 50 } },
     },
   },
   // High Rise (D5, 23 Nov 2026, docs/arcade-standard/skyline.md "Levels (D5, 23 Nov 2026)"): skylineRev 12's block-width
