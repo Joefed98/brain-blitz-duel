@@ -97,7 +97,7 @@ export const PRACTICE_STAMPS = {
   "tripeaks": "puzzleScoreRev=3 speedPar=1 tripeaksRev=3",
   "tubes": "depthRev=3 puzzleScoreRev=3 speedPar=1 tubesRev=3",
   "unblock": "puzzleScoreRev=3 speedPar=1 unblockRev=4",
-  "wavefront": "puzzleScoreRev=3 speedPar=1 wavRev=15",
+  "wavefront": "puzzleScoreRev=3 speedPar=1 wavRev=16",
   "whack": "puzzleScoreRev=3 speedPar=1 whackRev=4",
   "wordfall": "puzzleScoreRev=3 speedPar=1 wordfallRev=3",
   "wordhunt": "puzzleScoreRev=3 speedPar=1 wordHuntRev=4",

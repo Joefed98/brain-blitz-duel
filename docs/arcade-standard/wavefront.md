@@ -1,5 +1,90 @@
 # Wavefront on the arcade scoring standard (wavRev 12, 29 Oct 2026)
 
+## wavRev 16 (D5, 22 Nov 2026): the wider formation
+
+Joe's approval of 20 Nov 2026 (earlier plan C1.6, `docs/polish-plan-final/earlier-plan.md`; plan section 8.2). wavRev 15's
+world, waves, bosses, charged shot, larger hit cells, levels (`WAVEFRONT_LEVELS`, unchanged), parts and scoring exactly,
+with the formation spread wider so it fills more of the 390 px sky (`WAV_REV_WIDE`, `src/lib/arcade/wavefront.ts`):
+
+- **Wave 1's grid** sits on a 52 px column pitch (`WAV_V16_PITCH_X`, was 44): 288 px wide instead of 248, centred
+  (`WAV_V16_START_X` 51). Rows (36 px) unchanged.
+- **Waves 2–5's shapes** (`WAV_FORMS_W`, with their six escorts `WAV_FORMS_XW`): every outline ship spread about the
+  shape's centre until the shape is 326 px wide (`WAV_V16_FORM_W`; was 306, 288, 290 and 306), rows unchanged; the armour
+  core keeps its 44 px spacing (so the warship is drawn over its cells exactly as before) and its centre moves by the same
+  spread. No two cells overlap that did not already.
+- **Everything that places a ship follows**, because it all reads the state's geometry (`wavShapeBox`, `wavForm`,
+  `wavPitchX`): the hit boxes, the divers' starts and returns, the march's wall limits, enemy fire's columns and each
+  wave's centring. The gunship and the mothership are centred on the world and move as before. States add `wide: 1`,
+  folded into the checkpoint checksum last; every older revision plays, replays and scores exactly as before.
+- **The art** follows with no renderer change: each hull is drawn on its own `wavShapeBox`, 4 px past the cell (inside
+  the 3 px larger hit box plus the bounds rule's 2 px), and the renderer's own copy of the 44 px pitch is used only for
+  the armour warship, whose spacing stays 44 (the renderer only gained wavRev 16's art game, `wavefrontArtGameFor`).
+
+**Why 326 px, not the pitch's 52 / 44.** The plan's first recipe spread the shapes by the grid's own 52 / 44 (336–356 px).
+That leaves the march 18 px of room on waves 2 and 5, so the formation drops a row at every second step and comes down
+three to four times as fast. Measured with `bun scripts/wavefront-wide-variants.ts` (the skill-band bots held to
+HUMAN_LIMITS, the deal builder's first candidate seeds; "reached" = runs the formation ended by reaching the ship's line):
+
+| Players held to the limits | wavRev 15 | wider grid only | wavRev 16 (326 px) | 52 / 44 spread (336–356 px) |
+|---|---|---|---|---|
+| Average, Normal (60 seeds): mean, reached | 166.8, 0 | 167.2, 0 | 163.5, 0 | 151.1, 10 of 60 |
+| Average, Hard (60 seeds): mean, reached | 157.3, 0 | 159.8, 0 | 149.5, 0 | 133.4, 17 of 60 |
+| Normal, flawless (12 seeds × 8 jitters): mean, reached, at 200 | 194.3, 0, 21 | 194.7, 0, 31 | 193.6, 0, 14 | 173.8, 38, 4 |
+
+326 px keeps 48 px of march, six 8 px steps a pass.
+
+**The deal** (`src/lib/duel/wavefrontDealV16.server.ts`, built by `bun scripts/wavefront-wide-deal.ts [--check]`;
+witnesses `scripts/fixtures/wavefront-wide-deal-witness.json.gz`; wavRev 15's `WAV_DEAL` untouched): a seed is dealt only
+when, at Easy, Expert, Normal and Hard, a witness scores exactly 200 through the server replay, unflagged, and every
+witness is the skill-band flawless player **held to the human limits** (`new Human("wavefront", seed, "perfect",
+HUMAN_LIMITS)`, 0.25 s to react, 0.15 s to move, the Oct 2026 fixes on), its saucer reaction delayed by one of today's
+jitter ticks (0–50) until one does. 100 of the first 397 candidates (the skill-band room seeds n = 0–59, then from
+10000) were kept; the 297 left out first failed at Easy 181, Expert 71, Normal 24 and Hard 21 (Easy's boss, at 80 % of
+its hit points, falls before the last cannon or saucer is taken more often). The wider formation halves the yield: on
+the same first 100 candidates and the same human-limited search, wavRev 15 keeps 47 and wavRev 16 22 (a saucer is
+harder to reach past ships spread across more of the sky). The wavRev 15 deal (100 of 212) was built without the limits.
+
+**Pins.** `wavPreWide` (`DEAL_PINS`, `pinWavPreWide`) deals wavRev 15 from `WAV_DEAL` exactly as before; `preRetro` still
+deals wavRev 13.
+
+**Measured** (`bun scripts/d5-ladder.ts wavefront --deals=24`, real deals graded by the server, both players held to
+HUMAN_LIMITS; at200 = the share of runs at 200):
+
+| Level | Player | Before (wavRev 15, `WAV_DEAL`) | After (wavRev 16, `WAV_DEAL_V16`) |
+|---|---|---|---|
+| Easy | Average | avg 172.0, median 175, best 189, at200 0 %, boss killed 83 % | avg 169.5, median 168, best 185, at200 0 %, boss killed 67 % |
+| Easy | Elite | avg 193.4, median 194, best 200, at200 13 % | avg 193.1, median 192, best 200, at200 8 % |
+| Normal | Average | avg 169.3, median 173, best 185, at200 0 %, boss killed 75 % | avg 159.0, median 156, best 187, at200 0 %, boss killed 38 % |
+| Normal | Elite | avg 195.3, median 196, best 200, at200 21 % | avg 193.4, median 194, best 198, at200 0 % |
+| Hard | Average | avg 164.3, median 170, best 183, at200 0 %, boss killed 58 % | avg 151.0, median 143, best 185, at200 0 %, boss killed 29 % |
+| Hard | Elite | avg 193.5, median 194, best 200, at200 8 % | avg 189.7, median 191, best 200, at200 4 % |
+| Expert | Average | avg 149.0, median 140, best 183, at200 0 %, boss killed 29 % | avg 125.7, median 118, best 182, at200 0 %, boss killed 8 % |
+| Expert | Elite | avg 192.7, median 194, best 200, at200 17 % | avg 182.5, median 190, best 200, at200 4 % |
+
+The two columns are different seeds (each stamp's own deal). On the same 24 wavRev 16 deals, played as wavRev 15, as
+wavRev 16 with only the wider grid, and as wavRev 16 (averages; scratch measurement with the ladder's players):
+
+| Level | Player | wavRev 15 | wider grid only | wavRev 16 |
+|---|---|---|---|---|
+| Normal | Average | 164.9 | 167.1 | 159.0 |
+| Normal | Elite | 194.9 | 193.2 | 193.4 |
+| Hard | Average | 156.3 | 156.5 | 151.0 |
+| Hard | Elite | 193.0 | 193.3 | 189.7 |
+| Expert | Average | 134.5 | 128.3 | 125.7 |
+| Expert | Elite | 189.2 | 191.4 | 182.5 |
+
+So the wider grid alone costs little (Average −6 to +2, Elite −2 to +2); with the wider shapes the Average player loses 5
+to 9 points and the Elite 1.5 to 7 against wavRev 15 (slower clears: bolts pass between ships spread further apart, so
+fewer bosses fall in the 90 s). The levels' tables are unchanged; tune them on this Normal.
+
+**Proofs.** `scripts/wavefront-wide-check.ts`: wavRev 15 (every level), 14 and 13 runs recorded before the change
+(`scripts/fixtures/wavefront-wide-legacy.json.gz`, `bun scripts/wavefront-wide-legacy-record.ts`) replay to their recorded
+score and final state; the stamp and pins; the geometry (the grid, each shape's rule and width, no new overlap, the
+escorts, the march's room, no ship drawn or hit outside the world on any tick of runs at every level, each ship's drawing
+on its hit box); the deal file rebuilt from its witnesses, every witness at 200 at every level and re-played as the
+human-limited player's own log; 2,000 deals on proved seeds; the parts' 200 and a witness through `gradeAnswer` on a
+dealt puzzle. **The intro demo needs re-recording on wavRev 16** (only a wavRev 16 demo plays now).
+
 ## wavRev 15 (the Retro overhaul, stage 3, 16 Nov 2026): larger hit cells
 
 wavRev 14's world, waves, bosses, charged shot, parts and scoring exactly, with each ship's hit box reaching
@@ -10,7 +95,7 @@ its bolts now meet ships first more often, so a saucer can pass unhit. So rooms 
 (`WAV_DEAL`, `wavefrontDeal.server.ts`, `bun scripts/wavefront-big-deal.ts [--check]`): each has a stored witness scoring
 exactly 200 through the server replay at Normal, Easy, Hard and Expert (wavefront-deal-check). Levels: lives, enemy bolts'
 speed, the final boss's hit points and the kill time (Expert 16 s, as Hard). States add `big: 1` (checksum, last). Rooms
-deal it (preRetro: wavRev 13 on the room seed). The wider formation is a follow-up after the trains.
+deal it (preRetro: wavRev 13 on the room seed). The wider formation followed in wavRev 16 (above).
 
 Rooms and practice deal **wavRev 12**. Play is wavRev 11's exactly (Joe's phone notes: carriers, saucer lasers, no
 streak, the mothership only after wave 5): a wavRev 11 log steps tick for tick on wavRev 12 with every checkpoint the
