@@ -131,6 +131,12 @@ export const DEAL_PINS = {
   skylinePreCount: { texts: false },
   /** arcade.server.ts: Orbit orbitRev 16 at every level, before the lost flight (D5 item H4, 22 Nov 2026). */
   orbitPreLost: { texts: false },
+  /** arcade.server.ts: Iron Wall bastionRev 4 (Easy, Normal, Hard) and 3 (Expert), before the ladder (D5, 23 Nov 2026). */
+  bastionPreLadder: { texts: false },
+  /** arcade.server.ts: Tempo beatRev 12 (any seed, every level), before beatRev 13's lanes and lower full lines (D5's ladder, 23 Nov 2026). */
+  beatPreLanes: { texts: false },
+  /** arcade.server.ts: Blockzone's levels on blockfallRev 2 from Normal's deal, before blockfallRev 3's level deals (D5's ladder, 23 Nov 2026). */
+  blockfallPreLevels: { texts: false },
   /** arcade.server.ts: Roofbound flipRev 13 at Easy, Hard and Expert, before the running-speed ladder (D5, 23 Nov 2026). */
   flipPreLadder: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;

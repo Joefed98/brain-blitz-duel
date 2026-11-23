@@ -166,3 +166,60 @@ top-out, the buzzer), replay determinism and tampering, the deal's proof, the ba
 arcade-standard-check's entry (`scripts/arcade-standard/blockfall.ts`), arcade-self-replay-check's entry, the replay
 fixture (`scripts/fixtures/replay-runs.json`, one run appended). The intro demo is on the later list (the intro shows
 its still).
+
+## Levels (D5, 23 Nov 2026)
+
+The polish plan's D5 (`docs/polish-plan-final/difficulty-spec.md` "Blockzone"). The lever is **how fast the pieces
+fall**. Normal is unchanged: blockfallRev 2, its own proved deal, no refit (Joe, 23 Nov 2026). Easy, Hard and Expert
+deal a new stamp, **blockfallRev 3** (`BLOCKFALL_REV_LEVELS`): Blockzone's play exactly, on the levels' own table
+(`BLOCKFALL_LEVELS_V3` in `src/lib/arcade/retroLevels.ts`); blockfallRev 2's level rounds replay on theirs
+(`BLOCKFALL_LEVELS`, `blockfallGameFor(rev, level)` picks the table by stamp). Checks written for blockfallRev 2's
+levels pin `blockfallPreLevels` (`pinBlockfallPreLevels`).
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Stamp | blockfallRev 3 | blockfallRev 2 | blockfallRev 3 | blockfallRev 3 |
+| Fall (ticks a row, the six 15 s steps) | 72, 63, 54, 47, 41, 36 (150 %) | 48, 42, 36, 31, 27, 24 | 12, 11, 9, 8, 7, 6 (25 %) | 7, 6, 5, 5, 4, 4 (15 %) |
+| The first piece falls the well in | 24 s | 16 s | 4 s | 2.3 s |
+| Lock delay (ticks) | 45 | 30 | 15 | 12 |
+| Previews | 5 | 3 | 2 | 1 |
+| Lines full at | 15 | 51 | 51 | 51 |
+| Low stack full in / nothing from (rows) | 10 / 16 | 4 / 10 | 4 / 10 | 5 / 11 |
+| Average player (mean) | 153.9 | 87.0 | 54.4 | 27.4 |
+| Realistic elite (mean) | 196.8 | 182.8 | 172.7 | 154.7 |
+| Elite runs at 200 | 80 % | 33 % | 26 % | 22 % |
+| 200 proved on | 300 seeds | Normal's deal (300) | 300 seeds | 300 seeds |
+
+Measured on the recorded ladder (`scripts/fixtures/d5-ladder-blockfall.json.gz`, `bun scripts/d5-ladder-record.ts
+blockfall --deals=288`: 288 deals a level, the average and elite skill-band players under the human limits, graded by
+the server). Joe's ladder test holds: the average steps down 66.9, 32.6 and 27.0 points; every level's average is above
+15; the elite reaches 200 less often each level up (80, 33, 26, 22 %), on Expert on more than a fifth of runs. The
+margins between Normal, Hard and Expert are narrow: the realistic elite hard-drops every piece at its own pace, so a
+faster fall costs it only top-outs (10 %, 24 % and 50 % of its runs on Normal, Hard and Expert), and its 200 is mostly
+decided by the low stack at the buzzer at every level. Easy's low stack (full in the bottom 10 rows, the realistic
+elite's three-in-four there) and Expert's (the bottom 5) are the levels' own lines; Hard keeps Normal's.
+
+Before (blockfallRev 2's levels, 96 deals a level, the same players): average 94.6 / 87.2 / 84.4 / 79.3, elite 187.0 /
+181.8 / 174.3 / 165.9 and at 200 on 36 / 35 / 2 / 0 % of runs.
+
+**The proof.** Each level deals from its own list (`src/lib/duel/blockfallLevelDeals.server.ts`, 300 seeds a level,
+built by `bun scripts/blockfall-level-deal.ts [--check]`, ~25 min): a seed is kept only if the oracle held to Joe's
+human limits (`scripts/blockfall-limited-oracle.ts`) scores exactly 200 through the server replay with its log within
+the limits. The oracle plays as the frame-exact one does (a well for fours until the multi-line part is full, flat play,
+the last stretch low, one piece looked ahead) but every gesture is a human's: the first 0.25 s after a piece appears,
+then one every 0.15 s, across pieces too; because the piece falls while the gestures land, each landing is planned in
+time through the level's own sim. Candidates are Normal's deal's own hash of 0, 1, 2, …; 0 were dropped on Easy, 76 on
+Hard and 28 on Expert. The same oracle takes 57 of the first 60 of Normal's own deal (proved by the frame-exact oracle)
+to 200 (the other three miss the low stack by one or two rows); Normal's deal is unchanged.
+
+**The bot.** The elite already keeps the limits (it thinks about 0.35 s before a piece's first gesture and takes about
+0.15 s a gesture), so it was not changed; it never reads the previews, so Easy's five and Expert's one are felt only
+through the fall.
+
+**Display.** The stage plays the stored stamp (`blockfallArtGame(view, rev, level)`); the SPEED label sits under the
+last preview when a level shows more than three; the reveal replays at the run's level.
+
+Checks: `scripts/blockfall-ladder-check.ts` (the legacy fixture `scripts/fixtures/blockfall-ladder-legacy.json.gz`,
+recorded by `scripts/blockfall-ladder-legacy-record.ts` before the change; the deal and pin; the levels as dealt; the
+proof on a sample of every level's seeds, all with `CHECKS_FULL=1` and the deal file rebuilt; the ladder; random play
+agreeing with the server; the lever picture).

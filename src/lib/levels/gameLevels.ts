@@ -37,7 +37,7 @@ import { BOMB_LEVELS, MAZE_LEVELS, PAIR_LEVELS, SCAN_LEVELS, SPOT_LEVELS, TALLY_
 /** The check proving every Attention level (one answer, legibility, clocks, the human-like Expert solver). */
 const ATTENTION_PROOF = "scripts/attention-levels-check.ts";
 import { ASCEND_LEVELS, BONK_LEVELS, CHAIN_LEVELS, FLASH_LEVELS, PULL_LEVELS, TENFALL_LEVELS } from "./speedLevels";
-import { BEAT_LEVELS, BLOCKFALL_LEVELS, BREAKER_LEVELS, BURST_LEVELS, CROSS_LEVELS, HOVER_LEVELS, PINBALL_LEVELS, RALLY_LEVELS, SNAKE_LEVELS, WAVEFRONT_LEVELS } from "@/lib/arcade/retroLevels";
+import { BEAT_LEVELS_V13, BLOCKFALL_LEVELS_V3, BREAKER_LEVELS, BURST_LEVELS, CROSS_LEVELS, HOVER_LEVELS, PINBALL_LEVELS, RALLY_LEVELS, SNAKE_LEVELS, WAVEFRONT_LEVELS } from "@/lib/arcade/retroLevels";
 
 /** How a level's boards are proven to have exactly one solution. */
 export type OneSolutionProof = { proof: string } | { open: string };
@@ -497,8 +497,10 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   wavefront: retroGameLevels(WAVEFRONT_LEVELS),
   cross: retroGameLevels(CROSS_LEVELS),
   snake: retroGameLevels(SNAKE_LEVELS),
-  blockfall: retroGameLevels(BLOCKFALL_LEVELS),
-  beat: retroGameLevels(BEAT_LEVELS),
+  // blockfallRev 3 (D5's ladder, 23 Nov 2026): the levels' own table (blockfallRev 2 rounds replay on BLOCKFALL_LEVELS).
+  blockfall: retroGameLevels(BLOCKFALL_LEVELS_V3),
+  // beatRev 13 (D5's ladder, 23 Nov 2026): the lanes and each level's own full lines (beatRev 12 rounds replay on BEAT_LEVELS).
+  beat: retroGameLevels(BEAT_LEVELS_V13),
   burst: retroGameLevels(BURST_LEVELS),
   rally: retroGameLevels(RALLY_LEVELS),
   // Roofbound (D5, 23 Nov 2026, docs/arcade-standard/flip.md "Levels (D5, 23 Nov 2026)"): flipRev 14's running-speed
@@ -521,9 +523,17 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       expert: { settings: { startW: 12800, speedStart: 768, speedStep: 26, speedMax: 1536, tol: 768, windFrom: 0, trimRun: 5, lives: 3, lines: { floors: 38, perfects: 24, streak: 5, gold: 2 } } },
     },
   },
-  // Iron Wall (15 Nov 2026, docs/arcade-standard/bastion.md "bastionRev 4: levels"; Joe's approved exception: today's game
-  // became Expert, and Normal, Easy and Hard are bastionRev 4's gentler game, its numbers per level BT4_LEVELS in the sim).
-  bastion: { levels: { easy: { settings: { bastionRev: 4 } }, hard: { settings: { bastionRev: 4 } }, expert: { settings: { bastionRev: 3 } } } },
+  // Iron Wall (D5's ladder, 23 Nov 2026, docs/arcade-standard/bastion.md "Levels (D5, 23 Nov 2026)"): every level deals
+  // bastionRev 5, the lever the tanks in each wave (a fourth lane from Hard). The sim reads the stored level (BT5_LEVELS
+  // in bastionTank.ts, frozen under the stamp); these are the same numbers, for display (bastion-ladder-check mirrors them).
+  // Before the ladder (15 Nov 2026) Easy and Hard dealt bastionRev 4 and Expert bastionRev 3.
+  bastion: {
+    levels: {
+      easy: { settings: { bastionRev: 5, lanes: 3, tanksAWave: 4, tanks: 20, heavies: 1, pace: [32, 36, 41, 56, 74], zoneMs: 320, weakPct: 260, base: 5 } },
+      hard: { settings: { bastionRev: 5, lanes: 4, tanksAWave: 8, tanks: 40, heavies: 10, pace: [40, 46, 51, 66, 84], zoneMs: 120, weakPct: 120, base: 3 } },
+      expert: { settings: { bastionRev: 5, lanes: 4, tanksAWave: 9, tanks: 45, heavies: 12, pace: [56, 56, 56, 70, 88], zoneMs: 90, weakPct: 100, base: 3 } },
+    },
+  },
   // Grappler (the Action overhaul, 15 Nov 2026; docs/arcade-standard/swing.md "Levels"): each level deals a course from
   // its own proved deal (swingLevelDeal.server.ts) and the sim reads the stored level (swing.ts SWING_LEVELS, the values
   // its courses are built, proved and played with); these are the same, for display. vineSwing (16 Nov 2026, Joe: levers

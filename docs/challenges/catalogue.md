@@ -457,7 +457,7 @@ challenges never count. How the checks read a run:
 | Drone strike | Down all three drones. | Classic | Full set | line “Drones” = 30 of 30 |  | `bastion.drones` |
 | Hold the wall | Keep the base untouched. | Classic | Clean | line “Base intact” = 10 of 10 |  | `bastion.base` |
 | Quick hands | Make ten fast reloads. | Classic | Max-out | line “Fast reloads” = 20 of 20 |  | `bastion.quick-hands` |
-| Weak at the knees | Land 30 hits on glowing weak spots. | Classic | Max-out | line “Weak spots” = 30 of 30 | ● | `bastion.weak-at-the-knees` |
+| Weak at the knees | Land 30 hits on glowing weak spots. | Classic | Max-out | `weak` ≥ 30 | ● | `bastion.weak-at-the-knees` |
 
 #### Roofbound (`flip`)
 
@@ -490,7 +490,7 @@ challenges never count. How the checks read a run:
 | Gold top | Land all five gold blocks perfectly. | Classic | Full set | `golds` ≥ 5 |  | `skyline.gold` |
 | Thirty perfect | Make 30 perfect drops. | Classic | Target | `perfects` ≥ 30 |  | `skyline.perfects` |
 | Steady crane | Make ten perfect drops in a row. | Classic | Streak | `bestStreak` ≥ 10 |  | `skyline.steady-crane` |
-| Skyscraper | Build 61 floors on Expert. | Expert | Max-out | line “Floors” = 140 of 140 | ● | `skyline.skyscraper` |
+| Skyscraper | Build 61 floors on Expert. | Expert | Max-out | `blocks` ≥ 61 | ● | `skyline.skyscraper` |
 
 #### Slice (`slice`)
 
@@ -513,7 +513,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Fever pitch | Start all four fevers. | Classic | Full set | line “Fever” = 25 of 25 |  | `beat.fever-pitch` |
-| Golden ear | Hit every golden note dead on. | Classic | Max-out | line “Golden notes” = 15 of 15 |  | `beat.gold` |
+| Golden ear | Hit every golden note dead on. | Classic | Max-out | from `beatRev` 13: `goldsHit` ≥ `golds`; before: line “Golden notes” = 15 of 15 |  | `beat.gold` |
 | Encore | Score 180 or more. | Classic | Big score | `score` ≥ 180 | ● | `beat.score180` |
 
 #### Blockzone (`blockfall`)
