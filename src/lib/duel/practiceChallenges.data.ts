@@ -515,10 +515,10 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("matchup", "Ice breaker", "Break all ten frozen cells.", "C", "maxout", false, all(full("Ice", 10))),
   ch("matchup", "Goal getter", "Meet all six colour goals.", "C", "fullset", false, all(full("Colour goals", 36))),
   ch("matchup", "Treasure hunter", "Bring all six treasures down on Expert.", "E", "fullset", false, all(full("Treasure", 36))),
-  // Tilt (tilt): mazes 140 + par times 24 + clean run 12 + speed 24 (60 s).
-  ch("tilt", "No falls", "Finish all four mazes without a marble falling.", "C", "clean", false, all(full("Clean run", 12))),
-  ch("tilt", "Par four", "Beat par time in all four mazes.", "C", "par", false, all(full("Par", 24))),
-  ch("tilt", "Marble madness", "Finish all four Hard mazes within 60 s.", "H", "speed", true, all(full("Speed", 24))),
+  // Tilt (tilt): mazes 140 + par times 24 + clean run 12 + speed 24 (tiltRev 13: three mazes, 55 s).
+  ch("tilt", "No falls", "Finish all three mazes without a marble falling.", "C", "clean", false, all(full("Clean run", 12))),
+  ch("tilt", "Par four", "Beat par time in all three mazes.", "C", "par", false, all(full("Par", 24))),
+  ch("tilt", "Marble madness", "Finish all four Hard mazes within 58 s.", "H", "speed", true, all(full("Speed", 24))),
 ];
 /* eslint-enable max-len */
 

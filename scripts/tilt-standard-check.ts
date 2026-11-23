@@ -61,6 +61,10 @@ import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { tiltStateDigest } from "./tilt-expand-record";
 import { botLog, randomLog, scheduleOf } from "./room-identity/tilt";
 import { entry } from "./arcade-standard/tilt";
+import { pinPreTiltThree } from "../src/lib/duel/d6Normal";
+
+// Changed with Joe's approval, 23 Nov 2026 (D6): Tilt's Normal moved to tiltRev 13 (three mazes); this check was written for tiltRev 12, so it deals it (d6-normal-stamps-check proves tiltRev 13).
+pinPreTiltThree(true);
 
 /**
  * tiltRev 10's arcade-standard entry, as scripts/arcade-standard/tilt.ts held it until 3 Nov 2026 (it names the dealt

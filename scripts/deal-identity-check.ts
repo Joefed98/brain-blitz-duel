@@ -153,7 +153,8 @@ tasks.push({
     // Sports overhaul's racingPreCircuits, 40.
     // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): the puzzle train's 37 and the arcade
     // train's 14 more (40 less main's 26) make 51.
-    ok(names.size === 51, `51 era switches (${names.size})`);
+    // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps): fivehandsPre128, poolPreFifth and tiltPreThree, 54.
+    ok(names.size === 54, `54 era switches (${names.size})`);
   },
 });
 

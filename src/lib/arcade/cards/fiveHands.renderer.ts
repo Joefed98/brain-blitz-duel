@@ -20,6 +20,8 @@ import { CardLayer, CardMotion, drawRealFelt } from "./realArt.renderer";
 import { drawOutline, drawStamp, easeOut, FxTimeline } from "./cardsFx.renderer";
 import {
   fhScoreV3,
+  fhScoreV4,
+  FH_REV_128,
   FH_LV_EASY, fhColumn, fhHintRow, fhHintsLeft, fhLevelRulesOf, fhLevelScore, fiveHandsGameAt, fhCoreFullFor, FH_ROWS, FH_SEEN, FH_SLOTS, FH_TURNS, fhPickedHand, fhPicking, fhTotalV3, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhTotals, fhYours, fiveHandsGameFor, type FhState,
 } from "./fiveHands";
 
@@ -100,9 +102,13 @@ export function fhNewView(): FhView {
   return { pressed: -1, drag: null, pressedCol: -1, motion: new CardMotion(), fx: new FxTimeline() };
 }
 
-/** The POINTS chip's figure: rev 3's score (hand points × 1.4, capped at 200), earlier revisions' hand points. */
+/**
+ * The POINTS chip's figure: rev 3's score (hand points × 1.4, capped at 200), rev 4's (200 at 128 hand points; D6, 22 Nov
+ * 2026, display only: the sim's own line), earlier revisions' hand points.
+ */
 export function fhPointsShown(state: FhState): number {
   if (state.lv) return fhLevelScore(state, fhTotalV3(state));
+  if (state.rev === FH_REV_128) return fhScoreV4(fhTotalV3(state));
   return (state.rev ?? 1) >= 3 ? fhScoreV3(fhTotalV3(state)) : fhTotals(state.rows, state.rev).total;
 }
 
@@ -370,7 +376,8 @@ function noticeFiveHands(state: FhState, view?: FhView): void {
     const col = fhPickedHand(state);
     fx.start("column", 700, pick);
     fx.start("columnPoints", 650, { column: pick, points: col.points }, 450);
-    if ((state.rev ?? 1) >= 3) fx.start("sum", 1600, `+${col.points} × 1.4`, 600);
+    // D6 (22 Nov 2026, display only): rev 4 scores the column's points on the 128 line, not × 1.4.
+    if ((state.rev ?? 1) >= 3) fx.start("sum", 1600, state.rev === FH_REV_128 ? `+${col.points}` : `+${col.points} × 1.4`, 600);
   }
   // The chip counts from the old score to the new (slower after the pick, while its points fly over).
   if (points !== seen.points) fx.start("count", pick >= 0 && seen.pick < 0 ? 1500 : 450, [seen.points, points]);

@@ -1,5 +1,6 @@
 /**
- * arcade-standard-check's entry for `fivehands` (Five Hands fiveHandsRev 3, Cards & Board;
+ * arcade-standard-check's entry for `fivehands` (Five Hands fiveHandsRev 4 since D6, 22 Nov 2026: rev 3's game, 200 at
+ * 128 hand points; Cards & Board;
  * docs/arcade-standard/fivehands.md): born on the standard at rev 1 (hand points 160 + made hands 40); rev 2 (1 Nov
  * 2026) one part, hand points on the steep table to 200, full at FH_CORE_FULL_V2; rev 3 (3 Nov 2026) one part, the
  * flat table's hand points (pair 15 … straight flush 50) of the five rows plus a bonus column picked once they are
@@ -10,6 +11,8 @@
  * even placed perfectly. Its perfect runs are each deck's exact best arrangement (scripts/cards/fiveHandsBest.ts)
  * through the server's replay, each scoring exactly min(200, floor(its hand points × 1.4)); the core's straight line is 1.4 points a
  * hand point to the cap (full at 143).
+ *
+ * Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps): the entry moved to the new stamp; the older stamp's lines kept.
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { ARCADE_STANDARD } from "../../src/lib/arcade/standard";
@@ -24,7 +27,10 @@ import type { StdEntry } from "./entry";
 const spec = ARCADE_STANDARD.fivehands!.spec!;
 /** Rev 3's points for a hand-point total, written out here (not the sim's helper): floor(total × 7 ÷ 5), capped at 200. */
 const x14 = (total: number) => Math.min(200, Math.floor((total * 7) / 5));
+/** Rev 4's, written out here: floor(total × 200 ÷ 128), capped at 200. */
+const at128 = (total: number) => Math.min(200, Math.floor((total * 200) / 128));
 const game = fiveHandsGameFor(3);
+const game4 = fiveHandsGameFor(4);
 const rec = (s: FhState) => Object.fromEntries((fiveHandsStdParts(s) ?? []).map((p) => [p.key, p.points]));
 const maxes = (s: FhState) => Object.fromEntries((fiveHandsStdParts(s) ?? []).map((p) => [p.key, p.max]));
 
@@ -37,21 +43,24 @@ for (let k = 1; k <= 5; k++) for (let r = 0; r <= 5; r++) PARTIALS.push(BEST.map
 export const entry: StdEntry = {
   type: "fivehands",
   field: "fiveHandsRev",
-  rev: 3,
-  before: 2,
+  // Changed with Joe's approval, 23 Nov 2026 (D6): fiveHandsRev 4 (rev 3 before it).
+  rev: 4,
+  before: 3,
   parts: spec.parts,
   spec,
   liveSpec: true,
   perfect: () =>
     [0, 1, 2, 77].map((seed) => {
       const best = fhBest(seed, 3);
-      const r = replayFiveHandsRun(seed, fiveHandsFlawless(seed, 20, 3).raw, 3);
-      const want = Math.max(1, x14(best.total));
+      // Changed with Joe's approval, 23 Nov 2026 (D6): rev 3's exact best played on rev 4, scored on the 128 line.
+      const r = replayFiveHandsRun(seed, fiveHandsFlawless(seed, 20, 3).raw, 4);
+      const want = Math.max(1, at128(best.total));
       return { label: `seed ${seed}'s exact best (${best.total} hand points) through the server replay`, score: r.score, want, parts: rec(r.state), partMaxes: maxes(r.state) };
     }),
-  played: () => [{ label: "a tap that placed nothing", score: game.score({ ...game.init(4), acted: 1 }), want: 1 }],
-  idle: () => [{ label: "an untouched init(12)", score: game.score(game.init(12)) }],
-  help: { terms: ["hands", "pair 15", "straight flush 50", "times 1.4"] },
+  // Changed with Joe's approval, 23 Nov 2026 (D6): played, idle and the help on rev 4.
+  played: () => [{ label: "a tap that placed nothing", score: game4.score({ ...game4.init(4), acted: 1 }), want: 1 }],
+  idle: () => [{ label: "an untouched init(12)", score: game4.score(game4.init(12)) }],
+  help: { terms: ["hands", "pair 15", "straight flush 50", "200 at 128 hand points"] },
   extra(ok) {
     let straight = true;
     for (const rows of PARTIALS) {
@@ -61,6 +70,16 @@ export const entry: StdEntry = {
     }
     ok(straight, "fivehands: the one part is min(200, floor(hand points × 1.4)) on every partial rev-3 best");
     ok(x14(100) === 140 && x14(142) === 198 && x14(143) === 200 && x14(160) === 200, "fivehands: × 1.4 anchors (100 → 140, 142 → 198, 143 → 200, 160 → 200)");
+    // Rev 4 (D6, 22 Nov 2026): the same rows and column on a straight line to 200 at 128.
+    let line4 = true;
+    for (const rows of PARTIALS) {
+      const { total } = fhTotals(rows, 4);
+      const parts = fiveHandsStdParts({ ...game4.init(SEED), rows, acted: 1 })!;
+      if (parts.length !== 1 || parts[0]!.points !== at128(total)) line4 = false;
+    }
+    ok(line4, "fivehands rev 4: the one part is min(200, floor(hand points × 200 ÷ 128)) on every partial best");
+    ok(at128(64) === 100 && at128(127) === 198 && at128(128) === 200 && at128(160) === 200, "fivehands rev 4: anchors (64 → 100, 127 → 198, 128 → 200, 160 → 200)");
+    ok(JSON.stringify({ ...game4.init(SEED), rev: 3 }) === JSON.stringify(game.init(SEED)), "fivehands rev 4: rev 3's deck and opening state exactly");
     // A built state over the cap: five straight flushes (250 on the table) pay 200.
     const flushes = [0, 1, 2, 3].map((s) => [0, 1, 2, 3, 4].map((r) => s * 13 + r)).concat([[5, 6, 7, 8, 9]]);
     const capped = fiveHandsStdParts({ ...game.init(SEED), rows: flushes, acted: 1 })!;

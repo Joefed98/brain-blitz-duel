@@ -52,6 +52,10 @@ import { GAME_LEVELS, levelsOf } from "../src/lib/levels/gameLevels";
 import { MAX_ROUND_CLOCK_MS, puzzleLevel } from "../src/lib/levels/levels";
 import { modeLevel } from "../src/lib/levels/modes";
 import { levelsDealFileFromWitnesses, tiltLevelCandidates, tiltLevelVerdict, tiltLevelWitnessFile, TILT_DEAL_WITNESS, type TiltLevelWitnesses, type TiltWitness } from "./tilt-deal";
+import { pinPreTiltThree } from "../src/lib/duel/d6Normal";
+
+// Changed with Joe's approval, 23 Nov 2026 (D6): Tilt's Normal moved to tiltRev 13 (three mazes); this check was written for tiltRev 12, so it deals it (d6-normal-stamps-check proves tiltRev 13).
+pinPreTiltThree(true);
 
 const FULL = process.env.CHECKS_FULL === "1" || process.argv.includes("--full");
 const failures: string[] = [];

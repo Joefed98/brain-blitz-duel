@@ -24,7 +24,7 @@ import { ORBIT_STD } from "../src/lib/arcade/orbitRev3";
 import { inkStdSpecFor } from "../src/lib/arcade/inkBridge";
 import { SWING_V17_CORE, SWING_V17_FULL, SWING_V17_GATES, SWING_V17_STREAK_BLOCK, SWING_V17_STREAK_EACH, SWING_V17_STREAK_MAX, SWING_V17_PAR_POINTS, SWING_V17_GATE_POINTS } from "../src/lib/arcade/swing";
 import { MATCHUP_V12_GOALS, MATCHUP_V12_GOALS_MAX, MATCHUP_V12_ICE_MAX, MATCHUP_V12_TREASURES, MATCHUP_V12_TREASURE_MAX } from "../src/lib/arcade/matchup";
-import { TILT_P_CLEAN_POINTS, TILT_P_PAR_MAX, TILT_P_SPEED_POINTS, TILT_S_MAZES } from "../src/lib/arcade/tilt";
+import { TILT_LEVELS, TILT_P_CLEAN_POINTS, TILT_P_PAR_MAX, TILT_P_SPEED_POINTS, TILT_T_MAZES } from "../src/lib/arcade/tilt";
 import { CLASH_QUEUE, CLASH_STD_STREAK } from "../src/lib/arcade/colourClash";
 import { CLAY_CONFIG, CLAY_QUICK_FULL_TICKS, CLAY_STREAK_POINTS, CLAY_WIDE_FULL_TICKS } from "../src/lib/arcade/clayShoot";
 import { WHACK_COMBO_FULL_PCT, WHACK_COMBO_POINTS, WHACK_QUICK_FULL_TICKS, whackComboMaxPips, whackComboMultiplier, whackGame } from "../src/lib/arcade/whack";
@@ -95,7 +95,8 @@ function specPart(type: string, label: string): { max: number; of?: number; how?
   if (type === "matchup")
     specs.push({ parts: [{ label: "Treasure", max: MATCHUP_V12_TREASURE_MAX, of: MATCHUP_V12_TREASURES }, { label: "Colour goals", max: MATCHUP_V12_GOALS_MAX, of: MATCHUP_V12_GOALS }, { label: "Ice", max: MATCHUP_V12_ICE_MAX, of: MATCHUP_V12_ICE_MAX }] });
   if (type === "tilt")
-    specs.push({ parts: [{ label: "Par", max: TILT_P_PAR_MAX, of: TILT_S_MAZES }, { label: "Clean run", max: TILT_P_CLEAN_POINTS, of: TILT_S_MAZES }, { label: "Speed", max: TILT_P_SPEED_POINTS }] });
+    // Changed with Joe's approval, 23 Nov 2026 (D6): tiltRev 13's Normal has three mazes (TILT_T_MAZES).
+    specs.push({ parts: [{ label: "Par", max: TILT_P_PAR_MAX, of: TILT_T_MAZES }, { label: "Clean run", max: TILT_P_CLEAN_POINTS, of: TILT_T_MAZES }, { label: "Speed", max: TILT_P_SPEED_POINTS }] });
   for (const s of specs) {
     const p = s?.parts?.find((x: any) => x.label === label);
     if (p) return { max: p.max, of: p.of, how: p.how };
@@ -298,9 +299,11 @@ function expectations(): Record<string, Expect> {
     "matchup.ice-breaker": { say: [[10, of("matchup", "Ice")]] },
     "matchup.goal-getter": { say: [[6, of("matchup", "Colour goals")]] },
     "matchup.treasure-hunter": { say: [[6, of("matchup", "Treasure")]] },
-    "tilt.no-falls": { say: [[4, of("tilt", "Clean run")]] },
-    "tilt.par-four": { say: [[4, of("tilt", "Par")]] },
-    "tilt.marble-madness": { say: [[4, TILT_S_MAZES], [60, Number(/all 4 within (\d+) s/.exec(help("tilt"))?.[1])]] },
+    // Changed with Joe's approval, 23 Nov 2026 (D6): "all three mazes" on tiltRev 13's Normal.
+    "tilt.no-falls": { say: [[3, of("tilt", "Clean run")]] },
+    "tilt.par-four": { say: [[3, of("tilt", "Par")]] },
+    // Changed with Joe's approval, 23 Nov 2026 (D6): the Hard level's own maze count and speed line (it read Normal's help, "all 4 within 60 s").
+    "tilt.marble-madness": { say: [[4, TILT_LEVELS.hard.sizes.length], [58, TILT_LEVELS.hard.speedFullS]] },
     "clayshoot.bird-lover": {},
     "skyline.perfects": {},
   };

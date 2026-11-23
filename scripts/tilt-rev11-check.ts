@@ -68,6 +68,10 @@ import { jsonDigest, randomLog, botLog, type Row } from "./tilt-rev11-record";
 import { roomIdentity } from "./room-identity/tilt";
 import { entry } from "./arcade-standard/tilt";
 import type { StdRun } from "./arcade-standard/entry";
+import { pinPreTiltThree } from "../src/lib/duel/d6Normal";
+
+// Changed with Joe's approval, 23 Nov 2026 (D6): Tilt's Normal moved to tiltRev 13 (three mazes); this check was written for tiltRev 12, so it deals it (d6-normal-stamps-check proves tiltRev 13).
+pinPreTiltThree(true);
 
 let checks = 0;
 const failures: string[] = [];

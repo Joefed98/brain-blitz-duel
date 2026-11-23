@@ -23,6 +23,10 @@ import { replayCurlingRun } from "../src/lib/duel/curling";
 import { replayRacingRun } from "../src/lib/duel/racing";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import { exampleFor } from "./shots/examples";
+import { pinPrePoolFifth } from "../src/lib/duel/d6Normal";
+
+// Changed with Joe's approval, 23 Nov 2026 (D6): Cue Ball's Normal moved to poolRev 5 (Speed from the fifth pot); this check was written for poolRev 4, so it deals it (d6-normal-stamps-check proves poolRev 5).
+pinPrePoolFifth(true);
 
 const failures: string[] = [];
 let passes = 0;

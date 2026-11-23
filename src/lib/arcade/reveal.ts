@@ -214,7 +214,8 @@ const BUILDERS: Record<string, Builder> = {
     axis: { value: n(r, "total"), max: full, label: "Hand points" },
     lines: rev >= 3
       ? [
-          `${n(r, "total") - n(r, "columnPoints")} from the five rows + ${n(r, "column") >= 0 ? `${n(r, "columnPoints")} from column ${n(r, "column") + 1}` : "no column picked"} = ${n(r, "total")} hand points × 1.4 (capped at 200) → ${s}`,
+          // D6 (22 Nov 2026, display only): fiveHandsRev 4 scores 200 at 128 hand points (rev 3: × 1.4, capped at 200).
+          `${n(r, "total") - n(r, "columnPoints")} from the five rows + ${n(r, "column") >= 0 ? `${n(r, "columnPoints")} from column ${n(r, "column") + 1}` : "no column picked"} = ${n(r, "total")} hand points ${rev === 4 ? `of ${full}` : "× 1.4 (capped at 200)"} → ${s}`,
         ]
       : [`${n(r, "total")} hand points (full at ${full}) → ${s}`],
     tiles: [

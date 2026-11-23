@@ -69,7 +69,8 @@ import { tpSolve } from "./cards/tripeaksSolver";
 import { shuffledDeck } from "../src/lib/arcade/cards/cards";
 import { TP_STOCK_PARS } from "../src/lib/arcade/cards/tripeaksStockPar.data";
 import { TP_V2_PAR_MAX, tpCheckpoint, tripeaksGameFor, tripeaksStdParts } from "../src/lib/arcade/cards/tripeaks";
-import { FH_INPUT_PICK, FH_STD_SPEC, fhColumn, fhPicking } from "../src/lib/arcade/cards/fiveHands";
+import { FH_INPUT_PICK, FH_STD_SPEC_V3, fhColumn, fhPicking } from "../src/lib/arcade/cards/fiveHands";
+import { withDealOptions } from "../src/lib/duel/dealEra";
 import { stdSpeed as stdSpeedOf } from "../src/lib/arcade/arcadeStandard";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 
@@ -577,7 +578,8 @@ const x14 = (total: number) => Math.min(200, Math.floor((total * 7) / 5));
   }
 
   // Five Hands rev 3: the flat table, the hand points summed and capped at 200, the first shuffle as dealt.
-  ok(FH_REV === 3 && (generatePuzzle("fivehands") as { fiveHandsRev: number }).fiveHandsRev === 3, "fivehands: rooms deal fiveHandsRev 3");
+  // Changed with Joe's approval, 23 Nov 2026 (D6): rooms deal fiveHandsRev 4; fiveHandsRev 3 under its era pin.
+  ok(FH_REV === 4 && (generatePuzzle("fivehands") as { fiveHandsRev: number }).fiveHandsRev === 4 && withDealOptions({ pins: ["fivehandsPre128"] }, () => (generatePuzzle("fivehands") as { fiveHandsRev: number }).fiveHandsRev) === 3, "fivehands: rooms deal fiveHandsRev 4 (fiveHandsRev 3 under its era pin)");
   const flat: [number[], number][] = [
     [[cardOf(0, 1), cardOf(1, 5), cardOf(2, 9), cardOf(3, 11), cardOf(0, 13)], 0],
     [[cardOf(0, 4), cardOf(1, 4), cardOf(2, 9), cardOf(3, 11), cardOf(0, 13)], 15],
@@ -591,7 +593,8 @@ const x14 = (total: number) => Math.min(200, Math.floor((total * 7) / 5));
     [[cardOf(0, 4), cardOf(1, 4)], 15],
   ];
   for (const [row, want] of flat) ok(fhRowHand(row, 3).points === want, `fivehands rev 3: ${row.join(",")} scores ${want} (got ${fhRowHand(row, 3).points})`);
-  ok(FH_STD_SPEC.rev === 3 && FH_STD_SPEC.parts.length === 1 && FH_STD_SPEC.parts[0]!.max === 200, "fivehands rev 3: one part, the hand points summed to 200");
+  // Changed with Joe's approval, 23 Nov 2026 (D6): rev 3's spec is FH_STD_SPEC_V3 (FH_STD_SPEC is rev 4's).
+  ok(FH_STD_SPEC_V3.rev === 3 && FH_STD_SPEC_V3.parts.length === 1 && FH_STD_SPEC_V3.parts[0]!.max === 200, "fivehands rev 3: one part, the hand points summed to 200");
   let firstShuffle = 0;
   let fh3 = true;
   const bests: number[] = [];

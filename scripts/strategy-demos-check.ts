@@ -17,6 +17,10 @@ import { gradeAnswer } from "../src/lib/duel/generate.server";
 import { DEMO_MAX_CHARS, DEMO_LENGTH_TICKS, runSeed } from "../src/lib/arcade/introDemo";
 import { dealtSignature } from "../src/lib/duel/dealSignature";
 import { DEMOS_FIXTURE, STRATEGY_DEMO_TYPES, exampleDeal, type DemoEntry } from "./strategy-demos-record";
+import { pinPreTiltThree } from "../src/lib/duel/d6Normal";
+
+// Changed with Joe's approval, 23 Nov 2026 (D6): Tilt's Normal moved to tiltRev 13 (three mazes); this check was written for tiltRev 12, so it deals it (d6-normal-stamps-check proves tiltRev 13).
+pinPreTiltThree(true);
 
 let failed = 0;
 let passed = 0;

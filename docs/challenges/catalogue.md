@@ -745,6 +745,6 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| No falls | Finish all four mazes without a marble falling. | Classic | Clean | line “Clean run” = 12 of 12 |  | `tilt.no-falls` |
-| Par four | Beat par time in all four mazes. | Classic | Par | line “Par” = 24 of 24 |  | `tilt.par-four` |
-| Marble madness | Finish all four Hard mazes within 60 s. | Hard | Speed | line “Speed” = 24 of 24 | ● | `tilt.marble-madness` |
+| No falls | Finish all three mazes without a marble falling. | Classic | Clean | line “Clean run” = 12 of 12 |  | `tilt.no-falls` |
+| Par four | Beat par time in all three mazes. | Classic | Par | line “Par” = 24 of 24 |  | `tilt.par-four` |
+| Marble madness | Finish all four Hard mazes within 58 s. | Hard | Speed | line “Speed” = 24 of 24 | ● | `tilt.marble-madness` |

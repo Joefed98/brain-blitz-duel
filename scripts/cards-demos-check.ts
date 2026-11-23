@@ -20,6 +20,10 @@ import { TP_REV } from "../src/lib/arcade/cards/tripeaks";
 import { FH_REV } from "../src/lib/arcade/cards/fiveHands";
 import { PY_REV } from "../src/lib/arcade/cards/pyramid";
 import { CARDS_DEMO_GAMES, CARDS_DEMOS_FILE, exampleDeal, type CardsDemo } from "./cards-demos-record";
+import { pinPreFiveHands128 } from "../src/lib/duel/d6Normal";
+
+// Changed with Joe's approval, 23 Nov 2026 (D6): Five Hands' Normal moved to fiveHandsRev 4 (200 at 128 hand points); this check was written for fiveHandsRev 3, so it deals it (d6-normal-stamps-check proves fiveHandsRev 4).
+pinPreFiveHands128(true);
 
 let passed = 0;
 const failures: string[] = [];

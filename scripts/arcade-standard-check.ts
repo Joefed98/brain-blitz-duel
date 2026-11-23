@@ -46,7 +46,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "breaker", field: "brkRev", rev: 12, batch: "A" },
   // tiltRev 11 (3 Nov 2026): tiltRev 10's mazes with no gold stars, scored on par times and a clean run (tilt-rev11-check).
   // tiltRev 12 (3 Nov 2026): tiltRev 11's parts with bigger marbles and keys, from its proved deal (tilt-rev12-check).
-  { type: "tilt", field: "tiltRev", rev: 12, batch: "A" },
+  // Changed with Joe's approval, 23 Nov 2026 (D6): tiltRev 13, Normal on three mazes.
+  { type: "tilt", field: "tiltRev", rev: 13, batch: "A" },
   // burstRev 11 (Nov 2026, the scoring audit): burstRev 10's play and parts; the last life free, wasted beams cost.
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): burstRev 12, kinder wave clears;
   // then burstRev 13, bigger atoms.
@@ -124,7 +125,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "tripeaks", field: "tripeaksRev", rev: 3, batch: "Cards" },
   { type: "pokersquares", field: "pokerSquaresRev", rev: 2, batch: "Cards" },
   // Five Hands (31 Oct 2026): born on the standard; fiveHandsRev 3 (3 Nov 2026) is NOT_200_ON_EVERY_DEAL's one exception.
-  { type: "fivehands", field: "fiveHandsRev", rev: 3, batch: "Cards" },
+  // Changed with Joe's approval, 23 Nov 2026 (D6): fiveHandsRev 4, 200 at 128 hand points.
+  { type: "fivehands", field: "fiveHandsRev", rev: 4, batch: "Cards" },
   // Iron Wall (id bastion): the tank-defence shooter, born on the standard at bastionRev 2 (1 Nov 2026; the original was
   // unstamped); bastionRev 3 (3 Nov 2026) adds the drones and eases waves 4–5.
   // bastionRev 4 (15 Nov 2026, the levels): a gentler game at Easy, Normal and Hard; bastionRev 3 is Expert.
@@ -140,7 +142,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // golfRev 3 (the Crazy Golf overhaul, 15 Nov 2026; golfRev 1 and 2 were on the standard too). Changed with Joe's
   // approval, 15 Nov 2026 (routine consequence of the Crazy Golf overhaul).
   { type: "minigolf", field: "golfRev", rev: 3, batch: "Sports" },
-  { type: "pool", field: "poolRev", rev: 4, batch: "Sports" },
+  // Changed with Joe's approval, 23 Nov 2026 (D6): poolRev 5, Speed from the fifth pot.
+  { type: "pool", field: "poolRev", rev: 5, batch: "Sports" },
   // Curling deals curlRev 2 since 31 Oct 2026 (the start along the hog line, side brushing; the same parts) and
   // curlRev 3 since 1 Nov 2026 (the weight meter's draw zone, the aim line, a gentler weight line, the core re-fitted).
   // curlRev 4 since 3 Nov 2026 (the power bar, three reds a sheet, only stones nearer than every red in the house count).

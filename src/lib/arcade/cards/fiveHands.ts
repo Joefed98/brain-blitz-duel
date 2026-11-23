@@ -601,9 +601,10 @@ export function fhLevelRulesOf(state: Pick<FhState, "lv">): FhLevelRules | null 
   const n = fhLevelName(state.lv);
   return n ? FH_LEVEL_RULES[n] : null;
 }
-/** The multiplier as the screen writes it ("1.6"). */
-export function fhMultText(state: Pick<FhState, "lv">): string {
+/** The multiplier as the screen writes it ("1.6"; fiveHandsRev 4's Normal "200 ÷ 128", its 200 at 128 hand points). */
+export function fhMultText(state: Pick<FhState, "lv"> & { rev?: number }): string {
   const r = fhLevelRulesOf(state);
+  if (!r && state.rev === FH_REV_128) return `${FH_CORE_MAX_V3} ÷ ${FH_CORE_FULL_V4}`;
   return r ? String(r.num / r.den) : "1.4";
 }
 export function fhHintsLeft(state: FhState): number {

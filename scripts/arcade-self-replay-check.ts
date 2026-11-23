@@ -203,7 +203,7 @@ import { CURLING_BANK_V2 } from "@/lib/duel/curlingBankV2.server";
 import { CURLING_BANK_V3 } from "@/lib/duel/curlingBankV3.server";
 import { CURLING_BANK_V4 } from "@/lib/duel/curlingBankV4.server";
 import { MINIGOLF_BANK_V2 } from "@/lib/duel/minigolfBankV2.server";
-import { TILT_REV_BAND, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_PAR, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
+import { TILT_REV_BAND, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_PAR, TILT_REV_STD, TILT_REV_THREE, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
 import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG } from "@/lib/arcade/orbit";
 import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom, initGraceFrom, initBigFrom, initLevelFrom } from "@/lib/arcade/orbitRev3";
 import { ORBIT_XP_BANK } from "@/lib/duel/orbitXpBank.server";
@@ -1244,6 +1244,11 @@ const GAMES: Game[] = [
   // Apex racingRev 4 (15 Nov 2026, the Sports overhaul: three named circuits), appended at the end so every earlier
   // entry keeps its index and stream.
   { key: "racing/v4", interval: RACING_CHECKPOINT_INTERVAL, game: racingGameFor(RACING_REV_4), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, RACING_REV_4), seedFor: (n: number) => RACING_DEAL_V4[n % RACING_DEAL_V4.length]! },
+  // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps, appended at the end so every earlier entry
+  // keeps its index and stream): Five Hands fiveHandsRev 4, Cue Ball poolRev 5, Tilt tiltRev 13.
+  { key: "fivehands/v4", game: fiveHandsGameFor(4), checkpoint: fhCheckpoint, mode: "events", rate: 60, encode: encodeFiveHandsRun, replay: (seed: number, raw: string) => replayFiveHandsRun(seed, raw, 4) },
+  { key: "pool/v5", game: poolGameFor(5), seedFor: (n: number) => POOL_BANK_V3[n % POOL_BANK_V3.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, 5) },
+  { key: "tilt/three", game: tiltGameFor(TILT_REV_THREE), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_THREE) },
 ];
 
 /** golfRev 3's course for a self-replay seed: each slot's hole by a spread of the seed, the level seed mod 4. */
