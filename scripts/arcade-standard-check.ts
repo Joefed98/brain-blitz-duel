@@ -137,7 +137,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the standard.
   // Thirteen pyramidRev 3 (15 Nov 2026): a dead end waits for Undo (rev 2's deals and parts). Changed with Joe's approval,
   // 15 Nov 2026 (routine consequence of pyramidRev 3).
-  { type: "pyramid", field: "pyramidRev", rev: 3, batch: "Cards" },
+  // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamp: Thirteen pyramidRev 4, speed full by 22 s).
+  { type: "pyramid", field: "pyramidRev", rev: 4, batch: "Cards" },
   { type: "golfsol", field: "golfSolRev", rev: 1, batch: "Cards" },
   { type: "muggins", field: "mugginsRev", rev: 1, batch: "Cards" },
   // The Sports group (30 Oct 2026): on the standard from their first stamp.

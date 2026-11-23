@@ -33,7 +33,7 @@ import {
 } from "../src/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "../src/lib/arcade/cards/tripeaksDeals.data";
 import {
-  PY_CARDS, PY_PAIR_MAX, PY_REV, PY_RUN_TICKS, PY_SPEED_FULL_S, PY_STD_SPEC, PY_STD_SPEC_V1, PY_V2_CLEAR_MAX, PY_V2_CORE_MAX, PY_V2_SPEED_MAX,
+  PY_CARDS, PY_PAIR_MAX, PY_REV, PY_RUN_TICKS, PY_SPEED_FULL_S, PY_STD_SPEC, PY_STD_SPEC_V1, PY_STD_SPEC_V3, PY_V2_CLEAR_MAX, PY_V2_CORE_MAX, PY_V2_SPEED_MAX, // PY_STD_SPEC_V3: Changed with Joe's approval, 23 Nov 2026 (D6: pyramidRev 4)
   pyCheckpoint, pyramidGameFor, pyramidStdParts, type PyState,
 } from "../src/lib/arcade/cards/pyramid";
 import { encodeFreecellRun, encodePyramidRun, encodeTripeaksRun, replayFreecellRun, replayPyramidRun, replayTripeaksRun } from "../src/lib/duel/cards";
@@ -78,25 +78,27 @@ const sumOk = (parts: StdPart[] | null, score: number) => parts !== null && Math
 {
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of pyramidRev 3, the dead end that waits for Undo).
   // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps: Free Cell freecellRev 6, Summit tripeaksRev 4; d6-normal-stamps-check proves them).
-  ok(FC_REV === 6 && TP_REV === 4 && PY_REV === 3, "the dealt stamps: freecellRev 6, tripeaksRev 4, pyramidRev 3");
+  // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamp: Thirteen pyramidRev 4; d6-normal-stamps-check proves it).
+  ok(FC_REV === 6 && TP_REV === 4 && PY_REV === 4, "the dealt stamps: freecellRev 6, tripeaksRev 4, pyramidRev 4");
   let dealt = true;
   for (let k = 0; k < 20; k++) {
     const fc = generatePuzzle("freecell") as { freecellRev: number; seed: number };
     const tp = generatePuzzle("tripeaks") as { tripeaksRev: number; seed: number };
     const py = generatePuzzle("pyramid") as { pyramidRev: number; seed: number };
     // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps: Free Cell freecellRev 6, Summit tripeaksRev 4; d6-normal-stamps-check proves them).
-    if (fc.freecellRev !== 6 || tp.tripeaksRev !== 4 || py.pyramidRev !== 3 || fc.seed < 0 || fc.seed >= FC_DEALS_V4.length || tp.seed < 0 || tp.seed >= TP_DEALS.length || !(py.seed > 0)) dealt = false;
+    if (fc.freecellRev !== 6 || tp.tripeaksRev !== 4 || py.pyramidRev !== 4 || // Changed with Joe's approval, 23 Nov 2026 (D6: pyramidRev 4)
+       fc.seed < 0 || fc.seed >= FC_DEALS_V4.length || tp.seed < 0 || tp.seed >= TP_DEALS.length || !(py.seed > 0)) dealt = false;
   }
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of pyramidRev 3, the dead end that waits for Undo: rev 2's parts, dealt as rev 3).
   // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps: Free Cell freecellRev 6, Summit tripeaksRev 4; d6-normal-stamps-check proves them).
-  ok(dealt, "rooms deal freecellRev 6 (a bank index), tripeaksRev 4 (a bank index) and pyramidRev 3 (any seed)");
+  ok(dealt, "rooms deal freecellRev 6 (a bank index), tripeaksRev 4 (a bank index) and pyramidRev 4 (any seed)"); // Changed with Joe's approval, 23 Nov 2026 (D6: pyramidRev 4)
   const prev = pinCardsPreShare(true);
   const fc = generatePuzzle("freecell") as { freecellRev: number };
   const tp = generatePuzzle("tripeaks") as { tripeaksRev: number };
   const py = generatePuzzle("pyramid") as { pyramidRev: number };
   pinCardsPreShare(prev);
   ok(fc.freecellRev === FC_REV_SHORT && tp.tripeaksRev === TP_REV_PAR && py.pyramidRev === 1, "pinCardsPreShare(true) deals freecellRev 4, tripeaksRev 2 and pyramidRev 1");
-  ok(LIVE_BANDS.freecell?.std === FC_STD_SPEC && LIVE_BANDS.tripeaks?.std === TP_STD_SPEC && LIVE_BANDS.pyramid?.std === PY_STD_SPEC && LIVE_BANDS.freecell?.rev === 6 && LIVE_BANDS.tripeaks?.rev === 4 && LIVE_BANDS.pyramid?.rev === 3, "LIVE_BANDS carries the new stamps and specs"); // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps: Free Cell freecellRev 6, Summit tripeaksRev 4; d6-normal-stamps-check proves them).
+  ok(LIVE_BANDS.freecell?.std === FC_STD_SPEC && LIVE_BANDS.tripeaks?.std === TP_STD_SPEC && LIVE_BANDS.pyramid?.std === PY_STD_SPEC && LIVE_BANDS.freecell?.rev === 6 && LIVE_BANDS.tripeaks?.rev === 4 && LIVE_BANDS.pyramid?.rev === 4, "LIVE_BANDS carries the new stamps and specs"); // Changed with Joe's approval, 23 Nov 2026 (D6: Thirteen pyramidRev 4). // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps: Free Cell freecellRev 6, Summit tripeaksRev 4; d6-normal-stamps-check proves them).
   // The same deal on the new and the old stamp.
   ok(JSON.stringify({ ...freecellGameFor(5).init(9), rev: 0, start: [] }) === JSON.stringify({ ...freecellGameFor(4).init(9), rev: 0, start: [] }), "freecell rev 5: rev 4's deal and par");
   ok(JSON.stringify({ ...tripeaksGameFor(3).init(9), rev: 0 }) === JSON.stringify({ ...tripeaksGameFor(2).init(9), rev: 0 }), "tripeaks rev 3: rev 2's deal and stock par");
@@ -155,7 +157,8 @@ const sumOk = (parts: StdPart[] | null, score: number) => parts !== null && Math
   ok(shape(FC_STD_SPEC_V5) === "core:105 par:50 speed:45" && FC_STD_SPEC_V5.rev === 5 && FC_STD_SPEC_V5.parts[0]!.of === 80, "freecell rev 5: cards 105 (full at 80 units, all 40 home), par 50, speed 45");
   ok(shape(TP_STD_SPEC_V3) === "core:105 peaks:30 run:10 clear:10 par:20 speed:25" && TP_STD_SPEC_V3.rev === 3, "tripeaks rev 3: cards 105, peak tops 30, longest run 10, clear 10, stock par 20, speed 25");
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of pyramidRev 3, the dead end that waits for Undo: rev 2's parts, dealt as rev 3).
-  ok(shape(PY_STD_SPEC) === "core:140 clear:15 speed:25 pairs:20" && PY_STD_SPEC.rev === 3, "pyramid rev 2 (dealt as rev 3): pyramid cards 140, cleared 15, speed 25, pyramid pairs 20");
+  // Changed with Joe's approval, 23 Nov 2026 (D6: rooms deal pyramidRev 4, the same parts with speed full by 22 s; rev 2 and 3's spec is PY_STD_SPEC_V3).
+  ok(shape(PY_STD_SPEC_V3) === "core:140 clear:15 speed:25 pairs:20" && PY_STD_SPEC_V3.rev === 3, "pyramid rev 2 (dealt as rev 3): pyramid cards 140, cleared 15, speed 25, pyramid pairs 20");
   ok(shape(FC_STD_SPEC_V4) === "core:60 par:50 speed:90" && shape(TP_STD_SPEC_V2) === "core:80 peaks:30 run:10 clear:10 par:20 speed:50" && shape(PY_STD_SPEC_V1) === "core:120 clear:10 speed:50 pairs:20", "the older stamps keep their specs (Free Cell rev 4, Summit rev 2, Thirteen rev 1)");
 }
 

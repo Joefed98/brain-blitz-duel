@@ -129,7 +129,7 @@ section("wiring: the deal, the help, the intro, the standard module, the demo an
   const perfect = entry.perfect() as StdRun[];
   ok(perfect.length >= 1 && perfect.every((r) => r.score === 200 && entry.parts.every((p) => r.parts?.[p.key] === p.max)), `the standard module's perfect runs: 200 with every part full (${JSON.stringify(perfect)})`);
   const demos = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/tiltRev !== TILT_REV_BIG\) return null/.test(demos), "the intro demo plays only when recorded on the dealt tiltRev 12");
+  ok(/tiltRev !== TILT_REV_THREE\) return null/.test(demos), "the intro demo plays only when recorded on the dealt tiltRev 13 (D6)"); // Changed with Joe's approval, 23 Nov 2026
   const art = readFileSync("src/lib/arcade/tiltArt.renderer.ts", "utf8");
   ok(/if \(state\.parClean\)[\s\S]{0,400}`Par \$\{Math\.ceil\(left \/ 60\)\} s`[\s\S]{0,300}"Clean"/.test(art), "the HUD shows the par countdown and \"Clean\" on tiltRev 11 (no star count)");
   ok(/label: \(\) => "UNDER PAR!"/.test(art) && /if \(rev === TILT_REV_PAR\) return tiltParArtGame;/.test(art), "the success layer pops UNDER PAR! and tiltRev 11 has its own art game");

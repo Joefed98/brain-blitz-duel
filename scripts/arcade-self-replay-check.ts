@@ -1249,6 +1249,12 @@ const GAMES: Game[] = [
   { key: "fivehands/v4", game: fiveHandsGameFor(4), checkpoint: fhCheckpoint, mode: "events", rate: 60, encode: encodeFiveHandsRun, replay: (seed: number, raw: string) => replayFiveHandsRun(seed, raw, 4) },
   { key: "pool/v5", game: poolGameFor(5), seedFor: (n: number) => POOL_BANK_V3[n % POOL_BANK_V3.length]!, checkpoint: poolCheckpoint, mode: "events", rate: 40, encode: encodePoolRun, replay: (seed: number, raw: string) => replayPoolRun(seed, raw, 5) },
   { key: "tilt/three", game: tiltGameFor(TILT_REV_THREE), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_THREE) },
+  // Changed with Joe's approval, 23 Nov 2026 (D6's further Normal scoring stamps, appended at the end so every earlier entry
+  // keeps its index and stream): Free Cell freecellRev 6, Summit tripeaksRev 4, Apex racingRev 5, Thirteen pyramidRev 4.
+  { key: "freecell/v6", game: freecellGameFor(6), checkpoint: fcCheckpoint, mode: "events", rate: 120, encode: encodeFreecellRun, replay: (seed: number, raw: string) => replayFreecellRun(seed, raw, 6), seedFor: (n: number) => n % 300 },
+  { key: "tripeaks/v4", game: tripeaksGameFor(4), checkpoint: tpCheckpoint, mode: "events", rate: 120, encode: encodeTripeaksRun, replay: (seed: number, raw: string) => replayTripeaksRun(seed, raw, 4), seedFor: (n: number) => n % 300 },
+  { key: "racing/v5", interval: RACING_CHECKPOINT_INTERVAL, game: racingGameFor(5), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, 5), seedFor: (n: number) => RACING_DEAL_V4[n % RACING_DEAL_V4.length]! },
+  { key: "pyramid/v4", game: pyramidGameFor(4), checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 4) },
 ];
 
 /** golfRev 3's course for a self-replay seed: each slot's hole by a spread of the seed, the level seed mod 4. */

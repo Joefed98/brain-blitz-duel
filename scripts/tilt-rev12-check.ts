@@ -125,7 +125,7 @@ section("wiring: the deal, the parts, the standard module, the demo and the rend
   const perfect = entry.perfect() as StdRun[];
   ok(perfect.length >= 1 && perfect.every((r) => r.score === 200 && entry.parts.every((p) => r.parts?.[p.key] === p.max)), `the standard module's perfect runs: 200 with every part full (${JSON.stringify(perfect)})`);
   const demos = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/tiltRev !== TILT_REV_BIG\) return null/.test(demos), "the intro demo plays only when recorded on tiltRev 12");
+  ok(/tiltRev !== TILT_REV_THREE\) return null/.test(demos), "the intro demo plays only when recorded on the dealt tiltRev 13 (D6)"); // Changed with Joe's approval, 23 Nov 2026
   const server = readFileSync("src/lib/duel/arcade.server.ts", "utf8");
   ok(/TILT_DEAL_V12\[/.test(server) && /tiltRev: TILT_REV_BIG/.test(server), "generateTilt deals TILT_DEAL_V12 on tiltRev 12");
   const art = readFileSync("src/lib/arcade/tiltArt.renderer.ts", "utf8");

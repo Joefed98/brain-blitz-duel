@@ -289,7 +289,7 @@ function expectations(): Record<string, Expect> {
     // Joe, 16 Nov 2026: Normal (minesRev 3) keeps 37 s too, so the number is unchanged.
     "minesweeper.sweep": { say: [[37, withinS("minesweeper", "Speed")]] },
     "pyramid.paired-up": { say: [[10, of("pyramid", "Pyramid pairs")], [2, 2]] },
-    "pyramid.unlucky-for-some": { say: [[20, withinS("pyramid", "Speed")]] },
+    "pyramid.unlucky-for-some": { say: [[22, withinS("pyramid", "Speed")]] }, // Changed with Joe's approval, 23 Nov 2026 (D6: Thirteen pyramidRev 4, speed full by 22 s)
     "tripeaks.peak-bagger": { say: [[3, of("tripeaks", "Peak tops")]] },
     // Changed with Joe's approval, 23 Nov 2026 (D6: Summit tripeaksRev 4's run full at 6 and stock par within par + 8; Hard's speed by 31 s, TP_LEVEL_RULES_V4).
     "tripeaks.up-and-down": { say: [[6, of("tripeaks", "Longest run")]] },

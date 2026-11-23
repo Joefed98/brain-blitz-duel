@@ -1,6 +1,6 @@
 /**
  * sports-demos-check (the Sports overhaul, 15 Nov 2026; ~1 s, no browser): Cue Ball, Curl Champ and Apex's saved intro
- * demos play only when recorded on the stamp rooms deal today (poolRev 4, curlRev 4, racingRev 4), so a demo recorded
+ * demos play only when recorded on the stamp rooms deal today (poolRev 5, curlRev 4, racingRev 5 since D6; Changed with Joe's approval, 23 Nov 2026), so a demo recorded
  * before the overhaul (the old table, sheet or road, Curl Champ's older buttons, Apex's single circuit) never plays under
  * the new look. Read from the server's own rule in src/lib/duel/introDemo.functions.ts, as each game's check reads its own.
  *
@@ -15,7 +15,7 @@ import { readFileSync } from "node:fs";
 
 import { POOL_REV } from "../src/lib/arcade/pool";
 import { CURLING_REV } from "../src/lib/arcade/curling";
-import { RACING_REV_4, RACING_REV_DEALT } from "../src/lib/arcade/racing";
+import { RACING_REV_5, RACING_REV_DEALT } from "../src/lib/arcade/racing";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { DEMO_LENGTH_TICKS, DEMO_MAX_CHARS, DEMO_START_TICK, runSeed } from "../src/lib/arcade/introDemo";
 import { replayPoolRun } from "../src/lib/duel/pool";
@@ -23,10 +23,8 @@ import { replayCurlingRun } from "../src/lib/duel/curling";
 import { replayRacingRun } from "../src/lib/duel/racing";
 import { splitPuzzle } from "../src/lib/duel/secrets";
 import { exampleFor } from "./shots/examples";
-import { pinPrePoolFifth } from "../src/lib/duel/d6Normal";
 
-// Changed with Joe's approval, 23 Nov 2026 (D6): Cue Ball's Normal moved to poolRev 5 (Speed from the fifth pot); this check was written for poolRev 4, so it deals it (d6-normal-stamps-check proves poolRev 5).
-pinPrePoolFifth(true);
+// Changed with Joe's approval, 23 Nov 2026 (D6): Cue Ball's and Apex's demos were re-recorded on today's stamps (poolRev 5, racingRev 5), so the check deals today's game, no pin.
 
 const failures: string[] = [];
 let passes = 0;
@@ -52,7 +50,7 @@ for (const [type, field, name, rev] of RULES) {
   ok(src.includes(rule), `${type}: the intro demo plays only when recorded on ${field} ${rev} (${name})`);
   ok(live[type]?.rev === rev, `${type}: ${name} is the stamp rooms deal (LIVE_BANDS ${live[type]?.rev})`);
 }
-ok(RACING_REV_DEALT === RACING_REV_4, "Apex: the demo's stamp is racingRev 4, the three circuits");
+ok(RACING_REV_DEALT === RACING_REV_5, "Apex: the demo's stamp is racingRev 5, the three circuits scored on D6's pace lines"); // Changed with Joe's approval, 23 Nov 2026
 
 // The demos to save.
 type Row = { game_type: string; seed: number; puzzle: Record<string, unknown>; input_log: { run: string }; start_tick: number; length_ticks: number; score: number };

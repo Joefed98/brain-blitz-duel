@@ -252,7 +252,7 @@ console.log("2–3. Every deal at every level proved; 200 reachable through the 
     check(ok === SEEDS, `pyramid ${l}: ${SEEDS} built deals clear by their witness, ${r.kingsMin}–${r.kingsMin + r.kingsSpan - 1} Kings, no quick player clears them (${ok})`);
     const seed = 404;
     const flawless = play(PY.pyramidLevelGame(l), seed, PY.pyLevelDeal(seed, l).witness.map((a) => mv(PY.PY_INPUT_TAP, a)), 15, PY.pyCheckpoint as never, encodePyramidRun as never);
-    const p = { type: "pyramid", seed, pyramidRev: PY.PY_REV, level: l } as unknown as PuzzleData;
+    const p = { type: "pyramid", seed, pyramidRev: 3, level: l } as unknown as PuzzleData; // Changed with Joe's approval, 23 Nov 2026 (D6: rooms deal pyramidRev 4; the levels before D6 were pyramidRev 3)
     const g = gradeAnswer(p, flawless.raw, 0);
     check(g.score === 200, `pyramid ${l}: the witness at a human pace scores 200 through the grade (${g.score})`);
     check(PY.pyramidLevelGame(l).init(seed).passes === r.passes, `pyramid ${l}: ${r.passes} pass${r.passes === 1 ? "" : "es"} through the stock`);

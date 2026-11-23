@@ -198,7 +198,7 @@ ok(tiltGameFor(TILT_REV_LIFT).init(7).lift === 1 && !tiltGameFor(TILT_REV_EXPAND
   );
   const demos = read("src/lib/duel/introDemo.functions.ts");
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the intro demo is recorded on the live stamp (scripts/action-demos-check.ts).
-  ok(/flipRev !== FLIP_REV_GRACE\) return null/.test(demos) && /tiltRev !== TILT_REV_BIG\) return null/.test(demos), "intro demos play only when recorded on the dealt stamps (Roofbound flipRev 13, Tilt tiltRev 12)");
+  ok(/flipRev !== FLIP_REV_GRACE\) return null/.test(demos) && /tiltRev !== TILT_REV_THREE\) return null/.test(demos), "intro demos play only when recorded on the dealt stamps (Roofbound flipRev 13, Tilt tiltRev 13)"); // Changed with Joe's approval, 23 Nov 2026
 }
 
 /* 4. Ball Tracker's counts. */

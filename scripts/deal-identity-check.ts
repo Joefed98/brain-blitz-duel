@@ -155,7 +155,8 @@ tasks.push({
     // train's 14 more (40 less main's 26) make 51.
     // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps): fivehandsPre128, poolPreFifth and tiltPreThree, 54.
     // Changed with Joe's approval, 23 Nov 2026 (D6: freecellPrePar98, tripeaksPreEase, racingPreFive and d6PreLevels), 58.
-    ok(names.size === 58, `58 era switches (${names.size})`);
+    // Changed with Joe's approval, 23 Nov 2026 (D6: pyramidPreSpeed22), 59.
+    ok(names.size === 59, `59 era switches (${names.size})`);
   },
 });
 

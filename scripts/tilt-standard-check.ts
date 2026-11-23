@@ -259,7 +259,7 @@ section("the help, intro, reveal and demo");
   const rv = buildArcadeReveal("tilt", { ...ro, tiltRev: TILT_REV_STD }, ro.score)!;
   ok(rv.outcome === "finish" && rv.lines.join(" ").includes("all 4 mazes +10 · speed +20") && rv.lines.join(" ").includes("Gold stars 3 / 3 +30"), `the perfect reveal: ${rv.lines.join(" | ")}`);
   const demos = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/tiltRev !== TILT_REV_BIG\) return null/.test(demos), "the intro demo stays stopped until one is recorded on the dealt stamp (tiltRev 12 since 3 Nov 2026)");
+  ok(/tiltRev !== TILT_REV_THREE\) return null/.test(demos), "the intro demo stays stopped until one is recorded on the dealt stamp (tiltRev 13 since D6, 23 Nov 2026)"); // Changed with Joe's approval, 23 Nov 2026
   ok(TILT_REV_STD === TILT_REV_LIFT + 1, "tiltRev 10 is one above the live stamp it replaces");
 }
 
