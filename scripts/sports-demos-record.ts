@@ -30,4 +30,4 @@ for (const type of SPORTS_OVERHAUL_GAMES) {
   });
   console.log(`  ${type}: seed ${runSeed(answer)}, sim score ${score}, ${answer.length} chars`);
 }
-writeFileSync("scripts/fixtures/sports-demos.json", JSON.stringify({ recorded: "15 Nov 2026, the Sports overhaul (stage 3's start)", demos: rows }, null, 1) + "\n");
+writeFileSync("scripts/fixtures/sports-demos.json", JSON.stringify({ recorded: "15 Nov 2026, the Sports overhaul (stage 3's start); Cue Ball and Apex re-recorded 23 Nov 2026 on D6's Normal stamps (poolRev 5, racingRev 5)", demos: rows }, null, 1) + "\n");
