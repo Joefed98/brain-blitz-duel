@@ -137,9 +137,13 @@ export function bastionSnapLit(state: Pick<BastionTankState, "tick" | "reloadAt"
 /** A jam's shake: the needle shakes this long (ticks) from the jam, in red. */
 export const BT_JAM_SHAKE_TICKS = 18;
 
-/** The points a destroyed tank's armour is worth on a revision (the "+n" rising off it): its hit points on the Armour line. */
-export function bastionKillPoints(kind: number, rev: number): number {
+/**
+ * The points a destroyed tank's armour is worth on a revision (the "+n" rising off it): its hit points on the Armour line.
+ * `full`: bastionRev 5's Armour line (the level's hit points that fill it); older revisions keep the 63-point line.
+ */
+export function bastionKillPoints(kind: number, rev: number, full?: number): number {
   const hp = [1, 2, 4][kind] ?? 1;
+  if (full !== undefined && full > 0) return Math.max(1, Math.round((110 * hp) / full));
   return Math.max(1, Math.round(((rev >= 3 ? 110 : 140) * hp) / 63));
 }
 

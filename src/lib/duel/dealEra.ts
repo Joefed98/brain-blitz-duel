@@ -131,6 +131,8 @@ export const DEAL_PINS = {
   skylinePreCount: { texts: false },
   /** arcade.server.ts: Orbit orbitRev 16 at every level, before the lost flight (D5 item H4, 22 Nov 2026). */
   orbitPreLost: { texts: false },
+  /** arcade.server.ts: Iron Wall bastionRev 4 (Easy, Normal, Hard) and 3 (Expert), before the ladder (D5, 23 Nov 2026). */
+  bastionPreLadder: { texts: false },
   /** hover.server.ts: Hover hoverRev 11 (a random seed), before hoverRev 12's fitted lines and gap ladder (D5, 23 Nov 2026). */
   hoverPreFit: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
