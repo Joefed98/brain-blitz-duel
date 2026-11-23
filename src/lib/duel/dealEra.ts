@@ -137,6 +137,8 @@ export const DEAL_PINS = {
   beatPreLanes: { texts: false },
   /** arcade.server.ts: Blockzone's levels on blockfallRev 2 from Normal's deal, before blockfallRev 3's level deals (D5's ladder, 23 Nov 2026). */
   blockfallPreLevels: { texts: false },
+  /** hover.server.ts: Hover hoverRev 11 (a random seed), before hoverRev 12's fitted lines and gap ladder (D5, 23 Nov 2026). */
+  hoverPreFit: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

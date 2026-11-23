@@ -223,6 +223,25 @@ export const CROSS_LEVELS: Table<CrossLv> = {
   hard: { density: [8, 10, 12, 13, 14, 15, 15, 15, 15, 15], lives: 3, hitCost: 15, fullAt: 76 },
   expert: { density: [10, 12, 14, 15, 16, 17, 18, 18, 18, 18], lives: 2, hitCost: 20, fullAt: 80 },
 };
+/**
+ * Spacewalk (crossRev 14, D5, 23 Nov 2026; docs/arcade-standard/cross.md "Levels (D5, 23 Nov 2026)"): the lever is the
+ * traffic from the first crossing. `density` is each crossing's traffic in twelfths of crossRev 9's (the last entry holds
+ * on), dealt at exactly that density: rooms deal a level only on seeds where every crossing is proved passable at it and
+ * a proof run scores 200 (crossLevelDeals.server.ts), so nothing is thinned. Lives, the cost of a hit before the last and
+ * the rows-and-crossings figure the core is full at as on crossRev 13's table, and the level's own full lines for the two
+ * features: the no-stop crossings in a row after the first that fill the streak's 40 (`streakAt`; Normal 4) and the
+ * close calls that fill their 10 (`closeAt`; Normal 10). crossRev 13's table above stays as it is, so the levels rounds
+ * stored on it replay exactly. Normal stays crossRev 13.
+ */
+export interface CrossLvV14 extends CrossLv {
+  streakAt: number;
+  closeAt: number;
+}
+export const CROSS_LEVELS_V14: Table<CrossLvV14> = {
+  easy: { density: [3, 4, 5, 6, 7, 8, 8, 8, 8, 8], lives: 4, hitCost: 10, fullAt: 70, streakAt: 4, closeAt: 10 },
+  hard: { density: [10, 11, 12, 13, 14, 14, 14, 14, 14, 14], lives: 3, hitCost: 15, fullAt: 76, streakAt: 3, closeAt: 16 },
+  expert: { density: [12, 12, 13, 14, 15, 15, 15, 15, 15, 15], lives: 2, hitCost: 20, fullAt: 72, streakAt: 2, closeAt: 8 },
+};
 export const PINBALL_LEVELS: Table<PinballLv> = {
   easy: { balls: 4, saveS: 10, gravityPct: 85, multiS: 25, fullAt: 50_000 },
   hard: { balls: 3, saveS: 0, gravityPct: 110, multiS: 18, fullAt: 61_000 },
@@ -252,6 +271,29 @@ export const HOVER_LEVELS: Table<HoverLv> = {
   easy: { shield: 1, gapPct: 115, scrollPct: 100 },
   hard: { shield: 0, gapPct: 100, scrollPct: 106 },
   expert: { shield: 0, gapPct: 100, scrollPct: 112 },
+};
+/**
+ * Hover (hoverRev 12, D5, 23 Nov 2026; docs/arcade-standard/hover.md "Levels (D5, 23 Nov 2026)"): the gap ladder. The
+ * lever is the height of the barrier gaps: `gapPct` scales every gap about its centre (up on Easy, down on Hard and
+ * Expert; the tight gates keep their 80 px), `shield` is how many shields the run starts with (each forgives one crash;
+ * Normal 1), `slide` 1 lets the sliding gaps slide as on Normal (0: every gap is still), and the scroll is Normal's
+ * (`scrollPct` 100) at every level. The parts' full lines are the level's own: the core is full at `coreAt` barriers,
+ * the star chains at `chainsAt` of their 30 points, the gold stars at `goldAt`, the tight gates at `tightAt` and the
+ * centre line at `centreAt` per mille of its credit (every gate flown dead centre is 1,000). hoverRev 11's table above
+ * stays as it is, so the levels rounds stored on it replay exactly.
+ */
+export interface HoverLvV12 extends HoverLv {
+  slide: number;
+  coreAt: number;
+  chainsAt: number;
+  goldAt: number;
+  tightAt: number;
+  centreAt: number;
+}
+export const HOVER_LEVELS_V12: Table<HoverLvV12> = {
+  easy: { shield: 3, gapPct: 127, scrollPct: 100, slide: 0, coreAt: 42, chainsAt: 18, goldAt: 2, tightAt: 4, centreAt: 300 },
+  hard: { shield: 1, gapPct: 75, scrollPct: 100, slide: 1, coreAt: 28, chainsAt: 18, goldAt: 3, tightAt: 3, centreAt: 300 },
+  expert: { shield: 0, gapPct: 70, scrollPct: 100, slide: 1, coreAt: 20, chainsAt: 12, goldAt: 3, tightAt: 3, centreAt: 400 },
 };
 
 /** Every Retro game's table, by game id. */

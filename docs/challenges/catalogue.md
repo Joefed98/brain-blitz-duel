@@ -553,7 +553,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Tight squeeze | Thread all five tight gates. | Classic | Full set | `tightGates` ≥ 5 |  | `hover.tight-squeeze` |
-| Chain gang | Complete all five star chains. | Classic | Full set | `chainPts` ≥ 30 |  | `hover.chain-gang` |
+| Chain gang | Complete all five star chains. | Classic | Full set | `starChains` ≥ 5 |  | `hover.chain-gang` |
 | All the way | Pass every barrier. | Classic | Finish | `gates` ≥ `totalGates`, `totalGates` ≥ 1 | ● | `hover.all-the-way` |
 
 #### Pinball (`pinball`)

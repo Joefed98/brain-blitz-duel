@@ -141,6 +141,7 @@ import {
   HOVER_STD_GOLD,
   HOVER_STD_MAX,
   HOVER_STD_TIGHT,
+  HOVER_V12_FIT,
 } from "@/lib/arcade/hover";
 import {
   WAV_BOSS_HP,
@@ -971,20 +972,21 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Star chains:", detail: "sweep them; shields take a crash." },
         { action: "Touch gold stars", detail: "in tight gaps for a bonus. Later barriers have two gaps, or slide.", helpOnly: true },
         { action: "Hit anything", detail: "and the run ends. Gold stars sit near the edge of a gap, so they are risky.", helpOnly: true },
-        { action: `${HOVER_TIGHT_GATES} tight gates:`, detail: `a narrow gold-rimmed second gap on a barrier. Fly through it without touching anything for ${HOVER_STD_TIGHT / HOVER_TIGHT_GATES} points.`, helpOnly: true },
-        { action: "The centre line:", detail: `a faint line through each tight gate lights up as you fly along it. Stay within ${HOVER_STD_CENTRE_FULL / 256} px of it across the barrier for ${HOVER_STD_CENTRE / HOVER_TIGHT_GATES} more, less the further you stray, none from ${HOVER_STD_CENTRE_ZERO / 256} px.`, helpOnly: true },
-        { action: `${HOVER_CHAINS} star chains:`, detail: `5 to 7 stars on one flap’s arc between two barriers. Each chain pays up to ${HOVER_STD_CHAINS / HOVER_CHAINS}: ${HOVER_STD_CHAIN_SHARE} shared by its stars, ${HOVER_STD_CHAIN_WHOLE} more for every one of them.`, helpOnly: true },
+        // hoverRev 12 (D5, 23 Nov 2026): the parts' fitted full lines (HOVER_V12_FIT).
+        { action: `${HOVER_TIGHT_GATES} tight gates:`, detail: `a narrow gold-rimmed second gap on a barrier. Fly through it without touching anything for ${HOVER_STD_TIGHT / HOVER_V12_FIT.tightAt} points, all ${HOVER_STD_TIGHT} for ${HOVER_V12_FIT.tightAt} of them.`, helpOnly: true },
+        { action: "The centre line:", detail: `a faint line through each tight gate lights up as you fly along it. Stay within ${HOVER_STD_CENTRE_FULL / 256} px of it across the barrier for the most, less the further you stray, none from ${HOVER_STD_CENTRE_ZERO / 256} px.`, helpOnly: true },
+        { action: `${HOVER_CHAINS} star chains:`, detail: `5 to 7 stars on one flap’s arc between two barriers. Each chain pays for its share of stars touched, more for every one of them: all ${HOVER_STD_CHAINS} for ${HOVER_V12_FIT.chainsAt / ((HOVER_STD_CHAIN_SHARE + HOVER_STD_CHAIN_WHOLE))} whole chains.`, helpOnly: true },
         { action: `${HOVER_PICKUPS} shield bubbles`, detail: "sit at the same places for everyone. Touch one for a shield: your next crash breaks it instead and you fly on, untouchable for a moment.", helpOnly: true },
         { action: "Two-gap barriers:", detail: "fly through either gap. Sliding barriers move slowly and steadily up and down.", helpOnly: true },
         { action: "Sky:", detail: "the flight area fills your screen, and gaps sit anywhere from near the top to near the bottom. The faint stars behind are scenery only.", helpOnly: true },
         { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run (the first a wide warm-up gap) and ${HOVER_STARS} gold stars.`, helpOnly: true },
       ],
-      // hoverRev 10 (the arcade scoring standard): five parts, each with its maximum, adding up to 200.
+      // hoverRev 10 (the arcade scoring standard): five parts, each with its maximum, adding up to 200; hoverRev 12 (D5): their fitted lines.
       score: scoreList([
-        { label: "Barriers", how: `fly through the ${HOVER_REACHABLE_GATES} barriers, each worth the same`, max: HOVER_STD_CORE },
-        { label: "Star chains", how: "touch a chain’s stars, more for the whole chain", max: HOVER_STD_CHAINS },
-        { label: "Gold stars", how: `${HOVER_STD_GOLD / HOVER_STARS} for each gold star`, max: HOVER_STD_GOLD },
-        { label: "Tight gates", how: `${HOVER_STD_TIGHT / HOVER_TIGHT_GATES} for each tight gate flown through`, max: HOVER_STD_TIGHT },
+        { label: "Barriers", how: HOVER_V12_FIT.coreAt === HOVER_REACHABLE_GATES ? `fly through the ${HOVER_REACHABLE_GATES} barriers, each worth the same` : `every barrier counts the same, all of it at ${HOVER_V12_FIT.coreAt} barriers`, max: HOVER_STD_CORE },
+        { label: "Star chains", how: `touch a chain’s stars, more for the whole chain, all of it at ${HOVER_V12_FIT.chainsAt / (HOVER_STD_CHAIN_SHARE + HOVER_STD_CHAIN_WHOLE)} whole chains`, max: HOVER_STD_CHAINS },
+        { label: "Gold stars", how: HOVER_STD_GOLD % HOVER_V12_FIT.goldAt === 0 ? `${HOVER_STD_GOLD / HOVER_V12_FIT.goldAt} for each gold star, all of it at ${HOVER_V12_FIT.goldAt}` : `every gold star counts the same, all of it at ${HOVER_V12_FIT.goldAt}`, max: HOVER_STD_GOLD },
+        { label: "Tight gates", how: `${HOVER_STD_TIGHT / HOVER_V12_FIT.tightAt} for each tight gate flown through`, max: HOVER_STD_TIGHT },
         { label: "Centre lines", how: "fly a tight gate along its centre line", max: HOVER_STD_CENTRE },
       ], { penalties: ["A crash ends the run"], total: HOVER_STD_MAX }),
     },
