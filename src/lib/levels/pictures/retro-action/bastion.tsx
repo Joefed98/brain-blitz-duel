@@ -1,5 +1,5 @@
 /**
- * Iron Wall's lever picture (D5's ladder, 23 Nov 2026; docs/arcade-standard/bastion.md "bastionRev 5: the ladder"): one
+ * Iron Wall's lever picture (D5's ladder, 23 Nov 2026; docs/arcade-standard/bastion.md "Levels (D5, 23 Nov 2026)"): one
  * wave rolling down the road, drawn from the level's own settings (GAME_LEVELS.bastion, the display copy of the sim's
  * BT5_LEVELS that bastion-ladder-check mirrors): the road's lanes (three, or four from Hard), the tanks in each wave (the
  * lever) and the heavies' share of them, drawn bigger. Normal is bastionRev 5's Normal as rooms deal it, bastionRev 4's

@@ -1,6 +1,6 @@
 # Iron Wall (id `bastion`) on the arcade scoring standard (bastionRev 2, 1 Nov 2026; bastionRev 3, 3 Nov 2026)
 
-## bastionRev 5: the ladder (D5, 23 Nov 2026; Levels (D5, 23 Nov 2026))
+## Levels (D5, 23 Nov 2026): bastionRev 5, the ladder
 
 The polish plan's difficulty session D5 (docs/polish-plan-final/difficulty-spec.md "### Iron Wall"; Joe approved the
 fourth lane on 20 and 23 Nov 2026 and the Normal refit on 23 Nov 2026). **Every level deals bastionRev 5**

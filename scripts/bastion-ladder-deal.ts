@@ -1,5 +1,5 @@
 /**
- * Iron Wall's bastionRev 5 deal (D5's ladder, 23 Nov 2026; docs/arcade-standard/bastion.md "bastionRev 5: the ladder"):
+ * Iron Wall's bastionRev 5 deal (D5's ladder, 23 Nov 2026; docs/arcade-standard/bastion.md "Levels (D5, 23 Nov 2026)"):
  * writes src/lib/duel/bastionDealV5.server.ts, the seeds rooms and practice deal on bastionRev 5, one list a level.
  *
  * The D5 proof standard: a seed is dealt at a level only when the paced oracle (scripts/bastion-ladder-oracle.ts: the

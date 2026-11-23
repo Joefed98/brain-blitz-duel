@@ -423,7 +423,7 @@ export function generateBastion(level?: Level): BastionPuzzleData {
   // bastionRev 4 (15 Nov 2026, the difficulty levels; docs/arcade-standard/bastion.md "bastionRev 4: levels"): Normal,
   // Easy and Hard deal rev 4 (the deal stamps `level`, the sim reads it); Expert deals bastionRev 3's game exactly, the
   // game every room dealt before the levels. Checks written for rev 3 pin `bastionPreLevels`: rev 3 at every level.
-  // bastionRev 5 (D5's ladder, 23 Nov 2026; docs/arcade-standard/bastion.md "bastionRev 5: the ladder"): every level,
+  // bastionRev 5 (D5's ladder, 23 Nov 2026; docs/arcade-standard/bastion.md "Levels (D5, 23 Nov 2026)"): every level,
   // Expert included, deals rev 5 from its own proved list (bastionDealV5.server.ts: seeds the paced oracle, held to the
   // human limits, takes to 200 at that level); the deal stamps `level` off Normal. Checks written for rev 4 pin
   // `bastionPreLadder`: rev 4 at Easy, Normal and Hard and rev 3 at Expert, on any seed, as rooms dealt before.

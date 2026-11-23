@@ -45,7 +45,7 @@ export const BASTION_REV_IRON = 3;
  */
 export const BASTION_REV_LEVELS = 4;
 /**
- * bastionRev 5 (23 Nov 2026, D5's ladder; docs/arcade-standard/bastion.md "bastionRev 5: the ladder"): the lever is the
+ * bastionRev 5 (23 Nov 2026, D5's ladder; docs/arcade-standard/bastion.md "Levels (D5, 23 Nov 2026)"): the lever is the
  * tanks in each wave. Normal is bastionRev 4's Normal game exactly (the same plan, waves and rules), its Weak spots part
  * full at BT5_LEVELS.normal.weakFull hits instead of 30 (Joe's Normal refit). Easy sends 4 tanks a wave (20, one heavy)
  * down the three lanes with today's Easy aids; Hard and Expert add a FOURTH lane (BT5_LANE_X, lane ids 3–6) and send 8
@@ -122,7 +122,7 @@ export interface BastionLadderSettings extends BastionLevelSettings {
  * keeps bastionRev 4's Hard aim settings (its pace's last two waves eased to 66 and 84 %) on four lanes and 8 tanks a
  * wave (40, ten heavies); Expert bastionRev 3's aim settings on four lanes and 9 a wave (45, twelve heavies) at 56 %
  * from the first wave, then 70 and 88 % (never below Hard's on any wave). Each level's full lines are set from the
- * realistic elite's runs under the human limits (docs/arcade-standard/bastion.md "bastionRev 5: the ladder").
+ * realistic elite's runs under the human limits (docs/arcade-standard/bastion.md "Levels (D5, 23 Nov 2026)").
  */
 export const BT5_LEVELS: Readonly<Record<BastionLadderLevel, BastionLadderSettings>> = {
   easy: {

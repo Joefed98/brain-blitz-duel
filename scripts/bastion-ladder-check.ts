@@ -1,5 +1,5 @@
 /**
- * bastion-ladder-check (D5's ladder, 23 Nov 2026; docs/arcade-standard/bastion.md "bastionRev 5: the ladder"): Iron Wall
+ * bastion-ladder-check (D5's ladder, 23 Nov 2026; docs/arcade-standard/bastion.md "Levels (D5, 23 Nov 2026)"): Iron Wall
  * on bastionRev 5 at every level, the lever the tanks in each wave (a fourth lane from Hard).
  *
  *  1. Older stamps are untouched: the 144 runs recorded before bastionRev 5 at every level (bastionRev 4 at Easy, Normal
@@ -20,8 +20,8 @@
  *     one input at least 1; the spec, LIVE_BANDS, the standard and the "?" help follow the stamp.
  *  6. The proof: the paced oracle (scripts/bastion-ladder-oracle.ts, held to HUMAN_LIMITS: 15 ticks to notice, 9 to
  *     move) never fires at a tank or drone before it could have seen and reached it, and scores exactly 200 through the
- *     server's grading of the dealt puzzle on a sample of every level's list (all of them, and the deal file rebuilt byte
- *     for byte, with CHECKS_FULL=1).
+ *     server's grading of the dealt puzzle on a sample of every level's list (all of them with CHECKS_FULL=1); the deal
+ *     file rebuilds byte for byte (every candidate re-played at every level).
  *  7. The ladder: Joe's ladder test on the recorded 96-deal table (scripts/fixtures/d5-ladder-bastion.json.gz) and a live
  *     re-play of two recorded runs a level and player.
  *  8. The four-lane road is new art beside the old: every older stamp's frames draw pixel for pixel as before
@@ -334,10 +334,10 @@ section("6. the proof: the paced oracle under the human limits, at 200 on the de
     ok(at200 === sample.length, `${level}: the paced oracle scores 200 through the server on ${at200} of ${sample.length} dealt seeds${FULL ? " (all)" : " (a sample)"}`);
     ok(paced, `${level}: the paced oracle never fires before it could have noticed and reached its first target or a drone, one input a tick`);
   }
-  if (FULL) {
-    const lists = buildBastionDeal();
-    ok(readFileSync(BASTION_DEAL_FILE, "utf8") === bastionDealSource(lists), `the deal file rebuilds byte for byte (bun scripts/bastion-ladder-deal.ts --check)`);
-  }
+  // The deal file rebuilds byte for byte (bun scripts/bastion-ladder-deal.ts --check): every candidate re-played by the
+  // paced oracle through the server replay at every level, the kept ones at 200.
+  const lists = buildBastionDeal();
+  ok(readFileSync(BASTION_DEAL_FILE, "utf8") === bastionDealSource(lists), `the deal file rebuilds byte for byte (${LADDER.map((l) => `${l} ${lists[l].kept.length} of ${lists[l].tried}`).join(", ")})`);
 }
 
 /* 7. The ladder. */

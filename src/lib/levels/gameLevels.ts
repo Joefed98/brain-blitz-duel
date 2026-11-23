@@ -517,7 +517,7 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       expert: { settings: { speedStart: 960, speedStep: 32, speedMax: 1920, tol: 512, windFrom: 10, lives: 3 } },
     },
   },
-  // Iron Wall (D5's ladder, 23 Nov 2026, docs/arcade-standard/bastion.md "bastionRev 5: the ladder"): every level deals
+  // Iron Wall (D5's ladder, 23 Nov 2026, docs/arcade-standard/bastion.md "Levels (D5, 23 Nov 2026)"): every level deals
   // bastionRev 5, the lever the tanks in each wave (a fourth lane from Hard). The sim reads the stored level (BT5_LEVELS
   // in bastionTank.ts, frozen under the stamp); these are the same numbers, for display (bastion-ladder-check mirrors them).
   // Before the ladder (15 Nov 2026) Easy and Hard dealt bastionRev 4 and Expert bastionRev 3.
