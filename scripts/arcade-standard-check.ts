@@ -50,7 +50,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // burstRev 11 (Nov 2026, the scoring audit): burstRev 10's play and parts; the last life free, wasted beams cost.
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): burstRev 12, kinder wave clears;
   // then burstRev 13, bigger atoms.
-  { type: "burst", field: "burstRev", rev: 13, batch: "A" },
+  // burstRev 14 (22 Nov 2026, D5): burstRev 13 with the middle atoms. Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's burstRev 14).
+  { type: "burst", field: "burstRev", rev: 14, batch: "A" },
   // Gemstone deals matchupRev 12 since Nov 2026 (six goals shown at once, six treasures; the same five parts re-weighted).
   // matchupRev 13 (15 Nov 2026, the Strategy overhaul stage 3): two-hit ice and levels, the same five parts.
   { type: "matchup", field: "matchupRev", rev: 13, batch: "A" },
@@ -64,7 +65,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // skylineRev 10 (Nov 2026, the scoring audit): skylineRev 9's play; perfect drops counted, so more floors never score less.
   // skylineRev 11 (15 Nov 2026, the Action overhaul): lives and the wide-block rescue; the same parts.
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul).
-  { type: "skyline", field: "skylineRev", rev: 11, batch: "B" },
+  // skylineRev 12 (22 Nov 2026, D5): skylineRev 11's play, floors full at 45, perfect drops at 30. Changed with Joe's approval, 23 Nov 2026 (routine
+  // consequence of D5's skylineRev 12).
+  { type: "skyline", field: "skylineRev", rev: 12, batch: "B" },
   { type: "bintoss", field: "binRev", rev: 9, batch: "B" },
   { type: "bullseye", field: "bullRev", rev: 9, batch: "B" },
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): pinRev 7, one J-O-U-L-Z set.
@@ -84,7 +87,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // wavRev 13 (Nov 2026, the scoring audit): wavRev 12's play and parts; the life that ends the run is free.
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): wavRev 14, the charged shot.
   // wavRev 15 (16 Nov 2026, the Retro overhaul stage 3): larger hit cells. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
-  { type: "wavefront", field: "wavRev", rev: 15, batch: "C" },
+  // wavRev 16 (22 Nov 2026, D5): wavRev 15 with the wider formation. Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's wavRev 16).
+  { type: "wavefront", field: "wavRev", rev: 16, batch: "C" },
   // flipRev 11 (3 Nov 2026): no star pickups; clean time 100, perfect landings 60, double flips 20, flow streak 20 (flip-rev11-check).
   // flipRev 12 (3 Nov 2026): flipRev 11's game dealt only on its proved courses (flip-deal-check).
   // flipRev 13 (15 Nov 2026, the Action overhaul): grace, the retuned parts, its own proved deal (flip-overhaul-check).
@@ -97,7 +101,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // a slip respawns at the last planet caught after a 3 s hold; orbitRev 14's courses and parts; orbit-overhaul-check).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): Orbit deals orbitRev 16 (bigger
   // planets on orbitRev 15's play, courses and parts; orbit-overhaul-check section 9).
-  { type: "orbit", field: "orbitRev", rev: 16, batch: "C" },
+  // orbitRev 17 (22 Nov 2026, D5): the lost flight on orbitRev 16's courses and parts. Changed with Joe's approval, 23 Nov 2026 (routine consequence of
+  // D5's orbitRev 17).
+  { type: "orbit", field: "orbitRev", rev: 17, batch: "C" },
   { type: "balltrack", field: "btRev", rev: 8, batch: "C" },
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the live stamp is 18.
   { type: "swing", field: "swingRev", rev: 18, batch: "D" }, // swingRev 18 (15 Nov 2026): rev 17 on a 14 px body; swingRev 17 (3 Nov 2026): sliding hooks and the clean-swing streak; course 110 + pars 40 + gates 10 + streak 40
@@ -154,7 +160,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // (Ricochet's id) deals ricoRev 3 since 3 Nov 2026 (sky lanterns, mid-ledges, flow; no coins or gold lanterns).
   // ricoRev 4 (15 Nov 2026, the bigger ninja; rev 3's parts). Changed with Joe's approval, 15 Nov 2026 (routine
   // consequence of the Action overhaul).
-  { type: "ricochet", field: "ricoRev", rev: 4, batch: "Action" },
+  // ricoRev 5 (22 Nov 2026, D5): the 30 × 60 ninja. Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's ricoRev 5).
+  { type: "ricochet", field: "ricoRev", rev: 5, batch: "Action" },
 ];
 
 /**

@@ -153,7 +153,9 @@ tasks.push({
     // Sports overhaul's racingPreCircuits, 40.
     // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): the puzzle train's 37 and the arcade
     // train's 14 more (40 less main's 26) make 51.
-    ok(names.size === 51, `51 era switches (${names.size})`);
+    // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's five stamps: ricoPreMid, burstPreSmall, wavPreWide,
+    // skylinePreCount and orbitPreLost), 56. The era count is shared with D1–D4 and D6; whichever merges later re-applies it.
+    ok(names.size === 56, `56 era switches (${names.size})`);
   },
 });
 

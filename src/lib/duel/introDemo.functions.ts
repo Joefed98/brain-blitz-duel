@@ -98,10 +98,10 @@ export const ACTION_DEMO_REVS = {
   swing: SWING_REV_BIG,
   ricochet: MOON_MID_REV,
   bastion: BASTION_REV_DEALT,
-  skyline: SKYLINE_REV_LIVES,
-  orbit: ORBIT_REV_BIG,
+  skyline: SKYLINE_REV_FLOORS, // Changed with Joe's approval, 23 Nov 2026 (D5's skylineRev 12)
+  orbit: ORBIT_REV_LOST, // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17)
 } as const;
-import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG } from "@/lib/arcade/orbit";
+import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION, ORBIT_REV3, ORBIT_REV4, ORBIT_REV_BAND, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, ORBIT_REV_LOST } from "@/lib/arcade/orbit"; // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17: ORBIT_REV_LOST)
 import { BT_BALLS, BT_V7_BALLS, btIsV7Play } from "@/lib/arcade/ballTrack";
 import { minigolfDemoPlays } from "./minigolfDemoRule";
 import { clashPlays3, CLASH_REV_DEPTH } from "@/lib/arcade/colourClash";
@@ -201,7 +201,7 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   if (data.type === "racing" && demo?.puzzle.type === "racing" && demo.puzzle.racingRev !== RACING_REV_DEALT) return null;
   if (data.type === "orbit" && (demo?.input_log.orbitBeltPeriodTicks !== ORBIT_BELT_PERIOD_TICKS || demo?.input_log.orbitBeltRevision !== ORBIT_BELT_REVISION)) return null;
   // Rev3 (scrolling-camera, wider zig-zag world) demos cannot replay as the legacy fixed-camera course, and vice versa.
-  if (data.type === "orbit" && demo?.puzzle.type === "orbit" && (demo.puzzle.orbitRev ?? 0) !== ORBIT_REV3 && demo.puzzle.orbitRev !== ORBIT_REV4 && demo.puzzle.orbitRev !== ORBIT_REV_BAND && demo.puzzle.orbitRev !== ORBIT_REV_TUNED && demo.puzzle.orbitRev !== ORBIT_REV_XP && demo.puzzle.orbitRev !== ORBIT_REV_STD && demo.puzzle.orbitRev !== ORBIT_REV_FUEL && demo.puzzle.orbitRev !== ORBIT_REV_BIG) return null;
+  if (data.type === "orbit" && demo?.puzzle.type === "orbit" && (demo.puzzle.orbitRev ?? 0) !== ORBIT_REV3 && demo.puzzle.orbitRev !== ORBIT_REV4 && demo.puzzle.orbitRev !== ORBIT_REV_BAND && demo.puzzle.orbitRev !== ORBIT_REV_TUNED && demo.puzzle.orbitRev !== ORBIT_REV_XP && demo.puzzle.orbitRev !== ORBIT_REV_STD && demo.puzzle.orbitRev !== ORBIT_REV_FUEL && demo.puzzle.orbitRev !== ORBIT_REV_BIG && demo.puzzle.orbitRev !== ORBIT_REV_LOST) return null;
 
   // The fixed-splitter demo cannot replay the new movable-piece example.
   if (data.type === "laser" && demo?.puzzle.type === "laser" && demo.puzzle.splitterPieces !== 1) return null;
@@ -384,7 +384,9 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   // demo recorded on orbitRev 15 plays (the rule named only 14, so a demo recorded on the stamp rooms deal was refused).
   // orbitRev 16 (stage 3, bigger planets): orbitRev 15's play, drawn with the bigger bodies, so its demo is recorded on 16.
   // A later Orbit stamp moves this line and ACTION_DEMO_REVS.orbit together (scripts/action-demos-check.ts).
-  if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_BIG) return null;
+  // orbitRev 17 (D5, 22 Nov 2026, the lost flight): only a demo recorded on orbitRev 17 plays. Changed with Joe's
+  // approval, 23 Nov 2026 (routine consequence of D5's orbitRev 17).
+  if (data.type === "orbit" && demo?.puzzle.type === "orbit" && demo.puzzle.orbitRev !== ORBIT_REV_LOST) return null;
   // Expansion E6 (25 Oct 2026): Ball Tracker's 13-row board, Gemstone's taller board with goals: each stays stopped
   // until a demo is recorded on its new revision (btRev 7, matchupRev 9). Ball Tracker btRev 8 (the arcade scoring
   // standard, 29 Oct 2026) keeps btRev 7's play exactly (its board shows no score), so a demo recorded on 7 or 8 plays.
