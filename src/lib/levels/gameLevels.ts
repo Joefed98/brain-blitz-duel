@@ -37,7 +37,7 @@ import { BOMB_LEVELS, MAZE_LEVELS, PAIR_LEVELS, SCAN_LEVELS, SPOT_LEVELS, TALLY_
 /** The check proving every Attention level (one answer, legibility, clocks, the human-like Expert solver). */
 const ATTENTION_PROOF = "scripts/attention-levels-check.ts";
 import { ASCEND_LEVELS, BONK_LEVELS, CHAIN_LEVELS, FLASH_LEVELS, PULL_LEVELS, TENFALL_LEVELS } from "./speedLevels";
-import { BEAT_LEVELS_V13, BLOCKFALL_LEVELS_V3, BREAKER_LEVELS, BURST_LEVELS, CROSS_LEVELS, HOVER_LEVELS, PINBALL_LEVELS, RALLY_LEVELS, SNAKE_LEVELS, WAVEFRONT_LEVELS } from "@/lib/arcade/retroLevels";
+import { BEAT_LEVELS_V13, BLOCKFALL_LEVELS_V3, BREAKER_LEVELS, BURST_LEVELS_SMALL, CROSS_LEVELS, HOVER_LEVELS, PINBALL_LEVELS, RALLY_LEVELS, SNAKE_LEVELS, WAVEFRONT_LEVELS_WIDE } from "@/lib/arcade/retroLevels";
 
 /** How a level's boards are proven to have exactly one solution. */
 export type OneSolutionProof = { proof: string } | { open: string };
@@ -494,14 +494,14 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   breaker: retroGameLevels(BREAKER_LEVELS),
   hover: retroGameLevels(HOVER_LEVELS),
   pinball: retroGameLevels(PINBALL_LEVELS),
-  wavefront: retroGameLevels(WAVEFRONT_LEVELS),
+  wavefront: retroGameLevels(WAVEFRONT_LEVELS_WIDE),
   cross: retroGameLevels(CROSS_LEVELS),
   snake: retroGameLevels(SNAKE_LEVELS),
   // blockfallRev 3 (D5's ladder, 23 Nov 2026): the levels' own table (blockfallRev 2 rounds replay on BLOCKFALL_LEVELS).
   blockfall: retroGameLevels(BLOCKFALL_LEVELS_V3),
   // beatRev 13 (D5's ladder, 23 Nov 2026): the lanes and each level's own full lines (beatRev 12 rounds replay on BEAT_LEVELS).
   beat: retroGameLevels(BEAT_LEVELS_V13),
-  burst: retroGameLevels(BURST_LEVELS),
+  burst: retroGameLevels(BURST_LEVELS_SMALL),
   rally: retroGameLevels(RALLY_LEVELS),
   // Roofbound (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): the sim's FLIP_LEVEL_RULES, mirrored (flip-levels-check).
   flip: {
