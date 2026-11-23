@@ -7,8 +7,8 @@
  * compares without writing.
  *
  *   Hard    Normal's 40-card bank seeds (FC_DEALS_V4, in order) on 3 free cells: the first FC_V6_BANK_SIZE solved.
- *   Expert  the Normal-era 52-card bank seeds (FC_DEALS, in order) on 2 free cells: the first FC_V6_BANK_SIZE solved in
- *           FC_V6_EXPERT_PAR_MAX moves or fewer ("the shortest two-cell solutions").
+ *   Expert  the Normal-era 52-card bank seeds (FC_DEALS, in order) dealt as 48 cards (Ace to Queen, the level's
+ *           topRank) on 2 free cells: the first FC_V6_BANK_SIZE solved in FC_V6_EXPERT_PAR_MAX moves or fewer.
  *
  *   bun scripts/freecell-level-bank-v6.ts [--check] [--level=hard|expert] [--part=k/n]   (parts: seeds split by index;
  *   bun scripts/freecell-level-bank-v6.ts --merge=n                                      then merge the n part files)
@@ -64,7 +64,7 @@ function render(banks: Record<L, Entry[]>): { data: string; sols: string } {
  * Free Cell's D6 level deal banks (freecellRev 6, 23 Nov 2026), written by scripts/freecell-level-bank-v6.ts (do not
  * edit by hand): [deal seed, par] for each deal, solved by the bank solver on the level's own start; par is the fewest
  * moves it found (auto moves home not counted). A level puzzle's seed is its index in its level's bank. Hard: Normal's
- * 40 cards (Ace to 10) on 3 free cells. Expert: 52 cards on 2 free cells, solved in ${FC_V6_EXPERT_PAR_MAX} moves or fewer.
+ * 40 cards (Ace to 10) on 3 free cells. Expert: 48 cards (Ace to Queen) on 2 free cells, solved in ${FC_V6_EXPERT_PAR_MAX} moves or fewer.
  */
 ${LEVELS.map((l) => `export const ${name(l)}: readonly (readonly [number, number])[] = [\n${banks[l].map((e) => `  [${e.seed}, ${e.sol.length}],`).join("\n")}\n];`).join("\n\n")}
 `;

@@ -16,7 +16,7 @@ import {
   fhCheckpoint, fhColumn, fhPickedHand, fhRowHand, fhTotals, FH_ROWS, FH_SLOTS, fiveHandsGameFor, fiveHandsLevelGame, FH_CHECKPOINT_INTERVAL, FH_CHECKPOINT_KEYS, type FhCheckpoint, type FhState,
 } from "@/lib/arcade/cards/fiveHands";
 import {
-  pyCheckpoint, pyramidGameFor, pyramidLevelGame, PY_CHECKPOINT_INTERVAL, PY_CHECKPOINT_KEYS, type PyCheckpoint, type PyState,
+  pyCheckpoint, pyramidGameFor, pyramidLevelGame, PY_CHECKPOINT_INTERVAL, PY_REV_ROWS, PY_CHECKPOINT_KEYS, type PyCheckpoint, type PyState,
 } from "@/lib/arcade/cards/pyramid";
 import {
   gsCheckpoint, golfSolGameFor, GS_CHECKPOINT_INTERVAL, GS_CHECKPOINT_KEYS, type GsCheckpoint, type GsState,
@@ -60,6 +60,8 @@ const pyRun = makeArcadeRun<PyState, PyCheckpoint>({ tag: "pyramid", game: pyram
 const pyRun2 = makeArcadeRun<PyState, PyCheckpoint>({ tag: "pyramid", game: pyramidGameFor(2), checkpoint: pyCheckpoint, keys: PY_CHECKPOINT_KEYS, interval: PY_CHECKPOINT_INTERVAL });
 /** pyramidRev 3 (a dead end waits for Undo): the same wire format. */
 const pyRun3 = makeArcadeRun<PyState, PyCheckpoint>({ tag: "pyramid", game: pyramidGameFor(3), checkpoint: pyCheckpoint, keys: PY_CHECKPOINT_KEYS, interval: PY_CHECKPOINT_INTERVAL });
+/** pyramidRev 4 (D6's Normal: Speed full by 22 s): the same wire format. */
+const pyRun4 = makeArcadeRun<PyState, PyCheckpoint>({ tag: "pyramid", game: pyramidGameFor(4), checkpoint: pyCheckpoint, keys: PY_CHECKPOINT_KEYS, interval: PY_CHECKPOINT_INTERVAL });
 const gsRun = makeArcadeRun<GsState, GsCheckpoint>({ tag: "golfsol", game: golfSolGameFor(1), checkpoint: gsCheckpoint, keys: GS_CHECKPOINT_KEYS, interval: GS_CHECKPOINT_INTERVAL });
 const mgRun = makeArcadeRun<MgState, MgCheckpoint>({ tag: "muggins", game: mugginsGameFor(1), checkpoint: mgCheckpoint, keys: MG_CHECKPOINT_KEYS, interval: MG_CHECKPOINT_INTERVAL });
 
@@ -220,16 +222,19 @@ export interface PyramidResult extends FlatReplay<PyState, PyCheckpoint> {
   resets: number;
 }
 
-const pyLevelRuns = new Map<LevelName, ReturnType<typeof makeArcadeRun<PyState, PyCheckpoint>>>();
-function pyLevelRun(level: LevelName) {
-  let r = pyLevelRuns.get(level);
-  if (!r) pyLevelRuns.set(level, (r = makeArcadeRun<PyState, PyCheckpoint>({ tag: "pyramid", game: pyramidLevelGame(level), checkpoint: pyCheckpoint, keys: PY_CHECKPOINT_KEYS, interval: PY_CHECKPOINT_INTERVAL })));
+const pyLevelRuns = new Map<string, ReturnType<typeof makeArcadeRun<PyState, PyCheckpoint>>>();
+/** A level's replay (`rev` 4: D6's rows, pyramidRev 4; earlier level rounds on rev 3's level game). */
+function pyLevelRun(level: LevelName, rev?: number | null) {
+  const r4 = (rev ?? 1) >= PY_REV_ROWS;
+  const key = `${level}:${r4 ? 4 : 3}`;
+  let r = pyLevelRuns.get(key);
+  if (!r) pyLevelRuns.set(key, (r = makeArcadeRun<PyState, PyCheckpoint>({ tag: "pyramid", game: pyramidLevelGame(level, r4 ? PY_REV_ROWS : null), checkpoint: pyCheckpoint, keys: PY_CHECKPOINT_KEYS, interval: PY_CHECKPOINT_INTERVAL })));
   return r;
 }
 
 /** The single place a Pyramid score is worked out (a level deal on its level's game). */
 export function replayPyramidRun(seed: number, raw: string, rev?: number | null, level?: string | null): PyramidResult {
-  const r = (isLevelName(level) ? pyLevelRun(level) : (rev ?? 1) >= 3 ? pyRun3 : (rev ?? 1) >= 2 ? pyRun2 : pyRun).replay(seed, raw);
+  const r = (isLevelName(level) ? pyLevelRun(level, rev) : (rev ?? 1) >= 4 ? pyRun4 : (rev ?? 1) >= 3 ? pyRun3 : (rev ?? 1) >= 2 ? pyRun2 : pyRun).replay(seed, raw);
   const s = r.state;
   return { ...r, removed: s.removed, ppPairs: s.ppPairs, kings: s.kings, finished: s.ended === 1, finishSeconds: s.finishTick / 60, undos: s.undos, resets: s.resets };
 }

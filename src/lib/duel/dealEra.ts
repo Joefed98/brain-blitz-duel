@@ -133,6 +133,8 @@ export const DEAL_PINS = {
   tripeaksPreEase: { texts: true },
   /** sports.server.ts: Apex racingRev 4, before D6's Normal scoring stamp (pace and clean sectors within reach). */
   racingPreFive: { texts: true },
+  /** arcade.server.ts: Thirteen pyramidRev 3, before D6's Normal scoring stamp (Speed full by 22 s, 23 Nov 2026). */
+  pyramidPreSpeed22: { texts: false },
   /**
    * D6's sixteen games' level deals (23 Nov 2026): every level deal as on main 7e25a4d0, before D6's levels (Five Hands
    * fiveHandsRev 3's levels on any seed, …). Checks written for the levels before pin it.

@@ -34,6 +34,11 @@ import * as MJ from "../src/lib/arcade/mahjong";
 import { encodeMahjongRun } from "../src/lib/duel/mahjong";
 import { MAHJONG_EXPERT_DEALS, MAHJONG_HARD_DEALS } from "../src/lib/duel/mahjongExpertDeals.server";
 import { tripeaksParSolution } from "./cards/solutions";
+import * as PY from "../src/lib/arcade/cards/pyramid";
+import { rankOf } from "../src/lib/arcade/cards/cards";
+import { PY_LAYOUTS } from "../src/lib/arcade/cards/pyramidLayout";
+import { pyButtonsOf, pyCardBox, PY_PANEL_Y, PY_WORLD_W } from "../src/lib/arcade/cards/pyramid.renderer";
+import { encodePyramidRun } from "../src/lib/duel/cards";
 
 console.error = () => {};
 let failed = 0;
@@ -83,8 +88,8 @@ console.log("1. The rules: the lever and figures, the registry, no hints on Hard
   check(LEVELS.map((l) => `${FH.FH_LEVEL_RULES_V4[l].seconds}/${FH.FH_LEVEL_RULES_V4[l].full}`).join(" ") === "90/94 42/100 30/104", "fivehands: 90 s / 94, 42 s / 100, 30 s / 104 hand points");
   check(FH.FH_LEVEL_RULES_V4.easy.tableRev === FH.FH_REV_FLAT && FH.FH_LEVEL_RULES_V4.hard.tableRev === FH.FH_TABLE_HARD && FH.FH_LEVEL_RULES_V4.expert.tableRev === FH.FH_TABLE_EXPERT, "fivehands: today's table on Easy, the Hard and Expert tables above it");
   // Free Cell: free cells 5 / 4 (Normal) / 3 / 2.
-  check(LEVELS.map((l) => `${FC.FC_LEVEL_RULES_V6[l].cells}x${4 * FC.FC_LEVEL_RULES_V6[l].topRank}`).join(" ") === "5x32 3x40 2x52", "freecell: 5 cells on 32 cards, 3 on 40, 2 on 52");
-  check(LEVELS.map((l) => `${FC.FC_LEVEL_RULES_V6[l].parFullEighths}/${FC.FC_LEVEL_RULES_V6[l].parZeroQuarters}/${FC.FC_LEVEL_RULES_V6[l].speedFullS}`).join(" ") === "9/8/60 9/6/33 10/6/52", "freecell: par and speed figures per level");
+  check(LEVELS.map((l) => `${FC.FC_LEVEL_RULES_V6[l].cells}x${4 * FC.FC_LEVEL_RULES_V6[l].topRank}`).join(" ") === "5x32 3x40 2x48", "freecell: 5 cells on 32 cards, 3 on 40, 2 on 48");
+  check(LEVELS.map((l) => `${FC.FC_LEVEL_RULES_V6[l].parFullEighths}/${FC.FC_LEVEL_RULES_V6[l].parZeroQuarters}/${FC.FC_LEVEL_RULES_V6[l].speedFullS}`).join(" ") === "9/8/60 9/6/33 10/6/45", "freecell: par and speed figures per level");
   check(FC.FC_LEVEL_RULES_V6.expert.undoLimit === 3 && !FC.FC_LEVEL_RULES_V6.hard.undoFree && FC.FC_LEVEL_RULES_V6.easy.undoFree, "freecell: Easy's undo free, Hard's a move, Expert 3");
   // Summit: seconds on the clock.
   check(LEVELS.map((l) => `${TP.TP_LEVEL_RULES_V4[l].seconds}/${TP.TP_LEVEL_RULES_V4[l].stockTurns}/${TP.TP_LEVEL_RULES_V4[l].maxPar}`).join(" ") === "90/23/12 45/18/13 32/14/11", "tripeaks: 90 s whole stock par ≤ 12, 45 s 18 turns par ≤ 13, 32 s 14 turns par ≤ 11");
@@ -270,6 +275,69 @@ console.log("5. Mahjong mahjongRev 3: tiles in the stack, the layouts on the sam
       if (gradeAnswer(p, w.raw, 0).score === 200) at200++;
     }
     check(at200 === 24, `mahjong ${l}: 24 dealt boards' build orders at a human pace score 200 through the grade (${at200})`);
+  }
+}
+
+/* ---------------------------------------------------------------- 6. Thirteen */
+console.log("6. Thirteen pyramidRev 4: the pyramid's rows, the layouts, 200 at a human pace");
+{
+  const R = PY.PY_LEVEL_RULES_V4;
+  check(LEVELS.map((l) => `${R[l].rows}/${PY.pyCardsIn(R[l].rows)}/${52 - PY.pyCardsIn(R[l].rows)}`).join(" ") === "6/21/31 8/36/16 9/45/7", "pyramid: 6 rows (21 cards, 31 in the stock), 8 (36, 16), 9 (45, 7)");
+  check(LEVELS.map((l) => `${R[l].passes}/${R[l].kingsList.join("+")}/${R[l].speedFullS}/${R[l].pairsFull}`).join(" ") === "3/1+3/20/9 1/2+4/35/16 1/3/42/21", "pyramid: passes, Kings, speed and pairs figures per level");
+  for (const l of LEVELS) {
+    const r = R[l];
+    const cards = PY.pyCardsIn(r.rows);
+    check(r.kingsList.every((k) => (cards - k) % 2 === 0 && (cards - k) / 2 >= r.pairsFull), `pyramid ${l}: every Kings count leaves the rest in pairs, at least ${r.pairsFull}`);
+    const reg2 = reg.pyramid!.levels[l]!.settings;
+    check(reg2.rows === r.rows && reg2.cards === cards && reg2.stock === 52 - cards && reg2.passes === r.passes && reg2.speedFullS === r.speedFullS && reg2.pairsFull === r.pairsFull && reg2.glow === r.glow, `pyramid ${l}: the registry mirrors the sim`);
+    check((r.hintLimit === 0) === (l !== "easy") && r.glow === (l === "easy"), `pyramid ${l}: ${l === "easy" ? "the glow and free hints" : "no glow and no hints"}`);
+    // The layout: every card inside the world and above the panel; on a 375 × 667 phone the world is drawn 317 px wide.
+    const lay = PY_LAYOUTS[r.rows]!;
+    let inside = true;
+    for (let i = 0; i < cards; i++) {
+      const b = pyCardBox(i, r.rows);
+      if (b.x < 0 || b.y < 40 || b.x + lay.cardW > PY_WORLD_W || b.y + lay.cardH > PY_PANEL_Y - 12) inside = false;
+    }
+    check(inside, `pyramid ${l}: every card inside the world and 12 px above the panel`);
+    check((lay.cardW * 317) / PY_WORLD_W >= 36 && lay.stepX < lay.cardW, `pyramid ${l}: cards ${((lay.cardW * 317) / PY_WORLD_W).toFixed(1)} px wide on a 375 × 667 phone (at least 36), each a little over its neighbour`);
+    const game = PY.pyramidLevelGame(l, PY.PY_REV_ROWS);
+    const s0 = game.init(5);
+    check(s0.rows === r.rows && s0.rev === 4 && s0.gone.length === cards && s0.pile.length === 52 - cards && s0.passes === r.passes, `pyramid ${l}: the deal on its rows, the stock the rest of the pack`);
+    check(PY.pyStockPileOf(s0) === cards && PY.pyWastePileOf(s0) === cards + 1 && (game.inputRanges ?? []).some((g: any) => g.k === PY.PY_INPUT_TAP && g.a?.[1] === cards + 1), `pyramid ${l}: the stock and waste taps are ${cards} and ${cards + 1}`);
+    check((pyButtonsOf(s0).some((b) => b.kind === PY.PY_INPUT_HINT)) === (l === "easy"), `pyramid ${l}: ${l === "easy" ? "the Hint button" : "no Hint button"}`);
+    if (l !== "easy") check(run(game, 5, [mv(PY.PY_INPUT_HINT)]).hints === 0, `pyramid ${l}: a hint input counts nothing`);
+    for (let n = 0; n < 6; n++) {
+      const p = dealAt("pyramid", l, n);
+      check(p.pyramidRev === PY.PY_REV_ROWS && p.level === l, `pyramid ${l} ${n}: pyramidRev 4, the level stamped`);
+    }
+    // 200 at a human pace: each dealt board's witness (proved in the sim), an input every 24 ticks, through the grade.
+    let at200 = 0;
+    let kingsOk = true;
+    for (let n = 0; n < 24; n++) {
+      const p = dealAt("pyramid", l, n);
+      const deal = PY.pyLevelDeal(p.seed, l, PY.PY_REV_ROWS);
+      if (!r.kingsList.includes(deal.tab.filter((c) => rankOf(c) === 13).length) || deal.tab.length !== PY.pyCardsIn(r.rows) || deal.stock.length !== 52 - PY.pyCardsIn(r.rows)) kingsOk = false;
+      const w = play(game, p.seed, deal.witness.map((a) => mv(PY.PY_INPUT_TAP, a)), GAP, PY.pyCheckpoint, encodePyramidRun);
+      if (gradeAnswer(p, w.raw, 0).score === 200) at200++;
+    }
+    check(at200 === 24, `pyramid ${l}: 24 dealt boards' witnesses at a human pace score 200 through the grade (${at200})`);
+    check(kingsOk, `pyramid ${l}: each deal holds ${r.kingsList.join(" or ")} Kings in the pyramid, the other ${52 - PY.pyCardsIn(r.rows)} cards in the stock`);
+  }
+  // Undo on the tallest pyramid: the two-word position packs and unpacks exactly.
+  const g9 = PY.pyramidLevelGame("expert", PY.PY_REV_ROWS);
+  const d9 = PY.pyLevelDeal(11, "expert", PY.PY_REV_ROWS);
+  const taps = d9.witness.slice(0, 12).map((a) => mv(PY.PY_INPUT_TAP, a));
+  const before = run(g9, 11, taps.slice(0, 11));
+  const undone = run(g9, 11, [...taps, mv(PY.PY_INPUT_UNDO)]);
+  check(JSON.stringify(undone.gone) === JSON.stringify(before.gone) && undone.removed === before.removed && undone.pos === before.pos, "pyramid expert: Undo restores the 45-card position exactly");
+  check(dealAt("pyramid", "normal", 0).pyramidRev === PY.PY_REV && !("level" in dealAt("pyramid", "normal", 0)), "pyramid normal: pyramidRev 4, no level, seven rows");
+  check(PY.pyRowsOf(PY.pyramidGameFor(PY.PY_REV).init(5)) === 7 && !("rows" in PY.pyramidGameFor(PY.PY_REV).init(5)), "pyramid normal: a seven-row state carries no rows field");
+  const was = pinPreD6Levels(true);
+  try {
+    const p = dealAt("pyramid", "hard", 0);
+    check(p.pyramidRev === 3 && PY.pyramidLevelGame("hard", p.pyramidRev).init(p.seed).gone.length === 28, "d6PreLevels: Thirteen's levels before (pyramidRev 3, 28 cards)");
+  } finally {
+    pinPreD6Levels(was);
   }
 }
 

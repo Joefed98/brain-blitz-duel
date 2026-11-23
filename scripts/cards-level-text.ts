@@ -13,7 +13,7 @@ import { FC_LEVEL_RULES_V6, FC_REV_PAR98, fcLevelSpec } from "../src/lib/arcade/
 import { MAHJONG_LEVEL_RULES_V3, MAHJONG_REV_LEVELS, mahjongLevelSpec } from "../src/lib/arcade/mahjong";
 import { TP_LEVEL_RULES_V4, TP_REV_EASE, TP_STOCK_TURNS, tpLevelSpec } from "../src/lib/arcade/cards/tripeaks";
 import { FH_LEVEL_RULES_V4, FH_REV_128, FH_REV_FLAT, FH_TURNS, FH_V3_TABLE_TEXT, fhLevelSpec, fhTableText } from "../src/lib/arcade/cards/fiveHands";
-import { PY_LEVEL_RULES, pyLevelSpec } from "../src/lib/arcade/cards/pyramid";
+import { PY_LEVEL_RULES_V4, PY_REV_ROWS, pyCardsIn, pyLevelSpec } from "../src/lib/arcade/cards/pyramid";
 
 const OUT = "src/lib/levels/cardLevelText.data.ts";
 type L = "easy" | "hard" | "expert";
@@ -75,16 +75,19 @@ for (const l of LV) {
     intro: `Make poker hands in five rows, then pick a column; 200 at ${fh.full} hand points. Up to 200.`,
     score: stdHelp(fhLevelSpec(l, FH_REV_128)),
   };
-  const py = PY_LEVEL_RULES[l];
+  // D6 (23 Nov 2026): pyramidRev 4's rows, the stock left and the Kings.
+  const py = PY_LEVEL_RULES_V4[l];
+  const pyCards = pyCardsIn(py.rows);
+  const kings = py.kingsList.length === 1 ? `${py.kingsList[0]}` : py.kingsList.join(" or ");
   text.pyramid[l] = {
     goal: "Clear the pyramid in pairs that add to 13.",
     how: [
-      `${py.passes === 1 ? "One pass" : `${py.passes} passes`} through the stock; ${py.kingsMin === py.kingsMin + py.kingsSpan - 1 ? py.kingsMin : `${py.kingsMin}–${py.kingsMin + py.kingsSpan - 1}`} Kings in the pyramid${l === "expert" ? "; the hardest deals" : l === "hard" ? "; harder deals" : ""}.`,
-      py.glow ? "A picked card's partners glow." : "No glow: find each card's partner yourself.",
-      hintLine(py.hintCost, py.hintLimit, l === "easy"),
+      `${py.rows} rows: ${pyCards} cards, ${52 - pyCards} in the stock; ${py.passes === 1 ? "one pass" : `${py.passes} passes`} through it; ${kings} Kings in the pyramid.`,
+      ...(py.glow ? ["A picked card's partners glow."] : []),
+      ...(py.hintLimit === 0 ? ["No glow and no hints: find each card's partner yourself."] : [hintLine(py.hintCost, py.hintLimit, l === "easy")]),
     ],
-    intro: "Clear the pyramid in pairs to 13; bonuses for a clear and speed. Up to 200.",
-    score: stdHelp(pyLevelSpec(l)),
+    intro: `Clear the ${py.rows}-row pyramid in pairs to 13; bonuses for a clear and speed. Up to 200.`,
+    score: stdHelp(pyLevelSpec(l, PY_REV_ROWS)),
   };
 }
 void FH_V3_TABLE_TEXT;

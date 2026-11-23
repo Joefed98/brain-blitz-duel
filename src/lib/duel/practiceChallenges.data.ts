@@ -489,10 +489,10 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("minesweeper", "Light feet", "Clear the board without hitting a mine.", "C", "clean", false, all(full("Safe squares", 150), full("No mines hit", 20))),
   ch("minesweeper", "Sweep", "Clear the board within 37 s.", "C", "speed", false, part("Speed", 30)),
   ch("minesweeper", "Bomb disposal", "Clear an Expert field.", "E", "finish", true, part("Safe squares", 150)),
-  // Thirteen (pyramid): pyramid cards 140 + cleared 15 + speed 25 (20 s) + pyramid pairs 20.
+  // Thirteen (pyramid): pyramid cards 140 + cleared 15 + speed 25 (22 s since pyramidRev 4, D6; 20 s before) + pyramid pairs 20.
   ch("pyramid", "Lucky thirteen", "Clear the pyramid.", "C", "finish", false, part("Cleared", 15)),
   ch("pyramid", "Paired up", "Make ten pairs from two pyramid cards.", "C", "combo", false, part("Pyramid pairs", 20)),
-  ch("pyramid", "Unlucky for some", "Clear the pyramid within 20 s.", "C", "speed", false, part("Speed", 25)),
+  ch("pyramid", "Unlucky for some", "Clear the pyramid within 22 s.", "C", "speed", false, part("Speed", 25)),
   // Summit (tripeaks): cards 105 + peak tops 30 + longest run 10 + clear 10 + stock par 20 + speed 25 (20 s).
   ch("tripeaks", "Peak bagger", "Clear all three peak tops.", "C", "fullset", false, part("Peak tops", 30)),
   ch("tripeaks", "Up and down", "Make a run of six cards.", "C", "streak", false, part("Longest run", 10)),

@@ -2,7 +2,7 @@ import { useMemo, useRef } from "react";
 
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { confirmHit } from "@/lib/arcade/cards/cardButtons.renderer";
-import { PY_CHECKPOINT_INTERVAL, PY_INPUT_RESET, PY_INPUT_TAP, PY_PAIR_FULL, PY_REV, pyApply, pyCheckpoint, pyDeal, type PyState } from "@/lib/arcade/cards/pyramid";
+import { PY_CHECKPOINT_INTERVAL, PY_INPUT_RESET, PY_INPUT_TAP, PY_REV, pyApply, pyCheckpoint, pyDeal, pyPairsFullFor, type PyState } from "@/lib/arcade/cards/pyramid";
 import { drawPyramid, pyButtonHit, pyHit, pyNewView, pyramidArtGame, PY_BG, PY_WORLD_H, PY_WORLD_W } from "@/lib/arcade/cards/pyramid.renderer";
 import { cardsFill } from "@/lib/arcade/cards/cardsFill.renderer";
 import { withCardsLook } from "@/lib/arcade/cards/cards.renderer";
@@ -125,10 +125,12 @@ export function pyramidLine(r: { removed: number; finished: boolean; finishSecon
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "pyramid") return null;
   const result = replayPyramidRun(puzzle.seed, myAnswer ?? "", puzzle.pyramidRev, levelOfPuzzle(puzzle));
+  // D6's taller pyramids (pyramidRev 4) fill the pairs part at their own figure.
+  const pairsFull = pyPairsFullFor(puzzle.pyramidRev, levelOfPuzzle(puzzle));
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">
       <p className="whitespace-normal break-words text-center font-mono text-base font-bold text-foreground">{pyramidLine(result)}</p>
-      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{Math.min(result.ppPairs, PY_PAIR_FULL)} of {PY_PAIR_FULL} pyramid pairs · {result.kings} Kings</p>
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{Math.min(result.ppPairs, pairsFull)} of {pairsFull} pyramid pairs · {result.kings} Kings</p>
       <p className="shrink-0 text-center font-mono text-base text-muted-foreground">Same deal for everyone</p>
     </div>
   );

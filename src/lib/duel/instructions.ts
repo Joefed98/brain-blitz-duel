@@ -1496,7 +1496,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "One pass:", detail: "the stock is turned once; a waste card is buried by the next draw, so free its partner in time.", normalOnly: true },
         { action: "Undo and Reset", detail: "at the bottom take back the last action or go back to the deal (Reset asks first); the clock runs on.", helpOnly: true },
         { action: "Stuck?", detail: "With no move left, Undo or Reset to try another order; the run carries on to the buzzer.", helpOnly: true },
-        { action: "Pairs of two pyramid cards", detail: "score extra, 2 each, up to ten.", helpOnly: true },
+        // D6 (23 Nov 2026): Normal only; pyramidRev 4's taller levels fill the pairs part at their own figure (their score line).
+        { action: "Pairs of two pyramid cards", detail: "score extra, 2 each, up to ten.", helpOnly: true, normalOnly: true },
         { action: "Every deal", detail: "can be cleared with pyramid pairs and Kings alone, but only in the right order: look before you pair.", helpOnly: true },
         { action: "Same deal", detail: "for everyone.", helpOnly: true },
       ],

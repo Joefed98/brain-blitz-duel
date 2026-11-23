@@ -10,7 +10,9 @@
  *
  *   Free Cell freecellRev 6: rev 5's game; Par moves full within an eighth over par (was at par).
  *   Summit tripeaksRev 4: rev 3's game; Longest run full at 6, Stock par within par + 8, Speed by 25 s.
- * Each stamp's era pin (fivehandsPre128, poolPreFifth, tiltPreThree, freecellPrePar98, tripeaksPreEase) deals the stamp before it.
+ *   Thirteen pyramidRev 4: rev 3's game; Speed full by 22 s (was 20 s).
+ * Each stamp's era pin (fivehandsPre128, poolPreFifth, tiltPreThree, freecellPrePar98, tripeaksPreEase, pyramidPreSpeed22)
+ * deals the stamp before it.
  *
  *   bun scripts/d6-normal-stamps-check.ts
  */
@@ -35,6 +37,7 @@ import { POOL_HUMAN_WAIT } from "./pool-bank";
 import { FC_REV, FC_REV_PAR98, freecellGameFor, freecellStdParts } from "../src/lib/arcade/cards/freecell";
 import { TP_REV, TP_REV_EASE, TP_V4_PAR_SLACK, TP_V4_RUN_FULL, TP_V4_SPEED_FULL_S, tripeaksGameFor, tripeaksStdParts } from "../src/lib/arcade/cards/tripeaks";
 import { playDealt } from "./d6-ladder-lib";
+import { PY_REV, PY_REV_D6, PY_SPEED_FULL_S, PY_STD_SPEC, PY_V4_SPEED_FULL_S, pyramidGameFor, pyramidStdParts } from "../src/lib/arcade/cards/pyramid";
 
 console.error = () => {};
 let checks = 0;
@@ -199,6 +202,26 @@ console.log("5. Summit tripeaksRev 4: run full at 6, stock par within par + 8, s
     const r = await playDealt("tripeaks", deal("tripeaks", n), "elite");
     const ps = tripeaksStdParts(r.state)!;
     ok(r.state.rev === 4 && r.score === Math.max(1, Math.min(200, ps.reduce((a, p) => a + p.points, 0))), `tripeaks: deal ${n}'s elite run scores its rev 4 parts through the server (${r.score})`);
+  }
+}
+
+console.log("6. Thirteen pyramidRev 4: Speed full by 22 s");
+{
+  ok(PY_REV === 4 && PY_REV_D6 === 4 && PY_V4_SPEED_FULL_S === 22 && PY_SPEED_FULL_S === 20, "pyramid: rooms deal pyramidRev 4 (speed full by 22 s; 20 s before)");
+  for (let n = 0; n < 6; n++) ok(deal("pyramid", n).pyramidRev === 4 && !("level" in deal("pyramid", n)), `pyramid: Normal deal ${n} is pyramidRev 4, no level`);
+  ok(pinned("pyramidPreSpeed22", () => deal("pyramid", 0).pyramidRev) === 3, "pyramid: the era pin pyramidPreSpeed22 deals pyramidRev 3");
+  ok(LIVE_BANDS.pyramid.rev === 4 && LIVE_BANDS.pyramid.std === PY_STD_SPEC && PY_STD_SPEC.rev === 4 && /within 22 s/.test(PY_STD_SPEC.parts.find((p) => p.key === "speed")!.how), "pyramid: LIVE_BANDS lists pyramidRev 4 with its spec (speed within 22 s)");
+  for (const seed of [0, 7, 99]) ok(JSON.stringify({ ...pyramidGameFor(4).init(seed), rev: 3 }) === JSON.stringify(pyramidGameFor(3).init(seed)), `pyramid: deal ${seed}'s rev 4 opening is rev 3's exactly`);
+  const b = pyramidGameFor(4).init(5);
+  const parts = (o: Partial<typeof b>, rev = 4) => Object.fromEntries(pyramidStdParts({ ...b, rev, acted: 1, ...o } as typeof b)!.map((p) => [p.key, p.points]));
+  const won = { ended: 1, removed: 28, ppPairs: 10 };
+  ok(parts({ ...won, finishTick: 22 * 60 }).speed === 25 && parts({ ...won, finishTick: 22 * 60 + 60 }).speed < 25 && parts({ ...won, finishTick: 90 * 60 }).speed === 0, "pyramid rev 4: speed full by 22 s, less after, 0 at the buzzer");
+  ok(parts({ ...won, finishTick: 21 * 60 }, 3).speed < 25 && parts({ ...won, finishTick: 20 * 60 }, 3).speed === 25, "pyramid rev 3: speed full by 20 s, as before");
+  ok(JSON.stringify(parts({ removed: 20, ppPairs: 7 })) === JSON.stringify(parts({ removed: 20, ppPairs: 7 }, 3)), "pyramid: an unfinished run scores the same on rev 4 as on rev 3");
+  for (let n = 0; n < 4; n++) {
+    const r = await playDealt("pyramid", deal("pyramid", n), "elite");
+    const ps = pyramidStdParts(r.state)!;
+    ok(r.state.rev === 4 && r.score === Math.max(1, Math.min(200, ps.reduce((a, p) => a + p.points, 0))), `pyramid: deal ${n}'s elite run scores its rev 4 parts through the server (${r.score})`);
   }
 }
 

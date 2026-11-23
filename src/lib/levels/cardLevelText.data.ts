@@ -137,32 +137,30 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
     "easy": {
       "goal": "Clear the pyramid in pairs that add to 13.",
       "how": [
-        "3 passes through the stock; 3–4 Kings in the pyramid.",
+        "6 rows: 21 cards, 31 in the stock; 3 passes through it; 1 or 3 Kings in the pyramid.",
         "A picked card's partners glow.",
         "Hints are free: the Hint button lights one good move, and it lights by itself after 8 s without a move."
       ],
-      "intro": "Clear the pyramid in pairs to 13; bonuses for a clear and speed. Up to 200.",
-      "score": "Pyramid cards: remove the 28 pyramid cards, each worth the same, up to 140. Cleared: remove all 28, up to 15. Speed: clear it within 20 s for all of it, falling to 0 at the buzzer, up to 25. Pyramid pairs: 2 for each pair made of two pyramid cards, up to 20. Total 200."
+      "intro": "Clear the 6-row pyramid in pairs to 13; bonuses for a clear and speed. Up to 200.",
+      "score": "Pyramid cards: remove the 21 pyramid cards, each worth the same, up to 140. Cleared: remove all 21, up to 15. Speed: clear it within 20 s for all of it, falling to 0 at the buzzer, up to 25. Pyramid pairs: pairs made of two pyramid cards, all of it at 9, up to 20. Total 200."
     },
     "hard": {
       "goal": "Clear the pyramid in pairs that add to 13.",
       "how": [
-        "One pass through the stock; 2–3 Kings in the pyramid; harder deals.",
-        "No glow: find each card's partner yourself.",
-        "Hints: the Hint button lights one good move, 5 points each."
+        "8 rows: 36 cards, 16 in the stock; one pass through it; 2 or 4 Kings in the pyramid.",
+        "No glow and no hints: find each card's partner yourself."
       ],
-      "intro": "Clear the pyramid in pairs to 13; bonuses for a clear and speed. Up to 200.",
-      "score": "Pyramid cards: remove the 28 pyramid cards, each worth the same; each hint costs 5, up to 140. Cleared: remove all 28, up to 15. Speed: clear it within 20 s for all of it, falling to 0 at the buzzer, up to 25. Pyramid pairs: 2 for each pair made of two pyramid cards, up to 20. Total 200."
+      "intro": "Clear the 8-row pyramid in pairs to 13; bonuses for a clear and speed. Up to 200.",
+      "score": "Pyramid cards: remove the 36 pyramid cards, each worth the same, up to 140. Cleared: remove all 36, up to 15. Speed: clear it within 26 s for all of it, falling to 0 at the buzzer, up to 25. Pyramid pairs: pairs made of two pyramid cards, all of it at 16, up to 20. Total 200."
     },
     "expert": {
       "goal": "Clear the pyramid in pairs that add to 13.",
       "how": [
-        "One pass through the stock; 3 Kings in the pyramid; the hardest deals.",
-        "No glow: find each card's partner yourself.",
-        "One hint this round: the Hint button lights one good move."
+        "9 rows: 45 cards, 7 in the stock; one pass through it; 3 Kings in the pyramid.",
+        "No glow and no hints: find each card's partner yourself."
       ],
-      "intro": "Clear the pyramid in pairs to 13; bonuses for a clear and speed. Up to 200.",
-      "score": "Pyramid cards: remove the 28 pyramid cards, each worth the same, up to 140. Cleared: remove all 28, up to 15. Speed: clear it within 20 s for all of it, falling to 0 at the buzzer, up to 25. Pyramid pairs: 2 for each pair made of two pyramid cards, up to 20. Total 200."
+      "intro": "Clear the 9-row pyramid in pairs to 13; bonuses for a clear and speed. Up to 200.",
+      "score": "Pyramid cards: remove the 45 pyramid cards, each worth the same, up to 140. Cleared: remove all 45, up to 15. Speed: clear it within 32 s for all of it, falling to 0 at the buzzer, up to 25. Pyramid pairs: pairs made of two pyramid cards, all of it at 21, up to 20. Total 200."
     }
   }
 };

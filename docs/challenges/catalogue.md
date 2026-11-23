@@ -698,7 +698,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Lucky thirteen | Clear the pyramid. | Classic | Finish | line “Cleared” = 15 of 15 |  | `pyramid.lucky-thirteen` |
 | Paired up | Make ten pairs from two pyramid cards. | Classic | Combo | line “Pyramid pairs” = 20 of 20 |  | `pyramid.paired-up` |
-| Unlucky for some | Clear the pyramid within 20 s. | Classic | Speed | line “Speed” = 25 of 25 |  | `pyramid.unlucky-for-some` |
+| Unlucky for some | Clear the pyramid within 22 s. | Classic | Speed | line “Speed” = 25 of 25 |  | `pyramid.unlucky-for-some` |
 
 #### Summit (`tripeaks`)
 

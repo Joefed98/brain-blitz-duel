@@ -69,7 +69,7 @@ import { FH_LEVEL_RULES, FH_LEVEL_RULES_V4, FH_REV, FH_REV_128, FH_REV_FLAT } fr
 import { FH_LEVEL_DECKS } from "./fiveHandsLevelDecks.server";
 import { MAHJONG_EXPERT_DEALS, MAHJONG_HARD_DEALS } from "./mahjongExpertDeals.server";
 import { ARCADE_PHASE_SLACK_MS } from "./catalogue";
-import { PY_REV, PY_REV_SHARE } from "@/lib/arcade/cards/pyramid";
+import { PY_REV, PY_REV_ROWS, PY_REV_SHARE, PY_REV_UNDO_OUT } from "@/lib/arcade/cards/pyramid";
 import { GS_REV } from "@/lib/arcade/cards/golfSol";
 import { GS_DEALS } from "@/lib/arcade/cards/golfSolDeals.data";
 import { MG_REV } from "@/lib/arcade/cards/muggins";
@@ -191,11 +191,17 @@ export function generateFiveHands(level?: Level): FiveHandsPuzzleData {
 }
 
 /** Pyramid: any seed; the sim builds the deal with a witness line (ten pyramid pairs) and proves it. */
-export function generatePyramid(): PyramidPuzzleData {
+export function generatePyramid(level?: Level): PyramidPuzzleData {
   // pyramidRev 2 (7 Nov 2026): the same deals, half the speed moved onto the cards.
   // pyramidRev 3 (15 Nov 2026): the same deals and parts; a dead end waits for Undo or Reset. Checks written before it pin
   // the game reviews' era (preGameReviewNov15) and get pyramidRev 2.
-  return { type: "pyramid", seed: arcadeSeed(), pyramidRev: dealPinned("cardsPreShare") ? 1 : dealPinned("preGameReviewNov15") ? PY_REV_SHARE : PY_REV };
+  const before = dealPinned("cardsPreShare") ? 1 : dealPinned("preGameReviewNov15") ? PY_REV_SHARE : PY_REV_UNDO_OUT;
+  // pyramidRev 4 (D6, 23 Nov 2026): Normal's Speed full by 22 s. Checks written for rev 3 pin pyramidPreSpeed22.
+  const pyramidRev = before === PY_REV_UNDO_OUT && !dealPinned("pyramidPreSpeed22") ? PY_REV : before;
+  // D6's levels: a level deal plays pyramidRev 4, the level's rows (PY_LEVEL_RULES_V4); checks written before D6 pin
+  // d6PreLevels and get the level rounds before on pyramidRev 3.
+  if (level === "easy" || level === "hard" || level === "expert") return { type: "pyramid", seed: arcadeSeed(), pyramidRev: !dealPinned("d6PreLevels") && pyramidRev === PY_REV_ROWS ? PY_REV_ROWS : before };
+  return { type: "pyramid", seed: arcadeSeed(), pyramidRev };
 }
 
 /** Golf Solitaire: a bank deal (its index), cleared by a strong human line and proved with five runs of four. */

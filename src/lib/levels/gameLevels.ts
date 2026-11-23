@@ -559,7 +559,7 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       // D6 (23 Nov 2026, freecellRev 6's levels, FC_LEVEL_RULES_V6): the lever is free cells 5 / 4 (Normal) / 3 / 2.
       easy: { settings: { cards: 32, cells: 5, undo: "free", hints: "free", parFull: "par + 1/8", speedFullS: 60 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
       hard: { settings: { cards: 40, cells: 3, undo: "a move", hints: "none", parFull: "par + 1/8", speedFullS: 33 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
-      expert: { settings: { cards: 52, cells: 2, undo: "3", hints: "none", parFull: "par + 1/4", speedFullS: 52 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      expert: { settings: { cards: 48, cells: 2, undo: "3", hints: "none", parFull: "par + 1/4", speedFullS: 45 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
     },
   },
   mahjong: {
@@ -587,11 +587,13 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       expert: { settings: { fullAt: 104, seconds: 30, preview: 0, columnValues: false, pair: 10, twoPair: 15, hints: "none" }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
     },
   },
+  // Thirteen (D6, 23 Nov 2026): pyramidRev 4's rows, a mirror of PY_LEVEL_RULES_V4 in src/lib/arcade/cards/pyramid.ts
+  // (d6-cards-levels-check proves the two the same).
   pyramid: {
     levels: {
-      easy: { settings: { passes: 3, glow: true, kings: "3–4", deals: "any proved", hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      hard: { settings: { passes: 1, glow: false, kings: "2–3", deals: "harder", hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      expert: { settings: { passes: 1, glow: false, kings: "3", deals: "hardest", hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      easy: { settings: { rows: 6, cards: 21, stock: 31, passes: 3, glow: true, kings: "1 or 3", deals: "any proved", hints: "free", speedFullS: 20, pairsFull: 9 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      hard: { settings: { rows: 8, cards: 36, stock: 16, passes: 1, glow: false, kings: "2 or 4", deals: "harder", hints: "none", speedFullS: 35, pairsFull: 16 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      expert: { settings: { rows: 9, cards: 45, stock: 7, passes: 1, glow: false, kings: "3", deals: "hardest", hints: "none", speedFullS: 42, pairsFull: 21 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
     },
   },
   // Coral Pop (the Strategy overhaul, stage 3): colours, reef bubbles (chests included), shots between descents and

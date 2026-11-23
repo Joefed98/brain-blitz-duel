@@ -355,7 +355,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "tripeaks") return generateTripeaks(context.level);
   if (type === "pokersquares") return generatePokerSquares();
   if (type === "fivehands") return generateFiveHands(context.level);
-  if (type === "pyramid") return generatePyramid();
+  if (type === "pyramid") return generatePyramid(context.level);
   if (type === "golfsol") return generateGolfSol();
   if (type === "muggins") return generateMuggins();
   // golfRev 3 reads the level the deal asks for (the difficulty framework's context.level; absent on main: Normal).

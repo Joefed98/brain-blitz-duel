@@ -8,6 +8,7 @@
  *   - Free Cell `freecellRev 6` (cards/freecell.ts FC_REV_PAR98): Par moves full within an eighth over par.
  *   - Summit `tripeaksRev 4` (cards/tripeaks.ts TP_REV_EASE): Longest run full at 6, stock par within par + 8, speed by 25 s.
  *   - Apex `racingRev 5` (racing.ts RACING_REV_5): pace full at the realistic elite's par, clean sectors full at 4.
+ *   - Thirteen `pyramidRev 4` (cards/pyramid.ts PY_REV_D6): Speed full by 22 s.
  *
  * Every older stamp deals, grades and reads exactly as before (scripts/fixtures/d6-levels-legacy.json.gz, recorded on
  * main 7e25a4d0 before any D6 change; d6-legacy-check). Checks written for the stamps before pin new deals to them, and
@@ -39,6 +40,10 @@ export function pinPreTripeaksEase(on: boolean): boolean {
 /** Checks written for Apex racingRev 4 deal it (and its help text); returns the previous setting. */
 export function pinPreRacingFive(on: boolean): boolean {
   return setDealPin("racingPreFive", on);
+}
+/** Checks written for Thirteen pyramidRev 3 deal it; returns the previous setting. */
+export function pinPrePyramidSpeed22(on: boolean): boolean {
+  return setDealPin("pyramidPreSpeed22", on);
 }
 /** Checks written for D6's games' level deals before D6 (main 7e25a4d0) deal them; returns the previous setting. */
 export function pinPreD6Levels(on: boolean): boolean {
