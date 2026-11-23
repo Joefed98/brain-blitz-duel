@@ -1619,7 +1619,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Fever:", detail: "Perfects (and Goods, half as much) fill the meter at the top; a miss empties it. When it flashes TAP FEVER!, tap it to start 8 seconds of fever. Each fever you start earns a fixed bonus.", helpOnly: true },
         { action: "Golden notes:", detail: "hit one dead on – on the very moment it meets the line – for a bonus.", helpOnly: true },
         { action: "Double taps:", detail: "two notes with white dots, close together in one lane. Tap both; both Perfect earns a bonus.", helpOnly: true },
-        { action: "Perfect streak:", detail: "the longer your longest run of Perfects, the bigger the bonus (all of it for every note Perfect).", helpOnly: true },
+        { action: "Perfect streak:", detail: "the longer your longest run of Perfects, the bigger the bonus (all of it for a run of 70 % of the song’s notes).", helpOnly: true },
         { action: "Closer is better", detail: "– perfect, good, or just OK.", helpOnly: true },
         { action: "A tap with no note", detail: "costs nothing.", helpOnly: true },
         { action: "Notes with a tail are holds", detail: "– press as the head reaches the line, release as the tail reaches it. Both ends must be Perfect for Perfect, or within Good for Good; otherwise Miss.", helpOnly: true },

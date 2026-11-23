@@ -352,11 +352,13 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("kakuro", "Human calculator", "Fill the grid within 60 s.", "C", "speed", false, speed(40, 60)),
 
   /* ================================================================ Action */
-  // Iron Wall (bastion): armour 110 + weak spots 30 + fast reloads 20 + drones 30 + base intact 10.
+  // Iron Wall (bastion): armour 110 + weak spots 30 + fast reloads 20 + drones 30 + base intact 10. bastionRev 5 (D5's
+  // ladder, 23 Nov 2026) fills Normal's Weak spots at 28 hits, so "Weak at the knees" counts the 30 hits themselves (the
+  // stored `weak`), never the part's line: the goal is as hard as before.
   ch("bastion", "Drone strike", "Down all three drones.", "C", "fullset", false, part("Drones", 30), "bastion.drones"),
   ch("bastion", "Hold the wall", "Keep the base untouched.", "C", "clean", false, part("Base intact", 10), "bastion.base"),
   ch("bastion", "Quick hands", "Make ten fast reloads.", "C", "maxout", false, part("Fast reloads", 20)),
-  ch("bastion", "Weak at the knees", "Land 30 hits on glowing weak spots.", "C", "maxout", true, part("Weak spots", 30)),
+  ch("bastion", "Weak at the knees", "Land 30 hits on glowing weak spots.", "C", "maxout", true, all(f("weak", "gte", 30))),
   // Roofbound (flip): clean time 100 + perfect landings 60 + double flips 20 + flow streak 20.
   ch("flip", "Double or nothing", "Land eight double flips.", "C", "combo", false, all(full("Double flips", 20))),
   ch("flip", "Sweet spot", "Land five sweet spots.", "C", "fullset", false, all(full("Perfect landings", 60))),
@@ -373,7 +375,9 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("skyline", "Gold top", "Land all five gold blocks perfectly.", "C", "fullset", false, part("Gold blocks", 20), "skyline.gold"),
   ch("skyline", "Thirty perfect", "Make 30 perfect drops.", "C", "target", false, all(f("perfects", "gte", 30)), "skyline.perfects"),
   ch("skyline", "Steady crane", "Make ten perfect drops in a row.", "C", "streak", false, part("Perfect streak", 10)),
-  ch("skyline", "Skyscraper", "Build 61 floors on Expert.", "E", "maxout", true, part("Floors", 140)),
+  // Changed with Joe's approval, 23 Nov 2026 (D5's skylineRev 12: the Floors part is full at 45, so the Skyscraper counts
+  // the run's own floors, still 61 on Expert, never easier).
+  ch("skyline", "Skyscraper", "Build 61 floors on Expert.", "E", "maxout", true, all(f("blocks", "gte", 61))),
   // Slice (slice): food 120 + combos 40 + golden fruit 20 + bread tickets 10 + dodges 10.
   ch("slice", "Mild", "Score 100 without cutting a chilli.", "C", "clean", false, all(sc("gte", 100), f("bombsHit", "eq", 0))),
   ch("slice", "Golden delicious", "Slice every golden fruit.", "C", "fullset", false, all(f("goldenSliced", "gte", "@goldenDealt"), f("goldenDealt", "gte", 1))),
@@ -386,7 +390,9 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   /* ================================================================ Retro */
   // Tempo (beat): accuracy 130 + fever 25 + golden notes 15 + double taps 15 + perfect streak 15.
   ch("beat", "Fever pitch", "Start all four fevers.", "C", "fullset", false, part("Fever", 25)),
-  ch("beat", "Golden ear", "Hit every golden note dead on.", "C", "maxout", false, part("Golden notes", 15), "beat.gold"),
+  // beatRev 13 (D5's ladder, 23 Nov 2026): the Golden notes part is full at 5 in every 9, so the goal counts the notes
+  // themselves (every one the chart deals, hit dead on), never the part; older stamps keep the part at its maximum.
+  ch("beat", "Golden ear", "Hit every golden note dead on.", "C", "maxout", false, all({ c: "since", path: "beatRev", from: 13, then: f("goldsHit", "gte", "@golds"), before: full("Golden notes", 15) }), "beat.gold"),
   ch("beat", "Encore", "Score 180 or more.", "C", "bigscore", true, score(180), "beat.score180"),
   // Blockzone (blockfall): lines 95 + pieces placed 65 + multi-line clears 24 + low stack 16.
   ch("blockfall", "Thirty lines", "Clear 30 lines.", "C", "target", false, all(f("lines", "gte", 30))),

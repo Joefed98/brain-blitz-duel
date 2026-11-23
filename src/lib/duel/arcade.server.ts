@@ -1,7 +1,8 @@
 import { checkOverride } from "@/lib/checkOverride";
 import { dealPinned, setDealPin } from "./dealEra";
 import { MOON_BIG_REV, MOON_MID_REV, MOON_REV } from "@/lib/arcade/ricochetNinja";
-import { BASTION_REV_DEALT, BASTION_REV_IRON } from "@/lib/arcade/bastionTank";
+import { bastionLadderLevelOf, BASTION_REV_DEALT, BASTION_REV_IRON, BASTION_REV_LEVELS } from "@/lib/arcade/bastionTank";
+import { bastionDealSeedV5 } from "./bastionDealV5.server";
 import type { Level } from "@/lib/levels/levels";
 import { gameLevelSettings } from "@/lib/levels/gameLevels";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
@@ -41,7 +42,8 @@ import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_KEEP, WAV_REV_BIG, WAV_REV_WIDE
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, ORBIT_REV_LOST } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD, RALLY_REV_LIVES, RALLY_REV_LADDER } from "@/lib/arcade/rally";
 import { rallyLevelDealSeed } from "./rallyLevelDeals.server";
-import { BEAT_REV_TARGET, BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
+import { BEAT_REV_TARGET, BEAT_REV_FLOOR, BEAT_REV_STD, BEAT_REV_LANES } from "@/lib/arcade/beat";
+import { beatDealSeedV13 } from "./beatDealV13.server";
 import { orbitFuelCourseForSeed, orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
@@ -73,8 +75,9 @@ import { PY_REV, PY_REV_SHARE } from "@/lib/arcade/cards/pyramid";
 import { GS_REV } from "@/lib/arcade/cards/golfSol";
 import { GS_DEALS } from "@/lib/arcade/cards/golfSolDeals.data";
 import { MG_REV } from "@/lib/arcade/cards/muggins";
-import { BLOCKFALL_REV_ZONE } from "@/lib/arcade/blockfall";
+import { BLOCKFALL_REV_ZONE, BLOCKFALL_REV_LEVELS } from "@/lib/arcade/blockfall";
 import { blockfallDealSeedV2 } from "./blockfallDealV2.server";
+import { blockfallLevelDealSeed } from "./blockfallLevelDeals.server";
 import type { BlockfallPuzzleData, FiveHandsPuzzleData, GolfSolPuzzleData, MugginsPuzzleData, PyramidPuzzleData, FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
 import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT, BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import type {
@@ -184,8 +187,21 @@ export function generateMuggins(): MugginsPuzzleData {
  * Blockzone (Blockfall's id, Retro): blockfallRev 2 (3 Nov 2026), a seed from its own proved deal (the oracle took it to
  * 200 through the server replay). blockfallRev 1 rounds keep their seeds from the first deal.
  */
-export function generateBlockfall(): BlockfallPuzzleData {
-  return { type: "blockfall", seed: blockfallDealSeedV2(arcadeSeed()), blockfallRev: BLOCKFALL_REV_ZONE };
+export function generateBlockfall(level?: Level): BlockfallPuzzleData {
+  // blockfallRev 3 (D5's ladder, 23 Nov 2026): Easy, Hard and Expert deal a seed from their own proved list (the oracle
+  // held to the human limits takes it to 200 through the server replay) on the levels' new table; Normal stays
+  // blockfallRev 2 from its deal. Checks written for blockfallRev 2's levels pin blockfallPreLevels.
+  const room = arcadeSeed();
+  if (level && level !== "normal" && !dealPinned("blockfallPreLevels")) return { type: "blockfall", seed: blockfallLevelDealSeed(room, level), blockfallRev: BLOCKFALL_REV_LEVELS };
+  return { type: "blockfall", seed: blockfallDealSeedV2(room), blockfallRev: BLOCKFALL_REV_ZONE };
+}
+
+/**
+ * Checks written for blockfallRev 2's levels: deal Blockzone's Easy, Hard and Expert on blockfallRev 2 from Normal's deal
+ * as rooms did before blockfallRev 3 (D5's ladder, 23 Nov 2026; returns the previous setting). Normal is unchanged either way.
+ */
+export function pinBlockfallPreLevels(on: boolean): boolean {
+  return setDealPin("blockfallPreLevels", on);
 }
 
 export function generateSwerve(): SwervePuzzleData {
@@ -378,12 +394,25 @@ export function generateBubble(): BubblePuzzleData {
   return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_FAST };
 }
 
-export function generateBeat(): BeatPuzzleData {
+export function generateBeat(level?: Level): BeatPuzzleData {
   // beatRev 10 (phone notes, 27 Oct 2026): beatRev 9's song with wider windows and a lighter chart, easiest from the fifth lane.
   // beatRev 11 (the arcade scoring standard, 29 Oct 2026): beatRev 10's play scored on the standard (docs/arcade-standard/beat.md).
   // beatRev 12 (the Retro overhaul, 15 Nov 2026): beatRev 11's play; a missed note scores 0 rather than −2. Checks
   // written for beatRev 11 pin preRetro.
-  return { type: "beat", seed: arcadeSeed(), beatRev: dealPinned("preRetro") ? BEAT_REV_STD : BEAT_REV_FLOOR };
+  // beatRev 13 (D5's ladder, 23 Nov 2026): Normal beatRev 12's play on lower golden-note and streak lines, the levels on
+  // their own lanes; each level deals a seed from its own proved list (beatDealV13.server.ts: two-thumb playable, the
+  // flawless player held to the human limits at exactly 200). Checks written for beatRev 12 pin beatPreLanes.
+  if (dealPinned("preRetro")) return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_STD };
+  if (dealPinned("beatPreLanes")) return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_FLOOR };
+  return { type: "beat", seed: beatDealSeedV13(arcadeSeed(), level), beatRev: BEAT_REV_LANES };
+}
+
+/**
+ * Checks written for beatRev 12: deal Tempo on beatRev 12 (any seed, Normal and every level) as rooms did before beatRev
+ * 13's lanes and lower full lines (D5's ladder, 23 Nov 2026; returns the previous setting).
+ */
+export function pinBeatPreLanes(on: boolean): boolean {
+  return setDealPin("beatPreLanes", on);
 }
 
 /** Checks written before the Retro overhaul (15 Nov 2026): deal Tempo beatRev 11 as rooms did before it. */
@@ -433,9 +462,23 @@ export function generateBastion(level?: Level): BastionPuzzleData {
   // bastionRev 4 (15 Nov 2026, the difficulty levels; docs/arcade-standard/bastion.md "bastionRev 4: levels"): Normal,
   // Easy and Hard deal rev 4 (the deal stamps `level`, the sim reads it); Expert deals bastionRev 3's game exactly, the
   // game every room dealt before the levels. Checks written for rev 3 pin `bastionPreLevels`: rev 3 at every level.
+  // bastionRev 5 (D5's ladder, 23 Nov 2026; docs/arcade-standard/bastion.md "Levels (D5, 23 Nov 2026)"): every level,
+  // Expert included, deals rev 5 from its own proved list (bastionDealV5.server.ts: seeds the paced oracle, held to the
+  // human limits, takes to 200 at that level); the deal stamps `level` off Normal. Checks written for rev 4 pin
+  // `bastionPreLadder`: rev 4 at Easy, Normal and Hard and rev 3 at Expert, on any seed, as rooms dealt before.
+  if (dealPinned("bastionPreLevels")) return { type: "bastion", seed: arcadeSeed(), bastionRev: BASTION_REV_IRON };
+  if (dealPinned("bastionPreLadder")) return { type: "bastion", seed: arcadeSeed(), bastionRev: level === "expert" ? BASTION_REV_IRON : BASTION_REV_LEVELS };
   const asked = level ? gameLevelSettings<{ bastionRev: number }>("bastion", level)?.bastionRev : undefined;
-  const rev = dealPinned("bastionPreLevels") ? BASTION_REV_IRON : asked === BASTION_REV_IRON ? BASTION_REV_IRON : BASTION_REV_DEALT;
-  return { type: "bastion", seed: arcadeSeed(), bastionRev: rev };
+  const rev = asked ?? BASTION_REV_DEALT;
+  return { type: "bastion", seed: bastionDealSeedV5(arcadeSeed(), bastionLadderLevelOf(level)), bastionRev: rev };
+}
+
+/**
+ * Checks written for bastionRev 4: deal Iron Wall as rooms did before the ladder (bastionRev 4 at Easy, Normal and Hard,
+ * bastionRev 3 at Expert, on any seed; D5, 23 Nov 2026; returns the previous setting).
+ */
+export function pinBastionPreLadder(on: boolean): boolean {
+  return setDealPin("bastionPreLadder", on);
 }
 
 /**

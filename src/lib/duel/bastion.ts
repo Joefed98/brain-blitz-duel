@@ -17,6 +17,8 @@ import {
   type BasState,
 } from "@/lib/arcade/bastion";
 import {
+  bastionLadderGames,
+  bastionLadderLevelOf,
   bastionLevelGames,
   bastionLevelOf,
   bastionPlanOf,
@@ -24,6 +26,7 @@ import {
   bastionTankCheckpoint,
   bastionIronGame,
   bastionTankGame,
+  BASTION_REV_LADDER,
   BASTION_REV_LEVELS,
   BASTION_REV_TANK,
   BT2_CHECKPOINT_INTERVAL,
@@ -63,6 +66,14 @@ const levelRuns = {
   easy: makeArcadeRun<BastionTankState, Bt2Checkpoint>({ tag: "bastion", game: bastionLevelGames.easy, checkpoint: bastionTankCheckpoint, keys: BT2_CHECKPOINT_KEYS, interval: BT2_CHECKPOINT_INTERVAL }),
   normal: makeArcadeRun<BastionTankState, Bt2Checkpoint>({ tag: "bastion", game: bastionLevelGames.normal, checkpoint: bastionTankCheckpoint, keys: BT2_CHECKPOINT_KEYS, interval: BT2_CHECKPOINT_INTERVAL }),
   hard: makeArcadeRun<BastionTankState, Bt2Checkpoint>({ tag: "bastion", game: bastionLevelGames.hard, checkpoint: bastionTankCheckpoint, keys: BT2_CHECKPOINT_KEYS, interval: BT2_CHECKPOINT_INTERVAL }),
+};
+
+/** bastionRev 5's replays, one a level (D5's ladder, 23 Nov 2026; every level, Expert included, is bastionRev 5). */
+const ladderRuns = {
+  easy: makeArcadeRun<BastionTankState, Bt2Checkpoint>({ tag: "bastion", game: bastionLadderGames.easy, checkpoint: bastionTankCheckpoint, keys: BT2_CHECKPOINT_KEYS, interval: BT2_CHECKPOINT_INTERVAL }),
+  normal: makeArcadeRun<BastionTankState, Bt2Checkpoint>({ tag: "bastion", game: bastionLadderGames.normal, checkpoint: bastionTankCheckpoint, keys: BT2_CHECKPOINT_KEYS, interval: BT2_CHECKPOINT_INTERVAL }),
+  hard: makeArcadeRun<BastionTankState, Bt2Checkpoint>({ tag: "bastion", game: bastionLadderGames.hard, checkpoint: bastionTankCheckpoint, keys: BT2_CHECKPOINT_KEYS, interval: BT2_CHECKPOINT_INTERVAL }),
+  expert: makeArcadeRun<BastionTankState, Bt2Checkpoint>({ tag: "bastion", game: bastionLadderGames.expert, checkpoint: bastionTankCheckpoint, keys: BT2_CHECKPOINT_KEYS, interval: BT2_CHECKPOINT_INTERVAL }),
 };
 
 export type BastionRun = FlatRun<BasCheckpoint>;
@@ -113,12 +124,12 @@ export function isBastionTank(rev?: number | null): boolean {
 }
 
 /**
- * The single place a bastionRev 2, 3 or 4 score is worked out (`rev` the stored stamp, rev 2 when absent; `level` the
- * stored puzzle's level, read only on rev 4: absent, Normal or anything else is Normal).
+ * The single place a bastionRev 2, 3, 4 or 5 score is worked out (`rev` the stored stamp, rev 2 when absent; `level` the
+ * stored puzzle's level, read only on rev 4 and 5: absent is Normal; rev 4 reads anything but easy / hard as Normal).
  */
 export function replayBastionTankRun(seed: number, raw: string, rev?: number | null, level?: unknown): BastionTankResult {
   const r = rev ?? BASTION_REV_TANK;
-  const result = (r >= BASTION_REV_LEVELS ? levelRuns[bastionLevelOf(level)] : r >= BASTION_REV_TANK + 1 ? ironRun : tankRun).replay(seed, raw);
+  const result = (r >= BASTION_REV_LADDER ? ladderRuns[bastionLadderLevelOf(level)] : r >= BASTION_REV_LEVELS ? levelRuns[bastionLevelOf(level)] : r >= BASTION_REV_TANK + 1 ? ironRun : tankRun).replay(seed, raw);
   const s = result.state;
   return {
     ...result,

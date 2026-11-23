@@ -63,7 +63,10 @@ export interface BurstLv {
 }
 /** Tempo (beatRev 12): the hit windows (Perfect, Good, OK, ticks either side), the notes' fall time on screen (ticks
  * from the top of the lane to the hit line; Normal's 90) and the chart's busyness: each section's off-beat (eighth) and
- * chord shares as a per cent of Normal's (the chart is built from the seed with the scaled plan). */
+ * chord shares as a per cent of Normal's (the chart is built from the seed with the scaled plan).
+ *
+ * beatRev 13 (D5's ladder, 23 Nov 2026) adds the lanes and the level's own full lines (BeatLv13); a beatRev 12 level's
+ * row has none of them, so it plays, replays and scores exactly as before. */
 export interface BeatLv {
   perfect: number;
   good: number;
@@ -71,7 +74,19 @@ export interface BeatLv {
   fall: number;
   eighthPct: number;
   chordPct: number;
+  /** beatRev 13 only: the lanes for the whole song (Normal: four, then five from 40 s). */
+  lanes?: number;
+  /** beatRev 13 only: the accuracy (per mille of the chart) the Accuracy part is full at (Normal 1,000: every note Perfect). */
+  accFull?: number;
+  /** beatRev 13 only: the fevers the Fever part is full at (Normal 4). */
+  feversFull?: number;
+  /** beatRev 13 only: golden notes full at this many in every nine the chart deals (Normal 5). */
+  goldNinths?: number;
+  /** beatRev 13 only: the Perfect streak full at this share of the song's notes, per cent (Normal 70). */
+  streakPct?: number;
 }
+/** Tempo's beatRev 13 levels: every field set. */
+export type BeatLv13 = Required<BeatLv>;
 /** Meteor (snakeRev 15 and 16): lives (crashes forgiven = lives − 1; Normal 2), the step speed (ticks a square at the start
  * and the fastest; Normal 9 and 4, one tick faster every few stars, so it speeds up through the run) and whether the
  * edges are walls (1) instead of wrapping (0, Normal), and the core stars the stars part is full at (Normal's 36). */
@@ -127,6 +142,9 @@ export interface BlockfallLv {
   previews: number;
   /** The lines the core is full at (Normal's 51). */
   fullAt: number;
+  /** blockfallRev 3 only: the low stack's rows for all of its points and from which it pays nothing (Normal 4 and 10). */
+  lowFull?: number;
+  lowZero?: number;
 }
 /** Hover (hoverRev 11): the starting shield (1: the first crash is forgiven, Normal), the gaps' height (per cent of the
  * course's own, widened only, so every proved course stays passable) and the scroll's pace (per cent of Normal's, which
@@ -166,10 +184,24 @@ export const BURST_LEVELS: Table<BurstLv> = {
   hard: { lives: 3, sizePct: 100, quickPct: 75, freeWhiffs: 12 },
   expert: { lives: 2, sizePct: 100, quickPct: 60, freeWhiffs: 8 },
 };
+/** Tempo's beatRev 12 levels (the Retro overhaul, stage 3): stored beatRev 12 level rounds replay on this table. */
 export const BEAT_LEVELS: Table<BeatLv> = {
   easy: { perfect: 5, good: 10, ok: 16, fall: 110, eighthPct: 100, chordPct: 100 },
   hard: { perfect: 3, good: 6, ok: 11, fall: 75, eighthPct: 170, chordPct: 160 },
   expert: { perfect: 2, good: 5, ok: 10, fall: 60, eighthPct: 240, chordPct: 220 },
+};
+/**
+ * Tempo's beatRev 13 levels (D5's ladder, 23 Nov 2026; docs/arcade-standard/beat.md "Levels (D5, 23 Nov 2026)"): the
+ * lever is the lanes, three for the whole song on Easy, five from the first note on Hard and six on Expert (Normal: four,
+ * a fifth from 40 s); the windows, fall time and chart shares as the spec; each level's own full lines (the ladder rule,
+ * Joe 23 Nov 2026: each feature full at about what the realistic elite takes on three runs in four at that level; the
+ * accuracy line moved only where that alone left the elite too few runs at 200), against Normal's accuracy 1,000, 4
+ * fevers, 5 golden notes in 9 and a streak of 70 % of the notes.
+ */
+export const BEAT_LEVELS_V13: Table<BeatLv13> = {
+  easy: { lanes: 3, perfect: 5, good: 10, ok: 16, fall: 110, eighthPct: 50, chordPct: 50, accFull: 990, feversFull: 3, goldNinths: 4, streakPct: 75 },
+  hard: { lanes: 5, perfect: 3, good: 6, ok: 11, fall: 75, eighthPct: 170, chordPct: 160, accFull: 995, feversFull: 4, goldNinths: 5, streakPct: 60 },
+  expert: { lanes: 6, perfect: 3, good: 6, ok: 11, fall: 60, eighthPct: 240, chordPct: 220, accFull: 992, feversFull: 4, goldNinths: 5, streakPct: 45 },
 };
 /** Meteor's levels on snakeRev 15 (the Retro overhaul, stage 3): the table its stored level rounds replay on. */
 export const SNAKE_LEVELS: Table<SnakeLv> = {
@@ -193,10 +225,25 @@ export const PINBALL_LEVELS: Table<PinballLv> = {
   hard: { balls: 3, saveS: 0, gravityPct: 110, multiS: 18, fullAt: 61_000 },
   expert: { balls: 2, saveS: 0, gravityPct: 120, multiS: 15, fullAt: 66_000 },
 };
+/** Blockzone's blockfallRev 2 levels (the Retro overhaul, stage 3): stored blockfallRev 2 level rounds replay on this table. */
 export const BLOCKFALL_LEVELS: Table<BlockfallLv> = {
   easy: { gravityPct: 125, lockDelay: 40, previews: 3, fullAt: 40 },
   hard: { gravityPct: 80, lockDelay: 24, previews: 2, fullAt: 57 },
   expert: { gravityPct: 60, lockDelay: 18, previews: 1, fullAt: 62 },
+};
+/**
+ * Blockzone's blockfallRev 3 levels (D5's ladder, 23 Nov 2026; docs/arcade-standard/blockfall.md "Levels (D5, 23 Nov
+ * 2026)"), dealt at Easy, Hard and Expert only (Normal stays blockfallRev 2). The lever is how fast the pieces fall:
+ * Easy a row every 72 ticks quickening to 36 (150 % of Normal's fall time), Hard every 12 quickening to 6 (25 %),
+ * Expert every 7 quickening to 4 (15 %); the lock delay, the previews and the lines the core is full at with it. Easy's
+ * low stack is full in the bottom 10 rows (nothing from row 16; Normal's 4 and 10), about what the realistic elite
+ * keeps on three runs in four there, so Easy welcomes and its 200 comes more often than Normal's; Expert's in the
+ * bottom 5 (nothing from row 11), so its 200, the rarest, still comes on a fifth of the realistic elite's runs.
+ */
+export const BLOCKFALL_LEVELS_V3: Table<BlockfallLv> = {
+  easy: { gravityPct: 150, lockDelay: 45, previews: 5, fullAt: 15, lowFull: 10, lowZero: 16 },
+  hard: { gravityPct: 25, lockDelay: 15, previews: 2, fullAt: 51 },
+  expert: { gravityPct: 15, lockDelay: 12, previews: 1, fullAt: 51, lowFull: 5, lowZero: 11 },
 };
 export const HOVER_LEVELS: Table<HoverLv> = {
   easy: { shield: 1, gapPct: 115, scrollPct: 100 },
@@ -211,12 +258,12 @@ export const RETRO_LEVEL_TABLES = {
   rally: RALLY_LEVELS_V14,
   wavefront: WAVEFRONT_LEVELS,
   burst: BURST_LEVELS,
-  beat: BEAT_LEVELS,
+  beat: BEAT_LEVELS_V13,
   // snakeRev 16 (D5's ladder): the table dealt today; snakeRev 15's rounds replay on SNAKE_LEVELS (snake.ts reads it).
   snake: SNAKE_LEVELS_V16,
   cross: CROSS_LEVELS,
   pinball: PINBALL_LEVELS,
-  blockfall: BLOCKFALL_LEVELS,
+  blockfall: BLOCKFALL_LEVELS_V3,
   hover: HOVER_LEVELS,
 } as const;
 export type RetroLevelGame = keyof typeof RETRO_LEVEL_TABLES;

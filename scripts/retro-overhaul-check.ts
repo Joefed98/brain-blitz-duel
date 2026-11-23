@@ -77,7 +77,7 @@ import {
 import { bot as burstBot } from "./arcade-skill-bands/bots/burst";
 import { replayBurstRun } from "../src/lib/duel/burst";
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
-import { burstGameFor, burstRadius, burstV10ClearPoints, BURST_CHECKPOINT_INTERVAL, BURST_RADIUS, BURST_RADIUS_BIG, BURST_REV_AIM, BURST_REV_BIG, BURST_REV_WIDE, type BurstState } from "../src/lib/arcade/burst";
+import { burstGameFor, burstRadius, burstV10ClearPoints, BURST_CHECKPOINT_INTERVAL, BURST_RADIUS, BURST_RADIUS_BIG, BURST_REV_AIM, BURST_REV_BIG, BURST_REV_SMALL, BURST_REV_WIDE, type BurstState } from "../src/lib/arcade/burst"; // Changed with Joe's approval, 23 Nov 2026 (D5's burstRev 14): BURST_REV_SMALL
 import { bot as pinballBot } from "./arcade-skill-bands/bots/pinball";
 import { replayPinballRun } from "../src/lib/duel/pinball";
 import { pinballGameForAny } from "../src/lib/arcade/pinball4";
@@ -278,11 +278,13 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 /* ============================ Fission burstRev 12 ============================ */
 {
   // Rooms deal burstRev 13 (bigger atoms, its own section below); burstRev 12's rules stay proved here on its own stamp.
-  ok((generatePuzzle("burst") as any).burstRev === BURST_REV_BIG && BURST_REV_BIG === BURST_REV_WIDE + 1 && BURST_REV_WIDE === BURST_REV_AIM + 1, "burst: rooms deal burstRev 13 (burstRev 12 one below it)");
+  // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's burstRev 14).
+  ok((generatePuzzle("burst") as any).burstRev === BURST_REV_SMALL && BURST_REV_SMALL === BURST_REV_BIG + 1 && BURST_REV_BIG === BURST_REV_WIDE + 1 && BURST_REV_WIDE === BURST_REV_AIM + 1, "burst: rooms deal burstRev 14 (burstRev 13 one below it, then 12)");
   pinPreRetro(true);
   ok((generatePuzzle("burst") as any).burstRev === BURST_REV_AIM, "burst: preRetro deals burstRev 11");
   pinPreRetro(false);
-  ok(LIVE_BANDS.burst.rev === BURST_REV_BIG && playRevOf("burst", BURST_REV_WIDE) === playRevOf("burst", BURST_REV_AIM), "burst: LIVE_BANDS reads burstRev 13; burstRev 12 keeps burstRev 11's play");
+  // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's burstRev 14).
+  ok(LIVE_BANDS.burst.rev === BURST_REV_SMALL && playRevOf("burst", BURST_REV_WIDE) === playRevOf("burst", BURST_REV_AIM), "burst: LIVE_BANDS reads burstRev 14; burstRev 12 keeps burstRev 11's play");
   ok(/down to 0 at three times that/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.burst)), "burst: the help says the bonus runs out at three times the quick time");
   ok(burstGameFor(BURST_REV_WIDE).runTicks <= 120 * TICKS_PER_SECOND, "burst: the run is at most 120 s");
   const q = 200;
@@ -623,11 +625,12 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 /* ============================ Wavefront wavRev 14 ============================ */
 {
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal wavRev 15 (wavRev 14 with larger hit cells) since stage 3; 14 stays proved here on its own stamp.
-  ok((generatePuzzle("wavefront") as any).wavRev === WAV_REV_CHARGE + 1 && WAV_REV_CHARGE === WAV_REV_KEEP + 1, "wavefront: rooms deal wavRev 15 (wavRev 14 one below it)");
+  // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's wavRev 16, the wider formation): rooms deal wavRev 16.
+  ok((generatePuzzle("wavefront") as any).wavRev === WAV_REV_CHARGE + 2 && WAV_REV_CHARGE === WAV_REV_KEEP + 1, "wavefront: rooms deal wavRev 16 (wavRev 14 two below it)");
   pinPreRetro(true);
   ok((generatePuzzle("wavefront") as any).wavRev === WAV_REV_KEEP, "wavefront: preRetro deals wavRev 13");
   pinPreRetro(false);
-  ok(LIVE_BANDS.wavefront.rev === WAV_REV_CHARGE + 1, "wavefront: the help reads wavRev 15");
+  ok(LIVE_BANDS.wavefront.rev === WAV_REV_CHARGE + 2, "wavefront: the help reads wavRev 16"); // Changed with Joe's approval, 23 Nov 2026 (D5's wavRev 16)
   ok(/heavy blast/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.wavefront)), "wavefront: the intro and help teach the charged shot");
   const g13 = wavefrontGameFor(WAV_REV_KEEP);
   const g14 = wavefrontGameFor(WAV_REV_CHARGE);
