@@ -1,8 +1,8 @@
 /**
  * Person-like Mahjong lines (scripts only, never shipped; D6's Expert deal list, scripts/mahjong-expert-deals.ts): a line
  * takes, each turn, the free pair that frees most tiles (twice the tiles it frees plus half the layers of the pair, the
- * skill-band bot's own value), with a little seeded noise between near-equal pairs. A deal is forgiving when every one of
- * `lines` such lines clears it without a shuffle.
+ * skill-band bot's own value), with a little seeded noise between near-equal pairs. A deal is forgiving when at least
+ * `need` of `lines` such lines clear it without a shuffle.
  */
 import { mahjongFree, mahjongLayoutOf, mahjongMoves } from "../../src/lib/arcade/mahjong";
 
@@ -25,15 +25,20 @@ function lcg(x: number): () => number {
   };
 }
 
-/** True when each of `lines` noisy freeing-first lines clears the board without a shuffle. */
-export function mahjongForgiving(face: readonly number[], seed: number, lines = 8): boolean {
+/** True when at least `need` of `lines` noisy freeing-first lines clear the board without a shuffle. */
+export function mahjongForgiving(face: readonly number[], seed: number, lines = 8, need = lines): boolean {
   const u = lcg(seed);
+  let failed = 0;
   for (let l = 0; l < lines; l++) {
     const f = face.slice();
+    let dead = false;
     for (let k = 0; k < 400; k++) {
       if (f.every((v) => v < 0)) break;
       const moves = mahjongMoves(f);
-      if (!moves.length) return false;
+      if (!moves.length) {
+        dead = true;
+        break;
+      }
       let best = moves[0]!;
       let bestV = -Infinity;
       for (const m of moves) {
@@ -46,7 +51,8 @@ export function mahjongForgiving(face: readonly number[], seed: number, lines = 
       f[best[0]] = -1;
       f[best[1]] = -1;
     }
-    if (!f.every((v) => v < 0)) return false;
+    if (dead || !f.every((v) => v < 0)) failed++;
+    if (failed > lines - need) return false;
   }
   return true;
 }

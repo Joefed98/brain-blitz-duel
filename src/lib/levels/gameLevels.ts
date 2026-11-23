@@ -566,8 +566,8 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
     levels: {
       // D6 (23 Nov 2026, mahjongRev 3's levels, MAHJONG_LEVEL_RULES_V3): the lever is tiles in the stack 48 / 72 (Normal) / 104 / 136.
       easy: { settings: { tiles: 48, layers: 2, quads: 2, shuffleCost: 2, hints: "free", speedFullS: 70, seconds: 120 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
-      hard: { settings: { tiles: 104, layers: 4, quads: 18, shuffleCost: 10, hints: "none", speedFullS: 80, seconds: 120 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
-      expert: { settings: { tiles: 136, layers: 4, quads: 34, shuffleCost: 15, hints: "none", speedFullS: 98, seconds: 110 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      hard: { settings: { tiles: 104, layers: 4, quads: 18, shuffleCost: 10, hints: "none", speedFullS: 79, seconds: 120 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      expert: { settings: { tiles: 136, layers: 4, quads: 34, shuffleCost: 15, hints: "none", speedFullS: 100, seconds: 110 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
     },
   },
   tripeaks: {

@@ -59,7 +59,7 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
         "A shuffle costs 10."
       ],
       "intro": "Clear pairs of the 104 tiles; bonuses for no shuffles and speed. Up to 200.",
-      "score": "Pairs: clear the 52 pairs, each worth the same, up to 150. No shuffles: the same again for each pair, all of it lost on your first shuffle; each shuffle costs 10, up to 20. Speed: clear the board within 80 s for all of it, falling to 0 at the buzzer, up to 30. Total 200."
+      "score": "Pairs: clear the 52 pairs, each worth the same, up to 150. No shuffles: the same again for each pair, all of it lost on your first shuffle; each shuffle costs 10, up to 20. Speed: clear the board within 79 s for all of it, falling to 0 at the buzzer, up to 30. Total 200."
     },
     "expert": {
       "goal": "Clear all 136 tiles in pairs in 110 seconds.",
@@ -68,7 +68,7 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
         "A shuffle costs 15."
       ],
       "intro": "Clear pairs of the 136 tiles; bonuses for no shuffles and speed. Up to 200.",
-      "score": "Pairs: clear the 68 pairs, each worth the same, up to 150. No shuffles: the same again for each pair, all of it lost on your first shuffle; each shuffle costs 15, up to 20. Speed: clear the board within 98 s for all of it, falling to 0 at the buzzer, up to 30. Total 200."
+      "score": "Pairs: clear the 68 pairs, each worth the same, up to 150. No shuffles: the same again for each pair, all of it lost on your first shuffle; each shuffle costs 15, up to 20. Speed: clear the board within 100 s for all of it, falling to 0 at the buzzer, up to 30. Total 200."
     }
   },
   "tripeaks": {

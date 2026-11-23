@@ -1,7 +1,7 @@
 /**
- * Builds Mahjong's D6 Expert deal list (mahjongRev 3, 23 Nov 2026; src/lib/duel/mahjongExpertDeals.server.ts): the
- * first DEALS seeds of a fixed candidate stream whose 136-tile Expert deal (mahjongBuild on the level, all 34 faces dealt
- * four times) is forgiving: eight person-like lines (take the pair that frees most, a little noise between near-equal
+ * Builds Mahjong's D6 Hard and Expert deal lists (mahjongRev 3, 23 Nov 2026; src/lib/duel/mahjongExpertDeals.server.ts):
+ * for each, the first DEALS seeds of a fixed candidate stream whose deal (mahjongBuild on the level: Hard 104 tiles, 18
+ * faces four times; Expert 136, all 34 faces four times) is forgiving: eight person-like lines (take the pair that frees most, a little noise between near-equal
  * pairs; scripts/cards/mahjongLines.ts) all clear it without a shuffle. On an all-quad board most deals trap a careful
  * player in a dead end (the elite under HUMAN_LIMITS shuffled on 77 of 96 unfiltered boards), so Expert's difficulty is
  * the size of the stack and the clock, not a coin toss on which copy of a face to take. Each kept deal's build order,
@@ -34,10 +34,18 @@ function* candidates(): Generator<number> {
   }
 }
 
+type ML = "hard" | "expert";
+const MJ_LEVELS: ML[] = ["hard", "expert"];
+/**
+ * Of eight person-like lines, at least this many must clear a board without a shuffle (Hard a little forgiving, Expert
+ * more: with only Expert's boards filtered, a careful player found Expert's easier to clear than Hard's).
+ */
+export const MJ_FORGIVING_NEED: Record<ML, number> = { hard: 5, expert: 7 };
+
 /** The deal's build order at a human pace through the grade: its score. */
-export function mahjongExpertWitnessScore(seed: number): number {
-  const game = mahjongLevelGame("expert", MAHJONG_REV_LEVELS);
-  const deal = mahjongBuild(seed, "expert", MAHJONG_REV_LEVELS);
+export function mahjongExpertWitnessScore(seed: number, level: ML = "expert"): number {
+  const game = mahjongLevelGame(level, MAHJONG_REV_LEVELS);
+  const deal = mahjongBuild(seed, level, MAHJONG_REV_LEVELS);
   const inputs = deal.order.flatMap(([a, b]) => [a, b]);
   let state = game.init(seed);
   const events: ArcadeInputEvent[] = [];
@@ -50,44 +58,47 @@ export function mahjongExpertWitnessScore(seed: number): number {
     if (state.tick % 300 === 0) checkpoints.push(mahjongCheckpoint(state));
   }
   const raw = encodeMahjongRun({ seed, claimedScore: game.score(state), events, endTick: state.tick, checkpoints } as never);
-  const p = { type: "mahjong", seed, mahjongRev: MAHJONG_REV_LEVELS, level: "expert" } as unknown as PuzzleData;
+  const p = { type: "mahjong", seed, mahjongRev: MAHJONG_REV_LEVELS, level } as unknown as PuzzleData;
   return gradeAnswer(p, raw, 0).score;
 }
 
-function keep(seed: number): boolean {
-  return mahjongBuildClears(seed, "expert", MAHJONG_REV_LEVELS) && mahjongForgiving(mahjongBuild(seed, "expert", MAHJONG_REV_LEVELS).face, seed);
+function keep(seed: number, level: ML): boolean {
+  return mahjongBuildClears(seed, level, MAHJONG_REV_LEVELS) && mahjongForgiving(mahjongBuild(seed, level, MAHJONG_REV_LEVELS).face, seed, 8, MJ_FORGIVING_NEED[level]);
 }
 
-function render(list: number[]): string {
+function render(lists: Record<ML, number[]>): string {
   return `/**
- * Mahjong's D6 Expert deals (mahjongRev 3; built by \`bun scripts/mahjong-expert-deals.ts\`, do not edit): ${list.length} seeds
- * of a fixed candidate stream whose 136-tile deal eight person-like lines all clear without a shuffle, each deal's build
- * order scoring 200 at a human pace through the server's grade. Server-only.
+ * Mahjong's D6 Hard and Expert deals (mahjongRev 3; built by \`bun scripts/mahjong-expert-deals.ts\`, do not edit): ${DEALS}
+ * seeds each of a fixed candidate stream whose deal (Hard 104 tiles, Expert 136) eight person-like lines all clear without
+ * a shuffle, each deal's build order scoring 200 at a human pace through the server's grade. Server-only.
  */
-export const MAHJONG_EXPERT_DEALS: readonly number[] = [${list.join(",")}];
+export const MAHJONG_HARD_DEALS: readonly number[] = [${lists.hard.join(",")}];
+export const MAHJONG_EXPERT_DEALS: readonly number[] = [${lists.expert.join(",")}];
 `;
 }
 
 if (import.meta.main) {
   console.error = () => {};
   const check = process.argv.includes("--check");
-  const list: number[] = [];
-  let tried = 0;
-  for (const seed of candidates()) {
-    if (list.length >= DEALS) break;
-    tried++;
-    if (keep(seed)) {
-      const score = mahjongExpertWitnessScore(seed);
-      if (score !== 200) throw new Error(`seed ${seed}: the build order scores ${score}`);
-      list.push(seed);
+  const lists = { hard: [] as number[], expert: [] as number[] };
+  const tried = { hard: 0, expert: 0 };
+  for (const level of MJ_LEVELS) {
+    for (const seed of candidates()) {
+      if (lists[level].length >= DEALS) break;
+      tried[level]++;
+      if (keep(seed, level)) {
+        const score = mahjongExpertWitnessScore(seed, level);
+        if (score !== 200) throw new Error(`${level} seed ${seed}: the build order scores ${score}`);
+        lists[level].push(seed);
+      }
     }
   }
-  const text = render(list);
+  const text = render(lists);
   if (check) {
     const same = existsSync(OUT) && readFileSync(OUT, "utf8") === text;
-    console.log(same ? `PASS mahjong Expert deals: ${list.length} re-proved, the list rebuilds byte for byte` : "FAIL mahjong Expert deals differ from a rebuild");
+    console.log(same ? `PASS mahjong Hard and Expert deals: ${lists.hard.length} and ${lists.expert.length} re-proved, the lists rebuild byte for byte` : "FAIL mahjong Hard and Expert deals differ from a rebuild");
     process.exit(same ? 0 : 1);
   }
   writeFileSync(OUT, text);
-  console.log(`kept ${list.length} of ${tried} candidates; wrote ${OUT.pathname}`);
+  console.log(`kept hard ${lists.hard.length} of ${tried.hard}, expert ${lists.expert.length} of ${tried.expert} candidates; wrote ${OUT.pathname}`);
 }

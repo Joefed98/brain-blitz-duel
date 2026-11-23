@@ -717,13 +717,19 @@ export const MAHJONG_LEVEL_RULES: Readonly<Record<MahjongLevelName, MahjongLevel
  * build order replayed through the sim before it is dealt (mahjongBuildClears), as every Mahjong deal is.
  *
  *   Easy    48 tiles in 2 layers, 2 faces dealt four times, Shuffle 2, free hints with the idle glow.
- *   Hard    104 tiles in 4 layers (48 × 63 tiles), 18 faces dealt four times, Shuffle 10, no hints.
- *   Expert  136 tiles in 4 layers (42 × 55 tiles), all 34 faces dealt four times, Shuffle 15, no hints.
+ *   Hard    104 tiles in 4 layers (48 × 63 tiles), 18 faces dealt four times, Shuffle 10, no hints; speed by 79 s;
+ *           boards five of eight person-like lines clear without a shuffle (MAHJONG_HARD_DEALS).
+ *   Expert  136 tiles in 4 layers (42 × 55 tiles), all 34 faces dealt four times, Shuffle 15, no hints; speed by 100 s
+ *           on its own 110 s clock; boards seven of eight such lines clear (MAHJONG_EXPERT_DEALS: unfiltered, the
+ *           elite under HUMAN_LIMITS shuffled on 77 of 96 all-quad boards).
+ *
+ * Measured on 96 room deals (scripts/d6-ladder.ts): the average player 170 / 136 (Normal) / 85 / 74, the elite at 200
+ * 97 % / 85 % / 34 % / 22 %; cards-levels-order-check steps clearly down for all three of its players.
  */
 export const MAHJONG_LEVEL_RULES_V3: Readonly<Record<MahjongLevelName, MahjongLevelRules>> = {
   easy: { lv: MAHJONG_LV_EASY, layout: MAHJONG_LAYOUT_48, quads: 2, shuffleCost: 2, hintCost: 0, hintLimit: -1, speedFullS: 70 },
-  hard: { lv: MAHJONG_LV_HARD, layout: MAHJONG_LAYOUT_104, quads: 18, shuffleCost: 10, hintCost: 0, hintLimit: 0, speedFullS: 80 },
-  expert: { lv: MAHJONG_LV_EXPERT, layout: MAHJONG_LAYOUT_136, quads: 34, shuffleCost: 15, hintCost: 0, hintLimit: 0, speedFullS: 98, seconds: 110 },
+  hard: { lv: MAHJONG_LV_HARD, layout: MAHJONG_LAYOUT_104, quads: 18, shuffleCost: 10, hintCost: 0, hintLimit: 0, speedFullS: 79 },
+  expert: { lv: MAHJONG_LV_EXPERT, layout: MAHJONG_LAYOUT_136, quads: 34, shuffleCost: 15, hintCost: 0, hintLimit: 0, speedFullS: 100, seconds: 110 },
 };
 
 function levelNameOf(lv: number | undefined): MahjongLevelName | null {

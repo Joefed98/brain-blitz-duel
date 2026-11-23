@@ -67,7 +67,7 @@ import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
 import { FH_LEVEL_RULES, FH_LEVEL_RULES_V4, FH_REV, FH_REV_128, FH_REV_FLAT } from "@/lib/arcade/cards/fiveHands";
 import { FH_LEVEL_DECKS } from "./fiveHandsLevelDecks.server";
-import { MAHJONG_EXPERT_DEALS } from "./mahjongExpertDeals.server";
+import { MAHJONG_EXPERT_DEALS, MAHJONG_HARD_DEALS } from "./mahjongExpertDeals.server";
 import { ARCADE_PHASE_SLACK_MS } from "./catalogue";
 import { PY_REV, PY_REV_SHARE } from "@/lib/arcade/cards/pyramid";
 import { GS_REV } from "@/lib/arcade/cards/golfSol";
@@ -356,12 +356,14 @@ export function generateMahjong(level?: Level): MahjongPuzzleData {
   // Normal stays mahjongRev 2. Checks written for the levels before pin d6PreLevels.
   const lv = level === "easy" || level === "hard" || level === "expert" ? level : null;
   const mahjongRev = lv && !dealPinned("d6PreLevels") ? MAHJONG_REV_LEVELS : MAHJONG_REV_DEALT;
-  // D6's Expert: a deal from its proved list (MAHJONG_EXPERT_DEALS, scripts/mahjong-expert-deals.ts: the 136-tile boards
-  // person-like lines clear without a shuffle, each build order at a human pace 200 through the grade).
-  if (lv === "expert" && mahjongRev === MAHJONG_REV_LEVELS) {
-    const list = MAHJONG_EXPERT_DEALS;
+  // D6's Hard and Expert: a deal from its proved list (MAHJONG_HARD_DEALS / MAHJONG_EXPERT_DEALS,
+  // scripts/mahjong-expert-deals.ts: boards five / seven of eight person-like lines clear without a shuffle, each build
+  // order at a human pace 200 through the grade).
+  if ((lv === "hard" || lv === "expert") && mahjongRev === MAHJONG_REV_LEVELS) {
+    const list = lv === "hard" ? MAHJONG_HARD_DEALS : MAHJONG_EXPERT_DEALS;
     const at = arcadeSeed();
-    return { type: "mahjong", seed: list[((at % list.length) + list.length) % list.length]!, mahjongRev, timeLimitMs: MAHJONG_LEVEL_RULES_V3.expert.seconds! * 1000 + ARCADE_PHASE_SLACK_MS } as MahjongPuzzleData;
+    const seconds = MAHJONG_LEVEL_RULES_V3[lv].seconds;
+    return { type: "mahjong", seed: list[((at % list.length) + list.length) % list.length]!, mahjongRev, ...(seconds ? { timeLimitMs: seconds * 1000 + ARCADE_PHASE_SLACK_MS } : {}) } as MahjongPuzzleData;
   }
   for (;;) {
     const seed = arcadeSeed();
