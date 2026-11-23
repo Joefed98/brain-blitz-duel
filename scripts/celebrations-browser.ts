@@ -127,7 +127,7 @@ const SCREENS: Record<string, Screen> = {
   reveal189: { name: "answer reveal, 189", mode: "room", room: revealWith(189), ready: "[data-reveal-score]", waitMs: 1200, plain: true },
   reveal190: { name: "answer reveal, 190", mode: "room", room: revealWith(190), ready: "[data-reveal-score]", waitMs: 1200, plain: true },
   reveal199: { name: "answer reveal, 199", mode: "room", room: revealWith(199), ready: "[data-reveal-score]", waitMs: 1200, plain: true },
-  reveal200: { name: "answer reveal, 200", mode: "room", room: revealWith(200), ready: "[data-reveal-score]", waitMs: 1400, plain: true },
+  reveal200: { name: "answer reveal, 200", mode: "room", room: revealWith(200), ready: "[data-reveal-score]", waitMs: 1000, plain: true }, // Changed with Joe's approval, 23 Nov 2026: the tap lands about 2.4 s into the 3.0 s lap, not 2.85 s
   prepare: { name: "prepare to duel", mode: "room", room: room("in_progress", "starting"), ready: "#root *", waitMs: 2500, plain: true },
   // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the components step: Home's header has no wordmark,
   // so Home is ready on its header; the logo's charge-in moved to the launch screen, Joe's decision of 14 Nov 2026).
@@ -537,7 +537,7 @@ try {
         under: points.map(([x, y]) => document.elementFromPoint(x, y)?.closest("[data-celebration-layer]") != null),
       };
     });
-    check(mid.shown, "reveal 200: the lap is not on screen 1.4 s in");
+    check(mid.shown, "reveal 200: the lap is not on screen 1 s in"); // Changed with Joe's approval, 23 Nov 2026
     check(mid.under.every((x) => !x), "reveal 200: the layer is what is under the score or a point");
     await o.page.waitForTimeout(250);
     check((await o.log()).some((e) => e.kind === "sound:firework"), "reveal 200: the fireworks make no sound");
