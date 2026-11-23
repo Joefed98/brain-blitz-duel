@@ -127,6 +127,10 @@ export const DEAL_PINS = {
   burstPreSmall: { texts: false },
   /** arcade.server.ts: Wavefront wavRev 15 from its own deal, before the wider formation (D5, 22 Nov 2026). */
   wavPreWide: { texts: false },
+  /** arcade.server.ts: High Rise skylineRev 11, before skylineRev 12's lower full lines (D5 item I5, 22 Nov 2026). */
+  skylinePreCount: { texts: false },
+  /** arcade.server.ts: Orbit orbitRev 16 at every level, before the lost flight (D5 item H4, 22 Nov 2026). */
+  orbitPreLost: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

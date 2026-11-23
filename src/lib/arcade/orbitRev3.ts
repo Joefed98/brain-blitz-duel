@@ -56,6 +56,7 @@ import {
   ORBIT_REV_FUEL,
   ORBIT_REV_GRACE,
   ORBIT_REV_BIG,
+  ORBIT_REV_LOST,
   orbitBigPlanets,
   orbitXpRev,
   inside,
@@ -609,6 +610,14 @@ export interface OrbitRev3State extends BandFields {
   /** orbitRev 16 only: 1 = the bigger planets (display bounds only; outside the checksum: the play is orbitRev 15's). */
   big?: number;
   /**
+   * orbitRev 17 only (the lost flight): 1 = a free flight that can no longer reach anything ends at once
+   * (orbitFlightLost); `lostTick` = the tick the last one did (display only), `lostFlights` = how many. All three outside
+   * the checkpoint checksum (a run with no lost flight plays orbitRev 16 tick for tick).
+   */
+  lost?: number;
+  lostTick?: number;
+  lostFlights?: number;
+  /**
    * Levels only (docs/arcade-standard/orbit.md "Levels"; set only by orbitLevelFields from a puzzle's stored `level`,
    * absent on every Normal round and every older one): `tank` = the full tank, ticks of free flight (ORBIT_FUEL_MAX
    * when absent); `cpAuto` = 1, Easy's automatic checkpoints (SET CHECKPOINT not offered); `cpNone` = 1, Expert's
@@ -911,6 +920,11 @@ function stepRev3(state: OrbitRev3State, worldW: number, input: ArcadeInputEvent
       if (s.fuel === 0) {
         s.dry = tick;
         die();
+      } else if (s.lost && orbitFlightLost(s)) {
+        // orbitRev 17: nothing on the course can catch or score this flight any more; it ends now, as a slip.
+        s.lostTick = tick;
+        s.lostFlights = (s.lostFlights ?? 0) + 1;
+        die();
       } else s.flying += 1;
     } else if (outsideWorld(worldW, here, s.x, s.y) || s.flying >= FLIGHT_MAX || (s.tuned && orbitPastReach(s))) die();
     else s.flying += 1;
@@ -953,6 +967,8 @@ export function orbitRev3Extra(s: OrbitRev3State) {
     ...(s.fuel !== undefined ? { outOfFuel: s.ended === 2 && s.dry === s.endedTick } : {}),
     // orbitRev 15 only: the automatic respawns (each a crash or an empty tank caught by grace).
     ...(s.grace ? { autoRespawns: s.autoRespawns ?? 0 } : {}),
+    // orbitRev 17 only: the flights ended as lost (each also a slip: a respawn).
+    ...(s.lost ? { lostFlights: s.lostFlights ?? 0 } : {}),
   };
 }
 
@@ -1350,6 +1366,8 @@ export function orbitWorldWFor(rev?: number | null): number {
 
 /** The start for a stored bank-course orbitRev (4–8), or null for an earlier one. */
 export function orbitRev3StartFor(rev: number | null | undefined, extras?: OrbitExtras | null, level?: unknown): ((planets: Planet[], worldW: number, holes: OrbitHole[]) => OrbitRev3State) | null {
+  // orbitRev 17 (the lost flight): orbitRev 16's start at the stored level, with the rule on.
+  if (rev === ORBIT_REV_LOST) return (planets, worldW, holes) => initLostFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS, level);
   // Levels (orbitRev 16 only): the stored level's rules; Normal and no level are initBigFrom exactly.
   if (rev === ORBIT_REV_BIG) return (planets, worldW, holes) => initLevelFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS, level);
   if (rev === ORBIT_REV_GRACE) return (planets, worldW, holes) => initGraceFrom(planets, worldW, holes, extras ?? ORBIT_NO_EXTRAS);
@@ -1700,9 +1718,9 @@ export const ORBIT_STD_SPEED_FULL_LEFT = ORBIT_REV3_RUN_TICKS / 2;
 export const ORBIT_STD_PERFECT_OF = 21;
 export const ORBIT_STD: StdSpec = {
   field: "orbitRev",
-  // The stamp rooms deal on these parts: orbitRev 16 (bigger planets) since 15 Nov 2026 (stage 3); orbitRev 13, 14
-  // and 15 score on them too.
-  rev: ORBIT_REV_BIG,
+  // The stamp rooms deal on these parts: orbitRev 17 (the lost flight) since 22 Nov 2026 (D5 item H4); orbitRev 13, 14,
+  // 15 and 16 (bigger planets, 15 Nov 2026) score on them too.
+  rev: ORBIT_REV_LOST,
   parts: [
     { key: "core", label: "Planets", max: 130, of: ORBIT_STD_CORE_OF, item: "planet" },
     { key: "speed", label: "Speed", max: 20, of: 1 },
@@ -1862,4 +1880,106 @@ export function initLevelFrom(planets: Planet[], worldW: number, holes: OrbitHol
   const s = initBigFrom(planets, worldW, holes, extras);
   const fields = orbitLevelFields(level);
   return fields.tank === undefined ? s : { ...s, ...fields, fuel: fields.tank };
+}
+
+/* ============ The lost flight (orbitRev 17, 22 Nov 2026, D5 item H4; docs/arcade-standard/orbit.md "orbitRev 17") ============ */
+/*
+ * On orbitRev 14–16 a missed flight flies on until the tank is empty (160 ticks at Normal) while the camera follows the
+ * rocket into empty space, then grace holds it in orbit for 3 s: a slip costs about 5.7 s. orbitRev 17 is orbitRev 16
+ * exactly at every level (the same courses and banks, levels, catches, black holes, features, grace and parts), except
+ * that a free flight ends the moment it is lost (orbitFlightLost), and takes the slip's usual path (die(): SET
+ * CHECKPOINT's respawn if armed, else grace's hold at the planet the flight left), so the slip costs the hold and the
+ * flight so far, not the whole tank.
+ *
+ * A free flight is a straight line: each tick the rocket moves by (vx, vy), which only a slingshot (leaving a moon's
+ * ring) or a black hole can change, and it moves at most `fuel` more times before the tank is empty. "Lost" asks the
+ * sim's own geometry whether anything on the rest of that flight (the segment to where the tank runs out) can happen:
+ *  - no planet but the one it left can catch it: the segment misses every planet's capture reach (the disc that holds
+ *    its whole capture region, `captureReach`), and no live black hole is on it (ORBIT_HOLE_SWEPT_R);
+ *  - nothing on it can still score: no stardust mote not yet taken (ORBIT_DUST_REACH), no asteroid field not yet threaded
+ *    (the disc round its gap line), no moon's slingshot ring (ORBIT_MOON_ASSIST; the rocket not inside one now), and the
+ *    partial credit toward the next planet (`reach`) can't grow (the flight isn't moving along that hop's line);
+ *  - and it is ORBIT_LOST_MARGIN (120 px) past the orbit it left and past every planet ahead (their capture reach), so
+ *    the player sees it fly clear before it ends.
+ * Every reach is padded by ORBIT_LOST_PAD (4 px) against integer rounding, so the rule can only end a flight later than
+ * it might, never one that could still be caught or score (orbit-lost-check sweeps recorded and synthetic flights).
+ * Integer only; `lost`, `lostTick` and `lostFlights` stay outside the checkpoint checksum.
+ */
+/** How far past the orbit it left and every planet ahead (their capture reach) a lost flight must be, 1/256 px. */
+export const ORBIT_LOST_MARGIN = 120 * FP;
+/** The safety pad on every reach the lost test reads, 1/256 px (integer rounding, isqrt). */
+export const ORBIT_LOST_PAD = 4 * FP;
+
+/**
+ * Does the rest of the flight, the segment from (px, py) to (px, py) + k·(vx, vy), come within `r` of (cx, cy)? `vlen` is
+ * at least |v| (isqrt + 1), so the test errs towards "yes". Integer only (every product stays far below 2^53).
+ */
+function lostSegmentNear(px: number, py: number, vx: number, vy: number, vlen: number, k: number, cx: number, cy: number, r: number): boolean {
+  const wx = cx - px, wy = cy - py;
+  if (wx * wx + wy * wy <= r * r) return true;
+  const dot = wx * vx + wy * vy;
+  // Behind the rocket: the closest point of the rest of the flight is here, outside r.
+  if (dot <= 0) return false;
+  // Past the flight's last point: the closest point is that last point.
+  if (dot >= k * (vx * vx + vy * vy)) {
+    const ex = cx - (px + k * vx), ey = cy - (py + k * vy);
+    return ex * ex + ey * ey <= r * r;
+  }
+  // Between: the line's closest approach, |w × v| / |v|.
+  return Math.abs(wx * vy - wy * vx) <= r * vlen;
+}
+
+/** orbitRev 17: is this free flight lost (nothing on the rest of its straight flight can catch it or score, and it is clear)? */
+export function orbitFlightLost(s: OrbitRev3State): boolean {
+  if (s.flying <= 0 || (s.warp ?? 0) > 0 || s.moonIn || s.ended || !s.fuel) return false;
+  const { x, y, vx, vy } = s;
+  if (vx === 0 && vy === 0) return false;
+  const vlen = isqrt(vx * vx + vy * vy) + 1;
+  // The flight moves `fuel` more times at most (each tick moves, tests a catch, then burns a unit; empty ends it), every
+  // move by exactly (vx, vy) until a slingshot or a black hole changes that (both tested below), so the rest of the
+  // flight is the segment to the point `fuel` moves on.
+  const k = s.fuel;
+  const near = (cx: number, cy: number, r: number) => lostSegmentNear(x, y, vx, vy, vlen, k, cx, cy, r + ORBIT_LOST_PAD);
+  for (let j = 0; j < s.planets.length; j++) {
+    const p = s.planets[j]!;
+    const reach = captureReach(p);
+    // Any planet but the one it left catches it (orbitCaptureAny).
+    if (j !== s.cur && near(p.x, p.y, reach)) return false;
+    // Clear of the orbit it left and of every planet ahead by the margin.
+    if (j >= s.cur) {
+      const dx = x - p.x, dy = y - p.y;
+      const m = reach + ORBIT_LOST_MARGIN;
+      if (dx * dx + dy * dy < m * m) return false;
+    }
+  }
+  for (const h of s.holes ?? []) if (orbitHoleLive(s, h) && near(h.x, h.y, ORBIT_HOLE_SWEPT_R)) return false;
+  if (s.xp) {
+    const dust = s.dust ?? [];
+    for (let i = 0; i < dust.length; i++) if (!((s.dustGot ?? 0) & (1 << i)) && near(dust[i]!.x, dust[i]!.y, ORBIT_DUST_REACH)) return false;
+    for (const m of s.moons ?? []) if (near(m.x, m.y, ORBIT_MOON_ASSIST)) return false;
+    const fields = s.fields ?? [];
+    for (let i = 0; i < fields.length; i++) {
+      if ((s.threaded ?? 0) & (1 << i)) continue;
+      const f = fields[i]!;
+      const hx = Math.trunc((f.bx - f.ax) / 2), hy = Math.trunc((f.by - f.ay) / 2);
+      if (near(f.ax + hx, f.ay + hy, isqrt(hx * hx + hy * hy) + FP)) return false;
+    }
+    // The partial credit (orbitXpReach) grows only while the flight moves along the hop from `best` to the next planet;
+    // its furthest point along that hop is the flight's last one, so: would it add a sixteenth there?
+    if (s.cur === s.best && s.cur < ORBIT_TOTAL && (s.reach ?? 0) < 15) {
+      const a = s.planets[s.cur]!, b = s.planets[s.cur + 1]!;
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const len2 = dx * dx + dy * dy;
+      if (len2 > 0 && vx * dx + vy * dy > 0) {
+        const along = (x + k * vx - a.x) * dx + (y + k * vy - a.y) * dy;
+        if (Math.min(15, Math.trunc((along * 16) / len2)) > (s.reach ?? 0)) return false;
+      }
+    }
+  }
+  return true;
+}
+
+/** orbitRev 17 start: orbitRev 16's at the stored level (initLevelFrom), with the lost flight on. */
+export function initLostFrom(planets: Planet[], worldW: number, holes: OrbitHole[], extras: OrbitExtras, level: unknown): OrbitRev3State {
+  return { ...initLevelFrom(planets, worldW, holes, extras, level), lost: 1, lostTick: -100, lostFlights: 0 };
 }

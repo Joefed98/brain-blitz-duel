@@ -25,11 +25,11 @@ import { BINTOSS_REV_STRICT, BINTOSS_REV_STD, BINTOSS_STD_SPEC, BINTOSS_V9_BAND_
 import { stdHelp, type StdSpec } from "./arcadeStandard";
 import { SNIP_REV_EXPAND, SNIP_REV_STRICT, SNIP_V11_BAND_CURVE } from "./snip";
 import { HOVER_REV_SHIELD, HOVER_REV_STRICT, HOVER_V10_BAND_CURVE } from "./hover";
-import { SKYLINE_REV_LIVES, SKYLINE_REV_STRICT, SKYLINE_STD_SPEC_V11, SKYLINE_V9_BAND_CURVE } from "./skyline";
+import { SKYLINE_REV_FLOORS, SKYLINE_REV_STRICT, SKYLINE_STD_SPEC_V12, SKYLINE_V12_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
 import { BRK_REV_CLEAR, BRK_REV_STRICT, BRK_V12_BAND_CURVE } from "./breaker";
 import { TILT_REV_BIG, TILT_REV_STRICT, TILT_V12_BAND_CURVE } from "./tilt";
-import { ORBIT_REV_STRICT, ORBIT_REV_BIG } from "./orbit";
+import { ORBIT_REV_STRICT, ORBIT_REV_LOST } from "./orbit";
 import { ORBIT_V14_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_FLOOR, BEAT_REV_STRICT, BEAT_STD_SPEC_V12, BEAT_V11_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_REV_LINE, SLICE_V13_BAND_CURVE } from "./slice";
@@ -121,7 +121,8 @@ export const LIVE_BANDS = {
   hover: { field: "hoverRev", rev: HOVER_REV_SHIELD, curve: HOVER_V10_BAND_CURVE, strictRev: HOVER_REV_STRICT },
   // skylineRev 9 (the arcade scoring standard): floors on a straight line to 140, then perfect drops, the streak and gold.
   // skylineRev 11 (15 Nov 2026, the Action overhaul): lives and the wide-block rescue; the same parts.
-  skyline: { field: "skylineRev", rev: SKYLINE_REV_LIVES, curve: SKYLINE_V9_BAND_CURVE, strictRev: SKYLINE_REV_STRICT, std: SKYLINE_STD_SPEC_V11 },
+  // skylineRev 12 (22 Nov 2026, D5 item I5): skylineRev 11's play; floors full at 45 (140), perfect drops at 30.
+  skyline: { field: "skylineRev", rev: SKYLINE_REV_FLOORS, curve: SKYLINE_V12_BAND_CURVE, strictRev: SKYLINE_REV_STRICT, std: SKYLINE_STD_SPEC_V12 },
   junction: { field: "junctionRev", rev: JUNC_REV_BAND, curve: JUNC_BAND_CURVE },
   // brkRev 11 (the arcade scoring standard): the bricks' straight line to 140; clear 10, speed 20 and gold 30 on top (the help says so).
   // brkRev 12 (the Retro overhaul, 15 Nov 2026): the 9-row wall, its core on the board's 81 bricks.
@@ -133,7 +134,8 @@ export const LIVE_BANDS = {
   tilt: { field: "tiltRev", rev: TILT_REV_BIG, curve: TILT_V12_BAND_CURVE, strictRev: TILT_REV_STRICT },
   // orbitRev 13 (the arcade scoring standard): planets on a straight line to 130; speed and features pay up to 70 more.
   // orbitRev 14 (the fuel meter): the same parts and straight line on the fuel bank's zigzag courses.
-  orbit: { field: "orbitRev", rev: ORBIT_REV_BIG, curve: ORBIT_V14_BAND_CURVE, strictRev: ORBIT_REV_STRICT },
+  // orbitRev 17 (22 Nov 2026, D5 item H4): orbitRev 16's play and parts; a lost flight ends at once.
+  orbit: { field: "orbitRev", rev: ORBIT_REV_LOST, curve: ORBIT_V14_BAND_CURVE, strictRev: ORBIT_REV_STRICT },
   // beatRev 11 (the arcade scoring standard): beatRev 10's play; accuracy on a straight line to 130, four fixed features.
   // beatRev 12 (the Retro overhaul, 15 Nov 2026): beatRev 11 with a missed note scoring 0 rather than −2.
   beat: { field: "beatRev", rev: BEAT_REV_FLOOR, curve: BEAT_V11_BAND_CURVE, strictRev: BEAT_REV_STRICT, std: BEAT_STD_SPEC_V12 },

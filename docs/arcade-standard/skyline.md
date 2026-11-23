@@ -277,3 +277,49 @@ then the big numbers and the picture, then the stored breakdown in the shared li
 summary line and See breakdown) below it, for every game with a run picture (`ArcadeReveal`, `data-reveal-run-picture`).
 skyline-overhaul-check section 11 mounts the reveal in happy-dom in practice and in a room and proves the order, every
 stored part line a row of the shared list and none above the picture, and Roofbound's reveal in the same order.
+
+## skylineRev 12: floors full at 45, perfect drops at 30 (22 Nov 2026, D5 item I5)
+
+Joe approved item I5 on 20 Nov 2026 (`docs/polish-plan-final/earlier-plan.md` row I5, plan section 8.2): a realistic
+elite (about 0.25 s to react, 0.15 s to move) can't build 61 floors in the 60 s run, so High Rise's Floors part, full at
+61, kept its Normal far below the 200 guide. Rooms, the Daily and every level now deal **`skylineRev 12`**
+(`SKYLINE_REV_FLOORS`, `skylineFloorsGame`, `skylineFloorsGameAt(level)`):
+
+- **Play:** skylineRev 11's exactly at every level: the lives, the wide-block rescue, the gold blocks where
+  `skylineKindsV9` deals them (one in each fifth of blocks 4–60), the wind, the slide and `SKYLINE_LEVEL_RULES` (on
+  skylineRev 12 as on 11 for now; the levels' own changes come later, on this Normal). A skylineRev 11 log replays on
+  skylineRev 12 tick for tick (the same checkpoints and checksum); states add `fullLines: 1`, outside the checksum.
+- **Floors (140):** every floor counts the same, all of it at **45** floors (`SKYLINE_V12_FLOORS_FULL_AT`; rev 11: 61).
+- **Perfect drops (30):** counted, as skylineRev 10 and 11 count them, all of it at **30** perfect drops
+  (`SKYLINE_V12_PERFECTS_FULL_AT`; rev 11: 61).
+- **Perfect streak (10)** and **Gold blocks (20):** unchanged. The parts still sum to 200 (`SKYLINE_STD_SPEC_V12`; LIVE_BANDS
+  carries it with `SKYLINE_V12_BAND_CURVE`, so the "?" help says 45 and 30).
+
+The lower lines never score a run less than skylineRev 11 did (every recorded run regrades at or above its rev-11 score).
+Checks written for skylineRev 11 pin the era `skylinePreCount` (`pinSkylinePreCount`), which deals skylineRev 11 as rooms
+did; `skylinePreLives` still deals skylineRev 10. Practice bests start fresh for High Rise (`PRACTICE_STAMPS`).
+
+**Measured** (`bun scripts/d5-ladder.ts skyline --deals=40`: real deals 0–39 at each level, graded by the server; the
+skill-band bot at Average and Elite under the human limits, and the flawless level held to them, `proof`), skylineRev 11
+(the deal pinned with `skylinePreCount`) → skylineRev 12. Mean / median, best tenth's lowest, best, share at 200:
+
+| Level | Average | Elite (realistic) | Proof (flawless at the limits) |
+| --- | --- | --- | --- |
+| Easy | 117 / 113, p90 144 → 158 / 158, p90 181 | 169 / 168, best 200, 5 % → 195 / 196, p90 200, 15 % | |
+| Normal | 53 / 51, p90 70 → 73 / 70, p90 97 | 146 / 144, p90 170, best 171, **0 %** → 181 / 183, p90 190, best 196, **0 %** | 178 / 180, 3 % → 197 / 196, 38 % |
+| Hard | 46 / 45 → 64 / 63 | 145 / 147, best 166, 0 % → 175 / 177, best 192, 0 % | |
+| Expert | 42 / 41 → 58 / 56 | 126 / 131, best 165, 0 % → 156 / 160, best 178, 0 % | |
+
+On Normal the realistic elite now fills Floors on 37 of 40 runs (median 140) and Perfect drops on 19 (median 28); what
+keeps it off 200 is the Perfect streak (median 6 of 10, full on 6 runs) and the Gold blocks (median 8 of 20, never all
+five: a gold block only scores landed perfectly, at a place fixed by the seed). The flawless player at the limits fills
+the first three parts on every run and all five gold blocks on 15 of 40.
+
+Checks: skyline-rev12-check (~5 s): the 144 skylineRev 11 runs recorded at every level before this stamp
+(`scripts/fixtures/skyline-rev12-legacy.json.gz`, `scripts/skyline-rev12-legacy-record.ts`) regrade exactly, and the 60
+older runs (`skyline-overhaul-legacy.json`); the deals at every level and under both pins; the same play; the new lines
+(built states and every recorded run); the spec, live band and help; the oracle at 200 through the server replay at
+every level. The intro demo recorded on skylineRev 11 still plays (`SAME_PLAY_DEMO_REVS` accepts 11 and 12, the same
+play); action-demos' run is re-recorded on skylineRev 12 with `bun scripts/action-demos-record.ts skyline` once Joe
+approves. The Skyscraper challenge ("Build 61 floors on Expert", Floors full) is full at 45 floors on skylineRev 12: its
+text needs Joe's decision (45 floors, or a goal that reads the floors themselves).
