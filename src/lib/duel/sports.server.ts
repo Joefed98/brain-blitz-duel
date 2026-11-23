@@ -96,7 +96,7 @@ export function generateRacing(level: Level = NORMAL): RacingPuzzleData {
 
 /** The level deals before D6 (main 7e25a4d0): racingRev 4, its own proved deals and the settings it stamped then. */
 type RacingLevelStamp = NonNullable<RacingPuzzleData["racingLevel"]>;
-const RACING_LEVELS_BEFORE_D6: Readonly<Record<"easy" | "hard" | "expert", RacingLevelStamp>> = {
+export const RACING_LEVELS_BEFORE_D6: Readonly<Record<"easy" | "hard" | "expert", RacingLevelStamp>> = {
   easy: { keep: 80, road: 75366, kerb: 83558, wall: 140902, tight: 0, aids: 2, pace: [1920, 2055, 1750] },
   hard: { keep: 60, road: 65536, kerb: 73728, wall: 108134, tight: 0, aids: 1, spread: 320 },
   expert: { keep: 50, road: 65536, kerb: 73728, wall: 108134, tight: 2, tightBy: [2, 2, 0], aids: 0, pace: [2175, 2352, 1964], spread: 250 },

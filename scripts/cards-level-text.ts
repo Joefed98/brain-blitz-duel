@@ -57,8 +57,7 @@ for (const l of LV) {
     how: [
       `${tp.seconds} seconds; ${tp.stockTurns === TP_STOCK_TURNS ? "the whole stock" : `the stock cut to ${tp.stockTurns} cards`}${l === "easy" ? "; the easiest deals" : ""}.`,
       `${tp.glow ? "Playable cards glow" : "No glow: find the playable cards yourself"}; ${tp.wrap ? "Ace and King wrap" : "no wrap: an Ace never goes on a King or a King on an Ace"}.`,
-      tp.undoLimit ? `${tp.undoLimit} undos, back one play or stock card each.` : "No undo.",
-      ...(tp.hintLimit === 0 ? [] : [hintLine(tp.hintCost, tp.hintLimit, l === "easy")]),
+      tp.hintLimit === 0 ? (tp.undoLimit ? `${tp.undoLimit} undos; no hints.` : "No undo and no hints.") : `${tp.undoLimit ? `${tp.undoLimit} undos, back one play or stock card each. ` : ""}${hintLine(tp.hintCost, tp.hintLimit, l === "easy")}`,
     ],
     intro: `Clear the peaks in long runs; speed full by ${tp.speedFullS} s. Up to 200.`,
     score: stdHelp(tpLevelSpec(l, TP_REV_EASE)),
@@ -70,7 +69,7 @@ for (const l of LV) {
     goal: `Build five poker hands, then pick a column. ${fh.seconds} s, about ${secs} s a card.`,
     how: [
       `${fh.seconds} seconds for your ${FH_TURNS} cards; 200 at ${fh.full} hand points${fh.tableRev === FH_REV_FLAT ? "" : `; ${fhTableText(fh.tableRev).split(", ").slice(0, 2).join(", ")} (bigger hands pay as Normal)`}.`,
-      ...(fh.preview ? [`The next ${fh.preview} cards show beside yours, and each column's value shows while you pick.`] : []),
+      ...(fh.preview ? [`The next ${fh.preview} cards show beside yours, and each column's value shows while you pick.`] : ["No preview of the next cards, no column values and no hints."]),
       ...(fh.hintLimit === 0 ? [] : [hintLine(fh.hintCost, fh.hintLimit, l === "easy")]),
     ],
     intro: `Make poker hands in five rows, then pick a column; 200 at ${fh.full} hand points. Up to 200.`,

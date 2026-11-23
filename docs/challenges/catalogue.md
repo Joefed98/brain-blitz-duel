@@ -657,9 +657,9 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Clean half | Drive four sectors clean. | Classic | Clean | line “Clean sectors” ≥ 20 |  | `racing.clean-half` |
+| Clean half | Drive four sectors clean. | Classic | Clean | from `racingRev` 5: line “Clean sectors” ≥ 40; before: line “Clean sectors” ≥ 20 |  | `racing.clean-half` |
 | Two hundred club | Average 200 km/h. | Classic | Speed | from `racingRev` 4: `pace10` ≥ 2000; before: line “Pace” ≥ 110 |  | `racing.two-hundred-club` |
-| Grand slam | Drive all eight sectors clean on Expert. | Expert | Clean | line “Clean sectors” = 40 of 40 |  | `racing.grand-slam` |
+| Grand slam | Drive all eight sectors clean on Expert. | Expert | Clean | from `racingRev` 5: `clean` ≥ 8; before: line “Clean sectors” = 40 of 40 |  | `racing.grand-slam` |
 
 #### Five Hands (`fivehands`)
 

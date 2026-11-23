@@ -77,8 +77,7 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
       "how": [
         "90 seconds; the whole stock; the easiest deals.",
         "Playable cards glow; Ace and King wrap.",
-        "3 undos, back one play or stock card each.",
-        "Hints are free: the Hint button lights one good move, and it lights by itself after 8 s without a move."
+        "3 undos, back one play or stock card each. Hints are free: the Hint button lights one good move, and it lights by itself after 8 s without a move."
       ],
       "intro": "Clear the peaks in long runs; speed full by 30 s. Up to 200.",
       "score": "Cards cleared: clear the 28 peak cards, each worth the same, up to 105. Peak tops: 10 for each peak top cleared, up to 30. Longest run: a run of 5 cards in a row for all of it, up to 10. Clear: clear all 28, up to 10. Stock par: clear all 28 turning the stock no more than 10 over the deal’s par for all of it, nothing if you turned it all, up to 20. Speed: clear all 28 within 30 s for all of it, falling to 0 at the buzzer, up to 25. Total 200."
@@ -88,7 +87,7 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
       "how": [
         "45 seconds; the stock cut to 18 cards.",
         "No glow: find the playable cards yourself; Ace and King wrap.",
-        "No undo."
+        "No undo and no hints."
       ],
       "intro": "Clear the peaks in long runs; speed full by 31 s. Up to 200.",
       "score": "Cards cleared: clear the 28 peak cards, each worth the same, up to 105. Peak tops: 10 for each peak top cleared, up to 30. Longest run: a run of 6 cards in a row for all of it, up to 10. Clear: clear all 28, up to 10. Stock par: clear all 28 turning the stock no more than 8 over the deal’s par for all of it, nothing if you turned it all, up to 20. Speed: clear all 28 within 31 s for all of it, falling to 0 at the buzzer, up to 25. Total 200."
@@ -98,7 +97,7 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
       "how": [
         "32 seconds; the stock cut to 14 cards.",
         "No glow: find the playable cards yourself; Ace and King wrap.",
-        "No undo."
+        "No undo and no hints."
       ],
       "intro": "Clear the peaks in long runs; speed full by 27 s. Up to 200.",
       "score": "Cards cleared: clear the 28 peak cards, each worth the same, up to 105. Peak tops: 10 for each peak top cleared, up to 30. Longest run: a run of 6 cards in a row for all of it, up to 10. Clear: clear all 28, up to 10. Stock par: clear all 28 turning the stock no more than 5 over the deal’s par for all of it, nothing if you turned it all, up to 20. Speed: clear all 28 within 27 s for all of it, falling to 0 at the buzzer, up to 25. Total 200."
@@ -118,7 +117,8 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
     "hard": {
       "goal": "Build five poker hands, then pick a column. 42 s, about 2 s a card.",
       "how": [
-        "42 seconds for your 20 cards; 200 at 100 hand points; pair 10, two pair 20 (bigger hands pay as Normal)."
+        "42 seconds for your 20 cards; 200 at 100 hand points; pair 10, two pair 20 (bigger hands pay as Normal).",
+        "No preview of the next cards, no column values and no hints."
       ],
       "intro": "Make poker hands in five rows, then pick a column; 200 at 100 hand points. Up to 200.",
       "score": "Hand points: your five rows’ hands plus the column you pick, 200 at 100 hand points (pair 10, two pair 20, three of a kind 25, straight 30, flush 35, full house 40, four of a kind 45, straight flush 50), up to 200. Total 200."
@@ -126,7 +126,8 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
     "expert": {
       "goal": "Build five poker hands, then pick a column. 30 s, about 1.4 s a card.",
       "how": [
-        "30 seconds for your 20 cards; 200 at 104 hand points; pair 10, two pair 15 (bigger hands pay as Normal)."
+        "30 seconds for your 20 cards; 200 at 104 hand points; pair 10, two pair 15 (bigger hands pay as Normal).",
+        "No preview of the next cards, no column values and no hints."
       ],
       "intro": "Make poker hands in five rows, then pick a column; 200 at 104 hand points. Up to 200.",
       "score": "Hand points: your five rows’ hands plus the column you pick, 200 at 104 hand points (pair 10, two pair 15, three of a kind 25, straight 30, flush 35, full house 40, four of a kind 45, straight flush 50), up to 200. Total 200."

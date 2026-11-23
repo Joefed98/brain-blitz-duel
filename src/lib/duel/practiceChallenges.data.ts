@@ -463,11 +463,12 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("freekick", "Skill shooter", "Score five skill shots.", "C", "target", false, all(line("Skill shots", "gte", 15))),
   ch("freekick", "Top bins", "Score through all four hoops.", "C", "fullset", true, part("Targets", 40)),
   // Apex (racing): pace 160 + clean sectors 40.
-  ch("racing", "Clean half", "Drive four sectors clean.", "C", "clean", false, all(line("Clean sectors", "gte", 20))),
+  // D6 (23 Nov 2026): racingRev 5's clean sectors are 10 each (full at 4), racingRev 4's 5 each; four clean either way.
+  ch("racing", "Clean half", "Drive four sectors clean.", "C", "clean", false, all({ c: "since", path: "racingRev", from: 5, then: line("Clean sectors", "gte", 40), before: line("Clean sectors", "gte", 20) })),
   // racingRev 4 (the Sports overhaul, 15 Nov 2026): the stored average speed itself on the three circuits, each with its
   // own pace range; older stamps keep the Pace line (110 there is 200 km/h).
   ch("racing", "Two hundred club", "Average 200 km/h.", "C", "speed", false, all({ c: "since", path: "racingRev", from: 4, then: f("pace10", "gte", 2000), before: line("Pace", "gte", 110) })),
-  ch("racing", "Grand slam", "Drive all eight sectors clean on Expert.", "E", "clean", false, part("Clean sectors", 40)),
+  ch("racing", "Grand slam", "Drive all eight sectors clean on Expert.", "E", "clean", false, all({ c: "since", path: "racingRev", from: 5, then: f("clean", "gte", 8), before: full("Clean sectors", 40) })),
 
   /* ================================================================ Cards and Board */
   // Five Hands (fivehands): rows plus the picked column, × 1.4, capped at 200.
