@@ -144,6 +144,25 @@ export const CROSS_LEVELS: Table<CrossLv> = {
   hard: { density: [8, 10, 12, 13, 14, 15, 15, 15, 15, 15], lives: 3, hitCost: 15, fullAt: 76 },
   expert: { density: [10, 12, 14, 15, 16, 17, 18, 18, 18, 18], lives: 2, hitCost: 20, fullAt: 80 },
 };
+/**
+ * Spacewalk (crossRev 14, D5, 23 Nov 2026; docs/arcade-standard/cross.md "Levels (D5, 23 Nov 2026)"): the lever is the
+ * traffic from the first crossing. `density` is each crossing's traffic in twelfths of crossRev 9's (the last entry holds
+ * on), dealt at exactly that density: rooms deal a level only on seeds where every crossing is proved passable at it and
+ * a proof run scores 200 (crossLevelDeals.server.ts), so nothing is thinned. Lives, the cost of a hit before the last and
+ * the rows-and-crossings figure the core is full at as on crossRev 13's table, and the level's own full lines for the two
+ * features: the no-stop crossings in a row after the first that fill the streak's 40 (`streakAt`; Normal 4) and the
+ * close calls that fill their 10 (`closeAt`; Normal 10). crossRev 13's table above stays as it is, so the levels rounds
+ * stored on it replay exactly. Normal stays crossRev 13.
+ */
+export interface CrossLvV14 extends CrossLv {
+  streakAt: number;
+  closeAt: number;
+}
+export const CROSS_LEVELS_V14: Table<CrossLvV14> = {
+  easy: { density: [3, 4, 5, 6, 7, 8, 8, 8, 8, 8], lives: 4, hitCost: 10, fullAt: 70, streakAt: 4, closeAt: 10 },
+  hard: { density: [10, 11, 12, 13, 14, 14, 14, 14, 14, 14], lives: 3, hitCost: 15, fullAt: 76, streakAt: 3, closeAt: 16 },
+  expert: { density: [12, 12, 13, 14, 15, 15, 15, 15, 15, 15], lives: 2, hitCost: 20, fullAt: 72, streakAt: 2, closeAt: 8 },
+};
 export const PINBALL_LEVELS: Table<PinballLv> = {
   easy: { balls: 4, saveS: 10, gravityPct: 85, multiS: 25, fullAt: 50_000 },
   hard: { balls: 3, saveS: 0, gravityPct: 110, multiS: 18, fullAt: 61_000 },

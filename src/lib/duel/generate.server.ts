@@ -341,7 +341,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "bullseye") return generateBullseye();
   if (type === "matchup") return generateMatchup();
   if (type === "snake") return generateSnake();
-  if (type === "cross") return generateCross();
+  if (type === "cross") return generateCross(context.level);
   if (type === "dual") return generateDual();
   if (type === "ricochet") return generateRicochet();
   if (type === "breaker") return generateBreaker();

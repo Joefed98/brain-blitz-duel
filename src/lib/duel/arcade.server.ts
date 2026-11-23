@@ -12,7 +12,8 @@ import { flipDealSeed } from "./flipDeal.server";
 import { wavDealSeed } from "./wavefrontDeal.server";
 import { wavDealSeedV16 } from "./wavefrontDealV16.server";
 import { flipDealSeedV13 } from "./flipDealV13.server";
-import { CROSS_REV_KEEP, CROSS_REV_LIGHT } from "@/lib/arcade/cross";
+import { CROSS_REV_DENSE, CROSS_REV_KEEP, CROSS_REV_LIGHT } from "@/lib/arcade/cross";
+import { crossLevelDealSeed } from "./crossLevelDeals.server";
 import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_HILLS, INK_REV_STD, isInkDiff } from "@/lib/arcade/inkBridge";
 import { inkBigDealSeed } from "./inkBigDeal.server";
 import { inkHillsDealSeed } from "./inkHillsDeal.server";
@@ -239,10 +240,14 @@ export function generateSnake(): SnakePuzzleData {
   return { type: "snake", seed: arcadeSeed(), snakeRev: dealPinned("preRetro") ? SNAKE_REV_12 : SNAKE_REV_GRACE };
 }
 
-export function generateCross(): CrossPuzzleData {
+export function generateCross(level?: Level): CrossPuzzleData {
   // crossRev 11 (3 Nov 2026): crossRev 10's courses without coins, scored with the no-stop streak and a cost a hit.
   // crossRev 12 (Nov 2026, the scoring audit): crossRev 11's play; the hit that ends the run is free, hits capped at half the core.
   // crossRev 13 (the Retro overhaul, stage 3, 16 Nov 2026): crossRev 12's rules on lighter traffic (preRetro: crossRev 12).
+  // crossRev 14 (D5, 23 Nov 2026): the levels only, each crossing at exactly its level's density, dealt only on seeds
+  // where every crossing is proved passable at it and the proof walker scores 200 (crossLevelDeals.server.ts). Normal
+  // stays crossRev 13, dealt as before.
+  if (level && level !== "normal" && !dealPinned("preRetro")) return { type: "cross", seed: crossLevelDealSeed(level, arcadeSeed()), crossRev: CROSS_REV_DENSE };
   return { type: "cross", seed: arcadeSeed(), crossRev: dealPinned("preRetro") ? CROSS_REV_KEEP : CROSS_REV_LIGHT };
 }
 
