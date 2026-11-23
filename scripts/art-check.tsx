@@ -217,6 +217,29 @@ if (record) {
 }
 
 /*
+ * 4a2. Moon Climb's 30 × 60 ninja (ricoRev 5). Joe's approval of 20 Nov 2026 (the polish plan's row C3.5; D5): on ricoRev 5
+ * the sim's body box is MOON_MID_HW × MOON_MID_HH (30 × 60, between the 26 × 52 and 34 × 68 boxes) and the same figure
+ * is drawn at ninjaArtScale(5) = 15 / 13. Held as 4a holds rev 4's: each pose's drawn extent within main's recorded
+ * figure + 0.5, × 15 / 13 (the fixture above, never re-recorded), plus 0.25 px (one sample of the 4× measure).
+ * Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's ricoRev 5, the 30 × 60 ninja): this block added.
+ */
+{
+  const { ninjaArtScale } = await import("../src/lib/arcade/ricochetNinja.renderer");
+  const { MOON_MID_HW, MOON_MID_HH, NINJA_HW, NINJA_HH } = await import("../src/lib/arcade/ricochetNinja");
+  const k = ninjaArtScale(5);
+  ok(k === MOON_MID_HW / NINJA_HW && Math.abs(k - MOON_MID_HH / NINJA_HH) < 1e-9, `Moon Climb's drawing scale: ricoRev 5 ${k}, the body box's own growth`);
+  const old = JSON.parse(readFileSync(FIXTURE, "utf8")) as Record<string, Ext>;
+  for (const pose of [0, 1, 2, 3, 4])
+    for (const face of [1, -1])
+      for (const tick of [0, 7, 19]) {
+        const key = `ninja-p${pose}-f${face}-t${tick}`;
+        const was = old[key]!;
+        const ext = ink((x) => drawNinja(x, 0, 0, pose, face, tick, pose === 2 ? 0.7 : 0, k));
+        ext.forEach((v, i) => ok(v <= (was[i]! + 0.5) * k + 0.25, `ricoRev 5 ${key}: drawn ${v.toFixed(2)} px to the ${["left", "right", "top", "bottom"][i]}, main's figure + 0.5 × ${k.toFixed(3)} = ${((was[i]! + 0.5) * k).toFixed(2)} (+0.25, one 4× sample)`));
+      }
+}
+
+/*
  * 4c. Grappler swingRev 18's bigger hero: Joe's explicit approval, 15 Nov 2026 (the Action overhaul's stage 2), its own
  * entry beside main's recorded bounds (which stay exactly as recorded and still hold every older figure above). On the
  * new stamp the hero's body is 14 px (10 before) and the jungle figure is drawn GRAPPLER_V18_SCALE (1.4, the radius
