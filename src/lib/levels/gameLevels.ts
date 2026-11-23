@@ -559,7 +559,7 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       // D6 (23 Nov 2026, freecellRev 6's levels, FC_LEVEL_RULES_V6): the lever is free cells 5 / 4 (Normal) / 3 / 2.
       easy: { settings: { cards: 32, cells: 5, undo: "free", hints: "free", parFull: "par + 1/8", speedFullS: 60 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
       hard: { settings: { cards: 40, cells: 3, undo: "a move", hints: "none", parFull: "par + 1/8", speedFullS: 33 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
-      expert: { settings: { cards: 48, cells: 2, undo: "3", hints: "none", parFull: "par + 1/4", speedFullS: 45 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      expert: { settings: { cards: 48, cells: 2, undo: "3", hints: "none", parFull: "par + 1/4", speedFullS: 40, parMax: 38 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
     },
   },
   mahjong: {

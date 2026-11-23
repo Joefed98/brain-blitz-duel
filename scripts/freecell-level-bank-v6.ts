@@ -7,8 +7,8 @@
  * compares without writing.
  *
  *   Hard    Normal's 40-card bank seeds (FC_DEALS_V4, in order) on 3 free cells: the first FC_V6_BANK_SIZE solved.
- *   Expert  the Normal-era 52-card bank seeds (FC_DEALS, in order) dealt as 48 cards (Ace to Queen, the level's
- *           topRank) on 2 free cells: the first FC_V6_BANK_SIZE solved in FC_V6_EXPERT_PAR_MAX moves or fewer.
+ *   Expert  the Normal-era 52-card bank seeds (FC_DEALS, in order, then FC_DEALS_V4's) dealt as 48 cards (Ace to Queen,
+ *           the level's topRank) on 2 free cells: the first FC_V6_BANK_SIZE solved in FC_V6_EXPERT_PAR_MAX moves or fewer.
  *
  *   bun scripts/freecell-level-bank-v6.ts [--check] [--level=hard|expert] [--part=k/n]   (parts: seeds split by index;
  *   bun scripts/freecell-level-bank-v6.ts --merge=n                                      then merge the n part files)
@@ -20,7 +20,8 @@ import { FC_DEALS_V4 } from "../src/lib/arcade/cards/freecellDealsV4.data";
 import { fcBestSolution, type FcMove } from "../src/lib/arcade/cards/freecellSolver";
 
 export const FC_V6_BANK_SIZE = 120;
-export const FC_V6_EXPERT_PAR_MAX = 50;
+/** Expert keeps the shortest two-cell solutions (Joe, 23 Nov 2026: a gentler Expert, the average player 30–40). */
+export const FC_V6_EXPERT_PAR_MAX = 38;
 const DATA = "src/lib/arcade/cards/freecellDealsLevelsV6.data.ts";
 export const FC_V6_SOLUTIONS = "scripts/fixtures/freecell-solutions-levels-v6.json";
 const CHECK = process.argv.includes("--check");
@@ -42,7 +43,7 @@ function solve(level: L, dealSeed: number): FcMove[] | null {
 }
 
 type Entry = { seed: number; sol: FcMove[] };
-const seedsOf = (l: L) => (l === "hard" ? FC_DEALS_V4 : FC_DEALS).map(([seed]) => seed);
+const seedsOf = (l: L) => (l === "hard" ? FC_DEALS_V4 : [...FC_DEALS, ...FC_DEALS_V4]).map(([seed]) => seed);
 const keeps = (l: L, sol: FcMove[] | null) => Boolean(sol) && (l === "hard" || sol!.length <= FC_V6_EXPERT_PAR_MAX);
 
 /** Every candidate's result in order (null: not kept), for the seeds this part owns. */

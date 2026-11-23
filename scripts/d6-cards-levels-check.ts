@@ -89,7 +89,7 @@ console.log("1. The rules: the lever and figures, the registry, no hints on Hard
   check(FH.FH_LEVEL_RULES_V4.easy.tableRev === FH.FH_REV_FLAT && FH.FH_LEVEL_RULES_V4.hard.tableRev === FH.FH_TABLE_HARD && FH.FH_LEVEL_RULES_V4.expert.tableRev === FH.FH_TABLE_EXPERT, "fivehands: today's table on Easy, the Hard and Expert tables above it");
   // Free Cell: free cells 5 / 4 (Normal) / 3 / 2.
   check(LEVELS.map((l) => `${FC.FC_LEVEL_RULES_V6[l].cells}x${4 * FC.FC_LEVEL_RULES_V6[l].topRank}`).join(" ") === "5x32 3x40 2x48", "freecell: 5 cells on 32 cards, 3 on 40, 2 on 48");
-  check(LEVELS.map((l) => `${FC.FC_LEVEL_RULES_V6[l].parFullEighths}/${FC.FC_LEVEL_RULES_V6[l].parZeroQuarters}/${FC.FC_LEVEL_RULES_V6[l].speedFullS}`).join(" ") === "9/8/60 9/6/33 10/6/45", "freecell: par and speed figures per level");
+  check(LEVELS.map((l) => `${FC.FC_LEVEL_RULES_V6[l].parFullEighths}/${FC.FC_LEVEL_RULES_V6[l].parZeroQuarters}/${FC.FC_LEVEL_RULES_V6[l].speedFullS}`).join(" ") === "9/8/60 9/6/33 10/6/40", "freecell: par and speed figures per level");
   check(FC.FC_LEVEL_RULES_V6.expert.undoLimit === 3 && !FC.FC_LEVEL_RULES_V6.hard.undoFree && FC.FC_LEVEL_RULES_V6.easy.undoFree, "freecell: Easy's undo free, Hard's a move, Expert 3");
   // Summit: seconds on the clock.
   check(LEVELS.map((l) => `${TP.TP_LEVEL_RULES_V4[l].seconds}/${TP.TP_LEVEL_RULES_V4[l].stockTurns}/${TP.TP_LEVEL_RULES_V4[l].maxPar}`).join(" ") === "90/23/12 45/18/13 32/14/11", "tripeaks: 90 s whole stock par ≤ 12, 45 s 18 turns par ≤ 13, 32 s 14 turns par ≤ 11");
@@ -165,12 +165,12 @@ console.log("3. 200 at a human pace on every level deal, through the grade");
     let parsOk = 0;
     for (let i = 0; i < bank.length; i++) {
       const line = lines[l][i]!.split(",").filter(Boolean).map((m) => m.split(":").map(Number) as [number, number, number]);
-      if (line.length === bank[i]![1] && (l !== "expert" || line.length <= 50)) parsOk++;
+      if (line.length === bank[i]![1] && (l !== "expert" || line.length <= 38)) parsOk++;
       const p = { type: "freecell", seed: i, freecellRev: FC.FC_REV_PAR98, level: l } as unknown as PuzzleData;
       const w = play(FC.freecellLevelGame(l, FC.FC_REV_PAR98), i, line.map((m) => mv(FC.FC_INPUT_MOVE, m[0], m[1], m[2])), GAP, FC.fcCheckpoint, encodeFreecellRun);
       if (gradeAnswer(p, w.raw, 0).score === 200) at200++;
     }
-    check(parsOk === bank.length, `freecell ${l}: every deal's par is its stored solution's length${l === "expert" ? " (50 or fewer)" : ""}`);
+    check(parsOk === bank.length, `freecell ${l}: every deal's par is its stored solution's length${l === "expert" ? " (38 or fewer)" : ""}`);
     check(at200 === bank.length, `freecell ${l}: every deal's solution at a human pace scores 200 through the grade (${at200} of ${bank.length})`);
   }
   // Summit: every deal a level deals, its par line.

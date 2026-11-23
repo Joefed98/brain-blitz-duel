@@ -34,11 +34,11 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
     "expert": {
       "goal": "Get all 48 cards home, fast, in two minutes.",
       "how": [
-        "48 cards (Ace to 12), 2 free cells, only the deals solved in 50 moves or fewer.",
+        "48 cards (Ace to Queen), 2 free cells, only the deals solved in 38 moves or fewer.",
         "3 undos, each a move."
       ],
       "intro": "Move all 48 cards home; bonuses for few moves and speed. Up to 200.",
-      "score": "Cards: every card home scores, a card in a sorted run on the columns half as much; all 48 home for all of it, up to 105. Par moves: finish within a quarter over the deal’s fewest moves (par) for all of it, nothing at one and a half times par, up to 50. Speed: finish within 45 s for all of it, falling to 0 at the buzzer, up to 45. Total 200."
+      "score": "Cards: every card home scores, a card in a sorted run on the columns half as much; all 48 home for all of it, up to 105. Par moves: finish within a quarter over the deal’s fewest moves (par) for all of it, nothing at one and a half times par, up to 50. Speed: finish within 40 s for all of it, falling to 0 at the buzzer, up to 45. Total 200."
     }
   },
   "mahjong": {

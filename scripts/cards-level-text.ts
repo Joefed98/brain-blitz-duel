@@ -31,7 +31,7 @@ for (const l of LV) {
   text.freecell[l] = {
     goal: `Get all ${cards} cards home, fast, in two minutes.`,
     how: [
-      `${cards} cards (Ace to ${fc.topRank === 13 ? "King" : fc.topRank}), ${fc.cells} free cells${l === "expert" ? ", only the deals solved in 50 moves or fewer" : ""}.`,
+      `${cards} cards (Ace to ${fc.topRank === 13 ? "King" : fc.topRank === 12 ? "Queen" : fc.topRank === 11 ? "Jack" : fc.topRank}), ${fc.cells} free cells${l === "expert" ? ", only the deals solved in 38 moves or fewer" : ""}.`,
       fc.undoFree ? "Undo is free and unlimited." : fc.undoLimit > 0 ? `${fc.undoLimit} undos, each a move.` : "Undo counts as a move.",
       ...(fc.hintLimit === 0 ? [] : [hintLine(fc.hintCost, fc.hintLimit, l === "easy")]),
     ],

@@ -832,17 +832,18 @@ export const FC_LEVEL_RULES: Readonly<Record<FcLevelName, FcLevelRules>> = {
  *   Easy    as today: 32 cards (Ace to 8), 5 free cells, Undo free and unlimited, free hints with the idle glow.
  *   Hard    Normal's 40 cards (Ace to 10) on 3 free cells, so the missing cell is the one change (FC_DEALS_HARD_V6:
  *           Normal's bank seeds the solver proves with 3 cells); Undo unlimited, a move; no hints.
- *   Expert  48 cards (Ace to Queen) on 2 free cells (FC_DEALS_EXPERT_V6: the deals the solver proves on that start; 52
- *           cards on 2 cells averaged 18 for the average player, a cliff, Joe 23 Nov 2026); 3 undos; no hints.
+ *   Expert  48 cards (Ace to Queen) on 2 free cells, only the deals the solver proves in 38 moves or fewer
+ *           (FC_DEALS_EXPERT_V6; 52 cards on 2 cells averaged 18 for the average player, a cliff, Joe 23 Nov 2026); 3
+ *           undos; no hints.
  *
  * Par moves and speed per level, set from 96 room deals (scripts/d6-ladder.ts, the skill-band bots under HUMAN_LIMITS):
  * Easy full within an eighth over par, nothing at twice par, speed by 60 s; Hard within an eighth, nothing at 1.5 ×,
- * speed by 33 s; Expert within a quarter, nothing at 1.5 ×, speed by 45 s (the elite's two-cell clears take 43–52 s).
+ * speed by 33 s; Expert within a quarter, nothing at 1.5 ×, speed by 40 s (the elite's two-cell clears take 38–47 s).
  */
 export const FC_LEVEL_RULES_V6: Readonly<Record<FcLevelName, FcLevelRules>> = {
   easy: { ...FC_LEVEL_RULES.easy, parFullEighths: 9 },
   hard: { lv: FC_LV_HARD, topRank: FC_SHORT_TOP_RANK, cells: 3, undoFree: false, undoLimit: -1, hintCost: 0, hintLimit: 0, speedFullS: 33, parZeroQuarters: 6, parFullEighths: 9 },
-  expert: { lv: FC_LV_EXPERT, topRank: 12, cells: 2, undoFree: false, undoLimit: 3, hintCost: 0, hintLimit: 0, speedFullS: 45, parZeroQuarters: 6, parFullEighths: 10 },
+  expert: { lv: FC_LV_EXPERT, topRank: 12, cells: 2, undoFree: false, undoLimit: 3, hintCost: 0, hintLimit: 0, speedFullS: 40, parZeroQuarters: 6, parFullEighths: 10 },
 };
 
 /** A level's rules on a revision (rev 6: D6's; earlier: the levels before). */
