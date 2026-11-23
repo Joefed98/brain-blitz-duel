@@ -27,8 +27,9 @@ import type { StdEntry } from "./entry";
 const spec = ARCADE_STANDARD.fivehands!.spec!;
 /** Rev 3's points for a hand-point total, written out here (not the sim's helper): floor(total × 7 ÷ 5), capped at 200. */
 const x14 = (total: number) => Math.min(200, Math.floor((total * 7) / 5));
-/** Rev 4's, written out here: floor(total × 200 ÷ 128), capped at 200. */
-const at128 = (total: number) => Math.min(200, Math.floor((total * 200) / 128));
+/** Rev 4's, written out here: floor(total × 200 ÷ 112), capped at 200. */
+// Changed with Joe's approval, 23 Nov 2026 (D6: fiveHandsRev 4 tuned to 200 at 112 hand points before it shipped).
+const at128 = (total: number) => Math.min(200, Math.floor((total * 200) / 112));
 const game = fiveHandsGameFor(3);
 const game4 = fiveHandsGameFor(4);
 const rec = (s: FhState) => Object.fromEntries((fiveHandsStdParts(s) ?? []).map((p) => [p.key, p.points]));
@@ -60,7 +61,8 @@ export const entry: StdEntry = {
   // Changed with Joe's approval, 23 Nov 2026 (D6): played, idle and the help on rev 4.
   played: () => [{ label: "a tap that placed nothing", score: game4.score({ ...game4.init(4), acted: 1 }), want: 1 }],
   idle: () => [{ label: "an untouched init(12)", score: game4.score(game4.init(12)) }],
-  help: { terms: ["hands", "pair 15", "straight flush 50", "200 at 128 hand points"] },
+  // Changed with Joe's approval, 23 Nov 2026 (D6: fiveHandsRev 4 tuned to 200 at 112 hand points before it shipped).
+  help: { terms: ["hands", "pair 15", "straight flush 50", "200 at 112 hand points"] },
   extra(ok) {
     let straight = true;
     for (const rows of PARTIALS) {
@@ -77,8 +79,9 @@ export const entry: StdEntry = {
       const parts = fiveHandsStdParts({ ...game4.init(SEED), rows, acted: 1 })!;
       if (parts.length !== 1 || parts[0]!.points !== at128(total)) line4 = false;
     }
-    ok(line4, "fivehands rev 4: the one part is min(200, floor(hand points × 200 ÷ 128)) on every partial best");
-    ok(at128(64) === 100 && at128(127) === 198 && at128(128) === 200 && at128(160) === 200, "fivehands rev 4: anchors (64 → 100, 127 → 198, 128 → 200, 160 → 200)");
+    // Changed with Joe's approval, 23 Nov 2026 (D6: fiveHandsRev 4 tuned to 200 at 112 hand points before it shipped).
+    ok(line4, "fivehands rev 4: the one part is min(200, floor(hand points × 200 ÷ 112)) on every partial best");
+    ok(at128(56) === 100 && at128(111) === 198 && at128(112) === 200 && at128(160) === 200, "fivehands rev 4: anchors (56 → 100, 111 → 198, 112 → 200, 160 → 200)");
     ok(JSON.stringify({ ...game4.init(SEED), rev: 3 }) === JSON.stringify(game.init(SEED)), "fivehands rev 4: rev 3's deck and opening state exactly");
     // A built state over the cap: five straight flushes (250 on the table) pay 200.
     const flushes = [0, 1, 2, 3].map((s) => [0, 1, 2, 3, 4].map((r) => s * 13 + r)).concat([[5, 6, 7, 8, 9]]);

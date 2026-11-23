@@ -116,13 +116,15 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "freekick", field: "freekickRev", rev: 6, batch: "Sports" },
   // Apex (racing) deals racingRev 4 since 15 Nov 2026 (three named circuits; racingRev 3 from 3 Nov, 2 from 31 Oct 2026).
   // Changed 15 Nov 2026 (routine consequence of the Sports overhaul): the roster follows the dealt stamp.
-  { type: "racing", field: "racingRev", rev: 4, batch: "Sports" },
+  // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps): racingRev 5, freecellRev 6, tripeaksRev 4.
+  { type: "racing", field: "racingRev", rev: 5, batch: "Sports" },
   // Cards & Board (30 Oct 2026): born on the standard at revision 1.
   // Free Cell's rev 2 (Undo and Reset) and Full House's rev 2 (full at the elite median), 31 Oct 2026: still on the standard.
   // Free Cell freecellRev 4 and Summit tripeaksRev 2 (3 Nov 2026, the Cards & Board batch): the 40-card deal; the stock par.
   // Free Cell freecellRev 5, Summit tripeaksRev 3 and Thirteen pyramidRev 2 (7 Nov 2026): partial clears earn in proportion.
-  { type: "freecell", field: "freecellRev", rev: 5, batch: "Cards" },
-  { type: "tripeaks", field: "tripeaksRev", rev: 3, batch: "Cards" },
+  // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps): racingRev 5, freecellRev 6, tripeaksRev 4.
+  { type: "freecell", field: "freecellRev", rev: 6, batch: "Cards" },
+  { type: "tripeaks", field: "tripeaksRev", rev: 4, batch: "Cards" },
   { type: "pokersquares", field: "pokerSquaresRev", rev: 2, batch: "Cards" },
   // Five Hands (31 Oct 2026): born on the standard; fiveHandsRev 3 (3 Nov 2026) is NOT_200_ON_EVERY_DEAL's one exception.
   // Changed with Joe's approval, 23 Nov 2026 (D6): fiveHandsRev 4, 200 at 128 hand points.

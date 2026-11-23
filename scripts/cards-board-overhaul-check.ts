@@ -44,7 +44,8 @@ const ART = await import("../src/lib/arcade/cards/realArt.renderer");
 const CARDS = await import("../src/lib/duel/cards");
 
 /* 1. No gameplay moved */
-check(FC.FC_REV === 5 && TP.TP_REV === 3 && PY.PY_REV === 3 && FH.FH_REV === 3 && MJ.MAHJONG_REV_DEALT === 2, "the dealt stamps are main's (freecellRev 5, tripeaksRev 3, pyramidRev 3, fiveHandsRev 3, mahjongRev 2)");
+// Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps: freecellRev 6, tripeaksRev 4, fiveHandsRev 4).
+check(FC.FC_REV === 6 && TP.TP_REV === 4 && PY.PY_REV === 3 && FH.FH_REV === 4 && MJ.MAHJONG_REV_DEALT === 2, "the dealt stamps (freecellRev 6, tripeaksRev 4, pyramidRev 3, fiveHandsRev 4, mahjongRev 2)");
 {
   const fc = freecellFlawless(3, 20, 5);
   check(CARDS.replayFreecellRun(3, fc.raw, 5).home === 40, "Free Cell: a flawless run still takes every card home through the replay");

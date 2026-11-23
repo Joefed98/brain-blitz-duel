@@ -84,6 +84,9 @@ import { skylineGameFor, SKYLINE_REV_EXPAND, SKYLINE_REV_STD, SKYLINE_REV_TALL }
 import { APP_FLAG_LOGO_URL } from "../src/lib/brand";
 import { PUZZLE_INSTRUCTIONS as INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { playRevOf } from "./scoring-targets-revs";
+import { pinPreTiltThree } from "../src/lib/duel/d6Normal";
+// Changed with Joe's approval, 23 Nov 2026 (D6): Tilt's Normal moved to tiltRev 13 (three mazes); this check was written for tiltRev 12, so it deals it (d6-normal-stamps-check proves tiltRev 13).
+pinPreTiltThree(true);
 
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal the overhaul's stamps
 // (Wavefront wavRev 14's charged shot, Fission burstRev 12…); this check was written for the deal before it, so it pins

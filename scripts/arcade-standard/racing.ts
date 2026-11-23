@@ -15,8 +15,11 @@ import {
   RACING_INPUT_RANGES,
   RACING_INPUT_STICK,
   RACING_REV_4,
+  RACING_REV_5,
   RACING_V4_PACE,
   RACING_V4_STD_SPEC,
+  RACING_V5_PACE,
+  RACING_V5_STD_SPEC,
   racingCircuitOf,
   RACING_RUN_TICKS,
   RACING_TOTAL,
@@ -32,7 +35,8 @@ import { oracleRun } from "../racing-oracle";
 import { racingSubmission } from "../racing-deal";
 import type { StdEntry, StdRun } from "./entry";
 
-const REV = RACING_REV_4;
+// Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamp: racingRev 5, rev 4's play with pace full at the realistic elite's par and clean sectors full at 4).
+const REV = RACING_REV_5;
 const RACING_DEAL_V3 = RACING_DEAL_V4;
 /** A Sunset Park seed (its pace range is racingRev 3's: zero RACING_V3_PACE_ZERO, full RACING_V3_PACE_FULL). */
 const SUNSET = RACING_DEAL_V4.find((s) => racingCircuitOf(s) === 0)!;
@@ -52,10 +56,12 @@ function replayed(seed: number, events: ArcadeInputEvent[], label: string): StdR
 }
 
 const base = (over: Partial<RacingState>): RacingState => ({
-  ...racingGameFor(REV).init(SUNSET),
+  ...racingGameFor(RACING_REV_4).init(SUNSET),
   acted: 1,
   ...over,
 });
+// Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamp: racingRev 5, rev 4's play with pace full at the realistic elite's par and clean sectors full at 4).
+const base5 = (over: Partial<RacingState>): RacingState => ({ ...base(over), rev: RACING_REV_5 });
 /** The race over at the buzzer (no finish). */
 const END = RACING_V2_GO + RACING_RUN_TICKS;
 
@@ -78,12 +84,12 @@ export const entry: StdEntry = {
   type: "racing",
   field: "racingRev",
   rev: REV,
-  parts: RACING_V4_STD_SPEC.parts,
+  parts: RACING_V5_STD_SPEC.parts,
   spec: ARCADE_STANDARD.racing.spec!,
   liveSpec: true,
   perfect: () =>
     seeds.map((seed) =>
-      replayed(seed, oracleRun(seed, REV), `the oracle on rev-4 deal seed ${seed} (circuit ${racingCircuitOf(seed) + 1})`),
+      replayed(seed, oracleRun(seed, REV), `the oracle on rev-4 deal seed ${seed} replayed on racingRev 5 (circuit ${racingCircuitOf(seed) + 1})`),
     ),
   played: () => {
     const events: ArcadeInputEvent[] = [];
@@ -111,7 +117,7 @@ export const entry: StdEntry = {
   idle: () => [replayed(RACING_DEAL_V3[1]!, [], "no input at all")],
   core: {
     fullAt: RACING_V3_PACE_OF,
-    at: (v) => racingStateAtPace(RACING_V3_PACE_ZERO + v),
+    at: (v) => ({ ...racingStateAtPace(RACING_V5_PACE[0]!.zero + v), rev: RACING_REV_5 }),
     parts: racingStdParts,
   },
   extra(ok) {
@@ -135,6 +141,10 @@ export const entry: StdEntry = {
         p(racingStateAtPace(RACING_V3_PACE_FULL + 40), "core") === 160,
       "the pace is full at the full figure and held there",
     );
+    // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamp: racingRev 5, rev 4's play with pace full at the realistic elite's par and clean sectors full at 4).
+    for (let c = 0; c <= 8; c++) ok(p(base5({ clean: c }), "sectors") === Math.min(40, 10 * c), `racingRev 5: ${c} clean sectors → ${Math.min(40, 10 * c)} (full at 4)`);
+    ok(RACING_V5_PACE.every((r, c) => r.full - r.zero === RACING_V3_PACE_OF && r.full < RACING_V4_PACE[c]!.full), "racingRev 5: each circuit's pace over rev 4's spread, its full below rev 4's par");
+    ok(p({ ...racingStateAtPace(RACING_V5_PACE[0]!.full), rev: RACING_REV_5 }, "core") === 160 && p({ ...racingStateAtPace(RACING_V5_PACE[0]!.zero - 30), rev: RACING_REV_5 }, "core") === 0, "racingRev 5: the pace full at Sunset Park's new par, nothing below its zero");
     const fin = base({
       tick: RACING_V2_GO + 4700,
       s: RACING_TOTAL,

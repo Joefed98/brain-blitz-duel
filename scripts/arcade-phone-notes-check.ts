@@ -41,7 +41,7 @@ import {
   TILT_REV_EXPAND,
   TILT_REV_LIFT,
   TILT_REV_PAR,
-  TILT_REV_BIG,
+  TILT_REV_BIG, TILT_REV_THREE,
   TILT_V8_BAND_CURVE,
   TILT_V9_BAND_CURVE,
   TILT_V9_SKILL_PAY,
@@ -61,6 +61,9 @@ import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { flipTap } from "./flip-x200-plan";
 import { encodeFlipLog, FLIP_WITNESS_FIXTURE, type FlipWitness } from "./flip-x200-record";
 import type { BandCurve } from "../src/lib/arcade/scoreBands";
+import { pinPreTiltThree } from "../src/lib/duel/d6Normal";
+// Changed with Joe's approval, 23 Nov 2026 (D6): Tilt's Normal moved to tiltRev 13 (three mazes); this check was written for tiltRev 12, so it deals it (d6-normal-stamps-check proves tiltRev 13).
+pinPreTiltThree(true);
 
 let checks = 0;
 const failures: string[] = [];
@@ -174,7 +177,8 @@ lifts("Tilt skill pay", TILT_X_SKILL_PAY, TILT_V9_SKILL_PAY);
 // And on 3 Nov 2026 again (tiltRev 12: tiltRev 11 with bigger marbles and keys; tilt-rev12-check).
 ok((generatePuzzle("tilt") as { tiltRev?: number }).tiltRev === TILT_REV_BIG, "rooms deal tiltRev 12 (tiltRev 11's successor)");
 ok(LIVE_BANDS.flip.rev === FLIP_REV_FLOW + 2 && LIVE_BANDS.flip.curve === FLIP_V13_BAND_CURVE, "LIVE_BANDS: Roofbound on flipRev 13's curve (flipRev 11's, dealt as flipRev 12, until 15 Nov 2026; flipRev 10's before 3 Nov 2026)");
-ok(LIVE_BANDS.tilt.rev === TILT_REV_BIG && LIVE_BANDS.tilt.curve === TILT_V11_BAND_CURVE, "LIVE_BANDS: Tilt tiltRev 12 on tiltRev 11's core line");
+// Changed with Joe's approval, 23 Nov 2026 (D6): LIVE_BANDS and the standard entry name the dealt tiltRev 13 (tiltRev 12's first three mazes, on tiltRev 11's core line).
+ok(LIVE_BANDS.tilt.rev === TILT_REV_THREE && LIVE_BANDS.tilt.curve === TILT_V11_BAND_CURVE, "LIVE_BANDS: Tilt tiltRev 13 on tiltRev 11's core line");
 ok(roundMaxFor("flip") === 200 && roundMaxFor("tilt") === 200, "both round maximums stay 200");
 ok(flipWorldHFor(FLIP_REV_LIFT) === FLIP_V8_WORLD_H && tiltWorldHFor(TILT_REV_LIFT) === TILT_X_H && tiltIsExpand(TILT_REV_LIFT), "the new stamps play in the expansions' worlds");
 ok(flipGameFor(FLIP_REV_LIFT).init(7).lift === 1 && !flipGameFor(FLIP_REV_EXPAND).init(7).lift, "flipRev 9 states carry lift; flipRev 8's do not");
