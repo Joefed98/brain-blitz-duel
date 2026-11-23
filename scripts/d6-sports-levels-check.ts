@@ -7,6 +7,10 @@
  *  rebuilds byte for byte), Normal and the rev-5 levels unchanged, Easy's five outs, and the realistic elite (the
  *  skill-band bot under HUMAN_LIMITS) reaching 200 on at least a fifth of Expert deals.
  *
+ *  Apex (racingRev 5, Normal's scoring stamp; the levels' lever is road width, their settings stamped as racingLevel):
+ *  Normal's new figures on rev 4's play, the levels' settings and proved deals, the levels before under d6PreLevels
+ *  byte for byte, and the realistic elite reaching 200 on at least a fifth of Expert deals.
+ *
  *   bun scripts/d6-sports-levels-check.ts
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -19,6 +23,13 @@ import { homerunGameFor, HOMERUN_REV_DEALT } from "../src/lib/arcade/homerun";
 import { HOMERUN_REV_5, HOMERUN_REV_6, HR_LEVEL_SETTINGS, hrPlayLevel } from "../src/lib/arcade/homerunInnings";
 import { HOMERUN_DEAL_V6 } from "../src/lib/duel/homerunDealV6.server";
 import { playDealt } from "./d6-ladder-lib";
+import { racingGameFor, racingLevelOf, racingPaceRange, racingStdParts, RACING_REV_4, RACING_REV_5, RACING_REV_DEALT, RACING_V4_PACE, RACING_V5_CLEAN_FULL, RACING_V5_PACE, type RacingLevelSettings } from "../src/lib/arcade/racing";
+import { RACING_DEAL_V4 } from "../src/lib/duel/racingDealV4.server";
+import { RACING_DEAL_V5_EASY } from "../src/lib/duel/racingDealV5Easy.server";
+import { RACING_DEAL_V5_HARD } from "../src/lib/duel/racingDealV5Hard.server";
+import { RACING_DEAL_V5_EXPERT } from "../src/lib/duel/racingDealV5Expert.server";
+import { RACING_DEAL_V4_EASY } from "../src/lib/duel/racingDealV4Easy.server";
+import { pinPreRacingFive } from "../src/lib/duel/d6Normal";
 
 console.error = () => {};
 let failed = 0;
@@ -81,6 +92,61 @@ console.log("1. Home Run homerunRev 6: pitch speed");
   let at200 = 0;
   for (let n = 0; n < 96; n++) if ((await playDealt("homerun", dealAt("homerun", "expert", n), "elite")).score >= 200) at200++;
   check(at200 / 96 >= 0.2, `homerun expert: the elite under HUMAN_LIMITS reaches 200 on ${at200} of 96 deals (at least a fifth)`);
+}
+
+/* ---------------------------------------------------------------- Apex */
+console.log("2. Apex racingRev 5 (Normal's scoring stamp) and its levels: road width");
+{
+  check(RACING_REV_DEALT === RACING_REV_5 && RACING_V5_CLEAN_FULL === 4 && RACING_V5_PACE.map((p) => p.full).join(",") === "2115,2275,1890" && RACING_V5_PACE.every((p, c) => p.full - p.zero === RACING_V4_PACE[c]!.full - RACING_V4_PACE[c]!.zero), "apex: rooms deal racingRev 5, pace full at 2,115 / 2,275 / 1,890 (rev 4's spread), clean sectors full at 4");
+  for (let n = 0; n < 4; n++) {
+    const p = dealAt("racing", "normal", n);
+    check(p.racingRev === RACING_REV_5 && !("racingLevel" in p) && !("level" in p) && RACING_DEAL_V4.includes(p.seed), `apex normal ${n}: racingRev 5 on rev 4's proved deal, no level`);
+  }
+  const wasR = pinPreRacingFive(true);
+  try {
+    check(dealAt("racing", "normal", 0).racingRev === RACING_REV_4 && dealAt("racing", "hard", 0).racingRev === RACING_REV_4, "racingPreFive: Apex deals racingRev 4 (Normal and the levels before)");
+  } finally {
+    pinPreRacingFive(wasR);
+  }
+  // Rev 5 against rev 4 on the same state: the same play, only the two figures move.
+  const g4 = racingGameFor(RACING_REV_4);
+  const g5 = racingGameFor(RACING_REV_5);
+  const a = g4.init(RACING_DEAL_V4[0]!);
+  const b = g5.init(RACING_DEAL_V4[0]!);
+  check(JSON.stringify({ ...b, rev: 4 }) === JSON.stringify(a), "apex: a racingRev 5 run starts as racingRev 4's exactly");
+  const pts = (st: any, clean: number) => Object.fromEntries(racingStdParts({ ...st, clean, acted: 1 })!.map((x) => [x.key, x.points]));
+  check(pts(b, 4).sectors === 40 && pts(b, 3).sectors === 30 && pts(a, 4).sectors === 20 && pts(a, 8).sectors === 40, "apex: rev 5's clean sectors full at 4 (3 → 30), rev 4's at all 8 (4 → 20)");
+  check(racingPaceRange(b).full === RACING_V5_PACE[0]!.full || racingPaceRange(b).full === RACING_V5_PACE[1]!.full || racingPaceRange(b).full === RACING_V5_PACE[2]!.full, "apex: rev 5's pace is scored on RACING_V5_PACE");
+  // The levels: the registry's D6 settings stamped on racingRev 5 deals from their own proved deals.
+  const lists: Record<L, readonly number[]> = { easy: RACING_DEAL_V5_EASY, hard: RACING_DEAL_V5_HARD, expert: RACING_DEAL_V5_EXPERT };
+  const roads: Record<L, number> = { easy: 85197, hard: 55700, expert: 47200 };
+  for (const l of LEVELS) {
+    const set = reg.racing!.levels[l]!.settings as unknown as RacingLevelSettings;
+    check(set.road === roads[l] && set.kerb === set.road + 8192 && racingLevelOf(set) !== null, `apex ${l}: road ${set.road} (${Math.round((set.road * 100) / 65536)} % of Normal's), the kerb 8,192 outside it`);
+    for (let n = 0; n < 4; n++) {
+      const p = dealAt("racing", l, n);
+      check(p.racingRev === RACING_REV_5 && p.level === l && lists[l].includes(p.seed) && JSON.stringify(racingLevelOf(p.racingLevel)) === JSON.stringify(racingLevelOf(set)), `apex ${l} ${n}: racingRev 5, a proved seed, the registry's settings stamped`);
+    }
+  }
+  check(JSON.stringify(reg.racing!.levels.hard!.settings) !== "" && [reg.racing!.levels.easy!.settings, reg.racing!.levels.hard!.settings, reg.racing!.levels.expert!.settings].map((x: any) => x.keep).join(",") === "80,50,35", "apex: the gravel keeps 80 / 50 / 35 % of the speed");
+  const wasL = pinPreD6Levels(true);
+  try {
+    const p = dealAt("racing", "easy", 0);
+    check(p.racingRev === RACING_REV_4 && RACING_DEAL_V4_EASY.includes(p.seed) && JSON.stringify(p.racingLevel) === JSON.stringify({ keep: 80, road: 75366, kerb: 83558, wall: 140902, tight: 0, aids: 2, pace: [1920, 2055, 1750] }), "d6PreLevels: Apex easy deals racingRev 4 with the levels' settings before D6, byte for byte");
+    const x = dealAt("racing", "expert", 0);
+    check(JSON.stringify(x.racingLevel) === JSON.stringify({ keep: 50, road: 65536, kerb: 73728, wall: 108134, tight: 2, tightBy: [2, 2, 0], aids: 0, pace: [2175, 2352, 1964], spread: 250 }), "d6PreLevels: Apex expert's settings before D6, byte for byte");
+  } finally {
+    pinPreD6Levels(wasL);
+  }
+  // Each level's deal: the oracle takes every seed to 200 through the server replay (the builder's --check).
+  for (const l of LEVELS) {
+    const r = Bun.spawnSync(["bun", "scripts/racing-deal.ts", "--rev=5", `--level=${l}`, "--check"], { stdout: "pipe", stderr: "pipe" });
+    const out = r.stdout.toString().trim().split("\n").pop() ?? "";
+    check(r.exitCode === 0 && out.startsWith("ok"), `apex ${l}: every deal seed re-proved at 200 (${out})`);
+  }
+  let at200 = 0;
+  for (let n = 0; n < 96; n++) if ((await playDealt("racing", dealAt("racing", "expert", n), "elite")).score >= 200) at200++;
+  check(at200 / 96 >= 0.2, `apex expert: the elite under HUMAN_LIMITS reaches 200 on ${at200} of 96 deals (at least a fifth)`);
 }
 
 console.log(failed ? `FAIL d6-sports-levels-check: ${failed} failed, ${passed} passed` : `PASS d6-sports-levels-check: ${passed} checks`);

@@ -690,9 +690,13 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // only; pace: the full pace per circuit (tenths of a km/h), the oracle's on Expert's tighter hairpins.
   racing: {
     levels: {
-      easy: { settings: { keep: 80, road: 75366, kerb: 83558, wall: 140902, tight: 0, aids: 2, pace: [1920, 2055, 1750] } },
-      hard: { settings: { keep: 60, road: 65536, kerb: 73728, wall: 108134, tight: 0, aids: 1, spread: 320 } },
-      expert: { settings: { keep: 50, road: 65536, kerb: 73728, wall: 108134, tight: 2, tightBy: [2, 2, 0], aids: 0, pace: [2175, 2352, 1964], spread: 250 } },
+      // D6 (23 Nov 2026, racingRev 5's levels; the deal stamps this copy as racingLevel): the lever is road width, 130 % /
+      // 100 % (Normal, 65,536) / 85 % / 72 %, the kerb (the clean edge) and the wall moving with it.
+      // Each level's par pace (pace, per circuit), spread and clean sectors for the full part set from 96 room deals
+      // (scripts/d6-ladder.ts, the skill-band bots under HUMAN_LIMITS: the elite keeps 7 / 4 / 3 / 1 sectors clean).
+      easy: { settings: { keep: 80, road: 85197, kerb: 93389, wall: 150733, tight: 0, aids: 2, pace: [2116, 2288, 1888], spread: 900, cleanFull: 4 } },
+      hard: { settings: { keep: 50, road: 55700, kerb: 63892, wall: 98298, tight: 0, aids: 1, pace: [2054, 2227, 1857], spread: 350, cleanFull: 3 } },
+      expert: { settings: { keep: 35, road: 47200, kerb: 55392, wall: 89798, tight: 2, tightBy: [2, 2, 0], aids: 0, pace: [1945, 2102, 1823], spread: 200, cleanFull: 1 } },
     },
   },
   // Curl Champ (stage 3, 16 Nov 2026; docs/arcade-standard/curling.md "Levels"): the reds each end starts with and the aids. Plain data mirroring the

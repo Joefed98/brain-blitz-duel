@@ -2215,7 +2215,7 @@ export interface RacingPuzzleData {
    * kerb and wall, tighter hairpins, the display aids and the level's par pace (src/lib/arcade/racing.ts
    * RacingLevelSettings). The sim and the server replay read this stored copy, never the registry.
    */
-  racingLevel?: { keep: number; road: number; kerb: number; wall: number; tight: number; aids: number; pace?: number[]; spread?: number };
+  racingLevel?: { keep: number; road: number; kerb: number; wall: number; tight: number; tightBy?: number[]; aids: number; pace?: number[]; spread?: number; cleanFull?: number };
   /** A proved seed (racingDealV3.server.ts; racingDealV2.server.ts on rev 2, racingDeal.server.ts on rev 1): the track, identical for everyone. */
   seed: number;
   /**

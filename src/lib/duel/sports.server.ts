@@ -8,7 +8,7 @@
  */
 import { HOMERUN_REV_DEALT } from "@/lib/arcade/homerun";
 import { FREEKICK_REV_DEALT } from "@/lib/arcade/freekick";
-import { RACING_REV_3, RACING_REV_DEALT, type RacingLevelSettings } from "@/lib/arcade/racing";
+import { RACING_REV_3, RACING_REV_4, RACING_REV_DEALT, type RacingLevelSettings } from "@/lib/arcade/racing";
 import { checkOverride } from "@/lib/checkOverride";
 import { gameLevelSettings } from "@/lib/levels/gameLevels";
 import { NORMAL, type Level } from "@/lib/levels/levels";
@@ -26,6 +26,9 @@ import { racingDealSeedV4 } from "./racingDealV4.server";
 import { racingDealSeedV4Easy } from "./racingDealV4Easy.server";
 import { racingDealSeedV4Hard } from "./racingDealV4Hard.server";
 import { racingDealSeedV4Expert } from "./racingDealV4Expert.server";
+import { racingDealSeedV5Easy } from "./racingDealV5Easy.server";
+import { racingDealSeedV5Hard } from "./racingDealV5Hard.server";
+import { racingDealSeedV5Expert } from "./racingDealV5Expert.server";
 import { MINIGOLF_REV, MINIGOLF_REV_COURSE, mgLevelOf, MG_LEVELS, MG_LEVEL_NAMES, type MgLevel } from "@/lib/arcade/minigolf";
 import { MINIGOLF_HOLES_BANK, type MinigolfHoleEntry } from "./minigolfHolesBank.server";
 import { POOL_REV, POOL_REV_V4 } from "@/lib/arcade/pool";
@@ -68,10 +71,15 @@ export function generateRacing(level: Level = NORMAL): RacingPuzzleData {
   if (checkOverride<boolean>("__DUELZ_RACING_PRE_CIRCUITS__") === true) return { type: "racing", seed: racingDealSeedV3(arcadeSeed()), racingRev: RACING_REV_3 };
   // Difficulty levels (stage 3, 16 Nov 2026): Easy, Hard and Expert deal from their own proved deals and stamp the
   // level's settings (racingLevel) for the sim; Normal deals exactly as before (no field, the same draw).
+  // racingRev 5 (D6, 23 Nov 2026): racingRev 4's play, pace and clean sectors within the realistic elite's reach; the
+  // same proved deal (each circuit's oracle reaches rev 4's par, past rev 5's). Checks written for rev 4 pin
+  // racingPreFive; the levels before D6 (rev 4 and their own settings) d6PreLevels.
+  const racingRev = dealPinned("racingPreFive") ? RACING_REV_4 : RACING_REV_DEALT;
   const settings = level === NORMAL ? null : gameLevelSettings<RacingLevelSettings>("racing", level);
-  if (!settings) return { type: "racing", seed: racingDealSeedV4(arcadeSeed()), racingRev: RACING_REV_DEALT };
-  const deal = level === "easy" ? racingDealSeedV4Easy : level === "hard" ? racingDealSeedV4Hard : racingDealSeedV4Expert;
-  return { type: "racing", seed: deal(arcadeSeed()), racingRev: RACING_REV_DEALT, racingLevel: {
+  if (!settings) return { type: "racing", seed: racingDealSeedV4(arcadeSeed()), racingRev };
+  if (dealPinned("d6PreLevels") || racingRev === RACING_REV_4) return racingLevelDealBeforeD6(level as "easy" | "hard" | "expert");
+  const deal = level === "easy" ? racingDealSeedV5Easy : level === "hard" ? racingDealSeedV5Hard : racingDealSeedV5Expert;
+  return { type: "racing", seed: deal(arcadeSeed()), racingRev, racingLevel: {
       keep: settings.keep,
       road: settings.road,
       kerb: settings.kerb,
@@ -81,8 +89,23 @@ export function generateRacing(level: Level = NORMAL): RacingPuzzleData {
       aids: settings.aids,
       ...(settings.pace ? { pace: [...settings.pace] } : {}),
       ...(settings.spread ? { spread: settings.spread } : {}),
+      ...(settings.cleanFull ? { cleanFull: settings.cleanFull } : {}),
     },
   };
+}
+
+/** The level deals before D6 (main 7e25a4d0): racingRev 4, its own proved deals and the settings it stamped then. */
+type RacingLevelStamp = NonNullable<RacingPuzzleData["racingLevel"]>;
+const RACING_LEVELS_BEFORE_D6: Readonly<Record<"easy" | "hard" | "expert", RacingLevelStamp>> = {
+  easy: { keep: 80, road: 75366, kerb: 83558, wall: 140902, tight: 0, aids: 2, pace: [1920, 2055, 1750] },
+  hard: { keep: 60, road: 65536, kerb: 73728, wall: 108134, tight: 0, aids: 1, spread: 320 },
+  expert: { keep: 50, road: 65536, kerb: 73728, wall: 108134, tight: 2, tightBy: [2, 2, 0], aids: 0, pace: [2175, 2352, 1964], spread: 250 },
+};
+function racingLevelDealBeforeD6(level: "easy" | "hard" | "expert"): RacingPuzzleData {
+  const deal = level === "easy" ? racingDealSeedV4Easy : level === "hard" ? racingDealSeedV4Hard : racingDealSeedV4Expert;
+  const lv = RACING_LEVELS_BEFORE_D6[level];
+  const racingLevel: RacingLevelStamp = { ...lv, ...(lv.tightBy ? { tightBy: [...lv.tightBy] } : {}), ...(lv.pace ? { pace: [...lv.pace] } : {}) };
+  return { type: "racing", seed: deal(arcadeSeed()), racingRev: RACING_REV_4, racingLevel };
 }
 
 /**

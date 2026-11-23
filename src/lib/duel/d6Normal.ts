@@ -7,6 +7,7 @@
  *   - Tilt `tiltRev 13` (I8; tilt.ts TILT_REV_THREE): Normal plays tiltRev 12's first three mazes, speed full by 55 s.
  *   - Free Cell `freecellRev 6` (cards/freecell.ts FC_REV_PAR98): Par moves full within an eighth over par.
  *   - Summit `tripeaksRev 4` (cards/tripeaks.ts TP_REV_EASE): Longest run full at 6, stock par within par + 8, speed by 25 s.
+ *   - Apex `racingRev 5` (racing.ts RACING_REV_5): pace full at the realistic elite's par, clean sectors full at 4.
  *
  * Every older stamp deals, grades and reads exactly as before (scripts/fixtures/d6-levels-legacy.json.gz, recorded on
  * main 7e25a4d0 before any D6 change; d6-legacy-check). Checks written for the stamps before pin new deals to them, and
@@ -35,6 +36,10 @@ export function pinPreFreecellPar98(on: boolean): boolean {
 export function pinPreTripeaksEase(on: boolean): boolean {
   return setDealPin("tripeaksPreEase", on);
 }
+/** Checks written for Apex racingRev 4 deal it (and its help text); returns the previous setting. */
+export function pinPreRacingFive(on: boolean): boolean {
+  return setDealPin("racingPreFive", on);
+}
 /** Checks written for D6's games' level deals before D6 (main 7e25a4d0) deal them; returns the previous setting. */
 export function pinPreD6Levels(on: boolean): boolean {
   return setDealPin("d6PreLevels", on);
@@ -44,3 +49,4 @@ export function pinPreD6Levels(on: boolean): boolean {
 export const fiveHands128Dealt = (): boolean => !dealPinned("fivehandsPre128");
 export const tiltThreeDealt = (): boolean => !dealPinned("tiltPreThree");
 export const tripeaksEaseDealt = (): boolean => !dealPinned("tripeaksPreEase");
+export const racingFiveDealt = (): boolean => !dealPinned("racingPreFive");
