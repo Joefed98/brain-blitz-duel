@@ -24,7 +24,8 @@ import { OfflineBanner } from "@/components/offline/OfflineBanner";
 import { AppRail } from "@/components/app/AppRail";
 import { ArenaGamePanel, FrameMe, PhoneStatus } from "./ArenaGamePanel";
 import { createPortal } from "react-dom";
-import { ArenaMount, useArenaLayout, useArenaMount, ARENA_CABINET_LEFT, ARENA_PANEL_LEFT_W, ARENA_PANEL_W } from "@/lib/gameFrame/arena";
+import { arcadeGroupOf } from "@/lib/duel/arcadeGroups";
+import { ArenaMount, useArenaLayout, useArenaMount, cabinetFits, cabinetLeftOn, ARENA_PANEL_LEFT_W, ARENA_PANEL_W } from "@/lib/gameFrame/arena";
 import { TimerLookContext, useGameTimer } from "@/lib/gameFrame/headerStyle";
 import { BannerSlot } from "@/components/app/PageAside";
 import { useLayoutMode } from "@/lib/layoutMode";
@@ -542,7 +543,13 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   /** The live round of an arcade play screen: GameLayout owns the one compact header row. */
   const arcadePlay = arcadeScreen && play;
   useStandaloneShortfall(arcadePlay && constrained);
-  const arenaLeft = ARENA_CABINET_LEFT && arena && !panel && arcadePlay;
+  // A turned world (Cue Ball's landscape table, `rotate`) keeps the whole width for itself: one panel, as before.
+  // Computers only: a sideways tablet keeps its one panel (its touch screen has the phone's controls on the world).
+  const cabinetWanted = cabinetLeftOn() && desktop && arena && !panel && arcadePlay && modeInfo?.mode !== "rotate";
+  // Only where it draws the world no smaller than the single panel does (cabinetFits; read before paint, and on resize).
+  const [cabinetRoom, setCabinetRoom] = useState(false);
+  const arenaLeft = cabinetWanted && cabinetRoom;
+  const cabinetGroup = arenaLeft && gameType ? arcadeGroupOf(gameType) : null;
   const arenaValue = useMemo(
     () => ({ arena, mount: arenaMountNode, setMount: setArenaMountNode, leftMount: arenaLeft ? arenaLeftNode : null, setLeftMount: setArenaLeftNode, roomPanel: Boolean(panel) }),
     [arena, arenaMountNode, arenaLeft, arenaLeftNode, panel],
@@ -552,6 +559,37 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
   /** A puzzle's game screen, intro or reveal: its edges and the page behind share the screen's own colour (polish-layout/bottom.css). */
   const puzzleScreen = Boolean(definition && !definition.arcadeRun && definition.category !== "arcade");
   const surfaceRef = useRef<HTMLDivElement>(null);
+  useIsoLayoutEffect(() => {
+    if (!cabinetWanted) return;
+    let found = false;
+    const read = () => {
+      const slot = surfaceRef.current?.querySelector("[data-arena-slot]");
+      if (!slot) return;
+      found = true;
+      const style = getComputedStyle(slot);
+      const fits = cabinetFits({
+        viewportW: window.innerWidth,
+        viewportH: window.innerHeight,
+        worldW: Number(style.getPropertyValue("--arena-w")),
+        worldH: Number(style.getPropertyValue("--arena-h")),
+        mode: modeInfo?.mode === "wide" ? "wide" : "tall",
+        ...(modeInfo?.maxWorldWidth ? { maxWorldWidth: modeInfo.maxWorldWidth } : {}),
+      });
+      setCabinetRoom((prev) => (prev === fits ? prev : fits));
+    };
+    read();
+    // The stage can arrive after the shell (its game's chunk): read once its arena slot is there.
+    const watch = new MutationObserver(() => {
+      if (found) return watch.disconnect();
+      read();
+    });
+    if (!found && surfaceRef.current) watch.observe(surfaceRef.current, { subtree: true, childList: true });
+    window.addEventListener("resize", read);
+    return () => {
+      watch.disconnect();
+      window.removeEventListener("resize", read);
+    };
+  }, [cabinetWanted, gameType]); // eslint-disable-line react-hooks/exhaustive-deps
   useGeometryHold(surfaceRef, Boolean(play && constrained && gameScreen && !arcadeScreen));
   usePuzzleSurfaces(surfaceRef, gameType, puzzleSurface);
   usePuzzleRejections(surfaceRef, Boolean(gameScreen && definition && !definition.arcadeRun && definition.category !== "arcade"), gameType);
@@ -589,7 +627,14 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
               ...NO_SELECT_STYLE,
               ...(desktop && modeInfo?.maxWorldWidth ? { ["--dk-world-max" as string]: `${modeInfo.maxWorldWidth}px` } : null),
               ...(reveal ? revealPaletteStyle(gameType) : null),
-              ...(arenaLeft ? { ["--arena-panel-left-w" as string]: `${ARENA_PANEL_LEFT_W}px`, ["--arena-left" as string]: desktop ? "var(--dk-rail-compact, 76px)" : "0px" } : null),
+              ...(arenaLeft
+                ? {
+                    ["--arena-panel-left-w" as string]: `${ARENA_PANEL_LEFT_W}px`,
+                    ["--arena-left" as string]: desktop ? "var(--dk-rail-compact, 76px)" : "0px",
+                    // The Cabinet's cards take one edge colour: the game's arcade group (the engine games' cyan).
+                    ["--cab-edge" as string]: cabinetGroup ? `var(--group-${cabinetGroup})` : "var(--jz-cyan)",
+                  }
+                : null),
             }
           : undefined
       }
@@ -597,7 +642,8 @@ export function PhoneShell({ children, reveal = false, bare = false, constrained
       {railHere ? <AppRail current={tabPage ? tabs : (railTab && !gameScreen ? railTab : undefined)} compact={!tabPage && !(railTab && !gameScreen)} /> : null}
       <div aria-hidden="true" className="screen-background"><div className="screen-drift" /></div>
       {/* Desktop arcade play (31 Oct 2026): the game's scenery fades out at the edges of the centre (one static layer over it). */}
-      {desktop && arcadePlay ? <div aria-hidden="true" data-dk-fade="" /> : null}
+      {/* The Cabinet carries the scenery behind both panels instead (no fade). */}
+      {desktop && arcadePlay && !arenaLeft ? <div aria-hidden="true" data-dk-fade="" /> : null}
       <div
         data-game-column={constrained ? "" : undefined}
         data-shell-column={gameScreen ? "game" : "page"}
