@@ -104,10 +104,10 @@ interface Tracked {
  * A ball's centre over the next n ticks (floor, walls and ceiling; no ceiling deflection, which the player
  * cannot know in advance), and whether it has touched the ceiling by then (`c`: past that the read is a guess).
  */
-function path(b: BurstBall, ceil: number, n: number, big?: number): { x: number; y: number; c?: number }[] {
+function path(b: BurstBall, ceil: number, n: number, big?: number, small?: number): { x: number; y: number; c?: number }[] { // Changed with Joe's approval, 23 Nov 2026 (D5's burstRev 14: the middle atoms' radius)
   const out: { x: number; y: number; c?: number }[] = [];
   let touched = 0;
-  const r = burstRadius({ big }, b.size) * FP;
+  const r = burstRadius({ big, small }, b.size) * FP; // Changed with Joe's approval, 23 Nov 2026 (D5's burstRev 14: the middle atoms' radius)
   let { x, y, vx, vy } = b;
   for (let i = 0; i < n; i++) {
     vy += GRAVITY;
@@ -244,7 +244,7 @@ export const bot: SkillBot = ({ game, seed, human, fixes }) => {
       const tr = tracked[i]!;
       if (t < tr.noticeAt) return;
       const frozen = (seen.freeze ?? 0) > 0;
-      const raw: { x: number; y: number; c?: number }[] = frozen ? Array.from({ length: horizon + lag }, () => ({ x: b.x / FP, y: b.y / FP })) : path(b, ceil, horizon + lag, s.big);
+      const raw: { x: number; y: number; c?: number }[] = frozen ? Array.from({ length: horizon + lag }, () => ({ x: b.x / FP, y: b.y / FP })) : path(b, ceil, horizon + lag, s.big, s.small); // Changed with Joe's approval, 23 Nov 2026 (D5's burstRev 14: the middle atoms' radius)
       const pts = raw.slice(lag).map((p, k) => ({ x: p.x + tr.err * read * (k + 1), y: p.y, c: p.c }));
       reads.push({ tr, pts, r: burstRadius(s, b.size) });
     });

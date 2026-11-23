@@ -132,7 +132,7 @@ section("Rooms and every level deal burstRev 14; burstPreSmall deals burstRev 13
     const p = generatePuzzle("burst", { level }) as any;
     ok(p.burstRev === BURST_REV_SMALL && p.level === level, `${level}: the level deal is burstRev 14 (${p.burstRev}, ${p.level})`);
   }
-  ok("burstPreSmall" in DEAL_PINS && DEAL_PINS.burstPreSmall.texts === false && DEAL_PIN_NAMES.at(-1) === "burstPreSmall", "DEAL_PINS ends with burstPreSmall (no text rebuild)");
+  ok("burstPreSmall" in DEAL_PINS && DEAL_PINS.burstPreSmall.texts === false && DEAL_PIN_NAMES.includes("burstPreSmall"), "DEAL_PINS holds burstPreSmall (no text rebuild)"); // Changed with Joe's approval, 23 Nov 2026 (the other D5 stamps add their pins after it)
   for (const level of LEVELS) {
     for (const n of [0, 5, 31]) {
       const opts = level === "normal" ? {} : { level };

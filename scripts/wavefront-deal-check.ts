@@ -11,7 +11,7 @@
 import { readFileSync } from "node:fs";
 
 import { generatePuzzle } from "../src/lib/duel/generate.server";
-import { pinPreRetro } from "../src/lib/duel/arcade.server";
+import { pinPreRetro, pinWavPreWide } from "../src/lib/duel/arcade.server"; // Changed with Joe's approval, 23 Nov 2026 (D5's wavRev 16)
 import { withSeededRandom } from "../src/lib/duel/random";
 import { WAV_DEAL, wavDealSeed } from "../src/lib/duel/wavefrontDeal.server";
 import { WAV_REV_BIG, WAV_REV_KEEP } from "../src/lib/arcade/wavefront";
@@ -36,6 +36,9 @@ function ok(cond: unknown, label: string): void {
 
 /* 2 */
 {
+  // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's wavRev 16, the wider formation): rooms deal wavRev 16
+  // from its own deal (wavefront-wide-check); the wavRev 15 deal proved here is dealt with the wavPreWide pin.
+  pinWavPreWide(true);
   const dealt = new Set(WAV_DEAL);
   let outside = 0;
   let wrongRev = 0;
@@ -48,6 +51,7 @@ function ok(cond: unknown, label: string): void {
   }
   ok(outside === 0, `2,000 deals across the levels all on a witnessed seed (${outside} outside)`);
   ok(wrongRev === 0, `every deal is wavRev 15 (${wrongRev} not)`);
+  pinWavPreWide(false); // Changed with Joe's approval, 23 Nov 2026 (D5's wavRev 16)
   const reach = new Set(Array.from({ length: WAV_DEAL.length * 3 }, (_, k) => wavDealSeed(k * 104729 + 17)));
   ok(reach.size === WAV_DEAL.length, `every dealt seed reachable from a room seed (${reach.size} of ${WAV_DEAL.length})`);
 }

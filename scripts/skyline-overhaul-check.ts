@@ -41,11 +41,13 @@ import {
   SKYLINE_KIND_WIDE,
   SKYLINE_REV_COUNT,
   SKYLINE_REV_LIVES,
+  SKYLINE_REV_FLOORS, // Changed with Joe's approval, 23 Nov 2026 (D5's skylineRev 12)
   SKYLINE_RUN_SECONDS,
   SKYLINE_RUN_TICKS,
   SKYLINE_START_W,
   SKYLINE_STD_SPEC_V10,
   SKYLINE_STD_SPEC_V11,
+  SKYLINE_STD_SPEC_V12, // Changed with Joe's approval, 23 Nov 2026 (D5's skylineRev 12)
   SKYLINE_V11_LIVES,
   SKYLINE_V11_REARM_TICKS,
   SKYLINE_V11_TRIM_RUN,
@@ -182,9 +184,10 @@ ok(perfectDrop.trimRun === 0 && perfectDrop.perfects > 0, "a perfect drop restar
 
 /* 4. What rooms deal. */
 section("4. Rooms deal skylineRev 11");
-ok(generateSkyline().skylineRev === SKYLINE_REV_LIVES && SKYLINE_REV_LIVES === 11, "rooms deal skylineRev 11");
-ok(LIVE_BANDS.skyline.rev === SKYLINE_REV_LIVES && (LIVE_BANDS.skyline as { std?: unknown }).std === SKYLINE_STD_SPEC_V11, "LIVE_BANDS lists skylineRev 11 with its spec");
-ok(ARCADE_STANDARD.skyline.spec === SKYLINE_STD_SPEC_V11 && SKYLINE_STD_SPEC_V11.rev === 11, "the standard's spec is skylineRev 11's");
+// Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's skylineRev 12): the next three lines read skylineRev 12.
+ok(generateSkyline().skylineRev === SKYLINE_REV_FLOORS && SKYLINE_REV_FLOORS === 12, "rooms deal skylineRev 12");
+ok(LIVE_BANDS.skyline.rev === SKYLINE_REV_FLOORS && (LIVE_BANDS.skyline as { std?: unknown }).std === SKYLINE_STD_SPEC_V12, "LIVE_BANDS lists skylineRev 12 with its spec");
+ok(ARCADE_STANDARD.skyline.spec === SKYLINE_STD_SPEC_V12 && SKYLINE_STD_SPEC_V12.rev === 12, "the standard's spec is skylineRev 12's");
 ok(JSON.stringify(SKYLINE_STD_SPEC_V11.parts) === JSON.stringify(SKYLINE_STD_SPEC_V10.parts), "the parts are skylineRev 10's");
 ok(SKYLINE_STD_SPEC_V11.parts.reduce((a, p) => a + p.max, 0) === 200, "the parts sum to 200");
 

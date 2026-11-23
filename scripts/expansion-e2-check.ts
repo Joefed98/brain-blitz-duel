@@ -27,7 +27,7 @@ import { generatePuzzle } from "../src/lib/duel/generate.server";
 import { ROUND_MAX } from "../src/lib/duel/roundMax";
 import { LIVE_BANDS, liveStrictRev } from "../src/lib/arcade/liveBands";
 import { snakeV9Bonus, snakeRow, snakeCol, SNAKE_REV_200, SNAKE_REV_12, SNAKE_V12_BAND_CURVE, SNAKE_REV_STRICT, SNAKE_V9_CAPS, SNAKE_V9_COLS, SNAKE_V9_ROWS, SNAKE_REV_GRACE, SNAKE_V13_BAND_CURVE } from "../src/lib/arcade/snake";
-import { BURST_REV_BIG, BURST_REV_STD, BURST_REV_STRICT, BURST_V6_BAND_CURVE } from "../src/lib/arcade/burst";
+import { BURST_REV_SMALL, BURST_REV_STD, BURST_REV_STRICT, BURST_V6_BAND_CURVE } from "../src/lib/arcade/burst"; // Changed with Joe's approval, 23 Nov 2026 (D5's burstRev 14)
 import { beatV9Bonus, BEAT_REV_200, BEAT_REV_EASE, BEAT_REV_STD, BEAT_REV_STRICT, BEAT_STD_SPEC, BEAT_V10_BAND_CURVE, BEAT_V9_CAPS, BEAT_V9_FIVE_FROM, BEAT_V9_BREAK, BEAT_DOUBLE_GAP, BEAT_V9_BAND_CURVE, BEAT_V9_RUN_TICKS, BEAT_REV_FLOOR, BEAT_STD_SPEC_V12 } from "../src/lib/arcade/beat";
 import { playRevOf } from "./scoring-targets-revs";
 
@@ -77,7 +77,8 @@ ok(liveStrictRev("snake") === SNAKE_REV_STRICT && liveStrictRev("beat") === BEAT
 // The scoring audit (Nov 2026): rooms deal burstRev 11, burstRev 10's play (scoring-audit-arcade-check).
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): burstRev 12 keeps burstRev 11's play.
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal burstRev 13 (bigger atoms).
-ok((generatePuzzle("burst") as any).burstRev === BURST_REV_BIG && ROUND_MAX.burst === 200 && liveStrictRev("burst") === BURST_REV_STRICT && BURST_V6_BAND_CURVE.points.at(-1) === 140, "Fission is not E2's: burstRev 6 stays its strict revision (its strict curve, 140 at the top); rooms deal burstRev 13 (the Retro overhaul; burstRev 11 before it, burstRev 10's play, the arcade scoring standard, after E9's burstRev 8 and the phone-test notes' 9) at 200");
+// Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's burstRev 14).
+ok((generatePuzzle("burst") as any).burstRev === BURST_REV_SMALL && ROUND_MAX.burst === 200 && liveStrictRev("burst") === BURST_REV_STRICT && BURST_V6_BAND_CURVE.points.at(-1) === 140, "Fission is not E2's: burstRev 6 stays its strict revision (its strict curve, 140 at the top); rooms deal burstRev 14 (D5's middle atoms, after the Retro overhaul's 13; burstRev 11 before it, burstRev 10's play, the arcade scoring standard, after E9's burstRev 8 and the phone-test notes' 9) at 200");
 ok(SNAKE_V9_CAPS.gold + SNAKE_V9_CAPS.combo + SNAKE_V9_CAPS.lane + SNAKE_V9_CAPS.warp === 50, "Meteor's caps add to 50");
 ok(BEAT_V9_CAPS.fever + BEAT_V9_CAPS.gold + BEAT_V9_CAPS.double + BEAT_V9_CAPS.streak === 50, "Tempo's caps add to 50");
 

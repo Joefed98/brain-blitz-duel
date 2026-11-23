@@ -35,8 +35,11 @@ import { challengesFor, goalMet } from "../src/lib/duel/practiceChallenges";
 import { gameLevelSettings, levelsOf } from "../src/lib/levels/gameLevels";
 import { MAX_ROUND_CLOCK_MS, puzzleLevel } from "../src/lib/levels/levels";
 import { roomSeed } from "./arcade-skill-bands/games";
+import { pinRicoPreMid } from "../src/lib/duel/arcade.server"; // Changed with Joe's approval, 23 Nov 2026 (D5's ricoRev 5)
 
 console.error = () => {};
+// Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's ricoRev 5, the 30 × 60 ninja): this check proves ricoRev 4's levels, so it deals as rooms did before ricoRev 5 (ricochet-mid-check proves rev 5's).
+pinRicoPreMid(true);
 let checks = 0;
 const failures: string[] = [];
 const VERBOSE = process.argv.includes("--verbose");
