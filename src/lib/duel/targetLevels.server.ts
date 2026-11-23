@@ -14,10 +14,13 @@
 import { exactMinTiles } from "./standard/number.server";
 import { randInt, randomBelow, shuffled } from "./random";
 import { TARGET_EXPERT_BANK } from "./targetExpertBank.server";
+import { TARGET_ROUND_BANK } from "./targetRoundBank.server";
 import { applyOperation, hasSolutionWithAtMostFourTiles, LARGE_TILES, solveTarget, solveWithAllSixTiles, TARGET_OPERATORS, TARGET_TILE_COUNT } from "./target";
 import type { TargetNumberPuzzleData, TargetStep } from "./types";
+import { generateTargetPuzzle } from "./target";
+import { TARGET_REV_ROUNDS } from "./targetRounds";
 
-export interface TargetLevelSettings {
+export interface TargetLevelRule {
   /** How many large numbers (25, 50, 75, 100), lowest and highest. */
   large: readonly [number, number];
   /** The target's range. */
@@ -27,6 +30,37 @@ export interface TargetLevelSettings {
   /** Expert: keep only targets the person-like solver reaches. */
   person?: boolean;
 }
+
+/**
+ * The Expert bank's rule (targetExpertBank.server.ts, built by scripts/target-expert-bank.ts): small numbers only, a
+ * target of 500–999 that needs all six, reached by the person-like solver. Expert's registry entry was this rule until
+ * D2 (22 Nov 2026) made Expert a round of targets whose last target is a bank board; the bank keeps its own rule here.
+ */
+export const TARGET_EXPERT_BANK_RULE: TargetLevelRule = { large: [0, 0], target: [500, 999], tiles: [6, 6], person: true };
+
+/**
+ * One target of a round of targets in a row (D2, 22 Nov 2026, targetRounds.ts): today's Normal deal (`normal`), a board
+ * from the proved Expert bank (`expertBank`), or a target by its own rule.
+ */
+export type TargetRoundSpec = { normal: true; person?: boolean } | { normalBank: true } | { expertBank: true } | TargetLevelRule;
+
+/** Today's Normal deal, kept only when the person-like solver reaches it (Expert's Normal-style targets, D2). */
+function normalTarget(person: boolean): TargetNumberPuzzleData {
+  for (let attempt = 0; attempt < 400; attempt++) {
+    const board = generateTargetPuzzle();
+    if (!person || personSolveTarget(board.tiles, board.target)) return board;
+  }
+  throw new Error("Exact: no Normal-style target the person-like solver reaches");
+}
+
+export type TargetLevelSettings = TargetLevelRule | {
+  /** D2: the round's targets in play order (Hard 2, Expert 3), each on its own rack. */
+  rounds: readonly TargetRoundSpec[];
+  /** The round's clock in seconds, stamped as `timeLimitMs`. */
+  clockS: number;
+  /** Full speed points when the last target is hit within this many seconds, stamped as `speedFullByS`. */
+  fullByS: number;
+};
 
 /** Lines of thought the person-like solver may try before it gives up. */
 export const TARGET_PERSON_BUDGET = 20000;
@@ -139,7 +173,7 @@ function shortestRoute(tiles: number[], target: number, min: number): TargetStep
 }
 
 /** Whether this target obeys the level's rule (exhaustive), and its shortest route. */
-export function targetLevelRoute(tiles: number[], target: number, settings: TargetLevelSettings, person: boolean): TargetStep[] | null {
+export function targetLevelRoute(tiles: number[], target: number, settings: TargetLevelRule, person: boolean): TargetStep[] | null {
   const [lo, hi] = settings.tiles;
   if (hi >= TARGET_TILE_COUNT && lo >= TARGET_TILE_COUNT) {
     // All six needed: nothing from four or fewer, nothing from any five, and a route from all six.
@@ -160,6 +194,11 @@ export function targetLevelRoute(tiles: number[], target: number, settings: Targ
 }
 
 export function generateTargetLevel(settings: TargetLevelSettings): TargetNumberPuzzleData {
+  if ("rounds" in settings) return generateTargetRounds(settings);
+  return generateTargetRule(settings);
+}
+
+function generateTargetRule(settings: TargetLevelRule): TargetNumberPuzzleData {
   const person = settings.person === true;
   for (let attempt = 0; attempt < 4000; attempt++) {
     const tiles = rollLevelTiles(settings.large);
@@ -175,5 +214,42 @@ export function generateTargetLevel(settings: TargetLevelSettings): TargetNumber
 /** Exact's Expert: one board from the proved bank, drawn with the deal's own random source (seeded in rooms). */
 export function dealTargetExpert(): TargetNumberPuzzleData {
   const entry = TARGET_EXPERT_BANK[randomBelow(TARGET_EXPERT_BANK.length)]!;
+  return { type: "target", tiles: [...entry.tiles], target: entry.target, solution: entry.solution.map((s) => ({ ...s })) };
+}
+
+/**
+ * A round of targets in a row (D2, 22 Nov 2026, targetRounds.ts; Hard and Expert): each target dealt by its spec from
+ * the deal's own random source in play order (seeded in rooms), stamped targetRev 1 with the round's clock and "full by"
+ * time. Every target is proved as its own deal proves it (today's Normal generator, the Expert bank, or the rule's
+ * exhaustive search).
+ */
+export function generateTargetRounds(settings: Extract<TargetLevelSettings, { rounds: readonly TargetRoundSpec[] }>): TargetNumberPuzzleData {
+  const drawn = new Set<number>();
+  const boards = settings.rounds.map((spec) =>
+    "normal" in spec ? normalTarget(spec.person === true) : "normalBank" in spec ? dealTargetRoundBoard(drawn) : "expertBank" in spec ? dealTargetExpert() : generateTargetRule(spec),
+  );
+  const first = boards[0]!;
+  return {
+    type: "target",
+    tiles: [...first.tiles],
+    target: first.target,
+    solution: first.solution.map((s) => ({ ...s })),
+    targetRev: TARGET_REV_ROUNDS,
+    targets: boards.map((b) => ({ tiles: [...b.tiles], target: b.target })),
+    solutions: boards.map((b) => b.solution.map((s) => ({ ...s }))),
+    timeLimitMs: settings.clockS * 1000,
+    speedFullByS: settings.fullByS,
+  };
+}
+
+/**
+ * A Normal-style target a person can work out, from its proved bank (targetRoundBank.server.ts, scripts/target-round-bank.ts),
+ * never one already drawn for this round; the deal's own random source picks it (seeded in rooms).
+ */
+export function dealTargetRoundBoard(drawn: Set<number>): TargetNumberPuzzleData {
+  let i = randomBelow(TARGET_ROUND_BANK.length);
+  while (drawn.has(i)) i = (i + 1) % TARGET_ROUND_BANK.length;
+  drawn.add(i);
+  const entry = TARGET_ROUND_BANK[i]!;
   return { type: "target", tiles: [...entry.tiles], target: entry.target, solution: entry.solution.map((s) => ({ ...s })) };
 }
