@@ -30,6 +30,9 @@ import * as FH from "../src/lib/arcade/cards/fiveHands";
 import { encodeFiveHandsRun, encodeFreecellRun, encodeTripeaksRun } from "../src/lib/duel/cards";
 import { FH_LEVEL_DECKS } from "../src/lib/duel/fiveHandsLevelDecks.server";
 import { pinPreD6Levels } from "../src/lib/duel/d6Normal";
+import * as MJ from "../src/lib/arcade/mahjong";
+import { encodeMahjongRun } from "../src/lib/duel/mahjong";
+import { MAHJONG_EXPERT_DEALS } from "../src/lib/duel/mahjongExpertDeals.server";
 import { tripeaksParSolution } from "./cards/solutions";
 
 console.error = () => {};
@@ -215,6 +218,58 @@ console.log("4. The rules in play: Summit's stock and clock, Free Cell's cells")
       seenWhole.push(w.top);
     }
     check(seenCut.join(",") === seenWhole.join(",") && cut.tab.join(",") === whole.tab.join(","), "tripeaks hard: the cut stock turns the same cards in the same order as the whole stock");
+  }
+}
+
+/* ---------------------------------------------------------------- 5. Mahjong */
+console.log("5. Mahjong mahjongRev 3: tiles in the stack, the layouts on the same world, 200 at a human pace");
+{
+  check(LEVELS.map((l) => `${MJ.MAHJONG_LEVEL_RULES_V3[l].layout.tiles}/${MJ.MAHJONG_LEVEL_RULES_V3[l].layout.layers}/${MJ.MAHJONG_LEVEL_RULES_V3[l].quads}`).join(" ") === "48/2/2 104/4/18 136/4/34", "mahjong: 48 tiles in 2 layers, 104 in 4, 136 in 4 (all 34 faces four times)");
+  check(LEVELS.map((l) => `${MJ.MAHJONG_LEVEL_RULES_V3[l].shuffleCost}/${MJ.MAHJONG_LEVEL_RULES_V3[l].speedFullS}/${MJ.MAHJONG_LEVEL_RULES_V3[l].seconds ?? 120}`).join(" ") === "2/70/120 10/80/120 15/98/110", "mahjong: shuffle 2 / 10 / 15, speed by 70 / 80 / 98 s, Expert's clock 110 s");
+  for (const l of LEVELS) {
+    const r = MJ.MAHJONG_LEVEL_RULES_V3[l];
+    const lay = r.layout;
+    check(lay.pairs === 2 * r.quads + (lay.pairs - 2 * r.quads) && lay.pairs - 2 * r.quads >= 0 && r.quads + (lay.pairs - 2 * r.quads) <= MJ.MAHJONG_KINDS, `mahjong ${l}: the faces fit (${r.quads} four times, ${lay.pairs - 2 * r.quads} twice, of ${MJ.MAHJONG_KINDS})`);
+    check(MJ.mahjongLayoutOf(new Array(lay.tiles).fill(0)) === lay, `mahjong ${l}: the layout is told by its length (${lay.tiles})`);
+    let inside = true;
+    let minW = Infinity;
+    for (let i = 0; i < lay.tiles; i++) {
+      const b = MJ.mahjongSlotRect(i, lay);
+      if (b.x < 0 || b.y < 0 || b.x + b.w > MJ.MAHJONG_WORLD_W || b.y + b.h > MJ.MAHJONG_WORLD_H) inside = false;
+      minW = Math.min(minW, b.w);
+    }
+    check(inside, `mahjong ${l}: every tile inside the ${MJ.MAHJONG_WORLD_W} × ${MJ.MAHJONG_WORLD_H} world`);
+    // The world fills a 375 px phone's width (the play screen, edge to edge): a tile's width there.
+    check((minW * 375) / MJ.MAHJONG_WORLD_W >= 36, `mahjong ${l}: tiles at least 36 px wide on a 375 px phone (${((minW * 375) / MJ.MAHJONG_WORLD_W).toFixed(1)} px)`);
+    const reg2 = reg.mahjong!.levels[l]!.settings;
+    check(reg2.tiles === lay.tiles && reg2.quads === r.quads && reg2.shuffleCost === r.shuffleCost && reg2.speedFullS === r.speedFullS, `mahjong ${l}: the registry mirrors the sim`);
+    check((r.hintLimit === 0) === (l !== "easy") && MJ.mahjongLevelGame(l, MJ.MAHJONG_REV_LEVELS).init(5).face.length === lay.tiles, `mahjong ${l}: ${l === "easy" ? "free hints" : "no hints"}, the board dealt on its layout`);
+    if (l !== "easy") check(run(MJ.mahjongLevelGame(l, MJ.MAHJONG_REV_LEVELS), 5, [mv(MJ.MAHJONG_INPUT_BUTTON, MJ.MAHJONG_BUTTON_HINT)]).hints === 0, `mahjong ${l}: a hint input counts nothing`);
+    for (let n = 0; n < 6; n++) {
+      const p = dealAt("mahjong", l, n);
+      check(p.mahjongRev === MJ.MAHJONG_REV_LEVELS && p.level === l && (l !== "expert" || (MAHJONG_EXPERT_DEALS.includes(p.seed) && puzzleRunMs(p) === 110_000)), `mahjong ${l} ${n}: mahjongRev 3${l === "expert" ? ", a listed deal, 110 s" : ""}`);
+    }
+  }
+  check(dealAt("mahjong", "normal", 0).mahjongRev === MJ.MAHJONG_REV_DEALT && !("level" in dealAt("mahjong", "normal", 0)), "mahjong normal: mahjongRev 2, no level");
+  const was = pinPreD6Levels(true);
+  try {
+    check(dealAt("mahjong", "hard", 0).mahjongRev === MJ.MAHJONG_REV_DEALT, "d6PreLevels: mahjong's levels before (mahjongRev 2)");
+  } finally {
+    pinPreD6Levels(was);
+  }
+  // 200 at a human pace: Expert's list re-proved by its builder; Easy and Hard deals' build orders through the grade.
+  const r = Bun.spawnSync(["bun", "scripts/mahjong-expert-deals.ts", "--check"], { stdout: "pipe", stderr: "pipe" });
+  const out = r.stdout.toString().trim().split("\n").pop() ?? "";
+  check(r.exitCode === 0 && out.startsWith("PASS"), `mahjong expert: every listed deal re-proved at 200 and the list rebuilds (${out})`);
+  for (const l of ["easy", "hard"] as const) {
+    let at200 = 0;
+    for (let n = 0; n < 24; n++) {
+      const p = dealAt("mahjong", l, n);
+      const order = MJ.mahjongBuild(p.seed, l, MJ.MAHJONG_REV_LEVELS).order.flatMap(([a, b]) => [mv(MJ.MAHJONG_INPUT_TAP, a), mv(MJ.MAHJONG_INPUT_TAP, b)]);
+      const w = play(MJ.mahjongLevelGame(l, MJ.MAHJONG_REV_LEVELS), p.seed, order, GAP, MJ.mahjongCheckpoint, encodeMahjongRun);
+      if (gradeAnswer(p, w.raw, 0).score === 200) at200++;
+    }
+    check(at200 === 24, `mahjong ${l}: 24 dealt boards' build orders at a human pace score 200 through the grade (${at200})`);
   }
 }
 

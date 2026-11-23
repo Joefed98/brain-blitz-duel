@@ -21,7 +21,7 @@ import { BUB_REV_FAST, BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_ICE2, MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
 import { minesBoard, minesGeoFor, minesSolve, MINES_REV_EASY, MINES_REV_EXPERT, MINES_REV_LOGIC, MINES_REV_NORMAL, MINES_REV_STD, MINES_RUN_TICKS } from "@/lib/arcade/minesweeper";
 import { logicOverhaul1Dealt } from "./logicOverhaul1";
-import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
+import { mahjongBuildClears, MAHJONG_LEVEL_RULES_V3, MAHJONG_REV_DEALT, MAHJONG_REV_LEVELS } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_LIVES, SKYLINE_REV_COUNT } from "@/lib/arcade/skyline";
 import { TILT_REV_BIG, TILT_REV_THREE, isTiltLevel } from "@/lib/arcade/tilt";
@@ -67,6 +67,7 @@ import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
 import { FH_LEVEL_RULES, FH_LEVEL_RULES_V4, FH_REV, FH_REV_128, FH_REV_FLAT } from "@/lib/arcade/cards/fiveHands";
 import { FH_LEVEL_DECKS } from "./fiveHandsLevelDecks.server";
+import { MAHJONG_EXPERT_DEALS } from "./mahjongExpertDeals.server";
 import { ARCADE_PHASE_SLACK_MS } from "./catalogue";
 import { PY_REV, PY_REV_SHARE } from "@/lib/arcade/cards/pyramid";
 import { GS_REV } from "@/lib/arcade/cards/golfSol";
@@ -351,10 +352,20 @@ export function pinMinesPreLogic(on: boolean): boolean {
  */
 export function generateMahjong(level?: Level): MahjongPuzzleData {
   // The difficulty levels (15 Nov 2026): a level deal is built and proved on the level's layout and faces.
+  // D6 (23 Nov 2026): level deals stamp mahjongRev 3 and play D6's levels (MAHJONG_LEVEL_RULES_V3: 48 / 104 / 136 tiles);
+  // Normal stays mahjongRev 2. Checks written for the levels before pin d6PreLevels.
   const lv = level === "easy" || level === "hard" || level === "expert" ? level : null;
+  const mahjongRev = lv && !dealPinned("d6PreLevels") ? MAHJONG_REV_LEVELS : MAHJONG_REV_DEALT;
+  // D6's Expert: a deal from its proved list (MAHJONG_EXPERT_DEALS, scripts/mahjong-expert-deals.ts: the 136-tile boards
+  // person-like lines clear without a shuffle, each build order at a human pace 200 through the grade).
+  if (lv === "expert" && mahjongRev === MAHJONG_REV_LEVELS) {
+    const list = MAHJONG_EXPERT_DEALS;
+    const at = arcadeSeed();
+    return { type: "mahjong", seed: list[((at % list.length) + list.length) % list.length]!, mahjongRev, timeLimitMs: MAHJONG_LEVEL_RULES_V3.expert.seconds! * 1000 + ARCADE_PHASE_SLACK_MS } as MahjongPuzzleData;
+  }
   for (;;) {
     const seed = arcadeSeed();
-    if (mahjongBuildClears(seed, lv)) return { type: "mahjong", seed, mahjongRev: MAHJONG_REV_DEALT };
+    if (mahjongBuildClears(seed, lv, mahjongRev)) return { type: "mahjong", seed, mahjongRev };
   }
 }
 

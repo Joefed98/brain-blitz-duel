@@ -10,7 +10,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import { stdHelp } from "../src/lib/arcade/arcadeStandard";
 import { FC_LEVEL_RULES_V6, FC_REV_PAR98, fcLevelSpec } from "../src/lib/arcade/cards/freecell";
-import { MAHJONG_LEVEL_RULES, mahjongLevelSpec } from "../src/lib/arcade/mahjong";
+import { MAHJONG_LEVEL_RULES_V3, MAHJONG_REV_LEVELS, mahjongLevelSpec } from "../src/lib/arcade/mahjong";
 import { TP_LEVEL_RULES_V4, TP_REV_EASE, TP_STOCK_TURNS, tpLevelSpec } from "../src/lib/arcade/cards/tripeaks";
 import { FH_LEVEL_RULES_V4, FH_REV_128, FH_REV_FLAT, FH_TURNS, FH_V3_TABLE_TEXT, fhLevelSpec, fhTableText } from "../src/lib/arcade/cards/fiveHands";
 import { PY_LEVEL_RULES, pyLevelSpec } from "../src/lib/arcade/cards/pyramid";
@@ -38,16 +38,17 @@ for (const l of LV) {
     intro: `Move all ${cards} cards home; bonuses for few moves and speed. Up to 200.`,
     score: stdHelp(fcLevelSpec(l, FC_REV_PAR98)),
   };
-  const mj = MAHJONG_LEVEL_RULES[l];
+  // D6 (23 Nov 2026): the levels dealt today are mahjongRev 3's (MAHJONG_LEVEL_RULES_V3: tiles in the stack).
+  const mj = MAHJONG_LEVEL_RULES_V3[l];
   text.mahjong[l] = {
-    goal: `Clear all ${mj.layout.tiles} tiles in pairs.`,
+    goal: `Clear all ${mj.layout.tiles} tiles in pairs${mj.seconds ? ` in ${mj.seconds} seconds` : ""}.`,
     how: [
-      `${mj.layout.tiles} tiles in ${mj.layout.layers} layers; ${mj.quads} faces appear four times, so pick which pair to take carefully.`,
+      `${mj.layout.tiles} tiles in ${mj.layout.layers} layers; ${mj.quads === 34 ? "every face appears" : `${mj.quads} faces appear`} four times, so pick which pair to take carefully.`,
       `A shuffle costs ${mj.shuffleCost}.`,
-      hintLine(mj.hintCost, mj.hintLimit, l === "easy"),
+      ...(mj.hintLimit === 0 ? [] : [hintLine(mj.hintCost, mj.hintLimit, l === "easy")]),
     ],
     intro: `Clear pairs of the ${mj.layout.tiles} tiles; bonuses for no shuffles and speed. Up to 200.`,
-    score: stdHelp(mahjongLevelSpec(l)),
+    score: stdHelp(mahjongLevelSpec(l, MAHJONG_REV_LEVELS)),
   };
   // D6 (23 Nov 2026): the levels dealt today are tripeaksRev 4's (TP_LEVEL_RULES_V4: the clock is the lever).
   const tp = TP_LEVEL_RULES_V4[l];

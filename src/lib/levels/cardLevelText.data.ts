@@ -43,34 +43,32 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
   },
   "mahjong": {
     "easy": {
-      "goal": "Clear all 56 tiles in pairs.",
+      "goal": "Clear all 48 tiles in pairs.",
       "how": [
-        "56 tiles in 3 layers; 2 faces appear four times, so pick which pair to take carefully.",
+        "48 tiles in 2 layers; 2 faces appear four times, so pick which pair to take carefully.",
         "A shuffle costs 2.",
         "Hints are free: the Hint button lights one good move, and it lights by itself after 8 s without a move."
       ],
-      "intro": "Clear pairs of the 56 tiles; bonuses for no shuffles and speed. Up to 200.",
-      "score": "Pairs: clear the 28 pairs, each worth the same, up to 150. No shuffles: the same again for each pair, all of it lost on your first shuffle; each shuffle costs 2, up to 20. Speed: clear the board within 70 s for all of it, falling to 0 at the buzzer, up to 30. Total 200."
+      "intro": "Clear pairs of the 48 tiles; bonuses for no shuffles and speed. Up to 200.",
+      "score": "Pairs: clear the 24 pairs, each worth the same, up to 150. No shuffles: the same again for each pair, all of it lost on your first shuffle; each shuffle costs 2, up to 20. Speed: clear the board within 70 s for all of it, falling to 0 at the buzzer, up to 30. Total 200."
     },
     "hard": {
-      "goal": "Clear all 72 tiles in pairs.",
+      "goal": "Clear all 104 tiles in pairs.",
       "how": [
-        "72 tiles in 4 layers; 10 faces appear four times, so pick which pair to take carefully.",
-        "A shuffle costs 8.",
-        "Hints: the Hint button lights one good move, 5 points each."
+        "104 tiles in 4 layers; 18 faces appear four times, so pick which pair to take carefully.",
+        "A shuffle costs 10."
       ],
-      "intro": "Clear pairs of the 72 tiles; bonuses for no shuffles and speed. Up to 200.",
-      "score": "Pairs: clear the 36 pairs, each worth the same, up to 150. No shuffles: the same again for each pair, all of it lost on your first shuffle; each shuffle costs 8, each hint 5, up to 20. Speed: clear the board within 25 s for all of it, falling to 0 at the buzzer, up to 30. Total 200."
+      "intro": "Clear pairs of the 104 tiles; bonuses for no shuffles and speed. Up to 200.",
+      "score": "Pairs: clear the 52 pairs, each worth the same, up to 150. No shuffles: the same again for each pair, all of it lost on your first shuffle; each shuffle costs 10, up to 20. Speed: clear the board within 80 s for all of it, falling to 0 at the buzzer, up to 30. Total 200."
     },
     "expert": {
-      "goal": "Clear all 88 tiles in pairs.",
+      "goal": "Clear all 136 tiles in pairs in 110 seconds.",
       "how": [
-        "88 tiles in 5 layers; 12 faces appear four times, so pick which pair to take carefully.",
-        "A shuffle costs 10.",
-        "One hint this round: the Hint button lights one good move."
+        "136 tiles in 4 layers; every face appears four times, so pick which pair to take carefully.",
+        "A shuffle costs 15."
       ],
-      "intro": "Clear pairs of the 88 tiles; bonuses for no shuffles and speed. Up to 200.",
-      "score": "Pairs: clear the 44 pairs, each worth the same, up to 150. No shuffles: the same again for each pair, all of it lost on your first shuffle; each shuffle costs 10, up to 20. Speed: clear the board within 30 s for all of it, falling to 0 at the buzzer, up to 30. Total 200."
+      "intro": "Clear pairs of the 136 tiles; bonuses for no shuffles and speed. Up to 200.",
+      "score": "Pairs: clear the 68 pairs, each worth the same, up to 150. No shuffles: the same again for each pair, all of it lost on your first shuffle; each shuffle costs 15, up to 20. Speed: clear the board within 98 s for all of it, falling to 0 at the buzzer, up to 30. Total 200."
     }
   },
   "tripeaks": {
