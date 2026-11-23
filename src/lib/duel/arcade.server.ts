@@ -39,7 +39,8 @@ import { dealtNotesRev } from "./phoneNotes";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_KEEP, WAV_REV_BIG, WAV_REV_WIDE } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, ORBIT_REV_LOST } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD, RALLY_REV_LIVES } from "@/lib/arcade/rally";
-import { BEAT_REV_TARGET, BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
+import { BEAT_REV_TARGET, BEAT_REV_FLOOR, BEAT_REV_STD, BEAT_REV_LANES } from "@/lib/arcade/beat";
+import { beatDealSeedV13 } from "./beatDealV13.server";
 import { orbitFuelCourseForSeed, orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
@@ -367,12 +368,25 @@ export function generateBubble(): BubblePuzzleData {
   return { type: "bubble", seed: arcadeSeed(), bubbleRev: BUB_REV_FAST };
 }
 
-export function generateBeat(): BeatPuzzleData {
+export function generateBeat(level?: Level): BeatPuzzleData {
   // beatRev 10 (phone notes, 27 Oct 2026): beatRev 9's song with wider windows and a lighter chart, easiest from the fifth lane.
   // beatRev 11 (the arcade scoring standard, 29 Oct 2026): beatRev 10's play scored on the standard (docs/arcade-standard/beat.md).
   // beatRev 12 (the Retro overhaul, 15 Nov 2026): beatRev 11's play; a missed note scores 0 rather than −2. Checks
   // written for beatRev 11 pin preRetro.
-  return { type: "beat", seed: arcadeSeed(), beatRev: dealPinned("preRetro") ? BEAT_REV_STD : BEAT_REV_FLOOR };
+  // beatRev 13 (D5's ladder, 23 Nov 2026): Normal beatRev 12's play on lower golden-note and streak lines, the levels on
+  // their own lanes; each level deals a seed from its own proved list (beatDealV13.server.ts: two-thumb playable, the
+  // flawless player held to the human limits at exactly 200). Checks written for beatRev 12 pin beatPreLanes.
+  if (dealPinned("preRetro")) return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_STD };
+  if (dealPinned("beatPreLanes")) return { type: "beat", seed: arcadeSeed(), beatRev: BEAT_REV_FLOOR };
+  return { type: "beat", seed: beatDealSeedV13(arcadeSeed(), level), beatRev: BEAT_REV_LANES };
+}
+
+/**
+ * Checks written for beatRev 12: deal Tempo on beatRev 12 (any seed, Normal and every level) as rooms did before beatRev
+ * 13's lanes and lower full lines (D5's ladder, 23 Nov 2026; returns the previous setting).
+ */
+export function pinBeatPreLanes(on: boolean): boolean {
+  return setDealPin("beatPreLanes", on);
 }
 
 /** Checks written before the Retro overhaul (15 Nov 2026): deal Tempo beatRev 11 as rooms did before it. */

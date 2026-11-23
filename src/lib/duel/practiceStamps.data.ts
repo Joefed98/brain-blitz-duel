@@ -4,7 +4,7 @@ export const PRACTICE_STAMPS = {
   "balance": "balanceRev=5 depthRev=2 puzzleScoreRev=3 speedPar=1",
   "balltrack": "btRev=8 puzzleScoreRev=3 speedPar=1",
   "bastion": "bastionRev=4 puzzleScoreRev=3 speedPar=1",
-  "beat": "beatRev=12 puzzleScoreRev=3 speedPar=1",
+  "beat": "beatRev=13 puzzleScoreRev=3 speedPar=1",
   "bintoss": "binRev=9 puzzleScoreRev=3 speedPar=1",
   "blockfall": "blockfallRev=2 puzzleScoreRev=3 speedPar=1",
   "blockparty": "blockRev=4 puzzleScoreRev=3 speedPar=1",

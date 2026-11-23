@@ -386,7 +386,9 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   /* ================================================================ Retro */
   // Tempo (beat): accuracy 130 + fever 25 + golden notes 15 + double taps 15 + perfect streak 15.
   ch("beat", "Fever pitch", "Start all four fevers.", "C", "fullset", false, part("Fever", 25)),
-  ch("beat", "Golden ear", "Hit every golden note dead on.", "C", "maxout", false, part("Golden notes", 15), "beat.gold"),
+  // beatRev 13 (D5's ladder, 23 Nov 2026): the Golden notes part is full at 5 in every 9, so the goal counts the notes
+  // themselves (every one the chart deals, hit dead on), never the part; older stamps keep the part at its maximum.
+  ch("beat", "Golden ear", "Hit every golden note dead on.", "C", "maxout", false, all({ c: "since", path: "beatRev", from: 13, then: f("goldsHit", "gte", "@golds"), before: full("Golden notes", 15) }), "beat.gold"),
   ch("beat", "Encore", "Score 180 or more.", "C", "bigscore", true, score(180), "beat.score180"),
   // Blockzone (blockfall): lines 95 + pieces placed 65 + multi-line clears 24 + low stack 16.
   ch("blockfall", "Thirty lines", "Clear 30 lines.", "C", "target", false, all(f("lines", "gte", 30))),

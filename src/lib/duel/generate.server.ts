@@ -369,7 +369,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "steady") return generateSteady();
   if (type === "slice") return generateSlice();
   if (type === "bubble") return generateBubble();
-  if (type === "beat") return generateBeat();
+  if (type === "beat") return generateBeat(context.level);
   if (type === "whack") return generateWhack();
   if (type === "tendrop") return generateTenDrop();
   if (type === "wordfall") return generateWordfall();

@@ -52,7 +52,10 @@ export interface BurstLv {
 }
 /** Tempo (beatRev 12): the hit windows (Perfect, Good, OK, ticks either side), the notes' fall time on screen (ticks
  * from the top of the lane to the hit line; Normal's 90) and the chart's busyness: each section's off-beat (eighth) and
- * chord shares as a per cent of Normal's (the chart is built from the seed with the scaled plan). */
+ * chord shares as a per cent of Normal's (the chart is built from the seed with the scaled plan).
+ *
+ * beatRev 13 (D5's ladder, 23 Nov 2026) adds the lanes and the level's own full lines (BeatLv13); a beatRev 12 level's
+ * row has none of them, so it plays, replays and scores exactly as before. */
 export interface BeatLv {
   perfect: number;
   good: number;
@@ -60,7 +63,19 @@ export interface BeatLv {
   fall: number;
   eighthPct: number;
   chordPct: number;
+  /** beatRev 13 only: the lanes for the whole song (Normal: four, then five from 40 s). */
+  lanes?: number;
+  /** beatRev 13 only: the accuracy (per mille of the chart) the Accuracy part is full at (Normal 1,000: every note Perfect). */
+  accFull?: number;
+  /** beatRev 13 only: the fevers the Fever part is full at (Normal 4). */
+  feversFull?: number;
+  /** beatRev 13 only: golden notes full at this many in every nine the chart deals (Normal 5). */
+  goldNinths?: number;
+  /** beatRev 13 only: the Perfect streak full at this share of the song's notes, per cent (Normal 70). */
+  streakPct?: number;
 }
+/** Tempo's beatRev 13 levels: every field set. */
+export type BeatLv13 = Required<BeatLv>;
 /** Meteor (snakeRev 15): lives (crashes forgiven = lives − 1; Normal 2), the step speed (ticks a square at the start
  * and the fastest; Normal 9 and 4, one tick faster every few stars, so it speeds up through the run) and whether the
  * edges are walls (1) instead of wrapping (0, Normal), and the core stars the stars part is full at (Normal's 36). */
@@ -129,10 +144,24 @@ export const BURST_LEVELS: Table<BurstLv> = {
   hard: { lives: 3, sizePct: 100, quickPct: 75, freeWhiffs: 12 },
   expert: { lives: 2, sizePct: 100, quickPct: 60, freeWhiffs: 8 },
 };
+/** Tempo's beatRev 12 levels (the Retro overhaul, stage 3): stored beatRev 12 level rounds replay on this table. */
 export const BEAT_LEVELS: Table<BeatLv> = {
   easy: { perfect: 5, good: 10, ok: 16, fall: 110, eighthPct: 100, chordPct: 100 },
   hard: { perfect: 3, good: 6, ok: 11, fall: 75, eighthPct: 170, chordPct: 160 },
   expert: { perfect: 2, good: 5, ok: 10, fall: 60, eighthPct: 240, chordPct: 220 },
+};
+/**
+ * Tempo's beatRev 13 levels (D5's ladder, 23 Nov 2026; docs/arcade-standard/beat.md "Levels (D5, 23 Nov 2026)"): the
+ * lever is the lanes, three for the whole song on Easy, five from the first note on Hard and six on Expert (Normal: four,
+ * a fifth from 40 s); the windows, fall time and chart shares as the spec; each level's own full lines (the ladder rule,
+ * Joe 23 Nov 2026: each feature full at about what the realistic elite takes on three runs in four at that level; the
+ * accuracy line moved only where that alone left the elite too few runs at 200), against Normal's accuracy 1,000, 4
+ * fevers, 5 golden notes in 9 and a streak of 70 % of the notes.
+ */
+export const BEAT_LEVELS_V13: Table<BeatLv13> = {
+  easy: { lanes: 3, perfect: 5, good: 10, ok: 16, fall: 110, eighthPct: 50, chordPct: 50, accFull: 990, feversFull: 3, goldNinths: 4, streakPct: 75 },
+  hard: { lanes: 5, perfect: 3, good: 6, ok: 11, fall: 75, eighthPct: 170, chordPct: 160, accFull: 995, feversFull: 4, goldNinths: 5, streakPct: 60 },
+  expert: { lanes: 6, perfect: 3, good: 6, ok: 11, fall: 60, eighthPct: 240, chordPct: 220, accFull: 992, feversFull: 4, goldNinths: 5, streakPct: 45 },
 };
 export const SNAKE_LEVELS: Table<SnakeLv> = {
   easy: { lives: 3, stepStart: 9, stepMin: 5, walls: 0, fullAt: 27 },
@@ -166,7 +195,7 @@ export const RETRO_LEVEL_TABLES = {
   rally: RALLY_LEVELS,
   wavefront: WAVEFRONT_LEVELS,
   burst: BURST_LEVELS,
-  beat: BEAT_LEVELS,
+  beat: BEAT_LEVELS_V13,
   snake: SNAKE_LEVELS,
   cross: CROSS_LEVELS,
   pinball: PINBALL_LEVELS,
