@@ -16,7 +16,7 @@ import { BRK_REV_CLEAR } from "@/lib/arcade/breaker";
 import { TILT_REV_BIG } from "@/lib/arcade/tilt";
 import { CROSS_REV_LIGHT } from "@/lib/arcade/cross";
 import { FLIP_REV_GRACE } from "@/lib/arcade/flip";
-import { MOON_BIG_REV } from "@/lib/arcade/ricochetNinja";
+import { MOON_MID_REV } from "@/lib/arcade/ricochetNinja";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_SHIELD } from "@/lib/arcade/hover";
 import { RALLY_REV_LIVES, RALLY_REV_STD } from "@/lib/arcade/rally";
@@ -92,7 +92,7 @@ export function demoRevAccepted(game: keyof typeof SAME_PLAY_DEMO_REVS, rev: num
 export const ACTION_DEMO_REVS = {
   flip: FLIP_REV_GRACE,
   swing: SWING_REV_BIG,
-  ricochet: MOON_BIG_REV,
+  ricochet: MOON_MID_REV,
   bastion: BASTION_REV_DEALT,
   skyline: SKYLINE_REV_LIVES,
   orbit: ORBIT_REV_BIG,
@@ -284,8 +284,9 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   if (data.type === "bastion" && demo?.puzzle.type === "bastion" && demo.puzzle.bastionRev !== BASTION_REV_DEALT) return null;
   // Moon Climb (15 Nov 2026, ricoRev 4, the Action overhaul): the bigger ninja on its own collision box. A demo of the old
   // shaft, the ninja wall-climb (ricoRev 2) or the smaller ninja (ricoRev 3) would show other rules, so only a demo
-  // recorded on ricoRev 4 plays; until one is, the intro shows its still.
-  if (data.type === "ricochet" && demo?.puzzle.type === "ricochet" && demo.puzzle.ricoRev !== MOON_BIG_REV) return null;
+  // recorded on ricoRev 4 plays; until one is, the intro shows its still. ricoRev 5 (22 Nov 2026) the 30 × 60 ninja on
+  // its own towers: a ricoRev 4 demo would show the bigger ninja on another tower, so only a demo recorded on 5 plays.
+  if (data.type === "ricochet" && demo?.puzzle.type === "ricochet" && demo.puzzle.ricoRev !== MOON_MID_REV) return null;
   // Tilt's expansion (tiltRev 8, 26 Oct 2026): three bigger mazes under a camera, keys, ice and quick stars. An older
   // demo would show the small disc, so the intro shows its still until a demo is recorded on tiltRev 8.
   // tiltRev 9 (27 Oct 2026) keeps tiltRev 8's play on lifted curves, under a fixed camera: only a demo recorded on 9 plays.
