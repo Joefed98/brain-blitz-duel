@@ -457,7 +457,7 @@ challenges never count. How the checks read a run:
 | Drone strike | Down all three drones. | Classic | Full set | line “Drones” = 30 of 30 |  | `bastion.drones` |
 | Hold the wall | Keep the base untouched. | Classic | Clean | line “Base intact” = 10 of 10 |  | `bastion.base` |
 | Quick hands | Make ten fast reloads. | Classic | Max-out | line “Fast reloads” = 20 of 20 |  | `bastion.quick-hands` |
-| Weak at the knees | Land 30 hits on glowing weak spots. | Classic | Max-out | line “Weak spots” = 30 of 30 | ● | `bastion.weak-at-the-knees` |
+| Weak at the knees | Land 30 hits on glowing weak spots. | Classic | Max-out | `weak` ≥ 30 | ● | `bastion.weak-at-the-knees` |
 
 #### Roofbound (`flip`)
 

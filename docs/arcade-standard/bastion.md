@@ -1,5 +1,87 @@
 # Iron Wall (id `bastion`) on the arcade scoring standard (bastionRev 2, 1 Nov 2026; bastionRev 3, 3 Nov 2026)
 
+## bastionRev 5: the ladder (D5, 23 Nov 2026; Levels (D5, 23 Nov 2026))
+
+The polish plan's difficulty session D5 (docs/polish-plan-final/difficulty-spec.md "### Iron Wall"; Joe approved the
+fourth lane on 20 and 23 Nov 2026 and the Normal refit on 23 Nov 2026). **Every level deals bastionRev 5**
+(`BASTION_REV_LADDER`, `BT5_LEVELS` in `bastionTank.ts`, frozen under the stamp; the deal stamps `level` off Normal).
+The lever is **the tanks in each wave**, with a fourth lane to carry them from Hard. Stored bastionRev 4 rounds (Easy,
+Normal, Hard) and the bastionRev 3 rounds dealt as Expert before replay and score exactly as before
+(bastion-ladder-check section 1: 144 runs recorded before the change, `scripts/fixtures/bastion-rev5-legacy.json.gz`).
+Checks written for bastionRev 4 pin `bastionPreLadder` (`pinBastionPreLadder(true)`): rev 4 at Easy, Normal and Hard and
+rev 3 at Expert, on any seed, exactly as rooms dealt them.
+
+- **Normal is bastionRev 4's Normal game exactly** (the same plan, waves, drones and rules; every recorded rev-4 Normal
+  log plays tick for tick to the same state), with one scoring refit (Joe's rule of 23 Nov 2026: each feature's full
+  line at about what the realistic elite takes on three runs in four): **Weak spots full at 28 hits** (was 30; the elite's
+  first quartile on Normal is 27, and 27 put the elite at 200 on 68 % of runs, over the 40–60 % aim, so 28). The
+  checkpoint carries the stamp, so a bastionRev 4 client's log on a bastionRev 5 puzzle is flagged.
+- **The four-lane road** (Hard and Expert): four 96 px lanes at the wall (`BT5_LANE_X` −144, −48, 48, 144; a 94 px heavy
+  fits each inside the road's 192 px half width, 2 px from the next lane's), carried as lane ids 3–6 (`BT5_LANE0`), so
+  every rectangle helper, the planner and the bots keep their signatures and the three-lane ids 0–2 are untouched. The
+  plan (`bastionPlanV5`, its own stream of the seed) never puts two tanks running in one lane and uses every lane. Art:
+  the same backdrop with the road split into four lanes (`paintFourLaneBackdrop`: a worn tyre lane either side of each
+  lane's centre, three dashed dividers, its own cached layer `bastion-set:<setting>:4`), the panel's cracks spread over
+  the four lanes (`BT5_CRACK_X`), the reveal's slots narrowed for nine tanks a wave; tanks are painted by the same
+  `paintTank` on their rectangles (within 2 px, bastion-ladder-check section 8) and drawn through the same view
+  (`bastionView.ts`), whose exact inverse the stage sends (every drawn pixel of a four-lane tank maps to the matching side
+  of its rectangle). Every older stamp's frame draws pixel for pixel as before (`scripts/fixtures/bastion-ladder-art.json`,
+  recorded on the renderer before the change). No input mapping assumes three lanes (the aim is a point; desktop keys
+  are the mouse, R and Space).
+- **Parts** (exactly 200 at every level, `BASTION_STD_SPEC_V5`): rev 4's Armour 110, Weak spots 30, Fast reloads 20, Drones
+  30 and Base intact 10, each on a straight line to its level's own full line (decision 12, per-level scoring lines; set
+  from the realistic elite's runs: the core where its first quartile needs it, each feature at about its first quartile).
+- **Proof**: every level deals only seeds on which the **paced oracle** (`scripts/bastion-ladder-oracle.ts`: the flawless
+  planner held to Joe's human limits, a tank or drone noticed 0.25 s after it appears and the crosshair 0.15 s more to
+  reach it, the same after a tap or a reload swipe) scores exactly 200 through the server replay. The lists are
+  `src/lib/duel/bastionDealV5.server.ts` (150 seeds a level from the skill-band room seeds; Easy, Normal, Hard and Expert
+  all 150 of the first 150 tried), built by `bun scripts/bastion-ladder-deal.ts [--check]` (byte for byte).
+
+| | Easy | Normal | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Lanes | 3 | 3 | **4** | **4** |
+| **Tanks a wave** (in all; heavies) | **4** (20; 1) | 6 (30; 5) | **8** (40; 10) | **9** (45; 12) |
+| Wave shapes (scouts / mediums / heavies) | 4/0/0, 3/1/0, 2/2/0, 2/2/0, 1/2/1 | rev 4's plan | 5/3/0, 4/3/1, 3/3/2, 2/3/3, 1/3/4 | 5/3/1, 4/3/2, 3/3/3, 2/4/3, 1/5/3 |
+| Wave pace, % of each type's speed | 32 36 41 56 74 | 36 41 46 64 82 | 40 46 51 66 84 | 56 56 56 70 88 |
+| Green zone (‰; ms) | 160 (320) | 80 (160) | 60 (120) | 45 (90) |
+| Weak spot open, ticks of 90; size | 88; 260 % | 84; 240 % | 66; 120 % | 60; 100 % |
+| Base hits that end the run | 5 | 4 | 3 | 3 |
+| Drones: speed (px a tick); size | 1; 200 % | 1; 120 % | 3; 100 % | 4; 100 % |
+| Hit points in the run | 30 | 57 | 85 | 99 |
+| Armour full at (hit points) | 30 (all) | 57 (all) | 80 | 87 |
+| Weak spots full at (hits) | 17 | **28** | 13 | 11 |
+| Fast reloads full at | 10 | 10 | 10 | 10 |
+| Drones full at | 3 | 3 | 1 | 1 |
+| Base intact full with (hits taken) | 0 | 0 | 1 | 2 |
+
+Tuned against the spec's proposal (Joe: "tune the numbers until the ladder test passes"): Easy's Weak spots line from 20
+to 17 (at 20 the elite reached 200 on 27 % of Easy runs, below Normal); Hard's last two waves eased from 73 / 95 % to 66
+/ 84 % and Expert's from 80 / 104 % to 70 / 88 % (at the proposed paces the human-limited elite held the base on 36 % of
+Expert runs and no line could bring it to a fifth at 200; Expert stays at or above Hard on every wave, so no level up
+is an aid).
+
+### Measured (the D5 ladder, 96 deals a level; the skill-band bots under the human limits, graded by the server)
+
+`bun scripts/d5-ladder-record.ts bastion --deals=96` (`scripts/fixtures/d5-ladder-bastion.json.gz`), before (bastionRev 4
+at Easy, Normal and Hard, bastionRev 3 at Expert, any seed) and after (bastionRev 5 from the proved lists):
+
+| | Easy | Normal | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Average player, before | 172.6 | 156.0 | 101.8 | 87.9 |
+| Average player, after | 175.5 | 151.5 | 111.0 | 86.4 |
+| Realistic elite (mean), before | 197.9 | 196.1 | 161.7 | 146.0 |
+| Realistic elite (mean), after | 199.8 | 197.0 | 190.7 | 179.9 |
+| Elite at 200, before | 17 % | 17 % | 0 % | 0 % |
+| Elite at 200, after | **93 %** | **55 %** | **43 %** | **28 %** |
+| Base held (elite / average), after | 100 / 100 % | 100 / 91 % | 92 / 20 % | 65 / 0 % |
+
+Joe's ladder test passes on the table (bastion-ladder-check section 7): the average player steps down 24, 41 and 25
+points, every level's average is above 15, and the elite reaches 200 strictly less often each level up, on Expert on
+28 % of runs. The guides the ladder test leaves to judgement: the average's Hard (111) and Expert (86) sit above the
+spec's 55–75 and 25–45, and the elite's means above 150–175 and 120–150, because the per-level lines that let the best
+players reach 200 also lift every score below them (the average player's armour and weak spots fill more of a lower
+line); the elite's share at 200 is what the ladder reads.
+
 ## bastionRev 4: levels (15 Nov 2026, the difficulty levels; docs/design/difficulty/README.md)
 
 Joe found Iron Wall much too hard. With his approval (15 Nov 2026: "Iron Wall's today game becomes Expert; Normal and

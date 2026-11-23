@@ -44,11 +44,25 @@ export const BASTION_REV_IRON = 3;
  * (BT4_LEVELS; each level's numbers are frozen under this stamp). Rooms, rated play and the Daily deal rev 4 at Normal.
  */
 export const BASTION_REV_LEVELS = 4;
-export const BASTION_REV_DEALT = BASTION_REV_LEVELS;
+/**
+ * bastionRev 5 (23 Nov 2026, D5's ladder; docs/arcade-standard/bastion.md "bastionRev 5: the ladder"): the lever is the
+ * tanks in each wave. Normal is bastionRev 4's Normal game exactly (the same plan, waves and rules), its Weak spots part
+ * full at BT5_LEVELS.normal.weakFull hits instead of 30 (Joe's Normal refit). Easy sends 4 tanks a wave (20, one heavy)
+ * down the three lanes with today's Easy aids; Hard and Expert add a FOURTH lane (BT5_LANE_X, lane ids 3–6) and send 8
+ * and 9 tanks a wave (40 with 10 heavies, 45 with 12), Hard on bastionRev 4's Hard aim settings and Expert on
+ * bastionRev 3's. Each level's numbers and its parts' full lines are BT5_LEVELS, frozen under this stamp; Easy, Hard and
+ * Expert build their plan from the seed on their own stream (bastionPlanV5). Stored bastionRev 4 rounds (and the
+ * bastionRev 3 Expert rounds) replay exactly as before.
+ */
+export const BASTION_REV_LADDER = 5;
+export const BASTION_REV_DEALT = BASTION_REV_LADDER;
 
 /** bastionRev 4's levels (Expert is bastionRev 3's game, not a rev-4 level). */
 export type BastionLevel = "easy" | "normal" | "hard";
 export const BASTION_LEVELS: readonly BastionLevel[] = ["easy", "normal", "hard"];
+/** bastionRev 5's levels (all four are bastionRev 5). */
+export type BastionLadderLevel = BastionLevel | "expert";
+export const BASTION_LADDER_LEVELS: readonly BastionLadderLevel[] = ["easy", "normal", "hard", "expert"];
 
 export interface BastionLevelSettings {
   /** Each wave's speed, per cent of the type's (rev 3: 44, 50, 56, 80, 104). */
@@ -81,14 +95,133 @@ export function bastionLevelOf(level: unknown): BastionLevel {
   return level === "easy" || level === "hard" ? level : "normal";
 }
 
+/**
+ * bastionRev 5's level settings: bastionRev 4's levers, the lanes and wave shapes (the ladder's lever), and each part's
+ * full line (Joe, 23 Nov 2026: per-level scoring lines, so 200 stays reachable for the best players on every level).
+ */
+export interface BastionLadderSettings extends BastionLevelSettings {
+  /** The road's lanes: 3 (BT2_LANE_X, lane ids 0–2) or 4 (BT5_LANE_X, lane ids 3–6). */
+  lanes: 3 | 4;
+  /** Each wave's scouts, mediums and heavies (null: bastionRev 4's plan at this level's `heavies`, Normal's). */
+  waves: readonly (readonly [number, number, number])[] | null;
+  /** Armour is full at this many hit points destroyed (null: all of the level's). */
+  hpFull: number | null;
+  /** Weak spots (30) is full at this many weak-spot hits. */
+  weakFull: number;
+  /** Fast reloads (20) is full at this many fast reloads. */
+  fastFull: number;
+  /** Drones (30) is full at this many drones shot down. */
+  droneFull: number;
+  /** Base intact (10) is full with this many base hits taken (half with one more). */
+  baseFree: number;
+}
+
+/**
+ * bastionRev 5's levels. Frozen: a change here is a new stamp. Normal is bastionRev 4's Normal (BT4_LEVELS.normal, its
+ * plan) with Weak spots full at 28 hits; Easy keeps bastionRev 4's Easy aids on 4 tanks a wave (20, one heavy); Hard
+ * keeps bastionRev 4's Hard aim settings (its pace's last two waves eased to 66 and 84 %) on four lanes and 8 tanks a
+ * wave (40, ten heavies); Expert bastionRev 3's aim settings on four lanes and 9 a wave (45, twelve heavies) at 56 %
+ * from the first wave, then 70 and 88 % (never below Hard's on any wave). Each level's full lines are set from the
+ * realistic elite's runs under the human limits (docs/arcade-standard/bastion.md "bastionRev 5: the ladder").
+ */
+export const BT5_LEVELS: Readonly<Record<BastionLadderLevel, BastionLadderSettings>> = {
+  easy: {
+    pace: [32, 36, 41, 56, 74],
+    zoneW: 160,
+    weakOpen: 88,
+    base: 5,
+    heavies: 1,
+    weakPct: 260,
+    droneSpeed: 1,
+    dronePct: 200,
+    lanes: 3,
+    waves: [
+      [4, 0, 0],
+      [3, 1, 0],
+      [2, 2, 0],
+      [2, 2, 0],
+      [1, 2, 1],
+    ],
+    hpFull: null,
+    weakFull: 17,
+    fastFull: 10,
+    droneFull: 3,
+    baseFree: 0,
+  },
+  normal: { pace: [36, 41, 46, 64, 82], zoneW: 80, weakOpen: 84, base: 4, heavies: 5, weakPct: 240, droneSpeed: 1, dronePct: 120, lanes: 3, waves: null, hpFull: null, weakFull: 28, fastFull: 10, droneFull: 3, baseFree: 0 },
+  hard: {
+    pace: [40, 46, 51, 66, 84],
+    zoneW: 60,
+    weakOpen: 66,
+    base: 3,
+    heavies: 10,
+    weakPct: 120,
+    droneSpeed: 3,
+    dronePct: 100,
+    lanes: 4,
+    waves: [
+      [5, 3, 0],
+      [4, 3, 1],
+      [3, 3, 2],
+      [2, 3, 3],
+      [1, 3, 4],
+    ],
+    hpFull: 80,
+    weakFull: 13,
+    fastFull: 10,
+    droneFull: 1,
+    baseFree: 1,
+  },
+  expert: {
+    pace: [56, 56, 56, 70, 88],
+    zoneW: 45,
+    weakOpen: 60,
+    base: 3,
+    heavies: 12,
+    weakPct: 100,
+    droneSpeed: 4,
+    dronePct: 100,
+    lanes: 4,
+    waves: [
+      [5, 3, 1],
+      [4, 3, 2],
+      [3, 3, 3],
+      [2, 4, 3],
+      [1, 5, 3],
+    ],
+    hpFull: 87,
+    weakFull: 11,
+    fastFull: 10,
+    droneFull: 1,
+    baseFree: 2,
+  },
+};
+
+/** A rev-5 level from anything (a stored `level`; absent or anything else is Normal). */
+export function bastionLadderLevelOf(level: unknown): BastionLadderLevel {
+  return level === "easy" || level === "hard" || level === "expert" ? level : "normal";
+}
+
+/** bastionRev 5's settings at a level. */
+export function bastionLadderSettings(level: unknown): BastionLadderSettings {
+  return BT5_LEVELS[bastionLadderLevelOf(level)];
+}
+
 /** A state's weak-spot size (per cent; 100 on rev 2 and 3). */
 export function bastionWeakPctOf(state: Pick<BastionTankState, "rev" | "lvl">): number {
+  if (state.rev >= BASTION_REV_LADDER) return bastionLadderSettings(state.lvl).weakPct;
   return state.rev >= BASTION_REV_LEVELS ? BT4_LEVELS[bastionLevelOf(state.lvl)].weakPct : 100;
 }
 
 /** The level settings a state plays (null on rev 2 and 3). */
 export function bastionLevelSettings(state: Pick<BastionTankState, "rev" | "lvl">): BastionLevelSettings | null {
+  if (state.rev >= BASTION_REV_LADDER) return bastionLadderSettings(state.lvl);
   return state.rev >= BASTION_REV_LEVELS ? BT4_LEVELS[bastionLevelOf(state.lvl)] : null;
+}
+
+/** The road's lanes a state plays (3, or 4 on bastionRev 5's Hard and Expert). */
+export function bastionLanesOf(state: Pick<BastionTankState, "rev" | "lvl">): 3 | 4 {
+  return state.rev >= BASTION_REV_LADDER ? bastionLadderSettings(state.lvl).lanes : 3;
 }
 
 export const BT2_WORLD_W = 390;
@@ -107,6 +240,19 @@ export const BT2_FAR = 1280;
 const FP = 256;
 /** Each lane's x at the wall, from the centre. */
 export const BT2_LANE_X = [-128, 0, 128] as const;
+/**
+ * bastionRev 5's four-lane road (Hard and Expert): four 96 px lanes at the wall (the road's 192 px half width holds four
+ * lanes of a 94 px heavy, 2 px apart), as lane ids BT5_LANE0 + 0…3, so every rectangle helper keeps its signature and
+ * the three-lane ids 0–2 are untouched.
+ */
+export const BT5_LANE_X = [-144, -48, 48, 144] as const;
+export const BT5_LANE0 = BT2_LANE_X.length;
+/** Every lane id's x at the wall (0–2 the three-lane road, 3–6 the four-lane road). */
+export const BT_LANE_X_ALL: readonly number[] = [...BT2_LANE_X, ...BT5_LANE_X];
+/** The lanes' x at the wall for a road of `lanes` lanes. */
+export function bastionLaneXs(lanes: 3 | 4): readonly number[] {
+  return lanes === 4 ? BT5_LANE_X : BT2_LANE_X;
+}
 
 export const BT2_SCOUT = 0;
 export const BT2_MEDIUM = 1;
@@ -132,6 +278,7 @@ export const BT3_WAVE_PACE = [44, 50, 56, 80, 104] as const;
 
 /** A wave's pace (per cent of each type's speed) on a revision (and, on rev 4, a level). */
 export function bastionWavePace(rev: number, wave: number, level?: unknown): number {
+  if (rev >= BASTION_REV_LADDER) return bastionLadderSettings(level).pace[wave]!;
   if (rev >= BASTION_REV_LEVELS) return BT4_LEVELS[bastionLevelOf(level)].pace[wave]!;
   return (rev >= BASTION_REV_IRON ? BT3_WAVE_PACE : BT2_WAVE_PACE)[wave]!;
 }
@@ -175,12 +322,14 @@ export const BT3_ZONE_W = 45;
 
 /** The green zone's width (per mille of the sweep) on a revision. */
 export function bastionZoneW(rev: number, level?: unknown): number {
+  if (rev >= BASTION_REV_LADDER) return bastionLadderSettings(level).zoneW;
   if (rev >= BASTION_REV_LEVELS) return BT4_LEVELS[bastionLevelOf(level)].zoneW;
   return rev >= BASTION_REV_IRON ? BT3_ZONE_W : BT2_ZONE_W;
 }
 
 /** Base hits allowed (the run ends on the last) on a revision and level. */
 export function bastionBaseMax(rev: number, level?: unknown): number {
+  if (rev >= BASTION_REV_LADDER) return bastionLadderSettings(level).base;
   return rev >= BASTION_REV_LEVELS ? BT4_LEVELS[bastionLevelOf(level)].base : BT2_BASE;
 }
 /** The run ends this long after the last tank is gone (destroyed or at the wall). */
@@ -232,6 +381,11 @@ export function bastionWeakOpen(p: Pick<Bt2PlanTank, "wphase" | "open">, tick: n
  * as mediums) and the level's weak-spot opening on every tank. Cached; never mutated.
  */
 export function bastionPlanFor(seed: number, rev: number, level?: unknown): readonly Bt2PlanTank[] {
+  // bastionRev 5: Normal is bastionRev 4's Normal plan exactly; Easy, Hard and Expert their own (bastionPlanV5).
+  if (rev >= BASTION_REV_LADDER) {
+    const lv = bastionLadderLevelOf(level);
+    return BT5_LEVELS[lv].waves === null ? bastionPlanFor(seed, BASTION_REV_LEVELS, lv) : bastionPlanV5(seed, lv);
+  }
   const plan = bastionPlan(seed);
   if (rev < BASTION_REV_LEVELS) return plan;
   const lvl = bastionLevelOf(level);
@@ -257,6 +411,11 @@ export function bastionPlanOf(state: Pick<BastionTankState, "seed" | "rev" | "lv
 
 /** Hit points in a revision's and level's run (63 on rev 2 and 3). */
 export function bastionTotalHp(rev: number, level?: unknown): number {
+  if (rev >= BASTION_REV_LADDER) {
+    const set = bastionLadderSettings(level);
+    if (set.waves === null) return bastionTotalHp(BASTION_REV_LEVELS, bastionLadderLevelOf(level));
+    return set.waves.reduce((a, w) => a + w[0] * BT2_HP[0] + w[1] * BT2_HP[1] + w[2] * BT2_HP[2], 0);
+  }
   if (rev < BASTION_REV_LEVELS) return BT2_TOTAL_HP;
   const kept = Math.min(BT4_LEVELS[bastionLevelOf(level)].heavies, BT2_HEAVIES);
   return BT2_TOTAL_HP - (BT2_HEAVIES - kept) * (BT2_HP[BT2_HEAVY] - BT2_HP[BT2_MEDIUM]);
@@ -299,6 +458,58 @@ export function bastionPlan(seed: number): readonly Bt2PlanTank[] {
   return out;
 }
 const planCache = new Map<number, readonly Bt2PlanTank[]>();
+
+/**
+ * bastionRev 5's plan at Easy, Hard and Expert, from the seed alone on its own stream (so it never borrows bastionRev 4's
+ * draws): each wave's kinds (BT5_LEVELS `waves`) shuffled and spread over the wave's window, each tank on a lane of the
+ * level's road (never the previous tank's), its speed change and its weak spot's phase as bastionPlan deals them, its
+ * weak spot open the level's ticks of every 90. Cached; never mutated.
+ */
+export function bastionPlanV5(seed: number, level: BastionLadderLevel): readonly Bt2PlanTank[] {
+  const key = `${seed | 0}:${level}`;
+  const hit = planV5Cache.get(key);
+  if (hit) return hit;
+  const set = BT5_LEVELS[level];
+  const shapes = set.waves ?? BT2_WAVES;
+  const lanes = set.lanes;
+  const lane0 = lanes === 4 ? BT5_LANE0 : 0;
+  let rng = (seed ^ 0x5b1d_e94f) | 0;
+  const draw = (bound: number) => {
+    const r = rngBelow(rng, bound);
+    rng = r.state;
+    return r.value;
+  };
+  const out: Bt2PlanTank[] = [];
+  let lastLane = -1;
+  shapes.forEach((shape, wave) => {
+    const kinds: number[] = [];
+    shape.forEach((n, kind) => {
+      for (let i = 0; i < n; i++) kinds.push(kind);
+    });
+    for (let i = kinds.length - 1; i > 0; i--) {
+      const j = draw(i + 1);
+      [kinds[i], kinds[j]] = [kinds[j]!, kinds[i]!];
+    }
+    const step = Math.floor(BT2_WAVE_WINDOW / kinds.length);
+    kinds.forEach((kind, i) => {
+      const lane = lastLane < 0 ? draw(lanes) : (lastLane + 1 + draw(lanes - 1)) % lanes;
+      lastLane = lane;
+      const spawn = BT2_WAVE_START[wave]! + i * step + draw(Math.max(1, step - 30));
+      const c = 1 + draw(2);
+      out.push({ wave, kind, lane: lane0 + lane, spawn, chg: c, chgZ: 400 + draw(500), wphase: draw(BT2_WEAK_CYCLE), open: set.weakOpen });
+    });
+  });
+  if (planV5Cache.size > 64) planV5Cache.clear();
+  planV5Cache.set(key, out);
+  return out;
+}
+const planV5Cache = new Map<string, readonly Bt2PlanTank[]>();
+
+/** The tanks in a revision's and level's run (30 on rev 2, 3 and 4). */
+export function bastionTankCount(rev: number, level?: unknown): number {
+  const set = rev >= BASTION_REV_LADDER ? bastionLadderSettings(level) : null;
+  return set?.waves ? set.waves.reduce((a, w) => a + w[0] + w[1] + w[2], 0) : BT2_TANKS;
+}
 
 /** The green zone's start (per mille) for reload number `n` of a run. */
 export function bastionZoneStart(seed: number, n: number): number {
@@ -380,11 +591,13 @@ export function bastionDronePos(d: Bt3Drone, tick: number): { x: number; y: numb
 export function bastionDronesFor(seed: number, rev: number, level?: unknown): readonly Bt3Drone[] {
   const ds = bastionDrones(seed);
   if (rev < BASTION_REV_LEVELS) return ds;
-  const lvl = bastionLevelOf(level);
-  const key = `${seed | 0}:${lvl}`;
+  // bastionRev 5: the same three paths at the level's speed and size (BT5_LEVELS; Normal's as bastionRev 4's Normal).
+  const ladder = rev >= BASTION_REV_LADDER;
+  const lvl = ladder ? bastionLadderLevelOf(level) : bastionLevelOf(level);
+  const key = `${seed | 0}:${ladder ? "5" : "4"}:${lvl}`;
   const hit = levelDroneCache.get(key);
   if (hit) return hit;
-  const { droneSpeed: speed, dronePct: size } = BT4_LEVELS[lvl];
+  const { droneSpeed: speed, dronePct: size } = ladder ? BT5_LEVELS[lvl] : BT4_LEVELS[lvl as BastionLevel];
   const out = ds.map((d) => ({ ...d, speed, size }));
   if (levelDroneCache.size > 32) levelDroneCache.clear();
   levelDroneCache.set(key, out);
@@ -449,7 +662,8 @@ const sc = (v: number, s256: number) => Math.floor((v * s256) / 256);
 export function bastionTankRects(kind: number, lane: number, zfp: number, weakPct = 100): Bt2Rects {
   const s = bastionScale256(zfp);
   const ground = BT2_HORIZON_Y + Math.floor(((BT2_WALL_Y - BT2_HORIZON_Y) * s) / 256);
-  const cx = BT2_VP_X + sc(BT2_LANE_X[lane] ?? 0, s);
+  // Lane ids 0–2 the three-lane road, 3–6 bastionRev 5's four-lane road (BT_LANE_X_ALL).
+  const cx = BT2_VP_X + sc(BT_LANE_X_ALL[lane] ?? 0, s);
   const hw = Math.max(4, sc(BT2_HULL_W[kind]!, s));
   const hh = Math.max(2, sc(BT2_HULL_H[kind]!, s));
   const tw = Math.max(2, sc(BT2_TUR_W[kind]!, s));
@@ -513,8 +727,8 @@ export interface BastionTankState {
   tick: number;
   seed: number;
   rev: number;
-  /** bastionRev 4 only: the level (absent on rev 2 and 3). */
-  lvl?: BastionLevel;
+  /** bastionRev 4 and 5: the level (absent on rev 2 and 3; Expert only on rev 5). */
+  lvl?: BastionLadderLevel;
   /** Inputs that reached the sim (any input counts: anyone who plays scores at least 1). */
   acted: number;
   aimX: number;
@@ -557,8 +771,8 @@ export interface BastionTankState {
 }
 
 export function bastionTankInit(seed: number, rev: number = BASTION_REV_TANK, level?: unknown): BastionTankState {
-  const r = rev >= BASTION_REV_LEVELS ? BASTION_REV_LEVELS : rev >= BASTION_REV_IRON ? BASTION_REV_IRON : BASTION_REV_TANK;
-  const lvl = r >= BASTION_REV_LEVELS ? bastionLevelOf(level) : undefined;
+  const r = rev >= BASTION_REV_LADDER ? BASTION_REV_LADDER : rev >= BASTION_REV_LEVELS ? BASTION_REV_LEVELS : rev >= BASTION_REV_IRON ? BASTION_REV_IRON : BASTION_REV_TANK;
+  const lvl: BastionLadderLevel | undefined = r >= BASTION_REV_LADDER ? bastionLadderLevelOf(level) : r >= BASTION_REV_LEVELS ? bastionLevelOf(level) : undefined;
   bastionPlanFor(seed, r, lvl);
   if (r >= BASTION_REV_IRON) bastionDronesFor(seed, r, lvl);
   return {
@@ -715,9 +929,10 @@ export function bastionTankStep(prev: BastionTankState, input: ArcadeInputEvent 
     s.nextSpawn += 1;
   }
 
-  // Movement, nearest the wall first, so each tank behind sees where the one ahead now is.
+  // Movement, nearest the wall first, so each tank behind sees where the one ahead now is (one slot a lane id: 0–2 the
+  // three-lane road, 3–6 bastionRev 5's four lanes).
   s.tanks.sort((a, b) => a.z - b.z || a.i - b.i);
-  const ahead = [-1, -1, -1];
+  const ahead = [-1, -1, -1, -1, -1, -1, -1];
   const kept: Bt2Tank[] = [];
   for (const t of s.tanks) {
     if (t.flash > 0) t.flash -= 1;
@@ -844,8 +1059,49 @@ export const BASTION_STD_SPEC_V4: Readonly<Record<BastionLevel, StdSpec>> = {
 /** bastionRev 4's core lines (the hit points of each level's run). */
 export const BASTION_V4_BAND_CURVE = bandCurve([0, bastionTotalHp(BASTION_REV_LEVELS, "normal")], [0, BT3_CORE_MAX]);
 
+/**
+ * bastionRev 5's parts (exactly 200 at every level): bastionRev 4's five parts and maximums, each on a straight line to
+ * the level's own full line (BT5_LEVELS: Armour at `hpFull` hit points or all of them, Weak spots at `weakFull` hits,
+ * Fast reloads at `fastFull`, Drones at `droneFull`; Base intact out of the level's base, `baseFree` hits allowed).
+ */
+function specV5(level: BastionLadderLevel): StdSpec {
+  const set = BT5_LEVELS[level];
+  const hp = set.hpFull ?? bastionTotalHp(BASTION_REV_LADDER, level);
+  const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+  return {
+    field: "bastionRev",
+    rev: BASTION_REV_LADDER,
+    parts: [
+      { key: "core", label: "Armour", max: BT3_CORE_MAX, of: hp, how: set.hpFull === null ? "knock out tank armour, every hit point worth the same" : `knock out tank armour, every hit point worth the same, all of it at ${hp} hit points` },
+      { key: "weak", label: "Weak spots", max: BT3_WEAK_MAX, of: set.weakFull, item: "weak-spot hit", how: `every hit on a glowing weak spot counts the same, all of it at ${plural(set.weakFull, "hit", "hits")}` },
+      { key: "fast", label: "Fast reloads", max: BT3_FAST_MAX, of: set.fastFull, item: "fast reload", how: set.fastFull === BT3_FAST_MAX / BT3_FAST_EACH ? `${BT3_FAST_EACH} for each fast reload` : `every fast reload counts the same, all of it at ${plural(set.fastFull, "fast reload", "fast reloads")}` },
+      { key: "drone", label: "Drones", max: BT3_DRONE_MAX, of: set.droneFull, item: "drone", how: set.droneFull === BT3_DRONES ? `${BT3_DRONE_EACH} for each of the ${BT3_DRONES} drones shot down` : `every drone shot down counts the same, all of it at ${plural(set.droneFull, "drone", "drones")} of ${BT3_DRONES}` },
+      { key: "base", label: "Base intact", max: BT3_BASE_MAX, of: set.base, item: "base hit point", how: set.baseFree === 0 ? "all of it with the base unhurt, half with one hit" : `all of it with at most ${plural(set.baseFree, "hit", "hits")} on the base, half with one more` },
+    ],
+  };
+}
+
+/** bastionRev 5's spec at each level (Normal's is the dealt one, LIVE_BANDS). */
+export const BASTION_STD_SPEC_V5: Readonly<Record<BastionLadderLevel, StdSpec>> = {
+  easy: specV5("easy"),
+  normal: specV5("normal"),
+  hard: specV5("hard"),
+  expert: specV5("expert"),
+};
+
+/** bastionRev 5's core line at Normal (bastionRev 4's: Normal's 57 hit points). */
+export const BASTION_V5_BAND_CURVE = bandCurve([0, BT5_LEVELS.normal.hpFull ?? bastionTotalHp(BASTION_REV_LADDER, "normal")], [0, BT3_CORE_MAX]);
+
+/** bastionRev 5's Base intact: 10 with at most `free` hits taken, 5 with one more, 0 once it fell. */
+export function bastionBasePointsV5(base: number, ended: number, full: number, free: number): number {
+  if (ended === 2) return 0;
+  const hits = full - base;
+  return hits <= free ? BT3_BASE_MAX : hits === free + 1 ? 5 : 0;
+}
+
 /** The spec a revision (and, on rev 4, a level) scores on. */
 export function bastionStdSpecFor(rev?: number | null, level?: unknown): StdSpec {
+  if ((rev ?? 0) >= BASTION_REV_LADDER) return BASTION_STD_SPEC_V5[bastionLadderLevelOf(level)];
   if ((rev ?? 0) >= BASTION_REV_LEVELS) return BASTION_STD_SPEC_V4[bastionLevelOf(level)];
   return (rev ?? 0) >= BASTION_REV_IRON ? BASTION_STD_SPEC_V3 : BASTION_STD_SPEC;
 }
@@ -858,6 +1114,22 @@ export function bastionBasePoints(base: number, ended: number, full: number = BT
 /** bastionRev 2's scored parts (null for a state of any other revision). */
 export function bastionStdParts(state: BastionTankState): StdPart[] | null {
   if (!state) return null;
+  if (state.rev === BASTION_REV_LADDER) {
+    const lv = bastionLadderLevelOf(state.lvl);
+    const set = BT5_LEVELS[lv];
+    const v5 = BASTION_STD_SPEC_V5[lv];
+    const hp = bastionTotalHp(state.rev, lv);
+    const hpFull = set.hpFull ?? hp;
+    const tanks = bastionTankCount(state.rev, lv);
+    const drones = state.drones ?? 0;
+    return [
+      stdPart(v5, "core", stdLine(BT3_CORE_MAX, state.destroyedHp, hpFull), `${state.destroyedHp} of ${hp} hit points · ${state.kills} of ${tanks} tanks`),
+      stdPart(v5, "weak", stdLine(BT3_WEAK_MAX, state.weak, set.weakFull), `${state.weak} weak-spot hit${state.weak === 1 ? "" : "s"}`),
+      stdPart(v5, "fast", stdLine(BT3_FAST_MAX, state.fast, set.fastFull), `${state.fast} fast reload${state.fast === 1 ? "" : "s"}${state.jams ? ` · ${state.jams} jam${state.jams === 1 ? "" : "s"}` : ""}`),
+      stdPart(v5, "drone", stdLine(BT3_DRONE_MAX, drones, set.droneFull), `${drones} of ${BT3_DRONES} drones`),
+      stdPart(v5, "base", bastionBasePointsV5(state.base, state.ended, set.base, set.baseFree), `base ${state.base} of ${set.base}`),
+    ];
+  }
   if (state.rev === BASTION_REV_LEVELS) {
     const v4 = BASTION_STD_SPEC_V4[bastionLevelOf(state.lvl)];
     const hp = bastionTotalHp(state.rev, state.lvl);
@@ -903,7 +1175,7 @@ export function bastionBandParts(state: BastionTankState): BandParts {
   const get = (k: string) => parts.find((p) => p.key === k)?.points ?? 0;
   const iron = state.rev >= BASTION_REV_IRON;
   return stdBandParts(
-    state.rev >= BASTION_REV_LEVELS ? BASTION_STD_SPEC_V4[bastionLevelOf(state.lvl)] : iron ? BASTION_STD_SPEC_V3 : BASTION_STD_SPEC,
+    bastionStdSpecFor(state.rev, state.lvl),
     { core: get("core"), features: iron ? { weak: get("weak"), fast: get("fast"), drone: get("drone"), base: get("base") } : { weak: get("weak"), fast: get("fast"), base: get("base") }, penalty: 0 },
     state.destroyedHp,
     `${state.kills} tanks · ${state.destroyedHp} HP`,
@@ -948,6 +1220,9 @@ export function bastionTankCheckpoint(state: BastionTankState): Bt2Checkpoint {
   if (state.rev === BASTION_REV_IRON) extra.push(state.drones, state.droneMask);
   // bastionRev 4 adds its drones and its level (0 easy, 1 normal, 2 hard).
   if (state.rev === BASTION_REV_LEVELS) extra.push(state.drones, state.droneMask, BASTION_LEVELS.indexOf(bastionLevelOf(state.lvl)));
+  // bastionRev 5 adds its drones, its level (0 easy … 3 expert) and its stamp (so a bastionRev 4 client's log never
+  // passes for a bastionRev 5 run).
+  if (state.rev === BASTION_REV_LADDER) extra.push(state.drones, state.droneMask, BASTION_LADDER_LEVELS.indexOf(bastionLadderLevelOf(state.lvl)), BASTION_REV_LADDER);
   for (const value of [...Object.values(snap), ...extra]) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -997,11 +1272,21 @@ export const bastionLevelGames: Readonly<Record<BastionLevel, ArcadeGame<Bastion
   hard: { ...bastionTankGame, init: (seed: number) => bastionTankInit(seed, BASTION_REV_LEVELS, "hard") },
 };
 
+/** bastionRev 5's game at each level (D5's ladder, 23 Nov 2026). */
+export const bastionLadderGames: Readonly<Record<BastionLadderLevel, ArcadeGame<BastionTankState, ArcadeInputEvent | null>>> = {
+  easy: { ...bastionTankGame, init: (seed: number) => bastionTankInit(seed, BASTION_REV_LADDER, "easy") },
+  normal: { ...bastionTankGame, init: (seed: number) => bastionTankInit(seed, BASTION_REV_LADDER, "normal") },
+  hard: { ...bastionTankGame, init: (seed: number) => bastionTankInit(seed, BASTION_REV_LADDER, "hard") },
+  expert: { ...bastionTankGame, init: (seed: number) => bastionTankInit(seed, BASTION_REV_LADDER, "expert") },
+};
+
 /**
- * The tank game for a stored stamp (2, 3 or 4; anything later plays rev 4) and, on rev 4, the puzzle's stored level
- * (absent or anything but easy / hard: Normal). Rev 2 and 3 ignore the level (Expert is a rev-3 deal).
+ * The tank game for a stored stamp (2, 3, 4 or 5; anything later plays rev 5) and, on rev 4 and 5, the puzzle's stored
+ * level (absent: Normal; rev 4 reads anything but easy / hard as Normal). Rev 2 and 3 ignore the level (rev 4's Expert is
+ * a rev-3 deal).
  */
 export function bastionTankGameFor(rev?: number | null, level?: unknown): ArcadeGame<BastionTankState, ArcadeInputEvent | null> {
+  if ((rev ?? 0) >= BASTION_REV_LADDER) return bastionLadderGames[bastionLadderLevelOf(level)];
   if ((rev ?? 0) >= BASTION_REV_LEVELS) return bastionLevelGames[bastionLevelOf(level)];
   return (rev ?? 0) >= BASTION_REV_IRON ? bastionIronGame : bastionTankGame;
 }

@@ -1,7 +1,8 @@
 import { checkOverride } from "@/lib/checkOverride";
 import { dealPinned, setDealPin } from "./dealEra";
 import { MOON_BIG_REV, MOON_MID_REV, MOON_REV } from "@/lib/arcade/ricochetNinja";
-import { BASTION_REV_DEALT, BASTION_REV_IRON } from "@/lib/arcade/bastionTank";
+import { bastionLadderLevelOf, BASTION_REV_DEALT, BASTION_REV_IRON, BASTION_REV_LEVELS } from "@/lib/arcade/bastionTank";
+import { bastionDealSeedV5 } from "./bastionDealV5.server";
 import type { Level } from "@/lib/levels/levels";
 import { gameLevelSettings } from "@/lib/levels/gameLevels";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
@@ -422,9 +423,23 @@ export function generateBastion(level?: Level): BastionPuzzleData {
   // bastionRev 4 (15 Nov 2026, the difficulty levels; docs/arcade-standard/bastion.md "bastionRev 4: levels"): Normal,
   // Easy and Hard deal rev 4 (the deal stamps `level`, the sim reads it); Expert deals bastionRev 3's game exactly, the
   // game every room dealt before the levels. Checks written for rev 3 pin `bastionPreLevels`: rev 3 at every level.
+  // bastionRev 5 (D5's ladder, 23 Nov 2026; docs/arcade-standard/bastion.md "bastionRev 5: the ladder"): every level,
+  // Expert included, deals rev 5 from its own proved list (bastionDealV5.server.ts: seeds the paced oracle, held to the
+  // human limits, takes to 200 at that level); the deal stamps `level` off Normal. Checks written for rev 4 pin
+  // `bastionPreLadder`: rev 4 at Easy, Normal and Hard and rev 3 at Expert, on any seed, as rooms dealt before.
+  if (dealPinned("bastionPreLevels")) return { type: "bastion", seed: arcadeSeed(), bastionRev: BASTION_REV_IRON };
+  if (dealPinned("bastionPreLadder")) return { type: "bastion", seed: arcadeSeed(), bastionRev: level === "expert" ? BASTION_REV_IRON : BASTION_REV_LEVELS };
   const asked = level ? gameLevelSettings<{ bastionRev: number }>("bastion", level)?.bastionRev : undefined;
-  const rev = dealPinned("bastionPreLevels") ? BASTION_REV_IRON : asked === BASTION_REV_IRON ? BASTION_REV_IRON : BASTION_REV_DEALT;
-  return { type: "bastion", seed: arcadeSeed(), bastionRev: rev };
+  const rev = asked ?? BASTION_REV_DEALT;
+  return { type: "bastion", seed: bastionDealSeedV5(arcadeSeed(), bastionLadderLevelOf(level)), bastionRev: rev };
+}
+
+/**
+ * Checks written for bastionRev 4: deal Iron Wall as rooms did before the ladder (bastionRev 4 at Easy, Normal and Hard,
+ * bastionRev 3 at Expert, on any seed; D5, 23 Nov 2026; returns the previous setting).
+ */
+export function pinBastionPreLadder(on: boolean): boolean {
+  return setDealPin("bastionPreLadder", on);
 }
 
 /**
