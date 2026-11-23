@@ -352,11 +352,13 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("kakuro", "Human calculator", "Fill the grid within 60 s.", "C", "speed", false, speed(40, 60)),
 
   /* ================================================================ Action */
-  // Iron Wall (bastion): armour 110 + weak spots 30 + fast reloads 20 + drones 30 + base intact 10.
+  // Iron Wall (bastion): armour 110 + weak spots 30 + fast reloads 20 + drones 30 + base intact 10. bastionRev 5 (D5's
+  // ladder, 23 Nov 2026) fills Normal's Weak spots at 28 hits, so "Weak at the knees" counts the 30 hits themselves (the
+  // stored `weak`), never the part's line: the goal is as hard as before.
   ch("bastion", "Drone strike", "Down all three drones.", "C", "fullset", false, part("Drones", 30), "bastion.drones"),
   ch("bastion", "Hold the wall", "Keep the base untouched.", "C", "clean", false, part("Base intact", 10), "bastion.base"),
   ch("bastion", "Quick hands", "Make ten fast reloads.", "C", "maxout", false, part("Fast reloads", 20)),
-  ch("bastion", "Weak at the knees", "Land 30 hits on glowing weak spots.", "C", "maxout", true, part("Weak spots", 30)),
+  ch("bastion", "Weak at the knees", "Land 30 hits on glowing weak spots.", "C", "maxout", true, all(f("weak", "gte", 30))),
   // Roofbound (flip): clean time 100 + perfect landings 60 + double flips 20 + flow streak 20.
   ch("flip", "Double or nothing", "Land eight double flips.", "C", "combo", false, all(full("Double flips", 20))),
   ch("flip", "Sweet spot", "Land five sweet spots.", "C", "fullset", false, all(full("Perfect landings", 60))),
