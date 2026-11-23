@@ -40,7 +40,7 @@ assert.doesNotMatch(route, /You['’]re not in this room|Head back home and join
 
 // Join card: name only, remembered, same server join, plain message once started.
 const card = readFileSync("src/components/duel/JoinFromLink.tsx", "utf8");
-assert.match(card, /setName\(getStoredName\(\)\)/);
+assert.match(card, /setName\(nameOrGenerated\(getStoredName\(\)\)\)/); // Changed with Joe's approval, 23 Nov 2026
 assert.match(
   card,
   /setStoredName\(trimmed\);\s*await joinRoomByCode\(roomCode, trimmed, "link"\);\s*await onJoined\(\);/,
