@@ -20,6 +20,7 @@ import { markOnboardingSeen, onboardingSeen } from "@/lib/onboarding";
 import { isShareRef } from "@/lib/share/shareRef";
 import { isPlayable } from "@/lib/duel/catalogue";
 import { recentPracticeTypes, warmUpTypes } from "@/lib/duel/practiceRecent";
+import { useLayoutMode } from "@/lib/layoutMode";
 import { useDailyRecord } from "@/lib/badges/badgesApi";
 import { dailyStreak, readDailyRecord } from "@/lib/duel/dailyRecord";
 import { ukDayKey } from "@/lib/duel/daily";
@@ -70,8 +71,9 @@ const useBeforePaint = typeof window === "undefined" ? useEffect : useLayoutEffe
 
 const slotState = (settled: boolean, show: boolean) => (!settled ? "pending" : show ? "show" : "hide");
 
-/** How many games Jump back in shows. */
+/** How many games Jump back in shows: 4 on phones and tablets, a row of 6 on a computer (P4, Joe 22 Nov 2026). */
 const RECENT_MAX = 4;
+const RECENT_MAX_DESKTOP = 6;
 
 /**
  * Home (phase 2 step 3, 14 Nov 2026; P1, 21 Nov 2026: Joe's mix of H1 and H2, plan sections 2.1 and 3.3, mockups
@@ -106,10 +108,11 @@ function Home() {
   const [guestName, setGuestName] = useState("");
   const { hero, status } = useHero();
   const room = useRoomStart();
+  const layoutMode = useLayoutMode();
 
   useBeforePaint(() => {
     const played = recentPracticeTypes();
-    setRecent(played.filter((t): t is PuzzleType => isPlayable(t)).slice(0, RECENT_MAX));
+    setRecent(played.filter((t): t is PuzzleType => isPlayable(t)).slice(0, RECENT_MAX_DESKTOP));
     setStreak(dailyStreak(readDailyRecord().days, ukDayKey(Date.now())));
     setGames(scheduledGames());
     setGuestName(getStoredName());
@@ -208,7 +211,7 @@ function Home() {
 
         <PlayFriends onCreate={createRoom} onJoin={() => openFromHome(router, "/rooms")} busy={room.busy === "create"} error={room.error} />
 
-        <RecentlyPlayed types={recent} />
+        <RecentlyPlayed types={recent.slice(0, layoutMode === "desktop" ? RECENT_MAX_DESKTOP : RECENT_MAX)} />
 
         <PlaySlot id="homescreen" state={homeHint}>
           <HomeScreenHint onDismiss={() => setHomeHint("hide")} />
