@@ -10,6 +10,7 @@ import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL, FLIP_REV_GRACE, isFlip
 import { flipLevelDealSeed } from "./flipLevelDeals.server";
 import { flipDealSeed } from "./flipDeal.server";
 import { wavDealSeed } from "./wavefrontDeal.server";
+import { wavDealSeedV16 } from "./wavefrontDealV16.server";
 import { flipDealSeedV13 } from "./flipDealV13.server";
 import { CROSS_REV_KEEP, CROSS_REV_LIGHT } from "@/lib/arcade/cross";
 import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_HILLS, INK_REV_STD, isInkDiff } from "@/lib/arcade/inkBridge";
@@ -35,7 +36,7 @@ import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_ST
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_SAVE } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
-import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_KEEP, WAV_REV_BIG } from "@/lib/arcade/wavefront";
+import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_KEEP, WAV_REV_BIG, WAV_REV_WIDE } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD, RALLY_REV_LIVES } from "@/lib/arcade/rally";
 import { BEAT_REV_TARGET, BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
@@ -397,8 +398,16 @@ export function generateWavefront(): WavefrontPuzzleData {
   // wavRev 14 (the Retro overhaul, 15 Nov 2026): the charged shot (preRetro: wavRev 13).
   // wavRev 15 (stage 3, 16 Nov 2026): larger hit cells, dealt only on the seeds proved to reach 200 at every level
   // (wavefrontDeal.server.ts).
+  // wavRev 16 (D5, 22 Nov 2026): the wider formation, dealt only on the seeds whose human-limited flawless witness
+  // reaches 200 at every level (wavefrontDealV16.server.ts); wavPreWide: wavRev 15 from its own deal, as before.
   if (dealPinned("preRetro")) return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_KEEP };
-  return { type: "wavefront", seed: wavDealSeed(arcadeSeed()), wavRev: WAV_REV_BIG };
+  if (dealPinned("wavPreWide")) return { type: "wavefront", seed: wavDealSeed(arcadeSeed()), wavRev: WAV_REV_BIG };
+  return { type: "wavefront", seed: wavDealSeedV16(arcadeSeed()), wavRev: WAV_REV_WIDE };
+}
+
+/** Checks written for wavRev 15: deal Wavefront as rooms did before the wider formation (wavRev 15 from WAV_DEAL). */
+export function pinWavPreWide(on: boolean): boolean {
+  return setDealPin("wavPreWide", on);
 }
 
 export function generateBastion(level?: Level): BastionPuzzleData {

@@ -11,7 +11,7 @@
 import { bandCurve, bandHelp, type BandCurve, type BandHelpWords } from "./scoreBands";
 import { roundMaxFor } from "../duel/roundMax";
 import { BT_REV_STD, BT_REV_STRICT, BT_V8_BAND_CURVE } from "./ballTrack";
-import { WAV_REV_BIG, WAV_REV_STRICT, WAV_V12_BAND_CURVE } from "./wavefront";
+import { WAV_REV_STRICT, WAV_REV_WIDE, WAV_V12_BAND_CURVE } from "./wavefront";
 import { FLIP_REV_GRACE, FLIP_REV_STRICT, FLIP_V13_BAND_CURVE } from "./flip";
 import { INK_REV_HILLS, INK_REV_STRICT, INK_V13_BAND_CURVE } from "./inkBridge";
 import { MATCHUP_REV_ICE2, MATCHUP_REV_STRICT, MATCHUP_V13_BAND_CURVE } from "./matchup";
@@ -89,7 +89,8 @@ function stdCoreCurve(spec: StdSpec): BandCurve {
 export const LIVE_BANDS = {
   balltrack: { field: "btRev", rev: BT_REV_STD, curve: BT_V8_BAND_CURVE, strictRev: BT_REV_STRICT },
   // wavRev 14 (the Retro overhaul, 15 Nov 2026): wavRev 13 plus the charged shot; the same parts.
-  wavefront: { field: "wavRev", rev: WAV_REV_BIG, curve: WAV_V12_BAND_CURVE, strictRev: WAV_REV_STRICT },
+  // wavRev 15 (stage 3, 16 Nov 2026): larger hit cells. wavRev 16 (D5, 22 Nov 2026): the wider formation; the same parts.
+  wavefront: { field: "wavRev", rev: WAV_REV_WIDE, curve: WAV_V12_BAND_CURVE, strictRev: WAV_REV_STRICT },
   // flipRev 11 (3 Nov 2026): the core's straight line (clean half seconds → 100; a saved crash costs 20 s); perfect landings,
   // double flips and the flow streak up to 100 more. flipRev 10: half seconds survived → 150 (FLIP_V10_BAND_CURVE).
   // flipRev 12 (3 Nov 2026): flipRev 11's game and core line, dealt from the proved courses.

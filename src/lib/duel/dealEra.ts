@@ -121,6 +121,8 @@ export const DEAL_PINS = {
   sportsPreOverhaul: { texts: false },
   /** sports.server.ts: Apex racingRev 3 (one circuit), before the Sports overhaul's three circuits (15 Nov 2026). */
   racingPreCircuits: { texts: false },
+  /** arcade.server.ts: Wavefront wavRev 15 from its own deal, before the wider formation (D5, 22 Nov 2026). */
+  wavPreWide: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

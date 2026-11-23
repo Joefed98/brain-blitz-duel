@@ -9,7 +9,7 @@ import {
   WAV_BG,
   WAV_CHECKPOINT_INTERVAL,
   WAV_REV_CHARGE,
-  WAV_REV_BIG,
+  WAV_REV_WIDE,
   WAV_V14_HOLD,
   WAV_V14_LIFT,
   wavDragZoneTop,
@@ -32,9 +32,9 @@ import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./ty
 function IntroExample() {
   return (
     <ArtStill
-      game={wavefrontArtGameFor(WAV_REV_BIG)}
+      game={wavefrontArtGameFor(WAV_REV_WIDE)}
       worldW={WAV_WORLD_W}
-      worldH={wavefrontWorldHFor(WAV_REV_BIG)}
+      worldH={wavefrontWorldHFor(WAV_REV_WIDE)}
       ticks={150}
       input={null}
       caption="Your ship fires on its own. Hold a second and lift for a heavy blast that cracks armour."
@@ -123,7 +123,7 @@ export const wavefrontPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: WAVEFRONT_TIME_MS,
   revealMs: 6_000,
-  generate: () => ({ type: "wavefront", seed: 1, wavRev: WAV_REV_BIG }) satisfies WavefrontPuzzleData,
+  generate: () => ({ type: "wavefront", seed: 1, wavRev: WAV_REV_WIDE }) satisfies WavefrontPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

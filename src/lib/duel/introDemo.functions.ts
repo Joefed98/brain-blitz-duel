@@ -20,7 +20,7 @@ import { MOON_BIG_REV } from "@/lib/arcade/ricochetNinja";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_SHIELD } from "@/lib/arcade/hover";
 import { RALLY_REV_LIVES, RALLY_REV_STD } from "@/lib/arcade/rally";
-import { WAV_REV_BIG } from "@/lib/arcade/wavefront";
+import { WAV_REV_WIDE } from "@/lib/arcade/wavefront";
 import { BURST_REV_BIG } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import { BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
@@ -61,8 +61,9 @@ import type { PuzzleDemoLog } from "./puzzleDemo";
  */
 export const SAME_PLAY_DEMO_REVS = {
   // wavRev 14 (the Retro overhaul) plays wavRev 13 exactly until a charged shot is fired; a demo on either plays.
-  // wavRev 15 (stage 3) has larger hit cells, so only a demo recorded on wavRev 15 plays.
-  wavefront: [WAV_REV_BIG],
+  // wavRev 15 (stage 3) has larger hit cells, so only a demo recorded on wavRev 15 played. wavRev 16 (D5, 22 Nov 2026) spreads
+  // the formation wider, so only a demo recorded on wavRev 16 plays.
+  wavefront: [WAV_REV_WIDE],
   // burstRev 13 (the Retro overhaul, 15 Nov 2026) has bigger atoms, so only a demo recorded on burstRev 13 plays (burstRev
   // 12 played burstRev 11 exactly; its demos and 11's are stopped now).
   burst: [BURST_REV_BIG],
