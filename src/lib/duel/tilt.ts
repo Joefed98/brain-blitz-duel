@@ -27,7 +27,7 @@ import {
   TILT_CHECKPOINT_INTERVAL,
   TILT_CHECKPOINT_KEYS,
   tiltExtra,
-  tiltLevelGame,
+  tiltLevelGame, tiltLevelGameV13,
   isTiltLevel,
   type TiltLevel,
   type TiltCheckpoint,
@@ -133,6 +133,16 @@ const runBand = makeArcadeRun<TiltState, TiltCheckpoint>({
 
 /** Levels (stage 3): one run per level on tiltRev 12 (the same encoding). */
 const levelRuns = new Map<TiltLevel, typeof runBig>();
+const levelRunsV13 = new Map<TiltLevel, typeof runBig>();
+/** D6's levels on tiltRev 13 (TILT_LEVELS_V13). */
+function levelRunV13(level: TiltLevel): typeof runBig {
+  let r = levelRunsV13.get(level);
+  if (!r) {
+    r = makeArcadeRun<TiltState, TiltCheckpoint>({ tag: "tilt", game: tiltLevelGameV13(level), checkpoint: tiltCheckpoint, keys: TILT_CHECKPOINT_KEYS, interval: TILT_CHECKPOINT_INTERVAL });
+    levelRunsV13.set(level, r);
+  }
+  return r;
+}
 function levelRun(level: TiltLevel): typeof runBig {
   let r = levelRuns.get(level);
   if (!r) {
@@ -153,6 +163,11 @@ export function replayTiltRun(seed: number, raw: string, rev?: number | null, le
   // on any other stamp, or none, replays exactly as before.
   if (rev === TILT_REV_BIG && isTiltLevel(level)) {
     const r = levelRun(level).replay(seed, raw);
+    return { ...r, ...tiltExtra(r.state) };
+  }
+  // D6 (23 Nov 2026): a tiltRev 13 round dealt at a level replays on TILT_LEVELS_V13's game.
+  if (rev === TILT_REV_THREE && isTiltLevel(level)) {
+    const r = levelRunV13(level).replay(seed, raw);
     return { ...r, ...tiltExtra(r.state) };
   }
   const result = (rev === TILT_REV_THREE ? runThree : rev === TILT_REV_BIG ? runBig : rev === TILT_REV_PAR ? runPar : rev === TILT_REV_STD ? runStd : rev === TILT_REV_LIFT ? runLift : rev === TILT_REV_EXPAND ? runExpand : rev === TILT_REV_STRICT ? runStrict : rev === TILT_REV_TARGET ? runTarget : rev === TILT_REV_TUNEC ? runTunec : rev === TILT_REV_BAND ? runBand : rev === TILT_REV ? runRev2 : run).replay(seed, raw);

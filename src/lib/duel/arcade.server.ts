@@ -18,7 +18,7 @@ import { inkHillsDealSeed } from "./inkHillsDeal.server";
 import { inkLevelDealSeed } from "./inkLevelDeals.server";
 import { SNAKE_REV_TARGET, SNAKE_REV_12, SNAKE_REV_GRACE } from "@/lib/arcade/snake";
 import { BUB_REV_FAST, BUB_REV_STD } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_ICE2, MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_D6, MATCHUP_REV_ICE2, MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
 import { minesBoard, minesGeoFor, minesSolve, MINES_REV_EASY, MINES_REV_EXPERT, MINES_REV_LOGIC, MINES_REV_NORMAL, MINES_REV_STD, MINES_RUN_TICKS } from "@/lib/arcade/minesweeper";
 import { logicOverhaul1Dealt } from "./logicOverhaul1";
 import { mahjongBuildClears, MAHJONG_LEVEL_RULES_V3, MAHJONG_REV_DEALT, MAHJONG_REV_LEVELS } from "@/lib/arcade/mahjong";
@@ -28,6 +28,7 @@ import { TILT_REV_BIG, TILT_REV_THREE, isTiltLevel } from "@/lib/arcade/tilt";
 import { TILT_DEAL_V12 } from "./tiltDealV12.server";
 import { TILT_DEAL_V13 } from "./tiltDealV13.server";
 import { TILT_DEAL_LEVELS } from "./tiltDealLevels.server";
+import { TILT_DEAL_LEVELS_V13 } from "./tiltDealLevelsV13.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG } from "@/lib/arcade/swing";
@@ -247,7 +248,7 @@ export function generateBullseye(): BullseyePuzzleData {
   return { type: "bullseye", seed, winds: bullseyeWinds(seed), bullRev: BULLSEYE_REV_STD };
 }
 
-export function generateMatchup(): MatchupPuzzleData {
+export function generateMatchup(level?: Level): MatchupPuzzleData {
   // matchupRev 10 (27 Oct 2026, phone-test notes): matchupRev 9's taller board with goals, ice and treasure, over 90 s,
   // with swaps into and out of ice that make a line, and the ice laid once. matchupRev 11 (the arcade scoring standard,
   // docs/arcade-standard/matchup.md): four treasures that may swap with a gem that then makes a line, four goal
@@ -256,7 +257,11 @@ export function generateMatchup(): MatchupPuzzleData {
   // matchupRev 13 (the Strategy overhaul stage 3, 15 Nov 2026): two-hit ice at every level, and the levels (the deal
   // stamps `level`; the sim reads it at init). Checks written for matchupRev 12 pin it (pinMatchupPreIce2).
   if (dealPinned("matchupPreIce2")) return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_SIX };
-  return { type: "matchup", seed: arcadeSeed(), matchupRev: MATCHUP_REV_ICE2 };
+  // matchupRev 14 (D6, 23 Nov 2026): the colours lever and Normal's parts within the realistic elite's reach
+  // (MATCHUP_V14_LEVELS). Checks written for matchupRev 13 pin matchupPreD6; the levels before D6, d6PreLevels.
+  const isLevel = level === "easy" || level === "hard" || level === "expert";
+  const before = dealPinned("matchupPreD6") || (isLevel && dealPinned("d6PreLevels"));
+  return { type: "matchup", seed: arcadeSeed(), matchupRev: before ? MATCHUP_REV_ICE2 : MATCHUP_REV_D6 };
 }
 
 /** Checks written for Gemstone matchupRev 12: deal it as rooms did before two-hit ice (returns the previous setting). */
@@ -707,6 +712,13 @@ export function generateTilt(level?: Level): TiltPuzzleData {
   // Levels (stage 3, 15 Nov 2026): easy, hard and expert deal tiltRev 12 from their own proved deals
   // (tiltDealLevels.server.ts, scripts/tilt-deal.ts --level: seeds the oracle played to exactly 200 through the server's
   // replay at that level); the deal stamps the level itself. Normal (no level) deals below exactly as before.
+  // D6's levels (23 Nov 2026): on tiltRev 13 a level deals from its own list (TILT_LEVELS_V13, tiltDealLevelsV13.server.ts,
+  // scripts/tilt-level-deal-v13.ts). Checks written for the levels before pin d6PreLevels (or tiltPreThree).
+  if (level && isTiltLevel(level) && !dealPinned("d6PreLevels") && !dealPinned("tiltPreThree")) {
+    const list = TILT_DEAL_LEVELS_V13[level];
+    const at = arcadeSeed();
+    return { type: "tilt", seed: list[((at % list.length) + list.length) % list.length]!, tiltRev: TILT_REV_THREE };
+  }
   if (level && isTiltLevel(level)) {
     const list = TILT_DEAL_LEVELS[level];
     const at = arcadeSeed();

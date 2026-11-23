@@ -1529,6 +1529,8 @@ export const matchupRev3Game: ArcadeGame<MatchupState, ArcadeInputEvent | null> 
 
 /** The game for a stored round: its matchupRev picks the rules (absent = original). */
 export function matchupGameFor(rev?: number | null, level?: string | null): ArcadeGame<MatchupState, ArcadeInputEvent | null> {
+  // matchupRev 14 (D6): MATCHUP_V14_LEVELS at the stored puzzle's level.
+  if (rev === MATCHUP_REV_D6) return matchupD6GameFor(level);
   // matchupRev 13: the stored puzzle's level (levels.ts puzzleLevel; anything else is Normal).
   if (rev === MATCHUP_REV_ICE2) return matchupIce2GameFor(level);
   if (rev === MATCHUP_REV_SIX) return matchupSixGame;
@@ -1783,11 +1785,11 @@ export function matchupWorldH(state: { goals?: number }): number {
 }
 /** The world height (px) a stored round's matchupRev plays in. */
 export function matchupWorldHFor(rev?: number | null): number {
-  return rev === MATCHUP_REV_GOALS || rev === MATCHUP_REV_ICE || rev === MATCHUP_REV_STD || rev === MATCHUP_REV_SIX || rev === MATCHUP_REV_ICE2 ? MATCHUP_V9_WORLD_H : MATCHUP_WORLD_H;
+  return rev === MATCHUP_REV_GOALS || rev === MATCHUP_REV_ICE || rev === MATCHUP_REV_STD || rev === MATCHUP_REV_SIX || rev === MATCHUP_REV_ICE2 || rev === MATCHUP_REV_D6 ? MATCHUP_V9_WORLD_H : MATCHUP_WORLD_H;
 }
 /** The board rows a stored round's matchupRev plays on. */
 export function matchupRowsFor(rev?: number | null): number {
-  return rev === MATCHUP_REV_GOALS || rev === MATCHUP_REV_ICE || rev === MATCHUP_REV_STD || rev === MATCHUP_REV_SIX || rev === MATCHUP_REV_ICE2 ? MATCHUP_V9_ROWS : MATCHUP_ROWS;
+  return rev === MATCHUP_REV_GOALS || rev === MATCHUP_REV_ICE || rev === MATCHUP_REV_STD || rev === MATCHUP_REV_SIX || rev === MATCHUP_REV_ICE2 || rev === MATCHUP_REV_D6 ? MATCHUP_V9_ROWS : MATCHUP_ROWS;
 }
 
 /** matchupRev 9: the treasure gems in the bottom row (collected this step). */
@@ -2558,8 +2560,9 @@ export function matchupLevelName(level?: string | null): MatchupLevelName {
 }
 
 /** A matchupRev 13 state's level rules (Normal when it carries none). */
-export function matchupV13RulesOf(state: Pick<MatchupState, "lv">): MatchupV13Rules {
-  return MATCHUP_V13_LEVELS[MATCHUP_V13_LEVEL_ORDER[state.lv ?? 1] ?? "normal"];
+export function matchupV13RulesOf(state: Pick<MatchupState, "lv"> & { ice2?: number }): MatchupV13Rules {
+  // matchupRev 14 (D6): its own table, marked by ice2 = 2.
+  return (state.ice2 === MATCHUP_D6_MARK ? MATCHUP_V14_LEVELS : MATCHUP_V13_LEVELS)[MATCHUP_V13_LEVEL_ORDER[state.lv ?? 1] ?? "normal"];
 }
 
 /** matchupRev 13: each colour's goal, the level's ladder in a seeded order (matchupV12GoalNeed's stream and shuffle). */
@@ -2640,6 +2643,64 @@ export function matchupIce2GameFor(level?: string | null): ArcadeGame<MatchupSta
     const rules = MATCHUP_V13_LEVELS[name];
     game = { ...matchupSixGame, init: (seed) => initGoals(seed, true, true, true, rules) };
     ice2Games.set(name, game);
+  }
+  return game;
+}
+
+/* ================= matchupRev 14 (D6, 23 Nov 2026): colours on the board ================= */
+
+/**
+ * matchupRev 14 (D6; the polish plan's difficulty spec and Joe's Decision 1 A): matchupRev 13's game and two-hit ice at
+ * every level, on its own table (MATCHUP_V14_LEVELS, marked on the state by ice2 = MATCHUP_D6_MARK, so the checkpoint
+ * checksum tells it from matchupRev 13). The lever is the gem colours on the board, seen at once:
+ *
+ *   Easy    matchupRev 13's Easy: 5 colours, 5 ice cells, goals 12 to 36, the hint after 3 s.
+ *   Normal  matchupRev 13's deal (6 colours, 10 ice cells, the hint after 5 s); the parts full where the realistic elite
+ *           fills them (Decision 1 A: the treasure, big lines, ice and goals).
+ *   Hard    7 colours (the cyan heart joins the six), 18 ice cells, goals 30 to 90, no hint.
+ *   Expert  8 colours (a white pearl joins the heart), 18 ice cells, goals 30 to 90 over the eight, no hint. Every deal
+ *           opens with a swap (rollBoard keeps only boards with one; a board left with none is reshuffled as before).
+ *
+ * Each part is a straight line full at the level's own figure (`full`), as matchupRev 13, set from 48 room deals a level
+ * (scripts/d6-ladder.ts, the skill-band bots under HUMAN_LIMITS) where the realistic elite fills them: on Normal it
+ * clears a median 357 gems, brings down 1 treasure, meets 5 goals, breaks 9 ice cells and makes 3 big lines; with seven
+ * or eight colours it meets about one goal and brings down about one treasure, so those parts fill at one. Measured:
+ * the average player 164 / 118 / 105 / 83, the elite at 200 77 / 46 / 33 / 23 %. matchupRev 13 and every older stamp
+ * play and score as before.
+ */
+export const MATCHUP_REV_D6 = 14;
+/** matchupRev 14's mark on the state (ice2 is 1 on matchupRev 13). */
+export const MATCHUP_D6_MARK = 2;
+
+export const MATCHUP_V14_LEVELS: Readonly<Record<MatchupLevelName, MatchupV13Rules>> = {
+  easy: { ...MATCHUP_V13_LEVELS.easy },
+  normal: { ...MATCHUP_V13_LEVELS.normal, full: { gems: 320, treasure: 2, goals: 4, ice: 7, big: 2 } },
+  hard: { index: 2, colours: 7, ladder: [30, 40, 50, 60, 70, 80, 90], ice: 18, hintS: 0, full: { gems: 220, treasure: 1, goals: 1, ice: 12, big: 2 } },
+  expert: { index: 3, colours: 8, ladder: [30, 38, 46, 54, 62, 70, 80, 90], ice: 18, hintS: 0, full: { gems: 220, treasure: 1, goals: 1, ice: 10, big: 1 } },
+};
+
+/** matchupRev 14's core line at a level (Normal's for the help). */
+export function matchupV14BandCurve(level?: string | null): BandCurve {
+  return bandCurve([0, MATCHUP_V14_LEVELS[matchupLevelName(level)].full.gems], [0, MATCHUP_V12_CORE_MAX]);
+}
+export const MATCHUP_V14_BAND_CURVE = matchupV14BandCurve("normal");
+
+const d6Games = new Map<MatchupLevelName, ArcadeGame<MatchupState, ArcadeInputEvent | null>>();
+/** matchupRev 14's game at a level (anything else is Normal). */
+export function matchupD6GameFor(level?: string | null): ArcadeGame<MatchupState, ArcadeInputEvent | null> {
+  const name = matchupLevelName(level);
+  let game = d6Games.get(name);
+  if (!game) {
+    const rules = MATCHUP_V14_LEVELS[name];
+    game = {
+      ...matchupSixGame,
+      init: (seed) => {
+        const s = initGoals(seed, true, true, true, rules);
+        s.ice2 = MATCHUP_D6_MARK;
+        return s;
+      },
+    };
+    d6Games.set(name, game);
   }
   return game;
 }

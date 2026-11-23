@@ -318,6 +318,11 @@ export interface TiltState extends BandFields {
    */
   three?: number;
   /**
+   * D6's levels on tiltRev 13 (23 Nov 2026): 1 on a level state built from TILT_LEVELS_V13 (its own streams, marbles,
+   * holes, par and speed line); absent on every other state. In the checkpoint checksum after the level's code.
+   */
+  lv13?: number;
+  /**
    * Levels (stage 3, 15 Nov 2026; tiltRev 12 only): the level a non-Normal round was dealt at, whose mazes, pars and
    * speed line (TILT_LEVELS) it plays; absent on every Normal round. In the checkpoint checksum.
    */
@@ -620,6 +625,7 @@ export function tiltCheckpoint(state: TiltState): TiltCheckpoint {
   if (state.three) values.push(13);
   // A level's run (stage 3) adds its level last, so every Normal checksum is unchanged.
   if (state.lvl) values.push(TILT_LEVEL_CODE[state.lvl]);
+  if (state.lv13) values.push(1300);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1607,7 +1613,7 @@ function buildMazeX(level: number, draw: (n: number) => number, spec?: TiltMazeS
     for (let x = c; x >= 0 && !path.has(x); x = parent[x]!) hops += 1;
     return hops;
   };
-  const deep = ends.filter((c) => offRoute(c) >= 2);
+  const deep = ends.filter((c) => offRoute(c) >= (spec?.pitHops ?? 2));
   const pits: number[] = [];
   for (let k = 0; k < pitCount && deep.length; k++) pits.push(deep.splice(draw(deep.length), 1)[0]!);
   return { ...base, pits, exit: far, exitDir: farDir };
@@ -2801,6 +2807,8 @@ export interface TiltMazeShape {
   n: number;
   route: number;
   pits: number;
+  /** D6's levels: a hole's least hops off the route (2 before: never a pocket beside the route; 1 lets it in). */
+  pitHops?: number;
 }
 
 export interface TiltLevelSpec {
@@ -2917,9 +2925,9 @@ function initL(seed: number, level: TiltLevel): TiltState {
   return bandInit(enterMazeX({ ...base, rev: TILT_REV, list, stars: 0, cupped: 0, starTick: -1000, xp: 1, std: 1, parClean: 1, big: 1, lvl: level, parsMet: 0, mazeTicks: [], quickPts: 0, quickTaken: 0, keysTaken: 0, keyTick: -1000, quickTick: -1000, falls: 0, fallTick: -1000, pace: 0 }, 0));
 }
 
-/** A level's speed part: full by its spec's time (ticks). */
-export function tiltLevelSpeedFull(level: TiltLevel): number {
-  return TILT_LEVELS[level].speedFullS * TICKS_PER_SECOND;
+/** A level's speed part: full by its spec's time (ticks); `v13` D6's table (TILT_LEVELS_V13). */
+export function tiltLevelSpeedFull(level: TiltLevel, v13 = false): number {
+  return (v13 ? TILT_LEVELS_V13[level] : TILT_LEVELS[level]).speedFullS * TICKS_PER_SECOND;
 }
 
 /**
@@ -2928,7 +2936,7 @@ export function tiltLevelSpeedFull(level: TiltLevel): number {
  * par = 24 × mazes within par ÷ N, clean = 12 × clean mazes ÷ N (a straight line), speed as tiltRev 11's. Integer only.
  */
 export function tiltLevelParts(state: TiltState): { core: number; par: number; clean: number; speed: number; mazes: number; progress: number; parsMet: number; cleanMazes: number } {
-  return tiltPartsOver(state, tiltLevelSpeedFull(state.lvl!));
+  return tiltPartsOver(state, tiltLevelSpeedFull(state.lvl!, Boolean(state.lv13)));
 }
 
 /**
@@ -2969,6 +2977,8 @@ export function tiltLevelGame(level: TiltLevel): ArcadeGame<TiltState, ArcadeInp
  * expert) that level's. A level on any other stamp is ignored (levels exist only on tiltRev 12).
  */
 export function tiltGameForLevel(rev?: number | null, level?: unknown): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  // D6 (23 Nov 2026): a level on tiltRev 13 plays TILT_LEVELS_V13 (tiltLevelGameV13, below).
+  if (rev === TILT_REV_THREE && isTiltLevel(level)) return tiltLevelGameV13(level);
   return rev === TILT_REV_BIG && isTiltLevel(level) ? tiltLevelGame(level) : tiltGameFor(rev);
 }
 
@@ -2987,6 +2997,12 @@ export function tiltGameForLevel(rev?: number | null, level?: unknown): ArcadeGa
 export const TILT_REV_THREE = 13;
 export const TILT_T_MAZES = 3;
 export const TILT_T_SPEED_FULL_S = 55;
+/**
+ * tiltRev 13's Normal par (D6, 23 Nov 2026, tuned in place before the stamp shipped; Joe's Decision 1 A): tiltRev 11's
+ * walk times × 190 % (tiltRev 12's 150 %), so the realistic elite under HUMAN_LIMITS makes par on every maze about half
+ * the time (96 room deals: the elite at 200 31 % → 54 %).
+ */
+export const TILT_T_PAR_SCALE = 190;
 /** The core's straight line on tiltRev 13 (0 → 140 over the three mazes; the "?" help and LIVE_BANDS read it). */
 export const TILT_V13_BAND_CURVE = TILT_V11_BAND_CURVE;
 
@@ -2996,7 +3012,7 @@ const cacheT = new Map<number, Maze[]>();
 function mazesT(seed: number): Maze[] {
   let list = cacheT.get(seed | 0);
   if (!list) {
-    list = mazesB(seed).slice(0, TILT_T_MAZES);
+    list = mazesB(seed).slice(0, TILT_T_MAZES).map((m) => ({ ...m, par: tiltParT(m, TILT_T_PAR_SCALE) }));
     if (cacheT.size > 16) cacheT.clear();
     cacheT.set(seed | 0, list);
   }
@@ -3019,3 +3035,121 @@ export const tiltThreeGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
   ...tiltBigGame,
   init: initT,
 };
+
+/* ================= D6's levels on tiltRev 13 (23 Nov 2026): marbles steered at once ================= */
+
+/**
+ * D6's levels (the polish plan's difficulty spec; Joe's ladder test): the lever is how many marbles you steer at once,
+ * seen in the first second. A level deal carries tiltRev 13 and its level; the sim builds the level's mazes from the
+ * seed on D6's own streams (never today's level mazes, never Normal's) with tiltRev 8's carve and decoration, tiltRev
+ * 12's pieces and tiltRev 11's par rule at the level's scale, as the levels before; play, physics and falls are tiltRev
+ * 12's, the parts tiltRev 11's four over the level's maze count (tiltPartsOver).
+ *
+ *   Easy    one marble on every maze (no amber); 3 mazes of 11, 13, 13 cells; holes 0, 1, 1; no ice; par 240 %.
+ *   Hard    two marbles from the first second on mazes 1, 2 and 3 (maze 4 single); mazes of 13, 15, 15, 17 cells; 4 holes a
+ *           maze; 3 ice patches; par 200 %; speed full by 78 s.
+ *   Expert  two marbles on all four mazes, of 15, 17, 17, 19 cells; 5 holes a maze, a pocket one cell off the route
+ *           allowed; 5 ice patches; par 200 %; speed full by 88 s.
+ *
+ * The spec asked for 5 and 8 holes and four 19-cell mazes on Expert; measured on 96 deals (scripts/d6-ladder.ts, the
+ * skill-band bots under HUMAN_LIMITS) the realistic elite then finished every maze without a fall on a fifth of Hard's
+ * deals and under a tenth of Expert's, so nothing could reach the 20 % floor. The lever (marbles at once) is unchanged;
+ * the mazes and holes are eased until the elite reaches 200 on 36 % (Hard) and 24 % (Expert) of runs.
+ *
+ * Rooms deal each level from its own list, every seed proved at 200 by the oracle held to HUMAN_LIMITS
+ * (src/lib/duel/tiltDealLevelsV13.server.ts, scripts/tilt-level-deal-v13.ts). The registry (gameLevels.ts) mirrors this
+ * table; d6-strategy-levels-check proves the two the same.
+ */
+export interface TiltLevelSpecV13 {
+  sizes: readonly number[];
+  routes: readonly number[];
+  pits: readonly number[];
+  ice: readonly number[];
+  icePassages: number;
+  /** The mazes (1-based) on which the amber marble joins the blue one from the first second. */
+  twoMazes: readonly number[];
+  /** A hole's least hops off the route (2: never a pocket beside it; 1: allowed). */
+  pitHops: number;
+  parScale: number;
+  speedFullS: number;
+}
+
+export const TILT_LEVELS_V13: Readonly<Record<TiltLevel, TiltLevelSpecV13>> = {
+  easy: { sizes: [11, 13, 13], routes: [28, 34, 30], pits: [0, 1, 1], ice: [0, 0, 0], icePassages: 0, twoMazes: [], pitHops: 2, parScale: 240, speedFullS: 60 },
+  hard: { sizes: [13, 15, 15, 17], routes: [34, 54, 54, 54], pits: [4, 4, 4, 4], ice: [3, 3, 3, 3], icePassages: 2, twoMazes: [1, 2, 3], pitHops: 2, parScale: 200, speedFullS: 78 },
+  expert: { sizes: [15, 17, 17, 19], routes: [54, 54, 54, 58], pits: [5, 5, 5, 5], ice: [5, 5, 5, 5], icePassages: 2, twoMazes: [1, 2, 3, 4], pitHops: 1, parScale: 200, speedFullS: 88 },
+};
+
+/** D6's streams (never the levels before's, never Normal's). */
+const LEVEL_SALT_V13: Readonly<Record<TiltLevel, number>> = { easy: 0x0d6e_a501, hard: 0x0d6e_a503, expert: 0x0d6e_a504 };
+
+const cacheL13 = new Map<string, Maze[]>();
+
+/** A D6 level's mazes of a seed (cached; the same for every player). */
+function mazesL13(seed: number, level: TiltLevel): Maze[] {
+  const key = `${level}:${seed | 0}`;
+  let list = cacheL13.get(key);
+  if (!list) {
+    const spec = TILT_LEVELS_V13[level];
+    let rng = (seed ^ LEVEL_SALT_V13[level]) | 0;
+    const draw = (bound: number) => {
+      const r = rngBelow(rng, bound);
+      rng = r.state;
+      return r.value;
+    };
+    const built: Maze[] = spec.sizes.map((n, i) => buildMazeX(i, draw, { n, route: spec.routes[i]!, pits: spec.pits[i]!, pitHops: spec.pitHops }));
+    let rng2 = (seed ^ LEVEL_SALT_V13[level] ^ 0x7a11_5eed) | 0;
+    const draw2 = (bound: number) => {
+      const r = rngBelow(rng2, bound);
+      rng2 = r.state;
+      return r.value;
+    };
+    const two = new Set(spec.twoMazes.map((k) => k - 1));
+    list = built.map((m, i) => {
+      // decorateV4 adds the amber marble when its index + 1 reaches TILT_TWO_FROM.
+      const d = decorateX(decorateV4(m, two.has(i) ? TILT_TWO_FROM - 1 : 0, draw2), draw2, i, { patches: spec.ice[i]!, quick: spec.icePassages });
+      const bare: Maze = { ...d, stars: [], starXY: [], quick: [], quickAt: [], br: Math.trunc((d.cs * TILT_B_BALL) / 100), keyReach: Math.trunc((d.cs * TILT_B_KEY_REACH) / 100) };
+      return { ...bare, par: tiltParT(bare, spec.parScale) };
+    });
+    if (cacheL13.size > 32) cacheL13.clear();
+    cacheL13.set(key, list);
+  }
+  return list;
+}
+
+/** A D6 level's mazes of a seed (checks and tools). */
+export function tiltMazesL13(seed: number, level: TiltLevel): readonly Maze[] {
+  return mazesL13(seed, level);
+}
+
+/**
+ * The dealer's rule for a D6 level's seed: every maze fully dealt (its holes, its key, the amber marble on the level's
+ * mazes), every key and cup reachable. Rooms deal only seeds the oracle then proved
+ * to 200 under HUMAN_LIMITS (scripts/tilt-level-deal-v13.ts).
+ */
+export function tiltLevelDealableV13(seed: number, level: TiltLevel): boolean {
+  const spec = TILT_LEVELS_V13[level];
+  const list = mazesL13(seed, level);
+  const two = new Set(spec.twoMazes.map((k) => k - 1));
+  // No par-sum margin here (the levels before kept their pars inside the run): D6's pars are set where the realistic
+  // elite makes them (200 % on Hard and Expert), so four of them may add up to more than the clock; par only rewards.
+  return list.every((m, i) => m.pits.length === spec.pits[i] && (m.keys?.length ?? 0) === 1 && ((m.start2 ?? -1) >= 0) === two.has(i) && tiltCupReachableX(m, 0) && (!two.has(i) || tiltCupReachableX(m, 1)));
+}
+
+function initL13(seed: number, level: TiltLevel): TiltState {
+  const base = init(seed);
+  const list = mazesL13(seed, level);
+  return bandInit(enterMazeX({ ...base, rev: TILT_REV, list, stars: 0, cupped: 0, starTick: -1000, xp: 1, std: 1, parClean: 1, big: 1, lvl: level, lv13: 1, parsMet: 0, mazeTicks: [], quickPts: 0, quickTaken: 0, keysTaken: 0, keyTick: -1000, quickTick: -1000, falls: 0, fallTick: -1000, pace: 0 }, 0));
+}
+
+const levelGamesV13 = new Map<TiltLevel, ArcadeGame<TiltState, ArcadeInputEvent | null>>();
+
+/** A D6 level's game on tiltRev 13 (tiltBigGame's step and score; the level's mazes at init). */
+export function tiltLevelGameV13(level: TiltLevel): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  let g = levelGamesV13.get(level);
+  if (!g) {
+    g = { ...tiltBigGame, init: (seed: number) => initL13(seed, level) };
+    levelGamesV13.set(level, g);
+  }
+  return g;
+}

@@ -32,7 +32,7 @@ import { RACING_REV_DEALT } from "@/lib/arcade/racing";
 import { SLICE_REV_BIG, SLICE_REV_FOOD, SLICE_REV_STANDARD, SLICE_REV_TALL } from "@/lib/arcade/slice";
 import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BUB_REV_FAST } from "@/lib/arcade/bubble";
-import { MATCHUP_REV_ICE2 } from "@/lib/arcade/matchup";
+import { MATCHUP_REV_D6 } from "@/lib/arcade/matchup";
 import { TEN_DROP_RESET_REV } from "@/lib/arcade/tenDrop";
 import { SKYLINE_REV_COUNT, SKYLINE_REV_LIVES } from "@/lib/arcade/skyline";
 import { pinIsExpanded } from "@/lib/arcade/pinball";
@@ -389,7 +389,8 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   // only a demo recorded on matchupRev 10 plays; until one is, the intro shows its still. matchupRev 11 (the arcade scoring
   // standard: four treasures that swap, four goal levels) moves it on again, and matchupRev 12 (six goals shown at once,
   // six treasures) again, and matchupRev 13 (two-hit ice, levels) again: only a demo recorded on matchupRev 13 plays.
-  if (data.type === "matchup" && demo?.puzzle.type === "matchup" && demo.puzzle.matchupRev !== MATCHUP_REV_ICE2) return null;
+  // matchupRev 14 (D6, 23 Nov 2026): Normal's parts moved, so only a demo recorded on 14 plays.
+  if (data.type === "matchup" && demo?.puzzle.type === "matchup" && demo.puzzle.matchupRev !== MATCHUP_REV_D6) return null;
   // The 200-point expansion (26 Oct 2026, docs/expansions/x200-snip.md): Scrumper's snipRev 11 tall courses with several
   // fruits and a vertical camera. An older demo shows the old one-apple levels, so the intro shows its still until a demo
   // is recorded on snipRev 11.

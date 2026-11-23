@@ -14,7 +14,7 @@ import { BT_REV_STD, BT_REV_STRICT, BT_V8_BAND_CURVE } from "./ballTrack";
 import { WAV_REV_BIG, WAV_REV_STRICT, WAV_V12_BAND_CURVE } from "./wavefront";
 import { FLIP_REV_GRACE, FLIP_REV_STRICT, FLIP_V13_BAND_CURVE } from "./flip";
 import { INK_REV_HILLS, INK_REV_STRICT, INK_V13_BAND_CURVE } from "./inkBridge";
-import { MATCHUP_REV_ICE2, MATCHUP_REV_STRICT, MATCHUP_V13_BAND_CURVE } from "./matchup";
+import { MATCHUP_REV_D6, MATCHUP_REV_STRICT, MATCHUP_V14_BAND_CURVE } from "./matchup";
 import { BUB_REV_FAST, BUB_REV_STRICT, BUB_V12_BAND_CURVE, BUB_V12_STD_SPEC } from "./bubble";
 import { CROSS_REV_LIGHT, CROSS_REV_STRICT, CROSS_V11_BAND_CURVE } from "./cross";
 import { MINES_REV_NORMAL, MINES_STD_SPEC_V3, MINES_V1_BAND_CURVE } from "./minesweeper";
@@ -101,7 +101,8 @@ export const LIVE_BANDS = {
   // matchupRev 12 (the arcade scoring standard, six goals and six treasures): the core's straight line (gems cleared, to
   // 108); treasure, goals, ice and big lines pay fixed amounts on top, to 200 (the help says so). matchupRev 11 before it.
   // matchupRev 13 (two-hit ice and levels): Normal's core line, matchupRev 12's (the help states Normal's figures).
-  matchup: { field: "matchupRev", rev: MATCHUP_REV_ICE2, curve: MATCHUP_V13_BAND_CURVE, strictRev: MATCHUP_REV_STRICT },
+  // matchupRev 14 (D6, 23 Nov 2026): Normal's parts full within the realistic elite's reach; its core line.
+  matchup: { field: "matchupRev", rev: MATCHUP_REV_D6, curve: MATCHUP_V14_BAND_CURVE, strictRev: MATCHUP_REV_STRICT },
   // bubbleRev 11 (the arcade scoring standard): the core's straight line; the spec lists every part.
   bubble: { field: "bubbleRev", rev: BUB_REV_FAST, curve: BUB_V12_BAND_CURVE, strictRev: BUB_REV_STRICT, std: BUB_V12_STD_SPEC },
   // crossRev 11 (3 Nov 2026): no coins; the core 150 on a straight line, full at 76 units; the no-stop streak 40 and close

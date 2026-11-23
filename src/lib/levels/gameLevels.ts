@@ -618,22 +618,23 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       expert: { settings: { balls: 42, dropTicks: 66, moves: 12, golds: 7, boosts: 2 } },
     },
   },
-  // Gemstone, matchupRev 13 (the Strategy overhaul stage 3): a copy of the sim's MATCHUP_V13_LEVELS (arcade/matchup.ts,
-  // which the sim reads; gemstone-levels-check proves the two agree). Normal: 6 colours, 10 ice cells, the hint at 5 s.
+  // Gemstone (D6, 23 Nov 2026): matchupRev 14's levels, a copy of MATCHUP_V14_LEVELS (d6-strategy-levels-check proves the two the
+  // same). The lever is the colours on the board: 5 / 6 (Normal) / 7 (the cyan heart) / 8 (a white pearl too).
   matchup: {
     levels: {
       easy: { settings: { colours: 5, goals: [12, 18, 24, 30, 36], ice: 5, hintS: 3 } },
-      hard: { settings: { colours: 6, goals: [28, 38, 48, 58, 68, 78], ice: 14, hintS: 8 } },
-      expert: { settings: { colours: 7, goals: [30, 40, 50, 60, 70, 80, 90], ice: 18, hintS: 0 } },
+      hard: { settings: { colours: 7, goals: [30, 40, 50, 60, 70, 80, 90], ice: 18, hintS: 0 } },
+      expert: { settings: { colours: 8, goals: [30, 38, 46, 54, 62, 70, 80, 90], ice: 18, hintS: 0 } },
     },
   },
-  // Tilt (the Strategy overhaul, stage 3; docs/arcade-standard/tilt.md "Levels (stage 3)"): a mirror of TILT_LEVELS in
-  // src/lib/arcade/tilt.ts, which the sim reads (tilt-levels-check proves the two the same).
+  // Tilt (D6, 23 Nov 2026): tiltRev 13's levels, a mirror of TILT_LEVELS_V13 in src/lib/arcade/tilt.ts, which the sim
+  // reads (d6-strategy-levels-check proves the two the same). The lever is the marbles you steer at once: one / one
+  // (amber on maze 3, Normal) / two on mazes 1–3 / two on every maze.
   tilt: {
     levels: {
-      easy: { settings: { mazes: 3, sizes: [11, 13, 13], routes: [28, 34, 30], pits: [0, 1, 1], ice: [0, 0, 0], icePassages: 0, twoOf: [3], twoCount: [1, 1], parScale: 240, speedFullS: 60 } },
-      hard: { settings: { mazes: 4, sizes: [15, 15, 17, 19], routes: [54, 56, 52, 58], pits: [3, 4, 4, 4], ice: [3, 3, 4, 4], icePassages: 2, twoOf: [2, 3, 4], twoCount: [2, 2], parScale: 135, speedFullS: 58 } },
-      expert: { settings: { mazes: 4, sizes: [15, 17, 19, 19], routes: [56, 62, 58, 60], pits: [4, 4, 4, 4], ice: [5, 5, 5, 5], icePassages: 2, twoOf: [2, 3, 4], twoCount: [2, 3], parScale: 115, speedFullS: 70 } },
+      easy: { settings: { mazes: 3, sizes: [11, 13, 13], routes: [28, 34, 30], pits: [0, 1, 1], ice: [0, 0, 0], icePassages: 0, twoMazes: [], pitHops: 2, parScale: 240, speedFullS: 60 } },
+      hard: { settings: { mazes: 4, sizes: [13, 15, 15, 17], routes: [34, 54, 54, 54], pits: [4, 4, 4, 4], ice: [3, 3, 3, 3], icePassages: 2, twoMazes: [1, 2, 3], pitHops: 2, parScale: 200, speedFullS: 78 } },
+      expert: { settings: { mazes: 4, sizes: [15, 17, 17, 19], routes: [54, 54, 54, 58], pits: [5, 5, 5, 5], ice: [5, 5, 5, 5], icePassages: 2, twoMazes: [1, 2, 3, 4], pitHops: 1, parScale: 200, speedFullS: 88 } },
     },
   },
   // Rainbow Bridge (the Strategy overhaul's stage 3, 15 Nov 2026; docs/arcade-standard/inkbridge.md "Levels (stage 3)"):

@@ -7,7 +7,7 @@
  * on its first revision, on the arcade scoring standard.
  */
 import { HOMERUN_REV_DEALT } from "@/lib/arcade/homerun";
-import { FREEKICK_REV_DEALT } from "@/lib/arcade/freekick";
+import { FREEKICK_REV_DEALT, FREEKICK_REV_7 } from "@/lib/arcade/freekick";
 import { RACING_REV_3, RACING_REV_4, RACING_REV_DEALT, type RacingLevelSettings } from "@/lib/arcade/racing";
 import { checkOverride } from "@/lib/checkOverride";
 import { gameLevelSettings } from "@/lib/levels/gameLevels";
@@ -19,6 +19,7 @@ import { homerunDealSeedV4 } from "./homerunDealV4.server";
 import { freekickDealSeedV4 } from "./freekickDealV4.server";
 import { dealPinned } from "./dealEra";
 import { freekickDealSeedV6 } from "./freekickDealV6.server";
+import { freekickDealSeedV7 } from "./freekickDealV7.server";
 import { HOMERUN_REV_6, hrLevelOf } from "@/lib/arcade/homerunInnings";
 import { homerunDealSeedV6 } from "./homerunDealV6.server";
 import { fkLevelOf } from "@/lib/arcade/freekick";
@@ -60,6 +61,9 @@ export function generateHomerun(level?: string | null): HomerunPuzzleData {
 export function generateFreekick(level?: string | null): FreekickPuzzleData {
   if (dealPinned("sportsPreOverhaul")) return { type: "freekick", seed: freekickDealSeedV4(arcadeSeed()), freekickRev: 4 };
   const l = fkLevelOf(level);
+  // D6 (23 Nov 2026): a level deals freekickRev 7 (the wall's players the lever, FK_LEVEL_SETTINGS_V7) from its own proved
+  // deal (scripts/freekick-d6-deal.ts); Normal keeps freekickRev 6. Checks written for the levels before pin d6PreLevels.
+  if (l !== "normal" && !dealPinned("d6PreLevels")) return { type: "freekick", seed: freekickDealSeedV7(arcadeSeed(), l), freekickRev: FREEKICK_REV_7, level: l };
   return { type: "freekick", seed: freekickDealSeedV6(arcadeSeed(), l), freekickRev: FREEKICK_REV_DEALT, ...(l !== "normal" ? { level: l } : {}) };
 }
 
