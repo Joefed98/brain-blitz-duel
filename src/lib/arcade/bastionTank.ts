@@ -1075,7 +1075,7 @@ function specV5(level: BastionLadderLevel): StdSpec {
       { key: "core", label: "Armour", max: BT3_CORE_MAX, of: hp, how: set.hpFull === null ? "knock out tank armour, every hit point worth the same" : `knock out tank armour, every hit point worth the same, all of it at ${hp} hit points` },
       { key: "weak", label: "Weak spots", max: BT3_WEAK_MAX, of: set.weakFull, item: "weak-spot hit", how: `every hit on a glowing weak spot counts the same, all of it at ${plural(set.weakFull, "hit", "hits")}` },
       { key: "fast", label: "Fast reloads", max: BT3_FAST_MAX, of: set.fastFull, item: "fast reload", how: set.fastFull === BT3_FAST_MAX / BT3_FAST_EACH ? `${BT3_FAST_EACH} for each fast reload` : `every fast reload counts the same, all of it at ${plural(set.fastFull, "fast reload", "fast reloads")}` },
-      { key: "drone", label: "Drones", max: BT3_DRONE_MAX, of: set.droneFull, item: "drone", how: set.droneFull === BT3_DRONES ? `${BT3_DRONE_EACH} for each of the ${BT3_DRONES} drones shot down` : `every drone shot down counts the same, all of it at ${plural(set.droneFull, "drone", "drones")} of ${BT3_DRONES}` },
+      { key: "drone", label: "Drones", max: BT3_DRONE_MAX, of: set.droneFull, item: "drone", how: set.droneFull === BT3_DRONES ? `${BT3_DRONE_EACH} for each of the ${BT3_DRONES} drones shot down` : `shoot down ${plural(set.droneFull, "drone", "drones")} of the ${BT3_DRONES} for all of it` },
       { key: "base", label: "Base intact", max: BT3_BASE_MAX, of: set.base, item: "base hit point", how: set.baseFree === 0 ? "all of it with the base unhurt, half with one hit" : `all of it with at most ${plural(set.baseFree, "hit", "hits")} on the base, half with one more` },
     ],
   };
