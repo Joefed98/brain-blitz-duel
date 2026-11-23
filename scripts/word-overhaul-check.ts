@@ -96,8 +96,10 @@ const SEEDS = Array.from({ length: 24 }, (_, i) => 1000 + i * 37);
   }
   // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): the layers merged after it (Attention's
   // and Speed's, which never touch a Word game) follow it; it is still after every layer before it.
-  // Changed with Joe's approval, 22 Nov 2026 (D3): d3Speed and d3Maze, which never touch a Word game, follow it.
-  ok(DEAL_LAYERS.map((l) => l.name).slice(-5).join(" ") === "wordOverhaul attentionOverhaul speedOverhaul d3Speed d3Maze", "the overhaul is the last deal layer");
+  // Changed with Joe's approval, 22 Nov 2026 (routine consequence of D2's two stamps): Integer Pyramid's and Ballpark's layers,
+  // which never touch a Word game, follow it too.
+  // Changed with Joe's approval, 22 Nov 2026 (D3, re-applied after D2): d3Speed and d3Maze, which never touch a Word game, follow them.
+  ok(DEAL_LAYERS.map((l) => l.name).slice(-7).join(" ") === "wordOverhaul attentionOverhaul speedOverhaul pyramidPartial ballparkBullseyes d3Speed d3Maze", "the overhaul is the last deal layer");
   // Pinned, the deal is the stamp before exactly (the layer never touches it).
   for (const type of ["interlock", "tilegrid", "wordhunt", "strikeout", "swapword"]) {
     if (type === "interlock") continue;

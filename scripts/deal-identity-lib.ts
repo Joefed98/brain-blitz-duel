@@ -139,8 +139,9 @@ export function digest(value: unknown): string {
 // sportsPreOverhaul added 15 Nov 2026 (routine consequence of the Home Run and Top Bins overhaul: their live deal moved
 // to rev 5, so the recorded deals are compared on rev 4 exactly as before; homerun-innings-check and
 // freekick-layered-check prove the rev-5 deals).
-// Changed with Joe's approval, 22 Nov 2026 (D3): preD3Speed and preD3Maze, newer than the recording.
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "preNumberOverhaul", "preCheckoutLevels", "preKakuroLevels", "preMeasureLevels", "preBalanceLevels", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul", "preRetro", "orbitPreGrace", "flipPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "matchupPreIce2", "minigolfPreCourse", "sportsPreOverhaul", "racingPreCircuits", "preD3Speed", "preD3Maze"];
+// Changed with Joe's approval, 22 Nov 2026 (D2): prePyramidPartial and preBallparkBullseyes, newer than the recording.
+// Changed with Joe's approval, 22 Nov 2026 (D3, re-applied after D2): preD3Speed and preD3Maze, newer than the recording.
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "preNumberOverhaul", "preCheckoutLevels", "preKakuroLevels", "preMeasureLevels", "preBalanceLevels", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul", "preRetro", "orbitPreGrace", "flipPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "matchupPreIce2", "minigolfPreCourse", "sportsPreOverhaul", "racingPreCircuits", "prePyramidPartial", "preBallparkBullseyes", "preD3Speed", "preD3Maze"];
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {

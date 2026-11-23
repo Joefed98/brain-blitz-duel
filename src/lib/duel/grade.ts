@@ -187,6 +187,7 @@ import {
   tilesCounts,
   wordSlideMadeRows,
 } from "./progressFigures";
+import { splitTargetRounds, targetRoundsDone, targetRoundsOf, usesTargetRounds } from "./targetRounds";
 import { decodeSteps, formatStep, replayTargetSteps } from "./target";
 import { balancePlaceLimits, equationTryLimit, floodMoveLimit, gravityTiltLimit, measureMoveLimits, splitCountSuffix, tubesPourLimit, tubesRefundsUndo, tubesSendsUndo, GRAVITY_PROGRESS_REV, TUBES_PROGRESS_REV } from "./moveLimits";
 import { gravitySolverProgress, tubesSolverProgress } from "./solverProgress.server";
@@ -639,6 +640,24 @@ function gradeUnderRev(
       break;
     }
     case "target": {
+      // D2 (22 Nov 2026, targetRounds.ts): targets in a row, each replayed from its own steps on its own rack; the round
+      // is right when every target is hit. The standard (standard/number.server.ts) scores it.
+      if (usesTargetRounds(puzzle)) {
+        const rounds = targetRoundsOf(puzzle);
+        const parts = splitTargetRounds(answer, rounds.length);
+        const replays = rounds.map((r, i) => replayTargetSteps(r.tiles, r.target, decodeSteps(parts[i] ?? "")));
+        const done = targetRoundsDone(puzzle, answer);
+        isCorrect = done === rounds.length;
+        const current = replays[Math.min(done, rounds.length - 1)]!;
+        score = scoreTargetNumber(isCorrect ? 0 : (current.distance ?? Number.MAX_SAFE_INTEGER), ms, timeLimitMs);
+        extraDetail = {
+          value: current.value,
+          steps: current.steps.map(formatStep),
+          targetsDone: done,
+          targets: replays.map((r) => ({ value: r.value, steps: r.steps.map(formatStep) })),
+        };
+        break;
+      }
       // The client sends its steps; every one is replayed and re-checked here
       // and the final value is worked out from the tiles, never trusted.
       const replay = replayTargetSteps(puzzle.tiles, puzzle.target, decodeSteps(answer));
