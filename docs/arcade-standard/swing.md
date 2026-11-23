@@ -96,7 +96,7 @@ log byte for byte; `--check --full` rebuilds a level from candidate 0. Normal's 
 
 ### Checks
 
-swing-ladder-check (~2–3 min): swingRev 18 untouched (the two legacy fixtures), the stamp, the pin `swingPreLadder`
+swing-ladder-check (about 2.5 min of CPU, most of it re-playing 16 runs of the ladder live): swingRev 18 untouched (the two legacy fixtures), the stamp, the pin `swingPreLadder`
 (deals swingRev 18 at every level), the rules as dealt, the registry's rows, the deals and witnesses (a sample, all with
 `CHECKS_FULL=1`), a live proof re-play, Joe's ladder test on the 96-deal table and a live re-play of a sample of it,
 King of the swingers on Expert, and the lever picture (`src/lib/levels/pictures/retro-action/swing.tsx`).
