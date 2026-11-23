@@ -122,11 +122,11 @@ export const DEAL_PINS = {
   /** sports.server.ts: Apex racingRev 3 (one circuit), before the Sports overhaul's three circuits (15 Nov 2026). */
   racingPreCircuits: { texts: false },
   /** arcade.server.ts: Five Hands fiveHandsRev 3, before D6's Normal scoring stamp (200 at 128 hand points, 22 Nov 2026). */
-  fivehandsPre128: { texts: false },
+  fivehandsPre128: { texts: true },
   /** sports.server.ts: Cue Ball poolRev 4, before D6's Normal scoring stamp (Speed from the fifth pot, 22 Nov 2026). */
   poolPreFifth: { texts: false },
   /** arcade.server.ts: Tilt tiltRev 12 (four mazes), before D6's Normal scoring stamp (three mazes, 22 Nov 2026). */
-  tiltPreThree: { texts: false },
+  tiltPreThree: { texts: true },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

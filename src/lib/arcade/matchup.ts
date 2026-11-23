@@ -124,14 +124,20 @@ export function matchupIsJackpot(kind: number): boolean {
  * earlier board), colour index 6 in the goals and counts. Every other colour's kind is its colour index.
  */
 export const MATCHUP_KIND7 = 9;
-/** A plain gem's colour index (0–5, the seventh colour 6), or -1 for anything else. */
+/**
+ * The eighth gem colour (D6, 22 Nov 2026, Joe's decision of 20 Nov: Gemstone's ladder is 5, 6, 7 and 8 colours): kind
+ * 18, colour index 7. Kinds 10–16 are matchupRev 2's Jackpots (colour + 10; MATCHUP_KIND7's would be 16) and 20 the
+ * treasure, so 18 is free on every board; only a level dealt with eight colours ever holds it.
+ */
+export const MATCHUP_KIND8 = 18;
+/** A plain gem's colour index (0–5, the seventh colour 6, the eighth 7), or -1 for anything else. */
 export function matchupColourIndex(kind: number): number {
   if (kind >= 0 && kind < MATCHUP_KINDS) return kind;
-  return kind === MATCHUP_KIND7 ? MATCHUP_KINDS : -1;
+  return kind === MATCHUP_KIND7 ? MATCHUP_KINDS : kind === MATCHUP_KIND8 ? MATCHUP_KINDS + 1 : -1;
 }
-/** The plain gem kind of a colour index (6 is MATCHUP_KIND7). */
+/** The plain gem kind of a colour index (6 is MATCHUP_KIND7, 7 is MATCHUP_KIND8). */
 export function matchupKindOfColour(colour: number): number {
-  return colour === MATCHUP_KINDS ? MATCHUP_KIND7 : colour;
+  return colour === MATCHUP_KINDS ? MATCHUP_KIND7 : colour === MATCHUP_KINDS + 1 ? MATCHUP_KIND8 : colour;
 }
 
 /** Cells are 50 px; symbols are drawn at 70% of the cell. */
@@ -182,7 +188,7 @@ export const MATCHUP_SHAPES = [
 export type MatchupShape = (typeof MATCHUP_SHAPES)[number];
 
 function isNormal(kind: number): boolean {
-  return (kind >= 0 && kind < MATCHUP_KINDS) || kind === MATCHUP_KIND7;
+  return (kind >= 0 && kind < MATCHUP_KINDS) || kind === MATCHUP_KIND7 || kind === MATCHUP_KIND8;
 }
 
 function isSpecial(kind: number): boolean {
@@ -206,13 +212,19 @@ export const MATCHUP_COLOURS = [
  */
 export const MATCHUP_COLOUR7 = "#2FE3E6";
 export const MATCHUP_SHAPE7 = "heart";
+/**
+ * The eighth gem (D6): a white pearl, a shape no other gem has. Display data only (the renderer draws it in its own
+ * function, matchupPearl.renderer.ts; for A3 to restyle in the flat-cut set).
+ */
+export const MATCHUP_COLOUR8 = "#F3EEE4";
+export const MATCHUP_SHAPE8 = "pearl";
 /** A plain gem's colour by kind (the seventh colour included). */
 export function matchupGemColour(kind: number): string | undefined {
-  return kind === MATCHUP_KIND7 ? MATCHUP_COLOUR7 : MATCHUP_COLOURS[kind];
+  return kind === MATCHUP_KIND8 ? MATCHUP_COLOUR8 : kind === MATCHUP_KIND7 ? MATCHUP_COLOUR7 : MATCHUP_COLOURS[kind];
 }
 /** A plain gem's shape by kind (the seventh colour's heart included). */
 export function matchupGemShape(kind: number): string | undefined {
-  return kind === MATCHUP_KIND7 ? MATCHUP_SHAPE7 : MATCHUP_SHAPES[kind];
+  return kind === MATCHUP_KIND8 ? MATCHUP_SHAPE8 : kind === MATCHUP_KIND7 ? MATCHUP_SHAPE7 : MATCHUP_SHAPES[kind];
 }
 
 /* ============================ Board helpers ============================ */
