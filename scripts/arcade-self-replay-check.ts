@@ -204,8 +204,9 @@ import { CURLING_BANK_V3 } from "@/lib/duel/curlingBankV3.server";
 import { CURLING_BANK_V4 } from "@/lib/duel/curlingBankV4.server";
 import { MINIGOLF_BANK_V2 } from "@/lib/duel/minigolfBankV2.server";
 import { TILT_REV_BAND, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_LIFT, TILT_REV_PAR, TILT_REV_STD, TILT_REV_TUNEC } from "@/lib/arcade/tilt";
-import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG } from "@/lib/arcade/orbit";
-import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom, initGraceFrom, initBigFrom, initLevelFrom } from "@/lib/arcade/orbitRev3";
+// Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's orbitRev 17): ORBIT_REV_LOST and initLostFrom for the orbit/lost entries.
+import { ORBIT_REV_BAND, ORBIT_REV_SWEPT, ORBIT_REV_TALL, ORBIT_REV_TUNED, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, ORBIT_REV_LOST } from "@/lib/arcade/orbit";
+import { decodeOrbitExtras, initBandFrom, initSweptFrom, initTallFrom, initTunedFrom, initXpFrom, initStdFrom, initFuelFrom, initGraceFrom, initBigFrom, initLevelFrom, initLostFrom } from "@/lib/arcade/orbitRev3"; // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17: initLostFrom)
 import { ORBIT_XP_BANK } from "@/lib/duel/orbitXpBank.server";
 import { ORBIT_FUEL_BANK } from "@/lib/duel/orbitFuelBank.server";
 import { ORBIT_FUEL_BANK_EASY } from "@/lib/duel/orbitFuelBankEasy.server";
@@ -1244,6 +1245,40 @@ const GAMES: Game[] = [
   // Apex racingRev 4 (15 Nov 2026, the Sports overhaul: three named circuits), appended at the end so every earlier
   // entry keeps its index and stream.
   { key: "racing/v4", interval: RACING_CHECKPOINT_INTERVAL, game: racingGameFor(RACING_REV_4), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, RACING_REV_4), seedFor: (n: number) => RACING_DEAL_V4[n % RACING_DEAL_V4.length]! },
+  // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's five stamps): the entries below, appended in this order.
+  // Moon Climb ricoRev 5 (22 Nov 2026, D5: the 30 × 60 ninja, Joe's approval of 20 Nov 2026), Normal and its three
+  // levels, appended at the end so every earlier entry keeps its index and stream.
+  { key: "ricochet/mid", interval: NINJA_CHECKPOINT_INTERVAL, game: moonGameFor(5), checkpoint: moonCheckpoint, mode: "events", rate: 30, encode: encodeMoonRun, replay: (seed: number, raw: string) => replayMoonRun(seed, raw, 5) },
+  ...(["easy", "hard", "expert"] as const).map((lv) => ({ key: `ricochet/mid-${lv}`, interval: NINJA_CHECKPOINT_INTERVAL, game: moonGameFor(5, lv), checkpoint: moonCheckpoint, mode: "events" as const, rate: 30, encode: encodeMoonRun, replay: (seed: number, raw: string) => replayMoonRun(seed, raw, 5, lv) })),
+  // Fission burstRev 14 (22 Nov 2026, D5: the middle atoms; Easy's atoms touch at their drawn size), at Normal and Easy,
+  // appended at the end so every earlier entry keeps its index and stream.
+  { key: "burst/small", game: burstGameFor(14), checkpoint: burstCheckpoint, mode: "events", rate: 120, encode: encodeBurstRun, replay: (seed: number, raw: string) => replayBurstRun(seed, raw, 14) },
+  { key: "burst/small-easy", game: burstGameFor(14, "easy"), checkpoint: burstCheckpoint, mode: "events", rate: 120, encode: encodeBurstRun, replay: (seed: number, raw: string) => replayBurstRun(seed, raw, 14, "easy") },
+  // Wavefront wavRev 16 (22 Nov 2026, D5: the wider formation), appended so every earlier entry keeps its stream.
+  { key: "wavefront/wide", game: wavefrontGameFor(16), checkpoint: wavCheckpoint, mode: "events", rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, 16) },
+  // High Rise skylineRev 12 (22 Nov 2026, D5 item I5: skylineRev 11's play, floors full at 45, perfect drops at 30) at
+  // every level, appended at the end so every earlier entry keeps its index and stream.
+  { key: "skyline/floors", game: skylineGameFor(12), checkpoint: skylineCheckpoint, mode: "taps", rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, 12) },
+  ...(["easy", "hard", "expert"] as const).map((lv) => ({ key: `skyline/floors-${lv}`, game: skylineGameFor(12, lv), checkpoint: skylineCheckpoint, mode: "taps" as const, rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, 12, lv) })),
+  // Orbit orbitRev 17 (22 Nov 2026, D5 item H4: the lost flight) at every level, random taps and checkpoints on each
+  // level's bank (Normal's the fuel bank), appended at the end so every earlier entry keeps its stream.
+  ...([["normal", ORBIT_FUEL_BANK], ["easy", ORBIT_FUEL_BANK_EASY], ["hard", ORBIT_FUEL_BANK_HARD], ["expert", ORBIT_FUEL_BANK_EXPERT]] as const).map(([lv, bank]) => ({
+    key: `orbit/lost-${lv}`,
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = bank.find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initLostFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras), lv === "normal" ? undefined : lv) };
+    },
+    seedFor: (n: number) => bank[n % bank.length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events" as const,
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = bank.find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_LOST, e.planets, e.holes, e.extras, undefined, lv === "normal" ? undefined : lv);
+    },
+  })),
 ];
 
 /** golfRev 3's course for a self-replay seed: each slot's hole by a spread of the seed, the level seed mod 4. */

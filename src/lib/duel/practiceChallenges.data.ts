@@ -375,7 +375,9 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("skyline", "Gold top", "Land all five gold blocks perfectly.", "C", "fullset", false, part("Gold blocks", 20), "skyline.gold"),
   ch("skyline", "Thirty perfect", "Make 30 perfect drops.", "C", "target", false, all(f("perfects", "gte", 30)), "skyline.perfects"),
   ch("skyline", "Steady crane", "Make ten perfect drops in a row.", "C", "streak", false, part("Perfect streak", 10)),
-  ch("skyline", "Skyscraper", "Build 61 floors on Expert.", "E", "maxout", true, part("Floors", 140)),
+  // Changed with Joe's approval, 23 Nov 2026 (D5's skylineRev 12: the Floors part is full at 45, so the Skyscraper counts
+  // the run's own floors, still 61 on Expert, never easier).
+  ch("skyline", "Skyscraper", "Build 61 floors on Expert.", "E", "maxout", true, all(f("blocks", "gte", 61))),
   // Slice (slice): food 120 + combos 40 + golden fruit 20 + bread tickets 10 + dodges 10.
   ch("slice", "Mild", "Score 100 without cutting a chilli.", "C", "clean", false, all(sc("gte", 100), f("bombsHit", "eq", 0))),
   ch("slice", "Golden delicious", "Slice every golden fruit.", "C", "fullset", false, all(f("goldenSliced", "gte", "@goldenDealt"), f("goldenDealt", "gte", 1))),
