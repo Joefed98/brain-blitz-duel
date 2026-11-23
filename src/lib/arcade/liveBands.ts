@@ -24,7 +24,7 @@ import { SNAKE_REV_GRACE, SNAKE_REV_STRICT, SNAKE_V13_BAND_CURVE } from "./snake
 import { BINTOSS_REV_STRICT, BINTOSS_REV_STD, BINTOSS_STD_SPEC, BINTOSS_V9_BAND_CURVE } from "./binToss";
 import { stdHelp, type StdSpec } from "./arcadeStandard";
 import { SNIP_REV_EXPAND, SNIP_REV_STRICT, SNIP_V11_BAND_CURVE } from "./snip";
-import { HOVER_REV_SHIELD, HOVER_REV_STRICT, HOVER_V10_BAND_CURVE } from "./hover";
+import { HOVER_REV_FIT, HOVER_REV_STRICT, HOVER_V12_BAND_CURVE } from "./hover";
 import { SKYLINE_REV_FLOORS, SKYLINE_REV_STRICT, SKYLINE_STD_SPEC_V12, SKYLINE_V12_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
 import { BRK_REV_CLEAR, BRK_REV_STRICT, BRK_V12_BAND_CURVE } from "./breaker";
@@ -118,7 +118,8 @@ export const LIVE_BANDS = {
   bintoss: { field: "binRev", rev: BINTOSS_REV_STD, curve: BINTOSS_V9_BAND_CURVE, strictRev: BINTOSS_REV_STRICT, std: BINTOSS_STD_SPEC },
   snip: { field: "snipRev", rev: SNIP_REV_EXPAND, curve: SNIP_V11_BAND_CURVE, strictRev: SNIP_REV_STRICT },
   // hoverRev 10 (the arcade scoring standard): the core, barriers on one straight line to 120; the features add 80 (the help says so).
-  hover: { field: "hoverRev", rev: HOVER_REV_SHIELD, curve: HOVER_V10_BAND_CURVE, strictRev: HOVER_REV_STRICT },
+  // hoverRev 12 (D5, 23 Nov 2026): the same five parts on fitted lines; the core full at HOVER_V12_FIT.coreAt barriers.
+  hover: { field: "hoverRev", rev: HOVER_REV_FIT, curve: HOVER_V12_BAND_CURVE, strictRev: HOVER_REV_STRICT },
   // skylineRev 9 (the arcade scoring standard): floors on a straight line to 140, then perfect drops, the streak and gold.
   // skylineRev 11 (15 Nov 2026, the Action overhaul): lives and the wide-block rescue; the same parts.
   // skylineRev 12 (22 Nov 2026, D5 item I5): skylineRev 11's play; floors full at 45 (140), perfect drops at 30.

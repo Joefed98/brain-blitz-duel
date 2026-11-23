@@ -334,7 +334,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   }
   if (type === "tiles") return generateTiles();
   if (type === "rings") return generateRings();
-  if (type === "hover") return generateHover();
+  if (type === "hover") return generateHover(context.level);
   if (type === "swerve") return generateSwerve();
   if (type === "skyline") return generateSkyline(context.level);
   if (type === "bintoss") return generateBinToss();

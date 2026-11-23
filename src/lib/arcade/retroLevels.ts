@@ -159,6 +159,29 @@ export const HOVER_LEVELS: Table<HoverLv> = {
   hard: { shield: 0, gapPct: 100, scrollPct: 106 },
   expert: { shield: 0, gapPct: 100, scrollPct: 112 },
 };
+/**
+ * Hover (hoverRev 12, D5, 23 Nov 2026; docs/arcade-standard/hover.md "Levels (D5, 23 Nov 2026)"): the gap ladder. The
+ * lever is the height of the barrier gaps: `gapPct` scales every gap about its centre (up on Easy, down on Hard and
+ * Expert; the tight gates keep their 80 px), `shield` is how many shields the run starts with (each forgives one crash;
+ * Normal 1), `slide` 1 lets the sliding gaps slide as on Normal (0: every gap is still), and the scroll is Normal's
+ * (`scrollPct` 100) at every level. The parts' full lines are the level's own: the core is full at `coreAt` barriers,
+ * the star chains at `chainsAt` of their 30 points, the gold stars at `goldAt`, the tight gates at `tightAt` and the
+ * centre line at `centreAt` per mille of its credit (every gate flown dead centre is 1,000). hoverRev 11's table above
+ * stays as it is, so the levels rounds stored on it replay exactly.
+ */
+export interface HoverLvV12 extends HoverLv {
+  slide: number;
+  coreAt: number;
+  chainsAt: number;
+  goldAt: number;
+  tightAt: number;
+  centreAt: number;
+}
+export const HOVER_LEVELS_V12: Table<HoverLvV12> = {
+  easy: { shield: 3, gapPct: 127, scrollPct: 100, slide: 0, coreAt: 42, chainsAt: 18, goldAt: 2, tightAt: 4, centreAt: 300 },
+  hard: { shield: 1, gapPct: 75, scrollPct: 100, slide: 1, coreAt: 28, chainsAt: 18, goldAt: 3, tightAt: 3, centreAt: 300 },
+  expert: { shield: 0, gapPct: 70, scrollPct: 100, slide: 1, coreAt: 20, chainsAt: 12, goldAt: 3, tightAt: 3, centreAt: 400 },
+};
 
 /** Every Retro game's table, by game id. */
 export const RETRO_LEVEL_TABLES = {
