@@ -370,9 +370,11 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("ricochet", "Lantern lift", "Ride all six sky lanterns.", "C", "fullset", false, part("Lantern rides", 30)),
   ch("ricochet", "Moonwalker", "Climb 245 m on Hard.", "H", "maxout", false, part("Height", 125)),
   // High Rise (skyline): floors 140 + perfect drops 30 + perfect streak 10 + gold blocks 20.
-  ch("skyline", "Gold top", "Land all five gold blocks perfectly.", "C", "fullset", false, part("Gold blocks", 20), "skyline.gold"),
+  // D5 (23 Nov 2026): skylineRev 12 fills Gold blocks at 2 of the 5, so the goal counts the gold blocks themselves.
+  ch("skyline", "Gold top", "Land all five gold blocks perfectly.", "C", "fullset", false, all(f("golds", "gte", 5)), "skyline.gold"),
   ch("skyline", "Thirty perfect", "Make 30 perfect drops.", "C", "target", false, all(f("perfects", "gte", 30)), "skyline.perfects"),
-  ch("skyline", "Steady crane", "Make ten perfect drops in a row.", "C", "streak", false, part("Perfect streak", 10)),
+  // D5 (23 Nov 2026): skylineRev 12 fills Perfect streak at 5 in a row, so the goal counts the best streak itself.
+  ch("skyline", "Steady crane", "Make ten perfect drops in a row.", "C", "streak", false, all(f("bestStreak", "gte", 10))),
   ch("skyline", "Skyscraper", "Build 61 floors on Expert.", "E", "maxout", true, part("Floors", 140)),
   // Slice (slice): food 120 + combos 40 + golden fruit 20 + bread tickets 10 + dodges 10.
   ch("slice", "Mild", "Score 100 without cutting a chilli.", "C", "clean", false, all(sc("gte", 100), f("bombsHit", "eq", 0))),

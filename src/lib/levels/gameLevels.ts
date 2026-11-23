@@ -509,12 +509,14 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       expert: { settings: { speedStart: 1408, speedStep: 90, stepTicks: 150, speedCap: 3328, moversFrom: 300, sweetTicks: 1, sweetSpots: 10, crashCost: 50, sweetsFull: 9 } },
     },
   },
-  // High Rise (15 Nov 2026, docs/arcade-standard/skyline.md "Levels"): the sim's SKYLINE_LEVEL_RULES, mirrored (skyline-levels-check).
+  // High Rise (D5, 23 Nov 2026, docs/arcade-standard/skyline.md "Levels (D5, 23 Nov 2026)"): skylineRev 12's block-width
+  // ladder, the sim's SKYLINE_V12_LEVEL_RULES, mirrored (skyline-ladder-check); startW in 1/256 px (260, 110 and 50 px),
+  // windFrom null = no wind, lines = each part's full line (floors, perfect drops, perfect streak, gold blocks).
   skyline: {
     levels: {
-      easy: { settings: { speedStart: 448, speedStep: 12, speedMax: 896, tol: 1280, windFrom: 30, lives: 3 } },
-      hard: { settings: { speedStart: 896, speedStep: 30, speedMax: 1792, tol: 768, windFrom: 15, lives: 3 } },
-      expert: { settings: { speedStart: 960, speedStep: 32, speedMax: 1920, tol: 512, windFrom: 10, lives: 3 } },
+      easy: { settings: { startW: 66560, speedStart: 320, speedStep: 10, speedMax: 640, tol: 1280, windFrom: null, trimRun: 3, lives: 3, lines: { floors: 40, perfects: 40, streak: 20, gold: 3 } } },
+      hard: { settings: { startW: 28160, speedStart: 768, speedStep: 26, speedMax: 1536, tol: 768, windFrom: 8, trimRun: 5, lives: 3, lines: { floors: 38, perfects: 24, streak: 6, gold: 2 } } },
+      expert: { settings: { startW: 12800, speedStart: 768, speedStep: 26, speedMax: 1536, tol: 768, windFrom: 0, trimRun: 5, lives: 3, lines: { floors: 38, perfects: 24, streak: 5, gold: 2 } } },
     },
   },
   // Iron Wall (15 Nov 2026, docs/arcade-standard/bastion.md "bastionRev 4: levels"; Joe's approved exception: today's game

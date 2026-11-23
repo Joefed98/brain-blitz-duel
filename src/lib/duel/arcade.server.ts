@@ -12,6 +12,7 @@ import { flipDealSeed } from "./flipDeal.server";
 import { wavDealSeed } from "./wavefrontDeal.server";
 import { wavDealSeedV16 } from "./wavefrontDealV16.server";
 import { flipDealSeedV13 } from "./flipDealV13.server";
+import { skylineDealSeedV12 } from "./skylineDealV12.server";
 import { CROSS_REV_KEEP, CROSS_REV_LIGHT } from "@/lib/arcade/cross";
 import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_HILLS, INK_REV_STD, isInkDiff } from "@/lib/arcade/inkBridge";
 import { inkBigDealSeed } from "./inkBigDeal.server";
@@ -190,17 +191,21 @@ export function generateSwerve(): SwervePuzzleData {
   return { type: "swerve", seed: arcadeSeed() };
 }
 
-export function generateSkyline(_level?: Level): SkylinePuzzleData {
+export function generateSkyline(level?: Level): SkylinePuzzleData {
   // Levels (15 Nov 2026, docs/arcade-standard/skyline.md "Levels"): the same seed and stamp at every level; the deal
-  // stamps `level` and the sim reads it (skylineGameFor). No proved deal: every seed is proved at every level
-  // (skyline-levels-check).
+  // stamps `level` and the sim reads it (skylineGameFor). No proved deal on skylineRev 11: every seed is proved at every
+  // level (skyline-levels-check).
   // skylineRev 9: skylineRev 8's play on the arcade scoring standard (29 Oct 2026, docs/arcade-standard/skyline.md).
   // skylineRev 10 (Nov 2026, the scoring audit): skylineRev 9's play; perfect drops counted up to 61, so more floors never score less.
   // skylineRev 11 (15 Nov 2026, the Action overhaul): three lives (a miss costs one, the run carries on) and the wide-block
   // rescue after five trims in a row; skylineRev 10's parts and gold blocks.
-  // skylineRev 12 (22 Nov 2026, D5 item I5): skylineRev 11's play at every level; Floors full at 45, perfect drops at 30.
-  const skylineRev = dealPinned("skylinePreLives") ? SKYLINE_REV_COUNT : dealPinned("skylinePreCount") ? SKYLINE_REV_LIVES : SKYLINE_REV_FLOORS;
-  return { type: "skyline", seed: arcadeSeed(), skylineRev };
+  // skylineRev 12 (22–23 Nov 2026, D5): skylineRev 11's play on Normal on the refit's full lines, and the block-width ladder
+  // at every other level; every level deals from its own proved deal (skylineDealV12.server.ts: seeds the oracle held to
+  // the human limits takes to 200 through the server replay; the deal stamps `level` off Normal).
+  if (dealPinned("skylinePreLives")) return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_COUNT };
+  if (dealPinned("skylinePreCount")) return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_LIVES };
+  const at = level === "easy" || level === "hard" || level === "expert" ? level : "normal";
+  return { type: "skyline", seed: skylineDealSeedV12(at, arcadeSeed()), skylineRev: SKYLINE_REV_FLOORS };
 }
 
 export function generateBinToss(): BinTossPuzzleData {
