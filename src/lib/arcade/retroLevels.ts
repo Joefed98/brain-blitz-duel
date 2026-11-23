@@ -68,6 +68,20 @@ export interface BurstLv {
   quickPct: number;
   freeWhiffs: number;
 }
+/**
+ * Fission burstRev 14's levels (D5, 23 Nov 2026; docs/arcade-standard/burst.md "Levels (D5, 23 Nov 2026)"): the headline
+ * lever is the atoms in each wave. On top of burstRev 13's four settings: the five waves' atoms by size (`waves`, each
+ * wave its spawns, 0 L, 1 M, 2 S, 3 XS; the sides come from the seed as Normal's do), and each level's own full lines: the
+ * atoms popped the core is full at (`coreFull`, of the level's own count), the wave-clear points the wave-clears part is
+ * full at (`clearFull`, of the 35 the five waves can pay; Normal 19) and the golden atoms the golden part is full at
+ * (`goldFull`, of 5; Normal 2). burstRev 13 keeps BURST_LEVELS exactly.
+ */
+export interface BurstLvSmall extends BurstLv {
+  waves: readonly (readonly number[])[];
+  coreFull: number;
+  clearFull: number;
+  goldFull: number;
+}
 /** Tempo (beatRev 12): the hit windows (Perfect, Good, OK, ticks either side), the notes' fall time on screen (ticks
  * from the top of the lane to the hit line; Normal's 90) and the chart's busyness: each section's off-beat (eighth) and
  * chord shares as a per cent of Normal's (the chart is built from the seed with the scaled plan). */
@@ -152,6 +166,15 @@ export const BURST_LEVELS: Table<BurstLv> = {
   easy: { lives: 4, sizePct: 125, quickPct: 150, freeWhiffs: 40 },
   hard: { lives: 3, sizePct: 100, quickPct: 75, freeWhiffs: 12 },
   expert: { lives: 2, sizePct: 100, quickPct: 60, freeWhiffs: 8 },
+};
+/** Fission burstRev 14 at Easy, Hard and Expert (the sim reads it from the run's state; the registry mirrors it). */
+export const BURST_LEVELS_SMALL: Table<BurstLvSmall> = {
+  // S; M; M; M S; L: 42 atoms.
+  easy: { lives: 4, sizePct: 125, quickPct: 150, freeWhiffs: 60, waves: [[2], [1], [1], [1, 2], [0]], coreFull: 42, clearFull: 19, goldFull: 2 },
+  // M M; L; L M; L M; L L: 103 atoms.
+  hard: { lives: 3, sizePct: 100, quickPct: 100, freeWhiffs: 20, waves: [[1, 1], [0], [0, 1], [0, 1], [0, 0]], coreFull: 98, clearFull: 19, goldFull: 2 },
+  // M M M; L M; L M; L L; L L: 125 atoms, three bouncing from the first second.
+  expert: { lives: 2, sizePct: 100, quickPct: 100, freeWhiffs: 20, waves: [[1, 1, 1], [0, 1], [0, 1], [0, 0], [0, 0]], coreFull: 105, clearFull: 17, goldFull: 2 },
 };
 export const BEAT_LEVELS: Table<BeatLv> = {
   easy: { perfect: 5, good: 10, ok: 16, fall: 110, eighthPct: 100, chordPct: 100 },

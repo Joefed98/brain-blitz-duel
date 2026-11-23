@@ -380,7 +380,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "flip") return generateFlip(context.level);
   if (type === "junction") return generateJunction();
   if (type === "inkbridge") return generateInkBridge(context.level);
-  if (type === "burst") return generateBurst();
+  if (type === "burst") return generateBurst(context.level);
   if (type === "orbit") return generateOrbit(context.level);
   if (type === "swing") return generateSwing(context.level);
   if (type === "snip") return generateSnip();

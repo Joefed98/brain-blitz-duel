@@ -11,6 +11,7 @@ import { flipLevelDealSeed } from "./flipLevelDeals.server";
 import { flipDealSeed } from "./flipDeal.server";
 import { wavDealSeed } from "./wavefrontDeal.server";
 import { wavDealSeedV16 } from "./wavefrontDealV16.server";
+import { burstDealSeedV14 } from "./burstLevelDeals.server";
 import { flipDealSeedV13 } from "./flipDealV13.server";
 import { CROSS_REV_KEEP, CROSS_REV_LIGHT } from "@/lib/arcade/cross";
 import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_HILLS, INK_REV_STD, isInkDiff } from "@/lib/arcade/inkBridge";
@@ -516,7 +517,7 @@ export function generateInkBridge(level?: string): InkBridgePuzzleData {
   return { type: "inkbridge", seed: inkHillsDealSeed(arcadeSeed()), inkRev: INK_REV_HILLS };
 }
 
-export function generateBurst(): BurstPuzzleData {
+export function generateBurst(level?: Level): BurstPuzzleData {
   // burstRev 9 (phone-test notes, docs/phone-notes-oct-2026/fission.md): power-ups carried by seeded atoms, a bouncing golden atom, BURST shots, the wave-clear bonus.
   // burstRev 10 (the arcade scoring standard, docs/arcade-standard/burst.md): five waves, the golden atom hurts, straight-line parts to 200.
   // burstRev 11 (the scoring audit, Nov 2026): burstRev 10's play; the last life not charged, wasted beams beyond one an atom cost.
@@ -524,8 +525,12 @@ export function generateBurst(): BurstPuzzleData {
   // quick time; burstRev 13 adds bigger atoms (checks written for burstRev 11 pin preRetro).
   // burstRev 14 (D5, Joe, 20 Nov 2026): burstRev 13 with the middle atoms, 35 / 24 / 15 / 9 px (checks written for
   // burstRev 13 pin burstPreSmall).
+  // burstRev 14's levels and Normal scoring (D5, 23 Nov 2026, folded into the unshipped stamp): Normal and each level
+  // deal from their own proved list (burstLevelDeals.server.ts: the seeds whose human-limited flawless witness reaches 200
+  // at that level), the room seed picking the entry; burstPreSmall deals burstRev 13 on the room seed, as before.
   if (dealPinned("preRetro")) return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_AIM };
-  return { type: "burst", seed: arcadeSeed(), burstRev: dealPinned("burstPreSmall") ? BURST_REV_BIG : BURST_REV_SMALL };
+  if (dealPinned("burstPreSmall")) return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_BIG };
+  return { type: "burst", seed: burstDealSeedV14(arcadeSeed(), level), burstRev: BURST_REV_SMALL };
 }
 
 /**
