@@ -448,6 +448,9 @@ function initRev2(seed: number): SkylineState {
 
 export const skylineRev2Game: ArcadeGame<SkylineState> = { ...skylineGame, init: initRev2 };
 export function skylineGameFor(rev?: number | null, level?: string | null): ArcadeGame<SkylineState> {
+  // skylineRev 12 (D5 item I5): skylineRev 11's play at every level, on the lower full lines.
+  if (rev === SKYLINE_REV_FLOORS && isSkylineLevel(level)) return skylineFloorsGameAt(level);
+  if (rev === SKYLINE_REV_FLOORS) return skylineFloorsGame;
   // Levels (15 Nov 2026): skylineRev 11 at Easy, Hard or Expert (the puzzle's `level`); Normal and older stamps as before.
   if (rev === SKYLINE_REV_LIVES && isSkylineLevel(level)) return skylineLivesGameAt(level);
   if (rev === SKYLINE_REV_LIVES) return skylineLivesGame;
@@ -497,7 +500,7 @@ export const skylineTallGame: ArcadeGame<SkylineState> = { ...skylineBandGame, i
 
 /** The view height (px) a stored round's skylineRev draws in. */
 export function skylineWorldHFor(rev?: number | null): number {
-  if (rev === SKYLINE_REV_EXPAND || rev === SKYLINE_REV_LIFT || rev === SKYLINE_REV_STD || rev === SKYLINE_REV_COUNT || rev === SKYLINE_REV_LIVES) return SKYLINE_SKY_H;
+  if (rev === SKYLINE_REV_EXPAND || rev === SKYLINE_REV_LIFT || rev === SKYLINE_REV_STD || rev === SKYLINE_REV_COUNT || rev === SKYLINE_REV_LIVES || rev === SKYLINE_REV_FLOORS) return SKYLINE_SKY_H;
   return rev === SKYLINE_REV_TALL || rev === SKYLINE_REV_TARGET || rev === SKYLINE_REV_STRICT ? SKYLINE_TALL_H : SKYLINE_WORLD_H;
 }
 
@@ -627,6 +630,11 @@ export function skylineKindWidth(kind: number, topW: number): number {
 export interface SkylineExpandFields {
   /** skylineRev 10 (the scoring audit): 1 = perfect drops counted up to SKYLINE_V9_FULL_AT, never a share. Outside the checksum. */
   perfectCount?: number;
+  /**
+   * skylineRev 12 (D5 item I5, 22 Nov 2026): 1 = skylineRev 12's full lines (Floors full at SKYLINE_V12_FLOORS_FULL_AT,
+   * perfect drops at SKYLINE_V12_PERFECTS_FULL_AT). Scoring only: outside the checkpoint checksum (the play is skylineRev 11's).
+   */
+  fullLines?: number;
   expandRev?: number;
   /** The block-kind schedule (skylineKinds), one per block index. */
   kinds?: number[];
@@ -918,6 +926,14 @@ export function skylineStdParts(state: SkylineState): StdPart[] | null {
   const perfects = state.perfects;
   const best = state.bestStreak ?? 0;
   const golds = state.golds ?? 0;
+  // skylineRev 12 (D5 item I5): Floors full at 45 floors, perfect drops counted and full at 30; the streak and gold as before.
+  if (state.fullLines)
+    return [
+      stdPart(SKYLINE_STD_SPEC_V12, "core", stdLine(SKYLINE_V9_CORE_MAX, placed, SKYLINE_V12_FLOORS_FULL_AT), `${placed} floor${placed === 1 ? "" : "s"}`),
+      stdPart(SKYLINE_STD_SPEC_V12, "perfects", stdLine(SKYLINE_V9_PERFECTS_MAX, Math.min(perfects, SKYLINE_V12_PERFECTS_FULL_AT), SKYLINE_V12_PERFECTS_FULL_AT), `${perfects} perfect drop${perfects === 1 ? "" : "s"}`),
+      stdPart(SKYLINE_STD_SPEC_V12, "streak", Math.min(best, SKYLINE_V9_STREAK_MAX), `best ${best} in a row`),
+      stdPart(SKYLINE_STD_SPEC_V12, "gold", stdLine(SKYLINE_V9_GOLD_MAX, golds, SKYLINE_V9_GOLD_COUNT), `${golds} of ${SKYLINE_V9_GOLD_COUNT} gold`),
+    ];
   return [
     stdPart(SKYLINE_STD_SPEC, "core", stdLine(SKYLINE_V9_CORE_MAX, placed, SKYLINE_V9_FULL_AT), `${placed} floor${placed === 1 ? "" : "s"}`),
     // skylineRev 10: perfect drops counted (up to SKYLINE_V9_FULL_AT), so a drop that isn't perfect never lowers the score.
@@ -1137,6 +1153,56 @@ export function skylineLivesGameAt(level: SkylineLevel): ArcadeGame<SkylineState
   if (!game) {
     game = { ...skylineLivesGame, init: (seed: number) => ({ ...initLives(seed), lives: SKYLINE_LEVEL_RULES[level].lives, lvl: SKYLINE_LEVEL_CODE[level] }) };
     skylineLevelGames.set(level, game);
+  }
+  return game;
+}
+
+/* ================= Floors full at 45 (skylineRev 12, 22 Nov 2026, D5 item I5) ================= */
+
+/**
+ * skylineRev 12 (docs/arcade-standard/skyline.md "skylineRev 12"; docs/polish-plan-final/earlier-plan.md row I5, approved
+ * by Joe 20 Nov 2026): skylineRev 11's play exactly at every level (lives, the wide-block rescue, the gold blocks where
+ * skylineKindsV9 deals them, the wind, the slide and SKYLINE_LEVEL_RULES; a skylineRev 11 log replays tick for tick, the
+ * same checksum), scored on lower full lines, because a realistic elite (0.25 s to react) can't build 61 floors in 60 s:
+ *  - Floors (140): every floor counts the same, all of it at SKYLINE_V12_FLOORS_FULL_AT (45) floors (rev 11: 61);
+ *  - Perfect drops (30): counted as skylineRev 10 and 11 count them, all of it at SKYLINE_V12_PERFECTS_FULL_AT (30)
+ *    perfect drops (rev 11: 61);
+ *  - Perfect streak (10) and Gold blocks (20): unchanged.
+ * States add `fullLines: 1`, outside the checkpoint checksum. Every older revision plays and scores exactly as before.
+ */
+export const SKYLINE_REV_FLOORS = 12;
+/** Floors at which skylineRev 12's core is full. */
+export const SKYLINE_V12_FLOORS_FULL_AT = 45;
+/** Perfect drops at which skylineRev 12's perfect-drops part is full. */
+export const SKYLINE_V12_PERFECTS_FULL_AT = 30;
+/** skylineRev 12's core straight line (the help's curve, liveBands.ts): 140 at SKYLINE_V12_FLOORS_FULL_AT floors. */
+export const SKYLINE_V12_BAND_CURVE = bandCurve([0, SKYLINE_V12_FLOORS_FULL_AT], [0, SKYLINE_V9_CORE_MAX]);
+export const SKYLINE_STD_SPEC_V12: StdSpec = {
+  ...SKYLINE_STD_SPEC_V11,
+  rev: SKYLINE_REV_FLOORS,
+  parts: SKYLINE_STD_SPEC_V11.parts.map((p) =>
+    p.key === "core"
+      ? { ...p, how: `every floor counts the same, all of it at ${SKYLINE_V12_FLOORS_FULL_AT} floors` }
+      : p.key === "perfects"
+        ? { ...p, how: `every perfect drop counts the same, all of it at ${SKYLINE_V12_PERFECTS_FULL_AT} perfect drops` }
+        : p,
+  ),
+};
+
+/** skylineRev 12 at Normal: skylineRev 11's lives game on the lower full lines. */
+export const skylineFloorsGame: ArcadeGame<SkylineState> = {
+  ...skylineLivesGame,
+  init: (seed: number) => ({ ...skylineLivesGame.init(seed), fullLines: 1 }),
+};
+
+const skylineFloorsLevelGames = new Map<SkylineLevel, ArcadeGame<SkylineState>>();
+/** skylineRev 12 at a level: skylineRev 11's level game (its lives, slide, tolerance and wind) on the lower full lines. */
+export function skylineFloorsGameAt(level: SkylineLevel): ArcadeGame<SkylineState> {
+  let game = skylineFloorsLevelGames.get(level);
+  if (!game) {
+    const base = skylineLivesGameAt(level);
+    game = { ...base, init: (seed: number) => ({ ...base.init(seed), fullLines: 1 }) };
+    skylineFloorsLevelGames.set(level, game);
   }
   return game;
 }

@@ -72,7 +72,7 @@ export const PRACTICE_STAMPS = {
   "rooftop": "puzzleScoreRev=3 speedPar=1",
   "safe": "depthRev=3 puzzleScoreRev=3 speedPar=1",
   "shikaku": "depthRev=3 puzzleScoreRev=3 speedPar=1",
-  "skyline": "puzzleScoreRev=3 skylineRev=11 speedPar=1",
+  "skyline": "puzzleScoreRev=3 skylineRev=12 speedPar=1",
   "slice": "puzzleScoreRev=3 sliceRev=13 speedPar=1",
   "snake": "puzzleScoreRev=3 snakeRev=15 speedPar=1",
   "snip": "puzzleScoreRev=3 snipRev=11 speedPar=1",

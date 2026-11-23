@@ -23,7 +23,7 @@ import { minesBoard, minesGeoFor, minesSolve, MINES_REV_EASY, MINES_REV_EXPERT, 
 import { logicOverhaul1Dealt } from "./logicOverhaul1";
 import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
-import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_LIVES, SKYLINE_REV_COUNT } from "@/lib/arcade/skyline";
+import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_LIVES, SKYLINE_REV_COUNT, SKYLINE_REV_FLOORS } from "@/lib/arcade/skyline";
 import { TILT_REV_BIG, isTiltLevel } from "@/lib/arcade/tilt";
 import { TILT_DEAL_V12 } from "./tiltDealV12.server";
 import { TILT_DEAL_LEVELS } from "./tiltDealLevels.server";
@@ -197,7 +197,9 @@ export function generateSkyline(_level?: Level): SkylinePuzzleData {
   // skylineRev 10 (Nov 2026, the scoring audit): skylineRev 9's play; perfect drops counted up to 61, so more floors never score less.
   // skylineRev 11 (15 Nov 2026, the Action overhaul): three lives (a miss costs one, the run carries on) and the wide-block
   // rescue after five trims in a row; skylineRev 10's parts and gold blocks.
-  return { type: "skyline", seed: arcadeSeed(), skylineRev: dealPinned("skylinePreLives") ? SKYLINE_REV_COUNT : SKYLINE_REV_LIVES };
+  // skylineRev 12 (22 Nov 2026, D5 item I5): skylineRev 11's play at every level; Floors full at 45, perfect drops at 30.
+  const skylineRev = dealPinned("skylinePreLives") ? SKYLINE_REV_COUNT : dealPinned("skylinePreCount") ? SKYLINE_REV_LIVES : SKYLINE_REV_FLOORS;
+  return { type: "skyline", seed: arcadeSeed(), skylineRev };
 }
 
 export function generateBinToss(): BinTossPuzzleData {
@@ -521,6 +523,14 @@ export function pinOrbitPreFuel(on: boolean): boolean {
  */
 export function pinSkylinePreLives(on: boolean): boolean {
   return setDealPin("skylinePreLives", on);
+}
+
+/**
+ * Checks written for skylineRev 11: deal High Rise on skylineRev 11 as rooms did before skylineRev 12's lower full lines
+ * (D5 item I5, 22 Nov 2026; returns the previous setting).
+ */
+export function pinSkylinePreCount(on: boolean): boolean {
+  return setDealPin("skylinePreCount", on);
 }
 
 /**

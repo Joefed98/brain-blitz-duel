@@ -34,7 +34,7 @@ import { BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { BUB_REV_FAST } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_ICE2 } from "@/lib/arcade/matchup";
 import { TEN_DROP_RESET_REV } from "@/lib/arcade/tenDrop";
-import { SKYLINE_REV_COUNT, SKYLINE_REV_LIVES } from "@/lib/arcade/skyline";
+import { SKYLINE_REV_FLOORS, SKYLINE_REV_LIVES } from "@/lib/arcade/skyline";
 import { pinIsExpanded } from "@/lib/arcade/pinball";
 import { PIN_REV_JOULZ, PIN_REV_SAVE, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { chainDemoCompatible } from "./chain";
@@ -75,7 +75,9 @@ export const SAME_PLAY_DEMO_REVS = {
   // Blockzone blockfallRev 2: only a demo recorded on it plays (blockfallRev 1 had the hold and the pads).
   blockfall: [BLOCKFALL_REV_ZONE],
   // skylineRev 11 (15 Nov 2026, lives): skylineRev 10's play until a miss, so a demo recorded on 10 or 11 plays.
-  skyline: [SKYLINE_REV_COUNT, SKYLINE_REV_LIVES],
+  // skylineRev 12 (22 Nov 2026, D5 item I5) plays skylineRev 11 exactly (only the score's full lines moved), so a demo
+  // recorded on 11 or 12 plays (as every other game's list: the dealt stamp and the one before it).
+  skyline: [SKYLINE_REV_LIVES, SKYLINE_REV_FLOORS],
 } as const;
 
 export function demoRevAccepted(game: keyof typeof SAME_PLAY_DEMO_REVS, rev: number | null | undefined): boolean {
