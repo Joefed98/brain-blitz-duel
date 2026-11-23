@@ -40,9 +40,8 @@ per-level lines: the realistic elite pops every one of 103 atoms in the 90 s on 
 `bun scripts/burst-level-deal.ts [--level=…] [--check]`; witnesses `scripts/fixtures/burst-level-deal-witness.json.gz`): a
 seed is kept at a level only when the skill-band flawless player **held to the human limits** (0.25 s to react, 0.15 s to
 move, or one of nine slower variants, `BURST_DEAL_LIMITS`, never faster) scores exactly 200 through the server replay at
-that level, unflagged. 100 seeds a level: Normal 100 of 101 candidates, Easy 100 of 104, Hard 100 of 103, Expert 100 of 134
-(the witnesses were found on the lines first tried, Hard's core at 100 and Expert's at 110 with wave clears at 17; the lines
-were then lowered, which leaves every witness at 200). The pin `burstPreSmall` still deals burstRev 13 on the room seed;
+that level, unflagged. 100 seeds a level: Normal 100 of 104 candidates, Easy 100 of 102, Hard 100 of 103, Expert 100 of 107
+(built on these lines with the skill-band bot whose path reads burstRev 14's radius, Joe's approved fix of 23 Nov 2026). The pin `burstPreSmall` still deals burstRev 13 on the room seed;
 burstRev 14 deals the seed its level's list gives that room seed.
 
 **Measured** (the D5 ladder, `bun scripts/d5-ladder-record.ts burst --deals=96`, both players held to HUMAN_LIMITS, real
@@ -50,17 +49,17 @@ deals graded by the server; `scripts/fixtures/d5-ladder-burst.json.gz`):
 
 | Level | Average before → after | Elite before → after | Elite at 200, before → after |
 |---|---|---|---|
-| Easy | 122.9 → **183.5** | 180.8 → **191.9** | 0 % → **56 %** |
-| Normal | 85.6 → **101.8** | 173.9 → **190.6** | 0 % → **39 %** |
-| Hard | 81.5 → **77.6** | 166.0 → **190.6** | 0 % → **32 %** |
-| Expert | 61.6 → **58.4** | 153.3 → **178.4** | 0 % → **25 %** |
+| Easy | 122.9 → **176.7** | 180.8 → **195.7** | 0 % → **65 %** |
+| Normal | 85.6 → **100.5** | 173.9 → **190.4** | 0 % → **53 %** |
+| Hard | 81.5 → **87.3** | 166.0 → **187.5** | 0 % → **36 %** |
+| Expert | 61.6 → **55.4** | 153.3 → **180.1** | 0 % → **27 %** |
 
 "Before" is burstRev 14 as first built (burstRev 13's levels on Normal's waves, the old lines, any seed). Joe's ladder test
-passes: the average player steps down 82, 24 and 19 points; the elite reaches 200 on 56 %, 39 %, 32 % and 25 % of runs
-(Normal a point under the aim's 40 %: its elite pops all 87 atoms in time on 72 % of runs, and the core's line stays put).
-The Normal refit lifts the average player by about 16 points (the golden atoms: 2 of 5 fill the part, and they
-reach them on a third of runs), which is the approved refit's own effect. The spec's average targets (Hard 55–75, Expert
-25–45) are met on Hard and nearly on Expert; Easy sits a little above its 150–180.
+passes: the average player steps down 76, 13 and 32 points; the elite reaches 200 on 65 %, 53 %, 36 % and 27 % of runs.
+("Before" was measured with the bot before its radius fix; the "after" columns with it.) The Normal refit lifts the
+average player by about 15 points (the golden atoms: 2 of 5 fill the part, and they reach them on about a third of runs),
+the approved refit's own effect. The spec's average targets (Hard 55–75, Expert 25–45) sit below what the bot scores on
+Hard (87) and are nearly met on Expert (55); Easy (177) is inside its 150–180.
 
 `scripts/burst-ladder-check.ts` proves it all (Normal's play, the older stamps, the waves and settings, the lines, the
 deals and witnesses, the recorded ladder and a live sample of it, the lever picture); `burst-small-check` follows the

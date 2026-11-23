@@ -97,8 +97,8 @@ const sorted = (v: unknown) => JSON.stringify(canon(v));
 const FP = 256;
 const LEVELS: Level[] = ["normal", "easy", "hard", "expert"];
 /** The Normal deal (level-tune's room deal n) the standard's oracle takes to 200 through gradeAnswer, and its seed. */
-const PERFECT_DEAL = 3;
-const PERFECT_DEAL_SEED = 1893021695;
+const PERFECT_DEAL = 5;
+const PERFECT_DEAL_SEED = 1719686143;
 
 /* ============================== 1. Legacy ============================== */
 section("burstRev 13 (every level) and 12 start, replay and grade exactly as recorded");
