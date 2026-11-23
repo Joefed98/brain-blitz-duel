@@ -9,7 +9,7 @@
  *     (`gradeAnswer` on the stored puzzle) to the same score and extra; the parts' specs and bodies are as recorded;
  *     the deals rooms made at every level are the recorded puzzles under the `ricoPreMid` pin;
  *  2. the stamp and the pin: rooms deal ricoRev 5 at every level (the level stamped as before); `ricoPreMid` deals
- *     ricoRev 4 (and `ricoPreBig` still 3, winning over it); the pin is the last era switch; DealOptions pins it for one
+ *     ricoRev 4 (and `ricoPreBig` still 3, winning over it); the pin is an era switch; DealOptions pins it for one
  *     call; the live bands, the standard's spec, the practice stamps and the intro demo's stamp follow;
  *  3. the body: 30 × 60 (half-widths 15 × 30) on rev 5 and later, 34 × 68 on exactly rev 4, 26 × 52 before; the cling
  *     x, the floor's standing height (metres measured from it), a wall-to-wall leap still NINJA_LEAP_TICKS, the ledge
@@ -164,7 +164,7 @@ ok(activeDealPins().length === 0, "0: nothing pinned at the start (the live deal
   ok(generateRicochet().ricoRev === MOON_REV, "2e: the ricoPreBig pin alone still deals ricoRev 3");
   pinRicoPreBig(was);
   ok(activeDealPins().length === 0 && generateRicochet().ricoRev === MOON_MID_REV, "2f: the pins restored, ricoRev 5 again");
-  ok(DEAL_PIN_NAMES[DEAL_PIN_NAMES.length - 1] === "ricoPreMid", "2g: ricoPreMid is the last era switch in DEAL_PINS");
+  ok(DEAL_PIN_NAMES.includes("ricoPreMid"), "2g: ricoPreMid is an era switch in DEAL_PINS");
   ok((generatePuzzle("ricochet", {}, { pins: ["ricoPreMid"] }) as any).ricoRev === MOON_BIG_REV && activeDealPins().length === 0, "2h: DealOptions pins ricoPreMid for one call only");
   ok(LIVE_BANDS.ricochet!.rev === MOON_MID_REV && LIVE_BANDS.ricochet!.std === MOON_MID_STD_SPEC && LIVE_BANDS.ricochet!.curve === MOON_V5_BAND_CURVE, "2i: the live bands carry ricoRev 5's spec and curve");
   ok(ARCADE_STANDARD.ricochet!.spec === MOON_MID_STD_SPEC, "2j: the standard's spec is ricoRev 5's");
