@@ -1570,7 +1570,7 @@ export interface RallyV14Lines {
   spinFull: number;
 }
 /** Normal's lines on rallyRev 14 (the realistic elite's three-runs-in-four figures on Normal, D5 23 Nov 2026). */
-export const RALLY_V14_LINES: RallyV14Lines = { fullAt: 17, padsFull: 5, targetsFull: 3, spinFull: 3 };
+export const RALLY_V14_LINES: RallyV14Lines = { fullAt: 19, padsFull: 5, targetsFull: 3, spinFull: 3 };
 /** rallyRev 14's core line at Normal (gold-ball hits → 0…130), the curve LIVE_BANDS lists. */
 export const RALLY_V14_BAND_CURVE = bandCurve([0, RALLY_V14_LINES.fullAt], [0, RALLY_V13_CORE_MAX]);
 

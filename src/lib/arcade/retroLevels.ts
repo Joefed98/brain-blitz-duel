@@ -152,9 +152,9 @@ export const RALLY_LEVELS: Table<RallyLv> = {
 };
 /** Rally's levels on rallyRev 14 (D5's ladder): the table rooms and practice deal. */
 export const RALLY_LEVELS_V14: Table<RallyLv14> = {
-  easy: { lives: 4, fullAt: 18, paddleStart: 168, paddleMin: 84, capPct: 86, bumper1S: 99, bumper2S: 99, padsFull: 6, targetsFull: 3, spinFull: 3 },
-  hard: { lives: 2, fullAt: 16, paddleStart: 72, paddleMin: 28, capPct: 115, bumper1S: 0, bumper2S: 0, padsFull: 5, targetsFull: 3, spinFull: 3 },
-  expert: { lives: 1, fullAt: 14, paddleStart: 48, paddleMin: 24, capPct: 125, bumper1S: 0, bumper2S: 0, padsFull: 4, targetsFull: 3, spinFull: 3 },
+  easy: { lives: 4, fullAt: 20, paddleStart: 168, paddleMin: 84, capPct: 86, bumper1S: 99, bumper2S: 99, padsFull: 6, targetsFull: 3, spinFull: 3 },
+  hard: { lives: 2, fullAt: 15, paddleStart: 72, paddleMin: 28, capPct: 115, bumper1S: 0, bumper2S: 0, padsFull: 5, targetsFull: 3, spinFull: 2 },
+  expert: { lives: 1, fullAt: 16, paddleStart: 48, paddleMin: 24, capPct: 125, bumper1S: 0, bumper2S: 0, padsFull: 4, targetsFull: 3, spinFull: 3 },
 };
 export const WAVEFRONT_LEVELS: Table<WavefrontLv> = {
   easy: { lives: 4, boltPct: 80, bossPct: 80, killS: 24 },

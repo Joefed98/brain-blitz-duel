@@ -61,7 +61,8 @@ ladder's average and realistic elite under the human limits, graded by the serve
 | Realistic elite, mean | 199.1 | 194.8 | 192.5 | 181.8 |
 | Elite runs at 200 | 83 % | 48 % | 36 % | 28 % |
 
-Today's (snakeRev 15) for comparison is in the D5 report; the spec's targets were average 150–180 / 55–75 / 25–45 and
+On snakeRev 15 (today's deal, 96 deals) the averages were 110.3 / 87.9 / 62.3 / 52.6 and the elite 173.6 / 172.3 /
+159.9 / 163.1, with no run at 200 at any level (Expert's elite above Hard's). The spec's targets were average 150–180 / 55–75 / 25–45 and
 elite 195+ / 150–175 / 120–150 (Hard's average and both elites sit above them: the elite reaches 200 on more than a fifth
 of Expert runs, which Joe's ladder test asks for, so Hard and Expert stay above the guides).
 

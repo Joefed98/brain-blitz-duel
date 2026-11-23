@@ -56,5 +56,5 @@ export function rallyWords(level: Level): string {
   const share = Math.round((100 * lv.paddleStart) / COURT_W);
   if (level === "normal") return `A paddle ${share} % of the court`;
   const bumpers = lv.bumper1S >= RUN_S ? "no bumpers" : lv.bumper1S === 0 ? "bumpers from the start" : "bumpers later";
-  return `A paddle ${share} % of the court, ${bumpers}`;
+  return `A ${share} % paddle, ${bumpers}`;
 }
