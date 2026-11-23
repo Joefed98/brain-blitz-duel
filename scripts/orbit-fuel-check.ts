@@ -334,7 +334,7 @@ const step = (s: OrbitRev3State, input: ArcadeInputEvent | null = null) => orbit
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the intro demo is recorded on the live stamp (scripts/action-demos-check.ts).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal orbitRev 16, so the demo rule names 16.
-  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_BIG\) return null/.test(demo), "Orbit's intro demo stays stopped until one is recorded on orbitRev 16 (the stamp rooms deal)");
+  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_LOST\) return null/.test(demo), "Orbit's intro demo stays stopped until one is recorded on orbitRev 17 (the stamp rooms deal)"); // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17: the demo rule names 17)
 }
 
 /* 7. The sputter (display only): a run that ends dry animates for ORBIT_SPUTTER_MS on the presentation clock (the sim

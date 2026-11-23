@@ -352,7 +352,7 @@ ok(ORBIT_TOTAL === 40, "the course keeps 40 planets and the sun");
   // meter) waits for one recorded on orbitRev 14.
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the intro demo is recorded on the live stamp (scripts/action-demos-check.ts).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal orbitRev 16, so the demo rule names 16.
-  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_BIG\) return null/.test(src), "Orbit's intro demo stays stopped (the still shows) until one is recorded on orbitRev 16");
+  ok(/data\.type === "orbit" && demo\?\.puzzle\.type === "orbit" && demo\.puzzle\.orbitRev !== ORBIT_REV_LOST\) return null/.test(src), "Orbit's intro demo stays stopped (the still shows) until one is recorded on orbitRev 17"); // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17: the demo rule names 17)
 }
 void ORBIT_INPUT_CHECKPOINT;
 
