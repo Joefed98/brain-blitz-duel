@@ -30,7 +30,7 @@ import { TILT_DEAL_V12 } from "./tiltDealV12.server";
 import { TILT_DEAL_LEVELS } from "./tiltDealLevels.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
-import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG } from "@/lib/arcade/swing";
+import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG, SWING_REV_LADDER, swingLadderLevel } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_AIM, BURST_REV_BIG, BURST_REV_SMALL } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD, BRK_REV_CLEAR } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_SAVE } from "@/lib/arcade/pinball";
@@ -47,6 +47,7 @@ import { SWING_V13_BANK } from "./swingBankV13.server";
 import { swingSlideDealSeed } from "./swingSlideDeal.server";
 import { swingBigDealSeed } from "./swingBigDeal.server";
 import { swingLevelDealSeed } from "./swingLevelDeal.server";
+import { swingLadderDealSeed } from "./swingLadderDeal.server";
 import { CLAY_REV_DEPTH } from "@/lib/arcade/clayShoot";
 import { WORDFALL_REV_BANDS } from "@/lib/arcade/wordfall";
 import { dealtTopupRev } from "./depthTopup";
@@ -660,8 +661,20 @@ export function pinSwingPreBig(on: boolean): boolean {
   return setDealPin("swingPreBig", on);
 }
 
+/**
+ * Checks written for swingRev 18 at its levels: deal it as rooms did before the ladder (swingRev 19, D5, 23 Nov 2026;
+ * returns the previous setting), so they keep proving what they were written for.
+ */
+export function pinSwingPreLadder(on: boolean): boolean {
+  return setDealPin("swingPreLadder", on);
+}
+
 export function generateSwing(level?: Level): SwingPuzzleData {
   const roomSeed = arcadeSeed();
+  // swingRev 19 (the ladder, D5 23 Nov 2026): every level, Normal included, from the level's own proved deal
+  // (swingLadderDeal.server.ts: courses on which the proof player held to Joe's human limits scores exactly 200 through
+  // the server replay; the deal stamps `level` off Normal). The era pin swingPreLadder deals swingRev 18 as before.
+  if (!dealPinned("swingPreAssault") && !dealPinned("swingPreRework") && !dealPinned("swingPreDark") && !dealPinned("swingPreSlide") && !dealPinned("swingPreBig") && !dealPinned("swingPreLadder")) return { type: "swing", seed: swingLadderDealSeed(swingLadderLevel(level), roomSeed), swingRev: SWING_REV_LADDER };
   // swingRev 18's difficulty levels (15 Nov 2026): a course from the level's own proved deal (swingLevelDeal.server.ts;
   // the deal stamps `level`). Normal (no level) deals exactly as before.
   if (level && level !== "normal" && !dealPinned("swingPreAssault") && !dealPinned("swingPreRework") && !dealPinned("swingPreDark") && !dealPinned("swingPreSlide") && !dealPinned("swingPreBig")) return { type: "swing", seed: swingLevelDealSeed(level, roomSeed), swingRev: SWING_REV_BIG };

@@ -524,11 +524,15 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // its own proved deal (swingLevelDeal.server.ts) and the sim reads the stored level (swing.ts SWING_LEVELS, the values
   // its courses are built, proved and played with); these are the same, for display. vineSwing (16 Nov 2026, Joe: levers
   // that test human timing): the held vine's gravity, per cent, so Hard and Expert swing faster.
+  // swingRev 19 (D5, 23 Nov 2026, the ladder; swing.ts SWING_V19_LEVELS, mirrored, swing-ladder-check): the lever is the
+  // pterodactyl (chase: where it starts, chasePx its pace a tick), each stretch's par moved parLaterTicks and counted up
+  // to parCapTicks under it, the pars part full at parFullTicks in all, the course part full at courseFullPct, the gates part at gatesFull gates, the streak part at
+  // streakFull runs of eight clean grabs, and on Easy a miss keeps the clean-swing streak.
   swing: {
     levels: {
-      easy: { settings: { reachPx: 250, slidingVines: 5, stallTicks: 200, pterodactyl: false, darkRuns: 0, vineSwing: 100 } },
-      hard: { settings: { reachPx: 220, slidingVines: 26, stallTicks: 55, pterodactyl: true, darkRuns: 6, vineSwing: 125 } },
-      expert: { settings: { reachPx: 205, slidingVines: 30, stallTicks: 50, pterodactyl: true, darkRuns: 7, vineSwing: 145 } },
+      easy: { settings: { reachPx: 250, slidingVines: 5, stallTicks: 200, pterodactyl: false, darkRuns: 0, vineSwing: 100, chase: "none", chasePx: 0, parLaterTicks: 120, courseFullPct: 35, gatesFull: 3, streakFull: 18, parCapTicks: 30, parFullTicks: 900, missKeepsStreak: true } },
+      hard: { settings: { reachPx: 220, slidingVines: 26, stallTicks: 55, pterodactyl: true, darkRuns: 6, vineSwing: 125, chase: "first vine", chasePx: 3.7, parLaterTicks: 6, courseFullPct: 70, gatesFull: 5, streakFull: 19, parCapTicks: 150, parFullTicks: 4400, missKeepsStreak: false } },
+      expert: { settings: { reachPx: 205, slidingVines: 30, stallTicks: 50, pterodactyl: true, darkRuns: 7, vineSwing: 145, chase: "first vine", chasePx: 4.1, parLaterTicks: 0, courseFullPct: 70, gatesFull: 5, streakFull: 19, parCapTicks: 150, parFullTicks: 4100, missKeepsStreak: false } },
     },
   },
   // Moon Climb (the Action overhaul, 15 Nov 2026; docs/arcade-standard/ricochet.md "Levels"): the sim reads the stored

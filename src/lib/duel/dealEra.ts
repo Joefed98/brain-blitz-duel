@@ -131,6 +131,8 @@ export const DEAL_PINS = {
   skylinePreCount: { texts: false },
   /** arcade.server.ts: Orbit orbitRev 16 at every level, before the lost flight (D5 item H4, 22 Nov 2026). */
   orbitPreLost: { texts: false },
+  /** arcade.server.ts: Grappler swingRev 18 at every level, before the ladder (swingRev 19, D5, 23 Nov 2026). */
+  swingPreLadder: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

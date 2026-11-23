@@ -34,7 +34,7 @@ import { ORBIT_V14_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_FLOOR, BEAT_REV_STRICT, BEAT_STD_SPEC_V12, BEAT_V11_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_REV_LINE, SLICE_V13_BAND_CURVE } from "./slice";
 import { BURST_REV_SMALL, BURST_REV_STRICT, BURST_V10_BAND_CURVE } from "./burst";
-import { SWING_REV_BIG, SWING_REV_STRICT, SWING_V17_BAND_CURVE } from "./swing";
+import { SWING_REV_LADDER, SWING_REV_STRICT, SWING_V17_BAND_CURVE } from "./swing";
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
 import { PIN_REV_SAVE, PIN_STD_SPEC_V8, PIN_V6_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
@@ -148,7 +148,9 @@ export const LIVE_BANDS = {
   burst: { field: "burstRev", rev: BURST_REV_SMALL, curve: BURST_V10_BAND_CURVE, strictRev: BURST_REV_STRICT },
   // swingRev 17 (the sliding hooks and the clean-swing streak, 90 s): the course's straight line to 140, full at SWING_V17_FULL
   // per mille; pars, gates and the streak pay up to 60 more (the help says so).
-  swing: { field: "swingRev", rev: SWING_REV_BIG, curve: SWING_V17_BAND_CURVE, strictRev: SWING_REV_STRICT },
+  // swingRev 19 (D5, 23 Nov 2026, the ladder): swingRev 18 at every level with the pterodactyl's chase as the levels'
+  // lever and Normal's pars a little later; Normal's course line is unchanged (full at SWING_V17_FULL).
+  swing: { field: "swingRev", rev: SWING_REV_LADDER, curve: SWING_V17_BAND_CURVE, strictRev: SWING_REV_STRICT },
   // bullRev 9 (the arcade scoring standard, docs/arcade-standard/bullseye.md): the dart total on a straight line, plus the
   // bull streak and dead-centre darts.
   bullseye: { field: "bullRev", rev: BULLSEYE_REV_STD, curve: BULLSEYE_V9_BAND_CURVE, strictRev: BULLSEYE_REV_STRICT, std: BULLSEYE_STD_SPEC },
