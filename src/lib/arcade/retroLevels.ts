@@ -112,6 +112,9 @@ export interface BlockfallLv {
   previews: number;
   /** The lines the core is full at (Normal's 51). */
   fullAt: number;
+  /** blockfallRev 3 only: the low stack's rows for all of its points and from which it pays nothing (Normal 4 and 10). */
+  lowFull?: number;
+  lowZero?: number;
 }
 /** Hover (hoverRev 11): the starting shield (1: the first crash is forgiven, Normal), the gaps' height (per cent of the
  * course's own, widened only, so every proved course stays passable) and the scroll's pace (per cent of Normal's, which
@@ -178,10 +181,25 @@ export const PINBALL_LEVELS: Table<PinballLv> = {
   hard: { balls: 3, saveS: 0, gravityPct: 110, multiS: 18, fullAt: 61_000 },
   expert: { balls: 2, saveS: 0, gravityPct: 120, multiS: 15, fullAt: 66_000 },
 };
+/** Blockzone's blockfallRev 2 levels (the Retro overhaul, stage 3): stored blockfallRev 2 level rounds replay on this table. */
 export const BLOCKFALL_LEVELS: Table<BlockfallLv> = {
   easy: { gravityPct: 125, lockDelay: 40, previews: 3, fullAt: 40 },
   hard: { gravityPct: 80, lockDelay: 24, previews: 2, fullAt: 57 },
   expert: { gravityPct: 60, lockDelay: 18, previews: 1, fullAt: 62 },
+};
+/**
+ * Blockzone's blockfallRev 3 levels (D5's ladder, 23 Nov 2026; docs/arcade-standard/blockfall.md "Levels (D5, 23 Nov
+ * 2026)"), dealt at Easy, Hard and Expert only (Normal stays blockfallRev 2). The lever is how fast the pieces fall:
+ * Easy a row every 72 ticks quickening to 36 (150 % of Normal's fall time), Hard every 12 quickening to 6 (25 %),
+ * Expert every 7 quickening to 4 (15 %); the lock delay, the previews and the lines the core is full at with it. Easy's
+ * low stack is full in the bottom 10 rows (nothing from row 16; Normal's 4 and 10), about what the realistic elite
+ * keeps on three runs in four there, so Easy welcomes and its 200 comes more often than Normal's; Expert's in the
+ * bottom 5 (nothing from row 11), so its 200, the rarest, still comes on a fifth of the realistic elite's runs.
+ */
+export const BLOCKFALL_LEVELS_V3: Table<BlockfallLv> = {
+  easy: { gravityPct: 150, lockDelay: 45, previews: 5, fullAt: 15, lowFull: 10, lowZero: 16 },
+  hard: { gravityPct: 25, lockDelay: 15, previews: 2, fullAt: 51 },
+  expert: { gravityPct: 15, lockDelay: 12, previews: 1, fullAt: 51, lowFull: 5, lowZero: 11 },
 };
 export const HOVER_LEVELS: Table<HoverLv> = {
   easy: { shield: 1, gapPct: 115, scrollPct: 100 },
@@ -199,7 +217,7 @@ export const RETRO_LEVEL_TABLES = {
   snake: SNAKE_LEVELS,
   cross: CROSS_LEVELS,
   pinball: PINBALL_LEVELS,
-  blockfall: BLOCKFALL_LEVELS,
+  blockfall: BLOCKFALL_LEVELS_V3,
   hover: HOVER_LEVELS,
 } as const;
 export type RetroLevelGame = keyof typeof RETRO_LEVEL_TABLES;

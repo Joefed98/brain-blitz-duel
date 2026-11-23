@@ -72,8 +72,9 @@ import { PY_REV, PY_REV_SHARE } from "@/lib/arcade/cards/pyramid";
 import { GS_REV } from "@/lib/arcade/cards/golfSol";
 import { GS_DEALS } from "@/lib/arcade/cards/golfSolDeals.data";
 import { MG_REV } from "@/lib/arcade/cards/muggins";
-import { BLOCKFALL_REV_ZONE } from "@/lib/arcade/blockfall";
+import { BLOCKFALL_REV_ZONE, BLOCKFALL_REV_LEVELS } from "@/lib/arcade/blockfall";
 import { blockfallDealSeedV2 } from "./blockfallDealV2.server";
+import { blockfallLevelDealSeed } from "./blockfallLevelDeals.server";
 import type { BlockfallPuzzleData, FiveHandsPuzzleData, GolfSolPuzzleData, MugginsPuzzleData, PyramidPuzzleData, FreecellPuzzleData, PokerSquaresPuzzleData, TripeaksPuzzleData } from "./types";
 import { bullseyeWinds, BULLSEYE_REV_TARGET, BULLSEYE_REV_STRICT, BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import type {
@@ -183,8 +184,21 @@ export function generateMuggins(): MugginsPuzzleData {
  * Blockzone (Blockfall's id, Retro): blockfallRev 2 (3 Nov 2026), a seed from its own proved deal (the oracle took it to
  * 200 through the server replay). blockfallRev 1 rounds keep their seeds from the first deal.
  */
-export function generateBlockfall(): BlockfallPuzzleData {
-  return { type: "blockfall", seed: blockfallDealSeedV2(arcadeSeed()), blockfallRev: BLOCKFALL_REV_ZONE };
+export function generateBlockfall(level?: Level): BlockfallPuzzleData {
+  // blockfallRev 3 (D5's ladder, 23 Nov 2026): Easy, Hard and Expert deal a seed from their own proved list (the oracle
+  // held to the human limits takes it to 200 through the server replay) on the levels' new table; Normal stays
+  // blockfallRev 2 from its deal. Checks written for blockfallRev 2's levels pin blockfallPreLevels.
+  const room = arcadeSeed();
+  if (level && level !== "normal" && !dealPinned("blockfallPreLevels")) return { type: "blockfall", seed: blockfallLevelDealSeed(room, level), blockfallRev: BLOCKFALL_REV_LEVELS };
+  return { type: "blockfall", seed: blockfallDealSeedV2(room), blockfallRev: BLOCKFALL_REV_ZONE };
+}
+
+/**
+ * Checks written for blockfallRev 2's levels: deal Blockzone's Easy, Hard and Expert on blockfallRev 2 from Normal's deal
+ * as rooms did before blockfallRev 3 (D5's ladder, 23 Nov 2026; returns the previous setting). Normal is unchanged either way.
+ */
+export function pinBlockfallPreLevels(on: boolean): boolean {
+  return setDealPin("blockfallPreLevels", on);
 }
 
 export function generateSwerve(): SwervePuzzleData {

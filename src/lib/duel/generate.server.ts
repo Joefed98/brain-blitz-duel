@@ -363,7 +363,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "pool") return generatePool();
   // Curl Champ's levels (the Sports overhaul): Easy, Hard and Expert deal from their own proved banks; Normal as before.
   if (type === "curling") return generateCurling(context.level);
-  if (type === "blockfall") return generateBlockfall();
+  if (type === "blockfall") return generateBlockfall(context.level);
   if (type === "alleyroll") return generateAlleyRoll();
   if (type === "rally") return generateRally();
   if (type === "steady") return generateSteady();

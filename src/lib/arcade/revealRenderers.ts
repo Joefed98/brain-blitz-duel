@@ -255,7 +255,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   pyramid: simple(GOLD, PY_WORLD_W, PY_WORLD_H, pyramidArt, (p, a) => replayPyramidRun(seedOf(p), a, p.type === "pyramid" ? p.pyramidRev : undefined, levelOfPuzzle(p))),
   golfsol: simple(GOLD, GS_WORLD_W, GS_WORLD_H, golfSolArt, (p, a) => replayGolfSolRun(seedOf(p), a, p.type === "golfsol" ? p.golfSolRev : undefined)),
   muggins: simple(GOLD, MG_WORLD_W, MG_WORLD_H, mugginsArt, (p, a) => replayMugginsRun(seedOf(p), a, p.type === "muggins" ? p.mugginsRev : undefined)),
-  blockfall: simple(GOLD, BF_WORLD_W, BF_WORLD_H, blockfallArt, (p, a) => replayBlockfallRun(seedOf(p), a, p.type === "blockfall" ? p.blockfallRev : undefined)),
+  blockfall: simple(GOLD, BF_WORLD_W, BF_WORLD_H, blockfallArt, (p, a) => replayBlockfallRun(seedOf(p), a, p.type === "blockfall" ? p.blockfallRev : undefined, puzzleLevel(p))),
   alleyroll: simple(GOLD, AR_WORLD_W, AR_WORLD_H, alleyRollArt, (p, a) => replayAlleyRollRun(seedOf(p), a, p.type === "alleyroll" ? p.alleyRollRev : undefined)),
   hover: simple("#2ED3B7", 390, 560, hoverGame, (p, a) => replayHoverRun(seedOf(p), a, p.type === "hover" ? p.hoverRev : undefined), undefined, hoverRevealGame, (p) => hoverWorldHFor(p.type === "hover" ? p.hoverRev : undefined)),
   skyline: simple(GOLD, 390, 560, skylineGame, (p, a) => replaySkylineRun(seedOf(p), a, p.type === "skyline" ? p.skylineRev : undefined, puzzleLevel(p)), undefined, skylineRevealGame, (p) => skylineWorldHFor(p.type === "skyline" ? p.skylineRev : undefined)),
