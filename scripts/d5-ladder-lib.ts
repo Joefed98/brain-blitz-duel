@@ -226,3 +226,54 @@ export function ladderVerdicts(game: string, average: readonly LadderRow[], elit
   if (x) out.push([x.at200 >= LADDER.expertAt200, `${game}: the elite reaches 200 on at least a fifth of ${x.level} runs (${Math.round(x.at200 * 100)} %)`]);
   return out;
 }
+
+/* ---- The recorded ladder (scripts/d5-ladder-record.ts) and its proof ---- */
+
+export interface LadderFixture {
+  game: string;
+  deals: number;
+  from: number;
+  rows: { level: Level; bot: D5Bot; scores: number[] }[];
+}
+export const d5LadderFixture = (game: string) => `scripts/fixtures/d5-ladder-${game}.json.gz`;
+
+export async function readLadderFixture(game: string): Promise<LadderFixture> {
+  const { readFileSync } = await import("node:fs");
+  const { gunzipSync } = await import("node:zlib");
+  return JSON.parse(gunzipSync(readFileSync(d5LadderFixture(game))).toString()) as LadderFixture;
+}
+
+/** The recorded table's rows, as the ladder test reads them. */
+export function fixtureRows(f: LadderFixture, bot: D5Bot): LadderRow[] {
+  return ALL_LEVELS.map((level) => {
+    const r = f.rows.find((x) => x.level === level && x.bot === bot);
+    const scores = r?.scores ?? [];
+    return summarise(f.game, level, level, bot, scores.map((score, i) => ({ n: f.from + i, seed: 0, score, finished: false })));
+  });
+}
+
+/** Joe's ladder test on a game's recorded table (at least `minDeals` runs a level). */
+export async function ladderFixtureVerdicts(game: string, minDeals = 96): Promise<[boolean, string][]> {
+  const f = await readLadderFixture(game);
+  const out: [boolean, string][] = [[f.deals >= minDeals && f.rows.length === 8, `${game}: the recorded ladder holds ${f.deals} deals a level for both players (at least ${minDeals})`]];
+  return [...out, ...ladderVerdicts(game, fixtureRows(f, "average"), fixtureRows(f, "elite"))];
+}
+
+/**
+ * Re-plays `perLevel` recorded runs a level and player (spread through the recorded deals) on today's code and reports
+ * whether each scores exactly as recorded: the fixture is today's game, not a stale table.
+ */
+export async function replaySample(game: string, perLevel = 2): Promise<[boolean, string][]> {
+  const f = await readLadderFixture(game);
+  const out: [boolean, string][] = [];
+  for (const r of f.rows) {
+    for (let k = 0; k < perLevel; k++) {
+      const i = Math.floor(((k + 0.5) * r.scores.length) / perLevel);
+      const n = f.from + i;
+      const puzzle = dealAt(game as PuzzleType, r.level, n);
+      const got = await playDealt(game as PuzzleType, puzzle, SKILL[r.bot]);
+      out.push([got.score === r.scores[i], `${game} ${r.level} ${r.bot} deal ${n}: replays at ${got.score} (recorded ${r.scores[i]})`]);
+    }
+  }
+  return out;
+}
