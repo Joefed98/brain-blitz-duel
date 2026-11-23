@@ -127,6 +127,15 @@ export const DEAL_PINS = {
   poolPreFifth: { texts: false },
   /** arcade.server.ts: Tilt tiltRev 12 (four mazes), before D6's Normal scoring stamp (three mazes, 22 Nov 2026). */
   tiltPreThree: { texts: true },
+  /** arcade.server.ts: Free Cell freecellRev 5, before D6's Normal scoring stamp (par full within an eighth over par). */
+  freecellPrePar98: { texts: true },
+  /** arcade.server.ts: Summit tripeaksRev 3, before D6's Normal scoring stamp (run, stock par and speed within reach). */
+  tripeaksPreEase: { texts: true },
+  /**
+   * D6's sixteen games' level deals (23 Nov 2026): every level deal as on main 7e25a4d0, before D6's levels (Five Hands
+   * fiveHandsRev 3's levels on any seed, …). Checks written for the levels before pin it.
+   */
+  d6PreLevels: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

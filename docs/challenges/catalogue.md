@@ -674,7 +674,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | All home | Get all 40 cards home. | Classic | Finish | line “Cards” = 105 of 105 |  | `freecell.all-home` |
-| By the book | Finish in par moves. | Classic | Par | line “Par moves” = 50 of 50 |  | `freecell.by-the-book` |
+| By the book | Finish within an eighth over par. | Classic | Par | line “Par moves” = 50 of 50 |  | `freecell.by-the-book` |
 | Card sharp | Finish within 32 s. | Classic | Speed | line “Speed” = 45 of 45 | ● | `freecell.card-sharp` |
 
 #### Mahjong Solitaire (`mahjong`)
@@ -705,9 +705,9 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Peak bagger | Clear all three peak tops. | Classic | Full set | line “Peak tops” = 30 of 30 |  | `tripeaks.peak-bagger` |
-| Up and down | Make a run of ten cards. | Classic | Streak | line “Longest run” = 10 of 10 |  | `tripeaks.up-and-down` |
-| Base camp | Clear it within stock par. | Classic | Par | line “Stock par” = 20 of 20 |  | `tripeaks.base-camp` |
-| Summit sprint | Clear a Hard deal within 20 s. | Hard | Speed | line “Speed” = 25 of 25 | ● | `tripeaks.summit-sprint` |
+| Up and down | Make a run of six cards. | Classic | Streak | line “Longest run” = 10 of 10 |  | `tripeaks.up-and-down` |
+| Base camp | Clear it within 8 over stock par. | Classic | Par | line “Stock par” = 20 of 20 |  | `tripeaks.base-camp` |
+| Summit sprint | Clear a Hard deal within 31 s. | Hard | Speed | line “Speed” = 25 of 25 | ● | `tripeaks.summit-sprint` |
 
 #### Ball Tracker (`balltrack`)
 

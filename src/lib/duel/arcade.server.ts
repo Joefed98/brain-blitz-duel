@@ -58,14 +58,15 @@ import { CLASH_QUEUE, CLASH_REV_TALL, CLASH_REV_DEPTH, CLASH_REV_TOPUP } from "@
  */
 
 import { randomBelow } from "./random";
-import { FC_REV, FC_REV_SHORT, fcLevelBank } from "@/lib/arcade/cards/freecell";
+import { FC_REV, FC_REV_PAR98, FC_REV_SHARE, FC_REV_SHORT, fcLevelBank } from "@/lib/arcade/cards/freecell";
 import { TP_EXPERT_DEALS, TP_HARD_NOWRAP_DEALS } from "@/lib/arcade/cards/tripeaksExpert.data";
 import { TP_EASY_DEALS } from "@/lib/arcade/cards/tripeaks";
 import { FC_DEALS } from "@/lib/arcade/cards/freecellDeals.data";
-import { TP_REV, TP_REV_PAR } from "@/lib/arcade/cards/tripeaks";
+import { TP_LEVEL_RULES_V4, TP_REV, TP_REV_EASE, TP_REV_PAR, TP_REV_SHARE, tpV4Deals } from "@/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
-import { FH_LEVEL_RULES, FH_REV, FH_REV_FLAT } from "@/lib/arcade/cards/fiveHands";
+import { FH_LEVEL_RULES, FH_LEVEL_RULES_V4, FH_REV, FH_REV_128, FH_REV_FLAT } from "@/lib/arcade/cards/fiveHands";
+import { FH_LEVEL_DECKS } from "./fiveHandsLevelDecks.server";
 import { ARCADE_PHASE_SLACK_MS } from "./catalogue";
 import { PY_REV, PY_REV_SHARE } from "@/lib/arcade/cards/pyramid";
 import { GS_REV } from "@/lib/arcade/cards/golfSol";
@@ -132,20 +133,36 @@ export function pinCardsPreShare(on: boolean): boolean {
 
 /** FreeCell: a bank deal (its index), proved solvable with a known par; a level deal from its level's own bank. */
 export function generateFreecell(level?: Level): FreecellPuzzleData {
-  // The difficulty levels (15 Nov 2026): the seed indexes the level's bank (the deal stamps `level` itself).
-  if (level === "easy" || level === "hard" || level === "expert") return { type: "freecell", seed: randomBelow(fcLevelBank(level).length), freecellRev: FC_REV };
+  // freecellRev 6 (D6, 23 Nov 2026): rev 5's game, par full within an eighth over par. Checks written for rev 5 pin
+  // freecellPrePar98.
+  const freecellRev = dealPinned("freecellPrePar98") ? FC_REV_SHARE : FC_REV;
+  if (level === "easy" || level === "hard" || level === "expert") {
+    // D6's levels (23 Nov 2026): a freecellRev 6 level deal indexes its D6 bank (FC_LEVEL_RULES_V6: Hard 3 free cells on
+    // 40 cards, Expert 2 on 52). Checks written for the levels before pin d6PreLevels.
+    if (!dealPinned("d6PreLevels") && freecellRev === FC_REV_PAR98) return { type: "freecell", seed: randomBelow(fcLevelBank(level, FC_REV_PAR98).length), freecellRev };
+    // The difficulty levels (15 Nov 2026): the seed indexes the level's bank (the deal stamps `level` itself).
+    return { type: "freecell", seed: randomBelow(fcLevelBank(level).length), freecellRev: FC_REV_SHARE };
+  }
   // freecellRev 5 (7 Nov 2026): rev 4's deal and bank, the core rising to all 40 home.
-  return { type: "freecell", seed: randomBelow(FC_DEALS.length), freecellRev: dealPinned("cardsPreShare") ? FC_REV_SHORT : FC_REV };
+  return { type: "freecell", seed: randomBelow(FC_DEALS.length), freecellRev: dealPinned("cardsPreShare") ? FC_REV_SHORT : freecellRev };
 }
 
 /** TriPeaks: a bank deal (its index), proved clearable with a run of ten. */
 export function generateTripeaks(level?: Level): TripeaksPuzzleData {
+  // tripeaksRev 4 (D6, 23 Nov 2026): rev 3's game on easier run, stock par and speed figures. Checks written for rev 3
+  // pin tripeaksPreEase.
+  const tripeaksRev = dealPinned("tripeaksPreEase") ? TP_REV_SHARE : TP_REV;
+  if ((level === "easy" || level === "hard" || level === "expert") && !dealPinned("d6PreLevels") && tripeaksRev === TP_REV_EASE) {
+    // D6's levels (23 Nov 2026): the clock (90 / 45 / 25 s, the run plus the arcade phase's slack on the puzzle), the stock
+    // cut on Hard and Expert, the Normal bank's deals within the level's stock par (TP_LEVEL_RULES_V4, tpV4Deals).
+    return { type: "tripeaks", seed: randomBelow(tpV4Deals(level).length), tripeaksRev, timeLimitMs: TP_LEVEL_RULES_V4[level].seconds! * 1000 + ARCADE_PHASE_SLACK_MS } as TripeaksPuzzleData;
+  }
   // The difficulty levels (15 Nov 2026): Expert deals from its own no-wrap bank; Easy and Hard the Normal bank.
-  if (level === "expert") return { type: "tripeaks", seed: randomBelow(TP_EXPERT_DEALS.length), tripeaksRev: TP_REV };
-  if (level === "easy") return { type: "tripeaks", seed: randomBelow(TP_EASY_DEALS.length), tripeaksRev: TP_REV };
-  if (level === "hard") return { type: "tripeaks", seed: randomBelow(TP_HARD_NOWRAP_DEALS.length), tripeaksRev: TP_REV };
+  if (level === "expert") return { type: "tripeaks", seed: randomBelow(TP_EXPERT_DEALS.length), tripeaksRev: TP_REV_SHARE };
+  if (level === "easy") return { type: "tripeaks", seed: randomBelow(TP_EASY_DEALS.length), tripeaksRev: TP_REV_SHARE };
+  if (level === "hard") return { type: "tripeaks", seed: randomBelow(TP_HARD_NOWRAP_DEALS.length), tripeaksRev: TP_REV_SHARE };
   // tripeaksRev 3 (7 Nov 2026): rev 2's deals and pars, half the speed moved onto the cards.
-  return { type: "tripeaks", seed: randomBelow(TP_DEALS.length), tripeaksRev: dealPinned("cardsPreShare") ? TP_REV_PAR : TP_REV };
+  return { type: "tripeaks", seed: randomBelow(TP_DEALS.length), tripeaksRev: dealPinned("cardsPreShare") ? TP_REV_PAR : tripeaksRev };
 }
 
 /** Poker Squares: any seed; the sim builds the target grid and dealing order from it. */
@@ -155,10 +172,20 @@ export function generatePokerSquares(): PokerSquaresPuzzleData {
 
 /** Five Hands: any seed; the sim shuffles the deck and proves its witness (perfect play reaches 200). */
 export function generateFiveHands(level?: Level): FiveHandsPuzzleData {
-  // fiveHandsRev 4 (D6, 22 Nov 2026): rev 3's game, 200 at 128 hand points. Checks written for rev 3 pin fivehandsPre128.
+  // fiveHandsRev 4 (D6, 22 Nov 2026): rev 3's game, 200 at 112 hand points. Checks written for rev 3 pin fivehandsPre128.
   const fiveHandsRev = dealPinned("fivehandsPre128") ? FH_REV_FLAT : FH_REV;
-  // The difficulty levels (15 Nov 2026): a level's own clock (its run plus the arcade phase's slack) on the puzzle.
-  if (level === "easy" || level === "hard" || level === "expert") return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev, timeLimitMs: FH_LEVEL_RULES[level].seconds * 1000 + ARCADE_PHASE_SLACK_MS } as FiveHandsPuzzleData;
+  if (level === "easy" || level === "hard" || level === "expert") {
+    // D6's levels (23 Nov 2026): fiveHandsRev 4 level deals play FH_LEVEL_RULES_V4 (the level's clock and table, 200 at its
+    // own hand points) on a deck from its proved list (FH_LEVEL_DECKS, scripts/fivehands-level-decks.ts: the best
+    // arrangement reaches 200 at a human pace through the grade). Checks written for the levels before pin d6PreLevels.
+    if (!dealPinned("d6PreLevels") && fiveHandsRev === FH_REV_128) {
+      const list = FH_LEVEL_DECKS[level];
+      const at = arcadeSeed();
+      return { type: "fivehands", seed: list[((at % list.length) + list.length) % list.length]!, fiveHandsRev, timeLimitMs: FH_LEVEL_RULES_V4[level].seconds * 1000 + ARCADE_PHASE_SLACK_MS } as FiveHandsPuzzleData;
+    }
+    // The difficulty levels (15 Nov 2026): a level's own clock (its run plus the arcade phase's slack) on the puzzle.
+    return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV_FLAT, timeLimitMs: FH_LEVEL_RULES[level].seconds * 1000 + ARCADE_PHASE_SLACK_MS } as FiveHandsPuzzleData;
+  }
   return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev };
 }
 

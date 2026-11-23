@@ -556,9 +556,10 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // level's deals are proved clearable by cards-levels-check (banks re-solved, built deals proved by their witnesses).
   freecell: {
     levels: {
-      easy: { settings: { cards: 32, cells: 5, undo: "free", hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      hard: { settings: { cards: 52, cells: 4, undo: "a move", hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      expert: { settings: { cards: 52, cells: 3, undo: "3", hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      // D6 (23 Nov 2026, freecellRev 6's levels, FC_LEVEL_RULES_V6): the lever is free cells 5 / 4 (Normal) / 3 / 2.
+      easy: { settings: { cards: 32, cells: 5, undo: "free", hints: "free", parFull: "par + 1/8", speedFullS: 60 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      hard: { settings: { cards: 40, cells: 3, undo: "a move", hints: "none", parFull: "par + 1/8", speedFullS: 33 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      expert: { settings: { cards: 52, cells: 2, undo: "3", hints: "none", parFull: "par + 1/4", speedFullS: 52 }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
     },
   },
   mahjong: {
@@ -570,16 +571,19 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   },
   tripeaks: {
     levels: {
-      easy: { settings: { glow: true, wrap: true, undos: 3, speedFullS: 25, hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      hard: { settings: { glow: false, wrap: false, undos: 0, speedFullS: 20, hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      expert: { settings: { glow: false, wrap: false, undos: 0, speedFullS: 16, hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      // D6 (23 Nov 2026, tripeaksRev 4's levels, TP_LEVEL_RULES_V4): the lever is seconds on the clock 90 / 60 (Normal) / 45 / 32.
+      easy: { settings: { seconds: 90, stockTurns: 23, glow: true, wrap: true, undos: 3, speedFullS: 30, hints: "free" }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      hard: { settings: { seconds: 45, stockTurns: 18, glow: false, wrap: true, undos: 0, speedFullS: 31, hints: "none" }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      expert: { settings: { seconds: 32, stockTurns: 14, glow: false, wrap: true, undos: 0, speedFullS: 27, hints: "none" }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
     },
   },
   fivehands: {
     levels: {
-      easy: { settings: { multiplier: 1.6, seconds: 75, preview: 2, columnValues: true, hints: "free" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      hard: { settings: { multiplier: 1.4, seconds: 50, preview: 0, columnValues: false, pair: 10, twoPair: 20, hints: "5 points each" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
-      expert: { settings: { multiplier: 1.3, seconds: 45, preview: 0, columnValues: false, pair: 10, twoPair: 15, hints: "1" }, oneSolution: { proof: "scripts/cards-levels-check.ts" } },
+      // D6 (23 Nov 2026, fiveHandsRev 4's levels, FH_LEVEL_RULES_V4): the lever is seconds a card; 200 at the level's own
+      // hand points; decks from a proved list (fiveHandsLevelDecks.server.ts: the best arrangement at a human pace scores 200).
+      easy: { settings: { fullAt: 94, seconds: 90, preview: 2, columnValues: true, hints: "free" }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      hard: { settings: { fullAt: 100, seconds: 42, preview: 0, columnValues: false, pair: 10, twoPair: 20, hints: "none" }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
+      expert: { settings: { fullAt: 104, seconds: 30, preview: 0, columnValues: false, pair: 10, twoPair: 15, hints: "none" }, oneSolution: { proof: "scripts/d6-cards-levels-check.ts" } },
     },
   },
   pyramid: {

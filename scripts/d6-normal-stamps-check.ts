@@ -2,13 +2,15 @@
  * D6's Normal scoring stamps (the polish plan's section 8.2, Joe's approval of 20 Nov 2026), proved on the stamps rooms
  * deal now; every older stamp is d6-legacy-check's (the rounds dealt before regrade exactly):
  *
- *   Five Hands fiveHandsRev 4 (I2): rev 3's game, deck, table and bonus column; 200 at 128 hand points (was × 1.4, 143).
+ *   Five Hands fiveHandsRev 4 (I2): rev 3's game, deck, table and bonus column; 200 at 112 hand points (was × 1.4, 143; the plan named 128, tuned to 112 before the stamp shipped).
  *   Cue Ball poolRev 5 (I7): poolRev 4's game; Speed from the fifth of your seven, full by 60 s; the bank re-proved at a
  *     person's pace (scripts/pool-bank.ts --rev=5: each witness shot 0.4 s after the balls stop).
  *   Tilt tiltRev 13 (I8): Normal plays tiltRev 12's first three mazes, the parts over three, speed full by 55 s; its deal
  *     re-proved by the oracle held to human limits (scripts/tilt-deal-v13.ts).
  *
- * Each stamp's era pin (fivehandsPre128, poolPreFifth, tiltPreThree) deals the stamp before it.
+ *   Free Cell freecellRev 6: rev 5's game; Par moves full within an eighth over par (was at par).
+ *   Summit tripeaksRev 4: rev 3's game; Longest run full at 6, Stock par within par + 8, Speed by 25 s.
+ * Each stamp's era pin (fivehandsPre128, poolPreFifth, tiltPreThree, freecellPrePar98, tripeaksPreEase) deals the stamp before it.
  *
  *   bun scripts/d6-normal-stamps-check.ts
  */
@@ -30,6 +32,8 @@ import { replayTiltRun } from "../src/lib/duel/tilt";
 import { TILT_DEAL_V12 } from "../src/lib/duel/tiltDealV12.server";
 import { TILT_DEAL_V13 } from "../src/lib/duel/tiltDealV13.server";
 import { POOL_HUMAN_WAIT } from "./pool-bank";
+import { FC_REV, FC_REV_PAR98, freecellGameFor, freecellStdParts } from "../src/lib/arcade/cards/freecell";
+import { TP_REV, TP_REV_EASE, TP_V4_PAR_SLACK, TP_V4_RUN_FULL, TP_V4_SPEED_FULL_S, tripeaksGameFor, tripeaksStdParts } from "../src/lib/arcade/cards/tripeaks";
 import { playDealt } from "./d6-ladder-lib";
 
 console.error = () => {};
@@ -49,19 +53,19 @@ const pinned = <T>(pin: Parameters<typeof setDealPin>[0], fn: () => T): T => {
   }
 };
 
-console.log("1. Five Hands fiveHandsRev 4: 200 at 128 hand points");
+console.log("1. Five Hands fiveHandsRev 4: 200 at 112 hand points");
 {
-  ok(FH_REV === 4 && FH_REV_128 === 4 && FH_CORE_FULL_V4 === 128 && fhCoreFullFor(4) === 128 && fhCoreFullFor(3) === 143, "fivehands: rooms deal fiveHandsRev 4, full at 128 (rev 3 keeps 143)");
+  ok(FH_REV === 4 && FH_REV_128 === 4 && FH_CORE_FULL_V4 === 112 && fhCoreFullFor(4) === 112 && fhCoreFullFor(3) === 143, "fivehands: rooms deal fiveHandsRev 4, full at 112 (rev 3 keeps 143)");
   for (let n = 0; n < 8; n++) ok(deal("fivehands", n).fiveHandsRev === 4, `fivehands: Normal deal ${n} is fiveHandsRev 4`);
   ok(pinned("fivehandsPre128", () => deal("fivehands", 0).fiveHandsRev) === 3, "fivehands: the era pin fivehandsPre128 deals fiveHandsRev 3");
   ok(LIVE_BANDS.fivehands.rev === 4 && LIVE_BANDS.fivehands.std?.rev === 4, "fivehands: LIVE_BANDS lists fiveHandsRev 4 with its spec");
   const g3 = fiveHandsGameFor(3);
   const g4 = fiveHandsGameFor(4);
   for (const seed of [0, 9, 77, 4242]) ok(JSON.stringify({ ...g4.init(seed), rev: 3 }) === JSON.stringify(g3.init(seed)) && fhDeal(seed, 4).deck.join() === fhDeal(seed, 3).deck.join(), `fivehands: seed ${seed}'s rev 4 opening is rev 3's exactly (deck and state)`);
-  const line = (t: number) => Math.min(200, Math.floor((t * 200) / 128));
+  const line = (t: number) => Math.min(200, Math.floor((t * 200) / 112));
   let straight = true;
   for (let t = 0; t <= 260; t++) if (fhScoreV4(t) !== line(t)) straight = false;
-  ok(straight && fhScoreV4(64) === 100 && fhScoreV4(127) === 198 && fhScoreV4(128) === 200, "fivehands: rev 4's points are floor(hand points × 200 ÷ 128), capped at 200 (64 → 100, 127 → 198, 128 → 200)");
+  ok(straight && fhScoreV4(56) === 100 && fhScoreV4(111) === 198 && fhScoreV4(112) === 200 && fhScoreV4(140) === 200, "fivehands: rev 4's points are floor(hand points × 200 ÷ 112), capped at 200 (56 → 100, 111 → 198, 112 → 200)");
   // Whole runs: the elite under HUMAN_LIMITS on real rev 4 deals, graded by the server, scored by the rev 4 line.
   for (let n = 0; n < 6; n++) {
     const p = deal("fivehands", n);
@@ -69,7 +73,7 @@ console.log("1. Five Hands fiveHandsRev 4: 200 at 128 hand points");
     const s = r.state;
     const parts = fiveHandsStdParts(s)!;
     const total = fhTotalV3(s);
-    ok(s.rev === 4 && parts.length === 1 && parts[0]!.points === fhScoreV4(total) && r.score === Math.max(1, parts[0]!.points), `fivehands: deal ${n}'s elite run scores floor(${total} × 200 ÷ 128) through the server (${r.score})`);
+    ok(s.rev === 4 && parts.length === 1 && parts[0]!.points === fhScoreV4(total) && r.score === Math.max(1, parts[0]!.points), `fivehands: deal ${n}'s elite run scores floor(${total} × 200 ÷ 112) through the server (${r.score})`);
   }
 }
 
@@ -157,6 +161,45 @@ console.log("3. Tilt tiltRev 13: Normal deals three mazes");
   }
   const rebuilt = spawnSync(process.execPath, [new URL("./tilt-deal-v13.ts", import.meta.url).pathname, "--check"], { encoding: "utf8" });
   ok(rebuilt.status === 0, `tilt: tilt-deal-v13.ts --check (${(rebuilt.stdout ?? "").trim().split("\n").pop()})`);
+}
+
+console.log("4. Free Cell freecellRev 6: Par moves full within an eighth over par");
+{
+  ok(FC_REV === 6 && FC_REV_PAR98 === 6, "freecell: rooms deal freecellRev 6");
+  for (let n = 0; n < 6; n++) ok(deal("freecell", n).freecellRev === 6, `freecell: Normal deal ${n} is freecellRev 6`);
+  ok(pinned("freecellPrePar98", () => deal("freecell", 0).freecellRev) === 5, "freecell: the era pin freecellPrePar98 deals freecellRev 5");
+  ok(LIVE_BANDS.freecell.rev === 6 && LIVE_BANDS.freecell.std?.rev === 6, "freecell: LIVE_BANDS lists freecellRev 6 with its spec");
+  for (const seed of [0, 7, 99]) ok(JSON.stringify({ ...freecellGameFor(6).init(seed), rev: 5 }) === JSON.stringify(freecellGameFor(5).init(seed)), `freecell: deal ${seed}'s rev 6 opening is rev 5's exactly`);
+  const base = freecellGameFor(6).init(3);
+  const at = (moves: number, rev: number) => freecellStdParts({ ...base, rev, par: 32, moves, ended: 1, finishTick: 30 * 60, home: [10, 10, 10, 10], acted: 1 })!.find((p) => p.key === "par")!.points;
+  ok(at(36, 6) === 50 && at(37, 6) < 50 && at(48, 6) === 0 && at(32, 6) === 50, `freecell rev 6: par 32 full at 36 moves (9/8), less at 37, 0 at 48 (1.5 ×) (${at(36, 6)}, ${at(37, 6)}, ${at(48, 6)})`);
+  ok(at(32, 5) === 50 && at(33, 5) < 50 && at(48, 5) === 0, "freecell rev 5: par 32 full at 32 moves only, as before");
+  for (let n = 0; n < 4; n++) {
+    const r = await playDealt("freecell", deal("freecell", n), "elite");
+    const parts = freecellStdParts(r.state)!;
+    ok(r.state.rev === 6 && r.score === Math.max(1, Math.min(200, parts.reduce((a, p) => a + p.points, 0))), `freecell: deal ${n}'s elite run scores its rev 6 parts through the server (${r.score})`);
+  }
+}
+
+console.log("5. Summit tripeaksRev 4: run full at 6, stock par within par + 8, speed by 25 s");
+{
+  ok(TP_REV === 4 && TP_REV_EASE === 4 && TP_V4_RUN_FULL === 6 && TP_V4_PAR_SLACK === 8 && TP_V4_SPEED_FULL_S === 25, "tripeaks: rooms deal tripeaksRev 4 (run 6, par + 8, 25 s)");
+  for (let n = 0; n < 6; n++) ok(deal("tripeaks", n).tripeaksRev === 4, `tripeaks: Normal deal ${n} is tripeaksRev 4`);
+  ok(pinned("tripeaksPreEase", () => deal("tripeaks", 0).tripeaksRev) === 3, "tripeaks: the era pin tripeaksPreEase deals tripeaksRev 3");
+  ok(LIVE_BANDS.tripeaks.rev === 4 && LIVE_BANDS.tripeaks.std?.rev === 4, "tripeaks: LIVE_BANDS lists tripeaksRev 4 with its spec");
+  for (const seed of [0, 7, 99]) ok(JSON.stringify({ ...tripeaksGameFor(4).init(seed), rev: 3 }) === JSON.stringify(tripeaksGameFor(3).init(seed)), `tripeaks: deal ${seed}'s rev 4 opening is rev 3's exactly`);
+  const b = tripeaksGameFor(4).init(5);
+  const parts = (o: Partial<typeof b>, rev = 4) => Object.fromEntries(tripeaksStdParts({ ...b, rev, acted: 1, ...o } as typeof b)!.map((p) => [p.key, p.points]));
+  const won = { ended: 1, clearedCount: 28, peaks: 3, stockPar: 10 };
+  ok(parts({ ...won, bestRun: 6, turns: 18, finishTick: 25 * 60 }).run === 10 && parts({ ...won, bestRun: 5, turns: 18, finishTick: 25 * 60 }).run === 8, "tripeaks rev 4: a run of 6 fills the run part (10), 5 gives 8");
+  ok(parts({ ...won, bestRun: 6, turns: 18, finishTick: 25 * 60 }).par === 20 && parts({ ...won, bestRun: 6, turns: 19, finishTick: 25 * 60 }).par < 20 && parts({ ...won, bestRun: 6, turns: 23, finishTick: 25 * 60 }).par === 0, "tripeaks rev 4: stock par 10 full at 18 turns, less at 19, 0 at 23");
+  ok(parts({ ...won, bestRun: 6, turns: 18, finishTick: 25 * 60 }).speed === 25 && parts({ ...won, bestRun: 6, turns: 18, finishTick: 26 * 60 }).speed < 25, "tripeaks rev 4: speed full by 25 s");
+  ok(parts({ ...won, bestRun: 6, turns: 11, finishTick: 21 * 60 }, 3).run === 6 && parts({ ...won, bestRun: 10, turns: 10, finishTick: 20 * 60 }, 3).par === 20 && parts({ ...won, bestRun: 10, turns: 11, finishTick: 20 * 60 }, 3).par < 20, "tripeaks rev 3: 1 a card to ten and par at par exactly, as before");
+  for (let n = 0; n < 4; n++) {
+    const r = await playDealt("tripeaks", deal("tripeaks", n), "elite");
+    const ps = tripeaksStdParts(r.state)!;
+    ok(r.state.rev === 4 && r.score === Math.max(1, Math.min(200, ps.reduce((a, p) => a + p.points, 0))), `tripeaks: deal ${n}'s elite run scores its rev 4 parts through the server (${r.score})`);
+  }
 }
 
 if (failures.length) {

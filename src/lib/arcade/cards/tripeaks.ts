@@ -32,10 +32,24 @@ import { TP_DEALS } from "./tripeaksDeals.data";
 import { TP_STOCK_PARS } from "./tripeaksStockPar.data";
 import { TP_EXPERT_DEALS, TP_HARD_NOWRAP_DEALS } from "./tripeaksExpert.data";
 
-/** The dealt revision (rev 3: more of the 200 on the cards); rev 2 runs replay on tripeaksGameV2, rev 1 on V1. */
-export const TP_REV = 3;
+/**
+ * The dealt revision (rev 4: rev 3's game with the run, stock par and speed within reach; rev 3: more of the 200 on the
+ * cards); rev 3 runs replay on tripeaksGameV3, rev 2 on V2, rev 1 on V1.
+ */
+export const TP_REV = 4;
 export const TP_REV_PAR = 2;
 export const TP_REV_SHARE = 3;
+/**
+ * tripeaksRev 4 (D6, 23 Nov 2026, Joe's Decision 1 A: a Normal scoring stamp moving only the parts the realistic elite
+ * can't fill): rev 3's deals, pars, play and maximums; Longest run full at a run of TP_V4_RUN_FULL (each card 10 ÷ 6, was
+ * 1 a card to ten), Stock par full within TP_V4_PAR_SLACK turns over the deal's par (was at par), Speed full by
+ * TP_V4_SPEED_FULL_S s (was 20). Measured on 96 room deals (the skill-band bots under HUMAN_LIMITS): the elite at 200
+ * 0 % → 44 %, the average 117 → 119. Level deals on rev 4 play TP_LEVEL_RULES_V4.
+ */
+export const TP_REV_EASE = 4;
+export const TP_V4_RUN_FULL = 6;
+export const TP_V4_PAR_SLACK = 8;
+export const TP_V4_SPEED_FULL_S = 25;
 export const TP_CARDS = 28;
 export const TP_STOCK = 24;
 /** Input: a tap, `a` the peak card's index (0–27) or TP_STOCK_PILE for the stock. */
@@ -83,8 +97,8 @@ export const TP_V3_CORE_MAX = 105;
 export const TP_V3_SPEED_MAX = 25;
 export const TP_V3_BAND_CURVE = bandCurve([0, TP_CARDS], [0, TP_V3_CORE_MAX]);
 
-/** tripeaksRev 3's spec (what rooms deal: the help, LIVE_BANDS, the reveal). */
-export const TP_STD_SPEC: StdSpec = {
+/** tripeaksRev 3's spec (stored rounds). */
+export const TP_STD_SPEC_V3: StdSpec = {
   field: "tripeaksRev",
   rev: TP_REV_SHARE,
   parts: [
@@ -96,6 +110,23 @@ export const TP_STD_SPEC: StdSpec = {
     { key: "speed", label: "Speed", max: TP_V3_SPEED_MAX, of: 1, how: `clear all 28 within ${TP_V2_SPEED_FULL_S} s for all of it, falling to 0 at the buzzer` },
   ],
 };
+
+/** tripeaksRev 4's spec (what rooms deal: the help, LIVE_BANDS, the reveal); a level's spec on rev 4 sets its own figures. */
+export function tpSpecV4(runFull: number, parSlack: number, speedFullS: number, hintCost = 0, rev = TP_REV_EASE): StdSpec {
+  return {
+    field: "tripeaksRev",
+    rev,
+    parts: [
+      { key: "core", label: "Cards cleared", max: TP_V3_CORE_MAX, of: TP_CARDS, item: "card", how: `clear the 28 peak cards, each worth the same${hintCost ? `; each hint costs ${hintCost}` : ""}` },
+      { key: "peaks", label: "Peak tops", max: TP_V2_PEAK_MAX, of: 3, item: "peak top", how: `${TP_V2_PEAK_EACH} for each peak top cleared` },
+      { key: "run", label: "Longest run", max: TP_V2_RUN_MAX, of: runFull, item: "card", how: `a run of ${runFull} cards in a row for all of it` },
+      { key: "clear", label: "Clear", max: TP_V2_CLEAR_MAX, of: 1, how: "clear all 28" },
+      { key: "par", label: "Stock par", max: TP_V2_PAR_MAX, of: 1, how: `clear all 28 turning the stock no more than ${parSlack} over the deal’s par for all of it, nothing if you turned it all` },
+      { key: "speed", label: "Speed", max: TP_V3_SPEED_MAX, of: 1, how: `clear all 28 within ${speedFullS} s for all of it, falling to 0 at the buzzer` },
+    ],
+  };
+}
+export const TP_STD_SPEC: StdSpec = tpSpecV4(TP_V4_RUN_FULL, TP_V4_PAR_SLACK, TP_V4_SPEED_FULL_S);
 
 /** tripeaksRev 2's spec (stored rounds). */
 export const TP_STD_SPEC_V2: StdSpec = {
@@ -263,19 +294,38 @@ export function tpStockParPoints(turns: number, par: number, rev = TP_REV_PAR): 
   return (rev >= TP_REV_SHARE ? stdSpeedInt : stdSpeed)(TP_V2_PAR_MAX, turns, par, TP_STOCK_TURNS);
 }
 
+/** tripeaksRev 4's parts on given figures (Normal: TP_V4_*; a rev-4 level: its own), the hint cost off the cards part. */
+function tpPartsV4(state: TpState, spec: StdSpec, runFull: number, parSlack: number, speedFullS: number, runTicks: number, hintCost = 0): StdPart[] {
+  const done = state.ended === 1;
+  const par = state.stockPar ?? TP_STOCK_TURNS;
+  const hints = state.hints ?? 0;
+  const cost = hintCost * hints;
+  const slackPar = Math.min(TP_STOCK_TURNS, par + parSlack);
+  const parPts = !done ? 0 : state.turns <= slackPar ? TP_V2_PAR_MAX : stdSpeedInt(TP_V2_PAR_MAX, state.turns, slackPar, TP_STOCK_TURNS);
+  return [
+    stdPart(spec, "core", Math.max(0, stdLine(TP_V3_CORE_MAX, state.clearedCount, TP_CARDS) - cost), `${state.clearedCount} / ${TP_CARDS} cleared${cost ? ` · ${hints} ${hints === 1 ? "hint" : "hints"} (−${cost})` : ""}`),
+    stdPart(spec, "peaks", stdEach(state.peaks, TP_V2_PEAK_EACH, TP_V2_PEAK_MAX), `${state.peaks} / 3 tops`),
+    stdPart(spec, "run", stdLine(TP_V2_RUN_MAX, state.bestRun, runFull), `best run ${state.bestRun}`),
+    stdPart(spec, "clear", done ? TP_V2_CLEAR_MAX : 0, done ? "all cleared" : "not cleared"),
+    stdPart(spec, "par", parPts, done ? `${state.turns} stock cards, par ${par}` : "not cleared"),
+    stdPart(spec, "speed", done ? stdSpeedInt(TP_V3_SPEED_MAX, state.finishTick, speedFullS * 60, runTicks) : 0, done ? `cleared in ${(state.finishTick / 60).toFixed(1)} s` : "not cleared"),
+  ];
+}
+
 export function tripeaksStdParts(state: TpState): StdPart[] | null {
   if (!state || !state.std) return null;
   if (state.lv) return tpLevelParts(state);
   const done = state.ended === 1;
+  if ((state.rev ?? 1) >= TP_REV_EASE) return tpPartsV4(state, TP_STD_SPEC, TP_V4_RUN_FULL, TP_V4_PAR_SLACK, TP_V4_SPEED_FULL_S, TP_RUN_TICKS);
   if ((state.rev ?? 1) >= TP_REV_SHARE) {
     const par = state.stockPar ?? TP_STOCK_TURNS;
     return [
-      stdPart(TP_STD_SPEC, "core", stdLine(TP_V3_CORE_MAX, state.clearedCount, TP_CARDS), `${state.clearedCount} / ${TP_CARDS} cleared`),
-      stdPart(TP_STD_SPEC, "peaks", stdEach(state.peaks, TP_V2_PEAK_EACH, TP_V2_PEAK_MAX), `${state.peaks} / 3 tops`),
-      stdPart(TP_STD_SPEC, "run", stdEach(state.bestRun, TP_V2_RUN_EACH, TP_V2_RUN_MAX), `best run ${state.bestRun}`),
-      stdPart(TP_STD_SPEC, "clear", done ? TP_V2_CLEAR_MAX : 0, done ? "all cleared" : "not cleared"),
-      stdPart(TP_STD_SPEC, "par", done ? tpStockParPoints(state.turns, par, TP_REV_SHARE) : 0, done ? `${state.turns} stock cards, par ${par}` : "not cleared"),
-      stdPart(TP_STD_SPEC, "speed", done ? stdSpeedInt(TP_V3_SPEED_MAX, state.finishTick, TP_V2_SPEED_FULL_S * 60, TP_RUN_TICKS) : 0, done ? `cleared in ${(state.finishTick / 60).toFixed(1)} s` : "not cleared"),
+      stdPart(TP_STD_SPEC_V3, "core", stdLine(TP_V3_CORE_MAX, state.clearedCount, TP_CARDS), `${state.clearedCount} / ${TP_CARDS} cleared`),
+      stdPart(TP_STD_SPEC_V3, "peaks", stdEach(state.peaks, TP_V2_PEAK_EACH, TP_V2_PEAK_MAX), `${state.peaks} / 3 tops`),
+      stdPart(TP_STD_SPEC_V3, "run", stdEach(state.bestRun, TP_V2_RUN_EACH, TP_V2_RUN_MAX), `best run ${state.bestRun}`),
+      stdPart(TP_STD_SPEC_V3, "clear", done ? TP_V2_CLEAR_MAX : 0, done ? "all cleared" : "not cleared"),
+      stdPart(TP_STD_SPEC_V3, "par", done ? tpStockParPoints(state.turns, par, TP_REV_SHARE) : 0, done ? `${state.turns} stock cards, par ${par}` : "not cleared"),
+      stdPart(TP_STD_SPEC_V3, "speed", done ? stdSpeedInt(TP_V3_SPEED_MAX, state.finishTick, TP_V2_SPEED_FULL_S * 60, TP_RUN_TICKS) : 0, done ? `cleared in ${(state.finishTick / 60).toFixed(1)} s` : "not cleared"),
     ];
   }
   if ((state.rev ?? 1) >= TP_REV_PAR) {
@@ -364,9 +414,18 @@ export const tripeaksGameV3: ArcadeGame<TpState, ArcadeInputEvent | null> = {
   },
 };
 
+/** tripeaksRev 4's game: rev 3's deals, pars and play, scored on rev 4's figures. */
+export const tripeaksGameV4: ArcadeGame<TpState, ArcadeInputEvent | null> = {
+  ...tripeaksGame,
+  init: (seed) => {
+    const d = tpDealOf(seed);
+    return tpInitFrom(d.dealSeed, d.index, TP_REV_EASE, TP_STOCK_PARS[d.index]);
+  },
+};
+
 export function tripeaksGameFor(rev?: number | null): ArcadeGame<TpState, ArcadeInputEvent | null> {
   const r = rev ?? 1;
-  return r >= TP_REV_SHARE ? tripeaksGameV3 : r >= TP_REV_PAR ? tripeaksGameV2 : tripeaksGame;
+  return r >= TP_REV_EASE ? tripeaksGameV4 : r >= TP_REV_SHARE ? tripeaksGameV3 : r >= TP_REV_PAR ? tripeaksGameV2 : tripeaksGame;
 }
 
 /* ================================ Difficulty levels (15 Nov 2026) ================================ */
@@ -403,6 +462,12 @@ export interface TpLevelRules {
   speedFullS: number;
   hintCost: number;
   hintLimit: number;
+  /** D6's levels (tripeaksRev 4): the clock, the stock turns allowed, the deals' highest stock par, run and par figures. */
+  seconds?: number;
+  stockTurns?: number;
+  maxPar?: number;
+  runFull?: number;
+  parSlack?: number;
 }
 
 export const TP_LEVEL_RULES: Readonly<Record<TpLevelName, TpLevelRules>> = {
@@ -411,12 +476,51 @@ export const TP_LEVEL_RULES: Readonly<Record<TpLevelName, TpLevelRules>> = {
   expert: { lv: TP_LV_EXPERT, glow: false, wrap: false, undoLimit: 0, speedFullS: 16, hintCost: 0, hintLimit: 1 },
 };
 
+/**
+ * D6's levels (23 Nov 2026, the polish plan's difficulty spec: the lever is seconds on the clock; Joe's ladder test): a
+ * level deal on tripeaksRev 4 plays these rules (the state carries rev 4; a level state on rev 3 keeps TP_LEVEL_RULES
+ * exactly). Every level deals the Normal bank (proved clearable with the wrap and a run of ten) filtered by its stock
+ * par, so a clear within par fits the shorter stock. Hard and Expert carry no aid (no glow, undo or hints).
+ *
+ *   Easy    90 s; the whole stock (23 turns); deals with stock par 12 or less; glow, wrap, 3 undos, free hints; run
+ *           full at 5, stock par within par + 10, speed by 30 s.
+ *   Hard    45 s; the stock cut to 18 turns; deals with stock par 13 or less; no glow; wrap; no undo, no hints; run full
+ *           at 6, stock par within par + 8, speed by 31 s.
+ *   Expert  32 s; the stock cut to 14 turns; deals with stock par 11 or less; no glow; wrap; no undo, no hints; run
+ *           full at 6, stock par within par + 5, speed by 27 s.
+ *
+ * The spec proposed 25 s for Expert; measured, the elite (no glow, under HUMAN_LIMITS) clears 3 deals in 96 at 25 s
+ * (finish median 28 s), so the clock is 32 s. Each level's run, stock par and speed figures are set from 96 room deals
+ * (scripts/d6-ladder.ts): the average player 153 / 119 (Normal) / 61 / 46, the elite at 200 65 % / 44 % / 32 % / 21 %.
+ */
+export const TP_LEVEL_RULES_V4: Readonly<Record<TpLevelName, TpLevelRules>> = {
+  easy: { lv: TP_LV_EASY, glow: true, wrap: true, undoLimit: 3, speedFullS: 30, hintCost: 0, hintLimit: -1, seconds: 90, stockTurns: TP_STOCK_TURNS, maxPar: 12, runFull: 5, parSlack: 10 },
+  hard: { lv: TP_LV_HARD, glow: false, wrap: true, undoLimit: 0, speedFullS: 31, hintCost: 0, hintLimit: 0, seconds: 45, stockTurns: 18, maxPar: 13, runFull: 6, parSlack: 8 },
+  expert: { lv: TP_LV_EXPERT, glow: false, wrap: true, undoLimit: 0, speedFullS: 27, hintCost: 0, hintLimit: 0, seconds: 32, stockTurns: 14, maxPar: 11, runFull: 6, parSlack: 5 },
+};
+
 function tpLevelName(lv: number | undefined): TpLevelName | null {
   return lv === TP_LV_EASY ? "easy" : lv === TP_LV_HARD ? "hard" : lv === TP_LV_EXPERT ? "expert" : null;
 }
-export function tpLevelRulesOf(state: Pick<TpState, "lv">): TpLevelRules | null {
+/** A level's rules on a revision (rev 4: D6's; earlier: the levels before). */
+export function tpLevelRulesFor(rev: number | null | undefined, level: TpLevelName): TpLevelRules {
+  return (rev ?? 0) >= TP_REV_EASE ? TP_LEVEL_RULES_V4[level] : TP_LEVEL_RULES[level];
+}
+export function tpLevelRulesOf(state: Pick<TpState, "lv"> & { rev?: number }): TpLevelRules | null {
   const n = tpLevelName(state.lv);
-  return n ? TP_LEVEL_RULES[n] : null;
+  return n ? tpLevelRulesFor(state.rev, n) : null;
+}
+/** Whether a level state has the Hint button (D6's Hard and Expert have none). Display and input mapping only. */
+export function tpHintButtonOn(state: Pick<TpState, "lv"> & { rev?: number }): boolean {
+  const r = tpLevelRulesOf(state);
+  return Boolean(r) && r!.hintLimit !== 0;
+}
+/** D6's level deals: the Normal bank's deals (indices) with a stock par of the level's `maxPar` or less, in bank order. */
+const TP_V4_DEALS = new Map<TpLevelName, readonly number[]>();
+export function tpV4Deals(level: TpLevelName): readonly number[] {
+  let d = TP_V4_DEALS.get(level);
+  if (!d) TP_V4_DEALS.set(level, (d = TP_STOCK_PARS.flatMap((par, i) => (par <= TP_LEVEL_RULES_V4[level].maxPar! ? [i] : []))));
+  return d;
 }
 
 /** Whether playable cards glow (Normal and Easy; display only). */
@@ -466,10 +570,17 @@ export function tpLevelDealOf(seed: number, level: TpLevelName): { index: number
   return { index: d.index, dealSeed: d.dealSeed, stockPar: TP_STOCK_PARS[d.index]! };
 }
 
-export function tpLevelInitFrom(level: TpLevelName, dealSeed: number, deal: number, stockPar: number): TpState {
-  const r = TP_LEVEL_RULES[level];
+export function tpLevelInitFrom(level: TpLevelName, dealSeed: number, deal: number, stockPar: number, rev: number = TP_REV_SHARE): TpState {
+  const v4 = rev >= TP_REV_EASE;
+  const r = tpLevelRulesFor(rev, level);
+  const base = tpInitFrom(dealSeed, deal, v4 ? TP_REV_EASE : TP_REV_SHARE, stockPar);
+  // D6: a shorter stock is the stock's first `stockTurns` turns moved to the end of the array, so the same cards turn in
+  // the same order, the count left (TP_STOCK − stockPos) reads true and the stock empties after them.
+  const cut = v4 ? TP_STOCK_TURNS - r.stockTurns! : 0;
+  const stock = cut ? [...base.stock.slice(1 + r.stockTurns!), ...base.stock.slice(0, 1 + r.stockTurns!)] : base.stock;
   return {
-    ...tpInitFrom(dealSeed, deal, TP_REV_SHARE, stockPar),
+    ...base,
+    ...(cut ? { stock, stockPos: cut + 1, top: stock[cut]! } : {}),
     lv: r.lv, ...(r.wrap ? {} : { noWrap: 1 }), ...(r.undoLimit > 0 ? { hist: [], undos: 0 } : {}), hints: 0, hintTick: 0,
   };
 }
@@ -500,6 +611,13 @@ function stepLevel(state: TpState, input: ArcadeInputEvent | null): TpState {
     return { ...tpUnpack(next, hist[hist.length - 1]!), acted: 1, hist: hist.slice(0, -1), undos: (state.undos ?? 0) + 1 };
   }
   let next = step(state, input);
+  // D6's levels: the level's own clock (the shared step times out at Normal's 60 s).
+  const r = tpLevelRulesOf(state)!;
+  if (r.seconds) {
+    const ticks = r.seconds * 60;
+    if (next.ended === 2 && next.tick < ticks) next = { ...next, ended: 0 };
+    if (next.ended === 0 && next.tick >= ticks) next = { ...next, ended: 2 };
+  }
   // Easy: each play or stock turn goes on the undo history.
   if (state.hist && input && input.k === TP_INPUT_TAP && (next.plays !== state.plays || next.turns !== state.turns)) next = { ...next, hist: [...state.hist, tpPack(state)] };
   // Easy: a dead end waits while an undo can leave it (the run ends on it only with none left).
@@ -507,12 +625,13 @@ function stepLevel(state: TpState, input: ArcadeInputEvent | null): TpState {
   return next;
 }
 
-/** A level's spec (the help and the reveal). */
-export function tpLevelSpec(level: TpLevelName): StdSpec {
-  const r = TP_LEVEL_RULES[level];
+/** A level's spec (the help and the reveal); `rev` 4 is D6's levels. */
+export function tpLevelSpec(level: TpLevelName, rev: number | null = TP_REV_SHARE): StdSpec {
+  const r = tpLevelRulesFor(rev, level);
+  if ((rev ?? 0) >= TP_REV_EASE) return tpSpecV4(r.runFull!, r.parSlack!, r.speedFullS, r.hintCost);
   return {
-    ...TP_STD_SPEC,
-    parts: TP_STD_SPEC.parts.map((p) =>
+    ...TP_STD_SPEC_V3,
+    parts: TP_STD_SPEC_V3.parts.map((p) =>
       p.key === "speed"
         ? { ...p, how: `clear all 28 within ${r.speedFullS} s for all of it, falling to 0 at the buzzer` }
         : p.key === "core" && r.hintCost
@@ -524,6 +643,7 @@ export function tpLevelSpec(level: TpLevelName): StdSpec {
 
 function tpLevelParts(state: TpState): StdPart[] {
   const r = tpLevelRulesOf(state)!;
+  if ((state.rev ?? 0) >= TP_REV_EASE) return tpPartsV4(state, tpLevelSpec(tpLevelName(state.lv)!, TP_REV_EASE), r.runFull!, r.parSlack!, r.speedFullS, r.seconds! * 60, r.hintCost);
   const spec = tpLevelSpec(tpLevelName(state.lv)!);
   const done = state.ended === 1;
   const par = state.stockPar ?? TP_STOCK_TURNS;
@@ -540,24 +660,35 @@ function tpLevelParts(state: TpState): StdPart[] {
   ];
 }
 
-const TP_LEVEL_GAMES = new Map<TpLevelName, ArcadeGame<TpState, ArcadeInputEvent | null>>();
-export function tripeaksLevelGame(level: TpLevelName): ArcadeGame<TpState, ArcadeInputEvent | null> {
-  let g = TP_LEVEL_GAMES.get(level);
+const TP_LEVEL_GAMES = new Map<string, ArcadeGame<TpState, ArcadeInputEvent | null>>();
+/** A level's game (`rev` 4: D6's levels, TP_LEVEL_RULES_V4: its clock, shorter stock and deals; earlier: the levels before). */
+export function tripeaksLevelGame(level: TpLevelName, rev: number | null = TP_REV_SHARE): ArcadeGame<TpState, ArcadeInputEvent | null> {
+  const v4 = (rev ?? 0) >= TP_REV_EASE;
+  const key = `${level}:${v4 ? 4 : 3}`;
+  let g = TP_LEVEL_GAMES.get(key);
   if (!g) {
+    const r = tpLevelRulesFor(v4 ? TP_REV_EASE : TP_REV_SHARE, level);
     g = {
       ...tripeaksGameV3,
+      ...(v4 ? { runTicks: r.seconds! * 60 } : {}),
       init: (seed) => {
+        if (v4) {
+          const list = tpV4Deals(level);
+          const n = list.length;
+          const index = list[((Math.trunc(seed) % n) + n) % n]!;
+          return tpLevelInitFrom(level, TP_DEALS[index]!, index, TP_STOCK_PARS[index]!, TP_REV_EASE);
+        }
         const d = tpLevelDealOf(seed, level);
         return tpLevelInitFrom(level, d.dealSeed, d.index, d.stockPar);
       },
       step: stepLevel,
       inputRanges: [inputRange(TP_INPUT_TAP, [0, TP_STOCK_PILE]), inputRange(TP_INPUT_HINT), inputRange(TP_INPUT_UNDO)],
     };
-    TP_LEVEL_GAMES.set(level, g);
+    TP_LEVEL_GAMES.set(key, g);
   }
   return g;
 }
 
 export function tripeaksGameAt(rev: number | null | undefined, level: string | null | undefined): ArcadeGame<TpState, ArcadeInputEvent | null> {
-  return level === "easy" || level === "hard" || level === "expert" ? tripeaksLevelGame(level) : tripeaksGameFor(rev);
+  return level === "easy" || level === "hard" || level === "expert" ? tripeaksLevelGame(level, rev ?? null) : tripeaksGameFor(rev);
 }

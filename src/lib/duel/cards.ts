@@ -34,11 +34,15 @@ const fcRun3 = makeArcadeRun<FcState, FcCheckpoint>({ tag: "freecell", game: fre
 const fcRun4 = makeArcadeRun<FcState, FcCheckpoint>({ tag: "freecell", game: freecellGameFor(4), checkpoint: fcCheckpoint, keys: FC_CHECKPOINT_KEYS, interval: FC_CHECKPOINT_INTERVAL });
 /** freecellRev 5 (the core rising to all 40 home): rev 4's deal, play and wire format. */
 const fcRun5 = makeArcadeRun<FcState, FcCheckpoint>({ tag: "freecell", game: freecellGameFor(5), checkpoint: fcCheckpoint, keys: FC_CHECKPOINT_KEYS, interval: FC_CHECKPOINT_INTERVAL });
+/** freecellRev 6 (D6: rev 5's play, par full within an eighth over par): the same wire format. */
+const fcRun6 = makeArcadeRun<FcState, FcCheckpoint>({ tag: "freecell", game: freecellGameFor(6), checkpoint: fcCheckpoint, keys: FC_CHECKPOINT_KEYS, interval: FC_CHECKPOINT_INTERVAL });
 const tpRun = makeArcadeRun<TpState, TpCheckpoint>({ tag: "tripeaks", game: tripeaksGameFor(1), checkpoint: tpCheckpoint, keys: TP_CHECKPOINT_KEYS, interval: TP_CHECKPOINT_INTERVAL });
 /** tripeaksRev 2 (the stock par in the state, its own part): the same play and wire format. */
 const tpRun2 = makeArcadeRun<TpState, TpCheckpoint>({ tag: "tripeaks", game: tripeaksGameFor(2), checkpoint: tpCheckpoint, keys: TP_CHECKPOINT_KEYS, interval: TP_CHECKPOINT_INTERVAL });
 /** tripeaksRev 3 (more of the 200 on the cards): rev 2's play and wire format. */
 const tpRun3 = makeArcadeRun<TpState, TpCheckpoint>({ tag: "tripeaks", game: tripeaksGameFor(3), checkpoint: tpCheckpoint, keys: TP_CHECKPOINT_KEYS, interval: TP_CHECKPOINT_INTERVAL });
+/** tripeaksRev 4 (D6: rev 3's play on easier run, par and speed figures): the same wire format. */
+const tpRun4 = makeArcadeRun<TpState, TpCheckpoint>({ tag: "tripeaks", game: tripeaksGameFor(4), checkpoint: tpCheckpoint, keys: TP_CHECKPOINT_KEYS, interval: TP_CHECKPOINT_INTERVAL });
 const psRun = makeArcadeRun<PsState, PsCheckpoint>({ tag: "pokersquares", game: pokerSquaresGameFor(1), checkpoint: psCheckpoint, keys: PS_CHECKPOINT_KEYS, interval: PS_CHECKPOINT_INTERVAL });
 /** pokerSquaresRev 2 (Full House: the core full at the elite median); the same play and wire format. */
 const psRun2 = makeArcadeRun<PsState, PsCheckpoint>({ tag: "pokersquares", game: pokerSquaresGameFor(2), checkpoint: psCheckpoint, keys: PS_CHECKPOINT_KEYS, interval: PS_CHECKPOINT_INTERVAL });
@@ -48,7 +52,7 @@ const fhRun = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiv
 const fhRun2 = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsGameFor(2), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL });
 /** fiveHandsRev 3 (the flat table, the hand points summed to 200; the first shuffle as dealt): the same play and wire format. */
 const fhRun3 = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsGameFor(3), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL });
-/** fiveHandsRev 4 (rev 3's game, 200 at 128 hand points): the same play and wire format. */
+/** fiveHandsRev 4 (rev 3's game, 200 at 112 hand points): the same play and wire format. */
 const fhRun4 = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsGameFor(4), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL });
 
 const pyRun = makeArcadeRun<PyState, PyCheckpoint>({ tag: "pyramid", game: pyramidGameFor(1), checkpoint: pyCheckpoint, keys: PY_CHECKPOINT_KEYS, interval: PY_CHECKPOINT_INTERVAL });
@@ -79,10 +83,13 @@ type LevelName = "easy" | "hard" | "expert";
 function isLevelName(level: string | null | undefined): level is LevelName {
   return level === "easy" || level === "hard" || level === "expert";
 }
-const fcLevelRuns = new Map<LevelName, ReturnType<typeof makeArcadeRun<FcState, FcCheckpoint>>>();
-function fcLevelRun(level: FcLevelName) {
-  let r = fcLevelRuns.get(level);
-  if (!r) fcLevelRuns.set(level, (r = makeArcadeRun<FcState, FcCheckpoint>({ tag: "freecell", game: freecellLevelGame(level), checkpoint: fcCheckpoint, keys: FC_CHECKPOINT_KEYS, interval: FC_CHECKPOINT_INTERVAL })));
+const fcLevelRuns = new Map<string, ReturnType<typeof makeArcadeRun<FcState, FcCheckpoint>>>();
+/** A level deal's run: freecellRev 6's are D6's levels (23 Nov 2026), any earlier stamp the levels before them. */
+function fcLevelRun(level: FcLevelName, rev: number | null | undefined) {
+  const v6 = (rev ?? 0) >= 6;
+  const key = `${level}:${v6 ? 6 : 5}`;
+  let r = fcLevelRuns.get(key);
+  if (!r) fcLevelRuns.set(key, (r = makeArcadeRun<FcState, FcCheckpoint>({ tag: "freecell", game: freecellLevelGame(level, v6 ? 6 : 5), checkpoint: fcCheckpoint, keys: FC_CHECKPOINT_KEYS, interval: FC_CHECKPOINT_INTERVAL })));
   return r;
 }
 
@@ -103,7 +110,7 @@ export interface FreecellResult extends FlatReplay<FcState, FcCheckpoint> {
 /** The single place a FreeCell score is worked out (no stamp: freecellRev 1; a level deal on its level's game). */
 export function replayFreecellRun(seed: number, raw: string, rev?: number | null, level?: string | null): FreecellResult {
   const v = rev ?? 1;
-  const r = (isLevelName(level) ? fcLevelRun(level) : v >= 5 ? fcRun5 : v >= 4 ? fcRun4 : v >= 3 ? fcRun3 : v >= 2 ? fcRun2 : fcRun).replay(seed, raw);
+  const r = (isLevelName(level) ? fcLevelRun(level, rev) : v >= 6 ? fcRun6 : v >= 5 ? fcRun5 : v >= 4 ? fcRun4 : v >= 3 ? fcRun3 : v >= 2 ? fcRun2 : fcRun).replay(seed, raw);
   const s = r.state;
   return {
     ...r, home: fcHomeCount(s), sorted: fcSortedCards(s.cols), moves: s.moves, par: s.par, finished: s.ended === 1, finishSeconds: s.finishTick / 60,
@@ -126,16 +133,19 @@ export interface TripeaksResult extends FlatReplay<TpState, TpCheckpoint> {
   undos: number;
 }
 
-const tpLevelRuns = new Map<LevelName, ReturnType<typeof makeArcadeRun<TpState, TpCheckpoint>>>();
-function tpLevelRun(level: LevelName) {
-  let r = tpLevelRuns.get(level);
-  if (!r) tpLevelRuns.set(level, (r = makeArcadeRun<TpState, TpCheckpoint>({ tag: "tripeaks", game: tripeaksLevelGame(level), checkpoint: tpCheckpoint, keys: TP_CHECKPOINT_KEYS, interval: TP_CHECKPOINT_INTERVAL })));
+const tpLevelRuns = new Map<string, ReturnType<typeof makeArcadeRun<TpState, TpCheckpoint>>>();
+/** A level deal's run: tripeaksRev 4's are D6's levels (23 Nov 2026), any earlier stamp the levels before them. */
+function tpLevelRun(level: LevelName, rev: number | null | undefined) {
+  const v4 = (rev ?? 0) >= 4;
+  const key = `${level}:${v4 ? 4 : 3}`;
+  let r = tpLevelRuns.get(key);
+  if (!r) tpLevelRuns.set(key, (r = makeArcadeRun<TpState, TpCheckpoint>({ tag: "tripeaks", game: tripeaksLevelGame(level, v4 ? 4 : 3), checkpoint: tpCheckpoint, keys: TP_CHECKPOINT_KEYS, interval: TP_CHECKPOINT_INTERVAL })));
   return r;
 }
 
 /** The single place a Summit score is worked out (no stamp: tripeaksRev 1; a level deal on its level's game). */
 export function replayTripeaksRun(seed: number, raw: string, rev?: number | null, level?: string | null): TripeaksResult {
-  const r = (isLevelName(level) ? tpLevelRun(level) : (rev ?? 1) >= 3 ? tpRun3 : (rev ?? 1) >= 2 ? tpRun2 : tpRun).replay(seed, raw);
+  const r = (isLevelName(level) ? tpLevelRun(level, rev) : (rev ?? 1) >= 4 ? tpRun4 : (rev ?? 1) >= 3 ? tpRun3 : (rev ?? 1) >= 2 ? tpRun2 : tpRun).replay(seed, raw);
   const s = r.state;
   return {
     ...r, cleared: s.clearedCount, peaks: s.peaks, bestRun: s.bestRun, finished: s.ended === 1, finishSeconds: s.finishTick / 60, stockLeft: s.stock.length - s.stockPos,
@@ -170,16 +180,18 @@ export interface FiveHandsResult extends FlatReplay<FhState, FhCheckpoint> {
   columnHand: string;
 }
 
-const fhLevelRuns = new Map<LevelName, ReturnType<typeof makeArcadeRun<FhState, FhCheckpoint>>>();
-function fhLevelRun(level: LevelName) {
-  let r = fhLevelRuns.get(level);
-  if (!r) fhLevelRuns.set(level, (r = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsLevelGame(level), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL })));
+const fhLevelRuns = new Map<string, ReturnType<typeof makeArcadeRun<FhState, FhCheckpoint>>>();
+/** A level deal's run: fiveHandsRev 4's are D6's levels (23 Nov 2026), any earlier stamp the levels before them. */
+function fhLevelRun(level: LevelName, rev: number | null | undefined) {
+  const key = `${level}:${rev === 4 ? 4 : 3}`;
+  let r = fhLevelRuns.get(key);
+  if (!r) fhLevelRuns.set(key, (r = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsLevelGame(level, rev === 4 ? 4 : null), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL })));
   return r;
 }
 
 /** The single place a Five Hands score is worked out (no stamp: fiveHandsRev 1; a level deal on its level's game). */
 export function replayFiveHandsRun(seed: number, raw: string, rev?: number | null, level?: string | null): FiveHandsResult {
-  const r = (isLevelName(level) ? fhLevelRun(level) : rev === 4 ? fhRun4 : (rev ?? 1) >= 3 ? fhRun3 : (rev ?? 1) >= 2 ? fhRun2 : fhRun).replay(seed, raw);
+  const r = (isLevelName(level) ? fhLevelRun(level, rev) : rev === 4 ? fhRun4 : (rev ?? 1) >= 3 ? fhRun3 : (rev ?? 1) >= 2 ? fhRun2 : fhRun).replay(seed, raw);
   const s = r.state;
   const t = fhTotals(s.rows, s.rev);
   const col = fhPickedHand(s);

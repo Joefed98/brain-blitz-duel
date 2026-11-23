@@ -177,7 +177,7 @@ export const LIVE_BANDS = {
   pokersquares: { field: "pokerSquaresRev", rev: PS_REV, curve: PS_V2_BAND_CURVE, std: PS_STD_SPEC, born: true },
   // Five Hands (31 Oct 2026): born on the arcade scoring standard at revision 1.
   // fiveHandsRev 3 (3 Nov 2026): the flat hand table, the hand points summed, capped at 200 (not every deck reaches it).
-  // fiveHandsRev 4 (22 Nov 2026, the scoring review's I2): rev 3's game, 200 at 128 hand points (the elite median).
+  // fiveHandsRev 4 (22 Nov 2026, the scoring review's I2): rev 3's game, 200 at 112 hand points (the realistic elite's level).
   fivehands: { field: "fiveHandsRev", rev: FH_REV, curve: FH_V4_BAND_CURVE, std: FH_STD_SPEC, born: true },
   // Ricochet (1 Nov 2026): the ninja wall-climb, born on the arcade scoring standard at ricoRev 2 (the old shaft never had a band revision).
   // Moon Climb (ricoRev 3, 3 Nov 2026): its own parts (height, flow, lantern rides, scrolls); ricoRev 4 (15 Nov 2026) the bigger ninja, the same parts.

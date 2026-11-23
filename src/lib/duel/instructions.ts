@@ -93,7 +93,8 @@ import {
   TILT_T_SPEED_FULL_S,
   TILT_X_TWO_FROM,
 } from "@/lib/arcade/tilt";
-import { fiveHands128Dealt, tiltThreeDealt } from "./d6Normal";
+import { fiveHands128Dealt, tiltThreeDealt, tripeaksEaseDealt } from "./d6Normal";
+import { FH_CORE_FULL_V4 } from "@/lib/arcade/cards/fiveHands";
 import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX, BUB_V11_MINE_POPS, BUB_V12_REEF } from "@/lib/arcade/bubble";
 import {
   MATCHUP_V3_PAR_RAW,
@@ -1421,7 +1422,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a glowing card", detail: "one higher or lower than the discard; Ace and King wrap.", normalOnly: true },
         { action: "Tap the stock", detail: "when you are stuck: it turns a new discard and ends your run of cards." },
         { action: "Uncover the tops", detail: "of all three peaks for the bonus." },
-        { action: "Stock · par", detail: "at the top counts the stock cards you’ve turned against the fewest this deal can be cleared with: clear it within par for the full bonus." },
+        { action: "Stock · par", detail: tripeaksEaseDealt() ? "at the top counts the stock cards you’ve turned against the fewest this deal can be cleared with: clear it within 8 over par for the full bonus." : "at the top counts the stock cards you’ve turned against the fewest this deal can be cleared with: clear it within par for the full bonus." },
         { action: "Face-down cards", detail: "flip face up when both cards over them are cleared.", helpOnly: true },
         { action: "The stock and discard", detail: "sit just under the peaks; with the stock gone and no card to play, the run ends (“No plays left”).", helpOnly: true },
         { action: "Drag works too:", detail: "drop a card on the discard.", helpOnly: true },
@@ -1452,8 +1453,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Hands:", detail: "high card 0, pair 15, two pair 20, three of a kind 25, straight 30, flush 35, full house 40, four of a kind 45, straight flush 50.", helpOnly: true },
         { action: "20 turns", detail: "after five cards dealt one to each row: 45 of the 52 cards are seen by the end.", helpOnly: true },
         { action: "Rows at the buzzer", detail: "score as they stand.", helpOnly: true },
-        // fiveHandsRev 4 (D6, 22 Nov 2026): 200 at 128 hand points (was × 1.4, 200 at 143).
-        { action: "POINTS", detail: fiveHands128Dealt() ? "at the top is your score so far: 200 at 128 hand points." : "at the top is your score so far: your hand points × 1.4.", helpOnly: true, normalOnly: true },
+        // fiveHandsRev 4 (D6, 22 Nov 2026): 200 at 112 hand points (was × 1.4, 200 at 143).
+        { action: "POINTS", detail: fiveHands128Dealt() ? `at the top is your score so far: 200 at ${FH_CORE_FULL_V4} hand points.` : "at the top is your score so far: your hand points × 1.4.", helpOnly: true, normalOnly: true },
         { action: "Some decks", detail: "can’t reach 200 even placed perfectly: everyone in a room has the same deck, so it’s fair.", helpOnly: true },
         { action: "Same deck, same order,", detail: "for everyone.", helpOnly: true },
       ],

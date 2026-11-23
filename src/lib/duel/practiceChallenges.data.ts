@@ -477,7 +477,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("fivehands", "High roller", "Score 160 or more on Hard.", "H", "bigscore", true, score(160)),
   // Free Cell (freecell): cards 105 + par moves 50 + speed 45 (32 s).
   ch("freecell", "All home", "Get all 40 cards home.", "C", "finish", false, part("Cards", 105)),
-  ch("freecell", "By the book", "Finish in par moves.", "C", "par", false, part("Par moves", 50)),
+  ch("freecell", "By the book", "Finish within an eighth over par.", "C", "par", false, part("Par moves", 50)),
   ch("freecell", "Card sharp", "Finish within 32 s.", "C", "speed", true, part("Speed", 45)),
   // Mahjong Solitaire (mahjong): pairs 150 + no shuffles 20 + speed 30 (65 s).
   ch("mahjong", "No shuffle", "Clear the stack without a Shuffle.", "C", "clean", false, all(full("Pairs", 150), full("No shuffles", 20))),
@@ -494,9 +494,9 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("pyramid", "Unlucky for some", "Clear the pyramid within 20 s.", "C", "speed", false, part("Speed", 25)),
   // Summit (tripeaks): cards 105 + peak tops 30 + longest run 10 + clear 10 + stock par 20 + speed 25 (20 s).
   ch("tripeaks", "Peak bagger", "Clear all three peak tops.", "C", "fullset", false, part("Peak tops", 30)),
-  ch("tripeaks", "Up and down", "Make a run of ten cards.", "C", "streak", false, part("Longest run", 10)),
-  ch("tripeaks", "Base camp", "Clear it within stock par.", "C", "par", false, part("Stock par", 20)),
-  ch("tripeaks", "Summit sprint", "Clear a Hard deal within 20 s.", "H", "speed", true, part("Speed", 25)),
+  ch("tripeaks", "Up and down", "Make a run of six cards.", "C", "streak", false, part("Longest run", 10)),
+  ch("tripeaks", "Base camp", "Clear it within 8 over stock par.", "C", "par", false, part("Stock par", 20)),
+  ch("tripeaks", "Summit sprint", "Clear a Hard deal within 31 s.", "H", "speed", true, part("Speed", 25)),
 
   /* ================================================================ Strategy */
   // Ball Tracker (balltrack): marbles home 140 + gold marbles 25 + combos 20 + boosted marbles 15.

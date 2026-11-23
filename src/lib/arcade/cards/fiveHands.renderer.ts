@@ -22,7 +22,7 @@ import {
   fhScoreV3,
   fhScoreV4,
   FH_REV_128,
-  FH_LV_EASY, fhColumn, fhHintRow, fhHintsLeft, fhLevelRulesOf, fhLevelScore, fiveHandsGameAt, fhCoreFullFor, FH_ROWS, FH_SEEN, FH_SLOTS, FH_TURNS, fhPickedHand, fhPicking, fhTotalV3, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhTotals, fhYours, fiveHandsGameFor, type FhState,
+  fhHintButtonOn, fhIdleHintOn, fhColumn, fhHintRow, fhHintsLeft, fhLevelRulesOf, fhLevelScore, fiveHandsGameAt, fhCoreFullFor, FH_ROWS, FH_SEEN, FH_SLOTS, FH_TURNS, fhPickedHand, fhPicking, fhTotalV3, fhDiscard, fhDiscardsShown, fhOpenRows, fhRowHand, fhTotals, fhYours, fiveHandsGameFor, type FhState,
 } from "./fiveHands";
 
 export const FH_WORLD_W = 414;
@@ -103,7 +103,7 @@ export function fhNewView(): FhView {
 }
 
 /**
- * The POINTS chip's figure: rev 3's score (hand points × 1.4, capped at 200), rev 4's (200 at 128 hand points; D6, 22 Nov
+ * The POINTS chip's figure: rev 3's score (hand points × 1.4, capped at 200), rev 4's (200 at 112 hand points; D6, 22 Nov
  * 2026, display only: the sim's own line), earlier revisions' hand points.
  */
 export function fhPointsShown(state: FhState): number {
@@ -116,7 +116,7 @@ export function fhPointsShown(state: FhState): number {
 export const FH_HINT_BOX = { x: FH_WORLD_W / 2 + FH_NEXT_W / 2 + 24, y: FH_NEXT_Y + 62, w: 110, h: 44 };
 /** Whether a point is on the Hint button (level deals only). */
 export function fhOnHint(state: Pick<FhState, "lv">, x: number, y: number): boolean {
-  return Boolean(state.lv) && inButton(FH_HINT_BOX, x, y);
+  return fhHintButtonOn(state) && inButton(FH_HINT_BOX, x, y);
 }
 const HINT_TICKS = 150;
 const IDLE_HINT_TICKS = 8 * 60;
@@ -124,7 +124,7 @@ const IDLE_HINT_TICKS = 8 * 60;
 export function fhHintShown(state: FhState, view?: FhView): { kind: "row" | "column"; index: number; glow: number } | null {
   if (!view || !state.lv || state.ended !== 0) return null;
   const asked = (state.hints ?? 0) > 0 ? state.tick - (state.hintTick ?? 0) : Infinity;
-  const idle = state.lv === FH_LV_EASY && state.tick - Math.max(state.lastTick, state.hintTick ?? 0) >= IDLE_HINT_TICKS;
+  const idle = fhIdleHintOn(state) && state.tick - Math.max(state.lastTick, state.hintTick ?? 0) >= IDLE_HINT_TICKS;
   if (!(asked < HINT_TICKS) && !idle) return null;
   const hint = fhHintRow(state);
   if (!hint) return null;
@@ -321,7 +321,7 @@ function drawFiveHandsWorld(ctx: CanvasRenderingContext2D, state: FhState, size:
       }
     }
     const left = fhHintsLeft(state);
-    drawCardButton(ctx, FH_HINT_BOX, "hint", left === Infinity ? "Hint" : left > 0 ? `Hint (${left})` : "No hints", { live: state.ended === 0 && left > 0, held: view?.hintHeld === true });
+    if (fhHintButtonOn(state)) drawCardButton(ctx, FH_HINT_BOX, "hint", left === Infinity ? "Hint" : left > 0 ? `Hint (${left})` : "No hints", { live: state.ended === 0 && left > 0, held: view?.hintHeld === true });
   }
 
   // The discards, taken by the opponents: oldest top left, each newer one over the last's right side.
