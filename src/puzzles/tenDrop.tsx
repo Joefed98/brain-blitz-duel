@@ -47,6 +47,8 @@ import { drawTenDropLive, tenDropArenaScene } from "@/lib/arcade/tenDrop.rendere
 import "@/polish-layout/batch-w-tendrop.css";
 import "@/polish-layout/polish-nov3-number.css";
 import { HudPills } from "@/components/puzzles/HudPills";
+import { useGameKeys } from "@/lib/desktop";
+import { tenDropKeyTap } from "@/lib/gameFrame/stageKeys";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
@@ -225,6 +227,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const checkpoints = useRef<ReturnType<typeof tenDropCheckpoint>[]>([]);
   const pending = useRef<ArcadeInputEvent[]>([]);
   const submitted = useRef(false);
+  useGameKeys((kind, key) => { const tap = tenDropKeyTap(key, state.current.tiles); if (tap && kind === "down" && !locked && !submitted.current && !tenDropGame.isOver(state.current)) pending.current.push(tap); return tap !== null || ["1", "2", "3", "4"].includes(key); });
   const [hud, setHud] = useState({ target: 0, total: 0, cleared: 0, tick: 0, flash: "" as "" | "red" | "gold" });
   const [dev, setDev] = useState<string | null>(null);
   useNoTouchScroll(wrap);

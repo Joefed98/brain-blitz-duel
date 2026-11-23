@@ -125,7 +125,8 @@ const helpText = (type: keyof typeof PUZZLE_INSTRUCTIONS) => {
     ["src/puzzles/equation.tsx", /<StageProgress stage=\{stage\} total=\{total\} quiet=\{stage > 0 && !equationStageCorrect\(/],
     // Changed with Joe's approval, 15 Nov 2026 (Number overhaul brief): Operator's bar counts equations solved (`done`).
     ["src/puzzles/equationGaps.tsx", /<StageProgress stage=\{stage\} total=\{total\} done=\{fair \? solvedCount : undefined\} quiet=\{stage > 0 && !gapStageCorrect\(/],
-    ["src/puzzles/numberPyramid.tsx", /<StageProgress stage=\{stage\} total=\{NP_SET_SIZE\} quiet=\{stage > 0 && [^\n]*!npComplete\(/],
+    // D2: the dealt round's pyramids (Easy and Expert deal three). Changed with Joe's approval, 22 Nov 2026
+    ["src/puzzles/numberPyramid.tsx", /<StageProgress stage=\{stage\} total=\{pyramidCount\} quiet=\{stage > 0 && [^\n]*!npComplete\(/], // Changed with Joe's approval, 22 Nov 2026
     ["src/puzzles/measure.tsx", /<StageProgress stage=\{stage\} total=\{MEASURE_BOARDS\} quiet=\{[^\n]*\.solved\} \/>/],
   ] as const) ok(test.test(src(path)), `${path}: an unsolved stage moves on quietly`);
   for (const path of ["src/puzzles/equation.tsx", "src/puzzles/equationGaps.tsx"]) {
@@ -156,7 +157,8 @@ const helpText = (type: keyof typeof PUZZLE_INSTRUCTIONS) => {
   ok(/wrongMoveFlash\(/.test(between(s, "useEffect(() => {\n    if (fullWrongKey", "}, [fullWrongKey")), "Integer Pyramid: a full wrong pyramid gets the wrong-move shake and its quiet sound");
 // Changed with Joe's approval, 15 Nov 2026 (Number overhaul brief): a full wrong pyramid shows its cracks only, no red fill.
   ok(!/marks: Object\.fromEntries\(broken\.map/.test(s) && /seams=\{drag \? undefined : seams\}/.test(s), "Integer Pyramid: a full wrong pyramid shows its cracks (seams), with no red fill on the stones");
-  ok(/\{stage >= NP_SET_SIZE - 1 \? "Finish" : "Skip"\}/.test(s), "Integer Pyramid: Skip reads Finish on the last board");
+  // D2: the last of the dealt round's pyramids. Changed with Joe's approval, 22 Nov 2026
+  ok(/const pyramidCount = data\?\.pyramids\.length \|\| NP_SET_SIZE;/.test(s) && /\{stage >= pyramidCount - 1 \? "Finish" : "Skip"\}/.test(s), "Integer Pyramid: Skip reads Finish on the last board"); // Changed with Joe's approval, 22 Nov 2026
 }
 
 /* ------------------------------------------------------------------ 5. Brimful measureRev 4 */
@@ -166,7 +168,9 @@ const helpText = (type: keyof typeof PUZZLE_INSTRUCTIONS) => {
     try {
       // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): the measureRev 4 game is dealt
       // at Hard (measureLevels.ts); Normal is the new measureRev 5 game. The pinned era still deals rev 3 at Normal.
-      const made = withSeededRandom(seed, () => generatePuzzle("measure", pinned ? { bankSeed: seed } : { bankSeed: seed, level: "hard" }));
+      // D2 (Joe's decision 10, a Hard you can see): Hard has its own boards now, so the measureRev 4 game is reached by
+      // its pin at Normal (preMeasureLevels). Changed with Joe's approval, 22 Nov 2026
+      const made = withSeededRandom(seed, () => (pinned ? generatePuzzle("measure", { bankSeed: seed }) : generatePuzzle("measure", { bankSeed: seed }, { pins: ["preMeasureLevels"] }))); // Changed with Joe's approval, 22 Nov 2026
       const { level: _level, ...rest } = made as unknown as Record<string, unknown>;
       return rest as unknown as MeasurePuzzleData;
     } finally {

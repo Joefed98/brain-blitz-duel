@@ -31,9 +31,11 @@ import type {
 import type { StandardGame } from "./grade.server";
 import { PARTIAL_SHARE_POINTS, usesPartialCredit } from "../partialCredit";
 import { solverShare } from "../puzzleProgress";
+import { pyramidPartialCredit, usesPyramidPartial } from "../pyramidPartial";
+import { ballparkBullPoints } from "../ballparkBullseyes";
+import { splitTargetRounds, targetRoundPuzzle, targetRoundsDone, targetRoundsOf, usesTargetRounds } from "../targetRounds";
 import {
   BALLPARK_STD_BULL_MAX,
-  BALLPARK_STD_BULL_POINTS,
   BALLPARK_STD_EARLY,
   BALLPARK_STD_ITEM,
   BALLPARK_STD_WILD,
@@ -56,17 +58,14 @@ import {
 } from "./number";
 import { STANDARD_FINISH, cleanPoints, earlyPoints, parPoints, speedPoints } from "./shape";
 import { storedLevelFullByS } from "./plLevelSpeed";
+import { storedFullByS } from "./levelSpeed";
 
 function speedFor(type: keyof typeof NUMBER_STANDARD, msLeft: number, limitMs: number, fullByS?: number): number {
   const g = NUMBER_STANDARD[type]!;
   return speedPoints(g.speed, msLeft, limitMs, (fullByS ?? g.fullByS) * 1000);
 }
 
-/** A level's own "full by" time, stamped on the deal (Operator's Hard and Expert, 16 Nov 2026); none on Normal. */
-function storedFullByS(puzzle: unknown): number | undefined {
-  const v = (puzzle as { speedFullByS?: unknown }).speedFullByS;
-  return typeof v === "number" && v > 0 ? v : undefined;
-}
+export { storedFullByS } from "./levelSpeed";
 
 /* ------------------------------------------------------------------ Exact */
 
@@ -152,14 +151,36 @@ export function exactBuildShare(puzzle: TargetNumberPuzzleData, answer: string):
   return solverShare(start - 1, start - best, made, 1);
 }
 
+/**
+ * D2 (22 Nov 2026, targetRounds.ts): a round of targets in a row. A finish is 150 + speed (the round's own "full by" time)
+ * + elegance averaged over the targets (each target's 15, less 5 a number past its fewest); unfinished is 130 × (the
+ * targets hit + the share of the current one) ÷ the targets, the current one's share the better of the solution built
+ * and the closeness curve (each ÷ 130), so a later target never pays before the ones before it.
+ */
+function gradeTargetRounds(p: TargetNumberPuzzleData, answer: string, isCorrect: boolean, msLeft: number, limitMs: number) {
+  const rounds = targetRoundsOf(p);
+  const parts = splitTargetRounds(answer, rounds.length);
+  const done = targetRoundsDone(p, answer);
+  if (isCorrect) {
+    const used = rounds.map((_, i) => exactTilesUsed(targetRoundPuzzle(p, i), parts[i] ?? ""));
+    const min = rounds.map((r) => exactMinTiles(r.tiles, r.target));
+    const elegance = used.reduce<number>((sum, u, i) => sum + (u === null ? 0 : cleanPoints(EXACT_STD_ELEGANCE, EXACT_STD_ELEGANCE_PER, u - min[i]!)), 0) / rounds.length;
+    return { finished: true as const, speed: speedFor("target", msLeft, limitMs, storedFullByS(p)), bonus: elegance, measure: "elegance", facts: { targets: rounds.length, tilesUsed: used, minTiles: min } };
+  }
+  const current = targetRoundPuzzle(p, done);
+  const share = Math.min(0.99, Math.max(exactBuildShare(current, parts[done] ?? ""), exactCloseCredit(exactBestDistance(current, parts[done] ?? "")) / PARTIAL_SHARE_POINTS));
+  return { finished: false as const, credit: (PARTIAL_SHARE_POINTS * (done + share)) / rounds.length, facts: { targets: rounds.length, targetsDone: done, bestDistance: exactBestDistance(current, parts[done] ?? "") } };
+}
+
 const exact: StandardGame = {
   grade({ puzzle, answer, graded, msLeft, limitMs }) {
     const p = puzzle as TargetNumberPuzzleData;
+    if (usesTargetRounds(p)) return gradeTargetRounds(p, answer, graded.isCorrect, msLeft, limitMs);
     if (graded.isCorrect) {
       const used = exactTilesUsed(p, answer);
       const min = exactMinTiles(p.tiles, p.target);
       const elegance = used === null ? 0 : cleanPoints(EXACT_STD_ELEGANCE, EXACT_STD_ELEGANCE_PER, used - min);
-      return { finished: true, speed: speedFor("target", msLeft, limitMs), bonus: elegance, measure: "elegance", facts: { tilesUsed: used, minTiles: min } };
+      return { finished: true, speed: speedFor("target", msLeft, limitMs, storedFullByS(puzzle)), bonus: elegance, measure: "elegance", facts: { tilesUsed: used, minTiles: min } };
     }
     const best = exactBestDistance(p, answer);
     if (usesPartialCredit(p)) {
@@ -219,7 +240,7 @@ const counterweight: StandardGame = {
       // Par hangs: every tray weight hung once (the fewest hangs a scale can take), over the four scales together.
       const par = p.scales.reduce((sum, scale) => sum + scale.tray.length, 0);
       const used = p.scales.reduce((sum, scale, s) => sum + Math.max(scale.tray.length, hangs[s] ?? 0), 0);
-      return { finished: true, speed: speedFor("balance", msLeft, limitMs), bonus: parPoints(NUMBER_STANDARD.balance!.bonus, used, par), measure: "par", facts: { hangsUsed: used, parHangs: par } };
+      return { finished: true, speed: speedFor("balance", msLeft, limitMs, storedFullByS(puzzle)), bonus: parPoints(NUMBER_STANDARD.balance!.bonus, used, par), measure: "par", facts: { hangsUsed: used, parHangs: par } };
     }
     return { finished: false, credit: NUMBER_PART_POINTS * scales + ctx.early(NUMBER_PART_EARLY, scales), facts: { scalesBalanced: scales } };
   },
@@ -269,9 +290,17 @@ const pyramid: StandardGame = {
     // No timeline, no history: the clean bonus needs it (0 without).
     const everWrong = drafts ? pyramidsEverWrong(p, drafts) : boards.map(() => true);
     const clean = boards.filter((b, i) => b.complete && !everWrong[i]).length;
-    const cleanPts = Math.min(NUMBER_STANDARD.numpyramid!.bonus, NUMBER_CLEAN_EACH * clean);
+    // The clean bonus's share a pyramid: 10 ÷ the pyramids (D2, 22 Nov 2026: Easy's and Expert's three pyramids can take
+    // all 10); exactly NUMBER_CLEAN_EACH (2.5) on every four-pyramid round, as before.
+    const cleanEach = p.pyramids.length === 4 ? NUMBER_CLEAN_EACH : NUMBER_STANDARD.numpyramid!.bonus / Math.max(1, p.pyramids.length);
+    const cleanPts = Math.min(NUMBER_STANDARD.numpyramid!.bonus, cleanEach * clean);
     const facts = { pyramidsDone: done, cleanPyramids: clean };
-    if (graded.isCorrect) return { finished: true, speed: speedFor("numpyramid", msLeft, limitMs), bonus: cleanPts, measure: "clean", facts };
+    if (graded.isCorrect) return { finished: true, speed: speedFor("numpyramid", msLeft, limitMs, storedFullByS(puzzle)), bonus: cleanPts, measure: "clean", facts };
+    // depthRev 3 (pyramidPartial.ts, D2): 130 × the stones placed correctly ÷ the round's stones, no extras.
+    if (usesPyramidPartial(p)) {
+      const partial = pyramidPartialCredit(boards);
+      return { finished: false, credit: partial.credit, facts: { pyramidsDone: done, stonesRight: partial.right, stones: partial.stones } };
+    }
     // The current pyramid is the first unfinished one (they are played in order), as rev 1 reads it.
     const current = boards.find((b) => !b.complete);
     const share = current && current.empty > 0 ? Math.min(0.99, Math.min(current.correct, current.empty) / current.empty) : 0;
@@ -368,7 +397,7 @@ const brimful: StandardGame = {
       // Par pours over the four puzzles together: total actions against the total of their par (their fewest).
       const par = results.reduce((sum, r, i) => sum + (p.par?.[i] ?? r.minMoves), 0);
       const used = results.reduce((sum, r) => sum + r.moves, 0);
-      return { finished: true, speed: speedFor("measure", msLeft, limitMs), bonus: parPoints(NUMBER_STANDARD.measure!.bonus, used, par), measure: "par", facts: { pours: used, parPours: par } };
+      return { finished: true, speed: speedFor("measure", msLeft, limitMs, storedFullByS(puzzle)), bonus: parPoints(NUMBER_STANDARD.measure!.bonus, used, par), measure: "par", facts: { pours: used, parPours: par } };
     }
     return { finished: false, credit: NUMBER_PART_POINTS * solved + ctx.early(NUMBER_PART_EARLY, solved), facts: { puzzlesSolved: solved } };
   },
@@ -408,7 +437,7 @@ const checkout: StandardGame = {
       const min = results.reduce((sum, r) => sum + r.minDarts, 0);
       const darts = results.reduce((sum, r) => sum + r.darts, 0);
       const fewest = parPoints(CHECKOUT_STD_FEWEST, darts, min);
-      return { finished: true, speed: speedFor("checkout", msLeft, limitMs), bonus: fewest + big.points, measure: "bonus", facts: { ...facts, darts, fewestDarts: min } };
+      return { finished: true, speed: speedFor("checkout", msLeft, limitMs, storedFullByS(puzzle)), bonus: fewest + big.points, measure: "bonus", facts: { ...facts, darts, fewestDarts: min } };
     }
     return { finished: false, credit: CHECKOUT_STD_BOARD * count + ctx.early(CHECKOUT_STD_EARLY, count) + big.points, facts };
   },
@@ -425,7 +454,8 @@ const ballpark: StandardGame = {
     const acc = results.map((r) => (r.placed ? ballparkAccuracy(r.error) : 0));
     const average = acc.reduce((sum, a) => sum + a, 0) / total;
     const bulls = results.filter((r) => r.placed && isStdBullseye(r.error)).length;
-    const bullPts = Math.min(BALLPARK_STD_BULL_MAX, BALLPARK_STD_BULL_POINTS * bulls);
+    // depthRev 3 (ballparkBullseyes.ts, D2): 3 a bullseye, still up to 30; earlier rounds 2.
+    const bullPts = Math.min(BALLPARK_STD_BULL_MAX, ballparkBullPoints(p) * bulls);
     // A wild number (25 % or more of the line off) costs 1, finished or not, as today (numlineRev 2's −1 item).
     const wild = results.filter((r) => r.placed && r.error !== null && r.error >= BALLPARK_STD_WILD).length;
     const facts = { accuracy: Math.round(average * 1000) / 1000, bullseyes: bulls, wild };
@@ -436,7 +466,7 @@ const ballpark: StandardGame = {
       return {
         finished: true,
         base: STANDARD_FINISH * average - wild,
-        speed: speedFor("numline", msLeft, limitMs) * average,
+        speed: speedFor("numline", msLeft, limitMs, storedFullByS(puzzle)) * average,
         bonus: bullPts,
         measure: "bullseyes",
         facts,
