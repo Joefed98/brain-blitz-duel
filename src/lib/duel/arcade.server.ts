@@ -30,7 +30,7 @@ import { TILT_DEAL_LEVELS } from "./tiltDealLevels.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG } from "@/lib/arcade/swing";
-import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_AIM, BURST_REV_BIG } from "@/lib/arcade/burst";
+import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_AIM, BURST_REV_BIG, BURST_REV_SMALL } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD, BRK_REV_CLEAR } from "@/lib/arcade/breaker";
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_SAVE } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
@@ -509,7 +509,10 @@ export function generateBurst(): BurstPuzzleData {
   // burstRev 11 (the scoring audit, Nov 2026): burstRev 10's play; the last life not charged, wasted beams beyond one an atom cost.
   // burstRev 12 (the Retro overhaul, 15 Nov 2026): burstRev 11's play; the wave-clear bonus runs out at three times the
   // quick time; burstRev 13 adds bigger atoms (checks written for burstRev 11 pin preRetro).
-  return { type: "burst", seed: arcadeSeed(), burstRev: dealPinned("preRetro") ? BURST_REV_AIM : BURST_REV_BIG };
+  // burstRev 14 (D5, Joe, 20 Nov 2026): burstRev 13 with the middle atoms, 35 / 24 / 15 / 9 px (checks written for
+  // burstRev 13 pin burstPreSmall).
+  if (dealPinned("preRetro")) return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_AIM };
+  return { type: "burst", seed: arcadeSeed(), burstRev: dealPinned("burstPreSmall") ? BURST_REV_BIG : BURST_REV_SMALL };
 }
 
 /**

@@ -8,7 +8,7 @@ import {
   BURST_REV,
   BURST_REV_BAND,
   BURST_REV_TALL,
-  BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN, BURST_REV_CARRY, BURST_REV_STD, BURST_REV_AIM, BURST_REV_WIDE, BURST_REV_BIG,
+  BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_CLEAN, BURST_REV_CARRY, BURST_REV_STD, BURST_REV_AIM, BURST_REV_WIDE, BURST_REV_BIG, BURST_REV_SMALL,
   BURST_CHECKPOINT_INTERVAL,
   BURST_CHECKPOINT_KEYS,
   BURST_LIVES, burstLivesOf,
@@ -131,6 +131,25 @@ function runV13For(level?: Level | null): typeof runV13 {
   return r;
 }
 
+/** burstRev 14 (D5, 22 Nov 2026): burstRev 13's rules with the middle atoms, Normal's runner and one a level. */
+const runV14 = makeArcadeRun<BurstState, BurstCheckpoint>({
+  tag: "burst",
+  game: burstGameFor(BURST_REV_SMALL),
+  checkpoint: burstCheckpoint,
+  keys: BURST_CHECKPOINT_KEYS,
+  interval: BURST_CHECKPOINT_INTERVAL,
+});
+const runV14ByLevel = new Map<string, typeof runV14>();
+function runV14For(level?: Level | null): typeof runV14 {
+  if (!level || level === "normal") return runV14;
+  let r = runV14ByLevel.get(level);
+  if (!r) {
+    r = makeArcadeRun<BurstState, BurstCheckpoint>({ tag: "burst", game: burstGameFor(BURST_REV_SMALL, level), checkpoint: burstCheckpoint, keys: BURST_CHECKPOINT_KEYS, interval: BURST_CHECKPOINT_INTERVAL });
+    runV14ByLevel.set(level, r);
+  }
+  return r;
+}
+
 export interface BurstResult extends FlatReplay<BurstState, BurstCheckpoint> {
   wave: number;
   hits: number;
@@ -148,7 +167,7 @@ export const decodeBurstRun = run.decode;
 
 /** The single place a Burst score is worked out. */
 export function replayBurstRun(seed: number, raw: string, rev?: number | null, level?: Level | null): BurstResult {
-  const result = (rev === BURST_REV_BIG ? runV13For(level) : rev === BURST_REV_WIDE ? runV12 : rev === BURST_REV_AIM ? runV11 : rev === BURST_REV_STD ? runV10 : rev === BURST_REV_CARRY ? runV9 : rev === BURST_REV_CLEAN ? runV8 : rev === BURST_REV_STRICT ? runStrict : rev === BURST_REV_TARGET ? runTarget : rev === BURST_REV_TALL ? runTall : rev === BURST_REV_BAND ? runBand : rev === BURST_REV ? runV2 : run).replay(seed, raw);
+  const result = (rev === BURST_REV_SMALL ? runV14For(level) : rev === BURST_REV_BIG ? runV13For(level) : rev === BURST_REV_WIDE ? runV12 : rev === BURST_REV_AIM ? runV11 : rev === BURST_REV_STD ? runV10 : rev === BURST_REV_CARRY ? runV9 : rev === BURST_REV_CLEAN ? runV8 : rev === BURST_REV_STRICT ? runStrict : rev === BURST_REV_TARGET ? runTarget : rev === BURST_REV_TALL ? runTall : rev === BURST_REV_BAND ? runBand : rev === BURST_REV ? runV2 : run).replay(seed, raw);
   const s = result.state;
   return {
     ...result,
