@@ -20,7 +20,7 @@ import "@/polish-layout/number-overhaul.css";
 
 const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-type Board = Pick<KakuroPuzzleData, "size" | "white" | "clues">;
+type Board = Pick<KakuroPuzzleData, "size" | "white" | "clues" | "rows">;
 type Tone = "entry" | "wrong" | "missing" | "missed" | "given";
 
 /** Per white cell: the runs through it (across first). */
@@ -57,6 +57,8 @@ export function KakuroBoard({
   placed?: number | null | undefined;
 }) {
   const { size } = board;
+  // D2 (22 Nov 2026): a level's rows down (Hard's 7 by 6); the rows past them are black and not drawn.
+  const rows = board.rows ?? size;
   const runs = useMemo(() => kakuroRuns(board), [board]);
   const byCell = useMemo(() => runsByCell(runs), [runs]);
   const white = useMemo(() => new Set(board.white), [board.white]);
@@ -82,15 +84,15 @@ export function KakuroBoard({
         "--kakuro-clue-art": `url(${numberArt("kakuro", "clue")})`,
         "--kakuro-block-art": `url(${numberArt("kakuro", "block")})`,
         gridTemplateColumns: `repeat(${size}, minmax(0, 1fr))`,
-        gridTemplateRows: `repeat(${size}, minmax(0, 1fr))`,
-        aspectRatio: "1",
+        gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+        aspectRatio: rows === size ? "1" : `${size} / ${rows}`,
         gap: small ? 1 : 2,
         containerType: "inline-size",
         "--kakuro-n": size,
         "--kakuro-step": `${order.step}ms`,
       } as CSSProperties}
     >
-      {Array.from({ length: size * size }, (_, cell) => {
+      {Array.from({ length: rows * size }, (_, cell) => {
         const row = Math.floor(cell / size);
         const col = cell % size;
         const place = { gridRow: row + 1, gridColumn: col + 1 };
@@ -195,7 +197,8 @@ function stepWhite(board: Board, white: ReadonlySet<number>, from: number, dir: 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStageProps) {
   const data: KakuroPuzzleData | null = puzzle.type === "kakuro" ? puzzle : null;
   const size = data?.size ?? KAKURO_SIZE;
-  const board: Board = useMemo(() => ({ size, white: data?.white ?? [], clues: data?.clues ?? [] }), [size, data?.white, data?.clues]);
+  const rows = data?.rows;
+  const board: Board = useMemo(() => ({ size, white: data?.white ?? [], clues: data?.clues ?? [], ...(rows ? { rows } : {}) }), [size, rows, data?.white, data?.clues]);
   const white = useMemo(() => new Set(board.white), [board.white]);
   const runs = useMemo(() => kakuroRuns(board), [board]);
   const key = stateKey ?? "kakuro";
@@ -329,7 +332,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey }: PuzzleStag
             filled <span className="text-primary">{filled}</span> / {board.white.length}
           </p>
         )}
-        <div ref={boardBox} className="logic-square kakuro-frame">
+        <div ref={boardBox} className="logic-square kakuro-frame" style={rows && rows < size ? { aspectRatio: `${size} / ${rows}` } : undefined}>
           <KakuroBoard
             board={board}
             values={values}
@@ -438,7 +441,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
     <div className="logic-reveal" data-kakuro-reveal>
       {hasSolution ? <RevealView value={side} onChange={setSide} /> : null}
       <div className="logic-reveal-board" data-kakuro-reveal-side={hasSolution ? side : "yours"}>
-        <div className="logic-square-bare kakuro-frame" style={{ maxWidth: 360, width: "100%" }}>
+        <div className="logic-square-bare kakuro-frame" style={{ maxWidth: 360, width: "100%", ...(puzzle.rows && puzzle.rows < puzzle.size ? { aspectRatio: `${puzzle.size} / ${puzzle.rows}` } : {}) }}>
           <KakuroBoard board={puzzle} values={shown.values} tones={shown.tones} />
         </div>
       </div>

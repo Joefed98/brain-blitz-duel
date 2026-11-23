@@ -283,6 +283,7 @@ export function Line({
   label = 16,
   yShare = 0.55,
   minor = 0,
+  minorLabels = false,
   hidden = null,
   svgStyle,
   children,
@@ -297,6 +298,8 @@ export function Line({
   yShare?: number;
   /** Unlabelled ticks across the tape at each 1/minor of the line (a live round's tenths); 0 for none. */
   minor?: number;
+  /** D2 (22 Nov 2026, Ballpark's Easy): each minor tick carries its number. */
+  minorLabels?: boolean;
   svgStyle?: CSSProperties;
   children?: (x: (share: number) => number, y: number, geom: TapeGeom) => ReactNode;
 }) {
@@ -336,6 +339,17 @@ export function Line({
               strokeLinecap="square"
             />
           ))
+        : null}
+      {minor > 0 && minorLabels
+        ? Array.from({ length: minor - 1 }, (_, i) => (i + 1) / minor).map((share) => {
+            const v = stage.lo + share * (stage.hi - stage.lo);
+            const text = Number.isInteger(v) ? fmt(v) : String(Math.round(v * 10) / 10);
+            return (
+              <text key={`ml${share}`} data-numline-mark-label x={x(share)} y={y + t / 2 + 8 + label} textAnchor="middle" fontSize={Math.round(label * 0.7)} fontWeight={700} fill="var(--foreground)" fontFamily={ARCHIVO}>
+                {text}
+              </text>
+            );
+          })
         : null}
       {tickLabels(stage, hidden).map((tick) => (
         <g key={tick.share}>
@@ -690,7 +704,7 @@ function Stage({
           <div ref={lineBox} key={shownStage} className="numline-line-in relative w-full" data-edge-bump={edge?.side}>
             {/* Puzzle polish (3 Nov 2026, display only): a thicker tape (16 → 24) and larger pins; x mapping unchanged.
                 The overhaul: 32 and bold 22 px end labels in a live round. */}
-            <Line stage={stage} width={size.width} height={lineH} t={live ? live.t : 24} label={live ? live.label : 18} yShare={lineY} minor={0} hidden={numlineHiddenEnd(stage, placedHere.length)}>
+            <Line stage={stage} width={size.width} height={lineH} t={live ? live.t : 24} label={live ? live.label : 18} yShare={lineY} minor={stage.marks ?? 0} minorLabels={stage.markLabels === true} hidden={numlineHiddenEnd(stage, placedHere.length)}>
               {(x, y, geom) => (
                 <>
                   {placedHere.map((p, i) => (
