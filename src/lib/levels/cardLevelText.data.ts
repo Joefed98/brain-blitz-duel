@@ -32,13 +32,13 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
       "score": "Cards: every card home scores, a card in a sorted run on the columns half as much; all 40 home for all of it, up to 105. Par moves: finish within an eighth over the deal’s fewest moves (par) for all of it, nothing at one and a half times par, up to 50. Speed: finish within 33 s for all of it, falling to 0 at the buzzer, up to 45. Total 200."
     },
     "expert": {
-      "goal": "Get all 52 cards home, fast, in two minutes.",
+      "goal": "Get all 48 cards home, fast, in two minutes.",
       "how": [
-        "52 cards (Ace to King), 2 free cells, only the deals solved in 50 moves or fewer.",
+        "48 cards (Ace to 12), 2 free cells, only the deals solved in 50 moves or fewer.",
         "3 undos, each a move."
       ],
-      "intro": "Move all 52 cards home; bonuses for few moves and speed. Up to 200.",
-      "score": "Cards: every card home scores, a card in a sorted run on the columns half as much; all 52 home for all of it, up to 105. Par moves: finish within a quarter over the deal’s fewest moves (par) for all of it, nothing at one and a half times par, up to 50. Speed: finish within 52 s for all of it, falling to 0 at the buzzer, up to 45. Total 200."
+      "intro": "Move all 48 cards home; bonuses for few moves and speed. Up to 200.",
+      "score": "Cards: every card home scores, a card in a sorted run on the columns half as much; all 48 home for all of it, up to 105. Par moves: finish within a quarter over the deal’s fewest moves (par) for all of it, nothing at one and a half times par, up to 50. Speed: finish within 45 s for all of it, falling to 0 at the buzzer, up to 45. Total 200."
     }
   },
   "mahjong": {
@@ -151,7 +151,7 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
         "No glow and no hints: find each card's partner yourself."
       ],
       "intro": "Clear the 8-row pyramid in pairs to 13; bonuses for a clear and speed. Up to 200.",
-      "score": "Pyramid cards: remove the 36 pyramid cards, each worth the same, up to 140. Cleared: remove all 36, up to 15. Speed: clear it within 26 s for all of it, falling to 0 at the buzzer, up to 25. Pyramid pairs: pairs made of two pyramid cards, all of it at 16, up to 20. Total 200."
+      "score": "Pyramid cards: remove the 36 pyramid cards, each worth the same, up to 140. Cleared: remove all 36, up to 15. Speed: clear it within 35 s for all of it, falling to 0 at the buzzer, up to 25. Pyramid pairs: pairs made of two pyramid cards, all of it at 16, up to 20. Total 200."
     },
     "expert": {
       "goal": "Clear the pyramid in pairs that add to 13.",
@@ -160,7 +160,7 @@ export const CARD_LEVEL_TEXT: Readonly<Record<string, Readonly<Record<"easy" | "
         "No glow and no hints: find each card's partner yourself."
       ],
       "intro": "Clear the 9-row pyramid in pairs to 13; bonuses for a clear and speed. Up to 200.",
-      "score": "Pyramid cards: remove the 45 pyramid cards, each worth the same, up to 140. Cleared: remove all 45, up to 15. Speed: clear it within 32 s for all of it, falling to 0 at the buzzer, up to 25. Pyramid pairs: pairs made of two pyramid cards, all of it at 21, up to 20. Total 200."
+      "score": "Pyramid cards: remove the 45 pyramid cards, each worth the same, up to 140. Cleared: remove all 45, up to 15. Speed: clear it within 42 s for all of it, falling to 0 at the buzzer, up to 25. Pyramid pairs: pairs made of two pyramid cards, all of it at 21, up to 20. Total 200."
     }
   }
 };
