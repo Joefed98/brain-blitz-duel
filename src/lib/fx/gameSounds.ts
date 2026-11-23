@@ -630,9 +630,10 @@ export function snakeSounds(): GameSounds<SnakeState> {
 /**
  * Lane pitches (Joe's phone notes, 28 Oct 2026): the 8-bit note (C5) climbs a major pentatonic scale lane by lane,
  * C D E G A, so every lane sounds higher than the one to its left and any run of notes stays in key; five entries
- * for beatRev 9's fifth lane (four-lane charts use the first four).
+ * for beatRev 9's fifth lane (four-lane charts use the first four), and a sixth, the C above, for beatRev 13's six-lane
+ * Expert (D5's ladder, 23 Nov 2026; three-lane Easy uses the first three).
  */
-export const BEAT_LANE_RATES = [0, 2, 4, 7, 9].map((semitones) => 2 ** (semitones / 12));
+export const BEAT_LANE_RATES = [0, 2, 4, 7, 9, 12].map((semitones) => 2 ** (semitones / 12));
 
 export function beatSounds(): GameSounds<BeatState> {
   let prev: BeatState | null = null;

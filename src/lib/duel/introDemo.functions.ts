@@ -23,7 +23,7 @@ import { RALLY_REV_LIVES, RALLY_REV_STD } from "@/lib/arcade/rally";
 import { WAV_REV_WIDE } from "@/lib/arcade/wavefront";
 import { BURST_REV_SMALL } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
-import { BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
+import { BEAT_REV_FLOOR, BEAT_REV_LANES } from "@/lib/arcade/beat";
 import { BLOCKFALL_REV_ZONE } from "@/lib/arcade/blockfall";
 import { SNAKE_REV_GRACE } from "@/lib/arcade/snake";
 import { POOL_REV } from "@/lib/arcade/pool";
@@ -72,8 +72,10 @@ export const SAME_PLAY_DEMO_REVS = {
   cross: [CROSS_REV_LIGHT],
   // rallyRev 13 (the Retro overhaul) plays rallyRev 12 tick for tick until the first miss, so a demo on either plays.
   rally: [RALLY_REV_STD, RALLY_REV_LIVES],
-  // beatRev 12 (the Retro overhaul) plays beatRev 11 exactly (a miss scores 0, not less), so a demo on either plays.
-  beat: [BEAT_REV_STD, BEAT_REV_FLOOR],
+  // beatRev 12 (the Retro overhaul) plays beatRev 11 exactly (a miss scores 0, not less), so a demo on either played.
+  // beatRev 13 (D5's ladder, 23 Nov 2026) plays beatRev 12 exactly at Normal (only the golden-note and streak lines
+  // moved), so a demo recorded on 12 or 13 plays (the dealt stamp and the one before it).
+  beat: [BEAT_REV_FLOOR, BEAT_REV_LANES],
   // Blockzone blockfallRev 2: only a demo recorded on it plays (blockfallRev 1 had the hold and the pads).
   blockfall: [BLOCKFALL_REV_ZONE],
   // skylineRev 11 (15 Nov 2026, lives): skylineRev 10's play until a miss, so a demo recorded on 10 or 11 plays.

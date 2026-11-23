@@ -513,7 +513,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Fever pitch | Start all four fevers. | Classic | Full set | line “Fever” = 25 of 25 |  | `beat.fever-pitch` |
-| Golden ear | Hit every golden note dead on. | Classic | Max-out | line “Golden notes” = 15 of 15 |  | `beat.gold` |
+| Golden ear | Hit every golden note dead on. | Classic | Max-out | from `beatRev` 13: `goldsHit` ≥ `golds`; before: line “Golden notes” = 15 of 15 |  | `beat.gold` |
 | Encore | Score 180 or more. | Classic | Big score | `score` ≥ 180 | ● | `beat.score180` |
 
 #### Blockzone (`blockfall`)
