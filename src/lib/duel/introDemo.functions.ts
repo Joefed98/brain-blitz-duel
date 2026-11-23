@@ -12,7 +12,7 @@ import { INK_REV_HILLS } from "@/lib/arcade/inkBridge";
 import { CLAY_REV_WIDE } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
-import { BRK_REV_CLEAR } from "@/lib/arcade/breaker";
+import { BRK_REV_CLEAR, BRK_REV_LADDER } from "@/lib/arcade/breaker";
 import { TILT_REV_BIG } from "@/lib/arcade/tilt";
 import { CROSS_REV_LIGHT } from "@/lib/arcade/cross";
 import { FLIP_REV_GRACE } from "@/lib/arcade/flip";
@@ -282,7 +282,8 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   // The arcade scoring standard (29 Oct 2026): brkRev 11 keeps brkRev 10's play but its HUD shows GOLD n/3 and every
   // brick, so the demo stays stopped until one is recorded on brkRev 11.
   // brkRev 12 (the Retro overhaul): a 9-row wall, so a demo stays stopped until recorded on brkRev 12.
-  if (data.type === "breaker" && demo?.puzzle.type === "breaker" && demo.puzzle.brkRev !== BRK_REV_CLEAR) return null;
+  // brkRev 13 (D5's ladder) plays brkRev 12 exactly at Normal (only its lines moved): a demo recorded on either plays.
+  if (data.type === "breaker" && demo?.puzzle.type === "breaker" && demo.puzzle.brkRev !== BRK_REV_CLEAR && demo.puzzle.brkRev !== BRK_REV_LADDER) return null;
   // Bastion bastionRev 2 (1 Nov 2026) is a new game (the tank-defence shooter): a demo of the original turret stays
   // stopped (the intro shows its still) until one is recorded on bastionRev 2.
   if (data.type === "bastion" && demo?.puzzle.type === "bastion" && demo.puzzle.bastionRev !== BASTION_REV_DEALT) return null;
