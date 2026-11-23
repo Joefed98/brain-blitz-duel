@@ -17,7 +17,8 @@ import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_HILLS, INK_REV_STD, isInkDiff } fr
 import { inkBigDealSeed } from "./inkBigDeal.server";
 import { inkHillsDealSeed } from "./inkHillsDeal.server";
 import { inkLevelDealSeed } from "./inkLevelDeals.server";
-import { SNAKE_REV_TARGET, SNAKE_REV_12, SNAKE_REV_GRACE } from "@/lib/arcade/snake";
+import { SNAKE_REV_TARGET, SNAKE_REV_12, SNAKE_REV_GRACE, SNAKE_REV_LADDER } from "@/lib/arcade/snake";
+import { snakeLevelDealSeed } from "./snakeLevelDeals.server";
 import { BUB_REV_FAST, BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_ICE2, MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
 import { minesBoard, minesGeoFor, minesSolve, MINES_REV_EASY, MINES_REV_EXPERT, MINES_REV_LOGIC, MINES_REV_NORMAL, MINES_REV_STD, MINES_RUN_TICKS } from "@/lib/arcade/minesweeper";
@@ -38,7 +39,8 @@ import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_KEEP, WAV_REV_BIG, WAV_REV_WIDE } from "@/lib/arcade/wavefront";
 import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, ORBIT_REV_LOST } from "@/lib/arcade/orbit";
-import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD, RALLY_REV_LIVES } from "@/lib/arcade/rally";
+import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD, RALLY_REV_LIVES, RALLY_REV_LADDER } from "@/lib/arcade/rally";
+import { rallyLevelDealSeed } from "./rallyLevelDeals.server";
 import { BEAT_REV_TARGET, BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
 import { orbitFuelCourseForSeed, orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
@@ -230,13 +232,18 @@ export function pinMatchupPreIce2(on: boolean): boolean {
   return setDealPin("matchupPreIce2", on);
 }
 
-export function generateSnake(): SnakePuzzleData {
+export function generateSnake(level?: Level): SnakePuzzleData {
   // snakeRev 10 (Joe's phone notes, 27 Oct 2026): longer gold stars, a third wormhole pair, a second vertical lane, 2 × 2 rocks.
   // snakeRev 11 (the arcade scoring standard, 29 Oct 2026): snakeRev 10's play, scored in straight-line parts to 200.
   // snakeRev 12 (1 Nov 2026): snakeRev 11 with gold stars counting 2 towards the core, full at 20.
   // snakeRev 14 (the Retro overhaul, 15 Nov 2026): snakeRev 13's wrapping edges and core full at 36, with rocks in three
   // sizes (preRetro: snakeRev 12). snakeRev 15 (stage 3, 16 Nov 2026): snakeRev 14 with the first crash forgiven.
-  return { type: "snake", seed: arcadeSeed(), snakeRev: dealPinned("preRetro") ? SNAKE_REV_12 : SNAKE_REV_GRACE };
+  // snakeRev 16 (D5's ladder, 23 Nov 2026): Normal's lower feature lines and the levels' rocks on the field, each level
+  // (Normal too) dealt only from seeds a human-limited player has taken to 200 (snakeLevelDeals.server.ts); checks
+  // written for snakeRev 15 pin snakePreLadder.
+  if (dealPinned("preRetro")) return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_12 };
+  if (dealPinned("snakePreLadder")) return { type: "snake", seed: arcadeSeed(), snakeRev: SNAKE_REV_GRACE };
+  return { type: "snake", seed: snakeLevelDealSeed(level, arcadeSeed()), snakeRev: SNAKE_REV_LADDER };
 }
 
 export function generateCross(): CrossPuzzleData {
@@ -336,10 +343,14 @@ export function generateMahjong(level?: Level): MahjongPuzzleData {
   }
 }
 
-export function generateRally(): RallyPuzzleData {
+export function generateRally(level?: Level): RallyPuzzleData {
   // rallyRev 13 (the Retro overhaul, 15 Nov 2026): two blue-ball lives and spin scores (checks written for rallyRev 12
-  // pin preRetro).
-  return { type: "rally", seed: arcadeSeed(), rallyRev: dealPinned("preRetro") ? RALLY_REV_STD : RALLY_REV_LIVES };
+  // pin preRetro). rallyRev 14 (D5's ladder, 23 Nov 2026): Normal's lower feature lines and the levels' paddles, each
+  // level (Normal too) dealt only from seeds a human-limited player has taken to 200 (rallyLevelDeals.server.ts); checks
+  // written for rallyRev 13 pin rallyPreLadder.
+  if (dealPinned("preRetro")) return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_STD };
+  if (dealPinned("rallyPreLadder")) return { type: "rally", seed: arcadeSeed(), rallyRev: RALLY_REV_LIVES };
+  return { type: "rally", seed: rallyLevelDealSeed(level, arcadeSeed()), rallyRev: RALLY_REV_LADDER };
 }
 
 export function generateSteady(): SteadyPuzzleData {

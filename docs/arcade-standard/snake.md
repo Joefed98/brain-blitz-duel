@@ -1,5 +1,94 @@
 # Meteor (`snake`): the arcade scoring standard, snakeRev 11 and 12
 
+## snakeRev 16 (D5's ladder, 23 Nov 2026): Normal's lines lowered, the levels' rocks on the field
+
+New stamp **snakeRev 16** (`SNAKE_REV_LADDER`), dealt at Normal and every level; snakeRev 15 rounds (every level) and
+every older stamp replay and score exactly as before (`scripts/fixtures/snake-ladder-legacy.json.gz`, recorded on
+polish/d5 428cd79a before any change; snake-ladder-check section 1). Checks written for snakeRev 15 pin
+`snakePreLadder` (`DEAL_PINS`). States add `ladder: 1`, folded into the checkpoint checksum last.
+
+**Normal** (Joe's rule for the Normal scoring stamps, 23 Nov 2026: each feature part full at about what the realistic
+elite takes on three runs in four): snakeRev 15's play exactly, scored on lower lines (`SNAKE_V16_LINES`):
+
+| Part | Max | snakeRev 15 | snakeRev 16 |
+| --- | --- | --- | --- |
+| Stars (a gold star counts 2) | 120 | full at 36 | full at 36 (unchanged) |
+| Gold stars | 40 | full at all 7 eaten on their first tick | full at 60 % of their whole worth (each about 9.5 eaten at once) |
+| Combos | 20 | 1 a combo star (full at 20) | 2 a combo star (full at 10) |
+| Lane rides | 10 | 1 a ride (full at 10) | 2 a ride (full at 5) |
+| Warp stars | 10 | 2 each (full at 5) | unchanged |
+
+The realistic elite's three-in-four figures on Normal (96 deals, the ladder's elite under the human limits): gold stars
+58 % of their worth, 10 combo stars, 5 lane rides, 20 warp points (warps already full). Normal is dealt, like every level,
+only from seeds a person held to the limits takes to 200 (below).
+
+### Levels (D5, 23 Nov 2026)
+
+The lever is **rocks on the field** (retroLevels.ts `SNAKE_LEVELS_V16`, mirrored by the level registry): on Normal rocks
+only fall once the comet has grown, so no level could be told from Normal at the start; now Easy has none and Hard and
+Expert start with rocks already down. Every level keeps snakeRev 15's stars, gold stars, lanes and wormholes (the seed's).
+
+| | Easy | Normal | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Rocks at the start | none (no meteor shower either) | none | 8 | 16 |
+| Then | none | earned as the comet grows (from length 9, one every 4 stars, 11 at most), the shower at 20 stars | one every 3 s from 10 s, whatever the comet's length, 20 at most; the shower | one every 2 s from 5 s, 32 at most; the shower |
+| Edges | wrap | wrap | walls | walls |
+| Lives | 3 | 2 | 2 | 1 |
+| Pace (ticks a square) | 9 → 5 | 9 → 4 | 9 → 4 | 7 → 3 |
+| Stars full at | 20 | 36 | 36 | 36 |
+| Gold stars full at | 40 % of their worth | 60 % | 61 % | 67 % |
+| Combos full at (combo stars) | 8 | 10 | 12 | 15 |
+| Lane rides full at | 4 | 5 | 5 | 7 |
+| Warp stars full at (points) | 8 | 10 | 10 | 10 |
+| Seeds dealt (proved of tried) | 100 of 107 | 100 of 158 | 100 of 273 | 100 of 212 |
+
+The rocks already down are single squares drawn from a stream of their own after everything snakeRev 15 draws: off the
+border, never on a star, a gold star or a lane, never touching a wormhole mouth, the shower's squares or another rock,
+and clear of the comet's way out (its column and the next ones from 8 squares above its head to 3 below its tail), so no
+square is ever shut in. Hard's timed rocks are snakeRev 15's own rock squares (with their sizes) on an exact 3 s clock;
+Expert's are those squares then single ones drawn the same way, every 2 s. A timed rock still shows its shadow 2 s ahead.
+Expert keeps the spec's quickest pace (3 ticks a square): the planner held to 0.15 s between swipes proves 200 on 100 of
+212 seeds, so the spec's fallback of 4 was not needed. Each level carries its own scoring lines (decision 12), set so the
+realistic elite's share of runs at 200 steps down each level.
+
+**The ladder** (`scripts/fixtures/d5-ladder-snake.json.gz`: 96 deals a level, the
+ladder's average and realistic elite under the human limits, graded by the server; `bun scripts/d5-ladder-record.ts snake
+--deals=96`):
+
+| | Easy | Normal | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Average player, mean | 158.8 | 105.6 | 84.1 | 35.4 |
+| Realistic elite, mean | 199.1 | 194.8 | 192.5 | 181.8 |
+| Elite runs at 200 | 83 % | 48 % | 36 % | 28 % |
+
+Today's (snakeRev 15) for comparison is in the D5 report; the spec's targets were average 150–180 / 55–75 / 25–45 and
+elite 195+ / 150–175 / 120–150 (Hard's average and both elites sit above them: the elite reaches 200 on more than a fifth
+of Expert runs, which Joe's ladder test asks for, so Hard and Expert stay above the guides).
+
+**Proof**: every dealt seed at every level has a stored witness at exactly 200 through the server's replay, played by the
+comet planner held to the human limits (below); snake-ladder-check replays a tenth (all with `CHECKS_FULL=1`) and checks
+every witness's swipes are at least 0.15 s apart.
+
+Checks and tools: `scripts/snake-ladder-check.ts` (~35 s; `--full`), `bun scripts/snake-level-deal.ts [--check]`,
+`bun scripts/snake-oracle.ts` (a report), `bun scripts/d5-ladder.ts snake` (the table), the lever picture
+`src/lib/levels/pictures/retro-action/snake.tsx`.
+
+### The proof: a comet planner held to the human limits
+
+`scripts/snake-oracle.ts`: the skill-band bot's flawless player (it routes to each star and each gold star it can reach in
+time, rides the speed lanes on purpose, takes the wormholes, steers round rocks and shadows) made a person exactly at
+Joe's limits: it acts on a new star, a gold star, a rock's shadow or its own head off the route one reaction later
+(0.25 s, 15 ticks, never sooner; HUMAN_LIMITS on the flawless profile), and two swipes are always at least 0.15 s apart
+(9 ticks, `snakeBotOptions.minGap`), so at speed a U-turn needs three squares between its turns. It never reads the star
+queue ahead or the rock schedule. A seed is dealt at a level only when one of eight draws of its think times scores
+exactly 200 through the server's replay (`scripts/snake-level-deal.ts`, `src/lib/duel/snakeLevelDeals.server.ts`, the
+witnesses in `scripts/fixtures/snake-level-deal-witness.json.gz`; `--check` replays every witness and rebuilds the deal
+file byte for byte).
+
+Bot changes (`scripts/arcade-skill-bands/bots/snake.ts`): `snakeBotOptions.minGap` (0 by default: every existing use
+unchanged) and, with the Oct 2026 fixes on a snakeRev 16 state only, the level's own pace (`snakeStepTicksOf`) where the
+bot read Normal's; a Normal state has no level, so its pace is the same either way.
+
 ## snakeRev 15 (the Retro overhaul, stage 3, 16 Nov 2026): the first crash forgiven
 
 snakeRev 14's world, rocks, wrap, parts and scoring exactly, with one grace at Normal (`SNAKE_V15_GRACE`): a crash that

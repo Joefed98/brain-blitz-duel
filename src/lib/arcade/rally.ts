@@ -9,7 +9,7 @@
  * rally plays out identically on the phone and on the server.
  */
 
-import { retroLevelSettings, withRetroLevel, type RallyLv } from "./retroLevels";
+import { RALLY_LEVELS, RALLY_LEVELS_V14, withRetroLevel, type RallyLv, type RallyLv14 } from "./retroLevels";
 import type { Level } from "@/lib/levels/levels";
 import {
   clampInt,
@@ -212,6 +212,8 @@ export interface RallyState extends BandFields {
   spinScores?: number;
   lostAt?: number;
   spinAt?: number;
+  /** rallyRev 14 only (D5's ladder, 23 Nov 2026): 1 on the ladder's stamp (its scoring lines). Absent on every earlier round. */
+  ladder?: number;
 }
 
 /** rallyRev 10: one gold bonus target, fixed at init from the seed: when it appears and where (centre, whole px). */
@@ -523,6 +525,8 @@ export function rallyCheckpoint(state: RallyState): RallyCheckpoint {
   if (state.exp) values.push(state.exp, state.worldW ?? 0, state.pv ?? 0, state.spin ?? 0, state.spun ?? 0, state.bonusHit ?? 0, ...(state.live ?? []));
   // rallyRev 13 (the Retro overhaul): lives, the relaunch tick and spin scores, last.
   if ((state.exp ?? 0) >= 4) values.push(state.lives ?? 0, state.relaunch ?? 0, state.spinScores ?? 0);
+  // rallyRev 14 (D5's ladder): its marker after that, so every rallyRev 13 checksum is unchanged.
+  if (state.ladder) values.push(state.ladder);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -638,8 +642,10 @@ export const rallyRev2Game: ArcadeGame<RallyState, ArcadeInputEvent | null> = { 
 
 /** Takes puzzle.rallyRev; anything else is the original game. */
 export function rallyGameFor(rev?: number | null, level?: Level | null): ArcadeGame<RallyState, ArcadeInputEvent | null> {
-  // Stage 3 of the Retro overhaul: rallyRev 13 at a level (retroLevels.ts: lives, paddle, ball cap, bumpers).
-  if (rev === RALLY_REV_LIVES) return withRetroLevel(rallyLivesGame, retroLevelSettings("rally", level), (s, lv) => ({ ...s, lives: lv.lives }));
+  // D5's ladder (23 Nov 2026): rallyRev 14 at a level (retroLevels.ts RALLY_LEVELS_V14: lives, paddle, cap, bumpers, lines).
+  if (rev === RALLY_REV_LADDER) return withRetroLevel(rallyLadderGame, level && level !== "normal" ? RALLY_LEVELS_V14[level] : null, (s, lv) => ({ ...s, lives: lv.lives }));
+  // Stage 3 of the Retro overhaul: rallyRev 13 at a level (its own table, RALLY_LEVELS: lives, paddle, ball cap, bumpers).
+  if (rev === RALLY_REV_LIVES) return withRetroLevel(rallyLivesGame, level && level !== "normal" ? RALLY_LEVELS[level] : null, (s, lv) => ({ ...s, lives: lv.lives }));
   if (rev === RALLY_REV_STD) return rallyStdGame;
   if (rev === RALLY_REV_CURVE) return rallyCurveGame;
   if (rev === RALLY_REV_BONUS) return rallyBonusGame;
@@ -782,13 +788,13 @@ export const rallyTallGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
 
 /** The court height (px) a stored round's rallyRev plays on. */
 export function rallyWorldHFor(rev?: number | null): number {
-  if (rev === RALLY_REV_BONUS || rev === RALLY_REV_CURVE || rev === RALLY_REV_STD || rev === RALLY_REV_LIVES) return RALLY_V10_H;
+  if (rev === RALLY_REV_BONUS || rev === RALLY_REV_CURVE || rev === RALLY_REV_STD || rev === RALLY_REV_LIVES || rev === RALLY_REV_LADDER) return RALLY_V10_H;
   return rev === RALLY_REV_TALL || rev === RALLY_REV_TARGET || rev === RALLY_REV_STRICT ? RALLY_TALL_H : RALLY_WORLD_H;
 }
 
 /** The court width (px) a stored round's rallyRev plays on. */
 export function rallyWorldWFor(rev?: number | null): number {
-  return rev === RALLY_REV_BONUS || rev === RALLY_REV_CURVE || rev === RALLY_REV_STD || rev === RALLY_REV_LIVES ? RALLY_V10_W : RALLY_WORLD_W;
+  return rev === RALLY_REV_BONUS || rev === RALLY_REV_CURVE || rev === RALLY_REV_STD || rev === RALLY_REV_LIVES || rev === RALLY_REV_LADDER ? RALLY_V10_W : RALLY_WORLD_W;
 }
 
 /* ================= Scoring targets (rallyRev 7, 18 Oct 2026) ================= */
@@ -1381,6 +1387,8 @@ export const RALLY_STD_SPEC: StdSpec = {
 
 /** rallyRev 12's parts (null on any other revision). */
 export function rallyStdParts(state: RallyState): StdPart[] | null {
+  // rallyRev 14 (D5's ladder): rallyRev 13's parts on the level's (or Normal's) full lines.
+  if (state.ladder) return rallyV14Parts(state);
   if ((state.exp ?? 0) >= RALLY_V13_EXP) return rallyV13Parts(state);
   if ((state.exp ?? 0) < RALLY_V12_EXP) return null;
   const gold = state.goldHits;
@@ -1413,9 +1421,19 @@ export const rallyStdGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
   score: (state) => stdScore(rallyStdParts(state)!, Boolean(state.acted)),
 };
 
-/** What a gold bonus target shows it pays on a state's revision (display only): 5 on rallyRev 12, 6 before. */
-export function rallyBonusPtsOf(state: Pick<RallyState, "exp">): number {
+/**
+ * What a gold bonus target shows it pays on a state's revision (display only): 5 on rallyRev 12 and 13, 6 before;
+ * rallyRev 14 (D5's ladder): its share of the part's line (30 ÷ the targets the level's line is full at).
+ */
+export function rallyBonusPtsOf(state: Pick<RallyState, "exp"> & Partial<Pick<RallyState, "ladder" | "lv">>): number {
+  if (state.ladder) return Math.floor(RALLY_V12_TARGETS_MAX / Math.max(1, rallyV14LinesOf(state).targetsFull));
   return (state.exp ?? 0) >= RALLY_V12_EXP ? RALLY_V12_TARGET_PTS : RALLY_V10_BONUS_PTS;
+}
+
+/** The gold bonus targets' points a state has earned (the reveal's figure): rallyRev 14's part, else per target as before. */
+export function rallyBonusPartPoints(state: RallyState): number {
+  if (state.ladder) return rallyV14Parts(state)[2]!.points;
+  return (state.exp ?? 0) >= RALLY_V12_EXP ? rallyBonusPtsOf(state) * rallyBonusCount(state) : rallyBonusPoints(state);
 }
 
 /* ================= The Retro overhaul: lives and spin scores (rallyRev 13, 15 Nov 2026) ================= */
@@ -1517,4 +1535,100 @@ export const rallyLivesGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
   init: (seed) => ({ ...rallyBonusInit(seed, RALLY_V13_EXP), lives: RALLY_V13_LIVES, relaunch: 0, spinScores: 0, lostAt: 0, spinAt: 0 }),
   step: bandStep(stepLives),
   score: (state) => stdScore(rallyV13Parts(state)!, Boolean(state.acted)),
+};
+
+/** The tick bumper `i` (0 or 1) comes on court for a state: its level's time (stage 3), else Normal's (the sim's own rule). */
+export function rallyBumperFromTick(state: Pick<RallyState, "lv">, i: number): number {
+  if (state.lv) return (i ? state.lv.bumper2S : state.lv.bumper1S) * TICKS_PER_SECOND;
+  return i ? RALLY_BUMPER2_FROM : RALLY_BUMPER_FROM;
+}
+
+/* ================= D5's ladder (rallyRev 14, 23 Nov 2026) ================= */
+
+/**
+ * rallyRev 14 (D5's ladder, Joe, 23 Nov 2026; docs/arcade-standard/rally.md "rallyRev 14" and "Levels (D5, 23 Nov 2026)"):
+ * rallyRev 13's court, balls, pads, targets, spin, lives and timings exactly, with two changes, the same for every player:
+ *
+ *  - Normal's feature lines move down to what the realistic elite (the skill-band bot that now plays spin shots) takes
+ *    on three runs in four (Joe's rule for the Normal scoring stamps): pink pads full at RALLY_V14_LINES.padsFull
+ *    strikes, gold targets at RALLY_V14_LINES.targetsFull, spin shots at RALLY_V14_LINES.spinFull, each on a straight
+ *    line to its maximum (30, 30, 10). The core (130 at 23 gold-ball hits) keeps its line. Normal's play is rallyRev
+ *    13's exactly.
+ *  - The levels (retroLevels.ts RALLY_LEVELS_V14), the lever the paddle's width: Easy a paddle 40 % of the court
+ *    shrinking to a fifth with no bumpers, Hard and Expert narrower paddles with both bumpers on court from the first
+ *    serve; each level carries its own lines.
+ *
+ * Init draws exactly rallyRev 13's stream; states add `ladder: 1`, folded into the checkpoint checksum last.
+ */
+export const RALLY_REV_LADDER = 14;
+
+/** A set of scoring lines: the gold-ball hits the core is full at and where each feature part is full. */
+export interface RallyV14Lines {
+  fullAt: number;
+  padsFull: number;
+  targetsFull: number;
+  spinFull: number;
+}
+/** Normal's lines on rallyRev 14 (the realistic elite's three-runs-in-four figures on Normal, D5 23 Nov 2026). */
+export const RALLY_V14_LINES: RallyV14Lines = { fullAt: 17, padsFull: 5, targetsFull: 3, spinFull: 3 };
+/** rallyRev 14's core line at Normal (gold-ball hits → 0…130), the curve LIVE_BANDS lists. */
+export const RALLY_V14_BAND_CURVE = bandCurve([0, RALLY_V14_LINES.fullAt], [0, RALLY_V13_CORE_MAX]);
+
+/** A rallyRev 14 state's scoring lines: its level's, else Normal's. */
+export function rallyV14LinesOf(state: Partial<Pick<RallyState, "ladder" | "lv">>): RallyV14Lines {
+  return state.ladder && state.lv ? (state.lv as RallyLv14) : RALLY_V14_LINES;
+}
+
+/** Points each of `full` items is worth on a part of `max` (the help's "each"; the line itself is stdLine's). */
+function eachOf(max: number, full: number): number {
+  return Math.round(max / Math.max(1, full));
+}
+/** The help's words for that: the exact figure, or "about" it when the line's steps are not whole points. */
+function eachText(max: number, full: number): string {
+  return `${max % Math.max(1, full) === 0 ? "" : "about "}${eachOf(max, full)}`;
+}
+/** About what each pink pad, gold target and spin shot pays at Normal on rallyRev 14 (the help's numbers). */
+export const RALLY_V14_EACH = {
+  pads: eachOf(RALLY_V12_PADS_MAX, RALLY_V14_LINES.padsFull),
+  targets: eachOf(RALLY_V12_TARGETS_MAX, RALLY_V14_LINES.targetsFull),
+  spin: eachOf(RALLY_V13_SPIN_MAX, RALLY_V14_LINES.spinFull),
+} as const;
+/** The same in the help's words ("6", or "about 3" where the line's steps are not whole points). */
+export const RALLY_V14_EACH_TEXT = {
+  pads: eachText(RALLY_V12_PADS_MAX, RALLY_V14_LINES.padsFull),
+  targets: eachText(RALLY_V12_TARGETS_MAX, RALLY_V14_LINES.targetsFull),
+  spin: eachText(RALLY_V13_SPIN_MAX, RALLY_V14_LINES.spinFull),
+} as const;
+
+/** The spec rooms deal on rallyRev 14 (Normal's lines), for the help and the reveal. */
+export const RALLY_STD_SPEC_V14: StdSpec = {
+  field: "rallyRev",
+  rev: RALLY_REV_LADDER,
+  parts: [
+    { key: "core", label: "Gold-ball hits", max: RALLY_V13_CORE_MAX, how: `hit gold balls back, all of it for ${RALLY_V14_LINES.fullAt} hits` },
+    { key: "pads", label: "Pink pads", max: RALLY_V12_PADS_MAX, how: `${eachText(RALLY_V12_PADS_MAX, RALLY_V14_LINES.padsFull)} each time a gold ball strikes a pink pad, all of it for ${RALLY_V14_LINES.padsFull}` },
+    { key: "targets", label: "Gold targets", max: RALLY_V12_TARGETS_MAX, how: `${eachText(RALLY_V12_TARGETS_MAX, RALLY_V14_LINES.targetsFull)} for each gold target hit, all of it for ${RALLY_V14_LINES.targetsFull} of the ${RALLY_V10_BONUS_COUNT} gold targets` },
+    { key: "spin", label: "Spin shots", max: RALLY_V13_SPIN_MAX, how: `${eachText(RALLY_V13_SPIN_MAX, RALLY_V14_LINES.spinFull)} each time a ball you swiped into a curve strikes a pink pad or a gold target, all of it for ${RALLY_V14_LINES.spinFull}` },
+  ],
+};
+
+/** rallyRev 14's parts: rallyRev 13's measures on straight lines to the level's (or Normal's) full lines. */
+export function rallyV14Parts(state: RallyState): StdPart[] {
+  const l = rallyV14LinesOf(state);
+  const gold = state.goldHits;
+  const pads = state.targetHits ?? 0;
+  const targets = rallyBonusCount(state);
+  const spins = state.spinScores ?? 0;
+  return [
+    stdPart(RALLY_STD_SPEC_V14, "core", stdLine(RALLY_V13_CORE_MAX, gold, l.fullAt), `${gold} gold-ball hit${gold === 1 ? "" : "s"}`),
+    stdPart(RALLY_STD_SPEC_V14, "pads", stdLine(RALLY_V12_PADS_MAX, pads, l.padsFull), `${pads} pink pad${pads === 1 ? "" : "s"}`),
+    stdPart(RALLY_STD_SPEC_V14, "targets", stdLine(RALLY_V12_TARGETS_MAX, targets, l.targetsFull), `${targets} of ${RALLY_V10_BONUS_COUNT}`),
+    stdPart(RALLY_STD_SPEC_V14, "spin", stdLine(RALLY_V13_SPIN_MAX, spins, l.spinFull), `${spins} spin shot${spins === 1 ? "" : "s"}`),
+  ];
+}
+
+export const rallyLadderGame: ArcadeGame<RallyState, ArcadeInputEvent | null> = {
+  ...rallyLivesGame,
+  init: (seed) => ({ ...rallyLivesGame.init(seed), ladder: 1 }),
+  score: (state) => stdScore(rallyV14Parts(state), Boolean(state.acted)),
 };
