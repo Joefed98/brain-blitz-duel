@@ -27,6 +27,10 @@ import {
   hr5InitInn,
   hr5Step,
   hrLevelOf,
+  hrPlayLevel,
+  hrBaseLevel,
+  HOMERUN_REV_6,
+  HR_LEVEL_SETTINGS,
   HOMERUN_REV_5,
   HR5_HOMER_EACH,
   HR5_HOMERS_MAX,
@@ -445,9 +449,10 @@ export interface HomerunState {
   inn?: Hr5Inn;
 }
 
-export function homerunInit(seed: number, rev: number = HOMERUN_REV_STD, level?: HrLevel): HomerunState {
+export function homerunInit(seed: number, rev: number = HOMERUN_REV_STD, level?: HrLevel | string | null): HomerunState {
   if (rev >= HOMERUN_REV_5) {
-    return { tick: 0, seed: seed | 0, rev, acted: 0, pitch: 0, swingTick: -1, swingA: 0, swingB: 0, hits: [], feet: 0, homers: 0, signs: 0, doneAt: 0, mode: 0, pmode: 0, inn: hr5InitInn(hrLevelOf(level)) };
+    // homerunRev 6 (D6's levels): the innings plays its level's D6 settings key; the state keeps rev 5's shape.
+    return { tick: 0, seed: seed | 0, rev, acted: 0, pitch: 0, swingTick: -1, swingA: 0, swingB: 0, hits: [], feet: 0, homers: 0, signs: 0, doneAt: 0, mode: 0, pmode: 0, inn: hr5InitInn(hrPlayLevel(level, rev)) };
   }
   homerunPlan(seed, rev);
   if (rev >= HOMERUN_REV_4) {
@@ -603,7 +608,7 @@ export function homerunSignCount(state: Pick<HomerunState, "signs">): number {
 
 /** homerunRev 1's, 2's and 3's scored parts (null on any other revision). */
 export function homerunStdParts(state: HomerunState): StdPart[] | null {
-  if (state.rev === HOMERUN_REV_5) return homerunStdPartsV5(state);
+  if (state.rev === HOMERUN_REV_5 || state.rev === HOMERUN_REV_6) return homerunStdPartsV5(state);
   if (state.rev === HOMERUN_REV_4) return homerunStdPartsV4(state);
   if (state.rev !== HOMERUN_REV_STD && state.rev !== HOMERUN_REV_2 && state.rev !== HOMERUN_REV_3) return null;
   const spec = homerunStdSpecFor(state.rev);
@@ -941,10 +946,41 @@ export const HOMERUN_STD_SPEC_DEALT = HOMERUN_STD_SPEC_V5;
 /** homerunRev 5's core: a straight line to 100 at HR5_RUNS_FULL runs. */
 export const HOMERUN_V5_BAND_CURVE = bandCurve([0, HR5_RUNS_FULL], [0, HR5_RUNS_MAX]);
 
+/** homerunRev 6's level spec (D6): rev 5's four parts, each a straight line to its maximum at the level's own figure. */
+export function homerunLevelSpecV6(level: "easy" | "hard" | "expert"): StdSpec {
+  const L = HR_LEVEL_SETTINGS[`${level}6`];
+  const runs = L.runsFull ?? HR5_RUNS_FULL;
+  const homers = L.homersFull ?? HR5_HOMERS_MAX / HR5_HOMER_EACH;
+  const streak = L.streakFull ?? HR5_STREAK_MAX / HR5_STREAK_EACH;
+  const eye = L.eyeFull ?? HR5_EYE_MAX / HR5_EYE_EACH;
+  return {
+    field: "homerunRev",
+    rev: HOMERUN_REV_6,
+    parts: [
+      { key: "core", label: "Runs", max: HR5_RUNS_MAX, of: runs, item: "run", how: `every run counts, ${runs} runs for all of it` },
+      { key: "homers", label: "Home runs", max: HR5_HOMERS_MAX, of: homers, item: "home run", how: `every home run counts, ${homers} for all of it` },
+      { key: "streak", label: "Perfect streak", max: HR5_STREAK_MAX, of: streak, item: "perfect swing", how: `your longest run of perfect swings, ${streak} in a row for all of it` },
+      { key: "eye", label: "Good eye", max: HR5_EYE_MAX, of: eye, item: "ball taken", how: `each pitch outside the zone you leave alone, less any you chase, ${eye} for all of it` },
+    ],
+  };
+}
+
 function homerunStdPartsV5(state: HomerunState): StdPart[] {
-  const spec = HOMERUN_STD_SPEC_V5;
   const inn = state.inn!;
+  const base = hrBaseLevel(inn.level);
   const homers = inn.hits.filter((h) => h.out === HR5_HOMER).length;
+  if (inn.level !== base) {
+    // D6's levels (homerunRev 6): straight lines to the level's own figures.
+    const L = HR_LEVEL_SETTINGS[inn.level];
+    const spec = homerunLevelSpecV6(base as "easy" | "hard" | "expert");
+    return [
+      stdPart(spec, "core", stdLine(HR5_RUNS_MAX, inn.runs, L.runsFull!), `${inn.runs} run${inn.runs === 1 ? "" : "s"}, ${inn.outs} out${inn.outs === 1 ? "" : "s"}`),
+      stdPart(spec, "homers", stdLine(HR5_HOMERS_MAX, homers, L.homersFull!), `${homers} home run${homers === 1 ? "" : "s"} of ${inn.big} big hit${inn.big === 1 ? "" : "s"}`),
+      stdPart(spec, "streak", stdLine(HR5_STREAK_MAX, inn.best, L.streakFull!), `best run ${inn.best} perfect (${inn.perfects} in all)`),
+      stdPart(spec, "eye", stdLine(HR5_EYE_MAX, hr5EyeCount(inn), L.eyeFull!), `${inn.eye} ball${inn.eye === 1 ? "" : "s"} taken, ${inn.chased} chased`),
+    ];
+  }
+  const spec = HOMERUN_STD_SPEC_V5;
   return [
     stdPart(spec, "core", stdLine(HR5_RUNS_MAX, inn.runs, HR5_RUNS_FULL), `${inn.runs} run${inn.runs === 1 ? "" : "s"}, ${inn.outs} out${inn.outs === 1 ? "" : "s"}`),
     stdPart(spec, "homers", stdEach(homers, HR5_HOMER_EACH, HR5_HOMERS_MAX), `${homers} home run${homers === 1 ? "" : "s"} of ${inn.big} big hit${inn.big === 1 ? "" : "s"}`),
@@ -1053,14 +1089,16 @@ export const homerunGameV4: ArcadeGame<HomerunState, ArcadeInputEvent | null> = 
 /** homerunRev 5's input kinds: the swing choice (kind 2) and the swipe's aim (kind 5). */
 export const HOMERUN_INPUT_RANGES_V5: readonly InputRange[] = [inputRange(HR5_INPUT_MODE, [0, 1]), inputRange(HR5_INPUT_SWING, [-HR5_AIM_MAX, HR5_AIM_MAX])];
 
-const gamesV5 = new Map<HrLevel, ArcadeGame<HomerunState, ArcadeInputEvent | null>>();
-/** homerunRev 5's game at a level (the innings, its own inputs, a 117 s run). */
-export function homerunGameV5(level?: string | null): ArcadeGame<HomerunState, ArcadeInputEvent | null> {
+const gamesV5 = new Map<string, ArcadeGame<HomerunState, ArcadeInputEvent | null>>();
+/** homerunRev 5's game at a level (the innings, its own inputs, a 117 s run); `rev` 6 is D6's levels. */
+export function homerunGameV5(level?: string | null, rev: number = HOMERUN_REV_5): ArcadeGame<HomerunState, ArcadeInputEvent | null> {
   const l = hrLevelOf(level);
-  let g = gamesV5.get(l);
+  const r = rev >= HOMERUN_REV_6 && l !== "normal" ? HOMERUN_REV_6 : HOMERUN_REV_5;
+  const key = `${l}:${r}`;
+  let g = gamesV5.get(key);
   if (!g) {
-    g = { ...homerunGame, runTicks: HR5_RUN_TICKS, init: (seed: number) => homerunInit(seed, HOMERUN_REV_5, l), inputRanges: HOMERUN_INPUT_RANGES_V5 };
-    gamesV5.set(l, g);
+    g = { ...homerunGame, runTicks: HR5_RUN_TICKS, init: (seed: number) => homerunInit(seed, r, l), inputRanges: HOMERUN_INPUT_RANGES_V5 };
+    gamesV5.set(key, g);
     levelOfGame.set(g, l);
   }
   return g;
@@ -1073,7 +1111,7 @@ export function homerunGameLevel(game: object): HrLevel {
 
 export function homerunGameFor(rev?: number | null, level?: string | null): ArcadeGame<HomerunState, ArcadeInputEvent | null> {
   const r = rev ?? 1;
-  if (r >= HOMERUN_REV_5) return homerunGameV5(level);
+  if (r >= HOMERUN_REV_5) return homerunGameV5(level, r);
   return r >= HOMERUN_REV_4 ? homerunGameV4 : r >= HOMERUN_REV_3 ? homerunGameV3 : r >= HOMERUN_REV_2 ? homerunGameV2 : homerunGame;
 }
 

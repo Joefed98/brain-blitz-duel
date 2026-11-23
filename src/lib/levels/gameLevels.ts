@@ -655,9 +655,10 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // proves the two match). Each level deals from its own proved deal (homerunDealV5.server.ts).
   homerun: {
     levels: {
-      easy: { settings: { flight: { 0: [42, 47], 1: [54, 60], 3: [66, 74] }, balls: 6, winContact: 7, winPower: 5, perfect: 2, bend: 450, reach: 800, ballOff: [14, 34] } },
-      hard: { settings: { flight: { 0: [28, 31], 1: [40, 44], 3: [54, 59] }, balls: 8, winContact: 4, winPower: 3, perfect: 0, bend: 1300, reach: 1100, ballOff: [8, 24] } },
-      expert: { settings: { flight: { 0: [27, 29], 1: [37, 40], 3: [51, 55] }, balls: 9, winContact: 4, winPower: 2, perfect: 0, bend: 1600, reach: 1200, ballOff: [5, 17] } },
+      // D6 (23 Nov 2026, homerunRev 6's levels: HR_LEVEL_SETTINGS' "easy6", "hard6" and "expert6"): the lever is pitch speed.
+      easy: { settings: { flight: { 0: [52, 58], 1: [64, 70], 3: [76, 84] }, balls: 3, winContact: 9, winPower: 6, perfect: 2, bend: 300, reach: 600, ballOff: [14, 34], outs: 5, runsFull: 12, homersFull: 10, streakFull: 10, eyeFull: 2 } },
+      hard: { settings: { flight: { 0: [31, 34], 1: [42, 46], 3: [56, 61] }, balls: 8, winContact: 4, winPower: 3, perfect: 1, bend: 1300, reach: 1350, ballOff: [8, 24], runsFull: 18, homersFull: 10, streakFull: 16, eyeFull: 5 } },
+      expert: { settings: { flight: { 0: [27, 29], 1: [37, 40], 3: [51, 55] }, balls: 9, winContact: 4, winPower: 2, perfect: 1, bend: 1600, reach: 1650, ballOff: [5, 17], runsFull: 10, homersFull: 10, streakFull: 6, eyeFull: 5 } },
     },
   },
   // Top Bins (freekickRev 6 since 16 Nov 2026; rev 5 kept its own table): the power bar's gold zone, the keeper's reaction and speed, the wall, the wind, the corner

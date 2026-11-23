@@ -19,7 +19,8 @@ import { homerunDealSeedV4 } from "./homerunDealV4.server";
 import { freekickDealSeedV4 } from "./freekickDealV4.server";
 import { dealPinned } from "./dealEra";
 import { freekickDealSeedV6 } from "./freekickDealV6.server";
-import { hrLevelOf } from "@/lib/arcade/homerunInnings";
+import { HOMERUN_REV_6, hrLevelOf } from "@/lib/arcade/homerunInnings";
+import { homerunDealSeedV6 } from "./homerunDealV6.server";
 import { fkLevelOf } from "@/lib/arcade/freekick";
 import { racingDealSeedV4 } from "./racingDealV4.server";
 import { racingDealSeedV4Easy } from "./racingDealV4Easy.server";
@@ -45,6 +46,10 @@ export function generateHomerun(level?: string | null): HomerunPuzzleData {
   // A check's era pin (dealEra.ts): rooms' deal before the overhaul, homerunRev 4 from its own proved deal.
   if (dealPinned("sportsPreOverhaul")) return { type: "homerun", seed: homerunDealSeedV4(arcadeSeed()), homerunRev: 4 };
   const l = hrLevelOf(level);
+  // D6 (23 Nov 2026): level deals stamp homerunRev 6 and play D6's levels (HR_LEVEL_SETTINGS' "easy6" … keys) from their
+  // own proved deal (homerunDealV6.server.ts); Normal stays homerunRev 5. Checks written for the levels before pin
+  // d6PreLevels.
+  if (l !== "normal" && !dealPinned("d6PreLevels")) return { type: "homerun", seed: homerunDealSeedV6(arcadeSeed(), l), homerunRev: HOMERUN_REV_6, level: l } as HomerunPuzzleData;
   return { type: "homerun", seed: homerunDealSeedV5(arcadeSeed(), l), homerunRev: HOMERUN_REV_DEALT, ...(l !== "normal" ? { level: l } : {}) };
 }
 
