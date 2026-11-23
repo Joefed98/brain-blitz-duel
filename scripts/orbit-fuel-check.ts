@@ -31,7 +31,7 @@
  */
 import { readFileSync } from "node:fs";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { FP, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, ORBIT_REV_STD, ORBIT_REV_XP, ORBIT_TOTAL, orbitXpRev } from "../src/lib/arcade/orbit";
+import { FP, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, ORBIT_REV_LOST, ORBIT_REV_STD, ORBIT_REV_XP, ORBIT_TOTAL, orbitXpRev } from "../src/lib/arcade/orbit"; // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17): ORBIT_REV_LOST
 import {
   decodeOrbitExtras,
   decodeOrbitHoles,
@@ -326,7 +326,8 @@ const step = (s: OrbitRev3State, input: ArcadeInputEvent | null = null) => orbit
   // (grace), on orbitRev 14's parts and line (orbit-overhaul-check proves its play).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the live stamp is orbitRev 16
   // (bigger planets on grace's play and orbitRev 14's parts; orbit-overhaul-check section 9 proves it).
-  ok((LIVE_BANDS as Record<string, { rev: number; curve: unknown }>).orbit!.rev === ORBIT_REV_BIG && ORBIT_STD.rev === ORBIT_REV_BIG, "LIVE_BANDS and ORBIT_STD carry the live orbitRev (16, bigger planets on grace, on orbitRev 14's parts)");
+  // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's orbitRev 17, the lost flight).
+  ok((LIVE_BANDS as Record<string, { rev: number; curve: unknown }>).orbit!.rev === ORBIT_REV_LOST && ORBIT_STD.rev === ORBIT_REV_LOST, "LIVE_BANDS and ORBIT_STD carry the live orbitRev (17, the lost flight on bigger planets on grace, on orbitRev 14's parts)");
   ok(JSON.stringify(ORBIT_V14_BAND_CURVE) === JSON.stringify(ORBIT_V13_BAND_CURVE) && ORBIT_STD.parts.reduce((a, p) => a + p.max, 0) === 200, "orbitRev 14 keeps orbitRev 13's straight core line and six parts (200)");
   const help = PUZZLE_INSTRUCTIONS.orbit;
   ok(help.how.some((h) => /Fuel/.test(h.action) && /drains only while you fly/.test(h.detail)) && /jump past too/.test(help.score), "the help explains the fuel and that a planet jumped past counts");

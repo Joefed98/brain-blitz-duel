@@ -37,7 +37,7 @@ import {
   BURST_INPUT_MOVE,
   BURST_REV_CARRY,
   BURST_REV_STD,
-  BURST_REV_BIG,
+  BURST_REV_SMALL, // Changed with Joe's approval, 23 Nov 2026 (D5's burstRev 14)
   BURST_REV_CLEAN,
   BURST_TALL_H,
   BURST_V8_GOLDENS,
@@ -75,8 +75,9 @@ section("Rooms deal burstRev 10 (was 9)");
 // 11's play with kinder wave clears (retro-overhaul-check), so the dealt stamp is compared by the play it keeps.
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal burstRev 13 (bigger atoms,
 // a new play), so the deal and the help compare exactly with it; burstRev 9 stays proved below.
-ok(generateBurst().burstRev === BURST_REV_BIG, "rooms deal burstRev 13 (burstRev 11 before the Retro overhaul; was 9)");
-ok(LIVE_BANDS.burst.rev === BURST_REV_BIG && roundMaxFor("burst") === 200, "LIVE_BANDS deals burstRev 13 (was 9); ROUND_MAX 200");
+// Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's burstRev 14): the next two lines read burstRev 14.
+ok(generateBurst().burstRev === BURST_REV_SMALL, "rooms deal burstRev 14 (burstRev 13 with the middle atoms; burstRev 11 before the Retro overhaul; was 9)");
+ok(LIVE_BANDS.burst.rev === BURST_REV_SMALL && roundMaxFor("burst") === 200, "LIVE_BANDS deals burstRev 14 (was 9); ROUND_MAX 200");
 ok(burstWorldHFor(BURST_REV_CARRY) === BURST_TALL_H, "the 390 × 650 world");
 for (let n = 0; n < 4; n++) {
   const seed = spec.seedFor(n);
