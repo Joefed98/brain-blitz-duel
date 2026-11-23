@@ -1,5 +1,6 @@
 /**
- * swing-ladder-check (~2–3 min): Grappler swingRev 19, the ladder (D5, 23 Nov 2026; Joe's approved plan of 23 Nov 2026;
+ * swing-ladder-check (~2.5 min of CPU, most of it the live re-play of the ladder sample; 6.3 min wall on a machine loaded to 15 on
+ * 4 cores): Grappler swingRev 19, the ladder (D5, 23 Nov 2026; Joe's approved plan of 23 Nov 2026;
  * docs/arcade-standard/swing.md "swingRev 19: the ladder"): the pterodactyl's chase is the levels' lever, the par lines
  * move by level (Normal's a little later, so 200 is reachable for the best humans on every dealt course), Easy's aids,
  * and every level dealt only on courses the proof player held to Joe's human limits takes to exactly 200.
@@ -69,6 +70,12 @@ function ok(cond: boolean, label: string): void {
 }
 const FULL = process.env.CHECKS_FULL === "1";
 const t0 = Date.now();
+let tLap = t0;
+/** (--verbose) each section's time. */
+function lap(section: string): void {
+  if (VERBOSE) console.log(`  section ${section}: ${((Date.now() - tLap) / 1000).toFixed(1)} s`);
+  tLap = Date.now();
+}
 const digest = (v: unknown) => createHash("sha256").update(JSON.stringify(v)).digest("hex").slice(0, 24);
 const json = (v: unknown) => JSON.stringify(v);
 const loose = (p: unknown) => p as Record<string, any>;
@@ -121,6 +128,7 @@ const hold = (t: number, a: number) => ({ t, k: SWING_INPUT_HOLD, a, b: 0, c: 0,
   ok(pinned === fixture.deals.length, `1e: with swingPreLadder pinned, ${pinned} of ${fixture.deals.length} deals are the recorded swingRev 18 puzzles byte for byte`);
 }
 
+lap("1");
 /* 2. The stamp and the pin. */
 {
   const keys = Object.keys(DEAL_PINS);
@@ -153,6 +161,7 @@ const hold = (t: number, a: number) => ({ t, k: SWING_INPUT_HOLD, a, b: 0, c: 0,
   ok(swingGameFor(SWING_REV_LADDER, "junk") === swingLadderGame("normal"), "2i: a junk level on swingRev 19 is Normal");
 }
 
+lap("2");
 /* 3. The level rules as dealt. */
 {
   const c = SWING_V19_LEVELS;
@@ -222,6 +231,7 @@ const hold = (t: number, a: number) => ({ t, k: SWING_INPUT_HOLD, a, b: 0, c: 0,
   void SWING_CHECKPOINT_INTERVAL;
 }
 
+lap("3");
 /* 4. The deals. */
 const witnesses = Object.fromEntries(SWING_LADDER_LEVELS.map((l) => [l, readLadderWitnesses(l)])) as Record<SwingLadderLevel, ReturnType<typeof readLadderWitnesses>>;
 for (const level of SWING_LADDER_LEVELS) {
@@ -240,12 +250,14 @@ for (const level of SWING_LADDER_LEVELS) {
   if (live.length) ok(same === live.length, `4c ${level}: the proof player, held to the human limits, plays ${live.length === 1 ? "a dealt course" : `all ${live.length} dealt courses`} again to exactly its stored witness (${same} of ${live.length})`);
 }
 
+lap("4");
 /* 5. The ladder. */
 {
   for (const [cond, label] of await ladderFixtureVerdicts("swing")) ok(cond, `5a: ${label}`);
   for (const [cond, label] of await replaySample("swing", 2)) ok(cond, `5b: ${label}`);
 }
 
+lap("5");
 /* 6. King of the swingers; the lever picture. */
 {
   const king = challengesFor("swing").find((c) => c.name === "King of the swingers")!;
@@ -269,6 +281,7 @@ for (const level of SWING_LADDER_LEVELS) {
   void puzzleLevel;
 }
 
+lap("6");
 const secs = ((Date.now() - t0) / 1000).toFixed(0);
 if (failures.length) {
   for (const f of failures) console.log(`  - ${f}`);
