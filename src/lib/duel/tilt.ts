@@ -15,6 +15,8 @@ import {
   tiltStdGame,
   tiltParGame,
   tiltBigGame,
+  tiltThreeGame,
+  TILT_REV_THREE,
   TILT_REV_STD,
   TILT_REV_PAR,
   TILT_REV_BIG,
@@ -105,6 +107,14 @@ const runBig = makeArcadeRun<TiltState, TiltCheckpoint>({
   keys: TILT_CHECKPOINT_KEYS,
   interval: TILT_CHECKPOINT_INTERVAL,
 });
+/** tiltRev 13 (22 Nov 2026): Normal plays tiltRev 12's first three mazes, the parts over three. */
+const runThree = makeArcadeRun<TiltState, TiltCheckpoint>({
+  tag: "tilt",
+  game: tiltThreeGame,
+  checkpoint: tiltCheckpoint,
+  keys: TILT_CHECKPOINT_KEYS,
+  interval: TILT_CHECKPOINT_INTERVAL,
+});
 /** tiltRev 8 (the expansion): three bigger mazes, ice, keys and gates, quick stars; up to 200. */
 const runExpand = makeArcadeRun<TiltState, TiltCheckpoint>({
   tag: "tilt",
@@ -145,6 +155,6 @@ export function replayTiltRun(seed: number, raw: string, rev?: number | null, le
     const r = levelRun(level).replay(seed, raw);
     return { ...r, ...tiltExtra(r.state) };
   }
-  const result = (rev === TILT_REV_BIG ? runBig : rev === TILT_REV_PAR ? runPar : rev === TILT_REV_STD ? runStd : rev === TILT_REV_LIFT ? runLift : rev === TILT_REV_EXPAND ? runExpand : rev === TILT_REV_STRICT ? runStrict : rev === TILT_REV_TARGET ? runTarget : rev === TILT_REV_TUNEC ? runTunec : rev === TILT_REV_BAND ? runBand : rev === TILT_REV ? runRev2 : run).replay(seed, raw);
+  const result = (rev === TILT_REV_THREE ? runThree : rev === TILT_REV_BIG ? runBig : rev === TILT_REV_PAR ? runPar : rev === TILT_REV_STD ? runStd : rev === TILT_REV_LIFT ? runLift : rev === TILT_REV_EXPAND ? runExpand : rev === TILT_REV_STRICT ? runStrict : rev === TILT_REV_TARGET ? runTarget : rev === TILT_REV_TUNEC ? runTunec : rev === TILT_REV_BAND ? runBand : rev === TILT_REV ? runRev2 : run).replay(seed, raw);
   return { ...result, ...tiltExtra(result.state) };
 }

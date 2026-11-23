@@ -12,7 +12,7 @@ import { stdHelp } from "../src/lib/arcade/arcadeStandard";
 import { FC_LEVEL_RULES, fcLevelSpec } from "../src/lib/arcade/cards/freecell";
 import { MAHJONG_LEVEL_RULES, mahjongLevelSpec } from "../src/lib/arcade/mahjong";
 import { TP_LEVEL_RULES, tpLevelSpec } from "../src/lib/arcade/cards/tripeaks";
-import { FH_LEVEL_RULES, FH_REV, FH_V3_TABLE_TEXT, fhLevelSpec, fhTableText } from "../src/lib/arcade/cards/fiveHands";
+import { FH_LEVEL_RULES, FH_REV_FLAT, FH_V3_TABLE_TEXT, fhLevelSpec, fhTableText } from "../src/lib/arcade/cards/fiveHands";
 import { PY_LEVEL_RULES, pyLevelSpec } from "../src/lib/arcade/cards/pyramid";
 
 const OUT = "src/lib/levels/cardLevelText.data.ts";
@@ -64,7 +64,7 @@ for (const l of LV) {
   text.fivehands[l] = {
     goal: `Build five poker hands, then pick a column. ×${mult}, ${fh.seconds} s.`,
     how: [
-      `Your hand points × ${mult}; ${fh.seconds} seconds${fh.tableRev === FH_REV ? "" : `; ${fhTableText(fh.tableRev).split(", ").slice(0, 2).join(", ")} (bigger hands pay as Normal)`}.`,
+      `Your hand points × ${mult}; ${fh.seconds} seconds${fh.tableRev === FH_REV_FLAT ? "" : `; ${fhTableText(fh.tableRev).split(", ").slice(0, 2).join(", ")} (bigger hands pay as Normal)`}.`,
       ...(fh.preview ? [`The next ${fh.preview} cards show beside yours, and each column's value shows while you pick.`] : []),
       hintLine(fh.hintCost, fh.hintLimit, l === "easy"),
     ],

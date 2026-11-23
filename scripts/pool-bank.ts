@@ -17,7 +17,13 @@
  *    server's replay (the black down by the full-by time) on the seed's own set and on the other set too
  *    (poolGameFor(4, set)); any that doesn't is a FAIL. Writes scripts/fixtures/pool-witness-v4.json.
 
- *   bun scripts/pool-bank.ts [--rev=2|3|4] [--count=60] [--jobs=4] [--check]
+ *  - poolRev 5 (`--rev=5`, what rooms deal since D6, 22 Nov 2026: Speed from the fifth pot): no bank file of its own
+ *    either. Rooms deal poolRev 5 from POOL_BANK_V3; every layout's poolRev 3 witness shots are played again on poolRev 5
+ *    at a person's pace (each shot fired POOL_HUMAN_WAIT ticks, HUMAN_LIMITS' 0.25 s to react and 0.15 s to move, after
+ *    the balls stop) and must score exactly 200 through the server's replay, on the seed's own set and on the other too
+ *    (poolGameFor(5, set)). Writes scripts/fixtures/pool-witness-v5.json.
+ *
+ *   bun scripts/pool-bank.ts [--rev=2|3|4|5] [--count=60] [--jobs=4] [--check]
  *
  * --jobs searches candidates in parallel child processes (the result is the same whatever the job count: candidates are
  * tried in fixed batches and taken in their own order).
@@ -35,7 +41,9 @@ const args = process.argv.slice(2);
 const opt = (name: string) => args.find((a) => a.startsWith(`--${name}=`))?.slice(name.length + 3);
 const COUNT = Number(opt("count") ?? 60);
 const REV_ARG = Number(opt("rev") ?? 1);
-const REV = REV_ARG === 4 ? 4 : REV_ARG === 3 ? 3 : REV_ARG === 2 ? 2 : 1;
+const REV = REV_ARG === 5 ? 5 : REV_ARG === 4 ? 4 : REV_ARG === 3 ? 3 : REV_ARG === 2 ? 2 : 1;
+/** poolRev 5's proof pace: a shot no sooner than 0.25 s to react plus 0.15 s to move after the balls stop (24 ticks). */
+export const POOL_HUMAN_WAIT = 24;
 const JOBS = Math.max(1, Number(opt("jobs") ?? (REV >= 2 ? Math.min(4, cpus().length) : 1)));
 const CHECK = args.includes("--check");
 /** A child's work: candidate indices from..to (exclusive), printed as one JSON line. */
@@ -139,7 +147,65 @@ export function witnessPlayV4(seed: number, v3raw: string, set?: number): { raw:
   return { raw: encodePoolRun({ seed, claimedScore: game.score(s), events, endTick: s.tick, checkpoints }), score: game.score(s) };
 }
 
-if (import.meta.main && REV === 4) {
+/**
+ * poolRev 5: a poolRev 3 witness's shots played again on poolRev 5, each fired POOL_HUMAN_WAIT ticks after the table goes
+ * still (a person's pace), on the seed's set or the other (`set`); its encoded run and the sim's score on that set.
+ */
+export function witnessPlayV5(seed: number, v3raw: string, set?: number): { raw: string; score: number } {
+  const game = poolGameFor(5, set);
+  const shots = decodePoolRun(v3raw).events;
+  let s = game.init(seed);
+  const events: ArcadeInputEvent[] = [];
+  const checkpoints = [];
+  let next = 0;
+  let stillFor = 0;
+  while (!game.isOver(s)) {
+    const t = s.tick + 1;
+    stillFor = s.phase === POOL_AIM ? stillFor + 1 : 0;
+    if (s.phase === POOL_AIM && next < shots.length && stillFor > POOL_HUMAN_WAIT) {
+      const sh = shots[next++]!;
+      recordInput(events, { ...sh, t }, game.inputRanges);
+      stillFor = 0;
+    }
+    s = game.step(s, inputAt(events, t));
+    if (s.tick % SPORTS_CHECKPOINT_INTERVAL === 0) checkpoints.push(poolCheckpoint(s));
+  }
+  return { raw: encodePoolRun({ seed, claimedScore: game.score(s), events, endTick: s.tick, checkpoints }), score: game.score(s) };
+}
+
+if (import.meta.main && REV === 5) {
+  const v3 = JSON.parse(readFileSync(new URL("./fixtures/pool-witness-v3.json", import.meta.url), "utf8")) as Record<string, string>;
+  const witness: Record<string, string> = {};
+  let kept = 0;
+  for (const seed of POOL_BANK_V3) {
+    const own = witnessPlayV5(seed, v3[String(seed)]!);
+    const r = replayPoolRun(seed, own.raw, 5);
+    const other = witnessPlayV5(seed, v3[String(seed)]!, 1 - poolSetFor(seed, 5));
+    const ok = r.score === 200 && !r.flagged && own.score === 200 && other.score === 200 && other.raw === own.raw;
+    console.log(`seed ${seed} (${poolSetFor(seed, 5) ? "stripes" : "spots"}): ${r.score} (fifth pot at ${Math.round(((r.state.fifthAt ?? 0) / 60) * 10) / 10} s), other set ${other.score}${ok ? "" : ", FAIL"}`);
+    if (!ok) continue;
+    kept++;
+    witness[String(seed)] = own.raw;
+  }
+  const wOut = new URL("./fixtures/pool-witness-v5.json", import.meta.url);
+  const wBody = JSON.stringify(witness) + "\n";
+  if (kept !== POOL_BANK_V3.length) {
+    console.log(`FAIL: ${POOL_BANK_V3.length - kept} of the ${POOL_BANK_V3.length} poolRev 3 bank layouts rooms deal on poolRev 5 don't score 200 there at a person's pace`);
+    process.exit(1);
+  }
+  if (CHECK) {
+    let same = false;
+    try {
+      same = readFileSync(wOut, "utf8") === wBody;
+    } catch {
+      same = false;
+    }
+    console.log(same ? "pool witnesses (poolRev 5): rebuilt byte for byte" : "FAIL: pool witnesses (poolRev 5) differ from a rebuild");
+    process.exit(same ? 0 : 1);
+  }
+  writeFileSync(wOut, wBody);
+  console.log(`pool witnesses (poolRev 5): all ${kept} poolRev 3 layouts at 200, each shot 0.4 s after the balls stop`);
+} else if (import.meta.main && REV === 4) {
   const v3 = JSON.parse(readFileSync(new URL("./fixtures/pool-witness-v3.json", import.meta.url), "utf8")) as Record<string, string>;
   const bank: number[] = [];
   const witness: Record<string, string> = {};

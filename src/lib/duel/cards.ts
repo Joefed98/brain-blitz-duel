@@ -48,6 +48,8 @@ const fhRun = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiv
 const fhRun2 = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsGameFor(2), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL });
 /** fiveHandsRev 3 (the flat table, the hand points summed to 200; the first shuffle as dealt): the same play and wire format. */
 const fhRun3 = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsGameFor(3), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL });
+/** fiveHandsRev 4 (rev 3's game, 200 at 128 hand points): the same play and wire format. */
+const fhRun4 = makeArcadeRun<FhState, FhCheckpoint>({ tag: "fivehands", game: fiveHandsGameFor(4), checkpoint: fhCheckpoint, keys: FH_CHECKPOINT_KEYS, interval: FH_CHECKPOINT_INTERVAL });
 
 const pyRun = makeArcadeRun<PyState, PyCheckpoint>({ tag: "pyramid", game: pyramidGameFor(1), checkpoint: pyCheckpoint, keys: PY_CHECKPOINT_KEYS, interval: PY_CHECKPOINT_INTERVAL });
 /** pyramidRev 2 (more of the 200 on the cards): the same play and wire format. */
@@ -177,7 +179,7 @@ function fhLevelRun(level: LevelName) {
 
 /** The single place a Five Hands score is worked out (no stamp: fiveHandsRev 1; a level deal on its level's game). */
 export function replayFiveHandsRun(seed: number, raw: string, rev?: number | null, level?: string | null): FiveHandsResult {
-  const r = (isLevelName(level) ? fhLevelRun(level) : (rev ?? 1) >= 3 ? fhRun3 : (rev ?? 1) >= 2 ? fhRun2 : fhRun).replay(seed, raw);
+  const r = (isLevelName(level) ? fhLevelRun(level) : rev === 4 ? fhRun4 : (rev ?? 1) >= 3 ? fhRun3 : (rev ?? 1) >= 2 ? fhRun2 : fhRun).replay(seed, raw);
   const s = r.state;
   const t = fhTotals(s.rows, s.rev);
   const col = fhPickedHand(s);

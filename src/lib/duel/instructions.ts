@@ -82,13 +82,10 @@ import {
   TILT_V2_STAR_POINTS,
   TILT_P_CLEAN_POINTS,
   TILT_P_CORE_MAX,
-  TILT_P_MAZE_POINTS,
   TILT_P_PAR_MAX,
-  TILT_P_PAR_POINTS,
-  TILT_P_PROGRESS_POINTS,
-  TILT_P_SPEED_FULL,
   TILT_P_SPEED_POINTS,
-  TILT_S_MAZES,
+  TILT_T_MAZES,
+  TILT_T_SPEED_FULL_S,
   TILT_X_TWO_FROM,
 } from "@/lib/arcade/tilt";
 import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX, BUB_V11_MINE_POPS, BUB_V12_REEF } from "@/lib/arcade/bubble";
@@ -1449,7 +1446,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Hands:", detail: "high card 0, pair 15, two pair 20, three of a kind 25, straight 30, flush 35, full house 40, four of a kind 45, straight flush 50.", helpOnly: true },
         { action: "20 turns", detail: "after five cards dealt one to each row: 45 of the 52 cards are seen by the end.", helpOnly: true },
         { action: "Rows at the buzzer", detail: "score as they stand.", helpOnly: true },
-        { action: "POINTS", detail: "at the top is your score so far: your hand points × 1.4.", helpOnly: true, normalOnly: true },
+        // fiveHandsRev 4 (D6, 22 Nov 2026): 200 at 128 hand points (was × 1.4, 200 at 143).
+        { action: "POINTS", detail: "at the top is your score so far: 200 at 128 hand points.", helpOnly: true, normalOnly: true },
         { action: "Some decks", detail: "can’t reach 200 even placed perfectly: everyone in a room has the same deck, so it’s fair.", helpOnly: true },
         { action: "Same deck, same order,", detail: "for everyone.", helpOnly: true },
       ],
@@ -1955,9 +1953,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Roll each marble into its own cup.",
       how: [
         { action: "Drag left or right", detail: "to spin the maze." },
-        { action: "Keys open gates;", detail: `maze ${TILT_S_MAZES}: small and tight.` },
+        // tiltRev 13 (D6, 22 Nov 2026): Normal deals tiltRev 12's first three mazes; the tight fourth is gone.
+        { action: "Keys open gates;", detail: `${TILT_T_MAZES} mazes in 90 seconds.` },
         { action: `From maze ${TILT_X_TWO_FROM}, two marbles,`, detail: "each to its own cup." },
-        { action: "Marbles always roll down.", detail: `${TILT_S_MAZES} mazes, always all on screen: three big ones, then a smaller, tighter one with the blue marble alone and no holes. A marble that falls into a black hole goes back to its start: it costs time and ends your clean run.`, helpOnly: true },
+        { action: "Marbles always roll down.", detail: `${TILT_T_MAZES} mazes, always all on screen. A marble that falls into a black hole goes back to its start: it costs time and ends your clean run.`, helpOnly: true },
         { action: "Keys and gates:", detail: "a gate across the way to the cup stays shut until either marble rolls over its key, which waits in a side passage before the gate. A gate and its key share a colour.", helpOnly: true },
         { action: "Ice:", detail: "on the faintly frosted cells the marble keeps its speed and slides further, so ease off before a turn or a hole.", helpOnly: true },
         { action: "Cups:", detail: "the blue marble goes in the blue cup, the amber marble in the amber cup, which always starts well away from it. Each marble can only leave through the gap by its own cup, and the maze is done when both are in. The marbles roll through each other.", helpOnly: true },
@@ -1966,11 +1965,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Levels:", detail: "Easy deals three smaller mazes with at most one black hole, no ice, two marbles only in the last and a generous par; Normal the four mazes above; Hard three or four holes and ice in every maze, two marbles in two of mazes 2–4 and a stricter par; Expert larger mazes, four holes and the most ice in each, two marbles in up to three mazes and the strictest par. The points below are Normal’s; every level’s parts still make 200.", helpOnly: true },
       ],
       // tiltRev 11 (3 Nov 2026): no gold stars; mazes on a straight line, then par, a clean run, all four and speed, 200 in all.
+      // tiltRev 13 (D6, 22 Nov 2026): the same four parts over three mazes, speed full by 55 s.
       score: scoreList([
-        { label: "Mazes", how: `${TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS} for each maze, part of it for getting closer to the exit`, max: TILT_P_CORE_MAX },
-        { label: "Par times", how: `${TILT_P_PAR_POINTS} for each maze finished within its par time`, max: TILT_P_PAR_MAX },
-        { label: "Clean run", how: `${TILT_P_CLEAN_POINTS / TILT_S_MAZES} for each maze finished before any marble falls in a hole`, max: TILT_P_CLEAN_POINTS },
-        { label: "Speed", how: `finish all ${TILT_S_MAZES} within ${TILT_P_SPEED_FULL / 60} s for all of it, falling to 0 at the buzzer`, max: TILT_P_SPEED_POINTS },
+        { label: "Mazes", how: `about ${Math.round(TILT_P_CORE_MAX / TILT_T_MAZES)} for each maze, part of it for getting closer to the exit`, max: TILT_P_CORE_MAX },
+        { label: "Par times", how: `${TILT_P_PAR_MAX / TILT_T_MAZES} for each maze finished within its par time`, max: TILT_P_PAR_MAX },
+        { label: "Clean run", how: `${TILT_P_CLEAN_POINTS / TILT_T_MAZES} for each maze finished before any marble falls in a hole`, max: TILT_P_CLEAN_POINTS },
+        { label: "Speed", how: `finish all ${TILT_T_MAZES} within ${TILT_T_SPEED_FULL_S} s for all of it, falling to 0 at the buzzer`, max: TILT_P_SPEED_POINTS },
       ], { total: 200 }),
     },
     hotfloor: {

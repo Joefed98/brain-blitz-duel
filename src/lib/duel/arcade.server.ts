@@ -24,8 +24,9 @@ import { logicOverhaul1Dealt } from "./logicOverhaul1";
 import { mahjongBuildClears, MAHJONG_REV_DEALT } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { SKYLINE_REV_TARGET, SKYLINE_REV_STRICT, SKYLINE_REV_LIVES, SKYLINE_REV_COUNT } from "@/lib/arcade/skyline";
-import { TILT_REV_BIG, isTiltLevel } from "@/lib/arcade/tilt";
+import { TILT_REV_BIG, TILT_REV_THREE, isTiltLevel } from "@/lib/arcade/tilt";
 import { TILT_DEAL_V12 } from "./tiltDealV12.server";
+import { TILT_DEAL_V13 } from "./tiltDealV13.server";
 import { TILT_DEAL_LEVELS } from "./tiltDealLevels.server";
 import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
@@ -64,7 +65,7 @@ import { FC_DEALS } from "@/lib/arcade/cards/freecellDeals.data";
 import { TP_REV, TP_REV_PAR } from "@/lib/arcade/cards/tripeaks";
 import { TP_DEALS } from "@/lib/arcade/cards/tripeaksDeals.data";
 import { PS_REV } from "@/lib/arcade/cards/pokerSquares";
-import { FH_LEVEL_RULES, FH_REV } from "@/lib/arcade/cards/fiveHands";
+import { FH_LEVEL_RULES, FH_REV, FH_REV_FLAT } from "@/lib/arcade/cards/fiveHands";
 import { ARCADE_PHASE_SLACK_MS } from "./catalogue";
 import { PY_REV, PY_REV_SHARE } from "@/lib/arcade/cards/pyramid";
 import { GS_REV } from "@/lib/arcade/cards/golfSol";
@@ -154,9 +155,11 @@ export function generatePokerSquares(): PokerSquaresPuzzleData {
 
 /** Five Hands: any seed; the sim shuffles the deck and proves its witness (perfect play reaches 200). */
 export function generateFiveHands(level?: Level): FiveHandsPuzzleData {
+  // fiveHandsRev 4 (D6, 22 Nov 2026): rev 3's game, 200 at 128 hand points. Checks written for rev 3 pin fivehandsPre128.
+  const fiveHandsRev = dealPinned("fivehandsPre128") ? FH_REV_FLAT : FH_REV;
   // The difficulty levels (15 Nov 2026): a level's own clock (its run plus the arcade phase's slack) on the puzzle.
-  if (level === "easy" || level === "hard" || level === "expert") return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV, timeLimitMs: FH_LEVEL_RULES[level].seconds * 1000 + ARCADE_PHASE_SLACK_MS } as FiveHandsPuzzleData;
-  return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev: FH_REV };
+  if (level === "easy" || level === "hard" || level === "expert") return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev, timeLimitMs: FH_LEVEL_RULES[level].seconds * 1000 + ARCADE_PHASE_SLACK_MS } as FiveHandsPuzzleData;
+  return { type: "fivehands", seed: arcadeSeed(), fiveHandsRev };
 }
 
 /** Pyramid: any seed; the sim builds the deal with a witness line (ten pyramid pairs) and proves it. */
@@ -672,6 +675,12 @@ export function generateTilt(level?: Level): TiltPuzzleData {
   // tiltRev 12 (3 Nov 2026): tiltRev 11's rules with bigger marbles and keys, dealt from its own proved deal
   // (TILT_DEAL_V12, scripts/tilt-deal.ts: bank seeds the oracle played to exactly 200 through the server's replay on 12).
   const pick = arcadeSeed();
+  // tiltRev 13 (D6, 22 Nov 2026, the scoring review's I8): tiltRev 12's first three mazes, dealt from its own proved deal
+  // (TILT_DEAL_V13, scripts/tilt-deal.ts --rev=13). Checks written for tiltRev 12 pin tiltPreThree.
+  if (!dealPinned("tiltPreThree")) {
+    const three = TILT_DEAL_V13[((pick % TILT_DEAL_V13.length) + TILT_DEAL_V13.length) % TILT_DEAL_V13.length]!;
+    return { type: "tilt", seed: three, tiltRev: TILT_REV_THREE };
+  }
   const seed = TILT_DEAL_V12[((pick % TILT_DEAL_V12.length) + TILT_DEAL_V12.length) % TILT_DEAL_V12.length]!;
   return { type: "tilt", seed, tiltRev: TILT_REV_BIG };
 }

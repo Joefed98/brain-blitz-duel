@@ -27,7 +27,7 @@ import { racingDealSeedV4Hard } from "./racingDealV4Hard.server";
 import { racingDealSeedV4Expert } from "./racingDealV4Expert.server";
 import { MINIGOLF_REV, MINIGOLF_REV_COURSE, mgLevelOf, MG_LEVELS, MG_LEVEL_NAMES, type MgLevel } from "@/lib/arcade/minigolf";
 import { MINIGOLF_HOLES_BANK, type MinigolfHoleEntry } from "./minigolfHolesBank.server";
-import { POOL_REV } from "@/lib/arcade/pool";
+import { POOL_REV, POOL_REV_V4 } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
 import { CURLING_BANK_V4 } from "./curlingBankV4.server";
 import { CURLING_LEVEL_BANKS } from "./curlingLevelBanks.server";
@@ -121,7 +121,9 @@ export function generateMinigolf(level: unknown = "normal"): MinigolfPuzzleData 
 export function generatePool(): PoolPuzzleData {
   // poolRev 4 (3 Nov 2026) deals from poolRev 3's proved bank, every layout re-proved at 200 on poolRev 4
   // (pool-bank.ts --rev=4, pool-check); poolRev 2 and 1 rounds replay on theirs (poolBankV2 / poolBank).
-  return { type: "pool", seed: POOL_BANK_V3[arcadeSeed() % POOL_BANK_V3.length]!, poolRev: POOL_REV };
+  // poolRev 5 (D6, 22 Nov 2026: Speed from the fifth pot) deals the same bank, every layout re-proved at 200 on it
+  // (pool-bank.ts --rev=5). Checks written for poolRev 4 pin poolPreFifth.
+  return { type: "pool", seed: POOL_BANK_V3[arcadeSeed() % POOL_BANK_V3.length]!, poolRev: dealPinned("poolPreFifth") ? POOL_REV_V4 : POOL_REV };
 }
 
 export function generateCurling(level?: string | null): CurlingPuzzleData {

@@ -313,6 +313,11 @@ export interface TiltState extends BandFields {
   /** tiltRev 12 only (3 Nov 2026): 1. tiltRev 11's mazes and rules with bigger marbles and keys (TILT_B_*); in the checkpoint checksum. */
   big?: number;
   /**
+   * tiltRev 13 Normal only (22 Nov 2026, the scoring review's I8): 1. tiltRev 12's first three mazes (the tight fourth
+   * dropped), the parts over three, speed full by TILT_T_SPEED_FULL_S. In the checkpoint checksum, after `big`.
+   */
+  three?: number;
+  /**
    * Levels (stage 3, 15 Nov 2026; tiltRev 12 only): the level a non-Normal round was dealt at, whose mazes, pars and
    * speed line (TILT_LEVELS) it plays; absent on every Normal round. In the checkpoint checksum.
    */
@@ -611,6 +616,8 @@ export function tiltCheckpoint(state: TiltState): TiltCheckpoint {
   if (state.parClean) values.push(state.parClean, state.parsMet ?? 0, state.cleanTo ?? -1);
   // tiltRev 12 adds its marker last, so every tiltRev 11 checksum is unchanged.
   if (state.big) values.push(state.big);
+  // tiltRev 13's Normal adds its marker after that, so every tiltRev 12 checksum is unchanged.
+  if (state.three) values.push(13);
   // A level's run (stage 3) adds its level last, so every Normal checksum is unchanged.
   if (state.lvl) values.push(TILT_LEVEL_CODE[state.lvl]);
   for (const value of values) {
@@ -1076,6 +1083,7 @@ export function tiltCellCentre(m: Maze, c: number): { x: number; y: number } {
 
 export const tiltRev2Game: ArcadeGame<TiltState, ArcadeInputEvent | null> = { ...tiltGame, init: initRev2, step: bandStep(stepRev2, tiltTrack), score: bandScoreOf(scoreRev2, scoreBand) };
 export function tiltGameFor(rev?: number | null): ArcadeGame<TiltState, ArcadeInputEvent | null> {
+  if (rev === TILT_REV_THREE) return tiltThreeGame;
   if (rev === TILT_REV_BIG) return tiltBigGame;
   if (rev === TILT_REV_PAR) return tiltParGame;
   if (rev === TILT_REV_STD) return tiltStdGame;
@@ -2641,6 +2649,8 @@ export function tiltParParts(state: TiltState): { core: number; par: number; cle
   // A level's run (stage 3) has its own maze count and speed line; tiltLevelParts reduces to the formula below at four
   // mazes and 60 s, but Normal keeps its own lines exactly.
   if (state.lvl) return tiltLevelParts(state);
+  // tiltRev 13's Normal: tiltRev 12's first three mazes, each part over three, speed full by 55 s.
+  if (state.three) return tiltPartsOver(state, TILT_T_SPEED_FULL_S * TICKS_PER_SECOND);
   const mazes = clampInt(state.mazes, 0, TILT_S_MAZES);
   const finished = mazes >= TILT_S_MAZES;
   const prog = !finished && state.progMaze === mazes ? clampInt(state.prog ?? 0, 0, TILT_S_PROGRESS_SCALE) : 0;
@@ -2657,8 +2667,8 @@ export function tiltParParts(state: TiltState): { core: number; par: number; cle
 
 export function tiltParBandParts(state: TiltState): BandParts {
   const p = tiltParParts(state);
-  // A level's run counts its own mazes (stage 3); every tiltRev 11 and 12 Normal run has TILT_S_MAZES.
-  const all = state.lvl ? state.list.length : TILT_S_MAZES;
+  // A level's run counts its own mazes (stage 3), as does tiltRev 13's Normal (three); every tiltRev 11 and 12 Normal run has TILT_S_MAZES.
+  const all = state.lvl || state.three ? state.list.length : TILT_S_MAZES;
   const finished = p.mazes >= all;
   const words = [
     `Par ${p.parsMet} / ${p.mazes} mazes +${p.par}`,
@@ -2671,7 +2681,7 @@ export function tiltParBandParts(state: TiltState): BandParts {
     bonus: p.par + p.clean + p.speed,
     penalty: 0,
     finished,
-    text: state.lvl
+    text: state.lvl || state.three
       ? `${p.mazes} / ${all} mazes${finished ? "" : ` + ${p.progress} for progress in maze ${p.mazes + 1}`}`
       : `${p.mazes} / ${TILT_S_MAZES} mazes × ${TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS}${finished ? "" : ` + ${p.progress} for progress in maze ${p.mazes + 1}`}`,
     bonusText: words.join(" · "),
@@ -2918,7 +2928,14 @@ export function tiltLevelSpeedFull(level: TiltLevel): number {
  * par = 24 × mazes within par ÷ N, clean = 12 × clean mazes ÷ N (a straight line), speed as tiltRev 11's. Integer only.
  */
 export function tiltLevelParts(state: TiltState): { core: number; par: number; clean: number; speed: number; mazes: number; progress: number; parsMet: number; cleanMazes: number } {
-  const level = state.lvl!;
+  return tiltPartsOver(state, tiltLevelSpeedFull(state.lvl!));
+}
+
+/**
+ * The four parts over the run's own maze count (state.list.length), speed full by `full` ticks: tiltLevelParts' formula
+ * (a level's run, its speed line) and tiltRev 13's Normal (three mazes, 55 s). Integer only.
+ */
+export function tiltPartsOver(state: TiltState, full: number): { core: number; par: number; clean: number; speed: number; mazes: number; progress: number; parsMet: number; cleanMazes: number } {
   const all = state.list.length;
   const mazes = clampInt(state.mazes, 0, all);
   const finished = mazes >= all;
@@ -2931,7 +2948,6 @@ export function tiltLevelParts(state: TiltState): { core: number; par: number; c
   const cleanMazes = clampInt(state.cleanTo ?? mazes, 0, mazes);
   const clean = stdLine(TILT_P_CLEAN_POINTS, cleanMazes, all);
   const end = clampInt(state.endedTick, 0, TILT_RUN_TICKS);
-  const full = tiltLevelSpeedFull(level);
   const speed = finished ? (end <= full ? TILT_P_SPEED_POINTS : Math.trunc((TILT_P_SPEED_POINTS * (TILT_RUN_TICKS - end)) / (TILT_RUN_TICKS - full))) : 0;
   return { core, par, clean, speed, mazes, progress, parsMet, cleanMazes };
 }
@@ -2955,3 +2971,51 @@ export function tiltLevelGame(level: TiltLevel): ArcadeGame<TiltState, ArcadeInp
 export function tiltGameForLevel(rev?: number | null, level?: unknown): ArcadeGame<TiltState, ArcadeInputEvent | null> {
   return rev === TILT_REV_BIG && isTiltLevel(level) ? tiltLevelGame(level) : tiltGameFor(rev);
 }
+
+/* ================= tiltRev 13 (22 Nov 2026): Normal deals three mazes ================= */
+
+/**
+ * tiltRev 13 (the scoring review's I8, Joe's approval of 20 Nov 2026; docs/arcade-standard/tilt.md "tiltRev 13"): Normal
+ * plays tiltRev 12's first three mazes exactly (the same carve, holes, keys and gates, ice, cups, amber marble, pieces and
+ * pars from the same seed streams), the tight fourth dropped. The four parts keep their maximums (core 140, par 24,
+ * clean run 12, speed 24), each split over the three mazes (tiltPartsOver: a maze 46 of the core, 8 of par, 4 of the
+ * clean run), speed full when all three are done by TILT_T_SPEED_FULL_S (55 s), falling evenly to 0 at the buzzer. The
+ * run is still 90 s. Rooms deal it from its own proved deal (src/lib/duel/tiltDealV13.server.ts, scripts/tilt-deal.ts
+ * --rev=13). States add `three: 1` (with tiltRev 12's markers), folded into the checkpoint checksum after `big`.
+ * tiltRev 12 and every earlier stamp play and score as before.
+ */
+export const TILT_REV_THREE = 13;
+export const TILT_T_MAZES = 3;
+export const TILT_T_SPEED_FULL_S = 55;
+/** The core's straight line on tiltRev 13 (0 → 140 over the three mazes; the "?" help and LIVE_BANDS read it). */
+export const TILT_V13_BAND_CURVE = TILT_V11_BAND_CURVE;
+
+const cacheT = new Map<number, Maze[]>();
+
+/** tiltRev 13's three Normal mazes of a seed (cached): tiltRev 12's first three, pars and pieces included. */
+function mazesT(seed: number): Maze[] {
+  let list = cacheT.get(seed | 0);
+  if (!list) {
+    list = mazesB(seed).slice(0, TILT_T_MAZES);
+    if (cacheT.size > 16) cacheT.clear();
+    cacheT.set(seed | 0, list);
+  }
+  return list;
+}
+
+/** The three tiltRev 13 Normal mazes a seed deals (the same for every player; checks and tools read them). */
+export function tiltMazesT(seed: number): readonly Maze[] {
+  return mazesT(seed);
+}
+
+function initT(seed: number): TiltState {
+  const base = init(seed);
+  const list = mazesT(seed);
+  return bandInit(enterMazeX({ ...base, rev: TILT_REV, list, stars: 0, cupped: 0, starTick: -1000, xp: 1, std: 1, parClean: 1, big: 1, three: 1, parsMet: 0, mazeTicks: [], quickPts: 0, quickTaken: 0, keysTaken: 0, keyTick: -1000, quickTick: -1000, falls: 0, fallTick: -1000, pace: 0 }, 0));
+}
+
+/** tiltRev 13's Normal game: tiltRev 12's step and score on its first three mazes. */
+export const tiltThreeGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
+  ...tiltBigGame,
+  init: initT,
+};

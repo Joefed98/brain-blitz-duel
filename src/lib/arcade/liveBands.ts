@@ -28,7 +28,7 @@ import { HOVER_REV_SHIELD, HOVER_REV_STRICT, HOVER_V10_BAND_CURVE } from "./hove
 import { SKYLINE_REV_LIVES, SKYLINE_REV_STRICT, SKYLINE_STD_SPEC_V11, SKYLINE_V9_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
 import { BRK_REV_CLEAR, BRK_REV_STRICT, BRK_V12_BAND_CURVE } from "./breaker";
-import { TILT_REV_BIG, TILT_REV_STRICT, TILT_V12_BAND_CURVE } from "./tilt";
+import { TILT_REV_THREE, TILT_REV_STRICT, TILT_V13_BAND_CURVE } from "./tilt";
 import { ORBIT_REV_STRICT, ORBIT_REV_BIG } from "./orbit";
 import { ORBIT_V14_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_FLOOR, BEAT_REV_STRICT, BEAT_STD_SPEC_V12, BEAT_V11_BAND_CURVE } from "./beat";
@@ -45,7 +45,7 @@ import { RACING_REV_DEALT, RACING_V3_BAND_CURVE, RACING_V4_STD_SPEC } from "./ra
 import { FC_REV, FC_STD_SPEC, FC_V5_BAND_CURVE } from "./cards/freecell";
 import { TP_REV, TP_STD_SPEC, TP_V3_BAND_CURVE } from "./cards/tripeaks";
 import { PS_REV, PS_STD_SPEC, PS_V2_BAND_CURVE } from "./cards/pokerSquares";
-import { FH_REV, FH_STD_SPEC, FH_V3_BAND_CURVE } from "./cards/fiveHands";
+import { FH_REV, FH_STD_SPEC, FH_V4_BAND_CURVE } from "./cards/fiveHands";
 import { BLOCKFALL_REV_ZONE, BF_ZONE_STD_SPEC, BF_V2_BAND_CURVE } from "./blockfall";
 import { ALLEYROLL_REV_DEALT, AR2_STD_SPEC, AR_V2_BAND_CURVE } from "./alleyroll";
 import { MOON_BIG_REV, MOON_BIG_STD_SPEC, MOON_V4_BAND_CURVE } from "./ricochetNinja";
@@ -129,7 +129,9 @@ export const LIVE_BANDS = {
   // tiltRev 11 (3 Nov 2026): no gold stars; the core's straight line (35 a maze, to 140, up to 20 of a maze for
   // progress); par 24, a clean run 12 and speed 24 add up to 60 more (the help says so).
   // tiltRev 12 (3 Nov 2026): tiltRev 11's parts and straight line (35 a maze, to 140) with bigger marbles and keys.
-  tilt: { field: "tiltRev", rev: TILT_REV_BIG, curve: TILT_V12_BAND_CURVE, strictRev: TILT_REV_STRICT },
+  // tiltRev 13 (22 Nov 2026, the scoring review's I8): Normal deals tiltRev 12's first three mazes, each part over three
+  // (the core's straight line 46⅔ a maze, to 140), speed full by 55 s.
+  tilt: { field: "tiltRev", rev: TILT_REV_THREE, curve: TILT_V13_BAND_CURVE, strictRev: TILT_REV_STRICT },
   // orbitRev 13 (the arcade scoring standard): planets on a straight line to 130; speed and features pay up to 70 more.
   // orbitRev 14 (the fuel meter): the same parts and straight line on the fuel bank's zigzag courses.
   orbit: { field: "orbitRev", rev: ORBIT_REV_BIG, curve: ORBIT_V14_BAND_CURVE, strictRev: ORBIT_REV_STRICT },
@@ -175,7 +177,8 @@ export const LIVE_BANDS = {
   pokersquares: { field: "pokerSquaresRev", rev: PS_REV, curve: PS_V2_BAND_CURVE, std: PS_STD_SPEC, born: true },
   // Five Hands (31 Oct 2026): born on the arcade scoring standard at revision 1.
   // fiveHandsRev 3 (3 Nov 2026): the flat hand table, the hand points summed, capped at 200 (not every deck reaches it).
-  fivehands: { field: "fiveHandsRev", rev: FH_REV, curve: FH_V3_BAND_CURVE, std: FH_STD_SPEC, born: true },
+  // fiveHandsRev 4 (22 Nov 2026, the scoring review's I2): rev 3's game, 200 at 128 hand points (the elite median).
+  fivehands: { field: "fiveHandsRev", rev: FH_REV, curve: FH_V4_BAND_CURVE, std: FH_STD_SPEC, born: true },
   // Ricochet (1 Nov 2026): the ninja wall-climb, born on the arcade scoring standard at ricoRev 2 (the old shaft never had a band revision).
   // Moon Climb (ricoRev 3, 3 Nov 2026): its own parts (height, flow, lantern rides, scrolls); ricoRev 4 (15 Nov 2026) the bigger ninja, the same parts.
   ricochet: { field: "ricoRev", rev: MOON_BIG_REV, curve: MOON_V4_BAND_CURVE, std: MOON_BIG_STD_SPEC, born: true },
