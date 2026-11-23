@@ -2,8 +2,8 @@
 
 ## burstRev 14: the middle atoms (D5, 22 Nov 2026)
 
-Joe (20 Nov 2026; the polish plan's C1.8, `docs/polish-plan-final/earlier-plan.md`): burstRev 13's atoms are a little
-too big. New stamp **burstRev 14** (`BURST_REV_SMALL`): burstRev 13's waves, lives, beams, power-ups, golden atoms,
+Approved by Joe on 20 Nov 2026 (the polish plan's C1.8, `docs/polish-plan-final/earlier-plan.md`: smaller atoms, a
+middle table between burstRev 13's and the original). New stamp **burstRev 14** (`BURST_REV_SMALL`): burstRev 13's waves, lives, beams, power-ups, golden atoms,
 parts, kinder wave clears and levels, with every atom drawn and collided at `BURST_RADIUS_SMALL`, between burstRev 13's
 table and the original one:
 
