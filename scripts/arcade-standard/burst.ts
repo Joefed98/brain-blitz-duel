@@ -137,7 +137,9 @@ export function playOracle(seed: number): { events: ArcadeInputEvent[]; state: B
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): burstRev 13's bigger atoms change
 // the play, and the oracle scores 194 on burstRev 12's seed (1453580015), so the seed was found again by scanning on
 // burstRev 13 (the parts' rules and the oracle are unchanged).
-export const PERFECT_SEED = 489736026;
+// Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's burstRev 14, the middle atoms): the oracle scores
+// 194 on burstRev 13's seed, so the seed was found again on burstRev 14 (level-tune's deal 64; `bun scripts/burst-small-oracle.ts --dealt`).
+export const PERFECT_SEED = 330123215; // Changed with Joe's approval, 23 Nov 2026 (was 489736026)
 
 export const entry: StdEntry = {
   type: "burst",
