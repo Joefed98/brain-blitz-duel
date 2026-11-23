@@ -36,7 +36,7 @@ import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_S
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_KEEP, WAV_REV_BIG } from "@/lib/arcade/wavefront";
-import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG } from "@/lib/arcade/orbit";
+import { ORBIT_REV_TARGET, ORBIT_REV_STRICT, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, ORBIT_REV_LOST } from "@/lib/arcade/orbit";
 import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD, RALLY_REV_LIVES } from "@/lib/arcade/rally";
 import { BEAT_REV_TARGET, BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
 import { orbitFuelCourseForSeed, orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
@@ -549,22 +549,33 @@ export function pinOrbitPreBig(on: boolean): boolean {
   return setDealPin("orbitPreBig", on);
 }
 
+/**
+ * Checks written for orbitRev 16 (bigger planets): deal the course on orbitRev 16 at every level, as rooms did before
+ * the lost flight (D5 item H4, 22 Nov 2026; returns the previous setting).
+ */
+export function pinOrbitPreLost(on: boolean): boolean {
+  return setDealPin("orbitPreLost", on);
+}
+
 export function generateOrbit(level?: Level): OrbitPuzzleData {
   const seed = arcadeSeed();
   // Levels (docs/arcade-standard/orbit.md "Levels"): Easy, Hard and Expert deal orbitRev 16 on a course from the
   // level's own proved bank, picked by the seed as Normal's; the deal stamps `level` and the sim reads its rules.
   // Normal (no level) deals exactly as before.
   const levelName = level === "easy" || level === "hard" || level === "expert" ? level : null;
+  // orbitRev 17 (the lost flight, 22 Nov 2026, D5 item H4): orbitRev 16's play on the same courses at every level; a flight
+  // that can no longer reach anything ends at once. The era pin orbitPreLost deals orbitRev 16 as before.
+  const lostRev = dealPinned("orbitPreLost") ? ORBIT_REV_BIG : ORBIT_REV_LOST;
   if (levelName && !dealPinned("orbitPreFuel") && !dealPinned("orbitPreGrace") && !dealPinned("orbitPreBig")) {
     const course = orbitFuelCourseForSeed(seed, levelName);
-    if (course) return { type: "orbit", seed, orbitRev: ORBIT_REV_BIG, planets: course.planets, holes: course.holes, extras: course.extras };
+    if (course) return { type: "orbit", seed, orbitRev: lostRev, planets: course.planets, holes: course.holes, extras: course.extras };
   }
   // Rev 14 (the fuel meter, 1 Nov 2026, docs/arcade-standard/orbit.md): a course from the fuel bank (zigzag,
   // proved on rev 14's rules: scripts/orbit-fuel-bank.ts), picked by the seed, with its holes and features.
   const fuel = dealPinned("orbitPreFuel") ? null : orbitFuelCourseForSeed(seed);
   // Rev 15 (grace, the Action overhaul, 15 Nov 2026): the same fuel-bank course; a slip respawns instead of ending the run.
   // Rev 16 (bigger planets, stage 3, 15 Nov 2026): rev 15's play on the same course, the planets drawn bigger.
-  if (fuel) return { type: "orbit", seed, orbitRev: dealPinned("orbitPreGrace") ? ORBIT_REV_FUEL : dealPinned("orbitPreBig") ? ORBIT_REV_GRACE : ORBIT_REV_BIG, planets: fuel.planets, holes: fuel.holes, extras: fuel.extras };
+  if (fuel) return { type: "orbit", seed, orbitRev: dealPinned("orbitPreGrace") ? ORBIT_REV_FUEL : dealPinned("orbitPreBig") ? ORBIT_REV_GRACE : lostRev, planets: fuel.planets, holes: fuel.holes, extras: fuel.extras };
   // Rev 12 (the expansion to 200, 26 Oct 2026): one of the bank courses with proved holes and features
   // (scripts/orbit-xp-bank.ts), picked by the seed, in the bigger view. Every room deals it while the bank has courses.
   const xp = orbitXpCourseForSeed(seed);

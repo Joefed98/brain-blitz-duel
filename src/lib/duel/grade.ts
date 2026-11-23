@@ -2572,6 +2572,8 @@ function gradeUnderRev(
         ...(run.reason ? { reason: run.reason } : {}),
         // orbitRev 12 (the expansion to 200): the features the run took, as flat numbers.
         ...(run.xp ? { dust: run.xp.dust, dustTotal: run.xp.dustTotal, slings: run.xp.slings, slingsTotal: run.xp.slingsTotal, threads: run.xp.threads, threadsTotal: run.xp.threadsTotal, perfect: run.xp.perfect } : {}),
+        // orbitRev 17 (the lost flight): how many flights ended as lost (display only; the score never reads it).
+        ...((run.state as { lost?: number }).lost ? { lostFlights: (run.state as { lostFlights?: number }).lostFlights ?? 0 } : {}),
       };
       break;
     }

@@ -125,7 +125,7 @@ const loose = (p: PuzzleData) => p as unknown as { seed: number; skylineRev?: nu
   }
   ok(loose(dealAt("skyline", "normal", 0)).skylineRev === SKYLINE_REV_FLOORS, "the pins restore: the live deal is skylineRev 12");
   const keys = Object.keys(DEAL_PINS);
-  ok(keys[keys.length - 1] === "skylinePreCount" && DEAL_PINS.skylinePreCount.texts === false, "skylinePreCount is DEAL_PINS' last entry (no text rebuild)");
+  ok(keys.indexOf("skylinePreCount") > keys.indexOf("racingPreCircuits") && keys.indexOf("racingPreCircuits") >= 0 && DEAL_PINS.skylinePreCount.texts === false, "skylinePreCount is a DEAL_PINS entry added at the end (after racingPreCircuits; no text rebuild)");
 }
 
 /* 3. The same play. */

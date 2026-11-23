@@ -390,3 +390,71 @@ replay and speed part (decision for Joe). Expert "scored well" means 150+ (elite
 on 7): Expert courses to try (elite with human limits): bank #7 (bank seed 833130779; 172, 180 and 179 on three deals, the
 sun each time), #5 (bank seed −1004237067; 170, the sun), #11 (bank seed −1530903713; 165, the sun), and the hardest seen,
 #13 (bank seed 307522173; 135) and #22 (bank seed 1120914580; 147). A deal takes bank entry `seed mod 31`.
+
+## orbitRev 17: the lost flight (22 Nov 2026, D5 item H4)
+
+`docs/polish-plan-final/earlier-plan.md` row H4: on orbitRev 14–16 a missed flight burns the whole tank (about 160 ticks at
+Normal) with the camera following the rocket into empty space, then grace's 3 s hold: a slip costs about 5.7 s. Rooms,
+the Daily and every level now deal **orbitRev 17** (`ORBIT_REV_LOST`, `initLostFrom`): orbitRev 16 exactly (the same
+fuel bank `ORBIT_FUEL_BANK` and level banks, the bigger planets, the levels' tanks and checkpoint rules, catches, black
+holes, features, grace and the six parts, 200 in all), except that a free flight ends the moment it is **lost**
+(`orbitFlightLost` in `orbitRev3.ts`) and takes the slip's usual path: SET CHECKPOINT's respawn if it is armed (or Easy's
+automatic one), else grace's 180-tick hold at the planet the flight left. Nothing else changes, so a run whose flights are
+never lost plays orbitRev 16 tick for tick; `lost`, `lostTick` and `lostFlights` stay outside the checkpoint checksum, and
+the stored extra adds `lostFlights` on orbitRev 17 only.
+
+**Lost, from the sim's own geometry.** A free flight is a straight line: each tick the rocket moves by exactly (vx, vy),
+which only a slingshot (leaving a moon's ring) or a black hole can change, and it moves at most `fuel` more times. So the
+rest of the flight is a known segment, and the flight is lost when, on that segment:
+
+- no planet but the one it left can catch it (every planet's capture reach, the disc round its whole capture region,
+  misses the segment) and no live black hole is on it;
+- nothing can still score: no stardust mote not yet taken, no asteroid field not yet threaded, no moon's slingshot ring
+  (and the rocket isn't inside one now), and the partial credit toward the next planet (`reach`, sixteenths) would not grow
+  by the segment's end;
+- and the rocket is **120 px** (`ORBIT_LOST_MARGIN`) past the orbit it left and past every planet ahead (their capture
+  reach), so the player sees it fly clear.
+
+Every reach is padded by 4 px (`ORBIT_LOST_PAD`) against integer rounding, so the rule can end a flight later than it
+might but never one that could still be caught or still earn a point: ending a lost flight early costs nothing but the
+tank it would have burned. Integer maths only.
+
+**Proved** (orbit-lost-check): over every free-flight tick of the 144 recorded runs and of synthetic releases (a release
+every 17 ticks from the recorded average and elite runs' orbits; `CHECKS_FULL=1` every 3 ticks from all 144), played on
+orbitRev 16's rules, wherever the rule holds the rest of the flight catches nothing and earns nothing: 10,587 flights at
+the default depth, 125,071 at full depth, no exception. It ends 94 % of the flights that would run dry (96 % at full
+depth) and saves 53–56 % of their flight time: a missed flight now flies about 75 ticks on average instead of 161, so a
+slip costs about 4.3 s instead of 5.7 s (the hold is unchanged). What keeps the rest flying: the 120 px margin near a
+planet, and flights still drifting along the hop toward the next planet (their partial credit still growing); dropping the
+partial-credit test would save 68 % instead of 57 % of the time, at the cost of those sixteenths (not done: the rule never
+takes a point). Every bank witness (Normal's 96 and every level's bank) plays on orbitRev 17 exactly as on 16, is never
+lost and scores exactly 200 through the server replay, so the banks' proofs carry over unchanged.
+
+**Measured** (`bun scripts/d5-ladder.ts orbit --deals=16 --bots=average,elite,proof`, real deals 0–15 at each level,
+graded by the server; orbitRev 16 → orbitRev 17; mean / median, best, share at 200; `fin` = the sun reached):
+
+| Level | Average | Elite (realistic) | Proof (flawless at the limits) |
+| --- | --- | --- | --- |
+| Easy | 115.9 / 118, best 133 → 118.3 / 118, best 148 | 186.1 / 186, fin 100 % → 186.1 / 186, fin 100 % | 189.9 / 190 → 189.9 / 190 |
+| Normal | 107.0 / 98, best 153 → 108.1 / 98, best 153 | 184.2 / 189, fin 94 % → 183.8 / 189, fin 94 % | 189.6 / 192 → 189.7 / 192 |
+| Hard | 78.8 / 75 → 79.0 / 75 | 171.8 / 176, fin 88 % → 171.8 / 176, fin 88 % | 180.0 / 178 → 180.0 / 178 |
+| Expert | 82.4 / 87 → 82.8 / 87 | 161.9 / 160, fin 44 % → 162.1 / 160, fin 44 % | 165.9 / 167 → 165.9 / 167 |
+
+No run reaches 200 on either stamp. The rule fires about 2.4 times a Normal run for the average player (3.4 on Expert)
+and almost never for the elite (0.13; 0.31 on Expert), who rarely misses: the elite's ceiling is its pace and its perfect
+orbits, not its slips, so the lost flight is a comfort for the players who miss (a second and a half back each time and
+no flight into empty space), not a score lever.
+
+Checks written for orbitRev 16 pin the era `orbitPreLost` (`pinOrbitPreLost`), which deals orbitRev 16 at every level as
+rooms did; `orbitPreBig` still deals orbitRev 15. Practice bests start fresh for Orbit (`PRACTICE_STAMPS`). The intro demo
+recorded on orbitRev 16 still plays on its own stamp; re-record it on orbitRev 17 (`bun scripts/action-demos-record.ts
+orbit`) with `ACTION_DEMO_REVS.orbit` and its stop rule once Joe approves. Display: nothing new is drawn yet; `lostTick`
+is there for an effect (a "LOST" moment) when the renderers' owner adds one. The level levers in the difficulty spec
+(belts) will need a stamp after this one (orbitRev 18).
+
+orbit-lost-check (~13 s; `CHECKS_FULL=1` ~50 s): the 144 orbitRev 16 runs recorded at every level before this stamp
+(`scripts/fixtures/orbit-lost-legacy.json.gz`, `scripts/orbit-lost-legacy-record.ts`) regrade exactly, and the 120
+orbitRev 12–15 runs (`orbit-big-legacy.json`); the deals at every level and under both pins; the sweep; the rule on the
+sim (a missed release from the first planet: lost after 83 ticks of flight instead of a 159-tick burn, then the hold, or
+SET CHECKPOINT's respawn); every bank witness; the recorded runs with no lost flight replaying exactly on 17; the live
+stamp, the view and the extra.
