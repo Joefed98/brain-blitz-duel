@@ -9,7 +9,7 @@
  */
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 import { fxAmount, fxMemory, strategyFx } from "./strategyFx";
-import { strategyArtVersion, strategyImage, type StrategyArtName } from "./strategyArt";
+import { strategyArtVersion } from "./strategyArt";
 import type { CanvasSize } from "./engine";
 import { arcadeFx } from "./arcadeFx.renderer";
 import { MATCHUP_FX, STRATEGY_TEXT_BAND, fxSpecAt } from "./arcadeFxGames.renderer";
@@ -223,12 +223,7 @@ function facetedGem(ctx: CanvasRenderingContext2D, pts: Array<[number, number]>,
   ctx.restore();
 }
 
-/**
- * A cut stone (the Strategy overhaul, 15 Nov 2026, display only; was flat table and bevel planes in three shades): each
- * bevel facet is lit by how it faces a light from the upper left, from deep shadow to near white, with its own
- * gradient from the girdle in to the table; the table refracts (darker at its heart, bright at its edge); the most lit
- * facet carries a crisp white specular strip, and the shared glint sits on top. All inside the cut's outline.
- */
+/** Flat table and bevel planes: fixed per cut, with three own-colour shades (the polish plan's C2.1, Joe, 20 Nov 2026: the old flat cut again). */
 function flatGem(ctx: CanvasRenderingContext2D, shape: string, cx: number, cy: number, r: number, colour: string): void {
   const pts = cutPoints(shape, cx, cy, r);
   const inner = pts.map(([x, y]) => [cx + (x - cx) * 0.52, cy + (y - cy) * 0.52 - r * 0.1] as [number, number]);
@@ -471,12 +466,8 @@ export function paintMatchupGem(ctx: CanvasRenderingContext2D, kind: number, cx:
   } else {
     const shape = matchupGemShape(kind) ?? "circle";
     const colour = matchupGemColour(kind) ?? MATCHUP_GOLD;
-    // The Strategy overhaul (stage 2, display only): the rendered cut stone (strategy_art.py), the same outline at the
-    // same radius; the code-cut gem until it has loaded (and in checks, where there is no Image).
-    // The seventh colour's heart (matchupRev 13 Expert) is rendered too (gem-heart, 16 Nov 2026).
-    const rendered = strategyImage(`gem-${shape}` as StrategyArtName);
-    if (rendered) ctx.drawImage(rendered, cx - radius, cy - radius, radius * 2, radius * 2);
-    else flatGem(ctx, shape, cx, cy, radius, colour);
+    // The polish plan's C2.1 (Joe, 20 Nov 2026): the old flat-cut gems in code, no rendered stones (the heart included).
+    flatGem(ctx, shape, cx, cy, radius, colour);
   }
   ctx.restore();
 }
@@ -511,7 +502,8 @@ const centre = (index: number) => ({
  */
 function paintSocket(c: CanvasRenderingContext2D, x: number, y: number, parity: number): void {
   const s = MATCHUP_CELL_PX;
-  c.fillStyle = parity === 0 ? "#15151C" : "#101017";
+  // The polish plan's C2.1: lighter cells, a lit violet velvet (were near-black #15151C / #101017), so the gems read on it.
+  c.fillStyle = parity === 0 ? "#3B2F57" : "#33284C";
   c.fillRect(x, y, s, s);
   const well = c.createRadialGradient(x + s * 0.5, y + s * 0.56, s * 0.08, x + s * 0.5, y + s * 0.5, s * 0.62);
   well.addColorStop(0, parity === 0 ? "rgba(70,52,110,0.30)" : "rgba(60,44,96,0.26)");

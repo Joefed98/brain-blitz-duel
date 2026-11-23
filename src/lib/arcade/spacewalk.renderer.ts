@@ -38,9 +38,19 @@ export const FREIGHT_HULLS = ["#FF8A3C", "#5CD0FF", "#A6FF3A"] as const;
 export const COMET_COLOURS = ["#7FFFFF", "#FF9BFF", "#FFE08A", "#9CFF9C"] as const;
 
 /** Deep space with fixed pixel stars over a world rectangle (seeded by position, so it never shimmers). */
-export function paintSpaceVoid(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, seed = 11): void {
+export function paintSpaceVoid(
+  c: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  seed = 11,
+  sky?: { top: number; h: number },
+): void {
   if (w <= 0 || h <= 0) return;
-  const g = c.createLinearGradient(0, y, 0, y + h);
+  // `sky` maps the gradient on another span (the fill round the world passes the world's own, so the sides and the
+  // foot carry the world's sky on: the polish plan's C1.11, 20 Nov 2026).
+  const g = c.createLinearGradient(0, sky?.top ?? y, 0, (sky?.top ?? y) + (sky?.h ?? h));
   g.addColorStop(0, SPACE_VOID);
   g.addColorStop(1, SPACE_VOID_DEEP);
   c.fillStyle = g;

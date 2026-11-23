@@ -301,14 +301,16 @@
   gap: 12px;
   height: 66px;
 }
+/* The board picture large in the stage (the polish plan's G7, A3, 21 Nov 2026; was a 58 × 104 thumbnail). */
 .retro-summary-with-picture .retro-summary-top {
-  height: 104px;
+  height: 220px;
 }
 .retro-summary-picture {
   display: block;
   flex-shrink: 0;
-  width: 58px;
-  height: 104px;
+  width: 121px;
+  height: 220px;
+  object-fit: contain;
   border-radius: 4px;
   box-shadow: 0 0 0 1px var(--jz-line);
 }

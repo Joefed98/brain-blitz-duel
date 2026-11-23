@@ -434,7 +434,8 @@ def felt():
     scene.render.film_transparent = False
     W, H = 828, 1544
     obj = plane("felt", 0, 0, W, H)
-    obj.data.materials.append(felt_material("felt", "#163E86", os.path.join(TEX, "stitch-felt.png")))
+    # The polish plan (Joe, 20 Nov 2026): a brighter baize, about a quarter lighter (was #163E86).
+    obj.data.materials.append(felt_material("felt", "#1E53B0", os.path.join(TEX, "stitch-felt.png")))
     soft_light(scene, size=W * 0.55, at=(W / 2, H * 0.6, 1100), energy=W * H * 3.6)
     ortho_camera(scene, W / 2, H / 2, W, H, 1)
     render(scene, "felt-raw.png")
@@ -484,7 +485,8 @@ def mahjong_table():
     y_top = H - mat_y0 * 2
     mat = slab("mat", W - 2 * m, mat_h * 2, 32, 0.5, 2.0)
     mat.location = (m, y_top - mat_h * 2, 0)
-    mat.data.materials.append(felt_material("mat", "#1F6B4E", os.path.join(TEX, "stitch-mat.png")))
+    # The polish plan (20 Nov 2026): a brighter felt, about a quarter lighter (was #1F6B4E).
+    mat.data.materials.append(felt_material("mat", "#2A8A64", os.path.join(TEX, "stitch-mat.png")))
     soft_light(scene, size=W * 0.7, at=(W * 0.4, H * 0.6, 1100), energy=W * H * 4.2)
     ortho_camera(scene, W / 2, H / 2, W, H, 1)
     render(scene, "mahjong-table-raw.png")

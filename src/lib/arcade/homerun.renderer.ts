@@ -501,29 +501,52 @@ function paintCatchArea(ctx: CanvasRenderingContext2D, f: HomerunFielder, alpha 
   ctx.restore();
 }
 
-/** A fielder: a small shaded figure in the home team's red, glove out (raised when making a catch). */
+/**
+ * A fielder (the polish plan's C4.10, Joe, 20 Nov 2026): a small Captain-style figure in white kit with navy trim, a
+ * navy helmet with a gold visor line, standing on a clear shadow disc, glove out (raised when making a catch). Display
+ * only; the catch area is the sim's.
+ */
 function paintFielder(ctx: CanvasRenderingContext2D, x: number, y: number, s: number, catching: number): void {
   const h = Math.max(9, Math.min(34, s * 6));
   const u = h / 16;
   ctx.save();
-  ctx.fillStyle = "rgba(0,0,0,0.35)";
+  // The shadow disc on the grass.
+  ctx.fillStyle = "rgba(0,0,0,0.42)";
   ctx.beginPath();
-  ctx.ellipse(x, y, 3.4 * u, 1.1 * u, 0, 0, Math.PI * 2);
+  ctx.ellipse(x + 0.8 * u, y + 0.3 * u, 4.6 * u, 1.6 * u, 0, 0, Math.PI * 2);
   ctx.fill();
-  // Legs.
-  ctx.fillStyle = "#E7E9EF";
-  ctx.fillRect(x - 2.2 * u, y - 6 * u, 1.8 * u, 6 * u);
-  ctx.fillRect(x + 0.4 * u, y - 6 * u, 1.8 * u, 6 * u);
-  // Body.
+  // Legs: white trousers, navy boots.
+  ctx.fillStyle = "#EEF1F6";
+  ctx.fillRect(x - 2.2 * u, y - 6 * u, 1.8 * u, 5.2 * u);
+  ctx.fillRect(x + 0.4 * u, y - 6 * u, 1.8 * u, 5.2 * u);
+  ctx.fillStyle = "#1B2547";
+  ctx.fillRect(x - 2.4 * u, y - 1.1 * u, 2.1 * u, 1.1 * u);
+  ctx.fillRect(x + 0.3 * u, y - 1.1 * u, 2.1 * u, 1.1 * u);
+  // Body: a white shirt lit from the left, a navy belt and a gold bolt on the chest.
   const body = ctx.createLinearGradient(x - 3 * u, 0, x + 3 * u, 0);
-  body.addColorStop(0, "#9E2B2F");
-  body.addColorStop(1, "#E0473E");
+  body.addColorStop(0, "#FFFFFF");
+  body.addColorStop(1, "#C9D0DC");
   ctx.fillStyle = body;
   ctx.beginPath();
   ctx.roundRect(x - 2.8 * u, y - 12 * u, 5.6 * u, 6.6 * u, 1.4 * u);
   ctx.fill();
+  ctx.strokeStyle = "rgba(27,37,71,0.7)";
+  ctx.lineWidth = Math.max(0.6, 0.5 * u);
+  ctx.stroke();
+  ctx.fillStyle = "#1B2547";
+  ctx.fillRect(x - 2.8 * u, y - 6.4 * u, 5.6 * u, 0.9 * u);
+  ctx.fillStyle = "#F2C75C";
+  ctx.beginPath();
+  ctx.moveTo(x + 0.3 * u, y - 11 * u);
+  ctx.lineTo(x - 0.9 * u, y - 8.8 * u);
+  ctx.lineTo(x + 0.1 * u, y - 8.8 * u);
+  ctx.lineTo(x - 0.4 * u, y - 7.2 * u);
+  ctx.lineTo(x + 1 * u, y - 9.4 * u);
+  ctx.lineTo(x, y - 9.4 * u);
+  ctx.closePath();
+  ctx.fill();
   // Glove arm.
-  ctx.strokeStyle = "#E0473E";
+  ctx.strokeStyle = "#E6EAF1";
   ctx.lineWidth = 1.3 * u;
   ctx.lineCap = "round";
   ctx.beginPath();
@@ -534,17 +557,19 @@ function paintFielder(ctx: CanvasRenderingContext2D, x: number, y: number, s: nu
   ctx.stroke();
   ctx.fillStyle = "#6B4325";
   ctx.beginPath();
-  ctx.arc(gx, gy, 1.3 * u, 0, Math.PI * 2);
+  ctx.arc(gx, gy, 1.4 * u, 0, Math.PI * 2);
   ctx.fill();
-  // Head and cap.
-  ctx.fillStyle = "#C69C7A";
+  // The helmet: navy, round, with the gold visor line.
+  ctx.fillStyle = "#1B2547";
   ctx.beginPath();
-  ctx.arc(x, y - 13.6 * u, 1.9 * u, 0, Math.PI * 2);
+  ctx.arc(x, y - 14 * u, 2.2 * u, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "#B8302F";
+  ctx.strokeStyle = "#F2C75C";
+  ctx.lineWidth = Math.max(0.6, 0.6 * u);
   ctx.beginPath();
-  ctx.arc(x, y - 14.3 * u, 2 * u, Math.PI, Math.PI * 2);
-  ctx.fill();
+  ctx.moveTo(x - 1.5 * u, y - 13.6 * u);
+  ctx.lineTo(x + 1.5 * u, y - 13.6 * u);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -658,9 +683,10 @@ function paintWall(ctx: CanvasRenderingContext2D, e: Extent): void {
   ctx.lineTo(e.x1 + 4, 200);
   ctx.lineTo(e.x0, 200);
   ctx.closePath();
+  // The polish plan's C4.10 (20 Nov 2026): the padded wall a fifth lighter, so the fence reads (was #22543A → #0E2619).
   const g = ctx.createLinearGradient(0, 166, 0, 184);
-  g.addColorStop(0, "#22543A");
-  g.addColorStop(1, "#0E2619");
+  g.addColorStop(0, "#2A6948");
+  g.addColorStop(1, "#11301F");
   ctx.fillStyle = g;
   ctx.fill();
   ctx.strokeStyle = "#E8C547";
