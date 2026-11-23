@@ -10,7 +10,7 @@ import { speedBonusCurve } from "../duel/speedPar";
  * the seeded generator carried in the state.
  */
 
-import { retroLevelSettings, withRetroLevel, type BreakerLv } from "./retroLevels";
+import { BREAKER_LEVELS_V12, retroLevelSettings, withRetroLevel, type BreakerLv } from "./retroLevels";
 import type { Level } from "@/lib/levels/levels";
 import {
   clampInt,
@@ -28,7 +28,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { stdFinal, stdLine } from "./arcadeStandard";
+import { stdEach, stdFinal, stdLine, stdSpeedInt } from "./arcadeStandard";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -134,15 +134,17 @@ export const BRK_SLIDE_PERIOD = 6 * TICKS_PER_SECOND;
 export const BRK_SLIDE_STARTS: readonly number[] = [30 * TICKS_PER_SECOND, 60 * TICKS_PER_SECOND];
 
 /** A row's horizontal offset in whole px at a tick: 0 until it starts, then a slow triangle wave. */
-export function brkRowOffset(state: { slide?: number[] }, row: number, tick: number): number {
+export function brkRowOffset(state: { slide?: number[]; slideAt?: number[] }, row: number, tick: number): number {
   const slot = state.slide ? state.slide.indexOf(row) : -1;
   if (slot < 0) return 0;
-  const start = BRK_SLIDE_STARTS[slot] ?? 0;
+  // brkRev 13's levels carry their own start ticks (slideAt); every earlier state starts its two rows at 30 s and 60 s.
+  const start = state.slideAt ? (state.slideAt[slot] ?? 0) : (BRK_SLIDE_STARTS[slot] ?? 0);
   if (tick < start) return 0;
   const q = BRK_SLIDE_PERIOD / 4;
   const p = (tick - start) % BRK_SLIDE_PERIOD;
-  // Out to +amp, back through 0 to −amp, back to 0: continuous, at most 1 px a tick.
-  const sign = slot === 0 ? 1 : -1;
+  // Out to +amp, back through 0 to −amp, back to 0: continuous, at most 1 px a tick. Rows alternate direction (the
+  // first out to the right, the second to the left, and so on: brkRev 13's four sliding rows; earlier states hold two).
+  const sign = slot % 2 === 0 ? 1 : -1;
   if (p < q) return sign * Math.trunc((BRK_SLIDE_AMP * p) / q);
   if (p < 3 * q) return sign * Math.trunc((BRK_SLIDE_AMP * (2 * q - p)) / q);
   return sign * Math.trunc((BRK_SLIDE_AMP * (p - 4 * q)) / q);
@@ -246,6 +248,12 @@ export interface BrkState extends BandFields {
   clear9?: number;
   /** Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. */
   lv?: BreakerLv;
+  /** brkRev 13 only (D5's ladder, 23 Nov 2026): the marker; on a level with lives, the balls left (the last one lost ends
+   * the run, `out` 1) and when each sliding row starts (ticks; absent: BRK_SLIDE_STARTS). Absent on every earlier round. */
+  lad?: number;
+  lives?: number;
+  out?: number;
+  slideAt?: number[];
   tick: number;
   rng: number;
   /** Hits left in each brick: 0 gone, otherwise 1–3. */
@@ -757,6 +765,8 @@ export function brkCheckpoint(state: BrkState): BrkCheckpoint {
   if (state.std) values.push(state.std);
   // brkRev 12 (the Retro overhaul): its marker, last.
   if (state.clear9) values.push(state.clear9);
+  // brkRev 13 (D5's ladder): its marker, the balls left and the run's end on the last one, last.
+  if (state.lad) values.push(state.lad, state.lives ?? 0, state.out ?? 0);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -936,8 +946,10 @@ const breakerGameV2: ArcadeGame<BrkState, ArcadeInputEvent | null> = { ...breake
 
 /** The game for a stored brkRev (absent = the original board and power-ups). */
 export function breakerGameFor(rev?: number | null, level?: Level | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
-  // Stage 3 of the Retro overhaul: brkRev 12 at a level (retroLevels.ts); Normal is the game itself.
-  if (rev === BRK_REV_CLEAR) return withRetroLevel(breakerClearGame, retroLevelSettings("breaker", level), applyBreakerLv);
+  // D5's ladder (23 Nov 2026): brkRev 13, Normal brkRev 12's play on the new lines, a level its own wall (BREAKER_LEVELS).
+  if (rev === BRK_REV_LADDER) return breakerLadderGameFor(level);
+  // Stage 3 of the Retro overhaul: brkRev 12 at a level (its own table, BREAKER_LEVELS_V12); Normal is the game itself.
+  if (rev === BRK_REV_CLEAR) return withRetroLevel(breakerClearGame, level && level !== "normal" ? BREAKER_LEVELS_V12[level] : null, applyBreakerLv);
   if (rev === BRK_REV_STD) return breakerStdGame;
   if (rev === BRK_REV_PHONE) return breakerPhoneGame;
   if (rev === BRK_REV_DEEP) return breakerDeepGame;
@@ -1030,13 +1042,13 @@ export const breakerTallGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
 
 /** The world height (px) a stored round's brkRev plays in. */
 export function breakerWorldHFor(rev?: number | null): number {
-  if (rev === BRK_REV_DEEP || rev === BRK_REV_PHONE || rev === BRK_REV_STD || rev === BRK_REV_CLEAR) return BRK_V9_H;
+  if (rev === BRK_REV_DEEP || rev === BRK_REV_PHONE || rev === BRK_REV_STD || rev === BRK_REV_CLEAR || rev === BRK_REV_LADDER) return BRK_V9_H;
   return rev === BRK_REV_TALL || rev === BRK_REV_TARGET || rev === BRK_REV_STRICT ? BRK_TALL_H : BRK_WORLD_H;
 }
 
 /** The court width (px) a stored round's brkRev plays in. */
 export function breakerWorldWFor(rev?: number | null): number {
-  return rev === BRK_REV_DEEP || rev === BRK_REV_PHONE || rev === BRK_REV_STD || rev === BRK_REV_CLEAR ? BRK_V9_W : BRK_WORLD_W;
+  return rev === BRK_REV_DEEP || rev === BRK_REV_PHONE || rev === BRK_REV_STD || rev === BRK_REV_CLEAR || rev === BRK_REV_LADDER ? BRK_V9_W : BRK_WORLD_W;
 }
 
 /* ================= Scoring targets (brkRev 7, 18 Oct 2026) ================= */
@@ -1317,7 +1329,8 @@ function initDeep(seed: number): BrkState {
 }
 
 function isOverDeep(state: BrkState): boolean {
-  return state.cleared || state.tick >= BRK_RUN_TICKS;
+  // brkRev 13: a level's last life lost ends the run (`out` exists only there).
+  return state.cleared || state.tick >= BRK_RUN_TICKS || Boolean(state.out);
 }
 
 function stepDeep(state: BrkState, input: ArcadeInputEvent | null): BrkState {
@@ -1523,6 +1536,14 @@ function stepDeep(state: BrkState, input: ArcadeInputEvent | null): BrkState {
       chain = 0;
       next.pause = BRK_RELAUNCH_TICKS;
       balls = [{ x: paddleX * 256, y: paddleYFp - BRK_BALL_R_FP, vx: 0, vy: 0, spam: 0, d: 1 }];
+      // brkRev 13 at a level with lives (D5's ladder): the ball was a life, and the last one ends the run (no relaunch).
+      if (next.lives !== undefined && next.lives > 0) {
+        next.lives -= 1;
+        if (next.lives === 0) {
+          next.out = 1;
+          next.pause = 0;
+        }
+      }
     }
   }
 
@@ -1584,7 +1605,7 @@ function stepDeep(state: BrkState, input: ArcadeInputEvent | null): BrkState {
   next.comboPts = comboPts;
   next.comboUps = comboUps;
   next.cleared = bricks.every((left, i) => left <= 0 || brkIsGold(state, i));
-  if (next.cleared || tick >= BRK_RUN_TICKS) next.endedTick = tick;
+  if (next.cleared || tick >= BRK_RUN_TICKS || next.out) next.endedTick = tick;
   return next;
 }
 
@@ -1754,6 +1775,8 @@ export interface BrkStdParts {
 
 /** brkRev 11's four parts for a state. */
 export function breakerStdParts(state: BrkState): BrkStdParts {
+  // brkRev 13 (D5's ladder): the same four parts on its own lines.
+  if (state.lad) return breakerLadderParts(state);
   const all = state.bricks.length;
   const bricks = brkAllDestroyed(state);
   const core = stdLine(BRK_V11_CORE_MAX, bricks, all);
@@ -1909,3 +1932,166 @@ function applyBreakerLv(state: BrkState, lv: BreakerLv): BrkState {
   }
   return next;
 }
+
+/* ================= D5's ladder (brkRev 13, 23 Nov 2026) ================= */
+
+/**
+ * brkRev 13 (D5's difficulty ladder, docs/arcade-standard/breaker.md "brkRev 13" and "Levels (D5, 23 Nov 2026)"; Joe's
+ * approval of 23 Nov 2026), the same for every player:
+ *
+ *  - Normal: brkRev 12's game exactly (initClear's 9-row wall, ball, paddle, power-ups and sliding rows; `lad: 1` is
+ *    added) on the refitted lines: the Bricks core full BRK_V13_CORE_SHORT bricks short of the whole wall (79 of 81), gold
+ *    BRK_V13_GOLD_EACH a brick (2 of 3 fill the part) and the full speed part for a clear by BRK_V13_SPEED_FULL_S (80 s,
+ *    ten seconds left; a sixth of the clock, 75 s, put the realistic elite at 200 on a third of Normal runs), falling evenly
+ *    to 0 at the buzzer.
+ *  - A level (BREAKER_LEVELS, retroLevels.ts): its own wall from brkRev 11's 12-row board, the middle rows (from row 3)
+ *    left out to the level's rows (Easy 6, Hard 11, Expert 12, the whole dealt wall), the lost power bricks placed again
+ *    lower, as brkRev 12 did; every brick but gold one hit (`oneHit`: with the dealt hits the realistic elite cleared the
+ *    Hard and Expert walls too seldom for 200); its paddle; its ball; its sliding rows (count and start); its lives (Hard
+ *    and Expert: the last ball lost ends the run, so a lost ball costs more than its 3 s relaunch); and its own lines.
+ *
+ * Every part is a share of the level's own wall. States add `lad: 1` (and a level's `lives`, `out`, `slideAt`), folded
+ * into the checkpoint checksum last, so every earlier revision's checksum is unchanged.
+ */
+export const BRK_REV_LADDER = 13;
+/** Normal's lines (D5's refit): the core full this many bricks short of the whole wall, gold a brick, full speed by. */
+export const BRK_V13_CORE_SHORT = 2;
+export const BRK_V13_GOLD_EACH = 15;
+export const BRK_V13_SPEED_FULL_S = 80;
+/** brkRev 13's own stream for the extra sliding rows (seeded, after brkRev 12's draws). */
+const BRK_V13_STREAM = 0x42524b13;
+
+/** brkRev 13's speed part for a wall cleared at `endedTick`: full by `fullS` seconds, then evenly to 0 at the buzzer. */
+export function brkLadderSpeed(endedTick: number, fullS: number): number {
+  // A full line at the buzzer (or later) pays every clear in full.
+  const fullLeft = BRK_RUN_TICKS - Math.trunc(fullS * TICKS_PER_SECOND);
+  if (fullLeft <= 0) return BRK_V11_SPEED_MAX;
+  const left = BRK_RUN_TICKS - clampInt(endedTick, 0, BRK_RUN_TICKS);
+  return stdSpeedInt(BRK_V11_SPEED_MAX, left, fullLeft, 0);
+}
+
+/** brkRev 13's gold points for a state (its level's gold a brick, Normal's BRK_V13_GOLD_EACH), at most BRK_V11_GOLD_MAX. */
+export function brkLadderGoldPoints(state: Pick<BrkState, "lv" | "goldBroken" | "gild">): number {
+  const broken = Math.min(brkGoldDealt(state), state.goldBroken ?? 0);
+  return stdEach(broken, state.lv?.goldEach ?? BRK_V13_GOLD_EACH, BRK_V11_GOLD_MAX);
+}
+
+/** The bricks at which a brkRev 13 state's core is full (its wall less its level's, or Normal's, short). */
+export function brkLadderCoreFull(state: Pick<BrkState, "lv" | "bricks">): number {
+  return Math.max(1, state.bricks.length - (state.lv?.coreShort ?? BRK_V13_CORE_SHORT));
+}
+
+/** brkRev 13's four parts (breakerStdParts sends a `lad` state here). */
+export function breakerLadderParts(state: BrkState): BrkStdParts {
+  const all = state.bricks.length;
+  const bricks = brkAllDestroyed(state);
+  const core = stdLine(BRK_V11_CORE_MAX, bricks, brkLadderCoreFull(state));
+  const cleared = state.cleared;
+  const clear = cleared ? BRK_V11_CLEAR_POINTS : 0;
+  const speed = cleared ? brkLadderSpeed(state.endedTick, state.lv?.speedFullS ?? BRK_V13_SPEED_FULL_S) : 0;
+  const goldDealt = brkGoldDealt(state);
+  const goldBroken = Math.min(goldDealt, state.goldBroken ?? 0);
+  const gold = brkLadderGoldPoints(state);
+  return { bricks, all, core, cleared, clear, speed, goldBroken, goldDealt, gold, sum: core + clear + speed + gold };
+}
+
+/** The middle rows a 12-row board loses for a wall of `rows` (from row 3 down; 9 rows: brkRev 12's [3, 4, 5]). */
+export function brkLadderDropRows(rows: number): number[] {
+  const k = clampInt(BRK_V9_ROWS - Math.trunc(rows), 0, BRK_V9_ROWS - 3);
+  return Array.from({ length: k }, (_, i) => 3 + i);
+}
+
+/**
+ * A brkRev 13 level's first state: brkRev 11's board (initStd) with `brkLadderDropRows(lv.rows)` taken out of the
+ * middle, the power bricks lost with them placed again lower (initClear's rule and stream, so 9 rows is brkRev 12's wall
+ * brick for brick), the level's bricks, sliding rows, paddle (brkPaddleWOf reads `lv`), lives and ball, brkRev 12's ball
+ * and multi-ball (`clear9`).
+ */
+function initLadderLevel(seed: number, lv: BreakerLv): BrkState {
+  const base = initStd(seed);
+  const C = BRK_V9_COLS;
+  const dropRows = brkLadderDropRows(lv.rows);
+  const keepRows: number[] = [];
+  for (let row = 0; row < BRK_V9_ROWS; row++) if (!dropRows.includes(row)) keepRows.push(row);
+  const pick = <T,>(list: readonly T[]): T[] => keepRows.flatMap((row) => list.slice(row * C, row * C + C));
+  let bricks = pick(base.bricks);
+  let maxHp = pick(base.maxHp);
+  const gold = pick(base.gold);
+  const gild = pick(base.gild ?? []);
+  const lost: number[] = [];
+  for (const row of dropRows) for (let c = 0; c < C; c++) {
+    const g = base.gold[row * C + c] ?? 0;
+    if (g > 0) lost.push(g);
+  }
+  let rng = (seed ^ 0x42524b12) | 0;
+  const draw = (bound: number): number => {
+    const d = rngBelow(rng, bound);
+    rng = d.state;
+    return d.value;
+  };
+  const lowFrom = 3 * C;
+  for (const g of lost) {
+    for (let guard = 0; guard < 400; guard++) {
+      const index = lowFrom + draw(bricks.length - lowFrom);
+      if (gold[index] === 0 && gild[index] !== 1 && bricks[index] === 1 && gild[index - C] !== 1) {
+        gold[index] = g;
+        break;
+      }
+    }
+  }
+  const rows = keepRows.length;
+  // The sliding rows: brkRev 11's two moved with the wall (a dropped one becomes the first row after the gap), then, for
+  // a level with more, further rows below the gold rows from brkRev 13's own stream; none at a level without.
+  const mapRow = (row: number) => (row <= 2 ? row : dropRows.includes(row) ? 3 : row - dropRows.length);
+  let slide = (base.slide ?? []).map(mapRow);
+  if (slide.length === 2 && slide[0] === slide[1]) slide[1] = Math.min(rows - 1, slide[0]! + 1);
+  const want = lv.slideRows ?? 2;
+  slide = slide.slice(0, want);
+  let extra = (seed ^ BRK_V13_STREAM) | 0;
+  for (let guard = 0; guard < 400 && slide.length < want && slide.length < rows - 3; guard++) {
+    const d = rngBelow(extra, rows - 3);
+    extra = d.state;
+    const row = 3 + d.value;
+    if (!slide.includes(row)) slide.push(row);
+  }
+  // A level's bricks (gold and power bricks keep their hits): Easy one hit each, otherwise brkRev 12's shaping.
+  const isSpecial = (i: number) => (gold[i] ?? 0) > 0 || gild[i] === 1;
+  const shape = (hp: number, i: number): number => {
+    if (hp <= 0 || isSpecial(i)) return hp;
+    if (lv.oneHit) return 1;
+    if (lv.cap2) return Math.min(2, hp);
+    return Math.trunc(i / C) < lv.toughRows ? Math.min(3, hp + 1) : hp;
+  };
+  bricks = bricks.map(shape);
+  maxHp = maxHp.map(shape);
+  const speed = Math.trunc((BRK_V12_SPEED_START * lv.speedPct) / 100);
+  const balls = base.balls.map((b) => {
+    const v = setLength(b.vx, b.vy, speed);
+    return { ...b, vx: v.vx, vy: v.vy };
+  });
+  const state: BrkState = { ...base, bricks, maxHp, gold, gild, slide, balls, speed, clear9: 1, lv, lad: 1 };
+  if (lv.slideFromS !== undefined) state.slideAt = slide.map(() => lv.slideFromS! * TICKS_PER_SECOND);
+  if ((lv.lives ?? 0) > 0) state.lives = lv.lives;
+  return state;
+}
+
+/** brkRev 13 at Normal: brkRev 12's game exactly (initClear), on the refitted lines. */
+export const breakerLadderGame: ArcadeGame<BrkState, ArcadeInputEvent | null> = {
+  ...breakerClearGame,
+  init: (seed) => ({ ...initClear(seed), lad: 1 }),
+};
+const breakerLadderByLevel = new Map<string, ArcadeGame<BrkState, ArcadeInputEvent | null>>();
+/** brkRev 13 at a level (BREAKER_LEVELS), one cached game object a level; Normal (or no level) is breakerLadderGame. */
+export function breakerLadderGameFor(level?: Level | null): ArcadeGame<BrkState, ArcadeInputEvent | null> {
+  const lv = retroLevelSettings("breaker", level);
+  if (!lv) return breakerLadderGame;
+  let game = breakerLadderByLevel.get(level!);
+  if (!game) {
+    game = { ...breakerLadderGame, init: (seed) => initLadderLevel(seed, lv) };
+    breakerLadderByLevel.set(level!, game);
+  }
+  return game;
+}
+
+/** brkRev 13's core line at Normal (the help reads it): 0 to BRK_V11_CORE_MAX at 79 of the 81 bricks. */
+export const BRK_V13_BAND_CURVE = bandCurve([0, BRK_V9_COLS * BRK_V12_ROWS - BRK_V13_CORE_SHORT], [0, BRK_V11_CORE_MAX]);

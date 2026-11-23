@@ -34,6 +34,7 @@ import {
   BRK_ZONES,
   BRK_V11_GOLD_MAX,
   brkGoldDealt,
+  brkLadderGoldPoints,
   type BrkBall,
   type BrkState,
 } from "../../../src/lib/arcade/breaker";
@@ -57,6 +58,14 @@ const REGRIP: Record<SkillLevel, number> = { weak: 14, average: 12, good: 10, gr
  * catch them out. Zero for every other level (no RNG drawn).
  */
 const CHASE: Record<SkillLevel, number> = { weak: 0.7, average: 0, good: 0, great: 0, near: 0, elite: 0, perfect: 0 };
+/**
+ * D5's ladder players (23 Nov 2026; docs/polish-plan-final/difficulty-spec.md "Breaker", the aim-error bot): where the
+ * finger puts the paddle has an error of its own, one seeded normal draw per catch (sd in px), so a narrower paddle drops
+ * more balls, as it does for a person. Only with the competence fixes AND the human limits (the D5 ladder players and
+ * level-tune --human-limits), so every check that plays this bot without the limits keeps the bot it was proved with; the
+ * flawless level has none (and draws nothing more).
+ */
+const PLACE: Record<SkillLevel, number> = { weak: 22, average: 16, good: 12, great: 9, near: 7, elite: 6, perfect: 0 };
 
 const LO = BRK_WALL + BRK_BALL_R;
 /** The court's far wall line, set per run (brkRev 9's court is 420 wide). */
@@ -86,6 +95,8 @@ let CATCH_Y = 0;
  * earlier revision's bot plays exactly as before).
  */
 function stdGoldPoints(s: BrkState): number {
+  // brkRev 13 (D5's ladder): gold pays its level's amount a brick up to the part's 30 (Normal: 2 of 3 fill it).
+  if (s.lad) return brkLadderGoldPoints(s);
   const dealt = brkGoldDealt(s);
   return dealt > 0 ? (BRK_V11_GOLD_MAX * Math.min(dealt, s.goldBroken ?? 0)) / dealt : 0;
 }
@@ -154,7 +165,7 @@ function columnBricks(s: BrkState, x: number): number {
   return n;
 }
 
-export const bot: SkillBot = ({ game, seed, human }) => {
+export const bot: SkillBot = ({ game, seed, human, fixes }) => {
   PADDLE_Y = brkPaddleY(game.init(seed));
   WORLD_W = brkWorldW(game.init(seed));
   HI = WORLD_W - BRK_WALL - BRK_BALL_R;
@@ -169,7 +180,9 @@ export const bot: SkillBot = ({ game, seed, human }) => {
   let finger = init.paddleX;
   let sent = init.aimX;
   /** Read per ball segment, fixed once read. */
-  const reads = new Map<string, { err: number; zone: number; chase?: boolean }>();
+  const reads = new Map<string, { err: number; zone: number; chase?: boolean; place?: number }>();
+  // D5: the paddle-placement error (PLACE), only for the ladder players (fixes and the human limits).
+  const placeSd = fixes && human.limits ? PLACE[human.level]! : 0;
   /** Capsules the player has decided about (key: spawn x and spawn tick). */
   const capsuleWill = new Map<string, boolean>();
   let focus = "";
@@ -245,6 +258,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
           zone = human.pick(values);
         }
         r = { err: human.normal(), zone };
+        if (placeSd > 0) r.place = human.normal() * placeSd;
         if (CHASE[level]! > 0 && aim.ball) r.chase = human.chance(CHASE[level]!);
         reads.set(aim.seg, r);
       }
@@ -257,7 +271,7 @@ export const bot: SkillBot = ({ game, seed, human }) => {
       // Land the ball on the chosen zone: the paddle centre sits off the ball by the zone's offset.
       const PW = brkPaddleWOf(seen);
       const off = aim.ball ? ((r.zone + 0.5) * PW) / 5 - PW / 2 : 0;
-      target = aim.x - off + err;
+      target = aim.x - off + err + (r.place ?? 0);
       if (human.slip(0.02)) target += human.normal() * PW;
     } else if (seen.balls.length > 0) {
       // Nothing falling: drift under the ball that will come down first.

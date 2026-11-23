@@ -32,7 +32,8 @@ import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_AIM, BURST_REV_BIG, BURST_REV_SMALL } from "@/lib/arcade/burst";
-import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD, BRK_REV_CLEAR } from "@/lib/arcade/breaker";
+import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD, BRK_REV_CLEAR, BRK_REV_LADDER } from "@/lib/arcade/breaker";
+import { breakerLevelDealSeed } from "./breakerLevelDeals.server";
 import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_SAVE } from "@/lib/arcade/pinball";
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
@@ -269,12 +270,17 @@ export function pinRicoPreMid(on: boolean): boolean {
   return setDealPin("ricoPreMid", on);
 }
 
-export function generateBreaker(): BreakerPuzzleData {
+export function generateBreaker(level?: Level): BreakerPuzzleData {
   // brkRev 10 (phone notes, 27 Oct 2026): brkRev 9 with gold bricks broken by any 4 hits and a second double-ball brick.
   // brkRev 11 (the arcade scoring standard, 29 Oct 2026): brkRev 10's play scored in fixed parts to 200.
   // brkRev 12 (the Retro overhaul, 15 Nov 2026): a clearable 9-row wall, a quicker ball, a stronger multi-ball
   // (preRetro: brkRev 11).
-  return { type: "breaker", seed: arcadeSeed(), brkRev: dealPinned("preRetro") ? BRK_REV_STD : BRK_REV_CLEAR };
+  if (dealPinned("preRetro")) return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_STD };
+  if (dealPinned("breakerPreLadder")) return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_CLEAR };
+  // brkRev 13 (D5's ladder, 23 Nov 2026; docs/arcade-standard/breaker.md "brkRev 13"): Normal brkRev 12's play on the
+  // refitted lines and each level its own wall, every one dealt only on the seeds whose human-limited flawless run scores
+  // 200 there (breakerLevelDeals.server.ts; the deal stamps `level`). breakerPreLadder: brkRev 12 as before.
+  return { type: "breaker", seed: breakerLevelDealSeed(level, arcadeSeed()), brkRev: BRK_REV_LADDER };
 }
 
 export function generatePinball(): PinballPuzzleData {

@@ -334,6 +334,10 @@ import {
   BRK_V11_GOLD_MAX,
   BRK_V11_MAX,
   BRK_V11_SPEED_MAX,
+  BRK_V13_CORE_SHORT,
+  BRK_V13_GOLD_EACH,
+  BRK_V13_SPEED_FULL_S,
+  BRK_RUN_SECONDS,
 } from "@/lib/arcade/breaker";
 import {
   FLIP_V8_COMBO_CAP,
@@ -1206,7 +1210,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Clear the wall; break the gold.",
       how: [
         { action: "Drag the paddle;", detail: "tap to fire a power-up." },
-        { action: "Gold:", detail: `${BRK_V10_GOLD_HITS} hits; ${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each (${BRK_V11_GOLD_MAX} for all three).` },
+        { action: "Gold:", detail: `${BRK_V10_GOLD_HITS} hits; ${BRK_V13_GOLD_EACH} each (${BRK_V11_GOLD_MAX} for ${BRK_V11_GOLD_MAX / BRK_V13_GOLD_EACH} of the ${BRK_V9_GOLD}).` },
         { action: "Every brick scores;", detail: "a fast clear scores more." },
         { action: "Catch power-ups:", detail: "laser, ×3, ×2, Fireball.", helpOnly: true },
         { action: "Keep the ball up", detail: "– it gets faster with bricks and with time. Losing the last ball costs 3 seconds.", helpOnly: true },
@@ -1220,12 +1224,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Sliding rows:", detail: "one row starts at 30 s and another at 60 s, half a brick each way, slowly and always the same.", helpOnly: true },
         { action: `${BRK_V9_GOLD} gold bricks`, detail: `sit near the top, each behind an armoured brick. Any ${BRK_V10_GOLD_HITS} hits break one: balls, Fireball balls, ×3 shots and the laser all count, and each hit cracks it further.`, helpOnly: true },
       ],
-      // brkRev 11 (the arcade scoring standard): four fixed parts that total 200.
+      // brkRev 11 (the arcade scoring standard): four fixed parts that total 200; brkRev 13 (D5, 23 Nov 2026): Normal's lines refitted.
       score: scoreList([
-        { label: "Bricks", how: `every brick broken counts the same, the ${BRK_V9_GOLD} gold bricks too`, max: BRK_V11_CORE_MAX },
+        { label: "Bricks", how: `every brick broken counts the same, the ${BRK_V9_GOLD} gold bricks too, all of it at ${BRK_V9_COLS * BRK_V12_ROWS - BRK_V13_CORE_SHORT} of the ${BRK_V9_COLS * BRK_V12_ROWS}`, max: BRK_V11_CORE_MAX },
         { label: "Clear", how: "break every brick", max: BRK_V11_CLEAR_POINTS },
-        { label: "Speed", how: "clear the wall with half the time left for all of it, falling to 0 at the buzzer", max: BRK_V11_SPEED_MAX },
-        { label: "Gold bricks", how: `${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each (${BRK_V11_GOLD_MAX} for all ${BRK_V9_GOLD})`, max: BRK_V11_GOLD_MAX },
+        { label: "Speed", how: `clear the wall with ${BRK_RUN_SECONDS - BRK_V13_SPEED_FULL_S} seconds left for all of it, falling to 0 at the buzzer`, max: BRK_V11_SPEED_MAX },
+        { label: "Gold bricks", how: `${BRK_V13_GOLD_EACH} each (${BRK_V11_GOLD_MAX} for ${BRK_V11_GOLD_MAX / BRK_V13_GOLD_EACH} of the ${BRK_V9_GOLD})`, max: BRK_V11_GOLD_MAX },
       ], { penalties: ["A lost ball costs only time"], total: BRK_V11_MAX }),
     },
     // Cards & Board (30 Oct 2026; docs/arcade-standard/minesweeper.md and mahjong.md).

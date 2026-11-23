@@ -12,15 +12,29 @@
  */
 import type { Level } from "@/lib/levels/levels";
 
-/** Breaker (brkRev 12): the ball's speed (per cent of Normal's start and cap), the paddle's width (px), the wall's rows
- * (7: two middle rows left out; 9: Normal's, every level today), at most two hits a brick (`cap2` 1), and how many rows
- * from the top take one hit more (at most three). */
+/** Breaker: the ball's speed (per cent of Normal's start and cap), the paddle's width (px), the wall's rows (brkRev 12: 7,
+ * two middle rows left out, or Normal's 9; brkRev 13: 6, 11 or 12, the dealt wall's rows from the top and bottom kept, the
+ * middle ones left out), at most two hits a brick (`cap2` 1), and how many rows from the top take one hit more (at most
+ * three). brkRev 13 (D5's ladder, 23 Nov 2026) adds the optional fields below (absent on brkRev 12's table, which plays as
+ * it always did). */
 export interface BreakerLv {
   speedPct: number;
   paddle: number;
   rows: number;
   cap2: number;
   toughRows: number;
+  /** brkRev 13: 1 = every brick but gold takes one hit (Easy). */
+  oneHit?: number;
+  /** brkRev 13: how many rows slide (Normal 2) and the second they all start sliding (Normal: 30 s and 60 s). */
+  slideRows?: number;
+  slideFromS?: number;
+  /** brkRev 13: balls (lives) for the run, the last one lost ends it (0: a lost ball costs only its 3 s relaunch, Normal). */
+  lives?: number;
+  /** brkRev 13's scoring lines at this level: the core full this many bricks short of the whole wall (Normal 2), gold
+   * points a gold brick (Normal 15, so 2 of 3 fill the part) and the second a clear gets the full speed part by (Normal 80). */
+  coreShort?: number;
+  goldEach?: number;
+  speedFullS?: number;
 }
 /** Rally (rallyRev 13): blue-ball lives, the paddle's start and narrowest width (px), the ball's top speed (per cent of
  * Normal's cap), the two bumpers' arrival (seconds) and the gold-ball hits the core is full at (Normal's 23). */
@@ -109,7 +123,16 @@ export interface HoverLv {
 
 type Table<S> = Readonly<Record<Exclude<Level, "normal">, S>>;
 
+/** Breaker's levels on brkRev 13 (D5's ladder, 23 Nov 2026; docs/arcade-standard/breaker.md "Levels (D5, 23 Nov 2026)"):
+ * the lever is the wall's rows, the paddle carrying the rest. */
 export const BREAKER_LEVELS: Table<BreakerLv> = {
+  easy: { speedPct: 100, paddle: 112, rows: 6, cap2: 1, toughRows: 0, oneHit: 1, slideRows: 0, lives: 0, coreShort: 8, goldEach: 15, speedFullS: 90 },
+  hard: { speedPct: 100, paddle: 44, rows: 11, cap2: 1, toughRows: 0, oneHit: 1, slideRows: 2, slideFromS: 1, lives: 2, coreShort: 2, goldEach: 15, speedFullS: 80 },
+  expert: { speedPct: 110, paddle: 36, rows: 12, cap2: 1, toughRows: 0, oneHit: 1, slideRows: 4, slideFromS: 1, lives: 2, coreShort: 2, goldEach: 15, speedFullS: 80 },
+};
+/** Breaker's levels on brkRev 12 (stage 3 of the Retro overhaul, 16 Nov 2026): the rounds dealt before brkRev 13 replay
+ * on this table exactly (breakerGameFor reads it for brkRev 12). */
+export const BREAKER_LEVELS_V12: Table<BreakerLv> = {
   easy: { speedPct: 108, paddle: 100, rows: 9, cap2: 1, toughRows: 0 },
   hard: { speedPct: 104, paddle: 76, rows: 9, cap2: 0, toughRows: 4 },
   expert: { speedPct: 108, paddle: 68, rows: 9, cap2: 0, toughRows: 9 },

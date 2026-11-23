@@ -275,7 +275,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     heightFor: (p) => in390(breakerWorldWFor(p.type === "breaker" ? p.brkRev : undefined), breakerWorldHFor(p.type === "breaker" ? p.brkRev : undefined)),
     drawFinal: (ctx, p, a) => {
       const rev = p.type === "breaker" ? p.brkRev : undefined;
-      breakerArtGameFor(rev).draw(ctx, replayBreakerRun(seedOf(p), a, rev).state, { width: 390, height: in390(breakerWorldWFor(rev), breakerWorldHFor(rev)) });
+      breakerArtGameFor(rev).draw(ctx, replayBreakerRun(seedOf(p), a, rev, puzzleLevel(p)).state, { width: 390, height: in390(breakerWorldWFor(rev), breakerWorldHFor(rev)) });
       return null;
     },
   },

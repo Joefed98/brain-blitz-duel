@@ -1,5 +1,76 @@
 # Breaker under the arcade scoring standard (brkRev 11)
 
+## brkRev 13 (D5's ladder, 23 Nov 2026): Normal's refit
+
+Rooms, rated play and the Daily deal **`brkRev 13`** (`BRK_REV_LADDER`, `breakerLadderGame`). At Normal it is brkRev
+12's game exactly: initClear's 9-row wall of 81 bricks (3 gold), the 84 px paddle, the ball, the power-ups and the two
+sliding rows from 30 s and 60 s; the state adds `lad: 1`, folded into the checkpoint checksum last. Only the lines move
+(Joe's rule of 23 Nov 2026: each feature's full line at about what the realistic elite takes on three runs in four):
+
+| Part | Max | brkRev 12 | brkRev 13 (Normal) |
+|---|---|---|---|
+| Bricks | 140 | a straight line on all 81 | a straight line, full at 79 of the 81 (`BRK_V13_CORE_SHORT` 2: the wall and one gold brick) |
+| Wall cleared | 10 | on a clear | on a clear |
+| Speed | 20 | full with half the clock left (by 45 s) | full by 80 s (`BRK_V13_SPEED_FULL_S`, ten seconds left), then evenly to 0 at the buzzer |
+| Gold bricks | 30 | 10 each | 15 each (`BRK_V13_GOLD_EACH`): 2 of the 3 fill it |
+
+The speed line was measured, not taken from the brief's "about a sixth of the clock": the realistic elite's Normal clears
+bunch at 74–80 s, so a full line at 75 s left it at 200 on 32 % of 96 proved deals, 80 s on 45 % (Joe's band is 40–60 %).
+Normal deals only the seeds whose human-limited flawless run scores 200 (`breakerLevelDeals.server.ts`, below). The pin
+`breakerPreLadder` deals brkRev 12 as before (`dealEra.ts`); every older stamp replays and scores exactly as before
+(`scripts/fixtures/breaker-ladder-legacy.json.gz`, brkRev 12 at every level and brkRev 11, recorded before any brkRev 13
+code by `scripts/breaker-ladder-legacy-record.ts`).
+
+The ladder players (`scripts/d5-ladder-lib.ts`: the skill-band bot at Average and Elite under the human limits) feel the
+paddle's width since D5: with the competence fixes and the human limits the bot puts the paddle with a seeded normal error
+of its own each catch (`PLACE` in `scripts/arcade-skill-bands/bots/breaker.ts`: sd 16 px average, 6 px elite, none for the
+flawless player), the spec's aim-error bot. Without the limits every check plays the bot it was proved with.
+
+## Levels (D5, 23 Nov 2026)
+
+The lever is **the wall's rows**: each level its own wall from brkRev 11's 12-row board, the middle rows (from row 3)
+left out to the level's rows (`brkLadderDropRows`; 9 rows is brkRev 12's wall brick for brick), the power bricks lost
+with them placed again lower. The table is `BREAKER_LEVELS` (`src/lib/arcade/retroLevels.ts`, on the state as `lv`;
+brkRev 12's rounds replay on `BREAKER_LEVELS_V12`); the deal stamps `level`, and every level deals brkRev 13.
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Wall | 6 rows (54 bricks), every brick but gold one hit | 9 rows (81), the dealt hits | 11 rows (99), one hit | 12 rows (108, the whole dealt wall), one hit |
+| Paddle | 112 px | 84 px | 44 px | 36 px |
+| Ball | Normal's | brkRev 12's | Normal's | 110 % |
+| Sliding rows | none | 2, from 30 s and 60 s | 2, from the first second | 4, from the first second |
+| A lost ball | its 3 s relaunch | its 3 s relaunch | a life: 2 balls, the last ends the run | a life: 2 balls, the last ends the run |
+| Lines | Bricks full at 46 of 54; speed full on any clear | 79 of 81; by 80 s | 97 of 99; by 80 s | 106 of 108; by 80 s |
+| Gold | 15 each | 15 each | 15 each | 15 each |
+| Average (mean) | 118.0 | 105.4 | 81.4 | 70.8 |
+| Elite (mean) | 182.5 | 174.8 | 172.4 | 166.0 |
+| Elite at 200 | 63 % (60 of 96) | 45 % (43) | 32 % (31) | 22 % (21) |
+| Proof | 100 seeds of 208 | 100 of 218 | 100 of 213 | 100 of 168 |
+
+Measured on the recorded ladder (`scripts/fixtures/d5-ladder-breaker.json.gz`, `bun scripts/d5-ladder-record.ts breaker
+--deals=96`: 96 real deals a level, each graded by the server). Before (brkRev 12 at every level, the same players, 96
+deals): average 117.0 / 99.1 / 92.4 / 64.8, elite 174.5 / 160.7 / 147.7 / 124.1, elite at 200 8 % / 5 % / 4 % / 0 %.
+
+Why the numbers moved from the spec's row:
+
+- **One-hit bricks on Hard and Expert.** With the dealt hits (2–3 on about a third of the bricks) the realistic elite
+  cleared the 99- and 108-brick walls in 90 s on only 3–27 % of runs, and a run without a clear can't reach 200 (clear and
+  speed need it): Expert stayed at 3–20 % at 200 whatever the paddle, ball or lives. One-hit bricks put the time a clear
+  takes back in reach; the rows, the paddle, the sliding rows and the lives make the step.
+- **Lives.** A lost ball costs a life on Hard and Expert (2 balls each; Joe's decision 20): 3 on Hard left its average
+  player at 99, only 6 under Normal; 2 put it at 81. The HUD's top right shows `BALLS n` (red on the last).
+- **Hard's paddle 44 px** (spec 52): at 52 px Hard's elite reached 200 about as often as Normal's.
+- **Expert's ball 110 %**: at Normal's speed the elite seldom cleared 108 bricks in time.
+- **Per-level lines** (decision 12): Easy's Bricks part full at 46 of 54 and its speed full on any clear (a welcoming
+  Easy), Hard and Expert full by 80 s like Normal.
+
+**The proof.** Every level, Normal included, deals only seeds on which the flawless skill-band player held to the human
+limits (0.25 s to react, 0.15 s to move) scores exactly 200 through the server's grade: `scripts/breaker-level-deal.ts`
+tries the skill-band room seeds in order and keeps 100 a level, writing `src/lib/duel/breakerLevelDeals.server.ts` and the
+witness logs `scripts/fixtures/breaker-level-deal-witness.json.gz` (`--check` replays them all and rebuilds the file byte
+for byte). `scripts/breaker-ladder-check.ts` (~15 s) proves the legacy fixture, the stamp and pin, Normal's same play and
+lines, each level's rules as dealt, the proof and the ladder test.
+
 29 Oct 2026. Batch A of the arcade scoring standard. Rooms and practice deal **`brkRev 11`** (was 10). Play is
 brkRev 10's exactly: the same 420 × 784 court, 9 × 12 board, gold bricks (any 4 hits), power-up bricks, the second
 double-ball brick, sliding rows and first launch (`initPhone`, then the marker `std: 1`). Only the score changes.
