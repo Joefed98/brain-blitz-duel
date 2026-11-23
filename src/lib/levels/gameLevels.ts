@@ -532,12 +532,16 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
     },
   },
   // Moon Climb (the Action overhaul, 15 Nov 2026; docs/arcade-standard/ricochet.md "Levels"): the sim reads the stored
-  // level (ricochetNinja.ts MOON_LEVELS, the values its towers are built and proved with); these are the same, for display.
+  // level (ricochetNinja.ts MOON_MID_LEVELS on ricoRev 5, the values its towers are built and proved with and its parts
+  // are scored on; ricoRev 4's MOON_LEVELS kept for its own rounds); these are the live ones, for display. D5 (23 Nov
+  // 2026, the ladder): the lever is the blades on the walls (`blades`, × Normal's; `ice`, the share of the patches that
+  // are ice, Normal 0.4); Hard's knock-down 3.5 m; `fullM` the height part's full line (Normal 220 m) and `flowFull`,
+  // `ridesFull`, `scrollsFull` the other parts' (Normal 4 Flow steps, 3 rides, 2 scrolls).
   ricochet: {
     levels: {
-      easy: { settings: { blades: 0.5, knockM: 2, lanterns: 6, fullM: 200 } },
-      hard: { settings: { blades: 1.3, knockM: 3, lanterns: 6, fullM: 245 } },
-      expert: { settings: { blades: 1.6, knockM: 4, lanterns: 4, fullM: 260 } },
+      easy: { settings: { blades: 0.5, ice: 0.3, knockM: 2, lanterns: 6, fullM: 220, flowFull: 4, ridesFull: 3, scrollsFull: 2 } },
+      hard: { settings: { blades: 1.3, ice: 0.65, knockM: 3.5, lanterns: 6, fullM: 190, flowFull: 3, ridesFull: 2, scrollsFull: 2 } },
+      expert: { settings: { blades: 1.6, ice: 0.88, knockM: 4, lanterns: 4, fullM: 160, flowFull: 2, ridesFull: 1, scrollsFull: 2 } },
     },
   },
   // Orbit (docs/arcade-standard/orbit.md "Levels"): each level deals from its own proved bank
