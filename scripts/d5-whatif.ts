@@ -59,6 +59,15 @@ for (const game of games) {
     pick = quantileLines(n, qq);
     if (at200(n.scores.map((s, i) => rescore(s, n.parts[i] ?? null, pick))) >= target) break;
   }
+  // The same with the core's line (the first part) kept where it is: only the features move.
+  const coreLabel = n.parts.find((p) => p)?.[0]?.label;
+  let qf = 1;
+  let pickF: Lines = {};
+  for (let qq = 0.95; qq >= 0.05; qq -= 0.05) {
+    qf = qq;
+    pickF = { ...quantileLines(n, qq), ...(coreLabel ? { [coreLabel]: 1 } : {}) };
+    if (at200(n.scores.map((s, i) => rescore(s, n.parts[i] ?? null, pickF))) >= target) break;
+  }
   const line = (f: number | Lines) =>
     LV.map((lv) => {
       const a = of(lv, "average");
@@ -74,5 +83,7 @@ for (const game of games) {
   console.log(`${game.padEnd(10)} today   ${line(1)}`);
   console.log(`${"".padEnd(10)} q=${q.toFixed(2)}  ${line(pick)}   (avg/elite/elite at 200)`);
   console.log(`${"".padEnd(10)} lines at: ${Object.entries(pick).filter(([, v]) => v < 0.999).map(([l, v]) => `${l} ${(v * 100).toFixed(0)}%`).join(", ") || "unchanged"}`);
+  console.log(`${"".padEnd(10)} q=${qf.toFixed(2)}  ${line(pickF)}   (core kept)`);
+  console.log(`${"".padEnd(10)} lines at: ${Object.entries(pickF).filter(([, v]) => v < 0.999).map(([l, v]) => `${l} ${(v * 100).toFixed(0)}%`).join(", ") || "unchanged"}`);
   console.log(`${"".padEnd(10)} short on Normal (elite): ${stops}`);
 }

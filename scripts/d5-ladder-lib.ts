@@ -194,3 +194,35 @@ export function ladderLine(r: LadderRow): string {
   const fell = r.dealt !== r.level ? ` (dealt ${r.dealt})` : "";
   return `${r.game.padEnd(10)} ${r.level.padEnd(7)} ${r.bot.padEnd(8)} avg ${r.average.toFixed(1).padStart(6)}  med ${String(r.median).padStart(3)}  top10 ${String(r.top10).padStart(3)}  best ${String(r.best).padStart(3)}  at200 ${(r.at200 * 100).toFixed(0).padStart(3)}%  fin ${(r.finishRate * 100).toFixed(0).padStart(3)}%  (${r.runs})${fell}`;
 }
+
+/** The ladder test's numbers (Joe, 22 Nov 2026). */
+export const LADDER = {
+  /** Each level's average player at least this many points, or this share, below the one before. */
+  step: 5,
+  stepShare: 0.2,
+  /** No level is a cliff: every level's average player scores at least this. */
+  floor: 15,
+  /** The realistic elite reaches 200 on at least this share of Expert runs. */
+  expertAt200: 0.2,
+} as const;
+
+/**
+ * Joe's ladder test on one game's rows (average and elite, Easy → Expert): the average player steps down clearly every
+ * level, no level is a cliff, and the realistic elite reaches 200 strictly less often each level up, on Expert on at
+ * least a fifth of runs. Returns each condition with its label (for a check's ok()).
+ */
+export function ladderVerdicts(game: string, average: readonly LadderRow[], elite: readonly LadderRow[]): [boolean, string][] {
+  const out: [boolean, string][] = [];
+  for (let i = 1; i < average.length; i++) {
+    const [a, b] = [average[i - 1]!, average[i]!];
+    out.push([a.average - b.average >= LADDER.step || b.average <= (1 - LADDER.stepShare) * a.average, `${game}: the average player steps down from ${a.level} (${a.average}) to ${b.level} (${b.average})`]);
+  }
+  for (const a of average) out.push([a.average >= LADDER.floor, `${game} ${a.level}: no cliff (the average player scores ${a.average})`]);
+  for (let i = 1; i < elite.length; i++) {
+    const [a, b] = [elite[i - 1]!, elite[i]!];
+    out.push([b.at200 < a.at200, `${game}: the elite reaches 200 less often on ${b.level} (${Math.round(b.at200 * 100)} %) than on ${a.level} (${Math.round(a.at200 * 100)} %)`]);
+  }
+  const x = elite[elite.length - 1];
+  if (x) out.push([x.at200 >= LADDER.expertAt200, `${game}: the elite reaches 200 on at least a fifth of ${x.level} runs (${Math.round(x.at200 * 100)} %)`]);
+  return out;
+}
