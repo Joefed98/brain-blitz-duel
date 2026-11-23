@@ -266,6 +266,36 @@ section("6. The ladder (288 deals a level, recorded) and a live re-play of it");
   for (const [cond, label] of await replaySample("beat", 2)) ok(cond, label);
 }
 
+section("6b. The phone and the server agree on every level (random play, beatRev 13)");
+{
+  const { encodeEvents } = await import("./beat-ladder-legacy-record");
+  for (const level of LEVELS) {
+    const lanes = level === "normal" ? 5 : BEAT_LEVELS_V13[level].lanes;
+    let agree = 0;
+    for (let k = 0; k < 4; k++) {
+      const seed = BEAT_DEAL_V13[level][k * 37]!;
+      const puzzle = beatPuzzleV13(seed, level);
+      // A seeded tapper over the level's lanes: touches, lifts, swipes and the fever meter.
+      let h = (seed ^ 0x2545f491) >>> 0;
+      const next = (m: number) => {
+        h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d) >>> 0;
+        h = (h ^ (h >>> 12)) >>> 0;
+        return h % m;
+      };
+      const byTick = new Map<number, { t: number; k: number; a: number; b: number; c: number; d: number }>();
+      for (let t = 30; t < beat.BEAT_V9_RUN_TICKS - 10; t += 4 + next(20)) {
+        const roll = next(10);
+        const k = roll < 6 ? beat.BEAT_INPUT_TAP : roll < 8 ? beat.BEAT_INPUT_RELEASE : roll < 9 ? beat.BEAT_INPUT_SWIPE : beat.BEAT_INPUT_FEVER;
+        byTick.set(t, { t, k, a: k === beat.BEAT_INPUT_FEVER ? 0 : next(lanes), b: k === beat.BEAT_INPUT_SWIPE ? next(2) : 0, c: 0, d: 0 });
+      }
+      const raw = encodeEvents(puzzle, [...byTick.values()]);
+      const r = replayBeatRun(seed, raw, 13, level === "normal" ? null : level);
+      if (r.desyncTick === null && !r.flagged && r.score === gradeAnswer(puzzle, raw, 0).score) agree++;
+    }
+    ok(agree === 4, `${level}: random play over ${lanes} lanes replays on the server with no desync, unflagged, at the phone's score (${agree}/4)`);
+  }
+}
+
 section("7. Lanes on screen and the lever picture");
 {
   type S = ReturnType<typeof beat.beatGame.init>;
