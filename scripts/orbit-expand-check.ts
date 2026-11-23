@@ -26,7 +26,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
 import { bandPoints, bandStrict } from "../src/lib/arcade/scoreBands";
-import { lapPhases, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_STRICT, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, ORBIT_TOTAL } from "../src/lib/arcade/orbit";
+import { lapPhases, orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_STRICT, ORBIT_REV_XP, ORBIT_REV_STD, ORBIT_REV_FUEL, ORBIT_REV_GRACE, ORBIT_REV_BIG, ORBIT_REV_LOST, ORBIT_TOTAL } from "../src/lib/arcade/orbit"; // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17): ORBIT_REV_LOST
 import {
   decodeOrbitExtras,
   decodeOrbitHoles,
@@ -341,7 +341,8 @@ ok(ORBIT_REV_STD === 13, "the arcade standard's stamp is orbitRev 13, the next a
 // The fuel meter (orbitRev 14, 1 Nov 2026): LIVE_BANDS lists it, on orbitRev 13's straight line (orbit-fuel-check covers its play).
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the live stamp is orbitRev 15 (grace).
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the live stamp is orbitRev 16 (bigger planets on grace's play).
-ok((LIVE_BANDS as any).orbit.rev === ORBIT_REV_BIG && (LIVE_BANDS as any).orbit.strictRev === ORBIT_REV_STRICT && JSON.stringify((LIVE_BANDS as any).orbit.curve) === JSON.stringify(ORBIT_V13_BAND_CURVE), "LIVE_BANDS lists the live orbitRev (16, bigger planets on grace, after the fuel meter and orbitRev 13's play on the arcade standard) with orbitRev 13's straight line and orbitRev 10 as its score-band revision");
+// Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's orbitRev 17, the lost flight).
+ok((LIVE_BANDS as any).orbit.rev === ORBIT_REV_LOST && (LIVE_BANDS as any).orbit.strictRev === ORBIT_REV_STRICT && JSON.stringify((LIVE_BANDS as any).orbit.curve) === JSON.stringify(ORBIT_V13_BAND_CURVE), "LIVE_BANDS lists the live orbitRev (17, the lost flight on bigger planets on grace, after the fuel meter and orbitRev 13's play on the arcade standard) with orbitRev 13's straight line and orbitRev 10 as its score-band revision");
 ok(orbitWorldWFor(ORBIT_REV_XP) === 450 && orbitWorldHFor(ORBIT_REV_XP) === 782 && orbitWorldWFor(ORBIT_REV_STRICT) === 390 && orbitWorldHFor(ORBIT_REV_STRICT) === 650 && orbitWorldWFor(11) === 390 && orbitWorldWFor(ORBIT_REV_STD) === 450 && orbitWorldHFor(ORBIT_REV_STD) === 782, "the view is 450 × 782 on orbitRev 12 and 13 and unchanged before (11 was never dealt)");
 ok(roundMaxFor("orbit") === ORBIT_XP_MAX, "ROUND_MAX for orbit is 200");
 ok(ORBIT_TOTAL === 40, "the course keeps 40 planets and the sun");
