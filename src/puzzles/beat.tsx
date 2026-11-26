@@ -6,16 +6,19 @@ import { auditEventAt } from "@/lib/arcade/auditInput";
 import { ArcadeArenaSlot } from "@/components/puzzles/ArcadeArenaSlot";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming";
-import { beatLaneAt } from "@/components/puzzles/tapMapping";
+import { beatLaneAt, beatLaneAtOf } from "@/components/puzzles/tapMapping";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { recordInput, inputAt } from "@/lib/arcade/engine";
 import { reportArcadeTick, resetArcadeClock } from "@/lib/arcade/clock";
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useGameKeys } from "@/lib/desktop";
 
-/** The lane a desktop key plays (stage 3 of the Retro overhaul): D F J K on four lanes, D F Space J K on five; −1 for any other key. */
+/**
+ * The lane a desktop key plays (stage 3 of the Retro overhaul): D F J K on four lanes, D F Space J K on five; D5's ladder
+ * (23 Nov 2026, beatRev 13's levels): F Space J on three, S D F J K L on six; −1 for any other key.
+ */
 function beatKeyLane(key: string, lanes: number): number {
-  const order = lanes >= 5 ? ["d", "f", " ", "j", "k"] : ["d", "f", "j", "k"];
+  const order = lanes >= 6 ? ["s", "d", "f", "j", "k", "l"] : lanes >= 5 ? ["d", "f", " ", "j", "k"] : lanes <= 3 ? ["f", " ", "j"] : ["d", "f", "j", "k"];
   return order.indexOf(key);
 }
 
@@ -271,12 +274,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
   /** Which lane the finger is in, from the sim's own mapping. */
   const laneAt = (event: React.PointerEvent<HTMLCanvasElement>): number => {
-    // beatRev 9: four or five lanes across the same width, as the stage draws them on the next tick.
-    if (state.current.exp) {
-      const box = event.currentTarget.getBoundingClientRect();
-      const lanes = beatLanesAt(state.current, state.current.tick + 1);
-      return Math.max(0, Math.min(lanes - 1, Math.floor(((event.clientX - box.left) / box.width) * lanes)));
-    }
+    // beatRev 9: four or five lanes across the same width, as the stage draws them on the next tick (beatRev 13's
+    // levels: three, five or six all song).
+    if (state.current.exp) return beatLaneAtOf(event.currentTarget.getBoundingClientRect(), event.clientX, beatLanesAt(state.current, state.current.tick + 1));
     return beatLaneAt(event.currentTarget.getBoundingClientRect(), event.clientX);
   };
 
@@ -381,7 +381,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
 
 function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
   if (puzzle.type !== "beat") return null;
-  const result = replayBeatRun(puzzle.seed, myAnswer ?? "", puzzle.beatRev);
+  // The run's own level (beatRev 13's levels deal their own lanes and chart; D5's ladder, 23 Nov 2026).
+  const result = replayBeatRun(puzzle.seed, myAnswer ?? "", puzzle.beatRev, puzzleLevel(puzzle));
 
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start gap-3 overflow-y-auto">

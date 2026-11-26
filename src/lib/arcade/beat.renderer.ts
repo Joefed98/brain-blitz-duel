@@ -40,7 +40,14 @@ import { pixelRect, pixelShape, retroBloom, retroMix, retroNeon, retroHud, retro
 import { arcadeReducedEffects } from "@/lib/fx/lowEnd";
 
 /** beatRev 9's fifth lane takes a hot pink (the four lanes keep their colours). */
-const NEON = [...BEAT_LANE_COLOURS, "#FF6FAE"].map(retroNeon);
+const FIFTH_LANE = "#FF6FAE";
+/**
+ * beatRev 13's Expert (D5's ladder, 23 Nov 2026): a sixth lane, in a warm orange so six lanes of 65 px read apart (display
+ * only; every lane is drawn by the same lane-count-generic stage, buttons and notes, each lane a sixth of the width).
+ * Three-lane Easy uses the first three colours.
+ */
+const SIXTH_LANE = "#FF9A3C";
+const NEON = [...BEAT_LANE_COLOURS, FIFTH_LANE, SIXTH_LANE].map(retroNeon);
 const GOLD = "#FFD84A";
 const lanePulses=new WeakMap<CanvasRenderingContext2D,{tick:number;event:number;at:number}>();
 
@@ -473,9 +480,9 @@ function drawMeter(ctx: CanvasRenderingContext2D, state: BeatState): void {
     retroText(ctx, memo.text, BEAT_WORLD_W / 2, BEAT_HUD_H + 14 - (reducedMotion() ? 0 : Math.floor(age / 3)), 12, memo.colour, "center");
     ctx.globalAlpha = 1;
   }
-  // The fifth lane's banner in the break before it.
+  // The fifth lane's banner in the break before it (never on a beatRev 13 level, whose lanes stay the same all song).
   const toFive = BEAT_V9_FIVE_FROM - state.tick;
-  if (toFive > 0 && toFive <= BEAT_V9_BREAK + 30) retroText(ctx, "5 LANES!", BEAT_WORLD_W / 2, BEAT_HUD_H + 60, 16, NEON[4]!, "center");
+  if (!state.lv?.lanes && toFive > 0 && toFive <= BEAT_V9_BREAK + 30) retroText(ctx, "5 LANES!", BEAT_WORLD_W / 2, BEAT_HUD_H + 60, 16, NEON[4]!, "center");
 }
 
 /**

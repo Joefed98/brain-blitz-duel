@@ -24,6 +24,8 @@ import { withPipesTwoWayPar } from "./depth4/pipesTaps";
 import { dealWordOverhaul } from "./wordOverhaul.server";
 import { dealAttentionOverhaul } from "./attentionOverhaul";
 import { dealSpeedOverhaul } from "./speedOverhaul";
+import { dealPyramidPartial } from "./pyramidPartial";
+import { dealBallparkBullseyes } from "./ballparkBullseyes";
 import { activeDealPins, dealPinned, withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
 import { dealNotesFree } from "./notesFree";
@@ -51,7 +53,7 @@ import { generateTileGrid } from "./tileGrid.server";
 import { generateWordSlide } from "./wordSlide.server";
 import { generateBalance } from "./numberRounds.server";
 import { generateBalanceLevel } from "./balanceLevels.server";
-import { dealTargetExpert, generateTargetLevel, type TargetLevelSettings } from "./targetLevels.server";
+import { generateTargetLevel, type TargetLevelSettings } from "./targetLevels.server";
 import type { BalanceLevelSettings } from "./balanceLevels";
 import { generateLightsOut, generatePipes, generateSudoku, withPipesOneLayout } from "./logic.server";
 import { generateFlow } from "./flow.server";
@@ -217,6 +219,10 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   // The Speed overhaul (15 Nov 2026, speedOverhaul.ts): Tenfall tenRev 6 (resets cost on a finish), Pull! clayRev 10
   // (a wider quick-hit window).
   { name: "speedOverhaul", deal: dealSpeedOverhaul },
+  // Integer Pyramid's unfinished credit (D2, 22 Nov 2026, pyramidPartial.ts): depthRev 3, stone by stone.
+  { name: "pyramidPartial", deal: dealPyramidPartial },
+  // Ballpark's bullseyes (D2, 22 Nov 2026, ballparkBullseyes.ts): depthRev 3, a bullseye worth 3 up to 30.
+  { name: "ballparkBullseyes", deal: dealBallparkBullseyes },
 ];
 
 /**
@@ -334,14 +340,14 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   }
   if (type === "tiles") return generateTiles();
   if (type === "rings") return generateRings();
-  if (type === "hover") return generateHover();
+  if (type === "hover") return generateHover(context.level);
   if (type === "swerve") return generateSwerve();
   if (type === "skyline") return generateSkyline(context.level);
   if (type === "bintoss") return generateBinToss();
   if (type === "bullseye") return generateBullseye();
   if (type === "matchup") return generateMatchup();
   if (type === "snake") return generateSnake();
-  if (type === "cross") return generateCross();
+  if (type === "cross") return generateCross(context.level);
   if (type === "dual") return generateDual();
   if (type === "ricochet") return generateRicochet();
   if (type === "breaker") return generateBreaker(context.level);
@@ -363,24 +369,24 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "pool") return generatePool();
   // Curl Champ's levels (the Sports overhaul): Easy, Hard and Expert deal from their own proved banks; Normal as before.
   if (type === "curling") return generateCurling(context.level);
-  if (type === "blockfall") return generateBlockfall();
+  if (type === "blockfall") return generateBlockfall(context.level);
   if (type === "alleyroll") return generateAlleyRoll();
   if (type === "rally") return generateRally();
   if (type === "steady") return generateSteady();
   if (type === "slice") return generateSlice();
   if (type === "bubble") return generateBubble();
-  if (type === "beat") return generateBeat();
+  if (type === "beat") return generateBeat(context.level);
   if (type === "whack") return generateWhack();
   if (type === "tendrop") return generateTenDrop();
   if (type === "wordfall") return generateWordfall();
   if (type === "clayshoot") return generateClayShoot();
-  if (type === "wavefront") return generateWavefront();
+  if (type === "wavefront") return generateWavefront(context.level);
   if (type === "bastion") return generateBastion(context.level);
   if (type === "rooftop") return generateRooftop();
   if (type === "flip") return generateFlip(context.level);
   if (type === "junction") return generateJunction();
   if (type === "inkbridge") return generateInkBridge(context.level);
-  if (type === "burst") return generateBurst();
+  if (type === "burst") return generateBurst(context.level);
   if (type === "orbit") return generateOrbit(context.level);
   if (type === "swing") return generateSwing(context.level);
   if (type === "snip") return generateSnip();
@@ -422,8 +428,8 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "kakuro") return dealKakuroLevel(gameSeed(type, context), context.level);
   // Exact's levels (targetLevels.server.ts, 15 Nov 2026): Normal is today's deal below.
   if (type === "target" && context.level) {
-    // Expert deals from its proved bank (Joe, 16 Nov 2026: no live search of up to 3 s; targetExpertBank.server.ts).
-    if (context.level === "expert" && gameLevelSettings<TargetLevelSettings>("target", "expert")) return dealTargetExpert();
+    // D2 (22 Nov 2026): Hard and Expert are targets in a row (targetRounds.ts); Expert's last target still comes from its
+    // proved bank (Joe, 16 Nov 2026: no live search of up to 3 s; targetExpertBank.server.ts).
     const settings = gameLevelSettings<TargetLevelSettings>("target", context.level);
     if (settings) return generateTargetLevel(settings);
   }

@@ -6,17 +6,20 @@
  *     (scripts/fixtures/burst-small-legacy.json.gz, scripts/burst-small-legacy-record.ts) starts, replays and grades
  *     exactly as recorded: the server's score and verdict, a digest of its stored extra, the replayed state and its
  *     checkpoints.
- *  2. The stamp and the pin: rooms and every level deal burstRev 14 on the same seed as before; `burstPreSmall` deals
- *     burstRev 13 (and `preRetro` burstRev 11 still); LIVE_BANDS, the practice definition, the intro still, the intro-demo
- *     stop rule and the practice stamps follow the dealt stamp.
+ *  2. The stamp and the pin: rooms and every level deal burstRev 14 (since 23 Nov 2026, D5's levels folded into burstRev
+ *     14: on the seed its level's proved list gives the room seed burstRev 13 drew, burstLevelDeals.server.ts); `burstPreSmall`
+ *     deals burstRev 13 exactly as before (and `preRetro` burstRev 11 still); LIVE_BANDS, the practice definition, the intro
+ *     still, the intro-demo stop rule and the practice stamps follow the dealt stamp.
  *  3. The rule: atoms 35 / 24 / 15 / 9 px (between burstRev 13's and the original table), a level's size on top (Easy
- *     125 %), burstRev 13's start plus `small: 1` at every level, its own checksum; a beam, a bounce and a touch at the new
+ *     125 %), burstRev 13's start plus `small: 1` at every level (since 23 Nov 2026 a level's own waves, their golden atoms
+ *     and carriers and its lives in place of Normal's: burst-ladder-check proves them), its own checksum; a beam, a bounce and a touch at the new
  *     radius; on burstRev 14 an atom touches the ship at the radius it is drawn at (Easy's size included), while burstRev
  *     13 keeps its own touch.
  *  4. The art: the real renderer (@napi-rs/canvas) draws each atom's solid disc to within 2 px of its collision radius at
  *     Normal, Easy and Hard, across and down, with nothing but its soft glow past it.
  *  5. The parts still sum to 200; a perfect run (the standard's oracle, scripts/burst-small-oracle.ts) on a real deal
- *     scores 200 through gradeAnswer, every part at its maximum; bot runs at every level replay through the server to
+ *     scores 200 through gradeAnswer, every part at its maximum (since 23 Nov 2026 on Normal's lines: the wave clears full
+ *     at 19 of 35, the golden atoms at 2 of 5); bot runs at every level replay through the server to
  *     the phone's own score.
  *  6. The proof player (the flawless level held to the human limits, scripts/d5-ladder-lib.ts) on 24 Normal deals:
  *     measured and printed (the levels session reads it); every run graded.
@@ -51,12 +54,15 @@ import {
   BURST_V10_BAND_CURVE,
   BURST_V10_CLEAR_PER_WAVE,
   BURST_V10_PARTS,
+  BURST_V14_CLEAR_FULL,
+  BURST_V14_GOLD_FULL,
   type BurstState,
 } from "../src/lib/arcade/burst";
 import { burstArtGameFor } from "../src/lib/arcade/burst.renderer";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
-import { BURST_LEVELS } from "../src/lib/arcade/retroLevels";
+import { BURST_LEVELS, BURST_LEVELS_SMALL } from "../src/lib/arcade/retroLevels";
+import { burstDealSeedV14, BURST_DEAL_V14 } from "../src/lib/duel/burstLevelDeals.server";
 import { generateBurst } from "../src/lib/duel/arcade.server";
 import { encodeBurstRun, replayBurstRun } from "../src/lib/duel/burst";
 import { activeDealPins, DEAL_PIN_NAMES, DEAL_PINS, withDealOptions } from "../src/lib/duel/dealEra";
@@ -90,6 +96,9 @@ const canon = (v: unknown): unknown => (Array.isArray(v) ? v.map(canon) : v && t
 const sorted = (v: unknown) => JSON.stringify(canon(v));
 const FP = 256;
 const LEVELS: Level[] = ["normal", "easy", "hard", "expert"];
+/** The Normal deal (level-tune's room deal n) the standard's oracle takes to 200 through gradeAnswer, and its seed. */
+const PERFECT_DEAL = 5;
+const PERFECT_DEAL_SEED = 1719686143;
 
 /* ============================== 1. Legacy ============================== */
 section("burstRev 13 (every level) and 12 start, replay and grade exactly as recorded");
@@ -123,15 +132,18 @@ section("Rooms and every level deal burstRev 14; burstPreSmall deals burstRev 13
     const p = generatePuzzle("burst", { level }) as any;
     ok(p.burstRev === BURST_REV_SMALL && p.level === level, `${level}: the level deal is burstRev 14 (${p.burstRev}, ${p.level})`);
   }
-  ok("burstPreSmall" in DEAL_PINS && DEAL_PINS.burstPreSmall.texts === false && DEAL_PIN_NAMES.at(-1) === "burstPreSmall", "DEAL_PINS ends with burstPreSmall (no text rebuild)");
+  ok("burstPreSmall" in DEAL_PINS && DEAL_PINS.burstPreSmall.texts === false && DEAL_PIN_NAMES.includes("burstPreSmall"), "DEAL_PINS holds burstPreSmall (no text rebuild)"); // Changed with Joe's approval, 23 Nov 2026 (the other D5 stamps add their pins after it)
   for (const level of LEVELS) {
     for (const n of [0, 5, 31]) {
       const opts = level === "normal" ? {} : { level };
       const live = withSeededRandom(9000 + n, () => generatePuzzle("burst", opts as never)) as any;
       const pinned = withSeededRandom(9000 + n, () => withDealOptions({ pins: ["burstPreSmall"] }, () => generatePuzzle("burst", opts as never))) as any;
-      const { burstRev: a, ...restLive } = live;
-      const { burstRev: b, ...restPinned } = pinned;
-      ok(a === BURST_REV_SMALL && b === BURST_REV_BIG && sorted(restLive) === sorted(restPinned), `${level} deal ${n}: burstPreSmall deals burstRev 13 on the same seed (${a} → ${b}, seed ${live.seed} / ${pinned.seed})`);
+      const { burstRev: a, seed: sa, ...restLive } = live;
+      const { burstRev: b, seed: sb, ...restPinned } = pinned;
+      // Since 23 Nov 2026 (D5's levels folded into burstRev 14): the live deal's seed is the one its level's proved list
+      // gives the room seed burstRev 13 drew (burstDealSeedV14), the rest of the deal the same.
+      const list = BURST_DEAL_V14[level as "normal"];
+      ok(a === BURST_REV_SMALL && b === BURST_REV_BIG && sa === burstDealSeedV14(sb, level) && list.includes(sa) && sorted(restLive) === sorted(restPinned), `${level} deal ${n}: burstPreSmall deals burstRev 13 on the room seed, burstRev 14 that seed's proved one (${a} → ${b}, seed ${sa} / ${sb})`);
     }
   }
   ok(withDealOptions({ pins: ["preRetro"] }, () => (generatePuzzle("burst") as any).burstRev) === BURST_REV_AIM, "preRetro still deals burstRev 11");
@@ -169,11 +181,14 @@ section("The middle atoms: the table, the levels, the start, the checksum, beams
     for (const seed of [1, 99, 4242, 330123215]) {
       const a = g14.init(seed) as BurstState;
       const b = g13.init(seed) as BurstState;
+      // Since 23 Nov 2026 (D5's levels folded into burstRev 14): a level's run starts with its own waves, their golden atoms
+      // and carriers, its settings and lives (burst-ladder-check proves them); everything else is burstRev 13's start.
+      const own = level === "normal" ? {} : { waves: a.waves, goldens: a.goldens, carriers: a.carriers, gDue: a.gDue, lv: a.lv, lives: a.lives };
       const { small, ...rest } = a;
-      const { big, ...rest13 } = b;
-      ok(small === 1 && big === 1 && a.big === undefined && sorted(rest) === sorted(rest13), `${level} seed ${seed}: burstRev 14 starts from burstRev 13's exact start, its size marker small: 1 in place of big: 1`);
+      const { big, ...rest13 } = { ...b, ...own };
+      ok(small === 1 && big === 1 && a.big === undefined && sorted(rest) === sorted(rest13), `${level} seed ${seed}: burstRev 14 starts from burstRev 13's exact start, its size marker small: 1 in place of big: 1${level === "normal" ? "" : " (the level's own waves and lives)"}`);
       ok(burstCheckpoint(a).checksum !== burstCheckpoint(b).checksum && burstCheckpoint(rest as BurstState).checksum === burstCheckpoint(rest13 as BurstState).checksum, `${level} seed ${seed}: its own checksum (burstRev 13's without either marker)`);
-      ok(a.lives === b.lives && a.waves.length === b.waves.length, `${level} seed ${seed}: the same lives and waves`);
+      ok(level === "normal" ? a.lives === b.lives && a.waves.length === b.waves.length : a.lives === BURST_LEVELS_SMALL[level].lives && a.waves.length === b.waves.length, `${level} seed ${seed}: the same lives and waves${level === "normal" ? "" : " count (the level's own lives)"}`);
     }
   }
   ok(BURST_LEVELS.easy.sizePct === 125 && BURST_LEVELS.hard.sizePct === 100 && BURST_LEVELS.expert.sizePct === 100, "the levels' sizes unchanged: Easy 125 %, Hard and Expert 100 %");
@@ -265,17 +280,19 @@ section("The renderer draws each atom to within 2 px of its collision radius");
 section("The parts sum to 200; a perfect run on a real deal scores 200 through gradeAnswer; bots replay at every level");
 {
   ok(BURST_V10_PARTS.core + BURST_V10_PARTS.clear + BURST_V10_PARTS.gold === 200, "the parts' maxima add up to 200 (140 + 35 + 25)");
-  // Deal 64 of level-tune's room deals: seed 330123215 (found by `bun scripts/burst-small-oracle.ts --dealt`).
-  const puzzle = dealAt("burst", "normal", 64);
+  // Since 23 Nov 2026 (Normal's deal a proved list): deal PERFECT_DEAL of level-tune's room deals, on the seed
+  // PERFECT_DEAL_SEED (found by `bun scripts/burst-small-oracle.ts --dealt`).
+  const puzzle = dealAt("burst", "normal", PERFECT_DEAL);
   const seed = (puzzle as any).seed as number;
-  ok(seed === 330123215 && (puzzle as any).burstRev === BURST_REV_SMALL, `deal 64 is burstRev 14 on seed 330123215 (${(puzzle as any).burstRev}, ${seed})`);
+  ok(seed === PERFECT_DEAL_SEED && (puzzle as any).burstRev === BURST_REV_SMALL, `deal ${PERFECT_DEAL} is burstRev 14 on seed ${PERFECT_DEAL_SEED} (${(puzzle as any).burstRev}, ${seed})`);
   const { raw, state } = playBurstOracle(seed, BURST_REV_SMALL);
   const g = gradeAnswer(puzzle, raw, 0);
   const replay = replayBurstRun(seed, raw, BURST_REV_SMALL);
   const p = burstStdParts(replay.state);
   ok(g.score === 200 && replay.score === 200 && !replay.flagged, `the oracle's run scores 200 through gradeAnswer and the server replay (${g.score}, ${replay.score})`);
   ok(p.core === BURST_V10_PARTS.core && p.clear === BURST_V10_PARTS.clear && p.gold === BURST_V10_PARTS.gold && p.lives === 0 && p.misses === 0, `every part at its maximum, no penalty (${JSON.stringify(p)})`);
-  ok(state.done === 1 && state.lives === BURST_LIVES && state.hits === BURST_V10_ATOMS && burstGoldenCount(state) === 5 && state.clearPts === BURST_V10_CLEAR_PER_WAVE * 5, "a complete run: 87 atoms, five quick waves, five golden atoms, no life lost");
+  // Since 23 Nov 2026 (Normal's lines): the wave clears full at 19 of the 35 wave-clear points, the golden atoms at 2.
+  ok(state.done === 1 && state.lives === BURST_LIVES && state.hits === BURST_V10_ATOMS && burstGoldenCount(state) >= BURST_V14_GOLD_FULL && (state.clearPts ?? 0) >= BURST_V14_CLEAR_FULL && (state.clearPts ?? 0) <= BURST_V10_CLEAR_PER_WAVE * 5, "a complete run: 87 atoms, the wave clears and golden atoms full, no life lost");
   // The same oracle on burstRev 13's standard seed scores 200 on burstRev 13 (a faithful copy of the standard's oracle).
   const old = playBurstOracle(489736026, BURST_REV_BIG);
   ok(replayBurstRun(489736026, old.raw, BURST_REV_BIG).score === 200, "the oracle copy scores 200 on burstRev 13's standard seed (489736026), as the standard entry does");

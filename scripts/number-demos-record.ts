@@ -135,7 +135,7 @@ async function operatorBot(page: Page, puzzle: Full) {
 async function pyramidBot(page: Page, puzzle: Full) {
   for (let index = 0; index < puzzle.pyramids.length; index++) {
     if (index > 0) {
-      await page.getByText(new RegExp(`(Stage|Pyramid) ${index + 1} of ${puzzle.pyramids.length}`)).first().waitFor({ timeout: 10_000 });
+      await page.getByText(new RegExp(`(Stage|Pyramid) ${index + 1} of ${puzzle.pyramids.length}`)).filter({ visible: true }).first().waitFor({ timeout: 10_000 }); // Changed with Joe's approval, 22 Nov 2026
       await pause(page, 500);
     }
     const board = puzzle.pyramids[index];

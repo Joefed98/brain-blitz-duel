@@ -119,7 +119,8 @@ export function generateMeasureLevel(seed: number, settings: MeasureLevelSetting
  * at Normal, as rooms did before levels.
  */
 export function dealsMeasureLevelBoards(level: Level | undefined): boolean {
-  if (level === "hard") return false;
+  // A level whose settings name today's game deals it (Hard until D2, 22 Nov 2026; no level does now).
+  if (level && "today" in measureLevelSettings(level)) return false;
   return !dealPinned("preMeasureLevels") && activeDealPins().length === 0;
 }
 
@@ -145,9 +146,14 @@ export function stampMeasureLevel(puzzle: PuzzleData, level: Level | undefined):
   const settings = measureLevelSettings(level);
   if ("today" in settings) return puzzle;
   const mins = puzzle.minMoves ?? [];
+  const moveLimits = mins.map((m) => measureLevelLimit(m, settings.limitFactor));
+  // D2 (22 Nov 2026): a level's par from the textbook way, and its own "full by" time (both stored on the puzzle).
+  const par = settings.personPar ? puzzle.boards.map((b, i) => personSolve(b, moveLimits[i] ?? 0)?.length ?? mins[i]!) : null;
   return {
     ...puzzle,
     measureRev: MEASURE_REV_LEVELS,
-    moveLimits: mins.map((m) => measureLevelLimit(m, settings.limitFactor)),
+    moveLimits,
+    ...(par ? { par } : {}),
+    ...(settings.fullByS ? { speedFullByS: settings.fullByS } : {}),
   };
 }
