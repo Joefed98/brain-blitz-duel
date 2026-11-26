@@ -19,8 +19,8 @@ import { BUB_REV_FAST, BUB_REV_STRICT, BUB_V12_BAND_CURVE, BUB_V12_STD_SPEC } fr
 import { CROSS_REV_LIGHT, CROSS_REV_STRICT, CROSS_V11_BAND_CURVE } from "./cross";
 import { MINES_REV_NORMAL, MINES_STD_SPEC_V3, MINES_V1_BAND_CURVE } from "./minesweeper";
 import { MAHJONG_REV_DEALT, MAHJONG_STD_SPEC, MAHJONG_V1_BAND_CURVE } from "./mahjong";
-import { RALLY_REV_LIVES, RALLY_REV_STRICT, RALLY_STD_SPEC_V13, RALLY_V13_BAND_CURVE } from "./rally";
-import { SNAKE_REV_GRACE, SNAKE_REV_STRICT, SNAKE_V13_BAND_CURVE } from "./snake";
+import { RALLY_REV_LADDER, RALLY_REV_STRICT, RALLY_STD_SPEC_V14, RALLY_V14_BAND_CURVE } from "./rally";
+import { SNAKE_REV_LADDER, SNAKE_REV_STRICT, SNAKE_V16_BAND_CURVE } from "./snake";
 import { BINTOSS_REV_STRICT, BINTOSS_REV_STD, BINTOSS_STD_SPEC, BINTOSS_V9_BAND_CURVE } from "./binToss";
 import { stdHelp, type StdSpec } from "./arcadeStandard";
 import { SNIP_REV_EXPAND, SNIP_REV_STRICT, SNIP_V11_BAND_CURVE } from "./snip";
@@ -110,11 +110,13 @@ export const LIVE_BANDS = {
   cross: { field: "crossRev", rev: CROSS_REV_LIGHT, curve: CROSS_V11_BAND_CURVE, strictRev: CROSS_REV_STRICT },
   // rallyRev 12 (the arcade scoring standard): gold-ball hits on a straight line, pads and gold targets fixed.
   // rallyRev 13 (the Retro overhaul, 15 Nov 2026): two lives; gold hits 130 + pads 30 + targets 30 + spin shots 10.
-  rally: { field: "rallyRev", rev: RALLY_REV_LIVES, curve: RALLY_V13_BAND_CURVE, strictRev: RALLY_REV_STRICT, std: RALLY_STD_SPEC_V13 },
+  // rallyRev 14 (D5's ladder, 23 Nov 2026): rallyRev 13's play; the lines lowered to the realistic elite's (rally.ts RALLY_V14_LINES).
+  rally: { field: "rallyRev", rev: RALLY_REV_LADDER, curve: RALLY_V14_BAND_CURVE, strictRev: RALLY_REV_STRICT, std: RALLY_STD_SPEC_V14 },
   // snakeRev 12 (1 Nov 2026): the core's straight line to 120 at 20 core stars (a gold star counts 2); gold stars, combos, lane rides
   // and warp stars pay up to 80 more (the help says so). snakeRev 11: 120 at 27 stars (SNAKE_V11_BAND_CURVE).
   // snakeRev 13 (the Retro overhaul, 15 Nov 2026): wrap-around edges; the core full at 36 core stars.
-  snake: { field: "snakeRev", rev: SNAKE_REV_GRACE, curve: SNAKE_V13_BAND_CURVE, strictRev: SNAKE_REV_STRICT },
+  // snakeRev 16 (D5's ladder, 23 Nov 2026): snakeRev 15's play and core line; the feature lines lowered (snake.ts SNAKE_V16_LINES).
+  snake: { field: "snakeRev", rev: SNAKE_REV_LADDER, curve: SNAKE_V16_BAND_CURVE, strictRev: SNAKE_REV_STRICT },
   bintoss: { field: "binRev", rev: BINTOSS_REV_STD, curve: BINTOSS_V9_BAND_CURVE, strictRev: BINTOSS_REV_STRICT, std: BINTOSS_STD_SPEC },
   snip: { field: "snipRev", rev: SNIP_REV_EXPAND, curve: SNIP_V11_BAND_CURVE, strictRev: SNIP_REV_STRICT },
   // hoverRev 10 (the arcade scoring standard): the core, barriers on one straight line to 120; the features add 80 (the help says so).

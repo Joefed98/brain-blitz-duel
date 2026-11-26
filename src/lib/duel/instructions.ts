@@ -188,6 +188,7 @@ import {
   SNAKE_V12_CORE_STARS,
   SNAKE_V13_CORE_STARS,
   SNAKE_V12_GOLD_CORE,
+  SNAKE_V16_LINES,
 } from "@/lib/arcade/snake";
 import { BEAT_V9_CAPS, BEAT_V9_SKILL_PAY } from "@/lib/arcade/beat";
 import {
@@ -232,7 +233,7 @@ import {
   BULLSEYE_V8_STREAK_STEP,
   BULLSEYE_V9_DEAD_CAP,
 } from "@/lib/arcade/bullseye";
-import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_TARGET_PTS, RALLY_V13_LIVES, RALLY_V13_SPIN_MAX, RALLY_V13_SPIN_PTS } from "@/lib/arcade/rally";
+import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_PADS_MAX, RALLY_V12_TARGET_PTS, RALLY_V12_TARGETS_MAX, RALLY_V13_LIVES, RALLY_V13_SPIN_MAX, RALLY_V13_SPIN_PTS, RALLY_V14_EACH, RALLY_V14_EACH_TEXT, RALLY_V14_LINES } from "@/lib/arcade/rally";
 import {
   BURST_V9_CAPS,
   BURST_V9_CLEAR_MAX,
@@ -1149,9 +1150,9 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Quick stars build a combo;", detail: "wormholes and violet lanes are quick, risky shortcuts.", helpOnly: true },
         { action: "At 20 stars,", detail: "a meteor shower drops 3 rocks. Duck.", helpOnly: true },
         { action: "Wormholes:", detail: `three pairs of swirling mouths. Go into one and you come straight out of its twin, still heading the same way, so look before you leap. A star eaten within ${SNAKE_STD_WARP_TICKS / 60} s of a trip is a warp star (+${SNAKE_STD_WARP_POINTS}).`, helpOnly: true },
-        { action: "Gold comet stars:", detail: `about every 7 s a gold star appears for 5 s and fades. The ${SNAKE_STD_GOLDS} gold stars share ${SNAKE_STD_CAPS.gold} points: each is worth about ${(SNAKE_STD_CAPS.gold / SNAKE_STD_GOLDS).toFixed(1)} the moment it appears, falling evenly to 0 as it fades. Each also counts as ${SNAKE_V12_GOLD_CORE} stars towards your stars. It doesn’t make you longer.`, helpOnly: true },
-        { action: "Violet speed lanes:", detail: `one row and two columns. Travelling along one you move faster; every ride of ${SNAKE_STD_LANE_RIDE} squares in a row along a lane scores ${SNAKE_STD_LANE_POINTS}.`, helpOnly: true },
-        { action: "Combo:", detail: `eat stars within ${SNAKE_STD_COMBO_TICKS / 60} s of each other; from the third in a row each star adds 1 bonus point.`, helpOnly: true },
+        { action: "Gold comet stars:", detail: `about every 7 s a gold star appears for 5 s and fades. The ${SNAKE_STD_GOLDS} gold stars pay up to ${SNAKE_STD_CAPS.gold} points: each is worth about ${((100 * SNAKE_STD_CAPS.gold) / (SNAKE_STD_GOLDS * SNAKE_V16_LINES.goldPct)).toFixed(1)} the moment it appears, falling evenly to 0 as it fades. Each also counts as ${SNAKE_V12_GOLD_CORE} stars towards your stars. It doesn’t make you longer.`, helpOnly: true },
+        { action: "Violet speed lanes:", detail: `one row and two columns. Travelling along one you move faster; every ride of ${SNAKE_STD_LANE_RIDE} squares in a row along a lane scores ${SNAKE_STD_CAPS.lane / SNAKE_V16_LINES.laneFull}.`, helpOnly: true },
+        { action: "Combo:", detail: `eat stars within ${SNAKE_STD_COMBO_TICKS / 60} s of each other; from the third in a row each star adds ${SNAKE_STD_CAPS.combo / SNAKE_V16_LINES.comboFull} bonus points.`, helpOnly: true },
         { action: "Rocks hit only your head.", detail: "A rock on your tail does nothing, and your tail passes through rocks. Rocks come in three sizes: one square, two squares side by side or one above the other, and a big 2 × 2 block. Keep your head off every square a rock covers.", helpOnly: true },
         { action: "Rocks start at length 9:", detail: "one more every 4 stars, up to 11. Stars never appear on a rock.", helpOnly: true },
         { action: "The meteor shower", detail: "comes once, when you reach 20 stars: three red shadows, then three rocks land together 2 s later. With the shower, at most 14 rocks.", helpOnly: true },
@@ -1161,12 +1162,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Everyone gets", detail: "the same stars, and every rock lands on the same square at the same moment.", helpOnly: true },
       ],
       // snakeRev 12 (1 Nov 2026): stars on a straight line to 120, a big gold star counting 2; then four fixed feature parts,
-      // 200 in all. snakeRev 13 and 14 (the Retro overhaul): the line is full at 36 stars (was 28).
+      // 200 in all. snakeRev 13 and 14 (the Retro overhaul): the line is full at 36 stars (was 28). snakeRev 16 (D5's
+      // ladder, 23 Nov 2026): the gold stars, combos and lane rides full sooner (SNAKE_V16_LINES).
       score: scoreList([
-        { label: "Stars", how: `every star eaten counts, a big gold star counts ${SNAKE_V12_GOLD_CORE}; all of it at ${SNAKE_V13_CORE_STARS} stars`, max: SNAKE_STD_CORE_MAX },
+        { label: "Stars", how: `every star eaten counts, a big gold star counts ${SNAKE_V12_GOLD_CORE}; all of it at ${SNAKE_V16_LINES.fullAt} stars`, max: SNAKE_STD_CORE_MAX },
         { label: "Gold stars", how: "eat a gold star soon after it appears for more", max: SNAKE_STD_CAPS.gold },
-        { label: "Combos", how: `1 for each star from the third eaten within ${SNAKE_STD_COMBO_TICKS / 60} s of the last`, max: SNAKE_STD_CAPS.combo },
-        { label: "Lane rides", how: `${SNAKE_STD_LANE_POINTS} for every ${SNAKE_STD_LANE_RIDE} squares along a violet lane`, max: SNAKE_STD_CAPS.lane },
+        { label: "Combos", how: `${SNAKE_STD_CAPS.combo / SNAKE_V16_LINES.comboFull} for each star from the third eaten within ${SNAKE_STD_COMBO_TICKS / 60} s of the last`, max: SNAKE_STD_CAPS.combo },
+        { label: "Lane rides", how: `${SNAKE_STD_CAPS.lane / SNAKE_V16_LINES.laneFull} for every ${SNAKE_STD_LANE_RIDE} squares along a violet lane`, max: SNAKE_STD_CAPS.lane },
         { label: "Warp stars", how: `${SNAKE_STD_WARP_POINTS} for a star eaten within ${SNAKE_STD_WARP_TICKS / 60} s of a wormhole`, max: SNAKE_STD_CAPS.warp },
       ], { penalties: ["A crash ends the run"], total: 200 }),
     },
@@ -1531,14 +1533,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Keep the rally going.",
       how: [
         { action: "Drag the paddle.", detail: `A miss costs 1 of ${RALLY_V13_LIVES} lives.` },
-        { action: "Gold balls score:", detail: `each hit, +${RALLY_V12_PAD_PTS} a pink pad.` },
-        { action: "Swipe as you hit", detail: `to curl it: +${RALLY_V13_SPIN_PTS} if it scores.` },
+        { action: "Gold balls score:", detail: `each hit, +${RALLY_V14_EACH_TEXT.pads} a pink pad.` },
+        { action: "Swipe as you hit", detail: `to curl it: +${RALLY_V14_EACH.spin} if it scores.` },
         { action: "Drag to move the paddle", detail: "along the bottom.", helpOnly: true },
         { action: "Every hit", detail: "makes the paddle smaller and the ball faster.", helpOnly: true },
         { action: "A gold ball drops in", detail: "every ten seconds – only gold balls score.", helpOnly: true },
-        { action: "Two pink target pads", detail: `sit on the far wall, one in each half. A gold ball that hits one scores ${RALLY_V12_PAD_PTS}, and the pad moves to a new spot in its own half, so the two never overlap. The spots are the same for everyone in the room.`, helpOnly: true },
-        { action: `${RALLY_V10_BONUS_COUNT} gold targets a round:`, detail: `each appears at its own moment and spot in the upper court (the same for everyone in the room) and stays about ${RALLY_V11_BONUS_LIFE / 60} seconds, its ring counting down. Any ball that touches it scores ${RALLY_V12_TARGET_PTS}; a miss costs nothing.`, helpOnly: true },
-        { action: "Aim with the paddle:", detail: `where the ball meets it sets the angle; swipe the paddle as you hit to spin the return: the ball sets off the way you swiped, then curves back round the other way (swipe left: it goes left, then bends right). The faster the swipe, the bigger the curve. A curving ball that strikes a pink pad or a gold target is a spin shot: +${RALLY_V13_SPIN_PTS} each, up to ${RALLY_V13_SPIN_MAX}.`, helpOnly: true },
+        { action: "Two pink target pads", detail: `sit on the far wall, one in each half. A gold ball that hits one scores ${RALLY_V14_EACH_TEXT.pads}, and the pad moves to a new spot in its own half, so the two never overlap (the pads' ${RALLY_V12_PADS_MAX} are all yours at ${RALLY_V14_LINES.padsFull}). The spots are the same for everyone in the room.`, helpOnly: true },
+        { action: `${RALLY_V10_BONUS_COUNT} gold targets a round:`, detail: `each appears at its own moment and spot in the upper court (the same for everyone in the room) and stays about ${RALLY_V11_BONUS_LIFE / 60} seconds, its ring counting down. Any ball that touches it scores ${RALLY_V14_EACH_TEXT.targets}; a miss costs nothing (the targets' ${RALLY_V12_TARGETS_MAX} are all yours at ${RALLY_V14_LINES.targetsFull}).`, helpOnly: true },
+        { action: "Aim with the paddle:", detail: `where the ball meets it sets the angle; swipe the paddle as you hit to spin the return: the ball sets off the way you swiped, then curves back round the other way (swipe left: it goes left, then bends right). The faster the swipe, the bigger the curve. A curving ball that strikes a pink pad or a gold target is a spin shot: ${RALLY_V14_EACH_TEXT.spin} each, all ${RALLY_V13_SPIN_MAX} for ${RALLY_V14_LINES.spinFull}.`, helpOnly: true },
         { action: "From 30 seconds a bumper", detail: "appears mid-court (it blinks a warning first). Balls bounce off it like a mirror, at the same speed.", helpOnly: true },
         { action: "For the last 15 seconds", detail: "a second bumper joins it (from 45 s, with the same blinking warning), always far enough away for a ball to pass between them.", helpOnly: true },
         { action: "Miss the blue ball", detail: `and you lose a life: it serves again from mid-court after a second and a half. Lose all ${RALLY_V13_LIVES} and the run is over: you keep what you have scored. Blue returns and lasting the minute score nothing themselves.`, helpOnly: true },
