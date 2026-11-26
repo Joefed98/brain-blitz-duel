@@ -24,14 +24,14 @@ import { SNAKE_REV_GRACE, SNAKE_REV_STRICT, SNAKE_V13_BAND_CURVE } from "./snake
 import { BINTOSS_REV_STRICT, BINTOSS_REV_STD, BINTOSS_STD_SPEC, BINTOSS_V9_BAND_CURVE } from "./binToss";
 import { stdHelp, type StdSpec } from "./arcadeStandard";
 import { SNIP_REV_EXPAND, SNIP_REV_STRICT, SNIP_V11_BAND_CURVE } from "./snip";
-import { HOVER_REV_SHIELD, HOVER_REV_STRICT, HOVER_V10_BAND_CURVE } from "./hover";
+import { HOVER_REV_FIT, HOVER_REV_STRICT, HOVER_V12_BAND_CURVE } from "./hover";
 import { SKYLINE_REV_FLOORS, SKYLINE_REV_STRICT, SKYLINE_STD_SPEC_V12, SKYLINE_V12_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
 import { BRK_REV_CLEAR, BRK_REV_STRICT, BRK_V12_BAND_CURVE } from "./breaker";
 import { TILT_REV_BIG, TILT_REV_STRICT, TILT_V12_BAND_CURVE } from "./tilt";
 import { ORBIT_REV_STRICT, ORBIT_REV_LOST } from "./orbit";
 import { ORBIT_V14_BAND_CURVE } from "./orbitRev3";
-import { BEAT_REV_FLOOR, BEAT_REV_STRICT, BEAT_STD_SPEC_V12, BEAT_V11_BAND_CURVE } from "./beat";
+import { BEAT_REV_LANES, BEAT_REV_STRICT, BEAT_STD_SPEC_V13, BEAT_V11_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_REV_LINE, SLICE_V13_BAND_CURVE } from "./slice";
 import { BURST_REV_SMALL, BURST_REV_STRICT, BURST_V10_BAND_CURVE } from "./burst";
 import { SWING_REV_LADDER, SWING_REV_STRICT, SWING_V17_BAND_CURVE } from "./swing";
@@ -118,7 +118,8 @@ export const LIVE_BANDS = {
   bintoss: { field: "binRev", rev: BINTOSS_REV_STD, curve: BINTOSS_V9_BAND_CURVE, strictRev: BINTOSS_REV_STRICT, std: BINTOSS_STD_SPEC },
   snip: { field: "snipRev", rev: SNIP_REV_EXPAND, curve: SNIP_V11_BAND_CURVE, strictRev: SNIP_REV_STRICT },
   // hoverRev 10 (the arcade scoring standard): the core, barriers on one straight line to 120; the features add 80 (the help says so).
-  hover: { field: "hoverRev", rev: HOVER_REV_SHIELD, curve: HOVER_V10_BAND_CURVE, strictRev: HOVER_REV_STRICT },
+  // hoverRev 12 (D5, 23 Nov 2026): the same five parts on fitted lines; the core full at HOVER_V12_FIT.coreAt barriers.
+  hover: { field: "hoverRev", rev: HOVER_REV_FIT, curve: HOVER_V12_BAND_CURVE, strictRev: HOVER_REV_STRICT },
   // skylineRev 9 (the arcade scoring standard): floors on a straight line to 140, then perfect drops, the streak and gold.
   // skylineRev 11 (15 Nov 2026, the Action overhaul): lives and the wide-block rescue; the same parts.
   // skylineRev 12 (22 Nov 2026, D5 item I5): skylineRev 11's play; floors full at 45 (140), perfect drops at 30.
@@ -138,7 +139,8 @@ export const LIVE_BANDS = {
   orbit: { field: "orbitRev", rev: ORBIT_REV_LOST, curve: ORBIT_V14_BAND_CURVE, strictRev: ORBIT_REV_STRICT },
   // beatRev 11 (the arcade scoring standard): beatRev 10's play; accuracy on a straight line to 130, four fixed features.
   // beatRev 12 (the Retro overhaul, 15 Nov 2026): beatRev 11 with a missed note scoring 0 rather than −2.
-  beat: { field: "beatRev", rev: BEAT_REV_FLOOR, curve: BEAT_V11_BAND_CURVE, strictRev: BEAT_REV_STRICT, std: BEAT_STD_SPEC_V12 },
+  // beatRev 13 (D5's ladder, 23 Nov 2026): beatRev 12's play at Normal; golden notes full at 5 in 9, the streak at 70 % of the notes.
+  beat: { field: "beatRev", rev: BEAT_REV_LANES, curve: BEAT_V11_BAND_CURVE, strictRev: BEAT_REV_STRICT, std: BEAT_STD_SPEC_V13 },
   // sliceRev 11 (the arcade scoring standard): the core's straight line to 120; combo, golden fruit, tickets and dodges pay up to 80 more.
   // sliceRev 12 (3 Nov 2026): bigger food; the core's straight line from half the food thrown to 120.
   slice: { field: "sliceRev", rev: SLICE_REV_LINE, curve: SLICE_V13_BAND_CURVE, strictRev: SLICE_REV_STRICT },

@@ -99,7 +99,8 @@ for (const type of ["checkout", "kakuro"] as const) {
     const clock = puzzleTimeLimitMs(deal(type, 3, level));
     ok(clock > 0 && clock <= MAX_ROUND_CLOCK_MS, `${type} ${level}: clock ${clock} ms within 120 s`);
   }
-  ok("today" in checkoutSettings("hard") && "today" in kakuroSettings("hard"), `${type}: Hard's settings name today's game`);
+  // D2 (Joe's decision 10, a Hard you can see): Hard has its own boards; today's game is its pin's at Normal. // Changed with Joe's approval, 22 Nov 2026
+  ok(!("today" in checkoutSettings("hard")) && !("today" in kakuroSettings("hard")), `${type}: Hard has its own boards, not today's game`); // Changed with Joe's approval, 22 Nov 2026
 }
 
 /* ------------------------------------------------------------------ 2. Hard is today's game; the eras */
@@ -111,9 +112,9 @@ for (const type of ["checkout", "kakuro"] as const) {
   for (let seed = 0; seed < 40; seed++) {
     const hard = deal(type, seed, "hard");
     const today = deal(type, seed, "normal", { pins: [PIN[type]] });
-    if ((hard as { level?: string }).level === "hard" && json(strip(hard)) === json(today) && todayRev(today)) same++;
+    if ((hard as { level?: string }).level === "hard" && newRev(hard) && todayRev(today) && !("level" in today)) same++; // Changed with Joe's approval, 22 Nov 2026
   }
-  ok(same === 40, `${type}: Hard is today's game byte for byte (${same} of 40)`);
+  ok(same === 40, `${type}: Hard deals its own boards on the new stamp, and today's game is still its pin's at Normal (${same} of 40)`); // Changed with Joe's approval, 22 Nov 2026
   const own = deal(type, 7, "normal", { pins: [PIN[type]] });
   ok(todayRev(own) && !("level" in own), `${type}: its own pin deals today's game at Normal`);
   ok(!newRev(deal(type, 7, "normal", { pins: ["preNumberOverhaul"] })), `${type}: the pre-overhaul era deals its own older stamp`);
@@ -125,13 +126,13 @@ for (const type of ["checkout", "kakuro"] as const) {
   for (const level of ["easy", "expert"] as const) ok(newRev(deal(type, 9, level)), `${type} ${level}: deals the new stamp`);
 }
 
-/* Hard grades every answer exactly as today's game. */
+/* The level never changes a grade: a Hard deal grades every answer exactly as the same puzzle with no level field. // Changed with Joe's approval, 22 Nov 2026 */
 {
   let same = 0, total = 0;
   for (let seed = 20; seed < 28; seed++) {
     const hard = deal<CheckoutPuzzleData>("checkout", seed, "hard");
-    const today = deal<CheckoutPuzzleData>("checkout", seed, "normal", { pins: ["preCheckoutLevels"] });
-    const routes = today.routes ?? [];
+    const today = strip(hard) as unknown as CheckoutPuzzleData; // Changed with Joe's approval, 22 Nov 2026
+    const routes = hard.routes ?? []; // Changed with Joe's approval, 22 Nov 2026
     const answers = [joinCheckoutRound(routes), joinCheckoutRound([routes[0] ?? "", "", routes[2] ?? ""]), "", joinCheckoutRound(["0:1", "0:2,0:2"])];
     for (const answer of answers)
       for (const ms of [20_000, 70_000]) {
@@ -140,7 +141,7 @@ for (const type of ["checkout", "kakuro"] as const) {
         if (a.score === b.score && a.isCorrect === b.isCorrect && json(a.extra) === json(b.extra)) same++;
       }
     const kh = deal<KakuroPuzzleData>("kakuro", seed, "hard");
-    const kt = deal<KakuroPuzzleData>("kakuro", seed, "normal", { pins: ["preKakuroLevels"] });
+    const kt = strip(kh) as unknown as KakuroPuzzleData; // Changed with Joe's approval, 22 Nov 2026
     const half = (kt.solution ?? []).map((v, i) => (i % 2 ? v : 0));
     for (const answer of [encodeKakuro(kt.solution ?? []), encodeKakuro(half), ""])
       for (const ms of [20_000, 90_000]) {
@@ -149,7 +150,7 @@ for (const type of ["checkout", "kakuro"] as const) {
         if (a.score === b.score && a.isCorrect === b.isCorrect && json(a.extra) === json(b.extra)) same++;
       }
   }
-  ok(same === total, `Hard grades every answer exactly as today's game (${same} of ${total})`);
+  ok(same === total, `Hard grades every answer exactly as the same puzzle without its level (${same} of ${total})`); // Changed with Joe's approval, 22 Nov 2026
 }
 
 /* ------------------------------------------------------------------ 3. Checkout's boards */
@@ -157,7 +158,7 @@ for (const type of ["checkout", "kakuro"] as const) {
   const standard = (s: CheckoutStageData) => s.wedges.every((v, i) => v === CHECKOUT_STANDARD[i]);
   const shuffled = (s: CheckoutStageData) => [...s.wedges].sort((a, b) => a - b).every((v, i) => v === i + 1) && !standard(s);
   const uneven = (s: CheckoutStageData) => new Set(s.wedges.map(Math.abs)).size === 20 && s.wedges.every((v) => Math.abs(v) >= 5 && Math.abs(v) <= 60) && !shuffled(s) && !standard(s);
-  for (const level of ["easy", "normal", "expert"] as const) {
+  for (const level of ["easy", "normal", "hard", "expert"] as const) { // Changed with Joe's approval, 22 Nov 2026
     const settings = checkoutSettings(level);
     const plans = settings.boards ?? [];
     const seeds = level === "expert" ? 100 : 40;
@@ -221,14 +222,15 @@ for (const type of ["checkout", "kakuro"] as const) {
 }
 
 /* ------------------------------------------------------------------ 4. Kakuro's boards */
-for (const level of ["easy", "normal", "expert"] as const) {
+for (const level of ["easy", "normal", "hard", "expert"] as const) { // Changed with Joe's approval, 22 Nov 2026
   const st = kakuroSettings(level);
   const seeds = level === "expert" ? 100 : 40;
   let shape = 0, unique = 0, person = 0, passesOk = 0;
   const rounds: number[] = [];
   for (let seed = 0; seed < seeds; seed++) {
     const p = deal<KakuroPuzzleData>("kakuro", seed, level);
-    if (p.size === st.size && p.white.length >= st.whiteMin! && p.white.length <= st.whiteMax! && (p.grade ?? -1) >= st.gradeMin! && (p.grade ?? -1) <= st.gradeMax!) shape++;
+    // D2: Hard is 7 across by 6 down (a stored rows); every other grid is square. // Changed with Joe's approval, 22 Nov 2026
+    if (p.size === st.size && (p.rows ?? p.size) === (st.rows ?? st.size) && p.white.length >= st.whiteMin! && p.white.length <= st.whiteMax! && (p.grade ?? -1) >= st.gradeMin! && (p.grade ?? -1) <= st.gradeMax!) shape++; // Changed with Joe's approval, 22 Nov 2026
     const search = searchKakuro(p, 2);
     if (search.count === 1 && search.branches === p.grade && search.first && p.white.every((c) => search.first![c] === p.solution?.[c])) unique++;
     const run = kakuroPersonSolve(p);
@@ -237,7 +239,7 @@ for (const level of ["easy", "normal", "expert"] as const) {
     rounds.push(most);
     if (st.maxPasses === undefined || most <= st.maxPasses) passesOk++;
   }
-  ok(shape === seeds, `Kakuro ${level}: ${st.size} × ${st.size}, ${st.whiteMin}–${st.whiteMax} white squares, grade ${st.gradeMin}–${st.gradeMax} (${shape} of ${seeds})`);
+  ok(shape === seeds, `Kakuro ${level}: ${st.size} × ${st.rows ?? st.size}, ${st.whiteMin}–${st.whiteMax} white squares, grade ${st.gradeMin}–${st.gradeMax} (${shape} of ${seeds})`); // Changed with Joe's approval, 22 Nov 2026
   ok(unique === seeds, `Kakuro ${level}: exactly one solution, the stored one (${unique} of ${seeds})`);
   ok(person === seeds, `Kakuro ${level}: the person-like solver completes every board (${person} of ${seeds})`);
   ok(passesOk === seeds, `Kakuro ${level}: within its passes (${passesOk} of ${seeds})`);
@@ -249,7 +251,7 @@ ok(KAKURO_NORMAL.size === 6 && KAKURO_NORMAL.whiteMin === 16 && KAKURO_NORMAL.wh
 {
   const MEASURED_PX_AT_7 = 47.6;
   for (const level of LEVELS) {
-    const size = level === "hard" ? 6 : kakuroSettings(level).size!;
+    const size = kakuroSettings(level).size!; // Changed with Joe's approval, 22 Nov 2026
     ok(size <= 7 && (MEASURED_PX_AT_7 * 7) / size >= 40, `Kakuro ${level}: squares at least 40 px on a 375 px screen (${size} across)`);
   }
   ok(readFileSync("docs/design/pages-review/number/img/kakuro-expert.webp").length > 1000, "Kakuro Expert's 375 × 667 shot is saved");

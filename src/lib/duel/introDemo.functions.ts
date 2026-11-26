@@ -18,12 +18,12 @@ import { CROSS_REV_LIGHT } from "@/lib/arcade/cross";
 import { FLIP_REV_GRACE } from "@/lib/arcade/flip";
 import { MOON_MID_REV } from "@/lib/arcade/ricochetNinja";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
-import { HOVER_REV_SHIELD } from "@/lib/arcade/hover";
+import { HOVER_REV_FIT, HOVER_REV_SHIELD } from "@/lib/arcade/hover";
 import { RALLY_REV_LIVES, RALLY_REV_STD } from "@/lib/arcade/rally";
 import { WAV_REV_WIDE } from "@/lib/arcade/wavefront";
 import { BURST_REV_SMALL } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
-import { BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
+import { BEAT_REV_FLOOR, BEAT_REV_LANES } from "@/lib/arcade/beat";
 import { BLOCKFALL_REV_ZONE } from "@/lib/arcade/blockfall";
 import { SNAKE_REV_GRACE } from "@/lib/arcade/snake";
 import { POOL_REV } from "@/lib/arcade/pool";
@@ -72,8 +72,10 @@ export const SAME_PLAY_DEMO_REVS = {
   cross: [CROSS_REV_LIGHT],
   // rallyRev 13 (the Retro overhaul) plays rallyRev 12 tick for tick until the first miss, so a demo on either plays.
   rally: [RALLY_REV_STD, RALLY_REV_LIVES],
-  // beatRev 12 (the Retro overhaul) plays beatRev 11 exactly (a miss scores 0, not less), so a demo on either plays.
-  beat: [BEAT_REV_STD, BEAT_REV_FLOOR],
+  // beatRev 12 (the Retro overhaul) plays beatRev 11 exactly (a miss scores 0, not less), so a demo on either played.
+  // beatRev 13 (D5's ladder, 23 Nov 2026) plays beatRev 12 exactly at Normal (only the golden-note and streak lines
+  // moved), so a demo recorded on 12 or 13 plays (the dealt stamp and the one before it).
+  beat: [BEAT_REV_FLOOR, BEAT_REV_LANES],
   // Blockzone blockfallRev 2: only a demo recorded on it plays (blockfallRev 1 had the hold and the pads).
   blockfall: [BLOCKFALL_REV_ZONE],
   // skylineRev 11 (15 Nov 2026, lives): skylineRev 10's play until a miss, so a demo recorded on 10 or 11 plays.
@@ -314,7 +316,8 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   // tight gates, centre lines, star chains and shields, so its demo stays stopped until one is recorded there. hoverRev 10
   // (the arcade scoring standard, 29 Oct 2026) keeps hoverRev 9's play on new scoring (its HUD's centre figure is the
   // new part), so only a demo recorded on hoverRev 10 plays. hoverRev 11 (stage 3) starts shielded: only a demo on 11 plays.
-  if (data.type === "hover" && demo?.puzzle.type === "hover" && demo.puzzle.hoverRev !== HOVER_REV_SHIELD) return null;
+  // hoverRev 12 (D5) plays hoverRev 11 exactly on Normal (only the full lines moved; the HUD shows counts): a demo on either plays.
+  if (data.type === "hover" && demo?.puzzle.type === "hover" && demo.puzzle.hoverRev !== HOVER_REV_SHIELD && demo.puzzle.hoverRev !== HOVER_REV_FIT) return null;
   // Rally rallyRev 11 (phone notes, 27 Oct 2026): spin shots now curve visibly and targets last 5 s, so an older demo
   // would play differently; it stays stopped until one is recorded on rallyRev 11. rallyRev 12 (the arcade scoring
   // standard, 29 Oct 2026) reverses the spin and scores 200 on the standard, so only a rallyRev 12 demo plays.

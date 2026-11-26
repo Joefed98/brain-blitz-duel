@@ -390,7 +390,9 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   /* ================================================================ Retro */
   // Tempo (beat): accuracy 130 + fever 25 + golden notes 15 + double taps 15 + perfect streak 15.
   ch("beat", "Fever pitch", "Start all four fevers.", "C", "fullset", false, part("Fever", 25)),
-  ch("beat", "Golden ear", "Hit every golden note dead on.", "C", "maxout", false, part("Golden notes", 15), "beat.gold"),
+  // beatRev 13 (D5's ladder, 23 Nov 2026): the Golden notes part is full at 5 in every 9, so the goal counts the notes
+  // themselves (every one the chart deals, hit dead on), never the part; older stamps keep the part at its maximum.
+  ch("beat", "Golden ear", "Hit every golden note dead on.", "C", "maxout", false, all({ c: "since", path: "beatRev", from: 13, then: f("goldsHit", "gte", "@golds"), before: full("Golden notes", 15) }), "beat.gold"),
   ch("beat", "Encore", "Score 180 or more.", "C", "bigscore", true, score(180), "beat.score180"),
   // Blockzone (blockfall): lines 95 + pieces placed 65 + multi-line clears 24 + low stack 16.
   ch("blockfall", "Thirty lines", "Clear 30 lines.", "C", "target", false, all(f("lines", "gte", 30))),
@@ -410,7 +412,9 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("cross", "Keep moving", "Make four no-stop crossings, each after a no-stop one.", "C", "streak", true, all(f("streakPts", "gte", 40))),
   // Hover (hover): barriers 120 + star chains 30 + gold stars 20 + tight gates 20 + centre lines 10.
   ch("hover", "Tight squeeze", "Thread all five tight gates.", "C", "fullset", false, all(f("tightGates", "gte", 5))),
-  ch("hover", "Chain gang", "Complete all five star chains.", "C", "fullset", false, all(f("chainPts", "gte", 30))),
+  // D5 (23 Nov 2026): the chains themselves, so hoverRev 12's lower star-chains line does not make it easier (on every earlier
+  // stamp 30 chain points was exactly all five chains whole).
+  ch("hover", "Chain gang", "Complete all five star chains.", "C", "fullset", false, all(f("starChains", "gte", 5))),
   ch("hover", "All the way", "Pass every barrier.", "C", "finish", true, all(f("gates", "gte", "@totalGates"), f("totalGates", "gte", 1))),
   // Pinball (pinball): table points 130 + J-O-U-L-Z 20 + multiball 20 + jackpots 15 + ramp combos 15.
   ch("pinball", "Multiball madness", "Start multiball.", "C", "target", false, part("Multiball", 20), "pinball.multiball"),

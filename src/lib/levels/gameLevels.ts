@@ -37,7 +37,7 @@ import { BOMB_LEVELS, MAZE_LEVELS, PAIR_LEVELS, SCAN_LEVELS, SPOT_LEVELS, TALLY_
 /** The check proving every Attention level (one answer, legibility, clocks, the human-like Expert solver). */
 const ATTENTION_PROOF = "scripts/attention-levels-check.ts";
 import { ASCEND_LEVELS, BONK_LEVELS, CHAIN_LEVELS, FLASH_LEVELS, PULL_LEVELS, TENFALL_LEVELS } from "./speedLevels";
-import { BEAT_LEVELS, BLOCKFALL_LEVELS, BREAKER_LEVELS, BURST_LEVELS, CROSS_LEVELS, HOVER_LEVELS, PINBALL_LEVELS, RALLY_LEVELS, SNAKE_LEVELS, WAVEFRONT_LEVELS } from "@/lib/arcade/retroLevels";
+import { BEAT_LEVELS_V13, BLOCKFALL_LEVELS_V3, BREAKER_LEVELS, BURST_LEVELS_SMALL, CROSS_LEVELS_V14, HOVER_LEVELS_V12, PINBALL_LEVELS, RALLY_LEVELS, SNAKE_LEVELS, WAVEFRONT_LEVELS_WIDE } from "@/lib/arcade/retroLevels";
 
 /** How a level's boards are proven to have exactly one solution. */
 export type OneSolutionProof = { proof: string } | { open: string };
@@ -161,16 +161,17 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
         },
         oneSolution: { open: "any true fill counts; every equation is proved to have one by scripts/number-levels-equation-pyramid-check.ts" },
       },
+      // D2 (22 Nov 2026): every sign open on every equation, five numbers a line, more numbers to place line by line.
       expert: {
         settings: {
           tries: 2,
           clockS: 78,
-          fullByS: 40,
+          fullByS: 47,
           lines: [
-            { count: 4, lo: 2, hi: 30, numberGaps: 1, signGaps: 2, decoys: 2, signs: "+-×÷", distinct: 2, maxAnswers: 2 },
-            { count: 5, lo: 2, hi: 30, numberGaps: 2, signGaps: 2, decoys: 2, signs: "+-×÷", distinct: 2, maxAnswers: 3 },
-            { count: 5, lo: 2, hi: 30, numberGaps: 2, signGaps: 3, decoys: 2, signs: "+-×÷", need: "÷", distinct: 3, maxAnswers: 3 },
-            { count: 5, lo: 2, hi: 30, numberGaps: 3, signGaps: 3, decoys: 2, signs: "+-×÷", need: "×÷", distinct: 3, maxAnswers: 3 },
+            { count: 5, lo: 2, hi: 30, numberGaps: 1, signGaps: 4, decoys: 2, signs: "+-×÷", distinct: 2, maxAnswers: 3 },
+            { count: 5, lo: 2, hi: 30, numberGaps: 2, signGaps: 4, decoys: 2, signs: "+-×÷", distinct: 2, maxAnswers: 3 },
+            { count: 5, lo: 2, hi: 30, numberGaps: 2, signGaps: 4, decoys: 3, signs: "+-×÷", need: "÷", distinct: 3, maxAnswers: 3 },
+            { count: 5, lo: 2, hi: 30, numberGaps: 3, signGaps: 4, decoys: 3, signs: "+-×÷", need: "×÷", distinct: 3, maxAnswers: 3 },
           ],
         },
         oneSolution: { open: "any true fill counts; every equation is proved to have one by scripts/number-levels-equation-pyramid-check.ts" },
@@ -181,15 +182,15 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // have exactly one tray assignment (decoys included) and completed by the person-like solver. Normal is today's bank.
   numpyramid: {
     levels: {
+      // D2 (22 Nov 2026): three small pyramids, the first of three rows, no decoys in the tray.
       easy: {
         settings: {
           stages: [
-            { rows: 4, minEmpty: 4, maxEmpty: 4, bottomLo: 1, bottomHi: 9 },
+            { rows: 3, minEmpty: 2, maxEmpty: 3, bottomLo: 1, bottomHi: 9 },
+            { rows: 4, minEmpty: 3, maxEmpty: 4, bottomLo: 1, bottomHi: 9 },
             { rows: 4, minEmpty: 4, maxEmpty: 5, bottomLo: 1, bottomHi: 9 },
-            { rows: 4, minEmpty: 5, maxEmpty: 6, bottomLo: 1, bottomHi: 9 },
-            { rows: 4, minEmpty: 6, maxEmpty: 6, bottomLo: 1, bottomHi: 9 },
           ],
-          decoys: 1,
+          decoys: 0,
         },
         oneSolution: { proof: "scripts/number-levels-equation-pyramid-check.ts" },
       },
@@ -202,18 +203,21 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
             { rows: 5, minEmpty: 13, maxEmpty: 13, bottomLo: 4, bottomHi: 20 },
           ],
           decoys: 3,
+          fullByS: 93,
         },
         oneSolution: { proof: "scripts/number-levels-equation-pyramid-check.ts" },
       },
+      // D2: three tall pyramids, three or four stones given, the bottom row up to 30 so the upper stones run to three
+      // digits, and on each a few stones only the tray can decide.
       expert: {
         settings: {
           stages: [
-            { rows: 6, minEmpty: 12, maxEmpty: 13, bottomLo: 4, bottomHi: 25 },
-            { rows: 6, minEmpty: 13, maxEmpty: 13, bottomLo: 4, bottomHi: 25 },
-            { rows: 6, minEmpty: 13, maxEmpty: 13, bottomLo: 4, bottomHi: 25 },
-            { rows: 6, minEmpty: 13, maxEmpty: 14, bottomLo: 4, bottomHi: 25 },
+            { rows: 6, minEmpty: 18, maxEmpty: 18, bottomLo: 8, bottomHi: 36, minOnlyTile: 3 },
+            { rows: 6, minEmpty: 18, maxEmpty: 18, bottomLo: 8, bottomHi: 36, minOnlyTile: 3 },
+            { rows: 6, minEmpty: 18, maxEmpty: 18, bottomLo: 8, bottomHi: 36, minOnlyTile: 3 },
           ],
           decoys: 3,
+          fullByS: 108,
         },
         oneSolution: { proof: "scripts/number-levels-equation-pyramid-check.ts" },
       },
@@ -234,9 +238,20 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
         },
         oneSolution: { open: "any balanced arrangement counts; every board is proved solvable by scripts/number-levels-balance-target-check.ts" },
       },
+      // D2 (22 Nov 2026, Joe's decision 10: a Hard you can see): every scale on a 10-notch beam from the first one, two
+      // weights already hung on each, the readout shown; every scale balanced by the person-like solver.
       hard: {
-        settings: { today: true },
-        oneSolution: { open: "any balanced arrangement counts; today's game, proved solvable by its generator" },
+        settings: {
+          scales: [
+            { loose: 2, fixed: 2, pegs: 10, unique: true },
+            { loose: 3, fixed: 2, pegs: 10, unique: false },
+            { loose: 4, fixed: 2, pegs: 10, unique: false },
+            { loose: 5, fixed: 3, pegs: 10, unique: false },
+          ],
+          spare: [6, 7, 8, 9],
+          person: true,
+        },
+        oneSolution: { open: "any balanced arrangement counts; every board is proved solvable, and solved by a person-like solver, by scripts/number-levels-balance-target-check.ts" },
       },
       expert: {
         settings: {
@@ -248,6 +263,7 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
           ],
           spare: [5, 6, 6, 7],
           hide: true,
+          fullByS: 86,
         },
         oneSolution: { open: "any balanced arrangement counts; every board is proved solvable, and solved by a person-like solver, by scripts/number-levels-balance-target-check.ts" },
       },
@@ -256,17 +272,28 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // Exact (targetLevels.server.ts): any route counts; each level's target is proved by exhaustive search.
   target: {
     levels: {
+      // D2 (22 Nov 2026): a two-digit target two or three of the numbers make, two large numbers on the rack.
       easy: {
-        settings: { large: [1, 2], target: [101, 300], tiles: [3, 4] },
-        oneSolution: { open: "any route counts; every target is proved reachable with 3 or 4 numbers by scripts/number-levels-balance-target-check.ts" },
+        settings: { large: [2, 2], target: [20, 99], tiles: [2, 3] },
+        oneSolution: { open: "any route counts; every target is proved reachable with 2 or 3 numbers by scripts/number-levels-balance-target-check.ts" },
       },
+      // D2 (the spec's new mechanic, targetRounds.ts): two targets in a row, each on its own rack, rising inside the
+      // round: a target to 300 from three or four numbers, then one large number and a target that needs all six; 100 s.
       hard: {
-        settings: { large: [1, 1], target: [300, 999], tiles: [6, 6] },
-        oneSolution: { open: "any route counts; every target is proved to need all six numbers by scripts/number-levels-balance-target-check.ts" },
+        settings: { rounds: [{ large: [1, 2], target: [101, 300], tiles: [3, 4] }, { large: [1, 1], target: [300, 999], tiles: [6, 6] }], clockS: 100, fullByS: 55 },
+        oneSolution: { open: "any route counts; every target is proved reachable by its own rule (exhaustive search) by scripts/number-levels-balance-target-check.ts" },
       },
+      // D2: three targets in a row: two Normal-style targets from their proved bank (each reached by the person-like
+      // solver, scripts/target-round-bank.ts), then a board from the proved Expert bank (small numbers only, all six
+      // needed, reached by the person-like solver); 120 s. (The spec's middle target, one large number
+      // needing five or six, left the elite finishing 58 % of rounds; its own fallback is a second Normal-style one.)
       expert: {
-        settings: { large: [0, 0], target: [500, 999], tiles: [6, 6], person: true },
-        oneSolution: { open: "any route counts; every target is proved to need all six numbers by scripts/number-levels-balance-target-check.ts" },
+        settings: {
+          rounds: [{ normalBank: true }, { normalBank: true }, { expertBank: true }],
+          clockS: 120,
+          fullByS: 88,
+        },
+        oneSolution: { open: "any route counts; every target is proved reachable by its own rule (exhaustive search) by scripts/number-levels-balance-target-check.ts" },
       },
     },
   },
@@ -274,30 +301,45 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // MEASURE_NORMAL there) is gentler, Easy gentler still, Expert harder. Each board's minimum is proven by BFS.
   measure: {
     levels: {
+      // D2 (22 Nov 2026): two jugs and the tap on three short boards.
       easy: {
         settings: {
           boards: [
+            { goal: "amount", jugs: 2, tap: true, band: [2, 2] },
             { goal: "amount", jugs: 2, tap: true, band: [2, 4] },
-            { goal: "amount", jugs: 2, tap: true, band: [3, 4] },
-            { goal: "amount", jugs: 2, tap: true, band: [4, 6] },
+            { goal: "amount", jugs: 2, tap: true, band: [4, 4] },
           ],
           limitFactor: 5,
         },
         oneSolution: { open: "any sequence reaching the target counts; the minimum is proven by BFS" },
       },
+      // D2 (Joe's decision 10: a Hard you can see): three jugs on every board, and the tap goes half-way through.
       hard: {
-        settings: { today: true },
+        settings: {
+          boards: [
+            { goal: "amount", jugs: 3, tap: true, band: [4, 6] },
+            { goal: "amount", jugs: 3, tap: true, band: [6, 8] },
+            { goal: "amount", jugs: 3, tap: false, band: [7, 10] },
+            { goal: "split", jugs: 3, tap: false, band: [10, 13] },
+          ],
+          limitFactor: 2.5,
+          personPar: true,
+          fullByS: 54,
+        },
         oneSolution: { open: "any sequence reaching the target counts; the minimum is proven by BFS" },
       },
+      // D2: no tap or drain on any board, the big jug full; the one-move pulse is off (measure.tsx reads the level).
       expert: {
         settings: {
           boards: [
-            { goal: "amount", jugs: 2, tap: true, band: [14, 16] },
-            { goal: "amount", jugs: 3, tap: true, band: [12, 15] },
-            { goal: "amount", jugs: 3, tap: false, band: [11, 15] },
+            { goal: "amount", jugs: 3, tap: false, band: [4, 6] },
+            { goal: "amount", jugs: 3, tap: false, band: [10, 13] },
             { goal: "split", jugs: 3, tap: false, band: [13, 16] },
+            { goal: "split", jugs: 3, tap: false, band: [15, 18] },
           ],
           limitFactor: 1.5,
+          personPar: true,
+          fullByS: 72,
         },
         oneSolution: { open: "any sequence reaching the target counts; the minimum is proven by BFS" },
       },
@@ -309,31 +351,50 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // an order that never busts); Easy and Expert boards are also found by the person-like solver.
   checkout: {
     levels: {
+      // D2 (22 Nov 2026): three standard boards with small targets, any dart finishes, 120 s.
       easy: {
         settings: {
           boards: [
-            { wedges: "standard", finish: 2, anyRing: true, maxDarts: 3, target: [30, 70], minRoutes: 50 },
-            { wedges: "standard", finish: 2, anyRing: true, maxDarts: 3, target: [50, 100], minRoutes: 50 },
-            { wedges: "standard", finish: 2, anyRing: true, maxDarts: 3, target: [100, 150], minRoutes: 50 },
+            { wedges: "standard", finish: 2, anyRing: true, maxDarts: 3, target: [20, 50], minRoutes: 50 },
+            { wedges: "standard", finish: 2, anyRing: true, maxDarts: 3, target: [40, 80], minRoutes: 50 },
+            { wedges: "standard", finish: 2, anyRing: true, maxDarts: 3, target: [100, 120], minRoutes: 50 },
           ],
           person: true,
+          clockS: 120,
         },
         oneSolution: { open: "any dart sequence reaching the target on the finishing ring counts; every level board is proved to have a checkout by scripts/number-levels-checkout-kakuro-check.ts" },
       },
+      // D2 (Joe's decision 10: a Hard you can see): odd numbers round the board from the first one; the old game's
+      // strange boards after it; every board found by the person-like solver.
       hard: {
-        settings: { today: true },
+        settings: {
+          boards: [
+            { wedges: "uneven", finish: 2, maxDarts: 3, target: [120, 200], notGreedy: true },
+            { wedges: "shuffled", finish: 2, maxDarts: 3, target: [100, 160], minRoutes: 50 },
+            { wedges: "uneven", finish: 3, quad: true, maxDarts: 3, target: [200, 400], notGreedy: true },
+            { wedges: "shuffled", negatives: true, finish: 2, maxDarts: 4, exact: true, target: [80, 170], notGreedy: true },
+            { wedges: "uneven", negatives: true, finish: 2, maxDarts: 3, target: [200, 400], notGreedy: true },
+          ],
+          person: true,
+          bonusRoute: true,
+          fullByS: 44,
+        },
         oneSolution: { open: "any dart sequence reaching the target on the finishing ring counts; every level board is proved to have a checkout by scripts/number-levels-checkout-kakuro-check.ts" },
       },
+      // D2: five odd boards, every one with two minus wedges and an exact dart count (3, 3, 4, 3, 4: at 4, 4 the kit's
+      // near-perfect finished 73 % of rounds, under the 80 % the levels check asks); x4 on three, treble finish on two.
       expert: {
         settings: {
           boards: [
-            { wedges: "uneven", finish: 2, maxDarts: 3, exact: true, target: [80, 170], notGreedy: true },
-            { wedges: "uneven", finish: 3, quad: true, maxDarts: 3, exact: true, target: [150, 320], notGreedy: true },
-            { wedges: "shuffled", negatives: true, finish: 2, maxDarts: 4, exact: true, target: [80, 170], notGreedy: true },
-            { wedges: "uneven", negatives: true, quad: true, finish: 2, maxDarts: 4, exact: true, target: [120, 280], notGreedy: true },
+            { wedges: "uneven", negatives: true, finish: 2, maxDarts: 3, exact: true, target: [80, 170], notGreedy: true },
             { wedges: "uneven", negatives: true, quad: true, finish: 3, maxDarts: 3, exact: true, target: [150, 320], notGreedy: true },
+            { wedges: "uneven", negatives: true, finish: 2, maxDarts: 4, exact: true, target: [80, 170], notGreedy: true },
+            { wedges: "uneven", negatives: true, quad: true, finish: 2, maxDarts: 3, exact: true, target: [120, 280], notGreedy: true },
+            { wedges: "uneven", negatives: true, quad: true, finish: 3, maxDarts: 4, exact: true, target: [150, 320], notGreedy: true },
           ],
           person: true,
+          bonusRoute: true,
+          fullByS: 53,
         },
         oneSolution: { open: "any dart sequence reaching the target on the finishing ring counts; every level board is proved to have a checkout by scripts/number-levels-checkout-kakuro-check.ts" },
       },
@@ -345,15 +406,18 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   kakuro: {
     levels: {
       easy: {
-        settings: { size: 5, whiteMin: 12, whiteMax: 14, gradeMin: 0, gradeMax: 0, maxBlocks: 9, person: true },
+        // D2 (22 Nov 2026): fewer white squares, every one seen within two of the person-like solver's passes.
+        settings: { size: 5, whiteMin: 9, whiteMax: 11, gradeMin: 0, gradeMax: 0, maxBlocks: 9, person: true, maxPasses: 2 },
         oneSolution: { proof: "scripts/number-levels-checkout-kakuro-check.ts" },
       },
+      // D2 (Joe's decision 10: a Hard you can see): a wider grid, 7 squares across by 6 down, every board finished by
+      // the person-like solver.
       hard: {
-        settings: { today: true },
+        settings: { size: 7, rows: 6, whiteMin: 20, whiteMax: 23, gradeMin: 0, gradeMax: 6, maxBlocks: 9, person: true },
         oneSolution: { proof: "scripts/number-levels-checkout-kakuro-check.ts" },
       },
       expert: {
-        settings: { size: 7, whiteMin: 26, whiteMax: 28, gradeMin: 4, gradeMax: 12, maxBlocks: 12, person: true },
+        settings: { size: 7, whiteMin: 26, whiteMax: 28, gradeMin: 4, gradeMax: 12, maxBlocks: 12, person: true, fullByS: 77 },
         oneSolution: { proof: "scripts/number-levels-checkout-kakuro-check.ts" },
       },
     },
@@ -361,16 +425,20 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // Ballpark (numlineLevels.server.ts): Normal is today's game; three lines of five numbers at every level.
   numline: {
     levels: {
+      // D2 (22 Nov 2026): every tenth of the ruler marked and numbered.
       easy: {
-        settings: { lines: ["easy-10", "easy-100", "easy-1"] },
+        settings: { lines: ["easy-10", "easy-100", "easy-1"], marks: 10, markLabels: true },
         oneSolution: { open: "estimation: every placement scores by distance" },
       },
+      // D2 (22 Nov 2026, Joe): Hard is today's Hard lines on the bare ruler (no marks between the ends).
       hard: {
         settings: { lines: ["hard-1", "hard-sym-100", "hard-1000"] },
         oneSolution: { open: "estimation: every placement scores by distance" },
       },
+      // D2 (22 Nov 2026, Joe): Expert opens on 0 to 10,000, then Hard's fractions and negatives, every end label shown,
+      // in 75 s.
       expert: {
-        settings: { lines: ["today-100", "today-third", "expert-10000"], hideEnd: true },
+        settings: { lines: ["expert-10000", "hard-1", "hard-sym-100"], clockS: 75, fullByS: 45 },
         oneSolution: { open: "estimation: every placement scores by distance" },
       },
     },
@@ -492,14 +560,17 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   },
   // The Retro overhaul, stage 3 (16 Nov 2026): the Retro games' levels, plain data from retroLevels.ts.
   breaker: retroGameLevels(BREAKER_LEVELS),
-  hover: retroGameLevels(HOVER_LEVELS),
+  // D5 (23 Nov 2026): the tables rooms deal, hoverRev 12 and crossRev 14 (retroLevels.ts keeps the older ones for replay).
+  hover: retroGameLevels(HOVER_LEVELS_V12),
   pinball: retroGameLevels(PINBALL_LEVELS),
-  wavefront: retroGameLevels(WAVEFRONT_LEVELS),
-  cross: retroGameLevels(CROSS_LEVELS),
+  wavefront: retroGameLevels(WAVEFRONT_LEVELS_WIDE),
+  cross: retroGameLevels(CROSS_LEVELS_V14),
   snake: retroGameLevels(SNAKE_LEVELS),
-  blockfall: retroGameLevels(BLOCKFALL_LEVELS),
-  beat: retroGameLevels(BEAT_LEVELS),
-  burst: retroGameLevels(BURST_LEVELS),
+  // blockfallRev 3 (D5's ladder, 23 Nov 2026): the levels' own table (blockfallRev 2 rounds replay on BLOCKFALL_LEVELS).
+  blockfall: retroGameLevels(BLOCKFALL_LEVELS_V3),
+  // beatRev 13 (D5's ladder, 23 Nov 2026): the lanes and each level's own full lines (beatRev 12 rounds replay on BEAT_LEVELS).
+  beat: retroGameLevels(BEAT_LEVELS_V13),
+  burst: retroGameLevels(BURST_LEVELS_SMALL),
   rally: retroGameLevels(RALLY_LEVELS),
   // Roofbound (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): the sim's FLIP_LEVEL_RULES, mirrored (flip-levels-check).
   flip: {
