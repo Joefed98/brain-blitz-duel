@@ -18,7 +18,7 @@ import {
   SWING_REV_TUNED,
   SWING_REV_TUNEC,
   SWING_REV_SPREAD,
-  SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG,
+  SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG, SWING_REV_LADDER,
   swingWorldHFor,
   swingWorldWFor,
   SWING_CHECKPOINT_INTERVAL,
@@ -69,7 +69,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
     <ArcadeCanvasStage
       diagKey="swing"
       scene={swingFillFor(data?.swingRev, () => ({ depth: scene.current.step / SWING_DEPTH_STEPS, darkRight: scene.current.darkRight, dim: scene.current.dim }))}
-      sceneKey={(s: SwingState) => (data?.swingRev === SWING_REV_SLIDE || data?.swingRev === SWING_REV_BIG ? swingJungleSceneKey((scene.current = swingJungleScene(s))) : 0)}
+      sceneKey={(s: SwingState) => (data?.swingRev === SWING_REV_SLIDE || data?.swingRev === SWING_REV_BIG || data?.swingRev === SWING_REV_LADDER ? swingJungleSceneKey((scene.current = swingJungleScene(s))) : 0)}
       label={gameDisplayName("swing")}
       background="transparent"
       fitWorld
@@ -152,7 +152,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           {result.stars ?? 0} / {result.starTotal ?? 0} stars
         </p>
       )}
-      {(puzzle.swingRev === SWING_REV_SLIDE || puzzle.swingRev === SWING_REV_BIG) && "streakPaid" in result && (
+      {(puzzle.swingRev === SWING_REV_SLIDE || puzzle.swingRev === SWING_REV_BIG || puzzle.swingRev === SWING_REV_LADDER) && "streakPaid" in result && (
         <p className="shrink-0 whitespace-normal break-words text-center font-mono text-sm text-muted-foreground">
           {result.parsBeaten} under par · {result.gates} / {result.gateTotal} gates · streak +{result.streakPoints}
         </p>
@@ -167,7 +167,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
           {result.gems} / {result.gemTotal} gems · {result.gates} / {result.gateTotal} gates · {result.ledges} / {result.ledgeTotal} ledges · best chain {result.bestChain}
         </p>
       )}
-      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{puzzle.swingRev === SWING_REV_ASSAULT || puzzle.swingRev === SWING_REV_REWORK || puzzle.swingRev === SWING_REV_DARK || puzzle.swingRev === SWING_REV_SLIDE || puzzle.swingRev === SWING_REV_BIG ? "Same course for everyone" : "Same cavern for everyone"}</p>
+      <p className="shrink-0 text-center font-mono text-base text-muted-foreground">{puzzle.swingRev === SWING_REV_ASSAULT || puzzle.swingRev === SWING_REV_REWORK || puzzle.swingRev === SWING_REV_DARK || puzzle.swingRev === SWING_REV_SLIDE || puzzle.swingRev === SWING_REV_BIG || puzzle.swingRev === SWING_REV_LADDER ? "Same course for everyone" : "Same cavern for everyone"}</p>
     </div>
   );
 }
