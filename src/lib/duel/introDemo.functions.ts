@@ -351,7 +351,7 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   // snakeRev 13 (the Retro overhaul): the edges wrap; snakeRev 14 adds rocks in three sizes, so a demo stays stopped
   // until recorded on snakeRev 14. snakeRev 15 (stage 3) forgives the first crash, so a demo plays only on snakeRev 15.
   // snakeRev 16 (D5's ladder, 23 Nov 2026) plays snakeRev 15 exactly at Normal (only the lines moved), so a demo on 15 or 16 plays.
-  if (data.type === "snake" && demo?.puzzle.type === "snake" && demo.puzzle.snakeRev !== SNAKE_REV_GRACE && demo.puzzle.snakeRev !== SNAKE_REV_LADDER) return null;
+  if (data.type === "snake" && demo?.puzzle.type === "snake" && demo.puzzle.snakeRev !== SNAKE_REV_LADDER && demo.puzzle.snakeRev !== SNAKE_REV_GRACE) return null;
   // x200 (26 Oct 2026, docs/expansions/x200-cross.md): Jaywalk crossRev 9 plays a taller 13-lane road with the island,
   // coins, buses and motorbikes; an older demo would show the 9-lane road, so it stays stopped until one is recorded there.
   // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/cross.md): crossRev 10 thins the first crossings'
