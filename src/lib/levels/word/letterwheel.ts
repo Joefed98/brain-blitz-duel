@@ -33,7 +33,8 @@ export const LETTERWHEEL_LEVELS: GameLevels<LetterWheelLevelSettings> | null = {
     // 42 %, Hard 35 %, Expert 24 % of 72 boards).
     hard: { settings: { timeLimitMs: 95_000, freeMisses: 3, speedFullByS: 63 }, oneSolution: OPEN },
     // Joe (22 Nov 2026, decision 21): 90 s and the speed points full by 74 s, so the elite under the human limits
-    // reaches 200 on about a quarter of boards while the average player stays clearly below Hard.
+    // reaches 200 on about a quarter of boards while the average player stays clearly below Hard. 74 s (not 75):
+    // Changed with Joe's approval, 26 Nov 2026, so Hard fits between Expert and Normal.
     expert: { settings: { timeLimitMs: 90_000, freeMisses: 2, speedFullByS: 74 }, oneSolution: OPEN },
   },
 };

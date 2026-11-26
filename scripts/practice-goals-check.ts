@@ -56,6 +56,7 @@ import { GRID_STANDARD } from "../src/lib/duel/standard/gridRules";
 import { NUMBER_STANDARD } from "../src/lib/duel/standard/number";
 import { ASCEND_STD, CHAIN_STD, COUNT_STD, PAIR_STD, SPOT_STD } from "../src/lib/duel/standard/attention";
 import { STD_LOOKOUT, STD_ROUNDABOUT } from "../src/lib/duel/standard/word";
+import { ROUNDABOUT_STAR_FULL_BY_S } from "../src/lib/duel/wordStar"; // Changed with Joe's approval, 26 Nov 2026
 import { numbersReport } from "./practice-challenge-numbers";
 // Changed with Joe's approval, 13 Nov 2026: STAR_THRESHOLDS, starLine, starTotal, starsFor and starsOf left out of this import (the device stars are removed).
 import {
@@ -173,7 +174,7 @@ const SPEED_RULES: Partial<Record<PuzzleType, { speed: number; fullByS: number; 
   countup: { speed: COUNT_STD.speed, fullByS: COUNT_STD.fullByS, bonus: 0 },
   pairmatch: { speed: PAIR_STD.speed, fullByS: PAIR_STD.fullByS, bonus: 0 },
   wordsearch: { speed: STD_LOOKOUT.speed, fullByS: STD_LOOKOUT.fullByS, bonus: STD_LOOKOUT.bonus },
-  letterwheel: { speed: STD_ROUNDABOUT.speed, fullByS: STD_ROUNDABOUT.fullByS, bonus: STD_ROUNDABOUT.jar },
+  letterwheel: { speed: STD_ROUNDABOUT.speed, fullByS: ROUNDABOUT_STAR_FULL_BY_S, bonus: STD_ROUNDABOUT.jar }, // Changed with Joe's approval, 26 Nov 2026
   target: NUMBER_STANDARD.target,
   equation: NUMBER_STANDARD.equation,
   balance: NUMBER_STANDARD.balance,
