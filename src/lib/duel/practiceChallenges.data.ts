@@ -368,10 +368,11 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("swing", "Vine time", "Make ten runs of eight clean swings.", "C", "streak", false, all(line("Clean-swing streak", "gte", 20))),
   ch("swing", "King of the swingers", "Get 70 % of the way on Expert.", "E", "maxout", false, all(full("Course", 110))),
   // Moon Climb (ricochet): height 125 + flow 30 + lantern rides 30 + scrolls 15. ricoRev 5 (D5, 23 Nov 2026) fills each
-  // part before the last item (scrolls at 2, rides at 3, Hard's height at 190 m), so these count the things themselves.
+  // part before the last item (scrolls at 2, rides at 3, Hard's height at 190 m), so these count the things themselves
+  // (Moonwalker 220 m on Hard: Normal's full height, past Hard's 190 m).
   ch("ricochet", "Scroll keeper", "Grab all three scrolls.", "C", "fullset", false, all(f("scrolls", "gte", 3))),
   ch("ricochet", "Lantern lift", "Ride all six sky lanterns.", "C", "fullset", false, all(f("rides", "gte", 6))),
-  ch("ricochet", "Moonwalker", "Climb 245 m on Hard.", "H", "maxout", false, all(f("metres", "gte", 245))),
+  ch("ricochet", "Moonwalker", "Climb 220 m on Hard.", "H", "maxout", false, all(f("metres", "gte", 220))),
   // High Rise (skyline): floors 140 + perfect drops 30 + perfect streak 10 + gold blocks 20.
   ch("skyline", "Gold top", "Land all five gold blocks perfectly.", "C", "fullset", false, part("Gold blocks", 20), "skyline.gold"),
   ch("skyline", "Thirty perfect", "Make 30 perfect drops.", "C", "target", false, all(f("perfects", "gte", 30)), "skyline.perfects"),

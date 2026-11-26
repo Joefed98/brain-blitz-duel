@@ -19,7 +19,7 @@
  *  5. Joe's ladder test on the recorded 96-deal ladder (scripts/fixtures/d5-ladder-ricochet.json.gz,
  *     `bun scripts/d5-ladder-record.ts ricochet --deals=96`), and a live re-play sample (2 runs a level and player)
  *     scoring exactly as recorded; the proof player (the flawless skill-band level) scores 200 on every sampled deal;
- *  6. the practice challenges count the things themselves (all three scrolls, all six rides, 245 m on Hard), so the
+ *  6. the practice challenges count the things themselves (all three scrolls, all six rides, 220 m on Hard), so the
  *     lower lines never make one easier.
  *
  *   bun scripts/ricochet-ladder-check.ts [--verbose]
@@ -205,7 +205,7 @@ function encode(rev: number, level: MoonLevel | null, seed: number, events: read
   const met = (n: string, extra: Record<string, number>, score = 150) => goalMet(ch[n]!.goal, { score, extra: { ricoRev: 5, ...extra } as never });
   ok(Boolean(ch["Scroll keeper"]) && met("Scroll keeper", { scrolls: 3, rides: 0, metres: 100, flow: 0 }) && !met("Scroll keeper", { scrolls: 2, rides: 6, metres: 300, flow: 10 }), "6a: Scroll keeper needs all three scrolls (two fill the part on ricoRev 5)");
   ok(Boolean(ch["Lantern lift"]) && met("Lantern lift", { rides: 6, scrolls: 0, metres: 100, flow: 0 }) && !met("Lantern lift", { rides: 5, scrolls: 3, metres: 300, flow: 10 }), "6b: Lantern lift needs all six rides (three fill the part)");
-  ok(Boolean(ch["Moonwalker"]) && met("Moonwalker", { metres: 245, rides: 0, scrolls: 0, flow: 0 }) && !met("Moonwalker", { metres: 244, rides: 6, scrolls: 3, flow: 10 }), "6c: Moonwalker needs 245 m (Hard's height fills at 190 m)");
+  ok(Boolean(ch["Moonwalker"]) && met("Moonwalker", { metres: 220, rides: 0, scrolls: 0, flow: 0 }) && !met("Moonwalker", { metres: 219, rides: 6, scrolls: 3, flow: 10 }), "6c: Moonwalker needs 220 m, Normal's full height (Hard's height fills at 190 m)");
 }
 
 if (failures.length) {

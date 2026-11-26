@@ -481,7 +481,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Scroll keeper | Grab all three scrolls. | Classic | Full set | `scrolls` ≥ 3 |  | `ricochet.scroll-keeper` |
 | Lantern lift | Ride all six sky lanterns. | Classic | Full set | `rides` ≥ 6 |  | `ricochet.lantern-lift` |
-| Moonwalker | Climb 245 m on Hard. | Hard | Max-out | `metres` ≥ 245 |  | `ricochet.moonwalker` |
+| Moonwalker | Climb 220 m on Hard. | Hard | Max-out | `metres` ≥ 220 |  | `ricochet.moonwalker` |
 
 #### High Rise (`skyline`)
 

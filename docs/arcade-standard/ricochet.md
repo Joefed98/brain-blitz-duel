@@ -63,8 +63,9 @@ The average player's Normal rises 25 points: the refit's four lower lines each p
 hold the average at 99.0 but leave the elite at 200 on only 21 % of Normal runs (on the same recorded runs), below Joe's
 40–60 %, so the height line moves to 220 m as approved.
 
-- **Challenges**: "Scroll keeper", "Lantern lift" and "Moonwalker" count the scrolls (3), the rides (6) and the metres (245
-  on Hard) themselves, since the parts now fill sooner (docs/challenges/catalogue.md).
+- **Challenges**: "Scroll keeper", "Lantern lift" and "Moonwalker" count the scrolls (3), the rides (6) and the metres (220
+  on Hard, Normal's full height; it was 245, ricoRev 4's, until practice-goals-check's live-number pass, 26 Nov 2026)
+  themselves, since the parts now fill sooner (docs/challenges/catalogue.md).
 - Checks: ricochet-ladder-check (the legacy runs, the stamp and pin, the level rules and registry, every sampled tower's
   witness checked against the limits on its own and at 200 through the server, the ladder test on the fixture and a live
   re-play sample, the challenges), ricochet-mid-check (its parts lines follow the refit).
