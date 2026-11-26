@@ -12,8 +12,10 @@ import { flipLevelDealSeed } from "./flipLevelDeals.server";
 import { flipDealSeed } from "./flipDeal.server";
 import { wavDealSeed } from "./wavefrontDeal.server";
 import { wavDealSeedV16 } from "./wavefrontDealV16.server";
+import { burstDealSeedV14 } from "./burstLevelDeals.server";
 import { flipDealSeedV13 } from "./flipDealV13.server";
-import { CROSS_REV_KEEP, CROSS_REV_LIGHT } from "@/lib/arcade/cross";
+import { CROSS_REV_DENSE, CROSS_REV_KEEP, CROSS_REV_LIGHT } from "@/lib/arcade/cross";
+import { crossLevelDealSeed } from "./crossLevelDeals.server";
 import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_HILLS, INK_REV_STD, isInkDiff } from "@/lib/arcade/inkBridge";
 import { inkBigDealSeed } from "./inkBigDeal.server";
 import { inkHillsDealSeed } from "./inkHillsDeal.server";
@@ -262,10 +264,14 @@ export function generateSnake(level?: Level): SnakePuzzleData {
   return { type: "snake", seed: snakeLevelDealSeed(level, arcadeSeed()), snakeRev: SNAKE_REV_LADDER };
 }
 
-export function generateCross(): CrossPuzzleData {
+export function generateCross(level?: Level): CrossPuzzleData {
   // crossRev 11 (3 Nov 2026): crossRev 10's courses without coins, scored with the no-stop streak and a cost a hit.
   // crossRev 12 (Nov 2026, the scoring audit): crossRev 11's play; the hit that ends the run is free, hits capped at half the core.
   // crossRev 13 (the Retro overhaul, stage 3, 16 Nov 2026): crossRev 12's rules on lighter traffic (preRetro: crossRev 12).
+  // crossRev 14 (D5, 23 Nov 2026): the levels only, each crossing at exactly its level's density, dealt only on seeds
+  // where every crossing is proved passable at it and the proof walker scores 200 (crossLevelDeals.server.ts). Normal
+  // stays crossRev 13, dealt as before.
+  if (level && level !== "normal" && !dealPinned("preRetro")) return { type: "cross", seed: crossLevelDealSeed(level, arcadeSeed()), crossRev: CROSS_REV_DENSE };
   return { type: "cross", seed: arcadeSeed(), crossRev: dealPinned("preRetro") ? CROSS_REV_KEEP : CROSS_REV_LIGHT };
 }
 
@@ -438,7 +444,7 @@ export function generateWhack(): WhackPuzzleData {
   return { type: "whack", seed: arcadeSeed(), whackRev: dealtNotesRev(WHACK_REV_NOTES, WHACK_REV_DEPTH) };
 }
 
-export function generateWavefront(): WavefrontPuzzleData {
+export function generateWavefront(level?: Level): WavefrontPuzzleData {
   // wavRev 11 (Joe's phone notes, 27 Oct 2026): power-ups from carrier ships and saucers, no streak, the mothership after wave 5.
   // wavRev 12 (the arcade scoring standard, 29 Oct 2026): wavRev 11 play scored in fixed parts that total 200.
   // wavRev 13 (Nov 2026, the scoring audit): wavRev 12's play; the life that ends the run is free, lives capped at half the core.
@@ -447,9 +453,11 @@ export function generateWavefront(): WavefrontPuzzleData {
   // (wavefrontDeal.server.ts).
   // wavRev 16 (D5, 22 Nov 2026): the wider formation, dealt only on the seeds whose human-limited flawless witness
   // reaches 200 at every level (wavefrontDealV16.server.ts); wavPreWide: wavRev 15 from its own deal, as before.
+  // wavRev 16's levels and Normal scoring (D5, 23 Nov 2026, folded into the unshipped stamp): each level deals from its
+  // own proved list (the seeds whose human-limited flawless witness reaches 200 at that level); Normal from Normal's.
   if (dealPinned("preRetro")) return { type: "wavefront", seed: arcadeSeed(), wavRev: WAV_REV_KEEP };
   if (dealPinned("wavPreWide")) return { type: "wavefront", seed: wavDealSeed(arcadeSeed()), wavRev: WAV_REV_BIG };
-  return { type: "wavefront", seed: wavDealSeedV16(arcadeSeed()), wavRev: WAV_REV_WIDE };
+  return { type: "wavefront", seed: wavDealSeedV16(arcadeSeed(), level), wavRev: WAV_REV_WIDE };
 }
 
 /** Checks written for wavRev 15: deal Wavefront as rooms did before the wider formation (wavRev 15 from WAV_DEAL). */
@@ -568,7 +576,7 @@ export function generateInkBridge(level?: string): InkBridgePuzzleData {
   return { type: "inkbridge", seed: inkHillsDealSeed(arcadeSeed()), inkRev: INK_REV_HILLS };
 }
 
-export function generateBurst(): BurstPuzzleData {
+export function generateBurst(level?: Level): BurstPuzzleData {
   // burstRev 9 (phone-test notes, docs/phone-notes-oct-2026/fission.md): power-ups carried by seeded atoms, a bouncing golden atom, BURST shots, the wave-clear bonus.
   // burstRev 10 (the arcade scoring standard, docs/arcade-standard/burst.md): five waves, the golden atom hurts, straight-line parts to 200.
   // burstRev 11 (the scoring audit, Nov 2026): burstRev 10's play; the last life not charged, wasted beams beyond one an atom cost.
@@ -576,8 +584,12 @@ export function generateBurst(): BurstPuzzleData {
   // quick time; burstRev 13 adds bigger atoms (checks written for burstRev 11 pin preRetro).
   // burstRev 14 (D5, Joe, 20 Nov 2026): burstRev 13 with the middle atoms, 35 / 24 / 15 / 9 px (checks written for
   // burstRev 13 pin burstPreSmall).
+  // burstRev 14's levels and Normal scoring (D5, 23 Nov 2026, folded into the unshipped stamp): Normal and each level
+  // deal from their own proved list (burstLevelDeals.server.ts: the seeds whose human-limited flawless witness reaches 200
+  // at that level), the room seed picking the entry; burstPreSmall deals burstRev 13 on the room seed, as before.
   if (dealPinned("preRetro")) return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_AIM };
-  return { type: "burst", seed: arcadeSeed(), burstRev: dealPinned("burstPreSmall") ? BURST_REV_BIG : BURST_REV_SMALL };
+  if (dealPinned("burstPreSmall")) return { type: "burst", seed: arcadeSeed(), burstRev: BURST_REV_BIG };
+  return { type: "burst", seed: burstDealSeedV14(arcadeSeed(), level), burstRev: BURST_REV_SMALL };
 }
 
 /**

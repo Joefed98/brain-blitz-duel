@@ -37,6 +37,7 @@ import {
   type LocalDb,
   type RestServer,
 } from "./server-fn-harness";
+import { BUNDLES } from "../src/lib/shop/bundles";
 
 let passes = 0;
 const failures: string[] = [];
@@ -89,6 +90,10 @@ const KIM = uid(32); // not a tester
 const LEO = uid(33); // a tester, 16
 const MIA = uid(34); // a second tester (same four)
 const NED = uid(35); // a guest
+/** Joe_Shop's starting coins: enough for today's item, one bundle item bought singly and the rest of the dearest
+ * bundle, so the buying and bundle steps hold in every week of the schedule (they ran out on a 10,000 week). Read from
+ * the schedule and the catalogue (the dearest bundle plus twice the dearest shop item), so a dearer bundle can't break it. */
+const JOE_START = Math.max(...BUNDLES.map((b) => b.price)) + 2 * Math.max(...SHOP.map((i) => i.shop_price_coins ?? 0));
 
 await pureChecks();
 
@@ -457,16 +462,16 @@ async function databaseChecks(db: LocalDb, rest: RestServer): Promise<void> {
     const first = view.today[0]!;
     const poor = await call(fns.buyItemFn, { itemId: first.id, requestId: req() }, tok.joe);
     check(!poor.ok && poor.reason === "insufficient" && !owns(JOE, first.id) && balance(JOE) === 0, "too few coins: refused, nothing changed");
-    q(`SELECT economy.grant_coins('Joe_Shop', 10000, 'shop-check')`);
+    q(`SELECT economy.grant_coins('Joe_Shop', ${JOE_START}, 'shop-check')`);
     const rid = req();
     const bought = await call(fns.buyItemFn, { itemId: first.id, requestId: rid }, tok.joe);
-    check(bought.ok && bought.status === "purchased" && balance(JOE) === 10000 - first.price, `bought: ${first.price} spent (${JSON.stringify(bought)})`);
+    check(bought.ok && bought.status === "purchased" && balance(JOE) === JOE_START - first.price, `bought: ${first.price} spent (${JSON.stringify(bought)})`); // Changed with Joe's approval, 23 Nov 2026
     const line = q(`SELECT reason || ':' || amount FROM coin_ledger WHERE id = (SELECT ledger_id FROM inventory_items WHERE user_id = '${JOE}' AND item_id = '${first.id}')`);
     check(owns(JOE, first.id) && line === `shop_purchase:-${first.price}`, "the item is granted against its spend line");
     const twice = await call(fns.buyItemFn, { itemId: first.id, requestId: rid }, tok.joe);
-    check(twice.ok && twice.status === "duplicate" && balance(JOE) === 10000 - first.price, "the same purchase twice pays once");
+    check(twice.ok && twice.status === "duplicate" && balance(JOE) === JOE_START - first.price, "the same purchase twice pays once"); // Changed with Joe's approval, 23 Nov 2026
     const again = await call(fns.buyItemFn, { itemId: first.id, requestId: req() }, tok.joe);
-    check(!again.ok && again.reason === "owned" && balance(JOE) === 10000 - first.price, "an owned item can't be bought again");
+    check(!again.ok && again.reason === "owned" && balance(JOE) === JOE_START - first.price, "an owned item can't be bought again"); // Changed with Joe's approval, 23 Nov 2026
     const after = await call(fns.getShopFn, {}, tok.joe);
     check(after.today[0].id === first.id && after.today[0].owned === true, "bought today: the item stays in its slot, marked Owned");
     const notToday = SHOP.find((s) => !after.today.some((c: { id: string }) => c.id === s.id) && !(bundleForDay(today)?.items ?? []).includes(s.id))!;

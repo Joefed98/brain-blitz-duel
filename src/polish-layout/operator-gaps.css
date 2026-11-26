@@ -45,6 +45,22 @@
   gap: 0.14em;
   white-space: nowrap;
 }
+/* A live round's long line in two rows (22 Nov 2026; GapLine `split`): every answer gap stays at least 36 px on a
+   375 px phone. Each row keeps the line's spacing; the second ends with "= target". */
+.opg-line[data-split="true"] {
+  flex-direction: column;
+  gap: 0.1em;
+}
+[data-puzzle-play] [data-number-overhaul] .opg-equation:has(> .opg-line[data-split="true"]) {
+  padding-block: 2px;
+}
+.opg-part {
+  display: inline-flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0.14em;
+  white-space: nowrap;
+}
 .opg-term {
   display: inline-flex;
   align-items: center;
