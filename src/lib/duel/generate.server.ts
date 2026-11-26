@@ -24,6 +24,8 @@ import { withPipesTwoWayPar } from "./depth4/pipesTaps";
 import { dealWordOverhaul } from "./wordOverhaul.server";
 import { dealAttentionOverhaul } from "./attentionOverhaul";
 import { dealSpeedOverhaul } from "./speedOverhaul";
+import { dealPyramidPartial } from "./pyramidPartial";
+import { dealBallparkBullseyes } from "./ballparkBullseyes";
 import { activeDealPins, dealPinned, withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
 import { dealNotesFree } from "./notesFree";
@@ -51,7 +53,7 @@ import { generateTileGrid } from "./tileGrid.server";
 import { generateWordSlide } from "./wordSlide.server";
 import { generateBalance } from "./numberRounds.server";
 import { generateBalanceLevel } from "./balanceLevels.server";
-import { dealTargetExpert, generateTargetLevel, type TargetLevelSettings } from "./targetLevels.server";
+import { generateTargetLevel, type TargetLevelSettings } from "./targetLevels.server";
 import type { BalanceLevelSettings } from "./balanceLevels";
 import { generateLightsOut, generatePipes, generateSudoku, withPipesOneLayout } from "./logic.server";
 import { generateFlow } from "./flow.server";
@@ -217,6 +219,10 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   // The Speed overhaul (15 Nov 2026, speedOverhaul.ts): Tenfall tenRev 6 (resets cost on a finish), Pull! clayRev 10
   // (a wider quick-hit window).
   { name: "speedOverhaul", deal: dealSpeedOverhaul },
+  // Integer Pyramid's unfinished credit (D2, 22 Nov 2026, pyramidPartial.ts): depthRev 3, stone by stone.
+  { name: "pyramidPartial", deal: dealPyramidPartial },
+  // Ballpark's bullseyes (D2, 22 Nov 2026, ballparkBullseyes.ts): depthRev 3, a bullseye worth 3 up to 30.
+  { name: "ballparkBullseyes", deal: dealBallparkBullseyes },
 ];
 
 /**
@@ -422,8 +428,8 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "kakuro") return dealKakuroLevel(gameSeed(type, context), context.level);
   // Exact's levels (targetLevels.server.ts, 15 Nov 2026): Normal is today's deal below.
   if (type === "target" && context.level) {
-    // Expert deals from its proved bank (Joe, 16 Nov 2026: no live search of up to 3 s; targetExpertBank.server.ts).
-    if (context.level === "expert" && gameLevelSettings<TargetLevelSettings>("target", "expert")) return dealTargetExpert();
+    // D2 (22 Nov 2026): Hard and Expert are targets in a row (targetRounds.ts); Expert's last target still comes from its
+    // proved bank (Joe, 16 Nov 2026: no live search of up to 3 s; targetExpertBank.server.ts).
     const settings = gameLevelSettings<TargetLevelSettings>("target", context.level);
     if (settings) return generateTargetLevel(settings);
   }

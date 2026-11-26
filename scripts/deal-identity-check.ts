@@ -119,7 +119,7 @@ tasks.push({
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): attentionOverhaul.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul's speedOverhaul layer).
     // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine).
-    ok(DEAL_LAYERS.map((l) => l.name).join(" ") === "standard pipesPlaced puzzleNotes parMoves operatorGaps partialCredit wordNov7 notesFree gameReviewNov15 logicOverhaul1 logic2 numberOverhaul patternNov15 wordOverhaul attentionOverhaul speedOverhaul", "the layers in their order");
+    ok(DEAL_LAYERS.map((l) => l.name).join(" ") === "standard pipesPlaced puzzleNotes parMoves operatorGaps partialCredit wordNov7 notesFree gameReviewNov15 logicOverhaul1 logic2 numberOverhaul patternNov15 wordOverhaul attentionOverhaul speedOverhaul pyramidPartial ballparkBullseyes", "the layers in their order"); // Changed with Joe's approval, 22 Nov 2026; 22 Nov 2026
     const names = new Set<DealPin>(DEAL_PIN_NAMES);
     // Changed with Joe's approval, 13 Nov 2026: Minefield's minesPreLogic is the 24th era switch.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the 15 Nov 2026 era switches preNotesFree and
@@ -153,10 +153,12 @@ tasks.push({
     // Sports overhaul's racingPreCircuits, 40.
     // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): the puzzle train's 37 and the arcade
     // train's 14 more (40 less main's 26) make 51.
-    // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps): fivehandsPre128, poolPreFifth and tiltPreThree, 54.
-    // Changed with Joe's approval, 23 Nov 2026 (D6: freecellPrePar98, tripeaksPreEase, racingPreFive and d6PreLevels), 58.
-    // Changed with Joe's approval, 23 Nov 2026 (D6: pyramidPreSpeed22), 59.
-    ok(names.size === 59, `59 era switches (${names.size})`);
+    // Changed with Joe's approval, 22 Nov 2026 (D2): prePyramidPartial and preBallparkBullseyes, 53.
+    // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps): fivehandsPre128, poolPreFifth and tiltPreThree.
+    // Changed with Joe's approval, 23 Nov 2026 (D6: freecellPrePar98, tripeaksPreEase, racingPreFive and d6PreLevels).
+    // Changed with Joe's approval, 23 Nov 2026 (D6: pyramidPreSpeed22). D2's and D6's switches together (Joe, 23 Nov 2026:
+    // the era count is shared and whichever merges later re-applies it), 61.
+    ok(names.size === 61, `61 era switches (${names.size})`);
   },
 });
 

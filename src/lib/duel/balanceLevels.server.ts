@@ -82,7 +82,7 @@ export function generateBalanceLevel(settings: BalanceLevelSettings | null): Bal
   const specs = use.scales ?? BALANCE_NORMAL.scales!;
   const spare = use.spare ?? BALANCE_NORMAL.spare!;
   for (let attempt = 0; attempt < 200; attempt++) {
-    const built = specs.map((spec) => buildLevelScale(spec, use.hide === true));
+    const built = specs.map((spec) => buildLevelScale(spec, use.hide === true || use.person === true));
     if (built.some((b) => b === null)) continue;
     const scales = built.map((b) => b!.scale);
     return {
@@ -93,6 +93,7 @@ export function generateBalanceLevel(settings: BalanceLevelSettings | null): Bal
       balanceRev: BALANCE_REV_LEVELS,
       placeLimits: scales.map((scale, i) => scale.tray.length + (spare[i] ?? spare[spare.length - 1]!)),
       ...(use.hide ? { hideBalance: true } : {}),
+      ...(use.fullByS ? { speedFullByS: use.fullByS } : {}),
     };
   }
   throw new Error("Counterweight: no level board found");

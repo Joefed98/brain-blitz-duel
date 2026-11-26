@@ -121,6 +121,10 @@ export const DEAL_PINS = {
   sportsPreOverhaul: { texts: false },
   /** sports.server.ts: Apex racingRev 3 (one circuit), before the Sports overhaul's three circuits (15 Nov 2026). */
   racingPreCircuits: { texts: false },
+  /** pyramidPartial.ts: Integer Pyramid depthRev 2, before its stone-by-stone unfinished credit (D2, 22 Nov 2026). */
+  prePyramidPartial: { texts: true },
+  /** ballparkBullseyes.ts: Ballpark depthRev 2, before a bullseye was worth 3 (D2, 22 Nov 2026). */
+  preBallparkBullseyes: { texts: true },
   /** arcade.server.ts: Five Hands fiveHandsRev 3, before D6's Normal scoring stamp (200 at 128 hand points, 22 Nov 2026). */
   fivehandsPre128: { texts: true },
   /** sports.server.ts: Cue Ball poolRev 4, before D6's Normal scoring stamp (Speed from the fifth pot, 22 Nov 2026). */

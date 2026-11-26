@@ -11,9 +11,8 @@
 import { readFileSync, writeFileSync } from "node:fs";
 
 import { withSeededRandom } from "../src/lib/duel/random";
-import { generateTargetLevel, type TargetLevelSettings } from "../src/lib/duel/targetLevels.server";
+import { TARGET_EXPERT_BANK_RULE, generateTargetLevel } from "../src/lib/duel/targetLevels.server";
 import type { TargetStep } from "../src/lib/duel/types";
-import { gameLevelSettings } from "../src/lib/levels/gameLevels";
 
 export const TARGET_EXPERT_BANK_SIZE = 320;
 const OUT = new URL("../src/lib/duel/targetExpertBank.server.ts", import.meta.url);
@@ -22,8 +21,8 @@ const SEED_BASE = 0x7a1e_0000;
 export type TargetExpertBoard = { tiles: number[]; target: number; solution: TargetStep[] };
 
 export function buildTargetExpertBank(size = TARGET_EXPERT_BANK_SIZE): TargetExpertBoard[] {
-  const settings = gameLevelSettings<TargetLevelSettings>("target", "expert");
-  if (!settings) throw new Error("Exact offers no Expert level");
+  // The bank's own rule (D2, 22 Nov 2026: the registry's Expert is now a round of targets ending on a bank board).
+  const settings = TARGET_EXPERT_BANK_RULE;
   const seen = new Set<string>();
   const out: TargetExpertBoard[] = [];
   for (let i = 0; out.length < size; i++) {
