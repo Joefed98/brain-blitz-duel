@@ -49,7 +49,7 @@ import { decodeHoverRun, replayHoverRun } from "./hover";
 import { decodeSwerveRun, replaySwerveRun } from "./swerve";
 import { decodeSkylineRun, replaySkylineRun } from "./skyline";
 import { SKYLINE_REV_COUNT, SKYLINE_REV_EXPAND, SKYLINE_REV_FLOORS, SKYLINE_REV_LIFT, SKYLINE_REV_LIVES, SKYLINE_REV_STD } from "@/lib/arcade/skyline";
-import { pinIsExpanded, PIN_REV_JOULZ, PIN_REV_SAVE, PIN_REV_STD } from "@/lib/arcade/pinball";
+import { pinIsExpanded, PIN_REV_JOULZ, PIN_REV_LADDER, PIN_REV_SAVE, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { decodeSnakeRun, replaySnakeRun } from "./snake";
 import { snakeStdParts } from "@/lib/arcade/snake";
 import { decodeBreakerRun, replayBreakerRun } from "./breaker";
@@ -1647,7 +1647,7 @@ function gradeUnderRev(
         // pinRev 4 (the expansion): ramps, the best combo, multiballs, jackpots and skill shots.
         ...(pinIsExpanded(puzzle.pinRev) ? { ramps: run.ramps, bestCombo: run.bestCombo, multiballs: run.multiballs, jackpots: run.jackpots, skills: run.skills } : {}),
         // pinRev 6 (the arcade scoring standard): back-to-back ramp shots, one of its features.
-        ...(puzzle.pinRev === PIN_REV_STD || puzzle.pinRev === PIN_REV_JOULZ || puzzle.pinRev === PIN_REV_SAVE ? { combos: run.combos } : {}),
+        ...(puzzle.pinRev === PIN_REV_STD || puzzle.pinRev === PIN_REV_JOULZ || puzzle.pinRev === PIN_REV_SAVE || puzzle.pinRev === PIN_REV_LADDER ? { combos: run.combos } : {}),
         lost: run.lost,
         ballsLeft: run.ballsLeft,
         endedSeconds: run.endedSeconds,

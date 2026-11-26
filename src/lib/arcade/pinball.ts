@@ -1012,15 +1012,17 @@ export const PIN_REV_STD = 6;
 export const PIN_REV_JOULZ = 7;
 /** pinRev 8 (the Retro overhaul, stage 3, 16 Nov 2026): pinRev 7's table and play with the outlane saves counted. */
 export const PIN_REV_SAVE = 8;
+/** pinRev 9 (D5's ladder, 23 Nov 2026): pinRev 8's table and play on Normal's refitted lines; a level's flipper length. */
+export const PIN_REV_LADDER = 9;
 
 /** The taller table (pinball4.ts) plays on pinRev 4 and every later revision. */
 export function pinIsExpanded(rev?: number | null): boolean {
-  return rev === PIN_REV_EXPAND || rev === PIN_REV_LONG || rev === PIN_REV_STD || rev === PIN_REV_JOULZ || rev === PIN_REV_SAVE;
+  return rev === PIN_REV_EXPAND || rev === PIN_REV_LONG || rev === PIN_REV_STD || rev === PIN_REV_JOULZ || rev === PIN_REV_SAVE || rev === PIN_REV_LADDER;
 }
 
 /** The run length of a stored pinRev: 90 s on pinRev 5 and 6, 60 s on every older revision. */
 export function pinRunTicksFor(rev?: number | null): number {
-  return rev === PIN_REV_LONG || rev === PIN_REV_STD || rev === PIN_REV_JOULZ || rev === PIN_REV_SAVE ? PIN_V5_RUN_TICKS : PIN_RUN_TICKS;
+  return rev === PIN_REV_LONG || rev === PIN_REV_STD || rev === PIN_REV_JOULZ || rev === PIN_REV_SAVE || rev === PIN_REV_LADDER ? PIN_V5_RUN_TICKS : PIN_RUN_TICKS;
 }
 
 /** The run length of a live state (pinRev 5's and 6's states carry `rev5`). */

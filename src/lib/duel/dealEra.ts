@@ -133,6 +133,8 @@ export const DEAL_PINS = {
   orbitPreLost: { texts: false },
   /** arcade.server.ts: Breaker brkRev 12 at every level, before brkRev 13's ladder (D5, 23 Nov 2026). */
   breakerPreLadder: { texts: false },
+  /** arcade.server.ts: Pinball pinRev 8 at every level, before pinRev 9's ladder (D5, 23 Nov 2026). */
+  pinballPreLadder: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

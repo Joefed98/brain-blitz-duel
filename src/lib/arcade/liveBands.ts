@@ -36,7 +36,7 @@ import { SLICE_REV_STRICT, SLICE_REV_LINE, SLICE_V13_BAND_CURVE } from "./slice"
 import { BURST_REV_SMALL, BURST_REV_STRICT, BURST_V10_BAND_CURVE } from "./burst";
 import { SWING_REV_BIG, SWING_REV_STRICT, SWING_V17_BAND_CURVE } from "./swing";
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
-import { PIN_REV_SAVE, PIN_STD_SPEC_V8, PIN_V6_BAND_CURVE } from "./pinball4";
+import { PIN_REV_LADDER, PIN_STD_SPEC_V9, PIN_V9_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
 import { BASTION_REV_DEALT, BASTION_STD_SPEC_V4, BASTION_V4_BAND_CURVE } from "./bastionTank";
 import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V5_BAND_CURVE } from "./homerun";
@@ -155,7 +155,8 @@ export const LIVE_BANDS = {
   bullseye: { field: "bullRev", rev: BULLSEYE_REV_STD, curve: BULLSEYE_V9_BAND_CURVE, strictRev: BULLSEYE_REV_STRICT, std: BULLSEYE_STD_SPEC },
   // pinRev 6 (29 Oct 2026): the arcade scoring standard (table points on a straight line to 130, four features to 70).
   // pinRev 7 (the Retro overhaul, 15 Nov 2026): pinRev 6 with one J-O-U-L-Z set filling its part.
-  pinball: { field: "pinRev", rev: PIN_REV_SAVE, curve: PIN_V6_BAND_CURVE, strictRev: PIN_REV_STRICT, std: PIN_STD_SPEC_V8 },
+  // pinRev 9 (D5's ladder, 23 Nov 2026): pinRev 8's play, table points full at 56,000, jackpots 8 each, ramp combos 8 each.
+  pinball: { field: "pinRev", rev: PIN_REV_LADDER, curve: PIN_V9_BAND_CURVE, strictRev: PIN_REV_STRICT, std: PIN_STD_SPEC_V9 },
   // Cards & Board (30 Oct 2026), on the arcade scoring standard from their first revision: the core's straight line
   // (Minesweeper in per mille of the safe squares beyond the opening, Mahjong in pairs) and fixed features to 200.
   // minesRev 2 (13 Nov 2026): 20 mines, the same straight core line.

@@ -9,7 +9,7 @@ import { useArcadeFrameTiming } from "@/components/puzzles/useArcadeFrameTiming"
 import { arcadeFeedback } from "@/lib/fx/arcade";
 import { pinballGlowFill, PIN_COLOURS } from "@/lib/arcade/pinball.renderer";
 import { pinball4GlowFill, pinballArtGameForAny, pinballWorldHFor } from "@/lib/arcade/pinball4.renderer";
-import { pinballGameForAny, pinCheckpointAny, PIN_REV_SAVE, type Pin4State } from "@/lib/arcade/pinball4";
+import { pinballGameForAny, pinCheckpointAny, PIN_REV_LADDER, type Pin4State } from "@/lib/arcade/pinball4";
 import { pinballSounds } from "@/lib/fx/gameSounds";
 import { appendClientCounters, arcadeCounters } from "@/lib/arcade/diagnostics";
 import { inputAt, recordInput } from "@/lib/arcade/engine";
@@ -43,9 +43,9 @@ import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
 function IntroExample() {
   return (
     <ArtStill
-      game={pinballArtGameForAny(PIN_REV_SAVE)}
+      game={pinballArtGameForAny(PIN_REV_LADDER)}
       worldW={PIN_WORLD_W}
-      worldH={pinballWorldHFor(PIN_REV_SAVE)}
+      worldH={pinballWorldHFor(PIN_REV_LADDER)}
       ticks={30}
       input={null}
       caption="Hold either side to flip. Light J-O-U-L-Z, lock balls on the ramps, start multiball."
@@ -279,7 +279,7 @@ export const pinballPuzzle: PuzzleDefinition = {
   // pinRev 5's 90 s run (older rounds run 60 s and end there; their clock shows the extra 30 s unused, as Tempo's beatRev 9).
   timeLimitMs: (PIN_V5_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "pinball", seed: 1, pinRev: PIN_REV_SAVE }) satisfies PinballPuzzleData,
+  generate: () => ({ type: "pinball", seed: 1, pinRev: PIN_REV_LADDER }) satisfies PinballPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

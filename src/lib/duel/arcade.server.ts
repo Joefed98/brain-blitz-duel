@@ -34,7 +34,8 @@ import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, S
 import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_AIM, BURST_REV_BIG, BURST_REV_SMALL } from "@/lib/arcade/burst";
 import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD, BRK_REV_CLEAR, BRK_REV_LADDER } from "@/lib/arcade/breaker";
 import { breakerLevelDealSeed } from "./breakerLevelDeals.server";
-import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_SAVE } from "@/lib/arcade/pinball";
+import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_SAVE, PIN_REV_LADDER } from "@/lib/arcade/pinball";
+import { pinballLevelDealSeed } from "./pinballLevelDeals.server";
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_KEEP, WAV_REV_BIG, WAV_REV_WIDE } from "@/lib/arcade/wavefront";
@@ -283,12 +284,17 @@ export function generateBreaker(level?: Level): BreakerPuzzleData {
   return { type: "breaker", seed: breakerLevelDealSeed(level, arcadeSeed()), brkRev: BRK_REV_LADDER };
 }
 
-export function generatePinball(): PinballPuzzleData {
+export function generatePinball(level?: Level): PinballPuzzleData {
   // pinRev 5 (27 Oct 2026, Joe's phone notes): pinRev 4's table for 90 s (PIN_REV_LONG).
   // pinRev 6 (29 Oct 2026): pinRev 5's play on the arcade scoring standard (docs/arcade-standard/pinball.md).
   // pinRev 7 (the Retro overhaul, 15 Nov 2026): pinRev 6's play; one J-O-U-L-Z set fills its part (preRetro: pinRev 6).
   // pinRev 8 (stage 3, 16 Nov 2026): pinRev 7's play with the outlane saves counted.
-  return { type: "pinball", seed: arcadeSeed(), pinRev: dealPinned("preRetro") ? PIN_REV_STD : PIN_REV_SAVE };
+  if (dealPinned("preRetro")) return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV_STD };
+  if (dealPinned("pinballPreLadder")) return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV_SAVE };
+  // pinRev 9 (D5's ladder, 23 Nov 2026; docs/arcade-standard/pinball.md "pinRev 9"): Normal pinRev 8's play on the refitted
+  // lines and each level its flippers' length, every one dealt only on the seeds (the skill shot's lanes) whose
+  // human-limited flawless run scores 200 there (pinballLevelDeals.server.ts). pinballPreLadder: pinRev 8 as before.
+  return { type: "pinball", seed: pinballLevelDealSeed(level, arcadeSeed()), pinRev: PIN_REV_LADDER };
 }
 
 /**

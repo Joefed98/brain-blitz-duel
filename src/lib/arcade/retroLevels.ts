@@ -94,14 +94,21 @@ export interface CrossLv {
   hitCost: number;
   fullAt: number;
 }
-/** Pinball (pinRev 8): balls (Normal 3), the ball save's seconds after each launch (0: none, Normal), gravity (per cent of
- * Normal), the multiball's seconds (Normal 20) and the table points the core is full at (Normal 61,000). */
+/** Pinball: balls (Normal 3), the ball save's seconds after each launch (0: none, Normal), gravity (per cent of Normal), the
+ * multiball's seconds (Normal 20) and the table points the core is full at (pinRev 8's Normal 61,000; pinRev 9's 56,000).
+ * pinRev 9 (D5's ladder, 23 Nov 2026) adds the optional fields below (absent on pinRev 8's table, which plays as it always
+ * did). */
 export interface PinballLv {
   balls: number;
   saveS: number;
   gravityPct: number;
   multiS: number;
   fullAt: number;
+  /** pinRev 9: the flippers' length, px (Normal 56: about 27 px of drain between their tips at rest). */
+  flipLen?: number;
+  /** pinRev 9's lines at this level: points a jackpot and a ramp combo (up to each part's 15; Normal 8 and 8). */
+  jackpotEach?: number;
+  comboEach?: number;
 }
 /** Blockzone (blockfallRev 2): gravity (per cent of Normal's fall time a row: higher is slower), the lock delay (ticks)
  * and the previews shown. */
@@ -167,7 +174,16 @@ export const CROSS_LEVELS: Table<CrossLv> = {
   hard: { density: [8, 10, 12, 13, 14, 15, 15, 15, 15, 15], lives: 3, hitCost: 15, fullAt: 76 },
   expert: { density: [10, 12, 14, 15, 16, 17, 18, 18, 18, 18], lives: 2, hitCost: 20, fullAt: 80 },
 };
+/** Pinball's levels on pinRev 9 (D5's ladder, 23 Nov 2026; docs/arcade-standard/pinball.md "Levels (D5, 23 Nov 2026)"):
+ * the lever is the flippers' length (and so the drain between them). */
 export const PINBALL_LEVELS: Table<PinballLv> = {
+  easy: { balls: 4, saveS: 10, gravityPct: 100, multiS: 20, fullAt: 44_000, flipLen: 62, jackpotEach: 15, comboEach: 15 },
+  hard: { balls: 3, saveS: 0, gravityPct: 110, multiS: 20, fullAt: 56_000, flipLen: 52, jackpotEach: 15, comboEach: 15 },
+  expert: { balls: 2, saveS: 0, gravityPct: 115, multiS: 20, fullAt: 56_000, flipLen: 50, jackpotEach: 15, comboEach: 15 },
+};
+/** Pinball's levels on pinRev 8 (stage 3 of the Retro overhaul, 16 Nov 2026): the rounds dealt before pinRev 9 replay on
+ * this table exactly (pinball8For reads it). */
+export const PINBALL_LEVELS_V8: Table<PinballLv> = {
   easy: { balls: 4, saveS: 10, gravityPct: 85, multiS: 25, fullAt: 50_000 },
   hard: { balls: 3, saveS: 0, gravityPct: 110, multiS: 18, fullAt: 61_000 },
   expert: { balls: 2, saveS: 0, gravityPct: 120, multiS: 15, fullAt: 66_000 },

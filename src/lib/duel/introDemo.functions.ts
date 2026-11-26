@@ -36,7 +36,7 @@ import { MATCHUP_REV_ICE2 } from "@/lib/arcade/matchup";
 import { TEN_DROP_RESET_REV } from "@/lib/arcade/tenDrop";
 import { SKYLINE_REV_FLOORS, SKYLINE_REV_LIVES } from "@/lib/arcade/skyline";
 import { pinIsExpanded } from "@/lib/arcade/pinball";
-import { PIN_REV_JOULZ, PIN_REV_SAVE, PIN_REV_STD } from "@/lib/arcade/pinball";
+import { PIN_REV_JOULZ, PIN_REV_LADDER, PIN_REV_SAVE, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { chainDemoCompatible } from "./chain";
 import { pairUsesDepth } from "./depth/matchmaker";
 import { STRIKEOUT_REV4 } from "./strikeout";
@@ -432,7 +432,8 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   // would light multiplier inserts and count table points the help no longer states; only a pinRev 6 demo plays
   // (as High Rise's skylineRev 8), and until one is recorded the intro shows its still.
   // pinRev 7 (the Retro overhaul) plays pinRev 6 exactly: a demo recorded on either plays.
-  if (data.type === "pinball" && demo?.puzzle.type === "pinball" && demo.puzzle.pinRev !== PIN_REV_STD && demo.puzzle.pinRev !== PIN_REV_JOULZ && demo.puzzle.pinRev !== PIN_REV_SAVE) return null;
+  // pinRev 9 (D5's ladder) plays pinRev 8 exactly at Normal (only its lines moved): a demo recorded on it plays too.
+  if (data.type === "pinball" && demo?.puzzle.type === "pinball" && demo.puzzle.pinRev !== PIN_REV_STD && demo.puzzle.pinRev !== PIN_REV_JOULZ && demo.puzzle.pinRev !== PIN_REV_SAVE && demo.puzzle.pinRev !== PIN_REV_LADDER) return null;
   // World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Swish binRev 7 and Slice sliceRev 9
   // play in larger worlds with new features; an older demo would show the old world (and its touches would land
   // elsewhere), so each shows its still until a demo is recorded on its new revision.
