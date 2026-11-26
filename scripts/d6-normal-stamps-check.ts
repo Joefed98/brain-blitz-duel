@@ -29,7 +29,7 @@ import { FH_CORE_FULL_V4, FH_REV, FH_REV_128, fhCoreFullFor, fhTotalV3, fiveHand
 import { poolFullByS, poolGameFor, poolRunTicksFor, poolStdParts, POOL_FULL_BY_S_V5, POOL_REV, POOL_V5_SPEED_AT, type PoolState } from "../src/lib/arcade/pool";
 import { decodePoolRun, replayPoolRun } from "../src/lib/duel/pool";
 import { POOL_BANK_V3 } from "../src/lib/duel/poolBankV3.server";
-import { tiltGameFor, tiltMazesB, tiltMazesT, tiltParParts, TILT_P_CLEAN_POINTS, TILT_P_CORE_MAX, TILT_P_PAR_MAX, TILT_P_SPEED_POINTS, TILT_REV_BIG, TILT_REV_THREE, TILT_T_MAZES, TILT_T_SPEED_FULL_S, type TiltState } from "../src/lib/arcade/tilt";
+import { tiltGameFor, tiltMazesB, tiltMazesT, tiltParParts, tiltParT, TILT_T_PAR_SCALE, TILT_P_CLEAN_POINTS, TILT_P_CORE_MAX, TILT_P_PAR_MAX, TILT_P_SPEED_POINTS, TILT_REV_BIG, TILT_REV_THREE, TILT_T_MAZES, TILT_T_SPEED_FULL_S, type TiltState } from "../src/lib/arcade/tilt";
 import { replayTiltRun } from "../src/lib/duel/tilt";
 import { TILT_DEAL_V12 } from "../src/lib/duel/tiltDealV12.server";
 import { TILT_DEAL_V13 } from "../src/lib/duel/tiltDealV13.server";
@@ -143,7 +143,10 @@ console.log("3. Tilt tiltRev 13: Normal deals three mazes");
   for (const s of TILT_DEAL_V13.slice(0, 6)) {
     const three = tiltMazesT(s);
     const four = tiltMazesB(s);
-    ok(three.length === 3 && JSON.stringify(three) === JSON.stringify(four.slice(0, 3)), `tilt: seed ${s}'s three mazes are tiltRev 12's first three exactly`);
+    // Normal's par is its own (TILT_T_PAR_SCALE, 180 % of the route since 26 Nov 2026); everything else is tiltRev 12's.
+    const layout = (m: (typeof three)[number]) => JSON.stringify({ ...m, par: 0 });
+    ok(three.length === 3 && three.every((m, i) => layout(m) === layout(four[i]!)), `tilt: seed ${s}'s three mazes are tiltRev 12's first three exactly, but for par`);
+    ok(three.every((m, i) => m.par === tiltParT(four[i]!, TILT_T_PAR_SCALE)), `tilt: seed ${s}'s par is ${TILT_T_PAR_SCALE} % of each maze's route`);
   }
   const g = tiltGameFor(13);
   const s0 = g.init(TILT_DEAL_V13[0]!);
