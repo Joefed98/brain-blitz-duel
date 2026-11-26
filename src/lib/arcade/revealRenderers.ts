@@ -275,7 +275,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
     heightFor: (p) => in390(breakerWorldWFor(p.type === "breaker" ? p.brkRev : undefined), breakerWorldHFor(p.type === "breaker" ? p.brkRev : undefined)),
     drawFinal: (ctx, p, a) => {
       const rev = p.type === "breaker" ? p.brkRev : undefined;
-      breakerArtGameFor(rev).draw(ctx, replayBreakerRun(seedOf(p), a, rev).state, { width: 390, height: in390(breakerWorldWFor(rev), breakerWorldHFor(rev)) });
+      breakerArtGameFor(rev).draw(ctx, replayBreakerRun(seedOf(p), a, rev, puzzleLevel(p)).state, { width: 390, height: in390(breakerWorldWFor(rev), breakerWorldHFor(rev)) });
       return null;
     },
   },
@@ -285,7 +285,7 @@ export const ARCADE_REVEAL_RENDERERS: Record<string, ArcadeRevealRenderer> = {
   // curlRev 2 draws a shorter world (390 × 540; display only).
   curling: simple("#E8C35A", CURLING_W, CURLING_H, { draw: (ctx, s: CurlingState) => drawCurling(ctx, s, null) }, (p, a) => replayCurlingRun(seedOf(p), a, p.type === "curling" ? p.curlRev : undefined, p.type === "curling" ? p.level : undefined), undefined, undefined, (p) => curlingWorldHFor(p.type === "curling" ? p.curlRev : undefined)),
   pool: simple("#3FA672", POOL_W, POOL_H, { draw: (ctx, s: PoolState) => drawPool(ctx, s, null) }, (p, a) => replayPoolRun(seedOf(p), a, p.type === "pool" ? p.poolRev : undefined, (p as { level?: unknown }).level)),
-  pinball: simple("#FF4DFF", PIN_WORLD_W, PIN_WORLD_H, { draw: drawPinballAny }, (p, a) => replayPinballRun(seedOf(p), a, p.type === "pinball" ? p.pinRev : undefined), undefined, undefined, (p) => pinballWorldHFor(p.type === "pinball" ? p.pinRev : undefined)),
+  pinball: simple("#FF4DFF", PIN_WORLD_W, PIN_WORLD_H, { draw: drawPinballAny }, (p, a) => replayPinballRun(seedOf(p), a, p.type === "pinball" ? p.pinRev : undefined, puzzleLevel(p)), undefined, undefined, (p) => pinballWorldHFor(p.type === "pinball" ? p.pinRev : undefined)),
   // Cards & Board (30 Oct 2026): the final board as the run left it.
   minesweeper: simple("#F2C75C", MINES_WORLD_W, MINES_WORLD_H, { draw: drawMinesweeper }, (p, a) => replayMinesweeperRun(seedOf(p), a, p.type === "minesweeper" ? p.minesRev : undefined)),
   mahjong: simple("#F2C75C", MAHJONG_WORLD_W, MAHJONG_WORLD_H, { draw: drawMahjong }, (p, a) => replayMahjongRun(seedOf(p), a, p.type === "mahjong" ? p.mahjongRev : undefined, levelOfPuzzle(p))),

@@ -27,7 +27,7 @@ import { SNIP_REV_EXPAND, SNIP_REV_STRICT, SNIP_V11_BAND_CURVE } from "./snip";
 import { HOVER_REV_FIT, HOVER_REV_STRICT, HOVER_V12_BAND_CURVE } from "./hover";
 import { SKYLINE_REV_FLOORS, SKYLINE_REV_STRICT, SKYLINE_STD_SPEC_V12, SKYLINE_V12_BAND_CURVE } from "./skyline";
 import { JUNC_REV_BAND, JUNC_BAND_CURVE } from "./junction";
-import { BRK_REV_CLEAR, BRK_REV_STRICT, BRK_V12_BAND_CURVE } from "./breaker";
+import { BRK_REV_LADDER, BRK_REV_STRICT, BRK_V13_BAND_CURVE } from "./breaker";
 import { TILT_REV_BIG, TILT_REV_STRICT, TILT_V12_BAND_CURVE } from "./tilt";
 import { ORBIT_REV_STRICT, ORBIT_REV_LOST } from "./orbit";
 import { ORBIT_V14_BAND_CURVE } from "./orbitRev3";
@@ -36,7 +36,7 @@ import { SLICE_REV_STRICT, SLICE_REV_LINE, SLICE_V13_BAND_CURVE } from "./slice"
 import { BURST_REV_SMALL, BURST_REV_STRICT, BURST_V10_BAND_CURVE } from "./burst";
 import { SWING_REV_LADDER, SWING_REV_STRICT, SWING_V17_BAND_CURVE } from "./swing";
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
-import { PIN_REV_SAVE, PIN_STD_SPEC_V8, PIN_V6_BAND_CURVE } from "./pinball4";
+import { PIN_REV_LADDER, PIN_STD_SPEC_V9, PIN_V9_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
 import { BASTION_REV_DEALT, BASTION_STD_SPEC_V5, BASTION_V5_BAND_CURVE } from "./bastionTank";
 import { HOMERUN_REV_DEALT, HOMERUN_STD_SPEC_DEALT, HOMERUN_V5_BAND_CURVE } from "./homerun";
@@ -124,12 +124,14 @@ export const LIVE_BANDS = {
   hover: { field: "hoverRev", rev: HOVER_REV_FIT, curve: HOVER_V12_BAND_CURVE, strictRev: HOVER_REV_STRICT },
   // skylineRev 9 (the arcade scoring standard): floors on a straight line to 140, then perfect drops, the streak and gold.
   // skylineRev 11 (15 Nov 2026, the Action overhaul): lives and the wide-block rescue; the same parts.
-  // skylineRev 12 (22 Nov 2026, D5 item I5): skylineRev 11's play; floors full at 45 (140), perfect drops at 30.
+  // skylineRev 12 (22–23 Nov 2026, D5): skylineRev 11's play on Normal; floors full at 45 (140), perfect drops at 24, the
+  // perfect streak at 5 in a row and gold blocks at 2 of the 5; the block-width ladder at the other levels (own lines).
   skyline: { field: "skylineRev", rev: SKYLINE_REV_FLOORS, curve: SKYLINE_V12_BAND_CURVE, strictRev: SKYLINE_REV_STRICT, std: SKYLINE_STD_SPEC_V12 },
   junction: { field: "junctionRev", rev: JUNC_REV_BAND, curve: JUNC_BAND_CURVE },
   // brkRev 11 (the arcade scoring standard): the bricks' straight line to 140; clear 10, speed 20 and gold 30 on top (the help says so).
   // brkRev 12 (the Retro overhaul, 15 Nov 2026): the 9-row wall, its core on the board's 81 bricks.
-  breaker: { field: "brkRev", rev: BRK_REV_CLEAR, curve: BRK_V12_BAND_CURVE, strictRev: BRK_REV_STRICT },
+  // brkRev 13 (D5's ladder, 23 Nov 2026): brkRev 12's play, the core full at 79 of the 81 bricks, gold 15 each, speed full by 80 s.
+  breaker: { field: "brkRev", rev: BRK_REV_LADDER, curve: BRK_V13_BAND_CURVE, strictRev: BRK_REV_STRICT },
   // tiltRev 10 (the arcade scoring standard): the core's straight line (35 a maze, to 140); finish, speed and gold stars add up to 60 (the help says so).
   // tiltRev 11 (3 Nov 2026): no gold stars; the core's straight line (35 a maze, to 140, up to 20 of a maze for
   // progress); par 24, a clean run 12 and speed 24 add up to 60 more (the help says so).
@@ -160,7 +162,8 @@ export const LIVE_BANDS = {
   bullseye: { field: "bullRev", rev: BULLSEYE_REV_STD, curve: BULLSEYE_V9_BAND_CURVE, strictRev: BULLSEYE_REV_STRICT, std: BULLSEYE_STD_SPEC },
   // pinRev 6 (29 Oct 2026): the arcade scoring standard (table points on a straight line to 130, four features to 70).
   // pinRev 7 (the Retro overhaul, 15 Nov 2026): pinRev 6 with one J-O-U-L-Z set filling its part.
-  pinball: { field: "pinRev", rev: PIN_REV_SAVE, curve: PIN_V6_BAND_CURVE, strictRev: PIN_REV_STRICT, std: PIN_STD_SPEC_V8 },
+  // pinRev 9 (D5's ladder, 23 Nov 2026): pinRev 8's play, table points full at 56,000, jackpots 8 each, ramp combos 8 each.
+  pinball: { field: "pinRev", rev: PIN_REV_LADDER, curve: PIN_V9_BAND_CURVE, strictRev: PIN_REV_STRICT, std: PIN_STD_SPEC_V9 },
   // Cards & Board (30 Oct 2026), on the arcade scoring standard from their first revision: the core's straight line
   // (Minesweeper in per mille of the safe squares beyond the opening, Mahjong in pairs) and fixed features to 200.
   // minesRev 2 (13 Nov 2026): 20 mines, the same straight core line.

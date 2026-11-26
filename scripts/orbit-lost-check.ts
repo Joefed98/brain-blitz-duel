@@ -8,7 +8,8 @@
  *     (scripts/fixtures/orbit-lost-legacy.json.gz, scripts/orbit-lost-legacy-record.ts) regrade through gradeAnswer to
  *     the same score, verdict, count, stored extra and final checkpoint; the 120 orbitRev 12–15 runs
  *     (scripts/fixtures/orbit-big-legacy.json) replay to the same score, end tick and checksum.
- *  2. The deal: Normal and every level deal orbitRev 17 on the course (and level) orbitRev 16 dealt; the era pin
+ *  2. The deal: Normal and every level deal orbitRev 17 on its own ladder bank's course (D5, 23 Nov 2026: the belts and
+ *     the human-limited witnesses, scripts/orbit-ladder-bank.ts; orbit-ladder-check proves those banks); the era pin
  *     orbitPreLost deals the recorded orbitRev 16 deals byte for byte; orbitPreBig still deals orbitRev 15.
  *  3. The rule never ends a flight that could still be caught, or still earn anything: over every free-flight tick of
  *     the recorded flights and of synthetic releases (a release every few ticks from the recorded runs' orbits), played
@@ -20,8 +21,10 @@
  *     release burns the whole tank. `lost` stays outside the checksum.
  *  5. Every bank witness (Normal and every level's bank) plays on orbitRev 17 tick for tick as on orbitRev 16 (never
  *     lost) and scores exactly 200 through the server replay.
- *  6. A recorded run whose flights are never lost replays on orbitRev 17 exactly as on orbitRev 16.
- *  7. The live stamp: LIVE_BANDS, ORBIT_STD, the view, the extra's `lostFlights` (orbitRev 17 only), PRACTICE_STAMPS.
+ *  6. A recorded run whose flights are never lost replays on orbitRev 17 tick for tick as on orbitRev 16 (scored on
+ *     orbitRev 17's own lines since D5's refit, 23 Nov 2026: never below its orbitRev 16 score).
+ *  7. The live stamp: LIVE_BANDS, ORBIT_STD_V17 (orbitRev 17's parts; ORBIT_STD orbitRev 13–16's), the view, the extra's
+ *     `lostFlights` (orbitRev 17 only), PRACTICE_STAMPS.
  */
 import { readFileSync } from "node:fs";
 import { gunzipSync } from "node:zlib";
@@ -36,12 +39,13 @@ import {
   ORBIT_GRACE_HOLD_TICKS,
   ORBIT_LOST_MARGIN,
   ORBIT_STD,
+  ORBIT_STD_V17,
   type OrbitRev3State,
 } from "../src/lib/arcade/orbitRev3";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { decodeOrbitRun, encodeOrbitRun, replayOrbitRun } from "../src/lib/duel/orbit";
 import { ORBIT_FUEL_BANK, type OrbitFuelBankEntry } from "../src/lib/duel/orbitFuelBank.server";
-import { ORBIT_LEVEL_BANKS } from "../src/lib/duel/orbitRev3Course.server";
+import { ORBIT_LADDER_BANKS, ORBIT_LEVEL_BANKS } from "../src/lib/duel/orbitRev3Course.server";
 import { gradeAnswer } from "../src/lib/duel/gradeAnswer.server";
 import { pinOrbitPreBig, pinOrbitPreLost } from "../src/lib/duel/arcade.server";
 import { DEAL_PINS } from "../src/lib/duel/dealEra";
@@ -138,7 +142,11 @@ const puzzleAt = (i: number) => JSON.parse(fixture.puzzles[i]!) as Puzzle;
     for (let n = 0; n < 6; n++) {
       const recorded = fixture.puzzles[fixture.runs.find((r) => r.level === level && r.n === n)!.p]!;
       const now = dealAt("orbit", level, n) as unknown as Puzzle;
-      if (json(now) === json(asRev(JSON.parse(recorded) as Puzzle, ORBIT_REV_LOST))) same++;
+      // (D5, 23 Nov 2026: orbitRev 17 deals from its own ladder bank, the seed picking the entry as before.)
+      const bank = ORBIT_LADDER_BANKS[level];
+      const was = JSON.parse(recorded) as Puzzle;
+      const e = bank[((was.seed % bank.length) + bank.length) % bank.length]!;
+      if (json(now) === json({ ...asRev(was, ORBIT_REV_LOST), planets: e.planets, holes: e.holes, extras: e.extras })) same++;
       const prev = pinOrbitPreLost(true);
       try {
         if (json(dealAt("orbit", level, n)) === recorded) pinned++;
@@ -146,7 +154,7 @@ const puzzleAt = (i: number) => JSON.parse(fixture.puzzles[i]!) as Puzzle;
         pinOrbitPreLost(prev);
       }
     }
-    ok(same === 6, `${level}: ${same} of 6 deals are orbitRev 17 on the course${level === "normal" ? "" : " and level"} orbitRev 16 dealt`);
+    ok(same === 6, `${level}: ${same} of 6 deals are orbitRev 17 on the ladder bank's course${level === "normal" ? "" : " at the level"}, the seed as orbitRev 16's`);
     ok(pinned === 6, `${level}: with orbitPreLost pinned, ${pinned} of 6 deals are the recorded orbitRev 16 deals byte for byte`);
   }
   const prev = pinOrbitPreBig(true);
@@ -327,17 +335,18 @@ function judgeFlight(start: OrbitRev3State, label: string): OrbitRev3State {
     const st = out.state as OrbitRev3State;
     if ((st.lostFlights ?? 0) === 0) {
       untouched++;
-      if (out.score === r.score && json(orbitCheckpoint(st as never)) === json(r.checkpoint)) same++;
+      // The play exactly as recorded; the score on orbitRev 17's own lines (D5's refit), never below orbitRev 16's.
+      if (out.score >= r.score && out.score === orbitRev3Game.score(st) && json(orbitCheckpoint(st as never)) === json(r.checkpoint)) same++;
     } else changed++;
   }
-  ok(untouched === same && untouched > 20, `${same} of ${untouched} recorded runs with no lost flight replay on orbitRev 17 exactly as recorded (${changed} others lost at least one flight)`);
+  ok(untouched === same && untouched > 20, `${same} of ${untouched} recorded runs with no lost flight replay on orbitRev 17 tick for tick as recorded, scoring no less on its lines (${changed} others lost at least one flight)`);
 }
 
 /* 7. The live stamp. */
 {
   ok(ORBIT_REV_LOST === 17 && orbitXpRev(ORBIT_REV_LOST), "orbitRev 17 is on the expansion's features and view");
   ok(orbitWorldHFor(ORBIT_REV_LOST) === orbitWorldHFor(ORBIT_REV_BIG) && orbitWorldWFor(ORBIT_REV_LOST) === orbitWorldWFor(ORBIT_REV_BIG), "the same view as orbitRev 16");
-  ok((LIVE_BANDS as Record<string, { rev: number }>).orbit!.rev === ORBIT_REV_LOST && ORBIT_STD.rev === ORBIT_REV_LOST && ORBIT_STD.parts.reduce((a, x) => a + x.max, 0) === 200, "LIVE_BANDS and ORBIT_STD carry orbitRev 17 (orbitRev 16's parts, 200)");
+  ok((LIVE_BANDS as Record<string, { rev: number }>).orbit!.rev === ORBIT_REV_LOST && ORBIT_STD_V17.rev === ORBIT_REV_LOST && ORBIT_STD_V17.parts.reduce((a, x) => a + x.max, 0) === 200 && json(ORBIT_STD_V17.parts.map((x) => [x.key, x.max])) === json(ORBIT_STD.parts.map((x) => [x.key, x.max])), "LIVE_BANDS and ORBIT_STD_V17 carry orbitRev 17 (orbitRev 16's parts and maxima on its own lines, 200)");
   const e = ORBIT_FUEL_BANK[3]!;
   const raw17 = serverRun(puzzleOfEntry(e, ORBIT_REV_LOST), [ev(9)]).raw;
   const g17 = gradeAnswer(puzzleOfEntry(e, ORBIT_REV_LOST) as unknown as PuzzleData, raw17, 0);

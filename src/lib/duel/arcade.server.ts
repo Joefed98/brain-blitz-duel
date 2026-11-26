@@ -7,13 +7,15 @@ import type { Level } from "@/lib/levels/levels";
 import { gameLevelSettings } from "@/lib/levels/gameLevels";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_LINE, sliceFoodSeedOk } from "@/lib/arcade/slice";
-import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL, FLIP_REV_GRACE, isFlipLevel } from "@/lib/arcade/flip";
+import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL, FLIP_REV_GRACE, FLIP_REV_LADDER, isFlipLevel } from "@/lib/arcade/flip";
 import { flipLevelDealSeed } from "./flipLevelDeals.server";
+import { flipLadderDealSeed } from "./flipLadderDeals.server";
 import { flipDealSeed } from "./flipDeal.server";
 import { wavDealSeed } from "./wavefrontDeal.server";
 import { wavDealSeedV16 } from "./wavefrontDealV16.server";
 import { burstDealSeedV14 } from "./burstLevelDeals.server";
 import { flipDealSeedV13 } from "./flipDealV13.server";
+import { skylineDealSeedV12 } from "./skylineDealV12.server";
 import { CROSS_REV_DENSE, CROSS_REV_KEEP, CROSS_REV_LIGHT } from "@/lib/arcade/cross";
 import { crossLevelDealSeed } from "./crossLevelDeals.server";
 import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_HILLS, INK_REV_STD, isInkDiff } from "@/lib/arcade/inkBridge";
@@ -36,8 +38,10 @@ import { JUNC_REV_BAND } from "@/lib/arcade/junction";
 import { BINTOSS_REV_TARGET, BINTOSS_REV_STRICT, BINTOSS_REV_STD } from "@/lib/arcade/binToss";
 import { SWING_REV_TALL, SWING_REV_TARGET, SWING_REV_STRICT, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG, SWING_REV_LADDER, swingLadderLevel } from "@/lib/arcade/swing";
 import { BURST_REV_TARGET, BURST_REV_STRICT, BURST_REV_AIM, BURST_REV_BIG, BURST_REV_SMALL } from "@/lib/arcade/burst";
-import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD, BRK_REV_CLEAR } from "@/lib/arcade/breaker";
-import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_SAVE } from "@/lib/arcade/pinball";
+import { BRK_REV_TARGET, BRK_REV_STRICT, BRK_REV_DEEP, BRK_REV_PHONE, BRK_REV_STD, BRK_REV_CLEAR, BRK_REV_LADDER } from "@/lib/arcade/breaker";
+import { breakerLevelDealSeed } from "./breakerLevelDeals.server";
+import { PIN_REV_TARGET, PIN_REV_STRICT, PIN_REV_EXPAND, PIN_REV_LONG, PIN_REV_STD, PIN_REV_SAVE, PIN_REV_LADDER } from "@/lib/arcade/pinball";
+import { pinballLevelDealSeed } from "./pinballLevelDeals.server";
 import { WHACK_REV_DEPTH, WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { dealtNotesRev } from "./phoneNotes";
 import { WAV_REV_TARGET, WAV_REV_STRICT, WAV_REV_KEEP, WAV_REV_BIG, WAV_REV_WIDE } from "@/lib/arcade/wavefront";
@@ -46,7 +50,7 @@ import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD, RALLY_REV_LIVES, RAL
 import { rallyLevelDealSeed } from "./rallyLevelDeals.server";
 import { BEAT_REV_TARGET, BEAT_REV_FLOOR, BEAT_REV_STD, BEAT_REV_LANES } from "@/lib/arcade/beat";
 import { beatDealSeedV13 } from "./beatDealV13.server";
-import { orbitFuelCourseForSeed, orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
+import { orbitFuelCourseForSeed, orbitLadderCourseForSeed, orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
 import { SWING_V13_BANK } from "./swingBankV13.server";
@@ -211,17 +215,21 @@ export function generateSwerve(): SwervePuzzleData {
   return { type: "swerve", seed: arcadeSeed() };
 }
 
-export function generateSkyline(_level?: Level): SkylinePuzzleData {
+export function generateSkyline(level?: Level): SkylinePuzzleData {
   // Levels (15 Nov 2026, docs/arcade-standard/skyline.md "Levels"): the same seed and stamp at every level; the deal
-  // stamps `level` and the sim reads it (skylineGameFor). No proved deal: every seed is proved at every level
-  // (skyline-levels-check).
+  // stamps `level` and the sim reads it (skylineGameFor). No proved deal on skylineRev 11: every seed is proved at every
+  // level (skyline-levels-check).
   // skylineRev 9: skylineRev 8's play on the arcade scoring standard (29 Oct 2026, docs/arcade-standard/skyline.md).
   // skylineRev 10 (Nov 2026, the scoring audit): skylineRev 9's play; perfect drops counted up to 61, so more floors never score less.
   // skylineRev 11 (15 Nov 2026, the Action overhaul): three lives (a miss costs one, the run carries on) and the wide-block
   // rescue after five trims in a row; skylineRev 10's parts and gold blocks.
-  // skylineRev 12 (22 Nov 2026, D5 item I5): skylineRev 11's play at every level; Floors full at 45, perfect drops at 30.
-  const skylineRev = dealPinned("skylinePreLives") ? SKYLINE_REV_COUNT : dealPinned("skylinePreCount") ? SKYLINE_REV_LIVES : SKYLINE_REV_FLOORS;
-  return { type: "skyline", seed: arcadeSeed(), skylineRev };
+  // skylineRev 12 (22–23 Nov 2026, D5): skylineRev 11's play on Normal on the refit's full lines, and the block-width ladder
+  // at every other level; every level deals from its own proved deal (skylineDealV12.server.ts: seeds the oracle held to
+  // the human limits takes to 200 through the server replay; the deal stamps `level` off Normal).
+  if (dealPinned("skylinePreLives")) return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_COUNT };
+  if (dealPinned("skylinePreCount")) return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_LIVES };
+  const at = level === "easy" || level === "hard" || level === "expert" ? level : "normal";
+  return { type: "skyline", seed: skylineDealSeedV12(at, arcadeSeed()), skylineRev: SKYLINE_REV_FLOORS };
 }
 
 export function generateBinToss(): BinTossPuzzleData {
@@ -299,20 +307,30 @@ export function pinRicoPreMid(on: boolean): boolean {
   return setDealPin("ricoPreMid", on);
 }
 
-export function generateBreaker(): BreakerPuzzleData {
+export function generateBreaker(level?: Level): BreakerPuzzleData {
   // brkRev 10 (phone notes, 27 Oct 2026): brkRev 9 with gold bricks broken by any 4 hits and a second double-ball brick.
   // brkRev 11 (the arcade scoring standard, 29 Oct 2026): brkRev 10's play scored in fixed parts to 200.
   // brkRev 12 (the Retro overhaul, 15 Nov 2026): a clearable 9-row wall, a quicker ball, a stronger multi-ball
   // (preRetro: brkRev 11).
-  return { type: "breaker", seed: arcadeSeed(), brkRev: dealPinned("preRetro") ? BRK_REV_STD : BRK_REV_CLEAR };
+  if (dealPinned("preRetro")) return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_STD };
+  if (dealPinned("breakerPreLadder")) return { type: "breaker", seed: arcadeSeed(), brkRev: BRK_REV_CLEAR };
+  // brkRev 13 (D5's ladder, 23 Nov 2026; docs/arcade-standard/breaker.md "brkRev 13"): Normal brkRev 12's play on the
+  // refitted lines and each level its own wall, every one dealt only on the seeds whose human-limited flawless run scores
+  // 200 there (breakerLevelDeals.server.ts; the deal stamps `level`). breakerPreLadder: brkRev 12 as before.
+  return { type: "breaker", seed: breakerLevelDealSeed(level, arcadeSeed()), brkRev: BRK_REV_LADDER };
 }
 
-export function generatePinball(): PinballPuzzleData {
+export function generatePinball(level?: Level): PinballPuzzleData {
   // pinRev 5 (27 Oct 2026, Joe's phone notes): pinRev 4's table for 90 s (PIN_REV_LONG).
   // pinRev 6 (29 Oct 2026): pinRev 5's play on the arcade scoring standard (docs/arcade-standard/pinball.md).
   // pinRev 7 (the Retro overhaul, 15 Nov 2026): pinRev 6's play; one J-O-U-L-Z set fills its part (preRetro: pinRev 6).
   // pinRev 8 (stage 3, 16 Nov 2026): pinRev 7's play with the outlane saves counted.
-  return { type: "pinball", seed: arcadeSeed(), pinRev: dealPinned("preRetro") ? PIN_REV_STD : PIN_REV_SAVE };
+  if (dealPinned("preRetro")) return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV_STD };
+  if (dealPinned("pinballPreLadder")) return { type: "pinball", seed: arcadeSeed(), pinRev: PIN_REV_SAVE };
+  // pinRev 9 (D5's ladder, 23 Nov 2026; docs/arcade-standard/pinball.md "pinRev 9"): Normal pinRev 8's play on the refitted
+  // lines and each level its flippers' length, every one dealt only on the seeds (the skill shot's lanes) whose
+  // human-limited flawless run scores 200 there (pinballLevelDeals.server.ts). pinballPreLadder: pinRev 8 as before.
+  return { type: "pinball", seed: pinballLevelDealSeed(level, arcadeSeed()), pinRev: PIN_REV_LADDER };
 }
 
 /**
@@ -516,15 +534,24 @@ export function generateFlip(level?: Level): FlipPuzzleData {
   // flipRev 13 (15 Nov 2026, the Action overhaul): grace, dealt from its own proved courses (flipDealV13.server.ts).
   // Checks written for flipRev 12 pin it (pinFlipPreGrace).
   if (dealPinned("flipPreGrace")) return { type: "flip", seed: flipDealSeed(arcadeSeed()), flipRev: FLIP_REV_DEAL };
-  // Levels (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): Easy, Hard and Expert deal flipRev 13 from their own
+  // Levels (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): Easy, Hard and Expert dealt flipRev 13 from their own
   // proved deals (flipLevelDeals.server.ts; the deal stamps `level`); Normal exactly as before.
-  if (isFlipLevel(level)) return { type: "flip", seed: flipLevelDealSeed(level, arcadeSeed()), flipRev: FLIP_REV_GRACE };
+  // D5 (23 Nov 2026, docs/arcade-standard/flip.md "Levels (D5, 23 Nov 2026)"): Easy, Hard and Expert deal flipRev 14, the
+  // running-speed ladder, from its own proved deals (flipLadderDeals.server.ts: courses whose witness held to the human
+  // limits scores exactly 200); Normal stays flipRev 13. Checks written for flipRev 13's levels pin flipPreLadder.
+  if (isFlipLevel(level) && dealPinned("flipPreLadder")) return { type: "flip", seed: flipLevelDealSeed(level, arcadeSeed()), flipRev: FLIP_REV_GRACE };
+  if (isFlipLevel(level)) return { type: "flip", seed: flipLadderDealSeed(level, arcadeSeed()), flipRev: FLIP_REV_LADDER };
   return { type: "flip", seed: flipDealSeedV13(arcadeSeed()), flipRev: FLIP_REV_GRACE };
 }
 
 /** Checks written for flipRev 12 (before the Action overhaul's grace, 15 Nov 2026) pin it; returns the previous setting. */
 export function pinFlipPreGrace(on: boolean): boolean {
   return setDealPin("flipPreGrace", on);
+}
+
+/** Checks written for flipRev 13's levels (before D5's running-speed ladder, 23 Nov 2026) pin it; returns the previous setting. */
+export function pinFlipPreLadder(on: boolean): boolean {
+  return setDealPin("flipPreLadder", on);
 }
 
 export function generateJunction(): JunctionPuzzleData {
@@ -650,6 +677,13 @@ export function generateOrbit(level?: Level): OrbitPuzzleData {
   // orbitRev 17 (the lost flight, 22 Nov 2026, D5 item H4): orbitRev 16's play on the same courses at every level; a flight
   // that can no longer reach anything ends at once. The era pin orbitPreLost deals orbitRev 16 as before.
   const lostRev = dealPinned("orbitPreLost") ? ORBIT_REV_BIG : ORBIT_REV_LOST;
+  // orbitRev 17's lines, belts and levels (D5, 23 Nov 2026; docs/arcade-standard/orbit.md "orbitRev 17: lines, belts and
+  // levels"): Normal and every level deal from their own ladder bank (scripts/orbit-ladder-bank.ts: the level's belts,
+  // every witness held to the human limits); orbitPreLost deals orbitRev 16 from the fuel banks below exactly as before.
+  if (lostRev === ORBIT_REV_LOST && !dealPinned("orbitPreFuel") && !dealPinned("orbitPreGrace") && !dealPinned("orbitPreBig")) {
+    const course = orbitLadderCourseForSeed(seed, levelName ?? undefined);
+    if (course) return { type: "orbit", seed, orbitRev: ORBIT_REV_LOST, planets: course.planets, holes: course.holes, extras: course.extras };
+  }
   if (levelName && !dealPinned("orbitPreFuel") && !dealPinned("orbitPreGrace") && !dealPinned("orbitPreBig")) {
     const course = orbitFuelCourseForSeed(seed, levelName);
     if (course) return { type: "orbit", seed, orbitRev: lostRev, planets: course.planets, holes: course.holes, extras: course.extras };

@@ -71,6 +71,7 @@ import {
   SKYLINE_V2_PERFECT_POINTS,
   SKYLINE_WIND_FROM,
   SKYLINE_LEVEL_RULES,
+  SKYLINE_V12_LEVEL_RULES,
   SKYLINE_PERFECT_TOL,
   SKYLINE_V11_LIVES,
 } from "@/lib/arcade/skyline";
@@ -272,7 +273,8 @@ import {
   ORBIT_XP_THREAD_CAP,
   ORBIT_XP_THREAD_PTS,
   ORBIT_XP_TRAILS,
-  ORBIT_STD,
+  ORBIT_STD_V17,
+  ORBIT_V17_LINES,
   ORBIT_STD_PERFECT_OF,
   ORBIT_FUEL_MAX,
   ORBIT_GRACE_HOLD_TICKS,
@@ -338,6 +340,10 @@ import {
   BRK_V11_GOLD_MAX,
   BRK_V11_MAX,
   BRK_V11_SPEED_MAX,
+  BRK_V13_CORE_SHORT,
+  BRK_V13_GOLD_EACH,
+  BRK_V13_SPEED_FULL_S,
+  BRK_RUN_SECONDS,
 } from "@/lib/arcade/breaker";
 import {
   FLIP_V8_COMBO_CAP,
@@ -1012,7 +1018,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Dusk to night:", detail: "the city lights come on as your tower climbs.", helpOnly: true },
         { action: "Next-block preview:", detail: "five gold blocks come in every run, at the same places for everyone; land one perfectly to score it. Narrow is harder and wide easier; both count as a floor like any other.", helpOnly: true },
         { action: "Every 10 floors", detail: "the camera pulls back to show the city.", helpOnly: true },
-        { action: `From block ${SKYLINE_WIND_FROM}`, detail: `a waving flag warns of wind (from block ${SKYLINE_LEVEL_RULES.easy.windFrom} on Easy, ${SKYLINE_LEVEL_RULES.hard.windFrom} on Hard, ${SKYLINE_LEVEL_RULES.expert.windFrom} on Expert).`, helpOnly: true },
+        // skylineRev 12's ladder (D5, 23 Nov 2026): no wind on Easy, from block 8 on Hard and from the first block on Expert.
+        { action: `From block ${SKYLINE_WIND_FROM}`, detail: `a waving flag warns of wind (none on Easy, from block ${SKYLINE_V12_LEVEL_RULES.hard.windFrom} on Hard, from the first block on Expert).`, helpOnly: true },
         // Levels (15 Nov 2026, docs/arcade-standard/skyline.md "Levels"): what each level changes, from the sim's own table.
         {
           action: "Levels:",
@@ -1212,7 +1219,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Clear the wall; break the gold.",
       how: [
         { action: "Drag the paddle;", detail: "tap to fire a power-up." },
-        { action: "Gold:", detail: `${BRK_V10_GOLD_HITS} hits; ${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each (${BRK_V11_GOLD_MAX} for all three).` },
+        { action: "Gold:", detail: `${BRK_V10_GOLD_HITS} hits; ${BRK_V13_GOLD_EACH} each (${BRK_V11_GOLD_MAX} for ${BRK_V11_GOLD_MAX / BRK_V13_GOLD_EACH} of the ${BRK_V9_GOLD}).` },
         { action: "Every brick scores;", detail: "a fast clear scores more." },
         { action: "Catch power-ups:", detail: "laser, ×3, ×2, Fireball.", helpOnly: true },
         { action: "Keep the ball up", detail: "– it gets faster with bricks and with time. Losing the last ball costs 3 seconds.", helpOnly: true },
@@ -1226,12 +1233,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Sliding rows:", detail: "one row starts at 30 s and another at 60 s, half a brick each way, slowly and always the same.", helpOnly: true },
         { action: `${BRK_V9_GOLD} gold bricks`, detail: `sit near the top, each behind an armoured brick. Any ${BRK_V10_GOLD_HITS} hits break one: balls, Fireball balls, ×3 shots and the laser all count, and each hit cracks it further.`, helpOnly: true },
       ],
-      // brkRev 11 (the arcade scoring standard): four fixed parts that total 200.
+      // brkRev 11 (the arcade scoring standard): four fixed parts that total 200; brkRev 13 (D5, 23 Nov 2026): Normal's lines refitted.
       score: scoreList([
-        { label: "Bricks", how: `every brick broken counts the same, the ${BRK_V9_GOLD} gold bricks too`, max: BRK_V11_CORE_MAX },
+        { label: "Bricks", how: `every brick broken counts the same, the ${BRK_V9_GOLD} gold bricks too, all of it at ${BRK_V9_COLS * BRK_V12_ROWS - BRK_V13_CORE_SHORT} of the ${BRK_V9_COLS * BRK_V12_ROWS}`, max: BRK_V11_CORE_MAX },
         { label: "Clear", how: "break every brick", max: BRK_V11_CLEAR_POINTS },
-        { label: "Speed", how: "clear the wall with half the time left for all of it, falling to 0 at the buzzer", max: BRK_V11_SPEED_MAX },
-        { label: "Gold bricks", how: `${BRK_V11_GOLD_MAX / BRK_V9_GOLD} each (${BRK_V11_GOLD_MAX} for all ${BRK_V9_GOLD})`, max: BRK_V11_GOLD_MAX },
+        { label: "Speed", how: `clear the wall with ${BRK_RUN_SECONDS - BRK_V13_SPEED_FULL_S} seconds left for all of it, falling to 0 at the buzzer`, max: BRK_V11_SPEED_MAX },
+        { label: "Gold bricks", how: `${BRK_V13_GOLD_EACH} each (${BRK_V11_GOLD_MAX} for ${BRK_V11_GOLD_MAX / BRK_V13_GOLD_EACH} of the ${BRK_V9_GOLD})`, max: BRK_V11_GOLD_MAX },
       ], { penalties: ["A lost ball costs only time"], total: BRK_V11_MAX }),
     },
     // Cards & Board (30 Oct 2026; docs/arcade-standard/minesweeper.md and mahjong.md).
@@ -1899,13 +1906,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Perfect orbits:", detail: "let go while the gold arc still shows – during your first lap round the planet – and land in the next orbit.", helpOnly: true },
       ],
       // orbitRev 13 (the arcade scoring standard) and 14 (the fuel meter): planets on a straight line to 130, then speed and the features, 200 in all.
-      score: listFromSpec(ORBIT_STD, {
+      // orbitRev 17 (D5, 23 Nov 2026): the same parts, each feature full at its own line (ORBIT_V17_LINES, Normal's).
+      score: listFromSpec(ORBIT_STD_V17, {
         core: "every planet reached counts the same (one you jump past too), all of it at the sun",
-        speed: "reach the sun with half the time left for all of it, falling to 0 at the buzzer",
-        dust: "0.5 for each speck of stardust",
-        slings: "3 for each slingshot round a moon",
+        speed: `reach the sun with ${Math.round(ORBIT_V17_LINES.speedFullLeft / 60)} s left for all of it, falling to 0 at the buzzer`,
+        dust: `every speck of stardust counts the same, all of it at ${ORBIT_V17_LINES.dustFull} specks`,
+        slings: `every slingshot round a moon counts the same, all of it at ${ORBIT_V17_LINES.slingsFull}`,
         fields: "4 for each asteroid field crossed",
-        perfect: "a little for each perfect orbit",
+        perfect: `every perfect orbit counts the same, all of it at ${ORBIT_V17_LINES.perfectFull}`,
       }, ["Running out of fuel ends the run (or sends you back to your checkpoint)"]),
     },
 

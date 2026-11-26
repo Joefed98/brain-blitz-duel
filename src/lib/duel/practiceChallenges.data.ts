@@ -367,14 +367,18 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("swing", "Gatecrasher", "Fly through every gate.", "C", "fullset", false, all(full("Gates", 10))),
   ch("swing", "Vine time", "Make ten runs of eight clean swings.", "C", "streak", false, all(line("Clean-swing streak", "gte", 20))),
   ch("swing", "King of the swingers", "Get 70 % of the way on Expert.", "E", "maxout", false, all(full("Course", 110))),
-  // Moon Climb (ricochet): height 125 + flow 30 + lantern rides 30 + scrolls 15.
-  ch("ricochet", "Scroll keeper", "Grab all three scrolls.", "C", "fullset", false, part("Scrolls", 15)),
-  ch("ricochet", "Lantern lift", "Ride all six sky lanterns.", "C", "fullset", false, part("Lantern rides", 30)),
-  ch("ricochet", "Moonwalker", "Climb 245 m on Hard.", "H", "maxout", false, part("Height", 125)),
+  // Moon Climb (ricochet): height 125 + flow 30 + lantern rides 30 + scrolls 15. ricoRev 5 (D5, 23 Nov 2026) fills each
+  // part before the last item (scrolls at 2, rides at 3, Hard's height at 190 m), so these count the things themselves
+  // (Moonwalker 220 m on Hard: Normal's full height, past Hard's 190 m).
+  ch("ricochet", "Scroll keeper", "Grab all three scrolls.", "C", "fullset", false, all(f("scrolls", "gte", 3))),
+  ch("ricochet", "Lantern lift", "Ride all six sky lanterns.", "C", "fullset", false, all(f("rides", "gte", 6))),
+  ch("ricochet", "Moonwalker", "Climb 220 m on Hard.", "H", "maxout", false, all(f("metres", "gte", 220))),
   // High Rise (skyline): floors 140 + perfect drops 30 + perfect streak 10 + gold blocks 20.
-  ch("skyline", "Gold top", "Land all five gold blocks perfectly.", "C", "fullset", false, part("Gold blocks", 20), "skyline.gold"),
+  // D5 (23 Nov 2026): skylineRev 12 fills Gold blocks at 2 of the 5, so the goal counts the gold blocks themselves.
+  ch("skyline", "Gold top", "Land all five gold blocks perfectly.", "C", "fullset", false, all(f("golds", "gte", 5)), "skyline.gold"),
   ch("skyline", "Thirty perfect", "Make 30 perfect drops.", "C", "target", false, all(f("perfects", "gte", 30)), "skyline.perfects"),
-  ch("skyline", "Steady crane", "Make ten perfect drops in a row.", "C", "streak", false, part("Perfect streak", 10)),
+  // D5 (23 Nov 2026): skylineRev 12 fills Perfect streak at 5 in a row, so the goal counts the best streak itself.
+  ch("skyline", "Steady crane", "Make ten perfect drops in a row.", "C", "streak", false, all(f("bestStreak", "gte", 10))),
   // Changed with Joe's approval, 23 Nov 2026 (D5's skylineRev 12: the Floors part is full at 45, so the Skyscraper counts
   // the run's own floors, still 61 on Expert, never easier).
   ch("skyline", "Skyscraper", "Build 61 floors on Expert.", "E", "maxout", true, all(f("blocks", "gte", 61))),
@@ -384,8 +388,9 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("slice", "Combo chef", "Slice 110 foods in combos.", "C", "combo", false, all(tile("Combo foods", "gte", 110))),
   // Orbit (orbit): planets 130 + speed 20 + stardust 15 + slingshots 12 + asteroid fields 12 + perfect orbits 11.
   ch("orbit", "Sun seeker", "Reach the sun.", "C", "finish", false, all(f("finished", "eq", 1))),
-  ch("orbit", "Slingshot", "Pull all four slingshots.", "C", "fullset", false, all(full("Slingshots", 12))),
-  ch("orbit", "Stargazer", "Collect all the stardust on Hard.", "H", "fullset", false, all(full("Stardust", 15))),
+  // orbitRev 17 (D5, 23 Nov 2026) fills slingshots at 3 and stardust at 22 motes, so these count the things themselves.
+  ch("orbit", "Slingshot", "Pull all four slingshots.", "C", "fullset", false, all(f("slings", "gte", "@slingsTotal"), f("slingsTotal", "gte", 4))),
+  ch("orbit", "Stargazer", "Collect all the stardust on Hard.", "H", "fullset", false, all(f("dust", "gte", "@dustTotal"), f("dustTotal", "gte", 1))),
 
   /* ================================================================ Retro */
   // Tempo (beat): accuracy 130 + fever 25 + golden notes 15 + double taps 15 + perfect streak 15.
