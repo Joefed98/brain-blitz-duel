@@ -632,9 +632,9 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // (amber on maze 3, Normal) / two on mazes 1–3 / two on every maze.
   tilt: {
     levels: {
-      easy: { settings: { mazes: 3, sizes: [11, 13, 13], routes: [28, 34, 30], pits: [0, 1, 1], ice: [0, 0, 0], icePassages: 0, twoMazes: [], pitHops: 2, parScale: 240, speedFullS: 60 } },
-      hard: { settings: { mazes: 4, sizes: [13, 15, 15, 17], routes: [34, 54, 54, 54], pits: [4, 4, 4, 4], ice: [3, 3, 3, 3], icePassages: 2, twoMazes: [1, 2, 3], pitHops: 2, parScale: 200, speedFullS: 78 } },
-      expert: { settings: { mazes: 4, sizes: [15, 17, 17, 19], routes: [54, 54, 54, 58], pits: [5, 5, 5, 5], ice: [5, 5, 5, 5], icePassages: 2, twoMazes: [1, 2, 3, 4], pitHops: 1, parScale: 200, speedFullS: 88 } },
+      easy: { settings: { mazes: 3, sizes: [11, 11, 13], routes: [28, 28, 34], pits: [0, 0, 0], ice: [0, 0, 0], icePassages: 0, twoMazes: [], pitHops: 2, parScale: 300, speedFullS: 70 } },
+      hard: { settings: { mazes: 4, sizes: [13, 13, 15, 15], routes: [34, 34, 54, 54], pits: [3, 3, 3, 3], ice: [2, 2, 2, 2], icePassages: 2, twoMazes: [1, 2, 3], pitHops: 2, parScale: 200, speedFullS: 78 } },
+      expert: { settings: { mazes: 4, sizes: [15, 17, 17, 19], routes: [54, 54, 54, 58], pits: [4, 4, 4, 4], ice: [4, 4, 4, 4], icePassages: 2, twoMazes: [1, 2, 3, 4], pitHops: 1, parScale: 200, speedFullS: 90, cleanFull: 3 } },
     },
   },
   // Rainbow Bridge (the Strategy overhaul's stage 3, 15 Nov 2026; docs/arcade-standard/inkbridge.md "Levels (stage 3)"):
@@ -664,14 +664,15 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       expert: { settings: { flight: { 0: [27, 29], 1: [37, 40], 3: [51, 55] }, balls: 9, winContact: 4, winPower: 2, perfect: 1, bend: 1600, reach: 1650, ballOff: [5, 17], runsFull: 10, homersFull: 10, streakFull: 6, eyeFull: 5 } },
     },
   },
-  // Top Bins (freekickRev 6 since 16 Nov 2026; rev 5 kept its own table): the power bar's gold zone, the keeper's reaction and speed, the wall, the wind, the corner
-  // hoop's last size and the jumping-wall kicks. A mirror of FK_LEVEL_SETTINGS_V6 in src/lib/arcade/freekick.ts
-  // (freekick-layered-check proves the two match). Each level deals from its own proved deal (freekickDealV5.server.ts).
+  // Top Bins (D6, 23 Nov 2026: freekickRev 7 on level deals, Normal keeps freekickRev 6): the players in the wall the
+  // lever, with the keeper's reaction and speed, the wind, the corner hoop's last size, the jumping-wall kicks and each
+  // level's Targets and Skill-shot figures. A mirror of FK_LEVEL_SETTINGS_V7 and FK_V7_FULL in src/lib/arcade/freekick.ts
+  // (d6-sports-levels-check proves the two match). Each level deals from its own proved deal (freekickDealV7.server.ts).
   freekick: {
     levels: {
-      easy: { settings: { zoneLo: 680, zoneHi: 820, react: 14, speed: 850, wall: [3, 3], wind: 1, hoopLast: 850, jumps: 3 } },
-      hard: { settings: { zoneLo: 735, zoneHi: 790, react: 6, speed: 1300, wall: [4, 5], wind: 6, hoopLast: 600, jumps: 5 } },
-      expert: { settings: { zoneLo: 745, zoneHi: 780, react: 5, speed: 1400, wall: [5, 5], wind: 7, hoopLast: 500, jumps: 6 } },
+      easy: { settings: { zoneLo: 660, zoneHi: 840, react: 18, speed: 700, wall: [2, 2], wind: 0, hoopLast: 850, jumps: 0, targetsFull: 3, skillFull: 8 } },
+      hard: { settings: { zoneLo: 720, zoneHi: 800, react: 10, speed: 1050, wall: [5, 5], wind: 4, hoopLast: 800, jumps: 5, targetsFull: 4, skillFull: 9 } },
+      expert: { settings: { zoneLo: 720, zoneHi: 800, react: 5, speed: 1400, wall: [7, 7], wind: 8, hoopLast: 800, jumps: 8, targetsFull: 2, skillFull: 9 } },
     },
   },
   // Cue Ball (the Sports overhaul's stage 3, 15 Nov 2026; docs/arcade-standard/pool.md "Levels"): the same layouts and

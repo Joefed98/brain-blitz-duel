@@ -122,8 +122,21 @@ export const FK_LEVEL_SETTINGS_V6: Readonly<Record<FkLevel, FkLevelSettings>> = 
 export const FK_LEVEL_SETTINGS_V7: Readonly<Record<FkLevel, FkLevelSettings>> = {
   easy: { zoneLo: 660, zoneHi: 840, react: 18, speed: 700, wall: [2, 2], wind: 0, hoopLast: 850, jumps: 0 },
   normal: FK_LEVEL_SETTINGS.normal,
-  hard: { zoneLo: 720, zoneHi: 800, react: 8, speed: 1150, wall: [5, 6], wind: 5, hoopLast: 800, jumps: 6 },
+  hard: { zoneLo: 720, zoneHi: 800, react: 10, speed: 1050, wall: [5, 5], wind: 4, hoopLast: 800, jumps: 5 },
   expert: { zoneLo: 720, zoneHi: 800, react: 5, speed: 1400, wall: [7, 7], wind: 8, hoopLast: 800, jumps: 8 },
+};
+/**
+ * freekickRev 7's Targets and Skill shots figures by level (D6): the part is full at this many targets hit and skill
+ * shots made (a straight line from 0; rev 5 and 6: 10 a target to 4, 3 a skill shot to 10). Set from 96 room deals a
+ * level (scripts/d6-ladder.ts, the skill-band bots under HUMAN_LIMITS): the average player 153 / 85 (Normal) / 59 / 29,
+ * the elite at 200 83 / 38 / 29 / 24 %. (The spec's Hard, a 5–6 man wall and an 8-tick keeper at 115 %, left the
+ * average player no more than 6 above Expert; Hard's keeper and wind are eased a little, its wall five.)
+ */
+export const FK_V7_FULL: Readonly<Record<FkLevel, { targets: number; skill: number }>> = {
+  easy: { targets: 3, skill: 8 },
+  normal: { targets: 4, skill: 10 },
+  hard: { targets: 4, skill: 9 },
+  expert: { targets: 2, skill: 9 },
 };
 /** A stamp's level settings: rev 7's table from rev 7, rev 6's from rev 6, else rev 5's. */
 export function fkLevelSettings(rev: number, level?: string | null): FkLevelSettings {
@@ -1339,8 +1352,9 @@ export function freekickStdParts(state: FreekickState): StdPart[] | null {
     const spec = r === FREEKICK_REV_7 ? FREEKICK_V7_STD_SPEC : r === FREEKICK_REV_6 ? FREEKICK_V6_STD_SPEC : FREEKICK_V5_STD_SPEC;
     return [
       stdPart(spec, "core", stdLine(FREEKICK_V5_CORE_MAX, state.units, r === FREEKICK_REV_6 ? FK_V6_CORE_FULL[fkLevelOf(state.level)] : FREEKICK_V5_CORE_FULL), `${state.goals} of ${FREEKICK_KICKS} scored · placement ${placed} of ${state.goals * FREEKICK_PLACE_UNITS}`),
-      stdPart(spec, "targets", stdEach(state.targets, 10, FREEKICK_TARGETS_MAX), `${state.targets} of ${FREEKICK_TARGETS} targets`),
-      stdPart(spec, "skill", stdEach(state.skill ?? 0, FREEKICK_V5_SKILL_EACH, FREEKICK_V5_SKILL_MAX), `${state.skill ?? 0} skill shots`),
+      // freekickRev 7 (D6): each level's own figures (FK_V7_FULL).
+      stdPart(spec, "targets", r === FREEKICK_REV_7 ? stdLine(FREEKICK_TARGETS_MAX, state.targets, FK_V7_FULL[fkLevelOf(state.level)].targets) : stdEach(state.targets, 10, FREEKICK_TARGETS_MAX), `${state.targets} of ${FREEKICK_TARGETS} targets`),
+      stdPart(spec, "skill", r === FREEKICK_REV_7 ? stdLine(FREEKICK_V5_SKILL_MAX, state.skill ?? 0, FK_V7_FULL[fkLevelOf(state.level)].skill) : stdEach(state.skill ?? 0, FREEKICK_V5_SKILL_EACH, FREEKICK_V5_SKILL_MAX), `${state.skill ?? 0} skill shots`),
       stdPart(spec, "streak", state.best >= FREEKICK_STREAK_RUN ? FREEKICK_STREAK_MAX : 0, `best ${state.best} in a row`),
     ];
   }

@@ -2936,14 +2936,14 @@ export function tiltLevelSpeedFull(level: TiltLevel, v13 = false): number {
  * par = 24 × mazes within par ÷ N, clean = 12 × clean mazes ÷ N (a straight line), speed as tiltRev 11's. Integer only.
  */
 export function tiltLevelParts(state: TiltState): { core: number; par: number; clean: number; speed: number; mazes: number; progress: number; parsMet: number; cleanMazes: number } {
-  return tiltPartsOver(state, tiltLevelSpeedFull(state.lvl!, Boolean(state.lv13)));
+  return tiltPartsOver(state, tiltLevelSpeedFull(state.lvl!, Boolean(state.lv13)), state.lv13 ? TILT_LEVELS_V13[state.lvl!].cleanFull : undefined);
 }
 
 /**
  * The four parts over the run's own maze count (state.list.length), speed full by `full` ticks: tiltLevelParts' formula
  * (a level's run, its speed line) and tiltRev 13's Normal (three mazes, 55 s). Integer only.
  */
-export function tiltPartsOver(state: TiltState, full: number): { core: number; par: number; clean: number; speed: number; mazes: number; progress: number; parsMet: number; cleanMazes: number } {
+export function tiltPartsOver(state: TiltState, full: number, cleanFull?: number): { core: number; par: number; clean: number; speed: number; mazes: number; progress: number; parsMet: number; cleanMazes: number } {
   const all = state.list.length;
   const mazes = clampInt(state.mazes, 0, all);
   const finished = mazes >= all;
@@ -2954,7 +2954,7 @@ export function tiltPartsOver(state: TiltState, full: number): { core: number; p
   const parsMet = clampInt(state.parsMet ?? 0, 0, mazes);
   const par = Math.trunc((TILT_P_PAR_MAX * parsMet) / all);
   const cleanMazes = clampInt(state.cleanTo ?? mazes, 0, mazes);
-  const clean = stdLine(TILT_P_CLEAN_POINTS, cleanMazes, all);
+  const clean = stdLine(TILT_P_CLEAN_POINTS, cleanMazes, cleanFull ?? all);
   const end = clampInt(state.endedTick, 0, TILT_RUN_TICKS);
   const speed = finished ? (end <= full ? TILT_P_SPEED_POINTS : Math.trunc((TILT_P_SPEED_POINTS * (TILT_RUN_TICKS - end)) / (TILT_RUN_TICKS - full))) : 0;
   return { core, par, clean, speed, mazes, progress, parsMet, cleanMazes };
@@ -2999,10 +2999,10 @@ export const TILT_T_MAZES = 3;
 export const TILT_T_SPEED_FULL_S = 55;
 /**
  * tiltRev 13's Normal par (D6, 23 Nov 2026, tuned in place before the stamp shipped; Joe's Decision 1 A): tiltRev 11's
- * walk times × 190 % (tiltRev 12's 150 %), so the realistic elite under HUMAN_LIMITS makes par on every maze about half
- * the time (96 room deals: the elite at 200 31 % → 54 %).
+ * walk times × 180 % (tiltRev 12's 150 %), so the realistic elite under HUMAN_LIMITS makes par on every maze about half
+ * the time (96 room deals: the elite at 200 31 % → 46 %).
  */
-export const TILT_T_PAR_SCALE = 190;
+export const TILT_T_PAR_SCALE = 180;
 /** The core's straight line on tiltRev 13 (0 → 140 over the three mazes; the "?" help and LIVE_BANDS read it). */
 export const TILT_V13_BAND_CURVE = TILT_V11_BAND_CURVE;
 
@@ -3045,11 +3045,11 @@ export const tiltThreeGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
  * 12's pieces and tiltRev 11's par rule at the level's scale, as the levels before; play, physics and falls are tiltRev
  * 12's, the parts tiltRev 11's four over the level's maze count (tiltPartsOver).
  *
- *   Easy    one marble on every maze (no amber); 3 mazes of 11, 13, 13 cells; holes 0, 1, 1; no ice; par 240 %.
- *   Hard    two marbles from the first second on mazes 1, 2 and 3 (maze 4 single); mazes of 13, 15, 15, 17 cells; 4 holes a
- *           maze; 3 ice patches; par 200 %; speed full by 78 s.
- *   Expert  two marbles on all four mazes, of 15, 17, 17, 19 cells; 5 holes a maze, a pocket one cell off the route
- *           allowed; 5 ice patches; par 200 %; speed full by 88 s.
+ *   Easy    one marble on every maze (no amber); 3 mazes of 11, 11, 13 cells; no holes; no ice; par 300 %; speed by 70 s.
+ *   Hard    two marbles from the first second on mazes 1, 2 and 3 (maze 4 single); mazes of 13, 13, 15, 15 cells; 3 holes
+ *           a maze; 2 ice patches; par 200 %; speed full by 78 s.
+ *   Expert  two marbles on all four mazes, of 15, 17, 17, 19 cells; 4 holes a maze, a pocket one cell off the route
+ *           allowed; 4 ice patches; par 200 %; speed full by 90 s (any finish); Clean run full at three clean mazes.
  *
  * The spec asked for 5 and 8 holes and four 19-cell mazes on Expert; measured on 96 deals (scripts/d6-ladder.ts, the
  * skill-band bots under HUMAN_LIMITS) the realistic elite then finished every maze without a fall on a fifth of Hard's
@@ -3072,12 +3072,14 @@ export interface TiltLevelSpecV13 {
   pitHops: number;
   parScale: number;
   speedFullS: number;
+  /** The Clean run part is full at this many mazes finished before the first fall (absent: every maze). */
+  cleanFull?: number;
 }
 
 export const TILT_LEVELS_V13: Readonly<Record<TiltLevel, TiltLevelSpecV13>> = {
-  easy: { sizes: [11, 13, 13], routes: [28, 34, 30], pits: [0, 1, 1], ice: [0, 0, 0], icePassages: 0, twoMazes: [], pitHops: 2, parScale: 240, speedFullS: 60 },
-  hard: { sizes: [13, 15, 15, 17], routes: [34, 54, 54, 54], pits: [4, 4, 4, 4], ice: [3, 3, 3, 3], icePassages: 2, twoMazes: [1, 2, 3], pitHops: 2, parScale: 200, speedFullS: 78 },
-  expert: { sizes: [15, 17, 17, 19], routes: [54, 54, 54, 58], pits: [5, 5, 5, 5], ice: [5, 5, 5, 5], icePassages: 2, twoMazes: [1, 2, 3, 4], pitHops: 1, parScale: 200, speedFullS: 88 },
+  easy: { sizes: [11, 11, 13], routes: [28, 28, 34], pits: [0, 0, 0], ice: [0, 0, 0], icePassages: 0, twoMazes: [], pitHops: 2, parScale: 300, speedFullS: 70 },
+  hard: { sizes: [13, 13, 15, 15], routes: [34, 34, 54, 54], pits: [3, 3, 3, 3], ice: [2, 2, 2, 2], icePassages: 2, twoMazes: [1, 2, 3], pitHops: 2, parScale: 200, speedFullS: 78 },
+  expert: { sizes: [15, 17, 17, 19], routes: [54, 54, 54, 58], pits: [4, 4, 4, 4], ice: [4, 4, 4, 4], icePassages: 2, twoMazes: [1, 2, 3, 4], pitHops: 1, parScale: 200, speedFullS: 90, cleanFull: 3 },
 };
 
 /** D6's streams (never the levels before's, never Normal's). */
