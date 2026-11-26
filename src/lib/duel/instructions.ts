@@ -141,6 +141,7 @@ import {
   HOVER_STD_GOLD,
   HOVER_STD_MAX,
   HOVER_STD_TIGHT,
+  HOVER_V12_FIT,
 } from "@/lib/arcade/hover";
 import {
   WAV_BOSS_HP,
@@ -155,7 +156,7 @@ import {
   WAV_STD_CORE_FULL,
   WAV_STD_LIFE_COST,
   WAVEFRONT_STD,
-  WAVEFRONT_STD_KEEP, WAV_V14_HEAVY_HITS } from "@/lib/arcade/wavefront";
+  WAVEFRONT_STD_KEEP, WAVEFRONT_STD_WIDE, WAV_V14_HEAVY_HITS, WAV_V16_SAUCERS_FULL, WAV_V16_WEAK_FULL } from "@/lib/arcade/wavefront";
 import {
   INK_CLOUD_LEVELS,
   INK_V13_CLOVERS,
@@ -248,6 +249,8 @@ import {
   BURST_V11_FREE_MISSES,
   BURST_V11_MISS_COST,
   BURST_V10_WAVES,
+  BURST_V14_CLEAR_FULL,
+  BURST_V14_GOLD_FULL,
 } from "@/lib/arcade/burst";
 import { liveBandHelp, liveStdHelp as bullseyeStdHelp, liveStdHelp } from "@/lib/arcade/liveBands";
 import {
@@ -970,20 +973,21 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Star chains:", detail: "sweep them; shields take a crash." },
         { action: "Touch gold stars", detail: "in tight gaps for a bonus. Later barriers have two gaps, or slide.", helpOnly: true },
         { action: "Hit anything", detail: "and the run ends. Gold stars sit near the edge of a gap, so they are risky.", helpOnly: true },
-        { action: `${HOVER_TIGHT_GATES} tight gates:`, detail: `a narrow gold-rimmed second gap on a barrier. Fly through it without touching anything for ${HOVER_STD_TIGHT / HOVER_TIGHT_GATES} points.`, helpOnly: true },
-        { action: "The centre line:", detail: `a faint line through each tight gate lights up as you fly along it. Stay within ${HOVER_STD_CENTRE_FULL / 256} px of it across the barrier for ${HOVER_STD_CENTRE / HOVER_TIGHT_GATES} more, less the further you stray, none from ${HOVER_STD_CENTRE_ZERO / 256} px.`, helpOnly: true },
-        { action: `${HOVER_CHAINS} star chains:`, detail: `5 to 7 stars on one flap’s arc between two barriers. Each chain pays up to ${HOVER_STD_CHAINS / HOVER_CHAINS}: ${HOVER_STD_CHAIN_SHARE} shared by its stars, ${HOVER_STD_CHAIN_WHOLE} more for every one of them.`, helpOnly: true },
+        // hoverRev 12 (D5, 23 Nov 2026): the parts' fitted full lines (HOVER_V12_FIT).
+        { action: `${HOVER_TIGHT_GATES} tight gates:`, detail: `a narrow gold-rimmed second gap on a barrier. Fly through it without touching anything for ${HOVER_STD_TIGHT / HOVER_V12_FIT.tightAt} points, all ${HOVER_STD_TIGHT} for ${HOVER_V12_FIT.tightAt} of them.`, helpOnly: true },
+        { action: "The centre line:", detail: `a faint line through each tight gate lights up as you fly along it. Stay within ${HOVER_STD_CENTRE_FULL / 256} px of it across the barrier for the most, less the further you stray, none from ${HOVER_STD_CENTRE_ZERO / 256} px.`, helpOnly: true },
+        { action: `${HOVER_CHAINS} star chains:`, detail: `5 to 7 stars on one flap’s arc between two barriers. Each chain pays for its share of stars touched, more for every one of them: all ${HOVER_STD_CHAINS} for ${HOVER_V12_FIT.chainsAt / ((HOVER_STD_CHAIN_SHARE + HOVER_STD_CHAIN_WHOLE))} whole chains.`, helpOnly: true },
         { action: `${HOVER_PICKUPS} shield bubbles`, detail: "sit at the same places for everyone. Touch one for a shield: your next crash breaks it instead and you fly on, untouchable for a moment.", helpOnly: true },
         { action: "Two-gap barriers:", detail: "fly through either gap. Sliding barriers move slowly and steadily up and down.", helpOnly: true },
         { action: "Sky:", detail: "the flight area fills your screen, and gaps sit anywhere from near the top to near the bottom. The faint stars behind are scenery only.", helpOnly: true },
         { action: "Everyone flies", detail: `the same course for sixty seconds: ${HOVER_REACHABLE_GATES} barriers in a clean run (the first a wide warm-up gap) and ${HOVER_STARS} gold stars.`, helpOnly: true },
       ],
-      // hoverRev 10 (the arcade scoring standard): five parts, each with its maximum, adding up to 200.
+      // hoverRev 10 (the arcade scoring standard): five parts, each with its maximum, adding up to 200; hoverRev 12 (D5): their fitted lines.
       score: scoreList([
-        { label: "Barriers", how: `fly through the ${HOVER_REACHABLE_GATES} barriers, each worth the same`, max: HOVER_STD_CORE },
-        { label: "Star chains", how: "touch a chain’s stars, more for the whole chain", max: HOVER_STD_CHAINS },
-        { label: "Gold stars", how: `${HOVER_STD_GOLD / HOVER_STARS} for each gold star`, max: HOVER_STD_GOLD },
-        { label: "Tight gates", how: `${HOVER_STD_TIGHT / HOVER_TIGHT_GATES} for each tight gate flown through`, max: HOVER_STD_TIGHT },
+        { label: "Barriers", how: HOVER_V12_FIT.coreAt === HOVER_REACHABLE_GATES ? `fly through the ${HOVER_REACHABLE_GATES} barriers, each worth the same` : `every barrier counts the same, all of it at ${HOVER_V12_FIT.coreAt} barriers`, max: HOVER_STD_CORE },
+        { label: "Star chains", how: `touch a chain’s stars, more for the whole chain, all of it at ${HOVER_V12_FIT.chainsAt / (HOVER_STD_CHAIN_SHARE + HOVER_STD_CHAIN_WHOLE)} whole chains`, max: HOVER_STD_CHAINS },
+        { label: "Gold stars", how: HOVER_STD_GOLD % HOVER_V12_FIT.goldAt === 0 ? `${HOVER_STD_GOLD / HOVER_V12_FIT.goldAt} for each gold star, all of it at ${HOVER_V12_FIT.goldAt}` : `every gold star counts the same, all of it at ${HOVER_V12_FIT.goldAt}`, max: HOVER_STD_GOLD },
+        { label: "Tight gates", how: `${HOVER_STD_TIGHT / HOVER_V12_FIT.tightAt} for each tight gate flown through`, max: HOVER_STD_TIGHT },
         { label: "Centre lines", how: "fly a tight gate along its centre line", max: HOVER_STD_CENTRE },
       ], { penalties: ["A crash ends the run"], total: HOVER_STD_MAX }),
     },
@@ -1618,7 +1622,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Fever:", detail: "Perfects (and Goods, half as much) fill the meter at the top; a miss empties it. When it flashes TAP FEVER!, tap it to start 8 seconds of fever. Each fever you start earns a fixed bonus.", helpOnly: true },
         { action: "Golden notes:", detail: "hit one dead on – on the very moment it meets the line – for a bonus.", helpOnly: true },
         { action: "Double taps:", detail: "two notes with white dots, close together in one lane. Tap both; both Perfect earns a bonus.", helpOnly: true },
-        { action: "Perfect streak:", detail: "the longer your longest run of Perfects, the bigger the bonus (all of it for every note Perfect).", helpOnly: true },
+        { action: "Perfect streak:", detail: "the longer your longest run of Perfects, the bigger the bonus (all of it for a run of 70 % of the song’s notes).", helpOnly: true },
         { action: "Closer is better", detail: "– perfect, good, or just OK.", helpOnly: true },
         { action: "A tap with no note", detail: "costs nothing.", helpOnly: true },
         { action: "Notes with a tail are holds", detail: "– press as the head reaches the line, release as the tail reaches it. Both ends must be Perfect for Perfect, or within Good for Good; otherwise Miss.", helpOnly: true },
@@ -1732,12 +1736,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       ],
       // wavRev 12 (the arcade scoring standard, docs/arcade-standard/wavefront.md): the core and fixed parts, 200 in all.
       // wavRev 13 (Nov 2026, the scoring audit): the life that ends the run is free; lives take at most half the ships' points.
-      score: listFromSpec(WAVEFRONT_STD_KEEP, {
+      // wavRev 16 (D5, 23 Nov 2026): the saucers full at 4 of the 5, the cannons and weak points at 5 of the 6 (Normal).
+      score: listFromSpec(WAVEFRONT_STD_WIDE, {
         core: "about half a point for each ship shot, armour hit and gunship hit, and about 8 for each wave cleared (the gunship counts as one)",
         boss: "destroy the boss",
         speed: "destroy it within 20 s of its arrival for all of it, nothing after 40 s",
-        saucers: `${20 / WAV_X_SAUCERS} for each saucer shot down, and for every saucer still to come when you destroy the boss`,
-        weak: "destroy cannons and hit the boss’s open core",
+        saucers: `${20 / WAV_V16_SAUCERS_FULL} for each saucer shot down, and for every saucer still to come when you destroy the boss: ${WAV_V16_SAUCERS_FULL} of the ${WAV_X_SAUCERS} fill it`,
+        weak: `${10 / WAV_V16_WEAK_FULL} for each cannon destroyed and each boss whose open core you hit: ${WAV_V16_WEAK_FULL} of the 6 fill it`,
       }, [`Each life lost costs ${WAV_STD_LIFE_COST}, but losing the last just ends the run`, "Lives never take more than half your ships, hits and waves points", "Power-ups score nothing"]),
     },
     // Iron Wall (id bastion; bastionRev 3, 3 Nov 2026; docs/arcade-standard/bastion.md): the tank-defence shooter.
@@ -1853,22 +1858,22 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Split the atoms. Don’t get hit.",
       how: [
         { action: "◀ ▶ to move,", detail: "tap the arena to shoot up." },
-        { action: `${BURST_V10_WAVES} waves:`, detail: `clear each fast for up to +${BURST_V10_CLEAR_PER_WAVE}.` },
-        { action: "Golden atom:", detail: `+${BURST_V10_GOLDEN_PTS}, but it hurts like any atom.` },
+        { action: `${BURST_V10_WAVES} waves:`, detail: "clear each fast for a bonus." },
+        { action: "Golden atoms:", detail: `${BURST_V14_GOLD_FULL} pay ${BURST_V10_GOLDEN_MAX}, but they hurt like any atom.` },
         { action: "An atom touching you (golden ones too)", detail: `costs a life (3 lives). Each life but your last costs ${BURST_V10_LIFE_COST} points; losing the last just ends the run.`, helpOnly: true },
         { action: "Hold ◀ or ▶ to walk; tap anywhere on the arena to fire straight up.", detail: `There is no FIRE button: every tap on the arena is a shot. A shot that reaches the top without hitting anything is wasted: you get one free for each atom you pop (at least ${BURST_V11_FREE_MISSES}), then each costs ${BURST_V11_MISS_COST}.`, helpOnly: true },
         { action: "Big atoms split into smaller ones;", detail: "the smallest pop.", helpOnly: true },
         { action: `${BURST_V10_WAVES} waves, ${BURST_V10_ATOMS} atoms:`, detail: `counting every piece the splits make. Clear all ${BURST_V10_WAVES} waves and the run is complete.`, helpOnly: true },
-        { action: "Wave-clear bonus:", detail: `each wave you clear pays up to ${BURST_V10_CLEAR_PER_WAVE}: the full ${BURST_V10_CLEAR_PER_WAVE} within its quick time (1 s plus 0.6 s for every atom it holds, splits included), then evenly less, down to 0 at three times that. The counter (CLEAR +${BURST_V10_CLEAR_PER_WAVE}) shows what the wave on screen still pays.`, helpOnly: true },
-        { action: `${BURST_V10_GOLDENS} golden atoms:`, detail: `one with each wave, a second or two after it appears, at its own spot (the same for everyone in the room). It bounces like the other atoms and fades after about 5 seconds. A shot that reaches one scores ${BURST_V10_GOLDEN_PTS}. It hurts like any atom: touching it costs a life.`, helpOnly: true },
+        { action: "Wave-clear bonus:", detail: `each wave you clear earns up to ${BURST_V10_CLEAR_PER_WAVE}: the full ${BURST_V10_CLEAR_PER_WAVE} within its quick time (1 s plus 0.6 s for every atom it holds, splits included), then evenly less, down to 0 at three times that. ${BURST_V14_CLEAR_FULL} of those fill the whole ${BURST_V10_CLEAR_MAX}-point bonus. The counter (CLEAR +${BURST_V10_CLEAR_PER_WAVE}) shows what the wave on screen still earns.`, helpOnly: true },
+        { action: `${BURST_V10_GOLDENS} golden atoms:`, detail: `one with each wave, a second or two after it appears, at its own spot (the same for everyone in the room). It bounces like the other atoms and fades after about 5 seconds. A shot that reaches one scores ${Math.floor(BURST_V10_GOLDEN_MAX / BURST_V14_GOLD_FULL)}, and ${BURST_V14_GOLD_FULL} fill the ${BURST_V10_GOLDEN_MAX}-point bonus. It hurts like any atom: touching it costs a life.`, helpOnly: true },
         { action: "Power-ups ride on atoms:", detail: "an atom showing a small icon drops that power-up when you split it (the same atoms for everyone). Walk under it to catch it. DOUBLE fires two beams a shot for 8 s; BURST fires three quick short shots a tap for 8 s; FREEZE stops every atom for 3 s. Frozen atoms still hurt if you walk into one. They score nothing themselves.", helpOnly: true },
       ],
       // burstRev 10 (the arcade scoring standard, docs/arcade-standard/burst.md): the atoms on a straight line, wave clears, golden atoms, lives.
       // burstRev 11 (the scoring audit, Nov 2026): the last life free, wasted shots cost, never more than half the atom points.
       score: scoreList([
         { label: "Atoms", how: `every atom and split piece popped counts the same (${BURST_V10_ATOMS} in the ${BURST_V10_WAVES} waves)`, max: BURST_V10_CORE_MAX },
-        { label: "Wave clears", how: `up to ${BURST_V10_CLEAR_PER_WAVE} for each wave, more the quicker you clear it`, max: BURST_V10_CLEAR_MAX },
-        { label: "Golden atoms", how: `${BURST_V10_GOLDEN_PTS} for each golden atom`, max: BURST_V10_GOLDEN_MAX },
+        { label: "Wave clears", how: `each wave cleared quickly earns up to ${BURST_V10_CLEAR_PER_WAVE}, and ${BURST_V14_CLEAR_FULL} of those fill it`, max: BURST_V10_CLEAR_MAX },
+        { label: "Golden atoms", how: `${Math.floor(BURST_V10_GOLDEN_MAX / BURST_V14_GOLD_FULL)} for one golden atom, all of it for ${BURST_V14_GOLD_FULL}`, max: BURST_V10_GOLDEN_MAX },
       ], { penalties: [`Each life lost before your last costs ${BURST_V10_LIFE_COST}`, `Wasted shots beyond one for each atom popped (at least ${BURST_V11_FREE_MISSES} free) cost ${BURST_V11_MISS_COST} each`, "Lives and wasted shots never take more than half your atom points", "Power-ups score nothing"], total: 200 }),
     },
     orbit: {

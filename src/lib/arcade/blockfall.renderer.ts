@@ -451,8 +451,8 @@ function drawBlockfallWorld(ctx: CanvasRenderingContext2D, state: BfState, size:
     if (shape !== undefined) drawBfMini(ctx, shape, L.nextX + L.sideW / 2, cy, zone ? (i === 0 ? 11 : 9) : i === 0 ? 12 : 10, i === 0 ? 1 : 0.92);
   }
   if (zone) {
-    // The speed, under the next three.
-    const sy = by + 44 + BF_PREVIEW * 60;
+    // The speed, under the next three (under the last preview where a level shows more, blockfallRev 3's Easy five).
+    const sy = by + 44 + Math.max(BF_PREVIEW, bfPreviewsOf(state)) * 60;
     ctx.fillStyle = "rgba(160,236,248,0.85)";
     ctx.fillText("SPEED", L.nextX + L.sideW / 2, sy);
     ctx.font = `${Math.max(13, retroTextFloor())}px ${RETRO_FONT}`;

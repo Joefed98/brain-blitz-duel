@@ -28,7 +28,7 @@ function rng(seed: number) {
   };
 }
 
-type Board = { rows: 4 | 5 | 6; givens: (number | null)[]; tray: number[]; solution: number[] };
+type Board = { rows: 3 | 4 | 5 | 6; givens: (number | null)[]; tray: number[]; solution: number[] };
 
 function build(rand: (n: number) => number, stage: NpLevelStage, decoyCount: number): Board | null {
   const shuffle = <T,>(a: T[]) => {
@@ -52,7 +52,10 @@ function build(rand: (n: number) => number, stage: NpLevelStage, decoyCount: num
   if (decoys.length < decoyCount) return null;
   const tray = shuffle([...missing, ...decoys]);
   if (npCountSolutionsFast(givens, tray, stage.rows, 2) !== 1) return null;
-  if (!npPersonSolve(givens, tray, stage.rows, solution).solved) return null;
+  const person = npPersonSolve(givens, tray, stage.rows, solution);
+  if (!person.solved) return null;
+  // D2 (22 Nov 2026): a level may ask for stones only the tray can decide (the person-like solver's "only tile" steps).
+  if (stage.minOnlyTile && person.steps.filter((st) => st.why === "only-tile").length < stage.minOnlyTile) return null;
   return { rows: stage.rows, givens, tray, solution };
 }
 

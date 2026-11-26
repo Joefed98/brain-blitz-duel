@@ -16,7 +16,8 @@ import {
   WAVEFRONT_STD_KEEP,
   WAV_REV_CHARGE,
   WAV_REV_BIG,
-  WAVEFRONT_STD_BIG,
+  WAV_REV_WIDE, // Changed with Joe's approval, 23 Nov 2026 (D5's wavRev 16)
+  WAVEFRONT_STD_WIDE, // Changed with Joe's approval, 23 Nov 2026 (D5's wavRev 16)
   WAV_REV_KEEP,
   WAVEFRONT_STD_CHARGE,
   WAV_REV_STD,
@@ -33,7 +34,7 @@ import { roomSeed } from "../arcade-skill-bands/games";
 import { randomLog } from "../room-identity/wavefront";
 import type { StdEntry, StdRun } from "./entry";
 
-const game = wavefrontGameFor(WAV_REV_BIG);
+const game = wavefrontGameFor(WAV_REV_WIDE); // Changed with Joe's approval, 23 Nov 2026 (D5's wavRev 16)
 
 /** A log played on wavRev 12, checkpointed as the phone does, through the server's encode + replay. */
 function serverRun(seed: number, events: ArcadeInputEvent[]): number {
@@ -45,7 +46,7 @@ function serverRun(seed: number, events: ArcadeInputEvent[]): number {
     if (s.tick % 300 === 0) checkpoints.push(wavCheckpoint(s));
   }
   const raw = encodeWavefrontRun({ seed, claimedScore: game.score(s), events, inputs: [], taps: [], endTick: s.tick, checkpoints } as never);
-  const r = replayWavefrontRun(seed, raw, WAV_REV_BIG);
+  const r = replayWavefrontRun(seed, raw, WAV_REV_WIDE); // Changed with Joe's approval, 23 Nov 2026 (D5's wavRev 16)
   if (r.flagged) throw new Error(`seed ${seed}: the server replay flagged the run (${r.reason})`);
   return r.score;
 }
@@ -57,17 +58,21 @@ export const entry: StdEntry = {
   // wavRev 14 since 15 Nov 2026 (the Retro overhaul): wavRev 13 and its parts plus the charged shot.
   // wavRev 15 since 16 Nov 2026 (the Retro overhaul, stage 3): wavRev 14 and its parts with larger hit cells.
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
-  rev: WAV_REV_BIG,
-  before: WAV_REV_CHARGE,
-  parts: WAVEFRONT_STD_BIG.parts,
-  spec: WAVEFRONT_STD_BIG,
+  // wavRev 16 since 22 Nov 2026 (D5, the wider formation): wavRev 15 and its parts with the formation spread wider.
+  // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's wavRev 16): the four lines below.
+  rev: WAV_REV_WIDE,
+  before: WAV_REV_BIG,
+  parts: WAVEFRONT_STD_WIDE.parts,
+  spec: WAVEFRONT_STD_WIDE,
   perfect: (): StdRun[] => {
-    const data = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/wavefront-big-runs.json.gz")).toString()) as { runs: { n: number; seed: number; raw: string }[] };
-    const runs: StdRun[] = data.runs.map((r) => {
-      // The flawless runs recorded on wavRev 15 (scripts/wavefront-big-record.ts; the wavRev 12 ones in
-      // wavefront-std-runs.json.gz stay for wavefront-phone-check, but the larger cells change which ship a bolt meets),
-      // checkpointed again and sent through the server replay.
-      const events = (decodeWavefrontRun(r.raw) as unknown as { events: ArcadeInputEvent[] }).events;
+    // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's wavRev 16): the perfect runs below.
+    // wavRev 16: the deal's own Normal witnesses (scripts/wavefront-wide-deal.ts: the flawless player held to the human
+    // limits), the first five; the wavRev 15 runs in wavefront-big-runs.json.gz meet a narrower formation.
+    const data = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/wavefront-wide-deal-witness.json.gz")).toString()) as { witnesses: { n: number; seed: number; runs: { level: string; events: ArcadeInputEvent[] }[] }[] };
+    const runs: StdRun[] = data.witnesses.slice(0, 5).map((w) => {
+      const r = { n: w.n, seed: w.seed };
+      // Each witness's Normal run, checkpointed again and sent through the server replay.
+      const events = w.runs.find((x) => x.level === "normal")!.events;
       const byTick = new Map(events.map((e) => [e.t, e]));
       let st = game.init(r.seed) as WavState;
       const checkpoints: unknown[] = [];
@@ -76,7 +81,7 @@ export const entry: StdEntry = {
         if (st.tick % 300 === 0) checkpoints.push(wavCheckpoint(st));
       }
       const raw = encodeWavefrontRun({ seed: r.seed, claimedScore: game.score(st), events, inputs: [], taps: [], endTick: st.tick, checkpoints } as never);
-      const res = replayWavefrontRun(r.seed, raw, WAV_REV_BIG);
+      const res = replayWavefrontRun(r.seed, raw, WAV_REV_WIDE); // Changed with Joe's approval, 23 Nov 2026 (D5's wavRev 16)
       const s = res.state as WavState;
       // A clean replay of a run that took everything: no life lost, all five saucers, all four cannons and both cores.
       const clean = !res.flagged && s.lives === 3 && (s.bossKilled ?? 0) === 1 && s.tick - (s.bossAt ?? 0) <= WAV_STD_KILL_FULL && (s.cannonsDown ?? 0) === 4 && s.coresHit === 3;

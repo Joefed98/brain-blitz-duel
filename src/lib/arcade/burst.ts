@@ -7,7 +7,7 @@
  * apart per tap — until a life is lost.
  */
 
-import { retroLevelSettings, withRetroLevel, type BurstLv } from "./retroLevels";
+import { BURST_LEVELS_SMALL, retroLevelSettings, withRetroLevel, type BurstLv, type BurstLvSmall } from "./retroLevels";
 import type { Level } from "@/lib/levels/levels";
 import {
   clampInt,
@@ -20,7 +20,7 @@ import {
   type CanvasSize,
   type InputRange,
 } from "./engine";
-import { stdCappedPenalty, stdFinal, stdLivesCharged } from "./arcadeStandard";
+import { stdCappedPenalty, stdFinal, stdLine, stdLivesCharged } from "./arcadeStandard";
 import { bandStrictGame, bandStrict, bandRetarget, bandTargetGame, bandCurveOf, bandCurve, bandInit, bandPoints, bandScoreOf, bandStep, bandTotal, BAND_FINISH_BONUS, type BandFields, type BandParts } from "./scoreBands";
 
 /* ============================== Constants ============================== */
@@ -249,8 +249,11 @@ export interface BurstIcon {
 }
 
 export interface BurstState extends BandFields {
-  /** Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. */
-  lv?: BurstLv;
+  /**
+   * Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. On
+   * burstRev 14 (`small`) they are BURST_LEVELS_SMALL's (the waves and the full lines too).
+   */
+  lv?: BurstLv | BurstLvSmall;
   /** burstRev 2 only (absent on original rounds). */
   rev?: number;
   /** burstRev 2: ticks of freeze left (every atom stopped) and FREEZE icons caught. */
@@ -892,8 +895,9 @@ const burstGameV2: ArcadeGame<BurstState, ArcadeInputEvent | null> = { ...burstG
 
 /** The game for a stored burstRev (absent = the original drops). */
 export function burstGameFor(rev?: number | null, level?: Level | null): ArcadeGame<BurstState, ArcadeInputEvent | null> {
-  // burstRev 14 (D5): burstRev 13 with the middle atoms, at a level as burstRev 13 is.
-  if (rev === BURST_REV_SMALL) return withRetroLevel(burstSmallGame, retroLevelSettings("burst", level), (st, lv) => ({ ...st, lives: lv.lives }));
+  // burstRev 14 (D5): burstRev 13 with the middle atoms; at a level (D5, 23 Nov 2026) BURST_LEVELS_SMALL's waves, lives,
+  // atom size, quick time, free misses and full lines (burstSmallLevelGame).
+  if (rev === BURST_REV_SMALL) return level === "easy" || level === "hard" || level === "expert" ? burstSmallLevelGame(level) : burstSmallGame;
   // Stage 3 of the Retro overhaul: burstRev 13 at a level (retroLevels.ts: lives, atom size, quick time, free misses).
   if (rev === BURST_REV_BIG) return withRetroLevel(burstBigGame, retroLevelSettings("burst", level), (st, lv) => ({ ...st, lives: lv.lives }));
   if (rev === BURST_REV_WIDE) return burstWideGame;
@@ -1742,9 +1746,12 @@ function initV10(seed: number): BurstState {
 /** burstRev 10's parts: core, wave clears, golden atoms (each at most its maximum) and the lives' cost. */
 export function burstStdParts(state: BurstState): { core: number; clear: number; gold: number; lives: number; misses: number; atoms: number; total: number } {
   const atoms = burstV10Atoms(state.waves);
-  const core = bandPoints(bandCurve([0, atoms], [0, BURST_V10_CORE_MAX]), state.hits);
-  const clear = Math.min(BURST_V10_CLEAR_MAX, state.clearPts ?? 0);
-  const gold = Math.min(BURST_V10_GOLDEN_MAX, BURST_V10_GOLDEN_PTS * burstGoldenCount(state));
+  // burstRev 14 (D5, 23 Nov 2026): Normal's (or the level's) own full lines for the wave clears and the golden atoms, and
+  // a level's for the core (burstSmallLines); every older revision exactly as before.
+  const lines = state.small ? burstSmallLines(state) : null;
+  const core = bandPoints(bandCurve([0, lines ? lines.core : atoms], [0, BURST_V10_CORE_MAX]), state.hits);
+  const clear = lines ? Math.min(BURST_V10_CLEAR_MAX, Math.floor((BURST_V10_CLEAR_MAX * (state.clearPts ?? 0)) / lines.clear)) : Math.min(BURST_V10_CLEAR_MAX, state.clearPts ?? 0);
+  const gold = lines ? stdLine(BURST_V10_GOLDEN_MAX, burstGoldenCount(state), lines.gold) : Math.min(BURST_V10_GOLDEN_MAX, BURST_V10_GOLDEN_PTS * burstGoldenCount(state));
   if (state.aim) {
     // burstRev 11: the life that ends the run is not charged, wasted beams cost, and the two together never take
     // more than half the core (each part's own share first: lives, then wasted beams).
@@ -1876,3 +1883,58 @@ export const burstSmallGame: ArcadeGame<BurstState, ArcadeInputEvent | null> = {
   ...burstBigGame,
   init: (seed: number) => ({ ...burstWideGame.init(seed), small: 1 }),
 };
+
+/* ================= burstRev 14's levels and Normal scoring (D5, 23 Nov 2026) ================= */
+
+/**
+ * burstRev 14's Normal scoring (D5, 23 Nov 2026, folded into the unshipped stamp; Joe's rule of 23 Nov 2026: each feature's
+ * full line at about what the realistic elite takes on three runs in four; docs/arcade-standard/burst.md "Levels (D5, 23
+ * Nov 2026)"): the wave-clears part (35) is full at BURST_V14_CLEAR_FULL of the 35 wave-clear points the five waves can
+ * pay (each wave still pays up to 7 by its clear time), and the golden-atoms part (25) at BURST_V14_GOLD_FULL of the 5;
+ * the core (140 at every atom), the lives and the wasted beams as burstRev 13. A level carries its own lines.
+ */
+export const BURST_V14_CLEAR_FULL = 19;
+export const BURST_V14_GOLD_FULL = 2;
+
+/** burstRev 14 at a level: its settings with the waves and the full lines (null at Normal and on every older revision). */
+export function burstSmallLv(state: { small?: number | undefined; lv?: BurstLv | BurstLvSmall | undefined }): BurstLvSmall | null {
+  return state.small && state.lv && "waves" in state.lv ? state.lv : null;
+}
+/** burstRev 14: the core's, wave clears' and golden atoms' full lines (the level's, else Normal's: every atom, 19, 2). */
+export function burstSmallLines(state: BurstState): { core: number; clear: number; gold: number } {
+  const lv = burstSmallLv(state);
+  return lv ? { core: lv.coreFull, clear: lv.clearFull, gold: lv.goldFull } : { core: burstV10Atoms(state.waves), clear: BURST_V14_CLEAR_FULL, gold: BURST_V14_GOLD_FULL };
+}
+
+/**
+ * A level's five waves from its sizes (BurstLvSmall.waves), on the seed's own sides: the k-th spawn of wave w (both from 0)
+ * enters from side (s + w + k) mod 2, s the side the seed gave Normal's first atom, and k × 30 px higher than the first
+ * (so two spawns on the same side never share a place).
+ */
+export function burstLevelWaves(sizes: readonly (readonly number[])[], normal: readonly BurstSpawn[][]): BurstSpawn[][] {
+  const s = normal[0]?.[0]?.side ?? 0;
+  return sizes.map((wave, w) => wave.map((size, k) => ({ size, side: (s + w + k) % 2, lift: k * 30 })));
+}
+
+const burstSmallByLevel = new Map<string, ArcadeGame<BurstState, ArcadeInputEvent | null>>();
+/**
+ * burstRev 14 at a level: burstRev 14's game with the level's settings on the state (`lv`, as withRetroLevel puts them),
+ * its lives, and its own waves with their golden atoms and carriers scheduled from the seed as Normal's are.
+ */
+function burstSmallLevelGame(level: "easy" | "hard" | "expert"): ArcadeGame<BurstState, ArcadeInputEvent | null> {
+  let game = burstSmallByLevel.get(level);
+  if (!game) {
+    const lv = BURST_LEVELS_SMALL[level];
+    game = {
+      ...burstSmallGame,
+      init: (seed: number) => {
+        const base = { ...burstSmallGame.init(seed), lv } as BurstState;
+        const waves = burstLevelWaves(lv.waves, base.waves);
+        const { goldens, carriers } = burstScheduleV10(seed, waves, burstFloorY(base));
+        return { ...base, lives: lv.lives, waves, goldens, carriers, gDue: goldens.map(() => -1) };
+      },
+    };
+    burstSmallByLevel.set(level, game);
+  }
+  return game;
+}

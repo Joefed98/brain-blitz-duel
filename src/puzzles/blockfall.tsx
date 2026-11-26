@@ -74,7 +74,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   const cell = bfLayout(zone ? BLOCKFALL_REV_ZONE : 1).cell;
   const view = useMemo(() => bfNewView(), []);
   const level = puzzleLevel(data);
-  const game = useMemo(() => blockfallArtGame(view, zone ? BLOCKFALL_REV_ZONE : 1, level), [view, zone, level]);
+  // The stored stamp (blockfallRev 3, D5's ladder: the levels' own table; Blockzone's play either way).
+  const game = useMemo(() => blockfallArtGame(view, zone ? rev : 1, level), [view, zone, rev, level]);
   const g = useRef<Gesture | null>(null);
   // Blockzone's soft drop (blockfallSoftDrop.ts): on only while a drag down (or ↓) holds it for its piece.
   const soft = useMemo(() => createSoftDrop(), []);

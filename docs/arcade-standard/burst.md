@@ -1,5 +1,70 @@
 # Fission under the arcade scoring standard (`burstRev 10`)
 
+## Levels (D5, 23 Nov 2026)
+
+Folded into the unshipped **burstRev 14** (no round was ever dealt on it; no new stamp number), with Normal's scoring
+refit (Joe's rule of 23 Nov 2026 and his approval of the refit). The spec's lever (`docs/polish-plan-final/difficulty-spec.md`
+"### Fission"): **the atoms in each wave**. burstRev 13 keeps its own table (`BURST_LEVELS`) and Normal's waves; every older
+round replays and scores exactly as before (`scripts/fixtures/d5-levels-legacy.json.gz`, `burst-small-legacy.json.gz`).
+
+**Normal's scoring** (`BURST_V14_CLEAR_FULL`, `BURST_V14_GOLD_FULL`, `burstSmallLines` in `src/lib/arcade/burst.ts`): each
+wave still earns up to 7 wave-clear points by its clear time, and the wave-clears part (35) is full at **19** of the 35
+(about 55 %); the golden-atoms part (25) is full at **2 of the 5** (12 for one). The core (140 at all 87 atoms), the lives
+and the wasted beams are burstRev 13's. Play is unchanged: the Normal-play legacy fixture
+(`scripts/fixtures/burst-ladder-legacy.json.gz`, 100 runs recorded before the refit) replays to the same final state; only
+scores move, never down.
+
+**The levels** (`BURST_LEVELS_SMALL` in `src/lib/arcade/retroLevels.ts`, read from the run's state `lv`; the registry mirrors
+it; a level's run starts on its own waves, `burstLevelWaves`, the k-th spawn of wave w from side (s + w + k) mod 2, s the
+side the seed gives Normal's first atom, k × 30 px higher, with its golden atoms and carriers scheduled from the seed as
+Normal's are):
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Waves (L, M, S) | S; M; M; M S; L | M; L; M M; L S S; L L | M M; L; L M; L M; L L | M M M; L M; L M; L L; L L |
+| Atoms (every split piece) | 42 | 87 | 103 | 125 |
+| Lives | 4 | 3 | 3 | 2 |
+| Atom size | 125 % | 100 % | 100 % | 100 % |
+| Quick-clear time | 150 % | 100 % | 100 % | 100 % |
+| Free wasted beams (or one an atom popped) | 60 | 20 | 20 | 20 |
+| Core full at (atoms) | 42 | 87 | 98 | 105 |
+| Wave clears full at / golden atoms full at | 19 / 2 | 19 / 2 | 19 / 2 | 17 / 2 |
+| First seconds | one small atom, drawn a quarter bigger | one M atom | two atoms bouncing in the opening wave | three atoms at once from the start, two lives |
+
+Easy's free beams are 60, not the spec's 40: with only 42 atoms the realistic elite's ordinary firing (about 46 beams that
+hit nothing) cost it 200 on most runs. Hard's and Expert's own core lines (98 of 103, 105 of 125) are decision 12's
+per-level lines: the realistic elite pops every one of 103 atoms in the 90 s on 31 % of Hard runs and every one of 125 on
+2 % of Expert runs.
+
+**The proof.** Normal and each level deal from their own list (`src/lib/duel/burstLevelDeals.server.ts`, built by
+`bun scripts/burst-level-deal.ts [--level=…] [--check]`; witnesses `scripts/fixtures/burst-level-deal-witness.json.gz`): a
+seed is kept at a level only when the skill-band flawless player **held to the human limits** (0.25 s to react, 0.15 s to
+move, or one of nine slower variants, `BURST_DEAL_LIMITS`, never faster) scores exactly 200 through the server replay at
+that level, unflagged. 100 seeds a level: Normal 100 of 104 candidates, Easy 100 of 102, Hard 100 of 103, Expert 100 of 107
+(built on these lines with the skill-band bot whose path reads burstRev 14's radius, Joe's approved fix of 23 Nov 2026). The pin `burstPreSmall` still deals burstRev 13 on the room seed;
+burstRev 14 deals the seed its level's list gives that room seed.
+
+**Measured** (the D5 ladder, `bun scripts/d5-ladder-record.ts burst --deals=96`, both players held to HUMAN_LIMITS, real
+deals graded by the server; `scripts/fixtures/d5-ladder-burst.json.gz`):
+
+| Level | Average before → after | Elite before → after | Elite at 200, before → after |
+|---|---|---|---|
+| Easy | 122.9 → **176.7** | 180.8 → **195.7** | 0 % → **65 %** |
+| Normal | 85.6 → **100.5** | 173.9 → **190.4** | 0 % → **53 %** |
+| Hard | 81.5 → **87.3** | 166.0 → **187.5** | 0 % → **36 %** |
+| Expert | 61.6 → **55.4** | 153.3 → **180.1** | 0 % → **27 %** |
+
+"Before" is burstRev 14 as first built (burstRev 13's levels on Normal's waves, the old lines, any seed). Joe's ladder test
+passes: the average player steps down 76, 13 and 32 points; the elite reaches 200 on 65 %, 53 %, 36 % and 27 % of runs.
+("Before" was measured with the bot before its radius fix; the "after" columns with it.) The Normal refit lifts the
+average player by about 15 points (the golden atoms: 2 of 5 fill the part, and they reach them on about a third of runs),
+the approved refit's own effect. The spec's average targets (Hard 55–75, Expert 25–45) sit below what the bot scores on
+Hard (87) and are nearly met on Expert (55); Easy (177) is inside its 150–180.
+
+`scripts/burst-ladder-check.ts` proves it all (Normal's play, the older stamps, the waves and settings, the lines, the
+deals and witnesses, the recorded ladder and a live sample of it, the lever picture); `burst-small-check` follows the
+per-level deal. **The intro demo needs recording on burstRev 14** (as before).
+
 ## burstRev 14: the middle atoms (D5, 22 Nov 2026)
 
 Approved by Joe on 20 Nov 2026 (the polish plan's C1.8, `docs/polish-plan-final/earlier-plan.md`: smaller atoms, a
