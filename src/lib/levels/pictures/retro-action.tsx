@@ -22,6 +22,7 @@ import { RallyPicture, rallyWords } from "./retro-action/rally";
 import { RicochetPicture, ricochetWords } from "./retro-action/ricochet";
 import { SnakePicture, snakeWords } from "./retro-action/snake";
 import { SwingPicture, swingWords } from "./retro-action/swing";
+import { PinballPicture, pinballWords } from "./retro-action/pinball";
 import { WavefrontPicture, wavefrontWords } from "./retro-action/wavefront";
 
 /** What the slot passes a picture: the level and how large it draws (`l` a game page's large level, `s` a row's tile). */
@@ -46,5 +47,6 @@ export const LEVER_PICTURES: Partial<Record<string, RetroActionPictureEntry>> = 
   ricochet: { Picture: RicochetPicture, words: ricochetWords },
   snake: { Picture: SnakePicture, words: snakeWords },
   swing: { Picture: SwingPicture, words: swingWords },
+  pinball: { Picture: PinballPicture, words: pinballWords },
   wavefront: { Picture: WavefrontPicture, words: wavefrontWords },
 };

@@ -12,7 +12,7 @@ import { INK_REV_HILLS } from "@/lib/arcade/inkBridge";
 import { CLAY_REV_WIDE } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
-import { BRK_REV_CLEAR } from "@/lib/arcade/breaker";
+import { BRK_REV_CLEAR, BRK_REV_LADDER } from "@/lib/arcade/breaker";
 import { TILT_REV_BIG } from "@/lib/arcade/tilt";
 import { CROSS_REV_LIGHT } from "@/lib/arcade/cross";
 import { FLIP_REV_GRACE } from "@/lib/arcade/flip";
@@ -36,7 +36,7 @@ import { MATCHUP_REV_ICE2 } from "@/lib/arcade/matchup";
 import { TEN_DROP_RESET_REV } from "@/lib/arcade/tenDrop";
 import { SKYLINE_REV_FLOORS, SKYLINE_REV_LIVES } from "@/lib/arcade/skyline";
 import { pinIsExpanded } from "@/lib/arcade/pinball";
-import { PIN_REV_JOULZ, PIN_REV_SAVE, PIN_REV_STD } from "@/lib/arcade/pinball";
+import { PIN_REV_JOULZ, PIN_REV_LADDER, PIN_REV_SAVE, PIN_REV_STD } from "@/lib/arcade/pinball";
 import { chainDemoCompatible } from "./chain";
 import { pairUsesDepth } from "./depth/matchmaker";
 import { STRIKEOUT_REV4 } from "./strikeout";
@@ -286,7 +286,8 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   // The arcade scoring standard (29 Oct 2026): brkRev 11 keeps brkRev 10's play but its HUD shows GOLD n/3 and every
   // brick, so the demo stays stopped until one is recorded on brkRev 11.
   // brkRev 12 (the Retro overhaul): a 9-row wall, so a demo stays stopped until recorded on brkRev 12.
-  if (data.type === "breaker" && demo?.puzzle.type === "breaker" && demo.puzzle.brkRev !== BRK_REV_CLEAR) return null;
+  // brkRev 13 (D5's ladder) plays brkRev 12 exactly at Normal (only its lines moved): a demo recorded on either plays.
+  if (data.type === "breaker" && demo?.puzzle.type === "breaker" && demo.puzzle.brkRev !== BRK_REV_CLEAR && demo.puzzle.brkRev !== BRK_REV_LADDER) return null;
   // Bastion bastionRev 2 (1 Nov 2026) is a new game (the tank-defence shooter): a demo of the original turret stays
   // stopped (the intro shows its still) until one is recorded on bastionRev 2.
   // bastionRev 5 (D5's ladder, 23 Nov 2026) plays bastionRev 4's Normal exactly at Normal (only Weak spots' full line
@@ -441,7 +442,8 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   // would light multiplier inserts and count table points the help no longer states; only a pinRev 6 demo plays
   // (as High Rise's skylineRev 8), and until one is recorded the intro shows its still.
   // pinRev 7 (the Retro overhaul) plays pinRev 6 exactly: a demo recorded on either plays.
-  if (data.type === "pinball" && demo?.puzzle.type === "pinball" && demo.puzzle.pinRev !== PIN_REV_STD && demo.puzzle.pinRev !== PIN_REV_JOULZ && demo.puzzle.pinRev !== PIN_REV_SAVE) return null;
+  // pinRev 9 (D5's ladder) plays pinRev 8 exactly at Normal (only its lines moved): a demo recorded on it plays too.
+  if (data.type === "pinball" && demo?.puzzle.type === "pinball" && demo.puzzle.pinRev !== PIN_REV_STD && demo.puzzle.pinRev !== PIN_REV_JOULZ && demo.puzzle.pinRev !== PIN_REV_SAVE && demo.puzzle.pinRev !== PIN_REV_LADDER) return null;
   // World expansion E5 (25 Oct 2026, docs/expansions/e5.md): Swish binRev 7 and Slice sliceRev 9
   // play in larger worlds with new features; an older demo would show the old world (and its touches would land
   // elsewhere), so each shows its still until a demo is recorded on its new revision.
