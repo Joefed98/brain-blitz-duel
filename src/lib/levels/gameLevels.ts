@@ -633,7 +633,7 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   tilt: {
     levels: {
       easy: { settings: { mazes: 3, sizes: [11, 11, 13], routes: [28, 28, 34], pits: [0, 0, 0], ice: [0, 0, 0], icePassages: 0, twoMazes: [], pitHops: 2, parScale: 300, speedFullS: 70 } },
-      hard: { settings: { mazes: 4, sizes: [13, 13, 15, 15], routes: [34, 34, 54, 54], pits: [3, 3, 3, 3], ice: [2, 2, 2, 2], icePassages: 2, twoMazes: [1, 2, 3], pitHops: 2, parScale: 200, speedFullS: 78 } },
+      hard: { settings: { mazes: 4, sizes: [11, 13, 13, 15], routes: [28, 34, 34, 54], pits: [3, 3, 3, 3], ice: [2, 2, 2, 2], icePassages: 2, twoMazes: [1, 2, 3], pitHops: 2, parScale: 200, speedFullS: 78 } },
       expert: { settings: { mazes: 4, sizes: [15, 17, 17, 19], routes: [54, 54, 54, 58], pits: [4, 4, 4, 4], ice: [4, 4, 4, 4], icePassages: 2, twoMazes: [1, 2, 3, 4], pitHops: 1, parScale: 200, speedFullS: 90, cleanFull: 3 } },
     },
   },

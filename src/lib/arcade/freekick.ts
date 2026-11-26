@@ -128,8 +128,8 @@ export const FK_LEVEL_SETTINGS_V7: Readonly<Record<FkLevel, FkLevelSettings>> = 
 /**
  * freekickRev 7's Targets and Skill shots figures by level (D6): the part is full at this many targets hit and skill
  * shots made (a straight line from 0; rev 5 and 6: 10 a target to 4, 3 a skill shot to 10). Set from 96 room deals a
- * level (scripts/d6-ladder.ts, the skill-band bots under HUMAN_LIMITS): the average player 153 / 85 (Normal) / 59 / 29,
- * the elite at 200 83 / 38 / 29 / 24 %. (The spec's Hard, a 5–6 man wall and an 8-tick keeper at 115 %, left the
+ * level (scripts/d6-ladder.ts, the skill-band bots under HUMAN_LIMITS): the average player 153 / 85 (Normal) / 59 / 47,
+ * the elite at 200 83 / 38 / 29 / 23 %. (The spec's Hard, a 5–6 man wall and an 8-tick keeper at 115 %, left the
  * average player no more than 6 above Expert; Hard's keeper and wind are eased a little, its wall five.)
  */
 export const FK_V7_FULL: Readonly<Record<FkLevel, { targets: number; skill: number }>> = {

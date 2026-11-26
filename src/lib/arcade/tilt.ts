@@ -3046,7 +3046,7 @@ export const tiltThreeGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
  * 12's, the parts tiltRev 11's four over the level's maze count (tiltPartsOver).
  *
  *   Easy    one marble on every maze (no amber); 3 mazes of 11, 11, 13 cells; no holes; no ice; par 300 %; speed by 70 s.
- *   Hard    two marbles from the first second on mazes 1, 2 and 3 (maze 4 single); mazes of 13, 13, 15, 15 cells; 3 holes
+ *   Hard    two marbles from the first second on mazes 1, 2 and 3 (maze 4 single); mazes of 11, 13, 13, 15 cells; 3 holes
  *           a maze; 2 ice patches; par 200 %; speed full by 78 s.
  *   Expert  two marbles on all four mazes, of 15, 17, 17, 19 cells; 4 holes a maze, a pocket one cell off the route
  *           allowed; 4 ice patches; par 200 %; speed full by 90 s (any finish); Clean run full at three clean mazes.
@@ -3078,7 +3078,7 @@ export interface TiltLevelSpecV13 {
 
 export const TILT_LEVELS_V13: Readonly<Record<TiltLevel, TiltLevelSpecV13>> = {
   easy: { sizes: [11, 11, 13], routes: [28, 28, 34], pits: [0, 0, 0], ice: [0, 0, 0], icePassages: 0, twoMazes: [], pitHops: 2, parScale: 300, speedFullS: 70 },
-  hard: { sizes: [13, 13, 15, 15], routes: [34, 34, 54, 54], pits: [3, 3, 3, 3], ice: [2, 2, 2, 2], icePassages: 2, twoMazes: [1, 2, 3], pitHops: 2, parScale: 200, speedFullS: 78 },
+  hard: { sizes: [11, 13, 13, 15], routes: [28, 34, 34, 54], pits: [3, 3, 3, 3], ice: [2, 2, 2, 2], icePassages: 2, twoMazes: [1, 2, 3], pitHops: 2, parScale: 200, speedFullS: 78 },
   expert: { sizes: [15, 17, 17, 19], routes: [54, 54, 54, 58], pits: [4, 4, 4, 4], ice: [4, 4, 4, 4], icePassages: 2, twoMazes: [1, 2, 3, 4], pitHops: 1, parScale: 200, speedFullS: 90, cleanFull: 3 },
 };
 

@@ -200,7 +200,80 @@ function RacingPicture({ level, size }: LeverPictureProps) {
 }
 const racingWords = (level: Level) => (level === "normal" ? "Today's road" : `The road ${Math.round(roadShare(level) * 100)} % of Normal's width`);
 
+/* ------------------------------------------------------------------ Gemstone: colours on the board */
+
+/** matchupRev 14's Normal: six colours (matchup.ts MATCHUP_V14_LEVELS.normal). */
+const MU_NORMAL = { colours: 6 };
+/** The gem colours in the board's order (player palette tokens; the art is the game's own). */
+const GEM_TONES = ["--jz-player-0", "--jz-player-2", "--jz-player-4", "--jz-player-6", "--jz-player-8", "--jz-player-1", "--jz-player-3", "--jz-text"];
+function MatchupPicture({ level, size }: LeverPictureProps) {
+  const n = at("matchup", level, MU_NORMAL).colours as number;
+  const H = heightOf(size);
+  const r = 8;
+  const gap = 20;
+  const x0 = (W - (n - 1) * gap) / 2;
+  return (
+    <svg {...svgProps(H, "matchup", level)}>
+      {Array.from({ length: n }, (_, i) => (
+        <polygon key={i} points={`${x0 + i * gap},${H / 2 - r} ${x0 + i * gap + r},${H / 2} ${x0 + i * gap},${H / 2 + r} ${x0 + i * gap - r},${H / 2}`} fill={`var(${GEM_TONES[i]})`} />
+      ))}
+    </svg>
+  );
+}
+const matchupWords = (level: Level) => `${at("matchup", level, MU_NORMAL).colours} gem colours`;
+
+/* ------------------------------------------------------------------ Tilt: marbles steered at once */
+
+/** tiltRev 13's Normal: three mazes, the amber marble joining on the third (tilt.ts TILT_T_MAZES, TILT_TWO_FROM). */
+const TILT_NORMAL = { mazes: 3, twoMazes: [3] };
+function TiltPicture({ level, size }: LeverPictureProps) {
+  const s = at("tilt", level, TILT_NORMAL) as unknown as { mazes: number; twoMazes: readonly number[] };
+  const H = heightOf(size);
+  const box = 30;
+  const gap = 10;
+  const x0 = (W - s.mazes * box - (s.mazes - 1) * gap) / 2;
+  const out = [];
+  for (let m = 0; m < s.mazes; m++) {
+    const x = x0 + m * (box + gap);
+    const two = s.twoMazes.includes(m + 1);
+    out.push(<rect key={`b${m}`} x={x} y={H / 2 - box / 2} width={box} height={box} rx={4} fill="none" stroke="var(--jz-text-3)" strokeWidth={1.5} />);
+    out.push(<circle key={`m${m}`} cx={two ? x + box / 3 : x + box / 2} cy={H / 2} r={5} fill="var(--jz-player-4)" />);
+    if (two) out.push(<circle key={`a${m}`} cx={x + (2 * box) / 3} cy={H / 2} r={5} fill="var(--jz-gold)" />);
+  }
+  return <svg {...svgProps(H, "tilt", level)}>{out}</svg>;
+}
+const tiltWords = (level: Level) => {
+  const s = at("tilt", level, TILT_NORMAL) as unknown as { mazes: number; twoMazes: readonly number[] };
+  return s.twoMazes.length === 0 ? `One marble, ${s.mazes} mazes` : s.twoMazes.length >= s.mazes ? `Two marbles in every maze` : `Two marbles in ${s.twoMazes.length} of ${s.mazes} mazes`;
+};
+
+/* ------------------------------------------------------------------ Top Bins: players in the wall */
+
+/** freekickRev 6's Normal: a wall of 3 to 5 (freekick.ts FK_LEVEL_SETTINGS.normal). */
+const FK_NORMAL = { wall: [3, 5] };
+function FreekickPicture({ level, size }: LeverPictureProps) {
+  const wall = (at("freekick", level, FK_NORMAL).wall as readonly number[]) ?? [3, 5];
+  const n = wall[1]!;
+  const H = heightOf(size);
+  const w = 12;
+  const x0 = (W - n * (w + 3)) / 2;
+  return (
+    <svg {...svgProps(H, "freekick", level)}>
+      {Array.from({ length: n }, (_, i) => (
+        <rect key={i} x={x0 + i * (w + 3)} y={H / 2 - 18} width={w} height={36} rx={5} fill={i < wall[0]! ? "var(--jz-text)" : "var(--jz-text-3)"} />
+      ))}
+    </svg>
+  );
+}
+const freekickWords = (level: Level) => {
+  const wall = (at("freekick", level, FK_NORMAL).wall as readonly number[]) ?? [3, 5];
+  return wall[0] === wall[1] ? `${wall[0]} in the wall` : `${wall[0]} to ${wall[1]} in the wall`;
+};
+
 export const LEVER_PICTURES: Partial<Record<string, LeverPictureEntry>> = {
+  matchup: { Picture: MatchupPicture, words: matchupWords },
+  tilt: { Picture: TiltPicture, words: tiltWords },
+  freekick: { Picture: FreekickPicture, words: freekickWords },
   pyramid: { Picture: PyramidPicture, words: pyramidWords },
   freecell: { Picture: FreecellPicture, words: freecellWords },
   tripeaks: { Picture: TripeaksPicture, words: tripeaksWords },

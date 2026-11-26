@@ -213,8 +213,8 @@ export const MATCHUP_COLOURS = [
 export const MATCHUP_COLOUR7 = "#2FE3E6";
 export const MATCHUP_SHAPE7 = "heart";
 /**
- * The eighth gem (D6): a white pearl, a shape no other gem has. Display data only (the renderer draws it in its own
- * function, matchupPearl.renderer.ts; for A3 to restyle in the flat-cut set).
+ * The eighth gem (D6): a white pearl, cut as a teardrop no other gem has. Display data only (the renderer draws its cut
+ * in its own function, pearlCutPoints in matchupPearl.renderer.ts; for A3 to restyle in the flat-cut set).
  */
 export const MATCHUP_COLOUR8 = "#F3EEE4";
 export const MATCHUP_SHAPE8 = "pearl";
