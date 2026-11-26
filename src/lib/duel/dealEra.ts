@@ -121,6 +121,10 @@ export const DEAL_PINS = {
   sportsPreOverhaul: { texts: false },
   /** sports.server.ts: Apex racingRev 3 (one circuit), before the Sports overhaul's three circuits (15 Nov 2026). */
   racingPreCircuits: { texts: false },
+  /** pyramidPartial.ts: Integer Pyramid depthRev 2, before its stone-by-stone unfinished credit (D2, 22 Nov 2026). */
+  prePyramidPartial: { texts: true },
+  /** ballparkBullseyes.ts: Ballpark depthRev 2, before a bullseye was worth 3 (D2, 22 Nov 2026). */
+  preBallparkBullseyes: { texts: true },
   /** arcade.server.ts: Moon Climb ricoRev 4 (the 34 × 68 ninja), before the 30 × 60 one (D5, 22 Nov 2026). */
   ricoPreMid: { texts: false },
   /** arcade.server.ts: Fission burstRev 13 (bigger atoms), before burstRev 14's middle atoms (D5, 22 Nov 2026). */
@@ -137,6 +141,8 @@ export const DEAL_PINS = {
   beatPreLanes: { texts: false },
   /** arcade.server.ts: Blockzone's levels on blockfallRev 2 from Normal's deal, before blockfallRev 3's level deals (D5's ladder, 23 Nov 2026). */
   blockfallPreLevels: { texts: false },
+  /** hover.server.ts: Hover hoverRev 11 (a random seed), before hoverRev 12's fitted lines and gap ladder (D5, 23 Nov 2026). */
+  hoverPreFit: { texts: false },
   /** arcade.server.ts: Roofbound flipRev 13 at Easy, Hard and Expert, before the running-speed ladder (D5, 23 Nov 2026). */
   flipPreLadder: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;

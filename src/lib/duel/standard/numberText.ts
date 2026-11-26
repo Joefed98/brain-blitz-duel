@@ -7,6 +7,11 @@ import { preLogic2Pinned, TRAIL_UNDO_COST } from "../logicOverhaul2";
 import { preSpeedOverhaulPinned } from "../speedOverhaul";
 import { operatorGapsDealt } from "../operatorGaps";
 import { partialCreditDealt } from "../partialCredit";
+import { pyramidPartialDealt } from "../pyramidPartial";
+import { BALLPARK_V3_BULL_POINTS, ballparkBullseyesDealt } from "../ballparkBullseyes";
+
+/** 2.5 as "2½" (a bullseye's worth on Easy and Normal). */
+const halves = (n: number) => (Number.isInteger(n) ? String(n) : `${Math.floor(n)}½`);
 import {
   TD_REV3_FREE_RESETS,
   TD_REV3_RESET_COST,
@@ -90,7 +95,10 @@ export function standardNumberHelp(type: PuzzleType): string {
         finish("complete all four pyramids"),
         speed(type),
         { label: "Clean pyramids", how: `${NUMBER_CLEAN_EACH} for each pyramid done with no wrong number ever placed, finished or not`, max: g!.bonus },
-        { label: "Not finished", how: "the pyramids done and the share right of the one you are on, more for doing them early", max: STANDARD_UNFINISHED_CAP },
+        // depthRev 3 (pyramidPartial.ts, D2): stone by stone.
+        pyramidPartialDealt()
+          ? { label: "Not finished", how: "the share of all the stones you placed right", max: STANDARD_UNFINISHED_CAP }
+          : { label: "Not finished", how: "the pyramids done and the share right of the one you are on, more for doing them early", max: STANDARD_UNFINISHED_CAP },
       ], { total: max });
     case "trail":
       return scoreList([
@@ -121,7 +129,14 @@ export function standardNumberHelp(type: PuzzleType): string {
       return scoreList([
         { label: "Accuracy", how: `place all 15 numbers; each scores in full within ${pct(BALLPARK_STD_FULL)} of the line’s length, nothing at ${pct(BALLPARK_STD_ZERO)} away`, max: STANDARD_FINISH },
         { label: "Speed", how: `place them all within ${g!.fullByS} s for all of it, falling to 0 at the buzzer, times your accuracy`, max: g!.speed },
-        { label: "Bullseyes", how: `${BALLPARK_STD_BULL_POINTS} for each number within ${pct(BALLPARK_STD_BULLSEYE)}, finished or not`, max: BALLPARK_STD_BULL_MAX },
+        // depthRev 3 (ballparkBullseyes.ts, D2): 2½ a bullseye (3 on Hard and Expert); earlier rounds 2.
+        {
+          label: "Bullseyes",
+          how: ballparkBullseyesDealt()
+            ? `${halves(BALLPARK_V3_BULL_POINTS.normal)} for each number within ${pct(BALLPARK_STD_BULLSEYE)} (${halves(BALLPARK_V3_BULL_POINTS.hard)} on Hard and Expert), finished or not`
+            : `${BALLPARK_STD_BULL_POINTS} for each number within ${pct(BALLPARK_STD_BULLSEYE)}, finished or not`,
+          max: BALLPARK_STD_BULL_MAX,
+        },
         { label: "Not finished", how: `up to ${BALLPARK_STD_ITEM} for each number by how close, more for placing close ones early`, max: STANDARD_UNFINISHED_CAP },
       ], { penalties: [`A number ${pct(BALLPARK_STD_WILD)} or more away costs 1`], total: max });
     case "tendrop":
@@ -148,7 +163,9 @@ export function standardNumberIntro(type: PuzzleType): string {
     case "balance":
       return "Balance every scale; bonuses for speed and hanging each weight once. Up to {max}.";
     case "numpyramid":
-      return "Complete every pyramid; bonuses for speed and no wrong numbers. Up to {max}.";
+      return pyramidPartialDealt()
+        ? "Fill every pyramid; each right stone counts. Bonuses for speed and no mistakes. Up to {max}."
+        : "Complete every pyramid; bonuses for speed and no wrong numbers. Up to {max}.";
     case "trail":
       return preLogic2Pinned()
         ? "Complete the trail; bonuses for speed and never undoing. Up to {max}."

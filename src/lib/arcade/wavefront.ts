@@ -7,7 +7,7 @@
  * generator carried in the state; all positions are integers in 1/256 px.
  */
 
-import { retroLevelSettings, withRetroLevel, type WavefrontLv } from "./retroLevels";
+import { retroLevelSettings, withRetroLevel, WAVEFRONT_LEVELS_WIDE, type WavefrontLv, type WavefrontLvWide } from "./retroLevels";
 import type { Level } from "@/lib/levels/levels";
 import {
   clampInt,
@@ -278,8 +278,11 @@ export interface WavState extends BandFields {
   big?: number;
   /** wavRev 16 only (the wider formation): 1 = the grid on WAV_V16_PITCH_X and the wider shapes (WAV_FORMS_W). */
   wide?: number;
-  /** Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. */
-  lv?: WavefrontLv;
+  /**
+   * Stage 3 of the Retro overhaul: the level's settings (retroLevels.ts), on a level's run only; absent at Normal. On
+   * wavRev 16 (`wide`) they are WAVEFRONT_LEVELS_WIDE's (the fire table and the full lines too).
+   */
+  lv?: WavefrontLv | WavefrontLvWide;
   /** wavRev 2 only (absent on original rounds). */
   rev?: number;
   /** wavRev 2: fly-in ticks left (formation or boss), the formation's resting fy, divers, the dive timer. */
@@ -1874,16 +1877,18 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
     s.fireIn = WAV_X_FIRE_EVERY;
   }
 
-  // Divers (from wave 3), as wavRev 5.
+  // Divers (from wave 3), as wavRev 5. wavRev 16 at a level: from the level's wave (none on Easy), two at once from its
+  // own (wavWideLv; Normal and every older revision exactly as before).
+  const lvW = wavWideLv(s);
   if (!entering && !s.boss) {
     s.diveIn = (s.diveIn ?? 0) - 1;
-    if (s.wave >= WAV_DIVE_FROM_WAVE && (s.diveIn ?? 0) <= 0) {
-      s.diveIn = wavDiveEvery(s.wave);
+    if ((lvW ? lvW.diveFrom > 0 && s.wave >= lvW.diveFrom : s.wave >= WAV_DIVE_FROM_WAVE) && (s.diveIn ?? 0) <= 0) {
+      s.diveIn = lvW ? wavDiveEveryFrom(s.wave, lvW.diveFrom) : wavDiveEvery(s.wave);
       const pool: number[] = [];
       s.shapes.forEach((code, i) => {
         if (code !== 0 && code !== WAV_ARMOUR_CODE && !away.has(i)) pool.push(i);
       });
-      if (pool.length > 1 && (s.divers ?? []).length < wavMaxDivers(s.wave)) {
+      if (pool.length > 1 && (s.divers ?? []).length < (lvW ? (s.wave >= lvW.diveTwoFrom ? 2 : 1) : wavMaxDivers(s.wave))) {
         const pick = rngBelow(s.rng, pool.length);
         const sway = rngBelow(pick.state, 81);
         const lead = rngBelow(sway.state, 61);
@@ -1951,7 +1956,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
       const sides = [0, 1].filter((k) => guns[k]! > 0).map((k) => wavCannonX(boss, k));
       const centre = w / 2;
       const all = pattern.value === 0 ? [...sides, centre] : pattern.value === 1 ? sides : [clampInt(s.shipX - boss.x, 8, w - 8)];
-      for (const gx of all.length ? all : [centre]) if (s.reds.length < MAX_RED) s.reds.push({ x: (boss.x + gx) * FP, y: muzzle });
+      for (const gx of all.length ? all : [centre]) if (s.reds.length < (lvW ? lvW.maxRed : MAX_RED)) s.reds.push({ x: (boss.x + gx) * FP, y: muzzle });
     }
   }
 
@@ -2146,22 +2151,25 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
     s.shapes.forEach((code, i) => {
       if (code !== 0 && code !== WAV_ARMOUR_CODE && !away.has(i) && rowOf(i) >= lowest - 1) shooters.push(i);
     });
-    let volley = 1;
-    if (s.wave >= DOUBLE_FROM_WAVE) {
-      const roll = rngBelow(s.rng, 3);
-      s.rng = roll.state;
-      if (roll.value === 0) volley = 2;
-    }
-    let usedCol = -1;
-    for (let shot = 0; shot < volley && shooters.length > 0 && s.reds.length < MAX_RED; shot++) {
-      const pool = shooters.filter((i) => colOf(i) !== usedCol);
-      if (pool.length === 0) break;
-      const pick = rngBelow(s.rng, pool.length);
-      s.rng = pick.state;
-      const index = pool[pick.value] ?? 0;
-      usedCol = colOf(index);
-      const box = wavShapeBox(s, index);
-      s.reds.push({ x: (box.x + WAV_CELL / 2) * FP, y: (box.y + WAV_CELL) * FP });
+    if (lvW) wavWideVolley(s, lvW, shooters, colOf);
+    else {
+      let volley = 1;
+      if (s.wave >= DOUBLE_FROM_WAVE) {
+        const roll = rngBelow(s.rng, 3);
+        s.rng = roll.state;
+        if (roll.value === 0) volley = 2;
+      }
+      let usedCol = -1;
+      for (let shot = 0; shot < volley && shooters.length > 0 && s.reds.length < MAX_RED; shot++) {
+        const pool = shooters.filter((i) => colOf(i) !== usedCol);
+        if (pool.length === 0) break;
+        const pick = rngBelow(s.rng, pool.length);
+        s.rng = pick.state;
+        const index = pool[pick.value] ?? 0;
+        usedCol = colOf(index);
+        const box = wavShapeBox(s, index);
+        s.reds.push({ x: (box.x + WAV_CELL / 2) * FP, y: (box.y + WAV_CELL) * FP });
+      }
     }
     s.redIn = Math.max(RED_MIN, s.redBase - Math.trunc((s.redBase * tick) / (2 * runTicks)));
   }
@@ -2194,7 +2202,7 @@ function stepX(state: WavState, input: ArcadeInputEvent | null): WavState {
       s.redSpeed = Math.min(s.lv ? Math.trunc((WAV_X_RED_CAP * s.lv.boltPct) / 100) : WAV_X_RED_CAP, Math.trunc((s.redSpeed * 115) / 100));
     }
     s.divers = [];
-    s.diveIn = wavDiveEvery(s.wave);
+    s.diveIn = lvW ? wavDiveEveryFrom(s.wave, Math.max(1, lvW.diveFrom)) : wavDiveEvery(s.wave);
     s.enter = WAV_BREATHER_TICKS;
     s.armour = null;
     s.waveKills = 0;
@@ -2505,8 +2513,9 @@ export function wavStdScore(s: WavState): StdBreakdown {
     features: {
       boss: killed ? 10 : 0,
       speed: killed ? stdSpeed(10, fight, s.lv ? s.lv.killS * TICKS_PER_SECOND : WAV_STD_KILL_FULL, WAV_STD_KILL_ZERO) : 0,
-      saucers: stdLine(20, wavStdSaucers(s), WAV_X_SAUCERS),
-      weak: stdLine(10, wavStdWeakPoints(s), WAV_STD_WEAK_POINTS),
+      // wavRev 16 (D5, 23 Nov 2026): the saucers and the weak points full at Normal's (or the level's) own lines.
+      saucers: stdLine(20, wavStdSaucers(s), s.wide ? wavWideFullLines(s).saucers : WAV_X_SAUCERS),
+      weak: stdLine(10, wavStdWeakPoints(s), s.wide ? wavWideFullLines(s).weak : WAV_STD_WEAK_POINTS),
     },
     // wavRev 13: the life that ends the run is not charged, and lives never take more than half the core.
     penalty: s.keep ? stdCappedPenalty(WAV_STD_LIFE_COST * stdLivesCharged(lost, s.lives <= 0), core) : WAV_STD_LIFE_COST * lost,
@@ -2518,7 +2527,7 @@ export function wavefrontStdParts(state: WavState): BandParts {
   const score = wavStdScore(state);
   const charged = stdLivesCharged(lost, state.lives <= 0);
   return stdBandParts(
-    state.keep ? WAVEFRONT_STD_KEEP : WAVEFRONT_STD,
+    state.wide ? WAVEFRONT_STD_WIDE : state.keep ? WAVEFRONT_STD_KEEP : WAVEFRONT_STD,
     score,
     wavStdUnits(state),
     `${state.wavesCleared} waves · ${state.shapesDown} ships · ${state.armourHits} armour hits · gunship ${Math.min(state.bossDmg ?? 0, WAV_X_MID_HP)}/${WAV_X_MID_HP}`,
@@ -2703,7 +2712,61 @@ export function wavFormSizeXW(wave: number): { w: number; h: number } {
   return formExtent(WAV_FORMS_XW[wave]!);
 }
 
-export const WAVEFRONT_STD_WIDE: StdSpec = { ...WAVEFRONT_STD_KEEP, rev: WAV_REV_WIDE };
+/**
+ * wavRev 16's Normal scoring (D5, 23 Nov 2026, folded into the unshipped stamp; Joe's rule of 23 Nov 2026: each feature's
+ * full line at about what the realistic elite takes on three runs in four; docs/arcade-standard/wavefront.md "Levels (D5,
+ * 23 Nov 2026)"): the saucers part is full at WAV_V16_SAUCERS_FULL of the 5 a run flies (5 a saucer) and the cannons and
+ * weak points at WAV_V16_WEAK_FULL of the 6 (2 each); the core, the boss's parts and the lives as wavRev 15. A level
+ * carries its own two lines (WAVEFRONT_LEVELS_WIDE).
+ */
+export const WAV_V16_SAUCERS_FULL = 4;
+export const WAV_V16_WEAK_FULL = 5;
+export const WAVEFRONT_STD_WIDE: StdSpec = {
+  ...WAVEFRONT_STD_KEEP,
+  rev: WAV_REV_WIDE,
+  parts: WAVEFRONT_STD_KEEP.parts.map((p) => (p.key === "saucers" ? { ...p, of: WAV_V16_SAUCERS_FULL } : p.key === "weak" ? { ...p, of: WAV_V16_WEAK_FULL } : p)),
+};
+
+/** wavRev 16 at a level: its settings with the fire table (null at Normal and on every older revision). */
+export function wavWideLv(s: { wide?: number | undefined; lv?: WavefrontLv | WavefrontLvWide | undefined }): WavefrontLvWide | null {
+  return s.wide && s.lv && "volley" in s.lv ? s.lv : null;
+}
+/** wavRev 16: the saucers and the cannons-and-weak-points parts' full lines (the level's, else Normal's). */
+export function wavWideFullLines(s: { wide?: number | undefined; lv?: WavefrontLv | WavefrontLvWide | undefined }): { saucers: number; weak: number } {
+  const lv = wavWideLv(s);
+  return { saucers: lv?.saucersFull ?? WAV_V16_SAUCERS_FULL, weak: lv?.weakFull ?? WAV_V16_WEAK_FULL };
+}
+/** wavRev 16 at a level: ticks between dives, 160 on the level's first diving wave, 20 fewer each wave after, never under 100. */
+export function wavDiveEveryFrom(wave: number, from: number): number {
+  return Math.max(100, 160 - 20 * (wave - from));
+}
+/**
+ * wavRev 16 at a level: one volley of enemy fire. The level's bolts a volley, one more from wave `upFrom` on one volley
+ * in `upOdds` (a seeded roll, as Normal's second bolt from wave 3), each from a different column of the lowest two rows,
+ * while fewer than the level's `maxRed` are in the air.
+ */
+function wavWideVolley(s: WavState, lv: WavefrontLvWide, shooters: readonly number[], colOf: (i: number) => number): void {
+  let volley = lv.volley;
+  if (lv.upFrom > 0 && s.wave >= lv.upFrom) {
+    if (lv.upOdds <= 1) volley += 1;
+    else {
+      const roll = rngBelow(s.rng, lv.upOdds);
+      s.rng = roll.state;
+      if (roll.value === 0) volley += 1;
+    }
+  }
+  const used: number[] = [];
+  for (let shot = 0; shot < volley && s.reds.length < lv.maxRed; shot++) {
+    const pool = shooters.filter((i) => !used.includes(colOf(i)));
+    if (pool.length === 0) break;
+    const pick = rngBelow(s.rng, pool.length);
+    s.rng = pick.state;
+    const index = pool[pick.value] ?? 0;
+    used.push(colOf(index));
+    const box = wavShapeBox(s, index);
+    s.reds.push({ x: (box.x + WAV_CELL / 2) * FP, y: (box.y + WAV_CELL) * FP });
+  }
+}
 
 export const wavefrontWideGame: ArcadeGame<WavState, ArcadeInputEvent | null> = {
   ...wavefrontBigGame,
@@ -2711,13 +2774,16 @@ export const wavefrontWideGame: ArcadeGame<WavState, ArcadeInputEvent | null> = 
 };
 
 const wavefrontWideByLevel = new Map<string, ArcadeGame<WavState, ArcadeInputEvent | null>>();
-/** wavRev 16 at a level: the same level settings as wavRev 15 (retroLevels.ts WAVEFRONT_LEVELS). */
+/**
+ * wavRev 16 at a level (D5, 23 Nov 2026): WAVEFRONT_LEVELS_WIDE, wavRev 15's lives, bolt speed, boss and kill time plus the
+ * fire table (bolts a volley, the most in the air, the divers) and the level's full lines; wavRev 15 keeps WAVEFRONT_LEVELS.
+ */
 function wavefrontWideFor(level?: Level | null): ArcadeGame<WavState, ArcadeInputEvent | null> {
-  const lv = retroLevelSettings("wavefront", level);
+  const lv = level === "easy" || level === "hard" || level === "expert" ? WAVEFRONT_LEVELS_WIDE[level] : null;
   if (!lv) return wavefrontWideGame;
   let game = wavefrontWideByLevel.get(level!);
   if (!game) {
-    game = withRetroLevel<WavState, WavefrontLv, typeof wavefrontWideGame>(wavefrontWideGame, lv, (state, l) => ({ ...state, lives: l.lives, redSpeed: Math.trunc((state.redSpeed * l.boltPct) / 100) }));
+    game = withRetroLevel<WavState, WavefrontLvWide, typeof wavefrontWideGame>(wavefrontWideGame, lv, (state, l) => ({ ...state, lives: l.lives, redSpeed: Math.trunc((state.redSpeed * l.boltPct) / 100) }));
     wavefrontWideByLevel.set(level!, game);
   }
   return game;

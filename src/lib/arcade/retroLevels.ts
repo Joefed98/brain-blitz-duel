@@ -42,6 +42,24 @@ export interface WavefrontLv {
   bossPct: number;
   killS: number;
 }
+/**
+ * Wavefront wavRev 16's levels (D5, 23 Nov 2026; docs/arcade-standard/wavefront.md "Levels (D5, 23 Nov 2026)"): the
+ * headline lever is the enemy bolts in the air. On top of wavRev 15's four settings: the bolts each volley carries from
+ * wave 1 (`volley`), one more from wave `upFrom` (0: never) on one volley in `upOdds` (1: every volley), the bolts in
+ * the air at most (`maxRed`, the boss's included; Normal 10), the wave the divers start (`diveFrom`, 0: none; Normal 3)
+ * and the wave two dive at once from (`diveTwoFrom`; Normal 4), and each level's own full lines for the saucers (of the 5
+ * a run flies; Normal 4) and the cannons and weak points (of 6; Normal 5). wavRev 15 keeps WAVEFRONT_LEVELS exactly.
+ */
+export interface WavefrontLvWide extends WavefrontLv {
+  volley: number;
+  upFrom: number;
+  upOdds: number;
+  maxRed: number;
+  diveFrom: number;
+  diveTwoFrom: number;
+  saucersFull: number;
+  weakFull: number;
+}
 /** Fission (burstRev 13 and 14): lives, the atoms' size (per cent), the quick-clear time per wave (per cent of Normal's) and
  * the wasted beams that cost nothing (Normal: 20, or one an atom popped if more). */
 export interface BurstLv {
@@ -49,6 +67,20 @@ export interface BurstLv {
   sizePct: number;
   quickPct: number;
   freeWhiffs: number;
+}
+/**
+ * Fission burstRev 14's levels (D5, 23 Nov 2026; docs/arcade-standard/burst.md "Levels (D5, 23 Nov 2026)"): the headline
+ * lever is the atoms in each wave. On top of burstRev 13's four settings: the five waves' atoms by size (`waves`, each
+ * wave its spawns, 0 L, 1 M, 2 S, 3 XS; the sides come from the seed as Normal's do), and each level's own full lines: the
+ * atoms popped the core is full at (`coreFull`, of the level's own count), the wave-clear points the wave-clears part is
+ * full at (`clearFull`, of the 35 the five waves can pay; Normal 19) and the golden atoms the golden part is full at
+ * (`goldFull`, of 5; Normal 2). burstRev 13 keeps BURST_LEVELS exactly.
+ */
+export interface BurstLvSmall extends BurstLv {
+  waves: readonly (readonly number[])[];
+  coreFull: number;
+  clearFull: number;
+  goldFull: number;
 }
 /** Tempo (beatRev 12): the hit windows (Perfect, Good, OK, ticks either side), the notes' fall time on screen (ticks
  * from the top of the lane to the hit line; Normal's 90) and the chart's busyness: each section's off-beat (eighth) and
@@ -142,10 +174,25 @@ export const WAVEFRONT_LEVELS: Table<WavefrontLv> = {
   hard: { lives: 3, boltPct: 120, bossPct: 130, killS: 16 },
   expert: { lives: 2, boltPct: 140, bossPct: 160, killS: 16 },
 };
+/** Wavefront wavRev 16 at Easy, Hard and Expert (the sim reads it from the run's state; the registry mirrors it). */
+export const WAVEFRONT_LEVELS_WIDE: Table<WavefrontLvWide> = {
+  easy: { lives: 4, boltPct: 80, bossPct: 80, killS: 24, volley: 1, upFrom: 0, upOdds: 1, maxRed: 4, diveFrom: 0, diveTwoFrom: 0, saucersFull: 3, weakFull: 4 },
+  hard: { lives: 3, boltPct: 100, bossPct: 100, killS: 20, volley: 2, upFrom: 3, upOdds: 1, maxRed: 14, diveFrom: 2, diveTwoFrom: 3, saucersFull: 4, weakFull: 5 },
+  expert: { lives: 2, boltPct: 100, bossPct: 100, killS: 20, volley: 3, upFrom: 3, upOdds: 1, maxRed: 18, diveFrom: 1, diveTwoFrom: 2, saucersFull: 4, weakFull: 4 },
+};
 export const BURST_LEVELS: Table<BurstLv> = {
   easy: { lives: 4, sizePct: 125, quickPct: 150, freeWhiffs: 40 },
   hard: { lives: 3, sizePct: 100, quickPct: 75, freeWhiffs: 12 },
   expert: { lives: 2, sizePct: 100, quickPct: 60, freeWhiffs: 8 },
+};
+/** Fission burstRev 14 at Easy, Hard and Expert (the sim reads it from the run's state; the registry mirrors it). */
+export const BURST_LEVELS_SMALL: Table<BurstLvSmall> = {
+  // S; M; M; M S; L: 42 atoms.
+  easy: { lives: 4, sizePct: 125, quickPct: 150, freeWhiffs: 60, waves: [[2], [1], [1], [1, 2], [0]], coreFull: 42, clearFull: 19, goldFull: 2 },
+  // M M; L; L M; L M; L L: 103 atoms.
+  hard: { lives: 3, sizePct: 100, quickPct: 100, freeWhiffs: 20, waves: [[1, 1], [0], [0, 1], [0, 1], [0, 0]], coreFull: 98, clearFull: 19, goldFull: 2 },
+  // M M M; L M; L M; L L; L L: 125 atoms, three bouncing from the first second.
+  expert: { lives: 2, sizePct: 100, quickPct: 100, freeWhiffs: 20, waves: [[1, 1, 1], [0, 1], [0, 1], [0, 0], [0, 0]], coreFull: 105, clearFull: 17, goldFull: 2 },
 };
 /** Tempo's beatRev 12 levels (the Retro overhaul, stage 3): stored beatRev 12 level rounds replay on this table. */
 export const BEAT_LEVELS: Table<BeatLv> = {
@@ -176,6 +223,25 @@ export const CROSS_LEVELS: Table<CrossLv> = {
   hard: { density: [8, 10, 12, 13, 14, 15, 15, 15, 15, 15], lives: 3, hitCost: 15, fullAt: 76 },
   expert: { density: [10, 12, 14, 15, 16, 17, 18, 18, 18, 18], lives: 2, hitCost: 20, fullAt: 80 },
 };
+/**
+ * Spacewalk (crossRev 14, D5, 23 Nov 2026; docs/arcade-standard/cross.md "Levels (D5, 23 Nov 2026)"): the lever is the
+ * traffic from the first crossing. `density` is each crossing's traffic in twelfths of crossRev 9's (the last entry holds
+ * on), dealt at exactly that density: rooms deal a level only on seeds where every crossing is proved passable at it and
+ * a proof run scores 200 (crossLevelDeals.server.ts), so nothing is thinned. Lives, the cost of a hit before the last and
+ * the rows-and-crossings figure the core is full at as on crossRev 13's table, and the level's own full lines for the two
+ * features: the no-stop crossings in a row after the first that fill the streak's 40 (`streakAt`; Normal 4) and the
+ * close calls that fill their 10 (`closeAt`; Normal 10). crossRev 13's table above stays as it is, so the levels rounds
+ * stored on it replay exactly. Normal stays crossRev 13.
+ */
+export interface CrossLvV14 extends CrossLv {
+  streakAt: number;
+  closeAt: number;
+}
+export const CROSS_LEVELS_V14: Table<CrossLvV14> = {
+  easy: { density: [3, 4, 5, 6, 7, 8, 8, 8, 8, 8], lives: 4, hitCost: 10, fullAt: 70, streakAt: 4, closeAt: 10 },
+  hard: { density: [10, 11, 12, 13, 14, 14, 14, 14, 14, 14], lives: 3, hitCost: 15, fullAt: 76, streakAt: 3, closeAt: 16 },
+  expert: { density: [12, 12, 13, 14, 15, 15, 15, 15, 15, 15], lives: 2, hitCost: 20, fullAt: 72, streakAt: 2, closeAt: 8 },
+};
 export const PINBALL_LEVELS: Table<PinballLv> = {
   easy: { balls: 4, saveS: 10, gravityPct: 85, multiS: 25, fullAt: 50_000 },
   hard: { balls: 3, saveS: 0, gravityPct: 110, multiS: 18, fullAt: 61_000 },
@@ -205,6 +271,29 @@ export const HOVER_LEVELS: Table<HoverLv> = {
   easy: { shield: 1, gapPct: 115, scrollPct: 100 },
   hard: { shield: 0, gapPct: 100, scrollPct: 106 },
   expert: { shield: 0, gapPct: 100, scrollPct: 112 },
+};
+/**
+ * Hover (hoverRev 12, D5, 23 Nov 2026; docs/arcade-standard/hover.md "Levels (D5, 23 Nov 2026)"): the gap ladder. The
+ * lever is the height of the barrier gaps: `gapPct` scales every gap about its centre (up on Easy, down on Hard and
+ * Expert; the tight gates keep their 80 px), `shield` is how many shields the run starts with (each forgives one crash;
+ * Normal 1), `slide` 1 lets the sliding gaps slide as on Normal (0: every gap is still), and the scroll is Normal's
+ * (`scrollPct` 100) at every level. The parts' full lines are the level's own: the core is full at `coreAt` barriers,
+ * the star chains at `chainsAt` of their 30 points, the gold stars at `goldAt`, the tight gates at `tightAt` and the
+ * centre line at `centreAt` per mille of its credit (every gate flown dead centre is 1,000). hoverRev 11's table above
+ * stays as it is, so the levels rounds stored on it replay exactly.
+ */
+export interface HoverLvV12 extends HoverLv {
+  slide: number;
+  coreAt: number;
+  chainsAt: number;
+  goldAt: number;
+  tightAt: number;
+  centreAt: number;
+}
+export const HOVER_LEVELS_V12: Table<HoverLvV12> = {
+  easy: { shield: 3, gapPct: 127, scrollPct: 100, slide: 0, coreAt: 42, chainsAt: 18, goldAt: 2, tightAt: 4, centreAt: 300 },
+  hard: { shield: 1, gapPct: 75, scrollPct: 100, slide: 1, coreAt: 28, chainsAt: 18, goldAt: 3, tightAt: 3, centreAt: 300 },
+  expert: { shield: 0, gapPct: 70, scrollPct: 100, slide: 1, coreAt: 20, chainsAt: 12, goldAt: 3, tightAt: 3, centreAt: 400 },
 };
 
 /** Every Retro game's table, by game id. */
