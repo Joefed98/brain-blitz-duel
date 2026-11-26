@@ -617,22 +617,33 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
     },
   },
   // Moon Climb (the Action overhaul, 15 Nov 2026; docs/arcade-standard/ricochet.md "Levels"): the sim reads the stored
-  // level (ricochetNinja.ts MOON_LEVELS, the values its towers are built and proved with); these are the same, for display.
+  // level (ricochetNinja.ts MOON_MID_LEVELS on ricoRev 5, the values its towers are built and proved with and its parts
+  // are scored on; ricoRev 4's MOON_LEVELS kept for its own rounds); these are the live ones, for display. D5 (23 Nov
+  // 2026, the ladder): the lever is the blades on the walls (`blades`, × Normal's; `ice`, the share of the patches that
+  // are ice, Normal 0.4); Hard's knock-down 3.5 m; `fullM` the height part's full line (Normal 220 m) and `flowFull`,
+  // `ridesFull`, `scrollsFull` the other parts' (Normal 4 Flow steps, 3 rides, 2 scrolls).
   ricochet: {
     levels: {
-      easy: { settings: { blades: 0.5, knockM: 2, lanterns: 6, fullM: 200 } },
-      hard: { settings: { blades: 1.3, knockM: 3, lanterns: 6, fullM: 245 } },
-      expert: { settings: { blades: 1.6, knockM: 4, lanterns: 4, fullM: 260 } },
+      easy: { settings: { blades: 0.5, ice: 0.3, knockM: 2, lanterns: 6, fullM: 220, flowFull: 4, ridesFull: 3, scrollsFull: 2 } },
+      hard: { settings: { blades: 1.3, ice: 0.65, knockM: 3.5, lanterns: 6, fullM: 190, flowFull: 3, ridesFull: 2, scrollsFull: 2 } },
+      expert: { settings: { blades: 1.6, ice: 0.88, knockM: 4, lanterns: 4, fullM: 160, flowFull: 2, ridesFull: 1, scrollsFull: 2 } },
     },
   },
   // Orbit (docs/arcade-standard/orbit.md "Levels"): each level deals from its own proved bank
   // (scripts/orbit-fuel-bank.ts --level=…, built from these course settings); the sim reads tank and checkpoints from
   // the stored level (ORBIT_LEVEL_RULES in orbitRev3.ts, which orbit-levels-check holds equal to these).
+  // D5 (23 Nov 2026, orbitRev 17's ladder; docs/arcade-standard/orbit.md "orbitRev 17: lines, belts and levels"): the
+  // lever is the asteroid belts round the planets. `belts` and `minWindow` are orbitRev 17's courses (its ladder banks,
+  // scripts/orbit-ladder-bank.ts from scripts/orbit-ladder-lib.ts LADDER_COURSES, which orbit-ladder-check holds equal to
+  // these): Easy none, Hard a belt round every fourth planet from the second, Expert round every third from the first;
+  // `window` and `beltsFrom` stay the orbitRev 16 banks' (scripts/orbit-fuel-bank.ts rebuilds those from them). `lines`
+  // are the parts' full lines at the level (ORBIT_V17_LEVEL_LINES in orbitRev3.ts): speed full with `speedFullLeft` ticks
+  // left, stardust at `dustFull` motes, slingshots at `slingsFull`, asteroid fields at `fieldsFull`, perfect orbits at `perfectFull`.
   orbit: {
     levels: {
-      easy: { settings: { tank: 240, checkpoints: "auto", latMin: 30, latMax: 150, liftMin: 130, liftSpan: 70, window: 4, holesFrom: 25, beltsFrom: 25 } },
-      hard: { settings: { tank: 140, checkpoints: "one", latMin: 110, latMax: 270, liftMin: 170, liftSpan: 80, window: 3, holesFrom: 15, beltsFrom: 25 } },
-      expert: { settings: { tank: 120, checkpoints: "none", latMin: 140, latMax: 300, liftMin: 190, liftSpan: 80, window: 2, holesFrom: 11, beltsFrom: 21 } },
+      easy: { settings: { tank: 240, checkpoints: "auto", latMin: 30, latMax: 150, liftMin: 130, liftSpan: 70, window: 4, holesFrom: 25, beltsFrom: 25, belts: "none", minWindow: 4, lines: { speedFullLeft: 2025, dustFull: 22, slingsFull: 3, fieldsFull: 3, perfectFull: 16 } } },
+      hard: { settings: { tank: 140, checkpoints: "one", latMin: 110, latMax: 270, liftMin: 170, liftSpan: 80, window: 3, holesFrom: 15, beltsFrom: 25, belts: { from: 2, every: 4 }, minWindow: 3, lines: { speedFullLeft: 102, dustFull: 22, slingsFull: 3, fieldsFull: 2, perfectFull: 5 } } },
+      expert: { settings: { tank: 120, checkpoints: "none", latMin: 140, latMax: 300, liftMin: 190, liftSpan: 80, window: 2, holesFrom: 11, beltsFrom: 21, belts: { from: 1, every: 3 }, minWindow: 3, lines: { speedFullLeft: 102, dustFull: 22, slingsFull: 3, fieldsFull: 3, perfectFull: 6 } } },
     },
   },
   // The Cards & Board overhaul, stage 3 (15 Nov 2026; docs/arcade-standard/<game>.md "Levels"). Each game's sim holds the

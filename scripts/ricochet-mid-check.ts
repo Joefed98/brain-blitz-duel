@@ -15,8 +15,10 @@
  *  3. the body: 30 × 60 (half-widths 15 × 30) on rev 5 and later, 34 × 68 on exactly rev 4, 26 × 52 before; the cling
  *     x, the floor's standing height (metres measured from it), a wall-to-wall leap still NINJA_LEAP_TICKS, the ledge
  *     faces and the lantern hang follow it; the hit box is the body (a katana inside the 30 × 60 box but outside the
- *     26 × 52 one hits rev 5 and misses rev 3; one just outside it misses rev 5 and hits rev 4); the parts are rev 4's
- *     at every level under the new stamp and sum to 200; every part full scores 200;
+ *     26 × 52 one hits rev 5 and misses rev 3; one just outside it misses rev 5 and hits rev 4); the parts keep rev 4's
+ *     keys, labels and maxima at every level on ricoRev 5's own lines (D5's refit and ladder, 23 Nov 2026: Normal
+ *     MOON_MID_LINES, each level MOON_MID_LEVELS; scripts/ricochet-ladder-check.ts proves the lines) and sum to 200;
+ *     every part full scores 200;
  *  4. the figure follows the body: ninjaArtScale(5) = 15 / 13, the body's own growth; every pose's drawn extent is
  *     main's recorded figure's allowance grown by that scale (art-check 4a's rule for rev 4, at 15 / 13), between rev
  *     3's and rev 4's figure on every side; the stage's art game is the sim's rev-5 game at every level;
@@ -35,7 +37,7 @@ import { gunzipSync } from "node:zlib";
 import { createCanvas } from "@napi-rs/canvas";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
 import {
-  MOON_BIG_BODY, MOON_BIG_REV, MOON_BIG_STD_SPEC, MOON_LEDGE_HW, MOON_LEVELS, MOON_MID_BODY, MOON_MID_HH, MOON_MID_HW, MOON_MID_REV,
+  MOON_BIG_BODY, MOON_BIG_REV, MOON_BIG_STD_SPEC, MOON_LEDGE_HW, MOON_MID_BODY, MOON_MID_HH, MOON_MID_HW, MOON_MID_LEVELS, MOON_MID_LINES, MOON_MID_REV,
   MOON_MID_STD_SPEC, MOON_REV, MOON_SCROLLS, MOON_SKY, MOON_SKY_R, MOON_STD_SPEC, MOON_V5_BAND_CURVE, NINJA_BODY, NINJA_CHECKPOINT_INTERVAL,
   NINJA_HH, NINJA_HW, NINJA_INPUT_TAP, NINJA_LEAP_TICKS, NINJA_PX_PER_M, NINJA_RUN_TICKS, NINJA_WALL_L, NINJA_WALL_R, isMoonState,
   katanaTouches, moonBuildDeal, moonCheckpoint, moonDeal, moonGameFor, moonLedgeX, moonLeapTicks, moonMidGame, moonRideHang, moonStdSpecFor,
@@ -202,13 +204,16 @@ ok(activeDealPins().length === 0, "0: nothing pinned at the start (the live deal
     if (inside >= 0 && outside < 0 && !reach(kAt(dy), B)) outside = dy;
   }
   ok(inside >= 0 && outside >= 0 && reach(kAt(outside), MOON_BIG_BODY), `3j: the hit box is the 30 × 60 body: a blade ${inside} px below hits rev 5 and misses rev 3; one ${outside} px below misses rev 5 and hits rev 4`);
-  ok(json(MOON_MID_STD_SPEC.parts) === json(MOON_STD_SPEC.parts) && json(MOON_MID_STD_SPEC.parts) === json(MOON_BIG_STD_SPEC.parts) && MOON_MID_STD_SPEC.rev === 5, "3k: Normal's parts are rev 4's (and 3's) exactly, under the new stamp");
+  // (D5, 23 Nov 2026: the Normal refit folded into ricoRev 5: the same parts and maxima on the stamp's own lines.)
+  const shape = (sp: { parts: readonly { key: string; label: string; max: number }[] }) => json(sp.parts.map((q) => [q.key, q.label, q.max]));
+  ok(shape(MOON_MID_STD_SPEC) === shape(MOON_STD_SPEC) && shape(MOON_MID_STD_SPEC) === shape(MOON_BIG_STD_SPEC) && MOON_MID_STD_SPEC.rev === 5 && MOON_MID_STD_SPEC.parts[0]!.of === MOON_MID_LINES.fullM && MOON_MID_LINES.fullM === 220, "3k: Normal's parts are rev 4's (and 3's) keys, labels and maxima, on ricoRev 5's lines (height full at 220 m), under the new stamp");
   for (const lv of LEVELS) {
     const sp5 = moonStdSpecFor(5, lv);
     const sp4 = moonStdSpecFor(4, lv);
-    ok(json(sp5.parts) === json(sp4.parts) && sp5.rev === 5 && sp5.parts.reduce((a, q) => a + q.max, 0) === 200, `3l ${name(lv)}: the parts are rev 4's at the level, under the new stamp, summing to 200`);
+    const lines = lv ? MOON_MID_LEVELS[lv].lines : MOON_MID_LINES;
+    ok(shape(sp5) === shape(sp4) && sp5.rev === 5 && sp5.parts[0]!.of === lines.fullM && sp5.parts.reduce((a, q) => a + q.max, 0) === 200, `3l ${name(lv)}: the parts are rev 4's keys, labels and maxima at the level, on the level's own lines (height full at ${lines.fullM} m), under the new stamp, summing to 200`);
     const g = moonGameFor(5, lv);
-    const c = lv ? MOON_LEVELS[lv] : null;
+    const c = lv ? MOON_MID_LEVELS[lv] : null;
     const full = { ...(g.init(3) as MoonState), acted: 1, best: B.start + 300 * NINJA_PX_PER_M * 256, flow: 10, rides: c ? c.sky : MOON_SKY, scrolls: MOON_SCROLLS } as MoonState;
     ok(g.score(full) === 200 && g.score({ ...full, rides: 0 }) === 200 - sp5.parts[2]!.max, `3m ${name(lv)}: every part full scores 200 on rev 5 (less the rides part without them)`);
   }
@@ -279,8 +284,8 @@ ok(activeDealPins().length === 0, "0: nothing pinned at the start (the live deal
       const { raw } = encode(MOON_MID_REV, lv, p.seed, d.witness.map((e) => tap(e.t, e.a)));
       const graded = gradeAnswer(p, raw, 0);
       const extra = graded.extra as any;
-      const fullM = lv ? MOON_LEVELS[lv].fullM : 245;
-      const sky = lv ? MOON_LEVELS[lv].sky : MOON_SKY;
+      const fullM = lv ? MOON_MID_LEVELS[lv].lines.fullM : MOON_MID_LINES.fullM;
+      const sky = lv ? MOON_MID_LEVELS[lv].sky : MOON_SKY;
       if (p.ricoRev !== 5 || graded.score !== 200 || extra?.flagged || extra?.hits !== 0 || extra?.rides !== sky || extra?.scrolls !== MOON_SCROLLS || extra?.metres < fullM) bad.push(`${p.seed}: ${graded.score}, ${extra?.metres} m, ${extra?.hits} hits`);
       if (lv === "hard" && moonwalker && !goalMet(moonwalker.goal, { score: graded.score, extra: graded.extra as never })) walks.push(String(p.seed));
       if (json(d.tower) !== json(moonDeal(p.seed, MOON_BIG_REV, lv).tower)) own++;

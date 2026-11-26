@@ -1,3 +1,75 @@
+# Moon Climb: ricoRev 5's lines, limits and levels (D5, 23 Nov 2026)
+
+Joe's decisions of 23 Nov 2026 (the Normal scoring refit, the ladder test, per-level scoring lines; the difficulty spec's
+"### Moon Climb"), folded into the same unshipped stamp as the 30 × 60 ninja below: rooms, the Daily and rated play still
+deal **`ricoRev 5`**, and ricoRev 4 (every level) and ricoRev 3 deal, replay and score exactly as before (their own
+`MOON_LEVELS`, parts and frame-exact witnesses; ricochet-ladder-check 1 regrades the 150 runs recorded before ricoRev 5).
+
+- **The Normal refit** (`MOON_MID_LINES`): every part keeps its maximum and is paid on a straight line to its own full
+  line: height 125 full at **220 m** (was 245), flow 30 full at **4 Flow steps** (28 clean leaps; was 10), lantern rides 30
+  full at **3 rides** (was all 6), scrolls 15 full at **2 scrolls** (was all 3). Play is unchanged on Normal.
+- **The witness, held to the human limits** (`moonWitnessHuman`, HUMAN_LIMITS: 0.25 s to react, 0.15 s to move): the
+  deal's planner now leaves every input at least 9 ticks after the one before (a double jump 9 or more ticks into its leap,
+  was 7), every leap off a landing at least 3 ticks after it (the landing seen coming, as the skill-band bot plays under
+  the limits; was 1), and the tower is kept only when that witness also has everything near its path in the camera's view
+  15 ticks before the input that commits to it (the renderer's `ninjaCamera`, mirrored as `MOON_VIEW_*`), and takes every
+  part in full with no hit through the real step. ricoRev 4's frame-exact witnesses all break the limits (0 of 60 a
+  level kept them); every ricoRev 5 tower keeps them on its first attempt: **400 of 400 seeds at each level** (Normal,
+  Easy, Hard, Expert; no fallback, no extra attempt; builds 29 / 20 / 50 / 51 ms). The proof player (the flawless
+  skill-band level, which plays the witness) scores 200 on every tower at every level.
+- **Levels** (`MOON_MID_LEVELS`; the registry's `GAME_LEVELS.ricochet` mirrors it): the lever is the blades on the walls.
+  The towers are built with ricoRev 4's settings (Easy half the blades, slower lanterns; Hard 1.3× and 65 % ice; Expert
+  1.6×, faster shurikens, 88 % ice, 4 lanterns), Hard's knock-down is **3.5 m** (ricoRev 4: 3 m), and each level has its own
+  lines so 200 stays within a realistic elite's reach as the blades thicken.
+
+## Levels (D5, 23 Nov 2026)
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Blades on the walls (× Normal's) | 0.5 | 1 (about 160 a tower) | 1.3 | 1.6, shurikens 25 % faster |
+| Ice (share of patches) | 30 % | 40 % | 65 % | 88 % |
+| Sky lanterns (float speed) | 6 (slower) | 6 | 6 | 4 (faster) |
+| Knock-down on a hit | 2 m | 3 m | **3.5 m** | 4 m |
+| Height part full at | 220 m (125) | 220 m (125) | 190 m (125) | 160 m (135) |
+| Flow full at | 4 steps | 4 steps | 3 steps | 2 steps |
+| Lantern rides full at | 3 of 6 (30) | 3 of 6 (30) | 2 of 6 (30) | 1 of 4 (20) |
+| Scrolls full at | 2 of 3 | 2 of 3 | 2 of 3 | 2 of 3 |
+| Average player (mean) | 177.5 | 107.3 | 90.6 | 72.4 |
+| Realistic elite (mean, at 200) | 199.6, 95 % | 188.7, 48 % | 182.0, 34 % | 176.1, 26 % |
+| How 200 is proved | every tower's human-limited witness, 400 / 400 seeds | the same | the same | the same |
+
+Measured on the recorded ladder (`bun scripts/d5-ladder-record.ts ricochet --deals=96`, room deals 0–95 at every level,
+`scripts/fixtures/d5-ladder-ricochet.json.gz`), the average and elite skill-band bots under the human limits, every run
+graded by the server. Joe's ladder test holds: the average player steps down 70.2, 16.7 and 18.2 points, no level under
+15, and the elite reaches 200 on 95 > 48 > 34 > 26 % of runs (Expert at least a fifth). The lines were chosen on the
+recorded runs' own counts (the bots don't read the lines, so a line is scored exactly from a run's metres, Flow steps,
+rides and scrolls), from Normal's approved lines down: Hard 30 m, a Flow step and a ride lower, Expert 30 m, a Flow
+step and a ride lower again.
+
+### Before → after (D5, 23 Nov 2026)
+
+`bun scripts/d5-ladder.ts ricochet` before (ricoRev 5 as first built, 24 deals) and after (the 96-deal fixture): mean, and
+the share of runs at 200.
+
+| Level | Average before | Average after | Elite before | Elite after |
+|---|---|---|---|---|
+| Easy | 158.4 | 177.5 | 193.8, 13 % | 199.6, 95 % |
+| Normal | 82.0 | 107.3 | 158.3, 0 % | 188.7, 48 % |
+| Hard | 77.0 | 90.6 | 136.8, 0 % | 182.0, 34 % |
+| Expert | 42.8 | 72.4 | 97.8, 0 % | 176.1, 26 % |
+
+The average player's Normal rises 25 points: the refit's four lower lines each pay it something (its median run climbs
+143 m, rides one lantern and takes one scroll). Keeping the height line at 245 m with the other three refit lines would
+hold the average at 99.0 but leave the elite at 200 on only 21 % of Normal runs (on the same recorded runs), below Joe's
+40–60 %, so the height line moves to 220 m as approved.
+
+- **Challenges**: "Scroll keeper", "Lantern lift" and "Moonwalker" count the scrolls (3), the rides (6) and the metres (220
+  on Hard, Normal's full height; it was 245, ricoRev 4's, until practice-goals-check's live-number pass, 26 Nov 2026)
+  themselves, since the parts now fill sooner (docs/challenges/catalogue.md).
+- Checks: ricochet-ladder-check (the legacy runs, the stamp and pin, the level rules and registry, every sampled tower's
+  witness checked against the limits on its own and at 200 through the server, the ladder test on the fixture and a live
+  re-play sample, the challenges), ricochet-mid-check (its parts lines follow the refit).
+
 # Moon Climb: ricoRev 5, the 30 × 60 ninja (D5, 22 Nov 2026)
 
 Joe's approval of 20 Nov 2026 (the polish plan's row C3.5: "the ninja is too big"; `docs/polish-plan-final.md` 8.2). The

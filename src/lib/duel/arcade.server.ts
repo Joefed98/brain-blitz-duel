@@ -46,7 +46,7 @@ import { RALLY_REV_TARGET, RALLY_REV_STRICT, RALLY_REV_STD, RALLY_REV_LIVES, RAL
 import { rallyLevelDealSeed } from "./rallyLevelDeals.server";
 import { BEAT_REV_TARGET, BEAT_REV_FLOOR, BEAT_REV_STD, BEAT_REV_LANES } from "@/lib/arcade/beat";
 import { beatDealSeedV13 } from "./beatDealV13.server";
-import { orbitFuelCourseForSeed, orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
+import { orbitFuelCourseForSeed, orbitLadderCourseForSeed, orbitXpCourseForSeed, orbitHolesForBankSeed, orbitRev3BankEntryForSeed, orbitRev3PlanetsForSeed, encodeRev3Planets } from "./orbitRev3Course.server";
 import { proveSwingSeed } from "./swingProof.server";
 import { SWING_V9_BANK } from "./swingBankV9.server";
 import { SWING_V13_BANK } from "./swingBankV13.server";
@@ -650,6 +650,13 @@ export function generateOrbit(level?: Level): OrbitPuzzleData {
   // orbitRev 17 (the lost flight, 22 Nov 2026, D5 item H4): orbitRev 16's play on the same courses at every level; a flight
   // that can no longer reach anything ends at once. The era pin orbitPreLost deals orbitRev 16 as before.
   const lostRev = dealPinned("orbitPreLost") ? ORBIT_REV_BIG : ORBIT_REV_LOST;
+  // orbitRev 17's lines, belts and levels (D5, 23 Nov 2026; docs/arcade-standard/orbit.md "orbitRev 17: lines, belts and
+  // levels"): Normal and every level deal from their own ladder bank (scripts/orbit-ladder-bank.ts: the level's belts,
+  // every witness held to the human limits); orbitPreLost deals orbitRev 16 from the fuel banks below exactly as before.
+  if (lostRev === ORBIT_REV_LOST && !dealPinned("orbitPreFuel") && !dealPinned("orbitPreGrace") && !dealPinned("orbitPreBig")) {
+    const course = orbitLadderCourseForSeed(seed, levelName ?? undefined);
+    if (course) return { type: "orbit", seed, orbitRev: ORBIT_REV_LOST, planets: course.planets, holes: course.holes, extras: course.extras };
+  }
   if (levelName && !dealPinned("orbitPreFuel") && !dealPinned("orbitPreGrace") && !dealPinned("orbitPreBig")) {
     const course = orbitFuelCourseForSeed(seed, levelName);
     if (course) return { type: "orbit", seed, orbitRev: lostRev, planets: course.planets, holes: course.holes, extras: course.extras };

@@ -17,7 +17,9 @@ import { BlockfallPicture, blockfallWords } from "./retro-action/blockfall";
 import { BurstPicture, burstWords } from "./retro-action/burst";
 import { CrossPicture, crossWords } from "./retro-action/cross";
 import { HoverPicture, hoverWords } from "./retro-action/hover";
+import { OrbitPicture, orbitWords } from "./retro-action/orbit";
 import { RallyPicture, rallyWords } from "./retro-action/rally";
+import { RicochetPicture, ricochetWords } from "./retro-action/ricochet";
 import { SnakePicture, snakeWords } from "./retro-action/snake";
 import { SwingPicture, swingWords } from "./retro-action/swing";
 import { WavefrontPicture, wavefrontWords } from "./retro-action/wavefront";
@@ -39,7 +41,9 @@ export const LEVER_PICTURES: Partial<Record<string, RetroActionPictureEntry>> = 
   burst: { Picture: BurstPicture, words: burstWords },
   cross: { Picture: CrossPicture, words: crossWords },
   hover: { Picture: HoverPicture, words: hoverWords },
+  orbit: { Picture: OrbitPicture, words: orbitWords },
   rally: { Picture: RallyPicture, words: rallyWords },
+  ricochet: { Picture: RicochetPicture, words: ricochetWords },
   snake: { Picture: SnakePicture, words: snakeWords },
   swing: { Picture: SwingPicture, words: swingWords },
   wavefront: { Picture: WavefrontPicture, words: wavefrontWords },

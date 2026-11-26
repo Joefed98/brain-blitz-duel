@@ -479,9 +479,9 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Scroll keeper | Grab all three scrolls. | Classic | Full set | line “Scrolls” = 15 of 15 |  | `ricochet.scroll-keeper` |
-| Lantern lift | Ride all six sky lanterns. | Classic | Full set | line “Lantern rides” = 30 of 30 |  | `ricochet.lantern-lift` |
-| Moonwalker | Climb 245 m on Hard. | Hard | Max-out | line “Height” = 125 of 125 |  | `ricochet.moonwalker` |
+| Scroll keeper | Grab all three scrolls. | Classic | Full set | `scrolls` ≥ 3 |  | `ricochet.scroll-keeper` |
+| Lantern lift | Ride all six sky lanterns. | Classic | Full set | `rides` ≥ 6 |  | `ricochet.lantern-lift` |
+| Moonwalker | Climb 220 m on Hard. | Hard | Max-out | `metres` ≥ 220 |  | `ricochet.moonwalker` |
 
 #### High Rise (`skyline`)
 
@@ -505,8 +505,8 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Sun seeker | Reach the sun. | Classic | Finish | `finished` = 1 |  | `orbit.sun-seeker` |
-| Slingshot | Pull all four slingshots. | Classic | Full set | line “Slingshots” = 12 of 12 |  | `orbit.slingshot` |
-| Stargazer | Collect all the stardust on Hard. | Hard | Full set | line “Stardust” = 15 of 15 |  | `orbit.stargazer` |
+| Slingshot | Pull all four slingshots. | Classic | Full set | `slings` ≥ `slingsTotal`, `slingsTotal` ≥ 4 |  | `orbit.slingshot` |
+| Stargazer | Collect all the stardust on Hard. | Hard | Full set | `dust` ≥ `dustTotal`, `dustTotal` ≥ 1 |  | `orbit.stargazer` |
 
 #### Tempo (`beat`)
 
