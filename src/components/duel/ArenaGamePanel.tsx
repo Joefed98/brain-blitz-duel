@@ -15,6 +15,9 @@ import { puzzleDef, puzzleGoal } from "@/lib/duel/catalogue";
 import type { PuzzleType } from "@/lib/duel/types";
 import { SCHEME_LABEL, SCHEME_NOTE, schemesFor, setSchemeFor, useControlScheme, type ControlScheme } from "@/lib/gameControls";
 
+import { BoardKeys } from "@/components/puzzles/KeyCursor";
+import { readLiveScore, wantLiveScore } from "@/lib/rated/liveScore";
+
 import { useFrameGoal } from "./GameFrame";
 
 /** This player's avatar in the frame: their card's avatar (an account) or their colour and initial (a guest). */
@@ -62,44 +65,114 @@ export function ArenaGamePanel({
   leftMount?: HTMLElement | null;
 }) {
   const puzzleFrameGoal = useFrameGoal(arcade ? undefined : type);
+  // Keyboard play for the boards that take only taps and drags (desktopKeys.ts BOARD_KEYS): on while the controls are Keyboard.
+  const keysOn = useControlScheme(type) === "keys";
   const goal = type ? (arcade ? puzzleGoal(type).replace(/\.$/, "") : puzzleFrameGoal) : null;
+  const head = (
+    <div className="arena-game-head">
+      <span className="game-frame-avatar">
+        <FrameMe size={44} />
+      </span>
+      <span className="arena-game-titles">
+        {name}
+        {context}
+      </span>
+      <span className="arena-game-menu">{menu}</span>
+    </div>
+  );
+  const pingNode = ping ? <div className="arena-game-ping">{ping}</div> : null;
+  const timerNode = timer ? (
+    <div data-frame-timer className="arena-game-timer">
+      {timer}
+    </div>
+  ) : null;
+  const scoreNode = (
+    <div className="arena-game-score">
+      {opponent ? <span className="game-frame-avatar">{opponent}</span> : null}
+      {score}
+      {type ? <GameStars type={type} withBest={!practice} /> : null}
+    </div>
+  );
+  const goalNode = goal ? (
+    <p data-arena-goal className="arena-game-goal">
+      {goal}
+    </p>
+  ) : null;
+  const keys = type ? <BoardKeys type={type} enabled={keysOn} /> : null;
+  if (leftMount) {
+    // The Cabinet (polish plan B1, mockup play-a-desktop): the game, the big score, the timer, best and this run on the
+    // left; the goal, the next challenges and the controls on the right, each a navy card on the game's own scenery.
+    const left = (
+      <div data-arena-game-left className="arena-game cab-col">
+        <section className="cab-card cab-head">
+          {head}
+          {pingNode}
+        </section>
+        <section data-cab-score className="cab-card cab-score" aria-label="Score">
+          <span className="cab-caption">Score</span>
+          {arcade ? <LiveRunScore /> : null}
+          {timerNode}
+          {scoreNode}
+        </section>
+        <BoardStatus className="cab-card arena-game-status" caption="This run" />
+      </div>
+    );
+    return (
+      <div data-arena-game data-cabinet="" className="arena-game cab-col">
+        {createPortal(left, leftMount)}
+        {goalNode ? (
+          <section className="cab-card cab-goal" aria-label="Goal">
+            <span className="cab-caption">Goal</span>
+            {goalNode}
+          </section>
+        ) : null}
+        {practice && type ? <NextChallenges type={type} card /> : null}
+        {type ? <ControlsTab type={type} card /> : null}
+        {keys}
+      </div>
+    );
+  }
   const stats = (
     <>
-      <div className="arena-game-head">
-        <span className="game-frame-avatar">
-          <FrameMe size={44} />
-        </span>
-        <span className="arena-game-titles">
-          {name}
-          {context}
-        </span>
-        <span className="arena-game-menu">{menu}</span>
-      </div>
-      {ping ? <div className="arena-game-ping">{ping}</div> : null}
-      {timer ? (
-        <div data-frame-timer className="arena-game-timer">
-          {timer}
-        </div>
-      ) : null}
-      <div className="arena-game-score">
-        {opponent ? <span className="game-frame-avatar">{opponent}</span> : null}
-        {score}
-        {type ? <GameStars type={type} withBest={!practice} /> : null}
-      </div>
+      {head}
+      {pingNode}
+      {timerNode}
+      {scoreNode}
     </>
   );
   return (
-    <div data-arena-game data-in-room={inRoom ? "" : undefined} data-cabinet={leftMount ? "" : undefined} className="arena-game">
-      {leftMount ? createPortal(<div data-arena-game-left className="arena-game">{stats}</div>, leftMount) : stats}
+    <div data-arena-game data-in-room={inRoom ? "" : undefined} className="arena-game">
+      {stats}
       <BoardStatus />
-      {goal ? (
-        <p data-arena-goal className="arena-game-goal">
-          {goal}
-        </p>
-      ) : null}
+      {goalNode}
       {practice && type ? <NextChallenges type={type} /> : null}
       {type ? <ControlsTab type={type} /> : null}
+      {keys}
     </div>
+  );
+}
+
+/**
+ * The Cabinet's big score: this run's own running score, the sim's (published by the arcade stage once a second while
+ * something asks, src/lib/rated/liveScore.ts). Display only; read, never written back. A dash until the first reading.
+ */
+function LiveRunScore() {
+  const [value, setValue] = useState<number | null>(null);
+  useEffect(() => {
+    const release = wantLiveScore();
+    const id = setInterval(() => {
+      const next = readLiveScore();
+      setValue((prev) => (prev === next ? prev : next));
+    }, 250);
+    return () => {
+      clearInterval(id);
+      release();
+    };
+  }, []);
+  return (
+    <span data-cab-run-score className="cab-run-score" aria-hidden="true">
+      {value ?? "0"}
+    </span>
   );
 }
 
@@ -126,13 +199,33 @@ export function SchemeChooser({ type }: { type: PuzzleType }) {
  * The controls tab (replacing the keyboard hint box): a small "Controls" tab at the foot of the panel that pulls up
  * the game's keys and its control choice. Computers with a mouse only (useDesktop); nothing on a touch screen.
  */
-export function ControlsTab({ type }: { type: PuzzleType }) {
+export function ControlsTab({ type, card = false }: { type: PuzzleType; card?: boolean }) {
   const desktop = useDesktop();
   const [open, setOpen] = useState(false);
   const scheme = useControlScheme(type);
   if (!desktop) return null;
   const keys = scheme === "keys" || scheme === "move" ? screenKeys(type, true) : undefined;
   const offered = schemesFor(type);
+  if (card)
+    // The Cabinet's controls card: the keys as chips, always shown (there is room), and the choice where there is one.
+    return (
+      <section data-controls-tab data-cab-controls aria-label="Controls" className="arena-controls cab-card cab-controls">
+        <span className="cab-caption">Controls</span>
+        {keys?.length ? (
+          <ul className="cab-keys">
+            {keys.map(([key, action]) => (
+              <li key={key}>
+                <kbd>{key}</kbd>
+                <span>{action}</span>
+              </li>
+            ))}
+          </ul>
+        ) : scheme ? (
+          <span className="arena-scheme-note">{SCHEME_NOTE[scheme]}</span>
+        ) : null}
+        <SchemeChooser type={type} />
+      </section>
+    );
   return (
     <div data-controls-tab data-open={open ? "" : undefined} className="arena-controls">
       {open ? (
@@ -199,7 +292,7 @@ interface Pill {
  * pills (moves, par, mistakes, lives…), read from the board's own (hidden in the arena, game-fx.css), so each number is
  * on screen once. Shown only when the game has them.
  */
-export function BoardStatus({ className = "arena-game-status", pills: withPills = true }: { className?: string; pills?: boolean } = {}) {
+export function BoardStatus({ className = "arena-game-status", pills: withPills = true, caption }: { className?: string; pills?: boolean; caption?: string } = {}) {
   const [state, setState] = useState<{ progress: string | null; pills: Pill[] }>({ progress: null, pills: [] });
   useEffect(() => {
     const layout = document.querySelector("[data-round-layout]");
@@ -228,8 +321,8 @@ export function BoardStatus({ className = "arena-game-status", pills: withPills 
     };
   }, [withPills]);
   if (!state.progress && !state.pills.length) return null;
-  return (
-    <dl data-arena-status className={className}>
+  const rows = (
+    <>
       {state.progress ? (
         <div className="arena-status-row" data-arena-progress>
           <dt>Progress</dt>
@@ -242,12 +335,26 @@ export function BoardStatus({ className = "arena-game-status", pills: withPills 
           <dd>{p.value}</dd>
         </div>
       ))}
+    </>
+  );
+  if (caption)
+    return (
+      <section aria-label={caption} className={className}>
+        <span className="cab-caption">{caption}</span>
+        <dl data-arena-status className="cab-status">
+          {rows}
+        </dl>
+      </section>
+    );
+  return (
+    <dl data-arena-status className={className}>
+      {rows}
     </dl>
   );
 }
 
 /** Practice: the next one or two of this game's challenges in progress (new ones when none has started), with progress. */
-function NextChallenges({ type }: { type: PuzzleType }) {
+function NextChallenges({ type, card = false }: { type: PuzzleType; card?: boolean }) {
   const server = useServerChallenges(false);
   const states = useChallengeStates(server, type);
   const joules = useChallengeJoules();
@@ -256,8 +363,8 @@ function NextChallenges({ type }: { type: PuzzleType }) {
   const next = (open.length ? open : states.filter((s) => s.status === "new")).slice(0, 2);
   if (!next.length) return null;
   return (
-    <section data-arena-challenges aria-label="Challenges" className="arena-game-challenges">
-      <span className="arena-game-caption">{open.length ? "Challenges in progress" : "Challenges"}</span>
+    <section data-arena-challenges aria-label="Challenges" className={card ? "arena-game-challenges cab-card" : "arena-game-challenges"}>
+      <span className={card ? "cab-caption" : "arena-game-caption"}>{card ? "Next challenges" : open.length ? "Challenges in progress" : "Challenges"}</span>
       <ul className="gm-ch-list">
         {next.map((s) => (
           <ChallengeRow key={s.challenge.id} state={s} joules={joules} account={account} />

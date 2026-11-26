@@ -45,6 +45,15 @@ export interface CheckoutLevelSettings {
   boards?: readonly CheckoutBoardPlan[];
   /** Every board found by the person-like solver (checkout.server.ts `checkoutPersonFinds`). */
   person?: boolean;
+  /**
+   * D2 (22 Nov 2026): every board keeps a route with its fewest darts that also takes its big finish where one pays,
+   * found by the player chasing the bonus (checkout.server.ts `checkoutBonusRoute`), so 200 can be reached.
+   */
+  bonusRoute?: boolean;
+  /** The level's own clock in seconds, stamped as `timeLimitMs` (D2, 22 Nov 2026: Easy's 120 s); the game's 90 s without. */
+  clockS?: number;
+  /** The level's own "full by" time for its speed points, stamped as `speedFullByS` (D2); the game's 60 s without one. */
+  fullByS?: number;
 }
 
 /** A Kakuro level (GAME_LEVELS `kakuro`, KAKURO_NORMAL): today's game, or its grid. */
@@ -64,6 +73,14 @@ export interface KakuroLevelSettings {
   person?: boolean;
   /** At most this many of the person-like solver's passes over the runs (a gentler board: every square seen sooner). */
   maxPasses?: number;
+  /**
+   * D2 (22 Nov 2026): the grid's rows down, the clue row included, when fewer than `size` across (Hard's 7 across by 6
+   * down). The rows past it are black and hold nothing, so every solver, answer and grade works on the size × size grid
+   * as before; the stage draws `rows` rows (stamped on the puzzle as `rows`).
+   */
+  rows?: number;
+  /** The level's own "full by" time for its speed points, stamped as `speedFullByS` (D2); the game's 60 s without one. */
+  fullByS?: number;
 }
 
 /** The new Normal (gentler than today's, which is now Hard): three standard boards and two with shuffled numbers. */

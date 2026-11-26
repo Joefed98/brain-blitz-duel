@@ -388,75 +388,44 @@ function paintCity(c: CanvasRenderingContext2D, lights: number): void {
  */
 export function drawBlock(ctx: CanvasRenderingContext2D, x: number, top: number, w: number, h: number, index: number, age = Infinity, night = 1): void {
   if (w <= 0) return;
-  // Glass: darker at the foot, the sky's blue caught near the top.
-  const glass = ctx.createLinearGradient(0, top, 0, top + h);
-  glass.addColorStop(0, "#2C4166");
-  glass.addColorStop(0.45, "#18294A");
-  glass.addColorStop(1, "#0E1A31");
-  ctx.fillStyle = glass;
+  // The polish plan's C3.6 (Joe, 20 Nov 2026): the old coloured floors again (steel frame, a pane colour per floor, warm
+  // windows fading in on placed floors); `night` (0 dusk … 1 night) only sets how bright the lit windows are.
+  ctx.fillStyle = STEEL;
   ctx.fillRect(x, top, w, h);
-  const inset = 2;
-  const panes = Math.max(1, Math.round((w - inset * 2) / 11));
+  ctx.fillStyle = GLASS[index % GLASS.length]!;
+  const inset = 3;
+  const panes = Math.max(1, Math.round((w - inset * 2) / 16));
   const pw = (w - inset * 2) / panes;
-  const lit = 0.16 + 0.44 * night;
-  const fade = age === Infinity ? 1 : Math.max(0, Math.min(1, age / 20));
-  const winTop = top + 4;
-  const winH = h - 7;
-  for (let p = 0; p < panes; p++) {
-    const px0 = x + inset + p * pw + 1;
-    const r = artHash(index * 31 + p, 7);
-    if ((r % 1000) / 1000 < lit) {
-      // A lit window: warm or cool, brightest in its middle.
-      const warm = r % 5 < 3;
-      ctx.globalAlpha = (0.55 + ((r >>> 10) % 4) * 0.1) * fade;
-      ctx.fillStyle = warm ? "#FFD993" : "#C8DCFF";
-      ctx.fillRect(px0, winTop, pw - 2, winH);
-      ctx.globalAlpha = 0.5 * fade;
-      ctx.fillStyle = warm ? "#FFF0C8" : "#E8F2FF";
-      ctx.fillRect(px0 + (pw - 2) * 0.25, winTop + winH * 0.25, (pw - 2) * 0.5, winH * 0.5);
-      ctx.globalAlpha = 1;
-    } else {
-      // Dark glass with the sky's reflection on its upper half.
-      ctx.fillStyle = "rgba(120,160,220,0.13)";
-      ctx.fillRect(px0, winTop, pw - 2, winH * 0.45);
+  for (let p = 0; p < panes; p++) ctx.fillRect(x + inset + p * pw + 1, top + inset + 2, pw - 2, h - inset * 2 - 4);
+  ctx.fillStyle = PANE_GLOW;
+  for (let p = 0; p < panes; p++) ctx.fillRect(x + inset + p * pw + 1, top + inset + 2, pw - 2, h - inset * 2 - 4);
+  ctx.fillStyle = "rgba(255,255,255,0.28)";
+  for (let p = 0; p < panes; p++) ctx.fillRect(x + inset + p * pw + 1, top + inset + 2, Math.max(1, (pw - 2) * 0.3), h - inset * 2 - 4);
+  ctx.fillStyle = STEEL_LIGHT;
+  ctx.fillRect(x, top, w, 2);
+  // Polish A2: shading down the floor (lit from the top, darker at its foot) and a darker right edge.
+  ctx.fillStyle = "rgba(10,16,30,0.16)";
+  ctx.fillRect(x, top + h * 0.55, w, h * 0.45);
+  ctx.fillStyle = "rgba(10,16,30,0.22)";
+  ctx.fillRect(x, top + h - 2, w, 2);
+  ctx.fillRect(x + w - 2, top + 2, 2, h - 2);
+
+  // Warm lit windows for placed floors (fade in over ~20 ticks after landing).
+  if (age !== Infinity) {
+    const fade = Math.max(0, Math.min(1, age / 20));
+    for (let p = 0; p < panes; p++) {
+      const lit = artHash(index * 31 + p, 7) % 5;
+      if (lit === 0) continue;
+      const glowK = 0.55 + 0.45 * Math.max(0, Math.min(1, night));
+      ctx.globalAlpha = fade * glowK * (lit === 1 ? 0.45 : 0.85);
+      ctx.fillStyle = lit === 4 ? "#FFE3A3" : WINDOW_LIGHT;
+      ctx.fillRect(x + inset + p * pw + 2, top + inset + 3, pw - 4, h - inset * 2 - 6);
+      // Polish A2: a warm glow in the pane, brightest at its centre (inside the block).
+      ctx.globalAlpha = fade * glowK * (lit === 1 ? 0.25 : 0.45);
+      ctx.fillStyle = "#FFF4D6";
+      ctx.fillRect(x + inset + p * pw + 2 + (pw - 4) * 0.25, top + inset + 3 + (h - inset * 2 - 6) * 0.2, (pw - 4) * 0.5, (h - inset * 2 - 6) * 0.6);
     }
-  }
-  // Steel mullions between the panes, each with a lit side.
-  for (let p = 1; p < panes; p++) {
-    const mx = Math.round(x + inset + p * pw);
-    ctx.fillStyle = "#7D90AA";
-    ctx.fillRect(mx - 1, top + 2, 1, h - 3);
-    ctx.fillStyle = "rgba(225,235,250,0.35)";
-    ctx.fillRect(mx - 1, top + 2, 0.5, h - 3);
-  }
-  // The gold spandrel band along the top, a polished metal: light on its upper edge, shade under.
-  const heavy = index % 5 === 0;
-  const bandH = heavy ? 3 : 1.5;
-  const gold = ctx.createLinearGradient(0, top, 0, top + bandH);
-  gold.addColorStop(0, "#FFE7A3");
-  gold.addColorStop(0.5, "#E1B04A");
-  gold.addColorStop(1, "#9C7224");
-  ctx.fillStyle = gold;
-  ctx.fillRect(x, top, w, bandH);
-  // The floor slab line at the foot (separates floors crisply).
-  ctx.fillStyle = "#08101F";
-  ctx.fillRect(x, top + h - 1, w, 1);
-  // Edges: lit left, shaded right.
-  ctx.fillStyle = "rgba(210,226,250,0.55)";
-  ctx.fillRect(x, top + bandH, 1, h - bandH - 1);
-  ctx.fillStyle = "rgba(4,8,18,0.55)";
-  ctx.fillRect(x + w - 1.5, top + bandH, 1.5, h - bandH - 1);
-  // The glass's highlight: a soft band and a crisp line at a fixed place on the tower, so they line up floor to floor.
-  const hx = SKYLINE_WORLD_W * 0.43;
-  const l = Math.max(x + 1, hx - 7);
-  const rr = Math.min(x + w - 2, hx + 3);
-  if (rr > l) {
-    ctx.fillStyle = "rgba(200,225,255,0.09)";
-    ctx.fillRect(l, top + bandH, rr - l, h - bandH - 1);
-  }
-  if (hx + 1 > x + 1 && hx + 1 < x + w - 2) {
-    ctx.fillStyle = "rgba(235,245,255,0.42)";
-    ctx.fillRect(hx + 1, top + bandH, 1, h - bandH - 1);
+    ctx.globalAlpha = 1;
   }
 }
 
@@ -525,21 +494,29 @@ function drawJib(ctx: CanvasRenderingContext2D, x0: number, x1: number): void {
     ctx.fillStyle = g;
     ctx.fillRect(x0, y, x1 - x0, h);
   }
-  ctx.lineWidth = 1.4;
-  ctx.strokeStyle = "#F2C443";
-  ctx.beginPath();
-  for (let x = start; x < x1; x += 12) {
-    ctx.moveTo(x, JIB_Y + 3);
-    ctx.lineTo(x + 6, JIB_Y + 9);
-  }
-  ctx.stroke();
-  ctx.strokeStyle = "#A87A1C";
-  ctx.beginPath();
-  for (let x = start; x < x1; x += 12) {
-    ctx.moveTo(x + 6, JIB_Y + 9);
-    ctx.lineTo(x + 12, JIB_Y + 3);
-  }
-  ctx.stroke();
+  // The polish plan's C3.7 (20 Nov 2026): a bolder jib that reads at phone scale: dark edges on the chords and the
+  // lattice drawn 2 px over a dark 3 px edge.
+  ctx.fillStyle = "rgba(40,28,6,0.85)";
+  for (const y of [JIB_Y - 1, JIB_Y + 3, JIB_Y + 8, JIB_Y + 12]) ctx.fillRect(x0, y, x1 - x0, 1);
+  const lattice = (colour: string, width: number, from: 0 | 1) => {
+    ctx.lineWidth = width;
+    ctx.strokeStyle = colour;
+    ctx.beginPath();
+    for (let x = start; x < x1; x += 12) {
+      if (from === 0) {
+        ctx.moveTo(x, JIB_Y + 3);
+        ctx.lineTo(x + 6, JIB_Y + 9);
+      } else {
+        ctx.moveTo(x + 6, JIB_Y + 9);
+        ctx.lineTo(x + 12, JIB_Y + 3);
+      }
+    }
+    ctx.stroke();
+  };
+  lattice("rgba(40,28,6,0.85)", 3, 0);
+  lattice("rgba(40,28,6,0.85)", 3, 1);
+  lattice("#F2C443", 2, 0);
+  lattice("#A87A1C", 2, 1);
   ctx.fillStyle = "#5A4210";
   for (let x = start; x < x1; x += 12) {
     ctx.fillRect(x - 0.5, JIB_Y + 1, 1, 1);
@@ -783,17 +760,23 @@ function drawSkylineArtWorld(ctx: CanvasRenderingContext2D, state: SkylineState,
     const bx = px(state.x);
     const bw = px(state.w);
     hookX = bx + bw / 2;
-    // Cable and slings from far above down to the hook.
+    // Cable and slings from far above down to the hook (C3.7: 2 px over a dark edge, so they read at phone scale).
+    const cable = () => {
+      ctx.beginPath();
+      ctx.moveTo(hookX, hangTop - 4000);
+      ctx.lineTo(hookX, hangTop - 14);
+      ctx.moveTo(hookX, hangTop - 14);
+      ctx.lineTo(bx + 3, hangTop);
+      ctx.moveTo(hookX, hangTop - 14);
+      ctx.lineTo(bx + bw - 3, hangTop);
+      ctx.stroke();
+    };
+    ctx.strokeStyle = "rgba(8,12,22,0.8)";
+    ctx.lineWidth = 3.2 / zoom;
+    cable();
     ctx.strokeStyle = STEEL_LIGHT;
-    ctx.lineWidth = 1.5 / zoom;
-    ctx.beginPath();
-    ctx.moveTo(hookX, hangTop - 4000);
-    ctx.lineTo(hookX, hangTop - 14);
-    ctx.moveTo(hookX, hangTop - 14);
-    ctx.lineTo(bx + 3, hangTop);
-    ctx.moveTo(hookX, hangTop - 14);
-    ctx.lineTo(bx + bw - 3, hangTop);
-    ctx.stroke();
+    ctx.lineWidth = 2 / zoom;
+    cable();
     ctx.fillStyle = REAL_GOLD;
     ctx.fillRect(hookX - 3, hangTop - 18, 6, 5);
     drawBlock(ctx, bx, hangTop, bw, blockH, state.blocks.length, Infinity, night);

@@ -27,10 +27,10 @@ import { drawHudPill, drawHudPillRow, HUD_PILL_GAP, HUD_PILL_H, type HudPillOpts
 
 const BALL_R = 22.5;
 /**
- * The Strategy overhaul (15 Nov 2026, display only): marbles drawn bigger and brighter in their 67 px channels (the
- * track, its tubes and every timing are unchanged; marbles never collide with anything drawn, they follow the track).
+ * Marbles are drawn at the sim's radius (the polish plan's C2.2, Joe, 20 Nov 2026; the Strategy overhaul had drawn them
+ * at 27 px over the 22.5 px marble), so the art sits on the marble as the arcade bounds rule asks.
  */
-const MARBLE_DRAW_R = 27;
+const MARBLE_DRAW_R = BALL_R;
 const SLOT = 100;
 const CHANNEL_FIXED = "#9C6B3E";
 const GROOVE = "#5A3519";
@@ -477,24 +477,9 @@ function paintBoardLayer(c: CanvasRenderingContext2D, masks: readonly number[], 
  * shaded edge and a soft bounce light low on the far side (inside the radius).
  */
 /** The rendered glass marble for each of BT_PALETTE's colours (strategy_art.py). */
-const BT_MARBLE_ART: Record<string, StrategyArtName> = {
-  [BT_PALETTE[0]]: "bt-marble-red",
-  [BT_PALETTE[1]]: "bt-marble-blue",
-  [BT_PALETTE[2]]: "bt-marble-green",
-  [BT_PALETTE[3]]: "bt-marble-yellow",
-};
 
 export function btMarble(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string, seed: number): void {
-  // The Strategy overhaul (stage 2, display only): the rendered glass marble and its crisp highlight at the marble's
-  // own radius; the code marble until they have loaded (and in checks, where there is no Image).
-  const art = BT_MARBLE_ART[colour];
-  const body = art ? strategyImage(art) : null;
-  const shine = body ? strategyImage("marble-gloss") : null;
-  if (body && shine) {
-    ctx.drawImage(body, x - r, y - r, r * 2, r * 2);
-    ctx.drawImage(shine, x - r, y - r, r * 2, r * 2);
-    return;
-  }
+  // The polish plan's C2.2 (Joe, 20 Nov 2026): the code marble (no rendered glass), at the sim's own radius.
   toyMarble(ctx, x, y, r, colour, 0, seed);
   ctx.save();
   const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.35, r * 0.15, x, y, r);

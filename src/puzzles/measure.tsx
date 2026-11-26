@@ -31,6 +31,7 @@ import { limitText, measureMoveLimits } from "@/lib/duel/moveLimits";
 import { measureBoardOut } from "@/lib/duel/gameReviewNov15";
 import { MEASURE_TIME_MS, type MeasureBoardData, type MeasurePuzzleData } from "@/lib/duel/types";
 import { useReducedMotion } from "@/lib/motion";
+import { puzzleLevel } from "@/lib/levels/levels";
 import { gameFx, releaseGameFx } from "@/lib/fx/kit";
 import { MEASURE_FILL_GAP_MS, measureFillPlays, measureLinesReached, measureNearJugs } from "@/lib/duel/measureFx";
 import { playWrong } from "@/lib/sound";
@@ -595,7 +596,8 @@ function Stage({
         if (!replay.solved) soundCue("measure.target");
       }
       if (replay.solved) return;
-      const near = measureNearJugs(board, replay.amounts);
+      // D2 (22 Nov 2026): Expert takes the aid away (no one-move pulse), read from the stored level.
+      const near = puzzleLevel(data) === "expert" ? [] : measureNearJugs(board, replay.amounts);
       if (near.length) {
         gameFx("nearMiss", glassOf(near[0]!), { silent: true });
         soundCue("measure.near");

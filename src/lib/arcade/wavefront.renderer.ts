@@ -1,6 +1,6 @@
 import { successHud, successFrame, SUCCESS_ACCENTS } from "./success.renderer";
 import type { Level } from "@/lib/levels/levels";
-import { drawStarLayers, paintPixelNebula, paintPixelPlanet } from "./retroSpace.renderer";
+import { drawStarLayers } from "./retroSpace.renderer";
 import { retroText, retroTextFloor, withRetroTextFloor } from "./retro.renderer";
 import { countUp, fxFlash, fxRing, fxShards, fxSparks, fxStreak, retroEndAge, retroFx, retroPayoffBanner } from "./retroFx.renderer";
 import { wavBoltNearMiss } from "./retroMoments";
@@ -110,6 +110,17 @@ const STEEL_DARK = "#14171C";
  * palette with no pink): the edge lights are electric cyan (were magenta #FF3FD0) against the gunmetal and furnace orange.
  */
 export const WAV_NEON = "#3FE6FF";
+/**
+ * The edge light by wave (the polish plan's C1.5, Joe, 20 Nov 2026): cyan, magenta, lime, amber, white in turn, so each
+ * wave reads as a new formation. The boss, the armour hull and the saucer keep cyan. Display only.
+ */
+export const WAV_NEON_BY_WAVE = ["#3FE6FF", "#FF4FD8", "#8CFF4A", "#FFB43A", "#F4F6FF"] as const;
+export function wavNeonFor(wave: number): string {
+  const n = WAV_NEON_BY_WAVE.length;
+  return WAV_NEON_BY_WAVE[(((Math.max(1, Math.trunc(wave)) - 1) % n) + n) % n] ?? WAV_NEON;
+}
+/** The edge colour a hull is being painted with (set for the length of one `paintHull` call). */
+let edgeNeon: string = WAV_NEON;
 export const WAV_FURNACE = "#FF8A2A";
 const FURNACE_HOT = "#FFC46B";
 const COCKPIT = "#5FF2FF";
@@ -166,7 +177,7 @@ function hullPath(ctx: CanvasRenderingContext2D, kind: number, x: number, y: num
 function neonLine(ctx: CanvasRenderingContext2D, width: number, alpha = 1): void {
   ctx.save();
   ctx.globalAlpha = 0.35 * alpha;
-  ctx.strokeStyle = WAV_NEON;
+  ctx.strokeStyle = edgeNeon;
   ctx.lineWidth = width * 3;
   ctx.stroke();
   ctx.globalAlpha = alpha;
@@ -216,12 +227,20 @@ function cannon(ctx: CanvasRenderingContext2D, f: HullFinish, cx: number, y0: nu
   ctx.fillRect(cx - w / 2, y0, w, y1 - y0);
   ctx.fillStyle = STEEL_DARK;
   ctx.fillRect(cx - w * 0.3, y1 - w * 0.6, w * 0.6, w * 0.6);
-  ctx.fillStyle = WAV_NEON;
+  ctx.fillStyle = edgeNeon;
   ctx.fillRect(cx - w / 2, y1 - w * 1.1, w, Math.max(0.6, w * 0.22));
 }
 
 /** The static hull (cached): gunmetal plating, furnace seams, neon edges, cannons and a glowing core. */
-function paintHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x: number, y: number, s: number): void {
+function paintHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x: number, y: number, s: number, neon: string = WAV_NEON): void {
+  edgeNeon = neon;
+  try {
+    paintHullIn(ctx, kind, colour, x, y, s);
+  } finally {
+    edgeNeon = WAV_NEON;
+  }
+}
+function paintHullIn(ctx: CanvasRenderingContext2D, kind: number, colour: string, x: number, y: number, s: number): void {
   const f = finishFor(colour);
   const P = (u: number, v: number) => [x + u * s, y + v * s] as const;
   ctx.save();
@@ -292,7 +311,7 @@ function paintHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, 
   ctx.strokeStyle = "rgba(0,0,0,0.85)";
   ctx.lineWidth = 1.2;
   ctx.stroke();
-  ctx.strokeStyle = WAV_NEON;
+  ctx.strokeStyle = edgeNeon;
   ctx.beginPath();
   if (kind === 0) {
     ctx.moveTo(...P(0.03, 0.39)); ctx.lineTo(...P(0.4, 0.61)); ctx.lineTo(...P(0.5, 0.97)); ctx.lineTo(...P(0.6, 0.61)); ctx.lineTo(...P(0.97, 0.39));
@@ -358,15 +377,15 @@ export const WAV_V15_HULL_BLEED = 4;
 const hullSprites = new Map<string, ArtCanvas | null>();
 
 /** One enemy hull filling the cell box (x, y, s × s): a cached sprite plus the live exhaust in the cell's top fifth. */
-export function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x: number, y: number, s: number, t: number): void {
-  const key = `s6:${kind}:${colour}:${s}`;
+export function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: string, x: number, y: number, s: number, t: number, neon: string = WAV_NEON): void {
+  const key = `s6:${kind}:${colour}:${s}:${neon}`;
   let sprite = hullSprites.get(key);
   if (sprite === undefined) {
     const canvas = artCanvas(Math.ceil(s * HULL_SCALE), Math.ceil(s * HULL_SCALE));
     const c = canvas && (artContext(canvas) as CanvasRenderingContext2D | null);
     if (canvas && c) {
       c.scale(HULL_SCALE, HULL_SCALE);
-      paintHull(c, kind, colour, 0, 0, s);
+      paintHull(c, kind, colour, 0, 0, s, neon);
     }
     sprite = canvas && c ? canvas : null;
     hullSprites.set(key, sprite);
@@ -376,7 +395,7 @@ export function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: st
   const nozzles = kind === 2 ? [0.32, 0.5, 0.68] : [0.42, 0.58];
   nozzles.forEach((u, k) => drawExhaust(ctx, x + s * u, y + s * (EXHAUST_V + 0.02), s * (kind === 2 ? 0.13 : 0.12), s * (EXHAUST_V + 0.01), t, still, x * 0.07 + k));
   if (sprite) ctx.drawImage(sprite as CanvasImageSource, x, y, s, s);
-  else paintHull(ctx, kind, colour, x, y, s);
+  else paintHull(ctx, kind, colour, x, y, s, neon);
 }
 
 /**
@@ -384,36 +403,83 @@ export function drawHull(ctx: CanvasRenderingContext2D, kind: number, colour: st
  * (ending in the arena fill colour), two soft nebulae, three sizes of stars
  * with a few cross glints, and a dim ringed planet low in a corner.
  */
+/** The six soft clouds (x, y as a share of the world's height, radius, colour): indigo and teal. */
+const WAV_CLOUDS = [
+  [300, 0.24, 220, "rgba(60,80,210,0.2)"],
+  [70, 0.61, 200, "rgba(30,120,190,0.18)"],
+  [230, 0.47, 140, "rgba(70,90,220,0.12)"],
+  [350, 0.77, 170, "rgba(30,140,170,0.12)"],
+  [110, 0.18, 120, "rgba(80,100,230,0.1)"],
+  [220, 0.42, 110, "rgba(40,170,190,0.06)"],
+] as const;
+/** The world's sky colours top to bottom (the fill round the world continues them: `paintWavefrontSky`). */
+export const WAV_SKY_STOPS = [
+  [0, "#0B0E24"],
+  [0.6, "#08091A"],
+  [1, "#07070C"],
+] as const;
+/**
+ * The sky behind the world continued into a rect of the arena fill (the polish plan's C1.4): the world's own vertical
+ * gradient mapped on the world's height `worldH` (rows from `worldTop`, scaled by `scale` view px per world px), and
+ * stars from the world's seed, so the side and foot strips read as the same sky, not a bluer panel.
+ */
+export function paintWavefrontSky(
+  ctx: CanvasRenderingContext2D,
+  rect: { x: number; y: number; w: number; h: number },
+  worldTop: number,
+  worldH: number,
+  scale: number,
+): void {
+  if (rect.w <= 0 || rect.h <= 0) return;
+  const y0 = worldTop;
+  const y1 = worldTop + worldH * scale;
+  const g = ctx.createLinearGradient(0, y0, 0, y1);
+  for (const [at, colour] of WAV_SKY_STOPS) g.addColorStop(at, colour);
+  ctx.fillStyle = g;
+  ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
+  let v = 913;
+  const next = () => {
+    v = (Math.imul(v, 1103515245) + 12345) | 0;
+    return ((v >>> 8) % 10000) / 10000;
+  };
+  const count = Math.round((rect.w * rect.h) / 900);
+  for (let i = 0; i < count; i++) {
+    const x = rect.x + next() * rect.w, y = rect.y + next() * rect.h, k = next();
+    ctx.fillStyle = k > 0.9 ? "rgba(255,240,220,0.8)" : k > 0.6 ? "rgba(200,220,255,0.5)" : "rgba(255,255,255,0.25)";
+    const sz = (k > 0.9 ? 2 : k > 0.6 ? 1.4 : 1) * Math.max(1, scale);
+    ctx.fillRect(x, y, sz, sz);
+  }
+}
+
 function paintSpace(c: CanvasRenderingContext2D, H: number): void {
   const W = WAV_WORLD_W;
   const sky = c.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, "#0D0B22");
-  sky.addColorStop(0.6, "#08081A");
-  sky.addColorStop(1, "#07070C");
+  for (const [at, colour] of WAV_SKY_STOPS) sky.addColorStop(at, colour);
   c.fillStyle = sky;
   c.fillRect(0, 0, W, H);
-  // Stage 2 of the Retro overhaul (Joe, 15 Nov 2026: "a richer retro space scene with more depth, no pink"): a pixel
-  // nebula in violet and indigo with dim teal wisps (retroSpace.renderer.ts), thin where the formation flies and fuller
-  // lower down and at the sides, so every ship reads; then a large lit ringed planet low on the right and
-  // a small moon. The drifting star layers are drawn each frame (drawSpace).
-  paintPixelNebula(c, {
-    x: 0,
-    y: 0,
-    w: W,
-    h: H,
-    seed: 41,
-    steps: ["rgba(34,18,78,0.5)", "rgba(52,28,118,0.58)", "rgba(78,44,160,0.62)", "rgba(112,72,196,0.62)", "rgba(156,120,226,0.58)"],
-    steps2: ["rgba(10,34,64,0.42)", "rgba(14,52,84,0.48)", "rgba(20,78,108,0.5)", "rgba(36,110,134,0.46)", "rgba(80,160,180,0.4)"],
-    band: (x, y) => {
-      const side = Math.min(1, Math.abs(x - W / 2) / (W * 0.42));
-      // Thin where the formation flies (the top 45 %), fuller lower down and at the sides.
-      return 0.4 + 0.55 * side + 0.4 * Math.min(1, Math.max(0, (y - H * 0.35) / (H * 0.4)));
-    },
-    threshold: 0.3,
-    gain: 9,
-  });
-  paintPixelPlanet(c, W - 40, H - 150, 46, ["#140E2C", "#2A2058", "#4A3C8C", "#7E6CC4"], "rgba(150,170,240,0.55)");
-  paintPixelPlanet(c, 60, 120, 9, ["#1A1A2E", "#33344E", "#565A7A", "#9096B4"]);
+  // The polish plan's C1.4 (Joe, 20 Nov 2026): soft clouds again, no pixel blocks, and cooler: indigo and teal, no purple.
+  for (const [nx, ny, nr, colour] of WAV_CLOUDS) {
+    const g = c.createRadialGradient(nx, ny * H, 0, nx, ny * H, nr);
+    g.addColorStop(0, colour);
+    g.addColorStop(0.45, colour.replace(/[\d.]+\)$/, (a) => `${(Number.parseFloat(a) * 0.45).toFixed(3)})`));
+    g.addColorStop(1, "rgba(0,0,0,0)");
+    c.fillStyle = g;
+    c.fillRect(nx - nr, ny * H - nr, nr * 2, nr * 2);
+  }
+  // A dim ringed planet low on the left (a smooth gradient, no pixel shading).
+  const ppx = 44, ppy = H - 150, pr = 26;
+  const planet = c.createRadialGradient(ppx - 9, ppy - 9, 2, ppx, ppy, pr);
+  planet.addColorStop(0, "#2E3E70");
+  planet.addColorStop(1, "#0C1226");
+  c.fillStyle = planet;
+  c.beginPath();
+  c.arc(ppx, ppy, pr, 0, Math.PI * 2);
+  c.fill();
+  c.strokeStyle = "rgba(150,200,255,0.16)";
+  c.lineWidth = 2;
+  c.beginPath();
+  c.ellipse(ppx, ppy, pr * 1.7, pr * 0.42, -0.35, 0, Math.PI * 2);
+  c.stroke();
   let v = 91;
   const next = () => {
     v = (Math.imul(v, 1103515245) + 12345) | 0;
@@ -1118,7 +1184,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     const colour = wavHullTint(i, state.wave) ?? WAV_COLOURS[(code - 1) % 3] ?? WAV_GOLD;
     // wavRev 15: the larger hit cells, the hull drawn to match (inside the bounds rule's 2 px).
     const bleed = state.big ? WAV_V15_HULL_BLEED : WAV_HULL_BLEED;
-    drawHull(ctx, kind, colour, box.x - bleed, box.y - bleed, WAV_CELL + 2 * bleed, t);
+    drawHull(ctx, kind, colour, box.x - bleed, box.y - bleed, WAV_CELL + 2 * bleed, t, wavNeonFor(state.wave));
     if (state.r11 && (state.carry?.[i] ?? -1) >= 0) drawCarrierMark(ctx, box.x + WAV_CELL / 2, box.y + WAV_CELL / 2, state.carry![i]!, t);
   });
   if (state.armour) drawArmourHull(ctx, state, state.armour);
@@ -1133,7 +1199,7 @@ function drawWavefrontArtWorld(ctx: CanvasRenderingContext2D, state: WavState, s
     ctx.fillRect(c.x - 2, c.y - WAV_CELL / 2 - 10, 4, 10);
     ctx.globalAlpha = 1;
     const diveBleed = state.big ? WAV_V15_HULL_BLEED : WAV_HULL_BLEED;
-    drawHull(ctx, Math.trunc((code - 1) / 3), colour, c.x - WAV_CELL / 2 - diveBleed, c.y - WAV_CELL / 2 - diveBleed, WAV_CELL + 2 * diveBleed, t);
+    drawHull(ctx, Math.trunc((code - 1) / 3), colour, c.x - WAV_CELL / 2 - diveBleed, c.y - WAV_CELL / 2 - diveBleed, WAV_CELL + 2 * diveBleed, t, wavNeonFor(state.wave));
     if (state.r11 && (state.carry?.[d.cell] ?? -1) >= 0) drawCarrierMark(ctx, c.x, c.y, state.carry![d.cell]!, t);
   }
   if (state.boss) {

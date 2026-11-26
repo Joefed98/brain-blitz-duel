@@ -21,8 +21,10 @@ import { encodeBalance, scalePegs, scaleSolved, type Placement } from "../src/li
 import { BALANCE_NORMAL, BALANCE_REV_LEVELS, balanceHidden, type BalanceLevelSettings } from "../src/lib/duel/balanceLevels";
 import { personSolveScale } from "../src/lib/duel/balanceLevels.server";
 import { balancedArrangements } from "../src/lib/duel/numberRounds.server";
-import { personSolveTarget, type TargetLevelSettings } from "../src/lib/duel/targetLevels.server";
+import { TARGET_EXPERT_BANK_RULE, personSolveTarget, type TargetLevelSettings, type TargetRoundSpec } from "../src/lib/duel/targetLevels.server"; // Changed with Joe's approval, 22 Nov 2026
+import { TARGET_REV_ROUNDS, joinTargetRounds, targetRoundsOf, usesTargetRounds } from "../src/lib/duel/targetRounds"; // Changed with Joe's approval, 22 Nov 2026
 import { TARGET_EXPERT_BANK } from "../src/lib/duel/targetExpertBank.server";
+import { TARGET_ROUND_BANK } from "../src/lib/duel/targetRoundBank.server"; // Changed with Joe's approval, 22 Nov 2026
 import { buildTargetExpertBank } from "./target-expert-bank";
 import { encodeSteps, LARGE_TILES, replayTargetSteps, solveTarget, solveWithAllSixTiles } from "../src/lib/duel/target";
 import { exactMinTiles } from "../src/lib/duel/standard/number.server";
@@ -58,7 +60,9 @@ for (const type of ["balance", "target"] as const) {
     for (let seed = 0; seed < 4; seed++) {
       const p = deal(type, 900 + seed, level === "normal" ? undefined : level);
       ok(puzzleTimeLimitMs(p) <= MAX_ROUND_CLOCK_MS, `${type} ${level} ${seed}: clock ${puzzleTimeLimitMs(p)} ≤ 120 s`);
-      if (type === "target") ok(puzzleTimeLimitMs(p) === 75_000, `Exact ${level} ${seed}: 75 s`);
+      // D2: Exact's Hard and Expert rounds of targets run 100 s and 120 s; Easy and Normal 75 s. Changed with Joe's approval, 22 Nov 2026
+      const exactClock = level === "hard" ? 100_000 : level === "expert" ? 120_000 : 75_000; // Changed with Joe's approval, 22 Nov 2026
+      if (type === "target") ok(puzzleTimeLimitMs(p) === exactClock, `Exact ${level} ${seed}: ${exactClock / 1000} s`); // Changed with Joe's approval, 22 Nov 2026
     }
   }
 }
@@ -73,7 +77,9 @@ for (const type of ["balance", "target"] as const) {
     ok(puzzleLevel(hard) === "hard", `Counterweight hard ${seed}: stamped Hard`);
     // Today's game, as rooms dealt it before levels: Normal with the old era pinned.
     const today = withSeededRandom(seed, () => generatePuzzle("balance", { bankSeed: seed }, { pins: ["preBalanceLevels"] }));
-    if (JSON.stringify(strip(hard)) === JSON.stringify(today)) same++;
+    // D2 (Joe's decision 10, a Hard you can see): Hard is the new 10-notch balanceRev 5 game; today's game is still dealt // Changed with Joe's approval, 22 Nov 2026
+    // by its pin at Normal. // Changed with Joe's approval, 22 Nov 2026
+    if (hard.balanceRev === BALANCE_REV_LEVELS && hard.scales.every((s) => scalePegs(s) === 10) && (today as BalancePuzzleData).balanceRev === 4 && !("level" in today)) same++; // Changed with Joe's approval, 22 Nov 2026
     const normal = deal("balance", seed) as BalancePuzzleData;
     if (normal.balanceRev === BALANCE_REV_LEVELS && !("level" in normal) && normal.scales.length === BALANCE_NORMAL.scales!.length) newNormal++;
     // Exact's Normal: the deal with no levels registered at all.
@@ -81,17 +87,17 @@ for (const type of ["balance", "target"] as const) {
     const bare = JSON.stringify(withGameLevels({}, () => deal("target", seed)));
     if (t === bare && !t.includes('"level"')) exactSame++;
   }
-  ok(same === 30, `Counterweight Hard is today's deal exactly on 30 seeds (${same})`);
+  ok(same === 30, `Counterweight Hard is the 10-notch balanceRev ${BALANCE_REV_LEVELS} game and today's game is dealt by its pin at Normal, on 30 seeds (${same})`); // Changed with Joe's approval, 22 Nov 2026
   ok(newNormal === 30, `Counterweight Normal is the new balanceRev ${BALANCE_REV_LEVELS} game, no level field (${newNormal}/30)`);
   ok(exactSame === 30, `Exact Normal byte for byte the deal before levels (${exactSame}/30)`);
-  // Today's game at Hard is balanceRev 4 (the overhaul's), the stamp rated rooms dealt before levels.
-  ok((deal("balance", 3, "hard") as BalancePuzzleData).balanceRev === 4, "Counterweight Hard deals balanceRev 4");
+  // D2: Hard deals balanceRev 5 (the levels' stamp); today's balanceRev 4 game is the pinned era's. // Changed with Joe's approval, 22 Nov 2026
+  ok((deal("balance", 3, "hard") as BalancePuzzleData).balanceRev === BALANCE_REV_LEVELS, `Counterweight Hard deals balanceRev ${BALANCE_REV_LEVELS}`); // Changed with Joe's approval, 22 Nov 2026
 }
 
 /* 3. Each level deals what its settings say. */
 const balanceSettings = (level: Level): BalanceLevelSettings =>
   level === "normal" ? BALANCE_NORMAL : (gameLevelSettings<BalanceLevelSettings>("balance", level) as BalanceLevelSettings);
-for (const level of ["easy", "normal", "expert"] as const) {
+for (const level of ["easy", "normal", "hard", "expert"] as const) { // Changed with Joe's approval, 22 Nov 2026
   const set = balanceSettings(level);
   let bad = 0;
   for (let seed = 0; seed < 25; seed++) {
@@ -118,32 +124,60 @@ for (const level of ["easy", "normal", "expert"] as const) {
   ok(bad === 0, `Counterweight ${level}: 25 boards as the settings say, solvable, unique where asked`);
 }
 {
+  // D2 (22 Nov 2026): Hard and Expert are targets in a row (targetRounds.ts), each target checked by its own rule: // Changed with Joe's approval, 22 Nov 2026
+  // today's Normal rule (1 or 2 large, 101–999), the Expert bank, or the level rule by exhaustive search. // Changed with Joe's approval, 22 Nov 2026
   const settings = (level: "easy" | "hard" | "expert") => gameLevelSettings<TargetLevelSettings>("target", level)!;
+  const bankKeys = new Set(TARGET_EXPERT_BANK.map((b) => JSON.stringify({ tiles: b.tiles, target: b.target, solution: b.solution }))); // Changed with Joe's approval, 22 Nov 2026
+  const roundKeys = new Set(TARGET_ROUND_BANK.map((b) => JSON.stringify({ tiles: b.tiles, target: b.target, solution: b.solution }))); // Changed with Joe's approval, 22 Nov 2026
   for (const level of ["easy", "hard", "expert"] as const) {
     const set = settings(level);
+    const specs: readonly TargetRoundSpec[] = "rounds" in set ? set.rounds : [set]; // Changed with Joe's approval, 22 Nov 2026
     let bad = 0;
     for (let seed = 0; seed < (level === "expert" ? 12 : 25); seed++) {
       const p = deal("target", 3000 + seed, level) as TargetNumberPuzzleData;
       const why: string[] = [];
-      const large = p.tiles.filter((t) => LARGE_TILES.includes(t)).length;
-      if (large < set.large[0] || large > set.large[1]) why.push(`large ${large}`);
-      if (p.tiles.some((t) => !LARGE_TILES.includes(t) && (t < 1 || t > 10))) why.push("small tile out of 1–10");
-      if (p.target < set.target[0] || p.target > set.target[1]) why.push(`target ${p.target}`);
-      const replay = replayTargetSteps(p.tiles, p.target, p.solution);
-      if (replay.distance !== 0 || replay.steps.length !== p.solution.length) why.push("stored solution misses");
-      const min = exactMinTiles(p.tiles, p.target);
-      if (min < set.tiles[0] || min > set.tiles[1]) why.push(`fewest numbers ${min}`);
-      if (set.tiles[0] === 6) {
-        // Exhaustive: no route from any five (or fewer) of the numbers, a route from all six.
-        for (let skip = 0; skip < 6; skip++) if (solveTarget(p.tiles.filter((_, k) => k !== skip), p.target)) why.push(`five numbers reach it without tile ${skip}`);
-        if (!solveWithAllSixTiles(p.tiles, p.target)) why.push("no route from all six");
-      } else if (min <= 2 || !solveTarget(p.tiles, p.target)) why.push("not a 3–4 number target");
+      const rounds = targetRoundsOf(p); // Changed with Joe's approval, 22 Nov 2026
+      if (rounds.length !== specs.length) why.push(`${rounds.length} targets`); // Changed with Joe's approval, 22 Nov 2026
+      if ("rounds" in set && (p.timeLimitMs !== set.clockS * 1000 || p.speedFullByS !== set.fullByS || p.targetRev !== TARGET_REV_ROUNDS)) why.push("round stamps"); // Changed with Joe's approval, 22 Nov 2026
+      rounds.forEach((r, i) => { // Changed with Joe's approval, 22 Nov 2026
+        const spec = specs[i]; // Changed with Joe's approval, 22 Nov 2026
+        if (!spec) return; // Changed with Joe's approval, 22 Nov 2026
+        const solution = usesTargetRounds(p) ? (p.solutions?.[i] ?? []) : p.solution; // Changed with Joe's approval, 22 Nov 2026
+        const replay = replayTargetSteps(r.tiles, r.target, solution); // Changed with Joe's approval, 22 Nov 2026
+        if (replay.distance !== 0 || replay.steps.length !== solution.length) why.push(`target ${i + 1}: stored solution misses`); // Changed with Joe's approval, 22 Nov 2026
+        const large = r.tiles.filter((t) => LARGE_TILES.includes(t)).length; // Changed with Joe's approval, 22 Nov 2026
+        if (r.tiles.some((t) => !LARGE_TILES.includes(t) && (t < 1 || t > 10))) why.push(`target ${i + 1}: small tile out of 1–10`); // Changed with Joe's approval, 22 Nov 2026
+        if ("normal" in spec) { // Changed with Joe's approval, 22 Nov 2026
+          if (large < 1 || large > 2 || r.target < 101 || r.target > 999) why.push(`target ${i + 1}: not a Normal-style target`); // Changed with Joe's approval, 22 Nov 2026
+          if (spec.person && !personSolveTarget(r.tiles, r.target)) why.push(`target ${i + 1}: the person-like solver misses it`); // Changed with Joe's approval, 22 Nov 2026
+          return; // Changed with Joe's approval, 22 Nov 2026
+        } // Changed with Joe's approval, 22 Nov 2026
+        if ("normalBank" in spec) { // Changed with Joe's approval, 22 Nov 2026
+          if (!roundKeys.has(JSON.stringify({ tiles: r.tiles, target: r.target, solution }))) why.push(`target ${i + 1}: not a round-bank board`); // Changed with Joe's approval, 22 Nov 2026
+          if (!personSolveTarget(r.tiles, r.target)) why.push(`target ${i + 1}: the person-like solver misses it`); // Changed with Joe's approval, 22 Nov 2026
+          return; // Changed with Joe's approval, 22 Nov 2026
+        } // Changed with Joe's approval, 22 Nov 2026
+        if ("expertBank" in spec) { // Changed with Joe's approval, 22 Nov 2026
+          if (!bankKeys.has(JSON.stringify({ tiles: r.tiles, target: r.target, solution }))) why.push(`target ${i + 1}: not a bank board`); // Changed with Joe's approval, 22 Nov 2026
+          return; // Changed with Joe's approval, 22 Nov 2026
+        } // Changed with Joe's approval, 22 Nov 2026
+        if (large < spec.large[0] || large > spec.large[1]) why.push(`target ${i + 1}: large ${large}`); // Changed with Joe's approval, 22 Nov 2026
+        if (r.target < spec.target[0] || r.target > spec.target[1]) why.push(`target ${i + 1}: target ${r.target}`); // Changed with Joe's approval, 22 Nov 2026
+        const min = exactMinTiles(r.tiles, r.target); // Changed with Joe's approval, 22 Nov 2026
+        if (min < spec.tiles[0] || min > spec.tiles[1]) why.push(`target ${i + 1}: fewest numbers ${min}`); // Changed with Joe's approval, 22 Nov 2026
+        if (spec.tiles[0] === 6) { // Changed with Joe's approval, 22 Nov 2026
+          // Exhaustive: no route from any five (or fewer) of the numbers, a route from all six. Changed with Joe's approval, 22 Nov 2026
+          for (let skip = 0; skip < 6; skip++) if (solveTarget(r.tiles.filter((_, k) => k !== skip), r.target)) why.push(`target ${i + 1}: five numbers reach it without tile ${skip}`); // Changed with Joe's approval, 22 Nov 2026
+          if (!solveWithAllSixTiles(r.tiles, r.target)) why.push(`target ${i + 1}: no route from all six`); // Changed with Joe's approval, 22 Nov 2026
+        } else if (min < spec.tiles[0] || !solveTarget(r.tiles, r.target)) why.push(`target ${i + 1}: not a ${spec.tiles[0]}–${spec.tiles[1]} number target`); // Changed with Joe's approval, 22 Nov 2026
+        if (spec.person && !personSolveTarget(r.tiles, r.target)) why.push(`target ${i + 1}: the person-like solver misses it`); // Changed with Joe's approval, 22 Nov 2026
+      }); // Changed with Joe's approval, 22 Nov 2026
       if (why.length) {
         bad++;
         console.log(`  Exact ${level} ${seed}: ${why.join(", ")}`);
       }
     }
-    ok(bad === 0, `Exact ${level}: boards obey the level's rule (exhaustive search)`);
+    ok(bad === 0, `Exact ${level}: every target obeys its rule (exhaustive search)`); // Changed with Joe's approval, 22 Nov 2026
   }
 }
 
@@ -156,11 +190,12 @@ for (const level of ["easy", "normal", "expert"] as const) {
     const b = deal("balance", 5000 + seed, "expert") as BalancePuzzleData;
     if (b.scales.every((scale) => personSolveScale(scale) !== null)) balancePass++;
     const t = deal("target", 5000 + seed, "expert") as TargetNumberPuzzleData;
-    if (personSolveTarget(t.tiles, t.target)) targetPass++;
+    // D2: every target of the Expert round. // Changed with Joe's approval, 22 Nov 2026
+    if (targetRoundsOf(t).every((r) => personSolveTarget(r.tiles, r.target))) targetPass++; // Changed with Joe's approval, 22 Nov 2026
   }
   console.log(`  person-like solver on Expert: Counterweight ${balancePass}/${N}, Exact ${targetPass}/${N}`);
   ok(balancePass === N, `Counterweight Expert: the person-like solver balances every scale on ${N} boards (${balancePass})`);
-  ok(targetPass === N, `Exact Expert: the person-like solver reaches every target on ${N} boards (${targetPass})`);
+  ok(targetPass === N, `Exact Expert: the person-like solver reaches every target of the round on ${N} rounds (${targetPass})`); // Changed with Joe's approval, 22 Nov 2026
 }
 
 /* 4b. Exact's Expert bank (Changed with Joe's approval, 16 Nov 2026 (Exact Expert bank)): Expert deals from a proved
@@ -168,7 +203,7 @@ for (const level of ["easy", "normal", "expert"] as const) {
  * person-like solver; the bank rebuilds (a sample of its first boards; CHECKS_FULL=1 the whole bank); each deal is a
  * bank board and takes milliseconds. */
 {
-  const set = gameLevelSettings<TargetLevelSettings>("target", "expert")!;
+  const set = TARGET_EXPERT_BANK_RULE; // D2: the bank's own rule (Expert is a round of targets). Changed with Joe's approval, 22 Nov 2026
   let bad = 0;
   for (const [i, b] of TARGET_EXPERT_BANK.entries()) {
     const why: string[] = [];
@@ -198,9 +233,12 @@ for (const level of ["easy", "normal", "expert"] as const) {
     const t0 = performance.now();
     const p = deal("target", 7000 + seed, "expert") as TargetNumberPuzzleData;
     slowest = Math.max(slowest, performance.now() - t0);
-    if (inBank.has(JSON.stringify({ tiles: p.tiles, target: p.target, solution: p.solution }))) fromBank++;
+    // D2: the Expert round's last target is the bank board. // Changed with Joe's approval, 22 Nov 2026
+    const last = targetRoundsOf(p).length - 1; // Changed with Joe's approval, 22 Nov 2026
+    const lastBoard = targetRoundsOf(p)[last]!; // Changed with Joe's approval, 22 Nov 2026
+    if (inBank.has(JSON.stringify({ tiles: lastBoard.tiles, target: lastBoard.target, solution: usesTargetRounds(p) ? p.solutions?.[last] : p.solution }))) fromBank++; // Changed with Joe's approval, 22 Nov 2026
   }
-  ok(fromBank === 60, `Exact Expert: every deal is a bank board (${fromBank}/60)`);
+  ok(fromBank === 60, `Exact Expert: every round ends on a bank board (${fromBank}/60)`); // Changed with Joe's approval, 22 Nov 2026
   ok(slowest < 50, `Exact Expert: a deal takes milliseconds (slowest ${slowest.toFixed(1)} ms)`);
   const a = JSON.stringify(deal("target", 4242, "expert"));
   ok(a === JSON.stringify(deal("target", 4242, "expert")), "Exact Expert: the same seed deals the same board");
@@ -230,8 +268,9 @@ for (const level of ["easy", "normal", "hard", "expert"] as const) {
   const was = pinPreNumberOverhaul(true);
   const rev3 = deal("balance", 7) as BalancePuzzleData;
   pinPreNumberOverhaul(was);
-  const rev4 = strip(deal("balance", 7, "hard")) as BalancePuzzleData;
-  ok(rev3.balanceRev === 3 && rev4.balanceRev === 4, `older stamps still dealt: rev ${rev3.balanceRev}, rev ${rev4.balanceRev} at Hard`);
+  // D2: today's balanceRev 4 game is the preBalanceLevels era's at Normal (Hard is balanceRev 5). Changed with Joe's approval, 22 Nov 2026
+  const rev4 = withSeededRandom(7, () => generatePuzzle("balance", { bankSeed: 7 }, { pins: ["preBalanceLevels"] })) as BalancePuzzleData; // Changed with Joe's approval, 22 Nov 2026
+  ok(rev3.balanceRev === 3 && rev4.balanceRev === 4, `older stamps still dealt: rev ${rev3.balanceRev}, rev ${rev4.balanceRev} by its pin`); // Changed with Joe's approval, 22 Nov 2026
   for (const ms of [0, 30_000, 90_000]) {
     const a = gradeAnswer(rev3, balanceAnswer(rev3), ms).score;
     const b = gradeAnswer(rev4, balanceAnswer(rev4), ms).score;
@@ -240,7 +279,8 @@ for (const level of ["easy", "normal", "hard", "expert"] as const) {
 }
 for (const level of LEVELS3) {
   const p = deal("target", 88, level) as TargetNumberPuzzleData;
-  const g = gradeAnswer(p, encodeSteps(p.solution), 60_000);
+  // D2: a round of targets sends every target's route. // Changed with Joe's approval, 22 Nov 2026
+  const g = gradeAnswer(p, usesTargetRounds(p) ? joinTargetRounds((p.solutions ?? []).map((s) => encodeSteps(s))) : encodeSteps(p.solution), 60_000); // Changed with Joe's approval, 22 Nov 2026
   ok(g.isCorrect && g.score === 200, `Exact ${level}: the stored route at full speed scores 200 (${g.score})`);
   const none = gradeAnswer(p, encodeSteps([]), 60_000);
   ok(!none.isCorrect && none.score < 150, `Exact ${level}: nothing made does not finish (${none.score})`);

@@ -35,11 +35,14 @@
 
 :root {
   /* ------------------------------------------------ neutrals (section 2) */
-  --jz-bg: #06080F;
-  --jz-bg-raised: #0B0F1C;
-  --jz-surface: #0F1424;
-  --jz-surface-2: #1E2640;
-  --jz-line: #1E2640;
+  /* The navy (P1, 21 Nov 2026; the polish plan's section 1.1, Joe's U2b): a deeper page and real navy panels, so panels
+     separate from the page. Gold, text and --screen-edge are unchanged; --jz-on-gold follows the page to #04060C (Joe,
+     21 Nov 2026: one brand ink). */
+  --jz-bg: #04060C;
+  --jz-bg-raised: #090D1A;
+  --jz-surface: #101A33;
+  --jz-surface-2: #1C2A52;
+  --jz-line: #223058;
   --jz-text: #EEF2FF;
   --jz-text-2: #B5C6DD;
   --jz-text-3: #8F9BBF;
@@ -55,15 +58,15 @@
   /* ------------------------------------------------ accents (section 2) */
   --jz-gold: #E2C07A;
   --jz-gold-metal: linear-gradient(165deg, #FBEDC4 0%, #E6C67E 34%, #D2AC5E 68%, #EED79C 100%);
-  --jz-on-gold: #06080F;
+  --jz-on-gold: #04060C;
   --jz-cyan: #22E4FF;
   --jz-cyan-panel: #112A3A;
   --jz-red: #FF3B5C;
   /* The gold button's ledge: a solid 4 px darker band under the metal face (design foundation F2). */
   --jz-gold-ledge: #A8843E;
   /* Navy: the second control colour beside the champagne gold (the game overhauls, 15 Nov 2026). */
-  --jz-navy: #1B2644;
-  --jz-navy-edge: #2E3B63;
+  --jz-navy: #142454;
+  --jz-navy-edge: #2F4A94;
   --jz-silver: #C9D3EA;
   --jz-bronze: #D9A066;
   /* Medal metals (gradients only on metal, hard rule 5; the gold medal takes --jz-gold-metal). */
@@ -134,6 +137,9 @@
   --jz-glow: #F3D894;
   --jz-art-sheen: #FFFFFF;
   --jz-art-edge: #06080F;
+  /* The approved reward art's panels (docs/art/svg, art-check): their own values, unchanged by the navy of 21 Nov 2026. */
+  --jz-art-surface: #0F1424;
+  --jz-art-surface-2: #1E2640;
   --jz-art-gold-deep: #9A7A3A;
   /* The soft halo behind Captain Joulz on empty and error screens (wave 1 mockups E1–X3): cool for an empty
      list or a page that isn't there, warm red when something is wrong (offline, an error). A radial gradient of
@@ -192,8 +198,8 @@
   /* ------------------------------------------------ style guide round 2 (docs/design/style-guide, 14 Nov 2026) */
   /* Added for the navigation frame (phase 2 step 1); the components step (phase 2 step 2) moved today's tokens onto
      the guide's values (--jz-loss, --jz-shadow-sheet) and added the type scale. */
-  --jz-raised: #0B0F1C; /* tab bar, rail, sheets (the same colour as --jz-bg-raised) */
-  --jz-surface-3: #28335A; /* pressed and selected */
+  --jz-raised: #090D1A; /* tab bar, rail, sheets (the same colour as --jz-bg-raised) */
+  --jz-surface-3: #26376B; /* pressed and selected */
   --jz-ledge-2: #03050A; /* a secondary button's ledge */
   --jz-gold-ink: #E2C07A; /* gold as text or an icon (darker in the light theme) */
   --jz-loss-text: #FF5A6E; /* losses and rating down as text (the same value as --jz-loss since the components step) */
@@ -286,6 +292,9 @@
   --jz-surface: #FFFFFF;
   --jz-surface-2: #E4E7F0;
   --jz-surface-3: #D6DBE8;
+  /* The reward art follows the light panels, as it did when it read --jz-surface (21 Nov 2026). */
+  --jz-art-surface: #FFFFFF;
+  --jz-art-surface-2: #E4E7F0;
   --jz-line: #DCE0EA;
   --jz-ledge-2: #BFC6D6;
   --jz-text: #0B1020;
@@ -339,13 +348,15 @@
   --screen-edge: #070709;
 }
 :root[data-theme="light"] :is(.game-screen, [data-skin-off], .pcard) {
-  --jz-bg: #06080F;
-  --jz-bg-raised: #0B0F1C;
-  --jz-raised: #0B0F1C;
-  --jz-surface: #0F1424;
-  --jz-surface-2: #1E2640;
-  --jz-surface-3: #28335A;
-  --jz-line: #1E2640;
+  --jz-bg: #04060C;
+  --jz-bg-raised: #090D1A;
+  --jz-raised: #090D1A;
+  --jz-surface: #101A33;
+  --jz-surface-2: #1C2A52;
+  --jz-surface-3: #26376B;
+  --jz-line: #223058;
+  --jz-art-surface: #0F1424;
+  --jz-art-surface-2: #1E2640;
   --jz-ledge-2: #03050A;
   --jz-text: #EEF2FF;
   --jz-text-2: #B5C6DD;

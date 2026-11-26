@@ -32,6 +32,13 @@ export interface BalanceLevelSettings {
   spare?: readonly number[];
   /** Expert: the balance readout is not shown. */
   hide?: boolean;
+  /**
+   * Keep only scales the person-like solver (balanceLevels.server.ts personSolveScale) balances within its budget, as
+   * Expert always has (D2, 22 Nov 2026: the new Hard too, with the readout shown).
+   */
+  person?: boolean;
+  /** The level's own "full by" time for its speed points, stamped as `speedFullByS` (D2); the game's 60 s without one. */
+  fullByS?: number;
 }
 
 /**

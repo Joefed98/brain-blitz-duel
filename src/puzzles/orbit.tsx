@@ -161,7 +161,9 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       discrete
       inputKind={ORBIT_INPUT_TAP}
       tickInput={(state) => {
-        const next = orbitCanSetCheckpoint(state);
+        // H7 (the polish plan, 20 Nov 2026): the button is hidden during a grace hold ("BACK IN 3"); display only, the
+        // sim's acceptance of a checkpoint input is unchanged, so every stored run replays as before.
+        const next = orbitCanSetCheckpoint(state) && !((state as { hold?: number }).hold ?? 0);
         if (availability.current !== next) {
           availability.current = next;
           setCanSet(next);

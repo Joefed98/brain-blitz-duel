@@ -3,7 +3,7 @@ import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
 import { Undo2, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { playWrong } from "@/lib/sound";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { PolishStyle, soundCue, useSolveFx } from "@/components/puzzles/numberPolish";
 
 import { useGameKeys } from "@/lib/desktop";
@@ -32,6 +32,9 @@ import { EXACT_ELEGANT_TILES, usesNumberDepth } from "@/lib/duel/numberDepth";
 import { exactCombineRate, exactLockReady, exactNear, toggleOperator } from "@/lib/duel/numberOverhaulInput";
 import { gameFx } from "@/lib/fx/kit";
 import { RevealFacts, RevealView, type RevealSide } from "@/components/puzzles/number/RevealParts";
+import { StageProgress } from "@/components/puzzles/StageProgress";
+import { puzzleTimeLimitMs } from "@/lib/duel/catalogue";
+import { joinTargetRounds, splitTargetRounds, targetRoundPuzzle, targetRoundsOf, usesTargetRounds } from "@/lib/duel/targetRounds";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 // The Number overhaul's shared look (darker background, navy and champagne controls), loaded with the game.
 import "@/polish-layout/number-overhaul.css";
@@ -220,7 +223,56 @@ interface HistoryEntry {
 
 function Stage(props: PuzzleStageProps) {
   if (props.puzzle.type !== "target") return null;
+  // D2 (22 Nov 2026, targetRounds.ts): Hard's and Expert's targets in a row.
+  if (usesTargetRounds(props.puzzle)) return <TargetRoundsStage {...props} />;
   return <TargetStage {...props} tiles={props.puzzle.tiles} target={props.puzzle.target} depth={usesNumberDepth(props.puzzle)} />;
+}
+
+/** Between one target's hit and the next rack (the hit's flight, then the Number family's stage moment). */
+const TARGET_ROUND_HOLD_MS = 1100;
+
+/**
+ * D2 (22 Nov 2026): a round of targets in a row (targetRounds.ts). Each target is today's stage on its own rack and its
+ * own saved board (`<round>:t<k>`); its exact hit moves the round to the next target after the hit's moment; a Lock or
+ * the buzzer on any target sends the round. The pips count the targets (the frame's goal line says "Stage 1 of 2").
+ */
+function TargetRoundsStage(props: PuzzleStageProps) {
+  const puzzle = props.puzzle as TargetNumberPuzzleData;
+  const rounds = targetRoundsOf(puzzle);
+  const roundKey = props.stateKey ?? "target";
+  const [index, setIndex] = useStageState<number>(roundKey, "targetRound", () => 0);
+  const [done, setDone] = useStageState<string[]>(roundKey, "targetRoundsDone", () => []);
+  const k = Math.min(index, rounds.length - 1);
+  const r = rounds[k]!;
+  const timer = useRef<number | null>(null);
+  useEffect(() => () => { if (timer.current !== null) window.clearTimeout(timer.current); }, []);
+  const prefix = done.slice(0, k);
+  const { onDraftAnswer, onSubmit } = props;
+  const draft = useCallback((d: string) => onDraftAnswer?.(joinTargetRounds([...prefix, d])), [onDraftAnswer, prefix.join("/")]);
+  const submit = (enc: string) => {
+    const hit = replayTargetSteps(r.tiles, r.target, decodeSteps(enc)).distance === 0;
+    if (hit && k < rounds.length - 1) {
+      setDone([...prefix, enc]);
+      timer.current = window.setTimeout(() => setIndex(k + 1), TARGET_ROUND_HOLD_MS);
+      return;
+    }
+    onSubmit(joinTargetRounds([...prefix, enc]));
+  };
+  return (
+    <div className="relative flex min-h-0 flex-1 flex-col gap-2" data-target-round={k}>
+      <StageProgress stage={k} total={rounds.length} />
+      <TargetStage
+        key={k}
+        {...props}
+        stateKey={`${roundKey}:t${k}`}
+        tiles={r.tiles}
+        target={r.target}
+        depth={usesNumberDepth(puzzle)}
+        onDraftAnswer={draft}
+        onSubmit={submit}
+      />
+    </div>
+  );
 }
 
 interface SolveFlight {
@@ -232,6 +284,7 @@ interface SolveFlight {
 }
 
 function TargetStage({
+  puzzle,
   tiles: startTiles,
   target,
   phaseStartedAt,
@@ -390,7 +443,8 @@ function TargetStage({
   // Out of time: the closest tile goes in automatically.
   useEffect(() => {
     if (locked || lockedHere || submitted.current) return;
-    if (now < phaseStartedAt + TARGET_TIME_MS - 400) return;
+    // The puzzle's own clock (a round of targets runs 100 or 120 s, D2); 75 s on every other round.
+    if (now < phaseStartedAt + puzzleTimeLimitMs(puzzle) - 400) return;
     send(steps, false);
   });
 
@@ -595,6 +649,21 @@ function TargetStage({
 
 function Reveal(props: PuzzleRevealProps) {
   if (props.puzzle.type !== "target") return null;
+  // D2 (22 Nov 2026): a round of targets in a row shows each target's reveal in turn.
+  if (usesTargetRounds(props.puzzle)) {
+    const rounds = targetRoundsOf(props.puzzle);
+    const parts = splitTargetRounds(props.myAnswer ?? "", rounds.length);
+    return (
+      <div className="exact-reveal" data-exact-rounds={rounds.length}>
+        {rounds.map((_, i) => (
+          <section key={i} className="exact-reveal" data-exact-round={i}>
+            <p className="exact-rv-caption">Target {i + 1} of {rounds.length}</p>
+            <TargetReveal {...props} puzzle={targetRoundPuzzle(props.puzzle as TargetNumberPuzzleData, i)} myAnswer={parts[i] ?? ""} myCorrect={false} />
+          </section>
+        ))}
+      </div>
+    );
+  }
   return <TargetReveal {...props} puzzle={props.puzzle} />;
 }
 
@@ -730,6 +799,12 @@ export const targetNumberPuzzle: PuzzleDefinition = {
   generate: generateTargetPuzzle,
   check: (answer, puzzle) => {
     if (puzzle.type !== "target") return false;
+    // D2: a round of targets in a row is right when every target is hit.
+    if (usesTargetRounds(puzzle)) {
+      const rounds = targetRoundsOf(puzzle);
+      const parts = splitTargetRounds(answer, rounds.length);
+      return rounds.every((r, i) => replayTargetSteps(r.tiles, r.target, decodeSteps(parts[i] ?? "")).distance === 0);
+    }
     const replay = replayTargetSteps(puzzle.tiles, puzzle.target, decodeSteps(answer));
     return replay.distance === 0;
   },

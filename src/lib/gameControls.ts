@@ -28,7 +28,7 @@ export const SCHEME_LABEL: Record<ControlScheme, string> = {
 };
 
 export const SCHEME_NOTE: Record<ControlScheme, string> = {
-  keys: "The keys below, and the mouse",
+  keys: "The keys and the mouse both play",
   mouse: "Click to tap, drag to swipe or aim; keys off",
   move: "Move the mouse to aim, click to act",
   drag: "Press, drag to aim, release, as on a phone",

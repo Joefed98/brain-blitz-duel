@@ -195,7 +195,7 @@ async function newDevice(opts: Opts = {}): Promise<{ context: BrowserContext; pa
   return { context, page, cues: () => page.evaluate(() => (window as unknown as { __cues: string[] }).__cues) };
 }
 
-async function open(page: Page, mode: "home" | "room", where: string) {
+async function open(page: Page, mode: "home" | "room" | "settings", where: string) { // Changed with Joe's approval, 21 Nov 2026
   await gotoRetried(page, `${server.origin}/safe-area.html?mode=${mode}`, where);
   await page.waitForSelector("#root *", { timeout: 60_000 });
   // Home decides after mount; give the effect and the entrance time to land.
@@ -203,14 +203,18 @@ async function open(page: Page, mode: "home" | "room", where: string) {
 }
 
 const introUp = (page: Page) => page.locator("[data-onboarding]").count().then((n) => n > 0);
-/** The first-time intro card on the Play tab, drawn (not collapsed away). */
+// Changed with Joe's approval, 21 Nov 2026 (P1: Home has no intro card and no "How it works" link; the three panels
+// open from Settings → How it works, and Home must show no card).
+/** A first-time intro card on Home, drawn (there must be none). */
 const cardUp = (page: Page) =>
   page.locator("[data-intro-card]").evaluateAll((els) => els.some((el) => el.getBoundingClientRect().height > 0 && !el.closest("[data-slot-state='hide']")));
-/** The card's How it works: the three panels. */
-async function openFromCard(page: Page) {
-  await page.locator("[data-intro-how]").click();
+/** Settings → How it works: the three panels. */
+async function openFromSettings(page: Page, where: string) {
+  await open(page, "settings", where);
+  await page.locator("[data-open-intro]").click();
   await page.locator("[data-onboarding]").waitFor({ timeout: 10_000 });
-}
+} // Changed with Joe's approval, 21 Nov 2026
+const settingsUp = (page: Page) => page.locator("[data-settings-page]").count().then((n) => n > 0); // Changed with Joe's approval, 21 Nov 2026
 // Changed with Joe's approval, 14 Nov 2026 (routine consequence of the Home and Play pages, phase 2 step 3): Create a
 // room moved to the Rooms page, so Home is known by its own marker.
 const homeUp = (page: Page) => page.locator("[data-home]").count().then((n) => n > 0);
@@ -278,12 +282,9 @@ try {
     const { context, page, cues } = await newDevice(size);
     try {
       await open(page, "home", where);
-      if (!(await cardUp(page))) {
-        fail(`${where}: a fresh device did not see the intro card on home`);
-        continue;
-      }
-      if (await introUp(page)) fail(`${where}: the panels opened by themselves (the card stands in for them)`);
-      await openFromCard(page);
+      if (await cardUp(page)) fail(`${where}: a fresh device saw an intro card on home`); // Changed with Joe's approval, 21 Nov 2026
+      if (await introUp(page)) fail(`${where}: the panels opened by themselves on home`); // Changed with Joe's approval, 21 Nov 2026
+      await openFromSettings(page, where); // Changed with Joe's approval, 21 Nov 2026
       const before = failures.length;
       for (let i = 0; i < 3; i++) {
         await settle(page);
@@ -299,7 +300,7 @@ try {
       }
       await page.waitForTimeout(300);
       if (await introUp(page)) fail(`${where}: Let's play did not close the intro`);
-      if (!(await homeUp(page))) fail(`${where}: Let's play did not land on home`);
+      if (!(await settingsUp(page))) fail(`${where}: Let's play did not return to Settings`); // Changed with Joe's approval, 21 Nov 2026
       const lockCues = (await cues()).filter((c) => c === "lock").length;
       if (lockCues !== 2) fail(`${where}: Next played the lock cue ${lockCues} times over two Nexts (expected 2, none on Let's play)`);
       const other = (await cues()).filter((c) => c !== "lock");
@@ -307,7 +308,7 @@ try {
       await open(page, "home", where);
       if (await introUp(page)) fail(`${where}: the intro showed again after Let's play`);
       if (await cardUp(page)) fail(`${where}: the intro card showed again on reload`);
-      if (failures.length === before) ok(`${where}: the card, then three panels that fit with no scrolling, clear of the insets; Let's play lands on home once`);
+      if (failures.length === before) ok(`${where}: no card on home; from Settings three panels that fit with no scrolling, clear of the insets; Let's play returns to Settings`); // Changed with Joe's approval, 21 Nov 2026
     } finally {
       await context.close();
     }
@@ -318,26 +319,22 @@ try {
     const { context, page } = await newDevice();
     const before = failures.length;
     await open(page, "home", "skip");
-    if (!(await cardUp(page))) fail("skip: no intro card on a fresh device");
-    await openFromCard(page);
+    if (await cardUp(page)) fail("skip: an intro card on home"); // Changed with Joe's approval, 21 Nov 2026
+    await openFromSettings(page, "skip"); // Changed with Joe's approval, 21 Nov 2026
     await page.locator("[data-onboarding-skip]").click();
     await page.waitForTimeout(300);
     if (await introUp(page)) fail("skip: Skip did not close the intro");
-    if (!(await homeUp(page))) fail("skip: Skip did not land on home");
-    // The card's close button removes it (it collapses away).
-    await page.locator("[data-intro-close]").click();
-    await page.waitForTimeout(700);
-    if (await cardUp(page)) fail("skip: the card's close button did not remove it");
+    if (!(await settingsUp(page))) fail("skip: Skip did not return to Settings"); // Changed with Joe's approval, 21 Nov 2026
     await open(page, "home", "skip");
-    if ((await introUp(page)) || (await cardUp(page))) fail("skip: the intro showed again after Skip");
+    if ((await introUp(page)) || (await cardUp(page))) fail("skip: the intro showed on home after Skip"); // Changed with Joe's approval, 21 Nov 2026
     // Skip on a later panel too.
-    await page.getByRole("button", { name: "How it works" }).click();
+    await openFromSettings(page, "skip"); // Changed with Joe's approval, 21 Nov 2026
     await page.locator("[data-onboarding-next]").click();
     await settle(page);
     await page.locator("[data-onboarding-skip]").click();
     await page.waitForTimeout(300);
-    if (!(await homeUp(page)) || (await introUp(page))) fail("skip: Skip on panel 2 did not land on home");
-    if (failures.length === before) ok("Skip (panel 1 and 2) lands on home, the card closes, and the intro does not return");
+    if (!(await settingsUp(page)) || (await introUp(page))) fail("skip: Skip on panel 2 did not return to Settings"); // Changed with Joe's approval, 21 Nov 2026
+    if (failures.length === before) ok("Skip (panel 1 and 2) returns to Settings, and home shows no intro"); // Changed with Joe's approval, 21 Nov 2026
     await context.close();
   }
 
@@ -345,8 +342,7 @@ try {
   {
     const { context, page } = await newDevice();
     const before = failures.length;
-    await open(page, "home", "swipe");
-    await openFromCard(page);
+    await openFromSettings(page, "swipe"); // Changed with Joe's approval, 21 Nov 2026
     const box = (await page.locator("[data-onboarding-track]").boundingBox())!;
     const y = box.y + box.height / 2;
     const swipe = async (from: number, to: number) => {
@@ -391,16 +387,17 @@ try {
     await page.addInitScript((key) => localStorage.setItem(key, "1"), ONBOARDING_KEY);
     await open(page, "home", "how it works");
     if ((await introUp(page)) || (await cardUp(page))) fail("how it works: the intro showed on a device that has seen it");
+    await open(page, "settings", "how it works"); // Changed with Joe's approval, 21 Nov 2026
     for (let round = 0; round < 2; round++) {
-      await page.getByRole("button", { name: "How it works" }).click();
+      await page.locator("[data-open-intro]").click(); // Changed with Joe's approval, 21 Nov 2026
       await settle(page);
       if (!(await introUp(page))) fail(`how it works: the link did not reopen the intro (time ${round + 1})`);
       if ((await currentPanel(page)) !== 1) fail("how it works: the intro did not open on panel 1");
       await page.locator("[data-onboarding-skip]").click();
       await page.waitForTimeout(300);
-      if (!(await homeUp(page))) fail("how it works: closing the reopened intro did not land on home");
+      if (!(await settingsUp(page))) fail("how it works: closing the reopened intro did not return to Settings"); // Changed with Joe's approval, 21 Nov 2026
     }
-    if (failures.length === before) ok('"How it works" on home reopens the three panels, and closing lands on home');
+    if (failures.length === before) ok('"How it works" in Settings reopens the three panels, and closing returns to Settings'); // Changed with Joe's approval, 21 Nov 2026
     await context.close();
   }
 
@@ -409,22 +406,21 @@ try {
     const { context, page } = await newDevice({ brokenStorage: true });
     const before = failures.length;
     await open(page, "home", "storage");
-    if (!(await cardUp(page))) fail("storage: with localStorage failing a fresh device saw no intro card");
-    await openFromCard(page);
+    if ((await introUp(page)) || (await cardUp(page))) fail("storage: with localStorage failing, home showed an intro"); // Changed with Joe's approval, 21 Nov 2026
+    await openFromSettings(page, "storage"); // Changed with Joe's approval, 21 Nov 2026
     await page.locator("[data-onboarding-skip]").click();
     await page.waitForTimeout(300);
-    if (!(await homeUp(page))) fail("storage: Skip did not land on home with localStorage failing");
+    if (!(await settingsUp(page))) fail("storage: Skip did not return to Settings with localStorage failing"); // Changed with Joe's approval, 21 Nov 2026
     await open(page, "home", "storage");
-    if ((await introUp(page)) || (await cardUp(page))) fail("storage: the intro showed twice in one session with localStorage failing");
-    if (failures.length === before) ok("storage failing: the intro shows once a session (sessionStorage fallback), no errors");
+    if ((await introUp(page)) || (await cardUp(page))) fail("storage: home showed an intro after the panels, with localStorage failing"); // Changed with Joe's approval, 21 Nov 2026
+    if (failures.length === before) ok("storage failing: home shows no intro and the panels open and close from Settings, no errors"); // Changed with Joe's approval, 21 Nov 2026
     await context.close();
   }
 
   /* Reduced motion: no slide. */
   {
     const { context, page } = await newDevice({ reducedMotion: true });
-    await open(page, "home", "reduced motion");
-    await openFromCard(page);
+    await openFromSettings(page, "reduced motion"); // Changed with Joe's approval, 21 Nov 2026
     const duration = await page.evaluate(
       () => getComputedStyle(document.querySelector("[data-onboarding-track] > div")!).transitionDuration,
     );
@@ -445,4 +441,4 @@ if (failures.length) {
   console.log(`FAIL: ${failures.length} onboarding problem(s)`);
   process.exit(1);
 }
-console.log("PASS: first-time intro card shows once on home, its How it works opens the panels, never after a room link, reopens from How it works, and fits at 414x896, 390x844, 375x667 and 360x800");
+console.log("PASS: no intro card on home; the panels open from Settings → How it works, never after a room link, reopen from it, and fits at 414x896, 390x844, 375x667 and 360x800"); // Changed with Joe's approval, 21 Nov 2026

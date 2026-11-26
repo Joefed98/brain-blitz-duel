@@ -31,7 +31,18 @@ export interface MeasureBoardSpec {
  */
 export type MeasureLevelSettings =
   | { today: true }
-  | { boards: readonly MeasureBoardSpec[]; limitFactor: number };
+  | {
+      boards: readonly MeasureBoardSpec[];
+      limitFactor: number;
+      /**
+       * D2 (22 Nov 2026): each board's par is the fewest pours the textbook way takes (`personSolve` within the board's
+       * limit), not the proven minimum: on long boards nobody finds the minimum, so the par bonus aims at what a person can
+       * reach. Stamped as the puzzle's `par`; the move limit still comes from the proven minimum.
+       */
+      personPar?: boolean;
+      /** The level's own "full by" time for its speed points, stamped as `speedFullByS` (D2); the game's 60 s without one. */
+      fullByS?: number;
+    };
 
 /**
  * Normal (15 Nov 2026): four boards, tap and drain on all, two jugs then two, two and three, minimums 3–10 rising

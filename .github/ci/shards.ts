@@ -140,7 +140,9 @@ export const SHARDS: Record<string, string[]> = {
   // harness, ~1 min with its dev server) rides here.
   // number-demos-check (16 Nov 2026, the Number overhaul's intro demos, ~105 s whole) in halves, one beside share-check
   // and one beside offline-check.
-  play17: ["share-check.ts", "number-demos-check.ts@1/2"],
+  // goal-line-check (22 Nov 2026: every puzzle's goal line on its live round at 375×667 and 390×844, never cut short;
+  // ~5.5 min whole with its dev server) in thirds, all here (~2 min each locally, well under the 300 s per-check limit).
+  play17: ["share-check.ts", "number-demos-check.ts@1/2", "goal-line-check.ts@1/3", "goal-line-check.ts@2/3", "goal-line-check.ts@3/3"],
   // Prompt D (23 Oct 2026): demo-intro-check (every active game's intro from its first frame to its demo playing,
   // with and without a demo, as an iPhone 11 home-screen app; ~8 s a game) and replay-board-check (46 puzzle replays on
   // the room's results screen, ~2 min). demo-intro-check in sixths since 8 Nov 2026: its thirds took 197–300 s on CI
@@ -360,6 +362,8 @@ export const SHARDS: Record<string, string[]> = {
     "depth-wordsearch-check.ts",
     "hover-x200-check.ts",
     "wavefront-expand-check.ts",
+    // The Number levels' ladder (D2, 22 Nov 2026; ~60 s whole locally, in thirds by game): Exact, Ballpark, Brimful and Operator.
+    "number-levels-ladder-check.ts@2/3",
   ],
   // ~282 s of checks on run 38608375501's times.
   d: [
@@ -409,6 +413,8 @@ export const SHARDS: Record<string, string[]> = {
     "practice-receipt-check.ts",
     "number-levels-measure-numline-check.ts",
     "swing-levels-check.ts",
+    // The Number levels' ladder (D2, 22 Nov 2026): Kakuro alone, ~57 s locally.
+    "number-levels-ladder-check.ts@1/3",
   ],
   // ~282 s of checks on run 38608375501's times.
   e: [
@@ -475,6 +481,8 @@ export const SHARDS: Record<string, string[]> = {
     // placement, tiers and caps, recorded runs, the 4th-match rule, Joules, the competitive badges) on a local
     // PostgreSQL through the server-function harness, beside badges-check.
     "ratings-check.ts",
+    // rated-week-change-check (P1, 21 Nov 2026, ~10 s): Home's "+22 this week" from the stored rated matches.
+    "rated-week-change-check.ts",
     // practice-progress-check (wave 2 C1a, 11 Nov 2026, ~15 s): practice stars, bests and gems on the account (the stored
     // breakdown against a room's, 175 / 174, the fresh start, gems, two devices, roles) on a local PostgreSQL.
     "practice-progress-check.ts",
@@ -589,6 +597,8 @@ export const SHARDS: Record<string, string[]> = {
     "standard-pattern-check.ts",
     "pattern-overhaul-gravity-check.ts",
     "pattern-overhaul-iceslide-check.ts",
+    // The Number levels' ladder (D2, 22 Nov 2026): Counterweight, Integer Pyramid and Checkout, ~16 s locally.
+    "number-levels-ladder-check.ts@3/3",
   ],
   // ~282 s of checks on run 38608375501's times.
   f: [

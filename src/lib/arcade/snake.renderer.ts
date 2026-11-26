@@ -541,49 +541,6 @@ function drawMidRock(ctx: CanvasRenderingContext2D, state: SnakeState, rock: num
   ctx.restore();
 }
 
-/**
- * A wormhole as concept A's glowing ring (stage 3 of the Retro overhaul, 16 Nov 2026, Joe: "clear glowing rings,
- * readable at phone size"): a bright 2 px rim in the pair's colour at the cell's edge (lit white-hot on its top left), a
- * dark mouth, and six curved vanes of 2 px blocks swirling into a dark centre, turning slowly. Inside its 24 px cell (the
- * rim's outer edge at r); display only.
- */
-function drawSpiral(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, colour: string, turn: number, flash: number): void {
-  ctx.save();
-  const hot = rgbHex(mixRgb(colour, "#FFFFFF", 0.75));
-  const pale = rgbHex(mixRgb(colour, "#FFFFFF", 0.35));
-  // The mouth: near-black, so the rim and vanes read against it.
-  ctx.fillStyle = "#05030C";
-  ctx.beginPath();
-  ctx.arc(x, y, r - 1, 0, Math.PI * 2);
-  ctx.fill();
-  // The vanes: six arms of 2 px blocks curving in from the rim to the centre, brightest outside.
-  for (let arm = 0; arm < 6; arm++) {
-    for (let k = 0; k < 6; k++) {
-      const t = k / 5;
-      const d = 2.5 + t * (r - 5);
-      const a = turn + (arm / 6) * Math.PI * 2 + (1 - t) * 1.4;
-      ctx.globalAlpha = (0.55 + 0.45 * t) * (0.9 + 0.1 * flash);
-      ctx.fillStyle = t > 0.3 ? pale : colour;
-      ctx.fillRect(Math.round(x + Math.cos(a) * d) - 1, Math.round(y + Math.sin(a) * d) - 1, 2, 2);
-    }
-  }
-  // The rim: a bright 2 px ring, white-hot on the top left fading to the pair's colour on the bottom right.
-  ctx.globalAlpha = 1;
-  const rim = ctx.createLinearGradient(x - r, y - r, x + r, y + r);
-  // (A mock canvas in the checks may hand back no gradient: the flat tint stands in.)
-  rim?.addColorStop(0, hot);
-  rim?.addColorStop(0.5, pale);
-  rim?.addColorStop(1, colour);
-  ctx.strokeStyle = rim ?? pale;
-  ctx.lineWidth = 2 + flash;
-  ctx.beginPath();
-  ctx.arc(x, y, r - 1.5, 0, Math.PI * 2);
-  ctx.stroke();
-  // The dark centre the vanes fall into.
-  ctx.fillStyle = "#05030C";
-  ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, 2, 2);
-  ctx.restore();
-}
 
 /** A dashed ring of 2 px pixels (two on, one off) round (x, y), turned by `turn` radians. */
 function dashedRing(ctx: CanvasRenderingContext2D, x: number, y: number, r: number, dots: number, turn: number, colour: string, alpha: number): void {
@@ -602,45 +559,19 @@ function dashedRing(ctx: CanvasRenderingContext2D, x: number, y: number, r: numb
  * purple and a teal nebula, a pixel starfield and a soft glow round the board's edge, fading to black
  * at the world's edges so it meets the screen fill without a seam. Static: nothing here moves.
  */
-/** The field's colours, top to bottom (concept A): violet, plum, near-black, deep teal, teal. */
-const FIELD_STOPS = [[0, "#2A1550"], [0.3, "#1A0E33"], [0.55, "#0B0816"], [0.8, "#0A2A2E"], [1, "#0E4642"]] as const;
-const FIELD_BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5] as const;
-function fieldColourAt(u: number, band: number): string {
-  // Twelve bands down the board, each a flat colour from the stops (the dither picks between neighbours).
-  const k = Math.min(1, Math.max(0, band / 11));
-  let i = 0;
-  while (i < FIELD_STOPS.length - 2 && FIELD_STOPS[i + 1]![0] < k) i++;
-  const [a0, c0] = FIELD_STOPS[i]!;
-  const [a1, c1] = FIELD_STOPS[i + 1]!;
-  const t = (k - a0) / (a1 - a0);
-  void u;
-  return rgbHex(mixRgb(c0, c1, Math.min(1, Math.max(0, t))));
-}
-function pixelField(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number): void {
-  const B = 3;
-  for (let py = 0; py < h; py += B) {
-    const pos = (py / h) * 11;
-    const band = Math.floor(pos);
-    const frac = pos - band;
-    for (let px = 0; px < w; px += B) {
-      const up = frac * 16 > FIELD_BAYER[(((py / B) & 3) * 4 + ((px / B) & 3))]!;
-      c.fillStyle = fieldColourAt(px / w, up ? band + 1 : band);
-      c.fillRect(x + px, y + py, B, B);
-    }
-  }
-}
 
 function paintSpace(c: CanvasRenderingContext2D, rows: number, worldH: number, W: number = SNAKE_WORLD_W, cols: number = SNAKE_COLS, boardX: number = SNAKE_BOARD_X): void {
   const boardH = rows * SNAKE_CELL;
   const SNAKE_BOARD_W = cols * SNAKE_CELL;
   c.fillStyle = "#04030A";
   c.fillRect(0, 0, W, worldH);
-  // Stage 2 of the Retro overhaul (Joe, 15 Nov 2026: towards concept A): outside the board, black space with sparse
-  // stars; the board itself a clean field, deep violet at the top through near-black to teal low down, painted in pixel
-  // bands with a 4 × 4 ordered dither between them (pixelField), under a crisper grid (drawGrid).
-  pixelStars(c, 0, 0, W, worldH, 120, 512, ["#FFFFFF", "#CFC4FF", "#9FF5EA"], 1);
-  pixelField(c, boardX, SNAKE_BOARD_Y, SNAKE_BOARD_W, boardH);
-  pixelStars(c, boardX, SNAKE_BOARD_Y, SNAKE_BOARD_W, boardH, 70, 733, ["#FFFFFF", "#CFC4FF", "#9FF5EA", "#FFE9A8"], 1);
+  // The polish plan's C1.9 (Joe's mockup A, 20 Nov 2026): four soft nebulae in violet and teal, no pixel field, and
+  // the pixel stars over them; painted once into the backdrop.
+  blob(c, W * 0.22, worldH * 0.26, W * 0.62, "#5B2A9E", 0.42, 1.25);
+  blob(c, W * 0.86, worldH * 0.7, W * 0.58, "#137A78", 0.34, 1.35);
+  blob(c, W * 0.55, worldH * 0.48, W * 0.36, "#7A3FC4", 0.16, 1.1);
+  blob(c, W * 0.12, worldH * 0.84, W * 0.32, "#1FA8A0", 0.14, 1.2);
+  pixelStars(c, 0, 0, W, worldH, 190, 512, ["#FFFFFF", "#CFC4FF", "#9FF5EA", "#FFE9A8"], 1);
   // The board's edge: a soft light just inside and outside the frame (the live border is drawn over it).
   const bx = boardX, by = SNAKE_BOARD_Y;
   c.globalAlpha = 1;
@@ -886,10 +817,16 @@ function drawFeatures(ctx: CanvasRenderingContext2D, state: SnakeState, motion: 
     // 3 Nov 2026 (Joe's audit; display only): a larger mouth and rings, to the cell's edge (2 px past it at most).
     // Stage 2 of the Retro overhaul (concept A): a spiral galaxy, two pixel arms in the pair's colour wound round a
     // white-hot core, turning slowly (opposite ways for the two mouths of a pair); a trip flares it. Inside the cell.
-    // Stage 3 (concept A's glowing rings): a stronger halo, still within 2 px of the cell.
+    // Stage 3 (concept A's glowing rings): a stronger halo, still within 2 px of the cell. The polish plan's C1.9
+    // (20 Nov 2026): mockup A's ringed wormhole again: a dark mouth and two counter-turning dashed rings inside r 12.
     glow(ctx, colour, p.x, p.y, 14, 14, 0.5 + 0.3 * flash);
-    const turn = motion ? state.tick * 0.05 * (i % 2 ? -1 : 1) : 0;
-    drawSpiral(ctx, p.x, p.y, 12, colour, turn, flash);
+    ctx.fillStyle = "#05030C";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 9, 0, Math.PI * 2);
+    ctx.fill();
+    const turn = motion ? state.tick * 0.08 * (i % 2 ? -1 : 1) : 0;
+    dashedRing(ctx, p.x, p.y, 12, 22, turn, colour, 1);
+    dashedRing(ctx, p.x, p.y, 7.5, 12, -turn * 1.6, "#FFFFFF", 0.65 + 0.35 * flash);
   });
   // The gold comet star: the star sprite on a gold glow, fading as it runs out, with a timer ring.
   const gold = state.gold ?? -1;

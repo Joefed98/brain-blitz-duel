@@ -11,9 +11,10 @@
  *
  * Display only: drawn from the stored reveal (the server replay's axis and tiles) and, for Tilt's times and Gemstone's
  * goals, the player's own run replayed on the phone with the game's own replay (the same one the server scores with);
- * the score shown is always the stored one. The pieces are the games' rendered materials (public/strategy/).
+ * the score shown is always the stored one. The pieces are the games' own: the coin and chest renders
+ * (public/strategy/), Gemstone's gems and Ball Tracker's marbles drawn by the games' painters (the polish plan, 20 Nov 2026).
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@/design/components";
 import { strategyArtUrl, type StrategyArtName } from "@/lib/arcade/strategyArt";
@@ -112,8 +113,32 @@ function TiltSummary({ puzzle, answer, reveal }: { puzzle: PuzzleData; answer: s
 
 /** matchupRev 13 Expert's seventh gem colour (matchup.ts MATCHUP_COLOUR7, kept here so the reveal stays light; gemstone-levels-check). */
 export const SUMMARY_COLOUR7 = "#2FE3E6"; // design-lint-ignore
-const HEART_PATH = "M12 21 C5 15 2 12 2 8 C2 5 4.5 3 7 3 C9 3 11 4.5 12 6 C13 4.5 15 3 17 3 C19.5 3 22 5 22 8 C22 12 19 15 12 21 Z";
-const GEM_SHAPES: StrategyArtName[] = ["gem-circle", "gem-square", "gem-triangle", "gem-diamond", "gem-star", "gem-hexagon"];
+
+/**
+ * One of Gemstone's gems as the game draws it (the polish plan's C2.1, 20 Nov 2026: the flat-cut code gems, no rendered
+ * stones), painted once into a small canvas by the game's own painter, loaded on demand so the reveal stays light.
+ * `colour` is the goal's colour index (0–5, then 6 for matchupRev 13 Expert's seventh, the heart).
+ */
+function GemPiece({ colour, size, dim }: { colour: number; size: number; dim: boolean }) {
+  const ref = useRef<HTMLCanvasElement | null>(null);
+  useEffect(() => {
+    let live = true;
+    void Promise.all([import("@/lib/arcade/matchup.renderer"), import("@/lib/arcade/matchup")]).then(([art, sim]) => {
+      const canvas = ref.current;
+      const ctx = canvas?.getContext("2d");
+      if (!live || !canvas || !ctx) return;
+      const k = Math.min(3, Math.max(1, typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1));
+      canvas.width = Math.round(size * k);
+      canvas.height = Math.round(size * k);
+      ctx.setTransform(k, 0, 0, k, 0, 0);
+      art.paintMatchupGem(ctx, colour < 6 ? colour : sim.MATCHUP_KIND7, size / 2, size / 2, size * 0.44, 0);
+    });
+    return () => {
+      live = false;
+    };
+  }, [colour, size]);
+  return <canvas ref={ref} width={size} height={size} style={{ width: size, height: size }} aria-hidden="true" className="srs-piece" data-dim={dim ? "" : undefined} data-gem-colour={colour} />;
+}
 
 function GemstoneSummary({ puzzle, answer, reveal }: { puzzle: PuzzleData; answer: string | null; reveal: ArcadeRevealData }) {
   const goals = useReplayed(puzzle, answer, async () => {
@@ -132,14 +157,7 @@ function GemstoneSummary({ puzzle, answer, reveal }: { puzzle: PuzzleData; answe
         {(goals ?? Array.from({ length: goalFrac?.[1] ?? 6 }, (_, i) => ({ colour: i, need: 0, left: i < (goalFrac?.[0] ?? 0) ? 0 : 1 }))).map((g) => (
           <span key={g.colour} className="srs-cell" data-done={g.left === 0 ? "" : undefined}>
             <span className="srs-disc">
-              {g.colour < GEM_SHAPES.length ? (
-                <Piece name={GEM_SHAPES[g.colour]!} size={38} dim={g.left > 0} />
-              ) : (
-                // matchupRev 13 Expert's seventh colour: the heart, drawn in code (no rendered stone yet).
-                <svg viewBox="0 0 24 24" width={38} height={38} aria-hidden="true" className="srs-piece" data-dim={g.left > 0 ? "" : undefined}>
-                  <path d={HEART_PATH} fill={SUMMARY_COLOUR7} stroke="white" strokeOpacity={0.6} strokeWidth="1" />
-                </svg>
-              )}
+              <GemPiece colour={g.colour} size={38} dim={g.left > 0} />
               {g.left === 0 ? (
                 <span className="srs-tick">
                   <Icon name="check" size={18} />
@@ -218,7 +236,31 @@ function InkSummary({ reveal }: { reveal: ArcadeRevealData }) {
 
 // ------------------------------------------------------------------ Ball Tracker
 
-const BT_PIECES: StrategyArtName[] = ["bt-marble-red", "bt-marble-blue", "bt-marble-green", "bt-marble-yellow"];
+/**
+ * One of Ball Tracker's marbles as the game draws it (the polish plan's C2.2, 20 Nov 2026: the code marble, no rendered
+ * glass), painted by the game's own painter into a small canvas, loaded on demand. `colour` is the palette index.
+ */
+function MarblePiece({ colour, size }: { colour: number; size: number }) {
+  const ref = useRef<HTMLCanvasElement | null>(null);
+  useEffect(() => {
+    let live = true;
+    void Promise.all([import("@/lib/arcade/ballTrackArt.renderer"), import("@/lib/arcade/ballTrack")]).then(([art, sim]) => {
+      const canvas = ref.current;
+      const ctx = canvas?.getContext("2d");
+      if (!live || !canvas || !ctx) return;
+      const k = Math.min(3, Math.max(1, typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1));
+      canvas.width = Math.round(size * k);
+      canvas.height = Math.round(size * k);
+      ctx.setTransform(k, 0, 0, k, 0, 0);
+      const palette = sim.BT_PALETTE;
+      art.btMarble(ctx, size / 2, size / 2, size / 2 - 0.5, palette[colour % palette.length]!, colour);
+    });
+    return () => {
+      live = false;
+    };
+  }, [colour, size]);
+  return <canvas ref={ref} width={size} height={size} style={{ width: size, height: size }} aria-hidden="true" className="srs-piece" data-marble-colour={colour} />;
+}
 
 function BallTrackSummary({ reveal }: { reveal: ArcadeRevealData }) {
   const all = reveal.axis.max ?? 36;
@@ -232,7 +274,7 @@ function BallTrackSummary({ reveal }: { reveal: ArcadeRevealData }) {
           const kind = i < home ? "home" : i < home + wrong ? "wrong" : i < home + wrong + lost ? "lost" : "none";
           return (
             <span key={i} className="srs-marble" data-kind={kind}>
-              {kind === "home" ? <Piece name={BT_PIECES[i % BT_PIECES.length]!} size={26} /> : null}
+              {kind === "home" ? <MarblePiece colour={i % 4} size={26} /> : null}
             </span>
           );
         })}
