@@ -142,7 +142,8 @@ const between = (text: string, from: string, to: string) => {
   const digest = (type: "measure" | "numline", seed: number) =>
     // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): Brimful's overhaul-era game is
     // dealt at Hard now (measureLevels.ts; Normal is the new measureRev 5 game), so its deal is compared there.
-    JSON.stringify(withSeededRandom(seed, () => generatePuzzle(type, type === "measure" ? { bankSeed: seed, level: "hard" } : {})));
+    // D2 (22 Nov 2026): Brimful's Hard has its own boards now, so today's game is reached by its pin at Normal. // Changed with Joe's approval, 22 Nov 2026
+    JSON.stringify(withSeededRandom(seed, () => (type === "measure" ? generatePuzzle(type, { bankSeed: seed }, { pins: ["preMeasureLevels"] }) : generatePuzzle(type, {})))); // Changed with Joe's approval, 22 Nov 2026
   for (const type of ["measure", "numline"] as const) {
     let same = 0;
     for (let seed = 0; seed < 30; seed++) {
@@ -267,7 +268,8 @@ const between = (text: string, from: string, to: string) => {
     ok(z.yShare > 0.5 && z.yShare < 1, `Ballpark ${arenaH}: the tape sits low in its box, room above for the pins`);
   }
   const src = readFileSync("src/puzzles/numline.tsx", "utf8");
-  ok(/minor=\{0\}/.test(src), "Ballpark: the live ruler has no minor ticks (the old steel tape)"); // Changed with Joe's approval, 21 Nov 2026
+  // D2: no minor ticks on the live ruler unless a level's line marks them (Easy's numbered tenths, stored as marks). Changed with Joe's approval, 22 Nov 2026
+  ok(/minor=\{stage\.marks \?\? 0\}/.test(src), "Ballpark: the live ruler has no minor ticks unless a level marks them (the old steel tape)"); // Changed with Joe's approval, 21 Nov 2026; 22 Nov 2026
   ok(/height: 56px;/.test(readFileSync("src/polish-layout/batch-w-numline.css", "utf8")), "Ballpark: the card is compact (56 px)");
 }
 
