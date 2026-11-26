@@ -232,7 +232,7 @@ import {
   BULLSEYE_V8_STREAK_STEP,
   BULLSEYE_V9_DEAD_CAP,
 } from "@/lib/arcade/bullseye";
-import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_PADS_MAX, RALLY_V12_TARGET_PTS, RALLY_V12_TARGETS_MAX, RALLY_V13_LIVES, RALLY_V13_SPIN_MAX, RALLY_V13_SPIN_PTS, RALLY_V14_EACH_TEXT, RALLY_V14_LINES } from "@/lib/arcade/rally";
+import { RALLY_V10_BONUS_COUNT, RALLY_V10_BONUS_PTS, RALLY_V11_BONUS_LIFE, RALLY_V12_PAD_PTS, RALLY_V12_PADS_MAX, RALLY_V12_TARGET_PTS, RALLY_V12_TARGETS_MAX, RALLY_V13_LIVES, RALLY_V13_SPIN_MAX, RALLY_V13_SPIN_PTS, RALLY_V14_EACH, RALLY_V14_EACH_TEXT, RALLY_V14_LINES } from "@/lib/arcade/rally";
 import {
   BURST_V9_CAPS,
   BURST_V9_CLEAR_MAX,
@@ -1530,7 +1530,7 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       how: [
         { action: "Drag the paddle.", detail: `A miss costs 1 of ${RALLY_V13_LIVES} lives.` },
         { action: "Gold balls score:", detail: `each hit, +${RALLY_V14_EACH_TEXT.pads} a pink pad.` },
-        { action: "Swipe as you hit", detail: `to curl it: ${RALLY_V14_EACH_TEXT.spin} more if it scores.` },
+        { action: "Swipe as you hit", detail: `to curl it: +${RALLY_V14_EACH.spin} if it scores.` },
         { action: "Drag to move the paddle", detail: "along the bottom.", helpOnly: true },
         { action: "Every hit", detail: "makes the paddle smaller and the ball faster.", helpOnly: true },
         { action: "A gold ball drops in", detail: "every ten seconds – only gold balls score.", helpOnly: true },
