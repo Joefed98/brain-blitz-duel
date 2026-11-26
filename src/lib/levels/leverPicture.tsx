@@ -5,8 +5,8 @@
  * By default the slot draws the lever's words (from the families' own level lines: levelAbout, speedLevelLine,
  * levelNote, the Cards & Board text) in a quiet box; a game whose difficulty session added a picture draws that instead.
  * Pictures live one file a family in `./pictures/` (D1 to D6 add theirs; Breaker's, `./pictures/breaker.tsx`, is the
- * worked example), each file exporting `LEVER_PICTURES`: a map from game id to its picture (and, if it wants, its own
- * words). The files are read through `import.meta.glob` (never a bare side-effect import, CLAUDE.md); under Bun checks,
+ * worked example), each file exporting `LEVER_PICTURES`: a map from game id to its picture entry (the component and,
+ * if it wants, its own words) or to the component alone (the family's words are read). The files are read through `import.meta.glob` (never a bare side-effect import, CLAUDE.md); under Bun checks,
  * where Vite never runs, no file is found and every game draws its words. A picture is drawn from the level's own
  * settings (`GAME_LEVELS` or the family's table), never hand-made, so it cannot drift from the game.
  */
@@ -35,12 +35,30 @@ export interface LeverPictureEntry {
 
 export type LeverPictures = Partial<Record<string, LeverPictureEntry>>;
 
+/**
+ * What a family file may export for a game: an entry, or the picture component alone (the Number family's form, D2,
+ * 22 Nov 2026), which draws the family's own words.
+ */
+export type LeverPictureExport = LeverPictureEntry | ComponentType<LeverPictureProps>;
+
+/** A family file's export as an entry (a bare component becomes `{ Picture }`); anything else is skipped. */
+export function leverEntryOf(value: unknown): LeverPictureEntry | null {
+  if (typeof value === "function") return { Picture: value as ComponentType<LeverPictureProps> };
+  if (value && typeof value === "object" && typeof (value as LeverPictureEntry).Picture === "function") return value as LeverPictureEntry;
+  return null;
+}
+
 /** Every family file's pictures, keyed by game id (empty under Bun/Node, where Vite never runs). */
 const FOUND: LeverPictures = (() => {
   const out: LeverPictures = {};
   try {
-    const files = import.meta.glob("./pictures/*.tsx", { eager: true }) as Record<string, { LEVER_PICTURES?: LeverPictures }>;
-    for (const file of Object.values(files)) Object.assign(out, file.LEVER_PICTURES ?? {});
+    const files = import.meta.glob("./pictures/*.tsx", { eager: true }) as Record<string, { LEVER_PICTURES?: Record<string, unknown> }>;
+    for (const file of Object.values(files)) {
+      for (const [type, value] of Object.entries(file.LEVER_PICTURES ?? {})) {
+        const entry = leverEntryOf(value);
+        if (entry) out[type] = entry;
+      }
+    }
   } catch {
     /* Not running under Vite (scripts/checks): every game draws its words. */
   }
@@ -49,8 +67,12 @@ const FOUND: LeverPictures = (() => {
 
 /** Checks and the dev page only: pictures to use in place of the found files (a happy-dom render has no Vite). */
 let extra: LeverPictures = {};
-export function setLeverPicturesForChecks(pictures: LeverPictures): void {
-  extra = pictures;
+export function setLeverPicturesForChecks(pictures: Record<string, LeverPictureExport>): void {
+  extra = {};
+  for (const [type, value] of Object.entries(pictures)) {
+    const entry = leverEntryOf(value);
+    if (entry) extra[type] = entry;
+  }
 }
 
 /** The game's picture entry, or null (it draws its words). */
