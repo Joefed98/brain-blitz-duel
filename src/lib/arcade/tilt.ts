@@ -3047,14 +3047,16 @@ export const tiltThreeGame: ArcadeGame<TiltState, ArcadeInputEvent | null> = {
  *
  *   Easy    one marble on every maze (no amber); 3 mazes of 11, 11, 13 cells; no holes; no ice; par 300 %; speed by 70 s.
  *   Hard    two marbles from the first second on mazes 1, 2 and 3 (maze 4 single); mazes of 11, 13, 13, 15 cells; 3 holes
- *           a maze; 2 ice patches; par 200 %; speed full by 78 s.
+ *           a maze; 2 ice patches; par 230 % (Normal's is 180 %: Hard steers two marbles in three of its four mazes);
+ *           speed full by 85 s.
  *   Expert  two marbles on all four mazes, of 15, 17, 17, 19 cells; 4 holes a maze, a pocket one cell off the route
  *           allowed; 4 ice patches; par 200 %; speed full by 90 s (any finish); Clean run full at three clean mazes.
  *
  * The spec asked for 5 and 8 holes and four 19-cell mazes on Expert; measured on 96 deals (scripts/d6-ladder.ts, the
  * skill-band bots under HUMAN_LIMITS) the realistic elite then finished every maze without a fall on a fifth of Hard's
  * deals and under a tenth of Expert's, so nothing could reach the 20 % floor. The lever (marbles at once) is unchanged;
- * the mazes and holes are eased until the elite reaches 200 on 36 % (Hard) and 24 % (Expert) of runs.
+ * the mazes and holes are eased, and Hard's par and speed lines, until the ladder steps down: on 96 deals a level the
+ * average player 138.6 / 121.4 (Normal) / 65.0 / 56.5, the elite at 200 78 / 50 / 43 / 25 % (26 Nov 2026).
  *
  * Rooms deal each level from its own list, every seed proved at 200 by the oracle held to HUMAN_LIMITS
  * (src/lib/duel/tiltDealLevelsV13.server.ts, scripts/tilt-level-deal-v13.ts). The registry (gameLevels.ts) mirrors this
