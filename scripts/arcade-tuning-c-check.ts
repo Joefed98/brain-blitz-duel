@@ -193,7 +193,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // to swingRev 15 (swing-rework-check).
     // The sliding hooks and the streak (3 Nov 2026) moved it on to swingRev 17; swing-slide-check covers it.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero; swing-overhaul-check).
-    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 11],
+    // Changed with Joe's approval, 26 Nov 2026 (routine consequence of D5's swingRev 19): rooms deal swingRev 19 (the ladder).
+    ["swing", playRevOf("swing", generateSwing().swingRev), SWING_REV_TUNEC + 12],
     // Tuning E (Oct 2026) moved Hover on to its taller world (hoverRev 5); arcade-tuning-e-check covers it.
     // The 200 expansion (26 Oct 2026) then moved Hover on to hoverRev 9; hover-x200-check covers it.
     ["hover", playRevOf("hover", generateHover().hoverRev), HOVER_REV_TALL + 4],

@@ -106,7 +106,8 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "orbit", field: "orbitRev", rev: 17, batch: "C" },
   { type: "balltrack", field: "btRev", rev: 8, batch: "C" },
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the live stamp is 18.
-  { type: "swing", field: "swingRev", rev: 18, batch: "D" }, // swingRev 18 (15 Nov 2026): rev 17 on a 14 px body; swingRev 17 (3 Nov 2026): sliding hooks and the clean-swing streak; course 110 + pars 40 + gates 10 + streak 40
+  // Changed with Joe's approval, 26 Nov 2026 (routine consequence of D5's swingRev 19): the live stamp is 19 (the ladder).
+  { type: "swing", field: "swingRev", rev: 19, batch: "D" }, // swingRev 19 (23 Nov 2026): the ladder; swingRev 18 (15 Nov 2026): rev 17 on a 14 px body; swingRev 17 (3 Nov 2026): sliding hooks and the clean-swing streak; course 110 + pars 40 + gates 10 + streak 40
   // Cards & Board (30 Oct 2026): born on the standard (their first revision).
   // Changed with Joe's approval, 13 Nov 2026: Minefield deals minesRev 2 (a Logic game with 20 mines).
   // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): the live stamp is minesRev 3.

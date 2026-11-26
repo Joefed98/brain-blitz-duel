@@ -363,7 +363,8 @@ if (want("swing")) {
   // Taller worlds batch 3 (16 Oct 2026) moved rooms on to swingRev 9 (the taller cavern); arcade-tuning-g3-check covers it.
   // Grappler's 200 expansion (26 Oct 2026) moved rooms on to swingRev 13 (swing-x200-check).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18 (the bigger hero; swing-overhaul-check).
-  ok(playRevOf("swing", generateSwing().swingRev) === SWING_REV_TUNED + 12, "new Grappler rounds are stamped swingRev 18 (the bigger hero, after swingRev 6, 7, 8, 9, 13, 14, 15, 16 and 17)");
+  // Changed with Joe's approval, 26 Nov 2026 (routine consequence of D5's swingRev 19): rooms deal swingRev 19 (the ladder).
+  ok(playRevOf("swing", generateSwing().swingRev) === SWING_REV_TUNED + 13, "new Grappler rounds are stamped swingRev 19 (the ladder, after swingRev 6, 7, 8, 9, 13, 14, 15, 16, 17 and 18)");
   ok(puzzleUsesBands({ type: "swing", swingRev: SWING_REV_TUNED }) && puzzleUsesBands({ type: "swing", swingRev: SWING_REV_BAND }), "swingRev 5 and 6 both score on the band curve");
   ok(SWING_CHASE_PACE === 4 * FP, "the chasing dragon keeps its pace (4 px a tick)");
   ok(SWING_ROCK_WARN === 60 && SWING_ROCK_WARN_V6 === 120, "stalactites crumble for 2 s on rev 6 (1 s before)");

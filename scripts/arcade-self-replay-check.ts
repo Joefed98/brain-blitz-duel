@@ -215,8 +215,9 @@ import { ORBIT_FUEL_BANK_EXPERT } from "@/lib/duel/orbitFuelBankExpert.server";
 import { BEAT_REV_BAND, BEAT_REV_TALL, BEAT_REV_TUNEC, BEAT_REV_TUNEF } from "@/lib/arcade/beat";
 import { SLICE_REV_BAND, SLICE_REV_LONG, SLICE_REV_TALL, SLICE_REV_TUNEC } from "@/lib/arcade/slice";
 import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
-import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG } from "@/lib/arcade/swing";
+import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG, SWING_REV_LADDER } from "@/lib/arcade/swing"; // Changed with Joe's approval, 26 Nov 2026 (SWING_REV_LADDER, D5's swingRev 19)
 import { SWING_BIG_DEAL } from "@/lib/duel/swingBigDeal.server";
+import { SWING_LADDER_DEAL } from "@/lib/duel/swingLadderDeal.server"; // Changed with Joe's approval, 26 Nov 2026 (D5's swingRev 19 deal)
 import { SWING_LEVEL_DEAL } from "@/lib/duel/swingLevelDeal.server";
 import { SWING_V13_BANK } from "@/lib/duel/swingBankV13.server";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
@@ -1279,6 +1280,8 @@ const GAMES: Game[] = [
       return replayOrbitRun(seed, raw, ORBIT_REV_LOST, e.planets, e.holes, e.extras, undefined, lv === "normal" ? undefined : lv);
     },
   })),
+  // Grappler swingRev 19 (D5, 23 Nov 2026: the ladder), appended so every earlier entry keeps its index. Changed with Joe's approval, 26 Nov 2026.
+  ...(["normal", "easy", "hard", "expert"] as const).map((lv) => ({ key: `swing/ladder-${lv}`, game: swingGameFor(SWING_REV_LADDER, lv), checkpoint: swingCheckpoint, mode: "events" as const, rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_LADDER, undefined, lv), seedFor: (n: number) => SWING_LADDER_DEAL[lv][n % SWING_LADDER_DEAL[lv].length]! })), // Changed with Joe's approval, 26 Nov 2026
 ];
 
 /** golfRev 3's course for a self-replay seed: each slot's hole by a spread of the seed, the level seed mod 4. */

@@ -27,6 +27,10 @@ import {
   WAV_X_MID_HP,
   WAV_X_SAUCERS,
   WAV_WORLD_W,
+  wavStdSaucers, // Changed with Joe's approval, 26 Nov 2026 (wavRev 16's refit saucer part)
+  wavStdWeakPoints, // Changed with Joe's approval, 26 Nov 2026 (wavRev 16's refit weak-point part)
+  WAV_V16_SAUCERS_FULL, // Changed with Joe's approval, 26 Nov 2026
+  WAV_V16_WEAK_FULL, // Changed with Joe's approval, 26 Nov 2026
   type WavState,
 } from "../../src/lib/arcade/wavefront";
 import { decodeWavefrontRun, encodeWavefrontRun, replayWavefrontRun } from "../../src/lib/duel/wavefront";
@@ -68,11 +72,12 @@ export const entry: StdEntry = {
     // Changed with Joe's approval, 23 Nov 2026 (routine consequence of D5's wavRev 16): the perfect runs below.
     // wavRev 16: the deal's own Normal witnesses (scripts/wavefront-wide-deal.ts: the flawless player held to the human
     // limits), the first five; the wavRev 15 runs in wavefront-big-runs.json.gz meet a narrower formation.
-    const data = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/wavefront-wide-deal-witness.json.gz")).toString()) as { witnesses: { n: number; seed: number; runs: { level: string; events: ArcadeInputEvent[] }[] }[] };
-    const runs: StdRun[] = data.witnesses.slice(0, 5).map((w) => {
+    // Changed with Joe's approval, 26 Nov 2026 (the witness file is per level: its Normal witnesses carry their own events).
+    const data = JSON.parse(gunzipSync(readFileSync("scripts/fixtures/wavefront-wide-deal-witness.json.gz")).toString()) as { normal: { witnesses: { n: number; seed: number; jitter: number; events: ArcadeInputEvent[] }[] } };
+    const runs: StdRun[] = data.normal.witnesses.slice(0, 5).map((w) => { // Changed with Joe's approval, 26 Nov 2026
       const r = { n: w.n, seed: w.seed };
       // Each witness's Normal run, checkpointed again and sent through the server replay.
-      const events = w.runs.find((x) => x.level === "normal")!.events;
+      const events = w.events; // Changed with Joe's approval, 26 Nov 2026
       const byTick = new Map(events.map((e) => [e.t, e]));
       let st = game.init(r.seed) as WavState;
       const checkpoints: unknown[] = [];
@@ -83,8 +88,8 @@ export const entry: StdEntry = {
       const raw = encodeWavefrontRun({ seed: r.seed, claimedScore: game.score(st), events, inputs: [], taps: [], endTick: st.tick, checkpoints } as never);
       const res = replayWavefrontRun(r.seed, raw, WAV_REV_WIDE); // Changed with Joe's approval, 23 Nov 2026 (D5's wavRev 16)
       const s = res.state as WavState;
-      // A clean replay of a run that took everything: no life lost, all five saucers, all four cannons and both cores.
-      const clean = !res.flagged && s.lives === 3 && (s.bossKilled ?? 0) === 1 && s.tick - (s.bossAt ?? 0) <= WAV_STD_KILL_FULL && (s.cannonsDown ?? 0) === 4 && s.coresHit === 3;
+      // A clean replay of a run that took everything: no life lost, the boss down in time, and the saucers and weak points their parts are full at. Changed with Joe's approval, 26 Nov 2026.
+      const clean = !res.flagged && s.lives === 3 && (s.bossKilled ?? 0) === 1 && s.tick - (s.bossAt ?? 0) <= WAV_STD_KILL_FULL && wavStdWeakPoints(s) >= WAV_V16_WEAK_FULL && wavStdSaucers(s) >= WAV_V16_SAUCERS_FULL; // Changed with Joe's approval, 26 Nov 2026
       return { label: `flawless bot, room seed #${r.n} (server replay${clean ? "" : ", NOT clean"})`, score: clean ? res.score : -1 };
     });
     // A built state with every part full (the arithmetic, apart from any player): every pre-boss unit, the boss down
@@ -109,5 +114,5 @@ export const entry: StdEntry = {
     { label: "no input for the whole run (server replay)", score: serverRun(roomSeed(2), []) },
     { label: "built: a full board but no input", score: game.score({ ...(game.init(roomSeed(2)) as WavState), acted: 0, shapesDown: 100, saucers: 3 }) },
   ],
-  help: { terms: ["Ships, hits and waves", "within 20 s", "4 for each saucer", "Each life lost costs 5", "Power-ups score nothing"] },
+  help: { terms: ["Ships, hits and waves", "within 20 s", "5 for each saucer", "Each life lost costs 5", "Power-ups score nothing"] }, // Changed with Joe's approval, 26 Nov 2026 (wavRev 16's refit: 5 a saucer)
 };

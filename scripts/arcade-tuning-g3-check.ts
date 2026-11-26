@@ -70,6 +70,7 @@ import {
   SWING_REV_EXPAND,
   SWING_REV_SLIDE,
   SWING_REV_BIG,
+  SWING_REV_LADDER, // Changed with Joe's approval, 26 Nov 2026 (D5's swingRev 19 is the live revision)
   SWING_ROCK_HALF_W,
   SWING_STARS,
   SWING_STAR_TOUCH,
@@ -208,7 +209,8 @@ section("New rounds: stamps, start states, checksums, worlds by revision");
     pinSwingPreAssault(was);
     ok(swing.swingRev === SWING_REV_EXPAND && SWING_V9_BANK.some((e) => e.seed === swing.seed), "rooms deal swingRev 13 (the expansion, after swingRev 9) on a course re-proved for the taller cavern");
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): rooms deal swingRev 18.
-    ok(generateSwing().swingRev === SWING_REV_BIG, "rooms deal swingRev 18 (the bigger hero) unpinned");
+    // Changed with Joe's approval, 26 Nov 2026 (routine consequence of D5's swingRev 19): rooms deal swingRev 19 (the ladder).
+    ok(generateSwing().swingRev === SWING_REV_LADDER, "rooms deal swingRev 19 (the ladder) unpinned");
     // The fuel meter (orbitRev 14, 1 Nov 2026) moved rooms to its own bank (orbit-fuel-check); pinned, the deal before it.
     const wasFuel = pinOrbitPreFuel(true);
     const orbit = generateOrbit();
