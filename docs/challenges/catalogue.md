@@ -570,7 +570,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Pink pong | Strike pink pads five times. | Classic | Target | line “Pink pads” ≥ 15 |  | `rally.pink-pong` |
 | Target practice | Hit all six gold targets. | Classic | Full set | line “Gold targets” = 30 of 30 |  | `rally.target-practice` |
-| Rally king | Return 23 gold balls on Hard. | Hard | Max-out | line “Gold-ball hits” = 130 of 130 |  | `rally.rally-king` |
+| Rally king | Return 23 gold balls on Hard. | Hard | Target | `goldHits` ≥ 23 |  | `rally.rally-king` |
 
 #### Meteor (`snake`)
 

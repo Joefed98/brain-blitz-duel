@@ -143,6 +143,12 @@ export const DEAL_PINS = {
   blockfallPreLevels: { texts: false },
   /** hover.server.ts: Hover hoverRev 11 (a random seed), before hoverRev 12's fitted lines and gap ladder (D5, 23 Nov 2026). */
   hoverPreFit: { texts: false },
+  /** arcade.server.ts: Grappler swingRev 18 at every level, before the ladder (swingRev 19, D5, 23 Nov 2026). */
+  swingPreLadder: { texts: false },
+  /** arcade.server.ts: Meteor snakeRev 15 at every level, before D5's ladder (snakeRev 16's lines and rocks, 23 Nov 2026). */
+  snakePreLadder: { texts: false },
+  /** arcade.server.ts: Rally rallyRev 13 at every level, before D5's ladder (rallyRev 14's paddles and lines, 23 Nov 2026). */
+  rallyPreLadder: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

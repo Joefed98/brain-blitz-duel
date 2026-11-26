@@ -426,7 +426,8 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Rally (rally): gold-ball hits 140 + pink pads 30 + gold targets 30.
   ch("rally", "Pink pong", "Strike pink pads five times.", "C", "target", false, all(line("Pink pads", "gte", 15))),
   ch("rally", "Target practice", "Hit all six gold targets.", "C", "fullset", false, part("Gold targets", 30)),
-  ch("rally", "Rally king", "Return 23 gold balls on Hard.", "H", "maxout", false, part("Gold-ball hits", 130)),
+  // rallyRev 14 (D5's ladder, 23 Nov 2026): Hard's core is full at 15, so the goal counts the gold-ball hits themselves.
+  ch("rally", "Rally king", "Return 23 gold balls on Hard.", "H", "target", false, all(f("goldHits", "gte", 23))),
   // Meteor (snake): stars 120 + gold stars 40 + combos 20 + lane rides 10 + warp stars 10.
   ch("snake", "Star eater", "Eat 36 stars; a gold star counts as two.", "C", "target", false, all(f("meteorParts.core", "gte", 120))),
   ch("snake", "Comet tail", "Score 150 or more.", "C", "bigscore", false, score(150)),

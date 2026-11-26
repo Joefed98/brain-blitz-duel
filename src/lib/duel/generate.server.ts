@@ -346,7 +346,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "bintoss") return generateBinToss();
   if (type === "bullseye") return generateBullseye();
   if (type === "matchup") return generateMatchup();
-  if (type === "snake") return generateSnake();
+  if (type === "snake") return generateSnake(context.level);
   if (type === "cross") return generateCross(context.level);
   if (type === "dual") return generateDual();
   if (type === "ricochet") return generateRicochet();
@@ -371,7 +371,7 @@ function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleDa
   if (type === "curling") return generateCurling(context.level);
   if (type === "blockfall") return generateBlockfall(context.level);
   if (type === "alleyroll") return generateAlleyRoll();
-  if (type === "rally") return generateRally();
+  if (type === "rally") return generateRally(context.level);
   if (type === "steady") return generateSteady();
   if (type === "slice") return generateSlice();
   if (type === "bubble") return generateBubble();

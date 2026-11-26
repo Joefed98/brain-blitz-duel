@@ -18,7 +18,11 @@ import {
   swingExtra,
   swingLevelGame,
   swingPuzzleLevel,
+  swingLadderGame,
+  swingLadderLevel,
+  SWING_REV_LADDER,
   type SwingCheckpoint,
+  type SwingLadderLevel,
   type SwingLevel,
   type SwingState,
 } from "@/lib/arcade/swing";
@@ -69,12 +73,20 @@ function levelRun(level: SwingLevel): typeof run {
   return r;
 }
 
+const ladderRuns = new Map<SwingLadderLevel, typeof run>();
+/** swingRev 19 (the ladder) at a level (the puzzle's stored `level`, Normal when absent): the same run format. */
+function ladderRun(level: SwingLadderLevel): typeof run {
+  let r = ladderRuns.get(level);
+  if (!r) ladderRuns.set(level, (r = makeArcadeRun<SwingState, SwingCheckpoint>({ tag: "swing", game: swingLadderGame(level), checkpoint: swingCheckpoint, keys: SWING_CHECKPOINT_KEYS, interval: SWING_CHECKPOINT_INTERVAL })));
+  return r;
+}
+
 /** The single place a Swing score is worked out. */
 /** `observe` (display only, the reveal's run picture): called with each state the replay steps to. */
 /** `level`: the puzzle's stored level (swingRev 18 only; absent or Normal, today's run exactly). */
 export function replaySwingRun(seed: number, raw: string, rev?: number, observe?: (state: SwingState) => void, level?: unknown): SwingResult {
   const lvl = swingPuzzleLevel(rev, level);
-  const picked = lvl ? levelRun(lvl) : rev === SWING_REV_BIG ? bigRunV18 : rev === SWING_REV_SLIDE ? slideRunV17 : rev === SWING_REV_DARK ? darkRunV16 : rev === SWING_REV_REWORK ? reworkRunV15 : rev === SWING_REV_ASSAULT ? assaultRunV14 : rev === SWING_REV_EXPAND ? expandRunV13 : rev === SWING_REV_STRICT ? strictRunV11 : rev === SWING_REV_TARGET ? targetRunV10 : rev === SWING_REV_TALL ? tallRunV9 : rev === SWING_REV_SPREAD ? spreadRunV8 : rev === SWING_REV_TUNEC ? tunecRunV7 : rev === SWING_REV_TUNED ? tunedRunV6 : rev === SWING_REV_BAND ? bandRunV5 : rev === SWING_REV ? chaseRunV4 : rev === SWING_REV_V3 ? dragonRunV3 : rev === SWING_REV_V2 ? dragonRunV2 : run;
+  const picked = rev === SWING_REV_LADDER ? ladderRun(swingLadderLevel(level)) : lvl ? levelRun(lvl) : rev === SWING_REV_BIG ? bigRunV18 : rev === SWING_REV_SLIDE ? slideRunV17 : rev === SWING_REV_DARK ? darkRunV16 : rev === SWING_REV_REWORK ? reworkRunV15 : rev === SWING_REV_ASSAULT ? assaultRunV14 : rev === SWING_REV_EXPAND ? expandRunV13 : rev === SWING_REV_STRICT ? strictRunV11 : rev === SWING_REV_TARGET ? targetRunV10 : rev === SWING_REV_TALL ? tallRunV9 : rev === SWING_REV_SPREAD ? spreadRunV8 : rev === SWING_REV_TUNEC ? tunecRunV7 : rev === SWING_REV_TUNED ? tunedRunV6 : rev === SWING_REV_BAND ? bandRunV5 : rev === SWING_REV ? chaseRunV4 : rev === SWING_REV_V3 ? dragonRunV3 : rev === SWING_REV_V2 ? dragonRunV2 : run;
   const result = picked.replay(seed, raw, observe);
   return { ...result, ...swingExtra(result.state) };
 }

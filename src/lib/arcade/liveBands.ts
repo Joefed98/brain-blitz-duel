@@ -19,8 +19,8 @@ import { BUB_REV_FAST, BUB_REV_STRICT, BUB_V12_BAND_CURVE, BUB_V12_STD_SPEC } fr
 import { CROSS_REV_LIGHT, CROSS_REV_STRICT, CROSS_V11_BAND_CURVE } from "./cross";
 import { MINES_REV_NORMAL, MINES_STD_SPEC_V3, MINES_V1_BAND_CURVE } from "./minesweeper";
 import { MAHJONG_REV_DEALT, MAHJONG_STD_SPEC, MAHJONG_V1_BAND_CURVE } from "./mahjong";
-import { RALLY_REV_LIVES, RALLY_REV_STRICT, RALLY_STD_SPEC_V13, RALLY_V13_BAND_CURVE } from "./rally";
-import { SNAKE_REV_GRACE, SNAKE_REV_STRICT, SNAKE_V13_BAND_CURVE } from "./snake";
+import { RALLY_REV_LADDER, RALLY_REV_STRICT, RALLY_STD_SPEC_V14, RALLY_V14_BAND_CURVE } from "./rally";
+import { SNAKE_REV_LADDER, SNAKE_REV_STRICT, SNAKE_V16_BAND_CURVE } from "./snake";
 import { BINTOSS_REV_STRICT, BINTOSS_REV_STD, BINTOSS_STD_SPEC, BINTOSS_V9_BAND_CURVE } from "./binToss";
 import { stdHelp, type StdSpec } from "./arcadeStandard";
 import { SNIP_REV_EXPAND, SNIP_REV_STRICT, SNIP_V11_BAND_CURVE } from "./snip";
@@ -34,7 +34,7 @@ import { ORBIT_V14_BAND_CURVE } from "./orbitRev3";
 import { BEAT_REV_LANES, BEAT_REV_STRICT, BEAT_STD_SPEC_V13, BEAT_V11_BAND_CURVE } from "./beat";
 import { SLICE_REV_STRICT, SLICE_REV_LINE, SLICE_V13_BAND_CURVE } from "./slice";
 import { BURST_REV_SMALL, BURST_REV_STRICT, BURST_V10_BAND_CURVE } from "./burst";
-import { SWING_REV_BIG, SWING_REV_STRICT, SWING_V17_BAND_CURVE } from "./swing";
+import { SWING_REV_LADDER, SWING_REV_STRICT, SWING_V17_BAND_CURVE } from "./swing";
 import { BULLSEYE_REV_STD, BULLSEYE_REV_STRICT, BULLSEYE_STD_SPEC, BULLSEYE_V9_BAND_CURVE } from "./bullseye";
 import { PIN_REV_SAVE, PIN_STD_SPEC_V8, PIN_V6_BAND_CURVE } from "./pinball4";
 import { PIN_REV_STRICT } from "./pinball";
@@ -110,11 +110,13 @@ export const LIVE_BANDS = {
   cross: { field: "crossRev", rev: CROSS_REV_LIGHT, curve: CROSS_V11_BAND_CURVE, strictRev: CROSS_REV_STRICT },
   // rallyRev 12 (the arcade scoring standard): gold-ball hits on a straight line, pads and gold targets fixed.
   // rallyRev 13 (the Retro overhaul, 15 Nov 2026): two lives; gold hits 130 + pads 30 + targets 30 + spin shots 10.
-  rally: { field: "rallyRev", rev: RALLY_REV_LIVES, curve: RALLY_V13_BAND_CURVE, strictRev: RALLY_REV_STRICT, std: RALLY_STD_SPEC_V13 },
+  // rallyRev 14 (D5's ladder, 23 Nov 2026): rallyRev 13's play; the lines lowered to the realistic elite's (rally.ts RALLY_V14_LINES).
+  rally: { field: "rallyRev", rev: RALLY_REV_LADDER, curve: RALLY_V14_BAND_CURVE, strictRev: RALLY_REV_STRICT, std: RALLY_STD_SPEC_V14 },
   // snakeRev 12 (1 Nov 2026): the core's straight line to 120 at 20 core stars (a gold star counts 2); gold stars, combos, lane rides
   // and warp stars pay up to 80 more (the help says so). snakeRev 11: 120 at 27 stars (SNAKE_V11_BAND_CURVE).
   // snakeRev 13 (the Retro overhaul, 15 Nov 2026): wrap-around edges; the core full at 36 core stars.
-  snake: { field: "snakeRev", rev: SNAKE_REV_GRACE, curve: SNAKE_V13_BAND_CURVE, strictRev: SNAKE_REV_STRICT },
+  // snakeRev 16 (D5's ladder, 23 Nov 2026): snakeRev 15's play and core line; the feature lines lowered (snake.ts SNAKE_V16_LINES).
+  snake: { field: "snakeRev", rev: SNAKE_REV_LADDER, curve: SNAKE_V16_BAND_CURVE, strictRev: SNAKE_REV_STRICT },
   bintoss: { field: "binRev", rev: BINTOSS_REV_STD, curve: BINTOSS_V9_BAND_CURVE, strictRev: BINTOSS_REV_STRICT, std: BINTOSS_STD_SPEC },
   snip: { field: "snipRev", rev: SNIP_REV_EXPAND, curve: SNIP_V11_BAND_CURVE, strictRev: SNIP_REV_STRICT },
   // hoverRev 10 (the arcade scoring standard): the core, barriers on one straight line to 120; the features add 80 (the help says so).
@@ -150,7 +152,9 @@ export const LIVE_BANDS = {
   burst: { field: "burstRev", rev: BURST_REV_SMALL, curve: BURST_V10_BAND_CURVE, strictRev: BURST_REV_STRICT },
   // swingRev 17 (the sliding hooks and the clean-swing streak, 90 s): the course's straight line to 140, full at SWING_V17_FULL
   // per mille; pars, gates and the streak pay up to 60 more (the help says so).
-  swing: { field: "swingRev", rev: SWING_REV_BIG, curve: SWING_V17_BAND_CURVE, strictRev: SWING_REV_STRICT },
+  // swingRev 19 (D5, 23 Nov 2026, the ladder): swingRev 18 at every level with the pterodactyl's chase as the levels'
+  // lever and Normal's pars a little later; Normal's course line is unchanged (full at SWING_V17_FULL).
+  swing: { field: "swingRev", rev: SWING_REV_LADDER, curve: SWING_V17_BAND_CURVE, strictRev: SWING_REV_STRICT },
   // bullRev 9 (the arcade scoring standard, docs/arcade-standard/bullseye.md): the dart total on a straight line, plus the
   // bull streak and dead-centre darts.
   bullseye: { field: "bullRev", rev: BULLSEYE_REV_STD, curve: BULLSEYE_V9_BAND_CURVE, strictRev: BULLSEYE_REV_STRICT, std: BULLSEYE_STD_SPEC },

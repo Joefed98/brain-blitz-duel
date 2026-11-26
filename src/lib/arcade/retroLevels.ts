@@ -33,6 +33,17 @@ export interface RallyLv {
   bumper1S: number;
   bumper2S: number;
 }
+/**
+ * Rally (rallyRev 14, D5's ladder, 23 Nov 2026; docs/arcade-standard/rally.md "Levels (D5, 23 Nov 2026)"): rallyRev 13's
+ * settings (the lever is the paddle's width; a bumper time past the 60 s run, 99, means no bumper at all, 0 that it is on
+ * court from the first serve), then the level's scoring lines: pink pads full at `padsFull` strikes, gold targets at
+ * `targetsFull`, spin shots at `spinFull` (Normal's lines: rally.ts RALLY_V14_LINES).
+ */
+export interface RallyLv14 extends RallyLv {
+  padsFull: number;
+  targetsFull: number;
+  spinFull: number;
+}
 /** Wavefront (wavRev 15): lives (Normal 3) and the enemy bolts' speed, at the start and at its top (it rises a step each
  * wave, so it builds through the run), as a per cent of Normal's; the final boss's hit points (per cent of Normal's)
  * and the boss kill time the speed part is full by (seconds; Normal 20). */
@@ -108,7 +119,7 @@ export interface BeatLv {
 }
 /** Tempo's beatRev 13 levels: every field set. */
 export type BeatLv13 = Required<BeatLv>;
-/** Meteor (snakeRev 15): lives (crashes forgiven = lives − 1; Normal 2), the step speed (ticks a square at the start
+/** Meteor (snakeRev 15 and 16): lives (crashes forgiven = lives − 1; Normal 2), the step speed (ticks a square at the start
  * and the fastest; Normal 9 and 4, one tick faster every few stars, so it speeds up through the run) and whether the
  * edges are walls (1) instead of wrapping (0, Normal), and the core stars the stars part is full at (Normal's 36). */
 export interface SnakeLv {
@@ -117,6 +128,25 @@ export interface SnakeLv {
   stepMin: number;
   walls: number;
   fullAt: number;
+}
+/**
+ * Meteor (snakeRev 16, D5's ladder, 23 Nov 2026; docs/arcade-standard/snake.md "Levels (D5, 23 Nov 2026)"): snakeRev 15's
+ * settings, then the lever, rocks on the field: how many lie on the field from the first tick (`rocksAtStart`), the timed
+ * rocks after them (one every `rockEvery` s from `rockFrom` s, falling whatever the comet's length; 0: none), the most
+ * rocks a run holds (`rockMax`, the shower's apart) and the meteor shower (1 on, 0 off). Then the level's scoring lines:
+ * the gold stars' part is full at `goldPct` % of all the gold stars' worth, combos at `comboFull` combo stars, lane rides
+ * at `laneFull` rides, warp stars at `warpFull` points (Normal's lines: snake.ts SNAKE_V16_LINES).
+ */
+export interface SnakeLv16 extends SnakeLv {
+  rocksAtStart: number;
+  rockEvery: number;
+  rockFrom: number;
+  rockMax: number;
+  shower: number;
+  goldPct: number;
+  comboFull: number;
+  laneFull: number;
+  warpFull: number;
 }
 /** Spacewalk (crossRev 13): the traffic's density per crossing (twelfths of crossRev 9's, building through the run; the
  * last entry holds on; Normal's CROSS_V13_DENSITY_12), lives (Normal 3), the cost of a hit before the last (Normal 15)
@@ -164,10 +194,17 @@ export const BREAKER_LEVELS: Table<BreakerLv> = {
   hard: { speedPct: 104, paddle: 76, rows: 9, cap2: 0, toughRows: 4 },
   expert: { speedPct: 108, paddle: 68, rows: 9, cap2: 0, toughRows: 9 },
 };
+/** Rally's levels on rallyRev 13 (the Retro overhaul, stage 3): the table its stored level rounds replay on. */
 export const RALLY_LEVELS: Table<RallyLv> = {
   easy: { lives: 3, fullAt: 20, paddleStart: 140, paddleMin: 60, capPct: 86, bumper1S: 45, bumper2S: 60 },
   hard: { lives: 2, fullAt: 26, paddleStart: 104, paddleMin: 36, capPct: 115, bumper1S: 20, bumper2S: 35 },
   expert: { lives: 1, fullAt: 29, paddleStart: 96, paddleMin: 32, capPct: 125, bumper1S: 10, bumper2S: 25 },
+};
+/** Rally's levels on rallyRev 14 (D5's ladder): the table rooms and practice deal. */
+export const RALLY_LEVELS_V14: Table<RallyLv14> = {
+  easy: { lives: 4, fullAt: 20, paddleStart: 168, paddleMin: 84, capPct: 86, bumper1S: 99, bumper2S: 99, padsFull: 6, targetsFull: 3, spinFull: 3 },
+  hard: { lives: 2, fullAt: 15, paddleStart: 72, paddleMin: 28, capPct: 115, bumper1S: 0, bumper2S: 0, padsFull: 5, targetsFull: 3, spinFull: 2 },
+  expert: { lives: 1, fullAt: 16, paddleStart: 48, paddleMin: 24, capPct: 125, bumper1S: 0, bumper2S: 0, padsFull: 4, targetsFull: 3, spinFull: 3 },
 };
 export const WAVEFRONT_LEVELS: Table<WavefrontLv> = {
   easy: { lives: 4, boltPct: 80, bossPct: 80, killS: 24 },
@@ -213,10 +250,17 @@ export const BEAT_LEVELS_V13: Table<BeatLv13> = {
   hard: { lanes: 5, perfect: 3, good: 6, ok: 11, fall: 75, eighthPct: 170, chordPct: 160, accFull: 995, feversFull: 4, goldNinths: 5, streakPct: 60 },
   expert: { lanes: 6, perfect: 3, good: 6, ok: 11, fall: 60, eighthPct: 240, chordPct: 220, accFull: 992, feversFull: 4, goldNinths: 5, streakPct: 45 },
 };
+/** Meteor's levels on snakeRev 15 (the Retro overhaul, stage 3): the table its stored level rounds replay on. */
 export const SNAKE_LEVELS: Table<SnakeLv> = {
   easy: { lives: 3, stepStart: 9, stepMin: 5, walls: 0, fullAt: 27 },
   hard: { lives: 2, stepStart: 8, stepMin: 4, walls: 1, fullAt: 50 },
   expert: { lives: 1, stepStart: 8, stepMin: 3, walls: 1, fullAt: 48 },
+};
+/** Meteor's levels on snakeRev 16 (D5's ladder): the table rooms and practice deal. */
+export const SNAKE_LEVELS_V16: Table<SnakeLv16> = {
+  easy: { lives: 3, stepStart: 9, stepMin: 5, walls: 0, fullAt: 20, rocksAtStart: 0, rockEvery: 0, rockFrom: 0, rockMax: 0, shower: 0, goldPct: 40, comboFull: 8, laneFull: 4, warpFull: 8 },
+  hard: { lives: 2, stepStart: 9, stepMin: 4, walls: 1, fullAt: 36, rocksAtStart: 8, rockEvery: 3, rockFrom: 10, rockMax: 20, shower: 1, goldPct: 61, comboFull: 12, laneFull: 5, warpFull: 10 },
+  expert: { lives: 1, stepStart: 7, stepMin: 3, walls: 1, fullAt: 36, rocksAtStart: 16, rockEvery: 2, rockFrom: 5, rockMax: 32, shower: 1, goldPct: 67, comboFull: 15, laneFull: 7, warpFull: 10 },
 };
 export const CROSS_LEVELS: Table<CrossLv> = {
   easy: { density: [5, 6, 6, 7, 7, 8, 8, 9, 9, 10], lives: 4, hitCost: 10, fullAt: 70 },
@@ -299,11 +343,13 @@ export const HOVER_LEVELS_V12: Table<HoverLvV12> = {
 /** Every Retro game's table, by game id. */
 export const RETRO_LEVEL_TABLES = {
   breaker: BREAKER_LEVELS,
-  rally: RALLY_LEVELS,
+  // rallyRev 14 (D5's ladder): the table dealt today; rallyRev 13's rounds replay on RALLY_LEVELS (rally.ts reads it).
+  rally: RALLY_LEVELS_V14,
   wavefront: WAVEFRONT_LEVELS,
   burst: BURST_LEVELS,
   beat: BEAT_LEVELS_V13,
-  snake: SNAKE_LEVELS,
+  // snakeRev 16 (D5's ladder): the table dealt today; snakeRev 15's rounds replay on SNAKE_LEVELS (snake.ts reads it).
+  snake: SNAKE_LEVELS_V16,
   cross: CROSS_LEVELS,
   pinball: PINBALL_LEVELS,
   blockfall: BLOCKFALL_LEVELS_V3,

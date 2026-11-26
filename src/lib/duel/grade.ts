@@ -71,7 +71,7 @@ import { minigolfStdParts } from "@/lib/arcade/minigolf";
 import { poolStdParts } from "@/lib/arcade/pool";
 import { curlingStdParts } from "@/lib/arcade/curling";
 import { decodeRallyRun, replayRallyRun } from "./rally";
-import { rallyBonusCount, rallyBonusPoints, rallyBonusPtsOf, RALLY_V12_EXP } from "@/lib/arcade/rally";
+import { rallyBonusCount, rallyBonusPartPoints } from "@/lib/arcade/rally";
 import { decodeSteadyRun, replaySteadyRun } from "./steady";
 import { decodeSliceRun, replaySliceRun } from "./slice";
 import { decodeBubbleRun, replayBubbleRun } from "./bubble";
@@ -2034,7 +2034,8 @@ function gradeUnderRev(
         rallyRev: run.rallyRev,
         // rallyRev 10 (expansion E9): the gold bonus targets struck, for the reveal.
         // rallyRev 12 (the arcade scoring standard): 5 a target (6 before).
-        ...(run.state.exp ? { bonusHits: rallyBonusCount(run.state), bonusPts: (run.state.exp ?? 0) >= RALLY_V12_EXP ? rallyBonusPtsOf(run.state) * rallyBonusCount(run.state) : rallyBonusPoints(run.state) } : {}),
+        // rallyRev 14 (D5's ladder): the targets part's own points (rallyBonusPartPoints; per target as before on every older stamp).
+        ...(run.state.exp ? { bonusHits: rallyBonusCount(run.state), bonusPts: rallyBonusPartPoints(run.state) } : {}),
         paddleWidth: run.paddleWidth,
         survived: run.survived,
         endedSeconds: run.endedSeconds,

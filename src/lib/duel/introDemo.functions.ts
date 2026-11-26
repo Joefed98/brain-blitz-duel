@@ -19,13 +19,13 @@ import { FLIP_REV_GRACE } from "@/lib/arcade/flip";
 import { MOON_MID_REV } from "@/lib/arcade/ricochetNinja";
 import { SNIP_REV_EXPAND } from "@/lib/arcade/snip";
 import { HOVER_REV_FIT, HOVER_REV_SHIELD } from "@/lib/arcade/hover";
-import { RALLY_REV_LIVES, RALLY_REV_STD } from "@/lib/arcade/rally";
+import { RALLY_REV_LADDER, RALLY_REV_LIVES } from "@/lib/arcade/rally";
 import { WAV_REV_WIDE } from "@/lib/arcade/wavefront";
 import { BURST_REV_SMALL } from "@/lib/arcade/burst";
 import { BULLSEYE_REV_STD } from "@/lib/arcade/bullseye";
 import { BEAT_REV_FLOOR, BEAT_REV_LANES } from "@/lib/arcade/beat";
 import { BLOCKFALL_REV_ZONE } from "@/lib/arcade/blockfall";
-import { SNAKE_REV_GRACE } from "@/lib/arcade/snake";
+import { SNAKE_REV_GRACE, SNAKE_REV_LADDER } from "@/lib/arcade/snake";
 import { POOL_REV } from "@/lib/arcade/pool";
 import { CURLING_REV } from "@/lib/arcade/curling";
 import { RACING_REV_DEALT } from "@/lib/arcade/racing";
@@ -71,7 +71,9 @@ export const SAME_PLAY_DEMO_REVS = {
   // crossRev 13 (stage 3) has lighter traffic, so only a demo recorded on crossRev 13 plays.
   cross: [CROSS_REV_LIGHT],
   // rallyRev 13 (the Retro overhaul) plays rallyRev 12 tick for tick until the first miss, so a demo on either plays.
-  rally: [RALLY_REV_STD, RALLY_REV_LIVES],
+  // rallyRev 14 (D5's ladder, 23 Nov 2026) plays rallyRev 13 exactly at Normal (only the lines moved), so a demo recorded on 13
+  // or 14 plays (the dealt stamp and the one before it; 12's is stopped now).
+  rally: [RALLY_REV_LIVES, RALLY_REV_LADDER],
   // beatRev 12 (the Retro overhaul) plays beatRev 11 exactly (a miss scores 0, not less), so a demo on either played.
   // beatRev 13 (D5's ladder, 23 Nov 2026) plays beatRev 12 exactly at Normal (only the golden-note and streak lines
   // moved), so a demo recorded on 12 or 13 plays (the dealt stamp and the one before it).
@@ -348,7 +350,8 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   // snakeRev 12 (1 Nov 2026): the HUD's star count counts gold stars twice, so only a demo recorded on snakeRev 12 plays.
   // snakeRev 13 (the Retro overhaul): the edges wrap; snakeRev 14 adds rocks in three sizes, so a demo stays stopped
   // until recorded on snakeRev 14. snakeRev 15 (stage 3) forgives the first crash, so a demo plays only on snakeRev 15.
-  if (data.type === "snake" && demo?.puzzle.type === "snake" && demo.puzzle.snakeRev !== SNAKE_REV_GRACE) return null;
+  // snakeRev 16 (D5's ladder, 23 Nov 2026) plays snakeRev 15 exactly at Normal (only the lines moved), so a demo on 15 or 16 plays.
+  if (data.type === "snake" && demo?.puzzle.type === "snake" && demo.puzzle.snakeRev !== SNAKE_REV_LADDER && demo.puzzle.snakeRev !== SNAKE_REV_GRACE) return null;
   // x200 (26 Oct 2026, docs/expansions/x200-cross.md): Jaywalk crossRev 9 plays a taller 13-lane road with the island,
   // coins, buses and motorbikes; an older demo would show the 9-lane road, so it stays stopped until one is recorded there.
   // The arcade scoring standard (29 Oct 2026, docs/arcade-standard/cross.md): crossRev 10 thins the first crossings'

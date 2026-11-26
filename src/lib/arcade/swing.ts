@@ -550,6 +550,8 @@ export interface SwingState extends Body, BandFields {
   big?: number;
   /** swingRev 18's difficulty levels: the level (absent: Normal, so every Normal state is exactly today's). */
   lvl?: SwingLevel;
+  /** swingRev 19 only (the ladder, D5 23 Nov 2026): the marker; the level's rev-19 rules (SWING_V19_LEVELS) apply. */
+  ladder?: number;
   tick: number;
   rng: number;
   camX: number;
@@ -960,6 +962,8 @@ export function swingCheckpoint(state: SwingState): SwingCheckpoint {
   if (state.dark) values.push(state.dark);
   // swingRev 17 (the sliding hooks): its marker, the locked sliders and the streak, after every rev-16 value.
   if (state.slide) values.push(state.slide, state.slideLock ?? 0, state.streak ?? 0, state.streakAt ?? 0, state.streakPaid ?? 0, state.bestHook ?? -1, ...state.anchors.filter((_, i) => (state.sliders ?? []).some((sl) => sl.i === i)).map((a) => a.x));
+  // swingRev 19 (the ladder): its marker, after every earlier value (so every older checksum is unchanged).
+  if (state.ladder) values.push(state.ladder);
   for (const value of values) {
     checksum ^= value | 0;
     checksum = Math.imul(checksum, 0x01000193) >>> 0;
@@ -1122,6 +1126,8 @@ const dragonGameV2 = { ...swingGame, init: initDragonsV2 };
 const dragonGameV3 = { ...swingGame, init: initDragonsV3 };
 const chaseGameV4 = { ...swingGame, init: initV4 };
 export function swingGameFor(rev?: number, level?: unknown): typeof swingGame {
+  // (swingRev 19, the ladder: the puzzle's stored level, Normal when absent.)
+  if (rev === SWING_REV_LADDER) return swingLadderGame(swingLadderLevel(level));
   // (swingRev 18's levels: the puzzle's stored level; absent or Normal, today's game.)
   if (rev === SWING_REV_BIG) {
     const lvl = swingPuzzleLevel(rev, level);
@@ -1462,7 +1468,7 @@ export function swingWorldH(state: { worldH?: number }): number {
 }
 /** The world height (px) a stored round's swingRev plays in. */
 export function swingWorldHFor(rev?: number | null): number {
-  if (rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE || rev === SWING_REV_BIG) return SWING_V13_H;
+  if (rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE || rev === SWING_REV_BIG || rev === SWING_REV_LADDER) return SWING_V13_H;
   return rev === SWING_REV_TALL || rev === SWING_REV_TARGET || rev === SWING_REV_STRICT ? SWING_TALL_H : SWING_WORLD_H;
 }
 
@@ -1842,14 +1848,14 @@ export function swingWorldW(state: { worldW?: number }): number {
 }
 /** The world width (px) a stored round's swingRev plays in. */
 export function swingWorldWFor(rev?: number | null): number {
-  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE || rev === SWING_REV_BIG ? SWING_V13_W : SWING_WORLD_W;
+  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE || rev === SWING_REV_BIG || rev === SWING_REV_LADDER ? SWING_V13_W : SWING_WORLD_W;
 }
 /**
  * The height (px) a stored round's reveal and demo draw at in the shared 390-wide reveal box: the
  * world's own height, or for swingRev 13's 450-wide view the height that keeps its shape (731).
  */
 export function swingRevealHFor(rev?: number | null): number {
-  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE || rev === SWING_REV_BIG ? Math.round((SWING_V13_H * SWING_WORLD_W) / SWING_V13_W) : swingWorldHFor(rev);
+  return rev === SWING_REV_EXPAND || rev === SWING_REV_ASSAULT || rev === SWING_REV_REWORK || rev === SWING_REV_DARK || rev === SWING_REV_SLIDE || rev === SWING_REV_BIG || rev === SWING_REV_LADDER ? Math.round((SWING_V13_H * SWING_WORLD_W) / SWING_V13_W) : swingWorldHFor(rev);
 }
 
 /** Grabbing from a ledge, the hero kicks off it: SWING_LEDGE_KICK of forward speed along the swing. */
@@ -2554,8 +2560,9 @@ export function swingAssaultProgress(s: SwingState): { cleared: number; partial:
 }
 
 /** Section k's time (ticks from its start to its landing; -1 if not cleared) and how far under par it was. */
-export function swingAssaultPar(s: Pick<SwingState, "sections" | "secTicks">, k: number): { par: number; time: number; beat: number } {
-  const par = s.sections?.[k]?.par ?? 0;
+export function swingAssaultPar(s: Pick<SwingState, "sections" | "secTicks" | "ladder" | "lvl">, k: number): { par: number; time: number; beat: number } {
+  // swingRev 19 (the ladder): each stretch's par moved by its level's parLater (ticks; Normal's a little later).
+  const par = (s.sections?.[k]?.par ?? 0) + (s.ladder && s.sections?.[k] ? swingLadderCfg(s).parLater : 0);
   const end = s.secTicks?.[k] ?? 0;
   if (end <= 0) return { par, time: -1, beat: 0 };
   const start = k === 0 ? 0 : s.secTicks![k - 1]!;
@@ -2612,7 +2619,8 @@ export function swingAssaultClock(s: SwingState): { section: number; par: number
   const k = s.sec ?? 0;
   const sec = s.sections?.[k];
   if (!sec || s.ended) return null;
-  return { section: k, par: sec.par, elapsed: s.tick - (s.secStart ?? 0) };
+  // (swingRev 19: the par as its level moved it, as swingAssaultPar scores it.)
+  return { section: k, par: sec.par + (s.ladder ? swingLadderCfg(s).parLater : 0), elapsed: s.tick - (s.secStart ?? 0) };
 }
 
 /* ---- The course builder (rev 14) ---- */
@@ -3212,9 +3220,10 @@ function reworkRestart(s: SwingState, tick: number): void {
   s.starsTaken = [...(s.bankStars ?? [])];
   s.stars = s.starsTaken.length;
   if ((s.chaseX ?? 0) !== 0) s.chaseX = Math.min(s.chaseX!, backX - SWING_V14_CHASE_BACKOFF);
-  // swingRev 17: a miss ends the clean-swing streak (its count starts again after the hold).
+  // swingRev 17: a miss ends the clean-swing streak (its count starts again after the hold). (swingRev 19's Easy: a miss
+  // keeps it; the stall still counts from after the hold.)
   if (s.slide) {
-    s.streak = 0;
+    if (!(s.ladder && swingLadderCfg(s).missKeepsStreak)) s.streak = 0;
     s.streakAt = tick + SWING_V14_RESPAWN;
   }
 }
@@ -3351,8 +3360,8 @@ function stepRework(state: SwingState, input: ArcadeInputEvent | null): SwingSta
     s.chaseX = s.x - SWING_CHASE_GAP;
     s.chaseY = s.y;
   } else if ((s.chaseX ?? 0) !== 0 && now < total) {
-    // (A swingRev 18 level may fly it faster.)
-    s.chaseX = s.chaseX! + (s.lvl ? SWING_LEVELS[s.lvl].chasePace : SWING_V14_CHASE_PACE);
+    // (A swingRev 18 level may fly it faster; on swingRev 19 the pace is the ladder's, SWING_V19_LEVELS.)
+    s.chaseX = s.chaseX! + (s.ladder ? swingLadderCfg(s).chasePace : s.lvl ? SWING_LEVELS[s.lvl].chasePace : SWING_V14_CHASE_PACE);
     s.chaseY = s.chaseY! + clampInt(Math.trunc((s.y - s.chaseY!) / 4), -3 * FP, 3 * FP);
     if (s.chaseX! + SWING_CHASE_REACH >= s.x - RADIUS) {
       s.caught = (s.caught ?? 0) + 1;
@@ -3710,6 +3719,8 @@ interface V15Shape {
   radius?: number;
   /** swingRev 18's levels: the level the course is built for (its reach, sliding hooks, pterodactyl and dark). */
   lvl?: SwingLevel;
+  /** swingRev 19 (the ladder): the ladder level the course is built and proved for (SWING_V19_LEVELS). */
+  ladder?: SwingLadderLevel;
 }
 /** The most failed blocks one rev-15 build may roll back before it starts the course again. */
 const V15_BLOCK_FAILURES = 40;
@@ -3917,7 +3928,10 @@ function buildV15(draw: (n: number) => number, shape: V15Shape): { state: SwingS
     restore(snaps[block]!);
   }
   if (squeezes.length !== shape.squeezes) return null;
-  const made = reworkCourse(c, sections, ledges, squeezes, hops, draw, shape.slide);
+  const built = reworkCourse(c, sections, ledges, squeezes, hops, draw, shape.slide);
+  // swingRev 19 (the ladder): its marker and the pterodactyl's start on the state before the route is proved (slideCourse
+  // plays the planned route under them, so a course whose route the chase catches is built again).
+  const made = built && shape.ladder ? { ...built, state: swingLadderStart(built.state, shape.ladder) } : built;
   if (made && shape.slide) return slideCourse(made.state, { sections: plan, features: made.features }, draw);
   return made && { state: made.state, plan: { sections: plan, features: made.features } };
 }
@@ -4156,7 +4170,7 @@ function reworkCourse(c: V14Course, sections: SwingSection[], ledges: SwingLedge
  */
 export function prepareSwingCourse(seed: number, rev?: number, level?: unknown): void {
   // (A swingRev 18 level builds its own course: the puzzle's stored level.)
-  if (rev === SWING_REV_BIG || rev === SWING_REV_SLIDE || rev === SWING_REV_DARK || rev === SWING_REV_REWORK || rev === SWING_REV_ASSAULT) swingGameFor(rev, level).init(seed);
+  if (rev === SWING_REV_LADDER || rev === SWING_REV_BIG || rev === SWING_REV_SLIDE || rev === SWING_REV_DARK || rev === SWING_REV_REWORK || rev === SWING_REV_ASSAULT) swingGameFor(rev, level).init(seed);
 }
 
 /** The rope's body (swingRev 15's look-ahead kit below). */
@@ -4425,18 +4439,23 @@ export function swingStreakNow(s: SwingState): number {
 /** The parts of a rev-17 score (they add up to it, at most 200). */
 export function swingSlideParts(state: SwingState): { core: number; par: number; gates: number; streak: number; permille: number; parTicks: number } {
   const p = swingReworkProgress(state);
+  // (swingRev 19: the ladder's lines, SWING_V19_LEVELS: each stretch's par counted up to `parCap` ticks under, the pars
+  // full at `parFull` ticks in all, the course's share, the gates' and the streak's counts each part is full at.)
+  const lad = state.ladder ? swingLadderCfg(state) : null;
+  const cap = lad ? lad.parCap : SWING_V15_PAR_FULL;
   const parTicks = (state.sections ?? []).reduce((sum, _, k) => {
     const q = swingAssaultPar(state, k);
-    return sum + (q.time >= 0 ? clampInt(q.beat, 0, SWING_V15_PAR_FULL) : 0);
+    return sum + (q.time >= 0 ? clampInt(q.beat, 0, cap) : 0);
   }, 0);
   // (A swingRev 18 level may set the course part's "full at" share: Easy's is nearer.)
-  const full = state.lvl ? SWING_LEVELS[state.lvl].full : SWING_V17_FULL;
+  const full = lad ? lad.full : state.lvl ? SWING_LEVELS[state.lvl].full : SWING_V17_FULL;
   const line = Math.trunc((SWING_V17_CORE * Math.min(p.permille, full)) / full);
+  const gateMax = SWING_V17_GATE_POINTS * SWING_V17_GATES;
   return {
     core: state.acted ? Math.max(1, line) : line,
-    par: Math.min(SWING_V17_PAR_POINTS, Math.trunc((SWING_V17_PAR_POINTS * parTicks) / (SWING_V15_PAR_FULL * SWING_V17_PAR_STRETCHES))),
-    gates: SWING_V17_GATE_POINTS * bits(state.bankGates ?? 0),
-    streak: Math.min(SWING_V17_STREAK_MAX, SWING_V17_STREAK_EACH * (state.streakPaid ?? 0)),
+    par: Math.min(SWING_V17_PAR_POINTS, Math.trunc((SWING_V17_PAR_POINTS * parTicks) / (lad ? lad.parFull : SWING_V15_PAR_FULL * SWING_V17_PAR_STRETCHES))),
+    gates: lad ? Math.min(gateMax, Math.trunc((gateMax * bits(state.bankGates ?? 0)) / lad.gatesFull)) : SWING_V17_GATE_POINTS * bits(state.bankGates ?? 0),
+    streak: lad ? Math.min(SWING_V17_STREAK_MAX, Math.trunc((SWING_V17_STREAK_MAX * (state.streakPaid ?? 0)) / lad.streakFull)) : Math.min(SWING_V17_STREAK_MAX, SWING_V17_STREAK_EACH * (state.streakPaid ?? 0)),
     permille: p.permille,
     parTicks,
   };
@@ -4828,4 +4847,102 @@ const SWING_LEVEL_GAMES: Record<SwingLevel, typeof swingGame> = {
 /** swingRev 18 at a level: its course and rules (the step reads the state's `lvl`). */
 export function swingLevelGame(level: SwingLevel): typeof swingGame {
   return SWING_LEVEL_GAMES[level];
+}
+
+/* ================= swingRev 19: the ladder (D5, 23 Nov 2026) ================= */
+
+/*
+ * swingRev 19 (docs/arcade-standard/swing.md "swingRev 19: the ladder"; Joe's approved plan of 23 Nov 2026, from the D5
+ * study): swingRev 18 at every level (the same courses' builder, salts and level levers, SWING_LEVELS: reach, sliding
+ * vines, stall, vine swing, dark runs; the body, the 90 s run, the parts and their 200) with the ladder's rules below,
+ * every one gated on the state's `ladder` marker (folded into the checksum last), so every swingRev 18 round at any level
+ * replays and scores exactly as before.
+ *
+ *  - The lever: the pterodactyl. Easy has none (as swingRev 18); Normal's flies over the last quarter at 2.4 px a tick
+ *    (as today); Hard's and Expert's chase from the first vine (`chaseFirst`) for the whole course, faster each level up.
+ *    A catch costs what it always has (a restart from the stretch's restart point, the streak ended).
+ *  - The par lines: each stretch's par moved by `parLater` ticks (swingAssaultPar, swingAssaultClock): Easy's well later
+ *    (eased), Normal's a few ticks later (so 200 is reachable for the best humans on every dealt course), Hard's and
+ *    Expert's tighter.
+ *  - Easy's aids: the course part full at 35 % of the way (Normal 70 %), and a miss keeps the clean-swing streak.
+ *  - Each level's full lines (Joe's decision 12: scoring on level deals so 200 is reachable): the gates part full at
+ *    `gatesFull` gates, the streak part at `streakFull` runs of eight clean grabs, and the pars: each stretch counted up to
+ *    `parCap` ticks under its par, the part full at `parFull` ticks in all (Normal's are swingRev 18's: 5, 20, 30 and
+ *    1,350, half a second under par on 45 stretches).
+ *  - The courses: built by swingRev 18's builder from each level's own salt, with the marker and the pterodactyl's start
+ *    on the state before the planned route is proved through the step (slideCourse), so the route is never caught; a
+ *    course whose route the chase would catch is built again further along the seed's stream. Rooms deal only courses on
+ *    which the proof player (the flawless skill-band level held to Joe's human limits) scores exactly 200 through the
+ *    server replay (swingLadderDeal.server.ts, scripts/swing-ladder-deal.ts). A change to a value here needs a new stamp.
+ */
+export const SWING_REV_LADDER = 19;
+export type SwingLadderLevel = "easy" | "normal" | "hard" | "expert";
+export interface SwingLadderCfg {
+  /** The pterodactyl from the first vine (false: over the last quarter, as swingRev 18's Normal). */
+  chaseFirst: boolean;
+  /** Its pace (1/256 px a tick; 0: none). */
+  chasePace: number;
+  /** The course part is full at this share of the course (per mille). */
+  full: number;
+  /** A miss keeps the clean-swing streak. */
+  missKeepsStreak: boolean;
+  /** Each stretch's par moved by this many ticks (later: positive). */
+  parLater: number;
+  /** The gates part (10) is full at this many gates. */
+  gatesFull: number;
+  /** The clean-swing streak part (40) is full at this many blocks of SWING_V17_STREAK_BLOCK clean grabs (Normal 20). */
+  streakFull: number;
+  /** Each stretch's par counts up to this many ticks under it (Normal SWING_V15_PAR_FULL, half a second). */
+  parCap: number;
+  /** The pars part (40) is full at this many ticks under par in all (Normal SWING_V15_PAR_FULL × SWING_V17_PAR_STRETCHES). */
+  parFull: number;
+}
+export const SWING_V19_LEVELS: Readonly<Record<SwingLadderLevel, SwingLadderCfg>> = {
+  easy: { chaseFirst: false, chasePace: 0, full: 350, missKeepsStreak: true, parLater: 120, gatesFull: 3, streakFull: 18, parCap: SWING_V15_PAR_FULL, parFull: 30 * SWING_V15_PAR_FULL },
+  normal: { chaseFirst: false, chasePace: SWING_V14_CHASE_PACE, full: SWING_V17_FULL, missKeepsStreak: false, parLater: 12, gatesFull: SWING_V17_GATES, streakFull: 20, parCap: SWING_V15_PAR_FULL, parFull: SWING_V17_PAR_STRETCHES * SWING_V15_PAR_FULL },
+  hard: { chaseFirst: true, chasePace: 947, full: SWING_V17_FULL, missKeepsStreak: false, parLater: 6, gatesFull: SWING_V17_GATES, streakFull: 19, parCap: 150, parFull: 4400 },
+  expert: { chaseFirst: true, chasePace: 1050, full: SWING_V17_FULL, missKeepsStreak: false, parLater: 0, gatesFull: SWING_V17_GATES, streakFull: 19, parCap: 150, parFull: 4100 },
+};
+
+/** A stored level read as a swingRev 19 ladder level (absent, Normal or junk: Normal). */
+export function swingLadderLevel(level: unknown): SwingLadderLevel {
+  return level === "easy" || level === "hard" || level === "expert" ? level : "normal";
+}
+/** A swingRev 19 state's ladder rules (its `lvl`, Normal when absent). */
+export function swingLadderCfg(s: Pick<SwingState, "lvl">): SwingLadderCfg {
+  return SWING_V19_LEVELS[s.lvl ?? "normal"];
+}
+
+/** A built course's state as swingRev 19 starts it: the marker and the pterodactyl's start stretch. */
+function swingLadderStart(state: SwingState, level: SwingLadderLevel): SwingState {
+  const c = SWING_V19_LEVELS[level];
+  const total = state.sections!.length;
+  return { ...state, ladder: 1, chaseFrom: c.chasePace === 0 ? total : c.chaseFirst ? 0 : (state.chaseFrom ?? total) };
+}
+
+const V19_SHAPES: Record<SwingLadderLevel, V15Shape> = {
+  easy: { ...levelShape("easy"), ladder: "easy" },
+  normal: { ...V18_SHAPE, cache: new Map(), plans: new Map(), ladder: "normal" },
+  hard: { ...levelShape("hard"), ladder: "hard" },
+  expert: { ...levelShape("expert"), ladder: "expert" },
+};
+
+/** The witness of a seed's swingRev 19 course at a ladder level (building it if need be), as swingBigPlan. */
+export function swingLadderPlan(seed: number, level: SwingLadderLevel): SwingReworkPlan {
+  return shapePlan(seed, V19_SHAPES[level]);
+}
+
+function initV19(seed: number, level: SwingLadderLevel): SwingState {
+  return { ...initShape(seed, V19_SHAPES[level]), dark: 1, slide: 1, big: 1, ladder: 1, ...(level !== "normal" ? { lvl: level } : {}) };
+}
+
+const SWING_LADDER_GAMES: Record<SwingLadderLevel, typeof swingGame> = {
+  easy: { ...swingBigGame, init: (seed) => ({ ...bandInit(initV19(seed, "easy")), band: 3 }) },
+  normal: { ...swingBigGame, init: (seed) => ({ ...bandInit(initV19(seed, "normal")), band: 3 }) },
+  hard: { ...swingBigGame, init: (seed) => ({ ...bandInit(initV19(seed, "hard")), band: 3 }) },
+  expert: { ...swingBigGame, init: (seed) => ({ ...bandInit(initV19(seed, "expert")), band: 3 }) },
+};
+/** swingRev 19 at a ladder level: its course and rules (the step reads the state's `ladder` and `lvl`). */
+export function swingLadderGame(level: SwingLadderLevel): typeof swingGame {
+  return SWING_LADDER_GAMES[level];
 }

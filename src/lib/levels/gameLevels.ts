@@ -37,7 +37,7 @@ import { BOMB_LEVELS, MAZE_LEVELS, PAIR_LEVELS, SCAN_LEVELS, SPOT_LEVELS, TALLY_
 /** The check proving every Attention level (one answer, legibility, clocks, the human-like Expert solver). */
 const ATTENTION_PROOF = "scripts/attention-levels-check.ts";
 import { ASCEND_LEVELS, BONK_LEVELS, CHAIN_LEVELS, FLASH_LEVELS, PULL_LEVELS, TENFALL_LEVELS } from "./speedLevels";
-import { BEAT_LEVELS_V13, BLOCKFALL_LEVELS_V3, BREAKER_LEVELS, BURST_LEVELS_SMALL, CROSS_LEVELS_V14, HOVER_LEVELS_V12, PINBALL_LEVELS, RALLY_LEVELS, SNAKE_LEVELS, WAVEFRONT_LEVELS_WIDE } from "@/lib/arcade/retroLevels";
+import { BEAT_LEVELS_V13, BLOCKFALL_LEVELS_V3, BREAKER_LEVELS, BURST_LEVELS_SMALL, CROSS_LEVELS_V14, HOVER_LEVELS_V12, PINBALL_LEVELS, RALLY_LEVELS_V14, SNAKE_LEVELS_V16, WAVEFRONT_LEVELS_WIDE } from "@/lib/arcade/retroLevels";
 
 /** How a level's boards are proven to have exactly one solution. */
 export type OneSolutionProof = { proof: string } | { open: string };
@@ -565,13 +565,15 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   pinball: retroGameLevels(PINBALL_LEVELS),
   wavefront: retroGameLevels(WAVEFRONT_LEVELS_WIDE),
   cross: retroGameLevels(CROSS_LEVELS_V14),
-  snake: retroGameLevels(SNAKE_LEVELS),
+  // snakeRev 16 (D5's ladder, 23 Nov 2026): the table dealt today.
+  snake: retroGameLevels(SNAKE_LEVELS_V16),
   // blockfallRev 3 (D5's ladder, 23 Nov 2026): the levels' own table (blockfallRev 2 rounds replay on BLOCKFALL_LEVELS).
   blockfall: retroGameLevels(BLOCKFALL_LEVELS_V3),
   // beatRev 13 (D5's ladder, 23 Nov 2026): the lanes and each level's own full lines (beatRev 12 rounds replay on BEAT_LEVELS).
   beat: retroGameLevels(BEAT_LEVELS_V13),
   burst: retroGameLevels(BURST_LEVELS_SMALL),
-  rally: retroGameLevels(RALLY_LEVELS),
+  // rallyRev 14 (D5's ladder, 23 Nov 2026): the table dealt today.
+  rally: retroGameLevels(RALLY_LEVELS_V14),
   // Roofbound (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): the sim's FLIP_LEVEL_RULES, mirrored (flip-levels-check).
   flip: {
     levels: {
@@ -603,11 +605,15 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // its own proved deal (swingLevelDeal.server.ts) and the sim reads the stored level (swing.ts SWING_LEVELS, the values
   // its courses are built, proved and played with); these are the same, for display. vineSwing (16 Nov 2026, Joe: levers
   // that test human timing): the held vine's gravity, per cent, so Hard and Expert swing faster.
+  // swingRev 19 (D5, 23 Nov 2026, the ladder; swing.ts SWING_V19_LEVELS, mirrored, swing-ladder-check): the lever is the
+  // pterodactyl (chase: where it starts, chasePx its pace a tick), each stretch's par moved parLaterTicks and counted up
+  // to parCapTicks under it, the pars part full at parFullTicks in all, the course part full at courseFullPct, the gates part at gatesFull gates, the streak part at
+  // streakFull runs of eight clean grabs, and on Easy a miss keeps the clean-swing streak.
   swing: {
     levels: {
-      easy: { settings: { reachPx: 250, slidingVines: 5, stallTicks: 200, pterodactyl: false, darkRuns: 0, vineSwing: 100 } },
-      hard: { settings: { reachPx: 220, slidingVines: 26, stallTicks: 55, pterodactyl: true, darkRuns: 6, vineSwing: 125 } },
-      expert: { settings: { reachPx: 205, slidingVines: 30, stallTicks: 50, pterodactyl: true, darkRuns: 7, vineSwing: 145 } },
+      easy: { settings: { reachPx: 250, slidingVines: 5, stallTicks: 200, pterodactyl: false, darkRuns: 0, vineSwing: 100, chase: "none", chasePx: 0, parLaterTicks: 120, courseFullPct: 35, gatesFull: 3, streakFull: 18, parCapTicks: 30, parFullTicks: 900, missKeepsStreak: true } },
+      hard: { settings: { reachPx: 220, slidingVines: 26, stallTicks: 55, pterodactyl: true, darkRuns: 6, vineSwing: 125, chase: "first vine", chasePx: 3.7, parLaterTicks: 6, courseFullPct: 70, gatesFull: 5, streakFull: 19, parCapTicks: 150, parFullTicks: 4400, missKeepsStreak: false } },
+      expert: { settings: { reachPx: 205, slidingVines: 30, stallTicks: 50, pterodactyl: true, darkRuns: 7, vineSwing: 145, chase: "first vine", chasePx: 4.1, parLaterTicks: 0, courseFullPct: 70, gatesFull: 5, streakFull: 19, parCapTicks: 150, parFullTicks: 4100, missKeepsStreak: false } },
     },
   },
   // Moon Climb (the Action overhaul, 15 Nov 2026; docs/arcade-standard/ricochet.md "Levels"): the sim reads the stored
