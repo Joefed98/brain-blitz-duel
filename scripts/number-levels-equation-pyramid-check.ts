@@ -162,7 +162,8 @@ check((deal("equation", 3) as EquationPuzzleData).tryLimit === 3, "2. Operator's
           && (stage.tray ?? []).length === line.numberGaps + (line.numberGaps ? line.decoys : 0)
           && numbers.every(inRange) && (stage.tray ?? []).every(inRange)
           && ops.every((o) => line.signs.includes(o)) && [...(line.need ?? "")].every((o) => ops.includes(o))
-          && (level !== "expert" || (numGaps > 0 && signGaps > 0 && (stage.tray ?? []).length === numGaps + 2))) shape++;
+          // D2: Expert opens every sign and has 2 or 3 decoys a line (the line's own count). // Changed with Joe's approval, 22 Nov 2026
+          && (level !== "expert" || (numGaps > 0 && signGaps === stage.numbers.length - 1 && (stage.tray ?? []).length === numGaps + line.decoys))) shape++; // Changed with Joe's approval, 22 Nov 2026
         const n = countGapAnswers(stage, line.maxAnswers);
         if (n >= 1 && n <= line.maxAnswers) answers++;
         if (gapStageCorrect(stage, p.gapAnswers?.[i])) stored++;
@@ -186,10 +187,12 @@ check((deal("equation", 3) as EquationPuzzleData).tryLimit === 3, "2. Operator's
     const first = gradeAnswer(p as PuzzleData, joinCountSuffix(body, p.stages.map(() => 1)), 30_000);
     check(first.isCorrect && first.score >= 150, `4. ${level}: all four right first time finishes (${first.score})`);
     // Operator level clocks (Joe, 16 Nov 2026): the level's own clock and "full by" time, graded from the stored puzzle.
+    // D2: the "full by" time is the level's own (Hard 40 s, Expert 47 s). // Changed with Joe's approval, 22 Nov 2026
+    const fullBy = gameLevelSettings<OperatorLevelSettings>("equation", level)!.fullByS!; // Changed with Joe's approval, 22 Nov 2026
     const limit = p.timeLimitMs ?? 0;
-    const full = gradeAnswer(p as PuzzleData, joinCountSuffix(body, p.stages.map(() => 1)), limit - 40_000);
-    const late = gradeAnswer(p as PuzzleData, joinCountSuffix(body, p.stages.map(() => 1)), limit - 41_000);
-    check(p.speedFullByS === 40 && full.score === 200 && late.score < 200, `4. ${level}: full speed points within 40 s of the ${limit / 1000} s clock (${full.score} at 40 s, ${late.score} at 41 s)`);
+    const full = gradeAnswer(p as PuzzleData, joinCountSuffix(body, p.stages.map(() => 1)), limit - fullBy * 1000); // Changed with Joe's approval, 22 Nov 2026
+    const late = gradeAnswer(p as PuzzleData, joinCountSuffix(body, p.stages.map(() => 1)), limit - (fullBy + 1) * 1000); // Changed with Joe's approval, 22 Nov 2026
+    check(p.speedFullByS === fullBy && full.score === 200 && late.score < 200, `4. ${level}: full speed points within ${fullBy} s of the ${limit / 1000} s clock (${full.score} at ${fullBy} s, ${late.score} at ${fullBy + 1} s)`); // Changed with Joe's approval, 22 Nov 2026
   }
   {
     const p = deal("equation", 11) as EquationPuzzleData;

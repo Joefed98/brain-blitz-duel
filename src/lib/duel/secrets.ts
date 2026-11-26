@@ -10,7 +10,8 @@ const SECRET_KEYS: Record<PuzzleType, string[]> = {
   wordhunt: ["words", "totalPoints", "par"],
   unblock: ["minMoves", "solution"],
   blockparty: ["solution", "solutions"],
-  target: ["solution"],
+  // D2 (22 Nov 2026): a round of targets in a row keeps every target's route private too.
+  target: ["solution", "solutions"],
   tilegrid: ["solution"],
   balance: ["solutions"],
   // Par is shown on the move counter; the intended words are not.

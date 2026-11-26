@@ -356,11 +356,11 @@ export function generateKakuro(seed: number): KakuroPuzzleData {
 
 /* ------------------------------------------------------------------ levels (stage 3, 15 Nov 2026) */
 
-/** kakuroLayoutWhite with the level's own white band. */
-function levelLayoutWhite(size: number, black: ReadonlySet<number>, min: number, max: number): number[] | null {
-  const isWhite = (r: number, c: number) => r > 0 && c > 0 && r < size && c < size && !black.has(r * size + c);
+/** kakuroLayoutWhite with the level's own white band (and, D2, its own rows down: the rows past them black). */
+function levelLayoutWhite(size: number, black: ReadonlySet<number>, min: number, max: number, rows = size): number[] | null {
+  const isWhite = (r: number, c: number) => r > 0 && c > 0 && r < rows && c < size && !black.has(r * size + c);
   const white: number[] = [];
-  for (let r = 1; r < size; r++)
+  for (let r = 1; r < rows; r++)
     for (let c = 1; c < size; c++) {
       if (!isWhite(r, c)) continue;
       const across = (isWhite(r, c - 1) ? 1 : 0) + (isWhite(r, c + 1) ? 1 : 0);
@@ -384,16 +384,16 @@ function levelLayoutWhite(size: number, black: ReadonlySet<number>, min: number,
 }
 
 /** A random layout in the level's band: interior black cells drawn from the seed until the white rules hold. */
-type FullKakuroLevel = Required<Omit<KakuroLevelSettings, "today" | "maxPasses">> & { maxPasses: number | null };
+type FullKakuroLevel = Required<Omit<KakuroLevelSettings, "today" | "maxPasses" | "rows" | "fullByS">> & { maxPasses: number | null; rows: number };
 
 function levelLayout(rng: SeededRng, settings: FullKakuroLevel): number[] {
-  const { size } = settings;
+  const { size, rows } = settings;
   const interior: number[] = [];
-  for (let r = 1; r < size; r++) for (let c = 1; c < size; c++) interior.push(r * size + c);
+  for (let r = 1; r < rows; r++) for (let c = 1; c < size; c++) interior.push(r * size + c);
   for (let tries = 0; tries < 200_000; tries++) {
     const blacks = interior.length - rng.int(settings.whiteMin, settings.whiteMax);
     const black = new Set(rng.shuffle(interior).slice(0, blacks));
-    const white = levelLayoutWhite(size, black, settings.whiteMin, settings.whiteMax);
+    const white = levelLayoutWhite(size, black, settings.whiteMin, settings.whiteMax, rows);
     if (white && kakuroBlocks(size, white) <= settings.maxBlocks) return white;
   }
   throw new Error(`Kakuro: no ${size} × ${size} layout found`);
@@ -481,6 +481,7 @@ export function generateKakuroLevel(seed: number, level: KakuroLevelSettings, re
     maxBlocks: level.maxBlocks ?? KAKURO_MAX_BLOCKS,
     person: level.person ?? false,
     maxPasses: level.maxPasses ?? null,
+    rows: level.rows ?? level.size ?? KAKURO_SIZE,
   };
   const { size } = settings;
   const rng = seededRng((seed ^ 0x6b6c7631) >>> 0);
@@ -515,7 +516,18 @@ export function generateKakuroLevel(seed: number, level: KakuroLevelSettings, re
       if (settings.maxPasses !== null && Math.max(...white.map((c) => person.round[c]!)) > settings.maxPasses) continue;
     }
     const solution = values.map((v, cell) => (white.includes(cell) ? v : 0));
-    return { type: "kakuro", kakuroRev: rev, size, white: [...white], clues: board.clues, grade: proof.branches, solution };
+    return {
+      type: "kakuro",
+      kakuroRev: rev,
+      size,
+      white: [...white],
+      clues: board.clues,
+      grade: proof.branches,
+      solution,
+      // D2 (22 Nov 2026): a level's rows down when fewer than across, and its own "full by" time.
+      ...(settings.rows < size ? { rows: settings.rows } : {}),
+      ...(level.fullByS ? { speedFullByS: level.fullByS } : {}),
+    };
   }
-  throw new Error(`Kakuro: no ${size} × ${size} board found for the level`);
+  throw new Error(`Kakuro: no ${size} × ${settings.rows} board found for the level`);
 }

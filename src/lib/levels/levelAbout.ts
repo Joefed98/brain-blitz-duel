@@ -3,10 +3,11 @@
  * overhaul, stage 3, 15 Nov 2026). Plain data only; a game whose family session gave no lines has none.
  */
 import { WORD_LEVEL_ABOUT } from "./word";
+import { NUMBER_LEVEL_ABOUT } from "./number";
 import { levelsOf } from "./gameLevels";
 import { LEVEL_LABEL, NORMAL, type Level } from "./levels";
 
-const ABOUT: Readonly<Record<string, Partial<Record<Exclude<Level, "normal">, string>>>> = { ...WORD_LEVEL_ABOUT };
+const ABOUT: Readonly<Record<string, Partial<Record<Exclude<Level, "normal">, string>>>> = { ...WORD_LEVEL_ABOUT, ...NUMBER_LEVEL_ABOUT };
 
 /** The line for one level ("" for Normal or none). */
 export function levelAbout(type: string, level: Level): string {
