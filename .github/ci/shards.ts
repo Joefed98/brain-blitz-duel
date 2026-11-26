@@ -362,6 +362,8 @@ export const SHARDS: Record<string, string[]> = {
     "depth-wordsearch-check.ts",
     "hover-x200-check.ts",
     "wavefront-expand-check.ts",
+    // The Number levels' ladder (D2, 22 Nov 2026; ~60 s whole locally, in thirds by game): Exact, Ballpark, Brimful and Operator.
+    "number-levels-ladder-check.ts@2/3",
   ],
   // ~282 s of checks on run 38608375501's times.
   d: [
@@ -411,6 +413,8 @@ export const SHARDS: Record<string, string[]> = {
     "practice-receipt-check.ts",
     "number-levels-measure-numline-check.ts",
     "swing-levels-check.ts",
+    // The Number levels' ladder (D2, 22 Nov 2026): Kakuro alone, ~57 s locally.
+    "number-levels-ladder-check.ts@1/3",
   ],
   // ~282 s of checks on run 38608375501's times.
   e: [
@@ -595,6 +599,8 @@ export const SHARDS: Record<string, string[]> = {
     "standard-pattern-check.ts",
     "pattern-overhaul-gravity-check.ts",
     "pattern-overhaul-iceslide-check.ts",
+    // The Number levels' ladder (D2, 22 Nov 2026): Counterweight, Integer Pyramid and Checkout, ~16 s locally.
+    "number-levels-ladder-check.ts@3/3",
   ],
   // ~282 s of checks on run 38608375501's times.
   f: [

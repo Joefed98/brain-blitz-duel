@@ -44,10 +44,12 @@ const ok = (cond: boolean, label: string) => {
 /* 1. Deals. */
 // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): the overhaul's balanceRev 4 game
 // is dealt at Hard now (balanceLevels.ts; Normal is the new balanceRev 5 game), so the live deal compared is Hard's.
-const liveDealt = withSeededRandom(7, () => generatePuzzle("balance", { level: "hard" })) as BalancePuzzleData & { level?: string };
+// D2 (22 Nov 2026): Hard has its own balanceRev 5 boards now, so today's balanceRev 4 game is reached by its pin at // Changed with Joe's approval, 22 Nov 2026
+// Normal (preBalanceLevels), as rooms dealt it before levels. // Changed with Joe's approval, 22 Nov 2026
+const liveDealt = withSeededRandom(7, () => generatePuzzle("balance", {}, { pins: ["preBalanceLevels"] })) as BalancePuzzleData & { level?: string }; // Changed with Joe's approval, 22 Nov 2026
 const { level: _hardLevel, ...liveRest } = liveDealt;
 const live = liveRest as BalancePuzzleData;
-ok(live.balanceRev === BALANCE_REV_FREE_MOVES && balanceFreeMoves(live), `Counterweight deals balanceRev ${BALANCE_REV_FREE_MOVES} live at Hard (${live.balanceRev})`);
+ok(live.balanceRev === BALANCE_REV_FREE_MOVES && balanceFreeMoves(live), `Counterweight deals balanceRev ${BALANCE_REV_FREE_MOVES} by its pin (${live.balanceRev})`); // Changed with Joe's approval, 22 Nov 2026
 const was = pinPreNumberOverhaul(true);
 const old = withSeededRandom(7, () => generatePuzzle("balance")) as BalancePuzzleData;
 pinPreNumberOverhaul(was);

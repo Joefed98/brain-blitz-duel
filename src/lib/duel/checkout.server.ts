@@ -11,6 +11,7 @@ import {
   CHECKOUT_REV_BIG_FINISH,
   CHECKOUT_STANDARD,
   checkoutBustFreeOrder,
+  checkoutBigFinish,
   checkoutBustIndex,
   checkoutDartValue,
   checkoutFinisher,
@@ -23,6 +24,7 @@ import {
 } from "./checkout";
 import type { CheckoutBoardPlan, CheckoutLevelSettings } from "./numberLevels";
 import { seededRng, type SeededRng } from "./seededRng";
+import { CHECKOUT_STD_BIG_TARGET, checkoutBigFinishReachable } from "./standard/number";
 import type { CheckoutPuzzleData, CheckoutStageData } from "./types";
 
 /** Stages 1–2 need at least this many distinct routes. */
@@ -127,10 +129,13 @@ export const CHECKOUT_PERSON_BUDGET = 6000;
  * an order that never busts. `tries` is how many lists were weighed before the route was found (the fairness kit reads
  * it as thinking time).
  */
-export function checkoutPersonFinds(stage: CheckoutStageData): { found: boolean; route: CheckoutDart[] | null; tries: number } {
+export function checkoutPersonFinds(stage: CheckoutStageData, bigFirst = false): { found: boolean; route: CheckoutDart[] | null; tries: number } {
   const options = checkoutOptions(stage);
   const value = (d: CheckoutDart) => checkoutDartValue(stage, d);
-  const finishers = options.filter((d) => checkoutFinisher(stage, d)).sort((a, b) => value(b) - value(a));
+  // `bigFirst` (D2, 22 Nov 2026): a player chasing the big-finish bonus tries the big finishers (the Bull, or a treble on
+  // a double-finish board) first, each group biggest first; without it every finisher by value, as before.
+  const big = (d: CheckoutDart) => (bigFirst && checkoutBigFinish(stage, d) ? 1 : 0);
+  const finishers = options.filter((d) => checkoutFinisher(stage, d)).sort((a, b) => big(b) - big(a) || value(b) - value(a));
   const byValue = [...options].sort((a, b) => value(b) - value(a));
   const negatives = byValue.filter((d) => value(d) < 0);
   const deepest = negatives.length ? -value(negatives[negatives.length - 1]!) : 0;
@@ -178,7 +183,20 @@ export function checkoutPersonFinds(stage: CheckoutStageData): { found: boolean;
   return { found: false, route: null, tries };
 }
 
-function buildLevelStage(rng: SeededRng, plan: CheckoutBoardPlan, person: boolean): { stage: CheckoutStageData; minDarts: number; route: string } {
+/**
+ * D2 (22 Nov 2026): true when the player chasing the bonus (`checkoutPersonFinds(stage, true)`) finds a route with the
+ * board's fewest darts that, on a board whose big finish pays (100 or more and a big finish reachable), ends on it, so
+ * the fewest-darts and big-finish points can be taken together: the route that makes 200.
+ */
+export function checkoutBonusRoute(stage: CheckoutStageData, minDarts: number): CheckoutDart[] | null {
+  const found = checkoutPersonFinds(stage, true);
+  if (!found.route || found.route.length !== minDarts) return null;
+  const pays = stage.target >= CHECKOUT_STD_BIG_TARGET && checkoutBigFinishReachable(stage);
+  if (pays && !checkoutBigFinish(stage, found.route[found.route.length - 1])) return null;
+  return checkoutBustFreeOrder(stage, found.route);
+}
+
+function buildLevelStage(rng: SeededRng, plan: CheckoutBoardPlan, person: boolean, bonus = false): { stage: CheckoutStageData; minDarts: number; route: string } {
   for (let attempt = 0; attempt < 2000; attempt++) {
     const stage: CheckoutStageData = {
       wedges: wedgesFor(rng, plan),
@@ -198,6 +216,7 @@ function buildLevelStage(rng: SeededRng, plan: CheckoutBoardPlan, person: boolea
     const route = checkoutBustFreeOrder(stage, found.route);
     if (checkoutBustIndex(stage, route.slice(0, -1)) >= 0 || !checkoutValid(stage, route, true)) continue;
     if (person && !checkoutPersonFinds(stage).found) continue;
+    if (bonus && !checkoutBonusRoute(stage, found.minDarts)) continue;
     return { stage, minDarts: found.minDarts, route: encodeCheckoutDarts(found.route) };
   }
   throw new Error("Checkout: no level board found");
@@ -206,12 +225,15 @@ function buildLevelStage(rng: SeededRng, plan: CheckoutBoardPlan, person: boolea
 /** A level's round from the seed (checkoutRev 4): one board per plan, each proven by the exhaustive search. */
 export function generateCheckoutLevel(seed: number, settings: CheckoutLevelSettings, rev: number): CheckoutPuzzleData {
   const rng = seededRng((seed ^ 0x636b6c76) >>> 0);
-  const built = (settings.boards ?? []).map((plan) => buildLevelStage(rng, plan, settings.person === true));
+  const built = (settings.boards ?? []).map((plan) => buildLevelStage(rng, plan, settings.person === true, settings.bonusRoute === true));
   return {
     type: "checkout",
     checkoutRev: rev,
     stages: built.map((b) => b.stage),
     minDarts: built.map((b) => b.minDarts),
     routes: built.map((b) => b.route),
+    // D2 (22 Nov 2026): a level's own clock and "full by" time, graded from the stored puzzle.
+    ...(settings.clockS ? { timeLimitMs: settings.clockS * 1000 } : {}),
+    ...(settings.fullByS ? { speedFullByS: settings.fullByS } : {}),
   };
 }

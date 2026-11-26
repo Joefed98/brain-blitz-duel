@@ -10,16 +10,23 @@
 import { npCells, npIndex } from "./numberPyramid";
 
 export interface NpLevelStage {
-  rows: 4 | 5 | 6;
+  rows: 3 | 4 | 5 | 6;
   minEmpty: number;
   maxEmpty: number;
   bottomLo: number;
   bottomHi: number;
+  /**
+   * D2 (22 Nov 2026): at least this many of the person-like solver's steps on the board are "only tile" deductions (a
+   * stone only the tray can decide, the slow part), so a nearly empty board of big numbers is not all plain sums.
+   */
+  minOnlyTile?: number;
 }
 
 export interface NpLevelSettings {
   stages: readonly NpLevelStage[];
   decoys: number;
+  /** The level's own "full by" time for its speed points, stamped as `speedFullByS` (D2); the game's 75 s without one. */
+  fullByS?: number;
 }
 
 type Rule = readonly [number, number, number];
