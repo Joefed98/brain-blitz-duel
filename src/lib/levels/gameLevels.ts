@@ -547,11 +547,18 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   // Orbit (docs/arcade-standard/orbit.md "Levels"): each level deals from its own proved bank
   // (scripts/orbit-fuel-bank.ts --level=…, built from these course settings); the sim reads tank and checkpoints from
   // the stored level (ORBIT_LEVEL_RULES in orbitRev3.ts, which orbit-levels-check holds equal to these).
+  // D5 (23 Nov 2026, orbitRev 17's ladder; docs/arcade-standard/orbit.md "orbitRev 17: lines, belts and levels"): the
+  // lever is the asteroid belts round the planets. `belts` and `minWindow` are orbitRev 17's courses (its ladder banks,
+  // scripts/orbit-ladder-bank.ts from scripts/orbit-ladder-lib.ts LADDER_COURSES, which orbit-ladder-check holds equal to
+  // these): Easy none, Hard a belt round every fourth planet from the second, Expert round every third from the first;
+  // `window` and `beltsFrom` stay the orbitRev 16 banks' (scripts/orbit-fuel-bank.ts rebuilds those from them). `lines`
+  // are the parts' full lines at the level (ORBIT_V17_LEVEL_LINES in orbitRev3.ts): speed full with `speedFullLeft` ticks
+  // left, stardust at `dustFull` motes, slingshots at `slingsFull`, asteroid fields at `fieldsFull`, perfect orbits at `perfectFull`.
   orbit: {
     levels: {
-      easy: { settings: { tank: 240, checkpoints: "auto", latMin: 30, latMax: 150, liftMin: 130, liftSpan: 70, window: 4, holesFrom: 25, beltsFrom: 25 } },
-      hard: { settings: { tank: 140, checkpoints: "one", latMin: 110, latMax: 270, liftMin: 170, liftSpan: 80, window: 3, holesFrom: 15, beltsFrom: 25 } },
-      expert: { settings: { tank: 120, checkpoints: "none", latMin: 140, latMax: 300, liftMin: 190, liftSpan: 80, window: 2, holesFrom: 11, beltsFrom: 21 } },
+      easy: { settings: { tank: 240, checkpoints: "auto", latMin: 30, latMax: 150, liftMin: 130, liftSpan: 70, window: 4, holesFrom: 25, beltsFrom: 25, belts: "none", minWindow: 4, lines: { speedFullLeft: 2025, dustFull: 22, slingsFull: 3, fieldsFull: 3, perfectFull: 16 } } },
+      hard: { settings: { tank: 140, checkpoints: "one", latMin: 110, latMax: 270, liftMin: 170, liftSpan: 80, window: 3, holesFrom: 15, beltsFrom: 25, belts: { from: 2, every: 4 }, minWindow: 3, lines: { speedFullLeft: 102, dustFull: 22, slingsFull: 3, fieldsFull: 2, perfectFull: 5 } } },
+      expert: { settings: { tank: 120, checkpoints: "none", latMin: 140, latMax: 300, liftMin: 190, liftSpan: 80, window: 2, holesFrom: 11, beltsFrom: 21, belts: { from: 1, every: 3 }, minWindow: 3, lines: { speedFullLeft: 102, dustFull: 22, slingsFull: 3, fieldsFull: 3, perfectFull: 6 } } },
     },
   },
   // The Cards & Board overhaul, stage 3 (15 Nov 2026; docs/arcade-standard/<game>.md "Levels"). Each game's sim holds the

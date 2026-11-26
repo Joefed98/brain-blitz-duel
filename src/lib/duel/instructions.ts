@@ -268,7 +268,8 @@ import {
   ORBIT_XP_THREAD_CAP,
   ORBIT_XP_THREAD_PTS,
   ORBIT_XP_TRAILS,
-  ORBIT_STD,
+  ORBIT_STD_V17,
+  ORBIT_V17_LINES,
   ORBIT_STD_PERFECT_OF,
   ORBIT_FUEL_MAX,
   ORBIT_GRACE_HOLD_TICKS,
@@ -1892,13 +1893,14 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Perfect orbits:", detail: "let go while the gold arc still shows – during your first lap round the planet – and land in the next orbit.", helpOnly: true },
       ],
       // orbitRev 13 (the arcade scoring standard) and 14 (the fuel meter): planets on a straight line to 130, then speed and the features, 200 in all.
-      score: listFromSpec(ORBIT_STD, {
+      // orbitRev 17 (D5, 23 Nov 2026): the same parts, each feature full at its own line (ORBIT_V17_LINES, Normal's).
+      score: listFromSpec(ORBIT_STD_V17, {
         core: "every planet reached counts the same (one you jump past too), all of it at the sun",
-        speed: "reach the sun with half the time left for all of it, falling to 0 at the buzzer",
-        dust: "0.5 for each speck of stardust",
-        slings: "3 for each slingshot round a moon",
+        speed: `reach the sun with ${Math.round(ORBIT_V17_LINES.speedFullLeft / 60)} s left for all of it, falling to 0 at the buzzer`,
+        dust: `every speck of stardust counts the same, all of it at ${ORBIT_V17_LINES.dustFull} specks`,
+        slings: `every slingshot round a moon counts the same, all of it at ${ORBIT_V17_LINES.slingsFull}`,
         fields: "4 for each asteroid field crossed",
-        perfect: "a little for each perfect orbit",
+        perfect: `every perfect orbit counts the same, all of it at ${ORBIT_V17_LINES.perfectFull}`,
       }, ["Running out of fuel ends the run (or sends you back to your checkpoint)"]),
     },
 

@@ -505,8 +505,8 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Sun seeker | Reach the sun. | Classic | Finish | `finished` = 1 |  | `orbit.sun-seeker` |
-| Slingshot | Pull all four slingshots. | Classic | Full set | line “Slingshots” = 12 of 12 |  | `orbit.slingshot` |
-| Stargazer | Collect all the stardust on Hard. | Hard | Full set | line “Stardust” = 15 of 15 |  | `orbit.stargazer` |
+| Slingshot | Pull all four slingshots. | Classic | Full set | `slings` ≥ `slingsTotal`, `slingsTotal` ≥ 4 |  | `orbit.slingshot` |
+| Stargazer | Collect all the stardust on Hard. | Hard | Full set | `dust` ≥ `dustTotal`, `dustTotal` ≥ 1 |  | `orbit.stargazer` |
 
 #### Tempo (`beat`)
 
