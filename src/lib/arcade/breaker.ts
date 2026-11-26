@@ -2071,7 +2071,7 @@ function initLadderLevel(seed: number, lv: BreakerLv): BrkState {
   });
   const state: BrkState = { ...base, bricks, maxHp, gold, gild, slide, balls, speed, clear9: 1, lv, lad: 1 };
   if (lv.slideFromS !== undefined) state.slideAt = slide.map(() => lv.slideFromS! * TICKS_PER_SECOND);
-  if ((lv.lives ?? 0) > 0) state.lives = lv.lives;
+  if (lv.lives !== undefined && lv.lives > 0) state.lives = lv.lives;
   return state;
 }
 
