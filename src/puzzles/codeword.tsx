@@ -40,7 +40,7 @@ function codewordRuns(cells: readonly number[], size: number, rows: number = siz
 import { HudPills } from "@/components/puzzles/HudPills";
 import "@/polish-word/word-look.css";
 import "@/polish-word/cryptogrid.css";
-import { BoardPair, RevealKey, RevealNumbers } from "@/components/puzzles/WordReveal";
+import { BoardPair, RevealKey, RevealNumbers, stageWidth } from "@/components/puzzles/WordReveal";
 import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 import "@/polish-layout/polish-nov3-word.css";
 
@@ -420,7 +420,9 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   const tally = codewordTally(mine, solution, puzzle.givens);
   const given = new Set(puzzle.givens.map((g) => g.n));
   const shown = typeof myExtra?.["wrongEntered"] === "number" ? (myExtra["wrongEntered"] as number) : null;
-  const box = { width: "min(84vw, 340px)", height: puzzle.rows ? `calc(min(84vw, 340px) * ${puzzle.rows} / ${puzzle.size})` : "min(84vw, 340px)" };
+  // G2 (21 Nov 2026): the square board at the stage's width (was min(84vw, 340px)). A level's wider grid (D1: Hard 8 × 7,
+  // Expert 9 × 7) keeps its own shape: the height follows its rows.
+  const box = { width: stageWidth(420), height: puzzle.rows && puzzle.rows !== puzzle.size ? `calc(${stageWidth(420)} * ${puzzle.rows} / ${puzzle.size})` : stageWidth(420) };
   return (
     <div data-word-reveal="codeword" data-wr-version="overhaul" className="wr">
       <RevealNumbers

@@ -1,4 +1,5 @@
 import { useContext, useEffect, useRef, useState, type CSSProperties } from "react";
+import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 
 import { Button } from "@/components/ui/button";
 import { useGameColumnLayout } from "@/components/puzzles/gameColumn";
@@ -37,6 +38,14 @@ const SIGN_KEYS: readonly Operator[] = ["+", "-", "×", "÷"];
 const EQ_PX = 32;
 const EQ_FRAME_PX = 56;
 const EQ_MIN_PX = 13;
+/**
+ * A live round's tap rule (22 Nov 2026, display only): an answer gap is at least 36 px. A sign gap is 1.4em and a number
+ * gap 1.55em (polish-number/equation.css), so a line whose one-row fit drops below EQ_GAP_MIN_PX (1.4 × 26 = 36.4 px)
+ * splits into two rows (GapLine `split`), fitted from EQ_SPLIT_PX, as low as that allows so the board stays its height.
+ * Intros, demos and reveals keep one row, so recorded touches still land.
+ */
+const EQ_GAP_MIN_PX = 26;
+const EQ_SPLIT_PX = 26;
 
 export function signText(op: string): string {
   return op === "-" ? "−" : op;
@@ -58,8 +67,13 @@ function usedChips(tray: readonly number[], slots: readonly GapSlot[], fills: re
 /** A reveal mark on one gap (GapLine `marks`). */
 export type GapMark = "ok" | "bad" | "miss" | "fix";
 
-export function GapLine({ stage, fills, onGap, nextGap, chosen, fresh, mark, marks }: {
+export function GapLine({ stage, fills, onGap, nextGap, chosen, fresh, mark, marks, split = false }: {
   stage: EquationStage;
+  /**
+   * Two rows (a live round's long line): the first half of the terms (the extra one on a line of five), then the rest
+   * and "= target". The gaps keep their order, left to right then down.
+   */
+  split?: boolean;
   fills: readonly (string | null)[];
   onGap?: ((k: number) => void) | undefined;
   nextGap?: number;
@@ -97,19 +111,33 @@ export function GapLine({ stage, fills, onGap, nextGap, chosen, fresh, mark, mar
       </button>
     );
   };
+  const terms = stage.numbers.map((n, i) => {
+    const nk = at("number", i);
+    const sk = at("sign", i);
+    return (
+      <span key={i} className="opg-term">
+        {nk >= 0 ? gap(nk) : <span className="opg-num">{n}</span>}
+        {i < stage.numbers.length - 1 ? (sk >= 0 ? gap(sk) : <span className="opg-sign">{signText(stage.signs?.[i] ?? "")}</span>) : null}
+      </span>
+    );
+  });
+  const goal = <span className="opg-goal">= {stage.target}</span>;
+  if (split) {
+    const cut = Math.ceil(stage.numbers.length / 2);
+    return (
+      <>
+        <span className="opg-part">{terms.slice(0, cut)}</span>
+        <span className="opg-part">
+          {terms.slice(cut)}
+          {goal}
+        </span>
+      </>
+    );
+  }
   return (
     <>
-      {stage.numbers.map((n, i) => {
-        const nk = at("number", i);
-        const sk = at("sign", i);
-        return (
-          <span key={i} className="opg-term">
-            {nk >= 0 ? gap(nk) : <span className="opg-num">{n}</span>}
-            {i < stage.numbers.length - 1 ? (sk >= 0 ? gap(sk) : <span className="opg-sign">{signText(stage.signs?.[i] ?? "")}</span>) : null}
-          </span>
-        );
-      })}
-      <span className="opg-goal">= {stage.target}</span>
+      {terms}
+      {goal}
     </>
   );
 }
@@ -177,7 +205,17 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
 
   const box = useRef<HTMLDivElement>(null);
   const line = useRef<HTMLSpanElement>(null);
-  useFitOneLine(box, line, inFrame ? EQ_FRAME_PX : EQ_PX, EQ_MIN_PX, `${stage}:${current?.numbers.join(",")}=${current?.target}`);
+  const lineKey = `${stage}:${current?.numbers.join(",")}=${current?.target}`;
+  // A live round's line that would fit only with gaps under 36 px goes to two rows (EQ_GAP_MIN_PX); decided before the
+  // first paint of each line, so it never shows the one-row form first.
+  const [splitFor, setSplitFor] = useState<string | null>(null);
+  const split = inFrame && splitFor === lineKey;
+  useFitOneLine(box, line, split ? EQ_SPLIT_PX : inFrame ? EQ_FRAME_PX : EQ_PX, EQ_MIN_PX, `${lineKey}${split ? ":split" : ""}`);
+  useBeforePaint(() => {
+    if (!inFrame || split || (current?.numbers.length ?? 0) < 4 || !box.current) return;
+    const fs = parseFloat(box.current.style.getPropertyValue("--fit-fs"));
+    if (fs > 0 && fs < EQ_GAP_MIN_PX) setSplitFor(lineKey);
+  }, [inFrame, split, lineKey, current]);
 
   // Stage 2 (the effects kit), display only. A tile drops into its gap (its own `equation.drop` cue plays, so the
   // kit's sound is left out). A true line's "=" pops gold with sparks in place() (the shared stage moment plays the
@@ -373,9 +411,9 @@ export function GapsStage({ puzzle, locked, onSubmit, onDraftAnswer, stateKey = 
             data-correct={holding || finale ? "true" : undefined}
             className="opg-equation"
           >
-            <span ref={line} className="opg-line">
+            <span ref={line} className="opg-line" data-split={split ? "true" : undefined}>
               {/* The kit drops the fresh tile (stage 2), so the CSS drop is left off here. */}
-              <GapLine stage={current} fills={fills} onGap={keysFrozen ? undefined : tapGap} nextGap={nextGap} chosen={chosen} fresh={null} />
+              <GapLine stage={current} fills={fills} onGap={keysFrozen ? undefined : tapGap} nextGap={nextGap} chosen={chosen} fresh={null} split={split} />
             </span>
           </div>
           {/* The running total, worked left to right over the filled prefix (display only; blank until a step works). */}

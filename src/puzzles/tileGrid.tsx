@@ -33,7 +33,7 @@ import { useGameKeys } from "@/lib/desktop";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-word/word-look.css";
 import "@/polish-word/interlock.css";
-import { BoardPair, RevealChips, RevealNumbers, dropEndsMs } from "@/components/puzzles/WordReveal";
+import { BoardPair, RevealChips, RevealNumbers, cellCss, cellFont, dropEndsMs, stageCell, type CellSize } from "@/components/puzzles/WordReveal";
 import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 import { HudPills } from "@/components/puzzles/HudPills";
 
@@ -48,11 +48,11 @@ const TRAY_ROW_GAP = 4;
 /** Reveal: two 7×7 grids side by side in 343px (375 phone), letters 14px. */
 const REVEAL_CELL = 22;
 
-function MiniGrid({ cells, cell = 20, font, gold }: { cells: string[]; cell?: number; font?: number; /** Cells drawn gold (the overhaul's reveal). */ gold?: ReadonlySet<number> }) {
+function MiniGrid({ cells, cell = 20, font, gold }: { cells: string[]; cell?: CellSize; font?: number; /** Cells drawn gold (the overhaul's reveal). */ gold?: ReadonlySet<number> }) {
   return (
     <div
       className="grid rounded-md border border-border bg-card p-0.5"
-      style={{ gridTemplateColumns: `repeat(${tileGridSizeOfCells(cells)}, ${cell}px)`, gap: 1 }}
+      style={{ gridTemplateColumns: `repeat(${tileGridSizeOfCells(cells)}, ${cellCss(cell)})`, gap: 1 }}
     >
       {cells.map((letter, i) => (
         <span
@@ -60,7 +60,7 @@ function MiniGrid({ cells, cell = 20, font, gold }: { cells: string[]; cell?: nu
           data-wa={letter ? "tile" : gold ? "well" : undefined}
           data-wa-tone={letter && gold?.has(i) ? "gold" : undefined}
           className={`word-letter-tile flex items-center justify-center rounded-[3px] font-display font-bold ${letter ? "bg-primary text-primary-foreground" : "bg-background/40"}`}
-          style={{ height: cell, fontSize: font ?? Math.round(cell * 0.6) }}
+          style={{ height: cell, fontSize: font ?? cellFont(cell, 0.6) }}
         >
           {letter}
         </span>
@@ -464,7 +464,10 @@ function RevealOverhaul({ puzzle, myAnswer, myExtra }: PuzzleRevealProps) {
   const bigWords = Array.isArray(myExtra?.["bigWords"]) ? (myExtra["bigWords"] as unknown[]).map(String) : [];
   const bigCells = new Set(tileGridRuns(mine).filter((r) => bigWords.includes(r.word)).flatMap((r) => r.cells));
   const inWords = num("countedTiles") ?? num("wordTiles");
-  const cell = 40;
+  // G2 (21 Nov 2026): the cell from the stage's width (seven columns, 1 px gaps, the grid's 2 px padding and 1 px edge);
+  // a level's own board side (D1: 6 or 8) in place of Normal's seven.
+  const side = tileGridSize(puzzle);
+  const cell = stageCell(side, (side - 1) + 6, 52);
   const solution = puzzle.solution ?? [];
   return (
     <div data-word-reveal="tilegrid" data-wr-version="overhaul" className="wr">

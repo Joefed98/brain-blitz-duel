@@ -30,7 +30,7 @@ import { effectCue, flyFrom, wordFx } from "@/components/puzzles/wordFx";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-word/word-look.css";
 import "@/polish-word/swapword.css";
-import { BoardPair, RevealKey, RevealNumbers } from "@/components/puzzles/WordReveal";
+import { BoardPair, RevealKey, RevealNumbers, stageWidth } from "@/components/puzzles/WordReveal";
 import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -426,7 +426,8 @@ function RevealOverhaul({ puzzle, myAnswer }: PuzzleRevealProps) {
   const run = replaySwapword(puzzle.start, decodeSwapwordFor(puzzle, myAnswer ?? ""), puzzle.maxSwaps, solution);
   const marks = swapwordMarks(run.board, solution, lattice);
   const inPlace = marks.filter((m) => m === 2).length;
-  const side = "min(84vw, 340px)";
+  // G2 (21 Nov 2026): the board at the stage's width (was min(84vw, 340px)).
+  const side = stageWidth(420);
   return (
     <div data-word-reveal="swapword" data-wr-version="overhaul" className="wr">
       <RevealNumbers

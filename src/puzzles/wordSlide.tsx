@@ -43,7 +43,7 @@ import { useBeforePaint } from "@/components/puzzles/useBeforePaint";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-word/word-look.css";
 import "@/polish-word/slider.css";
-import { BoardPair, RevealKey, RevealNumbers } from "@/components/puzzles/WordReveal";
+import { BoardPair, RevealKey, RevealNumbers, cellCss, cellFont, stageCell, type CellSize } from "@/components/puzzles/WordReveal";
 import { overhaulReveal } from "@/lib/duel/wordOverhaul";
 import "@/polish-layout/polish-nov3-word.css";
 import { HudPills } from "@/components/puzzles/HudPills";
@@ -73,7 +73,7 @@ export function Board({
   picked = null,
 }: {
   grid: string[];
-  cell: number;
+  cell: CellSize;
   good: Set<number>;
   boardRef?: React.RefObject<HTMLDivElement | null>;
   onPointerDown?: (event: React.PointerEvent) => void;
@@ -90,7 +90,7 @@ export function Board({
       ref={boardRef}
       onPointerDown={onPointerDown}
       className="puzzle-board grid shrink-0 rounded-xl border-2 border-border bg-card p-1.5"
-      style={{ gridTemplateColumns: `repeat(${slideGridSide(grid)}, ${cell}px)`, gap: GAP, ...(onPointerDown ? NO_SCROLL_STYLE : {}) }}
+      style={{ gridTemplateColumns: `repeat(${slideGridSide(grid)}, ${cellCss(cell)})`, gap: GAP, ...(onPointerDown ? NO_SCROLL_STYLE : {}) }}
       aria-label={`${gameDisplayName("wordslide")} board`}
       data-slide-swap-row={swapRow ?? undefined}
     >
@@ -110,7 +110,7 @@ export function Board({
             data-wa="tile"
             data-wa-tone={waTone}
              className={`word-letter-tile flex items-center justify-center rounded-lg border-2 font-display font-bold text-foreground ${tone}`}
-            style={{ height: cell, fontSize: Math.round(cell * 0.5) }}
+            style={{ height: cell, fontSize: cellFont(cell, 0.5) }}
           >
             {letter}
           </span>
@@ -488,7 +488,9 @@ function RevealOverhaul({ puzzle, myAnswer, myCorrect, validRows }: PuzzleReveal
   const replay = replayWordSlide(puzzle.grid, decodeSlideTokens(myAnswer ?? "", wordSlideSize(puzzle)), { swaps: slideSwapsOn(puzzle), ...(wordSlideSize(puzzle) !== WS_SIZE ? { size: wordSlideSize(puzzle) } : {}) });
   const words = puzzle.words ?? [];
   const good = new Set<number>(wsRows(wordSlideSize(puzzle)).filter((r) => myCorrect || validRows?.includes(r)));
-  const cell = 52;
+  // G2 (21 Nov 2026): the cell from the stage's width (the board's gaps, 6 px padding and 2 px edge each side); a level's
+  // own grid side (D1) in place of Normal's five.
+  const cell = stageCell(wordSlideSize(puzzle), (wordSlideSize(puzzle) - 1) * GAP + 16, 60);
   return (
     <div data-word-reveal="wordslide" data-wr-version="overhaul" className="wr">
       <RevealNumbers

@@ -121,6 +121,10 @@ export const DEAL_PINS = {
   sportsPreOverhaul: { texts: false },
   /** sports.server.ts: Apex racingRev 3 (one circuit), before the Sports overhaul's three circuits (15 Nov 2026). */
   racingPreCircuits: { texts: false },
+  /** pyramidPartial.ts: Integer Pyramid depthRev 2, before its stone-by-stone unfinished credit (D2, 22 Nov 2026). */
+  prePyramidPartial: { texts: true },
+  /** ballparkBullseyes.ts: Ballpark depthRev 2, before a bullseye was worth 3 (D2, 22 Nov 2026). */
+  preBallparkBullseyes: { texts: true },
   /** wordStar.ts: Nucleus wordsmithRev 5, Forage wordHuntRev 4 and Roundabout wheelRev 5, before the D1 refit (21 Nov 2026). */
   preWordStar: { texts: true },
 } as const satisfies Record<string, { texts: boolean }>;

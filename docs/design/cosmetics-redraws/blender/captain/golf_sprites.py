@@ -127,7 +127,8 @@ def sprite(pose, px=256):
     captain.build(pose=pose, location=(0, 0, 0), height=HEIGHT)
     club(pose)
     lib.area_light((0.0, -4.0, 4.0), (0, 0, 0.9), 420, 4.0, (1.0, 0.97, 0.92))
-    lib.area_light((2.5, 3.0, 2.2), (0, 0, 1.0), 380, 1.5, (0.75, 0.85, 1.0))
+    # The polish plan's C4.2 (20 Nov 2026): a bolder rim, so he reads at the 60 px he is now drawn (was 380).
+    lib.area_light((2.5, 3.0, 2.2), (0, 0, 1.0), 620, 1.5, (0.75, 0.85, 1.0))
     # The course's light: a warm key from the top left.
     sun = bpy.data.lights.new("sun", "SUN")
     sun.energy = 4.2
@@ -142,7 +143,8 @@ def sprite(pose, px=256):
     plane.is_shadow_catcher = True
     # From above, tipped 30° towards the ball's side (so the visor, the bolt and the club read, not just the helmet's
     # crown), the body a little behind the frame's middle so the club's head reaches towards the ball.
-    tip = math.radians(38)
+    # C4.2 (20 Nov 2026): a more upright three-quarter view, 28° (was 38°); MG_CAPTAIN_BALL follows (152, 183).
+    tip = math.radians(28)
     target = Vector((0, -0.2, 0.8))
     lib.camera(tuple(target + Vector((0, -math.sin(tip), math.cos(tip))) * 12), tuple(target), ortho_scale=GROUND)
     png = os.path.join(lib.TMP, f"captain-golf-{pose}.png")
