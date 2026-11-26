@@ -7,13 +7,15 @@ import type { Level } from "@/lib/levels/levels";
 import { gameLevelSettings } from "@/lib/levels/gameLevels";
 import { TEN_DROP_DEPTH_REV } from "@/lib/arcade/tenDrop";
 import { SLICE_REV_TARGET, SLICE_REV_STRICT, SLICE_REV_LINE, sliceFoodSeedOk } from "@/lib/arcade/slice";
-import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL, FLIP_REV_GRACE, isFlipLevel } from "@/lib/arcade/flip";
+import { FLIP_REV_TARGET, FLIP_REV_STRICT, FLIP_REV_DEAL, FLIP_REV_GRACE, FLIP_REV_LADDER, isFlipLevel } from "@/lib/arcade/flip";
 import { flipLevelDealSeed } from "./flipLevelDeals.server";
+import { flipLadderDealSeed } from "./flipLadderDeals.server";
 import { flipDealSeed } from "./flipDeal.server";
 import { wavDealSeed } from "./wavefrontDeal.server";
 import { wavDealSeedV16 } from "./wavefrontDealV16.server";
 import { burstDealSeedV14 } from "./burstLevelDeals.server";
 import { flipDealSeedV13 } from "./flipDealV13.server";
+import { skylineDealSeedV12 } from "./skylineDealV12.server";
 import { CROSS_REV_DENSE, CROSS_REV_KEEP, CROSS_REV_LIGHT } from "@/lib/arcade/cross";
 import { crossLevelDealSeed } from "./crossLevelDeals.server";
 import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_HILLS, INK_REV_STD, isInkDiff } from "@/lib/arcade/inkBridge";
@@ -213,17 +215,21 @@ export function generateSwerve(): SwervePuzzleData {
   return { type: "swerve", seed: arcadeSeed() };
 }
 
-export function generateSkyline(_level?: Level): SkylinePuzzleData {
+export function generateSkyline(level?: Level): SkylinePuzzleData {
   // Levels (15 Nov 2026, docs/arcade-standard/skyline.md "Levels"): the same seed and stamp at every level; the deal
-  // stamps `level` and the sim reads it (skylineGameFor). No proved deal: every seed is proved at every level
-  // (skyline-levels-check).
+  // stamps `level` and the sim reads it (skylineGameFor). No proved deal on skylineRev 11: every seed is proved at every
+  // level (skyline-levels-check).
   // skylineRev 9: skylineRev 8's play on the arcade scoring standard (29 Oct 2026, docs/arcade-standard/skyline.md).
   // skylineRev 10 (Nov 2026, the scoring audit): skylineRev 9's play; perfect drops counted up to 61, so more floors never score less.
   // skylineRev 11 (15 Nov 2026, the Action overhaul): three lives (a miss costs one, the run carries on) and the wide-block
   // rescue after five trims in a row; skylineRev 10's parts and gold blocks.
-  // skylineRev 12 (22 Nov 2026, D5 item I5): skylineRev 11's play at every level; Floors full at 45, perfect drops at 30.
-  const skylineRev = dealPinned("skylinePreLives") ? SKYLINE_REV_COUNT : dealPinned("skylinePreCount") ? SKYLINE_REV_LIVES : SKYLINE_REV_FLOORS;
-  return { type: "skyline", seed: arcadeSeed(), skylineRev };
+  // skylineRev 12 (22–23 Nov 2026, D5): skylineRev 11's play on Normal on the refit's full lines, and the block-width ladder
+  // at every other level; every level deals from its own proved deal (skylineDealV12.server.ts: seeds the oracle held to
+  // the human limits takes to 200 through the server replay; the deal stamps `level` off Normal).
+  if (dealPinned("skylinePreLives")) return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_COUNT };
+  if (dealPinned("skylinePreCount")) return { type: "skyline", seed: arcadeSeed(), skylineRev: SKYLINE_REV_LIVES };
+  const at = level === "easy" || level === "hard" || level === "expert" ? level : "normal";
+  return { type: "skyline", seed: skylineDealSeedV12(at, arcadeSeed()), skylineRev: SKYLINE_REV_FLOORS };
 }
 
 export function generateBinToss(): BinTossPuzzleData {
@@ -528,15 +534,24 @@ export function generateFlip(level?: Level): FlipPuzzleData {
   // flipRev 13 (15 Nov 2026, the Action overhaul): grace, dealt from its own proved courses (flipDealV13.server.ts).
   // Checks written for flipRev 12 pin it (pinFlipPreGrace).
   if (dealPinned("flipPreGrace")) return { type: "flip", seed: flipDealSeed(arcadeSeed()), flipRev: FLIP_REV_DEAL };
-  // Levels (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): Easy, Hard and Expert deal flipRev 13 from their own
+  // Levels (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): Easy, Hard and Expert dealt flipRev 13 from their own
   // proved deals (flipLevelDeals.server.ts; the deal stamps `level`); Normal exactly as before.
-  if (isFlipLevel(level)) return { type: "flip", seed: flipLevelDealSeed(level, arcadeSeed()), flipRev: FLIP_REV_GRACE };
+  // D5 (23 Nov 2026, docs/arcade-standard/flip.md "Levels (D5, 23 Nov 2026)"): Easy, Hard and Expert deal flipRev 14, the
+  // running-speed ladder, from its own proved deals (flipLadderDeals.server.ts: courses whose witness held to the human
+  // limits scores exactly 200); Normal stays flipRev 13. Checks written for flipRev 13's levels pin flipPreLadder.
+  if (isFlipLevel(level) && dealPinned("flipPreLadder")) return { type: "flip", seed: flipLevelDealSeed(level, arcadeSeed()), flipRev: FLIP_REV_GRACE };
+  if (isFlipLevel(level)) return { type: "flip", seed: flipLadderDealSeed(level, arcadeSeed()), flipRev: FLIP_REV_LADDER };
   return { type: "flip", seed: flipDealSeedV13(arcadeSeed()), flipRev: FLIP_REV_GRACE };
 }
 
 /** Checks written for flipRev 12 (before the Action overhaul's grace, 15 Nov 2026) pin it; returns the previous setting. */
 export function pinFlipPreGrace(on: boolean): boolean {
   return setDealPin("flipPreGrace", on);
+}
+
+/** Checks written for flipRev 13's levels (before D5's running-speed ladder, 23 Nov 2026) pin it; returns the previous setting. */
+export function pinFlipPreLadder(on: boolean): boolean {
+  return setDealPin("flipPreLadder", on);
 }
 
 export function generateJunction(): JunctionPuzzleData {

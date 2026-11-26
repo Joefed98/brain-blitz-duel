@@ -574,20 +574,24 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
   burst: retroGameLevels(BURST_LEVELS_SMALL),
   // rallyRev 14 (D5's ladder, 23 Nov 2026): the table dealt today.
   rally: retroGameLevels(RALLY_LEVELS_V14),
-  // Roofbound (15 Nov 2026, docs/arcade-standard/flip.md "Levels"): the sim's FLIP_LEVEL_RULES, mirrored (flip-levels-check).
+  // Roofbound (D5, 23 Nov 2026, docs/arcade-standard/flip.md "Levels (D5, 23 Nov 2026)"): flipRev 14's running-speed
+  // ladder, the sim's FLIP_V14_LEVEL_RULES, mirrored (flip-ladder-check); speeds in 1/256 px a tick, moversFrom in ticks
+  // (null = none), crashCost and coreFull in half seconds, then each part's full line.
   flip: {
     levels: {
-      easy: { settings: { speedStart: 1024, speedStep: 90, stepTicks: 240, speedCap: 2048, moversFrom: null, sweetTicks: 6, sweetSpots: 8, crashCost: 10, sweetsFull: 5 } },
-      hard: { settings: { speedStart: 1280, speedStep: 90, stepTicks: 180, speedCap: 3072, moversFrom: 480, sweetTicks: 1, sweetSpots: 8, crashCost: 40, sweetsFull: 7 } },
-      expert: { settings: { speedStart: 1408, speedStep: 90, stepTicks: 150, speedCap: 3328, moversFrom: 300, sweetTicks: 1, sweetSpots: 10, crashCost: 50, sweetsFull: 9 } },
+      easy: { settings: { speedStart: 768, speedStep: 90, stepTicks: 240, speedCap: 1792, moversFrom: null, sweetTicks: 10, sweetSpots: 8, crashCost: 10, sweetsFull: 3, coreFull: 110, doublesFull: 8, streakFull: 50 } },
+      hard: { settings: { speedStart: 1408, speedStep: 90, stepTicks: 180, speedCap: 3072, moversFrom: 240, sweetTicks: 1, sweetSpots: 8, crashCost: 40, sweetsFull: 5, coreFull: 110, doublesFull: 8, streakFull: 50 } },
+      expert: { settings: { speedStart: 1600, speedStep: 90, stepTicks: 150, speedCap: 3328, moversFrom: 120, sweetTicks: 1, sweetSpots: 10, crashCost: 50, sweetsFull: 5, coreFull: 110, doublesFull: 8, streakFull: 50 } },
     },
   },
-  // High Rise (15 Nov 2026, docs/arcade-standard/skyline.md "Levels"): the sim's SKYLINE_LEVEL_RULES, mirrored (skyline-levels-check).
+  // High Rise (D5, 23 Nov 2026, docs/arcade-standard/skyline.md "Levels (D5, 23 Nov 2026)"): skylineRev 12's block-width
+  // ladder, the sim's SKYLINE_V12_LEVEL_RULES, mirrored (skyline-ladder-check); startW in 1/256 px (260, 110 and 50 px),
+  // windFrom null = no wind, lines = each part's full line (floors, perfect drops, perfect streak, gold blocks).
   skyline: {
     levels: {
-      easy: { settings: { speedStart: 448, speedStep: 12, speedMax: 896, tol: 1280, windFrom: 30, lives: 3 } },
-      hard: { settings: { speedStart: 896, speedStep: 30, speedMax: 1792, tol: 768, windFrom: 15, lives: 3 } },
-      expert: { settings: { speedStart: 960, speedStep: 32, speedMax: 1920, tol: 512, windFrom: 10, lives: 3 } },
+      easy: { settings: { startW: 66560, speedStart: 320, speedStep: 10, speedMax: 640, tol: 1280, windFrom: null, trimRun: 3, lives: 3, lines: { floors: 40, perfects: 40, streak: 20, gold: 3 } } },
+      hard: { settings: { startW: 28160, speedStart: 768, speedStep: 26, speedMax: 1536, tol: 768, windFrom: 8, trimRun: 5, lives: 3, lines: { floors: 38, perfects: 24, streak: 6, gold: 2 } } },
+      expert: { settings: { startW: 12800, speedStart: 768, speedStep: 26, speedMax: 1536, tol: 768, windFrom: 0, trimRun: 5, lives: 3, lines: { floors: 38, perfects: 24, streak: 5, gold: 2 } } },
     },
   },
   // Iron Wall (D5's ladder, 23 Nov 2026, docs/arcade-standard/bastion.md "Levels (D5, 23 Nov 2026)"): every level deals

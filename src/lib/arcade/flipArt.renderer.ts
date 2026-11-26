@@ -2207,6 +2207,7 @@ export function flipArenaSceneRich(ctx: CanvasRenderingContext2D, view: ArenaSce
 /** The arena scene for a stored puzzle.flipRev (one function per world height, so the stage keeps its identity). */
 export function flipArenaSceneFor(rev?: number | null): (ctx: CanvasRenderingContext2D, view: ArenaSceneView) => void {
   // flipRev 11–13 (the Action overhaul, edge to edge): the plain bedrock their world fades to.
-  if (rev === 11 || rev === 12 || rev === 13) return flipArenaSceneRich;
+  // flipRev 14 (D5's level ladder) is the same cave.
+  if (rev === 11 || rev === 12 || rev === 13 || rev === 14) return flipArenaSceneRich;
   return flipWorldHFor(rev) === FLIP_V8_WORLD_H ? flipArenaSceneTall : flipArenaScene;
 }

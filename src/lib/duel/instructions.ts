@@ -71,6 +71,7 @@ import {
   SKYLINE_V2_PERFECT_POINTS,
   SKYLINE_WIND_FROM,
   SKYLINE_LEVEL_RULES,
+  SKYLINE_V12_LEVEL_RULES,
   SKYLINE_PERFECT_TOL,
   SKYLINE_V11_LIVES,
 } from "@/lib/arcade/skyline";
@@ -1017,7 +1018,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Dusk to night:", detail: "the city lights come on as your tower climbs.", helpOnly: true },
         { action: "Next-block preview:", detail: "five gold blocks come in every run, at the same places for everyone; land one perfectly to score it. Narrow is harder and wide easier; both count as a floor like any other.", helpOnly: true },
         { action: "Every 10 floors", detail: "the camera pulls back to show the city.", helpOnly: true },
-        { action: `From block ${SKYLINE_WIND_FROM}`, detail: `a waving flag warns of wind (from block ${SKYLINE_LEVEL_RULES.easy.windFrom} on Easy, ${SKYLINE_LEVEL_RULES.hard.windFrom} on Hard, ${SKYLINE_LEVEL_RULES.expert.windFrom} on Expert).`, helpOnly: true },
+        // skylineRev 12's ladder (D5, 23 Nov 2026): no wind on Easy, from block 8 on Hard and from the first block on Expert.
+        { action: `From block ${SKYLINE_WIND_FROM}`, detail: `a waving flag warns of wind (none on Easy, from block ${SKYLINE_V12_LEVEL_RULES.hard.windFrom} on Hard, from the first block on Expert).`, helpOnly: true },
         // Levels (15 Nov 2026, docs/arcade-standard/skyline.md "Levels"): what each level changes, from the sim's own table.
         {
           action: "Levels:",

@@ -1,5 +1,64 @@
 # Roofbound on the arcade scoring standard
 
+## Levels (D5, 23 Nov 2026): flipRev 14, the running speed
+
+Normal stays **flipRev 13** exactly (no refit: the realistic elite already reaches 200 on 59 % of Normal runs). Easy, Hard
+and Expert deal **`flipRev 14`** (`FLIP_REV_LADDER`) with the puzzle's `level`, from their own proved deals
+(`src/lib/duel/flipLadderDeals.server.ts`). The lever is the running speed: each level builds its courses on its own start
+speed, top speed and moving-spike start, its sweet spots, its crash cost and its own full lines (`FLIP_V14_LEVEL_RULES`,
+frozen with the sim; `GAME_LEVELS.flip` mirrors it). States carry `lvl` and `ladder: 1` (folded into the checkpoint
+checksum after `lvl`), so a flipRev 13 level round keeps `FLIP_LEVEL_RULES` and replays exactly as before
+(`scripts/fixtures/flip-ladder-legacy.json.gz`, 114 runs at every level recorded before the change, and D5's levels
+fixture). Grace holds at every level; the parts are flipRev 13's four (200). Checks written for flipRev 13's levels pin
+`flipPreLadder` (`pinFlipPreLadder`). Code: `flipGameFor(14, level)` / `flipLadderGameAt`, `flipCourseV8(seed, level, true)`
+(cached apart), `flipCrashCost` and `flipGraceSpecOf` (`flipLadderSpecOf`) read the ladder's table on a `ladder` state;
+`replayFlipRun(seed, raw, 14, level)`; `prepareFlipCourse` builds a flipRev 14 course while the intro is up.
+
+| | Easy | Normal (flipRev 13) | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Start → top speed (px a tick) | **3 → 7** | 4 → 10 | **5.5 → 12** | **6.25 → 13** |
+| Speed step (+0.35 px) | every 4 s | every 3 s | every 3 s | every 2.5 s |
+| Moving spikes from | none | 12 s | 4 s | 2 s |
+| Sweet spots | 8, 10 ticks wide | 8, 1 tick | 8, 1 tick | 10, 1 tick |
+| A crash costs | 5 s | 10 s | 20 s | 25 s |
+| Perfect landings full at | 3 | 5 | 5 | 5 |
+| Clean time / double flips / flow streak full at | 55 s / 8 / 50 | the same | the same | the same |
+
+**Against the spec** (difficulty-spec.md "Roofbound", the ladder test decides): Easy is the spec's. Hard is the spec's but
+its perfect landings fill at 5, not 7 (the realistic elite landed 7 of the 8 one-tick spots on 4 % of runs). Expert starts
+at 6.25 px a tick with moving spikes from 2 s, not 7 px and 1 s (the spec's own fallback figures): at 7 px and 1 s the
+course builder fits no sweet spots on 2 of every 3 courses and the average player scored 17, a near cliff; its perfect
+landings fill at 5, not 9 (at 9 no realistic elite run reached 200).
+
+**The proof** (`bun scripts/flip-ladder-deal.ts [--check]`; witnesses `scripts/fixtures/flip-ladder-witness.json.gz`):
+a course is dealt only when its witness held to Joe's human limits scores exactly 200 through the server replay, never
+flagged, its taps at least 0.15 s apart, with a perfect landing to spare (`FLIP_LADDER_SPARE`: one more than the part
+needs, so 200 never hangs on one exact landing). The witness is the planner held to the limits: the skill-band bot's
+flawless level under HUMAN_LIMITS (the ladder's `proof` player), which plans its flips exactly on the sim but only over
+the stretch of cave it has seen and reacted to (0.25 s after a hazard, moving spike or sweet spot comes into view, reading
+a screen 0.15 s old); `scripts/flip-x200-plan.ts`, behind flipRev 13's level deals, plans the whole minute to the exact
+tick. Kept of the 260 candidates (flipRev 13's: room seeds 0–59 and 10000–10199): **Easy 259, Hard 161, Expert 66**.
+
+**Measured** (`bun scripts/d5-ladder-record.ts flip --deals=96`, `scripts/fixtures/d5-ladder-flip.json.gz`: real deals
+0–95 at each level graded by the server; the ladder's average and realistic elite under HUMAN_LIMITS). Mean / median,
+best tenth's lowest, share at 200; before = flipRev 13's levels (24 deals, `bun scripts/d5-ladder.ts flip --deals=24`):
+
+| Level | Average before → after | Elite before → after |
+| --- | --- | --- |
+| Easy | 136.0 / 133 → **168.4 / 176**, p90 190 | 199.9, 96 % → **199.9 / 200, 98 %** |
+| Normal (unchanged) | 107.9 / 109 → **109.0 / 110** (96 deals) | 194.4, 58 % → **194.5 / 200, 59 %** |
+| Hard | 60.6 / 53 → **69.6 / 81**, p90 120 | 174.6, 4 % → **188.5 / 188, 49 %** |
+| Expert | 43.2 / 28 → **26.2 / 19**, p90 41 | 166.3, 0 % → **184.2 / 188, 29 %** |
+
+Joe's ladder test passes: the average steps down 168.4 → 109.0 → 69.6 → 26.2 (none under 15) and the elite reaches 200
+on 98 > 59 > 49 > 29 % of runs. On the dealt courses the flawless player at the limits scores 200 by construction (every
+witness); over all 260 candidates it reached 200 on 259 / 215 / 106 (Easy, Hard, Expert) before the spare rule.
+
+Checks: flip-ladder-check (~1 min: the legacy fixture, the stamp and pin, the rules as dealt and the registry, grace and
+the clock, a sample of the dealt witnesses at 200 and re-played as the bot's run, `CHECKS_FULL=1` every witness and the
+deal file rebuilt, the ladder test on the recorded table and a live re-play of it). The intro shows the level's still; no
+demo needs recording (Normal's flipRev 13 demo is unchanged).
+
 ## flipRev 13 (15 Nov 2026, the Action overhaul): grace, a richer cave
 
 Rooms deal **flipRev 13** (`FLIP_REV_GRACE`): flipRev 12's courses, hazards, sweet spots, double flips and flow streak

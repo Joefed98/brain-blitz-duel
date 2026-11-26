@@ -374,9 +374,11 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("ricochet", "Lantern lift", "Ride all six sky lanterns.", "C", "fullset", false, all(f("rides", "gte", 6))),
   ch("ricochet", "Moonwalker", "Climb 220 m on Hard.", "H", "maxout", false, all(f("metres", "gte", 220))),
   // High Rise (skyline): floors 140 + perfect drops 30 + perfect streak 10 + gold blocks 20.
-  ch("skyline", "Gold top", "Land all five gold blocks perfectly.", "C", "fullset", false, part("Gold blocks", 20), "skyline.gold"),
+  // D5 (23 Nov 2026): skylineRev 12 fills Gold blocks at 2 of the 5, so the goal counts the gold blocks themselves.
+  ch("skyline", "Gold top", "Land all five gold blocks perfectly.", "C", "fullset", false, all(f("golds", "gte", 5)), "skyline.gold"),
   ch("skyline", "Thirty perfect", "Make 30 perfect drops.", "C", "target", false, all(f("perfects", "gte", 30)), "skyline.perfects"),
-  ch("skyline", "Steady crane", "Make ten perfect drops in a row.", "C", "streak", false, part("Perfect streak", 10)),
+  // D5 (23 Nov 2026): skylineRev 12 fills Perfect streak at 5 in a row, so the goal counts the best streak itself.
+  ch("skyline", "Steady crane", "Make ten perfect drops in a row.", "C", "streak", false, all(f("bestStreak", "gte", 10))),
   // Changed with Joe's approval, 23 Nov 2026 (D5's skylineRev 12: the Floors part is full at 45, so the Skyscraper counts
   // the run's own floors, still 61 on Expert, never easier).
   ch("skyline", "Skyscraper", "Build 61 floors on Expert.", "E", "maxout", true, all(f("blocks", "gte", 61))),

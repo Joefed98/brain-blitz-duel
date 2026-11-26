@@ -124,7 +124,8 @@ export const LIVE_BANDS = {
   hover: { field: "hoverRev", rev: HOVER_REV_FIT, curve: HOVER_V12_BAND_CURVE, strictRev: HOVER_REV_STRICT },
   // skylineRev 9 (the arcade scoring standard): floors on a straight line to 140, then perfect drops, the streak and gold.
   // skylineRev 11 (15 Nov 2026, the Action overhaul): lives and the wide-block rescue; the same parts.
-  // skylineRev 12 (22 Nov 2026, D5 item I5): skylineRev 11's play; floors full at 45 (140), perfect drops at 30.
+  // skylineRev 12 (22–23 Nov 2026, D5): skylineRev 11's play on Normal; floors full at 45 (140), perfect drops at 24, the
+  // perfect streak at 5 in a row and gold blocks at 2 of the 5; the block-width ladder at the other levels (own lines).
   skyline: { field: "skylineRev", rev: SKYLINE_REV_FLOORS, curve: SKYLINE_V12_BAND_CURVE, strictRev: SKYLINE_REV_STRICT, std: SKYLINE_STD_SPEC_V12 },
   junction: { field: "junctionRev", rev: JUNC_REV_BAND, curve: JUNC_BAND_CURVE },
   // brkRev 11 (the arcade scoring standard): the bricks' straight line to 140; clear 10, speed 20 and gold 30 on top (the help says so).
