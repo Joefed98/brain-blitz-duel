@@ -1482,6 +1482,10 @@ const ENTRY_COST: Record<number, number> = {
   211: 8.8, 212: 8.8, 219: 37.7, 221: 4.4, 222: 12.5, 234: 1.8, 240: 18.1, 242: 1.8, 247: 4.1, 249: 15.5,
   257: 10.7, 258: 13.1, 259: 14.0, 279: 2.6, 295: 13.5, 296: 9.6, 297: 11.7, 298: 17.7, 318: 5.5, 319: 5.1,
   330: 2.1, 335: 2.1, 336: 9.1, 337: 35.6,
+  // Changed with Joe's approval, 27 Nov 2026 (D6): D6's sixteen entries (fivehands/v4 … minigolf/v4), measured locally at
+  // their run counts (40; ink/d6-expert its 10) on the tree merged with main after #485.
+  338: 0.2, 339: 12.1, 340: 0.5, 341: 0.2, 342: 0.0, 343: 0.1, 344: 0.1, 345: 0.2, 346: 0.1, 347: 0.6,
+  348: 0.2, 349: 0.3, 350: 0.3, 351: 13.6, 352: 40.0, 353: 0.5,
 };
 
 /** Entry indexes of group k of n (1-based): costliest first onto the lightest group, ties by index. */
