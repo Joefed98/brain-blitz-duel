@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { gameFx } from "@/lib/fx/kit";
-import { useRevealViews } from "@/components/duel/revealContext";
+import { useRevealHosted, useRevealViews } from "@/components/duel/revealContext";
 import { useRevealBoardWidth } from "@/components/puzzles/pattern/revealBoard";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { BlockBoard, BlockPartyPuzzle } from "@/components/puzzles/BlockPartyPuzzle";
@@ -174,6 +174,8 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleR
   // stage's size.
   const hasSolution = puzzle.type === "blockparty" && Boolean(puzzle.solution?.length);
   const view = useRevealViews(hasSolution ? BP_REVEAL_VIEWS : BP_YOURS_ONLY);
+  // Outside the template (a replay, a bare render) there is no control: both boards are drawn, as before G4.
+  const hosted = useRevealHosted();
   const rootRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const fitWidth = useRevealBoardWidth(rootRef, boardRef, { max: 360 });
@@ -200,10 +202,10 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleR
       <div className="bp-reveal-space">
         <div className="bp-reveal-pair">
           {puzzle.solution?.length ? (
-            <div hidden={view !== "solution"} className="bp-reveal-col flex flex-col items-center gap-2" data-reveal-view="solution">
+            <div hidden={hosted && view !== "solution"} className="bp-reveal-col flex flex-col items-center gap-2" data-reveal-view="solution">
               <RevealBoard puzzle={puzzle} placements={puzzle.solution} boardRef={view === "solution" ? boardRef : undefined} width={fitWidth} />
               <RevealResult solved={myCorrect} view="solution">
-                <span className="bp-reveal-label sr-only">Solution</span>
+                <span className={`bp-reveal-label${hosted ? " sr-only" : ""}`}>Solution</span>
                 {/* A line under the solution (the switch hides the label): with only a board in the shown view the
                     reveal's fit drew it at half size (the stage-1 finding), so the solution keeps a caption of its own. */}
                 <p className="bp-reveal-caption" data-solution-caption="">
@@ -212,10 +214,10 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleR
               </RevealResult>
             </div>
           ) : null}
-          <div hidden={view !== "yours"} className="bp-reveal-col flex flex-col items-center gap-2" data-reveal-view="yours">
+          <div hidden={hosted && view !== "yours"} className="bp-reveal-col flex flex-col items-center gap-2" data-reveal-view="yours">
             <RevealBoard puzzle={puzzle} placements={facts.placements} marks={marks} boardRef={view === "yours" ? boardRef : undefined} width={fitWidth} />
             <RevealResult solved={myCorrect} view="yours">
-              <span className="bp-reveal-label sr-only">Yours</span>
+              <span className={`bp-reveal-label${hosted ? " sr-only" : ""}`}>Yours</span>
               <HudPills testId="blockparty-reveal" items={items} className="bp-reveal-pills" />
             </RevealResult>
             {marks.wrong.length || marks.gaps.length ? (

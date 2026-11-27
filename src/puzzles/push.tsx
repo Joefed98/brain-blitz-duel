@@ -29,7 +29,7 @@ import {
   type PushPuzzleData,
 } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
-import { useRevealViews } from "@/components/duel/revealContext";
+import { useRevealHosted, useRevealViews } from "@/components/duel/revealContext";
 import { useRevealBoardWidth } from "@/components/puzzles/pattern/revealBoard";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
@@ -287,6 +287,8 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra, onWin }: 
   }, [won]);
   // Solution and Yours on the template's views control (G4), one board at a time at the stage's size.
   const shown = useRevealViews(PUSH_REVEAL_VIEWS);
+  // Outside the template (a replay, a bare render) there is no control: both boards are drawn, as before G4.
+  const hosted = useRevealHosted();
   const boardRef = useRef<HTMLDivElement>(null);
   const fitWidth = useRevealBoardWidth(revealRef, boardRef, { max: 400 });
   const fitStyle = fitWidth ? { width: fitWidth } : undefined;
@@ -336,7 +338,7 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra, onWin }: 
   const goldHome = typeof storedGold === "boolean" ? storedGold : null;
   const timeLeft = myCorrect && typeof myMsRemaining === "number" ? Math.max(0, Math.round(myMsRemaining / 1000)) : null;
   // The player's own numbers sit under Yours only, so nothing below the solution reads as the solution's.
-  const yoursHidden = Boolean(available && mine !== null && shown === "solution");
+  const yoursHidden = Boolean(hosted && available && mine !== null && shown === "solution");
 
   const solutionBoard = (
     <div className="push-reveal-space">
@@ -375,13 +377,13 @@ function Reveal({ puzzle, myAnswer, myCorrect, myMsRemaining, myExtra, onWin }: 
     <div ref={revealRef} className="push-reveal flex w-full flex-col items-center gap-2">
       {available && yoursBoard ? (
         <div className="push-reveal-pair flex w-full items-start justify-center gap-3">
-          <div hidden={shown !== "solution"} className="flex min-w-0 flex-1 flex-col items-center gap-2" data-push-solution="">
-            <span className="push-reveal-label sr-only">Solution</span>
+          <div hidden={hosted && shown !== "solution"} className="flex min-w-0 flex-1 flex-col items-center gap-2" data-push-solution="">
+            <span className={`push-reveal-label${hosted ? " sr-only" : ""}`}>Solution</span>
             {solutionBoard}
             {route}
           </div>
-          <div hidden={shown !== "yours"} className="flex min-w-0 flex-1 flex-col items-center gap-2" data-push-yours="">
-            <span className="push-reveal-label sr-only">Yours</span>
+          <div hidden={hosted && shown !== "yours"} className="flex min-w-0 flex-1 flex-col items-center gap-2" data-push-yours="">
+            <span className={`push-reveal-label${hosted ? " sr-only" : ""}`}>Yours</span>
             {yoursBoard}
             {!myCorrect && missedCrates.length ? (
               <p className="push-reveal-note" data-push-missed-count={missedCrates.length}>

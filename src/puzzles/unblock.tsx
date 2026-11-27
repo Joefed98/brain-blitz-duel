@@ -3,7 +3,7 @@ import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useRef, useState } from "react";
 
 import { gameFx } from "@/lib/fx/kit";
-import { useRevealViews } from "@/components/duel/revealContext";
+import { useRevealHosted, useRevealViews } from "@/components/duel/revealContext";
 import { useRevealBoardWidth } from "@/components/puzzles/pattern/revealBoard";
 
 import { UnblockBoard, UnblockPuzzle } from "@/components/puzzles/UnblockPuzzle";
@@ -186,6 +186,8 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
   // Solution and Yours on the template's views control (the polish plan's G4, 27 Nov 2026), one board at a time at the
   // stage's size.
   const view = useRevealViews(UNBLOCK_REVEAL_VIEWS);
+  // Outside the template (a replay, a bare render) there is no control: both boards are drawn, as before G4.
+  const hosted = useRevealHosted();
   const rootRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const fitWidth = useRevealBoardWidth(rootRef, boardRef, { max: 380 });
@@ -257,7 +259,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
   const parLabel = (puzzle.unblockRev ?? 0) >= 1 ? "Par" : "Fewest";
   const timeLeft = myCorrect && typeof myMsRemaining === "number" ? Math.max(0, Math.round(myMsRemaining / 1000)) : null;
   // The player's own numbers sit under Yours only, so nothing below the solution reads as the solution's.
-  const yoursHidden = Boolean(available && yours && view === "solution");
+  const yoursHidden = Boolean(hosted && available && yours && view === "solution");
 
   const solutionBoard = (
     <div className="unblock-reveal-space">
@@ -280,13 +282,13 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, score
         // Two labelled columns: the template's Solution / Yours views show one at a time, at full size, the solution
         // first; the time-lapse (data-timelapse) shows only the player's board.
         <div className="unblock-reveal-pair flex w-full items-start justify-center gap-3">
-          <div hidden={view !== "solution"} className="flex min-w-0 flex-1 flex-col items-center gap-2" data-unblock-solution="">
-            <span className="unblock-reveal-label sr-only">Solution</span>
+          <div hidden={hosted && view !== "solution"} className="flex min-w-0 flex-1 flex-col items-center gap-2" data-unblock-solution="">
+            <span className={`unblock-reveal-label${hosted ? " sr-only" : ""}`}>Solution</span>
             {solutionBoard}
             <RouteStrip chips={chips!} step={step} />
           </div>
-          <div hidden={view !== "yours"} className="flex min-w-0 flex-1 flex-col items-center gap-2" data-unblock-yours="">
-            <span className="unblock-reveal-label sr-only">Yours</span>
+          <div hidden={hosted && view !== "yours"} className="flex min-w-0 flex-1 flex-col items-center gap-2" data-unblock-yours="">
+            <span className={`unblock-reveal-label${hosted ? " sr-only" : ""}`}>Yours</span>
             {yoursBoard}
             {blockers.length ? (
               <p className="unblock-reveal-note" data-unblock-blockers={blockers.length}>
