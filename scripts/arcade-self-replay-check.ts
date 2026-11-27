@@ -25,6 +25,7 @@ import { MG_LEVEL_NAMES } from "../src/lib/arcade/minigolf";
 import { homerunDealSeedV5 } from "../src/lib/duel/homerunDealV5.server";
 import { freekickDealSeedV5 } from "../src/lib/duel/freekickDealV5.server";
 import { freekickDealSeedV6 } from "../src/lib/duel/freekickDealV6.server";
+import { freekickDealSeedV7 } from "../src/lib/duel/freekickDealV7.server";
 import { encodeBastionTankRun, replayBastionTankRun } from "../src/lib/duel/bastion";
 import { homerunCheckpoint, homerunGameFor, HOMERUN_CHECKPOINT_INTERVAL, HOMERUN_REV_2, HOMERUN_REV_3, HOMERUN_REV_4, HOMERUN_REV_STD } from "../src/lib/arcade/homerun";
 import { encodeHomerunRun, replayHomerunRun } from "../src/lib/duel/homerun";
@@ -69,7 +70,7 @@ import {
 import { crossCheckpoint, crossGame, crossGameFor, CROSS_REV, CROSS_REV2 } from "@/lib/arcade/cross";
 import { dualCheckpoint, dualGame } from "@/lib/arcade/dual";
 import { hoverCheckpoint, hoverGame, hoverGameFor, HOVER_REV } from "@/lib/arcade/hover";
-import { matchupCheckpoint, matchupGame, matchupGameFor, MATCHUP_REV, MATCHUP_REV2 } from "@/lib/arcade/matchup";
+import { matchupCheckpoint, matchupD6GameFor, matchupGame, matchupGameFor, MATCHUP_REV, MATCHUP_REV2, MATCHUP_REV_D6 } from "@/lib/arcade/matchup";
 import { rallyCheckpoint, rallyGame, rallyGameFor, RALLY_REV } from "@/lib/arcade/rally";
 import { ricoCheckpoint, ricoGame } from "@/lib/arcade/ricochet";
 import { skylineCheckpoint, skylineGame, skylineGameFor, SKYLINE_REV } from "@/lib/arcade/skyline";
@@ -112,7 +113,8 @@ import { encodeBurstRun, replayBurstRun } from "@/lib/duel/burst";
 import { orbitCheckpoint, orbitGame } from "@/lib/arcade/orbit";
 import { encodeOrbitRun, replayOrbitRun } from "@/lib/duel/orbit";
 import { swingCheckpoint, swingGame } from "@/lib/arcade/swing";
-import { tiltCheckpoint, tiltGame, tiltGameFor, tiltLevelGame, TILT_REV } from "@/lib/arcade/tilt";
+import { tiltCheckpoint, tiltGame, tiltGameFor, tiltLevelGame, tiltLevelGameV13, TILT_REV } from "@/lib/arcade/tilt";
+import { TILT_DEAL_LEVELS_V13 } from "../src/lib/duel/tiltDealLevelsV13.server";
 import { encodeTiltRun, replayTiltRun } from "@/lib/duel/tilt";
 import { hotfloorCheckpoint, hotFloorGame } from "@/lib/arcade/hotFloor";
 import { encodeHotFloorRun, replayHotFloorRun } from "@/lib/duel/hotFloor";
@@ -1255,6 +1257,12 @@ const GAMES: Game[] = [
   { key: "tripeaks/v4", game: tripeaksGameFor(4), checkpoint: tpCheckpoint, mode: "events", rate: 120, encode: encodeTripeaksRun, replay: (seed: number, raw: string) => replayTripeaksRun(seed, raw, 4), seedFor: (n: number) => n % 300 },
   { key: "racing/v5", interval: RACING_CHECKPOINT_INTERVAL, game: racingGameFor(5), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, 5), seedFor: (n: number) => RACING_DEAL_V4[n % RACING_DEAL_V4.length]! },
   { key: "pyramid/v4", game: pyramidGameFor(4), checkpoint: pyCheckpoint, mode: "events", rate: 80, encode: encodePyramidRun, replay: (seed: number, raw: string) => replayPyramidRun(seed, raw, 4) },
+  // Changed with Joe's approval, 27 Nov 2026 (D6: Gemstone matchupRev 14 at Normal and Expert, Tilt's tiltRev 13 Expert and Top Bins' freekickRev 7
+  // Expert, appended at the end so every earlier entry keeps its PRNG stream and its part).
+  { key: "matchup/v14", game: matchupD6GameFor("normal"), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_D6) },
+  { key: "matchup/v14-expert", game: matchupD6GameFor("expert"), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_D6, "expert") },
+  { key: "tilt/v13-expert", game: tiltLevelGameV13("expert"), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_THREE, "expert"), seedFor: (n: number) => TILT_DEAL_LEVELS_V13.expert[n % TILT_DEAL_LEVELS_V13.expert.length]! },
+  { key: "freekick/v7-expert", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(7, "expert"), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, 7, "expert"), seedFor: (n: number) => freekickDealSeedV7(n, "expert") },
 ];
 
 /** golfRev 3's course for a self-replay seed: each slot's hole by a spread of the seed, the level seed mod 4. */

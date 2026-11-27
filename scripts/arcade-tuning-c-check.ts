@@ -80,6 +80,7 @@ import {
   TILT_REV_BAND,
   TILT_REV_EXPAND,
   TILT_REV_BIG,
+  TILT_REV_THREE,
   TILT_REV_TUNEC,
   TILT_STARS_PER_MAZE,
   TILT_STAR_MOUTH,
@@ -186,7 +187,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // Six goals and six treasures (Nov 2026) moved it on to matchupRev 12; gemstone-rev12-check covers it.
     // Two-hit ice and levels (the Strategy overhaul stage 3, 15 Nov 2026) moved it on to matchupRev 13; gemstone-levels-check
     // covers it. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul).
-    ["matchup", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR + 7],
+    // Changed with Joe's approval, 27 Nov 2026 (D6): matchupRev 14.
+    ["matchup", playRevOf("matchup", generateMatchup().matchupRev), MATCHUP_REV_PAR + 8],
     // Taller worlds batch 3 (16 Oct 2026) then moved Grappler on to its taller cavern (swingRev 9); arcade-tuning-g3-check covers it.
     // Grappler's 200 expansion (26 Oct 2026) moved Grappler on to swingRev 13 (after swingRev 9's taller cavern); swing-x200-check covers it.
     // The assault course (27 Oct 2026) moved it on to swingRev 14 (swing-assault-check), the swinging course (29 Oct 2026)
@@ -217,7 +219,8 @@ section("New rounds carry the Tuning C stamps; Junction is practice only");
     // The arcade scoring standard (29 Oct 2026) then moved it on to tiltRev 10 (a fourth maze, straight-line parts); tilt-standard-check covers it.
     // tiltRev 11 (3 Nov 2026) then took the gold stars away and added par times and a clean run; tilt-rev11-check covers it.
     // tiltRev 12 (3 Nov 2026) then made the marbles and keys bigger (its own play); tilt-rev12-check covers it.
-    ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_BIG],
+    // Changed with Joe's approval, 27 Nov 2026 (D6's Normal scoring stamp): tiltRev 13, three mazes; d6-normal-stamps-check covers it.
+    ["tilt", playRevOf("tilt", generateTilt().tiltRev), TILT_REV_THREE],
     // World expansion E5 (25 Oct 2026) moved Slice on to its larger board (sliceRev 9); expansion-e5-check covers it.
     // sliceRev 10 (27 Oct 2026, Joe's phone notes): sliceRev 9 with bigger onions and golden fruit; expansion-e5-check covers it.
     // sliceRev 12 (3 Nov 2026, bigger food; slice-food-check) plays on its own (bigger hit sizes), so it is not lifted to 10.

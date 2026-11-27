@@ -158,7 +158,8 @@ tasks.push({
     // Changed with Joe's approval, 23 Nov 2026 (D6: freecellPrePar98, tripeaksPreEase, racingPreFive and d6PreLevels).
     // Changed with Joe's approval, 23 Nov 2026 (D6: pyramidPreSpeed22). D2's and D6's switches together (Joe, 23 Nov 2026:
     // the era count is shared and whichever merges later re-applies it), 61.
-    ok(names.size === 61, `61 era switches (${names.size})`);
+    // Changed with Joe's approval, 27 Nov 2026 (D6: matchupPreD6), 62.
+    ok(names.size === 62, `62 era switches (${names.size})`);
   },
 });
 

@@ -97,7 +97,7 @@ const read = (p: string) => readFileSync(p, "utf8");
     else failures.push(`Thirteen: rev ${run.rev} ${run.kind} seed ${run.seed} replays to ${r.score}/${r.state.ended}, recorded ${run.score}/${run.ended}`);
   }
   check(same === legacy.length && legacy.some((r) => r.ended === 3), `Thirteen: ${same} of ${legacy.length} rev 1–2 runs replay exactly as recorded (stuck ends included)`);
-  check(PY_REV === 3 && generatePyramid().pyramidRev === 3, "Thirteen: rooms deal pyramidRev 3");
+  check(PY_REV === 4 && generatePyramid().pyramidRev === 4, "Thirteen: rooms deal pyramidRev 4 (D6: pyramidRev 3's play, Speed full by 22 s)"); // Changed with Joe's approval, 27 Nov 2026
   {
     const was = setDealPin("preGameReviewNov15", true);
     const pinned = generatePyramid().pyramidRev;

@@ -12,7 +12,7 @@
 import { appendFileSync, writeFileSync } from "node:fs";
 import { gzipSync } from "node:zlib";
 import type { ArcadeInputEvent } from "../src/lib/arcade/engine";
-import { tiltThreeGame, TILT_REV_THREE, tiltCellCentre, tiltCheckpoint, tiltBigGame, tiltExpandGame, tiltLevelGame, type TiltLevel, tiltFieldX, tiltParGame, tiltParWalksX, tiltStdGame, tiltWalkTurnsX, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_PAR, TILT_REV_STD, type Maze, type TiltState } from "../src/lib/arcade/tilt";
+import { tiltThreeGame, tiltLevelGameV13, TILT_REV_THREE, tiltCellCentre, tiltCheckpoint, tiltBigGame, tiltExpandGame, tiltLevelGame, type TiltLevel, tiltFieldX, tiltParGame, tiltParWalksX, tiltStdGame, tiltWalkTurnsX, TILT_CHECKPOINT_INTERVAL, TILT_INPUT_DRAG, TILT_REV_BIG, TILT_REV_EXPAND, TILT_REV_PAR, TILT_REV_STD, type Maze, type TiltState } from "../src/lib/arcade/tilt";
 import { decodeTiltRun, encodeTiltRun, replayTiltRun } from "../src/lib/duel/tilt";
 import { GAME_BY_TYPE } from "./arcade-skill-bands/games";
 
@@ -194,7 +194,8 @@ function playGoals(node: Node, m: Maze, level: number, goals: Goal[]): Node | nu
 export function oracleRun(seed: number, rev: number = TILT_REV_EXPAND, level?: TiltLevel, opts: { limitTicks?: number } = {}): { raw: string; score: number; state: TiltState } {
   limitTicks = opts.limitTicks ?? 0;
   // Levels (stage 3, tiltRev 12 only): the level's game (its own mazes, pars and speed line). tiltRev 13's Normal: its three mazes.
-  game = rev === TILT_REV_THREE && !level ? tiltThreeGame : rev === TILT_REV_BIG && level ? tiltLevelGame(level) : rev === TILT_REV_BIG ? tiltBigGame : rev === TILT_REV_PAR ? tiltParGame : rev === TILT_REV_STD ? tiltStdGame : tiltExpandGame;
+  // D6: a level on tiltRev 13 plays TILT_LEVELS_V13. Changed with Joe's approval, 27 Nov 2026.
+  game = rev === TILT_REV_THREE && level ? tiltLevelGameV13(level) : rev === TILT_REV_THREE && !level ? tiltThreeGame : rev === TILT_REV_BIG && level ? tiltLevelGame(level) : rev === TILT_REV_BIG ? tiltBigGame : rev === TILT_REV_PAR ? tiltParGame : rev === TILT_REV_STD ? tiltStdGame : tiltExpandGame;
   let node: Node = { s: game.init(seed), log: [] };
   for (let level = 0; level < node.s.list.length && !game.isOver(node.s); level++) {
     const m = node.s.list[level]!;
