@@ -4,7 +4,7 @@
  * props the board already has, inside the cell (or the cell-sized overlay box)
  * it belongs to, so hit areas and what the tracer counts are unchanged.
  */
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useId, useRef } from "react";
 
 import { soundCue } from "@/lib/fx/patternFx";
 import type { BeamDir, MirrorKind, MirrorPlacement } from "@/lib/duel/types";
@@ -129,9 +129,9 @@ function pathData(points: { x: number; y: number }[]): string {
 }
 
 /**
- * The beam: a solid golden line with a pale core, as plain stroke layers (the Pattern overhaul, 15 Nov 2026: no
- * blurred neon copy and no wide halo, so nothing glares over the board). `solved` adds a flare that brightens the
- * whole beam for the completion moment.
+ * The beam: a solid golden line with a pale core, as plain stroke layers, over a blurred wide copy in its colour so it
+ * glows like neon (live round only, batch-p.css: the polish plan's E0.2 for Lightbender, 20 Nov 2026: "the beam's glow
+ * back"). `solved` adds a flare that brightens the whole beam for the completion moment.
  */
 export function LaserBeam({
   branches,
@@ -150,9 +150,19 @@ export function LaserBeam({
   const colour = danger ? "#FF4D4D" : "#FFB21E";
   const core = danger ? "#FFE1E1" : "#FFFBEA";
   const lines = branches.filter((points) => points.length > 1).map(pathData);
+  const neon = `laser-neon-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   if (!lines.length) return null;
   return (
     <g className={`laser-beam ${solved ? "laser-beam-solved" : ""}`} strokeLinecap="round" strokeLinejoin="round" fill="none">
+      {/* The neon glow (live round only, batch-p.css): a blurred wide copy under the beam. */}
+      <defs>
+        <filter id={neon} x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation={Math.max(2, unit * 0.16)} />
+        </filter>
+      </defs>
+      {lines.map((d, i) => (
+        <path key={`n${i}`} d={d} className="laser-beam-neon" stroke={colour} strokeOpacity={0.85} strokeWidth={unit * 0.45} filter={`url(#${neon})`} />
+      ))}
       {solved
         ? lines.map((d, i) => <path key={`f${i}`} d={d} className="laser-beam-flare" stroke={colour} strokeWidth={unit * 0.45} />)
         : null}

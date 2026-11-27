@@ -332,7 +332,8 @@ def eagle_mask_material(name, body_color, body_metal, tf):
 
 
 def eagles():
-    for state, colour, metalness in (("plain", "#cfd3da", 0.85), ("gold", "#d9b56c", 1.0)):
+    # Spotlight (21 Nov 2026): the plain eagle in dark navy ink (a satin, not pewter) on the pale tile; the gold kept.
+    for state, colour, metalness in (("plain", "#1e2946", 0.0), ("gold", "#d9b56c", 1.0)):
         for d in EAGLE_ANGLES:
             setup(32, 32, scale=5)
             tf = eagle_transform(d)
@@ -404,8 +405,9 @@ def stone(name, c1, c2, scale=18, rough=0.82, bump=0.18, coat=0.0):
 
 
 def slate_tiles():
-    """Eagle Eye: a plain honed slate tile (no glowing edge) and the marked tile, the same slate warmed with gold."""
-    for name, c1, c2 in (("tile", "#2b2d34", "#202228"), ("tile-marked", "#4a3f26", "#3a311d")):
+    """Eagle Eye: a plain honed tile (no glowing edge) and the marked tile, the same stone warmed with gold. Spotlight
+    (21 Nov 2026): pale stone, not dark slate, so the dark-ink eagles read on a light board."""
+    for name, c1, c2 in (("tile", "#e7e2d6", "#d7d0c0"), ("tile-marked", "#f0d89a", "#e2c47a")):
         setup(48, 48, scale=3)
         box(1.5, 1.5, 45, 45, 5, stone(name, c1, c2, 14, rough=0.5, coat=0.8), r=5)
         write("symscan", name)
@@ -438,16 +440,17 @@ def rockpool():
 
 
 def felt_tray():
-    """Tally's tray: a dark plum baize, seamless (it tiles)."""
+    """Tally's tray: a light baize, seamless (it tiles). Spotlight (21 Nov 2026): shapes on a light tray (was dark plum)."""
     setup(360, 300, scale=2)
-    plane(0, 0, 360, 300, felt("baize", "#2a1b2b", 220), z=0)
+    plane(0, 0, 360, 300, felt("baize", "#e4dccb", 220), z=0)
     write("countup", "felt")
 
 
 def maze_floor():
-    """Labyrinth's floor: dark flagstone, seamless, one square of the maze a tile."""
+    """Labyrinth's floor: flagstone, seamless, one square of the maze a tile. Spotlight (21 Nov 2026): an ivory floor
+    under deep walls (was dark flagstone); matte, no coat, so it never glares."""
     setup(360, 360, scale=2)
-    plane(0, 0, 360, 360, stone("flag", "#1e1b21", "#141217", scale=2.5, bump=0.35, rough=0.45, coat=0.5), z=0)
+    plane(0, 0, 360, 360, stone("flag", "#efe8d8", "#e1d8c4", scale=2.5, bump=0.25, rough=0.7, coat=0.0), z=0)
     write("maze", "floor")
 
 
@@ -473,7 +476,8 @@ def bomb_parts():
     write("bomb", "casing")
     # Braided wires: insulated cable with a woven sleeve, seamless along x (an integer number of weaves).
     KEY["at"] = "top"
-    for cid, colour in (("red", "#d63a3a"), ("blue", "#2f6fd8"), ("green", "#2fa85c"), ("yellow", "#f2cf2a"), ("white", "#ecebe6"), ("black", "#101014")):
+    # Spotlight (21 Nov 2026): the wires more saturated (were #d63a3a, #2f6fd8, #2fa85c, #f2cf2a).
+    for cid, colour in (("red", "#c4000e"), ("blue", "#0034c8"), ("green", "#00862c"), ("yellow", "#e0ae00"), ("white", "#ecebe6"), ("black", "#101014")):
         setup(96, 12, scale=4)
         m = mat(f"wire-{cid}", colour, 0.42, coat=0.45, coat_rough=0.14)
         n, l = jzlib._nodes(m); b = jzlib._bsdf(m)
@@ -544,10 +548,11 @@ def cards():
     cyl(30, 40, 5.5, 1.2, foil, z=3.6)
     cyl(30, 40, 4.2, 1.0, mat("cardmag3", "#7d1f6a", 0.4, coat=1.0, coat_rough=0.04), z=4.3)
     write("pairmatch", "back")
+    # Spotlight (21 Nov 2026): a white face (was navy lacquer) with a thin champagne line, matte so it never glares.
     setup(60, 80, scale=3)
-    box(1, 1, 58, 78, 2.6, mat("cardface", "#1c2038", 0.5, coat=1.0, coat_rough=0.05), r=5)
-    box(4, 4, 52, 72, 0.4, brushed("faceline", "#b89a5c", rough=0.45), r=3.5, z=2)
-    box(4.8, 4.8, 50.4, 70.4, 0.6, mat("cardface2", "#20253f", 0.6), r=3, z=2.1)
+    box(1, 1, 58, 78, 2.6, mat("cardface", "#f4f1ea", 0.55), r=5)
+    box(4, 4, 52, 72, 0.4, brushed("faceline", "#c9ab6c", rough=0.5), r=3.5, z=2)
+    box(4.8, 4.8, 50.4, 70.4, 0.6, mat("cardface2", "#fbf9f4", 0.6), r=3, z=2.1)
     write("pairmatch", "face")
 
 

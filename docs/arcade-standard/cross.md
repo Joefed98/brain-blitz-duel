@@ -1,5 +1,65 @@
 # Jaywalk on the arcade scoring standard (crossRev 10, 29 Oct 2026; crossRev 11, 3 Nov 2026)
 
+## Levels (D5, 23 Nov 2026): crossRev 14, the traffic from the first crossing
+
+Normal is unchanged: rooms, the Daily and rated play deal **crossRev 13** at Normal exactly as before (its realistic elite
+already reaches 200 on about half of its runs, so no Normal refit). Easy, Hard and Expert deal **`crossRev 14`**
+(`CROSS_REV_DENSE`, `crossDenseFor(level)`, `CROSS_LEVELS_V14` in retroLevels.ts; the registry shows the same rows).
+crossRev 13's level table (`CROSS_LEVELS`) stays as it is, so its stored level rounds replay exactly: the 82 runs recorded
+before this stamp (`scripts/fixtures/cross-rev14-legacy.json.gz`, `scripts/cross-rev14-legacy-record.ts`) regrade exactly
+(cross-ladder-check section 1), and so does D5's levels fixture (retro-levels-check).
+
+**The lever: the traffic on the first crossing.** A level's crossing k is crossRev 9's own course for the seed with every
+traffic lane's period scaled to `density[k]` twelfths of crossRev 9's (the last entry holds on), **exactly**: crossRev 13
+stepped a crossing it could not prove back toward 12, crossRev 14 never does. Instead rooms deal a level only on a seed
+where every one of the ten crossings is proved passable at its density (crossRev 10's proofs: `crossPassable` over 1,200
+ticks, and `crossFairPassable`, the up-only walker standing 24 ticks in each lane, on the first two;
+`crossDenseCrossingsProved`) **and** the proof walker scores exactly 200 (below). A seed that fails is dropped.
+
+| | Easy | Normal (crossRev 13) | Hard | Expert |
+| --- | --- | --- | --- | --- |
+| Traffic per crossing (twelfths of crossRev 9's) | 3, 4, 5, 6, 7, then 8 | 6, 7, 8, 9, 10, 11, then 12 | 10, 11, 12, 13, then 14 | 12, 12, 13, 14, then 15 |
+| Lives | 4 | 3 | 3 | 2 |
+| A hit before the last costs | 10 | 15 | 15 | 20 |
+| Rows and crossings (150) full at | 70 | 76 | 76 | 72 |
+| No-stop streak (40) full at | 4 in a row after the first | 4 | 3 | 2 |
+| Close calls (10) full at | 10 | 10 | 16 | 8 |
+| Seeds dealt (proved of candidates tried) | 100 of 124 | every seed | 85 of 900 (688 with a crossing not proved) | 68 of 900 (687) |
+
+**What the proofs allow.** Measured on 40 room seeds a table: the fairness proof on the first two crossings passes at 12
+twelfths on every seed (12 is crossRev 9's own proved course) but fails on 45 % of seeds at 13 and 80–95 % at 14–15, so
+the spec's Expert (14 on the first crossing, 15 from the second) could not be dealt; and crossings 5–10 at 14–15 twelfths
+(faster later traffic) fail plain passability on about a quarter of seeds. Hence Hard tops out at 14 and Expert starts at
+12 (twice Normal's first crossing) and reaches 15 from the fifth.
+
+**The proof.** The flawless skill-band walker held to the human limits (`new Human("cross", seed, "perfect",
+HUMAN_LIMITS)`: about 0.25 s to react, 0.15 s to move; its swipes are at least 10 ticks apart, a vehicle that came on
+screen less than a reaction time ago is not taken into account) plays the level; its log is kept only if the server's
+replay scores exactly 200, unflagged (`src/lib/duel/crossLevelDeals.server.ts`, built by
+`bun scripts/cross-level-deal.ts campaign … / build`; `--check` replays every stored witness and rebuilds the file;
+witnesses `scripts/fixtures/cross-level-deal-witness.json.gz`).
+
+**The ladder** (Joe's test; `scripts/d5-ladder-lib.ts`: the Average and Elite skill-band bots under the human limits,
+graded by the server). Before: crossRev 13's levels as dealt on 22 Nov 2026, 24 deals a level (`bun scripts/d5-ladder.ts
+cross --deals=24`). After: crossRev 14's levels and Normal's crossRev 13, 96 deals a level, recorded in
+`scripts/fixtures/d5-ladder-cross.json.gz` (`bun scripts/d5-ladder-record.ts cross --deals=96`):
+
+| Level | Average before → after | Elite before → after | Elite at 200 before → after |
+| --- | --- | --- | --- |
+| Easy | 143.7 → **145.0** | 194.2 → **198.4** | 67 % → **86 %** |
+| Normal | 116.5 → **121.6** (the same game; 24 → 96 deals) | 184.8 → **186.3** | 42 % → **43 %** |
+| Hard | 76.8 → **71.8** | 158.0 → **183.6** | 4 % → **40 %** |
+| Expert | 49.3 → **64.9** | 133.9 → **177.4** | 0 % → **30 %** |
+
+The average player steps down every level (by 23, 50 and 7), no level is a cliff, and the realistic elite reaches 200 less
+often each level up, on Expert on 30 % of runs. The levels' own feature lines are what bring Hard and Expert's 200 into
+reach (Hard's elite reached 200 on 4 % of today's runs, Expert's on none): Hard fills its streak at 3 no-stop crossings in a
+row but asks 16 close calls (more traffic, more close calls); Expert fills the streak at 2 and the close calls at 8, and
+its rows and crossings at 72.
+
+Checks: cross-ladder-check (the legacy fixture, the deals, the levels as dealt and each crossing's density, every
+witness at 200, the proof walker re-played on a sample, Joe's ladder test on 96 deals a level).
+
 ## crossRev 13 (the Retro overhaul, stage 3, 16 Nov 2026): a lighter Normal
 
 crossRev 12's walker, streak, close calls, parts and hit rules exactly, on lighter traffic: each crossing is crossRev 9's

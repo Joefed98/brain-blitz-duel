@@ -15,6 +15,10 @@ import { ORBIT_FUEL_BANK, type OrbitFuelBankEntry } from "./orbitFuelBank.server
 import { ORBIT_FUEL_BANK_EASY } from "./orbitFuelBankEasy.server";
 import { ORBIT_FUEL_BANK_HARD } from "./orbitFuelBankHard.server";
 import { ORBIT_FUEL_BANK_EXPERT } from "./orbitFuelBankExpert.server";
+import { ORBIT_LADDER_BANK, type OrbitLadderBankEntry } from "./orbitLadderBank.server";
+import { ORBIT_LADDER_BANK_EASY } from "./orbitLadderBankEasy.server";
+import { ORBIT_LADDER_BANK_HARD } from "./orbitLadderBankHard.server";
+import { ORBIT_LADDER_BANK_EXPERT } from "./orbitLadderBankExpert.server";
 import type { OrbitLevelName } from "@/lib/arcade/orbitRev3";
 
 export { encodeRev3Planets, decodeRev3Planets, type OrbitRev3CompactPlanet } from "@/lib/arcade/orbitRev3";
@@ -70,6 +74,24 @@ export const ORBIT_LEVEL_BANKS: Readonly<Record<OrbitLevelName, readonly OrbitFu
   hard: ORBIT_FUEL_BANK_HARD,
   expert: ORBIT_FUEL_BANK_EXPERT,
 };
+
+/**
+ * orbitRev 17's banks (D5, 23 Nov 2026; scripts/orbit-ladder-bank.ts): Normal's and each level's courses, every witness
+ * held to the human limits (docs/arcade-standard/orbit.md "orbitRev 17: lines, belts and levels").
+ */
+export const ORBIT_LADDER_BANKS: Readonly<Record<"normal" | OrbitLevelName, readonly OrbitLadderBankEntry[]>> = {
+  normal: ORBIT_LADDER_BANK,
+  easy: ORBIT_LADDER_BANK_EASY,
+  hard: ORBIT_LADDER_BANK_HARD,
+  expert: ORBIT_LADDER_BANK_EXPERT,
+};
+/** orbitRev 17: the course for a room seed from the level's ladder bank (index = seed mod length), or null if it is empty. */
+export function orbitLadderCourseForSeed(seed: number, level?: OrbitLevelName): { planets: OrbitRev3CompactPlanet[]; holes: OrbitHoleRow[]; extras: OrbitExtrasRow } | null {
+  const bank = ORBIT_LADDER_BANKS[level ?? "normal"];
+  if (bank.length === 0) return null;
+  const entry = bank[((seed % bank.length) + bank.length) % bank.length]!;
+  return { planets: entry.planets, holes: entry.holes, extras: entry.extras };
+}
 
 /** Proved planets for a room seed, straight from the bank (null if the bank is empty). */
 export function orbitRev3PlanetsForSeed(seed: number): Planet[] | null {

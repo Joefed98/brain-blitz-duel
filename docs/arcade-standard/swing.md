@@ -1,4 +1,106 @@
-# Grappler: the swinging course (swingRev 15; swingRev 18 rooms deal since 15 Nov 2026)
+# Grappler: the swinging course (swingRev 15; swingRev 18 rooms deal since 15 Nov 2026; swingRev 19, the ladder, since 23 Nov 2026)
+
+## swingRev 19: the ladder (D5, 23 Nov 2026)
+
+Joe's approved plan (23 Nov 2026, from D5's study): the pterodactyl is the levels' lever, chasing from the first vine on
+Hard and Expert; Normal's pars move a few ticks later so the best humans can reach 200 on every dealt course; Easy gets
+its aids; every level is dealt only on courses the proof player held to Joe's human limits takes to exactly 200.
+`SWING_REV_LADDER` 19 at every level, Normal included (`SWING_V19_LEVELS` in `swing.ts`, the state's `ladder` marker,
+folded into the checkpoint checksum last); every swingRev 18 round at any level replays and scores exactly as before
+(`scripts/fixtures/swing-ladder-legacy.json.gz`, 100 runs on 20 deals, and `swing-ladder-legacy-catch.json.gz`, 13 runs
+the pterodactyl catches, both recorded on the sim before swingRev 19; swing-ladder-check 1). The courses are swingRev
+18's builder, salts and level levers (`SWING_LEVELS`: reach, sliding vines, stall, vine swing, dark runs), with the
+marker and the pterodactyl's start on the state before the planned route is proved through the step, so the route is
+never caught (a course whose route the chase would catch is built again further along the seed's stream).
+
+### The rules (`SWING_V19_LEVELS`; the registry's `GAME_LEVELS.swing` repeats them for display)
+
+### Levels (D5, 23 Nov 2026)
+
+| | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| **The lever: the pterodactyl** | none | over the last quarter, 2.4 px a tick (today's) | from the first vine, 3.7 px a tick | from the first vine, 4.1 px a tick |
+| Each stretch's par moved (`parLater`) | 2 s later (120 ticks) | 0.2 s later (12 ticks) | 0.1 s later (6 ticks) | as built (0) |
+| Pars: each stretch counted up to (`parCap`) | 0.5 s under (30 ticks) | 0.5 s (30) | 2.5 s (150) | 2.5 s (150) |
+| Pars part full at (`parFull`, ticks under par in all) | 900 (30 stretches' worth) | 1,350 (45 stretches' worth, today's) | 4,400 | 4,100 |
+| Course part full at | 35 % of the way | 70 % | 70 % | 70 % |
+| Gates part full at | 3 gates | 5 | 5 | 5 |
+| Streak part full at (runs of eight clean grabs) | 18 | 20 | 19 | 19 |
+| A miss | keeps the streak | ends it | ends it | ends it |
+| swingRev 18's levers, unchanged | reach 250 px, 5 sliding vines, stall 200, vine 100 %, lit | reach 220, 18 sliding vines, stall 150, vine 100 %, 6 dark runs | reach 220, 26 sliding vines, stall 55, vine 125 %, 6 dark runs | reach 205, 30 sliding vines, stall 50, vine 145 %, 7 dark runs |
+| Dealt courses (`swingLadderDeal.server.ts`) | 24 (1 of the first 25 candidates dropped) | 40 (26 of 66 dropped) | 24 (6 of 30 dropped) | 24 (11 of 35 dropped) |
+
+The parts and their 200 (course 110, pars 40, gates 10, streak 40), the 90 s run, the body and the stretch restarts are
+swingRev 18's at every level.
+
+- **The lever: the pterodactyl.** Easy has none (as swingRev 18). Normal's comes in over the last quarter at 2.4 px a
+  tick (today's). Hard's and Expert's chase from the first vine (`chaseFirst`: `chaseFrom` 0, so it is on screen, with its
+  distance marker, from the first tick) for the whole course, at 3.7 and 4.1 px a tick. A catch costs what it always has:
+  a restart from the stretch's restart point and the streak ended. The study's measurement (prototype, today's courses):
+  the chase moves the average player (87 / 73 / 60 on Normal / Hard / Expert) and never reaches the elite, who swings
+  about 6 px a tick; 4.4 px a tick is a cliff (the worst runs fell to 11).
+- **Normal's par fix.** Each stretch's par is 12 ticks (0.2 s) later (`parLater`, read by `swingAssaultPar` and the HUD's
+  `swingAssaultClock`, so what the HUD shows is what is scored). Measured before: the proof player held to the human
+  limits fell 1 to 2 par points short on about half of the courses, almost all on the platform sections, where a human's
+  reaction (0.25 s) and the press are slower than the builder's route.
+- **Easy's aids.** The course part full at 35 % of the way (70 % elsewhere), a miss keeps the clean-swing streak (the
+  stall still counts from after the hold), and every full line eased: each stretch's par 2 s later (`parLater` 120), the
+  pars counted over 30 stretches (`parFull` 900 ticks), the gates part full at 3 gates, the streak part at 18 runs of
+  eight.
+- **Hard's and Expert's par lines** (Joe's supporting lever for the elite): each stretch counts its whole margin under
+  par up to 2.5 s (not half a second), and the part is full only at a pace held over the whole course: 4,400 ticks
+  (Hard) and 4,100 (Expert) under par in all. Why this and not a plain shift: on a swinging stretch the best players
+  beat par by about 110 ticks (1.8 s), so a cap of 30 is always full there, and on the platform sections the flawless
+  player and the elite are equally slow (the human reaction limit); shifting every par later or sooner moved both
+  together (measured on 40 Hard candidates with the half-second cap: pars 16, 6 and −4 ticks from the built ones kept
+  the proof player at 200 on 34, 33 and 12 of them, and the elite at 200 on 76, 78 and 75 % of those). What separates a top human from the flawless player is a steady loss of a few ticks a stretch (the elite takes
+  about 2 s longer over the course), which only a whole-course pace line counts. Narrower speed gates were also
+  measured and dropped (gates 60 px tall on Expert: the bots aim for the gate and the elite took every one, as before).
+
+### Measured (the D5 ladder: scripts/d5-ladder-lib.ts, Joe's human limits; graded by the server)
+
+Before (swingRev 18, 12 deals a level, the D5 study's baseline, `bun scripts/d5-ladder.ts swing --deals=12
+--bots=average,elite,proof`):
+
+| Player | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Average, mean | 113.2 | 87.8 | 86.6 | 80.7 |
+| Elite, mean / share at 200 | 197.6 / 33 % | 198.8 / 50 % | 199.3 / 67 % | 198.7 / 33 % |
+| Proof player (flawless, held to the limits), share at 200 | 33 % | 50 % | 83 % | 75 % |
+
+After (swingRev 19, 96 deals a level, `scripts/fixtures/d5-ladder-swing.json.gz`, recorded by
+`bun scripts/swing-ladder-record.ts --deals=96`, which writes d5-ladder-record's file from the same deals, players and
+grade, each course played once):
+
+| Player | Easy | Normal | Hard | Expert |
+|---|---|---|---|---|
+| Average, mean (median) | 154.3 (156) | 86.4 (86) | 74.3 (76) | 49.1 (48) |
+| Elite, mean / share at 200 | 200.0 / 100 % | 199.4 / 73 % | 199.3 / 65 % | 198.3 / 42 % |
+| Proof player, share at 200 | 100 % on every dealt course (each level's witnesses, `bun scripts/swing-ladder-deal.ts --check`) | | | |
+
+Joe's ladder test passes on the table (swing-ladder-check 5): the average player steps down 68, 12 and 25 points, no
+level is a cliff, and the elite reaches 200 less often each level up, on Expert on 42 % of runs. Bands per candidate
+course (every player, each stretch's par and time, so a line can be weighed without playing again):
+`bun scripts/swing-ladder-bands.ts --level=<level> --from=a --to=b --out=<file>` and `--table <files> [--cap=…]`.
+
+### The deal
+
+`bun scripts/swing-ladder-deal.ts --level=<level> [--reuse=<bands files>]` builds a level's list: candidates of
+scripts/swing-slide-deal.ts's sequence in order, each course built at the level and played by the proof player (the
+flawless skill-band level held to the human limits: no ledge press sooner than 0.25 s, no grab sooner than 0.15 s after
+a release); a course is kept when the server's grade of that log is exactly 200, unflagged, else dropped and counted.
+Witnesses: `scripts/fixtures/swing-ladder-<level>-witness.json.gz`. `--check` replays every witness (exactly 200) and
+the list (exactly the witnessed candidates in order); `--check --live=<n>` plays n courses a level again and compares the
+log byte for byte; `--check --full` rebuilds a level from candidate 0. Normal's deal replaces swingRev 18's 120-course
+`SWING_BIG_DEAL` (proved by the flawless bot with no limits) with 40 courses proved under the limits.
+
+### Checks
+
+swing-ladder-check (about 2.5 min of CPU, most of it re-playing 16 runs of the ladder live): swingRev 18 untouched (the two legacy fixtures), the stamp, the pin `swingPreLadder`
+(deals swingRev 18 at every level), the rules as dealt, the registry's rows, the deals and witnesses (a sample, all with
+`CHECKS_FULL=1`), a live proof re-play, Joe's ladder test on the 96-deal table and a live re-play of a sample of it,
+King of the swingers on Expert, and the lever picture (`src/lib/levels/pictures/retro-action/swing.tsx`).
+The intro demo (recorded on swingRev 18) still plays on a swingRev 19 intro: Normal's play is unchanged.
 
 ## Stage 2: the bigger hero (swingRev 18) and the look pass (15 Nov 2026)
 

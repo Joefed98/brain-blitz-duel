@@ -29,7 +29,7 @@ import {
   HOVER_CHECKPOINT_INTERVAL,
   HOVER_DISC_COLOUR,
   HOVER_PILLAR_COLOUR,
-  HOVER_REV_SHIELD,
+  HOVER_REV_FIT,
   hoverWorldHFor,
   HOVER_RUN_TICKS,
   type HoverState,
@@ -51,12 +51,12 @@ import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
  * stamp's own renderer a few seconds into a fixed seed's run, flown by a small autopilot that taps whenever the saucer drops below the next gap's centre.
  */
 function IntroExample() {
-  const game = { ...hoverGameFor(HOVER_REV_SHIELD), draw: hoverArtGame.draw };
+  const game = { ...hoverGameFor(HOVER_REV_FIT), draw: hoverArtGame.draw };
   return (
     <ArtStill
       game={game}
       worldW={HOVER_WORLD_W}
-      worldH={hoverWorldHFor(HOVER_REV_SHIELD)}
+      worldH={hoverWorldHFor(HOVER_REV_FIT)}
       ticks={250}
       input={hoverStillPilot}
       caption="Tap to rise. Thread each gap; gold stars, tight gates and chains score more."
@@ -317,7 +317,7 @@ export const hoverPuzzle: PuzzleDefinition = {
   category: "arcade",
   timeLimitMs: (HOVER_RUN_TICKS / TICKS_PER_SECOND) * 1000 + 3000,
   revealMs: 6_000,
-  generate: () => ({ type: "hover", seed: 1, hoverRev: HOVER_REV_SHIELD }) satisfies HoverPuzzleData,
+  generate: () => ({ type: "hover", seed: 1, hoverRev: HOVER_REV_FIT }) satisfies HoverPuzzleData,
   check: () => false,
   revealHeading: "Your run",
   IntroExample,

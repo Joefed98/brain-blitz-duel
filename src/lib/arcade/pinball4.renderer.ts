@@ -95,6 +95,9 @@ import {
   PIN_REV_JOULZ,
   PIN_REV_SAVE,
   pinball8For,
+  pinball9For,
+  pinFlipLenOf,
+  PIN_REV_LADDER,
   pinBallsOf,
   pinball7Game,
   type P4Ball,
@@ -938,7 +941,18 @@ export const pinball6ArtGame: ArcadeGame<Pin4State, ArcadeInputEvent | null> = {
 export const pinball7ArtGame: ArcadeGame<Pin4State, ArcadeInputEvent | null> = { ...pinball7Game, draw: (ctx, state, size) => draw(ctx, state, size) };
 
 const pinball8ArtGames = new Map<string, ArcadeGame<Pin4State, ArcadeInputEvent | null>>();
+/** pinRev 9 (D5's ladder): pinRev 8's table and art, a level's flippers drawn at their own length (from the state). */
+const pinball9ArtGames = new Map<string, ArcadeGame<Pin4State, ArcadeInputEvent | null>>();
 export function pinballArtGameForAny(rev?: number | null, level?: Level | null): ArcadeGame<PinState, ArcadeInputEvent | null> {
+  if (rev === PIN_REV_LADDER) {
+    const key = level ?? "normal";
+    let game = pinball9ArtGames.get(key);
+    if (!game) {
+      game = { ...pinball9For(level), draw: (ctx, state, size) => draw(ctx, state, size) };
+      pinball9ArtGames.set(key, game);
+    }
+    return game as unknown as ArcadeGame<PinState, ArcadeInputEvent | null>;
+  }
   if (rev === PIN_REV_SAVE) {
     const key = level ?? "normal";
     let game = pinball8ArtGames.get(key);
@@ -1004,7 +1018,9 @@ function pinballFlipperFlash(ctx: Ctx, s: Pin4State): void {
     const a = (pinFlipAngle(side, s.flips[side] ?? 0) / 65536) * Math.PI * 2;
     ctx.save();
     ctx.globalAlpha = 0.6 * (1 - flash.age);
-    flipperPath(ctx, pxp, pyp, pxp + Math.cos(a) * PIN_FLIP_LEN, pyp + Math.sin(a) * PIN_FLIP_LEN, PIN_FLIP_R, PIN_FLIP_R - 2);
+    // pinRev 9's levels (D5's ladder): the flash over the bat at the length the sim sweeps.
+    const len = pinFlipLenOf(s);
+    flipperPath(ctx, pxp, pyp, pxp + Math.cos(a) * len, pyp + Math.sin(a) * len, PIN_FLIP_R, PIN_FLIP_R - 2);
     ctx.fillStyle = "#FFFFFF";
     ctx.fill();
     ctx.restore();

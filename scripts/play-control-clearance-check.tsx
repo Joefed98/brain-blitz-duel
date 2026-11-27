@@ -87,7 +87,8 @@ for (const { file, row, button, count, width, tall } of arcadeRows) {
   // expansion's view and corner too, and SET CHECKPOINT is a hold-to-set button (CheckpointHoldButton) of the same size.
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): orbitRev 16 (bigger planets on
   // orbitRev 15's play) keeps the expansion's view and corner too.
-  assert.ok(orbitXpRev(12) && orbitXpRev(13) && orbitXpRev(14) && orbitXpRev(15) && orbitXpRev(16) && !orbitXpRev(10) && !orbitXpRev(11) && !orbitXpRev(17) && !orbitXpRev(undefined), "orbit: orbitXpRev is orbitRev 12 to 16 only");
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's orbitRev 17, the lost flight): the checkpoint corner is orbitRev 12 to 17.
+  assert.ok(orbitXpRev(12) && orbitXpRev(13) && orbitXpRev(14) && orbitXpRev(15) && orbitXpRev(16) && orbitXpRev(17) && !orbitXpRev(10) && !orbitXpRev(11) && !orbitXpRev(18) && !orbitXpRev(undefined), "orbit: orbitXpRev is orbitRev 12 to 17 only");
   assert.match(orbit, /overlay=\{xp \? \(send\) => \(\s*<div data-game-controls="checkpoint" data-orbit-zone="" className="pointer-events-none absolute right-1 top-1 flex h-11 items-start justify-end">/, "orbit: the button 4px in from the world's top and right");
   assert.match(orbit, /<CheckpointHoldButton className="pointer-events-auto" onSet=/, "orbit: the corner holds the guarded checkpoint button");
   assert.match(orbit, /className=\{`relative h-11 overflow-hidden px-3 font-bold \$\{className \?\? ""\}`\}\s*style=\{\{ fontSize: 11 \}\}/, "orbit: the corner button is 44px tall, 11px text, 12px sides");

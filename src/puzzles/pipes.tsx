@@ -1,5 +1,5 @@
 import { pipelineDepths } from "@/components/puzzles/pipelineFlow";
-import { PIPE_ARMS, PipeArt, PipeSurge } from "@/components/puzzles/pattern/pipesArt";
+import { PIPE_ARMS, PipeArt, PipeDefs, PipeSurge } from "@/components/puzzles/pattern/pipesArt";
 import { planDrain, planWaterIn, runWater, sourceBubbles } from "@/components/puzzles/pattern/pipesFx";
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
 import { soundCue as soundCueAt } from "@/lib/fx/soundCues";
@@ -18,7 +18,7 @@ import { usesPatternNov15 } from "@/lib/duel/patternNov15";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { playCorrect } from "@/lib/sound";
-import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
+import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent as ReactMouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 
 import {
   decodeSides,
@@ -72,7 +72,10 @@ const PipeTileView = memo(function PipeTileView({
   inflow = 0,
   surgeDelay,
   surgeStep = 0,
+  defs,
 }: {
+  /** The board's PipeDefs id. */
+  defs: string;
   cell: number;
   tile: PipeTile;
   lit: boolean;
@@ -165,7 +168,7 @@ const PipeTileView = memo(function PipeTileView({
       data-pipe-index={cell}
       aria-label={label ?? "Pipe tile"}
     >
-      <PipeArt mask={mask} wet={lit} source={source} leakArms={leakArms} turnKey={turn.key} turnDir={turn.dir} />
+      <PipeArt defs={defs} inflow={inflow} mask={mask} wet={lit} source={source} leakArms={leakArms} turnKey={turn.key} turnDir={turn.dir} />
       {surgeDelay !== undefined && <PipeSurge mask={mask} inflow={inflow} delay={surgeDelay} step={surgeStep} />}
     </button>
   );
@@ -228,6 +231,7 @@ export const PipesBoard = memo(function PipesBoard({
   const depths = useMemo(() => pipelineDepths(tiles, source, cols), [tiles, source, cols]);
   const inflows = useMemo(() => pipeInflows(tiles, depths, cols), [tiles, depths, cols]);
   const boardRef = useRef<HTMLDivElement>(null);
+  const defsId = `pipes${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const water = useRef<{ connected: ReadonlySet<number>; depths: Map<number, number>; inflows: number[] } | null>(null);
   // Before paint, so a newly joined pipe never shows full for a frame before its water runs in (presentation only:
   // reads the board drawn, never a turn or the answer).
@@ -258,13 +262,15 @@ export const PipesBoard = memo(function PipesBoard({
         // Expert's taller board (difficulty levels): its own shape; square boards keep the class's 1 : 1.
         ...(Math.ceil(tiles.length / cols) !== cols ? { aspectRatio: `${cols} / ${Math.ceil(tiles.length / cols)}` } : {}),
         gap,
-        // The pipe sprites run into half the gap each side, so tubes join across it (presentation only).
+        // The pipework runs into half the gap each side, so tubes join across it (presentation only).
         "--pipe-gap": `${gap}px`,
       } as CSSProperties}
     >
+      <PipeDefs id={defsId} />
       {tiles.map((tile, cell) => (
         <PipeTileView
           key={cell}
+          defs={defsId}
           cell={cell}
           label={`Pipe tile ${cell + 1}`}
           tile={tile}

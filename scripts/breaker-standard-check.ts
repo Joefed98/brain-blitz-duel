@@ -38,7 +38,9 @@ import {
   breakerStdParts,
   breakerWorldHFor,
   breakerWorldWFor,
-  type BrkState, BRK_REV_CLEAR, BRK_V12_BAND_CURVE } from "../src/lib/arcade/breaker";
+  type BrkState, BRK_REV_CLEAR, BRK_V12_BAND_CURVE,
+  BRK_V13_BAND_CURVE, // Changed with Joe's approval, 27 Nov 2026 (D5's brkRev 13)
+} from "../src/lib/arcade/breaker";
 import { replayBreakerRun } from "../src/lib/duel/breaker";
 import { LIVE_BANDS } from "../src/lib/arcade/liveBands";
 import { bandLines, bandPoints } from "../src/lib/arcade/scoreBands";
@@ -116,8 +118,9 @@ section("3. Rooms and practice deal brkRev 11");
   const dealt = generatePuzzle("breaker") as { brkRev?: number };
   ok(dealt.brkRev === BRK_REV_STD && BRK_REV_STD === BRK_REV_PHONE + 1, `rooms deal brkRev ${dealt.brkRev}, expected ${BRK_REV_STD}`);
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the dealt and help stamp is brkRev 12.
-  ok((breakerPuzzle.generate() as { brkRev?: number }).brkRev === BRK_REV_CLEAR, "practice's own generate deals brkRev 12 (brkRev 11 before the Retro overhaul)");
-  ok(LIVE_BANDS.breaker.rev === BRK_REV_CLEAR && LIVE_BANDS.breaker.curve === BRK_V12_BAND_CURVE && BRK_V12_BAND_CURVE.points.at(-1) === BRK_V11_BAND_CURVE.points.at(-1), "LIVE_BANDS names brkRev 12 and its straight line");
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's brkRev 13): these two lines.
+  ok((breakerPuzzle.generate() as { brkRev?: number }).brkRev === BRK_REV_CLEAR + 1, "practice's own generate deals brkRev 13 (brkRev 11 before the Retro overhaul)");
+  ok(LIVE_BANDS.breaker.rev === BRK_REV_CLEAR + 1 && LIVE_BANDS.breaker.curve === BRK_V13_BAND_CURVE && BRK_V13_BAND_CURVE.points.at(-1) === BRK_V11_BAND_CURVE.points.at(-1), "LIVE_BANDS names brkRev 13 and its straight line");
   ok(roundMaxFor("breaker") === 200 && BRK_V11_MAX === 200, "the round maximum is 200 and the parts add to it");
   ok(breakerWorldWFor(BRK_REV_STD) === breakerWorldWFor(BRK_REV_PHONE) && breakerWorldHFor(BRK_REV_STD) === breakerWorldHFor(BRK_REV_PHONE), "brkRev 11 plays brkRev 10's 420 × 784 court");
 }
@@ -231,7 +234,8 @@ section("6. A perfect run is 200; reveal and help");
   }
   const help = PUZZLE_INSTRUCTIONS.breaker.score;
   // Text pass (4 Nov 2026): one line a part, then the total.
-  ok(hasScorePart(help, "Bricks", 140) && hasScorePart(help, "Clear", 10) && hasScorePart(help, "Speed", 20) && hasScorePart(help, "Gold bricks", 30) && help.includes("10 each (30 for all 3)") && help.endsWith("Total 200."), `the help states every part and the 200: ${help}`);
+  // Changed with Joe's approval, 27 Nov 2026 (D5's brkRev 13: the gold bricks part fills at 2 of the 3).
+  ok(hasScorePart(help, "Bricks", 140) && hasScorePart(help, "Clear", 10) && hasScorePart(help, "Speed", 20) && hasScorePart(help, "Gold bricks", 30) && help.includes("15 each (30 for 2 of the 3)") && help.endsWith("Total 200."), `the help states every part and the 200: ${help}`);
   ok(!/combo/i.test(INTRO_SCORE.breaker) && /200|\{max\}/.test(INTRO_SCORE.breaker), `the intro line: ${INTRO_SCORE.breaker}`);
   ok(!PUZZLE_INSTRUCTIONS.breaker.how.some((h) => /combo/i.test(h.action + h.detail)), "the help no longer explains combos (they pay nothing)");
 }

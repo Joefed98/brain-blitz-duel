@@ -63,6 +63,8 @@ import {
   RALLY_STD_SPEC,
   RALLY_V12_PAD_PTS,
   RALLY_STD_SPEC_V13,
+  RALLY_STD_SPEC_V14,
+  RALLY_V14_EACH_TEXT, // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
 } from "../src/lib/arcade/rally";
 import { stdHelp, stdHelpLines } from "../src/lib/arcade/arcadeStandard";
 import { beatGameFor, beatThinned, BEAT_LANE_GAP, BEAT_REV_TUNEC, BEAT_REV_TUNEF, BEAT_STD_SPEC, BEAT_V5_BAND_CURVE, type BeatState } from "../src/lib/arcade/beat";
@@ -534,7 +536,7 @@ section("Intro and \"?\" help");
   // rallyRev 12: its help states the standard's parts (rally-standard-check) and one value for a pink pad (3).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the help reads the dealt stamp,
   // rallyRev 13 (four parts with spin shots).
-  if (want("rally")) ok(/second bumper/.test(help("rally")) && /45 s/.test(help("rally")) && PUZZLE_INSTRUCTIONS.rally.score.includes(stdHelpLines(RALLY_STD_SPEC_V13)) && help("rally").includes(`scores ${RALLY_V12_PAD_PTS}, and the pad`) && !/counts 6|5 a hit/.test(help("rally")), "Rally: the second bumper from 45 s, the standard's parts new rooms score on (rallyRev 12 since the arcade scoring standard) and one value for a pink pad (3)");
+  if (want("rally")) ok(/second bumper/.test(help("rally")) && /45 s/.test(help("rally")) && PUZZLE_INSTRUCTIONS.rally.score.includes(stdHelpLines(RALLY_STD_SPEC_V14)) && help("rally").includes(`scores ${RALLY_V14_EACH_TEXT.pads}, and the pad`) && !/counts 6|5 a hit/.test(help("rally")), "Rally: the second bumper from 45 s, the standard's parts new rooms score on (rallyRev 12 since the arcade scoring standard) and one value for a pink pad (3)"); // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
   // The arcade scoring standard (29 Oct 2026): Tempo's beatRev 11 help states its standard parts (beat-standard-check).
   if (want("snake")) ok(/length 9/.test(help("snake")) && /every 4 stars, up to 11/.test(help("snake")) && /at most 14 rocks/.test(help("snake")) && PUZZLE_INSTRUCTIONS.snake.score.includes("up to 120"), "Meteor: rocks from length 9, every 4 stars, up to 11 (14 with the shower), and the top rooms deal (snakeRev 11's core since the arcade scoring standard, snakeRev 12's since 1 Nov 2026)");
   if (want("orbit")) ok(/Any black hole ahead/.test(help("orbit")) && /any part of the rocket/.test(help("orbit")), "Orbit: any black hole ahead swallows any part of the rocket");

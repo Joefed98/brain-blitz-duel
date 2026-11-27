@@ -72,6 +72,7 @@ import {
   HOVER_TIGHT_WALL,
   HOVER_V9_BAND_CURVE,
   HOVER_V10_BAND_CURVE,
+  HOVER_V12_BAND_CURVE, // Changed with Joe's approval, 26 Nov 2026 (D5's hoverRev 12)
   HOVER_REV_STANDARD,
   HOVER_V9_MAX,
   hoverBottom,
@@ -155,14 +156,14 @@ section("dealing and wiring");
   // Since 29 Oct 2026 rooms and practice deal hoverRev 10, hoverRev 9's play under the arcade scoring standard
   // (hover-standard-check proves it and its scoring).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): since stage 3 rooms deal hoverRev 11, hoverRev 10 starting shielded.
-  ok(generateHover().hoverRev === HOVER_REV_STANDARD + 1 && HOVER_REV_EXPAND === 9, "rooms deal hoverRev 11 (hoverRev 9's play on the standard, starting shielded)");
+  ok(generateHover().hoverRev === HOVER_REV_STANDARD + 2 && HOVER_REV_EXPAND === 9, "rooms deal hoverRev 12 (hoverRev 9's play on the standard, starting shielded, fitted lines)"); // Changed with Joe's approval, 26 Nov 2026 (D5's hoverRev 12)
   const stage = readFileSync("src/puzzles/hover.tsx", "utf8");
-  ok(/hoverRev: HOVER_REV_SHIELD \}\) satisfies HoverPuzzleData/.test(stage) && playRevOf("hover", HOVER_REV_STANDARD) === HOVER_REV_EXPAND, "practice deals hoverRev 11 (hoverRev 10 is hoverRev 9's play)");
+  ok(/hoverRev: HOVER_REV_FIT \}\) satisfies HoverPuzzleData/.test(stage) && playRevOf("hover", HOVER_REV_STANDARD) === HOVER_REV_EXPAND, "practice deals hoverRev 12 (hoverRev 10 is hoverRev 9's play)"); // Changed with Joe's approval, 26 Nov 2026 (D5's hoverRev 12)
   ok(/height=\{hoverWorldHFor\(data\.hoverRev\)\}/.test(stage), "the stage sizes its arena from the stored revision");
   ok(hoverWorldHFor(HOVER_REV_EXPAND) === 727 && HOVER_EXPAND_H === 727, "hoverRev 9's world is 390 × 727 (fills a 414 × 772 arena edge to edge)");
   ok(ARCADE_FX_SPECS.hover.height === HOVER_EXPAND_H && hoverFxFor(game.init(5) as HoverState).height === HOVER_EXPAND_H, "the effects spec draws at 727 for the rounds dealt now");
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the help reads hoverRev 11 (hoverRev 10 starting shielded) since stage 3, on the same curve.
-  ok(LIVE_BANDS.hover.rev === HOVER_REV_STANDARD + 1 && LIVE_BANDS.hover.curve === HOVER_V10_BAND_CURVE, "the help reads the dealt revision's curve (hoverRev 10's core, on hoverRev 11)");
+  ok(LIVE_BANDS.hover.rev === HOVER_REV_STANDARD + 2 && LIVE_BANDS.hover.curve === HOVER_V12_BAND_CURVE, "the help reads the dealt revision's curve (hoverRev 10's core, on hoverRev 11)"); // Changed with Joe's approval, 26 Nov 2026 (D5's hoverRev 12)
   ok(roundMaxFor("hover") === 200, "Hover's round maximum is 200");
   ok(/data\.type === "hover" && demo\?\.puzzle\.type === "hover" && demo\.puzzle\.hoverRev !== HOVER_REV_SHIELD/.test(readFileSync("src/lib/duel/introDemo.functions.ts", "utf8")), "a demo recorded before hoverRev 11 (so before hoverRev 9 too) is stopped");
   ok(/state\.ctrLog/.test(readFileSync("src/lib/fx/gameSounds.ts", "utf8")) && /state\.xp/.test(readFileSync("src/lib/fx/gameSounds.ts", "utf8")), "the sound observer handles the new moments, the centre line included");
