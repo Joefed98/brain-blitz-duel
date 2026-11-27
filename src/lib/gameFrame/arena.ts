@@ -48,10 +48,11 @@ export const ARENA_PANEL_LEFT_W = 280;
  */
 export const ARENA_CABINET_LEFT = true;
 /**
- * Whether the arena's panels draw the canvas HUD's values in place of the world (hudPlacement.ts). Off until the
- * Cabinet session (S2) draws every value in the panels; on, the stage switches the HUD painters off for the draw.
+ * Whether the arena's panels draw the canvas HUD's values in place of the world (hudPlacement.ts). On since 27 Nov 2026
+ * (P4, after A3's value channel): the stage switches the HUD painters off for its draw on the arena, and the panel's
+ * "This run" card lists what they noted (ArenaGamePanel's HudRows). HUDs drawn another way stay in the world.
  */
-export const ARENA_HUD_IN_PANEL = false;
+export const ARENA_HUD_IN_PANEL = true;
 
 /**
  * Whether the Cabinet's left panel is on: the switch above, or (checks and review shots only, never a production build:

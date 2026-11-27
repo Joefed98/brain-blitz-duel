@@ -23,7 +23,7 @@
  * that folder, so skins-default-check and skins-check draw main once between them.
  */
 import { spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs"; // Changed with Joe's approval, 27 Nov 2026: mkdtempSync
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 
@@ -77,6 +77,25 @@ export interface BaseInfo {
   fetched: string[];
 }
 
+/**
+ * Changed with Joe's approval, 27 Nov 2026: the merge base worked out in a separate, commits-only clone (a bare repository in a temp folder, one
+ * `--filter=tree:0` fetch of main and the head: every commit, no trees or files, ~3 MB, about a second), so the answer
+ * never depends on this checkout's shallow history. Returns the commit, or "" with the reason. A fetch that fails three
+ * times throws, as every fetch here does.
+ */
+export function commitsOnlyBase(head: string, fetched: string[]): { sha: string; why: string } {
+  const bare = mkdtempSync(join(tmpdir(), "skins-mb-"));
+  try {
+    const url = git(["remote", "get-url", "origin"]).out;
+    if (!git(["init", "-q", "--bare", bare]).ok) return { sha: "", why: "git init of the commits-only clone failed" };
+    fetchOrThrow(["-C", bare, "fetch", "-q", "--filter=tree:0", "--no-tags", url, head, "+refs/heads/main:refs/heads/main"], fetched);
+    const mb = git(["-C", bare, "merge-base", head, "refs/heads/main"]);
+    return mb.ok && mb.out ? { sha: mb.out, why: "" } : { sha: "", why: mb.err || "no common commit in the full history" };
+  } finally {
+    rmSync(bare, { recursive: true, force: true });
+  }
+}
+
 /** The merge base of the branch head and main, fetching shallowly until git can name it. */
 export function baseCommit(): BaseInfo {
   const fetched: string[] = [];
@@ -102,7 +121,19 @@ export function baseCommit(): BaseInfo {
     return "";
   };
   const wants = [head, ...(prBase && prBase !== head ? [prBase] : []), "+refs/heads/main:refs/remotes/origin/main"];
-  let sha = tryBase();
+  // First the commits-only clone (#486: on git 2.56.1 the shallow fetches below reached a year of history and merge-base
+  // still found no common commit), then this checkout's own history as before. // Changed with Joe's approval, 27 Nov 2026
+  let sha = ""; // Changed with Joe's approval, 27 Nov 2026
+  try { // Changed with Joe's approval, 27 Nov 2026
+    const found = commitsOnlyBase(head, fetched); // Changed with Joe's approval, 27 Nov 2026
+    if (found.sha) { // Changed with Joe's approval, 27 Nov 2026
+      if (!git(["cat-file", "-e", `${found.sha}^{commit}`]).ok) fetchOrThrow(["fetch", "--no-tags", "--depth=1", "origin", found.sha], fetched); // Changed with Joe's approval, 27 Nov 2026: for git archive below
+      sha = found.sha; // Changed with Joe's approval, 27 Nov 2026
+    } else why = `commits-only clone: ${found.why}`; // Changed with Joe's approval, 27 Nov 2026
+  } catch (e) { // Changed with Joe's approval, 27 Nov 2026
+    why = `commits-only clone: ${e instanceof Error ? e.message.split(". ")[0] : String(e)}`; // Changed with Joe's approval, 27 Nov 2026
+  } // Changed with Joe's approval, 27 Nov 2026
+  if (!sha) sha = tryBase(); // Changed with Joe's approval, 27 Nov 2026: was `let sha = tryBase();`
   for (let depth = 64; !sha && depth <= 4096; depth *= 4) {
     fetchOrThrow(["fetch", "--no-tags", `--depth=${depth}`, "origin", ...wants], fetched);
     sha = tryBase();
@@ -119,7 +150,7 @@ export function baseCommit(): BaseInfo {
     const shallow = existsSync(".git/shallow") ? readFileSync(".git/shallow", "utf8").split("\n").filter(Boolean).length : 0;
     throw new NoMergeBase(
       `no merge base between ${head.slice(0, 8)} and main (${git(["rev-parse", "--short", "refs/remotes/origin/main"]).out || "not fetched"}) ` +
-        `after fetching 4,096 commits and a year by date (${why || "no reason given"}; ${shallow} shallow boundaries; ${git(["--version"]).out})`,
+        `in a commits-only clone, after fetching 4,096 commits and a year by date (${why || "no reason given"}; ${shallow} shallow boundaries; ${git(["--version"]).out})`, // Changed with Joe's approval, 27 Nov 2026
     );
   }
   return { sha, head, fetched };
