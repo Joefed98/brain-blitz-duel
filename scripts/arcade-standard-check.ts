@@ -59,9 +59,9 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): snakeRev 13, wrap-around edges;
   // then snakeRev 14, rocks in three sizes.
   // then snakeRev 15 (stage 3, 16 Nov 2026), the first crash forgiven. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
-  { type: "snake", field: "snakeRev", rev: 15, batch: "A" },
+  { type: "snake", field: "snakeRev", rev: 16, batch: "A" }, // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
   // hoverRev 11 (16 Nov 2026, the Retro overhaul stage 3): hoverRev 10 starting shielded. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
-  { type: "hover", field: "hoverRev", rev: 11, batch: "A" },
+  { type: "hover", field: "hoverRev", rev: 12, batch: "A" }, // Changed with Joe's approval, 26 Nov 2026 (D5's hoverRev 12)
   // skylineRev 10 (Nov 2026, the scoring audit): skylineRev 9's play; perfect drops counted, so more floors never score less.
   // skylineRev 11 (15 Nov 2026, the Action overhaul): lives and the wide-block rescue; the same parts.
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul).
@@ -75,11 +75,11 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "pinball", field: "pinRev", rev: 8, batch: "B" },
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rallyRev 13, two lives and spin
   // shots.
-  { type: "rally", field: "rallyRev", rev: 13, batch: "B" },
+  { type: "rally", field: "rallyRev", rev: 14, batch: "B" }, // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
   { type: "bubble", field: "bubbleRev", rev: 12, batch: "B" }, // bubbleRev 12 since the Strategy overhaul (15 Nov 2026), Joe's approval (routine consequence)
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): beatRev 12, beatRev 11 with a
   // missed note scoring 0.
-  { type: "beat", field: "beatRev", rev: 12, batch: "B" },
+  { type: "beat", field: "beatRev", rev: 13, batch: "B" }, // Changed with Joe's approval, 26 Nov 2026 (D5's beatRev 13)
   // crossRev 11 (3 Nov 2026): no coins, the no-stop streak, a hit costs 15 (cross-rev11-check).
   // crossRev 12 (Nov 2026, the scoring audit): crossRev 11's play and parts; the hit that ends the run is free.
   // crossRev 13 (16 Nov 2026, the Retro overhaul stage 3): crossRev 12's rules on lighter traffic. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
@@ -136,7 +136,7 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // unstamped); bastionRev 3 (3 Nov 2026) adds the drones and eases waves 4–5.
   // bastionRev 4 (15 Nov 2026, the levels): a gentler game at Easy, Normal and Hard; bastionRev 3 is Expert.
   // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Expert): the roster line follows the stamp.
-  { type: "bastion", field: "bastionRev", rev: 4, batch: "Action" },
+  { type: "bastion", field: "bastionRev", rev: 5, batch: "Action" }, // Changed with Joe's approval, 26 Nov 2026 (D5's bastionRev 5)
   // Pyramid, Golf Solitaire and Muggins (1 Nov 2026): born on the standard.
   // Thirteen pyramidRev 3 (15 Nov 2026): a dead end waits for Undo (rev 2's deals and parts). Changed with Joe's approval,
   // 15 Nov 2026 (routine consequence of pyramidRev 3).

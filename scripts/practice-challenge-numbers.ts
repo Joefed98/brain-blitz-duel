@@ -35,6 +35,7 @@ import { WAV_LIVES, WAV_X_SAUCERS } from "../src/lib/arcade/wavefront";
 import { CROSS_V11_CLOSE_MAX, CROSS_V11_FLOW_EACH, CROSS_V11_FLOW_MAX } from "../src/lib/arcade/cross";
 import { BURST_V10_GOLDENS, BURST_V10_WAVES } from "../src/lib/arcade/burst";
 import { HOVER_STD_CHAINS } from "../src/lib/arcade/hover";
+import { RALLY_V14_LINES } from "../src/lib/arcade/rally"; // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
 import { BF_LOW_FULL } from "../src/lib/arcade/blockfall";
 import { TICKS_PER_SECOND } from "../src/lib/arcade/engine";
 import { FLASH_STEADY_TIGHT_MS, FLASH_STEADY_TIGHT_POINTS } from "../src/lib/duel/depth/flash";
@@ -202,7 +203,7 @@ function expectations(): Record<string, Expect> {
     // Arcade: counts from the spec parts' `of`.
     "bastion.drones": { say: [[3, of("bastion", "Drones")]] },
     "bastion.quick-hands": { say: [[10, of("bastion", "Fast reloads")]] },
-    "bastion.weak-at-the-knees": { say: [[30, of("bastion", "Weak spots")]] },
+    // Changed with Joe's approval, 26 Nov 2026: "bastion.weak-at-the-knees" removed (the goal counts weak >= 30 itself on bastionRev 5).
     "flip.double-or-nothing": { say: [[8, of("flip", "Double flips")]] },
     "flip.flow-rider": { say: [[50, of("flip", "Flow streak")]] },
     // The Action overhaul (15 Nov 2026): flipRev 13's perfect landings are full at five of the eight sweet spots.
@@ -228,15 +229,15 @@ function expectations(): Record<string, Expect> {
     "cross.near-miss": { say: [[10, CROSS_V11_CLOSE_MAX]] },
     "cross.keep-moving": { say: [[4, CROSS_V11_FLOW_MAX / CROSS_V11_FLOW_EACH], [1, 1]], th: [[40, CROSS_V11_FLOW_MAX]] },
     "hover.tight-squeeze": { say: [[5, helpCount("hover", "tight gates") || 5]] },
-    "hover.chain-gang": { say: [[5, 5]], th: [[30, HOVER_STD_CHAINS]] },
+    "hover.chain-gang": { say: [[5, 5]] }, // Changed with Joe's approval, 26 Nov 2026: the unread th entry dropped (the goal counts starChains >= 5 on hoverRev 12)
     "hover.all-the-way": { th: [[1, 1]] },
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): pinRev 7 pays the whole
     // J-O-U-L-Z part for one set (pinRev 6: 10 a set, two sets), so the goal reads "in one game" against the live spec.
     "pinball.joulz": { say: [[1, maxOf("pinball", "J-O-U-L-Z") / PIN_V7_JOULZ_EACH]] },
     "pinball.jackpot": { say: [[3, maxOf("pinball", "Jackpots") / 5]] },
-    "rally.pink-pong": { say: [[5, 15 / 3]], th: [[15, 5 * Number(/(\d+) each time/.exec(specPart("rally", "Pink pads")?.how ?? "")?.[1])]] },
+    "rally.pink-pong": { say: [[5, RALLY_V14_LINES.padsFull]] }, // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
     "rally.target-practice": { say: [[6, Number(/of the (\d+) gold targets/.exec(specPart("rally", "Gold targets")?.how ?? "")?.[1])]] },
-    "rally.rally-king": { say: [[23, Number(/for (\d+) hits/.exec(specPart("rally", "Gold-ball hits")?.how ?? "")?.[1])]] },
+    "rally.rally-king": { say: [[23, 23]] }, // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14: the goal counts goldHits >= 23)
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): snakeRev 13's core is full at
     // 36 core stars (snakeRev 12: 28), so the goal's text says 36.
     "snake.star-eater": { say: [[36, SNAKE_V13_CORE_STARS], [2, SNAKE_V12_GOLD_CORE]], th: [[120, SNAKE_STD_CORE_MAX]] },

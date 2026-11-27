@@ -218,6 +218,13 @@ import { BURST_REV_BAND, BURST_REV_TALL } from "@/lib/arcade/burst";
 import { SWING_REV_BAND, SWING_REV_TUNED, SWING_REV_TUNEC, SWING_REV_SPREAD, SWING_REV_TALL, SWING_REV_EXPAND, SWING_REV_ASSAULT, SWING_REV_REWORK, SWING_REV_DARK, SWING_REV_SLIDE, SWING_REV_BIG, SWING_REV_LADDER } from "@/lib/arcade/swing"; // Changed with Joe's approval, 26 Nov 2026 (SWING_REV_LADDER, D5's swingRev 19)
 import { SWING_BIG_DEAL } from "@/lib/duel/swingBigDeal.server";
 import { SWING_LADDER_DEAL } from "@/lib/duel/swingLadderDeal.server"; // Changed with Joe's approval, 26 Nov 2026 (D5's swingRev 19 deal)
+// Changed with Joe's approval, 26 Nov 2026, second set (D5's six stamps: the entries appended at the end of the list).
+import { BEAT_REV_LANES } from "@/lib/arcade/beat"; // Changed with Joe's approval, 26 Nov 2026
+import { BEAT_DEAL_V13 } from "@/lib/duel/beatDealV13.server"; // Changed with Joe's approval, 26 Nov 2026
+import { blockfallGameFor, BLOCKFALL_REV_LEVELS } from "@/lib/arcade/blockfall"; // Changed with Joe's approval, 26 Nov 2026
+import { BLOCKFALL_LEVEL_DEALS } from "@/lib/duel/blockfallLevelDeals.server"; // Changed with Joe's approval, 26 Nov 2026
+import { hoverLevelDealSeed } from "@/lib/duel/hoverLevelDeals.server"; // Changed with Joe's approval, 26 Nov 2026
+import { crossLevelDealSeed } from "@/lib/duel/crossLevelDeals.server"; // Changed with Joe's approval, 26 Nov 2026
 import { SWING_LEVEL_DEAL } from "@/lib/duel/swingLevelDeal.server";
 import { SWING_V13_BANK } from "@/lib/duel/swingBankV13.server";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
@@ -1282,6 +1289,31 @@ const GAMES: Game[] = [
   })),
   // Grappler swingRev 19 (D5, 23 Nov 2026: the ladder), appended so every earlier entry keeps its index. Changed with Joe's approval, 26 Nov 2026.
   ...(["normal", "easy", "hard", "expert"] as const).map((lv) => ({ key: `swing/ladder-${lv}`, game: swingGameFor(SWING_REV_LADDER, lv), checkpoint: swingCheckpoint, mode: "events" as const, rate: 30, encode: encodeSwingRun, replay: (seed: number, raw: string) => replaySwingRun(seed, raw, SWING_REV_LADDER, undefined, lv), seedFor: (n: number) => SWING_LADDER_DEAL[lv][n % SWING_LADDER_DEAL[lv].length]! })), // Changed with Joe's approval, 26 Nov 2026
+  // Changed with Joe's approval, 26 Nov 2026, second set: D5's six stamps, appended at the very end in this order so every earlier entry keeps its index.
+  // Iron Wall bastionRev 5 (D5: the ladder) at every level.
+  ...(["normal", "easy", "hard", "expert"] as const).map((level) => ({ key: `bastion/v5-${level}`, interval: BT2_CHECKPOINT_INTERVAL, game: bastionTankGameFor(5, level), checkpoint: bastionTankCheckpoint, mode: "events" as const, rate: 30, encode: encodeBastionTankRun, replay: (seed: number, raw: string) => replayBastionTankRun(seed, raw, 5, level) })), // Changed with Joe's approval, 26 Nov 2026
+  // Tempo beatRev 13 (D5: the lanes ladder) at every level on its proved deals.
+  ...(["normal", "easy", "hard", "expert"] as const).map((lv) => ({ key: `beat/lanes-${lv}`, game: beatGameFor(BEAT_REV_LANES, lv), checkpoint: beatCheckpoint, mode: "events" as const, rate: 200, encode: encodeBeatRun, replay: (seed: number, raw: string) => replayBeatRun(seed, raw, BEAT_REV_LANES, lv === "normal" ? null : lv), seedFor: (n: number) => BEAT_DEAL_V13[lv][n % BEAT_DEAL_V13[lv].length]! })), // Changed with Joe's approval, 26 Nov 2026
+  // Blockzone blockfallRev 3 (D5: the levels) on their proved deals.
+  ...(["easy", "hard", "expert"] as const).map((lv) => ({ key: `blockfall/levels-${lv}`, game: blockfallGameFor(BLOCKFALL_REV_LEVELS, lv), checkpoint: bfCheckpoint, mode: "events" as const, rate: 120, encode: encodeBlockfallRun, replay: (seed: number, raw: string) => replayBlockfallRun(seed, raw, BLOCKFALL_REV_LEVELS, lv), seedFor: (n: number) => BLOCKFALL_LEVEL_DEALS[lv][n % BLOCKFALL_LEVEL_DEALS[lv].length]! })), // Changed with Joe's approval, 26 Nov 2026
+  // Wavefront wavRev 16 (D5: the wider formation) at its levels.
+  ...(["easy", "hard", "expert"] as const).map((lv) => ({ key: `wavefront/wide-${lv}`, game: wavefrontGameFor(16, lv), checkpoint: wavCheckpoint, mode: "events" as const, rate: 300, encode: encodeWavefrontRun, replay: (seed: number, raw: string) => replayWavefrontRun(seed, raw, 16, lv) })), // Changed with Joe's approval, 26 Nov 2026
+  // Fission burstRev 14 (D5: the smaller atoms) at Hard and Expert.
+  ...(["hard", "expert"] as const).map((lv) => ({ key: `burst/small-${lv}`, game: burstGameFor(14, lv), checkpoint: burstCheckpoint, mode: "events" as const, rate: 120, encode: encodeBurstRun, replay: (seed: number, raw: string) => replayBurstRun(seed, raw, 14, lv) })), // Changed with Joe's approval, 26 Nov 2026
+  // Hover hoverRev 12 (D5, 23 Nov 2026: Normal's fitted lines and the gap ladder), at Normal and Expert on their proved
+  // deals; appended so every earlier entry keeps its stream.
+  { key: "hover/fit", game: hoverGameFor(12), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, 12), seedFor: (n: number) => hoverLevelDealSeed("normal", n) }, // Changed with Joe's approval, 26 Nov 2026
+  { key: "hover/fit-easy", game: hoverGameFor(12, "easy"), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, 12, "easy"), seedFor: (n: number) => hoverLevelDealSeed("easy", n) }, // Changed with Joe's approval, 26 Nov 2026
+  { key: "hover/fit-expert", game: hoverGameFor(12, "expert"), checkpoint: hoverCheckpoint, mode: "taps", rate: 60, encode: encodeHoverRun, replay: (seed: number, raw: string) => replayHoverRun(seed, raw, 12, "expert"), seedFor: (n: number) => hoverLevelDealSeed("expert", n) }, // Changed with Joe's approval, 26 Nov 2026
+  // Spacewalk crossRev 14 (D5, 23 Nov 2026: the traffic ladder from the first crossing), Hard and Expert on their proved
+  // deals; appended so every earlier entry keeps its stream.
+  { key: "cross/dense-hard", game: crossGameFor(14, "hard"), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, 14, "hard"), seedFor: (n: number) => crossLevelDealSeed("hard", n) }, // Changed with Joe's approval, 26 Nov 2026
+  { key: "cross/dense-expert", game: crossGameFor(14, "expert"), checkpoint: crossCheckpoint, mode: "events", rate: 60, encode: encodeCrossRun, replay: (seed: number, raw: string) => replayCrossRun(seed, raw, 14, "expert"), seedFor: (n: number) => crossLevelDealSeed("expert", n) }, // Changed with Joe's approval, 26 Nov 2026
+  // Meteor snakeRev 16 and Rally rallyRev 14 (D5: the ladders), at Normal and Expert. Changed with Joe's approval, 26 Nov 2026.
+  { key: "snake/ladder", game: snakeGameFor(16), checkpoint: snakeCheckpoint, mode: "events", rate: 60, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, 16) }, // Changed with Joe's approval, 26 Nov 2026
+  { key: "snake/ladder-expert", game: snakeGameFor(16, "expert"), checkpoint: snakeCheckpoint, mode: "events", rate: 60, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, 16, "expert") }, // Changed with Joe's approval, 26 Nov 2026
+  { key: "rally/ladder", game: rallyGameFor(14), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, 14) }, // Changed with Joe's approval, 26 Nov 2026
+  { key: "rally/ladder-expert", game: rallyGameFor(14, "expert"), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, 14, "expert") }, // Changed with Joe's approval, 26 Nov 2026
 ];
 
 /** golfRev 3's course for a self-replay seed: each slot's hole by a spread of the seed, the level seed mod 4. */
