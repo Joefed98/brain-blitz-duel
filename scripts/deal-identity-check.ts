@@ -164,7 +164,9 @@ tasks.push({
     // Changed with Joe's approval, 23 Nov 2026 (D6: pyramidPreSpeed22). D2's and D6's switches together (Joe, 23 Nov 2026:
     // the era count is shared and whichever merges later re-applies it), 61.
     // Changed with Joe's approval, 27 Nov 2026 (D6: matchupPreD6), 62.
-    ok(names.size === 66, `66 era switches (${names.size})`); // Changed with Joe's approval, 26 Nov 2026 (re-applied against main at the 27 Nov merge: D1's after D2's, D4's and D3's); D6's nine (23 and 27 Nov 2026) re-applied on top at D6's merge of main, 27 Nov 2026, 66.
+    // Changed with Joe's approval, 26 Nov 2026 (re-applied against main at the 27 Nov merge: D1's after D2's, D4's and D3's); D6's nine (23 and 27 Nov 2026) re-applied on top at D6's merge of main, 27 Nov 2026, 66.
+    // Changed with Joe's approval, 27 Nov 2026 (D6: balltrackPreD6, inkPreD6, minigolfPreD6), 69.
+    ok(names.size === 69, `69 era switches (${names.size})`);
   },
 });
 

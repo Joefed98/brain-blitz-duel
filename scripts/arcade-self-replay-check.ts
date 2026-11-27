@@ -221,6 +221,13 @@ import { SWING_BIG_DEAL } from "@/lib/duel/swingBigDeal.server";
 import { SWING_LEVEL_DEAL } from "@/lib/duel/swingLevelDeal.server";
 import { SWING_V13_BANK } from "@/lib/duel/swingBankV13.server";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
+// Changed with Joe's approval, 27 Nov 2026 (D6): the btRev 9, inkRev 16 and golfRev 4 entries at the end.
+import { BT_REV_D6 } from "@/lib/arcade/ballTrack";
+import { BT_V8_DEAL } from "@/lib/duel/ballTrackDealV8.server";
+import { btD6LevelDeal } from "@/lib/duel/ballTrackLevelsD6.server";
+import { INK_REV_D6 } from "@/lib/arcade/inkBridge";
+import { INK_HILLS_DEAL } from "@/lib/duel/inkHillsDeal.server";
+import { INK_HILLS_DEAL_EXPERT } from "@/lib/duel/inkHillsDealExpert.server";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const POSITIONAL = process.argv.slice(2).filter((a) => !a.startsWith("--"));
@@ -253,6 +260,8 @@ interface Game {
   gameFor?: (seed: number) => any;
   /** Picks a seed live rooms could actually be dealt (e.g. a bank entry); default random. */
   seedFor?: (n: number) => number;
+  /** Changed with Joe's approval, 27 Nov 2026 (D6): fewer runs than RUNS for an entry whose replays are slow (at most RUNS). */
+  runs?: number;
   /** The game's checkpoint interval in ticks, when it is not INTERVAL (the run's server replay checks at its own). */
   interval?: number;
 }
@@ -1266,6 +1275,43 @@ const GAMES: Game[] = [
   { key: "matchup/v14-expert", game: matchupD6GameFor("expert"), checkpoint: matchupCheckpoint, mode: "events", rate: 40, encode: encodeMatchupRun, replay: (seed: number, raw: string) => replayMatchupRun(seed, raw, MATCHUP_REV_D6, "expert") },
   { key: "tilt/v13-expert", game: tiltLevelGameV13("expert"), checkpoint: tiltCheckpoint, mode: "events", rate: 500, encode: encodeTiltRun, replay: (seed: number, raw: string) => replayTiltRun(seed, raw, TILT_REV_THREE, "expert"), seedFor: (n: number) => TILT_DEAL_LEVELS_V13.expert[n % TILT_DEAL_LEVELS_V13.expert.length]! },
   { key: "freekick/v7-expert", interval: FREEKICK_CHECKPOINT_INTERVAL, game: freekickGameFor(7, "expert"), checkpoint: freekickCheckpoint, mode: "events", rate: 20, encode: encodeFreekickRun, replay: (seed: number, raw: string) => replayFreekickRun(seed, raw, 7, "expert"), seedFor: (n: number) => freekickDealSeedV7(n, "expert") },
+
+  // Changed with Joe's approval, 27 Nov 2026 (D6): Ball Tracker btRev 9 at Normal (btRev 8's deal) and Expert (D6's five-colour courses), Rainbow Bridge
+  // inkRev 16 at Normal and Expert on their proved deals (Expert's replays are slow: 10 runs), and Crazy Golf golfRev 4 (golfRev 3's courses, the level seed
+  // mod 4), appended so every earlier entry keeps its stream.
+  {
+    key: "balltrack/v9",
+    game: makeBallTrackGame(BALL_TRACK_BANK_V7[BT_V8_DEAL[0]!]!.course, BT_REV_D6),
+    gameFor: (seed: number) => makeBallTrackGame(BALL_TRACK_BANK_V7[BT_V8_DEAL[seed % BT_V8_DEAL.length]!]!.course, BT_REV_D6),
+    checkpoint: btCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: (run: any) => encodeBallTrackRun(BALL_TRACK_BANK_V7[BT_V8_DEAL[run.seed % BT_V8_DEAL.length]!]!.course, run, BT_REV_D6),
+    replay: (seed: number, raw: string) => replayBallTrackRun(BALL_TRACK_BANK_V7[BT_V8_DEAL[seed % BT_V8_DEAL.length]!]!.course, seed, raw, BT_REV_D6),
+  },
+  {
+    key: "balltrack/v9-expert",
+    game: makeBallTrackGame(btD6LevelDeal("expert")[0]!, BT_REV_D6),
+    gameFor: (seed: number) => makeBallTrackGame(btD6LevelDeal("expert")[seed % btD6LevelDeal("expert").length]!, BT_REV_D6),
+    checkpoint: btCheckpoint,
+    mode: "events",
+    rate: 30,
+    encode: (run: any) => encodeBallTrackRun(btD6LevelDeal("expert")[run.seed % btD6LevelDeal("expert").length]!, run, BT_REV_D6),
+    replay: (seed: number, raw: string) => replayBallTrackRun(btD6LevelDeal("expert")[seed % btD6LevelDeal("expert").length]!, seed, raw, BT_REV_D6),
+  },
+  { key: "ink/d6", game: inkBridgeGameFor(INK_REV_D6), seedFor: (n: number) => INK_HILLS_DEAL[(n * 7) % INK_HILLS_DEAL.length]!, checkpoint: inkCheckpoint, mode: "events", rate: 400, encode: encodeInkBridgeRun, replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_D6) },
+  { key: "ink/d6-expert", runs: 10, game: inkBridgeGameFor(INK_REV_D6, "expert"), seedFor: (n: number) => INK_HILLS_DEAL_EXPERT[(n * 7) % INK_HILLS_DEAL_EXPERT.length]!, checkpoint: inkCheckpoint, mode: "events", rate: 400, encode: encodeInkBridgeRun, replay: (seed: number, raw: string) => replayInkBridgeRun(seed, raw, INK_REV_D6, "expert") },
+  {
+    key: "minigolf/v4",
+    game: minigolfGameFor(...mgV4(0)),
+    gameFor: (seed: number) => minigolfGameFor(...mgV4(seed)),
+    seedFor: (n: number) => n,
+    checkpoint: minigolfCheckpoint,
+    mode: "events",
+    rate: 40,
+    encode: encodeMinigolfRun,
+    replay: (seed: number, raw: string) => replayMinigolfRun(seed, raw, ...mgV4(seed)),
+  },
 ];
 
 /** golfRev 3's course for a self-replay seed: each slot's hole by a spread of the seed, the level seed mod 4. */
@@ -1273,6 +1319,12 @@ function mgV3(seed: number): [number[], number, { holes: number[]; level: (typeo
   const level = MG_LEVEL_NAMES[Math.abs(seed) % 4]!;
   const picks = MINIGOLF_HOLES_BANK.map((slot, i) => slot[(Math.abs(seed) * 7 + i * 31) % slot.length]!);
   return [picks.map((e) => e.pars[MG_LEVEL_NAMES.indexOf(level)]!), 3, { holes: picks.map((e) => e.id), level }];
+}
+
+/** golfRev 4's course for a self-replay seed: golfRev 3's (mgV3), stamped golfRev 4. Changed with Joe's approval, 27 Nov 2026 (D6). */
+function mgV4(seed: number): [number[], number, { holes: number[]; level: (typeof MG_LEVEL_NAMES)[number] }] {
+  const [pars, , course] = mgV3(seed);
+  return [pars, 4, course];
 }
 
 /** A random candidate event, often outside the declared range (a finger off the edge). */
@@ -1350,7 +1402,8 @@ for (const index of selected) {
   let maxEvents = 0;
   let failed = 0;
   let reason = "";
-  for (let run = 0; run < RUNS; run++) {
+  const runs = Math.min(RUNS, spec.runs ?? RUNS); // Changed with Joe's approval, 27 Nov 2026 (D6)
+  for (let run = 0; run < runs; run++) {
     const seed = spec.seedFor ? spec.seedFor(run) : between(1, 0x7ffffffe);
     const game = spec.gameFor ? spec.gameFor(seed) : spec.game;
     let state = spec.init ? spec.init(seed) : game.init(seed);
@@ -1408,7 +1461,7 @@ for (const index of selected) {
   }
   if (failed) failures += 1;
   console.log(
-    `#${String(index).padEnd(3)} ${spec.key.padEnd(9)} ${failed ? `FAIL ${failed}/${RUNS} — ${reason}` : `ok ${RUNS}/${RUNS}`} · max events ${maxEvents} · worst replay ${worstMs.toFixed(1)}ms · ${((performance.now() - entryStarted) / 1000).toFixed(1)} s`,
+    `#${String(index).padEnd(3)} ${spec.key.padEnd(9)} ${failed ? `FAIL ${failed}/${runs} — ${reason}` : `ok ${runs}/${runs}`} · max events ${maxEvents} · worst replay ${worstMs.toFixed(1)}ms · ${((performance.now() - entryStarted) / 1000).toFixed(1)} s`,
   );
 }
 

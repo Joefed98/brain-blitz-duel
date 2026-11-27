@@ -44,6 +44,10 @@ import { boostedOracle, replayedBtStd } from "./arcade-standard/balltrack";
 import { BT_LEVEL_COUNT, BT_LEVELS, btLevelSettings, readWitness, type BtLevel } from "./balltrack-level-deal";
 import { courseOf, legacyRun } from "./balltrack-levels-legacy-record";
 import { levelBands } from "./balltrack-level-bands";
+import { pinPreBalltrackD6 } from "../src/lib/duel/d6Normal";
+
+// Changed with Joe's approval, 27 Nov 2026 (D6): rooms deal btRev 9 and D6's level courses; this check was written for btRev 8 and its stage-3 levels, so it deals them (d6-strategy-levels-check proves btRev 9).
+pinPreBalltrackD6(true);
 
 const FULL = process.env.CHECKS_FULL === "1" || process.argv.includes("--full");
 let checks = 0;

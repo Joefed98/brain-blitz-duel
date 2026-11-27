@@ -89,6 +89,7 @@ import {
   makeBallTrackGame,
   BT_HOPPER_COL,
   BT_REV_RUSH,
+  BT_REV_D6,
   BT_STEP_TICKS,
   BT_V7_BALLS,
   BT_V7_BAND_CURVE,
@@ -157,7 +158,7 @@ ok(dealt("matchup").matchupRev === MATCHUP_REV_D6 && MATCHUP_REV_ICE2 === MATCHU
 {
   const bt = dealt("balltrack");
   // The arcade scoring standard (29 Oct 2026) deals btRev 8: btRev 7's play and bank, re-scored (arcade-standard-check).
-  ok(bt.btRev === BT_REV_RUSH + 1, "Ball Tracker: rooms deal btRev 8 (btRev 7's play on the scoring standard)");
+  ok(bt.btRev === BT_REV_D6 && BT_REV_D6 === BT_REV_RUSH + 2, "Ball Tracker: rooms deal btRev 9 (btRev 7's play on the scoring standard, D6's figures)"); // Changed with Joe's approval, 27 Nov 2026 (D6)
   ok((bt.course as any)?.rows === BT_V7_ROWS && (bt.course as any)?.balls.length === BT_V7_BALLS, "Ball Tracker: a 13-row, 36-marble course from the btRev 7 bank");
 }
 for (const type of ["bubble", "matchup", "balltrack"]) ok(roundMaxFor(type) === 200, `${type}: ROUND_MAX is 200`);

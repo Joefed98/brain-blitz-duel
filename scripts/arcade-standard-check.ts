@@ -94,13 +94,13 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "flip", field: "flipRev", rev: 13, batch: "C" },
   // Rainbow Bridge deals inkRev 14 since 3 Nov 2026 (inkRev 13's clovers, ink par and parts with a bigger coin, clovers and
   // birds, from a proved deal; ink-v14-check).
-  { type: "inkbridge", field: "inkRev", rev: 15, batch: "C" }, // inkRev 15 since the Strategy overhaul (15 Nov 2026), Joe's approval (routine consequence)
+  { type: "inkbridge", field: "inkRev", rev: 16, batch: "C" }, // Changed with Joe's approval, 27 Nov 2026 (D6): inkRev 16, inkRev 15's world on each level's own figures; inkRev 15 before it, since the Strategy overhaul (15 Nov 2026), Joe's approval (routine consequence)
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): Orbit deals orbitRev 15 (grace:
   // a slip respawns at the last planet caught after a 3 s hold; orbitRev 14's courses and parts; orbit-overhaul-check).
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): Orbit deals orbitRev 16 (bigger
   // planets on orbitRev 15's play, courses and parts; orbit-overhaul-check section 9).
   { type: "orbit", field: "orbitRev", rev: 16, batch: "C" },
-  { type: "balltrack", field: "btRev", rev: 8, batch: "C" },
+  { type: "balltrack", field: "btRev", rev: 9, batch: "C" }, // Changed with Joe's approval, 27 Nov 2026 (D6): btRev 9, btRev 8's play and deal on Normal's own figures
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Action overhaul): the live stamp is 18.
   { type: "swing", field: "swingRev", rev: 18, batch: "D" }, // swingRev 18 (15 Nov 2026): rev 17 on a 14 px body; swingRev 17 (3 Nov 2026): sliding hooks and the clean-swing streak; course 110 + pars 40 + gates 10 + streak 40
   // Cards & Board (30 Oct 2026): born on the standard (their first revision).
@@ -145,7 +145,7 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // The Sports group (30 Oct 2026): on the standard from their first stamp.
   // golfRev 3 (the Crazy Golf overhaul, 15 Nov 2026; golfRev 1 and 2 were on the standard too). Changed with Joe's
   // approval, 15 Nov 2026 (routine consequence of the Crazy Golf overhaul).
-  { type: "minigolf", field: "golfRev", rev: 3, batch: "Sports" },
+  { type: "minigolf", field: "golfRev", rev: 4, batch: "Sports" }, // Changed with Joe's approval, 27 Nov 2026 (D6): golfRev 4, golfRev 3's holes and play on each level's own figures
   // Changed with Joe's approval, 23 Nov 2026 (D6): poolRev 5, Speed from the fifth pot.
   { type: "pool", field: "poolRev", rev: 5, batch: "Sports" },
   // Curling deals curlRev 2 since 31 Oct 2026 (the start along the hog line, side brushing; the same parts) and

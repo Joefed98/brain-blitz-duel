@@ -46,6 +46,7 @@ import {
   INK_LEVELS,
   INK_REV_BIG,
   INK_REV_HILLS,
+  INK_REV_D6,
   INK_REV_CLOVER,
   INK_REV_STD,
   INK_REV_STRICT,
@@ -141,8 +142,8 @@ section("Rooms deal inkRev 14 from the proved deal; LIVE_BANDS, spec and help fo
   pinInkPreBig(was);
   ok(generateInkBridge().inkRev === INK_REV_BIG, "unpinned, rooms deal inkRev 14 again");
   pinInkPreHills(wasHills);
-  ok(generateInkBridge().inkRev === INK_REV_HILLS, "with inkRev 15's pin off, rooms deal inkRev 15 (the Strategy overhaul)");
-  ok(live.rev === INK_REV_HILLS && live.strictRev === INK_REV_STRICT && JSON.stringify(live.curve) === JSON.stringify(INK_V13_BAND_CURVE), "LIVE_BANDS lists inkRev 15 (inkRev 14's parts) on inkRev 13's straight line (12 a level), still against inkRev 8");
+  ok(generateInkBridge().inkRev === INK_REV_D6, "with inkRev 15's pin off, rooms deal inkRev 16 (D6: inkRev 15's world on each level's own figures)"); // Changed with Joe's approval, 27 Nov 2026 (D6)
+  ok(live.rev === INK_REV_D6 && live.strictRev === INK_REV_STRICT && JSON.stringify(live.curve) === JSON.stringify(INK_V13_BAND_CURVE), "LIVE_BANDS lists inkRev 16 (inkRev 14's parts) on inkRev 13's straight line (12 a level), still against inkRev 8"); // Changed with Joe's approval, 27 Nov 2026 (D6)
   ok(INK_V14_STD.field === "inkRev" && INK_V14_STD.rev === INK_REV_BIG && JSON.stringify(INK_V14_STD.parts) === JSON.stringify(INK_V13_STD.parts), "inkRev 14's spec is inkRev 13's parts (levels 120, ink par 30, trick shots 20, clovers 10, speed 20)");
   ok(roundMaxFor("inkbridge") === 200 && stdSpecMax(INK_V14_STD) === 200, "the parts total 200, the round maximum");
   const help = PUZZLE_INSTRUCTIONS.inkbridge;

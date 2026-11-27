@@ -62,7 +62,9 @@ export async function runSpecs(): Promise<RunSpec[]> {
   const mgEntry = (rev: number, seed: number) => (rev >= 2 ? MINIGOLF_BANK_V2 : MINIGOLF_BANK).find((e) => e.seed === seed)!;
   const aim = { dx: 0.6, dy: -0.8, power: 0.4, spinX: 0, spinY: 0 };
   const specs: RunSpec[] = [];
-  for (const rev of [1, Pool.POOL_REV]) {
+  // Changed with Joe's approval, 27 Nov 2026 (D6): Cue Ball, Apex, Free Cell, Summit and Five Hands pinned to the revisions their runs were recorded on (D6 moved
+  // the dealt stamps on: poolRev 5, racingRev 5, freecellRev 6, tripeaksRev 4, fiveHandsRev 4).
+  for (const rev of [1, Pool.POOL_REV_V4]) {
     const bank = rev >= 3 ? POOL_BANK_V3 : POOL_BANK;
     specs.push({
       game: "pool", rev, sim: () => Pool.poolGameFor(rev), seedFor: (n) => bank[n % bank.length]!, checkpoint: Pool.poolCheckpoint, interval: SPORTS, rate: 40,
@@ -90,7 +92,7 @@ export async function runSpecs(): Promise<RunSpec[]> {
   }
   // racingRev 3 stays listed by name (its recorded runs replay) now that the Sports overhaul deals racingRev 4
   // (changed 15 Nov 2026, routine consequence of the Sports overhaul); the dealt stamp plays on its own deal.
-  for (const rev of [...new Set([1, 3, Ra.RACING_REV_DEALT])]) {
+  for (const rev of [...new Set([1, 3, Ra.RACING_REV_4])]) {
     const deal = rev >= 4 ? RACING_DEAL_V4 : rev >= 3 ? RACING_DEAL_V3 : RACING_DEAL;
     specs.push({
       game: "racing", rev, sim: () => Ra.racingGameFor(rev), seedFor: (n) => deal[n % deal.length]!, checkpoint: Ra.racingCheckpoint, interval: Ra.RACING_CHECKPOINT_INTERVAL, rate: 120,
@@ -111,7 +113,7 @@ export async function runSpecs(): Promise<RunSpec[]> {
       draw: (ctx, s, look) => FkR.withFreekickLook(look, () => art.draw(ctx, s, { width: Fk.FREEKICK_WORLD_W, height: Fk.FREEKICK_WORLD_H })),
     });
   }
-  for (const rev of [1, Fc.FC_REV]) {
+  for (const rev of [1, Fc.FC_REV_SHARE]) {
     const art = FcR.freecellArtGame(undefined, rev);
     specs.push({
       game: "freecell", rev, sim: () => Fc.freecellGameFor(rev), seedFor: (n) => (n * 37) % 300, checkpoint: Fc.fcCheckpoint, interval: Fc.FC_CHECKPOINT_INTERVAL, rate: 120,
@@ -139,7 +141,7 @@ export async function runSpecs(): Promise<RunSpec[]> {
   const PyR = await import("../../src/lib/arcade/cards/pyramid.renderer");
   const Fh = await import("../../src/lib/arcade/cards/fiveHands");
   const FhR = await import("../../src/lib/arcade/cards/fiveHands.renderer");
-  for (const rev of [1, Tp.TP_REV]) {
+  for (const rev of [1, Tp.TP_REV_SHARE]) {
     const art = TpR.tripeaksArtGame(undefined, rev);
     specs.push({
       game: "tripeaks", rev, sim: () => Tp.tripeaksGameFor(rev), seedFor: (n) => (n * 37) % 300, checkpoint: Tp.tpCheckpoint, interval: Tp.TP_CHECKPOINT_INTERVAL, rate: 120,
@@ -158,7 +160,7 @@ export async function runSpecs(): Promise<RunSpec[]> {
       draw: (ctx, s, look) => CardsR.withCardsLook(look, () => art.draw(ctx, s, { width: PyR.PY_WORLD_W, height: PyR.PY_WORLD_H })),
     });
   }
-  for (const rev of [1, Fh.FH_REV]) {
+  for (const rev of [1, Fh.FH_REV_FLAT]) {
     const art = FhR.fiveHandsArtGame(undefined, rev);
     specs.push({
       game: "fivehands", rev, sim: () => Fh.fiveHandsGameFor(rev), seedFor: (n) => 1000 + n * 7919, checkpoint: Fh.fhCheckpoint, interval: Fh.FH_CHECKPOINT_INTERVAL, rate: 60,

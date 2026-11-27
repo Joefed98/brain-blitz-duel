@@ -110,7 +110,7 @@ const FULL = process.env["CHECKS_FULL"] === "1";
 
 /* 2. The three circuits and the rev-4 deal. */
 {
-  ok(R.RACING_REV_DEALT === R.RACING_REV_4 && R.RACING_REV_4 === 4, "racingRev 4 is dealt");
+  ok(R.RACING_REV_DEALT === R.RACING_REV_5 && R.RACING_REV_4 === 4, "racingRev 5 is dealt (racingRev 4's circuits and play, D6's pace and sectors)"); // Changed with Joe's approval, 27 Nov 2026 (D6)
   ok(R.RACING_CIRCUITS.map((c) => c.name).join(",") === "Sunset Park,Harbour Run,Ridge Loop", "three named circuits");
   const curves = [0, 1, 2].map((c) => Array.from(R.racingCircuit(c).curve).join(","));
   ok(new Set(curves).size === 3, "the three circuits are three different layouts");
@@ -125,9 +125,9 @@ const FULL = process.env["CHECKS_FULL"] === "1";
   let dealt = true;
   for (let i = 0; i < 40; i++) {
     const p = generateRacing();
-    if (p.racingRev !== 4 || !RACING_DEAL_V4.includes(p.seed)) dealt = false;
+    if (p.racingRev !== R.RACING_REV_5 || !RACING_DEAL_V4.includes(p.seed)) dealt = false; // Changed with Joe's approval, 27 Nov 2026 (D6)
   }
-  ok(dealt, "rooms and practice deal racingRev 4 from the rev-4 deal");
+  ok(dealt, "rooms and practice deal racingRev 5 from the rev-4 deal");
   ok([0, 1, 299, 300, 12345].every((r) => RACING_DEAL_V4.includes(racingDealSeedV4(r))), "racingDealSeedV4 picks from the rev-4 deal");
   const list = FULL ? RACING_DEAL_V4 : [...[0, 1, 2].map((c) => RACING_DEAL_V4.find((s) => R.racingCircuitOf(s) === c)!), ...RACING_DEAL_V4.filter((_, i) => i % 25 === 7)];
   let proved = 0;

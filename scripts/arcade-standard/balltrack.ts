@@ -8,7 +8,7 @@
  * marbles, 34 combo landings and 36 boosted marbles; its log goes through the server's encode + replay on btRev 8. Plus
  * one built final state with every item taken. balltrack-deal-check runs the same oracle on every course btRev 8 deals.
  */
-import { btBallsOf, btCheckpoint, btMovesOf, btNext, btLayout, btRotatable, btTraysAt, makeBallTrackGame, BT_CHECKPOINT_INTERVAL, BT_HOPPER_COL, BT_K_ROTATE, BT_REV_RUSH, BT_REV_STD, BT_STD, BT_V7_BALLS, BT_V7_GOLDS, type BtCourse, type BtState } from "../../src/lib/arcade/ballTrack";
+import { btBallsOf, btCheckpoint, btMovesOf, btNext, btLayout, btRotatable, btTraysAt, makeBallTrackGame, btD6SpecOf, BT_CHECKPOINT_INTERVAL, BT_D6_NORMAL_FULL, BT_HOPPER_COL, BT_K_ROTATE, BT_REV_D6, BT_REV_RUSH, BT_REV_STD, BT_STD, BT_V7_BALLS, BT_V7_GOLDS, type BtCourse, type BtState } from "../../src/lib/arcade/ballTrack";
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
 import { encodeBallTrackRun, replayBallTrackRun } from "../../src/lib/duel/ballTrack";
 import { BALL_TRACK_BANK_V7 } from "../../src/lib/duel/ballTrackBankV7.server";
@@ -198,9 +198,9 @@ export function boostedOracle(course: BtCourse): ArcadeInputEvent[] {
   return run.log;
 }
 
-/** Plays `events` on btRev 8, then sends the log through the server's encode + replay; returns the replayed state and score. */
-export function replayedBtStd(course: BtCourse, seed: number, events: ArcadeInputEvent[]): { state: BtState; score: number; flagged: boolean } {
-  const game = makeBallTrackGame(course, BT_REV_STD);
+/** Plays `events` on btRev 8 (or `rev`), then sends the log through the server's encode + replay; returns the replayed state and score. */
+export function replayedBtStd(course: BtCourse, seed: number, events: ArcadeInputEvent[], rev: number = BT_REV_STD /* Changed with Joe's approval, 27 Nov 2026 (D6) */): { state: BtState; score: number; flagged: boolean } {
+  const game = makeBallTrackGame(course, rev);
   const byTick = new Map(events.map((e) => [e.t, e]));
   let s = game.init(seed);
   const checkpoints = [];
@@ -208,30 +208,33 @@ export function replayedBtStd(course: BtCourse, seed: number, events: ArcadeInpu
     s = game.step(s, byTick.get(s.tick + 1) ?? null);
     if (s.tick % BT_CHECKPOINT_INTERVAL === 0) checkpoints.push(btCheckpoint(s));
   }
-  const raw = encodeBallTrackRun(course, { seed, claimedScore: game.score(s), events, endTick: s.tick, checkpoints }, BT_REV_STD);
-  const result = replayBallTrackRun(course, seed, raw, BT_REV_STD);
+  const raw = encodeBallTrackRun(course, { seed, claimedScore: game.score(s), events, endTick: s.tick, checkpoints }, rev);
+  const result = replayBallTrackRun(course, seed, raw, rev);
   return { state: result.state, score: result.score, flagged: Boolean(result.flagged) };
 }
+
+/** Changed with Joe's approval, 27 Nov 2026 (D6): btRev 9, btRev 8's play and deal with each part full at Normal's own figure (BT_D6_NORMAL_FULL). */
+const BT_D6_SPEC = btD6SpecOf(BT_D6_NORMAL_FULL);
 
 export const entry: StdEntry = {
   type: "balltrack",
   field: "btRev",
-  rev: BT_REV_STD,
-  before: BT_REV_RUSH,
-  parts: BT_STD.parts,
-  spec: BT_STD,
+  rev: BT_REV_D6,
+  before: BT_REV_STD,
+  parts: BT_D6_SPEC.parts,
+  spec: BT_D6_SPEC,
   perfect: () => {
     const runs: StdRun[] = [];
     // The first courses btRev 8 deals on which the boosted oracle boosts every marble home (two replayed runs).
     for (const i of BT_V8_DEAL) {
       if (runs.length >= 2) break;
       const course = BALL_TRACK_BANK_V7[i]!.course;
-      const r = replayedBtStd(course, i + 1, boostedOracle(course));
+      const r = replayedBtStd(course, i + 1, boostedOracle(course), BT_REV_D6);
       if (r.state.home !== BT_V7_BALLS || r.state.boosts !== BT_V7_BALLS || r.flagged) continue;
       runs.push({ label: `bank course ${i}: the boosted oracle, ${r.state.home} home, ${r.state.golds} gold, ${r.state.combos} combos, ${r.state.boosts} boosted (server replay)`, score: r.score });
     }
     // A built final state: every marble home, every gold, 20+ combos, every marble boosted.
-    const game = makeBallTrackGame(BALL_TRACK_BANK_V7[0]!.course, BT_REV_STD);
+    const game = makeBallTrackGame(BALL_TRACK_BANK_V7[0]!.course, BT_REV_D6);
     const s0 = game.init(1);
     runs.push({ label: "a built state with every part full", score: game.score({ ...s0, acted: 1, home: BT_V7_BALLS, golds: BT_V7_GOLDS, combos: BT_V7_BALLS - 2, boosts: BT_V7_BALLS }) });
     return runs;
@@ -241,8 +244,8 @@ export const entry: StdEntry = {
     // which would only add; and a built state with an input and nothing home.
     const course = BALL_TRACK_BANK_V7[0]!.course;
     const cell = btRotatable(course)[0]!;
-    const one = replayedBtStd(course, 1, [{ k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0, t: 1 }]);
-    const game = makeBallTrackGame(course, BT_REV_STD);
+    const one = replayedBtStd(course, 1, [{ k: BT_K_ROTATE, a: cell, b: 0, c: 0, d: 0, t: 1 }], BT_REV_D6);
+    const game = makeBallTrackGame(course, BT_REV_D6);
     return [
       { label: `one tap (server replay: ${one.state.home} home)`, score: one.score },
       { label: "a built state with an input and nothing home", score: game.score({ ...game.init(1), acted: 1 }) },
@@ -250,7 +253,7 @@ export const entry: StdEntry = {
   },
   idle: () => {
     const course = BALL_TRACK_BANK_V7[0]!.course;
-    return [{ label: "no input (server replay)", score: replayedBtStd(course, 1, []).score }];
+    return [{ label: "no input (server replay)", score: replayedBtStd(course, 1, [], BT_REV_D6).score }];
   },
   help: { terms: ["Marbles home", "Gold marbles", "Combos", "Boosted marbles", "from the third in a row"] },
 };
