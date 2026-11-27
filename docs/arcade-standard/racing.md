@@ -488,6 +488,9 @@ a later scoring session (Joe, 27 Nov 2026). What the checks prove is that every 
 - **The lever:** the road's width: 130 / 100 (Normal) / 85 / 72 % of Normal's.
 - **Average player, Easy / Normal / Hard / Expert:** 147 / 130 / 82 / 58.
 - **The elite at 200:** 73 / 40 / 31 / 27 %.
+- **The level lines:** a racingRev 5 round at a level shows D6's own line on the intro and the "?" help (`RACING_D6_NOTES`
+  in `src/lib/levels/levelNotes.ts`: the narrower road, the gravel keeping 80 / 50 / 35 % of your speed); a racingRev 4
+  round keeps its own (`LEVEL_NOTES.racing`).
 
 Every older stamp, and every level round dealt before D6 (the era pin `d6PreLevels`), replays and scores exactly as
 before. The level settings live in the sim and are mirrored in `src/lib/levels/gameLevels.ts`; D6's checks
