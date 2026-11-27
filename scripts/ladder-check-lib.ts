@@ -10,7 +10,7 @@ import { setDealPin, type DealPin } from "../src/lib/duel/dealEra";
 import type { PuzzleData, PuzzleType } from "../src/lib/duel/types";
 import type { Level } from "../src/lib/levels/levels";
 import { GAME_LEVELS, gameLevelSettings } from "../src/lib/levels/gameLevels";
-import { ladderFixtureVerdicts, replaySample } from "./d5-ladder-lib";
+import { replaySample } from "./d5-ladder-lib";
 import { replayLegacy } from "./ladder-legacy-lib";
 import { checkWitnesses, DEAL_LEVELS, keptOf, levelPuzzle, type LevelDealPlan } from "./ladder-deal-lib";
 import { dealAt } from "./level-tune";
@@ -150,9 +150,10 @@ export async function pictureSection(type: string, Picture: (p: { level: Level; 
   ok(seen.size === DEAL_LEVELS.length * 2, `${type}: every level and size draws its own picture (${seen.size} different)`);
 }
 
-/** 5. The recorded ladder (96 deals a level): Joe's ladder test, and a live re-play sample. */
+/** 5. The recorded ladder (96 deals a level): reported as measured (no targets), and a live re-play sample. */
 export async function ladderSection(type: PuzzleType): Promise<void> {
-  section(`5. The recorded ladder (scripts/fixtures/d5-ladder-${type}.json.gz): Joe's ladder test, and a live sample`);
-  for (const [cond, label] of await ladderFixtureVerdicts(type)) ok(cond, label);
+  section(`5. The recorded ladder (scripts/fixtures/d5-ladder-${type}.json.gz): a live sample re-plays it`);
+  // The recorded 96-deal figures are reported, not targets (Joe, 27 Nov 2026: sessions don't decide difficulty), so this
+  // check no longer holds them to the ladder test; it re-plays a sample to show the figures are today's game.
   for (const [cond, label] of await replaySample(type, 2)) ok(cond, label);
 }

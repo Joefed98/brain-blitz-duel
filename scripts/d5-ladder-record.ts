@@ -1,8 +1,8 @@
 /**
  * Records a game's D5 ladder (a fixture, 23 Nov 2026): the average player and the realistic elite under the human limits
  * (scripts/d5-ladder-lib.ts) on `deals` deals at every level (Joe: at least 96 a level), each run's deal index and the
- * server's score. A game's ladder check reads it through `ladderFixtureVerdicts` (the ladder test on the recorded table)
- * and re-plays a sample live (`replaySample`), so the fixture is proved to be today's code, not a stale table.
+ * server's score. The figures are reported, not targets (Joe, 27 Nov 2026); a game's ladder check
+ * re-plays a sample live (`replaySample`), so the fixture is proved to be today's code, not a stale table.
  *
  *   bun scripts/d5-ladder-record.ts <game…> [--deals=96] [--from=0]     (writes scripts/fixtures/d5-ladder-<game>.json.gz)
  */

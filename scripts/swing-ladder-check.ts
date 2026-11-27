@@ -23,8 +23,8 @@
  *     player's log) scores exactly 200 through the server's grade on the puzzle the level deals (a sample a level; all
  *     with CHECKS_FULL=1), and the proof player plays an Expert course again to exactly its stored witness (every dealt
  *     course at every level with CHECKS_FULL=1).
- *  5. The ladder (Joe's test, scripts/d5-ladder-lib.ts): the recorded table (scripts/fixtures/d5-ladder-swing.json.gz,
- *     `bun scripts/d5-ladder-record.ts swing --deals=96`) passes ladderFixtureVerdicts, and a sample of it re-plays today
+ *  5. The ladder (scripts/d5-ladder-lib.ts): the recorded table (scripts/fixtures/d5-ladder-swing.json.gz,
+ *     `bun scripts/d5-ladder-record.ts swing --deals=96`) is reported as measured (no targets, Joe 27 Nov 2026), and a sample of it re-plays today
  *     exactly as recorded (replaySample).
  *  6. King of the swingers (Expert's challenge, "Get 70 % of the way on Expert") is met on every sampled Expert witness;
  *     the lever picture draws every level from the registry's rows with design tokens only.
@@ -52,7 +52,7 @@ import type { PuzzleData } from "../src/lib/duel/types";
 import { gameLevelSettings } from "../src/lib/levels/gameLevels";
 import { puzzleLevel, type Level } from "../src/lib/levels/levels";
 import { SwingPicture, swingWords } from "../src/lib/levels/pictures/retro-action/swing";
-import { ladderFixtureVerdicts, replaySample } from "./d5-ladder-lib";
+import { replaySample } from "./d5-ladder-lib";
 import { dealAt } from "./level-tune";
 import { SWING_LADDER_LEGACY, stepLog, unpackEvents, type LegacyDeal } from "./swing-ladder-legacy-record";
 import { SWING_LADDER_LEGACY_CATCH, type CatchRun } from "./swing-ladder-legacy-catch-record";
@@ -253,7 +253,8 @@ for (const level of SWING_LADDER_LEVELS) {
 lap("4");
 /* 5. The ladder. */
 {
-  for (const [cond, label] of await ladderFixtureVerdicts("swing")) ok(cond, `5a: ${label}`);
+  // The recorded 96-deal figures are reported, not targets (Joe, 27 Nov 2026: sessions don't decide difficulty), so this
+  // check no longer holds them to the ladder test; it re-plays a sample to show the figures are today's game.
   for (const [cond, label] of await replaySample("swing", 2)) ok(cond, `5b: ${label}`);
 }
 

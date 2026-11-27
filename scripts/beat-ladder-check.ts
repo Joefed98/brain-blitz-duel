@@ -18,7 +18,7 @@
  *     the deal file is what scripts/beat-lanes-deal.ts builds (CHECKS_FULL=1: rebuilt byte for byte); the flawless player
  *     held to the limits scores exactly 200 through the server replay on a sample of every level's seeds (all of them
  *     with CHECKS_FULL=1); the parts sum to 200 at every level.
- *  6. The ladder: Joe's ladder test on the recorded 288-deal ladder (scripts/fixtures/d5-ladder-beat.json.gz,
+ *  6. The ladder: the recorded 288-deal ladder (scripts/fixtures/d5-ladder-beat.json.gz,
  *     `bun scripts/d5-ladder-record.ts beat --deals=288`), and a sample of it re-played live scoring as recorded.
  *  7. Lanes on screen: with the real renderer, a tap on each drawn lane at three, five and six lanes lands in that lane
  *     through the phone's mapping (beatLaneAtOf) and 3 px past its drawn edge does not; the lever picture draws the
@@ -67,7 +67,7 @@ const { createElement } = await import("react");
 const { BEAT_LADDER_LEGACY, beatFinalCheckpoint, stableExtra } = await import("./beat-ladder-legacy-record");
 const { beatTwoThumbs } = await import("./beat-thumbs");
 const { beatPuzzleV13, beatProof, BEAT_DEAL_V13_SIZE } = await import("./beat-lanes-deal");
-const { ladderFixtureVerdicts, replaySample } = await import("./d5-ladder-lib");
+const { replaySample } = await import("./d5-ladder-lib");
 const { dealAt } = await import("./level-tune");
 
 import type { PuzzleData } from "../src/lib/duel/types";
@@ -262,7 +262,8 @@ section("5. The proof: two thumbs, the deal file, 200 through the server replay"
 
 section("6. The ladder (288 deals a level, recorded) and a live re-play of it");
 {
-  for (const [cond, label] of await ladderFixtureVerdicts("beat")) ok(cond, label);
+  // The recorded 96-deal figures are reported, not targets (Joe, 27 Nov 2026: sessions don't decide difficulty), so this
+  // check no longer holds them to the ladder test; it re-plays a sample to show the figures are today's game.
   for (const [cond, label] of await replaySample("beat", 2)) ok(cond, label);
 }
 

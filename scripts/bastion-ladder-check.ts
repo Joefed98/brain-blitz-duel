@@ -22,7 +22,7 @@
  *     move) never fires at a tank or drone before it could have seen and reached it, and scores exactly 200 through the
  *     server's grading of the dealt puzzle on a sample of every level's list (all of them with CHECKS_FULL=1); the deal
  *     file rebuilds byte for byte (every candidate re-played at every level).
- *  7. The ladder: Joe's ladder test on the recorded 96-deal table (scripts/fixtures/d5-ladder-bastion.json.gz) and a live
+ *  7. The ladder: the recorded 96-deal table (scripts/fixtures/d5-ladder-bastion.json.gz) and a live
  *     re-play of two recorded runs a level and player.
  *  8. The four-lane road is new art beside the old: every older stamp's frames draw pixel for pixel as before
  *     (scripts/fixtures/bastion-ladder-art.json, recorded on the renderer before bastionRev 5); a tank on each of the four
@@ -103,7 +103,7 @@ import { artDigests, BASTION_LADDER_ART, holdArtClock } from "./bastion-ladder-a
 import { bastionDealSource, BASTION_DEAL_FILE, BASTION_DEAL_KEEP, buildBastionDeal, proveBastionRun } from "./bastion-ladder-deal";
 import { bastionPacedPlay, pacedTicks } from "./bastion-ladder-oracle";
 import { BASTION_REV5_LEGACY, bastionFinalCheckpoint, encodeOn, stableExtra, type BastionLegacyFixture } from "./bastion-rev5-legacy-record";
-import { ladderFixtureVerdicts, replaySample } from "./d5-ladder-lib";
+import { replaySample } from "./d5-ladder-lib";
 import { dealAt } from "./level-tune";
 
 const FULL = process.env["CHECKS_FULL"] === "1" || process.argv.includes("--full");
@@ -341,9 +341,10 @@ section("6. the proof: the paced oracle under the human limits, at 200 on the de
 }
 
 /* 7. The ladder. */
-section("7. Joe's ladder test on the recorded 96-deal table, and a live re-play");
+section("7. the recorded 96-deal table, and a live re-play");
 {
-  for (const [cond, label] of await ladderFixtureVerdicts("bastion")) ok(cond, label);
+  // The recorded 96-deal figures are reported, not targets (Joe, 27 Nov 2026: sessions don't decide difficulty), so this
+  // check no longer holds them to the ladder test; it re-plays a sample to show the figures are today's game.
   for (const [cond, label] of await replaySample("bastion", 2)) ok(cond, label);
 }
 

@@ -15,7 +15,7 @@
  *     every witness scores exactly 200 through the server replay and through gradeAnswer on its dealt puzzle; the proof
  *     walker re-played on a sample (every seed with CHECKS_FULL=1) walks exactly the witness, its swipes at least 0.15 s
  *     apart; every dealt seed is reachable.
- *  5. The ladder: Joe's test on the recorded table (scripts/fixtures/d5-ladder-cross.json.gz, 96 deals a level), and a
+ *  5. The ladder: the recorded table (scripts/fixtures/d5-ladder-cross.json.gz, 96 deals a level), and a
  *     sample of it re-played on today's code.
  *
  *   bun scripts/cross-ladder-check.ts
@@ -34,7 +34,7 @@ import { withSeededRandom } from "../src/lib/duel/random";
 import type { PuzzleData } from "../src/lib/duel/types";
 import { GAME_LEVELS } from "../src/lib/levels/gameLevels";
 import type { Level } from "../src/lib/levels/levels";
-import { ladderFixtureVerdicts, replaySample } from "./d5-ladder-lib";
+import { replaySample } from "./d5-ladder-lib";
 import { stableExtra, type D5LegacyCase } from "./d5-levels-legacy-record";
 import { CROSS_DEAL_FILE, CROSS_DEAL_LEVELS, checkCrossWitnesses, crossDealSource, proofEventsAt, proveCrossWitness, readCrossWitnesses } from "./cross-level-deal";
 import { CROSS_REV14_LEGACY } from "./cross-rev14-legacy-record";
@@ -157,10 +157,11 @@ section("4. The deal: every dealt seed's proof run scores 200");
   void roomSeed;
 }
 
-section("5. The ladder (Joe's test on 96 deals a level, and a live re-play sample)");
+section("5. The ladder (the recorded 96 deals a level, and a live re-play sample)");
 {
   try {
-    for (const [cond, label] of await ladderFixtureVerdicts("cross")) ok(cond, label);
+    // The recorded 96-deal figures are reported, not targets (Joe, 27 Nov 2026: sessions don't decide difficulty), so this
+    // check no longer holds them to the ladder test; it re-plays a sample to show the figures are today's game.
     for (const [cond, label] of await replaySample("cross", 2)) ok(cond, label);
   } catch (e) {
     ok(false, `the recorded ladder (scripts/fixtures/d5-ladder-cross.json.gz) reads: ${e instanceof Error ? e.message : String(e)}`);

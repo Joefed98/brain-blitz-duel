@@ -10,7 +10,7 @@
  *   3. The level registry lists SNAKE_LEVELS_V16, the table the sim reads.
  *   4. The proved deals rebuild from their witnesses, which replay to exactly 200 (a tenth; all with CHECKS_FULL=1) and
  *      keep the human limits (swipes at least 0.15 s apart); real deals come from each level's own list.
- *   5. The recorded ladder (96 deals a level) passes Joe's ladder test, and a live sample re-plays as recorded.
+ *   5. The recorded ladder (96 deals a level), reported as measured (no targets, Joe 27 Nov 2026), and a live sample re-plays as recorded.
  *   6. The rules: Normal plays as snakeRev 15 tick for tick and scores on the lowered lines; Easy has no rocks and no
  *      shower; Hard and Expert start with their rocks down (never touching a star, gold star, lane, mouth, the shower or
  *      another rock, clear of the comet's way out) and drop more on the clock whatever the comet's length, up to the

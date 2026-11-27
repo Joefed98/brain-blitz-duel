@@ -16,7 +16,7 @@
  *     under HUMAN_LIMITS, its taps at least 0.15 s apart) that scores exactly 200 through the server replay; a sample of
  *     the witnesses is re-played here and is exactly that bot's run. CHECKS_FULL=1: every witness, and
  *     src/lib/duel/flipLadderDeals.server.ts rebuilds byte for byte (scripts/flip-ladder-deal.ts).
- *  5. Joe's ladder test on the recorded ladder (scripts/fixtures/d5-ladder-flip.json.gz, 96 deals a level, both players),
+ *  5. the recorded ladder (scripts/fixtures/d5-ladder-flip.json.gz, 96 deals a level, both players),
  *     and the table is today's game (two runs a level and player re-played live score exactly as recorded).
  */
 import { readFileSync } from "node:fs";
@@ -51,7 +51,7 @@ import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import type { PuzzleData } from "../src/lib/duel/types";
 import { gameLevelSettings, levelsOf } from "../src/lib/levels/gameLevels";
 import { MAX_ROUND_CLOCK_MS, puzzleLevel } from "../src/lib/levels/levels";
-import { ladderFixtureVerdicts, replaySample } from "./d5-ladder-lib";
+import { replaySample } from "./d5-ladder-lib";
 import { dealAt } from "./level-tune";
 import { FLIP_LADDER_LEGACY, flipFinalCheckpoint, stableFlipExtra, type FlipLegacyFixture } from "./flip-ladder-legacy-record";
 import { buildFlipLadderDeals, flipLadderDealSource, flipLadderPuzzle, FLIP_LADDER_CANDIDATES, FLIP_LADDER_DEAL_FILE, FLIP_LADDER_LEVELS, gradeFlipWitness, playFlipWitness, readLadderWitnesses } from "./flip-ladder-deal";
@@ -200,9 +200,10 @@ section("4. The proved deal");
   }
 }
 
-section("5. Joe's ladder test on the recorded ladder");
+section("5. the recorded ladder");
 {
-  for (const [cond, label] of await ladderFixtureVerdicts("flip")) ok(cond, label);
+  // The recorded 96-deal figures are reported, not targets (Joe, 27 Nov 2026: sessions don't decide difficulty), so this
+  // check no longer holds them to the ladder test; it re-plays a sample to show the figures are today's game.
   for (const [cond, label] of await replaySample("flip", 2)) ok(cond, label);
 }
 

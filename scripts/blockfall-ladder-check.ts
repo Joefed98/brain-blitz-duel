@@ -15,7 +15,7 @@
  *     server replay, its log keeping the limits, on a sample of every level's dealt seeds; with CHECKS_FULL=1 the deal
  *     file is rebuilt byte for byte (scripts/blockfall-level-deal.ts --check), which re-runs the oracle on every
  *     candidate, so every dealt seed is re-proved.
- *  5. The ladder: Joe's ladder test on the recorded 288-deal ladder (scripts/fixtures/d5-ladder-blockfall.json.gz,
+ *  5. The ladder: the recorded 288-deal ladder (scripts/fixtures/d5-ladder-blockfall.json.gz,
  *     `bun scripts/d5-ladder-record.ts blockfall --deals=288`), and a sample re-played live scoring as recorded.
  *  6. The lever picture draws the level's own gravity and previews.
  *
@@ -47,7 +47,7 @@ import { BlockfallPicture, blockfallWords } from "../src/lib/levels/pictures/ret
 import { BLOCKFALL_LADDER_LEGACY, blockfallFinalCheckpoint, stableExtra, type BlockfallLegacyFixture } from "./blockfall-ladder-legacy-record";
 import { BLOCKFALL_LEVEL_DEAL_SIZE, blockfallLevelProof } from "./blockfall-level-deal";
 import { hashSeed } from "./blockfall-deal";
-import { ladderFixtureVerdicts, replaySample } from "./d5-ladder-lib";
+import { replaySample } from "./d5-ladder-lib";
 import { dealAt } from "./level-tune";
 
 console.error = () => {};
@@ -180,7 +180,8 @@ section("4. The proof: the oracle held to the human limits, 200 through the serv
 
 section("5. The ladder (288 deals a level, recorded) and a live re-play of it");
 {
-  for (const [cond, label] of await ladderFixtureVerdicts("blockfall")) ok(cond, label);
+  // The recorded 96-deal figures are reported, not targets (Joe, 27 Nov 2026: sessions don't decide difficulty), so this
+  // check no longer holds them to the ladder test; it re-plays a sample to show the figures are today's game.
   for (const [cond, label] of await replaySample("blockfall", 2)) ok(cond, label);
 }
 

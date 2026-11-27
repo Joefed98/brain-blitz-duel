@@ -10,7 +10,7 @@
  *   3. The level registry lists RALLY_LEVELS_V14, the table the sim reads.
  *   4. The proved deals rebuild from their witnesses, which replay to exactly 200 (a tenth; all with CHECKS_FULL=1);
  *      real deals come from each level's own list.
- *   5. The recorded ladder (96 deals a level) passes Joe's ladder test, and a live sample re-plays as recorded.
+ *   5. The recorded ladder (96 deals a level), reported as measured (no targets, Joe 27 Nov 2026), and a live sample re-plays as recorded.
  *   6. The rules: Normal plays as rallyRev 13 tick for tick and scores on the lowered lines; each level's paddle,
  *      lives, ball cap and bumpers (on court from the first serve on Hard and Expert, none on Easy, drawn when they
  *      bounce); the parts sum to 200.

@@ -20,7 +20,7 @@
  *     human-limited flawless player's own log (a sample; all with CHECKS_FULL=1); wavefrontDealV16.server.ts is exactly
  *     what scripts/wavefront-wide-deal.ts builds from them; a dealt puzzle at each level scores its witness's 200 through
  *     gradeAnswer.
- *  6. Joe's ladder test on the recorded 96-deal ladder (scripts/fixtures/d5-ladder-wavefront.json.gz) all true, and a
+ *  6. the recorded 96-deal ladder (scripts/fixtures/d5-ladder-wavefront.json.gz) all true, and a
  *     sample of it re-played live scores exactly as recorded.
  *  7. The lever picture draws from the level's settings, at both sizes, with token colours only.
  *
@@ -44,7 +44,7 @@ import type { PuzzleData } from "../src/lib/duel/types";
 import { GAME_LEVELS } from "../src/lib/levels/gameLevels";
 import type { Level } from "../src/lib/levels/levels";
 import { WavefrontPicture, wavefrontWords } from "../src/lib/levels/pictures/retro-action/wavefront";
-import { ladderFixtureVerdicts, replaySample } from "./d5-ladder-lib";
+import { replaySample } from "./d5-ladder-lib";
 import { D5_LEVELS_LEGACY, stableExtra, type D5LegacyCase } from "./d5-levels-legacy-record";
 import { NORMAL_PLAY_LEGACY, playDigest, type NormalPlayRun } from "./d5-normal-play-legacy-record";
 import { checkWideWitnesses, humanWitnessLog, proveWideWitness, readWideWitnesses, WAV_WIDE_DEAL_FILE, WAV_WIDE_JITTERS, WAV_WIDE_LEVELS, wavWideDealSource } from "./wavefront-wide-deal";
@@ -248,9 +248,10 @@ const deal = (level: Level, seed: number) => withSeededRandom(seed, () => genera
   }
 }
 
-/* 6. Joe's ladder test on the recorded ladder, and a live sample of it. */
+/* 6. the recorded ladder, and a live sample of it. */
 {
-  for (const [cond, label] of await ladderFixtureVerdicts("wavefront")) ok(cond, label);
+  // The recorded 96-deal figures are reported, not targets (Joe, 27 Nov 2026: sessions don't decide difficulty), so this
+  // check no longer holds them to the ladder test; it re-plays a sample to show the figures are today's game.
   for (const [cond, label] of await replaySample("wavefront", 2)) ok(cond, label);
 }
 
@@ -275,4 +276,4 @@ if (failures.length) {
   console.log(`FAIL wavefront-ladder-check: ${failures.length} of ${checks} checks failed (${secs} s)`);
   process.exit(1);
 }
-console.log(`PASS wavefront-ladder-check: ${checks} checks (${secs} s) — Normal's play unchanged on its new lines; the levels' bolts, divers and lives as their table says; every level dealt only on seeds the human-limited flawless player takes to 200; Joe's ladder test passes on 96 deals a level`);
+console.log(`PASS wavefront-ladder-check: ${checks} checks (${secs} s) — Normal's play unchanged on its new lines; the levels' bolts, divers and lives as their table says; every level dealt only on seeds the human-limited flawless player takes to 200; the recorded 96-deal ladder re-plays`);

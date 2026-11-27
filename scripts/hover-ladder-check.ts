@@ -17,7 +17,7 @@
  *     every witness scores exactly 200 through the server replay (and through gradeAnswer on its dealt puzzle), and the
  *     proof player re-played on a sample (every seed with CHECKS_FULL=1) plays exactly the witness, taps at least 0.15 s
  *     apart; every dealt seed is reachable.
- *  6. The ladder: Joe's test on the recorded table (scripts/fixtures/d5-ladder-hover.json.gz, 96 deals a level), and a
+ *  6. The ladder: the recorded table (scripts/fixtures/d5-ladder-hover.json.gz, 96 deals a level), and a
  *     sample of it re-played on today's code.
  *
  *   bun scripts/hover-ladder-check.ts
@@ -59,7 +59,7 @@ import { withSeededRandom } from "../src/lib/duel/random";
 import type { PuzzleData } from "../src/lib/duel/types";
 import { GAME_LEVELS } from "../src/lib/levels/gameLevels";
 import type { Level } from "../src/lib/levels/levels";
-import { ladderFixtureVerdicts, replaySample } from "./d5-ladder-lib";
+import { replaySample } from "./d5-ladder-lib";
 import { stableExtra, type D5LegacyCase } from "./d5-levels-legacy-record";
 import { HOVER_DEAL_FILE, HOVER_DEAL_LEVELS, checkHoverWitnesses, hoverDealSource, proofTapsAt, readHoverWitnesses } from "./hover-level-deal";
 import { PROOF_LAG, PROOF_TAP_GAP } from "./hover-proof-player";
@@ -228,10 +228,11 @@ section("5. The deal: every dealt seed's proof run scores 200");
   }
 }
 
-section("6. The ladder (Joe's test on 96 deals a level, and a live re-play sample)");
+section("6. The ladder (the recorded 96 deals a level, and a live re-play sample)");
 {
   try {
-    for (const [cond, label] of await ladderFixtureVerdicts("hover")) ok(cond, label);
+    // The recorded 96-deal figures are reported, not targets (Joe, 27 Nov 2026: sessions don't decide difficulty), so this
+    // check no longer holds them to the ladder test; it re-plays a sample to show the figures are today's game.
     for (const [cond, label] of await replaySample("hover", 2)) ok(cond, label);
   } catch (e) {
     ok(false, `the recorded ladder (scripts/fixtures/d5-ladder-hover.json.gz) reads: ${e instanceof Error ? e.message : String(e)}`);

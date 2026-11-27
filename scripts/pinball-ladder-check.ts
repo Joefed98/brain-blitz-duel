@@ -17,7 +17,7 @@
  *  5. The proof: the deal file rebuilds from its witnesses byte for byte, every dealt seed has one, and every witness (a
  *     sample at default depth, all with CHECKS_FULL=1) scores exactly 200 through the server's grade; on a sample the
  *     flawless player held to the human limits plays exactly the stored witness.
- *  6. The ladder: Joe's ladder test on the recorded 96-deal table (scripts/fixtures/d5-ladder-pinball.json.gz) and a live
+ *  6. The ladder: the recorded 96-deal table (scripts/fixtures/d5-ladder-pinball.json.gz) and a live
  *     re-play of two recorded runs a level and player.
  *
  *   bun scripts/pinball-ladder-check.ts            (CHECKS_FULL=1: every witness)
@@ -48,7 +48,7 @@ import type { Level } from "../src/lib/levels/levels";
 import { pinballPuzzle } from "../src/puzzles/pinball";
 import { digest, PINBALL_LADDER_LEGACY, stableExtra, type PinballLegacyRun } from "./pinball-ladder-legacy-record";
 import { checkPinballWitnesses, pinballDealSource, pinballProofLog, PIN_DEAL_FILE, PIN_DEAL_LEVELS, readPinballWitnesses } from "./pinball-level-witness";
-import { ladderFixtureVerdicts, replaySample } from "./d5-ladder-lib";
+import { replaySample } from "./d5-ladder-lib";
 
 const t0 = Date.now();
 let checks = 0;
@@ -240,9 +240,10 @@ section("The proof: every dealt seed's witness, the human-limited flawless playe
 }
 
 /* ============================== 6. The ladder ============================== */
-section("Joe's ladder test on the recorded 96-deal table, and a live re-play of it");
+section("the recorded 96-deal table, and a live re-play of it");
 {
-  for (const [cond, label] of await ladderFixtureVerdicts("pinball")) ok(cond, label);
+  // The recorded 96-deal figures are reported, not targets (Joe, 27 Nov 2026: sessions don't decide difficulty), so this
+  // check no longer holds them to the ladder test; it re-plays a sample to show the figures are today's game.
   for (const [cond, label] of await replaySample("pinball", 2)) ok(cond, label);
 }
 
