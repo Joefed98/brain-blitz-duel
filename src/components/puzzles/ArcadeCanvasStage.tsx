@@ -23,11 +23,12 @@ import { arcadeFeedback } from "@/lib/fx/arcade";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { useGameKeys } from "@/lib/desktop";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
-import { withHudInWorld } from "@/lib/arcade/hudPlacement";
+import { takeHud, withHudInWorld } from "@/lib/arcade/hudPlacement";
 import { ARENA_HUD_IN_PANEL, useArenaMount } from "@/lib/gameFrame/arena";
 import { useDesktopPresentation } from "@/lib/desktopPresentation";
 import { useLiveScore } from "@/components/puzzles/useLiveScore";
 import { liveScoreWanted, publishLiveScore } from "@/lib/rated/liveScore";
+import { clearLiveHud, offerLiveHud } from "@/lib/rated/liveHud";
 import { arcadeRunTiming } from "@/lib/arcade/runTiming";
 import { ControlSchemeContext } from "@/lib/gameControls";
 
@@ -369,6 +370,9 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
             }
           });
           ctx.restore();
+          // The value channel: on the arena, the values this draw's HUD painters noted go to the panel's store
+          // (src/lib/rated/liveHud.ts, at most 4 times a second and only when they changed). Display only.
+          if (arenaRef.current) offerLiveHud(takeHud(), performance.now());
         }
       }
       // The upright HUD strip beside a turned world (the desktop rotate mode only).
@@ -403,6 +407,7 @@ export function ArcadeCanvasStage<S, C>(props: Props<S, C>) {
     frame = arenaFrame(loop);
     return () => {
       cancelArenaFrame(loop, frame);
+      clearLiveHud();
       send();
       // A run cut short (the round's time-out took its draft, or the stage went away) is timed to here.
       sendTiming();
