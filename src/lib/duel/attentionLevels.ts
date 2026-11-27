@@ -227,12 +227,12 @@ export const ATTENTION_LEVEL_HELP: Readonly<Record<"symscan" | "spotdiff" | "cou
   pairmatch: `Easy ${PAIR_LEVELS_REV1.easy.pairs} pairs; Hard ${PAIR_LEVELS_REV1.hard.pairs} pairs, quicker flip-back, more shared shapes; Expert ${PAIR_LEVELS_REV1.expert.pairs} pairs, ${secs(PAIR_LEVELS_REV1.expert.timeLimitMs)}. Fewer misses keep more of the bonuses on Hard and Expert.`,
 };
 
-/** D3's "Levels:" help lines, from D3's tables: for the help once the game page's level text lands (P2). Unused until then. */
+/** D3's "Levels:" help lines, from D3's tables: the help's "Levels:" lines since P2's game-page level text (#471). */
 export const ATTENTION_LEVEL_HELP_D3: Readonly<Record<"symscan" | "spotdiff" | "countup" | "maze" | "bomb" | "pairmatch", string>> = {
   symscan: `Easy ${grids(SCAN_LEVELS.easy.grids)}, no look-alikes; Hard ${grids(SCAN_LEVELS.hard.grids)}, two targets from grid 2; Expert three ${SCAN_LEVELS.expert.grids[0]}×${SCAN_LEVELS.expert.grids[0]} grids, two targets on every grid. Every level 60 s.`,
   spotdiff: `Easy ${SPOT_LEVELS.easy.cols}×${SPOT_LEVELS.easy.rows}, ${SPOT_LEVELS.easy.differences} colour or shape changes a picture; Hard ${SPOT_LEVELS.hard.cols}×${SPOT_LEVELS.hard.rows}, ${SPOT_LEVELS.hard.differences} a picture, ${SPOT_LEVELS.hard.missLimit} misses; Expert ${SPOT_LEVELS.expert.differences} a picture, the lower picture mirrored, ${SPOT_LEVELS.expert.missLimit} misses, ${secs(SPOT_LEVELS.expert.timeLimitMs)}.`,
   countup: `Easy three small trays, one colour or one shape; Hard trays of ${TALLY_LEVELS.hard.trays[0]} or more, counts into the twenties; Expert four trays of ${TALLY_LEVELS.expert.trays[0]}, two colours, no marks, ${secs(TALLY_LEVELS.expert.timeLimitMs)}.`,
-  maze: `Easy ${MAZE_LEVELS.easy.cols}×${MAZE_LEVELS.easy.rows}; Hard ${MAZE_LEVELS.hard.cols}×${MAZE_LEVELS.hard.rows} with ${MAZE_LEVELS.hard.keys} gold keys to fetch before the exit opens, ${secs(MAZE_LEVELS.hard.timeLimitMs)}; Expert ${MAZE_LEVELS.expert.keys} keys, one in each corner, ${secs(MAZE_LEVELS.expert.timeLimitMs)}.`,
+  maze: `Easy ${MAZE_LEVELS.easy.cols}×${MAZE_LEVELS.easy.rows}; Hard ${MAZE_LEVELS.hard.cols}×${MAZE_LEVELS.hard.rows} with ${MAZE_LEVELS.hard.keys} gold keys to fetch before the exit opens, ${secs(MAZE_LEVELS.hard.timeLimitMs)}; Expert ${MAZE_LEVELS.expert.keys} keys, one in each quarter of the maze, ${secs(MAZE_LEVELS.expert.timeLimitMs)}.`,
   bomb: `Easy ${BOMB_LEVELS.easy.wires} wires, ${BOMB_LEVELS.easy.steps} steps; Hard ${BOMB_LEVELS.hard.clues[0]} clues to work out in ${secs(BOMB_LEVELS.hard.timeLimitMs)}; Expert the same in ${secs(BOMB_LEVELS.expert.timeLimitMs)}, and a wrong step sets it off at once (no Reset).`,
   pairmatch: `Easy ${PAIR_LEVELS.easy.pairs} pairs; Hard ${PAIR_LEVELS.hard.pairs} pairs; Expert ${PAIR_LEVELS.expert.pairs} pairs. On Hard and Expert, forgetting a card you have seen costs the bonuses.`,
 };
