@@ -147,8 +147,8 @@ export const entry: StdEntry = {
   rev: BURST_REV_SMALL, // Changed with Joe's approval, 23 Nov 2026 (D5's burstRev 14)
   parts: [
     { key: "core", label: "Atoms popped (every split piece counts), 140 × popped ÷ 87", max: BURST_V10_PARTS.core },
-    { key: "clear", label: "Wave clears: up to 7 a wave × 5, full within the quick time, 0 at three times it (burstRev 12 to 14; twice it on 10 and 11)", max: BURST_V10_PARTS.clear }, // Changed with Joe's approval, 23 Nov 2026 (D5's burstRev 14): the label
-    { key: "gold", label: "Golden atoms: 5 each × 5", max: BURST_V10_PARTS.gold },
+    { key: "clear", label: "Wave clears: up to 7 a wave × 5, full within the quick time, 0 at three times it (burstRev 12 to 14; twice it on 10 and 11); full at 19 of 35 on burstRev 14", max: BURST_V10_PARTS.clear }, // Changed with Joe's approval, 23 Nov 2026 (D5's burstRev 14): the label (Changed with Joe's approval, 26 Nov 2026: the label's last clause.)
+    { key: "gold", label: "Golden atoms: 12 for one, full at 2 of 5 (burstRev 14)", max: BURST_V10_PARTS.gold }, // Changed with Joe's approval, 26 Nov 2026 (labels only: D5's burstRev 14)
   ],
   /** The oracle's run on PERFECT_SEED, encoded as the phone does and scored by the server's replay. */
   perfect(): StdRun[] {

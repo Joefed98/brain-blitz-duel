@@ -354,10 +354,16 @@ for (const w of sample.slice(0, 3)) {
     ok(s0.big === 1 && s0.slide === 1 && s0.dark === 1 && S.swingAssaultCounts(s0).sectionTotal === 51, `dealt rev-18 course ${seed}: the bigger body on rev 17's rules, 51 stretches`);
     ok(S.swingBotKit.radiusOf(s0) === S.SWING_V18_RADIUS && S.swingBotKit.radiusOf({}) === 10 * 256, "the bots see each state's own body");
   }
-  for (let i = 0; i < 6; i++) {
-    const p = AS.generateSwing();
-    ok(p.swingRev === S.SWING_REV_BIG && SWING_BIG_DEAL.includes(p.seed), `rooms deal swingRev 18 from its deal (${p.swingRev}, ${p.seed})`);
-  }
+  // Changed with Joe's approval, 26 Nov 2026 (routine consequence of D5's swingRev 19): rooms now deal swingRev 19, so swingRev 18's deal is proved with the ladder pinned off.
+  const wasLadder = AS.pinSwingPreLadder(true); // Changed with Joe's approval, 26 Nov 2026
+  try { // Changed with Joe's approval, 26 Nov 2026
+    for (let i = 0; i < 6; i++) {
+      const p = AS.generateSwing();
+      ok(p.swingRev === S.SWING_REV_BIG && SWING_BIG_DEAL.includes(p.seed), `rooms deal swingRev 18 from its deal (${p.swingRev}, ${p.seed})`);
+    }
+  } finally { // Changed with Joe's approval, 26 Nov 2026
+    AS.pinSwingPreLadder(wasLadder); // Changed with Joe's approval, 26 Nov 2026
+  } // Changed with Joe's approval, 26 Nov 2026
   const was = AS.pinSwingPreBig(true);
   try {
     const { SWING_SLIDE_DEAL: slide } = await import("../src/lib/duel/swingSlideDeal.server");

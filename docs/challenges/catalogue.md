@@ -514,7 +514,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Fever pitch | Start all four fevers. | Classic | Full set | line “Fever” = 25 of 25 |  | `beat.fever-pitch` |
 | Golden ear | Hit every golden note dead on. | Classic | Max-out | from `beatRev` 13: `goldsHit` ≥ `golds`; before: line “Golden notes” = 15 of 15 |  | `beat.gold` |
-| Encore | Score 180 or more. | Classic | Big score | `score` ≥ 180 | ● | `beat.score180` |
+| Encore | Score 185 or more. | Classic | Big score | `score` ≥ 185 | ● | `beat.score180` |
 
 #### Blockzone (`blockfall`)
 
@@ -568,8 +568,8 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Pink pong | Strike pink pads five times. | Classic | Target | line “Pink pads” ≥ 15 |  | `rally.pink-pong` |
-| Target practice | Hit all six gold targets. | Classic | Full set | line “Gold targets” = 30 of 30 |  | `rally.target-practice` |
+| Pink pong | Strike pink pads five times. | Classic | Target | `targetHits` ≥ 5 |  | `rally.pink-pong` |
+| Target practice | Hit all 6 gold targets. | Classic | Full set | `bonusHits` ≥ 6 |  | `rally.target-practice` |
 | Rally king | Return 23 gold balls on Hard. | Hard | Target | `goldHits` ≥ 23 |  | `rally.rally-king` |
 
 #### Meteor (`snake`)
@@ -577,7 +577,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Star eater | Eat 36 stars; a gold star counts as two. | Classic | Target | `meteorParts.core` ≥ 120 |  | `snake.star-eater` |
-| Comet tail | Score 150 or more. | Classic | Big score | `score` ≥ 150 |  | `snake.comet-tail` |
+| Comet tail | Score 165 or more. | Classic | Big score | `score` ≥ 165 |  | `snake.comet-tail` |
 | Golden comet | Eat all seven gold stars. | Classic | Full set | `goldStars` ≥ `goldStarsDealt`, `goldStarsDealt` ≥ 7 |  | `snake.golden-comet` |
 
 #### Wavefront (`wavefront`)

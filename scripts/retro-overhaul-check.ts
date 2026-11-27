@@ -57,6 +57,8 @@ import {
   BEAT_REV_FLOOR,
   BEAT_REV_STD,
   BEAT_STD_SPEC_V12,
+  BEAT_REV_LANES, // Changed with Joe's approval, 26 Nov 2026 (D5's beatRev 13)
+  BEAT_STD_SPEC_V13, // Changed with Joe's approval, 26 Nov 2026 (D5's beatRev 13)
   type BeatState,
 } from "../src/lib/arcade/beat";
 import { bot as rallyBot } from "./arcade-skill-bands/bots/rally";
@@ -66,9 +68,11 @@ import {
   rallyTargetLeft,
   RALLY_HUD_H,
   RALLY_REV_LIVES,
+  RALLY_REV_LADDER, // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
   RALLY_REV_STD,
   RALLY_RUN_TICKS,
   RALLY_STD_SPEC_V13,
+  RALLY_STD_SPEC_V14, // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
   RALLY_V13_EXP,
   RALLY_V13_LIVES,
   RALLY_V13_RELAUNCH,
@@ -84,7 +88,7 @@ import { pinballGameForAny } from "../src/lib/arcade/pinball4";
 import { PIN_REV_JOULZ, PIN_REV_STD } from "../src/lib/arcade/pinball";
 import { bot as snakeBot } from "./arcade-skill-bands/bots/snake";
 import { replaySnakeRun } from "../src/lib/duel/snake";
-import { snakeCol, snakeColsOf, snakeGameFor, snakeRockShape, snakeRockSpan, snakeRow, snakeRowsOf, snakeTarget, SNAKE_REV_12, SNAKE_REV_GRACE, SNAKE_REV_SIZES, SNAKE_REV_WRAP, SNAKE_V13_BAND_CURVE, SNAKE_V13_CORE_STARS, SNAKE_V14_MID_ROCKS, type SnakeState } from "../src/lib/arcade/snake";
+import { snakeCol, snakeColsOf, snakeGameFor, snakeRockShape, snakeRockSpan, snakeRow, snakeRowsOf, snakeTarget, SNAKE_REV_12, SNAKE_REV_GRACE, SNAKE_REV_LADDER, SNAKE_REV_SIZES, SNAKE_REV_WRAP, SNAKE_V13_BAND_CURVE, SNAKE_V13_CORE_STARS, SNAKE_V14_MID_ROCKS, type SnakeState } from "../src/lib/arcade/snake"; // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
 import { bot as breakerBot } from "./arcade-skill-bands/bots/breaker";
 import { replayBreakerRun } from "../src/lib/duel/breaker";
 import { breakerGameFor, breakerWorldHFor, breakerWorldWFor, brkGoldDealt, BRK_REV_CLEAR, BRK_REV_STD, type BrkState } from "../src/lib/arcade/breaker";
@@ -109,12 +113,12 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 /* ============================ Tempo beatRev 12 ============================ */
 {
   // 1. Wiring.
-  ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_FLOOR && BEAT_REV_FLOOR === BEAT_REV_STD + 1, "beat: rooms deal beatRev 12");
+  ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_LANES && BEAT_REV_LANES === BEAT_REV_FLOOR + 1 && BEAT_REV_FLOOR === BEAT_REV_STD + 1, "beat: rooms deal beatRev 13"); // Changed with Joe's approval, 26 Nov 2026 (D5's beatRev 13)
   pinPreRetro(true);
   ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_STD, "beat: preRetro deals beatRev 11");
   pinPreRetro(false);
-  ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_FLOOR, "beat: unpinned again, rooms deal beatRev 12");
-  ok(LIVE_BANDS.beat.rev === BEAT_REV_FLOOR && LIVE_BANDS.beat.std === BEAT_STD_SPEC_V12 && ARCADE_STANDARD.beat.spec === BEAT_STD_SPEC_V12, "beat: the help and the reveal read beatRev 12's spec");
+  ok((generatePuzzle("beat") as any).beatRev === BEAT_REV_LANES, "beat: unpinned again, rooms deal beatRev 13"); // Changed with Joe's approval, 26 Nov 2026 (D5's beatRev 13)
+  ok(LIVE_BANDS.beat.rev === BEAT_REV_LANES && LIVE_BANDS.beat.std === BEAT_STD_SPEC_V13 && ARCADE_STANDARD.beat.spec === BEAT_STD_SPEC_V13, "beat: the help and the reveal read beatRev 13's spec"); // Changed with Joe's approval, 26 Nov 2026 (D5's beatRev 13)
   ok(/missed note scores nothing/.test(BEAT_STD_SPEC_V12.parts[0]!.how), "beat: the help says a missed note scores nothing");
   ok(playRevOf("beat", BEAT_REV_FLOOR) === playRevOf("beat", BEAT_REV_STD), "beat: playRevOf maps beatRev 12 to beatRev 11's play");
   const g11 = beatGameFor(BEAT_REV_STD);
@@ -191,11 +195,11 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 {
   const g12 = rallyGameFor(RALLY_REV_STD);
   const g13 = rallyGameFor(RALLY_REV_LIVES);
-  ok((generatePuzzle("rally") as any).rallyRev === RALLY_REV_LIVES && RALLY_REV_LIVES === RALLY_REV_STD + 1, "rally: rooms deal rallyRev 13");
+  ok((generatePuzzle("rally") as any).rallyRev === RALLY_REV_LADDER && RALLY_REV_LADDER === RALLY_REV_LIVES + 1 && RALLY_REV_LIVES === RALLY_REV_STD + 1, "rally: rooms deal rallyRev 13"); // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
   pinPreRetro(true);
   ok((generatePuzzle("rally") as any).rallyRev === RALLY_REV_STD, "rally: preRetro deals rallyRev 12");
   pinPreRetro(false);
-  ok(LIVE_BANDS.rally.rev === RALLY_REV_LIVES && LIVE_BANDS.rally.std === RALLY_STD_SPEC_V13 && ARCADE_STANDARD.rally.spec === RALLY_STD_SPEC_V13, "rally: the help and the reveal read rallyRev 13's spec");
+  ok(LIVE_BANDS.rally.rev === RALLY_REV_LADDER && LIVE_BANDS.rally.std === RALLY_STD_SPEC_V14 && ARCADE_STANDARD.rally.spec === RALLY_STD_SPEC_V14, "rally: the help and the reveal read rallyRev 13's spec"); // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
   ok(ARCADE_STANDARD.rally.specFor?.(RALLY_REV_STD)?.parts.length === 3 && ARCADE_STANDARD.rally.specFor?.(RALLY_REV_LIVES)?.parts.length === 4, "rally: a rallyRev 12 round keeps its three part names");
   ok(g13.runTicks <= 120 * TICKS_PER_SECOND, "rally: the run is at most 120 s");
   ok(RALLY_V13_LIVES >= 2, "rally: Normal has a life to spare");
@@ -375,11 +379,11 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 {
   // Rooms deal snakeRev 15 (stage 3: 14's rocks in three sizes with the first crash forgiven; Changed with Joe's approval, 15 Nov
   // 2026, routine consequence of the Retro overhaul); snakeRev 13's wrap and 14's rocks stay proved here on their own stamps.
-  ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_GRACE && SNAKE_REV_GRACE === SNAKE_REV_SIZES + 1 && SNAKE_REV_SIZES === SNAKE_REV_WRAP + 1 && SNAKE_REV_WRAP === SNAKE_REV_12 + 1, "snake: rooms deal snakeRev 15 (snakeRev 14 and 13 below it)");
+  ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_LADDER && SNAKE_REV_LADDER === SNAKE_REV_GRACE + 1 && SNAKE_REV_GRACE === SNAKE_REV_SIZES + 1 && SNAKE_REV_SIZES === SNAKE_REV_WRAP + 1 && SNAKE_REV_WRAP === SNAKE_REV_12 + 1, "snake: rooms deal snakeRev 15 (snakeRev 14 and 13 below it)"); // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
   pinPreRetro(true);
   ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_12, "snake: preRetro deals snakeRev 12");
   pinPreRetro(false);
-  ok(LIVE_BANDS.snake.rev === SNAKE_REV_GRACE && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE, "snake: the help reads snakeRev 15, on snakeRev 13's core line");
+  ok(LIVE_BANDS.snake.rev === SNAKE_REV_LADDER && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE, "snake: the help reads snakeRev 15, on snakeRev 13's core line"); // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
   ok(/edges wrap/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.snake)) && !/Hit a wall/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.snake)), "snake: the help says the edges wrap, not that a wall ends the run");
   const g12 = snakeGameFor(SNAKE_REV_12);
   const g13 = snakeGameFor(SNAKE_REV_WRAP);

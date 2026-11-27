@@ -290,17 +290,18 @@ check(challengeState(par).status === "new", "another game's run never counts");
 check(PRACTICE_CHALLENGES.some((c) => c.id === "beat.score180"), "beat.score180 is listed");
 check(!PRACTICE_CHALLENGES.some((c) => c.id === "bullseye.score180") && PRACTICE_CHALLENGES.some((c) => c.id === "bullseye.on-a-roll"), "bullseye.score180 is replaced by bullseye.on-a-roll");
 const tempo = PRACTICE_CHALLENGES.find((c) => c.id === "beat.score180")!;
-check(challengeTarget(tempo.goal) === 180, "Tempo's target is a 180 run");
-for (const [score, want, status] of [[120, 120, "progress"], [179, 179, "progress"], [150, 179, "progress"], [40, 179, "progress"]] as const) {
-  recordPracticeGoals("beat", score, arcadeExtra("beat", { core: score }), 179);
+// Changed with Joe's approval, 26 Nov 2026 (question 2: Tempo's Encore raised to 185 on beatRev 13; the id stays beat.score180): the block below reads 185.
+check(challengeTarget(tempo.goal) === 185, "Tempo's target is a 185 run"); // Changed with Joe's approval, 26 Nov 2026 (question 2: Tempo's Encore 180 → 185, D5's beatRev 13)
+for (const [score, want, status] of [[120, 120, "progress"], [184, 184, "progress"], [150, 184, "progress"], [40, 184, "progress"]] as const) { // Changed with Joe's approval, 26 Nov 2026 (question 2: Tempo's Encore 180 → 185, D5's beatRev 13)
+  recordPracticeGoals("beat", score, arcadeExtra("beat", { core: score }), 184); // Changed with Joe's approval, 26 Nov 2026 (question 2: Tempo's Encore 180 → 185, D5's beatRev 13)
   const st = challengeState(tempo);
   check(st.value === want && st.status === status, `Tempo: best run ${want} after a ${score} (got ${st.value}, ${st.status})`);
 }
-check(challengeState(tempo).status !== "done", "runs of 120, 179, 150 and 40 never add up to a completion");
-const t180 = recordPracticeGoals("beat", 180, null, 180);
-check(challengeState(tempo).status === "done" && t180.completed.some((c) => c.id === "beat.score180"), "one run of 180 completes it");
-recordPracticeGoals("beat", 60, null, 180);
-check(challengeState(tempo).status === "done" && challengeState(tempo).value === 180, "done stays done after a weaker run");
+check(challengeState(tempo).status !== "done", "runs of 120, 184, 150 and 40 never add up to a completion"); // Changed with Joe's approval, 26 Nov 2026 (question 2: Tempo's Encore 180 → 185, D5's beatRev 13)
+const t180 = recordPracticeGoals("beat", 185, null, 185); // Changed with Joe's approval, 26 Nov 2026 (question 2: Tempo's Encore 180 → 185, D5's beatRev 13)
+check(challengeState(tempo).status === "done" && t180.completed.some((c) => c.id === "beat.score180"), "one run of 185 completes it"); // Changed with Joe's approval, 26 Nov 2026 (question 2: Tempo's Encore 180 → 185, D5's beatRev 13)
+recordPracticeGoals("beat", 60, null, 185); // Changed with Joe's approval, 26 Nov 2026 (question 2: Tempo's Encore 180 → 185, D5's beatRev 13)
+check(challengeState(tempo).status === "done" && challengeState(tempo).value === 185, "done stays done after a weaker run"); // Changed with Joe's approval, 26 Nov 2026 (question 2: Tempo's Encore 180 → 185, D5's beatRev 13)
 // Change (7): the Flightpath challenge this test reads (was bullseye.score180).
 const flight = PRACTICE_CHALLENGES.find((c) => c.id === "bullseye.on-a-roll")!;
 check(challengeState(flight).status === "new", "a Tempo run never counts for Flightpath");

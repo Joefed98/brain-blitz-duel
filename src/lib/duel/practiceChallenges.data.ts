@@ -398,7 +398,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // beatRev 13 (D5's ladder, 23 Nov 2026): the Golden notes part is full at 5 in every 9, so the goal counts the notes
   // themselves (every one the chart deals, hit dead on), never the part; older stamps keep the part at its maximum.
   ch("beat", "Golden ear", "Hit every golden note dead on.", "C", "maxout", false, all({ c: "since", path: "beatRev", from: 13, then: f("goldsHit", "gte", "@golds"), before: full("Golden notes", 15) }), "beat.gold"),
-  ch("beat", "Encore", "Score 180 or more.", "C", "bigscore", true, score(180), "beat.score180"),
+  ch("beat", "Encore", "Score 185 or more.", "C", "bigscore", true, score(185), "beat.score180"), // Changed with Joe's approval, 26 Nov 2026 (question 2: Tempo's Encore 180 → 185, D5's beatRev 13)
   // Blockzone (blockfall): lines 95 + pieces placed 65 + multi-line clears 24 + low stack 16.
   ch("blockfall", "Thirty lines", "Clear 30 lines.", "C", "target", false, all(f("lines", "gte", 30))),
   ch("blockfall", "Low rider", "Finish with the stack in the bottom four rows.", "C", "clean", false, part("Low stack", 16), "blockfall.low"),
@@ -426,13 +426,13 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("pinball", "Spell it out", "Spell J-O-U-L-Z in one game.", "C", "maxout", false, part("J-O-U-L-Z", 20), "pinball.joulz"),
   ch("pinball", "Jackpot", "Hit three jackpots.", "C", "fullset", true, part("Jackpots", 15)),
   // Rally (rally): gold-ball hits 140 + pink pads 30 + gold targets 30.
-  ch("rally", "Pink pong", "Strike pink pads five times.", "C", "target", false, all(line("Pink pads", "gte", 15))),
-  ch("rally", "Target practice", "Hit all six gold targets.", "C", "fullset", false, part("Gold targets", 30)),
+  ch("rally", "Pink pong", "Strike pink pads five times.", "C", "target", false, all(f("targetHits", "gte", 5))), // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
+  ch("rally", "Target practice", "Hit all 6 gold targets.", "C", "fullset", false, all(f("bonusHits", "gte", 6))), // Changed with Joe's approval, 26 Nov 2026 (question 4: counts the 6 gold targets on rallyRev 14)
   // rallyRev 14 (D5's ladder, 23 Nov 2026): Hard's core is full at 15, so the goal counts the gold-ball hits themselves.
   ch("rally", "Rally king", "Return 23 gold balls on Hard.", "H", "target", false, all(f("goldHits", "gte", 23))),
   // Meteor (snake): stars 120 + gold stars 40 + combos 20 + lane rides 10 + warp stars 10.
   ch("snake", "Star eater", "Eat 36 stars; a gold star counts as two.", "C", "target", false, all(f("meteorParts.core", "gte", 120))),
-  ch("snake", "Comet tail", "Score 150 or more.", "C", "bigscore", false, score(150)),
+  ch("snake", "Comet tail", "Score 165 or more.", "C", "bigscore", false, score(165)), // Changed with Joe's approval, 26 Nov 2026 (question 4: 150 got easier on snakeRev 16)
   ch("snake", "Golden comet", "Eat all seven gold stars.", "C", "fullset", false, all(f("goldStars", "gte", "@goldStarsDealt"), f("goldStarsDealt", "gte", 7))),
   // Wavefront (wavefront): ships 150 + boss destroyed 10 + boss speed 10 + saucers 20 + cannons and weak points 10.
   ch("wavefront", "Boss fight", "Destroy the boss.", "C", "finish", false, all(f("bossKilled", "gte", 1))),

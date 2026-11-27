@@ -33,6 +33,7 @@ import {
   rallyWorldWFor,
   type RallyState,
   RALLY_STD_SPEC_V13,
+  RALLY_STD_SPEC_V14, // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
 } from "../src/lib/arcade/rally";
 import { replayRallyRun, encodeRallyRun } from "../src/lib/duel/rally";
 import { stdScore, stdHelp, stdHelpLines } from "../src/lib/arcade/arcadeStandard";
@@ -142,7 +143,7 @@ const help = PUZZLE_INSTRUCTIONS.rally;
 const score = help.score;
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the help reads the dealt stamp,
 // rallyRev 13 (four parts with spin shots).
-ok(score.includes(stdHelpLines(RALLY_STD_SPEC_V13)), `the help states the standard's parts: ${score}`);
+ok(score.includes(stdHelpLines(RALLY_STD_SPEC_V14)), `the help states the standard's parts: ${score}`); // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
 ok(help.how.some((h) => /curves back round the other way/.test(h.detail)), "the help says a swipe goes its way, then curves back");
 ok(!help.how.some((h) => /swerves the way it moved/.test(h.detail)), "the help no longer says the ball swerves the way the paddle moved");
 const best = std.runs.find((r) => r.level === "near")!;

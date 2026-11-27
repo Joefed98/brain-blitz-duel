@@ -156,7 +156,9 @@ tasks.push({
     // Changed with Joe's approval, 22 Nov 2026 (D2's two pins: 53) and 23 Nov 2026 (routine consequence of D5's five stamps:
     // ricoPreMid, burstPreSmall, wavPreWide, skylinePreCount and orbitPreLost). The era count is shared with D1–D4 and D6;
     // whichever merges later re-applies it (re-applied on main, 26 Nov 2026: 53 + 5 = 58).
-    ok(names.size === 58, `58 era switches (${names.size})`);
+    // Changed with Joe's approval, 26 Nov 2026 (routine consequence of D5's swingRev 19): swingPreLadder, 59.
+    // Changed with Joe's approval, 26 Nov 2026, second set (D5's bastionPreLadder, beatPreLanes, blockfallPreLevels, hoverPreFit, snakePreLadder and rallyPreLadder): 65.
+    ok(names.size === 65, `65 era switches (${names.size})`);
   },
 });
 

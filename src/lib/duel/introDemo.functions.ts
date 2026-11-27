@@ -7,7 +7,7 @@ import { sportsDemoPlays } from "./sportsDemoRules";
 import { BASTION_REV_DEALT, BASTION_REV_LEVELS } from "@/lib/arcade/bastionTank";
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { fillominoStrokes, trailUndoEach } from "./logicOverhaul2";
-import { SWING_REV_BIG } from "@/lib/arcade/swing";
+import { SWING_REV_LADDER } from "@/lib/arcade/swing"; // Changed with Joe's approval, 26 Nov 2026 (D5's swingRev 19: the demo is recorded on it)
 import { INK_REV_HILLS } from "@/lib/arcade/inkBridge";
 import { CLAY_REV_WIDE } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_NOTES } from "@/lib/arcade/whack";
@@ -99,7 +99,7 @@ export function demoRevAccepted(game: keyof typeof SAME_PLAY_DEMO_REVS, rev: num
  */
 export const ACTION_DEMO_REVS = {
   flip: FLIP_REV_GRACE,
-  swing: SWING_REV_BIG,
+  swing: SWING_REV_LADDER, // Changed with Joe's approval, 26 Nov 2026 (D5's swingRev 19, the ladder)
   ricochet: MOON_MID_REV,
   bastion: BASTION_REV_DEALT,
   skyline: SKYLINE_REV_FLOORS, // Changed with Joe's approval, 23 Nov 2026 (D5's skylineRev 12)
@@ -382,7 +382,9 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   // ledge runs over 90 s (swingRev 16, 1 Nov 2026) and its sliding hooks and streak (swingRev 17, 3 Nov 2026): only a
   // demo recorded on swingRev 17 plays; until one is, the intro shows its still. (swingRev 13's to 16's rules were the same.)
   // swingRev 18 (15 Nov 2026, the bigger hero on its own courses): only a demo recorded on swingRev 18 plays.
-  if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_BIG) return null;
+  // swingRev 19 (D5, 23 Nov 2026, the ladder): only a demo recorded on swingRev 19 plays. Changed with Joe's approval, 26 Nov 2026 (routine
+  // consequence of D5's swingRev 19).
+  if (data.type === "swing" && demo?.puzzle.type === "swing" && demo.puzzle.swingRev !== SWING_REV_LADDER) return null;
   // The expansion to 200 (orbitRev 12) shows a wider view with stardust, moons and asteroid fields, so Orbit's demo
   // stays stopped (the intro shows its still) until one is recorded on orbitRev 12.
   // orbitRev 13 (the arcade scoring standard) keeps orbitRev 12's play on new scoring; as flipRev 9 did, only a demo recorded on

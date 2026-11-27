@@ -39,7 +39,7 @@ import {
   SNAKE_REV_10, SNAKE_REV_STD, SNAKE_REV_12, SNAKE_V11_BAND_CURVE, SNAKE_V12_BAND_CURVE, SNAKE_V9_COLS, SNAKE_V9_ROWS, SNAKE_V9_H, SNAKE_V9_WORLD_W,
   SNAKE_STD_CAPS, SNAKE_STD_CORE_MAX, SNAKE_STD_CORE_STARS, SNAKE_STD_GOLDS, SNAKE_STD_COMBO_TICKS, SNAKE_STD_WARP_TICKS,
   SNAKE_STD_LANE_RIDE, SNAKE_COMBO_TICKS, SNAKE_WARP_STAR_TICKS, SNAKE_INPUT_TURN,
-  type SnakeState, SNAKE_REV_GRACE, SNAKE_V13_BAND_CURVE } from "../src/lib/arcade/snake";
+  type SnakeState, SNAKE_REV_GRACE, SNAKE_REV_LADDER, SNAKE_V13_BAND_CURVE } from "../src/lib/arcade/snake"; // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
 
 /** The game's arcade-standard-check entry, read as this check always has (the first perfect run, split into parts). */
 const STANDARD = {
@@ -91,8 +91,8 @@ const play = (game: typeof v11, seed: number, events: any[], each?: (s: SnakeSta
 // snake-rev12-check). snakeRev 11 itself stays proved here.
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 13 (the edges
 // wrap, the core full at 36), one above snakeRev 12; the help reads its core line.
-ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_GRACE && SNAKE_REV_GRACE === SNAKE_REV_12 + 3 /* Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 15 (14's rocks in three sizes, the first crash forgiven) */, "rooms deal snakeRev 12 (snakeRev 11 before 1 Nov 2026)");
-ok(LIVE_BANDS.snake.rev === SNAKE_REV_GRACE && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE, "the help reads snakeRev 12 on its core's straight line (snakeRev 11: SNAKE_V11_BAND_CURVE)");
+ok((generatePuzzle("snake") as any).snakeRev === SNAKE_REV_LADDER && SNAKE_REV_LADDER === SNAKE_REV_12 + 4 /* Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal snakeRev 15 (14's rocks in three sizes, the first crash forgiven) */, "rooms deal snakeRev 12 (snakeRev 11 before 1 Nov 2026)"); // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
+ok(LIVE_BANDS.snake.rev === SNAKE_REV_LADDER && LIVE_BANDS.snake.curve === SNAKE_V13_BAND_CURVE, "the help reads snakeRev 12 on its core's straight line (snakeRev 11: SNAKE_V11_BAND_CURVE)"); // Changed with Joe's approval, 26 Nov 2026 (D5's snakeRev 16)
 ok(ROUND_MAX.snake === 200, "ROUND_MAX: Meteor is 200");
 ok(snakeWorldWForRev(SNAKE_REV_STD) === SNAKE_V9_WORLD_W && snakeWorldHForRev(SNAKE_REV_STD) === SNAKE_V9_H, "snakeRev 11 plays in snakeRev 10's world");
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the standard entry follows the
