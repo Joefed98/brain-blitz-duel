@@ -52,7 +52,9 @@ export const PAGE_CHECK_SPLITS: Record<string, { parts: number; jobs: number; pr
   // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine): 42, the larger.
   // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): 42 parts / 6 jobs → 54 / 9 on the puzzle
   // train's combined screens (1,760 draws: about 33 a part and 196 a job, near main's 188).
-  "no-wrap-check.tsx": { parts: 54, jobs: 9, prefix: "play-nowrap", ceiling: 40 },
+  // Changed with Joe's approval, 14 Nov 2026 (routine: page-check growth): 54 → 63 parts on P3 merged with main
+  // (2,169 draws took parts 1–9 to 41; 63 parts give about 34 a part, 7 parts a job), jobs unchanged.
+  "no-wrap-check.tsx": { parts: 63, jobs: 9, prefix: "play-nowrap", ceiling: 40 },
 };
 
 /** The jobs PAGE_CHECK_SPLITS gives: `<prefix>-<j>` runs parts j, j + jobs, j + 2 × jobs… of its check. */
