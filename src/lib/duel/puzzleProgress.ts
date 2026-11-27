@@ -900,10 +900,12 @@ const TOWER_TABLES = new Map<string, Uint8Array>();
  * cache keeps at most TOWER_TABLE_CAP tables (the legal boards need 7: 3 + 4 targets at 9 discs).
  */
 export const TOWER_PROGRESS_MAX_DISCS = 10;
+/** Three posts take up to twelve rings (D4, 22 Nov 2026: Hanoi's Expert; 3^12 is a 531,441-byte table). */
+export const TOWER_PROGRESS_MAX_DISCS_THREE = 12;
 export const TOWER_TABLE_CAP = 8;
 export function towerBoardLegal(pegs: number, target: number, discs: number): boolean {
   return (pegs === 3 || pegs === 4) && Number.isInteger(target) && target >= 0 && target < pegs &&
-    Number.isInteger(discs) && discs >= 1 && discs <= TOWER_PROGRESS_MAX_DISCS;
+    Number.isInteger(discs) && discs >= 1 && discs <= (pegs === 3 ? TOWER_PROGRESS_MAX_DISCS_THREE : TOWER_PROGRESS_MAX_DISCS);
 }
 /** How many tables each cache holds (security-fixes-check). */
 export function progressCacheSizes(): { rings: number; unblock: number; push: number; tower: number } {

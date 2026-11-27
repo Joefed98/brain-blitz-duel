@@ -21,6 +21,7 @@ import { dealLogic2 } from "./logicOverhaul2";
 import { dealWordNov7 } from "./wordNov7";
 import { dealGameReviewNov15 } from "./gameReviewNov15";
 import { dealPatternNov15 } from "./patternNov15";
+import { dealTopsyLine } from "./topsyLine";
 import { withPipesTwoWayPar } from "./depth4/pipesTaps";
 import { dealWordOverhaul } from "./wordOverhaul.server";
 import { dealAttentionOverhaul } from "./attentionOverhaul";
@@ -153,6 +154,7 @@ import { randomBelow } from "./random";
 import { saltSeed } from "./seededRng";
 import { NORMAL, stampLevel, type Level } from "@/lib/levels/levels";
 import { gameLevelSettings, resolveLevel } from "@/lib/levels/gameLevels";
+import { PL_LEVEL_SPEED_GAMES, settingsFullByS } from "./standard/plLevelSpeed";
 import { dealWordLevel } from "./wordLevels.server";
 import { dealAttentionLevel } from "./attentionLevels.server";
 
@@ -225,6 +227,8 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   { name: "pyramidPartial", deal: dealPyramidPartial },
   // Ballpark's bullseyes (D2, 22 Nov 2026, ballparkBullseyes.ts): depthRev 3, a bullseye worth 3 up to 30.
   { name: "ballparkBullseyes", deal: dealBallparkBullseyes },
+  // D4 (22 Nov 2026, topsyLine.ts): Topsy-Turvy gravityRev 9 on Normal, full speed by 40 s (Joe's option A).
+  { name: "topsyLine", deal: dealTopsyLine },
   // D3's Normal scoring stamps (22 Nov 2026, d3Normal.ts): Flash tapRev 8 and the other Speed games' new stamps, so a
   // player at the human limits can reach 200.
   { name: "d3Speed", deal: dealD3Speed },
@@ -269,7 +273,16 @@ function dealAtLevel(type: PuzzleType, context: GenerateContext): PuzzleData {
   const measured = type === "measure" ? stampMeasureLevel(layered, context.level) : layered;
   // The Attention games' levels (stage 3 of the overhaul) re-deal their board on the level's levers, after every layer;
   // a context without a level (Normal) is never touched.
-  return context.level && context.level !== NORMAL ? dealAttentionLevel(measured, context.level) : measured;
+  if (!context.level || context.level === NORMAL) return measured;
+  // The Pattern and Logic levels' own speed lines (D4, 22 Nov 2026; plLevelSpeed.ts), after every layer.
+  return stampPlLevelSpeed(dealAttentionLevel(measured, context.level), context.level);
+}
+
+/** A D4 level deal carries its level's full-speed time (`levelFullByS`), so a later retune never moves it. */
+function stampPlLevelSpeed(puzzle: PuzzleData, level: Level): PuzzleData {
+  if (!PL_LEVEL_SPEED_GAMES.includes(puzzle.type)) return puzzle;
+  const fullByS = settingsFullByS(gameLevelSettings(puzzle.type, level));
+  return fullByS === null ? puzzle : ({ ...puzzle, levelFullByS: fullByS } as unknown as PuzzleData);
 }
 
 function generateUnstamped(type: PuzzleType, context: GenerateContext): PuzzleData {

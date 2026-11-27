@@ -42,7 +42,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Ink, not pencil | Fill the grid without a single wrong digit. | Classic | Clean | finish, `parts.efficiency` ≥ 10 |  | `sudoku.clean` |
 | Six by six by speed | Solve it within 45 s. | Classic | Speed | finish, `parts.speed` ≥ 40 (by 45 s) |  | `sudoku.speed` |
-| Box clever | Score 200 on a Hard grid: no mistakes, within 45 s. | Hard | Perfect | `score` ≥ 200 | ● | `sudoku.box-clever` |
+| Box clever | Score 200 on a Hard grid: no mistakes, within 44 s. | Hard | Perfect | `score` ≥ 200 | ● | `sudoku.box-clever` |
 
 #### Hanoi (`tower`)
 
@@ -56,7 +56,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Measured pour | Sort every flask in par pours. | Classic | Par | finish, `parts.efficiency` ≥ 15 |  | `tubes.measured-pour` |
-| Potion master | Sort a Hard set within 45 s. | Hard | Speed | finish, `parts.speed` ≥ 35 (by 45 s) |  | `tubes.potion-master` |
+| Potion master | Sort a Hard set within 40 s. | Hard | Speed | finish, `parts.speed` ≥ 35 (by 40 s) |  | `tubes.potion-master` |
 
 #### Safe Cracker (`safe`)
 
@@ -131,7 +131,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Bridge builder | Link every island. | Classic | Finish | finish |  | `bridges.bridge-builder` |
 | Chartered engineer | Link a Hard chain with no wrong bridges. | Hard | Clean | finish, `mistakes` = 0 |  | `bridges.chartered-engineer` |
-| Iron bridge | Link an Expert chain within 45 s. | Expert | Speed | finish, `parts.speed` ≥ 40 (by 45 s) | ● | `bridges.iron-bridge` |
+| Iron bridge | Link an Expert chain within 83 s. | Expert | Speed | finish, `parts.speed` ≥ 40 (by 83 s) | ● | `bridges.iron-bridge` |
 
 #### Gridlock (`unblock`)
 
@@ -160,7 +160,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Right way up | Sink every ball in par tilts. | Classic | Par | finish, `parts.efficiency` ≥ 20 |  | `gravity.right-way-up` |
-| Head rush | Sink every ball within 32 s. | Classic | Speed | finish, `parts.speed` ≥ 30 (by 32 s) |  | `gravity.head-rush` |
+| Head rush | Sink every ball within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 30 (by 40 s) |  | `gravity.head-rush` |
 
 #### Gradient (`tiles`)
 
@@ -199,7 +199,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | No leaks | Connect every pipe. | Classic | Finish | finish |  | `pipes.no-leaks` |
 | Plumber’s par | Connect every pipe in par turns. | Classic | Par | finish, `parts.efficiency` ≥ 10 |  | `pipes.plumbers-par` |
-| Mains pressure | Connect a Hard network within 60 s. | Hard | Speed | finish, `parts.speed` ≥ 40 (by 60 s) |  | `pipes.mains-pressure` |
+| Mains pressure | Connect a Hard network within 70 s. | Hard | Speed | finish, `parts.speed` ≥ 40 (by 70 s) |  | `pipes.mains-pressure` |
 
 #### Heave (`push`)
 

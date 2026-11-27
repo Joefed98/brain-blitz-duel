@@ -1,5 +1,5 @@
 import { TRAIL_BANK } from "./trailBank.server";
-import { trCountSolutions, trNeighbours, TR_CELLS } from "./trail";
+import { trCountSolutions, trNeighbours, TR_SIZE } from "./trail";
 import type { TrailLevel } from "./logicLevels";
 import type { TrailPuzzleData } from "./types";
 
@@ -12,7 +12,8 @@ import type { TrailPuzzleData } from "./types";
  */
 export function generateTrail(level: TrailLevel | null = null): TrailPuzzleData {
   if (level) {
-    const built = buildTrail(level.givens, level.nodes);
+    // A level's own board size (absent: Normal's 6 × 6); the board's square count carries it (trail.ts trSide).
+    const built = buildTrail(level.givens, level.nodes, level.size ?? TR_SIZE);
     return { type: "trail", givens: built.givens, solution: built.solution, timeLimitMs: level.timeLimitMs };
   }
   const entry = TRAIL_BANK[Math.floor(Math.random() * TRAIL_BANK.length)]!;
@@ -28,45 +29,48 @@ function shuffle<T>(a: T[]): T[] {
   return a;
 }
 
-/** A random king-move path over every square (the bank's randomised Warnsdorff walk). */
-function randomPath(): number[] {
+/** A random king-move path over every square (the bank's randomised Warnsdorff walk), on a `side` × `side` board. */
+function randomPath(side = TR_SIZE): number[] {
+  const cells = side * side;
   for (;;) {
-    const used = new Uint8Array(TR_CELLS);
-    let cell = rand(TR_CELLS);
+    const used = new Uint8Array(cells);
+    let cell = rand(cells);
     const path = [cell];
     used[cell] = 1;
-    while (path.length < TR_CELLS) {
-      const options = shuffle(trNeighbours(cell).filter((n) => !used[n]));
+    while (path.length < cells) {
+      const options = shuffle(trNeighbours(cell, side).filter((n) => !used[n]));
       if (!options.length) break;
-      const deg = (c: number) => trNeighbours(c).filter((n) => !used[n] && n !== c).length;
+      const deg = (c: number) => trNeighbours(c, side).filter((n) => !used[n] && n !== c).length;
       options.sort((a, b) => deg(a) - deg(b));
       cell = options.length > 1 && Math.random() < 0.15 ? options[1]! : options[0]!;
       used[cell] = 1;
       path.push(cell);
     }
-    if (path.length === TR_CELLS) return path;
+    if (path.length === cells) return path;
   }
 }
 
 function givensFor(path: readonly number[], steps: ReadonlySet<number>): (number | null)[] {
-  const g: (number | null)[] = new Array(TR_CELLS).fill(null);
+  const g: (number | null)[] = new Array(path.length).fill(null);
   for (const s of steps) g[path[s - 1]!] = s;
   return g;
 }
 
-/** Every step given, then steps dropped in random order while the path stays unique (1 and 36 always shown). */
+/** Every step given, then steps dropped in random order while the path stays unique (the first and last always shown). */
 function minimalGivens(path: readonly number[]): Set<number> {
-  const steps = new Set(Array.from({ length: TR_CELLS }, (_, i) => i + 1));
-  for (const s of shuffle([...steps].filter((s) => s !== 1 && s !== TR_CELLS))) {
+  const cells = path.length;
+  const steps = new Set(Array.from({ length: cells }, (_, i) => i + 1));
+  for (const s of shuffle([...steps].filter((s) => s !== 1 && s !== cells))) {
     steps.delete(s);
     if (trCountSolutions(givensFor(path, steps), 2) !== 1) steps.add(s);
   }
   return steps;
 }
 
-function buildTrail(target: number, nodes: readonly [number, number]): { givens: (number | null)[]; solution: number[] } {
+function buildTrail(target: number, nodes: readonly [number, number], side = TR_SIZE): { givens: (number | null)[]; solution: number[] } {
+  const cells = side * side;
   for (let attempt = 0; attempt < 600; attempt++) {
-    const path = randomPath();
+    const path = randomPath(side);
     let best: Set<number> | null = null;
     for (let t = 0; t < 4; t++) {
       const s = minimalGivens(path);
@@ -74,7 +78,7 @@ function buildTrail(target: number, nodes: readonly [number, number]): { givens:
       if (best.size <= target) break;
     }
     if (!best || best.size > target) continue;
-    const pad = shuffle(Array.from({ length: TR_CELLS - 2 }, (_, i) => i + 2).filter((s) => !best!.has(s)));
+    const pad = shuffle(Array.from({ length: cells - 2 }, (_, i) => i + 2).filter((s) => !best!.has(s)));
     while (best.size < target) best.add(pad.pop()!);
     const givens = givensFor(path, best);
     const stats = { nodes: 0 };

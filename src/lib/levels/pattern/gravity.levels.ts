@@ -49,10 +49,14 @@ export const LEVELS_GRAVITY: GameLevels<TopsyLevelSettings> = {
     // Nov 2026: was 45 s, which sat Hard barely below Normal; 30 s is under Normal's 32 s for more tilts, so the speed
     // points ask for quicker play per tilt than Normal does. Grading: speed is full when the round is cleared within
     // this time, so a lower time is the harder one).
-    hard: { settings: { balls: 6, boards: 3, minTilts: [6, 9], walls: [14, 22], spare: 6, timeLimitMs: 120_000, speedFullByS: 30 }, oneSolution: OPEN },
+    // D4 (22 Nov 2026; the spec's Topsy-Turvy row): seven balls (today six, the same as Normal), the seventh in Expert's
+    // lime green, so Hard is visibly busier than Normal; the limit and the fewest tilts as before. Hard and Expert full
+    // speed by 55 s and 64 s, set from the elite's finishes under the human limits against Normal's 40 s
+    // (gravityRev 9, topsyLine.ts; Joe's option A, 22 Nov 2026): more balls take longer, so each level's line is later.
+    hard: { settings: { balls: 7, boards: 3, minTilts: [6, 9], walls: [14, 22], spare: 6, timeLimitMs: 120_000, speedFullByS: 55 }, oneSolution: OPEN },
     // Expert: three boards of eight balls (two more colours: lime green with a heart, pearl white with a crescent),
     // 7–10 tilts at the fewest, a limit of the fewest + 5, full speed by 30 s (50 s until 16 Nov 2026: with Hard at 30 s, Expert must not score easier); every board one the person-like solver
     // clears inside its limit.
-    expert: { settings: { balls: 8, boards: 3, minTilts: [7, 10], walls: [14, 22], spare: 5, timeLimitMs: 120_000, speedFullByS: 30, personSolvable: true }, oneSolution: OPEN },
+    expert: { settings: { balls: 8, boards: 3, minTilts: [7, 10], walls: [14, 22], spare: 5, timeLimitMs: 120_000, speedFullByS: 64, personSolvable: true }, oneSolution: OPEN },
   },
 };

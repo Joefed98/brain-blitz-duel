@@ -1004,6 +1004,9 @@ export interface BlockPartyPuzzleData {
   level?: "easy" | "hard" | "expert";
   /** Levels: the level's own clock where it isn't 60 s (Expert's 90 s). */
   timeLimitMs?: number;
+  /** Levels from D4 (22 Nov 2026): the board's size and its pieces by name (absent: the level's board before D4). */
+  blockCols?: number;
+  blockPieces?: string[];
 }
 
 /* -------------------------------------------------------------------------- */
