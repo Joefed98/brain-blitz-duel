@@ -3,7 +3,7 @@ import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { FramePills } from "@/components/puzzles/pattern/framePills";
 import { useCallback, useEffect, useMemo, useRef, type CSSProperties } from "react";
-import { useRevealViews } from "@/components/duel/RevealScreen";
+import { useRevealViews } from "@/components/duel/revealContext";
 import { useRevealBoardWidth } from "@/components/puzzles/pattern/revealBoard";
 
 import { gridCellCentre, useGridMetrics, useGridPointer } from "@/components/puzzles/GridDrag";

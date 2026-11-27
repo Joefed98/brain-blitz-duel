@@ -3,7 +3,7 @@ import { solvedMovesText } from "@/lib/duel/scoring";
 import { useEffect, useRef, useState } from "react";
 
 import { gameFx } from "@/lib/fx/kit";
-import { useRevealViews } from "@/components/duel/RevealScreen";
+import { useRevealViews } from "@/components/duel/revealContext";
 import { useRevealBoardWidth } from "@/components/puzzles/pattern/revealBoard";
 
 import { UnblockBoard, UnblockPuzzle } from "@/components/puzzles/UnblockPuzzle";

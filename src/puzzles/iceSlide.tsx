@@ -33,7 +33,7 @@ import { popCount, replayGems } from "@/lib/duel/depth4/iceGems";
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import { useSolveMoment } from "@/lib/fx/patternFx";
 import { IceArt, IceBoard as Board, IceFallingBall, IceTrail, useIceSlideFx, type IceBallFx } from "@/components/puzzles/pattern/iceSlideBoard";
-import { useRevealViews } from "@/components/duel/RevealScreen";
+import { useRevealViews } from "@/components/duel/revealContext";
 import { useRevealBoardWidth } from "@/components/puzzles/pattern/revealBoard";
 import { HudPills, type HudPillItem } from "@/components/puzzles/HudPills";
 

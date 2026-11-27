@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { gameFx } from "@/lib/fx/kit";
-import { useRevealViews } from "@/components/duel/RevealScreen";
+import { useRevealViews } from "@/components/duel/revealContext";
 import { useRevealBoardWidth } from "@/components/puzzles/pattern/revealBoard";
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { BlockBoard, BlockPartyPuzzle } from "@/components/puzzles/BlockPartyPuzzle";

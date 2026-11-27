@@ -29,7 +29,7 @@ import {
   type PushPuzzleData,
 } from "@/lib/duel/types";
 import { playCorrect } from "@/lib/sound";
-import { useRevealViews } from "@/components/duel/RevealScreen";
+import { useRevealViews } from "@/components/duel/revealContext";
 import { useRevealBoardWidth } from "@/components/puzzles/pattern/revealBoard";
 
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";

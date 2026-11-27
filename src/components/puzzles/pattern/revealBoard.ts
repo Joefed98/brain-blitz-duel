@@ -12,7 +12,7 @@
  */
 import { useLayoutEffect, useState, type RefObject } from "react";
 
-import { useRevealStageSize } from "@/components/duel/RevealScreen";
+import { useRevealStageSize } from "@/components/duel/revealContext";
 
 /** The reveal card's own padding round the game's reveal (reveal-screen.css `.answer-reveal-content > .reveal-card`). */
 export const REVEAL_CARD_PAD = 12;

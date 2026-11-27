@@ -4,7 +4,7 @@ import { planDrain, planWaterIn, runWater, sourceBubbles } from "@/components/pu
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
 import { soundCue as soundCueAt } from "@/lib/fx/soundCues";
 import { gameFx } from "@/lib/fx/kit";
-import { useRevealViews } from "@/components/duel/RevealScreen";
+import { useRevealViews } from "@/components/duel/revealContext";
 import { useRevealBoardWidth } from "@/components/puzzles/pattern/revealBoard";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
