@@ -122,7 +122,7 @@ export const BLOCK_ART_DIR = "/pattern-art/blockparty";
  * tray blocks from its cache. The first 8 hex of the SHA-256 of every sprite file, in name order;
  * pattern-overhaul-blockparty-levels-check fails until it matches the files (re-run it after re-rendering).
  */
-export const BLOCK_ART_HASH = "cdb697b1";
+export const BLOCK_ART_HASH = "7d4d78b5";
 const sprite = (file: string) => `${BLOCK_ART_DIR}/${file}.webp?v=${BLOCK_ART_HASH}`;
 /** Each piece's sprite colour, index for index the piece colours (BlockPartyPuzzle PIECE_COLOURS; cyan and slate are Expert's U and P, stage 3). */
 export const BLOCK_SPRITE_COLOURS = ["red", "blue", "green", "purple", "pink", "orange", "brown", "yellow", "white", "cyan", "slate"] as const;

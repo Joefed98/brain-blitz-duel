@@ -213,9 +213,9 @@ const COLOURS: FlowColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE
       walls: [40, 50],
     }),
   );
-  for (const c of COLOURS) check(board.includes(`/pattern-art/flow/bead-${c.toLowerCase()}.webp`), `the board draws the ${c.toLowerCase()} bead`);
-  check(board.includes("/pattern-art/flow/wall.webp"), "the board draws the wall tile");
-  check(board.includes("/pattern-art/flow/cell.webp"), "the board draws the cell tile");
+  for (const c of COLOURS) check(new RegExp(`class="flow-dot[^"]*"[^>]*data-flow-colour="${c}"[^>]*style="[^"]*background-color:(#[0-9A-Fa-f]{6});--dot:\\1`).test(board), `the board draws the ${c.toLowerCase()} dot in its own colour`); // Changed with Joe's approval, 22 Nov 2026
+  check(/class="flow-wall[^"]*"/.test(board) && !board.includes("/pattern-art/flow/wall.webp"), "the board draws the old hatched walls"); // Changed with Joe's approval, 22 Nov 2026
+  check(!board.includes("/pattern-art/flow/cell.webp") && !board.includes("/pattern-art/flow/bead-"), "the board draws the old slots and dots, not the sprites"); // Changed with Joe's approval, 22 Nov 2026
   check((board.match(/class="flow-symbol"/g) ?? []).length === COLOURS.length * 2, "every bead carries its symbol"); // 24 before Expert's two extra colours (routine, 16 Nov 2026)
   check(!/feGaussianBlur|flow-halo/.test(board), "no glow filter on the board");
   const tubes = renderToStaticMarkup(
@@ -321,9 +321,9 @@ const COLOURS: FlowColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE
     for (const rule of flowRules(text))
       check(!/drop-shadow|filter\s*:|blur\(|mix-blend/.test(rule), `${name}: a rule on Chroma Lines' lines or dots draws a glow or filter (${rule.trim().slice(0, 80)})`);
   check(!/@keyframes/.test(css), "flow.css: no keyframes (the effects are the kit's, transform and opacity)");
-  check(!/feGaussianBlur|stroke-dash|strokeDash|mixBlendMode|mix-blend|filter=/.test(art), "flowArt: no blur, dash animation, blend or filter on the tubes");
-  check(!/const tint = /.test(stage) && !/linear-gradient\(\$\{tint\}/.test(stage), "the board no longer washes a line's colour into its squares");
-  const { tubeLayers, tubeBody } = await import("../src/components/puzzles/pattern/flowArt");
+  check(/feGaussianBlur/.test(art) && /flow-halo/.test(art) && !/stroke-dash|strokeDash|mixBlendMode|mix-blend/.test(art), "flowArt: the old neon halo (a blurred copy), and no dash animation or blend on the tubes"); // Changed with Joe's approval, 22 Nov 2026
+  check(/const tint = filled\.get\(cell\)/.test(stage) && /\$\{tint\}22/.test(stage), "the board tints each square a line covers (the old look)"); // Changed with Joe's approval, 22 Nov 2026
+  const { tubeLayers, tubeBody, shadeHex } = await import("../src/components/puzzles/pattern/flowArt"); // Changed with Joe's approval, 22 Nov 2026
   const hsl = (hex: string) => {
     const n = Number.parseInt(hex.slice(1), 16);
     const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => v / 255);
@@ -340,16 +340,16 @@ const COLOURS: FlowColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE
     const body = tubeBody(hex);
     const lum = (h: string) => hsl(h).l;
     const coloured = layers.filter((l) => l.stroke.toLowerCase() !== "#ffffff");
-    check(coloured.every((l) => lum(l.stroke) <= lum(body) + 1e-9), `${c}: no layer lighter than the body (no lighter core)`);
-    check(lum(coloured[0]!.stroke) < lum(body) * 0.45 && coloured[0]!.width > 20 && coloured[0]!.width <= 22, `${c}: a thin dark edge`);
-    check(coloured.some((l) => l.width === 20 && lum(l.stroke) < lum(body)), `${c}: darker sides`);
+    check(layers.some((l) => l.halo && l.stroke === hex && l.width === 30), `${c}: the neon halo in the line's own colour`); // Changed with Joe's approval, 22 Nov 2026
+    check(layers.some((l) => !l.halo && l.width === 23 && l.stroke === shadeHex(hex, -0.55)), `${c}: the dark rim`); // Changed with Joe's approval, 22 Nov 2026
+    check(layers.some((l) => !l.halo && l.width === 20 && l.stroke === hex), `${c}: the body is the line's own colour`); // Changed with Joe's approval, 22 Nov 2026
     const stripes = layers.filter((l) => l.stroke.toLowerCase() === "#ffffff" && (l.opacity ?? 1) >= 0.7);
-    check(stripes.length === 1 && stripes[0]!.width <= 3 && (stripes[0]!.shift ?? 0) < 0, `${c}: one crisp highlight stripe towards the top-left light`);
-    check(layers.every((l) => l.width <= 21.5), `${c}: nothing drawn outside the tube (no halo)`);
-    if (hsl(hex).s >= 0.15) check(hsl(body).l <= 0.52 && hsl(body).s >= hsl(hex).s * 0.75, `${c}: the body is a strong pigment, not a screen neon (${body})`);
+    check(layers.some((l) => l.stroke === shadeHex(hex, 0.6) && l.opacity === 0.55 && l.width === 6), `${c}: the soft light streak along the line`); // Changed with Joe's approval, 22 Nov 2026
+    check(layers.filter((l) => !l.halo).every((l) => l.width <= 23), `${c}: only the halo is drawn outside the tube`); // Changed with Joe's approval, 22 Nov 2026
+    check(body === hex, `${c}: the body is the old neon colour (${body})`); // Changed with Joe's approval, 22 Nov 2026
   }
   for (const c of ["LIME", "PINK", "PURPLE"] as const)
-    check(hsl(tubeBody(FLOW_COLOUR_HEX[c])).l < hsl(FLOW_COLOUR_HEX[c]).l - 0.07, `${c}: the tube is deeper than the old neon line`);
+    check(tubeBody(FLOW_COLOUR_HEX[c]) === FLOW_COLOUR_HEX[c], `${c}: the tube is the old neon line`); // Changed with Joe's approval, 22 Nov 2026
 
   // The effects, on the real board components in happy-dom.
   const { Window } = await import("happy-dom");
@@ -417,7 +417,7 @@ const COLOURS: FlowColour[] = ["RED", "BLUE", "GREEN", "PURPLE", "PINK", "ORANGE
     draw([tube([0, 1, 2]), tube([]), tube([])]);
     const heads = svg.querySelectorAll('[data-flow-tube="0"] [data-flow-head]');
     const slides = kit.filter((k) => k.kind === "slide");
-    check(heads.length >= 6 && slides.length === heads.length, `${tag} the line's head slides into the new square on all ${heads.length} of its layers (${slides.length})`);
+    check(heads.length >= 4 && slides.length === heads.length, `${tag} the line's head slides into the new square on all ${heads.length} of its layers (${slides.length})`); // Changed with Joe's approval, 22 Nov 2026
     check(slides.every((k) => k.sound === null && k.haptic === null && k.variant === (reduced ? "reduced" : "full")), `${tag} the head slide is silent (flow.draw is the stage's) and in the ${motion} variant`);
     check(played.length === heads.length && played.every((p) => p.el.hasAttribute("data-flow-head")), `${tag} only the head's own layers move (never the tube, board or arena)`);
     if (reduced) check(played.every((p) => p.frames.every((f) => f.transform === undefined)), `${tag} the head crossfades, no movement`);

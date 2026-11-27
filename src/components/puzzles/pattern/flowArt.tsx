@@ -44,6 +44,18 @@ export const FLOW_SYMBOL_PATH: Record<FlowColour, string> = {
 };
 
 /** One bead: the rendered marble, its symbol on top; it fills its box (the dot, 72 % of a cell). */
+/**
+ * The small symbol drawn on each old flat dot (Joe, 22 Nov 2026: keep the colour-blind symbols on the old dots), so
+ * colours close to each other (white and silver, yellow and lime) are told apart at a glance.
+ */
+export function FlowSymbol({ colour }: { colour: FlowColour }) {
+  return (
+    <svg className="flow-symbol" viewBox="0 0 20 20" aria-hidden="true">
+      <path d={FLOW_SYMBOL_PATH[colour]} fillRule="evenodd" />
+    </svg>
+  );
+}
+
 export function FlowBead({ colour }: { colour: FlowColour }) {
   return (
     <>
@@ -95,38 +107,32 @@ function hslToHex(h: number, s: number, l: number): string {
 }
 
 /**
- * The tube's body colour: the line's colour as a deep pigment, never a screen neon (Joe, 15 Nov 2026: lime, pink and
- * purple glowed on a phone). A light, saturated colour is brought down to at most about half lightness and loses a
- * fifth of its saturation, so it stays strong but reads as glossy plastic under light; greys (white, silver) keep
- * their tone.
+ * The tube's body colour: the line's own colour (the old look, Joe's pick of 20 Nov 2026, earlier E1.3). The deep
+ * pigment of 15 Nov 2026 is gone with the glossy tube.
  */
 export function tubeBody(hex: string): string {
-  const [h, s, l] = hexToHsl(hex);
-  if (s < 0.15) return hslToHex(h, s, Math.min(l, 0.86));
-  return hslToHex(h, s * 0.8, Math.min(l, 0.56) * 0.92);
+  return hex;
 }
-
 /** One stroke of a tube, bottom to top. `shift` moves it towards the top-left light (the highlight stripe). */
 export interface TubeLayer {
   stroke: string;
   width: number;
   opacity?: number;
   shift?: number;
+  /** The neon halo under the line (a blurred copy, the board's filter; live round only, batch-p.css). */
+  halo?: boolean;
 }
 
 /**
- * A glossy tube like concept A (Joe's fix, 15 Nov 2026): a thin dark edge, darker sides, the saturated body and one
- * crisp white highlight stripe (over a faint wider sheen) towards the top-left light. No lighter core, no blur, no outer glow, no tint round it.
+ * The old neon line (Joe's pick of 20 Nov 2026, earlier E1.3): a blurred halo in the line's colour under it (brighter
+ * once its pair is joined), a dark rim, the colour body and a soft light streak along it.
  */
-export function tubeLayers(colour: string, width: number): TubeLayer[] {
-  const body = tubeBody(colour);
+export function tubeLayers(colour: string, width: number, joined = true): TubeLayer[] {
   return [
-    { stroke: shadeHex(body, -0.7), width: width + 1.5 },
-    { stroke: shadeHex(body, -0.42), width },
-    { stroke: shadeHex(body, -0.2), width: width * 0.8 },
-    { stroke: body, width: width * 0.56 },
-    { stroke: "#ffffff", width: width * 0.3, opacity: 0.16, shift: -width * 0.2 },
-    { stroke: "#ffffff", width: Math.max(1.2, width * 0.12), opacity: 0.82, shift: -width * 0.2 },
+    { stroke: colour, width: width * 1.5, opacity: joined ? 0.95 : 0.55, halo: true },
+    { stroke: shadeHex(colour, -0.55), width: width + 3, opacity: 0.85 },
+    { stroke: colour, width },
+    { stroke: shadeHex(colour, 0.6), width: Math.max(1, width * 0.3), opacity: 0.55 },
   ];
 }
 
@@ -185,14 +191,21 @@ export function FlowTubes({
   const ghosts = useRef<SVGGElement | null>(null);
   const fxTop = useRef<SVGGElement | null>(null);
   useFlowTubeFx({ tubes, width, live, solved, solveFx, root, ghosts, fxTop });
+  const neon = `${uid}-neon`;
   return (
     <g fill="none" strokeLinecap="round" strokeLinejoin="round">
+      {/* The neon halo's blur (live round only: batch-p.css shows .flow-halo there). */}
+      <defs>
+        <filter id={neon} x="-20%" y="-20%" width="140%" height="140%">
+          <feGaussianBlur stdDeviation={Math.max(2, width * 0.45)} />
+        </filter>
+      </defs>
       <g ref={ghosts} data-flow-ghosts="" />
       <g ref={root}>
         {tubes.map((tube, index) => {
           const n = tube.points.length;
           if (n < 2) return null;
-          const layers = tubeLayers(tube.colour, width);
+          const layers = tubeLayers(tube.colour, width, tube.joined);
           const bodyD = n > 2 ? pathData(tube.points.slice(0, n - 1)) : null;
           const p = tube.points[n - 2]!;
           const q = tube.points[n - 1]!;
@@ -200,7 +213,7 @@ export function FlowTubes({
           const box = headBox(p, q, width);
           const clip = `${uid}-h${index}`;
           const clipShift = `${uid}-s${index}`;
-          const shift = layers[layers.length - 1]!.shift ?? 0;
+          const shift = 0;
           const body = tubeBody(tube.colour);
           return (
             <g key={index} className="flow-tube" data-flow-tube={index}>
@@ -212,7 +225,11 @@ export function FlowTubes({
                   <rect x={box.x + shift} y={box.y + shift} width={box.w} height={box.h} />
                 </clipPath>
               </defs>
-              {layers.map((layer, li) => {
+              {/* The halo runs the whole line unclipped (its blur spreads past the head's box). */}
+              {layers.filter((layer) => layer.halo).map((layer, li) => (
+                <path key={`halo${li}`} d={pathData(tube.points)} className="flow-halo" filter={`url(#${neon})`} stroke={layer.stroke} strokeOpacity={layer.opacity} strokeWidth={layer.width} />
+              ))}
+              {layers.filter((layer) => !layer.halo).map((layer, li) => {
                 const move = layer.shift ? `translate(${layer.shift.toFixed(2)} ${layer.shift.toFixed(2)})` : undefined;
                 return (
                   <g key={li}>
@@ -228,7 +245,7 @@ export function FlowTubes({
               {!tube.joined ? (
                 <g clipPath={`url(#${clip})`}>
                   <g className="flow-tube-head" data-flow-head="">
-                    <circle cx={q.x} cy={q.y} r={width * 0.62} className="flow-loose-end" fill={body} stroke={shadeHex(body, -0.6)} strokeWidth={1.5} />
+                    <circle cx={q.x} cy={q.y} r={width * 0.62} className="flow-loose-end" fill={body} stroke={shadeHex(body, 0.7)} strokeWidth={1.2} />
                   </g>
                 </g>
               ) : null}
@@ -328,7 +345,7 @@ function useFlowTubeFx({
         const tail = was.slice(from);
         const layer = ghosts.current;
         if (layer && tail.length >= 2) {
-          const ghost = tubeCopy(tail, tubeLayers(old.colour, width));
+          const ghost = tubeCopy(tail, tubeLayers(old.colour, width).filter((l) => !l.halo));
           ghost.setAttribute("data-flow-retract", "");
           const at = tail[0]!;
           ghost.style.transformBox = "view-box";

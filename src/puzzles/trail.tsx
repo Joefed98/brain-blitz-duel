@@ -148,8 +148,8 @@ export function Grid({
       <PolishStyle id="trail" css={TR_CSS} />
       <div aria-hidden className="pointer-events-none absolute inset-0" style={layer}>{ground}</div>
       <svg aria-hidden className="pointer-events-none absolute inset-0" width={span} height={spanH}>
-        {segments.map((s) => <Capsule key={`e${s.from}-${s.to}-${s.i}`} a={centre(s.from)} b={centre(s.to)} width={cell * 0.42} className={draw} fill="#4a3a26" />)}
-        {segments.map((s) => <Capsule key={`t${s.from}-${s.to}-${s.i}`} a={centre(s.from)} b={centre(s.to)} width={cell * 0.3} className={draw} fill="#8f7451" />)}
+        {segments.map((s) => <Capsule key={`e${s.from}-${s.to}-${s.i}`} a={centre(s.from)} b={centre(s.to)} width={cell * 0.42} className={draw} fill="#b38f4a" />)}
+        {segments.map((s) => <Capsule key={`t${s.from}-${s.to}-${s.i}`} a={centre(s.from)} b={centre(s.to)} width={cell * 0.3} className={draw} fill="#ead39c" />)}
       </svg>
       {/* Completion glow runs along the footpath, under the stones, so every number stays readable. */}
       {glow && (
@@ -465,13 +465,21 @@ function Reveal({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
   useEffect(() => setDev(devDiagnosticsOn()), []);
   // One board, as large as the shared reveal frame's box allows (the Logic overhaul, 15 Nov 2026).
   const root = useRef<HTMLDivElement | null>(null);
-  const [space, setSpace] = useState({ w: 343, h: 440 });
+  const [space, setSpace] = useState({ w: 343, h: 440, around: 150 });
   useBeforePaint(() => {
-    // Width from the board's own column, height from the reveal frame round it.
+    // The polish plan's G5 (A2, 21 Nov 2026): width from the board's own column, height from the reveal template's
+    // stage (P2's RevealScreen, `[data-reveal-stage]`), less what this reveal draws round the board (the switch, the
+    // tally and the chips), measured instead of a fixed 150 px guess.
     const column = root.current?.parentElement;
-    const host = root.current?.closest(".logic2-reveal")?.parentElement ?? column;
+    const reveal = root.current?.closest<HTMLElement>(".logic2-reveal") ?? null;
+    const host = root.current?.closest<HTMLElement>("[data-reveal-stage]") ?? reveal?.parentElement ?? column;
     if (!host || !column) return;
-    const read = () => setSpace({ w: column.clientWidth, h: host.clientHeight });
+    const read = () => {
+      // Everything in the reveal but the board's own box (which flexes to the space left).
+      const box = root.current?.closest<HTMLElement>(".logic2-reveal-board") ?? root.current;
+      const around = reveal && box ? Math.max(0, Math.round(reveal.offsetHeight - box.offsetHeight)) + 24 : 150;
+      setSpace((s) => (s.w === column.clientWidth && s.h === host.clientHeight && s.around === around ? s : { w: column.clientWidth, h: host.clientHeight, around }));
+    };
     const ro = new ResizeObserver(read);
     ro.observe(host);
     ro.observe(column);
@@ -483,9 +491,9 @@ function Reveal({ puzzle, myAnswer, myCorrect, myExtra }: PuzzleRevealProps) {
   const hasSolution = solution.length > 0;
   const mine = trDecode(myAnswer ?? "", puzzle.givens.length);
   const gap = 3;
-  // Leave room for the switch, the tally and the chips (about 150 px) under the shared frame's own rows.
+  // Leave room for the switch, the tally and the chips (measured above) under the stage's own rows.
   const side = trSide(puzzle.givens.length);
-  const cell = Math.max(30, Math.min(56, Math.floor((space.w - 8 - (side - 1) * gap) / side), Math.floor((space.h - 150 - (side - 1) * gap) / side)));
+  const cell = Math.max(30, Math.min(56, Math.floor((space.w - 8 - (side - 1) * gap) / side), Math.floor((space.h - space.around - (side - 1) * gap) / side)));
   const toPlace = puzzle.givens.filter((g) => g === null).length;
   const placed = mine.filter((c, i) => c >= 0 && i < puzzle.givens.length && puzzle.givens[c] == null).length;
   const right = hasSolution ? trCorrectTiles(puzzle.givens, mine, solution) : 0;

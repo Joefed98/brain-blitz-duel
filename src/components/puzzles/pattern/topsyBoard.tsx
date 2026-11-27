@@ -10,7 +10,6 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperti
 import { ArrowPad, gridCellCentre, useGridMetrics, usePrefersReducedMotion } from "@/components/puzzles/GridDrag";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
-import { TopsyCup, TopsyMarble } from "@/components/puzzles/pattern/topsyArt";
 import { useGameFxOnce } from "@/components/fx/GameFx";
 import { Button } from "@/components/ui/button";
 import { useGameKeys } from "@/lib/desktop";
@@ -254,10 +253,9 @@ export function TopsyBoardView({ board, state, size, live = false, cleared = fal
                         data-missed={missed && state.balls[hole] !== TOPSY_HOME ? "" : undefined}
                         style={{ ["--ball" as string]: TOPSY_COLOURS[hole], ["--order" as string]: hole }}
                       >
-                        <TopsyCup index={hole} />
                         {state.balls[hole] === TOPSY_HOME ? (
                           <span className="topsy-sunk-wrap" data-topsy-sunk="">
-                            <TopsyMarble index={hole} className="topsy-marble topsy-sunk" />
+                            <span className="grav-ball-face topsy-sunk" />
                           </span>
                         ) : null}
                         <BallMark index={hole} />
@@ -287,7 +285,6 @@ export function TopsyBoardView({ board, state, size, live = false, cleared = fal
                         ["--roll-ms" as string]: `${rollMs[index]}ms`,
                       }}
                     >
-                      <TopsyMarble index={index} />
                       <BallMark index={index} />
                     </span>
                   );
