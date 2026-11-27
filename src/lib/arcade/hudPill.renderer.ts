@@ -1,4 +1,4 @@
-import { hudInWorld } from "./hudPlacement";
+import { hudInWorld, noteHud } from "./hudPlacement";
 /**
  * The shared arcade HUD pill (3 Nov 2026, the Cards & Board and Strategy polish; display only, never imported by a sim
  * or the server): a dark rounded pill holding a quiet label and a bold value ("Maze 1 / 4", "Popped 12"), the main count
@@ -48,6 +48,9 @@ export function hudPillWidth(ctx: CanvasRenderingContext2D, label: string, value
 
 /** Draws one HUD pill with its top at `y`; returns its width. */
 export function drawHudPill(ctx: CanvasRenderingContext2D, x: number, y: number, label: string, value: string, opts: HudPillOpts = {}): number {
+  // The Cabinet (polish plan B1): on the arena the panel draws these values instead (hudPlacement.ts).
+  noteHud({ label, value, gold: opts.gold });
+  if (!hudInWorld()) return 0;
   const h = opts.h ?? HUD_PILL_H;
   const w = hudPillWidth(ctx, label, value, h);
   const left = opts.align === "right" ? x - w : opts.align === "center" ? x - w / 2 : x;
@@ -92,8 +95,13 @@ export function drawHudPillRow(
   pills: readonly { label: string; value: string; opts?: HudPillOpts }[],
   maxX = Infinity,
 ): { right: number; rest: { label: string; value: string; opts?: HudPillOpts }[] } {
-  // The Cabinet (polish plan B1): on the arena the panel draws these values instead (hudPlacement.ts).
-  if (!hudInWorld()) return { right: x, rest: [] };
+  // The Cabinet (polish plan B1): on the arena the panel draws these values instead (hudPlacement.ts). Off the world the
+  // row notes every pill itself (nothing is drawn, so no second row follows); in it each pill is noted by drawHudPill as
+  // it is drawn, so the pills handed back for the caller's second row are noted once, when that row draws them.
+  if (!hudInWorld()) {
+    for (const p of pills) noteHud({ label: p.label, value: p.value, gold: p.opts?.gold });
+    return { right: x, rest: [] };
+  }
   let cx = x;
   const rest: { label: string; value: string; opts?: HudPillOpts }[] = [];
   for (const p of pills) {
@@ -156,6 +164,7 @@ export function drawHudTextPillRow(
   right: number,
   px = 14,
 ): void {
+  for (const p of pills) noteHud({ label: "", value: p.text });
   if (!hudInWorld()) return;
   if (!pills.length) return;
   const measure = (text: string, s: number) => {
