@@ -11,6 +11,11 @@
  *  Normal's new figures on rev 4's play, the levels' settings and proved deals, the levels before under d6PreLevels
  *  byte for byte, and the realistic elite reaching 200 on at least a fifth of Expert deals.
  *
+ *  Top Bins (freekickRev 7 on level deals; the lever is the players in the wall, 2 / 3–5 / 5 / 7): the registry mirroring
+ *  FK_LEVEL_SETTINGS_V7 and FK_V7_FULL, every level deal from its proved list (the oracle at 200 with Normal's figures),
+ *  Normal on freekickRev 6 unchanged, the levels before under d6PreLevels, and the realistic elite reaching 200 on at
+ *  least a fifth of Expert deals.
+ *
  *   bun scripts/d6-sports-levels-check.ts
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -30,6 +35,10 @@ import { RACING_DEAL_V5_HARD } from "../src/lib/duel/racingDealV5Hard.server";
 import { RACING_DEAL_V5_EXPERT } from "../src/lib/duel/racingDealV5Expert.server";
 import { RACING_DEAL_V4_EASY } from "../src/lib/duel/racingDealV4Easy.server";
 import { pinPreRacingFive } from "../src/lib/duel/d6Normal";
+import { freekickGameFor, freekickStdParts, FK_LEVEL_SETTINGS, FK_LEVEL_SETTINGS_V7, FK_V7_FULL, FREEKICK_REV_6, FREEKICK_REV_7 } from "../src/lib/arcade/freekick";
+import { FREEKICK_DEAL_V7 } from "../src/lib/duel/freekickDealV7.server";
+import { puzzleTimeLimitMs } from "../src/lib/duel/catalogue";
+import { MAX_ROUND_CLOCK_MS } from "../src/lib/levels/levels";
 
 console.error = () => {};
 let failed = 0;
@@ -45,6 +54,14 @@ type L = "easy" | "hard" | "expert";
 const LEVELS: L[] = ["easy", "hard", "expert"];
 const dealAt = (type: PuzzleType, level: L | "normal", n: number): any => withSeededRandom(n * 7919 + 13, () => generatePuzzle(type, { bankSeed: n, level }));
 const reg = GAME_LEVELS as unknown as Record<string, { levels: Record<string, { settings: Record<string, unknown> }> }>;
+const pinned = <T,>(pin: (on: boolean) => boolean, fn: () => T): T => {
+  const was = pin(true);
+  try {
+    return fn();
+  } finally {
+    pin(was);
+  }
+};
 
 /* ---------------------------------------------------------------- Home Run */
 console.log("1. Home Run homerunRev 6: pitch speed");
@@ -147,6 +164,46 @@ console.log("2. Apex racingRev 5 (Normal's scoring stamp) and its levels: road w
   let at200 = 0;
   for (let n = 0; n < 96; n++) if ((await playDealt("racing", dealAt("racing", "expert", n), "elite")).score >= 200) at200++;
   check(at200 / 96 >= 0.2, `apex expert: the elite under HUMAN_LIMITS reaches 200 on ${at200} of 96 deals (at least a fifth)`);
+}
+
+/* ---------------------------------------------------------------- Top Bins */
+console.log("3. Top Bins freekickRev 7's levels: the players in the wall");
+{
+  const walls: Record<L, readonly number[]> = { easy: [2, 2], hard: [5, 5], expert: [7, 7] };
+  for (const l of LEVELS) {
+    const own = { ...FK_LEVEL_SETTINGS_V7[l], targetsFull: FK_V7_FULL[l].targets, skillFull: FK_V7_FULL[l].skill } as unknown as Record<string, unknown>;
+    const mirror = reg.freekick!.levels[l]!.settings;
+    check(Object.keys(mirror).length === Object.keys(own).length && Object.keys(mirror).every((k) => JSON.stringify(mirror[k]) === JSON.stringify(own[k])), `topbins ${l}: the registry mirrors FK_LEVEL_SETTINGS_V7 and FK_V7_FULL`);
+    check(JSON.stringify(FK_LEVEL_SETTINGS_V7[l].wall) === JSON.stringify(walls[l]), `topbins ${l}: ${walls[l][0]} in the wall`);
+    for (let n = 0; n < 4; n++) {
+      const p = dealAt("freekick", l, n);
+      check(p.freekickRev === FREEKICK_REV_7 && p.level === l && FREEKICK_DEAL_V7[l].includes(p.seed), `topbins ${l} ${n}: freekickRev 7, a proved seed, level ${l}`);
+    }
+  }
+  const normal = FK_LEVEL_SETTINGS.normal.wall;
+  check(normal[0]! > walls.easy[1]! && normal[1]! < walls.hard[0]! + 1 && normal[1]! < walls.expert[0]!, `topbins: the wall steps 2 / ${normal.join("–")} (Normal) / 5 / 7`);
+  check(FK_LEVEL_SETTINGS_V7.easy.wind === 0, "topbins easy: no wind");
+  check(JSON.stringify(FK_V7_FULL.normal) === JSON.stringify({ targets: 4, skill: 10 }), "topbins normal: rev 7's figures are rev 6's (10 a target to 4, 3 a skill shot to 10)");
+  for (const n of [0, 1, 2]) {
+    const p = dealAt("freekick", "normal", n);
+    check(p.freekickRev === FREEKICK_REV_6 && !("level" in p), `topbins normal ${n}: freekickRev 6, no level (Normal unchanged)`);
+  }
+  pinned(pinPreD6Levels, () => check(LEVELS.every((l) => dealAt("freekick", l, 0).freekickRev === FREEKICK_REV_6), "d6PreLevels: Top Bins' levels deal freekickRev 6's levels"));
+  // The parts on rev 7: Targets and Skill shots full at the level's own figures; the four maximums total 200.
+  for (const l of LEVELS) {
+    const g = freekickGameFor(FREEKICK_REV_7, l);
+    const s = { ...g.init(FREEKICK_DEAL_V7[l][0]!), acted: 1, units: 0, targets: FK_V7_FULL[l].targets, skill: FK_V7_FULL[l].skill, best: 0 } as any;
+    const parts = Object.fromEntries((freekickStdParts(s) ?? []).map((x) => [x.key, x]));
+    check(parts.targets?.points === parts.targets?.max && parts.skill?.points === parts.skill?.max && (freekickStdParts(s) ?? []).reduce((a, x) => a + x.max, 0) === 200, `topbins ${l}: Targets full at ${FK_V7_FULL[l].targets}, Skill shots at ${FK_V7_FULL[l].skill}; the parts total 200`);
+  }
+  check(puzzleTimeLimitMs(dealAt("freekick", "expert", 0)) <= MAX_ROUND_CLOCK_MS + 3000, "topbins expert: the dealt clock is within 120 s");
+  // The deal: every seed proved at 200 with Normal's figures through the server replay; the file rebuilds byte for byte.
+  const r = Bun.spawnSync(["bun", "scripts/freekick-d6-deal.ts", "--check"], { stdout: "pipe", stderr: "pipe" });
+  const out = r.stdout.toString().trim().split("\n").pop() ?? "";
+  check(r.exitCode === 0 && /^(PASS|ok)/i.test(out), `topbins: every D6 deal seed re-proved at 200 and the file rebuilds (${out})`);
+  let at200 = 0;
+  for (let n = 0; n < 96; n++) if ((await playDealt("freekick", dealAt("freekick", "expert", n), "elite")).score >= 200) at200++;
+  check(at200 / 96 >= 0.2, `topbins expert: the elite under HUMAN_LIMITS reaches 200 on ${at200} of 96 deals (at least a fifth)`);
 }
 
 console.log(failed ? `FAIL d6-sports-levels-check: ${failed} failed, ${passed} passed` : `PASS d6-sports-levels-check: ${passed} checks`);

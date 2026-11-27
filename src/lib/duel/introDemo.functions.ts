@@ -8,7 +8,7 @@ import { BASTION_REV_DEALT } from "@/lib/arcade/bastionTank";
 import { DEPTH_DEMO_STOPS, DEPTH_REV, depthRevOf } from "./logicDepth";
 import { fillominoStrokes, trailUndoEach } from "./logicOverhaul2";
 import { SWING_REV_BIG } from "@/lib/arcade/swing";
-import { INK_REV_HILLS } from "@/lib/arcade/inkBridge";
+import { INK_REV_D6, INK_REV_HILLS } from "@/lib/arcade/inkBridge";
 import { CLAY_REV_WIDE } from "@/lib/arcade/clayShoot";
 import { WHACK_REV_NOTES } from "@/lib/arcade/whack";
 import { WORDFALL_REV } from "@/lib/arcade/wordfall";
@@ -253,7 +253,8 @@ export function acceptIntroDemo(type: string, demo: IntroDemoRow | null): IntroD
   // inkRev 13 (Nov 2026: clovers, ink par, more birds, no stars or silver coins) deals other levels: only a demo recorded
   // on inkRev 13 plays (the still shows until then). inkRev 14 (3 Nov 2026) draws a bigger coin, clovers and birds on other
   // levels: only a demo recorded on inkRev 14 plays.
-  if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV_HILLS) return null;
+  // D6: inkRev 16 is inkRev 15's world and play (only the scoring moved), so an inkRev 15 demo still shows the round.
+  if (data.type === "inkbridge" && demo?.puzzle.type === "inkbridge" && demo.puzzle.inkRev !== INK_REV_HILLS && demo.puzzle.inkRev !== INK_REV_D6) return null;
   // clayRev 5 (14 Oct 2026) flies 14–16 birds and clayRev 6 (16 Oct 2026, taller worlds batch 2) flies them under a
   // taller sky: an older demo would show the old sky, so only a demo recorded on today's clayRev plays.
   // Depth to 200 (25 Oct 2026): clayRev 9 adds doubles and the hit streak, Bonk's whackRev 3 the gold combo and

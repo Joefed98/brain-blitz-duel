@@ -17,6 +17,7 @@ import {
   inkWorldH,
   inkWorldHFor,
   INK_REV_HILLS,
+  INK_REV_D6,
   INK_LEVEL_SETS,
   isInkDiff,
 } from "@/lib/arcade/inkBridge";
@@ -229,7 +230,7 @@ function Reveal({ puzzle, myAnswer }: PuzzleRevealProps) {
 /** Stage 3: the first live level (0-based) of the stored puzzle's level (today's 8 on Normal and every older round). */
 function inkLiveFromOf(puzzle: InkBridgePuzzleData): number {
   const level = (puzzle as { level?: unknown }).level;
-  return puzzle.inkRev === INK_REV_HILLS && isInkDiff(level) ? INK_LEVEL_SETS[level].liveFrom : 8;
+  return (puzzle.inkRev === INK_REV_HILLS || puzzle.inkRev === INK_REV_D6) && isInkDiff(level) ? INK_LEVEL_SETS[level].liveFrom : 8;
 }
 
 /** The seed is generated on the server; every run is replayed there for scoring. */

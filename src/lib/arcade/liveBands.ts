@@ -10,10 +10,10 @@
  */
 import { bandCurve, bandHelp, type BandCurve, type BandHelpWords } from "./scoreBands";
 import { roundMaxFor } from "../duel/roundMax";
-import { BT_REV_STD, BT_REV_STRICT, BT_V8_BAND_CURVE } from "./ballTrack";
+import { BT_D6_BAND_CURVE, BT_REV_D6, BT_REV_STRICT } from "./ballTrack";
 import { WAV_REV_BIG, WAV_REV_STRICT, WAV_V12_BAND_CURVE } from "./wavefront";
 import { FLIP_REV_GRACE, FLIP_REV_STRICT, FLIP_V13_BAND_CURVE } from "./flip";
-import { INK_REV_HILLS, INK_REV_STRICT, INK_V13_BAND_CURVE } from "./inkBridge";
+import { INK_REV_D6, INK_REV_STRICT, INK_V13_BAND_CURVE } from "./inkBridge";
 import { MATCHUP_REV_D6, MATCHUP_REV_STRICT, MATCHUP_V14_BAND_CURVE } from "./matchup";
 import { BUB_REV_FAST, BUB_REV_STRICT, BUB_V12_BAND_CURVE, BUB_V12_STD_SPEC } from "./bubble";
 import { CROSS_REV_LIGHT, CROSS_REV_STRICT, CROSS_V11_BAND_CURVE } from "./cross";
@@ -87,7 +87,8 @@ function stdCoreCurve(spec: StdSpec): BandCurve {
 }
 
 export const LIVE_BANDS = {
-  balltrack: { field: "btRev", rev: BT_REV_STD, curve: BT_V8_BAND_CURVE, strictRev: BT_REV_STRICT },
+  // D6 (27 Nov 2026): btRev 9, Normal's parts full where the realistic elite fills them (28 marbles home).
+  balltrack: { field: "btRev", rev: BT_REV_D6, curve: BT_D6_BAND_CURVE, strictRev: BT_REV_STRICT },
   // wavRev 14 (the Retro overhaul, 15 Nov 2026): wavRev 13 plus the charged shot; the same parts.
   wavefront: { field: "wavRev", rev: WAV_REV_BIG, curve: WAV_V12_BAND_CURVE, strictRev: WAV_REV_STRICT },
   // flipRev 11 (3 Nov 2026): the core's straight line (clean half seconds → 100; a saved crash costs 20 s); perfect landings,
@@ -97,7 +98,8 @@ export const LIVE_BANDS = {
   flip: { field: "flipRev", rev: FLIP_REV_GRACE, curve: FLIP_V13_BAND_CURVE, strictRev: FLIP_REV_STRICT },
   // inkRev 14 (3 Nov 2026: inkRev 13's rules and parts with a bigger coin, clovers and birds; inkRev 13 before it, clovers,
   // ink par, more birds): levels on a straight line to 120; ink par, trick shots, clovers and speed add up to 80 more.
-  inkbridge: { field: "inkRev", rev: INK_REV_HILLS, curve: INK_V13_BAND_CURVE, strictRev: INK_REV_STRICT },
+  // D6 (27 Nov 2026): inkRev 16, inkRev 15's world on each level's own figures (the levels line unchanged).
+  inkbridge: { field: "inkRev", rev: INK_REV_D6, curve: INK_V13_BAND_CURVE, strictRev: INK_REV_STRICT },
   // matchupRev 12 (the arcade scoring standard, six goals and six treasures): the core's straight line (gems cleared, to
   // 108); treasure, goals, ice and big lines pay fixed amounts on top, to 200 (the help says so). matchupRev 11 before it.
   // matchupRev 13 (two-hit ice and levels): Normal's core line, matchupRev 12's (the help states Normal's figures).

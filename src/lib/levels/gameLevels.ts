@@ -674,16 +674,15 @@ export const GAME_LEVELS: Partial<Record<PuzzleType, GameLevels>> = {
       expert: { settings: { colours: 6, reef: 110, every: 7, trail: 0, banksFull: 10, coreFull: 110, speedFullLeft: 1800 } },
     },
   },
-  // Ball Tracker (Strategy overhaul stage 3, 15 Nov 2026; docs/arcade-standard/balltrack.md "Levels"): Normal is
-  // btRev 8 today (36 marbles every 84 ticks, 1.4 s; the cups move twice: a re-lay and a colour shuffle; 6 gold, 3
-  // boosters). Each level deals a course from its own proved list (src/lib/duel/ballTrackDeal<Level>.server.ts, built
-  // by scripts/balltrack-level-deal.ts from these settings): marbles, release ticks, cup moves, gold marbles, boosters;
-  // Easy also fills the combos part at 10 combo landings (`comboFull`, stored on its courses as `combo`; 16 Nov 2026).
+  // Ball Tracker (D6, 27 Nov 2026): btRev 9's levels, a mirror of BT_D6_LEVELS in src/lib/arcade/ballTrack.ts, which the
+  // builder reads (scripts/balltrack-d6-deal.ts; d6-strategy-levels-check proves the two the same). The lever is the marble
+  // colours and their cups: 3 / 4 (Normal) / 5 (a purple star joins) / 5 with a faster release and more cup moves (the
+  // board holds five cups at most). Each part is full at the level's own figure (homeFull, goldFull, comboFull, boostFull).
   balltrack: {
     levels: {
-      easy: { settings: { balls: 16, dropTicks: 190, moves: 0, golds: 7, boosts: 4, comboFull: 10 } },
-      hard: { settings: { balls: 42, dropTicks: 72, moves: 8, golds: 7, boosts: 3 } },
-      expert: { settings: { balls: 42, dropTicks: 66, moves: 12, golds: 7, boosts: 2 } },
+      easy: { settings: { colours: 3, balls: 16, dropTicks: 190, moves: 0, golds: 7, boosts: 4, homeFull: 14, goldFull: 6, comboFull: 10, boostFull: 14 } },
+      hard: { settings: { colours: 5, balls: 40, dropTicks: 78, moves: 4, golds: 6, boosts: 3, homeFull: 33, goldFull: 5, comboFull: 20, boostFull: 33 } },
+      expert: { settings: { colours: 5, balls: 42, dropTicks: 72, moves: 6, golds: 6, boosts: 2, homeFull: 37, goldFull: 4, comboFull: 20, boostFull: 37 } },
     },
   },
   // Gemstone (D6, 23 Nov 2026): matchupRev 14's levels, a copy of MATCHUP_V14_LEVELS (d6-strategy-levels-check proves the two the

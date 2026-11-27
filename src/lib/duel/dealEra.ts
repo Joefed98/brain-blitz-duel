@@ -141,6 +141,10 @@ export const DEAL_PINS = {
   pyramidPreSpeed22: { texts: false },
   /** arcade.server.ts: Gemstone matchupRev 13, before D6's matchupRev 14 (Normal's parts, the colours lever, 23 Nov 2026). */
   matchupPreD6: { texts: false },
+  /** ballTrack.server.ts: Ball Tracker btRev 8, before D6's btRev 9 (each part full where the realistic elite fills it, 27 Nov 2026). */
+  balltrackPreD6: { texts: true },
+  /** arcade.server.ts: Rainbow Bridge inkRev 15, before D6's inkRev 16 (each part full where the realistic elite fills it, 27 Nov 2026). */
+  inkPreD6: { texts: true },
   /**
    * D6's sixteen games' level deals (23 Nov 2026): every level deal as on main 7e25a4d0, before D6's levels (Five Hands
    * fiveHandsRev 3's levels on any seed, …). Checks written for the levels before pin it.

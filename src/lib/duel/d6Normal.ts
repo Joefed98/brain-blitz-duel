@@ -50,6 +50,14 @@ export function pinPrePyramidSpeed22(on: boolean): boolean {
 export function pinPreMatchupD6(on: boolean): boolean {
   return setDealPin("matchupPreD6", on);
 }
+/** Checks written for Ball Tracker btRev 8 deal it (Normal and the levels before D6); returns the previous setting. */
+export function pinPreBalltrackD6(on: boolean): boolean {
+  return setDealPin("balltrackPreD6", on);
+}
+/** Checks written for Rainbow Bridge inkRev 15 deal it (Normal and the levels before D6); returns the previous setting. */
+export function pinPreInkD6(on: boolean): boolean {
+  return setDealPin("inkPreD6", on);
+}
 /** Checks written for D6's games' level deals before D6 (main 7e25a4d0) deal them; returns the previous setting. */
 export function pinPreD6Levels(on: boolean): boolean {
   return setDealPin("d6PreLevels", on);
@@ -58,5 +66,6 @@ export function pinPreD6Levels(on: boolean): boolean {
 /** True unless a check pinned the stamp before D6's (the help then reads the stamp it deals). */
 export const fiveHands128Dealt = (): boolean => !dealPinned("fivehandsPre128");
 export const tiltThreeDealt = (): boolean => !dealPinned("tiltPreThree");
+export const inkD6Dealt = (): boolean => !dealPinned("inkPreD6");
 export const tripeaksEaseDealt = (): boolean => !dealPinned("tripeaksPreEase");
 export const racingFiveDealt = (): boolean => !dealPinned("racingPreFive");

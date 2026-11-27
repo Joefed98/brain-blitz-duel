@@ -93,7 +93,7 @@ import {
   TILT_T_SPEED_FULL_S,
   TILT_X_TWO_FROM,
 } from "@/lib/arcade/tilt";
-import { fiveHands128Dealt, tiltThreeDealt, tripeaksEaseDealt } from "./d6Normal";
+import { fiveHands128Dealt, inkD6Dealt, tiltThreeDealt, tripeaksEaseDealt } from "./d6Normal";
 import { FH_CORE_FULL_V4 } from "@/lib/arcade/cards/fiveHands";
 import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX, BUB_V11_MINE_POPS, BUB_V12_REEF } from "@/lib/arcade/bubble";
 import {
@@ -166,6 +166,7 @@ import {
   INK_V13_CORE_MAX,
   INK_V13_PAR_MAX,
   INK_V13_SPEED_FULL,
+  INK_D6_FIGURES,
   INK_V13_SPEED_MAX,
   INK_V13_STD,
   INK_LEVELS,
@@ -1847,10 +1848,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       // line; ink par, trick shots, clovers and speed fixed amounts on top.
       score: listFromSpec(INK_V13_STD, {
         core: `${INK_V13_CORE_MAX / INK_LEVELS} for each level potted`,
-        par: `${INK_V13_PAR_MAX / INK_LEVELS} a level drawn within its ink par, less above it`,
+        par: inkD6Dealt() ? `up to ${INK_V13_PAR_MAX} for levels drawn within their ink par (${INK_D6_FIGURES.normal.parFull / 1000} of the ${INK_LEVELS} gets all of it), less above it` : `${INK_V13_PAR_MAX / INK_LEVELS} a level drawn within its ink par, less above it`,
         tricks: "5 for each trick shot",
         clovers: "5 for each clover",
-        speed: `pot all ten with ${INK_V13_SPEED_FULL / 60} s left for all of it, falling to 0 at the buzzer`,
+        speed: `pot all ten with ${inkD6Dealt() ? INK_D6_FIGURES.normal.speedFullLeftS : INK_V13_SPEED_FULL / 60} s left for all of it, falling to 0 at the buzzer`,
       }),
     },
 

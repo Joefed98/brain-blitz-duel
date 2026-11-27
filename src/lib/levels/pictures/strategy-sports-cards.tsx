@@ -270,7 +270,56 @@ const freekickWords = (level: Level) => {
   return wall[0] === wall[1] ? `${wall[0]} in the wall` : `${wall[0]} to ${wall[1]} in the wall`;
 };
 
+/* ------------------------------------------------------------------ Ball Tracker: colours and their cups */
+
+/** btRev 9's Normal: four colours, 36 marbles (ballTrack.ts BT_COLOURS, BT_V7_BALLS). */
+const BT_NORMAL = { colours: 4, balls: 36 };
+/** The cups' colours in the board's order (player palette tokens; the art is the game's own). */
+const CUP_TONES = ["--jz-player-1", "--jz-player-2", "--jz-player-4", "--jz-player-6", "--jz-player-8"];
+function BalltrackPicture({ level, size }: LeverPictureProps) {
+  const n = at("balltrack", level, BT_NORMAL).colours as number;
+  const H = heightOf(size);
+  const cup = 22;
+  const gap = 8;
+  const x0 = (W - n * cup - (n - 1) * gap) / 2;
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    const x = x0 + i * (cup + gap);
+    out.push(<circle key={`m${i}`} cx={x + cup / 2} cy={H / 2 - 14} r={6} fill={`var(${CUP_TONES[i]})`} />);
+    out.push(<rect key={`c${i}`} x={x} y={H / 2 + 2} width={cup} height={14} rx={4} fill="none" stroke={`var(${CUP_TONES[i]})`} strokeWidth={2} />);
+  }
+  return <svg {...svgProps(H, "balltrack", level)}>{out}</svg>;
+}
+const balltrackWords = (level: Level) => {
+  const s = at("balltrack", level, BT_NORMAL);
+  return `${s.colours as number} colours and cups, ${s.balls as number} marbles`;
+};
+
+/* ------------------------------------------------------------------ Rainbow Bridge: the pot's width */
+
+/** inkRev 16's Normal: the pot 64 px wide (inkBridge.ts INK_BUCKET_W), the coin's 20 px diameter (inkRev 14's coin). */
+const INK_NORMAL = { potW: 64 };
+const INK_COIN = 20;
+function InkbridgePicture({ level, size }: LeverPictureProps) {
+  const potW = at("inkbridge", level, INK_NORMAL).potW as number;
+  const H = heightOf(size);
+  // 110 px (Easy's widest) spans most of the width; every pot and the coin on that one scale.
+  const k = (W - 30) / 110;
+  const w = potW * k;
+  const x = (W - w) / 2;
+  const y = H / 2;
+  return (
+    <svg {...svgProps(H, "inkbridge", level)}>
+      <circle cx={W / 2} cy={y - 18} r={(INK_COIN * k) / 2} fill="var(--jz-gold)" />
+      <path d={`M ${x} ${y} L ${x + 6} ${y + 22} L ${x + w - 6} ${y + 22} L ${x + w} ${y}`} fill="none" stroke="var(--jz-text)" strokeWidth={3} strokeLinejoin="round" />
+    </svg>
+  );
+}
+const inkbridgeWords = (level: Level) => `A pot ${at("inkbridge", level, INK_NORMAL).potW as number} px wide`;
+
 export const LEVER_PICTURES: Partial<Record<string, LeverPictureEntry>> = {
+  inkbridge: { Picture: InkbridgePicture, words: inkbridgeWords },
+  balltrack: { Picture: BalltrackPicture, words: balltrackWords },
   matchup: { Picture: MatchupPicture, words: matchupWords },
   tilt: { Picture: TiltPicture, words: tiltWords },
   freekick: { Picture: FreekickPicture, words: freekickWords },

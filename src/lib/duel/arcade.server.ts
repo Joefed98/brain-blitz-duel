@@ -12,7 +12,7 @@ import { flipDealSeed } from "./flipDeal.server";
 import { wavDealSeed } from "./wavefrontDeal.server";
 import { flipDealSeedV13 } from "./flipDealV13.server";
 import { CROSS_REV_KEEP, CROSS_REV_LIGHT } from "@/lib/arcade/cross";
-import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_HILLS, INK_REV_STD, isInkDiff } from "@/lib/arcade/inkBridge";
+import { INK_REV_BIG, INK_REV_CLOVER, INK_REV_D6, INK_REV_HILLS, INK_REV_STD, isInkDiff } from "@/lib/arcade/inkBridge";
 import { inkBigDealSeed } from "./inkBigDeal.server";
 import { inkHillsDealSeed } from "./inkHillsDeal.server";
 import { inkLevelDealSeed } from "./inkLevelDeals.server";
@@ -548,8 +548,11 @@ export function generateInkBridge(level?: string): InkBridgePuzzleData {
   // inkRev 15 (the Strategy overhaul, 15 Nov 2026): inkRev 14 with the pot and hill placed level by level, from its own
   // proved deal (inkHillsDeal.server.ts: every level proved and the perfect run 200 through the server replay).
   if (dealPinned("inkPreHills")) return { type: "inkbridge", seed: inkBigDealSeed(arcadeSeed()), inkRev: INK_REV_BIG };
-  if (isInkDiff(level)) return { type: "inkbridge", seed: inkLevelDealSeed(level, arcadeSeed()), inkRev: INK_REV_HILLS };
-  return { type: "inkbridge", seed: inkHillsDealSeed(arcadeSeed()), inkRev: INK_REV_HILLS };
+  // inkRev 16 (D6, 27 Nov 2026): inkRev 15's world and deals exactly, each part full at the level's own figure
+  // (INK_D6_FIGURES). Checks written for inkRev 15 pin inkPreD6; the levels before D6, d6PreLevels.
+  const before = dealPinned("inkPreD6");
+  if (isInkDiff(level)) return { type: "inkbridge", seed: inkLevelDealSeed(level, arcadeSeed()), inkRev: before || dealPinned("d6PreLevels") ? INK_REV_HILLS : INK_REV_D6 };
+  return { type: "inkbridge", seed: inkHillsDealSeed(arcadeSeed()), inkRev: before ? INK_REV_HILLS : INK_REV_D6 };
 }
 
 export function generateBurst(): BurstPuzzleData {
