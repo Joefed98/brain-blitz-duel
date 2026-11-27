@@ -36,7 +36,9 @@ import {
   MATCHUP_REV_ICE,
   MATCHUP_REV_SIX,
   MATCHUP_REV_ICE2,
+  MATCHUP_REV_D6,
   MATCHUP_V13_BAND_CURVE,
+  MATCHUP_V14_BAND_CURVE,
   MATCHUP_V12_BAND_CURVE,
   MATCHUP_RUN_TICKS,
   MATCHUP_SIZE,
@@ -66,8 +68,8 @@ section("Rooms deal matchupRev 10's successor; older revisions keep 60 s");
 // matchupRev 12 (six goals and six treasures, gemstone-rev12-check) then moved them on again.
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): matchupRev 13 (two-hit ice
 // and levels) is the dealt stamp's successor; the help, demo gate and standard entry follow it.
-for (let k = 0; k < 5; k++) ok((generatePuzzle("matchup") as any).matchupRev === MATCHUP_REV_ICE2, "rooms deal matchupRev 12 (a successor of matchupRev 10)");
-ok(LIVE_BANDS.matchup.rev === MATCHUP_REV_ICE2 && LIVE_BANDS.matchup.curve === MATCHUP_V13_BAND_CURVE && JSON.stringify(MATCHUP_V13_BAND_CURVE) === JSON.stringify(MATCHUP_V12_BAND_CURVE), "the help reads matchupRev 12's curve (a successor of matchupRev 10)");
+for (let k = 0; k < 5; k++) ok((generatePuzzle("matchup") as any).matchupRev === MATCHUP_REV_D6, "rooms deal matchupRev 14 (a successor of matchupRev 10)"); // Changed with Joe's approval, 27 Nov 2026 (D6)
+ok(LIVE_BANDS.matchup.rev === MATCHUP_REV_D6 && LIVE_BANDS.matchup.curve === MATCHUP_V14_BAND_CURVE && JSON.stringify(MATCHUP_V13_BAND_CURVE) === JSON.stringify(MATCHUP_V12_BAND_CURVE), "the help reads matchupRev 14's curve (a successor of matchupRev 10)"); // Changed with Joe's approval, 27 Nov 2026 (D6)
 ok(MATCHUP_V10_BAND_CURVE.points[MATCHUP_V10_BAND_CURVE.points.length - 1] === 150, "matchupRev 10's own curve is unchanged (150 at its top)");
 for (const rev of [undefined, 2, 3, 4, 5, 6, 7, 8, 9]) {
   ok(matchupGameFor(rev).runTicks === MATCHUP_RUN_TICKS && MATCHUP_RUN_TICKS === 3600, `matchupRev ${rev ?? "none"}: 60 s`);
@@ -77,7 +79,7 @@ for (const rev of [undefined, 2, 3, 4, 5, 6, 7, 8, 9]) {
 ok(matchupWorldHFor(MATCHUP_REV_ICE) === MATCHUP_V9_WORLD_H && matchupRowsFor(MATCHUP_REV_ICE) === MATCHUP_V9_ROWS, "the 7 × 10 board in the 390 × 720 world");
 {
   const demo = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/matchupRev !== MATCHUP_REV_ICE2\) return null/.test(demo), "Gemstone's demo stays stopped until recorded on matchupRev 12 (a successor of matchupRev 10)");
+  ok(/matchupRev !== MATCHUP_REV_D6\) return null/.test(demo), "Gemstone's demo stays stopped until recorded on matchupRev 14 (a successor of matchupRev 10)"); // Changed with Joe's approval, 27 Nov 2026 (D6)
 }
 
 /* 2. 90 s */

@@ -10,14 +10,14 @@
  * clover, else its easy line, with more than 50 s left; plus one built state with every counter full. A played run that
  * earns nothing is one stroke point and no release.
  */
-import { inkBridgeGameFor, inkCheckpoint, inkV13Score, INK_CHECKPOINT_INTERVAL, INK_CLOUD_LEVELS, INK_INPUT_STROKE, INK_LEVELS, INK_REV_BIG, INK_REV_HILLS, INK_V13_CLOVERS, INK_V15_STD, type InkState } from "../../src/lib/arcade/inkBridge";
+import { inkBridgeGameFor, inkCheckpoint, inkV13Score, INK_CHECKPOINT_INTERVAL, INK_CLOUD_LEVELS, INK_INPUT_STROKE, INK_LEVELS, INK_REV_BIG, INK_REV_D6, INK_REV_HILLS, INK_V13_CLOVERS, INK_V15_STD, INK_V16_STD, type InkState } from "../../src/lib/arcade/inkBridge";
 import { INK_HILLS_DEAL } from "../../src/lib/duel/inkHillsDeal.server";
 import { encodeInkBridgeRun, replayInkBridgeRun } from "../../src/lib/duel/inkBridge";
 import { roomSeed } from "../arcade-skill-bands/games";
 import { inkOracleRun } from "../ink-x200-oracle";
 import type { StdEntry, StdRun } from "./entry";
 
-const game = inkBridgeGameFor(INK_REV_HILLS);
+const game = inkBridgeGameFor(INK_REV_D6); // Changed with Joe's approval, 27 Nov 2026 (D6): rooms deal inkRev 16 (inkRev 15's world on each level's own figures)
 
 /** Plays a log on inkRev 14 and scores it through the server's encode + replay. */
 function replayed(seed: number, events: { t: number; k: number; a: number; b: number; c: number; d: number }[]): number {
@@ -29,7 +29,7 @@ function replayed(seed: number, events: { t: number; k: number; a: number; b: nu
     if (s.tick % INK_CHECKPOINT_INTERVAL === 0) checkpoints.push(inkCheckpoint(s));
   }
   const raw = encodeInkBridgeRun({ seed, claimedScore: game.score(s), events, inputs: [], taps: [], endTick: s.tick, checkpoints } as never);
-  return replayInkBridgeRun(seed, raw, INK_REV_HILLS).score;
+  return replayInkBridgeRun(seed, raw, INK_REV_D6).score;
 }
 
 /** A run's points per part (the core keyed "core"). */
@@ -41,14 +41,14 @@ function partsOf(s: InkState): Record<string, number> {
 export const entry: StdEntry = {
   type: "inkbridge",
   field: "inkRev",
-  rev: INK_REV_HILLS,
-  before: INK_REV_BIG,
-  parts: INK_V15_STD.parts,
-  spec: INK_V15_STD,
+  rev: INK_REV_D6,
+  before: INK_REV_HILLS,
+  parts: INK_V16_STD.parts,
+  spec: INK_V16_STD,
   perfect: () => {
     const runs: StdRun[] = [0, 7, 41].map((n) => {
       const seed = INK_HILLS_DEAL[n]!;
-      const o = inkOracleRun(seed, INK_REV_HILLS);
+      const o = inkOracleRun(seed, INK_REV_D6);
       return { label: `oracle seed ${seed} (${o.levels} levels, ${o.endedSeconds.toFixed(1)} s, server replay)`, score: o.replayed === o.score ? o.replayed : -1, parts: partsOf(o.state) };
     });
     const s = game.init(roomSeed(3)) as InkState;
@@ -61,7 +61,7 @@ export const entry: StdEntry = {
     return { label: `seed ${seed}: one stroke point, never released`, score: replayed(seed, [{ t: 30, k: INK_INPUT_STROKE, a: 100, b: 100, c: 1, d: 0 }]) };
   }),
   idle: () => [0, 1].map((n) => ({ label: `seed ${roomSeed(n)}: no input`, score: replayed(roomSeed(n), []) })),
-  help: { terms: ["50 s", "12", "ink par"] },
+  help: { terms: ["40 s", "12", "ink par"] }, // Changed with Joe's approval, 27 Nov 2026 (D6): Normal's speed is full with 40 s left on inkRev 16
   extra: (ok) => {
     // The ink-par part: 3 a level within par, a straight line from par to twice it, nothing past that.
     const s = game.init(roomSeed(0)) as InkState;

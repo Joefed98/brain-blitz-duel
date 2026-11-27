@@ -32,7 +32,7 @@ import {
   tiltWorldHFor,
   TILT_REV_LIFT,
   TILT_REV_PAR,
-  TILT_REV_BIG,
+  TILT_REV_BIG, TILT_REV_THREE,
   TILT_REV_STD,
   TILT_RUN_TICKS,
   TILT_S4_CELL,
@@ -61,6 +61,10 @@ import { roundMaxFor } from "../src/lib/duel/roundMax";
 import { tiltStateDigest } from "./tilt-expand-record";
 import { botLog, randomLog, scheduleOf } from "./room-identity/tilt";
 import { entry } from "./arcade-standard/tilt";
+import { pinPreTiltThree } from "../src/lib/duel/d6Normal";
+
+// Changed with Joe's approval, 23 Nov 2026 (D6): Tilt's Normal moved to tiltRev 13 (three mazes); this check was written for tiltRev 12, so it deals it (d6-normal-stamps-check proves tiltRev 13).
+pinPreTiltThree(true);
 
 /**
  * tiltRev 10's arcade-standard entry, as scripts/arcade-standard/tilt.ts held it until 3 Nov 2026 (it names the dealt
@@ -138,7 +142,8 @@ section("tiltRev 10 runs; the oracle's are 200");
   const perfect = STANDARD.perfect();
   ok(perfect.score === 200 && STANDARD.parts.every((p) => perfect.parts[p.key] === p.max), `STANDARD.perfect(): 200 with every part at its maximum (${JSON.stringify(perfect)})`);
   ok(STANDARD.parts.reduce((t, p) => t + p.max, 0) === 200 && STANDARD.stamp === TILT_REV_STD && STANDARD.stampKey === "tiltRev", "STANDARD: parts sum to 200 on tiltRev 10");
-  ok(entry.rev === TILT_REV_BIG && entry.field === "tiltRev", "the arcade-standard entry names the dealt tiltRev 12 since 3 Nov 2026 (tilt-rev12-check; tiltRev 11 before it)");
+  // Changed with Joe's approval, 23 Nov 2026 (D6): LIVE_BANDS and the standard entry name the dealt tiltRev 13 (tiltRev 12's first three mazes, on tiltRev 11's core line).
+  ok(entry.rev === TILT_REV_THREE && entry.field === "tiltRev", "the arcade-standard entry names the dealt tiltRev 13 since D6 (tiltRev 12 from 3 Nov 2026, tiltRev 11 before it)");
   console.log(`  ${runs.length} runs; perfect() in ${Date.now() - t0} ms`);
 }
 
@@ -238,7 +243,7 @@ section("the help, intro, reveal and demo");
 {
   // Since 3 Nov 2026 the help, intro, LIVE_BANDS and demo name the dealt tiltRev 11 (tilt-rev11-check proves their words).
   const live = LIVE_BANDS.tilt as { field: string; rev: number; curve: unknown };
-  ok(live.field === "tiltRev" && live.rev === TILT_REV_BIG && live.curve === TILT_V11_BAND_CURVE, "LIVE_BANDS: the dealt tiltRev 12 on tiltRev 11's core line (tiltRev 10, then 11, before)");
+  ok(live.field === "tiltRev" && live.rev === TILT_REV_THREE && live.curve === TILT_V11_BAND_CURVE, "LIVE_BANDS: the dealt tiltRev 13 on tiltRev 11's core line (tiltRev 10, 11, then 12, before)");
   ok(roundMaxFor("tilt") === 200, "Tilt's round maximum stays 200");
   const help = PUZZLE_INSTRUCTIONS.tilt.score;
   ok(!/quick star|skill/i.test(help) && !/gold star/i.test(help), "the help names no quick stars, skill pay or (tiltRev 11) gold stars");
@@ -254,7 +259,7 @@ section("the help, intro, reveal and demo");
   const rv = buildArcadeReveal("tilt", { ...ro, tiltRev: TILT_REV_STD }, ro.score)!;
   ok(rv.outcome === "finish" && rv.lines.join(" ").includes("all 4 mazes +10 · speed +20") && rv.lines.join(" ").includes("Gold stars 3 / 3 +30"), `the perfect reveal: ${rv.lines.join(" | ")}`);
   const demos = readFileSync("src/lib/duel/introDemo.functions.ts", "utf8");
-  ok(/tiltRev !== TILT_REV_BIG\) return null/.test(demos), "the intro demo stays stopped until one is recorded on the dealt stamp (tiltRev 12 since 3 Nov 2026)");
+  ok(/tiltRev !== TILT_REV_THREE\) return null/.test(demos), "the intro demo stays stopped until one is recorded on the dealt stamp (tiltRev 13 since D6, 23 Nov 2026)"); // Changed with Joe's approval, 23 Nov 2026
   ok(TILT_REV_STD === TILT_REV_LIFT + 1, "tiltRev 10 is one above the live stamp it replaces");
 }
 

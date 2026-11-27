@@ -83,15 +83,19 @@ import {
   TILT_V2_STAR_POINTS,
   TILT_P_CLEAN_POINTS,
   TILT_P_CORE_MAX,
-  TILT_P_MAZE_POINTS,
   TILT_P_PAR_MAX,
+  TILT_P_MAZE_POINTS,
   TILT_P_PAR_POINTS,
   TILT_P_PROGRESS_POINTS,
   TILT_P_SPEED_FULL,
   TILT_P_SPEED_POINTS,
   TILT_S_MAZES,
+  TILT_T_MAZES,
+  TILT_T_SPEED_FULL_S,
   TILT_X_TWO_FROM,
 } from "@/lib/arcade/tilt";
+import { fiveHands128Dealt, inkD6Dealt, tiltThreeDealt, tripeaksEaseDealt } from "./d6Normal";
+import { FH_CORE_FULL_V4 } from "@/lib/arcade/cards/fiveHands";
 import { BUB_SPECIAL_BLOCK, BUB_TORPEDO_HITS, BUB_V3_JOKER_BLOCK, BUB_V8_CHESTS, BUB_V8_CHEST_FP, BUB_V8_FEATURE_MAX, BUB_V11_MINE_POPS, BUB_V12_REEF } from "@/lib/arcade/bubble";
 import {
   MATCHUP_V3_PAR_RAW,
@@ -164,6 +168,7 @@ import {
   INK_V13_CORE_MAX,
   INK_V13_PAR_MAX,
   INK_V13_SPEED_FULL,
+  INK_D6_FIGURES,
   INK_V13_SPEED_MAX,
   INK_V13_STD,
   INK_LEVELS,
@@ -1152,7 +1157,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "4, 5 or an L / T", detail: "makes a bomb or a star; 5 plus an L / T in one swap makes a jackpot.", helpOnly: true },
         { action: "Six goals,", detail: `one for each colour, are shown under the board from the start: clear that many gems of the colour to meet it. Every gem of the colour counts, in a line, a cascade or a blast.`, helpOnly: true },
         { action: "A frozen gem", detail: "can be swapped into or out of the ice only when the swap makes a line of three. Ice takes two hits: clear the gem in it (in a line, a cascade or a blast) and the ice cracks; clear the gem there again and it breaks. It never comes back.", helpOnly: true },
-        { action: "Levels:", detail: "Easy deals five colours, smaller goals, 5 frozen cells and the hint after 3 s; Normal six colours, 10 frozen cells, the hint after 5 s; Hard bigger goals, 14 frozen cells, the hint after 8 s; Expert seven colours (the cyan heart is the seventh), the biggest goals, 18 frozen cells and no hint. The points below are Normal’s; every level’s parts still make 200.", helpOnly: true },
+        // D6 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy has five colours, smaller goals, 5 frozen cells and the hint after 3 s; Normal six colours, 10 frozen cells, the hint after 5 s; Hard seven colours (the cyan heart is the seventh), bigger goals, 18 frozen cells and no hint; Expert eight colours (a white pearl too).", helpOnly: true },
         { action: "The treasure chest", detail: `(a gold-banded chest, not a gem) can’t be matched or blasted. Two ways bring it down: clear gems in its column below it, so it drops into the gap, or swap it with a neighbour: it swaps with a gem that then makes a line of three. It is collected when it reaches the bottom row; ${MATCHUP_V12_TREASURES} come a round, one at a time.`, helpOnly: true },
         { action: "Tip:", detail: "work low in the chest’s column. A line under the chest drops it one row for each gem cleared below it, and a glowing trail shows the column it falls down.", helpOnly: true },
         { action: "Drag one gem onto its neighbour", detail: "to swap them. Matched gems clear and new ones fall in; your next swap waits until the board has settled.", helpOnly: true },
@@ -1296,6 +1302,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Every stack can be cleared:", detail: "it is built backwards from an empty board, and a Shuffle keeps it clearable.", helpOnly: true },
         { action: "Faces:", detail: "dots, bamboo and characters 1–9, the four winds and three dragons; a face matches only itself.", helpOnly: true },
         { action: "One stack for everyone,", detail: "72 tiles in four layers, 2 minutes.", helpOnly: true, normalOnly: true },
+        // D6 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy is 48 tiles in two layers with free hints and cheaper Shuffles; Normal 72 tiles in four layers; Hard 104 tiles, no hints, a Shuffle costing 10; Expert 136 tiles in 110 seconds, no hints, a Shuffle costing 15.", helpOnly: true },
       ],
       score: liveStdHelp("mahjong", `Each Shuffle costs ${MAHJONG_SHUFFLE_COST}.`),
     },
@@ -1314,7 +1322,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Fielders:", detail: "seven of them, each in a pale circle; a ball that comes down in a circle is caught for an out. They shift between pitches, so look for the gap each time. An outfielder near the ball’s line holds a hit to one base less.", helpOnly: true },
         { action: "Runners:", detail: "move up by the hit’s bases, and a runner on second scores on a single. A short single with a runner on first can be a fielder’s choice: the runner out at second.", helpOnly: true },
         { action: "The innings ends", detail: "at three outs or when the clock runs out. Your perfect swings in a row show as a streak.", helpOnly: true },
-        { action: "Levels:", detail: "Easy pitches are slower and straighter, with more time to swing and fewer outside the zone; Hard and Expert pitches are faster and bend more, with tighter timing and fielders who cover more ground.", helpOnly: true },
+        // D6 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy pitches are slow and straight, with fewer outside the zone, more time to swing and five outs; Hard pitches are much faster and bend more, with tighter timing and fielders who cover more ground; Expert the fastest pitches, the most bend and the tightest timing.", helpOnly: true },
         { action: "Everyone", detail: "faces the same pitches and fielders in the same order.", helpOnly: true },
       ],
       score: liveStdHelp("homerun"),
@@ -1333,7 +1342,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Redraw the shot", detail: "as often as you like until you press the bar: the marker shows where it goes in still air, dots show the bend, the chip names the strike. The bar’s needle sweeps up and back, the same speed every time.", helpOnly: true },
         { action: "Each kick", detail: "has its own spot, 18 to 32 yards out and up to 35° either side, a wall of 3 to 5 and its own wind.", helpOnly: true },
         { action: "Placement:", detail: "a goal further from the keeper is worth a little more.", helpOnly: true },
-        { action: "Levels:", detail: "Easy has a wider gold zone, a slower keeper, a 3-man wall, little wind and bigger rings; Hard and Expert narrow the gold, quicken the keeper, build a bigger wall, strengthen the wind and shrink the rings further.", helpOnly: true },
+        // D6 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy has a 2-man wall, a wider gold zone, a slow keeper and no wind; Hard a 5-man wall that jumps on 5 kicks, a narrower gold zone, a quicker keeper and wind; Expert a 7-man wall that jumps on 8 kicks, the quickest keeper and the strongest wind.", helpOnly: true },
         { action: "Everyone", detail: "faces the same kicks, walls, winds and keepers.", helpOnly: true },
       ],
       score: liveStdHelp("freekick"),
@@ -1353,6 +1363,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Ghost cars", detail: "show the other players in the room. They can’t touch you and passing them scores nothing.", helpOnly: true },
         { action: "Three circuits:", detail: "Sunset Park, Harbour Run and Ridge Loop. The round’s circuit is named on the grid; each has its own par pace for full pace points.", helpOnly: true },
         { action: "Everyone", detail: "races the same track.", helpOnly: true },
+        // D6 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy has a wider road, braking points painted before each sharp corner and gravel that keeps 80 % of your speed; Hard a narrower road, closer tyre walls and gravel that keeps half your speed; Expert the narrowest road, tighter hairpins (Ridge Loop keeps its own), gravel that keeps about a third of your speed and only the corner speed signs to help.", helpOnly: true },
       ],
       score: liveStdHelp("racing"),
     },
@@ -1414,6 +1426,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "The house view, top right,", detail: "shows exactly where every stone sits, from above. Tap or drag in it to put the target there.", helpOnly: true },
         { action: "Throw turns grey", detail: "while a stone travels and lights up gold when the next one is ready with a weight set.", helpOnly: true },
         { action: "A stone short of the far hog line,", detail: "or through the back or the sides, is out of play.", helpOnly: true },
+        // D6 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy starts each end with 2 red stones further from the button and shows the stone’s whole path; Normal 3 red stones; Hard 4 red stones closer to the button; Expert 5 red stones, the closest, with no HOUSE zone on the power bar and no aim line.", helpOnly: true },
       ],
       score: liveStdHelp("curling"),
     },
@@ -1453,6 +1467,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Safe cards fly home by themselves:", detail: "aces and twos, and a card whose lower cards of the other colour are home. They are not counted as moves.", helpOnly: true },
         { action: "Par", detail: "is the fewest moves our solver found for this deal.", helpOnly: true },
         { action: "One deal for everyone,", detail: "always solvable.", helpOnly: true },
+        // D6 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy deals 32 cards with 5 free cells and free hints; Normal 40 cards with 4 free cells; Hard 40 cards with 3 free cells and no hints; Expert 48 cards with 2 free cells, no hints and 3 undos.", helpOnly: true },
       ],
       score: liveStdHelp("freecell"),
     },
@@ -1462,11 +1478,13 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Tap a glowing card", detail: "one higher or lower than the discard; Ace and King wrap.", normalOnly: true },
         { action: "Tap the stock", detail: "when you are stuck: it turns a new discard and ends your run of cards." },
         { action: "Uncover the tops", detail: "of all three peaks for the bonus." },
-        { action: "Stock · par", detail: "at the top counts the stock cards you’ve turned against the fewest this deal can be cleared with: clear it within par for the full bonus." },
+        { action: "Stock · par", detail: tripeaksEaseDealt() ? "at the top counts the stock cards you’ve turned against the fewest this deal can be cleared with: clear it within 8 over par for the full bonus." : "at the top counts the stock cards you’ve turned against the fewest this deal can be cleared with: clear it within par for the full bonus." },
         { action: "Face-down cards", detail: "flip face up when both cards over them are cleared.", helpOnly: true },
         { action: "The stock and discard", detail: "sit just under the peaks; with the stock gone and no card to play, the run ends (“No plays left”).", helpOnly: true },
         { action: "Drag works too:", detail: "drop a card on the discard.", helpOnly: true },
         { action: "One deal for everyone,", detail: "always clearable.", helpOnly: true },
+        // D6 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy gives 90 seconds and the whole stock, glowing playable cards, 3 undos and free hints; Hard 45 seconds, 18 turns of the stock and no glow, undos or hints; Expert 32 seconds and 14 turns of the stock.", helpOnly: true },
       ],
       score: liveStdHelp("tripeaks"),
     },
@@ -1493,9 +1511,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Hands:", detail: "high card 0, pair 15, two pair 20, three of a kind 25, straight 30, flush 35, full house 40, four of a kind 45, straight flush 50.", helpOnly: true },
         { action: "20 turns", detail: "after five cards dealt one to each row: 45 of the 52 cards are seen by the end.", helpOnly: true },
         { action: "Rows at the buzzer", detail: "score as they stand.", helpOnly: true },
-        { action: "POINTS", detail: "at the top is your score so far: your hand points × 1.4.", helpOnly: true, normalOnly: true },
+        // fiveHandsRev 4 (D6, 22 Nov 2026): 200 at 112 hand points (was × 1.4, 200 at 143).
+        { action: "POINTS", detail: fiveHands128Dealt() ? `at the top is your score so far: 200 at ${FH_CORE_FULL_V4} hand points.` : "at the top is your score so far: your hand points × 1.4.", helpOnly: true, normalOnly: true },
         { action: "Some decks", detail: "can’t reach 200 even placed perfectly: everyone in a room has the same deck, so it’s fair.", helpOnly: true },
         { action: "Same deck, same order,", detail: "for everyone.", helpOnly: true },
+        // D6 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy gives 90 seconds, shows your next two cards and what each column is worth, with free hints; Hard 42 seconds, no preview, no hints and a pair worth 10; Expert 30 seconds and two pair worth 15 too.", helpOnly: true },
       ],
       score: liveStdHelp("fivehands"),
     },
@@ -1537,9 +1558,12 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "One pass:", detail: "the stock is turned once; a waste card is buried by the next draw, so free its partner in time.", normalOnly: true },
         { action: "Undo and Reset", detail: "at the bottom take back the last action or go back to the deal (Reset asks first); the clock runs on.", helpOnly: true },
         { action: "Stuck?", detail: "With no move left, Undo or Reset to try another order; the run carries on to the buzzer.", helpOnly: true },
-        { action: "Pairs of two pyramid cards", detail: "score extra, 2 each, up to ten.", helpOnly: true },
+        // D6 (23 Nov 2026): Normal only; pyramidRev 4's taller levels fill the pairs part at their own figure (their score line).
+        { action: "Pairs of two pyramid cards", detail: "score extra, 2 each, up to ten.", helpOnly: true, normalOnly: true },
         { action: "Every deal", detail: "can be cleared with pyramid pairs and Kings alone, but only in the right order: look before you pair.", helpOnly: true },
         { action: "Same deal", detail: "for everyone.", helpOnly: true },
+        // D6 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy is a 6-row pyramid with three passes through the stock, glowing pairs and free hints; Normal 7 rows and one pass; Hard 8 rows, one pass, no glow or hints; Expert 9 rows, one pass and exactly three Kings.", helpOnly: true },
       ],
       score: liveStdHelp("pyramid"),
     },
@@ -1889,7 +1913,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "Levels 1–4:", detail: "draw lines around the white birds, then tap RELEASE to drop the coin into a still pot.", helpOnly: true },
         { action: "Levels 5–8:", detail: "the pot moves. Time the release so the coin rolls in.", helpOnly: true },
         { action: "Levels 9–10, live:", detail: "draw one line, RELEASE, then keep drawing as the coin falls. Faded strokes commit when you lift your finger; you can’t draw through birds or near the coin.", helpOnly: true },
-        { action: "Levels:", detail: "Easy gives more ink, a quarter of the birds, a wide pot that never moves, no live levels and a looser ink par, with a clover on the easy line, and pays its bonus shots sooner; Normal the ten levels above; Hard less ink, two more birds a level, a narrower pot, live from level 8 and a stricter par; Expert the least ink, three more birds a level, the narrowest pot, swaying birds on levels 5–6, live from level 7 and no par margin. The points below are Normal’s; every level’s parts still make 200.", helpOnly: true },
+        // D6 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy has a wide 110 px pot that never moves, more ink, a quarter of the birds, no live levels and a clover on the easy line; Normal a 64 px pot; Hard a 48 px pot, two more birds a level, live from level 8 and a stricter ink par; Expert a 42 px pot, three more birds a level, swaying birds on levels 5 and 6, live from level 7 and the strictest ink par.", helpOnly: true },
         { action: "Ink par:", detail: "the top of the screen shows the ink this level has taken and its par (“Ink 18 · par 54”), and a bar the ink left. Pot the coin using no more ink than the par for the level’s full ink-par points; a little over still pays some, twice the par nothing. Undo gives the ink back.", helpOnly: true },
         { action: "Clovers:", detail: `${INK_V13_CLOVERS} levels in the run have a clover on a harder route, well away from the easy one. Roll the coin through it and into the pot: it counts only once the coin is potted. You never need it to finish a level.`, helpOnly: true },
         { action: "Bounce clouds:", detail: `${INK_CLOUD_LEVELS} levels have a springy cloud that throws the coin back up: pot the coin after a bounce for a trick shot.`, helpOnly: true },
@@ -1901,10 +1926,10 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       // line; ink par, trick shots, clovers and speed fixed amounts on top.
       score: listFromSpec(INK_V13_STD, {
         core: `${INK_V13_CORE_MAX / INK_LEVELS} for each level potted`,
-        par: `${INK_V13_PAR_MAX / INK_LEVELS} a level drawn within its ink par, less above it`,
+        par: inkD6Dealt() ? `up to ${INK_V13_PAR_MAX} for levels drawn within their ink par (${INK_D6_FIGURES.normal.parFull / 1000} of the ${INK_LEVELS} gets all of it), less above it` : `${INK_V13_PAR_MAX / INK_LEVELS} a level drawn within its ink par, less above it`,
         tricks: "5 for each trick shot",
         clovers: "5 for each clover",
-        speed: `pot all ten with ${INK_V13_SPEED_FULL / 60} s left for all of it, falling to 0 at the buzzer`,
+        speed: `pot all ten with ${inkD6Dealt() ? INK_D6_FIGURES.normal.speedFullLeftS : INK_V13_SPEED_FULL / 60} s left for all of it, falling to 0 at the buzzer`,
       }),
     },
 
@@ -2022,23 +2047,34 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
       goal: "Roll each marble into its own cup.",
       how: [
         { action: "Drag left or right", detail: "to spin the maze." },
-        { action: "Keys open gates;", detail: `maze ${TILT_S_MAZES}: small and tight.` },
+        // tiltRev 13 (D6, 22 Nov 2026): Normal deals tiltRev 12's first three mazes; the tight fourth is gone. A check
+        // pinned to tiltRev 12 (tiltPreThree) reads its text.
+        { action: "Keys open gates;", detail: tiltThreeDealt() ? `${TILT_T_MAZES} mazes in 90 seconds.` : `maze ${TILT_S_MAZES}: small and tight.` },
         { action: `From maze ${TILT_X_TWO_FROM}, two marbles,`, detail: "each to its own cup." },
-        { action: "Marbles always roll down.", detail: `${TILT_S_MAZES} mazes, always all on screen: three big ones, then a smaller, tighter one with the blue marble alone and no holes. A marble that falls into a black hole goes back to its start: it costs time and ends your clean run.`, helpOnly: true },
+        { action: "Marbles always roll down.", detail: `${tiltThreeDealt() ? `${TILT_T_MAZES} mazes, always all on screen.` : `${TILT_S_MAZES} mazes, always all on screen: three big ones, then a smaller, tighter one with the blue marble alone and no holes.`} A marble that falls into a black hole goes back to its start: it costs time and ends your clean run.`, helpOnly: true },
         { action: "Keys and gates:", detail: "a gate across the way to the cup stays shut until either marble rolls over its key, which waits in a side passage before the gate. A gate and its key share a colour.", helpOnly: true },
         { action: "Ice:", detail: "on the faintly frosted cells the marble keeps its speed and slides further, so ease off before a turn or a hole.", helpOnly: true },
         { action: "Cups:", detail: "the blue marble goes in the blue cup, the amber marble in the amber cup, which always starts well away from it. Each marble can only leave through the gap by its own cup, and the maze is done when both are in. The marbles roll through each other.", helpOnly: true },
         { action: "Par:", detail: "every maze has a par time, the same for everyone, set by how long its route is. The seconds left to it show top right; finish the maze (every marble home) before it runs out.", helpOnly: true },
         { action: "Clean run:", detail: "keep both marbles out of the black holes. “Clean” shows top right until the first fall.", helpOnly: true },
-        { action: "Levels:", detail: "Easy deals three smaller mazes with at most one black hole, no ice, two marbles only in the last and a generous par; Normal the four mazes above; Hard three or four holes and ice in every maze, two marbles in two of mazes 2–4 and a stricter par; Expert larger mazes, four holes and the most ice in each, two marbles in up to three mazes and the strictest par. The points below are Normal’s; every level’s parts still make 200.", helpOnly: true },
+        // D6 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy is three small mazes with no holes or ice and one marble; Normal three mazes, the amber marble joining on maze 3; Hard four mazes with holes and ice, two marbles on mazes 1 to 3; Expert four bigger mazes, four holes in each and two marbles on every maze.", helpOnly: true },
       ],
       // tiltRev 11 (3 Nov 2026): no gold stars; mazes on a straight line, then par, a clean run, all four and speed, 200 in all.
-      score: scoreList([
-        { label: "Mazes", how: `${TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS} for each maze, part of it for getting closer to the exit`, max: TILT_P_CORE_MAX },
-        { label: "Par times", how: `${TILT_P_PAR_POINTS} for each maze finished within its par time`, max: TILT_P_PAR_MAX },
-        { label: "Clean run", how: `${TILT_P_CLEAN_POINTS / TILT_S_MAZES} for each maze finished before any marble falls in a hole`, max: TILT_P_CLEAN_POINTS },
-        { label: "Speed", how: `finish all ${TILT_S_MAZES} within ${TILT_P_SPEED_FULL / 60} s for all of it, falling to 0 at the buzzer`, max: TILT_P_SPEED_POINTS },
-      ], { total: 200 }),
+      // tiltRev 13 (D6, 22 Nov 2026): the same four parts over three mazes, speed full by 55 s.
+      score: tiltThreeDealt()
+        ? scoreList([
+            { label: "Mazes", how: `about ${Math.round(TILT_P_CORE_MAX / TILT_T_MAZES)} for each maze, part of it for getting closer to the exit`, max: TILT_P_CORE_MAX },
+            { label: "Par times", how: `${TILT_P_PAR_MAX / TILT_T_MAZES} for each maze finished within its par time`, max: TILT_P_PAR_MAX },
+            { label: "Clean run", how: `${TILT_P_CLEAN_POINTS / TILT_T_MAZES} for each maze finished before any marble falls in a hole`, max: TILT_P_CLEAN_POINTS },
+            { label: "Speed", how: `finish all ${TILT_T_MAZES} within ${TILT_T_SPEED_FULL_S} s for all of it, falling to 0 at the buzzer`, max: TILT_P_SPEED_POINTS },
+          ], { total: 200 })
+        : scoreList([
+            { label: "Mazes", how: `${TILT_P_MAZE_POINTS + TILT_P_PROGRESS_POINTS} for each maze, part of it for getting closer to the exit`, max: TILT_P_CORE_MAX },
+            { label: "Par times", how: `${TILT_P_PAR_POINTS} for each maze finished within its par time`, max: TILT_P_PAR_MAX },
+            { label: "Clean run", how: `${TILT_P_CLEAN_POINTS / TILT_S_MAZES} for each maze finished before any marble falls in a hole`, max: TILT_P_CLEAN_POINTS },
+            { label: "Speed", how: `finish all ${TILT_S_MAZES} within ${TILT_P_SPEED_FULL / 60} s for all of it, falling to 0 at the buzzer`, max: TILT_P_SPEED_POINTS },
+          ], { total: 200 }),
     },
     hotfloor: {
       goal: "Plan a route to the exit before the floor falls.",
@@ -2219,7 +2255,8 @@ function instructionTemplates(): Record<PuzzleType, PuzzleInstructions> {
         { action: "A marble rolling into an upright tube", detail: "drops a row.", helpOnly: true },
         { action: "A closed drop on the bottom row", detail: "sends marbles rolling past it (gold →).", helpOnly: true },
         { action: `${BT_V7_BALLS} marbles drop, one about every 1.4 seconds`, detail: "until 49 seconds; the run lasts a minute.", helpOnly: true },
-        { action: "Levels:", detail: "Easy drops 16 marbles, one every 3.2 seconds, the cups never moving, 7 gold marbles and 4 boosters, the combos full at 10; Normal the 36 above, one every 1.4 seconds, the cups moving twice, 6 gold and 3 boosters; Hard 42 every 1.2 seconds, the cups moving 8 times, 7 gold and 3 boosters; Expert 42 every 1.1 seconds, the cups moving 12 times, 7 gold and 2 boosters. The intro says this round’s. The points below are Normal’s; every level’s parts still make 200.", helpOnly: true },
+        // D6 levels (27 Nov 2026): what Easy, Hard and Expert change.
+        { action: "Levels:", detail: "Easy has three marble colours, 16 marbles one every 3.2 seconds and cups that never move; Normal four colours, 36 marbles one every 1.4 seconds, the cups moving twice; Hard five colours (a purple star joins), 40 marbles one every 1.3 seconds, the cups moving 4 times; Expert five colours, 42 marbles one every 1.2 seconds, the cups moving 6 times and fewer boosters.", helpOnly: true },
         { action: "Mid-round the bottom row moves and the cups swap colours;", detail: "the count under the board (“20 to switch up”) gives the seconds to the next switch-up.", helpOnly: true },
       ],
       // btRev 8 (the arcade scoring standard, docs/arcade-standard/balltrack.md): marbles home on one even line, then the

@@ -9,11 +9,11 @@
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { stdHelp } from "../src/lib/arcade/arcadeStandard";
-import { FC_LEVEL_RULES, fcLevelSpec } from "../src/lib/arcade/cards/freecell";
-import { MAHJONG_LEVEL_RULES, mahjongLevelSpec } from "../src/lib/arcade/mahjong";
-import { TP_LEVEL_RULES, tpLevelSpec } from "../src/lib/arcade/cards/tripeaks";
-import { FH_LEVEL_RULES, FH_REV, FH_V3_TABLE_TEXT, fhLevelSpec, fhTableText } from "../src/lib/arcade/cards/fiveHands";
-import { PY_LEVEL_RULES, pyLevelSpec } from "../src/lib/arcade/cards/pyramid";
+import { FC_LEVEL_RULES_V6, FC_REV_PAR98, fcLevelSpec } from "../src/lib/arcade/cards/freecell";
+import { MAHJONG_LEVEL_RULES_V3, MAHJONG_REV_LEVELS, mahjongLevelSpec } from "../src/lib/arcade/mahjong";
+import { TP_LEVEL_RULES_V4, TP_REV_EASE, TP_STOCK_TURNS, tpLevelSpec } from "../src/lib/arcade/cards/tripeaks";
+import { FH_LEVEL_RULES_V4, FH_REV_128, FH_REV_FLAT, FH_TURNS, FH_V3_TABLE_TEXT, fhLevelSpec, fhTableText } from "../src/lib/arcade/cards/fiveHands";
+import { PY_LEVEL_RULES_V4, PY_REV_ROWS, pyCardsIn, pyLevelSpec } from "../src/lib/arcade/cards/pyramid";
 
 const OUT = "src/lib/levels/cardLevelText.data.ts";
 type L = "easy" | "hard" | "expert";
@@ -25,62 +25,69 @@ const hintLine = (cost: number, limit: number, idle: boolean) =>
 
 const text: Record<string, Record<L, Text>> = { freecell: {} as Record<L, Text>, mahjong: {} as Record<L, Text>, tripeaks: {} as Record<L, Text>, fivehands: {} as Record<L, Text>, pyramid: {} as Record<L, Text> };
 for (const l of LV) {
-  const fc = FC_LEVEL_RULES[l];
+  // D6 (23 Nov 2026): the levels dealt today are freecellRev 6's (FC_LEVEL_RULES_V6).
+  const fc = FC_LEVEL_RULES_V6[l];
   const cards = 4 * fc.topRank;
   text.freecell[l] = {
     goal: `Get all ${cards} cards home, fast, in two minutes.`,
     how: [
-      `${cards} cards (Ace to ${fc.topRank === 13 ? "King" : fc.topRank}), ${fc.cells} free cells${l === "expert" ? ", only the deals with the shortest solutions" : l === "hard" ? ", deals with short solutions" : ""}.`,
+      `${cards} cards (Ace to ${fc.topRank === 13 ? "King" : fc.topRank === 12 ? "Queen" : fc.topRank === 11 ? "Jack" : fc.topRank}), ${fc.cells} free cells${l === "expert" ? ", only the deals solved in 38 moves or fewer" : ""}.`,
       fc.undoFree ? "Undo is free and unlimited." : fc.undoLimit > 0 ? `${fc.undoLimit} undos, each a move.` : "Undo counts as a move.",
-      hintLine(fc.hintCost, fc.hintLimit, l === "easy"),
+      ...(fc.hintLimit === 0 ? [] : [hintLine(fc.hintCost, fc.hintLimit, l === "easy")]),
     ],
     intro: `Move all ${cards} cards home; bonuses for few moves and speed. Up to 200.`,
-    score: stdHelp(fcLevelSpec(l)),
+    score: stdHelp(fcLevelSpec(l, FC_REV_PAR98)),
   };
-  const mj = MAHJONG_LEVEL_RULES[l];
+  // D6 (23 Nov 2026): the levels dealt today are mahjongRev 3's (MAHJONG_LEVEL_RULES_V3: tiles in the stack).
+  const mj = MAHJONG_LEVEL_RULES_V3[l];
   text.mahjong[l] = {
-    goal: `Clear all ${mj.layout.tiles} tiles in pairs.`,
+    goal: `Clear all ${mj.layout.tiles} tiles in pairs${mj.seconds ? ` in ${mj.seconds} seconds` : ""}.`,
     how: [
-      `${mj.layout.tiles} tiles in ${mj.layout.layers} layers; ${mj.quads} faces appear four times, so pick which pair to take carefully.`,
+      `${mj.layout.tiles} tiles in ${mj.layout.layers} layers; ${mj.quads === 34 ? "every face appears" : `${mj.quads} faces appear`} four times, so pick which pair to take carefully.`,
       `A shuffle costs ${mj.shuffleCost}.`,
-      hintLine(mj.hintCost, mj.hintLimit, l === "easy"),
+      ...(mj.hintLimit === 0 ? [] : [hintLine(mj.hintCost, mj.hintLimit, l === "easy")]),
     ],
     intro: `Clear pairs of the ${mj.layout.tiles} tiles; bonuses for no shuffles and speed. Up to 200.`,
-    score: stdHelp(mahjongLevelSpec(l)),
+    score: stdHelp(mahjongLevelSpec(l, MAHJONG_REV_LEVELS)),
   };
-  const tp = TP_LEVEL_RULES[l];
+  // D6 (23 Nov 2026): the levels dealt today are tripeaksRev 4's (TP_LEVEL_RULES_V4: the clock is the lever).
+  const tp = TP_LEVEL_RULES_V4[l];
   text.tripeaks[l] = {
-    goal: "Clear the three peaks, one up or down from the discard.",
+    goal: `Clear the three peaks, one up or down from the discard, in ${tp.seconds} seconds.`,
     how: [
-      `${tp.glow ? "Playable cards glow" : "No glow: find the playable cards yourself"}; ${tp.wrap ? "Ace and King wrap" : "no wrap: an Ace never goes on a King or a King on an Ace"}${l === "easy" ? "; the easiest deals" : l === "hard" ? "; deals proved to clear without it" : "; the hardest of those"}.`,
-      tp.undoLimit ? `${tp.undoLimit} undos, back one play or stock card each.` : "No undo.",
-      hintLine(tp.hintCost, tp.hintLimit, l === "easy"),
+      `${tp.seconds} seconds; ${tp.stockTurns === TP_STOCK_TURNS ? "the whole stock" : `the stock cut to ${tp.stockTurns} cards`}${l === "easy" ? "; the easiest deals" : ""}.`,
+      `${tp.glow ? "Playable cards glow" : "No glow: find the playable cards yourself"}; ${tp.wrap ? "Ace and King wrap" : "no wrap: an Ace never goes on a King or a King on an Ace"}.`,
+      tp.hintLimit === 0 ? (tp.undoLimit ? `${tp.undoLimit} undos; no hints.` : "No undo and no hints.") : `${tp.undoLimit ? `${tp.undoLimit} undos, back one play or stock card each. ` : ""}${hintLine(tp.hintCost, tp.hintLimit, l === "easy")}`,
     ],
     intro: `Clear the peaks in long runs; speed full by ${tp.speedFullS} s. Up to 200.`,
-    score: stdHelp(tpLevelSpec(l)),
+    score: stdHelp(tpLevelSpec(l, TP_REV_EASE)),
   };
-  const fh = FH_LEVEL_RULES[l];
-  const mult = fh.num / fh.den;
+  // D6 (23 Nov 2026): the levels dealt today are fiveHandsRev 4's (FH_LEVEL_RULES_V4: 200 at the level's own hand points).
+  const fh = FH_LEVEL_RULES_V4[l];
+  const secs = (fh.seconds / (FH_TURNS + 1)).toFixed(1).replace(/\.0$/, "");
   text.fivehands[l] = {
-    goal: `Build five poker hands, then pick a column. ×${mult}, ${fh.seconds} s.`,
+    goal: `Build five poker hands, then pick a column. ${fh.seconds} s, about ${secs} s a card.`,
     how: [
-      `Your hand points × ${mult}; ${fh.seconds} seconds${fh.tableRev === FH_REV ? "" : `; ${fhTableText(fh.tableRev).split(", ").slice(0, 2).join(", ")} (bigger hands pay as Normal)`}.`,
-      ...(fh.preview ? [`The next ${fh.preview} cards show beside yours, and each column's value shows while you pick.`] : []),
-      hintLine(fh.hintCost, fh.hintLimit, l === "easy"),
+      `${fh.seconds} seconds for your ${FH_TURNS} cards; 200 at ${fh.full} hand points${fh.tableRev === FH_REV_FLAT ? "" : `; ${fhTableText(fh.tableRev).split(", ").slice(0, 2).join(", ")} (bigger hands pay as Normal)`}.`,
+      ...(fh.preview ? [`The next ${fh.preview} cards show beside yours, and each column's value shows while you pick.`] : ["No preview of the next cards, no column values and no hints."]),
+      ...(fh.hintLimit === 0 ? [] : [hintLine(fh.hintCost, fh.hintLimit, l === "easy")]),
     ],
-    intro: `Make poker hands in five rows, then pick a column; × ${mult}. Up to 200.`,
-    score: stdHelp(fhLevelSpec(l)),
+    intro: `Make poker hands in five rows, then pick a column; 200 at ${fh.full} hand points. Up to 200.`,
+    score: stdHelp(fhLevelSpec(l, FH_REV_128)),
   };
-  const py = PY_LEVEL_RULES[l];
+  // D6 (23 Nov 2026): pyramidRev 4's rows, the stock left and the Kings.
+  const py = PY_LEVEL_RULES_V4[l];
+  const pyCards = pyCardsIn(py.rows);
+  const kings = py.kingsList.length === 1 ? `${py.kingsList[0]}` : py.kingsList.join(" or ");
   text.pyramid[l] = {
     goal: "Clear the pyramid in pairs that add to 13.",
     how: [
-      `${py.passes === 1 ? "One pass" : `${py.passes} passes`} through the stock; ${py.kingsMin === py.kingsMin + py.kingsSpan - 1 ? py.kingsMin : `${py.kingsMin}–${py.kingsMin + py.kingsSpan - 1}`} Kings in the pyramid${l === "expert" ? "; the hardest deals" : l === "hard" ? "; harder deals" : ""}.`,
-      py.glow ? "A picked card's partners glow." : "No glow: find each card's partner yourself.",
-      hintLine(py.hintCost, py.hintLimit, l === "easy"),
+      `${py.rows} rows: ${pyCards} cards, ${52 - pyCards} in the stock; ${py.passes === 1 ? "one pass" : `${py.passes} passes`} through it; ${kings} Kings in the pyramid.`,
+      ...(py.glow ? ["A picked card's partners glow."] : []),
+      ...(py.hintLimit === 0 ? ["No glow and no hints: find each card's partner yourself."] : [hintLine(py.hintCost, py.hintLimit, l === "easy")]),
     ],
-    intro: "Clear the pyramid in pairs to 13; bonuses for a clear and speed. Up to 200.",
-    score: stdHelp(pyLevelSpec(l)),
+    intro: `Clear the ${py.rows}-row pyramid in pairs to 13; bonuses for a clear and speed. Up to 200.`,
+    score: stdHelp(pyLevelSpec(l, PY_REV_ROWS)),
   };
 }
 void FH_V3_TABLE_TEXT;

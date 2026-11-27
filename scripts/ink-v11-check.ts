@@ -34,6 +34,7 @@ import {
   INK_REV_CLOVER,
   INK_REV_BIG,
   INK_REV_HILLS,
+  INK_REV_D6,
   INK_REV_EXPAND,
   INK_REV_SPREAD,
   INK_REV_STRICT,
@@ -78,7 +79,7 @@ section("Rooms deal inkRev 11; older stamps unchanged");
   // inkRev 13 (Nov 2026: clovers, ink par, more birds; ink-v13-check) moved rooms and LIVE_BANDS on: the deal is pinned to
   // the one before it (inkRev 12, inkRev 11's play), and LIVE_BANDS lists inkRev 13, still against inkRev 8.
   const wasInk = pinInkPreClover(true);
-  ok(playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_SPREAD && INK_REV_SPREAD === INK_REV_EXPAND + 1 && /* Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): LIVE_BANDS lists inkRev 15. */ live.rev === INK_REV_HILLS && live.strictRev === INK_REV_STRICT, "rooms dealt inkRev 11's play before inkRev 13 (inkRev 12 re-scored it on the arcade standard); LIVE_BANDS lists inkRev 15 (inkRev 14's parts, pot placed level by level) (inkRev 13's parts with a bigger coin, clovers and birds), measured against inkRev 8");
+  ok(playRevOf("inkbridge", generateInkBridge().inkRev) === INK_REV_SPREAD && INK_REV_SPREAD === INK_REV_EXPAND + 1 && /* Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): LIVE_BANDS lists inkRev 15. */ /* Changed with Joe's approval, 27 Nov 2026 (D6): LIVE_BANDS lists inkRev 16. */ live.rev === INK_REV_D6 && live.strictRev === INK_REV_STRICT, "rooms dealt inkRev 11's play before inkRev 13 (inkRev 12 re-scored it on the arcade standard); LIVE_BANDS lists inkRev 16 (inkRev 15's world on each level's own figures), measured against inkRev 8");
   pinInkPreClover(wasInk);
   ok(roundMaxFor("inkbridge") === 200 && inkWorldHFor(INK_REV_SPREAD) === INK_TALL_H, "still 200 at most, in the 674-tall world");
   const s = game.init(SAMPLE[0]!);

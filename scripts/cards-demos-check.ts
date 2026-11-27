@@ -21,6 +21,8 @@ import { FH_REV } from "../src/lib/arcade/cards/fiveHands";
 import { PY_REV } from "../src/lib/arcade/cards/pyramid";
 import { CARDS_DEMO_GAMES, CARDS_DEMOS_FILE, exampleDeal, type CardsDemo } from "./cards-demos-record";
 
+// Changed with Joe's approval, 23 Nov 2026 (D6): the demos were re-recorded on today's stamps (Free Cell freecellRev 6, Summit tripeaksRev 4, Five Hands fiveHandsRev 4), so the check deals today's game, no pin.
+
 let passed = 0;
 const failures: string[] = [];
 function check(ok: boolean, what: string): void {

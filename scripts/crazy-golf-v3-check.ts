@@ -72,6 +72,10 @@ import { setDealPin } from "../src/lib/duel/dealEra";
 import { withSeededRandom } from "../src/lib/duel/random";
 import { playCourseV3, PROOF_TICK, WITNESS_FILE, witnessKey, witnessTicks, type WitnessFile } from "./minigolf-holes-bank";
 import { rollShotV3 } from "./minigolf-oracle";
+import { pinPreMinigolfD6 } from "../src/lib/duel/d6Normal";
+
+// Changed with Joe's approval, 27 Nov 2026 (D6): rooms deal golfRev 4 (golfRev 3's holes and play on each level's own figures); this check was written for golfRev 3, so it deals it (d6-sports-levels-check proves golfRev 4).
+pinPreMinigolfD6(true);
 
 let checks = 0;
 const failures: string[] = [];

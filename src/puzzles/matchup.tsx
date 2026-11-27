@@ -18,6 +18,7 @@ import {
 } from "@/lib/arcade/engine";
 import {
   MATCHUP_REV_SIX,
+  MATCHUP_REV_D6,
   MATCHUP_REV_ICE2,
   matchupAnimationDuration,
   matchupBusy,
@@ -97,7 +98,8 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
   // matchupRev 9: the taller board (ten rows in a 390 × 720 world); every phone draws the stored revision's.
   const MATCHUP_ROWS = matchupRowsFor(data?.matchupRev);
   /** matchupRev 12: its board is drawn zoomed (matchup.renderer SIX_ZOOM, display only). */
-  const six = data?.matchupRev === MATCHUP_REV_SIX || data?.matchupRev === MATCHUP_REV_ICE2;
+  // matchupRev 14 (D6) keeps matchupRev 12 and 13's six-goal board.
+  const six = data?.matchupRev === MATCHUP_REV_SIX || data?.matchupRev === MATCHUP_REV_ICE2 || data?.matchupRev === MATCHUP_REV_D6;
   const MATCHUP_WORLD_H = matchupWorldHFor(data?.matchupRev);
   /** matchupRev 2–4: keep swapping while gems clear and fall; each resolution step animates on its own. */
   const constantPlay = matchupConstantPlay(matchupGame.init(seed));

@@ -48,13 +48,16 @@ const M = await import("../src/lib/arcade/matchup");
 const { replayMatchupRun, decodeMatchupRun } = await import("../src/lib/duel/matchup");
 const { generatePuzzle } = await import("../src/lib/duel/generate.server");
 const { pinMatchupPreIce2 } = await import("../src/lib/duel/arcade.server");
+// Changed with Joe's approval, 27 Nov 2026 (D6): rooms deal matchupRev 14 (Normal's parts, the colours lever); this check was written for matchupRev 13, so it deals it
+// (d6-strategy-levels-check proves matchupRev 14).
+(await import("../src/lib/duel/d6Normal")).pinPreMatchupD6(true);
 const { GAME_LEVELS, levelsOf } = await import("../src/lib/levels/gameLevels");
 const { modeLevel } = await import("../src/lib/levels/modes");
 const { puzzleLevel, MAX_ROUND_CLOCK_MS } = await import("../src/lib/levels/levels");
 const { puzzleTimeLimitMs } = await import("../src/lib/duel/registry");
 const { drawMatchupArt } = await import("../src/lib/arcade/matchup.renderer");
 
-const { matchupGameFor, matchupIce2Parts, matchupGoalsMet, matchupShowHint, matchupHintTicksOf, MATCHUP_REV_ICE2, MATCHUP_REV_SIX, MATCHUP_V13_LEVELS, MATCHUP_KIND7, MATCHUP_INPUT_SWAP } = M;
+const { matchupGameFor, matchupIce2Parts, matchupGoalsMet, matchupShowHint, matchupHintTicksOf, MATCHUP_REV_ICE2, MATCHUP_REV_SIX, MATCHUP_V13_LEVELS, MATCHUP_V14_LEVELS, MATCHUP_KIND7, MATCHUP_INPUT_SWAP } = M;
 type MatchupState = import("../src/lib/arcade/matchup").MatchupState;
 
 let checks = 0;
@@ -179,7 +182,8 @@ section("Levels: settings, colours, goals, ice, hints, clocks, rated and the Dai
   ok(levelsOf("matchup").join(",") === "easy,normal,hard,expert", `Gemstone offers all four levels (${levelsOf("matchup").join(",")})`);
   for (const level of ["easy", "hard", "expert"] as const) {
     const reg = entry.levels[level]!.settings as { colours: number; goals: number[]; ice: number; hintS: number };
-    const sim = MATCHUP_V13_LEVELS[level];
+    // Changed with Joe's approval, 27 Nov 2026 (D6): gameLevels.ts mirrors matchupRev 14's level table.
+    const sim = MATCHUP_V14_LEVELS[level];
     ok(reg.colours === sim.colours && JSON.stringify(reg.goals) === JSON.stringify(sim.ladder) && reg.ice === sim.ice && reg.hintS === sim.hintS, `${level}: gameLevels.ts mirrors the sim's settings`);
   }
   const want = { easy: [5, 5, 5, 3], normal: [6, 6, 10, 5], hard: [6, 6, 14, 8], expert: [7, 7, 18, 0] } as const;

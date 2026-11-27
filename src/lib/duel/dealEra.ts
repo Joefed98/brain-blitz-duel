@@ -164,6 +164,33 @@ export const DEAL_PINS = {
   pinballPreLadder: { texts: false },
   /** arcade.server.ts: Roofbound flipRev 13 at Easy, Hard and Expert, before the running-speed ladder (D5, 23 Nov 2026). */
   flipPreLadder: { texts: false },
+  /** arcade.server.ts: Five Hands fiveHandsRev 3, before D6's Normal scoring stamp (200 at 128 hand points, 22 Nov 2026). */
+  fivehandsPre128: { texts: true },
+  /** sports.server.ts: Cue Ball poolRev 4, before D6's Normal scoring stamp (Speed from the fifth pot, 22 Nov 2026). */
+  poolPreFifth: { texts: false },
+  /** arcade.server.ts: Tilt tiltRev 12 (four mazes), before D6's Normal scoring stamp (three mazes, 22 Nov 2026). */
+  tiltPreThree: { texts: true },
+  /** arcade.server.ts: Free Cell freecellRev 5, before D6's Normal scoring stamp (par full within an eighth over par). */
+  freecellPrePar98: { texts: true },
+  /** arcade.server.ts: Summit tripeaksRev 3, before D6's Normal scoring stamp (run, stock par and speed within reach). */
+  tripeaksPreEase: { texts: true },
+  /** sports.server.ts: Apex racingRev 4, before D6's Normal scoring stamp (pace and clean sectors within reach). */
+  racingPreFive: { texts: true },
+  /** arcade.server.ts: Thirteen pyramidRev 3, before D6's Normal scoring stamp (Speed full by 22 s, 23 Nov 2026). */
+  pyramidPreSpeed22: { texts: false },
+  /** arcade.server.ts: Gemstone matchupRev 13, before D6's matchupRev 14 (Normal's parts, the colours lever, 23 Nov 2026). */
+  matchupPreD6: { texts: false },
+  /** ballTrack.server.ts: Ball Tracker btRev 8, before D6's btRev 9 (each part full where the realistic elite fills it, 27 Nov 2026). */
+  balltrackPreD6: { texts: true },
+  /** arcade.server.ts: Rainbow Bridge inkRev 15, before D6's inkRev 16 (each part full where the realistic elite fills it, 27 Nov 2026). */
+  inkPreD6: { texts: true },
+  /** sports.server.ts: Crazy Golf golfRev 3, before D6's golfRev 4 (each part full where the realistic elite fills it, 27 Nov 2026). */
+  minigolfPreD6: { texts: true },
+  /**
+   * D6's sixteen games' level deals (23 Nov 2026): every level deal as on main 7e25a4d0, before D6's levels (Five Hands
+   * fiveHandsRev 3's levels on any seed, …). Checks written for the levels before pin it.
+   */
+  d6PreLevels: { texts: false },
 } as const satisfies Record<string, { texts: boolean }>;
 
 export type DealPin = keyof typeof DEAL_PINS;

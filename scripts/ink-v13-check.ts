@@ -45,6 +45,7 @@ import {
   INK_REV_CLOVER,
   INK_REV_BIG,
   INK_REV_HILLS,
+  INK_REV_D6,
   INK_REV_STD,
   INK_REV_STRICT,
   INK_STAR_OFF_ROUTE,
@@ -126,14 +127,14 @@ section("Rooms deal inkRev 13; LIVE_BANDS, help and intro follow it");
   ok(generateInkBridge().inkRev === INK_REV_STD, "pinInkPreClover deals inkRev 12 for the checks written for it");
   pinInkPreClover(was);
   ok(generateInkBridge().inkRev === INK_REV_CLOVER, "unpinned, rooms deal inkRev 13 again");
-  /* Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): LIVE_BANDS lists inkRev 15. */ ok(live.rev === INK_REV_HILLS && live.strictRev === INK_REV_STRICT && JSON.stringify(live.curve) === JSON.stringify(INK_V13_BAND_CURVE), "LIVE_BANDS lists inkRev 15 (inkRev 14's parts, pot placed level by level) (inkRev 13's parts, ink-v14-check) on inkRev 13's core's straight line (12 a level), still against inkRev 8");
+  /* Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Strategy overhaul): LIVE_BANDS lists inkRev 15. */ /* Changed with Joe's approval, 27 Nov 2026 (D6): LIVE_BANDS lists inkRev 16. */ ok(live.rev === INK_REV_D6 && live.strictRev === INK_REV_STRICT && JSON.stringify(live.curve) === JSON.stringify(INK_V13_BAND_CURVE), "LIVE_BANDS lists inkRev 16 (inkRev 15's world on each level's own figures) (inkRev 13's parts, ink-v14-check) on inkRev 13's core's straight line (12 a level), still against inkRev 8");
   ok(roundMaxFor("inkbridge") === 200 && stdSpecMax(INK_V13_STD) === 200, "the parts total 200, the round maximum");
   const help = PUZZLE_INSTRUCTIONS.inkbridge;
   const how = help.how.map((h) => `${h.action} ${h.detail}`).join(" ");
   ok(!/star|silver|wind|three failed/i.test(how) && /clover/i.test(how) && /ink par/i.test(how) && /trick shot/i.test(how), "the help names clovers, the ink par and trick shots, and no stars, silver coins, wind or a three-miss limit");
   // Text pass (4 Nov 2026): the help is a list, one line a part, then penalties, then the total; the intro names the
   // bonuses in one plain sentence (no internal figures).
-  ok(["12 for each level potted", "Ink par", "Trick shots", "Clovers", "Speed", "50 s", "Total 200."].every((w) => help.score.includes(w)) && hasScorePart(help.score, "Levels", 120) && hasScorePart(help.score, "Ink par", 30), `the help's SCORE states every part and its maximum (${help.score})`);
+  ok(["12 for each level potted", "Ink par", "Trick shots", "Clovers", "Speed", /* Changed with Joe's approval, 27 Nov 2026 (D6): Normal's speed is full with 40 s left on inkRev 16 */ "40 s", "Total 200."].every((w) => help.score.includes(w)) && hasScorePart(help.score, "Levels", 120) && hasScorePart(help.score, "Ink par", 30), `the help's SCORE states every part and its maximum (${help.score})`);
   const intro = INTRO_SCORE.inkbridge.replace("{max}", "200");
   ok(intro.length <= 90 && /little ink/i.test(intro) && /clover/i.test(intro) && /speed/i.test(intro) && !/star|silver/i.test(intro), `the intro line names the parts in at most 90 characters (${intro.length}: "${intro}")`);
   ok(roomIdentity.rev === INK_REV_BIG && roomIdentity.logs(SAMPLE[0]!, INK_REV_CLOVER).length === 5, "room identity is measured on the dealt stamp (inkRev 14; inkRev 13 by passing its rev, section 7)");

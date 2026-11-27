@@ -30,6 +30,7 @@ import {
   tiltMazesL,
   tiltParParts,
   TILT_LEVELS,
+  TILT_LEVELS_V13,
   TILT_LEVEL_NAMES,
   TILT_P_CLEAN_POINTS,
   TILT_P_CORE_MAX,
@@ -52,6 +53,10 @@ import { GAME_LEVELS, levelsOf } from "../src/lib/levels/gameLevels";
 import { MAX_ROUND_CLOCK_MS, puzzleLevel } from "../src/lib/levels/levels";
 import { modeLevel } from "../src/lib/levels/modes";
 import { levelsDealFileFromWitnesses, tiltLevelCandidates, tiltLevelVerdict, tiltLevelWitnessFile, TILT_DEAL_WITNESS, type TiltLevelWitnesses, type TiltWitness } from "./tilt-deal";
+import { pinPreTiltThree } from "../src/lib/duel/d6Normal";
+
+// Changed with Joe's approval, 23 Nov 2026 (D6): Tilt's Normal moved to tiltRev 13 (three mazes); this check was written for tiltRev 12, so it deals it (d6-normal-stamps-check proves tiltRev 13).
+pinPreTiltThree(true);
 
 const FULL = process.env.CHECKS_FULL === "1" || process.argv.includes("--full");
 const failures: string[] = [];
@@ -66,8 +71,9 @@ const deal = (n: number, level?: string) => withSeededRandom(n, () => generatePu
 ok(JSON.stringify(levelsOf("tilt")) === JSON.stringify(["easy", "normal", "hard", "expert"]), "Tilt offers Easy, Normal, Hard and Expert");
 for (const l of TILT_LEVEL_NAMES) {
   const reg = GAME_LEVELS.tilt?.levels[l]?.settings as Record<string, unknown> | undefined;
-  const sim = TILT_LEVELS[l] as unknown as Record<string, unknown>;
-  ok(!!reg && reg["mazes"] === TILT_LEVELS[l].sizes.length, `${l}: the registry's maze count is the sim's`);
+  // Changed with Joe's approval, 27 Nov 2026 (D6): the registry mirrors tiltRev 13's level table; the sections below deal tiltRev 12's (pinPreTiltThree).
+  const sim = TILT_LEVELS_V13[l] as unknown as Record<string, unknown>;
+  ok(!!reg && reg["mazes"] === TILT_LEVELS_V13[l].sizes.length, `${l}: the registry's maze count is the sim's`);
   for (const k of Object.keys(sim)) ok(JSON.stringify(reg?.[k]) === JSON.stringify(sim[k]), `${l}: the registry's ${k} is the sim's`);
   ok(Object.keys(reg ?? {}).every((k) => k === "mazes" || k in sim), `${l}: the registry has no setting the sim doesn't read`);
 }

@@ -35,19 +35,22 @@ const runV3 = runFor(HOMERUN_REV_3);
 const runV4 = runFor(HOMERUN_REV_4);
 /** homerunRev 5's run at each level (the innings). */
 const runsV5 = new Map<string, ReturnType<typeof runFor>>();
-function runV5(level?: string | null) {
+function runV5(level?: string | null, rev: number = HOMERUN_REV_5) {
   const l = hrLevelOf(level);
-  let r = runsV5.get(l);
+  // D6: homerunRev 6's level rounds replay on D6's levels (their own settings); rev 5's on the levels before.
+  const v = rev >= 6 && l !== "normal" ? 6 : HOMERUN_REV_5;
+  const key = `${l}:${v}`;
+  let r = runsV5.get(key);
   if (!r) {
     r = makeArcadeRun<HomerunState, HomerunCheckpoint>({
       tag: "homerun",
-      game: homerunGameFor(HOMERUN_REV_5, l),
+      game: homerunGameFor(v, l),
       checkpoint: homerunCheckpoint,
       keys: HOMERUN_CHECKPOINT_KEYS,
       interval: HOMERUN_CHECKPOINT_INTERVAL,
       emptyIsZero: true,
     });
-    runsV5.set(l, r);
+    runsV5.set(key, r);
   }
   return r;
 }
@@ -73,7 +76,7 @@ export const decodeHomerunRun = run.decode;
 export function replayHomerunRun(seed: number, raw: string, rev?: number | null, level?: string | null): HomerunResult {
   const r = rev ?? 1;
   if (r >= HOMERUN_REV_5) {
-    const result = runV5(level).replay(seed, raw);
+    const result = runV5(level, r).replay(seed, raw);
     const inn = result.state.inn as Hr5Inn;
     return {
       ...result,

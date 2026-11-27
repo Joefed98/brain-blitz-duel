@@ -14,6 +14,8 @@
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { MAHJONG_LEVEL_RULES } from "../src/lib/arcade/mahjong";
+import { TP_LEVEL_RULES_V4, TP_V4_PAR_SLACK } from "../src/lib/arcade/cards/tripeaks";
+import { RACING_SECTORS } from "../src/lib/arcade/racing";
 import { readFileSync } from "node:fs";
 
 import { ARCADE_STANDARD } from "../src/lib/arcade/standard";
@@ -24,7 +26,7 @@ import { ORBIT_STD } from "../src/lib/arcade/orbitRev3";
 import { inkStdSpecFor } from "../src/lib/arcade/inkBridge";
 import { SWING_V17_CORE, SWING_V17_FULL, SWING_V17_GATES, SWING_V17_STREAK_BLOCK, SWING_V17_STREAK_EACH, SWING_V17_STREAK_MAX, SWING_V17_PAR_POINTS, SWING_V17_GATE_POINTS } from "../src/lib/arcade/swing";
 import { MATCHUP_V12_GOALS, MATCHUP_V12_GOALS_MAX, MATCHUP_V12_ICE_MAX, MATCHUP_V12_TREASURES, MATCHUP_V12_TREASURE_MAX } from "../src/lib/arcade/matchup";
-import { TILT_P_CLEAN_POINTS, TILT_P_PAR_MAX, TILT_P_SPEED_POINTS, TILT_S_MAZES } from "../src/lib/arcade/tilt";
+import { TILT_LEVELS, TILT_P_CLEAN_POINTS, TILT_P_PAR_MAX, TILT_P_SPEED_POINTS, TILT_T_MAZES } from "../src/lib/arcade/tilt";
 import { CLASH_QUEUE, CLASH_STD_STREAK } from "../src/lib/arcade/colourClash";
 import { CLAY_CONFIG, CLAY_QUICK_FULL_TICKS, CLAY_STREAK_POINTS, CLAY_WIDE_FULL_TICKS } from "../src/lib/arcade/clayShoot";
 import { WHACK_COMBO_FULL_PCT, WHACK_COMBO_POINTS, WHACK_QUICK_WIDE_FULL_TICKS, whackComboMaxPips, whackComboMultiplier, whackQuickGame } from "../src/lib/arcade/whack";
@@ -100,7 +102,8 @@ function specPart(type: string, label: string): { max: number; of?: number; how?
   if (type === "matchup")
     specs.push({ parts: [{ label: "Treasure", max: MATCHUP_V12_TREASURE_MAX, of: MATCHUP_V12_TREASURES }, { label: "Colour goals", max: MATCHUP_V12_GOALS_MAX, of: MATCHUP_V12_GOALS }, { label: "Ice", max: MATCHUP_V12_ICE_MAX, of: MATCHUP_V12_ICE_MAX }] });
   if (type === "tilt")
-    specs.push({ parts: [{ label: "Par", max: TILT_P_PAR_MAX, of: TILT_S_MAZES }, { label: "Clean run", max: TILT_P_CLEAN_POINTS, of: TILT_S_MAZES }, { label: "Speed", max: TILT_P_SPEED_POINTS }] });
+    // Changed with Joe's approval, 23 Nov 2026 (D6): tiltRev 13's Normal has three mazes (TILT_T_MAZES).
+    specs.push({ parts: [{ label: "Par", max: TILT_P_PAR_MAX, of: TILT_T_MAZES }, { label: "Clean run", max: TILT_P_CLEAN_POINTS, of: TILT_T_MAZES }, { label: "Speed", max: TILT_P_SPEED_POINTS }] });
   for (const s of specs) {
     const p = s?.parts?.find((x: any) => x.label === label);
     if (p) return { max: p.max, of: p.of, how: p.how };
@@ -280,10 +283,11 @@ function expectations(): Record<string, Expect> {
     "freekick.five-alive": { say: [[5, 5]] },
     "freekick.skill-shooter": { say: [[5, 15 / Number(/(\d+) for each goal under/.exec(specPart("freekick", "Skill shots")?.how ?? "")?.[1])]], th: [[15, 15]] },
     "freekick.top-bins": { say: [[4, of("freekick", "Targets")]] },
-    "racing.clean-half": { say: [[4, 20 / 5]], th: [[20, 4 * (maxOf("racing", "Clean sectors") / of("racing", "Clean sectors"))]] },
+    // Changed with Joe's approval, 23 Nov 2026 (D6: Apex racingRev 5's clean sectors full at 4 of 8, 10 each; racingRev 4's 5 each; Grand slam reads the count, `clean`).
+    "racing.clean-half": { say: [[4, 40 / 10]], th: [[40, 4 * (maxOf("racing", "Clean sectors") / of("racing", "Clean sectors"))], [20, 4 * 5]] },
     // racingRev 4 reads pace10 (tenths of a km/h) itself: 2000 is 200 km/h; older stamps' Pace line as before.
     "racing.two-hundred-club": { say: [[200, 200]], th: [[110, Math.floor((160 * (2000 - 1520)) / 695)], [2000, 200 * 10]] },
-    "racing.grand-slam": { say: [[8, of("racing", "Clean sectors")]] },
+    "racing.grand-slam": { say: [[8, RACING_SECTORS]], th: [[8, RACING_SECTORS], [40, maxOf("racing", "Clean sectors")]] },
     "fivehands.pick-of-the-bunch": { th: [[0, 0]] },
     "freecell.all-home": { say: [[40, Number(/all (\d+) home/.exec(specPart("freecell", "Cards")?.how ?? "")?.[1])]] },
     "freecell.card-sharp": { say: [[32, withinS("freecell", "Speed")]] },
@@ -295,10 +299,12 @@ function expectations(): Record<string, Expect> {
     // Joe, 16 Nov 2026: Normal (minesRev 3) keeps 37 s too, so the number is unchanged.
     "minesweeper.sweep": { say: [[37, withinS("minesweeper", "Speed")]] },
     "pyramid.paired-up": { say: [[10, of("pyramid", "Pyramid pairs")], [2, 2]] },
-    "pyramid.unlucky-for-some": { say: [[20, withinS("pyramid", "Speed")]] },
+    "pyramid.unlucky-for-some": { say: [[22, withinS("pyramid", "Speed")]] }, // Changed with Joe's approval, 23 Nov 2026 (D6: Thirteen pyramidRev 4, speed full by 22 s)
     "tripeaks.peak-bagger": { say: [[3, of("tripeaks", "Peak tops")]] },
-    "tripeaks.up-and-down": { say: [[10, of("tripeaks", "Longest run")]] },
-    "tripeaks.summit-sprint": { say: [[20, withinS("tripeaks", "Speed")]] },
+    // Changed with Joe's approval, 23 Nov 2026 (D6: Summit tripeaksRev 4's run full at 6 and stock par within par + 8; Hard's speed by 31 s, TP_LEVEL_RULES_V4).
+    "tripeaks.up-and-down": { say: [[6, of("tripeaks", "Longest run")]] },
+    "tripeaks.base-camp": { say: [[8, TP_V4_PAR_SLACK]] },
+    "tripeaks.summit-sprint": { say: [[31, TP_LEVEL_RULES_V4.hard.speedFullS]] },
     "balltrack.combo-breaker": { say: [[10, 10], [3, help("balltrack").includes("from the third in a row") ? 3 : NaN]], th: [[10, 10 * (maxOf("balltrack", "Combos") / of("balltrack", "Combos"))]] },
     "balltrack.golden-marbles": { say: [[6, of("balltrack", "Gold marbles")]] },
     "balltrack.lost-no-marbles": { say: [[36, of("balltrack", "Marbles home")]] },
@@ -308,9 +314,11 @@ function expectations(): Record<string, Expect> {
     "matchup.ice-breaker": { say: [[10, of("matchup", "Ice")]] },
     "matchup.goal-getter": { say: [[6, of("matchup", "Colour goals")]] },
     "matchup.treasure-hunter": { say: [[6, of("matchup", "Treasure")]] },
-    "tilt.no-falls": { say: [[4, of("tilt", "Clean run")]] },
-    "tilt.par-four": { say: [[4, of("tilt", "Par")]] },
-    "tilt.marble-madness": { say: [[4, TILT_S_MAZES], [60, Number(/all 4 within (\d+) s/.exec(help("tilt"))?.[1])]] },
+    // Changed with Joe's approval, 23 Nov 2026 (D6): "all three mazes" on tiltRev 13's Normal.
+    "tilt.no-falls": { say: [[3, of("tilt", "Clean run")]] },
+    "tilt.par-four": { say: [[3, of("tilt", "Par")]] },
+    // Changed with Joe's approval, 23 Nov 2026 (D6): the Hard level's own maze count and speed line (it read Normal's help, "all 4 within 60 s").
+    "tilt.marble-madness": { say: [[4, TILT_LEVELS.hard.sizes.length], [58, TILT_LEVELS.hard.speedFullS]] },
     "clayshoot.bird-lover": {},
     "skyline.perfects": {},
   };

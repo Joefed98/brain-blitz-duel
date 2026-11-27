@@ -28,11 +28,14 @@ const revArg = process.argv.find((a) => a.startsWith("--rev="));
 const REV = revArg ? Number(revArg.slice(6)) : 1;
 const levelArg = process.argv.find((a) => a.startsWith("--level="))?.slice(8);
 const LEVEL = levelArg === "easy" || levelArg === "hard" || levelArg === "expert" ? levelArg : null;
-if (levelArg && (!LEVEL || REV < 4)) throw new Error("--level takes easy, hard or expert, with --rev=4");
+if (levelArg && (!LEVEL || REV < 4)) throw new Error("--level takes easy, hard or expert, with --rev=4 or --rev=5");
 const LEVEL_SETTINGS: RacingLevelSettings | null = LEVEL ? gameLevelSettings<RacingLevelSettings>("racing", LEVEL) : null;
 if (LEVEL && !LEVEL_SETTINGS) throw new Error(`racing offers no ${LEVEL} level (GAME_LEVELS)`);
 const Cap = LEVEL ? LEVEL[0]!.toUpperCase() + LEVEL.slice(1) : "";
-const OUT = new URL(LEVEL ? `../src/lib/duel/racingDealV4${Cap}.server.ts` : REV >= 4 ? "../src/lib/duel/racingDealV4.server.ts" : REV >= 3 ? "../src/lib/duel/racingDealV3.server.ts" : REV >= 2 ? "../src/lib/duel/racingDealV2.server.ts" : "../src/lib/duel/racingDeal.server.ts", import.meta.url);
+// D6 (23 Nov 2026): --rev=5 --level builds racingRev 5's level deals (racingDealV5<Level>.server.ts) on the registry's
+// D6 settings; --rev=4 --level the levels before (their files are kept as they were).
+const LV = REV >= 5 ? 5 : 4;
+const OUT = new URL(LEVEL ? `../src/lib/duel/racingDealV${LV}${Cap}.server.ts` : REV >= 4 ? "../src/lib/duel/racingDealV4.server.ts" : REV >= 3 ? "../src/lib/duel/racingDealV3.server.ts" : REV >= 2 ? "../src/lib/duel/racingDealV2.server.ts" : "../src/lib/duel/racingDeal.server.ts", import.meta.url);
 
 /** The candidate sequence: a hash of 0, 1, 2 … into 1 … 2^31 − 2 (as roomSeed). */
 export function racingCandidate(n: number): number {
@@ -85,10 +88,10 @@ if (import.meta.main) {
     }
     else dropped.push(seed);
   }
-  const name = LEVEL ? `RACING_DEAL_V4_${LEVEL.toUpperCase()}` : REV >= 4 ? "RACING_DEAL_V4" : REV >= 3 ? "RACING_DEAL_V3" : REV >= 2 ? "RACING_DEAL_V2" : "RACING_DEAL";
-  const fn = LEVEL ? `racingDealSeedV4${Cap}` : REV >= 4 ? "racingDealSeedV4" : REV >= 3 ? "racingDealSeedV3" : REV >= 2 ? "racingDealSeedV2" : "racingDealSeed";
+  const name = LEVEL ? `RACING_DEAL_V${LV}_${LEVEL.toUpperCase()}` : REV >= 4 ? "RACING_DEAL_V4" : REV >= 3 ? "RACING_DEAL_V3" : REV >= 2 ? "RACING_DEAL_V2" : "RACING_DEAL";
+  const fn = LEVEL ? `racingDealSeedV${LV}${Cap}` : REV >= 4 ? "racingDealSeedV4" : REV >= 3 ? "racingDealSeedV3" : REV >= 2 ? "racingDealSeedV2" : "racingDealSeed";
   const body = LEVEL ? `/**
- * Apex's ${Cap} deal (racingRev 4 at the ${LEVEL} level; built by \`bun scripts/racing-deal.ts --rev=4 --level=${LEVEL}\`, do not
+ * Apex's ${Cap} deal (racingRev ${LV} at the ${LEVEL} level; built by \`bun scripts/racing-deal.ts --rev=${LV} --level=${LEVEL}\`, do not
  * edit): ${RACING_DEAL_SIZE} seeds, ${perCircuit} on each of the three named circuits (racingCircuitOf), each proved with the level's
  * settings (GAME_LEVELS.racing.${LEVEL}, stamped on the deal as racingLevel: ${JSON.stringify(LEVEL_SETTINGS)}): the oracle
  * (scripts/racing-oracle.ts) on the level's sim replays through replayRacingRun to exactly 200 (both laps, all 8 sectors
@@ -96,7 +99,7 @@ if (import.meta.main) {
  */
 export const ${name}: readonly number[] = ${JSON.stringify(keep)};
 
-/** The seed a room seed deals on racingRev 4 at the ${LEVEL} level (its circuit is racingCircuitOf of it). */
+/** The seed a room seed deals on racingRev ${LV} at the ${LEVEL} level (its circuit is racingCircuitOf of it). */
 export function ${fn}(roomSeed: number): number {
   const n = ${name}.length;
   return ${name}[((Math.trunc(roomSeed) % n) + n) % n]!;

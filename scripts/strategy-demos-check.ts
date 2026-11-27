@@ -18,6 +18,8 @@ import { DEMO_MAX_CHARS, DEMO_LENGTH_TICKS, runSeed } from "../src/lib/arcade/in
 import { dealtSignature } from "../src/lib/duel/dealSignature";
 import { DEMOS_FIXTURE, STRATEGY_DEMO_TYPES, exampleDeal, type DemoEntry } from "./strategy-demos-record";
 
+// Changed with Joe's approval, 23 Nov 2026 (D6): Tilt's demo was re-recorded on today's stamp (tiltRev 13), so the check deals today's game, no pin.
+
 let failed = 0;
 let passed = 0;
 function ok(cond: boolean, label: string): void {
@@ -61,8 +63,8 @@ for (const demo of demos) {
 }
 
 // The version rules: each game's rule names today's stamp, and a demo at another level never plays.
-ok(/data\.type === "tilt" && demo\?\.puzzle\.type === "tilt" && demo\.puzzle\.tiltRev !== TILT_REV_BIG/.test(rules), "Tilt: only a tiltRev 12 demo plays");
-ok(/data\.type === "matchup" && demo\?\.puzzle\.type === "matchup" && demo\.puzzle\.matchupRev !== MATCHUP_REV_ICE2/.test(rules), "Gemstone: only a matchupRev 13 demo plays");
+ok(/data\.type === "tilt" && demo\?\.puzzle\.type === "tilt" && demo\.puzzle\.tiltRev !== TILT_REV_THREE/.test(rules), "Tilt: only a tiltRev 13 demo plays"); // Changed with Joe's approval, 23 Nov 2026
+ok(/data\.type === "matchup" && demo\?\.puzzle\.type === "matchup" && demo\.puzzle\.matchupRev !== MATCHUP_REV_D6/.test(rules), "Gemstone: only a matchupRev 14 demo plays"); // Changed with Joe's approval, 27 Nov 2026
 ok(/data\.type === "bubble" && demo\?\.puzzle\.type === "bubble" && demo\.puzzle\.bubbleRev !== BUB_REV_FAST/.test(rules), "Coral Pop: only a bubbleRev 12 demo plays");
 ok(/data\.type === "inkbridge" && demo\?\.puzzle\.type === "inkbridge" && demo\.puzzle\.inkRev !== INK_REV_HILLS/.test(rules), "Rainbow Bridge: only an inkRev 15 demo plays");
 ok(/data\.type === "balltrack" && demo\?\.puzzle\.type === "balltrack" && !btIsV7Play\(demo\.puzzle\.btRev\)/.test(rules), "Ball Tracker: only a btRev 7+ demo plays");

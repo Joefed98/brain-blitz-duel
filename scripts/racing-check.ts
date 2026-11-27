@@ -375,16 +375,16 @@ let proved3 = 0;
 {
   // Changed 15 Nov 2026 (routine consequence of the Sports overhaul): racingRev 4 is dealt now (apex-overhaul-check);
   // racingRev 3 keeps its run, deal and proofs exactly.
-  ok(RACING_REV_DEALT === 4 && G3.init(seed0).rev === 3 && G3.runTicks === RACING_V2_RUN_TICKS, "racingRev 3 runs as before (racingRev 2's run: the lights, then the 90-second race); racingRev 4 is dealt");
+  ok(RACING_REV_DEALT === 5 && G3.init(seed0).rev === 3 && G3.runTicks === RACING_V2_RUN_TICKS, "racingRev 3 runs as before (racingRev 2's run: the lights, then the 90-second race); racingRev 5 is dealt (D6)"); // Changed with Joe's approval, 27 Nov 2026 (D6)
   ok(RACING_DEAL_V3.length === 300 && new Set(RACING_DEAL_V3).size === 300, `the rev-3 deal holds 300 distinct seeds (${RACING_DEAL_V3.length})`);
   ok(RACING_DEAL_V3.every((s) => Number.isInteger(s) && s > 0 && s < 2 ** 31), "every rev-3 deal entry is a valid seed");
   ok([0, 1, 299, 300, 12345, 2 ** 31 - 2].every((r) => RACING_DEAL_V3.includes(racingDealSeedV3(r))), "racingDealSeedV3 picks from the rev-3 deal");
   let dealt = true;
   for (let i = 0; i < 40; i++) {
     const p = generateRacing();
-    if (p.racingRev !== 4 || !RACING_DEAL_V4.includes(p.seed)) dealt = false;
+    if (p.racingRev !== 5 || !RACING_DEAL_V4.includes(p.seed)) dealt = false; // Changed with Joe's approval, 27 Nov 2026 (D6)
   }
-  ok(dealt, "rooms and practice deal racingRev 4 from the rev-4 deal (racingRev 3's deal unchanged above)");
+  ok(dealt, "rooms and practice deal racingRev 5 from the rev-4 deal (racingRev 3's deal unchanged above)");
   const list3 = full ? RACING_DEAL_V3 : RACING_DEAL_V3.filter((_, i) => i % Math.floor(RACING_DEAL_V3.length / 24) === 0).slice(0, 24);
   for (const seed of list3) {
     const r = replayRacingRun(seed, racingSubmission(seed, oracleRun(seed, 3), 3), 3);

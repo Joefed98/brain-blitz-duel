@@ -17,7 +17,7 @@ import { CardLayer, CardMotion, drawRealFelt, drawRealCard } from "./realArt.ren
 import { drawStamp, FxTimeline, shakeX } from "./cardsFx.renderer";
 import {
   FC_CELLS, FC_COLS, FC_INPUT_HINT, FC_PILE_CELL, FC_INPUT_RESET, FC_INPUT_UNDO, FC_LV_EASY, FC_PILE_HOME, fcCardsOf, fcCellIndex, fcCellPile, fcHintsLeft, fcHomeCount, fcNoMovesText, fcNoteText, fcPack,
-  fcUndosLeft, freecellGameAt, type FcState } from "./freecell";
+  fcHintButtonOn, fcUndosLeft, freecellGameAt, type FcState } from "./freecell";
 import { fcHintMove } from "./freecellSolver";
 import { cardOf, rankOf, suitOf } from "./cards";
 
@@ -151,14 +151,15 @@ export const FC_LEVEL_BUTTONS: readonly { kind: number; box: CardButtonBox }[] =
   { kind: FC_INPUT_HINT, box: { x: FC_WORLD_W / 2 - 55, y: FC_BTN_ROW_Y, w: 110, h: FC_BTN_ROW_H } },
   { kind: FC_INPUT_RESET, box: { x: FC_WORLD_W - 16 - 118, y: FC_BTN_ROW_Y, w: 118, h: FC_BTN_ROW_H } },
 ];
-export function fcButtonsOf(state: Pick<FcState, "lv">): readonly { kind: number; box: CardButtonBox }[] {
-  return state.lv ? FC_LEVEL_BUTTONS : FC_BUTTONS;
+export function fcButtonsOf(state: Pick<FcState, "lv"> & { rev?: number }): readonly { kind: number; box: CardButtonBox }[] {
+  // D6 (23 Nov 2026): a level with no hints (freecellRev 6's Hard and Expert) has Normal's Undo and Reset only.
+  return state.lv && fcHintButtonOn(state) ? FC_LEVEL_BUTTONS : FC_BUTTONS;
 }
 /** How long a refused move's toast shows, ticks. */
 const NOTE_TICKS = 96;
 
 /** The button under a point (its input kind), with a few world units of slop round each; 0 for none. */
-export function fcButtonHit(x: number, y: number, state?: Pick<FcState, "lv">): number {
+export function fcButtonHit(x: number, y: number, state?: Pick<FcState, "lv"> & { rev?: number }): number {
   for (const b of state ? fcButtonsOf(state) : FC_BUTTONS) if (inButton(b.box, x, y)) return b.kind;
   return 0;
 }

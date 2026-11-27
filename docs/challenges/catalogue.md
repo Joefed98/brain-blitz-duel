@@ -657,9 +657,9 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| Clean half | Drive four sectors clean. | Classic | Clean | line “Clean sectors” ≥ 20 |  | `racing.clean-half` |
+| Clean half | Drive four sectors clean. | Classic | Clean | from `racingRev` 5: line “Clean sectors” ≥ 40; before: line “Clean sectors” ≥ 20 |  | `racing.clean-half` |
 | Two hundred club | Average 200 km/h. | Classic | Speed | from `racingRev` 4: `pace10` ≥ 2000; before: line “Pace” ≥ 110 |  | `racing.two-hundred-club` |
-| Grand slam | Drive all eight sectors clean on Expert. | Expert | Clean | line “Clean sectors” = 40 of 40 |  | `racing.grand-slam` |
+| Grand slam | Drive all eight sectors clean on Expert. | Expert | Clean | from `racingRev` 5: `clean` ≥ 8; before: line “Clean sectors” = 40 of 40 |  | `racing.grand-slam` |
 
 #### Five Hands (`fivehands`)
 
@@ -674,7 +674,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | All home | Get all 40 cards home. | Classic | Finish | line “Cards” = 105 of 105 |  | `freecell.all-home` |
-| By the book | Finish in par moves. | Classic | Par | line “Par moves” = 50 of 50 |  | `freecell.by-the-book` |
+| By the book | Finish within an eighth over par. | Classic | Par | line “Par moves” = 50 of 50 |  | `freecell.by-the-book` |
 | Card sharp | Finish within 32 s. | Classic | Speed | line “Speed” = 45 of 45 | ● | `freecell.card-sharp` |
 
 #### Mahjong Solitaire (`mahjong`)
@@ -698,16 +698,16 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Lucky thirteen | Clear the pyramid. | Classic | Finish | line “Cleared” = 15 of 15 |  | `pyramid.lucky-thirteen` |
 | Paired up | Make ten pairs from two pyramid cards. | Classic | Combo | line “Pyramid pairs” = 20 of 20 |  | `pyramid.paired-up` |
-| Unlucky for some | Clear the pyramid within 20 s. | Classic | Speed | line “Speed” = 25 of 25 |  | `pyramid.unlucky-for-some` |
+| Unlucky for some | Clear the pyramid within 22 s. | Classic | Speed | line “Speed” = 25 of 25 |  | `pyramid.unlucky-for-some` |
 
 #### Summit (`tripeaks`)
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Peak bagger | Clear all three peak tops. | Classic | Full set | line “Peak tops” = 30 of 30 |  | `tripeaks.peak-bagger` |
-| Up and down | Make a run of ten cards. | Classic | Streak | line “Longest run” = 10 of 10 |  | `tripeaks.up-and-down` |
-| Base camp | Clear it within stock par. | Classic | Par | line “Stock par” = 20 of 20 |  | `tripeaks.base-camp` |
-| Summit sprint | Clear a Hard deal within 20 s. | Hard | Speed | line “Speed” = 25 of 25 | ● | `tripeaks.summit-sprint` |
+| Up and down | Make a run of six cards. | Classic | Streak | line “Longest run” = 10 of 10 |  | `tripeaks.up-and-down` |
+| Base camp | Clear it within 8 over stock par. | Classic | Par | line “Stock par” = 20 of 20 |  | `tripeaks.base-camp` |
+| Summit sprint | Clear a Hard deal within 31 s. | Hard | Speed | line “Speed” = 25 of 25 | ● | `tripeaks.summit-sprint` |
 
 #### Ball Tracker (`balltrack`)
 
@@ -745,6 +745,6 @@ challenges never count. How the checks read a run:
 
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
-| No falls | Finish all four mazes without a marble falling. | Classic | Clean | line “Clean run” = 12 of 12 |  | `tilt.no-falls` |
-| Par four | Beat par time in all four mazes. | Classic | Par | line “Par” = 24 of 24 |  | `tilt.par-four` |
-| Marble madness | Finish all four Hard mazes within 60 s. | Hard | Speed | line “Speed” = 24 of 24 | ● | `tilt.marble-madness` |
+| No falls | Finish all three mazes without a marble falling. | Classic | Clean | line “Clean run” = 12 of 12 |  | `tilt.no-falls` |
+| Par four | Beat par time in all three mazes. | Classic | Par | line “Par” = 24 of 24 |  | `tilt.par-four` |
+| Marble madness | Finish all four Hard mazes within 58 s. | Hard | Speed | line “Speed” = 24 of 24 | ● | `tilt.marble-madness` |
