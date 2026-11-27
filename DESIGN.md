@@ -134,8 +134,9 @@ width, so `font-stretch` comes after it.
 
 Tailwind's text sizes inside app chrome land on the roles (`utilities.css`): `text-xs` and `text-sm` caption,
 `text-base` label, `text-lg` body, `text-xl` heading, `text-2xl` title, `text-3xl` and `text-4xl` display; game art
-inside a page keeps Tailwind's own sizes. An off-scale size is a flagged exception, never a new step: moment numerals
-of 40 px and more (podium totals, rating reveals, the VS mark) and a glyph inside a fixed disc (the medal's "=" tag).
+inside a page keeps Tailwind's own sizes. Two exceptions sit off the scale, never a new step: the **moment** size,
+`--jz-size-moment` 48 / 52 (`.jz-text-moment`), for moment numerals and headlines only (podium and final totals, rating
+reveals, the VS mark, a rated result's headline, the room code); and a glyph inside a fixed disc (the medal's "=" tag).
 
 Weights in use: **600, 700, 800**, plus 400 for long reading text and 900 for the wordmark and the countdown.
 

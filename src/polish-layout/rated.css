@@ -695,7 +695,7 @@
 }
 .rt-result-score {
   margin: 0;
-  font-size: 64px;
+  font-size: var(--jz-size-moment);
   font-weight: var(--jz-weight-black);
   font-stretch: var(--jz-width-score);
   font-variant-numeric: tabular-nums;
@@ -944,7 +944,7 @@
   color: var(--jz-text-3);
 }
 .rt-reveal-value {
-  font-size: 56px;
+  font-size: var(--jz-size-moment);
   font-weight: var(--jz-weight-black);
   font-stretch: var(--jz-width-score);
   font-variant-numeric: tabular-nums;
@@ -1309,7 +1309,7 @@
   border-radius: 0;
   background: var(--jz-gold-metal);
   color: var(--jz-on-gold);
-  font-size: 52px;
+  font-size: var(--jz-size-moment);
   line-height: 1;
 }
 .rt-vs-foot {
@@ -1348,18 +1348,18 @@
 /* ------------------------------------------------------------------ the result's title (P3, 22 Nov 2026) */
 /* "You win" at 62 px in champagne gold (mockup result-e-phone; no exclamation mark), then the score; Home beside Rematch. */
 .rt-result .rt-result-title {
-  font-size: 62px;
-  line-height: 66px;
+  font-size: var(--jz-size-moment);
+  line-height: var(--jz-line-moment);
   color: var(--jz-gold-ink);
 }
 .rt-result[data-outcome="lost"] .rt-result-title,
 .rt-result[data-outcome="drawn"] .rt-result-title {
-  font-size: 44px;
-  line-height: 50px;
+  font-size: var(--jz-size-moment);
+  line-height: var(--jz-line-moment);
   color: var(--jz-text);
 }
 .rt-result .rt-result-score {
-  font-size: 44px;
-  line-height: 48px;
+  font-size: var(--jz-size-moment);
+  line-height: var(--jz-line-moment);
   color: var(--jz-text);
 }

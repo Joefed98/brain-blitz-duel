@@ -179,6 +179,10 @@
   --jz-line-label: 20px;
   --jz-size-caption: 13px;
   --jz-line-caption: 18px;
+  /* The one size above the scale (approved 27 Nov 2026): moment numerals and moment headlines (podium and final
+     totals, rating reveals, the VS mark, a result's headline, the room code), never body text. */
+  --jz-size-moment: 48px;
+  --jz-line-moment: 52px;
   /* Archivo's width axis as a brand tool (approved 27 Nov 2026): wide and heavy for titles, scores and countdowns,
      normal width for reading text. A `font:` shorthand resets the width, so set it after the shorthand. */
   --jz-width-body: 100%;

@@ -135,7 +135,7 @@ export function FinalResult({
         {you ? <span className="rs-you shrink-0">(you)</span> : null}
       </p>
       {/* Each player's total underlined in their own colour. */}
-      <p style={hold(total)} className="jz-score mt-0.5 text-[40px] leading-none tabular-nums text-foreground" /* design-lint-ignore: a moment numeral above the scale (S1) */>
+      <p style={hold(total)} className="jz-score mt-0.5 jz-text-moment leading-none tabular-nums text-foreground">
         <AnimatedScore value={total} {...countUp(total, from)} />
       </p>
       <span aria-hidden="true" className="mt-2 block h-[3px] w-14 rounded-full" style={{ background: colour }} />
@@ -144,7 +144,7 @@ export function FinalResult({
 
   return (
     <div ref={screenRef} className="relative flex flex-1 flex-col gap-5 pt-4 text-left animate-phase-in" {...enter}>
-      <h1 data-names className="relative truncate text-center text-[40px] font-extrabold leading-tight text-foreground animate-word-scale-in">
+      <h1 data-names className="relative truncate text-center jz-text-moment font-extrabold leading-tight text-foreground animate-word-scale-in">
         {headline}
       </h1>
       {celebrations}

@@ -123,7 +123,7 @@ export function AsyncResults({
       <div data-async-results className="flex flex-1 flex-col gap-4 animate-phase-in" {...enter}>
         <header className="flex flex-col items-center gap-1 text-center">
           <p className="jz-kicker">{title}, results</p>
-          <p className="jz-score text-6xl tabular-nums text-foreground">
+          <p className="jz-score jz-text-moment tabular-nums text-foreground">
             <FxCountUp value={view.total} />
           </p>
           <p

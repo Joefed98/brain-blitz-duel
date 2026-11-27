@@ -48,7 +48,8 @@ import {
   TOY_WOOD_DEEP,
 } from "./toybox.renderer";
 
-const FONT = "'Space Grotesk', 'Inter', ui-rounded, system-ui, sans-serif";
+/** Archivo, the app's one font (S1, 27 Nov 2026; the face named here before was never loaded, so a fallback drew). Display only. */
+const FONT = "'Archivo', system-ui, sans-serif";
 
 /**
  * The Speed overhaul (15 Nov 2026, docs/design/speed-art/README.md; display only): the board is Blender-rendered
@@ -69,7 +70,7 @@ const TILE_W = TD_CONFIG.tileW;
 const TILE_H = TD_CONFIG.tileH;
 const TILE_X = (TD_COL_W - TILE_W) / 2;
 /** Lettering waits for the web font so a fallback face is never cached for good. */
-const FONT_PROBE = `700 24px 'Space Grotesk'`;
+const FONT_PROBE = `700 24px 'Archivo'`;
 
 /**
  * Tile looks: face top, face bottom, edge, ink. Spotlight (21 Nov 2026; display only): ivory digits in navy ink, blue

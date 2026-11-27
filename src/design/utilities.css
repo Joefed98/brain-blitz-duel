@@ -77,6 +77,8 @@
   .jz-text-body { font-size: var(--jz-size-body); line-height: var(--tw-leading, var(--jz-line-body)); }
   .jz-text-label { font-size: var(--jz-size-label); line-height: var(--tw-leading, var(--jz-line-label)); }
   .jz-text-caption { font-size: var(--jz-size-caption); line-height: var(--tw-leading, var(--jz-line-caption)); }
+  /* The moment size (--jz-size-moment): moment numerals and headlines only. */
+  .jz-text-moment { font-size: var(--jz-size-moment); line-height: var(--tw-leading, var(--jz-line-moment)); }
 }
 
 /* Text emphasis (DESIGN.md section 3): one bright thing per panel. In the utilities layer, as Tailwind's colours. */

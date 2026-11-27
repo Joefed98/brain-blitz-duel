@@ -69,7 +69,7 @@ html[data-offline-install] [data-offline-install-card] {
 .of-result-score {
   font-family: var(--jz-font);
   font-variant-numeric: tabular-nums;
-  font-size: 56px;
+  font-size: var(--jz-size-moment);
   font-weight: 700;
   line-height: 1;
   color: var(--jz-text);

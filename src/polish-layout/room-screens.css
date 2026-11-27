@@ -575,7 +575,7 @@
   /* The lobby's room code, white and large. */
   .rs-code {
     /* P3, 22 Nov 2026: larger type on the room code (was 36 px). */
-    font-size: 48px;
+    font-size: var(--jz-size-moment);
     font-weight: 850;
     font-stretch: var(--jz-width-title);
     letter-spacing: 0.1em;

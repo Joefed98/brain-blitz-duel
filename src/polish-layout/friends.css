@@ -240,10 +240,10 @@
 }
 .fr-h2h-score strong {
   color: var(--jz-text);
-  font-size: 48px;
+  font-size: var(--jz-size-moment);
   font-weight: var(--jz-weight-black);
   font-variant-numeric: tabular-nums;
-  line-height: 52px;
+  line-height: var(--jz-line-moment);
 }
 .fr-h2h-score strong[data-tone="gold"] {
   color: var(--jz-gold-ink);
