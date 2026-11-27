@@ -1,6 +1,6 @@
 /**
  * hud-channel-check (22 Nov 2026, the arcade HUD value channel for the arena's panel; P4's "The canvas HUD in the
- * panel" in docs/desktop-support.md; display only, ~10 s, no browser). Proves, with ARENA_HUD_IN_PANEL left off:
+ * panel" in docs/desktop-support.md; display only, ~10 s, no browser). Proves, with ARENA_HUD_IN_PANEL on (Changed with Joe's approval, 27 Nov 2026):
  *
  *   1. Each HUD painter (retroHud, drawActionHud, drawHudPill, drawHudPillRow, drawHudTextPillRow and the cards'
  *      drawChip) notes exactly its items into hudPlacement.ts inside a stage's draw (`withHudInWorld`), both in the
@@ -12,7 +12,7 @@
  *      those games notes its main count;
  *   5. the panel's store (src/lib/rated/liveHud.ts) publishes at most 4 times a second, only on a change, publishes a
  *      held-back change on a later offer, and clears;
- *   6. the flag stays off, and the stage offers the values only on the arena and clears them when it goes.
+ *   6. the flag is on, and the stage offers the values only on the arena and clears them when it goes (Changed with Joe's approval, 27 Nov 2026).
  *
  *   bun scripts/hud-channel-check.ts
  */
@@ -188,14 +188,14 @@ for (const type of RETRO_TYPES) {
   ok(`the panel's store: on a change only, at most 4 a second (${n} publishes in 10 s of 60 fps offers), held-back changes published, clears`);
 }
 
-// 6: the flag stays off; the stage offers on the arena only and clears on unmount.
+// 6: the flag is on; the stage offers on the arena only and clears on unmount (Changed with Joe's approval, 27 Nov 2026).
 {
-  assert.equal(ARENA_HUD_IN_PANEL, false, "ARENA_HUD_IN_PANEL stays off");
+  assert.equal(ARENA_HUD_IN_PANEL, true, "ARENA_HUD_IN_PANEL is on"); // Changed with Joe's approval, 27 Nov 2026
   const stage = readFileSync("src/components/puzzles/ArcadeCanvasStage.tsx", "utf8");
   assert.match(stage, /withHudInWorld\(!\(arenaRef\.current && ARENA_HUD_IN_PANEL\)/, "the stage's draw sets the placement");
   assert.match(stage, /if \(arenaRef\.current\) offerLiveHud\(takeHud\(\), performance\.now\(\)\);/, "the stage offers the noted values on the arena only");
   assert.match(stage, /cancelArenaFrame\(loop, frame\);\s*clearLiveHud\(\);/, "the stage clears the store when it goes");
-  ok("ARENA_HUD_IN_PANEL is off; the stage offers its values on the arena only and clears them when it goes");
+  ok("ARENA_HUD_IN_PANEL is on; the stage offers its values on the arena only and clears them when it goes"); // Changed with Joe's approval, 27 Nov 2026
 }
 
 console.log(`PASS hud-channel-check: ${passes} sections`);

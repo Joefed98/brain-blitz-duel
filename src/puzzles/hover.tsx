@@ -44,6 +44,7 @@ import { playSound } from "@/lib/sound";
 import type { PuzzleDefinition, PuzzleRevealProps, PuzzleStageProps } from "./types";
 import { arcadeCanvasRatio } from "@/lib/fx/lowEnd";
 import { arenaFrame, cancelArenaFrame } from "@/lib/battery";
+import { useArenaHudDraw } from "@/lib/gameFrame/arenaHud";
 
 /** Fixed intro still: the disc and two pillars with a gap. */
 /**
@@ -70,6 +71,7 @@ function hoverStillPilot(s: HoverState): boolean {
 }
 
 function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
+  const hudDraw = useArenaHudDraw();
   const data: HoverPuzzleData | null = puzzle.type === "hover" ? puzzle : null;
   const seed = data?.seed ?? 1;
   // One game object per stamp and level (stage 3 of the Retro overhaul: a level wraps init).
@@ -190,7 +192,7 @@ function Stage({ puzzle, locked, onSubmit, onDraftAnswer }: PuzzleStageProps) {
       frameTiming.draw();
       const size = sizeCanvas();
       const context = canvasContext();
-      if (size && context) hoverArtGame.draw(context, state.current, size);
+      if (size && context) hudDraw(() => hoverArtGame.draw(context, state.current, size));
 
       frameTiming.rendered();
 
