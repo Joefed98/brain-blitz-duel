@@ -14,6 +14,7 @@ import { dealtTopupRev } from "./depthTopup";
 import { dealStandard } from "./standard/stamps";
 import { dealPuzzleNotes } from "./puzzleNotes";
 import { dealParMoves } from "./parMoves";
+import { dealD3Maze } from "./d3Attention";
 import { dealPipesPlaced } from "./speedPipesNov7";
 import { dealOperatorGaps, generateOperatorLevel, type OperatorLevelSettings } from "./operatorGaps.server";
 import { dealLogic2 } from "./logicOverhaul2";
@@ -27,6 +28,7 @@ import { dealAttentionOverhaul } from "./attentionOverhaul";
 import { dealSpeedOverhaul } from "./speedOverhaul";
 import { dealPyramidPartial } from "./pyramidPartial";
 import { dealBallparkBullseyes } from "./ballparkBullseyes";
+import { dealD3Speed } from "./d3Normal";
 import { activeDealPins, dealPinned, withDealOptions, type DealOptions } from "./dealEra";
 import { dealPartialCredit } from "./partialCredit";
 import { dealNotesFree } from "./notesFree";
@@ -227,6 +229,11 @@ export const DEAL_LAYERS: readonly { name: string; deal: (puzzle: PuzzleData) =>
   { name: "ballparkBullseyes", deal: dealBallparkBullseyes },
   // D4 (22 Nov 2026, topsyLine.ts): Topsy-Turvy gravityRev 9 on Normal, full speed by 40 s (Joe's option A).
   { name: "topsyLine", deal: dealTopsyLine },
+  // D3's Normal scoring stamps (22 Nov 2026, d3Normal.ts): Flash tapRev 8 and the other Speed games' new stamps, so a
+  // player at the human limits can reach 200.
+  { name: "d3Speed", deal: dealD3Speed },
+  // D3 (22 Nov 2026, d3Attention.ts): Labyrinth mazeRev 6 (speed full by 34 s), Joe's approved Normal scoring stamp.
+  { name: "d3Maze", deal: dealD3Maze },
 ];
 
 /**

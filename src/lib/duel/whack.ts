@@ -105,7 +105,7 @@ export function replayWhackRun(seed: number, raw: string, rev?: number | null, l
   const run = decodeWhackRun(raw);
   const endTick = run.endTick && run.endTick > 0 ? Math.min(run.endTick, WHACK_RUN_TICKS) : 0;
   const clientLag = endTick > 0 && endTick < WHACK_RUN_TICKS;
-  const check = checkInputEvents(run.events, WHACK_RUN_TICKS, WHACK_INPUT_RANGES);
+  const check = checkInputEvents(run.events, WHACK_RUN_TICKS, whackGame.inputRanges ?? WHACK_INPUT_RANGES);
   const events = new Map<number, ArcadeInputEvent>();
   for (const event of check.events) events.set(event.t, event);
   const lastTick = clientLag ? endTick : WHACK_RUN_TICKS;

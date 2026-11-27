@@ -34,6 +34,7 @@ import { decodeLaserAnswer, isSplitter, verifyLaser } from "./laser";
 import { decodeTowerMoves, replayTower } from "./tower";
 import { decodeMazePath, mazeColsOf, verifyMazePath } from "./maze";
 import { decodeMazeTrail, mazeStarsTaken, mazeTrailBacktracks, mazeTrailRoute, mazeTrailWalk, usesMazeDepth } from "./depth/labyrinth";
+import { mazeKeysOf, mazeKeysTaken, mazeKeysWalk } from "./mazeKeys";
 import { decodeTubeLog, decodeTubeMoves, replayTubeLog, replayTubes } from "./tubes";
 import { dialsCorrect, decodeSafePending, decodeSafeTries, safeOpenedOn, safeShapeOf } from "./safe";
 import { checkBombPlan, decodeBombActions, decodeBombConstraints } from "./bomb";
@@ -944,7 +945,11 @@ function gradeUnderRev(
       // folded away, graded exactly as the older path answer, and the stars are the ones the trail rolled over.
       const depth = usesMazeDepth(puzzle);
       const cols = mazeColsOf(puzzle);
-      const walk = depth ? mazeTrailWalk(puzzle.cells, puzzle.start, puzzle.exit, decodeMazeTrail(answer, puzzle.start, cols, puzzle.cells.length), cols) : null;
+      // D3 (levelRev 2's Hard and Expert, mazeKeys.ts): with gold keys the walk goes on through the exit until every key
+      // is taken, and a finish needs them all; a maze without keys walks exactly as before.
+      const keys = mazeKeysOf(puzzle);
+      const trail = depth ? decodeMazeTrail(answer, puzzle.start, cols, puzzle.cells.length) : null;
+      const walk = trail ? (keys.length ? mazeKeysWalk(puzzle.cells, puzzle.start, puzzle.exit, trail, cols, keys) : mazeTrailWalk(puzzle.cells, puzzle.start, puzzle.exit, trail, cols)) : null;
       // The drawn route is re-walked through the stored corridors.
       const path = walk ? mazeTrailRoute(walk) : decodeMazePath(answer);
       const verdict = verifyMazePath(
@@ -955,7 +960,9 @@ function gradeUnderRev(
         path,
         cols,
       );
-      isCorrect = verdict.solved;
+      // A keyed maze finishes at the exit with every key taken.
+      const keysTaken = walk && keys.length ? mazeKeysTaken(walk, keys).length : 0;
+      isCorrect = verdict.solved && (keys.length === 0 || (keysTaken === keys.length && walk![walk!.length - 1] === puzzle.exit));
       correctCount = verdict.walked;
       // Rev 1: progress counts route steps beyond the start cell, so standing still is 0.
       const routeLength = Math.max(2, (puzzle.solution ?? []).length);
@@ -963,12 +970,13 @@ function gradeUnderRev(
       const progress = scoreRev1()
         ? Math.max(0, (verdict.progress * routeLength - 1) / (routeLength - 1)) * wasteFactor(verdict.walked, routeLength)
         : verdict.progress;
-      score = scoreMaze(verdict.solved, progress, ms, timeLimitMs);
+      score = scoreMaze(isCorrect, progress, ms, timeLimitMs);
       extraDetail = {
-        solved: verdict.solved,
+        solved: isCorrect,
         progress: Math.round(verdict.progress * 100),
         wasted: verdict.wasted,
         ...(walk ? { stars: mazeStarsTaken(walk, puzzle.stars ?? []), backtracks: mazeTrailBacktracks(walk) } : {}),
+        ...(keys.length ? { keysTaken, keys: keys.length } : {}),
       };
       break;
     }

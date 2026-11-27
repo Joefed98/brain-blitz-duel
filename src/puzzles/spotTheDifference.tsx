@@ -26,7 +26,8 @@ import { RevealLegend, RevealStats, RevealTabs } from "@/components/puzzles/atte
 import { attnSound } from "@/components/puzzles/attention/attentionFx";
 import { gameFx } from "@/lib/fx/kit";
 import { spotWaitsForNext } from "@/lib/duel/attentionOverhaul";
-import { spotGridOf, spotPerPicture } from "@/lib/duel/attentionLevels";
+import { spotGridOf, spotMirrored, spotPerPicture } from "@/lib/duel/attentionLevels";
+import { SpotMirrorNote } from "./attentionLevelArt";
 import { SPOT_BONUS_SCALE, SPOT_DEPTH_REV } from "@/lib/duel/depth/doubleTake";
 import { ATTENTION_REWORK_TIME_MS, SPOT_TWO_WRONG_LIMIT, parseSpotTaps, spotScenes, type SpotTheme } from "@/lib/duel/attentionRev";
 import { reefLabel } from "./doubleTakeReef";
@@ -393,6 +394,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
   const data = puzzle.type === "spotdiff" ? puzzle : null;
   // A level's pictures (stage 3 of the Attention overhaul) have their own grid; every other round today's 8 × 6.
   const grid = spotGridOf(data);
+  // D3 (levelRev 2's Expert): each lower panel is drawn as the upper one's mirror image; a tap still names its own cell.
+  const mirrored = spotMirrored(data);
   const scenes = useMemo(() => (data ? spotScenes(data) : []), [data]);
   const twoPictures = scenes.length > 1;
   const key = scenes.map((sc) => sc.top.map((s) => `${s.cell}${s.kind}${s.colour}`).join("|")).join("/");
@@ -576,7 +579,8 @@ function Stage({ puzzle, phaseStartedAt, now, locked, onSubmit, onDraftAnswer }:
             <Panel shapes={current.top} theme={current.theme} found={foundCells} hidden={hiddenFound} wrongCell={wrong} onTap={tap} fitHeight shapeSize={SHAPE} cols={grid.cols} gridRows={grid.rows} />
           </div>
           <div className="h-px w-full shrink-0 bg-border" aria-hidden="true" />
-          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+          {mirrored ? <SpotMirrorNote /> : null}
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden" style={mirrored ? { transform: "scaleX(-1)" } : undefined} data-dt-mirrored={mirrored ? "" : undefined}>
             <Panel shapes={current.bottom} theme={current.theme} found={foundCells} hidden={hiddenFound} wrongCell={wrong} onTap={tap} fitHeight shapeSize={SHAPE} cols={grid.cols} gridRows={grid.rows} />
           </div>
         </div>

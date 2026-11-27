@@ -9,6 +9,7 @@
  */
 import { chainLongCycles, chainRequiredAt, chainReversedAt, chainBoardIndex, chainRules, chainTimeLimitMs, chainWindowMs, encodeChainAnswer, type ChainTap } from "../../src/lib/duel/chain";
 import { encodeMazePath, mazeColsOf, mazeCorridorNeighbours } from "../../src/lib/duel/maze";
+import { mazeKeyTour, mazeKeysOf } from "../../src/lib/duel/mazeKeys";
 import { encodeMazeTrail, usesMazeDepth } from "../../src/lib/duel/depth/labyrinth";
 import { joinPairGoldTime, pairGoldTimed } from "../../src/lib/duel/depth/matchmaker";
 import { encodePairFlips, sameCard } from "../../src/lib/duel/pairmatch";
@@ -680,7 +681,10 @@ const labyrinth: PuzzleKit = {
   },
   play(p, rng, skill) {
     const m = p as MazePuzzleData;
-    const route = m.solution ?? [];
+    // Changed with Joe's approval, 22 Nov 2026 (D3): a keyed maze (levelRev 2's Hard and Expert) is walked through every
+    // key to the exit; every other maze keeps its route, and its play draws exactly the random numbers it always did.
+    const keys = mazeKeysOf(m);
+    const route = keys.length ? mazeKeyTour(m.cells, mazeColsOf(m), m.start, keys, m.exit) : m.solution ?? [];
     const track = new MazeTrack(m);
     const steps: Step[] = [];
     // mazeRev 1+: stars off the route, each taken (in and back out) with the level's chance. Older mazes have none,
