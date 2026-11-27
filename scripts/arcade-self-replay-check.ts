@@ -171,7 +171,7 @@ import { RALLY_REV_LIVES, RALLY_REV_STD } from "@/lib/arcade/rally";
 import { BUB_REV_FAST, BUB_REV_STD } from "@/lib/arcade/bubble";
 import { BEAT_REV_FLOOR, BEAT_REV_STD } from "@/lib/arcade/beat";
 import { encodePinballRun, replayPinballRun } from "@/lib/duel/pinball";
-import { minesCheckpoint, minesweeperGameFor, MINES_REV_LOGIC, MINES_REV_STD } from "@/lib/arcade/minesweeper";
+import { minesCheckpoint, minesweeperGameFor, MINES_REV_EXPERT_D4, MINES_REV_HARD_D4, MINES_REV_LOGIC, MINES_REV_STD } from "@/lib/arcade/minesweeper"; // Changed with Joe's approval, 22 Nov 2026
 import { encodeMinesweeperRun, replayMinesweeperRun } from "@/lib/duel/minesweeper";
 import { mahjongCheckpoint, mahjongGameFor, MAHJONG_REV_STD, MAHJONG_REV_UNDO } from "@/lib/arcade/mahjong";
 import { encodeMahjongRun, replayMahjongRun } from "@/lib/duel/mahjong";
@@ -1246,6 +1246,9 @@ const GAMES: Game[] = [
   // Apex racingRev 4 (15 Nov 2026, the Sports overhaul: three named circuits), appended at the end so every earlier
   // entry keeps its index and stream.
   { key: "racing/v4", interval: RACING_CHECKPOINT_INTERVAL, game: racingGameFor(RACING_REV_4), checkpoint: racingCheckpoint, mode: "events", rate: 120, encode: encodeRacingRun, replay: (seed: number, raw: string) => replayRacingRun(seed, raw, RACING_REV_4), seedFor: (n: number) => RACING_DEAL_V4[n % RACING_DEAL_V4.length]! },
+  // Changed with Joe's approval, 22 Nov 2026: Minefield's D4 Hard and Expert (minesRev 6 and 7), appended so every earlier entry keeps its stream.
+  { key: "minesweeper/hard-d4", game: minesweeperGameFor(MINES_REV_HARD_D4), checkpoint: minesCheckpoint, mode: "events", rate: 60, encode: encodeMinesweeperRun, replay: (seed: number, raw: string) => replayMinesweeperRun(seed, raw, MINES_REV_HARD_D4) }, // Changed with Joe's approval, 22 Nov 2026
+  { key: "minesweeper/expert-d4", game: minesweeperGameFor(MINES_REV_EXPERT_D4), checkpoint: minesCheckpoint, mode: "events", rate: 60, encode: encodeMinesweeperRun, replay: (seed: number, raw: string) => replayMinesweeperRun(seed, raw, MINES_REV_EXPERT_D4) }, // Changed with Joe's approval, 22 Nov 2026
   // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps, appended at the end so every earlier entry
   // keeps its index and stream): Five Hands fiveHandsRev 4, Cue Ball poolRev 5, Tilt tiltRev 13.
   { key: "fivehands/v4", game: fiveHandsGameFor(4), checkpoint: fhCheckpoint, mode: "events", rate: 60, encode: encodeFiveHandsRun, replay: (seed: number, raw: string) => replayFiveHandsRun(seed, raw, 4) },

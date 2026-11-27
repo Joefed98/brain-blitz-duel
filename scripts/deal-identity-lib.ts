@@ -139,6 +139,9 @@ export function digest(value: unknown): string {
 // sportsPreOverhaul added 15 Nov 2026 (routine consequence of the Home Run and Top Bins overhaul: their live deal moved
 // to rev 5, so the recorded deals are compared on rev 4 exactly as before; homerun-innings-check and
 // freekick-layered-check prove the rev-5 deals).
+// Changed with Joe's approval, 22 Nov 2026 (D2): prePyramidPartial and preBallparkBullseyes, newer than the recording.
+// Changed with Joe's approval, 22 Nov 2026 (D4's Topsy-Turvy gravityRev 9): preTopsyLine, newer than the recording.
+// Changed with Joe's approval, 22 Nov 2026 (D3, re-applied after D2 and D4): preD3Speed and preD3Maze, newer than the recording.
 // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps): fivehandsPre128, poolPreFifth and tiltPreThree, so
 // the recorded Normal deals are compared on fiveHandsRev 3, poolRev 4 and tiltRev 12 exactly as before; d6-normal-stamps-check
 // proves the new deals.
@@ -146,7 +149,7 @@ export function digest(value: unknown): string {
 // tripeaksPreEase and racingPreFive, so the recorded Normal deals are compared on freecellRev 5, tripeaksRev 3 and
 // racingRev 4 exactly as before, and d6PreLevels, so a recorded room at a level deals the levels before D6
 // (d6-cards-levels-check and d6-sports-levels-check prove D6's).
-export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "preNumberOverhaul", "preCheckoutLevels", "preKakuroLevels", "preMeasureLevels", "preBalanceLevels", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul", "preRetro", "orbitPreGrace", "flipPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "matchupPreIce2", "minigolfPreCourse", "sportsPreOverhaul", "racingPreCircuits", "prePyramidPartial", "preBallparkBullseyes", "fivehandsPre128", "poolPreFifth", "tiltPreThree", "freecellPrePar98", "tripeaksPreEase", "racingPreFive",  "d6PreLevels", "pyramidPreSpeed22", "matchupPreD6"]; // matchupPreD6: Changed with Joe's approval, 27 Nov 2026 (D6). Changed with Joe's approval, 22 Nov 2026; 22 Nov 2026; D6's pins re-applied after D2's merge (Joe, 23 Nov 2026: "whichever merges later re-applies them")
+export const POST_RECORDING_PINS: readonly DealPin[] = ["minesPreLogic", "preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "preNumberOverhaul", "preCheckoutLevels", "preKakuroLevels", "preMeasureLevels", "preBalanceLevels", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul", "preRetro", "orbitPreGrace", "flipPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "matchupPreIce2", "minigolfPreCourse", "sportsPreOverhaul", "racingPreCircuits", "prePyramidPartial", "preBallparkBullseyes", "preTopsyLine", "preD3Speed", "preD3Maze", "preWordStar", "fivehandsPre128", "poolPreFifth", "tiltPreThree", "freecellPrePar98", "tripeaksPreEase", "racingPreFive", "d6PreLevels", "pyramidPreSpeed22", "matchupPreD6"]; // Changed with Joe's approval, 26 Nov 2026 (re-applied against main at the 27 Nov merge: D1's after D2's, D4's and D3's) D6's pins (fivehandsPre128, poolPreFifth, tiltPreThree, freecellPrePar98, tripeaksPreEase, racingPreFive, d6PreLevels, pyramidPreSpeed22, matchupPreD6; Joe's approvals of 23 and 27 Nov 2026) re-applied on top at D6's merge of main, 27 Nov 2026 (Joe: "whichever merges later re-applies them").
 
 /** Runs `fn` with every POST_RECORDING_PINS era pinned, restoring each after. */
 export function withPostRecordingPins<T>(fn: () => T, pins: readonly DealPin[] = POST_RECORDING_PINS): T {
@@ -223,9 +226,10 @@ export function roomDigests(seeds: readonly number[]): Record<string, string> {
   // approved at 72b7b38f): sportsPreOverhaul reaches a room's Home Run and Top Bins deals, so rooms pin it too and
   // compare on rev 4 exactly as recorded; homerun-innings-check and freekick-layered-check prove the new deals.
   // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): both trains' room pins, the puzzle train's first.
+  // Changed with Joe's approval, 22 Nov 2026 (D3): preD3Speed and preD3Maze reach a room's Speed and Labyrinth deals.
   // Changed with Joe's approval, 23 Nov 2026 (D6's Normal scoring stamps reach a room's deals): fivehandsPre128,
   // poolPreFifth, tiltPreThree, freecellPrePar98, tripeaksPreEase and racingPreFive, so rooms compare on the stamps recorded.
-  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul", "preRetro", "flipPreGrace", "orbitPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "minigolfPreCourse", "sportsPreOverhaul", "fivehandsPre128", "poolPreFifth", "tiltPreThree", "freecellPrePar98", "tripeaksPreEase", "racingPreFive"]);
+  return withPostRecordingPins(() => roomDigestsNow(seeds), ["preGameReviewNov15", "preNotesFree", "preLogicOverhaul1", "preLogic2", "prePatternNov15", "preWordOverhaul", "preAttentionOverhaul", "preSpeedOverhaul", "preRetro", "flipPreGrace", "orbitPreGrace", "skylinePreLives", "ricoPreBig", "swingPreBig", "orbitPreBig", "bastionPreLevels", "bubblePreFast", "inkPreHills", "minigolfPreCourse", "sportsPreOverhaul", "preD3Speed", "preD3Maze", "preWordStar", "fivehandsPre128", "poolPreFifth", "tiltPreThree", "freecellPrePar98", "tripeaksPreEase", "racingPreFive"]); // Changed with Joe's approval, 26 Nov 2026 (re-applied against main at the 27 Nov merge: D1's after D2's, D4's and D3's)
 }
 
 function roomDigestsNow(seeds: readonly number[]): Record<string, string> {

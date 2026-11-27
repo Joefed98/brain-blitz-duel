@@ -206,7 +206,8 @@ export function generateBlockLevel(level: BlockLevel, attempts = 400): BlockPart
     // Hard and Expert: only a board the human-like solver finishes within the level's guesses (humanly possible), and
     // needing at least its least (not forced moves alone).
     if (!humanDepthOk(geo, blockers, s)) continue;
-    return { type: "blockparty", blockers, solution: first, solutions: count, blockRev: 1, level };
+    // The board's size and pieces ride on it (D4, 22 Nov 2026), so a later retune of the level never moves it.
+    return { type: "blockparty", blockers, solution: first, solutions: count, blockRev: 1, level, blockCols: s.cols, blockPieces: [...s.pieces] };
   }
   return null;
 }

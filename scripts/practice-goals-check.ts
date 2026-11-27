@@ -54,8 +54,9 @@ import { PRACTICE_CHALLENGES, challengeLive, challengeTarget, challengesFor, cha
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S } from "../src/lib/duel/parMoves";
 import { GRID_STANDARD } from "../src/lib/duel/standard/gridRules";
 import { NUMBER_STANDARD } from "../src/lib/duel/standard/number";
-import { ASCEND_STD, CHAIN_STD, COUNT_STD, PAIR_STD, SPOT_STD } from "../src/lib/duel/standard/attention";
+import { ASCEND_STD, CHAIN_STD, CHAIN_V4_FULL_BY_S, COUNT_STD, PAIR_STD, SPOT_STD } from "../src/lib/duel/standard/attention";
 import { STD_LOOKOUT, STD_ROUNDABOUT } from "../src/lib/duel/standard/word";
+import { ROUNDABOUT_STAR_FULL_BY_S } from "../src/lib/duel/wordStar"; // Changed with Joe's approval, 26 Nov 2026
 import { numbersReport } from "./practice-challenge-numbers";
 // Changed with Joe's approval, 13 Nov 2026: STAR_THRESHOLDS, starLine, starTotal, starsFor and starsOf left out of this import (the device stars are removed).
 import {
@@ -71,6 +72,9 @@ import { ACTIVE_PUZZLE_TYPES, PUZZLE_TYPES } from "../src/lib/duel/registry";
 import { standardFinish, standardUnfinished } from "../src/lib/duel/standard/shape";
 import { FLOW_REV3_FULL_BY_S, LASER_REV4_FULL_BY_S, PATTERN_STD } from "../src/lib/duel/standard/patternRules";
 import { LOGIC_STANDARD } from "../src/lib/duel/standard/logicRules";
+import { TOPSY_NORMAL_FULL_BY_S } from "../src/lib/duel/topsyLine"; // Changed with Joe's approval, 22 Nov 2026
+import { PL_LEVEL_SPEED_GAMES, settingsFullByS } from "../src/lib/duel/standard/plLevelSpeed"; // Changed with Joe's approval, 22 Nov 2026
+import { gameLevelSettings } from "../src/lib/levels/gameLevels"; // Changed with Joe's approval, 22 Nov 2026
 import { STD_CRYPTOGRID, STD_SLIDER, STD_SWAPWORD } from "../src/lib/duel/standard/word";
 import { STANDARD_GAMES } from "../src/lib/duel/standard/games.server";
 import type { PuzzleType } from "../src/lib/duel/types";
@@ -159,7 +163,7 @@ const SPEED_RULES: Partial<Record<PuzzleType, { speed: number; fullByS: number; 
   bridges: GRID_STANDARD.bridges,
   kakuro: GRID_STANDARD.kakuro,
   blockparty: { speed: PATTERN_STD.blockparty.speed, fullByS: PATTERN_STD.blockparty.fullByS, bonus: 0 },
-  gravity: { speed: PAR_MOVES_STD.speed, fullByS: PAR_STRICT_FULL_BY_S.gravity, bonus: PAR_MOVES_STD.par },
+  gravity: { speed: PAR_MOVES_STD.speed, fullByS: TOPSY_NORMAL_FULL_BY_S, bonus: PAR_MOVES_STD.par }, // Changed with Joe's approval, 22 Nov 2026 (gravityRev 9: 40 s)
   rings: { speed: PATTERN_STD.rings.speed, fullByS: PATTERN_STD.rings.fullByS, bonus: PATTERN_STD.rings.par ?? -1 },
   // Changed with Joe's approval, 16 Nov 2026 (routine consequence of the Pattern overhaul): the dealt laserRev 4's full-speed time (30 s).
   laser: { speed: PATTERN_STD.laser.speed, fullByS: LASER_REV4_FULL_BY_S, bonus: 0 },
@@ -168,12 +172,13 @@ const SPEED_RULES: Partial<Record<PuzzleType, { speed: number; fullByS: number; 
   pipes: { speed: PATTERN_STD.pipes.speed, fullByS: PATTERN_STD.pipes.fullByS, bonus: PATTERN_STD.pipes.par ?? -1 },
   push: { speed: PATTERN_STD.push.speed, fullByS: PATTERN_STD.push.fullByS, bonus: PATTERN_STD.push.par ?? -1 },
   numhunt: { speed: ASCEND_STD.speed, fullByS: ASCEND_STD.fullByS, bonus: ASCEND_STD.flow },
-  chain: { speed: CHAIN_STD.speed, fullByS: CHAIN_STD.fullByS, bonus: 0 },
+  // Changed with Joe's approval, 22 Nov 2026 (D3): the Chain deals chainDepthRev 4, speed full by 33 s.
+  chain: { speed: CHAIN_STD.speed, fullByS: CHAIN_V4_FULL_BY_S, bonus: 0 },
   spotdiff: { speed: SPOT_STD.speed, fullByS: SPOT_STD.fullByS, bonus: SPOT_STD.clean },
   countup: { speed: COUNT_STD.speed, fullByS: COUNT_STD.fullByS, bonus: 0 },
   pairmatch: { speed: PAIR_STD.speed, fullByS: PAIR_STD.fullByS, bonus: 0 },
   wordsearch: { speed: STD_LOOKOUT.speed, fullByS: STD_LOOKOUT.fullByS, bonus: STD_LOOKOUT.bonus },
-  letterwheel: { speed: STD_ROUNDABOUT.speed, fullByS: STD_ROUNDABOUT.fullByS, bonus: STD_ROUNDABOUT.jar },
+  letterwheel: { speed: STD_ROUNDABOUT.speed, fullByS: ROUNDABOUT_STAR_FULL_BY_S, bonus: STD_ROUNDABOUT.jar }, // Changed with Joe's approval, 26 Nov 2026
   target: NUMBER_STANDARD.target,
   equation: NUMBER_STANDARD.equation,
   balance: NUMBER_STANDARD.balance,
@@ -209,7 +214,9 @@ for (const c of PRACTICE_CHALLENGES) {
     check(Boolean(rule), `${c.id}: its standard rules are known`);
     check(Boolean(STANDARD_GAMES[c.type]), `${c.id}: graded on the puzzle scoring standard`);
     if (rule && g.kind === "bonus") check(g.max === rule.bonus && g.max > 0, `${c.id}: bonus ${g.max} is the rule's ${rule.bonus}`);
-    if (rule && g.kind === "speed") check(g.max === rule.speed && g.withinS === rule.fullByS && c.text.includes(`${rule.fullByS} s`), `${c.id}: speed ${g.max} within ${g.withinS} s is the rule's ${rule.speed} by ${rule.fullByS} s`);
+    // Changed with Joe's approval, 22 Nov 2026: a Hard or Expert goal of the D4 games quotes its level's own speed line (stamped on the deal).
+    const fullBy = (c.level !== "classic" && PL_LEVEL_SPEED_GAMES.includes(c.type) ? settingsFullByS(gameLevelSettings(c.type, c.level)) : null) ?? rule?.fullByS;
+    if (rule && g.kind === "speed") check(g.max === rule.speed && g.withinS === fullBy && c.text.includes(`${fullBy} s`), `${c.id}: speed ${g.max} within ${g.withinS} s is the rule's ${rule.speed} by ${fullBy} s`); // Changed with Joe's approval, 22 Nov 2026
     if (rule) check(rule.speed + rule.bonus <= 50, `${c.id}: speed and bonus both fit a finish's 50 (standardFinish never trims either)`);
   } else if (g.kind === "score") {
     // APPROVED by Joe, 11 Nov 2026, change (6): was `g.score === 180 && c.text === "Score 180 or more"`; any score the

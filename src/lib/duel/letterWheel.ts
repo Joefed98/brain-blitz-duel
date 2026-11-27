@@ -30,11 +30,18 @@ export const LW_REV5_LIMITS = { maxCols: 11, maxRows: 9, minWords: 11, maxWords:
 export type LwLevel = "easy" | "hard" | "expert";
 export const LW_LEVEL_LIMITS: Readonly<Record<LwLevel, { bank: number; seed: number; letters: number; maxCols: number; maxRows: number; minWords: number; maxWords: number; minLong: number; maxShort: number; candidates: number }>> = {
   easy: { bank: 200, seed: 20261116, letters: 6, maxCols: 9, maxRows: 8, minWords: 7, maxWords: 9, minLong: 4, maxShort: 3, candidates: 18 },
-  hard: { bank: 200, seed: 20261117, letters: 7, maxCols: 9, maxRows: 11, minWords: 12, maxWords: 15, minLong: 10, maxShort: 2, candidates: 28 },
-  expert: { bank: 200, seed: 20261118, letters: 7, maxCols: 9, maxRows: 12, minWords: 16, maxWords: 19, minLong: 14, maxShort: 2, candidates: 34 },
+  // D1 (21 Nov 2026; difficulty-spec.md "Roundabout"): words in the crossword are the ladder. Hard takes the 15 Nov
+  // Expert row (its bank rebuilds byte for byte under Hard's name); Expert an 8-letter wheel and 20–24 words in 10 × 13.
+  hard: { bank: 200, seed: 20261118, letters: 7, maxCols: 9, maxRows: 12, minWords: 16, maxWords: 19, minLong: 14, maxShort: 2, candidates: 34 },
+  expert: { bank: 200, seed: 20261121, letters: 8, maxCols: 10, maxRows: 13, minWords: 20, maxWords: 24, minLong: 18, maxShort: 2, candidates: 44 },
 };
 /** Misses (traces that are neither a slot word nor a dictionary word) that cost nothing. */
 export const LW_FREE_MISSES = 5;
+/** The free misses a stored board allows: a level deal's own (D1, 21 Nov 2026), else LW_FREE_MISSES. */
+export function lwFreeMissesOf(puzzle: { freeMisses?: number } | null | undefined): number {
+  const v = puzzle?.freeMisses;
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.floor(v) : LW_FREE_MISSES;
+}
 /** Points per miss beyond the free ones, off the unfinished credit or the finish's efficiency part. */
 export const LW_MISS_COST = 3;
 /**
@@ -148,8 +155,8 @@ export function lwJarSize(available: number): number {
 }
 
 /** Drops left in the jar: each miss after the free ones spills one (so tracing at random never fills it). */
-export function lwJarKept(drops: number, misses: number): number {
-  return Math.max(0, drops - Math.max(0, misses - LW_FREE_MISSES));
+export function lwJarKept(drops: number, misses: number, free: number = LW_FREE_MISSES): number {
+  return Math.max(0, drops - Math.max(0, misses - free));
 }
 
 /**
@@ -187,8 +194,8 @@ export function lwJarTally(
 }
 
 /** Misses charged after the free allowance. */
-export function lwMissPenalty(misses: number): number {
-  return LW_MISS_COST * Math.max(0, misses - LW_FREE_MISSES);
+export function lwMissPenalty(misses: number, free: number = LW_FREE_MISSES): number {
+  return LW_MISS_COST * Math.max(0, misses - free);
 }
 
 /**

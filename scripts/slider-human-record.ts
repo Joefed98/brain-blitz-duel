@@ -12,7 +12,7 @@ import type { WordSlidePuzzleData } from "../src/lib/duel/types";
 import { roomDeal } from "./word-levels-shared";
 import { SLIDER_HUMANS, sliderHumanScore } from "./slider-human";
 
-export const SLIDER_HUMAN_SEEDS = Array.from({ length: 24 }, (_, n) => 9000 + n * 37);
+export const SLIDER_HUMAN_SEEDS = Array.from({ length: 100 }, (_, n) => 9000 + n * 37); // Changed with Joe's approval, 22 Nov 2026
 export const SLIDER_HUMAN_FIXTURE = "scripts/fixtures/slider-human-levels.json";
 export type SliderHumanFixture = Record<string, Record<string, { seed: number; score: number; finished: boolean; slides: number }[]>>;
 

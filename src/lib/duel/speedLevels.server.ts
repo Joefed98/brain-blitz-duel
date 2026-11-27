@@ -12,6 +12,18 @@ import { generateChain } from "./chain.server";
 import { buildReaction } from "@/puzzles/reaction";
 import { buildNumberHunt } from "@/puzzles/numberHunt";
 import type { PuzzleData, PuzzleType } from "./types";
+import { d3SpeedDealSeed } from "./d3SpeedDeals.server";
+import { randomBelow } from "./random";
+
+/**
+ * D3 (22 Nov 2026): Bonk's and Tenfall's level deals play one of the level's proved seeds (d3SpeedDeals.server.ts, built
+ * by scripts/d3-speed-deal.ts: a person exactly at the human limits scores 200 on each), drawn by the room's own random.
+ */
+function provedSeed<T extends { seed: number }>(game: "whack" | "tendrop", level: Level, puzzle: T): T {
+  if (level === "normal") return puzzle;
+  const seed = d3SpeedDealSeed(game, level, randomBelow(1 << 30));
+  return seed === null ? puzzle : { ...puzzle, seed };
+}
 
 export function dealSpeedLevel(type: PuzzleType, level: Level | undefined): PuzzleData | null {
   if (!level || level === "normal") return null;
@@ -29,11 +41,11 @@ export function dealSpeedLevel(type: PuzzleType, level: Level | undefined): Puzz
   }
   if (type === "whack") {
     const settings = gameLevelSettings<BonkLevel>(type, level);
-    return settings ? { ...generateWhack(), bonkLevel: { ...settings, flips: [settings.flips[0], settings.flips[1]] } } : null;
+    return settings ? provedSeed("whack", level, { ...generateWhack(), bonkLevel: { ...settings, flips: [settings.flips[0], settings.flips[1]] as [number, number] } }) : null;
   }
   if (type === "tendrop") {
     const settings = gameLevelSettings<TenfallLevel>(type, level);
-    return settings ? { ...generateTenDrop(), tenLevel: { stages: tdLevelStages(settings) } } : null;
+    return settings ? provedSeed("tendrop", level, { ...generateTenDrop(), tenLevel: { stages: tdLevelStages(settings) } }) : null;
   }
   if (type === "clayshoot") {
     const settings = gameLevelSettings<PullLevel>(type, level);

@@ -5,14 +5,15 @@
  */
 import { scoreReaction } from "@/lib/duel/scoring";
 import { REACTION_MISS_MS } from "@/lib/duel/types";
-import { FLASH_DEPTH_REV, scoreFlashDepth } from "@/lib/duel/depth/flash";
+import { FLASH_DEPTH_REV, scoreFlashDepth, type FlashCurve } from "@/lib/duel/depth/flash";
 
 import { END_OF_RUN_FX_SCORE, bump, easeOut, playOverlayFx, soundCue } from "./speedFx";
 
 /** The phone's local Flash score (read-only), as the server would compute it from the same replay. */
-export function localFlashScore(times: (number | null)[], falseStarts: number, flashCount: number, tapRev = 0): number {
-  // Depth (tapRev 5): the stretched curve and the steady-hand bonus, as the server's depth grader.
-  if (tapRev >= FLASH_DEPTH_REV) return scoreFlashDepth(times, falseStarts, flashCount, tapRev).score;
+export function localFlashScore(times: (number | null)[], falseStarts: number, flashCount: number, tapRev = 0, curve?: FlashCurve, free = 0): number {
+  // Depth (tapRev 5): the stretched curve and the steady-hand bonus, as the server's depth grader (tapRev 8: the
+  // puzzle's own curve, flashCurveOf).
+  if (tapRev >= FLASH_DEPTH_REV) return scoreFlashDepth(times, falseStarts, flashCount, tapRev, curve, free).score;
   const count = Math.max(1, flashCount);
   let total = 0;
   for (let i = 0; i < count; i++) total += Math.min(REACTION_MISS_MS, Math.max(1, times[i] ?? REACTION_MISS_MS));

@@ -19,7 +19,7 @@ import { inkLevelDealSeed } from "./inkLevelDeals.server";
 import { SNAKE_REV_TARGET, SNAKE_REV_12, SNAKE_REV_GRACE } from "@/lib/arcade/snake";
 import { BUB_REV_FAST, BUB_REV_STD } from "@/lib/arcade/bubble";
 import { MATCHUP_REV_D6, MATCHUP_REV_ICE2, MATCHUP_REV_SIX } from "@/lib/arcade/matchup";
-import { minesBoard, minesGeoFor, minesSolve, MINES_REV_EASY, MINES_REV_EXPERT, MINES_REV_LOGIC, MINES_REV_NORMAL, MINES_REV_STD, MINES_RUN_TICKS } from "@/lib/arcade/minesweeper";
+import { minesBoard, minesGeoFor, minesSolve, MINES_REV_EASY, MINES_REV_EXPERT_D4, MINES_REV_HARD_D4, MINES_REV_LOGIC, MINES_REV_NORMAL, MINES_REV_STD, MINES_RUN_TICKS } from "@/lib/arcade/minesweeper";
 import { logicOverhaul1Dealt } from "./logicOverhaul1";
 import { mahjongBuildClears, MAHJONG_LEVEL_RULES_V3, MAHJONG_REV_DEALT, MAHJONG_REV_LEVELS } from "@/lib/arcade/mahjong";
 import { SNIP_REV_TARGET, SNIP_REV_EXPAND } from "@/lib/arcade/snip";
@@ -330,14 +330,16 @@ export function generateMinesweeper(level?: Level): MinesweeperPuzzleData {
   // The Logic overhaul's levels (15 Nov 2026; Joe, "too-hard games: today's becomes Hard"): rev 2 is Hard; Normal deals
   // the gentler minesRev 3 (unless a check pins the world before, pinPreLogicOverhaul1); Easy and Expert their own.
   const pre = checkOverride<boolean>("__DUELZ_MINES_PRE_LOGIC__") === true;
+  // D4 (22 Nov 2026): Hard deals minesRev 6 (26 mines) and Expert minesRev 7 (10 × 16, 40 mines); stored rev 2 and
+  // rev 5 rounds keep their own boards (each revision's geometry is its own).
   const rev = pre
     ? MINES_REV_STD
     : level === "hard"
-      ? MINES_REV_LOGIC
+      ? MINES_REV_HARD_D4
       : level === "easy"
         ? MINES_REV_EASY
         : level === "expert"
-          ? MINES_REV_EXPERT
+          ? MINES_REV_EXPERT_D4
           : logicOverhaul1Dealt()
             ? MINES_REV_NORMAL
             : MINES_REV_LOGIC;

@@ -80,6 +80,11 @@ export interface PuzzleRevealProps {
   scoreParts?: ScoreParts | null | undefined;
   /** The player's stored round extra (display only; e.g. Flash's false-start cost, Bang On's distances). */
   myExtra?: Record<string, unknown> | null | undefined;
+  /**
+   * The reveal's win moment (P2, 22 Nov 2026, for A2's Pattern boards, G4): a board calls it once when its own finish
+   * animation lands, and the reveal plays the effects kit's "win" payoff on the board's card. Display only; may be absent.
+   */
+  onWin?: (() => void) | undefined;
 }
 
 /**

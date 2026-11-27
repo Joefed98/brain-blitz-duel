@@ -6,6 +6,7 @@
  *   finished   = 150 + speed (full by `fullByS` seconds used, 0 at the buzzer) + the game's bonus, at most 200
  *   unfinished = the game's credit + "how early" extras + mid-puzzle bonuses, at most 130
  */
+import { preWordStarPinned, ROUNDABOUT_STAR_FULL_BY_S } from "../wordStar";
 import { puzzleScoreList } from "../scoreList";
 
 /** Interlock (`tilegrid`, tileGridRev 3). */
@@ -117,6 +118,26 @@ export const LOOKOUT_OVERHAUL_HELP = puzzleScoreList({
   total: TOTAL,
 });
 
+/** Roundabout's help on wheelRev 4 and 5 (the standard's). */
+const ROUNDABOUT_HELP_V5 = puzzleScoreList({
+  finish: "fill every crossword slot",
+  speed: { max: STD_ROUNDABOUT.speed, fullByS: STD_ROUNDABOUT.fullByS },
+  bonuses: [{ label: "Bonus jar", how: "real words not in the crossword fill it (longer words more), finished or not", max: STD_ROUNDABOUT.jar }],
+  unfinished: "the share of slots filled, more for filling them early",
+  penalties: [`A trace that is not a word is a miss: the first ${STD_ROUNDABOUT.freeMisses} are free, then each costs ${STD_ROUNDABOUT.missCost} and spills a drop from the jar`],
+  total: TOTAL,
+});
+
+/** Roundabout wheelRev 6 (D1's refit, wordStar.ts): speed full by 55 s, the jar's points full at four fifths of it. */
+const ROUNDABOUT_HELP_STAR = puzzleScoreList({
+  finish: "fill every crossword slot",
+  speed: { max: STD_ROUNDABOUT.speed, fullByS: ROUNDABOUT_STAR_FULL_BY_S },
+  bonuses: [{ label: "Bonus jar", how: "real words not in the crossword fill it (longer words more; all of it at four fifths full), finished or not", max: STD_ROUNDABOUT.jar }],
+  unfinished: "the share of slots filled, more for filling them early",
+  penalties: [`A trace that is not a word is a miss: the first ${STD_ROUNDABOUT.freeMisses} are free, then each costs ${STD_ROUNDABOUT.missCost} and spills a drop from the jar`],
+  total: TOTAL,
+});
+
 export const WORD_STANDARD_HELP = {
   tilegrid: puzzleScoreList({
     finish: "place all 15 tiles in one connected grid, every run a real word",
@@ -140,14 +161,10 @@ export const WORD_STANDARD_HELP = {
     penalties: [`The first ${STD_LOOKOUT.freeWrong} wrong drags are free, then each costs ${STD_LOOKOUT.wrongCost}`],
     total: TOTAL,
   }),
-  letterwheel: puzzleScoreList({
-    finish: "fill every crossword slot",
-    speed: { max: STD_ROUNDABOUT.speed, fullByS: STD_ROUNDABOUT.fullByS },
-    bonuses: [{ label: "Bonus jar", how: "real words not in the crossword fill it (longer words more), finished or not", max: STD_ROUNDABOUT.jar }],
-    unfinished: "the share of slots filled, more for filling them early",
-    penalties: [`A trace that is not a word is a miss: the first ${STD_ROUNDABOUT.freeMisses} are free, then each costs ${STD_ROUNDABOUT.missCost} and spills a drop from the jar`],
-    total: TOTAL,
-  }),
+  /** wheelRev 6 (D1's refit, wordStar.ts) while it is dealt; wheelRev 4–5's text while a check pins the stamps before. */
+  get letterwheel() {
+    return preWordStarPinned() ? ROUNDABOUT_HELP_V5 : ROUNDABOUT_HELP_STAR;
+  },
   strikeout: puzzleScoreList({
     finish: "solve all five words",
     speed: { max: STD_STRIKEOUT.speed, fullByS: STD_STRIKEOUT.fullByS },

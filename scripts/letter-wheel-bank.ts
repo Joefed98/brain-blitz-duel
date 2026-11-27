@@ -41,6 +41,7 @@ import { answerWords, commonWords, isWord, wordsFrom } from "../src/lib/duel/dic
 import { isPluralForm } from "../src/lib/duel/wordsmith.server";
 import { lwGrade, lwSlotCells, LW_LEVEL_LIMITS, LW_REV1_LIMITS, LW_REV5_LIMITS, type LwLevel } from "../src/lib/duel/letterWheel";
 import type { LetterWheelSlot } from "../src/lib/duel/types";
+import { STRIKEOUT_WORDS_8_RAW } from "../src/lib/duel/strikeoutWords.server";
 
 const args = process.argv.slice(2);
 const LEGACY = args.includes("--legacy");
@@ -202,6 +203,10 @@ const everyday = new Set(commonWords());
 /** wheelRev 5: the common-answers list (upper case), every slot word on it. */
 const answers = new Set<string>();
 if (REV5) for (let n = 3; n <= (LEVEL ? 9 : 7); n++) for (const w of answerWords(n)) answers.add(w);
+// D1 (21 Nov 2026): an 8-letter wheel's seed and long slot words come from the eight-letter answers (Strikeout's list,
+// the same common-word rules; the common-answers list stops at seven letters). Levels with shorter wheels can't spell
+// them, so their banks rebuild exactly as before.
+if (LV && LV.letters >= 8) for (const w of STRIKEOUT_WORDS_8_RAW.split(/\s+/)) if (w) answers.add(w.toUpperCase());
 
 // ---- Seeds ----
 const seeds = shuffle(

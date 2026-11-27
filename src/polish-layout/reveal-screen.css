@@ -581,3 +581,59 @@
     padding: 2px;
   }
 }
+
+/* ------------------------------------------------------------------ the reveal's paint (P2, 22 Nov 2026) */
+/* Practice's score at 80 px (72 on a short phone; the plan's 72–96) and the step-up card after a star
+   (levels3-e-phone.webp). Paint only: the template's layout is unchanged. A room keeps 60 px, so a 16-player room's
+   folded reveal (the score, the views, the chart, the folded breakdown) still fits a 375 × 667 screen (room-16-check). */
+[data-answer-reveal]:has([data-practice-reveal-actions]) .reveal-big-score {
+  font-size: 80px;
+}
+@media (max-height: 720px) {
+  [data-answer-reveal]:has([data-practice-reveal-actions]) .reveal-big-score {
+    font-size: 72px;
+  }
+}
+.reveal-step-up {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-12);
+  border: 1px solid var(--jz-navy-edge);
+  border-radius: var(--jz-radius-lg);
+  background: color-mix(in srgb, var(--jz-navy) 88%, transparent);
+}
+.reveal-step-up-pictures {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--jz-space-8);
+}
+.reveal-step-up-level {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-4);
+}
+.reveal-step-up-arrow {
+  color: var(--jz-gold);
+  font: 800 22px/1 var(--jz-font);
+}
+.reveal-step-up-line {
+  margin: 0;
+  color: var(--jz-text);
+  font: var(--jz-type-label);
+  text-align: center;
+}
+.reveal-step-up-more {
+  display: flex;
+  gap: var(--jz-space-8);
+}
+
+/* The Solution / Yours switch's held row (P2, 22 Nov 2026): the switch's exact box (3 + 36 + 3 px and its 8 px margin),
+   drawn while a room's board is on its way, so nothing below it moves when the board lands. */
+.solution-switch-space {
+  flex: 0 0 auto;
+  height: 42px;
+  margin-bottom: 8px;
+}

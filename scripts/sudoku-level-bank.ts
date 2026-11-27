@@ -26,7 +26,14 @@ if (partArg) {
   const [level, k, n, cap] = partArg.slice("--part=".length).split("/") as [BankLevel, string, string, string];
   const settings = gameLevelSettings<SudokuLevel>("sudoku", level)!;
   for (let i = Number(k); i < Number(cap); i += Number(n)) {
-    const p = withSeededRandom(SUDOKU_LEVEL_SEED[level] + i, () => generateSudokuLevel(settings));
+    // A seed whose search finds no board of the level's grade is passed over (D4, 22 Nov 2026: Expert's eight or nine
+    // numbers and three advanced steps leave a few seeds without one); the bank is still the first N by index.
+    let p: SudokuPuzzleData;
+    try {
+      p = withSeededRandom(SUDOKU_LEVEL_SEED[level] + i, () => generateSudokuLevel(settings));
+    } catch {
+      continue;
+    }
     // The bank keeps the board; the level's clock and rules are added at the deal.
     console.log(JSON.stringify({ i, puzzle: { type: "sudoku", givens: p.givens, solution: p.solution } }));
   }

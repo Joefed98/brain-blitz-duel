@@ -12,6 +12,12 @@ import { buildScanGridsAt } from "@/puzzles/symbolScan";
 import { buildTallyAt } from "@/puzzles/countUp";
 import { BOMB_EASY_BANK, BOMB_EXPERT_BANK, BOMB_HARD_BANK } from "./bombLevelsBank.server";
 import { generateMazeLevel } from "./maze.server";
+import { generateMazeKeysLevel } from "./mazeKeys.server";
+import { pairSweep } from "./pairSweep";
+import { pairDepthReplay } from "./depth/matchmaker";
+import { PAIR_STD, pairStreakPoints } from "./standard/attention";
+import type { PairLevel } from "@/lib/levels/attentionLevels.data";
+import { ATTENTION_LEVEL_REV } from "./attentionLevels";
 import { parOfParMoves } from "./parMoves";
 import { PAIR_CLEAR_COLOURS, PAIR_CLEAR_SHAPES, legibleSpot, spreadTally, tallyColourClear, tallyCountedColours, preAttentionOverhaulPinned, spotColourSwaps } from "./attentionOverhaul";
 import { randomBelow, shuffled } from "./random";
@@ -22,12 +28,25 @@ type OffNormal = Exclude<Level, "normal">;
 /** Matchmaker at a level: its own count of pairs from its own share of the six shapes, a gold pair, its clock. */
 function dealPairLevel(p: PairPuzzleData, level: OffNormal): PairPuzzleData {
   const row = PAIR_LEVELS[level];
-  const shapes = shuffled([...PAIR_CLEAR_SHAPES]).slice(0, row.shapes);
-  const combos: PairCard[] = shapes.flatMap((shape) => PAIR_CLEAR_COLOURS.map((colour) => ({ shape, colour }) as PairCard));
-  const chosen = shuffled(combos).slice(0, row.pairs);
-  const cards = shuffled(chosen.flatMap((card) => [card, { ...card }]));
-  const gold = chosen[randomBelow(row.pairs)]!;
-  return { ...p, cards, gold: { ...gold }, timeLimitMs: row.timeLimitMs } as PairPuzzleData;
+  // D3 (levelRev 2's Hard and Expert): a board is kept only when the perfect-memory sweep at the human limits finishes it
+  // at 200 (pairSweep.ts): by the speed's full-by, the gold pair in its window, a full streak and no memory miss.
+  for (let attempt = 0; ; attempt++) {
+    const shapes = shuffled([...PAIR_CLEAR_SHAPES]).slice(0, row.shapes);
+    const combos: PairCard[] = shapes.flatMap((shape) => PAIR_CLEAR_COLOURS.map((colour) => ({ shape, colour }) as PairCard));
+    const chosen = shuffled(combos).slice(0, row.pairs);
+    const cards = shuffled(chosen.flatMap((card) => [card, { ...card }]));
+    const gold = chosen[randomBelow(row.pairs)]!;
+    const dealt = { ...p, cards, gold: { ...gold }, timeLimitMs: row.timeLimitMs } as PairPuzzleData;
+    if (!("memoryMisses" in row) || attempt >= 200 || pairSweepAt200(dealt, row)) return dealt;
+  }
+}
+
+/** The sweep's facts against a level's 200: finished by the full-by, gold in its window, a full streak. */
+function pairSweepAt200(p: PairPuzzleData, row: PairLevel): boolean {
+  const sweep = pairSweep(p.cards, p.gold);
+  if (sweep.doneMs > row.fullByS * 1000) return false;
+  if (sweep.goldMs === null || sweep.goldMs > (row.goldWindowMs ?? PAIR_STD.goldWindowMs)) return false;
+  return pairStreakPoints(pairDepthReplay(p, sweep.flips).bestStreak, row.streakFrom ?? PAIR_STD.streakFrom) >= PAIR_STD.streak;
 }
 
 /**
@@ -36,8 +55,14 @@ function dealPairLevel(p: PairPuzzleData, level: OffNormal): PairPuzzleData {
  */
 function dealMazeLevel(p: MazePuzzleData, level: OffNormal): MazePuzzleData {
   const row = MAZE_LEVELS[level];
-  const maze = generateMazeLevel(row);
   const { stars: _stars, ...normal } = p;
+  // D3 (levelRev 2's Hard and Expert): gold keys to fetch, the par the shortest walk through them all (mazeKeys.ts).
+  const keys = "keys" in row && row.keys ? row.keys : 0;
+  if (keys > 0 && "tourMin" in row && "tourMax" in row) {
+    const maze = generateMazeKeysLevel({ ...row, keys, tourMin: row.tourMin, tourMax: row.tourMax, keysByQuarter: "keysByQuarter" in row ? row.keysByQuarter : false });
+    return { ...normal, cells: maze.cells, start: maze.start, exit: maze.exit, solution: maze.solution!, cols: row.cols, rows: row.rows, timeLimitMs: row.timeLimitMs, keys: maze.keys, par: maze.par };
+  }
+  const maze = generateMazeLevel(row);
   const next: MazePuzzleData = { ...normal, cells: maze.cells, start: maze.start, exit: maze.exit, solution: maze.solution!, cols: row.cols, rows: row.rows, timeLimitMs: row.timeLimitMs };
   return typeof p.par === "number" ? { ...next, par: parOfParMoves(next) } : next;
 }
@@ -71,10 +96,17 @@ function dealSpotLevel(p: SpotPuzzleData, level: OffNormal): SpotPuzzleData {
     }
     throw new Error("Double Take could not build a level picture");
   };
-  const shop = picture();
-  const reef = picture();
+  let shop = picture();
+  let reef = picture();
   const scene = Math.random() < 0.5 ? 0 : 1;
-  const hidden = row.hidden ? hideBonus(scene === 0 ? shop : reef, row.cols) : null;
+  let hidden = row.hidden ? hideBonus(scene === 0 ? shop : reef, row.cols) : null;
+  // D3: a level with the hidden seventh always deals one (a picture with no shape it can hide is drawn again), so
+  // every board can reach 200.
+  for (let attempt = 0; row.hidden && !hidden && attempt < 50; attempt++) {
+    if (scene === 0) shop = picture();
+    else reef = picture();
+    hidden = hideBonus(scene === 0 ? shop : reef, row.cols);
+  }
   const pics = [shop, reef].map((pic, i) => (i === scene && hidden ? { ...pic, top: hidden.top, bottom: hidden.bottom } : pic));
   const { bonus: _bonus, ...normal } = p;
   const dealt: SpotPuzzleData = legibleSpot({
@@ -85,6 +117,8 @@ function dealSpotLevel(p: SpotPuzzleData, level: OffNormal): SpotPuzzleData {
     differences: [...shop.differences.map((d) => ({ ...d, scene: 0 })), ...reef.differences.map((d) => ({ ...d, scene: 1 }))],
     ...(hidden ? { bonus: { ...hidden.bonus, scene } } : {}),
     timeLimitMs: row.timeLimitMs,
+    // D3 (levelRev 2's Expert): the lower panels drawn mirrored; the cells, differences and answers are unchanged.
+    ...("mirror" in row && row.mirror ? { mirror: 1 as const } : {}),
   });
   if (!row.subtleColours) return dealt;
   return { ...dealt, bottom: subtleColours(dealt.top, dealt.bottom), reef: { top: dealt.reef!.top, bottom: subtleColours(dealt.reef!.top, dealt.reef!.bottom) } };
@@ -126,6 +160,12 @@ function dealBombLevel(p: BombPuzzleData, level: OffNormal): BombPuzzleData {
 /** A puzzle dealt at Easy, Hard or Expert on its level's levers; any other game unchanged. */
 export function dealAttentionLevel(puzzle: PuzzleData, level: Level): PuzzleData {
   if (level === "normal" || preAttentionOverhaulPinned()) return puzzle;
+  const dealt = dealOnLevers(puzzle, level);
+  // D3 (22 Nov 2026): every level deal says which table it was dealt on (attentionLevels.ts `levelRev`).
+  return dealt === puzzle ? puzzle : ({ ...dealt, levelRev: ATTENTION_LEVEL_REV } as unknown as PuzzleData);
+}
+
+function dealOnLevers(puzzle: PuzzleData, level: OffNormal): PuzzleData {
   if (puzzle.type === "pairmatch") return dealPairLevel(puzzle, level);
   if (puzzle.type === "maze") return dealMazeLevel(puzzle, level);
   if (puzzle.type === "spotdiff") return dealSpotLevel(puzzle, level);

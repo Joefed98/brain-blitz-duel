@@ -86,9 +86,9 @@ for (const level of LEVELS) {
 const E = settingsOf("easy");
 const H = settingsOf("hard");
 const X = settingsOf("expert");
-check(E.minMirrors === 4 && E.maxMirrors === 5 && E.spare === 3 && E.minBombs === 1 && E.maxBombs === 2 && E.shots === 5 && E.timeLimitMs === 60_000, "Easy: 4–5 mirrors, 3 spare, 1–2 bombs, 5 shots, 60 s");
-check(H.minMirrors === 8 && H.maxMirrors === 9 && H.spare === 1 && H.minBombs === 4 && H.maxBombs === 5 && H.shots === 3 && H.timeLimitMs === 75_000, "Hard: 8–9 mirrors, 1 spare, 4–5 bombs, 3 shots, 75 s");
-check(X.minMirrors === 9 && X.maxMirrors === 10 && X.spare === 1 && X.minBombs === 5 && X.maxBombs === 6 && X.shots === 2 && X.timeLimitMs === 90_000, "Expert: 9–10 mirrors, 1 spare, 5–6 bombs, 2 shots, 90 s");
+check(E.minMirrors === 4 && E.maxMirrors === 5 && E.spare === 3 && E.minBombs === 1 && E.maxBombs === 1 && E.shots === 5 && E.timeLimitMs === 90_000, "Easy: 4–5 mirrors, 3 spare, 1 bomb, 5 shots, 90 s"); // Changed with Joe's approval, 22 Nov 2026
+check(H.minMirrors === 9 && H.maxMirrors === 10 && H.spare === 1 && H.minBombs === 6 && H.maxBombs === 7 && H.shots === 3 && H.timeLimitMs === 60_000, "Hard: 9–10 mirrors, 1 spare, 6–7 bombs, 3 shots, 60 s"); // Changed with Joe's approval, 22 Nov 2026
+check(X.minMirrors === 10 && X.maxMirrors === 12 && X.spare === 0 && X.minBombs === 9 && X.maxBombs === 10 && X.shots === 2 && X.timeLimitMs === 75_000, "Expert: 10–12 mirrors, no spare, 9–10 bombs, 2 shots, 75 s"); // Changed with Joe's approval, 22 Nov 2026
 
 /* ------------------------------------------------------------------ 2 and 3. deals and what the generator proves */
 console.log("2–3. deals and proofs");
@@ -132,7 +132,7 @@ for (const level of LEVELS) {
   check(bad === 0, `${level}: ${DEAL_SEEDS} deals carry the level's settings and its proofs${bad ? ` (${bad} not, first ${firstBad})` : ""}`);
 }
 const live = withSeededRandom(3, () => generatePuzzle("laser", { level: "expert" })) as Laser;
-check(puzzleLevel(live) === "expert" && live.shots === 2 && live.timeLimitMs === 90_000, "a level dealt without a room seed (practice) carries its level too");
+check(puzzleLevel(live) === "expert" && live.shots === 2 && live.timeLimitMs === 75_000, "a level dealt without a room seed (practice) carries its level too"); // Changed with Joe's approval, 22 Nov 2026
 
 /* ------------------------------------------------------------------ 3b. the banks */
 console.log("3b. Hard's and Expert's banks");
@@ -264,7 +264,7 @@ for (const level of LEVELS) {
   check((g.extra as { fires?: number })["fires"] === s.shots && !g.isCorrect, `${level}: the stored grade counts the level's shots`);
 }
 const x = deal("expert", 12);
-check(solveAt(x, 80) > 150, `Expert: a solve at 80 s still has speed points on its 90 s clock (${solveAt(x, 80)})`);
+check(solveAt(x, 65) > 150, `Expert: a solve at 65 s still has speed points on its 75 s clock (${solveAt(x, 65)})`); // Changed with Joe's approval, 22 Nov 2026
 // A solve on the level's last shot still solves; Expert's third FIRE does not.
 {
   let log: LoggedAction[] = [];

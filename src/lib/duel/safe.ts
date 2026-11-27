@@ -53,7 +53,7 @@ export interface SafeClue {
 }
 
 /** ①②③④ — how the clue card names each dial. */
-export const DIAL_MARKS = ["①", "②", "③", "④", "⑤"];
+export const DIAL_MARKS = ["①", "②", "③", "④", "⑤", "⑥"];
 
 /** Up to 20 (Expert's highest dial); on 0–9 dials these are today's sets. */
 const PRIMES = new Set([2, 3, 5, 7, 11, 13, 17, 19]);

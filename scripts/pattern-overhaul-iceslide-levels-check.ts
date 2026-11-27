@@ -77,9 +77,9 @@ const check = (ok: boolean, message: string) => {
 const LEVELS = ["easy", "hard", "expert"] as const;
 type L = (typeof LEVELS)[number];
 const WANT: Record<L, Partial<IceSlideLevelSettings>> = {
-  easy: { cols: 8, rows: 8, minMoves: [8, 12], holes: [0, 0], thin: [0, 0], timeLimitMs: 90_000 },
-  hard: { cols: 12, rows: 12, minMoves: [24, 30], holes: [5, 8], timeLimitMs: 100_000 },
-  expert: { cols: 11, rows: 13, minMoves: [28, 36], timeLimitMs: 120_000 },
+  easy: { cols: 8, rows: 8, minMoves: [6, 10], holes: [0, 0], thin: [0, 0], timeLimitMs: 90_000 }, // Changed with Joe's approval, 22 Nov 2026
+  hard: { cols: 12, rows: 12, minMoves: [24, 30], holes: [6, 8], timeLimitMs: 100_000 }, // Changed with Joe's approval, 22 Nov 2026
+  expert: { cols: 11, rows: 13, minMoves: [34, 42], timeLimitMs: 100_000 }, // Changed with Joe's approval, 22 Nov 2026
 };
 const deal = (seed: number, level?: string) =>
   withSeededRandom(seed, () => generatePuzzle("iceslide", { bankSeed: seed, ...(level ? { level: level as never } : {}) })) as SlidePuzzleData;

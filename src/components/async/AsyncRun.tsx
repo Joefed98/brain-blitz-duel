@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
-import { levelOfPuzzle } from "@/lib/levels/levels";
+import { levelOfPuzzle, puzzleLevel } from "@/lib/levels/levels";
 import { AnswerReveal } from "@/components/duel/AnswerReveal";
 import { Dots, WaitingLine } from "@/components/duel/Dots";
 import { GameLayout, PhoneShell, isArcadeScreenType } from "@/components/duel/PhoneShell";
@@ -574,6 +574,7 @@ export function AsyncRun({
         ping={pingStrip}
         // A friend challenge counts its rounds like a room; the daily says so.
         label={rivals ? `Round ${step.round} of ${roundCount}` : "Daily"}
+        level={puzzleLevel(shownPuzzle)}
         title={puzzleName(shownPuzzle.type)}
         onHelp={() => setHelpOpen(true)}
         score={frameScore}

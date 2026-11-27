@@ -10,11 +10,11 @@ import {
 } from "@/components/puzzles/GridDrag";
 import {
   wordHuntCols,
-  WORDHUNT_MIN_LENGTH,
+  wordHuntMinLength,
   WORDHUNT_TIME_MS,
   type WordHuntPuzzleData,
 } from "@/lib/duel/types";
-import { scoreWordHuntDepth, wordHuntDepth, wordHuntValue } from "@/lib/duel/wordHunt";
+import { scoreWordHuntDepth, wordHuntDepth, wordHuntFullAtOf, wordHuntValue } from "@/lib/duel/wordHunt";
 import type { CheckWord } from "@/puzzles/types";
 import { puzzleReject } from "@/lib/fx/puzzleReject";
 import { effectCue, flyFrom, stepCue, wordFx } from "./wordFx";
@@ -26,7 +26,7 @@ import { scoreWordHunt, WORDHUNT_MAX_MISSES, WORDHUNT_MISS_MARK, WORDHUNT_REV_MI
 import { rightMoveFlash } from "@/lib/fx/gameToolkit";
 import "@/polish-word/word-look.css";
 import "@/polish-word/forage.css";
-import { WORDHUNT_FREE_MISSES, WORDHUNT_FREE_MISSES_PER_WORD } from "@/lib/duel/scoring";
+import { wordHuntFreeMissesOf } from "@/lib/duel/scoring";
 import { goldPulse, playFinish, rippleDelay, useWordFinish, wordCue, WORD_FINISH_SCORE, type FinishStep } from "./wordFinish";
 
 interface Found {
@@ -213,10 +213,10 @@ export function WordHuntPuzzle({
 
   const points = found.reduce((sum, entry) => sum + entry.points, 0);
   /** What each found word shows on this board: its points, multiplied on wordHuntRev 3. */
-  const valueOf = (entry: Found) => (depth ? wordHuntValue(entry.word, entry.path, golden).value : entry.points);
+  const valueOf = (entry: Found) => (depth ? wordHuntValue(entry.word, entry.path, golden, wordHuntMinLength(puzzle)).value : entry.points);
   const shownPoints = depth ? found.reduce((sum, entry) => sum + valueOf(entry), 0) : points;
   const depthScore = depth
-    ? scoreWordHuntDepth(points, found.reduce((sum, entry) => sum + (valueOf(entry) - entry.points), 0), 100, puzzle.wordHuntRev ?? 0).score
+    ? scoreWordHuntDepth(points, found.reduce((sum, entry) => sum + (valueOf(entry) - entry.points), 0), 100, puzzle.wordHuntRev ?? 0, wordHuntFullAtOf(puzzle)).score
     : 0;
 
   const lockIn = useCallback(() => {
@@ -270,11 +270,11 @@ export function WordHuntPuzzle({
     setPointer(null);
     if (cells.length < 2) return;
     const word = wordOf(cells);
-    if (word.length < WORDHUNT_MIN_LENGTH) {
+    if (word.length < wordHuntMinLength(puzzle)) {
       playWrong();
       setFlash("bad");
       puzzleReject(gridRef.current, false);
-      setMessage(`${WORDHUNT_MIN_LENGTH} letters or more`);
+      setMessage(`${wordHuntMinLength(puzzle)} letters or more`);
       return;
     }
     if (!checkWord) return;
@@ -291,7 +291,7 @@ export function WordHuntPuzzle({
       setFlash("good");
       setMessage(null);
       if (depth) {
-        const v = wordHuntValue(verdict.word, cells, golden);
+        const v = wordHuntValue(verdict.word, cells, golden, wordHuntMinLength(puzzle));
         setAcceptedWord(`${verdict.word}${v.extra > 0 ? ` ${multLabel(v.base, v.value)}` : ""}${v.gold ? " ★" : ""} · ${v.value}`);
       } else setAcceptedWord(verdict.word);
       cells.forEach((cell) => rightMoveFlash(gridRef.current?.querySelector(`[data-cell="${cell}"]`)));
@@ -435,14 +435,14 @@ export function WordHuntPuzzle({
     };
   }, [finish, tapCell, N]);
 
-  const freeMisses = WORDHUNT_FREE_MISSES + WORDHUNT_FREE_MISSES_PER_WORD * found.length;
+  const freeMisses = wordHuntFreeMissesOf(puzzle).base + wordHuntFreeMissesOf(puzzle).perWord * found.length;
   // Batch W live summary (display only): what the status line shows when no message is up.
   const best = found.reduce<Found | null>((top, entry) => (!top || valueOf(entry) > valueOf(top) || (valueOf(entry) === valueOf(top) && entry.word.length > top.word.length) ? entry : top), null);
   // Puzzle polish (3 Nov 2026): separate pills, never one line with dots in it.
   const summary: Array<HudPillItem | null> = path.length > 0
     ? [
         { id: "letters", label: path.length === 1 ? "Letter" : "Letters", value: path.length },
-        path.length < WORDHUNT_MIN_LENGTH ? { id: "needed", label: "Need", value: WORDHUNT_MIN_LENGTH, tone: "gold" } : null,
+        path.length < wordHuntMinLength(puzzle) ? { id: "needed", label: "Need", value: wordHuntMinLength(puzzle), tone: "gold" } : null,
       ]
     : best
       ? [
@@ -451,7 +451,7 @@ export function WordHuntPuzzle({
         ]
       : [
           { id: "hint", label: "Drag through touching letters" },
-          { id: "min", label: "Min", value: `${WORDHUNT_MIN_LENGTH}+` },
+          { id: "min", label: "Min", value: `${wordHuntMinLength(puzzle)}+` },
         ];
 
   return (

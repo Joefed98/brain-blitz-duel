@@ -17,6 +17,10 @@ import {
   replaySwapword,
   swapwordBudget,
   swapwordMarks,
+  swGeometry,
+  swLatticeOf,
+  SW_NORMAL_LATTICE,
+  type SwLattice,
   type SwSwap,
   type SwView,
 } from "./swapword";
@@ -101,11 +105,13 @@ export function witnessSwaps(start: string, solution: string): SwSwap[] {
   const board = [...start];
   const out: SwSwap[] = [];
   let need = minSwaps(start, solution);
+  // Every tile of the board (today's 21, or a lattice's own).
+  const tiles = Math.max(SW_TILES, start.length);
   while (need > 0) {
     let found = false;
-    for (let i = 0; i < SW_TILES && !found; i++) {
+    for (let i = 0; i < tiles && !found; i++) {
       if (board[i] === solution[i]) continue;
-      for (let j = 0; j < SW_TILES && !found; j++) {
+      for (let j = 0; j < tiles && !found; j++) {
         if (i === j || board[j] !== solution[i]) continue;
         [board[i], board[j]] = [board[j]!, board[i]!];
         if (minSwaps(board.join(""), solution) === need - 1) {
@@ -145,9 +151,79 @@ export function fillWords(rng: () => number): string | null {
   return place(0) ? letters.join("") : null;
 }
 
-/** The six words of a solution, in slot order. */
-export function swapwordWords(solution: string): string[] {
-  return SW_SLOT_TILES.map((tiles) => tiles.map((t) => solution[t]).join(""));
+/** The six words of a solution, in slot order (a lattice's own words on rev 8). */
+export function swapwordWords(solution: string, lattice: SwLattice = SW_NORMAL_LATTICE): string[] {
+  return swGeometry(lattice).slotTiles.map((tiles) => tiles.map((t) => solution[t]).join(""));
+}
+
+/** Answer words of one length indexed by (position, letter): the lattice fill and proofs fetch candidates from it. */
+const positional = new Map<number, Map<string, readonly string[]>>();
+function wordsWith(length: number, pos: number, letter: string): readonly string[] {
+  let byLen = positional.get(length);
+  if (!byLen) {
+    const m = new Map<string, string[]>();
+    for (const w of answerWords(length)) for (let i = 0; i < length; i++) {
+      const k = `${i}${w[i]}`;
+      (m.get(k) ?? m.set(k, []).get(k)!).push(w);
+    }
+    byLen = m;
+    positional.set(length, byLen);
+  }
+  return byLen.get(`${pos}${letter}`) ?? [];
+}
+
+/** The answer words that fit a slot's letters known so far (`pattern`: a letter or undefined per square). */
+export function swapwordSlotCandidates(pattern: readonly (string | undefined)[]): readonly string[] {
+  let best: readonly string[] | null = null;
+  for (let i = 0; i < pattern.length; i++) {
+    const ch = pattern[i];
+    if (ch === undefined) continue;
+    const list = wordsWith(pattern.length, i, ch);
+    if (!best || list.length < best.length) best = list;
+  }
+  const pool = best ?? answerWords(pattern.length);
+  return pool.filter((w) => pattern.every((ch, i) => ch === undefined || w[i] === ch));
+}
+
+/**
+ * Fills a lattice's slots with different common answer words (swapwordRev 8, D1 21 Nov 2026): the slot with the fewest
+ * fitting words first (the crossings decide), each slot's fitting words in a seeded order, at most `nodes` placements
+ * tried. Null when no fill was found in that budget.
+ */
+export function fillLatticeWords(rng: () => number, lattice: SwLattice, nodes = 4000): string | null {
+  const g = swGeometry(lattice);
+  const letters: (string | undefined)[] = Array.from({ length: g.tiles }, () => undefined);
+  const used = new Set<string>();
+  const placed = new Set<number>();
+  let budget = nodes;
+  const place = (): boolean => {
+    if (placed.size === g.slotTiles.length) return true;
+    let pick = -1;
+    let cands: readonly string[] = [];
+    for (let s = 0; s < g.slotTiles.length; s++) {
+      if (placed.has(s)) continue;
+      const c = swapwordSlotCandidates(g.slotTiles[s]!.map((t) => letters[t])).filter((w) => !used.has(w));
+      if (pick < 0 || c.length < cands.length) {
+        pick = s;
+        cands = c;
+      }
+      if (c.length === 0) return false;
+    }
+    const tiles = g.slotTiles[pick]!;
+    for (const w of rngShuffle(rng, [...cands]).slice(0, 12)) {
+      if (--budget < 0) return false;
+      const before = tiles.map((t) => letters[t]);
+      tiles.forEach((t, i) => (letters[t] = w[i]));
+      used.add(w);
+      placed.add(pick);
+      if (place()) return true;
+      placed.delete(pick);
+      used.delete(w);
+      tiles.forEach((t, i) => (letters[t] = before[i]));
+    }
+    return false;
+  };
+  return place() ? letters.join("") : null;
 }
 
 /** Null when a puzzle meets every generator rule, else the rule broken. */
@@ -224,8 +300,10 @@ export function generateSwapword(seed: number): SwapwordPuzzleData {
 
 /** Live check: replays every swap and returns the marks for the board it leads to. */
 export function checkSwapwordMoves(puzzle: SwapwordPuzzleData, moves: string): SwView {
-  const swaps = decodeSwapword(moves);
+  // swapwordRev 8 (D1, 21 Nov 2026): a lattice board's own tiles and words (absent: today's figure eight).
+  const lattice = swLatticeOf(puzzle);
+  const swaps = decodeSwapword(moves, swGeometry(lattice).tiles);
   const solution = puzzle.solution ?? "";
   const run = replaySwapword(puzzle.start, swaps, puzzle.maxSwaps, solution);
-  return { marks: swapwordMarks(run.board, solution), swaps: run.swaps, solved: run.solved, over: run.over, count: swaps.length };
+  return { marks: swapwordMarks(run.board, solution, lattice), swaps: run.swaps, solved: run.solved, over: run.over, count: swaps.length };
 }

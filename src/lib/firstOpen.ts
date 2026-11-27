@@ -84,3 +84,82 @@ export function decideFirstOpen(location: { pathname: string; search: string }):
   }
   return true;
 }
+
+/* ------------------------------------------------------------------ the first game (P2, 22 Nov 2026) */
+/*
+ * The polish plan's section 3.4 (Joe's decision 4, 20 Nov 2026): a new phone opens straight into its first game,
+ * Ascend on Easy, with one coach line over the board; then a win screen, then Home. Behind FIRST_GAME_ON_OPEN
+ * (src/config/betaConfig.ts), off until Joe has played it; it takes the place of the three-screen onboarding above
+ * (FIRST_OPEN_ONBOARDING, off) once it is on. Rules:
+ *
+ * - only on a device with no play history (no first-time intro flag, onboarding.ts, and no practice played) that opens
+ *   the app online on a tab page with no link: never a room, Daily, challenge, `?game=`, `?page=` or `?ref=` link
+ *   (those go where they point, and that device has had its first open);
+ * - never under automation (`navigator.webdriver`), unless a check's page sets `window.__DUELZ_FIRST_GAME__ = true`;
+ * - no terms, name or account on this path (practice needs none);
+ * - decided once, remembered on the device (`duelz-first-game:v1`).
+ */
+import { FIRST_GAME_ON_OPEN } from "@/config/betaConfig";
+import { recentPracticeTypes } from "@/lib/duel/practiceRecent";
+
+export const FIRST_GAME_KEY = "duelz-first-game:v1";
+/** The first game and its level (Joe's pick of three, 20 Nov 2026). */
+export const FIRST_GAME = { type: "numhunt", level: "easy" } as const;
+/** The coach line drawn over the board for the first game. */
+export const FIRST_GAME_COACH = "Tap the numbers from lowest to highest, as fast as you can.";
+
+let firstGameInMemory = false;
+
+/** Is the first game switched on (the config, or a check's own page)? */
+export function firstGameOn(): boolean {
+  const override = checkOverride("__DUELZ_FIRST_GAME__");
+  if (typeof override === "boolean") return override;
+  return FIRST_GAME_ON_OPEN;
+}
+
+function readKey(storage: () => Storage): boolean {
+  try {
+    return storage().getItem(FIRST_GAME_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Has this device had its first open under the first-game rule? */
+export function firstGameSeen(): boolean {
+  if (typeof window === "undefined") return true;
+  return firstGameInMemory || readKey(() => window.localStorage) || readKey(() => window.sessionStorage);
+}
+
+/** Never again on this device (or this session, if storage fails). */
+export function markFirstGameSeen(): void {
+  firstGameInMemory = true;
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(FIRST_GAME_KEY, "1");
+  } catch {
+    try {
+      window.sessionStorage.setItem(FIRST_GAME_KEY, "1");
+    } catch {
+      /* memory only */
+    }
+  }
+}
+
+/**
+ * Decides, once, on the app's first render in the browser, whether this open goes straight into the first game. Off:
+ * false, nothing read or written. A first open that can't take it (a link, offline, history) is marked seen.
+ */
+export function decideFirstGame(location: { pathname: string; search: string }): boolean {
+  if (typeof window === "undefined" || !firstGameOn()) return false;
+  if (firstGameSeen()) return false;
+  const override = checkOverride("__DUELZ_FIRST_GAME__");
+  if (override !== true && typeof navigator !== "undefined" && navigator.webdriver) return false;
+  const path = location.pathname.replace(/\/+$/, "") || "/";
+  const params = new URLSearchParams(location.search);
+  const linked = ["ref", "game", "page", "code", "room", "kind"].some((k) => params.has(k));
+  const online = typeof navigator === "undefined" || navigator.onLine !== false;
+  const history = onboardingSeen() || recentPracticeTypes().length > 0;
+  markFirstGameSeen();
+  return TAB_PATHS.has(path) && !linked && online && !history;
+}
