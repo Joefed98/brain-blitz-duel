@@ -74,3 +74,11 @@ export const ROOM_SETTINGS_PLUS_ONLY = false;
  * nothing is stored. true: a phone's first open on a tab page shows it once.
  */
 export const FIRST_OPEN_ONBOARDING = false;
+
+/**
+ * The first game on a new phone (P2, 22 Nov 2026; the polish plan's section 3.4, Joe's decision 4): a device with no
+ * play history that opens the app online, on no link, goes from the splash straight to Ascend on Easy with one coach
+ * line over the board, then a win screen, then Home (src/lib/firstOpen.ts decideFirstGame). It takes the place of the
+ * three screens above. false until Joe has played it: nothing is read, stored or shown.
+ */
+export const FIRST_GAME_ON_OPEN = false;

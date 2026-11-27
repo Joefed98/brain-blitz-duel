@@ -3,7 +3,6 @@ import { pick, randInt, shuffled } from "./random";
 import {
   fitsTray,
   placedCount,
-  TG_CELLS,
   TG_SIZE,
   TG_TILES,
   tileGridConnected,
@@ -33,8 +32,9 @@ export function tileGridValid(cells: string[]): boolean {
 
 export type Placement = { word: string; row: number; col: number; horizontal: boolean };
 
-export function layout(parts: Placement[]): string[] | null {
-  const cells = Array.from({ length: TG_CELLS }, () => "");
+export function layout(parts: Placement[], size: number = TG_SIZE): string[] | null {
+  const TG_SIZE = size;
+  const cells = Array.from({ length: size * size }, () => "");
   let minR = 99, minC = 99, maxR = -99, maxC = -99;
   for (const p of parts) {
     for (let i = 0; i < p.word.length; i++) {

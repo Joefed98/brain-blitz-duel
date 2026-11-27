@@ -33,8 +33,8 @@
 import { equationVerdict, usesOperatorGaps } from "./operatorGaps";
 import { pairCardsOf, pairsOf } from "./attentionLevels";
 import { judgeTileGrid } from "./tileGrid.server";
-import { decodeTileGrid, fitsTray as tileGridFitsTray, tileGridRuns } from "./tileGrid";
-import { decodeSlideTokens, WS_MARKED_ROWS } from "./wordSlide";
+import { decodeTileGrid, fitsTray as tileGridFitsTray, tileGridRuns, tileGridSize } from "./tileGrid";
+import { decodeSlideTokens, wordSlideSize, wsRows, WS_MARKED_ROWS } from "./wordSlide";
 import { checkWordSlideRow, replayWordSlideFor } from "./wordSlide.server";
 import { markedRowWord } from "./wordSlide";
 import { wordSlideMadeRows } from "./progressFigures";
@@ -96,9 +96,10 @@ export function rev3Progress(input: ProgressInput): number | null {
   const { puzzle, answer } = input;
   switch (puzzle.type) {
     case "wordslide": {
-      const replay = replayWordSlideFor(puzzle, decodeSlideTokens(answer));
-      const validRows = WS_MARKED_ROWS.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r)).valid);
-      const made = wordSlideMadeRows(puzzle.grid, replay.grid, validRows);
+      const size = wordSlideSize(puzzle);
+      const replay = replayWordSlideFor(puzzle, decodeSlideTokens(answer, size));
+      const validRows = wsRows(size).filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r, size), size).valid);
+      const made = wordSlideMadeRows(puzzle.grid, replay.grid, validRows, size);
       const top = SLIDER_ROW_POINTS.length - 1;
       return (SLIDER_ROW_POINTS[Math.max(0, Math.min(top, made))] ?? 0) / SLIDER_ROW_POINTS[top]!;
     }
@@ -116,7 +117,7 @@ export function rev3Progress(input: ProgressInput): number | null {
       return Math.max(inPrefix, right - (placed - right)) / toPlace;
     }
     case "tilegrid": {
-      const cells = decodeTileGrid(answer);
+      const cells = decodeTileGrid(answer, tileGridSize(puzzle));
       if (!puzzle.tray.length || judgeTileGrid(cells, puzzle.tray).placed === 0) return 0;
       if (!tileGridFitsTray(cells, puzzle.tray)) return 0;
       // Tiles inside a real word. A run still being extended into a longer word (TANGE on the way to
@@ -900,10 +901,12 @@ const TOWER_TABLES = new Map<string, Uint8Array>();
  * cache keeps at most TOWER_TABLE_CAP tables (the legal boards need 7: 3 + 4 targets at 9 discs).
  */
 export const TOWER_PROGRESS_MAX_DISCS = 10;
+/** Three posts take up to twelve rings (D4, 22 Nov 2026: Hanoi's Expert; 3^12 is a 531,441-byte table). */
+export const TOWER_PROGRESS_MAX_DISCS_THREE = 12;
 export const TOWER_TABLE_CAP = 8;
 export function towerBoardLegal(pegs: number, target: number, discs: number): boolean {
   return (pegs === 3 || pegs === 4) && Number.isInteger(target) && target >= 0 && target < pegs &&
-    Number.isInteger(discs) && discs >= 1 && discs <= TOWER_PROGRESS_MAX_DISCS;
+    Number.isInteger(discs) && discs >= 1 && discs <= (pegs === 3 ? TOWER_PROGRESS_MAX_DISCS_THREE : TOWER_PROGRESS_MAX_DISCS);
 }
 /** How many tables each cache holds (security-fixes-check). */
 export function progressCacheSizes(): { rings: number; unblock: number; push: number; tower: number } {

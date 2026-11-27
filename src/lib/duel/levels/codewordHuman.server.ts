@@ -24,15 +24,26 @@ export interface HumanSolve {
   steps: number;
   /** The letter it decoded on each number (index n − 1), "" where it found none. */
   letters: string[];
+  /** The numbers it decoded, in the order it decoded them (D1, 21 Nov 2026: the timed line enters them in this order). */
+  order: number[];
 }
 
-export function solveCodewordLikeAHuman(cells: readonly number[], numbers: number, givens: readonly { n: number; letter: string }[]): HumanSolve {
+export function solveCodewordLikeAHuman(
+  cells: readonly number[],
+  numbers: number,
+  givens: readonly { n: number; letter: string }[],
+  cols?: number,
+): HumanSolve {
   const letterOf = new Map<number, string>(givens.map((g) => [g.n, g.letter]));
-  const runs = codewordRuns(cells, CW_SIZE).map((r) => r.cells.map((c) => cells[c]!));
+  // D1 (21 Nov 2026): any grid; `cols` a level's wider grid's width (Hard 8 × 7, Expert 9 × 7), else square (today's 7 × 7).
+  const side = Math.round(Math.sqrt(cells.length)) || CW_SIZE;
+  const width = typeof cols === "number" && cols > 0 && cells.length % cols === 0 ? cols : side;
+  const runs = codewordRuns(cells, width, cells.length / width).map((r) => r.cells.map((c) => cells[c]!));
+  const order: number[] = [];
   let steps = 0;
   for (;;) {
     const letters = () => Array.from({ length: numbers }, (_, i) => letterOf.get(i + 1) ?? "");
-    if (letterOf.size >= numbers) return { solved: true, left: 0, steps, letters: letters() };
+    if (letterOf.size >= numbers) return { solved: true, left: 0, steps, letters: letters(), order };
     steps++;
     const used = new Set(letterOf.values());
     let progressed = false;
@@ -46,6 +57,7 @@ export function solveCodewordLikeAHuman(cells: readonly number[], numbers: numbe
           if (!letterOf.has(n)) {
             letterOf.set(n, w[i]!);
             used.add(w[i]!);
+            order.push(n);
             progressed = true;
           }
         });
@@ -60,12 +72,13 @@ export function solveCodewordLikeAHuman(cells: readonly number[], numbers: numbe
           if (!used.has(letter)) {
             letterOf.set(n, letter);
             used.add(letter);
+            order.push(n);
             progressed = true;
           }
         }
       });
     }
-    if (!progressed) return { solved: false, left: numbers - letterOf.size, steps, letters: letters() };
+    if (!progressed) return { solved: false, left: numbers - letterOf.size, steps, letters: letters(), order };
   }
 }
 

@@ -17,7 +17,7 @@
  *
  *   bun scripts/minefield-logic-check.ts [--full] [--record]
  */
-import { MINES_REV_NORMAL } from "../src/lib/arcade/minesweeper";
+import { MINES_REV_HARD_D4, MINES_REV_NORMAL } from "../src/lib/arcade/minesweeper"; // Changed with Joe's approval, 22 Nov 2026
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 
@@ -89,13 +89,15 @@ function ok(cond: unknown, label: string): void {
 {
   // Changed with Joe's approval, 15 Nov 2026 (too-hard games: today's becomes Hard): minesRev 2 is the Hard level's
   // deal; Normal deals the gentler minesRev 3 (logic-1-levels-check proves the levels).
+  // Changed with Joe's approval, 22 Nov 2026: since D4 the Hard level deals minesRev 6 (26 mines); minesRev 2's boards
+  // and stored runs still play and replay as before (sections 3 onwards).
   const dealt = new Set<number>();
   for (let i = 0; i < 40; i++) dealt.add(generateMinesweeper("hard").minesRev ?? 0);
-  ok(dealt.size === 1 && dealt.has(MINES_REV_LOGIC), `the Hard level deals minesRev ${MINES_REV_LOGIC} (${[...dealt].join(", ")})`);
+  ok(dealt.size === 1 && dealt.has(MINES_REV_HARD_D4), `the Hard level deals minesRev ${MINES_REV_HARD_D4} (${[...dealt].join(", ")})`); // Changed with Joe's approval, 22 Nov 2026
   const before = pinMinesPreLogic(true);
   ok(generateMinesweeper().minesRev === MINES_REV_STD, "minesPreLogic deals minesRev 1");
   pinMinesPreLogic(before);
-  ok(generateMinesweeper("hard").minesRev === MINES_REV_LOGIC, "unpinned, the Hard deal is minesRev 2 again");
+  ok(generateMinesweeper("hard").minesRev === MINES_REV_HARD_D4, "unpinned, the Hard deal is minesRev 6 again"); // Changed with Joe's approval, 22 Nov 2026
   // The rev-1 deal is check-only: the generator reads it only through checkOverride, which a production build turns
   // off before reading any stand-in (Vite's literal replacement, done here as security-hardening-check does).
   const gen = readFileSync("src/lib/duel/arcade.server.ts", "utf8");
@@ -185,7 +187,8 @@ function ok(cond: unknown, label: string): void {
   const ten = PUZZLE_CATALOGUE.tendrop;
   ok(ten.category === "speed" && ten.arcadeRun === true && typesInCategory("speed").includes("tendrop") && !typesInCategory("number").includes("tendrop"), "Tenfall is a Speed game, out of Number");
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul): Tenfall deals tenRev 6.
-  ok(PRACTICE_STAMPS.tendrop === "puzzleScoreRev=3 speedPar=1 tenRev=6", `Tenfall's stamps are unchanged (${PRACTICE_STAMPS.tendrop})`);
+  // Changed with Joe's approval, 22 Nov 2026 (D3): Tenfall deals tenRev 7.
+  ok(PRACTICE_STAMPS.tendrop === "puzzleScoreRev=3 speedPar=1 tenRev=7", `Tenfall's stamps are unchanged (${PRACTICE_STAMPS.tendrop})`);
 }
 
 console.log(`minefield-logic-check: ${passes} passed, ${failures.length} failed`);

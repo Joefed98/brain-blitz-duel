@@ -149,7 +149,7 @@ import {
   ALLEYROLL_TIME_MS,
 } from "./types";
 
-import { TG_TIME_MS, tileGridResultLine } from "./tileGrid";
+import { TG_TIME_MS, tileGridResultLine, tileGridTiles } from "./tileGrid";
 import { WS_TIME_MS } from "./wordSlide";
 import { BAL_TIME_MS, balanceScaleCount } from "./balance";
 
@@ -571,14 +571,14 @@ const balanceSummary: SummaryBuilder = (result, puzzle) => {
   };
 };
 
-const tileGridSummary: SummaryBuilder = (result) => {
+const tileGridSummary: SummaryBuilder = (result, puzzle) => {
   const placed = Number(result.extra?.["placed"] ?? result.correct_count ?? 0);
   const valid = Boolean(result.extra?.["valid"] ?? result.is_correct);
   const wordTiles = result.extra?.["wordTiles"];
   const countedTiles = result.extra?.["countedTiles"];
   // A finish is all fifteen in a valid grid; a shorter grid says what counted (display only).
   return {
-    summary: tileGridResultLine({ placed, valid, wordTiles: typeof wordTiles === "number" ? wordTiles : null, countedTiles: typeof countedTiles === "number" ? countedTiles : null }).text,
+    summary: tileGridResultLine({ placed, valid, wordTiles: typeof wordTiles === "number" ? wordTiles : null, countedTiles: typeof countedTiles === "number" ? countedTiles : null }, tileGridTiles(puzzle as { tiles?: number })).text,
     detail: [],
   };
 };

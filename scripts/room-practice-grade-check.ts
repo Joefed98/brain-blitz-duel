@@ -259,7 +259,7 @@ src(/const \{ gradeRoomAnswer \} = await import\("\.\/roomGrade\.server"\);/.tes
   // Async rooms (21 Oct 2026, the daily challenge): asyncRoom.server.ts grades a new answer once, its
   // store guarded on the round not yet answered (daily-check proves the first stored answer stands).
   src(
-    graders.sort().join(",") === "src/lib/duel/asyncRoom.server.ts,src/lib/duel/duel.functions.ts,src/lib/duel/practice.functions.ts" &&
+    graders.sort().join(",") === "src/lib/duel/asyncRoom.server.ts,src/lib/duel/duel.functions.ts,src/lib/duel/levels/strikeoutSolver.server.ts,src/lib/duel/levels/swapword.server.ts,src/lib/duel/practice.functions.ts" && // Changed with Joe's approval, 26 Nov 2026: the Strikeout and Swapword Expert deals grade the board being dealt, never a stored round
       /updateOpenAsyncResult\(client, attempt\.id, input\.round, values\)/.test(readFileSync("src/lib/duel/asyncRoom.server.ts", "utf8")) &&
       /export async function updateOpenAsyncResult\([\s\S]*?\.eq\("answered", false\)/.test(readFileSync("src/lib/data/async.server.ts", "utf8")),
     `grading runs only for new answers (found in ${graders.join(", ")})`,

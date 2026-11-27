@@ -1,4 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+
+const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /**
  * The Solution / Yours switch (3 Nov 2026, Joe's audit; display only). Twelve reveals drew the solution and the
@@ -60,28 +62,48 @@ function findPair(root: HTMLElement): { solution: HTMLElement; yours: HTMLElemen
   return { solution, yours, labels: [sol, mine] };
 }
 
-export function SolutionSwitch({
+type SwitchRowProps = Parameters<typeof SwitchRow>[0];
+
+/**
+ * The switch as the reveal draws it. `off`: the game passes its own views to the template (P2 hook 1, the Word pairs),
+ * so the shared switch is not drawn at all (unmounted, as before `off` existed). The reveal draws it in one place
+ * whether or not the board has arrived, so the same row carries on when the board lands.
+ */
+export function SolutionSwitch({ off = false, ...props }: SwitchRowProps & { off?: boolean }) {
+  return off ? null : <SwitchRow {...props} />;
+}
+
+function SwitchRow({
   type,
   root,
   onChange,
+  pending = false,
 }: {
   type: string;
   root: { current: HTMLElement | null };
   /** The reveal's heading follows the board shown (revealHeading.ts): told the view and whether both columns were found. */
   onChange?: (state: { found: boolean; view: View }) => void;
+  /**
+   * The board hasn't arrived yet (a room's reveal says "Revealing" until its puzzle is fetched). The switch's row is
+   * held from the first frame (P2, 22 Nov 2026, Joe: nothing moves when the board lands), and a reveal that held it
+   * keeps it, blank, if its board turns out to have no pair, so the board never jumps up into it.
+   */
+  pending?: boolean;
 }) {
   const [view, setView] = useState<View>("solution");
   const [found, setFound] = useState(false);
+  const held = useRef(pending);
+  if (pending) held.current = true;
   const on = SOLUTION_SWITCH_TYPES.has(type);
-  useEffect(() => {
-    if (on) onChange?.({ found, view });
-  }, [on, found, view, onChange]);
-  useEffect(() => {
+  useIsoLayoutEffect(() => {
+    if (on && !pending) onChange?.({ found, view });
+  }, [on, pending, found, view, onChange]);
+  // Before paint, and again in the same microtask as the board's own DOM lands (a MutationObserver, not a frame later),
+  // so the board is never drawn with both columns first.
+  useIsoLayoutEffect(() => {
     const node = root.current;
-    if (!on || !node) return;
-    let frame = 0;
+    if (!on || !node || pending) return;
     const apply = () => {
-      frame = 0;
       const pair = findPair(node);
       setFound(!!pair);
       if (!pair) return;
@@ -101,16 +123,14 @@ export function SolutionSwitch({
         line.style.display = view === "solution" ? "none" : "";
     };
     apply();
-    const watch = new MutationObserver(() => {
-      if (!frame) frame = requestAnimationFrame(apply);
-    });
+    const watch = new MutationObserver(apply);
     watch.observe(node, { childList: true, subtree: true });
-    return () => {
-      cancelAnimationFrame(frame);
-      watch.disconnect();
-    };
-  }, [on, root, view]);
+    return () => watch.disconnect();
+  }, [on, root, view, pending]);
   if (!on) return null;
+  // The held row: the switch's exact box (.solution-switch-space, reveal-screen.css), drawn while the board loads and
+  // until its pair is found, and kept if a board that loaded late has none.
+  if (pending || (held.current && !found)) return <div aria-hidden="true" data-solution-switch-space="" className="solution-switch-space" />;
   return (
     <div data-solution-switch={view} role="tablist" aria-label="Board shown" className="solution-switch" hidden={!found}>
       {(["solution", "yours"] as const).map((v) => (

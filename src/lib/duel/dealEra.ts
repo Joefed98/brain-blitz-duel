@@ -125,6 +125,15 @@ export const DEAL_PINS = {
   prePyramidPartial: { texts: true },
   /** ballparkBullseyes.ts: Ballpark depthRev 2, before a bullseye was worth 3 (D2, 22 Nov 2026). */
   preBallparkBullseyes: { texts: true },
+  /** topsyLine.ts: Topsy-Turvy gravityRev 8 on Normal (full speed by 32 s), before the D4 Normal stamp (22 Nov 2026). */
+  preTopsyLine: { texts: true },
+  /** d3Normal.ts: Flash tapRev 7, Bonk whackRev 4, Pull! clayRev 10, the Chain's and Tenfall's stamps before D3's
+   * Normal scoring stamps (22 Nov 2026). */
+  preD3Speed: { texts: true },
+  /** d3Attention.ts: Labyrinth mazeRev 5, before D3's Normal scoring stamp (speed full by 34 s; 22 Nov 2026). */
+  preD3Maze: { texts: true },
+  /** wordStar.ts: Nucleus wordsmithRev 5, Forage wordHuntRev 4 and Roundabout wheelRev 5, before the D1 refit (21 Nov 2026). */
+  preWordStar: { texts: true },
   /** arcade.server.ts: Moon Climb ricoRev 4 (the 34 × 68 ninja), before the 30 × 60 one (D5, 22 Nov 2026). */
   ricoPreMid: { texts: false },
   /** arcade.server.ts: Fission burstRev 13 (bigger atoms), before burstRev 14's middle atoms (D5, 22 Nov 2026). */

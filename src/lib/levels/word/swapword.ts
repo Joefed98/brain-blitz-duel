@@ -22,14 +22,24 @@ export interface SwapwordLevelSettings {
   timeLimitMs: number;
   /** Deal only boards the human-like solver works out from the start board's marks. */
   humanSolvable?: boolean;
+  /**
+   * swapwordRev 8 (D1, 21 Nov 2026): the board's lattice (swapword.ts: "hard" the three loops of 30 tiles on 8 × 8,
+   * "expert" the four-loop window of 33 tiles on 7 × 7), stored on the dealt puzzle; absent: today's 21-tile figure eight.
+   */
+  lattice?: "hard" | "expert";
+  /** Deal only boards whose person-like line (the solver's words, then the fewest swaps) reaches 200 at the human limits. */
+  line200?: boolean;
 }
 
 const PROOF = { proof: "scripts/swapword-levels-check.ts" } as const;
 
 export const SWAPWORD_LEVEL_SETTINGS: Readonly<Record<Exclude<Level, "normal">, SwapwordLevelSettings>> = {
+  // D1 (21 Nov 2026; difficulty-spec.md "Swapword"): loops of crossing words are the ladder. Easy is today's; Hard the
+  // three loops (30 tiles, 8 words), Expert the four-loop window (33 tiles, six 7-letter words), both on swapwordRev 8,
+  // each worked out by the mark-reading solver.
   easy: { minSwaps: [5, 7], inPlace: [7, 9], spare: 16, timeLimitMs: 120_000 },
-  hard: { minSwaps: [13, 15], inPlace: [3, 4], spare: 6, timeLimitMs: 55_000 },
-  expert: { minSwaps: [15, 17], inPlace: [2, 3], spare: 4, timeLimitMs: 60_000, humanSolvable: true },
+  hard: { minSwaps: [13, 15], inPlace: [3, 4], spare: 8, timeLimitMs: 110_000, humanSolvable: true, lattice: "hard" },
+  expert: { minSwaps: [17, 20], inPlace: [3, 3], spare: 6, timeLimitMs: 110_000, humanSolvable: true, lattice: "expert", line200: true },
 };
 
 export const SWAPWORD_LEVELS: GameLevels | null = {
@@ -43,6 +53,6 @@ export const SWAPWORD_LEVELS: GameLevels | null = {
 /** One plain line per level beyond Normal: what changes (the game page, the intro and the help say it). */
 export const SWAPWORD_LEVEL_ABOUT: Partial<Record<Exclude<Level, "normal">, string>> = {
   easy: "Fewer tiles out of place and plenty of spare swaps.",
-  hard: "More tiles out of place, only 6 spare swaps and 55 seconds.",
-  expert: "Almost every tile out of place, only 4 spare swaps and 60 seconds.",
+  hard: "Three loops of words: 30 tiles on a bigger board, 8 spare swaps and 110 seconds.",
+  expert: "A window of six 7-letter words, 33 tiles, 6 spare swaps and 110 seconds.",
 };

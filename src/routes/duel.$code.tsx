@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { levelOfPuzzle } from "@/lib/levels/levels";
+import { levelOfPuzzle, puzzleLevel } from "@/lib/levels/levels";
 import { useCrashContext } from "@/lib/useCrashContext";
 import { firstOwnResultMs } from "@/lib/pass/passApi";
 import type { ArcadeRevealData } from "@/lib/arcade/reveal";
@@ -1466,6 +1466,7 @@ function DuelScreen() {
     <PhoneShell constrained gameScreen play gameType={puzzle?.type}>
       <GameLayout
         label={`Round ${round} of ${duel.round_count ?? TOTAL_ROUNDS}`}
+        level={puzzle ? puzzleLevel(puzzle) : undefined}
         title={puzzle ? puzzleName(puzzle.type) : ""}
         onHelp={() => setHelpOpen(true)}
         progress={<RoundPips currentRound={round} outcomes={outcomes} totalRounds={duel.round_count ?? TOTAL_ROUNDS} />}
