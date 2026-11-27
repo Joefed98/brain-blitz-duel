@@ -40,6 +40,7 @@ import { join, resolve } from "node:path";
 /* ------------------------------------------------------------------ PostgreSQL */
 
 export function postgresBin(): string | null {
+  // Changed with Joe's approval, 27 Nov 2026 (the next four lines).
   // JOULZ_PG_BIN (local deploy, scripts/deploy-local.sh): a PostgreSQL bin directory outside /usr/lib/postgresql,
   // e.g. Homebrew's on a Mac. Unset everywhere else, so CI and every check find the binaries as before.
   const override = process.env.JOULZ_PG_BIN;
