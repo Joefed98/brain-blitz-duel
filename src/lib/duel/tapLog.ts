@@ -24,6 +24,7 @@ import {
   NUMHUNT_MOVE_MS,
   REACTION_DECOY_MS,
   flashWindowMs,
+  flashTrapMs,
   REACTION_MISS_MS,
   STOPWATCH_GAP_MS,
   STOPWATCH_LEAD_IN_MS,
@@ -76,6 +77,12 @@ export const TAP_REV_TOPUP = 6;
  * Ascend never deals it.
  */
 export { TAP_REV_PER_ITEM };
+/**
+ * D3 (22 Nov 2026, Joe's curve; src/lib/duel/d3Normal.ts): Flash alone deals tapRev 8, tapRev 7's tap logs, schedules,
+ * replay, steady hand and false starts, each flash scored on FLASH_REV8_CURVE (200 by 240 ms) so a player at the human
+ * limits can reach 200. Bang On and Ascend keep their stamps.
+ */
+export const TAP_REV_FLASH_FAST = 8;
 
 /**
  * Checks written for the stamps rooms dealt before Depth to 200 (Flash and Bang On tapRev 4, Ascend tapRev 1) pin
@@ -104,7 +111,7 @@ export const FLASH_FALSE_START_GAP_MS = 250;
 /** The stored tap revision (0 = unstamped). */
 export function tapRevOf(puzzle: unknown): number {
   const rev = (puzzle as { tapRev?: number } | null)?.tapRev;
-  return rev === TAP_REV || rev === TAP_REV_CARELESS || rev === TAP_REV_SPEED_TUNING || rev === TAP_REV_ONE_CURVE || rev === TAP_REV_DEPTH || rev === TAP_REV_TOPUP || rev === TAP_REV_PER_ITEM ? rev : 0;
+  return rev === TAP_REV || rev === TAP_REV_CARELESS || rev === TAP_REV_SPEED_TUNING || rev === TAP_REV_ONE_CURVE || rev === TAP_REV_DEPTH || rev === TAP_REV_TOPUP || rev === TAP_REV_PER_ITEM || rev === TAP_REV_FLASH_FAST ? rev : 0;
 }
 
 export function usesTapLog(puzzle: unknown): boolean {
@@ -296,7 +303,7 @@ export function flashDecoyCut(tapped: number, shown: number): number {
  * last flash is settled are ignored.
  */
 export function replayFlash(
-  puzzle: Pick<ReactionPuzzleData, "flashes"> & Partial<Pick<ReactionPuzzleData, "decoys" | "tapRev" | "flashMs">>,
+  puzzle: Pick<ReactionPuzzleData, "flashes"> & Partial<Pick<ReactionPuzzleData, "decoys" | "tapRev" | "flashMs" | "trapMs">>,
   times: readonly number[],
   upTo = Number.POSITIVE_INFINITY,
 ): FlashReplay {
@@ -344,7 +351,9 @@ export function replayFlash(
   const decoys = tapRevOf(puzzle) >= TAP_REV_ONE_CURVE ? (puzzle.decoys ?? []) : [];
   const nonHits = times.filter((t, i) => t <= upTo && outcomes[i] !== "hit");
   const shown = decoys.filter((d) => d.at <= upTo);
-  const decoysTapped = shown.filter((d) => nonHits.some((t) => t >= d.at && t < d.at + REACTION_DECOY_MS)).length;
+  // A D3 level deal's own trap length (flashTrapMs); every older round's 0.6 s.
+  const trapMs = flashTrapMs(puzzle);
+  const decoysTapped = shown.filter((d) => nonHits.some((t) => t >= d.at && t < d.at + trapMs)).length;
   const decoyCut = flashDecoyCut(decoysTapped, shown.length);
   const credited = decoyCut > 0
     ? result.map((v) => (v === null ? null : Math.min(REACTION_MISS_MS, v + Math.round((REACTION_MISS_MS - v) * decoyCut))))

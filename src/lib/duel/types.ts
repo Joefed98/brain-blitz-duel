@@ -135,6 +135,28 @@ export function wordsmithPoints(word: string): number {
   return WORDSMITH_POINTS[Math.min(9, word.trim().length)] ?? 0;
 }
 
+/** A Nucleus level deal's own points line (D1, 21 Nov 2026): word points at which the words part is full, if any. */
+export function wordsmithFullAt(puzzle: { wordsFullAt?: number } | null | undefined): number | undefined {
+  const v = puzzle?.wordsFullAt;
+  return typeof v === "number" && Number.isFinite(v) && v > 0 ? v : undefined;
+}
+
+/** The shortest word a Nucleus board counts: a level deal's own (D1, 21 Nov 2026), else WORDSMITH_MIN_LENGTH. */
+export function wordsmithMinLength(puzzle: { minLength?: number } | null | undefined): number {
+  const v = puzzle?.minLength;
+  return typeof v === "number" && Number.isFinite(v) && v >= 3 ? Math.floor(v) : WORDSMITH_MIN_LENGTH;
+}
+
+/**
+ * A word's points on a board counting words from `minLength` letters: Normal's table, or on Easy (3+ letters) the
+ * step-up table, each word scoring as two letters longer (3 letters 2, 4 letters 4, 5 letters 7, 6 letters 11, 7+ 15).
+ */
+export function wordsmithPointsAt(word: string, minLength: number = WORDSMITH_MIN_LENGTH): number {
+  const n = word.trim().length;
+  if (n < minLength) return 0;
+  return WORDSMITH_POINTS[Math.min(9, minLength <= 3 ? n + 2 : n)] ?? 0;
+}
+
 export interface WordsmithWord {
   word: string;
   points: number;
@@ -156,6 +178,10 @@ export interface WordsmithPuzzleData {
   wordsmithRev?: number;
   /** Levels (the Word overhaul, stage 3): the level's own clock; absent = WORDSMITH_TIME_MS (Normal and every older round). */
   timeLimitMs?: number;
+  /** Levels (D1, 21 Nov 2026): the shortest word that counts (Easy 3, Hard 5, Expert 6); absent = 4 (Normal, every older round). */
+  minLength?: number;
+  /** Levels (D1, 21 Nov 2026): word points at which the words part is full (Hard 80, Expert 70); absent = the stamp's curve. */
+  wordsFullAt?: number;
 }
 
 /** One combining step: two values and an operator, giving a new value. */
@@ -239,6 +265,8 @@ export interface SpotPuzzleData {
    * (`scene`). Server-side only until the reveal, like `differences`; never counted in the twelve.
    */
   bonus?: SpotDifference;
+  /** D3 (levelRev 2's Expert): 1 = each picture's lower panel is drawn as the upper one's mirror image; absent: not. */
+  mirror?: 1;
 }
 
 export interface ReactionPuzzleData {
@@ -255,6 +283,21 @@ export interface ReactionPuzzleData {
   tapRev?: number;
   /** Expert (the Speed overhaul's levels, 15 Nov 2026): how long each gold flash stays up, in ms; absent = REACTION_FLASH_MS. */
   flashMs?: number;
+  /**
+   * D3's levels (22 Nov 2026, tapRev 8 level deals only): the per-flash curve the level scores on, as [ms, points]
+   * knots (depth/flash.ts flashCurveOf); absent = FLASH_REV8_CURVE (Normal) on tapRev 8.
+   */
+  flashCurve?: [number, number][];
+  /** D3's levels (tapRev 8 level deals only): how long each trap stays up, in ms; absent = REACTION_DECOY_MS. */
+  trapMs?: number;
+  /** D3's levels (tapRev 8 level deals only): false starts the level forgives (depth/flash.ts flashFreeOf). */
+  flashFree?: number;
+}
+
+/** How long a puzzle's traps stay up: a D3 level deal's own `trapMs`, else the 0.6 s every older round used. */
+export function flashTrapMs(puzzle: unknown): number {
+  const own = puzzle && typeof puzzle === "object" ? (puzzle as { trapMs?: unknown }).trapMs : undefined;
+  return typeof own === "number" && own > 0 ? own : REACTION_DECOY_MS;
 }
 
 /** How long a puzzle's gold flashes stay up: its own `flashMs` (Expert), else the 1.5 s every older round used. */
@@ -875,6 +918,24 @@ export function wordHuntPoints(word: string): number {
   return { 4: 1, 5: 2, 6: 4, 7: 7 }[length] ?? 0;
 }
 
+/** The shortest word a Forage board counts: a level deal's own (D1, 21 Nov 2026), else WORDHUNT_MIN_LENGTH. */
+export function wordHuntMinLength(puzzle: { minLength?: number } | null | undefined): number {
+  const v = puzzle?.minLength;
+  return typeof v === "number" && Number.isFinite(v) && v >= 3 ? Math.floor(v) : WORDHUNT_MIN_LENGTH;
+}
+
+/**
+ * A word's points on a board counting words from `minLength` letters: Normal's table, or on Easy (3+ letters) the
+ * step-up table, each word scoring as two letters longer (3 letters 2, 4 letters 4, 5 letters 7, 6+ letters 11).
+ */
+export function wordHuntPointsAt(word: string, minLength: number = WORDHUNT_MIN_LENGTH): number {
+  const length = word.trim().length;
+  if (length < minLength) return 0;
+  const n = minLength <= 3 ? length + 2 : length;
+  if (n >= 8) return 11;
+  return { 4: 1, 5: 2, 6: 4, 7: 7 }[n] ?? 0;
+}
+
 export interface WordHuntWord {
   word: string;
   points: number;
@@ -899,6 +960,14 @@ export interface WordHuntPuzzleData {
   golden?: number;
   /** Levels (the Word overhaul, stage 3): the level's own clock; absent = WORDHUNT_TIME_MS (Normal and every older round). */
   timeLimitMs?: number;
+  /** Levels (D1, 21 Nov 2026): the shortest word that counts (Easy 3, Hard 5, Expert 7); absent = 4 (Normal, every older round). */
+  minLength?: number;
+  /** Levels (D1, 21 Nov 2026): free misses before any cost, and more for each word found; absent = 10 and 2. */
+  freeMisses?: number;
+  freeMissesPerWord?: number;
+  /** Levels (D1, 21 Nov 2026): base points and feature extras at which each part is full; absent = the stamp's curves. */
+  baseFullAt?: number;
+  extraFullAt?: number;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -1516,6 +1585,8 @@ export interface MazePuzzleData {
   stars?: number[];
   /** A level's own clock (attentionLevels.data.ts); absent at Normal (60 s). */
   timeLimitMs?: number;
+  /** D3 (levelRev 2's Hard and Expert, mazeKeys.ts): gold keys to walk over before the exit opens; absent: none. */
+  keys?: number[];
 }
 
 /* ============================ Sort the Tubes ============================ */
@@ -1813,7 +1884,17 @@ export interface ChainPuzzleData {
    * runs (1-based, inclusive), on its own clock (`timeLimitMs`); the cycles stored on the boards carry its cycle length.
    * Absent: today's 40 links, windows and the one reversed board (every round dealt before the levels, and Normal).
    */
-  chainLevel?: { links: number; bands: { upTo: number; ms: number }[]; reverse: [number, number][] };
+  chainLevel?: {
+    links: number;
+    bands: { upTo: number; ms: number }[];
+    reverse: [number, number][];
+    /** D3's levels (22 Nov 2026): links per board, a new board every cycle (chain.ts chainBlockOf); absent = 5. */
+    block?: number;
+    /** D3's levels: the finish's full-speed time, s (standard/attention.ts chainFullByS); absent = the stamp's. */
+    fullByS?: number;
+    /** D3's levels: wrong taps forgiven (chain.ts chainSpareOf; Easy's spare link); absent = none. */
+    spare?: number;
+  };
   timeLimitMs?: number;
   /** CHAIN_CYCLE_REV: five-symbol cycles and the reversed board from link 20; absent = three-symbol cycles. */
   chainCycleRev?: number;
@@ -2488,6 +2569,11 @@ export interface TileGridPuzzleData {
   tileGridRev?: number;
   /** The level's own clock (the Word overhaul's levels, 15 Nov 2026); absent: the game's 100 s. */
   timeLimitMs?: number;
+  /** Levels (D1, 21 Nov 2026, tileGridRev 5): the board's side (6, 8 or 9) and its tile count (10, 19 or 23); absent = 7 and 15. */
+  size?: number;
+  tiles?: number;
+  /** Levels (D1, tileGridRev 5, Expert): words light and bad runs show only on Done; absent = live, as today. */
+  lightsOnDone?: boolean;
 }
 
 /* ============================== Word Slide ============================== */
@@ -2504,6 +2590,14 @@ export interface WordSlidePuzzleData {
   wordSlideRev?: number;
   /** The level's own clock (the Word overhaul's levels, 15 Nov 2026); absent: the game's 100 s. */
   timeLimitMs?: number;
+  /** wordSlideRev 7 (D1, 21 Nov 2026, level deals only): the grid's side, 4–7; absent = 5 (Normal, every older round). */
+  size?: number;
+  /**
+   * wordSlideRev 7 (D1, 21 Nov 2026, Expert deals only, Joe's looser Expert par): the slides that still earn the whole par
+   * bonus and the slides at which it reaches 0 (sliderParLine); absent = the par and twice the par (Normal's rule).
+   */
+  parFullAt?: number;
+  parZeroAt?: number;
 }
 
 /* ================================ Balance =============================== */
@@ -2915,6 +3009,13 @@ export interface LetterWheelPuzzleData {
   jarSize?: number;
   /** Levels (the Word overhaul, stage 3): the level's own clock; absent = LETTERWHEEL_TIME_MS (Normal and every older round). */
   timeLimitMs?: number;
+  /** Levels (D1, 21 Nov 2026): misses that cost nothing on this deal (Hard 3, Expert 2); absent = LW_FREE_MISSES (5). */
+  freeMisses?: number;
+  /**
+   * Levels (D1, 22 Nov 2026, Joe's decision 21): the speed points are full when the crossword is finished within this many
+   * seconds; absent = the stamp's own line (wheelRev 6: 55 s; before: 40 s).
+   */
+  speedFullByS?: number;
 }
 
 /** Strikeout: reveal five hidden five-letter words a letter at a time; five strikes end it. */
@@ -2942,6 +3043,11 @@ export interface StrikeoutPuzzleData {
    */
   maxStrikes?: number;
   maxVowels?: number;
+  /**
+   * Levels (D1, 21 Nov 2026): strikes that don't count against the strikes-left bonus (Expert's 8; the round still ends
+   * at maxStrikes). Absent = 0: Normal and every round dealt before.
+   */
+  strikeFree?: number;
   /** A level's own clock (puzzleTimeLimitMs reads it); absent: the game's 100 s. */
   timeLimitMs?: number;
 }
@@ -2953,8 +3059,11 @@ export interface CodewordPuzzleData {
   type: "codeword";
   /** Rules revision (1 = first release, four givens; 2 = five givens, 14 Oct 2026; 3 = six givens, the sixth leaving the most words one number from done, 19 Oct 2026; 4 = rev 3's board scored to 200, 25 Oct 2026). */
   codewordRev: number;
+  /** The grid's width (columns); its height too unless `rows` says. */
   size: number;
-  /** size × size cells, row by row: 0 = black square, otherwise the cell's number (1…numbers). */
+  /** Levels (D1, 21 Nov 2026): the grid's height on a level's wider board (Hard 8 × 7, Expert 9 × 7); absent = `size` (square). */
+  rows?: number;
+  /** size × rows cells, row by row: 0 = black square, otherwise the cell's number (1…numbers). */
   cells: number[];
   /** How many different numbers (= different letters) the grid uses. */
   numbers: number;
@@ -2964,6 +3073,8 @@ export interface CodewordPuzzleData {
   solution?: string;
   /** The round's clock when a level deals one (the Word overhaul's levels; absent: the game's own 120 s). */
   timeLimitMs?: number;
+  /** Levels (D1, 21 Nov 2026): speed points are full for a crack inside this many seconds; absent = STD_CRYPTOGRID.fullByS (60). */
+  speedFullByS?: number;
 }
 
 /** Swapword: swap tiles until six crossing words read correctly. */
@@ -2983,6 +3094,12 @@ export interface SwapwordPuzzleData {
   solution?: string;
   /** The level's own clock (the Word overhaul's levels, 15 Nov 2026); absent: the game's 120 s. */
   timeLimitMs?: number;
+  /**
+   * swapwordRev 8 (D1, 21 Nov 2026; Hard and Expert deals only): the board's lattice, its tile squares (grid cells in
+   * reading order) and word slots; `start`, `solution` and the swap list index its tiles. Absent: today's 21-tile
+   * figure eight (swapword.ts SW_NORMAL_LATTICE).
+   */
+  lattice?: { cols: number; rows: number; cells: readonly number[]; slots: readonly { row: number; col: number; across: boolean; len: number }[] };
 }
 
 export interface WordSearchPlacement {
@@ -3011,6 +3128,11 @@ export interface WordSearchPuzzleData {
    */
   rows?: number;
   timeLimitMs?: number;
+  /**
+   * A level's own speed line (D1, 22 Nov 2026, Joe's decision 21: Expert's top reachable in real play): the speed points
+   * are full when every listed word is found within this many seconds; absent = a third of the clock (40 s of 120).
+   */
+  speedFullByS?: number;
 }
 
 export interface ShikakuPuzzleData {

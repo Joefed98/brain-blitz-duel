@@ -238,12 +238,12 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("numhunt", "Stairway", "Tap all 24 within 40 s.", "C", "speed", false, speed(40, 40)),
   // Don't Break the Chain (chain): 150 + speed 50 (30 s).
   ch("chain", "Unbroken", "Tap all 40 charms.", "C", "finish", false, all(FIN)),
-  ch("chain", "Chain reaction", "Tap all 40 within 30 s.", "C", "speed", false, speed(50, 30)),
-  ch("chain", "Iron links", "Tap all 40 on Hard.", "H", "finish", false, all(FIN)),
+  ch("chain", "Chain reaction", "Tap all 40 within 33 s.", "C", "speed", false, speed(50, 33)),
+  ch("chain", "Iron links", "Tap all 48 on Hard.", "H", "finish", false, all(FIN)),
   // Bonk (whack): hits 150 + combo 44 + diamonds 6.
   ch("whack", "Hedgehog friendly", "Bonk 30 or more without a wrong hat or a hedgehog.", "C", "clean", false, all(f("hits", "gte", 30), f("wrong", "eq", 0), f("bombs", "eq", 0))),
   ch("whack", "Diamond geezer", "Bonk every diamond.", "C", "fullset", false, all(f("depth.diamondHits", "gte", "@depth.diamondTotal"), f("depth.diamondTotal", "gte", 1))),
-  ch("whack", "Combo king", "Bonk 47 in a row, each within 150 ms of rising.", "C", "combo", true, all(f("depth.combo", "gte", 44))),
+  ch("whack", "Combo king", "Bonk 46 in a row, each within 400 ms of rising.", "C", "combo", true, all(f("depth.combo", "gte", 44))),
   // Pull! (clayshoot): clays 110 + quick hits 40 + doubles 14 + streak 36. clayRev 10 (the Speed overhaul, 15 Nov 2026): a
   // quick hit is full within 0.4 s (was a quarter second), so Dead eye says 400 ms; its condition is unchanged.
   ch("clayshoot", "Bird lover", "Hit 15 clays without hitting a bird.", "C", "clean", false, all(f("hits", "gte", 15), f("birdHits", "eq", 0))),
@@ -302,7 +302,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Roundabout (letterwheel): 150 + speed 20 (40 s) + bonus jar 30.
   ch("letterwheel", "Jar of five", "Drop five bonus words in the jar.", "C", "target", false, all(f("bonusWords", "gte", 5))),
   ch("letterwheel", "Jar full", "Finish with the jar full; a bonus word adds 1 to 4 drops.", "C", "maxout", false, all(FIN, f("jarPoints", "gte", 30))),
-  ch("letterwheel", "Dizzy", "Fill the crossword within 40 s.", "C", "speed", false, speed(20, 40)),
+  ch("letterwheel", "Dizzy", "Fill the crossword within 55 s.", "C", "speed", false, speed(20, 55)),
   // Strikeout (strikeout): 150 + speed 20 (40 s) + early solves 20 + strikes left 10.
   ch("strikeout", "Five for five", "Solve all five words.", "C", "finish", false, all(FIN)),
   ch("strikeout", "Strike light", "Solve all five with two strikes or fewer.", "C", "clean", false, all(FIN, f("strikePoints", "gte", 10))),

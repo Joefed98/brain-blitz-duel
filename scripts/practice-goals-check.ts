@@ -54,8 +54,9 @@ import { PRACTICE_CHALLENGES, challengeLive, challengeTarget, challengesFor, cha
 import { PAR_MOVES_STD, PAR_STRICT_FULL_BY_S } from "../src/lib/duel/parMoves";
 import { GRID_STANDARD } from "../src/lib/duel/standard/gridRules";
 import { NUMBER_STANDARD } from "../src/lib/duel/standard/number";
-import { ASCEND_STD, CHAIN_STD, COUNT_STD, PAIR_STD, SPOT_STD } from "../src/lib/duel/standard/attention";
+import { ASCEND_STD, CHAIN_STD, CHAIN_V4_FULL_BY_S, COUNT_STD, PAIR_STD, SPOT_STD } from "../src/lib/duel/standard/attention";
 import { STD_LOOKOUT, STD_ROUNDABOUT } from "../src/lib/duel/standard/word";
+import { ROUNDABOUT_STAR_FULL_BY_S } from "../src/lib/duel/wordStar"; // Changed with Joe's approval, 26 Nov 2026
 import { numbersReport } from "./practice-challenge-numbers";
 // Changed with Joe's approval, 13 Nov 2026: STAR_THRESHOLDS, starLine, starTotal, starsFor and starsOf left out of this import (the device stars are removed).
 import {
@@ -171,12 +172,13 @@ const SPEED_RULES: Partial<Record<PuzzleType, { speed: number; fullByS: number; 
   pipes: { speed: PATTERN_STD.pipes.speed, fullByS: PATTERN_STD.pipes.fullByS, bonus: PATTERN_STD.pipes.par ?? -1 },
   push: { speed: PATTERN_STD.push.speed, fullByS: PATTERN_STD.push.fullByS, bonus: PATTERN_STD.push.par ?? -1 },
   numhunt: { speed: ASCEND_STD.speed, fullByS: ASCEND_STD.fullByS, bonus: ASCEND_STD.flow },
-  chain: { speed: CHAIN_STD.speed, fullByS: CHAIN_STD.fullByS, bonus: 0 },
+  // Changed with Joe's approval, 22 Nov 2026 (D3): the Chain deals chainDepthRev 4, speed full by 33 s.
+  chain: { speed: CHAIN_STD.speed, fullByS: CHAIN_V4_FULL_BY_S, bonus: 0 },
   spotdiff: { speed: SPOT_STD.speed, fullByS: SPOT_STD.fullByS, bonus: SPOT_STD.clean },
   countup: { speed: COUNT_STD.speed, fullByS: COUNT_STD.fullByS, bonus: 0 },
   pairmatch: { speed: PAIR_STD.speed, fullByS: PAIR_STD.fullByS, bonus: 0 },
   wordsearch: { speed: STD_LOOKOUT.speed, fullByS: STD_LOOKOUT.fullByS, bonus: STD_LOOKOUT.bonus },
-  letterwheel: { speed: STD_ROUNDABOUT.speed, fullByS: STD_ROUNDABOUT.fullByS, bonus: STD_ROUNDABOUT.jar },
+  letterwheel: { speed: STD_ROUNDABOUT.speed, fullByS: ROUNDABOUT_STAR_FULL_BY_S, bonus: STD_ROUNDABOUT.jar }, // Changed with Joe's approval, 26 Nov 2026
   target: NUMBER_STANDARD.target,
   equation: NUMBER_STANDARD.equation,
   balance: NUMBER_STANDARD.balance,

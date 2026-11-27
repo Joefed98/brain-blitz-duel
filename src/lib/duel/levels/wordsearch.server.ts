@@ -22,6 +22,7 @@ export function lookoutLevelPuzzle(level: Exclude<Level, "normal">, entry: WordS
     placements: entry.placements.map((p) => ({ word: p.word, cells: [...p.cells] })),
     bonus: { word: entry.bonus.word, cells: [...entry.bonus.cells] },
     timeLimitMs: s.timeLimitMs,
+    ...(typeof s.speedFullByS === "number" ? { speedFullByS: s.speedFullByS } : {}),
   };
 }
 

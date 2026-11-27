@@ -119,8 +119,10 @@ tasks.push({
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Attention overhaul): attentionOverhaul.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul's speedOverhaul layer).
     // Changed with Joe's approval, 16 Nov 2026 (routine: puzzle train combine).
+    // Changed with Joe's approval, 22 Nov 2026 (D2): its layers pyramidPartial and ballparkBullseyes.
     // Changed with Joe's approval, 22 Nov 2026 (routine consequence of D4's Topsy-Turvy gravityRev 9): its layer, topsyLine, last.
-    ok(DEAL_LAYERS.map((l) => l.name).join(" ") === "standard pipesPlaced puzzleNotes parMoves operatorGaps partialCredit wordNov7 notesFree gameReviewNov15 logicOverhaul1 logic2 numberOverhaul patternNov15 wordOverhaul attentionOverhaul speedOverhaul pyramidPartial ballparkBullseyes topsyLine", "the layers in their order"); // Changed with Joe's approval, 22 Nov 2026; 22 Nov 2026; 22 Nov 2026
+    // Changed with Joe's approval, 22 Nov 2026 (D3, re-applied after D2 and D4): its layers d3Speed and d3Maze, last.
+    ok(DEAL_LAYERS.map((l) => l.name).join(" ") === "standard pipesPlaced puzzleNotes parMoves operatorGaps partialCredit wordNov7 notesFree gameReviewNov15 logicOverhaul1 logic2 numberOverhaul patternNov15 wordOverhaul attentionOverhaul speedOverhaul pyramidPartial ballparkBullseyes topsyLine d3Speed d3Maze wordStar", "the layers in their order"); // Changed with Joe's approval, 26 Nov 2026 (re-applied against main at the 27 Nov merge: D1's after D2's, D4's and D3's)
     const names = new Set<DealPin>(DEAL_PIN_NAMES);
     // Changed with Joe's approval, 13 Nov 2026: Minefield's minesPreLogic is the 24th era switch.
     // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the 15 Nov 2026 era switches preNotesFree and
@@ -154,8 +156,10 @@ tasks.push({
     // Sports overhaul's racingPreCircuits, 40.
     // Changed with Joe's approval, 16 Nov 2026 (routine: arcade train combine): the puzzle train's 37 and the arcade
     // train's 14 more (40 less main's 26) make 51.
+    // Changed with Joe's approval, 22 Nov 2026 (D2): the era switches prePyramidPartial and preBallparkBullseyes.
     // Changed with Joe's approval, 22 Nov 2026 (routine consequence of D4's Topsy-Turvy gravityRev 9): preTopsyLine after D2's two, 54.
-    ok(names.size === 54, `54 era switches (${names.size})`); // Changed with Joe's approval, 22 Nov 2026; 22 Nov 2026; 22 Nov 2026
+    // Changed with Joe's approval, 22 Nov 2026 (D3, re-applied after D2 and D4): the era switches preD3Speed and preD3Maze, 56.
+    ok(names.size === 57, `57 era switches (${names.size})`); // Changed with Joe's approval, 26 Nov 2026 (re-applied against main at the 27 Nov merge: D1's after D2's, D4's and D3's)
   },
 });
 

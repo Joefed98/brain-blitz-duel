@@ -79,6 +79,12 @@
   --jz-loss: #FF5A6E; /* style guide round 2 (14 Nov 2026; was #E5243F, 4.2 : 1 on the page) */
   /* Joules: electric lime, always with the small bolt mark; never gold. */
   --jz-joules: #C6FF3D;
+  /* The four difficulty levels (the polish plan's section 6.1, P2, 22 Nov 2026): a colour and one to four bars,
+     never the colour alone (LevelMark). Easy green, Normal blue, Hard orange, Expert red; each 3:1 or more on the page. */
+  --jz-level-easy: #2FD27A;
+  --jz-level-normal: #4C8DFF;
+  --jz-level-hard: #FF9A3D;
+  --jz-level-expert: #FF4D61;
   /* Shop rarities (wave 2, D1; docs/art/wave-2/README.md's ladder): Epic gold, Elite violet edge, Legendary diamond. */
   --jz-rarity-epic: #E2C07A;
   --jz-rarity-elite: #A99BFF;
@@ -306,6 +312,10 @@
   --jz-red: #B81C33;
   --jz-win: #0B6F33;
   --jz-joules: #456B00;
+  --jz-level-easy: #0B7A3E;
+  --jz-level-normal: #1F56C9;
+  --jz-level-hard: #A9500A;
+  --jz-level-expert: #B81C33;
   --jz-cyan: #006A7A; /* the guide's "live" in light (switches, live tags, done ticks) */
   --jz-cyan-panel: #DDF1F4;
   --jz-well: #E4E7F0;
@@ -367,6 +377,10 @@
   --jz-red: #FF3B5C;
   --jz-win: #16C35B;
   --jz-joules: #C6FF3D;
+  --jz-level-easy: #2FD27A;
+  --jz-level-normal: #4C8DFF;
+  --jz-level-hard: #FF9A3D;
+  --jz-level-expert: #FF4D61;
   --jz-cyan: #22E4FF;
   --jz-cyan-panel: #112A3A;
   --jz-well: #06080F;

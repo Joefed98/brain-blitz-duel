@@ -43,6 +43,11 @@ export interface TenDropStage {
   minusHi: number;
   /** One pass of digits alone must fall short of the target. */
   needOp: boolean;
+  /**
+   * D3 (tenRev 7 level deals only): this target's par, in ticks; the run's speed is full when the last target clears
+   * by the sum of every stage's par (absent on any stage: TD_V7_FULL_BY_TICKS). Never read before tenRev 7.
+   */
+  parTicks?: number;
 }
 
 /**
@@ -462,7 +467,8 @@ export const TD_REV1_FREE_RESETS = 5;
 /** The run's starting state under a score revision (0 / absent = the original 13 per target). */
 export function tenDropInit(seed: number, scoreRev?: number, stages?: readonly TenDropStage[] | null): TenDropState {
   // A level's stages (the puzzle's `tenLevel`, tenRev 6 rounds only); absent, today's ten exactly.
-  const state = init(seed, stages && scoreRev === TEN_DROP_RESET_REV ? stages : undefined);
+  // tenRev 7 (D3) reads the level's stages as tenRev 6 does.
+  const state = init(seed, stages && (scoreRev === TEN_DROP_RESET_REV || scoreRev === TEN_DROP_REACH_REV) ? stages : undefined);
   if (scoreRev && scoreRev >= TEN_DROP_DEPTH_REV) {
     // tenRev 4: the same plan and rng as tenRev 3, plus each target's gold position (from a hash of the seed,
     // never the rng stream).
@@ -562,9 +568,9 @@ export function tdGoldPlan(seed: number, plan: TenDropPlan): number[] {
  * Rev 1: all ten = 120 + speedBonusCurve(30, …) (the full 30 when the last clears by 45 s);
  * otherwise floor(110 × targets ÷ 9) − 2 per reset beyond 5, so nine is 110.
  */
-export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS, scoreRev = 0, resets = 0, goldTens = 0, earlyTicks = 0, targets = TD_TARGETS): number {
+export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS, scoreRev = 0, resets = 0, goldTens = 0, earlyTicks = 0, targets = TD_TARGETS, reach?: TdReach): number {
   // A level's own count (tenRev 6 levels only; every other run has ten).
-  if (scoreRev >= TEN_DROP_STANDARD_REV) return tdStandardScore(clampInt(cleared, 0, targets), clearTick, resets, goldTens, earlyTicks, scoreRev >= TEN_DROP_RESET_REV, targets);
+  if (scoreRev >= TEN_DROP_STANDARD_REV) return tdStandardScore(clampInt(cleared, 0, targets), clearTick, resets, goldTens, earlyTicks, scoreRev >= TEN_DROP_RESET_REV, targets, scoreRev >= TEN_DROP_REACH_REV ? reach ?? { fullByTicks: TD_V7_FULL_BY_TICKS, goldFull: tdV7GoldFull(targets) } : undefined);
   const n = clampInt(cleared, 0, TD_TARGETS);
   if (scoreRev >= TEN_DROP_SCORE_REV) {
     if (n >= TD_TARGETS) {
@@ -590,7 +596,7 @@ export function tenDropScore(cleared: number, clearTick = TD_RUN_TICKS, scoreRev
 }
 
 function score(state: TenDropState): number {
-  const raw = tenDropScore(state.cleared, state.clearTick, state.scoreRev ?? 0, state.resets, state.goldTens ?? 0, state.earlyTicks ?? 0, tdTargetsOf(state));
+  const raw = tenDropScore(state.cleared, state.clearTick, state.scoreRev ?? 0, state.resets, state.goldTens ?? 0, state.earlyTicks ?? 0, tdTargetsOf(state), tdReachOf(state));
   return state.scoreRev === TEN_DROP_BANDS_REV ? bandMapTotal(TEN_DROP_BANDS_MAP, raw) : raw;
 }
 
@@ -691,11 +697,51 @@ export function tdResetCost(resets: number): number {
   return TD_REV3_RESET_COST * Math.max(0, resets - TD_REV3_FREE_RESETS);
 }
 
-function tdStandardScore(n: number, clearTick: number, resets: number, goldTens: number, earlyTicks: number, finishCost = false, targets = TD_TARGETS): number {
+/* ========== Reach (tenRev 7, D3, 22 Nov 2026; Joe's approval of 22 Nov 2026) ========== */
+
+/**
+ * tenRev 7 (the polish plan's D3: a Normal scoring stamp so a realistic elite under the human limits reaches 200
+ * sometimes): tenRev 6's play, plan, gold tiles, reset cost and unfinished credit, except the finish's two lines:
+ *   - speed full when the last target clears by TD_V7_FULL_BY_TICKS (70 s; tenRev 5 and 6: 60 s), evenly to 0 at the
+ *     buzzer: the realistic elite finishes Normal's ten in a median 66 s;
+ *   - gold in full at tdV7GoldFull(targets) gold tens (3 of ten: 7, 14, 20), where tenRev 5 and 6 paid 2 a gold ten
+ *     up to 20 (ten gold tens, which no measured player managed: the gold tile comes once a pass of the queue).
+ * A level deal may carry each target's par (`parTicks` on its stages); the run's full-by is then their sum.
+ */
+export const TEN_DROP_REACH_REV = 7;
+export const TD_V7_FULL_BY_TICKS = 4200;
+/** tenRev 7: the gold tens that earn the whole gold part (3 of ten, at least 1). */
+export function tdV7GoldFull(targets: number): number {
+  return Math.max(1, Math.round((3 * targets) / 10));
+}
+export interface TdReach {
+  fullByTicks: number;
+  goldFull: number;
+}
+/** A tenRev 7 run's speed and gold lines: its stages' summed par where every stage has one, else Normal's. */
+export function tdReachOf(state: Pick<TenDropState, "scoreRev" | "lv">): TdReach | undefined {
+  if ((state.scoreRev ?? 0) < TEN_DROP_REACH_REV) return undefined;
+  const stages = state.lv;
+  const targets = tdTargetsOf(state);
+  const pars = stages?.map((s) => s.parTicks);
+  const fullByTicks = pars && pars.length && pars.every((t) => typeof t === "number" && t > 0) ? Math.min(TD_RUN_TICKS, pars.reduce((a, b) => a! + b!, 0)!) : TD_V7_FULL_BY_TICKS;
+  return { fullByTicks, goldFull: tdV7GoldFull(targets) };
+}
+function tdReachSpeed(left: number, fullByTicks: number): number {
+  const window = TD_RUN_TICKS - clampInt(fullByTicks, 0, TD_RUN_TICKS);
+  if (window <= 0) return left > 0 ? TD_STD_SPEED_POINTS : 0;
+  return Math.floor((TD_STD_SPEED_POINTS * clampInt(left, 0, window)) / window);
+}
+function tdReachGold(goldTens: number, goldFull: number): number {
+  return Math.min(TD_STD_GOLD_MAX, Math.floor((TD_STD_GOLD_MAX * clampInt(goldTens, 0, 12)) / Math.max(1, goldFull)));
+}
+
+function tdStandardScore(n: number, clearTick: number, resets: number, goldTens: number, earlyTicks: number, finishCost = false, targets = TD_TARGETS, reach?: TdReach): number {
   const gold = tdStandardGold(goldTens);
   if (n >= targets) {
     const left = clampInt(TD_RUN_TICKS - clearTick, 0, TD_RUN_TICKS);
-    const full = TD_STD_FINISH + tdStandardSpeed(left) + gold;
+    // tenRev 7: the reach lines (the unfinished credit below is tenRev 6's).
+    const full = reach ? TD_STD_FINISH + tdReachSpeed(left, reach.fullByTicks) + tdReachGold(goldTens, reach.goldFull) : TD_STD_FINISH + tdStandardSpeed(left) + gold;
     return finishCost ? clampInt(full - tdResetCost(resets), TD_RESET_FINISH_FLOOR, TD_DEPTH_MAX) : clampInt(full, 0, TD_DEPTH_MAX);
   }
   const early = clampInt(earlyTicks, 0, n * TD_RUN_TICKS);
@@ -828,22 +874,30 @@ export const tenDropGame: ArcadeGame<TenDropState, ArcadeInputEvent | null> = {
  * "plusMinus" digits and minus only (no operator needed), "more" today's mix with ÷3 doubled, "all" every operator
  * evenly. Queues grow with the target so one pass can always reach it.
  */
-export function tdLevelStages(level: { targets: number; maxTarget: number; ops: "plusMinus" | "more" | "all"; speedPct: number }): TenDropStage[] {
+export function tdLevelStages(level: { targets: number; maxTarget: number; ops: "plusMinus" | "more" | "all" | "times"; speedPct: number; minTarget?: number; fullByS?: number }): TenDropStage[] {
   const base = TD_CONFIG.stages;
   const out: TenDropStage[] = [];
   for (let i = 0; i < level.targets; i++) {
     const from = base[Math.min(base.length - 1, Math.floor((i * base.length) / level.targets))]!;
-    const hi = Math.max(12, Math.round((level.maxTarget * (i + 1)) / level.targets));
+    // D3 (22 Nov 2026): a level may start its targets high (`minTarget`, climbing evenly to the top) and set the run's
+    // full-speed time (`fullByS`, shared as each target's par); absent, the Speed overhaul's ramp.
+    const hi = level.minTarget !== undefined
+      ? Math.round(level.minTarget + ((level.maxTarget - level.minTarget) * i) / Math.max(1, level.targets - 1))
+      : Math.max(12, Math.round((level.maxTarget * (i + 1)) / level.targets));
     const lo = Math.max(10, Math.round(hi * 0.7));
+    const par = level.fullByS !== undefined ? { parTicks: Math.round((level.fullByS * 60) / level.targets) } : {};
     const speed = Math.round((from.speed * level.speedPct) / 100);
     const gap = Math.max(12, Math.round((from.gap * 100) / level.speedPct));
     const len = Math.max(from.len, Math.min(20, 8 + Math.ceil(hi / 20)));
     if (level.ops === "plusMinus") {
-      out.push({ lo, hi, speed, gap, len, digitLo: 1, digitHi: 10, mul2: 0, div2: 0, div3: 0, minus: 20, minusLo: 1, minusHi: 3, needOp: false });
+      out.push({ lo, hi, speed, gap, len, digitLo: 1, digitHi: 10, mul2: 0, div2: 0, div3: 0, minus: 20, minusLo: 1, minusHi: 3, needOp: false, ...par });
     } else if (level.ops === "more") {
-      out.push({ ...from, lo, hi, speed, gap, len, div3: Math.max(8, from.div3 * 2) });
+      out.push({ ...from, lo, hi, speed, gap, len, div3: Math.max(8, from.div3 * 2), ...par });
+    } else if (level.ops === "times") {
+      // D3's Hard: ×2 on about three tiles in ten, ÷2 and ÷3 as the Speed overhaul's Hard.
+      out.push({ ...HARD, lo, hi, speed, gap, len, mul2: 30, div2: 10, div3: 8, ...par });
     } else {
-      out.push({ ...from, lo, hi, speed, gap, len, mul2: 20, div2: 12, div3: 12, minus: 15 });
+      out.push({ ...from, lo, hi, speed, gap, len, mul2: 20, div2: 12, div3: 12, minus: 15, ...par });
     }
   }
   return out;

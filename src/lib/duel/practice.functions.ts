@@ -1,4 +1,5 @@
 import { ORBIT_BELT_PERIOD_TICKS, ORBIT_BELT_REVISION } from "@/lib/arcade/orbit";
+import { wordSlideSize } from "./wordSlide";
 import { ANSWER_MAX, COUNT_MAX, EXTRA_MAX, FOUND_MAX, KEY_MAX, LIST_MAX, NUMBER_MAX, PATH_MAX, PUZZLE_MAX, SEALED_MAX, SHORT_MAX, WORD_MAX } from "./inputLimits";
 import { bool, compact, listOf, maybe, numIn, oneOf, optional, record, sizedRecord, text, whole } from "@/lib/validate";
 import { LEVELS, NORMAL, levelOrNormal, type Level } from "@/lib/levels/levels";
@@ -13,6 +14,7 @@ import type { PracticeRunProgress } from "@/lib/practice/progress";
 import { levelOf } from "@/lib/practice/progressRules";
 import { PUZZLE_TYPES, isPlayable } from "./catalogue";
 import type { PuzzleData, PuzzleType } from "./types";
+import { wordHuntMinLength, wordsmithMinLength } from "./types";
 
 /* -------------------------------------------------------------------------- */
 /*  Practice mode: one puzzle, on this device only.                            */
@@ -157,6 +159,8 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
     // The Word overhaul (15 Nov 2026): Nucleus's example takes today's stamp too (its letters unchanged), as every other
     // game's example does through generatePuzzle's layers.
     const { dealWordOverhaul } = await import("./wordOverhaul.server");
+    // …and the D1 refit's (21 Nov 2026, wordStar.ts: wordsmithRev 6), as rooms deal it.
+    const { dealWordStar } = await import("./wordStar");
     // The six banked types store their example, so it needs no live solve.
     const { bankedIntroExample } = await import("./puzzleBank.server");
     // Skid, Chroma Lines and Tessellate (puzzle polish, 3 Nov 2026): their live boards come from the depth banks, which
@@ -166,7 +170,7 @@ export const practiceGenerateFn = createServerFn({ method: "POST" })
     const liveFromBank = LIVE_INTRO_EXAMPLE_TYPES.has(type);
     const made = liveFromBank
       ? withSeededRandom(INTRO_EXAMPLE_SEED, () => generatePuzzle(type, { bankSeed: INTRO_EXAMPLE_SEED }))
-      : bankedIntroExample(type) ?? withSeededRandom(INTRO_EXAMPLE_SEED, () => type === "wordsmith" ? dealWordOverhaul(generateWordsmithExample()) : generatePuzzle(type, { unblockRow }));
+      : bankedIntroExample(type) ?? withSeededRandom(INTRO_EXAMPLE_SEED, () => type === "wordsmith" ? dealWordStar(dealWordOverhaul(generateWordsmithExample())) : generatePuzzle(type, { unblockRow }));
     const { pub, priv } = splitPuzzle(made);
     return { puzzle: pub as PuzzleData, sealed: await sealDeal(pub as PuzzleData, priv as Loose, { __example: INTRO_EXAMPLE_ID, __dealtAt: Date.now() }) };
   });
@@ -502,7 +506,7 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
     if (data.puzzle.type === "wordhunt") {
       const { checkWordHuntPath } = await import("./wordHunt.server");
       const path = Array.isArray(data.path) ? data.path.slice(0, 16).map(Number) : [];
-      return checkWordHuntPath(data.puzzle.grid, path, found);
+      return checkWordHuntPath(data.puzzle.grid, path, found, wordHuntMinLength(data.puzzle));
     }
     if (data.puzzle.type === "tilegrid") {
       const { checkTileGridWord } = await import("./tileGrid.server");
@@ -510,13 +514,13 @@ export const practiceCheckWordFn = createServerFn({ method: "POST" })
     }
     if (data.puzzle.type === "wordslide") {
       const { checkWordSlideRow } = await import("./wordSlide.server");
-      return checkWordSlideRow(String(data.word ?? ""));
+      return checkWordSlideRow(String(data.word ?? ""), wordSlideSize(data.puzzle));
     }
     if (data.puzzle.type !== "wordsmith") {
       return { valid: false as const, points: 0, word: "", reason: "Not this round." };
     }
     const { checkWordsmithWord } = await import("./wordsmith.server");
-    return checkWordsmithWord(data.puzzle.letters, String(data.word ?? ""), found, data.puzzle.wordsmithRev);
+    return checkWordsmithWord(data.puzzle.letters, String(data.word ?? ""), found, data.puzzle.wordsmithRev, wordsmithMinLength(data.puzzle));
   });
 
 /** Strikeout, Cryptogrid and Swapword practice: replays the moves against the sealed answer half. */

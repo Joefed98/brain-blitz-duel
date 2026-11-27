@@ -187,7 +187,8 @@ function ok(cond: unknown, label: string): void {
   const ten = PUZZLE_CATALOGUE.tendrop;
   ok(ten.category === "speed" && ten.arcadeRun === true && typesInCategory("speed").includes("tendrop") && !typesInCategory("number").includes("tendrop"), "Tenfall is a Speed game, out of Number");
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Speed overhaul): Tenfall deals tenRev 6.
-  ok(PRACTICE_STAMPS.tendrop === "puzzleScoreRev=3 speedPar=1 tenRev=6", `Tenfall's stamps are unchanged (${PRACTICE_STAMPS.tendrop})`);
+  // Changed with Joe's approval, 22 Nov 2026 (D3): Tenfall deals tenRev 7.
+  ok(PRACTICE_STAMPS.tendrop === "puzzleScoreRev=3 speedPar=1 tenRev=7", `Tenfall's stamps are unchanged (${PRACTICE_STAMPS.tendrop})`);
 }
 
 console.log(`minefield-logic-check: ${passes} passed, ${failures.length} failed`);

@@ -12,8 +12,8 @@ import { WORDHUNT_MAX_MISSES, WORDHUNT_MISS_MARK, WORDHUNT_REV_MISSES } from "..
 import { WORDSMITH_REV_DEPTH } from "../../src/lib/duel/scoring";
 import { judgeTileGrid } from "../../src/lib/duel/tileGrid.server";
 import { decodeTileGrid } from "../../src/lib/duel/tileGrid";
-import { encodeTileGrid, TG_CELLS, TG_SIZE } from "../../src/lib/duel/tileGrid";
-import { applyShift, markedRowWord, shiftToken, WS_SIZE as SL_SIZE, type SlideShift } from "../../src/lib/duel/wordSlide";
+import { encodeTileGrid, TG_CELLS, TG_SIZE, tileGridSize, tileGridSizeOfCells } from "../../src/lib/duel/tileGrid";
+import { applyShift, markedRowWord, shiftToken, slideGridSide, wordSlideSize, WS_SIZE as SL_SIZE, type SlideShift } from "../../src/lib/duel/wordSlide";
 import { wsEncode, wsLine, wsMatch, wsRowsOf } from "../../src/lib/duel/wordSearch";
 import { puzzleLevel } from "../../src/lib/levels/levels";
 import { WORDSEARCH_LEVEL_SETTINGS } from "../../src/lib/levels/word/wordsearch";
@@ -30,7 +30,7 @@ import {
 } from "../../src/lib/duel/strikeout";
 import { strikeoutAnswerWords } from "../../src/lib/duel/strikeout.server";
 import { encodeCodeword, replayCodeword, type CwAction } from "../../src/lib/duel/codeword";
-import { encodeSwapword, replaySwapword, swapwordMarks, SW_TILES, type SwSwap } from "../../src/lib/duel/swapword";
+import { encodeSwapword, replaySwapword, swapwordMarks, swGeometry, swLatticeOf, SW_NORMAL_LATTICE, SW_TILES as SW_TILES_NORMAL, type SwSwap } from "../../src/lib/duel/swapword";
 import { witnessSwaps } from "../../src/lib/duel/swapword.server";
 import { WORDHUNT_COLS, WORDSMITH_CENTRE_INDEX, WORDSMITH_SIZES, wordHuntCols } from "../../src/lib/duel/types";
 import type {
@@ -242,7 +242,7 @@ const forage: PuzzleKit = {
 // ───────────────────────── Interlock (tilegrid) ─────────────────────────
 
 /** The solution's words as cell lists: the across word first, then each down word's new cells. */
-function tileGridWords(solution: string[]): number[][] {
+function tileGridWords(solution: string[], TG_SIZE: number = tileGridSizeOfCells(solution)): number[][] {
   const runs: number[][] = [];
   for (const horizontal of [true, false])
     for (let a = 0; a < TG_SIZE; a++) {
@@ -259,9 +259,13 @@ function tileGridWords(solution: string[]): number[][] {
 
 const interlock: PuzzleKit = {
   type: "tilegrid",
-  nothing: () => encodeTileGrid([]),
+  nothing: (p) => encodeTileGrid([], tileGridSize(p as TileGridPuzzleData)),
   spam(p, rng) {
     const d = p as TileGridPuzzleData;
+    // Levels (D1, 21 Nov 2026): a level board's stored side (tileGridRev 5); Normal's 7, exactly as before.
+    const TG_SIZE = tileGridSize(d);
+    const TG_CELLS = TG_SIZE * TG_SIZE;
+    const enc = (cells: string[]) => encodeTileGrid(cells, TG_SIZE);
     const tray = d.tray;
     const rows = Array.from({ length: TG_CELLS }, () => "");
     tray.forEach((l, i) => (rows[i] = l));
@@ -275,20 +279,24 @@ const interlock: PuzzleKit = {
     for (let r = 0; r < TG_SIZE && k < shuffled.length; r++) if (r !== 3) cross[r * TG_SIZE + 3] = shuffled[k++]!;
     for (let r = 0; r < TG_SIZE && k < shuffled.length; r++) if (r !== 3) cross[r * TG_SIZE + 1] = shuffled[k++]!;
     return [
-      { label: "tray-in-rows", answer: encodeTileGrid(rows) },
-      { label: "random-cells", answer: encodeTileGrid(random) },
-      { label: "random-cross", answer: encodeTileGrid(cross) },
+      { label: "tray-in-rows", answer: enc(rows) },
+      { label: "random-cells", answer: enc(random) },
+      { label: "random-cross", answer: enc(cross) },
     ];
   },
   play(p, rng, skill) {
     const d = p as TileGridPuzzleData;
     const sol = d.solution ?? [];
+    // Levels (D1, 21 Nov 2026): a level board's stored side (tileGridRev 5); Normal's 7, exactly as before.
+    const TG_SIZE = tileGridSize(d);
+    const TG_CELLS = TG_SIZE * TG_SIZE;
+    const enc = (cells: string[]) => encodeTileGrid(cells, TG_SIZE);
     // BASE: 14 s to work out each word from the tray (anagramming), then 1.2 s per tile dragged into place.
     const THINK = 14, TILE = 1.2;
     // Natural order: word by word, longest first; a think pause before each word's first new tile.
     const natural: { cell: number; think: boolean }[] = [];
     const seen = new Set<number>();
-    for (const word of tileGridWords(sol)) {
+    for (const word of tileGridWords(sol, TG_SIZE)) {
       const fresh = word.filter((c) => !seen.has(c));
       fresh.forEach((c, i) => { seen.add(c); natural.push({ cell: c, think: i === 0 }); });
     }
@@ -296,15 +304,16 @@ const interlock: PuzzleKit = {
     // would submit there, though the phone submits only on Done or at the buzzer. So the tile order
     // bends where needed (a tile of the next word goes down before the current word's last tile) to keep
     // the grid invalid until the fifteenth tile; the timing still follows the natural word-by-word order.
+    // (A level board: its own tile count.)
     const cells = Array.from({ length: TG_CELLS }, () => "");
     const validWith = (cell: number) => {
       const t = [...cells];
       t[cell] = sol[cell]!;
-      return judgeTileGrid(decodeTileGrid(encodeTileGrid(t)), d.tray).valid;
+      return judgeTileGrid(decodeTileGrid(enc(t), TG_SIZE), d.tray).valid;
     };
     const steps: Step[] = [];
     let at = 0;
-    const push = () => steps.push({ answer: encodeTileGrid(cells), atMs: at });
+    const push = () => steps.push({ answer: enc(cells), atMs: at });
     const left = natural.map((n) => n.cell);
     const bendFree = puzzleScoreRevOf(d) >= 3;
     for (let k = 0; k < natural.length; k++) {
@@ -334,9 +343,12 @@ const interlock: PuzzleKit = {
 
 // ───────────────────────── Slider (wordslide) ─────────────────────────
 
-const ALL_SHIFTS: SlideShift[] = (["r", "c"] as const).flatMap((axis) =>
-  Array.from({ length: SL_SIZE }, (_, index) => [1, -1].map((dir) => ({ axis, index, dir: dir as 1 | -1 }))).flat(),
-);
+const shiftsOfSize = (size: number): SlideShift[] =>
+  (["r", "c"] as const).flatMap((axis) => Array.from({ length: size }, (_, index) => [1, -1].map((dir) => ({ axis, index, dir: dir as 1 | -1 }))).flat());
+const ALL_SHIFTS: SlideShift[] = shiftsOfSize(SL_SIZE);
+/** D1 (21 Nov 2026): the level grids' slides (4 × 4 to 7 × 7); Normal's ALL_SHIFTS at 5. */
+const SHIFTS_OF_SIZE = new Map<number, SlideShift[]>([[SL_SIZE, ALL_SHIFTS]]);
+const shiftsFor = (size: number) => SHIFTS_OF_SIZE.get(size) ?? (SHIFTS_OF_SIZE.set(size, shiftsOfSize(size)), SHIFTS_OF_SIZE.get(size)!);
 const inverse = (s: SlideShift): SlideShift => ({ ...s, dir: (s.dir === 1 ? -1 : 1) as 1 | -1 });
 const slideCache = new Map<string, SlideShift[]>();
 
@@ -356,14 +368,17 @@ export function solveSlide(start: string[], goal: string[]): SlideShift[] {
     return a;
   };
   if (fw.has(goal.join(""))) return [];
+  // D1: a level grid's own size (read from its tiles); Normal's 5 × 5 exactly as before.
+  const size = slideGridSide(start);
+  const shifts = shiftsFor(size);
   for (let depth = 0; depth < 12; depth++) {
     const forward = fFront.length <= bFront.length;
     const [mine, other, front] = forward ? [fw, bw, fFront] : [bw, fw, bFront];
     const next: string[] = [];
     for (const s of front) {
       const grid = [...s];
-      for (const m of ALL_SHIFTS) {
-        const t = applyShift(grid, m).join("");
+      for (const m of shifts) {
+        const t = applyShift(grid, m, undefined, size).join("");
         if (mine.has(t)) continue;
         mine.set(t, { parent: s, move: m });
         if (other.has(t)) {
@@ -385,24 +400,25 @@ const slider: PuzzleKit = {
   nothing: () => "",
   spam(p, rng, limitMs) {
     const d = p as WordSlidePuzzleData;
-    const randomShifts = Array.from({ length: Math.min(500, Math.floor(limitMs / 500)) }, () => shiftToken(rng.pick(ALL_SHIFTS)));
+    const size = wordSlideSize(d);
+    const randomShifts = Array.from({ length: Math.min(500, Math.floor(limitMs / 500)) }, () => shiftToken(rng.pick(shiftsFor(size))));
     // Spin each row until the phone shows it green (a real word), lock it, move on; then mash columns.
     const tokens: string[] = [];
     let grid = [...d.grid];
     const locked = new Set<number>();
     let budget = Math.floor(limitMs / 450);
     for (let pass = 0; pass < 6 && budget > 0; pass++) {
-      for (let r = 0; r < SL_SIZE && budget > 0; r++) {
+      for (let r = 0; r < size && budget > 0; r++) {
         if (locked.has(r)) continue;
-        for (let k = 0; k < SL_SIZE && budget > 0; k++) {
-          if (isWord(markedRowWord(grid, r))) { tokens.push(`L${r}`); locked.add(r); break; }
+        for (let k = 0; k < size && budget > 0; k++) {
+          if (isWord(markedRowWord(grid, r, size))) { tokens.push(`L${r}`); locked.add(r); break; }
           const s: SlideShift = { axis: "r", index: r, dir: 1 };
-          grid = applyShift(grid, s, locked); tokens.push(shiftToken(s)); budget--;
+          grid = applyShift(grid, s, locked, size); tokens.push(shiftToken(s)); budget--;
         }
       }
       for (let k = 0; k < 3 && budget > 0; k++) {
-        const s: SlideShift = { axis: "c", index: rng.below(SL_SIZE), dir: rng.chance(0.5) ? 1 : -1 };
-        grid = applyShift(grid, s, locked); tokens.push(shiftToken(s)); budget--;
+        const s: SlideShift = { axis: "c", index: rng.below(size), dir: rng.chance(0.5) ? 1 : -1 };
+        grid = applyShift(grid, s, locked, size); tokens.push(shiftToken(s)); budget--;
       }
     }
     return [
@@ -421,7 +437,7 @@ const slider: PuzzleKit = {
     for (const m of plan) {
       if (rng.chance(skill.err)) {
         // A wrong slide, noticed and undone (both count as moves).
-        let w = rng.pick(ALL_SHIFTS);
+        let w = rng.pick(shiftsFor(wordSlideSize(d)));
         if (w.axis === m.axis && w.index === m.index && w.dir === m.dir) w = inverse(w);
         at += thinkMs(rng, BASE, skill);
         tokens.push(shiftToken(w));
@@ -871,16 +887,19 @@ const swapword: PuzzleKit = {
   spam(p, rng) {
     const d = p as SwapwordPuzzleData;
     const sol = d.solution ?? "";
+    // swapwordRev 8 (D1): a lattice board's own tiles and words (today's figure eight when absent).
+    const lattice = swLatticeOf(d);
+    const tiles = swGeometry(lattice).tiles;
     const random: SwSwap[] = [];
     while (random.length < d.maxSwaps) {
-      const a = rng.below(SW_TILES), b = rng.below(SW_TILES);
+      const a = rng.below(tiles), b = rng.below(tiles);
       if (a !== b) random.push([a, b]);
     }
     // Swap only tiles not yet green (the phone shows in-place marks after every swap).
     const notGreen: SwSwap[] = [];
     let board = d.start;
     while (notGreen.length < d.maxSwaps) {
-      const marks = swapwordMarks(board, sol);
+      const marks = swapwordMarks(board, sol, lattice);
       const open = marks.map((m, t) => (m === 2 ? -1 : t)).filter((t) => t >= 0);
       if (open.length < 2) break;
       const [a, b] = rng.shuffle(open);
@@ -891,7 +910,7 @@ const swapword: PuzzleKit = {
     const amber: SwSwap[] = [];
     board = d.start;
     while (amber.length < d.maxSwaps) {
-      const marks = swapwordMarks(board, sol);
+      const marks = swapwordMarks(board, sol, lattice);
       const ambers = marks.map((m, t) => (m === 1 ? t : -1)).filter((t) => t >= 0);
       const open = marks.map((m, t) => (m === 2 ? -1 : t)).filter((t) => t >= 0);
       if (open.length < 2) break;
@@ -910,7 +929,11 @@ const swapword: PuzzleKit = {
     const d = p as SwapwordPuzzleData;
     const sol = d.solution ?? "";
     // BASE 5 s per swap: read the crossing words and marks, work out which two tiles to trade, drag.
-    const BASE = 5;
+    // swapwordRev 8 (D1, 21 Nov 2026): on a lattice board each swap's thinking time grows with the tiles on the board
+    // (30 or 33 against today's 21: more crossings to hold in mind; a modelling assumption stated for Joe); today's
+    // figure eight (every earlier round) is timed exactly as before.
+    const lattice = swLatticeOf(d);
+    const BASE = lattice === SW_NORMAL_LATTICE ? 5 : (5 * swGeometry(lattice).tiles) / SW_TILES_NORMAL;
     const swaps: SwSwap[] = [];
     const steps: Step[] = [];
     let at = 0;

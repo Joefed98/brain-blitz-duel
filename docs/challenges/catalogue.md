@@ -239,8 +239,8 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Unbroken | Tap all 40 charms. | Classic | Finish | finish |  | `chain.unbroken` |
-| Chain reaction | Tap all 40 within 30 s. | Classic | Speed | finish, `parts.speed` ≥ 50 (by 30 s) |  | `chain.chain-reaction` |
-| Iron links | Tap all 40 on Hard. | Hard | Finish | finish |  | `chain.iron-links` |
+| Chain reaction | Tap all 40 within 33 s. | Classic | Speed | finish, `parts.speed` ≥ 50 (by 33 s) |  | `chain.chain-reaction` |
+| Iron links | Tap all 48 on Hard. | Hard | Finish | finish |  | `chain.iron-links` |
 
 #### Bonk (`whack`)
 
@@ -248,7 +248,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Hedgehog friendly | Bonk 30 or more without a wrong hat or a hedgehog. | Classic | Clean | `hits` ≥ 30, `wrong` = 0, `bombs` = 0 |  | `whack.hedgehog-friendly` |
 | Diamond geezer | Bonk every diamond. | Classic | Full set | `depth.diamondHits` ≥ `depth.diamondTotal`, `depth.diamondTotal` ≥ 1 |  | `whack.diamond-geezer` |
-| Combo king | Bonk 47 in a row, each within 150 ms of rising. | Classic | Combo | `depth.combo` ≥ 44 | ● | `whack.combo-king` |
+| Combo king | Bonk 46 in a row, each within 400 ms of rising. | Classic | Combo | `depth.combo` ≥ 44 | ● | `whack.combo-king` |
 
 #### Pull! (`clayshoot`)
 
@@ -356,7 +356,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Jar of five | Drop five bonus words in the jar. | Classic | Target | `bonusWords` ≥ 5 |  | `letterwheel.jar-of-five` |
 | Jar full | Finish with the jar full; a bonus word adds 1 to 4 drops. | Classic | Max-out | finish, `jarPoints` ≥ 30 |  | `letterwheel.jar-full` |
-| Dizzy | Fill the crossword within 40 s. | Classic | Speed | finish, `parts.speed` ≥ 20 (by 40 s) |  | `letterwheel.dizzy` |
+| Dizzy | Fill the crossword within 55 s. | Classic | Speed | finish, `parts.speed` ≥ 20 (by 55 s) |  | `letterwheel.dizzy` |
 
 #### Strikeout (`strikeout`)
 

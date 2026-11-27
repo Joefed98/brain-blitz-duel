@@ -28,24 +28,12 @@ for (const level of BEYOND) {
   const s = TILEGRID_LEVEL_SETTINGS[level];
   for (const d of deals.get(level)! as TileGridPuzzleData[]) {
     const sol = d.solution ?? [];
-    ok(placedCount(sol) === TG_TILES && tileGridValid(sol), `tilegrid ${level}: fifteen tiles, every run a real word`);
+    ok(placedCount(sol) === s.tiles && tileGridValid(sol), `tilegrid ${level}: ${s.tiles} tiles, every run a real word`); // Changed with Joe's approval, 21 Nov 2026
     ok([...d.tray].sort().join("") === sol.filter(Boolean).sort().join(""), `tilegrid ${level}: the tray holds the solution's letters`);
     const runs = tileGridRuns(sol).filter((r) => r.word.length >= 3);
-    const across = runs.filter((r) => r.horizontal);
-    const downs = runs.filter((r) => !r.horizontal);
-    ok(across.length === 1 && downs.length === 2, `tilegrid ${level}: an H of one across word and two down words`);
-    ok(runs.every((r) => pool.has(r.word)), `tilegrid ${level}: all three are common words`);
-    const a = across[0]!;
-    if (s.acrossLen) ok(a.word.length === s.acrossLen, `tilegrid ${level}: a ${s.acrossLen}-letter across word`);
-    const row = Math.floor(a.cells[0]! / TG_SIZE);
-    for (const down of downs) {
-      const j = down.cells.findIndex((c) => Math.floor(c / TG_SIZE) === row);
-      const i = a.cells.indexOf(down.cells[j]!);
-      ok(j >= 0 && i >= 0, `tilegrid ${level}: each down word crosses the across word`);
-      if (s.cross === "start") ok(j === 0, `tilegrid ${level}: the down word starts on the across word`);
-      else ok(j > 0 && j < down.word.length - 1, `tilegrid ${level}: crossed away from both ends of the down word`);
-      if (s.innerAcross) ok(i > 0 && i < a.word.length - 1, `tilegrid ${level}: never on the across word's first or last letter`);
-    }
+    ok(runs.map((r) => r.word.length).sort().join() === [...s.lengths].sort().join(), `tilegrid ${level}: the level's ${s.lengths.length} words of ${s.lengths.join(" + ")} letters`); // Changed with Joe's approval, 21 Nov 2026
+    ok(runs.every((r) => pool.has(r.word)), `tilegrid ${level}: all of them common words`); // Changed with Joe's approval, 21 Nov 2026
+    ok(runs.every((r) => runs.some((o) => o !== r && o.cells.some((c) => r.cells.includes(c)))), `tilegrid ${level}: every word crosses another`); // Changed with Joe's approval, 21 Nov 2026
   }
 }
 

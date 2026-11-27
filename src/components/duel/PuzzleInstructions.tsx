@@ -3,7 +3,8 @@ import { useEffect, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/design/components";
 import { puzzleDef } from "@/lib/duel/catalogue";
-import { PUZZLE_INSTRUCTIONS } from "@/lib/duel/instructions";
+import { INTRO_SHORT, PUZZLE_INSTRUCTIONS } from "@/lib/duel/instructions";
+import { roundMaxFor } from "@/lib/duel/roundMax";
 import { removedDefinition } from "@/lib/duel/registerDefinition";
 import { GameIntroExample } from "@/components/duel/GameParts";
 import { INTRO_SCORE } from "@/lib/duel/introScore";
@@ -31,9 +32,17 @@ interface PuzzleInstructionsProps {
   overlay?: boolean;
   /** Shown between HOW and SCORE (the intro's demo box, IntroStage, which takes the spare height). */
   beforeScore?: ReactNode;
+  /**
+   * The round intro's short form (P2, 22 Nov 2026; Joe's decision 7): the demo box first, then the goal at 22 px, one
+   * how line and "Up to N points" (How and Score in full are behind "?"). The default render (rooms' "?" help, checks)
+   * is today's full Goal / How / Score.
+   */
+  short?: boolean;
+  /** The short form's line under the how line (the game's keys on a computer, RoundIntro's DesktopKeys). */
+  afterHow?: ReactNode;
 }
 
-export function PuzzleInstructions({ type, overlay = false, beforeScore, level = null, puzzle = null }: PuzzleInstructionsProps) {
+export function PuzzleInstructions({ type, overlay = false, beforeScore, level = null, puzzle = null, short = false, afterHow }: PuzzleInstructionsProps) {
   const base = PUZZLE_INSTRUCTIONS[type] ?? removedDefinition(type).instructions;
   // A Speed level's own goal and lines (the Speed overhaul), from the round's puzzle.
   const instructions = puzzle ? speedLevelInstructions(type, puzzleLevel(puzzle), base) : base;
@@ -49,6 +58,39 @@ export function PuzzleInstructions({ type, overlay = false, beforeScore, level =
   const shownLevel: Level = level ?? NORMAL;
   const about = overlay ? "" : levelAbout(type, shownLevel);
   const abouts = overlay ? levelAbouts(type) : [];
+
+  if (short && !overlay) {
+    // A level's own words (the Cards & Board levels, a Speed level) where it has them; else the short intro text
+    // (instructions.ts INTRO_SHORT) or the game's goal and first intro line.
+    const own = levelText || instructions !== base;
+    const shortText = own ? null : INTRO_SHORT[type];
+    const goal = levelText ? levelText.goal : (shortText?.goal ?? instructions.goal);
+    const first = how[0];
+    const line = shortText?.how ?? (first ? (first.action ? `${first.action} ${first.detail}` : first.detail) : "");
+    return (
+      <section
+        className={`round-instructions round-instructions-short flex w-full flex-col gap-2 ${beforeScore ? "min-h-0 flex-1" : "shrink-0"}`}
+        aria-label={`${puzzleDef(type).name} instructions`}
+        data-intro-short=""
+      >
+        {beforeScore}
+        <div className="intro-goal shrink-0">
+          <p className="intro-goal-text intro-goal-short">{goal}</p>
+        </div>
+        {line ? (
+          <div className="intro-how shrink-0">
+            <p className="intro-how-text intro-how-short">{line}</p>
+          </div>
+        ) : null}
+        {afterHow}
+        <div className="intro-score shrink-0">
+          <p data-intro-score-short="" className="intro-score-short">
+            Up to {roundMaxFor(type)} points. The rest is in “?”.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section

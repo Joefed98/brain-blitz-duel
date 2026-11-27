@@ -24,7 +24,8 @@ const PANGRAM_CUE = "shared.momentcard";
 const WORD_CUES = ["wordsmith.word4", "wordsmith.word5", "wordsmith.word6", "wordsmith.word7", "wordsmith.word8", "wordsmith.word9"] as const;
 
 import {
-  WORDSMITH_MIN_LENGTH,
+  wordsmithFullAt,
+  wordsmithMinLength,
   WORDSMITH_CENTRE_INDEX,
   WORDSMITH_TIME_MS,
   type WordsmithPuzzleData,
@@ -105,7 +106,7 @@ export function WordsmithPuzzle({
   }, [found, onDraftAnswer]);
 
   // A run worth 120+ on this phone's count: the atom spins up, outer tiles orbiting the centre (display only).
-  useWordFinish(runEnded && scoreWordsmith(points, puzzle.wordsmithRev, found.some((entry) => entry.word.length >= puzzle.letters.length)) >= WORD_FINISH_SCORE, () => {
+  useWordFinish(runEnded && scoreWordsmith(points, puzzle.wordsmithRev, found.some((entry) => entry.word.length >= puzzle.letters.length), wordsmithFullAt(puzzle)) >= WORD_FINISH_SCORE, () => {
     wordCue("wordsmith.finish");
     const ring = ringRef.current?.querySelector(".wordsmith-ring");
     const spin = "cubic-bezier(.5,0,.2,1)";
@@ -136,8 +137,8 @@ export function WordsmithPuzzle({
   const trySubmit = async (indices = selectedRef.current) => {
     if (locked || busy) return;
     const candidate = indices.map((index) => letters[index] ?? "").join("").trim().toUpperCase();
-    if (candidate.length < WORDSMITH_MIN_LENGTH) {
-      setMessage(`${WORDSMITH_MIN_LENGTH} letters or more`);
+    if (candidate.length < wordsmithMinLength(puzzle)) {
+      setMessage(`${wordsmithMinLength(puzzle)} letters or more`);
       setShake((n) => n + 1);
       wordFx("wrong", null, "wordsmith.invalid");
       return;
@@ -230,7 +231,7 @@ export function WordsmithPuzzle({
   const summary: Array<HudPillItem | null> = word
     ? [
         { id: "letters", label: word.length === 1 ? "Letter" : "Letters", value: word.length },
-        word.length < WORDSMITH_MIN_LENGTH ? { id: "needed", label: "Need", value: WORDSMITH_MIN_LENGTH, tone: "gold" } : null,
+        word.length < wordsmithMinLength(puzzle) ? { id: "needed", label: "Need", value: wordsmithMinLength(puzzle), tone: "gold" } : null,
       ]
     : found.length > 0
       ? [

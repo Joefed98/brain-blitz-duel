@@ -21,9 +21,11 @@ import { isEverydayWord } from "../src/lib/duel/dictionary.server";
 import { puzzleTimeLimitMs } from "../src/lib/duel/registry";
 import { WORDSMITH_CENTRE_INDEX, WORDSMITH_TIME_MS, type WordsmithPuzzleData } from "../src/lib/duel/types";
 import { WORDSMITH_REV_EVERYDAY } from "../src/lib/duel/wordOverhaul";
+import { WORDSMITH_REV_STAR } from "../src/lib/duel/wordStar"; // Changed with Joe's approval, 21 Nov 2026
 import { gameLevelSettings, levelProof, levelsOf } from "../src/lib/levels/gameLevels";
 import { puzzleLevel } from "../src/lib/levels/levels";
 import { WORDSMITH_LEVEL_ABOUT, type WordsmithLevelSettings } from "../src/lib/levels/word/wordsmith";
+import { measureOpen } from "./word-human-tune"; // Changed with Joe's approval, 21 Nov 2026
 import { MAX_ROUND_CLOCK_MS, Tally, aboutLineOk, dealLevel, kitScore, mean, seedsFrom } from "./word-levels-lib";
 
 const t = new Tally();
@@ -56,7 +58,7 @@ for (const seed of seeds) {
     t.ok(puzzleLevel(p) === level, `${level} ${seed}: stamped ${level}`);
     t.ok(puzzleTimeLimitMs(p) === s.timeLimitMs && s.timeLimitMs <= MAX_ROUND_CLOCK_MS, `${level} ${seed}: its own clock, at most 120 s`);
     t.ok(s.sizes.includes(p.letters.length), `${level} ${seed}: ${p.letters.length} letters, one of the level's sizes`);
-    t.ok(p.wordsmithRev === WORDSMITH_REV_EVERYDAY, `${level} ${seed}: today's stamp (wordsmithRev ${WORDSMITH_REV_EVERYDAY})`);
+    t.ok(p.wordsmithRev === WORDSMITH_REV_STAR, `${level} ${seed}: today's stamp (wordsmithRev ${WORDSMITH_REV_STAR})`); // Changed with Joe's approval, 21 Nov 2026
     const words = p.words ?? [];
     t.ok(words.every((w) => isEverydayWord(w.word)) && p.wordCount === words.length, `${level} ${seed}: the counted words are everyday words`);
     t.ok(words.length >= s.everyday.min && words.length <= s.everyday.max, `${level} ${seed}: ${words.length} everyday words inside ${s.everyday.min}–${s.everyday.max}`);
@@ -67,7 +69,7 @@ for (const seed of seeds) {
 }
 
 // 6. The tuning (near-perfect kit, mean on 16 fixed seeds; bands measured on 15 Nov 2026 with a margin).
-const BANDS: Record<string, [number, number]> = { easy: [155, 182], normal: [145, 168], hard: [128, 155], expert: [110, 138] };
+const BANDS: Record<string, [number, number]> = { easy: [180, 200], normal: [172, 196], hard: [180, 200], expert: [178, 200] }; // Changed with Joe's approval, 21 Nov 2026
 const means: Record<string, number> = {};
 const tuneSeeds = seedsFrom(7301, 16);
 for (const level of ["easy", "normal", "hard", "expert"] as const) {
@@ -76,13 +78,18 @@ for (const level of ["easy", "normal", "hard", "expert"] as const) {
   t.ok(means[level]! >= lo && means[level]! <= hi, `${level}: the near-perfect mean ${means[level]!.toFixed(1)} inside ${lo}–${hi}`);
 }
 t.ok(means.easy! >= means.normal! - 8, "Easy is at least as kind as Normal");
-t.ok(means.hard! < means.normal! && means.expert! < means.hard!, "Hard is harder than Normal, Expert harder than Hard");
+const reach = (l: "normal" | "hard" | "expert") => { const [e] = measureOpen(TYPE, l, seedsFrom(40001, 100), 3, false, ["elite"]); return e!.at200 / e!.runs; }; // Changed with Joe's approval, 21 Nov 2026
+const share = { normal: reach("normal"), hard: reach("hard"), expert: reach("expert") }; // Changed with Joe's approval, 21 Nov 2026
+t.ok(share.normal > share.hard && share.hard > share.expert && share.expert >= 0.2, `the elite under the human limits reaches 200 less often each level up, and on Expert on at least a fifth of runs (${Object.entries(share).map(([k, v]) => `${k} ${(100 * v).toFixed(0)}%`).join(", ")})`); // Changed with Joe's approval, 21 Nov 2026
 // Joe (16 Nov 2026): a clear step up for the Great player too, not only the Near-perfect one.
 const great: Record<string, number> = {};
 for (const level of ["easy", "normal", "hard", "expert"] as const) {
   great[level] = mean(tuneSeeds.map((seed) => kitScore(TYPE, dealLevel(TYPE, level === "normal" ? null : level, seed), seed, "great").score));
 }
-t.ok(great.easy! >= great.normal! && great.hard! < great.normal! - 5 && great.expert! < great.hard! - 5, `the Great player steps down too (${Object.entries(great).map(([k, v]) => `${k} ${v.toFixed(0)}`).join(", ")})`);
+const people = (person: "average" | "elite") => Object.fromEntries((["easy", "normal", "hard", "expert"] as const).map((l) => [l, measureOpen(TYPE, l, tuneSeeds, 3, false, [person])[0]!.mean])) as Record<string, number>; // Changed with Joe's approval, 21 Nov 2026
+const show = (r: Record<string, number>) => Object.entries(r).map(([k, v]) => `${k} ${v.toFixed(0)}`).join(", "); // Changed with Joe's approval, 21 Nov 2026
+const average = people("average"); // Changed with Joe's approval, 21 Nov 2026
+t.ok(average.easy! >= average.normal! && average.hard! < average.normal! - 5 && average.expert! < average.hard! - 5, `the average player under the human limits steps down too (${show(average)}; the Great kit, which finds long words as easily as short: ${show(great)})`); // Changed with Joe's approval, 21 Nov 2026
 
 // 7. The stage.
 const stage = readFileSync("src/components/puzzles/WordsmithPuzzle.tsx", "utf8");
