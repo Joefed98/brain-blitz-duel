@@ -4,6 +4,8 @@ import { planDrain, planWaterIn, runWater, sourceBubbles } from "@/components/pu
 import { soundCue, useSolveMoment } from "@/lib/fx/patternFx";
 import { soundCue as soundCueAt } from "@/lib/fx/soundCues";
 import { gameFx } from "@/lib/fx/kit";
+import { useRevealHosted, useRevealViews } from "@/components/duel/revealContext";
+import { useRevealBoardWidth } from "@/components/puzzles/pattern/revealBoard";
 import { useFrameProgress } from "@/components/puzzles/batchP/LiveSummary";
 import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
 import { HudPills } from "@/components/puzzles/HudPills";
@@ -533,6 +535,12 @@ export function pipesRevealView(
   return { mine, connected: state.connected, solved: state.solved, wrong, untouched, leaks, turns };
 }
 
+/** The reveal's two views on the template's control (G4). */
+const PIPES_REVEAL_VIEWS = [
+  { id: "solution", label: "Solution" },
+  { id: "yours", label: "Yours" },
+] as const;
+
 /** Turns against par as a bar (the visual summary): the par mark in gold, the player's turns over it. */
 function TurnsBar({ turns, par }: { turns: number; par: number }) {
   const span = Math.max(par * 2, turns, 1);
@@ -544,16 +552,24 @@ function TurnsBar({ turns, par }: { turns: number; par: number }) {
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
-  // The solve's payoff on the result: the kit's win on the reveal's own result card, once (silent: the reveal plays
-  // its score sound; no haptic outside a live board).
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExtra, onWin }: PuzzleRevealProps) {
+  // The solve's payoff: the reveal's win moment, once (the template plays the effects kit's win; the polish plan's G4,
+  // 27 Nov 2026: a callback, so the board never reaches outside its own reveal).
   const winRef = useRef<HTMLDivElement>(null);
   const won = Boolean(myCorrect && puzzle.type === "pipes");
+  const onWinRef = useRef(onWin);
+  onWinRef.current = onWin;
   useEffect(() => {
-    if (!won) return;
-    const card = winRef.current?.closest(".answer-reveal-content, [data-reveal-screen]")?.querySelector("[data-verdict-row]");
-    gameFx("win", card ?? null, { silent: true, inGame: false });
+    if (won) onWinRef.current?.();
   }, [won]);
+  // Solution and Yours on the template's views control (G4), one board at a time, each at the stage's size.
+  const shown = useRevealViews(PIPES_REVEAL_VIEWS);
+  // Outside the template (a replay, a bare render) there is no control: both boards are drawn, as before G4.
+  const hosted = useRevealHosted();
+  const colRef = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const dimsForFit = puzzle.type === "pipes" ? pipesDims(puzzle) : { cols: 1, rows: 1 };
+  const fitWidth = useRevealBoardWidth(colRef, boardRef, { aspect: dimsForFit.cols / dimsForFit.rows });
   // Kept per puzzle and answer, so the reveal clock's ticks leave both memoised boards alone.
   const boards = useMemo(() => {
     if (puzzle.type !== "pipes") return null;
@@ -573,7 +589,10 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
   // Difficulty levels: the board's own size (7 × 7 on every board before levels).
   const { cols: revealCols, rows: revealRows } = pipesDims(puzzle);
   const revealTall = revealRows !== revealCols;
-  const revealShape = revealTall ? ({ "--pipes-ar": `${revealCols / revealRows}` } as CSSProperties) : undefined;
+  const revealShape = {
+    ...(revealTall ? { "--pipes-ar": `${revealCols / revealRows}` } : {}),
+    ...(fitWidth ? { width: fitWidth } : {}),
+  } as CSSProperties;
   const result = myCorrect
     ? `You: every pipe joined${timeLeft === null ? "" : `, ${timeLeft} s left`}`
     : myAnswer === null || myAnswer === ""
@@ -583,15 +602,15 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
   return (
     <div ref={winRef} className="pipes-reveal flex w-full min-h-0 flex-col items-center gap-2" data-pipes-reveal="">
       <div className="pipes-reveal-boards flex min-h-0 w-full flex-1 items-start justify-center gap-3">
-        <div className="pipes-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-pipes-solution="">
-          <div className="pipes-reveal-board aspect-square" data-pipes-tall={revealTall ? "true" : undefined} style={revealShape}>
+        <div ref={shown === "solution" ? colRef : undefined} hidden={hosted && shown !== "solution"} className="pipes-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-pipes-solution="">
+          <div ref={shown === "solution" ? boardRef : undefined} className="pipes-reveal-board aspect-square" data-pipes-tall={revealTall ? "true" : undefined} style={revealShape}>
             <PipesBoard tiles={solved} source={puzzle.source} cols={revealCols} connected={all} solvedFlow gap={4} />
           </div>
-          <span className="pipes-reveal-label">Solution</span>
+          <span className={`pipes-reveal-label${hosted ? " sr-only" : ""}`}>Solution</span>
           <span className="pipes-reveal-caption">Every pipe joined to the source, no leaks</span>
         </div>
-        <div className="pipes-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-pipes-yours="">
-          <div className="pipes-reveal-board aspect-square" data-pipes-tall={revealTall ? "true" : undefined} style={revealShape}>
+        <div ref={shown === "yours" ? colRef : undefined} hidden={hosted && shown !== "yours"} className="pipes-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-pipes-yours="">
+          <div ref={shown === "yours" ? boardRef : undefined} className="pipes-reveal-board aspect-square" data-pipes-tall={revealTall ? "true" : undefined} style={revealShape}>
             <PipesBoard
               cols={revealCols}
               tiles={view.mine}
@@ -604,7 +623,7 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
               gap={4}
             />
           </div>
-          <span className="pipes-reveal-label">Yours</span>
+          <span className={`pipes-reveal-label${hosted ? " sr-only" : ""}`}>Yours</span>
           <span className="pipes-reveal-caption" data-pipes-result="">{result}</span>
           {/* The numbers that explain the score, from the stored grade (the player's own, so under Yours). */}
           <HudPills

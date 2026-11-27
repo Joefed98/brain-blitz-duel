@@ -1,6 +1,8 @@
 import { gameDisplayName } from "@/lib/duel/gameNames";
 import { Button } from "@/components/ui/button";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRevealHosted, useRevealViews } from "@/components/duel/revealContext";
+import { useRevealBoardWidth } from "@/components/puzzles/pattern/revealBoard";
 
 import {
   gridCellAt,
@@ -60,7 +62,6 @@ import {
   laserNearMissFx,
   laserRefuseFx,
   laserSplitterCells,
-  laserWinFx,
   useLaserPieceFx,
 } from "@/components/puzzles/pattern/laserFx";
 import { FramePills, parPills } from "@/components/puzzles/pattern/framePills";
@@ -1018,15 +1019,30 @@ function ShotChip({ index, gems, bomb, total, best }: { index: number; gems: num
   );
 }
 
-function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExtra }: PuzzleRevealProps) {
-  // The solve's payoff (stage 2): the kit's win on the reveal's own result card, once (silent: laser.solve played at
-  // the solve and the reveal plays its score sound).
+/** The reveal's two views on the template's control (the polish plan's G4). */
+const LASER_REVEAL_VIEWS = [
+  { id: "solution", label: "Solution" },
+  { id: "yours", label: "Yours" },
+] as const;
+
+function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExtra, onWin }: PuzzleRevealProps) {
+  // The solve's payoff: the reveal's win moment, once (the template plays the effects kit's win; the polish plan's G4,
+  // 27 Nov 2026: a callback, so the board never reaches outside its own reveal).
   const winRef = useRef<HTMLDivElement>(null);
   const won = Boolean(myCorrect && puzzle.type === "laser");
+  const onWinRef = useRef(onWin);
+  onWinRef.current = onWin;
   useEffect(() => {
-    if (!won) return;
-    laserWinFx(winRef.current?.closest(".answer-reveal-content, [data-reveal-screen]")?.querySelector("[data-verdict-row]"));
+    if (won) onWinRef.current?.();
   }, [won]);
+  // Solution and Yours on the template's views control (G4), one board at a time, each at the stage's size.
+  const shown = useRevealViews(LASER_REVEAL_VIEWS);
+  // Outside the template (a replay, a bare render) there is no control: both boards are drawn, as before G4.
+  const hosted = useRevealHosted();
+  const colRef = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
+  const fitWidth = useRevealBoardWidth(colRef, boardRef);
+  const fitStyle = fitWidth ? { width: fitWidth } : undefined;
   if (puzzle.type !== "laser") return null;
   const solution = puzzle.solution ?? [];
   const solutionTrace = traceBeam(puzzle.source, puzzle.dir, solution, puzzle.blocks, puzzle.bombs, puzzle.gems, puzzle.splitters, puzzle.directionalGems);
@@ -1066,16 +1082,16 @@ function Reveal({ timeLimitMs, puzzle, myAnswer, myCorrect, myMsRemaining, myExt
   return (
     <div ref={winRef} className="laser-reveal flex w-full min-h-0 flex-col items-center gap-2" data-laser-reveal="">
       <div className="laser-reveal-boards flex min-h-0 w-full flex-1 items-start justify-center gap-3">
-        <div className="laser-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-laser-solution="">
-          <div className="laser-reveal-board aspect-square">{board(solution, solutionTrace, null)}</div>
-          <span className="laser-reveal-label">Solution</span>
+        <div ref={shown === "solution" ? colRef : undefined} hidden={hosted && shown !== "solution"} className="laser-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-laser-solution="">
+          <div ref={shown === "solution" ? boardRef : undefined} className="laser-reveal-board aspect-square" style={fitStyle}>{board(solution, solutionTrace, null)}</div>
+          <span className={`laser-reveal-label${hosted ? " sr-only" : ""}`}>Solution</span>
           <span className="laser-reveal-caption">
             Lights all {total} gems with {solutionMirrors} mirror{solutionMirrors === 1 ? "" : "s"}
           </span>
         </div>
-        <div className="laser-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-laser-yours="">
-          <div className="laser-reveal-board aspect-square">{board(view.layout, view.trace, view.marks)}</div>
-          <span className="laser-reveal-label">Yours</span>
+        <div ref={shown === "yours" ? colRef : undefined} hidden={hosted && shown !== "yours"} className="laser-reveal-col flex min-w-0 flex-1 flex-col items-center gap-1" data-laser-yours="">
+          <div ref={shown === "yours" ? boardRef : undefined} className="laser-reveal-board aspect-square" style={fitStyle}>{board(view.layout, view.trace, view.marks)}</div>
+          <span className={`laser-reveal-label${hosted ? " sr-only" : ""}`}>Yours</span>
           <span className="laser-reveal-caption" data-laser-result="">{result}</span>
           {/* The numbers that explain the score, from the stored grade (the player's own, so under Yours). */}
           <HudPills

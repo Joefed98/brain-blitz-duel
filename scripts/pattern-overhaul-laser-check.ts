@@ -724,11 +724,12 @@ for (const shots of [2, 5]) {
     const { KITS } = await import("./puzzle-fairness/kits");
     const { SKILLS, makeRng } = await import("./puzzle-fairness/kit");
     const sol = KITS.laser!.play(p4, makeRng(7), { ...SKILLS.near, err: 0 }, 60_000).steps.at(-1)!.answer;
+    let wins = 0; // Changed with Joe's approval, 27 Nov 2026
     clear();
     await act(async () => {
-      root.render(React.createElement(laserPuzzle.Reveal, { timeLimitMs: 60_000, puzzle: p4, myAnswer: sol, myCorrect: true, myMsRemaining: 30_000, myReactionAvgMs: null, myExtra: gradeAnswer(p4, sol, 30_000).extra ?? null } as never));
+      root.render(React.createElement(laserPuzzle.Reveal, { timeLimitMs: 60_000, puzzle: p4, myAnswer: sol, myCorrect: true, myMsRemaining: 30_000, myReactionAvgMs: null, myExtra: gradeAnswer(p4, sol, 30_000).extra ?? null, onWin: () => wins++ } as never)); // Changed with Joe's approval, 27 Nov 2026
     });
-    check(kit.filter((k) => k.kind === "win").length === 1 && kit.find((k) => k.kind === "win")!.silent && recs.some((r) => r.el === row), `fx: the solve's win isn't on the result card (${kinds()})`);
+    check(wins === 1 && !kit.some((k) => k.kind === "win"), `fx: the solve doesn't call the template's win once (${wins})`); // Changed with Joe's approval, 27 Nov 2026
     clear();
     await act(async () => {
       root.render(React.createElement(laserPuzzle.Reveal, { timeLimitMs: 60_000, puzzle: p4, myAnswer: "", myCorrect: false, myMsRemaining: 0, myReactionAvgMs: null, myExtra: null } as never));
