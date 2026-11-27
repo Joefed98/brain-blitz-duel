@@ -11,7 +11,8 @@
  *     words and the golden tile.
  */
 import { bandCurve, bandOpen } from "@/lib/arcade/scoreBands";
-import { wordHuntPoints } from "./types";
+import { wordHuntPoints, wordHuntPointsAt } from "./types";
+import { WORDHUNT_REV_STAR } from "./wordStar";
 
 /** wordHuntRev 3: the 6×6 board, long-word multiplier and golden tile. */
 export const WORDHUNT_REV_DEPTH = 3;
@@ -43,8 +44,38 @@ export const WORDHUNT_REV_TOPUP = 4;
 export const WORDHUNT_V4_BASE_CURVE = bandCurve([0, 4, 6, 9, 18, 27, 44, 60], [0, 6, 25, 58, 92, 112, 140, 150]);
 export const WORDHUNT_V4_BONUS_CURVE = bandCurve([0, 8, 17, 27, 48, 89, 120], [0, 6, 9, 15, 27, 40, 50]);
 
-/** The base and bonus curves a stamp scores on. */
-export function wordHuntCurves(rev: number | null | undefined): { base: typeof WORDHUNT_V3_BASE_CURVE; bonus: typeof WORDHUNT_V3_BONUS_CURVE } {
+/**
+ * The open word finds' refit (D1, 21 Nov 2026, wordHuntRev 5; wordStar.ts): rev 4's board and rules; base points full
+ * (150) at 44, the near-perfect person's median under the human limits (scripts/word-human.ts), and the extras full
+ * (50) at 70, the elite's lower quartile, so a near-perfect haul earns the star (175) and the best reach 200. Both curves
+ * are rev 4's to 27 points, so an average or good haul scores what it did.
+ */
+export const WORDHUNT_V5_BASE_CURVE = bandCurve([0, 4, 6, 9, 18, 27, 44], [0, 6, 25, 58, 92, 112, 150]);
+export const WORDHUNT_V5_BONUS_CURVE = bandCurve([0, 8, 17, 27, 43, 70], [0, 6, 9, 15, 30, 50]);
+
+/** A level deal's own points line (D1, 21 Nov 2026; stored as `baseFullAt` / `extraFullAt`): where each part is full. */
+export interface WordHuntFullAt {
+  base?: number;
+  extra?: number;
+}
+
+/** The full-at values a stored board carries (a level deal's own; none on Normal and every older round). */
+export function wordHuntFullAtOf(puzzle: { baseFullAt?: number; extraFullAt?: number } | null | undefined): WordHuntFullAt | undefined {
+  const b = puzzle?.baseFullAt;
+  const x = puzzle?.extraFullAt;
+  if (typeof b !== "number" && typeof x !== "number") return undefined;
+  return { ...(typeof b === "number" ? { base: b } : {}), ...(typeof x === "number" ? { extra: x } : {}) };
+}
+
+/** The base and bonus curves a stamp scores on (a level's own from rev 5: rev 5's to 18 / 27 points, then straight to full). */
+export function wordHuntCurves(rev: number | null | undefined, fullAt?: WordHuntFullAt): { base: typeof WORDHUNT_V3_BASE_CURVE; bonus: typeof WORDHUNT_V3_BONUS_CURVE } {
+  if ((rev ?? 0) >= WORDHUNT_REV_STAR && fullAt) {
+    return {
+      base: typeof fullAt.base === "number" ? bandCurve([0, 4, 6, 9, 18, Math.max(19, fullAt.base)], [0, 6, 25, 58, 92, 150]) : WORDHUNT_V5_BASE_CURVE,
+      bonus: typeof fullAt.extra === "number" ? bandCurve([0, 8, 17, 27, Math.max(28, fullAt.extra)], [0, 6, 9, 15, 50]) : WORDHUNT_V5_BONUS_CURVE,
+    };
+  }
+  if ((rev ?? 0) >= WORDHUNT_REV_STAR) return { base: WORDHUNT_V5_BASE_CURVE, bonus: WORDHUNT_V5_BONUS_CURVE };
   return (rev ?? 0) >= WORDHUNT_REV_TOPUP ? { base: WORDHUNT_V4_BASE_CURVE, bonus: WORDHUNT_V4_BONUS_CURVE } : { base: WORDHUNT_V3_BASE_CURVE, bonus: WORDHUNT_V3_BONUS_CURVE };
 }
 
@@ -78,8 +109,9 @@ export interface WordHuntValue {
 }
 
 /** One accepted word's points on wordHuntRev 3, from its letters and the path traced (golden = the tile index). */
-export function wordHuntValue(word: string, path: readonly number[], golden: number | null | undefined): WordHuntValue {
-  const base = wordHuntPoints(word);
+export function wordHuntValue(word: string, path: readonly number[], golden: number | null | undefined, minLength?: number): WordHuntValue {
+  // Levels (D1, 21 Nov 2026): Easy's step-up table (minLength 3); Normal's table otherwise.
+  const base = minLength === undefined ? wordHuntPoints(word) : wordHuntPointsAt(word, minLength);
   const halves = wordHuntLongHalves(word.trim().length);
   const gold = typeof golden === "number" && path.includes(golden);
   const value = (base * halves * (gold ? WORDHUNT_GOLD_MULT : 1)) / 2;
@@ -94,9 +126,9 @@ export interface WordHuntDepthScore {
 }
 
 /** wordHuntRev 3's score (and 4's, on its own curves): base points on their curve plus feature extras on theirs, each cut by `keptPct`. */
-export function scoreWordHuntDepth(basePoints: number, extraPoints: number, keptPct = 100, rev: number = WORDHUNT_REV_DEPTH): WordHuntDepthScore {
+export function scoreWordHuntDepth(basePoints: number, extraPoints: number, keptPct = 100, rev: number = WORDHUNT_REV_DEPTH, fullAt?: WordHuntFullAt): WordHuntDepthScore {
   const kept = Math.max(0, Math.min(100, keptPct));
-  const curves = wordHuntCurves(rev);
+  const curves = wordHuntCurves(rev, fullAt);
   const basePart = Math.floor((bandOpen(curves.base, Math.round(basePoints)) * kept) / 100);
   const bonusPart = Math.floor((bandOpen(curves.bonus, Math.round(extraPoints), WORDHUNT_DEPTH_BONUS_MAX) * kept) / 100);
   return { score: Math.min(WORDHUNT_DEPTH_BASE_MAX, basePart) + Math.min(WORDHUNT_DEPTH_BONUS_MAX, bonusPart), basePart, bonusPart };

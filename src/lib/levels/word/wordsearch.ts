@@ -34,14 +34,22 @@ export interface WordSearchLevelSettings {
   decoys: number;
   /** The round's clock, ms (at most 120 s). */
   timeLimitMs: number;
+  /**
+   * The speed points full when every listed word is found within this many seconds (stored on the puzzle as
+   * `speedFullByS`; absent = a third of the clock). Joe (22 Nov 2026, decision 21): Expert's 60 s, so the elite under the
+   * human limits reaches 200 on about three boards in ten.
+   */
+  speedFullByS?: number;
 }
 
 const PROOF = { proof: "scripts/wordsearch-levels-check.ts" } as const;
 
 export const WORDSEARCH_LEVEL_SETTINGS: Readonly<Record<Exclude<Level, "normal">, WordSearchLevelSettings>> = {
   easy: { cols: 8, rows: 8, words: 5, dirs: [[0, 1], [1, 0]], decoys: 0, timeLimitMs: 120_000 },
-  hard: { cols: 10, rows: 11, words: 7, dirs: WS_ALL_DIRS, decoys: 0, timeLimitMs: 90_000 },
-  expert: { cols: 10, rows: 12, words: 8, dirs: WS_ALL_DIRS, decoys: 4, timeLimitMs: 90_000 },
+  // D1 (21 Nov 2026; difficulty-spec.md "Lookout"): words to find are the ladder (5, 6, 8, 10) in a grid already at the
+  // phone's limit (ten columns), so Hard takes today's Expert size with no false starts and Expert ten words with five.
+  hard: { cols: 10, rows: 12, words: 8, dirs: WS_ALL_DIRS, decoys: 0, timeLimitMs: 100_000, speedFullByS: 45 },
+  expert: { cols: 10, rows: 12, words: 10, dirs: WS_ALL_DIRS, decoys: 5, timeLimitMs: 90_000, speedFullByS: 60 },
 };
 
 export const WORDSEARCH_LEVELS: GameLevels | null = {
@@ -55,6 +63,6 @@ export const WORDSEARCH_LEVELS: GameLevels | null = {
 /** One plain line per level beyond Normal: what changes (the game page, the intro and the help say it). */
 export const WORDSEARCH_LEVEL_ABOUT: Partial<Record<Exclude<Level, "normal">, string>> = {
   easy: "A smaller 8 by 8 grid with five words, all reading across or down.",
-  hard: "A taller grid with seven words running any way, backwards too, and 90 seconds.",
-  expert: "The tallest grid, eight words, false starts (a word's first letters appear twice) and 90 seconds.",
+  hard: "A taller grid with eight words running any way, backwards too.",
+  expert: "Ten words in the tall grid, false starts (a word's first letters appear twice) and 90 seconds.",
 };

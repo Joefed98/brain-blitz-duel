@@ -24,8 +24,8 @@ import { acceptedRects, decodeShikaku, shikakuHeightOf } from "./shikaku";
 import { decodeBulbs } from "./lightUp";
 import { decodeTileMoves, replayTiles, tilesLayout } from "./tiles";
 import { isJumbledGradient, JUMBLED_MOVABLE, jumbledInPlace, jumbledProgress, replayGradientAnswer } from "./jumbled";
-import { decodeSwapword, replaySwapword, swapwordPlaced } from "./swapword";
-import { decodeSlideTokens, markedRowWord, replayWordSlide, slideSwapsOn, WS_MARKED_ROWS } from "./wordSlide";
+import { decodeSwapwordFor, replaySwapword, swapwordPlaced } from "./swapword";
+import { decodeSlideTokens, markedRowWord, replayWordSlide, slideSwapsOn, wordSlideSize, wsRows, WS_MARKED_ROWS, WS_SIZE } from "./wordSlide";
 import { PUZZLE_SCORE_REV, puzzleScoreRevOf } from "./puzzleScoreRev";
 import { FLOW_PAIRS, type BlockPlacement, type PuzzleData } from "./types";
 
@@ -98,8 +98,8 @@ export function swapwordCounts(
 }
 
 /** Slider: the marked rows the player changed into words (validRows: the grader's stored word rows). */
-export function wordSlideMadeRows(startGrid: string[], endGrid: string[], validRows: readonly number[]): number {
-  return WS_MARKED_ROWS.filter((r) => validRows.includes(r) && markedRowWord(endGrid, r) !== markedRowWord(startGrid, r)).length;
+export function wordSlideMadeRows(startGrid: string[], endGrid: string[], validRows: readonly number[], size: number = WS_SIZE): number {
+  return wsRows(size).filter((r) => validRows.includes(r) && markedRowWord(endGrid, r, size) !== markedRowWord(startGrid, r, size)).length;
 }
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -173,10 +173,10 @@ export function solutionProgress(puzzle: PuzzleData, answer: string, extra?: Rec
     case "swapword": {
       const solution = puzzle.solution ?? "";
       if (!solution) return null;
-      const run = replaySwapword(puzzle.start, decodeSwapword(answer), puzzle.maxSwaps, solution);
+      const run = replaySwapword(puzzle.start, decodeSwapwordFor(puzzle, answer), puzzle.maxSwaps, solution);
       const { toPlace, placed, displaced } = swapwordCounts(puzzle.start, run.board, solution);
       // The scoring standard (swapwordRev 7, standard/word.ts): blind swaps count against the tiles placed too.
-      const blind = usesStandard(puzzle) ? swapwordBlindSwaps(puzzle.start, decodeSwapword(answer), run.swaps, solution) : 0;
+      const blind = usesStandard(puzzle) ? swapwordBlindSwaps(puzzle.start, decodeSwapwordFor(puzzle, answer), run.swaps, solution) : 0;
       const costs = [...(displaced > 0 ? [`${displaced} moved out of place`] : []), ...(blind > 0 ? [`${blind} blind swap${blind === 1 ? "" : "s"}`] : [])];
       return { text: `${Math.max(0, placed - displaced - blind)}/${toPlace} tiles placed`, cost: costs.length ? costs.join(", ") : null };
     }
@@ -184,18 +184,21 @@ export function solutionProgress(puzzle: PuzzleData, answer: string, extra?: Rec
       const validRows = extra?.["validRows"];
       if (!Array.isArray(validRows)) return null;
       // wordSlideRev 4: the last row's swaps (the server's validRows already judged the locked rows).
-      const end = replayWordSlide(puzzle.grid, decodeSlideTokens(answer), { swaps: slideSwapsOn(puzzle) }).grid;
-      const made = wordSlideMadeRows(puzzle.grid, end, validRows as number[]);
+      // wordSlideRev 7 (D1, level deals): the stored size; Normal's 5 otherwise.
+      const size = wordSlideSize(puzzle);
+      const rowCount = wsRows(size).length;
+      const end = replayWordSlide(puzzle.grid, decodeSlideTokens(answer, size), { swaps: slideSwapsOn(puzzle), ...(size !== WS_SIZE ? { size } : {}) }).grid;
+      const made = wordSlideMadeRows(puzzle.grid, end, validRows as number[], size);
       // wordSlideRev 5 (wordNov7.ts): the credit is the slides closer to the words, or the rows made into other real
       // words, whichever counts more.
       const closer = extra?.["slidesCloser"];
       const from = extra?.["slidesFromStart"];
       const other = extra?.["otherWordRows"];
       if (typeof closer === "number" && typeof from === "number" && typeof other === "number") {
-        if (from > 0 && closer / from >= other / WS_MARKED_ROWS.length) return { text: `${closer}/${from} slides closer`, cost: null };
-        return { text: `${other}/${WS_MARKED_ROWS.length} rows made`, cost: null };
+        if (from > 0 && closer / from >= other / rowCount) return { text: `${closer}/${from} slides closer`, cost: null };
+        return { text: `${other}/${rowCount} rows made`, cost: null };
       }
-      return { text: `${made}/${WS_MARKED_ROWS.length} rows made`, cost: null };
+      return { text: `${made}/${rowCount} rows made`, cost: null };
     }
     default:
       return null;

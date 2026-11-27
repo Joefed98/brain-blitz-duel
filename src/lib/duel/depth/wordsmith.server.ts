@@ -7,6 +7,7 @@
  */
 import { WORDSMITH_REV_DEPTH, WORDSMITH_V3_PANGRAM_BONUS, wordsmithV3Words } from "../scoring";
 import { DEPTH_MAX } from "../wordDepth";
+import { wordsmithFullAt } from "../types";
 import type { DepthGrader } from "../wordDepth.server";
 
 export const wordsmithDepth: DepthGrader = {
@@ -16,7 +17,8 @@ export const wordsmithDepth: DepthGrader = {
     const points = typeof graded.extra?.["points"] === "number" ? (graded.extra["points"] as number) : 0;
     const words = Array.isArray(graded.extra?.["words"]) ? (graded.extra["words"] as string[]) : [];
     const pangram = words.some((word) => word.length >= puzzle.letters.length);
-    const wordScore = wordsmithV3Words(points, puzzle.wordsmithRev ?? 0);
+    // Levels (D1, 21 Nov 2026): a level deal's own points line (wordsFullAt); absent on Normal and every round before.
+    const wordScore = wordsmithV3Words(points, puzzle.wordsmithRev ?? 0, wordsmithFullAt(puzzle));
     const pangramBonus = pangram ? WORDSMITH_V3_PANGRAM_BONUS : 0;
     const score = Math.max(0, Math.min(DEPTH_MAX, wordScore + pangramBonus));
     return {

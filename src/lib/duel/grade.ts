@@ -123,7 +123,7 @@ import { checkoutBust } from "./numberOverhaul";
 import { gradeNumlineItems, numlineAccuracy, numlineFullError, scoreNumline } from "./numline";
 import { digCleanCollected, digDecode, digReplay, scoreDig } from "./dig";
 import { scoreWordSearch, wsDecode, wsGrade, wsRowsOf, wsSplitBonus } from "./wordSearch";
-import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
+import { LW_FREE_MISSES, lwDecode, lwDecodeLog, lwFreeMissesOf, lwGrade, lwTallyLog, lwUsesLog, scoreLetterWheel, scoreLetterWheelLog } from "./letterWheel";
 import { decodeCrossRun, replayCrossRun } from "./cross";
 import { decodeDualRun, replayDualRun } from "./dual";
 import { decodeMoonRun, decodeNinjaRun, decodeRicoRun, isMoonRev, isNinjaRev, replayMoonRun, replayNinjaRun, replayRicoRun } from "./ricochet";
@@ -133,10 +133,10 @@ import { decodeBullseyeRun, replayBullseyeRun } from "./bullseye";
 import { bullseyeDeadPoints, bullseyeStreakPoints } from "@/lib/arcade/bullseye";
 import { decodeMatchupRun, replayMatchupRun } from "./matchup";
 
-import { decodeTileGrid, scoreTileGrid } from "./tileGrid";
+import { decodeTileGrid, scoreTileGrid, tileGridSize, tileGridTiles } from "./tileGrid";
 import { judgeTileGrid } from "./tileGrid.server";
 import { balanceRoundScore, balanceScaleCount, balanceScalesSolved, balanceSolvedCount, decodeBalance } from "./balance";
-import { decodeSlideTokens, markedRowWord, WS_MARKED_ROWS } from "./wordSlide";
+import { decodeSlideTokens, markedRowWord, wordSlideSize, wsRows } from "./wordSlide";
 import { checkWordSlideRow, markedRowsSolved, replayWordSlideFor } from "./wordSlide.server";
 import { checkAnswer } from "./puzzles";
 import {
@@ -177,7 +177,7 @@ import { madeDistance } from "./target";
 import { isWord } from "./dictionary.server";
 import { STRIKEOUT_REV2, decodeStrikeout, decodeStrikeout2, encodeStrikeout, encodeStrikeout2, replayStrikeout, replayStrikeout2, scoreStrikeout, scoreStrikeout2, so2Rules, so2Tally, soTally, strikeoutRevOf, so2RulesFor } from "./strikeout";
 import { codewordTally, decodeCodeword, replayCodeword, scoreCodeword } from "./codeword";
-import { decodeSwapword, replaySwapword, scoreSwapword } from "./swapword";
+import { decodeSwapwordFor, replaySwapword, scoreSwapword } from "./swapword";
 import {
   blockPartyCounts,
   flowRouteCounts,
@@ -402,11 +402,12 @@ function gradeUnderRev(
   switch (puzzle.type) {
     case "tilegrid": {
       // The placed grid is re-checked against the tray and the dictionary here.
-      const verdict = judgeTileGrid(decodeTileGrid(answer), puzzle.tray);
+      // Levels (D1, 21 Nov 2026): a level board's stored side and tile count (tileGridRev 5); Normal's 7 and 15.
+      const verdict = judgeTileGrid(decodeTileGrid(answer, tileGridSize(puzzle)), puzzle.tray);
       // puzzleScoreRev 3: a finish needs every tile of the tray in the grid (a short valid grid is progress).
       isCorrect = verdict.valid && (puzzleScoreRevOf(puzzle) < 3 || verdict.placed === puzzle.tray.length);
       correctCount = verdict.placed;
-      score = scoreTileGrid(verdict.valid, verdict.placed, verdict.wordTiles, wordSpeedBonus(ms, timeLimitMs, scoreRev1() ? 30 : 20));
+      score = scoreTileGrid(verdict.valid, verdict.placed, verdict.wordTiles, wordSpeedBonus(ms, timeLimitMs, scoreRev1() ? 30 : 20), tileGridTiles(puzzle));
       extraDetail = { placed: verdict.placed, valid: verdict.valid, wordTiles: verdict.wordTiles };
       break;
     }
@@ -433,14 +434,17 @@ function gradeUnderRev(
     }
     case "wordslide": {
       // Every swipe, Undo and Reset is replayed on the stored grid.
-      const replay = replayWordSlideFor(puzzle, decodeSlideTokens(answer));
-      const rows = markedRowsSolved(replay.grid);
-      isCorrect = rows === WS_MARKED_ROWS.length;
+      // wordSlideRev 7 (D1, level deals): the stored grid size; Normal and every older round are 5 × 5 as before.
+      const size = wordSlideSize(puzzle);
+      const sizedRows = wsRows(size);
+      const replay = replayWordSlideFor(puzzle, decodeSlideTokens(answer, size));
+      const rows = markedRowsSolved(replay.grid, size);
+      isCorrect = rows === sizedRows.length;
       correctCount = rows;
       // Rev 1: an unfinished grid earns only the word rows the player made (a row still as it started is not counted).
-      const validRows = WS_MARKED_ROWS.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r)).valid);
-      const madeRows = scoreRev1() && !isCorrect ? wordSlideMadeRows(puzzle.grid, replay.grid, validRows) : rows;
-      score = scoreWordSlide(madeRows, WS_MARKED_ROWS.length, ms, timeLimitMs, replay.moves, puzzle.par);
+      const validRows = sizedRows.filter((r) => checkWordSlideRow(markedRowWord(replay.grid, r, size), size).valid);
+      const madeRows = scoreRev1() && !isCorrect ? wordSlideMadeRows(puzzle.grid, replay.grid, validRows, size) : rows;
+      score = scoreWordSlide(madeRows, sizedRows.length, ms, timeLimitMs, replay.moves, puzzle.par);
       extraDetail = { solved: isCorrect, moves: replay.moves, par: puzzle.par, rows, validRows };
       break;
     }
@@ -2922,7 +2926,7 @@ function gradeUnderRev(
           totalCells: cells.totalCells,
           traces: tally.traces,
           misses: tally.misses,
-          freeMisses: LW_FREE_MISSES,
+          freeMisses: lwFreeMissesOf(puzzle),
           neutral: tally.neutral,
         };
         break;
@@ -2998,7 +3002,7 @@ function gradeUnderRev(
     }
     case "swapword": {
       // Every swap is replayed on the stored scramble, within the swap budget.
-      const run = replaySwapword(puzzle.start, decodeSwapword(answer), puzzle.maxSwaps, puzzle.solution);
+      const run = replaySwapword(puzzle.start, decodeSwapwordFor(puzzle, answer), puzzle.maxSwaps, puzzle.solution);
       const solution = puzzle.solution ?? "";
       const { placed, toPlace, displaced } = swapwordCounts(puzzle.start, run.board, solution);
       const left = [...run.board].filter((ch, t) => ch !== solution[t]).length;

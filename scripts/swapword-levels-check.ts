@@ -16,6 +16,7 @@
  *   bun scripts/swapword-levels-check.ts
  */
 import type { SwapwordPuzzleData } from "../src/lib/duel/types";
+import { swLatticeOf } from "../src/lib/duel/swapword"; // Changed with Joe's approval, 21 Nov 2026
 import { SWAPWORD_LEVEL_SETTINGS } from "../src/lib/levels/word/swapword";
 import { swapwordLevelRuleBreak } from "../src/lib/duel/levels/swapword.server";
 import { swapwordArrangements, swapwordDeduction, swapwordHumanSolves, swapwordOneArrangement } from "../src/lib/duel/levels/swapwordProof.server";
@@ -31,24 +32,25 @@ for (const level of BEYOND) {
   for (const d of deals.get(level)! as SwapwordPuzzleData[]) {
     ok(swapwordLevelRuleBreak(d, s) === null, `swapword ${level}: board meets its rules (${swapwordLevelRuleBreak(d, s)})`);
     const greens = [...d.start].map((ch, t) => (ch === d.solution![t] ? ch : undefined));
-    ok(swapwordArrangements(d.solution!, 3, greens) === 1, `swapword ${level}: one arrangement of six answer words keeps the green tiles`);
-    ok(swapwordOneArrangement(d.start, d.solution!), `swapword ${level}: the one-answer test agrees`);
+    ok(swapwordArrangements(d.solution!, 3, greens, swLatticeOf(d)) === 1, `swapword ${level}: one arrangement of the board's answer words keeps the green tiles`); // Changed with Joe's approval, 21 Nov 2026
+    ok(swapwordOneArrangement(d.start, d.solution!, swLatticeOf(d)), `swapword ${level}: the one-answer test agrees`); // Changed with Joe's approval, 21 Nov 2026
     if (s.humanSolvable) {
-      ok(swapwordHumanSolves(d.start, d.solution!), `swapword ${level}: the human-like solver works the board out`);
-      ok(swapwordDeduction(d.start, d.solution!).steps.every((step) => !step.guessed), `swapword ${level}: without a guess`);
+      ok(swapwordHumanSolves(d.start, d.solution!, swLatticeOf(d)), `swapword ${level}: the human-like solver works the board out`); // Changed with Joe's approval, 21 Nov 2026
+      ok(swapwordDeduction(d.start, d.solution!, swLatticeOf(d)).steps.every((step) => !step.guessed), `swapword ${level}: without a guess`); // Changed with Joe's approval, 21 Nov 2026
     }
   }
 }
 // The search sees the mirror: with nothing fixed, a board's letters make at least its two mirrored arrangements.
-const sample = deals.get("hard")![0] as SwapwordPuzzleData;
+const sample = roomDeal("swapword", SEEDS[0]!) as SwapwordPuzzleData; // Changed with Joe's approval, 21 Nov 2026
 ok(swapwordArrangements(sample.solution!, 3) >= 2, "swapword: with no tile fixed the search finds the board's mirror too");
 // A start whose only green tiles lie on the diagonal (cells 0, 21 and 35: tiles 0, 12 and 20) can't tell the mirror apart.
 const onlyDiagonal = [...sample.solution!].map((ch, t) => ([0, 12, 20].includes(t) ? ch : "?"));
 ok(swapwordArrangements(sample.solution!, 3, onlyDiagonal.map((c) => (c === "?" ? undefined : c))) >= 2, "swapword: diagonal greens alone leave the mirror open");
 // The solver's line: six different words, one at a time, ending on the stored solution.
 for (const d of deals.get("expert")! as SwapwordPuzzleData[]) {
-  const line = swapwordDeduction(d.start, d.solution!);
-  ok(line.steps.length === 6 && new Set(line.steps.map((step) => step.slot)).size === 6, "swapword expert: the reader fixes the six words one at a time");
+  const line = swapwordDeduction(d.start, d.solution!, swLatticeOf(d)); // Changed with Joe's approval, 21 Nov 2026
+  const words = swLatticeOf(d).slots.length; // Changed with Joe's approval, 21 Nov 2026
+  ok(line.steps.length === words && new Set(line.steps.map((step) => step.slot)).size === words, `swapword expert: the reader fixes the ${words} words one at a time`); // Changed with Joe's approval, 21 Nov 2026
   ok(line.known === d.solution, "swapword expert: the reader's words are the board's answer");
 }
 

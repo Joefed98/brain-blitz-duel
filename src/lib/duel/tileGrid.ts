@@ -27,19 +27,45 @@ export function stampTileGridRev(puzzle: TileGridPuzzleData): TileGridPuzzleData
   return rev === undefined ? puzzle : { ...puzzle, tileGridRev: rev };
 }
 
+/**
+ * Interlock's levels (D1, 21 Nov 2026; difficulty-spec.md "Interlock"): tileGridRev 5 on level deals only. The board's
+ * side and its tile count are stored on the puzzle (`size`, `tiles`; Easy 6 and 10, Hard 8 and 19, Expert 9 and 23), the
+ * answer string is the stored size's cells, and an unfinished grid's tile credit is 120 × tiles counted ÷ tiles. Normal
+ * stays tileGridRev 4 on the 7 × 7 board of fifteen tiles: every helper below defaults to it.
+ */
+export const TILE_GRID_LEVEL_REV = 5;
+
+/** The board's side: a level deal's stored size (tileGridRev 5), else TG_SIZE. */
+export function tileGridSize(puzzle: { size?: number } | null | undefined): number {
+  const v = puzzle?.size;
+  return typeof v === "number" && Number.isInteger(v) && v >= 4 && v <= 10 ? v : TG_SIZE;
+}
+
+/** The tiles a board deals: a level deal's stored count (tileGridRev 5), else TG_TILES. */
+export function tileGridTiles(puzzle: { tiles?: number } | null | undefined): number {
+  const v = puzzle?.tiles;
+  return typeof v === "number" && Number.isInteger(v) && v > 0 ? v : TG_TILES;
+}
+
+/** A grid's side from its cells (a level board's 36, 64 or 81 cells); TG_SIZE for anything else. */
+export function tileGridSizeOfCells(cells: readonly unknown[]): number {
+  const n = Math.round(Math.sqrt(cells.length));
+  return n * n === cells.length && n >= 4 && n <= 10 ? n : TG_SIZE;
+}
+
 export interface TileRun {
   word: string;
   cells: number[];
   horizontal: boolean;
 }
 
-export function encodeTileGrid(cells: string[]): string {
-  return Array.from({ length: TG_CELLS }, (_, i) => (cells[i] ? cells[i]!.slice(0, 1) : ".")).join("");
+export function encodeTileGrid(cells: string[], size: number = TG_SIZE): string {
+  return Array.from({ length: size * size }, (_, i) => (cells[i] ? cells[i]!.slice(0, 1) : ".")).join("");
 }
 
-export function decodeTileGrid(raw: string): string[] {
+export function decodeTileGrid(raw: string, size: number = TG_SIZE): string[] {
   const text = typeof raw === "string" ? raw.toUpperCase() : "";
-  return Array.from({ length: TG_CELLS }, (_, i) => {
+  return Array.from({ length: size * size }, (_, i) => {
     const ch = text[i] ?? ".";
     return /^[A-Z]$/.test(ch) ? ch : "";
   });
@@ -52,24 +78,24 @@ export function placedCount(cells: string[]): number {
 /** Union of cells in currently valid whole runs; crossings count only once.
  * The phone supplies server verdicts; the grader supplies its private dictionary.
  */
-export function tileGridWordCells(cells: string[], validWord: (word: string) => boolean): Set<number> {
+export function tileGridWordCells(cells: string[], validWord: (word: string) => boolean, size: number = tileGridSizeOfCells(cells)): Set<number> {
   const counted = new Set<number>();
-  for (const run of tileGridRuns(cells)) {
+  for (const run of tileGridRuns(cells, size)) {
     if (run.word.length < 3 || !validWord(run.word)) continue;
     for (const cell of run.cells) counted.add(cell);
   }
   return counted;
 }
 
-/** Every horizontal and vertical run of two or more touching letters. */
-export function tileGridRuns(cells: string[]): TileRun[] {
+/** Every horizontal and vertical run of two or more touching letters (the grid's side from its cells unless given). */
+export function tileGridRuns(cells: string[], size: number = tileGridSizeOfCells(cells)): TileRun[] {
   const runs: TileRun[] = [];
   for (const horizontal of [true, false]) {
-    for (let a = 0; a < TG_SIZE; a++) {
+    for (let a = 0; a < size; a++) {
       let current: number[] = [];
-      for (let b = 0; b <= TG_SIZE; b++) {
-        const index = horizontal ? a * TG_SIZE + b : b * TG_SIZE + a;
-        if (b < TG_SIZE && cells[index]) {
+      for (let b = 0; b <= size; b++) {
+        const index = horizontal ? a * size + b : b * size + a;
+        if (b < size && cells[index]) {
           current.push(index);
           continue;
         }
@@ -84,17 +110,17 @@ export function tileGridRuns(cells: string[]): TileRun[] {
 }
 
 /** True when every placed tile touches the others as one group. */
-export function tileGridConnected(cells: string[]): boolean {
+export function tileGridConnected(cells: string[], size: number = tileGridSizeOfCells(cells)): boolean {
   const filled = cells.map((c, i) => (c ? i : -1)).filter((i) => i >= 0);
   if (filled.length === 0) return false;
   const seen = new Set<number>([filled[0]!]);
   const queue = [filled[0]!];
   while (queue.length) {
     const cell = queue.pop()!;
-    const col = cell % TG_SIZE;
-    const next = [cell - TG_SIZE, cell + TG_SIZE, col > 0 ? cell - 1 : -1, col < TG_SIZE - 1 ? cell + 1 : -1];
+    const col = cell % size;
+    const next = [cell - size, cell + size, col > 0 ? cell - 1 : -1, col < size - 1 ? cell + 1 : -1];
     for (const n of next) {
-      if (n < 0 || n >= TG_CELLS || !cells[n] || seen.has(n)) continue;
+      if (n < 0 || n >= size * size || !cells[n] || seen.has(n)) continue;
       seen.add(n);
       queue.push(n);
     }
@@ -119,15 +145,15 @@ export function fitsTray(cells: string[], tray: string[]): boolean {
  * Tile Grid score: all fifteen in a valid grid = 130 + speed (0–20, cap 150);
  * otherwise 8 per tile that sits in at least one real word of the grid.
  */
-export function scoreTileGrid(valid: boolean, placed: number, wordTiles: number, speed: number): number {
-  const n = Math.max(0, Math.min(TG_TILES, placed));
+export function scoreTileGrid(valid: boolean, placed: number, wordTiles: number, speed: number, tiles: number = TG_TILES): number {
+  const n = Math.max(0, Math.min(tiles, placed));
   // Rev 1: the grader passes PAR(30); unfinished credit is 110 × tiles in a real word ÷ 15.
   if (scoreRev1()) {
-    if (valid && n === TG_TILES) return finishParts(Math.max(0, Math.min(30, speed)));
-    return partialParts((110 * Math.max(0, Math.min(TG_TILES, wordTiles))) / TG_TILES);
+    if (valid && n === tiles) return finishParts(Math.max(0, Math.min(30, speed)));
+    return partialParts((110 * Math.max(0, Math.min(tiles, wordTiles))) / tiles);
   }
-  if (valid && n === TG_TILES) return Math.min(150, 130 + Math.max(0, Math.min(20, speed)));
-  return Math.min(150, 8 * Math.max(0, Math.min(TG_TILES, wordTiles)));
+  if (valid && n === tiles) return Math.min(150, 130 + Math.max(0, Math.min(20, speed)));
+  return Math.min(150, ((8 * TG_TILES) / tiles) * Math.max(0, Math.min(tiles, wordTiles)));
 }
 
 /**
@@ -136,10 +162,11 @@ export function scoreTileGrid(valid: boolean, placed: number, wordTiles: number,
  * and how many sit in a real word (the stored `wordTiles`), never "valid" in gold. Older rounds
  * without `wordTiles` say whether the grid was valid.
  */
-export function tileGridResultLine(result: { placed: number; valid: boolean; wordTiles?: number | null; countedTiles?: number | null }): {
+export function tileGridResultLine(result: { placed: number; valid: boolean; wordTiles?: number | null; countedTiles?: number | null }, tiles: number = TG_TILES): {
   text: string;
   finish: boolean;
 } {
+  const TG_TILES = tiles;
   const placed = Math.max(0, Math.min(TG_TILES, Math.round(result.placed) || 0));
   // tileGridRev 4 (wordNov7.ts): an unfinished grid counts tiles in real words or placed as in the answer grid.
   if (typeof result.countedTiles === "number" && Number.isFinite(result.countedTiles) && placed > 0 && !(placed === TG_TILES && result.valid)) {

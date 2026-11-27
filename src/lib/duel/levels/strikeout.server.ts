@@ -8,7 +8,7 @@ import { STRIKEOUT_REV4, STRIKEOUT_REV5, STRIKEOUT_REV_TOPUP } from "../strikeou
 import { generateStrikeout, so2GivenCount, type So2ExtraGivens } from "../strikeout.server";
 import { dealtDepthRev } from "../wordDepth";
 import { fmix32, wordGameSeed } from "../wordSeed.server";
-import { solveStrikeoutLikeAPerson } from "./strikeoutSolver.server";
+import { solveStrikeoutLikeAPerson, strikeoutLineAtLimits } from "./strikeoutSolver.server";
 
 /** A level's starting letters on word w of `length` letters, as so2GivenCount's offset. */
 export function strikeoutLevelExtra(settings: StrikeoutLevelSettings): So2ExtraGivens {
@@ -20,6 +20,8 @@ export function strikeoutLevelExtra(settings: StrikeoutLevelSettings): So2ExtraG
 
 /** Draws a level's set tries at most this many times before keeping the last (never reached in the check's seeds). */
 export const STRIKEOUT_LEVEL_TRIES = 40;
+/** Expert draws up to this many sets for one whose person-like line reaches 200 at the human limits (D1, 21 Nov 2026). */
+export const STRIKEOUT_EXPERT_TRIES = 80;
 
 /** The draw for one try (try 0 is the room's own seed; later tries mix the try in, the same for every player). */
 export function strikeoutLevelTry(level: Exclude<Level, "normal">, seed: number, attempt: number): StrikeoutPuzzleData {
@@ -27,7 +29,13 @@ export function strikeoutLevelTry(level: Exclude<Level, "normal">, seed: number,
   const rev = dealtDepthRev(dealtTopupRev(STRIKEOUT_REV_TOPUP, STRIKEOUT_REV5), STRIKEOUT_REV4);
   const drawSeed = attempt === 0 ? seed : fmix32((seed ^ Math.imul(attempt, 0x9e3779b1)) >>> 0);
   const made = generateStrikeout(drawSeed, rev, strikeoutLevelExtra(settings));
-  return { ...made, maxStrikes: settings.strikes, maxVowels: settings.vowels, timeLimitMs: settings.timeLimitMs };
+  return {
+    ...made,
+    maxStrikes: settings.strikes,
+    maxVowels: settings.vowels,
+    timeLimitMs: settings.timeLimitMs,
+    ...(settings.strikeFree ? { strikeFree: settings.strikeFree } : {}),
+  };
 }
 
 /**
@@ -41,6 +49,13 @@ export function dealStrikeoutLevel(level: Exclude<Level, "normal">, context: Gen
   const seed = wordGameSeed("strikeout", context.bankSeed);
   let made = strikeoutLevelTry(level, seed, 0);
   if (level === "easy") return made;
+  if (level === "expert") {
+    // D1 (21 Nov 2026): only a set the person-like guesser takes to 200 at the human limits (strikeoutLineAtLimits).
+    for (let attempt = 1; attempt < STRIKEOUT_EXPERT_TRIES && strikeoutLineAtLimits(made).score < 200; attempt++) {
+      made = strikeoutLevelTry(level, seed, attempt);
+    }
+    return made;
+  }
   for (let attempt = 1; attempt < STRIKEOUT_LEVEL_TRIES && !solveStrikeoutLikeAPerson(made).solved; attempt++) {
     made = strikeoutLevelTry(level, seed, attempt);
   }
