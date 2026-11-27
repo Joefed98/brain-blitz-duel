@@ -1,5 +1,7 @@
 import { useMomentEnter } from "@/components/fx/useMomentEnter";
-import { RevealScreen } from "./RevealScreen";
+import { RevealGameViewsProvider, RevealScreen, StepUpCard, levelAbove, useGameViewsHost } from "./RevealScreen";
+import { puzzleLevel, type Level } from "@/lib/levels/levels";
+import { gameFx } from "@/lib/fx/kit";
 import { JoulesLine } from "@/components/pass/JoulesLine";
 import { scorePartsText, storedScoreParts } from "@/lib/duel/puzzleScoreRev";
 import { partialProgressNote } from "@/lib/duel/partialCredit";
@@ -98,6 +100,11 @@ interface AnswerRevealProps {
    */
   onPlayAgain?: () => void;
   onBack?: () => void;
+  /**
+   * Practice only (P2, 22 Nov 2026): play this game at another level (the step-up card's "Play Hard"). With it, a run
+   * that earned a star on a level with a level above it shows the step-up card in place of Back / Play again.
+   */
+  onPlayLevel?: (level: Level) => void;
   /**
    * The daily's and a challenge's locked solution (asyncRoom.ts `solutionLockText`): the puzzle is its
    * public half only, so the board and the answer line give way to this line until the room closes. The player's own
@@ -497,10 +504,23 @@ function useRevealFit(rootRef: { current: HTMLElement | null }, cardRef: { curre
       if (`${root.clientWidth}x${root.clientHeight}:${card.scrollHeight}` === fitted) return;
       if (!frame) frame = requestAnimationFrame(fit);
     };
-    const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(later);
+    // The reveal's own box resized (the screen's geometry settling, a safe-area inset arriving late): refit inside the
+    // observer, before that frame paints (resize observers run after the frame's animation callbacks, so a frame queued
+    // from here would draw the tray one frame behind the board; P2, 22 Nov 2026). Only
+    // for the root: it is the shallowest box observed, so what the fit changes below it is delivered this frame, never
+    // as an observer loop. Anything else waits for the next frame as before.
+    const resized = (entries: ResizeObserverEntry[]) => {
+      if (!entries.some((entry) => entry.target === root)) return later();
+      if (`${root.clientWidth}x${root.clientHeight}:${card.scrollHeight}` === fitted) return;
+      if (frame) cancelAnimationFrame(frame);
+      fit();
+    };
+    const resize = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(resized);
     resize?.observe(root);
     resize?.observe(card);
     for (const child of Array.from(card.children)) resize?.observe(child);
+    // The board landing (a room's puzzle fetched after the first frame) or changing: fitted once in the next frame's
+    // animation callbacks, which run before that frame paints (the fit is costly: once a frame, never once a mutation).
     const mutations = new MutationObserver(() => {
       for (const child of Array.from(card.children)) resize?.observe(child);
       if (!frame) frame = requestAnimationFrame(fit);
@@ -802,9 +822,12 @@ function LiveAnswerReveal({
   solutionLock = null,
   onPlayAgain,
   onBack,
+  onPlayLevel,
 }: AnswerRevealProps) {
   const enter = useMomentEnter("fade");
   const practiceActions = practice && (onPlayAgain || onBack);
+  // The step-up card: practice, a star earned on this run, and a level above this one (never rooms, rated or the Daily).
+  const stepUp = practice && onPlayLevel && starLine ? levelAbove(puzzle.type, puzzleLevel(puzzle)) : null;
   const [engineOpen, setEngineOpen] = useState(false);
   const secondsLeft = Math.max(
     0,
@@ -937,6 +960,9 @@ function LiveAnswerReveal({
       </span>
     </div>
   );
+  // A game's own views on the stage (useRevealViews, P2): the template draws their control; the shared Solution /
+  // Yours switch steps aside while a game has them.
+  const gameViews = useGameViewsHost();
   // The shared reveal layout (phase 2 step 4 pass 2): practice's stars and new best, for puzzles and arcade alike.
   const payoff =
     practice && myScore !== null && answersReady && !payoffInline ? (
@@ -1004,10 +1030,6 @@ function LiveAnswerReveal({
         ) : (
           revealLines
         )}
-        {/* Engine games on the puzzle reveal: their stored breakdown, open (practice) or one tap away (rooms). */}
-        {PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) ? (
-          <EngineBreakdown type={puzzle.type} rev={puzzle.type === "clayshoot" ? puzzle.clayRev : undefined} open={engineOpen} setOpen={setEngineOpen} extra={myExtra ?? null} score={myScore} practice={practice} costRows={storedCostRows(puzzle.type, myExtra, puzzle.type === "clayshoot" ? puzzle.clayRev : undefined)} noTiles={ENGINE_OWN_REVEAL_TYPES.has(puzzle.type)} />
-        ) : null}
         {/* Shared near-miss line; nearMiss() returns null for every puzzle type without one. */}
         {myScore !== null && nearMiss(puzzle.type, myExtra) ? (
           <p className="shrink-0 text-center text-sm font-semibold text-foreground">{nearMiss(puzzle.type, myExtra)}</p>
@@ -1019,14 +1041,19 @@ function LiveAnswerReveal({
            until each family's boards draw at the box's size: S5). */
         <div ref={solvedBoard} data-skin-off className="answer-reveal-content relative isolate flex w-full min-h-0 flex-1 flex-col items-center justify-start overflow-x-hidden overflow-y-auto text-base animate-rise-settle">
           <div ref={trayRef} aria-hidden="true" data-reveal-tray className="reveal-tray" />
-          {answersReady && !solutionLock ? <SolutionSwitch type={puzzle.type} root={solvedBoard} onChange={setSwitchState} /> : null}
+          {/* Drawn from the first frame (P2, 22 Nov 2026): while a room's board is still on its way, its row is held. */}
+          {answersReady && !solutionLock ? <SolutionSwitch type={puzzle.type} root={solvedBoard} onChange={setSwitchState} off={!!gameViews.views} /> : !solutionLock && !gameViews.views ? (
+            <SolutionSwitch type={puzzle.type} root={solvedBoard} onChange={setSwitchState} pending />
+          ) : null}
           {/* The card: the game's board and every line it draws, measured and scaled as one (useRevealFit). */}
           <div ref={revealCard} data-reveal-card="" className="reveal-card">
           {/* An engine game's own summary line only while its breakdown is folded away (a room's "See breakdown"). */}
           {answersReady && solutionLock ? (
             <SolutionLocked text={solutionLock} />
           ) : answersReady && (ENGINE_OWN_REVEAL_TYPES.has(puzzle.type) || !(PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) && !SPEED_VISUAL_REVEAL_TYPES.has(puzzle.type) && myScore !== null && (practice || engineOpen))) ? (
+            <RevealGameViewsProvider value={gameViews.host}>
             <Reveal
+              onWin={() => gameFx("win", revealCard.current)}
               puzzle={puzzle}
               myAnswer={myAnswer}
               myCorrect={myCorrect}
@@ -1037,6 +1064,7 @@ function LiveAnswerReveal({
               scoreParts={storedScoreParts(myExtra)}
               myExtra={myExtra ?? null}
             />
+            </RevealGameViewsProvider>
           ) : !answersReady ? (
             <div data-reveal-waiting="" className="flex justify-center">
               <WaitingLine label="Revealing" />
@@ -1045,11 +1073,23 @@ function LiveAnswerReveal({
           </div>
         </div>
         }
+        viewControl={gameViews.views && gameViews.current ? { views: gameViews.views, value: gameViews.current, onChange: gameViews.setCurrent } : null}
+        breakdown={
+          /* Engine games on the puzzle reveal (P2, for A2's G6): their stored breakdown in the template's breakdown slot,
+             under the stage, open (practice) or behind "See breakdown" (rooms). */
+          PUZZLE_REVEAL_ENGINE_TYPES.has(puzzle.type) ? (
+            <EngineBreakdown type={puzzle.type} rev={puzzle.type === "clayshoot" ? puzzle.clayRev : undefined} open={engineOpen} setOpen={setEngineOpen} extra={myExtra ?? null} score={myScore} practice={practice} costRows={storedCostRows(puzzle.type, myExtra, puzzle.type === "clayshoot" ? puzzle.clayRev : undefined)} noTiles={ENGINE_OWN_REVEAL_TYPES.has(puzzle.type)} />
+          ) : undefined
+        }
         footer={players && players.length > 1 ? <RevealPlayers players={players} secondsLeft={secondsLeft} /> : undefined}
       />
       )}
       {practiceActions ? <PracticeJoules /> : null}
-      {practiceActions ? <PracticeRevealActions onPlayAgain={onPlayAgain} onBack={onBack} /> : null}
+      {practiceActions && stepUp ? (
+        <StepUpCard type={puzzle.type} level={puzzleLevel(puzzle)} next={stepUp} onNext={() => onPlayLevel?.(stepUp)} onPlayAgain={onPlayAgain} onBack={onBack} />
+      ) : practiceActions ? (
+        <PracticeRevealActions onPlayAgain={onPlayAgain} onBack={onBack} />
+      ) : null}
       <DevDiagnostics extra={myExtra ?? null} />
     </div>
   );

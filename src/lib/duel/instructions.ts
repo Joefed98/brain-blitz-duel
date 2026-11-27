@@ -2273,3 +2273,57 @@ export const PUZZLE_INSTRUCTIONS: Record<PuzzleType, PuzzleInstructions> = liveR
   for (const type of Object.keys(templates) as PuzzleType[]) templates[type].score = fillMax(templates[type].score, type);
   return templates;
 });
+
+/**
+ * The round intro's short text (P2, 22 Nov 2026; the polish plan's section 3.5, Joe's decision 7: "Round intro: demo,
+ * one-line goal and Ready; How and Score move behind ?"). The intro shows the goal and one how line, at most 15 words
+ * together: the game's own goal and first intro line where they fit, else the shorter words below. The full goal, every
+ * how line and the score list stay in the "?" help and on the game's page, unchanged.
+ */
+export const INTRO_SHORT: Partial<Record<PuzzleType, { goal?: string; how?: string }>> = {
+  tilegrid: { how: "Tap a tile, then a cell." },
+  wordslide: { how: "Swipe a row or column." },
+  equation: { how: "Signs go in circles, numbers in squares." },
+  reaction: { how: "Wait for gold, then tap." },
+  numhunt: { how: "Find the smallest left and tap it." },
+  countup: { how: "A shape, a colour, or both." },
+  iceslide: { how: "Swipe; the ball slides until it stops." },
+  tower: { how: "Tap a post to lift its ring." },
+  tubes: { how: "Tap a flask to pour." },
+  bomb: { how: "Read every clue, then cut in order." },
+  gravity: { goal: "Tilt every ball into its own hole.", how: "Use the arrows to tilt the board." },
+  chain: { how: "Follow the five charms in order." },
+  nonogram: { how: "Tap or drag to fill squares." },
+  skyline: { how: "Tap to drop the block." },
+  pinball: { goal: "Keep the ball in play and score.", how: "Hold left or right to flip." },
+  minesweeper: { how: "Tap to reveal; numbers count mines." },
+  homerun: { goal: "Score runs before three outs.", how: "Pick Contact or Power, then swing." },
+  freekick: { goal: "Score ten free kicks past the keeper.", how: "Draw the shot from the ball." },
+  racing: { goal: "Drive two laps fast and clean.", how: "Go when the lights go out." },
+  freecell: { goal: "Get all 40 cards home in two minutes.", how: "Tap a card to move it." },
+  tripeaks: { how: "Tap a card one higher or lower than the discard." },
+  fivehands: { goal: "Build five poker hands, then pick a column.", how: "Tap a row to place your card." },
+  pyramid: { goal: "Clear the pyramid in pairs of 13.", how: "Tap two uncovered cards that add to 13." },
+  minigolf: { goal: "Hole all five in few strokes.", how: "Pull back from the ball, then let go." },
+  pool: { goal: "Pot your seven, then the black.", how: "Drag to aim; pull back the cue to shoot." },
+  curling: { goal: "Beat the red stones to the button.", how: "Drag the gold target to aim." },
+  blockfall: { goal: "Clear as many lines as you can.", how: "Drag to move, tap to turn." },
+  cross: { goal: "Cross the space traffic again and again.", how: "Swipe up to go forward." },
+  ricochet: { goal: "Climb the temple as high as you can.", how: "Tap to leap to the other wall." },
+  shikaku: { how: "Drag corner to corner." },
+  lightup: { how: "A bulb lights its row and column." },
+  wavefront: { how: "Drag to move; firing is automatic." },
+  bastion: { goal: "Hold the wall against five waves of tanks.", how: "Drag to aim; lift to fire." },
+  flip: { goal: "Flip between floor and ceiling to dodge spikes.", how: "Tap to flip sides." },
+  swing: { how: "Hold to grab, let go to fly." },
+  balltrack: { goal: "Steer each marble into its colour’s cup.", how: "Tap a gold tube to turn it." },
+  wordsearch: { goal: "Find the hidden words in the category." },
+  strikeout: { goal: "Reveal five long words before your strikes run out.", how: "Tap letters to fill the word." },
+  tendrop: { how: "Tap falling tiles to change the total." },
+  numpyramid: { goal: "Each cell is the sum of the two below.", how: "Drag a tile into a cell." },
+  trail: { goal: "One path from 1 to 36 through every square.", how: "Tap next to the path’s end." },
+  fences: { how: "Tap an edge to draw a line." },
+  fillomino: { goal: "A region of N squares holds the number N.", how: "Pick a number, then tap squares." },
+  bridges: { goal: "Give every island its number of bridges.", how: "Drag towards an island to build a bridge." },
+  kakuro: { goal: "Make every run add up to its clue.", how: "Tap a square, then a number." },
+};

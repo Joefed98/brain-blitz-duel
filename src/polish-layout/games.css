@@ -142,57 +142,199 @@
   text-align: center;
 }
 
-/* The hero card: the game of the day on its own colour, the angled cut (a key element). */
+/* ------------------------------------------------------------------ Shelves · All (P2, 22 Nov 2026) */
+/* The switch and the count on one row (games-mixed-phone.webp): the switch on the left, "11 families" on the right. */
+.gm-view-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-12);
+}
+.gm-view {
+  flex: 0 0 auto;
+  min-width: 200px;
+}
+.gm-view-count {
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.gm-shelf,
+.gm-group {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--jz-space-8);
+}
+.gm-shelf-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--jz-space-12);
+}
+.gm-shelf-title {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--jz-space-8);
+  margin: 0;
+  color: var(--jz-text);
+  font: 800 20px/26px var(--jz-font);
+}
+/* Doubled class: beats the page skin's uppercase heading rule ([data-skin] :is(h1, h2, h3)); sentence case. */
+.gm-shelf-title.gm-shelf-title {
+  letter-spacing: 0;
+  text-transform: none;
+}
+.gm-shelf-title > .gm-dot {
+  border-radius: 2px;
+}
+.gm-shelf-count {
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  font-variant-numeric: tabular-nums;
+}
+.gm-shelf-all {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 2px;
+  margin-right: calc(-1 * var(--jz-space-8));
+  padding: 0 var(--jz-space-8);
+  border: 0;
+  background: none;
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.gm-shelf-all:focus-visible {
+  outline: 3px solid var(--jz-focus-ring);
+  outline-offset: 2px;
+}
+/*
+ * A shelf on a phone: one row of 132 px tiles (164 tall with the name and stars) that scrolls sideways inside itself,
+ * its right edge fading out; a tablet or a computer (PhoneShell's data-layout) wraps it to the grid, five across at most.
+ */
+.gm-shelf-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--jz-space-12);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  margin-right: calc(-1 * var(--jz-space-16));
+  padding-right: var(--jz-space-16);
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - var(--jz-space-24)), transparent);
+  mask-image: linear-gradient(to right, black calc(100% - var(--jz-space-24)), transparent);
+}
+.gm-shelf-row::-webkit-scrollbar {
+  display: none;
+}
+.gm-shelf-row > .gm-tile-wrap {
+  flex: 0 0 132px;
+  scroll-snap-align: start;
+}
+[data-layout] .gm-shelf-row {
+  display: grid;
+  overflow-x: visible;
+  margin: 0;
+  padding: 0;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+[data-layout] .gm-shelf-row > .gm-tile-wrap {
+  flex: none;
+}
+/* The catalogue's tiles (games-mixed-phone.webp): the art in its family's border, the name and stars under it. */
+.gm-tile-wrap > .gm-tile[data-size="card"] {
+  overflow: visible;
+  background: none;
+}
+.gm-tile-wrap > .gm-tile .jz-tile-card-foot {
+  position: static;
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: var(--jz-space-8) 2px 0;
+  background: none;
+}
+.gm-tile-wrap > .gm-tile .jz-tile-name {
+  color: var(--jz-text);
+}
+/* All: the three-across grid on a phone, whatever its width. */
+.gm-grid-all {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* The hero card: the game of the day on its family's colour, the angled cut (a key element), a gold Play. */
 .gm-hero {
   position: relative;
   display: flex;
-  grid-column: 1 / -1;
-  min-height: 176px;
-  align-items: stretch;
+  align-items: center;
   gap: var(--jz-space-12);
   overflow: hidden;
-  border: 0;
-  padding: var(--jz-space-20);
+  padding: var(--jz-space-12) var(--jz-space-16) var(--jz-space-12) var(--jz-space-12);
+  border: 1px solid color-mix(in oklab, var(--cat, var(--jz-line)) 45%, var(--jz-line));
   background: linear-gradient(
     135deg,
-    color-mix(in oklab, var(--cat, var(--jz-surface-3)) 34%, var(--jz-surface)) 0%,
-    var(--jz-surface) 78%
+    color-mix(in oklab, var(--cat, var(--jz-surface-3)) 30%, var(--jz-surface)) 0%,
+    var(--jz-surface) 80%
   );
   color: var(--jz-text);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--jz-cut-lg)), calc(100% - var(--jz-cut-lg)) 100%, 0 100%);
+}
+.gm-hero-open {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--jz-space-12);
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
   font-family: var(--jz-font);
   text-align: left;
-  clip-path: polygon(var(--jz-cut-lg) 0, 100% 0, 100% calc(100% - var(--jz-cut-lg)), calc(100% - var(--jz-cut-lg)) 100%, 0 100%, 0 var(--jz-cut-lg));
   cursor: pointer;
 }
-.gm-hero:focus-visible {
+.gm-hero-open:focus-visible {
   outline: 3px solid var(--jz-focus-ring);
-  outline-offset: -6px;
+  outline-offset: 2px;
 }
 .gm-hero-text {
   display: flex;
   min-width: 0;
   flex: 1 1 auto;
   flex-direction: column;
-  justify-content: flex-end;
-  gap: var(--jz-space-8);
+  gap: var(--jz-space-4);
 }
 .gm-hero-kicker {
-  align-self: flex-start;
-  padding: 2px var(--jz-space-8);
-  border-radius: var(--jz-radius-sm);
-  background: var(--jz-surface-2);
-  color: var(--jz-text);
+  color: var(--jz-gold-ink);
   font: var(--jz-type-caption);
+  font-weight: var(--jz-weight-bold);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 .gm-hero-name {
   font: var(--jz-type-title);
 }
-.gm-hero-tag {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--jz-space-8);
+.gm-hero-goal {
+  display: -webkit-box;
+  overflow: hidden;
   color: var(--jz-text-2);
   font: var(--jz-type-label);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.gm-hero-play {
+  flex: 0 0 auto;
 }
 .gm-dot {
   width: 10px;
@@ -203,158 +345,282 @@
 }
 .gm-hero-art {
   display: block;
-  width: 136px;
+  width: 96px;
   flex: 0 0 auto;
-  align-self: center;
 }
 .gm-hero-art > .game-icon {
+  border: 2px solid var(--cat, var(--jz-line));
   border-radius: var(--jz-radius-lg);
 }
 @container (min-width: 560px) {
   .gm-hero-art {
-    width: 168px;
+    width: 120px;
   }
 }
 @container (min-width: 760px) {
   .gm-hero {
-    min-height: 220px;
-    padding: var(--jz-space-24) var(--jz-space-32);
+    padding: var(--jz-space-16) var(--jz-space-24);
   }
   .gm-hero-art {
-    width: 200px;
+    width: 140px;
   }
 }
 
-/* ------------------------------------------------------------------ a game's page */
+/* ------------------------------------------------------------------ a game's page (P2, 22 Nov 2026) */
+/* gamepage-mixed-phone.webp: the header, the goal, the current level large, the row of four, Play, two small buttons. */
 .gm-page {
   container-type: inline-size;
   display: flex;
   flex-direction: column;
   gap: var(--jz-space-16);
-  padding-bottom: var(--jz-space-16);
+  padding-bottom: var(--jz-space-24);
 }
-.gm-page-main,
-.gm-page-side {
+.gm-page-top {
   display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: var(--jz-space-16);
-}
-.gm-page-art {
-  position: relative;
-  display: flex;
-  min-height: 240px;
   align-items: center;
-  justify-content: center;
-  padding: var(--jz-space-24);
-  border-radius: var(--jz-radius-lg);
-  background: radial-gradient(
-    circle at 50% 45%,
-    color-mix(in oklab, var(--cat, var(--jz-surface-3)) 45%, var(--jz-surface)) 0%,
-    var(--jz-surface) 72%
-  );
+  gap: var(--jz-space-12);
 }
-.gm-page-art > .game-icon {
-  width: min(208px, 56vw) !important;
-  height: auto !important;
-  aspect-ratio: 1;
-  border-radius: var(--jz-radius-lg);
-}
-.gm-page-back {
-  position: absolute;
-  top: var(--jz-space-8);
-  left: var(--jz-space-8);
+.gm-page-back,
+.gm-page-q {
   display: inline-flex;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  border: 0;
-  border-radius: var(--jz-round);
-  background: var(--jz-scrim);
-  color: var(--jz-white);
+  border: 1px solid var(--jz-line);
+  border-radius: var(--jz-radius-md);
+  background: var(--jz-surface);
+  color: var(--jz-text);
+  font: 800 20px/1 var(--jz-font);
   cursor: pointer;
 }
 .gm-page-back:focus-visible,
+.gm-page-q:focus-visible,
+.gm-page-level:focus-visible,
 .gm-icon-btn:focus-visible,
 .gm-ch-game:focus-visible {
   outline: 3px solid var(--jz-focus-ring);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
-.gm-page-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--jz-space-12);
-}
-.gm-page-name {
-  min-width: 0;
-  color: var(--jz-text);
-  font: var(--jz-type-title);
-}
-.gm-page-stars {
+.gm-page-icon {
+  display: block;
+  width: 64px;
   flex: 0 0 auto;
 }
-.gm-page-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--jz-space-8);
-  margin: calc(-1 * var(--jz-space-8)) 0 0;
-  padding: 0;
-  list-style: none;
+.gm-page-icon > .game-icon {
+  border: 2px solid var(--cat, var(--jz-line));
+  border-radius: var(--jz-radius-md);
 }
-.gm-tag {
+.gm-page-titles {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+}
+/* Doubled class: beats the page skin's uppercase heading rule; the name in sentence case. */
+.gm-page-name.gm-page-name {
+  margin: 0;
+  color: var(--jz-text);
+  font: 800 26px/30px var(--jz-font);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.gm-page-sub {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 0 var(--jz-space-4);
+  color: var(--cat, var(--jz-text-2));
+  font: var(--jz-type-caption);
+  font-weight: var(--jz-weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.gm-tag-mark .of-mark {
+  color: var(--jz-text-2);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.gm-page-goal {
+  margin: 0;
+  color: var(--jz-text-2);
+  font: var(--jz-type-body);
+}
+.gm-page-notice {
+  margin: 0;
+  padding: var(--jz-space-12) var(--jz-space-16);
+  border-radius: var(--jz-radius-md);
+  background: var(--jz-surface);
+  color: var(--jz-text);
+  font: var(--jz-type-label);
+}
+/* The current level, large: its picture with the mark on its bottom edge, the lever, the best and star. */
+.gm-page-now {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-8);
+  text-align: center;
+}
+.gm-page-now-picture {
+  position: relative;
+  width: min(100%, 360px);
+  margin-bottom: var(--jz-space-12);
+}
+.gm-page-now-mark {
+  position: absolute;
+  bottom: calc(-1 * var(--jz-space-16));
+  left: 50%;
   display: inline-flex;
   align-items: center;
   gap: var(--jz-space-4);
-  padding: 2px var(--jz-space-8);
+  padding: var(--jz-space-4) var(--jz-space-12);
+  border: 1px solid var(--jz-navy-edge);
   border-radius: var(--jz-radius-sm);
-  background: var(--jz-surface-2);
+  background: var(--jz-navy);
   color: var(--jz-text);
   font: var(--jz-type-caption);
-  font-variant-numeric: tabular-nums;
+  font-weight: var(--jz-weight-bold);
   white-space: nowrap;
+  transform: translateX(-50%);
+}
+.gm-page-now-yours {
+  color: var(--jz-text-2);
+}
+.gm-page-lever {
+  margin: var(--jz-space-8) 0 0;
+  color: var(--jz-text);
+  font: 800 24px/30px var(--jz-font);
+}
+.gm-page-level-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--jz-space-8);
+  margin: 0;
+  padding: 0;
+  color: var(--jz-text-2);
+  font: var(--jz-type-body);
+  list-style: none;
+}
+.gm-page-level-facts > li {
+  display: inline-flex;
+  align-items: center;
+}
+.gm-tag {
+  font-variant-numeric: tabular-nums;
 }
 .gm-tag[data-none] {
   color: var(--jz-text-2);
 }
-.gm-tag-cat::before {
-  width: 8px;
-  height: 8px;
-  border-radius: var(--jz-round);
-  background: var(--cat);
-  content: "";
-}
-.gm-tag-mark .of-mark {
-  color: inherit;
-}
-.gm-page-guide {
-  display: flex;
-  flex-direction: column;
-  gap: var(--jz-space-8);
-  padding: var(--jz-space-16);
-  border-radius: var(--jz-radius-lg);
-  background: var(--jz-surface);
-}
-.gm-page-goal {
-  color: var(--jz-text);
-  font: var(--jz-type-body);
-}
-.gm-page-how {
+.gm-page-level-note {
+  margin: 0;
   color: var(--jz-text-2);
   font: var(--jz-type-label);
 }
-.gm-page-notice {
-  padding: var(--jz-space-12) var(--jz-space-16);
+/* The levels as a compact row to tap: each its small picture, mark, star and best; the chosen one ringed in its colour. */
+.gm-page-levels {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  grid-auto-flow: column;
+  gap: var(--jz-space-8);
+}
+.gm-page-level {
+  display: flex;
+  min-width: 0;
+  min-height: 44px;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--jz-space-4);
+  padding: var(--jz-space-8) var(--jz-space-4);
+  border: 1px solid var(--jz-line);
   border-radius: var(--jz-radius-md);
-  background: var(--jz-surface-2);
+  background: var(--jz-surface);
   color: var(--jz-text);
+  font-family: var(--jz-font);
+  cursor: pointer;
+}
+.gm-page-level[aria-checked="true"] {
+  border: 2px solid var(--jz-level-normal);
+  background: var(--jz-surface-2);
+}
+.gm-page-level[data-level-option="easy"][aria-checked="true"] { border-color: var(--jz-level-easy); }
+.gm-page-level[data-level-option="hard"][aria-checked="true"] { border-color: var(--jz-level-hard); }
+.gm-page-level[data-level-option="expert"][aria-checked="true"] { border-color: var(--jz-level-expert); }
+.gm-page-level .jz-level-name {
+  font-size: 14px;
+}
+.gm-page-level-best {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--jz-space-4);
+  color: var(--jz-text-2);
   font: var(--jz-type-label);
+  font-variant-numeric: tabular-nums;
+}
+.gm-level-star {
+  display: block;
+  width: 14px;
+  height: 14px;
+  background: color-mix(in srgb, var(--jz-text-3) 45%, transparent);
+  clip-path: polygon(50% 0%, 61.8% 35.4%, 100% 38.2%, 69.1% 61.8%, 80.9% 100%, 50% 77%, 19.1% 100%, 30.9% 61.8%, 0% 38.2%, 38.2% 35.4%);
+}
+.gm-level-star[data-level-star="on"] {
+  background: var(--jz-gold-metal);
+}
+/* The lever-picture slot's boxes (src/lib/levels/leverPicture.tsx): the large level about 16 : 9, a row's tile 3 : 2. */
+.lever-picture {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid var(--jz-line);
+  border-radius: var(--jz-radius-md);
+  background: var(--jz-bg-raised);
+}
+.lever-picture[data-size="l"] {
+  aspect-ratio: 16 / 10;
+  padding: var(--jz-space-12);
+  border: 2px solid var(--jz-navy-edge);
+  border-radius: var(--jz-radius-lg);
+}
+.lever-picture[data-size="s"] {
+  aspect-ratio: 3 / 2;
+  padding: var(--jz-space-4);
+}
+.lever-picture-text {
+  color: var(--jz-text-2);
+  font: 800 22px/28px var(--jz-font);
+  text-align: center;
+}
+.lever-picture[data-size="s"] .lever-picture-text {
+  font: var(--jz-type-caption);
+  font-weight: var(--jz-weight-bold);
+}
+.gm-page-play {
+  display: flex;
+  flex-direction: column;
+  gap: var(--jz-space-12);
+}
+.gm-page-more {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--jz-space-12);
+}
+.gm-page-help {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
 }
 .gm-page-section {
   display: flex;
   flex-direction: column;
-  gap: var(--jz-space-12);
+  gap: var(--jz-space-8);
 }
 .gm-section-head {
   display: flex;
@@ -367,41 +633,17 @@
   font: var(--jz-type-heading);
 }
 .gm-section-meta {
-  color: var(--jz-text-3);
-  font: var(--jz-type-caption);
-  white-space: nowrap;
+  color: var(--jz-text-2);
+  font: var(--jz-type-label);
+  font-variant-numeric: tabular-nums;
 }
-/* Play: kept in reach at the bottom of a phone's screen, above the home bar. */
-.gm-page-play {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  margin: 0 calc(-1 * var(--jz-space-4));
-  padding: var(--jz-space-8) var(--jz-space-4) calc(var(--jz-space-8) + env(safe-area-inset-bottom, 0px));
-  background: linear-gradient(transparent, var(--jz-bg) 30%);
-}
-@container (min-width: 640px) {
+/* A computer (levels-e-desktop.webp): the large level beside the row, Play under both, in a 720 px column. */
+@container (min-width: 760px) {
   .gm-page {
-    display: grid;
-    grid-template-columns: minmax(0, 1.55fr) minmax(280px, 1fr);
-    align-items: start;
-    gap: var(--jz-space-32);
-  }
-  .gm-page-play {
-    position: static;
-    margin: 0;
-    padding: 0;
-    background: none;
-  }
-  .gm-page-art {
-    min-height: 320px;
-  }
-  .gm-page-art > .game-icon {
-    width: 256px !important;
+    max-width: 720px;
   }
 }
 
-/* ------------------------------------------------------------------ challenge rows */
 .gm-ch-list {
   margin: 0;
   padding: 0 var(--jz-space-16);
@@ -573,88 +815,114 @@
   color: var(--jz-text-3);
 }
 
-/* ------------------------------------------------------------------ the catalogue's top (difficulty framework) */
-/*
- * 15 Nov 2026 (phase 2 step 4, Joe's order): the Puzzles | Arcade switch, the switch's categories as colour tiles in
- * one sideways-scrolling row (on every layout), then the difficulty switch.
- */
-.gm-cat-tiles {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: var(--jz-space-8);
-  overflow-x: auto;
-  overscroll-behavior-x: contain;
-  margin: 0 calc(-1 * var(--jz-space-4));
-  padding: var(--jz-space-4) var(--jz-space-32) var(--jz-space-4) var(--jz-space-4);
-  scrollbar-width: none;
-  -webkit-mask-image: linear-gradient(to right, black calc(100% - var(--jz-space-32)), transparent);
-  mask-image: linear-gradient(to right, black calc(100% - var(--jz-space-32)), transparent);
+
+/* ------------------------------------------------------------------ the round intro's short form (P2, 22 Nov 2026) */
+/* intro-e-phone.webp: the demo box first (about 40 % of the height), then the goal at 22 px and one how line, centred,
+   white (not the accent the full form's labels take), then "Up to N points" and Ready. */
+.round-instructions.round-instructions-short {
+  align-items: stretch;
+  text-align: center;
 }
-.gm-cat-tiles::-webkit-scrollbar {
-  display: none;
-}
-.gm-cat-tile {
-  flex: 0 0 auto;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  align-items: flex-start;
-  min-width: 96px;
-  min-height: 64px;
-  padding: var(--jz-space-8) var(--jz-space-12);
-  border: 2px solid var(--cat, var(--jz-surface-3));
-  border-radius: var(--jz-radius-md);
-  background: linear-gradient(
-    160deg,
-    color-mix(in oklab, var(--cat, var(--jz-surface-3)) 42%, var(--jz-surface)) 0%,
-    var(--jz-surface) 100%
-  );
+.round-instructions.round-instructions-short > div > p:first-child {
   color: var(--jz-text);
-  text-align: left;
-  cursor: pointer;
 }
-/* The chosen tile: a ring in its colour (its text stays on the tile's own tint, readable in both themes). */
-.gm-cat-tile[aria-pressed="true"] {
-  border-width: 3px;
-  box-shadow: 0 0 0 2px var(--cat, var(--jz-surface-3));
+.round-instructions-short > .intro-stage {
+  flex: 1 1 48%;
 }
-.gm-cat-tile-name {
-  font: var(--jz-type-label);
+.round-instructions-short .intro-goal-short {
+  margin-top: var(--jz-space-4);
+  font-size: 22px;
+  line-height: 28px;
   font-weight: var(--jz-weight-bold);
-  white-space: nowrap;
 }
-.gm-cat-tile-count {
-  font: var(--jz-type-caption);
-  font-variant-numeric: tabular-nums;
-  opacity: 0.8;
-}
-.gm-tile-level {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--jz-space-4);
-  padding: var(--jz-space-4) var(--jz-space-4) 0;
+.round-instructions.round-instructions-short > .intro-how > .intro-how-short {
   color: var(--jz-text-2);
-  font: var(--jz-type-caption);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+  font: var(--jz-type-label);
+  font-size: 16px;
 }
-.gm-tile-level-name {
+.round-instructions.round-instructions-short > .intro-score > .intro-score-short {
   color: var(--jz-text-3);
+  font: var(--jz-type-caption);
 }
-.gm-tile-level[data-level-fallback] .gm-tile-level-name {
-  font-style: italic;
+.round-instructions-short .desktop-keys {
+  justify-content: center;
 }
-.gm-page-level {
+.intro-level-mark {
+  margin-left: var(--jz-space-8);
+}
+
+/* ------------------------------------------------------------------ the first game (P2, 22 Nov 2026) */
+/* The coach line over the board's foot: never in the way of a tap (pointer-events none), never over the HUD's pills. */
+.gm-first-coach {
+  position: absolute;
+  bottom: var(--jz-space-24);
+  left: 50%;
+  z-index: 30;
+  max-width: calc(100% - var(--jz-space-32));
+  padding: var(--jz-space-8) var(--jz-space-16);
+  border: 1px solid var(--jz-navy-edge);
+  border-radius: var(--jz-radius-md);
+  background: var(--jz-navy);
+  color: var(--jz-text);
+  font: var(--jz-type-label);
+  text-align: center;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+/* The win screen (first3-e-phone.webp): the level, the score large, the star line, Play again in gold. */
+.gm-first-win {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
-  gap: var(--jz-space-8);
+  align-items: center;
+  justify-content: center;
+  gap: var(--jz-space-12);
+  padding: var(--jz-space-24) var(--jz-space-16);
+  text-align: center;
 }
-.gm-page-level-note {
-  color: var(--jz-text-2);
+.gm-first-win-title.gm-first-win-title {
+  margin: 0;
+  color: var(--jz-text);
+  font: var(--jz-type-heading);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.gm-first-win-score {
+  margin: 0;
+  color: var(--jz-text);
+  font: 800 88px/1 var(--jz-font);
+  font-variant-numeric: tabular-nums;
+}
+.gm-first-win-line {
+  margin: 0;
+  color: var(--jz-gold-ink);
+  font: var(--jz-type-body);
+}
+.gm-first-win-actions {
+  display: flex;
+  width: min(100%, 420px);
+  flex-direction: column;
+  gap: var(--jz-space-12);
+  margin-top: var(--jz-space-12);
+}
+.gm-first-win-note {
+  margin: 0;
+  color: var(--jz-text-3);
   font: var(--jz-type-caption);
 }
 
-/* The first-time explanation of difficulty levels (Joe, 15 Nov 2026), under a level selector. */
+/* The light theme (tokens.css): the category shows as the icon's border, its words the text colour (as light.css's
+   pills); the current level's badge on a light panel, since the navy fill stays dark in every theme. */
+:root[data-theme="light"] .gm-page-sub {
+  color: var(--jz-text-2);
+}
+:root[data-theme="light"] .gm-page-now-mark {
+  border-color: var(--jz-line);
+  background: var(--jz-surface);
+}
+
+/* The first-time explanation of difficulty levels (Joe, 15 Nov 2026), under a level selector: on a game's page and in
+   room settings (restored, 22 Nov 2026: the P2 rewrite of this file dropped it). */
 .lv-intro {
   display: flex;
   flex-direction: column;

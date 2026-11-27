@@ -134,29 +134,21 @@ const settle = (page: Page) => page.waitForTimeout(350);
 const isArcade = (t: string) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY]?.category === "arcade";
 const CATEGORIES = ["word", "number", "speed", "attention", "pattern", "logic"].filter((c) => typesInCategory(c as never).length > 0);
 const GROUPS = ARCADE_GROUPS.filter((g) => groupRows(g.id).length > 0);
-const shelfOf = (id: string) => (CATEGORIES.includes(id) ? [...typesInCategory(id as never), ...typesAlsoIn(id as never)] : groupRows(id as never));
+// Changed with Joe's approval, 22 Nov 2026: lines removed here
 const sideGames = (side: "puzzles" | "arcade") => ACTIVE_PUZZLE_TYPES.filter((t) => isArcade(t) === (side === "arcade"));
 const labelOf = (id: string) => ARCADE_GROUPS.find((g) => g.id === id)?.label ?? id.charAt(0).toUpperCase() + id.slice(1);
 const rgb = (hex: string) => `rgb(${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)})`;
-const tiles = (page: Page) =>
-  page.locator("[data-games-category-tiles] [data-practice-filter]").evaluateAll((els) =>
-    els.map((el) => ({ id: el.getAttribute("data-practice-filter")!, name: (el.querySelector(".gm-cat-tile-name")?.textContent ?? "").trim(), pressed: el.getAttribute("aria-pressed"), cat: el.getAttribute("data-cat"), bg: getComputedStyle(el).borderTopColor })),
-  );
-const sidePressed = (page: Page, side: string) => page.locator(`[data-practice-side='${side}']`).getAttribute("aria-pressed");
+// Changed with Joe's approval, 22 Nov 2026 (P2, the Games page's Shelves · All): the view switch's state and each family's home games (a game listed
+// "also in" a second pick is on its home shelf only). Were the category tiles' and the Puzzles | Arcade switch's readers.
+const viewPressed = (page: Page, view: string) => page.locator(`[data-games-view-option='${view}']`).getAttribute("aria-pressed"); // Changed with Joe's approval, 22 Nov 2026
+const homeOf = (id: string): string[] => // Changed with Joe's approval, 22 Nov 2026
+  (CATEGORIES.includes(id) ? typesInCategory(id as never) : arcadeGroupTypes(id as never)).filter((t) => (ACTIVE_PUZZLE_TYPES as readonly string[]).includes(t)); // Changed with Joe's approval, 22 Nov 2026
 /**
  * The stand-in's test-only game without Hard (section 3): the first arcade game, Hover today. Approved by Joe, 17 Nov
  * 2026, on condition the stand-in level list is used only by this check and the real Hover keeps Hard (both asserted).
  */
 const TEST_NO_HARD = ACTIVE_PUZZLE_TYPES.filter((t) => PUZZLE_REGISTRY[t].category === "arcade")[0]!;
-/** Each tile's game, the level it plays at (the wrapper's and the label's) and whether it is marked as falling back. */
-const levelTiles = (page: Page) =>
-  page.locator("[data-practice-game]").evaluateAll((els) =>
-    els.map((el) => {
-      const label = el.querySelector("[data-tile-level]");
-      return { type: el.getAttribute("data-practice-game")!, level: el.getAttribute("data-level"), plays: label?.getAttribute("data-tile-level") ?? null, fallback: !!label?.hasAttribute("data-level-fallback") };
-    }),
-  );
-
+// Changed with Joe's approval, 22 Nov 2026: lines removed here
 fixThemeClock();
 const server = await startSafeAreaServer({ cacheDir: "node_modules/.vite-practice-switch", buildId: "practice-switch-check" });
 const browser = await chromium.launch({ executablePath: CHROMIUM });
@@ -166,102 +158,72 @@ try {
     const at = viewport.name;
     const { context, page } = await openThemeScreen(browser, server.origin, screen, viewport);
     try {
-      // The order of the top: switch, tiles, difficulty switch, then the grid.
+      // Changed with Joe's approval, 22 Nov 2026 (P2, the Games page's Shelves · All, Joe's decision 5 of 20 Nov): the
+      // page's top is the Shelves · All switch, then the game of the day, then a shelf per family; the Puzzles | Arcade
+      // switch, the category tiles, the difficulty switch and the levels' explanation left the catalogue (a game's level
+      // is chosen on its page). Was "the top is the switch, the category tiles, the difficulty switch, then the games"
+      // and the switch, tile, difficulty and explanation lines that followed.
       const order = await page.evaluate(() => {
         const at = (sel: string) => document.querySelector(sel)?.getBoundingClientRect().top ?? -1;
-        return [at("[data-practice-switch]"), at("[data-games-category-tiles]"), at("[data-catalogue-level]"), at("[data-games-grid]")];
+        return [at("[data-games-view-switch]"), at("[data-games-hero]"), at("[data-games-shelf]")]; // Changed with Joe's approval, 22 Nov 2026
       });
-      check(order.every((y) => y >= 0) && order[0]! < order[1]! && order[1]! < order[2]! && order[2]! < order[3]!, `${at}: the top is the switch, the category tiles, the difficulty switch, then the games (${order.map(Math.round).join(" < ")})`);
-      check((await page.locator("[data-practice-filter='all']").count()) === 0, `${at}: no All chip (the tiles replace the chips)`);
-      // The switch.
-      check((await sidePressed(page, "puzzles")) === "true" && (await sidePressed(page, "arcade")) === "false", `${at}: a new visit opens on Puzzles`);
-      const shownCounts = await page.locator("[data-practice-side] .jz-seg-count").allTextContents();
-      check(JSON.stringify(shownCounts.map(Number)) === JSON.stringify([counts.puzzles, counts.arcade]), `${at}: the switch's counts are the registry's (${shownCounts.join(" | ")})`);
-      for (const side of ["puzzles", "arcade"] as const) {
-        if (side === "arcade") {
-          await page.locator("[data-practice-side='arcade']").click();
-          await settle(page);
-          check((await sidePressed(page, "arcade")) === "true", `${at}: the switch flips to Arcade`);
-        }
-        const want = side === "puzzles" ? CATEGORIES : GROUPS.map((g) => g.id);
-        const row = await tiles(page);
-        check(JSON.stringify(row.map((t) => t.id)) === JSON.stringify(want), `${at} ${side}: the tiles are the side's live ${side === "puzzles" ? "categories" : "groups"} in order (${row.map((t) => t.id).join(",")})`);
-        check(row.every((t) => t.name === labelOf(t.id) && t.cat === t.id && t.pressed === "false"), `${at} ${side}: each tile shows today's name and its colour, none chosen`);
-        const groupBorders = row.filter((t) => ARCADE_GROUPS.some((g) => g.id === t.id && g.id !== "action"));
-        check(groupBorders.every((t) => t.bg === rgb(ARCADE_GROUPS.find((g) => g.id === t.id)!.colour)), `${at} ${side}: arcade group tiles are drawn in their group's colour`);
-        const oneRow = await page.locator("[data-games-category-tiles]").evaluate((el) => {
-          const tops = [...el.children].map((c) => Math.round(c.getBoundingClientRect().top));
-          return { rows: new Set(tops).size, scrolls: getComputedStyle(el).overflowX };
-        });
-        check(oneRow.rows === 1 && oneRow.scrolls === "auto", `${at} ${side}: the tiles are one row that scrolls sideways inside itself`);
-        const rows = await listed(page);
-        check(new Set(rows).size === rows.length && JSON.stringify([...rows].sort()) === JSON.stringify([...sideGames(side)].sort()), `${at} ${side}: with no tile chosen, the side lists exactly its ${sideGames(side).length} active games once (${rows.length})`);
-        for (const id of want) {
-          await page.locator(`[data-practice-filter='${id}']`).click();
-          await settle(page);
-          const shown = await listed(page);
-          const games = shelfOf(id);
-          check(JSON.stringify([...shown].sort()) === JSON.stringify([...new Set(games)].sort()), `${at}: the ${labelOf(id)} tile lists exactly its ${games.length} games`);
-          check((await page.locator(`[data-practice-filter='${id}']`).getAttribute("aria-pressed")) === "true", `${at}: the ${labelOf(id)} tile shows as chosen`);
-          if (id === "sports") check(shown.includes("clayshoot"), `${at}: Pull! is listed under Sports too`);
-        }
-        await page.locator(`[data-practice-filter='${want.at(-1)}']`).click();
-        await settle(page);
-        check((await listed(page)).length === sideGames(side).length, `${at} ${side}: a second tap on the chosen tile shows the whole side again`);
-        if (side === "arcade") {
-          const borders = await page.locator("[data-practice-game] [data-game-icon]").evaluateAll((els) =>
-            els.map((el) => [el.getAttribute("data-game-icon"), el.getAttribute("data-group"), getComputedStyle(el).borderTopColor]),
-          );
-          const badBorder = borders.filter(([t, g, colour]) => {
-            if (!isArcade(t!)) return false;
-            const info = ARCADE_GROUPS.find((x) => x.id === g);
-            return !info || info.id !== arcadeGroupOf(t!) || colour !== rgb(info.colour);
-          });
-          check(badBorder.length === 0, `${at}: every arcade tile's border is its group's colour${badBorder.length ? `: ${badBorder.map((b) => b.join(" ")).join("; ")}` : ""}`);
-          const retroGlow = await page.locator("[data-practice-game] [data-group='retro']").first().evaluate((el) => getComputedStyle(el).boxShadow);
-          check(/54, 226, 245/.test(retroGlow), `${at}: Retro tiles carry the cyan glow`);
-        }
-      }
-      // The first-time explanation of levels (Joe, 15 Nov 2026): on a new device's first look at the selector.
-      const introText = (await page.locator("[data-level-intro]").textContent()) ?? "";
-      check(/Rated matches and the Daily are always Normal/.test(introText), `${at}: a first visit explains the levels, rated and the Daily always Normal`);
-      // The difficulty switch: four levels, Normal first chosen.
-      const levelOptions = await page.locator("[data-catalogue-level] [data-level-option]").evaluateAll((els) => els.map((el) => [el.getAttribute("data-level-option"), el.textContent?.trim(), el.getAttribute("aria-pressed")]));
-      check(JSON.stringify(levelOptions.map((o) => o[1])) === JSON.stringify(["Easy", "Normal", "Hard", "Expert"]) && levelOptions.find((o) => o[0] === "normal")?.[2] === "true", `${at}: the difficulty switch is Easy · Normal · Hard · Expert, on Normal`);
-      const atLevel = () => page.locator("[data-practice-game]").evaluateAll((els) => els.map((el) => [el.getAttribute("data-level"), el.querySelector("[data-tile-level]")?.hasAttribute("data-level-fallback")]));
-      check((await atLevel()).every(([l, f]) => l === "normal" && !f), `${at}: on Normal every tile plays Normal`);
-      await page.locator("[data-catalogue-level] [data-level-option='hard']").click();
-      await settle(page);
-      // Changed with Joe's approval, 16 Nov 2026 (games now have levels): was "No game has Hard yet (15 Nov 2026): every
-      // tile plays Normal and says so". Now a game with Hard plays Hard (its tile here; the dealt round carries the Hard
-      // level, section 3) and a game without Hard plays Normal and is marked Normal (here, and in section 3 on a stand-in
-      // registry's test-only game, since every arcade game has Hard today).
-      const hard = await levelTiles(page);
-      const hardOnes = hard.filter((t) => offersLevel(t.type, "hard"));
-      const normalOnes = hard.filter((t) => !offersLevel(t.type, "hard"));
-      check(
-        hardOnes.length > 0 && hardOnes.every((t) => t.level === "hard" && t.plays === "hard" && !t.fallback),
-        `${at}: on Hard, a game with Hard plays Hard (${hardOnes.length} tiles)${hardOnes.filter((t) => t.level !== "hard" || t.plays !== "hard" || t.fallback).map((t) => ` ${t.type}`).join("")}`,
+      check(order.every((y) => y >= 0) && order[0]! < order[1]! && order[1]! < order[2]!, `${at}: the top is the Shelves · All switch, the game of the day, then the shelves (${order.map(Math.round).join(" < ")})`); // Changed with Joe's approval, 22 Nov 2026
+      check((await viewPressed(page, "shelves")) === "true" && (await viewPressed(page, "all")) === "false", `${at}: a new visit opens on Shelves`); // Changed with Joe's approval, 22 Nov 2026
+      check((await page.locator("[data-practice-side], [data-games-category-tiles], [data-catalogue-level], [data-level-intro]").count()) === 0, `${at}: no Puzzles | Arcade switch, category tiles, difficulty switch or levels' explanation on the catalogue`); // Changed with Joe's approval, 22 Nov 2026
+      // The shelves: every live family once, puzzle categories then arcade groups, each holding exactly its home games. // Changed with Joe's approval, 22 Nov 2026
+      const shelves = await page.locator("[data-games-shelf]").evaluateAll((els) => // Changed with Joe's approval, 22 Nov 2026
+        els.map((el) => ({ // Changed with Joe's approval, 22 Nov 2026
+          id: el.getAttribute("data-games-shelf")!, // Changed with Joe's approval, 22 Nov 2026
+          name: (el.querySelector(".gm-shelf-title")?.textContent ?? "").trim(), // Changed with Joe's approval, 22 Nov 2026
+          all: (el.querySelector("[data-games-shelf-all]")?.textContent ?? "").replace(/\s+/g, " ").trim(), // Changed with Joe's approval, 22 Nov 2026
+          games: [...el.querySelectorAll("[data-practice-game]")].map((g) => g.getAttribute("data-practice-game")!), // Changed with Joe's approval, 22 Nov 2026
+          rows: new Set([...el.querySelectorAll("[data-practice-game]")].map((g) => Math.round(g.getBoundingClientRect().top))).size, // Changed with Joe's approval, 22 Nov 2026
+          scrolls: getComputedStyle(el.querySelector("[data-games-grid]")!).overflowX, // Changed with Joe's approval, 22 Nov 2026
+        })), // Changed with Joe's approval, 22 Nov 2026
       );
-      const realTest = hard.filter((t) => t.type === TEST_NO_HARD);
-      check(
-        realTest.length === 1 && realTest.every((t) => t.level === "hard" && t.plays === "hard" && !t.fallback),
-        `${at}: in the live catalogue (no stand-in) the stand-in's test-only game ${TEST_NO_HARD} plays Hard (${JSON.stringify(realTest)})`,
+      const wantShelves = [...CATEGORIES, ...GROUPS.map((g) => g.id)]; // Changed with Joe's approval, 22 Nov 2026
+      check(JSON.stringify(shelves.map((s) => s.id)) === JSON.stringify(wantShelves), `${at}: a shelf for each live family, puzzle categories then arcade groups, in order (${shelves.map((s) => s.id).join(",")})`); // Changed with Joe's approval, 22 Nov 2026
+      for (const shelf of shelves) { // Changed with Joe's approval, 22 Nov 2026
+        const home = homeOf(shelf.id); // Changed with Joe's approval, 22 Nov 2026
+        check(JSON.stringify([...shelf.games].sort()) === JSON.stringify([...home].sort()), `${at}: the ${labelOf(shelf.id)} shelf holds exactly its ${home.length} home games`); // Changed with Joe's approval, 22 Nov 2026
+        check(shelf.name === labelOf(shelf.id) && shelf.all.startsWith(`All ${home.length}`), `${at}: the ${labelOf(shelf.id)} shelf is named and says "All ${home.length}" (${shelf.name} | ${shelf.all})`); // Changed with Joe's approval, 22 Nov 2026
+        check(shelf.rows === 1 && shelf.scrolls === "auto", `${at}: the ${labelOf(shelf.id)} shelf is one row that scrolls sideways inside itself`); // Changed with Joe's approval, 22 Nov 2026
+      } // Changed with Joe's approval, 22 Nov 2026
+      const rows = await listed(page); // Changed with Joe's approval, 22 Nov 2026
+      check(new Set(rows).size === rows.length && JSON.stringify([...rows].sort()) === JSON.stringify([...ACTIVE_PUZZLE_TYPES].sort()), `${at}: across the shelves every active game is listed once (${rows.length} of ${ACTIVE_PUZZLE_TYPES.length})`); // Changed with Joe's approval, 22 Nov 2026
+      const borders = await page.locator("[data-practice-game] [data-game-icon]").evaluateAll((els) => // Changed with Joe's approval, 22 Nov 2026
+        els.map((el) => [el.getAttribute("data-game-icon"), el.getAttribute("data-group"), getComputedStyle(el).borderTopColor]), // Changed with Joe's approval, 22 Nov 2026
       );
-      check(
-        normalOnes.every((t) => t.level === "normal" && t.plays === "normal" && t.fallback),
-        `${at}: on Hard, a game without Hard plays Normal and is marked Normal (${normalOnes.length} tiles here${normalOnes.length ? "" : "; the stand-in's test-only game in section 3"})`,
+      const badBorder = borders.filter(([t, g, colour]) => { // Changed with Joe's approval, 22 Nov 2026
+        if (!isArcade(t!)) return false; // Changed with Joe's approval, 22 Nov 2026
+        const info = ARCADE_GROUPS.find((x) => x.id === g); // Changed with Joe's approval, 22 Nov 2026
+        return !info || info.id !== arcadeGroupOf(t!) || colour !== rgb(info.colour); // Changed with Joe's approval, 22 Nov 2026
+      }); // Changed with Joe's approval, 22 Nov 2026
+      check(badBorder.length === 0, `${at}: every arcade tile's border is its group's colour${badBorder.length ? `: ${badBorder.map((b) => b.join(" ")).join("; ")}` : ""}`); // Changed with Joe's approval, 22 Nov 2026
+      const retroGlow = await page.locator("[data-practice-game] [data-group='retro']").first().evaluate((el) => getComputedStyle(el).boxShadow); // Changed with Joe's approval, 22 Nov 2026
+      check(/54, 226, 245/.test(retroGlow), `${at}: Retro tiles carry the cyan glow`); // Changed with Joe's approval, 22 Nov 2026
+      // "All n" on a shelf: the All view, at that family's group. // Changed with Joe's approval, 22 Nov 2026
+      await page.locator("[data-games-shelf-all='logic']").click(); // Changed with Joe's approval, 22 Nov 2026
+      await settle(page); // Changed with Joe's approval, 22 Nov 2026
+      check((await viewPressed(page, "all")) === "true", `${at}: "All n" on a shelf switches to All`); // Changed with Joe's approval, 22 Nov 2026
+      const logicTop = await page.locator("[data-games-group='logic']").evaluate((el) => el.getBoundingClientRect().top); // Changed with Joe's approval, 22 Nov 2026
+      check(logicTop >= -1 && logicTop < viewport.h / 2, `${at}: All opens at that family's group (top ${Math.round(logicTop)})`); // Changed with Joe's approval, 22 Nov 2026
+      const groups = await page.locator("[data-games-group]").evaluateAll((els) => // Changed with Joe's approval, 22 Nov 2026
+        els.map((el) => { // Changed with Joe's approval, 22 Nov 2026
+          const tops = [...el.querySelectorAll("[data-practice-game]")].map((g) => Math.round(g.getBoundingClientRect().top)); // Changed with Joe's approval, 22 Nov 2026
+          return { id: el.getAttribute("data-games-group")!, games: [...el.querySelectorAll("[data-practice-game]")].map((g) => g.getAttribute("data-practice-game")!), firstRow: tops.filter((t) => t === tops[0]).length }; // Changed with Joe's approval, 22 Nov 2026
+        }), // Changed with Joe's approval, 22 Nov 2026
       );
-      // The side and the level are remembered across a reload.
+      check(JSON.stringify(groups.map((g) => g.id)) === JSON.stringify(wantShelves) && groups.every((g) => JSON.stringify([...g.games].sort()) === JSON.stringify([...homeOf(g.id)].sort())), `${at}: All lists every game grouped by family, each group exactly its home games`); // Changed with Joe's approval, 22 Nov 2026
+      check(groups.every((g) => g.firstRow === Math.min(3, g.games.length)), `${at}: All is three across (${groups.map((g) => g.firstRow).join(",")})`); // Changed with Joe's approval, 22 Nov 2026
+      // The view is remembered across a reload. // Changed with Joe's approval, 22 Nov 2026
       await page.reload();
       await page.locator("[data-games-catalogue][data-hydrated]").waitFor({ timeout: 20_000 });
       await settle(page);
-      check((await sidePressed(page, "arcade")) === "true", `${at}: the side is remembered on this device`);
-      check((await page.locator("[data-catalogue-level] [data-level-option='hard']").getAttribute("aria-pressed")) === "true", `${at}: the level is remembered on this device`);
-      check((await page.locator("[data-level-intro]").count()) === 0, `${at}: the explanation is shown only once`);
+      check((await viewPressed(page, "all")) === "true", `${at}: the view is remembered on this device`); // Changed with Joe's approval, 22 Nov 2026
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       check(overflow <= 0, `${at}: no sideways page scrolling (${overflow})`);
-      // The search: by name only, on both sides.
+      // The search: by name only. // Changed with Joe's approval, 22 Nov 2026
       await page.locator("[data-games-search-toggle]").click();
       const search = page.locator("#games-search");
       check((await search.getAttribute("placeholder")) === "Search games" && (await search.getAttribute("aria-label")) === "Search games", `${at}: the search is "Search games"`);
@@ -269,14 +231,14 @@ try {
       await settle(page);
       const ball = await listed(page);
       const wantBall = ACTIVE_PUZZLE_TYPES.filter((t) => PUZZLE_REGISTRY[t].name.toLowerCase().includes("ball"));
-      check(JSON.stringify([...ball].sort()) === JSON.stringify([...wantBall].sort()), `${at}: "ball" finds exactly the names with "ball", on both sides (${ball.join(",")})`);
+      check(JSON.stringify([...ball].sort()) === JSON.stringify([...wantBall].sort()), `${at}: "ball" finds exactly the names with "ball" (${ball.join(",")})`); // Changed with Joe's approval, 22 Nov 2026
       await search.fill("logic");
       await settle(page);
       const byCategory = await listed(page);
       check(byCategory.every((t) => PUZZLE_REGISTRY[t as keyof typeof PUZZLE_REGISTRY].name.toLowerCase().includes("logic")), `${at}: the search reads names only, not categories (${byCategory.length})`);
       await search.fill("");
       await settle(page);
-      check((await listed(page)).length === sideGames("arcade").length, `${at}: an empty search lists the side's games again`);
+      check((await listed(page)).length === ACTIVE_PUZZLE_TYPES.length, `${at}: an empty search lists every game again`); // Changed with Joe's approval, 22 Nov 2026
     } finally {
       await context.close();
     }
@@ -330,20 +292,24 @@ try {
     const hardAsk = await playRequests(viewport, withHard[0]!, screen.globals ?? {}, "hard");
     check(hardAsk.length === 1 && hardAsk[0]!.type === withHard[0] && hardAsk[0]!.level === "hard", `${at}: Play on ${withHard[0]}'s page at Hard asks for a Hard deal (${JSON.stringify(hardAsk)})`);
     const standIn = { ...(screen.globals ?? {}), __DUELZ_GAME_LEVELS__: STAND_IN };
-    const { context, page } = await openThemeScreen(browser, server.origin, { ...screen, globals: standIn }, viewport);
-    try {
-      await page.locator("[data-practice-side='arcade']").click();
-      await settle(page);
-      await page.locator("[data-catalogue-level] [data-level-option='hard']").click();
-      await settle(page);
-      const stood = await levelTiles(page);
-      const test = stood.filter((t) => t.type === TEST_NO_HARD);
-      const others = stood.filter((t) => t.type !== TEST_NO_HARD);
-      check(test.length === 1 && test.every((t) => t.level === "normal" && t.plays === "normal" && t.fallback), `${at}: on Hard, the stand-in's test-only game without Hard (${TEST_NO_HARD}) plays Normal and is marked Normal (${JSON.stringify(test)})`);
-      check(others.length === arcadeTypes.length - 1 && others.every((t) => t.level === "hard" && t.plays === "hard" && !t.fallback), `${at}: on Hard, every stand-in game with Hard plays Hard (${others.length} tiles)`);
-    } finally {
-      await context.close();
-    }
+    // Changed with Joe's approval, 22 Nov 2026 (P2: the level is chosen on each game's page, the catalogue has no difficulty switch): at the stored Hard,
+    // the stand-in's test-only game's page shows Normal and says it plays Normal, and a stand-in game with Hard shows
+    // Hard. Was the catalogue's switch set to Hard and every arcade tile's level mark judged.
+    const levelShown = async (type: string) => { // Changed with Joe's approval, 22 Nov 2026
+      const { context, page } = await openThemeScreen(browser, server.origin, { name: `game page ${type}`, mode: "practice", search: { page: type }, globals: standIn }, viewport); // Changed with Joe's approval, 22 Nov 2026
+      try { // Changed with Joe's approval, 22 Nov 2026
+        await atHard(page); // Changed with Joe's approval, 22 Nov 2026
+        await page.locator("[data-game-page-level]").waitFor({ timeout: 20_000 }); // Changed with Joe's approval, 22 Nov 2026
+        return { level: await page.locator("[data-game-page-level]").getAttribute("data-game-page-level"), note: await page.locator("[data-game-page-level-note]").count() }; // Changed with Joe's approval, 22 Nov 2026
+      } finally { // Changed with Joe's approval, 22 Nov 2026
+        await context.close(); // Changed with Joe's approval, 22 Nov 2026
+      } // Changed with Joe's approval, 22 Nov 2026
+    }; // Changed with Joe's approval, 22 Nov 2026
+    const test = await levelShown(TEST_NO_HARD); // Changed with Joe's approval, 22 Nov 2026
+    check(test.level === "normal" && test.note === 1, `${at}: at Hard, the stand-in's test-only game without Hard (${TEST_NO_HARD}) plays Normal and its page says so (${JSON.stringify(test)})`); // Changed with Joe's approval, 22 Nov 2026
+    const other = arcadeTypes.find((t) => t !== TEST_NO_HARD)!; // Changed with Joe's approval, 22 Nov 2026
+    const hard = await levelShown(other); // Changed with Joe's approval, 22 Nov 2026
+    check(hard.level === "hard" && hard.note === 0, `${at}: at Hard, a stand-in game with Hard (${other}) plays Hard (${JSON.stringify(hard)})`); // Changed with Joe's approval, 22 Nov 2026
     check(offersLevel(TEST_NO_HARD, "hard"), `${at}: after the stand-in pages, the real registry still gives ${TEST_NO_HARD} Hard`);
     const normalAsk = await playRequests(viewport, TEST_NO_HARD, standIn);
     check(normalAsk.length === 1 && normalAsk[0]!.type === TEST_NO_HARD && normalAsk[0]!.level === undefined, `${at}: Play on the test-only game's page at Hard asks for a Normal deal, no level (${JSON.stringify(normalAsk)})`);

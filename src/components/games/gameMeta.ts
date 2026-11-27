@@ -57,6 +57,16 @@ export function catalogueShelves(): Shelf[] {
   return [...categories, ...groups].filter((shelf) => shelf.games.length > 0);
 }
 
+/**
+ * The Games page's shelves (P2, 22 Nov 2026, Shelves · All): the same shelves in the same order, each holding only the
+ * games whose home it is (a game "also in" a second pick is listed once a page, on its home shelf).
+ */
+export function homeShelves(): Shelf[] {
+  return catalogueShelves()
+    .map((shelf) => ({ ...shelf, games: shelf.games.filter((type) => gameTag(type).id === shelf.id) }))
+    .filter((shelf) => shelf.games.length > 0);
+}
+
 /** The Puzzles | Arcade side a shelf is on: an arcade group's on Arcade, a puzzle category's on Puzzles. */
 export function shelfSide(id: string): "puzzles" | "arcade" {
   return ARCADE_GROUPS.some((group) => group.id === id) ? "arcade" : "puzzles";

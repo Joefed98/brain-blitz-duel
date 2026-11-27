@@ -19,6 +19,7 @@ export { Nameplate } from "./Nameplate";
 export { Medal } from "./Medal";
 export { Icon, ICON_LABELS, ICON_NAMES, type IconName, type IconSize, type IconTone } from "./Icon";
 export { Stars } from "./Stars";
+export { LevelMark, LevelCrown } from "./LevelMark";
 export { Progress } from "./Progress";
 export { TabBar, TABS, TAB_PATHS, tabsFor, type AppTab } from "./TabBar";
 export { EmptyState, type EmptyStateAction, type EmptyStateProps } from "./EmptyState";
