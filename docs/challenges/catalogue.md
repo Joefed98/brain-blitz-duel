@@ -481,7 +481,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Scroll keeper | Grab all three scrolls. | Classic | Full set | `scrolls` ≥ 3 |  | `ricochet.scroll-keeper` |
 | Lantern lift | Ride all six sky lanterns. | Classic | Full set | `rides` ≥ 6 |  | `ricochet.lantern-lift` |
-| Moonwalker | Climb 220 m on Hard. | Hard | Max-out | `metres` ≥ 220 |  | `ricochet.moonwalker` |
+| Moonwalker | Climb 245 m on Hard. | Hard | Max-out | `metres` ≥ 245 |  | `ricochet.moonwalker` |
 
 #### High Rise (`skyline`)
 
@@ -529,7 +529,7 @@ challenges never count. How the checks read a run:
 | Name | Goal | Level | Style | Check | Coin | Id |
 |---|---|---|---|---|:-:|---|
 | Twenty-four carat | Break every gold brick. | Classic | Full set | `goldBroken` ≥ `goldDealt`, `goldDealt` ≥ 1 |  | `breaker.twenty-four-carat` |
-| No drops | Score 100 without losing a ball. | Classic | Clean | `score` ≥ 100, `losses` = 0 |  | `breaker.no-drops` |
+| No drops | Break 55 bricks without losing a ball. | Classic | Clean | `bricks` ≥ 55, `losses` = 0 |  | `breaker.no-drops` |
 | Wall breaker | Clear the whole wall on Hard. | Hard | Finish | `cleared` = 1 |  | `breaker.wall-breaker` |
 
 #### Fission (`burst`)
@@ -562,7 +562,7 @@ challenges never count. How the checks read a run:
 |---|---|---|---|---|:-:|---|
 | Multiball madness | Start multiball. | Classic | Target | line “Multiball” = 20 of 20 |  | `pinball.multiball` |
 | Spell it out | Spell J-O-U-L-Z in one game. | Classic | Max-out | line “J-O-U-L-Z” = 20 of 20 |  | `pinball.joulz` |
-| Jackpot | Hit three jackpots. | Classic | Full set | line “Jackpots” = 15 of 15 | ● | `pinball.jackpot` |
+| Jackpot | Hit three jackpots. | Classic | Full set | `jackpots` ≥ 3 | ● | `pinball.jackpot` |
 
 #### Rally (`rally`)
 

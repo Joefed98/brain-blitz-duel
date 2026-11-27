@@ -26,6 +26,7 @@ import {
   MOON_BIG_REV, MOON_LEVELS, MOON_REV, MOON_SCROLLS, MOON_SKY, MOON_SKY_VY, NINJA_CHECKPOINT_INTERVAL, NINJA_INPUT_TAP, NINJA_KNOCK,
   NINJA_PX_PER_M, NINJA_RUN_TICKS, SURF_ICE, moonBuildDeal, ninjaBodyFor, moonCheckpoint, moonDeal, moonGameFor, moonStdSpecFor, ninjaMetres,
   type MoonLevel, type MoonState,
+  MOON_MID_LEVELS, // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's ricoRev 5: the registry states its levels)
 } from "../src/lib/arcade/ricochetNinja";
 import { encodeMoonRun, replayMoonRun } from "../src/lib/duel/ricochet";
 import { gradeAnswer, generatePuzzle } from "../src/lib/duel/generate.server";
@@ -108,7 +109,10 @@ const dealAt = (n: number, level?: string) => withSeededRandom(roomSeed(n), () =
   for (const lv of LEVELS) {
     const c = MOON_LEVELS[lv];
     const reg = gameLevelSettings<{ blades: number; knockM: number; lanterns: number; fullM: number }>("ricochet", lv)!;
-    ok(reg.blades * 1000 === c.blades && reg.knockM * NINJA_PX_PER_M === c.knock && reg.lanterns === c.sky && reg.fullM === c.fullM, `2b ${lv}: the registry's settings are the sim's`);
+    // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's ricoRev 5): the registry states the dealt stamp's
+    // levels (MOON_MID_LEVELS: full at 220 / 190 / 160 m, Hard's knock-down 3.5 m); this check proves ricoRev 4's towers.
+    const m = MOON_MID_LEVELS[lv];
+    ok(reg.blades * 1000 === m.blades && reg.knockM * NINJA_PX_PER_M === m.knock && reg.lanterns === m.sky && reg.fullM === m.fullM, `2b ${lv}: the registry's settings are the sim's (ricoRev 5's MOON_MID_LEVELS)`);
     const p = dealAt(3, lv);
     ok(puzzleLevel(p) === lv && p.ricoRev === MOON_BIG_REV && json({ ...p, level: undefined }) === json({ ...dealAt(3), level: undefined }), `2c ${lv}: the deal stamps level "${lv}" on ricoRev 4's puzzle (seed and stamp as Normal's)`);
     const s = moonGameFor(p.ricoRev, p.level).init(p.seed) as MoonState;

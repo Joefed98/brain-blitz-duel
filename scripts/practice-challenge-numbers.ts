@@ -50,6 +50,7 @@ import { PAR_MOVES_STD } from "../src/lib/duel/parMoves";
 import { PATTERN_STD } from "../src/lib/duel/standard/patternRules";
 import { LOGIC_STANDARD } from "../src/lib/duel/standard/logicRules";
 import { PIN_V7_JOULZ_EACH } from "../src/lib/arcade/pinball4";
+import { MOON_CORE_FULL_M } from "../src/lib/arcade/ricochetNinja"; // Changed with Joe's approval, 27 Nov 2026 (question M1, D5's ricoRev 5)
 import { PUZZLE_INSTRUCTIONS } from "../src/lib/duel/instructions";
 import { PRACTICE_CHALLENGES, type ChallengeCond, type PracticeChallenge } from "../src/lib/duel/practiceChallenges";
 
@@ -212,7 +213,9 @@ function expectations(): Record<string, Expect> {
     "swing.king-of-the-swingers": { say: [[70, SWING_V17_FULL / 10]] },
     "ricochet.scroll-keeper": { say: [[3, of("ricochet", "Scrolls")]] },
     "ricochet.lantern-lift": { say: [[6, of("ricochet", "Lantern rides")]] },
-    "ricochet.moonwalker": { say: [[245, of("ricochet", "Height")]] },
+    // Changed with Joe's approval, 27 Nov 2026 (question M1, D5's ricoRev 5): 245 m is ricoRev 3–4's Height line (as
+    // Skyscraper keeps SKYLINE_V9_FULL_AT); ricoRev 5's is 220 m.
+    "ricochet.moonwalker": { say: [[245, MOON_CORE_FULL_M]] },
     "skyline.gold": { say: [[5, Number(/of the (\d+) gold/.exec(specPart("skyline", "Gold blocks")?.how ?? "")?.[1])]] },
     "skyline.steady-crane": { say: [[10, maxOf("skyline", "Perfect streak")]] },
     "skyline.skyscraper": { say: [[61, SKYLINE_V9_FULL_AT]] },

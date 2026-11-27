@@ -30,6 +30,7 @@ import {
   NINJA_INPUT_TAP,
   NINJA_PX_PER_M,
   MOON_MID_BODY, // Changed with Joe's approval, 23 Nov 2026 (D5's ricoRev 5)
+  MOON_MID_LINES, // Changed with Joe's approval, 27 Nov 2026 (D5's ricoRev 5: its part lines)
   type MoonEvent,
   type MoonState,
 } from "../../src/lib/arcade/ricochetNinja";
@@ -82,7 +83,7 @@ export const entry: StdEntry = {
   ],
   help: { terms: ["metre", "Flow", "lantern", "scrolls"] },
   core: {
-    fullAt: MOON_CORE_FULL_M,
+    fullAt: MOON_MID_LINES.fullM, // Changed with Joe's approval, 27 Nov 2026 (D5's ricoRev 5: the height line full at 220 m)
     at: (m: number) => ({ ...moonGame.init(3), acted: 1, best: MOON_MID_BODY.start + m * NINJA_PX_PER_M * 256 }), // Changed with Joe's approval, 23 Nov 2026 (D5's ricoRev 5)
     parts: (s: MoonState) => moonStdParts(s),
   },
@@ -91,7 +92,8 @@ export const entry: StdEntry = {
     const d = moonDeal(31, REV);
     ok(d.tower.coins.length === 0 && d.tower.lanterns.length === 0 && d.tower.sky.length === MOON_SKY && d.tower.scrolls.length === MOON_SCROLLS, "ricochet: every tower deals no coins or gold lanterns, 6 sky lanterns and 3 scrolls");
     const one = (k: "flow" | "rides" | "scrolls", n: number) => rec({ ...moonGame.init(3), acted: 1, [k]: n } as MoonState)[k];
-    ok(one("flow", 1) === MOON_FLOW_EACH && one("flow", 40) === 30 && one("rides", 1) === MOON_RIDE_EACH && one("scrolls", 1) === MOON_SCROLL_EACH, "ricochet: flow 3 a step (held to 30), rides 5 each, scrolls 5 each");
+    // Changed with Joe's approval, 27 Nov 2026 (D5's ricoRev 5: its own part lines, MOON_MID_LINES).
+    ok(one("flow", 1) === 7 && one("flow", 40) === 30 && one("rides", 1) === 10 && one("scrolls", 1) === 7, "ricochet: on ricoRev 5's lines a Flow step 7 (held to 30), a ride 10, a scroll 7");
     ok(d.witnessMetres >= MOON_CORE_FULL_M, `ricochet: seed 31's witness climbs at least ${MOON_CORE_FULL_M} m (${d.witnessMetres})`);
   },
 };

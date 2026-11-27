@@ -113,7 +113,17 @@ export const RETRO_REVS: Partial<Record<LiveBandGame, readonly [rev: number, pla
 /** Stage 3 of the Retro overhaul (16 Nov 2026): Pinball pinRev 8 keeps pinRev 7's play tick for tick (it counts outlane saves). */
 export const RETRO_STAGE3_REVS: Partial<Record<LiveBandGame, readonly [rev: number, play: number]>> = { pinball: [8, 7] };
 
+/**
+ * D5's ladder stamps (23 Nov 2026): type → [the revision, the revision whose play older checks were written for].
+ * Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's brkRev 13 and pinRev 9): checks that pin
+ * "rooms deal brkRev 12 / pinRev 8" keep proving that play.
+ */
+export const D5_LADDER_REVS: Partial<Record<LiveBandGame, readonly [rev: number, play: number]>> = { breaker: [13, 12], pinball: [9, 8] };
+
 export function playRevOf(type: string, rev: number | undefined | null): number | undefined | null {
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's brkRev 13 and pinRev 9).
+  const d5 = D5_LADDER_REVS[type as LiveBandGame];
+  if (d5 && rev === d5[0]) return playRevOf(type, d5[1]);
   const stage3 = RETRO_STAGE3_REVS[type as LiveBandGame];
   if (stage3 && rev === stage3[0]) return playRevOf(type, stage3[1]);
   const retro = RETRO_REVS[type as LiveBandGame];

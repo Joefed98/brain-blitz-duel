@@ -330,11 +330,12 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 /* ============================ Pinball pinRev 7 ============================ */
 {
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rooms deal pinRev 8 (pinRev 7's play, the outlane saves counted) since stage 3.
-  ok((generatePuzzle("pinball") as any).pinRev === PIN_REV_JOULZ + 1 && PIN_REV_JOULZ === PIN_REV_STD + 1, "pinball: rooms deal pinRev 8 (pinRev 7 below it)");
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's pinRev 9): this line and the help's below.
+  ok((generatePuzzle("pinball") as any).pinRev === PIN_REV_JOULZ + 2 && PIN_REV_JOULZ === PIN_REV_STD + 1, "pinball: rooms deal pinRev 9 (pinRev 7 two below it)");
   pinPreRetro(true);
   ok((generatePuzzle("pinball") as any).pinRev === PIN_REV_STD, "pinball: preRetro deals pinRev 6");
   pinPreRetro(false);
-  ok(LIVE_BANDS.pinball.rev === PIN_REV_JOULZ + 1 && ARCADE_STANDARD.pinball.spec?.rev === PIN_REV_JOULZ + 1 && playRevOf("pinball", PIN_REV_JOULZ + 1) === playRevOf("pinball", PIN_REV_STD), "pinball: the help reads pinRev 8, pinRev 6's play");
+  ok(LIVE_BANDS.pinball.rev === PIN_REV_JOULZ + 2 && ARCADE_STANDARD.pinball.spec?.rev === PIN_REV_JOULZ + 2 && playRevOf("pinball", PIN_REV_JOULZ + 2) === playRevOf("pinball", PIN_REV_STD), "pinball: the help reads pinRev 9, pinRev 6's play"); // Changed with Joe's approval, 27 Nov 2026 (D5's pinRev 9)
   ok(pinballGameForAny(PIN_REV_JOULZ).runTicks <= 120 * TICKS_PER_SECOND, "pinball: the run is at most 120 s");
   const spec = GAME_BY_TYPE.get("pinball" as never)!;
   const play = (rev: number, seed: number, events: any[]) => {
@@ -574,11 +575,12 @@ const LEVELS = ["weak", "average", "good", "great", "near", "elite", "perfect"] 
 
 /* ============================ Breaker brkRev 12 ============================ */
 {
-  ok((generatePuzzle("breaker") as any).brkRev === BRK_REV_CLEAR && BRK_REV_CLEAR === BRK_REV_STD + 1, "breaker: rooms deal brkRev 12");
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's brkRev 13): this line and the help's below.
+  ok((generatePuzzle("breaker") as any).brkRev === BRK_REV_CLEAR + 1 && BRK_REV_CLEAR === BRK_REV_STD + 1, "breaker: rooms deal brkRev 13 (brkRev 12 one below it)");
   pinPreRetro(true);
   ok((generatePuzzle("breaker") as any).brkRev === BRK_REV_STD, "breaker: preRetro deals brkRev 11");
   pinPreRetro(false);
-  ok(LIVE_BANDS.breaker.rev === BRK_REV_CLEAR, "breaker: the help reads brkRev 12");
+  ok(LIVE_BANDS.breaker.rev === BRK_REV_CLEAR + 1, "breaker: the help reads brkRev 13"); // Changed with Joe's approval, 27 Nov 2026 (D5's brkRev 13)
   // The stage's arena and its tap mapping read the stamp's world (brkRev 12 plays brkRev 11's 420 × 784 court).
   ok(breakerWorldWFor(BRK_REV_CLEAR) === breakerWorldWFor(BRK_REV_STD) && breakerWorldHFor(BRK_REV_CLEAR) === breakerWorldHFor(BRK_REV_STD) && breakerWorldWFor(BRK_REV_CLEAR) === 420, "breaker: brkRev 12's arena is brkRev 11's 420 × 784 world");
   ok(/multi-ball/i.test(JSON.stringify(PUZZLE_INSTRUCTIONS.breaker)) && /9 rows/.test(JSON.stringify(PUZZLE_INSTRUCTIONS.breaker)), "breaker: the help describes the 9-row wall and the multi-ball");

@@ -369,10 +369,10 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("swing", "King of the swingers", "Get 70 % of the way on Expert.", "E", "maxout", false, all(full("Course", 110))),
   // Moon Climb (ricochet): height 125 + flow 30 + lantern rides 30 + scrolls 15. ricoRev 5 (D5, 23 Nov 2026) fills each
   // part before the last item (scrolls at 2, rides at 3, Hard's height at 190 m), so these count the things themselves
-  // (Moonwalker 220 m on Hard: Normal's full height, past Hard's 190 m).
+  // (Moonwalker 245 m on Hard: ricoRev 3–4's full height, MOON_CORE_FULL_M, past Hard's 190 m).
   ch("ricochet", "Scroll keeper", "Grab all three scrolls.", "C", "fullset", false, all(f("scrolls", "gte", 3))),
   ch("ricochet", "Lantern lift", "Ride all six sky lanterns.", "C", "fullset", false, all(f("rides", "gte", 6))),
-  ch("ricochet", "Moonwalker", "Climb 220 m on Hard.", "H", "maxout", false, all(f("metres", "gte", 220))),
+  ch("ricochet", "Moonwalker", "Climb 245 m on Hard.", "H", "maxout", false, all(f("metres", "gte", 245))), // Changed with Joe's approval, 27 Nov 2026 (question M1: keeps 245 m, D5's ricoRev 5)
   // High Rise (skyline): floors 140 + perfect drops 30 + perfect streak 10 + gold blocks 20.
   // D5 (23 Nov 2026): skylineRev 12 fills Gold blocks at 2 of the 5, so the goal counts the gold blocks themselves.
   ch("skyline", "Gold top", "Land all five gold blocks perfectly.", "C", "fullset", false, all(f("golds", "gte", 5)), "skyline.gold"),
@@ -405,7 +405,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   ch("blockfall", "Multi-tasker", "Clear four lines at once twice (or six doubles).", "C", "combo", false, part("Multi-line clears", 24), "blockfall.multi"),
   // Breaker (breaker): bricks 140 + clear 10 + speed 20 + gold bricks 30.
   ch("breaker", "Twenty-four carat", "Break every gold brick.", "C", "fullset", false, all(f("goldBroken", "gte", "@goldDealt"), f("goldDealt", "gte", 1))),
-  ch("breaker", "No drops", "Score 100 without losing a ball.", "C", "clean", false, all(sc("gte", 100), f("losses", "eq", 0))),
+  ch("breaker", "No drops", "Break 55 bricks without losing a ball.", "C", "clean", false, all(f("bricks", "gte", 55), f("losses", "eq", 0))), // Changed with Joe's approval, 27 Nov 2026 (question B2: counts the bricks themselves on brkRev 13)
   ch("breaker", "Wall breaker", "Clear the whole wall on Hard.", "H", "finish", false, all(f("cleared", "eq", 1))),
   // Fission (burst): atoms 140 + wave clears 35 + golden atoms 25.
   ch("burst", "Golden touch", "Pop all five golden atoms.", "C", "fullset", false, all(f("goldens", "gte", "@goldensDealt"), f("goldensDealt", "gte", 5))),
@@ -424,7 +424,7 @@ export const CATALOGUE: readonly PracticeChallenge[] = [
   // Pinball (pinball): table points 130 + J-O-U-L-Z 20 + multiball 20 + jackpots 15 + ramp combos 15.
   ch("pinball", "Multiball madness", "Start multiball.", "C", "target", false, part("Multiball", 20), "pinball.multiball"),
   ch("pinball", "Spell it out", "Spell J-O-U-L-Z in one game.", "C", "maxout", false, part("J-O-U-L-Z", 20), "pinball.joulz"),
-  ch("pinball", "Jackpot", "Hit three jackpots.", "C", "fullset", true, part("Jackpots", 15)),
+  ch("pinball", "Jackpot", "Hit three jackpots.", "C", "fullset", true, all(f("jackpots", "gte", 3))), // Changed with Joe's approval, 27 Nov 2026 (question B2: counts the jackpots themselves on pinRev 9)
   // Rally (rally): gold-ball hits 140 + pink pads 30 + gold targets 30.
   ch("rally", "Pink pong", "Strike pink pads five times.", "C", "target", false, all(f("targetHits", "gte", 5))), // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)
   ch("rally", "Target practice", "Hit all 6 gold targets.", "C", "fullset", false, all(f("bonusHits", "gte", 6))), // Changed with Joe's approval, 26 Nov 2026 (question 4: counts the 6 gold targets on rallyRev 14)

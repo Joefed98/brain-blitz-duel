@@ -148,7 +148,7 @@ section("wiring");
   // bonuses in one plain sentence (no internal figures).
   ok(hasScorePart(help, "Barriers", 120) && hasScorePart(help, "Star chains", 30) && hasScorePart(help, "Gold stars", 20) && hasScorePart(help, "Tight gates", 20) && hasScorePart(help, "Centre lines", 10) && help.endsWith("Total 200."), `the help states each part's maximum and the 200 total: ${help}`);
   ok(/barriers/.test(INTRO_SCORE.hover) && /star chains/.test(INTRO_SCORE.hover) && /gold stars/.test(INTRO_SCORE.hover) && /tight gates/.test(INTRO_SCORE.hover) && INTRO_SCORE.hover.endsWith("Up to 200."), `the intro names the parts (${INTRO_SCORE.hover})`);
-  ok(STANDARD.stamp === HOVER_REV_STANDARD + 1 && STANDARD.parts.reduce((a, p) => a + p.max, 0) === 200, "the standard module lists parts summing to 200");
+  ok(STANDARD.stamp === HOVER_REV_STANDARD + 2 && STANDARD.parts.reduce((a, p) => a + p.max, 0) === 200, "the standard module lists parts summing to 200"); // Changed with Joe's approval, 27 Nov 2026 (D5's hoverRev 12)
 }
 
 /* 3. Play unchanged. */

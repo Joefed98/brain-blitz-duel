@@ -225,6 +225,15 @@ import { blockfallGameFor, BLOCKFALL_REV_LEVELS } from "@/lib/arcade/blockfall";
 import { BLOCKFALL_LEVEL_DEALS } from "@/lib/duel/blockfallLevelDeals.server"; // Changed with Joe's approval, 26 Nov 2026
 import { hoverLevelDealSeed } from "@/lib/duel/hoverLevelDeals.server"; // Changed with Joe's approval, 26 Nov 2026
 import { crossLevelDealSeed } from "@/lib/duel/crossLevelDeals.server"; // Changed with Joe's approval, 26 Nov 2026
+// Changed with Joe's approval, 27 Nov 2026 (D5's orbitRev 17 ladder banks, brkRev 13, pinRev 9, skylineRev 12's and flipRev 14's level deals: the entries appended at the end of the list).
+import { ORBIT_LADDER_BANKS } from "@/lib/duel/orbitRev3Course.server"; // Changed with Joe's approval, 27 Nov 2026
+import { BRK_REV_LADDER } from "@/lib/arcade/breaker"; // Changed with Joe's approval, 27 Nov 2026
+import { breakerLevelDealSeed } from "@/lib/duel/breakerLevelDeals.server"; // Changed with Joe's approval, 27 Nov 2026
+import { PIN_REV_LADDER } from "@/lib/arcade/pinball"; // Changed with Joe's approval, 27 Nov 2026
+import { pinball9For } from "@/lib/arcade/pinball4"; // Changed with Joe's approval, 27 Nov 2026
+import { pinballLevelDealSeed } from "@/lib/duel/pinballLevelDeals.server"; // Changed with Joe's approval, 27 Nov 2026
+import { SKYLINE_V12_DEAL } from "@/lib/duel/skylineDealV12.server"; // Changed with Joe's approval, 27 Nov 2026
+import { FLIP_LADDER_DEALS } from "@/lib/duel/flipLadderDeals.server"; // Changed with Joe's approval, 27 Nov 2026
 import { SWING_LEVEL_DEAL } from "@/lib/duel/swingLevelDeal.server";
 import { SWING_V13_BANK } from "@/lib/duel/swingBankV13.server";
 import { BULLSEYE_REV_BAND, BULLSEYE_REV_TUNED, bullseyeInitFor } from "@/lib/arcade/bullseye";
@@ -1314,6 +1323,34 @@ const GAMES: Game[] = [
   { key: "snake/ladder-expert", game: snakeGameFor(16, "expert"), checkpoint: snakeCheckpoint, mode: "events", rate: 60, encode: encodeSnakeRun, replay: (seed: number, raw: string) => replaySnakeRun(seed, raw, 16, "expert") }, // Changed with Joe's approval, 26 Nov 2026
   { key: "rally/ladder", game: rallyGameFor(14), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, 14) }, // Changed with Joe's approval, 26 Nov 2026
   { key: "rally/ladder-expert", game: rallyGameFor(14, "expert"), checkpoint: rallyCheckpoint, mode: "events", rate: 120, encode: encodeRallyRun, replay: (seed: number, raw: string) => replayRallyRun(seed, raw, 14, "expert") }, // Changed with Joe's approval, 26 Nov 2026
+  // Changed with Joe's approval, 27 Nov 2026: D5's orbitRev 17, brkRev 13, pinRev 9, skylineRev 12 and flipRev 14, appended at the very end in this order so every earlier entry keeps its index.
+  // Orbit orbitRev 17 (D5: the ladder banks) at every level, random taps and checkpoints on each level's ladder bank.
+  ...(["normal", "easy", "hard", "expert"] as const).map((lv) => ({
+    key: lv === "normal" ? "orbit/ladder" : `orbit/ladder-${lv}`,
+    game: orbitRev3Game,
+    gameFor: (seed: number) => {
+      const e = ORBIT_LADDER_BANKS[lv].find((x) => x.seed === seed)!;
+      return { ...orbitRev3Game, init: () => initLostFrom(decodeRev3Planets(e.planets), ORBIT_REV3_WORLD_W, decodeOrbitHoles(e.holes), decodeOrbitExtras(e.extras), lv === "normal" ? undefined : lv) };
+    },
+    seedFor: (n: number) => ORBIT_LADDER_BANKS[lv][n % ORBIT_LADDER_BANKS[lv].length]!.seed,
+    checkpoint: orbitCheckpoint,
+    mode: "events" as const,
+    rate: 25,
+    encode: encodeOrbitRun,
+    replay: (seed: number, raw: string) => {
+      const e = ORBIT_LADDER_BANKS[lv].find((x) => x.seed === seed)!;
+      return replayOrbitRun(seed, raw, ORBIT_REV_LOST, e.planets, e.holes, e.extras, undefined, lv === "normal" ? undefined : lv);
+    },
+  })), // Changed with Joe's approval, 27 Nov 2026
+  // Breaker brkRev 13 and Pinball pinRev 9 (D5: the ladders), at Normal and Expert on their level deals.
+  { key: "breaker/ladder", game: breakerGameFor(BRK_REV_LADDER), checkpoint: brkCheckpoint, mode: "events", rate: 950, encode: encodeBreakerRun, replay: (seed: number, raw: string) => replayBreakerRun(seed, raw, BRK_REV_LADDER), seedFor: (n: number) => breakerLevelDealSeed("normal", n) }, // Changed with Joe's approval, 27 Nov 2026
+  { key: "breaker/ladder-expert", game: breakerGameFor(BRK_REV_LADDER, "expert"), checkpoint: brkCheckpoint, mode: "events", rate: 950, encode: encodeBreakerRun, replay: (seed: number, raw: string) => replayBreakerRun(seed, raw, BRK_REV_LADDER, "expert"), seedFor: (n: number) => breakerLevelDealSeed("expert", n) }, // Changed with Joe's approval, 27 Nov 2026
+  { key: "pinball/ladder", game: pinball9For(), checkpoint: pin4Checkpoint, mode: "events", rate: 120, encode: encodePinballRun, replay: (seed: number, raw: string) => replayPinballRun(seed, raw, PIN_REV_LADDER), seedFor: (n: number) => pinballLevelDealSeed("normal", n) }, // Changed with Joe's approval, 27 Nov 2026
+  { key: "pinball/ladder-expert", game: pinball9For("expert"), checkpoint: pin4Checkpoint, mode: "events", rate: 120, encode: encodePinballRun, replay: (seed: number, raw: string) => replayPinballRun(seed, raw, PIN_REV_LADDER, "expert"), seedFor: (n: number) => pinballLevelDealSeed("expert", n) }, // Changed with Joe's approval, 27 Nov 2026
+  // High Rise skylineRev 12 (D5: the refit level lines) at its levels on their proved deals.
+  ...(["easy", "hard", "expert"] as const).map((level) => ({ key: `skyline/v12-${level}`, game: skylineGameFor(12, level), checkpoint: skylineCheckpoint, mode: "taps" as const, rate: 15, encode: encodeSkylineRun, replay: (seed: number, raw: string) => replaySkylineRun(seed, raw, 12, level), seedFor: (n: number) => SKYLINE_V12_DEAL[level][n % SKYLINE_V12_DEAL[level].length]! })), // Changed with Joe's approval, 27 Nov 2026
+  // Roofbound flipRev 14 (D5: the running-speed ladder) at its levels on their proved deals.
+  ...(["easy", "hard", "expert"] as const).map((level) => ({ key: `flip/v14-${level}`, game: flipGameFor(14, level), checkpoint: flipCheckpoint, mode: "events" as const, rate: 50, encode: encodeFlipRun, replay: (seed: number, raw: string) => replayFlipRun(seed, raw, 14, level), seedFor: (n: number) => FLIP_LADDER_DEALS[level][n % FLIP_LADDER_DEALS[level].length]! })), // Changed with Joe's approval, 27 Nov 2026
 ];
 
 /** golfRev 3's course for a self-replay seed: each slot's hole by a spread of the seed, the level seed mod 4. */

@@ -97,7 +97,7 @@ ok(ROUND_MAX.snake === 200, "ROUND_MAX: Meteor is 200");
 ok(snakeWorldWForRev(SNAKE_REV_STD) === SNAKE_V9_WORLD_W && snakeWorldHForRev(SNAKE_REV_STD) === SNAKE_V9_H, "snakeRev 11 plays in snakeRev 10's world");
 // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the standard entry follows the
 // stamp rooms deal (arcade-standard-check proves an entry for it), so it names snakeRev 15 (Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul)).
-ok(STANDARD.id === "snake" && STANDARD.stampKey === "snakeRev" && STANDARD.stamp === SNAKE_REV_GRACE, "the standard module names snakeRev 15, the dealt stamp (snakeRev 12 before the Retro overhaul)");
+ok(STANDARD.id === "snake" && STANDARD.stampKey === "snakeRev" && STANDARD.stamp === SNAKE_REV_LADDER, "the standard module names snakeRev 16, the dealt stamp (snakeRev 12 before the Retro overhaul)"); // Changed with Joe's approval, 27 Nov 2026 (D5's snakeRev 16)
 ok(STANDARD.parts.reduce((a, p) => a + p.max, 0) === 200, "the parts' maxima add up to 200");
 ok(SNAKE_STD_CORE_MAX + SNAKE_STD_CAPS.gold + SNAKE_STD_CAPS.combo + SNAKE_STD_CAPS.lane + SNAKE_STD_CAPS.warp === 200, "the sim's maxima add up to 200");
 ok(JSON.stringify(STANDARD.parts.map((p) => [p.key, p.max])) === JSON.stringify([["core", 120], ["gold", 40], ["combo", 20], ["lane", 10], ["warp", 10]]), "parts: core 120, gold 40, combo 20, lane 10, warp 10");

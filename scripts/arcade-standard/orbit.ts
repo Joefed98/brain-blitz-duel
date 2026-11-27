@@ -21,7 +21,7 @@
  */
 import type { ArcadeInputEvent } from "../../src/lib/arcade/engine";
 import { orbitCheckpoint, ORBIT_INPUT_CHECKPOINT, ORBIT_INPUT_TAP, ORBIT_REV_BIG, ORBIT_REV_LOST } from "../../src/lib/arcade/orbit"; // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17)
-import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, initLostFrom, orbitRev3Game, ORBIT_REV3_WORLD_W, ORBIT_STD, type OrbitRev3State } from "../../src/lib/arcade/orbitRev3"; // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17): initLostFrom
+import { decodeOrbitExtras, decodeOrbitHoles, decodeRev3Planets, initLostFrom, orbitRev3Game, ORBIT_REV3_WORLD_W, ORBIT_STD_V17, type OrbitRev3State } from "../../src/lib/arcade/orbitRev3"; // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17): initLostFrom; 27 Nov 2026: ORBIT_STD_V17 for ORBIT_STD
 import { encodeOrbitRun, replayOrbitRun } from "../../src/lib/duel/orbit";
 import { ORBIT_FUEL_BANK, type OrbitFuelBankEntry } from "../../src/lib/duel/orbitFuelBank.server";
 import type { StdEntry, StdRun } from "./entry";
@@ -48,8 +48,9 @@ export const entry: StdEntry = {
   field: "orbitRev",
   rev: ORBIT_REV_LOST, // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17)
   before: ORBIT_REV_BIG, // Changed with Joe's approval, 23 Nov 2026 (D5's orbitRev 17)
-  parts: ORBIT_STD.parts,
-  spec: ORBIT_STD,
+  // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's orbitRev 17): its own lines, ORBIT_STD_V17.
+  parts: ORBIT_STD_V17.parts,
+  spec: ORBIT_STD_V17,
   perfect: () => {
     const runs: StdRun[] = [];
     for (const e of ORBIT_FUEL_BANK.slice(0, 40)) {
@@ -77,5 +78,5 @@ export const entry: StdEntry = {
     return runs;
   },
   idle: () => [{ label: "no input (server replay)", score: orbitFuelServerScore(ORBIT_FUEL_BANK[0]!, []).score }],
-  help: { terms: ["Planets", "130", "half the time left"] },
+  help: { terms: ["Planets", "130", "34 s left"] }, // Changed with Joe's approval, 27 Nov 2026 (D5's orbitRev 17: its help states the speed line)
 };

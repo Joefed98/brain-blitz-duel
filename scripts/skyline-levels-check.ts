@@ -27,6 +27,7 @@ import {
   skylineWindFrom,
   SKYLINE_LEVEL_CODE,
   SKYLINE_LEVEL_RULES,
+  SKYLINE_V12_LEVEL_RULES, // Changed with Joe's approval, 27 Nov 2026 (D5's skylineRev 12: the dealt level rules)
   SKYLINE_PERFECT_TOL,
   SKYLINE_REV_LIVES,
   SKYLINE_REV_FLOORS, // Changed with Joe's approval, 23 Nov 2026 (D5's skylineRev 12)
@@ -97,7 +98,9 @@ const deal = (n: number, level?: SkylineLevel) => {
   for (const level of LEVELS) {
     const r = SKYLINE_LEVEL_RULES[level];
     const settings = gameLevelSettings<Record<string, number>>("skyline", level)!;
-    ok(JSON.stringify(Object.entries(settings).sort()) === JSON.stringify(Object.entries(r).sort()), `${level}: gameLevels.ts mirrors the sim's SKYLINE_LEVEL_RULES`);
+    // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's skylineRev 12): the registry mirrors the dealt
+    // SKYLINE_V12_LEVEL_RULES; skylineRev 11's SKYLINE_LEVEL_RULES is frozen with the sim.
+    ok(JSON.stringify(Object.entries(settings).sort()) === JSON.stringify(Object.entries(SKYLINE_V12_LEVEL_RULES[level]).sort()), `${level}: gameLevels.ts mirrors the sim's dealt SKYLINE_V12_LEVEL_RULES`);
     const p = deal(3, level);
     const normalDeal = deal(3);
     ok(puzzleLevel(p) === level && p.type === "skyline" && p.skylineRev === SKYLINE_REV_FLOORS, `${level}: the deal stamps level "${level}" on skylineRev 12`); // Changed with Joe's approval, 23 Nov 2026 (D5's skylineRev 12)

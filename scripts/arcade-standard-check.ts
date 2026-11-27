@@ -43,7 +43,7 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   // sliceRev 13 (Nov 2026, the scoring audit): sliceRev 12's food and play; core and combo on straight lines from 0.
   { type: "slice", field: "sliceRev", rev: 13, batch: "A" },
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): brkRev 12, the clearable wall.
-  { type: "breaker", field: "brkRev", rev: 12, batch: "A" },
+  { type: "breaker", field: "brkRev", rev: 13, batch: "A" }, // Changed with Joe's approval, 27 Nov 2026 (D5's brkRev 13)
   // tiltRev 11 (3 Nov 2026): tiltRev 10's mazes with no gold stars, scored on par times and a clean run (tilt-rev11-check).
   // tiltRev 12 (3 Nov 2026): tiltRev 11's parts with bigger marbles and keys, from its proved deal (tilt-rev12-check).
   { type: "tilt", field: "tiltRev", rev: 12, batch: "A" },
@@ -72,7 +72,7 @@ const STANDARD_ROSTER: readonly { type: string; field: string; rev: number; batc
   { type: "bullseye", field: "bullRev", rev: 9, batch: "B" },
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): pinRev 7, one J-O-U-L-Z set.
   // pinRev 8 (16 Nov 2026, the Retro overhaul stage 3): pinRev 7's play with the outlane saves counted. Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul).
-  { type: "pinball", field: "pinRev", rev: 8, batch: "B" },
+  { type: "pinball", field: "pinRev", rev: 9, batch: "B" }, // Changed with Joe's approval, 27 Nov 2026 (D5's pinRev 9)
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): rallyRev 13, two lives and spin
   // shots.
   { type: "rally", field: "rallyRev", rev: 14, batch: "B" }, // Changed with Joe's approval, 26 Nov 2026 (D5's rallyRev 14)

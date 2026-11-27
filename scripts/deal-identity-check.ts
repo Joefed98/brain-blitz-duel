@@ -158,7 +158,8 @@ tasks.push({
     // whichever merges later re-applies it (re-applied on main, 26 Nov 2026: 53 + 5 = 58).
     // Changed with Joe's approval, 26 Nov 2026 (routine consequence of D5's swingRev 19): swingPreLadder, 59.
     // Changed with Joe's approval, 26 Nov 2026, second set (D5's bastionPreLadder, beatPreLanes, blockfallPreLevels, hoverPreFit, snakePreLadder and rallyPreLadder): 65.
-    ok(names.size === 65, `65 era switches (${names.size})`);
+    // Changed with Joe's approval, 27 Nov 2026 (routine consequence of D5's brkRev 13, pinRev 9 and flipRev 14): breakerPreLadder, pinballPreLadder and flipPreLadder, 68.
+    ok(names.size === 68, `68 era switches (${names.size})`);
   },
 });
 

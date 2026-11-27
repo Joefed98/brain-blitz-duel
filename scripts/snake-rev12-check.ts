@@ -112,7 +112,7 @@ ok(playRevOf("snake", SNAKE_REV_12) === 10 && playRevOf("snake", SNAKE_REV_STD) 
   const perfect = (entry.perfect() as StdRun[])[0]!;
   // Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul): the standard entry follows the
   // stamp rooms deal (arcade-standard-check proves an entry for it), so it names snakeRev 15 (Changed with Joe's approval, 15 Nov 2026 (routine consequence of the Retro overhaul)).
-  ok(entry.type === "snake" && entry.field === "snakeRev" && entry.rev === SNAKE_REV_GRACE, "the standard module names snakeRev 15, the dealt stamp (snakeRev 12 before the Retro overhaul)");
+  ok(entry.type === "snake" && entry.field === "snakeRev" && entry.rev === SNAKE_REV_LADDER, "the standard module names snakeRev 16, the dealt stamp (snakeRev 12 before the Retro overhaul)"); // Changed with Joe's approval, 27 Nov 2026 (D5's snakeRev 16)
   ok(entry.parts.reduce((a, p) => a + p.max, 0) === 200, "the parts' maxima add up to 200");
   ok(JSON.stringify(entry.parts.map((p) => [p.key, p.max])) === JSON.stringify([["core", 120], ["gold", 40], ["combo", 20], ["lane", 10], ["warp", 10]]), "parts: core 120, gold 40, combo 20, lane 10, warp 10 (unchanged)");
   ok(perfect.score === 200, `the perfect run scores 200 (got ${perfect.score})`);
