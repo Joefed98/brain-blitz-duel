@@ -4,17 +4,21 @@
  *
  *  Home Run (homerunRev 6 on level deals; the lever is pitch speed): the settings under their own keys, the registry
  *  mirroring them, the deal (every seed the flawless batter takes to 200 through the server replay; the deal file
- *  rebuilds byte for byte), Normal and the rev-5 levels unchanged, Easy's five outs, and the realistic elite (the
- *  skill-band bot under HUMAN_LIMITS) reaching 200 on at least a fifth of Expert deals.
+ *  rebuilds byte for byte), Normal and the rev-5 levels unchanged, and Easy's five outs.
  *
  *  Apex (racingRev 5, Normal's scoring stamp; the levels' lever is road width, their settings stamped as racingLevel):
  *  Normal's new figures on rev 4's play, the levels' settings and proved deals, the levels before under d6PreLevels
- *  byte for byte, and the realistic elite reaching 200 on at least a fifth of Expert deals.
+ *  byte for byte.
  *
  *  Top Bins (freekickRev 7 on level deals; the lever is the players in the wall, 2 / 3–5 / 5 / 7): the registry mirroring
  *  FK_LEVEL_SETTINGS_V7 and FK_V7_FULL, every level deal from its proved list (the oracle at 200 with Normal's figures),
- *  Normal on freekickRev 6 unchanged, the levels before under d6PreLevels, and the realistic elite reaching 200 on at
- *  least a fifth of Expert deals.
+ *  Normal on freekickRev 6 unchanged, and the levels before under d6PreLevels.
+ *
+ *  Difficulty is not judged here (Joe, 27 Nov 2026: a person playtests the levels and Joe tunes them): every deal at
+ *  every level is proved completable, nothing more.
+ *
+ *  Crazy Golf (golfRev 4, Normal's scoring stamp and the levels; today's holes, Hard and Expert with their extra hazards):
+ *  every dealt course proved completable at 200 on golfRev 4 from its holes' witnesses, the stamps before under the pins.
  *
  *   bun scripts/d6-sports-levels-check.ts
  */
@@ -27,14 +31,18 @@ import { pinPreD6Levels } from "../src/lib/duel/d6Normal";
 import { homerunGameFor, HOMERUN_REV_DEALT } from "../src/lib/arcade/homerun";
 import { HOMERUN_REV_5, HOMERUN_REV_6, HR_LEVEL_SETTINGS, hrPlayLevel } from "../src/lib/arcade/homerunInnings";
 import { HOMERUN_DEAL_V6 } from "../src/lib/duel/homerunDealV6.server";
-import { playDealt } from "./d6-ladder-lib";
 import { racingGameFor, racingLevelOf, racingPaceRange, racingStdParts, RACING_REV_4, RACING_REV_5, RACING_REV_DEALT, RACING_V4_PACE, RACING_V5_CLEAN_FULL, RACING_V5_PACE, type RacingLevelSettings } from "../src/lib/arcade/racing";
 import { RACING_DEAL_V4 } from "../src/lib/duel/racingDealV4.server";
 import { RACING_DEAL_V5_EASY } from "../src/lib/duel/racingDealV5Easy.server";
 import { RACING_DEAL_V5_HARD } from "../src/lib/duel/racingDealV5Hard.server";
 import { RACING_DEAL_V5_EXPERT } from "../src/lib/duel/racingDealV5Expert.server";
 import { RACING_DEAL_V4_EASY } from "../src/lib/duel/racingDealV4Easy.server";
-import { pinPreRacingFive } from "../src/lib/duel/d6Normal";
+import { pinPreMinigolfD6, pinPreRacingFive } from "../src/lib/duel/d6Normal";
+import { readFileSync } from "node:fs";
+import { minigolfGameFor, MG_D6_FIGURES, MG_LEVELS, MINIGOLF_HOLES, MINIGOLF_REV_COURSE, MINIGOLF_REV_D6 } from "../src/lib/arcade/minigolf";
+import { replayMinigolfRun } from "../src/lib/duel/minigolf";
+import { encodeSportsRun } from "../src/lib/arcade/sportsKit";
+import { playCourseV3, WITNESS_FILE, type WitnessFile } from "./minigolf-holes-bank";
 import { freekickGameFor, freekickStdParts, FK_LEVEL_SETTINGS, FK_LEVEL_SETTINGS_V7, FK_V7_FULL, FREEKICK_REV_6, FREEKICK_REV_7 } from "../src/lib/arcade/freekick";
 import { FREEKICK_DEAL_V7 } from "../src/lib/duel/freekickDealV7.server";
 import { puzzleTimeLimitMs } from "../src/lib/duel/catalogue";
@@ -105,10 +113,6 @@ console.log("1. Home Run homerunRev 6: pitch speed");
   const r = Bun.spawnSync(["bun", "scripts/homerun-d6-deal.ts", "--check"], { stdout: "pipe", stderr: "pipe" });
   const out = r.stdout.toString().trim().split("\n").pop() ?? "";
   check(r.exitCode === 0 && out.startsWith("PASS"), `homerun: every D6 deal seed re-proved at 200 and the file rebuilds (${out})`);
-  // The realistic elite reaches 200 on Expert (at least a fifth of the 96 deals the ladder measures), through the grade.
-  let at200 = 0;
-  for (let n = 0; n < 96; n++) if ((await playDealt("homerun", dealAt("homerun", "expert", n), "elite")).score >= 200) at200++;
-  check(at200 / 96 >= 0.2, `homerun expert: the elite under HUMAN_LIMITS reaches 200 on ${at200} of 96 deals (at least a fifth)`);
 }
 
 /* ---------------------------------------------------------------- Apex */
@@ -161,9 +165,6 @@ console.log("2. Apex racingRev 5 (Normal's scoring stamp) and its levels: road w
     const out = r.stdout.toString().trim().split("\n").pop() ?? "";
     check(r.exitCode === 0 && out.startsWith("ok"), `apex ${l}: every deal seed re-proved at 200 (${out})`);
   }
-  let at200 = 0;
-  for (let n = 0; n < 96; n++) if ((await playDealt("racing", dealAt("racing", "expert", n), "elite")).score >= 200) at200++;
-  check(at200 / 96 >= 0.2, `apex expert: the elite under HUMAN_LIMITS reaches 200 on ${at200} of 96 deals (at least a fifth)`);
 }
 
 /* ---------------------------------------------------------------- Top Bins */
@@ -201,9 +202,33 @@ console.log("3. Top Bins freekickRev 7's levels: the players in the wall");
   const r = Bun.spawnSync(["bun", "scripts/freekick-d6-deal.ts", "--check"], { stdout: "pipe", stderr: "pipe" });
   const out = r.stdout.toString().trim().split("\n").pop() ?? "";
   check(r.exitCode === 0 && /^(PASS|ok)/i.test(out), `topbins: every D6 deal seed re-proved at 200 and the file rebuilds (${out})`);
-  let at200 = 0;
-  for (let n = 0; n < 96; n++) if ((await playDealt("freekick", dealAt("freekick", "expert", n), "elite")).score >= 200) at200++;
-  check(at200 / 96 >= 0.2, `topbins expert: the elite under HUMAN_LIMITS reaches 200 on ${at200} of 96 deals (at least a fifth)`);
+}
+
+/* ---------------------------------------------------------------- Crazy Golf */
+console.log("4. Crazy Golf golfRev 4: golfRev 3's holes on each level's own figures");
+{
+  // Completable at every level: the dealt course (from the proven hole bank) played on its holes' witnesses scores
+  // exactly 200 through golfRev 4's server replay (golfRev 4 keeps golfRev 3's holes and play; its figures are never
+  // stricter than golfRev 3's, MG_D6_FIGURES against MG_LEVELS).
+  const witness = JSON.parse(readFileSync(WITNESS_FILE, "utf8")) as WitnessFile;
+  for (const lv of [...LEVELS, "normal"] as const) {
+    const f = MG_D6_FIGURES[lv];
+    check(f.underFull <= MINIGOLF_HOLES && f.parSlack >= 0 && f.fullByS >= MG_LEVELS[lv].fullByS, `crazy golf ${lv}: golfRev 4's figures are never stricter than golfRev 3's (under par at ${f.underFull}, par + ${f.parSlack}, speed by ${f.fullByS} s)`);
+    let ok200 = 0;
+    const n = 12;
+    for (let k = 0; k < n; k++) {
+      const p = dealAt("minigolf", lv, k);
+      check(p.golfRev === MINIGOLF_REV_D6 && (lv === "normal" ? !("level" in p) : p.level === lv), `crazy golf ${lv} ${k}: golfRev 4${lv === "normal" ? ", no level" : `, level ${lv}`}`);
+      const { events, state, checkpoints } = playCourseV3(p.holes, p.pars, lv, witness);
+      const g = minigolfGameFor(p.pars, MINIGOLF_REV_D6, { holes: p.holes, level: lv });
+      const raw = encodeSportsRun({ seed: 7, claimedScore: g.score(state), events, endTick: state.tick, checkpoints });
+      const r = replayMinigolfRun(7, raw, p.pars, MINIGOLF_REV_D6, { holes: p.holes, level: lv });
+      if (r.score === 200 && !r.flagged) ok200++;
+    }
+    check(ok200 === n, `crazy golf ${lv}: every dealt course's witness scores 200 through golfRev 4's server replay (${ok200} of ${n})`);
+  }
+  pinned(pinPreD6Levels, () => check(LEVELS.every((l) => dealAt("minigolf", l, 0).golfRev === MINIGOLF_REV_COURSE) && dealAt("minigolf", "normal", 0).golfRev === MINIGOLF_REV_D6, "d6PreLevels: Crazy Golf's levels deal golfRev 3, Normal golfRev 4"));
+  pinned(pinPreMinigolfD6, () => check([...LEVELS, "normal" as const].every((l) => dealAt("minigolf", l, 0).golfRev === MINIGOLF_REV_COURSE), "minigolfPreD6: Crazy Golf deals golfRev 3 at every level"));
 }
 
 console.log(failed ? `FAIL d6-sports-levels-check: ${failed} failed, ${passed} passed` : `PASS d6-sports-levels-check: ${passed} checks`);

@@ -214,3 +214,19 @@ Normal is freecellRev 5 exactly. A level deal carries `level` and freecellRev 5;
 
 Parts on every level: cards 105 (all home), par 50, speed 45; a hint's cost comes off the cards part. The elite bot finishes
 52-card deals in about 47–52 s, so Hard keeps 52 cards (the brief's 48-card fallback is not needed).
+
+## D6 levels (27 Nov 2026)
+
+Measured with the ladder tool (`scripts/d6-ladder.ts`: the average player, and the realistic elite held to HUMAN_LIMITS,
+on 96 room deals a level). The figures are a report, not a target: a person playtests the levels and Joe tunes them in
+a later scoring session (Joe, 27 Nov 2026). What the checks prove is that every deal at every level can be completed.
+
+- **Normal stamp:** freecellRev 6 (Normal: Par moves full within an eighth over par).
+- **The lever:** cards and free cells: 32 on 5 / 40 on 4 (Normal) / 40 on 3 / 48 on 2 (deals solved in 38 moves or fewer).
+- **Average player, Easy / Normal / Hard / Expert:** 184.8 / 119.5 / 89.8 / 32.4.
+- **The elite at 200:** 61 / 45 / 32 / 25 %.
+
+Every older stamp, and every level round dealt before D6 (the era pin `d6PreLevels`), replays and scores exactly as
+before. The level settings live in the sim and are mirrored in `src/lib/levels/gameLevels.ts`; D6's checks
+(`d6-normal-stamps-check`, `d6-cards-levels-check`, `d6-sports-levels-check`, `d6-strategy-levels-check`) prove the
+deals, the proofs and the mirror.

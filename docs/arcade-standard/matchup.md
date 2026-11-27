@@ -311,3 +311,19 @@ seeds): see the PR.
 - Checks pinned or moved to the successor (changed with Joe's approval, 15 Nov 2026, routine consequence of the
   Strategy overhaul): gemstone-rev12-check (pinned for "rooms deal 12"; its own flawless run replayed directly),
   gemstone-standard-check, gemstone-rev10-check, e6-check, arcade-standard-check's roster.
+
+## D6 levels (27 Nov 2026)
+
+Measured with the ladder tool (`scripts/d6-ladder.ts`: the average player, and the realistic elite held to HUMAN_LIMITS,
+on 96 room deals a level). The figures are a report, not a target: a person playtests the levels and Joe tunes them in
+a later scoring session (Joe, 27 Nov 2026). What the checks prove is that every deal at every level can be completed.
+
+- **Normal stamp:** matchupRev 14 (Normal: matchupRev 13's deal, its parts full at 320 gems, 2 treasures, 4 goals, 7 ice cells, 2 big lines).
+- **The lever:** gem colours: 5 / 6 (Normal) / 7 (the cyan heart) / 8 (a white pearl, its own teardrop cut).
+- **Average player, Easy / Normal / Hard / Expert:** 163.5 / 116.6 / 99.4 / 82.8.
+- **The elite at 200:** 75 / 46 / 38 / 24 %.
+
+Every older stamp, and every level round dealt before D6 (the era pin `d6PreLevels`), replays and scores exactly as
+before. The level settings live in the sim and are mirrored in `src/lib/levels/gameLevels.ts`; D6's checks
+(`d6-normal-stamps-check`, `d6-cards-levels-check`, `d6-sports-levels-check`, `d6-strategy-levels-check`) prove the
+deals, the proofs and the mirror.

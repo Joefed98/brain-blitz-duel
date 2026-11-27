@@ -125,6 +125,15 @@ console.log("2. Cue Ball poolRev 5: Speed from the fifth pot");
     if (good && k === events.length) paced++;
   }
   ok(at200 === POOL_BANK_V3.length, `pool: every bank layout's poolRev 5 witness scores 200 with no foul through the server replay (${at200} of ${POOL_BANK_V3.length})`);
+  // Completable at every level: the levels deal the same bank on poolRev 5 and change only a foul's cost and when the
+  // black opens, so each layout's witness scores 200 at Easy, Hard and Expert too.
+  for (const level of ["easy", "hard", "expert"] as const) {
+    const n = POOL_BANK_V3.filter((s) => {
+      const run = replayPoolRun(s, witnessV5[String(s)] ?? "", 5, level);
+      return run.score === 200 && !run.flagged;
+    }).length;
+    ok(n === POOL_BANK_V3.length, `pool ${level}: every bank layout's poolRev 5 witness scores 200 through the server replay (${n} of ${POOL_BANK_V3.length})`);
+  }
   ok(paced === POOL_BANK_V3.length, `pool: every witness shot comes more than ${POOL_HUMAN_WAIT} ticks (0.4 s) after the balls stopped (${paced} of ${POOL_BANK_V3.length})`);
   const rebuilt = spawnSync(process.execPath, [new URL("./pool-bank.ts", import.meta.url).pathname, "--rev=5", "--check"], { encoding: "utf8" });
   ok(rebuilt.status === 0, `pool: pool-bank.ts --rev=5 --check rebuilds the witnesses byte for byte (${(rebuilt.stdout ?? "").trim().split("\n").pop()})`);

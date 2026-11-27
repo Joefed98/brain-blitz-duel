@@ -5,23 +5,23 @@
  *  Gemstone (matchupRev 14, Normal's scoring stamp and the levels; the lever is the gem colours, 5 / 6 / 7 / 8): rooms
  *  deal matchupRev 14 at Normal and every level, the levels before under the pins byte for byte, the registry mirroring
  *  MATCHUP_V14_LEVELS, each level's board holding exactly its colours, Normal playing matchupRev 13's game on its own
- *  figures, the eighth gem's own cut, the recorded flawless run at 200 with every part full, and the realistic elite
- *  (the skill-band bot under HUMAN_LIMITS) reaching 200 on at least a fifth of Expert deals.
+ *  figures, the eighth gem's own cut, the recorded flawless run at 200 with every part full.
  *
  *  Tilt (tiltRev 13's levels; the lever is the marbles steered at once): the registry mirroring TILT_LEVELS_V13, every
  *  level deal tiltRev 13 from its own proved list (the oracle held to HUMAN_LIMITS at exactly 200 through the server
- *  replay; the list rebuilds byte for byte), the levels before under the pins, each level's marbles, the clock, and
- *  the realistic elite reaching 200 on at least a fifth of Expert deals.
+ *  replay; the list rebuilds byte for byte), the levels before under the pins, each level's marbles and the clock.
  *
  *  Ball Tracker (btRev 9, Normal's scoring stamp and the levels; the lever is the marble colours and their cups, 3 / 4 /
  *  5 / 5): the registry mirroring BT_D6_LEVELS, every level course proved at 200 on btRev 9 and holding exactly its
  *  colours, Normal on btRev 8's bank and play with its own figures, the stamp before under the pins, the fifth colour's
- *  own star, and the realistic elite reaching 200 on at least a fifth of Expert deals.
+ *  own star.
  *
  *  Rainbow Bridge (inkRev 16, Normal's scoring stamp and the levels; the lever is the pot's width, 110 / 64 / 48 / 42 px):
  *  inkRev 15's world at every level exactly, every dealt seed's witness at 200 on inkRev 16, each level's figures,
- *  the stamp before under the pins, and the realistic elite reaching 200 on at least a fifth of Expert deals.
+ *  the stamp before under the pins.
  *
+ *  Difficulty is not judged here (Joe, 27 Nov 2026: a person playtests the levels and Joe tunes them): every deal at
+ *  every level is proved completable, nothing more.
  *   bun scripts/d6-strategy-levels-check.ts
  */
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -41,6 +41,7 @@ import {
   matchupD6GameFor,
   matchupGameFor,
   matchupGemShape,
+  matchupHintSwap,
   matchupIce2GameFor,
   matchupKindOfColour,
   matchupStdParts,
@@ -56,7 +57,6 @@ import { pearlCutPoints } from "../src/lib/arcade/matchupPearl.renderer";
 import { replayMatchupRun } from "../src/lib/duel/matchup";
 import { tiltLevelGameV13, TILT_LEVELS_V13, TILT_REV_BIG, TILT_REV_THREE, type TiltLevel } from "../src/lib/arcade/tilt";
 import { TILT_DEAL_LEVELS_V13 } from "../src/lib/duel/tiltDealLevelsV13.server";
-import { playDealt } from "./d6-ladder-lib";
 import { btTraysAt, makeBallTrackGame, BT_COLOUR_FIVE, BT_D6_LEVELS, BT_D6_NORMAL_FULL, BT_PALETTE, BT_REV_D6, BT_REV_STD, type BtCourse } from "../src/lib/arcade/ballTrack";
 import { btStarPath } from "../src/lib/arcade/ballTrackColours.renderer";
 import { btD6LevelDeal } from "../src/lib/duel/ballTrackLevelsD6.server";
@@ -131,7 +131,7 @@ console.log("1. Gemstone matchupRev 14: the gem colours");
     const bottom = Math.max(...pts.map((p) => p[1]));
     const widest = (band: (y: number) => boolean) => Math.max(0, ...pts.filter((p) => band(p[1])).map((p) => Math.abs(p[0])));
     check(matchupGemShape(MATCHUP_KIND8) === "pearl" && Array.from({ length: 6 }, (_, k) => matchupGemShape(k)).every((s) => s !== "pearl"), "gemstone: the eighth gem's shape is the pearl, no other gem's");
-    check(pts.length === 18 && top < -8 && bottom > 8 && widest((y) => y < top + 3) < 2 && widest((y) => y > 0) > 6, "gemstone: the pearl's cut is a teardrop (a point at the top, a round base)");
+    check(pts.length === 18 && top < -8 && bottom > 8 && widest((y) => y < top + 2) < 1 && widest((y) => y > 0) > 6, "gemstone: the pearl's cut is a teardrop (a point at the top, a round base)");
   }
   // The recorded flawless run on matchupRev 14 replays to 200 with every part full; the recorder re-records it.
   {
@@ -144,9 +144,21 @@ console.log("1. Gemstone matchupRev 14: the gem colours");
     check(r.exitCode === 0 && out.startsWith("PASS"), `gemstone: the flawless run re-records byte for byte (${out})`);
   }
   for (const l of [...LEVELS, "normal"] as const) check(puzzleTimeLimitMs(dealAt("matchup", l, 0)) <= MAX_ROUND_CLOCK_MS + 3000, `gemstone ${l}: the dealt clock is within 120 s`);
-  let at200 = 0;
-  for (let n = 0; n < 96; n++) if ((await playDealt("matchup", dealAt("matchup", "expert", n), "elite")).score >= 200) at200++;
-  check(at200 / 96 >= 0.2, `gemstone expert: the elite under HUMAN_LIMITS reaches 200 on ${at200} of 96 deals (at least a fifth)`);
+  // Completable at every level (rooms deal any seed): every deal opens with a legal swap (a stuck board reshuffles in
+  // play), and a flawless run at each level scores exactly 200 through the server replay.
+  for (const l of [...LEVELS, "normal"] as const) {
+    let open = 0;
+    for (let seed = 1; seed <= 60; seed++) if (matchupHintSwap(matchupD6GameFor(l).init(seed) as MatchupState)) open++;
+    check(open === 60, `gemstone ${l}: every deal opens with a legal swap (${open} of 60 seeds)`);
+  }
+  {
+    const rec = JSON.parse(readFileSync(new URL("./fixtures/d6-gemstone-levels.json", import.meta.url), "utf8")) as { levels: Record<L, { seed: number; raw: string }> };
+    for (const l of LEVELS) {
+      const w = rec.levels[l];
+      const run = replayMatchupRun(w.seed, gunzipSync(Buffer.from(w.raw, "base64")).toString(), MATCHUP_REV_D6, l);
+      check(!run.flagged && run.score === 200, `gemstone ${l}: a recorded flawless run scores 200 through the server replay (${run.score})`);
+    }
+  }
 }
 
 /* ---------------------------------------------------------------- Tilt */
@@ -173,9 +185,6 @@ console.log("2. Tilt tiltRev 13's levels: the marbles steered at once");
   const r = Bun.spawnSync(["bun", "scripts/tilt-level-deal-v13.ts", "--check"], { stdout: "pipe", stderr: "pipe" });
   const out = r.stdout.toString().trim().split("\n").pop() ?? "";
   check(r.exitCode === 0 && out.startsWith("PASS"), `tilt: every D6 level witness re-proved at 200 and the deal file rebuilds (${out})`);
-  let at200 = 0;
-  for (let n = 0; n < 96; n++) if ((await playDealt("tilt", dealAt("tilt", "expert", n), "elite")).score >= 200) at200++;
-  check(at200 / 96 >= 0.2, `tilt expert: the elite under HUMAN_LIMITS reaches 200 on ${at200} of 96 deals (at least a fifth)`);
 }
 
 /* ---------------------------------------------------------------- Ball Tracker */
@@ -237,9 +246,6 @@ console.log("3. Ball Tracker btRev 9: the marble colours and their cups");
     btStarPath(ctx, 0, 0, 10);
     check(BT_PALETTE.length === 5 && BT_COLOUR_FIVE === 4 && pts.length === 10 && Math.min(...pts.map((p) => p[2])) <= -9.9, "balltrack: the fifth colour is drawn as its own ten-point star");
   }
-  let at200 = 0;
-  for (let n = 0; n < 96; n++) if ((await playDealt("balltrack", dealAt("balltrack", "expert", n), "elite")).score >= 200) at200++;
-  check(at200 / 96 >= 0.2, `balltrack expert: the elite under HUMAN_LIMITS reaches 200 on ${at200} of 96 deals (at least a fifth)`);
 }
 
 /* ---------------------------------------------------------------- Rainbow Bridge */
@@ -290,9 +296,6 @@ console.log("4. Rainbow Bridge inkRev 16: the pot's width, each part on its leve
   }
   pinned(pinPreInkD6, () => check(dealAt("inkbridge", "normal", 0).inkRev === INK_REV_HILLS && LEVELS.every((l) => dealAt("inkbridge", l, 0).inkRev === INK_REV_HILLS), "inkPreD6: Rainbow Bridge deals inkRev 15, Normal and the levels"));
   pinned(pinPreD6Levels, () => check(LEVELS.every((l) => dealAt("inkbridge", l, 0).inkRev === INK_REV_HILLS) && dealAt("inkbridge", "normal", 0).inkRev === INK_REV_D6, "d6PreLevels: Rainbow Bridge's levels deal inkRev 15, Normal inkRev 16"));
-  let at200 = 0;
-  for (let n = 0; n < 96; n++) if ((await playDealt("inkbridge", dealAt("inkbridge", "expert", n), "elite")).score >= 200) at200++;
-  check(at200 / 96 >= 0.2, `inkbridge expert: the elite under HUMAN_LIMITS reaches 200 on ${at200} of 96 deals (at least a fifth)`);
 }
 
 if (failed) {
