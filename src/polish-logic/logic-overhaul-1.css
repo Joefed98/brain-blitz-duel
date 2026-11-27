@@ -9,68 +9,84 @@
  * under `:is(#logic-overhaul-1, html)` (an id's weight, matched by html), so it wins over the older polish layers.
  */
 
-/* ------------------------------------------------------------------ Box Six: lacquered tiles, gold numerals, silver lines */
+/* ------------------------------------------------------------------ Box Six: a white grid on the lit stage */
+/* Spotlight (the polish plan's art rules 1 and 2, A2, 21 Nov 2026): matte ivory tiles (the re-rendered box-tile
+   sprites) over a deep-teal frame whose gaps are the grid's lines; every other 2 × 3 box a light Logic tint; navy
+   givens, teal entries, a champagne selection. No lacquer, glow or glare. */
 :is(#logic-overhaul-1, html) .logic-sudoku-frame {
+  /* The frame (earlier E0.3): the category's colour over the surface, never near-black or silver. */
   padding: 3px;
   border-radius: 10px;
-  background: linear-gradient(160deg, #d9dde3, #8b929b 45%, #5d636c 70%, #c3c8cf);
-  box-shadow: 0 10px 28px rgb(0 0 0 / 0.6);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--category-accent) 22%, var(--jz-surface)), color-mix(in oklab, var(--category-accent) 12%, var(--jz-bg)));
+  box-shadow: 0 10px 24px rgb(0 0 0 / 0.38);
 }
 :is(#logic-overhaul-1, html) .logic-sudoku.logic-sudoku {
   gap: 2px;
-  background: linear-gradient(160deg, #c9ced5, #7b828b 50%, #b7bcc4);
+  background: color-mix(in oklab, var(--category-accent) 30%, var(--jz-navy));
   border-radius: 8px;
   overflow: hidden;
 }
 :is(#logic-overhaul-1, html) .logic-sudoku > .logic-sudoku-cell.logic-sudoku-cell {
+  --box-wash: transparent;
   border: 0;
-  background-color: #08090c;
-  background-image: url("/logic-art/box-tile.webp");
+  background-color: color-mix(in srgb, var(--jz-white) 92%, var(--jz-gold));
+  background-image: linear-gradient(var(--box-wash), var(--box-wash)), url("/logic-art/box-tile.webp");
   background-size: 100% 100%;
 }
-:is(#logic-overhaul-1, html) .logic-sudoku > .logic-sudoku-cell.logic-sudoku-cell[data-tone="given"] {
-  background-image: url("/logic-art/box-tile-given.webp");
+:is(#logic-overhaul-1, html) .logic-sudoku > .logic-sudoku-cell.logic-sudoku-cell[data-box-tint] {
+  --box-wash: color-mix(in srgb, var(--category-accent) 15%, transparent);
 }
-/* The 2 × 3 boxes: a thicker silver strip between them (the gap shows the frame's silver). */
+:is(#logic-overhaul-1, html) .logic-sudoku > .logic-sudoku-cell.logic-sudoku-cell[data-tone="given"] {
+  background-image: linear-gradient(var(--box-wash), var(--box-wash)), url("/logic-art/box-tile-given.webp");
+}
+/* The 2 × 3 boxes: a thicker teal line between them (the gap shows the grid's ink). */
 .logic-sudoku > .logic-sudoku-cell.sudoku-box-top:not(:nth-child(-n + 6)) { margin-top: 2px; }
 .logic-sudoku > .logic-sudoku-cell.sudoku-box-left:not(:nth-child(6n + 1)) { margin-left: 2px; }
+/* The selected cell's row, column and box: a little more of the tint. */
 :is(#logic-overhaul-1, html) .logic-sudoku > .logic-sudoku-cell.bg-muted\/40 {
-  background-image: linear-gradient(rgb(226 192 122 / 0.1), rgb(226 192 122 / 0.1)), url("/logic-art/box-tile.webp");
+  --box-wash: color-mix(in srgb, var(--category-accent) 26%, transparent);
 }
+/* The selected cell: champagne. */
 :is(#logic-overhaul-1, html) .logic-sudoku > .logic-sudoku-cell.bg-primary\/20 {
-  outline-color: var(--jz-gold);
-  background-image: linear-gradient(rgb(226 192 122 / 0.2), rgb(226 192 122 / 0.2)), url("/logic-art/box-tile.webp");
+  --box-wash: color-mix(in srgb, var(--jz-gold) 62%, transparent);
+  outline-color: color-mix(in srgb, var(--jz-gold) 70%, var(--jz-ink-gold));
 }
 :is(#logic-overhaul-1, html) .logic-sudoku-cell .logic-sudoku-digit {
   font-family: var(--jz-font, inherit);
   font-weight: 800;
   font-size: 1.12em;
+  text-shadow: none;
 }
 :is(#logic-overhaul-1, html) .logic-sudoku-cell[data-tone="given"] .logic-sudoku-digit {
-  /* Concept A / B: glowing gold numerals on the lacquer (a soft glow, never a glare across the digit). */
-  color: #f2c14e;
-  text-shadow: 0 0 8px rgb(242 193 78 / 0.45), 0 1px 0 rgb(0 0 0 / 0.8);
+  color: var(--jz-navy);
+  text-shadow: none;
 }
 :is(#logic-overhaul-1, html) .logic-sudoku-cell.text-primary .logic-sudoku-digit {
-  /* The player's own digits: pale champagne, so they read apart from the given gold. */
-  color: #fff0c8;
-  text-shadow: 0 0 6px rgb(255 240 200 / 0.3), 0 1px 0 rgb(0 0 0 / 0.8);
+  /* The player's own digits: the Logic teal, deepened so it reads on ivory (about 3.4:1, display type). */
+  color: color-mix(in oklab, var(--category-accent) 62%, var(--jz-navy));
+  text-shadow: none;
+}
+:is(#logic-overhaul-1, html) .logic-sudoku-cell .grid.font-mono {
+  color: color-mix(in oklab, var(--jz-navy) 70%, transparent);
 }
 :is(#logic-overhaul-1, html) .logic-sudoku-cell[data-tone="missed"] {
   /* The reveal's solution: a cell you missed or got wrong, ringed so it stands out. */
   /* !important: styles.css drops every sudoku cell's shadow with !important. */
-  box-shadow: inset 0 0 0 3px rgb(226 192 122 / 0.95) !important;
+  box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--jz-gold) 80%, var(--jz-ink-gold)) !important;
 }
 :is(#logic-overhaul-1, html) .logic-sudoku-cell[data-tone="missed"] .logic-sudoku-digit {
-  color: var(--jz-gold);
-  text-shadow: 0 1px 0 rgb(0 0 0 / 0.8);
+  color: color-mix(in srgb, var(--jz-gold) 45%, var(--jz-ink-gold));
+  text-shadow: none;
+}
+:is(#logic-overhaul-1, html) .logic-sudoku-cell.text-destructive .logic-sudoku-digit {
+  color: color-mix(in srgb, var(--jz-red) 80%, var(--jz-navy));
 }
 /* Live clashes: the clashing digits pulse red once, then stay red-ringed while they clash. */
 :is(#logic-overhaul-1, html) .logic-sudoku-cell[data-clash] {
-  box-shadow: inset 0 0 0 2px rgb(255 90 110 / 0.75) !important;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--jz-red) 80%, transparent) !important;
 }
 :is(#logic-overhaul-1, html) .logic-sudoku-cell[data-clash] .logic-sudoku-digit {
-  color: var(--jz-loss-text, #ff5a6e);
+  color: color-mix(in srgb, var(--jz-red) 80%, var(--jz-navy));
   text-shadow: none;
   animation: logic-clash-pulse 360ms ease-out 1;
 }
@@ -277,6 +293,20 @@
 }
 .logic-drum-live.logic-drum-live { font-size: clamp(32px, 7cqh, 42px); }
 .logic-drum.logic-drum-wrong { border-color: var(--jz-loss-text, #ff5a6e); color: #4a0e0e; }
+/* Spotlight (A2, 21 Nov 2026): the clue card is white paper with navy ink over a soft ledge (the dials stay metal). */
+:is(#logic-overhaul-1, html) .logic-safe-card.logic-safe-card {
+  border-color: transparent;
+  background: linear-gradient(180deg, var(--jz-white), color-mix(in srgb, var(--jz-white) 90%, var(--jz-gold)));
+  box-shadow: inset 0 -3px 0 color-mix(in srgb, var(--jz-navy) 18%, transparent), 0 8px 18px rgb(0 0 0 / 0.32);
+  color: var(--jz-navy);
+}
+:is(#logic-overhaul-1, html) .logic-safe-card .logic-safe-clue {
+  color: var(--jz-navy);
+  font-weight: 600;
+}
+:is(#logic-overhaul-1, html) .logic-safe-card .logic-safe-clue[data-broken] {
+  color: color-mix(in srgb, var(--jz-red) 82%, var(--jz-navy));
+}
 :is(#logic-overhaul-1, html) .logic-safe-clue[data-broken] {
   color: var(--jz-loss-text, #ff5a6e);
   animation: logic-broken-flash 520ms ease-out 1;
@@ -311,7 +341,8 @@
   /* !important: batch-p's Mosaic surface sets these with !important (matched here, Mosaic cells only). */
   background: url("/logic-art/mosaic-well.webp") center / 100% 100% no-repeat !important;
   box-shadow: none !important;
-  color: rgb(242 239 232 / 0.6);
+  /* Spotlight (A2, 21 Nov 2026): the wells are light, so a crossed square's mark is navy ink. */
+  color: color-mix(in srgb, var(--jz-navy) 60%, transparent);
 }
 :is(#logic-overhaul-1, html) .logic-nono .logic-nono-cell.logic-nono-cell.bg-primary {
   background: url("/logic-art/mosaic-tile.webp") center / 100% 100% no-repeat, #1b2229 !important;

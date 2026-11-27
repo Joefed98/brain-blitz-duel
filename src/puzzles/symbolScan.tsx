@@ -142,8 +142,9 @@ function matchesOf(stage: SymbolScanStage): number[] {
 }
 
 /** The target eagle(s) for a grid: one, or two side by side with "or" on scanRev 1's grid 3. */
-function TargetBadge({ stage, size = 46 }: { stage: SymbolScanStage; size?: number }) {
-  // The Attention overhaul: the target chips are larger (56 px) so the facing reads before the grid does.
+function TargetBadge({ stage, size = 56 }: { stage: SymbolScanStage; size?: number }) {
+  // The Attention overhaul: the target chips are larger so the facing reads before the grid does (Spotlight, 21 Nov
+  // 2026: 68 px with a 56 px eagle; were 56 and 46).
   const box = size >= 40 ? "eye-target-lg" : size >= 30 ? "h-12 w-12" : "h-9 w-9";
   const badge = (dir: ArrowDir) => (
     <div className={`eye-target flex ${box} items-center justify-center rounded-xl border border-primary bg-primary/10 text-primary`}>

@@ -88,6 +88,8 @@ export function SudokuGrid({
             onClick={onSelect ? () => onSelect(cell) : undefined}
             data-clash={clash ? "" : undefined}
             data-tone={tone}
+            // Spotlight (A2, 21 Nov 2026; display only): every other 2 × 3 box takes a light tint, so the boxes read.
+            data-box-tint={(Math.floor(sudokuBox(cell) / 2) + (sudokuBox(cell) % 2)) % 2 ? "" : undefined}
             className={`logic-sudoku-cell relative flex items-center justify-center font-display font-bold ${boxEdges(cell)} ${
               cell === selected
                 ? "bg-primary/20 outline outline-2 -outline-offset-2 outline-primary"

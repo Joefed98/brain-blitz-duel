@@ -192,17 +192,17 @@ for (const seed of SEEDS) {
   const leaks = networkLeakArms(tiles, connected, 3);
   check(leaks[3] === PIPE_S && leaks[0] === 0 && leaks[1] === 0 && leaks[2] === 0 && leaks[4] === 0, `leaks: ${JSON.stringify(leaks)}`);
   const html = renderToStaticMarkup(React.createElement(PipesBoard, { tiles, source: 0, cols: 3, connected, showLeaks: true }));
-  check(html.includes('/pattern-art/pipes/corner-1-dry.webp') && html.includes('/pattern-art/pipes/corner-1-wet.webp'), "art: the board doesn't draw the turned corner's sprites");
+  check(/data-pipe-layer="dry"/.test(html) && /data-pipe-layer="wet"/.test(html) && html.includes("data:image/svg+xml"), "art: the board doesn't draw the old SVG pipes, dry and wet"); // Changed with Joe's approval, 22 Nov 2026
   check((html.match(/data-wet="true"/g) ?? []).length === 4, "art: the wet set isn't shown on exactly the connected pipes");
-  check(html.includes("/pattern-art/pipes/valve.webp"), "art: no source valve");
+  check(html.includes(encodeURIComponent('fill="url(#p)"')), "art: no source pump"); // Changed with Joe's approval, 22 Nov 2026
   check((html.match(/data-pipe-leak=/g) ?? []).length === 1, "art: spills aren't drawn at the network's open ends only");
   check(/data-pipe-turns="1"/.test(html) && !/rotate\(\d+deg\)/.test(html.split("pipe-spill")[0]!), "art: a turned pipe doesn't draw its own turn's sprite");
   check(!/<svg[^>]*class="pipe-art/.test(html) && !html.includes("pipe-channel"), "art: the old SVG pipework is still drawn");
-  check(src("src/polish-pattern/pipes.css").includes('/pattern-art/pipes/tile.webp'), "art: the tile sprite isn't the tile's background");
-  check(!/drop-shadow/.test(src("src/polish-layout/polish-nov3-pattern.css").split("Pipeline (pipes)")[1]!.split("Turntable")[0]!), "art: the network still glows");
+  check(!src("src/polish-pattern/pipes.css").includes("/pattern-art/pipes/tile.webp") && /\.pipe-tile \{[^}]*repeating-linear-gradient/.test(src("src/polish-pattern/pipes.css")), "art: the tile isn't the old brushed steel plate"); // Changed with Joe's approval, 22 Nov 2026
+  check(/drop-shadow/.test(src("src/polish-layout/polish-nov3-pattern.css").split("Pipeline (pipes)")[1]!.split("Turntable")[0]!), "art: the connected network doesn't glow"); // Changed with Joe's approval, 22 Nov 2026
   // The intro and the reveal draw the same board.
   const intro = renderToStaticMarkup(React.createElement(pipesPuzzle.IntroExample!));
-  check(intro.includes("/pattern-art/pipes/") && intro.includes("data-pipe-leak"), "art: the intro doesn't draw the sprites and a leak");
+  check(intro.includes('data-pipe-layer="dry"') && intro.includes("data-pipe-leak"), "art: the intro doesn't draw the SVG pipes and a leak"); // Changed with Joe's approval, 22 Nov 2026
   // Turns and Par sit with the board, inside the arena.
   const stage = src("src/puzzles/pipes.tsx");
   check(/<FramePills inArena testId="pipes"/.test(stage), "pills: Turns / Par aren't drawn next to the board");
@@ -284,7 +284,7 @@ for (const seed of SEEDS) {
     const sol = column(html, "data-pipes-solution");
     const yours = column(html, "data-pipes-yours");
     check(/>Solution</.test(sol) && />Yours</.test(yours), `reveal ${label}: no Solution / Yours labels`);
-    check(sol.includes("/pattern-art/pipes/") && yours.includes("/pattern-art/pipes/"), `reveal ${label}: a board without the sprites`);
+    check(/data-pipe-layer="dry"/.test(sol) && /data-pipe-layer="dry"/.test(yours), `reveal ${label}: a board without the SVG pipes`); // Changed with Joe's approval, 22 Nov 2026
     check(!/You:/.test(sol) && /data-pipes-result="">You: /.test(yours), `reveal ${label}: the player's line isn't "You: …" in the Yours column only`);
     check(!/×/.test(html) && !/data-yours-only/.test(sol), `reveal ${label}: a stray × or a Yours-only line under Solution`);
     check(!/data-hud-pill/.test(sol), `reveal ${label}: numbers under Solution`);

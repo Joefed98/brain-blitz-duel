@@ -1,27 +1,13 @@
 /* The Speed overhaul's reveal pieces (SpeedRevealKit.tsx, Joe 15 Nov 2026): big, plain and legible on a phone. */
-.sr-numbers {
-  display: grid;
-  width: 100%;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin: 0;
-}
-.sr-numbers[data-count="2"], .sr-numbers[data-count="4"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.sr-number {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.32);
-  padding: 8px 6px;
-}
-.sr-number-label { font-size: 13px; font-weight: 600; color: var(--reveal-text-2, rgba(255, 255, 255, 0.78)); white-space: nowrap; }
-.sr-number-value { margin: 0; font-size: 26px; font-weight: 900; line-height: 1.1; color: #fff; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.sr-number[data-tone="gold"] .sr-number-value { color: var(--primary); }
-.sr-number[data-tone="good"] .sr-number-value { color: #7ee2a8; }
-.sr-number[data-tone="warn"] .sr-number-value { color: #ff8f7e; }
+/* The figures are the reveal template's facts strip (G6, 21 Nov 2026: `.reveal-facts` / `.reveal-fact` draw the tiles);
+   only the tone colours are Speed's own. */
+.sr-numbers.reveal-facts { width: 100%; margin: 0; }
+.sr-number.reveal-fact { align-items: center; text-align: center; }
+.sr-number-label { white-space: nowrap; }
+.sr-number-value { margin: 0; white-space: nowrap; }
+.sr-number[data-tone="gold"] .reveal-fact-value { color: var(--primary); }
+.sr-number[data-tone="good"] .reveal-fact-value { color: #7ee2a8; }
+.sr-number[data-tone="warn"] .reveal-fact-value { color: #ff8f7e; }
 
 .sr-panel {
   display: flex;
@@ -61,7 +47,8 @@
 .sr-bar-index { font-size: 12px; color: var(--reveal-text-2, rgba(255, 255, 255, 0.7)); }
 
 /* Bonk's burrows map: the 4 × 4 field, each burrow its hits (gold) and mistakes (red). */
-.sr-burrows { display: grid; width: min(100%, 280px); grid-template-columns: repeat(4, 1fr); gap: 8px; }
+/* The picture takes the stage's width (the template's stage is an inline-size container; G6), up to a phone's. */
+.sr-burrows { display: grid; width: min(100cqw, 340px); grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .sr-burrow { position: relative; display: flex; aspect-ratio: 1; align-items: center; justify-content: center; border-radius: 999px; background: radial-gradient(circle, #0a0705 55%, #3a2716 60%, #2a1b0e 100%); font-size: 18px; font-weight: 900; color: var(--primary); }
 .sr-burrow[data-wrong]::after { content: attr(data-wrong); position: absolute; right: -2px; top: -2px; min-width: 20px; height: 20px; border-radius: 999px; background: #e0503c; color: #fff; font-size: 12px; line-height: 20px; text-align: center; }
 .sr-burrow[data-hits="0"] { color: rgba(255, 255, 255, 0.35); }

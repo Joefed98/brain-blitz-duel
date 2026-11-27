@@ -106,6 +106,26 @@ def dark_wood(key, light="#3A2416", dark="#160C06", scale=10.0, rot90=False):
     return wood(key, hexc(light), hexc(dark), rough=0.32, scale=scale, coat=0.7, rot90=rot90)
 
 
+def baize(key, light, dark):
+    """Green baize (Spotlight, 21 Nov 2026): a matte woven felt in two close tones, no coat, so it never glares."""
+    m, nt, b = lib._principled(key)
+    lib._noise_into(nt, b.inputs["Roughness"], scale=200, lo=0.85, hi=0.95)
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    nz = nt.nodes.new("ShaderNodeTexNoise")
+    nz.inputs["Scale"].default_value = 160
+    nz.inputs["Detail"].default_value = 10
+    nt.links.new(tc.outputs["Object"], nz.inputs["Vector"])
+    cr = nt.nodes.new("ShaderNodeValToRGB")
+    cr.color_ramp.elements[0].color = hexc(dark)
+    cr.color_ramp.elements[1].color = hexc(light)
+    nt.links.new(nz.outputs["Fac"], cr.inputs["Fac"])
+    nt.links.new(cr.outputs["Color"], b.inputs["Base Color"])
+    b.inputs["Sheen Weight"].default_value = 0.5
+    b.inputs["Specular IOR Level"].default_value = 0.2
+    lib._bump(nt, b, scale=1200, strength=0.3, detail=12)
+    return m
+
+
 def warm_board_light(power=0.85):
     even_light(power, warm=(1.0, 0.84, 0.64), world_strength=0.12)
 
@@ -166,9 +186,9 @@ def flash_frame():
     """The polished walnut frame round the screen, drawn as a CSS border image (40 px slices, transparent middle)."""
     setup(240, 240, scale=2.0)
     even_light(1.0)
-    rim = wood("ff_walnut", hexc("#7A4626"), hexc("#2E1608"), rough=0.3, scale=16, coat=0.9)
+    rim = wood("ff_walnut", hexc("#9A5C33"), hexc("#4A2614"), rough=0.3, scale=16, coat=0.9)  # Spotlight: a shade lighter
     outline(120, 120, 236, 236, 26, 30, 10, rim, z=0)
-    outline(120, 120, 180, 180, 10, 4, 6, satin("ff_lip", hexc("#170D07"), rough=0.6), z=0)
+    outline(120, 120, 180, 180, 10, 4, 6, satin("ff_lip", hexc("#2A170C"), rough=0.6), z=0)
     outline(120, 120, 186, 186, 12, 2.2, 10.5, champagne("ff_gold"), z=0)
 
 
@@ -178,7 +198,8 @@ def flash_frame():
 def ascend_board():
     setup(390, 600, transparent=False)
     warm_board_light(0.85)
-    cplane(195, 300, 420, 640, dark_wood("ab_walnut", "#3E220E", "#120702", scale=8), z=0)
+    # Spotlight (21 Nov 2026): green baize, not dark walnut, so the ivory counters read as a bright table.
+    cplane(195, 300, 420, 640, baize("ab_baize", "#0B5A2C", "#073F1E"), z=0)
 
 
 def _counter(face_fn, rim_fn, key):
@@ -192,11 +213,13 @@ def _counter(face_fn, rim_fn, key):
 
 
 def ascend_disc():
-    _counter(lambda: enamel("ad_onyx", hexc("#141110"), rough=0.22), lambda: brass("ad_brass"), "todo")
+    # Spotlight: an ivory body with navy numerals (drawn in code) on a darker ivory ledge; matte, no glare.
+    _counter(lambda: enamel("ad_ivory", hexc("#F1E9D6"), rough=0.4), lambda: satin("ad_ledge", hexc("#C9B48C"), rough=0.5), "todo")
 
 
 def ascend_disc_done():
-    _counter(lambda: enamel("add_gold", hexc("#E9A92E"), rough=0.3), lambda: metal("add_rim", hexc("#D9A441"), rough=0.16), "done")
+    # Spotlight: a reached counter is green (correct) on a darker green ledge.
+    _counter(lambda: enamel("add_green", hexc("#14A04A"), rough=0.4), lambda: satin("add_ledge", hexc("#0C6E30"), rough=0.5), "done")
 
 
 # --------------------------------------------------------------------------------------------- Chain
@@ -214,7 +237,8 @@ CHAIN_GEMS = {
 def chain_board():
     setup(390, 640, transparent=False)
     warm_board_light(0.8)
-    cplane(195, 320, 420, 680, dark_wood("cb_wood", "#38200C", "#0F0602", scale=9), z=0)
+    # Spotlight (21 Nov 2026): a lighter baize board, so the charms sit on a lit table.
+    cplane(195, 320, 420, 680, baize("cb_baize", "#167040", "#0E5530"), z=0)
 
 
 def _lighter(h, k):
@@ -269,7 +293,7 @@ def chain_charm(shape, colour):
 def bonk_lawn():
     """Dusk lawn, darker: a dense mown turf with soft stripes (no holes; burrows are their own sprite)."""
     setup(512, 512, transparent=False, seed=3)
-    even_light(0.7, warm=(1.0, 0.9, 0.78))
+    even_light(0.75, warm=(1.0, 0.93, 0.82))
     m, nt, b = lib._principled("bl_turf")
     lib._noise_into(nt, b.inputs["Roughness"], scale=200, lo=0.7, hi=0.9)
     tc = nt.nodes.new("ShaderNodeTexCoord")
@@ -278,8 +302,9 @@ def bonk_lawn():
     nz.inputs["Detail"].default_value = 12
     nt.links.new(tc.outputs["Object"], nz.inputs["Vector"])
     cr = nt.nodes.new("ShaderNodeValToRGB")
-    cr.color_ramp.elements[0].color = hexc("#13230F")
-    cr.color_ramp.elements[1].color = hexc("#2C4A1F")
+    # Spotlight (21 Nov 2026): a brighter green (was #13230F to #2C4A1F, a dusk lawn), still a lawn, not lime.
+    cr.color_ramp.elements[0].color = hexc("#1C3D12")
+    cr.color_ramp.elements[1].color = hexc("#386A24")
     nt.links.new(nz.outputs["Fac"], cr.inputs["Fac"])
     wv = nt.nodes.new("ShaderNodeTexWave")
     wv.wave_type = "BANDS"
@@ -391,17 +416,19 @@ def tenfall_board():
     """Four lanes in dark oiled wood (the sim's 360 x 520 world); rails between them, no glare."""
     setup(360, 520, transparent=False, seed=4)
     warm_board_light(0.85)
-    cplane(180, 260, 380, 540, dark_wood("tb_floor", "#3A210D", "#110702", scale=7, rot90=True), z=0)
-    rail = dark_wood("tb_rail", "#4A2D16", "#1E1006", scale=14, rot90=True)
+    # Spotlight (21 Nov 2026): lighter oak lanes (were dark oiled walnut), darker rails between them.
+    cplane(180, 260, 380, 540, dark_wood("tb_floor", "#74502E", "#4A2E16", scale=7, rot90=True), z=0)
+    rail = dark_wood("tb_rail", "#3A2410", "#1C0F05", scale=14, rot90=True)
     for col in (1, 2, 3):
         rbox(col * 90, 260, 6, 560, 4, rail, r=2, z=0, bevel=1.2)
     rbox(180, 3, 380, 6, 6, brass("tb_rail"), r=2, z=0, bevel=2.2)
 
 
+# Spotlight (21 Nov 2026): ivory digits, blue operators (the minus a deeper blue); the gold digit stays the special piece.
 TENFALL_TILES = {
-    "digit": "#EFE3CB",
-    "op": "#E3AE45",
-    "minus": "#5A82AD",
+    "digit": "#F3ECDC",
+    "op": "#1A5CC8",
+    "minus": "#103F94",
     "gold": "#F5BE38",
     "refused": "#C9483A",
 }
@@ -501,17 +528,17 @@ def pull_sky():
     rbox(180, 640, 400, 4, 4, post, r=1, z=4, bevel=0.8)
 
 
-def _clay(colour, rim, key):
+def _clay(colour, rim, key, coat=0.5, light=1.2):
     """A clay target seen in flight: the 2R x 1.1R ellipse footprint, a raised dome and ring, satin (no glint)."""
     setup(26, 14.3, scale=6.0, seed=12, tilt=56)
-    even_light(1.2)
-    body = enamel(f"pc_{key}", hexc(colour), rough=0.45, coat=0.5, coat_rough=0.12)
+    even_light(light)
+    body = enamel(f"pc_{key}", hexc(colour), rough=0.45, coat=coat, coat_rough=0.12)
     disc(13, 7.15, 13, 3.0, body, z=0, bevel=1.2, segs=5)
-    disc(13, 7.15, 8.2, 4.6, enamel(f"pc_{key}d", hexc(rim), rough=0.45, coat=0.5, coat_rough=0.12), z=0, bevel=1.4, segs=5)
+    disc(13, 7.15, 8.2, 4.6, enamel(f"pc_{key}d", hexc(rim), rough=0.45, coat=coat, coat_rough=0.12), z=0, bevel=1.4, segs=5)
 
 
 def pull_clay_orange():
-    _clay("#EE7428", "#F38A3E", "orange")
+    _clay("#F25C00", "#FF6C00", "orange", coat=0.12, light=0.7)  # Spotlight: a brighter orange, satin (was #EE7428, coat 0.5, light 1.2)
 
 
 def pull_clay_gold():
