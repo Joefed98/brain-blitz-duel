@@ -227,7 +227,7 @@ function TournamentsScreen({ soon }: { soon: boolean }) {
       title="Compete"
       headerAction={
         rated ? (
-          <Button variant="secondary" size={48} onClick={openTiers} data-compete-tiers>
+          <Button variant="secondary" size={44} onClick={openTiers} data-compete-tiers>
             Tiers
           </Button>
         ) : hub ? (

@@ -150,7 +150,7 @@ function ProfileScreen() {
       tabs="profile"
       title="You"
       headerAction={
-        <Button variant="secondary" size={48} data-open-settings onClick={() => push("/settings")}>
+        <Button variant="secondary" size={44} data-open-settings onClick={() => push("/settings")}>
           <Icon name="settings" size={20} /> Settings
         </Button>
       }
