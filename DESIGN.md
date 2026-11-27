@@ -118,7 +118,7 @@ line apart (`--jz-size-<role>`, `--jz-line-<role>`) for a rule that keeps its ow
 |---|---|---|---|---|
 | Display | 32 / 38 | 800 | 115 % | Win moment, page heroes |
 | Title | 24 / 30 | 800 | 115 % | Screen and page titles |
-| Heading | 20 / 26 | 800 | 115 % | Section and card titles |
+| Heading | 20 / 26 | 800 | 100 % | Section and card titles |
 | Body | 17 / 22 | 700 | 100 % | Buttons, row titles |
 | Label | 15 / 20 | 600 | 100 % | Secondary lines |
 | Caption | 13 / 18 | 600 | 100 % | Meta and counts |
@@ -127,8 +127,8 @@ Three faces sit on the same sizes: **scores** (`.jz-score-s` / `-m` / `-l` on th
 800, 120 %, always `tabular-nums`), the **countdown** (`.jz-countdown`: 900, 125 %, tabular; its size the caller's)
 and the **wordmark** (JOULZ, 900, 118 %, white, the gold bolt after it).
 
-**Archivo's width axis is a brand tool** (approved 27 Nov 2026): wide and heavy for titles, scores and countdowns,
-normal width for reading text. The widths are tokens: `--jz-width-title` 115 %, `--jz-width-score` 120 %,
+**Archivo's width axis is a brand tool** (approved 27 Nov 2026): wide and heavy for display and title text, scores
+and countdowns; normal width for headings (so a card's title fits its card) and reading text. The widths are tokens: `--jz-width-title` 115 %, `--jz-width-score` 120 %,
 `--jz-width-countdown` 125 %, `--jz-width-wordmark` 118 %, `--jz-width-body` 100 %. A `font:` shorthand resets the
 width, so `font-stretch` comes after it.
 
